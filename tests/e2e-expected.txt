@@ -2806,3 +2806,19 @@
 # accept (the exception is needed: the recursor's value is data read
 # off the constructor the major reduces to).
 0 acc_major_reduce.ndjson
+# spine_arg_order.ndjson (openai/math completeness run, 2026-10-10;
+# real instance OAI.MeanPayoff.DetRealizer.total_formula):
+# `2*(x+5000000)+1+1 = 2*(x+5000000)+2` by rfl.  The lazy-delta same-head
+# shortcut (`defeqSpine`) compares arguments first-to-last; official
+# `is_def_eq_args` compares last-to-first, fails `1 =?= 2` at once and
+# unfolds.  con-leche decides `M+1 =?= M` by unary succ descent and dies
+# of checkFuel (exit 3).  Official accepts.  TARGET 0.
+3 spine_arg_order.ndjson
+# natmul_deep_major.ndjson (openai/math completeness run, 2026-10-10;
+# real instances OAI.SourceBurnside.RawNumberPrep.seed_run and
+# OAI.ExactDerandomization.Vessel.Basket.Sack.Ground.advances._proof_1_2):
+# ι on `List.replicate (W*200033) false` whnfs its major, a 200033-deep
+# whnf/reduceNat first-argument recursion that official also performs
+# (native stack) and accepts; con-leche's checkFuel (100000 knot levels)
+# is exhausted (exit 3).  TARGET 0.
+3 natmul_deep_major.ndjson
