@@ -80,9 +80,9 @@ theorem bvarsBelow_andChainAV : ∀ {eqs : List AnnotTerm} {n : Nat},
       (bvarsBelow_andChainAV fun e' he' => h e' (.tail _ he'))
 
 omit [SetTheory V] in
-theorem bvarsBelow_sigAV {s : Nat} {T rest : AnnotTerm} {n : Nat}
+theorem bvarsBelow_sigAV {s v : Nat} {T rest : AnnotTerm} {n : Nat}
     (hT : Term.bvarsBelow n T.erase) (hr : Term.bvarsBelow (n + 1) rest.erase) :
-    Term.bvarsBelow n (sigAV s T rest).erase := ⟨⟨trivial, hT⟩, hT, hr⟩
+    Term.bvarsBelow n (sigAV s v T rest).erase := ⟨⟨trivial, hT⟩, hT, hr⟩
 
 omit [SetTheory V] in
 /-- A Σ'-chain over CLOSED component types is bounded wherever its
@@ -200,9 +200,9 @@ theorem annotValid_sigChainAV_go {s : Nat} {ρ : Nat → V} {K : Nat} (RecTy : N
     have hTp : AnnotValid V (consList pre ρ) ((RecTy pre.length).liftN pre.length 0) :=
       (annotValid_liftN_consList (RecTy pre.length) pre ρ).mpr (hT pre.length (by omega))
     show AnnotValid V (consList pre ρ)
-      (sigAV s ((RecTy pre.length).liftN pre.length 0) _)
-    show AnnotValid V (consList pre ρ) (AnnotTerm.app (.app (.const .psigma [s, s]) _)
-      (.lam (s + 1) _ _))
+      (sigAV s _ ((RecTy pre.length).liftN pre.length 0) _)
+    show AnnotValid V (consList pre ρ) (AnnotTerm.app (.app (.const .psigma [s, _]) _)
+      (.lam _ _ _))
     rw [AnnotValid_app, AnnotValid_app, AnnotValid_lam]
     refine ⟨⟨trivial, hTp⟩, hTp, fun r hr => ?_⟩
     rw [interp_liftN_consList] at hr

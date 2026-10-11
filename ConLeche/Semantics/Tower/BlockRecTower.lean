@@ -228,15 +228,28 @@ theorem pt_mem_mkPisAV_eqE_iff :
 
 /-! ## The Σ'-chain -/
 
-/-- `Σ' (r : T), rest` at sort `s` (the rest at sort `s` too). -/
-def sigAV (s : Nat) (T rest : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [s, s]) [T, .lam (s + 1) T rest]
+/-- `Σ' (r : T), rest` with `T` at sort `s` and the rest at sort `v`. -/
+def sigAV (s v : Nat) (T rest : AnnotTerm) : AnnotTerm :=
+  AnnotTerm.mkAppN (.const .psigma [s, v]) [T, .lam (v + 1) T rest]
+
+/-- The sort of a chain's tail: the proposition `Q` (`0`) at the last
+link, the remaining chain (`s`) before it.  Spelling the last link's
+fibre at `Prop` rather than at `s` keeps the truth value `Q` out of
+`Sort s` (task #342: no cumulative use of a proposition as a type). -/
+def tailLv (s : Nat) : List AnnotTerm → Nat
+  | [] => 0
+  | _ :: _ => s
+
+theorem max_tailLv (s : Nat) (Ts : List AnnotTerm) : Nat.max s (tailLv s Ts) = s := by
+  cases Ts with
+  | nil => exact Nat.max_zero s
+  | cons _ _ => exact Nat.max_self s
 
 /-- **The chain** `Σ' (r₀ : T₀) … (r_{k-1} : T_{k-1}), Q`; `Ts[i]` sits
 under the `i` earlier binders. -/
 def sigChainAV (s : Nat) : List AnnotTerm → AnnotTerm → AnnotTerm
   | [], Q => Q
-  | T :: Ts, Q => sigAV s T (sigChainAV s Ts Q)
+  | T :: Ts, Q => sigAV s (tailLv s Ts) T (sigChainAV s Ts Q)
 
 /-- The `i`-th component of a chain element: `fst (snd^i e)`. -/
 def projChainAV : Nat → AnnotTerm → AnnotTerm
@@ -289,12 +302,29 @@ theorem sigChainV_univ :
     have := sigma_mem_univ h.1 (fun r hr => sigChainV_univ (h.2.2 r hr))
     rwa [natMax_self] at this
 
+/-- The chain's tail lives at its own sort `tailLv`. -/
+theorem sigChainV_tail_univ :
+    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
+      sigChainV s ρ Ts Q ∈ˢ (univ (tailLv s Ts) : V)
+  | _, [], _, h => by
+    show interp V _ _ ∈ˢ _
+    rw [tailLv, univ_zero]; exact h.1
+  | _, _ :: _, _, h => sigChainV_univ h
+
+/-- The pair former's product membership at `[u, v]`. -/
+theorem psigmaV_uv_mem (u v : Nat) :
+    psigmaV V u v ∈ˢ piR (Nat.max u v + 1) (univ u : V)
+      (fun A => piR (Nat.max u v + 1) (psigmaFibreSpace V v A)
+        fun _ => (univ (Nat.max u v) : V)) :=
+  lamR_mem fun _ hA => lamR_mem fun _ hB =>
+    sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
+
 /-- The chain's fibre λ. -/
 theorem sigChain_lam_mem {ρ : Nat → V} {T : AnnotTerm} {Ts : List AnnotTerm} {Q : AnnotTerm}
     (h : ChainOk s ρ (T :: Ts) Q) :
-    (lamR (s + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
-      ∈ˢ psigmaFibreSpace V s (interp V ρ T) :=
-  lamR_mem fun r hr => sigChainV_univ (h.2.2 r hr)
+    (lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
+      ∈ˢ psigmaFibreSpace V (tailLv s Ts) (interp V ρ T) :=
+  lamR_mem fun r hr => sigChainV_tail_univ (h.2.2 r hr)
 
 /-- **The chain reads as the nested pair set.** -/
 theorem interp_sigChainAV :
@@ -302,14 +332,14 @@ theorem interp_sigChainAV :
       interp V ρ (sigChainAV s Ts Q) = sigChainV s ρ Ts Q
   | _, [], _, _ => rfl
   | ρ, T :: Ts, Q, h => by
-    have hlam : interp V ρ (.lam (s + 1) T (sigChainAV s Ts Q))
-        = lamR (s + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
+    have hlam : interp V ρ (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q))
+        = lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
       rw [interp_lam]
       exact lamR_congr fun r hr => interp_sigChainAV (h.2.2 r hr)
-    show SetTheory.app (SetTheory.app (psigmaV V s s) (interp V ρ T))
-      (interp V ρ (.lam (s + 1) T (sigChainAV s Ts Q))) = _
-    rw [hlam, psigmaV_app V h.1 (sigChain_lam_mem h), natMax_self]
-    exact sigma_congr fun r hr => app_lamR_pos (Nat.succ_ne_zero s) hr
+    show SetTheory.app (SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T))
+      (interp V ρ (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q))) = _
+    rw [hlam, psigmaV_app V h.1 (sigChain_lam_mem h), max_tailLv]
+    exact sigma_congr fun r hr => app_lamR_pos (Nat.succ_ne_zero _) hr
 
 /-- **The chain is graded.** -/
 theorem wd_sigChainAV :
@@ -317,26 +347,27 @@ theorem wd_sigChainAV :
       WellDenoted V ρ (sigChainAV s Ts Q)
   | _, [], _, h => h.2
   | ρ, T :: Ts, Q, h => by
-    have hps := psigmaV_rr_mem (V := V) s
-    show WellDenoted V ρ (.app (.app (.const .psigma [s, s]) T) (.lam (s + 1) T (sigChainAV s Ts Q)))
+    have hps := psigmaV_uv_mem (V := V) s (tailLv s Ts)
+    show WellDenoted V ρ (.app (.app (.const .psigma [s, tailLv s Ts]) T)
+      (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q)))
     rw [WellDenoted_app]
-    refine ⟨?_, ?_, s + 1, psigmaFibreSpace V s (interp V ρ T), fun _ => (univ s : V), ?_, ?_,
+    refine ⟨?_, ?_, Nat.max s (tailLv s Ts) + 1, psigmaFibreSpace V (tailLv s Ts) (interp V ρ T),
+      fun _ => (univ (Nat.max s (tailLv s Ts)) : V), ?_, ?_,
       fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
     · rw [WellDenoted_app]
-      exact ⟨trivial, h.2.1, s + 1, univ s,
-        fun A => piR (s + 1) (psigmaFibreSpace V s A) fun _ => (univ s : V), hps, h.1,
+      exact ⟨trivial, h.2.1, Nat.max s (tailLv s Ts) + 1, univ s, _, hps, h.1,
         fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
     · rw [WellDenoted_lam]
-      refine ⟨h.2.1, fun r hr => wd_sigChainAV (h.2.2 r hr), fun _ => (univ s : V), fun r hr => ?_,
-        fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
+      refine ⟨h.2.1, fun r hr => wd_sigChainAV (h.2.2 r hr), fun _ => (univ (tailLv s Ts) : V),
+        fun r hr => ?_, fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
       rw [interp_sigChainAV (h.2.2 r hr)]
-      exact sigChainV_univ (h.2.2 r hr)
-    · show SetTheory.app (psigmaV V s s) (interp V ρ T) ∈ˢ _
+      exact sigChainV_tail_univ (h.2.2 r hr)
+    · show SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T) ∈ˢ _
       exact app_mem_piR_pos (Nat.succ_ne_zero _) hps h.1
     · rw [interp_lam]
       exact lamR_mem fun r hr => by
         rw [interp_sigChainAV (h.2.2 r hr)]
-        exact sigChainV_univ (h.2.2 r hr)
+        exact sigChainV_tail_univ (h.2.2 r hr)
 
 /-- A fitting spine satisfying `Q` inhabits the chain. -/
 theorem sigChainV_inhabited :
@@ -406,9 +437,9 @@ theorem wd_projChainAV :
   | 0, e, ρ, ρ', T :: Ts, Q, h, hx, hwe, _ => by
     show WellDenoted V ρ (.fst e)
     rw [WellDenoted_fst]
-    refine ⟨hwe, s, s, interp V ρ' T, fun r => sigChainV s (cons r ρ') Ts Q, ?_, h.1,
-      fun r hr => sigChainV_univ (h.2.2 r hr)⟩
-    rw [natMax_self]; exact hx
+    refine ⟨hwe, s, tailLv s Ts, interp V ρ' T, fun r => sigChainV s (cons r ρ') Ts Q, ?_, h.1,
+      fun r hr => sigChainV_tail_univ (h.2.2 r hr)⟩
+    rw [max_tailLv]; exact hx
   | i + 1, e, ρ, ρ', T :: Ts, Q, h, hx, hwe, hi => by
     show WellDenoted V ρ (projChainAV i (.snd e))
     obtain ⟨a, e', ha, he', hz, hpos⟩ := mem_sigma_elim hx
@@ -423,9 +454,9 @@ theorem wd_projChainAV :
       rw [hsnd]; exact he'
     · show WellDenoted V ρ (.snd e)
       rw [WellDenoted_snd]
-      refine ⟨hwe, s, s, interp V ρ' T, fun r => sigChainV s (cons r ρ') Ts Q, ?_, h.1,
-        fun r hr => sigChainV_univ (h.2.2 r hr)⟩
-      rw [natMax_self]; exact hx
+      refine ⟨hwe, s, tailLv s Ts, interp V ρ' T, fun r => sigChainV s (cons r ρ') Ts Q, ?_, h.1,
+        fun r hr => sigChainV_tail_univ (h.2.2 r hr)⟩
+      rw [max_tailLv]; exact hx
 
 /-- **The chosen element**: its value and grading, at an inhabited chain. -/
 theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
