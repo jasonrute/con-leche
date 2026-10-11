@@ -100516,3 +100516,81 @@ Landed on `port-342` at this record's commit. Next: stage 1a's lanes
 `univ` and the handful of corollaries just below it, and is the first
 to find out whether any `univ`-routed site above actually needs the
 extra strictness argument the design promises it gets "for free".
+
+## TASK #342 — L1-PT-QUOT: the point laws, the restricted universes, tagged `Quot` classes (2026-10-11, agent/342-l1-pt-quot)
+
+Stage 1a, lane L1 of the real-checker port (design `_tmp/342-design.md`
+§2.1). This is a pure strengthening: the checker, every existing
+statement and the meaning of `univ` are unchanged.
+
+**The point laws are theorems** (design §2.1 table). `pt = {ptTag}` is
+kept.
+- `pt_not_mem_univZero` moved from `Semantics/Univ.lean` down to
+  `SetTheory/Derive/Pt.lean`; its one caller, `Model/AxiomMem.lean`, is
+  requalified.
+- At most one member: `eq_of_mem_pt`.
+- No tagged value is a member: `kpair_not_mem_pt`.
+- The point is not tagged: `pt_ne_kpair` (already there).
+- No graph is a member: `graph_not_mem_pt` (`Derive/Graphs.lean`).
+- `pt_not_mem_omega` (`Derive/TypeU.lean`).
+
+**The restricted universes** (`Derive/TypeU.lean`, new). `Strict`,
+`IsTy`, `Fib`, and `typeU n := if n = 0 then tg 0 else sep (tg n)
+Strict`, with the fragment's lemmas:
+- `mem_typeU_zero`/`_pos`/`_of`, `IsTy_of_mem_typeU`,
+  `Fib_of_mem_typeU`, `IsTy.ne_pt`, `Fib.ne_pt`, `ne_pt_of_mem_strict`,
+  `IsTy.eq_of_ne_pt`;
+- `strict_typeU`, `typeU_mem_typeU_succ`;
+- the strict carriers available at this level: `strict_empty`,
+  `strict_univZero`, `strict_omega`, `strict_piSet`,
+  `strict_sigmaPairs`, and `strict_of_kpairs` (every member a pair).
+
+The zero regime is stated with `univZero`, which is `tg 0`, `typeU 0`
+and `univ 0` before and after the flip. `typeU` is irreducible, and
+`Fib`/`IsTy`/`Strict` are plain `def`s. Nothing reads `typeU` yet.
+
+**Shaped for 1b's flip (ruling R2).** L0's `Derive/Univ.lean` is split
+in three:
+- `Derive/Tg.lean`: the axiomatic chain, moved verbatim;
+- `Derive/TypeU.lean`, built over `tg`;
+- `Derive/Univ.lean`: only the `univ` alias and its nine corollaries.
+  It already `public import`s `TypeU`, so stage 1b writes
+  `univ := typeU` there and re-proves the corollaries, without moving
+  any file. Shake proposes demoting that import to `Tg` (compensated
+  in `Quot`, `LfpFam`, `Sigma`), so it is on `tests/shake-allowlist.txt`
+  with that reason; the stale `Univ → Graphs` line is gone.
+- The piR-level twins (`IsTy_piR`, `Fib_piR`, `piR_mem_typeU`) need
+  `SetModel/Ops` and are left for 1b's `Semantics/Univ.lean` (design
+  §2.3).
+
+**Item A, `Quot`.** At `u ≠ 0` a class is `kpair ∅ (qclass A R a)`, and
+`quotSet` is the image of that.
+- New: `quotClass_ne_pt` (`u ≠ 0`), `strict_quotSet` (`u ≠ 0`), and
+  `quotSet_ne_pt` (every `u`: at `0` the quotient is a truth value).
+- The old `quotSet_eq_pt_countermodel` keeps its lesson as
+  `untagged_quotSet_eq_pt_countermodel`: the *untagged* class set
+  `image (qclass A R) A` is `pt` at `A = ptTag`. The section's "never
+  resurrect `quotSet_ne_pt`" warning is replaced by the reason it now
+  holds.
+
+**Deviation from the design: `BasisQuot.lean` needed no re-proof.**
+The design estimated about 2.5 k lines of re-proofs via `kpair_inj`.
+In fact every consumer reads the class encoding only through the API
+of `quotSet`/`quotClass`/`qrep`, which are `@[irreducible]`:
+`quotClass_mem`, `quotClass_surj`, `quotClass_of_mem_quotSet`,
+`quotSound`, `app_eq_of_quotClass_eq`, `qrep_spec` and
+`quotSet_mem_univ`. Only four of those proofs in `Derive/Quot.lean`
+changed (`kpair_inj` at two of them). `Model/BasisQuot.lean`,
+`SetModel/Value.lean`, `Semantics/BasisOk.lean` and
+`Model/BasisTypeOk.lean` are untouched.
+
+**For 1b.**
+- `strict_quotSet` is the fibre fact `quotV`'s `typeU` domain needs.
+- `quotSet_mem_univ` will need a `typeU` twin: `quotSet_mem_tg` plus
+  `strict_quotSet` above 0, and a truth value at 0.
+- `relSpace` is `piR (max u 1) …`, a graph space and therefore
+  already strict.
+- `Derive/Univ.lean`'s corollaries `univ_isTGUniverse`, `univ_mono`
+  and `univ_subset_succ` do not hold for `typeU` (it is not transitive,
+  and not cumulative from 0 to 1, since `{pt} ∉ typeU 1`). Their
+  callers are 1b's real work list.
