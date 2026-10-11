@@ -100594,3 +100594,109 @@ changed (`kpair_inj` at two of them). `Model/BasisQuot.lean`,
   and `univ_subset_succ` do not hold for `typeU` (it is not transitive,
   and not cumulative from 0 to 1, since `{pt} ∉ typeU 1`). Their
   callers are 1b's real work list.
+
+## TASK #342 — L2-STRICT-CARRIERS: level-indexed `PUnit`, the `{∅}`/`∅` terminator, and the cumulative uses of `Prop` (2026-10-11, agent/342-l2-strict-carriers)
+
+Lane L2 of stage 1a (`_tmp/342-design.md` §2.1, items B and C and
+"cumulativity in the spelled carriers"). A pure strengthening: the
+checker and every statement are unchanged.
+
+**B, `PUnit`.** `SetTheory/Derive/Sigma.lean` gains `unitSetAt w`
+(`{pt}` at `0`, `{∅}` above) and `unitAt w` (`pt`, resp. `∅`), with
+`mem_unitSetAt_iff`, `unitSetAt_mem_univ`, `empty_ne_kpair`,
+`sfst_empty`/`ssnd_empty`. `bval .punit us = unitSetAt (lv us 0)`,
+`bval .punitUnit us = unitAt (lv us 0)`; `bval_mem_punit(Unit)` follow.
+At a positive level the unit is neither the point nor contains it.
+
+**C, the terminator.** `towerSet _ nil = unitSetAt w`,
+`ndTowerSet r _ _ 0 = unitSetAt r`; `mkTower [] = ∅` and
+`ndMkTowerSet _ _ 0 = ∅` (the tuplers are read only in the graph
+regime; a squash member is `pt` outright). The spelled terminators
+are `PUnit.{w}` / `PUnit.unit.{w}` (`towerBodyAVPos`, `mkTowerGoPos`,
+`mkTowerGoUPos`, `SumKit`'s mirror) — previously `PUnit.{w+1}` and
+`PUnit.unit.{0}`, which only typechecked semantically because the old
+unit was level-blind — and the squash body's empty chain is
+`PUnit.{0}` (was `.punit [1]`). `ndMkTowerAV`'s terminator was already
+`PUnit.unit.{r}`. `projS_pt` needed no change: `projS i ∅ = pt` by the
+non-pair default, as at `pt`. `BasisLfp.idxSet_nil` is now stated at
+index level `0`, the only level it is used at.
+
+**The `injNePt` guard (§4.3).** `LfpClause.injNePt` drops its
+`(D.params ψ).length ≠ 0` premise. Establishers: uniform blocks
+unchanged (tagged pairs); `lfp0_clause` takes the fact as a new
+premise; `emptyLfp`'s (never applied) injection is `unitAt w`; `Nat`'s
+are `∅` and successors (`vsucc_ne_pt`: `∅ ∈ ptTag`). `ContAcc`'s
+type-regime case no longer splits on the container's parameters.
+
+**The cumulative uses of `Prop` at `Sort w`, complete list** (every
+`univ_mono` in `Semantics`/`Model`/`SetModel` and every spelled
+`.psigma`/`.psigmaMk`/`.choice`/`.punit` level was read):
+
+1. *Declared constructor fields*, spelled `psigma.{w,w}` /
+   `psigmaMk.{w,w}` with the field as first argument:
+   `towerBodyAVPos`, `mkTowerGoPos`, `mkTowerGoUPos` (TowerKit,
+   SumTower), and their bound `FieldsBound w`/`FieldsOkB w`, discharged
+   by `univ_mono` in `SumKit.ctorFramesGen` (the declared fields, sorts
+   from `checkSumCtor`) and `FixKit.teleBound_walk` (the hole-context
+   fields, sorts from `checkAbsCtorSorts`). **Not fixed** — see below.
+2. *The index-equation proof field* `idxEqAV`, last in every chain
+   `Fs ++ [idxEqAV eqs]` (`rChain`), placed in `univ w` by
+   `truthVal_mem_univ`/`idxEqAV_mem_univ` (`SumTower`). Statically a
+   proposition, but its spelling goes through the same list-uniform
+   `towerBodyAVPos`/`mkTowerGoUPos`, so it is fixed together with 1.
+3. *Index telescopes*: `idxTyAV u Ids = towerBodyAV u Ids` at
+   `u = idxUniv ψ isorts` (the max of the index sorts), each index
+   domain raised by `univ_mono` (`FixKit.idxOk_of`, line 113). A
+   proof-typed index is a cumulative use. The per-index sorts are
+   recorded (`checkBlockIdxSorts`' `isorts`).
+4. *The recursors' chosen tuple*: `Σ' (r₀ : T₀) …, Q` with the
+   ι-equation conjunction `Q` as the last fibre of `psigma.{s,s}`
+   (`BlockRecTower.sigChainV_univ`). **Fixed here**: the last link is
+   `psigma.{s,0}` (`tailLv`), the projections' `fst`/`snd` witnesses
+   read each tail at its own sort. What remains is the `K = 0` chain
+   (`choice.{s} Q`), which no block reaches (every block has a
+   recursor).
+5. *The recursor family's level* `s ψ = maxLevelEval us ψ`
+   (`BlockRecPreRun.exists_uniform_univ`), each recursor type raised
+   to the max. Positive-only as long as the recursor types' sorts are
+   all `0` or all positive — true (they all end in `motive … : Sort u`,
+   so each is `imax … u`), but the run's existential `us` does not
+   expose it; 1b needs that fact.
+6. Positive-to-positive only (survive restriction, `typeU m ⊆ typeU n`
+   for `1 ≤ m ≤ n`): `natAV` in the sum carrier (`psigma.{w,w} Nat`),
+   the `lfpTuple` index-set and family towers (`Value.lean:517`,
+   `BasisOk.lean:473`, `BlockTower.lean:398/404`), `piR_mem_univ`'s
+   domain (a set-level lemma, not a spelling).
+
+**The finding (not foreseen by the design): the per-field sorts are
+not available where item 1 needs them.** The design assumed
+`Model/Inductives` "sees only the spelled level list". It has to
+*supply* it, and:
+- Amendment 1 dropped the domain-sort datum: `denoteMeta` fills
+  `AnnotTerm.pi`'s `u`-slot with `0` (`Model/Annot/Bit.lean`), so a
+  field's sort cannot be read off the annotated constructor type.
+- The block former's leaf (`blockTyG`) spells the operator over the
+  *hole-context* field readings (`absF`), whose bound comes from
+  `checkAbsCtorSorts`, which runs `checkStructFieldSortsI` and
+  **discards** the levels (`let _ ← …`, `Kernel/Inductives/BlockInstall.lean`).
+  `blockCtorHoleGrade_of_walk` has them only existentially.
+- The constructor leaves' declared-field sorts *are* returned
+  (`checkBlockCtors`' `sortsss`), and the index sorts too (`isorts`).
+
+So the operator's chains cannot be re-spelled with `psigma.{uᵢ,w}`
+without one of: (a) the checker keeping `checkAbsCtorSorts`' levels in
+its recorded output (behaviour-neutral, but a checker change, which
+stage 1a excludes); (b) the model defining the levels as the
+deterministic output of that run and proving it equal to the
+existential; (c) a classical per-field level in the leaf data — `0` if
+every reading of the field at every hole frame is a truth value, `w`
+otherwise — which needs no run data at 1a and, at 1b, the run's sort
+(a non-`Prop` field then has a positive sort, so its readings are in
+`typeU w` by positive cumulativity). This lane stops here and asks for
+the ruling; the spelling mechanism (a per-field level list threaded
+through `towerBodyAVPos`/`mkTowerGo*`/`FieldsBound`) depends on which
+data representation is chosen.
+
+**Gates:** `lake build` (warning-free), `lake test` (warning-free),
+`tests/arena.sh`, `tests/challenge.sh`. No `sorry`, no new axiom; no
+statement-half change, no checker change.

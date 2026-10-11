@@ -3341,21 +3341,21 @@
     62        ∀ X', InTupleSpace w kI IsI X' → (∀ a, a ∈ˢ B → InTup kI IsI X' (g a)) →
     63          x ∈ˢ app (Φ X' m) i
 
-== ConLeche/Model/Annot/BlockLfp.lean#L455-L459
-   455  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
-   456  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
-   457      (hsat : Sat V (D.params ψ).reverse ρp) :
-   458      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
-   459    (h.acc ψ ρp hsat).mono
+== ConLeche/Model/Annot/BlockLfp.lean#L454-L458
+   454  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
+   455  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
+   456      (hsat : Sat V (D.params ψ).reverse ρp) :
+   457      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
+   458    (h.acc ψ ρp hsat).mono
 
-== ConLeche/Model/Annot/BlockLfp.lean#L395-L401
-   395    /-- **the constructors' fields are small** at a `Type`-valued block, at
-   396    every hole frame of the tuple space (the frame walk of a container reads its constructors' fields along the
-   397    accessibility relation, which supports small elements only — the
-   398    install's own `FieldsOkB`, recorded) -/
-   399    fieldsOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp → D.w ψ ≠ 0 →
-   400      ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
-   401        FieldsOkB (D.w ψ) (D.frame ψ ρp X) (D.fields ψ c j)
+== ConLeche/Model/Annot/BlockLfp.lean#L394-L400
+   394    /-- **the constructors' fields are small** at a `Type`-valued block, at
+   395    every hole frame of the tuple space (the frame walk of a container reads its constructors' fields along the
+   396    accessibility relation, which supports small elements only — the
+   397    install's own `FieldsOkB`, recorded) -/
+   398    fieldsOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp → D.w ψ ≠ 0 →
+   399      ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
+   400        FieldsOkB (D.w ψ) (D.frame ψ ρp X) (D.fields ψ c j)
 
 == whitepaper/Fragment/LfpSet.lean#L64-L67
     64  /-- A **closed family** of `Φ`: in the universe, and a pre-fixed point.
@@ -3624,12 +3624,12 @@
    301    · obtain ⟨A, hA, hacc⟩ := h
    302      exact closed_of_acc hw (hA hw) hmaps hacc
 
-== ConLeche/Model/Annot/BlockLfp.lean#L455-L459
-   455  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
-   456  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
-   457      (hsat : Sat V (D.params ψ).reverse ρp) :
-   458      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
-   459    (h.acc ψ ρp hsat).mono
+== ConLeche/Model/Annot/BlockLfp.lean#L454-L458
+   454  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
+   455  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
+   456      (hsat : Sat V (D.params ψ).reverse ρp) :
+   457      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
+   458    (h.acc ψ ρp hsat).mono
 
 == ConLeche/Model/Annot/BlockLfp.lean#L346-L351
    346    /-- **what `Φ` is**: component `c`'s fibre at `(X, t)` is the set of
@@ -3644,17 +3644,17 @@
    180  @[expose] noncomputable def carrier (ψ : Name → Nat) (ρp : Nat → V) : Nat → V :=
    181    lfpTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)
 
-== ConLeche/Model/Annot/BlockLfp.lean#L461-L464
-   461  /-- **The carrier is a fixed point**, componentwise. -/
-   462  theorem carrier_eq (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
-   463      (hsat : Sat V (D.params ψ).reverse ρp) {c : Nat} (hc : c < D.N) :
-   464      D.Φ ψ ρp (D.carrier ψ ρp) c = D.carrier ψ ρp c :=
+== ConLeche/Model/Annot/BlockLfp.lean#L460-L463
+   460  /-- **The carrier is a fixed point**, componentwise. -/
+   461  theorem carrier_eq (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
+   462      (hsat : Sat V (D.params ψ).reverse ρp) {c : Nat} (hc : c < D.N) :
+   463      D.Φ ψ ρp (D.carrier ψ ρp) c = D.carrier ψ ρp c :=
 
 == ConLeche/SetModel/TaggedSum.lean#L65
     65  noncomputable def inj (i : Nat) (a : V) : V := spair (vnat i) a
 
-== ConLeche/SetModel/TupleTower.lean#L87
-    87  noncomputable def mkTower : List V → V
+== ConLeche/SetModel/TupleTower.lean#L93
+    93  noncomputable def mkTower : List V → V
 
 == ConLeche/SetModel/TaggedSum.lean#L61-L62
     61  noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
@@ -4803,7 +4803,7 @@
     51  | Π, hole-free domain, `v = 0`, `w = 0` | `AccOn.pi0` | `piBound` | — |
     52  | a hole at hole-free arguments | `AccOn.holeApp` | `{pt}` | `TypeReg.holeApp` |
 
-== ConLeche/Model/Inductives/ContAcc.lean#L15-L35
+== ConLeche/Model/Inductives/ContAcc.lean#L15-L33
     15  /-!
     16  # A container instance is accessible
     17  
@@ -4822,9 +4822,7 @@
     30  
     31  The TYPE REGIME of a container instance: the container lives at the
     32  block's level (`n2_sort`, the kernel's N3), so a truth-valued fibre of a
-    33  parameterised container is empty (`LfpClause.injNePt`); a container
-    34  without parameters reads no hole.
-    35  -/
+    33  container is empty (`LfpClause.injNePt`).
 
 == ConLeche/SetModel/Access.lean#L529-L539
    529  /-- **THE NESTED CASE: the least tuple is accessible in its parameter.**
