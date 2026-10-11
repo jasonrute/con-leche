@@ -17,8 +17,15 @@ variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
 * `DefEq env Γ a b` — **definitional equality**, the checker's verdict
   `true`: `refl`, `symm`, reduce-the-left-side, sorts by the level
   oracle, constants, congruence for `app`/`lam`/`pi`, η, proof
-  irrelevance; λ-congruence and η compare the bodies' types.  **No
-  `trans`** — see the docstring of `DefEq`.
+  irrelevance; λ-congruence and η compare the bodies' types, except
+  where the bodies' point-ness cannot vary with the variable (a
+  propositional domain, bodies that do not use it) or the two sides
+  are compared at a known type (`appIn`).  **No `trans`** — see the
+  docstring of `DefEq`.
+* `DefEqIn env Γ T a b` — **comparison at a known type** `T` (task
+  #345): the arguments of an application whose head's type the
+  checker has; λ-congruence and η there need neither the bodies'
+  types nor the domains' comparison.
 * `Infer env Γ e T` — **type inference**, one grade, Lean's rules.
 
 The terms carry no binder annotations (task #344), so no rule reads
@@ -275,6 +282,40 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
+  /-- **λ-congruence over a propositional domain** (task #345): no
+  comparison of the bodies' types.  The domain is a truth value, so it
+  has at most one member, and a body's point-ness cannot vary with
+  the variable: a λ that is not the point has its one body value not
+  the point, and the bodies' claim applies there (`Sound.lean`,
+  `DefEq.lamProp_sound`).  The checker infers the domain's sort, not
+  the bodies' types. -/
+  | lamProp {Γ : List Expr} {A₁ b₁ A₂ b₂ s : Expr} {u : Level} :
+      DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
+      Infer env Γ A₂ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
+      DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
+  /-- **λ-congruence of two constant bodies** (task #345): neither body
+  uses the bound variable, so each body's value, and its point-ness,
+  is the same at every value of the variable; a λ that is not the
+  point has a body that is not the point anywhere (`Sound.lean`,
+  `DefEq.lamConst_sound`).  One constant body is not enough: the right
+  body of `lam_congr_untyped_unsound` is the constant `n`. -/
+  | lamConst {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} :
+      DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
+      b₁.usesVar 0 = false → b₂.usesVar 0 = false →
+      DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
+  /-- **Application congruence at the head's type** (task #345): the
+  heads are equal and the head's type reduces to a `∀` whose domain
+  `S` is the arguments' common type, so the arguments are compared
+  *at* `S` (`DefEqIn`) — λ-congruence and η between them need neither
+  the bodies' types nor a domain comparison (`Sound.lean`,
+  `DefEq.appIn_sound`).  The checker has the head's type for free when
+  the head is a constant or a variable (con-leche's arguments of a
+  constant-headed spine: the stored type instantiated along the
+  earlier arguments). -/
+  | appIn {Γ : List Expr} {f₁ a₁ f₂ a₂ tf S B : Expr} :
+      DefEq env Γ f₁ f₂ → Infer env Γ f₁ tf → Red env Γ tf (pi S B) →
+      DefEqIn env Γ S a₁ a₂ →
+      DefEq env Γ (app f₁ a₁) (app f₂ a₂)
   /-- Application congruence (`DefEq.app`, `Rel.lean:390`). -/
   | app {Γ : List Expr} {f₁ a₁ f₂ a₂ : Expr} :
       DefEq env Γ f₁ f₂ → DefEq env Γ a₁ a₂ →
@@ -303,6 +344,29 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ b tb → Infer env Γ tb ttb → Red env Γ ttb (sort v) →
       LevelOracle.eq v .zero = true →
       DefEq env Γ a b
+
+/-- **Comparison at a known type** (task #345): `a` and `b` are both
+members of `T` — the caller knows it, the relation does not check it —
+and the checker calls them definitionally equal.  Its claim is
+unconditional (`DefEqInSem`): a type's members are all the point or
+none, so the point needs no exception.  A λ against a λ, or against
+anything by η, is compared through the `∀` the type reduces to, at
+its body: the λs' domains are that `∀`'s (a graph in a function space
+has its domain), and the bodies lie in its fibres — no inference, no
+comparison of domains or of bodies' types. -/
+inductive DefEqIn (env : Env) : List Expr → Expr → Expr → Expr → Prop where
+  /-- Any definitional equality, read at the common type. -/
+  | of {Γ : List Expr} {T a b : Expr} : DefEq env Γ a b → DefEqIn env Γ T a b
+  /-- Symmetry. -/
+  | symm {Γ : List Expr} {T a b : Expr} : DefEqIn env Γ T a b → DefEqIn env Γ T b a
+  /-- λ-congruence at a `∀`: the bodies at its body. -/
+  | lam {Γ : List Expr} {T D E A₁ b₁ A₂ b₂ : Expr} :
+      Red env Γ T (pi D E) → DefEqIn env (A₂ :: Γ) E b₁ b₂ →
+      DefEqIn env Γ T (lam A₁ b₁) (lam A₂ b₂)
+  /-- η at a `∀`: the λ's body against `b` applied, at its body. -/
+  | eta {Γ : List Expr} {T D E A₁ b₁ b : Expr} :
+      Red env Γ T (pi D E) → DefEqIn env (A₁ :: Γ) E b₁ (app (b.liftN 1) (bvar 0)) →
+      DefEqIn env Γ T (lam A₁ b₁) b
 
 /-- **Type inference.** -/
 inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where

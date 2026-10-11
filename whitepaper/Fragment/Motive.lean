@@ -19,7 +19,10 @@ every environment `ρ` satisfying the context:
   that the checker calls equal have equal denotations;
 * **`InferSem`** — an inferred term is well-denoted, its type is
   well-denoted and a type, and the term's denotation is a member of the
-  type's.
+  type's;
+* **`DefEqInSem`** (task #345) — two well-denoted members of one
+  well-denoted type that the checker compares at that type have equal
+  denotations.
 
 The first two are **conditional on the point**: they say nothing about
 proofs, which is what lets β fire at every binder with no certificate
@@ -54,6 +57,15 @@ have equal denotations.  (Two proofs are the point.) -/
 def DefEqSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (a b : Expr) : Prop :=
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
     interp m.M φ ρ a ≠ pt → interp m.M φ ρ b ≠ pt → interp m.M φ ρ a = interp m.M φ ρ b
+
+/-- **`DefEqIn`'s claim** (task #345): two well-denoted members of one
+well-denoted type have equal denotations — unconditionally, since a
+type's members are all the point or none. -/
+def DefEqInSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (T a b : Expr) : Prop :=
+  ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ T → IsTy (interp m.M φ ρ T) →
+    WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
+    interp m.M φ ρ a ∈ˢ interp m.M φ ρ T → interp m.M φ ρ b ∈ˢ interp m.M φ ρ T →
+    interp m.M φ ρ a = interp m.M φ ρ b
 
 /-- **`Infer`'s claim**: the term and its type are well-denoted, the
 type is a type, and the term's denotation is a member of the type's. -/
