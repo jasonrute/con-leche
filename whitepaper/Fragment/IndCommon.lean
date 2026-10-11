@@ -292,6 +292,12 @@ theorem IsTy_reflBody {tele : List Expr} (ht : tele ≠ []) {X : V}
     (hX : S.z ls = true → X ∈ˢ (univ 0 : V)) : IsTy (S.reflBody ls tele X) := by
   unfold reflBody; rw [ite_eq_right ht]; exact S.IsTy_adm ls hX
 
+theorem reflBody_eq_self (tele : List Expr) {X : V} (h : S.adm ls X = X) :
+    S.reflBody ls tele X = X := by
+  unfold reflBody; split
+  · rfl
+  · exact h
+
 theorem reflBody_mem_univ (tele : List Expr) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
     S.reflBody ls tele X ∈ˢ (univ (S.u₀ ls) : V) := by
   unfold reflBody; split

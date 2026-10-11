@@ -394,13 +394,16 @@ theorem IhTyped_ihSem {ps : List V} (hpl : S.nest = none) (hnr : S.NoRecDep) (hb
 /-- **The recursor's set** at its own levels `lsr` (the elimination
 level in front, if large): the abstraction over its context — the
 parameters, the motive, the minors, the indices, the major — of the
-recursor's semantic value, the family read at the block's levels. -/
+recursor's semantic value, the family read at the block's levels.
+Into `Prop` (`qv`) the body is the point outright: the motive's fibres
+are truth values, and the abstraction is read by its values (task
+#344), so a body that is not the point would make it a graph. -/
 noncomputable def recSet (lsr : List Nat) : V :=
   let ψr := valOf S.recLparams lsr
   let ls := S.lparams.map ψr
   lamCtx (S.M₂ M) ψr base
     (S.famVars (S.n + 1) :: S.indicesAt (S.n + 1) ++ S.minorsCtx ++ [S.motiveTy] ++ S.params)
-    fun ρ' =>
+    fun ρ' => if S.qv ψr then pt else
       S.recSem M ls (readEnv S.nP (shiftE (1 + S.nI + S.n + 1) 0 ρ')) (ρ' (1 + S.nI + S.n))
         (readEnv S.n (shiftE (1 + S.nI) 0 ρ')) (readEnv S.nI (shiftE 1 0 ρ')) (ρ' 0)
 

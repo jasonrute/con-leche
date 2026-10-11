@@ -107,7 +107,7 @@ theorem no_empty_inductive_inhabitant {env : Env} (hacc : Accepted env) {S : Ind
   have hℓ : Level.eval (fun _ => 0) S.ℓ = 0 := by
     unfold IndSpec.ℓ
     split <;> rfl
-  have hq : S.q.holds (fun _ => 0) = true := by
+  have hq : S.qv (fun _ => 0) = true := by
     rw [S.q_holds, hℓ]
     rfl
   -- the recursor's type, read: `∀ (motive : I → Sort 0) (t : I), motive t`

@@ -789,7 +789,7 @@ theorem wd_ruleType {c : CtorSpec} (hc : c ∈ S.ctors) (φ : Name → Nat) (ρ 
 omit [IndLib V] [LevelOracle] hpl hs m hok in
 /-- A small eliminator's level is zero, so a nonzero elimination level
 comes from a large eliminator. -/
-theorem large_of_q_false {φ' : Name → Nat} (hq : S.q.holds φ' = false) : S.large = true := by
+theorem large_of_q_false {φ' : Name → Nat} (hq : S.qv φ' = false) : S.large = true := by
   cases hl : S.large with
   | true => rfl
   | false =>
@@ -882,7 +882,7 @@ theorem minorOk_of_fits (φr : Name → Nat) (ρ : Nat → V) {ps : List V} (hps
     (hmn : FitsVals (S.M₃ m.M) φr (cons m' (consList ps ρ)) S.minorsCtx mins) :
     ∀ j c, S.ctors[j]? = some c →
       ∀ fs, S.FitsFields m.M (S.lparams.map φr) (S.Fam m.M (S.lparams.map φr) ps) ps c.fields fs →
-        ∀ ihs, ListRel (S.IhTyped m.M (S.lparams.map φr) (S.q.holds φr) ps m' fs) c.recFields ihs →
+        ∀ ihs, ListRel (S.IhTyped m.M (S.lparams.map φr) ps m' fs) c.recFields ihs →
           appList (S.minorAt mins j) (fs.reverse ++ ihs) ∈ˢ
             appList m' ((S.idxVals m.M (S.lparams.map φr) (consList fs (envP ps)) c.idx).reverse ++
               [S.ctorVal (S.lparams.map φr) j fs]) ∧
@@ -911,9 +911,7 @@ theorem minorOk_of_fits (φr : Name → Nat) (ρ : Nat → V) {ps : List V} (hps
     rw [minorsCtx_eq] at h3
     have := (wd_minorsFrom (S := S) (M' := S.M₃ m.M) (φ' := φr) S.ctors 0 _ mins h3 hmn j c hc).1
     simpa [n] using this
-  exact R₃.minorOk hS hpl hok.freshI hc hminsE hps hp hidx.1 (fun fs hfit => (hidx.2 fs hfit).2.2)
-    (R₃.R.motiveOk_of_mem hS hps hp hm) (noRecDep hok) (domsBounded_of hpl hs m hok φr ρ hps hp) hmem
-    hwm
+  exact R₃.minorOk hS hpl hok.freshI hc hminsE hps hp hidx.1 hmem hwm
 
 /-- **The recursor's set is in the recursor's type.** -/
 theorem recSet_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
@@ -935,15 +933,15 @@ theorem recSet_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
   have hagree := R₂.agree_recCtx hS R₃ hagr hpl hok.freshI base ρ hwdC
   rw [recType_eq, interp_mkPis]
   show lamCtx (S.M₂ m.M) (valOf S.recLparams (lsr.map (Level.eval φ)))
-      (S.q.holds (valOf S.recLparams (lsr.map (Level.eval φ)))) base S.recCtx
+      (S.qv (valOf S.recLparams (lsr.map (Level.eval φ)))) base S.recCtx
       (fun ρ' => S.recSem m.M (S.lparams.map (valOf S.recLparams (lsr.map (Level.eval φ))))
-        (S.q.holds (valOf S.recLparams (lsr.map (Level.eval φ))))
+        (S.qv (valOf S.recLparams (lsr.map (Level.eval φ))))
         (readEnv S.nP (shiftE (1 + S.nI + S.n + 1) 0 ρ')) (ρ' (1 + S.nI + S.n))
         (readEnv S.n (shiftE (1 + S.nI) 0 ρ')) (readEnv S.nI (shiftE 1 0 ρ')) (ρ' 0)) ∈ˢ _
   rw [hls, hagr.q_holds]
   rw [lamCtx_congr₂ hagree (G := fun ρ' =>
       S.recSem m.M (S.lparams.map (Level.substVal φ S.recLparams lsr))
-        (S.q.holds (Level.substVal φ S.recLparams lsr))
+        (S.qv (Level.substVal φ S.recLparams lsr))
         (readEnv S.nP (shiftE (1 + S.nI + S.n + 1) 0 ρ')) (ρ' (1 + S.nI + S.n))
         (readEnv S.n (shiftE (1 + S.nI) 0 ρ')) (readEnv S.nI (shiftE 1 0 ρ')) (ρ' 0))
     fun vs hvs => by

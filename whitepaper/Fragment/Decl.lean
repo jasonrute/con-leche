@@ -143,6 +143,9 @@ def n : Nat := S.ctors.length
 def lvls : List Level := S.lparams.map .param
 /-- The elimination level: the fresh parameter, or `Prop`. -/
 def ℓ : Level := if S.large then .param S.elim else .zero
+/-- Is the elimination level zero at a valuation?  A semantic bit, read
+by the model's recursor (`IndRec.lean`, `recSet`), not by the checker. -/
+def qv (φ : Name → Nat) : Bool := Level.eval φ S.ℓ == 0
 /-- The recursor's level parameters: the elimination parameter in
 front of the block's, if large. -/
 def recLparams : List Name := if S.large then S.elim :: S.lparams else S.lparams

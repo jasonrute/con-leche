@@ -828,7 +828,7 @@ theorem z_false_of_large (φ : Name → Nat) (hlarge : S.large = true) :
     omega
 
 omit hs m in
-theorem z_false_of_q (φ : Name → Nat) {φ' : Name → Nat} (hq : S.q.holds φ' = false) :
+theorem z_false_of_q (φ : Name → Nat) {φ' : Name → Nat} (hq : S.qv φ' = false) :
     S.z (S.lparams.map φ) = false :=
   z_false_of_large hok φ (large_of_q_false hq)
 

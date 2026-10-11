@@ -36,7 +36,7 @@ and on the elimination level. -/
 def RecAgree (φ₁ φ₂ : Name → Nat) (S : IndSpec) : Prop := Level.eval φ₁ S.ℓ = Level.eval φ₂ S.ℓ
 
 theorem RecAgree.q_holds {φ₁ φ₂ : Name → Nat} (h : RecAgree φ₁ φ₂ S) :
-    S.q.holds φ₁ = S.q.holds φ₂ := by
+    S.qv φ₁ = S.qv φ₂ := by
   rw [S.q_holds, S.q_holds, h]
 
 /-- A specification expression reads alike in two readers. -/
@@ -100,7 +100,7 @@ theorem Reader.agree_ihCtxAux (hS : S.Scoped env) (hpl : S.nest = none) {M₁ M�
     ∀ (L : List (Nat × Field)), (∀ kf ∈ L, kf ∈ c.recFields) → ∀ {l : Nat} {ihsE : List V},
       ihsE.length = l →
       CtxAgree M₁ M₂ φ₁ φ₂ (consList ihsE (consList fs (consList os (consList ps ρ₁))))
-        (consList ihsE (consList fs (consList os (consList ps ρ₂)))) (S.ihCtxAux c.fields.length o L l)
+        (consList ihsE (consList fs (consList os (consList ps ρ₂)))) (IndSpec.ihCtxAux c.fields.length o L l)
   | [], _, _, _, _ => fun i A hA => by simp [ihCtxAux] at hA
   | kf :: rest, hL, l, ihsE, hi => by
     simp only [ihCtxAux]

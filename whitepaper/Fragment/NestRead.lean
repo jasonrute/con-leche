@@ -499,7 +499,7 @@ indices, the major — of `T.rec`'s semantic value. -/
 noncomputable def recSetN (N : NestInfo) (lsr : List Nat) : V :=
   let ψr := valOf S.recLparams lsr
   let ls := S.lparams.map ψr
-  let q := S.q.holds ψr
+  let q := S.qv ψr
   lamCtx (S.M₂ M) ψr q base (S.recCtxN N) fun ρ' =>
     S.recSemN M ls N q (readEnv S.nP (shiftE (1 + S.nI + S.oN N) 0 ρ'))
       ⟨ρ' (S.nI + S.oN N), ρ' (S.nI + S.oN N - 1),
@@ -512,7 +512,7 @@ value. -/
 noncomputable def rec1Set (N : NestInfo) (lsr : List Nat) : V :=
   let ψr := valOf S.recLparams lsr
   let ls := S.lparams.map ψr
-  let q := S.q.holds ψr
+  let q := S.qv ψr
   lamCtx (S.M₂ M) ψr q base (S.rec1Ctx N) fun ρ' =>
     S.rec1Sem M ls N q (readEnv S.nP (shiftE (1 + S.oN N) 0 ρ'))
       ⟨ρ' (S.oN N), ρ' (S.oN N - 1),
@@ -738,7 +738,7 @@ theorem wd_ctxFrom (T : CtorSpec → Nat → Expr) :
       exact ih
 
 theorem ihCtxAt_eq (c : CtorSpec) (o : Nat) :
-    IndSpec.ihCtxAt c o = S.ihCtxAux c.fields.length o c.recFields 0 := by
+    IndSpec.ihCtxAt c o = IndSpec.ihCtxAux c.fields.length o c.recFields 0 := by
   rw [ihCtxAt, ← ihCtxAux_eq]
   simp
 
@@ -1008,7 +1008,7 @@ theorem Reader.read_ihTy' (R : S.Reader (env := env) M φ F M' φ') {c : CtorSpe
     (ho2 : kf.2 = .container → 2 ≤ o) (hps : ps.length = S.nP) :
     interp M' φ' (consList ihsE (consList fs (consList os (consList ps ρ))))
         (IndSpec.ihTy c.fields.length kf.1 l o kf.2)
-      = ihSetN S M φ (S.q.holds φ') ps (os.getD (o - 1) pt) (os.getD (o - 2) pt) fs kf := by
+      = ihSetN S M φ ps (os.getD (o - 1) pt) (os.getD (o - 2) pt) fs kf := by
   obtain ⟨hpos', hk, hrec⟩ := mem_recFields hkf
   obtain ⟨k, f⟩ := kf
   have hsc := hsc _ f hpos'
@@ -1069,8 +1069,8 @@ theorem Reader.fits_ihCtxAux' (R : S.Reader (env := env) M φ F M' φ') {c : Cto
     ∀ (L : List (Nat × Field)), (∀ kf ∈ L, kf ∈ c.recFields) →
       ∀ (ihs : List V) {l : Nat} {ihsE : List V}, ihsE.length = l →
         (FitsVals M' φ' (consList ihsE (consList fs (consList os (consList ps ρ))))
-            (S.ihCtxAux c.fields.length o L l) ihs.reverse ↔
-          ListRel (S.IhTypedN M (S.lparams.map φ) (S.q.holds φ') ps ex fs) L ihs)
+            (IndSpec.ihCtxAux c.fields.length o L l) ihs.reverse ↔
+          ListRel (S.IhTypedN M (S.lparams.map φ) ps ex fs) L ihs)
   | [], _, [], _, _, _ => by simp [ihCtxAux, ListRel]
   | [], _, _ :: _, _, _, _ => by
     constructor
@@ -1211,7 +1211,7 @@ theorem Reader.classCtorApp_eq (hS : S.Scoped env) (R : S.Reader (env := env) M 
       = (fs ++ S.psK M (S.lparams.map φ) N ps
           (S.Fam M (S.lparams.map φ) ps (S.memberIdx M (S.lparams.map φ) N ps))).reverse := by
     simp [psK]
-  rw [hargs, appList_lamCtx_false hfitC, consList_append, readEnv_consList hlenF]
+  rw [hargs, appList_lamCtx _ _ hfitC, consList_append, readEnv_consList hlenF]
   simp [ctorVal, hzK, KS_tagOf]
 
 /-- **The block's minors' typing gives `MinorOkN`** for every
@@ -1238,7 +1238,7 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
     (hwmn : CtxWD M' φ' (consList [m1, m] (consList ps ρ)) S.minorsCtxN) :
     ∀ j c, S.ctors[j]? = some c →
       ∀ fs, S.FitsFields M (S.lparams.map φ) (S.Fam M (S.lparams.map φ) ps) ps c.fields fs →
-        ∀ ihs, ListRel (S.IhTypedN M (S.lparams.map φ) (S.q.holds φ') ps ⟨m, m1, mins, []⟩ fs)
+        ∀ ihs, ListRel (S.IhTypedN M (S.lparams.map φ) ps ⟨m, m1, mins, []⟩ fs)
             c.recFields ihs →
           appList (S.minorAt mins j) (fs.reverse ++ ihs) ∈ˢ
             appList m ((S.idxVals M (S.lparams.map φ) (consList fs (envP ps)) c.idx).reverse ++
@@ -1307,7 +1307,7 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
     exact (Reader.fits_ihCtxAux' S R hsc (os := minsE ++ [m1, m]) (ρ := ρ) hf hos (by omega)
       (fun _ => by omega) hps ⟨m, m1, mins, []⟩ hgetm.symm hgetm1.symm c.recFields (fun _ h => h) ihs
       (l := 0) (ihsE := []) rfl).mpr hihs
-  have hG : S.q.holds φ' = true → ∀ ws, FitsVals M' φ' (consList minsE (consList [m1, m] (consList ps ρ)))
+  have hG : S.qv φ' = true → ∀ ws, FitsVals M' φ' (consList minsE (consList [m1, m] (consList ps ρ)))
       (IndSpec.ihCtxAt c (2 + j) ++ S.fieldCtxAt c (2 + j)) ws →
       interp M' φ' (consList ws (consList minsE (consList [m1, m] (consList ps ρ))))
         (Expr.mkAppN (.bvar (c.recFields.length + c.fields.length + (2 + j) - 1))
@@ -1337,7 +1337,7 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
   have hwm' := hwm
   unfold minorTyN at hwm'
   have key₂ := spineOk_of_piCtx M' φ' hmem hfitAll hG
-    ((WellDenoted_mkPis M' φ' _ _ _ _).mp hwm').1.ty
+    ((WellDenoted_mkPis M' φ' _ _ _).mp hwm').1.ty
   rw [List.reverse_append, List.reverse_reverse, consList_append,
     hconcl fs ihs.reverse hf (by rw [List.length_reverse, ListRel.length' hihs]) hfit] at key
   rw [List.reverse_append, List.reverse_reverse] at key₂
@@ -1369,7 +1369,7 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
       ∀ fs, S.ClassFits M (S.lparams.map φ) N
           (S.Fam M (S.lparams.map φ) ps (S.memberIdx M (S.lparams.map φ) N ps)) (fun _ => True) ps
           (S.classCtor N c).fields fs →
-        ∀ ihs, ListRel (S.IhTypedN M (S.lparams.map φ) (S.q.holds φ') ps ⟨m, m1, mins, minsK⟩ fs)
+        ∀ ihs, ListRel (S.IhTypedN M (S.lparams.map φ) ps ⟨m, m1, mins, minsK⟩ fs)
             (S.classCtor N c).recFields ihs →
           appList (minorKAt N minsK j) (fs.reverse ++ ihs) ∈ˢ appList m1 [tag j (tuple fs.reverse)] ∧
           SpineOk (minorKAt N minsK j) (fs.reverse ++ ihs) := by
@@ -1451,7 +1451,7 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
     exact (Reader.fits_ihCtxAux' S R hsc (os := minsE ++ mins ++ [m1, m]) (ρ := ρ) hf hos (by omega)
       (fun _ => by omega) hps ⟨m, m1, mins, minsK⟩ hgetm.symm hgetm1.symm
       (S.classCtor N c).recFields (fun _ h => h) ihs (l := 0) (ihsE := []) rfl).mpr hihs
-  have hG : S.q.holds φ' = true →
+  have hG : S.qv φ' = true →
       ∀ ws, FitsVals M' φ' (consList minsE (consList (mins ++ [m1, m]) (consList ps ρ)))
         (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j) ++ S.fieldCtxAt (S.classCtor N c) (2 + S.n + j)) ws →
       interp M' φ' (consList ws (consList minsE (consList (mins ++ [m1, m]) (consList ps ρ))))
@@ -1485,7 +1485,7 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
   have hwm' := hwm
   unfold minorTyK at hwm'
   have key₂ := spineOk_of_piCtx M' φ' hmem hfitAll hG
-    ((WellDenoted_mkPis M' φ' _ _ _ _).mp hwm').1.ty
+    ((WellDenoted_mkPis M' φ' _ _ _).mp hwm').1.ty
   rw [List.reverse_append, List.reverse_reverse, consList_append,
     hconcl fs ihs.reverse hf (by rw [List.length_reverse, ListRel.length' hihs]) hfit] at key
   rw [List.reverse_append, List.reverse_reverse] at key₂
