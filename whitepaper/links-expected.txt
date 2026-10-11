@@ -5235,10 +5235,10 @@
     13  synthetic rule each (applying the lift/ind slot to the packed
     14  element), and `Quot.sound` as a stored axiom (true in the set model).
 
-== ConLeche/SetTheory/Derive/Quot.lean#L62-L64
-    62  /-- The quotient (see module docs). -/
-    63  noncomputable def quotSet (u : Nat) (A R : V) : V :=
-    64    if u = 0 then image (fun _ => pt) A else image (fun a => qclass A R a) A
+== ConLeche/SetTheory/Derive/Quot.lean#L65-L67
+    65  /-- The quotient (see module docs). -/
+    66  noncomputable def quotSet (u : Nat) (A R : V) : V :=
+    67    if u = 0 then image (fun _ => pt) A else image (fun a => kpair empty (qclass A R a)) A
 
 == ConLeche/Model/BasisQuot.lean#L2212-L2216
   2212  theorem extendQuotLift (mp : EnvModelM V μ env)
