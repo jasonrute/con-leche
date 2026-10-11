@@ -560,7 +560,7 @@ member of $cal(U)_n$ and $Phi(L) subset.eq L$ fibrewise.
   Let $n >= 1$. An operator $Phi$ on families that maps families in
   $cal(U)_n$ to families in $cal(U)_n$ and is accessible with a bound
   $A in cal(U)_n$ #src("whitepaper/Fragment/Access.lean", 292, 303)[has a closed family] in $cal(U)_n$
-  (#src("ConLeche/SetModel/Access.lean", 241, 245)[as in con-leche]).
+  (#src("ConLeche/SetModel/Access.lean", 240, 244)[as in con-leche]).
 ] <thm:closed-of-acc>
 
 #proof[
@@ -637,14 +637,14 @@ every constructor denotes the point.
 
 #real[
   The least fixed point is
-  #src("ConLeche/SetTheory/Derive/LfpTuple.lean", 67, 75)[the same construction]
+  #src("ConLeche/SetTheory/Derive/LfpTuple.lean", 70, 79)[the same construction]
   over a tuple of families, one per type former of the block, each a
   graph over an index set. What the model records of an installed
   block is one clause: the operator maps the universe to itself and
   its fit is accessible, in both regimes
   (#src("ConLeche/Model/Annot/BlockLfp.lean", 338, 345)[the operator]),
   so it has a closed family
-  (#src("ConLeche/SetModel/Access.lean", 297, 302)[the constant family at a proposition, and from accessibility in the type-valued regime])
+  (#src("ConLeche/SetModel/Access.lean", 298, 303)[the constant family at a proposition, and from accessibility in the type-valued regime])
   and is
   #src("ConLeche/Model/Annot/BlockLfp.lean", 455, 459)[monotone];
   its fibres are the tagged tuples of fitting fields
