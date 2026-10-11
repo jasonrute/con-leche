@@ -73,10 +73,10 @@ theorem Reader.agree_fieldCtxAt (hS : S.Scoped env) {M₁ M₂ : Name → List N
     {c : CtorSpec} (hc : c ∈ S.ctors) {o : Nat} {os₁ os₂ ps : List V} {ρ₁ ρ₂ : Nat → V}
     (ho₁ : os₁.length = o) (ho₂ : os₂.length = o) (hps : ps.length = S.nP)
     (hp : FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps)
-    (hwd : CtxWD M₂ φ₂ (consList ps ρ₂) (S.fieldCtx c.fields)) :
+    (hwd : CtxWD M₂ φ₂ (consList ps ρ₂) (S.fieldCtx c.fields)) (hn : NestFit S M φ) :
     CtxAgree M₁ M₂ φ₁ φ₂ (consList os₁ (consList ps ρ₁)) (consList os₂ (consList ps ρ₂))
       (S.fieldCtxAt c o) := by
-  have hag := R₁.agree_fieldCtx hS R₂ (ρ₁ := ρ₁) (ρ₂ := ρ₂) hps hp (hS.2.2.2.1 c hc).1 hwd
+  have hag := R₁.agree_fieldCtx hS R₂ (ρ₁ := ρ₁) (ρ₂ := ρ₂) hps hp hn (hS.2.2.2.1 c hc).1 hwd
   intro i A hA vs hvs
   unfold fieldCtxAt at hA hvs
   rw [Expr.liftCtx_getElem?, S.length_fieldCtx] at hA
@@ -114,7 +114,7 @@ theorem Reader.agree_ihCtxAux (hS : S.Scoped env) (hpl : S.nest = none) {M₁ M�
         | nil =>
           simp only [consList_nil]
           rw [R₁.read_ihTy hS hpl hc (hL kf List.mem_cons_self) hi hf ho hpos hps,
-            R₂.read_ihTy hS hpl hc (hL kf List.mem_cons_self) hi hf ho hpos hps, hq.q_holds]
+            R₂.read_ihTy hS hpl hc (hL kf List.mem_cons_self) hi hf ho hpos hps]
         | cons _ _ => exact absurd (FitsVals_length M₁ φ₁ hvs) (by simp)
       | succ i => simp at hA
     · obtain ⟨ih, rfl⟩ : ∃ ih, ws = [ih] := by
@@ -147,9 +147,10 @@ theorem Reader₂.agree_minorTy (hS : S.Scoped env) {M₁ M₂ : Name → List N
   have henv : ∀ ρ : Nat → V, consList minsE (cons m (consList ps ρ)) = consList (minsE ++ [m]) (consList ps ρ) := by
     intro ρ; simp [consList_append]
   unfold minorTy
-  rw [interp_mkPis, interp_mkPis, hq.q_holds, henv, henv]
+  rw [interp_mkPis, interp_mkPis, henv, henv]
   -- the field context agrees, and fits carry over
   have hagF := R₁.R.agree_fieldCtxAt hS R₂.R hcm (ρ₁ := ρ₁) (ρ₂ := ρ₂) hos hos hps hp hwd
+    (NestFit_of_plain hpl)
   have hfits : ∀ fs, FitsVals M₁ φ₁ (consList (minsE ++ [m]) (consList ps ρ₁)) (S.fieldCtxAt c (j + 1)) fs →
       fs.length = c.fields.length ∧
       S.FitsFields M (S.lparams.map φ) (S.Fam M (S.lparams.map φ) ps) ps c.fields fs ∧
@@ -159,7 +160,7 @@ theorem Reader₂.agree_minorTy (hS : S.Scoped env) {M₁ M₂ : Name → List N
     have hfs₂ := (FitsVals_congr₂ hagF).mp hfs
     unfold fieldCtxAt at hfs₂
     rw [FitsVals_liftCtx_liftN M₂ φ₂ _ _ _ hos] at hfs₂
-    have hiff := R₂.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp hwd (vs := fs)
+    have hiff := R₂.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp hwd (vs := fs)
     have hfit := hiff.1.mp hfs₂
     exact ⟨S.FitsFields_length M _ hfit, hfit, hiff.2 hfit⟩
   refine piCtx_congr₂ ?_ fun vs hvs => ?_

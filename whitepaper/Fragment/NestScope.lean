@@ -306,7 +306,7 @@ theorem lparamsIn_minorTyK (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = som
 theorem lparamsIn_motiveTy1 (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = some N) :
     (S.motiveTy1 N).lparamsIn S.recLparams = true := by
   unfold motiveTy1
-  refine Expr.lparamsIn_mkPis rfl (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rw [List.mem_singleton] at hA
     subst hA
     exact Expr.lparamsIn_mono S.lparams_sub_recLparams (S.lparamsIn_classTy hS hN 1)

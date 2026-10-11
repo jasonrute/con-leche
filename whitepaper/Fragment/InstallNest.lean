@@ -444,7 +444,7 @@ omit hs m in
 model of the environment with the former. -/
 theorem wd_ctorTypeN_of (mX : EnvModel V (S.envInd env)) {c : CtorSpec} (hc : c ∈ S.ctors)
     (φ : Name → Nat) (ρ : Nat → V) : WellDenoted mX.M φ ρ (S.ctorType c) := by
-  obtain ⟨T, hT⟩ := (hok.2.2.2.2.2.1 c hc).1
+  obtain ⟨T, u, hT, -⟩ := (hok.2.2.2.2.2.1 c hc).1
   exact (infer_sound (m := mX) (φ := φ) hT ρ (Sat_nil _ _ _)).1
 
 omit [LevelOracle] hs m hok in
@@ -837,7 +837,7 @@ theorem z_false_of_q (φ : Name → Nat) {φ' : Name → Nat} (hq : S.qv φ' = f
 /-- A constructor's type is well-denoted at every valuation. -/
 theorem wd_ctorTypeN {c : CtorSpec} (hc : c ∈ S.ctors) (φ : Name → Nat) (ρ : Nat → V) :
     WellDenoted (S.M₃N m.M N) φ ρ (S.ctorType c) := by
-  obtain ⟨T, hT⟩ := (hok.2.2.2.2.2.1 c hc).1
+  obtain ⟨T, u, hT, -⟩ := (hok.2.2.2.2.2.1 c hc).1
   have := (infer_sound (m := mIndN hs m hok) (φ := φ) hT ρ (Sat_nil _ _ _)).1
   rwa [mIndN_M] at this
 

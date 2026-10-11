@@ -375,6 +375,20 @@ theorem WellDenoted_mkPis (Γ : List Expr) (b : Expr) (ρ : Nat → V) :
       · rw [interp_pi]
         exact IsTy_piV
 
+/-- **The body of a product that is a type is not the point**, under
+every fitting environment: at the empty context the body is the
+product; under a binder it is a type by the invariant. -/
+theorem body_ne_pt_of_mkPis {Γ : List Expr} {b : Expr} {ρ : Nat → V}
+    (hw : WellDenoted M φ ρ (Expr.mkPis Γ b)) (hT : IsTy (interp M φ ρ (Expr.mkPis Γ b))) :
+    ∀ vs, FitsVals M φ ρ Γ vs → interp M φ (consList vs ρ) b ≠ pt := by
+  intro vs hvs
+  cases Γ with
+  | nil =>
+    cases vs with
+    | nil => simpa using hT.ne_pt
+    | cons _ _ => exact hvs.elim
+  | cons A Γ => exact ((((WellDenoted_mkPis M φ _ _ _).mp hw).2 vs hvs).2 (List.cons_ne_nil A Γ)).ne_pt
+
 /-- A product over a context is a type when its body is, at the empty
 context; over a nonempty one it is one outright (`IsTy_piV`). -/
 theorem IsTy_interp_mkPis :

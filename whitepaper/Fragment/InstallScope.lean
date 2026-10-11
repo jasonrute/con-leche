@@ -54,18 +54,6 @@ theorem paramsIn_mono {ps qs : List Name} (h : ps ⊆ qs) :
 
 end Level
 
-namespace PropWhen
-
-/-- A datum over `ps` is a datum over any `qs ⊇ ps`. -/
-theorem paramsIn_mono {ps qs : List Name} (h : ps ⊆ qs) :
-    ∀, paramsIn ps pw = true → paramsIn qs pw = true
-  | never, _ => rfl
-  | whenZero s, hs => by
-    simp only [paramsIn_whenZero, List.all_eq_true, List.contains_iff_mem] at hs ⊢
-    exact fun n hn => h (hs n hn)
-
-end PropWhen
-
 namespace Expr
 
 /-- A term over `ps` is a term over any `qs ⊇ ps`. -/
@@ -83,10 +71,10 @@ theorem lparamsIn_mono {ps qs : List Name} (h : ps ⊆ qs) :
     exact ⟨lparamsIn_mono h he.1, lparamsIn_mono h he.2⟩
   | lam A b, he => by
     simp only [lparamsIn_lam, Bool.and_eq_true] at he ⊢
-    exact ⟨⟨lparamsIn_mono h he.1.1, PropWhen.paramsIn_mono h he.1.2⟩, lparamsIn_mono h he.2⟩
+    exact ⟨lparamsIn_mono h he.1, lparamsIn_mono h he.2⟩
   | pi A B, he => by
     simp only [lparamsIn_pi, Bool.and_eq_true] at he ⊢
-    exact ⟨⟨lparamsIn_mono h he.1.1, PropWhen.paramsIn_mono h he.1.2⟩, lparamsIn_mono h he.2⟩
+    exact ⟨lparamsIn_mono h he.1, lparamsIn_mono h he.2⟩
 
 /-- The parameters of `ps`, as levels, are levels over `ps`. -/
 theorem lparamsIn_const_params (ps : List Name) (c : Name) :
@@ -320,13 +308,6 @@ theorem ℓ_paramsIn : S.ℓ.paramsIn S.recLparams = true := by
   · simp
   · rfl
 
-/-- The recursor's annotation is over the recursor's parameters. -/
-theorem q_paramsIn : S.q.paramsIn S.recLparams = true := Level.zeroness_paramsIn S.ℓ_paramsIn
-
-/-- The family's annotation is over the block's parameters. -/
-theorem pw_paramsIn (hS : S.Scoped env) : S.pw.paramsIn S.lparams = true :=
-  Level.zeroness_paramsIn hS.2.2.1
-
 /-- A constant at the block's levels is over the block's parameters. -/
 theorem lparamsIn_const_lvls (c : Name) : (Expr.const c S.lvls).lparamsIn S.lparams = true :=
   Expr.lparamsIn_const_params _ _
@@ -439,7 +420,7 @@ theorem lparamsIn_idx (hS : S.Scoped env) {c : CtorSpec} (hc : c ∈ S.ctors) :
 /-- **The former's type uses the block's level parameters.** -/
 theorem lparamsIn_indType (hS : S.Scoped env) : S.indType.lparamsIn S.lparams = true := by
   unfold indType
-  refine Expr.lparamsIn_mkPis rfl (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rcases List.mem_append.mp hA with hA | hA
     · exact S.lparamsIn_indices hS A hA
     · exact S.lparamsIn_params hS A hA
@@ -460,7 +441,7 @@ theorem lparamsIn_ctorType (hS : S.Scoped env) {c : CtorSpec} (hc : c ∈ S.ctor
 elimination level is one of them). -/
 theorem lparamsIn_motiveTy (hS : S.Scoped env) : S.motiveTy.lparamsIn S.recLparams = true := by
   unfold motiveTy
-  refine Expr.lparamsIn_mkPis rfl (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rcases List.mem_cons.mp hA with rfl | hA
     · exact Expr.lparamsIn_mono S.lparams_sub_recLparams (S.lparamsIn_famVars 0)
     · exact Expr.lparamsIn_mono S.lparams_sub_recLparams (S.lparamsIn_indices hS A hA)
@@ -514,7 +495,7 @@ theorem lparamsIn_minorTy (hS : S.Scoped env) {c : CtorSpec} (hc : c ∈ S.ctors
   simp only [minorTy]
   refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rcases List.mem_append.mp hA with hA | hA
-    · obtain ⟨kf, hkf, l, rfl⟩ := S.mem_ihCtx hA
+    · obtain ⟨kf, hkf, l, rfl⟩ := IndSpec.mem_ihCtx hA
       exact S.lparamsIn_ihTy (S.fieldScoped_of_mem_recFields hS hc hkf).1 _ _ _ _
     · exact Expr.lparamsIn_mono hR (S.lparamsIn_fieldCtxAt hS hc _ A hA)
   · refine Expr.lparamsIn_mkAppN rfl fun a ha => ?_

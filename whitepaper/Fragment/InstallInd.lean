@@ -263,8 +263,15 @@ omit hpl hs m in
 model of the environment with the former. -/
 theorem wd_ctorType_of (mX : EnvModel V (S.envInd env)) {c : CtorSpec} (hc : c ∈ S.ctors)
     (φ : Name → Nat) (ρ : Nat → V) : WellDenoted mX.M φ ρ (S.ctorType c) := by
-  obtain ⟨T, hT⟩ := (hok.2.2.2.2.1 c hc).1
+  obtain ⟨T, u, hT, -⟩ := (hok.2.2.2.2.1 c hc).1
   exact (infer_sound (m := mX) (φ := φ) hT ρ (Sat_nil _ _ _)).1
+
+/-- A constructor's type is a type: the checker found it a sort. -/
+theorem ty_ctorType_of (mX : EnvModel V (S.envInd env)) {c : CtorSpec} (hc : c ∈ S.ctors)
+    (φ : Name → Nat) (ρ : Nat → V) : IsTy (interp mX.M φ ρ (S.ctorType c)) := by
+  obtain ⟨T, u, hT, hR⟩ := (hok.2.2.2.2.1 c hc).1
+  exact IsTy_of_mem_typeU (Infer.mem_typeU_of (m := mX) (infer_sound hT) (red_sound hR)
+    (Sat_nil _ _ ρ)).2
 
 /-! ## The domains met along a fitting instance are members -/
 

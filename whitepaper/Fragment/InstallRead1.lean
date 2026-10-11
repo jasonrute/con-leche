@@ -39,28 +39,25 @@ variable {V : Type u} [IndLib V]
 
 /-- The invariant of an abstraction over a context, from a semantic
 bound: the domains are well-denoted types, the body is well-denoted
-and lies in `G` under fitting values, and `G` is in the regime of the
-annotation there. -/
+and lies in `G` under fitting values, and `G` is a type there. -/
 theorem WellDenoted_mkLams_sem (M : Name → List Nat → V) (φ : Name → Nat) :
     ∀ {Γ : List Expr} {b : Expr} {ρ : Nat → V} {G : (Nat → V) → V}, CtxWD M φ ρ Γ →
       (∀ vs, FitsVals M φ ρ Γ vs →
         WellDenoted M φ (consList vs ρ) b ∧ interp M φ (consList vs ρ) b ∈ˢ G (consList vs ρ)) →
-      (∀ vs, FitsVals M φ ρ Γ vs → Fib (pw.holds φ) (G (consList vs ρ))) →
+      (∀ vs, FitsVals M φ ρ Γ vs → IsTy (G (consList vs ρ))) →
       WellDenoted M φ ρ (Expr.mkLams Γ b)
   | [], b, ρ, G, _, hb, _ => (hb [] trivial).1
   | A :: Γ, b, ρ, G, hctx, hb, hG => by
     rw [Expr.mkLams_cons]
     refine WellDenoted_mkLams_sem M φ
-      (G := fun ρ' => piR (pw.holds φ) (interp M φ ρ' A) fun x => G (cons x ρ')) hctx.1
-      (fun vs hvs => ⟨?_, ?_⟩) (fun _ _ => Fib_piR)
+      (G := fun ρ' => piV (interp M φ ρ' A) fun x => G (cons x ρ')) hctx.1
+      (fun vs hvs => ⟨?_, ?_⟩) (fun _ _ => IsTy_piV)
     · rw [WellDenoted_lam]
       refine ⟨(hctx.2 vs hvs).1, (hctx.2 vs hvs).2, fun x hx => (hb (x :: vs) ⟨hvs, hx⟩).1,
         fun x => G (cons x (consList vs ρ)), fun x hx => (hb (x :: vs) ⟨hvs, hx⟩).2,
         fun x hx => hG (x :: vs) ⟨hvs, hx⟩⟩
     · rw [interp_lam]
-      refine lamR_mem (fun x hx => (hb (x :: vs) ⟨hvs, hx⟩).2) fun hp x hx => ?_
-      have := hG (x :: vs) ⟨hvs, hx⟩
-      rwa [hp] at this
+      exact lamV_mem (fun x hx => (hb (x :: vs) ⟨hvs, hx⟩).2) fun x hx => hG (x :: vs) ⟨hvs, hx⟩
 
 omit [IndLib V] in
 /-- The environment the one lifting shifts to (the environment
@@ -99,14 +96,14 @@ theorem IndSpec.Reader.lamCtx_liftCtx_atCtx {S : IndSpec} {M : Name → List Nat
     {env : Env} {F : List Nat → List V → List V → V} {M' : Name → List Nat → V} {φ' : Name → Nat}
     (R : S.Reader (env := env) M φ F M' φ') {nF k l o : Nat} {ihsE fs os ps : List V} {ρ : Nat → V}
     (hi : ihsE.length = l) (hf : fs.length = nF) (ho : os.length = o) (hk : k ≤ nF)
-    (hps : ps.length = S.nP) (p : Bool) :
+    (hps : ps.length = S.nP) :
     ∀ (tele : List Expr),
       (∀ t T, tele[t]? = some T →
         Expr.Scoped env S.lparams (S.nP + k + (tele.length - 1 - t)) T) →
       ∀ (F : (Nat → V) → V),
-        lamCtx M' φ' p (consList ihsE (consList fs (consList os (consList ps ρ))))
+        lamCtx M' φ' (consList ihsE (consList fs (consList os (consList ps ρ))))
             (Expr.liftCtx (fun t T => Expr.atCtx nF k l o t T) tele) F
-          = lamCtx M (S.ψ (S.lparams.map φ)) p (consList (fs.drop (nF - k)) (envP ps)) tele
+          = lamCtx M (S.ψ (S.lparams.map φ)) (consList (fs.drop (nF - k)) (envP ps)) tele
               fun ρ' => F (consList (readEnv tele.length ρ')
                 (consList ihsE (consList fs (consList os (consList ps ρ)))))
   | [], _, F => by simp [readEnv]
@@ -117,7 +114,7 @@ theorem IndSpec.Reader.lamCtx_liftCtx_atCtx {S : IndSpec} {M : Name → List Nat
       have := hsc (t + 1) T' (by simpa using hT')
       simpa [Nat.sub_sub, Nat.add_comm] using this
     simp only [Expr.liftCtx_cons, lamCtx_cons]
-    rw [R.lamCtx_liftCtx_atCtx hi hf ho hk hps p rest hsc']
+    rw [R.lamCtx_liftCtx_atCtx hi hf ho hk hps rest hsc']
     refine lamCtx_congr M _ fun ys hys => ?_
     have hl := FitsVals_length M _ hys
     rw [readEnv_consList hl, interp_atCtx M' φ' ρ T hl hi hf ho hk]
@@ -248,10 +245,10 @@ decodings): by induction over the family, from the minors' typing — at
 a proposition the inductive hypotheses are inhabited truth values, so
 their values need not be the recursor's. -/
 theorem motive_inhabited {ps : List V} (hpl : S.nest = none) (hnr : S.NoRecDep)
-    (hb : S.DomsBounded M ls ps) (q : Bool)
+    (hb : S.DomsBounded M ls ps)
     (m : V) (mins : List V)
-    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOk M ls q ps m mins j c)
-    (hmo : q = true → ∀ is t, t ∈ˢ S.Fam M ls ps is → appList m (is.reverse ++ [t]) ∈ˢ (univ 0 : V))
+    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOk M ls ps m mins j c)
+    (hmo : ∀ is t, t ∈ˢ S.Fam M ls ps is → IsTy (appList m (is.reverse ++ [t])))
     {is : List V} {t : V} (ht : t ∈ˢ S.Fam M ls ps is) : ∃ v, v ∈ˢ appList m (is.reverse ++ [t]) := by
   have hco := S.contOk_of_plain M ls hpl ps
   refine S.Fam_induction M ls hnr hb hco (fun is t => ∃ v, v ∈ˢ appList m (is.reverse ++ [t])) ?_ is t ht
@@ -260,7 +257,7 @@ theorem motive_inhabited {ps : List V} (hpl : S.nest = none) (hnr : S.NoRecDep)
   have hfitF := S.FitsFields_of_sep M ls hco _ hfit
   subst his
   -- the inductive hypotheses: one inhabitant of each hypothesis' type
-  obtain ⟨ihs, hihs⟩ : ∃ ihs, ListRel (S.IhTyped M ls q ps m fs) c.recFields ihs := by
+  obtain ⟨ihs, hihs⟩ : ∃ ihs, ListRel (S.IhTyped M ls ps m fs) c.recFields ihs := by
     refine ListRel.exists fun kf hkf => ?_
     obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
     have hget := S.FitsFields_get M ls hfit hf hk
@@ -273,18 +270,18 @@ theorem motive_inhabited {ps : List V} (hpl : S.nest = none) (hnr : S.NoRecDep)
     | reflexive tele es =>
       dsimp only [fieldSet] at hget
       dsimp only [IhTyped]
-      refine ⟨lamCtx M (S.ψ ls) q _ tele fun ρ' => pickMem (appList m ((S.idxVals M ls ρ' es).reverse ++
+      refine ⟨lamCtx M (S.ψ ls) _ tele fun ρ' => pickMem (appList m ((S.idxVals M ls ρ' es).reverse ++
         [appList (fieldVal fs k) (readEnv tele.length ρ').reverse])),
-        lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun hq ys hys => ?_⟩
+        lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun ys hys => ?_⟩
       · have hlen := FitsVals_length M _ hys
-        have hmem := appList_mem_of_piCtx M (S.ψ ls) hget hys
+        have hmem := S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M (S.ψ ls) hget hys)
         refine pickMem_mem ?_
         simp only [readEnv_consList hlen]
         exact (mem_sep.mp hmem).2
       · have hlen := FitsVals_length M _ hys
-        have hmem := appList_mem_of_piCtx M (S.ψ ls) hget hys
+        have hmem := S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M (S.ψ ls) hget hys)
         simp only [readEnv_consList hlen]
-        exact hmo hq _ _ (mem_sep.mp hmem).1
+        exact hmo _ _ (mem_sep.mp hmem).1
   exact ⟨_, hmin j c hc fs hfitF ihs hihs⟩
 
 end IndSpec

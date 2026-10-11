@@ -737,7 +737,7 @@ def Ok (env : Env) : Prop :=
   S.Scoped env ∧
   (∃ T, Infer env [] S.indType T) ∧
   (∀ c ∈ S.ctors,
-    (∃ T, Infer (S.envInd env) [] (S.ctorType c) T) ∧
+    (∃ T u, Infer (S.envInd env) [] (S.ctorType c) T ∧ Red (S.envInd env) [] T (.sort u)) ∧
     (∀ i A, (S.fieldCtx c.fields)[i]? = some A →
       ∃ s v, Infer (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) A s ∧
         Red (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) s (.sort v) ∧
@@ -776,7 +776,7 @@ def OkN (N : NestInfo) (env : Env) : Prop :=
   S.Scoped env ∧
   (∃ T, Infer env [] S.indType T) ∧
   (∀ c ∈ S.ctors,
-    (∃ T, Infer (S.envInd env) [] (S.ctorType c) T) ∧
+    (∃ T u, Infer (S.envInd env) [] (S.ctorType c) T ∧ Red (S.envInd env) [] T (.sort u)) ∧
     (∀ i A, (S.fieldCtx c.fields)[i]? = some A →
       ∃ s v, Infer (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) A s ∧
         Red (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) s (.sort v) ∧

@@ -75,7 +75,7 @@ theorem Reader.famSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V} {φ
       F (S.lparams.map φ) ps is ∈ˢ (typeU (S.u₀ (S.lparams.map φ)) : V)) (ρ : Nat → V) :
     S.famSetF M (S.lparams.map φ) F ∈ˢ interp M' φ' ρ S.indType := by
   unfold indType
-  rw [interp_mkPis, PropWhen.holds_never, R.famSet_eq hS]
+  rw [interp_mkPis, R.famSet_eq hS]
   have hagree : CtxAgree M' M' φ' φ' base ρ (S.indices ++ S.params) := by
     refine CtxAgree_append ?_ fun ws hws => ?_
     · have := R.agree_base (Γ := S.params) (k := 0) (fun i A hA => by simpa [nP] using hS.1 i A hA)
@@ -92,7 +92,8 @@ theorem Reader.famSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V} {φ
     simp only [List.length_append] at hl
     rw [readEnv_shiftE_consList (by omega), readEnv_shiftE_consList (by omega),
       readEnv_consList_take (by omega), readEnv_consList_take (by omega)]]
-  refine lamCtx_mem_piCtx M' φ' (fun vs hvs => ?_) fun h => nomatch h
+  refine lamCtx_mem_piCtx M' φ' (fun vs hvs => ?_) fun _ _ => by
+    rw [interp_sort]; exact IsTy_typeU _
   rw [interp_sort, ← R.u₀_eq hS.2.2.1]
   have hl := FitsVals_length M' φ' hvs
   simp only [List.length_append] at hl
@@ -114,7 +115,7 @@ expressions' fits, and then every domain reads by β in both). -/
 theorem Reader.agree_fieldCtx (hS : S.Scoped env) {M₁ M₂ : Name → List Nat → V} {φ₁ φ₂ : Name → Nat}
     (R₁ : S.Reader (env := env) M φ F M₁ φ₁) (R₂ : S.Reader (env := env) M φ F M₂ φ₂)
     {ps : List V} {ρ₁ ρ₂ : Nat → V} (hps : ps.length = S.nP)
-    (hp : FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps) :
+    (hp : FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps) (hn : NestFit S M φ) :
     ∀ {fields : List Field},
       (∀ i f, fields[i]? = some f → S.fieldScoped env (fields.length - 1 - i) f) →
       CtxWD M₂ φ₂ (consList ps ρ₂) (S.fieldCtx fields) →
@@ -127,20 +128,21 @@ theorem Reader.agree_fieldCtx (hS : S.Scoped env) {M₁ M₂ : Name → List Nat
       simpa [Nat.sub_sub, Nat.add_comm] using this
     simp only [fieldCtx] at hwd ⊢
     rw [CtxWD_cons] at hwd
-    have ih := R₁.agree_fieldCtx hS R₂ (ρ₁ := ρ₁) hps hp hsc' hwd.1
+    have ih := R₁.agree_fieldCtx hS R₂ (ρ₁ := ρ₁) hps hp hn hsc' hwd.1
     refine CtxAgree.of_cons ih fun vs hvs => ?_
     have hvs₂ := (FitsVals_congr₂ ih).mp hvs
-    have hfit := (R₂.fits_fieldCtx hS hsc' hps hp hwd.1 (vs := vs)).1.mp hvs₂
+    have hfit := (R₂.fits_fieldCtx hS hn hsc' hps hp hwd.1 (vs := vs)).1.mp hvs₂
     have hl := S.FitsFields_length M _ hfit
     have hf : S.fieldScoped env rest.length f := by have := hsc 0 f rfl; simpa using this
-    obtain ⟨hidx, hread₂⟩ := R₂.fieldDom_wd hS hf hl hps hp (hwd.2 vs hvs₂).1
+    obtain ⟨hidx, hread₂⟩ := R₂.fieldDom_wd hS hf hl hps hp (hwd.2 vs hvs₂).1 (hwd.2 vs hvs₂).2 hn
     rw [hread₂, R₁.fieldDom_fit hS hf hl hps hp hidx]
 
 /-- **Every field's index expressions fit**, from the constructor's
 type being well-denoted. -/
 theorem Reader.idxFit_of_wd (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
     (R : S.Reader (env := env) M φ F M' φ') {c : CtorSpec} (hc : c ∈ S.ctors) {ρ : Nat → V}
-    (hwd : WellDenoted M' φ' ρ (S.ctorType c)) {ps : List V} (hps : ps.length = S.nP)
+    (hwd : WellDenoted M' φ' ρ (S.ctorType c)) (hT : IsTy (interp M' φ' ρ (S.ctorType c)))
+    (hn : NestFit S M φ) {ps : List V} (hps : ps.length = S.nP)
     (hp : FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps) :
     CtxWD M' φ' (consList ps ρ) (S.fieldCtx c.fields) ∧
     ∀ fs, S.FitsFields M (S.lparams.map φ) (F (S.lparams.map φ) ps) ps c.fields fs →
@@ -149,7 +151,8 @@ theorem Reader.idxFit_of_wd (hS : S.Scoped env) {M' : Name → List Nat → V} {
         IdxFitAt S M φ ps (earlier fs k) f) ∧
       FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices
         (S.idxVals M (S.lparams.map φ) (consList fs (envP ps)) c.idx) := by
-  unfold ctorType at hwd
+  unfold ctorType at hwd hT
+  have hne := body_ne_pt_of_mkPis M' φ' hwd hT
   rw [WellDenoted_mkPis] at hwd
   obtain ⟨hctx, hbody⟩ := hwd
   obtain ⟨hpar, hfld⟩ := CtxWD_append' hctx
@@ -157,14 +160,16 @@ theorem Reader.idxFit_of_wd (hS : S.Scoped env) {M' : Name → List Nat → V} {
   have hwdF := hfld ps hp'
   refine ⟨hwdF, fun fs hfit => ?_⟩
   have hsc := (hS.2.2.2.1 c hc).1
-  have hfs := (R.fits_fieldCtx hS hsc hps hp hwdF (vs := fs)).1.mpr hfit
-  refine ⟨hfs, (R.fits_fieldCtx hS hsc hps hp hwdF).2 hfit, ?_⟩
+  have hfs := (R.fits_fieldCtx hS hn hsc hps hp hwdF (vs := fs)).1.mpr hfit
+  refine ⟨hfs, (R.fits_fieldCtx hS hn hsc hps hp hwdF).2 hfit, ?_⟩
   have hl := S.FitsFields_length M _ hfit
-  have hb := (hbody (fs ++ ps) ((FitsVals_append M' φ' (by rw [hl, S.length_fieldCtx])).mpr
-    ⟨hp', hfs⟩)).1
-  rw [consList_append] at hb
+  have hvs : FitsVals M' φ' ρ (S.fieldCtx c.fields ++ S.params) (fs ++ ps) :=
+    (FitsVals_append M' φ' (by rw [hl, S.length_fieldCtx])).mpr ⟨hp', hfs⟩
+  have hb := (hbody (fs ++ ps) hvs).1
+  have hne' := hne (fs ++ ps) hvs
+  rw [consList_append] at hb hne'
   have := (R.famAt_wd hS (o := c.fields.length) (ρ'' := consList fs (consList ps ρ)) (ps := ps)
-    (by rw [← hl, shiftE_consList, readEnv_consList hps]) (hS.2.2.2.1 c hc).2.2.1 hb).2.1
+    (by rw [← hl, shiftE_consList, readEnv_consList hps]) (hS.2.2.2.1 c hc).2.2.1 hb hne').2.1
   rwa [R.idxVals_eq (hS.2.2.2.1 c hc).2.2.2 (by simp [hl, hps]; omega)] at this
 
 /-- **A constructor's set is in the constructor's type**, read
@@ -172,7 +177,8 @@ anywhere the type is well-denoted. -/
 theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
     (R₂ : S.Reader₂ (env := env) M φ M' φ') (hfresh : env.find? S.name = none)
     {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) {ρ : Nat → V}
-    (hwd : WellDenoted M' φ' ρ (S.ctorType c)) (hnr : S.NoRecDep)
+    (hwd : WellDenoted M' φ' ρ (S.ctorType c)) (hT : IsTy (interp M' φ' ρ (S.ctorType c)))
+    (hn : NestFit S M φ) (hnr : S.NoRecDep)
     (hb : ∀ ps, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
       S.DomsBounded M (S.lparams.map φ) ps)
     (hco : ∀ ps, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
@@ -182,11 +188,13 @@ theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V}
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
   have R₁ := S.reader₁A (M := M) (φ := φ) R₂.R.adm hfresh
   have hwd' := hwd
-  unfold ctorType at hwd' ⊢
+  have hT' := hT
+  unfold ctorType at hwd' hT' ⊢
+  have hne := body_ne_pt_of_mkPis M' φ' hwd' hT'
   rw [WellDenoted_mkPis] at hwd'
   obtain ⟨hctx, hbody⟩ := hwd'
   obtain ⟨hpar, hfld⟩ := CtxWD_append' hctx
-  rw [interp_mkPis, R.pw_holds hS.2.2.1]
+  rw [interp_mkPis]
   unfold ctorSet
   -- from the block's own reading to this one
   have hagree : CtxAgree (S.M₁ M) M' (S.ψ (S.lparams.map φ)) φ' base ρ
@@ -203,7 +211,7 @@ theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V}
       rw [h1, h2]
     · have hp := (R₁.fits_params hS).mp hps₁
       have hpsl : ps.length = S.nP := by have := FitsVals_length _ _ hps₁; simpa [nP] using this
-      have := R₁.agree_fieldCtx hS R hpsl hp (hS.2.2.2.1 c hcm).1
+      have := R₁.agree_fieldCtx hS R hpsl hp hn (hS.2.2.2.1 c hcm).1
         (hfld ps ((R.fits_params hS).mpr hp)) (ρ₁ := base)
       simpa [envP] using this
   rw [lamCtx_congr₂ hagree (G := fun ρ' => S.ctorVal (S.lparams.map φ) j (readEnv c.fields.length ρ'))
@@ -211,9 +219,9 @@ theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V}
     have hl := FitsVals_length _ _ hvs
     simp only [List.length_append, S.length_fieldCtx] at hl
     rw [readEnv_consList_take (by omega), readEnv_consList_take (by omega)]]
-  refine lamCtx_mem_piCtx M' φ' (fun vs hvs => ?_) fun hz vs hvs => ?_
-  -- the values: fields over parameters (for both the membership and,
-  -- at a proposition, the fibre being a truth value)
+  refine lamCtx_mem_piCtx M' φ' (fun vs hvs => ?_) fun vs hvs => ?_
+  -- the values: fields over parameters (for both the membership and
+  -- the fibre being a type)
   all_goals
     have hlv := FitsVals_length M' φ' hvs
     obtain ⟨fs, ps, rfl, hlf⟩ : ∃ fs ps, vs = fs ++ ps ∧ fs.length = (S.fieldCtx c.fields).length := by
@@ -223,18 +231,19 @@ theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V}
     obtain ⟨hps₁, hfs₁⟩ := (FitsVals_append M' φ' hlf).mp hvs
     have hp := (R.fits_params hS).mp hps₁
     have hpsl : ps.length = S.nP := by have := FitsVals_length _ _ hps₁; simpa [nP] using this
-    obtain ⟨hwdF, hall⟩ := R.idxFit_of_wd hS hcm hwd hpsl hp
-    have hfit := (R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hpsl hp hwdF (vs := fs)).1.mp hfs₁
+    obtain ⟨hwdF, hall⟩ := R.idxFit_of_wd hS hcm hwd hT hn hpsl hp
+    have hfit := (R.fits_fieldCtx hS hn (hS.2.2.2.1 c hcm).1 hpsl hp hwdF (vs := fs)).1.mp hfs₁
     have hlf' : fs.length = c.fields.length := by rw [hlf, S.length_fieldCtx]
     have hbody' := (hbody (fs ++ ps) hvs).1
-    rw [consList_append] at hbody' ⊢
+    have hne' := hne (fs ++ ps) hvs
+    rw [consList_append] at hbody' hne' ⊢
     rw [(R.famAt_wd hS (o := c.fields.length) (ρ'' := consList fs (consList ps ρ)) (ps := ps)
-      (by rw [← hlf', shiftE_consList, readEnv_consList hpsl]) (hS.2.2.2.1 c hcm).2.2.1 hbody').2.2,
+      (by rw [← hlf', shiftE_consList, readEnv_consList hpsl]) (hS.2.2.2.1 c hcm).2.2.1 hbody'
+      hne').2.2,
       R.idxVals_eq (hS.2.2.2.1 c hcm).2.2.2 (by simp [hlf', hpsl]; omega)]
   · rw [readEnv_consList hlf']
     exact S.ctorVal_mem_Fam M _ hnr (hb ps hp) (hco ps hp) hc hfit
-  · have := S.Fam_mem_univ M (S.lparams.map φ) ps (S.idxVals M (S.lparams.map φ) (consList fs (envP ps)) c.idx)
-    rwa [(S.z_iff _).mp hz] at this
+  · exact IsTy_of_mem_typeU (S.Fam_mem_typeU M _ hnr (hb ps hp) (hco ps hp) _)
 
 /-- **The motive's typing**: a member of the motive's type sends
 fitting indices and a member of the fibre into the elimination
@@ -252,7 +261,7 @@ theorem Reader.motiveOk_of_mem (hS : S.Scoped env) {M' : Name → List Nat → V
   have := appList_mem_of_piCtx M _ hm his
   rw [readEnv_consList hl] at this
   rw [appList_append, appList_cons, appList_nil]
-  exact app_mem_piSet this ht
+  exact app_mem_piV this ht
 
 end IndSpec
 
