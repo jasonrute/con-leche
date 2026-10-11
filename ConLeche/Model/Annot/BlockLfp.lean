@@ -342,7 +342,7 @@ structure LfpClause (acval : Name → (Name → Nat) → AnnotTerm) (D : LfpDatu
   `Type`-valued block (task #327): the operator's accessibility, (W) and
   monotonicity, and the fit's growth follow at every level -/
   fitAcc : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
-    ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (univ (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
+    ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (tg (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
   /-- **what `Φ` is**: component `c`'s fibre at `(X, t)` is the set of
   injections of the spines fitting one of `c`'s constructors -/
   fibre : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →

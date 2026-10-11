@@ -3377,12 +3377,12 @@
    302  theorem closed_of_acc (hn : n ≠ 0) (hA : A ∈ˢ (univ n : V)) (hmaps : MapsFam n Φ)
    303      (hacc : AccFam n Φ A) : ∃ L, IsClosedFam n Φ L := by
 
-== ConLeche/SetModel/Access.lean#L241-L245
-   241  /-- **(W) from accessibility.**  At a positive level, an operator that
-   242  maps the tuple space into itself and is `A`-accessible for a set `A` of
-   243  the level has a closed tuple.  No monotonicity is used. -/
-   244  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple w k Is Φ)
-   245      (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
+== ConLeche/SetModel/Access.lean#L240-L244
+   240  /-- **(W) from accessibility.**  At a positive level, an operator that
+   241  maps the tuple space into itself and is `A`-accessible for a set `A` of
+   242  the level has a closed tuple.  No monotonicity is used. -/
+   243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
+   244      (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
 
 == whitepaper/Fragment/Access.lean#L163-L198
    163  /-- Lean-level well-founded trees branching over the sets: a leaf, or
@@ -3595,16 +3595,17 @@
   1393      t ∈ˢ S.Fam M ls ps is ↔ t = pt ∧ ∃ x, S.Mem M ls ps is x := by
   1394    rw [S.mem_Fam M ls hnr hb hco]
 
-== ConLeche/SetTheory/Derive/LfpTuple.lean#L67-L75
-    67  /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
-    68  intersection of the closed tuples when there is one (separated from a
-    69  chosen closed tuple), the empty tuple otherwise. -/
-    70  noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
-    71    fun m =>
-    72      if h : ∃ L, IsClosedTuple w k Is Φ L then
-    73        graph (fun i => sep (app (Classical.choose h m) i)
-    74          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i)) (Is m)
-    75      else graph (fun _ => empty) (Is m)
+== ConLeche/SetTheory/Derive/LfpTuple.lean#L70-L79
+    70  /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
+    71  intersection of the closed tuples when there is one (separated from a
+    72  chosen closed tuple), dropped to `∅` if it left `univ w`; the empty
+    73  tuple otherwise. -/
+    74  noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
+    75    fun m =>
+    76      if h : ∃ L, IsClosedTuple w k Is Φ L then
+    77        graph (fun i => dropTo (univ w) (sep (app (Classical.choose h m) i)
+    78          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
+    79      else graph (fun _ => empty) (Is m)
 
 == ConLeche/Model/Annot/BlockLfp.lean#L338-L345
    338    /-- **`Φ` maps the tuple space into itself** -/
@@ -3614,15 +3615,15 @@
    342    `Type`-valued block (task #327): the operator's accessibility, (W) and
    343    monotonicity, and the fit's growth follow at every level -/
    344    fitAcc : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
-   345      ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (univ (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
+   345      ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (tg (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
 
-== ConLeche/SetModel/Access.lean#L297-L302
-   297  theorem AccW.closed {w k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
-   298      (h : AccW w k Is Φ) (hmaps : MapsTuple w k Is Φ) : ∃ L, IsClosedTuple w k Is Φ L := by
-   299    by_cases hw : w = 0
-   300    · subst hw; exact closedTuple_zero hmaps
-   301    · obtain ⟨A, hA, hacc⟩ := h
-   302      exact closed_of_acc hw (hA hw) hmaps hacc
+== ConLeche/SetModel/Access.lean#L298-L303
+   298  theorem AccW.closed {w k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
+   299      (h : AccW w k Is Φ) (hmaps : MapsTuple w k Is Φ) : ∃ L, IsClosedTuple w k Is Φ L := by
+   300    by_cases hw : w = 0
+   301    · subst hw; exact closedTuple_zero hmaps
+   302    · obtain ⟨A, hA, hacc⟩ := h
+   303      exact closed_of_acc hw (hA hw) hmaps hacc
 
 == ConLeche/Model/Annot/BlockLfp.lean#L454-L458
    454  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
@@ -3784,27 +3785,29 @@
    325      (hmo : q = true → ∀ is t, t ∈ˢ S.Fam M ls ps is → appList m (is.reverse ++ [t]) ∈ˢ (univ 0 : V))
    326      {is : List V} {t : V} (ht : t ∈ˢ S.Fam M ls ps is) :
 
-== ConLeche/SetModel/GraphRec.lean#L101-L103
-   101  /-- **The recursor family's graph**: the least fixed point of the graph
-   102  functor. -/
-   103  noncomputable def gGraph : V := lfpFamSet ℓ U (gStep ℓ U Dec pred B st)
+== ConLeche/SetModel/GraphRec.lean#L100-L104
+   100  /-- **The recursor family's graph**: the least fixed point of the graph
+   101  functor, over families of the axiomatic level `tg ℓ` — a relation,
+   102  whose fibres are sets of values, not types (no drop ever fires: the
+   103  level is closed under subsets). -/
+   104  noncomputable def gGraph : V := lfpFamIn (tg ℓ) U (gStep ℓ U Dec pred B st)
 
-== ConLeche/SetModel/GraphRec.lean#L228-L230
-   228  /-- **The recursion theorem, from induction**: the graph has exactly
-   229  one value at every major. -/
-   230  theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
+== ConLeche/SetModel/GraphRec.lean#L227-L229
+   227  theorem graph_mem_B {u v : V} (hu : u ∈ˢ U) (hv : v ∈ˢ app K.G u) : v ∈ˢ K.B u :=
+   228    gGraph_mem_B K.hB K.hpred hu hv
+   229  
 
-== ConLeche/SetModel/GraphRec.lean#L266-L270
-   266  /-- **The ι law, at ANY decoding**: the recursor at a major is the
-   267  step at that decoding, the `ih`s being the recursor at the
-   268  predecessors. -/
-   269  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-   270      K.recAt u = K.st d (graph (fun j => K.recAt j) (K.pred d)) := by
+== ConLeche/SetModel/GraphRec.lean#L265-L269
+   265      graph (fun j => K.recAt j) (K.pred d) ∈ˢ piSet (K.pred d) (fun j => app K.G j) :=
+   266    graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
+   267  
+   268  /-- **The ι law, at ANY decoding**: the recursor at a major is the
+   269  step at that decoding, the `ih`s being the recursor at the
 
-== ConLeche/SetModel/GraphRec.lean#L186-L188
-   186    /-- **the sort-dependent fact**: decodings are unique, or the bound is a subsingleton -/
-   187    huniq : ∀ u, u ∈ˢ U → ∀ d d', Dec u d → Dec u d' →
-   188      d = d' ∨ ∀ v v', v ∈ˢ B u → v' ∈ˢ B u → v = v'
+== ConLeche/SetModel/GraphRec.lean#L185-L187
+   185    /-- the step lands in the bound (the rule's certified typing) -/
+   186    hst : ∀ u, u ∈ˢ U → ∀ d, Dec u d → ∀ g,
+   187      g ∈ˢ piSet (pred d) (fun j => app (gGraph ℓ U Dec pred B st) j) → st d g ∈ˢ B u
 
 == ConLeche/Model/Inductives/ClassGenUniq.lean#L13-L19
     13  * **`huniq`** (`genUniq`): two decodings of a major are equal, or the
@@ -4824,18 +4827,18 @@
     32  block's level (`n2_sort`, the kernel's N3), so a truth-valued fibre of a
     33  container is empty (`LfpClause.injNePt`).
 
-== ConLeche/SetModel/Access.lean#L529-L539
-   529  /-- **THE NESTED CASE: the least tuple is accessible in its parameter.**
-   530  If the joint operator `Θ` (parameter components first, then its own) is
-   531  `A`-accessible and maps the space into itself, then `X ↦ lfp_Y Θ(X, Y)`
-   532  is `accPaths A`-accessible — no key, no wide operator, no container
-   533  presentation.  (W) of each section and its monotonicity come from
-   534  `closed_of_acc` / `AccTuple.monoTuple`. -/
-   535  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (univ w : V))
-   536      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
-   537        InTupleSpace w kY IsY (Θ (catT kX X Y)))
-   538      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
-   539      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
+== ConLeche/SetModel/Access.lean#L530-L540
+   530  /-- **THE NESTED CASE: the least tuple is accessible in its parameter.**
+   531  If the joint operator `Θ` (parameter components first, then its own) is
+   532  `A`-accessible and maps the space into itself, then `X ↦ lfp_Y Θ(X, Y)`
+   533  is `accPaths A`-accessible — no key, no wide operator, no container
+   534  presentation.  (W) of each section and its monotonicity come from
+   535  `closed_of_acc` / `AccTuple.monoTuple`. -/
+   536  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
+   537      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
+   538        InTupleSpace w kY IsY (Θ (catT kX X Y)))
+   539      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
+   540      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
 
 == ConLeche/Semantics/Inductives/HoleMono.lean#L17-L23
     17  | `nestPos` case | lemma |

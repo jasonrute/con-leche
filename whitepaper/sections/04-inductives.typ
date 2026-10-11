@@ -560,7 +560,7 @@ member of $cal(U)_n$ and $Phi(L) subset.eq L$ fibrewise.
   Let $n >= 1$. An operator $Phi$ on families that maps families in
   $cal(U)_n$ to families in $cal(U)_n$ and is accessible with a bound
   $A in cal(U)_n$ #src("whitepaper/Fragment/Access.lean", 292, 303)[has a closed family] in $cal(U)_n$
-  (#src("ConLeche/SetModel/Access.lean", 241, 245)[as in con-leche]).
+  (#src("ConLeche/SetModel/Access.lean", 240, 244)[as in con-leche]).
 ] <thm:closed-of-acc>
 
 #proof[
@@ -637,14 +637,14 @@ every constructor denotes the point.
 
 #real[
   The least fixed point is
-  #src("ConLeche/SetTheory/Derive/LfpTuple.lean", 67, 75)[the same construction]
+  #src("ConLeche/SetTheory/Derive/LfpTuple.lean", 70, 79)[the same construction]
   over a tuple of families, one per type former of the block, each a
   graph over an index set. What the model records of an installed
   block is one clause: the operator maps the universe to itself and
   its fit is accessible, in both regimes
   (#src("ConLeche/Model/Annot/BlockLfp.lean", 338, 345)[the operator]),
   so it has a closed family
-  (#src("ConLeche/SetModel/Access.lean", 297, 302)[the constant family at a proposition, and from accessibility in the type-valued regime])
+  (#src("ConLeche/SetModel/Access.lean", 298, 303)[the constant family at a proposition, and from accessibility in the type-valued regime])
   and is
   #src("ConLeche/Model/Annot/BlockLfp.lean", 454, 458)[monotone];
   its fibres are the tagged tuples of fitting fields
@@ -712,16 +712,16 @@ and there is nothing to construct.
   a least fixed point inside the set theory — the proof calls this
   the _graph route_ — and one construction serves every sort. Over
   the set of majors, the graph is
-  #src("ConLeche/SetModel/GraphRec.lean", 101, 103)[the least relation]
+  #src("ConLeche/SetModel/GraphRec.lean", 100, 104)[the least relation]
   closed under the rules, each read over the ways a major _decodes_
   (a major decodes when it is the value of a constructor applied to
   some fields, and a decoding is that constructor and those fields);
   the graph has
-  #src("ConLeche/SetModel/GraphRec.lean", 228, 230)[exactly one value at every major]
+  #src("ConLeche/SetModel/GraphRec.lean", 227, 229)[exactly one value at every major]
   by the family's own induction, and the equation at any decoding is
-  #src("ConLeche/SetModel/GraphRec.lean", 266, 270)[the $iota$ law].
+  #src("ConLeche/SetModel/GraphRec.lean", 265, 269)[the $iota$ law].
   The one fact about sorts it asks is a premise: at every major,
-  #src("ConLeche/SetModel/GraphRec.lean", 186, 188)[two decodings are equal, or the motive's value there has at most one member]
+  #src("ConLeche/SetModel/GraphRec.lean", 185, 187)[two decodings are equal, or the motive's value there has at most one member]
   — the elimination rule of @sec:ind-checks, read three ways
   (#src("ConLeche/Model/Inductives/ClassGenUniq.lean", 13, 19)[the three cases],
   #src("ConLeche/Model/Inductives/ClassGenUniq.lean", 57)[the theorem]):

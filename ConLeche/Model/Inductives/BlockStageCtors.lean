@@ -171,7 +171,7 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
   holeFun : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
     AccW (d.w ψ) d.k (blockIdx (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
       (blockPhiG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ)) ∧
-    ∃ A, (d.w ψ ≠ 0 → A ∈ˢ (univ (d.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A
+    ∃ A, (d.w ψ ≠ 0 → A ∈ˢ (tg (d.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A
   /-- the block has no instance component -/
   inst : d.nInst = 0
   /-- the stored field shape facts, the members' leaves the formers' -/

@@ -196,7 +196,6 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
   let X' : Nat → V := fun m => if m = t then
     graph (fun i => if i = tt then binUnion (app (X t) i) (sing empty) else app (X t) i)
       (D.idx ψ ρp t) else X m
-  have hU := univ_isTGUniverse (V := V) hw
   have hX' : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X' := by
     intro m hm
     by_cases hmt : m = t
@@ -204,8 +203,7 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
       simp only [X', ite_eq_left rfl]
       refine graph_mem_famSpace fun i hi => ?_
       split
-      · exact hU.binUnion_mem (empty_mem_univ _) (famSpace_app (hX m hm) hi)
-          (hU.sing_mem (empty_mem_univ _) (empty_mem_univ _))
+      · exact univ_binUnion_sing_empty_mem hw (famSpace_app (hX m hm) hi)
       · exact famSpace_app (hX m hm) hi
     · simp only [X', ite_eq_right hmt]
       exact hX m hm

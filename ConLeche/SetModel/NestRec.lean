@@ -118,6 +118,7 @@ noncomputable def carrier (C : SClause V F) (ρ : F) : Nat → V := lfpTuple C.w
 operator is (the fibre law). -/
 structure OkAt (C : SClause V F) (ρ : F) : Prop where
   mono : MonoTuple C.w C.N C.Is (C.Φ ρ)
+  maps : MapsTuple C.w C.N C.Is (C.Φ ρ)
   closed : ∃ L, IsClosedTuple C.w C.N C.Is (C.Φ ρ) L
   fibre : ∀ X, InTupleSpace C.w C.N C.Is X → ∀ c, c < C.N → ∀ t, t ∈ˢ C.Is c → ∀ x,
     x ∈ˢ app (C.Φ ρ X c) t ↔ ∃ j fs, C.Fits ρ X t c j fs ∧ x = C.inj c j fs
@@ -132,7 +133,7 @@ member of the carrier (the fibre law backwards, then closure). -/
 theorem OkAt.inj_mem {ρ : F} (h : C.OkAt ρ) {c : Nat} (hc : c < C.N) {t : V} (ht : t ∈ˢ C.Is c)
     {j : Nat} {fs : List V} (hf : C.Fits ρ (C.carrier ρ) t c j fs) :
     C.inj c j fs ∈ˢ app (C.carrier ρ c) t :=
-  lfpTuple_closed h.closed h.mono c hc t ht _
+  lfpTuple_closed h.closed h.mono h.maps c hc t ht _
     ((h.fibre _ (C.carrier_mem ρ) c hc t ht _).mpr ⟨j, fs, hf, rfl⟩)
 
 /-- **The class's induction principle** at a frame: `lfpTuple_induction`
@@ -141,18 +142,11 @@ theorem OkAt.ind {ρ : F} (h : C.OkAt ρ) (Q : Nat → V → V → Prop)
     (hstep : ∀ c, c < C.N → ∀ t, t ∈ˢ C.Is c → ∀ j fs,
       C.Fits ρ (sepTuple C.w C.N C.Is (C.Φ ρ) Q) t c j fs → Q c t (C.inj c j fs)) :
     ∀ c, c < C.N → ∀ t, t ∈ˢ C.Is c → ∀ x, x ∈ˢ app (C.carrier ρ c) t → Q c t x := by
-  refine lfpTuple_induction h.closed h.mono Q fun c hc t ht x hx => ?_
+  refine lfpTuple_induction h.closed h.mono h.maps Q fun c hc t ht x hx => ?_
   obtain ⟨j, fs, hf, rfl⟩ := (h.fibre _ (sepTuple_mem _ _ _ _ Q) c hc t ht x).mp hx
   exact hstep c hc t ht j fs hf
 
 end SClause
-
-/-- A separated component, read at an index tuple of its index set. -/
-theorem mem_app_sepTuple {w k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
-    {Q : Nat → V → V → Prop} {c : Nat} {t y : V} (ht : t ∈ˢ Is c) :
-    y ∈ˢ app (sepTuple w k Is Φ Q c) t ↔ y ∈ˢ app (lfpTuple w k Is Φ c) t ∧ Q c t y := by
-  unfold sepTuple
-  rw [app_graph ht, mem_sep]
 
 /-! ## Majors and decodings -/
 
@@ -299,7 +293,7 @@ theorem claim_step (P : V → Prop)
   let S := sepTuple (K.cl b).w (K.cl b).N (K.cl b).Is ((K.cl b).Φ ρ) fun c t y => K.Good P b c t y
   have hSmem : InTupleSpace (K.cl b).w (K.cl b).N (K.cl b).Is S := sepTuple_mem _ _ _ _ _
   have hSgood : ∀ c', c' < (K.cl b).N → ∀ t', t' ∈ˢ (K.cl b).Is c' → ∀ y, y ∈ˢ app (S c') t' →
-      K.Good P b c' t' y := fun c' _ t' ht' y hy => ((mem_app_sepTuple ht').mp hy).2
+      K.Good P b c' t' y := fun c' _ t' ht' y hy => (mem_app_sepTuple_imp ht' hy).2
   have hSle : TupleLe (K.cl b).N (K.cl b).Is S (K.KT b) :=
     fun c' hc' t' ht' y hy => (hSgood c' hc' t' ht' y hy).1
   -- the SAME spine fits at the true frame and carrier
