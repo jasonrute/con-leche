@@ -10,7 +10,8 @@ public import Fragment.Univ
 What the environment section uses of set theory beyond the universes
 (`Lib.lean`, `Univ.lean`), again as laws only: **n-ary tuples**
 (injective, universe-closed) and **tagged values** (injective,
-universe-closed, never the point).  A constructor application denotes
+universe-closed, never the point nor a member of it — so a set of
+tagged values is strict, a type of the restricted universes).  A constructor application denotes
 a tagged tuple — the constructor's number, then its fields.  The
 operations are abstract, so their closure laws cannot be derived from
 the universe laws and stay laws.
@@ -61,6 +62,10 @@ class IndLib (V : Type u) extends UnivLib V where
   tag_mem_univ : ∀ {n i : Nat} {x : V}, n ≠ 0 → Mem x (univ n) → Mem (tag i x) (univ n)
   /-- A tagged value is never the point. -/
   tag_ne_pt : ∀ {i : Nat} {x : V}, tag i x ≠ pt
+  /-- No tagged value is a member of the point.  (With `pt := {{∅}}`
+and Kuratowski tags: `{∅}` is not a pair `{{i}, {i, x}}`.)  Together
+  with `tag_ne_pt` it makes every set of tagged values strict. -/
+  tag_not_mem_pt : ∀ {i : Nat} {x : V}, ¬ Mem (tag i x) pt
 
 namespace IndLib
 

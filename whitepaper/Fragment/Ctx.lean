@@ -99,11 +99,12 @@ def FitsVals : (Nat → V) → List Expr → List V → Prop
   | ρ, A :: Γ, v :: vs => FitsVals ρ Γ vs ∧ v ∈ˢ interp M φ (consList vs ρ) A
   | _, _, _ => False
 
-/-- The domains of a context are well-denoted under every fitting
-prefix. -/
+/-- The domains of a context are well-denoted types under every
+fitting prefix. -/
 def CtxWD : (Nat → V) → List Expr → Prop
   | _, [] => True
-  | ρ, A :: Γ => CtxWD ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs → WellDenoted M φ (consList vs ρ) A
+  | ρ, A :: Γ => CtxWD ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs →
+      WellDenoted M φ (consList vs ρ) A ∧ IsTy (interp M φ (consList vs ρ) A)
 
 @[simp] theorem piCtx_nil (p : Bool) (ρ : Nat → V) (F : (Nat → V) → V) : piCtx M φ p ρ [] F = F ρ := rfl
 @[simp] theorem piCtx_cons (p : Bool) (ρ : Nat → V) (A : Expr) (Γ : List Expr) (F : (Nat → V) → V) :
@@ -125,7 +126,23 @@ theorem FitsVals_cons (ρ : Nat → V) (A : Expr) (Γ : List Expr) (v : V) (vs :
 @[simp] theorem CtxWD_nil (ρ : Nat → V) : CtxWD M φ ρ [] = True := rfl
 theorem CtxWD_cons (ρ : Nat → V) (A : Expr) (Γ : List Expr) :
     CtxWD M φ ρ (A :: Γ) =
-      (CtxWD M φ ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs → WellDenoted M φ (consList vs ρ) A) := rfl
+      (CtxWD M φ ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs →
+        WellDenoted M φ (consList vs ρ) A ∧ IsTy (interp M φ (consList vs ρ) A)) := rfl
+
+/-- The domains of a context are types under every fitting prefix (the
+type half of `CtxWD`). -/
+def CtxTy : (Nat → V) → List Expr → Prop
+  | _, [] => True
+  | ρ, A :: Γ => CtxTy ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs → IsTy (interp M φ (consList vs ρ) A)
+
+@[simp] theorem CtxTy_nil (ρ : Nat → V) : CtxTy M φ ρ [] = True := rfl
+theorem CtxTy_cons (ρ : Nat → V) (A : Expr) (Γ : List Expr) :
+    CtxTy M φ ρ (A :: Γ) =
+      (CtxTy M φ ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs → IsTy (interp M φ (consList vs ρ) A)) := rfl
+
+theorem CtxWD.ty : ∀ {ρ : Nat → V} {Γ : List Expr}, CtxWD M φ ρ Γ → CtxTy M φ ρ Γ
+  | _, [], _ => trivial
+  | _, _ :: _, h => ⟨CtxWD.ty h.1, fun vs hvs => (h.2 vs hvs).2⟩
 
 theorem FitsVals_length : ∀ {ρ : Nat → V} {Γ : List Expr} {vs : List V},
     FitsVals M φ ρ Γ vs → vs.length = Γ.length := by
@@ -288,15 +305,16 @@ theorem piCtx_mem_univ {p : Bool} {ρ : Nat → V} {Γ : List Expr} {G : (Nat �
         hG (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)
 
 /-- **The invariant of a product over a context**: the domains are
-well-denoted under fitting prefixes, the body is well-denoted under
-fitting values, and where the annotation says "proposition" the body
-is a truth value there (which says something only when there IS a
-binder: at the empty context the product is the bare body). -/
+well-denoted types under fitting prefixes, the body is well-denoted
+under fitting values, and in the regime of the annotation there — a
+truth value where it says "proposition", a strict set where it does
+not (which says something only when there IS a binder: at the empty
+context the product is the bare body). -/
 theorem WellDenoted_mkPis (pw : PropWhen) (Γ : List Expr) (b : Expr) (ρ : Nat → V) :
     WellDenoted M φ ρ (Expr.mkPis pw Γ b) ↔
       CtxWD M φ ρ Γ ∧ ∀ vs, FitsVals M φ ρ Γ vs →
         WellDenoted M φ (consList vs ρ) b ∧
-        (Γ ≠ [] → pw.holds φ = true → interp M φ (consList vs ρ) b ∈ˢ (univ 0 : V)) := by
+        (Γ ≠ [] → Fib (pw.holds φ) (interp M φ (consList vs ρ) b)) := by
   induction Γ generalizing b with
   | nil =>
     constructor
@@ -314,23 +332,23 @@ theorem WellDenoted_mkPis (pw : PropWhen) (Γ : List Expr) (b : Expr) (ρ : Nat 
       refine ⟨⟨hctx, fun vs hvs => ?_⟩, fun vs hvs => ?_⟩
       · have := (hb vs hvs).1
         rw [WellDenoted_pi] at this
-        exact this.1
+        exact ⟨this.1, this.2.1⟩
       · cases vs with
         | nil => exact hvs.elim
         | cons v vs =>
           rw [FitsVals_cons] at hvs
           have := (hb vs hvs.1).1
           rw [WellDenoted_pi] at this
-          exact ⟨this.2.1 v hvs.2, fun _ hp => this.2.2 hp v hvs.2⟩
+          exact ⟨this.2.2.1 v hvs.2, fun _ => this.2.2.2 v hvs.2⟩
     · rintro ⟨⟨hctx, hA⟩, hb⟩
-      refine ⟨hctx, fun vs hvs => ⟨?_, fun _ hp => ?_⟩⟩
+      refine ⟨hctx, fun vs hvs => ⟨?_, fun _ => ?_⟩⟩
       · rw [WellDenoted_pi]
-        refine ⟨hA vs hvs, fun x hx => ?_, fun hp x hx => ?_⟩
+        refine ⟨(hA vs hvs).1, (hA vs hvs).2, fun x hx => ?_, fun x hx => ?_⟩
         · exact (hb (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).1
         · exact (hb (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).2
-            (List.cons_ne_nil A Γ) hp
-      · rw [interp_pi, hp]
-        exact piR_true_mem_univ_zero
+            (List.cons_ne_nil A Γ)
+      · rw [interp_pi]
+        exact Fib_piR
 
 /-- **An abstraction against its product**: if the product is
 well-denoted and the body lands in the product's body under every
@@ -353,17 +371,18 @@ theorem mkLams_ok {pw : PropWhen} {Γ : List Expr} {b T : Expr} {ρ : Nat → V}
     rw [Expr.mkLams_cons]
     refine ih hT fun vs hvs => ⟨?_, ?_⟩
     · rw [WellDenoted_lam]
-      refine ⟨hT'.1.2 vs hvs, fun x hx => ?_, fun x => interp M φ (cons x (consList vs ρ)) T,
-        fun x hx => ?_, fun hp x hx => ?_⟩
+      refine ⟨(hT'.1.2 vs hvs).1, (hT'.1.2 vs hvs).2, fun x hx => ?_,
+        fun x => interp M φ (cons x (consList vs ρ)) T, fun x hx => ?_, fun x hx => ?_⟩
       · exact (hb (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).1
       · exact (hb (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).2
       · exact (hT'.2 (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).2
-          (List.cons_ne_nil A Γ) hp
+          (List.cons_ne_nil A Γ)
     · rw [interp_lam, interp_pi]
       refine lamR_mem (fun x hx => (hb (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).2)
         fun hp x hx => ?_
-      exact (hT'.2 (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).2
-        (List.cons_ne_nil A Γ) hp
+      have := (hT'.2 (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)).2
+        (List.cons_ne_nil A Γ)
+      rwa [hp] at this
 
 /-! ## The value walks of `EnvModel.lean` on a generated telescope -/
 

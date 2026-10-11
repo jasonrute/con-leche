@@ -1408,6 +1408,30 @@ theorem mem_Fam_false {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls 
   unfold Inst Mem ctorVal
   simp only [hz, Bool.false_eq_true, ite_false]
 
+/-- **The fibre is a type of the restricted universe**: at a
+proposition a truth value; above it a set of tagged values, which is
+strict (no tagged value is the point or a member of it). -/
+theorem Fam_mem_typeU {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps)
+    (hco : S.ContOk M ls ps) (is : List V) : S.Fam M ls ps is ∈ˢ (typeU (S.u₀ ls) : V) := by
+  cases hz : S.z ls with
+  | true =>
+    rw [(S.z_iff ls).mp hz, mem_typeU_zero, ← (S.z_iff ls).mp hz]
+    exact S.Fam_mem_univ M ls ps is
+  | false =>
+    rw [mem_typeU_pos (S.u₀_ne_zero ls hz)]
+    have htag : ∀ t, t ∈ˢ S.Fam M ls ps is → ∃ i x, t = tag i x := by
+      intro t ht
+      obtain ⟨j, c, fs, -, -, -, rfl⟩ := (S.mem_Fam_false M ls hnr hb hco hz).mp ht
+      exact ⟨_, _, rfl⟩
+    refine ⟨S.Fam_mem_univ M ls ps is, fun he => ?_, fun hpt => ?_⟩
+    · obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+      rw [← he] at hz'
+      obtain ⟨i, x, rfl⟩ := htag z hz'
+      rw [he] at hz'
+      exact tag_not_mem_pt hz'
+    · obtain ⟨i, x, hx⟩ := htag pt hpt
+      exact tag_ne_pt hx.symm
+
 /-! ## The sets of the former and the constructors
 
 The former and the constructors as sets: graphs over the generated

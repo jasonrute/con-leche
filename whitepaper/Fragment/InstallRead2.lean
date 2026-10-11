@@ -65,9 +65,14 @@ theorem Reader.agree_base {M' : Name → List Nat → V} {φ' : Name → Nat}
   rw [← consList_append, ← consList_append]
   exact consList_agree_lt j (by simp [hl, hk]; omega)
 
-/-- **The former's set is in the former's type**, read anywhere. -/
+/-- **The former's set is in the former's type**, read anywhere, when
+the family's fibres at fitting parameters and indices are types of the
+result universe. -/
 theorem Reader.famSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
-    (R : S.Reader (env := env) M φ F M' φ') (ρ : Nat → V) :
+    (R : S.Reader (env := env) M φ F M' φ')
+    (hF : ∀ ps is, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
+      FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
+      F (S.lparams.map φ) ps is ∈ˢ (typeU (S.u₀ (S.lparams.map φ)) : V)) (ρ : Nat → V) :
     S.famSetF M (S.lparams.map φ) F ∈ˢ interp M' φ' ρ S.indType := by
   unfold indType
   rw [interp_mkPis, PropWhen.holds_never, R.famSet_eq hS]
@@ -87,9 +92,21 @@ theorem Reader.famSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V} {φ
     simp only [List.length_append] at hl
     rw [readEnv_shiftE_consList (by omega), readEnv_shiftE_consList (by omega),
       readEnv_consList_take (by omega), readEnv_consList_take (by omega)]]
-  refine lamCtx_mem_piCtx M' φ' (fun vs _ => ?_) fun h => nomatch h
+  refine lamCtx_mem_piCtx M' φ' (fun vs hvs => ?_) fun h => nomatch h
   rw [interp_sort, ← R.u₀_eq hS.2.2.1]
-  exact R.mem _ _ _
+  have hl := FitsVals_length M' φ' hvs
+  simp only [List.length_append] at hl
+  obtain ⟨is, ps, rfl, hli⟩ : ∃ is ps, vs = is ++ ps ∧ is.length = S.indices.length :=
+    ⟨vs.take S.indices.length, vs.drop S.indices.length, (List.take_append_drop _ _).symm,
+      by simp; omega⟩
+  obtain ⟨hp, hi⟩ := (FitsVals_append M' φ' hli).mp hvs
+  have hps : ps.length = S.nP := by have := FitsVals_length M' φ' hp; simpa [nP] using this
+  have hp' := (R.fits_params hS).mp hp
+  have hi' := (R.fits_indices hS (ρ := ρ) hps).mp hi
+  rw [consList_append, show shiftE S.nI 0 (consList is (consList ps ρ)) = consList ps ρ by
+      rw [show S.nI = is.length from hli.symm]; exact shiftE_consList is _,
+    readEnv_consList hps, readEnv_consList (show is.length = S.nI from hli)]
+  exact hF ps is hp' hi'
 
 /-- **The field context agrees between two readers** once its domains
 are well-denoted in one of them (the invariant supplies the index
@@ -116,7 +133,7 @@ theorem Reader.agree_fieldCtx (hS : S.Scoped env) {M₁ M₂ : Name → List Nat
     have hfit := (R₂.fits_fieldCtx hS hsc' hps hp hwd.1 (vs := vs)).1.mp hvs₂
     have hl := S.FitsFields_length M _ hfit
     have hf : S.fieldScoped env rest.length f := by have := hsc 0 f rfl; simpa using this
-    obtain ⟨hidx, hread₂⟩ := R₂.fieldDom_wd hS hf hl hps hp (hwd.2 vs hvs₂)
+    obtain ⟨hidx, hread₂⟩ := R₂.fieldDom_wd hS hf hl hps hp (hwd.2 vs hvs₂).1
     rw [hread₂, R₁.fieldDom_fit hS hf hl hps hp hidx]
 
 /-- **Every field's index expressions fit**, from the constructor's
@@ -221,14 +238,14 @@ theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V}
 
 /-- **The motive's typing**: a member of the motive's type sends
 fitting indices and a member of the fibre into the elimination
-universe. -/
+universe (its restricted form: a type). -/
 theorem Reader.motiveOk_of_mem (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
     (R : S.Reader (env := env) M φ F M' φ') {ps : List V} {ρ : Nat → V} {m : V}
     (hps : ps.length = S.nP) (hp : FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps)
     (hm : m ∈ˢ interp M' φ' (consList ps ρ) S.motiveTy) :
     ∀ is, FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
       ∀ t, t ∈ˢ F (S.lparams.map φ) ps is →
-        appList m (is.reverse ++ [t]) ∈ˢ (univ (Level.eval φ' S.ℓ) : V) := by
+        appList m (is.reverse ++ [t]) ∈ˢ (typeU (Level.eval φ' S.ℓ) : V) := by
   intro is his t ht
   rw [R.read_motiveTy hS hps hp] at hm
   have hl : is.length = S.nI := by have := FitsVals_length M _ his; simpa [nI] using this
