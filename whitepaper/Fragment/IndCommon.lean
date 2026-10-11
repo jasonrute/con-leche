@@ -206,6 +206,9 @@ theorem mem_adm {X x : V} : x ∈ˢ S.adm ls X ↔ x ∈ˢ X ∧ (S.z ls = false
   · simp [mem_sep]
   · simp
 
+theorem adm_true (hz : S.z ls = true) (X : V) : S.adm ls X = X := by
+  unfold adm; rw [hz]; rfl
+
 theorem adm_sub (X : V) : S.adm ls X ⊆ˢ X := fun _ h => ((S.mem_adm ls).mp h).1
 
 theorem adm_mono {X Y : V} (h : X ⊆ˢ Y) : S.adm ls X ⊆ˢ S.adm ls Y := fun x hx => by

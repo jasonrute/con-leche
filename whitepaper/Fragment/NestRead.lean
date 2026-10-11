@@ -1231,7 +1231,7 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
         (S.idxVals M (S.lparams.map φ) (consList fs (envP ps)) c.idx))
     (hmot : ∀ is, FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
       ∀ t, t ∈ˢ S.Fam M (S.lparams.map φ) ps is →
-        appList m (is.reverse ++ [t]) ∈ˢ (univ (Level.eval φ' S.ℓ) : V))
+        appList m (is.reverse ++ [t]) ∈ˢ (typeU (Level.eval φ' S.ℓ) : V))
     (hnr : S.NoRecDep) (hb : S.DomsBounded M (S.lparams.map φ) ps)
     (hco : S.ContOk M (S.lparams.map φ) ps)
     (hmn : FitsVals M' φ' (consList [m1, m] (consList ps ρ)) S.minorsCtxN mins)
@@ -1330,7 +1330,7 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
       rw [consList_append, hconcl fs' ihsR hf' hi' hfit']
       have hz := (S.q_holds φ')
       rw [hq, Bool.true_eq, beq_iff_eq] at hz
-      rw [← hz]
+      rw [← mem_typeU_zero, ← hz]
       exact hmot _ (hres c hcm fs' hfit') _
         (S.ctorVal_mem_Fam M _ hnr hb hco hc hfit')
   have key := appList_mem_of_piCtx M' φ' hmem hfitAll
@@ -1362,7 +1362,7 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
     (hidx : FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices
       (S.memberIdx M (S.lparams.map φ) N ps))
     (hmot1 : ∀ t, t ∈ˢ S.classAt M (S.lparams.map φ) N ps →
-        appList m1 [t] ∈ˢ (univ (Level.eval φ' S.ℓ) : V))
+        appList m1 [t] ∈ˢ (typeU (Level.eval φ' S.ℓ) : V))
     (hmnK : FitsVals M' φ' (consList (mins ++ [m1, m]) (consList ps ρ)) (S.minorsCtxK N) minsK)
     (hwmnK : CtxWD M' φ' (consList (mins ++ [m1, m]) (consList ps ρ)) (S.minorsCtxK N)) :
     ∀ j c, N.K.ctors[j]? = some c →
@@ -1479,7 +1479,7 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
       rw [consList_append, hconcl fs' ihsR hf' hi' hfit']
       have hz' := (S.q_holds φ')
       rw [hq, Bool.true_eq, beq_iff_eq] at hz'
-      rw [← hz']
+      rw [← mem_typeU_zero, ← hz']
       exact hmot1 _ (hcl.intro _ (S.Fam_mem_univ M _ _ _) j c fs' hc hfit')
   have key := appList_mem_of_piCtx M' φ' hmem hfitAll
   have hwm' := hwm
