@@ -26,10 +26,11 @@ point at `false` and not in `Bool → Nat`.  What holds is the
 or — when the type is syntactically a `∀` — a graph over the `∀`'s
 domain, not everywhere the point, whose every application satisfies
 the claim at the `∀`'s body.  It is keyed on the type's *syntax*: two
-`∀`s with equal values need not have equal domains (`∅` is both
-`False` and `(b : Bool) → Bool.rec False Nat b`, `IOWitness.lean`), so
-a claim read off the type's value alone cannot be carried through an
-application.  It is proved for every rule of `InferIO`, with no
+`∀`s with equal values need not have equal domains, and a `∀` of sort
+`Type` may denote a truth value with a non-point inhabitant
+(`IOWitness.lean`, `io_type_value_collision`: `(x : Prop) → E x` with
+an empty fibre), so a claim read off the type's value alone can be
+carried neither through an application nor to proof irrelevance.  It is proved for every rule of `InferIO`, with no
 certificate at any binder: at an application whose head is not the
 point the head is a graph, and a graph determines its domain
 (`SetLib.piSet_dom_unique`), which is therefore the slot's.

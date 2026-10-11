@@ -103,10 +103,10 @@ which carry no law beyond their type), and `d := lamMixed`. -/
     (eName, ⟨[], propToType, .ctor "X" 0 0⟩)]⟩
 
 /-- `F`'s value: `Prop` at `True`, `{pt}` elsewhere. -/
-noncomputable def fVal : V → V := fun x => if x = one then typeU 0 else one
+@[expose] noncomputable def fVal : V → V := fun x => if x = one then typeU 0 else one
 
 /-- `d`'s value at `x`: `True` at `True`, the point elsewhere. -/
-noncomputable def dVal : V → V := fun x => if x = one then one else pt
+@[expose] noncomputable def dVal : V → V := fun x => if x = one then one else pt
 
 /-- The model: `mixedM` with `F` and `d` added. -/
 noncomputable def sortM : Name → List Nat → V := fun c ls =>

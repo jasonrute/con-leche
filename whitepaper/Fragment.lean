@@ -48,5 +48,6 @@ public import Fragment.UniformBeta
 public import Fragment.Unannot
 public import Fragment.Probe
 public import Fragment.IOGrade
+public import Fragment.IOWitness
 public import Fragment.Consistency
 public import Fragment.Axioms
