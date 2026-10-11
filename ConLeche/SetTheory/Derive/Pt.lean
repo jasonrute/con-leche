@@ -83,6 +83,22 @@ theorem pt_ne_kpair (a b : V) : (pt : V) ≠ kpair a b := by
   obtain ⟨h1, -⟩ := upair_eq_sing h.symm
   exact ptTag_ne_sing a h1.symm
 
+/-! ### The point laws (task #342)
+
+The whitepaper fragment's `SetLib` *assumes* three laws of the point
+(not a truth value, at most one member, no graph a member) and reads
+two more off its tags; here each is a theorem of `pt = {ptTag}`.
+`pt ∉ univZero` is below (after `univZero`), "no graph is a member"
+in `Derive/Graphs.lean`, `pt ∉ ω` in `Derive/TypeU.lean`. -/
+
+/-- The point has at most one member. -/
+theorem eq_of_mem_pt {x y : V} (hx : x ∈ˢ (pt : V)) (hy : y ∈ˢ (pt : V)) : x = y :=
+  (mem_pt.mp hx).trans (mem_pt.mp hy).symm
+
+/-- No tagged value (Kuratowski pair) is a member of the point. -/
+theorem kpair_not_mem_pt (a b : V) : ¬ kpair a b ∈ˢ (pt : V) := fun h =>
+  ptTag_ne_kpair a b (mem_pt.mp h).symm
+
 /-- The canonical singleton `{pt}`: the true truth value. -/
 noncomputable def unitSet : V := sing pt
 
@@ -99,6 +115,15 @@ noncomputable def univZero : V := power unitSet
 
 theorem mem_univZero {T : V} : T ∈ˢ (univZero : V) ↔ T ⊆ˢ unitSet :=
   mem_power_iff_subset
+
+/-- The proof point is **not** a truth value: `pt = {ptTag}` and
+`ptTag ≠ pt`, so `pt ⊄ unitSet`. -/
+theorem pt_not_mem_univZero : ¬ (pt : V) ∈ˢ univZero := by
+  intro h
+  have h1 : (ptTag : V) ∈ˢ unitSet := mem_univZero.mp h ptTag ptTag_mem_pt
+  have h2 : (ptTag : V) = pt := mem_unitSet_iff.mp h1
+  have h3 : (pt : V) ∈ˢ pt := mem_pt.mpr h2.symm
+  exact not_mem_self (pt : V) h3
 
 /-- Members of `univ 0` have at most the proof point as element. -/
 theorem eq_pt_of_mem_univZero {T x : V} (hT : T ∈ˢ (univZero : V))
