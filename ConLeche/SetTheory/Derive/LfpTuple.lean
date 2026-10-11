@@ -18,12 +18,13 @@ This is `LfpFam.lean` componentwise:
     lfpTuple w k Is Φ m = graph (i ↦ {x ∈ app (L₀ m) i | ∀ closed X, x ∈ app (X m) i}) (Is m)
 
 over a classically chosen closed tuple `L₀` (the empty tuple when
-there is none), a fibre equal to the point dropped to `∅` (`unPt`) —
-TOTAL, as `lfpFamSet` is: the components are type-valued families
-(`famSpace`, task #342) for every operator.  Under a closed tuple,
-monotonicity and `MapsTuple` nothing is dropped (`mem_app_lfpTuple`),
-the least pre-fixed tuple is a fixed point (`lfpTuple_eq`) and supports
-simultaneous structural induction (`lfpTuple_induction`).
+there is none), a fibre that left `univ w` dropped to `∅` (`dropTo`,
+`LfpFam.lean`: an intersection of types need not be a type once `univ`
+is the restricted universe) — TOTAL, as `lfpFamSet` is.  Under a closed
+tuple, monotonicity and `MapsTuple` nothing is dropped
+(`mem_app_lfpTuple`), the least pre-fixed tuple is a fixed point
+(`lfpTuple_eq`) and supports simultaneous structural induction
+(`lfpTuple_induction`).
 
 Everything here is over the bare `SetTheory` interface; no syntax.
 -/
@@ -37,8 +38,7 @@ variable {V : Type u} [SetTheory V]
 /-! ## The tuple space and its order -/
 
 /-- The tuple lies in the product of the members' family spaces
-(positions `≥ k` are unconstrained junk): below `k` its components are
-type-valued families. -/
+(positions `≥ k` are unconstrained junk). -/
 def InTupleSpace (w k : Nat) (Is : Nat → V) (X : Nat → V) : Prop :=
   ∀ m, m < k → X m ∈ˢ famSpace w (Is m)
 
@@ -69,12 +69,12 @@ def MapsTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Pr
 open Classical in
 /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
 intersection of the closed tuples when there is one (separated from a
-chosen closed tuple), the empty tuple otherwise; a fibre equal to the
-point is dropped to `∅` (an intersection of types need not be one). -/
+chosen closed tuple), dropped to `∅` if it left `univ w`; the empty
+tuple otherwise. -/
 noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
   fun m =>
     if h : ∃ L, IsClosedTuple w k Is Φ L then
-      graph (fun i => unPt (sep (app (Classical.choose h m) i)
+      graph (fun i => dropTo (univ w) (sep (app (Classical.choose h m) i)
         (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
     else graph (fun _ => empty) (Is m)
 
@@ -91,15 +91,18 @@ theorem forall_of_mem_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) {m : N
     ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i := by
   unfold lfpTuple at hx
   rw [dite_eq_left h, app_graph hi] at hx
-  exact (mem_sep.mp (mem_of_mem_unPt hx)).2
+  exact (mem_sep.mp (mem_of_mem_dropTo hx)).2
 
-/-- A type below every closed tuple's fibre is below the least tuple's. -/
-theorem subset_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) {m : Nat} {i Y : V} (hi : i ∈ˢ Is m) (hY : Y ∈ˢ (typeU w : V))
+/-- A member of the level below every closed tuple's fibre is below the
+least tuple's. -/
+theorem subset_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) {m : Nat} (hm : m < k)
+    {i Y : V} (hi : i ∈ˢ Is m) (hY : Y ∈ˢ (univ w : V))
     (hYX : ∀ X, IsClosedTuple w k Is Φ X → Y ⊆ˢ app (X m) i) :
     Y ⊆ˢ app (lfpTuple w k Is Φ m) i := by
   unfold lfpTuple
   rw [dite_eq_left h, app_graph hi]
-  refine subset_unPt_of_mem_typeU hY fun x hx => mem_sep.mpr ⟨?_, fun X hX => hYX X hX x hx⟩
+  refine subset_dropTo (univ_dropClosed w) (famSpace_app ((Classical.choose_spec h).1 m hm) hi)
+    sep_subset hY fun x hx => mem_sep.mpr ⟨?_, fun X hX => hYX X hX x hx⟩
   exact hYX _ (Classical.choose_spec h) x hx
 
 /-- **Leastness**: the least pre-fixed tuple lies below every closed
@@ -112,30 +115,27 @@ theorem lfpTuple_le {X : Nat → V} (hX : IsClosedTuple w k Is Φ X) :
 tuple space. -/
 theorem lfpTuple_mem (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) :
     InTupleSpace w k Is (lfpTuple w k Is Φ) := by
-  intro m hm
-  by_cases h : ∃ L, IsClosedTuple w k Is Φ L
-  · unfold lfpTuple
-    rw [dite_eq_left h]
-    exact graph_mem_famSpace fun _ hi =>
-      unPt_sep_mem_typeU (famSpace_app_typeU ((Classical.choose_spec h).1 m hm) hi)
-  · rw [lfpTuple_of_not h]
-    exact graph_mem_famSpace fun _ _ => empty_mem_typeU w
+  intro m _
+  unfold lfpTuple
+  split
+  · exact graph_mem_famSpace fun _ _ => dropTo_mem (empty_mem_univ w) _
+  · exact graph_mem_famSpace fun _ _ => empty_mem_univ w
 
 /-- **Closure**: the least pre-fixed tuple is a pre-fixed point.  The
-operator must map the tuple space into itself: a fibre dropped from the
-point to `∅` stays closed only because the operator's fibre there, a
-type below the point, is `∅` too. -/
+operator must map the tuple space into itself: a fibre dropped to `∅`
+stays closed because the operator's fibre there, a member of the level
+below the dropped set, is `∅` too (`DropClosed`). -/
 theorem lfpTuple_closed (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w k Is Φ)
     (hmaps : MapsTuple w k Is Φ) :
     TupleLe k Is (Φ (lfpTuple w k Is Φ)) (lfpTuple w k Is Φ) := by
   intro m hm i hi
-  refine subset_app_lfpTuple h hi
-    (famSpace_app_typeU (hmaps _ (lfpTuple_mem w k Is Φ) m hm) hi) fun X hX => ?_
+  refine subset_app_lfpTuple h hm hi
+    (famSpace_app (hmaps _ (lfpTuple_mem w k Is Φ) m hm) hi) fun X hX => ?_
   exact Subset.trans (hmono _ _ (lfpTuple_mem w k Is Φ) hX.1 (lfpTuple_le hX) m hm i hi)
     (hX.2 m hm i hi)
 
-/-- **Nothing is dropped** under monotonicity and `MapsTuple`: the least
-tuple's fibre is exactly the intersection of the closed tuples'. -/
+/-- **The drop is a no-op** under monotonicity and `MapsTuple`: the
+least tuple's fibre is exactly the intersection of the closed tuples'. -/
 theorem mem_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w k Is Φ)
     (hmaps : MapsTuple w k Is Φ) {m : Nat} {i x : V} (hi : i ∈ˢ Is m) :
     x ∈ˢ app (lfpTuple w k Is Φ m) i ↔ ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i :=
@@ -165,17 +165,15 @@ theorem lfpTuple_eq (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w 
     fun _ hi => app_lfpTuple_eq h hmono hmaps hm hi
 
 /-- The tuple of separations of the carrier by a per-member property,
-a fibre equal to the point dropped to `∅` (a separation of a type need
-not be one). -/
+a fibre that left `univ w` dropped to `∅`. -/
 noncomputable def sepTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V)
     (P : Nat → V → V → Prop) : Nat → V :=
-  fun m => graph (fun i => unPt (sep (app (lfpTuple w k Is Φ m) i) (P m i))) (Is m)
+  fun m => graph (fun i => dropTo (univ w) (sep (app (lfpTuple w k Is Φ m) i) (P m i))) (Is m)
 
 /-- The separated tuple is in the tuple space. -/
 theorem sepTuple_mem (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V)
-    (P : Nat → V → V → Prop) : InTupleSpace w k Is (sepTuple w k Is Φ P) := fun m hm =>
-  graph_mem_famSpace fun _ hi =>
-    unPt_sep_mem_typeU (famSpace_app_typeU (lfpTuple_mem w k Is Φ m hm) hi)
+    (P : Nat → V → V → Prop) : InTupleSpace w k Is (sepTuple w k Is Φ P) := fun _ _ =>
+  graph_mem_famSpace fun _ _ => dropTo_mem (empty_mem_univ w) _
 
 /-- A member of the separated tuple is in the carrier and has the
 property. -/
@@ -184,7 +182,7 @@ theorem mem_app_sepTuple_imp {P : Nat → V → V → Prop} {m : Nat} {i y : V} 
     y ∈ˢ app (lfpTuple w k Is Φ m) i ∧ P m i y := by
   unfold sepTuple at hy
   rw [app_graph hi] at hy
-  exact mem_sep.mp (mem_of_mem_unPt hy)
+  exact mem_sep.mp (mem_of_mem_dropTo hy)
 
 /-- The separated tuple lies below the carrier. -/
 theorem sepTuple_le (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V)
@@ -204,9 +202,11 @@ theorem lfpTuple_induction (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoT
   have hSle := sepTuple_le w k Is Φ P
   have hS : IsClosedTuple w k Is Φ (sepTuple w k Is Φ P) := by
     refine ⟨hSmem, fun m hm i hi => ?_⟩
-    show _ ⊆ˢ app (graph (fun i => unPt (sep (app (lfpTuple w k Is Φ m) i) (P m i))) (Is m)) i
+    show _ ⊆ˢ app (graph (fun i => dropTo (univ w) (sep (app (lfpTuple w k Is Φ m) i) (P m i)))
+      (Is m)) i
     rw [app_graph hi]
-    refine subset_unPt_of_mem_typeU (famSpace_app_typeU (hmaps _ hSmem m hm) hi) fun y hy => ?_
+    refine subset_dropTo (univ_dropClosed w) (famSpace_app (lfpTuple_mem w k Is Φ m hm) hi)
+      sep_subset (famSpace_app (hmaps _ hSmem m hm) hi) fun y hy => ?_
     refine mem_sep.mpr ⟨?_, hP m hm i hi y hy⟩
     exact lfpTuple_closed h hmono hmaps m hm i hi y
       (hmono _ _ hSmem (lfpTuple_mem w k Is Φ) hSle m hm i hi y hy)

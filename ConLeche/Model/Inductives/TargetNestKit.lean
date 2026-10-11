@@ -64,11 +64,13 @@ theorem lfpSClause_carrier (hIs : D.idx ψ ρp = Is) :
 
 /-- **The kit's `ok`, from the clause**: at a frame satisfying the
 parameter telescope whose index sets are `Is`, the class is a clause —
-monotone (`LfpClause.mono`) with a closed tuple (`LfpClause.closed`) and its fibre the fitting
+monotone (`LfpClause.mono`), mapping the tuple space into itself
+(`LfpClause.maps`), with a closed tuple (`LfpClause.closed`) and its fibre the fitting
 constructors' injections (`fibre`). -/
 theorem lfpSClause_okAt (h : LfpClause acval D) (hsat : Sat V (D.params ψ).reverse ρp)
     (hIs : ∀ c, c < D.N → D.idx ψ ρp c = Is c) : (lfpSClause D ψ Is).OkAt ρp := by
   have hmono := h.mono hsat
+  have hmaps := h.maps ψ ρp hsat
   obtain ⟨L, hL⟩ := h.closed hsat
   have hsp : ∀ X, InTupleSpace (D.w ψ) D.N Is X ↔ InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X :=
     fun X => ⟨fun hX m hm => by rw [hIs m hm]; exact hX m hm,
@@ -77,7 +79,8 @@ theorem lfpSClause_okAt (h : LfpClause acval D) (hsat : Sat V (D.params ψ).reve
     fun X Y => ⟨fun hXY m hm => by rw [hIs m hm]; exact hXY m hm,
       fun hXY m hm => by rw [← hIs m hm]; exact hXY m hm⟩
   refine ⟨fun X Y hX hY hXY => (hle _ _).mpr (hmono X Y ((hsp X).mp hX) ((hsp Y).mp hY)
-      ((hle X Y).mp hXY)), ⟨L, (hsp L).mpr hL.1, (hle _ _).mpr hL.2⟩,
+      ((hle X Y).mp hXY)), fun X hX => (hsp _).mpr (hmaps X ((hsp X).mp hX)),
+    ⟨L, (hsp L).mpr hL.1, (hle _ _).mpr hL.2⟩,
     fun X hX c hc t ht x => ?_⟩
   have ht' : t ∈ˢ D.idx ψ ρp c := by rw [hIs c hc]; exact ht
   exact h.fibre ψ ρp hsat X ((hsp X).mp hX) c hc t ht' x

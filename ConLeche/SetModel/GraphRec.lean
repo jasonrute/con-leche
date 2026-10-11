@@ -99,7 +99,9 @@ noncomputable def gStep : V :=
   graph (fun S => graph (fun u => gFibre Dec pred B st S u) U) (famSpaceIn (tg ℓ) U)
 
 /-- **The recursor family's graph**: the least fixed point of the graph
-functor. -/
+functor, over families of the axiomatic level `tg ℓ` — a relation,
+whose fibres are sets of values, not types (no drop ever fires: the
+level is closed under subsets). -/
 noncomputable def gGraph : V := lfpFamIn (tg ℓ) U (gStep ℓ U Dec pred B st)
 
 variable {ℓ U Dec pred B st}
@@ -147,9 +149,9 @@ theorem app_gGraph_eq (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V))
     (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ U) {u : V} (hu : u ∈ˢ U) :
     app (gGraph ℓ U Dec pred B st) u = gFibre Dec pred B st (gGraph ℓ U Dec pred B st) u := by
   unfold gGraph
-  rw [← app_lfpFamIn_eq (subsetClosed_tg ℓ) (empty_mem_tg ℓ) ⟨_, gStep_closed hB⟩
+  rw [← app_lfpFamIn_eq (subsetClosed_tg ℓ).dropClosed (empty_mem_tg ℓ) ⟨_, gStep_closed hB⟩
       (gStep_mono hpred) (gStep_maps hB) hu,
-    app_app_gStep (lfpFamIn_mem (subsetClosed_tg ℓ) (empty_mem_tg ℓ) _ _) hu]
+    app_app_gStep (lfpFamIn_mem (empty_mem_tg ℓ) _ _) hu]
 
 /-- Every value of the graph lies in the bound. -/
 theorem gGraph_mem_B (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V))

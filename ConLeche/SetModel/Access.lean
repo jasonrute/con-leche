@@ -193,7 +193,7 @@ theorem stage_eq_of_code : ∀ T T' : BT V, code A T = code A T' →
       rw [stage_eq_of_code (f a) (f' a) (hsub a ha)]
 
 theorem emptyTup_mem : InTupleSpace w k Is (emptyTup Is) :=
-  fun _ _ => graph_mem_famSpace fun _ _ => empty_mem_typeU w
+  fun _ _ => graph_mem_famSpace fun _ _ => empty_mem_univ w
 
 theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple w k Is Φ) :
     ∀ T : BT V, InTupleSpace w k Is (stage Is Φ A T)
@@ -201,8 +201,8 @@ theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple 
   | .node f => by
     simp only [stage]
     refine hmaps _ fun m hm => graph_mem_famSpace fun i hi => ?_
-    exact famUnion_mem_typeU hw hA fun a _ =>
-      famSpace_app_typeU (stage_mem hw hA hmaps (f a) m hm) hi
+    exact (univ_isTGUniverse hw).famUnion_mem hA fun a _ =>
+      famSpace_app (stage_mem hw hA hmaps (f a) m hm) hi
 
 theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     y ∈ˢ app (limTup Is Φ A m) i ↔ ∃ T : BT V, y ∈ˢ app (stage Is Φ A T m) i := by
@@ -223,8 +223,9 @@ theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple
     InTupleSpace w k Is (limTup Is Φ A) := by
   intro m hm
   refine graph_mem_famSpace fun i hi => ?_
-  exact famUnion_mem_typeU hw ((univ_isTGUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
-    famSpace_app_typeU (stage_mem hw hA hmaps _ m hm) hi
+  have hU := univ_isTGUniverse (V := V) hw
+  exact hU.famUnion_mem (hU.power_mem (accPaths_mem hw hA)) fun c _ =>
+    famSpace_app (stage_mem hw hA hmaps _ m hm) hi
 
 theorem mem_unionTup {F : V → Nat → V} {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     y ∈ˢ app (unionTup Is A F m) i ↔ ∃ a, a ∈ˢ A ∧ y ∈ˢ app (F a m) i := by
@@ -255,8 +256,8 @@ theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTu
     refine hsupp _ (stage_mem hw hA hmaps (.node f) |> fun _ => ?_) ?_
     · intro m' hm'
       refine graph_mem_famSpace fun i' hi' => ?_
-      exact famUnion_mem_typeU hw hA fun a _ =>
-        famSpace_app_typeU (stage_mem hw hA hmaps (f a) m' hm') hi'
+      exact (univ_isTGUniverse hw).famUnion_mem hA fun a _ =>
+        famSpace_app (stage_mem hw hA hmaps (f a) m' hm') hi'
     · intro a ha
       refine ⟨(hgL a ha).1, (hgL a ha).2.1, (mem_unionTup (hgL a ha).2.1).mpr ⟨a, hBA a ha, ?_⟩⟩
       have : f a = Classical.choose (hT a ha) := dite_eq_left ha
