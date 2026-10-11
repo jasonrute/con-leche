@@ -100896,3 +100896,132 @@ added for `lam_congr_untyped_unsound`, `SetLib.lamV_mem`,
 witnesses' pins dropped).  The whitepaper text is not touched; its
 `links-gate.sh` was already failing on #340's stale anchors.  Nothing
 outside `whitepaper/` and this record changed.
+
+## TASK #345 — the λ-congruence type check probed: why the point is harmless, where the check can go (2026-10-11, agent/345-probe)
+
+The questions (maintainer, 2026-10-11, on #344's annotation-free
+fragment): (1) terms that denote the point outside proofs exist
+(`fun h => h.elim : False → Nat`, `fun n h => h.elim`, partial
+applications); why may the claims say nothing about their reductions?
+(2) Build examples where the bodies' type comparison of λ-congruence
+and η matters; learn which weaker check suffices and where it can be
+dropped.  Done on `agent/345-probe` (off `agent/344-unannot`), fragment
+only, `whitepaper/fragment-gate.sh` green; the whitepaper text is not
+touched.
+
+**(1) The point outside proofs.**  The proof never asks whether a term
+is a *syntactic* proof (its type of sort `Prop`) except in
+`proofIrrel`, whose claim is vacuous.  It asks whether the *value* is
+the point, and learns it only from a type the term lies in: a type
+(`IsTy`: a truth value or a strict set) holds the point and nothing
+else, or not the point.  A point-denoting non-proof is a member of a
+type that denotes `{pt}` at the valuation: `False → Nat` (empty
+domain), `Nat → False → Nat` (`Probe.lean`, `piV_const_one`: every
+fibre `{pt}`), and `k False` for `k := fun (P : Prop) (h : P) => c`,
+which is a graph (`mixed_lam`).  Every place where a premise's claim is
+read, and why the point does no harm there:
+- *the subject is a type, never the point*: the sort and `∀`
+  reductions in `Infer.pi`/`lam`/`app`, `DefEq.eta`, `proofIrrel`, the
+  type comparisons of `Infer.app` and of the ι certificates
+  (`teleFit_of_certs`), the domains and fibres of `DefEq.pi`, the
+  domains of `DefEq.lam`/`eta`, the definition's inferred type against
+  its declared one (`InstallDef`);
+- *the subject is not the point by hypothesis*: `Red.trans`,
+  `Red.appFn` (the head of an application that is not the point),
+  `DefEq.redL`, `DefEq.app`'s heads;
+- *the two sides share a type, so their point-ness agrees*:
+  `DefEq.app`'s arguments (the heads are one graph, whose domain is
+  the slot's type), ι's major and its reduct (`major_eq`: the binder
+  domain, which the certificate puts the reduct in), ι's parameter and
+  index comparisons (passed on conditionally; the installation resolves
+  them on one telescope of types, `FitsVals_eq_of_cond`), and
+  λ-congruence/η's bodies — the one place where nothing else supplies
+  the common type, hence the check;
+- *unconditional*: β (`app_lamV` on the domain) and δ (the `unfold` law).
+The hypothesis "a type holding the point holds nothing else, and types
+are never the point" is confirmed, with one refinement: for
+λ-congruence the common type is needed of the two *bodies* at every
+value of the variable, and a common type of the two *λs* gives it only
+when that type is a product (a strict set may hold two graphs that
+differ exactly where one of them is the point).
+
+**(2) The examples.**
+- `lam_congr_untyped_unsound` (#344) is semantic: its left body
+  `(fun (h : E x) => h) n` is ill-typed, the left λ only well-denoted.
+- `lam_congr_sorts_unsound` (`Probe.lean`) moves the ill-typed redex into
+  a stored definition `d := fun x => (fun (h : E x) => h) n :
+  (x : Prop) → F x`, with `E`, `F`, `n` opaque.  The environment has a
+  model; both λs `fun x => d x` and `fun x => n` are typed in the empty
+  context; the domains, the bodies (δ, β, β, `refl`) and the bodies'
+  inferences are derivable; the bodies' types `F x` and `Prop` both have
+  sort `Type`; the λs differ.  So comparing the bodies' sorts (or their
+  zero-ness), checking only when a body's type has sort `Prop`, or only
+  over possibly empty domains (here `Prop`, inhabited) is not enough.
+  The distance to a counterexample against an *accepted* environment:
+  `d`'s value is not typed, so `install_def` rejects it.  A
+  counterexample with an accepted environment and typed input needs a
+  typed term whose reduct contains a redex whose argument lies outside
+  its λ's domain at some valuation — a failure of subject reduction of
+  the fragment's own rules.  None was found: a typed redex's argument
+  lies in the λ's domain (`Infer.app` compares its type with the
+  domain, both types), and a substituted λ meets a slot whose domain
+  is its own (every derived equality of two `∀`s ends in
+  `∀`-congruence on the domains).  The semantic proof does not need
+  this argument; the check replaces it.
+- The real-checker experiment is below.
+
+**What is implemented** (`Rules.lean`, `Sound.lean`, all proved):
+- `DefEq.lamProp`, `DefEq.etaProp`: over a propositional domain
+  (inferred sort `0`) no body type is inferred or compared — the domain
+  has at most one member, so a body's point-ness cannot vary;
+- `DefEq.lamConst`: two bodies that do not use the variable need no
+  type (one constant body is not enough: `n` in the witnesses);
+- `DefEqIn` and `DefEq.appIn`: arguments of an application are compared
+  at the domain `S` of the head's type (`Infer` of the head, reduced to
+  a `∀`); at `S`, λ-congruence and η reduce `S` to a `∀` and compare the
+  bodies at its body, with no inference, no comparison of the bodies'
+  types, and no comparison of the λs' domains (a graph in a function
+  space has its domain).  Its claim `DefEqInSem` is unconditional.
+The full typed rules stay for λs compared with no known type.
+
+**Callers.**  Two λs meet, in con-leche's core, (a) as arguments of
+two spines with one head — `defEqList` after the head comparison; the
+head's stored type instantiated along the earlier arguments gives each
+argument's domain without inference (`appIn`, with the type from the
+store instead of `Infer`), (b) as bodies of enclosing λs or `∀`s
+(nested; under `DefEqIn` they inherit the type), (c) after δ unfolds
+two unapplied constants or heads, (d) by η against a non-λ in any of
+these positions.  Only (c), and (a)/(d) at heads whose type is not at
+hand, need the inferring check.  Types are never λs, so the top-level
+comparisons (inferred against declared types, `Infer.app`, the ι
+certificates) never reach λ-congruence directly.
+
+**The real checker** (scratch branch `agent/345-lamcheck-exp`,
+`6a589725a`, off `master`, not for merging: `unsafe` counters).  The
+typed check was added to today's cached core (`CoreC.lean`: the two-λ
+arm and `etaCertI`). After a successful comparison it infers the
+bodies' types under the opened variable and compares them, without
+changing the verdict.  Results at `--verified --jobs=1`, with the same
+verdict and accepted count as the base binary:
+
+| stream | λ-λ | η | failures | exceptions | exempt P or C (λ-λ) |
+|---|---|---|---|---|---|
+| init-full | 21 952 | 1 017 | 0 | 0 | 7 190 (33 %) |
+| mathlib-prefix | 39 861 | 2 056 | 0 | 0 | 11 772 (30 %) |
+
+P is a domain whose type is syntactically `Sort 0`; C is a body (both
+bodies for λ-λ) not using the variable.  Cost (`instructions:u`, one
+run each): init-full 482.53 G → 483.59 G (+0.22 %), mathlib-prefix
+679.01 G → 680.93 G (+0.28 %).  The check never fails on real input;
+under 0.4 λ-congruences per declaration reach that arm.
+
+**For `--trusted` and the port.**  The check is a soundness premise
+of the semantic proof, never a verdict-changing test on well-typed
+input, so `--trusted` skips it with no observable difference (as other
+checkers do: they rely on the metatheory's subject reduction and
+uniqueness of types, which make the two bodies' types equal whenever
+the λs meet at a common type).  In `--verified` the full check costs
+about a quarter of a percent.  `appIn`/`DefEqIn` (the type from the
+head's stored type) and the propositional-domain and constant-body
+exemptions remove most of that; whether that is worth the code is a
+ruling.
