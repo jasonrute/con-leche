@@ -2352,7 +2352,7 @@ theorem rec_rule_lawN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
       (c.idx.map (·.instL S.lparams usj))
       (by
         rw [piBodyV_instL, ctorType,
-          piBodyV_mkPis _ (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm])]
+          piBodyV_mkPis (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm])]
         simp [List.reverse_append])
       (by simp [famAt, Expr.instL_mkAppN])
       (by simp [Expr.varsAt, nP])
