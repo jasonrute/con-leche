@@ -100594,3 +100594,123 @@ changed (`kpair_inj` at two of them). `Model/BasisQuot.lean`,
   and `univ_subset_succ` do not hold for `typeU` (it is not transitive,
   and not cumulative from 0 to 1, since `{pt} ∉ typeU 1`). Their
   callers are 1b's real work list.
+
+## TASK #342 — L3-LFP-TYPES: least fixed points over a fibre space that is not closed under subsets (2026-10-11, agent/342-l3-lfp-types)
+
+Lane L3 of stage 1a of the real-checker port (`_tmp/342-design.md`
+§2.1 item D, §4.1, §4.2, §7 risk 2). Pure strengthening: the checker,
+`Denotes.lean`, `MainTheorem` and `Axioms.lean` are unchanged, and so is
+every value today (`univ` is still `tg`, closed under subsets, so the
+new drop never fires).
+
+**Item D, the obstruction.** `lfpFamSet`/`lfpTuple` took fibrewise
+intersections over the closed families. Over the restricted universe
+an intersection of types need not be a type:
+`F X i = if ∅ ∈ X i then {ptTag, ∅} else {ptTag, {∅}}` has the closed
+fibres `{ptTag, ∅}` and `{ptTag, {∅}}`, both strict, and their
+intersection is `{ptTag} = pt` (`tests/ConLecheTests/LfpTypes.lean`,
+`countermodel`). Separation (`sepTuple`, the induction principle's
+tuple) has the same problem.
+
+**Deviation from the design: no explicit `typeU` space at 1a.** The
+design (written before ruling R2) asked for `famSpace`/`InTupleSpace`
+over strict fibres now. That is not possible at 1a: the block
+operator's spelled λ ranges over `famsSpaceB` (the denotation of
+`⟨I_m → Sort w⟩`, `univ`-valued until 1b), and `holeChains_ok`/
+`holeChains_valid` turn each `Y ∈ famsSpaceB` into an `InTupleSpace`
+tuple to read the field typing (`fieldsOk`) there. With a strict tuple
+space that conversion fails at 1a, and `fieldsOk` would have to keep a
+second, `univ`-valued quantifier. Under R2 none of that is needed:
+`famSpace w I` stays `piSet I (fun _ => univ w)`, and when 1b makes
+`univ := typeU` the family space, `InTupleSpace`, `lfpFamSpace`,
+`tupleFamsSpace`, `famsSpaceB` and every quantifier over them
+(`fieldsOk`, `FitAcc`, `AccTuple`, `HoleRel(A)`, `closed_of_acc`,
+`lfpP_acc`, `ContAccFrame`/`ContAccRel`) range over type tuples at
+once, with no guard at any reader. What 1a must deliver is that the
+constructions stay correct over such a space; that is this lane.
+
+**The constructions** (`Derive/LfpFam.lean`, `Derive/LfpTuple.lean`).
+- A generic least pre-fixed family over a fibre space `C`
+  (`famSpaceIn`, `IsClosedFamIn`, `MonoFamIn`, `MapsFamIn`,
+  `lfpFamIn`). A fibre that leaves `C` is dropped to `∅`
+  (`dropTo C S := if S ∈ C then S else ∅`), so the value is in the
+  space for every functor (`lfpFamIn_mem`, needs only `∅ ∈ C`): the
+  basis constants `lfpFam`/`lfpTuple` stay total.
+- What the laws read of `C` besides `∅ ∈ C` is `DropClosed C`: a
+  subset of a member that is not a member has only `∅` among the
+  members below it. Closure (`lfpFamIn_closed`, `lfpTuple_closed`) and
+  induction (`lfpTuple_induction`) now also need `MapsFamIn`/
+  `MapsTuple`: a dropped fibre stays closed because the operator's
+  fibre there is a member below the dropped set, hence `∅`. Without
+  `Maps` this is false (a constant operator with fibre `pt` is
+  monotone and has closed families, but no closed least one in the
+  restricted space).
+- **The no-op:** under monotonicity and `Maps` nothing is dropped:
+  `mem_app_lfpFamIn`/`mem_app_lfpTuple` say the fibre is exactly the
+  raw intersection. Every installed operator is monotone
+  (`AccTuple.monoTuple`) and has `LfpClause.maps`.
+- `lfpFamSet w := lfpFamIn (univ w)`, `famSpace w := famSpaceIn (univ w)`;
+  `lfpTuple` and `sepTuple` use `dropTo (univ w)`.
+- The recursor family's graph (`SetModel/GraphRec.lean`) is a
+  relation whose fibres are sets of values, not types; it now uses
+  `lfpFamIn (tg ℓ)` (`tg` is closed under subsets, `subsetClosed_tg`).
+  Its hypotheses still say `B u ∈ univ ℓ` and are read as `tg ℓ` by
+  defeq.
+
+**What the constructions read of a level** (the "levels" section of
+`LfpFam.lean`): `empty_mem_univ`, `univ_dropClosed`,
+`univ_famUnion_mem` (a union of members indexed by a set of `tg w`;
+`emptyTup`/`unionTup`/`limTup` in `Access.lean`) and
+`univ_binUnion_sing_empty_mem` (the one-fibre enlargement in
+`LfpAcc.accRel_rich` and `ContAccRel.tuple_enlarge`). The same three
+facts are proved for L1's `typeU` (`typeU_dropClosed`,
+`typeU_famUnion_mem`, `typeU_binUnion_sing_empty_mem`: a subset of a
+strict set is strict or the point, a union of strict sets is strict,
+`{∅}` is strict). At 1b the three `univ_*` lemmas become one-line
+corollaries of those, and nothing else in the lfp layer reads the
+level.
+
+**The accessibility bound moves to `tg`.** `AccW`, `closed_of_acc`,
+`stage_mem`, `limTup_mem`, `accPaths_mem`, `lfpP_acc`,
+`LfpClause.fitAcc` and the records repeating it (`BlockModel`,
+`BlockRep`, `BlockStageCtors`, `BlockAccRunCont`, `BasisLfp.lfp0_clause`)
+state `A ∈ tg w`. The bound is a size, not a type, and `accPaths A`
+contains the point (the empty path), so it could never be a member of
+the restricted universe. Producers still pass `univ` proofs, accepted
+by defeq.
+
+**Consumers.** `MapsTuple` is passed at every closure/induction site:
+`NestRec.SClause.OkAt` gains a `maps` field (from `LfpClause.maps` in
+`TargetNestKit.lfpSClause_okAt`); `lfpP_acc_group` gains `hmaps`;
+`mixT_isClosed`/`lfpTuple_mixT` gain `hmaps` (with `mixT_mapsTuple`);
+`HoleClose.lfpTuple_le_on` gains `hmaps`; `ContAccFrame`, `GenClsSem`,
+`BlockLfpMono` pass `LfpClause.maps`. `BasisLfp.lfp0_carrier` now reads
+leastness through `subset_app_lfpTuple` and needs no monotonicity, so
+`lfp0_clause` lost its unused `hmono` premise. `mem_app_sepTuple`
+(`NestRec`) is replaced by `mem_app_sepTuple_imp` (the direction every
+caller used).
+
+**For 1b (L4).**
+- Re-prove `univ_dropClosed`, `univ_famUnion_mem`,
+  `univ_binUnion_sing_empty_mem` from the `typeU_*` twins; nothing else
+  in `LfpFam`/`LfpTuple`/`Access` reads the level.
+- The `tg`-stated bounds and `GraphRec`'s `B u ∈ univ ℓ` are fed by
+  `univ` proofs through defeq; once `univ := typeU` (irreducible) they
+  need `mem_tg_of_mem_typeU` at the producers (`BasisLfp` `hFacc`,
+  `BlockAccRun`, `LfpAcc.finUnion` is already `tg`).
+- `blockPhi_maps_of` (`BlockTower`) will need the operator's fibres
+  strict: `blockStepG` is a `sumSet` (strict for any arguments,
+  design §2.1); `lfp0_clause`'s `hmaps` (Nat via
+  `univ_isTGUniverse`) likewise.
+- `tests/ConLecheTests/AccessTests.lean` proves `pt ∈ univ w` at
+  `w ≠ 0` for its examples; that becomes false and its examples need
+  strict fibres.
+
+**Gates:** `lake build`, `lake test` (warning-free; `Axioms.lean`
+unchanged), `tests/arena.sh`, `tests/challenge.sh`. OVERVIEW's
+`closed_of_acc` anchor and the whitepaper's `Access`/`LfpTuple`
+citations repointed (`--update`d). Imports: `LfpFam` now publicly
+imports `Univ` (what its statements need) and `Lfp` privately, so the
+allowlisted `public import …Derive.Lfp` line is gone; `GraphRec`'s
+`Derive.Pt` and `LfpFam`'s `Derive.Graphs` imports were clean removals
+by the task #223 criterion. No `sorry`, no new axiom.

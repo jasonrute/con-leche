@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.SetTheory.Derive.Lfp
-import ConLeche.SetTheory.Derive.Graphs
+public import ConLeche.SetTheory.Derive.Univ
+import ConLeche.SetTheory.Derive.Lfp
 @[expose] public section
 
 /-!
