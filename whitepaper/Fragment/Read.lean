@@ -672,6 +672,13 @@ theorem NestFit_of_plain {S : IndSpec} {M : Name → List Nat → V} {φ : Name 
     (hpl : S.nest = none) : NestFit S M φ :=
   fun N hN => by rw [hpl] at hN; cases hN
 
+theorem NestFit_of {S : IndSpec} {M : Name → List Nat → V} {φ : Name → Nat} {N : NestInfo}
+    (hN : S.nest = some N)
+    (h : ∀ ps, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
+      FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices (S.memberIdx M (S.lparams.map φ) N ps)) :
+    NestFit S M φ :=
+  fun N' hN' => by rw [hN] at hN'; cases hN'; exact h
+
 /-- **A field's domain, read from the invariant**: the field's set,
 and its index expressions fit.  The domain is a type, so not the point,
 which is what lets the family's application be read (`famAt_wd`); a
