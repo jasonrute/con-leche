@@ -101025,3 +101025,148 @@ about a quarter of a percent.  `appIn`/`DefEqIn` (the type from the
 head's stored type) and the propositional-domain and constant-body
 exemptions remove most of that; whether that is worth the code is a
 ruling.
+
+## TASK #347 — the ι-side certificates under #344's annotation-free model: which can go (2026-10-11, agent/347-iota)
+
+The question (coordinator, 2026-10-11): under #344's value-read model
+and conditional reduction claims, which argument-against-domain
+certificates of the ι family (#342 v2 §4.2 T4/T5, §5.3) does the
+checker still need?  Survey of every ι-like path on `master`
+(`3b37939f0`), Lean's kernel, a counter run, and the fragment proof.
+
+**Lean's kernel** (`inductive_reduce_rec`, `src/kernel/inductive.h`,
+v4.35.0-rc3 and `master` 1aacc7a9b, unchanged in between): K
+(`to_cnstr_when_K`) only for a recursor with the K flag — a `Prop`
+family with one constructor and **no fields** (`Eq`, `HEq`, `True`);
+structure η (`to_cnstr_when_structure`) only for a non-recursive
+structure whose instantiated type is **not** `Prop` (`if (is_prop(e_type))
+return e`).  So large elimination from `Prop` with fields — `Acc`,
+`And`, `Iff`, `WellFounded`, `Subsingleton`, `Quot` at `Sort 0` —
+still goes through plain ι on a constructor literal in Lean.  The
+maintainer's expectation (K or η instead of plain ι) holds for `Eq`
+and `HEq` only.  Con-leche does the same as Lean, plus its `And`
+rescue (η on a stuck `And` proof, an accept-superset).  Nothing
+proposed here changes which reductions con-leche performs.
+
+**The licence, as it turns out** (proved in the fragment, below):
+1. *Recursor telescope*: no certificate.  A redex that is not the
+   point fits the recursor's telescope through the invariant's
+   application slots (`teleFit_of_ne_pt`).
+2. *Major's family strict at the valuation* (never `Prop` at the
+   instance): no certificate at all — major slot, constructor
+   telescope, nothing (`iota_core_strict`).  The major lies in a strict
+   domain, so it is not the point; its reduction claim applies; the
+   reduced constructor application is not the point, so it fits the
+   constructor's telescope by (1).
+3. *Otherwise* (the family may be `Prop` at the instance, the motive
+   may not): the major's slot at the **io grade** (its type compared
+   with the domain; "point or member" suffices, since the domain then
+   holds the point) and the constructor telescope at the **full grade**
+   — params and *all* fields, not only the index-pinned ones.  A
+   `Prop` field whose type is a `∀` (`Acc.intro`'s `h`) can be a graph
+   at the io grade (#346), and `RecRuleLaw` needs every field in its
+   domain.  The index and parameter comparisons stay conditional.  The
+   major's slot certificate is also what stops a constructor of
+   another family of a mutual block from firing.
+4. *Motive into `Prop`*: nothing (the redex is a proof).  It never
+   fires in the streams: proofs are not reduced.
+
+**The table** (certificate → needed? grade):
+
+| path | today (verified) | under #344 |
+|---|---|---|
+| plain ι, recursor spine before the major | certified at non-`never` binders | none |
+| plain ι, major slot | certified at non-`never` binders | case 3 only, io grade |
+| plain ι, constructor telescope | certified at non-`never` binders | case 3 only, full grade |
+| plain ι, index / parameter comparisons | certificate family | conditional, as today (the law takes them); in case 2 derivable by inversion if `RecRuleLaw` were restated |
+| nested rule pin comparison | verdict-relevant | kept (not a certificate) |
+| Nat / String literal majors | as plain ι | none (case 2) |
+| K (`Eq`, `HEq`): constructor params | full cert, before the fab type check | case 3: full grade, 2 slots; move after the type check (594 of 844 runs on init-full are wasted on failed fabs) |
+| K: fab type check `tfab ≡ tmaj` | both modes | kept (Lean does it, verdict) |
+| K: `proofIrrel fab major` | certificate family | none: the K family is `Prop`-sorted, so `fab` and `major` are both the point |
+| K: iotaRecI's second ctor cert on `fab` | runs again | none (duplicate) |
+| struct-η major rescue (`majorToCtor` η) | ctor cert + `structEtaCertWith` tele certs | none (never `Prop` by its guard) |
+| `And` rescue | ctor cert, type check, `proofIrrel` | case 3: ctor cert full grade; `proofIrrel` none; type check kept |
+| `Quot.lift` at `Quot.{u}`, `u` may be 0 | as plain ι | case 3: ctor cert (`α r a`) full grade |
+| `Quot.ind` | as plain ι | none (motive `Prop`) |
+| projection of a constructor literal (`projCertAt`) | ctor cert, licensed | none (`proj i pt = pt`) |
+| conversion structure η (`structEtaCertWith`) | type-former + per-slot certs | none, io grade suffices for the major-type discovery (#346) |
+| unit-like (`structUnitCert`) | type-former cert | none |
+
+**Counts** (scratch probe on `master`, `--verified --jobs=1`, verdicts
+unchanged: 57 977 / 131 902 accepted; logs in `_tmp/347/run3-*`):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| ι fires | 1 665 786 | 1 978 708 |
+| case 2 (never `Prop`) | 1 665 506 | 1 976 829 |
+| case 3 | 280 | 1 879 |
+| — by family: `Eq` via K / literal | 250 / 16 | 1 757 / 42 |
+| — `Quot` at a polymorphic level | 11 | 77 |
+| — `Acc` (literal `Acc.intro`) | 2 | 2 |
+| — `PUnit.{u}` | 1 | 1 |
+| case 3 constructor slots (all fields 15 / 81) | 573 | 3 837 |
+| case 3 major slots | 280 | 1 879 |
+| motive `Prop` | 0 | 0 |
+| today: telescope slots run / skipped (all sites) | 22 913 / 14.2 M | 45 178 / 17.2 M |
+| today: plain ι recursor-spine slots run | 5 572 | 8 971 |
+| today: plain ι ctor slots run | 573 | 3 837 |
+| today: projection fires (slots, mostly skipped) | 1.08 M (3.43 M) | 1.32 M (4.25 M) |
+| today: struct-η / unit-like type-former cert runs | 4 393 / 5 | 7 243 / 7 |
+| today: K `proofIrrel` runs | 250 | 1 757 |
+| today: `And` rescue | 0 | 0 |
+| plain parameter comparisons as a cert family | 0 | 0 |
+| case-2 index comparisons | 0 | 0 |
+
+Today's `.never` licence on the constructor side already skips exactly
+the case-2 slots; the new licence matches it there with one level test
+per redex, and removes the recursor-spine certificates (5 572 → 280,
+8 971 → 1 879 slots, the remaining ones being case-3 major slots).
+
+**Case 3 does not vanish.**  Refusing case-3 ι on constructors with
+fields rejects `funext` (`Quot.lift` on `Quot.mk` at `Sort u`) in both
+streams; refusing `Acc` alone rejects `WellFounded.fixF_eq` (its proof
+needs `Acc.rec … (Acc.intro x h)` to reduce).  Lean does the same plain
+ι.  `Acc.rec` is not deprecated in Lean's `Init/WF.lean` (master
+1aacc7a9b).
+
+**The fragment** (`whitepaper/Fragment`, this branch, gate green, no
+`sorry`, standard axioms, pins added for `teleFit_of_ne_pt`,
+`Red.iota_core_sem`, `Red.iota_core_strict`):
+- `Red.iota`/`Red.iotaNested` drop the recursor's telescope
+  certificate.  They certify the reduced major's slot against the
+  domain the recursor's telescope leaves (`Expr.piResidual`), and the
+  constructor's telescope.
+- `iota_core` is split: `iota_core_sem` takes the reduced major's
+  invariant and the two fits as a semantic hypothesis.  `iota_core`
+  supplies them from the certificates, `iota_core_strict` from a
+  strict major domain with no certificate.
+- What is not done: case 2 as a *rule*.  Its premise has to imply that
+  the major's domain is strict.  #344 put the truth values into every
+  `Sort (n+1)` (`typeU`), so the universe no longer gives that.  An
+  environment law is needed: an inductive family whose stored sort
+  evaluates non-zero has strict fibres.  The model already has the fact
+  (`IndSem.Fam_mem_typeU`'s `false` branch, `IndCommon.IsTy_adm` for
+  nested blocks).  The law cannot be a plain `EnvModel` field, because
+  `mIndF` gives the former an arbitrary family.  It must be guarded,
+  for example by the block's constructors being stored, and threaded
+  through `transport`, `InstallDef`, `InstallInd`'s stages and
+  `InstallNest`.  The rule premise is then one level test: the major
+  domain's head is a stored inductive whose result sort is
+  `LevelOracle.le (succ zero) _` at the use.
+- The fragment has no K, structure η, `And` rescue or projections.  For
+  K, what is needed beyond case 3 is the reading "the K family's stored
+  sort is `Sort 0`", which replaces `proofIrrel`.  For structure η it
+  is case 2 plus a projection law.
+
+**Recommendation for the port (#342 v2 Q5).**  Adopt the licence:
+- case 2: no certificate, one level test per redex;
+- case 3: major slot at io grade and constructor telescope at full
+  grade;
+- drop the recursor-spine certificates, `projCertAt`, the conversion
+  structure-η and unit-like certificates, and the K/`And` `proofIrrel`;
+- run K's constructor certificate once, after the fabrication's type
+  check.
+
+The cost moves from per-binder `.never` reads to about 2 k certified
+redexes per stream.
