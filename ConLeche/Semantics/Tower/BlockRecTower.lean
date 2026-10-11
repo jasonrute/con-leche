@@ -290,26 +290,28 @@ section Chain
 
 variable {s : Nat}
 
-/-- The chain lives in `univ s`. -/
-theorem sigChainV_univ :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
-      sigChainV s ρ Ts Q ∈ˢ (univ s : V)
-  | _, [], _, h => by
-    show interp V _ _ ∈ˢ _
-    exact univ_mono (Nat.zero_le s) _ (by rw [univ_zero]; exact h.1)
-  | ρ, T :: Ts, Q, h => by
-    show sigmaSet s _ _ ∈ˢ _
-    have := sigma_mem_univ h.1 (fun r hr => sigChainV_univ (h.2.2 r hr))
-    rwa [natMax_self] at this
-
-/-- The chain's tail lives at its own sort `tailLv`. -/
+/-- The chain's tail lives at its own sort `tailLv`: a nonempty chain
+at `s`, the bare proposition at `0` — no level is raised. -/
 theorem sigChainV_tail_univ :
     ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
       sigChainV s ρ Ts Q ∈ˢ (univ (tailLv s Ts) : V)
   | _, [], _, h => by
     show interp V _ _ ∈ˢ _
     rw [tailLv, univ_zero]; exact h.1
-  | _, _ :: _, _, h => sigChainV_univ h
+  | ρ, T :: Ts, Q, h => by
+    show sigmaSet s _ _ ∈ˢ (univ s : V)
+    have := sigma_mem_univ h.1 (fun r hr => sigChainV_tail_univ (h.2.2 r hr))
+    rwa [max_tailLv] at this
+
+/-- The chain lives in `univ s`.  Only an EMPTY chain (no recursor,
+the bare proposition `Q`) is raised from `Prop` by cumulativity. -/
+theorem sigChainV_univ :
+    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
+      sigChainV s ρ Ts Q ∈ˢ (univ s : V)
+  | _, [], _, h => by
+    show interp V _ _ ∈ˢ _
+    exact univ_mono (Nat.zero_le s) _ (by rw [univ_zero]; exact h.1)
+  | _, _ :: _, _, h => sigChainV_tail_univ h
 
 /-- The pair former's product membership at `[u, v]`. -/
 theorem psigmaV_uv_mem (u v : Nat) :
