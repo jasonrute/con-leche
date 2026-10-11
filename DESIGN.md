@@ -100791,3 +100791,107 @@ standard axioms).  `whitepaper/links-gate.sh` was already failing on
 #340's stale anchors; the text is not touched, and the shifted lines of
 `Rules`, `Sound` move some of those anchors.  Nothing outside
 `whitepaper/` and this record changed.
+
+## TASK #344 — annotation-free terms: the model reads the regime off the values (2026-10-11, agent/344-unannot)
+
+The question (maintainer, 2026-10-11): after #343 the fragment's checker
+reads a binder's `PropWhen` only in inference's honesty checks, and the
+model reads it to choose the propositional or the function reading of
+`∀`/λ.  Can the terms carry no annotation at all — (A) an
+interpretation driven by the typing derivation, with coherence across
+derivations, or (B) an annotate pass nothing reads, with a simulation
+— or by a less roundabout way?
+
+**Outcome: the less roundabout way — the regime is a function of the
+values.**  Done on `agent/344-unannot` (off `agent/343-picong`): the
+whole fragment, consistency included, with unannotated syntax, no
+`sorry`, the three standard axioms, `whitepaper/fragment-gate.sh`
+green.  `PropWhen.lean` and `Ghost.lean` are deleted.
+
+- *The model* (`Lib.lean`, `Interp.lean`): `piV A B` is the
+  propositional product when every fibre over `A` is a truth value,
+  else the function space; `lamV A F` is the point when every body
+  value over `A` is, else the graph.  Over a nonempty domain this is
+  the honest annotation's reading; over an empty domain both read
+  "proposition" (`{pt}`, the point).  β along an abstraction needs no
+  premise on the body (`app_lamV`), membership needs the fibres to be
+  types (`lamV_mem`), η likewise (`lamV_eta`).
+- *`Sort (n+1)` holds the truth values*: `typeU (n+1)` is the members
+  of `univ (n+1)` that are types (`IsTy`), no longer only the strict
+  ones — forced, since `False → Nat` denotes `{pt}`
+  (`Unannot.lean`, `piV_empty_not_strict`).  #340's "a member of a
+  type of nonzero sort is never the point" is lost; the proof never
+  needed it except at λ-congruence and η (#341), which it replaces by
+  typed premises.  The invariant that the claims rely on is unchanged:
+  inferred types are types, whose members are all the point or none.
+  The uniform-β witness still has no model (the point is no type).
+- *The rules* (`Rules.lean`): `Infer.pi`/`Infer.lam` are Lean's
+  (`Infer.lam` no longer infers the body's sort); `DefEq.pi` compares
+  domains and bodies only (#343's type premise is gone); `DefEq.lam`
+  and `DefEq.eta` additionally infer the bodies' types under the binder
+  and compare them — necessary: without it the rule is unsound in this
+  model (`lam_congr_untyped_unsound`, a witness with a body that is the
+  point at one value of the variable and `True` at another).
+- *The environment side*: a reflexive field ranges over the admissible
+  part of the family's fibre under its telescope (`IndCommon.reflBody`;
+  over an arbitrary family a fibre `{pt}` would flip the field's
+  product into the propositional regime and break the operator's
+  monotonicity); the family's fibres are admissible with no universe
+  bound (`adm_Fam_of`); the recursor into `Prop` is the point
+  (`recSet`'s body), so its ι law, asked only off the point, is
+  vacuous there and the typing needs only inhabited truth-valued
+  fibres; the readings of the former's applications (`famAt_wd`,
+  `appList_of_wd`) ask the application not to be the point (an
+  abstraction over an empty domain is), which holds where they are
+  used because the term is a type; for a nested block the nested
+  occurrence's index fit (`NestFit`) is read off the class check
+  (`InstallNest.class_reading`) instead of the occurrence's invariant.
+  The constructor-type and class checks of `Ok`/`OkN` now say "has a
+  sort" formally (their docstrings already did; the real checker
+  does).
+
+**Why A and B are not needed and would be costly.**
+- The ambiguity is confined to binders whose domain is empty at the
+  valuation; there the body lives in an unsatisfiable context, every
+  claim about it is vacuous (#343's `codomain_claims_vacuous`), so no
+  semantic coherence ("unique isProp'ing") can fix the regime — the
+  restricted universes give it at satisfiable valuations only, and the
+  conditional claims do not help because the two readings (`{pt}` and
+  the one-graph space) are neither of them the point.
+- Unique typing itself is cheap in the fragment (head reduction is
+  deterministic given the stored environment's shape, so `Infer` is a
+  function), but a derivation-driven meaning must commute with
+  substitution: the regime of a binder inside `b[a]` must be the one a
+  derivation of `b[a]` gives, i.e. subject reduction for a β that
+  checks nothing about `a`, plus a substitution lemma modulo `DefEq`.
+  B needs the same of the annotations carried through reduction.  The
+  value reading needs neither.
+
+**For con-leche's real checker** (after the #339/#340 port):
+- deleted: the annotate pass, `PropWhen` on binders and its sealed
+  module, the honesty checks in `inferForall`/`inferLambda` (and the
+  body-sort inference the λ check runs), the binder-datum comparisons
+  at `∀`-congruence; #343's typed `∀`-congruence is not needed either;
+- added: λ-congruence and η infer both bodies' types under the opened
+  binder and compare them (typed conversion at λ) — the one new cost on
+  the hot path, a body inference per side per λ-congruence step unless
+  cached;
+- the model: `SetModel`'s products and abstractions read their regime
+  from values, `Sort (n+1)` denotes the types of its universe, the
+  inductive constructions use the admissible part under reflexive
+  telescopes and the point for recursors into `Prop`; the proof diff
+  here was +2 281 −2 726 on the 25 734-line fragment (net −445; largest:
+  `NestIota` +208 −301, `Read` +181 −266, `Lib` +218 −84, `Sound`
+  +111 −179, `NestRec`, `InstallNest`, `Ctx`, `InstallInd`).
+
+**Line counts** (`git diff --shortstat agent/343-picong -- whitepaper/Fragment*`):
+41 files, +2 281 −2 726; the fragment is 25 290 lines; new
+`Unannot.lean` 221; deleted `PropWhen.lean` 348, `Ghost.lean` 200.
+
+**Gates**: `whitepaper/fragment-gate.sh` green (warning-free; pins
+added for `lam_congr_untyped_unsound`, `SetLib.lamV_mem`,
+`SetLib.lamV_eta`, `SetLib.piV_mem_typeU`, `piV_empty_not_strict`,
+`IndSpec.adm_Fam_of`, `IndSpec.class_reading`; the annotation
+witnesses' pins dropped).  The whitepaper text is not touched; its
+`links-gate.sh` was already failing on #340's stale anchors.  Nothing
+outside `whitepaper/` and this record changed.

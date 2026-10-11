@@ -780,3 +780,55 @@ comment block at the top of `lib.typ`.
     checker could make, and the annotation, where con-leche keeps it,
     is a cache of the sort zero-ness that this check would read.
     (2026-10-11.)
+
+43. **Terms carry no binder annotations; the model reads the regime
+    off the values (task #344).**  `PropWhen` is gone from the
+    fragment (`Syntax.lean`), and no rule reads or checks a binder
+    datum.  The interpretation (`Interp.lean`, `SetLib.piV`/`lamV`)
+    takes a product to be propositional exactly when every fibre over
+    its domain is a truth value, and an abstraction to be the point
+    exactly when every body value is.  Over a nonempty domain this is
+    what an honest annotation said; over an EMPTY domain the values say
+    nothing, and the reading is fixed: the product is `{pt}`, the
+    abstraction the point, whatever the body's sort.  Two consequences,
+    both forced (`Unannot.lean`):
+    * **`Sort (n+1)` holds the truth values** (`typeU (n+1)` is the
+      members of `univ (n+1)` that are types, `IsTy`): `False → Nat`
+      denotes `{pt}` (`piV_empty_not_strict`), so a term whose type
+      has a nonzero sort may now be the point (`fun h => h.elim`).
+      Item 40's "a member of a type of positive sort is never the point"
+      is lost; what the proof uses instead is what it used everywhere
+      else already: an inferred type is a type, whose members are all
+      the point or none (`IsTy.eq_of_ne_pt`), and the claims say
+      nothing of the point.  β never used the lost fact (a redex that is
+      not the point has a λ that is not, a graph); `∀`-congruence needs
+      only that domains and fibres are types, never the point; the
+      uniform-β witness `c : Sort 1` still has no model, because the
+      point is no type (`badEnv_no_model`).
+    * **λ-congruence and η compare their bodies' types**: the lost fact
+      was what made two λs' bodies agree on being the point at every
+      value of the variable (#341); a body may now be a proof at some
+      values and not at others (a large elimination into a family
+      whose fibres are `{pt}` at some indices), and without a common
+      type the rule is unsound (`lam_congr_untyped_unsound`: both
+      premises are checker derivations, the two λs well-denoted, not
+      the point, and different).  `∀`-congruence, in exchange, needs
+      no type premise (#343's is gone).
+    A different value reading would not avoid the first consequence:
+    over an empty domain the body is evaluated nowhere, so whether the
+    codomain is a proposition is a fact about the syntax (the inferred
+    sort), i.e. the annotation or a derivation; and reading an empty
+    product as a function space by default makes `False → False : Prop`
+    denote `{empty graph}`, after which `∀ n : Nat, False → False` must
+    be either a truth value (then `app pt 3 = pt` is no member of the
+    fibre) or a set of graphs inside `Prop` (no impredicative `Prop`).
+    The derivation-driven reading (approach A) and the annotate-pass
+    simulation (approach B) both need the regime of a binder inside a
+    reduct to be the one a derivation of the reduct gives — subject
+    reduction for a β that checks nothing; the semantic proof needs
+    none of that.  The environment side followed with local changes:
+    a reflexive field ranges over the admissible part of the family's
+    fibre under its telescope (`reflBody`), the recursor into `Prop` is
+    the point, the readings of the former's applications ask them not
+    to be the point (types are not), and the constructor and class
+    checks ask a sort, which the real checker does.  (2026-10-11.)
