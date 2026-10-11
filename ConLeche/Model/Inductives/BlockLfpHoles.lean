@@ -123,7 +123,7 @@ theorem BlockModelAt.toLfp (hM : BlockModelAt m names d) (hH : BlockHoleFacts m 
   parsSat := fun mm hmm ψ ρ hs => hH.parsSat ψ mm hmm ρ hs
   parsSatInv := fun mm hmm ψ ρ hs => hH.parsSatInv ψ mm hmm ρ hs
   resIdxFit := hres
-  injNePt := fun ψ hw _ c j fs => hne ψ hw c j fs
+  injNePt := fun ψ hw c j fs => hne ψ hw c j fs
   fieldsOk := hfok
 
 end Clause

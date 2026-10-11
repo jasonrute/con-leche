@@ -147,6 +147,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
     (hinjI : ∀ ψ, w ψ ≠ 0 → ∀ j fs j' fs', j < n → j' < n →
       fs.length = (flds j).length → fs'.length = (flds j').length →
       inj j fs = inj j' fs' → j = j' ∧ fs = fs')
+    (hne : ∀ ψ, w ψ ≠ 0 → ∀ j fs, inj j fs ≠ pt)
     (hctor : ∀ j, j < n → ∀ (ψ : Name → Nat) (ρ : Nat → V) (fs : List V),
       SpineFit (cons (C ψ) ρ) (flds j) fs → fs.foldl app (interp V ρ (acval (cn j) ψ)) = inj j fs)
     (hfok : ∀ (ψ : Name → Nat) (ρp : Nat → V) (S : V), w ψ ≠ 0 → S ∈ˢ (univ (w ψ) : V) →
@@ -209,7 +210,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
   parsSat := fun _ _ _ ρ _ => Sat_nil V ρ
   parsSatInv := fun _ _ _ ρ _ => Sat_nil V ρ
   resIdxFit := fun _ _ _ _ _ _ _ _ _ => trivial
-  injNePt := fun _ _ h => absurd rfl h
+  injNePt := fun ψ hw _ j fs => hne ψ hw j fs
   fieldsOk := fun ψ ρp _ hw X hX _ _ j hj => by
     show FieldsOkB (w ψ) ((lfp0 nm w F inj n cn flds).frame ψ ρp X) (flds j)
     rw [lfp0_frame]
@@ -222,7 +223,7 @@ end Lfp0
 
 /-- The zero-constructor datum at sort level `w`. -/
 @[expose] noncomputable def emptyLfp (nm : Name) (w : Nat) : LfpDatum V :=
-  lfp0 nm (fun _ => w) (fun _ => empty) (fun _ _ => pt) 0 (fun _ => nm)
+  lfp0 nm (fun _ => w) (fun _ => empty) (fun _ _ => unitAt w) 0 (fun _ => nm)
     (fun _ => [])
 
 /-- **The clause of a zero-constructor type** whose pinned leaf is the
@@ -237,8 +238,11 @@ theorem emptyLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm : Na
     (fun _ => empty_mem_univ w) (fun _ => Subset.refl _)
     (fun _ _ _ _ x hx => absurd hx (not_mem_empty x)) hleaf
     (fun _ _ j _ => ⟨False.elim, fun h => absurd h.1 (Nat.not_lt_zero j)⟩)
-    (fun _ _ _ _ => rfl)
+    (fun _ hw _ _ => by show (unitAt w : V) = pt; rw [show w = 0 from hw, unitAt_zero])
     (fun _ _ j _ _ _ hj => absurd hj (Nat.not_lt_zero j))
+    (fun _ hw _ _ => by
+      show (unitAt w : V) ≠ pt
+      rw [unitAt_pos hw]; exact pt_ne_empty.symm)
     (fun j hj => absurd hj (Nat.not_lt_zero j))
     (fun _ _ _ _ _ j hj => absurd hj (Nat.not_lt_zero j))
     (fun _ => ⟨empty, fun _ => empty_mem_univ w, fun _ _ _ h => h.elim⟩)
@@ -293,6 +297,17 @@ theorem vsucc_inj {m m' : V} (h : vsucc m = vsucc m') : m = m' := by
     · exact (SetTheory.no_two_cycle h1 h2).elim
     · exact h2.symm
   · exact h1
+
+/-- A von Neumann successor is not the proof point: `∅ ∈ ptTag`, so
+`vsucc ptTag ⊋ {ptTag}`. -/
+theorem vsucc_ne_pt (m : V) : vsucc m ≠ pt := fun h => by
+  have hm : m = ptTag := mem_pt.mp (h ▸ mem_vsucc.mpr (Or.inr rfl))
+  subst hm
+  have h0 : (empty : V) = ptTag :=
+    mem_pt.mp (h ▸ mem_vsucc.mpr (Or.inl empty_mem_ptTag))
+  have h1 : (empty : V) ∈ˢ ptTag := empty_mem_ptTag
+  rw [← h0] at h1
+  exact not_mem_empty _ h1
 
 /-- **The pinned `Nat`'s clause**: `ω` is the least fixed point of the
 zero/successor operator, its constructors `∅` and `natSuccV`. -/
@@ -366,6 +381,11 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn 
         | [m], [m'], _, _ =>
           have h' : vsucc m = vsucc m' := by simpa using h
           exact ⟨rfl, by rw [vsucc_inj h']⟩)
+    (fun _ _ j fs h => by
+      unfold natInj at h
+      split at h
+      · exact pt_ne_empty h.symm
+      · exact vsucc_ne_pt _ h)
     (fun j hj ψ ρ fs hsp => by
       rcases (show j = 0 ∨ j = 1 by omega) with rfl | rfl
       · have := spineFit_nil_iff.mp (by simpa [natFlds] using hsp)
