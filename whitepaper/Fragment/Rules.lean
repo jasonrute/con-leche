@@ -249,16 +249,25 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   | const {Γ : List Expr} {c : Name} {ls ls' : List Level} :
       Level.eqList ls ls' = true → DefEq env Γ (const c ls) (const c ls')
   /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:373`): domains, then
-  bodies under the RIGHT domain, and the annotations must agree (they
-  are compared with `=`, which is semantic: `PropWhen.eq_iff`).  This
-  comparison is the one place a decision of the checker reads an
-  annotation beyond inference's own check: over an empty domain the two
-  regimes give different types (`{pt}` and the one-graph function
-  space), and nothing about the domain or the bodies tells them apart
-  (`Ghost.lean`, `pi_datum_needed`). -/
-  | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} {pw : PropWhen} :
+  bodies under the RIGHT domain — and, in place of a comparison of the
+  annotations (task #343), **the two sides' types**: the left side's
+  inferred type reduces to a sort, and the right side's inferred type
+  is definitionally equal to the left's.  The annotations are not read.
+  Something must be: over an empty domain the two regimes give
+  different types (`{pt}` and the one-graph function space) and
+  nothing about the domain or the bodies tells them apart
+  (`Ghost.lean`, `pi_datum_needed`); the inferred types do, because
+  `Infer.pi` checked each side's annotation against its body's sort,
+  and inside one sort the two regimes agree
+  (`SetLib.piR_eq_of_mem_typeU`, `Sound.lean`: `DefEq.pi_sound`).
+  The real checker infers both sides' types anyway for proof
+  irrelevance; for a `∀` the type is a `Sort`, so the extra test is a
+  level comparison. -/
+  | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ t₁ t₂ : Expr} {pw₁ pw₂ : PropWhen} {u : Level} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
-      DefEq env Γ (pi A₁ pw B₁) (pi A₂ pw B₂)
+      Infer env Γ (pi A₁ pw₁ B₁) t₁ → Red env Γ t₁ (sort u) →
+      Infer env Γ (pi A₂ pw₂ B₂) t₂ → DefEq env Γ t₁ t₂ →
+      DefEq env Γ (pi A₁ pw₁ B₁) (pi A₂ pw₂ B₂)
   /-- λ-congruence (`DefEq.lam`, `Rel.lean:380`): domains, then
   bodies under the RIGHT domain.  **The annotations are not compared**
   (con-leche compares them, as for `∀`): a λ whose annotation holds is

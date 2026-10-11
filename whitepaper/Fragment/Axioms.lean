@@ -198,3 +198,23 @@ info: 'Fragment.DefEq.lam_sound' depends on axioms: [propext, Classical.choice, 
 info: 'Fragment.DefEq.eta_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.DefEq.eta_sound
+
+/--
+info: 'Fragment.DefEq.pi_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.pi_sound
+
+/--
+info: 'Fragment.SetLib.piR_eq_of_mem_typeU' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.SetLib.piR_eq_of_mem_typeU
+
+/--
+info: 'Fragment.pi_over_false_sorts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.pi_over_false_sorts
+
+/--
+info: 'Fragment.codomain_claims_vacuous' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.codomain_claims_vacuous

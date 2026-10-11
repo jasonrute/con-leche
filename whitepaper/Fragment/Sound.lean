@@ -170,20 +170,39 @@ theorem const_sound [LevelOracle] {Γ : List Expr} {c : Name} {ls ls' : List Lev
     (h : Level.eqList ls ls' = true) : DefEqSem m φ Γ (.const c ls) (.const c ls') :=
   fun _ _ _ _ _ _ => by simp [(Level.eqList_iff ls ls').mp h φ]
 
-/-- `∀`-congruence: domains and fibres are types, never the point. -/
-theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} {pw : PropWhen}
-    (hA : DefEqSem m φ Γ A₁ A₂) (hB : DefEqSem m φ (A₂ :: Γ) B₁ B₂) :
-    DefEqSem m φ Γ (.pi A₁ pw B₁) (.pi A₂ pw B₂) := by
+/-- **`∀`-congruence with no comparison of the annotations** (task
+#343): the two sides lie in one sort — the left side's type reduces to
+it, the right side's type is equal to the left's — and inside one sort
+the two regimes agree (`piR_eq_of_mem_typeU`).  Domains and fibres are
+types, never the point. -/
+theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ t₁ t₂ : Expr} {pw₁ pw₂ : PropWhen} {u : Level}
+    (hA : DefEqSem m φ Γ A₁ A₂) (hB : DefEqSem m φ (A₂ :: Γ) B₁ B₂)
+    (ht₁ : InferSem m φ Γ (.pi A₁ pw₁ B₁) t₁) (hu : RedSem m φ Γ t₁ (.sort u))
+    (ht₂ : InferSem m φ Γ (.pi A₂ pw₂ B₂) t₂) (ht : DefEqSem m φ Γ t₁ t₂) :
+    DefEqSem m φ Γ (.pi A₁ pw₁ B₁) (.pi A₂ pw₂ B₂) := by
   intro ρ hs h₁ h₂ _ _
+  -- both sides lie in `typeU u`
+  obtain ⟨-, hwt₁, hT₁, hm₁⟩ := ht₁ ρ hs
+  obtain ⟨-, hwt₂, hT₂, hmem₂⟩ := ht₂ ρ hs
+  have het : interp m.M φ ρ t₁ = interp m.M φ ρ t₂ :=
+    ht ρ hs hwt₁ hwt₂ hT₁.ne_pt hT₂.ne_pt
+  obtain ⟨-, hes⟩ := hu ρ hs hwt₁ hT₁.ne_pt
+  rw [← het, hes, interp_sort] at hmem₂
+  rw [hes, interp_sort] at hm₁
   rw [WellDenoted_pi] at h₁ h₂
   have heA := hA ρ hs h₁.1 h₂.1 h₁.2.1.ne_pt h₂.2.1.ne_pt
-  simp only [interp_pi]
-  rw [heA]
-  apply piR_congr
-  intro x hx
+  -- the fibres agree over the domain
+  have hfib : ∀ x, x ∈ˢ interp m.M φ ρ A₂ →
+      interp m.M φ (cons x ρ) B₁ = interp m.M φ (cons x ρ) B₂ := by
+    intro x hx
+    have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
+    exact hB (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, h₂.1, h₂.2.1, hx⟩) (h₁.2.2.1 x hx₁)
+      (h₂.2.2.1 x hx) (h₁.2.2.2 x hx₁).ne_pt (h₂.2.2.2 x hx).ne_pt
+  simp only [interp_pi] at hm₁ hmem₂ ⊢
+  rw [heA, piR_congr hfib] at hm₁ ⊢
+  refine piR_eq_of_mem_typeU (fun x hx => ?_) (fun x hx => h₂.2.2.2 x hx) hm₁ hmem₂
   have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
-  exact hB (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, h₂.1, h₂.2.1, hx⟩) (h₁.2.2.1 x hx₁)
-    (h₂.2.2.1 x hx) (h₁.2.2.2 x hx₁).ne_pt (h₂.2.2.2 x hx).ne_pt
+  rw [← hfib x hx]; exact h₁.2.2.2 x hx₁
 
 /-- A λ that is not the point is in the graph regime, and its body's
 values are in strict fibres: never the point. -/
@@ -852,7 +871,9 @@ theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
   | _, _, _, .redL hr h => DefEq.redL_sound (red_sound hr) (defeq_sound h)
   | _, _, _, .sort h => DefEq.sort_sound h
   | _, _, _, .const h => DefEq.const_sound h
-  | _, _, _, .pi hA hB => DefEq.pi_sound (defeq_sound hA) (defeq_sound hB)
+  | _, _, _, .pi hA hB ht₁ hu ht₂ ht =>
+    DefEq.pi_sound (defeq_sound hA) (defeq_sound hB) (infer_sound ht₁) (red_sound hu)
+      (infer_sound ht₂) (defeq_sound ht)
   | _, _, _, .lam hA hb => DefEq.lam_sound (defeq_sound hA) (defeq_sound hb)
   | _, _, _, .app hf ha => DefEq.app_sound (defeq_sound hf) (defeq_sound ha)
   | _, _, _, .eta htb hr hA hbody =>

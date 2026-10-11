@@ -20,28 +20,38 @@ one are four:
   (`Rules.lean`, `Sound.lean`: `DefEq.lam_sound`, `DefEq.eta_sound`): a
   λ whose annotation holds denotes the point, and the claims are
   conditional on the point.
-* `DefEq.pi` compares the two `∀`s' annotations.  **That comparison is
-  needed** by the fragment's proof, and this file shows why.
+* `DefEq.pi` compared the two `∀`s' annotations.  **Something must
+  tell the two regimes apart**, and this file shows what (task #341,
+  sharpened by #343).  Since #343 it is **the two sides' types**, not
+  their annotations (`Rules.lean`, `DefEq.pi`).
 
 Over an empty domain the two regimes give two different types: the
 propositional product is `{pt}` and the function space holds one
 graph.  Nothing about the domain or the codomain tells them apart:
 `(h : ∀ P : Prop, P) → Prop` is well-denoted under either annotation,
 in every model, at every valuation (`pi_datum_needed`).  So `∀`-
-congruence without the comparison has true premises (the same domain,
-the same body) and a false conclusion (`pi_congr_without_datum`).  The
-λ's annotation is not determined by the semantics either
+congruence with only its domain and body premises has true premises
+and a false conclusion (`pi_congr_without_datum`).
+
+**What information is missing** (#343).  Every claim made under the
+extended context `(h : ∀ P : Prop, P) :: Γ` is vacuously true, because
+no valuation satisfies it (`codomain_claims_vacuous`).  So no premise
+about the bodies — their equality, their inferred types, the sorts of
+those types, compared however — can exclude the witness: comparing
+the codomains' inferred sorts instead of the annotations is unsound
+for the same reason (both bodies are `Prop : Sort 1`).  What does tell
+the two apart is a claim at `Γ` about the `∀`s themselves: no sort holds
+both denotations (`pi_over_false_sorts`), and inside one sort the
+regimes agree (`SetLib.piR_eq_of_mem_typeU`).  The sort of a `∀` is what
+`Infer.pi` computes, after checking the annotation against the body's
+sort; so the honesty check in inference, followed by "both sides have
+equal types" in the defeq, replaces the comparison of the data.
+
+The λ's annotation is not determined by the semantics either
 (`lam_datum_free`): over the same empty domain both annotations are
 well-denoted, one the point and the other the empty graph — and only
 the latter is a member of the honest type, so the λ's annotation must
 come from its typing (`lam_datum_from_type`).
-
-What would let `DefEq.pi`'s comparison go is that the annotations of
-the two sides agree whenever the rest of the rule's premises hold.
-With honest annotations they always do, but the reason is syntactic:
-two definitionally equal types have the same sort, so their bodies'
-sorts have the same zero-ness.  The fragment's proof is semantic and
-does not need that theorem as long as the checker compares the data.
 -/
 
 namespace Fragment
@@ -150,5 +160,41 @@ theorem pi_congr_without_datum {env : Env} (m : EnvModel V env)
   refine ⟨fun _ _ _ _ _ _ => rfl, fun _ _ _ _ _ _ => rfl, fun h => ?_⟩
   obtain ⟨h1, h2, h3, h4, h5⟩ := pi_datum_needed m.M φ (fun _ => pt)
   exact h5 (h (fun _ => pt) trivial h1 h2 h3 h4)
+
+/-- **No valuation satisfies a context that binds a proof of
+`∀ P : Prop, P`**, so every claim made under it holds: no premise about
+the bodies of a `∀`-congruence over that domain — their equality, their
+inferred types or the sorts of those — excludes anything (task #343). -/
+theorem codomain_claims_vacuous {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (Γ : List Expr) :
+    (∀ e T, InferSem m φ (falseE :: Γ) e T) ∧
+    (∀ a b, DefEqSem m φ (falseE :: Γ) a b) ∧
+    (∀ e e', RedSem m φ (falseE :: Γ) e e') := by
+  have hno : ∀ ρ : Nat → V, ¬ Sat m.M φ (falseE :: Γ) ρ := fun ρ hs =>
+    not_mem_falseE m.M φ _ _ hs.2.2.2
+  exact ⟨fun _ _ ρ hs => absurd hs (hno ρ), fun _ _ ρ hs => absurd hs (hno ρ),
+    fun _ _ ρ hs => absurd hs (hno ρ)⟩
+
+/-- **No sort holds both readings of the witness** (task #343): the
+propositional one only in `Sort 0`, the function space only above it.
+This is what `DefEq.pi`'s type premises read instead of the annotations. -/
+theorem pi_over_false_sorts (M : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V)
+    (n : Nat) :
+    (interp M φ ρ (piOverFalse .always) ∈ˢ typeU n → n = 0) ∧
+    (interp M φ ρ (piOverFalse .never) ∈ˢ typeU n → n ≠ 0) := by
+  constructor
+  · intro h
+    refine Classical.byContradiction fun hn => ?_
+    rw [mem_typeU_pos hn] at h
+    apply h.2.2
+    simp only [piOverFalse, interp_pi, PropWhen.holds_always, piR_true]
+    exact pt_mem_truthVal fun x hx => absurd hx (not_mem_falseE M φ ρ x)
+  · rintro h rfl
+    rw [mem_typeU_zero] at h
+    simp only [piOverFalse, interp_pi, PropWhen.holds_never, piR_false] at h
+    have hg : graph (fun x => x) (interp M φ ρ falseE) ∈ˢ
+        piSet (interp M φ ρ falseE) (fun x => interp M φ (cons x ρ) (.sort .zero)) :=
+      graph_mem_piSet fun x hx => absurd hx (not_mem_falseE M φ ρ x)
+    exact not_mem_of_univ_zero_strict h strict_piSet hg
 
 end Fragment

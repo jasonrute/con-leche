@@ -100719,3 +100719,75 @@ graph, and the comparison is needed):
 axioms).  `whitepaper/links-gate.sh` was already failing on #340's stale
 anchors; this change adds none (the text is not touched).  Nothing
 outside `whitepaper/` and this record changed.
+
+## TASK #343 — `∀`-congruence without the annotation comparison: compare the sides' types (2026-10-11, agent/343-picong)
+
+The question (maintainer, 2026-10-11): #341 left one comparison of
+binder data in the fragment's checker, `DefEq.pi`'s "the annotations
+are equal".  Other checkers do not compare binder data at
+`∀`-congruence.  Can it be replaced by something a checker computes
+anyway, eliminated, or is it inherently needed?
+
+**Outcome: replaced** (`whitepaper/Fragment/`, +178 −32).
+- *The rule* (`Rules.lean`, `DefEq.pi`): domains, bodies, and
+  `Infer Γ lhs t₁`, `Red Γ t₁ (sort u)`, `Infer Γ rhs t₂`,
+  `DefEq Γ t₁ t₂` — the two sides have definitionally equal types and
+  the left one is a sort.  The annotations `pw₁`, `pw₂` are free.  The
+  subject discipline of `DefEq` holds: `t₁`, `t₂` come from `Infer`
+  premises, as in `proofIrrel`.
+- *The set lemma* (`Lib.lean`, `SetLib.piR_eq_of_mem_typeU`): two
+  products over one domain, fibres in both regimes, both members of
+  one `typeU n`, are equal.  Where the regimes differ every fibre is a
+  truth value and strict, so empty; an inhabited domain makes both
+  products empty; an empty domain is excluded by the common sort
+  (`{pt}` is not strict; a function space holds a graph, so is no truth
+  value).  No new law of `SetLib`.
+- *Soundness* (`Sound.lean`, `DefEq.pi_sound`): the inferred types put
+  both sides in `typeU u`; the fibre equality is the old argument.
+  Nothing else in the fragment builds or inverts `DefEq.pi`.
+
+**The impossibility half** (`Ghost.lean`): what a replacement must read.
+- `codomain_claims_vacuous`: no valuation satisfies `falseE :: Γ`, so
+  every `Infer`/`DefEq`/`Red` claim under it holds.  With
+  `pi_datum_needed`, no premise about the domains and bodies — equal
+  bodies, the bodies' inferred types, the sorts of those (direction 4
+  of the task: compare the codomains' inferred sorts) — excludes the
+  witness `(h : ∀ P : Prop, P) →[always/never] Prop`, whose bodies
+  are both `Prop : Sort 1`.  Comparing codomain sorts is right for
+  honest input but has no semantic justification: it is the syntactic
+  theorem #341 named.
+- `pi_over_false_sorts`: the witness's two readings lie in no common
+  sort.  So the missing information is a claim at the outer context
+  about the `∀`s themselves; their type is one such claim, and
+  `Infer.pi` derives it only for an honest annotation.
+- Directions 2 and 3 of the task: a common type supplied by the
+  defeq's caller is not available at most call sites (`DefEq.pi`'s and
+  `DefEq.lam`'s domains, `DefEq.app`'s heads and arguments, `Infer.app`
+  and the ι certificates compare an inferred type with a reduct whose
+  sort nobody computed); the rule computes it locally instead.  A
+  model in which the two readings coincide must put the empty graph at
+  the point (#341: breaks λ-congruence); a membership in a common
+  *type* that is not a sort is not enough either (a strict set may hold
+  both `{pt}` and the one-graph space), hence the `Red … (sort u)`.
+
+**For con-leche's real checker** (after the #339/#340 port):
+- the rule is typed conversion at `∀`; it needs the two sides' types.
+  `propIrrel` does NOT compute them for `∀` sides today:
+  `notProofFast` answers first.  So the replacement adds an inference
+  of each `∀` side per congruence step (a telescope walk; under nested
+  congruence the inner steps re-infer the inner `∀`s unless the
+  inference cache or a chain read serves them).  Comparing the
+  annotations is the cheap form of the same test: an honest annotation
+  is the zero-ness of the body's sort, which is what the sorts' test
+  reads.  Whether that cost buys anything (dropping the annotate pass
+  needs the λ's honest datum too, `lam_datum_from_type`) is a ruling.
+- the level test can be the full one (`Sort w₁ ≡ Sort w₂`, as here) or
+  zero-ness only; the set lemma needs only "both in one `typeU n`".
+
+**Gates**: `whitepaper/fragment-gate.sh` green (warning-free, no
+`sorry`; `DefEq.pi_sound`, `SetLib.piR_eq_of_mem_typeU`,
+`pi_over_false_sorts`, `codomain_claims_vacuous` pinned at the three
+standard axioms).  `whitepaper/links-gate.sh` was already failing on
+#340's stale anchors; the text is not touched, and the shifted lines of
+`Rules`, `Sound` move some of those anchors.  Nothing outside
+`whitepaper/` and this record changed.

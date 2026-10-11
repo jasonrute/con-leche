@@ -756,3 +756,27 @@ comment block at the top of `lib.typ`.
     does not need while the checker compares the data.  The text, if
     it mentions the λ/η comparisons, should say they are not needed.
     (2026-10-11.)
+
+42. **`∀`-congruence compares the two sides' types, not their
+    annotations (task #343).**  `DefEq.pi` no longer reads a binder
+    annotation: besides the domains and the bodies it infers both
+    sides' types, asks the left one to reduce to a sort and the right
+    one to be definitionally equal to it (`Fragment/Rules.lean`).  It is
+    sound because inside one sort the two regimes agree
+    (`SetLib.piR_eq_of_mem_typeU`): where the regimes differ the fibres
+    are both truth values and strict, hence empty; over an inhabited
+    domain both products are then empty; over an empty domain the
+    propositional product `{pt}` is in no `Sort (n+1)` and the function
+    space, which holds a graph, is in no `Sort 0`
+    (`pi_over_false_sorts`).  The only remaining reads of an annotation
+    are inference's honesty checks.  The sharp negative half
+    (`Fragment/Ghost.lean`): every claim under a context that binds a
+    proof of `∀ P : Prop, P` holds vacuously (`codomain_claims_vacuous`),
+    so no premise about the bodies — not even a comparison of the
+    codomains' inferred sorts — can stand in for the annotations; the
+    information has to come from a claim about the `∀`s themselves at
+    the outer context, and their type is the natural one.  For the
+    text: the rule is "typed conversion at `∀`", a check every
+    checker could make, and the annotation, where con-leche keeps it,
+    is a cache of the sort zero-ness that this check would read.
+    (2026-10-11.)

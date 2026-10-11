@@ -450,6 +450,56 @@ theorem piR_mem_typeU {u v : Nat} {p : Bool} {A : V} {B : V → V}
       (mem_univ_of_mem_typeU hA)) fun x hx => univ_mono (Nat.le_max_right _ _)
       (mem_univ_of_mem_typeU (hB x hx)), strict_piSet⟩
 
+/-- A truth value that is strict has no member. -/
+theorem not_mem_of_univ_zero_strict {T z : V} (h0 : T ∈ˢ univ 0) (hs : Strict T) :
+    ¬ z ∈ˢ T := fun hz => hs.2 (eq_pt_of_mem_univ_zero h0 hz ▸ hz)
+
+/-- **The two regimes agree inside one sort** (task #343).  Two
+products over one domain, with fibres that are in both regimes, and
+that are members of one `typeU n`, are equal.  Where the regimes
+differ: the fibres are truth values and strict, so empty; over an
+inhabited domain both products are then empty, and over an empty
+domain the propositional product is `{pt}`, which no `typeU (n+1)`
+holds, and the function space holds a graph, which no truth value
+does. -/
+theorem piR_eq_of_mem_typeU {p q : Bool} {n : Nat} {A : V} {B : V → V}
+    (hp : ∀ x, x ∈ˢ A → Fib p (B x)) (hq : ∀ x, x ∈ˢ A → Fib q (B x))
+    (h₁ : piR p A B ∈ˢ typeU n) (h₂ : piR q A B ∈ˢ typeU n) :
+    piR p A B = piR q A B := by
+  -- the regimes differ, the first one propositional, without loss of generality
+  suffices key : ∀ {p q : Bool}, p = true → q = false →
+      (∀ x, x ∈ˢ A → Fib p (B x)) → (∀ x, x ∈ˢ A → Fib q (B x)) →
+      piR p A B ∈ˢ typeU n → piR q A B ∈ˢ typeU n → piR p A B = piR q A B by
+    cases p <;> cases q
+    · rfl
+    · exact (key rfl rfl hq hp h₂ h₁).symm
+    · exact key rfl rfl hp hq h₁ h₂
+    · rfl
+  intro p q hpt hqf hp hq h₁ h₂
+  subst hpt hqf
+  -- every fibre over the domain is empty
+  have hemp : ∀ x, x ∈ˢ A → ∀ z, ¬ z ∈ˢ B x := fun x hx _ =>
+    not_mem_of_univ_zero_strict (hp x hx) (hq x hx)
+  -- the domain is inhabited
+  have hA : ∃ x, x ∈ˢ A := by
+    refine Classical.byContradiction fun hne => ?_
+    have hnA : ∀ x, ¬ x ∈ˢ A := fun x hx => hne ⟨x, hx⟩
+    by_cases hn : n = 0
+    · subst hn
+      rw [piR_false, mem_typeU_zero] at h₂
+      have hg : graph (fun x => x) A ∈ˢ piSet A B :=
+        graph_mem_piSet fun x hx => absurd hx (hnA x)
+      exact not_mem_of_univ_zero_strict h₂ strict_piSet hg
+    · rw [mem_typeU_pos hn] at h₁
+      exact h₁.2.2 (by rw [piR_true]; exact pt_mem_truthVal fun x hx => absurd hx (hnA x))
+  obtain ⟨x₀, hx₀⟩ := hA
+  refine ext fun z => ⟨fun hz => ?_, fun hz => ?_⟩
+  · rw [piR_true] at hz
+    have h1 := of_mem_truthVal hz x₀ hx₀
+    exact absurd (mem_one.mpr rfl : (pt : V) ∈ˢ one) (h1 ▸ hemp x₀ hx₀ pt)
+  · rw [piR_false] at hz
+    exact absurd (app_mem_piSet hz hx₀) (hemp x₀ hx₀ _)
+
 end SetLib
 
 end Fragment
