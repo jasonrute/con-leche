@@ -69,7 +69,6 @@ theorem tuple_enlarge {w' k : Nat} (hw : w' ≠ 0) {Is Y : Nat → V}
   · let Y'' : Nat → V := fun m => if m = t then
       graph (fun i => if i = tt then binUnion (app (Y t) i) (sing empty) else app (Y t) i)
         (Is t) else Y m
-    have hU := univ_isTGUniverse (V := V) hw
     refine ⟨Y'', ?_, ?_, ?_⟩
     · intro m hm
       by_cases hmt : m = t
@@ -77,8 +76,7 @@ theorem tuple_enlarge {w' k : Nat} (hw : w' ≠ 0) {Is Y : Nat → V}
         simp only [Y'', ite_eq_left rfl]
         refine graph_mem_famSpace fun i hi => ?_
         split
-        · exact hU.binUnion_mem (empty_mem_univ _) (famSpace_app (hY m hm) hi)
-            (hU.sing_mem (empty_mem_univ _) (empty_mem_univ _))
+        · exact univ_binUnion_sing_empty_mem hw (famSpace_app (hY m hm) hi)
         · exact famSpace_app (hY m hm) hi
       · simp only [Y'', ite_eq_right hmt]
         exact hY m hm

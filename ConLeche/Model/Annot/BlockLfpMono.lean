@@ -63,7 +63,7 @@ theorem carrier_le_on_group' (h : LfpClause acval D) {ψ : Name → Nat} {ρp ρ
     by_cases hGm : G m
     · simp only [B, ite_eq_left hGm, hidx m hm hGm]; exact lfpTuple_mem _ _ _ _ m hm
     · simp only [B, ite_eq_right hGm]; exact lfpTuple_mem _ _ _ _ m hm
-  have hle := lfpTuple_le_on hcl hmono G hB fun g hg hG t ht x hx => ?_
+  have hle := lfpTuple_le_on hcl hmono (h.maps ψ ρp hs) G hB fun g hg hG t ht x hx => ?_
   · intro g hg hG
     have := hle g hg hG
     simp only [B, ite_eq_left hG] at this

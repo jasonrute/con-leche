@@ -263,7 +263,7 @@ theorem blockAccTuple_of_run {env : Env} (mp : EnvModelM V .verified env) {F : N
     (hG : ∀ c, c < d.N → ∀ j, j < (d.ctorsM c).length →
       ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j)) :
-    ∃ A, (d.toLfp.w ψ ≠ 0 → A ∈ˢ (univ (d.toLfp.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A := by
+    ∃ A, (d.toLfp.w ψ ≠ 0 → A ∈ˢ (tg (d.toLfp.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A := by
   obtain ⟨cvTa0, fvsP, rest, holes, hcv0, hop0, hholes, hder, -⟩ :=
     checkBlockPositivity_derivM mp.base2.wf hrun
       (fun cv h => (mp.base2.wf _ (List.mem_of_find?_eq_some
@@ -340,7 +340,7 @@ theorem blockAcc_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks = tru
     (hG : ∀ c, c < d.N → ∀ j, j < (d.ctorsM c).length →
       ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j)) :
-    ∃ A, (d.toLfp.w ψ ≠ 0 → A ∈ˢ (univ (d.toLfp.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A := by
+    ∃ A, (d.toLfp.w ψ ≠ 0 → A ∈ˢ (tg (d.toLfp.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A := by
   obtain rfl := ConLeche.CheckMode.eq_verified hμ
   obtain ⟨mk, hbk, hcovk⟩ := hcov
   have hcore' : BlockHoleCtxFacts mk.base2 d lps cvTas p₁ isRec := by rw [hbk]; exact hcore

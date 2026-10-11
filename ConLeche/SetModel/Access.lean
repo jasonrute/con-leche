@@ -20,7 +20,7 @@ must be uniform: "every element has SOME small support"
 (κ-accessibility) is too weak — `Φ X = {∅} ∪ {x ∪ {x}} ∪ {⋃ s | s ⊆ X
 small}` has the universe's ordinals as its least fixed point.
 
-* `closed_of_acc`: at `w ≠ 0`, an `A`-accessible `Φ` with `A ∈ univ w`
+* `closed_of_acc`: at `w ≠ 0`, an `A`-accessible `Φ` with `A ∈ tg w`
   that maps the tuple space into itself has a closed tuple — no
   monotonicity, no ordinals, no cardinals.  Iteration runs along
   Lean-level Brouwer trees `AccIter.BT` (`node : (V → BT) → BT`); the
@@ -80,12 +80,12 @@ theorem kpair_mem_accPaths {A a p : V} (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths A
   obtain ⟨n, hn⟩ := mem_natUnion.mp hp
   exact mem_natUnion.mpr ⟨n + 1, mem_sigmaPairs.mpr ⟨a, ha, p, hn, rfl⟩⟩
 
-theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (univ w : V)) :
-    accPaths A ∈ˢ (univ w : V) := by
-  have hU := univ_isTGUniverse (V := V) hw
+theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
+    accPaths A ∈ˢ (tg w : V) := by
+  have hU := tg_isTGUniverse (V := V) hw
   refine natUnion_mem_univ_pos hw fun n => ?_
   induction n with
-  | zero => exact unitSet_mem_univ w
+  | zero => exact unitSet_mem_tg w
   | succ n ih => exact hU.sigmaPairs_mem hA fun _ _ => ih
 
 /-! ## Brouwer trees and stages -/
@@ -195,13 +195,13 @@ theorem stage_eq_of_code : ∀ T T' : BT V, code A T = code A T' →
 theorem emptyTup_mem : InTupleSpace w k Is (emptyTup Is) :=
   fun _ _ => graph_mem_famSpace fun _ _ => empty_mem_univ w
 
-theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple w k Is Φ) :
+theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
     ∀ T : BT V, InTupleSpace w k Is (stage Is Φ A T)
   | .leaf => emptyTup_mem
   | .node f => by
     simp only [stage]
     refine hmaps _ fun m hm => graph_mem_famSpace fun i hi => ?_
-    exact (univ_isTGUniverse hw).famUnion_mem hA fun a _ =>
+    exact univ_famUnion_mem hw hA fun a _ =>
       famSpace_app (stage_mem hw hA hmaps (f a) m hm) hi
 
 theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
@@ -219,12 +219,11 @@ theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     rw [this, stage_eq_of_code _ _ (Classical.choose_spec hex)]
     exact hT
 
-theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple w k Is Φ) :
+theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
     InTupleSpace w k Is (limTup Is Φ A) := by
   intro m hm
   refine graph_mem_famSpace fun i hi => ?_
-  have hU := univ_isTGUniverse (V := V) hw
-  exact hU.famUnion_mem (hU.power_mem (accPaths_mem hw hA)) fun c _ =>
+  exact univ_famUnion_mem hw ((tg_isTGUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
     famSpace_app (stage_mem hw hA hmaps _ m hm) hi
 
 theorem mem_unionTup {F : V → Nat → V} {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
@@ -241,7 +240,7 @@ theorem mem_unionTup {F : V → Nat → V} {m : Nat} {i y : V} (hi : i ∈ˢ Is 
 /-- **(W) from accessibility.**  At a positive level, an operator that
 maps the tuple space into itself and is `A`-accessible for a set `A` of
 the level has a closed tuple.  No monotonicity is used. -/
-theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTuple w k Is Φ)
+theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
     (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
   refine ⟨limTup Is Φ A, limTup_mem hw hA hmaps, ?_⟩
   intro m hm i hi x hx
@@ -256,7 +255,7 @@ theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (univ w : V)) (hmaps : MapsTu
     refine hsupp _ (stage_mem hw hA hmaps (.node f) |> fun _ => ?_) ?_
     · intro m' hm'
       refine graph_mem_famSpace fun i' hi' => ?_
-      exact (univ_isTGUniverse hw).famUnion_mem hA fun a _ =>
+      exact univ_famUnion_mem hw hA fun a _ =>
         famSpace_app (stage_mem hw hA hmaps (f a) m' hm') hi'
     · intro a ha
       refine ⟨(hgL a ha).1, (hgL a ha).2.1, (mem_unionTup (hgL a ha).2.1).mpr ⟨a, hBA a ha, ?_⟩⟩
@@ -286,11 +285,13 @@ theorem closedTuple_zero {k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat �
 
 /-- **Accessibility, with a bound of the level at a `Type`-valued
 level**: the operator is `A`-accessible, and at `w ≠ 0` the bound `A` is a
-member of `univ w`.  At `w = 0` the bound is any set: (W) does not need it
+member of the axiomatic level `tg w` — a size bound, not a type (an
+`accPaths` set has the point, the empty path, as a member).  At `w = 0`
+the bound is any set: (W) does not need it
 there (the top tuple is closed, `closedTuple_zero`), monotonicity never
 does (task #327). -/
 def AccW (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Prop :=
-  ∃ A, (w ≠ 0 → A ∈ˢ (univ w : V)) ∧ AccTuple w k Is k Is Φ A
+  ∃ A, (w ≠ 0 → A ∈ˢ (tg w : V)) ∧ AccTuple w k Is k Is Φ A
 
 /-- **(W) from `AccW`**, at every level: `closed_of_acc` at `w ≠ 0`,
 `closedTuple_zero` at `w = 0`. -/
@@ -532,7 +533,7 @@ If the joint operator `Θ` (parameter components first, then its own) is
 is `accPaths A`-accessible — no key, no wide operator, no container
 presentation.  (W) of each section and its monotonicity come from
 `closed_of_acc` / `AccTuple.monoTuple`. -/
-theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (univ w : V))
+theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
     (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
       InTupleSpace w kY IsY (Θ (catT kX X Y)))
     (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :

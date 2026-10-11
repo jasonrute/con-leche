@@ -855,9 +855,14 @@ theorem frameAccOut_of {w : Nat}
       (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
       (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) :=
     fun p p₀ hp => (hDacc p p₀ hp).elim fun _ hA => hA.monoTuple
+  have hDmaps : ∀ p p₀, R₀ p p₀ → MapsTuple (D.w (Level.substFn φ lps us)) D.N
+      (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
+      (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) :=
+    fun p p₀ hp => h.maps _ _ (hfit p p₀ hp).1
   have hmain := lfpP_acc_group (O := Occ V) hIs
     (fun p ⟨p₀, hp⟩ => ⟨_, mixT_isClosed (G := InGrp D grp)
-      (h.closed (hfit p p₀ hp).1) (hDmono p p₀ hp)⟩)
+      (h.closed (hfit p p₀ hp).1) (hDmono p p₀ hp) (hDmaps p p₀ hp)⟩)
+    (fun p ⟨p₀, hp⟩ => mixT_mapsTuple (hDmaps p p₀ hp) (lfpTuple_mem _ _ _ _))
     (fun p ⟨p₀, hp⟩ => (hDacc p p₀ hp).elim fun A' hA' =>
       ⟨A', accTuple_mixT (G := InGrp D grp) hA' (lfpTuple_mem _ _ _ _)⟩) hacc
   -- the carrier on the group is the mixed operator's least tuple
@@ -868,7 +873,8 @@ theorem frameAccOut_of {w : Nat}
             (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y)) c
         = D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ) c := by
     intro ρ ρ₀ hr c hc
-    exact lfpTuple_mixT (h.closed (hfit ρ ρ₀ hr).1) (hDmono ρ ρ₀ hr) c (Nat.lt_of_lt_of_le hc.1 hkNN) hc
+    exact lfpTuple_mixT (h.closed (hfit ρ ρ₀ hr).1) (hDmono ρ ρ₀ hr) (hDmaps ρ ρ₀ hr) c
+      (Nat.lt_of_lt_of_le hc.1 hkNN) hc
   refine ⟨fun ρ => accPaths (A0 ρ), fun ρ hw => accPaths_mem hw (hA0 ρ hw), fun ρ ρ' hag => ?_, ?_⟩
   · show accPaths (A0 ρ) = accPaths (A0 ρ')
     have : A0 ρ = A0 ρ' := by

@@ -223,14 +223,34 @@ end In
 
 /-! ## The levels
 
-What the constructions read of a level: `∅ ∈ univ w` (`empty_mem_univ`)
-and `univ_dropClosed` — today from closure under subsets; at stage 1b of
-task #342 (`univ` the restricted universe) from strictness, the one
-lemma here that changes. -/
+What the family and tuple constructions (here, `LfpTuple.lean`, and the
+accessibility construction `SetModel/Access.lean`) read of a level
+`univ w`, beyond `∅ ∈ univ w` (`empty_mem_univ`): closure under subsets
+up to a drop (`univ_dropClosed`), unions of a family of members indexed
+by a set of the axiomatic level (`univ_famUnion_mem`), and adding `∅` as
+a member (`univ_binUnion_sing_empty_mem`).  Today all three hold because
+`univ w` is the axiomatic level; at stage 1b of task #342 (`univ` the
+restricted universe) they are re-proved from strictness — a union of
+strict sets is strict, `{∅}` is strict, and a subset of a strict set is
+strict or the point (`tests/ConLecheTests/LfpTypes.lean` checks the three
+against the restricted universe built from `tg`).  Nothing else of the
+level is read, so the constructions' laws carry over unchanged. -/
 
 /-- **A level is closed under subsets up to a drop.** -/
 theorem univ_dropClosed (w : Nat) : DropClosed (univ w : V) :=
   SubsetClosed.dropClosed fun _ _ hy hz => univ_mem_of_subset_mem hy hz
+
+/-- **A union of members of a positive level**, indexed by a set of the
+axiomatic level, is a member. -/
+theorem univ_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA : A ∈ˢ (tg w : V))
+    (hF : ∀ a, a ∈ˢ A → F a ∈ˢ (univ w : V)) : sUnion (image F A) ∈ˢ (univ w : V) :=
+  (univ_isTGUniverse hw).famUnion_mem hA hF
+
+/-- **A member of a positive level with `∅` added** is a member. -/
+theorem univ_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V} (hX : X ∈ˢ (univ w : V)) :
+    binUnion X (sing empty) ∈ˢ (univ w : V) :=
+  (univ_isTGUniverse hw).binUnion_mem (empty_mem_univ _) hX
+    ((univ_isTGUniverse hw).sing_mem (empty_mem_univ _) (empty_mem_univ _))
 
 /-- Every level of the axiomatic chain `tg` is closed under subsets. -/
 theorem subsetClosed_tg (w : Nat) : SubsetClosed (tg w : V) := by
