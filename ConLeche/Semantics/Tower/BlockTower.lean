@@ -58,7 +58,7 @@ def ndMkTowerAV (r : Nat) (Gty G : Nat → AnnotTerm) : Nat → Nat → AnnotTer
 
 /-- The tuple value's set: the uniform tupler over the components. -/
 noncomputable def ndMkTowerSet (g : Nat → V) : Nat → Nat → V
-  | _, 0 => pt
+  | _, 0 => empty
   | s, n + 1 => spair (g s) (ndMkTowerSet g (s + 1) n)
 
 theorem ndMkTowerSet_eq_mkTower (g : Nat → V) :
@@ -79,7 +79,9 @@ of the tower's carrier. -/
 theorem ndMkTowerSet_mem {r : Nat} (hr : r ≠ 0) {F g : Nat → V} :
     ∀ (n s : Nat), (∀ m, m < s + n → g m ∈ˢ F m) →
       ndMkTowerSet g s n ∈ˢ ndTowerSet V r F s n
-  | 0, _, _ => pt_mem_unitSet
+  | 0, _, _ => by
+    show (empty : V) ∈ˢ unitSetAt r
+    rw [← unitAt_pos hr]; exact unitAt_mem_unitSetAt r
   | n + 1, s, hg => by
     show spair (g s) (ndMkTowerSet g (s + 1) n)
       ∈ˢ sigmaSet r (F s) fun _ => ndTowerSet V r F (s + 1) n
@@ -133,7 +135,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       (∀ m, m < s + n → g m ∈ˢ F m) →
       interp V ρ (ndMkTowerAV r Gty G s n) = ndMkTowerSet g s n ∧
         WellDenoted V ρ (ndMkTowerAV r Gty G s n)
-  | 0, _, _, _, _, _, _, _ => ⟨rfl, trivial⟩
+  | 0, _, _, _, _, _, _, _ => ⟨unitAt_pos hr, trivial⟩
   | n + 1, s, hGty, hGtyok, hF, hG, hGok, hg => by
     have hvac : ¬ r + 1 = 0 := Nat.succ_ne_zero r
     have hA : interp V ρ (Gty s) = F s := hGty s (by omega)

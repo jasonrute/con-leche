@@ -384,14 +384,13 @@ structure LfpClause (acval : Name → (Name → Nat) → AnnotTerm) (D : LfpDatu
   /-- **the constructors' result indices fit the index telescope** at the
   carrier -/
   resIdxFit : LfpResIdxFit D
-  /-- **at a `Type`-valued parameterised block no injection is the point**
-  (the container case of the accessibility route — the TYPE REGIME of a container instance, whose truth-valued
-  fibre is then empty).  The parameter guard was necessary for the
-  pinned `PUnit.{u+1}` (unpinned since), whose constructor denoted `pt`;
-  every parameterised recorded block is a uniform one (tagged
-  injections) or `Prop`-valued (`Eq`). -/
-  injNePt : ∀ ψ : Name → Nat, D.w ψ ≠ 0 → (D.params ψ).length ≠ 0 →
-    ∀ c j fs, D.inj ψ c j fs ≠ pt
+  /-- **at a `Type`-valued block no injection is the point** (the
+  container case of the accessibility route — the TYPE REGIME of a
+  container instance, whose truth-valued fibre is then empty).  A
+  uniform block's injections are tagged pairs, `Nat`'s are von Neumann
+  numerals, and a positive-level unit is `∅` (task #342 B), so no
+  parameter guard is needed. -/
+  injNePt : ∀ ψ : Name → Nat, D.w ψ ≠ 0 → ∀ c j fs, D.inj ψ c j fs ≠ pt
   /-- **the constructors' fields are small** at a `Type`-valued block, at
   every hole frame of the tuple space (the frame walk of a container reads its constructors' fields along the
   accessibility relation, which supports small elements only — the

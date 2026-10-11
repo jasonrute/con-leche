@@ -406,15 +406,15 @@ by the uniform projection family `projS`.  Total: the value is a member
 of the family tuple for EVERY operator. -/
 
 /-- The non-dependent pair tower's carrier at level `r`: the components
-`F s, …, F (s + n - 1)`, `unitSet`-terminated. -/
+`F s, …, F (s + n - 1)`, terminated by the unit at level `r`. -/
 noncomputable def ndTowerSet (r : Nat) (F : Nat → V) : Nat → Nat → V
-  | _, 0 => unitSet
+  | _, 0 => unitSetAt r
   | s, n + 1 => sigmaSet r (F s) fun _ => ndTowerSet r F (s + 1) n
 
 theorem ndTowerSet_mem_univ {r : Nat} {F : Nat → V} :
     ∀ (n s : Nat), (∀ m, m < s + n → F m ∈ˢ (univ r : V)) →
       ndTowerSet V r F s n ∈ˢ (univ r : V)
-  | 0, _, _ => unitSet_mem_univ r
+  | 0, _, _ => unitSetAt_mem_univ r
   | n + 1, s, hF => by
     show sigmaSet r (F s) (fun _ => ndTowerSet V r F (s + 1) n) ∈ˢ _
     have h := sigma_mem_univ (u := r) (v := r) (hF s (by omega))
@@ -428,7 +428,9 @@ theorem mkTower_mem_ndTowerSet {r : Nat} (hr : r ≠ 0) {F : Nat → V} :
     ∀ (n : Nat) (as : List V) (s : Nat), as.length = n →
       (∀ i, ∀ h : i < as.length, as[i] ∈ˢ F (s + i)) →
       mkTower as ∈ˢ ndTowerSet V r F s n
-  | 0, [], _, _, _ => pt_mem_unitSet
+  | 0, [], _, _, _ => by
+    show (empty : V) ∈ˢ unitSetAt r
+    rw [← unitAt_pos hr]; exact unitAt_mem_unitSetAt r
   | 0, _ :: _, _, hlen, _ => by simp at hlen
   | _ + 1, [], _, hlen, _ => by simp at hlen
   | n + 1, a :: as, s, hlen, h => by
@@ -552,16 +554,17 @@ end LfpTuple
 /-- The two-regime value of each built-in constant at a concrete level
 instantiation — `ConLeche.Term.bval`'s transpose.  `quotInd`, `quotSound`
 and `propext` are the canonical proof because their result sorts *are*
-`0`; `punitUnit` is because `unitSet = {pt}` at every level.  The one
-value that differs from `bval` beyond the operator change is
-`emptyRec`. -/
+`0`.  `PUnit` is level-indexed (task #342 B): `{pt}`/`pt` at `0`,
+`{∅}`/`∅` above, so a positive-level unit is neither the proof point
+nor contains it.  The one value that differs from `bval` beyond the
+operator change is `emptyRec`. -/
 noncomputable def bval : BConst → List Nat → V
   | .nat, _ => omega
   | .natZero, _ => natzero
   | .natSucc, _ => natSuccV V
   | .natRec, us => natRecV V (lv us 0)
-  | .punit, _ => unitSet
-  | .punitUnit, _ => pt
+  | .punit, us => unitSetAt (lv us 0)
+  | .punitUnit, us => unitAt (lv us 0)
   | .psigma, us => psigmaV V (lv us 0) (lv us 1)
   | .psigmaMk, us => psigmaMkV V (lv us 0) (lv us 1)
   | .empty, _ => empty

@@ -1445,8 +1445,8 @@ valued by `.prf` rather than by a binder.  Its facts are
 def mkTowerGoUPos (w : Nat) (E : AnnotTerm) : List AnnotTerm → AnnotTerm
   | [] =>
     .app (.app (.app (.app (.const .psigmaMk [w, w]) E)
-        (.lam (w + 1) E (.const .punit [w + 1]))) .prf)
-      (.const .punitUnit [])
+        (.lam (w + 1) E (.const .punit [w]))) .prf)
+      (.const .punitUnit [w])
   | F :: Fs =>
     .app (.app (.app (.app (.const .psigmaMk [w, w])
         (F.liftN (Fs.length + 1)))
@@ -1474,18 +1474,19 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       interp V (consList bs ρp) (mkTowerGoUPos w E Fs) = mkTower (bs ++ [pt])
   | [], ρp, [], hb, _, hpt => by
     have hA : interp V ρp E ∈ˢ (univ w : V) := hb.1
-    have hB : (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V))
+    have hB : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
         ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
-      lamR_mem fun _ _ => unitSet_mem_univ w
+      lamR_mem fun _ _ => unitSetAt_mem_univ w
     have hpt' : (pt : V) ∈ˢ interp V ρp E := by simpa [consList] using hpt
-    have hb' : (pt : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V)) pt := by
+    have hb' : (unitAt w : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
-      exact pt_mem_unitSet
+      exact unitAt_mem_unitSetAt w
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (bval V .psigmaMk [w, w])
-        (interp V ρp E)) (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V))) pt) pt
+        (interp V ρp E)) (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))) pt) (unitAt w)
       = mkTower [pt]
     have hbv : bval V .psigmaMk [w, w] = psigmaMkV V w w := rfl
-    rw [hbv, psigmaMkV_app V hA hB hpt' hb', show Nat.max w w = w from Nat.max_self w, ite_eq_right hw]
+    rw [hbv, psigmaMkV_app V hA hB hpt' hb', show Nat.max w w = w from Nat.max_self w, ite_eq_right hw,
+      unitAt_pos hw]
     rfl
   | [], _, _ :: _, _, hsp, _ => hsp.elim
   | _ :: _, _, [], _, hsp, _ => hsp.elim
@@ -1574,9 +1575,9 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hokE : WellDenoted V ρp E := hok.1
     have hA : interp V ρp E ∈ˢ (univ w : V) := hok.2.1 hw
     have hpt' : (pt : V) ∈ˢ interp V ρp E := by simpa [consList] using hpt
-    have hBm : (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V))
+    have hBm : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
         ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
-      lamR_mem fun _ _ => unitSet_mem_univ w
+      lamR_mem fun _ _ => unitSetAt_mem_univ w
     have hbv : interp V ρp (.const .psigmaMk [w, w]) = psigmaMkV V w w := rfl
     have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
         piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
@@ -1587,26 +1588,26 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           fun _ => sigmaSet w (interp V ρp E) fun x => SetTheory.app B x) ∈ˢ (univZero : V) :=
       fun h => absurd h hw
     have hz3 : w = 0 → ∀ a, a ∈ˢ interp V ρp E →
-        piR w (SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V)) a)
+        piR w (SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) a)
           (fun _ => sigmaSet w (interp V ρp E)
-            fun x => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V)) x)
+            fun x => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) x)
           ∈ˢ (univZero : V) := fun h => absurd h hw
     have hz4 : w = 0 → ∀ x,
-        x ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V)) pt →
+        x ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt →
         sigmaSet w (interp V ρp E)
-          (fun y => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V)) y)
+          (fun y => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) y)
           ∈ˢ (univZero : V) := fun h => absurd h hw
     have hm0 := psigmaMkV_ww_mem (V := V) w
     have hm1 := app_mem_piR hm0 hA hz1
     have hm2 := app_mem_piR hm1 hBm hz2
     have hm3 := app_mem_piR hm2 hpt' hz3
-    have hlam : interp V ρp (.lam (w + 1) E (.const .punit [w + 1]))
-        = lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V) := rfl
-    have hb' : (pt : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSet : V)) pt := by
+    have hlam : interp V ρp (.lam (w + 1) E (.const .punit [w]))
+        = lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V) := rfl
+    have hb' : (unitAt w : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
-      exact pt_mem_unitSet
+      exact unitAt_mem_unitSetAt w
     show WellDenoted V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
-      (.lam (w + 1) E (.const .punit [w + 1]))) .prf) (.const .punitUnit []))
+      (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     rw [WellDenoted_app]
     refine ⟨?_, trivial, w, _, _, ?_, hb', hz4⟩
     · rw [WellDenoted_app]
@@ -1617,15 +1618,15 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           exact ⟨trivial, hokE, w, univ w, _, hbv ▸ hm0, hA, hz1⟩
         · rw [WellDenoted_lam]
           exact ⟨hokE, fun _ _ => trivial, fun _ => (univ w : V),
-            fun _ _ => unitSet_mem_univ w, fun h => absurd h (Nat.succ_ne_zero w)⟩
+            fun _ _ => unitSetAt_mem_univ w, fun h => absurd h (Nat.succ_ne_zero w)⟩
         · show SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E) ∈ˢ _
           rw [hbv]; exact hm1
         · rw [hlam]; exact hBm
       · show SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E))
-          (interp V ρp (.lam (w + 1) E (.const .punit [w + 1]))) ∈ˢ _
+          (interp V ρp (.lam (w + 1) E (.const .punit [w]))) ∈ˢ _
         rw [hbv, hlam]; exact hm2
     · show SetTheory.app (SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w]))
-        (interp V ρp E)) (interp V ρp (.lam (w + 1) E (.const .punit [w + 1]))))
+        (interp V ρp E)) (interp V ρp (.lam (w + 1) E (.const .punit [w]))))
         (interp V ρp .prf) ∈ˢ _
       rw [hbv, hlam, interp_prf]; exact hm3
   | [], _, _ :: _, _, hsp, _ => hsp.elim

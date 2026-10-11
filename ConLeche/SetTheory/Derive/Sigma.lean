@@ -127,6 +127,59 @@ theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
       (univ_mono (Nat.le_max_left u v) A hA)
       (fun x hx => univ_mono (Nat.le_max_right u v) _ (hB x hx))
 
+/-! ## The unit at a level (task #342, items B and C)
+
+`PUnit.{w}` and the pair towers' terminator.  At `0` the unit is the
+truth value `True = {pt}` with its proof `pt`; above `0` it is `{∅}`
+with the member `∅` — a set that is neither the proof point nor
+contains it, so it stays a member of the restricted universes stage 1b
+reads `Sort (n+1)` as.  Nothing reads the terminator's member: `∅` is
+no Kuratowski pair, so `sfst ∅ = ssnd ∅ = pt` by the non-pair default,
+exactly as at `pt`. -/
+
+open Classical in
+/-- The unit type at level `w` (see the section docstring). -/
+noncomputable def unitSetAt (w : Nat) : V := if w = 0 then unitSet else sing empty
+
+open Classical in
+/-- The unit type's sole member at level `w`. -/
+noncomputable def unitAt (w : Nat) : V := if w = 0 then pt else empty
+
+theorem unitSetAt_zero : (unitSetAt 0 : V) = unitSet := ite_eq_left rfl
+theorem unitSetAt_pos {w : Nat} (hw : w ≠ 0) : (unitSetAt w : V) = sing empty := ite_eq_right hw
+theorem unitAt_zero : (unitAt 0 : V) = pt := ite_eq_left rfl
+theorem unitAt_pos {w : Nat} (hw : w ≠ 0) : (unitAt w : V) = empty := ite_eq_right hw
+
+theorem mem_unitSetAt_iff {w : Nat} {z : V} : z ∈ˢ (unitSetAt w : V) ↔ z = unitAt w := by
+  by_cases hw : w = 0
+  · subst hw; rw [unitSetAt_zero, unitAt_zero]; exact mem_unitSet_iff
+  · rw [unitSetAt_pos hw, unitAt_pos hw]; exact mem_sing
+
+theorem unitAt_mem_unitSetAt (w : Nat) : (unitAt w : V) ∈ˢ unitSetAt w :=
+  mem_unitSetAt_iff.mpr rfl
+
+theorem unitSetAt_mem_univ : ∀ w : Nat, (unitSetAt w : V) ∈ˢ univ w
+  | 0 => unitSetAt_zero (V := V) ▸ unitSet_mem_univ 0
+  | n + 1 => by
+    rw [unitSetAt_pos (Nat.succ_ne_zero n)]
+    exact (univ_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
+      (univChain_one_mem_univ_succ n) (empty_mem_univ _)
+
+theorem empty_ne_kpair (a b : V) : (empty : V) ≠ kpair a b := fun h =>
+  not_mem_empty (sing a) (h ▸ mem_upair_left (sing a) (upair a b))
+
+theorem sfst_empty : sfst (empty : V) = pt := by
+  unfold sfst
+  rw [dite_eq_right]
+  rintro ⟨a, b, h⟩
+  exact empty_ne_kpair a b h
+
+theorem ssnd_empty : ssnd (empty : V) = pt := by
+  unfold ssnd
+  rw [dite_eq_right]
+  rintro ⟨a, b, h⟩
+  exact empty_ne_kpair a b h
+
 /- Opaque interface operators (see `Derive/Empty.lean`). -/
 attribute [irreducible] sigmaSet spair sfst ssnd
 
