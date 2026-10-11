@@ -402,7 +402,7 @@ theorem consList₂_agree {vs ps : List V} {ρ ρ' : Nat → V} :
 
 /-- The parameters a datum mentions, as a membership statement. -/
 theorem PropWhen.paramsIn_iff {ps : List Name} :
-    ∀ {pw : PropWhen}, pw.paramsIn ps = true ↔ ∀ qs, pw = .whenZero qs → ∀ n ∈ qs, n ∈ ps
+    ∀, pw.paramsIn ps = true ↔ ∀ qs, pw = .whenZero qs → ∀ n ∈ qs, n ∈ ps
   | .never => by simp [PropWhen.paramsIn]
   | .whenZero qs => by
     simp only [PropWhen.paramsIn, List.all_eq_true, PropWhen.whenZero.injEq, forall_eq']
@@ -913,10 +913,10 @@ first): the hypotheses of the later recursive positions, then this
 field's outermost, with `l` earlier hypotheses. -/
 def ihCtxAux (S : IndSpec) (nF o : Nat) : List (Nat × Field) → Nat → List Expr
   | [], _ => []
-  | kf :: rest, l => ihCtxAux S nF o rest (l + 1) ++ [S.ihTy nF kf.1 l o kf.2]
+  | kf :: rest, l => ihCtxAux S nF o rest (l + 1) ++ [IndSpec.ihTy nF kf.1 l o kf.2]
 
 theorem ihCtxAux_eq (nF o : Nat) : ∀ (L : List (Nat × Field)) (l : Nat),
-    (L.mapIdx fun i kf => S.ihTy nF kf.1 (l + i) o kf.2).reverse = S.ihCtxAux nF o L l
+    (L.mapIdx fun i kf => IndSpec.ihTy nF kf.1 (l + i) o kf.2).reverse = S.ihCtxAux nF o L l
   | [], _ => rfl
   | kf :: rest, l => by
     rw [List.mapIdx_cons, List.reverse_cons]
@@ -928,7 +928,7 @@ theorem ihCtxAux_eq (nF o : Nat) : ∀ (L : List (Nat × Field)) (l : Nat),
     simp [Nat.add_assoc, Nat.add_comm 1 i]
 
 theorem ihCtx_eq (c : CtorSpec) (j : Nat) :
-    S.ihCtx c j = S.ihCtxAux c.fields.length (j + 1) c.recFields 0 := by
+    IndSpec.ihCtx c j = S.ihCtxAux c.fields.length (j + 1) c.recFields 0 := by
   rw [ihCtx, ← ihCtxAux_eq]
   simp
 
@@ -1135,7 +1135,7 @@ theorem Reader.read_ihTy (hS : S.Scoped env) (R : S.Reader (env := env) M φ F M
     (hi : ihsE.length = l) (hf : fs.length = c.fields.length) (ho : os.length = o) (hpos : 0 < o)
     (hps : ps.length = S.nP) :
     interp M' φ' (consList ihsE (consList fs (consList os (consList ps ρ))))
-        (S.ihTy c.fields.length kf.1 l o kf.2)
+        (IndSpec.ihTy c.fields.length kf.1 l o kf.2)
       = ihSet S M φ (S.q.holds φ') ps (os.getD (o - 1) pt) fs kf := by
   obtain ⟨hpos', hk, hrec⟩ := mem_recFields hkf
   obtain ⟨k, f⟩ := kf
@@ -1377,11 +1377,11 @@ theorem Reader₂.minorOk (hS : S.Scoped env) (R₂ : S.Reader₂ (env := env) M
   -- the minor's type, read
   unfold minorTy at hmem
   rw [interp_mkPis] at hmem
-  have hlenI : ihs.reverse.length = (S.ihCtx c j).length := by
+  have hlenI : ihs.reverse.length = (IndSpec.ihCtx c j).length := by
     rw [List.length_reverse, ihCtx_eq, length_ihCtxAux, ListRel.length' hihs]
   have hf := S.FitsFields_length M _ hfit
   have hfitAll : FitsVals M' φ' (consList minsE (cons m (consList ps ρ)))
-      (S.ihCtx c j ++ S.fieldCtxAt c (j + 1)) (ihs.reverse ++ fs) := by
+      (IndSpec.ihCtx c j ++ S.fieldCtxAt c (j + 1)) (ihs.reverse ++ fs) := by
     refine (FitsVals_append M' φ' hlenI).mpr ⟨(hfieldsF fs).mpr hfit, ?_⟩
     rw [ihCtx_eq, henv]
     have := (R.fits_ihCtxAux hS hpl hcm (os := minsE ++ [m]) (ρ := ρ) hf hos (by omega) hps c.recFields
@@ -1389,7 +1389,7 @@ theorem Reader₂.minorOk (hS : S.Scoped env) (R₂ : S.Reader₂ (env := env) M
     rw [hgetm] at this
     exact this hihs
   have hG : S.q.holds φ' = true → ∀ ws, FitsVals M' φ' (consList minsE (cons m (consList ps ρ)))
-      (S.ihCtx c j ++ S.fieldCtxAt c (j + 1)) ws →
+      (IndSpec.ihCtx c j ++ S.fieldCtxAt c (j + 1)) ws →
       interp M' φ' (consList ws (consList minsE (cons m (consList ps ρ))))
         (Expr.mkAppN (.bvar (c.recFields.length + c.fields.length + j))
           (c.idx.map (Expr.atCtx c.fields.length c.fields.length c.recFields.length (j + 1) 0) ++
@@ -1398,9 +1398,9 @@ theorem Reader₂.minorOk (hS : S.Scoped env) (R₂ : S.Reader₂ (env := env) M
                 Expr.varsAt c.recFields.length c.fields.length)])) ∈ˢ (univ 0 : V) :=
     fun hq ws hws => by
       -- at a proposition: the conclusion is a truth value
-      obtain ⟨ihsR, fs', rfl, hl₁⟩ : ∃ ihsR fs', ws = ihsR ++ fs' ∧ ihsR.length = (S.ihCtx c j).length := by
+      obtain ⟨ihsR, fs', rfl, hl₁⟩ : ∃ ihsR fs', ws = ihsR ++ fs' ∧ ihsR.length = (IndSpec.ihCtx c j).length := by
         have hl := FitsVals_length M' φ' hws
-        refine ⟨ws.take (S.ihCtx c j).length, ws.drop (S.ihCtx c j).length,
+        refine ⟨ws.take (IndSpec.ihCtx c j).length, ws.drop (IndSpec.ihCtx c j).length,
           (List.take_append_drop _ _).symm, ?_⟩
         simp at hl; simp [hl]
       obtain ⟨hwsF, hwsI⟩ := (FitsVals_append M' φ' hl₁).mp hws
@@ -1515,7 +1515,7 @@ theorem wd_minorsFrom : ∀ (cs : List CtorSpec) (j : Nat) (E : Nat → V) (mins
 def recCtx : List Expr :=
   S.famVars (S.n + 1) :: S.indicesAt (S.n + 1) ++ S.minorsCtx ++ [S.motiveTy] ++ S.params
 
-theorem recType_eq : S.recType = Expr.mkPis S.q S.recCtx
+theorem recType_eq : S.recType = Expr.mkPis S.recCtx
     (Expr.mkAppN (.bvar (1 + S.nI + S.n)) (Expr.varsAt 1 S.nI ++ [.bvar 0])) := rfl
 
 theorem length_recCtx : S.recCtx.length = 1 + S.nI + S.n + 1 + S.nP := by

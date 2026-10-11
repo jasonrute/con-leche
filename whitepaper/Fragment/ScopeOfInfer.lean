@@ -40,10 +40,10 @@ theorem Infer.closedAt : ∀ {Γ : List Expr} {e T : Expr}, Infer env Γ e T →
     exact (List.getElem?_eq_some_iff.mp h).1
   | _, _, _, .sort => rfl
   | _, _, _, .const _ _ => rfl
-  | _, _, _, .pi hA _ hB _ _ => by
+  | _, _, _, .pi hA _ hB _ => by
     simp only [Expr.closedAt, Bool.and_eq_true]
     exact ⟨Infer.closedAt hA, Infer.closedAt hB⟩
-  | _, _, _, .lam hA _ hb _ _ _ => by
+  | _, _, _, .lam hA _ hb => by
     simp only [Expr.closedAt, Bool.and_eq_true]
     exact ⟨Infer.closedAt hA, Infer.closedAt hb⟩
   | _, _, _, .app hf _ ha _ => by
@@ -61,10 +61,10 @@ theorem Infer.consts : ∀ {Γ : List Expr} {e T : Expr}, Infer env Γ e T →
     subst hc
     rw [hfind]
     rfl
-  | _, _, _, .pi hA _ hB _ _ => fun c hc => by
+  | _, _, _, .pi hA _ hB _ => fun c hc => by
     simp only [Expr.consts, List.mem_append] at hc
     exact hc.elim (Infer.consts hA c) (Infer.consts hB c)
-  | _, _, _, .lam hA _ hb _ _ _ => fun c hc => by
+  | _, _, _, .lam hA _ hb => fun c hc => by
     simp only [Expr.consts, List.mem_append] at hc
     exact hc.elim (Infer.consts hA c) (Infer.consts hb c)
   | _, _, _, .app hf _ ha _ => fun c hc => by

@@ -58,7 +58,7 @@ namespace PropWhen
 
 /-- A datum over `ps` is a datum over any `qs ⊇ ps`. -/
 theorem paramsIn_mono {ps qs : List Name} (h : ps ⊆ qs) :
-    ∀ {pw : PropWhen}, paramsIn ps pw = true → paramsIn qs pw = true
+    ∀, paramsIn ps pw = true → paramsIn qs pw = true
   | never, _ => rfl
   | whenZero s, hs => by
     simp only [paramsIn_whenZero, List.all_eq_true, List.contains_iff_mem] at hs ⊢
@@ -81,10 +81,10 @@ theorem lparamsIn_mono {ps qs : List Name} (h : ps ⊆ qs) :
   | app f a, he => by
     simp only [lparamsIn_app, Bool.and_eq_true] at he ⊢
     exact ⟨lparamsIn_mono h he.1, lparamsIn_mono h he.2⟩
-  | lam A pw b, he => by
+  | lam A b, he => by
     simp only [lparamsIn_lam, Bool.and_eq_true] at he ⊢
     exact ⟨⟨lparamsIn_mono h he.1.1, PropWhen.paramsIn_mono h he.1.2⟩, lparamsIn_mono h he.2⟩
-  | pi A pw B, he => by
+  | pi A B, he => by
     simp only [lparamsIn_pi, Bool.and_eq_true] at he ⊢
     exact ⟨⟨lparamsIn_mono h he.1.1, PropWhen.paramsIn_mono h he.1.2⟩, lparamsIn_mono h he.2⟩
 
@@ -97,24 +97,24 @@ theorem lparamsIn_const_params (ps : List Name) (c : Name) :
   exact hn
 
 /-- The body's constants are among its `∀`-telescope's. -/
-theorem consts_mkPis_body (pw : PropWhen) :
-    ∀ (Γ : List Expr) (b : Expr) {c : Name}, c ∈ consts b → c ∈ consts (mkPis pw Γ b)
+theorem consts_mkPis_body :
+    ∀ (Γ : List Expr) (b : Expr) {c : Name}, c ∈ consts b → c ∈ consts (mkPis Γ b)
   | [], _, _, hc => hc
   | B :: Γ, b, c, hc => by
     rw [mkPis_cons]
-    exact consts_mkPis_body pw Γ (pi B pw b) (by rw [consts_pi]; exact List.mem_append_right _ hc)
+    exact consts_mkPis_body Γ (pi B b) (by rw [consts_pi]; exact List.mem_append_right _ hc)
 
 /-- A context entry's constants are among its `∀`-telescope's. -/
-theorem consts_mkPis_of (pw : PropWhen) :
+theorem consts_mkPis_of :
     ∀ (Γ : List Expr) (b : Expr) {A : Expr} {c : Name}, A ∈ Γ → c ∈ consts A →
-      c ∈ consts (mkPis pw Γ b)
+      c ∈ consts (mkPis Γ b)
   | [], _, _, _, hA, _ => absurd hA List.not_mem_nil
   | B :: Γ, b, A, c, hA, hc => by
     rw [mkPis_cons]
     rcases List.mem_cons.mp hA with rfl | hA
-    · exact consts_mkPis_body pw Γ (pi A pw b)
+    · exact consts_mkPis_body Γ (pi A b)
         (by rw [consts_pi]; exact List.mem_append_left _ hc)
-    · exact consts_mkPis_of pw Γ (pi B pw b) hA hc
+    · exact consts_mkPis_of Γ (pi B b) hA hc
 
 end Expr
 
@@ -395,7 +395,7 @@ theorem lparamsIn_fieldDom (hS : S.Scoped env) {k : Nat} {f : Field} (hf : S.fie
     exact S.lparamsIn_classTy hS hN k'
   | ordinary A => exact hf.2.2
   | reflexive tele es =>
-    refine Expr.lparamsIn_mkPis (S.pw_paramsIn hS) (fun T hT => ?_)
+    refine Expr.lparamsIn_mkPis (fun T hT => ?_)
       (S.lparamsIn_famAt _ fun e he => (hf.2.2 e he).2.2)
     obtain ⟨t, ht⟩ := List.mem_iff_getElem?.mp hT
     exact (hf.1 t T ht).2.2
@@ -450,7 +450,7 @@ theorem lparamsIn_indType (hS : S.Scoped env) : S.indType.lparamsIn S.lparams = 
 theorem lparamsIn_ctorType (hS : S.Scoped env) {c : CtorSpec} (hc : c ∈ S.ctors) :
     (S.ctorType c).lparamsIn S.lparams = true := by
   unfold ctorType
-  refine Expr.lparamsIn_mkPis (S.pw_paramsIn hS) (fun A hA => ?_)
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_)
     (S.lparamsIn_famAt _ (S.lparamsIn_idx hS hc))
   rcases List.mem_append.mp hA with hA | hA
   · exact S.lparamsIn_fieldCtx hS hc A hA
@@ -470,14 +470,14 @@ theorem lparamsIn_motiveTy (hS : S.Scoped env) : S.motiveTy.lparamsIn S.recLpara
 /-- An inductive hypothesis' type uses the recursor's level
 parameters. -/
 theorem lparamsIn_ihTy {k : Nat} {f : Field} (hf : S.fieldScoped env k f) (nF k' l o : Nat) :
-    (S.ihTy nF k' l o f).lparamsIn S.recLparams = true := by
+    (IndSpec.ihTy nF k' l o f).lparamsIn S.recLparams = true := by
   have hR := S.lparams_sub_recLparams
   cases f with
   | ordinary A => rfl
   | container => rfl
   | reflexive tele es =>
     simp only [ihTy]
-    refine Expr.lparamsIn_mkPis S.q_paramsIn (fun T hT => ?_) ?_
+    refine Expr.lparamsIn_mkPis (fun T hT => ?_) ?_
     · obtain ⟨t, T', ht, rfl⟩ := Expr.mem_liftCtx hT
       rw [Expr.lparamsIn_atCtx]
       exact Expr.lparamsIn_mono hR (hf.1 t T' ht).2.2
@@ -492,8 +492,8 @@ theorem lparamsIn_ihTy {k : Nat} {f : Field} (hf : S.fieldScoped env k f) (nF k'
 
 /-- An entry of the inductive hypotheses' context is a hypothesis' type
 at a recursive position. -/
-theorem mem_ihCtx {c : CtorSpec} {j : Nat} {A : Expr} (h : A ∈ S.ihCtx c j) :
-    ∃ kf ∈ c.recFields, ∃ l, A = S.ihTy c.fields.length kf.1 l (j + 1) kf.2 := by
+theorem mem_ihCtx {c : CtorSpec} {j : Nat} {A : Expr} (h : A ∈ IndSpec.ihCtx c j) :
+    ∃ kf ∈ c.recFields, ∃ l, A = IndSpec.ihTy c.fields.length kf.1 l (j + 1) kf.2 := by
   rw [ihCtx, List.mem_reverse, List.mem_mapIdx] at h
   obtain ⟨l, hl, rfl⟩ := h
   exact ⟨_, List.getElem_mem hl, l, rfl⟩
@@ -512,7 +512,7 @@ theorem lparamsIn_minorTy (hS : S.Scoped env) {c : CtorSpec} (hc : c ∈ S.ctors
     (S.minorTy c j).lparamsIn S.recLparams = true := by
   have hR := S.lparams_sub_recLparams
   simp only [minorTy]
-  refine Expr.lparamsIn_mkPis S.q_paramsIn (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rcases List.mem_append.mp hA with hA | hA
     · obtain ⟨kf, hkf, l, rfl⟩ := S.mem_ihCtx hA
       exact S.lparamsIn_ihTy (S.fieldScoped_of_mem_recFields hS hc hkf).1 _ _ _ _
@@ -561,7 +561,7 @@ theorem lparamsIn_indicesAt (hS : S.Scoped env) (o : Nat) :
 theorem lparamsIn_recType (hS : S.Scoped env) : S.recType.lparamsIn S.recLparams = true := by
   have hR := S.lparams_sub_recLparams
   unfold recType
-  refine Expr.lparamsIn_mkPis S.q_paramsIn (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hA
     rcases hA with (((rfl | hA) | hA) | rfl) | hA
     · exact Expr.lparamsIn_mono hR (S.lparamsIn_famVars _)
@@ -598,7 +598,7 @@ theorem lparamsIn_ihVal {k : Nat} {f : Field} (hf : S.fieldScoped env k f) (nF k
   | container => rfl
   | reflexive tele es =>
     simp only [ihVal]
-    refine Expr.lparamsIn_mkLams S.q_paramsIn (fun T hT => ?_) ?_
+    refine Expr.lparamsIn_mkLams (fun T hT => ?_) ?_
     · obtain ⟨t, T', ht, rfl⟩ := Expr.mem_liftCtx hT
       rw [Expr.lparamsIn_atCtx]
       exact Expr.lparamsIn_mono hR (hf.1 t T' ht).2.2
@@ -617,7 +617,7 @@ theorem lparamsIn_ruleRhs (hS : S.Scoped env) {c : CtorSpec} {j : Nat} (hc : S.c
     (S.ruleRhs c j).lparamsIn S.recLparams = true := by
   have hc' := List.mem_of_getElem? hc
   simp only [ruleRhs]
-  refine Expr.lparamsIn_mkLams S.q_paramsIn (S.lparamsIn_ruleCtx hS hc') ?_
+  refine Expr.lparamsIn_mkLams (S.lparamsIn_ruleCtx hS hc') ?_
   refine Expr.lparamsIn_mkAppN rfl fun a ha => ?_
   rcases List.mem_append.mp ha with ha | ha
   · exact Expr.lparamsIn_varsAt _ _ _ a ha

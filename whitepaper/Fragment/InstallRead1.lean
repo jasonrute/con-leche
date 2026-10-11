@@ -41,12 +41,12 @@ variable {V : Type u} [IndLib V]
 bound: the domains are well-denoted types, the body is well-denoted
 and lies in `G` under fitting values, and `G` is in the regime of the
 annotation there. -/
-theorem WellDenoted_mkLams_sem (M : Name → List Nat → V) (φ : Name → Nat) {pw : PropWhen} :
+theorem WellDenoted_mkLams_sem (M : Name → List Nat → V) (φ : Name → Nat) :
     ∀ {Γ : List Expr} {b : Expr} {ρ : Nat → V} {G : (Nat → V) → V}, CtxWD M φ ρ Γ →
       (∀ vs, FitsVals M φ ρ Γ vs →
         WellDenoted M φ (consList vs ρ) b ∧ interp M φ (consList vs ρ) b ∈ˢ G (consList vs ρ)) →
       (∀ vs, FitsVals M φ ρ Γ vs → Fib (pw.holds φ) (G (consList vs ρ))) →
-      WellDenoted M φ ρ (Expr.mkLams pw Γ b)
+      WellDenoted M φ ρ (Expr.mkLams Γ b)
   | [], b, ρ, G, _, hb, _ => (hb [] trivial).1
   | A :: Γ, b, ρ, G, hctx, hb, hG => by
     rw [Expr.mkLams_cons]
@@ -163,13 +163,13 @@ theorem TeleFitV_instL (M : Name → List Nat → V) (φ : Name → Nat) (ps : L
     (ls : List Level) : ∀ {ρ : Nat → V} {T : Expr} {vs : List V},
     TeleFitV M φ ρ (T.instL ps ls) vs ↔ TeleFitV M (Level.substVal φ ps ls) ρ T vs
   | _, _, [] => ⟨fun _ => TeleFitV_nil _ _ _ _, fun _ => TeleFitV_nil _ _ _ _⟩
-  | ρ, .pi A pw B, v :: vs => by
+  | ρ, .pi A B, v :: vs => by
     rw [Expr.instL_pi, TeleFitV_pi_cons, TeleFitV_pi_cons, interp_instL, TeleFitV_instL]
   | _, .bvar _, _ :: _ => Iff.rfl
   | _, .sort _, _ :: _ => Iff.rfl
   | _, .const _ _, _ :: _ => Iff.rfl
   | _, .app _ _, _ :: _ => Iff.rfl
-  | _, .lam _ _ _, _ :: _ => Iff.rfl
+  | _, .lam _ _, _ :: _ => Iff.rfl
 
 omit [IndLib V] in
 /-- The body a level-instantiated telescope leaves is the body the
@@ -177,14 +177,14 @@ telescope leaves, instantiated. -/
 theorem piBodyV_instL (ps : List Name) (ls : List Level) : ∀ {ρ : Nat → V} {T : Expr} {vs : List V},
     piBodyV ρ (T.instL ps ls) vs = (piBodyV ρ T vs).map fun p => (p.1.instL ps ls, p.2)
   | ρ, T, [] => by rw [piBodyV_nil, piBodyV_nil, Option.map_some]
-  | ρ, .pi A pw B, v :: vs => by
+  | ρ, .pi A B, v :: vs => by
     rw [Expr.instL_pi]
     exact piBodyV_instL ps ls
   | _, .bvar _, _ :: _ => rfl
   | _, .sort _, _ :: _ => rfl
   | _, .const _ _, _ :: _ => rfl
   | _, .app _ _, _ :: _ => rfl
-  | _, .lam _ _ _, _ :: _ => rfl
+  | _, .lam _ _, _ :: _ => rfl
 
 /-- With distinct level parameters, instantiating them and evaluating
 is evaluating their substitutes: the concrete levels, read back

@@ -130,7 +130,7 @@ theorem TeleFitV_congr_model {M M' : Name → List Nat → V} {φ : Name → Nat
   | ρ, T, [], _ => ⟨fun _ => TeleFitV_nil M' φ ρ T, fun _ => TeleFitV_nil M φ ρ T⟩
   | ρ, T, v :: vs, h => by
     cases T with
-    | pi A pw B =>
+    | pi A B =>
       rw [Expr.consts_pi] at h
       rw [TeleFitV_pi_cons, TeleFitV_pi_cons,
         interp_consts fun c hc => h c (List.mem_append_left _ hc),
@@ -148,7 +148,7 @@ theorem piBodyV_consts : ∀ {ρ : Nat → V} {T : Expr} {vs : List V} {B : Expr
     exact hc
   | ρ, T, v :: vs, B, ρ', h, c, hc => by
     cases T with
-    | pi A pw B' =>
+    | pi A B' =>
       simp only [piBodyV] at h
       rw [Expr.consts_pi]
       exact List.mem_append_right _ (piBodyV_consts h c hc)

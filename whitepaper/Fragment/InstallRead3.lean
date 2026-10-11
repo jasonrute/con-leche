@@ -168,9 +168,9 @@ theorem Reader₂.agree_minorTy (hS : S.Scoped env) {M₁ M₂ : Name → List N
     rw [ihCtx_eq]
     exact R₁.R.agree_ihCtxAux hS hpl R₂.R hq hcm hf hos (by omega) hps c.recFields (fun _ h => h)
       (ihsE := []) rfl
-  · obtain ⟨ihsR, fs, rfl, hl₁⟩ : ∃ ihsR fs, vs = ihsR ++ fs ∧ ihsR.length = (S.ihCtx c j).length := by
+  · obtain ⟨ihsR, fs, rfl, hl₁⟩ : ∃ ihsR fs, vs = ihsR ++ fs ∧ ihsR.length = (IndSpec.ihCtx c j).length := by
       have hl := FitsVals_length M₁ φ₁ hvs
-      refine ⟨vs.take (S.ihCtx c j).length, vs.drop (S.ihCtx c j).length,
+      refine ⟨vs.take (IndSpec.ihCtx c j).length, vs.drop (IndSpec.ihCtx c j).length,
         (List.take_append_drop _ _).symm, ?_⟩
       simp at hl; simp [hl]
     obtain ⟨hwsF, -⟩ := (FitsVals_append M₁ φ₁ hl₁).mp hvs

@@ -55,14 +55,14 @@ theorem inst_not_uses : ∀ (e a : Expr) (k : Nat), e.usesVar k = false →
     rcases hc with hc | hc
     · exact Or.inl (inst_not_uses f a k hu.1 c hc)
     · exact Or.inr (inst_not_uses b a k hu.2 c hc)
-  | lam A _ b, a, k, hu, c, hc => by
+  | lam A b, a, k, hu, c, hc => by
     simp only [usesVar_lam, Bool.or_eq_false_iff] at hu
     rw [inst_lam, consts_lam, List.mem_append] at hc
     rw [consts_lam, List.mem_append]
     rcases hc with hc | hc
     · exact Or.inl (inst_not_uses A a k hu.1 c hc)
     · exact Or.inr (inst_not_uses b a (k + 1) hu.2 c hc)
-  | pi A _ B, a, k, hu, c, hc => by
+  | pi A B, a, k, hu, c, hc => by
     simp only [usesVar_pi, Bool.or_eq_false_iff] at hu
     rw [inst_pi, consts_pi, List.mem_append] at hc
     rw [consts_pi, List.mem_append]
@@ -80,9 +80,9 @@ theorem usesVar_liftN_gap : ∀ (a : Expr) (n k i : Nat), k ≤ i → i < k + n 
   | const _ _, _, _, _, _, _ => rfl
   | app f b, n, k, i, h1, h2 => by
     simp [usesVar_liftN_gap f n k i h1 h2, usesVar_liftN_gap b n k i h1 h2]
-  | lam A _ b, n, k, i, h1, h2 => by
+  | lam A b, n, k, i, h1, h2 => by
     simp [usesVar_liftN_gap A n k i h1 h2, usesVar_liftN_gap b n (k + 1) (i + 1) (by omega) (by omega)]
-  | pi A _ B, n, k, i, h1, h2 => by
+  | pi A B, n, k, i, h1, h2 => by
     simp [usesVar_liftN_gap A n k i h1 h2, usesVar_liftN_gap B n (k + 1) (i + 1) (by omega) (by omega)]
 
 /-- Instantiation at a higher index leaves the use of a lower variable
@@ -107,10 +107,10 @@ theorem usesVar_inst_lt : ∀ (e a : Expr) (i k : Nat), i < k →
   | const _ _, _, _, _, _ => rfl
   | app f b, a, i, k, hik => by
     simp only [inst_app, usesVar_app, usesVar_inst_lt f a i k hik, usesVar_inst_lt b a i k hik]
-  | lam A _ b, a, i, k, hik => by
+  | lam A b, a, i, k, hik => by
     simp only [inst_lam, usesVar_lam, usesVar_inst_lt A a i k hik,
       usesVar_inst_lt b a (i + 1) (k + 1) (by omega)]
-  | pi A _ B, a, i, k, hik => by
+  | pi A B, a, i, k, hik => by
     simp only [inst_pi, usesVar_pi, usesVar_inst_lt A a i k hik,
       usesVar_inst_lt B a (i + 1) (k + 1) (by omega)]
 
@@ -136,12 +136,12 @@ theorem closedAt_inst : ∀ (e a : Expr) (k j : Nat), k ≤ j → e.closedAt (j 
     simp only [closedAt_app, Bool.and_eq_true] at he
     simp only [inst_app, closedAt_app, Bool.and_eq_true]
     exact ⟨closedAt_inst f a k j hkj he.1 ha, closedAt_inst b a k j hkj he.2 ha⟩
-  | lam A _ b, a, k, j, hkj, he, ha => by
+  | lam A b, a, k, j, hkj, he, ha => by
     simp only [closedAt_lam, Bool.and_eq_true] at he
     simp only [inst_lam, closedAt_lam, Bool.and_eq_true]
     exact ⟨closedAt_inst A a k j hkj he.1 ha,
       closedAt_inst b a (k + 1) (j + 1) (by omega) he.2 (by rwa [Nat.add_sub_add_right])⟩
-  | pi A _ B, a, k, j, hkj, he, ha => by
+  | pi A B, a, k, j, hkj, he, ha => by
     simp only [closedAt_pi, Bool.and_eq_true] at he
     simp only [inst_pi, closedAt_pi, Bool.and_eq_true]
     exact ⟨closedAt_inst A a k j hkj he.1 ha,
@@ -164,11 +164,11 @@ theorem lparamsIn_inst {ps : List Name} : ∀ (e a : Expr) (k : Nat), e.lparamsI
     simp only [lparamsIn_app, Bool.and_eq_true] at he
     simp only [inst_app, lparamsIn_app, Bool.and_eq_true]
     exact ⟨lparamsIn_inst f a k he.1 ha, lparamsIn_inst b a k he.2 ha⟩
-  | lam A _ b, a, k, he, ha => by
+  | lam A b, a, k, he, ha => by
     simp only [lparamsIn_lam, Bool.and_eq_true] at he
     simp only [inst_lam, lparamsIn_lam, Bool.and_eq_true]
     exact ⟨⟨lparamsIn_inst A a k he.1.1 ha, he.1.2⟩, lparamsIn_inst b a (k + 1) he.2 ha⟩
-  | pi A _ B, a, k, he, ha => by
+  | pi A B, a, k, he, ha => by
     simp only [lparamsIn_pi, Bool.and_eq_true] at he
     simp only [inst_pi, lparamsIn_pi, Bool.and_eq_true]
     exact ⟨⟨lparamsIn_inst A a k he.1.1 ha, he.1.2⟩, lparamsIn_inst B a (k + 1) he.2 ha⟩
@@ -180,9 +180,9 @@ theorem usesVar_instL (ps : List Name) (ls : List Level) : ∀ (e : Expr) (i : N
   | sort _, _ => rfl
   | const _ _, _ => rfl
   | app f a, i => by simp only [instL_app, usesVar_app, usesVar_instL ps ls f i, usesVar_instL ps ls a i]
-  | lam A _ b, i => by
+  | lam A b, i => by
     simp only [instL_lam, usesVar_lam, usesVar_instL ps ls A i, usesVar_instL ps ls b (i + 1)]
-  | pi A _ B, i => by
+  | pi A B, i => by
     simp only [instL_pi, usesVar_pi, usesVar_instL ps ls A i, usesVar_instL ps ls B (i + 1)]
 
 /-- The substitution chain keeps a term closed: closed below the
@@ -296,7 +296,7 @@ end Level
 namespace PropWhen
 
 theorem paramsIn_substL {ps qs : List Name} {ls : List Level} (hl : ∀ l ∈ ls, l.paramsIn qs = true)
-    (hlen : ls.length = ps.length) : ∀ {pw : PropWhen}, pw.paramsIn ps = true →
+    (hlen : ls.length = ps.length) : ∀, pw.paramsIn ps = true →
     (substL ps ls pw).paramsIn qs = true
   | never, _ => rfl
   | whenZero s, h => by
@@ -351,11 +351,11 @@ theorem lparamsIn_instL {ps qs : List Name} {ls : List Level} (hl : ∀ l ∈ ls
   | app f a, h => by
     simp only [lparamsIn_app, Bool.and_eq_true] at h
     simp [lparamsIn_instL hl hlen h.1, lparamsIn_instL hl hlen h.2]
-  | lam A pw b, h => by
+  | lam A b, h => by
     simp only [lparamsIn_lam, Bool.and_eq_true] at h
     simp [lparamsIn_instL hl hlen h.1.1, PropWhen.paramsIn_substL hl hlen h.1.2,
       lparamsIn_instL hl hlen h.2]
-  | pi A pw B, h => by
+  | pi A B, h => by
     simp only [lparamsIn_pi, Bool.and_eq_true] at h
     simp [lparamsIn_instL hl hlen h.1.1, PropWhen.paramsIn_substL hl hlen h.1.2,
       lparamsIn_instL hl hlen h.2]
@@ -738,7 +738,7 @@ theorem wd_ctxFrom (T : CtorSpec → Nat → Expr) :
       exact ih
 
 theorem ihCtxAt_eq (c : CtorSpec) (o : Nat) :
-    S.ihCtxAt c o = S.ihCtxAux c.fields.length o c.recFields 0 := by
+    IndSpec.ihCtxAt c o = S.ihCtxAux c.fields.length o c.recFields 0 := by
   rw [ihCtxAt, ← ihCtxAux_eq]
   simp
 
@@ -1007,7 +1007,7 @@ theorem Reader.read_ihTy' (R : S.Reader (env := env) M φ F M' φ') {c : CtorSpe
     (hi : ihsE.length = l) (hf : fs.length = c.fields.length) (ho : os.length = o) (hpos : 0 < o)
     (ho2 : kf.2 = .container → 2 ≤ o) (hps : ps.length = S.nP) :
     interp M' φ' (consList ihsE (consList fs (consList os (consList ps ρ))))
-        (S.ihTy c.fields.length kf.1 l o kf.2)
+        (IndSpec.ihTy c.fields.length kf.1 l o kf.2)
       = ihSetN S M φ (S.q.holds φ') ps (os.getD (o - 1) pt) (os.getD (o - 2) pt) fs kf := by
   obtain ⟨hpos', hk, hrec⟩ := mem_recFields hkf
   obtain ⟨k, f⟩ := kf
@@ -1297,18 +1297,18 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
   -- the minor's type, read
   unfold minorTyN at hmem
   rw [interp_mkPis] at hmem
-  have hlenI : ihs.reverse.length = (S.ihCtxAt c (2 + j)).length := by
+  have hlenI : ihs.reverse.length = (IndSpec.ihCtxAt c (2 + j)).length := by
     rw [List.length_reverse, ihCtxAt_eq, length_ihCtxAux, ListRel.length' hihs]
   have hf := S.FitsFields_length M _ hfit
   have hfitAll : FitsVals M' φ' (consList minsE (consList [m1, m] (consList ps ρ)))
-      (S.ihCtxAt c (2 + j) ++ S.fieldCtxAt c (2 + j)) (ihs.reverse ++ fs) := by
+      (IndSpec.ihCtxAt c (2 + j) ++ S.fieldCtxAt c (2 + j)) (ihs.reverse ++ fs) := by
     refine (FitsVals_append M' φ' hlenI).mpr ⟨(hfieldsF fs).mpr hfit, ?_⟩
     rw [ihCtxAt_eq, henv]
     exact (Reader.fits_ihCtxAux' S R hsc (os := minsE ++ [m1, m]) (ρ := ρ) hf hos (by omega)
       (fun _ => by omega) hps ⟨m, m1, mins, []⟩ hgetm.symm hgetm1.symm c.recFields (fun _ h => h) ihs
       (l := 0) (ihsE := []) rfl).mpr hihs
   have hG : S.q.holds φ' = true → ∀ ws, FitsVals M' φ' (consList minsE (consList [m1, m] (consList ps ρ)))
-      (S.ihCtxAt c (2 + j) ++ S.fieldCtxAt c (2 + j)) ws →
+      (IndSpec.ihCtxAt c (2 + j) ++ S.fieldCtxAt c (2 + j)) ws →
       interp M' φ' (consList ws (consList minsE (consList [m1, m] (consList ps ρ))))
         (Expr.mkAppN (.bvar (c.recFields.length + c.fields.length + (2 + j) - 1))
           (c.idx.map (Expr.atCtx c.fields.length c.fields.length c.recFields.length (2 + j) 0) ++
@@ -1318,9 +1318,9 @@ theorem Reader₂.minorOkN_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
     fun hq ws hws => by
       -- at a proposition: the conclusion is a truth value
       obtain ⟨ihsR, fs', rfl, hl₁⟩ : ∃ ihsR fs', ws = ihsR ++ fs' ∧
-          ihsR.length = (S.ihCtxAt c (2 + j)).length := by
+          ihsR.length = (IndSpec.ihCtxAt c (2 + j)).length := by
         have hl := FitsVals_length M' φ' hws
-        refine ⟨ws.take (S.ihCtxAt c (2 + j)).length, ws.drop (S.ihCtxAt c (2 + j)).length,
+        refine ⟨ws.take (IndSpec.ihCtxAt c (2 + j)).length, ws.drop (IndSpec.ihCtxAt c (2 + j)).length,
           (List.take_append_drop _ _).symm, ?_⟩
         simp at hl; simp [hl]
       obtain ⟨hwsF, hwsI⟩ := (FitsVals_append M' φ' hl₁).mp hws
@@ -1440,11 +1440,11 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
   -- the minor's type, read
   unfold minorTyK at hmem
   rw [interp_mkPis] at hmem
-  have hlenI : ihs.reverse.length = (S.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length := by
+  have hlenI : ihs.reverse.length = (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length := by
     rw [List.length_reverse, ihCtxAt_eq, length_ihCtxAux, ListRel.length' hihs]
   have hf := S.ClassFits_length M _ N hfit
   have hfitAll : FitsVals M' φ' (consList minsE (consList (mins ++ [m1, m]) (consList ps ρ)))
-      (S.ihCtxAt (S.classCtor N c) (2 + S.n + j) ++ S.fieldCtxAt (S.classCtor N c) (2 + S.n + j))
+      (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j) ++ S.fieldCtxAt (S.classCtor N c) (2 + S.n + j))
       (ihs.reverse ++ fs) := by
     refine (FitsVals_append M' φ' hlenI).mpr ⟨(hfieldsF fs).mpr hfit, ?_⟩
     rw [ihCtxAt_eq, henv]
@@ -1453,7 +1453,7 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
       (S.classCtor N c).recFields (fun _ h => h) ihs (l := 0) (ihsE := []) rfl).mpr hihs
   have hG : S.q.holds φ' = true →
       ∀ ws, FitsVals M' φ' (consList minsE (consList (mins ++ [m1, m]) (consList ps ρ)))
-        (S.ihCtxAt (S.classCtor N c) (2 + S.n + j) ++ S.fieldCtxAt (S.classCtor N c) (2 + S.n + j)) ws →
+        (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j) ++ S.fieldCtxAt (S.classCtor N c) (2 + S.n + j)) ws →
       interp M' φ' (consList ws (consList minsE (consList (mins ++ [m1, m]) (consList ps ρ))))
         (Expr.mkAppN (.bvar ((S.classCtor N c).recFields.length + (S.classCtor N c).fields.length +
             (2 + S.n + j) - 2))
@@ -1465,10 +1465,10 @@ theorem Reader₂.minorOkK_of_fits (hS : S.Scoped env) (R₂ : S.Reader₂ (env 
     fun hq ws hws => by
       -- at a proposition: the conclusion is a truth value
       obtain ⟨ihsR, fs', rfl, hl₁⟩ : ∃ ihsR fs', ws = ihsR ++ fs' ∧
-          ihsR.length = (S.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length := by
+          ihsR.length = (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length := by
         have hl := FitsVals_length M' φ' hws
-        refine ⟨ws.take (S.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length,
-          ws.drop (S.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length,
+        refine ⟨ws.take (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length,
+          ws.drop (IndSpec.ihCtxAt (S.classCtor N c) (2 + S.n + j)).length,
           (List.take_append_drop _ _).symm, ?_⟩
         simp at hl; simp [hl]
       obtain ⟨hwsF, hwsI⟩ := (FitsVals_append M' φ' hl₁).mp hws

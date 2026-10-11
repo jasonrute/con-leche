@@ -141,8 +141,6 @@ structure ClassLaws (ps : List V) : Prop where
 
 /-! ## The graph -/
 
-variable (q : Bool)
-
 /-- **An inductive hypothesis' value** relative to a graph `R`: at a
 reflexive field the abstraction over the field's telescope of the
 graph's values at the family (at the field's index values) and the
@@ -152,7 +150,7 @@ noncomputable def IhOkN (R : RecPN V) (ps : List V) (ex : RecEx V) (fs : List V)
     Nat × Field → V → Prop
   | (k, .reflexive tele es), ih =>
     let env := consList (earlier fs k) (envP ps)
-    ∃ g : (Nat → V) → V, ih = lamCtx M (S.ψ ls) q env tele g ∧
+    ∃ g : (Nat → V) → V, ih = lamCtx M (S.ψ ls) env tele g ∧
       ∀ ys, FitsVals M (S.ψ ls) env tele ys →
         let is := S.idxVals M ls (consList ys env) es
         R ps ex (false, is) (appList (fieldVal fs k) ys.reverse) (g (consList ys env))
@@ -163,7 +161,7 @@ noncomputable def IhOkN (R : RecPN V) (ps : List V) (ex : RecEx V) (fs : List V)
 field with an empty telescope): the graph's value at the field. -/
 theorem IhOkN_nil (R : RecPN V) (ps : List V) (ex : RecEx V) (fs : List V) (k : Nat)
     (es : List Expr) (ih : V) :
-    S.IhOkN M ls q R ps ex fs (k, .reflexive [] es) ih ↔
+    S.IhOkN M ls R ps ex fs (k, .reflexive [] es) ih ↔
       R ps ex (false, S.idxVals M ls (consList (earlier fs k) (envP ps)) es) (fieldVal fs k) ih := by
   simp only [IhOkN, lamCtx_nil]
   constructor
@@ -186,39 +184,39 @@ noncomputable def rstepN (R : RecPN V) (ps : List V) (ex : RecEx V) (tgt : JIdx 
   (∃ j c fs ihs is, tgt = (false, is) ∧ S.ctors[j]? = some c ∧
     S.FitsFields M ls (S.Fam M ls ps) ps c.fields fs ∧
     is = S.idxVals M ls (consList fs (envP ps)) c.idx ∧ x = tag (S.tagOf j) (tuple fs.reverse) ∧
-    ListRel (S.IhOkN M ls q R ps ex fs) c.recFields ihs ∧
+    ListRel (S.IhOkN M ls R ps ex fs) c.recFields ihs ∧
     v = appList (S.minorAt ex.mins j) (fs.reverse ++ ihs)) ∨
   (∃ j c fs ihs, tgt = (true, []) ∧ N.K.ctors[j]? = some c ∧
     S.ClassFits M ls N (S.Fam M ls ps (S.memberIdx M ls N ps)) (fun _ => True) ps
       (S.classCtor N c).fields fs ∧
     x = tag j (tuple fs.reverse) ∧
-    ListRel (S.IhOkN M ls q R ps ex fs) (S.classCtor N c).recFields ihs ∧
+    ListRel (S.IhOkN M ls R ps ex fs) (S.classCtor N c).recFields ihs ∧
     v = appList (minorKAt N ex.minsK j) (fs.reverse ++ ihs))
 
 /-- The operator on quintuples. -/
 noncomputable def rstepTN (R : List V × RecEx V × JIdx V × V × V → Prop)
     (t : List V × RecEx V × JIdx V × V × V) : Prop :=
-  S.rstepN M ls N q (fun ps ex tgt x v => R (ps, ex, tgt, x, v)) t.1 t.2.1 t.2.2.1 t.2.2.2.1 t.2.2.2.2
+  S.rstepN M ls N (fun ps ex tgt x v => R (ps, ex, tgt, x, v)) t.1 t.2.1 t.2.2.1 t.2.2.2.1 t.2.2.2.2
 
 /-- **The joint graph** of the two recursors: the least fixed point of
 `rstepN`. -/
 noncomputable def RecGraphN (ps : List V) (ex : RecEx V) (tgt : JIdx V) (x v : V) : Prop :=
-  Lfp (S.rstepTN M ls N q) (ps, ex, tgt, x, v)
+  Lfp (S.rstepTN M ls N) (ps, ex, tgt, x, v)
 
 /-- **The recursors' value**: the one the graph relates, if any. -/
 noncomputable def recFnN (ps : List V) (ex : RecEx V) (tgt : JIdx V) (x : V) : V :=
   open Classical in
-  if h : ∃ v, S.RecGraphN M ls N q ps ex tgt x v then Classical.choose h else pt
+  if h : ∃ v, S.RecGraphN M ls N ps ex tgt x v then Classical.choose h else pt
 
 /-- **`T.rec`'s semantic value** at parameters, extras, indices and the
 major: the graph's value at the family. -/
 noncomputable def recSemN (ps : List V) (ex : RecEx V) (is : List V) (t : V) : V :=
-  S.recFnN M ls N q ps ex (false, is) t
+  S.recFnN M ls N ps ex (false, is) t
 
 /-- **`T.rec_1`'s semantic value** at parameters, extras and the major:
 the graph's value at the class. -/
 noncomputable def rec1Sem (ps : List V) (ex : RecEx V) (t : V) : V :=
-  S.recFnN M ls N q ps ex (true, []) t
+  S.recFnN M ls N ps ex (true, []) t
 
 /-- **The inductive hypotheses' semantic values**: `T.rec` at a
 reflexive field (through its telescope), `T.rec_1` at a container
@@ -226,10 +224,10 @@ field. -/
 noncomputable def ihSemN (ps : List V) (ex : RecEx V) (fs : List V) : Nat × Field → V
   | (k, .reflexive tele es) =>
     let env := consList (earlier fs k) (envP ps)
-    lamCtx M (S.ψ ls) q env tele fun ρ' =>
-      S.recSemN M ls N q ps ex (S.idxVals M ls ρ' es)
+    lamCtx M (S.ψ ls) env tele fun ρ' =>
+      S.recSemN M ls N ps ex (S.idxVals M ls ρ' es)
         (appList (fieldVal fs k) (readEnv tele.length ρ').reverse)
-  | (k, .container) => S.rec1Sem M ls N q ps ex (fieldVal fs k)
+  | (k, .container) => S.rec1Sem M ls N ps ex (fieldVal fs k)
   | (_, .ordinary _) => pt
 
 /-- An inductive hypothesis' value lies in the block's motive at the
@@ -238,7 +236,7 @@ reflexive field), or in the class's motive at the field. -/
 noncomputable def IhTypedN (ps : List V) (ex : RecEx V) (fs : List V) : Nat × Field → V → Prop
   | (k, .reflexive tele es), ih =>
     let env := consList (earlier fs k) (envP ps)
-    ih ∈ˢ piCtx M (S.ψ ls) q env tele fun ρ' =>
+    ih ∈ˢ piCtx M (S.ψ ls) env tele fun ρ' =>
       appList ex.m ((S.idxVals M ls ρ' es).reverse ++
         [appList (fieldVal fs k) (readEnv tele.length ρ').reverse])
   | (k, .container), ih => ih ∈ˢ appList ex.m1 [fieldVal fs k]
@@ -249,7 +247,7 @@ hypotheses, the minor's value lies in the block's motive at the
 constructor's index values and its value. -/
 noncomputable def MinorOkN (ps : List V) (ex : RecEx V) (j : Nat) (c : CtorSpec) : Prop :=
   ∀ fs, S.FitsFields M ls (S.Fam M ls ps) ps c.fields fs →
-    ∀ ihs, ListRel (S.IhTypedN M ls q ps ex fs) c.recFields ihs →
+    ∀ ihs, ListRel (S.IhTypedN M ls ps ex fs) c.recFields ihs →
       appList (S.minorAt ex.mins j) (fs.reverse ++ ihs) ∈ˢ
         appList ex.m ((S.idxVals M ls (consList fs (envP ps)) c.idx).reverse ++ [S.ctorVal ls j fs])
 
@@ -259,7 +257,7 @@ minor's value lies in the class's motive at the constructor's value. -/
 noncomputable def MinorOkK (ps : List V) (ex : RecEx V) (j : Nat) (c : CtorSpec) : Prop :=
   ∀ fs, S.ClassFits M ls N (S.Fam M ls ps (S.memberIdx M ls N ps)) (fun _ => True) ps
       (S.classCtor N c).fields fs →
-    ∀ ihs, ListRel (S.IhTypedN M ls q ps ex fs) (S.classCtor N c).recFields ihs →
+    ∀ ihs, ListRel (S.IhTypedN M ls ps ex fs) (S.classCtor N c).recFields ihs →
       appList (minorKAt N ex.minsK j) (fs.reverse ++ ihs) ∈ˢ
         appList ex.m1 [tag j (tuple fs.reverse)]
 
@@ -405,62 +403,60 @@ theorem ClassFits_mono {ps : List V} (hcl : S.ClassLaws M ls N ps) {X Y : V}
   | [], _ :: _, hf => hf.elim
   | _ :: _, [], hf => hf.elim
 
-variable (q : Bool)
-
 /-! ## The fixed-point laws of the graph -/
 
 theorem IhOkN_mono {R R' : RecPN V}
     (h : ∀ ps ex tgt x v, R ps ex tgt x v → R' ps ex tgt x v)
     (ps : List V) (ex : RecEx V) (fs : List V) :
     ∀ (kf : Nat × Field) (ih : V),
-      S.IhOkN M ls q R ps ex fs kf ih → S.IhOkN M ls q R' ps ex fs kf ih := by
+      S.IhOkN M ls R ps ex fs kf ih → S.IhOkN M ls R' ps ex fs kf ih := by
   intro kf ih hh
   match kf, hh with
   | (_, .ordinary _), hh => exact hh.elim
   | (_, .container), hh => exact h _ _ _ _ _ hh
   | (_, .reflexive _ _), ⟨g, hg, hall⟩ => exact ⟨g, hg, fun ys hys => h _ _ _ _ _ (hall ys hys)⟩
 
-theorem rstepTN_mono : Mono (S.rstepTN M ls N q) := by
+theorem rstepTN_mono : Mono (S.rstepTN M ls N) := by
   intro R R' h t hs
   rcases hs with ⟨j, c, fs, ihs, is, htgt, hc, hfit, his, hx, hihs, hv⟩ |
     ⟨j, c, fs, ihs, htgt, hc, hfit, hx, hihs, hv⟩
   · exact Or.inl ⟨j, c, fs, ihs, is, htgt, hc, hfit, his, hx,
-      ListRel.mono (S.IhOkN_mono M ls q (fun ps ex tgt x v => h (ps, ex, tgt, x, v)) _ _ _) hihs, hv⟩
+      ListRel.mono (S.IhOkN_mono M ls (fun ps ex tgt x v => h (ps, ex, tgt, x, v)) _ _ _) hihs, hv⟩
   · exact Or.inr ⟨j, c, fs, ihs, htgt, hc, hfit, hx,
-      ListRel.mono (S.IhOkN_mono M ls q (fun ps ex tgt x v => h (ps, ex, tgt, x, v)) _ _ _) hihs, hv⟩
+      ListRel.mono (S.IhOkN_mono M ls (fun ps ex tgt x v => h (ps, ex, tgt, x, v)) _ _ _) hihs, hv⟩
 
 theorem RecGraphN_intro {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v : V}
-    (h : S.rstepN M ls N q (S.RecGraphN M ls N q) ps ex tgt x v) :
-    S.RecGraphN M ls N q ps ex tgt x v :=
-  Lfp.closed (S.rstepTN_mono M ls N q) h
+    (h : S.rstepN M ls N (S.RecGraphN M ls N) ps ex tgt x v) :
+    S.RecGraphN M ls N ps ex tgt x v :=
+  Lfp.closed (S.rstepTN_mono M ls N) h
 
 theorem RecGraphN_elim {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v : V}
-    (h : S.RecGraphN M ls N q ps ex tgt x v) :
-    S.rstepN M ls N q (S.RecGraphN M ls N q) ps ex tgt x v :=
-  Lfp.unfold (S.rstepTN_mono M ls N q) h
+    (h : S.RecGraphN M ls N ps ex tgt x v) :
+    S.rstepN M ls N (S.RecGraphN M ls N) ps ex tgt x v :=
+  Lfp.unfold (S.rstepTN_mono M ls N) h
 
 theorem RecGraphN_ind {P : RecPN V}
     (h : ∀ ps ex tgt x v,
-      S.rstepN M ls N q (fun ps ex tgt x v => S.RecGraphN M ls N q ps ex tgt x v ∧ P ps ex tgt x v)
+      S.rstepN M ls N (fun ps ex tgt x v => S.RecGraphN M ls N ps ex tgt x v ∧ P ps ex tgt x v)
         ps ex tgt x v → P ps ex tgt x v)
     {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v : V}
-    (hg : S.RecGraphN M ls N q ps ex tgt x v) : P ps ex tgt x v :=
-  Lfp.induction (S.rstepTN_mono M ls N q)
+    (hg : S.RecGraphN M ls N ps ex tgt x v) : P ps ex tgt x v :=
+  Lfp.induction (S.rstepTN_mono M ls N)
     (P := fun t => P t.1 t.2.1 t.2.2.1 t.2.2.2.1 t.2.2.2.2) (fun _ ht => h _ _ _ _ _ ht) hg
 
 /-- **Single-valuedness of the joint graph**: tags and tuples are
 injective, and a block value's tag is never a class value's — the
 block's constructors are tagged after the container's. -/
 theorem RecGraphN_fun {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v v' : V}
-    (h : S.RecGraphN M ls N q ps ex tgt x v) (h' : S.RecGraphN M ls N q ps ex tgt x v') : v = v' := by
-  refine S.RecGraphN_ind M ls N q
-    (P := fun ps ex tgt x v => ∀ v', S.RecGraphN M ls N q ps ex tgt x v' → v = v') ?_ h v' h'
+    (h : S.RecGraphN M ls N ps ex tgt x v) (h' : S.RecGraphN M ls N ps ex tgt x v') : v = v' := by
+  refine S.RecGraphN_ind M ls N
+    (P := fun ps ex tgt x v => ∀ v', S.RecGraphN M ls N ps ex tgt x v' → v = v') ?_ h v' h'
   intro ps ex tgt x v hs v' h'
   -- the hypotheses agree, by the induction hypothesis at every position
   have huniq : ∀ (fs : List V) (kf : Nat × Field) (ih ih' : V),
-      S.IhOkN M ls q (fun ps ex tgt x v => S.RecGraphN M ls N q ps ex tgt x v ∧
-        ∀ v', S.RecGraphN M ls N q ps ex tgt x v' → v = v') ps ex fs kf ih →
-      S.IhOkN M ls q (S.RecGraphN M ls N q) ps ex fs kf ih' → ih = ih' := by
+      S.IhOkN M ls (fun ps ex tgt x v => S.RecGraphN M ls N ps ex tgt x v ∧
+        ∀ v', S.RecGraphN M ls N ps ex tgt x v' → v = v') ps ex fs kf ih →
+      S.IhOkN M ls (S.RecGraphN M ls N) ps ex fs kf ih' → ih = ih' := by
     intro fs kf ih ih' h1 h2
     match kf, h1, h2 with
     | (_, .ordinary _), h1, _ => exact h1.elim
@@ -468,7 +464,7 @@ theorem RecGraphN_fun {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v v' : V}
     | (_, .reflexive _ _), ⟨_, hg1, hg⟩, ⟨_, hg1', hg'⟩ =>
       rw [hg1, hg1']
       exact lamCtx_congr M _ fun ys hys => (hg ys hys).2 _ (hg' ys hys)
-  have hs' := S.RecGraphN_elim M ls N q h'
+  have hs' := S.RecGraphN_elim M ls N h'
   rcases hs with ⟨j, c, fs, ihs, is, htgt, hc, -, -, hx, hihs, hv⟩ |
     ⟨j, c, fs, ihs, htgt, hc, -, hx, hihs, hv⟩
   · rcases hs' with ⟨j', c', fs', ihs', is', htgt', hc', -, -, hx', hihs', hv'⟩ |
@@ -498,16 +494,16 @@ theorem RecGraphN_fun {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v v' : V}
       exact ListRel.unique (huniq fs) hihs hihs'
 
 theorem recFnN_eq {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x v : V}
-    (h : S.RecGraphN M ls N q ps ex tgt x v) : S.recFnN M ls N q ps ex tgt x = v := by
+    (h : S.RecGraphN M ls N ps ex tgt x v) : S.recFnN M ls N ps ex tgt x = v := by
   unfold recFnN
   rw [dite_eq_left ⟨v, h⟩]
-  exact S.RecGraphN_fun M ls N q (Classical.choose_spec ⟨v, h⟩) h
+  exact S.RecGraphN_fun M ls N (Classical.choose_spec ⟨v, h⟩) h
 
 theorem RecGraphN_recFnN {ps : List V} {ex : RecEx V} {tgt : JIdx V} {x : V}
-    (h : ∃ v, S.RecGraphN M ls N q ps ex tgt x v) :
-    S.RecGraphN M ls N q ps ex tgt x (S.recFnN M ls N q ps ex tgt x) := by
+    (h : ∃ v, S.RecGraphN M ls N ps ex tgt x v) :
+    S.RecGraphN M ls N ps ex tgt x (S.recFnN M ls N ps ex tgt x) := by
   obtain ⟨v, hv⟩ := h
-  rw [S.recFnN_eq M ls N q hv]; exact hv
+  rw [S.recFnN_eq M ls N hv]; exact hv
 
 /-! ### Totality -/
 
@@ -523,12 +519,12 @@ every `Q`-member of the class at `X`, the hypotheses' semantic values
 are what the graph demands. -/
 theorem IhOkN_ihSemN_class_of {ps : List V} (ex : RecEx V)
     {X : V} {Q : V → Prop}
-    (hkey : ∀ x, x ∈ˢ X → ∃ v, S.RecGraphN M ls N q ps ex (false, S.memberIdx M ls N ps) x v)
-    (hQ : ∀ y, y ∈ˢ S.classSet M ls N ps X → Q y → ∃ v, S.RecGraphN M ls N q ps ex (true, []) y v)
+    (hkey : ∀ x, x ∈ˢ X → ∃ v, S.RecGraphN M ls N ps ex (false, S.memberIdx M ls N ps) x v)
+    (hQ : ∀ y, y ∈ˢ S.classSet M ls N ps X → Q y → ∃ v, S.RecGraphN M ls N ps ex (true, []) y v)
     {c : CtorSpec} {fs : List V}
     (hfit : S.ClassFits M ls N X Q ps (S.classCtor N c).fields fs) :
-    ListRel (S.IhOkN M ls q (S.RecGraphN M ls N q) ps ex fs) (S.classCtor N c).recFields
-      ((S.classCtor N c).recFields.map (S.ihSemN M ls N q ps ex fs)) := by
+    ListRel (S.IhOkN M ls (S.RecGraphN M ls N) ps ex fs) (S.classCtor N c).recFields
+      ((S.classCtor N c).recFields.map (S.ihSemN M ls N ps ex fs)) := by
   refine ListRel.map ?_
   intro kf hkf
   obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
@@ -546,24 +542,24 @@ theorem IhOkN_ihSemN_class_of {ps : List V} (ex : RecEx V)
     rw [S.IhOkN_nil]
     dsimp only [ihSemN, lamCtx_nil, readEnv_zero, List.reverse_nil, appList_nil, recSemN]
     rw [S.memberIdx_earlier M ls N ps (by omega)]
-    exact S.RecGraphN_recFnN M ls N q (hkey _ (S.adm_sub ls _ _ hget))
+    exact S.RecGraphN_recFnN M ls N (hkey _ (S.adm_sub ls _ _ hget))
   | container =>
     dsimp only [classFieldSet] at hget
     rw [mem_sep] at hget
     dsimp only [IhOkN, ihSemN]
-    exact S.RecGraphN_recFnN M ls N q (hQ _ hget.1 hget.2)
+    exact S.RecGraphN_recFnN M ls N (hQ _ hget.1 hget.2)
 
 /-- **The inner induction**: the graph is total on the class at a
 parameter set inside the fibre on which it is total. -/
 theorem class_total_of {ps : List V} (hcl : S.ClassLaws M ls N ps) (ex : RecEx V) {X : V}
     (hX : X ∈ˢ (univ (S.u₀ ls) : V)) (hXF : X ⊆ˢ S.Fam M ls ps (S.memberIdx M ls N ps))
-    (hkey : ∀ x, x ∈ˢ X → ∃ v, S.RecGraphN M ls N q ps ex (false, S.memberIdx M ls N ps) x v) :
-    ∀ x, x ∈ˢ S.classSet M ls N ps X → ∃ v, S.RecGraphN M ls N q ps ex (true, []) x v := by
-  refine hcl.ind X hX (fun y => ∃ v, S.RecGraphN M ls N q ps ex (true, []) y v) ?_
+    (hkey : ∀ x, x ∈ˢ X → ∃ v, S.RecGraphN M ls N ps ex (false, S.memberIdx M ls N ps) x v) :
+    ∀ x, x ∈ˢ S.classSet M ls N ps X → ∃ v, S.RecGraphN M ls N ps ex (true, []) x v := by
+  refine hcl.ind X hX (fun y => ∃ v, S.RecGraphN M ls N ps ex (true, []) y v) ?_
   intro j c fs hc hfit
-  exact ⟨_, S.RecGraphN_intro M ls N q (Or.inr ⟨j, c, fs, _, rfl, hc,
+  exact ⟨_, S.RecGraphN_intro M ls N (Or.inr ⟨j, c, fs, _, rfl, hc,
     S.ClassFits_mono M ls N hcl hX (S.Fam_mem_univ M ls _ _) hXF hfit, rfl,
-    S.IhOkN_ihSemN_class_of M ls N q ex hkey (fun _ _ hy => hy.2) hfit,
+    S.IhOkN_ihSemN_class_of M ls N ex hkey (fun _ _ hy => hy.2) hfit,
     rfl⟩)⟩
 
 /-- A block constructor's fields fitting the family's separation by a
@@ -590,7 +586,7 @@ theorem sep_fields {ps : List V} (hN : S.nest = some N) (P : List V → V → Pr
   | reflexive tele es =>
     intro ys hys
     dsimp only [fieldSet] at hget
-    have hmem := appList_mem_of_piCtx M (S.ψ ls) hget hys
+    have hmem := S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M (S.ψ ls) hget hys)
     exact mem_sep.mp hmem
   | container =>
     rw [S.fieldSet_container M ls hN] at hget
@@ -603,18 +599,18 @@ field. -/
 theorem RecGraphN_total (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps) (hco : S.ContOk M ls ps)
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V) :
-    (∀ is x, x ∈ˢ S.Fam M ls ps is → ∃ v, S.RecGraphN M ls N q ps ex (false, is) x v) ∧
-    (∀ x, x ∈ˢ S.classAt M ls N ps → ∃ v, S.RecGraphN M ls N q ps ex (true, []) x v) := by
-  have key : ∀ is x, x ∈ˢ S.Fam M ls ps is → ∃ v, S.RecGraphN M ls N q ps ex (false, is) x v := by
+    (∀ is x, x ∈ˢ S.Fam M ls ps is → ∃ v, S.RecGraphN M ls N ps ex (false, is) x v) ∧
+    (∀ x, x ∈ˢ S.classAt M ls N ps → ∃ v, S.RecGraphN M ls N ps ex (true, []) x v) := by
+  have key : ∀ is x, x ∈ˢ S.Fam M ls ps is → ∃ v, S.RecGraphN M ls N ps ex (false, is) x v := by
     refine S.Fam_induction M ls hnr hb hco
-      (fun is x => ∃ v, S.RecGraphN M ls N q ps ex (false, is) x v) ?_
+      (fun is x => ∃ v, S.RecGraphN M ls N ps ex (false, is) x v) ?_
     intro is x hs
     obtain ⟨j, c, fs, hc, hfit, his, rfl⟩ := hs
     have hfitF := S.FitsFields_of_sep M ls hco _ hfit
     have hcv : S.ctorVal ls j fs = tag (S.tagOf j) (tuple fs.reverse) := by simp [ctorVal, hz]
-    suffices hihs : ListRel (S.IhOkN M ls q (S.RecGraphN M ls N q) ps ex fs) c.recFields
-        (c.recFields.map (S.ihSemN M ls N q ps ex fs)) from
-      ⟨_, S.RecGraphN_intro M ls N q (Or.inl ⟨j, c, fs, _, is, rfl, hc, hfitF, his, hcv, hihs, rfl⟩)⟩
+    suffices hihs : ListRel (S.IhOkN M ls (S.RecGraphN M ls N) ps ex fs) c.recFields
+        (c.recFields.map (S.ihSemN M ls N ps ex fs)) from
+      ⟨_, S.RecGraphN_intro M ls N (Or.inl ⟨j, c, fs, _, is, rfl, hc, hfitF, his, hcv, hihs, rfl⟩)⟩
     refine ListRel.map ?_
     intro kf hkf
     obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
@@ -628,16 +624,16 @@ theorem RecGraphN_total (hN : S.nest = some N) (hz : S.z ls = false) {ps : List 
       intro ys hys
       have hlen := FitsVals_length M _ hys
       simp only [readEnv_consList hlen]
-      exact S.RecGraphN_recFnN M ls N q (hsep ys hys).2
+      exact S.RecGraphN_recFnN M ls N (hsep ys hys).2
     | container =>
       dsimp only [IhOkN, ihSemN]
-      refine S.RecGraphN_recFnN M ls N q (S.class_total_of M ls N q hcl ex ?_ ?_ ?_ _ hsep)
+      refine S.RecGraphN_recFnN M ls N (S.class_total_of M ls N hcl ex ?_ ?_ ?_ _ hsep)
       · exact sep_mem_univ (S.Fam_mem_univ M ls ps _)
       · exact sep_sub
       · intro x hx
         exact (mem_sep.mp hx).2
   refine ⟨key, ?_⟩
-  exact S.class_total_of M ls N q hcl ex (S.Fam_mem_univ M ls _ _) (Sub.refl _)
+  exact S.class_total_of M ls N hcl ex (S.Fam_mem_univ M ls _ _) (Sub.refl _)
     fun x hx => key _ x hx
 
 /-- The inductive hypotheses' semantic values are what the graph
@@ -647,9 +643,9 @@ theorem IhOkN_ihSemN (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
     {c : CtorSpec} {fs : List V}
     (hfit : S.FitsFields M ls (S.Fam M ls ps) ps c.fields fs) :
-    ListRel (S.IhOkN M ls q (S.RecGraphN M ls N q) ps ex fs) c.recFields
-      (c.recFields.map (S.ihSemN M ls N q ps ex fs)) := by
-  have ht := S.RecGraphN_total M ls N q hN hz hnr hb hco hcl ex
+    ListRel (S.IhOkN M ls (S.RecGraphN M ls N) ps ex fs) c.recFields
+      (c.recFields.map (S.ihSemN M ls N ps ex fs)) := by
+  have ht := S.RecGraphN_total M ls N hN hz hnr hb hco hcl ex
   refine ListRel.map ?_
   intro kf hkf
   obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
@@ -663,13 +659,13 @@ theorem IhOkN_ihSemN (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     refine ⟨_, rfl, ?_⟩
     intro ys hys
     have hlen := FitsVals_length M _ hys
-    have hmem := appList_mem_of_piCtx M (S.ψ ls) hget hys
+    have hmem := S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M (S.ψ ls) hget hys)
     simp only [readEnv_consList hlen]
-    exact S.RecGraphN_recFnN M ls N q (ht.1 _ _ hmem)
+    exact S.RecGraphN_recFnN M ls N (ht.1 _ _ hmem)
   | container =>
     rw [S.fieldSet_container_Fam M ls N hN] at hget
     dsimp only [IhOkN, ihSemN]
-    exact S.RecGraphN_recFnN M ls N q (ht.2 _ hget)
+    exact S.RecGraphN_recFnN M ls N (ht.2 _ hget)
 
 /-- The inductive hypotheses' semantic values are what the graph
 demands, at a container constructor's fitting fields. -/
@@ -679,10 +675,10 @@ theorem IhOkN_ihSemN_class (hN : S.nest = some N) (hz : S.z ls = false) {ps : Li
     {c : CtorSpec} {fs : List V}
     (hfit : S.ClassFits M ls N (S.Fam M ls ps (S.memberIdx M ls N ps)) (fun _ => True) ps
       (S.classCtor N c).fields fs) :
-    ListRel (S.IhOkN M ls q (S.RecGraphN M ls N q) ps ex fs) (S.classCtor N c).recFields
-      ((S.classCtor N c).recFields.map (S.ihSemN M ls N q ps ex fs)) := by
-  have ht := S.RecGraphN_total M ls N q hN hz hnr hb hco hcl ex
-  exact S.IhOkN_ihSemN_class_of M ls N q ex (fun x hx => ht.1 _ _ hx) (fun y hy _ => ht.2 y hy) hfit
+    ListRel (S.IhOkN M ls (S.RecGraphN M ls N) ps ex fs) (S.classCtor N c).recFields
+      ((S.classCtor N c).recFields.map (S.ihSemN M ls N ps ex fs)) := by
+  have ht := S.RecGraphN_total M ls N hN hz hnr hb hco hcl ex
+  exact S.IhOkN_ihSemN_class_of M ls N ex (fun x hx => ht.1 _ _ hx) (fun y hy _ => ht.2 y hy) hfit
 
 /-- **The ι equation of `T.rec`**: at a constructor value whose fields
 fit, the recursor is the minor at the fields and the hypotheses'
@@ -692,13 +688,13 @@ theorem recSemN_eq (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
     {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) {fs : List V}
     (hfit : S.FitsFields M ls (S.Fam M ls ps) ps c.fields fs) :
-    S.recSemN M ls N q ps ex (S.idxVals M ls (consList fs (envP ps)) c.idx) (S.ctorVal ls j fs)
-      = appList (S.minorAt ex.mins j) (fs.reverse ++ c.recFields.map (S.ihSemN M ls N q ps ex fs)) := by
+    S.recSemN M ls N ps ex (S.idxVals M ls (consList fs (envP ps)) c.idx) (S.ctorVal ls j fs)
+      = appList (S.minorAt ex.mins j) (fs.reverse ++ c.recFields.map (S.ihSemN M ls N ps ex fs)) := by
   have hcv : S.ctorVal ls j fs = tag (S.tagOf j) (tuple fs.reverse) := by simp [ctorVal, hz]
   unfold recSemN
   rw [hcv]
-  exact S.recFnN_eq M ls N q (S.RecGraphN_intro M ls N q (Or.inl ⟨j, c, fs, _, _, rfl, hc, hfit, rfl,
-    rfl, S.IhOkN_ihSemN M ls N q hN hz hnr hb hco hcl ex hfit, rfl⟩))
+  exact S.recFnN_eq M ls N (S.RecGraphN_intro M ls N (Or.inl ⟨j, c, fs, _, _, rfl, hc, hfit, rfl,
+    rfl, S.IhOkN_ihSemN M ls N hN hz hnr hb hco hcl ex hfit, rfl⟩))
 
 /-- **The ι equation of `T.rec_1`**: at a container constructor's
 value (the tagged tuple of fields fitting it at the instantiation),
@@ -710,12 +706,12 @@ theorem rec1Sem_eq (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     {j : Nat} {c : CtorSpec} (hc : N.K.ctors[j]? = some c) {fs : List V}
     (hfit : S.ClassFits M ls N (S.Fam M ls ps (S.memberIdx M ls N ps)) (fun _ => True) ps
       (S.classCtor N c).fields fs) :
-    S.rec1Sem M ls N q ps ex (tag j (tuple fs.reverse))
+    S.rec1Sem M ls N ps ex (tag j (tuple fs.reverse))
       = appList (minorKAt N ex.minsK j)
-          (fs.reverse ++ (S.classCtor N c).recFields.map (S.ihSemN M ls N q ps ex fs)) := by
+          (fs.reverse ++ (S.classCtor N c).recFields.map (S.ihSemN M ls N ps ex fs)) := by
   unfold rec1Sem
-  exact S.recFnN_eq M ls N q (S.RecGraphN_intro M ls N q (Or.inr ⟨j, c, fs, _, rfl, hc, hfit, rfl,
-    S.IhOkN_ihSemN_class M ls N q hN hz hnr hb hco hcl ex hfit, rfl⟩))
+  exact S.recFnN_eq M ls N (S.RecGraphN_intro M ls N (Or.inr ⟨j, c, fs, _, rfl, hc, hfit, rfl,
+    S.IhOkN_ihSemN_class M ls N hN hz hnr hb hco hcl ex hfit, rfl⟩))
 
 /-! ## Typing -/
 
@@ -725,14 +721,14 @@ typed on the `Q`-members of the class at it, the hypotheses' semantic
 values are typed. -/
 theorem IhTypedN_ihSemN_class_of {ps : List V} (ex : RecEx V)
     {X : V} {Q : V → Prop}
-    (hkey : ∀ x, x ∈ˢ X → S.recFnN M ls N q ps ex (false, S.memberIdx M ls N ps) x ∈ˢ
+    (hkey : ∀ x, x ∈ˢ X → S.recFnN M ls N ps ex (false, S.memberIdx M ls N ps) x ∈ˢ
       appList ex.m ((S.memberIdx M ls N ps).reverse ++ [x]))
     (hQ : ∀ y, y ∈ˢ S.classSet M ls N ps X → Q y →
-      S.rec1Sem M ls N q ps ex y ∈ˢ appList ex.m1 [y])
+      S.rec1Sem M ls N ps ex y ∈ˢ appList ex.m1 [y])
     {c : CtorSpec} {fs : List V}
     (hfit : S.ClassFits M ls N X Q ps (S.classCtor N c).fields fs) :
-    ListRel (S.IhTypedN M ls q ps ex fs) (S.classCtor N c).recFields
-      ((S.classCtor N c).recFields.map (S.ihSemN M ls N q ps ex fs)) := by
+    ListRel (S.IhTypedN M ls ps ex fs) (S.classCtor N c).recFields
+      ((S.classCtor N c).recFields.map (S.ihSemN M ls N ps ex fs)) := by
   refine ListRel.map ?_
   intro kf hkf
   obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
@@ -762,17 +758,17 @@ class at a parameter set inside the fibre on which `T.rec` is typed. -/
 theorem class_mem_of (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps) (hco : S.ContOk M ls ps)
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
-    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N q ps ex j c) {X : V}
+    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N ps ex j c) {X : V}
     (hX : X ∈ˢ (univ (S.u₀ ls) : V)) (hXF : X ⊆ˢ S.Fam M ls ps (S.memberIdx M ls N ps))
-    (hkey : ∀ x, x ∈ˢ X → S.recFnN M ls N q ps ex (false, S.memberIdx M ls N ps) x ∈ˢ
+    (hkey : ∀ x, x ∈ˢ X → S.recFnN M ls N ps ex (false, S.memberIdx M ls N ps) x ∈ˢ
       appList ex.m ((S.memberIdx M ls N ps).reverse ++ [x])) :
-    ∀ x, x ∈ˢ S.classSet M ls N ps X → S.rec1Sem M ls N q ps ex x ∈ˢ appList ex.m1 [x] := by
-  refine hcl.ind X hX (fun y => S.rec1Sem M ls N q ps ex y ∈ˢ appList ex.m1 [y]) ?_
+    ∀ x, x ∈ˢ S.classSet M ls N ps X → S.rec1Sem M ls N ps ex x ∈ˢ appList ex.m1 [x] := by
+  refine hcl.ind X hX (fun y => S.rec1Sem M ls N ps ex y ∈ˢ appList ex.m1 [y]) ?_
   intro j c fs hc hfit
   have hfitM := S.ClassFits_mono M ls N hcl hX (S.Fam_mem_univ M ls _ _) hXF hfit
-  show S.rec1Sem M ls N q ps ex (tag j (tuple fs.reverse)) ∈ˢ appList ex.m1 [tag j (tuple fs.reverse)]
-  rw [S.rec1Sem_eq M ls N q hN hz hnr hb hco hcl ex hc hfitM]
-  exact hminK j c hc fs hfitM _ (S.IhTypedN_ihSemN_class_of M ls N q ex hkey
+  show S.rec1Sem M ls N ps ex (tag j (tuple fs.reverse)) ∈ˢ appList ex.m1 [tag j (tuple fs.reverse)]
+  rw [S.rec1Sem_eq M ls N hN hz hnr hb hco hcl ex hc hfitM]
+  exact hminK j c hc fs hfitM _ (S.IhTypedN_ihSemN_class_of M ls N ex hkey
     (fun _ _ hy => hy.2) hfit)
 
 /-- **The recursors' typing** (above a proposition): at a member of
@@ -784,22 +780,22 @@ must be a truth value (for the reflexive fields' hypotheses). -/
 theorem recSemN_mem (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps) (hco : S.ContOk M ls ps)
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
-    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls q ps ex j c)
-    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N q ps ex j c)
-    (hmo : q = true → ∀ is t, t ∈ˢ S.Fam M ls ps is → appList ex.m (is.reverse ++ [t]) ∈ˢ (univ 0 : V)) :
-    (∀ is t, t ∈ˢ S.Fam M ls ps is → S.recSemN M ls N q ps ex is t ∈ˢ appList ex.m (is.reverse ++ [t])) ∧
-    (∀ t, t ∈ˢ S.classAt M ls N ps → S.rec1Sem M ls N q ps ex t ∈ˢ appList ex.m1 [t]) := by
+    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls ps ex j c)
+    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N ps ex j c)
+    (hmo : ∀ is t, t ∈ˢ S.Fam M ls ps is → IsTy (appList ex.m (is.reverse ++ [t]))) :
+    (∀ is t, t ∈ˢ S.Fam M ls ps is → S.recSemN M ls N ps ex is t ∈ˢ appList ex.m (is.reverse ++ [t])) ∧
+    (∀ t, t ∈ˢ S.classAt M ls N ps → S.rec1Sem M ls N ps ex t ∈ˢ appList ex.m1 [t]) := by
   have key : ∀ is x, x ∈ˢ S.Fam M ls ps is →
-      S.recFnN M ls N q ps ex (false, is) x ∈ˢ appList ex.m (is.reverse ++ [x]) := by
+      S.recFnN M ls N ps ex (false, is) x ∈ˢ appList ex.m (is.reverse ++ [x]) := by
     refine S.Fam_induction M ls hnr hb hco
-      (fun is x => S.recFnN M ls N q ps ex (false, is) x ∈ˢ appList ex.m (is.reverse ++ [x])) ?_
+      (fun is x => S.recFnN M ls N ps ex (false, is) x ∈ˢ appList ex.m (is.reverse ++ [x])) ?_
     intro is x hs
     obtain ⟨j, c, fs, hc, hfit, his, rfl⟩ := hs
     have hfitF := S.FitsFields_of_sep M ls hco _ hfit
     have hcv : S.ctorVal ls j fs = tag (S.tagOf j) (tuple fs.reverse) := by simp [ctorVal, hz]
     subst his
-    rw [hcv, S.recFnN_eq M ls N q (S.RecGraphN_intro M ls N q (Or.inl ⟨j, c, fs, _, _, rfl, hc, hfitF,
-      rfl, rfl, S.IhOkN_ihSemN M ls N q hN hz hnr hb hco hcl ex hfitF, rfl⟩)), ← hcv]
+    rw [hcv, S.recFnN_eq M ls N (S.RecGraphN_intro M ls N (Or.inl ⟨j, c, fs, _, _, rfl, hc, hfitF,
+      rfl, rfl, S.IhOkN_ihSemN M ls N hN hz hnr hb hco hcl ex hfitF, rfl⟩)), ← hcv]
     refine hmin j c hc fs hfitF _ (ListRel.map ?_)
     intro kf hkf
     obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
@@ -809,22 +805,22 @@ theorem recSemN_mem (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     | ordinary _ => simp [Field.isRec] at hrec
     | reflexive tele es =>
       dsimp only [IhTypedN, ihSemN]
-      refine lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun hq ys hys => ?_
+      refine lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun ys hys => ?_
       · have hlen := FitsVals_length M _ hys
         simp only [readEnv_consList hlen, recSemN]
         exact (hsep ys hys).2
       · have hlen := FitsVals_length M _ hys
         simp only [readEnv_consList hlen]
-        exact hmo hq _ _ (hsep ys hys).1
+        exact hmo _ _ (hsep ys hys).1
     | container =>
       dsimp only [IhTypedN, ihSemN]
-      refine S.class_mem_of M ls N q hN hz hnr hb hco hcl ex hminK ?_ ?_ ?_ _ hsep
+      refine S.class_mem_of M ls N hN hz hnr hb hco hcl ex hminK ?_ ?_ ?_ _ hsep
       · exact sep_mem_univ (S.Fam_mem_univ M ls ps _)
       · exact sep_sub
       · intro x hx
         exact (mem_sep.mp hx).2
   refine ⟨fun is t ht => key is t ht, ?_⟩
-  exact S.class_mem_of M ls N q hN hz hnr hb hco hcl ex hminK (S.Fam_mem_univ M ls _ _) (Sub.refl _)
+  exact S.class_mem_of M ls N hN hz hnr hb hco hcl ex hminK (S.Fam_mem_univ M ls _ _) (Sub.refl _)
     fun x hx => key _ x hx
 
 /-- **The inductive hypotheses' values are typed**, at a block
@@ -832,13 +828,13 @@ constructor's fitting fields. -/
 theorem IhTypedN_ihSemN (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps) (hco : S.ContOk M ls ps)
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
-    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls q ps ex j c)
-    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N q ps ex j c)
-    (hmo : q = true → ∀ is t, t ∈ˢ S.Fam M ls ps is → appList ex.m (is.reverse ++ [t]) ∈ˢ (univ 0 : V))
+    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls ps ex j c)
+    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N ps ex j c)
+    (hmo : ∀ is t, t ∈ˢ S.Fam M ls ps is → IsTy (appList ex.m (is.reverse ++ [t])))
     {c : CtorSpec} {fs : List V}
     (hfit : S.FitsFields M ls (S.Fam M ls ps) ps c.fields fs) :
-    ListRel (S.IhTypedN M ls q ps ex fs) c.recFields (c.recFields.map (S.ihSemN M ls N q ps ex fs)) := by
-  have hrec := S.recSemN_mem M ls N q hN hz hnr hb hco hcl ex hmin hminK hmo
+    ListRel (S.IhTypedN M ls ps ex fs) c.recFields (c.recFields.map (S.ihSemN M ls N ps ex fs)) := by
+  have hrec := S.recSemN_mem M ls N hN hz hnr hb hco hcl ex hmin hminK hmo
   refine ListRel.map ?_
   intro kf hkf
   obtain ⟨hf, hk, hrec'⟩ := mem_recFields hkf
@@ -849,15 +845,15 @@ theorem IhTypedN_ihSemN (hN : S.nest = some N) (hz : S.z ls = false) {ps : List 
   | reflexive tele es =>
     dsimp only [fieldSet] at hget
     dsimp only [IhTypedN, ihSemN]
-    refine lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun hq ys hys => ?_
+    refine lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun ys hys => ?_
     · have hlen := FitsVals_length M _ hys
-      have hmem := appList_mem_of_piCtx M (S.ψ ls) hget hys
+      have hmem := S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M (S.ψ ls) hget hys)
       simp only [readEnv_consList hlen]
       exact hrec.1 _ _ hmem
     · have hlen := FitsVals_length M _ hys
-      have hmem := appList_mem_of_piCtx M (S.ψ ls) hget hys
+      have hmem := S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M (S.ψ ls) hget hys)
       simp only [readEnv_consList hlen]
-      exact hmo hq _ _ hmem
+      exact hmo _ _ hmem
   | container =>
     rw [S.fieldSet_container_Fam M ls N hN] at hget
     dsimp only [IhTypedN, ihSemN]
@@ -868,16 +864,16 @@ constructor's fitting fields. -/
 theorem IhTypedN_ihSemN_class (hN : S.nest = some N) (hz : S.z ls = false) {ps : List V}
     (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps) (hco : S.ContOk M ls ps)
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
-    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls q ps ex j c)
-    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N q ps ex j c)
-    (hmo : q = true → ∀ is t, t ∈ˢ S.Fam M ls ps is → appList ex.m (is.reverse ++ [t]) ∈ˢ (univ 0 : V))
+    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls ps ex j c)
+    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N ps ex j c)
+    (hmo : ∀ is t, t ∈ˢ S.Fam M ls ps is → IsTy (appList ex.m (is.reverse ++ [t])))
     {c : CtorSpec} {fs : List V}
     (hfit : S.ClassFits M ls N (S.Fam M ls ps (S.memberIdx M ls N ps)) (fun _ => True) ps
       (S.classCtor N c).fields fs) :
-    ListRel (S.IhTypedN M ls q ps ex fs) (S.classCtor N c).recFields
-      ((S.classCtor N c).recFields.map (S.ihSemN M ls N q ps ex fs)) := by
-  have hrec := S.recSemN_mem M ls N q hN hz hnr hb hco hcl ex hmin hminK hmo
-  exact S.IhTypedN_ihSemN_class_of M ls N q ex (fun x hx => hrec.1 _ _ hx)
+    ListRel (S.IhTypedN M ls ps ex fs) (S.classCtor N c).recFields
+      ((S.classCtor N c).recFields.map (S.ihSemN M ls N ps ex fs)) := by
+  have hrec := S.recSemN_mem M ls N hN hz hnr hb hco hcl ex hmin hminK hmo
+  exact S.IhTypedN_ihSemN_class_of M ls N ex (fun x hx => hrec.1 _ _ hx)
     (fun y hy _ => hrec.2 y hy) hfit
 
 /-- **The motives are inhabited** on the family and on the class, at
@@ -887,9 +883,9 @@ values as the hypotheses. -/
 theorem motive_inhabitedN (hN : S.nest = some N) {ps : List V}
     (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps) (hco : S.ContOk M ls ps)
     (hcl : S.ClassLaws M ls N ps) (ex : RecEx V)
-    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls q ps ex j c)
-    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N q ps ex j c)
-    (hmo : q = true → ∀ is t, t ∈ˢ S.Fam M ls ps is → appList ex.m (is.reverse ++ [t]) ∈ˢ (univ 0 : V)) :
+    (hmin : ∀ j c, S.ctors[j]? = some c → S.MinorOkN M ls ps ex j c)
+    (hminK : ∀ j c, N.K.ctors[j]? = some c → S.MinorOkK M ls N ps ex j c)
+    (hmo : ∀ is t, t ∈ˢ S.Fam M ls ps is → IsTy (appList ex.m (is.reverse ++ [t]))) :
     (∀ is t, t ∈ˢ S.Fam M ls ps is → ∃ v, v ∈ˢ appList ex.m (is.reverse ++ [t])) ∧
     (∀ t, t ∈ˢ S.classAt M ls N ps → ∃ v, v ∈ˢ appList ex.m1 [t]) := by
   -- the inner induction, at a parameter set inside the fibre on which the block's motive is inhabited
@@ -901,7 +897,7 @@ theorem motive_inhabitedN (hN : S.nest = some N) {ps : List V}
     refine hcl.ind X hX (fun y => ∃ v, v ∈ˢ appList ex.m1 [y]) ?_ x hx
     intro j c fs hc hfit
     have hfitM := S.ClassFits_mono M ls N hcl hX (S.Fam_mem_univ M ls _ _) hXF hfit
-    obtain ⟨ihs, hihs⟩ : ∃ ihs, ListRel (S.IhTypedN M ls q ps ex fs) (S.classCtor N c).recFields ihs := by
+    obtain ⟨ihs, hihs⟩ : ∃ ihs, ListRel (S.IhTypedN M ls ps ex fs) (S.classCtor N c).recFields ihs := by
       refine ListRel.exists_of_forall fun kf hkf => ?_
       obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
       have hget := S.ClassFits_get M ls N hfit hf hk
@@ -932,7 +928,7 @@ theorem motive_inhabitedN (hN : S.nest = some N) {ps : List V}
     have hfitF := S.FitsFields_of_sep M ls hco _ hfit
     subst his
     -- the inductive hypotheses: one inhabitant of each hypothesis' type
-    obtain ⟨ihs, hihs⟩ : ∃ ihs, ListRel (S.IhTypedN M ls q ps ex fs) c.recFields ihs := by
+    obtain ⟨ihs, hihs⟩ : ∃ ihs, ListRel (S.IhTypedN M ls ps ex fs) c.recFields ihs := by
       refine ListRel.exists_of_forall fun kf hkf => ?_
       obtain ⟨hf, hk, hrec⟩ := mem_recFields hkf
       have hsep := S.sep_fields M ls N hN _ hfit hf hk
@@ -941,16 +937,16 @@ theorem motive_inhabitedN (hN : S.nest = some N) {ps : List V}
       | ordinary _ => simp [Field.isRec] at hrec
       | reflexive tele es =>
         dsimp only [IhTypedN]
-        refine ⟨lamCtx M (S.ψ ls) q _ tele fun ρ' => pickMem (appList ex.m ((S.idxVals M ls ρ' es).reverse ++
+        refine ⟨lamCtx M (S.ψ ls) _ tele fun ρ' => pickMem (appList ex.m ((S.idxVals M ls ρ' es).reverse ++
           [appList (fieldVal fs k) (readEnv tele.length ρ').reverse])),
-          lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun hq ys hys => ?_⟩
+          lamCtx_mem_piCtx M _ (fun ys hys => ?_) fun ys hys => ?_⟩
         · have hlen := FitsVals_length M _ hys
           refine pickMem_mem ?_
           simp only [readEnv_consList hlen]
           exact (hsep ys hys).2
         · have hlen := FitsVals_length M _ hys
           simp only [readEnv_consList hlen]
-          exact hmo hq _ _ (hsep ys hys).1
+          exact hmo _ _ (hsep ys hys).1
       | container =>
         dsimp only [IhTypedN]
         refine inner _ _ hsep ?_ ?_ ?_

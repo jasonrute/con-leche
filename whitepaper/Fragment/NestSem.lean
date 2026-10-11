@@ -84,27 +84,6 @@ theorem consList_append_cons_ne {l₁ : List V} {x y : V} {l₂ : List V} {ρ : 
     | zero => rfl
     | succ j => exact ih fun e => h (by simp [e])
 
-section Beta
-
-variable (M : Name → List Nat → V) (φ : Name → Nat)
-
-/-- β over a context in the graph regime needs no bound on the body
-(`Read.lean` proves it again as `appList_lamCtx_false`; it comes
-later in the import order). -/
-theorem appList_lamCtx_false_fits :
-    ∀ {Γ : List Expr} {ρ : Nat → V} {F : (Nat → V) → V} {vs : List V},
-      FitsVals M φ ρ Γ vs → appList (lamCtx M φ false ρ Γ F) vs.reverse = F (consList vs ρ)
-  | [], _, _, [], _ => rfl
-  | [], _, _, _ :: _, h => h.elim
-  | _ :: _, _, _, [], h => h.elim
-  | A :: Γ, ρ, F, v :: vs, h => by
-    rw [FitsVals_cons] at h
-    simp only [lamCtx_cons, List.reverse_cons, appList_append, appList_cons, appList_nil]
-    rw [appList_lamCtx_false_fits h.1, app_lamR_false h.2]
-    rfl
-
-end Beta
-
 namespace NestInfo
 
 variable (N : NestInfo)
@@ -165,8 +144,8 @@ theorem isMember_eq_false_of_usesVar {k : Nat} {A : Expr} (h : A.usesVar (N.memb
   | sort _ => rfl
   | const _ _ => rfl
   | app _ _ => rfl
-  | lam _ _ _ => rfl
-  | pi _ _ _ => rfl
+  | lam _ _ => rfl
+  | pi _ _ => rfl
 
 /-- A positive container has no container field. -/
 theorem noCont_of_positive (hpos : N.Positive) : N.KS.NoCont := by
@@ -310,7 +289,7 @@ theorem classSet_eq_Fam (hf : S.NestFacts M ls N) {ps : List V}
   rw [classSet, hf.fam, famSet, famSetF, hI, List.nil_append,
     show S.classArgsV M ls N ps (S.adm ls X) = (S.psK M ls N ps (S.adm ls X)).reverse by
       simp [psK],
-    appList_lamCtx_false_fits M _ hfit]
+    appList_lamCtx M _ hfit]
   simp only [nI, hI, List.length_nil, shiftE_zero_zero, readEnv_consList hlen, readEnv_zero]
 
 /-! ## Fitting the container's fields, parameter-field and recursive values replaced
@@ -435,7 +414,7 @@ theorem FitsFields_psK_repl (hf : S.NestFacts M ls N) {X Y : V} {W W' : List V �
       obtain ⟨rfl, rfl⟩ := hFP
       have hnm : N.isMember rest.length (.reflexive [] []) = false := rfl
       simp only [hnm, Field.isRec, Bool.false_eq_true, ite_false, ite_true] at hv'
-      simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil]
+      simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil]
       exact hv'
     | container => exact hFP.elim
   | [], [], _ :: _, _, _, _, h => h.elim
@@ -489,7 +468,7 @@ theorem Repl_exists {X Y y : V} {W : List V → V} {ps : List V} (hy : y ∈ˢ Y
     | reflexive tele es =>
       obtain ⟨rfl, rfl⟩ := hFP
       have hfv := hfit.2
-      simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil] at hfv
+      simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil] at hfv
       have hnm : N.isMember rest.length (.reflexive [] []) = false := rfl
       exact ⟨v :: vs', hvs', by simp [hnm, Field.isRec, hfv]⟩
     | container => exact hFP.elim
@@ -624,7 +603,7 @@ theorem jointOp_acc (hf : S.NestFacts M ls N) (ps : List V) :
     | reflexive tele es =>
       obtain ⟨rfl, rfl⟩ := hFP
       simp only [NestInfo.isMember, Bool.false_eq_true, ite_false]
-      simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil] at hget
+      simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil] at hget
       exact hget
     | container => exact hFP.elim
   · intro Z' hZ' hsupp
@@ -823,7 +802,7 @@ theorem Fam_psK_inhab (hf : S.NestFacts M ls N) {ps : List V}
         · exact ⟨v :: vs', hvs', by simp [N.isMember_eq_false_of_usesVar hA, Field.isRec]⟩
       | reflexive tele es =>
         obtain ⟨rfl, rfl⟩ := hFP
-        simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil, mem_sep] at hfv
+        simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil, mem_sep] at hfv
         obtain ⟨w, hw⟩ := hfv.2
         have hnm : N.isMember L.length (.reflexive [] []) = false := rfl
         exact ⟨w :: vs', hvs', by simp [hnm, Field.isRec, W₁, hw]⟩

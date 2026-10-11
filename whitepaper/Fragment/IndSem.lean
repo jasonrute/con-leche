@@ -235,38 +235,43 @@ theorem nat_mem_univ {n : Nat} (hn : n ≠ 0) (k : Nat) : (nat k : V) ∈ˢ univ
 
 /-! ## η over a context, and re-typing a member of a product -/
 
-/-- A member of a product over a context is the abstraction of its
-applications (η, iterated). -/
-theorem lamCtx_eta (M : Name → List Nat → V) (φ : Name → Nat) {p : Bool} {ρ : Nat → V} :
-    ∀ {Γ : List Expr} {G : (Nat → V) → V} {f : V}, f ∈ˢ piCtx M φ p ρ Γ G →
-      lamCtx M φ p ρ Γ (fun ρ' => appList f (readEnv Γ.length ρ').reverse) = f
-  | [], _, f, _ => rfl
-  | A :: Γ, G, f, hf => by
+/-- A member of a product over a context whose body is a type is the
+abstraction of its applications (η, iterated). -/
+theorem lamCtx_eta (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Nat → V} :
+    ∀ {Γ : List Expr} {G : (Nat → V) → V} {f : V}, f ∈ˢ piCtx M φ ρ Γ G →
+      (Γ ≠ [] → ∀ ws, FitsVals M φ ρ Γ ws → IsTy (G (consList ws ρ))) →
+      lamCtx M φ ρ Γ (fun ρ' => appList f (readEnv Γ.length ρ').reverse) = f
+  | [], _, f, _, _ => rfl
+  | A :: Γ, G, f, hf, hG => by
     rw [piCtx_cons] at hf
     rw [lamCtx_cons]
-    refine Eq.trans ?_ (lamCtx_eta M φ hf)
+    refine Eq.trans ?_ (lamCtx_eta M φ hf fun _ _ _ => IsTy_piV)
     refine lamCtx_congr M φ fun ys hys => ?_
     have hl := FitsVals_length M φ hys
     rw [readEnv_consList hl]
     have hmem := appList_mem_of_piCtx M φ hf hys
-    rw [← lamR_eta hmem]
-    refine lamR_congr fun x _ => ?_
+    rw [← lamV_eta hmem fun x hx =>
+      hG (List.cons_ne_nil A Γ) (x :: ys) ((FitsVals_cons M φ ρ A Γ x ys).symm ▸ ⟨hys, hx⟩)]
+    refine lamV_congr fun x _ => ?_
     rw [show cons x (consList ys ρ) = consList (x :: ys) ρ from rfl, List.length_cons,
       readEnv_consList (by simp [hl]), List.reverse_cons, appList_append, appList_cons, appList_nil]
 
 /-- **Re-typing**: a member of a product over a context whose
 applications at every fitting argument list land in other fibres is a
-member of the product into those fibres (at a proposition they must
-be truth values). -/
-theorem piCtx_retype (M : Name → List Nat → V) (φ : Name → Nat) {p : Bool} {ρ : Nat → V}
-    {Γ : List Expr} {G G' : (Nat → V) → V} {f : V} (hf : f ∈ˢ piCtx M φ p ρ Γ G)
+member of the product into those fibres — both bodies types. -/
+theorem piCtx_retype (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Nat → V}
+    {Γ : List Expr} {G G' : (Nat → V) → V} {f : V} (hf : f ∈ˢ piCtx M φ ρ Γ G)
+    (hG : Γ ≠ [] → ∀ ys, FitsVals M φ ρ Γ ys → IsTy (G (consList ys ρ)))
     (h : ∀ ys, FitsVals M φ ρ Γ ys → appList f ys.reverse ∈ˢ G' (consList ys ρ))
-    (hG' : p = true → ∀ ys, FitsVals M φ ρ Γ ys → G' (consList ys ρ) ∈ˢ (univ 0 : V)) :
-    f ∈ˢ piCtx M φ p ρ Γ G' := by
-  rw [← lamCtx_eta M φ hf]
-  refine lamCtx_mem_piCtx M φ (fun ys hys => ?_) hG'
-  rw [readEnv_consList (FitsVals_length M φ hys)]
-  exact h ys hys
+    (hG' : Γ ≠ [] → ∀ ys, FitsVals M φ ρ Γ ys → IsTy (G' (consList ys ρ))) :
+    f ∈ˢ piCtx M φ ρ Γ G' := by
+  cases Γ with
+  | nil => exact h [] trivial
+  | cons A Γ =>
+    rw [← lamCtx_eta M φ hf hG]
+    refine lamCtx_mem_piCtx M φ (fun ys hys => ?_) (hG' (List.cons_ne_nil A Γ))
+    rw [readEnv_consList (FitsVals_length M φ hys)]
+    exact h ys hys
 
 namespace IndSpec
 
@@ -287,10 +292,10 @@ container field, and the clause is empty).  Con-leche: a field's
 reading with holes, `LfpDatum.fields`, read at the hole frame of the
 tuple (`HFits`, `BlockLfp.lean`); the container clause `contApp`
 through the container's lfp clause (`BlockLfpMono.lean`). -/
-def fieldSet (W : List V → V) (ps fs : List V) : Field → V
+noncomputable def fieldSet (W : List V → V) (ps fs : List V) : Field → V
   | .ordinary A => interp M (S.ψ ls) (consList fs (envP ps)) A
   | .reflexive tele es =>
-    piCtx M (S.ψ ls) (S.z ls) (consList fs (envP ps)) tele fun ρ' => W (S.idxVals M ls ρ' es)
+    piCtx M (S.ψ ls) (consList fs (envP ps)) tele fun ρ' => S.reflBody ls tele (W (S.idxVals M ls ρ' es))
   | .container =>
     match S.nest with
     | some N => S.classSet M ls N ps (W (S.memberIdx M ls N ps))
@@ -626,7 +631,7 @@ theorem u₀_ne_zero (hz : S.z ls = false) : S.u₀ ls ≠ 0 := fun h0 => by
 
 theorem adm_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') : S.adm ls = (S.adm ls' : V → V) := by
   funext X
-  have hz : S.z ls = S.z ls' := by unfold z; rw [h]
+  have hz : S.z ls = S.z ls' := by unfold z u₀; rw [h]
   unfold adm
   rw [hz]
 
@@ -640,7 +645,7 @@ theorem classSet_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') (N : NestInf
 theorem fieldSet_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') (W : List V → V) (ps fs : List V) :
     ∀ f : Field, S.fieldSet M ls W ps fs f = S.fieldSet M ls' W ps fs f
   | .ordinary _ => by simp only [fieldSet, h]
-  | .reflexive _ _ => by simp only [fieldSet, idxVals, z, h]
+  | .reflexive _ _ => by simp only [fieldSet, idxVals, reflBody, S.adm_congr_ls ls h, h]
   | .container => by
     simp only [fieldSet, S.classSet_congr_ls M ls h, memberIdx, idxVals, h]
 
@@ -671,7 +676,7 @@ through the block's valuation. -/
 theorem DomsBounded_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') {ps : List V}
     (hd : S.DomsBounded M ls ps) : S.DomsBounded M ls' ps := by
   intro hz W hW c hc k f hf hk fs hfs
-  have hz' : S.z ls = false := by unfold z; rw [h]; exact hz
+  have hz' : S.z ls = false := by unfold z u₀; rw [h]; exact hz
   have hW' : InUniv (S.u₀ ls) W := by
     show InUniv (S.sort.eval (S.ψ ls)) W
     rw [h]; exact hW
@@ -703,7 +708,7 @@ theorem fieldSet_mem_univ {ps : List V} (hz : S.z ls = false) (hb : S.DomsBounde
   | ordinary A => exact hb'
   | reflexive tele es =>
     simp only [fieldSet]
-    exact piCtx_mem_univ M _ (S.u₀_ne_zero ls hz) hb' fun _ _ => hW _
+    exact piCtx_mem_univ M _ (S.u₀_ne_zero ls hz) hb' fun _ _ => S.reflBody_mem_univ ls _ (hW _)
   | container =>
     cases hN : S.nest with
     | none => rw [S.fieldSet_container_none M ls hN]; exact empty_mem_univ _
@@ -846,8 +851,8 @@ theorem oneSet_mem_typeU : (S.oneSet ls : V) ∈ˢ (typeU (S.u₀ ls) : V) := by
     unfold oneSet
     simp only [hz, Bool.false_eq_true, ite_false]
     rw [mem_typeU_pos h0]
-    refine ⟨sing_mem_univ h0 (tag_mem_univ h0 (empty_mem_univ _)), fun he => ?_,
-      fun h => tag_ne_pt (mem_sing.mp h).symm⟩
+    refine ⟨sing_mem_univ h0 (tag_mem_univ h0 (empty_mem_univ _)), Or.inr ⟨fun he => ?_,
+      fun h => tag_ne_pt (mem_sing.mp h).symm⟩⟩
     obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
     rw [← he] at hz'
     have := mem_sing.mp hz'
@@ -885,7 +890,7 @@ noncomputable def toFam (Y y : V) (ps : List V) : List Field → List V → List
   | f :: fields, v :: vs =>
     (match f with
       | .reflexive tele _ =>
-        lamCtx M (S.ψ ls) (S.z ls) (consList (toFam Y y ps fields vs) (envP ps)) tele fun _ => y
+        lamCtx M (S.ψ ls) (consList (toFam Y y ps fields vs) (envP ps)) tele fun _ => y
       | .container => S.contAt M ls Y ps
       | _ => v) :: toFam Y y ps fields vs
   | _, vs => vs
@@ -979,8 +984,12 @@ theorem FitsFields_toFam {ps : List V} (hco : S.ContOk M ls ps) {W : List V → 
       rw [this]
       exact hf.2
     | reflexive tele es =>
-      show lamCtx M (S.ψ ls) (S.z ls) _ tele (fun _ => y) ∈ˢ piCtx M (S.ψ ls) (S.z ls) _ tele _
-      exact lamCtx_mem_piCtx M _ (fun _ _ => S.adm_sub ls _ _ hy) fun hz _ _ => hY0 hz
+      show lamCtx M (S.ψ ls) _ tele (fun _ => y) ∈ˢ piCtx M (S.ψ ls) _ tele _
+      cases tele with
+      | nil => exact S.adm_sub ls _ _ hy
+      | cons T tele =>
+        refine lamCtx_mem_piCtx M _ (fun _ _ => ?_) fun _ _ => S.IsTy_reflBody ls (List.cons_ne_nil T tele) hY0
+        unfold reflBody; rw [ite_eq_right (List.cons_ne_nil T tele)]; exact hy
     | container =>
       have hv := hf.2
       cases hN : S.nest with
@@ -1229,7 +1238,7 @@ theorem instOcc_code_cont {ps : List V} {c : CtorSpec} {fs : List V} {gk : Nat �
 re-typing of each reflexive field's value, and the container's clause
 at each container value. -/
 theorem FitsFields_retype {ps : List V} (hco : S.ContOk M ls ps) {W W' : List V → V}
-    (hW' : InUniv (S.u₀ ls) W') :
+    (hW : InUniv (S.u₀ ls) W) (hW' : InUniv (S.u₀ ls) W') :
     ∀ {fields : List Field} {fs : List V}, S.FitsFields M ls W ps fields fs →
       (∀ k tele es, fields[fields.length - 1 - k]? = some (.reflexive tele es) → k < fields.length →
         ∀ ys, FitsVals M (S.ψ ls) (consList (earlier fs k) (envP ps)) tele ys →
@@ -1242,7 +1251,7 @@ theorem FitsFields_retype {ps : List V} (hco : S.ContOk M ls ps) {W W' : List V 
   | [], [], _, _, _ => trivial
   | f :: fields, v :: fs, hf, h, h' => by
     have hlen := S.FitsFields_length M ls hf.1
-    refine ⟨FitsFields_retype hco hW' hf.1 (fun k tele es hk hkl ys hys => ?_)
+    refine ⟨FitsFields_retype hco hW hW' hf.1 (fun k tele es hk hkl ys hys => ?_)
       (fun k hk hkl N hN => ?_), ?_⟩
     · have := h k tele es (by
           rw [show (f :: fields).length - 1 - k = (fields.length - 1 - k) + 1 by simp; omega]
@@ -1276,7 +1285,10 @@ theorem FitsFields_retype {ps : List V} (hco : S.ContOk M ls ps) {W W' : List V 
           rw [show fields.length + 1 - fields.length = 1 by omega]; rfl
         rw [hfv, hea] at hk
         simp only [fieldSet] at hf ⊢
-        exact piCtx_retype M _ hf.2 hk fun hz _ _ => S.fibre_mem_univ_zero ls hW' hz _
+        exact piCtx_retype M _ hf.2
+          (fun ht _ _ => S.IsTy_reflBody ls ht fun hz => S.fibre_mem_univ_zero ls hW hz _)
+          (fun ys hys => S.mem_reflBody_of ls (appList_mem_of_piCtx M _ hf.2 hys) (hk ys hys))
+          (fun ht _ _ => S.IsTy_reflBody ls ht fun hz => S.fibre_mem_univ_zero ls hW' hz _)
   | [], _ :: _, hf, _, _ => hf.elim
   | _ :: _, [], hf, _, _ => hf.elim
 
@@ -1366,7 +1378,7 @@ theorem famOp_acc {ps : List V} (hnr : S.NoRecDep) (hco : S.ContOk M ls ps) :
       rw [S.instOcc_code M ls hf]
       have hget := S.FitsFields_get M ls hfs hf hk'
       simp only [fieldSet] at hget
-      exact appList_mem_of_piCtx M _ hget hys
+      exact S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M _ hget hys)
     · obtain ⟨N, hN⟩ : ∃ N, S.nest = some N := by
         cases hN : S.nest with
         | none =>
@@ -1380,7 +1392,7 @@ theorem famOp_acc {ps : List V} (hnr : S.NoRecDep) (hco : S.ContOk M ls ps) :
   · -- a family holding the support holds the value
     intro W' hW' hsupp
     refine (S.mem_famOp M ls).mpr ⟨j, c, fs, hc, ?_, his, rfl⟩
-    refine S.FitsFields_retype M ls hco hW' hfs (fun k tele es hf hk' ys hys => ?_)
+    refine S.FitsFields_retype M ls hco hW hW' hfs (fun k tele es hf hk' ys hys => ?_)
       (fun k hf hk' N hN => ?_)
     · have := hsupp _ ((S.mem_instSupp' M ls).mpr (Or.inl ⟨k, tele, es, ys, hf, hk', hys, rfl⟩))
       unfold InFam at this
@@ -1417,11 +1429,11 @@ theorem FitsFields_mono {ps : List V} (hco : S.ContOk M ls ps) {W W' : List V �
     (hW : InUniv (S.u₀ ls) W) (hW' : InUniv (S.u₀ ls) W') (hle : FamLe W W')
     {fields : List Field} {fs : List V} (hfit : S.FitsFields M ls W ps fields fs) :
     S.FitsFields M ls W' ps fields fs := by
-  refine S.FitsFields_retype M ls hco hW' hfit (fun k tele es hf hk ys hys => ?_)
+  refine S.FitsFields_retype M ls hco hW hW' hfit (fun k tele es hf hk ys hys => ?_)
     (fun k hf hk N hN => ?_)
   · have hget := S.FitsFields_get M ls hfit hf hk
     simp only [fieldSet] at hget
-    exact hle _ _ (appList_mem_of_piCtx M _ hget hys)
+    exact hle _ _ (S.reflBody_sub ls _ _ _ (appList_mem_of_piCtx M _ hget hys))
   · have hget := S.FitsFields_get M ls hfit hf hk
     rw [S.fieldSet_container M ls hN] at hget
     exact (hco N hN).mono (hle _) (hW _) (hW' _) _ hget
@@ -1561,7 +1573,7 @@ theorem Fam_mem_typeU {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls 
       intro t ht
       obtain ⟨j, c, fs, -, -, -, rfl⟩ := (S.mem_Fam_false M ls hnr hb hco hz).mp ht
       exact ⟨_, _, rfl⟩
-    refine ⟨S.Fam_mem_univ M ls ps is, fun he => ?_, fun hpt => ?_⟩
+    refine ⟨S.Fam_mem_univ M ls ps is, Or.inr ⟨fun he => ?_, fun hpt => ?_⟩⟩
     · obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
       rw [← he] at hz'
       obtain ⟨i, x, rfl⟩ := htag z hz'
@@ -1595,7 +1607,7 @@ former the graph of any family in the universe, which is how the
 universe bound on the fields is read off the checker's sort facts at
 every family (`InstallInd.lean`). -/
 noncomputable def famSetF (F : List Nat → List V → List V → V) : V :=
-  lamCtx M (S.ψ ls) false base (S.indices ++ S.params) fun ρ' =>
+  lamCtx M (S.ψ ls) base (S.indices ++ S.params) fun ρ' =>
     F ls (readEnv S.nP (shiftE S.nI 0 ρ')) (readEnv S.nI ρ')
 
 /-- **The type former's set** at `ls`: the graph over the index and
@@ -1617,7 +1629,7 @@ theorem M₁_eq_M₁F : S.M₁ M = S.M₁F M (S.Fam M) := rfl
 fields (read in the model with the former) of the constructor's
 value. -/
 noncomputable def ctorSet (j : Nat) (c : CtorSpec) : V :=
-  lamCtx (S.M₁ M) (S.ψ ls) (S.z ls) base (S.fieldCtx c.fields ++ S.params) fun ρ' =>
+  lamCtx (S.M₁ M) (S.ψ ls) base (S.fieldCtx c.fields ++ S.params) fun ρ' =>
     S.ctorVal ls j (readEnv c.fields.length ρ')
 
 /-- The model with the former and the constructors added. -/

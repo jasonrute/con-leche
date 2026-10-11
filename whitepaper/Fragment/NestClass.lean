@@ -77,13 +77,13 @@ theorem Expr.usesVar_lt_of_closedAt : ∀ {e : Expr} {k i : Nat}, e.closedAt k =
     rcases hu with hu | hu
     · exact Expr.usesVar_lt_of_closedAt hc.1 hu
     · exact Expr.usesVar_lt_of_closedAt hc.2 hu
-  | .lam A _ b, k, i, hc, hu => by
+  | .lam A b, k, i, hc, hu => by
     simp only [Expr.closedAt_lam, Bool.and_eq_true] at hc
     simp only [Expr.usesVar_lam, Bool.or_eq_true] at hu
     rcases hu with hu | hu
     · exact Expr.usesVar_lt_of_closedAt hc.1 hu
     · have := Expr.usesVar_lt_of_closedAt hc.2 hu; omega
-  | .pi A _ B, k, i, hc, hu => by
+  | .pi A B, k, i, hc, hu => by
     simp only [Expr.closedAt_pi, Bool.and_eq_true] at hc
     simp only [Expr.usesVar_pi, Bool.or_eq_true] at hu
     rcases hu with hu | hu
@@ -115,10 +115,10 @@ variable (S : IndSpec) (M : Name → List Nat → V) (ls : List Nat) (N : NestIn
 /-! ## The container's parameter environment at the instantiation -/
 
 /-- The class's arguments before the nested position, as values. -/
-def argsBefore (ps : List V) : List V := (N.args.take N.p).map (interp M (S.ψ ls) (envP ps))
+noncomputable def argsBefore (ps : List V) : List V := (N.args.take N.p).map (interp M (S.ψ ls) (envP ps))
 
 /-- The class's arguments after the nested position, as values. -/
-def argsAfter (ps : List V) : List V := (N.args.drop N.p).map (interp M (S.ψ ls) (envP ps))
+noncomputable def argsAfter (ps : List V) : List V := (N.args.drop N.p).map (interp M (S.ψ ls) (envP ps))
 
 /-- The container's parameter environment at the instantiation: the
 arguments after the nested position (innermost), the parameter set, the arguments
@@ -303,8 +303,8 @@ theorem classFieldSet_eq (hf : S.NestFacts M ls N) (hlen : N.args.length + 1 = N
   | ordinary A => exact S.classFieldSet_eq_ordinary M ls N hf hlen hlsK hKS hc hd hi X Q ps W hk
   | reflexive tele es =>
     obtain ⟨rfl, rfl⟩ := hpf
-    simp only [classField, classFieldSet, fieldSet, piCtx_nil, idxVals, List.map_nil,
-      List.reverse_nil]
+    simp only [classField, classFieldSet, fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals,
+      List.map_nil, List.reverse_nil]
     rw [S.classSet_eq_Fam hf hp hX]
     apply ext
     intro y

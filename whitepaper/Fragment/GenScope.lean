@@ -68,9 +68,9 @@ theorem CtxClosedAt_cons {k : Nat} {A : Expr} {Γ : List Expr} :
 
 /-- A `∀`-telescope over a context is closed at `k` exactly when the
 context is and the body is closed under all of it. -/
-theorem closedAt_mkPis_iff {pw : PropWhen} {k : Nat} :
+theorem closedAt_mkPis_iff {k : Nat} :
     ∀ {Γ : List Expr} {b : Expr},
-      closedAt k (mkPis pw Γ b) = true ↔ CtxClosedAt k Γ ∧ closedAt (k + Γ.length) b = true
+      closedAt k (mkPis Γ b) = true ↔ CtxClosedAt k Γ ∧ closedAt (k + Γ.length) b = true
   | [], b => by simp
   | A :: Γ, b => by
     rw [mkPis_cons, closedAt_mkPis_iff, closedAt_pi, Bool.and_eq_true, CtxClosedAt_cons]
@@ -79,9 +79,9 @@ theorem closedAt_mkPis_iff {pw : PropWhen} {k : Nat} :
 
 /-- A `λ`-telescope over a context is closed at `k` exactly when the
 context is and the body is closed under all of it. -/
-theorem closedAt_mkLams_iff {pw : PropWhen} {k : Nat} :
+theorem closedAt_mkLams_iff {k : Nat} :
     ∀ {Γ : List Expr} {b : Expr},
-      closedAt k (mkLams pw Γ b) = true ↔ CtxClosedAt k Γ ∧ closedAt (k + Γ.length) b = true
+      closedAt k (mkLams Γ b) = true ↔ CtxClosedAt k Γ ∧ closedAt (k + Γ.length) b = true
   | [], b => by simp
   | A :: Γ, b => by
     rw [mkLams_cons, closedAt_mkLams_iff, closedAt_lam, Bool.and_eq_true, CtxClosedAt_cons]
@@ -90,16 +90,16 @@ theorem closedAt_mkLams_iff {pw : PropWhen} {k : Nat} :
 
 /-- A `∀`-telescope over a closed context and a body closed under it
 is closed. -/
-theorem closedAt_mkPis {pw : PropWhen} {k : Nat} {Γ : List Expr} {b : Expr}
+theorem closedAt_mkPis {k : Nat} {Γ : List Expr} {b : Expr}
     (hΓ : CtxClosedAt k Γ) (hb : closedAt (k + Γ.length) b = true) :
-    closedAt k (mkPis pw Γ b) = true :=
+    closedAt k (mkPis Γ b) = true :=
   closedAt_mkPis_iff.mpr ⟨hΓ, hb⟩
 
 /-- A `λ`-telescope over a closed context and a body closed under it
 is closed. -/
-theorem closedAt_mkLams {pw : PropWhen} {k : Nat} {Γ : List Expr} {b : Expr}
+theorem closedAt_mkLams {k : Nat} {Γ : List Expr} {b : Expr}
     (hΓ : CtxClosedAt k Γ) (hb : closedAt (k + Γ.length) b = true) :
-    closedAt k (mkLams pw Γ b) = true :=
+    closedAt k (mkLams Γ b) = true :=
   closedAt_mkLams_iff.mpr ⟨hΓ, hb⟩
 
 /-- The variables of `n` binders sitting `o` up are closed at any
@@ -125,13 +125,13 @@ theorem closedAt_atCtx {nF k l o d j : Nat} {e : Expr} (h : closedAt (j + d) e =
 
 /-- A `∀`-telescope mentions only the constants of its body and of its
 context's entries. -/
-theorem consts_mkPis (pw : PropWhen) :
-    ∀ (Γ : List Expr) (b : Expr) (c : Name), c ∈ consts (mkPis pw Γ b) →
+theorem consts_mkPis :
+    ∀ (Γ : List Expr) (b : Expr) (c : Name), c ∈ consts (mkPis Γ b) →
       c ∈ consts b ∨ ∃ A ∈ Γ, c ∈ consts A
   | [], _, _, hc => Or.inl hc
   | A :: Γ, b, c, hc => by
     rw [mkPis_cons] at hc
-    rcases consts_mkPis pw Γ (pi A pw b) c hc with h | ⟨B, hB, hc⟩
+    rcases consts_mkPis Γ (pi A b) c hc with h | ⟨B, hB, hc⟩
     · rw [consts_pi, List.mem_append] at h
       rcases h with h | h
       · exact Or.inr ⟨A, List.mem_cons_self, h⟩
@@ -140,13 +140,13 @@ theorem consts_mkPis (pw : PropWhen) :
 
 /-- A `λ`-telescope mentions only the constants of its body and of its
 context's entries. -/
-theorem consts_mkLams (pw : PropWhen) :
-    ∀ (Γ : List Expr) (b : Expr) (c : Name), c ∈ consts (mkLams pw Γ b) →
+theorem consts_mkLams :
+    ∀ (Γ : List Expr) (b : Expr) (c : Name), c ∈ consts (mkLams Γ b) →
       c ∈ consts b ∨ ∃ A ∈ Γ, c ∈ consts A
   | [], _, _, hc => Or.inl hc
   | A :: Γ, b, c, hc => by
     rw [mkLams_cons] at hc
-    rcases consts_mkLams pw Γ (lam A pw b) c hc with h | ⟨B, hB, hc⟩
+    rcases consts_mkLams Γ (lam A b) c hc with h | ⟨B, hB, hc⟩
     · rw [consts_lam, List.mem_append] at h
       rcases h with h | h
       · exact Or.inr ⟨A, List.mem_cons_self, h⟩
@@ -165,28 +165,28 @@ theorem consts_varsAt (o n : Nat) : ∀ e ∈ varsAt o n, consts e = [] := by
   obtain ⟨j, _, rfl⟩ := he
   rfl
 
-/-- A `∀`-telescope uses the level parameters of its annotation, its
-context's entries and its body. -/
-theorem lparamsIn_mkPis {ps : List Name} {pw : PropWhen} (hpw : pw.paramsIn ps = true) :
+/-- A `∀`-telescope uses the level parameters of its context's entries
+and its body. -/
+theorem lparamsIn_mkPis {ps : List Name} :
     ∀ {Γ : List Expr} {b : Expr}, (∀ A ∈ Γ, lparamsIn ps A = true) →
-      lparamsIn ps b = true → lparamsIn ps (mkPis pw Γ b) = true
+      lparamsIn ps b = true → lparamsIn ps (mkPis Γ b) = true
   | [], _, _, hb => hb
   | A :: Γ, b, hΓ, hb => by
     rw [mkPis_cons]
-    refine lparamsIn_mkPis hpw (fun B hB => hΓ B (List.mem_cons_of_mem A hB)) ?_
-    rw [lparamsIn_pi, hΓ A List.mem_cons_self, hpw, hb]
+    refine lparamsIn_mkPis (fun B hB => hΓ B (List.mem_cons_of_mem A hB)) ?_
+    rw [lparamsIn_pi, hΓ A List.mem_cons_self, hb]
     rfl
 
-/-- A `λ`-telescope uses the level parameters of its annotation, its
-context's entries and its body. -/
-theorem lparamsIn_mkLams {ps : List Name} {pw : PropWhen} (hpw : pw.paramsIn ps = true) :
+/-- A `λ`-telescope uses the level parameters of its context's entries
+and its body. -/
+theorem lparamsIn_mkLams {ps : List Name} :
     ∀ {Γ : List Expr} {b : Expr}, (∀ A ∈ Γ, lparamsIn ps A = true) →
-      lparamsIn ps b = true → lparamsIn ps (mkLams pw Γ b) = true
+      lparamsIn ps b = true → lparamsIn ps (mkLams Γ b) = true
   | [], _, _, hb => hb
   | A :: Γ, b, hΓ, hb => by
     rw [mkLams_cons]
-    refine lparamsIn_mkLams hpw (fun B hB => hΓ B (List.mem_cons_of_mem A hB)) ?_
-    rw [lparamsIn_lam, hΓ A List.mem_cons_self, hpw, hb]
+    refine lparamsIn_mkLams (fun B hB => hΓ B (List.mem_cons_of_mem A hB)) ?_
+    rw [lparamsIn_lam, hΓ A List.mem_cons_self, hb]
     rfl
 
 /-- The lifting into a minor premise or a rule uses the same level
