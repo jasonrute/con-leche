@@ -81,6 +81,19 @@ variable {V : Type u} [SetLib V] (M : Name → List Nat → V) (φ : Name → Na
 
 /-! ## Products and abstractions over a context -/
 
+/-- A pair of a zip is a pair of the zip of the reversed lists. -/
+theorem _root_.List.mem_zip_reverse {α β : Type _} : ∀ {l₁ : List α} {l₂ : List β},
+    l₁.length = l₂.length → ∀ {p : α × β}, p ∈ l₁.zip l₂ → p ∈ l₁.reverse.zip l₂.reverse
+  | [], [], _, _, h => h
+  | a :: l₁, b :: l₂, hl, p, h => by
+    simp only [List.length_cons, Nat.add_right_cancel_iff] at hl
+    rw [List.reverse_cons, List.reverse_cons, List.zip_append (by simp [hl])]
+    rcases List.mem_cons.mp h with rfl | h
+    · exact List.mem_append_right _ (by simp)
+    · exact List.mem_append_left _ (List.mem_zip_reverse hl h)
+  | [], _ :: _, hl, _, _ => by simp at hl
+  | _ :: _, [], hl, _, _ => by simp at hl
+
 /-- The product over a context (innermost first), the body read under
 the environment the binders build: what `mkPis` denotes. -/
 def piCtx (p : Bool) : (Nat → V) → List Expr → ((Nat → V) → V) → V
@@ -143,6 +156,23 @@ theorem CtxTy_cons (ρ : Nat → V) (A : Expr) (Γ : List Expr) :
 theorem CtxWD.ty : ∀ {ρ : Nat → V} {Γ : List Expr}, CtxWD M φ ρ Γ → CtxTy M φ ρ Γ
   | _, [], _ => trivial
   | _, _ :: _, h => ⟨CtxWD.ty h.1, fun vs hvs => (h.2 vs hvs).2⟩
+
+/-- **Fitting values compared where neither is the point are equal**:
+the two lists fit one context of types, so position by position, under
+equal earlier values, the two values lie in one type — whose members
+are all the point or none of them (`IsTy.eq_of_ne_pt`). -/
+theorem FitsVals_eq_of_cond : ∀ {ρ : Nat → V} {Γ : List Expr} {vs ws : List V},
+    CtxTy M φ ρ Γ → FitsVals M φ ρ Γ vs → FitsVals M φ ρ Γ ws →
+    (∀ p ∈ vs.zip ws, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) → vs = ws
+  | _, [], [], [], _, _, _, _ => rfl
+  | _, A :: Γ, v :: vs, w :: ws, hT, hv, hw, h => by
+    have ih := FitsVals_eq_of_cond hT.1 hv.1 hw.1 fun p hp => h p (List.mem_cons_of_mem _ hp)
+    subst ih
+    rw [(hT.2 vs hv.1).eq_of_ne_pt hv.2 hw.2 (h (v, w) List.mem_cons_self)]
+  | _, [], _ :: _, _, _, hv, _, _ => hv.elim
+  | _, [], [], _ :: _, _, _, hw, _ => hw.elim
+  | _, _ :: _, [], _, _, hv, _, _ => hv.elim
+  | _, _ :: _, _ :: _, [], _, _, hw, _ => hw.elim
 
 theorem FitsVals_length : ∀ {ρ : Nat → V} {Γ : List Expr} {vs : List V},
     FitsVals M φ ρ Γ vs → vs.length = Γ.length := by

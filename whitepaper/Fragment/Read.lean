@@ -113,6 +113,17 @@ theorem FitsVals_congr₂ {M M' : Name → List Nat → V} {φ φ' : Name → Na
       have hf' := (FitsVals_congr₂ hΓ).mpr hf
       exact ⟨hf', by rwa [hA vs hf']⟩
 
+/-- Types are read alike under agreeing readings. -/
+theorem CtxAgree.ty {M M' : Name → List Nat → V} {φ φ' : Name → Nat} {ρ ρ' : Nat → V} :
+    ∀ {Γ : List Expr}, CtxAgree M M' φ φ' ρ ρ' Γ → CtxTy M φ ρ Γ → CtxTy M' φ' ρ' Γ
+  | [], _, _ => trivial
+  | A :: Γ, h, hT => by
+    obtain ⟨h₁, h₂⟩ := CtxAgree_cons h
+    refine ⟨CtxAgree.ty h₁ hT.1, fun vs hvs => ?_⟩
+    have hvs' := (FitsVals_congr₂ h₁).mpr hvs
+    rw [← h₂ vs hvs']
+    exact hT.2 vs hvs'
+
 theorem piCtx_congr₂ {M M' : Name → List Nat → V} {φ φ' : Name → Nat} {ρ ρ' : Nat → V} {p : Bool} :
     ∀ {Γ : List Expr}, CtxAgree M M' φ φ' ρ ρ' Γ →
       ∀ {F G : (Nat → V) → V},
