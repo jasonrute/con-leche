@@ -1,7 +1,6 @@
 module
 
 import ConLeche.Semantics.WellDenoted
-import ConLeche.Semantics.Univ
 public import ConLeche.Semantics.BasisOk
 
 @[expose] public section
