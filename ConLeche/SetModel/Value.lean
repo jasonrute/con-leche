@@ -359,7 +359,10 @@ The least pre-fixed point of a functor on FAMILIES over an index set `I`
 `I → Sort w` is `piR (w + 1) I (fun _ => univ w)` — bit `w + 1`, the
 codomain's sort, so a graph at every regime; the functor space is the
 arrow over it at the sort `max u (w + 1)` of `I → Sort w`.  Total: the
-value is a member of the family space for EVERY functor. -/
+value is a member of the family space for EVERY functor — indeed a
+type-valued family (`famSpace`), which this space contains until
+stage 1b of task #342 makes `univ w` the restricted universe and the
+two coincide. -/
 
 /-- `I → Sort w`, the family space. -/
 noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piR (w + 1) I fun _ => univ w
@@ -381,7 +384,7 @@ theorem max_succ_ne_zero (u w : Nat) : Nat.max u (w + 1) ≠ 0 := by
 theorem lfpFamSet_mem_space (w : Nat) (I F : V) : lfpFamSet w I F ∈ˢ lfpFamSpace V w I := by
   unfold lfpFamSpace
   rw [piR_pos (Nat.succ_ne_zero w)]
-  exact lfpFamSet_mem w I F
+  exact mem_piSet_univ_of_famSpace (lfpFamSet_mem w I F)
 
 theorem lfpFamV_mem (u w : Nat) :
     lfpFamV V u w ∈ˢ piR (Nat.max u (w + 1)) (univ u : V) fun I =>
@@ -525,7 +528,8 @@ theorem lfpTuple_mkTower_mem (k : Nat) (us : List Nat) (Is Φ : V) :
   show lfpTuple (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i
     ∈ˢ lfpFamSpace V (lv us k) (projS (0 + i) Is)
   rw [lfpFamSpace, piR_pos (Nat.succ_ne_zero _), Nat.zero_add]
-  exact lfpTuple_mem (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i hi
+  exact mem_piSet_univ_of_famSpace
+    (lfpTuple_mem (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i hi)
 
 theorem lfpTupleV_app {k : Nat} {us : List Nat} {Is F : V}
     (hIs : Is ∈ˢ tupleSortsSpace V k us)
