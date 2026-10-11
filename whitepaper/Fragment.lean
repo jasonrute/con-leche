@@ -46,5 +46,6 @@ public import Fragment.Motive
 public import Fragment.Sound
 public import Fragment.UniformBeta
 public import Fragment.Unannot
+public import Fragment.Probe
 public import Fragment.Consistency
 public import Fragment.Axioms

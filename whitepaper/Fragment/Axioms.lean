@@ -5,6 +5,7 @@ public import Fragment.Install
 public import Fragment.Access
 public import Fragment.UniformBeta
 public import Fragment.Unannot
+public import Fragment.Probe
 
 public section
 
@@ -218,3 +219,43 @@ info: 'Fragment.IndSpec.adm_Fam_of' depends on axioms: [propext, Classical.choic
 info: 'Fragment.IndSpec.class_reading' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.IndSpec.class_reading
+
+/--
+info: 'Fragment.DefEq.lamProp_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.lamProp_sound
+
+/--
+info: 'Fragment.DefEq.lamConst_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.lamConst_sound
+
+/--
+info: 'Fragment.DefEq.appIn_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.appIn_sound
+
+/--
+info: 'Fragment.DefEqIn.lam_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEqIn.lam_sound
+
+/--
+info: 'Fragment.DefEqIn.eta_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEqIn.eta_sound
+
+/--
+info: 'Fragment.lam_congr_sorts_unsound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.lam_congr_sorts_unsound
+
+/--
+info: 'Fragment.mixed_lam' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.mixed_lam
+
+/--
+info: 'Fragment.piV_const_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.piV_const_one
