@@ -4,7 +4,7 @@ public import Fragment.Consistency
 public import Fragment.Install
 public import Fragment.Access
 public import Fragment.UniformBeta
-public import Fragment.Ghost
+public import Fragment.Unannot
 
 public section
 
@@ -28,16 +28,6 @@ info: 'Fragment.soundness' depends on axioms: [propext, Classical.choice, Quot.s
 info: 'Fragment.closed_infer' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.closed_infer
-
-/--
-info: 'Fragment.PropWhen.eq_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in #print axioms Fragment.PropWhen.eq_iff
-
-/--
-info: 'Fragment.Level.holds_zeroness' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in #print axioms Fragment.Level.holds_zeroness
 
 /--
 info: 'Fragment.install_def' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -180,16 +170,6 @@ info: 'Fragment.Red.iota_core' depends on axioms: [propext, Classical.choice, Qu
 #guard_msgs in #print axioms Fragment.Red.iota_core
 
 /--
-info: 'Fragment.pi_congr_without_datum' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in #print axioms Fragment.pi_congr_without_datum
-
-/--
-info: 'Fragment.lam_datum_from_type' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in #print axioms Fragment.lam_datum_from_type
-
-/--
 info: 'Fragment.DefEq.lam_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.DefEq.lam_sound
@@ -205,16 +185,36 @@ info: 'Fragment.DefEq.pi_sound' depends on axioms: [propext, Classical.choice, Q
 #guard_msgs in #print axioms Fragment.DefEq.pi_sound
 
 /--
-info: 'Fragment.SetLib.piR_eq_of_mem_typeU' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Fragment.lam_congr_untyped_unsound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms Fragment.SetLib.piR_eq_of_mem_typeU
+#guard_msgs in #print axioms Fragment.lam_congr_untyped_unsound
 
 /--
-info: 'Fragment.pi_over_false_sorts' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Fragment.SetLib.lamV_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms Fragment.pi_over_false_sorts
+#guard_msgs in #print axioms Fragment.SetLib.lamV_mem
 
 /--
-info: 'Fragment.codomain_claims_vacuous' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Fragment.SetLib.lamV_eta' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms Fragment.codomain_claims_vacuous
+#guard_msgs in #print axioms Fragment.SetLib.lamV_eta
+
+/--
+info: 'Fragment.SetLib.piV_mem_typeU' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.SetLib.piV_mem_typeU
+
+/--
+info: 'Fragment.piV_empty_not_strict' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.piV_empty_not_strict
+
+/--
+info: 'Fragment.IndSpec.adm_Fam_of' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.adm_Fam_of
+
+/--
+info: 'Fragment.IndSpec.class_reading' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.class_reading

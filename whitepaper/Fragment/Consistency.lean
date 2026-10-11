@@ -107,27 +107,24 @@ theorem no_empty_inductive_inhabitant {env : Env} (hacc : Accepted env) {S : Ind
   have hℓ : Level.eval (fun _ => 0) S.ℓ = 0 := by
     unfold IndSpec.ℓ
     split <;> rfl
-  have hq : S.qv (fun _ => 0) = true := by
-    rw [S.q_holds, hℓ]
-    rfl
   -- the recursor's type, read: `∀ (motive : I → Sort 0) (t : I), motive t`
   simp only [IndSpec.recType, IndSpec.famVars, IndSpec.famAt, IndSpec.indicesAt, IndSpec.minorsCtx,
     IndSpec.motiveTy, IndSpec.n, IndSpec.nI, IndSpec.nP, IndSpec.lvls, hctors, hparams, hidx, hlp,
     Expr.varsAt, List.range_zero, List.map_nil, List.length_nil, Expr.liftCtx_nil, List.reverse_nil,
     List.nil_append, List.append_nil, List.singleton_append, Expr.mkAppN, List.foldl_cons,
     List.foldl_nil, Expr.mkPis, interp_app, interp_bvar,
-    interp_pi, interp_sort, interp_const, PropWhen.holds_never, hq, hℓ, Nat.add_zero, cons_zero,
+    interp_pi, interp_sort, interp_const, hℓ, Nat.add_zero, cons_zero,
     cons_succ] at hR
   -- the motive with the empty fibre
-  have hmo : lamR false (m.M S.name []) (fun _ => truthVal False) ∈ˢ
-      piR false (m.M S.name []) fun _ => (typeU 0 : V) :=
-    lamR_mem (fun _ _ => mem_typeU_zero.mpr (truthVal_mem_univ_zero _)) fun h => nomatch h
-  have h₁ := app_mem_piR hR hmo
+  have hmo : lamV (m.M S.name []) (fun _ => truthVal False) ∈ˢ
+      piV (m.M S.name []) fun _ => (typeU 0 : V) :=
+    lamV_mem (fun _ _ => mem_typeU_zero.mpr (truthVal_mem_univ_zero _)) fun _ _ => IsTy_typeU 0
+  have h₁ := app_mem_piV hR hmo
   -- a member of the type would be a member of the empty set
   have ht := closed_infer m.toEnvModel (fun _ => 0) he base
   simp only [interp_const, List.map_nil] at ht
-  have h₂ := app_mem_piR h₁ ht
-  rw [app_lamR_false ht] at h₂
+  have h₂ := app_mem_piV h₁ ht
+  rw [app_lamV ht] at h₂
   exact of_mem_truthVal h₂
 
 include V in
