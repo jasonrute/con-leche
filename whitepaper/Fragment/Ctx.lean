@@ -350,6 +350,19 @@ theorem WellDenoted_mkPis (pw : PropWhen) (Γ : List Expr) (b : Expr) (ρ : Nat 
       · rw [interp_pi]
         exact Fib_piR
 
+/-- A product over a context is a type when its body is, at the empty
+context; over a nonempty one it is one outright (`IsTy_piR`). -/
+theorem IsTy_interp_mkPis (pw : PropWhen) :
+    ∀ {Γ : List Expr} {b : Expr} {ρ : Nat → V}, (Γ = [] → IsTy (interp M φ ρ b)) →
+      IsTy (interp M φ ρ (Expr.mkPis pw Γ b))
+  | [], _, _, h => h rfl
+  | A :: Γ, b, ρ, _ => by
+    rw [Expr.mkPis_cons]
+    cases Γ with
+    | nil => simp only [Expr.mkPis_nil, interp_pi]; exact IsTy_piR
+    | cons B Γ' =>
+      exact IsTy_interp_mkPis pw (Γ := B :: Γ') (b := .pi A pw b) fun h => by cases h
+
 /-- **An abstraction against its product**: if the product is
 well-denoted and the body lands in the product's body under every
 fitting environment, the abstraction is well-denoted and a member of

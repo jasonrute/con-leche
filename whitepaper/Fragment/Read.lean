@@ -1298,7 +1298,7 @@ theorem Reader₂.minorOk (hS : S.Scoped env) (R₂ : S.Reader₂ (env := env) M
         (S.idxVals M (S.lparams.map φ) (consList fs (envP ps)) c.idx))
     (hmot : ∀ is, FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
       ∀ t, t ∈ˢ S.Fam M (S.lparams.map φ) ps is →
-        appList m (is.reverse ++ [t]) ∈ˢ (univ (Level.eval φ' S.ℓ) : V))
+        appList m (is.reverse ++ [t]) ∈ˢ (typeU (Level.eval φ' S.ℓ) : V))
     (hnr : S.NoRecDep) (hb : S.DomsBounded M (S.lparams.map φ) ps)
     {mj : V} (hmem : mj ∈ˢ interp M' φ' (consList minsE (cons m (consList ps ρ))) (S.minorTy c j))
     (hwm : WellDenoted M' φ' (consList minsE (cons m (consList ps ρ))) (S.minorTy c j)) :
@@ -1377,7 +1377,7 @@ theorem Reader₂.minorOk (hS : S.Scoped env) (R₂ : S.Reader₂ (env := env) M
       rw [consList_append, hconcl fs' ihsR hf' hi' hfit']
       have hz := (S.q_holds φ')
       rw [hq, Bool.true_eq, beq_iff_eq] at hz
-      rw [← hz]
+      rw [← mem_typeU_zero, ← hz]
       exact hmot _ (hres fs' hfit') _
         (S.ctorVal_mem_Fam M _ hnr hb (S.contOk_of_plain M _ hpl ps) hc hfit')
   have key := appList_mem_of_piCtx M' φ' hmem hfitAll

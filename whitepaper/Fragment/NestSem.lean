@@ -33,7 +33,7 @@ blocks, the content of the paper's nested section:
   `ContClause.mono`): the support in the smaller set is in the larger
   — no separate monotonicity proof;
 * the class at the one-fibre set is inhabited when the class is
-  inhabited at all (`Fam_psK_inhab_one`): by induction over the
+  inhabited at all (`Fam_psK_inhab`): by induction over the
   container's family, every constructor instance has a counterpart
   at `{pt}` — the parameter fields replaced by the point, the recursive
   fields by the counterparts the induction supplies, the ordinary
@@ -670,33 +670,35 @@ theorem Fam_psK_mono (hf : S.NestFacts M ls N) (hN : S.nest = some N) {ps : List
 
 /-! ## The class at the one-fibre set -/
 
-/-- **The container's family at the one-fibre set is inhabited when
-the family at any parameter set of the universe is**: by induction over
-the family, every constructor instance has a counterpart at `{pt}`
-— the parameter fields replaced by the point, the recursive fields by
-the counterparts the induction supplies, the ordinary fields kept. -/
-theorem Fam_psK_inhab_one (hf : S.NestFacts M ls N) {ps : List V}
-    (hp : FitsVals M (S.ψ ls) base S.params ps) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V))
+/-- **The container's family at an inhabited parameter set is
+inhabited when the family at any parameter set of the universe is**:
+by induction over the family, every constructor instance has a
+counterpart at `Y` — the parameter fields replaced by a member of `Y`,
+the recursive fields by the counterparts the induction supplies, the
+ordinary fields kept. -/
+theorem Fam_psK_inhab (hf : S.NestFacts M ls N) {ps : List V}
+    (hp : FitsVals M (S.ψ ls) base S.params ps) {X Y y : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V))
+    (hY : Y ∈ˢ (univ (S.u₀ ls) : V)) (hy : y ∈ˢ Y)
     (hex : ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) []) :
-    ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one) [] := by
+    ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y) [] := by
   obtain ⟨v, hv⟩ := hex
   have hbX := hf.domsBoundedK hp hX
-  have hb1 := hf.domsBoundedK hp (one_mem_univ _)
-  have hco1 := hf.contOkK (S.psK M ls N ps one)
+  have hb1 := hf.domsBoundedK hp hY
+  have hco1 := hf.contOkK (S.psK M ls N ps Y)
   refine N.KS.Fam_induction M _ hf.noRecDep hbX (hf.contOkK _)
-    (fun _ _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one) []) ?_ [] v hv
+    (fun _ _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y) []) ?_ [] v hv
   intro is x hs
   obtain ⟨j, c, fs, hc, hfit, -, rfl⟩ := hs
   have hcm := List.mem_of_getElem? hc
   obtain ⟨hpos, hnr⟩ := S.fieldPos_of hf hcm
   classical
   -- the counterpart's fields: the point at the parameter fields, a counterpart at the recursive ones
-  let W₁ : List V → V := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one)
+  let W₁ : List V → V := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y)
   suffices key : ∀ (L : List Field) (vs : List V),
       (∀ i f, L[i]? = some f → N.FieldPos L i f) →
       N.KS.FitsFields M (S.lsK ls N) (fun is' => sep (N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) is')
-        fun _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one) []) (S.psK M ls N ps X) L vs →
-      ∃ vs', Repl N one W₁ L vs vs' by
+        fun _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y) []) (S.psK M ls N ps X) L vs →
+      ∃ vs', Repl N Y W₁ L vs vs' by
     obtain ⟨fs', hrepl⟩ := key c.fields fs hpos hfit
     have hfit' := S.FitsFields_psK_repl hf hpos hnr hfit hrepl
     refine ⟨N.KS.ctorVal (S.lsK ls N) j fs', ?_⟩
@@ -722,7 +724,7 @@ theorem Fam_psK_inhab_one (hf : S.NestFacts M ls N) {ps : List V}
         simp only [NestInfo.FieldPos, List.length_cons, Nat.add_sub_cancel, Nat.sub_zero] at hFP
         rcases hFP with hA | ⟨hA, -⟩
         · subst hA
-          exact ⟨pt :: vs', hvs', by simp [N.isMember_self, mem_one]⟩
+          exact ⟨y :: vs', hvs', by simp [N.isMember_self, hy]⟩
         · exact ⟨v :: vs', hvs', by simp [N.isMember_eq_false_of_usesVar hA, Field.isRec]⟩
       | reflexive tele es =>
         obtain ⟨rfl, rfl⟩ := hFP
@@ -739,7 +741,7 @@ theorem Fam_psK_inhab_one (hf : S.NestFacts M ls N) {ps : List V}
 instantiation (`classSet_eq_Fam`), which lies in the result universe
 (`Fam_mem_univ`, N3), is accessible with the class's bound
 (`Fam_psK_acc`, in both regimes), and is inhabited at the one-fibre
-set when inhabited at all (`Fam_psK_inhab_one`).  That it grows with
+set when inhabited at all (`Fam_psK_inhab`).  That it grows with
 the parameter set follows (`ContClause.mono`). -/
 theorem contClause_of (hf : S.NestFacts M ls N) (hN : S.nest = some N) {ps : List V}
     (hp : FitsVals M (S.ψ ls) base S.params ps) : S.ContClause M ls N ps where
@@ -752,10 +754,10 @@ theorem contClause_of (hf : S.NestFacts M ls N) (hN : S.nest = some N) {ps : Lis
     refine ⟨B, g, hB, hg, fun X' hX' h' => ?_⟩
     rw [S.classSet_eq_Fam hf hp hX']
     exact hs X' hX' h'
-  inhab_one := fun X hX hex => by
+  inhab := fun X Y hX hY ⟨y, hy⟩ hex => by
     rw [S.classSet_eq_Fam hf hp hX] at hex
-    rw [S.classSet_eq_Fam hf hp (one_mem_univ _)]
-    exact S.Fam_psK_inhab_one hf hp hX hex
+    rw [S.classSet_eq_Fam hf hp hY]
+    exact S.Fam_psK_inhab hf hp hX hY hy hex
 
 /-- **The container's clause holds** for a nested block, at every
 fitting parameter list. -/

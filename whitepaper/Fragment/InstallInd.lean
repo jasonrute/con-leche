@@ -112,8 +112,7 @@ theorem reader₃ (hok : S.Ok env) (M : Name → List Nat → V) (φ : Name → 
     { agree := agree_M₃ hok M
       fam := fun ls' => by
         simp [M₃, M₂, M₁, M₁F, hok.name_ne_rec, hok.ctorOf?_name]
-      val := fun _ _ => rfl
-      mem := fun ls' ps is => S.Fam_mem_univ M ls' ps is }
+      val := fun _ _ => rfl }
   ctor := fun j c hc ls' => by
     simp [M₃, M₂, hok.ctor_ne_rec hc, S.ctorOf?_of_getElem? hok.nodup_ctors hc]
 
@@ -131,8 +130,7 @@ theorem reader₂ (hok : S.Ok env) (M : Name → List Nat → V) (φ : Name → 
         rwa [ite_eq_right hne] at h₃
       fam := fun ls' => by
         simp [M₂, M₁, M₁F, hok.ctorOf?_name]
-      val := hφ
-      mem := fun ls' ps is => S.Fam_mem_univ M ls' ps is }
+      val := hφ }
   ctor := fun j c hc ls' => by
     simp [M₂, S.ctorOf?_of_getElem? hok.nodup_ctors hc]
 
@@ -147,77 +145,6 @@ theorem lparams_map_substVal (hok : S.Ok env) (φ : Name → Nat) {ls : List Lev
 
 variable (hpl : S.nest = none) (hs : Env.Scoped env) (m : EnvModel V env) (hok : S.Ok env)
 include hpl hs m hok
-
-/-- The old model at the final assignment. -/
-noncomputable def m₃ : EnvModel V env := m.transport hs (S.M₃ m.M) (agree_M₃ hok m.M)
-
-omit hpl in
-theorem m₃_M : (m₃ hs m hok).M = S.M₃ m.M := rfl
-
-omit hpl in
-/-- **The former's type law**: its type is well-denoted and its set is
-a member. -/
-theorem type_ok_ind (φ : Name → Nat) (ρ : Nat → V) {ls : List Level}
-    (hls : ls.length = S.indInfo.lparams.length) :
-    WellDenoted (S.M₃ m.M) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) ∧
-    S.M₃ m.M S.name (ls.map (Level.eval φ)) ∈ˢ
-      interp (S.M₃ m.M) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) := by
-  obtain ⟨T, hT⟩ := hok.2.2.2.1
-  simp only [indInfo] at hls ⊢
-  have hsound := (infer_sound (m := m₃ hs m hok) (φ := Level.substVal φ S.lparams ls) hT ρ
-    (Sat_nil _ _ _)).1
-  rw [m₃_M] at hsound
-  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr hsound, ?_⟩
-  rw [interp_instL, (reader₃ hok m.M φ).R.fam, ← lparams_map_substVal hok φ hls]
-  exact (reader₃ hok m.M (Level.substVal φ S.lparams ls)).R.famSet_mem hok.scoped ρ
-
-/-- The environment with the former has a model at the final
-assignment. -/
-noncomputable def mInd : EnvModel V (S.envInd env) where
-  M := S.M₃ m.M
-  type_ok := fun c ci hfind φ ρ ls hls => by
-    rw [S.envInd_find?] at hfind
-    split at hfind
-    · rename_i h
-      subst h
-      cases hfind
-      exact type_ok_ind hs m hok φ ρ hls
-    · exact (m₃ hs m hok).type_ok c ci hfind φ ρ ls hls
-  unfold := fun c ci v hfind hv φ ρ ls hls => by
-    rw [S.envInd_find?] at hfind
-    split at hfind
-    · cases hfind; simp [indInfo, ConstInfo.value?, ConstKind.value?] at hv
-    · exact (m₃ hs m hok).unfold c ci v hfind hv φ ρ ls hls
-  rec_rules := fun c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij => by
-    rw [S.envInd_find?] at hfind
-    split at hfind
-    · cases hfind; simp [indInfo] at hkind
-    · rw [S.envInd_find?] at hcij
-      split at hcij
-      · rename_i h
-        -- the constructor of a stored rule is stored, so it is not the fresh former
-        exfalso
-        have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
-        rw [h, hok.freshI] at this
-        simp at this
-      · exact (m₃ hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
-  rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
-      hcij hcijk => by
-    rw [S.envInd_find?] at hfind
-    split at hfind
-    · cases hfind; simp [indInfo] at hkind
-    · rw [S.envInd_find?] at hcij
-      split at hcij
-      · rename_i h
-        exfalso
-        have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
-        rw [h, hok.freshI] at this
-        simp at this
-      · exact (m₃ hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
-          hinst cij I nPc nf hcij hcijk
-
-omit hpl in
-theorem mInd_M : (mInd hs m hok).M = S.M₃ m.M := rfl
 
 /-! ## The model with the former assigned any family of the universe
 
@@ -243,34 +170,42 @@ theorem agree_M₁F (M : Name → List Nat → V) (F : List Nat → List V → L
 
 omit hpl hs m in
 /-- That assignment is a reader of the block at the family `F`. -/
-theorem readerF (M : Name → List Nat → V) (F : List Nat → List V → List V → V)
-    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (univ (S.u₀ ls') : V)) (φ : Name → Nat) :
+theorem readerF (M : Name → List Nat → V) (F : List Nat → List V → List V → V) (φ : Name → Nat) :
     S.Reader (env := env) M φ F (S.M₁F M F) φ where
   agree := agree_M₁F hok M F
   fam := fun ls' => by simp [M₁F]
   val := fun _ _ => rfl
-  mem := hF
+
+omit [LevelOracle] hpl hs m hok in
+/-- The former's type is a type: a product, or a sort. -/
+theorem IsTy_indType (S : IndSpec) (M' : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) :
+    IsTy (interp M' φ ρ S.indType) := by
+  unfold indType
+  exact IsTy_interp_mkPis M' φ _ fun _ => by rw [interp_sort]; exact IsTy_typeU _
 
 omit hpl in
-/-- **The former's type law at any family of the universe.** -/
+/-- **The former's type law at any family of types.** -/
 theorem type_ok_indF (F : List Nat → List V → List V → V)
-    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (univ (S.u₀ ls') : V)) (φ : Name → Nat) (ρ : Nat → V)
+    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V)) (φ : Name → Nat) (ρ : Nat → V)
     {ls : List Level} (hls : ls.length = S.indInfo.lparams.length) :
     WellDenoted (S.M₁F m.M F) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) ∧
+    IsTy (interp (S.M₁F m.M F) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls)) ∧
     S.M₁F m.M F S.name (ls.map (Level.eval φ)) ∈ˢ
       interp (S.M₁F m.M F) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) := by
   obtain ⟨T, hT⟩ := hok.2.2.2.1
   simp only [indInfo] at hls ⊢
   have hsound := (infer_sound (m := m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F))
     (φ := Level.substVal φ S.lparams ls) hT ρ (Sat_nil _ _ _)).1
-  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr hsound, ?_⟩
-  rw [interp_instL, (readerF hok m.M F hF φ).fam, ← lparams_map_substVal hok φ hls]
-  exact (readerF hok m.M F hF (Level.substVal φ S.lparams ls)).famSet_mem hok.scoped ρ
+  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr hsound, by rw [interp_instL]; exact IsTy_indType _ _ _ _,
+    ?_⟩
+  rw [interp_instL, (readerF hok m.M F φ).fam, ← lparams_map_substVal hok φ hls]
+  exact (readerF hok m.M F (Level.substVal φ S.lparams ls)).famSet_mem hok.scoped
+    (fun ps is _ _ => hF _ ps is) ρ
 
 /-- **The environment with the former has a model for every family of
 the universe**, the former its graph. -/
 noncomputable def mIndF (F : List Nat → List V → List V → V)
-    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (univ (S.u₀ ls') : V)) : EnvModel V (S.envInd env) where
+    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V)) : EnvModel V (S.envInd env) where
   M := S.M₁F m.M F
   type_ok := fun c ci hfind φ ρ ls hls => by
     rw [S.envInd_find?] at hfind
@@ -315,7 +250,7 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
 
 omit hpl in
 theorem mIndF_M (F : List Nat → List V → List V → V)
-    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (univ (S.u₀ ls') : V)) :
+    (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V)) :
     (mIndF hs m hok F hF).M = S.M₁F m.M F := rfl
 
 omit hpl hs m in
@@ -325,12 +260,6 @@ theorem wd_ctorType_of (mX : EnvModel V (S.envInd env)) {c : CtorSpec} (hc : c �
     (φ : Name → Nat) (ρ : Nat → V) : WellDenoted mX.M φ ρ (S.ctorType c) := by
   obtain ⟨T, hT⟩ := (hok.2.2.2.2.1 c hc).1
   exact (infer_sound (m := mX) (φ := φ) hT ρ (Sat_nil _ _ _)).1
-
-omit hpl in
-/-- A constructor's type is well-denoted at every valuation. -/
-theorem wd_ctorType {c : CtorSpec} (hc : c ∈ S.ctors) (φ : Name → Nat) (ρ : Nat → V) :
-    WellDenoted (S.M₃ m.M) φ ρ (S.ctorType c) :=
-  wd_ctorType_of hok (mInd hs m hok) hc φ ρ
 
 /-! ## The domains met along a fitting instance are members -/
 
@@ -391,7 +320,7 @@ theorem CtxWD_getElem? (M' : Name → List Nat → V) (φ : Name → Nat) {ρ : 
   | B :: Γ, 0, A, hwd, hA, vs, hvs => by
     simp at hA; subst hA
     rw [CtxWD_cons] at hwd
-    exact hwd.2 vs hvs
+    exact (hwd.2 vs hvs).1
   | _ :: Γ, i + 1, A, hwd, hA, vs, hvs => by
     rw [CtxWD_cons] at hwd
     exact CtxWD_getElem? M' φ (Γ := Γ) (i := i) hwd.1 (by simpa using hA) vs hvs
@@ -415,18 +344,10 @@ theorem univ_of_sort_of (mX : EnvModel V (S.envInd env)) {Γ : List Expr} {A s :
     (hI : Infer (S.envInd env) Γ A s) (hR : Red (S.envInd env) Γ s (.sort v)) (φ : Name → Nat)
     {ρ : Nat → V} (hsat : Sat mX.M φ Γ ρ) :
     interp mX.M φ ρ A ∈ˢ (univ (Level.eval φ v) : V) := by
-  obtain ⟨-, hws, hmem⟩ := infer_sound (m := mX) (φ := φ) hI ρ hsat
-  obtain ⟨-, heq⟩ := red_sound (m := mX) (φ := φ) hR ρ hsat hws
+  obtain ⟨-, hws, hTs, hmem⟩ := infer_sound (m := mX) (φ := φ) hI ρ hsat
+  obtain ⟨-, heq⟩ := red_sound (m := mX) (φ := φ) hR ρ hsat hws hTs.ne_pt
   rw [heq, interp_sort] at hmem
-  exact hmem
-
-omit hpl in
-/-- The universe bound in the final model. -/
-theorem univ_of_sort {Γ : List Expr} {A s : Expr} {v : Level}
-    (hI : Infer (S.envInd env) Γ A s) (hR : Red (S.envInd env) Γ s (.sort v)) (φ : Name → Nat)
-    {ρ : Nat → V} (hsat : Sat (S.M₃ m.M) φ Γ ρ) :
-    interp (S.M₃ m.M) φ ρ A ∈ˢ (univ (Level.eval φ v) : V) :=
-  univ_of_sort_of (mInd hs m hok) hI hR φ hsat
+  exact mem_univ_of_mem_typeU hmem
 
 /-- **The universe bound on the fields, at every family of the result
 universe**: a family `W` of members of the universe becomes the
@@ -438,19 +359,34 @@ values fitting the earlier fields, bound the field's set.  Con-leche:
 theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps : ps.length = S.nP)
     (hp : FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps) :
     S.DomsBounded m.M (S.lparams.map φ) ps := by
-  intro hz W hW c hc k f hpos hk fs hfs
   classical
-  -- the family with `W` at the block's levels and parameters, `{pt}` elsewhere
+  -- one strict inhabited set: a singleton of a tagged value
+  let Y : V := sing (tag 0 empty)
+  have hYs : Strict Y := ⟨fun he => by
+      obtain ⟨z, hz⟩ := exists_mem_pt (V := V)
+      rw [← he] at hz
+      have := mem_sing.mp hz
+      rw [this, he] at hz
+      exact tag_not_mem_pt hz,
+    fun h => tag_ne_pt (mem_sing.mp h).symm⟩
+  have hYu : ∀ n, n ≠ 0 → Y ∈ˢ (univ n : V) := fun n hn =>
+    sing_mem_univ hn (tag_mem_univ hn (empty_mem_univ n))
+  refine S.domsBounded_of_fam m.M _ (fun c hc => (hok.scoped.2.2.2.1 c hc).2.1)
+    (S.contOk_of_plain m.M _ hpl ps) (Y := Y) (y := tag 0 empty)
+    (fun hz => hYu _ (S.u₀_ne_zero _ hz)) (mem_sing.mpr rfl) ?_
+  intro hz c hc k f hpos hk fs hfs
+  -- the family `Y` above a proposition, `{pt}` at one: a family of types
   let F : List Nat → List V → List V → V :=
-    fun ls' ps' is => if ls' = S.lparams.map φ ∧ ps' = ps then W is else one
-  have hF : ∀ ls' ps' is, F ls' ps' is ∈ˢ (univ (S.u₀ ls') : V) := by
+    fun ls' _ _ => if S.u₀ ls' = 0 then one else Y
+  have hF : ∀ ls' ps' is, F ls' ps' is ∈ˢ (typeU (S.u₀ ls') : V) := by
     intro ls' ps' is
     simp only [F]
     split
-    · rename_i h; rw [h.1]; exact hW is
-    · exact one_mem_univ _
-  have hFps : F (S.lparams.map φ) ps = W := by funext is; simp [F]
-  have R := readerF hok m.M F hF φ
+    · rename_i h; rw [h, mem_typeU_zero]; exact one_mem_univ_zero
+    · rename_i h; exact (mem_typeU_pos h).mpr ⟨hYu _ h, hYs⟩
+  have hFps : F (S.lparams.map φ) ps = constFam Y := by
+    funext is; simp [F, constFam, S.u₀_ne_zero _ hz]
+  have R := readerF hok m.M F φ
   have hS := hok.scoped
   -- the constructor's type is well-denoted in that model: its contexts are
   have hwd := wd_ctorType_of hok (mIndF hs m hok F hF) hc φ ρ
@@ -547,6 +483,95 @@ theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps :
         (by simp [hyl, hl, hps]; omega), consList_append] at hmem
     exact univ_mono (hbound hb) hmem
 
+/-! ## The model of the environment with the former, at the final assignment -/
+
+/-- The old model at the final assignment. -/
+noncomputable def m₃ : EnvModel V env := m.transport hs (S.M₃ m.M) (agree_M₃ hok m.M)
+
+omit hpl in
+theorem m₃_M : (m₃ hs m hok).M = S.M₃ m.M := rfl
+
+/-- **The former's type law**: its type is a well-denoted type and its
+set is a member — the fibres are types (`Fam_mem_typeU`). -/
+theorem type_ok_ind (φ : Name → Nat) (ρ : Nat → V) {ls : List Level}
+    (hls : ls.length = S.indInfo.lparams.length) :
+    WellDenoted (S.M₃ m.M) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) ∧
+    IsTy (interp (S.M₃ m.M) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls)) ∧
+    S.M₃ m.M S.name (ls.map (Level.eval φ)) ∈ˢ
+      interp (S.M₃ m.M) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) := by
+  obtain ⟨T, hT⟩ := hok.2.2.2.1
+  simp only [indInfo] at hls ⊢
+  have hsound := (infer_sound (m := m₃ hs m hok) (φ := Level.substVal φ S.lparams ls) hT ρ
+    (Sat_nil _ _ _)).1
+  rw [m₃_M] at hsound
+  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr hsound, by rw [interp_instL]; exact IsTy_indType _ _ _ _,
+    ?_⟩
+  rw [interp_instL, (reader₃ hok m.M φ).R.fam, ← lparams_map_substVal hok φ hls]
+  refine (reader₃ hok m.M (Level.substVal φ S.lparams ls)).R.famSet_mem hok.scoped
+    (fun ps is hp _ => ?_) ρ
+  have hps : ps.length = S.nP := by have := FitsVals_length _ _ hp; simpa [nP] using this
+  exact S.Fam_mem_typeU m.M _ (fun c hc => (hok.scoped.2.2.2.1 c hc).2.1)
+    (domsBounded_of hpl hs m hok _ ρ hps hp) (S.contOk_of_plain m.M _ hpl ps) is
+
+/-- The environment with the former has a model at the final
+assignment. -/
+noncomputable def mInd : EnvModel V (S.envInd env) where
+  M := S.M₃ m.M
+  type_ok := fun c ci hfind φ ρ ls hls => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · rename_i h
+      subst h
+      cases hfind
+      exact type_ok_ind hpl hs m hok φ ρ hls
+    · exact (m₃ hs m hok).type_ok c ci hfind φ ρ ls hls
+  unfold := fun c ci v hfind hv φ ρ ls hls => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo, ConstInfo.value?, ConstKind.value?] at hv
+    · exact (m₃ hs m hok).unfold c ci v hfind hv φ ρ ls hls
+  rec_rules := fun c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · rw [S.envInd_find?] at hcij
+      split at hcij
+      · rename_i h
+        -- the constructor of a stored rule is stored, so it is not the fresh former
+        exfalso
+        have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
+        rw [h, hok.freshI] at this
+        simp at this
+      · exact (m₃ hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
+  rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
+      hcij hcijk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · rw [S.envInd_find?] at hcij
+      split at hcij
+      · rename_i h
+        exfalso
+        have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
+        rw [h, hok.freshI] at this
+        simp at this
+      · exact (m₃ hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
+          hinst cij I nPc nf hcij hcijk
+
+theorem mInd_M : (mInd hpl hs m hok).M = S.M₃ m.M := rfl
+
+/-- A constructor's type is well-denoted at every valuation. -/
+theorem wd_ctorType {c : CtorSpec} (hc : c ∈ S.ctors) (φ : Name → Nat) (ρ : Nat → V) :
+    WellDenoted (S.M₃ m.M) φ ρ (S.ctorType c) :=
+  wd_ctorType_of hok (mInd hpl hs m hok) hc φ ρ
+
+/-- The universe bound in the final model. -/
+theorem univ_of_sort {Γ : List Expr} {A s : Expr} {v : Level}
+    (hI : Infer (S.envInd env) Γ A s) (hR : Red (S.envInd env) Γ s (.sort v)) (φ : Name → Nat)
+    {ρ : Nat → V} (hsat : Sat (S.M₃ m.M) φ Γ ρ) :
+    interp (S.M₃ m.M) φ ρ A ∈ˢ (univ (Level.eval φ v) : V) :=
+  univ_of_sort_of (mInd hpl hs m hok) hI hR φ hsat
+
 /-! ## Uniqueness of decodings under the subsingleton criterion -/
 
 omit [LevelOracle] hpl hs m hok in
@@ -560,7 +585,6 @@ theorem eq_pt_of_mem_piCtx_true (M' : Name → List Nat → V) (φ : Name → Na
     rw [piCtx_cons] at hx
     exact eq_pt_of_mem_piCtx_true M' φ (Γ := Γ) (fun _ _ hy => eq_pt_of_mem_piR_true hy) hx
 
-omit hpl in
 /-- An ordinary field's set is in the universe its sort names, at
 fitting fields, and the checker's criteria on that sort hold. -/
 theorem ordinary_univ (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps : ps.length = S.nP)
@@ -572,7 +596,7 @@ theorem ordinary_univ (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps : 
         (univ (Level.eval φ v) : V) := by
   have R := (reader₃ hok m.M φ).R
   have hS := hok.scoped
-  have hwd := wd_ctorType hs m hok hc φ ρ
+  have hwd := wd_ctorType hpl hs m hok hc φ ρ
   unfold ctorType at hwd
   rw [WellDenoted_mkPis] at hwd
   obtain ⟨hctx, -⟩ := hwd
@@ -602,7 +626,7 @@ theorem ordinary_univ (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps : 
     exact (FitsVals_append _ _ (by simp [hel, S.length_fieldCtx]; omega)).mpr ⟨hp', hfsE⟩
   obtain ⟨s, v, hI, hR, hb, hsub⟩ := (hok.2.2.2.2.1 c hc).2.1 _ A hget
   refine ⟨v, hb, hsub, ?_⟩
-  have hmem := univ_of_sort hs m hok hI hR φ hsatF
+  have hmem := univ_of_sort hpl hs m hok hI hR φ hsatF
   rw [consList_append] at hmem
   rw [R.read hsc' (vs := earlier fs k) (ps := ps) (ρ := ρ) (by simp [hel, hps]; omega)] at hmem
   exact hmem
@@ -636,7 +660,7 @@ theorem uniq_of (φ : Name → Nat) (hz : S.z (S.lparams.map φ) = true) (hlarge
       (fun _ _ hy => eq_pt_of_mem_univ_zero (S.fibre_mem_univ_zero _ (S.Fam_inUniv m.M _ ps) hz _) hy)
       hget
   | ordinary A =>
-    obtain ⟨v, -, hsub, hmem⟩ := ordinary_univ hs m hok φ base hps hp hc hfit hpos hk
+    obtain ⟨v, -, hsub, hmem⟩ := ordinary_univ hpl hs m hok φ base hps hp hc hfit hpos hk
     rcases hsub hlarge hnp with hv | hidx
     · left
       have := (LevelOracle.eq_iff _ _).mp hv φ
@@ -656,14 +680,31 @@ theorem noRecDep : S.NoRecDep := fun c hc => (hok.scoped.2.2.2.1 c hc).2.1
 theorem type_ok_ctor {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) (φ : Name → Nat)
     (ρ : Nat → V) {ls : List Level} (hls : ls.length = (S.ctorInfo c).lparams.length) :
     WellDenoted (S.M₃ m.M) φ ρ ((S.ctorInfo c).type.instL (S.ctorInfo c).lparams ls) ∧
+    IsTy (interp (S.M₃ m.M) φ ρ ((S.ctorInfo c).type.instL (S.ctorInfo c).lparams ls)) ∧
     S.M₃ m.M c.name (ls.map (Level.eval φ)) ∈ˢ
       interp (S.M₃ m.M) φ ρ ((S.ctorInfo c).type.instL (S.ctorInfo c).lparams ls) := by
   simp only [ctorInfo] at hls ⊢
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
-  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_ctorType hs m hok hcm _ ρ), ?_⟩
+  -- a product, or (no parameters, no fields) the family's fibre: a type either way
+  have hIsTy : IsTy (interp (S.M₃ m.M) (Level.substVal φ S.lparams ls) ρ (S.ctorType c)) := by
+    unfold ctorType
+    refine IsTy_interp_mkPis _ _ _ fun hΓ => ?_
+    have hP : S.params = [] := (List.append_eq_nil_iff.mp hΓ).2
+    have hwd := wd_ctorType hpl hs m hok hcm (Level.substVal φ S.lparams ls) ρ
+    unfold ctorType at hwd
+    rw [hΓ, Expr.mkPis_nil] at hwd
+    have hps0 : ([] : List V).length = S.nP := by simp [nP, hP]
+    obtain ⟨hp, -, heq⟩ := (reader₃ hok m.M (Level.substVal φ S.lparams ls)).R.famAt_wd hok.scoped
+      (o := c.fields.length) (ρ'' := ρ) (ps := []) (by simp [nP, hP])
+      (hok.scoped.2.2.2.1 c hcm).2.2.1 hwd
+    rw [heq]
+    exact IsTy_of_mem_typeU (S.Fam_mem_typeU m.M _ (noRecDep hok)
+      (domsBounded_of hpl hs m hok _ ρ hps0 hp) (S.contOk_of_plain m.M _ hpl []) _)
+  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_ctorType hpl hs m hok hcm _ ρ),
+    by rw [interp_instL]; exact hIsTy, ?_⟩
   rw [interp_instL, (reader₃ hok m.M φ).ctor j c hc, ← lparams_map_substVal hok φ hls]
   exact (reader₃ hok m.M (Level.substVal φ S.lparams ls)).ctorSet_mem hok.scoped hok.freshI hc
-    (wd_ctorType hs m hok hcm _ ρ) (noRecDep hok)
+    (wd_ctorType hpl hs m hok hcm _ ρ) (noRecDep hok)
     (fun ps hp => domsBounded_of hpl hs m hok _ ρ (by have := FitsVals_length _ _ hp; simpa [nP] using this) hp)
     (fun ps _ => S.contOk_of_plain m.M _ hpl ps)
 
@@ -678,12 +719,12 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
       cases hfind
       obtain ⟨hc', rfl⟩ := S.ctorOf?_some hco
       exact type_ok_ctor hpl hs m hok hc' φ ρ hls
-    · exact (mInd hs m hok).type_ok c ci hfind φ ρ ls hls
+    · exact (mInd hpl hs m hok).type_ok c ci hfind φ ρ ls hls
   unfold := fun c ci v hfind hv φ ρ ls hls => by
     rw [S.envCtors_find? env hok.nodup_ctors] at hfind
     split at hfind
     · cases hfind; simp [ctorInfo, ConstInfo.value?, ConstKind.value?] at hv
-    · exact (mInd hs m hok).unfold c ci v hfind hv φ ρ ls hls
+    · exact (mInd hpl hs m hok).unfold c ci v hfind hv φ ρ ls hls
   rec_rules := fun c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij => by
     rw [S.envCtors_find? env hok.nodup_ctors] at hfind
     split at hfind
@@ -710,7 +751,7 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
             (List.mem_map.mpr ⟨c', hc', rfl⟩)))] at hstored
           simp at hstored
       rw [hnone] at hcij
-      exact (mInd hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
+      exact (mInd hpl hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
   rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
       hcij hcijk => by
     rw [S.envCtors_find? env hok.nodup_ctors] at hfind
@@ -737,7 +778,7 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
             (List.mem_map.mpr ⟨c', hc', rfl⟩)))] at hstored
           simp at hstored
       rw [hnone] at hcij
-      exact (mInd hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
+      exact (mInd hpl hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
         hinst cij I nPc nf hcij hcijk
 
 theorem mCtors_M : (mCtors hpl hs m hok).M = S.M₃ m.M := rfl
@@ -867,9 +908,24 @@ theorem minorOk_of_fits (φr : Name → Nat) (ρ : Nat → V) {ps : List V} (hps
   have hmem := S.fits_minorsFrom S.ctors 0 _ mins hmn j c hc
   rw [Nat.zero_add] at hmem
   have hminsE : (mins.drop (S.n - j)).length = j := by simp [hmins]; omega
-  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm φr ρ) hps hp
+  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) hps hp
+  -- the minor's type is well-denoted: an entry of the recursor's context
+  have hwm : WellDenoted (S.M₃ m.M) φr (consList (mins.drop (S.n - j)) (cons m' (consList ps ρ)))
+      (S.minorTy c j) := by
+    have hrec := wd_recType hpl hs m hok φr ρ
+    rw [recType_eq, WellDenoted_mkPis] at hrec
+    have h1 := (CtxWD_append' (Γ := S.famVars (S.n + 1) :: S.indicesAt (S.n + 1) ++ S.minorsCtx ++
+      [S.motiveTy]) (Δ := S.params) hrec.1).2 ps ((R₃.R.fits_params hS).mpr hp)
+    have h2 := (CtxWD_append' (Γ := S.famVars (S.n + 1) :: S.indicesAt (S.n + 1) ++ S.minorsCtx)
+      (Δ := [S.motiveTy]) h1).2 [m'] ⟨trivial, by simpa using hm⟩
+    have h3 := (CtxWD_append' (Γ := S.famVars (S.n + 1) :: S.indicesAt (S.n + 1))
+      (Δ := S.minorsCtx) h2).1
+    rw [minorsCtx_eq] at h3
+    have := (wd_minorsFrom (S := S) (M' := S.M₃ m.M) (φ' := φr) S.ctors 0 _ mins h3 hmn j c hc).1
+    simpa [n] using this
   exact R₃.minorOk hS hpl hok.freshI hc hminsE hps hp hidx.1 (fun fs hfit => (hidx.2 fs hfit).2.2)
     (R₃.R.motiveOk_of_mem hS hps hp hm) (noRecDep hok) (domsBounded_of hpl hs m hok φr ρ hps hp) hmem
+    hwm
 
 /-- **The recursor's set is in the recursor's type.** -/
 theorem recSet_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
@@ -887,7 +943,7 @@ theorem recSet_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
   have hwdC : ∀ c ∈ S.ctors, ∀ ps, ps.length = S.nP →
       FitsVals m.M (S.ψ (S.lparams.map (Level.substVal φ S.recLparams lsr))) base S.params ps →
       CtxWD (S.M₃ m.M) (Level.substVal φ S.recLparams lsr) (consList ps ρ) (S.fieldCtx c.fields) :=
-    fun c hc ps hps hp => (R₃.R.idxFit_of_wd hS hc (wd_ctorType hs m hok hc _ ρ) hps hp).1
+    fun c hc ps hps hp => (R₃.R.idxFit_of_wd hS hc (wd_ctorType hpl hs m hok hc _ ρ) hps hp).1
   have hagree := R₂.agree_recCtx hS R₃ hagr hpl hok.freshI base ρ hwdC
   rw [recType_eq, interp_mkPis]
   show lamCtx (S.M₂ m.M) (valOf S.recLparams (lsr.map (Level.eval φ)))
@@ -924,13 +980,13 @@ theorem recSet_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
     rw [hq, Bool.true_eq, beq_iff_eq] at hz
     have hmo : ∀ is t, t ∈ˢ S.Fam m.M (S.lparams.map (Level.substVal φ S.recLparams lsr)) ps is →
         appList m' (is.reverse ++ [t]) ∈ˢ (univ 0 : V) := fun is t ht => by
-      rw [← hz]
+      rw [← mem_typeU_zero, ← hz]
       refine R₃.R.motiveOk_of_mem hS hps hp hm is
         (S.idx_fits_of_mem_Fam m.M _ (noRecDep hok) (domsBounded_of hpl hs m hok _ ρ hps hp)
           (S.contOk_of_plain m.M _ hpl ps) ?_ ht) t ht
       intro j c hc fs hfit
       have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
-      exact ((R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm _ ρ) hps hp).2 fs hfit).2.2
+      exact ((R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) hps hp).2 fs hfit).2.2
     obtain ⟨v, hv⟩ := S.motive_inhabited m.M _ hpl (noRecDep hok) (domsBounded_of hpl hs m hok _ ρ hps hp) _ m' mins
       (fun j c hc fs hfit ihs hihs => (minorOk_of_fits hpl hs m hok _ ρ hps hp hm hmins hmn j c hc fs hfit ihs hihs).1)
       (fun _ => hmo) ht
