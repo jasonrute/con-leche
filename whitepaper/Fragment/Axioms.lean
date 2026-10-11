@@ -4,6 +4,7 @@ public import Fragment.Consistency
 public import Fragment.Install
 public import Fragment.Access
 public import Fragment.UniformBeta
+public import Fragment.Ghost
 
 public section
 
@@ -177,3 +178,23 @@ info: 'Fragment.major_eq' depends on axioms: [propext, Classical.choice, Quot.so
 info: 'Fragment.Red.iota_core' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.Red.iota_core
+
+/--
+info: 'Fragment.pi_congr_without_datum' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.pi_congr_without_datum
+
+/--
+info: 'Fragment.lam_datum_from_type' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.lam_datum_from_type
+
+/--
+info: 'Fragment.DefEq.lam_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.lam_sound
+
+/--
+info: 'Fragment.DefEq.eta_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.eta_sound

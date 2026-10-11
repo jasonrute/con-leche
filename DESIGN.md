@@ -100636,3 +100636,86 @@ universe bound read at one family and transported), the class applied
 at admissible parameter sets only (or an equivalent guard), and the
 container's argument fit read in a model that needs nothing of the
 class.
+
+## TASK #341 — can the annotations be ghost data? The survey, two comparisons dropped, one that stays (2026-10-11, agent/341-ghost)
+
+The question (maintainer, 2026-10-11): in the whitepaper fragment on
+the restricted model (#340), does any checker decision still READ a
+binder's `PropWhen`?  If not, the annotations could be ghost data: the
+proof would get them from a specification function or an existential,
+and the annotate pass could go.
+
+**Survey** (every read of an annotation in the fragment's checker side:
+`Rules.lean`, `Decl.lean`, `Syntax.lean`, `Scope.lean`):
+
+| site | reads the annotation? | a decision? |
+|---|---|---|
+| `Red.beta` | no (since #340) | — |
+| `Red.delta`, `Red.iota`, `Red.iotaNested` | `instL` substitutes it (`PropWhen.substL`); `piDomains`/`piResidual`/`hasPis` ignore it | no |
+| `Infer.pi`, `Infer.lam` | `Level.zeroness v = pw` | **yes**: the honesty check |
+| `Infer.lam`'s result `pi A pw bt` | copies it into the type | no (data flow) |
+| `Infer.app` | ignores the `∀`'s | no |
+| `DefEq.pi` | `pw` equal on both sides | **yes** |
+| `DefEq.lam` | `pw` equal on both sides | **yes** (removed here) |
+| `DefEq.eta` | λ's `pw` = the `∀`'s | **yes** (removed here) |
+| `DefEq.proofIrrel`, `sort`, `const`, `app`, `redL` | no | — |
+| `Decl`: `lparamsIn` | `pw.paramsIn` | a scope check; for an honest datum it should follow from the scope of the sort it reads (not proved) |
+| `Decl`: generators (`mkPis S.pw`, `.never`, `S.q`) | produce it | no; the generated types' `Infer` checks validate it |
+
+**Outcome.**
+- *λ-congruence and η need no comparison* (done, `Rules.lean`,
+  `Sound.lean`: `DefEq.lam_sound`, `DefEq.eta_sound`, +21 −8 lines).  A
+  λ whose annotation holds denotes the point, and `DefEqSem` says
+  nothing of the point; two λs that are not the point are both graphs,
+  their bodies in strict fibres.  In η, `b` not the point puts its `∀`
+  in the graph regime, and the λ not the point puts it there too.
+- *`∀`-congruence needs its comparison* (`Ghost.lean`, 154 lines).  Over
+  an empty domain the propositional product is `{pt}` and the function
+  space holds one graph; nothing about the domain or the codomain
+  distinguishes them.  `(h : ∀ P : Prop, P) →[pw] Prop` is well-denoted
+  under both annotations, in every model, at every valuation, neither
+  denotes the point, and the two denotations differ
+  (`pi_datum_needed`); so the rule without the comparison has true
+  premise claims (same domain, same body by `refl`) and a false
+  conclusion (`pi_congr_without_datum`).
+- *Inference's check stays*: a λ's annotation is not fixed by the
+  semantics either (over the same empty domain both annotations are
+  well-denoted, the point and the empty graph, `lam_datum_free`), only
+  by its type: just the honest one is a member of the honest `∀`
+  (`lam_datum_from_type`).
+- *Why ghost data does not rescue the `∀` comparison.*  A ghost
+  annotation read off the typing is honest at every site, and with
+  honest annotations the comparison never fails: two definitionally
+  equal types have equal sorts, so their bodies' sorts have the same
+  zero-ness.  But the proof would have to establish that agreement for
+  two subjects whose annotations come from separate typings (a reduct,
+  an inferred type, the head's domain against the argument's type), and
+  the semantics cannot supply it — the witness above shows the values
+  are the same under both annotations.  It is a syntactic theorem about
+  `DefEq` and `Infer` that the semantic proof does not need while the
+  checker compares the data.  The existential form ("some annotation
+  under which the input is well-denoted") is weaker still: both
+  annotations of the witness qualify.
+- *A model without the distinction* would have to identify the empty
+  graph with the point; then `False → Empty` contains the point, the
+  graph-regime fibres stop being strict, and λ-congruence loses the
+  agreement of its bodies' point-ness (a body may be the point on one
+  side and a graph on the other).  That is #337's forced collapse, now
+  against the restricted universes; not pursued.
+
+**For con-leche's real checker** (after the #339/#340 port, not before:
+under today's unconditional claims a mismatched λ pair is a point and a
+graph, and the comparison is needed):
+- the annotate pass and `PropWhen` stay: every `∀` needs an honest
+  datum for the defeq comparison, and every λ for membership;
+- the binder-datum comparison at λ-congruence and η can go; the one at
+  ∀-congruence stays;
+- the checker never needs to *compute* a λ's datum anew: `Infer.lam`
+  already infers the body's sort.
+
+**Gates**: `whitepaper/fragment-gate.sh` green (warning-free, no
+`sorry`; `pi_congr_without_datum`, `lam_datum_from_type`,
+`DefEq.lam_sound`, `DefEq.eta_sound` pinned at the three standard
+axioms).  `whitepaper/links-gate.sh` was already failing on #340's stale
+anchors; this change adds none (the text is not touched).  Nothing
+outside `whitepaper/` and this record changed.

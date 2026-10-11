@@ -737,3 +737,22 @@ comment block at the top of `lib.typ`.
     paragraph turned into "why the universes are restricted"; and a
     marked statement that con-leche's checker and its `Semantics` still
     use the universes and the certified β until the port.  (2026-10-11.)
+
+41. **The annotations are not ghost data; two of the four reads go
+    (task #341).**  The checker's decisions that read a binder's
+    annotation are inference's check (`Infer.pi`, `Infer.lam`), and the
+    comparisons in `∀`-congruence, λ-congruence and η.  The λ and η
+    comparisons are gone: a λ whose annotation holds is the point, and
+    the claims are conditional on it (`DefEq.lam_sound`,
+    `DefEq.eta_sound`).  The `∀` comparison stays: over an empty domain
+    the two regimes are `{pt}` and a one-graph function space, and
+    `(h : ∀ P : Prop, P) → Prop` is well-denoted under both annotations
+    in every model (`Fragment/Ghost.lean`, `pi_datum_needed`,
+    `pi_congr_without_datum`).  A λ's annotation is not fixed by the
+    semantics either, only by its type (`lam_datum_free`,
+    `lam_datum_from_type`), so inference's check stays.  Ghost
+    annotations would need the two sides of a `∀`-congruence to have
+    bodies of the same sort, a syntactic theorem the semantic proof
+    does not need while the checker compares the data.  The text, if
+    it mentions the λ/η comparisons, should say they are not needed.
+    (2026-10-11.)

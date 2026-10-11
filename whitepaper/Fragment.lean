@@ -46,5 +46,6 @@ public import Fragment.NestInstall
 public import Fragment.Motive
 public import Fragment.Sound
 public import Fragment.UniformBeta
+public import Fragment.Ghost
 public import Fragment.Consistency
 public import Fragment.Axioms

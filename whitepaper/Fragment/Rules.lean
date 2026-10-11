@@ -250,29 +250,41 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       Level.eqList ls ls' = true → DefEq env Γ (const c ls) (const c ls')
   /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:373`): domains, then
   bodies under the RIGHT domain, and the annotations must agree (they
-  are compared with `=`, which is semantic: `PropWhen.eq_iff`). -/
+  are compared with `=`, which is semantic: `PropWhen.eq_iff`).  This
+  comparison is the one place a decision of the checker reads an
+  annotation beyond inference's own check: over an empty domain the two
+  regimes give different types (`{pt}` and the one-graph function
+  space), and nothing about the domain or the bodies tells them apart
+  (`Ghost.lean`, `pi_datum_needed`). -/
   | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} {pw : PropWhen} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
       DefEq env Γ (pi A₁ pw B₁) (pi A₂ pw B₂)
-  /-- λ-congruence (`DefEq.lam`, `Rel.lean:380`), as for `∀`. -/
-  | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} {pw : PropWhen} :
+  /-- λ-congruence (`DefEq.lam`, `Rel.lean:380`): domains, then
+  bodies under the RIGHT domain.  **The annotations are not compared**
+  (con-leche compares them, as for `∀`): a λ whose annotation holds is
+  the point, about which the claim says nothing, and two λs whose
+  annotations both fail are graphs whose bodies are never the point
+  (`Sound.lean`, `DefEq.lam_sound`). -/
+  | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} {pw₁ pw₂ : PropWhen} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
-      DefEq env Γ (lam A₁ pw b₁) (lam A₂ pw b₂)
+      DefEq env Γ (lam A₁ pw₁ b₁) (lam A₂ pw₂ b₂)
   /-- Application congruence (`DefEq.app`, `Rel.lean:390`). -/
   | app {Γ : List Expr} {f₁ a₁ f₂ a₂ : Expr} :
       DefEq env Γ f₁ f₂ → DefEq env Γ a₁ a₂ →
       DefEq env Γ (app f₁ a₁) (app f₂ a₂)
   /-- **η** (`DefEq.eta`, `Rel.lean:400`): a λ against a term `b`
   whose inferred type reduces to a `∀` with a definitionally equal
-  domain and the same annotation, when the λ's body is `b` applied to
-  the variable.  Sound because a member of a function space is the
-  abstraction of its applications (`SetLib.graph_app_eq`) — and at a
-  proposition both sides are the one proof. -/
-  | eta {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw : PropWhen} :
-      Infer env Γ b tb → Red env Γ tb (pi A₂ pw B) →
+  domain, when the λ's body is `b` applied to the variable.  Sound
+  because a member of a function space is the abstraction of its
+  applications (`SetLib.graph_app_eq`) — and at a proposition both
+  sides are the one proof.  **The λ's annotation is not compared with
+  the `∀`'s** (con-leche requires them equal): where either holds, one
+  side is the point and the claim says nothing (`DefEq.eta_sound`). -/
+  | eta {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw₁ pw₂ : PropWhen} :
+      Infer env Γ b tb → Red env Γ tb (pi A₂ pw₂ B) →
       DefEq env Γ A₂ A₁ →
       DefEq env (A₁ :: Γ) b₁ (app (b.liftN 1) (bvar 0)) →
-      DefEq env Γ (lam A₁ pw b₁) b
+      DefEq env Γ (lam A₁ pw₁ b₁) b
   /-- **Proof irrelevance** (`DefEq.proofIrrel`, `Rel.lean:417`): both
   sides' inferred types have sort `Prop`.  **The two types are never
   compared**: the model justifies that, because every proof denotes the

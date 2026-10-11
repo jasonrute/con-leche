@@ -200,16 +200,26 @@ theorem lam_body_ne_pt {A b : Expr} {pw : PropWhen} {ρ : Nat → V}
   rw [hpw] at this
   exact ne_pt_of_mem_strict this (hfib x hx)
 
-theorem lam_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} {pw : PropWhen}
+/-- A λ that is not the point is in the graph regime. -/
+theorem lam_holds_false {A b : Expr} {pw : PropWhen} {ρ : Nat → V}
+    (hn : interp m.M φ ρ (.lam A pw b) ≠ pt) : pw.holds φ = false := by
+  cases h : pw.holds φ
+  · rfl
+  · exact absurd (by rw [interp_lam, h, lamR_true]) hn
+
+/-- **λ-congruence, with no comparison of the annotations**: two λs
+that are not the point are both in the graph regime, whatever their
+annotations say elsewhere. -/
+theorem lam_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} {pw₁ pw₂ : PropWhen}
     (hA : DefEqSem m φ Γ A₁ A₂) (hb : DefEqSem m φ (A₂ :: Γ) b₁ b₂) :
-    DefEqSem m φ Γ (.lam A₁ pw b₁) (.lam A₂ pw b₂) := by
+    DefEqSem m φ Γ (.lam A₁ pw₁ b₁) (.lam A₂ pw₂ b₂) := by
   intro ρ hs h₁ h₂ hn₁ hn₂
   have h₁' := h₁
   have h₂' := h₂
   rw [WellDenoted_lam] at h₁' h₂'
   have heA := hA ρ hs h₁'.1 h₂'.1 h₁'.2.1.ne_pt h₂'.2.1.ne_pt
   simp only [interp_lam]
-  rw [heA]
+  rw [lam_holds_false hn₁, lam_holds_false hn₂, heA]
   apply lamR_congr
   intro x hx
   have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
@@ -372,12 +382,12 @@ namespace DefEq
 
 /-- **η**: the λ is not the point, so `b`'s type is in the graph regime
 and `b` applied is never the point either. -/
-theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw : PropWhen}
+theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw₁ pw : PropWhen}
     (htb : InferSem m φ Γ b tb) (hr : RedSem m φ Γ tb (.pi A₂ pw B))
     (hA : DefEqSem m φ Γ A₂ A₁)
     (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0))) :
-    DefEqSem m φ Γ (.lam A₁ pw b₁) b := by
-  intro ρ hs hlam hwb hnl _
+    DefEqSem m φ Γ (.lam A₁ pw₁ b₁) b := by
+  intro ρ hs hlam hwb hnl hnb
   obtain ⟨-, hwtb, hTtb, hmemb⟩ := htb ρ hs
   obtain ⟨hwpi, hepi⟩ := hr ρ hs hwtb hTtb.ne_pt
   rw [hepi, interp_pi] at hmemb
@@ -385,10 +395,13 @@ theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw : PropWhen
   have hlam' := hlam
   rw [WellDenoted_lam] at hlam'
   have heA := hA ρ hs hwpi.1 hlam'.1 hwpi.2.1.ne_pt hlam'.2.1.ne_pt
+  -- `b` is not the point, so its `∀` is in the graph regime …
   have hpw : pw.holds φ = false := by
     cases h : pw.holds φ
     · rfl
-    · exact absurd (by rw [interp_lam, h, lamR_true]) hnl
+    · rw [h] at hmemb; exact absurd (eq_pt_of_mem_piR_true hmemb) hnb
+  -- … and so is the λ, which is not the point either
+  have hpw₁ : pw₁.holds φ = false := lam_holds_false hnl
   have hsh : ∀ x, shiftE 1 0 (cons x ρ) = ρ := by
     intro x; funext i; simp [shiftE]
   have hlift : ∀ x, interp m.M φ (cons x ρ) (b.liftN 1) = interp m.M φ ρ b := by
@@ -411,7 +424,7 @@ theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw : PropWhen
     have := hbody (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, hlam'.1, hlam'.2.1, hx⟩)
       (hlam'.2.2.1 x hx) happ (lam_body_ne_pt hlam hnl hx) hne
     rw [this, interp_app, interp_bvar, cons_zero, hlift]
-  rw [interp_lam, lamR_congr hpt, ← heA]
+  rw [interp_lam, hpw₁, lamR_congr hpt, ← heA, ← hpw]
   exact lamR_eta hmemb
 
 /-- **Proof irrelevance claims nothing**: a side whose type's sort is
