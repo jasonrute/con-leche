@@ -168,13 +168,13 @@ theorem K_law : N.KS.Scoped env ∧ N.KS.NoCont ∧
 omit [LevelOracle] hs m hok in
 /-- An abstraction over a level-instantiated context is the
 abstraction over the context at the substituted valuation. -/
-theorem lamCtx_instL (M : Name → List Nat → V) (φ : Name → Nat) (ps : List Name) (ls : List Level)
-    (p : Bool) : ∀ (Γ : List Expr) (ρ : Nat → V) (F : (Nat → V) → V),
-    lamCtx M φ p ρ (Γ.map (Expr.instL ps ls)) F = lamCtx M (Level.substVal φ ps ls) p ρ Γ F
+theorem lamCtx_instL (M : Name → List Nat → V) (φ : Name → Nat) (ps : List Name) (ls : List Level) :
+    ∀ (Γ : List Expr) (ρ : Nat → V) (F : (Nat → V) → V),
+    lamCtx M φ ρ (Γ.map (Expr.instL ps ls)) F = lamCtx M (Level.substVal φ ps ls) ρ Γ F
   | [], _, _ => rfl
   | A :: Γ, ρ, F => by
     simp only [List.map_cons, lamCtx_cons]
-    rw [lamCtx_instL M φ ps ls p Γ ρ]
+    rw [lamCtx_instL M φ ps ls Γ ρ]
     congr 1
     funext ρ'
     rw [interp_instL]
@@ -224,12 +224,12 @@ abstraction over its level-instantiated parameter context of its
 family. -/
 theorem famSetK_eq {M' : Name → List Nat → V} (hM : AgreeOn env m.M M') (φ : Name → Nat) :
     N.KS.famSet m.M (S.lsK (S.lparams.map φ) N)
-      = lamCtx M' φ false base (N.KS.params.map (Expr.instL N.K.lparams N.lsK))
+      = lamCtx M' φ base (N.KS.params.map (Expr.instL N.K.lparams N.lsK))
           fun ρ' => N.KS.Fam m.M (S.lsK (S.lparams.map φ) N) (readEnv N.KS.nP ρ') [] := by
   have hidx : N.KS.indices = [] := (hok.nestScoped N hok.nest).2.2.2.2.2.2.2.2.1.1
   unfold famSet famSetF
   rw [lamCtx_instL, hidx, List.nil_append]
-  show lamCtx m.M _ false base N.KS.params _ = _
+  show lamCtx m.M _ base N.KS.params _ = _
   refine (lamCtx_congr₂ (agree_paramsK m hok hM φ base) fun vs hvs => ?_).symm
   simp only [nI, hidx, List.length_nil, shiftE_zero_zero, readEnv]
   rfl
@@ -324,6 +324,40 @@ theorem FitsVals_psK_replace (φ : Name → Nat) {ps : List V} {G X : V}
     rw [this, hu] at hj
     exact Bool.false_ne_true hj
 
+omit hs in
+/-- **The nested argument is a type of the universe**: the nested
+parameter's domain is a sort of the block's universe. -/
+theorem FitsVals_psK_member (φ : Name → Nat) {ps : List V} {G : V}
+    (hfit : FitsVals m.M (N.KS.ψ (S.lsK (S.lparams.map φ) N)) base N.KS.params
+      (S.psK m.M (S.lparams.map φ) N ps G)) :
+    G ∈ˢ (typeU (S.u₀ (S.lparams.map φ)) : V) := by
+  have hNS := hok.nestScoped N hok.nest
+  have hpos : N.Positive := hNS.2.2.2.2.2.2.2.2.1
+  have hlen : N.args.length + 1 = N.nPK := hNS.2.2.2.2.1
+  have hpK : N.p < N.nPK := hpos.2.1
+  obtain ⟨ℓ, hℓp⟩ := hpos.2.2.1
+  have hnP : N.KS.params.length = N.nPK := rfl
+  have hsplit : N.KS.params = N.KS.params.take (N.nPK - 1 - N.p) ++
+      Expr.sort ℓ :: N.KS.params.drop (N.nPK - 1 - N.p + 1) := by
+    have h1 := (List.take_append_drop (N.nPK - 1 - N.p) N.KS.params).symm
+    rw [List.drop_eq_getElem_cons (by rw [hnP]; omega)] at h1
+    have hget : N.KS.params[N.nPK - 1 - N.p]'(by rw [hnP]; omega) = Expr.sort ℓ :=
+      Option.some.inj ((List.getElem?_eq_getElem _).symm.trans hℓp)
+    rw [hget] at h1
+    exact h1
+  have hl₁ : (S.argsAfter m.M (S.lparams.map φ) N ps).reverse.length
+      = (N.KS.params.take (N.nPK - 1 - N.p)).length := by
+    rw [List.length_reverse, S.length_argsAfter _ _ N hlen hpK, List.length_take, hnP]
+    omega
+  have hpsK : S.psK m.M (S.lparams.map φ) N ps G
+      = (S.argsAfter m.M (S.lparams.map φ) N ps).reverse ++
+          G :: (S.argsBefore m.M (S.lparams.map φ) N ps).reverse := by
+    unfold psK classArgsV argsAfter argsBefore
+    simp [List.reverse_append]
+  rw [hsplit, hpsK, FitsVals_split hl₁] at hfit
+  obtain ⟨-, h2, -⟩ := hfit
+  rwa [interp_sort, memberLevel_eq m hok φ hℓp] at h2
+
 omit hs m hok in
 /-- The sort of a field's domain bounds its set (the universe bound),
 read off the checker's sort facts at a satisfying environment, in any
@@ -366,7 +400,7 @@ theorem readerFN (M : Name → List Nat → V) (F : List Nat → List V → List
   agree := agree_M₁FN hok M F
   fam := fun ls' => by simp [M₁F]
   val := fun _ _ => rfl
-  adm := fun _ _ ps is _ _ => hFa _ ps is
+  adm := fun ps is _ _ => hFa _ ps is
 
 /-- **The former's type law at any admissible family of types.** -/
 theorem type_ok_indFN (F : List Nat → List V → List V → V)
@@ -457,22 +491,23 @@ omit [LevelOracle] hs m hok in
 theorem oneFamF_adm : ∀ ls' (_ps _is : List V), S.adm ls' (S.oneSet ls' : V) = S.oneSet ls' :=
   fun ls' _ _ => S.adm_oneSet ls'
 
-/-- **The class's arguments fit the container's parameters** at every
-parameter set that is a type of the result universe — from the class
-having a sort at the block's parameters (the check), read in the model
-of the environment with the former denoting the one-fibre family (a
-family of types, which needs nothing of the class): the container's
-set is a graph tower, so the class application being well-denoted puts
-its arguments in the tower's domains (`appList_of_wd`); the nested
-parameter's domain is a sort of the block's universe (the check N3 on
-the nested parameter's domain), and no later parameter's domain
-mentions the nested parameter (positivity), so the parameter set can be
-any type of the universe. -/
-theorem argsFit_of (φ : Name → Nat) {ps : List V}
-    (hp : FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps) {X : V}
-    (hX : X ∈ˢ (typeU (S.u₀ (S.lparams.map φ)) : V)) :
-    FitsVals m.M (N.KS.ψ (S.lsK (S.lparams.map φ) N)) base N.KS.params
-      (S.psK m.M (S.lparams.map φ) N ps X) := by
+/-- **The class, read**: from the class having a sort at the block's
+parameters (the check), read in the model of the environment with the
+former denoting the one-fibre family (a family of types, which needs
+nothing of the class).  The class is a type, so not the point; the
+container's set is an abstraction tower, so the class application puts
+its arguments in the tower's domains (`appList_of_wd`) — the nested
+argument in the nested parameter's domain, a sort of the block's
+universe (the check N3): a type, so not the point, and the family's
+application there can be read in turn, its index values fitting the
+index context (task #344: under the value reading an application whose
+arguments do not fit may be the point, so fit comes from types). -/
+theorem class_reading (φ : Name → Nat) {ps : List V}
+    (hp : FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps) :
+    (∃ G, FitsVals m.M (N.KS.ψ (S.lsK (S.lparams.map φ) N)) base N.KS.params
+      (S.psK m.M (S.lparams.map φ) N ps G)) ∧
+    FitsVals m.M (S.ψ (S.lparams.map φ)) (envP ps) S.indices
+      (S.memberIdx m.M (S.lparams.map φ) N ps) := by
   have hN := hok.nest
   have hNS := hok.nestScoped N hN
   have hK := K_law m hok
@@ -485,7 +520,7 @@ theorem argsFit_of (φ : Name → Nat) {ps : List V}
   let m₁ := mIndFN hs m hok F₁ (oneFamF_typeU (S := S)) (oneFamF_adm (S := S))
   have R₀ := readerFN hok m.M F₁ (oneFamF_adm (S := S)) φ
   -- the check, read in that model at the parameters
-  obtain ⟨T, hT⟩ := hok.2.2.2.2.2.2.2.2.2.1
+  obtain ⟨T, u, hT, hR⟩ := hok.2.2.2.2.2.2.2.2.2.1
   have hwdI := (type_ok_indFN hs m hok F₁ (oneFamF_typeU (S := S)) (oneFamF_adm (S := S)) φ base
     (ls := S.lvls) (by simp [indInfo, lvls])).1
   simp only [indInfo] at hwdI
@@ -498,19 +533,20 @@ theorem argsFit_of (φ : Name → Nat) {ps : List V}
   have hp' : FitsVals (S.M₁F m.M F₁) φ base S.params ps := (R₀.fits_params hok.scoped).mpr hp
   have hsat : Sat (S.M₁F m.M F₁) φ S.params (consList ps base) := Sat_of_fits _ _ hwdP hp'
   have hsem := (infer_sound (m := m₁) (φ := φ) hT (consList ps base) hsat).1
-  rw [mIndFN_M] at hsem
-  -- the container's set is a graph tower: the arguments fit its parameters
-  unfold classTy at hsem
+  -- the class is a type (the check: it has a sort), so not the point
+  have hne := (IsTy_of_mem_typeU (Infer.mem_typeU_of (m := m₁) (φ := φ) (infer_sound hT)
+    (red_sound hR) hsat).2).ne_pt
+  rw [mIndFN_M] at hsem hne
+  -- the container's set is an abstraction tower: the arguments fit its parameters
+  unfold classTy at hsem hne
   have hf : interp (S.M₁F m.M F₁) φ (consList ps base) (.const N.K.name N.lsK)
-      = lamCtx (S.M₁F m.M F₁) φ false base (N.KS.params.map (Expr.instL N.K.lparams N.lsK))
+      = lamCtx (S.M₁F m.M F₁) φ base (N.KS.params.map (Expr.instL N.K.lparams N.lsK))
           fun ρ' => N.KS.Fam m.M (S.lsK (S.lparams.map φ) N) (readEnv N.KS.nP ρ') [] := by
     rw [interp_const, ← lsK_eq_map hok φ, ← agree_M₁FN hok m.M F₁ _ hNS.1, hK.2.2.2.2.1,
       famSetK_eq m hok (agree_M₁FN hok m.M F₁) φ]
   have hlenA : (S.classArgs N 0).length = (N.KS.params.map (Expr.instL N.K.lparams N.lsK)).length := by
     rw [S.length_classArgs N hlen hpK, List.length_map]; rfl
-  obtain ⟨hfit, -⟩ := appList_of_wd (S.M₁F m.M F₁) φ hsem hf hlenA
-    (G := fun ρ' => sing (N.KS.Fam m.M (S.lsK (S.lparams.map φ) N) (readEnv N.KS.nP ρ') []))
-    (fun _ _ => mem_sing.mpr rfl)
+  obtain ⟨hfit, -⟩ := appList_of_wd (S.M₁F m.M F₁) φ hsem hne hf hlenA
   rw [FitsVals_instL, FitsVals_congr₂ (agree_paramsK m hok (agree_M₁FN hok m.M F₁) φ base)] at hfit
   -- the arguments' values: the class's arguments at the nested parameter's reading
   have hvals : (S.classArgs N 0).map (interp (S.M₁F m.M F₁) φ (consList ps base))
@@ -529,8 +565,45 @@ theorem argsFit_of (φ : Name → Nat) {ps : List V}
       exact List.map_congr_left fun a ha => hread a (List.mem_of_mem_take ha)
     · exact List.map_congr_left fun a ha => hread a (List.mem_of_mem_drop ha)
   rw [hvals] at hfit
-  -- the parameter set may be any type of the universe
+  refine ⟨⟨_, hfit⟩, ?_⟩
+  -- the nested argument is a type, so not the point: the family's
+  -- application can be read, and its index values fit
+  have hG := FitsVals_psK_member m hok φ hfit
+  have hNS' := hok.nestScoped N hok.nest
+  have hwm := (WellDenoted_mkAppN' _ _ hsem).2 (S.famAt 0 (N.idx.map (Expr.liftN 0 ·)))
+    (by unfold classArgs; simp)
+  have h := (R₀.famAt_wd hok.scoped (o := 0) (ρ'' := consList ps base) (ps := ps)
+    (by rw [shiftE_zero_zero, readEnv_consList hps]) (by simp [hNS'.2.2.2.2.2.1]) hwm
+    (IsTy_of_mem_typeU hG).ne_pt).2.1
+  unfold memberIdx idxVals
+  have hm : ((N.idx.map (Expr.liftN 0 ·)).map (interp (S.M₁F m.M F₁) φ (consList ps base)))
+      = N.idx.map (interp m.M (S.ψ (S.lparams.map φ)) (envP ps)) := by
+    rw [List.map_map]
+    refine List.map_congr_left fun e he => ?_
+    simp only [Function.comp]
+    rw [interp_liftN, shiftE_zero_zero]
+    have := R₀.read (hNS'.2.2.2.2.2.2.2.1 e he) (vs := []) (ps := ps) (ρ := base) (by simp [hps])
+    simpa [envP] using this
+  rw [hm] at h
+  exact h
+
+/-- **The class's arguments fit the container's parameters** at every
+parameter set that is a type of the result universe (`class_reading`;
+no later parameter's domain mentions the nested parameter). -/
+theorem argsFit_of (φ : Name → Nat) {ps : List V}
+    (hp : FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps) {X : V}
+    (hX : X ∈ˢ (typeU (S.u₀ (S.lparams.map φ)) : V)) :
+    FitsVals m.M (N.KS.ψ (S.lsK (S.lparams.map φ) N)) base N.KS.params
+      (S.psK m.M (S.lparams.map φ) N ps X) := by
+  obtain ⟨⟨G, hfit⟩, -⟩ := class_reading hs m hok φ hp
   exact FitsVals_psK_replace m hok φ hfit hX
+
+/-- **The nested occurrence's index values fit** (`class_reading`). -/
+theorem nestFit (φ : Name → Nat) : NestFit S m.M φ := by
+  intro N' hN' ps hp
+  rw [hok.nest] at hN'
+  cases hN'
+  exact (class_reading hs m hok φ hp).2
 
 /-- **The container's facts** at every valuation: from its block law,
 the nested checks and the scope. -/
@@ -600,7 +673,7 @@ theorem domsBounded_ofN (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps 
   have hwdD : CtxWD (mIndFN hs m hok F hF hFa).M φ (consList ps ρ) (S.fieldCtx (c.fields.drop (c.fields.length - k))) := by
     rw [← S.fieldCtx_drop]; exact CtxWD_drop _ _ _ hwdF
   have hfs' : FitsVals (mIndFN hs m hok F hF hFa).M φ (consList ps ρ) (S.fieldCtx (c.fields.drop (c.fields.length - k))) fs := by
-    refine (R.fits_fieldCtx hS hscD hps hp hwdD).1.mpr ?_
+    refine (R.fits_fieldCtx hS (nestFit hs m hok φ) hscD hps hp hwdD).1.mpr ?_
     rwa [hFps]
   have hl : fs.length = k := by
     have := S.FitsFields_length m.M _ hfs
@@ -705,7 +778,7 @@ theorem reader₃₀ (M : Name → List Nat → V) (φ : Name → Nat)
   fam := fun ls' => by
     simp [M₃N, M₂, M₁, M₁F, hok.name_ne_rec, hok.name_ne_aux, hok.ctorOf?_name]
   val := fun _ _ => rfl
-  adm := fun _ _ => hadm
+  adm := hadm
 
 /-- The final assignment reads the former and the constructors. -/
 theorem reader₃₀m (φ : Name → Nat) : S.Reader (env := env) m.M φ (S.Fam m.M) (S.M₃N m.M N) φ :=
@@ -803,7 +876,7 @@ theorem reader₂N (φ : Name → Nat) {φ' : Name → Nat} (hφ : ∀ n ∈ S.l
       fam := fun ls' => by
         simp [M₂, M₁, M₁F, hok.ctorOf?_name]
       val := hφ
-      adm := fun _ _ => fam_adm hs m hok φ }
+      adm := fam_adm hs m hok φ }
   ctor := fun j c hc ls' => by
     simp [M₂, S.ctorOf?_of_getElem? hok.nodup_ctors hc]
 
@@ -841,6 +914,16 @@ theorem wd_ctorTypeN {c : CtorSpec} (hc : c ∈ S.ctors) (φ : Name → Nat) (ρ
   have := (infer_sound (m := mIndN hs m hok) (φ := φ) hT ρ (Sat_nil _ _ _)).1
   rwa [mIndN_M] at this
 
+/-- A constructor's type is a type in the final assignment: the checker
+found it a sort. -/
+theorem ty_ctorTypeN {c : CtorSpec} (hc : c ∈ S.ctors) (φ : Name → Nat) (ρ : Nat → V) :
+    IsTy (interp (S.M₃N m.M N) φ ρ (S.ctorType c)) := by
+  obtain ⟨T, u, hT, hR⟩ := (hok.2.2.2.2.2.1 c hc).1
+  have := (Infer.mem_typeU_of (m := mIndN hs m hok) (φ := φ) (infer_sound hT) (red_sound hR)
+    (Sat_nil _ _ ρ)).2
+  rw [mIndN_M] at this
+  exact IsTy_of_mem_typeU this
+
 omit [IndLib V] hs m in
 /-- No field reads an earlier recursive field. -/
 theorem noRecDepN : S.NoRecDep := fun c hc => (hok.scoped.2.2.2.1 c hc).2.1
@@ -854,24 +937,14 @@ theorem type_ok_ctorN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) (φ :
       interp (S.M₃N m.M N) φ ρ ((S.ctorInfo c).type.instL (S.ctorInfo c).lparams ls) := by
   simp only [ctorInfo] at hls ⊢
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
-  -- a product, or (no parameters, no fields) the family's fibre: a type either way
-  have hIsTy : IsTy (interp (S.M₃N m.M N) (Level.substVal φ S.lparams ls) ρ (S.ctorType c)) := by
-    unfold ctorType
-    refine IsTy_interp_mkPis _ _ fun hΓ => ?_
-    have hP : S.params = [] := (List.append_eq_nil_iff.mp hΓ).2
-    have hwd := wd_ctorTypeN hs m hok hcm (Level.substVal φ S.lparams ls) ρ
-    unfold ctorType at hwd
-    rw [hΓ, Expr.mkPis_nil] at hwd
-    obtain ⟨hp, -, heq⟩ := (reader₃₀m hs m hok (Level.substVal φ S.lparams ls)).famAt_wd hok.scoped
-      (o := c.fields.length) (ρ'' := ρ) (ps := []) (by simp [nP, hP])
-      (hok.scoped.2.2.2.1 c hcm).2.2.1 hwd
-    rw [heq]
-    exact IsTy_of_mem_typeU (fam_typeU hs m hok _ hp _)
+  -- the checker found it a sort
+  have hIsTy : IsTy (interp (S.M₃N m.M N) (Level.substVal φ S.lparams ls) ρ (S.ctorType c)) :=
+    ty_ctorTypeN hs m hok hcm _ ρ
   refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_ctorTypeN hs m hok hcm _ ρ),
     by rw [interp_instL]; exact hIsTy, ?_⟩
   rw [interp_instL, (reader₃N hs m hok φ).ctor j c hc, ← lparams_map_substValN hok φ hls]
   exact (reader₃N hs m hok (Level.substVal φ S.lparams ls)).ctorSet_mem hok.scoped hok.freshI hc
-    (wd_ctorTypeN hs m hok hcm _ ρ) (noRecDepN hok)
+    (wd_ctorTypeN hs m hok hcm _ ρ) hIsTy (nestFit hs m hok _) (noRecDepN hok)
     (fun ps hp => domsBounded_ofN hs m hok _ ρ (by have := FitsVals_length _ _ hp; simpa [nP] using this) hp)
     (fun ps hp => contOk hs m hok _ hp)
 

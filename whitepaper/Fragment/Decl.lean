@@ -791,7 +791,8 @@ def OkN (N : NestInfo) (env : Env) : Prop :=
   (∃ ci, env.find? N.K.name = some ci ∧ ci.kind = .induct N.nPK 0 (N.K.ctors.map (·.name)) N.K.spec) ∧
   LevelOracle.eq (N.K.sort.subst N.K.lparams N.lsK) S.sort = true ∧
   LevelOracle.eq (N.memberLevel.subst N.K.lparams N.lsK) S.sort = true ∧
-  (∃ T, Infer (S.envInd env) S.params (S.classTy N 0) T) ∧
+  (∃ T u, Infer (S.envInd env) S.params (S.classTy N 0) T ∧
+    Red (S.envInd env) S.params T (.sort u)) ∧
   (S.large = true → S.NeverProp) ∧
   (∀ c ∈ N.K.ctors, ∃ T, Infer (S.envCtors env) [] (S.rule1Type N c) T) ∧
   (∃ T, Infer (S.envCtors env) [] (S.recTypeN N) T) ∧
