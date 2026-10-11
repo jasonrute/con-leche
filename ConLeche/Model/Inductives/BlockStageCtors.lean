@@ -42,6 +42,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-! ## The invariant the member loops thread -/
 
+
 /-- **The block install's carrier invariant at the constructors'
 stage**, `nc` members' constructors consed: the `k` formers with their
 leaves and telescope readings, the capability families free, every
@@ -74,8 +75,9 @@ stored with their leaves. -/
   (∀ c, c < nc → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       env.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2) ∧ cA.1.levelParams = lps ∧
       ∀ ψ, m'.acval cA.1.name ψ
-        = sumMkAV (d.w ψ) j (d.dsF c j ψ) (((d.dsF c j ψ).drop d.nP).map (·.2.2))
-            (uChains (d.Fss c ψ)))
+        = sumMkAV (d.w ψ) j (d.dsF c j ψ) ((d.ussM c ψ).getD j [])
+            (((d.dsF c j ψ).drop d.nP).map (·.2.2))
+            (uSorts (d.ussM c ψ) (d.Fss c ψ)) (uChains (d.Fss c ψ)))
 
 /-- **The block's names, statically**: a member's name is its former's,
 and every constructor is a member's. -/
@@ -160,11 +162,15 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
   /-- the leaves the `k` formers were consed with: the block operator at
   the HOLE chains (charter item 2) -/
   leaf : ∀ (c : Nat) (ψ : Name → Nat), A c ψ
-    = blockTyG d.k (d.w ψ) (fun c' => d.uM c' ψ) (fun c' => d.IdsM c' ψ) (d.toLfp.holeChains ψ)
-        (d.ppsM c ψ) c
+    = blockTyG d.k (d.w ψ) (fun c' => d.uM c' ψ) (fun c' => d.isM c' ψ) (fun c' => d.IdsM c' ψ)
+        (d.holeSorts ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c
   /-- the hole chains are graded at every parameter frame -/
   holeOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
     BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ)
+  /-- the hole chains are sorted at every parameter frame (task #342 L2b) -/
+  holeSo : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
+    BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) (d.holeSorts ψ)
+      (d.toLfp.holeChains ψ)
   /-- the hole operator is accessible at every parameter frame (its
   fixed-point equation's premises: `AccW.mono`, `AccW.closed`), its fit
   with a bound of the level at a `Type`-valued block (task #327) -/
@@ -200,7 +206,15 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
   /-- the members' index telescopes are graded at every parameter frame -/
   idxOk : ∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
     Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρp →
-    BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ)
+    BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ)
+  /-- the constructors' declared fields at their own sorts (task #342 L2b) -/
+  fieldSorts : ∀ m, m < d.k → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM m)[j]? = some cA →
+    ∀ (ψ : Name → Nat) (ρ : Nat → V),
+      Sat V (((d.dsF m j ψ).take d.nP).map (·.2.2)).reverse ρ → d.w ψ ≠ 0 →
+      FieldsSorts (d.w ψ) ((d.ussM m ψ).getD j []) ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2))
+  /-- the declared sorts read only the block's level parameters -/
+  ussParams : ∀ m, m < d.k → ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ lps, ψ₁ q = ψ₂ q) →
+    d.ussM m ψ₁ = d.ussM m ψ₂
   frames : ∀ m, m < d.k → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM m)[j]? = some cA →
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ ↔
@@ -217,8 +231,9 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
     (ConLeche.blockCapsAt p₁ m isRec).unitlike = true →
     FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
     (∀ ψ, m'.acval cvTa.name ψ = A m ψ) →
-    (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
-      (((d.dsF m kk ψ).drop d.nP).map (·.2.2)) (uChains (d.Fss m ψ))) →
+    (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ) ((d.ussM m ψ).getD kk [])
+      (((d.dsF m kk ψ).drop d.nP).map (·.2.2)) (uSorts (d.ussM m ψ) (d.Fss m ψ))
+      (uChains (d.Fss m ψ))) →
     CapsLawsAt m' cvTa.name cvTa (ConLeche.blockCapsAt p₁ m isRec)
 
 /-! ## The stage at one member -/
@@ -330,7 +345,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       ((hframes j cA hj).2 ψ ρ (((hframes j cA hj).1 ψ ρ).mp hρ)).2.2 bs hsp
     have hfl := blockHoleFold hH hS.inst (fun c _ => hS.leaf c ψ) hs0
       (fun c hc => hS.lenPps c ψ hc) (hS.idxOk m hm ψ ρ hρ) (hS.holeOk ψ ρ hs0)
-      (hS.holeFun ψ ρ hs0).1 hm
+      (hS.holeSo ψ ρ hs0) (hS.holeFun ψ ρ hs0).1 hm
       (fun j' hj' => blockOverride hH (fun t ht => hacv t ht ψ) ρ hs0
         (show m < d.N by simp [BlockData.N, hS.inst]; exact hm) hj') hspE
     rw [ConLeche.Semantics.interp_mkAppN_foldl, List.map_append, paramBvars_eq_paramBvarsAt,
@@ -345,8 +360,9 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       BlockCtorsCore m' d lps cvTasAll p₁ isRec A m →
       FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
       (∀ ψ, m'.acval (d.memberName m) ψ = A m ψ) →
-      (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
+      (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ) ((d.ussM m ψ).getD kk [])
         (((d.dsF m kk ψ).drop d.nP).map (·.2.2))
+        (uSorts (d.ussM m ψ) (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)))
         (uChains (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)))) →
       CapsLawsAt m' (d.memberName m) cvTa (ConLeche.blockCapsAt p₁ m isRec) := by
     intro env' m' kk cA hkk hinv' hFD' hleaf' hleafC'
@@ -389,9 +405,16 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
   have hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ →
       SumFieldsOkB (d.w ψ) ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) ∧
-      SumFieldsValid ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) := by
+      SumFieldsValid ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) ∧
+      (d.w ψ ≠ 0 → SumFieldsSorts (d.w ψ) (d.ussM m ψ) ρ
+        (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0))) := by
     intro ψ ρ hρ
-    constructor
+    refine ⟨?_, ?_, fun hw i Fs hFs => ?_⟩
+    rotate_left 2
+    · rw [fssOf_getElem?] at hFs
+      obtain ⟨cd, hcd, rfl⟩ := Option.map_eq_some_iff.mp hFs
+      obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hcd
+      exact hS.fieldSorts m hm i cA hiA ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ) hw
     · intro Fs hFs
       obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
       obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
@@ -413,7 +436,9 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       (resSort := d.resSort) (isProp := d.isProp) (large := d.large)
       (names := d.memberNames) (ctorsOf := ctorsOf) (ppsAll := d.ppsM m)
       (idxF := d.idxF m) (dsF := d.dsF m) (esF := d.esF m) (srcsF := d.srcsF m)
-      hμ hout' hCtors' (hS.nodup m hm) (hS.lpsT m cvTa hm hcvTa) hlpsA hFssParams hFssBelow
+      (Uss := d.ussM m)
+      hμ hout' hCtors' (hS.nodup m hm) (hS.lpsT m cvTa hm hcvTa) hlpsA hFssParams
+      (hS.ussParams m hm) hFssBelow
       (fun j cA hj => (hframes j cA hj).1) hFssOkP
       (fun j cA hj ψ ρ hρ bs hsp => ((hframes j cA hj).2 ψ ρ hρ).2.2 bs hsp)
       (fun {env'} m' => BlockCtorsCore m' d lps cvTasAll p₁ isRec A m ∧

@@ -158,27 +158,29 @@ theorem uChains_validV {ρ : Nat → V} {Fss : List (List AnnotTerm)} (hv : SumF
 
 /-! ## The carrier -/
 
-theorem towers_validV {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hv : SumFieldsValid ρ Fss) : ∀ T ∈ Fss.map (towerBodyAV w), AnnotValid V ρ T := by
+theorem towers_validV {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)}
+    (hv : SumFieldsValid ρ Fss) : ∀ T ∈ towersAV w Uss Fss, AnnotValid V ρ T := by
   intro T hT
-  obtain ⟨Fs, hFs, rfl⟩ := List.mem_map.mp hT
-  exact towerBodyAV_validV (hv Fs hFs)
+  obtain ⟨i, Fs, hFs, rfl⟩ := mem_towersAV hT
+  exact towerBodyAV_validV (hv Fs (List.mem_of_getElem? hFs))
 
 theorem case_validV_at {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
-    {Fss : List (List AnnotTerm)} (hv : SumFieldsValid ρp Fss) (k : V) :
-    AnnotValid V (cons k σ) (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)) := by
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} (hv : SumFieldsValid ρp Fss) (k : V) :
+    AnnotValid V (cons k σ) (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)) := by
   refine caseAVAt_validV ?_ trivial
   rw [shiftE_succ_cons, hsh]
   exact towers_validV hv
 
-theorem sumBodyAVPos_validV {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hv : SumFieldsValid ρ Fss) : AnnotValid V ρ (sumBodyAVPos w Fss) := by
+theorem sumBodyAVPos_validV {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)}
+    (hv : SumFieldsValid ρ Fss) : AnnotValid V ρ (sumBodyAVPos w Uss Fss) := by
   unfold sumBodyAVPos
   rw [AnnotValid_app, AnnotValid_app, AnnotValid_lam]
   exact ⟨⟨trivial, trivial⟩, trivial, fun k _ => case_validV_at (shiftE_zero_zero ρ) hv k⟩
 
-theorem sqSumBodyAV_validV {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hv : SumFieldsValid ρ Fss) : AnnotValid V ρ (sqSumBodyAV Fss) := by
+theorem sqSumBodyAV_validV {ρ : Nat → V} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    (hv : SumFieldsValid ρ Fss) : AnnotValid V ρ (sqSumBodyAV Uss Fss) := by
   unfold sqSumBodyAV negAV
   rw [AnnotValid_pi]
   refine ⟨?_, fun _ _ => by simp, fun _ _ _ => by rw [← univ_zero]; exact empty_mem_univ 0⟩
@@ -188,45 +190,47 @@ theorem sqSumBodyAV_validV {ρ : Nat → V} {Fss : List (List AnnotTerm)}
   exact ⟨case_validV_at (shiftE_zero_zero ρ) hv k, fun _ _ => by simp,
     fun _ _ _ => by rw [← univ_zero]; exact empty_mem_univ 0⟩
 
-theorem sumBodyAV_validV {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hv : SumFieldsValid ρ Fss) : AnnotValid V ρ (sumBodyAV w Fss) := by
+theorem sumBodyAV_validV {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)}
+    (hv : SumFieldsValid ρ Fss) : AnnotValid V ρ (sumBodyAV w Uss Fss) := by
   by_cases hw : w = 0
   · subst hw; rw [sumBodyAV_zero]; exact sqSumBodyAV_validV hv
   · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_validV hv
 
 /-- The type-former leaf's P currency. -/
-theorem sumTyAV_wellDenotedV {w : Nat} {Fss : List (List AnnotTerm)}
+theorem sumTyAV_wellDenotedV {w : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
-    (hok : ParamsOkS w ρ Fss pps)
-    (hval : UnderTowerValid ρ (sumBodyAV w Fss) pps) :
-    WellDenotedV V ρ (sumTyAV w pps Fss) :=
+    (hok : ParamsOkS w ρ Uss Fss pps)
+    (hval : UnderTowerValid ρ (sumBodyAV w Uss Fss) pps) :
+    WellDenotedV V ρ (sumTyAV w pps Uss Fss) :=
   ⟨sumTyAV_wellDenoted hok, mkLamsC_validV hval⟩
 
 /-! ## The constructor -/
 
 theorem sumInjAtAV_validV {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
-    {Fss : List (List AnnotTerm)} (hv : SumFieldsValid ρp Fss) {tag payload : AnnotTerm}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} (hv : SumFieldsValid ρp Fss)
+    {tag payload : AnnotTerm}
     (ht : AnnotValid V σ tag) (hp : AnnotValid V σ payload) :
-    AnnotValid V σ (sumInjAtAV w Fss d tag payload) := by
+    AnnotValid V σ (sumInjAtAV w Uss Fss d tag payload) := by
   show AnnotValid V σ (.app (.app (.app (.app (.const .psigmaMk [w, w]) natAV)
-    (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
+    (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)))) tag) payload)
   simp only [AnnotValid_app, AnnotValid_const, AnnotValid_lam]
   exact ⟨⟨⟨⟨trivial, trivial⟩, trivial, fun k _ => case_validV_at hsh hv k⟩, ht⟩, hp⟩
 
 /-- The proof-field-terminated tupler is bit-valid at a fitting frame
 (graph regime). -/
 theorem mkTowerGoUPos_validV {w : Nat} {E : AnnotTerm} :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
       FieldsValid ρp (Fs ++ [E]) → SpineFit ρp Fs bs →
-      AnnotValid V (consList bs ρp) (mkTowerGoUPos w E Fs)
-  | [], ρp, [], hv, _ => by
-    show AnnotValid V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
+      AnnotValid V (consList bs ρp) (mkTowerGoUPos w E us Fs)
+  | us, [], ρp, [], hv, _ => by
+    show AnnotValid V ρp (.app (.app (.app (.app (.const .psigmaMk [us.headD w, w]) E)
         (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     simp only [AnnotValid_app, AnnotValid_const, AnnotValid_lam, AnnotValid_prf]
     exact ⟨⟨⟨⟨trivial, hv.1⟩, hv.1, fun _ _ => trivial⟩, trivial⟩, trivial⟩
-  | [], _, _ :: _, _, hsp => hsp.elim
-  | _ :: _, _, [], _, hsp => hsp.elim
-  | F :: Fs, ρp, b :: bs, hv, hsp => by
+  | _, [], _, _ :: _, _, hsp => hsp.elim
+  | _, _ :: _, _, [], _, hsp => hsp.elim
+  | us, F :: Fs, ρp, b :: bs, hv, hsp => by
     have hlen : bs.length = Fs.length := hsp.2.length_eq
     have hshift : shiftE (Fs.length + 1) 0 (consList bs (cons b ρp)) = ρp := by
       rw [← hlen,
@@ -238,12 +242,12 @@ theorem mkTowerGoUPos_validV {w : Nat} {E : AnnotTerm} :
       rw [interp_liftN, hshift]
     rw [List.cons_append] at hv
     show AnnotValid V (consList bs (cons b ρp))
-      (.app (.app (.app (.app (.const .psigmaMk [w, w])
+      (.app (.app (.app (.app (.const .psigmaMk [us.headD w, w])
           (F.liftN (Fs.length + 1)))
           (.lam (w + 1) (F.liftN (Fs.length + 1))
-            ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
+            ((towerBodyAV w us.tail (Fs ++ [E])).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
-        (mkTowerGoUPos w E Fs))
+        (mkTowerGoUPos w E us.tail Fs))
     rw [AnnotValid_app]
     refine ⟨?_, mkTowerGoUPos_validV (hv.2 b hsp.1) hsp.2⟩
     rw [AnnotValid_app]
@@ -262,34 +266,36 @@ theorem mkTowerGoUPos_validV {w : Nat} {E : AnnotTerm} :
       exact towerBodyAV_validV (hv.2 x hx)
 
 /-- The tupler is bit-valid at a fitting frame, both regimes. -/
-theorem mkTowerGoU_validV {w : Nat} {E : AnnotTerm} {Fs : List AnnotTerm} {ρp : Nat → V}
+theorem mkTowerGoU_validV {w : Nat} {E : AnnotTerm} {us : List Nat} {Fs : List AnnotTerm}
+    {ρp : Nat → V}
     {bs : List V} (hv : FieldsValid ρp (Fs ++ [E])) (hsp : SpineFit ρp Fs bs) :
-    AnnotValid V (consList bs ρp) (mkTowerGoU w Fs E) := by
+    AnnotValid V (consList bs ρp) (mkTowerGoU w us Fs E) := by
   by_cases hw : w = 0
   · subst hw; rw [mkTowerGoU_zero]; trivial
   · rw [mkTowerGoU_pos hw]; exact mkTowerGoUPos_validV hv hsp
 
 /-- The constructor's body is bit-valid at a fitting field frame. -/
-theorem sumInj_validV_at_fields {w j : Nat} {ρp : Nat → V} {Fs : List AnnotTerm}
-    {Fss : List (List AnnotTerm)} {bs : List V}
+theorem sumInj_validV_at_fields {w j : Nat} {ρp : Nat → V} {us : List Nat} {Fs : List AnnotTerm}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {bs : List V}
     (hv : SumFieldsValid ρp Fss) (hvF : FieldsValid ρp Fs) (hsp : SpineFit ρp Fs bs) :
     AnnotValid V (consList bs ρp)
-      (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) := by
+      (sumInjAtAV w Uss Fss Fs.length (numeralAV j)
+        (mkTowerGoU w (us ++ [0]) Fs (idxEqAV []))) := by
   have hlen : bs.length = Fs.length := hsp.length_eq
   have hsh : shiftE Fs.length 0 (consList bs ρp) = ρp := by rw [← hlen]; exact shiftE_consList bs ρp
   exact sumInjAtAV_validV hsh hv (numeralAV_validV j _)
     (mkTowerGoU_validV (FieldsValid_append_one hvF fun _ _ => idxEqAV_nil_validV _) hsp)
 
 /-- The constructor leaf's P currency. -/
-theorem sumMkAV_wellDenotedV {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
+theorem sumMkAV_wellDenotedV {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V} {us : List Nat}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
     (hz : ∀ d ∈ pds ++ fds, (w = 0 ↔ d.2.1 = 0))
-    (hpre : MkPreS w j ρ (fds.map (·.2.2)) Fss bodyC pds)
+    (hpre : MkPreS w j ρ us (fds.map (·.2.2)) Uss Fss bodyC pds)
     (hval : UnderTowerValid ρ
-      (sumInjAtAV w Fss (fds.map (·.2.2)).length (numeralAV j)
-        (mkTowerGoU w (fds.map (·.2.2)) (idxEqAV [])))
+      (sumInjAtAV w Uss Fss (fds.map (·.2.2)).length (numeralAV j)
+        (mkTowerGoU w (us ++ [0]) (fds.map (·.2.2)) (idxEqAV [])))
       (pds ++ fds)) :
-    WellDenotedV V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss) :=
+    WellDenotedV V ρ (sumMkAV w j (pds ++ fds) us (fds.map (·.2.2)) Uss Fss) :=
   ⟨sumMkAV_wellDenoted hz hpre, mkLamsC_validV hval⟩
 
 
@@ -1126,13 +1132,14 @@ data and the chains' grading at the parameter frame. -/
 theorem formerWalksS {m : EnvModel V env} {cvT : ConstantVal} {nP : Nat}
     {resSort : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     (hFD : FormerData m cvT nP resSort pps)
-    {Fss : (Name → Nat) → List (List AnnotTerm)}
+    {Fss : (Name → Nat) → List (List AnnotTerm)} {Uss : (Name → Nat) → List (List Nat)}
     (hFssOk : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V ((pps ψ).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ) ∧ SumFieldsValid ρ (Fss ψ))
+      SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ) ∧ SumFieldsValid ρ (Fss ψ) ∧
+      (resSort.eval ψ ≠ 0 → SumFieldsSorts (resSort.eval ψ) (Uss ψ) ρ (Fss ψ)))
     (ψ : Name → Nat) (ρ : Nat → V) :
-    ParamsOkS (resSort.eval ψ) ρ (Fss ψ) (pps ψ) ∧
-      UnderTowerValid ρ (sumBodyAV (resSort.eval ψ) (Fss ψ)) (pps ψ) := by
+    ParamsOkS (resSort.eval ψ) ρ (Uss ψ) (Fss ψ) (pps ψ) ∧
+      UnderTowerValid ρ (sumBodyAV (resSort.eval ψ) (Uss ψ) (Fss ψ)) (pps ψ) := by
   have hst := stripPisAV_mkPisAV (pps ψ) (.sort (resSort.eval ψ))
   rw [hFD.len ψ] at hst
   have htele := piTeleAV_of_stripPisAV hst
@@ -1151,16 +1158,16 @@ theorem formerWalksS {m : EnvModel V env} {cvT : ConstantVal} {nP : Nat}
     rw [Nat.sub_zero, List.drop_eq_nil_of_le (by rw [hlenΓ]; exact Nat.le_refl _)]
   constructor
   · have hw := hereditaryWalk (V := V)
-      (Q := fun ρ ds => ParamsOkS (resSort.eval ψ) ρ (Fss ψ) ds)
+      (Q := fun ρ ds => ParamsOkS (resSort.eval ψ) ρ (Uss ψ) (Fss ψ) ds)
       hlenΓ (hFD.len ψ) hent okΓ
-      (fun ρ hρ => (hFssOk ψ ρ hρ).1)
+      (fun ρ hρ => ⟨(hFssOk ψ ρ hρ).1, (hFssOk ψ ρ hρ).2.2⟩)
       (fun ρ d ds hd hok hrec => ⟨hFD.bits ψ d hd, hok.1, hrec⟩)
       0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
     simpa using hw
   · have hw := hereditaryWalk (V := V)
-      (Q := fun ρ ds => UnderTowerValid ρ (sumBodyAV (resSort.eval ψ) (Fss ψ)) ds)
+      (Q := fun ρ ds => UnderTowerValid ρ (sumBodyAV (resSort.eval ψ) (Uss ψ) (Fss ψ)) ds)
       hlenΓ (hFD.len ψ) hent okΓ
-      (fun ρ hρ => sumBodyAV_validV (hFssOk ψ ρ hρ).2)
+      (fun ρ hρ => sumBodyAV_validV (hFssOk ψ ρ hρ).2.1)
       (fun ρ d ds hd hok hrec => ⟨hok.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
     simpa using hw
@@ -1204,7 +1211,7 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
     {nP nF nIdx j : Nat} {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
     {ppsAll ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)}
-    {Fss Ess : (Name → Nat) → List (List AnnotTerm)}
+    {Fss Ess : (Name → Nat) → List (List AnnotTerm)} {Uss : (Name → Nat) → List (List Nat)}
     (_hFD : FormerData m cvT (nP + nIdx) resSort ppsAll)
     (hCD : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     (hfold : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -1220,17 +1227,21 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
         Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ) ∧ SumFieldsValid ρ (Fss ψ))
+      SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ) ∧ SumFieldsValid ρ (Fss ψ) ∧
+      (resSort.eval ψ ≠ 0 → SumFieldsSorts (resSort.eval ψ) (Uss ψ) ρ (Fss ψ)))
     (_hIdx : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
       ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
         SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (Es ψ) bs))
     (ψ : Name → Nat) (ρ : Nat → V) :
-    MkPreS (resSort.eval ψ) j ρ (((ds ψ).drop nP).map (·.2.2)) (uChains (Fss ψ))
+    MkPreS (resSort.eval ψ) j ρ ((Uss ψ).getD j []) (((ds ψ).drop nP).map (·.2.2))
+        (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ))
         (ctorBodyAVI m T nP nF ψ (Es ψ)) ((ds ψ).take nP) ∧
       UnderTowerValid ρ
-        (sumInjAtAV (resSort.eval ψ) (uChains (Fss ψ)) (((ds ψ).drop nP).map (·.2.2)).length
-          (numeralAV j) (mkTowerGoU (resSort.eval ψ) (((ds ψ).drop nP).map (·.2.2)) (idxEqAV [])))
+        (sumInjAtAV (resSort.eval ψ) (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ))
+          (((ds ψ).drop nP).map (·.2.2)).length
+          (numeralAV j) (mkTowerGoU (resSort.eval ψ) ((Uss ψ).getD j [] ++ [0])
+            (((ds ψ).drop nP).map (·.2.2)) (idxEqAV [])))
         ((ds ψ).take nP ++ (ds ψ).drop nP) := by
   have hlenDs := hCD.len ψ
   have hlenP : ((ds ψ).take nP).length = nP := List.length_take_of_le (by omega)
@@ -1268,7 +1279,8 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
     rw [rChains_getElem?, hFsj ψ, hEsj ψ]
   constructor
   · have hw := hereditaryWalk (V := V)
-      (Q := fun ρ pds => MkPreS (resSort.eval ψ) j ρ Fs (uChains (Fss ψ))
+      (Q := fun ρ pds => MkPreS (resSort.eval ψ) j ρ ((Uss ψ).getD j []) Fs
+        (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ))
         (ctorBodyAVI m T nP nF ψ (Es ψ)) pds)
       hΓplen hlenP hentP okΓp
       (fun ρ hρ => ?_)
@@ -1280,7 +1292,9 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
     -- the base: at the parameter frame
     have hρt : Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ := (hiff ψ ρ).mpr hρ
     have hokFss := (hFssOkP ψ ρ hρ).1
-    refine ⟨SumFieldsOkB_uChains hokFss, by rw [uChains_getElem?, hFsj ψ]; rfl, fun bs hsp => ?_⟩
+    have hsoFss := (hFssOkP ψ ρ hρ).2.2
+    refine ⟨SumFieldsOkB_uChains hokFss, by rw [uChains_getElem?, hFsj ψ]; rfl, fun bs hsp => ?_,
+      fun hw => ⟨SumFieldsSorts_uChains (hsoFss hw), hsoFss hw j Fs (hFsj ψ)⟩⟩
     have hlenI : (idxValsAt ρ (Es ψ) bs).length = nIdx := by
       simp [idxValsAt, hCD.lenE ψ]
     refine ⟨sumFibre (resSort.eval ψ) (consList (idxValsAt ρ (Es ψ) bs) ρ)
@@ -1296,8 +1310,8 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
       · rw [EqAll_idxEqsAt (hCD.lenE ψ) hsp.length_eq, hshift, frameIdx_consList hlenI]
   · have hw := hereditaryWalk (V := V)
       (Q := fun ρ ds' => UnderTowerValid ρ
-        (sumInjAtAV (resSort.eval ψ) (uChains (Fss ψ)) Fs.length (numeralAV j)
-          (mkTowerGoU (resSort.eval ψ) Fs (idxEqAV []))) ds')
+        (sumInjAtAV (resSort.eval ψ) (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ)) Fs.length
+          (numeralAV j) (mkTowerGoU (resSort.eval ψ) ((Uss ψ).getD j [] ++ [0]) Fs (idxEqAV []))) ds')
       hΓlen hlenDs hent okΓ
       (fun ρ' hρ' => ?_)
       (fun ρ d ds' _ hok hrec => ⟨hok.2, hrec⟩)
@@ -1316,10 +1330,11 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
       rw [List.drop_append_of_le_length (by simp [hlenDs]),
         List.drop_eq_nil_of_le (by simp [hlenDs]), List.nil_append] at this
       exact this
-    obtain ⟨-, hvAll⟩ := hFssOkP ψ _ hρp
+    obtain ⟨-, hvAll, -⟩ := hFssOkP ψ _ hρp
     have hvF : FieldsValid (fun j => ρ' (j + nF)) Fs :=
       hvAll _ (List.mem_of_getElem? (hFsj ψ))
-    have := sumInj_validV_at_fields (w := resSort.eval ψ) (j := j) (uChains_validV hvAll) hvF hspF
+    have := sumInj_validV_at_fields (w := resSort.eval ψ) (j := j) (us := (Uss ψ).getD j [])
+      (Uss := uSorts (Uss ψ) (Fss ψ)) (uChains_validV hvAll) hvF hspF
     rwa [consList_range_reverse] at this
 
 /-- **The P step at a sum-shaped constructor's cons**, for a given fibre fold. -/
@@ -1350,14 +1365,15 @@ theorem stageCtorGen {T : Name}
     {idxArgs : List Expr}
     {ppsAll ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)}
-    {Fss Ess : (Name → Nat) → List (List AnnotTerm)}
+    {Fss Ess : (Name → Nat) → List (List AnnotTerm)} {Uss : (Name → Nat) → List (List Nat)}
     -- the block's own capability laws at the cons (task #210 Parts A
     -- and B), at any carrier agreeing with this one off the
     -- constructor's name and storing the constructor's leaf there
     (hTlaws : ∀ m₂ : EnvModel V ⟨.ctorInfo cvCa nP nF :: env.consts⟩,
       (∀ n, n ≠ cvCa.name → m₂.acval n = mp.base2.acval n) →
       (∀ ψ, m₂.acval cvCa.name ψ
-        = sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP).map (·.2.2)) (uChains (Fss ψ))) →
+        = sumMkAV (resSort.eval ψ) j (ds ψ) ((Uss ψ).getD j []) (((ds ψ).drop nP).map (·.2.2))
+            (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ))) →
       CapsLawsAt m₂ T cvTa caps)
     (hFD : FormerData mp.base2 cvTa (nP + nIdx) resSort ppsAll)
     (hCD : CtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large idxArgs ds Es srcs)
@@ -1370,22 +1386,23 @@ theorem stageCtorGen {T : Name}
     (hFsj : ∀ ψ, (Fss ψ)[j]? = some (((ds ψ).drop nP).map (·.2.2)))
     (hEsj : ∀ ψ, (Ess ψ)[j]? = some (Es ψ))
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat,
-      (∀ q ∈ lps, ψ₁ q = ψ₂ q) → Fss ψ₁ = Fss ψ₂)
+      (∀ q ∈ lps, ψ₁ q = ψ₂ q) → Fss ψ₁ = Fss ψ₂ ∧ Uss ψ₁ = Uss ψ₂)
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ Fss ψ, FieldsBelow nP Fs)
     (hiff : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
         Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ) ∧ SumFieldsValid ρ (Fss ψ))
+      SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ) ∧ SumFieldsValid ρ (Fss ψ) ∧
+      (resSort.eval ψ ≠ 0 → SumFieldsSorts (resSort.eval ψ) (Uss ψ) ρ (Fss ψ)))
     (hIdx : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
       ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
         SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (Es ψ) bs)) :
     ∃ mp' : EnvModelM V μ ⟨.ctorInfo cvCa nP nF :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval cvCa.name
-        (fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP).map (·.2.2))
-          (uChains (Fss ψ))) := by
+        (fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) ((Uss ψ).getD j [])
+          (((ds ψ).drop nP).map (·.2.2)) (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ))) := by
   obtain ⟨⟨_, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, hnres, hpshape, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
     ConLeche.checkConstantVal_inv hccv
@@ -1402,7 +1419,8 @@ theorem stageCtorGen {T : Name}
     · show cvCa.type.looseBVarsBounded 0 = true; rw [hty]; exact hbt'
   let Fs : (Name → Nat) → List AnnotTerm := fun ψ => ((ds ψ).drop nP).map (·.2.2)
   let A : (Name → Nat) → AnnotTerm :=
-    fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (Fs ψ) (uChains (Fss ψ))
+    fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) ((Uss ψ).getD j []) (Fs ψ)
+      (uSorts (Uss ψ) (Fss ψ)) (uChains (Fss ψ))
   have hAbelow : ∀ ψ, Term.bvarsBelow 0 (A ψ).erase := fun ψ =>
     sumMkAV_below (hCD.below ψ)
       ((DomsBelow.drop nP (hCD.below ψ)).fields)
@@ -1439,9 +1457,12 @@ theorem stageCtorGen {T : Name}
   · intro ψ₁ ψ₂ hφ
     have hφT : ∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q := by rw [hlpsT, ← hlpsC]; exact hφ
     obtain ⟨-, hw⟩ := hFD.params ψ₁ ψ₂ hφT
-    show sumMkAV _ j (ds ψ₁) (((ds ψ₁).drop nP).map (·.2.2)) (uChains (Fss ψ₁))
-      = sumMkAV _ j (ds ψ₂) (((ds ψ₂).drop nP).map (·.2.2)) (uChains (Fss ψ₂))
-    rw [hw, (hCD.params ψ₁ ψ₂ hφ).1, hFssParams ψ₁ ψ₂ (by rw [← hlpsC]; exact hφ)]
+    show sumMkAV _ j (ds ψ₁) ((Uss ψ₁).getD j []) (((ds ψ₁).drop nP).map (·.2.2))
+        (uSorts (Uss ψ₁) (Fss ψ₁)) (uChains (Fss ψ₁))
+      = sumMkAV _ j (ds ψ₂) ((Uss ψ₂).getD j []) (((ds ψ₂).drop nP).map (·.2.2))
+        (uSorts (Uss ψ₂) (Fss ψ₂)) (uChains (Fss ψ₂))
+    obtain ⟨hF₁, hU₁⟩ := hFssParams ψ₁ ψ₂ (by rw [← hlpsC]; exact hφ)
+    rw [hw, (hCD.params ψ₁ ψ₂ hφ).1, hF₁, hU₁]
   · intro ψ ρ
     have := sumMkAV_wellDenotedV (V := V) (hz ψ) (hwalks ψ ρ).1 (hwalks ψ ρ).2
     rw [List.take_append_drop] at this
@@ -1545,12 +1566,14 @@ theorem names_ne_of_nodup {ctorsA : List (ConstantVal × Nat)}
     (resSort : Level) (isProp large : Bool) (idxF : Nat → List Expr)
     (dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
     (esF : Nat → (Name → Nat) → List AnnotTerm) (srcsF : Nat → List (Option Nat))
+    (Uss : (Name → Nat) → List (List Nat))
     (ctorsA : List (ConstantVal × Nat)) (k : Nat) : Prop :=
   ∀ i cA, i < k → ctorsA[i]? = some cA →
     CtorFactsAt m T lps nP nIdx resSort isProp large idxF dsF esF srcsF i cA ∧
     (∀ e ∈ idxF i, e.constsResolve env = true) ∧
     ∀ ψ, m.acval cA.1.name ψ
-      = sumMkAV (resSort.eval ψ) i (dsF i ψ) (((dsF i ψ).drop nP).map (·.2.2))
+      = sumMkAV (resSort.eval ψ) i (dsF i ψ) ((Uss ψ).getD i []) (((dsF i ψ).drop nP).map (·.2.2))
+          (uSorts (Uss ψ) (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
           (uChains (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
 
 end ConLeche.Model

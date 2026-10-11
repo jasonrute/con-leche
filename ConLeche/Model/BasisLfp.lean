@@ -69,6 +69,7 @@ fibre. -/
   pars := fun _ _ => []
   ids := fun _ _ => []
   u := fun _ _ => 0
+  isorts := fun _ _ => []
   Φ := fun _ _ X _ => graph (fun _ => F (app (X 0) pt)) unitSet
   inj := fun _ _ j fs => inj j fs
   nctors := fun _ => n
@@ -430,6 +431,7 @@ collapses to the point, where `a` and `b` are the point too. -/
   pars := fun _ ψ => [.sort (lv ψ), .bvar 0]
   ids := fun _ _ => [.bvar 1]
   u := fun _ ψ => lv ψ
+  isorts := fun _ ψ => [lv ψ]
   Φ := fun ψ ρp _ _ => graph (eqFib ρp) (idxSet (lv ψ) ρp [.bvar 1])
   inj := fun _ _ _ _ => pt
   nctors := fun _ => 1
@@ -489,7 +491,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
     have hA : ρp 1 ∈ˢ (univ (lv ψ) : V) := by
       have := hs 1 (.sort (lv ψ)) rfl
       simpa using this
-    exact ⟨⟨by simp, fun _ => hA, fun _ _ => trivial⟩, ⟨hA, fun _ _ => trivial⟩⟩
+    exact ⟨⟨by simp, fun _ => hA, fun _ _ => trivial⟩, ⟨Nat.le_refl _, hA, fun _ _ => trivial⟩⟩
   maps := fun ψ ρp _ X _ _ _ =>
     graph_mem_famSpace fun _ _ => by
       show _ ∈ˢ (univ 0 : V); rw [univ_zero]; exact truthVal_mem_univZero _

@@ -87,14 +87,14 @@ theorem idxOk_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     (hFD : FormerData mp.base2 cvTa (nP + nIdx) resSort ppsAll)
     (ψ : Name → Nat) (ρp : Nat → V)
     (hρp : Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρp) :
-    IdxOk (idxUniv ψ isorts) ρp (((ppsAll ψ).drop nP).map (·.2.2)) := by
+    IdxOk (idxUniv ψ isorts) (isorts.map (Level.eval ψ)) ρp (((ppsAll ψ).drop nP).map (·.2.2)) := by
   obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfT)
   simp only [ConstantInfo.toConstantVal] at hTf hTb
   have hT : Opened mp.base2 ψ (nP + nIdx) cvTa.type tfvs trest
       (((ppsAll ψ).map (·.2.2)).reverse) (.sort (resSort.eval ψ)) :=
     opened_of_peel hopT hTf hTb (hFD.read ψ) (hFD.len ψ) (hFD.okTy ψ)
   have hc := claimsAt_of hμ mp ψ F
-  obtain ⟨-, hrows⟩ := ConLeche.checkStructFieldSortsI_inv hsorts
+  obtain ⟨hlenS, hrows⟩ := ConLeche.checkStructFieldSortsI_inv hsorts
   have hlenT : tfvs.length = nP + nIdx := openPisAtFvars_length _ hopT
   have hΓ : (((ppsAll ψ).map (·.2.2)).reverse).length = nP + nIdx := by simp [hFD.len ψ]
   -- the index binders' universes at their frames
@@ -116,9 +116,29 @@ theorem idxOk_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     exact hρp
   have hok := fieldsOkB_of_frame rfl hΓ hT.okΓ (fun j hj ρ hρ _ => hbnd j hj ρ hρ) 0 (Nat.zero_le _)
     ρp hρp'
-  have hbd := fieldsBound_of_frame rfl hΓ hbnd 0 (Nat.zero_le _) ρp hρp'
-  rw [fieldsFrom_eq_drop (hFD.len ψ)] at hok hbd
-  exact ⟨hok, hbd⟩
+  -- the index binders' own sorts at their frames
+  have hsrt : ∀ j, j < nIdx → ∀ ρ : Nat → V,
+      Sat V ((((ppsAll ψ).map (·.2.2)).reverse).drop (nP + nIdx - (nP + j))) ρ →
+      (isorts.map (Level.eval ψ)).getD j 0 ≤ idxUniv ψ isorts ∧
+      interp V ρ ((((ppsAll ψ).map (·.2.2)).reverse).getD (nP + nIdx - 1 - (nP + j)) default)
+        ∈ˢ (univ ((isorts.map (Level.eval ψ)).getD j 0) : V) := by
+    intro j hj ρ hρ
+    obtain ⟨fv, ty, u, hfv, hu, hi, hens, -, -⟩ := hrows j hj
+    have hfvT : tfvs[nP + j]? = some fv := by
+      rw [List.getElem?_drop] at hfv; exact hfv
+    obtain ⟨-, hws, hb, hL, hleaf⟩ := hT.var (nP + j) fv hfvT
+    have hCtx := hT.ctx (i := nP + j) (by omega) hws hleaf
+    have hread := hT.doms (nP + j) fv hfvT
+    have hrow := hc.sortRow hi hens hws hb hL hCtx hread ρ hρ
+    have hgu : (isorts.map (Level.eval ψ)).getD j 0 = u.eval ψ := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_map, hu]; rfl
+    rw [hgu]
+    exact ⟨eval_le_idxUniv (ψ := ψ) hu, hrow.2⟩
+  have hso := fieldsSorts_of_frame (us := isorts.map (Level.eval ψ)) rfl hΓ
+    (by rw [List.length_map, hlenS]) hsrt 0 (Nat.zero_le _) ρp hρp'
+  rw [List.drop_zero] at hso
+  rw [fieldsFrom_eq_drop (hFD.len ψ)] at hok hso
+  exact ⟨hok, hso⟩
 
 
 
@@ -311,8 +331,11 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
     {ppsAll : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     {idxF : Nat → List Expr} {dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     {esF : Nat → (Name → Nat) → List AnnotTerm} {srcsF : Nat → List (Option Nat)}
+    {Uss : (Name → Nat) → List (List Nat)}
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ p.cvT.levelParams, ψ₁ q = ψ₂ q) →
       fssOf p.nP (ctorDataList dsF esF ψ₁ ctorsA 0) = fssOf p.nP (ctorDataList dsF esF ψ₂ ctorsA 0))
+    (hUssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ p.cvT.levelParams, ψ₁ q = ψ₂ q) →
+      Uss ψ₁ = Uss ψ₂)
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0),
       FieldsBelow p.nP Fs)
     (hiff : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -321,7 +344,9 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take p.nP).map (·.2.2)).reverse ρ →
       SumFieldsOkB (p.resSort.eval ψ) ρ (fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0)) ∧
-      SumFieldsValid ρ (fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0)))
+      SumFieldsValid ρ (fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0)) ∧
+      (p.resSort.eval ψ ≠ 0 → SumFieldsSorts (p.resSort.eval ψ) (Uss ψ) ρ
+        (fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0))))
     (hIdx : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((dsF j ψ).take p.nP).map (·.2.2)).reverse ρ →
       ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop p.nP).map (·.2.2)) bs →
@@ -342,7 +367,9 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
       FormerData m' cvTa (p.nP + p.nIdx) p.resSort ppsAll →
       (∀ ψ, m'.acval p.cvT.name ψ = leafT ψ) →
       (∀ ψ, m'.acval cA.1.name ψ
-        = sumMkAV (p.resSort.eval ψ) k (dsF k ψ) (((dsF k ψ).drop p.nP).map (·.2.2))
+        = sumMkAV (p.resSort.eval ψ) k (dsF k ψ) ((Uss ψ).getD k [])
+            (((dsF k ψ).drop p.nP).map (·.2.2))
+            (uSorts (Uss ψ) (fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0)))
             (uChains (fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0)))) →
       CapsLawsAt m' p.cvT.name cvTa caps)
     (EtaInv : Env → Prop)
@@ -372,7 +399,7 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
       FormerData mp.base2 cvTa (p.nP + p.nIdx) p.resSort ppsAll →
       (∀ ψ, mp.base2.acval p.cvT.name ψ = leafT ψ) →
       ConsedAt mp.base2 p.cvT.name p.cvT.levelParams p.nP p.nIdx p.resSort p.isProp p.large
-        idxF dsF esF srcsF ctorsA k →
+        idxF dsF esF srcsF Uss ctorsA k →
       PendingAt mp.base2 p.cvT.name p.cvT.levelParams p.nP p.nIdx p.resSort p.isProp p.large
         idxF dsF esF srcsF ctorsA k →
       Inv mp.base2 →
@@ -383,7 +410,7 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
         FormerData mp'.base2 cvTa (p.nP + p.nIdx) p.resSort ppsAll ∧
         (∀ ψ, mp'.base2.acval p.cvT.name ψ = leafT ψ) ∧
         ConsedAt mp'.base2 p.cvT.name p.cvT.levelParams p.nP p.nIdx p.resSort p.isProp p.large
-          idxF dsF esF srcsF ctorsA ctorsA.length ∧
+          idxF dsF esF srcsF Uss ctorsA ctorsA.length ∧
         Inv mp'.base2
   | [], k, env, mp, _, hk, hE, hfT, hFD, hleafT, hcons, _, hinv => by
     simp only [List.length_nil, Nat.add_zero] at hk
@@ -439,7 +466,8 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
           (hFD.cross (c₀ := .ctorInfo cA.1 p.nP cA.2) hfresh (hcross _) hcbT m₂ hac)
           (fun ψ => by rw [hag _ hTC]; exact hleafT ψ) hleafC₂)
       hFD hCD
-      hfoldC hFsj hEsj hFssParams hFssBelow (hiff k cA hcAk)
+      hfoldC hFsj hEsj (fun ψ₁ ψ₂ h => ⟨hFssParams ψ₁ ψ₂ h, hUssParams ψ₁ ψ₂ h⟩) hFssBelow
+      (hiff k cA hcAk)
       (fun ψ ρ hρ => hFssOkP ψ ρ ((hiff k cA hcAk ψ ρ).mpr hρ)) (hIdx k cA hcAk)
     -- the invariants at the extension
     have hcbC : ConstsBound env cA.1.type := constsBound_of_constsResolve _ htr
@@ -456,7 +484,7 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
       rw [acvalWith_ne hTC]
       exact hleafT ψ
     have hcons' : ConsedAt mpC.base2 p.cvT.name p.cvT.levelParams p.nP p.nIdx p.resSort p.isProp
-        p.large idxF dsF esF srcsF ctorsA (k + 1) := by
+        p.large idxF dsF esF srcsF Uss ctorsA (k + 1) := by
       intro i cAi hi hcAi
       rcases Nat.lt_or_ge i k with hlt | hge
       · obtain ⟨⟨hfi, hlpsi, hCDi⟩, hresi, hleaf⟩ := hcons i cAi hlt hcAi
@@ -503,7 +531,8 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
       rwa [show k + (i + 1) = k + 1 + i from by omega] at this
     have hinv' : Inv mpC.base2 :=
       hInv mp.base2 cA _ mpC.base2 (List.mem_of_getElem? hcAk) hfresh hacC hinv
-    exact ctorsLoopEta hμ hCtors hnd hlpsT hlpsA hFssParams hFssBelow hiff hFssOkP hIdx Inv hInv
+    exact ctorsLoopEta hμ hCtors hnd hlpsT hlpsA hFssParams hUssParams hFssBelow hiff hFssOkP hIdx
+      Inv hInv
       caps leafT hTlawsOf EtaInv hEtaCons hEtaOther hfold rest (k + 1) _ mpC hrest'
       (by simp at hk; omega) hE' hfT' hFD' hleafT' hcons' hpend' hinv'
 
@@ -910,7 +939,8 @@ theorem wellDenoted_proj1_pt {ρ : Nat → V} {e : AnnotTerm} (hok : WellDenoted
 /-- The projection reading past the tag, graded at a member of the
 one-constructor fibre (both regimes). -/
 theorem wellDenoted_projAV_succ_fibre {w i : Nat} {ρ' ρ : Nat → V} {Fs : List AnnotTerm}
-    {e : AnnotTerm} (hokB : w ≠ 0 → FieldsOkB w ρ' Fs)
+    {e : AnnotTerm} {us : List Nat} (hokB : w ≠ 0 → FieldsOkB w ρ' Fs)
+    (hsoB : w ≠ 0 → FieldsSorts w us ρ' Fs)
     (hok : WellDenoted V ρ e)
     (hval : interp V ρ e ∈ˢ sumSet w (sumFibre w ρ' [Fs ++ [idxEqAV []]]))
     (hi : i < Fs.length) : WellDenoted V ρ (projAV (i + 1) e) := by
@@ -922,7 +952,8 @@ theorem wellDenoted_projAV_succ_fibre {w i : Nat} {ρ' ρ : Nat → V} {Fs : Lis
     rw [interp_snd, hpt, ssnd_pt]
   · obtain ⟨fs, heq, -, hmem⟩ := fixFibre_elim hw hval
     have hb := fieldsBound_append_idxEq hw (hokB hw)
-    refine wellDenoted_projAV_tower hb hmem (wellDenoted_proj1_sum hw hb hok hval) ?_
+    refine wellDenoted_projAV_tower (FieldsSorts_append_idxEq (hsoB hw)) hmem
+      (wellDenoted_proj1_sum hw hb hok hval) ?_
       (by rw [List.length_append, List.length_singleton]; omega)
     rw [interp_snd, heq]
     exact ssnd_spair _ _
@@ -936,6 +967,9 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
       Sat V ((ds.take nP).map (·.2.2)).reverse ρ)
     (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
+    {us : List Nat}
+    (hsoB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ → w ≠ 0 →
+      FieldsSorts w us ρ ((ds.drop nP).map (·.2.2)))
     (hsorts : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       ∀ j, j < nF → ∀ as : List V,
         SpineFit ρ (((ds.drop nP).map (·.2.2)).take j) as →
@@ -1021,7 +1055,8 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
     rfl
   refine ⟨?_, ?_, ?_⟩
   · -- the projection's grading
-    exact ⟨wellDenoted_projAV_succ_fibre (fun hw => hokB _ hsatC) hokx.1 hx (by rw [hlenFs]; exact hi),
+    exact ⟨wellDenoted_projAV_succ_fibre (fun hw => hokB _ hsatC) (hsoB _ hsatC) hokx.1 hx
+      (by rw [hlenFs]; exact hi),
       projAV_validV hokx.2⟩
   · -- the residual's grading
     rw [hrest, hlen']
@@ -1061,19 +1096,25 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
 /-! ## (B) the iota law -/
 
 theorem fixEntryIotaCore {w nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
+    {us : List Nat}
     (hw : w ≠ 0) (hlenDs : ds.length = nP + nF) (hi : i < nF)
     (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
+    (hsoB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
+      FieldsSorts w us ρ ((ds.drop nP).map (·.2.2)))
     (ys : List AnnotTerm) (hlen : ys.length = nP + nF)
     (hok : WellDenotedV V ρ (AnnotTerm.mkAppN
-      (sumMkAV w 0 ds ((ds.drop nP).map (·.2.2)) (uChains [(ds.drop nP).map (·.2.2)])) ys)) :
+      (sumMkAV w 0 ds us ((ds.drop nP).map (·.2.2)) [us ++ [0]]
+        (uChains [(ds.drop nP).map (·.2.2)])) ys)) :
     interp V ρ (projAV (i + 1) (AnnotTerm.mkAppN
-        (sumMkAV w 0 ds ((ds.drop nP).map (·.2.2)) (uChains [(ds.drop nP).map (·.2.2)])) ys))
+        (sumMkAV w 0 ds us ((ds.drop nP).map (·.2.2)) [us ++ [0]]
+          (uChains [(ds.drop nP).map (·.2.2)])) ys))
       = interp V ρ (ys.getD (nP + i) default) := by
   have hsp : SpineFit ρ (ds.map (·.2.2)) (ys.map (interp V ρ)) := by
     have h := spineFit_of_wellDenotedV_mkAppN_lam (lds := ds.map fun d => (w, d.2.2))
-      (b := sumInjAtAV w (uChains [(ds.drop nP).map (·.2.2)]) ((ds.drop nP).map (·.2.2)).length
-        (numeralAV 0) (mkTowerGoU w ((ds.drop nP).map (·.2.2)) (idxEqAV [])))
+      (b := sumInjAtAV w [us ++ [0]] (uChains [(ds.drop nP).map (·.2.2)])
+        ((ds.drop nP).map (·.2.2)).length
+        (numeralAV 0) (mkTowerGoU w (us ++ [0]) ((ds.drop nP).map (·.2.2)) (idxEqAV [])))
       (σ := ρ)
       (fun d hd => by obtain ⟨d', -, rfl⟩ := List.mem_map.mp hd; exact hw)
       hok rfl (by simp [hlen, hlenDs])
@@ -1092,7 +1133,7 @@ theorem fixEntryIotaCore {w nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm)}
     subst hFs'
     exact FieldsOkB_append_idxEq (hokB _ hsat) fun _ _ e he => absurd he List.not_mem_nil
   have hfold := sumMkAV_fold (pds := ds.take nP) (fds := ds.drop nP) (j := 0) hw hsp₁ hsp₂
-    hokU rfl
+    hokU rfl ⟨sumFieldsSorts_single (hsoB _ hsat), hsoB _ hsat⟩
   rw [List.take_append_drop] at hfold
   rw [projAV_interp, interp_mkAppN_foldl, heq, hfold, projS_succ_inj,
     projS_mkTower_getD (by rw [hlenBs]; exact hi)]
@@ -1110,7 +1151,7 @@ theorem fixEntryIotaCore {w nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm)}
 is the point, so is its projection, and the selected field is a
 proposition's member. -/
 theorem fixEntryIotaCoreZero {nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
-    {sorts : List Level} {ψ : Name → Nat}
+    {sorts : List Level} {ψ : Name → Nat} {us : List Nat} {Uss : List (List Nat)}
     (hlenDs : ds.length = nP + nF) (hi : i < nF)
     (hsorts : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       ∀ j, j < nF → ∀ as : List V,
@@ -1121,7 +1162,8 @@ theorem fixEntryIotaCoreZero {nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm
     (ys : List AnnotTerm) (hlen : ys.length = nP + nF)
     (hsp : SpineFit ρ (ds.map (·.2.2)) (ys.map (interp V ρ))) :
     interp V ρ (projAV (i + 1) (AnnotTerm.mkAppN
-        (sumMkAV 0 0 ds ((ds.drop nP).map (·.2.2)) (uChains [(ds.drop nP).map (·.2.2)])) ys))
+        (sumMkAV 0 0 ds us ((ds.drop nP).map (·.2.2)) Uss (uChains [(ds.drop nP).map (·.2.2)]))
+          ys))
       = interp V ρ (ys.getD (nP + i) default) := by
   rw [projAV_interp, interp_mkAppN_foldl, sumMkAV_zero, foldl_app_pt', projS_pt]
   rw [show ds.map (·.2.2) = (ds.take nP).map (·.2.2) ++ (ds.drop nP).map (·.2.2) from by
@@ -1151,12 +1193,14 @@ theorem fixEntryIotaCoreZero {nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm
 /-! ## (C) the η law -/
 
 theorem fixEntryEtaCore {w nP nF : Nat} {pps ds : List (Nat × Nat × AnnotTerm)}
-    {L : AnnotTerm} {ρ : Nat → V}
+    {L : AnnotTerm} {ρ : Nat → V} {us : List Nat}
     (hlenDs : ds.length = nP + nF) (hlenPps : pps.length = nP)
     (hiff : ∀ ρ : Nat → V, Sat V (pps.map (·.2.2)).reverse ρ ↔
       Sat V ((ds.take nP).map (·.2.2)).reverse ρ)
     (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
+    (hsoB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ → w ≠ 0 →
+      FieldsSorts w us ρ ((ds.drop nP).map (·.2.2)))
     (hfold : ∀ (ρ : Nat → V) (ts : List V), SpineFit ρ (pps.map (·.2.2)) ts →
       ts.foldl SetTheory.app (interp V ρ L)
         = sumSet w (sumFibre w (consList ts ρ) [((ds.drop nP).map (·.2.2)) ++ [idxEqAV []]]))
@@ -1164,7 +1208,7 @@ theorem fixEntryEtaCore {w nP nF : Nat} {pps ds : List (Nat × Nat × AnnotTerm)
     (hsp : SpineFit ρ (pps.map (·.2.2)) ts)
     (hx : x ∈ˢ ts.foldl SetTheory.app (interp V ρ L)) :
     x = (ts ++ (List.range nF).map fun j => projS (j + 1) x).foldl SetTheory.app
-      (interp V ρ (sumMkAV w 0 ds ((ds.drop nP).map (·.2.2))
+      (interp V ρ (sumMkAV w 0 ds us ((ds.drop nP).map (·.2.2)) [us ++ [0]]
         (uChains [(ds.drop nP).map (·.2.2)]))) := by
   rw [hfold ρ ts hsp] at hx
   have hlenFs : (((ds.drop nP).map (·.2.2))).length = nF := by simp [hlenDs]
@@ -1185,7 +1229,7 @@ theorem fixEntryEtaCore {w nP nF : Nat} {pps ds : List (Nat × Nat × AnnotTerm)
       subst hFs'
       exact FieldsOkB_append_idxEq (hokB _ hsat) fun _ _ e he => absurd he List.not_mem_nil
     have hfold' := sumMkAV_fold (pds := ds.take nP) (fds := ds.drop nP) (j := 0) hw hsp₁ hspF
-      hokU rfl
+      hokU rfl ⟨sumFieldsSorts_single (hsoB _ hsat hw), hsoB _ hsat hw⟩
     rw [List.take_append_drop] at hfold'
     -- the projections past the tag are the tuple's fields
     have hprojs : ((List.range nF).map fun j => projS (j + 1) x) = fs := by
@@ -1279,11 +1323,14 @@ theorem stageFixTable (mp : EnvModelM V μ env)
     (hCDlen : ∀ ψ, (ds ψ).length = nP + nF)
     (hCDbelow : ∀ ψ, DomsBelow 0 (ds ψ))
     (hleq : ∀ k, k < nF → isProp = false → Level.leq (sorts.getD k .zero) resSort = some true)
-    {L : (Name → Nat) → AnnotTerm}
+    {L : (Name → Nat) → AnnotTerm} {usF : (Name → Nat) → List Nat}
     (hleafT : ∀ ψ, mp.base2.acval T ψ = L ψ)
     (hleafC : ∀ ψ, mp.base2.acval cvCa.name ψ
-      = sumMkAV (resSort.eval ψ) 0 (ds ψ) (((ds ψ).drop nP).map (·.2.2))
+      = sumMkAV (resSort.eval ψ) 0 (ds ψ) (usF ψ) (((ds ψ).drop nP).map (·.2.2)) [usF ψ ++ [0]]
           (uChains [((ds ψ).drop nP).map (·.2.2)]))
+    (hsoF : ∀ (ψ : Name → Nat) (ρ : Nat → V),
+      Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ → resSort.eval ψ ≠ 0 →
+        FieldsSorts (resSort.eval ψ) (usF ψ) ρ (((ds ψ).drop nP).map (·.2.2)))
     (hlam : ∀ ψ, ∃ B, L ψ = mkLamsAV ((pps ψ).map fun d => (resSort.eval ψ + 1, d.2.2)) B)
     (hfold : ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
       SpineFit ρ ((pps ψ).map (·.2.2)) ts →
@@ -1518,7 +1565,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
         rw [heq, dropS_one_inj, ← hlenF, projList_mkTower_take (Nat.le_refl _), List.take_length]
         exact hsp)
       (fun ρ hx hsat j hj => by
-        refine wellDenoted_projAV_succ_fibre (fun _ => hokB _ _ hsat) trivial ?_ ?_
+        refine wellDenoted_projAV_succ_fibre (fun _ => hokB _ _ hsat) (hsoF _ _ hsat) trivial ?_ ?_
         · rw [interp_bvar]; exact hx
         · rw [List.length_map, List.length_drop, hCDlen, Nat.add_sub_cancel_left]; exact hj)
     have hread : denoteMeta m₂.acval ⟨.projInfo tbl :: env.consts⟩ φ 0
@@ -1543,7 +1590,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
         show m₂.acval T (Level.substFn φ lps us) = _
         rw [hacT, hleafT]
       rw [hacT'] at hokApp hmem
-      exact fixEntryTypingCore (hCDlen _) (hFD.len _) (by simp) (hiff _) (hokB _)
+      exact fixEntryTypingCore (hCDlen _) (hFD.len _) (by simp) (hiff _) (hokB _) (hsoF _)
         (hsortsF _) (used := ConLeche.structUsedLater cvCa.type nP) hguard' (hfree _ i hi) hi
         (hlam _) (hfold _) hresFd (hokFd (fun h0 => (hguard' h0).2)) ρ vs x rest hlenVs hokApp
         hokx hmem hpeel
@@ -1557,8 +1604,9 @@ theorem stageFixTable (mp : EnvModelM V μ env)
       · intro hguardAt ρ ys rest hlen hok hfit
         have hacC' : m₂.acval (tbl.entry i).ctor (Level.substFn φ (tbl.entry i).levelParams us)
             = sumMkAV (resSort.eval (Level.substFn φ lps us)) 0
-              (ds (Level.substFn φ lps us))
+              (ds (Level.substFn φ lps us)) (usF (Level.substFn φ lps us))
               (((ds (Level.substFn φ lps us)).drop nP).map (·.2.2))
+              [usF (Level.substFn φ lps us) ++ [0]]
               (uChains [((ds (Level.substFn φ lps us)).drop nP).map (·.2.2)]) := by
           show m₂.acval cvCa.name (Level.substFn φ lps us) = _
           rw [hacC, hleafC]
@@ -1574,7 +1622,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
           exact fixEntryIotaCoreZero (hCDlen _) hi (hsortsF _)
             (hguardSem i hi _ (hguardAt hw)).1 ys hlen hsp
         · -- graph: the grading's slot chain
-          exact fixEntryIotaCore hw (hCDlen _) hi (hokB _) ys hlen hok
+          exact fixEntryIotaCore hw (hCDlen _) hi (hokB _) (fun ρ h => hsoF _ ρ h hw) ys hlen hok
   · -- (C)
     intro cvT capsT hf us _
     obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj (hfT₂.symm.trans hf))
@@ -1590,15 +1638,17 @@ theorem stageFixTable (mp : EnvModelM V μ env)
         rw [hacT, hleafT]
       have hacC' : m₂.acval (tbl.entry i).ctor (Level.substFn φ (tbl.entry i).levelParams us)
           = sumMkAV (resSort.eval (Level.substFn φ lps us)) 0
-            (ds (Level.substFn φ lps us))
+            (ds (Level.substFn φ lps us)) (usF (Level.substFn φ lps us))
             (((ds (Level.substFn φ lps us)).drop nP).map (·.2.2))
+            [usF (Level.substFn φ lps us) ++ [0]]
             (uChains [((ds (Level.substFn φ lps us)).drop nP).map (·.2.2)]) := by
         show m₂.acval cvCa.name (Level.substFn φ lps us) = _
         rw [hacC, hleafC]
       rw [hacT'] at hmem
       rw [hacC']
       show x = (ts ++ (List.range nF).map fun j => projS (j + 1) x).foldl SetTheory.app _
-      exact fixEntryEtaCore (hCDlen _) (hFD.len _) (hiff _) (hokB _) (hfold _) ts x hlents hsp hmem
+      exact fixEntryEtaCore (hCDlen _) (hFD.len _) (hiff _) (hokB _) (hsoF _) (hfold _) ts x hlents
+        hsp hmem
 
 
 /-!
@@ -1613,19 +1663,21 @@ does.  The install checks each field's sort against the block's
 family's, at most `resSort`); at `w ≠ 0` the `imax` is a `max`, so
 every domain's sort is at most `resSort` (the Π-inference walked along
 the opening), and the sort claim of the tuple tier (`sortRow`) reads
-each domain, at the frame under the earlier ones, into `univ w`
-(`teleBound_walk`, the context discipline opened binder by binder).
+each domain, at the frame under the earlier ones, into its own sort's
+universe `univ uᵢ` (`teleBound_walk`, the context discipline opened
+binder by binder); the caller raises it to `univ w` where a size bound
+is wanted (task #342 L2b).
 -/
 
 
 /-! ## The bound, walked along the telescope -/
 
-/-- **The telescope's domains are bounded**, binder by binder: at a
+/-- **The telescope's domains are sorted**, binder by binder: at a
 frame satisfying the earlier domains, the next domain's reading is
-graded and lies in `univ w` — the sort claim at the context opened by
-the earlier binders. -/
+graded and lies in the universe of the sort `uk k` the install inferred
+for it — the sort claim at the context opened by the earlier binders. -/
 theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env) (ψ : Name → Nat)
-    {w : Nat} :
+    {uk : Nat → Level} :
     ∀ (n : Nat) {d : Nat} {e : Expr} {fvs : List Expr} {o : Expr} {Δ : List AnnotTerm}
       {tl : List (Nat × Nat × AnnotTerm)},
       ConLeche.openPisAtFvars n e d = some (fvs, o) → tl.length = n →
@@ -1633,11 +1685,12 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
       Expr.LeavesBounded e →
       (∀ k a, fvs[k]? = some a →
         denoteMeta mp.base2.acval env ψ (d + k) a.fvarTypeD = some (tl.getD k default).2.2) →
-      (∀ k a, fvs[k]? = some a → ∃ (F : Nat) (t : Expr) (u : Level),
+      (∀ k a, fvs[k]? = some a → ∃ (F : Nat) (t : Expr),
         ConLeche.inferTypeCore μ env F (d + k) a.fvarTypeD = .ok t ∧
-        ConLeche.ensureSortCore μ env F (d + k) t = .ok u ∧ Level.eval ψ u ≤ w) →
+        ConLeche.ensureSortCore μ env F (d + k) t = .ok (uk k)) →
       ∀ k, k < n → ∀ ρ : Nat → V, Sat V (((tl.take k).map (·.2.2)).reverse ++ Δ) ρ →
-        WellDenotedV V ρ (tl.getD k default).2.2 ∧ interp V ρ (tl.getD k default).2.2 ∈ˢ (univ w : V)
+        WellDenotedV V ρ (tl.getD k default).2.2 ∧
+          interp V ρ (tl.getD k default).2.2 ∈ˢ (univ ((uk k).eval ψ) : V)
   | 0, _, _, _, _, _, _, _, _, _, _, _, _, _, _, k, hk, _, _ => absurd hk (Nat.not_lt_zero k)
   | n + 1, d, e, fvs, o, Δ, tl, hop, hlen, hC, hws, hb, hL, hread, hinf, k, hk, ρ, hρ => by
     match e, hop, hws, hb with
@@ -1666,14 +1719,14 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
         have hread0 : denoteMeta mp.base2.acval env ψ d ty = some t0.2.2 := by
           have := hread 0 _ rfl
           simpa [Expr.fvarTypeD] using this
-        obtain ⟨F, t, u, hi, hens, hle⟩ := hinf 0 _ rfl
+        obtain ⟨F, t, hi, hens⟩ := hinf 0 _ rfl
         simp only [Nat.add_zero, Expr.fvarTypeD] at hi hens
         have hCty := hC.forallE_ty
         have hrow := (claimsAt_of hμ mp ψ F).sortRow hi hens hws2.1 hbty hLty hCty hread0
         cases k with
         | zero =>
           simp only [List.take_zero, List.map_nil, List.reverse_nil, List.nil_append] at hρ
-          exact ⟨(hrow ρ hρ).1, univ_mono hle _ (hrow ρ hρ).2⟩
+          exact ⟨(hrow ρ hρ).1, (hrow ρ hρ).2⟩
         | succ k =>
           -- open the binder, walk on
           have hC' : CtxOk mp.base2 ψ (d + 1) (t0.2.2 :: Δ) (body.instantiate1 (.fvar d ty)) :=
@@ -1684,16 +1737,17 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
             intro k a hk
             have := hread (k + 1) a (by simpa using hk)
             rwa [show d + (k + 1) = d + 1 + k from by omega] at this
-          have hinf' : ∀ k a, fvs'[k]? = some a → ∃ (F : Nat) (t : Expr) (u : Level),
+          have hinf' : ∀ k a, fvs'[k]? = some a → ∃ (F : Nat) (t : Expr),
               ConLeche.inferTypeCore μ env F (d + 1 + k) a.fvarTypeD = .ok t ∧
-              ConLeche.ensureSortCore μ env F (d + 1 + k) t = .ok u ∧ Level.eval ψ u ≤ w := by
+              ConLeche.ensureSortCore μ env F (d + 1 + k) t = .ok (uk (k + 1)) := by
             intro k a hk
-            obtain ⟨F, t, u, h1, h2, h3⟩ := hinf (k + 1) a (by simpa using hk)
+            obtain ⟨F, t, h1, h2⟩ := hinf (k + 1) a (by simpa using hk)
             rw [show d + (k + 1) = d + 1 + k from by omega] at h1 h2
-            exact ⟨F, t, u, h1, h2, h3⟩
+            exact ⟨F, t, h1, h2⟩
           have hρ' : Sat V (((tl'.take k).map (·.2.2)).reverse ++ (t0.2.2 :: Δ)) ρ := by
             simpa [List.take_succ_cons, List.reverse_cons, List.append_assoc] using hρ
-          have := teleBound_walk hμ mp ψ n hop' hlen' hC' hws' hb' hL' hread' hinf' k (by omega) ρ hρ'
+          have := teleBound_walk (uk := fun k => uk (k + 1)) hμ mp ψ n hop' hlen' hC' hws' hb' hL'
+            hread' hinf' k (by omega) ρ hρ'
           simpa using this
       · exact nomatch hop
     | .bvar _, hop, _, _ | .fvar _ _, hop, _, _ | .sort _, hop, _, _
@@ -1726,7 +1780,7 @@ constructor chain is empty, so the law is vacuous. -/
 theorem fixEmptyUnitLaw {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps}
     {w : (Name → Nat) → Nat} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
-    (hleaf : ∀ ψ, m.acval T ψ = sumTyAV (w ψ) (pps ψ) [])
+    (hleaf : ∀ ψ, m.acval T ψ = sumTyAV (w ψ) (pps ψ) [] [])
     (hread : ∀ ψ, denoteMeta m.acval env ψ 0 cvT.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -1740,7 +1794,8 @@ theorem fixEmptyUnitLaw {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     exact hread _
   · intro ρ ts rest x y hlen hfit hx _
     have hsp := spineFit_of_teleFit (by rw [hlen, hpar]) hfit
-    rw [hleaf, sumTyAV_fold hsp (fun _ h => absurd h List.not_mem_nil)] at hx
+    rw [hleaf, sumTyAV_fold hsp (fun _ h => absurd h List.not_mem_nil)
+      (fun _ _ _ h => absurd h (by simp))] at hx
     exfalso
     by_cases hw : w (Level.substFn φ' cvT.levelParams us) = 0
     · rw [hw] at hx
@@ -1802,14 +1857,16 @@ field is the constructor at the parameters. -/
 theorem fibreEtaLaw0 {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps}
     {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
-    {L : (Name → Nat) → AnnotTerm}
+    {L : (Name → Nat) → AnnotTerm} {usC : (Name → Nat) → List Nat}
     (hfields : caps.etaFields = 0)
     (hleaf : ∀ ψ, m.acval T ψ = L ψ)
     (hfold : ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
       SpineFit ρ ((pps ψ).map (·.2.2)) ts →
       ts.foldl SetTheory.app (interp V ρ (L ψ))
         = sumSet (w ψ) (sumFibre (w ψ) (consList ts ρ) [[] ++ [idxEqAV []]]))
-    (hleafC : ∀ ψ, m.acval caps.etaCtor ψ = sumMkAV (w ψ) 0 (ds ψ) [] (uChains [[]]))
+    (hleafC : ∀ ψ, m.acval caps.etaCtor ψ
+      = sumMkAV (w ψ) 0 (ds ψ) (usC ψ) [] [usC ψ ++ [0]] (uChains [[]]))
+    (hus : ∀ ψ, usC ψ = [])
     (hread : ∀ ψ, denoteMeta m.acval env ψ 0 cvT.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -1838,10 +1895,13 @@ theorem fibreEtaLaw0 {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
       | cons _ _ => exact hspx.elim
       | nil =>
         have hfd := sumMkAV_fold hw (j := 0) (pds := ds _) (fds := []) (Fss := uChains [[]])
+          (us := usC (Level.substFn φ' cvT.levelParams us))
+          (Uss := [usC (Level.substFn φ' cvT.levelParams us) ++ [0]])
           (ρ := ρ) (as := ts) (bs := []) (by simpa using hfit _ ρ ts hsp) trivial
           (SumFieldsOkB_uChains fun _ h => by
             simp only [List.mem_singleton] at h
             subst h; trivial) rfl
+          ⟨sumFieldsSorts_single (by rw [hus]; trivial), by rw [hus]; exact trivial⟩
         simp only [List.append_nil, List.map_nil] at hfd
         rw [hfd]
 

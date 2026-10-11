@@ -21,7 +21,7 @@ the table]\; in the model a structure value is the tagged tuple of
 @sec:ext-eta and a projection reads a component, which
 #src("ConLeche/Model/Inductives/BlockStageTables.lean", 10, 12)[the
 install of the table] establishes
-(#src("ConLeche/Model/Inductives/FixKit.lean", 798, 803)[its typing
+(#src("ConLeche/Model/Inductives/FixKit.lean", 827, 832)[its typing
 and ι laws]).]
 
 #left-out[Mutual inductive types][Several types declared together,

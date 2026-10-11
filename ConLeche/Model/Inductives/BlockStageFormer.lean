@@ -50,7 +50,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
 section Walks
 
 variable {k nP nIdx : Nat} {resSort : Level}
-  {uf : Nat → Nat} {Idss : Nat → List AnnotTerm} {Chs : Nat → List (List AnnotTerm)}
+  {uf : Nat → Nat} {Iss : Nat → List Nat} {Idss : Nat → List AnnotTerm}
+  {Lss : Nat → List (List Nat)} {Chs : Nat → List (List AnnotTerm)}
 
 /-- **A member's parameter frame and index spine**, at a frame
 satisfying its whole parameter-and-index telescope: the frame below the
@@ -89,19 +90,21 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
     {mm : Nat} (hmm : mm < k)
     (hIdsm : Idss mm = ((pps.drop nP).map (·.2.2)))
     (hIdx : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
-      BlockIdxOk (V := V) k uf ρp Idss ∧ ∀ c, c < k → FieldsValid ρp (Idss c))
+      BlockIdxOk (V := V) k uf Iss ρp Idss ∧ ∀ c, c < k → FieldsValid ρp (Idss c))
     (hX : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
       BlockChainsOkG k w ρp uf Idss Chs)
+    (hXS : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
+      BlockChainsSortsG k w ρp uf Idss Lss Chs)
     (hXV : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
       ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ c, c < k →
       ∀ t, t ∈ˢ idxSet (uf c) ρp (Idss c) →
       SumFieldsValid (cons t (cons Y ρp)) (Chs c))
     (ρ : Nat → V) :
-    ParamsOkG k w ρ uf Idss Chs mm pps ∧
+    ParamsOkG k w ρ uf Iss Idss Lss Chs mm pps ∧
       UnderTowerValid ρ
-        (.app (projAV mm ((blockBodyG k w uf Idss Chs).liftN
+        (.app (projAV mm ((blockBodyG k w uf Iss Idss Lss Chs).liftN
             (Idss mm).length 0))
-          (mkTowerGo (uf mm) (Idss mm))) pps := by
+          (mkTowerGo (uf mm) (Iss mm) (Idss mm))) pps := by
   have hst := stripPisAV_mkPisAV pps (.sort w)
   rw [hlen] at hst
   have htele := piTeleAV_of_stripPisAV hst
@@ -119,27 +122,28 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
   have hIdsLen : (Idss mm).length = nIdx := by rw [hIdsm]; simp [hlen]
   -- the base facts at a frame satisfying the whole telescope
   have hbase : ∀ ρ : Nat → V, Sat V ((pps.map (·.2.2)).reverse) ρ →
-      BlockBaseG k w ρ uf Idss Chs mm ∧
+      BlockBaseG k w ρ uf Iss Idss Lss Chs mm ∧
       AnnotValid V ρ
-        (.app (projAV mm ((blockBodyG k w uf Idss Chs).liftN
+        (.app (projAV mm ((blockBodyG k w uf Iss Idss Lss Chs).liftN
             (Idss mm).length 0))
-          (mkTowerGo (uf mm) (Idss mm))) := by
+          (mkTowerGo (uf mm) (Iss mm) (Idss mm))) := by
     intro ρ hρ
     obtain ⟨hρp, hspI⟩ := blockParamFrame_of_sat hIdsm hρ
     have hsh : shiftE (Idss mm).length 0 ρ = fun j => ρ (j + (Idss mm).length) := by
       rw [shiftE_zero]
     rw [hsh] at hρp hspI
     obtain ⟨hI, hIV⟩ := hIdx _ hρp
-    refine ⟨⟨by rw [hsh]; exact hI, by rw [hsh]; exact hX _ hρp, by rw [hsh]; exact hspI⟩, ?_⟩
+    refine ⟨⟨by rw [hsh]; exact hI, by rw [hsh]; exact hX _ hρp, by rw [hsh]; exact hXS _ hρp,
+      by rw [hsh]; exact hspI⟩, ?_⟩
     have hfr : consList (frameIdx (Idss mm).length ρ) (fun j => ρ (j + (Idss mm).length)) = ρ := by
       have := consList_frameIdx (Idss mm).length ρ
       rwa [hsh] at this
-    have hv := blockLeafBody_validV hI hIV (hXV _ hρp) hmm
+    have hv := blockLeafBody_validV (Lss := Lss) hI hIV (hXV _ hρp) hmm
       (is := frameIdx (Idss mm).length ρ) hspI
     rwa [hfr] at hv
   constructor
   · have hw := hereditaryWalk (V := V)
-      (Q := fun ρ ds => ParamsOkG k w ρ uf Idss Chs mm ds)
+      (Q := fun ρ ds => ParamsOkG k w ρ uf Iss Idss Lss Chs mm ds)
       hlenΓ hlen hent okΓ
       (fun ρ hρ => (hbase ρ hρ).1)
       (fun ρ d ds hd hok hrec => ⟨hbits d hd, hok.1, hrec⟩)
@@ -147,9 +151,9 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
     simpa using hw
   · have hw := hereditaryWalk (V := V)
       (Q := fun ρ ds => UnderTowerValid ρ
-        (.app (projAV mm ((blockBodyG k w uf Idss Chs).liftN
+        (.app (projAV mm ((blockBodyG k w uf Iss Idss Lss Chs).liftN
             (Idss mm).length 0))
-          (mkTowerGo (uf mm) (Idss mm))) ds)
+          (mkTowerGo (uf mm) (Iss mm) (Idss mm))) ds)
       hlenΓ hlen hent okΓ
       (fun ρ hρ => (hbase ρ hρ).2)
       (fun ρ d ds hd hok hrec => ⟨hok.2, hrec⟩)

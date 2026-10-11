@@ -50,7 +50,7 @@ variable {V : Type w} [SetTheory V]
 
 section Leaf
 
-variable {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V}
+variable {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V} {Lss : Nat → List (List Nat)}
 
 /-- **A member's leaf on the hole chains, applied to the frame's
 parameters, IS its hole value at the least tuple** (see the module
@@ -58,12 +58,14 @@ docstring). -/
 theorem blockTyG_holeVal {c : Nat} (hc : c < d.k)
     (hlenPps : (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
     (hs : Sat V (d.toLfp.pars c ψ).reverse ρp)
-    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
+    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ))
     (hok : BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+      (d.toLfp.holeChains ψ))
+    (hso : BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) Lss
       (d.toLfp.holeChains ψ)) :
     (frameIdx d.nP ρp).foldl app
-        (interp V (shiftE d.nP 0 ρp) (blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
-          (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c))
+        (interp V (shiftE d.nP 0 ρp) (blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
+          (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) (d.ppsM c ψ) c))
       = d.toLfp.holeVal ψ ρp
           (blockFamG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
             (d.toLfp.holeChains ψ)) c := by
@@ -90,10 +92,11 @@ theorem blockTyG_holeVal {c : Nat} (hc : c < d.k)
   have hfi : frameIdx (d.IdsM c ψ).length (consList is' ρp) = is' := by
     rw [← hlenI]; exact frameIdx_consList' is' ρp
   have hbase : BlockBaseG d.k (d.w ψ) (consList is' ρp) (fun c => d.uM c ψ)
-      (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) c := by
-    refine ⟨?_, ?_, ?_⟩
+      (fun c => d.isM c ψ) (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) c := by
+    refine ⟨?_, ?_, ?_, ?_⟩
     · rw [hsh]; exact hI
     · rw [hsh]; exact hok
+    · rw [hsh]; exact hso
     · rw [hsh, hfi]; exact his'
   rw [consList_append, hfr, (blockLeafBodyG_facts hc hbase).1, hsh, hfi]
   rfl
@@ -102,12 +105,14 @@ theorem blockTyG_holeVal {c : Nat} (hc : c < d.k)
 parameter frame below, and member slots holding the leaves' values
 applied to the frame's parameters. -/
 theorem blockLeaf_frame {A : Nat → (Name → Nat) → AnnotTerm}
-    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
-      (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
+    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
+      (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
     (hs : ∀ c, c < d.k → Sat V (d.toLfp.pars c ψ).reverse ρp)
-    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
+    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ))
     (hok : BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+      (d.toLfp.holeChains ψ))
+    (hso : BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) Lss
       (d.toLfp.holeChains ψ)) :
     consList ((List.range d.k).map fun c =>
         (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))) ρp
@@ -118,7 +123,7 @@ theorem blockLeaf_frame {A : Nat → (Name → Nat) → AnnotTerm}
   refine List.map_congr_left fun c hc => ?_
   have hc' : c < d.k := List.mem_range.mp hc
   rw [hA c hc']
-  exact blockTyG_holeVal hc' (hlenPps c hc') (hs c hc') hI hok
+  exact blockTyG_holeVal hc' (hlenPps c hc') (hs c hc') hI hok hso
 
 end Leaf
 
@@ -127,6 +132,7 @@ end Leaf
 section Override
 
 variable {env : Env} {mo : EnvModel V env} {d : BlockData V} {lps : List Name}
+  {Lss : Nat → List (List Nat)}
 
 /-- **The override law at the leaves' frame** (the stored field shape
 facts' `override`): a constructor's field with holes, read below the
@@ -156,6 +162,7 @@ end Override
 section Fold
 
 variable {env : Env} {mo : EnvModel V env} {d : BlockData V} {lps : List Name}
+  {Lss : Nat → List (List Nat)}
 
 /-- A list of readings is a spine exactly when it agrees with it
 pointwise. -/
@@ -185,12 +192,14 @@ there each field with holes reads as the stored field
 (`hover`: `blockOverride` at a model whose members' leaves are `A`'s). -/
 theorem blockHFits_lfp_iff (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
     {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
-    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
-      (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
+    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
+      (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
-    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
+    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ))
     (hok : BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+      (d.toLfp.holeChains ψ))
+    (hso : BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) Lss
       (d.toLfp.holeChains ψ))
     {m : Nat} (hm : m < d.k)
     (hover : ∀ j, j < (d.ctorsM m).length → ∀ i, i < ((d.Fss m ψ).getD j []).length →
@@ -206,7 +215,7 @@ theorem blockHFits_lfp_iff (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
   have hmN : m < d.N := by rw [hNk]; exact hm
   have hsP : ∀ c, c < d.k → Sat V (d.toLfp.pars c ψ).reverse ρp :=
     fun c hc => hH.parsSat ψ c hc ρp hs
-  have hfr := blockLeaf_frame (fun c hc => hA c hc) hlenPps hsP hI hok
+  have hfr := blockLeaf_frame (fun c hc => hA c hc) hlenPps hsP hI hok hso
   have hlenHs : ((List.range d.k).map fun c =>
       (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))).length = d.k := by
     simp
@@ -270,12 +279,14 @@ stored result index fit (`hresS`, the constructor's typing) carries them
 into the member's index telescope. -/
 theorem blockResIdxFit_lfp (hH : BlockHoleFacts mo d lps)
     {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
-    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
-      (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
+    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
+      (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
-    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
+    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ))
     (hok : BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+      (d.toLfp.holeChains ψ))
+    (hso : BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) Lss
       (d.toLfp.holeChains ψ))
     {m : Nat} (hmN : m < d.N)
     (hover : ∀ j, j < (d.ctorsM m).length → ∀ i, i < ((d.Fss m ψ).getD j []).length →
@@ -295,7 +306,7 @@ theorem blockResIdxFit_lfp (hH : BlockHoleFacts mo d lps)
         (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ)))))) := by
   have hsP : ∀ c, c < d.k → Sat V (d.toLfp.pars c ψ).reverse ρp :=
     fun c hc => hH.parsSat ψ c hc ρp hs
-  have hfr := blockLeaf_frame (fun c hc => hA c hc) hlenPps hsP hI hok
+  have hfr := blockLeaf_frame (fun c hc => hA c hc) hlenPps hsP hI hok hso
   have hlenHs : ((List.range d.k).map fun c =>
       (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))).length = d.k := by
     simp
@@ -332,12 +343,14 @@ agreement with the fields with holes at the leaves' frame (the override
 law, `blockOverride` at a model whose members' leaves are `A`'s). -/
 theorem blockHoleFold (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
     {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
-    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
-      (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
+    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
+      (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
-    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
+    (hI : BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ))
     (hok : BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+      (d.toLfp.holeChains ψ))
+    (hso : BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) Lss
       (d.toLfp.holeChains ψ))
     (hacc : AccW (d.w ψ) d.k (blockIdx (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
       (blockPhiG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ)))
@@ -371,7 +384,7 @@ theorem blockHoleFold (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
   have hv := LfpDatum.holeVal_app (D := d.toLfp) (ψ := ψ) (m := m) his
     (X := blockFamG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
       (d.toLfp.holeChains ψ))
-  rw [List.foldl_append, hA m hm, blockTyG_holeVal hm (hlenPps m hm) (hsP m hm) hI hok, hv]
+  rw [List.foldl_append, hA m hm, blockTyG_holeVal hm (hlenPps m hm) (hsP m hm) hI hok hso, hv]
   -- the fixed point: the operator's fibre at the least tuple
   have hfix : app (blockPhiG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
         (d.toLfp.holeChains ψ) (blockFamG d.k (d.w ψ) ρp (fun c => d.uM c ψ)
@@ -396,7 +409,7 @@ theorem blockHoleFold (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
     show (d.absE ψ m j).length = (d.IdsM m ψ).length
     simp only [BlockData.absE, List.length_map]
     exact hH.lenE ψ m hmN j hj
-  have hfr := blockLeaf_frame (fun c hc => hA c hc) hlenPps hsP hI hok
+  have hfr := blockLeaf_frame (fun c hc => hA c hc) hlenPps hsP hI hok hso
   have hlenHs : ((List.range d.k).map fun c =>
       (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))).length = d.k := by
     simp
@@ -503,14 +516,17 @@ union of the member's constructors' stored fields at the extended frame
 (the capability laws' and the table stage's fold). -/
 theorem blockHoleFold_params (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
     {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
-    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
-      (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
+    (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
+      (fun c => d.IdsM c ψ) Lss (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
     {m : Nat} (hm : m < d.k) (hIds0 : d.IdsM m ψ = [])
     (hI : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-      BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
+      BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) (fun c => d.isM c ψ) ρp (fun c => d.IdsM c ψ))
     (hok : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       BlockChainsOkG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+        (d.toLfp.holeChains ψ))
+    (hso : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
+      BlockChainsSortsG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) Lss
         (d.toLfp.holeChains ψ))
     (hfun : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       AccW (d.w ψ) d.k (blockIdx (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
@@ -535,7 +551,7 @@ theorem blockHoleFold_params (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0
   have hsP : Sat V (d.toLfp.pars m ψ).reverse (consList ts ρ) := by
     rw [hpars]; simpa using sat_of_spineFit (Sat_nil V ρ) hsp
   have hs : Sat V (d.params ψ).reverse (consList ts ρ) := hH.parsSatInv ψ m hm _ hsP
-  have hfl := blockHoleFold hH hinst hA hs hlenPps (hI _ hs) (hok _ hs) (hfun _ hs) hm (hover _ hs) (is := []) (by rw [hIds0]; trivial)
+  have hfl := blockHoleFold hH hinst hA hs hlenPps (hI _ hs) (hok _ hs) (hso _ hs) (hfun _ hs) hm (hover _ hs) (is := []) (by rw [hIds0]; trivial)
   have hts : frameIdx d.nP (consList ts ρ) = ts := by rw [← hlenT]; exact frameIdx_consList' ts ρ
   have hsh : shiftE d.nP 0 (consList ts ρ) = ρ := by rw [← hlenT]; exact shiftE_consList ts ρ
   rw [List.append_nil, hts, hsh, consList_nil, hIds0] at hfl
