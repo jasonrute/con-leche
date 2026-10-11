@@ -939,7 +939,8 @@ theorem wellDenoted_proj1_pt {ρ : Nat → V} {e : AnnotTerm} (hok : WellDenoted
 /-- The projection reading past the tag, graded at a member of the
 one-constructor fibre (both regimes). -/
 theorem wellDenoted_projAV_succ_fibre {w i : Nat} {ρ' ρ : Nat → V} {Fs : List AnnotTerm}
-    {e : AnnotTerm} (hokB : w ≠ 0 → FieldsOkB w ρ' Fs)
+    {e : AnnotTerm} {us : List Nat} (hokB : w ≠ 0 → FieldsOkB w ρ' Fs)
+    (hsoB : w ≠ 0 → FieldsSorts w us ρ' Fs)
     (hok : WellDenoted V ρ e)
     (hval : interp V ρ e ∈ˢ sumSet w (sumFibre w ρ' [Fs ++ [idxEqAV []]]))
     (hi : i < Fs.length) : WellDenoted V ρ (projAV (i + 1) e) := by
@@ -951,7 +952,8 @@ theorem wellDenoted_projAV_succ_fibre {w i : Nat} {ρ' ρ : Nat → V} {Fs : Lis
     rw [interp_snd, hpt, ssnd_pt]
   · obtain ⟨fs, heq, -, hmem⟩ := fixFibre_elim hw hval
     have hb := fieldsBound_append_idxEq hw (hokB hw)
-    refine wellDenoted_projAV_tower hb hmem (wellDenoted_proj1_sum hw hb hok hval) ?_
+    refine wellDenoted_projAV_tower (FieldsSorts_append_idxEq (hsoB hw)) hmem
+      (wellDenoted_proj1_sum hw hb hok hval) ?_
       (by rw [List.length_append, List.length_singleton]; omega)
     rw [interp_snd, heq]
     exact ssnd_spair _ _
@@ -965,6 +967,9 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
       Sat V ((ds.take nP).map (·.2.2)).reverse ρ)
     (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
+    {us : List Nat}
+    (hsoB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ → w ≠ 0 →
+      FieldsSorts w us ρ ((ds.drop nP).map (·.2.2)))
     (hsorts : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       ∀ j, j < nF → ∀ as : List V,
         SpineFit ρ (((ds.drop nP).map (·.2.2)).take j) as →
@@ -1050,7 +1055,8 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
     rfl
   refine ⟨?_, ?_, ?_⟩
   · -- the projection's grading
-    exact ⟨wellDenoted_projAV_succ_fibre (fun hw => hokB _ hsatC) hokx.1 hx (by rw [hlenFs]; exact hi),
+    exact ⟨wellDenoted_projAV_succ_fibre (fun hw => hokB _ hsatC) (hsoB _ hsatC) hokx.1 hx
+      (by rw [hlenFs]; exact hi),
       projAV_validV hokx.2⟩
   · -- the residual's grading
     rw [hrest, hlen']
@@ -1559,7 +1565,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
         rw [heq, dropS_one_inj, ← hlenF, projList_mkTower_take (Nat.le_refl _), List.take_length]
         exact hsp)
       (fun ρ hx hsat j hj => by
-        refine wellDenoted_projAV_succ_fibre (fun _ => hokB _ _ hsat) trivial ?_ ?_
+        refine wellDenoted_projAV_succ_fibre (fun _ => hokB _ _ hsat) (hsoF _ _ hsat) trivial ?_ ?_
         · rw [interp_bvar]; exact hx
         · rw [List.length_map, List.length_drop, hCDlen, Nat.add_sub_cancel_left]; exact hj)
     have hread : denoteMeta m₂.acval ⟨.projInfo tbl :: env.consts⟩ φ 0
@@ -1584,7 +1590,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
         show m₂.acval T (Level.substFn φ lps us) = _
         rw [hacT, hleafT]
       rw [hacT'] at hokApp hmem
-      exact fixEntryTypingCore (hCDlen _) (hFD.len _) (by simp) (hiff _) (hokB _)
+      exact fixEntryTypingCore (hCDlen _) (hFD.len _) (by simp) (hiff _) (hokB _) (hsoF _)
         (hsortsF _) (used := ConLeche.structUsedLater cvCa.type nP) hguard' (hfree _ i hi) hi
         (hlam _) (hfold _) hresFd (hokFd (fun h0 => (hguard' h0).2)) ρ vs x rest hlenVs hokApp
         hokx hmem hpeel

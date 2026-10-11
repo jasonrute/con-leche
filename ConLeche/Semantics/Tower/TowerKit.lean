@@ -1219,32 +1219,38 @@ theorem projList_eq_map_range (n : Nat) (x : V) :
 
 /-- **The uniform projection spelling is graded on tower members**:
 each `.proj` node's `WellDenoted` package is one `sigmaSet w` level of
-the carrier, peeled by `mem_sigma_elim` — both regimes (at squash the
-subject is `pt` throughout and the tail memberships are `pt`'s). -/
+the carrier, its first component read at the field's own sort `uᵢ`
+(task #342 L2b), peeled by `mem_sigma_elim` — both regimes (at squash
+the subject is `pt` throughout and the tail memberships are `pt`'s). -/
 theorem projAV_wellDenoted_tower {w : Nat} :
-    ∀ {i : Nat} {Fs : List AnnotTerm} {ρ : Nat → V} {e : AnnotTerm}
+    ∀ {i : Nat} {us : List Nat} {Fs : List AnnotTerm} {ρ : Nat → V} {e : AnnotTerm}
       {σ : Nat → V},
       WellDenoted V σ e →
       interp V σ e ∈ˢ towerSet w (teleOfFields ρ Fs) →
-      FieldsBound w ρ Fs → i < Fs.length →
+      FieldsSorts w us ρ Fs → i < Fs.length →
       WellDenoted V σ (projAV i e)
-  | 0, F :: Fs', ρ, e, σ, hok, hx, hbnd, _ => by
+  | _, [], [], _, _, _, _, _, _, hi => absurd hi (Nat.not_lt_zero _)
+  | _, _ :: _, [], _, _, _, _, _, hs, _ => hs.elim
+  | _, [], _ :: _, _, _, _, _, _, hs, _ => hs.elim
+  | 0, u :: us, F :: Fs', ρ, e, σ, hok, hx, hs, _ => by
+    have hbnd : FieldsBound w ρ (F :: Fs') := hs.toBound
     show WellDenoted V σ (.fst e)
     rw [WellDenoted]
-    refine ⟨hok, w, w, interp V ρ F,
-      fun a => towerSet w (teleOfFields (cons a ρ) Fs'), ?_, hbnd.1,
+    refine ⟨hok, u, w, interp V ρ F,
+      fun a => towerSet w (teleOfFields (cons a ρ) Fs'), ?_, hs.2.1,
       fun a ha => towerSet_univ_teleOfFields (hbnd.2 a ha)⟩
-    rwa [show Nat.max w w = w from Nat.max_self w]
-  | i + 1, F :: Fs', ρ, e, σ, hok, hx, hbnd, hi => by
+    rwa [natMax_eq_right hs.1]
+  | i + 1, u :: us, F :: Fs', ρ, e, σ, hok, hx, hs, hi => by
+    have hbnd : FieldsBound w ρ (F :: Fs') := hs.toBound
     obtain ⟨a, b, ha, hb, hz, hpos⟩ :=
       mem_sigma_elim (A := interp V ρ F)
         (B := fun a => towerSet w (teleOfFields (cons a ρ) Fs')) hx
     have hok1 : WellDenoted V σ (.snd e) := by
       rw [WellDenoted]
-      refine ⟨hok, w, w, interp V ρ F,
-        fun a => towerSet w (teleOfFields (cons a ρ) Fs'), ?_, hbnd.1,
+      refine ⟨hok, u, w, interp V ρ F,
+        fun a => towerSet w (teleOfFields (cons a ρ) Fs'), ?_, hs.2.1,
         fun a' ha' => towerSet_univ_teleOfFields (hbnd.2 a' ha')⟩
-      rwa [show Nat.max w w = w from Nat.max_self w]
+      rwa [natMax_eq_right hs.1]
     have hmem1 : interp V σ (.snd e)
         ∈ˢ towerSet w (teleOfFields (cons a ρ) Fs') := by
       rw [interp_snd]
@@ -1254,8 +1260,8 @@ theorem projAV_wellDenoted_tower {w : Nat} :
         exact hb
       · rw [hpos (Nat.pos_iff_ne_zero.mp hwpos), ssnd_spair]
         exact hb
-    exact projAV_wellDenoted_tower (i := i) (Fs := Fs') (ρ := cons a ρ)
-      (e := .snd e) hok1 hmem1 (hbnd.2 a ha)
+    exact projAV_wellDenoted_tower (i := i) (us := us) (Fs := Fs') (ρ := cons a ρ)
+      (e := .snd e) hok1 hmem1 (hs.2.2 a ha)
       (by exact Nat.lt_of_succ_lt_succ hi)
 
 end ConLeche.Semantics

@@ -1333,7 +1333,7 @@ theorem holeEqsAV_ok {u k : Nat} {H : Nat → AnnotTerm} {ρp : Nat → V} {Ids 
     rw [WellDenoted_substAV (holeTau k H) _ bs.length _ (holeTau_wellDenoted hH bs), hs]
     exact hEok _ (getD_mem_of_lt (by omega))
   · show WellDenoted V _ (projAV l (.bvar bs.length))
-    refine projAV_wellDenoted_tower (w := u) (Fs := Ids) (ρ := ρp) (by simp) ?_ hI.bound hl'
+    refine projAV_wellDenoted_tower (w := u) (Fs := Ids) (ρ := ρp) (by simp) ?_ hI.2 hl'
     rw [interp_bvar, Xframe_t]
     exact ht
 
