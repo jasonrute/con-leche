@@ -96,14 +96,20 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   `RecRule.inst`); an auxiliary recursor's rule fires by
   `Red.iotaNested`.
 
-  The two **telescope certificates** are `Rel.lean`'s `Certs` walks
-  (`:576-587`) folded in: the recursor's argument spine (with the
-  reduced major) and the constructor's argument spine are each typed
-  against the stored type's `Π`-telescope — every argument's type is
-  inferred and found definitionally equal to the binder domain it
-  meets (`Expr.piDomains`), and the stored type has the spine's
-  length of syntactic binders (`Expr.hasPis`; a generated type does).
-  They are what makes the environment's ι law (`EnvModel.lean`,
+  The **certificates** are what is left of `Rel.lean`'s `Certs` walks
+  (`:576-587`) after task #347.  The recursor's spine before the major
+  needs none: a reduction claims nothing of a redex that is the point,
+  and a redex that is not the point fits the recursor's telescope by
+  the invariant's application slots (`teleFit_of_ne_pt`).  The reduced
+  major's slot is certified — its type inferred and found
+  definitionally equal to the domain the recursor's telescope leaves
+  after the spine (`Expr.piResidual`) — and so is the constructor's
+  argument spine against its stored type's `Π`-telescope
+  (`Expr.piDomains`; the stored types have the spine's length of
+  syntactic binders, `Expr.hasPis`).  Both are needed only where the
+  major may denote the point (a family that may be a proposition):
+  where the major's domain is strict, `iota_core_strict` (`Sound.lean`)
+  needs neither.  They make the environment's ι law (`EnvModel.lean`,
   `RecRuleLaw`) applicable: they put every argument in its domain.
 
   The **three comparisons** after them are `Rel.lean`'s too
@@ -123,7 +129,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
       {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
       {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
-      {doms tys doms' tys' : List Expr}
+      {dM bM tM : Expr} {doms' tys' : List Expr}
       {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
       env.find? c = some ci →
       ci.kind = .recursor numParams numMotives numMinors numIndices rules →
@@ -138,13 +144,10 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       usj.length = cij.lparams.length →
       margs.length = numParams + rl.nfields →
       cij.type.hasPis (numParams + rl.nfields) = true →
-      -- the recursor's telescope certificate, on the spine with the reduced major
-      piDomains (ci.type.instL ci.lparams us)
-        (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]) = some doms →
-      tys.length = doms.length →
-      (∀ p ∈ (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]).zip tys,
-        Infer env Γ p.1 p.2) →
-      (∀ p ∈ tys.zip doms, DefEq env Γ p.1 p.2) →
+      -- the major's slot certificate (the recursor's spine before it needs none, task #347)
+      piResidual (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
+      Infer env Γ major tM → DefEq env Γ tM dM →
       -- the constructor's telescope certificate
       piDomains (cij.type.instL cij.lparams usj) margs = some doms' →
       tys'.length = doms'.length →
@@ -179,7 +182,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
       {cij : ConstInfo} {I' : Name} {nPc nfj : Nat} {margs : List Expr} {rl : RecRule}
       {lvs : List Level} {pinst : List Expr}
-      {doms tys doms' tys' : List Expr}
+      {dM bM tM : Expr} {doms' tys' : List Expr}
       {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
       env.find? c = some ci →
       ci.kind = .recursor numParams numMotives numMinors numIndices rules →
@@ -195,12 +198,9 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       usj.length = cij.lparams.length →
       margs.length = nPc + rl.nfields →
       cij.type.hasPis (nPc + rl.nfields) = true →
-      piDomains (ci.type.instL ci.lparams us)
-        (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]) = some doms →
-      tys.length = doms.length →
-      (∀ p ∈ (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]).zip tys,
-        Infer env Γ p.1 p.2) →
-      (∀ p ∈ tys.zip doms, DefEq env Γ p.1 p.2) →
+      piResidual (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
+      Infer env Γ major tM → DefEq env Γ tM dM →
       piDomains (cij.type.instL cij.lparams usj) margs = some doms' →
       tys'.length = doms'.length →
       (∀ p ∈ margs.zip tys', Infer env Γ p.1 p.2) →

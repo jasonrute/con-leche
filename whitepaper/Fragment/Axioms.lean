@@ -171,6 +171,21 @@ info: 'Fragment.Red.iota_core' depends on axioms: [propext, Classical.choice, Qu
 #guard_msgs in #print axioms Fragment.Red.iota_core
 
 /--
+info: 'Fragment.teleFit_of_ne_pt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.teleFit_of_ne_pt
+
+/--
+info: 'Fragment.Red.iota_core_sem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iota_core_sem
+
+/--
+info: 'Fragment.Red.iota_core_strict' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iota_core_strict
+
+/--
 info: 'Fragment.DefEq.lam_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.DefEq.lam_sound
