@@ -100406,3 +100406,147 @@ machine; the parse on `master` before this extraction: 23.2 s, the
 install extraction's run). No measurement campaign: the maintainer
 takes a before/after measurement separately. Logs and the binary:
 `_tmp/amdahl/xparse-logs/`.
+
+## TASK #339 — β without a certificate, as a choice of model: the whitepaper fragment and inductive types (2026-10-11, agent/339-uniform-ind)
+
+This record sums up tasks #337–#339; #337's report is
+`research/nopw/REPORT.md` on `agent/337-nopw`, #338's record is on
+`agent/338-nocert` (neither is on `master`).
+
+**The case split (#337).**  The β certificate (the inference of a
+redex's argument and its comparison with the binder domain, at a
+binder that may be a proposition) exists because a proof-λ denotes the
+point, which forgets its domain.  Where a β subject is not the point,
+its λ is not either (`app pt _ = pt`), so it is a graph, which determines
+its domain, and β needs no certificate (`beta_of_ne_pt`).  The split
+"proof — then proof irrelevance answers; otherwise a graph" is in the
+proof only.
+
+**The counterexample (#338).**  With the fragment's model as it is, β at
+every binder with no certificate and no comparison of the binder's
+annotation is unsound (`whitepaper/Fragment/UniformBeta.lean`,
+`uniform_beta_unsound`): `c : Sort 1 := (λ (h : ∀ P : Prop, P). h) Prop`
+is ill-typed but denotes the point, a member of `Sort 1` in any
+well-founded model with transitive universes, so it satisfies the
+semantic environment invariant; δ and a datum-blind β take the typed
+`c` to `Prop`.  Excluding `c` syntactically would need subject
+reduction for stored values.  #338's checker variant (pass the datum of
+the two sides' sorts from the equality test to the head normaliser and
+compare it at each β) is dropped by ruling (d) of 2026-10-11; none of
+`agent/338-nocert`'s `ConLeche/` changes is on this branch, nor its
+datum rules in the fragment (`RedP`, `DefEq.split`).
+
+**The restricted universes (#338).**  `Sort 0` denotes the truth values
+and `Sort (n+1)` the members of the universe that are not the point and
+do not contain it (`typeU`); the point satisfies three laws (`PtLib`:
+not a truth value, at most one member, no graph a member of it; true of
+`pt := {{∅}}`).  The invariant records which sets are types (`WDU`:
+binder domains and graph-regime slot domains are truth values or strict
+sets, codomain fibres follow the annotation's regime), and the claims
+are conditional on the point: a reduction claims nothing of a subject
+that denotes it, an equality nothing of two sides one of which does.
+Then β at every binder is sound with no premise (`Uniform/Sound.lean`,
+`soundnessU`), `DefEqU` needs no split rule, proof irrelevance's
+soundness is vacuous, and `c` has no model (`badEnv_no_model`).
+
+**Inductive types (#339, this branch).**  Done: the rules.  `RedU` has
+the fragment's ι and nested ι (mutual with `DefEqU`/`InferU` now), and
+`EnvModelU` the two ι laws on values (`RecRuleLawU`, `RecRuleLawNU`):
+the constructor's parameters and index values are compared with the
+recursor's only where neither is the point (as `DefEqU` claims them),
+and the law is asked only where the recursor's application is not the
+point.  `RedU.iota_core` proves both ι rules sound; the certificates'
+inferences give the reduct's invariant.  **The major needs no β
+certificate, even on a recursion over proofs** (`major_eq`): the major's
+binder domain is a type (the recursor's stored type is `WDU`), the head
+applied to the spine before the major is not the point, hence a graph
+whose domain is that binder's, so the major and its reduct are both the
+point (a truth value has at most the point as member) or neither is,
+and then the major's reduction claim applies.  Telescope bridges read
+by `interpU`: `Uniform/Tele.lean`.
+
+Not done: the environment side — that installing a definition, a plain
+block and a nested block keeps a model in the restricted universes (the
+counterparts of `install_def`, `install_ind`, `InstallNest`/`NestIota`,
+and `accepted_model`).  Stopped there by the task's instruction to
+report before a heavy investment.  The mathematics found no obstacle:
+- a carrier's fibre above a proposition is a set of tagged tuples, in
+  the universe by the existing construction; it is strict given one
+  more law — no tagged value is the point (`IndLib` has it) and the
+  point's member is not a tagged value (new; true for `{{∅}}` against
+  Kuratowski tags);
+- the field domains, the motive's codomain `Sort u` and the recursor's
+  domains are types, so the generated types are `WDU` — and the
+  installation's own `Infer` checks of the generated types, read by the
+  uniform soundness, supply exactly that;
+- the conditional comparisons of the ι laws become the equalities the
+  recursion equation needs, because the recursor's and the
+  constructor's telescopes are generated from one parameter and index
+  context: under equal earlier values the two sides of each comparison
+  lie in one type, whose members are all the point or none;
+- the Prop-family and subsingleton cases need nothing new: there the
+  major and the constructor value are the point and the fields are
+  pinned as before (the subsingleton criterion), via the equalities
+  just derived.
+
+The obstacle is the fragment's shape.  Its whole environment side
+(`Ctx`, `IndCommon`, `IndSem`, `IndRec`, `Read`, `InstallRead1–3`,
+`InstallInd`, `InstallIota`, `InstallDef`, `Install`, `Consistency`: about
+7 700 lines; nested: `BlockModel`, `NestSem`, `NestRec`, `NestClass`,
+`NestRead`, `InstallNest`, `NestIota`, `NestInstall`: about 8 300 more)
+reads terms by `interp`, whose sorts are the universes, produces
+`WellDenoted` and consumes the unconditional claims; `Decl.lean`'s
+`DefOk`/`IndOk` are stated over `Infer`, not `InferU`.  The restricted
+model therefore needs one of:
+1. a parallel copy of that side in `Uniform/` — about the main side's
+   size (no blow-up beyond it), but a copy;
+2. a fragment parametric in the denotation of sorts and in the typed
+   part of the invariant (`interp` over a sort map, the generated-term
+   proofs proving the typed clauses once, `Decl` over the relations),
+   instantiated at the universes and at `typeU` — no copy, but every
+   semantic file changes;
+3. the fragment switched to the restricted model and uniform β
+   outright (its certified β is admissible in `RedU`), `Uniform/`
+   folded into it — no copy, the same files change, and the fragment
+   stops mirroring con-leche's `Semantics` (which interprets sorts by
+   the universes) until the real-checker port.
+A partial reuse is available under 1: the set constructions of `IndSem`
+and `IndRec` take the model as a parameter, and `interpU M` is
+`interp M'` of the term with every `sort u` replaced by a fresh constant
+that `M'` sends to `typeU u` (sorts carry no bound variables, so the
+replacement commutes with lifting, substitution and level
+instantiation) — so the family and the recursor of a block can be
+taken from those files at the translated specification, and only the
+`Expr`-facing files would be copied.  Which of the three is a ruling.
+
+**For the real-checker port** (a later campaign, ruling (c)):
+- the checker change is small and entirely deletion: β fires at every
+  binder (`whnfCore` loses the certificate and the gate), `propIrrel`
+  stays a `Bool`, no datum is threaded; `CheckMode.betaGate`/`betaSkip`
+  and the io-grade β certificate's code sites go;
+- the model change is large: `SetModel`'s sort interpretation becomes
+  the strict members (with the point's laws, provable from the
+  `SetTheory` core for `{{∅}}`), `Semantics`' invariant records types,
+  the `Model` claims become conditional on the point, and every
+  inductive construction proves its fibres strict;
+- the `Acc`-style major is not an exception: `major_eq` is the whole
+  argument, and the real checker's ι telescope certificates already
+  supply the reduct's invariant;
+- the comparisons ι makes (parameters, indices, levels) stay checks at
+  run time; only their soundness becomes conditional, and the
+  installation proves the generated telescopes coherent.
+
+**Line counts** (`git diff --numstat master`): new fragment files
+`Uniform/Model.lean` 608, `Uniform/Rules.lean` 200, `Uniform/Sound.lean`
+870, `Uniform/Tele.lean` 228, `UniformBeta.lean` 163 (2 069 lines; #338
+brought 1 234 of them, the inductive rules and their soundness are
++835); the main fragment unchanged except its root and the axiom pins
+(+22); whitepaper text: §7 one paragraph, §2 one sentence, notes 38–39.
+
+**Gates** (this branch): `whitepaper/fragment-gate.sh` (warning-free;
+`soundnessU`, `badEnv_no_model`, `uniform_beta_unsound` pinned at the
+three standard axioms), `whitepaper/links-gate.sh` (454 links),
+`whitepaper/build.sh` (PDF and HTML, no warning).  `lake build`,
+`lake test` and `tests/arena.sh` were not run: nothing outside
+`whitepaper/` and this record changed, and the battery's whitepaper
+gates are the three above.
