@@ -444,13 +444,13 @@ theorem wd_ctorTypeN_of (mX : EnvModel V (S.envInd env)) {c : CtorSpec} (hc : c 
   obtain ⟨T, hT⟩ := (hok.2.2.2.2.2.1 c hc).1
   exact (infer_sound (m := mX) (φ := φ) hT ρ (Sat_nil _ _ _)).1
 
-omit hs m hok in
+omit [LevelOracle] hs m hok in
 /-- The one-fibre family at every level list: a family of admissible
 types. -/
-theorem oneFamF_typeU : ∀ ls' (ps is : List V), (S.oneSet ls' : V) ∈ˢ (typeU (S.u₀ ls') : V) :=
+theorem oneFamF_typeU : ∀ ls' (_ps _is : List V), (S.oneSet ls' : V) ∈ˢ (typeU (S.u₀ ls') : V) :=
   fun ls' _ _ => S.oneSet_mem_typeU ls'
 
-omit hs m hok in
+omit [LevelOracle] hs m hok in
 theorem oneFamF_adm : ∀ ls' (_ps _is : List V), S.adm ls' (S.oneSet ls' : V) = S.oneSet ls' :=
   fun ls' _ _ => S.adm_oneSet ls'
 

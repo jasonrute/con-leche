@@ -1510,10 +1510,13 @@ theorem rec1Set_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
 theorem type_ok_recN (φ : Name → Nat) (ρ : Nat → V) {ls : List Level}
     (hls : ls.length = (S.recInfoN N).lparams.length) :
     WellDenoted (S.M₃N m.M N) φ ρ ((S.recInfoN N).type.instL (S.recInfoN N).lparams ls) ∧
+    IsTy (interp (S.M₃N m.M N) φ ρ ((S.recInfoN N).type.instL (S.recInfoN N).lparams ls)) ∧
     S.M₃N m.M N S.recName (ls.map (Level.eval φ)) ∈ˢ
       interp (S.M₃N m.M N) φ ρ ((S.recInfoN N).type.instL (S.recInfoN N).lparams ls) := by
   simp only [recInfoN] at hls ⊢
-  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_recTypeN hs m hok _ ρ), ?_⟩
+  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_recTypeN hs m hok _ ρ), ?_, ?_⟩
+  · rw [interp_instL, recTypeN_eq]
+    exact IsTy_interp_mkPis _ _ _ fun h => by simp [recCtxN] at h
   rw [interp_instL]
   have : S.M₃N m.M N S.recName (ls.map (Level.eval φ)) = S.recSetN m.M N (ls.map (Level.eval φ)) := by
     simp [M₃N, hok.rec_ne_aux]
@@ -1524,10 +1527,13 @@ theorem type_ok_recN (φ : Name → Nat) (ρ : Nat → V) {ls : List Level}
 theorem type_ok_rec1 (φ : Name → Nat) (ρ : Nat → V) {ls : List Level}
     (hls : ls.length = (S.rec1Info N).lparams.length) :
     WellDenoted (S.M₃N m.M N) φ ρ ((S.rec1Info N).type.instL (S.rec1Info N).lparams ls) ∧
+    IsTy (interp (S.M₃N m.M N) φ ρ ((S.rec1Info N).type.instL (S.rec1Info N).lparams ls)) ∧
     S.M₃N m.M N N.aux (ls.map (Level.eval φ)) ∈ˢ
       interp (S.M₃N m.M N) φ ρ ((S.rec1Info N).type.instL (S.rec1Info N).lparams ls) := by
   simp only [rec1Info] at hls ⊢
-  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_rec1Type hs m hok _ ρ), ?_⟩
+  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_rec1Type hs m hok _ ρ), ?_, ?_⟩
+  · rw [interp_instL, rec1Type_eq]
+    exact IsTy_interp_mkPis _ _ _ fun h => by simp [rec1Ctx] at h
   rw [interp_instL]
   have : S.M₃N m.M N N.aux (ls.map (Level.eval φ)) = S.rec1Set m.M N (ls.map (Level.eval φ)) := by
     simp [M₃N]

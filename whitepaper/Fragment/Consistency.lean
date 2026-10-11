@@ -100,7 +100,7 @@ theorem no_empty_inductive_inhabitant {env : Env} (hacc : Accepted env) {S : Ind
   obtain ⟨m⟩ := accepted_model V hacc
   -- the recursor at the identity instantiation and the all-zero valuation
   have hR := (m.type_ok S.recName S.recInfo hrec (fun _ => 0) base (S.recLparams.map .param)
-    (by simp [IndSpec.recInfo])).2
+    (by simp [IndSpec.recInfo])).2.2
   simp only [IndSpec.recInfo] at hR
   rw [interp_instL, Level.substVal_self] at hR
   -- the elimination level is zero
@@ -120,8 +120,8 @@ theorem no_empty_inductive_inhabitant {env : Env} (hacc : Accepted env) {S : Ind
     cons_succ] at hR
   -- the motive with the empty fibre
   have hmo : lamR false (m.M S.name []) (fun _ => truthVal False) ∈ˢ
-      piR false (m.M S.name []) fun _ => (univ 0 : V) :=
-    lamR_mem (fun _ _ => truthVal_mem_univ_zero _) fun h => nomatch h
+      piR false (m.M S.name []) fun _ => (typeU 0 : V) :=
+    lamR_mem (fun _ _ => mem_typeU_zero.mpr (truthVal_mem_univ_zero _)) fun h => nomatch h
   have h₁ := app_mem_piR hR hmo
   -- a member of the type would be a member of the empty set
   have ht := closed_infer m.toEnvModel (fun _ => 0) he base
