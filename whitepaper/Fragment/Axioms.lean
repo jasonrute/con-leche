@@ -162,3 +162,18 @@ info: 'Fragment.lfpFamSet_induction' depends on axioms: [propext, Classical.choi
 info: 'Fragment.badEnv_no_model' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.badEnv_no_model
+
+/--
+info: 'Fragment.Red.beta_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.beta_sound
+
+/--
+info: 'Fragment.major_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.major_eq
+
+/--
+info: 'Fragment.Red.iota_core' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iota_core

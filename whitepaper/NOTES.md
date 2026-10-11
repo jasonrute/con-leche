@@ -679,3 +679,61 @@ comment block at the top of `lib.typ`.
     claims, so the restricted model needs either a parallel copy of it
     or a fragment parametric in the sorts' denotation and in the typed
     part of the invariant.  (2026-10-11.)
+
+40. **The fragment switched to the restricted model (task #340).**
+    Items 38–39 are now the fragment's only design, with no `Uniform/`
+    package: `interp` reads `Sort n` as `typeU n` (`Lib.lean`, with the
+    point's three laws and closure under separation in `SetLib`),
+    `WellDenoted` is the typed invariant (a definition by recursion,
+    the old inductive's constructors gone), `Sat` and `EnvModel.type_ok`
+    record that types are types, `Red` has one β rule with no premise,
+    the claims are conditional on the point (`Motive.lean`), and the ι
+    laws compare conditionally and are asked only off the point
+    (`RecRuleLaw`, `RecRuleLawN`).  `UniformBeta.lean` keeps the witness
+    `c` and proves it has no model (`badEnv_no_model`); the old
+    counterexample (`uniform_beta_unsound`, a model of `c` where
+    `Sort 1` is `univ 1`) cannot be stated without the old model and is
+    described in the file's prose and in item 38.  What the
+    installation needed beyond item 39's sketch:
+    * **One more law of the tagged values**: no tagged value is a member
+      of the point (`IndLib.tag_not_mem_pt`), so a set of tagged values
+      is strict and a fibre is a type (`Fam_mem_typeU`).
+    * **The one-fibre set is strict above a proposition**
+      (`oneSet`: `{pt}` at a proposition, `{tag 0 ∅}` above it), since a
+      model of the restricted universes can only let the former denote
+      a family of types.  The universe bound on the fields is read off
+      the checker's typing in the model whose former denotes the
+      one-fibre family, and transported to every family by the
+      replacement of item 32 (`toFam`, `domsBounded_of_fam`).
+    * **The class reads the container at admissible sets only**
+      (`adm`: at a proposition the set, above it the members neither the
+      point nor in it — a type, equal to the set on a set of tagged
+      values).  The container's set is a graph over its parameters,
+      whose nested domain is `Sort u`: applied outside it the graph says
+      nothing.  `classSet` applies it to the admissible part, the
+      class's parameter field ranges over it, readers record that their
+      family's fibres are admissible (`Reader.adm`), and the container's
+      universe bound at a non-admissible parameter set — which the
+      generic accessibility still quantifies over — follows from the
+      bound at the one-fibre set by positivity (`NestFacts.domsBoundedK`).
+    * **The class's arguments fit the container's parameters** are read
+      off the class's typing in the one-fibre model (`argsFit_of`),
+      not the final one: the final model's former needs its fibres to
+      be types, which needs the container's clause, which needs the
+      arguments to fit.
+    * **The conditional comparisons become equalities** by
+      `FitsVals_eq_of_cond`: the recursor's and the constructor's
+      parameters fit the same parameter context of types (the former's
+      typing), and the index values the same index context.
+    * **The minors' types are types**: the spine of a minor applied to
+      fields and hypotheses needs its binders' domains to be types,
+      read off the recursor's type (`wd_minorsFrom`, `wd_ctxFrom`).
+    The text (§2, §4, §7) still presents the certified design and its
+    line anchors into `Rules`, `WellDenoted`, `Univ`, `UniformBeta` and
+    `Uniform/` are stale; it needs: the model with `typeU` and the
+    point's laws, the typed invariant, one β rule and the conditional
+    claims as THE design in §2; in §4 the strict fibres, the one-fibre
+    set, `adm` and the cycle `argsFit`/`mIndN`; §7's uniform-β
+    paragraph turned into "why the universes are restricted"; and a
+    marked statement that con-leche's checker and its `Semantics` still
+    use the universes and the certified β until the port.  (2026-10-11.)
