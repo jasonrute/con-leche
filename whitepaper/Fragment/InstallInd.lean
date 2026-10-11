@@ -193,6 +193,7 @@ theorem IsTy_indType (S : IndSpec) (M' : Name → List Nat → V) (φ : Name →
   unfold indType
   exact IsTy_interp_mkPis M' φ fun _ => by rw [interp_sort]; exact IsTy_typeU _
 
+omit hpl in
 /-- **The former's type law at any family of types.** -/
 theorem type_ok_indF (F : List Nat → List V → List V → V)
     (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V)) (hFa : ∀ ls' ps is, S.adm ls' (F ls' ps is) = F ls' ps is) (φ : Name → Nat) (ρ : Nat → V)
@@ -223,7 +224,7 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
     · rename_i h
       subst h
       cases hfind
-      exact type_ok_indF hpl hs m hok F hF hFa φ ρ hls
+      exact type_ok_indF hs m hok F hF hFa φ ρ hls
     · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).type_ok c ci hfind φ ρ ls hls
   unfold := fun c ci v hfind hv φ ρ ls hls => by
     rw [S.envInd_find?] at hfind
@@ -258,9 +259,10 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
       · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).rec_rules_nested c ci nP nM nMin
           nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf hcij hcijk
 
+omit hpl in
 theorem mIndF_M (F : List Nat → List V → List V → V)
     (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V)) (hFa : ∀ ls' ps is, S.adm ls' (F ls' ps is) = F ls' ps is) :
-    (mIndF hpl hs m hok F hF hFa).M = S.M₁F m.M F := rfl
+    (mIndF hs m hok F hF hFa).M = S.M₁F m.M F := rfl
 
 omit hpl hs m in
 /-- A constructor's type is well-denoted at every valuation, in any
@@ -390,12 +392,12 @@ theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps :
   have R := readerF hok m.M F hFa φ
   have hS := hok.scoped
   -- the constructor's type is well-denoted in that model: its contexts are
-  have hwd := wd_ctorType_of hok (mIndF hpl hs m hok F hF hFa) hc φ ρ
+  have hwd := wd_ctorType_of hok (mIndF hs m hok F hF hFa) hc φ ρ
   unfold ctorType at hwd
   rw [WellDenoted_mkPis] at hwd
   obtain ⟨hctx, -⟩ := hwd
   obtain ⟨hpar, hfld⟩ := CtxWD_append' hctx
-  have hp' : FitsVals (mIndF hpl hs m hok F hF hFa).M φ ρ S.params ps := (R.fits_params hS).mpr hp
+  have hp' : FitsVals (mIndF hs m hok F hF hFa).M φ ρ S.params ps := (R.fits_params hS).mpr hp
   have hwdF := hfld ps hp'
   have hsc := (hS.2.2.2.1 c hc).1
   -- the fields before position `k`, in scope and well-denoted; the values fit them
@@ -406,9 +408,9 @@ theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps :
     have := hsc _ f' hf'
     rwa [List.length_drop, show c.fields.length - (c.fields.length - k) - 1 - i
       = c.fields.length - 1 - (c.fields.length - k + i) by omega]
-  have hwdD : CtxWD (mIndF hpl hs m hok F hF hFa).M φ (consList ps ρ) (S.fieldCtx (c.fields.drop (c.fields.length - k))) := by
+  have hwdD : CtxWD (mIndF hs m hok F hF hFa).M φ (consList ps ρ) (S.fieldCtx (c.fields.drop (c.fields.length - k))) := by
     rw [← S.fieldCtx_drop]; exact CtxWD_drop _ _ _ hwdF
-  have hfs' : FitsVals (mIndF hpl hs m hok F hF hFa).M φ (consList ps ρ) (S.fieldCtx (c.fields.drop (c.fields.length - k))) fs := by
+  have hfs' : FitsVals (mIndF hs m hok F hF hFa).M φ (consList ps ρ) (S.fieldCtx (c.fields.drop (c.fields.length - k))) fs := by
     refine (R.fits_fieldCtx hS (NestFit_of_plain hpl) hscD hps hp hwdD).1.mpr ?_
     rwa [hFps]
   have hl : fs.length = k := by
@@ -423,10 +425,10 @@ theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps :
     have := hsc _ f hpos
     rw [hkk] at this
     exact this
-  have hfsE : FitsVals (mIndF hpl hs m hok F hF hFa).M φ (consList ps ρ)
+  have hfsE : FitsVals (mIndF hs m hok F hF hFa).M φ (consList ps ρ)
       ((S.fieldCtx c.fields).drop (c.fields.length - 1 - k + 1)) fs := by
     rw [hki, S.fieldCtx_drop]; exact hfs'
-  have hsatF : Sat (mIndF hpl hs m hok F hF hFa).M φ ((S.fieldCtx c.fields).drop (c.fields.length - 1 - k + 1) ++ S.params)
+  have hsatF : Sat (mIndF hs m hok F hF hFa).M φ ((S.fieldCtx c.fields).drop (c.fields.length - 1 - k + 1) ++ S.params)
       (consList (fs ++ ps) ρ) := by
     refine Sat_of_fits _ _ (CtxWD_append_of _ _ hpar fun ws hws => CtxWD_drop _ _ _ (hfld ws hws)) ?_
     exact (FitsVals_append _ _ (by simp [hl, S.length_fieldCtx]; omega)).mpr ⟨hp', hfsE⟩
@@ -445,30 +447,30 @@ theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps :
   | container => simp [fieldScoped, hpl] at hsc'
   | ordinary A =>
     obtain ⟨s, v, hI, hR, hb, -⟩ := (hok.2.2.2.2.1 c hc).2.1 _ A hget
-    have hmem := univ_of_sort_of (mIndF hpl hs m hok F hF hFa) hI hR φ hsatF
+    have hmem := univ_of_sort_of (mIndF hs m hok F hF hFa) hI hR φ hsatF
     rw [mIndF_M, consList_append] at hmem
     rw [R.read hsc' (vs := fs) (ps := ps) (ρ := ρ) (by simp [hl, hps]; omega)] at hmem
     exact univ_mono (hbound hb) hmem
   | reflexive tele es =>
     intro t T hT ys hys
     -- the telescope is well-denoted at every fitting frame
-    have hwdT : ∀ ws ws', FitsVals (mIndF hpl hs m hok F hF hFa).M φ ρ S.params ws →
-        FitsVals (mIndF hpl hs m hok F hF hFa).M φ (consList ws ρ)
+    have hwdT : ∀ ws ws', FitsVals (mIndF hs m hok F hF hFa).M φ ρ S.params ws →
+        FitsVals (mIndF hs m hok F hF hFa).M φ (consList ws ρ)
           ((S.fieldCtx c.fields).drop (c.fields.length - 1 - k + 1)) ws' →
-        CtxWD (mIndF hpl hs m hok F hF hFa).M φ (consList ws' (consList ws ρ)) tele := by
+        CtxWD (mIndF hs m hok F hF hFa).M φ (consList ws' (consList ws ρ)) tele := by
       intro ws ws' hws hws'
       have := CtxWD_getElem? _ _ (hfld ws hws) hget ws' hws'
       simp only [fieldDom] at this
       rw [WellDenoted_mkPis] at this
       exact this.1
     have hagT := R.agree_tele hsc'.1 hl hps (ρ := ρ)
-    have hys' : FitsVals (mIndF hpl hs m hok F hF hFa).M φ (consList fs (consList ps ρ)) (tele.drop (t + 1)) ys :=
+    have hys' : FitsVals (mIndF hs m hok F hF hFa).M φ (consList fs (consList ps ρ)) (tele.drop (t + 1)) ys :=
       (FitsVals_congr₂ (CtxAgree_drop hagT _)).mpr hys
     have hyl : ys.length = tele.length - (t + 1) := by
       have := FitsVals_length _ _ hys'; simpa using this
     obtain ⟨s, w, hI, hR, hb⟩ := (hok.2.2.2.2.1 c hc).2.2.1 _ tele es hpos _ T hT
     -- the telescope entry's context, satisfied
-    have hsat : Sat (mIndF hpl hs m hok F hF hFa).M φ (tele.drop (t + 1) ++
+    have hsat : Sat (mIndF hs m hok F hF hFa).M φ (tele.drop (t + 1) ++
         (S.fieldCtx c.fields).drop (c.fields.length - 1 - k + 1) ++ S.params)
         (consList (ys ++ fs ++ ps) ρ) := by
       refine Sat_of_fits _ _ ?_ ?_
@@ -477,7 +479,7 @@ theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps :
         exact CtxWD_drop _ _ _ (hwdT ws ws' hws hws')
       · refine (FitsVals_append _ _ (by simp [hyl, hl, S.length_fieldCtx]; omega)).mpr ⟨hp', ?_⟩
         exact (FitsVals_append _ _ (by simp [hyl])).mpr ⟨hfsE, hys'⟩
-    have hmem := univ_of_sort_of (mIndF hpl hs m hok F hF hFa) hI hR φ hsat
+    have hmem := univ_of_sort_of (mIndF hs m hok F hF hFa) hI hR φ hsat
     rw [mIndF_M, consList_append, consList_append] at hmem
     rw [← consList_append,
       R.read (hsc'.1 _ T hT) (vs := ys ++ fs) (ps := ps) (ρ := ρ)
