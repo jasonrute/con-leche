@@ -19,9 +19,8 @@ The congruence lemmas for the four syntactic *scope* predicates of
   those constants (at every level instantiation) give the same
   reading;
 * the level parameters it uses — `Expr.lparamsIn ps`: every
-  parameter in a sort, a constant's instantiation or a binder's
-  annotation is one of `ps`, so two valuations agreeing on `ps` give
-  the same reading;
+  parameter in a sort or a constant's instantiation is one of `ps`, so
+  two valuations agreeing on `ps` give the same reading;
 * the variables it uses — `Expr.usesVar i`, finer than the depth:
   two environments agreeing at every variable the term uses give the
   same reading.

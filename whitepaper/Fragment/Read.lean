@@ -23,12 +23,13 @@ environment.  Three kinds of facts:
   freely under the products and abstractions that read them
   (`piCtx_congr₂`, `lamCtx_congr₂`, `FitsVals_congr₂`).
 * **The self-certifying application** (`appList_of_wd`): a
-  well-denoted application of a graph tower to arguments is the
-  tower's body at the arguments, and the arguments fit the tower's
-  context — the graph regime determines its domains, so the type
-  former and the constructors, whose sets are graph towers, can be
-  applied without any typing information about the arguments beyond
-  the invariant.
+  well-denoted application of an abstraction tower to arguments that
+  is not the point is the tower's body at the arguments, and the
+  arguments fit the tower's context — each abstraction along the chain
+  is a graph, which determines its domain, so the type former and the
+  constructors can be applied without any typing information about
+  the arguments beyond the invariant and the application being no
+  proof (a type, where the readings use it).
 * **Readings** of the contexts the generators build: the field
   context read at parameter values is `FitsFields` (`fits_fieldCtx`),
   the inductive-hypothesis context is `IhTyped`, a minor premise's

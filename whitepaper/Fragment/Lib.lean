@@ -178,8 +178,9 @@ theorem ne_pt_of_mem_piSet {A f : V} {B : V → V} (hf : f ∈ˢ piSet A B) : f 
 
 /-! ## The two regimes
 
-`piR`/`lamR` read a `Bool` — "is the body a proposition here?", the
-annotation's readout at the current valuation — and nothing else. -/
+`piR`/`lamR` read a `Bool` — "is the body a proposition here?" — and
+nothing else; the interpretation computes it from the values
+(`piV`/`lamV`, below). -/
 
 /-- **The propositional product** `Π₀(A, B)`: the truth value "every
 fibre is `{pt}`".  When the fibres are truth values it is their

@@ -65,7 +65,7 @@ def eval (φ : Name → Nat) : Level → Nat
 @[simp] theorem eval_param (φ : Name → Nat) (n : Name) : eval φ (param n) = φ n := rfl
 
 /-- `imax`'s zero test is its second argument's — the arithmetic behind
-the annotation of a `∀`. -/
+the sort of a `∀`. -/
 theorem imaxNat_eq_zero_iff (a b : Nat) : imaxNat a b = 0 ↔ b = 0 := by
   unfold imaxNat
   split <;> omega
