@@ -996,10 +996,13 @@ theorem recSet_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
 theorem type_ok_rec (φ : Name → Nat) (ρ : Nat → V) {ls : List Level}
     (hls : ls.length = S.recInfo.lparams.length) :
     WellDenoted (S.M₃ m.M) φ ρ (S.recInfo.type.instL S.recInfo.lparams ls) ∧
+    IsTy (interp (S.M₃ m.M) φ ρ (S.recInfo.type.instL S.recInfo.lparams ls)) ∧
     S.M₃ m.M S.recName (ls.map (Level.eval φ)) ∈ˢ
       interp (S.M₃ m.M) φ ρ (S.recInfo.type.instL S.recInfo.lparams ls) := by
   simp only [recInfo] at hls ⊢
-  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_recType hpl hs m hok _ ρ), ?_⟩
+  refine ⟨(WellDenoted_instL _ _ _ _ _ _).mpr (wd_recType hpl hs m hok _ ρ), ?_, ?_⟩
+  · rw [interp_instL, recType_eq]
+    exact IsTy_interp_mkPis _ _ _ fun h => by simp [recCtx] at h
   rw [interp_instL]
   have : S.M₃ m.M S.recName (ls.map (Level.eval φ)) = S.recSet m.M (ls.map (Level.eval φ)) := by
     simp [M₃]
