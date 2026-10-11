@@ -1,7 +1,8 @@
 module
 
+-- WIP (task #344): the root is trimmed to the ported core while the
+-- environment side is ported to the annotation-free syntax.
 public import Fragment.Level
-public import Fragment.PropWhen
 public import Fragment.Syntax
 public import Fragment.Spec
 public import Fragment.Env
@@ -10,42 +11,8 @@ public import Fragment.Lib
 public import Fragment.Interp
 public import Fragment.WellDenoted
 public import Fragment.EnvModel
-public import Fragment.Univ
-public import Fragment.LfpSet
-public import Fragment.IndLib
-public import Fragment.Access
-public import Fragment.Tele
-public import Fragment.Scope
-public import Fragment.ScopeOfInfer
-public import Fragment.Decl
-public import Fragment.Hygiene
-public import Fragment.Ctx
-public import Fragment.IndCommon
-public import Fragment.IndSem
-public import Fragment.IndRec
-public import Fragment.NestSem
-public import Fragment.NestRec
-public import Fragment.NestClass
-public import Fragment.GenScope
-public import Fragment.InstallDef
-public import Fragment.Read
-public import Fragment.Uniq
-public import Fragment.InstallScope
-public import Fragment.InstallRead1
-public import Fragment.InstallRead2
-public import Fragment.InstallRead3
-public import Fragment.NestRead
-public import Fragment.NestScope
-public import Fragment.InstallInd
-public import Fragment.InstallIota
-public import Fragment.Install
-public import Fragment.BlockModel
-public import Fragment.InstallNest
-public import Fragment.NestIota
-public import Fragment.NestInstall
 public import Fragment.Motive
+public import Fragment.Tele
 public import Fragment.Sound
 public import Fragment.UniformBeta
-public import Fragment.Ghost
-public import Fragment.Consistency
-public import Fragment.Axioms
+public import Fragment.Unannot

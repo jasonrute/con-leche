@@ -19,17 +19,16 @@ of them:
   member of its domain `A`; at a proposition (`p`) the fibres are truth
   values, above it the domain is a type;
 * a λ's domain is a type, the body is well-denoted at every value of
-  the domain, and some fibre family bounds it whose fibres are in the
-  regime of the annotation (`Fib`: truth values where it holds, strict
-  sets where it does not);
+  the domain, and some family of types bounds it;
 * a Π's domain is a type, the body is well-denoted at every value of
-  the domain and denotes a set in the regime of the annotation there;
+  the domain and denotes a type there;
 * variables, sorts and constants are always well-denoted.
 
-The binder clauses are where the annotation is held to account: the
-datum may claim "proposition" only where the body really denotes a
-truth value, and "not a proposition" only where it denotes a strict
-set.  The predicate transports along `Expr.inst` by the substitution
+There is no annotation to hold to account (task #344): the regime of a
+binder is read off these values by the interpretation, and the type
+clauses are what makes that reading coherent — an abstraction is a
+member of its product (`SetLib.lamV_mem`) because every fibre is a
+type.  The predicate transports along `Expr.inst` by the substitution
 lemmas of `Interp.lean` (`WellDenoted_inst0`); a β step at a redex that
 is not the point keeps the denotation and the invariant
 (`Sound.lean`, `Red.beta_sound`).
@@ -50,10 +49,9 @@ universe u
 
 variable {V : Type u} [SetLib V] (M : Name → List Nat → V) (φ : Name → Nat)
 
-/-- **The semantic invariant** (see the module docstring): a binder's domain is a type; a binder's codomain fibres are in the
-regime of its annotation (truth values where it holds, strict sets
-where it does not); an application in the graph regime has a type as
-its slot's domain. -/
+/-- **The semantic invariant** (see the module docstring): a binder's
+domain is a type; a binder's codomain fibres are types; an application
+in the graph regime has a type as its slot's domain. -/
 def WellDenoted : (Nat → V) → Expr → Prop
   | _, .bvar _ => True
   | _, .sort _ => True
@@ -63,16 +61,16 @@ def WellDenoted : (Nat → V) → Expr → Prop
       ∃ (p : Bool) (A : V) (B : V → V),
         interp M φ ρ f ∈ˢ piR p A B ∧ interp M φ ρ a ∈ˢ A ∧
         (p = true → ∀ x, x ∈ˢ A → B x ∈ˢ univ 0) ∧ (p = false → IsTy A)
-  | ρ, .lam A pw b =>
+  | ρ, .lam A b =>
     WellDenoted ρ A ∧ IsTy (interp M φ ρ A) ∧
       (∀ x, x ∈ˢ interp M φ ρ A → WellDenoted (cons x ρ) b) ∧
       ∃ B : V → V,
         (∀ x, x ∈ˢ interp M φ ρ A → interp M φ (cons x ρ) b ∈ˢ B x) ∧
-        (∀ x, x ∈ˢ interp M φ ρ A → Fib (pw.holds φ) (B x))
-  | ρ, .pi A pw B =>
+        (∀ x, x ∈ˢ interp M φ ρ A → IsTy (B x))
+  | ρ, .pi A B =>
     WellDenoted ρ A ∧ IsTy (interp M φ ρ A) ∧
       (∀ x, x ∈ˢ interp M φ ρ A → WellDenoted (cons x ρ) B) ∧
-      (∀ x, x ∈ˢ interp M φ ρ A → Fib (pw.holds φ) (interp M φ (cons x ρ) B))
+      (∀ x, x ∈ˢ interp M φ ρ A → IsTy (interp M φ (cons x ρ) B))
 
 @[simp] theorem WellDenoted_bvar (ρ : Nat → V) (i : Nat) : WellDenoted M φ ρ (.bvar i) := trivial
 @[simp] theorem WellDenoted_sort (ρ : Nat → V) (u : Level) : WellDenoted M φ ρ (.sort u) := trivial
@@ -87,20 +85,20 @@ theorem WellDenoted_app (ρ : Nat → V) (f a : Expr) :
           (p = true → ∀ x, x ∈ˢ A → B x ∈ˢ univ 0) ∧ (p = false → IsTy A)) := by
   rw [WellDenoted]
 
-theorem WellDenoted_lam (ρ : Nat → V) (A : Expr) (pw : PropWhen) (b : Expr) :
-    WellDenoted M φ ρ (.lam A pw b) ↔
+theorem WellDenoted_lam (ρ : Nat → V) (A : Expr) (b : Expr) :
+    WellDenoted M φ ρ (.lam A b) ↔
       (WellDenoted M φ ρ A ∧ IsTy (interp M φ ρ A) ∧
         (∀ x, x ∈ˢ interp M φ ρ A → WellDenoted M φ (cons x ρ) b) ∧
         ∃ B : V → V,
           (∀ x, x ∈ˢ interp M φ ρ A → interp M φ (cons x ρ) b ∈ˢ B x) ∧
-          (∀ x, x ∈ˢ interp M φ ρ A → Fib (pw.holds φ) (B x))) := by
+          (∀ x, x ∈ˢ interp M φ ρ A → IsTy (B x))) := by
   rw [WellDenoted]
 
-theorem WellDenoted_pi (ρ : Nat → V) (A : Expr) (pw : PropWhen) (B : Expr) :
-    WellDenoted M φ ρ (.pi A pw B) ↔
+theorem WellDenoted_pi (ρ : Nat → V) (A : Expr) (B : Expr) :
+    WellDenoted M φ ρ (.pi A B) ↔
       (WellDenoted M φ ρ A ∧ IsTy (interp M φ ρ A) ∧
         (∀ x, x ∈ˢ interp M φ ρ A → WellDenoted M φ (cons x ρ) B) ∧
-        (∀ x, x ∈ˢ interp M φ ρ A → Fib (pw.holds φ) (interp M φ (cons x ρ) B))) := by
+        (∀ x, x ∈ˢ interp M φ ρ A → IsTy (interp M φ (cons x ρ) B))) := by
   rw [WellDenoted]
 
 theorem WellDenoted_liftN (n : Nat) :
@@ -114,7 +112,7 @@ theorem WellDenoted_liftN (n : Nat) :
   | app f a ihf iha =>
     intro k ρ
     rw [Expr.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha, interp_liftN, interp_liftN]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ
     rw [Expr.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
@@ -123,7 +121,7 @@ theorem WellDenoted_liftN (n : Nat) :
         (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · rw [ihb, cons_shiftE]
     · rw [interp_liftN, cons_shiftE]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ
     rw [Expr.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
@@ -154,7 +152,7 @@ theorem WellDenoted_inst :
   | app f b ihf ihb =>
     intro a k ρ ha
     rw [Expr.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha, ihb a k ρ ha, interp_inst, interp_inst]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     intro a k ρ ha
     rw [Expr.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha, interp_inst]
     have ha' : ∀ x, WellDenoted M φ (shiftE (k + 1) 0 (cons x ρ)) a := by
@@ -165,7 +163,7 @@ theorem WellDenoted_inst :
         (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · rw [ihb a (k + 1) (cons x ρ) (ha' x), shiftE_succ_cons, cons_instE]
     · rw [interp_inst, shiftE_succ_cons, cons_instE]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     intro a k ρ ha
     rw [Expr.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha, interp_inst]
     have ha' : ∀ x, WellDenoted M φ (shiftE (k + 1) 0 (cons x ρ)) a := by
@@ -193,19 +191,17 @@ theorem WellDenoted_instL (ps : List Name) (ls : List Level) :
   | app f a ihf iha =>
     intro ρ
     rw [Expr.instL_app, WellDenoted_app, WellDenoted_app, ihf, iha, interp_instL, interp_instL]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     intro ρ
-    rw [Expr.instL_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_instL,
-      PropWhen.holds_substL]
+    rw [Expr.instL_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_instL]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl (ihb _))
       (exists_congr fun B => and_congr
         (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     rw [interp_instL]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     intro ρ
-    rw [Expr.instL_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_instL,
-      PropWhen.holds_substL]
+    rw [Expr.instL_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_instL]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl (ihB _))
       (forall_congr' fun x => imp_congr Iff.rfl ?_)))
@@ -217,18 +213,17 @@ theorem WellDenoted_instL (ps : List Name) (ls : List Level) :
 Π's interpretation and an argument in the Π's domain make a
 well-denoted application, the Π's own clauses supplying the regime's
 component. -/
-theorem WellDenoted_app_of {ρ : Nat → V} {f a A B : Expr} {pw : PropWhen}
+theorem WellDenoted_app_of {ρ : Nat → V} {f a A B : Expr}
     (hf : WellDenoted M φ ρ f) (ha : WellDenoted M φ ρ a)
-    (hpi : WellDenoted M φ ρ (.pi A pw B))
-    (hmemf : interp M φ ρ f ∈ˢ interp M φ ρ (.pi A pw B))
+    (hpi : WellDenoted M φ ρ (.pi A B))
+    (hmemf : interp M φ ρ f ∈ˢ interp M φ ρ (.pi A B))
     (hmema : interp M φ ρ a ∈ˢ interp M φ ρ A) :
     WellDenoted M φ ρ (.app f a) := by
   rw [WellDenoted_pi] at hpi
   rw [WellDenoted_app]
-  refine ⟨hf, ha, pw.holds φ, interp M φ ρ A, fun x => interp M φ (cons x ρ) B,
-    hmemf, hmema, fun hp x hx => ?_, fun _ => hpi.2.1⟩
-  have := hpi.2.2.2 x hx
-  rwa [hp] at this
+  exact ⟨hf, ha, propB (interp M φ ρ A) (fun x => interp M φ (cons x ρ) B), interp M φ ρ A,
+    fun x => interp M φ (cons x ρ) B, hmemf, hmema, fun hp => propB_eq_true.mp hp,
+    fun _ => hpi.2.1⟩
 
 /-! ## Contexts -/
 

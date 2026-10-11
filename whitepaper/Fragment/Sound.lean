@@ -18,9 +18,12 @@ and its per-rule lemma files, on the fragment.
 The case split proof/non-proof is in the proof and only there.  A
 reduction claims nothing of a subject that denotes the point; on one
 that does not, β is sound at *every* binder: the redex is not the
-point, so its λ is not (`app pt _ = pt`), so the λ's annotation does
-not hold at this valuation and the λ is a graph, which determines its
-domain (`Red.beta_sound`).  Whether a subject denotes the point is
+point, so its λ is not (`app pt _ = pt`), so the λ is a graph
+(`SetLib.lamV_eq_graph`), which determines its domain
+(`Red.beta_sound`).  No binder carries an annotation (task #344): the
+interpretation reads the regime off the values, and the two rules that
+need two terms' proof-ness to agree at every value of a variable —
+λ-congruence and η — compare their bodies' types.  Whether a subject denotes the point is
 never decided by the checker: the definitional-equality claim is about
 two sides that do not, and the typed invariant makes the proof-ness of
 the two sides of every sub-comparison agree (a graph-regime slot's
@@ -55,11 +58,6 @@ variable {V : Type u} [SetLib V] {env : Env} {m : EnvModel V env} {φ : Name →
 theorem eval_eq_of_oracle [LevelOracle] {u v : Level} (h : LevelOracle.eq u v = true) :
     Level.eval φ u = Level.eval φ v :=
   (LevelOracle.eq_iff u v).mp h φ
-
-/-- A checked annotation reads `true` exactly where the sort is zero. -/
-theorem holds_of_zeroness {v : Level} {pw : PropWhen} (h : Level.zeroness v = pw) :
-    pw.holds φ = true ↔ Level.eval φ v = 0 := by
-  subst h; exact Level.holds_zeroness φ v
 
 /-- A list of length `n + 1` is its first `n` elements and its last. -/
 theorem List.take_append_getD {α : Type} (d : α) :
@@ -103,35 +101,31 @@ theorem appFn_sound {Γ : List Expr} {f f' a : Expr} (h : RedSem m φ Γ f f') :
   exact ⟨hf', ha, p, A, B, he ▸ hslot, hmem, hB, hT⟩
 
 /-- **β at every binder, with no certificate** — `beta_of_ne_pt`.  The
-redex is not the point, so neither is its λ; a λ whose annotation held
-here would be the point; so it does not hold, the λ is a graph, and the
-graph's domain is the slot's: the argument is in it. -/
-theorem beta_sound {Γ : List Expr} {A b a : Expr} {pw : PropWhen} :
-    RedSem m φ Γ (.app (.lam A pw b) a) (b.inst a) := by
+redex is not the point, so neither is its λ; a λ that is not the point
+is the graph of its body; and the graph's domain is the slot's: the
+argument is in it. -/
+theorem beta_sound {Γ : List Expr} {A b a : Expr} :
+    RedSem m φ Γ (.app (.lam A b) a) (b.inst a) := by
   intro ρ _ hw hn
   rw [WellDenoted_app] at hw
   obtain ⟨hl, ha, p, A', B', hslot, hmem, -, -⟩ := hw
   rw [WellDenoted_lam] at hl
   obtain ⟨-, -, hbody, B, hfib, -⟩ := hl
   have hlam := fn_ne_pt hn
-  have hpw : pw.holds φ = false := by
-    cases h : pw.holds φ
-    · rfl
-    · exact absurd (by rw [interp_lam, h, lamR_true]) hlam
-  have hval : interp m.M φ ρ (.lam A pw b) =
-      lamR false (interp m.M φ ρ A) (fun x => interp m.M φ (cons x ρ) b) := by
-    rw [interp_lam, hpw]
+  have hval : interp m.M φ ρ (.lam A b) =
+      graph (fun x => interp m.M φ (cons x ρ) b) (interp m.M φ ρ A) := by
+    rw [interp_lam] at hlam ⊢; exact lamV_eq_graph hlam
   have hp : p = false := by
     cases p
     · rfl
     · exact absurd (eq_pt_of_mem_piR_true hslot) hlam
   subst hp
-  have hown : interp m.M φ ρ (.lam A pw b) ∈ˢ piR false (interp m.M φ ρ A) B := by
-    rw [hval]; exact lamR_mem hfib fun h => nomatch h
+  have hown : interp m.M φ ρ (.lam A b) ∈ˢ piR false (interp m.M φ ρ A) B := by
+    rw [hval, piR_false]; exact graph_mem_piSet hfib
   have haA : interp m.M φ ρ a ∈ˢ interp m.M φ ρ A := by
     rw [piR_dom_unique hown hslot]; exact hmem
   refine ⟨(WellDenoted_inst0 m.M φ ha).mpr (hbody _ haA), ?_⟩
-  rw [interp_app, hval, app_lamR_false haA, interp_inst0]
+  rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
 theorem delta_sound {Γ : List Expr} {c : Name} {ls : List Level} {ci : ConstInfo} {v : Expr}
     (hfind : env.find? c = some ci) (hv : ci.value? = some v)
@@ -170,80 +164,46 @@ theorem const_sound [LevelOracle] {Γ : List Expr} {c : Name} {ls ls' : List Lev
     (h : Level.eqList ls ls' = true) : DefEqSem m φ Γ (.const c ls) (.const c ls') :=
   fun _ _ _ _ _ _ => by simp [(Level.eqList_iff ls ls').mp h φ]
 
-/-- **`∀`-congruence with no comparison of the annotations** (task
-#343): the two sides lie in one sort — the left side's type reduces to
-it, the right side's type is equal to the left's — and inside one sort
-the two regimes agree (`piR_eq_of_mem_typeU`).  Domains and fibres are
-types, never the point. -/
-theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ t₁ t₂ : Expr} {pw₁ pw₂ : PropWhen} {u : Level}
-    (hA : DefEqSem m φ Γ A₁ A₂) (hB : DefEqSem m φ (A₂ :: Γ) B₁ B₂)
-    (ht₁ : InferSem m φ Γ (.pi A₁ pw₁ B₁) t₁) (hu : RedSem m φ Γ t₁ (.sort u))
-    (ht₂ : InferSem m φ Γ (.pi A₂ pw₂ B₂) t₂) (ht : DefEqSem m φ Γ t₁ t₂) :
-    DefEqSem m φ Γ (.pi A₁ pw₁ B₁) (.pi A₂ pw₂ B₂) := by
+/-- **`∀`-congruence, with no premise beyond domains and bodies** (task
+#344): a `∀`'s value is a function of its domain's and fibres' values
+(`SetLib.piV_congr`), and both are types, never the point. -/
+theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr}
+    (hA : DefEqSem m φ Γ A₁ A₂) (hB : DefEqSem m φ (A₂ :: Γ) B₁ B₂) :
+    DefEqSem m φ Γ (.pi A₁ B₁) (.pi A₂ B₂) := by
   intro ρ hs h₁ h₂ _ _
-  -- both sides lie in `typeU u`
-  obtain ⟨-, hwt₁, hT₁, hm₁⟩ := ht₁ ρ hs
-  obtain ⟨-, hwt₂, hT₂, hmem₂⟩ := ht₂ ρ hs
-  have het : interp m.M φ ρ t₁ = interp m.M φ ρ t₂ :=
-    ht ρ hs hwt₁ hwt₂ hT₁.ne_pt hT₂.ne_pt
-  obtain ⟨-, hes⟩ := hu ρ hs hwt₁ hT₁.ne_pt
-  rw [← het, hes, interp_sort] at hmem₂
-  rw [hes, interp_sort] at hm₁
   rw [WellDenoted_pi] at h₁ h₂
   have heA := hA ρ hs h₁.1 h₂.1 h₁.2.1.ne_pt h₂.2.1.ne_pt
-  -- the fibres agree over the domain
   have hfib : ∀ x, x ∈ˢ interp m.M φ ρ A₂ →
       interp m.M φ (cons x ρ) B₁ = interp m.M φ (cons x ρ) B₂ := by
     intro x hx
     have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
     exact hB (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, h₂.1, h₂.2.1, hx⟩) (h₁.2.2.1 x hx₁)
       (h₂.2.2.1 x hx) (h₁.2.2.2 x hx₁).ne_pt (h₂.2.2.2 x hx).ne_pt
-  simp only [interp_pi] at hm₁ hmem₂ ⊢
-  rw [heA, piR_congr hfib] at hm₁ ⊢
-  refine piR_eq_of_mem_typeU (fun x hx => ?_) (fun x hx => h₂.2.2.2 x hx) hm₁ hmem₂
-  have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
-  rw [← hfib x hx]; exact h₁.2.2.2 x hx₁
+  simp only [interp_pi]
+  rw [heA]
+  exact piV_congr hfib
 
-/-- A λ that is not the point is in the graph regime, and its body's
-values are in strict fibres: never the point. -/
-theorem lam_body_ne_pt {A b : Expr} {pw : PropWhen} {ρ : Nat → V}
-    (hw : WellDenoted m.M φ ρ (.lam A pw b)) (hn : interp m.M φ ρ (.lam A pw b) ≠ pt)
-    {x : V} (hx : x ∈ˢ interp m.M φ ρ A) : interp m.M φ (cons x ρ) b ≠ pt := by
-  rw [WellDenoted_lam] at hw
-  obtain ⟨-, -, -, B, hfib, hreg⟩ := hw
-  have hpw : pw.holds φ = false := by
-    cases h : pw.holds φ
-    · rfl
-    · exact absurd (by rw [interp_lam, h, lamR_true]) hn
-  have := hreg x hx
-  rw [hpw] at this
-  exact ne_pt_of_mem_strict this (hfib x hx)
-
-/-- A λ that is not the point is in the graph regime. -/
-theorem lam_holds_false {A b : Expr} {pw : PropWhen} {ρ : Nat → V}
-    (hn : interp m.M φ ρ (.lam A pw b) ≠ pt) : pw.holds φ = false := by
-  cases h : pw.holds φ
-  · rfl
-  · exact absurd (by rw [interp_lam, h, lamR_true]) hn
-
-/-- **λ-congruence, with no comparison of the annotations**: two λs
-that are not the point are both in the graph regime, whatever their
-annotations say elsewhere. -/
-theorem lam_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} {pw₁ pw₂ : PropWhen}
-    (hA : DefEqSem m φ Γ A₁ A₂) (hb : DefEqSem m φ (A₂ :: Γ) b₁ b₂) :
-    DefEqSem m φ Γ (.lam A₁ pw₁ b₁) (.lam A₂ pw₂ b₂) := by
-  intro ρ hs h₁ h₂ hn₁ hn₂
-  have h₁' := h₁
-  have h₂' := h₂
-  rw [WellDenoted_lam] at h₁' h₂'
-  have heA := hA ρ hs h₁'.1 h₂'.1 h₁'.2.1.ne_pt h₂'.2.1.ne_pt
+/-- **λ-congruence, typed** (task #344): the two bodies lie in one type
+at every value of the variable — their inferred types are equal there
+— so they are both the point or neither is, and where neither is the
+bodies' claim makes them equal.  Neither λ need be a graph. -/
+theorem lam_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr}
+    (hA : DefEqSem m φ Γ A₁ A₂) (hb : DefEqSem m φ (A₂ :: Γ) b₁ b₂)
+    (ht₁ : InferSem m φ (A₂ :: Γ) b₁ t₁) (ht₂ : InferSem m φ (A₂ :: Γ) b₂ t₂)
+    (ht : DefEqSem m φ (A₂ :: Γ) t₁ t₂) :
+    DefEqSem m φ Γ (.lam A₁ b₁) (.lam A₂ b₂) := by
+  intro ρ hs h₁ h₂ _ _
+  rw [WellDenoted_lam] at h₁ h₂
+  have heA := hA ρ hs h₁.1 h₂.1 h₁.2.1.ne_pt h₂.2.1.ne_pt
   simp only [interp_lam]
-  rw [lam_holds_false hn₁, lam_holds_false hn₂, heA]
-  apply lamR_congr
+  rw [heA]
+  apply lamV_congr
   intro x hx
-  have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
-  exact hb (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, h₂'.1, h₂'.2.1, hx⟩) (h₁'.2.2.1 x hx₁)
-    (h₂'.2.2.1 x hx) (lam_body_ne_pt h₁ hn₁ hx₁) (lam_body_ne_pt h₂ hn₂ hx)
+  have hs' : Sat m.M φ (A₂ :: Γ) (cons x ρ) := (Sat_cons m.M φ).mpr ⟨hs, h₂.1, h₂.2.1, hx⟩
+  obtain ⟨hw₁, hwt₁, hT₁, hm₁⟩ := ht₁ _ hs'
+  obtain ⟨hw₂, hwt₂, hT₂, hm₂⟩ := ht₂ _ hs'
+  rw [ht _ hs' hwt₁ hwt₂ hT₁.ne_pt hT₂.ne_pt] at hm₁
+  exact hT₂.eq_of_ne_pt hm₁ hm₂ (hb _ hs' hw₁ hw₂)
 
 /-- An application that is not the point is in the graph regime, and
 its slot's domain is a type. -/
@@ -315,66 +275,47 @@ theorem mem_typeU_of {Γ : List Expr} {A s : Expr} {u : Level} {ρ : Nat → V}
   rw [hes, interp_sort] at hmem
   exact ⟨hwA, hmem⟩
 
-/-- The regime of the annotation is the regime of the sort it checks. -/
-theorem fib_of_zeroness {v : Level} {pw : PropWhen} (hz : Level.zeroness v = pw) {X : V}
-    (h : X ∈ˢ typeU (Level.eval φ v)) : Fib (pw.holds φ) X := by
-  have hzero := holds_of_zeroness (φ := φ) hz
-  have hf := Fib_of_mem_typeU h
-  cases hp : pw.holds φ
-  · have : Level.eval φ v ≠ 0 := fun h0 => by rw [hzero.mpr h0] at hp; exact nomatch hp
-    simpa [this] using hf
-  · simpa [hzero.mp hp] using hf
-
-theorem pi_sound {Γ : List Expr} {A B s t : Expr} {u v : Level} {pw : PropWhen}
+theorem pi_sound {Γ : List Expr} {A B s t : Expr} {u v : Level}
     (hA : InferSem m φ Γ A s) (hu : RedSem m φ Γ s (.sort u))
-    (hB : InferSem m φ (A :: Γ) B t) (hv : RedSem m φ (A :: Γ) t (.sort v))
-    (hz : Level.zeroness v = pw) :
-    InferSem m φ Γ (.pi A pw B) (.sort (.imax u v)) := by
+    (hB : InferSem m φ (A :: Γ) B t) (hv : RedSem m φ (A :: Γ) t (.sort v)) :
+    InferSem m φ Γ (.pi A B) (.sort (.imax u v)) := by
   intro ρ hs
   obtain ⟨hwA, hmemA⟩ := mem_typeU_of hA hu hs
   have hTA := IsTy_of_mem_typeU hmemA
   have hbody : ∀ x, x ∈ˢ interp m.M φ ρ A →
       WellDenoted m.M φ (cons x ρ) B ∧ interp m.M φ (cons x ρ) B ∈ˢ typeU (Level.eval φ v) :=
     fun x hx => mem_typeU_of hB hv ((Sat_cons m.M φ).mpr ⟨hs, hwA, hTA, hx⟩)
-  have hzero := holds_of_zeroness (φ := φ) hz
   refine ⟨?_, trivial, Or.inr (strict_typeU _), ?_⟩
   · rw [WellDenoted_pi]
-    exact ⟨hwA, hTA, fun x hx => (hbody x hx).1, fun x hx => fib_of_zeroness hz (hbody x hx).2⟩
+    exact ⟨hwA, hTA, fun x hx => (hbody x hx).1, fun x hx => IsTy_of_mem_typeU (hbody x hx).2⟩
   · rw [interp_pi, interp_sort, Level.eval_imax]
-    exact piR_mem_typeU hzero hmemA fun x hx => (hbody x hx).2
+    exact piV_mem_typeU hmemA fun x hx => (hbody x hx).2
 
-theorem lam_sound {Γ : List Expr} {A b s bt btt : Expr} {u v : Level} {pw : PropWhen}
+/-- **λ**: Lean's rule.  The body's type is a type (`InferSem`), which
+is all `lamV_mem` asks of the fibres. -/
+theorem lam_sound {Γ : List Expr} {A b s bt : Expr} {u : Level}
     (hA : InferSem m φ Γ A s) (hu : RedSem m φ Γ s (.sort u))
-    (hb : InferSem m φ (A :: Γ) b bt)
-    (hbt : InferSem m φ (A :: Γ) bt btt) (hv : RedSem m φ (A :: Γ) btt (.sort v))
-    (hz : Level.zeroness v = pw) :
-    InferSem m φ Γ (.lam A pw b) (.pi A pw bt) := by
+    (hb : InferSem m φ (A :: Γ) b bt) :
+    InferSem m φ Γ (.lam A b) (.pi A bt) := by
   intro ρ hs
   obtain ⟨hwA, hmemA⟩ := mem_typeU_of hA hu hs
   have hTA := IsTy_of_mem_typeU hmemA
   have hbody : ∀ x, x ∈ˢ interp m.M φ ρ A →
       WellDenoted m.M φ (cons x ρ) b ∧ WellDenoted m.M φ (cons x ρ) bt ∧
-      interp m.M φ (cons x ρ) b ∈ˢ interp m.M φ (cons x ρ) bt ∧
-      Fib (pw.holds φ) (interp m.M φ (cons x ρ) bt) := by
-    intro x hx
-    have hs' : Sat m.M φ (A :: Γ) (cons x ρ) := (Sat_cons m.M φ).mpr ⟨hs, hwA, hTA, hx⟩
-    obtain ⟨hwb, -, -, hmemb⟩ := hb (cons x ρ) hs'
-    obtain ⟨hwbt, hmembt⟩ := mem_typeU_of hbt hv hs'
-    exact ⟨hwb, hwbt, hmemb, fib_of_zeroness hz hmembt⟩
-  refine ⟨?_, ?_, IsTy_piR, ?_⟩
+      IsTy (interp m.M φ (cons x ρ) bt) ∧
+      interp m.M φ (cons x ρ) b ∈ˢ interp m.M φ (cons x ρ) bt :=
+    fun x hx => hb (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, hwA, hTA, hx⟩)
+  refine ⟨?_, ?_, by rw [interp_pi]; exact IsTy_piV, ?_⟩
   · rw [WellDenoted_lam]
-    exact ⟨hwA, hTA, fun x hx => (hbody x hx).1,
-      fun x => interp m.M φ (cons x ρ) bt, fun x hx => (hbody x hx).2.2.1,
-      fun x hx => (hbody x hx).2.2.2⟩
+    exact ⟨hwA, hTA, fun x hx => (hbody x hx).1, fun x => interp m.M φ (cons x ρ) bt,
+      fun x hx => (hbody x hx).2.2.2, fun x hx => (hbody x hx).2.2.1⟩
   · rw [WellDenoted_pi]
-    exact ⟨hwA, hTA, fun x hx => (hbody x hx).2.1, fun x hx => (hbody x hx).2.2.2⟩
+    exact ⟨hwA, hTA, fun x hx => (hbody x hx).2.1, fun x hx => (hbody x hx).2.2.1⟩
   · rw [interp_lam, interp_pi]
-    refine lamR_mem (fun x hx => (hbody x hx).2.2.1) fun hp x hx => ?_
-    have := (hbody x hx).2.2.2
-    rwa [hp] at this
+    exact lamV_mem (fun x hx => (hbody x hx).2.2.2) fun x hx => (hbody x hx).2.2.1
 
-theorem app_sound {Γ : List Expr} {f a tf A B ta : Expr} {pw : PropWhen}
-    (hf : InferSem m φ Γ f tf) (hr : RedSem m φ Γ tf (.pi A pw B))
+theorem app_sound {Γ : List Expr} {f a tf A B ta : Expr}
+    (hf : InferSem m φ Γ f tf) (hr : RedSem m φ Γ tf (.pi A B))
     (ha : InferSem m φ Γ a ta) (hd : DefEqSem m φ Γ ta A) :
     InferSem m φ Γ (.app f a) (B.inst a) := by
   intro ρ hs
@@ -388,25 +329,27 @@ theorem app_sound {Γ : List Expr} {f a tf A B ta : Expr} {pw : PropWhen}
   rw [hd ρ hs hwta hwA hTta.ne_pt hTA.ne_pt] at hmema
   refine ⟨?_, (WellDenoted_inst0 m.M φ hwa).mpr (hwB _ hmema), ?_, ?_⟩
   · rw [WellDenoted_app]
-    refine ⟨hwf, hwa, pw.holds φ, _, _, hmemf, hmema, fun hp x hx => ?_, fun _ => hTA⟩
-    have := hfib x hx
-    rwa [hp] at this
-  · rw [interp_inst0]; exact IsTy_of_Fib (hfib _ hmema)
+    exact ⟨hwf, hwa, _, _, _, hmemf, hmema, fun hp => propB_eq_true.mp hp, fun _ => hTA⟩
+  · rw [interp_inst0]; exact hfib _ hmema
   · rw [interp_app, interp_inst0]
-    exact app_mem_piR hmemf hmema
+    exact app_mem_piV hmemf hmema
 
 end Infer
 
 namespace DefEq
 
-/-- **η**: the λ is not the point, so `b`'s type is in the graph regime
-and `b` applied is never the point either. -/
-theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw₁ pw : PropWhen}
-    (htb : InferSem m φ Γ b tb) (hr : RedSem m φ Γ tb (.pi A₂ pw B))
+/-- **η, typed** (task #344): at every value of the variable the λ's
+body and `b` applied lie in one type — the body's inferred type is the
+`∀`'s fibre — so they are both the point or neither is, and where
+neither is the body's claim makes them equal; a member of a product is
+the abstraction of its applications (`SetLib.lamV_eta`). -/
+theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B t₁ : Expr}
+    (htb : InferSem m φ Γ b tb) (hr : RedSem m φ Γ tb (.pi A₂ B))
     (hA : DefEqSem m φ Γ A₂ A₁)
-    (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0))) :
-    DefEqSem m φ Γ (.lam A₁ pw₁ b₁) b := by
-  intro ρ hs hlam hwb hnl hnb
+    (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0)))
+    (ht₁ : InferSem m φ (A₁ :: Γ) b₁ t₁) (htB : DefEqSem m φ (A₁ :: Γ) t₁ B) :
+    DefEqSem m φ Γ (.lam A₁ b₁) b := by
+  intro ρ hs hlam hwb _ _
   obtain ⟨-, hwtb, hTtb, hmemb⟩ := htb ρ hs
   obtain ⟨hwpi, hepi⟩ := hr ρ hs hwtb hTtb.ne_pt
   rw [hepi, interp_pi] at hmemb
@@ -414,13 +357,6 @@ theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw₁ pw : Pr
   have hlam' := hlam
   rw [WellDenoted_lam] at hlam'
   have heA := hA ρ hs hwpi.1 hlam'.1 hwpi.2.1.ne_pt hlam'.2.1.ne_pt
-  -- `b` is not the point, so its `∀` is in the graph regime …
-  have hpw : pw.holds φ = false := by
-    cases h : pw.holds φ
-    · rfl
-    · rw [h] at hmemb; exact absurd (eq_pt_of_mem_piR_true hmemb) hnb
-  -- … and so is the λ, which is not the point either
-  have hpw₁ : pw₁.holds φ = false := lam_holds_false hnl
   have hsh : ∀ x, shiftE 1 0 (cons x ρ) = ρ := by
     intro x; funext i; simp [shiftE]
   have hlift : ∀ x, interp m.M φ (cons x ρ) (b.liftN 1) = interp m.M φ ρ b := by
@@ -429,22 +365,22 @@ theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw₁ pw : Pr
       interp m.M φ (cons x ρ) b₁ = SetLib.app (interp m.M φ ρ b) x := by
     intro x hx
     have hx₂ : x ∈ˢ interp m.M φ ρ A₂ := by rw [heA]; exact hx
+    have hs' : Sat m.M φ (A₁ :: Γ) (cons x ρ) :=
+      (Sat_cons m.M φ).mpr ⟨hs, hlam'.1, hlam'.2.1, hx⟩
     have happ : WellDenoted m.M φ (cons x ρ) (.app (b.liftN 1) (.bvar 0)) := by
       rw [WellDenoted_app]
-      refine ⟨(WellDenoted_liftN m.M φ 1 b 0 (cons x ρ)).mpr (by rw [hsh]; exact hwb), trivial,
-        pw.holds φ, interp m.M φ ρ A₂, fun y => interp m.M φ (cons y ρ) B,
-        by rw [hlift]; exact hmemb, hx₂, fun hp => ?_, fun _ => hwpi.2.1⟩
-      rw [hpw] at hp; exact nomatch hp
-    have hfibx := hwpi.2.2.2 x hx₂
-    rw [hpw] at hfibx
-    have hne : interp m.M φ (cons x ρ) (.app (b.liftN 1) (.bvar 0)) ≠ pt := by
-      rw [interp_app, interp_bvar, cons_zero, hlift]
-      exact ne_pt_of_mem_strict hfibx (app_mem_piR hmemb hx₂)
-    have := hbody (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, hlam'.1, hlam'.2.1, hx⟩)
-      (hlam'.2.2.1 x hx) happ (lam_body_ne_pt hlam hnl hx) hne
-    rw [this, interp_app, interp_bvar, cons_zero, hlift]
-  rw [interp_lam, hpw₁, lamR_congr hpt, ← heA, ← hpw]
-  exact lamR_eta hmemb
+      exact ⟨(WellDenoted_liftN m.M φ 1 b 0 (cons x ρ)).mpr (by rw [hsh]; exact hwb), trivial,
+        _, interp m.M φ ρ A₂, fun y => interp m.M φ (cons y ρ) B,
+        by rw [hlift]; exact hmemb, hx₂, fun hp => propB_eq_true.mp hp, fun _ => hwpi.2.1⟩
+    obtain ⟨hwb₁, hwt₁, hT₁, hm₁⟩ := ht₁ _ hs'
+    rw [htB _ hs' hwt₁ (hwpi.2.2.1 x hx₂) hT₁.ne_pt (hwpi.2.2.2 x hx₂).ne_pt] at hm₁
+    have hm₂ : interp m.M φ (cons x ρ) (.app (b.liftN 1) (.bvar 0)) ∈ˢ
+        interp m.M φ (cons x ρ) B := by
+      rw [interp_app, interp_bvar, cons_zero, hlift]; exact app_mem_piV hmemb hx₂
+    rw [(hwpi.2.2.2 x hx₂).eq_of_ne_pt hm₁ hm₂ (hbody _ hs' hwb₁ happ), interp_app, interp_bvar,
+      cons_zero, hlift]
+  rw [interp_lam, lamV_congr hpt, ← heA]
+  exact lamV_eta hmemb fun x hx => hwpi.2.2.2 x hx
 
 /-- **Proof irrelevance claims nothing**: a side whose type's sort is
 `Prop` is the point, and the claim is about sides that are not. -/
@@ -475,7 +411,7 @@ theorem teleFit_of_certs {Γ : List Expr} {ρ : Nat → V} (hs : Sat m.M φ Γ �
       (∀ p ∈ tys.zip doms, DefEqSem m φ Γ p.1 p.2) →
       TeleFit m.M φ ρ T spine
   | _, [], _, _, _, _, _, _, _, _ => trivial
-  | .pi A _ B, a :: as, tys, _, hT, hsp, hdoms, hlen, hI, hD => by
+  | .pi A B, a :: as, tys, _, hT, hsp, hdoms, hlen, hI, hD => by
     simp only [Expr.piDomains, Option.map_eq_some_iff] at hdoms
     obtain ⟨ds, hds, rfl⟩ := hdoms
     cases tys with
@@ -497,7 +433,7 @@ theorem teleFit_of_certs {Γ : List Expr} {ρ : Nat → V} (hs : Sat m.M φ Γ �
   | .sort _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
   | .const _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
   | .app _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
-  | .lam _ _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
+  | .lam _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
 
 /-- The residual of a well-denoted telescope along a fitting spine is
 well-denoted. -/
@@ -506,7 +442,7 @@ theorem WellDenoted_piResidual {ρ : Nat → V} :
       WellDenoted m.M φ ρ T → (∀ a ∈ as, WellDenoted m.M φ ρ a) →
       TeleFit m.M φ ρ T as → Expr.piResidual T as = some R → WellDenoted m.M φ ρ R
   | T, [], _, hT, _, _, h => by simp at h; subst h; exact hT
-  | .pi A _ B, a :: as, R, hT, has, hfit, h => by
+  | .pi A B, a :: as, R, hT, has, hfit, h => by
     rw [Expr.piResidual_pi_cons] at h
     obtain ⟨hmem, hfit'⟩ := hfit
     rw [WellDenoted_pi] at hT
@@ -517,7 +453,7 @@ theorem WellDenoted_piResidual {ρ : Nat → V} :
   | .sort _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
   | .const _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
   | .app _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
-  | .lam _ _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .lam _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
 
 /-- **The major premise needs no β certificate.**  In an application of
 a head `f` of type `T` to a spine `xs` and a major `maj` that is not the
@@ -537,7 +473,7 @@ theorem major_eq {Γ : List Expr} {ρ : Nat → V} {T f maj maj' : Expr} {xs : L
     (hfit : TeleFitV m.M φ ρ T ((xs ++ [maj']).map (interp m.M φ ρ))) :
     interp m.M φ ρ maj = interp m.M φ ρ maj' := by
   rw [List.map_append, List.map_singleton] at hfit
-  obtain ⟨A, pw, B, ρ', hb, hfitxs, hv⟩ := teleFitV_snoc m.M φ hfit
+  obtain ⟨A, B, ρ', hb, hfitxs, hv⟩ := teleFitV_snoc m.M φ hfit
   have hmemB := mem_piBodyV m.M φ hf hfitxs hb
   have hwB := WellDenoted_piBodyV m.M φ hT hfitxs hb
   rw [WellDenoted_pi] at hwB
@@ -550,13 +486,9 @@ theorem major_eq {Γ : List Expr} {ρ : Nat → V} {T f maj maj' : Expr} {xs : L
     cases p
     · rfl
     · exact absurd (eq_pt_of_mem_piR_true hslot) hF
-  have hpw : pw.holds φ = false := by
-    cases h : pw.holds φ
-    · rfl
-    · rw [h] at hmemB; exact absurd (eq_pt_of_mem_piR_true hmemB) hF
   subst hp
-  rw [hpw] at hmemB
-  have hA : A' = interp m.M φ ρ' A := piR_dom_unique hslot hmemB
+  have hA : A' = interp m.M φ ρ' A :=
+    piR_dom_unique hslot (mem_piSet_of_mem_piV hmemB hF)
   rw [hA] at hmaj
   by_cases hmp : interp m.M φ ρ maj = pt
   · rcases hwB.2.1 with hT0 | hTs
@@ -871,13 +803,14 @@ theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
   | _, _, _, .redL hr h => DefEq.redL_sound (red_sound hr) (defeq_sound h)
   | _, _, _, .sort h => DefEq.sort_sound h
   | _, _, _, .const h => DefEq.const_sound h
-  | _, _, _, .pi hA hB ht₁ hu ht₂ ht =>
-    DefEq.pi_sound (defeq_sound hA) (defeq_sound hB) (infer_sound ht₁) (red_sound hu)
-      (infer_sound ht₂) (defeq_sound ht)
-  | _, _, _, .lam hA hb => DefEq.lam_sound (defeq_sound hA) (defeq_sound hb)
+  | _, _, _, .pi hA hB => DefEq.pi_sound (defeq_sound hA) (defeq_sound hB)
+  | _, _, _, .lam hA hb ht₁ ht₂ ht =>
+    DefEq.lam_sound (defeq_sound hA) (defeq_sound hb) (infer_sound ht₁) (infer_sound ht₂)
+      (defeq_sound ht)
   | _, _, _, .app hf ha => DefEq.app_sound (defeq_sound hf) (defeq_sound ha)
-  | _, _, _, .eta htb hr hA hbody =>
+  | _, _, _, .eta htb hr hA hbody ht₁ htB =>
     DefEq.eta_sound (infer_sound htb) (red_sound hr) (defeq_sound hA) (defeq_sound hbody)
+      (infer_sound ht₁) (defeq_sound htB)
   | _, _, _, .proofIrrel hta htta hu hu0 _ _ _ _ =>
     DefEq.proofIrrel_sound (infer_sound hta) (infer_sound htta) (red_sound hu) hu0
 
@@ -886,11 +819,10 @@ theorem infer_sound [LevelOracle] : ∀ {Γ : List Expr} {e T : Expr},
   | _, _, _, .bvar h => Infer.bvar_sound h
   | _, _, _, .sort => Infer.sort_sound
   | _, _, _, .const hfind hls => Infer.const_sound hfind hls
-  | _, _, _, .pi hA hu hB hv hz =>
-    Infer.pi_sound (infer_sound hA) (red_sound hu) (infer_sound hB) (red_sound hv) hz
-  | _, _, _, .lam hA hu hb hbt hv hz =>
-    Infer.lam_sound (infer_sound hA) (red_sound hu) (infer_sound hb) (infer_sound hbt)
-      (red_sound hv) hz
+  | _, _, _, .pi hA hu hB hv =>
+    Infer.pi_sound (infer_sound hA) (red_sound hu) (infer_sound hB) (red_sound hv)
+  | _, _, _, .lam hA hu hb =>
+    Infer.lam_sound (infer_sound hA) (red_sound hu) (infer_sound hb)
   | _, _, _, .app hf hr ha hd =>
     Infer.app_sound (infer_sound hf) (red_sound hr) (infer_sound ha) (defeq_sound hd)
 

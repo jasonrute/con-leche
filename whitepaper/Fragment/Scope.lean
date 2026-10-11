@@ -31,15 +31,6 @@ def paramsIn (ps : List Name) : Level → Bool
 
 end Level
 
-namespace PropWhen
-
-/-- Every parameter the datum mentions is one of `ps`. -/
-def paramsIn (ps : List Name) : PropWhen → Bool
-  | never => true
-  | whenZero qs => qs.list.all ps.contains
-
-end PropWhen
-
 namespace Expr
 
 /-- Every bound variable is below `k`: the term lives under `k`
@@ -49,8 +40,8 @@ def closedAt (k : Nat) : Expr → Bool
   | sort _ => true
   | const _ _ => true
   | app f a => closedAt k f && closedAt k a
-  | lam A _ b => closedAt k A && closedAt (k + 1) b
-  | pi A _ B => closedAt k A && closedAt (k + 1) B
+  | lam A b => closedAt k A && closedAt (k + 1) b
+  | pi A B => closedAt k A && closedAt (k + 1) B
 
 /-- The constants a term mentions. -/
 def consts : Expr → List Name
@@ -58,18 +49,18 @@ def consts : Expr → List Name
   | sort _ => []
   | const c _ => [c]
   | app f a => consts f ++ consts a
-  | lam A _ b => consts A ++ consts b
-  | pi A _ B => consts A ++ consts B
+  | lam A b => consts A ++ consts b
+  | pi A B => consts A ++ consts B
 
 /-- Every level parameter the term uses — in sorts, constant
-instantiations and annotations — is one of `ps`. -/
+instantiations — is one of `ps`. -/
 def lparamsIn (ps : List Name) : Expr → Bool
   | bvar _ => true
   | sort u => u.paramsIn ps
   | const _ ls => ls.all (·.paramsIn ps)
   | app f a => lparamsIn ps f && lparamsIn ps a
-  | lam A pw b => lparamsIn ps A && pw.paramsIn ps && lparamsIn ps b
-  | pi A pw B => lparamsIn ps A && pw.paramsIn ps && lparamsIn ps B
+  | lam A b => lparamsIn ps A && lparamsIn ps b
+  | pi A B => lparamsIn ps A && lparamsIn ps B
 
 /-- Does the term use the bound variable `i` (of the enclosing
 context)?  Under a binder the variable is `i + 1`. -/
@@ -78,8 +69,8 @@ def usesVar (i : Nat) : Expr → Bool
   | sort _ => false
   | const _ _ => false
   | app f a => usesVar i f || usesVar i a
-  | lam A _ b => usesVar i A || usesVar (i + 1) b
-  | pi A _ B => usesVar i A || usesVar (i + 1) B
+  | lam A b => usesVar i A || usesVar (i + 1) b
+  | pi A B => usesVar i A || usesVar (i + 1) B
 
 end Expr
 

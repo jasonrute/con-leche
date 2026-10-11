@@ -44,7 +44,7 @@ walk is `Expr.piDomains`). -/
 def TeleFit (M : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) :
     Expr → List Expr → Prop
   | _, [] => True
-  | .pi A _ B, a :: as => interp M φ ρ a ∈ˢ interp M φ ρ A ∧ TeleFit M φ ρ (B.inst a) as
+  | .pi A B, a :: as => interp M φ ρ a ∈ˢ interp M φ ρ A ∧ TeleFit M φ ρ (B.inst a) as
   | _, _ :: _ => False
 
 /-- `f v₁ … vₙ` on sets. -/
@@ -63,16 +63,16 @@ of the domain it meets, the body read under the values so far
 — the environment grows instead of the type being substituted into). -/
 def TeleFitV (M : Name → List Nat → V) (φ : Name → Nat) : (Nat → V) → Expr → List V → Prop
   | _, _, [] => True
-  | ρ, .pi A _ B, v :: vs => v ∈ˢ interp M φ ρ A ∧ TeleFitV M φ (cons v ρ) B vs
+  | ρ, .pi A B, v :: vs => v ∈ˢ interp M φ ρ A ∧ TeleFitV M φ (cons v ρ) B vs
   | _, _, _ :: _ => False
 
 theorem TeleFitV_nil (M : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) (e : Expr) :
     TeleFitV M φ ρ e [] := by
   cases e <;> exact trivial
 
-theorem TeleFitV_pi_cons (M : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) (A : Expr) (pw : PropWhen) (B : Expr) (v : V)
+theorem TeleFitV_pi_cons (M : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) (A : Expr) (B : Expr) (v : V)
     (vs : List V) :
-    TeleFitV M φ ρ (.pi A pw B) (v :: vs) ↔ v ∈ˢ interp M φ ρ A ∧ TeleFitV M φ (cons v ρ) B vs :=
+    TeleFitV M φ ρ (.pi A B) (v :: vs) ↔ v ∈ˢ interp M φ ρ A ∧ TeleFitV M φ (cons v ρ) B vs :=
   Iff.rfl
 
 /-- The body a telescope leaves after a list of values, together with
@@ -80,7 +80,7 @@ the environment the values build (the value form of
 `Expr.piResidual`, which substitutes instead). -/
 def piBodyV : (Nat → V) → Expr → List V → Option (Expr × (Nat → V))
   | ρ, T, [] => some (T, ρ)
-  | ρ, .pi _ _ B, v :: vs => piBodyV (cons v ρ) B vs
+  | ρ, .pi _ B, v :: vs => piBodyV (cons v ρ) B vs
   | _, _, _ :: _ => none
 
 omit [SetLib V] in

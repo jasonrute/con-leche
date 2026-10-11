@@ -10,9 +10,9 @@ public import Fragment.Env
 
 `interp M φ ρ e` maps a term to a set: **total** (every term, well-typed
 or not), **term-directed** (structural recursion on the term; no
-derivation, no environment lookup, no `Option`), and **reading the
-annotation** at every binder — `piR`/`lamR` at the datum's readout
-`pw.holds φ` — and nothing else.  The parameters:
+derivation, no environment lookup, no `Option`), and **annotation-free**:
+at a binder the regime is read off the values (`piV`/`lamV`,
+`Lib.lean`), not off a datum.  The parameters:
 
 * `M : Name → List Nat → V`, the model's assignment of a set to every
   constant at every list of concrete levels (what the environment
@@ -26,12 +26,15 @@ annotation** at every binder — `piR`/`lamR` at the datum's readout
 | `sort u` | `typeU (eval φ u)` |
 | `const c ls` | `M c (ls.map (eval φ))` |
 | `app f a` | `app ⟦f⟧ ⟦a⟧` |
-| `lam A pw b` | `lamR (pw.holds φ) ⟦A⟧ (fun x => ⟦b⟧ (x :: ρ))` |
-| `pi A pw B` | `piR (pw.holds φ) ⟦A⟧ (fun x => ⟦B⟧ (x :: ρ))` |
+| `lam A b` | `lamV ⟦A⟧ (fun x => ⟦b⟧ (x :: ρ))` |
+| `pi A B` | `piV ⟦A⟧ (fun x => ⟦B⟧ (x :: ρ))` |
 
 `app` is uniform — `app pt a = pt` is the proposition regime's β and
 `app_graph` the graph regime's — so the whole regime dispatch lives in
-the two binder cases.
+the two binder cases, and there it is a property of the values: a
+product is propositional when every fibre is a truth value, an
+abstraction is the point when every body value is.  Over an empty
+domain both are read as propositional (task #344).
 
 A sort denotes its **restricted universe** `typeU` (`Lib.lean`): the
 truth values at `0`, the strict members of `univ n` above — the sets
@@ -39,9 +42,9 @@ that are not the point and do not contain it.  That is the one place
 the model departs from con-leche's `ConLeche/Semantics/Interp.lean`,
 which interprets a sort by the universe itself (and whose checker
 therefore keeps the certified β, until its port); its binder numeral
-is the concrete sort of the body, where here the datum is read at `φ`,
-and constants read the model's assignment directly rather than a
-stored annotated term.
+is the concrete sort of the body, where here no datum exists and the
+values decide, and constants read the model's assignment directly
+rather than a stored annotated term.
 -/
 
 namespace Fragment
@@ -124,15 +127,14 @@ end Env
 
 variable {V : Type u} [SetLib V]
 
-/-- **The interpretation**: total, term-directed, reading the
-annotation at every binder. -/
-def interp (M : Name → List Nat → V) (φ : Name → Nat) : (Nat → V) → Expr → V
+/-- **The interpretation**: total, term-directed, annotation-free. -/
+noncomputable def interp (M : Name → List Nat → V) (φ : Name → Nat) : (Nat → V) → Expr → V
   | ρ, .bvar i => ρ i
   | _, .sort u => typeU (u.eval φ)
   | _, .const c ls => M c (ls.map (Level.eval φ))
   | ρ, .app f a => app (interp M φ ρ f) (interp M φ ρ a)
-  | ρ, .lam A pw b => lamR (pw.holds φ) (interp M φ ρ A) fun x => interp M φ (cons x ρ) b
-  | ρ, .pi A pw B => piR (pw.holds φ) (interp M φ ρ A) fun x => interp M φ (cons x ρ) B
+  | ρ, .lam A b => lamV (interp M φ ρ A) fun x => interp M φ (cons x ρ) b
+  | ρ, .pi A B => piV (interp M φ ρ A) fun x => interp M φ (cons x ρ) B
 
 variable (M : Name → List Nat → V) (φ : Name → Nat)
 
@@ -143,12 +145,12 @@ variable (M : Name → List Nat → V) (φ : Name → Nat)
     interp M φ ρ (.const c ls) = M c (ls.map (Level.eval φ)) := rfl
 @[simp] theorem interp_app (ρ : Nat → V) (f a : Expr) :
     interp M φ ρ (.app f a) = app (interp M φ ρ f) (interp M φ ρ a) := rfl
-@[simp] theorem interp_lam (ρ : Nat → V) (A : Expr) (pw : PropWhen) (b : Expr) :
-    interp M φ ρ (.lam A pw b) =
-      lamR (pw.holds φ) (interp M φ ρ A) fun x => interp M φ (cons x ρ) b := rfl
-@[simp] theorem interp_pi (ρ : Nat → V) (A : Expr) (pw : PropWhen) (B : Expr) :
-    interp M φ ρ (.pi A pw B) =
-      piR (pw.holds φ) (interp M φ ρ A) fun x => interp M φ (cons x ρ) B := rfl
+@[simp] theorem interp_lam (ρ : Nat → V) (A : Expr) (b : Expr) :
+    interp M φ ρ (.lam A b) =
+      lamV (interp M φ ρ A) fun x => interp M φ (cons x ρ) b := rfl
+@[simp] theorem interp_pi (ρ : Nat → V) (A : Expr) (B : Expr) :
+    interp M φ ρ (.pi A B) =
+      piV (interp M φ ρ A) fun x => interp M φ (cons x ρ) B := rfl
 
 /-! ## The substitution lemmas -/
 
@@ -165,13 +167,13 @@ theorem interp_liftN (n : Nat) :
   | sort u => intro k ρ; rfl
   | const c ls => intro k ρ; rfl
   | app f a ihf iha => intro k ρ; simp [ihf, iha]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ
     simp only [Expr.liftN_lam, interp_lam, ihA]
     congr 1
     funext x
     rw [ihb, cons_shiftE]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ
     simp only [Expr.liftN_pi, interp_pi, ihA]
     congr 1
@@ -197,13 +199,13 @@ theorem interp_inst :
   | sort u => intro a k ρ; rfl
   | const c ls => intro a k ρ; rfl
   | app f b ihf ihb => intro a k ρ; simp [ihf, ihb]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     intro a k ρ
     simp only [Expr.inst_lam, interp_lam, ihA]
     congr 1
     funext x
     rw [ihb, shiftE_succ_cons, cons_instE]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     intro a k ρ
     simp only [Expr.inst_pi, interp_pi, ihA]
     congr 1
@@ -232,15 +234,15 @@ theorem interp_instL (ps : List Name) (ls : List Level) :
     intro l _
     exact Level.eval_subst φ ps ls l
   | app f a ihf iha => intro ρ; simp [ihf, iha]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     intro ρ
-    simp only [Expr.instL_lam, interp_lam, ihA, PropWhen.holds_substL]
+    simp only [Expr.instL_lam, interp_lam, ihA]
     congr 1
     funext x
     exact ihb _
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     intro ρ
-    simp only [Expr.instL_pi, interp_pi, ihA, PropWhen.holds_substL]
+    simp only [Expr.instL_pi, interp_pi, ihA]
     congr 1
     funext x
     exact ihB _

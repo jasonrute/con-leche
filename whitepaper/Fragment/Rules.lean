@@ -7,7 +7,7 @@ public import Fragment.Env
 /-!
 # The rules: a relational description of the checker
 
-Three mutually inductive relations over the annotated terms, indexed
+Three mutually inductive relations over the terms, indexed
 by the environment and a **context** `Γ` (the types of the bound
 variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
 `i + 1` binders in between):
@@ -17,9 +17,12 @@ variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
 * `DefEq env Γ a b` — **definitional equality**, the checker's verdict
   `true`: `refl`, `symm`, reduce-the-left-side, sorts by the level
   oracle, constants, congruence for `app`/`lam`/`pi`, η, proof
-  irrelevance.  **No `trans`** — see the docstring of `DefEq`.
-* `Infer env Γ e T` — **type inference**, one grade: the `pi` and
-  `lam` rules CHECK the binder's annotation against the body's sort.
+  irrelevance; λ-congruence and η compare the bodies' types.  **No
+  `trans`** — see the docstring of `DefEq`.
+* `Infer env Γ e T` — **type inference**, one grade, Lean's rules.
+
+The terms carry no binder annotations (task #344), so no rule reads
+one: the regime of a binder is the model's business (`Interp.lean`).
 
 They mirror the six relations of `ConLeche/Rules/Rel.lean` (task
 #305) restricted to the fragment: one inference grade instead of two
@@ -58,16 +61,16 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   | appFn {Γ : List Expr} {f f' a : Expr} :
       Red env Γ f f' → Red env Γ (app f a) (app f' a)
   /-- **β, uniform**: at every binder, with **no certificate** — no
-  inference of the argument, no comparison with the binder's domain,
-  no reading of the annotation.  Con-leche's checker still runs the
-  certified step where the body may be a proposition (`Red.beta`,
-  `Rel.lean:126`) and the free one only at a `never` gate
-  (`Red.betaGate`, `Rel.lean:121`); the fragment's model needs neither
-  (`Sound.lean`, `Red.beta_sound`): a reduction claims nothing of a
-  redex that denotes the point, and a redex that does not has a λ that
-  does not, so a graph, which determines its domain. -/
-  | beta {Γ : List Expr} {A b a : Expr} {pw : PropWhen} :
-      Red env Γ (app (lam A pw b) a) (b.inst a)
+  inference of the argument, no comparison with the binder's domain.
+  Con-leche's checker still runs the certified step where the body may
+  be a proposition (`Red.beta`, `Rel.lean:126`) and the free one only
+  at a `never` gate (`Red.betaGate`, `Rel.lean:121`); the fragment's
+  model needs neither (`Sound.lean`, `Red.beta_sound`): a reduction
+  claims nothing of a redex that denotes the point, and a redex that
+  does not has a λ that does not, so a graph, which determines its
+  domain. -/
+  | beta {Γ : List Expr} {A b a : Expr} :
+      Red env Γ (app (lam A b) a) (b.inst a)
   /-- **δ** (`Red.delta`, `Rel.lean:132`): a definition unfolds to its
   value, at the use's level instantiation.  (With `appFn`, an applied
   definition unfolds at its head.) -/
@@ -249,51 +252,47 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   | const {Γ : List Expr} {c : Name} {ls ls' : List Level} :
       Level.eqList ls ls' = true → DefEq env Γ (const c ls) (const c ls')
   /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:373`): domains, then
-  bodies under the RIGHT domain — and, in place of a comparison of the
-  annotations (task #343), **the two sides' types**: the left side's
-  inferred type reduces to a sort, and the right side's inferred type
-  is definitionally equal to the left's.  The annotations are not read.
-  Something must be: over an empty domain the two regimes give
-  different types (`{pt}` and the one-graph function space) and
-  nothing about the domain or the bodies tells them apart
-  (`Ghost.lean`, `pi_datum_needed`); the inferred types do, because
-  `Infer.pi` checked each side's annotation against its body's sort,
-  and inside one sort the two regimes agree
-  (`SetLib.piR_eq_of_mem_typeU`, `Sound.lean`: `DefEq.pi_sound`).
-  The real checker infers both sides' types anyway for proof
-  irrelevance; for a `∀` the type is a `Sort`, so the extra test is a
-  level comparison. -/
-  | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ t₁ t₂ : Expr} {pw₁ pw₂ : PropWhen} {u : Level} :
+  bodies under the RIGHT domain, and nothing else (task #344).  A
+  `∀`'s value is a function of its domain's and its fibres' values
+  (`SetLib.piV`: the propositional product exactly when every fibre is
+  a truth value), and both are types, never the point, so the
+  premises' claims apply everywhere (`Sound.lean`, `DefEq.pi_sound`). -/
+  | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
-      Infer env Γ (pi A₁ pw₁ B₁) t₁ → Red env Γ t₁ (sort u) →
-      Infer env Γ (pi A₂ pw₂ B₂) t₂ → DefEq env Γ t₁ t₂ →
-      DefEq env Γ (pi A₁ pw₁ B₁) (pi A₂ pw₂ B₂)
+      DefEq env Γ (pi A₁ B₁) (pi A₂ B₂)
   /-- λ-congruence (`DefEq.lam`, `Rel.lean:380`): domains, then
-  bodies under the RIGHT domain.  **The annotations are not compared**
-  (con-leche compares them, as for `∀`): a λ whose annotation holds is
-  the point, about which the claim says nothing, and two λs whose
-  annotations both fail are graphs whose bodies are never the point
-  (`Sound.lean`, `DefEq.lam_sound`). -/
-  | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} {pw₁ pw₂ : PropWhen} :
+  bodies under the RIGHT domain — and, **typed** (task #344), the two
+  bodies' inferred types under that domain are definitionally equal.
+  A λ's value is the point exactly when every body value is
+  (`SetLib.lamV`), and a body may be a proof at some values of the
+  variable and not at others (a large elimination into a family whose
+  fibres are truth values at some indices); the claim on the bodies
+  says nothing where one of them is the point, so the two bodies must
+  lie in one type, whose members are all the point or none
+  (`Sound.lean`, `DefEq.lam_sound`; without the premise the rule is
+  unsound in this model, `Unannot.lean`, `lam_congr_untyped_unsound`). -/
+  | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
-      DefEq env Γ (lam A₁ pw₁ b₁) (lam A₂ pw₂ b₂)
+      Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
+      DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
   /-- Application congruence (`DefEq.app`, `Rel.lean:390`). -/
   | app {Γ : List Expr} {f₁ a₁ f₂ a₂ : Expr} :
       DefEq env Γ f₁ f₂ → DefEq env Γ a₁ a₂ →
       DefEq env Γ (app f₁ a₁) (app f₂ a₂)
   /-- **η** (`DefEq.eta`, `Rel.lean:400`): a λ against a term `b`
   whose inferred type reduces to a `∀` with a definitionally equal
-  domain, when the λ's body is `b` applied to the variable.  Sound
-  because a member of a function space is the abstraction of its
-  applications (`SetLib.graph_app_eq`) — and at a proposition both
-  sides are the one proof.  **The λ's annotation is not compared with
-  the `∀`'s** (con-leche requires them equal): where either holds, one
-  side is the point and the claim says nothing (`DefEq.eta_sound`). -/
-  | eta {Γ : List Expr} {A₁ b₁ b tb A₂ B : Expr} {pw₁ pw₂ : PropWhen} :
-      Infer env Γ b tb → Red env Γ tb (pi A₂ pw₂ B) →
+  domain, when the λ's body is `b` applied to the variable — and,
+  **typed** as λ-congruence is (task #344), the λ's body's inferred
+  type is definitionally equal to the `∀`'s body, so that the λ's body
+  and `b` applied lie in one type.  Sound because a member of a
+  product is the abstraction of its applications
+  (`SetLib.lamV_eta`). -/
+  | eta {Γ : List Expr} {A₁ b₁ b tb A₂ B t₁ : Expr} :
+      Infer env Γ b tb → Red env Γ tb (pi A₂ B) →
       DefEq env Γ A₂ A₁ →
       DefEq env (A₁ :: Γ) b₁ (app (b.liftN 1) (bvar 0)) →
-      DefEq env Γ (lam A₁ pw₁ b₁) b
+      Infer env (A₁ :: Γ) b₁ t₁ → DefEq env (A₁ :: Γ) t₁ B →
+      DefEq env Γ (lam A₁ b₁) b
   /-- **Proof irrelevance** (`DefEq.proofIrrel`, `Rel.lean:417`): both
   sides' inferred types have sort `Prop`.  **The two types are never
   compared**: the model justifies that, because every proof denotes the
@@ -322,32 +321,30 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ (const c ls) (ci.type.instL ci.lparams ls)
   /-- **`∀`-formation** (`Infer.forallE`, `Rel.lean:515`): the domain's
   type reduces to a sort `u`, the body's type (under the domain)
-  reduces to a sort `v`, the result is `Sort (imax u v)` — and **the
-  annotation is checked**: it must be the zero-ness datum of `v`. -/
-  | pi {Γ : List Expr} {A B s t : Expr} {u v : Level} {pw : PropWhen} :
+  reduces to a sort `v`, the result is `Sort (imax u v)`.  Nothing is
+  checked beyond Lean's own rule. -/
+  | pi {Γ : List Expr} {A B s t : Expr} {u v : Level} :
       Infer env Γ A s → Red env Γ s (sort u) →
       Infer env (A :: Γ) B t → Red env (A :: Γ) t (sort v) →
-      Level.zeroness v = pw →
-      Infer env Γ (pi A pw B) (sort (.imax u v))
+      Infer env Γ (pi A B) (sort (.imax u v))
   /-- **λ** (`Infer.lam`, `Rel.lean:530`): the domain's type reduces to
-  a sort, the body is inferred under the domain, the body's type has a
-  sort `v`, and **the annotation is checked** against `v`.  (The real
-  checker validates the datum once per λ-chain; the fragment does it
-  at every λ.) -/
-  | lam {Γ : List Expr} {A b s bt btt : Expr} {u v : Level} {pw : PropWhen} :
+  a sort, the body is inferred under the domain, and the result is the
+  `∀` of the body's type — Lean's own rule.  The body's type's sort is
+  not computed (con-leche computes it to check the binder's datum, of
+  which there is none here): an inferred type is a type
+  (`InferSem`), which is all the `∀`'s invariant asks of it. -/
+  | lam {Γ : List Expr} {A b s bt : Expr} {u : Level} :
       Infer env Γ A s → Red env Γ s (sort u) →
       Infer env (A :: Γ) b bt →
-      Infer env (A :: Γ) bt btt → Red env (A :: Γ) btt (sort v) →
-      Level.zeroness v = pw →
-      Infer env Γ (lam A pw b) (pi A pw bt)
+      Infer env Γ (lam A b) (pi A bt)
   /-- **Application** (`Infer.app`, `Rel.lean:544`): the head's type
   reduces to a `∀`, and the argument's inferred type is definitionally
   equal to its domain.  This is where a syntactic proof would need
   Π-injectivity and the semantic one does not: the `∀` the head's type
   reduces to *is* a function space, and membership in it is what the
   model needs (`Sound.lean`, `infer_sound`'s `app` case). -/
-  | app {Γ : List Expr} {f a tf A B ta : Expr} {pw : PropWhen} :
-      Infer env Γ f tf → Red env Γ tf (pi A pw B) →
+  | app {Γ : List Expr} {f a tf A B ta : Expr} :
+      Infer env Γ f tf → Red env Γ tf (pi A B) →
       Infer env Γ a ta → DefEq env Γ ta A →
       Infer env Γ (app f a) (B.inst a)
 

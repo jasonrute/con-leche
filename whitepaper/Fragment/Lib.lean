@@ -32,13 +32,21 @@ Below the class, the **two-regime operators** `piR`/`lamR` of
 `ConLeche/SetModel/Ops.lean`: the dependent product and abstraction at
 a `Bool` saying whether the body is a proposition — a truth value and
 the one proof when it is, a graph space and a graph when it is not.
-The interpretation (`Interp.lean`) applies them to the annotation's
-readout, and nowhere else does the regime enter.
 
-Last, the **restricted universes** (`typeU`): what a sort denotes —
-the truth values at `0`, above it the members of the universe that are
-neither the point nor contain it.  The universe chain `univ` sizes
-things; `typeU` is what the typing reads.
+Then the **restricted universes** (`typeU`): what a sort denotes — the
+truth values at `0`, above it the members of the universe that are
+**types** (truth values, or sets neither the point nor containing it).
+The universe chain `univ` sizes things; `typeU` is what the typing
+reads.
+
+Last, the **value-driven regimes** `piV`/`lamV` (task #344), which the
+interpretation applies at every binder: the regime is read off the
+values — a product is propositional exactly when every fibre is a truth
+value, an abstraction is the point exactly when every body value is —
+so terms need no annotation.  Over an empty domain both read
+"proposition": the product is `{pt}` and the abstraction the point,
+whatever the body's sort; that `{pt}` is then a member of the positive
+sorts too is why `typeU (n+1)` admits the truth values.
 -/
 
 namespace Fragment
@@ -276,12 +284,15 @@ theorem piR_false_mem_univ {n : Nat} {A : V} {B : V → V} (hn : n ≠ 0)
 /-! ## The restricted universes
 
 `univ` sizes things; what a sort *denotes* is `typeU`: `Sort 0` the
-truth values, `Sort (n+1)` the members of `univ (n+1)` that are not
-the point and do not contain it (**strict** sets).  A **type** is a
-truth value or a strict set; its members are all the point (a truth
-value) or none of them (a strict set).  This is what makes β sound at
-every binder without a certificate: a member of a type of positive
-sort is never the point (`ne_pt_of_mem_strict`). -/
+truth values, `Sort (n+1)` the members of `univ (n+1)` that are
+**types**.  A type is a truth value or a **strict** set (not the point,
+and the point not a member); its members are all the point (a truth
+value) or none of them (a strict set) — `IsTy.eq_of_ne_pt`, which is
+what the soundness proof reads.  The point itself is no type, so no
+sort holds it (the stored `c : Sort 1` of `UniformBeta.lean`, whose
+value is the point, has no model).  A positive sort holds the truth
+values as well (task #344): a product over an empty domain is `{pt}`
+whatever its body's sort. -/
 
 /-- A **strict** set: not the point, and the point is not a member. -/
 def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
@@ -289,9 +300,9 @@ def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
 /-- A **type**: a truth value, or a strict set. -/
 def IsTy (X : V) : Prop := X ∈ˢ univ 0 ∨ Strict X
 
-/-- **What `Sort n` denotes**: the truth values at `0`, the strict
-members of `univ n` above. -/
-def typeU (n : Nat) : V := if n = 0 then univ 0 else sep (univ n) Strict
+/-- **What `Sort n` denotes**: the truth values at `0`, the members of
+`univ n` that are types above. -/
+def typeU (n : Nat) : V := if n = 0 then univ 0 else sep (univ n) IsTy
 
 /-- The regime of a fibre: a truth value at a proposition, strict above. -/
 def Fib : Bool → V → Prop
@@ -320,7 +331,7 @@ theorem mem_typeU_zero {T : V} : T ∈ˢ typeU 0 ↔ T ∈ˢ univ 0 := by
   simp [typeU]
 
 theorem mem_typeU_pos {n : Nat} (hn : n ≠ 0) {T : V} :
-    T ∈ˢ typeU n ↔ T ∈ˢ univ n ∧ Strict T := by
+    T ∈ˢ typeU n ↔ T ∈ˢ univ n ∧ IsTy T := by
   simp only [typeU, hn, ↓reduceIte]
   exact mem_sep
 
@@ -332,23 +343,13 @@ theorem mem_univ_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ typeU n) : T ∈ˢ 
 theorem IsTy_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ typeU n) : IsTy T := by
   by_cases hn : n = 0
   · subst hn; exact Or.inl (mem_typeU_zero.mp h)
-  · exact Or.inr ((mem_typeU_pos hn).mp h).2
+  · exact ((mem_typeU_pos hn).mp h).2
 
-/-- A member of `typeU n` is in the regime of `n`'s zero-ness. -/
-theorem Fib_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ typeU n) :
-    Fib (decide (n = 0)) T := by
-  by_cases hn : n = 0
-  · subst hn; exact mem_typeU_zero.mp h
-  · simp only [hn, decide_false]; exact ((mem_typeU_pos hn).mp h).2
-
-/-- A truth value or strict member of `univ n` in the right regime is
-a member of `typeU n`. -/
-theorem mem_typeU_of {n : Nat} {T : V} (hT : T ∈ˢ univ n) (hf : Fib (decide (n = 0)) T) :
-    T ∈ˢ typeU n := by
-  by_cases hn : n = 0
-  · subst hn; exact mem_typeU_zero.mpr hf
-  · simp only [hn, decide_false, Fib_false] at hf
-    exact (mem_typeU_pos hn).mpr ⟨hT, hf⟩
+/-- A strict member of `univ n`, `n` positive, is a member of
+`typeU n`. -/
+theorem mem_typeU_of_strict {n : Nat} (hn : n ≠ 0) {T : V} (hT : T ∈ˢ univ n)
+    (hs : Strict T) : T ∈ˢ typeU n :=
+  (mem_typeU_pos hn).mpr ⟨hT, Or.inr hs⟩
 
 /-- **(P)**: a member of a strict set is not the point. -/
 theorem ne_pt_of_mem_strict {T x : V} (hT : Strict T) (hx : x ∈ˢ T) : x ≠ pt := by
@@ -394,13 +395,13 @@ theorem strict_truthVal_false : Strict (truthVal False : V) :=
 theorem strict_typeU (n : Nat) : Strict (typeU n : V) := by
   by_cases hn : n = 0
   · subst hn; simpa [typeU] using strict_univ_zero
-  · refine ⟨?_, fun h => ((mem_typeU_pos hn).mp h).2.1 rfl⟩
+  · refine ⟨?_, fun h => ((mem_typeU_pos hn).mp h).2.ne_pt rfl⟩
     -- `typeU n` has two distinct members, the point at most one
     have h1 : (truthVal False : V) ∈ˢ typeU n :=
       (mem_typeU_pos hn).mpr ⟨univ_mono (Nat.zero_le n) (truthVal_mem_univ_zero False),
-        strict_truthVal_false⟩
+        Or.inr strict_truthVal_false⟩
     have h2 : (univ 0 : V) ∈ˢ typeU n :=
-      (mem_typeU_pos hn).mpr ⟨univ_mono (by omega) (univ_mem_succ 0), strict_univ_zero⟩
+      (mem_typeU_pos hn).mpr ⟨univ_mono (by omega) (univ_mem_succ 0), Or.inr strict_univ_zero⟩
     refine ne_pt_of_two h1 h2 fun h => ?_
     have h3 : (one : V) ∈ˢ univ 0 := one_mem_univ_zero
     rw [← h] at h3
@@ -410,7 +411,7 @@ theorem IsTy_typeU (n : Nat) : IsTy (typeU n : V) := Or.inr (strict_typeU n)
 
 /-- `Sort n : Sort (n+1)`. -/
 theorem typeU_mem_typeU_succ (n : Nat) : (typeU n : V) ∈ˢ typeU (n + 1) := by
-  refine (mem_typeU_pos (Nat.succ_ne_zero n)).mpr ⟨?_, strict_typeU n⟩
+  refine (mem_typeU_pos (Nat.succ_ne_zero n)).mpr ⟨?_, IsTy_typeU n⟩
   by_cases hn : n = 0
   · subst hn; simpa [typeU] using univ_mem_succ 0
   · simp only [typeU, hn, ↓reduceIte]
@@ -448,57 +449,181 @@ theorem piR_mem_typeU {u v : Nat} {p : Bool} {A : V} {B : V → V}
     rw [Level.imaxNat_of_ne_zero hv, hpf, mem_typeU_pos (by omega)]
     refine ⟨piR_false_mem_univ (by omega) (univ_mono (Nat.le_max_left _ _)
       (mem_univ_of_mem_typeU hA)) fun x hx => univ_mono (Nat.le_max_right _ _)
-      (mem_univ_of_mem_typeU (hB x hx)), strict_piSet⟩
+      (mem_univ_of_mem_typeU (hB x hx)), Or.inr strict_piSet⟩
 
 /-- A truth value that is strict has no member. -/
 theorem not_mem_of_univ_zero_strict {T z : V} (h0 : T ∈ˢ univ 0) (hs : Strict T) :
     ¬ z ∈ˢ T := fun hz => hs.2 (eq_pt_of_mem_univ_zero h0 hz ▸ hz)
 
-/-- **The two regimes agree inside one sort** (task #343).  Two
-products over one domain, with fibres that are in both regimes, and
-that are members of one `typeU n`, are equal.  Where the regimes
-differ: the fibres are truth values and strict, so empty; over an
-inhabited domain both products are then empty, and over an empty
-domain the propositional product is `{pt}`, which no `typeU (n+1)`
-holds, and the function space holds a graph, which no truth value
-does. -/
-theorem piR_eq_of_mem_typeU {p q : Bool} {n : Nat} {A : V} {B : V → V}
-    (hp : ∀ x, x ∈ˢ A → Fib p (B x)) (hq : ∀ x, x ∈ˢ A → Fib q (B x))
-    (h₁ : piR p A B ∈ˢ typeU n) (h₂ : piR q A B ∈ˢ typeU n) :
-    piR p A B = piR q A B := by
-  -- the regimes differ, the first one propositional, without loss of generality
-  suffices key : ∀ {p q : Bool}, p = true → q = false →
-      (∀ x, x ∈ˢ A → Fib p (B x)) → (∀ x, x ∈ˢ A → Fib q (B x)) →
-      piR p A B ∈ˢ typeU n → piR q A B ∈ˢ typeU n → piR p A B = piR q A B by
-    cases p <;> cases q
-    · rfl
-    · exact (key rfl rfl hq hp h₂ h₁).symm
-    · exact key rfl rfl hp hq h₁ h₂
-    · rfl
-  intro p q hpt hqf hp hq h₁ h₂
-  subst hpt hqf
-  -- every fibre over the domain is empty
-  have hemp : ∀ x, x ∈ˢ A → ∀ z, ¬ z ∈ˢ B x := fun x hx _ =>
-    not_mem_of_univ_zero_strict (hp x hx) (hq x hx)
-  -- the domain is inhabited
-  have hA : ∃ x, x ∈ˢ A := by
-    refine Classical.byContradiction fun hne => ?_
-    have hnA : ∀ x, ¬ x ∈ˢ A := fun x hx => hne ⟨x, hx⟩
-    by_cases hn : n = 0
-    · subst hn
-      rw [piR_false, mem_typeU_zero] at h₂
-      have hg : graph (fun x => x) A ∈ˢ piSet A B :=
-        graph_mem_piSet fun x hx => absurd hx (hnA x)
-      exact not_mem_of_univ_zero_strict h₂ strict_piSet hg
-    · rw [mem_typeU_pos hn] at h₁
-      exact h₁.2.2 (by rw [piR_true]; exact pt_mem_truthVal fun x hx => absurd hx (hnA x))
-  obtain ⟨x₀, hx₀⟩ := hA
-  refine ext fun z => ⟨fun hz => ?_, fun hz => ?_⟩
-  · rw [piR_true] at hz
-    have h1 := of_mem_truthVal hz x₀ hx₀
-    exact absurd (mem_one.mpr rfl : (pt : V) ∈ˢ one) (h1 ▸ hemp x₀ hx₀ pt)
-  · rw [piR_false] at hz
-    exact absurd (app_mem_piSet hz hx₀) (hemp x₀ hx₀ _)
+/-! ## The value-driven regimes (task #344)
+
+The interpretation's binder cases (`Interp.lean`).  The regime is no
+datum but a property of the values: a product is propositional exactly
+when every fibre over the domain is a truth value (`propB`), an
+abstraction is the point exactly when every body value over the domain
+is (`ptB`).  Over a nonempty domain the two agree with the honest
+annotation of the annotated design; over an empty domain both read
+"proposition" — the product is `{pt}`, the abstraction the point. -/
+
+open Classical in
+/-- Is every fibre over the domain a truth value? -/
+noncomputable def propB (A : V) (B : V → V) : Bool := decide (∀ x, x ∈ˢ A → B x ∈ˢ univ 0)
+
+open Classical in
+/-- Is every body value over the domain the point? -/
+noncomputable def ptB (A : V) (F : V → V) : Bool := decide (∀ x, x ∈ˢ A → F x = pt)
+
+/-- **The product, regime read off the fibres.** -/
+noncomputable def piV (A : V) (B : V → V) : V := piR (propB A B) A B
+
+/-- **The abstraction, regime read off the body values.** -/
+noncomputable def lamV (A : V) (F : V → V) : V := lamR (ptB A F) A F
+
+open Classical in
+theorem propB_eq_true {A : V} {B : V → V} :
+    propB A B = true ↔ ∀ x, x ∈ˢ A → B x ∈ˢ univ 0 := by
+  unfold propB; exact decide_eq_true_iff
+
+open Classical in
+theorem ptB_eq_true {A : V} {F : V → V} :
+    ptB A F = true ↔ ∀ x, x ∈ˢ A → F x = pt := by
+  unfold ptB; exact decide_eq_true_iff
+
+theorem propB_congr {A : V} {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x = B' x) :
+    propB A B = propB A B' := by
+  rw [Bool.eq_iff_iff, propB_eq_true, propB_eq_true]
+  exact ⟨fun hi x hx => h x hx ▸ hi x hx, fun hi x hx => (h x hx).symm ▸ hi x hx⟩
+
+theorem ptB_congr {A : V} {F F' : V → V} (h : ∀ x, x ∈ˢ A → F x = F' x) :
+    ptB A F = ptB A F' := by
+  rw [Bool.eq_iff_iff, ptB_eq_true, ptB_eq_true]
+  exact ⟨fun hi x hx => h x hx ▸ hi x hx, fun hi x hx => (h x hx).symm ▸ hi x hx⟩
+
+theorem piV_congr {A : V} {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x = B' x) :
+    piV A B = piV A B' := by
+  unfold piV; rw [propB_congr h]; exact piR_congr h
+
+theorem lamV_congr {A : V} {F F' : V → V} (h : ∀ x, x ∈ˢ A → F x = F' x) :
+    lamV A F = lamV A F' := by
+  unfold lamV; rw [ptB_congr h]; exact lamR_congr h
+
+/-- **β, on the domain, with no other premise.** -/
+theorem app_lamV {A a : V} {F : V → V} (ha : a ∈ˢ A) : app (lamV A F) a = F a := by
+  unfold lamV
+  cases h : ptB A F
+  · exact app_graph ha
+  · rw [lamR_true, app_pt]; exact ((ptB_eq_true.mp h) a ha).symm
+
+/-- An abstraction all of whose body values are the point is the point. -/
+theorem lamV_eq_pt {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x = pt) : lamV A F = pt := by
+  unfold lamV; rw [ptB_eq_true.mpr h]; rfl
+
+/-- An abstraction that is not the point is the graph. -/
+theorem lamV_eq_graph {A : V} {F : V → V} (h : lamV A F ≠ pt) : lamV A F = graph F A := by
+  unfold lamV at h ⊢
+  cases hb : ptB A F
+  · rfl
+  · rw [hb, lamR_true] at h; exact absurd rfl h
+
+/-- An abstraction that is not the point is never the point (a graph). -/
+theorem lamV_ne_pt_of {A : V} {F : V → V} {x : V} (hx : x ∈ˢ A) (h : F x ≠ pt) :
+    lamV A F ≠ pt := by
+  unfold lamV
+  cases hb : ptB A F
+  · exact graph_ne_pt
+  · exact absurd ((ptB_eq_true.mp hb) x hx) h
+
+theorem IsTy_piV {A : V} {B : V → V} : IsTy (piV A B) := IsTy_piR
+
+/-- A member of a product that is not the point is a member of the
+graph space. -/
+theorem mem_piSet_of_mem_piV {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hn : f ≠ pt) :
+    f ∈ˢ piSet A B := by
+  unfold piV at hf
+  cases hb : propB A B
+  · rw [hb] at hf; exact hf
+  · rw [hb] at hf; exact absurd (eq_pt_of_mem_piR_true hf) hn
+
+/-- Elimination. -/
+theorem app_mem_piV {A f a : V} {B : V → V} (hf : f ∈ˢ piV A B) (ha : a ∈ˢ A) :
+    app f a ∈ˢ B a := app_mem_piR hf ha
+
+/-- **Introduction**: body values in fibres that are types abstract into
+the product.  Where every fibre is a truth value every body value is
+the point, and so is the abstraction; where one fibre is not, it is
+strict, its body value is not the point, and the abstraction is the
+graph. -/
+theorem lamV_mem {A : V} {F B : V → V} (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x)
+    (hB : ∀ x, x ∈ˢ A → IsTy (B x)) : lamV A F ∈ˢ piV A B := by
+  unfold piV
+  cases hp : propB A B
+  · -- some fibre is no truth value: strict, so its body value is not the point
+    have : ¬ ∀ x, x ∈ˢ A → B x ∈ˢ univ 0 := fun h => by
+      rw [propB_eq_true.mpr h] at hp; exact nomatch hp
+    obtain ⟨x₀, hx₀, hB₀⟩ : ∃ x, x ∈ˢ A ∧ ¬ B x ∈ˢ univ 0 :=
+      Classical.byContradiction fun hne => this fun x hx =>
+        Classical.byContradiction fun h => hne ⟨x, hx, h⟩
+    have hs : Strict (B x₀) := (hB x₀ hx₀).resolve_left hB₀
+    rw [lamV_eq_graph (lamV_ne_pt_of hx₀ (ne_pt_of_mem_strict hs (hF x₀ hx₀)))]
+    exact graph_mem_piSet hF
+  · have h0 := propB_eq_true.mp hp
+    rw [lamV_eq_pt fun x hx => eq_pt_of_mem_univ_zero (h0 x hx) (hF x hx)]
+    exact pt_mem_truthVal fun x hx => eq_one_of_mem_univ_zero (h0 x hx) (hF x hx)
+
+/-- **η**: a member of a product whose fibres are types is the
+abstraction of its applications. -/
+theorem lamV_eta {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hB : ∀ x, x ∈ˢ A → IsTy (B x)) :
+    lamV A (fun x => app f x) = f := by
+  by_cases hn : f = pt
+  · subst hn
+    exact lamV_eq_pt fun x _ => app_pt x
+  · have hf' := mem_piSet_of_mem_piV hf hn
+    have hp : propB A B = false := by
+      cases h : propB A B
+      · rfl
+      · unfold piV at hf; rw [h] at hf; exact absurd (eq_pt_of_mem_piR_true hf) hn
+    have : ¬ ∀ x, x ∈ˢ A → B x ∈ˢ univ 0 := fun h => by
+      rw [propB_eq_true.mpr h] at hp; exact nomatch hp
+    obtain ⟨x₀, hx₀, hB₀⟩ : ∃ x, x ∈ˢ A ∧ ¬ B x ∈ˢ univ 0 :=
+      Classical.byContradiction fun hne => this fun x hx =>
+        Classical.byContradiction fun h => hne ⟨x, hx, h⟩
+    have hs : Strict (B x₀) := (hB x₀ hx₀).resolve_left hB₀
+    rw [lamV_eq_graph (lamV_ne_pt_of hx₀ (ne_pt_of_mem_strict hs (app_mem_piSet hf' hx₀)))]
+    exact graph_app_eq hf'
+
+/-- **`∀`-formation in the restricted universes**, with no regime
+premise: over fibres in `Sort 0` the product is a truth value; over
+fibres in a positive sort it is a truth value or a strict function
+space, a type either way. -/
+theorem piV_mem_typeU {u v : Nat} {A : V} {B : V → V}
+    (hA : A ∈ˢ typeU u) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ typeU v) :
+    piV A B ∈ˢ typeU (Level.imaxNat u v) := by
+  by_cases hv : v = 0
+  · subst hv
+    have hp : propB A B = true :=
+      propB_eq_true.mpr fun x hx => mem_typeU_zero.mp (hB x hx)
+    rw [(Level.imaxNat_eq_zero_iff u 0).mpr rfl, mem_typeU_zero]
+    unfold piV; rw [hp]; exact piR_true_mem_univ_zero
+  · rw [Level.imaxNat_of_ne_zero hv, mem_typeU_pos (by omega)]
+    refine ⟨?_, IsTy_piV⟩
+    unfold piV
+    cases propB A B
+    · exact piR_false_mem_univ (by omega) (univ_mono (Nat.le_max_left _ _)
+        (mem_univ_of_mem_typeU hA)) fun x hx => univ_mono (Nat.le_max_right _ _)
+        (mem_univ_of_mem_typeU (hB x hx))
+    · exact univ_mono (Nat.zero_le _) piR_true_mem_univ_zero
+
+/-- Over an empty domain the product is `{pt}`. -/
+theorem piV_of_empty {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) : piV A B = one := by
+  unfold piV
+  rw [propB_eq_true.mpr fun x hx => absurd hx (h x), piR_true]
+  exact ext fun z => by
+    rw [mem_truthVal, mem_one]
+    exact ⟨fun h' => h'.1, fun h' => ⟨h', fun x hx => absurd hx (h x)⟩⟩
+
+/-- Over an empty domain the abstraction is the point. -/
+theorem lamV_of_empty {A : V} {F : V → V} (h : ∀ x, ¬ x ∈ˢ A) : lamV A F = pt :=
+  lamV_eq_pt fun x hx => absurd hx (h x)
 
 end SetLib
 
