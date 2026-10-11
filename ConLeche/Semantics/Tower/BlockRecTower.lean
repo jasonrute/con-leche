@@ -313,14 +313,6 @@ theorem sigChainV_univ :
     exact univ_mono (Nat.zero_le s) _ (by rw [univ_zero]; exact h.1)
   | _, _ :: _, _, h => sigChainV_tail_univ h
 
-/-- The pair former's product membership at `[u, v]`. -/
-theorem psigmaV_uv_mem (u v : Nat) :
-    psigmaV V u v ∈ˢ piR (Nat.max u v + 1) (univ u : V)
-      (fun A => piR (Nat.max u v + 1) (psigmaFibreSpace V v A)
-        fun _ => (univ (Nat.max u v) : V)) :=
-  lamR_mem fun _ hA => lamR_mem fun _ hB =>
-    sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
-
 /-- The chain's fibre λ. -/
 theorem sigChain_lam_mem {ρ : Nat → V} {T : AnnotTerm} {Ts : List AnnotTerm} {Q : AnnotTerm}
     (h : ChainOk s ρ (T :: Ts) Q) :

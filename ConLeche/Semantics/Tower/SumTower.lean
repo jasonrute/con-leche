@@ -151,10 +151,10 @@ end VExprAux
 /-- The carrier body (graph regime): bounded from the field chain's
 own bounds. -/
 theorem towerBodyAVPos_below {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {k : Nat}, FieldsBelow k Fs →
-      Term.bvarsBelow k (towerBodyAVPos w Fs).erase
-  | [], _, _ => trivial
-  | _ :: _, _, h =>
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {k : Nat}, FieldsBelow k Fs →
+      Term.bvarsBelow k (towerBodyAVPos w us Fs).erase
+  | _, [], _, _ => trivial
+  | _, _ :: _, _, h =>
     ⟨⟨trivial, h.1⟩, h.1, towerBodyAVPos_below h.2⟩
 
 /-- The carrier body (squash regime): bounded from the field chain's
@@ -167,9 +167,9 @@ theorem sqBodyAV_below :
     ⟨⟨h.1, sqBodyAV_below h.2, trivial⟩, trivial⟩
 
 /-- The carrier body, both regimes. -/
-theorem towerBodyAV_below {w : Nat} {Fs : List AnnotTerm} {k : Nat}
+theorem towerBodyAV_below {w : Nat} {us : List Nat} {Fs : List AnnotTerm} {k : Nat}
     (h : FieldsBelow k Fs) :
-    Term.bvarsBelow k (towerBodyAV w Fs).erase := by
+    Term.bvarsBelow k (towerBodyAV w us Fs).erase := by
   by_cases hw : w = 0
   · subst hw; rw [towerBodyAV_zero]; exact sqBodyAV_below h
   · rw [towerBodyAV_pos hw]; exact towerBodyAVPos_below h
@@ -183,35 +183,35 @@ theorem projAV_below :
 
 /-- The tupler (graph regime): bounded at the full field frame. -/
 theorem mkTowerGoPos_below {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {k : Nat}, FieldsBelow k Fs →
-      Term.bvarsBelow (k + Fs.length) (mkTowerGoPos w Fs).erase
-  | [], _, _ => trivial
-  | F :: Fs, k, h => by
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {k : Nat}, FieldsBelow k Fs →
+      Term.bvarsBelow (k + Fs.length) (mkTowerGoPos w us Fs).erase
+  | _, [], _, _ => trivial
+  | us, F :: Fs, k, h => by
     have hF : Term.bvarsBelow (k + (Fs.length + 1))
         (F.liftN (Fs.length + 1)).erase := by
       rw [AnnotTerm.erase_liftN]
       have := VExprAux.bvarsBelow_liftN (Fs.length + 1) F.erase k 0 h.1
       exact this
     have hbody : Term.bvarsBelow (k + (Fs.length + 1) + 1)
-        ((towerBodyAV w Fs).liftN (Fs.length + 1) 1).erase := by
+        ((towerBodyAV w us.tail Fs).liftN (Fs.length + 1) 1).erase := by
       rw [AnnotTerm.erase_liftN]
       have := VExprAux.bvarsBelow_liftN (Fs.length + 1)
-        (towerBodyAV w Fs).erase (k + 1) 1 (towerBodyAV_below h.2)
+        (towerBodyAV w us.tail Fs).erase (k + 1) 1 (towerBodyAV_below h.2)
       rw [show k + 1 + (Fs.length + 1) = k + (Fs.length + 1) + 1
         by omega] at this
       exact this
     have hrec : Term.bvarsBelow (k + (Fs.length + 1))
-        (mkTowerGoPos w Fs).erase := by
-      have := mkTowerGoPos_below (w := w) (Fs := Fs) (k := k + 1) h.2
+        (mkTowerGoPos w us.tail Fs).erase := by
+      have := mkTowerGoPos_below (w := w) (us := us.tail) (Fs := Fs) (k := k + 1) h.2
       rw [show k + 1 + Fs.length = k + (Fs.length + 1) by omega] at this
       exact this
     exact ⟨⟨⟨⟨trivial, hF⟩, hF, hbody⟩,
       show Fs.length < k + (Fs.length + 1) by omega⟩, hrec⟩
 
 /-- The tupler, both regimes. -/
-theorem mkTowerGo_below {w : Nat} {Fs : List AnnotTerm} {k : Nat}
+theorem mkTowerGo_below {w : Nat} {us : List Nat} {Fs : List AnnotTerm} {k : Nat}
     (h : FieldsBelow k Fs) :
-    Term.bvarsBelow (k + Fs.length) (mkTowerGo w Fs).erase := by
+    Term.bvarsBelow (k + Fs.length) (mkTowerGo w us Fs).erase := by
   by_cases hw : w = 0
   · subst hw; rw [mkTowerGo_zero]; trivial
   · rw [mkTowerGo_pos hw]; exact mkTowerGoPos_below h
@@ -633,80 +633,106 @@ theorem SumFieldsOkB.bound {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTer
     (h : SumFieldsOkB w ρ Fss) : ∀ Fs ∈ Fss, w ≠ 0 → FieldsBound w ρ Fs :=
   fun Fs hFs hw => (h Fs hFs).toBound hw
 
+/-- Per-constructor field sorts: constructor `i`'s chain is sorted by
+`Uss[i]` (task #342 L2b). -/
+def SumFieldsSorts (w : Nat) (Uss : List (List Nat)) (ρ : Nat → V)
+    (Fss : List (List AnnotTerm)) : Prop :=
+  ∀ i Fs, Fss[i]? = some Fs → FieldsSorts w (Uss.getD i []) ρ Fs
+
+/-- The constructors' tower bodies, each at its own field sorts. -/
+def towersAV (w : Nat) (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) :
+    List AnnotTerm :=
+  Fss.mapIdx fun i Fs => towerBodyAV w (Uss.getD i []) Fs
+
+theorem towersAV_zero (Uss Uss' : List (List Nat)) (Fss : List (List AnnotTerm)) :
+    towersAV 0 Uss Fss = towersAV 0 Uss' Fss := by
+  unfold towersAV
+  simp only [towerBodyAV_zero]
+
+theorem mem_towersAV {w : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    {T : AnnotTerm} (h : T ∈ towersAV w Uss Fss) :
+    ∃ i Fs, Fss[i]? = some Fs ∧ T = towerBodyAV w (Uss.getD i []) Fs := by
+  obtain ⟨i, hi, rfl⟩ := List.mem_mapIdx.mp h
+  exact ⟨i, Fss[i], List.getElem?_eq_getElem hi, rfl⟩
+
 /-- The selector over the tower bodies picks the semantic fibres. -/
-theorem selFibre_towers {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hb : ∀ Fs ∈ Fss, w ≠ 0 → FieldsBound w ρ Fs) (i : Nat) :
-    selFibre ρ (Fss.map (towerBodyAV w)) i = sumFibre w ρ Fss i := by
-  unfold selFibre sumFibre
-  rw [List.map_map, List.getD_eq_getElem?_getD, List.getElem?_map]
+theorem selFibre_towers {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)} (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) (i : Nat) :
+    selFibre ρ (towersAV w Uss Fss) i = sumFibre w ρ Fss i := by
+  unfold selFibre sumFibre towersAV
+  rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_mapIdx]
   cases h : Fss[i]? with
   | none => rfl
   | some Fs =>
-    simp only [Option.map_some, Option.getD_some, Function.comp_def]
-    exact towerBodyAV_interp (hb Fs (List.mem_of_getElem? h))
+    simp only [Option.map_some, Option.getD_some]
+    exact towerBodyAV_interp fun hw => hs hw i Fs h
 
 /-- The tower bodies are bounded and graded from the chains'. -/
-theorem towers_facts {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hok : SumFieldsOkB w ρ Fss) :
-    (∀ T ∈ Fss.map (towerBodyAV w), interp V ρ T ∈ˢ (univ w : V)) ∧
-    (∀ T ∈ Fss.map (towerBodyAV w), WellDenoted V ρ T) := by
+theorem towers_facts {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)}
+    (hok : SumFieldsOkB w ρ Fss) (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) :
+    (∀ T ∈ towersAV w Uss Fss, interp V ρ T ∈ˢ (univ w : V)) ∧
+    (∀ T ∈ towersAV w Uss Fss, WellDenoted V ρ T) := by
   constructor
   · intro T hT
-    obtain ⟨Fs, hFs, rfl⟩ := List.mem_map.mp hT
-    rw [towerBodyAV_interp (fun hw => (hok Fs hFs).toBound hw)]
-    exact towerSet_univ_of_okB (fun hw => (hok Fs hFs).toBound hw)
+    obtain ⟨i, Fs, hFs, rfl⟩ := mem_towersAV hT
+    rw [towerBodyAV_interp (fun hw => hs hw i Fs hFs)]
+    exact towerSet_univ_of_okB (fun hw => (hok Fs (List.mem_of_getElem? hFs)).toBound hw)
   · intro T hT
-    obtain ⟨Fs, hFs, rfl⟩ := List.mem_map.mp hT
-    exact towerBodyAV_wellDenoted (hok Fs hFs)
+    obtain ⟨i, Fs, hFs, rfl⟩ := mem_towersAV hT
+    exact towerBodyAV_wellDenoted (hok Fs (List.mem_of_getElem? hFs)) (fun hw => hs hw i Fs hFs)
 
 /-- The case split at a tag frame `d + 1` binders below the parameter
 frame reads to the fibre function. -/
 theorem case_fibre_at {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
-    {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss) {k : V} (hk : k ∈ˢ (omega : V)) :
-    interp V (cons k σ) (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss)
+    (hs : w ≠ 0 → SumFieldsSorts w Uss ρp Fss) {k : V} (hk : k ∈ˢ (omega : V)) :
+    interp V (cons k σ) (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0))
         = natFibre (sumFibre w ρp Fss) k ∧
-      interp V (cons k σ) (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))
+      interp V (cons k σ) (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0))
         ∈ˢ (univ w : V) ∧
-      WellDenoted V (cons k σ) (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)) := by
+      WellDenoted V (cons k σ) (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)) := by
   have hsh' : shiftE (d + 1) 0 (cons k σ) = ρp := by rw [shiftE_succ_cons, hsh]
-  obtain ⟨hT, hokT⟩ := towers_facts hok
-  have h := caseAVAt_facts (w := w) (Ts := Fss.map (towerBodyAV w)) (d := d + 1) (k := .bvar 0)
+  obtain ⟨hT, hokT⟩ := towers_facts hok hs
+  have h := caseAVAt_facts (w := w) (Ts := towersAV w Uss Fss) (d := d + 1) (k := .bvar 0)
     (σ := cons k σ) (by rw [hsh']; exact hT) (by rw [hsh']; exact hokT) trivial
     (by rw [interp_bvar]; exact hk)
   rw [hsh'] at h
   refine ⟨?_, h.1, h.2.2⟩
   obtain ⟨i, rfl, hfib⟩ := natFibre_of_mem (sumFibre w ρp Fss) hk
-  rw [hfib, h.2.1 i (by rw [interp_bvar]; rfl), selFibre_towers hok.bound]
+  rw [hfib, h.2.1 i (by rw [interp_bvar]; rfl), selFibre_towers hs]
 
 /-- The case split at the tag frame reads to the fibre function. -/
-theorem case_fibre {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hok : SumFieldsOkB w ρ Fss) {k : V} (hk : k ∈ˢ (omega : V)) :
-    interp V (cons k ρ) (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0))
+theorem case_fibre {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    (hok : SumFieldsOkB w ρ Fss) (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) {k : V}
+    (hk : k ∈ˢ (omega : V)) :
+    interp V (cons k ρ) (caseAVAt w (towersAV w Uss Fss) 1 (.bvar 0))
         = natFibre (sumFibre w ρ Fss) k ∧
-      interp V (cons k ρ) (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0))
+      interp V (cons k ρ) (caseAVAt w (towersAV w Uss Fss) 1 (.bvar 0))
         ∈ˢ (univ w : V) ∧
-      WellDenoted V (cons k ρ) (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)) :=
-  case_fibre_at (d := 0) (shiftE_zero_zero ρ) hok hk
+      WellDenoted V (cons k ρ) (caseAVAt w (towersAV w Uss Fss) 1 (.bvar 0)) :=
+  case_fibre_at (d := 0) (shiftE_zero_zero ρ) hok hs hk
 
 /-! ## The carrier body -/
 
 /-- The carrier body, graph regime. -/
-def sumBodyAVPos (w : Nat) (Fss : List (List AnnotTerm)) : AnnotTerm :=
+def sumBodyAVPos (w : Nat) (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) : AnnotTerm :=
   .app (.app (.const .psigma [w, w]) natAV)
-    (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)))
+    (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) 1 (.bvar 0)))
 
 /-- The carrier body, squash regime: `¬ ∀ k : Nat, ¬ (case k)`. -/
-def sqSumBodyAV (Fss : List (List AnnotTerm)) : AnnotTerm :=
-  negAV (.pi 1 0 natAV (negAV (caseAVAt 0 (Fss.map (towerBodyAV 0)) 1 (.bvar 0))))
+def sqSumBodyAV (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) : AnnotTerm :=
+  negAV (.pi 1 0 natAV (negAV (caseAVAt 0 (towersAV 0 Uss Fss) 1 (.bvar 0))))
 
 /-- The carrier body, both regimes. -/
-def sumBodyAV (w : Nat) (Fss : List (List AnnotTerm)) : AnnotTerm :=
-  if w = 0 then sqSumBodyAV Fss else sumBodyAVPos w Fss
+def sumBodyAV (w : Nat) (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) : AnnotTerm :=
+  if w = 0 then sqSumBodyAV Uss Fss else sumBodyAVPos w Uss Fss
 
-theorem sumBodyAV_zero (Fss : List (List AnnotTerm)) : sumBodyAV 0 Fss = sqSumBodyAV Fss := ite_eq_left rfl
+theorem sumBodyAV_zero (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) :
+    sumBodyAV 0 Uss Fss = sqSumBodyAV Uss Fss := ite_eq_left rfl
 
-theorem sumBodyAV_pos {w : Nat} (hw : w ≠ 0) (Fss : List (List AnnotTerm)) :
-    sumBodyAV w Fss = sumBodyAVPos w Fss := ite_eq_right hw
+theorem sumBodyAV_pos {w : Nat} (hw : w ≠ 0) (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) :
+    sumBodyAV w Uss Fss = sumBodyAVPos w Uss Fss := ite_eq_right hw
 
 /-- `ω` sits in every positive universe. -/
 theorem omega_mem_univ_pos {w : Nat} (hw : w ≠ 0) : (omega : V) ∈ˢ univ w := by
@@ -714,18 +740,18 @@ theorem omega_mem_univ_pos {w : Nat} (hw : w ≠ 0) : (omega : V) ∈ˢ univ w :
   exact omega_mem_univ_succ w'
 
 /-- The squash body reads to the squash carrier. -/
-theorem sqSumBodyAV_interp {ρ : Nat → V} {Fss : List (List AnnotTerm)}
+theorem sqSumBodyAV_interp {ρ : Nat → V} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     (hok : SumFieldsOkB 0 ρ Fss) :
-    interp V ρ (sqSumBodyAV Fss) = sumSet 0 (sumFibre 0 ρ Fss) := by
+    interp V ρ (sqSumBodyAV Uss Fss) = sumSet 0 (sumFibre 0 ρ Fss) := by
   unfold sqSumBodyAV sumSet
   rw [interp_negAV, sigmaSet_zero]
   refine truthVal_congr ?_
   rw [interp_pi, piR_zero, exists_mem_truthVal]
   have hin : ∀ k : V, k ∈ˢ (omega : V) →
-      ((∃ y, y ∈ˢ interp V (cons k ρ) (negAV (caseAVAt 0 (Fss.map (towerBodyAV 0)) 1 (.bvar 0))))
+      ((∃ y, y ∈ˢ interp V (cons k ρ) (negAV (caseAVAt 0 (towersAV 0 Uss Fss) 1 (.bvar 0))))
         ↔ ¬ ∃ z, z ∈ˢ natFibre (sumFibre 0 ρ Fss) k) := by
     intro k hk
-    rw [interp_negAV, (case_fibre hok hk).1, exists_mem_truthVal]
+    rw [interp_negAV, (case_fibre hok (fun h => absurd rfl h) hk).1, exists_mem_truthVal]
   constructor
   · intro h
     exact Classical.byContradiction fun hno =>
@@ -734,30 +760,30 @@ theorem sqSumBodyAV_interp {ρ : Nat → V} {Fss : List (List AnnotTerm)}
     exact (hin k hk).mp (hall k hk) ⟨y, hy⟩
 
 /-- The graph body reads to the graph carrier. -/
-theorem sumBodyAVPos_interp {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hok : SumFieldsOkB w ρ Fss) :
-    interp V ρ (sumBodyAVPos w Fss) = sumSet w (sumFibre w ρ Fss) := by
+theorem sumBodyAVPos_interp {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρ Fss) (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) :
+    interp V ρ (sumBodyAVPos w Uss Fss) = sumSet w (sumFibre w ρ Fss) := by
   have hbv : bval V .psigma [w, w] = psigmaV V w w := rfl
   have hB : (lamR (w + 1) omega fun k =>
-        interp V (cons k ρ) (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)))
+        interp V (cons k ρ) (caseAVAt w (towersAV w Uss Fss) 1 (.bvar 0)))
       ∈ˢ psigmaFibreSpace V w omega :=
-    lamR_mem fun k hk => (case_fibre hok hk).2.1
+    lamR_mem fun k hk => (case_fibre hok hs hk).2.1
   show SetTheory.app (SetTheory.app (bval V .psigma [w, w]) omega)
       (lamR (w + 1) omega fun k =>
-        interp V (cons k ρ) (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)))
+        interp V (cons k ρ) (caseAVAt w (towersAV w Uss Fss) 1 (.bvar 0)))
     = sumSet w (sumFibre w ρ Fss)
   rw [hbv, psigmaV_app V (omega_mem_univ_pos hw) hB, show Nat.max w w = w from Nat.max_self w]
   unfold sumSet
   exact sigma_congr fun k hk => by
-    rw [app_lamR_pos (Nat.succ_ne_zero w) hk, (case_fibre hok hk).1]
+    rw [app_lamR_pos (Nat.succ_ne_zero w) hk, (case_fibre hok hs hk).1]
 
 /-- **The carrier body reads to the tier's carrier**, both regimes. -/
-theorem sumBodyAV_interp {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hok : SumFieldsOkB w ρ Fss) :
-    interp V ρ (sumBodyAV w Fss) = sumSet w (sumFibre w ρ Fss) := by
+theorem sumBodyAV_interp {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    (hok : SumFieldsOkB w ρ Fss) (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) :
+    interp V ρ (sumBodyAV w Uss Fss) = sumSet w (sumFibre w ρ Fss) := by
   by_cases hw : w = 0
   · subst hw; rw [sumBodyAV_zero]; exact sqSumBodyAV_interp hok
-  · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_interp hw hok
+  · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_interp hw hok hs
 
 /-- The carrier's formation, both regimes. -/
 theorem sumSet_univ_of_okB {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
@@ -772,20 +798,21 @@ theorem sumSet_univ_of_okB {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTer
     | some Fs => exact towerSet_univ_teleOfFields ((hok Fs (List.mem_of_getElem? h)).toBound hw)
 
 /-- The squash body is graded. -/
-theorem sqSumBodyAV_wellDenoted {ρ : Nat → V} {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB 0 ρ Fss) :
-    WellDenoted V ρ (sqSumBodyAV Fss) := by
+theorem sqSumBodyAV_wellDenoted {ρ : Nat → V} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    (hok : SumFieldsOkB 0 ρ Fss) :
+    WellDenoted V ρ (sqSumBodyAV Uss Fss) := by
   unfold sqSumBodyAV negAV
   rw [WellDenoted_pi]
   refine ⟨?_, fun _ _ => by simp⟩
   rw [WellDenoted_pi]
   refine ⟨trivial, fun k hk => ?_⟩
   rw [WellDenoted_pi]
-  exact ⟨(case_fibre hok hk).2.2, fun _ _ => by simp⟩
+  exact ⟨(case_fibre hok (fun h => absurd rfl h) hk).2.2, fun _ _ => by simp⟩
 
 /-- The graph body is graded: the two `.psigma` slots from
 `psigmaV_rr_mem`, the fibre λ from the selector's facts. -/
-theorem sumBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hok : SumFieldsOkB w ρ Fss) : WellDenoted V ρ (sumBodyAVPos w Fss) := by
+theorem sumBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρ Fss) (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) : WellDenoted V ρ (sumBodyAVPos w Uss Fss) := by
   have hbv : interp V ρ (.const .psigma [w, w]) = psigmaV V w w := rfl
   have hvac : ¬ w + 1 = 0 := Nat.succ_ne_zero w
   have hA : (omega : V) ∈ˢ univ w := omega_mem_univ_pos hw
@@ -797,64 +824,64 @@ theorem sumBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Fss 
       fun A => piR (w + 1) (psigmaFibreSpace V w A) fun _ => (univ w : V),
       hbv ▸ psigmaV_rr_mem (V := V) w, hA, fun h => absurd h hvac⟩
   · rw [WellDenoted_lam]
-    exact ⟨trivial, fun k hk => (case_fibre hok hk).2.2,
-      fun _ => (univ w : V), fun k hk => (case_fibre hok hk).2.1, fun h => absurd h hvac⟩
+    exact ⟨trivial, fun k hk => (case_fibre hok hs hk).2.2,
+      fun _ => (univ w : V), fun k hk => (case_fibre hok hs hk).2.1, fun h => absurd h hvac⟩
   · refine ⟨w + 1, psigmaFibreSpace V w omega, fun _ => (univ w : V), ?_, ?_,
       fun h => absurd h hvac⟩
     · show SetTheory.app (interp V ρ (.const .psigma [w, w])) omega ∈ˢ _
       rw [hbv]
       exact app_mem_piR_pos hvac (psigmaV_rr_mem (V := V) w) hA
-    · exact lamR_mem fun k hk => (case_fibre hok hk).2.1
+    · exact lamR_mem fun k hk => (case_fibre hok hs hk).2.1
 
 /-- **The carrier body is graded**, both regimes. -/
-theorem sumBodyAV_wellDenoted {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
-    (hok : SumFieldsOkB w ρ Fss) : WellDenoted V ρ (sumBodyAV w Fss) := by
+theorem sumBodyAV_wellDenoted {w : Nat} {ρ : Nat → V} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    (hok : SumFieldsOkB w ρ Fss) (hs : w ≠ 0 → SumFieldsSorts w Uss ρ Fss) : WellDenoted V ρ (sumBodyAV w Uss Fss) := by
   by_cases hw : w = 0
   · subst hw; rw [sumBodyAV_zero]; exact sqSumBodyAV_wellDenoted hok
-  · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_wellDenoted hw hok
+  · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_wellDenoted hw hok hs
 
 /-! ## The type-former leaf -/
 
 /-- The type-former leaf of a direct sum: the λ-tower over the
 parameter domains (bits `w + 1`) with the sum carrier body. -/
-def sumTyAV (w : Nat) (pps : List (Nat × Nat × AnnotTerm)) (Fss : List (List AnnotTerm)) :
-    AnnotTerm :=
-  mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)
+def sumTyAV (w : Nat) (pps : List (Nat × Nat × AnnotTerm)) (Uss : List (List Nat))
+    (Fss : List (List AnnotTerm)) : AnnotTerm :=
+  mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Uss Fss)
 
 /-- `ParamsOkS`: the leaf's one hereditary premise — the parameter
 domains graded, with the per-constructor chain grading at the base. -/
-def ParamsOkS (w : Nat) (ρ : Nat → V) (Fss : List (List AnnotTerm)) :
+def ParamsOkS (w : Nat) (ρ : Nat → V) (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) :
     List (Nat × Nat × AnnotTerm) → Prop
-  | [] => SumFieldsOkB w ρ Fss
+  | [] => SumFieldsOkB w ρ Fss ∧ (w ≠ 0 → SumFieldsSorts w Uss ρ Fss)
   | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → ParamsOkS w (cons a ρ) Fss pps
+      ∀ a, a ∈ˢ interp V ρ d.2.2 → ParamsOkS w (cons a ρ) Uss Fss pps
 
 /-- **The leaf inhabits its type's reading.** -/
-theorem sumTyAV_mem {w : Nat} {Fss : List (List AnnotTerm)} :
+theorem sumTyAV_mem {w : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} :
     ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      ParamsOkS w ρ Fss pps →
-      interp V ρ (sumTyAV w pps Fss) ∈ˢ interp V ρ (mkPisAV pps (.sort w))
+      ParamsOkS w ρ Uss Fss pps →
+      interp V ρ (sumTyAV w pps Uss Fss) ∈ˢ interp V ρ (mkPisAV pps (.sort w))
   | [], ρ, h => by
-    show interp V ρ (sumBodyAV w Fss) ∈ˢ (univ w : V)
-    rw [sumBodyAV_interp h]
-    exact sumSet_univ_of_okB h
+    show interp V ρ (sumBodyAV w Uss Fss) ∈ˢ (univ w : V)
+    rw [sumBodyAV_interp h.1 h.2]
+    exact sumSet_univ_of_okB h.1
   | d :: pps, ρ, h => by
     show (lamR (w + 1) (interp V ρ d.2.2)
         fun a => interp V (cons a ρ)
-          (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
+          (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Uss Fss)))
       ∈ˢ piR d.2.1 (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
     exact lamR_mem_zero_agree (iff_of_false (Nat.succ_ne_zero w) h.1)
       (fun a ha => sumTyAV_mem (h.2.2 a ha))
 
 /-- **The leaf is graded.** -/
-theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
+theorem sumTyAV_wellDenoted {w : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} :
     ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      ParamsOkS w ρ Fss pps → WellDenoted V ρ (sumTyAV w pps Fss)
-  | [], _, h => sumBodyAV_wellDenoted h
+      ParamsOkS w ρ Uss Fss pps → WellDenoted V ρ (sumTyAV w pps Uss Fss)
+  | [], _, h => sumBodyAV_wellDenoted h.1 h.2
   | d :: pps, ρ, h => by
     show WellDenoted V ρ (.lam (w + 1) d.2.2
-      (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
+      (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Uss Fss)))
     rw [WellDenoted_lam]
     exact ⟨h.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
@@ -863,11 +890,12 @@ theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
 
 /-- **The leaf's application fold**: along a fitting parameter spine
 the leaf computes the instantiated carrier. -/
-theorem sumTyAV_fold {w : Nat} {Fss : List (List AnnotTerm)}
+theorem sumTyAV_fold {w : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {as : List V}
     (hsp : SpineFit ρ (pps.map (·.2.2)) as)
-    (hok : SumFieldsOkB w (consList as ρ) Fss) :
-    as.foldl SetTheory.app (interp V ρ (sumTyAV w pps Fss))
+    (hok : SumFieldsOkB w (consList as ρ) Fss)
+    (hs : w ≠ 0 → SumFieldsSorts w Uss (consList as ρ) Fss) :
+    as.foldl SetTheory.app (interp V ρ (sumTyAV w pps Uss Fss))
       = sumSet w (sumFibre w (consList as ρ) Fss) := by
   have hsp' : SpineFit ρ ((pps.map fun d => (w + 1, d.2.2)).map (·.2)) as := by
     rwa [List.map_map]
@@ -875,7 +903,7 @@ theorem sumTyAV_fold {w : Nat} {Fss : List (List AnnotTerm)}
     mkLamsAV_fold (fun d hd => by
       obtain ⟨d', -, rfl⟩ := List.mem_map.mp hd
       exact Nat.succ_ne_zero w) hsp',
-    sumBodyAV_interp hok]
+    sumBodyAV_interp hok hs]
 
 
 /-!
@@ -1028,6 +1056,14 @@ theorem FieldsOkB_append_idxEq {w : Nat} {eqs : List (AnnotTerm × AnnotTerm)} :
     have := hE (a :: bs) ⟨ha, hsp⟩
     rwa [consList_cons] at this
 
+/-- The restricted chain is sorted: the fields at theirs, the index
+equation — a truth value — at `0`. -/
+theorem FieldsSorts_append_idxEq {w : Nat} {eqs : List (AnnotTerm × AnnotTerm)} {us : List Nat}
+    {Fs : List AnnotTerm} {ρ : Nat → V} (h : FieldsSorts w us ρ Fs) :
+    FieldsSorts w (us ++ [0]) ρ (Fs ++ [idxEqAV eqs]) :=
+  FieldsSorts.append h fun _ _ =>
+    ⟨Nat.zero_le w, idxEqAV_mem_univ eqs _ 0, fun _ _ => trivial⟩
+
 /-- A fit of an appended chain splits (the `SpineFit` twin of the
 Model tier's `spineFit_append_inv`, restated here below it). -/
 theorem spineFit_append_split :
@@ -1145,6 +1181,19 @@ theorem FieldsOkB_liftFields {w n : Nat} :
     refine and_congr Iff.rfl (and_congr Iff.rfl (forall_congr' fun a => imp_congr Iff.rfl ?_))
     rw [cons_shiftE]
     exact FieldsOkB_liftFields
+
+/-- The lifted chain's sorts are the chain's at the shifted frame. -/
+theorem FieldsSorts_liftFields {w n : Nat} :
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {k : Nat} {σ : Nat → V},
+      FieldsSorts w us σ (liftFields n k Fs) ↔ FieldsSorts w us (shiftE n k σ) Fs
+  | [], [], _, _ => Iff.rfl
+  | _ :: _, [], _, _ => Iff.rfl
+  | [], _ :: _, _, _ => Iff.rfl
+  | _ :: _, F :: Fs, k, σ => by
+    simp only [liftFields_cons, FieldsSorts, interp_liftN]
+    refine and_congr Iff.rfl (and_congr Iff.rfl (forall_congr' fun a => imp_congr Iff.rfl ?_))
+    rw [cons_shiftE]
+    exact FieldsSorts_liftFields
 
 theorem FieldsBelow_liftFields {n : Nat} :
     ∀ {Fs : List AnnotTerm} {k K : Nat}, k ≤ K → FieldsBelow K Fs →
@@ -1301,9 +1350,9 @@ tower at the constructor's own index tuple).
 
 /-- `PSigma'.mk Nat (λ k, case k) tag payload`, spelled `d` binders below
 the parameter frame (the tower bodies are scoped there). -/
-def sumInjAtAV (w : Nat) (Fss : List (List AnnotTerm)) (d : Nat) (tag payload : AnnotTerm) : AnnotTerm :=
+def sumInjAtAV (w : Nat) (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) (d : Nat) (tag payload : AnnotTerm) : AnnotTerm :=
   AnnotTerm.mkAppN (.const .psigmaMk [w, w])
-    [natAV, .lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)),
+    [natAV, .lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)),
       tag, payload]
 
 /-- The semantic injection, both regimes: the point at squash. -/
@@ -1321,31 +1370,33 @@ theorem injW_mem {w : Nat} {f : Nat → V} {i : Nat} {a : V} (ha : a ∈ˢ f i) 
 
 /-- The case-split fibre λ at a frame. -/
 theorem sumFibreLam_facts {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
-    {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss) :
-    interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss)
+    (hs : w ≠ 0 → SumFieldsSorts w Uss ρp Fss) :
+    interp V σ (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)))
         = lamR (w + 1) omega (natFibre (sumFibre w ρp Fss)) ∧
       lamR (w + 1) (omega : V) (natFibre (sumFibre w ρp Fss)) ∈ˢ psigmaFibreSpace V w omega ∧
-      WellDenoted V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))) := by
+      WellDenoted V σ (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0))) := by
   refine ⟨?_, ?_, ?_⟩
   · rw [interp_lam]
-    exact lamR_congr fun k hk => (case_fibre_at hsh hok hk).1
+    exact lamR_congr fun k hk => (case_fibre_at hsh hok hs hk).1
   · refine lamR_mem fun k hk => ?_
-    rw [← (case_fibre_at hsh hok hk).1]
-    exact (case_fibre_at hsh hok hk).2.1
+    rw [← (case_fibre_at hsh hok hs hk).1]
+    exact (case_fibre_at hsh hok hs hk).2.1
   · rw [WellDenoted_lam]
-    exact ⟨trivial, fun k hk => (case_fibre_at hsh hok hk).2.2, fun _ => (univ w : V),
-      fun k hk => (case_fibre_at hsh hok hk).2.1, fun h => absurd h (Nat.succ_ne_zero _)⟩
+    exact ⟨trivial, fun k hk => (case_fibre_at hsh hok hs hk).2.2, fun _ => (univ w : V),
+      fun k hk => (case_fibre_at hsh hok hs hk).2.1, fun h => absurd h (Nat.succ_ne_zero _)⟩
 
 /-- **The injection reads to `injW`**: the pair at a numeral tag with
 a fitting payload, the point at squash. -/
 theorem sumInjAtAV_interp {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
-    {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss) {tag payload : AnnotTerm} {i : Nat}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss)
+    (hs : w ≠ 0 → SumFieldsSorts w Uss ρp Fss) {tag payload : AnnotTerm} {i : Nat}
     (htag : interp V σ tag = vnat i)
     (hpay : w ≠ 0 → interp V σ payload ∈ˢ sumFibre w ρp Fss i) :
-    interp V σ (sumInjAtAV w Fss d tag payload) = injW w i (interp V σ payload) := by
-  obtain ⟨hBv, hBm, -⟩ := sumFibreLam_facts hsh hok
+    interp V σ (sumInjAtAV w Uss Fss d tag payload) = injW w i (interp V σ payload) := by
+  obtain ⟨hBv, hBm, -⟩ := sumFibreLam_facts hsh hok hs
   show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (bval V .psigmaMk [w, w])
-    omega) (interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
+    omega) (interp V σ (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)))))
     (interp V σ tag)) (interp V σ payload) = _
   rw [hBv, htag]
   by_cases hw : w = 0
@@ -1366,12 +1417,13 @@ theorem sumInjAtAV_interp {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE
 are the pair constructor's product chain, at squash the head is the
 point and the slots are trivial. -/
 theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
-    {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss) {tag payload : AnnotTerm} {i : Nat}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss)
+    (hs : w ≠ 0 → SumFieldsSorts w Uss ρp Fss) {tag payload : AnnotTerm} {i : Nat}
     (hoktag : WellDenoted V σ tag) (htag : interp V σ tag = vnat i)
     (hokpay : WellDenoted V σ payload)
     (hpay : w ≠ 0 → interp V σ payload ∈ˢ sumFibre w ρp Fss i) :
-    WellDenoted V σ (sumInjAtAV w Fss d tag payload) := by
-  obtain ⟨hBv, hBm, hBok⟩ := sumFibreLam_facts hsh hok
+    WellDenoted V σ (sumInjAtAV w Uss Fss d tag payload) := by
+  obtain ⟨hBv, hBm, hBok⟩ := sumFibreLam_facts hsh hok hs
   by_cases hw : w = 0
   · subst hw
     refine (mkAppN_wellDenoted_of_pt_head (f := .const .psigmaMk [0, 0]) (σ := σ) trivial ?_ ?_).1
@@ -1413,7 +1465,7 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
       rw [app_lamR_pos (Nat.succ_ne_zero w) (vnat_mem_omega i), natFibre_vnat]
       exact hpay hw
     show WellDenoted V σ (.app (.app (.app (.app (.const .psigmaMk [w, w]) natAV)
-      (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
+      (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)))) tag) payload)
     rw [WellDenoted_app]
     refine ⟨?_, hokpay, w, _, _, ?_, hpay', hz4⟩
     · rw [WellDenoted_app]
@@ -1425,11 +1477,11 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
         · show SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega ∈ˢ _
           rw [hbv]; exact hm1
       · show SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
-          (interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))))
+          (interp V σ (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0))))
           ∈ˢ _
         rw [hbv, hBv]; exact hm2
     · show SetTheory.app (SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
-        (interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
+        (interp V σ (.lam (w + 1) natAV (caseAVAt w (towersAV w Uss Fss) (d + 1) (.bvar 0)))))
         (interp V σ tag) ∈ˢ _
       rw [hbv, hBv, htag]; exact hm3
 
@@ -1442,38 +1494,39 @@ valued by `.prf` rather than by a binder.  Its facts are
 `mkTowerGoPos`'s with one extra base case. -/
 
 /-- The proof-field-terminated tupler, graph regime. -/
-def mkTowerGoUPos (w : Nat) (E : AnnotTerm) : List AnnotTerm → AnnotTerm
-  | [] =>
-    .app (.app (.app (.app (.const .psigmaMk [w, w]) E)
+def mkTowerGoUPos (w : Nat) (E : AnnotTerm) : List Nat → List AnnotTerm → AnnotTerm
+  | us, [] =>
+    .app (.app (.app (.app (.const .psigmaMk [us.headD w, w]) E)
         (.lam (w + 1) E (.const .punit [w]))) .prf)
       (.const .punitUnit [w])
-  | F :: Fs =>
-    .app (.app (.app (.app (.const .psigmaMk [w, w])
+  | us, F :: Fs =>
+    .app (.app (.app (.app (.const .psigmaMk [us.headD w, w])
         (F.liftN (Fs.length + 1)))
         (.lam (w + 1) (F.liftN (Fs.length + 1))
-          ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
+          ((towerBodyAV w us.tail (Fs ++ [E])).liftN (Fs.length + 1) 1)))
         (.bvar Fs.length))
-      (mkTowerGoUPos w E Fs)
+      (mkTowerGoUPos w E us.tail Fs)
 
 /-- The tupler, both regimes: the point at squash. -/
-def mkTowerGoU (w : Nat) (Fs : List AnnotTerm) (E : AnnotTerm) : AnnotTerm :=
-  if w = 0 then .const .punitUnit [] else mkTowerGoUPos w E Fs
+def mkTowerGoU (w : Nat) (us : List Nat) (Fs : List AnnotTerm) (E : AnnotTerm) : AnnotTerm :=
+  if w = 0 then .const .punitUnit [] else mkTowerGoUPos w E us Fs
 
-theorem mkTowerGoU_zero (Fs : List AnnotTerm) (E : AnnotTerm) :
-    mkTowerGoU 0 Fs E = .const .punitUnit [] := ite_eq_left rfl
+theorem mkTowerGoU_zero (us : List Nat) (Fs : List AnnotTerm) (E : AnnotTerm) :
+    mkTowerGoU 0 us Fs E = .const .punitUnit [] := ite_eq_left rfl
 
-theorem mkTowerGoU_pos {w : Nat} (hw : w ≠ 0) (Fs : List AnnotTerm) (E : AnnotTerm) :
-    mkTowerGoU w Fs E = mkTowerGoUPos w E Fs := ite_eq_right hw
+theorem mkTowerGoU_pos {w : Nat} (hw : w ≠ 0) (us : List Nat) (Fs : List AnnotTerm)
+    (E : AnnotTerm) : mkTowerGoU w us Fs E = mkTowerGoUPos w E us Fs := ite_eq_right hw
 
 /-- The tupler at a fitting spine with the proof-field inhabited by the
 point reads to the point-terminated tuple. -/
 theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
-      FieldsBound w ρp (Fs ++ [E]) → SpineFit ρp Fs bs →
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
+      FieldsSorts w us ρp (Fs ++ [E]) → SpineFit ρp Fs bs →
       (pt : V) ∈ˢ interp V (consList bs ρp) E →
-      interp V (consList bs ρp) (mkTowerGoUPos w E Fs) = mkTower (bs ++ [pt])
-  | [], ρp, [], hb, _, hpt => by
-    have hA : interp V ρp E ∈ˢ (univ w : V) := hb.1
+      interp V (consList bs ρp) (mkTowerGoUPos w E us Fs) = mkTower (bs ++ [pt])
+  | [], [], _, [], hs, _, _ => hs.elim
+  | u :: _, [], ρp, [], hs, _, hpt => by
+    have hA : interp V ρp E ∈ˢ (univ u : V) := hs.2.1
     have hB : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
         ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
       lamR_mem fun _ _ => unitSetAt_mem_univ w
@@ -1481,17 +1534,19 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hb' : (unitAt w : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
       exact unitAt_mem_unitSetAt w
-    show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (bval V .psigmaMk [w, w])
+    show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (bval V .psigmaMk [u, w])
         (interp V ρp E)) (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))) pt) (unitAt w)
       = mkTower [pt]
-    have hbv : bval V .psigmaMk [w, w] = psigmaMkV V w w := rfl
-    rw [hbv, psigmaMkV_app V hA hB hpt' hb', show Nat.max w w = w from Nat.max_self w, ite_eq_right hw,
+    have hbv : bval V .psigmaMk [u, w] = psigmaMkV V u w := rfl
+    rw [hbv, psigmaMkV_app V hA hB hpt' hb', natMax_eq_right hs.1, ite_eq_right hw,
       unitAt_pos hw]
     rfl
-  | [], _, _ :: _, _, hsp, _ => hsp.elim
-  | _ :: _, _, [], _, hsp, _ => hsp.elim
-  | F :: Fs, ρp, b :: bs, hb, hsp, hpt => by
-    simp only [List.cons_append] at hb
+  | _, [], _, _ :: _, _, hsp, _ => hsp.elim
+  | _, _ :: _, _, [], _, hsp, _ => hsp.elim
+  | [], _ :: _, _, _ :: _, hs, _, _ => hs.elim
+  | u :: us, F :: Fs, ρp, b :: bs, hs, hsp, hpt => by
+    simp only [List.cons_append] at hs
+    have hb : FieldsBound w ρp (F :: (Fs ++ [E])) := hs.toBound
     have hlen : bs.length = Fs.length := hsp.2.length_eq
     have hshift : shiftE (Fs.length + 1) 0 (consList bs (cons b ρp)) = ρp := by
       rw [← hlen,
@@ -1503,52 +1558,52 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       rw [interp_liftN, hshift]
     have hBfun : ∀ x : V,
         interp V (cons x (consList bs (cons b ρp)))
-          ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)
-        = interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])) := fun x => by
+          ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1)
+        = interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E])) := fun x => by
       rw [interp_liftN, ← cons_shiftE, hshift]
     have hval : consList bs (cons b ρp) (Fs.length) = b := by
       rw [← hlen, show bs.length = 0 + bs.length by rw [Nat.zero_add],
         consList_apply_add bs (cons b ρp) 0, cons_zero]
-    have hrec : interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E Fs)
+    have hrec : interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E us Fs)
         = mkTower (bs ++ [pt]) :=
-      mkTowerGoUPos_interp hw (hb.2 b hsp.1) hsp.2 hpt
-    have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
+      mkTowerGoUPos_interp hw (hs.2.2 b hsp.1) hsp.2 hpt
+    have hAm : interp V ρp F ∈ˢ (univ u : V) := hs.2.1
     have hBm : (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])))
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E])))
         ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
       lamR_mem fun x hx => by
-        rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
+        rw [towerBodyAV_interp (fun _ => hs.2.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
     have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) b
         = towerSet w (teleOfFields (cons b ρp) (Fs ++ [E])) := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hsp.1,
-        towerBodyAV_interp (fun _ => hb.2 b hsp.1)]
+        towerBodyAV_interp (fun _ => hs.2.2 b hsp.1)]
     have hbm : mkTower (bs ++ [pt])
         ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b := by
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) b := by
       rw [hfib]
       refine mkTower_mem_teleOfFields hw (spineFit_append_split_mpr hsp.2 ?_)
       show SpineFit (consList bs (cons b ρp)) [E] [pt]
       exact ⟨hpt, trivial⟩
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app
-        (bval V .psigmaMk [w, w])
+        (bval V .psigmaMk [u, w])
         (interp V (consList bs (cons b ρp)) (F.liftN (Fs.length + 1))))
         (lamR (w + 1)
           (interp V (consList bs (cons b ρp)) (F.liftN (Fs.length + 1)))
           fun x => interp V (cons x (consList bs (cons b ρp)))
-            ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
+            ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1)))
         (consList bs (cons b ρp) Fs.length))
-        (interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E Fs))
+        (interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E us Fs))
       = mkTower (b :: bs ++ [pt])
-    have hbv : bval V .psigmaMk [w, w] = psigmaMkV V w w := rfl
+    have hbv : bval V .psigmaMk [u, w] = psigmaMkV V u w := rfl
     rw [hA, hval, hrec]
     have hBeq : (fun x => interp V (cons x (consList bs (cons b ρp)))
-          ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))
-        = fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])) :=
+          ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1))
+        = fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E])) :=
       funext hBfun
     rw [hBeq, hbv, psigmaMkV_app V hAm hBm hsp.1 hbm,
-      show Nat.max w w = w from Nat.max_self w, ite_eq_right hw]
+      natMax_eq_right hs.1, ite_eq_right hw]
     rfl
 where
   spineFit_append_split_mpr {ρ : Nat → V} {Fs Gs : List AnnotTerm} {as bs : List V}
@@ -1556,30 +1611,31 @@ where
       SpineFit ρ (Fs ++ Gs) (as ++ bs) := h1.append h2
 
 /-- **The tupler reads to the point-terminated tuple**, both regimes. -/
-theorem mkTowerGoU_interp {w : Nat} {E : AnnotTerm} {Fs : List AnnotTerm} {ρp : Nat → V}
-    {bs : List V} (hb : w ≠ 0 → FieldsBound w ρp (Fs ++ [E])) (hsp : SpineFit ρp Fs bs)
-    (hpt : (pt : V) ∈ˢ interp V (consList bs ρp) E) :
-    interp V (consList bs ρp) (mkTowerGoU w Fs E)
+theorem mkTowerGoU_interp {w : Nat} {E : AnnotTerm} {us : List Nat} {Fs : List AnnotTerm}
+    {ρp : Nat → V} {bs : List V} (hs : w ≠ 0 → FieldsSorts w us ρp (Fs ++ [E]))
+    (hsp : SpineFit ρp Fs bs) (hpt : (pt : V) ∈ˢ interp V (consList bs ρp) E) :
+    interp V (consList bs ρp) (mkTowerGoU w us Fs E)
       = if w = 0 then pt else mkTower (bs ++ [pt]) := by
   by_cases hw : w = 0
   · subst hw; rw [mkTowerGoU_zero, ite_eq_left rfl]; rfl
-  · rw [mkTowerGoU_pos hw, ite_eq_right hw]; exact mkTowerGoUPos_interp hw (hb hw) hsp hpt
+  · rw [mkTowerGoU_pos hw, ite_eq_right hw]; exact mkTowerGoUPos_interp hw (hs hw) hsp hpt
 
 /-- The tupler is graded (graph regime). -/
 theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
-      FieldsOkB w ρp (Fs ++ [E]) → SpineFit ρp Fs bs →
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
+      FieldsOkB w ρp (Fs ++ [E]) → FieldsSorts w us ρp (Fs ++ [E]) → SpineFit ρp Fs bs →
       (pt : V) ∈ˢ interp V (consList bs ρp) E →
-      WellDenoted V (consList bs ρp) (mkTowerGoUPos w E Fs)
-  | [], ρp, [], hok, _, hpt => by
+      WellDenoted V (consList bs ρp) (mkTowerGoUPos w E us Fs)
+  | [], [], _, [], _, hs, _, _ => hs.elim
+  | u :: _, [], ρp, [], hok, hs, _, hpt => by
     have hokE : WellDenoted V ρp E := hok.1
-    have hA : interp V ρp E ∈ˢ (univ w : V) := hok.2.1 hw
+    have hA : interp V ρp E ∈ˢ (univ u : V) := hs.2.1
     have hpt' : (pt : V) ∈ˢ interp V ρp E := by simpa [consList] using hpt
     have hBm : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
         ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
       lamR_mem fun _ _ => unitSetAt_mem_univ w
-    have hbv : interp V ρp (.const .psigmaMk [w, w]) = psigmaMkV V w w := rfl
-    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
+    have hbv : interp V ρp (.const .psigmaMk [u, w]) = psigmaMkV V u w := rfl
+    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ u : V) →
         piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
           piR w (SetTheory.app B a) fun _ => sigmaSet w A
             fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
@@ -1597,7 +1653,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
         sigmaSet w (interp V ρp E)
           (fun y => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) y)
           ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hm0 := psigmaMkV_ww_mem (V := V) w
+    have hm0 := psigmaMkV_le_mem (V := V) hs.1
     have hm1 := app_mem_piR hm0 hA hz1
     have hm2 := app_mem_piR hm1 hBm hz2
     have hm3 := app_mem_piR hm2 hpt' hz3
@@ -1606,7 +1662,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hb' : (unitAt w : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
       exact unitAt_mem_unitSetAt w
-    show WellDenoted V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
+    show WellDenoted V ρp (.app (.app (.app (.app (.const .psigmaMk [u, w]) E)
       (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     rw [WellDenoted_app]
     refine ⟨?_, trivial, w, _, _, ?_, hb', hz4⟩
@@ -1615,25 +1671,26 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       · rw [WellDenoted_app]
         refine ⟨?_, ?_, w, psigmaFibreSpace V w (interp V ρp E), _, ?_, ?_, hz2⟩
         · rw [WellDenoted_app]
-          exact ⟨trivial, hokE, w, univ w, _, hbv ▸ hm0, hA, hz1⟩
+          exact ⟨trivial, hokE, w, univ u, _, hbv ▸ hm0, hA, hz1⟩
         · rw [WellDenoted_lam]
           exact ⟨hokE, fun _ _ => trivial, fun _ => (univ w : V),
             fun _ _ => unitSetAt_mem_univ w, fun h => absurd h (Nat.succ_ne_zero w)⟩
-        · show SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E) ∈ˢ _
+        · show SetTheory.app (interp V ρp (.const .psigmaMk [u, w])) (interp V ρp E) ∈ˢ _
           rw [hbv]; exact hm1
         · rw [hlam]; exact hBm
-      · show SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E))
+      · show SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [u, w])) (interp V ρp E))
           (interp V ρp (.lam (w + 1) E (.const .punit [w]))) ∈ˢ _
         rw [hbv, hlam]; exact hm2
-    · show SetTheory.app (SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w]))
+    · show SetTheory.app (SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [u, w]))
         (interp V ρp E)) (interp V ρp (.lam (w + 1) E (.const .punit [w]))))
         (interp V ρp .prf) ∈ˢ _
       rw [hbv, hlam, interp_prf]; exact hm3
-  | [], _, _ :: _, _, hsp, _ => hsp.elim
-  | _ :: _, _, [], _, hsp, _ => hsp.elim
-  | F :: Fs, ρp, b :: bs, hok, hsp, hpt => by
-    simp only [List.cons_append] at hok
-    have hb : FieldsBound w ρp (F :: (Fs ++ [E])) := hok.toBound hw
+  | _, [], _, _ :: _, _, _, hsp, _ => hsp.elim
+  | _, _ :: _, _, [], _, _, hsp, _ => hsp.elim
+  | [], _ :: _, _, _ :: _, _, hs, _, _ => hs.elim
+  | u :: us, F :: Fs, ρp, b :: bs, hok, hs, hsp, hpt => by
+    simp only [List.cons_append] at hok hs
+    have hb : FieldsBound w ρp (F :: (Fs ++ [E])) := hs.toBound
     have hlen : bs.length = Fs.length := hsp.2.length_eq
     have hshift : shiftE (Fs.length + 1) 0 (consList bs (cons b ρp)) = ρp := by
       rw [← hlen,
@@ -1645,30 +1702,30 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       rw [interp_liftN, hshift]
     have hBfun : ∀ x : V,
         interp V (cons x (consList bs (cons b ρp)))
-          ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)
-        = interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])) := fun x => by
+          ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1)
+        = interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E])) := fun x => by
       rw [interp_liftN, ← cons_shiftE, hshift]
     have hval : consList bs (cons b ρp) (Fs.length) = b := by
       rw [← hlen, show bs.length = 0 + bs.length by rw [Nat.zero_add],
         consList_apply_add bs (cons b ρp) 0, cons_zero]
-    have hrec : interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E Fs)
+    have hrec : interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E us Fs)
         = mkTower (bs ++ [pt]) :=
-      mkTowerGoUPos_interp hw (hb.2 b hsp.1) hsp.2 hpt
-    have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
+      mkTowerGoUPos_interp hw (hs.2.2 b hsp.1) hsp.2 hpt
+    have hAm : interp V ρp F ∈ˢ (univ u : V) := hs.2.1
     have hBv : interp V (consList bs (cons b ρp))
         (AnnotTerm.lam (w + 1) (F.liftN (Fs.length + 1))
-          ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))
+          ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1))
         = lamR (w + 1) (interp V ρp F)
-            (fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) := by
+            (fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) := by
       rw [interp_lam, hA]
       exact congrArg _ (funext hBfun)
     have hBm : (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])))
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E])))
         ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
       lamR_mem fun x hx => by
-        rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
+        rw [towerBodyAV_interp (fun _ => hs.2.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
-    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
+    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ u : V) →
         piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
           piR w (SetTheory.app B a) fun _ => sigmaSet w A
             fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
@@ -1679,46 +1736,46 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
             fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
     have hz3 : w = 0 → ∀ a, a ∈ˢ interp V ρp F →
         piR w (SetTheory.app (lamR (w + 1) (interp V ρp F)
-            fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) a)
+            fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) a)
           (fun _ => sigmaSet w (interp V ρp F)
             fun x => SetTheory.app (lamR (w + 1) (interp V ρp F)
-              fun y => interp V (cons y ρp) (towerBodyAV w (Fs ++ [E]))) x)
+              fun y => interp V (cons y ρp) (towerBodyAV w us (Fs ++ [E]))) x)
           ∈ˢ (univZero : V) := fun h => absurd h hw
     have hz4 : w = 0 → ∀ x,
         x ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun y => interp V (cons y ρp) (towerBodyAV w (Fs ++ [E]))) b →
+          fun y => interp V (cons y ρp) (towerBodyAV w us (Fs ++ [E]))) b →
         sigmaSet w (interp V ρp F)
           (fun y => SetTheory.app (lamR (w + 1) (interp V ρp F)
-            fun z => interp V (cons z ρp) (towerBodyAV w (Fs ++ [E]))) y)
+            fun z => interp V (cons z ρp) (towerBodyAV w us (Fs ++ [E]))) y)
           ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hm0 : psigmaMkV V w w ∈ˢ piR w (univ w : V) (fun A =>
+    have hm0 : psigmaMkV V u w ∈ˢ piR w (univ u : V) (fun A =>
         piR w (psigmaFibreSpace V w A) (fun B =>
           piR w A (fun a =>
             piR w (SetTheory.app B a) (fun _ =>
               sigmaSet w A fun x => SetTheory.app B x)))) :=
-      psigmaMkV_ww_mem w
+      psigmaMkV_le_mem hs.1
     have hm1 := app_mem_piR hm0 hAm hz1
     have hm2 := app_mem_piR hm1 hBm hz2
     have hm3 := app_mem_piR hm2 hsp.1 hz3
     have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) b
         = towerSet w (teleOfFields (cons b ρp) (Fs ++ [E])) := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hsp.1,
-        towerBodyAV_interp (fun _ => hb.2 b hsp.1)]
-    have hrm : interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E Fs)
+        towerBodyAV_interp (fun _ => hs.2.2 b hsp.1)]
+    have hrm : interp V (consList bs (cons b ρp)) (mkTowerGoUPos w E us Fs)
         ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b := by
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) b := by
       rw [hrec, hfib]
       exact mkTower_mem_teleOfFields hw (hsp.2.append ⟨hpt, trivial⟩)
     show WellDenoted V (consList bs (cons b ρp))
-      (.app (.app (.app (.app (.const .psigmaMk [w, w])
+      (.app (.app (.app (.app (.const .psigmaMk [u, w])
           (F.liftN (Fs.length + 1)))
           (.lam (w + 1) (F.liftN (Fs.length + 1))
-            ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
+            ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
-        (mkTowerGoUPos w E Fs))
+        (mkTowerGoUPos w E us Fs))
     rw [WellDenoted_app]
-    refine ⟨?_, mkTowerGoUPos_wellDenoted hw (hok.2.2 b hsp.1) hsp.2 hpt, ?_⟩
+    refine ⟨?_, mkTowerGoUPos_wellDenoted hw (hok.2.2 b hsp.1) (hs.2.2 b hsp.1) hsp.2 hpt, ?_⟩
     · rw [WellDenoted_app]
       refine ⟨?_, trivial, ?_⟩
       · rw [WellDenoted_app]
@@ -1727,7 +1784,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           refine ⟨trivial, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
-          · exact ⟨w, univ w, _, hm0, by rw [interp_liftN, hshift]; exact hAm, hz1⟩
+          · exact ⟨w, univ u, _, hm0, by rw [interp_liftN, hshift]; exact hAm, hz1⟩
         · rw [WellDenoted_lam]
           refine ⟨?_, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
@@ -1735,15 +1792,15 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           · intro x hx
             rw [hA] at hx
             rw [WellDenoted_liftN, ← cons_shiftE, hshift]
-            exact towerBodyAV_wellDenoted (hok.2.2 x hx)
+            exact towerBodyAV_wellDenoted (hok.2.2 x hx) (fun _ => hs.2.2 x hx)
           · refine ⟨fun _ => (univ w : V), fun x hx => ?_,
               fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
             rw [hA] at hx
-            rw [hBfun x, towerBodyAV_interp (fun _ => hb.2 x hx)]
+            rw [hBfun x, towerBodyAV_interp (fun _ => hs.2.2 x hx)]
             exact towerSet_univ_teleOfFields (hb.2 x hx)
         · refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2⟩
           · show SetTheory.app (interp V (consList bs (cons b ρp))
-                (.const .psigmaMk [w, w]))
+                (.const .psigmaMk [u, w]))
               (interp V (consList bs (cons b ρp))
                 (F.liftN (Fs.length + 1))) ∈ˢ _
             rw [hA]
@@ -1753,40 +1810,41 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       · refine ⟨w, interp V ρp F, _, ?_, ?_, hz3⟩
         · show SetTheory.app (SetTheory.app
               (interp V (consList bs (cons b ρp))
-                (.const .psigmaMk [w, w]))
+                (.const .psigmaMk [u, w]))
               (interp V (consList bs (cons b ρp))
                 (F.liftN (Fs.length + 1))))
             (interp V (consList bs (cons b ρp))
               (.lam (w + 1) (F.liftN (Fs.length + 1))
-                ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))) ∈ˢ _
+                ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1))) ∈ˢ _
           rw [hA, hBv]
           exact hm2
         · show consList bs (cons b ρp) (Fs.length) ∈ˢ interp V ρp F
           rw [hval]
           exact hsp.1
     · refine ⟨w, SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b, _,
+          fun x => interp V (cons x ρp) (towerBodyAV w us (Fs ++ [E]))) b, _,
         ?_, hrm, hz4⟩
       show SetTheory.app (SetTheory.app (SetTheory.app
           (interp V (consList bs (cons b ρp))
-            (.const .psigmaMk [w, w]))
+            (.const .psigmaMk [u, w]))
           (interp V (consList bs (cons b ρp))
             (F.liftN (Fs.length + 1))))
           (interp V (consList bs (cons b ρp))
             (.lam (w + 1) (F.liftN (Fs.length + 1))
-              ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))))
+              ((towerBodyAV w us (Fs ++ [E])).liftN (Fs.length + 1) 1))))
         (interp V (consList bs (cons b ρp)) (.bvar Fs.length)) ∈ˢ _
       rw [hA, hBv, interp_bvar, hval]
       exact hm3
 
 /-- **The tupler is graded**, both regimes. -/
-theorem mkTowerGoU_wellDenoted {w : Nat} {E : AnnotTerm} {Fs : List AnnotTerm} {ρp : Nat → V}
-    {bs : List V} (hok : FieldsOkB w ρp (Fs ++ [E])) (hsp : SpineFit ρp Fs bs)
+theorem mkTowerGoU_wellDenoted {w : Nat} {E : AnnotTerm} {us : List Nat} {Fs : List AnnotTerm}
+    {ρp : Nat → V} {bs : List V} (hok : FieldsOkB w ρp (Fs ++ [E]))
+    (hs : w ≠ 0 → FieldsSorts w us ρp (Fs ++ [E])) (hsp : SpineFit ρp Fs bs)
     (hpt : (pt : V) ∈ˢ interp V (consList bs ρp) E) :
-    WellDenoted V (consList bs ρp) (mkTowerGoU w Fs E) := by
+    WellDenoted V (consList bs ρp) (mkTowerGoU w us Fs E) := by
   by_cases hw : w = 0
   · subst hw; rw [mkTowerGoU_zero]; simp
-  · rw [mkTowerGoU_pos hw]; exact mkTowerGoUPos_wellDenoted hw hok hsp hpt
+  · rw [mkTowerGoU_pos hw]; exact mkTowerGoUPos_wellDenoted hw hok (hs hw) hsp hpt
 
 /-! ## The unit-restricted chains -/
 
@@ -1807,6 +1865,26 @@ theorem SumFieldsOkB_uChains {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotT
   obtain ⟨Fs, hFs, rfl⟩ := List.mem_map.mp hFs'
   exact FieldsOkB_append_idxEq (hok Fs hFs) fun _ _ _ h => nomatch h
 
+/-- The unit-restricted chains' sorts: each constructor's field sorts,
+then the proof-field's `0`. -/
+def uSorts (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) : List (List Nat) :=
+  (List.range Fss.length).map fun i => Uss.getD i [] ++ [0]
+
+/-- The unit-restricted chains are sorted when the chains are. -/
+theorem SumFieldsSorts_uChains {w : Nat} {Uss : List (List Nat)} {ρ : Nat → V}
+    {Fss : List (List AnnotTerm)} (hs : SumFieldsSorts w Uss ρ Fss) :
+    SumFieldsSorts w (uSorts Uss Fss) ρ (uChains Fss) := by
+  intro i Fs' h
+  rw [uChains_getElem?] at h
+  obtain ⟨Fs, hFs, rfl⟩ := Option.map_eq_some_iff.mp h
+  have hi : i < Fss.length := (List.getElem?_eq_some_iff.mp hFs).1
+  have hg : (uSorts Uss Fss).getD i [] = Uss.getD i [] ++ [0] := by
+    unfold uSorts
+    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hi]
+    rfl
+  rw [hg]
+  exact FieldsSorts_append_idxEq (hs i Fs hFs)
+
 /-- The trivially true index equation holds. -/
 theorem pt_mem_idxEqAV_nil (ρ : Nat → V) : (pt : V) ∈ˢ interp V ρ (idxEqAV []) :=
   pt_mem_idxEqAV.mpr (EqAll_nil ρ)
@@ -1816,65 +1894,72 @@ theorem pt_mem_idxEqAV_nil (ρ : Nat → V) : (pt : V) ∈ˢ interp V ρ (idxEqA
 /-- **Constructor `j`'s leaf**: the constant-bit λ-tower (bit `w`)
 over the constructor type reading's binder data with the injection
 of the point-terminated tupler at the numeral `j`. -/
-def sumMkAV (w j : Nat) (ds : List (Nat × Nat × AnnotTerm)) (Fs : List AnnotTerm)
-    (Fss : List (List AnnotTerm)) : AnnotTerm :=
-  mkLamsC w ds (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV [])))
+def sumMkAV (w j : Nat) (ds : List (Nat × Nat × AnnotTerm)) (us : List Nat) (Fs : List AnnotTerm)
+    (Uss : List (List Nat)) (Fss : List (List AnnotTerm)) : AnnotTerm :=
+  mkLamsC w ds (sumInjAtAV w Uss Fss Fs.length (numeralAV j)
+    (mkTowerGoU w (us ++ [0]) Fs (idxEqAV [])))
 
 /-- `MkPreS`: the constructor leaf's ONE hereditary premise — each
 parameter domain graded, and under every fitting parameter spine every
 constructor's chain is graded, this constructor's chain is the `j`-th,
 and the type reading's body reads back as SOME tagged union whose
 `j`-th fibre holds the point-terminated tuple. -/
-def MkPreS (w j : Nat) (ρ : Nat → V) (Fs : List AnnotTerm) (Fss : List (List AnnotTerm))
+def MkPreS (w j : Nat) (ρ : Nat → V) (us : List Nat) (Fs : List AnnotTerm)
+    (Uss : List (List Nat)) (Fss : List (List AnnotTerm))
     (bodyC : AnnotTerm) : List (Nat × Nat × AnnotTerm) → Prop
-  | [] => SumFieldsOkB w ρ Fss ∧ Fss[j]? = some (Fs ++ [idxEqAV []]) ∧ ∀ bs, SpineFit ρ Fs bs →
+  | [] => SumFieldsOkB w ρ Fss ∧ Fss[j]? = some (Fs ++ [idxEqAV []]) ∧ (∀ bs, SpineFit ρ Fs bs →
       ∃ f : Nat → V, interp V (consList bs ρ) bodyC = sumSet w f ∧
-        (if w = 0 then (pt : V) else mkTower (bs ++ [pt])) ∈ˢ f j
+        (if w = 0 then (pt : V) else mkTower (bs ++ [pt])) ∈ˢ f j) ∧
+      (w ≠ 0 → SumFieldsSorts w Uss ρ Fss ∧ FieldsSorts w us ρ Fs)
   | d :: pds => WellDenoted V ρ d.2.2 ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → MkPreS w j (cons a ρ) Fs Fss bodyC pds
+      ∀ a, a ∈ˢ interp V ρ d.2.2 → MkPreS w j (cons a ρ) us Fs Uss Fss bodyC pds
 
 /-- The injection body at a fitting field frame: its value and its
 grading. -/
-theorem sumInj_at_fields {w j : Nat} {ρp : Nat → V} {Fs : List AnnotTerm}
-    {Fss : List (List AnnotTerm)} {bs : List V}
+theorem sumInj_at_fields {w j : Nat} {ρp : Nat → V} {us : List Nat} {Fs : List AnnotTerm}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {bs : List V}
     (hok : SumFieldsOkB w ρp Fss) (hj : Fss[j]? = some (Fs ++ [idxEqAV []]))
+    (hs : w ≠ 0 → SumFieldsSorts w Uss ρp Fss ∧ FieldsSorts w us ρp Fs)
     (hsp : SpineFit ρp Fs bs) :
     interp V (consList bs ρp)
-        (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV [])))
+        (sumInjAtAV w Uss Fss Fs.length (numeralAV j) (mkTowerGoU w (us ++ [0]) Fs (idxEqAV [])))
         = injW w j (if w = 0 then pt else mkTower (bs ++ [pt])) ∧
       WellDenoted V (consList bs ρp)
-        (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) := by
+        (sumInjAtAV w Uss Fss Fs.length (numeralAV j) (mkTowerGoU w (us ++ [0]) Fs (idxEqAV []))) := by
   have hokF : FieldsOkB w ρp (Fs ++ [idxEqAV []]) := hok _ (List.mem_of_getElem? hj)
   have hlen : bs.length = Fs.length := hsp.length_eq
   have hsh : shiftE Fs.length 0 (consList bs ρp) = ρp := by rw [← hlen]; exact shiftE_consList bs ρp
   have hpt : (pt : V) ∈ˢ interp V (consList bs ρp) (idxEqAV []) := pt_mem_idxEqAV_nil _
-  have hmk := mkTowerGoU_interp (w := w) (fun hw => hokF.toBound hw) hsp hpt
-  have hpay : w ≠ 0 → interp V (consList bs ρp) (mkTowerGoU w Fs (idxEqAV []))
+  have hsF : w ≠ 0 → FieldsSorts w (us ++ [0]) ρp (Fs ++ [idxEqAV []]) :=
+    fun hw => FieldsSorts_append_idxEq (hs hw).2
+  have hmk := mkTowerGoU_interp (w := w) hsF hsp hpt
+  have hpay : w ≠ 0 → interp V (consList bs ρp) (mkTowerGoU w (us ++ [0]) Fs (idxEqAV []))
       ∈ˢ sumFibre w ρp Fss j := by
     intro hw
     rw [hmk, ite_eq_right hw, sumFibre_of_getElem? hj]
     exact mkTower_mem_teleOfFields hw (hsp.append ⟨hpt, trivial⟩)
-  have hv := sumInjAtAV_interp hsh hok (interp_numeralAV j _) hpay
+  have hv := sumInjAtAV_interp hsh hok (fun hw => (hs hw).1) (interp_numeralAV j _) hpay
   rw [hmk] at hv
-  exact ⟨hv, sumInjAtAV_wellDenoted hsh hok (numeralAV_wellDenoted j _) (interp_numeralAV j _)
-    (mkTowerGoU_wellDenoted hokF hsp hpt) hpay⟩
+  exact ⟨hv, sumInjAtAV_wellDenoted hsh hok (fun hw => (hs hw).1) (numeralAV_wellDenoted j _)
+    (interp_numeralAV j _) (mkTowerGoU_wellDenoted hokF hsF hsp hpt) hpay⟩
 
 /-- The field phase of the constructor leaf's premise (the walk
 carries the prefix spine). -/
 theorem underTowerOkS_fields {w j : Nat} {bodyC : AnnotTerm} {ρp : Nat → V}
-    {Fs : List AnnotTerm} {Fss : List (List AnnotTerm)}
+    {us : List Nat} {Fs : List AnnotTerm} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     (hok : SumFieldsOkB w ρp Fss) (hj : Fss[j]? = some (Fs ++ [idxEqAV []]))
+    (hs : w ≠ 0 → SumFieldsSorts w Uss ρp Fss ∧ FieldsSorts w us ρp Fs)
     (hbody : ∀ bs : List V, SpineFit ρp Fs bs →
       ∃ f : Nat → V, interp V (consList bs ρp) bodyC = sumSet w f ∧
         (if w = 0 then (pt : V) else mkTower (bs ++ [pt])) ∈ˢ f j) :
     ∀ {rest : List (Nat × Nat × AnnotTerm)} {pre : List AnnotTerm} {bs : List V},
       Fs = pre ++ rest.map (·.2.2) → SpineFit ρp pre bs →
       UnderTowerOk w (consList bs ρp)
-        (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) bodyC rest
+        (sumInjAtAV w Uss Fss Fs.length (numeralAV j) (mkTowerGoU w (us ++ [0]) Fs (idxEqAV []))) bodyC rest
   | [], pre, bs, hsplit, hsp => by
     have hspF : SpineFit ρp Fs bs := by
       rw [hsplit, List.map_nil, List.append_nil]; exact hsp
-    obtain ⟨hv, hok2⟩ := sumInj_at_fields hok hj hspF
+    obtain ⟨hv, hok2⟩ := sumInj_at_fields hok hj hs hspF
     obtain ⟨f, hf, hmem⟩ := hbody bs hspF
     refine ⟨hok2, ?_, ?_⟩
     · rw [hf, hv]; exact injW_mem hmem
@@ -1889,53 +1974,57 @@ theorem underTowerOkS_fields {w j : Nat} {bodyC : AnnotTerm} {ρp : Nat → V}
       exact this
     refine ⟨hd.1, fun a ha => ?_⟩
     have hstep : UnderTowerOk w (consList (bs ++ [a]) ρp)
-        (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) bodyC rest :=
-      underTowerOkS_fields hok hj hbody (pre := pre ++ [d.2.2])
+        (sumInjAtAV w Uss Fss Fs.length (numeralAV j) (mkTowerGoU w (us ++ [0]) Fs (idxEqAV []))) bodyC rest :=
+      underTowerOkS_fields hok hj hs hbody (pre := pre ++ [d.2.2])
         (by rw [hsplit, List.map_cons, List.append_assoc, List.singleton_append])
         (hsp.append ⟨ha, trivial⟩)
     rwa [consList_append, consList_cons, consList_nil] at hstep
 
 /-- The parameter phase: `MkPreS` walks down to the field phase. -/
-theorem underTowerOk_of_mkPreS {w j : Nat} {bodyC : AnnotTerm}
-    {Fs : List AnnotTerm} {Fss : List (List AnnotTerm)} {fds : List (Nat × Nat × AnnotTerm)} :
+theorem underTowerOk_of_mkPreS {w j : Nat} {bodyC : AnnotTerm} {us : List Nat}
+    {Fs : List AnnotTerm} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    {fds : List (Nat × Nat × AnnotTerm)} :
     ∀ {pds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      MkPreS w j ρ Fs Fss bodyC pds → Fs = fds.map (·.2.2) →
-      UnderTowerOk w ρ (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV [])))
+      MkPreS w j ρ us Fs Uss Fss bodyC pds → Fs = fds.map (·.2.2) →
+      UnderTowerOk w ρ (sumInjAtAV w Uss Fss Fs.length (numeralAV j) (mkTowerGoU w (us ++ [0]) Fs (idxEqAV [])))
         bodyC (pds ++ fds)
   | [], ρ, h, hFs =>
-    underTowerOkS_fields h.1 h.2.1 h.2.2 (pre := []) (bs := []) (by simpa using hFs) trivial
+    underTowerOkS_fields h.1 h.2.1 h.2.2.2 h.2.2.1 (pre := []) (bs := []) (by simpa using hFs) trivial
   | d :: pds, ρ, h, hFs =>
     ⟨h.1, fun a ha => underTowerOk_of_mkPreS (h.2 a ha) hFs⟩
 
 /-- **The constructor leaf inhabits its type's reading.** -/
-theorem sumMkAV_mem {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
+theorem sumMkAV_mem {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V} {us : List Nat}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
     (hz : ∀ d ∈ pds ++ fds, (w = 0 ↔ d.2.1 = 0))
-    (hpre : MkPreS w j ρ (fds.map (·.2.2)) Fss bodyC pds) :
-    interp V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss)
+    (hpre : MkPreS w j ρ us (fds.map (·.2.2)) Uss Fss bodyC pds) :
+    interp V ρ (sumMkAV w j (pds ++ fds) us (fds.map (·.2.2)) Uss Fss)
       ∈ˢ interp V ρ (mkPisAV (pds ++ fds) bodyC) :=
   mkLamsC_mem hz (underTowerOk_of_mkPreS hpre rfl)
 
 /-- **The constructor leaf is graded.** -/
-theorem sumMkAV_wellDenoted {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
+theorem sumMkAV_wellDenoted {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V} {us : List Nat}
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
     (hz : ∀ d ∈ pds ++ fds, (w = 0 ↔ d.2.1 = 0))
-    (hpre : MkPreS w j ρ (fds.map (·.2.2)) Fss bodyC pds) :
-    WellDenoted V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss) :=
+    (hpre : MkPreS w j ρ us (fds.map (·.2.2)) Uss Fss bodyC pds) :
+    WellDenoted V ρ (sumMkAV w j (pds ++ fds) us (fds.map (·.2.2)) Uss Fss) :=
   mkLamsC_wellDenoted hz (underTowerOk_of_mkPreS hpre rfl)
 
 /-- **The constructor leaf's application fold** (graph regime): along
 a fitting parameter + field spine the leaf computes the injection of
 the point-terminated tupler. -/
 theorem sumMkAV_fold {w j : Nat} (hw : w ≠ 0)
-    {pds fds : List (Nat × Nat × AnnotTerm)} {Fss : List (List AnnotTerm)} {ρ : Nat → V}
+    {pds fds : List (Nat × Nat × AnnotTerm)} {us : List Nat} {Uss : List (List Nat)}
+    {Fss : List (List AnnotTerm)} {ρ : Nat → V}
     {as bs : List V}
     (hsp₁ : SpineFit ρ (pds.map (·.2.2)) as)
     (hsp₂ : SpineFit (consList as ρ) (fds.map (·.2.2)) bs)
     (hok : SumFieldsOkB w (consList as ρ) Fss)
-    (hj : Fss[j]? = some (fds.map (·.2.2) ++ [idxEqAV []])) :
+    (hj : Fss[j]? = some (fds.map (·.2.2) ++ [idxEqAV []]))
+    (hs : SumFieldsSorts w Uss (consList as ρ) Fss ∧
+      FieldsSorts w us (consList as ρ) (fds.map (·.2.2))) :
     (as ++ bs).foldl SetTheory.app
-        (interp V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss))
+        (interp V ρ (sumMkAV w j (pds ++ fds) us (fds.map (·.2.2)) Uss Fss))
       = inj j (mkTower (bs ++ [pt])) := by
   have hsp : SpineFit ρ
       (((pds ++ fds).map fun d => (w, d.2.2)).map (·.2)) (as ++ bs) := by
@@ -1948,15 +2037,16 @@ theorem sumMkAV_fold {w j : Nat} (hw : w ≠ 0)
     mkLamsAV_fold (fun d hd => by
       obtain ⟨d', -, rfl⟩ := List.mem_map.mp hd
       exact hw) hsp,
-    consList_append, (sumInj_at_fields hok hj hsp₂).1, ite_eq_right hw, injW_pos hw]
+    consList_append, (sumInj_at_fields hok hj (fun _ => hs) hsp₂).1, ite_eq_right hw, injW_pos hw]
 
 /-- **The constructor leaf at a squash instantiation is the point.** -/
-theorem sumMkAV_zero {j : Nat} {ds : List (Nat × Nat × AnnotTerm)} {Fs : List AnnotTerm}
-    {Fss : List (List AnnotTerm)} {ρ : Nat → V} :
-    interp V ρ (sumMkAV 0 j ds Fs Fss) = (pt : V) := by
+theorem sumMkAV_zero {j : Nat} {ds : List (Nat × Nat × AnnotTerm)} {us : List Nat}
+    {Fs : List AnnotTerm} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {ρ : Nat → V} :
+    interp V ρ (sumMkAV 0 j ds us Fs Uss Fss) = (pt : V) := by
   match ds with
   | [] =>
-    show interp V ρ (sumInjAtAV 0 Fss Fs.length (numeralAV j) (mkTowerGoU 0 Fs (idxEqAV []))) = pt
+    show interp V ρ (sumInjAtAV 0 Uss Fss Fs.length (numeralAV j)
+      (mkTowerGoU 0 (us ++ [0]) Fs (idxEqAV []))) = pt
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (psigmaMkV V 0 0) _) _) _) _ = _
     rw [psigmaMkV, show Nat.max 0 0 = 0 from rfl, lamR_zero, app_pt, app_pt, app_pt, app_pt]
   | d :: ds => exact mkLamsAV_zero_head d.2.2 _ _ ρ
@@ -2055,65 +2145,65 @@ theorem caseAVAt_below {w K : Nat} :
 
 /-! ## The carrier -/
 
-theorem towers_below {w K : Nat} {Fss : List (List AnnotTerm)}
+theorem towers_below {w K : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     (h : ∀ Fs ∈ Fss, FieldsBelow K Fs) :
-    ∀ T ∈ Fss.map (towerBodyAV w), Term.bvarsBelow K T.erase := by
+    ∀ T ∈ towersAV w Uss Fss, Term.bvarsBelow K T.erase := by
   intro T hT
-  obtain ⟨Fs, hFs, rfl⟩ := List.mem_map.mp hT
-  exact towerBodyAV_below (h Fs hFs)
+  obtain ⟨i, Fs, hFs, rfl⟩ := mem_towersAV hT
+  exact towerBodyAV_below (h Fs (List.mem_of_getElem? hFs))
 
-theorem sumBodyAVPos_below {w K : Nat} {Fss : List (List AnnotTerm)}
+theorem sumBodyAVPos_below {w K : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     (h : ∀ Fs ∈ Fss, FieldsBelow K Fs) :
-    Term.bvarsBelow K (sumBodyAVPos w Fss).erase := by
+    Term.bvarsBelow K (sumBodyAVPos w Uss Fss).erase := by
   refine ⟨⟨trivial, trivial⟩, trivial, ?_⟩
-  have := caseAVAt_below (w := w) (K := K) (Ts := Fss.map (towerBodyAV w)) (d := 1)
+  have := caseAVAt_below (w := w) (K := K) (Ts := towersAV w Uss Fss) (d := 1)
     (kx := .bvar 0) (towers_below h) (show (0 : Nat) < K + 1 by omega)
   exact this
 
-theorem sqSumBodyAV_below {K : Nat} {Fss : List (List AnnotTerm)}
+theorem sqSumBodyAV_below {K : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     (h : ∀ Fs ∈ Fss, FieldsBelow K Fs) :
-    Term.bvarsBelow K (sqSumBodyAV Fss).erase := by
+    Term.bvarsBelow K (sqSumBodyAV Uss Fss).erase := by
   refine ⟨⟨trivial, ⟨?_, trivial⟩⟩, trivial⟩
-  have := caseAVAt_below (w := 0) (K := K) (Ts := Fss.map (towerBodyAV 0)) (d := 1)
+  have := caseAVAt_below (w := 0) (K := K) (Ts := towersAV 0 Uss Fss) (d := 1)
     (kx := .bvar 0) (towers_below h) (show (0 : Nat) < K + 1 by omega)
   exact this
 
-theorem sumBodyAV_below {w K : Nat} {Fss : List (List AnnotTerm)}
+theorem sumBodyAV_below {w K : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
     (h : ∀ Fs ∈ Fss, FieldsBelow K Fs) :
-    Term.bvarsBelow K (sumBodyAV w Fss).erase := by
+    Term.bvarsBelow K (sumBodyAV w Uss Fss).erase := by
   by_cases hw : w = 0
   · subst hw; rw [sumBodyAV_zero]; exact sqSumBodyAV_below h
   · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_below h
 
 /-- **The type-former leaf is bounded.** -/
 theorem sumTyAV_below {w : Nat} {pps : List (Nat × Nat × AnnotTerm)}
-    {Fss : List (List AnnotTerm)} {k : Nat} (hp : DomsBelow k pps)
+    {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {k : Nat} (hp : DomsBelow k pps)
     (hF : ∀ Fs ∈ Fss, FieldsBelow (k + pps.length) Fs) :
-    Term.bvarsBelow k (sumTyAV w pps Fss).erase :=
+    Term.bvarsBelow k (sumTyAV w pps Uss Fss).erase :=
   mkLamsAV_below hp.mapC (by
     rw [List.length_map]
     exact sumBodyAV_below hF)
 
 /-! ## The constructor -/
 
-theorem sumInjAtAV_below {w K : Nat} {Fss : List (List AnnotTerm)} {d : Nat}
-    {tag payload : AnnotTerm} (h : ∀ Fs ∈ Fss, FieldsBelow K Fs)
+theorem sumInjAtAV_below {w K : Nat} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)}
+    {d : Nat} {tag payload : AnnotTerm} (h : ∀ Fs ∈ Fss, FieldsBelow K Fs)
     (ht : Term.bvarsBelow (K + d) tag.erase) (hp : Term.bvarsBelow (K + d) payload.erase) :
-    Term.bvarsBelow (K + d) (sumInjAtAV w Fss d tag payload).erase := by
+    Term.bvarsBelow (K + d) (sumInjAtAV w Uss Fss d tag payload).erase := by
   refine ⟨⟨⟨⟨trivial, trivial⟩, trivial, ?_⟩, ht⟩, hp⟩
-  have := caseAVAt_below (w := w) (K := K) (Ts := Fss.map (towerBodyAV w)) (d := d + 1)
+  have := caseAVAt_below (w := w) (K := K) (Ts := towersAV w Uss Fss) (d := d + 1)
     (kx := .bvar 0) (towers_below h) (show (0 : Nat) < K + (d + 1) by omega)
   rwa [show K + (d + 1) = K + d + 1 from by omega] at this
 
 /-- The point-terminated tupler (graph regime): bounded at the full
 field frame. -/
 theorem mkTowerGoUPos_below {w : Nat} {E : AnnotTerm} :
-    ∀ {Fs : List AnnotTerm} {k : Nat}, FieldsBelow k (Fs ++ [E]) →
-      Term.bvarsBelow (k + Fs.length) (mkTowerGoUPos w E Fs).erase
-  | [], k, h => by
+    ∀ {us : List Nat} {Fs : List AnnotTerm} {k : Nat}, FieldsBelow k (Fs ++ [E]) →
+      Term.bvarsBelow (k + Fs.length) (mkTowerGoUPos w E us Fs).erase
+  | _, [], k, h => by
     have hE : Term.bvarsBelow k E.erase := h.1
     exact ⟨⟨⟨⟨trivial, hE⟩, hE, trivial⟩, trivial⟩, trivial⟩
-  | F :: Fs, k, h => by
+  | us, F :: Fs, k, h => by
     simp only [List.cons_append] at h
     have hF : Term.bvarsBelow (k + (Fs.length + 1))
         (F.liftN (Fs.length + 1)).erase := by
@@ -2121,25 +2211,25 @@ theorem mkTowerGoUPos_below {w : Nat} {E : AnnotTerm} :
       have := VExprAux.bvarsBelow_liftN (Fs.length + 1) F.erase k 0 h.1
       exact this
     have hbody : Term.bvarsBelow (k + (Fs.length + 1) + 1)
-        ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1).erase := by
+        ((towerBodyAV w us.tail (Fs ++ [E])).liftN (Fs.length + 1) 1).erase := by
       rw [AnnotTerm.erase_liftN]
       have := VExprAux.bvarsBelow_liftN (Fs.length + 1)
-        (towerBodyAV w (Fs ++ [E])).erase (k + 1) 1 (towerBodyAV_below h.2)
+        (towerBodyAV w us.tail (Fs ++ [E])).erase (k + 1) 1 (towerBodyAV_below h.2)
       rw [show k + 1 + (Fs.length + 1) = k + (Fs.length + 1) + 1
         by omega] at this
       exact this
     have hrec : Term.bvarsBelow (k + (Fs.length + 1))
-        (mkTowerGoUPos w E Fs).erase := by
-      have := mkTowerGoUPos_below (w := w) (E := E) (Fs := Fs) (k := k + 1) h.2
+        (mkTowerGoUPos w E us.tail Fs).erase := by
+      have := mkTowerGoUPos_below (w := w) (E := E) (us := us.tail) (Fs := Fs) (k := k + 1) h.2
       rw [show k + 1 + Fs.length = k + (Fs.length + 1) by omega] at this
       exact this
     exact ⟨⟨⟨⟨trivial, hF⟩, hF, hbody⟩,
       show Fs.length < k + (Fs.length + 1) by omega⟩, hrec⟩
 
 /-- The point-terminated tupler, both regimes. -/
-theorem mkTowerGoU_below {w : Nat} {Fs : List AnnotTerm} {E : AnnotTerm} {k : Nat}
-    (h : FieldsBelow k (Fs ++ [E])) :
-    Term.bvarsBelow (k + Fs.length) (mkTowerGoU w Fs E).erase := by
+theorem mkTowerGoU_below {w : Nat} {us : List Nat} {Fs : List AnnotTerm} {E : AnnotTerm}
+    {k : Nat} (h : FieldsBelow k (Fs ++ [E])) :
+    Term.bvarsBelow (k + Fs.length) (mkTowerGoU w us Fs E).erase := by
   by_cases hw : w = 0
   · subst hw; rw [mkTowerGoU_zero]; trivial
   · rw [mkTowerGoU_pos hw]; exact mkTowerGoUPos_below h
@@ -2153,16 +2243,18 @@ theorem uChains_below {K : Nat} {Fss : List (List AnnotTerm)} (h : ∀ Fs ∈ Fs
 
 /-- **The constructor leaf is bounded** (`hlen` is the frame
 accounting: the field frame ends at the binder tower's). -/
-theorem sumMkAV_below {w j : Nat} {ds : List (Nat × Nat × AnnotTerm)}
-    {Fs : List AnnotTerm} {Fss : List (List AnnotTerm)} {k nP : Nat} (hd : DomsBelow k ds)
+theorem sumMkAV_below {w j : Nat} {ds : List (Nat × Nat × AnnotTerm)} {us : List Nat}
+    {Fs : List AnnotTerm} {Uss : List (List Nat)} {Fss : List (List AnnotTerm)} {k nP : Nat}
+    (hd : DomsBelow k ds)
     (hF : FieldsBelow (k + nP) Fs) (hFss : ∀ Fs' ∈ Fss, FieldsBelow (k + nP) Fs')
     (hlen : nP + Fs.length = ds.length) :
-    Term.bvarsBelow k (sumMkAV w j ds Fs Fss).erase :=
+    Term.bvarsBelow k (sumMkAV w j ds us Fs Uss Fss).erase :=
   mkLamsC_below hd (by
-    have hmk := mkTowerGoU_below (w := w) (E := idxEqAV [])
+    have hmk := mkTowerGoU_below (w := w) (us := us ++ [0]) (E := idxEqAV [])
       (FieldsBelow_append_idxEq hF fun _ h => nomatch h)
-    have := sumInjAtAV_below (w := w) (K := k + nP) (Fss := Fss) (d := Fs.length)
-      (tag := numeralAV j) (payload := mkTowerGoU w Fs (idxEqAV [])) hFss (numeralAV_erase_below j _) hmk
+    have := sumInjAtAV_below (w := w) (K := k + nP) (Uss := Uss) (Fss := Fss) (d := Fs.length)
+      (tag := numeralAV j) (payload := mkTowerGoU w (us ++ [0]) Fs (idxEqAV [])) hFss
+      (numeralAV_erase_below j _) hmk
     rwa [show k + nP + Fs.length = k + ds.length from by omega] at this)
 
 end ConLeche.Semantics
