@@ -229,12 +229,13 @@ accessibility construction `SetModel/Access.lean`) read of a level
 up to a drop (`univ_dropClosed`), unions of a family of members indexed
 by a set of the axiomatic level (`univ_famUnion_mem`), and adding `∅` as
 a member (`univ_binUnion_sing_empty_mem`).  Today all three hold because
-`univ w` is the axiomatic level; at stage 1b of task #342 (`univ` the
-restricted universe) they are re-proved from strictness — a union of
-strict sets is strict, `{∅}` is strict, and a subset of a strict set is
-strict or the point (`tests/ConLecheTests/LfpTypes.lean` checks the three
-against the restricted universe built from `tg`).  Nothing else of the
-level is read, so the constructions' laws carry over unchanged. -/
+`univ w` is the axiomatic level; they hold at the restricted universe
+`typeU w` too (`typeU_dropClosed`, `typeU_famUnion_mem`,
+`typeU_binUnion_sing_empty_mem`, below: a subset of a strict set is
+strict or the point, a union of strict sets is strict, `{∅}` is strict),
+so when stage 1b of task #342 makes `univ` the restricted universe the
+three are re-proved by those and the constructions' laws carry over
+unchanged.  Nothing else of the level is read. -/
 
 /-- **A level is closed under subsets up to a drop.** -/
 theorem univ_dropClosed (w : Nat) : DropClosed (univ w : V) :=
@@ -259,6 +260,64 @@ theorem subsetClosed_tg (w : Nat) : SubsetClosed (tg w : V) := by
   · rw [tg_zero, mem_univZero] at hy ⊢
     exact hz.trans hy
   · exact (tg_isTGUniverse (Nat.pos_iff_ne_zero.mp hw)).mem_of_subset_mem hy hz
+
+/-! ### The same facts at the restricted universe -/
+
+/-- A nonempty set inside the point is the point. -/
+theorem eq_pt_of_subset_pt {Y y : V} (hY : Y ⊆ˢ pt) (hy : y ∈ˢ Y) : Y = pt := by
+  refine Subset.antisymm hY fun z hz => ?_
+  rw [mem_pt.mp hz, ← mem_pt.mp (hY y hy)]
+  exact hy
+
+/-- **The restricted universe is closed under subsets up to a drop**: a
+subset of a strict set that is not a type is the point, and the only
+type inside the point is `∅`. -/
+theorem typeU_dropClosed (w : Nat) : DropClosed (typeU w : V) := by
+  intro Z S Y hZ hSZ hS hY hYS
+  by_cases hw : w = 0
+  · subst hw
+    rw [typeU_zero, mem_univZero] at hZ hS
+    exact absurd (hSZ.trans hZ) hS
+  · obtain ⟨hZt, -, hZp⟩ := (mem_typeU_pos hw).mp hZ
+    obtain ⟨-, hYne, -⟩ := (mem_typeU_pos hw).mp hY
+    have hSpt : S = pt := Classical.byContradiction fun hne => hS ((mem_typeU_pos hw).mpr
+      ⟨subsetClosed_tg w _ _ hZt hSZ, hne, fun h => hZp (hSZ _ h)⟩)
+    subst hSpt
+    exact Subset.antisymm (fun y hy => absurd (eq_pt_of_subset_pt hYS hy) hYne)
+      (empty_subset _)
+
+/-- **A union of types of a positive level**, indexed by a set of the
+axiomatic level, is a type: a union of strict sets is strict. -/
+theorem typeU_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA : A ∈ˢ (tg w : V))
+    (hF : ∀ a, a ∈ˢ A → F a ∈ˢ (typeU w : V)) : sUnion (image F A) ∈ˢ (typeU w : V) := by
+  refine (mem_typeU_pos hw).mpr ⟨(tg_isTGUniverse hw).famUnion_mem hA fun a ha =>
+    ((mem_typeU_pos hw).mp (hF a ha)).1, fun he => ?_, fun hp => ?_⟩
+  · have : (ptTag : V) ∈ˢ sUnion (image F A) := he ▸ ptTag_mem_pt
+    obtain ⟨y, hy, hty⟩ := mem_sUnion.mp this
+    obtain ⟨a, ha, rfl⟩ := mem_image.mp hy
+    exact ((mem_typeU_pos hw).mp (hF a ha)).2.1
+      (eq_pt_of_subset_pt (fun z hz => he ▸ mem_sUnion.mpr ⟨_, hy, hz⟩) hty)
+  · obtain ⟨y, hy, hpy⟩ := mem_sUnion.mp hp
+    obtain ⟨a, ha, rfl⟩ := mem_image.mp hy
+    exact ((mem_typeU_pos hw).mp (hF a ha)).2.2 hpy
+
+/-- **A type of a positive level with `∅` added** is a type. -/
+theorem typeU_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V}
+    (hX : X ∈ˢ (typeU w : V)) : binUnion X (sing empty) ∈ˢ (typeU w : V) := by
+  obtain ⟨hXt, -, hXp⟩ := (mem_typeU_pos hw).mp hX
+  have hU := tg_isTGUniverse (V := V) hw
+  refine (mem_typeU_pos hw).mpr ⟨hU.binUnion_mem (empty_mem_tg w) hXt
+    (hU.sing_mem (empty_mem_tg w) (empty_mem_tg w)), fun he => ?_, fun hp => ?_⟩
+  · -- `∅` is a member, and `∅ ≠ ptTag`
+    have h0 : (empty : V) ∈ˢ binUnion X (sing empty) :=
+      mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl))
+    have h1 : (empty : V) ∈ˢ ptTag := empty_mem_ptTag
+    rw [he, mem_pt] at h0
+    rw [← h0] at h1
+    exact not_mem_empty _ h1
+  · rcases mem_binUnion.mp hp with h | h
+    · exact hXp h
+    · exact pt_ne_empty (mem_sing.mp h)
 
 /-! ## Families of a level -/
 
