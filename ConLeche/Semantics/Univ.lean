@@ -116,14 +116,8 @@ theorem interp_univ_cod_inversion (V : Type w) [SetTheory V] {v : Nat}
 
 /-! ## The proof point and the universes -/
 
-/-- The proof point is **not** a truth value: `pt = {ptTag}` and
-`ptTag ≠ pt`, so `pt ⊄ unitSet`. -/
-theorem pt_not_mem_univZero : ¬ (pt : V) ∈ˢ univZero := by
-  intro h
-  have h1 : (ptTag : V) ∈ˢ unitSet := mem_univZero.mp h ptTag ptTag_mem_pt
-  have h2 : (ptTag : V) = pt := mem_unitSet_iff.mp h1
-  have h3 : (pt : V) ∈ˢ pt := mem_pt.mpr h2.symm
-  exact not_mem_self (pt : V) h3
+/- `pt_not_mem_univZero` (the proof point is not a truth value) is a
+point law of `SetTheory/Derive/Pt.lean`. -/
 
 /-- The empty-domain graph-regime product is `{∅}`, whose only member
 is the empty graph. -/

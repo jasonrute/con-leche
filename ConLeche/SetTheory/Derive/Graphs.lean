@@ -42,6 +42,16 @@ theorem graph_ne_pt {F : V → V} {A : V} : graph F A ≠ (pt : V) := by
     mem_graph.mp (h ▸ ptTag_mem_pt : (ptTag : V) ∈ˢ graph F A)
   exact ptTag_ne_kpair x (F x) hx
 
+/-- No graph is a member of the point (a point law, task #342): the
+point's one member `ptTag` has the empty set as a member, while every
+member of a graph is a Kuratowski pair, hence nonempty. -/
+theorem graph_not_mem_pt {F : V → V} {A : V} : ¬ graph F A ∈ˢ (pt : V) := by
+  intro h
+  have h' : (empty : V) ∈ˢ graph F A := mem_pt.mp h ▸ empty_mem_ptTag
+  obtain ⟨x, -, hx⟩ := mem_graph.mp h'
+  have hs : sing x ∈ˢ (empty : V) := hx ▸ mem_upair_left _ _
+  exact not_mem_empty _ hs
+
 theorem graph_congr {F F' : V → V} {A : V} (h : ∀ x, x ∈ˢ A → F x = F' x) :
     graph F A = graph F' A :=
   image_congr fun x hx => by rw [h x hx]

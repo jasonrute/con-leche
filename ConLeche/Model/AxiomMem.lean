@@ -69,7 +69,7 @@ theorem univ_not_mem_univZero (n : Nat) : ¬ (univ n : V) ∈ˢ univZero := by
   intro h
   have hemp : (empty : V) ∈ˢ unitSet := mem_univZero.mp h _ (empty_mem_univ n)
   have he : (empty : V) = pt := mem_unitSet hemp
-  refine ConLeche.Semantics.pt_not_mem_univZero (V := V) ?_
+  refine ConLeche.SetTheory.pt_not_mem_univZero (V := V) ?_
   rw [← he]
   exact univ_zero (V := V) ▸ empty_mem_univ 0
 
