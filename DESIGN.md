@@ -101025,3 +101025,130 @@ about a quarter of a percent.  `appIn`/`DefEqIn` (the type from the
 head's stored type) and the propositional-domain and constant-body
 exemptions remove most of that; whether that is worth the code is a
 ruling.
+
+## TASK #346 — the io grade without annotations: a hereditary claim, and where it cannot go (2026-10-11, agent/346-io)
+
+The question (#342 v2 design §5.4, spike X1; maintainer ruling Q3,
+2026-10-11): on #344's annotation-free fragment, can a fast-inference
+grade skip the argument check at every application, as Lean's
+`infer_only` does, with its consumers kept — the λ/η body-type
+comparison (T1/T2), the ι telescope certificates, proof irrelevance?
+Done on `agent/346-io` (off `agent/345-probe`), fragment only,
+`whitepaper/fragment-gate.sh` green; the whitepaper text is not
+touched.
+
+**Verdict: yes for every consumer except the λ/η body-type
+comparison, which must infer at the full grade.**  That is the
+checker configuration I of #342 v2 §6.2 (the tax through the full
+`infer`, no io certificate anywhere else: +0.31 % init-full, +0.28 %
+mathlib-prefix against `master`).
+
+**The grade and its claim** (`IOGrade.lean`, all proved).
+- `InferIO` is `Infer` without the application's argument check and
+  without the λ's domain check; `∀`-formation still infers the sorts.
+- Its claim `IORel` is **hereditary and keyed on the type's syntax**:
+  the value is the point, or a member of the type (with the type's
+  invariant), or — only when the type is syntactically a `∀` — a graph
+  over the `∀`'s domain, not everywhere the point, whose every
+  application satisfies the claim at the `∀`'s body.
+  `inferIO_sound` proves it for every rule.  The application case is
+  the maintainer's half-argument: a head that is not the point is a
+  graph, and a graph determines its domain, so the argument is in the
+  `∀`'s domain whether the head is a member or hereditary.  The λ case
+  is the reason for the third disjunct: `lamV` is the point when every
+  body value is, else the graph of body values that are themselves
+  only hereditary.  A type that is not a `∀` may become one under
+  substitution or reduction; membership is part of the `∀`'s claim,
+  so one direction of each transfer lemma suffices
+  (`IORel_inst`, `IORel_red`; a `∀` or a sort reduces only to itself,
+  `Red.eq_of_rigid`).
+- The two §5.2 witnesses satisfy it: `(fun h : False => h.elim) 0` is
+  the point; `fun x : Bool => h x 0` is a graph whose application at
+  `false` is the point and at `true` a member.
+- **Why the syntax**: `io_type_value_collision` (`IOWitness.lean`):
+  `fun (x : Prop) => (fun (h : E x) => h) n` io-infers
+  `(x : Prop) → E x`, of sort `Type`, whose value is empty (its fibre at
+  `False` is), i.e. a truth value, and the term is not the point.  A
+  claim read off the type's value cannot give proof irrelevance, nor
+  carry the hereditary case through an application (two `∀`s with
+  equal values need not have equal domains).
+- Corollary used below: at a type that is not syntactically a `∀`, the
+  claim is "the point or a member" — the conditional claim — whatever
+  the term.  And a term with a variable or constant head never takes
+  the hereditary case (`IORel_neutral`).
+
+**Consumers that the io grade serves** (proved where the fragment has
+the rule):
+- *proof irrelevance* with the type and its sort both io-inferred
+  (`proofIrrelIO_sound`, via `eq_pt_of_IORel_prop`): a member of a
+  type of sort `Prop` is the point; in the hereditary case the type is a
+  `∀`, inversion of `InferIO.pi` gives its body sort `Prop`, and by
+  induction every application is the point, against the clause's
+  witness.  The *syntactic* sort is what makes this work.
+- *η against a term with a variable or constant head*, that term's type
+  io-inferred (`etaIO_sound`; `DefEq.eta_sound` now takes the
+  conditional membership of `b`, which `infer_sound` supplies for the
+  full rule).  The checker's η meets a weak-head-normal non-λ, which has
+  such a head (or is a stuck projection, outside the fragment).
+- not in the fragment, by the corollary: struct-η and unit-η, the
+  rescues' major-type discovery, projection inference (they read an io
+  type after reducing it to a non-`∀`), and §5.3's recursor telescope
+  and constructor telescope when the major is not the point (atom
+  heads).  §5.3's remaining case — index-pinned non-`Prop` fields of a
+  major that is the point — gets nothing from the io claim and keeps its
+  certificate, as §5.3 says.
+
+**Consumers that it cannot serve** (`IOWitness.lean`, witnesses in a
+model `ioModel` of the environment `ioEnv`: `E : Prop → Type` opaque,
+`True ↦ Prop`, `False ↦ ∅`; `n : Prop` opaque, `True`; and two *typed*
+definitions `g := fun (x : Prop) (h : E x) => n` and
+`k := fun _ : Prop => n`):
+- `lam_congr_io_unsound`: under `x : Prop`, `g x n` (its argument `n`
+  is no member of `E x`) io-infers `Prop`, `n` infers `Prop`, and
+  `g x n` reduces to `n` (δ, β, β).  So every premise of λ-congruence
+  holds with io-inferred bodies' types, and the conclusion
+  `fun x => g x n ≡ fun x => n` is false: the left λ is the point at
+  `False` (`g False` is an abstraction over `∅`) and `True` at `True`.
+  The premises are derivations, so **no claim about `InferIO` can make
+  this rule sound** — the result is about the rule, not the proof.
+  The body has a constant head, so restricting to weak-head-normal
+  bodies does not help.
+- `eta_body_io_unsound`: the same body against `k`, with the λ's body
+  type io-inferred (T2's body side).
+- `eta_lam_io_unsound`: η with the other side's type io-inferred, when
+  that side is a λ (`fun x => n ≡ fun x => g x n`).  The checker never
+  runs η against a λ; the fragment's rule allows it.
+
+**What the model lacks.**  The body `g x n` is ill-typed: Lean's typing
+(subject reduction plus uniqueness of types) would give every body the
+checker meets a correct io-inferred type.  The semantic invariant
+`WellDenoted` asks of an application only that its argument lie in the
+domain of *some* product holding the head; where the head is the point
+(`g False`) that constrains nothing.  Strengthening it to "the argument
+lies in the domain of the head's io-inferred type" is not closed under
+β: `(fun (y : Nat → True) => c (y 5)) a` with `a : Bool → True` meets
+it (`a` is the point, a member of `Nat → True`), is not the point, and
+its reduct `c (a 5)` does not.  So T1/T2 at the io grade would need a
+typing of the bodies the model does not carry; the full-grade check
+supplies the common type instead.
+
+**For the port (#342 v2).**
+- S0-F's io should be configuration I: official `infer_only` for every
+  io call site **except** the λ-λ arm's two body inferences and η's λ
+  body inference, which use the full grade; η's inference of the
+  non-λ side's type may stay io.
+- The io and full grades must not share a type cache: an io-inferred
+  type read by the full grade (T1/T2) is exactly the unsound case.
+  Lean's kernel keeps the two caches separate.
+- The ι certificates: §5.3 unchanged; the recursor telescope and the
+  constructor telescope of a major that is not the point are justified
+  by the io claim at atom heads.
+
+**Line counts**: `IOGrade.lean` 448 (new), `IOWitness.lean` 496 (new),
+`Sound.lean` `eta_sound`'s premise weakened (+8 −4), `Probe.lean` two
+definitions exposed, pins in `Axioms.lean` for `inferIO_sound`,
+`eq_pt_of_IORel_prop`, `proofIrrelIO_sound`, `IORel_neutral`,
+`etaIO_sound`, `lam_congr_io_unsound`, `eta_body_io_unsound`,
+`eta_lam_io_unsound`, `io_type_value_collision` (the three standard
+axioms).  `links-gate.sh` fails as before (#340's stale anchors), with
+an unchanged report.
