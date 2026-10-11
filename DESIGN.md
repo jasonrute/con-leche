@@ -100550,3 +100550,89 @@ three standard axioms), `whitepaper/links-gate.sh` (454 links),
 `lake test` and `tests/arena.sh` were not run: nothing outside
 `whitepaper/` and this record changed, and the battery's whitepaper
 gates are the three above.
+
+## TASK #340 — the whitepaper fragment switched to the restricted model: uniform β, conditional claims, inductive types included (2026-10-11, agent/340-brave)
+
+Ruling (maintainer, 2026-10-11): option 3 of #339 — the restricted
+universes and uniform β become the fragment's only design.  Done on
+`agent/340-brave` (off `agent/339-uniform-ind`); nothing outside
+`whitepaper/` and this record changed, and con-leche's checker and its
+`Semantics` still interpret sorts by the universes and run the
+certified β.
+
+**What is proved.**  The whole fragment, consistency included, for
+the new model, with no `sorry` and the three standard axioms
+(`whitepaper/fragment-gate.sh` green; `soundness`, `closed_infer`,
+`install_def`, `install_ind`, `install_nest`, `install_ind_any`,
+`accepted_model`, `no_empty_inductive_inhabitant`,
+`no_empty_prop_inhabitant`, `badEnv_no_model`, `Red.beta_sound`,
+`major_eq`, `Red.iota_core` among the pins).
+
+**The model** (`Lib.lean`, `Interp.lean`): `SetLib` gains the point's
+three laws (not a truth value, at most one member, no graph a member)
+and closure of the universes under separation; `interp` reads
+`Sort n` as `typeU n` (truth values at `0`, the strict members of
+`univ n` above).  `IndLib` gains one law: no tagged value is a member
+of the point (with `tag_ne_pt`, a set of tagged values is strict).
+
+**The invariant and the claims**: `WellDenoted` is #338's `WDU` (a
+recursive definition: binder domains and graph-regime slot domains are
+types, codomain fibres follow the annotation's regime); `Sat`, `CtxWD`
+and `EnvModel.type_ok` carry `IsTy`; `RedSem`/`DefEqSem` claim nothing
+of the point, `InferSem` adds that the type is a type.
+
+**The rules**: `Red` has one β rule with no premise (`betaGate` and the
+certified `beta` are gone); `DefEq` and `Infer` unchanged.  The ι laws
+compare conditionally and are asked only off the point.
+
+**The installation** — what #339's sketch did not foresee:
+- *Families of types only.*  The former may denote only a family of
+  types, so the universe bound on the fields is read in the model whose
+  former denotes the one-fibre family (`oneSet`: `{pt}` at a
+  proposition, `{tag 0 ∅}` above) and transported to every family by
+  the no-dependency replacement (`toFam`, `domsBounded_of_fam`); the
+  support bound uses the same family.
+- *The class at admissible sets.*  The container's set is a graph whose
+  nested domain is `Sort u`; the generic accessibility machinery applies
+  the class at arbitrary sets of the universe, where the graph says
+  nothing.  `classSet` now applies the container at the admissible part
+  `adm X` (above a proposition, the members neither the point nor in
+  it: a type, and `X` itself on a set of tagged values); readers record
+  that their family's fibres are admissible (`Reader.adm`); the
+  container's universe bound at a non-admissible parameter set follows
+  by positivity from the bound at the one-fibre set
+  (`NestFacts.domsBoundedK`); `NestFacts.argsFit` is asked at types.
+- *A cycle broken.*  The final model's former needs its fibres to be
+  types, which needs the container's clause, which needs the class's
+  arguments to fit — previously read in the final model.  `argsFit_of`
+  now reads the class's typing in the one-fibre model.
+- *The conditional comparisons as equalities*: `FitsVals_eq_of_cond`
+  (two fits of one context of types, equal where neither is the
+  point, are equal), at the parameter and index contexts read off the
+  former's typing, in both `rec_rule_law` and `rec_rule_lawN`.
+- *Minors' types are types*: the spine of a minor needs its binders'
+  domains to be types, read off the recursor's type (`wd_minorsFrom`,
+  `wd_ctxFrom`, `wd_minors_of_extrasN`).
+No law failed, no construction left the restricted universes, and
+nothing needed subject reduction or a run-time check.
+
+**Line counts** (`git diff --numstat`): against `fc4bd2b39` +2 807
+−4 011 (net −1 204: `Uniform/` 1 906 lines deleted, `UniformBeta.lean`
+reduced to the no-model half); against `master`'s fragment +2 855 −1 972
+(net +883).  The fragment is 25 388 lines (master 24 506).  Largest
+changes: `Sound` (rebuilt from `Uniform/Sound`), `InstallNest`
+(reordered), `IndSem` (`oneSet`, `adm`-aware class, `toFam`,
+`domsBounded_of_fam`, `Fam_mem_typeU`), `InstallInd`, `Lib`
+(`typeU` and its lemmas), `NestIota`, `NestSem`.
+
+**Not done** (ruling: text later): `whitepaper/sections/*.typ` still
+present the certified design; `links-gate.sh` fails on 11 stale anchors
+into `Rules`, `WellDenoted`, `Univ`, `UniformBeta` and `Uniform/`.
+NOTES item 40 lists what the text needs.
+
+**For the real-checker port**, beyond #339's list: con-leche's model
+will meet the same three needs — families of types at the former (the
+universe bound read at one family and transported), the class applied
+at admissible parameter sets only (or an equivalent guard), and the
+container's argument fit read in a model that needs nothing of the
+class.
