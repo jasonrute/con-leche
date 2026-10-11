@@ -305,7 +305,7 @@ structure BlockModelAt (m : EnvModel V env) (names : List Name) (d : BlockData V
   /-- **the hole fit is accessible**, with a bound of the level at a
   `Type`-valued block (task #327) -/
   fitAcc : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
-    ∃ A, (d.w ψ ≠ 0 → A ∈ˢ (univ (d.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A
+    ∃ A, (d.w ψ ≠ 0 → A ∈ˢ (tg (d.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A
   /-- **the container functor**: component `c`'s fibre at `(X, t)` is
   the set of injections of the spines fitting one of component `c`'s
   constructors' fields WITH HOLES at the hole frame of `X` (charter

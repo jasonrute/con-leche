@@ -65,7 +65,7 @@ the other components are held at the least tuple itself): if the operator, at th
 the least tuple.  By induction (`lfpTuple_induction`) at the separation
 "on `G`, inside `B`": no Bekić needed. -/
 theorem lfpTuple_le_on (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w k Is Φ)
-    (G : Nat → Prop) {B : Nat → V} (hB : InTupleSpace w k Is B)
+    (hmaps : MapsTuple w k Is Φ) (G : Nat → Prop) {B : Nat → V} (hB : InTupleSpace w k Is B)
     (hZ : ∀ g, g < k → G g →
       FamLe (Is g) (Φ (fun x => if G x then B x else lfpTuple w k Is Φ x) g) (B g)) :
     ∀ g, g < k → G g → FamLe (Is g) (lfpTuple w k Is Φ g) (B g) := by
@@ -78,13 +78,11 @@ theorem lfpTuple_le_on (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple
   have hSZ : TupleLe k Is (sepTuple w k Is Φ P)
       (fun x => if G x then B x else lfpTuple w k Is Φ x) := by
     intro m hm i hi y hy
-    have hy' := hy
-    unfold sepTuple at hy'
-    rw [app_graph hi, mem_sep] at hy'
+    have hy' := mem_app_sepTuple_imp hi hy
     by_cases hg : G m
     · simp only [ite_eq_left hg]; exact hy'.2 hg
     · simp only [ite_eq_right hg]; exact hy'.1
-  have hind := lfpTuple_induction h hmono P fun m hm i hi x hx hg => by
+  have hind := lfpTuple_induction h hmono hmaps P fun m hm i hi x hx hg => by
     have hx' := hmono _ _ (sepTuple_mem w k Is Φ P) hZmem hSZ m hm i hi x hx
     exact hZ m hm hg i hi x hx'
   intro g hg hG i hi x hx

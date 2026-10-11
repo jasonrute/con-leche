@@ -101,7 +101,6 @@ theorem lfp0_frame (ψ : Name → Nat) (ρp X : Nat → V) :
 /-- **The carrier's only fibre is `C`**, when `C` is an `F`-closed set
 of the level lying below every `F`-closed set of the level. -/
 theorem lfp0_carrier {ψ : Name → Nat} {ρp : Nat → V} {C : V}
-    (hmono : ∀ S S', S ⊆ˢ S' → F S ⊆ˢ F S')
     (hCu : C ∈ˢ (univ (w ψ) : V)) (hC : F C ⊆ˢ C)
     (hleast : ∀ S, S ∈ˢ (univ (w ψ) : V) → F S ⊆ˢ S → C ⊆ˢ S) :
     app ((lfp0 nm w F inj n cn flds).carrier ψ ρp 0) pt = C := by
@@ -116,27 +115,23 @@ theorem lfp0_carrier {ψ : Name → Nat} {ρp : Nat → V} {C : V}
     rw [app_lfp0_Φ, app_graph pt_mem_unitSet] at hx
     rw [app_graph pt_mem_unitSet]
     exact hC x hx
-  have hmonoT : MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) := by
-    rw [hI]
-    intro X Y _ _ hle m _ i hi x hx
-    obtain rfl := mem_unitSet_iff.mp hi
-    rw [app_lfp0_Φ] at hx ⊢
-    exact hmono _ _ (hle 0 Nat.one_pos pt pt_mem_unitSet) x hx
   refine Subset.antisymm ?_ ?_
   · have h := lfpTuple_le hclC 0 Nat.one_pos pt (by rw [hI]; exact pt_mem_unitSet)
     rwa [app_graph pt_mem_unitSet] at h
   · have hpt : pt ∈ˢ D.idx ψ ρp 0 := by rw [hI]; exact pt_mem_unitSet
-    refine hleast _ (famSpace_app (lfpTuple_mem _ _ _ _ 0 Nat.one_pos) hpt) fun x hx => ?_
-    refine lfpTuple_closed ⟨_, hclC⟩ hmonoT 0 Nat.one_pos pt hpt x ?_
-    show x ∈ˢ app (D.Φ ψ ρp (D.carrier ψ ρp) 0) pt
+    -- `C` lies below every closed tuple's fibre (`hleast`), so below the least one's
+    refine subset_app_lfpTuple ⟨_, hclC⟩ Nat.one_pos hpt hCu fun X hX => ?_
+    refine hleast _ (famSpace_app (hX.1 0 Nat.one_pos) hpt) fun x hx => ?_
+    refine hX.2 0 Nat.one_pos pt hpt x ?_
+    show x ∈ˢ app (D.Φ ψ ρp X 0) pt
     rw [app_lfp0_Φ]
     exact hx
 
 /-- **The lfp clause of an unparameterized, unindexed one-member
-block**, from its fibre function's monotonicity, level, fibre
-description, and the leaf's value as the least `F`-closed set. -/
+block**, from its fibre function's level, fibre description, and the
+leaf's value as the least `F`-closed set (monotonicity is the clause's
+accessibility's, `hFacc`). -/
 theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name → Nat) → V}
-    (hmono : ∀ S S', S ⊆ˢ S' → F S ⊆ˢ F S')
     (hmaps : ∀ (ψ : Name → Nat) S, S ∈ˢ (univ (w ψ) : V) → F S ∈ˢ (univ (w ψ) : V))
     (hfib : ∀ S x, x ∈ˢ F S ↔ ∃ j fs, fits S j fs ∧ x = inj j fs)
     (hCu : ∀ ψ, C ψ ∈ˢ (univ (w ψ) : V)) (hC : ∀ ψ, F (C ψ) ⊆ˢ C ψ)
@@ -154,7 +149,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
     (hfok : ∀ (ψ : Name → Nat) (ρp : Nat → V) (S : V), w ψ ≠ 0 → S ∈ˢ (univ (w ψ) : V) →
       ∀ j, j < n → FieldsOkB (w ψ) (cons S ρp) (flds j))
     -- the fit is accessible, with a bound of the level at `Type`
-    (hFacc : ∀ ψ, ∃ A, (w ψ ≠ 0 → A ∈ˢ (univ (w ψ) : V)) ∧ ∀ S j fs, fits S j fs →
+    (hFacc : ∀ ψ, ∃ A, (w ψ ≠ 0 → A ∈ˢ (tg (w ψ) : V)) ∧ ∀ S j fs, fits S j fs →
       ∃ (B : V) (g : V → V), B ⊆ˢ A ∧ (∀ b, b ∈ˢ B → g b ∈ˢ S) ∧
         ∀ S', (∀ b, b ∈ˢ B → g b ∈ˢ S') → fits S' j fs) :
     LfpClause acval (lfp0 nm w F inj n cn flds) where
@@ -196,7 +191,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
     obtain rfl : as = [] := List.eq_nil_of_length_eq_zero hsa.length_eq
     obtain rfl : is = [] := List.eq_nil_of_length_eq_zero hsi.length_eq
     show interp V ρ (acval nm ψ) = app ((lfp0 nm w F inj n cn flds).carrier ψ (consList [] ρ) 0) pt
-    rw [hleaf ψ ρ, lfp0_carrier hmono (hCu ψ) (hC ψ) (hleast ψ)]
+    rw [hleaf ψ ρ, lfp0_carrier (hCu ψ) (hC ψ) (hleast ψ)]
   mkZero := fun ψ hw _ j fs => hzero ψ hw j fs
   mkInj := fun ψ hw _ _ j fs j' fs' hj hj' hl hl' h => hinjI ψ hw j fs j' fs' hj hj' hl hl' h
   ctor := fun c _ j ψ ρ as fs t hsa _ hf => by
@@ -204,7 +199,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
     obtain ⟨hj, hsp, -⟩ := hf
     have hsp' : SpineFit (cons (C ψ) ρ) (flds j) fs := by
       have := hsp
-      rw [lfp0_frame, consList_nil, lfp0_carrier hmono (hCu ψ) (hC ψ) (hleast ψ)] at this
+      rw [lfp0_frame, consList_nil, lfp0_carrier (hCu ψ) (hC ψ) (hleast ψ)] at this
       exact this
     exact hctor j hj ψ ρ fs hsp'
   parsLen := fun _ _ _ => rfl
@@ -233,7 +228,7 @@ empty set — `Empty` at `w = 1`, `False` at `w = 0` (both pinned to
 theorem emptyLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm : Name} (w : Nat)
     (hleaf : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval nm ψ) = empty) :
     LfpClause acval (emptyLfp (V := V) nm w) :=
-  lfp0_clause (C := fun _ => empty) (fits := fun _ _ _ => False) (fun _ _ _ => Subset.refl _)
+  lfp0_clause (C := fun _ => empty) (fits := fun _ _ _ => False)
     (fun _ _ _ => empty_mem_univ w)
     (fun _ x => ⟨fun h => absurd h (not_mem_empty x), fun ⟨_, _, h, _⟩ => h.elim⟩)
     (fun _ => empty_mem_univ w) (fun _ => Subset.refl _)
@@ -318,10 +313,6 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn 
     (hsucc : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval sn ψ) = natSuccV V) :
     LfpClause acval (natLfp (V := V) nm zn sn) :=
   lfp0_clause (C := fun _ => omega) (fits := natFits)
-    (fun S S' hS x hx => by
-      rcases mem_natF.mp hx with h | ⟨m, hm, rfl⟩
-      · exact mem_natF.mpr (Or.inl h)
-      · exact mem_natF.mpr (Or.inr ⟨m, hS m hm, rfl⟩))
     (fun _ S hS => by
       have hU : IsTGUniverse (Mem (V := V)) (univ 1) := univ_isTGUniverse (by decide)
       have h0 : (empty : V) ∈ˢ univ 1 := hU.empty_mem hS
@@ -466,7 +457,7 @@ theorem app_eqLfp_carrier {ψ : Name → Nat} {ρp : Nat → V} {t : V}
   have hmono : MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
     fun _ _ _ _ _ => TupleLe.refl _ _ _
   have h1 := lfpTuple_le hcl 0 Nat.one_pos t ht
-  have h2 := lfpTuple_closed ⟨K, hcl⟩ hmono 0 Nat.one_pos t ht
+  have h2 := lfpTuple_closed ⟨K, hcl⟩ hmono (fun _ _ => hK) 0 Nat.one_pos t ht
   have hKt : app (K 0) t = eqFib ρp t := app_graph ht
   rw [← hKt]
   exact Subset.antisymm h1 h2

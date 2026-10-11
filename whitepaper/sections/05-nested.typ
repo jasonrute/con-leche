@@ -348,7 +348,7 @@ by
 #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 45, 52)[the same case-by-case argument as §4's],
 #src("ConLeche/Model/Inductives/ContAcc.lean", 15, 33)[run on the frame];
 and
-#src("ConLeche/SetModel/Access.lean", 529, 539)[the least fixed point of such an operator is accessible in its first argument],
+#src("ConLeche/SetModel/Access.lean", 530, 540)[the least fixed point of such an operator is accessible in its first argument],
 the supports of an element's sub-values collected along paths into
 one support. Monotonicity follows from accessibility as in §4; the
 recursor's frames in con-leche still compare case by case, the container's row

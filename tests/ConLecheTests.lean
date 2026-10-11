@@ -10,6 +10,7 @@ import ConLecheTests.FileTests
 import ConLecheTests.NestedTests
 import ConLecheTests.RecCheckTests
 import ConLecheTests.AccessTests
+import ConLecheTests.LfpTypes
 import ConLecheTests.StreamTests
 import ConLecheTests.RoundsTests
 /- The suite's `#guard`s are EVALUATED, so every constant they name must be
