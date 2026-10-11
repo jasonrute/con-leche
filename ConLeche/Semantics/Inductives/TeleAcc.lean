@@ -44,11 +44,11 @@ variable {V : Type uv} [SetTheory V]
 noncomputable def guardU (w : Nat) (S : V) : V :=
   open Classical in if SmallAt w S then S else empty
 
-theorem guardU_mem {w : Nat} (hw : w ≠ 0) (S : V) : guardU w S ∈ˢ (univ w : V) := by
+theorem guardU_mem {w : Nat} (hw : w ≠ 0) (S : V) : guardU w S ∈ˢ (tg w : V) := by
   unfold guardU
   split
   · rename_i h; exact h hw
-  · exact empty_mem_univ w
+  · exact empty_mem_tg w
 
 theorem guardU_eq {w : Nat} {S : V} (h : SmallAt w S) : guardU w S = S := by
   unfold guardU
@@ -58,11 +58,11 @@ theorem guardU_eq {w : Nat} {S : V} (h : SmallAt w S) : guardU w S = S := by
 noncomputable def tagU (X Y : V) : V :=
   binUnion (image (kpair empty) X) (image (kpair unitSet) Y)
 
-theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (univ w : V))
-    (hY : Y ∈ˢ (univ w : V)) : tagU X Y ∈ˢ (univ w : V) := by
-  have hU := univ_isTGUniverse (V := V) hw
-  have he : (empty : V) ∈ˢ (univ w : V) := empty_mem_univ w
-  have hu : (unitSet : V) ∈ˢ (univ w : V) := unitSet_mem_univ w
+theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (tg w : V))
+    (hY : Y ∈ˢ (tg w : V)) : tagU X Y ∈ˢ (tg w : V) := by
+  have hU := tg_isTGUniverse (V := V) hw
+  have he : (empty : V) ∈ˢ (tg w : V) := empty_mem_tg w
+  have hu : (unitSet : V) ∈ˢ (tg w : V) := unitSet_mem_tg w
   exact hU.binUnion_mem he
     (hU.image_mem hX fun x hx => hU.kpair_mem he he (hU.transitive hX hx))
     (hU.image_mem hY fun y hy => hU.kpair_mem he hu (hU.transitive hY hy))
@@ -86,13 +86,13 @@ noncomputable def teleBound (w : Nat) (ord : Nat → Bool) (Af : Nat → (Nat �
       else teleBound w ord Af (l + 1) Fs (cons empty τ))
 
 theorem teleBound_mem {w : Nat} (hw : w ≠ 0) (ord : Nat → Bool) (Af : Nat → (Nat → V) → V) :
-    ∀ (Fs : List AnnotTerm) (l : Nat) (τ : Nat → V), teleBound w ord Af l Fs τ ∈ˢ (univ w : V)
-  | [], _, _ => empty_mem_univ w
+    ∀ (Fs : List AnnotTerm) (l : Nat) (τ : Nat → V), teleBound w ord Af l Fs τ ∈ˢ (tg w : V)
+  | [], _, _ => empty_mem_tg w
   | F :: Fs, l, τ => by
     unfold teleBound
     refine tagU_mem hw (guardU_mem hw _) ?_
     split
-    · exact (univ_isTGUniverse hw).famUnion_mem (guardU_mem hw _) fun a _ =>
+    · exact (tg_isTGUniverse hw).famUnion_mem (guardU_mem hw _) fun a _ =>
         teleBound_mem hw ord Af Fs (l + 1) (cons a τ)
     · exact teleBound_mem hw ord Af Fs (l + 1) (cons empty τ)
 
@@ -262,7 +262,7 @@ theorem teleBound_support {w k : Nat} {ord : Nat → Bool}
     | nil => exact hfit.elim
     | cons a fs =>
     obtain ⟨ha, hfit'⟩ := hfit
-    have haw : SmallAt w a := fun hw => (univ_isTGUniverse hw).transitive (hdom τ τ hRτ hw) ha
+    have haw : SmallAt w a := fun hw => (tg_isTGUniverse hw).transitive (hdom τ τ hRτ hw) ha
     -- the field's own support
     obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc τ τ hRτ a haw ha
     -- the later fields' support, under the field

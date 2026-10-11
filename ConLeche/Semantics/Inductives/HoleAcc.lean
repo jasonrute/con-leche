@@ -8,7 +8,7 @@ public import ConLeche.Semantics.Inductives.HoleMono
 # Accessibility in the holes, case by case
 
 The twin of `HoleMono.lean` for the closure witness (W): a reading is ACCESSIBLE
-along a frame relation `R` when every SMALL element (`x ∈ univ w`) has a
+along a frame relation `R` when every SMALL element (`x ∈ tg w`) has a
 SUPPORT — a family, indexed by a subset of a BOUND `A ρ`, of ADMISSIBLE
 items `(h, vs, y)` held by the frame (`Holds`: `y` lies in the value at
 position `h` applied to the spine `vs`; admissible: `Q h vs.length`, a
@@ -80,12 +80,12 @@ def Holds (ρ : Nat → V) (o : Occ V) : Prop := o.2.2 ∈ˢ o.2.1.foldl app (ρ
 /-- The admissible items: at the positions and spine lengths `Q`. -/
 def Adm (Q : Nat → Nat → Prop) (o : Occ V) : Prop := Q o.1 o.2.1.length
 
-/-- **Small at the level**: a member of `univ w` at a `Type`-valued
+/-- **Small at the level**: a member of `tg w` at a `Type`-valued
 level; at `w = 0` nothing is asked (a `Prop`-valued block's fields range
 over any universe, and no bound is sized there — task #327). -/
-def SmallAt (w : Nat) (x : V) : Prop := w ≠ 0 → x ∈ˢ (univ w : V)
+def SmallAt (w : Nat) (x : V) : Prop := w ≠ 0 → x ∈ˢ (tg w : V)
 
-theorem SmallAt.of_mem {w : Nat} {x : V} (h : x ∈ˢ (univ w : V)) : SmallAt w x := fun _ => h
+theorem SmallAt.of_mem {w : Nat} {x : V} (h : x ∈ˢ (tg w : V)) : SmallAt w x := fun _ => h
 
 theorem SmallAt.zero (x : V) : SmallAt 0 x := fun h => absurd rfl h
 
@@ -184,7 +184,7 @@ theorem RichOn.underBoth {Q : Nat → Nat → Prop} {R : FrameRel V} (h : RichOn
 
 /-! ## The cases: accessibility -/
 
-theorem SizeOn.const {w : Nat} {R : FrameRel V} {c : V} (hc : c ∈ˢ (univ w : V)) :
+theorem SizeOn.const {w : Nat} {R : FrameRel V} {c : V} (hc : c ∈ˢ (tg w : V)) :
     SizeOn w R (fun _ => c) := fun _ _ _ _ => hc
 
 /-- **A hole-free reading** is accessible with the empty bound. -/
@@ -228,13 +228,13 @@ theorem holds_cons_down {x : V} {ρ : Nat → V} {o : Occ V} (h0 : o.1 ≠ 0) :
 
 /-- A small function's domain and values are small. -/
 theorem small_of_mem_piSet {w : Nat} (hw : w ≠ 0) {D f : V} {F : V → V} (hf : f ∈ˢ piSet D F)
-    (hfw : f ∈ˢ (univ w : V)) : D ∈ˢ (univ w : V) ∧ ∀ d, d ∈ˢ D → app f d ∈ˢ (univ w : V) := by
-  have hU := univ_isTGUniverse (V := V) hw
+    (hfw : f ∈ˢ (tg w : V)) : D ∈ˢ (tg w : V) ∧ ∀ d, d ∈ˢ D → app f d ∈ˢ (tg w : V) := by
+  have hU := tg_isTGUniverse (V := V) hw
   have hpair : ∀ d, d ∈ˢ D → kpair d (app f d) ∈ˢ f := by
     intro d hd
     rw [← eq_graph_app_of_mem_piSet hf]
     exact mem_graph.mpr ⟨d, hd, by rw [eq_graph_app_of_mem_piSet hf]⟩
-  have hkp : ∀ d, d ∈ˢ D → kpair d (app f d) ∈ˢ (univ w : V) :=
+  have hkp : ∀ d, d ∈ˢ D → kpair d (app f d) ∈ˢ (tg w : V) :=
     fun d hd => hU.transitive hfw (hpair d hd)
   refine ⟨?_, fun d hd => ?_⟩
   · refine hU.mem_of_subset_mem (hU.sUnion_mem (hU.sUnion_mem hfw)) fun d hd => ?_
@@ -310,9 +310,9 @@ theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : AnnotTerm} (hD : ConstOn R D)
   unfold piBound
   split
   · rename_i hDw
-    exact (univ_isTGUniverse hw).sigmaPairs_mem (hDw hw) fun d hd =>
+    exact (tg_isTGUniverse hw).sigmaPairs_mem (hDw hw) fun d hd =>
       hB (cons d ρ) (cons d ρ₀) ⟨d, ρ, ρ₀, rfl, rfl, hR, hd, hD ρ ρ₀ hR ▸ hd⟩ hw
-  · exact empty_mem_univ w
+  · exact empty_mem_tg w
 
 /-- **Π over a hole-free domain at a `Prop` codomain, at `w = 0`** (task
 #327): the product is a truth value, and its support glues the supports of

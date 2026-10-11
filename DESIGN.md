@@ -100406,3 +100406,113 @@ machine; the parse on `master` before this extraction: 23.2 s, the
 install extraction's run). No measurement campaign: the maintainer
 takes a before/after measurement separately. Logs and the binary:
 `_tmp/amdahl/xparse-logs/`.
+
+## TASK #342 — L0-RENAME: the axiomatic chain renamed `tg`, a `univ` alias in its place (2026-10-11, agent/342-l0-rename)
+
+Lane L0 of the real-checker port (`_tmp/342-design.md`), preparing
+ruling R2: *conceptually* define a new universe for `Sort`, for which
+today's axiomatic Grothendieck chain is only a stepping stone; hide
+that choice once and for all in what `univ` means, so stage 1b can
+later redefine `univ` as the restricted universe without touching
+every size-bound use again.
+
+**What moved.** `ConLeche/SetTheory/Derive/Univ.lean`'s `noncomputable
+def univ : Nat → V` (and its nine lemmas) is renamed `tg`
+(Tarski–Grothendieck, the abbreviation `IsTGUniverse` already uses) —
+`tg_zero`, `tg_isTGUniverse`, `univChain_one_mem_tg_succ`, `tg_mem_tg`,
+`tg_subset_succ`, `tg_mono`, `omega_mem_tg_succ`, `empty_mem_tg`,
+`unitSet_mem_tg` — and `tg` carries the `irreducible` attribute `univ`
+had. Right below, `univ : Nat → V := tg` is a new, *not* irreducible,
+alias, with the nine lemmas restated against it verbatim under their
+original names (`univ_zero := tg_zero`, …) — one-line corollaries, so
+every existing caller's text is untouched and 1b has one definition
+and these nine corollaries to change, not hundreds of call sites.
+
+**The `SetTheory` class.** Its field is `univChain` (`Core.lean`), not
+`univ`; nothing there names the restricted-universe word at all, so
+the class and the bridge (`bridge/lean4lean-model`) needed no change —
+confirming the design's own note (§2.1).
+
+**The split — which uses are routed through `univ`, which through
+`tg`.** `univ` and `tg` denote the same value for the whole of this
+lane (`univ := tg`), so *nothing* here changes what typechecks; the
+split only decides which name a site's *text* carries, for 1b's sake.
+Read broadly: a site saying "value `X` (a checked term's denotation,
+a type-former's formation, a basis constant's law) lands in universe
+`n`" is routed through `univ`, because that is exactly the "what
+`Sort n` means" reading 1b changes, by design, to the restricted
+universe — these sites are meant to pick up the extra strictness, not
+dodge it. A site stating a purely combinatorial/accessibility bound,
+unconnected to any term being a type, is routed through `tg`, because
+nothing says the bound has anything to do with being a type (`pt`
+could be among the witnesses), so it must keep reading the
+unrestricted chain.
+
+Routed through `univ` (no change; confirmed by reading, not merely by
+directory): `ConLeche/Denotes.lean` (its `sort`/`pi.hP`/`eq_equality`
+clauses — kept byte-for-byte, per the ruling); `SetModel/Value.lean`
+(every `bval` former's `Sort`-argument domain —
+`natMotiveSpace`/`natRecV`, `psigmaFibreSpace`/`psigmaV`/`psigmaMkV`,
+`relSpace`/`quotV`/`quotMkV`/`quotLiftV`, `choiceV`,
+`emptyMotiveSpace`, `lfpFamSpace`/`lfpFamV`, `ndTowerSet`,
+`tupleSortsSpace`/`lfpTupleV`, named in the design's §2.3, and their
+`_app`/`_mem` companions); `Semantics/Univ.lean`, `Semantics/Interp.lean`
+(`interp_sort`), `Semantics/Skeleton.lean`, `Semantics/Kit.lean`,
+`Semantics/WellDenoted.lean`, `Semantics/BasisOk.lean`,
+`Semantics/EqTower.lean`; the `Semantics/Tower/*` and
+`SetModel/{Access,GraphRec,Iter,TaggedSum,TupleTower}.lean` type-former
+formation/closure lemmas (`sumSet_mem_univ`, `towerSet_mem_univ`,
+`quotSet_mem_univ`, `sigma_mem_univ`, `natUnion_mem_univ_pos`, …); and
+in `Model/*`: `Tiers.lean` (`SortSemAt`), `AxiomMem.lean`,
+`BasisEq.lean`, `BasisQuot.lean`, `BasisLfp.lean`, `BasisTypeOk.lean`,
+`EqTower.lean`, `Rules/{InferSound,InferSoundKit,DefEqSoundKit}.lean`,
+`DivModCert.lean`, `Annot/{Laws (EqLaw),BlockLfp,Valid}.lean`, and the
+whole of `Model/Inductives/*` except the three sites below — these
+install a specific named constant's law, or state a checked
+construct's conclusion/field/motive reads into a universe, which is
+"what `Sort n` means" in exactly the sense 1b changes.
+
+Routed through `tg` (rename, three small and isolated sites, each
+checked for outside callers by name — none reference `univ`/`tg`
+directly, so this is invisible beyond the file): `guardU`/`tagU`/
+`teleBound` in `Semantics/Inductives/TeleAcc.lean` (the design's own
+text: "needs only universe membership (`guardU`), not a type");
+`SmallAt`/`SizeOn.const`/`small_of_mem_piSet`/`SizeOn.pi` in
+`Semantics/Inductives/HoleAcc.lean` (a well-foundedness *size* bound,
+not a typing fact — task #327); `finUnion`/`finUnion_mem` in
+`Model/Annot/LfpAcc.lean` (a closure fact about an arbitrary indexed
+union of sets, no type claim).
+
+**Unsure, not touched, flagged for the maintainer.** The design's own
+estimate ("about 700 renames... most are size bounds and stay")
+expected a far larger `tg` share than this lane found by direct
+reading — nearly everything that reads "`X` lands in universe `n`"
+in `Model/Inductives/*`, `BasisQuot.lean`/`BasisLfp.lean` (2 533 and
+669 lines) and the `Semantics/Tower/*` family turned out, on reading,
+to be about an actual checked construct's placement (a recursor's
+motive or conclusion, a field's sort, a basis law's domain), not a
+free-standing size bound. `BasisQuot.lean`'s 50 sites and
+`ContAccFrame.lean`/`StructEntryKit.lean`'s sites were sampled, not
+read exhaustively line by line; if the maintainer's intent was a much
+larger `tg` share, that is the place to re-open the split, and it can
+be done file by file without touching `Derive/Univ.lean` again (every
+site in that larger split still goes through the same two names).
+
+**Gates:** `lake build` (666/666, warning-free), `lake test`
+(warning-free, `Axioms.lean` unchanged), `tests/arena.sh` all green
+(layering, pindump, trust surface, overview/whitepaper links,
+fragment, quote gate, no-local-paths, shake, arena 90/92, e2e
+470/470, annot 15/15, the mode/IO/prelude/progress/worker/statistics/
+install/DAG-tower gates, the trusted and `--jobs=1`/`--jobs=4` sweeps),
+`tests/challenge.sh` (`ConLeche.model_exists`/
+`ConLeche.no_False_declaration` statements identical — `Denotes.lean`
+untouched). No `sorry`, no new axiom, no statement-half change: this
+lane is purely the rename `univ`→`tg` plus the alias, on a fresh
+worktree built from the campaign's own `.lake` cache (same toolchain,
+no dependencies).
+
+Landed on `port-342` at this record's commit. Next: stage 1a's lanes
+(L1–L3) build on `tg`'s stepping stones; stage 1b's lane (L4) redefines
+`univ` and the handful of corollaries just below it, and is the first
+to find out whether any `univ`-routed site above actually needs the
+extra strictness argument the design promises it gets "for free".
