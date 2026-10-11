@@ -255,7 +255,8 @@ theorem Agree.classSet_eq (h : S.Agree env M M' ls ls') {N : NestInfo} (hN : S.n
     S.classSet M ls N = S.classSet M' ls' N := by
   funext ps X
   unfold classSet
-  rw [h.lsK_eq N, h.agree N.K.name (h.block.2.2.2.2.2.2 N hN).1, h.classArgsV_eq hN ps X]
+  rw [S.adm_congr_ls ls h.ψ, h.lsK_eq N, h.agree N.K.name (h.block.2.2.2.2.2.2 N hN).1,
+    h.classArgsV_eq hN ps]
 
 theorem Agree.memberIdx_eq (h : S.Agree env M M' ls ls') {N : NestInfo} (hN : S.nest = some N) :
     S.memberIdx M ls N = S.memberIdx M' ls' N := by

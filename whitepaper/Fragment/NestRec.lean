@@ -78,12 +78,13 @@ variable (S : IndSpec) (M : Name → List Nat → V) (ls : List Nat) (N : NestIn
 /-- The field sets of a constructor of the container read in the
 block's terms, at a parameter set `X` and with the class's members
 restricted by `Q`: a (translated) reflexive field is the parameter field
-(recursive: the telescope is empty), ranging over `X`; a container
+(recursive: the telescope is empty), ranging over the admissible part
+of `X` (`adm`: where the class reads the container); a container
 field is the container's recursive field, ranging over the class at
 `X` restricted by `Q`; an ordinary field is the container's, read as
 the block reads it. -/
 noncomputable def classFieldSet (X : V) (Q : V → Prop) (ps fs : List V) : Field → V
-  | .reflexive _ _ => X
+  | .reflexive _ _ => S.adm ls X
   | .container => sep (S.classSet M ls N ps X) Q
   | f => S.fieldSet M ls (S.Fam M ls ps) ps fs f
 
@@ -384,7 +385,7 @@ theorem classFieldSet_mono {ps : List V} (hcl : S.ClassLaws M ls N ps) {X Y : V}
     (hX : X ∈ˢ (univ (S.u₀ ls) : V)) (hY : Y ∈ˢ (univ (S.u₀ ls) : V)) (hXY : X ⊆ˢ Y)
     {Q : V → Prop} (fs : List V) :
     ∀ f : Field, S.classFieldSet M ls N X Q ps fs f ⊆ˢ S.classFieldSet M ls N Y (fun _ => True) ps fs f
-  | .reflexive _ _ => hXY
+  | .reflexive _ _ => S.adm_mono ls hXY
   | .container => by
     intro v hv
     simp only [classFieldSet, mem_sep] at hv ⊢
@@ -545,7 +546,7 @@ theorem IhOkN_ihSemN_class_of {ps : List V} (ex : RecEx V)
     rw [S.IhOkN_nil]
     dsimp only [ihSemN, lamCtx_nil, readEnv_zero, List.reverse_nil, appList_nil, recSemN]
     rw [S.memberIdx_earlier M ls N ps (by omega)]
-    exact S.RecGraphN_recFnN M ls N q (hkey _ hget)
+    exact S.RecGraphN_recFnN M ls N q (hkey _ (S.adm_sub ls _ _ hget))
   | container =>
     dsimp only [classFieldSet] at hget
     rw [mem_sep] at hget
@@ -749,7 +750,7 @@ theorem IhTypedN_ihSemN_class_of {ps : List V} (ex : RecEx V)
     dsimp only [IhTypedN, ihSemN, piCtx_nil, lamCtx_nil, readEnv_zero, List.reverse_nil, appList_nil,
       recSemN]
     rw [S.memberIdx_earlier M ls N ps (by omega)]
-    exact hkey _ hget
+    exact hkey _ (S.adm_sub ls _ _ hget)
   | container =>
     dsimp only [classFieldSet] at hget
     rw [mem_sep] at hget
@@ -916,7 +917,7 @@ theorem motive_inhabitedN (hN : S.nest = some N) {ps : List V}
         dsimp only [classFieldSet] at hget
         dsimp only [IhTypedN, piCtx_nil, readEnv_zero, List.reverse_nil, appList_nil]
         rw [S.memberIdx_earlier M ls N ps (by omega)]
-        exact hkey _ hget
+        exact hkey _ (S.adm_sub ls _ _ hget)
       | container =>
         dsimp only [classFieldSet] at hget
         rw [mem_sep] at hget
