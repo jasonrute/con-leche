@@ -613,6 +613,14 @@ theorem piV_mem_typeU {u v : Nat} {A : V} {B : V → V}
         (mem_univ_of_mem_typeU (hB x hx))
     · exact univ_mono (Nat.zero_le _) piR_true_mem_univ_zero
 
+/-- A member of a product whose fibres hold only the point is the
+point. -/
+theorem eq_pt_of_mem_piV {A f : V} {B : V → V} (hB : ∀ x, x ∈ˢ A → ∀ y, y ∈ˢ B x → y = pt)
+    (hf : f ∈ˢ piV A B) : f = pt := by
+  have hp : propB A B = true := propB_eq_true.mpr fun x hx => mem_univ_zero.mpr (hB x hx)
+  unfold piV at hf; rw [hp] at hf
+  exact eq_pt_of_mem_piR_true hf
+
 /-- Over an empty domain the product is `{pt}`. -/
 theorem piV_of_empty {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) : piV A B = one := by
   unfold piV

@@ -692,7 +692,7 @@ theorem consts_ihVal (hpl : S.nest = none)
   | reflexive tele es =>
     intro d hd
     simp only [ihVal] at hd
-    rcases Expr.consts_mkLams _ _ _ d hd with hd | ⟨T, hT, hd⟩
+    rcases Expr.consts_mkLams _ _ d hd with hd | ⟨T, hT, hd⟩
     · rw [Expr.consts_mkAppN, List.mem_append, List.mem_flatMap] at hd
       rcases hd with hd | ⟨a, ha, hd⟩
       · exact hrec d hd
@@ -723,7 +723,7 @@ theorem consts_ruleRhs [LevelOracle] (hpl : S.nest = none) (hS : S.Scoped env)
   have hc' := List.mem_of_getElem? hc
   intro d hd
   simp only [ruleRhs] at hd
-  rcases Expr.consts_mkLams _ _ _ d hd with hd | ⟨A, hA, hd⟩
+  rcases Expr.consts_mkLams _ _ d hd with hd | ⟨A, hA, hd⟩
   · rw [Expr.consts_mkAppN, List.mem_append, List.mem_flatMap] at hd
     rcases hd with hd | ⟨a, ha, hd⟩
     · simp at hd
@@ -731,7 +731,7 @@ theorem consts_ruleRhs [LevelOracle] (hpl : S.nest = none) (hS : S.Scoped env)
       · rw [Expr.consts_varsAt _ _ a ha] at hd; simp at hd
       · obtain ⟨kf, hkf, rfl⟩ := List.mem_map.mp ha
         exact S.consts_ihVal hpl hfresh (S.fieldScoped_of_mem_recFields hS hc' hkf).1 _ _ d hd
-  · have := Infer.consts hT d (by rw [ruleType]; exact Expr.consts_mkPis_of _ _ _ hA hd)
+  · have := Infer.consts hT d (by rw [ruleType]; exact Expr.consts_mkPis_of _ _ hA hd)
     simp only [install, hpl]
     exact Env.isSome_find?_add this _ _
 
@@ -801,7 +801,7 @@ theorem _root_.Fragment.Env.Scoped.install [LevelOracle] {env : Env} (hpl : S.ne
       intro h
       exact hname (by rw [← h]; exact List.mem_cons_of_mem _ (List.mem_map_of_mem hc))
     · intro c hc
-      obtain ⟨T, hT⟩ := (hctors c hc).1
+      obtain ⟨T, -, hT, -⟩ := (hctors c hc).1
       exact ⟨Infer.closedAt hT, Infer.consts hT, S.lparamsIn_ctorType hS hc⟩
   -- The recursor.
   refine h₂.add (c := S.recName) (ci := S.recInfo) ?_

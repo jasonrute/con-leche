@@ -127,7 +127,7 @@ theorem IndSpec.Reader.lamCtx_liftCtx_atCtx {S : IndSpec} {M : Name → List Nat
         Nat.add_sub_cancel]
       omega
     rw [hT]
-    refine lamR_congr fun x hx => ?_
+    refine lamV_congr fun x hx => ?_
     rw [show cons x (consList ys (consList (fs.drop (nF - k)) (envP ps)))
         = consList (x :: ys) (consList (fs.drop (nF - k)) (envP ps)) from rfl,
       readEnv_consList (by simp [hl])]

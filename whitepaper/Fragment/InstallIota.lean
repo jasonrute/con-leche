@@ -178,7 +178,7 @@ theorem recSet_eq (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
   have hwdC : ∀ c ∈ S.ctors, ∀ ps, ps.length = S.nP →
       FitsVals m.M (S.ψ (S.lparams.map (Level.substVal φ S.recLparams us))) base S.params ps →
       CtxWD (S.M₃ m.M) (Level.substVal φ S.recLparams us) (consList ps ρ) (S.fieldCtx c.fields) :=
-    fun c hc ps hps hp => (R₃.R.idxFit_of_wd hS hc (wd_ctorType hpl hs m hok hc _ ρ) hps hp).1
+    fun c hc ps hps hp => (R₃.R.idxFit_of_wd hS hc (wd_ctorType hpl hs m hok hc _ ρ) (ty_ctorType hpl hs m hok hc _ ρ) (NestFit_of_plain hpl) hps hp).1
   have hagree := R₂.agree_recCtx hS R₃ hagr hpl hok.freshI base ρ hwdC
   have e : S.M₃ m.M S.recName (us.map (Level.eval φ)) = S.recSet m.M (us.map (Level.eval φ)) := by
     simp [M₃]
@@ -282,8 +282,8 @@ theorem ctor_app (φ : Name → Nat) (ρ : Nat → V) {usj : List Level}
     List.reverse_reverse, FitsVals_append _ _ (by rw [hf, length_fieldCtx])] at hfit
   obtain ⟨hpF, hfF⟩ := hfit
   have hp := (R₃.R.fits_params hS).mp hpF
-  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) hps hp
-  have hff := (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp hidx.1).1.mp hfF
+  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp
+  have hff := (R₃.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp hidx.1).1.mp hfF
   refine ⟨hp, hff, ?_⟩
   rw [R₃.ctor j c hc, ← lparams_map_substVal hok φ husj]
   have R₁ := S.reader₁ (M := m.M) hpl (φ := Level.substVal φ S.lparams usj) hok.freshI
@@ -328,11 +328,11 @@ theorem fits_ruleCtx (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec} (hcm :
   rw [FitsVals_liftCtx_liftN _ _ _ _ _ hosl]
   constructor
   · rintro ⟨hp, hm, hmn, hfF⟩
-    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp
-      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) hps hp).1).1.mp hfF⟩
+    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp
+      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) (ty_ctorType hpl hs m hok hcm φr ρ) (NestFit_of_plain hpl) hps hp).1).1.mp hfF⟩
   · rintro ⟨hp, hm, hmn, hfF⟩
-    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp
-      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) hps hp).1).1.mpr hfF⟩
+    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp
+      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) (ty_ctorType hpl hs m hok hcm φr ρ) (NestFit_of_plain hpl) hps hp).1).1.mpr hfF⟩
 
 /-! ## The inductive hypotheses' terms -/
 
@@ -346,7 +346,7 @@ theorem wd_fieldDom (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec} (hcm : 
     WellDenoted (S.M₃ m.M) φr (consList (earlier fs k) (consList ps ρ)) (S.fieldDom k f) := by
   have hS := hok.scoped
   have R₃ := reader₃ hpl hok m.M φr
-  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) hps hp
+  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) (ty_ctorType hpl hs m hok hcm φr ρ) (NestFit_of_plain hpl) hps hp
   have hf := S.FitsFields_length m.M _ hfit
   have hfF := (hidx.2 fs hfit).1
   have hA : (S.fieldCtx c.fields)[c.fields.length - 1 - k]? = some (S.fieldDom k f) := by
@@ -538,7 +538,7 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
   rw [show c.fields.length - 1 - (c.fields.length - 1 - k) = k by omega] at hsc
   have hget := S.FitsFields_get m.M _ hfit hkf' hk
   have hwdD := wd_fieldDom hpl hs m hok _ ρ hcm hps hp hfit hkf' hk
-  have hidx := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) hps hp).2 fs hfit
+  have hidx := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp).2 fs hfit
   have hfv : consList fs (consList (mins ++ [m']) (consList ps ρ)) (c.fields.length - 1 - k)
       = fieldVal fs k := by
     rw [consList_getD (by omega)]
@@ -792,7 +792,7 @@ theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
         (hS.2.2.2.1 c hcm).2.2.2 (by simp [hf, hps]; omega), List.reverse_reverse]
     rw [hvals] at hB
     -- the index comparison: both fit the index context at the parameters
-    have hivF := ((R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) hps hp).2 fs
+    have hivF := ((R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp).2 fs
       hfitF).2.2
     have hctxI := ((CtxWD_append' hctx).2 ps hp |>.ty)
     refine (FitsVals_eq_of_cond m.M _ (ρ := envP ps) hctxI hivF his fun p hp' => hB p
@@ -849,7 +849,7 @@ theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
             (consList fs' (envP ps')) c.idx).reverse ++
             [S.ctorVal (S.lparams.map (Level.substVal φ S.recLparams us)) j fs']) := by
     intro fs' mins' m'' ps' hf' hmins' hps' hp' hfitF'
-    have hidx' := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) hps' hp').2 fs' hfitF'
+    have hidx' := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps' hp').2 fs' hfitF'
     have h := R₃.read_concl hS hok.freshI hc (ihsE := []) (nIh := 0) (o := S.n + 1) (os := mins' ++ [m''])
       (ρ := ρ) rfl hf' (by simp [hmins']) (Nat.succ_pos _) hps' hp' hfitF' hidx'.2.1
     have hg : (mins' ++ [m'']).getD S.n pt = m'' := by rw [← hmins']; exact getD_append_length _

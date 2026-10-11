@@ -857,7 +857,7 @@ theorem type_ok_ctorN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) (φ :
   -- a product, or (no parameters, no fields) the family's fibre: a type either way
   have hIsTy : IsTy (interp (S.M₃N m.M N) (Level.substVal φ S.lparams ls) ρ (S.ctorType c)) := by
     unfold ctorType
-    refine IsTy_interp_mkPis _ _ _ fun hΓ => ?_
+    refine IsTy_interp_mkPis _ _ fun hΓ => ?_
     have hP : S.params = [] := (List.append_eq_nil_iff.mp hΓ).2
     have hwd := wd_ctorTypeN hs m hok hcm (Level.substVal φ S.lparams ls) ρ
     unfold ctorType at hwd

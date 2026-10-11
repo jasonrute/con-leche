@@ -610,7 +610,7 @@ theorem consts_ruleLamN [LevelOracle] (N : NestInfo) (env : Env)
       · rw [Expr.consts_varsAt _ _ a ha] at hd; simp at hd
       · obtain ⟨kf, hkf, rfl⟩ := List.mem_map.mp ha
         exact S.consts_ihValN N env hfresh (hrf kf hkf) _ _ d hd
-  · exact S.isSome_find?_installN N env (Infer.consts hT d (Expr.consts_mkPis_of _ _ _ hA hd))
+  · exact S.isSome_find?_installN N env (Infer.consts hT d (Expr.consts_mkPis_of _ _ hA hd))
 
 /-- **A `T.rec` rule's right-hand side mentions only stored
 constants.** -/

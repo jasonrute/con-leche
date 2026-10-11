@@ -962,11 +962,9 @@ theorem reader₁A
 
 /-- The model with the former added is a reader at the block's own
 valuation (of a plain block). -/
-theorem reader₁ (hpl : S.nest = none) (hfresh : env.find? S.name = none) (hnr : S.NoRecDep)
-    (hb : ∀ ps, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
-      S.DomsBounded M (S.lparams.map φ) ps) :
+theorem reader₁ (hpl : S.nest = none) (hfresh : env.find? S.name = none) (hnr : S.NoRecDep) :
     S.Reader (env := env) M φ (S.Fam M) (S.M₁ M) (S.ψ (S.lparams.map φ)) :=
-  S.reader₁A (fun ps is hp _ => S.adm_Fam M _ hnr (hb ps hp) (S.contOk_of_plain M _ hpl ps) is) hfresh
+  S.reader₁A (fun ps is _ _ => S.adm_Fam_of M _ hnr (S.contOk_of_plain M _ hpl ps) is) hfresh
 
 omit [IndLib V] in
 /-- The environment of the recursor's contexts, regrouped. -/

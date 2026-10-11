@@ -1593,6 +1593,34 @@ theorem adm_Fam {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps)
     obtain ⟨j, c, fs, -, -, -, rfl⟩ := (S.mem_Fam_false M ls hnr hb hco hz).mp hx
     exact ⟨tag_ne_pt, tag_not_mem_pt⟩
 
+/-- **The fibres are admissible**, with no universe bound: the
+admissible part of the least fixed point is a closed family (the
+operator's values are constructor values, tagged above a proposition),
+so the fixed point lies inside it. -/
+theorem adm_Fam_of {ps : List V} (hnr : S.NoRecDep) (hco : S.ContOk M ls ps) (is : List V) :
+    S.adm ls (S.Fam M ls ps is) = S.Fam M ls ps is := by
+  cases hz : S.z ls with
+  | true => unfold adm; rw [hz]; rfl
+  | false =>
+    refine S.adm_eq_self ls fun x hx => ?_
+    unfold Fam at hx
+    by_cases h : ∃ L, IsClosedFam (S.u₀ ls) (S.famOp M ls ps) L
+    · let X' : List V → V := fun is => sep (S.Fam M ls ps is) fun x => x ≠ pt ∧ ¬ x ∈ˢ pt
+      have hmono := S.famOp_mono M ls hnr hco
+      have hX' : InUniv (S.u₀ ls) X' := fun is => sep_mem_univ (lfpFamSet_mem _ _ is)
+      have hsub : FamLe X' (S.Fam M ls ps) := fun is y hy => (mem_sep.mp hy).1
+      have hcl : IsClosedFam (S.u₀ ls) (S.famOp M ls ps) X' := by
+        refine ⟨hX', fun is y hy => ?_⟩
+        have hy' := lfpFamSet_closed h hmono is y
+          (hmono X' _ hX' (lfpFamSet_mem _ _) hsub is y hy)
+        refine mem_sep.mpr ⟨hy', ?_⟩
+        obtain ⟨j, c, fs, -, -, -, rfl⟩ := (S.mem_famOp M ls).mp hy
+        unfold ctorVal
+        simp only [hz, Bool.false_eq_true, ite_false]
+        exact ⟨tag_ne_pt, tag_not_mem_pt⟩
+      exact (mem_sep.mp (lfpFamSet_least hcl is x hx)).2
+    · rw [lfpFamSet_of_not h] at hx; exact absurd hx (not_mem_empty x)
+
 /-! ## The sets of the former and the constructors
 
 The former and the constructors as sets: graphs over the generated
