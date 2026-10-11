@@ -345,13 +345,16 @@ body and `b` applied lie in one type — the body's inferred type is the
 neither is the body's claim makes them equal; a member of a product is
 the abstraction of its applications (`SetLib.lamV_eta`). -/
 theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B t₁ : Expr}
-    (htb : InferSem m φ Γ b tb) (hr : RedSem m φ Γ tb (.pi A₂ B))
+    (htb : ∀ ρ, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ b → interp m.M φ ρ b ≠ pt →
+      WellDenoted m.M φ ρ tb ∧ IsTy (interp m.M φ ρ tb) ∧
+        interp m.M φ ρ b ∈ˢ interp m.M φ ρ tb)
+    (hr : RedSem m φ Γ tb (.pi A₂ B))
     (hA : DefEqSem m φ Γ A₂ A₁)
     (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0)))
     (ht₁ : InferSem m φ (A₁ :: Γ) b₁ t₁) (htB : DefEqSem m φ (A₁ :: Γ) t₁ B) :
     DefEqSem m φ Γ (.lam A₁ b₁) b := by
-  intro ρ hs hlam hwb _ _
-  obtain ⟨-, hwtb, hTtb, hmemb⟩ := htb ρ hs
+  intro ρ hs hlam hwb _ hnb
+  obtain ⟨hwtb, hTtb, hmemb⟩ := htb ρ hs hwb hnb
   obtain ⟨hwpi, hepi⟩ := hr ρ hs hwtb hTtb.ne_pt
   rw [hepi, interp_pi] at hmemb
   rw [WellDenoted_pi] at hwpi
@@ -1058,7 +1061,8 @@ theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
     DefEq.appIn_sound (defeq_sound hf) (infer_sound hI) (red_sound hr) (defeqIn_sound ha)
   | _, _, _, .app hf ha => DefEq.app_sound (defeq_sound hf) (defeq_sound ha)
   | _, _, _, .eta htb hr hA hbody ht₁ htB =>
-    DefEq.eta_sound (infer_sound htb) (red_sound hr) (defeq_sound hA) (defeq_sound hbody)
+    DefEq.eta_sound (fun ρ hs _ _ => (infer_sound htb ρ hs).2) (red_sound hr) (defeq_sound hA)
+      (defeq_sound hbody)
       (infer_sound ht₁) (defeq_sound htB)
   | _, _, _, .proofIrrel hta htta hu hu0 _ _ _ _ =>
     DefEq.proofIrrel_sound (infer_sound hta) (infer_sound htta) (red_sound hu) hu0
