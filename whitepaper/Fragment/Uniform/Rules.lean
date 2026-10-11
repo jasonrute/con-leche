@@ -6,11 +6,12 @@ public import Fragment.Rules
 @[expose] public section
 
 /-!
-# Uniform β: the rules (task #338)
+# Uniform β: the rules (tasks #338, #339)
 
-The fragment's three relations for definitions (no inductives, so no
-ι), with **one β rule that fires at every binder**: no certificate, no
-gate, no datum, no comparison of the binder's annotation with anything.
+The fragment's three relations (`Rules.lean`), with **one β rule that
+fires at every binder**: no certificate, no gate, no datum, no
+comparison of the binder's annotation with anything.  δ and ι are the
+fragment's.
 `DefEqU` has no split rule: reducing a side and continuing (`redL`) is
 sound outright under the model of `Uniform/Model.lean`, whose claims
 say nothing about proofs.  Proof irrelevance stays as a rule — the
@@ -24,7 +25,9 @@ open Expr
 
 variable [LevelOracle]
 
-/-- **Reduction**: uniform β, δ, chained. -/
+mutual
+
+/-- **Reduction**: uniform β, δ, ι, chained. -/
 inductive RedU (env : Env) : List Expr → Expr → Expr → Prop where
   | refl {Γ : List Expr} {e : Expr} : RedU env Γ e e
   | trans {Γ : List Expr} {e₁ e₂ e₃ : Expr} :
@@ -38,8 +41,103 @@ inductive RedU (env : Env) : List Expr → Expr → Expr → Prop where
       env.find? c = some ci → ci.value? = some v →
       ls.length = ci.lparams.length →
       RedU env Γ (const c ls) (v.instL ci.lparams ls)
+  /-- **ι**, exactly as `Fragment.Red.iota`: the recursor's and the
+  constructor's telescope certificates, then the constructor's levels,
+  parameters and residual indices against the recursor's.  The major is
+  reduced by `RedU`, so with uniform β; no β certificate is needed on
+  the way, even where the major is a proof (`Acc`-style recursion):
+  there the major and the constructor application are both the point,
+  and the certificates alone supply what the law needs
+  (`Uniform/Sound.lean`, `RedU.iota_sound`). -/
+  | iota {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+      {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+      {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+      {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
+      {doms tys doms' tys' : List Expr}
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
+      env.find? c = some ci →
+      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+      us.length = ci.lparams.length →
+      args.length = numParams + numMotives + numMinors + numIndices + 1 →
+      ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true →
+      RedU env Γ (args.getD (numParams + numMotives + numMinors + numIndices) (bvar 0))
+        major →
+      major = mkAppN (const cj usj) margs →
+      rl ∈ rules → rl.ctor = cj → rl.inst = none →
+      env.find? cj = some cij →
+      usj.length = cij.lparams.length →
+      margs.length = numParams + rl.nfields →
+      cij.type.hasPis (numParams + rl.nfields) = true →
+      -- the recursor's telescope certificate, on the spine with the reduced major
+      piDomains (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]) = some doms →
+      tys.length = doms.length →
+      (∀ p ∈ (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]).zip tys,
+        InferU env Γ p.1 p.2) →
+      (∀ p ∈ tys.zip doms, DefEqU env Γ p.1 p.2) →
+      -- the constructor's telescope certificate
+      piDomains (cij.type.instL cij.lparams usj) margs = some doms' →
+      tys'.length = doms'.length →
+      (∀ p ∈ margs.zip tys', InferU env Γ p.1 p.2) →
+      (∀ p ∈ tys'.zip doms', DefEqU env Γ p.1 p.2) →
+      -- the constructor's levels, parameters and residual indices against the recursor's
+      Level.eqList usj (us.drop (us.length - usj.length)) = true →
+      (∀ p ∈ (margs.take numParams).zip (args.take numParams), DefEqU env Γ p.1 p.2) →
+      piResidual (cij.type.instL cij.lparams usj) margs = some residual →
+      residual = mkAppN (const I lsI) (rps ++ ridx) →
+      rps.length = numParams →
+      (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
+        (numParams + numMotives + numMinors)), DefEqU env Γ p.1 p.2) →
+      RedU env Γ (mkAppN (const c us) args)
+        (mkAppN (rl.rhs.instL ci.lparams us)
+          (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
+  /-- **ι, nested**, exactly as `Fragment.Red.iotaNested`. -/
+  | iotaNested {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+      {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+      {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+      {cij : ConstInfo} {I' : Name} {nPc nfj : Nat} {margs : List Expr} {rl : RecRule}
+      {lvs : List Level} {pinst : List Expr}
+      {doms tys doms' tys' : List Expr}
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
+      env.find? c = some ci →
+      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+      us.length = ci.lparams.length →
+      args.length = numParams + numMotives + numMinors + numIndices + 1 →
+      ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true →
+      RedU env Γ (args.getD (numParams + numMotives + numMinors + numIndices) (bvar 0))
+        major →
+      major = mkAppN (const cj usj) margs →
+      rl ∈ rules → rl.ctor = cj → rl.inst = some (lvs, pinst) →
+      env.find? cj = some cij →
+      cij.kind = .ctor I' nPc nfj →
+      usj.length = cij.lparams.length →
+      margs.length = nPc + rl.nfields →
+      cij.type.hasPis (nPc + rl.nfields) = true →
+      piDomains (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]) = some doms →
+      tys.length = doms.length →
+      (∀ p ∈ (args.take (numParams + numMotives + numMinors + numIndices) ++ [major]).zip tys,
+        InferU env Γ p.1 p.2) →
+      (∀ p ∈ tys.zip doms, DefEqU env Γ p.1 p.2) →
+      piDomains (cij.type.instL cij.lparams usj) margs = some doms' →
+      tys'.length = doms'.length →
+      (∀ p ∈ margs.zip tys', InferU env Γ p.1 p.2) →
+      (∀ p ∈ tys'.zip doms', DefEqU env Γ p.1 p.2) →
+      -- the constructor's levels and parameters against the stored instantiation
+      Level.eqList usj (lvs.map (Level.subst ci.lparams us)) = true →
+      pinst.length = nPc →
+      (∀ p ∈ (margs.take nPc).zip
+        (pinst.map fun e => instChain (e.instL ci.lparams us) (args.take numParams)),
+        DefEqU env Γ p.1 p.2) →
+      piResidual (cij.type.instL cij.lparams usj) margs = some residual →
+      residual = mkAppN (const I lsI) (rps ++ ridx) →
+      rps.length = nPc →
+      (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
+        (numParams + numMotives + numMinors)), DefEqU env Γ p.1 p.2) →
+      RedU env Γ (mkAppN (const c us) args)
+        (mkAppN (rl.rhs.instL ci.lparams us)
+          (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
 
-mutual
 
 /-- **Definitional equality** (no `trans`, as in `Fragment.DefEq`). -/
 inductive DefEqU (env : Env) : List Expr → Expr → Expr → Prop where

@@ -3,6 +3,8 @@ module
 public import Fragment.Consistency
 public import Fragment.Install
 public import Fragment.Access
+public import Fragment.UniformBeta
+public import Fragment.Uniform.Sound
 
 public section
 
@@ -156,3 +158,18 @@ info: 'Fragment.lfpFamSet_eq' depends on axioms: [propext, Classical.choice, Quo
 info: 'Fragment.lfpFamSet_induction' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.lfpFamSet_induction
+
+/--
+info: 'Fragment.uniform_beta_unsound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.uniform_beta_unsound
+
+/--
+info: 'Fragment.Uniform.soundnessU' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Uniform.soundnessU
+
+/--
+info: 'Fragment.Uniform.badEnv_no_model' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Uniform.badEnv_no_model

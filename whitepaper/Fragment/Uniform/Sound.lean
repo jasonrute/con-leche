@@ -1,13 +1,14 @@
 module
 
 public import Fragment.Uniform.Rules
+public import Fragment.Uniform.Tele
 public import Fragment.Sound
 public import Fragment.UniformBeta
 
 public section
 
 /-!
-# Uniform β: soundness (task #338)
+# Uniform β: soundness (tasks #338, #339)
 
 The relations of `Uniform/Rules.lean` are sound for the claims of
 `Uniform/Model.lean`, at every model of the environment and valuation.
@@ -24,6 +25,13 @@ sub-comparison agree (a graph-regime slot's domain is a type, so its
 members are all the point or none of it, `DefEqU.app_sound`).  Inferred
 types are types (`InferSemU`), hence never the point, so the reductions
 of types that inference runs are sound outright.
+
+ι needs no β certificate either, not even on a recursion over proofs
+(`major_eq`): the major's binder domain is a type, so the major and its
+reduct are both the point or neither is.  The constructor's parameters
+and index values are compared with the recursor's only where neither
+side is the point, and the environment's ι laws (`RecRuleLawU`,
+`RecRuleLawNU`) take them in that form.
 -/
 
 namespace Fragment.Uniform
@@ -389,18 +397,408 @@ theorem proofIrrel_sound [LevelOracle] {Γ : List Expr} {a ta tta b : Expr} {u :
 
 end DefEqU
 
+
+/-! ## ι -/
+
+/-- **Certificates give fit**: arguments typed against the telescope's
+domains fit it.  The inferred types are types, and the domains are
+(`WDU` records it), so neither side of a certificate's comparison is
+the point and the conditional claim applies. -/
+theorem teleFitU_of_certs {Γ : List Expr} {ρ : Nat → V} (hs : SatU m.M φ Γ ρ) :
+    ∀ {T : Expr} {spine tys doms : List Expr},
+      WDU m.M φ ρ T → (∀ a ∈ spine, WDU m.M φ ρ a) →
+      Expr.piDomains T spine = some doms → tys.length = doms.length →
+      (∀ p ∈ spine.zip tys, InferSemU m φ Γ p.1 p.2) →
+      (∀ p ∈ tys.zip doms, DefEqSemU m φ Γ p.1 p.2) →
+      TeleFitU m.M φ ρ T spine
+  | _, [], _, _, _, _, _, _, _, _ => trivial
+  | .pi A _ B, a :: as, tys, _, hT, hsp, hdoms, hlen, hI, hD => by
+    simp only [Expr.piDomains, Option.map_eq_some_iff] at hdoms
+    obtain ⟨ds, hds, rfl⟩ := hdoms
+    cases tys with
+    | nil => simp at hlen
+    | cons ta ts =>
+      simp only [List.length_cons, Nat.add_right_cancel_iff] at hlen
+      rw [WDU_pi] at hT
+      have hwa := hsp a List.mem_cons_self
+      obtain ⟨-, hwta, hTta, hmem⟩ := hI (a, ta) (by simp) ρ hs
+      rw [hD (ta, A) (by simp) ρ hs hwta hT.1 hTta.ne_pt hT.2.1.ne_pt] at hmem
+      refine ⟨hmem, ?_⟩
+      refine teleFitU_of_certs hs ((WDU_inst0 m.M φ hwa).mpr (hT.2.2.1 _ hmem))
+        (fun b hb => hsp b (List.mem_cons_of_mem a hb)) hds hlen ?_ ?_
+      · intro p hp
+        exact hI p (by rw [List.zip_cons_cons]; exact List.mem_cons_of_mem _ hp)
+      · intro p hp
+        exact hD p (by rw [List.zip_cons_cons]; exact List.mem_cons_of_mem _ hp)
+  | .bvar _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
+  | .sort _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
+  | .const _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
+  | .app _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
+  | .lam _ _ _, _ :: _, _, _, _, _, h, _, _, _ => by simp [Expr.piDomains] at h
+
+/-- The residual of a well-denoted telescope along a fitting spine is
+well-denoted. -/
+theorem WDU_piResidual {ρ : Nat → V} :
+    ∀ {T : Expr} {as : List Expr} {R : Expr},
+      WDU m.M φ ρ T → (∀ a ∈ as, WDU m.M φ ρ a) →
+      TeleFitU m.M φ ρ T as → Expr.piResidual T as = some R → WDU m.M φ ρ R
+  | T, [], _, hT, _, _, h => by simp at h; subst h; exact hT
+  | .pi A _ B, a :: as, R, hT, has, hfit, h => by
+    rw [Expr.piResidual_pi_cons] at h
+    obtain ⟨hmem, hfit'⟩ := hfit
+    rw [WDU_pi] at hT
+    exact WDU_piResidual
+      ((WDU_inst0 m.M φ (has a List.mem_cons_self)).mpr (hT.2.2.1 _ hmem))
+      (fun b hb => has b (List.mem_cons_of_mem a hb)) hfit' h
+  | .bvar _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .sort _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .const _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .app _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .lam _ _ _, _ :: _, _, _, _, _, h => by simp [Expr.piResidual] at h
+
+/-- **The major premise needs no β certificate.**  In an application of
+a head `f` of type `T` to a spine `xs` and a major `maj` that is not the
+point, with a reduct `maj'` of the major that meets the major's binder:
+the two denote alike.  The head applied to `xs` is not the point, so it
+is a graph, whose domain is the binder's — a type.  If the major is not
+the point, its reduction's claim applies; if it is, the binder's domain
+holds the point, so it is a truth value, and the reduct is the point
+too.  This is the case of a recursion on proofs (`Acc`-style), where
+the fragment's ι needs the certified β to reduce the major. -/
+theorem major_eq {Γ : List Expr} {ρ : Nat → V} {T f maj maj' : Expr} {xs : List Expr}
+    (hs : SatU m.M φ Γ ρ) (hT : WDU m.M φ ρ T) (hf : interpU m.M φ ρ f ∈ˢ interpU m.M φ ρ T)
+    (hw : WDU m.M φ ρ (.app (Expr.mkAppN f xs) maj))
+    (hn : interpU m.M φ ρ (.app (Expr.mkAppN f xs) maj) ≠ pt)
+    (hred : RedSemU m φ Γ maj maj')
+    (hfit : TeleFitVU m.M φ ρ T ((xs ++ [maj']).map (interpU m.M φ ρ))) :
+    interpU m.M φ ρ maj = interpU m.M φ ρ maj' := by
+  rw [List.map_append, List.map_singleton] at hfit
+  obtain ⟨A, pw, B, ρ', hb, hfitxs, hv⟩ := teleFitVU_snoc m.M φ hfit
+  have hmemB := mem_piBodyV m.M φ hf hfitxs hb
+  have hwB := WDU_piBodyV m.M φ hT hfitxs hb
+  rw [WDU_pi] at hwB
+  rw [interpU_pi] at hmemB
+  rw [WDU_app] at hw
+  obtain ⟨-, hwmaj, p, A', B', hslot, hmaj, -, -⟩ := hw
+  have hF := fn_ne_pt hn
+  rw [interpU_mkAppN_appList] at hslot hF
+  have hp : p = false := by
+    cases p
+    · rfl
+    · exact absurd (eq_pt_of_mem_piR_true hslot) hF
+  have hpw : pw.holds φ = false := by
+    cases h : pw.holds φ
+    · rfl
+    · rw [h] at hmemB; exact absurd (eq_pt_of_mem_piR_true hmemB) hF
+  subst hp
+  rw [hpw] at hmemB
+  have hA : A' = interpU m.M φ ρ' A := piR_dom_unique hslot hmemB
+  rw [hA] at hmaj
+  by_cases hmp : interpU m.M φ ρ maj = pt
+  · rcases hwB.2.1 with hT0 | hTs
+    · rw [hmp, eq_pt_of_mem_univ_zero hT0 hv]
+    · exact absurd (hmp ▸ hmaj) hTs.2
+  · exact (hred ρ hs hwmaj hmp).2
+
+/-- The conditional comparisons of a spine, on values. -/
+theorem cmp_vals {Γ : List Expr} {ρ : Nat → V} (hs : SatU m.M φ Γ ρ) {as bs : List Expr}
+    (ha : ∀ a ∈ as, WDU m.M φ ρ a) (hb : ∀ b ∈ bs, WDU m.M φ ρ b)
+    (h : ∀ p ∈ as.zip bs, DefEqSemU m φ Γ p.1 p.2) :
+    ∀ p ∈ (as.map (interpU m.M φ ρ)).zip (bs.map (interpU m.M φ ρ)),
+      p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
+  intro p hp h1 h2
+  rw [List.zip_map] at hp
+  obtain ⟨⟨a, b⟩, hab, rfl⟩ := List.mem_map.mp hp
+  exact h (a, b) hab ρ hs (ha a (List.of_mem_zip hab).1) (hb b (List.of_mem_zip hab).2) h1 h2
+
+namespace RedU
+
+/-- **ι, uniform, the common part** of `iota_sound` and
+`iotaNested_sound`, at the constructor's parameter count `nP` and a
+right-hand side `rhs`, given the environment's law in the form both ι
+laws take once instantiated (`hlaw`).  The certificates give the two
+telescope fits and, through their inferences, the invariant of the
+reduced major and of the constructor's arguments; the index comparisons
+are passed on in their conditional form; the major's denotation is its
+reduct's with no β certificate (`major_eq`). -/
+theorem iota_core {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {margs : List Expr} {rhs : Expr}
+    {doms tys doms' tys' : List Expr} {nP numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    (hnB : numBefore ≤ majorIdx)
+    (hfind : env.find? c = some ci)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSemU m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hcij : env.find? cj = some cij)
+    (husj : usj.length = cij.lparams.length)
+    (hpis' : cij.type.hasPis margs.length = true)
+    (hdoms : Expr.piDomains (ci.type.instL ci.lparams us) (args.take majorIdx ++ [major]) = some doms)
+    (htys : tys.length = doms.length)
+    (hI : ∀ p ∈ (args.take majorIdx ++ [major]).zip tys, InferSemU m φ Γ p.1 p.2)
+    (hD : ∀ p ∈ tys.zip doms, DefEqSemU m φ Γ p.1 p.2)
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSemU m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSemU m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = nP)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSemU m φ Γ p.1 p.2)
+    (hlaw : ∀ ρ : Nat → V, SatU m.M φ Γ ρ → (∀ a ∈ args, WDU m.M φ ρ a) →
+      (∀ a ∈ margs, WDU m.M φ ρ a) →
+      TeleFitVU m.M φ ρ (ci.type.instL ci.lparams us)
+        ((args.take majorIdx).map (interpU m.M φ ρ) ++
+          [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interpU m.M φ ρ))]) →
+      TeleFitVU m.M φ ρ (cij.type.instL cij.lparams usj) (margs.map (interpU m.M φ ρ)) →
+      (∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
+        piBodyV ρ (cij.type.instL cij.lparams usj) (margs.map (interpU m.M φ ρ)) = some (B, ρ') →
+        B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = nP →
+        ∀ p ∈ (ridx.map (interpU m.M φ ρ')).zip
+          (((args.take majorIdx).map (interpU m.M φ ρ)).drop numBefore),
+          p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+      appList (m.M c (us.map (Level.eval φ)))
+          ((args.take majorIdx).map (interpU m.M φ ρ) ++
+            [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interpU m.M φ ρ))]) ≠ pt →
+      appList (m.M c (us.map (Level.eval φ)))
+          ((args.take majorIdx).map (interpU m.M φ ρ) ++
+            [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interpU m.M φ ρ))])
+        = appList (interpU m.M φ ρ rhs)
+            (((args.take majorIdx).map (interpU m.M φ ρ)).take numBefore ++
+              (margs.map (interpU m.M φ ρ)).drop nP) ∧
+      WDU m.M φ ρ rhs ∧
+      SpineOkU (interpU m.M φ ρ rhs)
+        (((args.take majorIdx).map (interpU m.M φ ρ)).take numBefore ++
+          (margs.map (interpU m.M φ ρ)).drop nP)) :
+    RedSemU m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN rhs (args.take numBefore ++ margs.drop nP)) := by
+  intro ρ hs hw hn
+  subst hmeq
+  obtain ⟨-, hargs⟩ := WDU_mkAppN m.M φ hw
+  have hsplit := Fragment.List.take_append_getD (Expr.bvar 0) args _ hlen
+  have hwxs : ∀ a ∈ args.take majorIdx, WDU m.M φ ρ a :=
+    fun a ha => hargs a (List.mem_of_mem_take ha)
+  -- the certificates' inferences give the invariant of the reduced major and of its arguments
+  have hwmajor : WDU m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs) := by
+    have hl : (args.take majorIdx ++ [Expr.mkAppN (Expr.const cj usj) margs]).length
+        = tys.length := by
+      rw [htys, Expr.length_of_piDomains hdoms]
+    have hlt : (args.take majorIdx).length < tys.length := by
+      simp only [List.length_append, List.length_singleton] at hl; omega
+    have hmem := List.getElem_mem (l := (args.take majorIdx
+        ++ [Expr.mkAppN (Expr.const cj usj) margs]).zip tys)
+      (n := (args.take majorIdx).length)
+      (by simp only [List.length_zip, List.length_append, List.length_singleton]; omega)
+    exact (hI _ (by simpa using hmem) ρ hs).1
+  have hmargs : ∀ a ∈ margs, WDU m.M φ ρ a := (WDU_mkAppN m.M φ hwmajor).2
+  -- the two telescope fits, from the certificates
+  have hfit := teleFitU_of_certs hs (m.type_ok c ci hfind φ ρ us hus).1
+    (fun a ha => by
+      rcases List.mem_append.mp ha with ha | ha
+      · exact hwxs a ha
+      · rw [List.mem_singleton.mp ha]; exact hwmajor)
+    hdoms htys hI hD
+  have hfit' := teleFitU_of_certs hs (m.type_ok _ cij hcij φ ρ usj husj).1 hmargs
+    hdoms' htys' hI' hD'
+  have hmajv : interpU m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs)
+      = appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interpU m.M φ ρ)) := by
+    rw [interpU_mkAppN_appList, interpU_const]
+  have hlenmaj : (args.take majorIdx ++ [Expr.mkAppN (Expr.const cj usj) margs]).length
+      = majorIdx + 1 := by
+    simp only [List.length_append, List.length_take, List.length_singleton, hlen]; omega
+  have hfitV₀ := teleFitVU_of_teleFitU m.M φ ρ
+    (by rw [Expr.hasPis_instL, hlenmaj]; exact hpis) hfit
+  have hfitV' := teleFitVU_of_teleFitU m.M φ ρ (by rw [Expr.hasPis_instL]; exact hpis') hfit'
+  -- the major denotes its reduct, with no β certificate
+  have hsub : Expr.mkAppN (Expr.const c us) args =
+      .app (Expr.mkAppN (Expr.const c us) (args.take majorIdx)) (args.getD majorIdx (Expr.bvar 0)) := by
+    conv => lhs; rw [hsplit]
+    rw [Expr.mkAppN_append]; rfl
+  have hemaj := major_eq (f := Expr.const c us) hs (m.type_ok c ci hfind φ ρ us hus).1
+    (by rw [interpU_const]; exact (m.type_ok c ci hfind φ ρ us hus).2.2) (hsub ▸ hw) (hsub ▸ hn)
+    hmaj hfitV₀
+  have hfitV := hfitV₀
+  rw [List.map_append, List.map_singleton, hmajv] at hfitV
+  -- the index comparisons, in their conditional form
+  have hwres : WDU m.M φ ρ residual :=
+    WDU_piResidual (m.type_ok _ cij hcij φ ρ usj husj).1 hmargs hfit' hres
+  rw [hshape] at hwres
+  obtain ⟨-, hwridx⟩ := WDU_mkAppN m.M φ hwres
+  have hX' : ∀ (B : Expr) (ρ' : Nat → V) (I' : Name) (lsI' : List Level) (rps' ridx' : List Expr),
+      piBodyV ρ (cij.type.instL cij.lparams usj) (margs.map (interpU m.M φ ρ)) = some (B, ρ') →
+      B = Expr.mkAppN (.const I' lsI') (rps' ++ ridx') → rps'.length = nP →
+      ∀ p ∈ (ridx'.map (interpU m.M φ ρ')).zip
+        (((args.take majorIdx).map (interpU m.M φ ρ)).drop numBefore),
+        p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
+    intro B ρ' I' lsI' rps' ridx' hB hBs hrps'
+    have hRB := piResidual_of_piBodyVU m.M φ ρ hres hB
+    rw [hshape, hBs, Expr.instChain_mkAppN, Expr.instChain_const] at hRB
+    obtain ⟨-, -, hargs_eq⟩ := Expr.mkAppN_const_inj hRB
+    rw [List.map_append] at hargs_eq
+    have hridx : ridx = ridx'.map (Expr.instChain · margs) :=
+      List.append_inj_right hargs_eq (by simp [hrps, hrps'])
+    rw [piBodyV_env hB]
+    have hmap : ridx'.map (interpU m.M φ (consList (margs.map (interpU m.M φ ρ)).reverse ρ))
+        = ridx.map (interpU m.M φ ρ) := by
+      rw [hridx, List.map_map]
+      apply List.map_congr_left
+      intro r _
+      simp [Function.comp, interpU_instChain]
+    rw [hmap, ← List.map_drop]
+    exact cmp_vals hs (fun a ha => hwridx a (List.mem_append_right _ ha))
+      (fun a ha => hwxs a (List.mem_of_mem_drop ha)) hX
+  -- the environment's ι law
+  have hvsub : interpU m.M φ ρ (Expr.mkAppN (Expr.const c us) args)
+      = appList (m.M c (us.map (Level.eval φ)))
+        ((args.take majorIdx).map (interpU m.M φ ρ)
+          ++ [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interpU m.M φ ρ))]) := by
+    conv => lhs; rw [hsplit]
+    rw [interpU_mkAppN_appList, interpU_const, List.map_append, List.map_singleton, hemaj, hmajv]
+  obtain ⟨heq, hwrhs, hspine⟩ :=
+    hlaw ρ hs hargs hmargs hfitV hfitV' hX' (hvsub ▸ hn)
+  have hvals : (args.take numBefore ++ margs.drop nP).map (interpU m.M φ ρ)
+      = ((args.take majorIdx).map (interpU m.M φ ρ)).take numBefore
+        ++ (margs.map (interpU m.M φ ρ)).drop nP := by
+    rw [List.map_append, ← List.map_take, ← List.map_drop, List.take_take,
+      Nat.min_eq_left hnB]
+  refine ⟨?_, ?_⟩
+  · apply WDU_mkAppN_of_spineOkU m.M φ ρ hwrhs
+    · intro a ha
+      rcases List.mem_append.mp ha with ha | ha
+      · exact hargs a (List.mem_of_mem_take ha)
+      · exact hmargs a (List.mem_of_mem_drop ha)
+    · rw [hvals]; exact hspine
+  · rw [hvsub, interpU_mkAppN_appList, hvals]
+    exact heq
+
+/-- **ι, uniform**: `iota_core` with the environment's `RecRuleLawU`;
+the parameter comparisons are passed on in their conditional form. -/
+theorem iota_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
+    {doms tys doms' tys' : List Expr} {numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    (hnB : numBefore = numParams + numMotives + numMinors)
+    (hmI : majorIdx = numParams + numMotives + numMinors + numIndices)
+    (hfind : env.find? c = some ci)
+    (hkind : ci.kind = .recursor numParams numMotives numMinors numIndices rules)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSemU m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hrl : rl ∈ rules) (hctor : rl.ctor = cj) (hinst : rl.inst = none)
+    (hcij : env.find? cj = some cij)
+    (husj : usj.length = cij.lparams.length)
+    (hmlen : margs.length = numParams + rl.nfields)
+    (hpis' : cij.type.hasPis (numParams + rl.nfields) = true)
+    (hdoms : Expr.piDomains (ci.type.instL ci.lparams us) (args.take majorIdx ++ [major]) = some doms)
+    (htys : tys.length = doms.length)
+    (hI : ∀ p ∈ (args.take majorIdx ++ [major]).zip tys, InferSemU m φ Γ p.1 p.2)
+    (hD : ∀ p ∈ tys.zip doms, DefEqSemU m φ Γ p.1 p.2)
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSemU m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSemU m φ Γ p.1 p.2)
+    (hlv : Level.eqList usj (us.drop (us.length - usj.length)) = true)
+    (hP : ∀ p ∈ (margs.take numParams).zip (args.take numParams), DefEqSemU m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = numParams)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSemU m φ Γ p.1 p.2) :
+    RedSemU m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take numBefore ++ margs.drop numParams)) := by
+  subst hnB hmI hctor
+  refine iota_core (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
+    hdoms htys hI hD hdoms' htys' hI' hD' hres hshape hrps hX ?_
+  intro ρ hs hargs hmargs hfitV hfitV' hX' hn
+  have hP' : ∀ p ∈ ((margs.map (interpU m.M φ ρ)).take numParams).zip
+      (((args.take (numParams + numMotives + numMinors + numIndices)).map
+        (interpU m.M φ ρ)).take numParams), p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
+    rw [← List.map_take, ← List.map_take, List.take_take, Nat.min_eq_left (by omega)]
+    exact cmp_vals hs (fun a ha => hmargs a (List.mem_of_mem_take ha))
+      (fun a ha => hargs a (List.mem_of_mem_take ha)) hP
+  exact m.rec_rules c ci numParams numMotives numMinors numIndices rules
+    hfind hkind rl hrl hinst cij hcij φ ρ us usj _ _ hus husj
+    (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
+    hfitV hfitV' ((Level.eqList_iff _ _).mp hlv φ) hP' hX' hn
+
+/-- **ι, nested, uniform**: `iota_core` at the constructor's own
+parameter count, with the environment's `RecRuleLawNU`. -/
+theorem iotaNested_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {I' : Name} {nPc nfj : Nat} {margs : List Expr} {rl : RecRule}
+    {lvs : List Level} {pinst : List Expr}
+    {doms tys doms' tys' : List Expr} {numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    (hnB : numBefore = numParams + numMotives + numMinors)
+    (hmI : majorIdx = numParams + numMotives + numMinors + numIndices)
+    (hfind : env.find? c = some ci)
+    (hkind : ci.kind = .recursor numParams numMotives numMinors numIndices rules)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSemU m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hrl : rl ∈ rules) (hctor : rl.ctor = cj) (hinst : rl.inst = some (lvs, pinst))
+    (hcij : env.find? cj = some cij) (hcijk : cij.kind = .ctor I' nPc nfj)
+    (husj : usj.length = cij.lparams.length)
+    (hmlen : margs.length = nPc + rl.nfields)
+    (hpis' : cij.type.hasPis (nPc + rl.nfields) = true)
+    (hdoms : Expr.piDomains (ci.type.instL ci.lparams us) (args.take majorIdx ++ [major]) = some doms)
+    (htys : tys.length = doms.length)
+    (hI : ∀ p ∈ (args.take majorIdx ++ [major]).zip tys, InferSemU m φ Γ p.1 p.2)
+    (hD : ∀ p ∈ tys.zip doms, DefEqSemU m φ Γ p.1 p.2)
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSemU m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSemU m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = nPc)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSemU m φ Γ p.1 p.2) :
+    RedSemU m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take numBefore ++ margs.drop nPc)) := by
+  subst hnB hmI hctor
+  refine iota_core (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
+    hdoms htys hI hD hdoms' htys' hI' hD' hres hshape hrps hX ?_
+  intro ρ _ _ _ hfitV hfitV' hX' hn
+  exact m.rec_rules_nested c ci numParams numMotives numMinors numIndices rules hfind hkind rl hrl
+    lvs pinst hinst cij I' nPc nfj hcij hcijk φ ρ us usj _ _ hus husj
+    (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
+    hfitV hfitV' hX' hn
+
+end RedU
+
 /-! ## The master induction -/
 
-theorem red_sound [LevelOracle] {Γ : List Expr} {e e' : Expr}
-    (h : RedU env Γ e e') : RedSemU m φ Γ e e' := by
-  induction h with
-  | refl => exact RedU.refl_sound
-  | trans _ _ ih₁ ih₂ => exact RedU.trans_sound ih₁ ih₂
-  | appFn _ ih => exact RedU.appFn_sound ih
-  | beta => exact RedU.beta_sound
-  | delta hfind hv hls => exact RedU.delta_sound hfind hv hls
-
 mutual
+
+theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
+    RedU env Γ e e' → RedSemU m φ Γ e e'
+  | _, _, _, .refl => RedU.refl_sound
+  | _, _, _, .trans h₁ h₂ => RedU.trans_sound (red_sound h₁) (red_sound h₂)
+  | _, _, _, .appFn h => RedU.appFn_sound (red_sound h)
+  | _, _, _, .beta => RedU.beta_sound
+  | _, _, _, .delta hfind hv hls => RedU.delta_sound hfind hv hls
+  | _, _, _, .iota hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij husj hmlen hpis' hdoms htys
+      hI hD hdoms' htys' hI' hD' hlv hP hres hshape hrps hX =>
+    RedU.iota_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst hcij husj
+      hmlen hpis' hdoms htys (fun p hp => infer_sound (hI p hp)) (fun p hp => defeq_sound (hD p hp))
+      hdoms' htys' (fun p hp => infer_sound (hI' p hp)) (fun p hp => defeq_sound (hD' p hp))
+      hlv (fun p hp => defeq_sound (hP p hp)) hres hshape hrps
+      (fun p hp => defeq_sound (hX p hp))
+  | _, _, _, .iotaNested hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij hcijk husj hmlen
+      hpis' hdoms htys hI hD hdoms' htys' hI' hD' _ _ _ hres hshape hrps hX =>
+    RedU.iotaNested_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst
+      hcij hcijk husj hmlen hpis' hdoms htys (fun p hp => infer_sound (hI p hp))
+      (fun p hp => defeq_sound (hD p hp)) hdoms' htys' (fun p hp => infer_sound (hI' p hp))
+      (fun p hp => defeq_sound (hD' p hp)) hres hshape hrps (fun p hp => defeq_sound (hX p hp))
 
 theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
     DefEqU env Γ a b → DefEqSemU m φ Γ a b
@@ -433,7 +831,7 @@ theorem infer_sound [LevelOracle] : ∀ {Γ : List Expr} {e T : Expr},
 end
 
 /-- **Soundness with uniform β.**  At every model of the environment
-(definitions) and every valuation: a reduction, β included at every
+and every valuation: a reduction, β included at every
 binder with no certificate and no datum, keeps the invariant and the
 denotation of a subject that is not the point; two sides that are not
 the point and that the checker calls equal have equal denotations; an

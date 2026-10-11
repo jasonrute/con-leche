@@ -7,7 +7,7 @@ public import Fragment.EnvModel
 @[expose] public section
 
 /-!
-# Uniform β: the model with restricted universes (task #338)
+# Uniform β: the model with restricted universes (tasks #338, #339)
 
 A variant of the fragment's model in which **no member of a type whose
 sort is nonzero is the proof point** — property (P) of task #337 — so
@@ -34,8 +34,13 @@ What changes against the fragment's model (`Lib.lean`, `Interp.lean`,
   equality nothing about two sides one of which does.  Proof
   irrelevance needs no claim at all: two proofs are the point.
 
-`Uniform/Sound.lean` proves the fragment's env-free rules and δ sound
-with uniform β against this model.
+* **The ι laws take the comparisons conditionally** (`RecRuleLawU`,
+  `RecRuleLawNU`): the constructor's parameters and index values equal
+  the recursor's only where neither is the point, and the law is asked
+  only where the recursor's application is not the point.
+
+`Uniform/Sound.lean` proves the fragment's env-free rules — β, δ and ι
+— sound with uniform β against this model.
 -/
 
 namespace Fragment.Uniform
@@ -451,11 +456,97 @@ theorem SatU_get : ∀ {Γ : List Expr} {ρ : Nat → V} {i : Nat} {A : Expr},
     rw [shiftE_zero] at this ⊢
     simpa [Nat.add_assoc, Nat.add_comm 1] using this
 
+/-! ## Telescopes on values, and the ι laws -/
+
+/-- **Values fitting a telescope**, read by `interpU` (`TeleFitV`). -/
+def TeleFitVU : (Nat → V) → Expr → List V → Prop
+  | _, _, [] => True
+  | ρ, .pi A _ B, v :: vs => v ∈ˢ interpU M φ ρ A ∧ TeleFitVU (cons v ρ) B vs
+  | _, _, _ :: _ => False
+
+theorem TeleFitVU_nil (ρ : Nat → V) (e : Expr) : TeleFitVU M φ ρ e [] := by
+  cases e <;> exact trivial
+
+theorem TeleFitVU_pi_cons (ρ : Nat → V) (A : Expr) (pw : PropWhen) (B : Expr) (v : V)
+    (vs : List V) :
+    TeleFitVU M φ ρ (.pi A pw B) (v :: vs) ↔
+      v ∈ˢ interpU M φ ρ A ∧ TeleFitVU M φ (cons v ρ) B vs := Iff.rfl
+
+/-- **A well-formed application chain on values**, with `WDU`'s typed
+application clause: in the graph regime the slot's domain is a type. -/
+def SpineOkU : V → List V → Prop
+  | _, [] => True
+  | f, v :: vs =>
+    (∃ (p : Bool) (A : V) (B : V → V),
+      f ∈ˢ piR p A B ∧ v ∈ˢ A ∧ (p = true → ∀ x, x ∈ˢ A → B x ∈ˢ univ 0) ∧
+        (p = false → IsTy A)) ∧
+    SpineOkU (app f v) vs
+
+/-- **The ι law of one recursor rule**, for the restricted universes
+(`RecRuleLaw`, with three changes).  The comparisons of the
+constructor's parameters with the recursor's and of the residual's
+index values with the recursor's index arguments are **conditional on
+the point**, as `DefEqU` claims them; and the law is asked only where
+the recursor's application is not the point, as `RedU` claims ι.
+Deriving the equalities the recursion equation needs from the
+conditional comparisons is the installation's business: the two
+telescopes are generated from one parameter and index context, so the
+two sides of each comparison lie in one type, whose members are all the
+point or none (`IsTy`). -/
+def RecRuleLawU (c : Name) (ci : ConstInfo)
+    (numParams numBefore majorIdx : Nat) (rl : RecRule) (cij : ConstInfo) : Prop :=
+  ∀ (φ : Name → Nat) (ρ : Nat → V) (us usj : List Level) (xs ys : List V),
+    us.length = ci.lparams.length → usj.length = cij.lparams.length →
+    xs.length = majorIdx → ys.length = numParams + rl.nfields →
+    TeleFitVU M φ ρ (ci.type.instL ci.lparams us)
+      (xs ++ [appList (M rl.ctor (usj.map (Level.eval φ))) ys]) →
+    TeleFitVU M φ ρ (cij.type.instL cij.lparams usj) ys →
+    usj.map (Level.eval φ) = (us.drop (us.length - usj.length)).map (Level.eval φ) →
+    (∀ p ∈ (ys.take numParams).zip (xs.take numParams), p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+    (∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
+      piBodyV ρ (cij.type.instL cij.lparams usj) ys = some (B, ρ') →
+      B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = numParams →
+      ∀ p ∈ (ridx.map (interpU M φ ρ')).zip (xs.drop numBefore),
+        p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+    appList (M c (us.map (Level.eval φ)))
+        (xs ++ [appList (M rl.ctor (usj.map (Level.eval φ))) ys]) ≠ pt →
+    appList (M c (us.map (Level.eval φ)))
+        (xs ++ [appList (M rl.ctor (usj.map (Level.eval φ))) ys])
+      = appList (interpU M φ ρ (rl.rhs.instL ci.lparams us))
+          (xs.take numBefore ++ ys.drop numParams) ∧
+    WDU M φ ρ (rl.rhs.instL ci.lparams us) ∧
+    SpineOkU (interpU M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop numParams)
+
+/-- **The ι law of a nested rule** (`RecRuleLawN`), with the index
+comparisons conditional on the point and asked only where the
+recursor's application is not the point. -/
+def RecRuleLawNU (c : Name) (ci : ConstInfo)
+    (nPc numBefore majorIdx : Nat) (rl : RecRule) (cij : ConstInfo) : Prop :=
+  ∀ (φ : Name → Nat) (ρ : Nat → V) (us usj : List Level) (xs ys : List V),
+    us.length = ci.lparams.length → usj.length = cij.lparams.length →
+    xs.length = majorIdx → ys.length = nPc + rl.nfields →
+    TeleFitVU M φ ρ (ci.type.instL ci.lparams us)
+      (xs ++ [appList (M rl.ctor (usj.map (Level.eval φ))) ys]) →
+    TeleFitVU M φ ρ (cij.type.instL cij.lparams usj) ys →
+    (∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
+      piBodyV ρ (cij.type.instL cij.lparams usj) ys = some (B, ρ') →
+      B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = nPc →
+      ∀ p ∈ (ridx.map (interpU M φ ρ')).zip (xs.drop numBefore),
+        p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+    appList (M c (us.map (Level.eval φ)))
+        (xs ++ [appList (M rl.ctor (usj.map (Level.eval φ))) ys]) ≠ pt →
+    appList (M c (us.map (Level.eval φ)))
+        (xs ++ [appList (M rl.ctor (usj.map (Level.eval φ))) ys])
+      = appList (interpU M φ ρ (rl.rhs.instL ci.lparams us))
+          (xs.take numBefore ++ ys.drop nPc) ∧
+    WDU M φ ρ (rl.rhs.instL ci.lparams us) ∧
+    SpineOkU (interpU M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop nPc)
+
 /-! ## The environment model and the claims -/
 
-/-- **A model of an environment** (definitions only): every stored
-constant's type is a well-denoted type with the constant a member, and
-a definition's value denotes the constant. -/
+/-- **A model of an environment**: every stored constant's type is a
+well-denoted type with the constant a member, a definition's value
+denotes the constant, and every recursor rule satisfies its ι law. -/
 structure EnvModelU (V : Type u) [PtLib V] (env : Env) where
   M : Name → List Nat → V
   type_ok : ∀ (c : Name) (ci : ConstInfo), env.find? c = some ci →
@@ -468,6 +559,30 @@ structure EnvModelU (V : Type u) [PtLib V] (env : Env) where
     ∀ (φ : Name → Nat) (ρ : Nat → V) (ls : List Level), ls.length = ci.lparams.length →
       WDU M φ ρ (v.instL ci.lparams ls) ∧
       interpU M φ ρ (v.instL ci.lparams ls) = M c (ls.map (Level.eval φ))
+  rec_rules : ∀ (c : Name) (ci : ConstInfo) (numParams numMotives numMinors numIndices : Nat)
+    (rules : List RecRule),
+    env.find? c = some ci →
+    ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+    ∀ rl ∈ rules, rl.inst = none → ∀ cij : ConstInfo, env.find? rl.ctor = some cij →
+      RecRuleLawU M c ci numParams (numParams + numMotives + numMinors)
+        (numParams + numMotives + numMinors + numIndices) rl cij
+  rec_rules_nested : ∀ (c : Name) (ci : ConstInfo)
+    (numParams numMotives numMinors numIndices : Nat) (rules : List RecRule),
+    env.find? c = some ci →
+    ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+    ∀ rl ∈ rules, ∀ (lvs : List Level) (pinst : List Expr), rl.inst = some (lvs, pinst) →
+      ∀ (cij : ConstInfo) (I : Name) (nPc nf : Nat), env.find? rl.ctor = some cij →
+        cij.kind = .ctor I nPc nf →
+        RecRuleLawNU M c ci nPc (numParams + numMotives + numMinors)
+          (numParams + numMotives + numMinors + numIndices) rl cij
+
+/-- The empty environment has a model: any assignment, vacuous laws. -/
+def EnvModelU.empty (M : Name → List Nat → V) : EnvModelU V Env.empty where
+  M := M
+  type_ok := fun _ _ h => by simp at h
+  unfold := fun _ _ _ h => by simp at h
+  rec_rules := fun _ _ _ _ _ _ _ h => by simp at h
+  rec_rules_nested := fun _ _ _ _ _ _ _ h => by simp at h
 
 variable {env : Env}
 
