@@ -380,7 +380,9 @@ in the class at every parameter set of the universe holding the
 support.  And for the block's bound to be one set the class at the
 one-fibre set must be inhabited when the class is inhabited at all
 (a container value's stand-in when the fields are read off the
-family, `toOne`).  These are the facts `ContClause` lists; the
+family, `toFam`).  The class reads the container at the admissible
+part of a set (`adm`, `IndCommon.lean`), which is a type: the
+container's nested parameter ranges over a sort.  These are the facts `ContClause` lists; the
 installation of a nested block proves them from the container's
 positivity and the leastness of its fixed point (`NestSem.lean`,
 `contClause_of`), and nothing is asked of a plain block
@@ -600,9 +602,9 @@ every fitting prefix of the telescope.  Con-leche: the constructors'
 fields are small at every hole frame of the tuple space
 (`LfpClause.fieldsOk`, `ConLeche/Model/Annot/BlockLfp.lean`, the
 install's `FieldsOkB`); the installation derives it from the checker's
-field-sort check read in a model in which the former denotes an
-arbitrary family of the universe (`domsBounded_of`,
-`InstallInd.lean`). -/
+field-sort check read in a model in which the former denotes the
+one-fibre family (`domsBounded_of`, `InstallInd.lean`), whence every
+family by `domsBounded_of_fam`. -/
 def DomsBounded (ps : List V) : Prop :=
   S.z ls = false → ∀ W, InUniv (S.u₀ ls) W → ∀ c ∈ S.ctors, ∀ k f,
     c.fields[c.fields.length - 1 - k]? = some f → k < c.fields.length →
@@ -791,14 +793,18 @@ theorem famOp_maps {ps : List V} (hb : S.DomsBounded M ls ps) (hco : S.ContOk M 
 
 No field reads an earlier recursive or container field (`NoRecDep`),
 so the ordinary domains and the telescopes met along an instance of
-any family are those met along an instance of the **one-fibre
-family** (every fibre `{pt}`, a member of every universe) at the same
-ordinary values — the recursive values replaced by that family's
-canonical member of the field's set, the point abstracted over the
-telescope, and the container values by a member of the class at the
-one-fibre set, which the container's clause supplies
-(`ContClause.inhab_one`; `toOne`).  That is how the support bound is
-ONE set, independent of the family.  Con-leche: the frame walk at
+any family are those met along an instance of a **constant family**
+(`constFam Y`) at the same ordinary values — the recursive values
+replaced by that family's canonical member of the field's set (a
+member `y` of `Y` abstracted over the telescope), and the container
+values by a member of the class at `Y`, which the container's clause
+supplies (`ContClause.inhab`; `toFam`).  At the **one-fibre set**
+(`oneSet`: `{pt}` at a proposition, a singleton of a tagged value
+above it — a type either way, so the former may denote it in a model
+of the restricted universes) this is how the support bound is ONE set,
+independent of the family (`bound`), and how the universe bound on the
+fields at every family follows from the bound at that one family
+(`domsBounded_of_fam`).  Con-leche: the frame walk at
 arbitrary recursive slots (`structUsedLater`, `Positivity.lean`;
 `InvOn`, `HoleAcc.lean`). -/
 

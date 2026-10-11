@@ -27,7 +27,8 @@ The steps, in order:
   class's laws (`classLaws_of`);
 * **the constructors**: as for a plain block — the universe bound on
   the fields at every family of the universe (`domsBounded_ofN`, read
-  in the model in which the former denotes that family, `mIndFN`),
+  in the model in which the former denotes the one-fibre family,
+  `mIndFN`, then `domsBounded_of_fam`),
   the container's clause at fitting parameters;
 * **the recursors**: their sets are in their types (`recSetN_mem`,
   `rec1Set_mem`: the recursors' typing `recSemN_mem`, or at a
@@ -336,15 +337,17 @@ theorem univ_of_sortN_of (mX : EnvModel V (S.envInd env)) {Γ : List Expr} {A s 
   rw [heq, interp_sort] at hmem
   exact mem_univ_of_mem_typeU hmem
 
-/-! ## The model with the former assigned any family of the universe
+/-! ## The model with the former assigned any admissible family of types
 
 As for a plain block (`InstallInd.lean`, `mIndF`): the former's type
-is inhabited by the graph of any family of members of the result
+is inhabited by the graph of any family of types of the result
 universe, so the environment holding the former has a model for each
-such family, in which the checker's typing of the constructors reads
+such family (admissible, so that the class reads at its fibres), in
+which the checker's typing of the constructors and of the class reads
 as facts about instances of that family — the universe bound on the
-fields at every family (`domsBounded_ofN`), the fact `closed_of_acc`
-consumes. -/
+fields (`domsBounded_ofN`), the fact `closed_of_acc` consumes, and the
+class's arguments fitting the container's parameters (`argsFit_of`),
+both at the one-fibre family, which needs nothing of the class. -/
 
 omit hs m in
 /-- The assignment with the former the graph of `F` agrees with the
@@ -555,13 +558,13 @@ theorem contOk (φ : Name → Nat) {ps : List V}
   S.contOk_of (nestFacts hs m hok φ) hok.nest hp
 
 /-- **The universe bound on the fields, at every family of the result
-universe** (as `domsBounded_of` for a plain block): a family `W` of
-members of the universe becomes the former's fibre at the block's
-levels and parameters (`{pt}` elsewhere) in the model `mIndFN`; the
-checker's sort facts on every field and every binder of a reflexive
-field's telescope, read there at the values fitting the earlier
-fields — a container field among them read through the container's
-set — bound the field's set.  Con-leche: `FieldsOkB` at every hole
+universe** (as `domsBounded_of` for a plain block): the one-fibre
+family is the former's denotation in the model `mIndFN`; the checker's
+sort facts on every field and every binder of a reflexive field's
+telescope, read there at the values fitting the earlier fields — a
+container field among them read through the container's set — bound
+the field's set at that family, hence at every family
+(`domsBounded_of_fam`).  Con-leche: `FieldsOkB` at every hole
 frame. -/
 theorem domsBounded_ofN (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps : ps.length = S.nP)
     (hp : FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps) :

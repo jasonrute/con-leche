@@ -16,8 +16,9 @@ block at every valuation; the environments holding the former, then
 the constructors, have models at `M₃`; the two facts the constructor
 checks supply beyond the types' invariants — the universe bound on the
 fields at every family of the universe (`domsBounded_of`: the
-checker's sort facts, read in a model in which the former denotes that
-family, `mIndF`) and, under the subsingleton criterion, the uniqueness
+checker's sort facts, read in a model in which the former denotes the
+one-fibre family, a family of types, `mIndF`; every other family by
+`domsBounded_of_fam`) and, under the subsingleton criterion, the uniqueness
 of decodings (`uniq_of`) — and the three `type_ok` laws: the former's set is in
 its type (`type_ok_ind`), each constructor's in its (`type_ok_ctor`),
 the recursor's in its (`type_ok_rec`: the recursor's typing,
@@ -148,15 +149,18 @@ theorem lparams_map_substVal (hok : S.Ok env) (φ : Name → Nat) {ls : List Lev
 variable (hpl : S.nest = none) (hs : Env.Scoped env) (m : EnvModel V env) (hok : S.Ok env)
 include hpl hs m hok
 
-/-! ## The model with the former assigned any family of the universe
+/-! ## The model with the former assigned any family of types
 
 The former's type `∀ params indices, Sort u` is inhabited by the graph
-of ANY family of members of the result universe, so the environment
-holding the former has a model for each such family (`mIndF`).  In
-such a model the checker's typing of the constructors reads as facts
-about instances of that family — which is how the universe bound on
-the fields is obtained at every family (`domsBounded_of`), the fact
-`closed_of_acc` consumes.  Con-leche checks the constructor with the
+of ANY family of types of the result universe (`Sort u` denotes the
+restricted universe `typeU`), so the environment holding the former
+has a model for each such family (`mIndF`).  In such a model the
+checker's typing of the constructors reads as facts about instances of
+that family — which is how the universe bound on the fields is
+obtained at the one-fibre family, a family of types, and from it at
+every family (`domsBounded_of`, `domsBounded_of_fam`), the fact
+`closed_of_acc` consumes.  (An arbitrary family of the universe need
+not be one of types, so it cannot be the former's denotation.)  Con-leche checks the constructor with the
 holes in context (`nestCtors`, `Positivity.lean`) and records
 `FieldsOkB` at every hole frame; the fragment gets the same from the
 ordinary typing, read in these models. -/
@@ -351,11 +355,12 @@ theorem univ_of_sort_of (mX : EnvModel V (S.envInd env)) {Γ : List Expr} {A s :
   exact mem_univ_of_mem_typeU hmem
 
 /-- **The universe bound on the fields, at every family of the result
-universe**: a family `W` of members of the universe becomes the
-former's fibre at the block's levels and parameters (`{pt}` elsewhere)
-in the model `mIndF`; the checker's sort facts on every field and
-every binder of a reflexive field's telescope, read there at the
-values fitting the earlier fields, bound the field's set.  Con-leche:
+universe**: the one-fibre family (`oneSet`, a family of types) is the
+former's denotation in the model `mIndF`; the checker's sort facts on
+every field and every binder of a reflexive field's telescope, read
+there at the values fitting the earlier fields, bound the field's set
+at that family, hence at every family (`domsBounded_of_fam`: no field
+reads an earlier recursive field).  Con-leche:
 `FieldsOkB` at every hole frame, from the holes-in-context check. -/
 theorem domsBounded_of (φ : Name → Nat) (ρ : Nat → V) {ps : List V} (hps : ps.length = S.nP)
     (hp : FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps) :

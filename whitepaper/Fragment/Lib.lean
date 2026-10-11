@@ -11,9 +11,11 @@ Everything the fragment's proof uses of set theory, stated
 declaratively as ONE class: sets and membership with extensionality
 and separation, a point `pt` with its singleton, dependent function
 spaces with graphs and application and their β/η/extensionality laws,
-and a universe chain with its closure laws.  There is no construction
-here, and nothing beyond these laws is used — every theorem of the
-fragment is proved against the class.
+a universe chain with its closure laws, and three laws of the point
+(it is not a truth value, it has at most one member, no graph is its
+member; true of `pt := {{∅}}`).  There is no construction here, and
+nothing beyond these laws is used — every theorem of the fragment is
+proved against the class.
 
 The truth values are not laws but an abbreviation: a proposition `P`
 denotes `truthVal P`, the members of `{pt}` that satisfy `P` — the
@@ -32,6 +34,11 @@ a `Bool` saying whether the body is a proposition — a truth value and
 the one proof when it is, a graph space and a graph when it is not.
 The interpretation (`Interp.lean`) applies them to the annotation's
 readout, and nowhere else does the regime enter.
+
+Last, the **restricted universes** (`typeU`): what a sort denotes —
+the truth values at `0`, above it the members of the universe that are
+neither the point nor contain it.  The universe chain `univ` sizes
+things; `typeU` is what the typing reads.
 -/
 
 namespace Fragment
@@ -52,14 +59,15 @@ class SetLib (V : Type u) where
   sep : V → (V → Prop) → V
   /-- The members of a separation. -/
   mem_sep : ∀ {A : V} {P : V → Prop} {z : V}, Mem z (sep A P) ↔ Mem z A ∧ P z
-  /-- A distinguished set; any set would do.  It is the one proof of
-  every true proposition. -/
+  /-- A distinguished set, subject to the point's three laws below.  It
+  is the one proof of every true proposition. -/
   pt : V
   /-- The one-element set `{pt}`. -/
   one : V
   /-- The members of `{pt}`. -/
   mem_one : ∀ {z : V}, Mem z one ↔ z = pt
-  /-- The universe chain: `univ n` interprets `Sort n`. -/
+  /-- The universe chain: `univ n` sizes `Sort n`, which denotes its
+  restricted part `typeU n`. -/
   univ : Nat → V
   /-- `univ 0` is the set of subsets of `{pt}` — the truth values. -/
   mem_univ_zero : ∀ {T : V}, Mem T (univ 0) ↔ ∀ z, Mem z T → z = pt

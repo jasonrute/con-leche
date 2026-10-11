@@ -177,8 +177,8 @@ end ParamSet
 valuations where every parameter of the set is zero.  (`whenZero ∅` is
 "always".) -/
 inductive PropWhen where
-  /-- The body is never a proposition — the *graph regime*, where the
-  β rule needs no certificate (`Red.betaGate`). -/
+  /-- The body is never a proposition — the *graph regime*: an
+  abstraction is a graph, which determines its domain. -/
   | never
   /-- The body is a proposition exactly when these level parameters
   are all zero. -/

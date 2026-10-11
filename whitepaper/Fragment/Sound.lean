@@ -494,8 +494,9 @@ the two denote alike.  The head applied to `xs` is not the point, so it
 is a graph, whose domain is the binder's — a type.  If the major is not
 the point, its reduction's claim applies; if it is, the binder's domain
 holds the point, so it is a truth value, and the reduct is the point
-too.  This is the case of a recursion on proofs (`Acc`-style), where
-the fragment's ι needs the certified β to reduce the major. -/
+too.  This is the case of a recursion on proofs (`Acc`-style), where a
+model interpreting sorts by the universes needs a certified β to reduce
+the major. -/
 theorem major_eq {Γ : List Expr} {ρ : Nat → V} {T f maj maj' : Expr} {xs : List Expr}
     (hs : Sat m.M φ Γ ρ) (hT : WellDenoted m.M φ ρ T) (hf : interp m.M φ ρ f ∈ˢ interp m.M φ ρ T)
     (hw : WellDenoted m.M φ ρ (.app (Expr.mkAppN f xs) maj))
