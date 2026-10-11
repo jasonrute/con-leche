@@ -282,6 +282,12 @@ The clause is produced in `BlockLfpHoles.lean`. -/
   fields := d.absF
   resIdx := d.absE
 
+/-- **The hole chains' sorts** at a level assignment: each chain's
+fields with holes at their own sorts (`absSF`), its index equation at
+`0` (task #342 L2b) — `LfpDatum.holeChainSorts` at the datum. -/
+@[expose] def BlockData.holeSorts (d : BlockData V) (ψ : Name → Nat) : Nat → List (List Nat) :=
+  fun c => (List.range (d.ctorsM c).length).map fun j => d.absSF c j ψ ++ [0]
+
 /-! ## The clause -/
 
 /-- **The representation of the block whose members are `names`** at

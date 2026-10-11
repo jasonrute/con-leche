@@ -42,11 +42,6 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-! ## The invariant the member loops thread -/
 
-/-- **The hole chains' sorts** at a level assignment: each chain's
-fields with holes at their own sorts (`absSF`), its index equation at
-`0` (task #342 L2b). -/
-@[expose] def BlockData.holeSorts (d : BlockData V) (ψ : Name → Nat) : Nat → List (List Nat) :=
-  d.toLfp.holeChainSorts fun c j => d.absSF c j ψ
 
 /-- **The block install's carrier invariant at the constructors'
 stage**, `nc` members' constructors consed: the `k` formers with their

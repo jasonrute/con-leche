@@ -131,8 +131,10 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     ∀ X : Nat → V, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     FieldsValid (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
-    ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
-      ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e := by
+    (∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
+      ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e) ∧
+    (d.w ψ ≠ 0 →
+      FieldsSorts (d.w ψ) (sorts.map (Level.eval ψ)) (d.toLfp.frame ψ ρp X) (d.absF ψ c j)) := by
   obtain ⟨-, ab, hhi, -, hca, hab, -, habLen, -, -, -, hfr, hCP, hgr, -, hsatFrame⟩ :=
     blockCtorHoleCtx (Rules.RulesInputs.ofSem mp ψ) hN hcore hnames hlps hnP hk
       hcv0 hop0 hholes hcj hCf hCb hcrest hinf hd hnf
@@ -165,10 +167,12 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     refine wellDenotedV_mkPisAV_dom hgr i _ (List.getElem?_eq_getElem hi) _ ?_
     rw [← htake i]
     exact sat_of_spineFit hσ has
-  -- U2's universe bound, per field
-  have hbound : d.w ψ ≠ 0 → ∀ i, i < ab.length → ∀ as : List V,
+  -- U2's universe bound, per field, at the field's OWN sort (task #342 L2b)
+  have hsorted : d.w ψ ≠ 0 → ∀ i, i < ab.length → ∀ as : List V,
       SpineFit σ ((d.absF ψ c j).take i) as →
-      interp V (consList as σ) ((d.absF ψ c j).getD i default) ∈ˢ (univ (d.w ψ) : V) := by
+      (sorts.getD i .zero).eval ψ ≤ d.w ψ ∧
+      interp V (consList as σ) ((d.absF ψ c j).getD i default)
+        ∈ˢ (univ ((sorts.getD i .zero).eval ψ) : V) := by
     intro hw i hi as has
     have hnp : (Level.isEquiv p.resSort .zero == some true) = false := by
       cases h : (Level.isEquiv p.resSort .zero == some true)
@@ -183,35 +187,97 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     rw [← habLen, stripPisAV_mkPisAV] at hst
     obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hst).symm
     have hlenX : xq.1.length = cA.2 := ConLeche.Verify.openPisAtFvars_length _ hxq'
-    have hTB := teleBound_walk (w := d.w ψ) rfl mp ψ cA.2 hxq' habLen hCP.toCtxOk hfr.1 hfr.2.1
-      hfr.2.2
+    have hTB := teleBound_walk (uk := fun k => sorts.getD k .zero) rfl mp ψ cA.2 hxq' habLen
+      hCP.toCtxOk hfr.1 hfr.2.1 hfr.2.2
       (fun k a hka => by
         obtain ⟨q, hq, -, hqd⟩ := hbind k a hka
         rw [hqd, List.getD_eq_getElem?_getD, hq]
         rfl)
       (fun k a hka => by
         have hk' : k < cA.2 := by rw [← hlenX]; exact (List.getElem?_eq_some_iff.mp hka).1
-        obtain ⟨fv, t, u, hfv, -, hinfk, hens, hleq, -⟩ := hfields k hk'
+        obtain ⟨fv, t, u, hfv, hu, hinfk, hens, -, -⟩ := hfields k hk'
         obtain rfl := Option.some.inj (hka.symm.trans hfv)
-        refine ⟨F, t, u, hinfk, hens, ?_⟩
-        have hle := ConLeche.Level.leq_sound (hleq hnp) ψ
-        show Level.eval ψ u ≤ d.resSort.eval ψ
-        rw [← hres]; exact hle)
+        refine ⟨F, t, hinfk, ?_⟩
+        rw [List.getD_eq_getElem?_getD, hu]
+        exact hens)
       i (by omega) (consList as σ) (by rw [← htake i]; exact sat_of_spineFit hσ has)
-    rw [hget i hi]
-    have h2 := hTB.2
-    rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some] at h2
+    have hi' : i < cA.2 := by rw [← habLen]; exact hi
+    obtain ⟨fv, t, u, -, hu, -, -, hleq, -⟩ := hfields i hi'
+    have hle := ConLeche.Level.leq_sound (hleq hnp) ψ
+    refine ⟨?_, ?_⟩
+    · rw [List.getD_eq_getElem?_getD, hu]
+      show Level.eval ψ u ≤ d.resSort.eval ψ
+      rw [← hres]; exact hle
+    · rw [hget i hi]
+      have h2 := hTB.2
+      rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some] at h2
+  have hbound : d.w ψ ≠ 0 → ∀ i, i < ab.length → ∀ as : List V,
+      SpineFit σ ((d.absF ψ c j).take i) as →
+      interp V (consList as σ) ((d.absF ψ c j).getD i default) ∈ˢ (univ (d.w ψ) : V) :=
+    fun hw i hi as has => univ_mono (hsorted hw i hi as has).1 _ (hsorted hw i hi as has).2
   have hlenF : (d.absF ψ c j).length = ab.length := by rw [hFab, List.length_map]
+  have hlenSo : sorts.length = ab.length := by
+    rw [(ConLeche.checkStructFieldSortsI_inv hsorts).1, ← habLen]
   refine ⟨fieldsOkB_of_prefix _ σ fun i hi as has =>
       ⟨(hdom i (by omega) as has).1, fun hw => hbound hw i (by omega) as has⟩,
     fieldsValid_of_prefix _ σ fun i hi as has => (hdom i (by omega) as has).2,
-    fun fs hfs e he => ?_⟩
+    fun fs hfs e he => ?_, fun hw => fieldsSorts_of_prefix _ _ σ
+      (by rw [List.length_map, hlenSo, hlenF]) fun i hi as has => ?_⟩
+  rotate_left
+  · have hgs : (sorts.map (Level.eval ψ)).getD i 0 = (sorts.getD i .zero).eval ψ := by
+      rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
+      cases sorts[i]? <;> rfl
+    rw [hgs]
+    exact hsorted hw i (by omega) as has
   -- the result index readings: arguments of the graded body
   have hbody := gradedV_mkPisAV_body hgr (consList fs σ)
     (by rw [← hFab]; exact sat_of_spineFit hσ hfs)
   exact WellDenotedV_mkAppN_args _ hbody e he
 
 /-! ## The block -/
+
+/-- **The fields with holes' sorts, as the install computes them** (task
+#342 L2b): the one run of `checkStructFieldSortsI` that
+`checkAbsCtorSorts` (`Kernel/Inductives/BlockInstall.lean`) performs on a
+constructor's positivity normal form `nf` (with `nF` fields), at the
+walk's context — the block's first former opened at the parameters, the
+members as holes.  The checker discards the levels; the model re-runs
+the same deterministic computation, so these are the levels the
+checker's per-field bound was checked at (`absCtorSortsRun_eq`).  Off a
+successful run it is `[]`. -/
+@[expose] def absCtorSortsRun (μ : ConLeche.CheckMode) (F : Nat) (env : Env) (p : BlockParts)
+    (cvTas : List ConstantVal) (nF : Nat) (nf : Expr) : List Level :=
+  match cvTas.head? with
+  | none => []
+  | some cvTa0 =>
+    match openPisAtFvars p.nP cvTa0.type 0 with
+    | none => []
+    | some (fvsP, _) =>
+      match openPisAtFvars nF nf ((p.nestCtx fvsP env.find?).hiAt 0) with
+      | none => []
+      | some xq =>
+        match ConLeche.checkStructFieldSortsI (fueledOps μ F) env
+            (Level.isEquiv p.resSort .zero == some true) false p.resSort
+            ((p.nestCtx fvsP env.find?).hiAt 0) xq.1 [] nF with
+        | .ok us => us
+        | _ => []
+
+omit [SetTheory V] in
+/-- The re-run IS the install's run: at the run's own inputs it returns
+the levels the run returned. -/
+theorem absCtorSortsRun_eq {μ : ConLeche.CheckMode} {F : Nat} {env : Env} {p : BlockParts}
+    {cvTas : List ConstantVal} {cvTa0 : ConstantVal} {fvsP : List Expr} {rest : Expr}
+    (hcv0 : cvTas.head? = some cvTa0)
+    (hop0 : openPisAtFvars p.nP cvTa0.type 0 = some (fvsP, rest))
+    {nF : Nat} {nf : Expr} {xq : List Expr × Expr} {sorts : List Level}
+    (hxq : openPisAtFvars nF nf ((p.nestCtx fvsP env.find?).hiAt 0) = some xq)
+    (hsorts : ConLeche.checkStructFieldSortsI (fueledOps μ F) env
+      (Level.isEquiv p.resSort .zero == some true) false p.resSort
+      ((p.nestCtx fvsP env.find?).hiAt 0) xq.1 [] nF = .ok sorts) :
+    absCtorSortsRun μ F env p cvTas nF nf = sorts := by
+  unfold absCtorSortsRun
+  rw [hcv0]
+  simp only [hop0, hxq, hsorts]
 
 /-- **Every member constructor's fields with holes are closed and graded
 at the hole frame of every tuple**, from the install's positivity stage
@@ -243,8 +309,12 @@ theorem blockHoleGrade_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks
     ∀ X : Nat → V, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     FieldsValid (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
-    ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
-      ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e := by
+    (∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
+      ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e) ∧
+    (d.w ψ ≠ 0 → FieldsSorts (d.w ψ)
+      ((absCtorSortsRun μ F env p cvTas ((d.ctorsM c).getD j default).2 (d.nfFF c j)).map
+        (Level.eval ψ))
+      (d.toLfp.frame ψ ρp X) (d.absF ψ c j)) := by
   obtain rfl := ConLeche.CheckMode.eq_verified hμ
   obtain ⟨kinds, nfs, nodes⟩ := posKs
   obtain ⟨cvTa0, fvsP, rest, holes, hcv0, hop0, hholes, hder, -⟩ :=
@@ -264,6 +334,11 @@ theorem blockHoleGrade_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks
   obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, hty⟩, -, ⟨xq, sorts, hxq, hsorts⟩, -⟩ :=
     hder c (d.ctorsM c) (hctorsAs c hck) j _ hcj
   obtain ⟨hCf, hCb⟩ := hclosed c j _ hcj
+  have hrun : absCtorSortsRun .verified F env p cvTas ((d.ctorsM c).getD j default).2 (d.nfFF c j)
+      = sorts := by
+    rw [List.getD_eq_getElem?_getD, hcj, Option.getD_some, hnfs c j _ hcj]
+    exact absCtorSortsRun_eq hcv0 hop0 hxq hsorts
+  rw [hrun]
   exact blockCtorHoleGrade_of_walk mp hN hcore hnames hlps hnP hres hk hcv0 hop0
     hholes hcj hCf hCb hcrest hty hd (hnfs c j _ hcj) hxq hsorts
 
@@ -720,15 +795,16 @@ theorem lamDomsBelow_map {v : Nat} :
 omit [SetTheory V] in
 /-- **A member's hole term is closed below the operator's frame**, from
 its index telescope below the parameters. -/
-theorem holeTmAV_below {u m nP : Nat} {Is : List AnnotTerm} (hI : FieldsBelow nP Is) :
-    Term.bvarsBelow (nP + 2) (holeTmAV u m Is).erase := by
+theorem holeTmAV_below {u m nP : Nat} {us : List Nat} {Is : List AnnotTerm}
+    (hI : FieldsBelow nP Is) :
+    Term.bvarsBelow (nP + 2) (holeTmAV u us m Is).erase := by
   unfold holeTmAV
   have hI' : FieldsBelow (nP + 2) (liftFields 2 0 Is) :=
     FieldsBelow_liftFields (n := 2) (Nat.zero_le nP) hI
   refine mkLamsAV_below (lamDomsBelow_map hI') ?_
   simp only [List.length_map, liftFields_length, AnnotTerm.erase_app, Term.bvarsBelow]
   refine ⟨projAV_below (by simp only [AnnotTerm.erase_bvar, Term.bvarsBelow]; omega), ?_⟩
-  have := mkTowerGo_below (w := u) hI'
+  have := mkTowerGo_below (w := u) (us := us) hI'
   rwa [liftFields_length] at this
 
 namespace LfpDatum
@@ -799,7 +875,8 @@ its currency, its closedness) — from the per-constructor facts
 theorem blockHoleChains_facts {env : Env} {m : EnvModel V env} {d : BlockData V}
     {lps : List Name} (hH : BlockHoleFacts m d lps) (ψ : Name → Nat)
     (hIdx : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp → ∀ c, c < d.N →
-      IdxOk (d.uM c ψ) ρp (d.IdsM c ψ) ∧ FieldsValid ρp (d.IdsM c ψ))
+      IdxOk (d.uM c ψ) (d.isM c ψ) ρp (d.IdsM c ψ) ∧ FieldsValid ρp (d.IdsM c ψ))
+    {fsOf : Nat → Nat → List Nat}
     (hIdsB : ∀ c, c < d.k → FieldsBelow d.nP (d.IdsM c ψ))
     (hG : ∀ c, c < d.N → ∀ j, j < (d.ctorsM c).length →
       (FieldsBelow (d.nP + d.k) (d.absF ψ c j) ∧
@@ -808,11 +885,15 @@ theorem blockHoleChains_facts {env : Env} {m : EnvModel V env} {d : BlockData V}
       ∀ X : Nat → V, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
       FieldsValid (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
-      ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
-        ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e) :
+      (∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
+        ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e) ∧
+      (d.w ψ ≠ 0 → FieldsSorts (d.w ψ) (fsOf c j) (d.toLfp.frame ψ ρp X) (d.absF ψ c j))) :
     (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       BlockChainsOkG d.N (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
         (d.toLfp.holeChains ψ)) ∧
+    (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
+      BlockChainsSortsG d.N (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+        (d.toLfp.holeChainSorts fsOf) (d.toLfp.holeChains ψ)) ∧
     (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       ∀ Y, Y ∈ˢ famsSpaceB d.N (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) →
       ∀ c, c < d.N → ∀ t : V, SumFieldsValid (cons t (cons Y ρp)) (d.toLfp.holeChains ψ c)) ∧
@@ -826,15 +907,17 @@ theorem blockHoleChains_facts {env : Env} {m : EnvModel V env} {d : BlockData V}
     exact hH.lenE ψ c hc j hj
   have hok : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp → d.toLfp.HoleTmOk ψ ρp :=
     fun ρp hs mm hmm _ => (hIdx ρp hs mm (Nat.lt_of_lt_of_le hmm hkN)).1.2
-  refine ⟨fun ρp hs => ?_, fun ρp hs Y hY c hc t => ?_, fun c hc => ?_⟩
+  refine ⟨fun ρp hs => ?_, fun ρp hs => ?_, fun ρp hs Y hY c hc t => ?_, fun c hc => ?_⟩
   · exact LfpDatum.holeChains_ok (hok ρp hs) hkN (fun c hc => (hIdx ρp hs c hc).1)
       hres
       (fun X hX c hc j hj => ⟨((hG c hc j hj).2 ρp hs X hX).1,
-        fun fs hfs e he => (((hG c hc j hj).2 ρp hs X hX).2.2 fs hfs e he).1⟩)
+        fun fs hfs e he => (((hG c hc j hj).2 ρp hs X hX).2.2.1 fs hfs e he).1⟩)
+  · exact LfpDatum.holeChains_sorts (hok ρp hs)
+      (fun X hX c hc j hj hw => ((hG c hc j hj).2 ρp hs X hX).2.2.2 hw)
   · exact LfpDatum.holeChains_valid (hok ρp hs)
       (fun mm hmm => (hIdx ρp hs mm (Nat.lt_of_lt_of_le hmm hkN)).2)
       (fun X hX c hc j hj => ⟨((hG c hc j hj).2 ρp hs X hX).2.1,
-        fun fs hfs e he => (((hG c hc j hj).2 ρp hs X hX).2.2 fs hfs e he).2⟩) hY t hc
+        fun fs hfs e he => (((hG c hc j hj).2 ρp hs X hX).2.2.1 fs hfs e he).2⟩) hY t hc
   · refine LfpDatum.holeChains_below (D := d.toLfp) (nP := d.nP) hIdsB (fun j hj => ?_)
     obtain ⟨⟨hFb, hEb⟩, -⟩ := hG c hc j hj
     exact ⟨hFb, hEb, hres c hc j hj⟩
@@ -853,7 +936,7 @@ theorem BlockData.absE_congr {d d' : BlockData V} {ψ ψ' : Name → Nat} {c j :
 omit [SetTheory V] in
 /-- **The hole chains are congruent** in the lfp datum's readings. -/
 theorem LfpDatum.holeChains_congr {D D' : LfpDatum V} {ψ ψ' : Name → Nat} (hk : D.k = D'.k)
-    (hu : ∀ m, D.u m ψ = D'.u m ψ')
+    (hu : ∀ m, D.u m ψ = D'.u m ψ') (hiso : ∀ m, D.isorts m ψ = D'.isorts m ψ')
     (hi : ∀ c, D.ids c ψ = D'.ids c ψ') (hn : ∀ c, D.nctors c = D'.nctors c)
     (hf : ∀ c j, D.fields ψ c j = D'.fields ψ' c j)
     (he : ∀ c j, D.resIdx ψ c j = D'.resIdx ψ' c j) :
@@ -861,7 +944,7 @@ theorem LfpDatum.holeChains_congr {D D' : LfpDatum V} {ψ ψ' : Name → Nat} (h
   have hf' : ∀ c, D.fields ψ c = D'.fields ψ' c := fun c => funext (hf c)
   have he' : ∀ c, D.resIdx ψ c = D'.resIdx ψ' c := fun c => funext (he c)
   unfold LfpDatum.holeChains LfpDatum.holeTm
-  simp only [hk, hu, hi, hn, hf', he']
+  simp only [hk, hu, hiso, hi, hn, hf', he']
 
 /-! ## A closed telescope's prefix -/
 
