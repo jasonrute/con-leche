@@ -590,7 +590,8 @@ theorem caseAVAt_facts {w : Nat} :
 The carrier body of a direct sum: the `.psigma [w, w]` node over the
 tag domain `Nat` whose fibre is the numeral case split
 (`caseAVAt`) over the constructors' tuple-tower bodies
-(`towerBodyAV w Fs_i`), reading to the tier's `sumSet w (sumFibre …)`
+(`towersAV w Uss Fss`: `towerBodyAV w Us_i Fs_i`, each chain at its
+fields' own sorts, task #342 L2b), reading to the tier's `sumSet w (sumFibre …)`
 (`ConLeche/SetModel/TaggedSum.lean`).  At `w = 0` the `.psigma` spelling
 cannot serve (its pinned valuation reads the tag domain in `univ 0`),
 so — as `sqBodyAV` — the squash carrier is spelt
@@ -1487,11 +1488,12 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
 
 /-! ## The tupler with the proof-field terminator
 
-`mkTowerGoU w Fs E` spells `mkTower (f⃗ ++ [pt])` at the constructor
+`mkTowerGoU w us Fs E` spells `mkTower (f⃗ ++ [pt])` at the constructor
 λ-frame: `mkTowerGoPos`'s tower over the chain `Fs ++ [E]`, whose last
 component — the proof-field `E`, scoped at the full field frame — is
-valued by `.prf` rather than by a binder.  Its facts are
-`mkTowerGoPos`'s with one extra base case. -/
+valued by `.prf` rather than by a binder.  `us` sorts the whole chain,
+`E` included (at the callers its sort is `0`: `E` is a proposition).
+Its facts are `mkTowerGoPos`'s with one extra base case. -/
 
 /-- The proof-field-terminated tupler, graph regime. -/
 def mkTowerGoUPos (w : Nat) (E : AnnotTerm) : List Nat → List AnnotTerm → AnnotTerm

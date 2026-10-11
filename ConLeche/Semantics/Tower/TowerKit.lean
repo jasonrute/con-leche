@@ -340,16 +340,18 @@ denotations as closed `AnnotTerm` leaves over the `BConst` alphabet
 (`EnvModel.acval`).  This module supplies the two body spellings and
 their interpretation equations:
 
-* `towerBodyAV w Fs` — the carrier, spelled through `.psigma` at level
-  instantiation `[w, w]` with the unit terminator `.punit [w]`.  Two
-  interface facts make this land exactly on the tier's `towerSet w`:
-  `sigmaSet` reads its level only through the zero test
-  (`sigmaSet_pos`/`sigmaSet_zero`), so `max w w = w` closes the level
-  bookkeeping; and the fibre λ's annotation is the *codomain type's*
-  sort `w + 1 ≠ 0`, so the fibre computes by `app_lamR_pos` in **both**
+* `towerBodyAV w us Fs` — the carrier, spelled through `.psigma` at
+  level instantiation `[uᵢ, w]`, each field at its OWN sort `uᵢ`
+  (`us`, task #342 L2b), with the unit terminator `.punit [w]`.  Two
+  facts make this land exactly on the tier's `towerSet w`: `uᵢ ≤ w`,
+  so `max uᵢ w = w` closes the level bookkeeping (`natMax_eq_right`);
+  and the fibre λ's annotation is the *codomain type's* sort
+  `w + 1 ≠ 0`, so the fibre computes by `app_lamR_pos` in **both**
   regimes and `sigma_congr` rewrites it to the tier's fibre.  The
-  premises of `psigmaV_app` are exactly `FieldsBound w` — O5 plus
-  cumulativity, nothing else.
+  premises of `psigmaV_app` are exactly `FieldsSorts w us`: each domain
+  in `univ uᵢ`, and the tail towers in `univ w` — the one cumulative
+  step (`FieldsSorts.toBound`, the towers' formation), never a domain
+  slot.
 
 * `projAV i` — the tier's structure-independent `projS i = sfst ∘
   ssnd^i`, spelled by the iterated projection formers `.fst ∘ .snd^i`.
@@ -361,14 +363,15 @@ their interpretation equations:
   here.
 
 `towerBodyAV_wellDenoted` grades the body (`WellDenoted`) from the hereditary
-`FieldsOkB` premise (the domains' own `WellDenoted` + `FieldsBound`);
-the app slots are discharged by `psigmaV_rr_mem`, the `[w, w]`
+`FieldsOkB` premise (the domains' own `WellDenoted`) and the sorts;
+the app slots are discharged by `psigmaV_le_mem`, the `[uᵢ, w]`
 instance of the pinned pair former's product membership.
 -/
 
 
-/-- The carrier body, graph regime: the right-nested `.psigma [w, w]`
-application tower over the field domains, terminated by `PUnit.{w}`
+/-- The carrier body, graph regime: the right-nested `.psigma [uᵢ, w]`
+application tower over the field domains, each at its own sort `uᵢ`
+(`us`; a missing entry reads `w`), terminated by `PUnit.{w}`
 (`{∅}` above `Prop`, task #342 C).  The fibre λ is annotated `w + 1`
 (its body is a type of sort `w`), so it is a graph at every regime. -/
 def towerBodyAVPos (w : Nat) : List Nat → List AnnotTerm → AnnotTerm
@@ -758,8 +761,9 @@ theorem mkLamsC_wellDenoted {m : Nat} {b T : AnnotTerm} :
 /-!
 ## The constructor tupler
 
-`mkTowerGo w Fs` spells the tier's `mkTower` — the right-nested
-`.psigmaMk [w, w]` application tower with the `.punitUnit [w]` terminator
+`mkTowerGo w us Fs` spells the tier's `mkTower` — the right-nested
+`.psigmaMk [uᵢ, w]` application tower (each field at its own sort, as
+the carrier) with the `.punitUnit [w]` terminator
 — **at the constructor λ-frame**: the field values are the frame's own
 bound variables (`.bvar m`, `m` = the count of later fields), and the
 pair type arguments are the field domains lifted to that frame
@@ -779,7 +783,7 @@ one statement: at a fitting spine the tupler reads back as
 `if w = 0 then pt else mkTower bs` — exactly `psigmaMkV_app`'s own
 collapse, and exactly what the tier expects (`mkTower_mem` at the
 graph regime, `pt_mem_tower` at squash).  The premises are
-`FieldsBound` + `SpineFit`, nothing else.
+`FieldsSorts` + `SpineFit`, nothing else.
 -/
 
 

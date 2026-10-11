@@ -33,10 +33,14 @@ stage), never from a field classification:
 * **the universe bound**: U2 checks every field's universe against the
   family's AT THE HOLES' CONTEXT (official's per-field bound, the
   members variables; `checkStructFieldSortsI`), so at a `Type`-valued
-  family each field's reading lies in the family's universe
-  (`teleBound_walk`).  The inference of the whole tower alone cannot
-  give this: a Π-type with an empty codomain lies in every universe,
-  whatever its domain.
+  family each field's reading lies in its own sort's universe, and that
+  sort is at most the family's (`teleBound_walk`).  The inference of
+  the whole tower alone cannot give this: a Π-type with an empty
+  codomain lies in every universe, whatever its domain.
+* **the sorts themselves** (task #342 L2b): the checker discards the
+  levels that run computes; the model re-runs the same computation
+  (`absCtorSortsRun`, `absCtorSortsRun_eq`) and spells the block
+  operator's pair towers at them.
 -/
 
 namespace ConLeche.Model
