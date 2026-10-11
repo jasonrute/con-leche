@@ -12,8 +12,8 @@ by the environment and a **context** `Γ` (the types of the bound
 variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
 `i + 1` binders in between):
 
-* `Red env Γ e e'` — **head reduction**: β at a `never` gate, β
-  certified, δ, ι, closed under `appFn` and `trans` (and `refl`).
+* `Red env Γ e e'` — **head reduction**: β at every binder with no
+  certificate, δ, ι, closed under `appFn` and `trans` (and `refl`).
 * `DefEq env Γ a b` — **definitional equality**, the checker's verdict
   `true`: `refl`, `symm`, reduce-the-left-side, sorts by the level
   oracle, constants, congruence for `app`/`lam`/`pi`, η, proof
@@ -57,22 +57,16 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   `Rel.lean:111`): the head is reduced before a redex is looked for. -/
   | appFn {Γ : List Expr} {f f' a : Expr} :
       Red env Γ f f' → Red env Γ (app f a) (app f' a)
-  /-- **β at a fired gate** (`Red.betaGate`, `Rel.lean:121`): a λ whose
-  annotation is `never` — its body is never a proposition — reduces
-  with NO certificate.  The soundness of this step is the *graph
-  regime*'s β: an application that is well-denoted applies a graph to
-  a member of its domain, and a graph determines its domain
-  (`Sound.lean`, `red_sound`'s `betaGate` case). -/
-  | betaGate {Γ : List Expr} {A b a : Expr} :
-      Red env Γ (app (lam A .never b) a) (b.inst a)
-  /-- **β, certified** (`Red.beta`, `Rel.lean:126`): at any annotation,
-  the argument's inferred type is definitionally equal to the domain.
-  This is the check the real checker runs where the body may be a
-  proposition, because then the model cannot recover the domain from
-  the function's value (DESIGN.md, "Beta soundness without subject
-  reduction"). -/
-  | beta {Γ : List Expr} {A b a ta : Expr} {pw : PropWhen} :
-      Infer env Γ a ta → DefEq env Γ ta A →
+  /-- **β, uniform**: at every binder, with **no certificate** — no
+  inference of the argument, no comparison with the binder's domain,
+  no reading of the annotation.  Con-leche's checker still runs the
+  certified step where the body may be a proposition (`Red.beta`,
+  `Rel.lean:126`) and the free one only at a `never` gate
+  (`Red.betaGate`, `Rel.lean:121`); the fragment's model needs neither
+  (`Sound.lean`, `Red.beta_sound`): a reduction claims nothing of a
+  redex that denotes the point, and a redex that does not has a λ that
+  does not, so a graph, which determines its domain. -/
+  | beta {Γ : List Expr} {A b a : Expr} {pw : PropWhen} :
       Red env Γ (app (lam A pw b) a) (b.inst a)
   /-- **δ** (`Red.delta`, `Rel.lean:132`): a definition unfolds to its
   value, at the use's level instantiation.  (With `appFn`, an applied

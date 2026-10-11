@@ -1,5 +1,7 @@
 module
 
+public import Fragment.Level
+
 @[expose] public section
 
 /-!
@@ -97,6 +99,15 @@ class SetLib (V : Type u) where
   spaces. -/
   piSet_mem_univ : ∀ {n : Nat} {A : V} {B : V → V}, n ≠ 0 →
     Mem A (univ n) → (∀ x, Mem x A → Mem (B x) (univ n)) → Mem (piSet A B) (univ n)
+  /-- Closure of the universes under separation. -/
+  sep_mem_univ : ∀ {n : Nat} {A : V} {P : V → Prop}, Mem A (univ n) → Mem (sep A P) (univ n)
+  /-- **The point's laws** (1): the point is not a truth value — it has
+  a member other than itself. -/
+  pt_not_mem_univ_zero : ¬ Mem pt (univ 0)
+  /-- (2): the point has at most one member. -/
+  pt_subsingleton : ∀ {x y : V}, Mem x pt → Mem y pt → x = y
+  /-- (3): no graph is a member of the point. -/
+  graph_not_mem_pt : ∀ {F : V → V} {A : V}, ¬ Mem (graph F A) pt
 
 namespace SetLib
 
@@ -253,6 +264,183 @@ theorem piR_true_mem_univ_zero {A : V} {B : V → V} :
 theorem piR_false_mem_univ {n : Nat} {A : V} {B : V → V} (hn : n ≠ 0)
     (hA : A ∈ˢ univ n) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ univ n) :
     piR false A B ∈ˢ (univ n : V) := piSet_mem_univ hn hA hB
+
+/-! ## The restricted universes
+
+`univ` sizes things; what a sort *denotes* is `typeU`: `Sort 0` the
+truth values, `Sort (n+1)` the members of `univ (n+1)` that are not
+the point and do not contain it (**strict** sets).  A **type** is a
+truth value or a strict set; its members are all the point (a truth
+value) or none of them (a strict set).  This is what makes β sound at
+every binder without a certificate: a member of a type of positive
+sort is never the point (`ne_pt_of_mem_strict`). -/
+
+/-- A **strict** set: not the point, and the point is not a member. -/
+def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
+
+/-- A **type**: a truth value, or a strict set. -/
+def IsTy (X : V) : Prop := X ∈ˢ univ 0 ∨ Strict X
+
+/-- **What `Sort n` denotes**: the truth values at `0`, the strict
+members of `univ n` above. -/
+def typeU (n : Nat) : V := if n = 0 then univ 0 else sep (univ n) Strict
+
+/-- The regime of a fibre: a truth value at a proposition, strict above. -/
+def Fib : Bool → V → Prop
+  | true, X => X ∈ˢ univ 0
+  | false, X => Strict X
+
+@[simp] theorem Fib_true {X : V} : Fib true X ↔ X ∈ˢ univ 0 := Iff.rfl
+@[simp] theorem Fib_false {X : V} : Fib false X ↔ Strict X := Iff.rfl
+
+theorem ne_pt_of_mem_univ_zero {T : V} (h : T ∈ˢ univ 0) : T ≠ pt := by
+  rintro rfl; exact pt_not_mem_univ_zero h
+
+theorem IsTy.ne_pt {T : V} (h : IsTy T) : T ≠ pt := by
+  rcases h with h | h
+  · exact ne_pt_of_mem_univ_zero h
+  · exact h.1
+
+theorem IsTy_of_Fib {p : Bool} {X : V} (h : Fib p X) : IsTy X := by
+  cases p
+  · exact Or.inr h
+  · exact Or.inl h
+
+theorem Fib.ne_pt {p : Bool} {X : V} (h : Fib p X) : X ≠ pt := (IsTy_of_Fib h).ne_pt
+
+theorem mem_typeU_zero {T : V} : T ∈ˢ typeU 0 ↔ T ∈ˢ univ 0 := by
+  simp [typeU]
+
+theorem mem_typeU_pos {n : Nat} (hn : n ≠ 0) {T : V} :
+    T ∈ˢ typeU n ↔ T ∈ˢ univ n ∧ Strict T := by
+  simp only [typeU, hn, ↓reduceIte]
+  exact mem_sep
+
+theorem mem_univ_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ typeU n) : T ∈ˢ univ n := by
+  by_cases hn : n = 0
+  · subst hn; exact mem_typeU_zero.mp h
+  · exact ((mem_typeU_pos hn).mp h).1
+
+theorem IsTy_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ typeU n) : IsTy T := by
+  by_cases hn : n = 0
+  · subst hn; exact Or.inl (mem_typeU_zero.mp h)
+  · exact Or.inr ((mem_typeU_pos hn).mp h).2
+
+/-- A member of `typeU n` is in the regime of `n`'s zero-ness. -/
+theorem Fib_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ typeU n) :
+    Fib (decide (n = 0)) T := by
+  by_cases hn : n = 0
+  · subst hn; exact mem_typeU_zero.mp h
+  · simp only [hn, decide_false]; exact ((mem_typeU_pos hn).mp h).2
+
+/-- A truth value or strict member of `univ n` in the right regime is
+a member of `typeU n`. -/
+theorem mem_typeU_of {n : Nat} {T : V} (hT : T ∈ˢ univ n) (hf : Fib (decide (n = 0)) T) :
+    T ∈ˢ typeU n := by
+  by_cases hn : n = 0
+  · subst hn; exact mem_typeU_zero.mpr hf
+  · simp only [hn, decide_false, Fib_false] at hf
+    exact (mem_typeU_pos hn).mpr ⟨hT, hf⟩
+
+/-- **(P)**: a member of a strict set is not the point. -/
+theorem ne_pt_of_mem_strict {T x : V} (hT : Strict T) (hx : x ∈ˢ T) : x ≠ pt := by
+  rintro rfl; exact hT.2 hx
+
+/-- The members of a type are all the point or none of them. -/
+theorem IsTy.eq_of_ne_pt {T x y : V} (hT : IsTy T) (hx : x ∈ˢ T) (hy : y ∈ˢ T)
+    (h : x ≠ pt → y ≠ pt → x = y) : x = y := by
+  rcases hT with hT | hT
+  · rw [eq_pt_of_mem_univ_zero hT hx, eq_pt_of_mem_univ_zero hT hy]
+  · exact h (ne_pt_of_mem_strict hT hx) (ne_pt_of_mem_strict hT hy)
+
+/-! ### The point's neighbours -/
+
+theorem pt_ne_truthVal_false : (pt : V) ≠ truthVal False := by
+  intro h
+  apply pt_not_mem_univ_zero (V := V)
+  rw [h]
+  exact truthVal_mem_univ_zero False
+
+theorem exists_mem_pt : ∃ z, z ∈ˢ (pt : V) :=
+  Classical.byContradiction fun h => pt_ne_truthVal_false (ext fun z =>
+    ⟨fun hz => absurd ⟨z, hz⟩ h, fun hz => absurd (of_mem_truthVal hz) id⟩)
+
+theorem ne_pt_of_two {X a b : V} (ha : a ∈ˢ X) (hb : b ∈ˢ X) (hab : a ≠ b) : X ≠ pt := by
+  rintro rfl; exact hab (pt_subsingleton ha hb)
+
+theorem one_ne_truthVal_false : (one : V) ≠ truthVal False := by
+  intro h
+  have : (pt : V) ∈ˢ one := mem_one.mpr rfl
+  rw [h] at this
+  exact of_mem_truthVal this
+
+theorem univ_zero_ne_pt : (univ 0 : V) ≠ pt :=
+  ne_pt_of_two one_mem_univ_zero (truthVal_mem_univ_zero False) one_ne_truthVal_false
+
+theorem strict_univ_zero : Strict (univ 0 : V) := ⟨univ_zero_ne_pt, pt_not_mem_univ_zero⟩
+
+theorem strict_truthVal_false : Strict (truthVal False : V) :=
+  ⟨pt_ne_truthVal_false.symm, fun h => of_mem_truthVal h⟩
+
+/-- `Sort n` is strict. -/
+theorem strict_typeU (n : Nat) : Strict (typeU n : V) := by
+  by_cases hn : n = 0
+  · subst hn; simpa [typeU] using strict_univ_zero
+  · refine ⟨?_, fun h => ((mem_typeU_pos hn).mp h).2.1 rfl⟩
+    -- `typeU n` has two distinct members, the point at most one
+    have h1 : (truthVal False : V) ∈ˢ typeU n :=
+      (mem_typeU_pos hn).mpr ⟨univ_mono (Nat.zero_le n) (truthVal_mem_univ_zero False),
+        strict_truthVal_false⟩
+    have h2 : (univ 0 : V) ∈ˢ typeU n :=
+      (mem_typeU_pos hn).mpr ⟨univ_mono (by omega) (univ_mem_succ 0), strict_univ_zero⟩
+    refine ne_pt_of_two h1 h2 fun h => ?_
+    have h3 : (one : V) ∈ˢ univ 0 := one_mem_univ_zero
+    rw [← h] at h3
+    exact of_mem_truthVal h3
+
+theorem IsTy_typeU (n : Nat) : IsTy (typeU n : V) := Or.inr (strict_typeU n)
+
+/-- `Sort n : Sort (n+1)`. -/
+theorem typeU_mem_typeU_succ (n : Nat) : (typeU n : V) ∈ˢ typeU (n + 1) := by
+  refine (mem_typeU_pos (Nat.succ_ne_zero n)).mpr ⟨?_, strict_typeU n⟩
+  by_cases hn : n = 0
+  · subst hn; simpa [typeU] using univ_mem_succ 0
+  · simp only [typeU, hn, ↓reduceIte]
+    exact sep_mem_univ (univ_mem_succ n)
+
+/-- A function space is strict: its members are graphs, and the point's
+member is not one. -/
+theorem strict_piSet {A : V} {B : V → V} : Strict (piSet A B) := by
+  refine ⟨?_, fun h => graph_ne_pt (graph_app_eq h)⟩
+  intro he
+  obtain ⟨z, hz⟩ := exists_mem_pt (V := V)
+  have hz' : z ∈ˢ piSet A B := by rw [he]; exact hz
+  have := graph_app_eq hz'
+  rw [← this] at hz
+  exact graph_not_mem_pt hz
+
+theorem IsTy_piR {p : Bool} {A : V} {B : V → V} : IsTy (piR p A B) := by
+  cases p
+  · exact Or.inr strict_piSet
+  · exact Or.inl piR_true_mem_univ_zero
+
+theorem Fib_piR {p : Bool} {A : V} {B : V → V} : Fib p (piR p A B) := by
+  cases p
+  · exact strict_piSet
+  · exact piR_true_mem_univ_zero
+
+/-- **`∀`-formation in the restricted universes.** -/
+theorem piR_mem_typeU {u v : Nat} {p : Bool} {A : V} {B : V → V}
+    (hp : p = true ↔ v = 0) (hA : A ∈ˢ typeU u) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ typeU v) :
+    piR p A B ∈ˢ typeU (Level.imaxNat u v) := by
+  by_cases hv : v = 0
+  · rw [(Level.imaxNat_eq_zero_iff u v).mpr hv, hp.mpr hv, mem_typeU_zero]
+    exact piR_true_mem_univ_zero
+  · have hpf : p = false := by cases p <;> simp_all
+    rw [Level.imaxNat_of_ne_zero hv, hpf, mem_typeU_pos (by omega)]
+    refine ⟨piR_false_mem_univ (by omega) (univ_mono (Nat.le_max_left _ _)
+      (mem_univ_of_mem_typeU hA)) fun x hx => univ_mono (Nat.le_max_right _ _)
+      (mem_univ_of_mem_typeU (hB x hx)), strict_piSet⟩
 
 end SetLib
 

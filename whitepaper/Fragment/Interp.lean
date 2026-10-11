@@ -23,7 +23,7 @@ annotation** at every binder — `piR`/`lamR` at the datum's readout
 | term | value |
 |---|---|
 | `bvar i` | `ρ i` |
-| `sort u` | `univ (eval φ u)` |
+| `sort u` | `typeU (eval φ u)` |
 | `const c ls` | `M c (ls.map (eval φ))` |
 | `app f a` | `app ⟦f⟧ ⟦a⟧` |
 | `lam A pw b` | `lamR (pw.holds φ) ⟦A⟧ (fun x => ⟦b⟧ (x :: ρ))` |
@@ -33,10 +33,15 @@ annotation** at every binder — `piR`/`lamR` at the datum's readout
 `app_graph` the graph regime's — so the whole regime dispatch lives in
 the two binder cases.
 
-Mirrors `ConLeche/Semantics/Interp.lean`, whose binder numeral is the
-concrete sort of the body; here the datum is read at `φ` instead, and
-constants read the model's assignment directly rather than a stored
-annotated term.
+A sort denotes its **restricted universe** `typeU` (`Lib.lean`): the
+truth values at `0`, the strict members of `univ n` above — the sets
+that are not the point and do not contain it.  That is the one place
+the model departs from con-leche's `ConLeche/Semantics/Interp.lean`,
+which interprets a sort by the universe itself (and whose checker
+therefore keeps the certified β, until its port); its binder numeral
+is the concrete sort of the body, where here the datum is read at `φ`,
+and constants read the model's assignment directly rather than a
+stored annotated term.
 -/
 
 namespace Fragment
@@ -123,7 +128,7 @@ variable {V : Type u} [SetLib V]
 annotation at every binder. -/
 def interp (M : Name → List Nat → V) (φ : Name → Nat) : (Nat → V) → Expr → V
   | ρ, .bvar i => ρ i
-  | _, .sort u => univ (u.eval φ)
+  | _, .sort u => typeU (u.eval φ)
   | _, .const c ls => M c (ls.map (Level.eval φ))
   | ρ, .app f a => app (interp M φ ρ f) (interp M φ ρ a)
   | ρ, .lam A pw b => lamR (pw.holds φ) (interp M φ ρ A) fun x => interp M φ (cons x ρ) b
@@ -133,7 +138,7 @@ variable (M : Name → List Nat → V) (φ : Name → Nat)
 
 @[simp] theorem interp_bvar (ρ : Nat → V) (i : Nat) : interp M φ ρ (.bvar i) = ρ i := rfl
 @[simp] theorem interp_sort (ρ : Nat → V) (u : Level) :
-    interp M φ ρ (.sort u) = univ (u.eval φ) := rfl
+    interp M φ ρ (.sort u) = typeU (u.eval φ) := rfl
 @[simp] theorem interp_const (ρ : Nat → V) (c : Name) (ls : List Level) :
     interp M φ ρ (.const c ls) = M c (ls.map (Level.eval φ)) := rfl
 @[simp] theorem interp_app (ρ : Nat → V) (f a : Expr) :

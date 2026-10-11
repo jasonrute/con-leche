@@ -13,14 +13,21 @@ equality, membership, and the invariant `WellDenoted`.  Each is
 stated at a model `m` of the environment, a valuation `φ`, and for
 every environment `ρ` satisfying the context:
 
-* **`RedSem`** — a reduction of a well-denoted term yields a
-  well-denoted term with the same denotation;
-* **`DefEqSem`** — two well-denoted terms the checker calls equal have
-  equal denotations;
+* **`RedSem`** — a reduction of a well-denoted term that is not the
+  point yields a well-denoted term with the same denotation;
+* **`DefEqSem`** — two well-denoted terms that are not the point and
+  that the checker calls equal have equal denotations;
 * **`InferSem`** — an inferred term is well-denoted, its type is
-  well-denoted, and the term's denotation is a member of the type's.
+  well-denoted and a type, and the term's denotation is a member of the
+  type's.
 
-These are the claims of `ConLeche/Model/Claims.lean`, in the shape of
+The first two are **conditional on the point**: they say nothing about
+proofs, which is what lets β fire at every binder with no certificate
+(`Sound.lean`).  The third is not: an inferred type is a type, never
+the point, so the reductions and comparisons of types the rules run
+are claimed outright.
+
+These are the claims of `ConLeche/Model/Claims.lean` (made conditional), in the shape of
 `ConLeche/Model/Rules/Motive.lean`.  Two of that file's three
 strengthenings are unnecessary here — there is no reading to
 establish (the interpretation is total) and no frame to carry (no
@@ -35,21 +42,24 @@ universe u
 
 variable {V : Type u} [SetLib V] {env : Env}
 
-/-- **`Red`'s claim**: reduction preserves the invariant and the
-denotation. -/
+/-- **`Red`'s claim**: on a subject that is not the point, reduction
+preserves the invariant and the denotation.  Nothing is claimed of a
+proof. -/
 def RedSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (e e' : Expr) : Prop :=
-  ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ e →
+  ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ e → interp m.M φ ρ e ≠ pt →
     WellDenoted m.M φ ρ e' ∧ interp m.M φ ρ e = interp m.M φ ρ e'
 
-/-- **`DefEq`'s claim**: equal denotations. -/
+/-- **`DefEq`'s claim**: two well-denoted sides that are not the point
+have equal denotations.  (Two proofs are the point.) -/
 def DefEqSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (a b : Expr) : Prop :=
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
-    interp m.M φ ρ a = interp m.M φ ρ b
+    interp m.M φ ρ a ≠ pt → interp m.M φ ρ b ≠ pt → interp m.M φ ρ a = interp m.M φ ρ b
 
-/-- **`Infer`'s claim**: the term and its type are well-denoted, and
-the term's denotation is a member of the type's. -/
+/-- **`Infer`'s claim**: the term and its type are well-denoted, the
+type is a type, and the term's denotation is a member of the type's. -/
 def InferSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (e T : Expr) : Prop :=
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ →
-    WellDenoted m.M φ ρ e ∧ WellDenoted m.M φ ρ T ∧ interp m.M φ ρ e ∈ˢ interp m.M φ ρ T
+    WellDenoted m.M φ ρ e ∧ WellDenoted m.M φ ρ T ∧ IsTy (interp m.M φ ρ T) ∧
+      interp m.M φ ρ e ∈ˢ interp m.M φ ρ T
 
 end Fragment

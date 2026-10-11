@@ -46,9 +46,5 @@ public import Fragment.NestInstall
 public import Fragment.Motive
 public import Fragment.Sound
 public import Fragment.UniformBeta
-public import Fragment.Uniform.Model
-public import Fragment.Uniform.Rules
-public import Fragment.Uniform.Tele
-public import Fragment.Uniform.Sound
 public import Fragment.Consistency
 public import Fragment.Axioms
