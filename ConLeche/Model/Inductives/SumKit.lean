@@ -221,7 +221,7 @@ theorem mkTowerGoUPos_validV {w : Nat} {E : AnnotTerm} :
       AnnotValid V (consList bs ρp) (mkTowerGoUPos w E Fs)
   | [], ρp, [], hv, _ => by
     show AnnotValid V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
-        (.lam (w + 1) E (.const .punit [w + 1]))) .prf) (.const .punitUnit []))
+        (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     simp only [AnnotValid_app, AnnotValid_const, AnnotValid_lam, AnnotValid_prf]
     exact ⟨⟨⟨⟨trivial, hv.1⟩, hv.1, fun _ _ => trivial⟩, trivial⟩, trivial⟩
   | [], _, _ :: _, _, hsp => hsp.elim

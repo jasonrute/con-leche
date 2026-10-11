@@ -108,16 +108,16 @@ theorem bval_mem_natRec (us : List Nat) (ρ : Nat → V) :
 
 theorem bval_mem_punit (us : List Nat) (ρ : Nat → V) :
     bval V .punit us ∈ˢ interp V ρ (BConst.typeAV .punit us) := by
-  show (unitSet : V) ∈ˢ _
+  show (unitSetAt (lv us 0) : V) ∈ˢ _
   simp only [BConst.typeAV, interp_sort]
-  exact unitSet_mem_univ _
+  exact unitSetAt_mem_univ _
 
 theorem bval_mem_punitUnit (us : List Nat) (ρ : Nat → V) :
     bval V .punitUnit us
       ∈ˢ interp V ρ (BConst.typeAV .punitUnit us) := by
-  show (pt : V) ∈ˢ _
+  show (unitAt (lv us 0) : V) ∈ˢ _
   simp only [BConst.typeAV, punitAV, interp_const, bval]
-  exact pt_mem_unitSet
+  exact unitAt_mem_unitSetAt _
 
 /-! ## `Empty` -/
 

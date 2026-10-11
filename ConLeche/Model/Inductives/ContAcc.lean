@@ -30,8 +30,7 @@ derivation (`posD_acc`, `PosDerivAcc.lean`):
 
 The TYPE REGIME of a container instance: the container lives at the
 block's level (`n2_sort`, the kernel's N3), so a truth-valued fibre of a
-parameterised container is empty (`LfpClause.injNePt`); a container
-without parameters reads no hole.
+container is empty (`LfpClause.injNePt`).
 -/
 
 namespace ConLeche.Model
@@ -164,32 +163,22 @@ theorem accConcl_of_frameAccOut {μ : ConLeche.CheckMode} (mp : EnvModelM V μ e
     obtain ⟨h1, h2⟩ := hR.dom ρ ρ' hr
     obtain ⟨hs1, hf1, he1⟩ := hk ρ (hgr ρ h1)
     obtain ⟨hs2, hf2, he2⟩ := hk ρ' (hgr ρ' h2)
-    by_cases hp0 : (D.params ψ).length = 0
-    · -- no parameters: the key frame is the tail, which the relation keeps
-      have hds0 : dsa = [] := List.eq_nil_of_length_eq_zero (by
-        rw [← DenoteMetaSpine.length_eq hdsa, hlenP, hp0])
-      subst hds0
-      have hkf : keyFrame [] b (dropV (dep - b) ρ) = keyFrame [] b (dropV (dep - b) ρ') := by
-        funext j
-        show ρ (j + b + (dep - b)) = ρ' (j + b + (dep - b))
-        exact hR.agree ρ ρ' hr _ fun hh => by simp only [holeP] at hh; omega
-      rw [he1, he2, hkf, hmap ρ ρ' hr]
-    · -- a parameterised container at a positive level: a truth-valued fibre is empty
-      have hwψ : D.w ψ ≠ 0 := hwD ▸ hw
-      have hemp : ∀ σ, Sat V (D.params ψ).reverse (keyFrame dsa b (dropV (dep - b) σ)) →
-          SpineFit (keyFrame dsa b (dropV (dep - b) σ)) (D.ids mm ψ) (isa.map (interp V σ)) →
-          interp V σ wa ∈ˢ (univZero : V) →
-          interp V σ wa = app (D.carrier ψ (keyFrame dsa b (dropV (dep - b) σ)) mm)
-            (tupW (D.u mm ψ) (isa.map (interp V σ))) → interp V σ wa = empty := by
-        intro σ hs hfit hz he
-        refine ext fun y => ⟨fun hy => ?_, fun hy => absurd hy (not_mem_empty y)⟩
-        exfalso
-        have hpt := eq_pt_of_mem_univZero hz hy
-        rw [he] at hy
-        obtain ⟨j, fs, -, rfl⟩ := hL.carrier_case hs (Nat.lt_of_lt_of_le hmm hL.kN)
-          (tupW_mem hfit) hy
-        exact hL.injNePt ψ hwψ hp0 mm j fs hpt
-      rw [hemp ρ hs1 hf1 (htv ρ ρ' hr).1 he1, hemp ρ' hs2 hf2 (htv ρ ρ' hr).2 he2]
+    -- a truth-valued fibre at a positive level is empty
+    have hwψ : D.w ψ ≠ 0 := hwD ▸ hw
+    have hemp : ∀ σ, Sat V (D.params ψ).reverse (keyFrame dsa b (dropV (dep - b) σ)) →
+        SpineFit (keyFrame dsa b (dropV (dep - b) σ)) (D.ids mm ψ) (isa.map (interp V σ)) →
+        interp V σ wa ∈ˢ (univZero : V) →
+        interp V σ wa = app (D.carrier ψ (keyFrame dsa b (dropV (dep - b) σ)) mm)
+          (tupW (D.u mm ψ) (isa.map (interp V σ))) → interp V σ wa = empty := by
+      intro σ hs hfit hz he
+      refine ext fun y => ⟨fun hy => ?_, fun hy => absurd hy (not_mem_empty y)⟩
+      exfalso
+      have hpt := eq_pt_of_mem_univZero hz hy
+      rw [he] at hy
+      obtain ⟨j, fs, -, rfl⟩ := hL.carrier_case hs (Nat.lt_of_lt_of_le hmm hL.kN)
+        (tupW_mem hfit) hy
+      exact hL.injNePt ψ hwψ mm j fs hpt
+    rw [hemp ρ hs1 hf1 (htv ρ ρ' hr).1 he1, hemp ρ' hs2 hf2 (htv ρ ρ' hr).2 he2]
   · -- accessibility
     intro ρ ρ₀ hr x _ hx
     obtain ⟨h1, -⟩ := hR.dom ρ ρ₀ hr

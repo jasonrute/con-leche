@@ -113,8 +113,8 @@ structure and every index.  `ndTowerAV r` is `towerBodyAVPos r`'s
 non-dependent twin — the same `.psigma [r, r]` tower with the same
 `r + 1` fibre annotation (the codomain type's sort, never `0`, so the
 fibre computes by `app_lamR_pos` in both regimes), differing only in
-the terminator's level, which no value reads (`bval .punit = unitSet`
-at every level). -/
+the terminator's level, which no value reads (`bval .punit` is the
+same `{∅}` at every positive level, task #342 B). -/
 
 /-- The uniform projection spelling: `.fst ∘ .snd^i` — the `AnnotTerm`
 form of the tier's `projS i = sfst ∘ ssnd^i`.  Depends only on the
