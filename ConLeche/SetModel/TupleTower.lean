@@ -12,7 +12,7 @@ The semantic carrier construction for directly-installed structures
 structure's carrier is the **right-nested pair tower with unit
 terminator**
 
-    towerSet w ⟨F₀, …, F_{n−1}⟩ = F₀ ⋉ (F₁ ⋉ (… ⋉ (F_{n−1} ⋉ unitSet)))
+    towerSet w ⟨F₀, …, F_{n−1}⟩ = F₀ ⋉ (F₁ ⋉ (… ⋉ (F_{n−1} ⋉ unitSetAt w)))
 
 (each `⋉` a `sigmaSet w`, dependency right-nested along the field
 telescope), the constructor is the uniform tupler `mkTower`, and the
@@ -25,8 +25,11 @@ The unit terminator is what buys index-only uniformity: with a bare
 tail the last field would be read by `ssnd^{n−1}` (no `sfst`), making
 the family depend on the arity — i.e. on the structure.  It also
 gives the 0/1-field degeneracies for free (`n = 0`: the carrier is
-`unitSet`, members exactly `pt = mkTower []`; `n = 1`: members are
-`spair a pt` and `projS 0 = sfst` is lawful).
+the unit `unitSetAt w`, in the graph regime members exactly `∅ =
+mkTower []`; `n = 1`: members are `spair a ∅` and `projS 0 = sfst` is
+lawful).  The terminator is `{∅}`/`∅` rather than `{pt}`/`pt` (task
+#342 C) so that a carrier never contains the proof point; `∅` is no
+pair, so the destructors read it as they read `pt`.
 
 **ProjCoherence by uniform tupling**: the constructor is one
 instantiation-independent function with global left inverses
@@ -77,15 +80,18 @@ def FitsS : {n : Nat} → TeleS V n → List V → Prop
   | _, .cons A B, a :: as => a ∈ˢ A ∧ FitsS (B a) as
 
 /-- The carrier: the right-nested `sigmaSet w` tower over the
-telescope, terminated by `unitSet`. -/
+telescope, terminated by the unit at level `w` (`unitSetAt w`: `{pt}`
+at `0`, `{∅}` above — task #342 C). -/
 noncomputable def towerSet (w : Nat) : {n : Nat} → TeleS V n → V
-  | _, .nil => unitSet
+  | _, .nil => unitSetAt w
   | _, .cons A B => sigmaSet w A (fun a => towerSet w (B a))
 
 /-- The uniform tupler: the right-nested Kuratowski pair tower with
-`pt` (the sole member of `unitSet`) as terminator. -/
+`∅` (the sole member of the positive-level unit `unitSetAt (w+1)`) as
+terminator.  The tupler is read only in the graph regime (`w ≠ 0`); a
+squash-regime member is `pt` outright. -/
 noncomputable def mkTower : List V → V
-  | [] => pt
+  | [] => empty
   | a :: as => spair a (mkTower as)
 
 /-- **The uniform semantic projection family**: `projS i = sfst ∘
@@ -211,7 +217,9 @@ carrier. -/
 theorem mkTower_mem {w : Nat} (hw : w ≠ 0) :
     ∀ {n} {T : TeleS V n} {as : List V},
     FitsS T as → mkTower as ∈ˢ towerSet w T
-  | _, .nil, [], _ => pt_mem_unitSet
+  | _, .nil, [], _ => by
+    show (empty : V) ∈ˢ unitSetAt w
+    rw [← unitAt_pos hw]; exact unitAt_mem_unitSetAt w
   | _, .cons _ B, a :: _, hf =>
     spair_mem hw hf.1 (mkTower_mem hw (T := B a) hf.2)
 
@@ -219,7 +227,9 @@ theorem mkTower_mem {w : Nat} (hw : w ≠ 0) :
 value of fittability. -/
 theorem pt_mem_tower : ∀ {n} {T : TeleS V n} {as : List V},
     FitsS T as → (pt : V) ∈ˢ towerSet 0 T
-  | _, .nil, [], _ => pt_mem_unitSet
+  | _, .nil, [], _ => by
+    show (pt : V) ∈ˢ unitSetAt 0
+    rw [unitSetAt_zero]; exact pt_mem_unitSet
   | _, .cons _ B, a :: _, hf =>
     pt_mem_sigma hf.1 (pt_mem_tower (T := B a) hf.2)
 
@@ -256,7 +266,9 @@ of its own projections, and those projections fit the telescope. -/
 theorem towerSet_elim {w : Nat} (hw : w ≠ 0) :
     ∀ {n} (T : TeleS V n) {x : V}, x ∈ˢ towerSet w T →
     FitsS T (projList n x) ∧ x = mkTower (projList n x)
-  | _, .nil, x, hx => ⟨trivial, mem_unitSet_iff.mp hx⟩
+  | _, .nil, x, hx => ⟨trivial, by
+    have := mem_unitSetAt_iff.mp hx
+    rwa [unitAt_pos hw] at this⟩
   | _, .cons A B, x, hx => by
     obtain ⟨a, b, ha, hb, -, hpos⟩ :=
       mem_sigma_elim (A := A) (B := fun a => towerSet w (B a)) hx
@@ -276,7 +288,9 @@ theorem towerSet_elim {w : Nat} (hw : w ≠ 0) :
 some tuple fits. -/
 theorem towerSet_zero_elim : ∀ {n} (T : TeleS V n) {x : V},
     x ∈ˢ towerSet 0 T → x = pt ∧ ∃ as, FitsS T as
-  | _, .nil, x, hx => ⟨mem_unitSet_iff.mp hx, [], trivial⟩
+  | _, .nil, x, hx => ⟨by
+    have := mem_unitSetAt_iff.mp hx
+    rwa [unitAt_zero] at this, [], trivial⟩
   | _, .cons A B, x, hx => by
     obtain ⟨a, b, ha, hb, hz, -⟩ :=
       mem_sigma_elim (A := A) (B := fun a => towerSet 0 (B a)) hx
@@ -323,7 +337,7 @@ given the per-field bound (cumulativity is applied by the consumer
 when a field's sort is `< w`). -/
 theorem towerSet_mem_univ {w : Nat} : ∀ {n} (T : TeleS V n),
     BoundS w T → towerSet w T ∈ˢ (univ w : V)
-  | _, .nil, _ => unitSet_mem_univ w
+  | _, .nil, _ => unitSetAt_mem_univ w
   | _, .cons A B, hb => by
     simp only [towerSet]
     have h := sigma_mem_univ (u := w) (v := w) hb.1
@@ -337,16 +351,16 @@ structures with arbitrary-sorted data fields (`Exists`) still get a
 lawful carrier; only their *projections* wait on `PropS`. -/
 theorem towerSet_zero_mem_univZero : ∀ {n} (T : TeleS V n),
     towerSet 0 T ∈ˢ (univZero : V)
-  | _, .nil => univ_zero (V := V) ▸ unitSet_mem_univ 0
+  | _, .nil => univ_zero (V := V) ▸ unitSetAt_mem_univ 0
   | _, .cons _ B => by
     show sigmaSet 0 _ (fun a => towerSet 0 (B a)) ∈ˢ (univZero : V)
     rw [sigmaSet_zero]
     exact truthVal_mem_univZero _
 
-/-- **The 0-field degeneracy**: the empty tower is `unitSet` at every
-level — hence unit-likeness (next lemma) and, at `w = 0`, the correct
-truth value `⟦True⟧`. -/
-theorem towerSet_nil {w : Nat} : towerSet w (.nil : TeleS V 0) = unitSet := by
+/-- **The 0-field degeneracy**: the empty tower is the unit at its
+level — hence unit-likeness and, at `w = 0`, the correct truth value
+`⟦True⟧`. -/
+theorem towerSet_nil {w : Nat} : towerSet w (.nil : TeleS V 0) = unitSetAt w := by
   rfl
 
 /-! ## Degeneracy checks (build-time regressions) -/
@@ -360,9 +374,10 @@ example (a : V) : projS 0 (mkTower [a]) = a :=
 example (a b : V) : projS 0 (mkTower [a, b]) = a ∧ projS 1 (mkTower [a, b]) = b :=
   ⟨projS_mkTower 0 [a, b] (by simp), projS_mkTower 1 [a, b] (by simp)⟩
 
-/-- `n = 0`: the empty tower's sole member is `mkTower []`. -/
-example {w : Nat} {x : V} (hx : x ∈ˢ towerSet w (.nil : TeleS V 0)) :
+/-- `n = 0`: the empty tower's sole member is `mkTower []` (graph
+regime). -/
+example {w : Nat} (hw : w ≠ 0) {x : V} (hx : x ∈ˢ towerSet w (.nil : TeleS V 0)) :
     x = mkTower [] :=
-  mem_unitSet_iff.mp hx
+  (towerSet_elim hw .nil hx).2
 
 end ConLeche.SetTheory.Tower

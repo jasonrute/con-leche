@@ -259,7 +259,7 @@ denotations as closed `AnnotTerm` leaves over the `BConst` alphabet
 their interpretation equations:
 
 * `towerBodyAV w Fs` — the carrier, spelled through `.psigma` at level
-  instantiation `[w, w]` with a `unitSet` terminator (`.punit`).  Two
+  instantiation `[w, w]` with the unit terminator `.punit [w]`.  Two
   interface facts make this land exactly on the tier's `towerSet w`:
   `sigmaSet` reads its level only through the zero test
   (`sigmaSet_pos`/`sigmaSet_zero`), so `max w w = w` closes the level
@@ -286,11 +286,11 @@ instance of the pinned pair former's product membership.
 
 
 /-- The carrier body, graph regime: the right-nested `.psigma [w, w]`
-application tower over the field domains, `.punit`-terminated.  The
-fibre λ is annotated `w + 1` (its body is a type of sort `w`), so it
-is a graph at every regime. -/
+application tower over the field domains, terminated by `PUnit.{w}`
+(`{∅}` above `Prop`, task #342 C).  The fibre λ is annotated `w + 1`
+(its body is a type of sort `w`), so it is a graph at every regime. -/
 def towerBodyAVPos (w : Nat) : List AnnotTerm → AnnotTerm
-  | [] => .const .punit [w + 1]
+  | [] => .const .punit [w]
   | F :: Fs => .app (.app (.const .psigma [w, w]) F)
       (.lam (w + 1) F (towerBodyAVPos w Fs))
 
@@ -307,7 +307,7 @@ structure may carry data fields (arena tutorial 087) — while `piR 0`
 truncates whatever its domain is, exactly as `sigmaSet 0` does.  No
 field bound is needed for the interpretation. -/
 def sqBodyAV : List AnnotTerm → AnnotTerm
-  | [] => .const .punit [1]
+  | [] => .const .punit [0]
   | F :: Fs => negAV (.pi 0 0 F (negAV (sqBodyAV Fs)))
 
 /-- The carrier body, both regimes: the squash spelling at `w = 0`,
@@ -654,7 +654,7 @@ theorem mkLamsC_wellDenoted {m : Nat} {b T : AnnotTerm} :
 ## The constructor tupler
 
 `mkTowerGo w Fs` spells the tier's `mkTower` — the right-nested
-`.psigmaMk [w, w]` application tower with the `.punitUnit` terminator
+`.psigmaMk [w, w]` application tower with the `.punitUnit [w]` terminator
 — **at the constructor λ-frame**: the field values are the frame's own
 bound variables (`.bvar m`, `m` = the count of later fields), and the
 pair type arguments are the field domains lifted to that frame
@@ -729,7 +729,7 @@ theorem consList_getD_of_lt : ∀ (as : List V) (σ : Nat → V) (k : Nat), k < 
 /-- The constructor tupler at the λ-frame (see the module docstring
 for the de Bruijn accounting). -/
 def mkTowerGoPos (w : Nat) : List AnnotTerm → AnnotTerm
-  | [] => .const .punitUnit []
+  | [] => .const .punitUnit [w]
   | F :: Fs =>
     .app (.app (.app (.app (.const .psigmaMk [w, w])
         (F.liftN (Fs.length + 1)))
@@ -760,7 +760,7 @@ theorem mkTowerGoPos_interp {w : Nat} (hw : w ≠ 0) :
       FieldsBound w ρp Fs → SpineFit ρp Fs bs →
       interp V (consList bs ρp) (mkTowerGoPos w Fs)
         = if w = 0 then pt else mkTower bs
-  | [], _, [], _, _ => by split <;> rfl
+  | [], _, [], _, _ => by rw [ite_eq_right hw]; exact unitAt_pos hw
   | [], _, _ :: _, _, hsp => hsp.elim
   | _ :: _, _, [], _, hsp => hsp.elim
   | F :: Fs, ρp, b :: bs, hb, hsp => by

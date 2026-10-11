@@ -50,8 +50,10 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## One component, no parameters, no indices -/
 
-/-- The index set of an unindexed component: the unit set. -/
-theorem idxSet_nil (u : Nat) (ρp : Nat → V) : idxSet u ρp [] = (unitSet : V) := towerSet_nil
+/-- The index set of an unindexed component at index level `0`: the
+unit set. -/
+theorem idxSet_nil (ρp : Nat → V) : idxSet 0 ρp [] = (unitSet : V) := by
+  unfold idxSet; rw [teleOfFields_nil, towerSet_nil, unitSetAt_zero]
 
 /-- **The datum of an unparameterized, unindexed one-member block**:
 its operator's only fibre (at the point) is `F` of the family's own
@@ -80,7 +82,7 @@ variable {nm : Name} {w : (Name → Nat) → Nat} {F : V → V} {fits : V → Na
   {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name} {flds : Nat → List AnnotTerm}
 
 theorem lfp0_idx (ψ : Name → Nat) (ρp : Nat → V) (c : Nat) :
-    (lfp0 nm w F inj n cn flds).idx ψ ρp c = (unitSet : V) := idxSet_nil 0 ρp
+    (lfp0 nm w F inj n cn flds).idx ψ ρp c = (unitSet : V) := idxSet_nil ρp
 
 theorem app_lfp0_Φ (ψ : Name → Nat) (ρp X : Nat → V) (c : Nat) :
     app ((lfp0 nm w F inj n cn flds).Φ ψ ρp X c) pt = F (app (X 0) pt) :=
