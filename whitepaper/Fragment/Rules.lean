@@ -303,6 +303,17 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       b₁.usesVar 0 = false → b₂.usesVar 0 = false →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
+  /-- **η over a propositional domain** (task #345): `DefEq.eta`
+  without the λ's body's type, for the reason of `lamProp`: over a
+  domain with at most one member, the λ and `b` that are not the point
+  have their one body value not the point (`Sound.lean`,
+  `DefEq.etaProp_sound`). -/
+  | etaProp {Γ : List Expr} {A₁ b₁ b tb A₂ B s : Expr} {u : Level} :
+      Infer env Γ b tb → Red env Γ tb (pi A₂ B) →
+      DefEq env Γ A₂ A₁ →
+      DefEq env (A₁ :: Γ) b₁ (app (b.liftN 1) (bvar 0)) →
+      Infer env Γ A₁ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
+      DefEq env Γ (lam A₁ b₁) b
   /-- **Application congruence at the head's type** (task #345): the
   heads are equal and the head's type reduces to a `∀` whose domain
   `S` is the arguments' common type, so the arguments are compared

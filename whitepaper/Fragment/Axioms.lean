@@ -259,3 +259,8 @@ info: 'Fragment.mixed_lam' depends on axioms: [propext, Classical.choice, Quot.s
 info: 'Fragment.piV_const_one' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.piV_const_one
+
+/--
+info: 'Fragment.DefEq.etaProp_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.etaProp_sound

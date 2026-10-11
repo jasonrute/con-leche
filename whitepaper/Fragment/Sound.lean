@@ -417,6 +417,57 @@ theorem lamProp_sound [LevelOracle] {Γ : List Expr} {A₁ b₁ A₂ b₂ s : Ex
   exact hb (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hsat, h₂.1, h₂.2.1, hx⟩) (h₁.2.2.1 x hx₁)
     (h₂.2.2.1 x hx) (hone hn₁) (hone hn₂)
 
+/-- **η over a propositional domain, untyped** (task #345): the λ and
+`b` (the abstraction of its applications, `SetLib.lamV_eta`) are not
+the point, so their one body value is not, and the body's claim
+applies there. -/
+theorem etaProp_sound [LevelOracle] {Γ : List Expr} {A₁ b₁ b tb A₂ B s : Expr} {u : Level}
+    (htb : InferSem m φ Γ b tb) (hr : RedSem m φ Γ tb (.pi A₂ B))
+    (hA : DefEqSem m φ Γ A₂ A₁)
+    (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0)))
+    (hs : InferSem m φ Γ A₁ s) (hu : RedSem m φ Γ s (.sort u))
+    (hu0 : LevelOracle.eq u .zero = true) :
+    DefEqSem m φ Γ (.lam A₁ b₁) b := by
+  intro ρ hsat hlam hwb hn₁ hn₂
+  obtain ⟨-, hmemT⟩ := Infer.mem_typeU_of hs hu hsat
+  rw [eval_eq_of_oracle hu0, Level.eval_zero, mem_typeU_zero] at hmemT
+  obtain ⟨-, hwtb, hTtb, hmemb⟩ := htb ρ hsat
+  obtain ⟨hwpi, hepi⟩ := hr ρ hsat hwtb hTtb.ne_pt
+  rw [hepi, interp_pi] at hmemb
+  rw [WellDenoted_pi] at hwpi
+  have hlam' := hlam
+  rw [WellDenoted_lam] at hlam'
+  have heA := hA ρ hsat hwpi.1 hlam'.1 hwpi.2.1.ne_pt hlam'.2.1.ne_pt
+  have hsh : ∀ x, shiftE 1 0 (cons x ρ) = ρ := by
+    intro x; funext i; simp [shiftE]
+  have hlift : ∀ x, interp m.M φ (cons x ρ) (b.liftN 1) = interp m.M φ ρ b := by
+    intro x; rw [interp_liftN, hsh]
+  have hone : ∀ {F : V → V} {x : V}, x ∈ˢ interp m.M φ ρ A₁ →
+      lamV (interp m.M φ ρ A₁) F ≠ pt → F x ≠ pt := by
+    intro F x hx hF
+    obtain ⟨y, hy, hFy⟩ := exists_ne_pt_of_lamV hF
+    obtain rfl : y = x := (eq_pt_of_mem_univ_zero hmemT hy).trans
+      (eq_pt_of_mem_univ_zero hmemT hx).symm
+    exact hFy
+  have hbeta := lamV_eta hmemb fun x hx => hwpi.2.2.2 x hx
+  rw [heA] at hbeta hmemb
+  simp only [interp_lam] at hn₁ ⊢
+  rw [← hbeta]
+  apply lamV_congr
+  intro x hx
+  have hx₂ : x ∈ˢ interp m.M φ ρ A₂ := by rw [heA]; exact hx
+  have happ : WellDenoted m.M φ (cons x ρ) (.app (b.liftN 1) (.bvar 0)) := by
+    rw [WellDenoted_app]
+    exact ⟨(WellDenoted_liftN m.M φ 1 b 0 (cons x ρ)).mpr (by rw [hsh]; exact hwb), trivial,
+      _, interp m.M φ ρ A₁, fun y => interp m.M φ (cons y ρ) B,
+      by rw [hlift]; exact hmemb, hx, fun hp => propB_eq_true.mp hp,
+      fun _ => heA ▸ hwpi.2.1⟩
+  have hnb : SetLib.app (interp m.M φ ρ b) x ≠ pt :=
+    hone (F := fun y => SetLib.app (interp m.M φ ρ b) y) hx (by rw [hbeta]; exact hn₂)
+  rw [hbody (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hsat, hlam'.1, hlam'.2.1, hx⟩) (hlam'.2.2.1 x hx)
+    happ (hone hx hn₁) (by rw [interp_app, interp_bvar, cons_zero, hlift]; exact hnb),
+    interp_app, interp_bvar, cons_zero, hlift]
+
 /-- **λ-congruence of two constant bodies, untyped** (task #345): each
 body's value is the same at every value of the variable; a λ that is
 not the point has it not the point. -/
@@ -998,6 +1049,9 @@ theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
       (defeq_sound ht)
   | _, _, _, .lamProp hA hb hs hu hu0 =>
     DefEq.lamProp_sound (defeq_sound hA) (defeq_sound hb) (infer_sound hs) (red_sound hu) hu0
+  | _, _, _, .etaProp htb hr hA hbody hs hu hu0 =>
+    DefEq.etaProp_sound (infer_sound htb) (red_sound hr) (defeq_sound hA) (defeq_sound hbody)
+      (infer_sound hs) (red_sound hu) hu0
   | _, _, _, .lamConst hA hb hc₁ hc₂ =>
     DefEq.lamConst_sound (defeq_sound hA) (defeq_sound hb) hc₁ hc₂
   | _, _, _, .appIn hf hI hr ha =>
