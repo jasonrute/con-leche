@@ -147,6 +147,9 @@ structure LfpDatum (V : Type w) where
   ids : Nat → (Name → Nat) → List AnnotTerm
   /-- per component: its index-tuple sort -/
   u : Nat → (Name → Nat) → Nat
+  /-- per component: its index binders' own sorts (the index tuple's
+  pairs are spelled at them, task #342 L2b) -/
+  isorts : Nat → (Name → Nat) → List Nat
   /-- **the tuple operator**, at a level assignment and a parameter frame -/
   Φ : (Name → Nat) → (Nat → V) → (Nat → V) → Nat → V
   /-- the constructor injections -/
@@ -334,7 +337,7 @@ structure LfpClause (acval : Name → (Name → Nat) → AnnotTerm) (D : LfpDatu
   satisfying parameter frame: what inverting
   an index tuple back to its spine (`isOfW_tupW`) needs at a container -/
   idxOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
-    ∀ c, c < D.N → IdxOk (D.u c ψ) ρp (D.ids c ψ)
+    ∀ c, c < D.N → IdxOk (D.u c ψ) (D.isorts c ψ) ρp (D.ids c ψ)
   /-- **`Φ` maps the tuple space into itself** -/
   maps : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
     MapsTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)

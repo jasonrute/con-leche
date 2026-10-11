@@ -1885,6 +1885,16 @@ theorem SumFieldsSorts_uChains {w : Nat} {Uss : List (List Nat)} {ρ : Nat → V
   rw [hg]
   exact FieldsSorts_append_idxEq (hs i Fs hFs)
 
+/-- A one-constructor carrier's sorts: the constructor's, then `0`. -/
+theorem sumFieldsSorts_single {w : Nat} {us : List Nat} {ρ : Nat → V} {Fs : List AnnotTerm}
+    (h : FieldsSorts w us ρ Fs) : SumFieldsSorts w [us ++ [0]] ρ (uChains [Fs]) := by
+  intro i Fs' hi
+  cases i with
+  | zero =>
+    obtain rfl : Fs ++ [idxEqAV []] = Fs' := Option.some.inj hi
+    exact FieldsSorts_append_idxEq h
+  | succ i => exact absurd hi (by simp [uChains])
+
 /-- The trivially true index equation holds. -/
 theorem pt_mem_idxEqAV_nil (ρ : Nat → V) : (pt : V) ∈ˢ interp V ρ (idxEqAV []) :=
   pt_mem_idxEqAV.mpr (EqAll_nil ρ)

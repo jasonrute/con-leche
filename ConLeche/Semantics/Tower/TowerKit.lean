@@ -177,6 +177,23 @@ theorem FieldsSorts.append {w : Nat} :
     ⟨h₁.1, h₁.2.1, fun a ha => FieldsSorts.append (Fs₁ := Fs₁) (us₁ := us₁)
       (h₁.2.2 a ha) fun as has => h₂ (a :: as) ⟨ha, has⟩⟩
 
+/-- A sorted chain from per-prefix facts: each field, at every fitting
+prefix, lies in its sort's universe, the sort at most `w`. -/
+theorem fieldsSorts_of_prefix {w : Nat} :
+    ∀ (us : List Nat) (Fs : List AnnotTerm) (σ : Nat → V), us.length = Fs.length →
+      (∀ i, i < Fs.length → ∀ as : List V, SpineFit σ (Fs.take i) as →
+        us.getD i 0 ≤ w ∧
+        interp V (consList as σ) (Fs.getD i default) ∈ˢ (univ (us.getD i 0) : V)) →
+      FieldsSorts w us σ Fs
+  | [], [], _, _, _ => trivial
+  | [], _ :: _, _, hl, _ => absurd hl (by simp)
+  | _ :: _, [], _, hl, _ => absurd hl (by simp)
+  | u :: us, F :: Fs, σ, hl, h => by
+    have h0 := h 0 (by simp) [] trivial
+    refine ⟨h0.1, h0.2, fun a ha => fieldsSorts_of_prefix us Fs (cons a σ) (by simpa using hl)
+      fun i hi as has => ?_⟩
+    exact h (i + 1) (by simp; omega) (a :: as) ⟨ha, has⟩
+
 omit [SetTheory V] in
 theorem consList_append (xs ys : List V) (ρ : Nat → V) :
     consList (xs ++ ys) ρ = consList ys (consList xs ρ) := by
