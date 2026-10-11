@@ -367,6 +367,13 @@ structure Reader (F : List Nat → List V → List V → V) (M' : Name → List 
   fam : ∀ ls', M' S.name ls' = S.famSetF M ls' F
   /-- Agreement with `φ` on the block's level parameters. -/
   val : ∀ n ∈ S.lparams, φ' n = φ n
+  /-- At a nested block, the family's fibres at fitting parameters and
+  indices are admissible (`adm`: above a proposition, sets of values
+  that are neither the point nor a member of it — tagged values), so
+  the class is read at them. -/
+  adm : ∀ N, S.nest = some N → ∀ ps is, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
+    FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
+    S.adm (S.lparams.map φ) (F (S.lparams.map φ) ps is) = F (S.lparams.map φ) ps is
 
 variable {S M φ} {F : List Nat → List V → List V → V}
 
@@ -655,6 +662,7 @@ theorem Reader.classTy_fit (hS : S.Scoped env) (R : S.Reader (env := env) M φ F
     have := R.read (hNS.2.2.2.2.2.2.1 e he) (vs := []) (ps := ps) (ρ := ρ) (by simp [hps])
     simpa using this
   unfold classTy classSet classArgs classArgsV
+  rw [R.adm N hN ps _ hp hidx]
   rw [interp_mkAppN_appList, interp_const, R.agree _ hNS.1, R.lsK_eq hS hN]
   congr 1
   simp only [List.map_append, List.map_map, List.map_singleton]
@@ -987,6 +995,9 @@ structure Reader₂ (S : IndSpec) (M : Name → List Nat → V) (φ : Name → N
 /-- The model with the former assigned the graph of any family is a
 reader at the block's own valuation. -/
 theorem reader₁F (F : List Nat → List V → List V → V)
+    (hadm : ∀ N, S.nest = some N → ∀ ps is, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
+      FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
+      S.adm (S.lparams.map φ) (F (S.lparams.map φ) ps is) = F (S.lparams.map φ) ps is)
     (hfresh : env.find? S.name = none) :
     S.Reader (env := env) M φ F (S.M₁F M F) (S.ψ (S.lparams.map φ)) where
   agree := fun c hc ls => by
@@ -994,12 +1005,23 @@ theorem reader₁F (F : List Nat → List V → List V → V)
     simp [M₁F, hne]
   fam := fun ls' => by simp [M₁F]
   val := fun n hn => (ψ_map_agree S φ n hn).symm
+  adm := hadm
 
 /-- The model with the former added is a reader at the block's own
-valuation. -/
-theorem reader₁ (hfresh : env.find? S.name = none) :
+valuation, when the family's fibres are admissible. -/
+theorem reader₁A
+    (hadm : ∀ N, S.nest = some N → ∀ ps is, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
+      FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
+      S.adm (S.lparams.map φ) (S.Fam M (S.lparams.map φ) ps is) = S.Fam M (S.lparams.map φ) ps is)
+    (hfresh : env.find? S.name = none) :
     S.Reader (env := env) M φ (S.Fam M) (S.M₁ M) (S.ψ (S.lparams.map φ)) :=
-  S.reader₁F (S.Fam M) hfresh
+  S.reader₁F (S.Fam M) hadm hfresh
+
+/-- The model with the former added is a reader at the block's own
+valuation (of a plain block). -/
+theorem reader₁ (hpl : S.nest = none) (hfresh : env.find? S.name = none) :
+    S.Reader (env := env) M φ (S.Fam M) (S.M₁ M) (S.ψ (S.lparams.map φ)) :=
+  S.reader₁A (fun N hN => by rw [hpl] at hN; cases hN) hfresh
 
 omit [IndLib V] in
 /-- The environment of the recursor's contexts, regrouped. -/
@@ -1258,7 +1280,7 @@ theorem Reader₂.read_concl (hS : S.Scoped env) (R₂ : S.Reader₂ (env := env
     rw [show nIh + c.fields.length + o = (ihsE ++ fs ++ os).length by simp [hi, hf, ho]; omega,
       consList_three, shiftE_consList, readEnv_consList hps, ← consList_three, ← hi,
       shiftE_consList, readEnv_consList hf, ← List.reverse_append]
-    have R₁ := S.reader₁ (M := M) (φ := φ) hfresh
+    have R₁ := S.reader₁A (M := M) (φ := φ) R₂.R.adm hfresh
     have hfit₁ : FitsVals (S.M₁ M) (S.ψ (S.lparams.map φ)) base (S.fieldCtx c.fields ++ S.params)
         (fs ++ ps) :=
       (FitsVals_append _ _ (by rw [hf, S.length_fieldCtx])).mpr

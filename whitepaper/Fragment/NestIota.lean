@@ -1727,7 +1727,7 @@ theorem ctor_appN (φ : Name → Nat) (ρ : Nat → V) {usj : List Level}
   have hff := (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp hidx.1).1.mp hfF
   refine ⟨hp, hff, ?_⟩
   rw [R₃.ctor j c hc, ← lparams_map_substValN hok φ husj]
-  have R₁ := S.reader₁ (M := m.M) (φ := Level.substVal φ S.lparams usj) hok.freshI
+  have R₁ := S.reader₁ (M := m.M) hpl (φ := Level.substVal φ S.lparams usj) hok.freshI
 
   have hfit₁ : FitsVals (S.M₁ m.M) (S.ψ (S.lparams.map (Level.substVal φ S.lparams usj))) base
       (S.fieldCtx c.fields ++ S.params) (fs ++ ps) :=

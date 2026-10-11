@@ -462,9 +462,10 @@ structure ContClause (N : NestInfo) (ps : List V) : Prop where
   acc : ∀ X, X ∈ˢ (univ (S.u₀ ls) : V) → ∀ v, v ∈ˢ S.classSet M ls N ps X →
     ∃ (B : V) (g : V → V), B ⊆ˢ S.classBound ∧ (∀ b, b ∈ˢ B → g b ∈ˢ X) ∧
       ∀ X', X' ∈ˢ (univ (S.u₀ ls) : V) → (∀ b, b ∈ˢ B → g b ∈ˢ X') → v ∈ˢ S.classSet M ls N ps X'
-  /-- The class at an inhabited parameter set of the universe is
-  inhabited when the class at some parameter set of the universe is. -/
-  inhab : ∀ X Y, X ∈ˢ (univ (S.u₀ ls) : V) → Y ∈ˢ (univ (S.u₀ ls) : V) → (∃ y, y ∈ˢ Y) →
+  /-- The class at a parameter set of the universe with an admissible
+  member is inhabited when the class at some parameter set of the
+  universe is. -/
+  inhab : ∀ X Y, X ∈ˢ (univ (S.u₀ ls) : V) → Y ∈ˢ (univ (S.u₀ ls) : V) → (∃ y, y ∈ˢ S.adm ls Y) →
     (∃ v, v ∈ˢ S.classSet M ls N ps X) → ∃ v, v ∈ˢ S.classSet M ls N ps Y
 
 /-- **The class grows with the parameter set**, by accessibility: the
@@ -621,16 +622,25 @@ theorem u₀_ne_zero (hz : S.z ls = false) : S.u₀ ls ≠ 0 := fun h0 => by
 
 /-! ### The bound reads the levels through the valuation only -/
 
-theorem fieldSet_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') (W : List V → V) (ps fs : List V) :
-    ∀ f : Field, S.fieldSet M ls W ps fs f = S.fieldSet M ls' W ps fs f
-  | .ordinary _ => by simp only [fieldSet, h]
-  | .reflexive _ _ => by simp only [fieldSet, idxVals, z, h]
-  | .container => by simp only [fieldSet, classSet, classArgsV, lsK, memberIdx, idxVals, h]
+theorem adm_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') : S.adm ls = (S.adm ls' : V → V) := by
+  funext X
+  have hz : S.z ls = S.z ls' := by unfold z; rw [h]
+  unfold adm
+  rw [hz]
 
 theorem classSet_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') (N : NestInfo) :
     S.classSet M ls N = S.classSet M ls' N := by
   funext ps X
-  simp only [classSet, classArgsV, lsK, h]
+  unfold classSet
+  rw [S.adm_congr_ls ls h]
+  simp only [classArgsV, lsK, h]
+
+theorem fieldSet_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') (W : List V → V) (ps fs : List V) :
+    ∀ f : Field, S.fieldSet M ls W ps fs f = S.fieldSet M ls' W ps fs f
+  | .ordinary _ => by simp only [fieldSet, h]
+  | .reflexive _ _ => by simp only [fieldSet, idxVals, z, h]
+  | .container => by
+    simp only [fieldSet, S.classSet_congr_ls M ls h, memberIdx, idxVals, h]
 
 /-- The container's clause depends on the levels only through the
 block's valuation. -/
@@ -640,6 +650,7 @@ theorem ContOk_congr_ls {ls' : List Nat} (h : S.ψ ls = S.ψ ls') {ps : List V}
   have hu : S.u₀ ls = S.u₀ ls' := by unfold u₀; rw [h]
   obtain ⟨h1, h2, h3⟩ := hc N hN
   rw [S.classSet_congr_ls M ls h N] at h1 h2 h3
+  rw [S.adm_congr_ls ls h] at h3
   rw [hu] at h1 h2 h3
   exact ⟨h1, h2, h3⟩
 
@@ -794,10 +805,53 @@ arbitrary recursive slots (`structUsedLater`, `Positivity.lean`;
 /-- A constant family. -/
 def constFam (Y : V) : List V → V := fun _ => Y
 
-/-- The one-fibre family. -/
-def oneFam : List V → V := constFam one
+/-- **The one-fibre set**: `{pt}` at a proposition; above it a
+singleton of a tagged value — a type of the result universe either
+way, with an admissible member (`oneVal`). -/
+noncomputable def oneSet : V := if S.z ls then one else sing (tag 0 empty)
 
-theorem oneFam_inUniv (n : Nat) : InUniv n (oneFam : List V → V) := fun _ => one_mem_univ n
+/-- The one-fibre set's member. -/
+noncomputable def oneVal : V := if S.z ls then pt else tag 0 empty
+
+/-- The one-fibre family. -/
+noncomputable def oneFam : List V → V := constFam (S.oneSet ls)
+
+theorem oneVal_mem_adm : (S.oneVal ls : V) ∈ˢ S.adm ls (S.oneSet ls) := by
+  unfold oneVal oneSet
+  rw [mem_adm]
+  cases S.z ls
+  · simp only [Bool.false_eq_true, ite_false]
+    exact ⟨mem_sing.mpr rfl, fun _ => ⟨tag_ne_pt, tag_not_mem_pt⟩⟩
+  · simp only [ite_true]
+    exact ⟨mem_one.mpr rfl, fun h => nomatch h⟩
+
+theorem oneVal_mem : (S.oneVal ls : V) ∈ˢ S.oneSet ls := S.adm_sub ls _ _ (S.oneVal_mem_adm ls)
+
+theorem oneSet_zero (hz : S.z ls = true) : (S.oneSet ls : V) ∈ˢ (univ 0 : V) := by
+  unfold oneSet; simp only [hz, ite_true]; exact one_mem_univ_zero
+
+/-- **The one-fibre set is a type** of the result universe. -/
+theorem oneSet_mem_typeU : (S.oneSet ls : V) ∈ˢ (typeU (S.u₀ ls) : V) := by
+  cases hz : S.z ls with
+  | true =>
+    rw [(S.z_iff ls).mp hz, mem_typeU_zero]; exact S.oneSet_zero ls hz
+  | false =>
+    have h0 := S.u₀_ne_zero ls hz
+    unfold oneSet
+    simp only [hz, Bool.false_eq_true, ite_false]
+    rw [mem_typeU_pos h0]
+    refine ⟨sing_mem_univ h0 (tag_mem_univ h0 (empty_mem_univ _)), fun he => ?_,
+      fun h => tag_ne_pt (mem_sing.mp h).symm⟩
+    obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+    rw [← he] at hz'
+    have := mem_sing.mp hz'
+    rw [this, he] at hz'
+    exact tag_not_mem_pt hz'
+
+theorem oneSet_mem_univ : (S.oneSet ls : V) ∈ˢ (univ (S.u₀ ls) : V) :=
+  mem_univ_of_mem_typeU (S.oneSet_mem_typeU ls)
+
+theorem oneFam_inUniv : InUniv (S.u₀ ls) (S.oneFam ls : List V → V) := fun _ => S.oneSet_mem_univ ls
 
 /-- A container value's stand-in at the constant family `Y`: a member
 of the class at `Y`, if any. -/
@@ -891,7 +945,7 @@ theorem noRecDep_drop (hnr : S.NoRecDep) {c : CtorSpec} (hc : c ∈ S.ctors) (m 
 container values are replaced** — the family `Y` in the universe,
 inhabited by `y`, a truth value at a proposition. -/
 theorem FitsFields_toFam {ps : List V} (hco : S.ContOk M ls ps) {W : List V → V}
-    (hW : InUniv (S.u₀ ls) W) {Y y : V} (hY : Y ∈ˢ (univ (S.u₀ ls) : V)) (hy : y ∈ˢ Y)
+    (hW : InUniv (S.u₀ ls) W) {Y y : V} (hY : Y ∈ˢ (univ (S.u₀ ls) : V)) (hy : y ∈ˢ S.adm ls Y)
     (hY0 : S.z ls = true → Y ∈ˢ (univ 0 : V)) :
     ∀ {L : List Field} {fs : List V}, ListNoRecDep L → S.FitsFields M ls W ps L fs →
       S.FitsFields M ls (constFam Y) ps L (S.toFam M ls Y y ps L fs)
@@ -909,7 +963,7 @@ theorem FitsFields_toFam {ps : List V} (hco : S.ContOk M ls ps) {W : List V → 
       exact hf.2
     | reflexive tele es =>
       show lamCtx M (S.ψ ls) (S.z ls) _ tele (fun _ => y) ∈ˢ piCtx M (S.ψ ls) (S.z ls) _ tele _
-      exact lamCtx_mem_piCtx M _ (fun _ _ => hy) fun hz _ _ => hY0 hz
+      exact lamCtx_mem_piCtx M _ (fun _ _ => S.adm_sub ls _ _ hy) fun hz _ _ => hY0 hz
     | container =>
       have hv := hf.2
       cases hN : S.nest with
@@ -947,7 +1001,7 @@ whose former is that family (a type of the restricted universe,
 `InstallInd.lean`), where an arbitrary family of the universe would
 not be one. -/
 theorem domsBounded_of_fam {ps : List V} (hnr : S.NoRecDep) (hco : S.ContOk M ls ps) {Y y : V}
-    (hY : S.z ls = false → Y ∈ˢ (univ (S.u₀ ls) : V)) (hy : y ∈ˢ Y)
+    (hY : S.z ls = false → Y ∈ˢ (univ (S.u₀ ls) : V)) (hy : y ∈ˢ S.adm ls Y)
     (h : S.z ls = false → ∀ c ∈ S.ctors, ∀ k f,
       c.fields[c.fields.length - 1 - k]? = some f → k < c.fields.length →
       ∀ fs, S.FitsFields M ls (constFam Y) ps (c.fields.drop (c.fields.length - k)) fs →
@@ -1011,7 +1065,7 @@ noncomputable def ctorBound (ps : List V) (c : CtorSpec) : V :=
   listUnion ((List.range c.fields.length).map fun k =>
     match c.fields[c.fields.length - 1 - k]? with
     | some (.reflexive tele _) =>
-      famUnion (S.fitsSet M ls oneFam ps (c.fields.drop (c.fields.length - k))) fun t =>
+      famUnion (S.fitsSet M ls (S.oneFam ls) ps (c.fields.drop (c.fields.length - k))) fun t =>
         image (pcons (nat k)) (ctxSet M (S.ψ ls) (consList (untuple t) (envP ps)) tele)
     | some .container => image (pcons (nat k)) S.classBound
     | _ => empty)
@@ -1037,11 +1091,11 @@ theorem bound_mem_univ {ps : List V} (hz : S.z ls = false) (hb : S.DomsBounded M
   have hk' := List.mem_range.mp hk
   split
   · rename_i tele es hf
-    have hW := oneFam_inUniv (V := V) (S.u₀ ls)
+    have hW := S.oneFam_inUniv (V := V) ls
     refine famUnion_mem_univ hn (S.fitsSet_mem_univ M ls hz hb hco hW hc k (by omega)).1 fun t ht => ?_
     obtain ⟨fs, hfs, rfl⟩ := (S.mem_fitsSet M ls).mp ht
     rw [untuple_tuple]
-    have hdom := hb hz oneFam hW _ hc k _ hf hk' fs hfs
+    have hdom := hb hz (S.oneFam ls) hW _ hc k _ hf hk' fs hfs
     have hset := (ctxSet_mem_univ M (S.ψ ls) hn hdom).1
     exact image_mem_univ hn hset fun y hy =>
       pcons_mem_univ hn (nat_mem_univ hn k) (univ_trans hn hset hy)
@@ -1264,14 +1318,14 @@ theorem famOp_acc {ps : List V} (hnr : S.NoRecDep) (hco : S.ContOk M ls ps) :
       simp only [hf]
       have hnrL := S.noRecDep_drop hnr hcm (c.fields.length - k)
       have hpre := S.FitsFields_earlier M ls hfs k (Nat.le_of_lt hk')
-      refine mem_famUnion.mpr ⟨tuple (S.toFam M ls one pt ps _ (earlier fs k)),
-        (S.mem_fitsSet M ls).mpr ⟨_, S.FitsFields_toFam M ls hco hW (one_mem_univ _)
-          (mem_one.mpr rfl) (fun _ => one_mem_univ_zero) hnrL hpre, rfl⟩, ?_⟩
+      refine mem_famUnion.mpr ⟨tuple (S.toFam M ls (S.oneSet ls) (S.oneVal ls) ps _ (earlier fs k)),
+        (S.mem_fitsSet M ls).mpr ⟨_, S.FitsFields_toFam M ls hco hW (S.oneSet_mem_univ ls)
+          (S.oneVal_mem_adm ls) (S.oneSet_zero ls) hnrL hpre, rfl⟩, ?_⟩
       rw [untuple_tuple]
       have hnrf : fieldNoRecDep (c.fields.drop (c.fields.length - k)) (.reflexive tele es) := by
         have := hnr c hcm _ _ hf
         rwa [show c.fields.length - 1 - k + 1 = c.fields.length - k by omega] at this
-      rw [← S.ctxSet_toFam M ls one pt ps hnrf]
+      rw [← S.ctxSet_toFam M ls (S.oneSet ls) (S.oneVal ls) ps hnrf]
       exact mem_image.mpr ⟨tuple ys, (mem_ctxSet M (S.ψ ls) _).mpr ⟨ys, hys, rfl⟩, rfl⟩
     · obtain ⟨N, hN⟩ : ∃ N, S.nest = some N := by
         cases hN : S.nest with

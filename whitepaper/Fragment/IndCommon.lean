@@ -185,10 +185,64 @@ def classArgsV (N : NestInfo) (ps : List V) (X : V) : List V :=
 /-- The container's levels at the block's valuation. -/
 def lsK (N : NestInfo) : List Nat := N.lsK.map (Level.eval (S.ψ ls))
 
+/-- **The admissible part of a set**: at a proposition the set itself;
+above it the members that are neither the point nor a member of it —
+a strict set (`adm_mem_typeU`), so a member of the nested parameter's
+domain `Sort u` in the restricted universes, and the set itself on a
+set of tagged values (`adm_eq_self`), such as a fibre of the family.
+The class reads the container's set at admissible sets only: there it
+is a graph applied inside its domain. -/
+def adm (X : V) : V := if S.z ls then X else sep X fun x => x ≠ pt ∧ ¬ x ∈ˢ pt
+
 /-- **The class at a parameter set**: the container's set in the model,
-applied to the class's arguments with `X` at the nested position. -/
+applied to the class's arguments with the admissible part of `X` at
+the nested position. -/
 def classSet (N : NestInfo) (ps : List V) (X : V) : V :=
-  appList (M N.K.name (S.lsK ls N)) (S.classArgsV M ls N ps X)
+  appList (M N.K.name (S.lsK ls N)) (S.classArgsV M ls N ps (S.adm ls X))
+
+theorem mem_adm {X x : V} : x ∈ˢ S.adm ls X ↔ x ∈ˢ X ∧ (S.z ls = false → x ≠ pt ∧ ¬ x ∈ˢ pt) := by
+  unfold adm
+  cases S.z ls
+  · simp [mem_sep]
+  · simp
+
+theorem adm_sub (X : V) : S.adm ls X ⊆ˢ X := fun _ h => ((S.mem_adm ls).mp h).1
+
+theorem adm_mono {X Y : V} (h : X ⊆ˢ Y) : S.adm ls X ⊆ˢ S.adm ls Y := fun x hx => by
+  rw [mem_adm] at hx ⊢
+  exact ⟨h x hx.1, hx.2⟩
+
+/-- On a set none of whose members is the point or a member of it (a
+set of tagged values), the admissible part is the set. -/
+theorem adm_eq_self {X : V} (h : ∀ x, x ∈ˢ X → x ≠ pt ∧ ¬ x ∈ˢ pt) : S.adm ls X = X :=
+  ext fun x => by
+    rw [mem_adm]
+    exact ⟨fun hx => hx.1, fun hx => ⟨hx, fun _ => h x hx⟩⟩
+
+theorem adm_mem_univ {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) : S.adm ls X ∈ˢ (univ (S.u₀ ls) : V) := by
+  unfold adm
+  split
+  · exact hX
+  · exact sep_mem_univ hX
+
+/-- **The admissible part is a type** of the result universe. -/
+theorem adm_mem_typeU {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
+    S.adm ls X ∈ˢ (typeU (S.u₀ ls) : V) := by
+  cases hz : S.z ls with
+  | true =>
+    have h0 := (S.z_iff ls).mp hz
+    unfold adm
+    rw [hz, ite_eq_left rfl, h0, mem_typeU_zero]
+    rw [h0] at hX
+    exact hX
+  | false =>
+    have h0 : S.u₀ ls ≠ 0 := fun h => by rw [(S.z_iff ls).mpr h] at hz; cases hz
+    refine (mem_typeU_pos h0).mpr ⟨S.adm_mem_univ ls hX, fun he => ?_, fun hp => ?_⟩
+    · obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+      have := hz'
+      rw [← he, mem_adm] at this
+      exact (this.2 hz).2 hz'
+    · exact ((S.mem_adm ls).mp hp).2 hz |>.1 rfl
 
 /-- The nested occurrence's index values at the parameters (its index expressions
 are closed under them). -/

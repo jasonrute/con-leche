@@ -180,7 +180,7 @@ theorem Reader₂.ctorSet_mem (hS : S.Scoped env) {M' : Name → List Nat → V}
     S.ctorSet M (S.lparams.map φ) j c ∈ˢ interp M' φ' ρ (S.ctorType c) := by
   have R := R₂.R
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
-  have R₁ := S.reader₁ (M := M) (φ := φ) hfresh
+  have R₁ := S.reader₁A (M := M) (φ := φ) R₂.R.adm hfresh
   have hwd' := hwd
   unfold ctorType at hwd' ⊢
   rw [WellDenoted_mkPis] at hwd'

@@ -625,8 +625,8 @@ theorem install_ind' {env : Env} {S : IndSpec} (hpl : S.nest = none) (hs : Env.S
             hok.ctorOf?_name, S.envInd_find?, ite_eq_left rfl]
         · rw [S.install_find? hpl, ite_eq_right (hok.ctor_ne_rec hc),
             S.envCtors_find? env hok.nodup_ctors, S.ctorOf?_of_getElem? hok.nodup_ctors hc]
-        · rw [(IndSpec.reader₃ hok m.M fun _ => 0).R.fam ls, ← S.famSet_eq_famSetF, (hA ls).famSet_eq]
-        · rw [(IndSpec.reader₃ hok m.M fun _ => 0).ctor j c hc ls,
+        · rw [(IndSpec.reader₃ hpl hok m.M fun _ => 0).R.fam ls, ← S.famSet_eq_famSetF, (hA ls).famSet_eq]
+        · rw [(IndSpec.reader₃ hpl hok m.M fun _ => 0).ctor j c hc ls,
             (hA ls).ctorSet_eq j (List.mem_of_getElem? hc)]
         · -- the domains' bound: the checker's, at the block's own valuation
           exact (hA ls).domsBounded_imp ps (hbO ls ps (((hA ls).fitsParams_iff ps).mpr hp))
