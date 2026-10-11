@@ -315,7 +315,10 @@ the checker infers the argument's type and compares it with the domain
 (rule beta-cert of @sec:rules), and the soundness of that comparison —
 the second and third claims below — supplies precisely the premise of
 @lem:beta-cert. The checker pays an inference and an equality test per
-possibly-propositional redex.
+possibly-propositional redex. That the point has collapsed every
+domain is a property of this model; @sec:left-out shows a model of
+the universes in which no type of a positive sort holds the point, and
+β needs no certificate at all.
 
 == The three claims and their proof <sec:claims>
 

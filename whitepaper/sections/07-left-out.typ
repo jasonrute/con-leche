@@ -167,6 +167,31 @@ about a list needs a relation of its own in a mutual block; the paper
 inlines them into the rules that use them. Inference also carries a
 grade index, the infer-only grade above.
 
+*β without a certificate is a choice of model.* In the fragment's
+model the certificate of rule beta-cert cannot simply go: a β that
+fires at every binder is
+#src("whitepaper/Fragment/UniformBeta.lean", 147, 152)[unsound]. A
+stored `c : Sort 1` whose value is an ill-typed redex
+$(lambda h : A thin ann(sans("always")). thin h) thick "Prop"$, with $A$
+an empty proposition, satisfies the semantic environment invariant (the
+redex denotes the point, a member of `Sort 1`), and a datum-blind β
+reduces it to `Prop`. The obstruction is the universes, not the rules.
+If `Sort (n+1)` denotes
+#src("whitepaper/Fragment/Uniform/Model.lean", 75)[the members of the
+universe that are not the point and do not contain it], no such `c` has
+a model, and with an invariant that also records which sets are types,
+and claims that say nothing of a term denoting the point,
+#src("whitepaper/Fragment/Uniform/Sound.lean", 839, 842)[β at every
+binder is sound] with neither a certificate nor an annotation to
+compare — δ and ι included. Even ι on a recursion over proofs needs no
+β certificate to reduce its major premise:
+#src("whitepaper/Fragment/Uniform/Sound.lean", 468, 474)[the major's
+binder domain is a type], so the major and its reduct are both the
+point or neither is. What this does not yet carry over is the
+environment side: that installing a definition or an inductive block
+keeps a model in these universes, the counterpart of
+@sec:env, @sec:ind and @sec:nested.
+
 *The bridge and the recomposition.* Because the real checker is a
 program, its proof has three parts where the paper has one. #src("ConLeche/Verify/Rules/Bridge.lean", 25, 28)[The bridge] turns an accepting
 run at any fuel into a derivation — one induction on fuel, each checker

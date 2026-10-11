@@ -5540,6 +5540,32 @@
    594      Nat → Name → List Level → List Expr → Expr → List Name → List Nat → Prop
    595      where
 
+== whitepaper/Fragment/UniformBeta.lean#L147-L152
+   147  theorem uniform_beta_unsound [LevelOracle] (hpt : (pt : V) ∈ˢ univ 1)
+   148      (hne : (pt : V) ≠ univ 0) (φ : Name → Nat) :
+   149      Infer badEnv [] (.const cName []) (.sort (.succ .zero)) ∧
+   150      Infer badEnv [] (.sort (.succ .zero)) (.sort (.succ (.succ .zero))) ∧
+   151      Red badEnv [] (.const cName []) badRedex ∧
+   152      ¬ RedSem (badModel hpt) φ [] badRedex ((Expr.bvar 0).inst (.sort .zero)) := by
+
+== whitepaper/Fragment/Uniform/Model.lean#L75
+    75  def typeU (n : Nat) : V := if n = 0 then univ 0 else sep (univ n) Strict
+
+== whitepaper/Fragment/Uniform/Sound.lean#L839-L842
+   839  theorem soundnessU [LevelOracle] (m : EnvModelU V env) (φ : Name → Nat) :
+   840      (∀ {Γ : List Expr} {e e' : Expr}, RedU env Γ e e' → RedSemU m φ Γ e e') ∧
+   841      (∀ {Γ : List Expr} {a b : Expr}, DefEqU env Γ a b → DefEqSemU m φ Γ a b) ∧
+   842      (∀ {Γ : List Expr} {e T : Expr}, InferU env Γ e T → InferSemU m φ Γ e T) :=
+
+== whitepaper/Fragment/Uniform/Sound.lean#L468-L474
+   468  theorem major_eq {Γ : List Expr} {ρ : Nat → V} {T f maj maj' : Expr} {xs : List Expr}
+   469      (hs : SatU m.M φ Γ ρ) (hT : WDU m.M φ ρ T) (hf : interpU m.M φ ρ f ∈ˢ interpU m.M φ ρ T)
+   470      (hw : WDU m.M φ ρ (.app (Expr.mkAppN f xs) maj))
+   471      (hn : interpU m.M φ ρ (.app (Expr.mkAppN f xs) maj) ≠ pt)
+   472      (hred : RedSemU m φ Γ maj maj')
+   473      (hfit : TeleFitVU m.M φ ρ T ((xs ++ [maj']).map (interpU m.M φ ρ))) :
+   474      interpU m.M φ ρ maj = interpU m.M φ ρ maj' := by
+
 == ConLeche/Verify/Rules/Bridge.lean#L25-L28
     25  theorem bridge (env : Env) :
     26      ∀ fuel : Nat,

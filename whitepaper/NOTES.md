@@ -641,3 +641,41 @@ comment block at the top of `lib.typ`.
     frame monotonicity (`HoleMono.lean`, `posD_mono`, `frameIter`)
     remains, as it serves the recursor.  (2026-10-03, updated
     2026-10-04.)
+
+38. **Uniform β is a model choice.**  A β that fires at every binder,
+    with no certificate and no comparison of the binder's annotation
+    with anything, is unsound in the fragment's model
+    (`Fragment/UniformBeta.lean`, `uniform_beta_unsound`): the stored
+    `c : Sort 1 := (λ (h : ∀ P : Prop, P). h) Prop` is ill-typed, but
+    its value denotes the point, a member of `Sort 1`, so `c` satisfies
+    the semantic environment invariant, and the typed, never
+    propositional `c` reduces by δ and a datum-blind β to `Prop`.  The
+    hypotheses hold for any choice of the point in a well-founded model
+    with transitive universes.  Interpreting `Sort (n+1)` by the strict
+    members of the universe (not the point, not containing it) excludes
+    `c` (`Uniform.badEnv_no_model`), and with an invariant that records
+    which sets are types (`WDU`) and claims conditional on the point, β
+    at every binder is sound (`Fragment/Uniform/`, `soundnessU`).  An
+    intermediate design (task #338) kept the annotation comparison and
+    passed a datum from the equality test to the head normaliser; it
+    is not pursued.  (2026-10-11.)
+
+39. **Uniform β with inductive types: the rules, not yet the
+    installation.**  `RedU` has the fragment's ι and nested ι, and they
+    are sound against value-level ι laws (`RecRuleLawU`,
+    `RecRuleLawNU`) whose comparisons are conditional on the point.
+    The major needs no β certificate even on a recursion over proofs
+    (`major_eq`): its binder domain is a type, so the major and its
+    reduct are both the point or neither is.  Not done: constructing
+    the models (`install_def`, `install_ind`, the nested installation)
+    in the restricted universes.  The mathematics found no obstacle —
+    a carrier's fibre is strict given one more law (the point's member
+    is not a constructor value), and the conditional comparisons become
+    equalities because the recursor's and the constructor's telescopes
+    are generated from one context, so both sides of each comparison
+    lie in one type.  The obstacle is the shape of the fragment: its
+    whole environment side reads terms by `interp`, whose sorts are the
+    universes, and produces `WellDenoted` and the unconditional
+    claims, so the restricted model needs either a parallel copy of it
+    or a fragment parametric in the sorts' denotation and in the typed
+    part of the invariant.  (2026-10-11.)
