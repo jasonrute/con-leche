@@ -848,6 +848,17 @@ theorem oneSet_mem_typeU : (S.oneSet ls : V) ∈ˢ (typeU (S.u₀ ls) : V) := by
     rw [this, he] at hz'
     exact tag_not_mem_pt hz'
 
+/-- The one-fibre set is admissible. -/
+theorem adm_oneSet : S.adm ls (S.oneSet ls : V) = S.oneSet ls := by
+  cases hz : S.z ls with
+  | true => unfold adm; rw [hz]; rfl
+  | false =>
+    refine S.adm_eq_self ls fun x hx => ?_
+    unfold oneSet at hx
+    simp only [hz, Bool.false_eq_true, ite_false] at hx
+    rw [mem_sing.mp hx]
+    exact ⟨tag_ne_pt, tag_not_mem_pt⟩
+
 theorem oneSet_mem_univ : (S.oneSet ls : V) ∈ˢ (univ (S.u₀ ls) : V) :=
   mem_univ_of_mem_typeU (S.oneSet_mem_typeU ls)
 
@@ -1552,6 +1563,17 @@ theorem Fam_mem_typeU {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls 
       exact tag_not_mem_pt hz'
     · obtain ⟨i, x, hx⟩ := htag pt hpt
       exact tag_ne_pt hx.symm
+
+/-- **The fibres are admissible** (`adm`): at a proposition by
+definition, above it as sets of tagged values. -/
+theorem adm_Fam {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps)
+    (hco : S.ContOk M ls ps) (is : List V) : S.adm ls (S.Fam M ls ps is) = S.Fam M ls ps is := by
+  cases hz : S.z ls with
+  | true => unfold adm; rw [hz]; rfl
+  | false =>
+    refine S.adm_eq_self ls fun x hx => ?_
+    obtain ⟨j, c, fs, -, -, -, rfl⟩ := (S.mem_Fam_false M ls hnr hb hco hz).mp hx
+    exact ⟨tag_ne_pt, tag_not_mem_pt⟩
 
 /-! ## The sets of the former and the constructors
 

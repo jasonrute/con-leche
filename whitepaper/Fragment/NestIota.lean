@@ -1214,7 +1214,7 @@ theorem memberIdx_fits (φ : Name → Nat) {ps : List V}
       (S.memberIdx m.M (S.lparams.map φ) N ps) := by
   have hNS := hok.nestScoped N hok.nest
   have hps : ps.length = S.nP := by have := FitsVals_length _ _ hp; simpa [nP] using this
-  have R₀ := reader₃₀ hok m.M φ
+  have R₀ := reader₃₀m hs m hok φ
   obtain ⟨T, hT⟩ := hok.2.2.2.2.2.2.2.2.2.1
   have hwdI := (type_ok_indN hs m hok φ base (ls := S.lvls) (by simp [indInfo, lvls])).1
   simp only [indInfo] at hwdI
@@ -1252,7 +1252,7 @@ theorem wdFieldCtxN (φ : Name → Nat) (ρ : Nat → V) :
       FitsVals m.M (S.ψ (S.lparams.map φ)) base S.params ps →
       CtxWD (S.M₃N m.M N) φ (consList ps ρ) (S.fieldCtx c.fields) := by
   intro c hc ps hps hp
-  exact ((reader₃N m hok φ).R.idxFit_of_wd hok.scoped hc (wd_ctorTypeN hs m hok hc _ ρ) hps hp).1
+  exact ((reader₃N hs m hok φ).R.idxFit_of_wd hok.scoped hc (wd_ctorTypeN hs m hok hc _ ρ) hps hp).1
 
 /-- **`T.rec`'s set at concrete levels** is the abstraction over its
 context read in the final model at the instantiated valuation. -/
@@ -1273,8 +1273,8 @@ theorem recSetN_eq (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
       = Level.substVal φ S.recLparams us n :=
     fun n hn => recVal_agree φ hus n (S.lparams_sub_recLparams hn)
   have hls := block_levels_eq (S := S) φ hus
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
-  have R₂ := reader₂N m hok (Level.substVal φ S.recLparams us) hval
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
+  have R₂ := reader₂N hs m hok (Level.substVal φ S.recLparams us) hval
   have hwd : CtxWD (S.M₃N m.M N) (Level.substVal φ S.recLparams us) ρ (S.recCtxN N) := by
     have := wd_recTypeN hs m hok (Level.substVal φ S.recLparams us) ρ
     rw [recTypeN_eq, WellDenoted_mkPis] at this
@@ -1317,8 +1317,8 @@ theorem rec1Set_eq (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
       = Level.substVal φ S.recLparams us n :=
     fun n hn => recVal_agree φ hus n (S.lparams_sub_recLparams hn)
   have hls := block_levels_eq (S := S) φ hus
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
-  have R₂ := reader₂N m hok (Level.substVal φ S.recLparams us) hval
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
+  have R₂ := reader₂N hs m hok (Level.substVal φ S.recLparams us) hval
   have hwd : CtxWD (S.M₃N m.M N) (Level.substVal φ S.recLparams us) ρ (S.rec1Ctx N) := by
     have := wd_rec1Type hs m hok (Level.substVal φ S.recLparams us) ρ
     rw [rec1Type_eq, WellDenoted_mkPis] at this
@@ -1371,7 +1371,7 @@ theorem recs_typed (φr : Name → Nat) (ρ : Nat → V) {ps : List V} {m1 m' : 
   have hS := hok.scoped
   have hN := hok.nest
   have hK := K_law m hok
-  have R₃ := reader₃N m hok φr
+  have R₃ := reader₃N hs m hok φr
   have hidx := memberIdx_fits hs m hok φr hp
   have hwdC := wdFieldCtxN hs m hok φr ρ
   have hwdCK : ∀ c ∈ N.K.ctors, CtxWD (S.M₃N m.M N) φr (consList ps ρ) (S.fieldCtx (S.classCtor N c).fields) :=
@@ -1455,7 +1455,7 @@ theorem recSetN_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
     S.recSetN m.M N (lsr.map (Level.eval φ)) ∈ˢ
       interp (S.M₃N m.M N) (Level.substVal φ S.recLparams lsr) ρ (S.recTypeN N) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams lsr)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams lsr)
   have hwd : CtxWD (S.M₃N m.M N) (Level.substVal φ S.recLparams lsr) ρ (S.recCtxN N) := by
     have := wd_recTypeN hs m hok (Level.substVal φ S.recLparams lsr) ρ
     rw [recTypeN_eq, WellDenoted_mkPis] at this
@@ -1485,7 +1485,7 @@ theorem rec1Set_mem (φ : Name → Nat) (ρ : Nat → V) {lsr : List Level}
     S.rec1Set m.M N (lsr.map (Level.eval φ)) ∈ˢ
       interp (S.M₃N m.M N) (Level.substVal φ S.recLparams lsr) ρ (S.rec1Type N) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams lsr)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams lsr)
   have hwd : CtxWD (S.M₃N m.M N) (Level.substVal φ S.recLparams lsr) ρ (S.rec1Ctx N) := by
     have := wd_rec1Type hs m hok (Level.substVal φ S.recLparams lsr) ρ
     rw [rec1Type_eq, WellDenoted_mkPis] at this
@@ -1593,7 +1593,7 @@ theorem rec_app_memN (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
         = S.recSemN m.M (S.lparams.map (Level.substVal φ S.recLparams us)) N false ps
             ⟨m', m1, mins, minsK⟩ is t) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
   have hi : is.length = S.nI := by have := FitsVals_length m.M _ his; simpa [nI] using this
   have hfit : FitsVals (S.M₃N m.M N) (Level.substVal φ S.recLparams us) ρ (S.recCtxN N)
       (t :: is ++ minsK ++ mins ++ [m1, m'] ++ ps) :=
@@ -1662,7 +1662,7 @@ theorem rec1_app_mem (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
         = S.rec1Sem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) N false ps
             ⟨m', m1, mins, minsK⟩ t) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
   have hidx := fun ps hp => memberIdx_fits hs m hok (Level.substVal φ S.recLparams us) (ps := ps) hp
   have hfit : FitsVals (S.M₃N m.M N) (Level.substVal φ S.recLparams us) ρ (S.rec1Ctx N)
       (t :: minsK ++ mins ++ [m1, m'] ++ ps) :=
@@ -1717,7 +1717,7 @@ theorem ctor_appN (φ : Name → Nat) (ρ : Nat → V) {usj : List Level}
       = S.ctorVal (S.lparams.map (Level.substVal φ S.lparams usj)) j fs := by
   have hS := hok.scoped
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
-  have R₃ := reader₃N m hok (Level.substVal φ S.lparams usj)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.lparams usj)
   unfold ctorType at hfit
   rw [← List.reverse_append, TeleFitV_mkPis _ _ _ (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm]),
     List.reverse_reverse, FitsVals_append _ _ (by rw [hf, length_fieldCtx])] at hfit
@@ -1784,7 +1784,7 @@ theorem fits_ruleCtxN' (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec}
       FitsVals (S.M₃N m.M N) φr (consList (mins ++ [m1, m']) (consList ps ρ)) (S.minorsCtxK N) minsK ∧
       S.FitsFields m.M (S.lparams.map φr) (S.Fam m.M (S.lparams.map φr) ps) ps c.fields fs := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok φr
+  have R₃ := reader₃N hs m hok φr
   have hosl : (minsK ++ mins ++ [m1, m']).length = S.oN N := by
     simp only [List.length_append, List.length_cons, List.length_nil, hminsK, hmins, oN]; omega
   have e1 : fs ++ minsK ++ mins ++ [m1, m'] ++ ps = fs ++ (minsK ++ mins ++ [m1, m']) ++ ps := by simp
@@ -1834,7 +1834,7 @@ theorem fits_ruleCtxK (φr : Name → Nat) (ρ : Nat → V)
       FitsVals (S.M₃N m.M N) φr (consList (mins ++ [m1, m']) (consList ps ρ)) (S.minorsCtxK N) minsK ∧
       S.FitsFields m.M (S.lparams.map φr) (S.Fam m.M (S.lparams.map φr) ps) ps (S.classCtor N c).fields fs := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok φr
+  have R₃ := reader₃N hs m hok φr
   have hsc := S.classCtor_fieldScoped N hS hok.nest (K_law m hok).1 (List.mem_of_getElem? hc)
   have hosl : (minsK ++ mins ++ [m1, m']).length = S.oN N := by
     simp only [List.length_append, List.length_cons, List.length_nil, hminsK, hmins, oN]; omega
@@ -1869,7 +1869,7 @@ theorem wd_fieldDomN (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec}
     (hk : k < c.fields.length) :
     WellDenoted (S.M₃N m.M N) φr (consList (earlier fs k) (consList ps ρ)) (S.fieldDom k f) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok φr
+  have R₃ := reader₃N hs m hok φr
   have hf := S.FitsFields_length m.M _ hfit
   have hfF := (R₃.R.fits_fieldCtx hS hsc hps hp hwdF).1.mpr hfit
   have hA : (S.fieldCtx c.fields)[c.fields.length - 1 - k]? = some (S.fieldDom k f) := by
@@ -1948,7 +1948,7 @@ theorem recCall_okN (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
             (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
               (consList ys (consList (earlier fs k) (envP ps))) es) t) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
   have hosl : (minsK ++ mins ++ [m1, m']).length = S.oN N := by
     simp only [List.length_append, List.length_cons, List.length_nil, hminsK, hmins, oN]; omega
   have hkd : fs.drop (c.fields.length - k) = earlier fs k := by simp [earlier, hf]
@@ -2145,7 +2145,7 @@ theorem ihValN_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
       = S.ihSemN m.M (S.lparams.map (Level.substVal φ S.recLparams us)) N false ps
           ⟨m', m1, mins, minsK⟩ fs kf) := by
   have hS := hok.scoped
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
   obtain ⟨k, f⟩ := kf
   obtain ⟨hkf', hk, hrec⟩ := mem_recFields hkf
   dsimp only at hkf' hk hrec ⊢
@@ -2294,7 +2294,7 @@ theorem rec_rule_lawN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
   have hj : j < S.n := (List.getElem?_eq_some_iff.mp hc).1
   simp only [recInfoN, ctorInfo] at hus husj hfitR hfitC hlv hidx ⊢
   rw [TeleFitV_instL] at hfitR hfitC
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
   have hLj : S.lparams.map (Level.substVal φ S.lparams usj)
       = S.lparams.map (Level.substVal φ S.recLparams us) :=
     block_valuation_eq hS φ hus husj hlv
@@ -2352,7 +2352,7 @@ theorem rec_rule_lawN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
     have := List.map_eq_of_zip id hlen hB
     simp only [List.map_id, List.map_map, Function.comp_def, id_eq, interp_instL, consList_append] at this
     rw [← List.reverse_reverse is, ← this,
-      (reader₃N m hok (Level.substVal φ S.lparams usj)).R.idxVals_eq
+      (reader₃N hs m hok (Level.substVal φ S.lparams usj)).R.idxVals_eq
         (hS.2.2.2.1 c hcm).2.2.2 (by simp [hf, hps]; omega), hLj]
   subst hisv
   rw [hmajor] at ht ⊢
@@ -2643,7 +2643,7 @@ theorem rule1_core (φ : Name → Nat) (ρ : Nat → V) {us usj : List Level} {x
   have hj : j < N.nK := (List.getElem?_eq_some_iff.mp hc).1
   simp only [rec1Info, ctorInfo] at hus husj hfitR hfitC ⊢
   rw [TeleFitV_instL] at hfitR hfitC
-  have R₃ := reader₃N m hok (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
   have hidxM := fun ps hp => memberIdx_fits hs m hok (Level.substVal φ S.recLparams us) (ps := ps) hp
   -- the recursor's spine, split
   have hfitR' := hfitR
