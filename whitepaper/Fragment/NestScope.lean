@@ -252,7 +252,7 @@ scope. -/
 theorem lparamsIn_ihCtxAt {c : CtorSpec} (hrf : ∀ kf ∈ c.recFields, S.fieldScoped env kf.1 kf.2)
     (o : Nat) : ∀ A ∈ IndSpec.ihCtxAt c o, A.lparamsIn S.recLparams = true := by
   intro A hA
-  obtain ⟨kf, hkf, l, rfl⟩ := S.mem_ihCtxAt hA
+  obtain ⟨kf, hkf, l, rfl⟩ := IndSpec.mem_ihCtxAt hA
   exact S.lparamsIn_ihTy (hrf kf hkf) _ _ _ _
 
 /-- A minor premise of one of the block's constructors (nested block)
@@ -571,7 +571,7 @@ theorem consts_ihValN (N : NestInfo) (env : Env)
   | reflexive tele es =>
     intro d hd
     simp only [ihValN] at hd
-    rcases Expr.consts_mkLams _ _ _ d hd with hd | ⟨T, hT, hd⟩
+    rcases Expr.consts_mkLams _ _ d hd with hd | ⟨T, hT, hd⟩
     · rw [Expr.consts_mkAppN, List.mem_append, List.mem_flatMap] at hd
       rcases hd with hd | ⟨a, ha, hd⟩
       · exact hrec d hd
@@ -602,7 +602,7 @@ theorem consts_ruleLamN [LevelOracle] (N : NestInfo) (env : Env)
         c.recFields.map fun kf => S.ihValN N c.fields.length kf.1 kf.2))).consts,
       ((S.installN N env).find? d).isSome := by
   intro d hd
-  rcases Expr.consts_mkLams _ _ _ d hd with hd | ⟨A, hA, hd⟩
+  rcases Expr.consts_mkLams _ _ d hd with hd | ⟨A, hA, hd⟩
   · rw [Expr.consts_mkAppN, List.mem_append, List.mem_flatMap] at hd
     rcases hd with hd | ⟨a, ha, hd⟩
     · simp at hd
@@ -674,7 +674,7 @@ theorem _root_.Fragment.Env.Scoped.installN [LevelOracle] {env : Env} {S : IndSp
         rw [← h]
         exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_map_of_mem hc)))
     · intro c hc
-      obtain ⟨T, hT⟩ := (hctors c hc).1
+      obtain ⟨T, -, hT, -⟩ := (hctors c hc).1
       exact ⟨Infer.closedAt hT, Infer.consts hT, S.lparamsIn_ctorType hS hc⟩
   -- The two recursors' types, in scope of the installed environment.
   have hty_rec : Expr.Scoped (S.installN N env) S.recLparams 0 (S.recTypeN N) :=
