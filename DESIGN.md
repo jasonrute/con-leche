@@ -100850,7 +100850,7 @@ green.  `PropWhen.lean` and `Ghost.lean` are deleted.
   sort" formally (their docstrings already did; the real checker
   does).
 
-**Why A and B are not needed and would be costly.**
+**Why A and B are not needed, and what they would need.**
 - The ambiguity is confined to binders whose domain is empty at the
   valuation; there the body lives in an unsatisfiable context, every
   claim about it is vacuous (#343's `codomain_claims_vacuous`), so no
@@ -100858,9 +100858,10 @@ green.  `PropWhen.lean` and `Ghost.lean` are deleted.
   restricted universes give it at satisfiable valuations only, and the
   conditional claims do not help because the two readings (`{pt}` and
   the one-graph space) are neither of them the point.
-- Unique typing itself is cheap in the fragment (head reduction is
-  deterministic given the stored environment's shape, so `Infer` is a
-  function), but a derivation-driven meaning must commute with
+- Unique typing itself looks within reach in the fragment (head
+  reduction is deterministic given the stored environment's shape, so
+  `Infer` should be a function; not proved here), but a
+  derivation-driven meaning must commute with
   substitution: the regime of a binder inside `b[a]` must be the one a
   derivation of `b[a]` gives, i.e. subject reduction for a β that
   checks nothing about `a`, plus a substitution lemma modulo `DefEq`.
