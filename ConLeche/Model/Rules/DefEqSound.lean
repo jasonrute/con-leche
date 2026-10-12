@@ -489,17 +489,173 @@ theorem DefEq.lams_sound {d : Nat} {a b : Expr} (h : DefEqLamsSem m φ d a b) :
     DefEqSem m φ d a b :=
   h.cond
 
-/-- η, typed: **owed to task #342 L18** (with the io claim of `b`'s type,
-the hereditary `IORel`; the fragment's `etaIO_sound` for atom heads). -/
+/-- **η, typed, from `b`'s membership where it is not the point** (the
+fragment's `DefEq.eta_sound`).  At every value of the variable the λ's
+opened body and `b` applied lie in one type — the body's full-grade
+type is the ∀'s fibre, a type ("not pt" source (1)) — so they are both
+the point or neither, and where neither is the body's conditional claim
+makes them equal; a member of a function space whose fibres are types
+is the abstraction of its applications (`lamV_eta`).  `hmb` is the
+claim of `b`'s type: where `b` is not the point it is a member of it,
+which the type's io claim gives for an atom-headed `b`. -/
+theorem DefEq.eta_core {d : Nat}
+    {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    (htb : Frame d b → ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+      CtxOkS m φ d Δa b → denoteMeta m.acval env φ d b = some ea →
+      Frame d tb ∧ LeavesSub tb b ∧
+        ∃ ta, denoteMeta m.acval env φ d tb = some ta ∧
+          ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d b ρ →
+            WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
+            WellDenotedTy V ρ ta ∧ interp V ρ ea ∈ˢ interp V ρ ta)
+    (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (hty : DefEqSem m φ d ty₂ ty₁)
+    (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
+      (.app b (.fvar d ty₁)))
+    (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
+    (htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
+    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
+  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB _ hnb
+  obtain ⟨hwF1, hbF1, hLF1⟩ := hfa
+  obtain ⟨hwF2, hbF2, hLF2⟩ := hfb
+  simp only [Expr.WScoped] at hwF1
+  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbF1
+  have hLty : Expr.LeavesBounded ty₁ := fun l hl =>
+    hLF1 l (by simp [Expr.fvarLeaves, hl])
+  have hLbd : Expr.LeavesBounded body₁ := fun l hl =>
+    hLF1 l (by simp [Expr.fvarLeaves, hl])
+  have hfty : Frame d ty₁ := ⟨hwF1.1, hbF1.1, hLty⟩
+  have hCty : CtxOkS m φ d Δa ty₁ := hCa.lam_ty
+  have hCbd : CtxOkS m φ d Δa body₁ := hCa.lam_body
+  have hLtyρ : LeavesGr m φ d ty₁ ρ := hLa.lam_ty
+  have hLbdρ : LeavesGr m φ d body₁ ρ := hLa.lam_body
+  -- the λ's own reading, and its grading at ρ
+  obtain ⟨ta, bda, hta, hbda, rfl⟩ := denoteMeta_lam_inv hda
+  have hokTa : WellDenotedTy V ρ ta := hokA.lam_dom
+  -- `b`'s type, its reduct, and both readings; `b` is not the point, so
+  -- it is a member
+  obtain ⟨hftb, hsubtb, tba, htba, hX⟩ := htb ⟨hwF2, hbF2, hLF2⟩ hCb hdb
+  obtain ⟨hokTb, hmemB⟩ := hX ρ hρ hLb hokB hnb
+  have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubtb
+  have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubtb
+  obtain ⟨hfW, hsubW, wtba, hwtba, hY⟩ := hwtb hftb hCtb htba
+  -- "not pt" source (1): `b`'s type is a type
+  obtain ⟨hokW, heqW⟩ := hY ρ hρ hLtbρ hokTb.1 hokTb.ne_pt
+  have hCwr : CtxOkS m φ d Δa (Expr.forallE ty₂ B m₂) := hCtb.of_subset hsubW
+  have hLwρ : LeavesGr m φ d (Expr.forallE ty₂ B m₂) ρ := hLtbρ.of_subset hsubW
+  obtain ⟨ta₂, ba₂, hta₂, hba₂, rfl⟩ := denoteMeta_forallE_inv hwtba
+  have hokTa₂ : WellDenotedTy V ρ ta₂ := hokW.pi_dom
+  -- the two domains agree ("not pt" source (1): two types)
+  have hdom : interp V ρ ta₂ = interp V ρ ta :=
+    hty hfW.forallE_ty hfty hCwr.forallE_ty hCty hta₂ hta ρ hρ
+      hLwρ.forallE_ty hLtyρ hokTa₂.1 hokTa.1 hokTa₂.ne_pt hokTa.ne_pt
+  have hmem : interp V ρ ba ∈ˢ piV (interp V ρ ta₂)
+      (fun x => interp V (cons x ρ) ba₂) := by
+    have h := hmemB
+    rw [heqW, interp_pi] at h
+    exact h
+  -- the λ's fibre is `app ⟦b⟧`
+  have hdbUp : denoteMeta m.acval env φ (d + 1) b = some ba.lift := by
+    rw [denoteMeta_weaken_top m.acval_closed hwF2, hdb]; rfl
+  have hdapp : denoteMeta m.acval env φ (d + 1) (.app b (.fvar d ty₁))
+      = some (.app ba.lift (.bvar 0)) := by
+    rw [denoteMeta, hdbUp, denoteMeta_fvar]
+    simp
+  have hCfvar : CtxOkS m φ (d + 1) (ta :: Δa) (.fvar d ty₁) := by
+    have := CtxOkS.openS (body := Expr.bvar 0) hCty
+      (CtxOkS.of_fvarLeaves_nil hCa.length (by simp [Expr.fvarLeaves])) hta
+    simpa [Expr.instantiate1] using this
+  have hCapp : CtxOkS m φ (d + 1) (ta :: Δa) (.app b (.fvar d ty₁)) :=
+    CtxOkS.app (CtxOkS.weakenTop hCb) hCfvar
+  have hlift : ∀ x, interp V (cons x ρ) ba.lift = interp V ρ ba := fun x =>
+    interp_lift_cons V ba x ρ
+  have hokApp : ∀ x, x ∈ˢ interp V ρ ta →
+      WellDenotedV V (cons x ρ) (.app ba.lift (.bvar 0)) := by
+    intro x hx
+    have hok0 : WellDenotedV V (cons x ρ) ba.lift :=
+      (WellDenotedV_liftN V 1 ba 0 (cons x ρ)).mpr (by rw [shiftE_zero]; exact hokB)
+    rw [WellDenotedV, WellDenoted_app]
+    refine ⟨hok0, by simp, _, interp V ρ ta₂, (fun y => interp V (cons y ρ) ba₂),
+      ?_, ?_, propN_eq_zero.mp, fun _ => hokTa₂.2⟩
+    · rw [hlift]; exact hmem
+    · show x ∈ˢ _
+      rw [hdom]; exact hx
+  have hfopen : Frame (d + 1) (body₁.instantiate1 (.fvar d ty₁)) :=
+    Frame.open_body hfty hwF1.2 hbF1.2 hLbd
+  have hfapp : Frame (d + 1) (.app b (.fvar d ty₁)) := by
+    refine ⟨?_, by simp [Expr.looseBVarsBounded, hbF2], fun l hl => ?_⟩
+    · simp only [Expr.WScoped]
+      exact ⟨Expr.WScoped.mono (by omega) hwF2, by omega,
+        Expr.WScoped.mono (by omega) hwF1.1⟩
+    · rw [ConLeche.Expr.fvarLeaves] at hl
+      rcases List.mem_append.mp hl with h2 | h2
+      · exact hLF2 l h2
+      · rw [ConLeche.Expr.fvarLeaves] at h2
+        rcases List.mem_cons.mp h2 with rfl | h3
+        · exact hbF1.1
+        · exact hLty l h3
+  have hCopen : CtxOkS m φ (d + 1) (ta :: Δa) (body₁.instantiate1 (.fvar d ty₁)) :=
+    CtxOkS.openS hCty hCbd hta
+  have hLopenBody : ∀ x : V, LeavesGr m φ (d + 1)
+      (body₁.instantiate1 (.fvar d ty₁)) (cons x ρ) := fun _ =>
+    LeavesGr.open hCty hCbd hLtyρ hLbdρ hta hokTa
+  have hLfvar : ∀ x : V, LeavesGr m φ (d + 1) (.fvar d ty₁) (cons x ρ) := by
+    intro x
+    have := LeavesGr.open (body := Expr.bvar 0) (x := x) hCty
+      (CtxOkS.of_fvarLeaves_nil hCa.length (by simp [Expr.fvarLeaves]))
+      hLtyρ (LeavesGr.of_fvarLeaves_nil (by simp [Expr.fvarLeaves])) hta hokTa
+    simpa [Expr.instantiate1] using this
+  have hLapp : ∀ x : V, LeavesGr m φ (d + 1) (.app b (.fvar d ty₁)) (cons x ρ) :=
+    fun x => LeavesGr.app (LeavesGr.weakenTop (ρ := cons x ρ) hCb hLb) (hLfvar x)
+  -- the ∀'s body opened at the λ's domain: the fibre
+  have hfB : Frame (d + 1) (B.instantiate1 (.fvar d ty₁)) := hfW.forallE_open hfty
+  have hCB : CtxOkS m φ (d + 1) (ta :: Δa) (B.instantiate1 (.fvar d ty₁)) :=
+    CtxOkS.openS hCty hCwr.forallE_body hta
+  have hdB : denoteMeta m.acval env φ (d + 1) (B.instantiate1 (.fvar d ty₁))
+      = some ba₂ := denoteMeta_open_rename hba₂
+  have hLB : ∀ x : V, LeavesGr m φ (d + 1) (B.instantiate1 (.fvar d ty₁)) (cons x ρ) :=
+    fun _ => LeavesGr.open hCty hCwr.forallE_body hLtyρ hLwρ.forallE_body hta hokTa
+  -- at every value: the body and `b` applied are in one type
+  have hpt : ∀ x, x ∈ˢ interp V ρ ta →
+      interp V (cons x ρ) bda = SetTheory.app (interp V ρ ba) x := by
+    intro x hx
+    have hx₂ : x ∈ˢ interp V ρ ta₂ := by rw [hdom]; exact hx
+    have hρ' := Sat_cons V hρ hx
+    obtain ⟨hft₁, hsub₁, t₁a, ht₁a, hrow₁⟩ := ht₁ hfopen hCopen hbda
+    obtain ⟨hw₁, hT₁, hm₁⟩ := hrow₁ _ hρ' (hLopenBody x)
+    have hokB₂ : WellDenotedV V (cons x ρ) ba₂ := hokW.pi_body x hx₂
+    have hTB₂ : IsTy (interp V (cons x ρ) ba₂) := hokW.pi_fib x hx₂
+    -- "not pt" source (1): the body's type and the fibre are types
+    have heT := htB hft₁ hfB (hCopen.of_subset hsub₁) hCB ht₁a hdB _ hρ'
+      ((hLopenBody x).of_subset hsub₁) (hLB x) hT₁.1 hokB₂ hT₁.ne_pt hTB₂.ne_pt
+    rw [heT] at hm₁
+    have hm₂ : interp V (cons x ρ) (.app ba.lift (.bvar 0))
+        ∈ˢ interp V (cons x ρ) ba₂ := by
+      rw [interp_app, hlift, interp_bvar]
+      exact app_mem_piV hmem hx₂
+    rw [IsTy.eq_of_ne_pt hTB₂ hm₁ hm₂ fun hn₁ hn₂ =>
+      hbody hfopen hfapp hCopen hCapp hbda hdapp (cons x ρ) hρ'
+        (hLopenBody x) (hLapp x) hw₁ (hokApp x hx) hn₁ hn₂,
+      interp_app, hlift, interp_bvar]
+    rfl
+  rw [interp_lam, lamV_congr hpt, ← hdom]
+  exact lamV_eta hmem fun x hx => hokW.pi_fib x hx
+
+/-- **η, typed**, with `b`'s io-inferred type: the io claim is membership
+here.  (**Owed to task #342 L18** with the hereditary io claim `IORel`:
+membership where `b` is not the point holds for an atom-headed `b`, the
+fragment's `etaIO_sound`.) -/
 theorem DefEq.eta_sound {d : Nat}
     {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
-    (_htb : InferSemIO m φ d b tb) (_hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
-    (_hty : DefEqSem m φ d ty₂ ty₁)
-    (_hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
+    (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (hty : DefEqSem m φ d ty₂ ty₁)
+    (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
       (.app b (.fvar d ty₁)))
-    (_ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
-    (_htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
-    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := sorry
+    (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
+    (htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
+    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
+  refine DefEq.eta_core (fun hf Δa ea hC hea => ?_) hwtb hty hbody ht₁ htB
+  obtain ⟨hft, hsub, ta, hta, hrow⟩ := htb hf hC hea
+  exact ⟨hft, hsub, ta, hta, fun ρ hρ hL hw _ => hrow ρ hρ hL hw⟩
 
 set_option maxHeartbeats 800000 in
 /-- **Structure η at the conditional motive** (task #342 L11b).  Neither
