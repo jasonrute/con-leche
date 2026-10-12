@@ -183,11 +183,10 @@ theorem structEtaCertWith_bridge (hw : WhnfBridge env fuel)
     DefEq env d a b := by
   obtain ⟨c, us, cvc, cnP, cnF, T, us', cvT, caps,
     hfn, hfc, hlen, hwfn, hfT, heta, hctor, hresT, hresc, hplen, hulen,
-    hlps, hslots, hus, hcertT, -, hpar, -, hfields⟩ :=
+    hlps, hslots, hus, -, -, hpar, -, hfields⟩ :=
     structEtaCertWith_inv h
   exact .structEta (inferTypeIO_bridge hio htb) (hw hwtb) hfn hfc hlen hwfn hfT
     heta hctor hresT hresc hplen hulen hlps hslots hus
-    (iotaCerts_bridge hd hio hcertT)
     (structEtaCertWith_projCerts_bridge hd hio hwfn hfT h)
     (defEqList_bridge hd hpar) (defEqList_bridge hd hfields)
 
@@ -208,11 +207,10 @@ theorem structUnitCert_bridge (hw : WhnfBridge env fuel)
     (h : structUnitCertFueled .verified env fuel d a b = .ok true) :
     DefEq env d a b := by
   obtain ⟨ta, wta, T, us', cvT, caps, tb, wtb,
-    hta, hwta, hwfn, hfT, hunit, hres, hplen, hulen, htb, hwtb, hde, hic⟩ :=
+    hta, hwta, hwfn, hfT, hunit, hres, hplen, hulen, htb, hwtb, hde, -⟩ :=
     structUnitCert_inv h
   exact .structUnit (inferTypeIO_bridge hio hta) (hw hwta) hwfn hfT hunit
     hres hplen hulen (inferTypeIO_bridge hio htb) (hw hwtb) (hd hde)
-    (iotaCerts_bridge hd hio hic)
 
 /-- `etaCert` ⇒ `DefEq.eta` (`etaCert_inv`; the annotation agreement is
 the inversion's `verifiedChecks = true →` conjunct at `rfl`). -/

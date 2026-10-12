@@ -267,13 +267,13 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   `Kernel/Core.lean`; official `to_cnstr_when_structure`): at an
   η-flagged single-rule recursor whose major's type is a never-`Prop`
   instance of the structure, the constructor of the major's
-  projections is fabricated, scope-guarded, certified against the
-  constructor's telescope, and equated to the major by the structure-η
-  certificate (the last `DefEq` premise).  At a projection-function
-  family the per-field telescope certificates are a premise of their
-  own, as in `DefEq.structEta`: the rescue's η certificate runs
-  `structEtaProjCerts` there (`structEtaCertWith`, `Kernel/Core.lean`),
-  and the fabrication READS only through those slots' storage. -/
+  projections is fabricated and scope-guarded.  No certificate: the
+  major is the fabrication by the family's η law, and the fabrication
+  is graded by the η constructor's telescope coherence (task #342
+  L11b, `EtaCoherent`).  The two name guards and, at a
+  projection-function family, the per-field telescope certificates
+  (the fabrication READS only through those slots' storage) are what
+  the rescue's `structEtaCertWith` run tests (`Kernel/Core.lean`). -/
   | rescueEta {d : Nat} {major tm tmaj fab : Expr} {recName : Name}
       {cv : ConstantVal} {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal}
       {cnP cnF : Nat} {T : Name} {tus ust : List Level} {cvT : ConstantVal}
@@ -292,12 +292,11 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
         (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
-      Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields) →
+      reservedBasisNames.contains T = false →
+      reservedBasisNames.contains caps.etaCtor = false →
       (towerSlotsAll env T caps.etaFields = false →
         EtaProjCerts env d T ust tmaj.getAppArgs major cvT.levelParams
           (List.range caps.etaFields)) →
-      DefEq env d fab major →
       Red env d major fab
   /-- **The `And` rescue** (`majorToCtor`'s `And` branch,
   `Kernel/Core.lean`; `And` only, by ruling): `And.intro a b
@@ -440,14 +439,13 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       Red env d ttb (.sort v) → Level.isEquiv v .zero = some true →
       DefEq env d a b
   /-- **Structure η** (`structEtaCert` → `structEtaCertWith`,
-  `Kernel/Core.lean`, `:460-476`; the same certificate serves the
-  η rescue at the type it already computed): `a` is a fully applied
-  constructor of an η-capable stored structure, `b`'s io-inferred type
-  head-normalises to that structure at agreeing levels, the type
-  application is certified against the former's telescope, the
-  per-field telescopes of a projection-function family are certified,
-  the parameters agree pairwise, and every field is the corresponding
-  projection of `b`. -/
+  `Kernel/Core.lean`): `a` is a fully applied constructor of an
+  η-capable stored structure, `b`'s io-inferred type head-normalises to
+  that structure at agreeing levels, the per-field telescopes of a
+  projection-function family are certified, the parameters agree
+  pairwise, and every field is the corresponding projection of `b`.
+  The type application is not certified: the type is a type, so its
+  spine fits the former's telescope (task #342 L11b). -/
   | structEta {d : Nat} {a b tb wtb : Expr} {c : Name} {us : List Level}
       {cvc : ConstantVal} {cnP cnF : Nat} {T : Name} {us' : List Level}
       {cvT : ConstantVal} {caps : IndCaps} :
@@ -466,8 +464,6 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       (towerSlotsAll env T caps.etaFields ||
         recSlotsAll env T caps.etaFields) = true →
       Level.isEquivList us us' = some true →
-      Certs env d false (cvT.type.instantiateLevelParams cvT.levelParams us')
-        wtb.getAppArgs →
       (towerSlotsAll env T caps.etaFields = false →
         EtaProjCerts env d T us' wtb.getAppArgs b cvT.levelParams
           (List.range caps.etaFields)) →
@@ -477,9 +473,9 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       DefEq env d a b
   /-- **Unit-like structure** (`structUnitCert`, `Kernel/Core.lean`):
   both sides inhabit the same stored unit-like family — `a`'s
-  io-inferred type head-normalises to it, `b`'s type is definitionally
-  equal, and the type application is certified against the family's
-  telescope. -/
+  io-inferred type head-normalises to it and `b`'s type is
+  definitionally equal.  The type application is not certified (task
+  #342 L11b). -/
   | structUnit {d : Nat} {a ta wta b tb wtb : Expr} {T : Name}
       {us' : List Level} {cvT : ConstantVal} {caps : IndCaps} :
       Infer env .io d a ta → Red env d ta wta →
@@ -491,8 +487,6 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       us'.length = cvT.levelParams.length →
       Infer env .io d b tb → Red env d tb wtb →
       DefEq env d wta wtb →
-      Certs env d false (cvT.type.instantiateLevelParams cvT.levelParams us')
-        wta.getAppArgs →
       DefEq env d a b
 
 /-- **Type inference** at a grade. -/

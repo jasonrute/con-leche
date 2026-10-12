@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.IotaSoundKit
+import ConLeche.Model.Rules.EtaSoundKit
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Semantics.DefEqList
@@ -740,16 +741,14 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
   refine ⟨hgF, (IsTy.eq_of_ne_pt hgTf.2 hmemF hmemM
     (hpi hfF hfM hCF hCM hdF hea ρ hρ hLfab hL hgF hg)).symm⟩
 
-set_option linter.unusedVariables false in
-/-- The structure-η rescue, in its
-two slot kinds: at a tower-backed family the fabricated projections
-are `.proj T j major` nodes reading to the tower readings and graded
-by each entry's typing law; at a projection-function family they are
-`mkAppN (.const (projFnName T j) ust) (tmaj.getAppArgs ++ [major])`
-nodes, whose storage and telescope fit come from the rule's
-`EtaProjCerts` premise (`hproj`) — the same premise `DefEq.structEta`
-carries, and the same certificate the checker runs there. -/
-theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
+/-- **The structure-η rescue** (task #342 L11b): no certificate.  The
+major's io-inferred type is a type ("not pt" source (1)), so its reduct
+is graded and equal; `etaSide` then gives the η law (the major IS the
+fabrication's value) and the coherence law (the fabricated spine fits
+the η constructor's telescope), so the fabrication is graded
+(`mkAppN_of_fitA`).  The major may be the point: the laws hold at every
+member.  Conditional premises, unconditional conclusion (as ι). -/
+theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     {major tm tmaj fab : Expr} {recName : Name} {cv : ConstantVal}
     {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal} {cnP cnF : Nat} {T : Name}
     {tus ust : List Level} {cvT : ConstantVal} {caps : IndCaps}
@@ -758,22 +757,20 @@ theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
     (hctor : env.find? rl.ctor = some (.ctorInfo cvj cnP cnF))
     (hres : (cvj.type.piResult).getAppFn = .const T tus)
     (hind : env.find? T = some (.indInfo cvT caps))
-    (htm : InferSemIO m φ d major tm) (htmaj : RedSemU m φ d tm tmaj)
+    (htm : InferSemIO m φ d major tm) (htmaj : RedSem m φ d tm tmaj)
     (hthead : tmaj.getAppFn = .const T ust)
     (hlen : tmaj.getAppArgs.length = caps.etaParams)
     (hlv : ust.length = cvT.levelParams.length)
-    (hnz : ConLeche.capsNeverZero cvT.levelParams ust caps = true)
+    (_hnz : ConLeche.capsNeverZero cvT.levelParams ust caps = true)
     (hfab : fab = Expr.mkAppN (.const caps.etaCtor ust)
       (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields))
     (hws : fab.wscopedB d = true) (hb : fab.looseBVarsBounded 0 = true)
     (hlv' : fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true)
-    (hcerts : CertsSem m φ d false
-      (cvj.type.instantiateLevelParams cvj.levelParams ust)
-      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields))
+    (hresT : ConLeche.reservedBasisNames.contains T = false)
+    (hresC : ConLeche.reservedBasisNames.contains caps.etaCtor = false)
     (hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
       EtaProjCertsSem m φ d T ust tmaj.getAppArgs major cvT.levelParams
-        (List.range caps.etaFields))
-    (hpi : DefEqSemU m φ d fab major) :
+        (List.range caps.etaFields)) :
     RedSemU m φ d major fab := by
   intro hfM Δa ea hCM hea
   have hsub : LeavesSub fab major := fun l hl => by
@@ -781,12 +778,13 @@ theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
     simpa using this
   have hfF : Frame d fab :=
     ⟨Expr.WScoped.of_wscopedB hws, hb, fun l hl => hfM.2.2 l (hsub l hl)⟩
-  have hCF : CtxOkS m φ d Δa fab := hCM.of_subset hsub
   -- the family's η record: the rule's constructor IS the family's, and
   -- carries the former's level parameters (`RecCtorsStored`)
   obtain ⟨-, hEbits⟩ := ConLeche.recCtors_bits m.rec_ctors hrec
     List.mem_cons_self hctor hres hind
   obtain ⟨hcapseta, hectr, hlpsE⟩ := hEbits heta
+  have hfC : env.find? caps.etaCtor = some (.ctorInfo cvj cnP cnF) := by
+    rw [← hectr]; exact hctor
   have hlpj : ust.length = cvj.levelParams.length := by
     rw [hlpsE]; exact hlv
   -- the major's io-inferred type, reduced, is the family at its spine
@@ -798,285 +796,64 @@ theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
   rw [show tmaj = Expr.mkAppN tmaj.getAppFn tmaj.getAppArgs from
     (ConLeche.Expr.mkAppN_getApp tmaj).symm, hthead] at htmaja
   obtain ⟨vT, tsa, hvT, hspt, rfl⟩ := denoteMeta_mkAppN_inv htmaja
-  have hfrT := frame_spine hfTm hCTm
   have hvT' : vT = m.acval T (Level.substFn φ cvT.levelParams ust) := by
     rw [denoteMeta_const hind (show ust.length
       = (ConLeche.ConstantInfo.indInfo cvT caps).toConstantVal.levelParams.length
       from hlv)] at hvT
     exact (Option.some.inj hvT).symm
-  -- the constructor's stored type: read, graded, inhabited, closed
-  obtain ⟨TVja, hTVjaD, hokTVja, hmemCj, hnfJ, hbdJ⟩ :=
-    constTy_pkg hin.const_ty hctor rfl (show ust.length = _ from hlpj)
-  dsimp only [ConLeche.ConstantInfo.toConstantVal] at hTVjaD hmemCj hnfJ hbdJ
-  obtain ⟨hfJ, hCJ⟩ := frame_of_not_hasFvar (m := m) (Δa := Δa) hnfJ hbdJ hCM.1
-  have hheadCj : denoteMeta m.acval env φ d (.const caps.etaCtor ust)
-      = some (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) := by
-    rw [← hectr]; exact denoteMeta_const hctor (show ust.length = _ from hlpj)
-  -- the fabricated projections' frames (a `.proj` node over the major)
-  have hprFr : ∀ j, Frame d (Expr.proj T j major) ∧
-      CtxOkS m φ d Δa (Expr.proj T j major) := fun j =>
-    ⟨⟨by simpa [Expr.WScoped] using hfM.1,
-        by simpa [Expr.looseBVarsBounded] using hfM.2.1,
-        fun l hl => hfM.2.2 l (by simpa [Expr.fvarLeaves] using hl)⟩,
-      hCM.of_subset (fun l hl => by simpa [Expr.fvarLeaves] using hl)⟩
-  by_cases htow : ConLeche.towerSlotsAll env T caps.etaFields = true
-  · -- TOWER-BACKED SLOTS: the fabricated projections are `.proj T j
-    -- major` nodes reading to the tower readings and graded by each
-    -- entry's typing law
-    have hpfacts : ∀ j ∈ List.range caps.etaFields,
-        denoteMeta m.acval env φ d (Expr.proj T j major)
-          = some (projAV (j + env.projOff T) ea) := by
-      intro j hj
-      obtain ⟨entry, hfe⟩ :=
-        ConLeche.towerSlotsAll_slot htow j (List.mem_range.mp hj)
-      rw [← ConLeche.Env.findProj?_off hfe]
-      exact denoteMeta_proj_tower hfe hea
-    have hspF : DenoteMetaSpine m.acval env φ d
-        (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields)
-        (tsa ++ (List.range caps.etaFields).map fun j =>
-          projAV (j + env.projOff T) ea) := by
-      unfold ConLeche.etaFabArgsE ConLeche.etaProjs
-      rw [ite_eq_left htow]
-      exact hspt.append (DenoteMetaSpine.map_list _ hpfacts)
-    have hfrF : ∀ x ∈ ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major
-        caps.etaFields, Frame d x ∧ CtxOkS m φ d Δa x := by
-      intro x hx
-      unfold ConLeche.etaFabArgsE ConLeche.etaProjs at hx
-      rw [ite_eq_left htow] at hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hfrT x hx'
-      · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx'
-        exact hprFr j
-    have hdF : denoteMeta m.acval env φ d fab
-        = some (AnnotTerm.mkAppN
-          (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-          (tsa ++ (List.range caps.etaFields).map fun j =>
-            projAV (j + env.projOff T) ea)) := by
-      rw [hfab]; exact denoteMeta_mkAppN hspF hheadCj
-    obtain ⟨resta, hfit⟩ :=
-      hcerts (fa := m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-        hfJ hCJ (hTVjaD d) hfrF hspF
-    refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg => ?_⟩
-    obtain ⟨hgT0, hmemM0⟩ := hInnerTm0 ρ hρ hL hg
-    obtain ⟨hgTm, heqTm⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1
-    have hmemMW : interp V ρ ea ∈ˢ interp V ρ (AnnotTerm.mkAppN vT tsa) :=
-      heqTm ▸ hmemM0
-    obtain ⟨-, hoTs⟩ := hoist_spineV tsa hgTm
-    have hLtmaj : LeavesGr m φ d tmaj ρ := (hL.of_subset hsubT0).of_subset hsubTm
-    have hokProj : ∀ j ∈ List.range caps.etaFields,
-        WellDenotedV V ρ (projAV (j + env.projOff T) ea) := by
-      intro j hj
-      obtain ⟨entry, hfe⟩ :=
-        ConLeche.towerSlotsAll_slot htow j (List.mem_range.mp hj)
-      rw [← ConLeche.Env.findProj?_off hfe]
-      obtain ⟨-, -, -, ⟨cvTj, capsTj, hfTj, hlpsTj, himpj⟩, hO5j, cvCj, -, -,
-        hlawj, -⟩ := hin.tower_ok T j entry hfe
-      have hcvTj : cvTj = cvT := by
-        rw [hind] at hfTj
-        exact (ConLeche.ConstantInfo.indInfo.inj (Option.some.inj hfTj)).1.symm
-      have hcapsTj : capsTj = caps := by
-        rw [hind] at hfTj
-        exact (ConLeche.ConstantInfo.indInfo.inj (Option.some.inj hfTj)).2.symm
-      obtain ⟨hnpj, -, hparj, -⟩ := himpj (by rw [hcapsTj]; exact hcapseta)
-      rw [hcapsTj] at hparj
-      have hlpe : entry.levelParams = cvT.levelParams := by rw [← hlpsTj, hcvTj]
-      have hgj : TowerGuardAt φ entry ust :=
-        towerGuardAt_of hO5j (fun hp => by rw [hp] at hnpj; exact nomatch hnpj)
-      obtain ⟨⟨Ta, hTa, hA⟩, -⟩ := hlawj ust (by rw [hlpe]; exact hlv)
-      have hTad := (towerEntry_tele_at_depth hfe hTa).1
-      have hlenVs : tsa.length = entry.numParams := by
-        rw [← hspt.length, hlen, hparj]
-      have hpc : PiChain (tsa ++ [ea]).length Ta := by
-        rw [List.length_append, List.length_singleton, hlenVs]
-        exact piChain_of_stripPis _
-          (by rw [ConLeche.projTele_stripPis]; rfl) (hTad d)
-      obtain ⟨restj, hpeel⟩ := peelPis_of_piChain _ hpc
-      rw [hlpe, ← hvT'] at hA
-      exact (hA hgj ρ tsa ea restj hlenVs hgTm hg hmemMW hpeel).1
-    have hoksF : ∀ x ∈ (tsa ++ (List.range caps.etaFields).map fun j =>
-        projAV (j + env.projOff T) ea), WellDenotedV V ρ x := by
-      intro x hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hoTs x hx'
-      · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hx'
-        exact hokProj j hj
-    have hLF : ∀ x ∈ ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major
-        caps.etaFields, LeavesGr m φ d x ρ := by
-      intro x hx
-      unfold ConLeche.etaFabArgsE ConLeche.etaProjs at hx
-      rw [ite_eq_left htow] at hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact leavesGr_spine hLtmaj x hx'
-      · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx'
-        exact LeavesGr.of_subset hL (fun l hl => by simpa [Expr.fvarLeaves] using hl)
-    obtain ⟨hfitVal, -⟩ :=
-      hfit ρ hρ
-        (LeavesGr.of_fvarLeaves_nil
-          (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfJ))
-        hLF (hokTVja ρ) hoksF (by simp)
-    have hgF : WellDenotedV V ρ (AnnotTerm.mkAppN
-        (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-        (tsa ++ (List.range caps.etaFields).map fun j =>
-          projAV (j + env.projOff T) ea)) :=
-      (mkAppN_of_fitA _ (hokTVja ρ)
-        ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩
-        hoksF (hmemCj ρ) hfitVal).1
-    exact ⟨hgF, (hpi hfF hfM hCF hCM hdF hea ρ hρ (hL.of_subset hsub) hL hgF hg).symm⟩
-  · -- PROJECTION-FUNCTION SLOTS: the fabricated projections are
-    -- `mkAppN (.const (projFnName T j) ust) (tmaj.getAppArgs ++
-    -- [major])` nodes.  Each slot's storage, its level arity and the
-    -- telescope fit that grades the node are the rule's
-    -- `EtaProjCerts` premise (`hproj`) — the four facts the checker
-    -- reads off `structEtaProjCerts_inv`.
-    have htowF : ConLeche.towerSlotsAll env T caps.etaFields = false := by
-      cases h : ConLeche.towerSlotsAll env T caps.etaFields
-      · rfl
-      · exact absurd h htow
-    have hslotR := hproj htowF
-    -- the spine the per-slot certificates run at
-    have hspTb : DenoteMetaSpine m.acval env φ d (tmaj.getAppArgs ++ [major])
-        (tsa ++ [ea]) := hspt.append (.cons hea .nil)
-    have hsubTb : ∀ x ∈ tmaj.getAppArgs ++ [major], LeavesSub x major := by
-      intro x hx l hl
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hsubT0 l (hsubTm l (ConLeche.fvarLeaves_getAppArgs hx' l hl))
-      · rcases List.mem_singleton.mp hx' with rfl; exact hl
-    have hframeTb : ∀ x ∈ tmaj.getAppArgs ++ [major],
-        Frame d x ∧ CtxOkS m φ d Δa x := by
-      intro x hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hfrT x hx'
-      · rcases List.mem_singleton.mp hx' with rfl
-        exact ⟨hfM, hCM⟩
-    -- each slot reads: the stored projection function at the family's
-    -- level arity, applied to the certified spine
-    have hprojden : ∀ j ∈ List.range caps.etaFields,
-        denoteMeta m.acval env φ d
-            (Expr.mkAppN (.const (projFnName T j) ust)
-              (tmaj.getAppArgs ++ [major]))
-          = some (AnnotTerm.mkAppN (m.acval (projFnName T j)
-              (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea])) := by
-      intro j hj
-      obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlpj2, -, -⟩ := hslotR j hj
-      refine denoteMeta_mkAppN hspTb ?_
-      have hden := denoteMeta_const (acval := m.acval) (φ := φ) (d := d) hfp
-        (show ust.length = _ from by
-          dsimp only [ConLeche.ConstantInfo.toConstantVal]
-          rw [hlpj2]; exact hlv)
-      dsimp only [ConLeche.ConstantInfo.toConstantVal] at hden
-      rw [hlpj2] at hden
-      exact hden
-    -- the fabricated spine, its frame and its reading
-    have hspF : DenoteMetaSpine m.acval env φ d
-        (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields)
-        (tsa ++ (List.range caps.etaFields).map fun j =>
-          AnnotTerm.mkAppN (m.acval (projFnName T j)
-            (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea])) := by
-      unfold ConLeche.etaFabArgsE ConLeche.etaProjs
-      rw [ite_eq_right htow]
-      exact hspt.append (DenoteMetaSpine.map_list _ hprojden)
-    have hfrF : ∀ x ∈ ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major
-        caps.etaFields, Frame d x ∧ CtxOkS m φ d Δa x := by
-      intro x hx
-      unfold ConLeche.etaFabArgsE ConLeche.etaProjs at hx
-      rw [ite_eq_right htow] at hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hfrT x hx'
-      · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx'
-        obtain ⟨hfC0, -⟩ := frame_of_not_hasFvar (m := m) (φ := φ) (Δa := Δa)
-          (e := Expr.const (projFnName T j) ust) rfl rfl hCM.1
-        exact ⟨frame_mkAppN hfC0 (fun y hy => (hframeTb y hy).1),
-          hCM.of_subset (leavesSub_mkAppN
-            (leavesSub_of_not_hasFvar rfl) hsubTb)⟩
-    have hdF : denoteMeta m.acval env φ d fab
-        = some (AnnotTerm.mkAppN
-          (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-          (tsa ++ (List.range caps.etaFields).map fun j =>
-            AnnotTerm.mkAppN (m.acval (projFnName T j)
-              (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea]))) := by
-      rw [hfab]; exact denoteMeta_mkAppN hspF hheadCj
-    obtain ⟨resta, hfit⟩ :=
-      hcerts (fa := m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-        hfJ hCJ (hTVjaD d) hfrF hspF
-    refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg => ?_⟩
-    obtain ⟨hgT0, -⟩ := hInnerTm0 ρ hρ hL hg
-    obtain ⟨hgTm, -⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1
-    obtain ⟨-, hoTs⟩ := hoist_spineV tsa hgTm
-    have hLtmaj : LeavesGr m φ d tmaj ρ := (hL.of_subset hsubT0).of_subset hsubTm
-    have hLTb : ∀ x ∈ tmaj.getAppArgs ++ [major], LeavesGr m φ d x ρ := by
-      intro x hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact leavesGr_spine hLtmaj x hx'
-      · rcases List.mem_singleton.mp hx' with rfl; exact hL
-    have hoksTb : ∀ x ∈ tsa ++ [ea], WellDenotedV V ρ x := by
-      intro x hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hoTs x hx'
-      · rcases List.mem_singleton.mp hx' with rfl; exact hg
-    -- and is graded, by its own telescope's fit
-    have hokProj : ∀ j ∈ List.range caps.etaFields,
-        WellDenotedV V ρ (AnnotTerm.mkAppN (m.acval (projFnName T j)
-          (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea])) := by
-      intro j hj
-      obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlpj2, -, hicj⟩ := hslotR j hj
-      obtain ⟨tpa, htpa, hoktpa, hmemp, hnfp, hbdp⟩ :=
-        constTy_pkg hin.const_ty hfp rfl
-          (show ust.length = _ from by
-            dsimp only [ConLeche.ConstantInfo.toConstantVal]
-            rw [hlpj2]; exact hlv)
-      dsimp only [ConLeche.ConstantInfo.toConstantVal] at htpa hmemp hnfp hbdp
-      obtain ⟨hfP, hCP⟩ := frame_of_not_hasFvar (m := m) (Δa := Δa) hnfp hbdp hCM.1
-      obtain ⟨restp, hfitp⟩ :=
-        hicj (fa := m.acval (projFnName T j) (Level.substFn φ cvp.levelParams ust))
-          hfP hCP (htpa d) hframeTb hspTb
-      obtain ⟨hfitpVal, -⟩ :=
-        hfitp ρ hρ
-          (LeavesGr.of_fvarLeaves_nil
-            (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp))
-          hLTb (hoktpa ρ) hoksTb (by simp)
-      refine (mkAppN_of_fitA (tsa ++ [ea]) (hoktpa ρ)
-        ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩
-        hoksTb ?_ hfitpVal).1
-      have hmm := hmemp ρ
-      rwa [hlpj2] at hmm
-    have hoksF : ∀ x ∈ (tsa ++ (List.range caps.etaFields).map fun j =>
-        AnnotTerm.mkAppN (m.acval (projFnName T j)
-          (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea])),
-        WellDenotedV V ρ x := by
-      intro x hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hoTs x hx'
-      · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hx'
-        exact hokProj j hj
-    have hLproj : ∀ j, LeavesGr m φ d (Expr.mkAppN (.const (projFnName T j) ust)
-        (tmaj.getAppArgs ++ [major])) ρ := by
-      intro j l hl tya hden
-      rcases ConLeche.fvarLeaves_mkAppN hl with hl' | ⟨y, hy, hly⟩
-      · simp [Expr.fvarLeaves] at hl'
-      · exact hLTb y hy l hly tya hden
-    have hLF : ∀ x ∈ ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major
-        caps.etaFields, LeavesGr m φ d x ρ := by
-      intro x hx
-      unfold ConLeche.etaFabArgsE ConLeche.etaProjs at hx
-      rw [ite_eq_right htow] at hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact leavesGr_spine hLtmaj x hx'
-      · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx'
-        exact hLproj j
-    obtain ⟨hfitVal, -⟩ :=
-      hfit ρ hρ
-        (LeavesGr.of_fvarLeaves_nil
-          (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfJ))
-        hLF (hokTVja ρ) hoksF (by simp)
-    have hgF : WellDenotedV V ρ (AnnotTerm.mkAppN
-        (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-        (tsa ++ (List.range caps.etaFields).map fun j =>
-          AnnotTerm.mkAppN (m.acval (projFnName T j)
-            (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea]))) :=
-      (mkAppN_of_fitA _ (hokTVja ρ)
-        ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩
-        hoksF (hmemCj ρ) hfitVal).1
-    exact ⟨hgF, (hpi hfF hfM hCF hCM hdF hea ρ hρ (hL.of_subset hsub) hL hgF hg).symm⟩
+  subst hvT'
+  -- the stuck side's facts
+  obtain ⟨ps, hsps, hfps, TCa, hTCa, hside⟩ := etaSide hin hind hcapseta hresT hresC
+    hfC hlv hlen hproj hfM hCM (frame_spine hfTm hCTm) hea hspt
+  -- the fabrication reads
+  have hheadC : denoteMeta m.acval env φ d (.const caps.etaCtor ust)
+      = some (m.acval caps.etaCtor (Level.substFn φ cvT.levelParams ust)) := by
+    have h := denoteMeta_const (acval := m.acval) (φ := φ) (d := d) hfC
+      (show ust.length = _ from hlpj)
+    dsimp only [ConLeche.ConstantInfo.toConstantVal] at h
+    rw [h, hlpsE]
+  have hspF : DenoteMetaSpine m.acval env φ d
+      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields)
+      (tsa ++ ps) := hspt.append hsps
+  have hdF : denoteMeta m.acval env φ d fab
+      = some (AnnotTerm.mkAppN
+        (m.acval caps.etaCtor (Level.substFn φ cvT.levelParams ust)) (tsa ++ ps)) := by
+    rw [hfab]; exact denoteMeta_mkAppN hspF hheadC
+  -- the constructor's type reading holds its leaf
+  obtain ⟨tc, htc, hoktc, hmemC, -, -⟩ :=
+    constTy_pkg hin.const_ty hfC rfl (show ust.length = _ from hlpj)
+  dsimp only [ConLeche.ConstantInfo.toConstantVal] at htc hmemC
+  obtain rfl : TCa = tc := Option.some.inj (hTCa.symm.trans (htc 0))
+  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg => ?_⟩
+  obtain ⟨hgT0, hmemM0⟩ := hInnerTm0 ρ hρ hL hg
+  obtain ⟨hgTm, heqTm⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1 hgT0.ne_pt
+  have hmemMW : interp V ρ ea ∈ˢ interp V ρ (AnnotTerm.mkAppN
+      (m.acval T (Level.substFn φ cvT.levelParams ust)) tsa) := heqTm ▸ hmemM0
+  have hneW : interp V ρ (AnnotTerm.mkAppN
+      (m.acval T (Level.substFn φ cvT.levelParams ust)) tsa) ≠ pt := by
+    rw [← heqTm]; exact hgT0.ne_pt
+  have hLtmaj : LeavesGr m φ d tmaj ρ := (hL.of_subset hsubT0).of_subset hsubTm
+  obtain ⟨-, hokps, hbη, restC, hfitC⟩ :=
+    hside ρ hρ hL (leavesGr_spine hLtmaj) hgTm hneW hg hmemMW
+  -- the fabrication is graded: its spine fits the constructor's
+  -- telescope (the coherence law)
+  have hpc : PiChain (tsa ++ ps).length TCa := by
+    have := piChain_of_teleFit hfitC
+    rwa [List.length_map] at this
+  obtain ⟨resta, hfitPA⟩ := teleFitPA_of_teleFit (tsa ++ ps) hpc hfitC
+  obtain ⟨-, hoTs⟩ := hoist_spineV tsa hgTm
+  have hoksF : ∀ x ∈ tsa ++ ps, WellDenotedV V ρ x := by
+    intro x hx
+    rcases List.mem_append.mp hx with hx' | hx'
+    · exact hoTs x hx'
+    · exact hokps x hx'
+  have hmemC' : interp V ρ (m.acval caps.etaCtor (Level.substFn φ cvT.levelParams ust))
+      ∈ˢ interp V ρ TCa := by
+    rw [← hlpsE]; exact hmemC ρ
+  have hgF := (mkAppN_of_fitA (tsa ++ ps) (hoktc ρ)
+    ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩ hoksF hmemC' hfitPA).1
+  refine ⟨hgF, ?_⟩
+  rw [hbη, interp_mkAppN, List.foldl_map]
 
 set_option linter.unusedVariables false in
 /-- The `And` rescue: the

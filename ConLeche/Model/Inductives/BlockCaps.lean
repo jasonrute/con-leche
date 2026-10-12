@@ -130,12 +130,18 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
       ∀ ψ, m'.acval (ConLeche.blockCapsAt p₁ mi isRec).etaCtor ψ
         = sumMkAV (w ψ) 0 (ds ψ) [] (uChains [[]]))
     (hfit : ∀ (ψ : Name → Nat) (ρ : Nat → V) (as : List V),
-      SpineFit ρ ((pps ψ).map (·.2.2)) as → SpineFit ρ ((ds ψ).map (·.2.2)) as) :
+      SpineFit ρ ((pps ψ).map (·.2.2)) as → SpineFit ρ ((ds ψ).map (·.2.2)) as)
+    (hreadC : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true →
+      ∀ (cvC : ConstantVal) (nPc nFc : Nat),
+        env'.find? (ConLeche.blockCapsAt p₁ mi isRec).etaCtor
+          = some (.ctorInfo cvC nPc nFc) →
+        cvC.levelParams = cvTa.levelParams ∧ ∃ B : (Name → Nat) → AnnotTerm,
+          ∀ ψ, denoteMeta m'.acval env' ψ 0 cvC.type = some (mkPisAV (ds ψ) (B ψ))) :
     CapsLawsAt m' T cvTa (ConLeche.blockCapsAt p₁ mi isRec) := by
   by_cases hu : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true
   · obtain ⟨hz, hpE, hpU⟩ := blockCapsAt_unitlike hu
     exact ⟨fun _ _ _ => fibreEtaLaw0 hz hleaf (hfoldZ hu) (hleafC hu) hread hokTy hfit
-        (fun ψ => by rw [hpE]; exact hpar ψ),
+        (fun ψ => by rw [hpE]; exact hpar ψ) (hreadC hu),
       fun _ _ => fibreUnitLaw hleaf (hfoldZ hu) hread hokTy
         (fun ψ => by rw [hpU]; exact hpar ψ)⟩
   · have hU : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = false := by simpa using hu
