@@ -546,9 +546,9 @@ variable {envT : Env} (hμ : μ.verifiedChecks = true)
   (hdB : ∀ i, i < rP →
     denoteMeta mp.base2.acval envT ψ i (bs.getD i default) = some (domsB.getD i default))
   (hokA : ∀ i, i < rP → ∀ (ρ : Nat → V) (ys : List V),
-    SpineFit ρ (domsA.take i) ys → WellDenotedV V (consList ys ρ) (domsA.getD i default))
+    SpineFit ρ (domsA.take i) ys → WellDenotedTy V (consList ys ρ) (domsA.getD i default))
   (hokB : ∀ i, i < rP → ∀ (ρ : Nat → V) (ys : List V),
-    SpineFit ρ (domsB.take i) ys → WellDenotedV V (consList ys ρ) (domsB.getD i default))
+    SpineFit ρ (domsB.take i) ys → WellDenotedTy V (consList ys ρ) (domsB.getD i default))
   (hdeq : ∀ i, i < rP →
     ConLeche.isDefEqCore μ envT fuel rP ((fvsA.map Expr.fvarTypeD).getD i default)
         (bs.getD i default) = .ok true)
@@ -574,7 +574,7 @@ theorem prefixDoms_agree_inst :
     intro hl ρ₁ ys hfitY
     have hylen : ys.length = rP := by rw [SpineFit.length_eq hfitY, hlenA]
     have hokAf : ∀ i, i < l → ∀ ρ : Nat → V, Sat V domsA.reverse ρ →
-        WellDenotedV V (shiftE (rP - i) 0 ρ) (domsA.getD i default) := by
+        WellDenotedTy V (shiftE (rP - i) 0 ρ) (domsA.getD i default) := by
       intro i hi ρ hρ
       obtain ⟨ρ₂, zs, hzlen, hfitZ, rfl⟩ := sat_reverse_cases hlenA hρ
       rw [shiftE_consList_take i hzlen]
@@ -619,14 +619,14 @@ theorem prefixDoms_agree_inst :
       refine (WellDenotedV_liftN V (rP - l) _ 0 ρ).mpr ?_
       obtain ⟨ρ₂, zs, hzlen, hfitZ, rfl⟩ := sat_reverse_cases hlenA hρ
       rw [shiftE_consList_take l hzlen]
-      exact hokA l hl ρ₂ (zs.take l) (spineFit_take_any hfitZ l)
+      exact (hokA l hl ρ₂ (zs.take l) (spineFit_take_any hfitZ l)).1
     have hokBl : ∀ ρ : Nat → V, Sat V domsA.reverse ρ →
         WellDenotedV V ρ ((domsB.getD l default).liftN (rP - l) 0) := by
       intro ρ hρ
       refine (WellDenotedV_liftN V (rP - l) _ 0 ρ).mpr ?_
       obtain ⟨ρ₂, zs, hzlen, hfitZ, rfl⟩ := sat_reverse_cases hlenA hρ
       rw [shiftE_consList_take l hzlen]
-      refine hokB l hl ρ₂ (zs.take l) ?_
+      refine (hokB l hl ρ₂ (zs.take l) ?_).1
       refine spineFit_congr_walk (by rw [List.length_take, List.length_take, hlenA, hlenB]) ?_
         (spineFit_take_any hfitZ l)
       intro j hj
@@ -757,7 +757,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
   rw [hPd] at hgrA
   have hokA : ∀ i, i < pp.nP → ∀ (ρ' : Nat → V) (ys : List V),
       SpineFit ρ' ((pdoms.take pp.nP).take i) ys →
-      WellDenotedV V (consList ys ρ') ((pdoms.take pp.nP).getD i default) := by
+      WellDenotedTy V (consList ys ρ') ((pdoms.take pp.nP).getD i default) := by
     intro i hi ρ' ys hys
     rw [List.take_take, Nat.min_eq_left (by omega)] at hys
     rw [getD_take_of_lt hi]
@@ -784,7 +784,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
     rw [List.length_map, List.length_take, hppsLen]; omega
   have hokB : ∀ i, i < pp.nP → ∀ (ρ' : Nat → V) (ys : List V),
       SpineFit ρ' ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).take i) ys →
-      WellDenotedV V (consList ys ρ') ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).getD i
+      WellDenotedTy V (consList ys ρ') ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).getD i
         default) := by
     intro i hi ρ' ys hys
     exact prefixDoms_graded_of_tower (V := V) (cc := .sort (dR.resSort.eval ψ))

@@ -145,11 +145,11 @@ theorem hrd_of_mem {envC : Env} (hμ : μ.verifiedChecks = true)
       ∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) :
     ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) := by
   intro r hr ψ
   obtain ⟨_, hru⟩ := recStage_tyReads (V := V) hμ mpC h r hr
-  obtain ⟨ta, hta, hok, -⟩ := hru ψ
-  exact ⟨ta, hta, hok, hmem r hr ψ ta hta⟩
+  obtain ⟨ta, hta, hok, hsrt⟩ := hru ψ
+  exact ⟨ta, hta, fun ρ => ⟨hok ρ, IsTy_of_mem_univ (hsrt ρ)⟩, hmem r hr ψ ta hta⟩
 
 end ConLeche.Model

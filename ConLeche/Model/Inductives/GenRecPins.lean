@@ -297,7 +297,7 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     rfl
   have hokTower : ∀ l, l < rP → ∀ (σ : Nat → V) (ys : List V),
       SpineFit σ ((pdoms ++ [] ++ []).take l) ys →
-      WellDenotedV V (consList ys σ) ((pdoms ++ [] ++ []).getD l default) := by
+      WellDenotedTy V (consList ys σ) ((pdoms ++ [] ++ []).getD l default) := by
     intro l hl σ ys hys
     simp only [List.append_nil] at hys ⊢
     rw [hPdE] at hys ⊢

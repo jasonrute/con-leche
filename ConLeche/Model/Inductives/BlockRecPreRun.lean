@@ -751,7 +751,7 @@ theorem ctxOk_of_openers_congr {env : Env} {m : EnvModel V env} {φ : Name → N
     (hagree : ∀ i, i < n → i < k → ∀ ρ : Nat → V, Sat V Δa ρ →
       interp V (shiftE (k - i) 0 ρ) (Ba i) = interp V (shiftE (k - i) 0 ρ) (Aa i))
     (hokB : ∀ i, i < n → i < k → ∀ ρ : Nat → V, Sat V Δa ρ →
-      WellDenotedV V (shiftE (k - i) 0 ρ) (Ba i)) :
+      WellDenotedTy V (shiftE (k - i) 0 ρ) (Ba i)) :
     CtxOk m φ k Δa e := by
   refine ⟨hΔlen, ?_⟩
   intro l hl
@@ -779,7 +779,7 @@ theorem ctxOk_of_openers_congr {env : Env} {m : EnvModel V env} {φ : Name → N
     congr 1
     omega
   · intro ρ hρ
-    refine (WellDenotedV_liftN V (k - l.1) (Ba l.1) 0 ρ).mpr ?_
+    refine (WellDenotedTy_liftN (k - l.1) (Ba l.1) 0 ρ).mpr ?_
     exact hokB l.1 hlt hwty.1 ρ hρ
 
 /-! ## D. Small list/frame helpers -/
@@ -849,7 +849,7 @@ theorem ctxOk_openerType {envT : Env} {m : EnvModel V envT} {φ : Name → Nat} 
       interp V (shiftE (rP - i) 0 ρ) (doms.getD i default)
         = interp V (shiftE (rP - i) 0 ρ) (Aa i))
     (hok : ∀ i, i < l → ∀ ρ : Nat → V, Sat V Δa ρ →
-      WellDenotedV V (shiftE (rP - i) 0 ρ) (doms.getD i default)) :
+      WellDenotedTy V (shiftE (rP - i) 0 ρ) (doms.getD i default)) :
     CtxOk m φ rP Δa (Expr.fvarTypeD x) := by
   have hleaf := openerType_leaves hop hwty hx
   have hltE : ∀ lf ∈ (Expr.fvarTypeD x).fvarLeaves, lf.1 < l := by
@@ -937,7 +937,7 @@ theorem prefixDoms_graded_of_tower {rds : List (Nat × Nat × AnnotTerm)} {cc : 
     (hwd : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV rds cc))
     {l : Nat} (hl : l < rP) {ρ : Nat → V} {ys : List V}
     (hys : SpineFit ρ (((rds.take rP).map (·.2.2)).take l) ys) :
-    WellDenotedV V (consList ys ρ) (((rds.take rP).map (·.2.2)).getD l default) := by
+    WellDenotedTy V (consList ys ρ) (((rds.take rP).map (·.2.2)).getD l default) := by
   have hlk : l < rds.length := by omega
   have htele := piTeleAV_of_stripPisAV (stripPisAV_mkPisAV rds cc)
   obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ' _ => hwd ρ')
@@ -971,7 +971,7 @@ theorem blockRulePdomsAV_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModel
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
     ∀ l, l < p.toBlockShape.rulePrefixAt i → ∀ (ρ : Nat → V) (ys : List V),
       SpineFit ρ ((blockRulePdomsAV mpC.base2.acval envC p.toBlockShape rs ψ i).take l) ys →
-      WellDenotedV V (consList ys ρ)
+      WellDenotedTy V (consList ys ρ)
         ((blockRulePdomsAV mpC.base2.acval envC p.toBlockShape rs ψ i).getD l default) := by
   intro l hl ρ ys hys
   have hle := blockRecHrPle (p := p) h (List.getElem?_eq_some_iff.mp hr).1
@@ -1521,10 +1521,10 @@ theorem blockRuleHokΔ_of {rP nF nR : Nat} {pdoms fdoms ihdoms : List AnnotTerm}
     (hp : pdoms.length = rP) (hf : fdoms.length = nF) (hidx : ihdoms.length = nR)
     (hok : ∀ l, l < rP + nF + nR → ∀ (σ : Nat → V) (ys : List V),
       SpineFit σ ((pdoms ++ fdoms ++ ihdoms).take l) ys →
-      WellDenotedV V (consList ys σ) ((pdoms ++ fdoms ++ ihdoms).getD l default)) :
+      WellDenotedTy V (consList ys σ) ((pdoms ++ fdoms ++ ihdoms).getD l default)) :
     ∀ i, i < rP + nF + nR →
       ∀ ρ : Nat → V, Sat V (ihdoms.reverse ++ (pdoms ++ fdoms).reverse) ρ →
-        WellDenotedV V (fun j => ρ (j + (rP + nF + nR - 1 - i) + 1))
+        WellDenotedTy V (fun j => ρ (j + (rP + nF + nR - 1 - i) + 1))
           ((ihdoms.reverse ++ (pdoms ++ fdoms).reverse).getD
             (rP + nF + nR - 1 - i) default) := by
   intro i hi ρ hsat
@@ -1864,7 +1864,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
       ∀ (σ : Nat → V) (ys : List V),
       SpineFit σ ((rds.map
           (·.2.2)).take l) ys →
-      WellDenotedV V (consList ys σ)
+      WellDenotedTy V (consList ys σ)
         ((rds.map
           (·.2.2)).getD l default) := by
     intro l hl σ ys hys
@@ -1894,7 +1894,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
   have hokΔ : ∀ i, i < n → ∀ ρ : Nat → V,
       Sat V (rds.map
         (·.2.2)).reverse ρ →
-      WellDenotedV V (fun j => ρ (j + (n - 1 - i) + 1))
+      WellDenotedTy V (fun j => ρ (j + (n - 1 - i) + 1))
         ((rds.map
           (·.2.2)).getD i default) := by
     have hq := blockRuleHokΔ_of (V := V)
@@ -1994,12 +1994,12 @@ index at a time. -/
 theorem fieldsOkB_zero_of_spineGrading :
     ∀ (L : List AnnotTerm) {σ : Nat → V},
       (∀ l, l < L.length → ∀ ys : List V,
-        SpineFit σ (L.take l) ys → WellDenoted V (consList ys σ) (L.getD l default)) →
+        SpineFit σ (L.take l) ys → WellDenotedTy V (consList ys σ) (L.getD l default)) →
       FieldsOkB 0 σ L
   | [], _, _ => trivial
   | F :: Fs, σ, hok => by
-    refine ⟨?_, (fun hz => absurd rfl hz), fun a ha => ?_⟩
-    · simpa using hok 0 (by simp) [] trivial
+    have h0 : WellDenotedTy V σ F := by simpa using hok 0 (by simp) [] trivial
+    refine ⟨h0.1.1, h0.2, (fun hz => absurd rfl hz), fun a ha => ?_⟩
     · refine fieldsOkB_zero_of_spineGrading Fs (fun l hl ys hys => ?_)
       have hstep : SpineFit σ ((F :: Fs).take (l + 1)) (a :: ys) := ⟨ha, hys⟩
       have hq := hok (l + 1) (by simp only [List.length_cons]; omega) (a :: ys) hstep

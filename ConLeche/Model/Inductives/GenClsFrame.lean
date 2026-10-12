@@ -118,12 +118,15 @@ theorem graded_of_infer_openers (hμ : μ.verifiedChecks = true) {envC : Env}
     (hdoms : ∀ (i : Nat) (x : Expr), fr[i]? = some x →
       denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD x) = some (doms.getD i default))
     (hok : ∀ l, l < D → ∀ (σ : Nat → V) (ys : List V), SpineFit σ (doms.take l) ys →
-      WellDenotedV V (consList ys σ) (doms.getD l default))
+      WellDenotedTy V (consList ys σ) (doms.getD l default))
     {e t : Expr} (hinf : ConLeche.inferTypeCore μ envC F D e = .ok t)
     (hwsE : Expr.WScoped D e) (hbE : e.looseBVarsBounded 0 = true)
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fr) :
     ∃ w, denoteMeta mpC.base2.acval envC ψ D e = some w ∧
-      ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenotedV V (consList ys σ) w := by
+      (∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenotedV V (consList ys σ) w) ∧
+      (∀ u, ConLeche.whnf μ envC F D t = .ok (.sort u) →
+        ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys →
+          IsTy (interp V (consList ys σ) w)) := by
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
   have hLX : Expr.LeavesBounded e := leavesBounded_of_openers hlb hleaf
   have hltE : ∀ l ∈ e.fvarLeaves, l.1 < D := fun l hl => Expr.fvarLeaves_lt_of_wscoped hwsE l hl
@@ -151,9 +154,15 @@ theorem graded_of_infer_openers (hμ : μ.verifiedChecks = true) {envC : Env}
   obtain ⟨-, -, -, -, hgr, -⟩ :=
     Rules.infer_sound (Rules.RulesInputs.ofSem mpC ψ) (Rules.inferTypeCore_bridge hinf)
       ⟨hwsE, hbE, hLX⟩ hCE hwa
-  refine ⟨wa, hwa, fun σ ys hys => hgr _ ?_⟩
-  have := sat_of_spineFit (Δ₀ := ([] : List AnnotTerm)) (Sat_nil V σ) hys
-  simpa using this
+  have hsat : ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys →
+      Sat V doms.reverse (consList ys σ) := fun σ ys hys => by
+    have := sat_of_spineFit (Δ₀ := ([] : List AnnotTerm)) (Sat_nil V σ) hys
+    simpa using this
+  refine ⟨wa, hwa, fun σ ys hys => hgr _ (hsat σ ys hys), fun u hwu σ ys hys => ?_⟩
+  obtain ⟨-, ihw, -, ihi⟩ := checkSoundAt (V := V) hμ (Rules.RulesInputs.ofSem mpC ψ) F
+  exact IsTy_of_mem_univ (sortSemAt_of_claims ihw ihi
+    (inferReads_of hμ (Rules.RulesInputs.ofSem mpC ψ))
+    hCE hwsE hbE hLX hinf hwu hwa _ (hsat σ ys hys)).2
 
 theorem list_getD_append_left {α : Type} {l l' : List α} {d : α} {n : Nat}
     (h : n < l.length) : (l ++ l').getD n d = l.getD n d := by
@@ -282,7 +291,7 @@ structure GradedFrame {envC : Env} (mpC : EnvModelM V μ envC) (ψ : Name → Na
   rd : ∀ (i : Nat) (x : Expr), fr[i]? = some x →
     denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD x) = some (doms.getD i default)
   ok : ∀ l, l < D → ∀ (σ : Nat → V) (ys : List V), SpineFit σ (doms.take l) ys →
-    WellDenotedV V (consList ys σ) (doms.getD l default)
+    WellDenotedTy V (consList ys σ) (doms.getD l default)
 
 /-- `graded_of_infer_openers` at a graded frame. -/
 theorem GradedFrame.graded (hμ : μ.verifiedChecks = true) {envC : Env}
@@ -293,7 +302,24 @@ theorem GradedFrame.graded (hμ : μ.verifiedChecks = true) {envC : Env}
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fr) :
     ∃ w, denoteMeta mpC.base2.acval envC ψ D e = some w ∧
       ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenotedV V (consList ys σ) w :=
-  graded_of_infer_openers hμ mpC ψ G.len G.shape G.ws G.lb G.rd G.ok hinf hwsE hbE hleaf
+  let ⟨w, hw, hg, _⟩ :=
+    graded_of_infer_openers hμ mpC ψ G.len G.shape G.ws G.lb G.rd G.ok hinf hwsE hbE hleaf
+  ⟨w, hw, hg⟩
+
+/-- `GradedFrame.graded` at a term the kernel infers to a sort: its reading is
+a type. -/
+theorem GradedFrame.gradedTy (hμ : μ.verifiedChecks = true) {envC : Env}
+    {mpC : EnvModelM V μ envC} {ψ : Name → Nat} {D : Nat} {fr : List Expr}
+    {doms : List AnnotTerm} (G : GradedFrame mpC ψ D fr doms) {F : Nat}
+    {e t : Expr} {u : Level} (hinf : ConLeche.inferTypeCore μ envC F D e = .ok t)
+    (hwu : ConLeche.whnf μ envC F D t = .ok (.sort u))
+    (hwsE : Expr.WScoped D e) (hbE : e.looseBVarsBounded 0 = true)
+    (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fr) :
+    ∃ w, denoteMeta mpC.base2.acval envC ψ D e = some w ∧
+      ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenotedTy V (consList ys σ) w :=
+  let ⟨w, hw, hg, hty⟩ :=
+    graded_of_infer_openers hμ mpC ψ G.len G.shape G.ws G.lb G.rd G.ok hinf hwsE hbE hleaf
+  ⟨w, hw, fun σ ys hys => ⟨hg σ ys hys, hty u hwu σ ys hys⟩⟩
 
 set_option maxHeartbeats 4000000 in
 /-- **A graded frame extends by the openers of an inferred telescope over
@@ -397,9 +423,9 @@ theorem GradedFrame.extend (hμ : μ.verifiedChecks = true) {envC : Env}
           have hpt : (zs.take k)[pos]? = some (Expr.fvar l.1 l.2) := by
             rw [List.getElem?_take, ite_eq_left (by omega)]; exact hpos
           exact List.mem_of_getElem? hpt
-      obtain ⟨tk, htk⟩ := hinfZ k y hy
-      obtain ⟨w, hw, hgw⟩ := Gk.graded hμ htk (hwsZt k y hy) (hbZ y (List.mem_of_getElem? hy))
-        hleafY
+      obtain ⟨tk, uk, htk, hwk⟩ := inferTypeCore_openPis_dom_sort hμ hop hinf k y hy
+      obtain ⟨w, hw, hgw⟩ := Gk.gradedTy hμ htk hwk (hwsZt k y hy)
+        (hbZ y (List.mem_of_getElem? hy)) hleafY
       have hwE : w = (readOpenedDoms mpC.base2.acval envC ψ D zs).getD k default := by
         have := hdomsZ k y hy
         rw [hw] at this
@@ -905,7 +931,7 @@ theorem genFieldFrame (hμ : μ.verifiedChecks = true)
       rfl
   have hok : ∀ l, l < R.g.pre.length + x.nF → ∀ (σ : Nat → V) (zs : List V),
       SpineFit σ ((pdoms ++ fdoms).take l) zs →
-      WellDenotedV V (consList zs σ) ((pdoms ++ fdoms).getD l default) := by
+      WellDenotedTy V (consList zs σ) ((pdoms ++ fdoms).getD l default) := by
     intro l hl σ zs hzs
     have := genCls_frameV hμ R hg h mpC hfind ψ hc hj l (by
       rw [List.length_append, blockRulePdomsAV_length hμ mpC h hr ψ, hrP, tgtFdomsAV,
@@ -1340,7 +1366,7 @@ theorem genIhValid (hμ : μ.verifiedChecks = true)
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length by simp [hyl],
         List.take_append, List.take_of_length_le (by omega), Nat.add_sub_cancel_left]
       exact SpineFit.append hys hzs
-    have := (G2.ok (ys.length + m) (by omega) ρ (ys ++ zs) hfit).2
+    have := (G2.ok (ys.length + m) (by omega) ρ (ys ++ zs) hfit).1.2
     rw [list_getD_append_right (by simp [hyl]), show ys.length + m
         - (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = m by

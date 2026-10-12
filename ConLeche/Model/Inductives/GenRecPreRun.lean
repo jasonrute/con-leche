@@ -959,7 +959,7 @@ theorem genRecPre_run (hμ : μ.verifiedChecks = true)
       ∀ (σ : Nat → V) (ys : List V),
         SpineFit σ ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).take l) ys →
-        WellDenoted V (consList ys σ)
+        WellDenotedTy V (consList ys σ)
           ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
             ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).getD l default))
     (hargs : ∀ (ψ : Name → Nat) (ρ : Nat → V), ∀ c, c < (tgtRs out).length →
