@@ -122,7 +122,7 @@ theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
   obtain ⟨hoT₂, hoB₂⟩ := Graded.pi hgb
   have hdom : ∀ σ : Nat → V, Sat V Δa σ → interp V σ ta₁ = interp V σ ta₂ :=
     fun σ hσ => hty hfa.forallE_ty hfb.forallE_ty hCa.forallE_ty
-      hCb.forallE_ty hta₁ hta₂ hoT₁ hoT₂ σ hσ
+      hCb.forallE_ty hta₁ hta₂ hoT₁.graded hoT₂.graded σ hσ
   rw [hpw]
   refine deqStep_piCong (hdom ρ hρ) (fun x hx => ?_)
   exact hbody (hfa.forallE_open hfb.forallE_ty) (hfb.forallE_open hfb.forallE_ty)
@@ -146,7 +146,7 @@ theorem DefEq.lam_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
   obtain ⟨hoT₂, hoB₂⟩ := Graded.lam hgb
   have hdom : ∀ σ : Nat → V, Sat V Δa σ → interp V σ ta₁ = interp V σ ta₂ :=
     fun σ hσ => hty hfa.lam_ty hfb.lam_ty hCa.lam_ty
-      hCb.lam_ty hta₁ hta₂ hoT₁ hoT₂ σ hσ
+      hCb.lam_ty hta₁ hta₂ hoT₁.graded hoT₂.graded σ hσ
   rw [hpw]
   refine deqStep_lamCong (hdom ρ hρ) (fun x hx => ?_)
   exact hbody (hfa.lam_open hfb.lam_ty) (hfb.lam_open hfb.lam_ty)
@@ -217,14 +217,14 @@ theorem DefEq.eta_sound {d : Nat}
   obtain ⟨hftb, hsubtb, tba, htba, hokTb, hmemB⟩ :=
     htb ⟨hwb, hbb, hLb⟩ hCb hdb hokB
   have hCtb : CtxOk m φ d Δa tb := hCb.of_subset hsubtb
-  obtain ⟨hfW, hsubW, wtba, hwtba, hokW, heqW⟩ := hwtb hftb hCtb htba hokTb
+  obtain ⟨hfW, hsubW, wtba, hwtba, hokW, heqW⟩ := hwtb hftb hCtb htba hokTb.graded
   have hCwr : CtxOk m φ d Δa (Expr.forallE ty₂ B m₂) := hCtb.of_subset hsubW
   obtain ⟨ta₂, ba₂, hta₂, -, rfl⟩ := denoteMeta_forallE_inv hwtba
   obtain ⟨hokTa₂, -⟩ := Graded.pi hokW
   -- premise one: the two domains agree
   have hdom : ∀ σ : Nat → V, Sat V Δa σ → interp V σ ta₂ = interp V σ ta :=
     fun σ hσ => hty hfW.forallE_ty hfty hCwr.forallE_ty hCty hta₂ hta
-      hokTa₂ hokTa σ hσ
+      hokTa₂.graded hokTa.graded σ hσ
   -- premise two: `b` inhabits the product the ∀-type names
   have hmem : ∀ σ : Nat → V, Sat V Δa σ →
       interp V σ ba ∈ˢ piR (pwBit φ m₂.pw) (interp V σ ta₂)
@@ -263,8 +263,8 @@ theorem DefEq.eta_sound {d : Nat}
       · rw [interp_lift]; exact hmem _ hσ'
       · show σ 0 ∈ˢ _
         rw [hdom _ hσ']; exact hx
-      · exact ((AnnotValid_pi V _ 0 (pwBit φ m₂.pw) ta₂ ba₂)
-          ▸ (hokW _ hσ').2).2.2
+      · exact ⟨((AnnotValid_pi V _ 0 (pwBit φ m₂.pw) ta₂ ba₂)
+          ▸ (hokW _ hσ').2).2.2, fun _ => (hokTa₂ _ hσ').2⟩
     · rw [AnnotValid_app]
       exact ⟨hok0.2, by simp⟩
   have hfopen : Frame (d + 1) (body₁.instantiate1 (.fvar d ty₁)) :=
@@ -351,7 +351,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the stuck side's inferred type, reduced, with its reading
   obtain ⟨hftb, hsubtb, tba, htba, hokTb, hmemB0⟩ := htb hfb hCb hdb hokB
   have hCtb : CtxOk m φ d Δa tb := hCb.of_subset hsubtb
-  obtain ⟨hfW, hsubW, wtba, hwtba, hokW, heqW⟩ := hwtb hftb hCtb htba hokTb
+  obtain ⟨hfW, hsubW, wtba, hwtba, hokW, heqW⟩ := hwtb hftb hCtb htba hokTb.graded
   have hCr : CtxOk m φ d Δa wtb := hCtb.of_subset hsubW
   have hmemB : ∀ σ : Nat → V, Sat V Δa σ → interp V σ ba ∈ˢ interp V σ wtba :=
     fun σ hσ => by rw [← heqW σ hσ]; exact hmemB0 σ hσ
@@ -648,8 +648,8 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
         ⟨hCa.1, fun l hl => by
           rw [ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp] at hl
           exact nomatch hl⟩
-        htpa (fun τ _ => hoktpa τ) hframeTb hspTb hokTb' (by simp)
-      refine (mkAppN_of_fitA (tsa ++ [ba]) (hoktpa σ)
+        htpa (fun τ _ => (hoktpa τ).1) hframeTb hspTb hokTb' (by simp)
+      refine (mkAppN_of_fitA (tsa ++ [ba]) (hoktpa σ).1
         ⟨m.acval_wellDenoted _ _ σ, hin.leaf_valid _ _ σ⟩
         (fun x hx => hokTb' x hx σ hσ) ?_ (hfitpPA σ hσ)).1
       have := hmemp σ
@@ -714,11 +714,11 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the two sides' inferred types, reduced, with their readings
   obtain ⟨hfta, hsuba, taa, htaa, hokTa, hmemA⟩ := hta hfa hCa hda hokA
   have hCta : CtxOk m φ d Δa ta := hCa.of_subset hsuba
-  obtain ⟨hfWA, hsubWA, wtaa, hwtaa, hokWA, heqWA⟩ := hwta hfta hCta htaa hokTa
+  obtain ⟨hfWA, hsubWA, wtaa, hwtaa, hokWA, heqWA⟩ := hwta hfta hCta htaa hokTa.graded
   have hCwa : CtxOk m φ d Δa wta := hCta.of_subset hsubWA
   obtain ⟨hftb, hsubb, tba, htba, hokTb, hmemB⟩ := htb hfb hCb hdb hokB
   have hCtb : CtxOk m φ d Δa tb := hCb.of_subset hsubb
-  obtain ⟨hfWB, hsubWB, wtba, hwtba, hokWB, heqWB⟩ := hwtb hftb hCtb htba hokTb
+  obtain ⟨hfWB, hsubWB, wtba, hwtba, hokWB, heqWB⟩ := hwtb hftb hCtb htba hokTb.graded
   have hCwb : CtxOk m φ d Δa wtb := hCtb.of_subset hsubWB
   have hmemAW : interp V ρ aa ∈ˢ interp V ρ wtaa := by
     rw [← heqWA ρ hρ]; exact hmemA ρ hρ

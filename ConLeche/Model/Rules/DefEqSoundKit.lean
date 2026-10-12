@@ -136,10 +136,11 @@ theorem Graded.snd {Δa : List AnnotTerm} {e : AnnotTerm}
 /-- `WellDenoted.hoist_pi` at `Graded`. -/
 theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
     (h : Graded V Δa (.pi u v A B)) :
-    Graded V Δa A ∧ Graded V (A :: Δa) B := by
+    GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨h1 ρ hρ, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
+  refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
   · exact ((AnnotValid_pi V ρ u v A B) ▸ (h ρ hρ).2).1
+  · exact ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1
   · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
       funext i; cases i with | zero => rfl | succ i => rfl
     have := ((AnnotValid_pi V _ u v A B) ▸
@@ -149,10 +150,11 @@ theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
 /-- `WellDenoted.hoist_lam` at `Graded`. -/
 theorem Graded.lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
     (h : Graded V Δa (.lam v A b)) :
-    Graded V Δa A ∧ Graded V (A :: Δa) b := by
+    GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨h1 ρ hρ, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
+  refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
   · exact ((AnnotValid_lam V ρ v A b) ▸ (h ρ hρ).2).1
+  · exact ((WellDenoted_lam V ρ v A b) ▸ (h ρ hρ).1).2.1
   · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
       funext i; cases i with | zero => rfl | succ i => rfl
     have := ((AnnotValid_lam V _ v A b) ▸
