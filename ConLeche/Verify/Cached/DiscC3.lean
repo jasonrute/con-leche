@@ -24,7 +24,7 @@ variable {env : Env} {f : Nat}
 
 private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
     (rules : List RecRule) (major : Expr) :
-    majorToCtor mode (fueledFns mode env) env d recName rules major =
+    majorToCtor (fueledFns mode env) env d recName rules major =
     (if isCtorApp env major then pure major else
     match rules with
     | [rl] =>
@@ -46,18 +46,12 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
                     if fab.wscopedB d && fab.looseBVarsBounded 0 &&
                         fab.fvarLeaves.all
                           (fun l => major.fvarLeaves.contains l) then
-                      iotaCerts (fueledFns mode env) env d false
-                          (cvj.type.instantiateLevelParams
-                            cvj.levelParams ust)
-                          (tmaj.getAppArgs.take cnP) >>= fun rc =>
-                      if rc then
-                        (fueledFns mode env).inferIO d fab >>= fun tfab =>
-                        (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
-                        if rd then
-                          proofIrrel (fueledFns mode env) d fab major >>=
-                            fun r =>
-                          if r then pure fab
-                          else pure major
+                      (fueledFns mode env).inferIO d fab >>= fun tfab =>
+                      (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
+                      if rd then
+                        proofIrrel (fueledFns mode env) d fab major >>=
+                          fun r =>
+                        if r then pure fab
                         else pure major
                       else pure major
                     else pure major
@@ -71,17 +65,16 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
               | .const T' ust =>
                 if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
                     ust.length = cvT.levelParams.length ∧
-                    capsNeverZero cvT.levelParams ust caps = true then
+                    capsNeverZero cvT.levelParams ust caps = true ∧
+                    reservedBasisNames.contains T = false ∧
+                    reservedBasisNames.contains caps.etaCtor = false ∧
+                    towerSlotsAll env T caps.etaFields = true then
                   let fab := Expr.mkAppN (.const caps.etaCtor ust)
-                    (etaFabArgsE env T ust tmaj.getAppArgs major
-                      caps.etaFields)
+                    (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
                   if fab.wscopedB d && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    structEtaCertWith mode (fueledFns mode env) env d fab major
-                        tmaj >>= fun r =>
-                    if r then pure fab
-                    else pure major
+                    pure fab
                   else pure major
                 else pure major
               | _ => pure major
@@ -98,19 +91,12 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
                   if fab.wscopedB d && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    iotaCerts (fueledFns mode env) env d false
-                        (cvj.type.instantiateLevelParams
-                          cvj.levelParams ust)
-                        (tmaj.getAppArgs ++
-                          [.proj T 0 major, .proj T 1 major]) >>= fun rc =>
-                    if rc then
-                      (fueledFns mode env).inferIO d fab >>= fun tfab =>
-                      (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
-                      if rd then
-                        proofIrrel (fueledFns mode env) d fab major >>=
-                          fun r =>
-                        if r then pure fab
-                        else pure major
+                    (fueledFns mode env).inferIO d fab >>= fun tfab =>
+                    (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
+                    if rd then
+                      proofIrrel (fueledFns mode env) d fab major >>=
+                        fun r =>
+                      if r then pure fab
                       else pure major
                     else pure major
                   else pure major
@@ -123,14 +109,14 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
     | _ => pure major) := rfl
 
 /-- `majorToCtorI` simulates its fueled original. -/
-theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
+theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
     {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr}
     {major : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i major) (hmaj : Expr.WScoped d major) :
     SimC mode env s₀ (RelEC d)
       (majorToCtorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
-      (majorToCtor mode (fueledFns mode env) env d recName rules major) := by
+      (majorToCtor (fueledFns mode env) env d recName rules major) := by
   obtain rfl := CheckMode.eq_verified hμ
   show SimC .verified env s₀ (RelEC d)
     (pure (isCtorAppC (mkFEnv env) i) >>=
@@ -162,20 +148,14 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                         Expr.leafGuard fab i) >>=
                         fun g =>
                       if g then
-                        constTyAtM (mkFEnv env) ctorI rl.ctor ust >>=
-                          fun tyCtor =>
-                        iotaCertsI (coreKnotI .verified (mkFEnv env) f) (mkFEnv env)
-                            d false tyCtor (margs.take cnP) >>= fun rc =>
-                        if rc then
-                          (coreKnotI .verified (mkFEnv env) f).inferIO d fab >>=
-                            fun tfab =>
-                          (coreKnotI .verified (mkFEnv env) f).defeq d tmaj
-                              tfab >>= fun rd =>
-                          if rd then
-                            proofIrrelI (coreKnotI .verified (mkFEnv env) f)
-                                d fab i >>= fun r =>
-                            if r then pure fab
-                            else pure i
+                        (coreKnotI .verified (mkFEnv env) f).inferIO d fab >>=
+                          fun tfab =>
+                        (coreKnotI .verified (mkFEnv env) f).defeq d tmaj
+                            tfab >>= fun rd =>
+                        if rd then
+                          proofIrrelI (coreKnotI .verified (mkFEnv env) f)
+                              d fab i >>= fun r =>
+                          if r then pure fab
                           else pure i
                         else pure i
                       else pure i
@@ -194,10 +174,12 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                   if bq ∧ margs.length = caps.etaParams ∧
                       ust.length = cvT.levelParams.length ∧
                       capsNeverZero cvT.levelParams ustL caps
-                        = true then
+                        = true ∧
+                      reservedBasisNames.contains T = false ∧
+                      reservedBasisNames.contains caps.etaCtor = false ∧
+                      (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
                     pure T >>= fun TI =>
-                    projAppsI (mkFEnv env) T TI ust margs i
-                        caps.etaFields >>= fun projs =>
+                    projNodesI TI i (List.range caps.etaFields) >>= fun projs =>
                     pure caps.etaCtor >>= fun ctorI =>
                     pure (Expr.const ctorI ust) >>= fun h =>
                     mkAppNM h (margs ++ projs) >>= fun fab =>
@@ -205,11 +187,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       Expr.looseBVarsBounded 0 fab &&
                       Expr.leafGuard fab i) >>=
                       fun g =>
-                    if g then
-                      structEtaCertWithI .verified (coreKnotI .verified (mkFEnv env) f)
-                          (mkFEnv env) d fab i tmaj >>= fun r =>
-                      if r then pure fab
-                      else pure i
+                    if g then pure fab
                     else pure i
                   else pure i
                 | _ => pure i
@@ -234,20 +212,14 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       Expr.leafGuard fab i) >>=
                       fun g =>
                     if g then
-                      constTyAtM (mkFEnv env) ctorI rl.ctor ust >>=
-                        fun tyCtor =>
-                      iotaCertsI (coreKnotI .verified (mkFEnv env) f) (mkFEnv env)
-                          d false tyCtor (margs ++ projs) >>= fun rc =>
-                      if rc then
-                        (coreKnotI .verified (mkFEnv env) f).inferIO d fab >>=
-                          fun tfab =>
-                        (coreKnotI .verified (mkFEnv env) f).defeq d tmaj
-                            tfab >>= fun rd =>
-                        if rd then
-                          proofIrrelI (coreKnotI .verified (mkFEnv env) f)
-                              d fab i >>= fun r =>
-                          if r then pure fab
-                          else pure i
+                      (coreKnotI .verified (mkFEnv env) f).inferIO d fab >>=
+                        fun tfab =>
+                      (coreKnotI .verified (mkFEnv env) f).defeq d tmaj
+                          tfab >>= fun rd =>
+                      if rd then
+                        proofIrrelI (coreKnotI .verified (mkFEnv env) f)
+                            d fab i >>= fun r =>
+                        if r then pure fab
                         else pure i
                       else pure i
                     else pure i
@@ -258,7 +230,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
           | _ => pure i
         | _ => pure i
       | _ => pure i)
-    (majorToCtor .verified (fueledFns .verified env) env d recName rules major)
+    (majorToCtor (fueledFns .verified env) env d recName rules major)
   rw [majorToCtor_unfold]
   refine SimC.pureB ?_
   obtain rfl := hden
@@ -339,53 +311,31 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                         have hwfab := Expr.WScoped.of_wscopedB
                           (by simp only [Bool.and_eq_true] at hguard
                               exact hguard.1.1)
-                        -- the relocated synthetic-spine certificate
-                        refine SimC.bind_left (constTyAtM_eff hs₄ hfj)
-                          (fun s₄c tyCtor hs₄c hQty => ?_)
-                        simp only [ConstantInfo.toConstantVal] at hQty
-                        have hwty : Expr.WScoped d
-                            (cvj.type.instantiateLevelParams
-                              cvj.levelParams ust) := by
-                          obtain ⟨htf, -⟩ := henv _ (find?_mem hfj)
-                          exact wscoped_instLevels_of_not_hasFvar
-                            htf _ _
-                        refine SimC.bind (iotaCertsC_sim ih hs₄c hQty
-                          hwty (hmargs.take cnP)
-                          (fun x hx => hwtmaj.getAppArgs x
-                            (List.mem_of_mem_take hx)))
-                          (fun s₄d rc rc' hs₄d hPrc => ?_)
-                        obtain rfl : rc = rc' := hPrc
-                        cases rc with
+                        -- the official `to_cnstr_when_K` type check
+                        refine SimC.bind (ih.inferIO hs₄ hQfab' hwfab)
+                          (fun s₄e tfab tfabx hs₄e hPtf => ?_)
+                        obtain ⟨htfd, hwtf⟩ := hPtf
+                        refine SimC.bind (ih.defeq hs₄e rfl
+                          htfd hwtmaj hwtf)
+                          (fun s₄f rd rd' hs₄f hPrd => ?_)
+                        obtain rfl : rd = rd' := hPrd
+                        cases rd with
                         | false =>
                           simp only [Bool.false_eq_true, ↓reduceIte]
-                          exact SimC.pure hs₄d ⟨hden, hmaj⟩
+                          exact SimC.pure hs₄f ⟨hden, hmaj⟩
                         | true =>
                           simp only [↓reduceIte]
-                          -- the official `to_cnstr_when_K` type check
-                          refine SimC.bind (ih.inferIO hs₄d hQfab' hwfab)
-                            (fun s₄e tfab tfabx hs₄e hPtf => ?_)
-                          obtain ⟨htfd, hwtf⟩ := hPtf
-                          refine SimC.bind (ih.defeq hs₄e rfl
-                            htfd hwtmaj hwtf)
-                            (fun s₄f rd rd' hs₄f hPrd => ?_)
-                          obtain rfl : rd = rd' := hPrd
-                          cases rd with
-                          | false =>
-                            simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₄f ⟨hden, hmaj⟩
+                          refine SimC.bind (proofIrrelC_sim ih hs₄f
+                            hQfab' hden hwfab hmaj)
+                            (fun s₅ r r' hs₅ hPr => ?_)
+                          obtain rfl : r = r' := hPr
+                          cases r with
                           | true =>
                             simp only [↓reduceIte]
-                            refine SimC.bind (proofIrrelC_sim ih hs₄f
-                              hQfab' hden hwfab hmaj)
-                              (fun s₅ r r' hs₅ hPr => ?_)
-                            obtain rfl : r = r' := hPr
-                            cases r with
-                            | true =>
-                              simp only [↓reduceIte]
-                              exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
-                            | false =>
-                              simp only [Bool.false_eq_true, ↓reduceIte]
-                              exact SimC.pure hs₅ ⟨hden, hmaj⟩
+                            exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
+                          | false =>
+                            simp only [Bool.false_eq_true, ↓reduceIte]
+                            exact SimC.pure hs₅ ⟨hden, hmaj⟩
                       · exact SimC.pure hs₄ ⟨hden, hmaj⟩
                     · exact SimC.pure hs₂ ⟨hden, hmaj⟩
                   | bvar k =>
@@ -432,12 +382,12 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       subst bq
                       simp only [hmargs.length,
                         beq_iff_eq]
+                      rw [towerSlotsAllF_mkFEnv]
                       split
                       · refine SimC.bind_left (pureEq_eff hs₂r T)
                           (fun s₂t TI hs₂r hQTI => ?_)
                         subst TI
-                        refine SimC.bind_left (projAppsC_eff T ust
-                          caps.etaFields hs₂r hmargs hden)
+                        refine SimC.bind_left (etaProjsC_eff T caps.etaFields hs₂r hden)
                           (fun s₃ projs hs₃ hQp => ?_)
                         refine SimC.bind_left (pureEq_eff hs₃
                           caps.etaCtor)
@@ -451,7 +401,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           (fun s₅ fab hs₅ hQfab => ?_)
                         have hQfab' : RelC fab
                             (Expr.mkAppN (.const caps.etaCtor ust)
-                              (etaFabArgsE env T ust (Expr.getAppArgs tmaj) i
+                              (etaFabArgsE T (Expr.getAppArgs tmaj) i
                                 caps.etaFields)) := hQfab
                         refine SimC.pureB ?_
                         rw [wscopedB_spec' hQfab',
@@ -462,18 +412,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           have hwfab := Expr.WScoped.of_wscopedB
                             (by simp only [Bool.and_eq_true] at hguard
                                 exact hguard.1.1)
-                          refine SimC.bind (structEtaCertWithC_sim hμ ih
-                            henv hs₅ hQfab' hden rfl
-                            hwfab hmaj hwtmaj)
-                            (fun s₆ r r' hs₆ hPr => ?_)
-                          obtain rfl : r = r' := hPr
-                          cases r with
-                          | true =>
-                            simp only [↓reduceIte]
-                            exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
-                          | false =>
-                            simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₆ ⟨hden, hmaj⟩
+                          exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
                         · exact SimC.pure hs₅ ⟨hden, hmaj⟩
                       · exact SimC.pure hs₂r ⟨hden, hmaj⟩
                     | bvar k =>
@@ -548,57 +487,31 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                             have hwfab := Expr.WScoped.of_wscopedB
                               (by simp only [Bool.and_eq_true] at hguard
                                   exact hguard.1.1)
-                            -- the relocated synthetic-spine certificate
-                            refine SimC.bind_left (constTyAtM_eff hs₅ hfj)
-                              (fun s₅c tyCtor hs₅c hQty => ?_)
-                            simp only [ConstantInfo.toConstantVal] at hQty
-                            have hwty : Expr.WScoped d
-                                (cvj.type.instantiateLevelParams
-                                  cvj.levelParams ust) := by
-                              obtain ⟨htf, -⟩ := henv _ (find?_mem hfj)
-                              exact wscoped_instLevels_of_not_hasFvar
-                                htf _ _
-                            refine SimC.bind (iotaCertsC_sim ih hs₅c hQty
-                              hwty (hmargs.append hQp') (fun x hx => ?_))
-                              (fun s₅d rc rc' hs₅d hPrc => ?_)
-                            · rcases List.mem_append.mp hx with hx | hx
-                              · exact hwtmaj.getAppArgs x hx
-                              · have hx' : x = Expr.proj T 0 i ∨
-                                    x = Expr.proj T 1 i := by simpa using hx
-                                rcases hx' with rfl | rfl <;>
-                                  simpa [Expr.WScoped] using hmaj
-                            obtain rfl : rc = rc' := hPrc
-                            cases rc with
+                            -- the fabrication's type against the major's
+                            refine SimC.bind (ih.inferIO hs₅ hQfab' hwfab)
+                              (fun s₅e tfab tfabx hs₅e hPtf => ?_)
+                            obtain ⟨htfd, hwtf⟩ := hPtf
+                            refine SimC.bind (ih.defeq hs₅e rfl
+                              htfd hwtmaj hwtf)
+                              (fun s₅f rd rd' hs₅f hPrd => ?_)
+                            obtain rfl : rd = rd' := hPrd
+                            cases rd with
                             | false =>
                               simp only [Bool.false_eq_true, ↓reduceIte]
-                              exact SimC.pure hs₅d ⟨hden, hmaj⟩
+                              exact SimC.pure hs₅f ⟨hden, hmaj⟩
                             | true =>
                               simp only [↓reduceIte]
-                              -- the fabrication's type against the major's
-                              refine SimC.bind (ih.inferIO hs₅d hQfab' hwfab)
-                                (fun s₅e tfab tfabx hs₅e hPtf => ?_)
-                              obtain ⟨htfd, hwtf⟩ := hPtf
-                              refine SimC.bind (ih.defeq hs₅e rfl
-                                htfd hwtmaj hwtf)
-                                (fun s₅f rd rd' hs₅f hPrd => ?_)
-                              obtain rfl : rd = rd' := hPrd
-                              cases rd with
-                              | false =>
-                                simp only [Bool.false_eq_true, ↓reduceIte]
-                                exact SimC.pure hs₅f ⟨hden, hmaj⟩
+                              refine SimC.bind (proofIrrelC_sim ih hs₅f
+                                hQfab' hden hwfab hmaj)
+                                (fun s₆ r r' hs₆ hPr => ?_)
+                              obtain rfl : r = r' := hPr
+                              cases r with
                               | true =>
                                 simp only [↓reduceIte]
-                                refine SimC.bind (proofIrrelC_sim ih hs₅f
-                                  hQfab' hden hwfab hmaj)
-                                  (fun s₆ r r' hs₆ hPr => ?_)
-                                obtain rfl : r = r' := hPr
-                                cases r with
-                                | true =>
-                                  simp only [↓reduceIte]
-                                  exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
-                                | false =>
-                                  simp only [Bool.false_eq_true, ↓reduceIte]
-                                  exact SimC.pure hs₆ ⟨hden, hmaj⟩
+                                exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
+                              | false =>
+                                simp only [Bool.false_eq_true, ↓reduceIte]
+                                exact SimC.pure hs₆ ⟨hden, hmaj⟩
                           · exact SimC.pure hs₅ ⟨hden, hmaj⟩
                         · exact SimC.pure hs₂ ⟨hden, hmaj⟩
                       | bvar k =>
@@ -762,37 +675,13 @@ private theorem certBlock_reshape {α β γ : Type}
     | false => simp
     | true => simp only [ite_true]
 
-/-- The ι step's certificate family, written as one `Bool` block that is
-then branched on, is the nested chain that branches after the
-recursor's run: a failed run leaves the case-3 block undone on both
-sides, and a passed one reaches the same continuation. -/
-private theorem certBlock_reshape2 {α γ : Type}
-    (A : CheckCM α) (B : α → CheckCM Bool) (G : CheckCM Bool)
-    (F : CheckCM (Option γ)) :
-    ((A >>= fun a =>
-        B a >>= fun r₂ =>
-        if r₂ then G else pure false) >>= fun ok =>
-      if ok then F else pure none)
-      = (A >>= fun a =>
-          B a >>= fun r₂ =>
-          if r₂ then (G >>= fun r₄ => if r₄ then F else pure none)
-          else pure none) := by
-  simp only [bind_assoc]
-  congr 1
-  funext a
-  congr 1
-  funext r₂
-  cases r₂ with
-  | false => simp
-  | true => simp only [ite_true]
-
 /-- The shared certificate tail of the iota step (after the firing-mode
-comparands): the recursor's licensed telescope run over the redex's own
-spine and, at a case-3 redex (task #342 L10), the constructor's
-full-grade run and the canonical-index comparison.  The name indices
+comparands): at a case-3 redex (task #342 L10), the constructor's
+full-grade run and the canonical-index comparison (the recursor's own
+spine is not certified, task #349).  The name indices
 `cI jI` are unconstrained `Name` parameters. -/
 private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
-    {mi : CheckMode} {d : Nat} {i major : Expr} {ex majorx : Expr} {cI jI : Name}
+    {d : Nat} {i major : Expr} {ex majorx : Expr} {cI jI : Name}
     {c cj : Name}
     {us usj : List Level}
     {cv cvj : ConstantVal} {mI rP cnP cnF : Nat}
@@ -806,11 +695,7 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     (hargs : RelCL args ex.getAppArgs)
     (hmargs : RelCL margs majorx.getAppArgs) :
     SimC mode env s₀ (RelOC d)
-      ((constTyAtM (mkFEnv env) cI c us >>= fun tyRec =>
-          iotaCertsI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mi.betaGate
-              tyRec args >>= fun r₂ =>
-          if r₂ then
-            (if iotaCase3 env.find? rl cvj usj then
+      ((if iotaCase3 env.find? rl cvj usj then
               constTyAtM (mkFEnv env) jI cj usj >>= fun tyCtor =>
               iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
                   tyCtor margs >>= fun r₃ =>
@@ -818,19 +703,14 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
                 iotaIndexOkI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mI rP
                     rl.ctorParams tyCtor margs ((args.take mI).drop rP)
               else pure false
-            else pure true)
-          else pure false) >>= fun ok =>
+            else pure true) >>= fun ok =>
         if ok then
           ruleRhsAtM (mkFEnv env) cI jI c cj us >>= fun rhs =>
           mkAppNM rhs (args.take rP ++
               margs.drop rl.ctorParams) >>= fun red =>
           pure (some red)
         else pure none)
-      (iotaCerts (fueledFns mode env) env d mi.betaGate
-          (cv.type.instantiateLevelParams cv.levelParams us)
-          ex.getAppArgs >>= fun r₂ =>
-        if r₂ then
-          (if iotaCase3 env.find? rl cvj usj then
+      ((if iotaCase3 env.find? rl cvj usj then
             iotaCertsFull (fueledFns mode env) env d
                 (cvj.type.instantiateLevelParams cvj.levelParams usj)
                 majorx.getAppArgs >>= fun r₃ =>
@@ -845,89 +725,72 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
               (rl.rhs.instantiateLevelParams cv.levelParams us)
               (ex.getAppArgs.take rP ++
                 majorx.getAppArgs.drop rl.ctorParams)))
-          else pure none
-        else pure none) := by
-  rw [certBlock_reshape2]
-  have hwrecty : Expr.WScoped d
-      (cv.type.instantiateLevelParams cv.levelParams us) := by
-    obtain ⟨htf, -⟩ := henv _ (find?_mem hfc)
-    exact wscoped_instLevels_of_not_hasFvar htf _ _
+          else pure none) := by
   have hwctorty : Expr.WScoped d
       (cvj.type.instantiateLevelParams cvj.levelParams usj) := by
     obtain ⟨htf, -⟩ := henv _ (find?_mem hfj)
     exact wscoped_instLevels_of_not_hasFvar htf _ _
-  refine SimC.bind_left (constTyAtM_eff hs hfc)
-    (fun s₁ tyRec hs₁ hQrec => ?_)
-  simp only [ConstantInfo.toConstantVal] at hQrec
-  refine SimC.bind (iotaCertsC_sim ih hs₁ hQrec hwrecty hargs hw.getAppArgs)
-    (fun s₂ r₂ r₂' hs₂ hPr₂ => ?_)
-  obtain rfl : r₂ = r₂' := hPr₂
-  cases r₂ with
+  have hs₂ := hs
+  refine SimC.bind (P := RelVC) ?_ (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
+  · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
+    · rw [ite_eq_left h3, ite_eq_left h3]
+      refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
+        (fun s₃ tyCtor hs₃ hQctor => ?_)
+      simp only [ConstantInfo.toConstantVal] at hQctor
+      refine SimC.bind (iotaCertsFullC_sim ih hs₃ hQctor hwctorty hmargs
+        hmaj.getAppArgs)
+        (fun s₄ r₃ r₃' hs₄ hPr₃ => ?_)
+      obtain rfl : r₃ = r₃' := hPr₃
+      cases r₃ with
+      | false =>
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        exact SimC.pure hs₄ rfl
+      | true =>
+        simp only [↓reduceIte]
+        exact iotaIndexOkC_sim ih hs₄ hQctor hwctorty hmargs
+          hmaj.getAppArgs ((hargs.take mI).drop rP)
+          (fun x hx => hw.getAppArgs x
+            (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
+    · rw [ite_eq_right h3, ite_eq_right h3]
+      exact SimC.pure hs₂ rfl
+  obtain rfl : r₄ = r₄' := hPr₄
+  cases r₄ with
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
-    exact SimC.pure hs₂ trivial
+    exact SimC.pure hs₆ trivial
   | true =>
     simp only [↓reduceIte]
-    refine SimC.bind (P := RelVC) ?_ (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
-    · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
-      · rw [ite_eq_left h3, ite_eq_left h3]
-        refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
-          (fun s₃ tyCtor hs₃ hQctor => ?_)
-        simp only [ConstantInfo.toConstantVal] at hQctor
-        refine SimC.bind (iotaCertsFullC_sim ih hs₃ hQctor hwctorty hmargs
-          hmaj.getAppArgs)
-          (fun s₄ r₃ r₃' hs₄ hPr₃ => ?_)
-        obtain rfl : r₃ = r₃' := hPr₃
-        cases r₃ with
-        | false =>
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          exact SimC.pure hs₄ rfl
-        | true =>
-          simp only [↓reduceIte]
-          exact iotaIndexOkC_sim ih hs₄ hQctor hwctorty hmargs
-            hmaj.getAppArgs ((hargs.take mI).drop rP)
-            (fun x hx => hw.getAppArgs x
-              (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
-      · rw [ite_eq_right h3, ite_eq_right h3]
-        exact SimC.pure hs₂ rfl
-    obtain rfl : r₄ = r₄' := hPr₄
-    cases r₄ with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.pure hs₆ trivial
-    | true =>
-      simp only [↓reduceIte]
-      refine SimC.bind_left (ruleRhsAtM_eff hs₆ hfc hrule)
-        (fun s₇ rhs hs₇ hQrhs => ?_)
-      refine SimC.bind_left (mkAppNM_eff hs₇ hQrhs
-        ((hargs.take rP).append (hmargs.drop rl.ctorParams)))
-        (fun s₈ red hs₈ hQred => ?_)
-      refine SimC.pure hs₈ ⟨hQred, ?_⟩
-      refine Expr.WScoped.mkAppN ?_ ?_
-      · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
-          henv _ (find?_mem hfc)
-        obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
-          rfl rl (List.mem_of_find?_eq_some hrule)
-        exact wscoped_instLevels_of_not_hasFvar hrf _ _
-      · intro x hx
-        rcases List.mem_append.mp hx with hx | hx
-        · exact hw.getAppArgs x (List.mem_of_mem_take hx)
-        · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
+    refine SimC.bind_left (ruleRhsAtM_eff hs₆ hfc hrule)
+      (fun s₇ rhs hs₇ hQrhs => ?_)
+    refine SimC.bind_left (mkAppNM_eff hs₇ hQrhs
+      ((hargs.take rP).append (hmargs.drop rl.ctorParams)))
+      (fun s₈ red hs₈ hQred => ?_)
+    refine SimC.pure hs₈ ⟨hQred, ?_⟩
+    refine Expr.WScoped.mkAppN ?_ ?_
+    · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
+        henv _ (find?_mem hfc)
+      obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
+        rfl rl (List.mem_of_find?_eq_some hrule)
+      exact wscoped_instLevels_of_not_hasFvar hrf _ _
+    · intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact hw.getAppArgs x (List.mem_of_mem_take hx)
+      · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
 
 /-- Simulation of the major chain, in either order (the K flag is the
 single rule's stored bit, read identically on both sides). -/
-theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
+theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
     {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr}
     {major : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i major) (hmaj : Expr.WScoped d major) :
     SimC mode env s₀ (RelEC d)
       (prepareMajorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
-      (prepareMajor mode (fueledFns mode env) env d recName rules major) := by
+      (prepareMajor (fueledFns mode env) env d recName rules major) := by
   unfold prepareMajorI prepareMajor
   by_cases hk : recRuleK rules = true
   · rw [ite_eq_left hk, ite_eq_left hk]
-    refine SimC.bind (majorToCtorC_sim hμ ih henv hs hden hmaj)
+    refine SimC.bind (majorToCtorC_sim hμ ih hs hden hmaj)
       (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
     obtain ⟨hd₁, hw₁⟩ := hP₁
     rw [isCtorAppC_spec' hd₁]
@@ -942,18 +805,19 @@ theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
     refine SimC.bind (litMajorToCtorC_sim ih hs₁ hd₁ hw₁)
       (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
     obtain ⟨hd₂, hw₂⟩ := hP₂
-    exact majorToCtorC_sim hμ ih henv hs₂ hd₂ hw₂
+    exact majorToCtorC_sim hμ ih hs₂ hd₂ hw₂
 
-private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
+private theorem iotaRec_unfold (env : Env) (d : Nat)
     (e : Expr) :
-    iotaRec mi (fueledFns mode env) env d e =
+    iotaRec (fueledFns mode env) env d e =
     (match e.getAppFn with
     | .const c us =>
       match env.find? c with
       | some (.recInfo cv mI rP rules) =>
         if e.getAppArgs.length = mI + 1 ∧
-            us.length = cv.levelParams.length then
-          prepareMajor mi (fueledFns mode env) env d c rules
+            us.length = cv.levelParams.length ∧
+            (Expr.peelPis (mI + 1) cv.type).isSome = true then
+          prepareMajor (fueledFns mode env) env d c rules
               (e.getAppArgs.getD mI (.bvar 0)) >>=
             fun major =>
           match major.getAppFn with
@@ -981,12 +845,6 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
                           else pure true) >>=
                         fun r₁ =>
                       if r₁ then
-                        iotaCerts (fueledFns mode env) env d mi.betaGate
-                            (cv.type.instantiateLevelParams
-                              cv.levelParams us)
-                            e.getAppArgs >>=
-                          fun r₂ =>
-                        if r₂ then
                           (if iotaCase3 env.find? rl cvj usj then
                             iotaCertsFull (fueledFns mode env) env d
                                 (cvj.type.instantiateLevelParams
@@ -1010,7 +868,6 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
                                 major.getAppArgs.drop
                                   rl.ctorParams)))
                           else pure none
-                        else pure none
                       else pure none
                     else pure none
                 else pure none
@@ -1022,19 +879,19 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
     | _ => pure none) := rfl
 
 /-- `iotaRecI` simulates its fueled original.  The ι mode `mi` is
-separate from the knot's `mode` (`iotaRecI` reads `mi.betaGate` for the
-slot licence; the walks apply this at the ι cone's own mode `mi`). -/
+separate from the knot's `mode` (the walks apply this at the ι cone's
+own mode `mi`). -/
 theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {mi : CheckMode} (hmi : mi.verifiedChecks = true) {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀)
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelOC d)
       (iotaRecI mi (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (iotaRec mi (fueledFns mode env) env d ex) := by
+      (iotaRec (fueledFns mode env) env d ex) := by
   obtain rfl := CheckMode.eq_verified hμ
   obtain rfl := CheckMode.eq_verified hmi
   unfold iotaRecI
-  rw [iotaRec_unfold .verified]
+  rw [iotaRec_unfold]
   refine SimC.pureB ?_
   obtain rfl := hden
   have hden : RelC i i := rfl
@@ -1056,13 +913,14 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
         refine SimC.pureB ?_
         simp only [hargs.length]
         by_cases hlen : (Expr.getAppArgs i).length = mI + 1 ∧
-            us.length = cv.levelParams.length
+            us.length = cv.levelParams.length ∧
+            (Expr.peelPis (mI + 1) cv.type).isSome = true
         · rw [ite_eq_left hlen, ite_eq_left hlen]
           refine SimC.bind_left
             (pureBvar_eff hs 0)
             (fun s₁ bvar0 hs₁ hQ0 => ?_)
           have hQ0' : RelC bvar0 (Expr.bvar 0) := hQ0
-          refine SimC.bind (prepareMajorC_sim hμ ih henv hs₁
+          refine SimC.bind (prepareMajorC_sim hμ ih hs₁
             (RelCL.getD hQ0' mI hargs) (wscoped_getD hw.getAppArgs _))
             (fun s₄ major majorx hs₄ hP₂ => ?_)
           obtain ⟨rfl, hmaj⟩ := hP₂
@@ -1138,7 +996,7 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
                           refine SimC.bind (P := RelVC) ?_
                             (fun s₇ r₁ r₁' hs₇ hPr₁ => ?_)
                           · -- the parameter comparison, absent from both
-                            -- sides at a `paramsBlind` rule
+                            -- sides outside `iotaCompares`
                             by_cases hcp : iotaCompares env.find? rl cvj usj = true
                             · rw [ite_eq_left hcp, ite_eq_left hcp]
                               exact defEqListC_sim ih hs₆

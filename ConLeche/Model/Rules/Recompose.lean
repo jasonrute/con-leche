@@ -5,7 +5,7 @@ public import ConLeche.Model.ClaimsIO
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 
 public section
 
@@ -88,8 +88,7 @@ theorem checkSoundAtP5 (hμ : μ.verifiedChecks = true)
       infer_sound hin (inferTypeCoreIO_bridge hrun) ⟨hws, hb, hLb⟩ hC.toS hea
     rw [hta'] at hta
     cases hta
-    exact ⟨fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ)).1,
-      fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ)).2⟩
+    exact fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ)).1
 
 /-- The four sealed claims at every fuel — the joint recomposition's
 first four conjuncts, kept under the landed name so every consumer

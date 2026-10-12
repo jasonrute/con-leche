@@ -33,9 +33,7 @@ variable {mode : CheckMode}
 /-- Inversion for the ∀-rule of the io lane.  Compare
 `inferTypeCore_forall_inv`: the clause is `inferBody`'s verbatim, so
 the only deltas are the lane of the two recursive inferences and the
-lane-folding rewrites.  The stored annotation is validated here exactly
-as in the full lane — the io grade narrows the application clause and
-nothing else. -/
+lane-folding rewrites. -/
 theorem inferTypeCoreIO_forall_inv {env : Env} {fuel d : Nat}
     {ty body t : Expr} {m : BinderMeta}
     (h : inferTypeCoreIO mode env (fuel + 1) d (.forallE ty body m)
@@ -45,7 +43,6 @@ theorem inferTypeCoreIO_forall_inv {env : Env} {fuel d : Nat}
       inferTypeCoreIO mode env fuel (d + 1)
         (body.instantiate1 (.fvar d ty)) = .ok bt ∧
       ensureSortCore mode env fuel (d + 1) bt = .ok v ∧
-      (mode.verifiedChecks = true → Level.zeronessOf v = m.pw) ∧
       t = .sort (.imax u v) := by
   rw [inferTypeCoreIO_succ] at h
   simp only [inferBodyIO, pure, Except.pure, Bind.bind,
@@ -80,27 +77,11 @@ theorem inferTypeCoreIO_forall_inv {env : Env} {fuel d : Nat}
   | error err => rw [hes] at h; exact nomatch h
   | ok v =>
   rw [hes] at h
-  dsimp only at h
-  by_cases hv : mode.verifiedChecks = true
-  case neg =>
-    rw [ite_eq_right hv] at h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
-    exact ⟨tty, u, bt, v, rfl, hwt, rfl, hes,
-      fun hv' => absurd hv' hv, h.symm⟩
-  rw [ite_eq_left hv] at h
-  by_cases hz : (Level.zeronessOf v == m.pw) = true
-  · rw [ite_eq_left hz] at h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
-    exact ⟨tty, u, bt, v, rfl, hwt, rfl, hes, fun _ => eq_of_beq hz, h.symm⟩
-  · rw [ite_eq_right hz] at h
-    simp [throw, throwThe, MonadExceptOf.throw] at h
+  simp only [pure, Except.pure, Except.ok.injEq] at h
+  exact ⟨tty, u, bt, v, rfl, hwt, rfl, hes, h.symm⟩
 
-/-- Inversion for the λ-rule of the io lane — `inferTypeCore_lam_inv`
-with the recursive inferences at the io lane and the codomain-sort
-run packaged as its `ensureSortCore` spelling (consumers reach the
-whnf form through `ensureSortCore_inv`, as the ∀ clause does).  The
-validation block is verbatim: the io grade narrows the application
-clause and nothing else. -/
+/-- Inversion for the λ-rule of the io lane: the body at the io lane,
+and no domain-sort run (official `infer_lambda` at `infer_only`). -/
 theorem inferTypeCoreIO_lam_inv {env : Env} {fuel d : Nat}
     {ty body t : Expr} {m : BinderMeta}
     (h : inferTypeCoreIO mode env (fuel + 1) d (.lam ty body m)
@@ -108,99 +89,32 @@ theorem inferTypeCoreIO_lam_inv {env : Env} {fuel d : Nat}
     ∃ bt,
       inferTypeCoreIO mode env fuel (d + 1)
         (body.instantiate1 (.fvar d ty)) = .ok bt ∧
-      (mode.verifiedChecks = true → body.isLam = false → ∃ btt v,
-        inferTypeCoreIO mode env fuel (d + 1) bt = .ok btt ∧
-        ensureSortCore mode env fuel (d + 1) btt = .ok v ∧
-        Level.zeronessOf v = m.pw) ∧
-      (mode.verifiedChecks = true → ∀ pwI, body.lamPw = some pwI →
-        m.pw = pwI) ∧
       t = .forallE ty (bt.abstract1 d) m := by
   rw [inferTypeCoreIO_succ] at h
   simp only [inferBodyIO, pure, Except.pure, Bind.bind,
     Except.bind] at h
-  simp only [inferIO_def, pureFnsIO_whnf, ensureSortIO_def] at h
+  simp only [inferIO_def] at h
   cases hbt : inferTypeCoreIO mode env fuel (d + 1)
       (body.instantiate1 (.fvar d ty)) with
   | error err => rw [hbt] at h; exact nomatch h
   | ok bt =>
   rw [hbt] at h
-  dsimp only at h
-  by_cases hv : mode.verifiedChecks = true
-  case neg =>
-    rw [ite_eq_right hv] at h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
-    exact ⟨bt, rfl,
-      fun hv' _ => absurd hv' hv,
-      fun hv' _ _ => absurd hv' hv, h.symm⟩
-  rw [ite_eq_left hv] at h
-  revert h
-  match body with
-  | .lam tyI bI mbI =>
-    intro h
-    simp only [Expr.lamPw] at h
-    by_cases hpw : (m.pw == mbI.pw) = true
-    · rw [ite_eq_left hpw] at h
-      simp only [pure, Except.pure, Except.ok.injEq] at h
-      refine ⟨bt, rfl, ?_, ?_, h.symm⟩
-      · intro _ hlam; simp [Expr.isLam] at hlam
-      · intro _ pwI heq
-        try simp only [Expr.lamPw, Option.some.injEq] at heq
-        first
-          | (cases heq; exact eq_of_beq hpw)
-          | (rw [← heq]; exact eq_of_beq hpw)
-          | (injection heq with heq; rw [← heq]; exact eq_of_beq hpw)
-    · rw [ite_eq_right hpw] at h
-      simp [throw, throwThe, MonadExceptOf.throw] at h
-  | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
-    intro h
-    simp only [Expr.lamPw] at h
-    revert h
-    cases hbtt : inferTypeCoreIO mode env fuel (d + 1) bt with
-    | error err => intro h; exact nomatch h
-    | ok btt => ?_
-    dsimp only
-    cases hes : ensureSortCore mode env fuel (d + 1) btt with
-    | error err => intro h; exact nomatch h
-    | ok v => ?_
-    intro h
-    dsimp only at h
-    by_cases hz : (Level.zeronessOf v == m.pw) = true
-    · rw [ite_eq_left hz] at h
-      simp only [pure, Except.pure, Except.ok.injEq] at h
-      refine ⟨bt, rfl,
-        fun _ _ => ⟨btt, v, hbtt, hes, eq_of_beq hz⟩, ?_, h.symm⟩
-      intro _ pwI heq
-      first
-        | exact nomatch heq
-        | simp [Expr.lamPw] at heq
-    · rw [ite_eq_right hz] at h
-      simp [throw, throwThe, MonadExceptOf.throw] at h
+  simp only [Except.ok.injEq] at h
+  exact ⟨bt, rfl, h.symm⟩
 
-/-- **Inversion for the application rule of the io lane** — the frozen
-statement (DESIGN.md, "THE IO LICENSE BATCH"), with the licence ruling
-of 2026-09-06 applied.  The certificate conjunct is a disjunction:
-either the licence fired (`m'.pw.isNever`), or the argument's io
-inference and the conversion check ran and passed.
-
-The gated arm used to carry a `mode.verifiedChecks` conjunct as well.
-It went with the site's: the licensing theorem
-(`io_domain_transfer`, `Model/IOLicense.lean`) spends only
-`pwBit_ne_zero_of_isNever`, i.e. the **datum**, and never the mode —
-so the conjunct was never a premise anything needed, and carrying it
-made the trusted mode run a certificate the verified mode skips. -/
+/-- **Inversion for the application rule of the io lane** (official
+`infer_app` at `infer_only`, task #346): the function's type reduces to a
+∀ and the result is its body at the argument; the argument is not
+checked. -/
 theorem inferTypeCoreIO_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
     (h : inferTypeCoreIO mode env (fuel + 1) d (.app f a) = .ok t) :
     ∃ tf ty' body' m', inferTypeCoreIO mode env fuel d f = .ok tf ∧
       whnf mode env fuel d tf = .ok (.forallE ty' body' m') ∧
-      t = body'.instantiate1 a ∧
-      (m'.pw.isNever = true ∨
-        ∃ ta, inferTypeCoreIO mode env fuel d a = .ok ta ∧
-          isDefEqCore mode env fuel d ta ty' = .ok true) := by
+      t = body'.instantiate1 a := by
   rw [inferTypeCoreIO_succ] at h
   simp only [inferBodyIO, pure, Except.pure, Bind.bind,
     Except.bind] at h
-  simp only [inferIO_def, pureFnsIO_whnf, pureFnsIO_defeq] at h
+  simp only [inferIO_def, pureFnsIO_whnf] at h
   cases htf : inferTypeCoreIO mode env fuel d f with
   | error err => rw [htf] at h; exact nomatch h
   | ok tf =>
@@ -212,7 +126,9 @@ theorem inferTypeCoreIO_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
   rw [hw] at h
   dsimp only at h
   match w, h with
-  | .forallE ty' body' m', h => ?_
+  | .forallE ty' body' m', h =>
+    simp only [Except.ok.injEq] at h
+    exact ⟨tf, ty', body', m', rfl, hw, h.symm⟩
   | .sort u, h => exact nomatch h
   | .fvar i t2, h => exact nomatch h
   | .const n2 us, h => exact nomatch h
@@ -222,39 +138,17 @@ theorem inferTypeCoreIO_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
   | .letE t2 v2 b2, h => exact nomatch h
   | .lit l2, h => exact nomatch h
   | .proj s2 i2 e2, h => exact nomatch h
-  dsimp only at h
-  by_cases hg : m'.pw.isNever = true
-  · rw [ite_eq_left hg] at h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
-    exact ⟨tf, ty', body', m', rfl, hw, h.symm, Or.inl hg⟩
-  · rw [ite_eq_right hg] at h
-    try simp only [Bind.bind, Except.bind] at h
-    try dsimp only at h
-    cases hta : inferTypeCoreIO mode env fuel d a with
-    | error err => rw [hta] at h; exact nomatch h
-    | ok ta =>
-    rw [hta] at h
-    dsimp only at h
-    cases hde : isDefEqCore mode env fuel d ta ty' with
-    | error err => rw [hde] at h; exact nomatch h
-    | ok r =>
-    rw [hde] at h
-    cases r with
-    | false => simp [throw, throwThe, MonadExceptOf.throw] at h
-    | true =>
-      simp only [ite_true, pure, Except.pure, Except.ok.injEq] at h
-      exact ⟨tf, ty', body', m', rfl, hw, h.symm,
-        Or.inr ⟨ta, rfl, hde⟩⟩
 
-/-- The let-rule of the io lane is **unreachable** (task #241), like
-`inferTypeCore_letE_inv`'s: the arm is a positive `.internal` error. -/
+/-- The let-rule of the io lane (official `infer_let` at `infer_only`,
+task #342 R-C): the body's type at the value, neither the type nor the
+value checked. -/
 theorem inferTypeCoreIO_letE_inv {env : Env} {fuel d : Nat}
     {ty v b t : Expr}
     (h : inferTypeCoreIO mode env (fuel + 1) d (.letE ty v b)
       = .ok t) :
-    False := by
+    inferTypeCoreIO mode env fuel d (b.instantiate1 v) = .ok t := by
   rw [inferTypeCoreIO_succ] at h
-  simp [inferBodyIO, throw, throwThe, MonadExceptOf.throw] at h
+  simpa [inferBodyIO, inferIO_def] using h
 
 /-- Inversion for the projection rule of the io lane
 (`inferTypeCore_proj_inv`'s twin: the scrutinee's inference at the io

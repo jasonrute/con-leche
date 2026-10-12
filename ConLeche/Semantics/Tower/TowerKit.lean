@@ -292,11 +292,11 @@ application tower over the field domains, terminated by `PUnit.{w}`
 def towerBodyAVPos (w : Nat) : List AnnotTerm → AnnotTerm
   | [] => .const .punit [w]
   | F :: Fs => .app (.app (.const .psigma [w, w]) F)
-      (.lam (w + 1) F (towerBodyAVPos w Fs))
+      (.lam F (towerBodyAVPos w Fs))
 
-/-- `(_ : P) → Empty` at bit `0`: the truth value of `P`'s emptiness
-(`piR 0`'s ∀ over an empty codomain). -/
-def negAV (P : AnnotTerm) : AnnotTerm := .pi 0 0 P (.const .empty [0])
+/-- `(_ : P) → Empty`: the truth value of `P`'s emptiness (a ∀ over an
+empty codomain). -/
+def negAV (P : AnnotTerm) : AnnotTerm := .pi P (.const .empty [0])
 
 /-- The carrier body, **squash regime** (O4): the truth
 value of the field chain's inhabitation, spelled classically as
@@ -308,7 +308,7 @@ truncates whatever its domain is, exactly as `sigmaSet 0` does.  No
 field bound is needed for the interpretation. -/
 def sqBodyAV : List AnnotTerm → AnnotTerm
   | [] => .const .punit [0]
-  | F :: Fs => negAV (.pi 0 0 F (negAV (sqBodyAV Fs)))
+  | F :: Fs => negAV (.pi F (negAV (sqBodyAV Fs)))
 
 /-- The carrier body, both regimes: the squash spelling at `w = 0`,
 the pair tower above. -/
@@ -348,8 +348,8 @@ theorem exists_mem_truthVal {p : Prop} :
 
 theorem interp_negAV (ρ : Nat → V) (P : AnnotTerm) :
     interp V ρ (negAV P) = truthVal (¬ ∃ x, x ∈ˢ interp V ρ P) := by
-  show piR 0 (interp V ρ P) (fun _ => (empty : V)) = _
-  rw [piR_zero]
+  show piV (interp V ρ P) (fun _ => (empty : V)) = _
+  rw [piV_eq_zero (fun _ _ => univ_zero (V := V) ▸ empty_mem_univ 0), piR_zero]
   refine truthVal_congr ⟨fun h ⟨x, hx⟩ => ?_, fun h x hx => absurd ⟨x, hx⟩ h⟩
   obtain ⟨y, hy⟩ := h x hx
   exact not_mem_empty y hy
@@ -361,13 +361,14 @@ theorem sqBodyAV_interp :
       interp V ρ (sqBodyAV Fs) = towerSet 0 (teleOfFields ρ Fs)
   | [], _ => rfl
   | F :: Fs, ρ => by
-    show interp V ρ (negAV (.pi 0 0 F (negAV (sqBodyAV Fs)))) = _
+    show interp V ρ (negAV (.pi F (negAV (sqBodyAV Fs)))) = _
     rw [interp_negAV, teleOfFields_cons]
     show _ = sigmaSet 0 (interp V ρ F)
       (fun a => towerSet 0 (teleOfFields (cons a ρ) Fs))
     rw [sigmaSet_zero]
     refine truthVal_congr ?_
-    rw [interp_pi, piR_zero, exists_mem_truthVal]
+    rw [interp_pi, piV_eq_zero (fun x _ => by
+      rw [interp_negAV]; exact truthVal_mem_univZero _), piR_zero, exists_mem_truthVal]
     have hin : ∀ x : V, (∃ y, y ∈ˢ interp V (cons x ρ) (negAV (sqBodyAV Fs)))
         ↔ ¬ ∃ z, z ∈ˢ towerSet 0 (teleOfFields (cons x ρ) Fs) := by
       intro x
@@ -391,7 +392,7 @@ theorem sqBodyAV_wellDenoted :
       WellDenoted V ρ (sqBodyAV Fs)
   | [], ρ, _ => by simp [sqBodyAV]
   | F :: Fs, ρ, hok => by
-    show WellDenoted V ρ (negAV (.pi 0 0 F (negAV (sqBodyAV Fs))))
+    show WellDenoted V ρ (negAV (.pi F (negAV (sqBodyAV Fs))))
     unfold negAV
     rw [WellDenoted_pi]
     refine ⟨?_, IsTy_piR _ _ _, fun _ _ => by simp, fun _ _ => IsTy_empty⟩
@@ -416,23 +417,23 @@ theorem towerBodyAVPos_interp {w : Nat} :
         interp V (cons x ρ) (towerBodyAVPos w Fs)
           = towerSet w (teleOfFields (cons x ρ) Fs) :=
       fun x hx => towerBodyAVPos_interp (hb.2 x hx)
-    have hB : (lamR (w + 1) (interp V ρ F)
+    have hB : (lamV (interp V ρ F)
           fun x => interp V (cons x ρ) (towerBodyAVPos w Fs))
-        ∈ˢ piR (w + 1) (interp V ρ F) (fun _ => (univ w : V)) :=
-      lamR_mem fun x hx => by
+        ∈ˢ psigmaFibreSpace V w (interp V ρ F) :=
+      lamV_mem (fun x hx => by
         rw [hG x hx]
-        exact towerSet_univ_teleOfFields (hb.2 x hx)
+        exact towerSet_univ_teleOfFields (hb.2 x hx)) fun _ _ => IsTy_univ w
     have hbv : bval V .psigma [w, w] = psigmaV V w w := rfl
     show SetTheory.app (SetTheory.app (bval V .psigma [w, w])
         (interp V ρ F))
-        (lamR (w + 1) (interp V ρ F)
+        (lamV (interp V ρ F)
           fun x => interp V (cons x ρ) (towerBodyAVPos w Fs))
       = towerSet w (teleOfFields ρ (F :: Fs))
     rw [hbv, psigmaV_app V hA hB,
       show Nat.max w w = w from Nat.max_self w, teleOfFields_cons]
     show sigmaSet w _ _ = sigmaSet w _ _
     exact sigma_congr fun x hx => by
-      rw [app_lamR_pos (Nat.succ_ne_zero w) hx, hG x hx]
+      rw [app_lamV hx, hG x hx]
 
 /-- **The carrier body reads back as the tier's carrier**, both
 regimes: unconditionally at squash, under the hereditary bound (O5's
@@ -486,7 +487,7 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
     have hbv : interp V ρ (.const .psigma [w, w]) = psigmaV V w w := rfl
     have hvac : ¬ w + 1 = 0 := Nat.succ_ne_zero w
     show WellDenoted V ρ (.app (.app (.const .psigma [w, w]) F)
-      (.lam (w + 1) F (towerBodyAVPos w Fs)))
+      (.lam F (towerBodyAVPos w Fs)))
     rw [WellDenoted_app]
     refine ⟨?_, ?_, ?_⟩
     · -- the inner application `.psigma [w,w] F`
@@ -501,8 +502,7 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
       rw [WellDenoted_lam]
       refine ⟨hok.1, hok.2.1,
         fun x hx => towerBodyAVPos_wellDenoted hw (hok.2.2.2 x hx),
-        ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w,
-          fun h => absurd h hvac⟩⟩
+        ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w⟩⟩
       rw [hG x hx]
       exact towerSet_univ_teleOfFields (hb.2 x hx)
     · -- the outer application's kind slot
@@ -513,9 +513,10 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
             (interp V ρ F) ∈ˢ _
         rw [hbv]
         exact app_mem_piR_pos hvac (psigmaV_rr_mem (V := V) w) hA
-      · exact lamR_mem fun x hx => by
+      · rw [interp_lam]
+        exact lamV_mem (fun x hx => by
           rw [hG x hx]
-          exact towerSet_univ_teleOfFields (hb.2 x hx)
+          exact towerSet_univ_teleOfFields (hb.2 x hx)) fun _ _ => IsTy_univ w
 
 /-- **The carrier body is graded** (`WellDenoted`), both regimes. -/
 theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
@@ -530,23 +531,25 @@ theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
 data; `stripPisAV` is the peel whose inversion hands the wiring the
 `(binder data, body)` decomposition of a stored type's reading. -/
 
-/-- The λ-tower former over `(codomain-sort bit, domain)` data. -/
+/-- The λ-tower former over `(_, domain)` data.  The first component is
+not read (task #342 L14a: it was the binder's regime numeral). -/
 def mkLamsAV : List (Nat × AnnotTerm) → AnnotTerm → AnnotTerm
   | [], b => b
-  | d :: ds, b => .lam d.1 d.2 (mkLamsAV ds b)
+  | d :: ds, b => .lam d.2 (mkLamsAV ds b)
 
-/-- The Π-tower former over `(domain sort, codomain sort, domain)`
-data — the shape of a stored Π-type's reading. -/
+/-- The Π-tower former over `(_, _, domain)` data — the shape of a
+stored Π-type's reading.  The two numerals are not read (task #342
+L14a: they were the binder's sort numerals). -/
 def mkPisAV : List (Nat × Nat × AnnotTerm) → AnnotTerm → AnnotTerm
   | [], b => b
-  | d :: ds, b => .pi d.1 d.2.1 d.2.2 (mkPisAV ds b)
+  | d :: ds, b => .pi d.2.2 (mkPisAV ds b)
 
 /-- A Π-tower over a sort reads to a type: a product, or the universe. -/
 theorem IsTy_mkPisAV_sort (ds : List (Nat × Nat × AnnotTerm)) (w : Nat) (ρ : Nat → V) :
     IsTy (interp V ρ (mkPisAV ds (.sort w))) := by
   cases ds with
   | nil => exact IsTy_univ w
-  | cons _ _ => exact IsTy_piR _ _ _
+  | cons _ _ => exact IsTy_piV
 
 /-! ### Fits of one telescope of types, compared off the point (task #342 L7)
 
@@ -569,7 +572,7 @@ theorem spineTy_of_wellDenoted_mkPisAV {B : AnnotTerm} :
       WellDenoted V ρ (mkPisAV ab B) → SpineTy ρ (ab.map (·.2.2))
   | [], _, _ => trivial
   | d :: ab, ρ, h => by
-    have h' : WellDenoted V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV ab B)) := h
+    have h' : WellDenoted V ρ (.pi d.2.2 (mkPisAV ab B)) := h
     rw [WellDenoted_pi] at h'
     exact ⟨h'.2.1, fun a ha => spineTy_of_wellDenoted_mkPisAV (h'.2.2.1 a ha)⟩
 
@@ -627,8 +630,8 @@ theorem spineFit_eq_of_cond_getD {Fs : List AnnotTerm} {ρ : Nat → V} {as bs :
 /-- Peel `n` Π-binders off a reading. -/
 def stripPisAV : Nat → AnnotTerm → Option (List (Nat × Nat × AnnotTerm) × AnnotTerm)
   | 0, e => some ([], e)
-  | n + 1, .pi u v A B =>
-    (stripPisAV n B).map fun p => ((u, v, A) :: p.1, p.2)
+  | n + 1, .pi A B =>
+    (stripPisAV n B).map fun p => ((0, 0, A) :: p.1, p.2)
   | _ + 1, _ => none
 
 /-- The peel's inversion: a successful strip exhibits the reading as
@@ -640,37 +643,31 @@ theorem stripPisAV_eq_mkPis :
     obtain ⟨rfl, rfl⟩ : ps = [] ∧ b = e := by
       simpa [stripPisAV] using h.symm
     exact ⟨rfl, rfl⟩
-  | n + 1, .pi u v A B, ps, b, h => by
+  | n + 1, .pi A B, ps, b, h => by
     simp only [stripPisAV, Option.map_eq_some_iff] at h
     obtain ⟨⟨ps', b'⟩, hstrip, heq⟩ := h
-    obtain ⟨rfl, rfl⟩ : (u, v, A) :: ps' = ps ∧ b' = b := by
+    obtain ⟨rfl, rfl⟩ : (0, 0, A) :: ps' = ps ∧ b' = b := by
       simpa using heq
     obtain ⟨hB, hlen⟩ := stripPisAV_eq_mkPis hstrip
     exact ⟨by rw [mkPisAV, ← hB], by simp [hlen]⟩
 
-/-- **The generic λ-tower fold**: at all-nonzero bits, applying the
-tower along a fitting spine computes the body at the spine's
-environment (`app_lamR_pos` iterated). -/
+/-- **The generic λ-tower fold**: applying the tower along a fitting
+spine computes the body at the spine's environment (`app_lamV`
+iterated). -/
 theorem mkLamsAV_fold :
     ∀ {ds : List (Nat × AnnotTerm)} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
-      (∀ d ∈ ds, d.1 ≠ 0) → SpineFit ρ (ds.map (·.2)) as →
+      SpineFit ρ (ds.map (·.2)) as →
       as.foldl SetTheory.app (interp V ρ (mkLamsAV ds b))
         = interp V (consList as ρ) b
-  | [], _, _, [], _, _ => rfl
-  | [], _, _, _ :: _, _, hsp => hsp.elim
-  | _ :: _, _, _, [], _, hsp => hsp.elim
-  | d :: ds, b, ρ, a :: as, hnz, hsp => by
+  | [], _, _, [], _ => rfl
+  | [], _, _, _ :: _, hsp => hsp.elim
+  | _ :: _, _, _, [], hsp => hsp.elim
+  | d :: ds, b, ρ, a :: as, hsp => by
     show (as.foldl SetTheory.app
-      (SetTheory.app (lamR d.1 (interp V ρ d.2)
+      (SetTheory.app (lamV (interp V ρ d.2)
         fun x => interp V (cons x ρ) (mkLamsAV ds b)) a)) = _
-    rw [app_lamR_pos (hnz d (.head _)) hsp.1]
-    exact mkLamsAV_fold (fun d' hd' => hnz d' (.tail _ hd')) hsp.2
-
-/-- A zero-annotated head collapses the tower to the proof point — the
-squash regime of a value whose type became a proposition. -/
-theorem mkLamsAV_zero_head (A : AnnotTerm) (ds : List (Nat × AnnotTerm))
-    (b : AnnotTerm) (ρ : Nat → V) :
-    interp V ρ (mkLamsAV ((0, A) :: ds) b) = (pt : V) := lamR_zero
+    rw [app_lamV hsp.1]
+    exact mkLamsAV_fold hsp.2
 
 /-! ### The constant-bit λ-tower, generically
 
@@ -703,56 +700,51 @@ theorem underTowerOk_res_univZero {m : Nat} {b T : AnnotTerm} (h0 : m = 0) :
       (∀ d ∈ ds, (m = 0 ↔ d.2.1 = 0)) → UnderTowerOk m ρ b T ds →
       interp V ρ (mkPisAV ds T) ∈ˢ (univZero : V)
   | [], _, _, h => h.2.2.1 h0
-  | d :: ds, ρ, hz, _ => by
-    show piR d.2.1 _ _ ∈ˢ _
-    rw [(hz d (.head _)).mp h0]
+  | d :: ds, ρ, hz, h => by
+    show piV _ _ ∈ˢ _
+    rw [piV_eq_zero fun a ha => underTowerOk_res_univZero h0
+      (fun d' hd' => hz d' (.tail _ hd')) (h.2.2 a ha)]
     exact piR_zero_mem_univZero
 
-/-- **The constant-bit tower inhabits its Π-tower's reading**
-(`lamR_mem_zero_agree` per binder, the base's membership at the
-bottom). -/
-theorem mkLamsC_mem {m : Nat} {b T : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      (∀ d ∈ ds, (m = 0 ↔ d.2.1 = 0)) → UnderTowerOk m ρ b T ds →
-      interp V ρ (mkLamsC m ds b) ∈ˢ interp V ρ (mkPisAV ds T)
-  | [], _, _, h => h.2.1
-  | d :: ds, ρ, hz, h => by
-    show (lamR m (interp V ρ d.2.2)
-        fun a => interp V (cons a ρ) (mkLamsC m ds b))
-      ∈ˢ piR d.2.1 (interp V ρ d.2.2)
-        fun a => interp V (cons a ρ) (mkPisAV ds T)
-    exact lamR_mem_zero_agree (hz d (.head _))
-      fun a ha => mkLamsC_mem (fun d' hd' => hz d' (.tail _ hd'))
-        (h.2.2 a ha)
-
-/-- The residual Π-tower's reading is a type: a product, or the base's
-type. -/
+/-- The residual Π-tower's reading is a type: a function space, or the
+base's type. -/
 theorem underTowerOk_res_IsTy {m : Nat} {b T : AnnotTerm} :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
       UnderTowerOk m ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
   | [], _, h => h.2.2.2
-  | _ :: _, _, _ => IsTy_piR _ _ _
+  | _ :: _, _, _ => IsTy_piV
+
+/-- **The constant-bit tower inhabits its Π-tower's reading**
+(`lamV_mem` per binder, the residual towers' types as the fibres, the
+base's membership at the bottom). -/
+theorem mkLamsC_mem {m : Nat} {b T : AnnotTerm} :
+    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+      UnderTowerOk m ρ b T ds →
+      interp V ρ (mkLamsC m ds b) ∈ˢ interp V ρ (mkPisAV ds T)
+  | [], _, h => h.2.1
+  | d :: ds, ρ, h => by
+    show (lamV (interp V ρ d.2.2)
+        fun a => interp V (cons a ρ) (mkLamsC m ds b))
+      ∈ˢ piV (interp V ρ d.2.2)
+        fun a => interp V (cons a ρ) (mkPisAV ds T)
+    exact lamV_mem (fun a ha => mkLamsC_mem (h.2.2 a ha))
+      fun a ha => underTowerOk_res_IsTy (h.2.2 a ha)
 
 /-- **The constant-bit tower is graded** (`WellDenoted`): the fibre
 packages are the interpreted residual Π-towers, membership from
-`mkLamsC_mem` at each suffix, the zero component from
-`underTowerOk_res_univZero`. -/
+`mkLamsC_mem` at each suffix. -/
 theorem mkLamsC_wellDenoted {m : Nat} {b T : AnnotTerm} :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      (∀ d ∈ ds, (m = 0 ↔ d.2.1 = 0)) → UnderTowerOk m ρ b T ds →
+      UnderTowerOk m ρ b T ds →
       WellDenoted V ρ (mkLamsC m ds b)
-  | [], _, _, h => h.1
-  | d :: ds, ρ, hz, h => by
-    show WellDenoted V ρ (.lam m d.2.2 (mkLamsC m ds b))
+  | [], _, h => h.1
+  | d :: ds, ρ, h => by
+    show WellDenoted V ρ (.lam d.2.2 (mkLamsC m ds b))
     rw [WellDenoted_lam]
-    refine ⟨h.1, h.2.1, fun a ha => mkLamsC_wellDenoted
-        (fun d' hd' => hz d' (.tail _ hd')) (h.2.2 a ha),
+    refine ⟨h.1, h.2.1, fun a ha => mkLamsC_wellDenoted (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV ds T),
-       fun a ha => mkLamsC_mem (fun d' hd' => hz d' (.tail _ hd'))
-         (h.2.2 a ha),
-       fun a ha => underTowerOk_res_IsTy (h.2.2 a ha),
-       fun h0 a ha => underTowerOk_res_univZero h0
-         (fun d' hd' => hz d' (.tail _ hd')) (h.2.2 a ha)⟩⟩
+       fun a ha => mkLamsC_mem (h.2.2 a ha),
+       fun a ha => underTowerOk_res_IsTy (h.2.2 a ha)⟩⟩
 
 
 /-!
@@ -838,7 +830,7 @@ def mkTowerGoPos (w : Nat) : List AnnotTerm → AnnotTerm
   | F :: Fs =>
     .app (.app (.app (.app (.const .psigmaMk [w, w])
         (F.liftN (Fs.length + 1)))
-        (.lam (w + 1) (F.liftN (Fs.length + 1))
+        (.lam (F.liftN (Fs.length + 1))
           ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
         (.bvar Fs.length))
       (mkTowerGoPos w Fs)
@@ -896,19 +888,18 @@ theorem mkTowerGoPos_interp {w : Nat} (hw : w ≠ 0) :
       mkTowerGoPos_interp hw (hb.2 b hsp.1) hsp.2
     -- the psigmaMk application premises
     have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
-    have hBm : (lamR (w + 1) (interp V ρp F)
+    have hBm : (lamV (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs))
         ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
-      lamR_mem fun x hx => by
+      lamV_mem (fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
-        exact towerSet_univ_teleOfFields (hb.2 x hx)
-    have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
+        exact towerSet_univ_teleOfFields (hb.2 x hx)) fun _ _ => IsTy_univ w
+    have hfib : SetTheory.app (lamV (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs)) b
         = towerSet w (teleOfFields (cons b ρp) Fs) := by
-      rw [app_lamR_pos (Nat.succ_ne_zero w) hsp.1,
-        towerBodyAV_interp (fun _ => hb.2 b hsp.1)]
+      rw [app_lamV hsp.1, towerBodyAV_interp (fun _ => hb.2 b hsp.1)]
     have hbm : (if w = 0 then pt else mkTower bs)
-        ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
+        ∈ˢ SetTheory.app (lamV (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs)) b := by
       rw [hfib]
       split
@@ -918,7 +909,7 @@ theorem mkTowerGoPos_interp {w : Nat} (hw : w ≠ 0) :
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app
         (bval V .psigmaMk [w, w])
         (interp V (consList bs (cons b ρp)) (F.liftN (Fs.length + 1))))
-        (lamR (w + 1)
+        (lamV
           (interp V (consList bs (cons b ρp)) (F.liftN (Fs.length + 1)))
           fun x => interp V (cons x (consList bs (cons b ρp)))
             ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
@@ -947,30 +938,16 @@ theorem mkTowerGo_interp {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
 
 /-! ## The tupler's grading -/
 
-/-- The `[w, w]` instance of the pair constructor's product
-membership, both regimes: in the graph regime the λ-tower folds onto
-`spair` (`spair_mem` at the bottom); at squash the value IS `pt` and
-every fibre is inhabited (`pt_mem_sigma`). -/
+/-- The `[w, w]` instance of the pair constructor's membership in its
+function space. -/
 theorem psigmaMkV_ww_mem (w : Nat) :
-    psigmaMkV V w w ∈ˢ piR w (univ w : V) (fun A =>
-      piR w (psigmaFibreSpace V w A) (fun B =>
-        piR w A (fun a =>
-          piR w (SetTheory.app B a) (fun _ =>
+    psigmaMkV V w w ∈ˢ piV (univ w : V) (fun A =>
+      piV (psigmaFibreSpace V w A) (fun B =>
+        piV A (fun a =>
+          piV (SetTheory.app B a) (fun _ =>
             sigmaSet w A fun x => SetTheory.app B x)))) := by
-  by_cases hw : w = 0
-  · subst hw
-    rw [psigmaMkV, show Nat.max 0 0 = 0 from Nat.max_self 0, lamR_zero]
-    refine pt_mem_piR_zero fun A _ => ⟨pt, ?_⟩
-    refine pt_mem_piR_zero fun B _ => ⟨pt, ?_⟩
-    refine pt_mem_piR_zero fun a ha => ⟨pt, ?_⟩
-    refine pt_mem_piR_zero fun b hb => ⟨pt, ?_⟩
-    exact pt_mem_sigma ha hb
-  · rw [psigmaMkV, show Nat.max w w = w from Nat.max_self w]
-    refine lamR_mem fun A _ => ?_
-    refine lamR_mem fun B _ => ?_
-    refine lamR_mem fun a ha => ?_
-    refine lamR_mem fun b hb => ?_
-    exact spair_mem hw ha hb
+  have h := psigmaMkV_mem V w w
+  rwa [show Nat.max w w = w from Nat.max_self w] at h
 
 /-- **The tupler is graded** (`WellDenoted`): the four application slots
 are `psigmaMkV_ww_mem` chained down by `app_mem_piR`, the squash-side
@@ -1007,65 +984,33 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
       mkTowerGoPos_interp hw (hb.2 b hsp.1) hsp.2
     have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
     have hBv : interp V (consList bs (cons b ρp))
-        (AnnotTerm.lam (w + 1) (F.liftN (Fs.length + 1))
+        (AnnotTerm.lam (F.liftN (Fs.length + 1))
           ((towerBodyAV w Fs).liftN (Fs.length + 1) 1))
-        = lamR (w + 1) (interp V ρp F)
+        = lamV (interp V ρp F)
             (fun x => interp V (cons x ρp) (towerBodyAV w Fs)) := by
-      rw [interp_lam, hA]
-      exact congrArg _ (funext hBfun)
-    have hBm : (lamR (w + 1) (interp V ρp F)
+      rw [interp_lam, hA, funext hBfun]
+    have hBm : (lamV (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs))
         ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
-      lamR_mem fun x hx => by
+      lamV_mem (fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
-        exact towerSet_univ_teleOfFields (hb.2 x hx)
-    -- the four squash-side fibre conditions
-    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
-        piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
-          piR w (SetTheory.app B a) fun _ => sigmaSet w A
-            fun x => SetTheory.app B x) ∈ˢ (univZero : V) := by
-      intro h0 A _; subst h0; exact piR_zero_mem_univZero
-    have hz2 : w = 0 → ∀ B,
-        B ∈ˢ psigmaFibreSpace V w (interp V ρp F) →
-        piR w (interp V ρp F) (fun a => piR w (SetTheory.app B a)
-          fun _ => sigmaSet w (interp V ρp F)
-            fun x => SetTheory.app B x) ∈ˢ (univZero : V) := by
-      intro h0 B _; subst h0; exact piR_zero_mem_univZero
-    have hz3 : w = 0 → ∀ a, a ∈ˢ interp V ρp F →
-        piR w (SetTheory.app (lamR (w + 1) (interp V ρp F)
-            fun x => interp V (cons x ρp) (towerBodyAV w Fs)) a)
-          (fun _ => sigmaSet w (interp V ρp F)
-            fun x => SetTheory.app (lamR (w + 1) (interp V ρp F)
-              fun y => interp V (cons y ρp) (towerBodyAV w Fs)) x)
-          ∈ˢ (univZero : V) := by
-      intro h0 _ _; subst h0; exact piR_zero_mem_univZero
-    have hz4 : w = 0 → ∀ x,
-        x ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun y => interp V (cons y ρp) (towerBodyAV w Fs)) b →
-        sigmaSet w (interp V ρp F)
-          (fun y => SetTheory.app (lamR (w + 1) (interp V ρp F)
-            fun z => interp V (cons z ρp) (towerBodyAV w Fs)) y)
-          ∈ˢ (univZero : V) := by
-      intro h0 _ _; subst h0
-      rw [sigmaSet_zero]
-      exact truthVal_mem_univZero _
-    -- the membership chain down the product tower
-    have hm0 : psigmaMkV V w w ∈ˢ piR w (univ w : V) (fun A =>
-        piR w (psigmaFibreSpace V w A) (fun B =>
-          piR w A (fun a =>
-            piR w (SetTheory.app B a) (fun _ =>
-              sigmaSet w A fun x => SetTheory.app B x)))) :=
-      psigmaMkV_ww_mem w
-    have hm1 := app_mem_piR hm0 hAm hz1
-    have hm2 := app_mem_piR hm1 hBm hz2
-    have hm3 := app_mem_piR hm2 hsp.1 hz3
-    have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
+        exact towerSet_univ_teleOfFields (hb.2 x hx)) fun _ _ => IsTy_univ w
+    -- the membership chain down the function spaces
+    have hm0 := psigmaMkV_ww_mem (V := V) w
+    have hm1 : SetTheory.app (psigmaMkV V w w) (interp V ρp F)
+        ∈ˢ piV (psigmaFibreSpace V w (interp V ρp F)) (fun B =>
+          piV (interp V ρp F) (fun a =>
+            piV (SetTheory.app B a) (fun _ =>
+              sigmaSet w (interp V ρp F) fun x => SetTheory.app B x))) :=
+      app_mem_piV hm0 hAm
+    have hm2 := app_mem_piV hm1 hBm
+    have hm3 := app_mem_piV hm2 hsp.1
+    have hfib : SetTheory.app (lamV (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs)) b
         = towerSet w (teleOfFields (cons b ρp) Fs) := by
-      rw [app_lamR_pos (Nat.succ_ne_zero w) hsp.1,
-        towerBodyAV_interp (fun _ => hb.2 b hsp.1)]
+      rw [app_lamV hsp.1, towerBodyAV_interp (fun _ => hb.2 b hsp.1)]
     have hrm : interp V (consList bs (cons b ρp)) (mkTowerGoPos w Fs)
-        ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
+        ∈ˢ SetTheory.app (lamV (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs)) b := by
       rw [hrec, hfib]
       split
@@ -1075,7 +1020,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
     show WellDenoted V (consList bs (cons b ρp))
       (.app (.app (.app (.app (.const .psigmaMk [w, w])
           (F.liftN (Fs.length + 1)))
-          (.lam (w + 1) (F.liftN (Fs.length + 1))
+          (.lam (F.liftN (Fs.length + 1))
             ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
         (mkTowerGoPos w Fs))
@@ -1092,8 +1037,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
           refine ⟨trivial, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
-          · exact ⟨w, univ w, _, hm0, by rw [interp_liftN, hshift]; exact hAm,
-              hz1, fun _ => IsTy_univ w⟩
+          · exact piV_slot hm0 (by rw [interp_liftN, hshift]; exact hAm) (IsTy_univ w)
         · -- the fibre λ
           rw [WellDenoted_lam]
           refine ⟨?_, ?_, ?_, ?_⟩
@@ -1104,53 +1048,41 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
             rw [hA] at hx
             rw [WellDenoted_liftN, ← cons_shiftE, hshift]
             exact towerBodyAV_wellDenoted (hok.2.2.2 x hx)
-          · refine ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w,
-              fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
+          · refine ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w⟩
             rw [hA] at hx
             rw [hBfun x, towerBodyAV_interp (fun _ => hb.2 x hx)]
             exact towerSet_univ_teleOfFields (hb.2 x hx)
         · -- the second application's kind slot
-          refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2,
-            fun _ => IsTy_piR _ _ _⟩
-          · show SetTheory.app (interp V (consList bs (cons b ρp))
+          show ∃ v A B, SetTheory.app (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
               (interp V (consList bs (cons b ρp))
-                (F.liftN (Fs.length + 1))) ∈ˢ _
-            rw [hA]
-            exact hm1
-          · rw [hBv]
-            exact hBm
+                (F.liftN (Fs.length + 1))) ∈ˢ piR v A B ∧ _
+          rw [hA, hBv]
+          exact piV_slot hm1 hBm IsTy_piV
       · -- the third application's kind slot
-        refine ⟨w, interp V ρp F, _, ?_, ?_, hz3, fun _ => hok.2.1⟩
-        · show SetTheory.app (SetTheory.app
+        show ∃ v A B, SetTheory.app (SetTheory.app
               (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
               (interp V (consList bs (cons b ρp))
                 (F.liftN (Fs.length + 1))))
             (interp V (consList bs (cons b ρp))
-              (.lam (w + 1) (F.liftN (Fs.length + 1))
-                ((towerBodyAV w Fs).liftN (Fs.length + 1) 1))) ∈ˢ _
-          rw [hA, hBv]
-          exact hm2
-        · show consList bs (cons b ρp) (Fs.length) ∈ˢ interp V ρp F
-          rw [hval]
-          exact hsp.1
+              (.lam (F.liftN (Fs.length + 1))
+                ((towerBodyAV w Fs).liftN (Fs.length + 1) 1))) ∈ˢ piR v A B ∧ _
+        rw [hA, hBv, interp_bvar, hval]
+        exact piV_slot hm2 hsp.1 hok.2.1
     · -- the outer application's kind slot
-      refine ⟨w, SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w Fs)) b, _,
-        ?_, hrm, hz4, fun _ => by
-          rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1))⟩
-      show SetTheory.app (SetTheory.app (SetTheory.app
+      show ∃ v A B, SetTheory.app (SetTheory.app (SetTheory.app
           (interp V (consList bs (cons b ρp))
             (.const .psigmaMk [w, w]))
           (interp V (consList bs (cons b ρp))
             (F.liftN (Fs.length + 1))))
           (interp V (consList bs (cons b ρp))
-            (.lam (w + 1) (F.liftN (Fs.length + 1))
+            (.lam (F.liftN (Fs.length + 1))
               ((towerBodyAV w Fs).liftN (Fs.length + 1) 1))))
-        (interp V (consList bs (cons b ρp)) (.bvar Fs.length)) ∈ˢ _
+        (interp V (consList bs (cons b ρp)) (.bvar Fs.length)) ∈ˢ piR v A B ∧ _
       rw [hA, hBv, interp_bvar, hval]
-      exact hm3
+      exact piV_slot hm3 hrm (by
+        rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1)))
 
 /-- **The tupler is graded** (`WellDenoted`), both regimes. -/
 theorem mkTowerGo_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}

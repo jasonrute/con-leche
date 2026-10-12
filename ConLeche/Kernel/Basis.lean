@@ -24,10 +24,10 @@ module per pinned type under `ConLeche/Kernel/Basis/`, hand-written
 against the toolchain's `Init.Prelude` through the small builder in
 `Basis/Builder.lean`.
 
-**Raw only.**  The *annotated* forms — what the installation actually
-stores — are computed from these by the checker's own annotation pass
-in `ConLeche/Kernel/BasisA.lean`, which therefore sits above
-`ConLeche.Kernel.TypeChecker`.  This module sits below it: the kernel
+**Raw only.**  The *stored* forms — what the installation actually
+stores, a recursor's rules carrying the install-computed fields — are
+computed from these in `ConLeche/Kernel/BasisA.lean`, which therefore
+sits above `ConLeche.Kernel.TypeChecker`.  This module sits below it: the kernel
 core needs the raw pins (the fold matches incoming records against
 them) and nothing else.
 -/
@@ -82,7 +82,7 @@ not the pinned block is invalid input, as a basis redefinition is — so
 that in every accepted environment the name `And` is the toolchain's
 `And` and the stuck-proof rescue that serves it (`majorToCtor`'s `And`
 branch) is available.  The fold asks this of every record before its
-dispatch (`annotDeclStep`, `ConLeche/Cached/Installed.lean`). -/
+dispatch (`installDeclStep`, `ConLeche/Cached/Installed.lean`). -/
 
 /-- **The `And` pin's test**: the record declares none of the pinned
 `And` block's names, or it IS that block — two parameters, and equal

@@ -39,24 +39,17 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## λ-towers of graphs, as terms and under lifts -/
 
-/-- A graph-regime λ-tower term (every binder at a nonzero bit) reads as
-the λ-tower of graphs of its body's readings. -/
-theorem interp_mkLamsAV_pos {b : AnnotTerm} {v : Nat} (hv : v ≠ 0) :
+/-- A spelled λ-tower term reads as the λ-tower of its body's readings
+(both value-read; the binder data's numerals are not read). -/
+theorem interp_mkLamsAV_holeFam {b : AnnotTerm} (v : Nat) :
     ∀ (Ts : List AnnotTerm) (ρ : Nat → V),
       interp V ρ (mkLamsAV (Ts.map (v, ·)) b) = holeFam ρ Ts fun vs => interp V (consList vs ρ) b
   | [], _ => rfl
   | T :: Ts, ρ => by
-    show lamR v (interp V ρ T) (fun a => interp V (cons a ρ) (mkLamsAV (Ts.map (v, ·)) b)) = _
-    unfold holeFam
-    rw [lamR_pos hv, lamR_pos Nat.one_ne_zero]
+    show lamV _ _ = lamV _ _
     congr 1
     funext a
-    exact interp_mkLamsAV_pos hv Ts (cons a ρ)
-
-/-- `interp_mkLamsAV_pos` at the bit `1`. -/
-theorem interp_mkLamsAV_one {b : AnnotTerm} (Ts : List AnnotTerm) (ρ : Nat → V) :
-    interp V ρ (mkLamsAV (Ts.map (1, ·)) b) = holeFam ρ Ts fun vs => interp V (consList vs ρ) b :=
-  interp_mkLamsAV_pos Nat.one_ne_zero Ts ρ
+    exact interp_mkLamsAV_holeFam v Ts (cons a ρ)
 
 theorem holeFam_liftFields (n : Nat) :
     ∀ (Ts : List AnnotTerm) (k : Nat) (σ : Nat → V) (g : List V → V),
@@ -73,7 +66,7 @@ theorem holeFam_append :
       holeFam ρ (A ++ B) g = holeFam ρ A fun as => holeFam (consList as ρ) B fun bs => g (as ++ bs)
   | [], _, _, _ => rfl
   | T :: A, B, ρ, g => by
-    show lamR 1 _ _ = lamR 1 _ _
+    show lamV _ _ = lamV _ _
     congr 1
     funext a
     exact holeFam_append A B (cons a ρ) fun vs => g (a :: vs)
@@ -83,8 +76,8 @@ theorem holeFam_congr :
       (∀ vs, SpineFit ρ Ts vs → g vs = g' vs) → holeFam ρ Ts g = holeFam ρ Ts g'
   | _, [], _, _, h => h [] trivial
   | ρ, T :: Ts, g, g', h => by
-    show lamR 1 _ _ = lamR 1 _ _
-    exact lamR_congr fun a ha => holeFam_congr fun vs hvs => h (a :: vs) ⟨ha, hvs⟩
+    show lamV _ _ = lamV _ _
+    exact lamV_congr fun a ha => holeFam_congr fun vs hvs => h (a :: vs) ⟨ha, hvs⟩
 
 /-- A λ-tower of graphs applied to a fitting prefix is the λ-tower of the
 rest at the extended frame. -/
@@ -96,8 +89,8 @@ theorem holeFam_foldl_prefix :
   | _, [], _ :: _, _, _, h => h.elim
   | _, _ :: _, [], _, _, h => h.elim
   | ρ, T :: A, p :: ps, B, g, h => by
-    show ps.foldl app (app (lamR 1 (interp V ρ T) _) p) = _
-    rw [app_lamR_pos (by decide) h.1]
+    show ps.foldl app (app (lamV (interp V ρ T) _) p) = _
+    rw [app_lamV h.1]
     exact holeFam_foldl_prefix B (fun vs => g (p :: vs)) h.2
 
 /-! ## The hole operator of an lfp datum -/
@@ -139,7 +132,7 @@ theorem interp_holeTm {ψ : Name → Nat} {ρp : Nat → V} {m : Nat}
   have hsh : shiftE 2 0 (cons t (cons Y ρp)) = ρp := by
     rw [show (2 : Nat) = 1 + 1 by rfl, shiftE_succ_cons, shiftE_succ_cons, shiftE_zero_zero]
   unfold holeTm holeTmAV
-  rw [interp_mkLamsAV_one, holeFam_liftFields, hsh]
+  rw [interp_mkLamsAV_holeFam, holeFam_liftFields, hsh]
   refine holeFam_congr fun is his => ?_
   have hlenI : is.length = (D.ids m ψ).length := his.length_eq
   have hY' : consList is (cons t (cons Y ρp)) ((D.ids m ψ).length + 1) = Y := by
@@ -242,7 +235,7 @@ theorem holeChains_ok {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ
     BlockChainsOkG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ) := by
   intro Y hY m hm t ht Fs hFs
   have hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) (fun c => projS c Y) := fun c hc => by
-    rw [← lfpFamSpace_eq_univ]; exact projS_mem_famsSpaceB hc hY
+    rw [← lfpFamSpace_eq]; exact projS_mem_famsSpaceB hc hY
   have hag : substE V (holeTau D.k (D.holeTm ψ)) 0 (cons t (cons Y ρp))
       = D.frame ψ ρp fun c => projS c Y :=
     holeTmFrame_frame (fun _ _ => rfl) hok

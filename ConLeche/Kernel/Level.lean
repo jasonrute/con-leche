@@ -235,10 +235,10 @@ def Expr.instantiateLevelParams (ks : List Name) (us : List Level) : Expr → Ex
   | .app f a => .app (f.instantiateLevelParams ks us) (a.instantiateLevelParams ks us)
   | .lam ty body m =>
     .lam (ty.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
-      ⟨Level.substPW ks us m.pw⟩
+      m
   | .forallE ty body m =>
     .forallE (ty.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
-      ⟨Level.substPW ks us m.pw⟩
+      m
   | .letE ty val body => .letE (ty.instantiateLevelParams ks us)
       (val.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
   | .lit l => .lit l
@@ -255,9 +255,8 @@ def Expr.allLevelParamsDefined (params : List Name) : Expr → Bool
   | .sort u => u.allParamsDefined params
   | .const _ us => us.all (Level.allParamsDefined params)
   | .app f a => f.allLevelParamsDefined params && a.allLevelParamsDefined params
-  | .lam t b m | .forallE t b m =>
+  | .lam t b _ | .forallE t b _ =>
     t.allLevelParamsDefined params && b.allLevelParamsDefined params
-      && m.pw.paramsDefined params
   | .letE t v b => t.allLevelParamsDefined params && v.allLevelParamsDefined params
       && b.allLevelParamsDefined params
   | .lit _ => true
@@ -310,14 +309,14 @@ def Expr.allLevelParamsDefinedGo (params : List Name) (memo : Std.HashMap Expr B
           let (b₁, memo) := allLevelParamsDefinedGo params memo f
           let (b₂, memo) := allLevelParamsDefinedGo params memo a
           (b₁ && b₂, memo)
-        | .lam t b m =>
+        | .lam t b _ =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo b
-          (b₁ && b₂ && m.pw.paramsDefined params, memo)
-        | .forallE t b m =>
+          (b₁ && b₂, memo)
+        | .forallE t b _ =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo b
-          (b₁ && b₂ && m.pw.paramsDefined params, memo)
+          (b₁ && b₂, memo)
         | .letE t v b =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo v

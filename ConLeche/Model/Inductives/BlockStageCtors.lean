@@ -208,7 +208,6 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((d.dsF m j ψ).take d.nP).map (·.2.2)).reverse ρ →
         FieldsOkB (d.w ψ) ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) ∧
-        FieldsValid ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) ∧
         (∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) bs →
           SpineFit ρ (d.IdsM m ψ) (idxValsAt ρ (d.esF m j ψ) bs)))
   capsU : ∀ m, m < d.k → ∀ (cvTa : ConstantVal), cvTasAll[m]? = some cvTa →
@@ -334,7 +333,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     have hD := (hdata m j cA hj).2.2.1
     have hlenB : bs.length = cA.2 := by rw [hsp.length_eq]; simp [hD.len ψ]
     have hspE : SpineFit ρ (d.IdsM m ψ) (idxValsAt ρ (d.esF m j ψ) bs) :=
-      ((hframes j cA hj).2 ψ ρ (((hframes j cA hj).1 ψ ρ).mp hρ)).2.2 bs hsp
+      ((hframes j cA hj).2 ψ ρ (((hframes j cA hj).1 ψ ρ).mp hρ)).2 bs hsp
     have hfl := blockHoleFold hH hS.inst (fun c _ => hS.leaf c ψ) hs0
       (fun c hc => hS.lenPps c ψ hc) (hS.idxOk m hm ψ ρ hρ) (hS.holeOk ψ ρ hs0)
       (hS.holeFun ψ ρ hs0).1 hm
@@ -398,20 +397,12 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     rwa [Nat.zero_add] at this
   have hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (d.w ψ) ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) ∧
-      SumFieldsValid ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) := by
-    intro ψ ρ hρ
-    constructor
-    · intro Fs hFs
-      obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
-      obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
-      obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
-      exact ((hframes i cA hiA).2 ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ)).1
-    · intro Fs hFs
-      obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
-      obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
-      obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
-      exact ((hframes i cA hiA).2 ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ)).2.1
+      SumFieldsOkB (d.w ψ) ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) := by
+    intro ψ ρ hρ Fs hFs
+    obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
+    obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
+    obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
+    exact ((hframes i cA hiA).2 ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ)).1
   -- ## the member's constructors, consed
   have hCtors' : ConLeche.checkSumCtors (ConLeche.fueledOps μ F) envI envI (d.memberName m) lps
       d.nP (d.nIdxAt m) d.resSort d.isProp d.large cvTa ctors = .ok (d.ctorsM m, sortss) := by
@@ -425,7 +416,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       (idxF := d.idxF m) (dsF := d.dsF m) (esF := d.esF m) (srcsF := d.srcsF m)
       hμ hout' hCtors' (hS.nodup m hm) (hS.lpsT m cvTa hm hcvTa) hlpsA hFssParams hFssBelow
       (fun j cA hj => (hframes j cA hj).1) hFssOkP
-      (fun j cA hj ψ ρ hρ bs hsp => ((hframes j cA hj).2 ψ ρ hρ).2.2 bs hsp)
+      (fun j cA hj ψ ρ hρ bs hsp => ((hframes j cA hj).2 ψ ρ hρ).2 bs hsp)
       (fun {env'} m' => BlockCtorsCore m' d lps cvTasAll p₁ isRec A m ∧
         ∀ n : Name, (env.find? n).isSome = true →
           m'.acval n = mp.base2.acval n ∧ (env'.find? n).isSome = true)

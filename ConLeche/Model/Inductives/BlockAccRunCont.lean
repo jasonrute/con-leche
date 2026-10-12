@@ -106,21 +106,15 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     simp only [List.length_map, List.length_drop, hFDt.len ψ, hcI]
     show _ = d.nIdxAt t
     omega
-  -- the relation, and the fields' values small
+  -- the relation
   have hR := holeRelA_accRel (m := mp.base2) hhi hcNl hcP har (fun X hX => hsatFrame ρp hs X hX.toU)
   have hG' : ∀ ρ ρ₀, d.toLfp.accRel ψ ρp ρ ρ₀ → FieldsOkB (d.w ψ) ρ (abN.map (·.2.2)) := by
     rintro _ _ ⟨X, Y, hX, -, rfl, -⟩
     rw [hab]
     exact hG X hX
-  have hsm : TeleSmall (d.w ψ) ab.length (d.toLfp.accRel ψ ρp)
-      (mkPisAV ab (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) := by
-    by_cases hw : d.w ψ = 0
-    · rw [hw]; exact teleSmall_zero _ _ _
-    exact teleSmall_mkPisAV hw ab abN _ L.reverse _ hEq hR.dom fun ρ ρ₀ h => (hG' ρ ρ₀ h).toBound hw
-  rw [habLen] at hsm
   -- the derivation
   obtain ⟨nds, cur, hteleD, htyN, hU4, hhead, hok⟩ := hd
-  have hPi := memberCtorD_acc mp hin hteleD hhead hok hcovk hfr hCP hca hgr hR hsm
+  have hPi := memberCtorD_acc mp hin hteleD hhead hok hcovk hfr hCP hca hgr hR
   rw [← habLen] at hPi
   obtain ⟨Af, htele, hinv, hQf⟩ := teleAccP_of_piAccThen ab abN _ (ctx.hiAt 0) 0
     (nds.map (·.1)) L.reverse _ (d.toLfp.MemberQ ψ) hEq hR.dom
@@ -190,7 +184,11 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     obtain ⟨x, hx⟩ : ∃ x, xs[i]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     obtain ⟨k, nd, hkk, -, hE, hord, hnip⟩ := hxs i x hx
     obtain ⟨p', hp', -, hread⟩ := hdoms i x hx
-    rw [List.getElem?_map, hp', Option.map_some, Option.some.injEq] at hGi
+    have hp'' : abN[i]?.map (·.2.2) = some p'.2.2 := by
+      have h := congrArg (·[i]?) (ppsNorm_map_dom abN)
+      simp only [List.getElem?_map, hp', Option.map_some] at h
+      exact h.symm
+    rw [List.getElem?_map, hp'', Option.some.injEq] at hGi
     subst hGi
     have hkD : ksD.getD i .ordinary = k := by rw [List.getD_eq_getElem?_getD, hkk]; rfl
     have hkord : k = .ordinary := by

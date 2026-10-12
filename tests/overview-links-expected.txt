@@ -19,32 +19,32 @@
     98      (accepted : checkDecls .verified pins ds = .ok env) :
     99      Nonempty (Model V env) := by
 
-== ConLeche/Denotes.lean#L134-L135
-   134  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
-   135      (BVarIdx → V) → Expr → V → Prop
+== ConLeche/Denotes.lean#L123-L124
+   123  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
+   124      (BVarIdx → V) → Expr → V → Prop
 
-== ConLeche/Denotes.lean#L270-L290
-   270  structure Model (V : Type w) [SetTheory V] (env : Env) where
-   271    /-- the set a constant denotes, per level assignment -/
-   272    cval : Name → (LevelParam → Nat) → V
-   273    /-- every stored constant is a member of what its type denotes, at
-   274    every level assignment (and every variable environment — the type
-   275    is closed) -/
-   276    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
-   277      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
-   278    /-- whatever the built-in `False` denotes is the empty set -/
-   279    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
-   280      Denotes cval env φ ρ (.const falseName []) F → F = empty
-   281    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
-   282    of the universe the level `u` names, and two of its members `a` and
-   283    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
-   284    membership premises are the graph's domains — `Eq`'s denotation is a
-   285    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
-   286    over `A` again, and a graph read off its domain says nothing -/
-   287    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
-   288      Denotes cval env φ ρ (.const eqName [u]) E →
-   289      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
-   290      app (app (app E A) a) b = eqv a b
+== ConLeche/Denotes.lean#L266-L286
+   266  structure Model (V : Type w) [SetTheory V] (env : Env) where
+   267    /-- the set a constant denotes, per level assignment -/
+   268    cval : Name → (LevelParam → Nat) → V
+   269    /-- every stored constant is a member of what its type denotes, at
+   270    every level assignment (and every variable environment — the type
+   271    is closed) -/
+   272    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
+   273      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
+   274    /-- whatever the built-in `False` denotes is the empty set -/
+   275    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
+   276      Denotes cval env φ ρ (.const falseName []) F → F = empty
+   277    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
+   278    of the universe the level `u` names, and two of its members `a` and
+   279    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
+   280    membership premises are the graph's domains — `Eq`'s denotation is a
+   281    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
+   282    over `A` again, and a graph read off its domain says nothing -/
+   283    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
+   284      Denotes cval env φ ρ (.const eqName [u]) E →
+   285      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
+   286      app (app (app E A) a) b = eqv a b
 
 == ConLeche/MainTheorem.lean#L110-L117
    110  theorem no_False_declaration (V : Type w) [SetTheory V]
@@ -69,11 +69,11 @@
     71  \{\"thm\":\{\"all\":[{k}],\"levelParams\":[],\"name\":{k},\"type\":{j},\"value\":{v}}}
     72  {after}").toUTF8
 
-== ConLeche/Verify/Cached/StreamThm.lean#L206-L209
-   206  theorem no_False_theorem_accepted (V : Type w) [SetTheory V]
-   207      (ds : Array Declaration) (cv : ConstantVal) (v : Expr)
-   208      (hmem : Declaration.thmDecl cv v ∈ ds) (hty : cv.type = .const falseName []) :
-   209      ∀ env, Cached.checkDecls .verified pins ds ≠ .ok env := by
+== ConLeche/Verify/Cached/StreamThm.lean#L163-L166
+   163  theorem no_False_theorem_accepted (V : Type w) [SetTheory V]
+   164      (ds : Array Declaration) (cv : ConstantVal) (v : Expr)
+   165      (hmem : Declaration.thmDecl cv v ∈ ds) (hty : cv.type = .const falseName []) :
+   166      ∀ env, Cached.checkDecls .verified pins ds ≠ .ok env := by
 
 == ConLeche/Verify/Frontend/Chunks.lean#L353
    353  theorem parseChunks_ok_parseBytes {cs : List ByteArray}
@@ -84,35 +84,31 @@
 == ConLeche/Verify/Frontend/Prepare.lean#L174
    174  theorem mem_preparePrelude {pre : PreludeIx} {ds : Array Declaration}
 
-== ConLeche/Model/StreamConsts.lean#L764-L769
-   764  theorem checkDecls_consts (V : Type w) [SetTheory V]
-   765      {ds : Array Declaration} {env : Env} (accepted : checkDecls .verified pins ds = .ok env)
-   766      {pd : Declaration} (hmem : pd ∈ ds) {cv : ConstantVal} (hcv : Declaration.Declares pd cv) :
-   767      ∃ c, env.find? cv.name = some c ∧
-   768        c.toConstantVal.levelParams = cv.levelParams ∧
-   769        AnnotOf cv.type c.toConstantVal.type := by
+== ConLeche/Model/StreamConsts.lean#L236-L241
+   236  theorem checkDecls_consts (V : Type w) [SetTheory V]
+   237      {ds : Array Declaration} {env : Env} (accepted : checkDecls .verified pins ds = .ok env)
+   238      {pd : Declaration} (hmem : pd ∈ ds) {cv : ConstantVal} (hcv : Declaration.Declares pd cv) :
+   239      ∃ c, env.find? cv.name = some c ∧
+   240        c.toConstantVal.levelParams = cv.levelParams ∧
+   241        c.toConstantVal.type = cv.type := by
 
-== ConLeche/Model/StreamConsts.lean#L613-L620
-   613  @[expose] def Declaration.Declares : Declaration → ConstantVal → Prop
-   614    | .defnDecl cv _ _, cv' => cv' = cv
-   615    | .thmDecl cv _, cv' => cv' = cv
-   616    | .opaqueDecl cv _, cv' => cv' = cv
-   617    | .axiomDecl cv, cv' => cv' = cv ∧ cv.name ≠ sorryAxName ∧ cv.name ≠ quotSoundName
-   618    | .basisDecl _, _ => False
-   619    | .indDecl _ _, _ => False
-   620    | .quotDecl _ _, _ => False
+== ConLeche/Model/StreamConsts.lean#L92-L99
+    92  @[expose] def Declaration.Declares : Declaration → ConstantVal → Prop
+    93    | .defnDecl cv _ _, cv' => cv' = cv
+    94    | .thmDecl cv _, cv' => cv' = cv
+    95    | .opaqueDecl cv _, cv' => cv' = cv
+    96    | .axiomDecl cv, cv' => cv' = cv ∧ cv.name ≠ sorryAxName ∧ cv.name ≠ quotSoundName
+    97    | .basisDecl _, _ => False
+    98    | .indDecl _ _, _ => False
+    99    | .quotDecl _ _, _ => False
 
-== ConLeche/Model/StreamConsts.lean#L123-L124
-   123  @[expose] def AnnotOf (declared stored : Expr) : Prop :=
-   124    stored.resetMeta = declared.zeta.resetMeta
-
-== ConLeche/Cached/Installed.lean#L452-L457
-   452  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
-   453      (ds : Array Declaration) :
-   454      Except (CheckError × Nat) Env := do
-   455    let p ← ds.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[])
-   456    checkPendingList mode p.2.1 p.2.2.toList
-   457    pure p.2.1.env
+== ConLeche/Cached/Installed.lean#L450-L455
+   450  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
+   451      (ds : Array Declaration) :
+   452      Except (CheckError × Nat) Env := do
+   453    let p ← ds.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[])
+   454    checkPendingList mode p.2.1 p.2.2.toList
+   455    pure p.2.1.env
 
 == tests/ConLecheTests/Axioms.lean#L91-L95
     91  /--
@@ -127,8 +123,8 @@
 == ConLeche/Frontend/Scan/Equiv.lean#L1002
   1002  @[csimp] theorem scanLineSpec_eq_scanLineFwd : @scanLineSpec = @scanLineFwd := by
 
-== ConLeche/Frontend/ExportC.lean#L637
-   637  def chunkStep (st : StateD) (carry : ByteArray) (lineNo total : Nat) (buf0 : ByteArray) :
+== ConLeche/Frontend/ExportC.lean#L632
+   632  def chunkStep (st : StateD) (carry : ByteArray) (lineNo total : Nat) (buf0 : ByteArray) :
 
 == ConLeche/Frontend/Stream.lean#L304-L305
    304  partial def serialLoop (h : IO.FS.Handle) (chunk : USize) (st : StateD) (carry : ByteArray)
@@ -138,14 +134,14 @@
    640  def parseExportStreamO (path : System.FilePath) (jobs : Nat) (csz : USize) (noMark : Bool) :
    641      IO ParseOutcome :=
 
-== ConLeche/Verify/Frontend/Good.lean#L548
-   548  inductive Good (Γ : WCtx) : Nat → TV → Prop where
+== ConLeche/Verify/Frontend/Good.lean#L534
+   534  inductive Good (Γ : WCtx) : Nat → TV → Prop where
 
-== ConLeche/Verify/Frontend/Good.lean#L738-L741
-   738  theorem allOK_of_good {Γ : WCtx} {T : Tabs} (hT : GoodTabs Γ T)
-   739      (hD : ∀ p (h : p < Γ.rs.length) d, Γ.rs[p] = .decl d →
-   740        ∃ x, declOf (cutLk T (Γ.ctr p)) d = .ok (.inl x)) :
-   741      AllOK T Γ.c0 Γ.rs := by
+== ConLeche/Verify/Frontend/Good.lean#L724-L727
+   724  theorem allOK_of_good {Γ : WCtx} {T : Tabs} (hT : GoodTabs Γ T)
+   725      (hD : ∀ p (h : p < Γ.rs.length) d, Γ.rs[p] = .decl d →
+   726        ∃ x, declOf (cutLk T (Γ.ctr p)) d = .ok (.inl x)) :
+   727      AllOK T Γ.c0 Γ.rs := by
 
 == ConLeche/Verify/Frontend/Rounds.lean#L1746-L1754
   1746  theorem GOK.window {g : GSt} (hg : GOK g) {bs : List ByteArray} {W : Win}
@@ -161,11 +157,11 @@
 == ConLeche/Driver/ParInstall.lean#L155
    155  def installLoop (mode : ConLeche.CheckMode) (err : IO.FS.Stream)
 
-== ConLeche/Cached/Installed.lean#L148-L151
-   148  def annotStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
-   149      (pend : Array PendingCheck) :
-   150      Declaration → CheckCM (FEnv × Array PendingCheck)
-   151    | .defnDecl cv value hint =>
+== ConLeche/Cached/Installed.lean#L146-L149
+   146  def installStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
+   147      (pend : Array PendingCheck) :
+   148      Declaration → CheckCM (FEnv × Array PendingCheck)
+   149    | .defnDecl cv value hint =>
 
 == ConLeche/Driver/ParInstall.lean#L748-L757
    748  def commitLoop (err : IO.FS.Stream) (stride total t0 : Nat)
@@ -179,19 +175,19 @@
    756          (Σ' (p' : Nat × FEnv × Array PendingCheck),
    757            PLift (InstallRun mode natOpPinSets ds.toList p₀ p')))
 
-== ConLeche/Verify/Cached/ViewCongr.lean#L1352-L1358
-  1352  theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
-  1353      {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {L : List ConstantInfo}
-  1354      {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
-  1355      (hand : andPinOk pd = true)
-  1356      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, vg?)) :
-  1357      annotDeclStep mode pins (i, fe, pend) pd =
-  1358        .ok (i + 1, FEnv.pushAll L fe, pushPending pend i fe.visibleBelow vg?) := by
+== ConLeche/Verify/Cached/ViewCongr.lean#L1343-L1349
+  1343  theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
+  1344      {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {L : List ConstantInfo}
+  1345      {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
+  1346      (hand : andPinOk pd = true)
+  1347      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, vg?)) :
+  1348      installDeclStep mode pins (i, fe, pend) pd =
+  1349        .ok (i + 1, FEnv.pushAll L fe, pushPending pend i fe.visibleBelow vg?) := by
 
-== ConLeche/Cached/Installed.lean#L367-L369
-   367  def checkRecord {pins : List NatOpPinSet} {ds : List Declaration}
-   368      (e : InstalledEnv mode pins ds) (k : Nat)
-   369      (hk : k < e.pend.size) : Except (CheckError × Nat) (PLift (GroupChecked mode e k)) :=
+== ConLeche/Cached/Installed.lean#L365-L367
+   365  def checkRecord {pins : List NatOpPinSet} {ds : List Declaration}
+   366      (e : InstalledEnv mode pins ds) (k : Nat)
+   367      (hk : k < e.pend.size) : Except (CheckError × Nat) (PLift (GroupChecked mode e k)) :=
 
 == ConLeche/Driver/CheckPool.lean#L122
    122  def checkLoop (mode : ConLeche.CheckMode) (err : IO.FS.Stream) (stride t0 : Nat)
@@ -199,12 +195,12 @@
 == ConLeche/Driver/CheckPool.lean#L213
    213  def checkPool (mode : ConLeche.CheckMode) (err : IO.FS.Stream) (stride t0 jobs : Nat)
 
-== ConLeche/Cached/Installed.lean#L401-L405
-   401  def collectChecks {pins : List NatOpPinSet} {ds : List Declaration}
-   402      (e : InstalledEnv mode pins ds)
-   403      (tab : Array (Option (RecordResult mode e))) :
-   404      (j : Nat) → (∀ i, i < j → GroupChecked mode e i) →
-   405        Except (CheckError × Nat) (PLift (∀ i, GroupChecked mode e i))
+== ConLeche/Cached/Installed.lean#L399-L403
+   399  def collectChecks {pins : List NatOpPinSet} {ds : List Declaration}
+   400      (e : InstalledEnv mode pins ds)
+   401      (tab : Array (Option (RecordResult mode e))) :
+   402      (j : Nat) → (∀ i, i < j → GroupChecked mode e i) →
+   403        Except (CheckError × Nat) (PLift (∀ i, GroupChecked mode e i))
 
 == ConLeche/Driver/Run.lean#L107-L110
    107  def checkDeclsIO (mode : ConLeche.CheckMode) (err : IO.FS.Stream) (stride total t0 tParse jobs : Nat)
@@ -212,58 +208,58 @@
    109      IO (Except (ConLeche.CheckError × Nat)
    110        { env : ConLeche.Env // ConLeche.Cached.checkDecls mode ConLeche.natOpPinSets ds = .ok env }) := do
 
-== ConLeche/Cached/Installed.lean#L534-L536
-   534  theorem fullyChecked_checkDecls {pins : List NatOpPinSet} {ds : Array Declaration}
-   535      (fc : FullyChecked mode pins ds.toList) :
-   536      checkDecls mode pins ds = .ok fc.env := by
+== ConLeche/Cached/Installed.lean#L532-L534
+   532  theorem fullyChecked_checkDecls {pins : List NatOpPinSet} {ds : Array Declaration}
+   533      (fc : FullyChecked mode pins ds.toList) :
+   534      checkDecls mode pins ds = .ok fc.env := by
 
-== ConLeche/Cached/Installed.lean#L254-L258
-   254  structure InstalledEnv (pins : List NatOpPinSet) (ds : List Declaration) where
-   255    fe : FEnv
-   256    pend : Array PendingCheck
-   257    run : ∃ (n : Nat),
-   258      InstallRun mode pins ds (0, mkFEnv Env.empty, #[]) (n, fe, pend)
+== ConLeche/Cached/Installed.lean#L252-L256
+   252  structure InstalledEnv (pins : List NatOpPinSet) (ds : List Declaration) where
+   253    fe : FEnv
+   254    pend : Array PendingCheck
+   255    run : ∃ (n : Nat),
+   256      InstallRun mode pins ds (0, mkFEnv Env.empty, #[]) (n, fe, pend)
 
-== ConLeche/Cached/Installed.lean#L210-L218
-   210  inductive InstallRun (pins : List NatOpPinSet) :
-   211      List Declaration → (Nat × FEnv × Array PendingCheck) →
-   212      (Nat × FEnv × Array PendingCheck) → Prop where
-   213    | nil (p : Nat × FEnv × Array PendingCheck) :
-   214        InstallRun pins [] p p
-   215    | cons {pd : Declaration} {ds : List Declaration} {p p₁ p' : Nat × FEnv × Array PendingCheck}
-   216        (h : annotDeclStep mode pins p pd = .ok p₁)
-   217        (rest : InstallRun pins ds p₁ p') :
-   218        InstallRun pins (pd :: ds) p p'
+== ConLeche/Cached/Installed.lean#L208-L216
+   208  inductive InstallRun (pins : List NatOpPinSet) :
+   209      List Declaration → (Nat × FEnv × Array PendingCheck) →
+   210      (Nat × FEnv × Array PendingCheck) → Prop where
+   211    | nil (p : Nat × FEnv × Array PendingCheck) :
+   212        InstallRun pins [] p p
+   213    | cons {pd : Declaration} {ds : List Declaration} {p p₁ p' : Nat × FEnv × Array PendingCheck}
+   214        (h : installDeclStep mode pins p pd = .ok p₁)
+   215        (rest : InstallRun pins ds p₁ p') :
+   216        InstallRun pins (pd :: ds) p p'
 
-== ConLeche/Cached/Installed.lean#L287-L291
-   287  def GroupChecked {pins : List NatOpPinSet} {ds : List Declaration}
-   288      (e : InstalledEnv mode pins ds) (i : Nat) : Prop :=
-   289    match e.pend[i]? with
-   290    | some pc => ∃ s', checkPending mode e.fe pc {} = .ok ((), s')
-   291    | none => True
+== ConLeche/Cached/Installed.lean#L285-L289
+   285  def GroupChecked {pins : List NatOpPinSet} {ds : List Declaration}
+   286      (e : InstalledEnv mode pins ds) (i : Nat) : Prop :=
+   287    match e.pend[i]? with
+   288    | some pc => ∃ s', checkPending mode e.fe pc {} = .ok ((), s')
+   289    | none => True
 
-== ConLeche/Cached/Installed.lean#L545-L546
-   545  theorem checkDecls_fullyChecked {pins : List NatOpPinSet} {ds : Array Declaration}
-   546      {env : Env} (h : checkDecls mode pins ds = .ok env) :
+== ConLeche/Cached/Installed.lean#L543-L544
+   543  theorem checkDecls_fullyChecked {pins : List NatOpPinSet} {ds : Array Declaration}
+   544      {env : Env} (h : checkDecls mode pins ds = .ok env) :
 
-== ConLeche/Model/InstallRun.lean#L211-L218
-   211  theorem installRun_model (hμ : μ.verifiedChecks = true) {ds : List Declaration}
-   212      {p : Nat × FEnv × Array PendingCheck}
-   213      {q : Nat × FEnv × Array PendingCheck}
-   214      (hrun : InstallRun μ pins ds p q) :
-   215      p.2.1 = mkFEnv p.2.1.env → EnvModelOk V μ p.2.1.env →
-   216      NodupNames q.2.1.env →
-   217      (∀ pc ∈ q.2.2.toList, ∃ s'', checkPending μ q.2.1 pc {} = .ok ((), s'')) →
-   218      EnvModelOk V μ q.2.1.env := by
+== ConLeche/Model/InstallRun.lean#L201-L208
+   201  theorem installRun_model (hμ : μ.verifiedChecks = true) {ds : List Declaration}
+   202      {p : Nat × FEnv × Array PendingCheck}
+   203      {q : Nat × FEnv × Array PendingCheck}
+   204      (hrun : InstallRun μ pins ds p q) :
+   205      p.2.1 = mkFEnv p.2.1.env → EnvModelOk V μ p.2.1.env →
+   206      NodupNames q.2.1.env →
+   207      (∀ pc ∈ q.2.2.toList, ∃ s'', checkPending μ q.2.1 pc {} = .ok ((), s'')) →
+   208      EnvModelOk V μ q.2.1.env := by
 
-== ConLeche/Verify/Cached/KnotCongr.lean#L544-L545
-   544  theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
-   545      ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
+== ConLeche/Verify/Cached/KnotCongr.lean#L444-L445
+   444  theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
+   445      ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
 
-== ConLeche/Model/InstallRun.lean#L239-L241
-   239  theorem fullyChecked_sound (V : Type w) [SetTheory V] (hμ : μ.verifiedChecks = true)
-   240      {ds : List Declaration} (fc : FullyChecked μ pins ds) :
-   241      Nonempty (EnvModelM V μ fc.env) := by
+== ConLeche/Model/InstallRun.lean#L229-L231
+   229  theorem fullyChecked_sound (V : Type w) [SetTheory V] (hμ : μ.verifiedChecks = true)
+   230      {ds : List Declaration} (fc : FullyChecked μ pins ds) :
+   231      Nonempty (EnvModelM V μ fc.env) := by
 
 == ConLeche/Verify/Cached/MainC.lean#L59-L65
     59  theorem no_proof_of_False_cached (V : Type w) [SetTheory V]
@@ -308,18 +304,17 @@
     51  def isDefEqCore (env : Env) (fuel depth : Nat) (a b : Expr) : CheckM Bool :=
     52    (pureFns mode env fuel).defeq depth a b
     53  
-    54  /-- The annotation pass (fueled). -/
-    55  def annotateCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Expr :=
-    56    (pureFns mode env fuel).annotate depth e
+    54  /-- `ensureSort` over the pure knot (fueled). -/
+    55  def ensureSortCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Level :=
+    56    ensureSort (pureFns mode env fuel) env depth e
 
-== ConLeche/Kernel/Core.lean#L2077-L2083
-  2077      (wrap : CoreFns m → CoreFns m) : Nat → CoreFns m
-  2078    | 0 =>
-  2079      { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
-  2080        whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
-  2081        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
-  2082        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
-  2083        annotate := fun _ _ => throw (.internal "fuel exhausted: annotate")
+== ConLeche/Kernel/Core.lean#L1686-L1691
+  1686      (wrap : CoreFns m → CoreFns m) : Nat → CoreFns m
+  1687    | 0 =>
+  1688      { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
+  1689        whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
+  1690        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
+  1691        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
 
 == ConLeche/Model/Fold.lean#L276-L283
    276  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
@@ -343,75 +338,31 @@
    145      c hc hty
    146  
 
-== ConLeche/Model/Denotes.lean#L378-L379
-   378  `EnvModelM V μ env`. -/
-   379  noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
+== ConLeche/Model/Denotes.lean#L343-L344
+   343  `EnvModelM V μ env`. -/
+   344  noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
 
 == tests/layering.sh#L1-L3
      1  #!/usr/bin/env bash
      2  # tests/layering.sh — THE LAYERING GATE (task #161, S1; re-cut at the
      3  # SetR removal, 2026-09-05).
 
-== ConLeche/Kernel/Env.lean#L57
-    57  inductive CheckMode where
+== ConLeche/Kernel/Env.lean#L53
+    53  inductive CheckMode where
 
-== ConLeche/Kernel/Core.lean#L1163
-  1163  /-- The reduction loop's body: run `whnfLoop` at its own step budget. -/
+== ConLeche/Kernel/Core.lean#L1015
+  1015  /-- The reduction loop's body: run `whnfLoop` at its own step budget. -/
 
-== ConLeche/Kernel/Core.lean#L1955
-  1955  datum is `never`, never a typing it does not redo. -/
+== ConLeche/Kernel/Core.lean#L1158
+  1158  def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
 
-== ConLeche/Kernel/PropWhen.lean#L1-L40
-     1  module
-     2  
-     3  public import ConLeche.Kernel.Name
-     4  
-     5  /-!
-     6  # The zero-ness datum `PropWhen` — representation, API and laws
-     7  (task #161; the small-list constructors, 2026-09-06; the canonical
-     8  representation, task #194, 2026-09-06)
-     9  
-    10  The binder annotation of the validated-annotation design: the reading
-    11  of a codomain sort's zero-ness predicate `Z(l) = {φ | eval φ l = 0}`.
-    12  
-    13  **This module is the datum's whole boundary.**  It owns the
-    14  representation, the API that is the only way to build, read and
-    15  compare a datum, and — following the `Std.HashMap` pattern that
-    16  `CLAUDE.md` licenses for a self-contained data-structure verification
-    17  — every law about the datum *alone*.  Downstream never re-proves them
-    18  and never sees a constructor:
-    19  
-    20  * the readout `holds` and its algebra (`holds_inter`,
-    21    `holds_bindZ_go`, `holds_ext`);
-    22  * the comparison — which is **equality**: `=`/`==`/`DecidableEq`
-    23    decide zero-ness agreement at every valuation (`eq_iff_holds`), so
-    24    the checker's validation and defeq sites compare with `==` and no
-    25    separate comparison exists (task #197);
-    26  * the `inter`/`bindZ` algebra the substitution laws rest on
-    27    (`inter_assoc`, `bindZ_inter`, `bindZ_go_append`,
-    28    `bindZ_congr_names`, `bindZ_unit`, `paramsDefined_inter_of`).
-    29  
-    30  **Canonical by construction (task #194).**  Every value of the type is
-    31  the unique representative of its parameter *set*: the parameter list
-    32  is strictly ascending in a total order on names (`Name.cmp`, defined
-    33  here), the invariant is carried by the constructors themselves, and
-    34  every producer (`ifAllZero`, `inter`, `bindZ`, hence
-    35  `Level.zeronessOf`/`Level.substPW`) normalizes.  Consequently
-    36  `ifAllZero ps = ifAllZero qs ↔ (∀ n, n ∈ ps ↔ n ∈ qs)`
-    37  (`ifAllZero_eq_iff`), `=`/`==`/`DecidableEq`/`Hashable` all decide
-    38  zero-ness agreement, and the level-instantiation identity law
-    39  (`Level.substPW_self`, `ConLeche/Verify/PropWhen.lean`) holds
-    40  unconditionally — amendment 2's counterexample (DESIGN.md, task #161
+== ConLeche/Kernel/Core.lean#L1300
+  1300  def defeqLams (r : CoreFns m) :
 
-== ConLeche/Kernel/Expr.lean#L100-L102
-   100  structure BinderMeta where
-   101    pw : PropWhen
-   102    deriving DecidableEq, Repr, Hashable
-
-== ConLeche/Verify/Cached/AgreeFloor.lean#L1166-L1168
-  1166  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}
-  1167      {env : Env} (h : checkDecls mode pins ds = .ok env) :
-  1168      envSkels env = streamSkels ds.toList := by
+== ConLeche/Verify/Cached/AgreeFloor.lean#L1165-L1167
+  1165  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}
+  1166      {env : Env} (h : checkDecls mode pins ds = .ok env) :
+  1167      envSkels env = streamSkels ds.toList := by
 
 == ConLeche/Kernel/Exclusive.lean#L6-L42
      6  # `withExclusive`: the reference-count read behind the walk memo
@@ -452,20 +403,23 @@
     41  only when `!is_likely_unshared(e)` — the same read.  The walks memoise
     42  exactly the nodes this primitive reports shared.
 
-== ConLeche/Term/Syntax.lean#L186-L214
-   186  inductive Term where
-   187    /-- de Bruijn index -/
-   188    | bvar (i : Nat)
-   189    /-- `Sort u` at a concrete level -/
-   190    | sort (u : Nat)
-   191    /-- a built-in constant at a concrete level instantiation -/
-   192    | const (c : BConst) (us : List Nat)
-   193    /-- application -/
-   194    | app (f a : Term)
-   195    /-- `fun (_ : ty) => body` -/
-   196    | lam (ty body : Term)
-   197    /-- `(_ : ty) → body` -/
-   198    | pi (ty body : Term)
+== ConLeche/Term/Syntax.lean#L183-L214
+   183  inductive Term where
+   184    /-- de Bruijn index -/
+   185    | bvar (i : Nat)
+   186    /-- `Sort u` at a concrete level -/
+   187    | sort (u : Nat)
+   188    /-- a built-in constant at a concrete level instantiation -/
+   189    | const (c : BConst) (us : List Nat)
+   190    /-- application -/
+   191    | app (f a : Term)
+   192    /-- `fun (_ : ty) => body` -/
+   193    | lam (ty body : Term)
+   194    /-- `(_ : ty) → body` -/
+   195    | pi (ty body : Term)
+   196    /-- `let _ := val; body`, **without the type**: the body is under one
+   197    binder, read at the value -/
+   198    | letE (val body : Term)
    199    /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
    200    `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
    201    and a census (task #237) found no definition and no theorem in any
@@ -483,258 +437,270 @@
    213    | prf
    214    deriving Repr, Inhabited
 
-== ConLeche/Semantics/Syntax.lean#L72-L98
-    72    | const (c : BConst) (us : List Nat)
-    73    /-- application -/
-    74    | app (f a : AnnotTerm)
-    75    /-- `fun (_ : ty) => body`, where `body`'s **type** has sort `u` —
-    76    the codomain numeral `interp` dispatches on (tier B's F4; the
-    77    #152 resolution made it derivable, and `Annotates.lam` caches it) -/
-    78    | lam (u : Nat) (ty body : AnnotTerm)
-    79    /-- `(_ : ty) → body`, with `ty`'s sort `u` and `body`'s sort `v` -/
-    80    | pi (u v : Nat) (ty body : AnnotTerm)
-    81    /-- `@Eq _ lhs rhs`; no annotation, and no type slot either, as in
-    82    `Term` (task #237) -/
-    83    | eqE (lhs rhs : AnnotTerm)
-    84    /-- first field of a pair -/
-    85    | fst (e : AnnotTerm)
-    86    /-- second field of a pair -/
-    87    | snd (e : AnnotTerm)
-    88    /-- the canonical (irrelevant) proof of a derivable equation -/
-    89    | prf
-    90    deriving Repr, Inhabited
-    91  
-    92  namespace AnnotTerm
-    93  
-    94  /-- Forget the annotations. -/
-    95  def erase : AnnotTerm → Term
-    96    | .bvar i => .bvar i
-    97    | .sort u => .sort u
-    98    | .const c us => .const c us
+== ConLeche/Semantics/Syntax.lean#L42-L67
+    42  inductive AnnotTerm where
+    43    /-- de Bruijn index -/
+    44    | bvar (i : Nat)
+    45    /-- `Sort u` at a concrete level -/
+    46    | sort (u : Nat)
+    47    /-- a built-in constant at a concrete level instantiation -/
+    48    | const (c : BConst) (us : List Nat)
+    49    /-- application -/
+    50    | app (f a : AnnotTerm)
+    51    /-- `fun (_ : ty) => body` -/
+    52    | lam (ty body : AnnotTerm)
+    53    /-- `(_ : ty) → body` -/
+    54    | pi (ty body : AnnotTerm)
+    55    /-- `let _ := val; body`: the body under one binder, read at the
+    56    value; no type slot, as in `Term` -/
+    57    | letE (val body : AnnotTerm)
+    58    /-- `@Eq _ lhs rhs`; no annotation, and no type slot either, as in
+    59    `Term` (task #237) -/
+    60    | eqE (lhs rhs : AnnotTerm)
+    61    /-- first field of a pair -/
+    62    | fst (e : AnnotTerm)
+    63    /-- second field of a pair -/
+    64    | snd (e : AnnotTerm)
+    65    /-- the canonical (irrelevant) proof of a derivable equation -/
+    66    | prf
+    67    deriving Repr, Inhabited
 
-== ConLeche/Semantics/Interp.lean#L153-L164
-   153    | _, .const c us => bval V c us
-   154    | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
-   155    | ρ, .lam v A b => lamR v (interp ρ A) fun x => interp (cons x ρ) b
-   156    | ρ, .pi _ v A B => piR v (interp ρ A) fun x => interp (cons x ρ) B
-   157    | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
-   158    | ρ, .fst e => sfst (interp ρ e)
-   159    | ρ, .snd e => ssnd (interp ρ e)
-   160    | _, .prf => pt
-   161  
-   162  @[simp] theorem interp_bvar (ρ : Nat → V) (i : Nat) :
-   163      interp V ρ (.bvar i) = ρ i := rfl
-   164  @[simp] theorem interp_sort (ρ : Nat → V) (u : Nat) :
+== ConLeche/Semantics/Interp.lean#L134-L145
+   134  noncomputable def interp : (Nat → V) → AnnotTerm → V
+   135    | ρ, .bvar i => ρ i
+   136    | _, .sort u => univ u
+   137    | _, .const c us => bval V c us
+   138    | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
+   139    | ρ, .lam A b => lamV (interp ρ A) fun x => interp (cons x ρ) b
+   140    | ρ, .pi A B => piV (interp ρ A) fun x => interp (cons x ρ) B
+   141    | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
+   142    | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
+   143    | ρ, .fst e => sfst (interp ρ e)
+   144    | ρ, .snd e => ssnd (interp ρ e)
+   145    | _, .prf => pt
 
-== ConLeche/Semantics/WellDenoted.lean#L64-L94
-    64  def WellDenoted : (Nat → V) → AnnotTerm → Prop
-    65    | ρ, .pi _u _v A B =>
-    66      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
-    67      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
-    68      (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))
-    69    | ρ, .lam v A b =>
-    70      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
-    71      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) b) ∧
-    72      ∃ B : V → V,
-    73        (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
-    74        (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) ∧
-    75        (v = 0 → ∀ x, x ∈ˢ interp V ρ A → B x ∈ˢ (univZero : V))
-    76    | ρ, .app f a =>
-    77      WellDenoted ρ f ∧ WellDenoted ρ a ∧
-    78      ∃ (v : Nat) (A : V) (B : V → V),
-    79        interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
-    80        (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
-    81        (v ≠ 0 → IsTy A)
-    82    | ρ, .fst e =>
-    83      WellDenoted ρ e ∧
-    84      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
-    85        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
-    86    | ρ, .snd e =>
-    87      WellDenoted ρ e ∧
-    88      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
-    89        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
-    90    | ρ, .eqE a b => WellDenoted ρ a ∧ WellDenoted ρ b
-    91    | _, .bvar _ => True
-    92    | _, .sort _ => True
-    93    | _, .const _ _ => True
-    94    | _, .prf => True
+== ConLeche/Semantics/WellDenoted.lean#L50-L80
+    50  def WellDenoted : (Nat → V) → AnnotTerm → Prop
+    51    | ρ, .pi A B =>
+    52      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
+    53      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
+    54      (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))
+    55    | ρ, .lam A b =>
+    56      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
+    57      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) b) ∧
+    58      ∃ B : V → V,
+    59        (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
+    60        (∀ x, x ∈ˢ interp V ρ A → IsTy (B x))
+    61    | ρ, .app f a =>
+    62      WellDenoted ρ f ∧ WellDenoted ρ a ∧
+    63      ∃ (v : Nat) (A : V) (B : V → V),
+    64        interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
+    65        (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
+    66        (v ≠ 0 → IsTy A)
+    67    | ρ, .fst e =>
+    68      WellDenoted ρ e ∧
+    69      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
+    70        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
+    71    | ρ, .snd e =>
+    72      WellDenoted ρ e ∧
+    73      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
+    74        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
+    75    | ρ, .eqE a b => WellDenoted ρ a ∧ WellDenoted ρ b
+    76    | ρ, .letE v b => WellDenoted ρ v ∧ WellDenoted (cons (interp V ρ v) ρ) b
+    77    | _, .bvar _ => True
+    78    | _, .sort _ => True
+    79    | _, .const _ _ => True
+    80    | _, .prf => True
 
-== ConLeche/Semantics/WellDenoted.lean#L147-L321
-   147  /-! ### The substitution metatheory -/
-   148  
-   149  /-- Truthfulness through lifting. -/
-   150  theorem WellDenoted_liftN (n : Nat) :
-   151      ∀ (e : AnnotTerm) (k : Nat) (ρ : Nat → V),
-   152        WellDenoted V ρ (e.liftN n k) ↔ WellDenoted V (shiftE n k ρ) e := by
-   153    intro e
-   154    induction e with
-   155    | bvar i =>
+== ConLeche/Semantics/WellDenoted.lean#L137-L324
+   137  /-! ### The substitution metatheory -/
+   138  
+   139  /-- Truthfulness through lifting. -/
+   140  theorem WellDenoted_liftN (n : Nat) :
+   141      ∀ (e : AnnotTerm) (k : Nat) (ρ : Nat → V),
+   142        WellDenoted V ρ (e.liftN n k) ↔ WellDenoted V (shiftE n k ρ) e := by
+   143    intro e
+   144    induction e with
+   145    | bvar i =>
+   146      intro k ρ
+   147      simp only [AnnotTerm.liftN_bvar]
+   148      split <;> simp
+   149    | sort u => intro k ρ; simp
+   150    | const c us => intro k ρ; simp
+   151    | app f a ihf iha =>
+   152      intro k ρ
+   153      rw [AnnotTerm.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
+   154        interp_liftN, interp_liftN]
+   155    | lam A b ihA ihb =>
    156      intro k ρ
-   157      simp only [AnnotTerm.liftN_bvar]
-   158      split <;> simp
-   159    | sort u => intro k ρ; simp
-   160    | const c us => intro k ρ; simp
-   161    | app f a ihf iha =>
-   162      intro k ρ
-   163      rw [AnnotTerm.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
-   164        interp_liftN, interp_liftN]
-   165    | lam v A b ihA ihb =>
-   166      intro k ρ
-   167      rw [AnnotTerm.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
-   168      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   169        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   170        (exists_congr fun B => and_congr
-   171          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
-   172      · rw [ihb, cons_shiftE]
-   173      · rw [interp_liftN, cons_shiftE]
-   174    | pi u v A B ihA ihB =>
-   175      intro k ρ
-   176      rw [AnnotTerm.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
-   177      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   178        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   179        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
-   180      · rw [ihB, cons_shiftE]
-   181      · rw [interp_liftN, cons_shiftE]
-   182    | eqE a b iha ihb =>
-   183      intro k ρ
-   184      rw [AnnotTerm.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
-   185    | fst e ihe =>
-   186      intro k ρ
-   187      rw [AnnotTerm.liftN_fst, WellDenoted_fst, WellDenoted_fst, ihe,
-   188        interp_liftN]
-   189    | snd e ihe =>
-   190      intro k ρ
-   191      rw [AnnotTerm.liftN_snd, WellDenoted_snd, WellDenoted_snd, ihe,
-   192        interp_liftN]
-   193    | prf => intro k ρ; simp
-   194  
-   195  /-- Truthfulness through instantiation. -/
-   196  theorem WellDenoted_inst :
-   197      ∀ (e a : AnnotTerm) (k : Nat) (ρ : Nat → V),
-   198        WellDenoted V (shiftE k 0 ρ) a →
-   199        (WellDenoted V ρ (e.inst a k) ↔
-   200          WellDenoted V (instE k (interp V (shiftE k 0 ρ) a) ρ) e) := by
-   201    intro e
-   202    induction e with
-   203    | bvar i =>
-   204      intro a k ρ ha
-   205      show WellDenoted V ρ
-   206          (if i < k then .bvar i
-   207           else if i = k then AnnotTerm.liftN k a else .bvar (i - 1)) ↔ _
-   208      by_cases h : i < k
-   209      · simp [ite_eq_left h]
-   210      · by_cases h2 : i = k
-   211        · simp only [ite_eq_right h, ite_eq_left h2, WellDenoted_bvar, iff_true]
-   212          exact (WellDenoted_liftN V k a 0 ρ).mpr ha
-   213        · simp [ite_eq_right h, ite_eq_right h2]
-   214    | sort u => intro a k ρ _; simp [AnnotTerm.inst]
-   215    | const c us => intro a k ρ _; simp [AnnotTerm.inst]
-   216    | app f b ihf ihb =>
-   217      intro a k ρ ha
-   218      rw [AnnotTerm.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
-   219        ihb a k ρ ha, interp_inst, interp_inst]
-   220    | lam v A b ihA ihb =>
-   221      intro a k ρ ha
-   222      rw [AnnotTerm.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
-   223        interp_inst]
-   224      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   225        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   226        (exists_congr fun B => and_congr
-   227          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
-   228      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-   229          rw [shiftE_succ_cons]; exact ha
-   230        rw [ihb a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
-   231      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-   232          rw [shiftE_succ_cons]; exact ha
-   233        rw [interp_inst, shiftE_succ_cons, cons_instE]
-   234    | pi u v A B ihA ihB =>
-   235      intro a k ρ ha
-   236      rw [AnnotTerm.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
-   237        interp_inst]
-   238      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   239        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   240        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
-   241      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-   242          rw [shiftE_succ_cons]; exact ha
-   243        rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
-   244      · rw [interp_inst, shiftE_succ_cons, cons_instE]
-   245    | eqE x y ihx ihy =>
-   246      intro a k ρ ha
-   247      rw [AnnotTerm.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
-   248        ihy a k ρ ha]
-   249    | fst e ihe =>
-   250      intro a k ρ ha
-   251      rw [AnnotTerm.inst_fst, WellDenoted_fst, WellDenoted_fst, ihe a k ρ ha,
-   252        interp_inst]
-   253    | snd e ihe =>
-   254      intro a k ρ ha
-   255      rw [AnnotTerm.inst_snd, WellDenoted_snd, WellDenoted_snd, ihe a k ρ ha,
-   256        interp_inst]
-   257    | prf => intro a k ρ _; simp [AnnotTerm.inst]
-   258  
-   259  /-- Substitution at the outermost binder — the β/ζ transport form. -/
-   260  theorem WellDenoted_inst0 {e a : AnnotTerm} {ρ : Nat → V}
-   261      (ha : WellDenoted V ρ a) :
-   262      WellDenoted V ρ (e.inst a) ↔
-   263        WellDenoted V (cons (interp V ρ a) ρ) e := by
-   264    have h := WellDenoted_inst V e a 0 ρ (by rwa [shiftE_zero_zero])
-   265    rwa [shiftE_zero_zero, instE_zero] at h
-   266  
-   267  /-! ### The graded β step, complete
-   268  
-   269  `Red`'s β cases in both conjuncts, at a provably-positive codomain
-   270  kind: the interp-equality *and* the truthfulness transport, from the
-   271  subject's `WellDenoted` alone — no argument re-check.  This is the
-   272  family-2 removal's core theorem; `app_lamR_pos`
-   273  (`SetModel/Ops.lean`) is its value-level kernel.  At kind `0` the domain
-   274  membership is not recoverable (impredicativity — the #49/#73 residue),
-   275  which is why the runtime gate is a kind test, not a deletion. -/
-   276  theorem WellDenoted_beta_pos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
-   277      {ρ : Nat → V}
-   278      (h : WellDenoted V ρ (.app (.lam v A b) a)) :
-   279      interp V ρ (.app (.lam v A b) a) = interp V ρ (b.inst a) ∧
-   280      WellDenoted V ρ (b.inst a) := by
-   281    rw [WellDenoted_app] at h
-   282    obtain ⟨hlam, ha, v', A', B', hslot, hmem, -, -⟩ := h
-   283    rw [WellDenoted_lam] at hlam
-   284    obtain ⟨-, -, hbody, B, hfib, -, -⟩ := hlam
-   285    -- the slot's product is in the graph regime: the λ is not `pt`
-   286    have hv' : v' ≠ 0 := by
-   287      intro h0
-   288      subst h0
-   289      have h1 := eq_pt_of_mem_piR_zero hslot
-   290      rw [interp_lam] at h1
-   291      exact lamR_ne_pt hv h1
-   292    -- rigidity pins the slot's domain to the λ's own
-   293    have hown : interp V ρ (.lam v A b)
-   294        ∈ˢ piR v (interp V ρ A) B := by
-   295      rw [interp_lam]
-   296      exact lamR_mem hfib
-   297    have hAA : interp V ρ A = A' := piR_dom_unique hv hv' hown hslot
-   298    have haA : interp V ρ a ∈ˢ interp V ρ A := by
-   299      rw [hAA]
-   300      exact hmem
-   301    refine ⟨?_, ?_⟩
-   302    · rw [interp_app, interp_lam, app_lamR_pos hv haA, interp_inst0]
-   303    · exact (WellDenoted_inst0 V ha).mpr (hbody _ haA)
-   304  
-   305  
-   306  /-- The graded β step at kind `0` — the residue side: with the
-   307  argument membership supplied (the retained `Prop`-codomain runtime
-   308  check's fact), the equality holds because both sides are the canonical
-   309  proof, and the transport is the hereditary component. -/
-   310  theorem WellDenoted_beta_zero {A b a : AnnotTerm} {ρ : Nat → V}
-   311      (h : WellDenoted V ρ (.app (.lam 0 A b) a))
-   312      (hmem : interp V ρ a ∈ˢ interp V ρ A) :
-   313      interp V ρ (.app (.lam 0 A b) a) = interp V ρ (b.inst a) ∧
-   314      WellDenoted V ρ (b.inst a) := by
-   315    rw [WellDenoted_app] at h
-   316    obtain ⟨hlam, ha, -⟩ := h
-   317    rw [WellDenoted_lam] at hlam
-   318    obtain ⟨-, -, hbody, B, hfib, -, hz⟩ := hlam
-   319    refine ⟨?_, (WellDenoted_inst0 V ha).mpr (hbody _ hmem)⟩
-   320    rw [interp_app, interp_lam, lamR_zero, app_pt, interp_inst0]
-   321    exact (eq_pt_of_mem_univZero (hz rfl _ hmem) (hfib _ hmem)).symm
+   157      rw [AnnotTerm.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
+   158      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   159        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   160        (exists_congr fun B => and_congr
+   161          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
+   162      · rw [ihb, cons_shiftE]
+   163      · rw [interp_liftN, cons_shiftE]
+   164    | pi A B ihA ihB =>
+   165      intro k ρ
+   166      rw [AnnotTerm.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
+   167      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   168        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   169        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+   170      · rw [ihB, cons_shiftE]
+   171      · rw [interp_liftN, cons_shiftE]
+   172    | letE v b ihv ihb =>
+   173      intro k ρ
+   174      rw [AnnotTerm.liftN_letE, WellDenoted_letE, WellDenoted_letE, ihv,
+   175        interp_liftN, ihb, cons_shiftE]
+   176    | eqE a b iha ihb =>
+   177      intro k ρ
+   178      rw [AnnotTerm.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
+   179    | fst e ihe =>
+   180      intro k ρ
+   181      rw [AnnotTerm.liftN_fst, WellDenoted_fst, WellDenoted_fst, ihe,
+   182        interp_liftN]
+   183    | snd e ihe =>
+   184      intro k ρ
+   185      rw [AnnotTerm.liftN_snd, WellDenoted_snd, WellDenoted_snd, ihe,
+   186        interp_liftN]
+   187    | prf => intro k ρ; simp
+   188  
+   189  /-- Truthfulness through instantiation. -/
+   190  theorem WellDenoted_inst :
+   191      ∀ (e a : AnnotTerm) (k : Nat) (ρ : Nat → V),
+   192        WellDenoted V (shiftE k 0 ρ) a →
+   193        (WellDenoted V ρ (e.inst a k) ↔
+   194          WellDenoted V (instE k (interp V (shiftE k 0 ρ) a) ρ) e) := by
+   195    intro e
+   196    induction e with
+   197    | bvar i =>
+   198      intro a k ρ ha
+   199      show WellDenoted V ρ
+   200          (if i < k then .bvar i
+   201           else if i = k then AnnotTerm.liftN k a else .bvar (i - 1)) ↔ _
+   202      by_cases h : i < k
+   203      · simp [ite_eq_left h]
+   204      · by_cases h2 : i = k
+   205        · simp only [ite_eq_right h, ite_eq_left h2, WellDenoted_bvar, iff_true]
+   206          exact (WellDenoted_liftN V k a 0 ρ).mpr ha
+   207        · simp [ite_eq_right h, ite_eq_right h2]
+   208    | sort u => intro a k ρ _; simp [AnnotTerm.inst]
+   209    | const c us => intro a k ρ _; simp [AnnotTerm.inst]
+   210    | app f b ihf ihb =>
+   211      intro a k ρ ha
+   212      rw [AnnotTerm.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
+   213        ihb a k ρ ha, interp_inst, interp_inst]
+   214    | lam A b ihA ihb =>
+   215      intro a k ρ ha
+   216      rw [AnnotTerm.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
+   217        interp_inst]
+   218      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   219        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   220        (exists_congr fun B => and_congr
+   221          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
+   222      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+   223          rw [shiftE_succ_cons]; exact ha
+   224        rw [ihb a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
+   225      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+   226          rw [shiftE_succ_cons]; exact ha
+   227        rw [interp_inst, shiftE_succ_cons, cons_instE]
+   228    | pi A B ihA ihB =>
+   229      intro a k ρ ha
+   230      rw [AnnotTerm.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
+   231        interp_inst]
+   232      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   233        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   234        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+   235      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+   236          rw [shiftE_succ_cons]; exact ha
+   237        rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
+   238      · rw [interp_inst, shiftE_succ_cons, cons_instE]
+   239    | letE v b ihv ihb =>
+   240      intro a k ρ ha
+   241      rw [AnnotTerm.inst_letE, WellDenoted_letE, WellDenoted_letE, ihv a k ρ ha,
+   242        interp_inst]
+   243      refine and_congr Iff.rfl ?_
+   244      have ha' : WellDenoted V (shiftE (k + 1) 0
+   245          (cons (interp V (instE k (interp V (shiftE k 0 ρ) a) ρ) v) ρ)) a := by
+   246        rw [shiftE_succ_cons]; exact ha
+   247      rw [ihb a (k + 1) _ ha', shiftE_succ_cons, cons_instE]
+   248    | eqE x y ihx ihy =>
+   249      intro a k ρ ha
+   250      rw [AnnotTerm.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
+   251        ihy a k ρ ha]
+   252    | fst e ihe =>
+   253      intro a k ρ ha
+   254      rw [AnnotTerm.inst_fst, WellDenoted_fst, WellDenoted_fst, ihe a k ρ ha,
+   255        interp_inst]
+   256    | snd e ihe =>
+   257      intro a k ρ ha
+   258      rw [AnnotTerm.inst_snd, WellDenoted_snd, WellDenoted_snd, ihe a k ρ ha,
+   259        interp_inst]
+   260    | prf => intro a k ρ _; simp [AnnotTerm.inst]
+   261  
+   262  /-- Substitution at the outermost binder — the β/ζ transport form. -/
+   263  theorem WellDenoted_inst0 {e a : AnnotTerm} {ρ : Nat → V}
+   264      (ha : WellDenoted V ρ a) :
+   265      WellDenoted V ρ (e.inst a) ↔
+   266        WellDenoted V (cons (interp V ρ a) ρ) e := by
+   267    have h := WellDenoted_inst V e a 0 ρ (by rwa [shiftE_zero_zero])
+   268    rwa [shiftE_zero_zero, instE_zero] at h
+   269  
+   270  /-- **ζ, graded**: a `let` interprets as its reduct, and with its value
+   271  graded it is graded exactly when its reduct is.  Unconditional: no
+   272  binder, so no regime. -/
+   273  theorem interp_zeta (v b : AnnotTerm) (ρ : Nat → V) :
+   274      interp V ρ (.letE v b) = interp V ρ (b.inst v) := by
+   275    rw [interp_letE, interp_inst0]
+   276  
+   277  theorem WellDenoted_zeta {v b : AnnotTerm} {ρ : Nat → V}
+   278      (hv : WellDenoted V ρ v) :
+   279      WellDenoted V ρ (.letE v b) ↔ WellDenoted V ρ (b.inst v) := by
+   280    rw [WellDenoted_letE, WellDenoted_inst0 V hv]
+   281    exact and_iff_right hv
+   282  
+   283  /-! ### The graded β step
+   284  
+   285  At a redex that is not the point, from the subject's `WellDenoted`
+   286  alone: the λ is not the point (`app_pt`), so it is a graph and the
+   287  slot's function space is in the graph regime; the graph fixes its
+   288  domain (`piR_dom_unique`), so the argument lies in the λ's domain, and
+   289  β is `app_lamV`.  At the point there is nothing to show: the claims
+   290  that read this are conditional on "not the point". -/
+   291  
+   292  /-- The λ's own membership, read off its clause: an abstraction whose
+   293  body is bounded by a family of types is a member of that family's
+   294  function space. -/
+   295  theorem WellDenoted_lam_mem {A b : AnnotTerm} {ρ : Nat → V}
+   296      (h : WellDenoted V ρ (.lam A b)) :
+   297      ∃ B : V → V, interp V ρ (.lam A b) ∈ˢ piV (interp V ρ A) B ∧
+   298        (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) := by
+   299    rw [WellDenoted_lam] at h
+   300    obtain ⟨-, -, -, B, hfib, hty⟩ := h
+   301    exact ⟨B, by rw [interp_lam]; exact lamV_mem hfib hty, hty⟩
+   302  
+   303  /-- **The graded β step** at a redex that is not the point. -/
+   304  theorem WellDenoted_beta {A b a : AnnotTerm} {ρ : Nat → V}
+   305      (h : WellDenoted V ρ (.app (.lam A b) a))
+   306      (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
+   307      interp V ρ a ∈ˢ interp V ρ A ∧
+   308      interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
+   309      WellDenoted V ρ (b.inst a) := by
+   310    rw [WellDenoted_app] at h
+   311    obtain ⟨hlam, ha, v', A', B', hslot, hmem, -, -⟩ := h
+   312    have hlne : interp V ρ (.lam A b) ≠ pt := by
+   313      intro h0; apply hne; rw [interp_app, h0, app_pt]
+   314    have hv' : v' ≠ 0 := by
+   315      intro h0; subst h0; exact hlne (eq_pt_of_mem_piR_zero hslot)
+   316    obtain ⟨-, -, hbody, B, hfib, -⟩ := (WellDenoted_lam V ρ A b).mp hlam
+   317    have hgraph : interp V ρ (.lam A b) = graph (fun x => interp V (cons x ρ) b) (interp V ρ A) := by
+   318      rw [interp_lam] at hlne ⊢; exact lamV_eq_graph hlne
+   319    have hown : interp V ρ (.lam A b) ∈ˢ piR 1 (interp V ρ A) B := by
+   320      rw [hgraph, piR_pos (by decide)]; exact graph_mem_piSet hfib
+   321    have hAA : interp V ρ A = A' := piR_dom_unique (by decide) hv' hown hslot
+   322    have haA : interp V ρ a ∈ˢ interp V ρ A := hAA ▸ hmem
+   323    refine ⟨haA, ?_, (WellDenoted_inst0 V ha).mpr (hbody _ haA)⟩
+   324    rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
 == ConLeche/Model/Annot/EnvModel.lean#L38-L67
     38  structure EnvModel (env : Env) where
@@ -768,142 +734,151 @@
     66    acval_wellDenoted : ∀ (n : Name) (ψ : Name → Nat) (ρ : Nat → V),
     67      WellDenoted V ρ (acval n ψ)
 
-== ConLeche/Model/Denotes.lean#L220-L226
-   220  term's closure under `Denotes` at the interpreted leaves. -/
-   221  theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
-   222      (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat} :
-   223      ∀ (d : Nat) (e : Expr) {ta : AnnotTerm},
-   224        denoteMeta acval env φ d e = some ta →
-   225        Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
-   226        ∀ ρ : Nat → V, WellDenotedV V ρ ta →
+== ConLeche/Model/Denotes.lean#L193-L199
+   193  theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
+   194      (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat} :
+   195      ∀ (d : Nat) (e : Expr) {ta : AnnotTerm},
+   196        denoteMeta acval env φ d e = some ta →
+   197        Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
+   198        ∀ ρ : Nat → V,
+   199          Denotes (cvalOf (V := V) acval) env φ ρ (closeN d e) (interp V ρ ta) := by
 
-== ConLeche/Model/Claims.lean#L56-L123
-    56  /-- Head normalisation, dual success, P currency. -/
-    57  @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-    58      (φ : Name → Nat) (fuel : Nat) : Prop :=
-    59    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
-    60      whnfCore μ env fuel d e = .ok e' →
-    61      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
-    62      Expr.LeavesBounded e →
-    63      ∀ {ea ea' : AnnotTerm},
-    64        CtxOk m φ d Δa e →
-    65        denoteMeta m.acval env φ d e = some ea →
-    66        denoteMeta m.acval env φ d e' = some ea' →
-    67        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-    68        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
-    69          ∀ ρ : Nat → V, Sat V Δa ρ →
-    70            interp V ρ ea = interp V ρ ea'
-    71  
-    72  /-- The reduction loop, dual success, P currency. -/
-    73  @[expose] def WhnfClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-    74      (φ : Name → Nat) (fuel : Nat) : Prop :=
-    75    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
-    76      whnf μ env fuel d e = .ok e' →
-    77      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
-    78      Expr.LeavesBounded e →
-    79      ∀ {ea ea' : AnnotTerm},
-    80        CtxOk m φ d Δa e →
-    81        denoteMeta m.acval env φ d e = some ea →
-    82        denoteMeta m.acval env φ d e' = some ea' →
-    83        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-    84        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
-    85          ∀ ρ : Nat → V, Sat V Δa ρ →
-    86            interp V ρ ea = interp V ρ ea'
-    87  
-    88  /-- Definitional equality, P currency. -/
-    89  @[expose] def DefEqClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-    90      (φ : Name → Nat) (fuel : Nat) : Prop :=
-    91    ∀ {d : Nat} {a b : Expr} {Δa : List AnnotTerm},
-    92      ConLeche.isDefEqCore μ env fuel d a b = .ok true →
-    93      Expr.WScoped d a → a.looseBVarsBounded 0 = true →
-    94      Expr.LeavesBounded a →
-    95      Expr.WScoped d b → b.looseBVarsBounded 0 = true →
-    96      Expr.LeavesBounded b →
-    97      ∀ {aa ba : AnnotTerm},
-    98        CtxOk m φ d Δa a →
-    99        CtxOk m φ d Δa b →
-   100        denoteMeta m.acval env φ d a = some aa →
-   101        denoteMeta m.acval env φ d b = some ba →
-   102        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ aa) →
-   103        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ba) →
-   104        ∀ ρ : Nat → V, Sat V Δa ρ →
-   105          interp V ρ aa = interp V ρ ba
-   106  
-   107  /-- Inference, dual success, P currency: the subject's and the
-   108  type's truthfulness — bit validity included — are *conclusions*, and
-   109  the type denotes a type. -/
-   110  @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-   111      (φ : Name → Nat) (fuel : Nat) : Prop :=
-   112    ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
-   113      inferTypeCore μ env fuel d e = .ok t →
-   114      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
-   115      Expr.LeavesBounded e →
-   116      ∀ {ea ta : AnnotTerm},
-   117        CtxOk m φ d Δa e →
-   118        denoteMeta m.acval env φ d e = some ea →
-   119        denoteMeta m.acval env φ d t = some ta →
-   120        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) ∧
-   121          (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
-   122          ∀ ρ : Nat → V, Sat V Δa ρ →
-   123            interp V ρ ea ∈ˢ interp V ρ ta
+== ConLeche/Model/Claims.lean#L56-L132
+    56  /-- Head normalisation, dual success, P currency, conditional on the
+    57  point (task #342, L9): the reduct is graded and equal where the subject
+    58  is not the point. -/
+    59  @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+    60      (φ : Name → Nat) (fuel : Nat) : Prop :=
+    61    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
+    62      whnfCore μ env fuel d e = .ok e' →
+    63      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
+    64      Expr.LeavesBounded e →
+    65      ∀ {ea ea' : AnnotTerm},
+    66        CtxOk m φ d Δa e →
+    67        denoteMeta m.acval env φ d e = some ea →
+    68        denoteMeta m.acval env φ d e' = some ea' →
+    69        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+    70        (∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
+    71            WellDenotedV V ρ ea') ∧
+    72          ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
+    73            interp V ρ ea = interp V ρ ea'
+    74  
+    75  /-- The reduction loop, dual success, P currency, conditional on the
+    76  point (task #342, L9). -/
+    77  @[expose] def WhnfClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+    78      (φ : Name → Nat) (fuel : Nat) : Prop :=
+    79    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
+    80      whnf μ env fuel d e = .ok e' →
+    81      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
+    82      Expr.LeavesBounded e →
+    83      ∀ {ea ea' : AnnotTerm},
+    84        CtxOk m φ d Δa e →
+    85        denoteMeta m.acval env φ d e = some ea →
+    86        denoteMeta m.acval env φ d e' = some ea' →
+    87        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+    88        (∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
+    89            WellDenotedV V ρ ea') ∧
+    90          ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
+    91            interp V ρ ea = interp V ρ ea'
+    92  
+    93  /-- Definitional equality, P currency, conditional on the point (task
+    94  #342, L9): two sides that are not the point are equal.  A consumer
+    95  comparing two types or two members of one type closes with
+    96  `eq_of_IsTy_of_ne_pt` / `IsTy.eq_of_ne_pt`. -/
+    97  @[expose] def DefEqClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+    98      (φ : Name → Nat) (fuel : Nat) : Prop :=
+    99    ∀ {d : Nat} {a b : Expr} {Δa : List AnnotTerm},
+   100      ConLeche.isDefEqCore μ env fuel d a b = .ok true →
+   101      Expr.WScoped d a → a.looseBVarsBounded 0 = true →
+   102      Expr.LeavesBounded a →
+   103      Expr.WScoped d b → b.looseBVarsBounded 0 = true →
+   104      Expr.LeavesBounded b →
+   105      ∀ {aa ba : AnnotTerm},
+   106        CtxOk m φ d Δa a →
+   107        CtxOk m φ d Δa b →
+   108        denoteMeta m.acval env φ d a = some aa →
+   109        denoteMeta m.acval env φ d b = some ba →
+   110        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ aa) →
+   111        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ba) →
+   112        ∀ ρ : Nat → V, Sat V Δa ρ →
+   113          interp V ρ aa ≠ pt → interp V ρ ba ≠ pt →
+   114          interp V ρ aa = interp V ρ ba
+   115  
+   116  /-- Inference, dual success, P currency: the subject's and the
+   117  type's truthfulness — bit validity included — are *conclusions*, and
+   118  the type denotes a type. -/
+   119  @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+   120      (φ : Name → Nat) (fuel : Nat) : Prop :=
+   121    ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
+   122      inferTypeCore μ env fuel d e = .ok t →
+   123      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
+   124      Expr.LeavesBounded e →
+   125      ∀ {ea ta : AnnotTerm},
+   126        CtxOk m φ d Δa e →
+   127        denoteMeta m.acval env φ d e = some ea →
+   128        denoteMeta m.acval env φ d t = some ta →
+   129        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) ∧
+   130          (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
+   131          ∀ ρ : Nat → V, Sat V Δa ρ →
+   132            interp V ρ ea ∈ˢ interp V ρ ta
 
-== ConLeche/Rules/Rel.lean#L92-L96
-    92  mutual
-    93  
-    94  /-- **Reduction**: the head steps of `whnfCore` and the `whnf` loop,
-    95  chained. -/
-    96  inductive Red (env : Env) : Nat → Expr → Expr → Prop where
+== ConLeche/Rules/Rel.lean#L98-L102
+    98  mutual
+    99  
+   100  /-- **Reduction**: the head steps of `whnfCore` and the `whnf` loop,
+   101  chained. -/
+   102  inductive Red (env : Env) : Nat → Expr → Expr → Prop where
 
-== ConLeche/Rules/Rel.lean#L309-L332
-   309  /-- **Definitional equality**: the verdict `true` of `isDefEq`.
-   310  
-   311  **There is no `trans` rule, deliberately, and none can be added**
-   312  (task #309, the experiment recorded in DESIGN.md).  The relation is
-   313  not an equivalence on terms: it is the checker's verdict, and the
-   314  checker only ever compares terms that are well-formed *together* — a
-   315  fact the rules never state, because well-formedness (scoping, the
-   316  readability of annotations, the grading of the reading) is semantic
-   317  and may not enter this inductive.  Every rule respects one syntactic
-   318  discipline instead: **the subject of each `DefEq` premise is either a
-   319  subterm of the conclusion or is produced by an existence-form `Red` /
-   320  `Infer` premise** (a reduct, an inferred type), so the soundness proof
-   321  (`ConLeche/Model/Rules/Sound.lean`) always has the premise's terms in
-   322  hand.  `trans` is the unique rule that would break it: its middle
-   323  term comes from nowhere, and with it two rules that are each sound
-   324  alone meet — `fvar` compares free variables by index only (their
-   325  annotations are not compared, as the checker does not), while
-   326  `proofFast` *reads* an annotation to decide "definitely a proof" —
-   327  and derive `DefEq env d (.fvar i ty) (.fvar i' ty')` for every
-   328  `i`, `i'`, which no model satisfies.  The recursive-structure rules
-   329  (`redL`, `natSucc`, `eta`, `structUnit`) are therefore not a
-   330  proof-engineering convenience but what keeps the relation sound; the
-   331  one chaining that is sound, "reduce, then continue", is `redL`, and
-   332  its right-hand and δ variants are derived in `Derived.lean`. -/
+== ConLeche/Rules/Rel.lean#L325-L348
+   325  /-- **Definitional equality**: the verdict `true` of `isDefEq`.
+   326  
+   327  **There is no `trans` rule, deliberately, and none can be added**
+   328  (task #309, the experiment recorded in DESIGN.md).  The relation is
+   329  not an equivalence on terms: it is the checker's verdict, and the
+   330  checker only ever compares terms that are well-formed *together* — a
+   331  fact the rules never state, because well-formedness (scoping, the
+   332  readability of annotations, the grading of the reading) is semantic
+   333  and may not enter this inductive.  Every rule respects one syntactic
+   334  discipline instead: **the subject of each `DefEq` premise is either a
+   335  subterm of the conclusion or is produced by an existence-form `Red` /
+   336  `Infer` premise** (a reduct, an inferred type), so the soundness proof
+   337  (`ConLeche/Model/Rules/Sound.lean`) always has the premise's terms in
+   338  hand.  `trans` is the unique rule that would break it: its middle
+   339  term comes from nowhere, and with it two rules that are each sound
+   340  alone meet — `fvar` compares free variables by index only (their
+   341  types are not compared, as the checker does not), while
+   342  `proofFast` *reads* a head's stored data to decide "definitely a
+   343  proof" — and derive `DefEq env d (.fvar i ty) (.fvar i' ty')` for
+   344  every `i`, `i'`, which no model satisfies.  The recursive-structure rules
+   345  (`redL`, `natSucc`, `eta`, `structUnit`) are therefore not a
+   346  proof-engineering convenience but what keeps the relation sound; the
+   347  one chaining that is sound, "reduce, then continue", is `redL`, and
+   348  its right-hand and δ variants are derived in `Derived.lean`. -/
 
-== ConLeche/Verify/Rules/Bridge.lean#L22-L27
-    22  
-    23  /-- **The bridge**: an accepting run of any of the five entry points
-    24  of the `.verified` pure knot, at any fuel, yields a derivation. -/
-    25  theorem bridge (env : Env) :
-    26      ∀ fuel : Nat,
-    27        WhnfCoreBridge env fuel ∧ WhnfBridge env fuel ∧ DefEqBridge env fuel ∧
+== ConLeche/Verify/Rules/Bridge.lean#L23-L28
+    23  
+    24  /-- **The bridge**: an accepting run of any of the five entry points
+    25  of the `.verified` pure knot, at any fuel, yields a derivation. -/
+    26  theorem bridge (env : Env) :
+    27      ∀ fuel : Nat,
+    28        WhnfCoreBridge env fuel ∧ WhnfBridge env fuel ∧ DefEqBridge env fuel ∧
 
-== ConLeche/Model/Rules/Sound.lean#L41-L44
-    41  mutual
-    42  
-    43  theorem red_sound (hin : RulesInputs V m φ) :
-    44      ∀ {d : Nat} {e e' : Expr}, Red env d e e' → RedSem m φ d e e'
+== ConLeche/Model/Rules/Sound.lean#L48-L51
+    48  mutual
+    49  
+    50  theorem red_sound (hin : RulesInputs V m φ) :
+    51      ∀ {d : Nat} {e e' : Expr}, Red env d e e' → RedSem m φ d e e'
 
-== ConLeche/Model/Rules/Recompose.lean#L49-L54
-    49  theorem checkSoundAtP5 (hμ : μ.verifiedChecks = true)
-    50      {m : EnvModel V env} (h : RulesInputs V m φ) :
-    51      ∀ fuel : Nat,
-    52        WhnfCoreClaim μ m φ fuel ∧ WhnfClaim μ m φ fuel ∧
-    53          DefEqClaim μ m φ fuel ∧ InferClaim μ m φ fuel ∧
-    54            InferClaimIO μ m φ fuel := by
+== ConLeche/Model/Rules/Recompose.lean#L50-L55
+    50  theorem checkSoundAtP5 (hμ : μ.verifiedChecks = true)
+    51      {m : EnvModel V env} (h : RulesInputs V m φ) :
+    52      ∀ fuel : Nat,
+    53        WhnfCoreClaim μ m φ fuel ∧ WhnfClaim μ m φ fuel ∧
+    54          DefEqClaim μ m φ fuel ∧ InferClaim μ m φ fuel ∧
+    55            InferClaimIO μ m φ fuel := by
 
-== ConLeche/Kernel/Basis/False.lean#L52
-    52  def falseBasis : List ConstantInfo := [falseRaw, falseRecRaw]
+== ConLeche/Kernel/Basis/False.lean#L51
+    51  def falseBasis : List ConstantInfo := [falseRaw, falseRecRaw]
 
 == ConLeche/Kernel/Basis.lean#L64-L66
     64  def basisPinHit (block : List ConstantInfo) : Option BasisKind :=
@@ -919,18 +894,18 @@
     95    | .quotDecl _ cv => !andPinNames.contains cv.name
     96    | .basisDecl _ => true
 
-== ConLeche/Kernel/Inductives/BlockParts.lean#L446
-   446  def blockParts? (nPd : Nat) (block : List ConstantInfo) : Option BlockParts :=
+== ConLeche/Kernel/Inductives/BlockParts.lean#L444
+   444  def blockParts? (nPd : Nat) (block : List ConstantInfo) : Option BlockParts :=
 
-== ConLeche/Kernel/Env.lean#L614-L621
-   614  def indParamsOk (nP : Nat) (block : List ConstantInfo) : Bool :=
-   615    block.all fun ci => match ci with
-   616      | .indInfo cvT _ =>
-   617        match cvT.type.piSortTeleLen? with
-   618        | some n => decide (nP ≤ n)
-   619        | none => true
-   620      | .ctorInfo _ nPc _ => nPc == nP
-   621      | _ => true
+== ConLeche/Kernel/Env.lean#L507-L514
+   507  def indParamsOk (nP : Nat) (block : List ConstantInfo) : Bool :=
+   508    block.all fun ci => match ci with
+   509      | .indInfo cvT _ =>
+   510        match cvT.type.piSortTeleLen? with
+   511        | some n => decide (nP ≤ n)
+   512        | none => true
+   513      | .ctorInfo _ nPc _ => nPc == nP
+   514      | _ => true
 
 == ConLeche/Kernel/Inductives/BlockTail.lean#L143
    143  def checkBlock (ops : CheckerOps m) (env : Env) (block : List ConstantInfo) (p₀ : BlockParts) :
@@ -948,39 +923,33 @@
 == ConLeche/Kernel/Inductives/Positivity.lean#L1592
   1592  def nestRoot (ops : CheckerOps m) (env : Env) (ctx : NestCtx) (holes : List Expr) :
 
-== ConLeche/Kernel/Inductives/GenRec.lean#L496
-   496  def classSeeds (ctx : NestCtx) (holes : List Expr) (Ms : List TargetMajor) :
+== ConLeche/Kernel/Inductives/GenRec.lean#L492
+   492  def classSeeds (ctx : NestCtx) (holes : List Expr) (Ms : List TargetMajor) :
 
-== ConLeche/Kernel/Inductives/BlockInstall.lean#L284
-   284  def checkBlockPositivity (ops : CheckerOps m) (env₁ : Env) (find? : Name → Option ConstantInfo)
+== ConLeche/Kernel/Inductives/BlockInstall.lean#L289
+   289  def checkBlockPositivity (ops : CheckerOps m) (env₁ : Env) (find? : Name → Option ConstantInfo)
 
-== ConLeche/Kernel/Inductives/GenRec.lean#L554
-   554  def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Bool)
+== ConLeche/Kernel/Inductives/GenRec.lean#L549
+   549  def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Bool)
 
 == ConLeche/Kernel/Inductives/RecCheck.lean#L602-L603
    602  def tgtStoredRules (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
    603      (cv : ConstantVal) (mI rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
 
-== ConLeche/SetModel/Value.lean#L365-L372
-   365  noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piR (w + 1) I fun _ => univ w
-   366  
-   367  /-- `(I → Sort w) → (I → Sort w)`, the functor space. -/
-   368  noncomputable def lfpFamFunSpace (u w : Nat) (I : V) : V :=
-   369    piR (Nat.max u (w + 1)) (lfpFamSpace V w I) fun _ => lfpFamSpace V w I
-   370  
-   371  /-- `lfpFam.{u,w}`; result sort `max (u + 1) (w + 1)`. -/
-   372  noncomputable def lfpFamV (u w : Nat) : V :=
+== ConLeche/SetModel/Value.lean#L393-L394
+   393  /-- `I → Sort w`, the family space, as the value reading has it. -/
+   394  noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piV I fun _ => univ w
 
 == ConLeche/SetModel/Access.lean#L243
    243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
 
-== ConLeche/Model/Inductives/DeclBlockStep.lean#L69-L74
-    69  theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
-    70      {block : List ConstantInfo} {nPd : Nat} {p₀ : BlockParts}
-    71      (mp : EnvModelM V μ env)
-    72      (hE : ConLeche.EtaFamiliesClosed env) (hdp : ConLeche.blockParts? nPd block = some p₀)
-    73      (hrun : ConLeche.Semantics.DeclBlockRun μ F env block p₀ env₂) (hcov : LfpCover mp []) :
-    74      ∃ mp' : EnvModelM V μ env₂, LfpCover mp' [] := by
+== ConLeche/Model/Inductives/DeclBlockStep.lean#L71-L76
+    71  theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
+    72      {block : List ConstantInfo} {nPd : Nat} {p₀ : BlockParts}
+    73      (mp : EnvModelM V μ env)
+    74      (hE : ConLeche.EtaFamiliesClosed env) (hdp : ConLeche.blockParts? nPd block = some p₀)
+    75      (hrun : ConLeche.Semantics.DeclBlockRun μ F env block p₀ env₂) (hcov : LfpCover mp []) :
+    76      ∃ mp' : EnvModelM V μ env₂, LfpCover mp' [] := by
 
 == ConLeche/Kernel/CheckDecl.lean#L32-L33
     32  def checkShapeless (ops : CheckerOps m) (env : Env) (block : List ConstantInfo) :
@@ -998,11 +967,11 @@
 == ConLeche/Kernel/Inductives/SumInstall.lean#L114
    114  def checkSumCtor (ops : CheckerOps m) (env₀ env : Env) (T : Name)
 
-== ConLeche/Kernel/Inductives/GenRec.lean#L524
-   524  def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (env₁ : Env) (p : BlockShape)
+== ConLeche/Kernel/Inductives/GenRec.lean#L519
+   519  def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (p : BlockShape)
 
-== ConLeche/Kernel/Inductives/GenRec.lean#L509
-   509  def classKeyOf (ops : CheckerOps m) (env : Env) (nP : Nat) (params : List Expr)
+== ConLeche/Kernel/Inductives/GenRec.lean#L505
+   505  def classKeyOf (nP : Nat) (params : List Expr)
 
 == ConLeche/Kernel/Inductives/Positivity.lean#L1453
   1453  def nestPos (ops : CheckerOps m) (env : Env) (ctx : NestCtx) :
@@ -1034,70 +1003,70 @@
 == ConLeche/Kernel/Inductives/GenRec.lean#L394
    394  def classRecTyOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) (rc : RecShape)
 
-== ConLeche/Kernel/Inductives/GenRec.lean#L427
-   427  def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR : ConstantVal)
+== ConLeche/Kernel/Inductives/GenRec.lean#L426
+   426  def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR : ConstantVal)
 
-== ConLeche/Kernel/CoreDefs.lean#L385-L393
-   385  /-- The certified structural-`Nat` operations.  Six of them
-   386  (`add sub mul pow beq ble`) carry a literal fast path; `Nat.pred` is
-   387  here without one — it has no fast path (official's `reduce_nat` folds
-   388  nothing unary but `Nat.succ`), but `Nat.sub`'s recurrence
-   389  `sub x (succ y) = pred (sub x y)` names it, so its own recurrences
-   390  must be certified for `sub`'s literal fold to be sound. -/
-   391  def natOpNames : List Name :=
-   392    [natPredName, natAddName, natSubName, natMulName, natPowName,
-   393     natBeqName, natBleName]
+== ConLeche/Kernel/CoreDefs.lean#L441-L449
+   441  /-- The certified structural-`Nat` operations.  Six of them
+   442  (`add sub mul pow beq ble`) carry a literal fast path; `Nat.pred` is
+   443  here without one — it has no fast path (official's `reduce_nat` folds
+   444  nothing unary but `Nat.succ`), but `Nat.sub`'s recurrence
+   445  `sub x (succ y) = pred (sub x y)` names it, so its own recurrences
+   446  must be certified for `sub`'s literal fold to be sound. -/
+   447  def natOpNames : List Name :=
+   448    [natPredName, natAddName, natSubName, natMulName, natPowName,
+   449     natBeqName, natBleName]
 
-== ConLeche/Kernel/CoreDefs.lean#L331-L348
-   331  /-! ## Structural-Nat literal acceleration
-   332  
-   333  The official kernel accelerates the structural `Nat` operations on
-   334  literals (GMP-backed there).  Here the fast path is *certified*: an
-   335  operation participates only when its defining recurrence equations
-   336  hold by definitional equality — checked once, at install: `checkDecl`
-   337  positively rejects a nonstandard definition under one of these names,
-   338  so *presence in the store is the certificate* (no runtime flag, no
-   339  re-checking; a reduction-time re-check would in fact livelock — the
-   340  certification's own `pred zero` equation re-enters the fast path).
-   341  
-   342  The certification runs in the environment *before* the operation is
-   343  stored, on the equations with the operation's self-references replaced
-   344  by its (annotated) definition value (`Expr.substConst0`): running it
-   345  after insertion would let the operation's own just-enabled fast path
-   346  discharge its all-literal-argument equations (`pred zero ≡ zero`,
-   347  `beq zero zero ≡ true`) vacuously — accepting definitions that
-   348  disagree with the fast path on those points, which is unsound.  The
+== ConLeche/Kernel/CoreDefs.lean#L387-L404
+   387  /-! ## Structural-Nat literal acceleration
+   388  
+   389  The official kernel accelerates the structural `Nat` operations on
+   390  literals (GMP-backed there).  Here the fast path is *certified*: an
+   391  operation participates only when its defining recurrence equations
+   392  hold by definitional equality — checked once, at install: `checkDecl`
+   393  positively rejects a nonstandard definition under one of these names,
+   394  so *presence in the store is the certificate* (no runtime flag, no
+   395  re-checking; a reduction-time re-check would in fact livelock — the
+   396  certification's own `pred zero` equation re-enters the fast path).
+   397  
+   398  The certification runs in the environment *before* the operation is
+   399  stored, on the equations with the operation's self-references replaced
+   400  by its (annotated) definition value (`Expr.substConst0`): running it
+   401  after insertion would let the operation's own just-enabled fast path
+   402  discharge its all-literal-argument equations (`pred zero ≡ zero`,
+   403  `beq zero zero ≡ true`) vacuously — accepting definitions that
+   404  disagree with the fast path on those points, which is unsound.  The
 
-== ConLeche/Kernel/Checker.lean#L109-L116
-   109      List (Expr × Expr) → m Bool
-   110    | [] => pure true
-   111    | eq :: rest => do
-   112      if ← ops.isDefEq env 2 eq.1 eq.2 then
-   113        certifyNatEqs ops env rest
-   114      else pure false
-   115  
-   116  /-- The pinned defining expression of a pin-certified WF-recursive op
+== ConLeche/Kernel/Checker.lean#L107-L114
+   107      List (Expr × Expr) → m Bool
+   108    | [] => pure true
+   109    | eq :: rest => do
+   110      if ← ops.isDefEq env 2 eq.1 eq.2 then
+   111        certifyNatEqs ops env rest
+   112      else pure false
+   113  
+   114  /-- The pinned defining expression of a pin-certified WF-recursive op
 
-== ConLeche/Model/NatEqs.lean#L1147
-  1147  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
+== ConLeche/Model/NatEqs.lean#L1119
+  1119  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
 
-== ConLeche/Kernel/CoreDefs.lean#L395-L410
-   395  /-- The WF-recursive operations with a *pinned-declaration* certified
-   396  fast path: at install, `checkDecl` compares the stream's definition
-   397  against a vendored pin of the toolchain's own (helper-unfolded)
-   398  definition by definitional equality, and then checks the pinned
-   399  `Nat.ble`-guarded characterization certificates
-   400  (`ConLeche/Kernel/NatOpPins.lean`) like theorem declarations — without
-   401  installing them.  Presence in the store is therefore again the
-   402  capability: a stored operation under one of these names has passed pin
-   403  and certificates, or the install declined.  (The name is historic:
-   404  the family started with `Nat.div`/`Nat.mod` and now covers every
-   405  pin-certified WF-recursive kernel-accelerated `Nat` operation —
-   406  `Nat.log2` left the list when its fast path did, official folding no
-   407  unary operation but `Nat.succ`.) -/
-   408  def natDivModNames : List Name :=
-   409    [natDivName, natModName, natGcdName, natLandName, natLorName,
-   410     natXorName, natShiftLeftName, natShiftRightName]
+== ConLeche/Kernel/CoreDefs.lean#L451-L466
+   451  /-- The WF-recursive operations with a *pinned-declaration* certified
+   452  fast path: at install, `checkDecl` compares the stream's definition
+   453  against a vendored pin of the toolchain's own (helper-unfolded)
+   454  definition by definitional equality, and then checks the pinned
+   455  `Nat.ble`-guarded characterization certificates
+   456  (`ConLeche/Kernel/NatOpPins.lean`) like theorem declarations — without
+   457  installing them.  Presence in the store is therefore again the
+   458  capability: a stored operation under one of these names has passed pin
+   459  and certificates, or the install declined.  (The name is historic:
+   460  the family started with `Nat.div`/`Nat.mod` and now covers every
+   461  pin-certified WF-recursive kernel-accelerated `Nat` operation —
+   462  `Nat.log2` left the list when its fast path did, official folding no
+   463  unary operation but `Nat.succ`.) -/
+   464  def natDivModNames : List Name :=
+   465    [natDivName, natModName, natGcdName, natLandName, natLorName,
+   466     natXorName, natShiftLeftName, natShiftRightName]
 
 == ConLeche/Kernel/NatOpPins.lean#L1-L16
      1  module
@@ -1131,35 +1100,35 @@
     17  
     18  The proofs are written with *controlled* dependencies: no `simp`, no
 
-== ConLeche/Model/DivModCert.lean#L2021
-  2021  theorem divMod_install {F : Nat} (mp : EnvModelM V μ env)
+== ConLeche/Model/DivModCert.lean#L1978
+  1978  theorem divMod_install {F : Nat} (mp : EnvModelM V μ env)
 
-== ConLeche/Kernel/CoreDefs.lean#L545-L559
-   545  def natOpGuard (env : Env) (c : Name) : Bool :=
-   546    natLitSupported env &&
-   547    (natOpDeps c).all (fun n => match env.find? n with
-   548      | some (.defnInfo cv _ _) => cv.levelParams.isEmpty
-   549      | _ => false) &&
-   550    (if c = natBeqName || c = natBleName || natDivModNames.contains c then
-   551      (match env.find? boolTrueName with
-   552        | some ci => ci.toConstantVal.levelParams.isEmpty &&
-   553            ci.toConstantVal.type == .const boolName []
-   554        | none => false) &&
-   555      (match env.find? boolFalseName with
-   556        | some ci => ci.toConstantVal.levelParams.isEmpty &&
-   557            ci.toConstantVal.type == .const boolName []
-   558        | none => false)
-   559     else true)
+== ConLeche/Kernel/CoreDefs.lean#L601-L615
+   601  def natOpGuard (env : Env) (c : Name) : Bool :=
+   602    natLitSupported env &&
+   603    (natOpDeps c).all (fun n => match env.find? n with
+   604      | some (.defnInfo cv _ _) => cv.levelParams.isEmpty
+   605      | _ => false) &&
+   606    (if c = natBeqName || c = natBleName || natDivModNames.contains c then
+   607      (match env.find? boolTrueName with
+   608        | some ci => ci.toConstantVal.levelParams.isEmpty &&
+   609            ci.toConstantVal.type == .const boolName []
+   610        | none => false) &&
+   611      (match env.find? boolFalseName with
+   612        | some ci => ci.toConstantVal.levelParams.isEmpty &&
+   613            ci.toConstantVal.type == .const boolName []
+   614        | none => false)
+   615     else true)
 
-== ConLeche/Kernel/CoreDefs.lean#L602-L609
-   602  def natOpCod (env : Env) (c : Name) (e : Expr) : Bool :=
-   603    if c = natBeqName || c = natBleName then
-   604      e == .const boolName [] &&
-   605      (match env.find? boolName with
-   606       | some ci => ci.toConstantVal.levelParams.isEmpty &&
-   607           ci.toConstantVal.type == .sort (.succ .zero)
-   608       | none => false)
-   609    else e == .const natName []
+== ConLeche/Kernel/CoreDefs.lean#L658-L665
+   658  def natOpCod (env : Env) (c : Name) (e : Expr) : Bool :=
+   659    if c = natBeqName || c = natBleName then
+   660      e == .const boolName [] &&
+   661      (match env.find? boolName with
+   662       | some ci => ci.toConstantVal.levelParams.isEmpty &&
+   663           ci.toConstantVal.type == .sort (.succ .zero)
+   664       | none => false)
+   665    else e == .const natName []
 
 == ConLeche/Frontend/Prepare.lean#L165-L172
    165  /-- **`preparePrelude`**: the parsed stream, prepared for the fold —
@@ -1271,57 +1240,57 @@
    201      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
    202    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
 
-== ConLeche/Kernel/StdAxioms.lean#L38-L42
-    38  /-- The name `propext`. -/
-    39  def propextName : Name := anonymous |>.str "propext"
-    40  
-    41  /-- The name `Classical.choice`. -/
-    42  def choiceName : Name := (anonymous |>.str "Classical") |>.str "choice"
+== ConLeche/Kernel/StdAxioms.lean#L33-L37
+    33  /-- The name `propext`. -/
+    34  def propextName : Name := anonymous |>.str "propext"
+    35  
+    36  /-- The name `Classical.choice`. -/
+    37  def choiceName : Name := (anonymous |>.str "Classical") |>.str "choice"
 
-== ConLeche/Kernel/TrustAxioms.lean#L10-L39
-    10  /-!
-    11  # The compiler-trust axiom family (task #95)
-    12  
-    13  `Init`'s compiler-trust scaffolding is installed rather than
-    14  declined:
-    15  
-    16  * `Lean.trustCompiler : True` is trivially realizable — it is
-    17    installed as an *opaque* (stored `axiomInfo`, exactly like a checked
-    18    `opaque` declaration) with value `True.intro`, over a pinned `True`
-    19    family.  No new meta-axiom: the model is `True.intro`'s own
-    20    interpretation.
-    21  * `Lean.reduceNat` / `Lean.reduceBool` then check as ordinary
-    22    `opaque`s (their exported values are identity functions modulo the
-    23    `have := trustCompiler` wrapper); at install their stored values are
-    24    pinned against the identity function
-    25    (`ConLeche/Kernel/TrustPins.lean`, hand-pinned since task #273 —
-    26    every toolchain's definition after zeta) by definitional equality —
-    27    the task-#47 pattern: drift declines, never silently.
-    28  * `Lean.ofReduceNat` / `Lean.ofReduceBool` are pinned axioms over
-    29    those stored opaques (the task-#34 standard-axioms machinery).  With
-    30    the stored reduce operation certified to be the identity (a
-    31    definitional-equality certificate at the operation's own install,
-    32    `checkReducePin`; the axiom's install checks `ofReduceAxOk`),
-    33    `∀ a b, reduceNat a = b → a = b` interprets to
-    34    an inhabited proposition (the hypothesis *is* the conclusion), so
-    35    both axioms are true in the set model with the proof point as value.
-    36  
-    37  `sorryAx` remains the only axiom tolerated as a *declaration*: its
-    38  record installs nothing and any use of it declines
-    39  (`sorryAxName`, `ConLeche/Kernel/Basis/Names.lean`).
+== ConLeche/Kernel/TrustAxioms.lean#L9-L38
+     9  /-!
+    10  # The compiler-trust axiom family (task #95)
+    11  
+    12  `Init`'s compiler-trust scaffolding is installed rather than
+    13  declined:
+    14  
+    15  * `Lean.trustCompiler : True` is trivially realizable — it is
+    16    installed as an *opaque* (stored `axiomInfo`, exactly like a checked
+    17    `opaque` declaration) with value `True.intro`, over a pinned `True`
+    18    family.  No new meta-axiom: the model is `True.intro`'s own
+    19    interpretation.
+    20  * `Lean.reduceNat` / `Lean.reduceBool` then check as ordinary
+    21    `opaque`s (their exported values are identity functions modulo the
+    22    `have := trustCompiler` wrapper); at install their stored values are
+    23    pinned against the identity function
+    24    (`ConLeche/Kernel/TrustPins.lean`, hand-pinned since task #273 —
+    25    every toolchain's definition after zeta) by definitional equality —
+    26    the task-#47 pattern: drift declines, never silently.
+    27  * `Lean.ofReduceNat` / `Lean.ofReduceBool` are pinned axioms over
+    28    those stored opaques (the task-#34 standard-axioms machinery).  With
+    29    the stored reduce operation certified to be the identity (a
+    30    definitional-equality certificate at the operation's own install,
+    31    `checkReducePin`; the axiom's install checks `ofReduceAxOk`),
+    32    `∀ a b, reduceNat a = b → a = b` interprets to
+    33    an inhabited proposition (the hypothesis *is* the conclusion), so
+    34    both axioms are true in the set model with the proof point as value.
+    35  
+    36  `sorryAx` remains the only axiom tolerated as a *declaration*: its
+    37  record installs nothing and any use of it declines
+    38  (`sorryAxName`, `ConLeche/Kernel/Basis/Names.lean`).
 
 >>> README.md
 
-== ConLeche/Cached/ParsedC.lean#L248-L249
-   248        else if cvA.name = sorryAxName then
-   249          pure fe
+== ConLeche/Cached/ParsedC.lean#L247-L248
+   247        else if cvA.name = sorryAxName then
+   248          pure fe
 
 == Main.lean#L124
    124    "  --jobs=<n>        the number of worker threads (default: the",
 
-== ConLeche/Kernel/Basis/False.lean#L51-L52
-    51  /-- The pinned `False` basis block, in install order. -/
-    52  def falseBasis : List ConstantInfo := [falseRaw, falseRecRaw]
+== ConLeche/Kernel/Basis/False.lean#L50-L51
+    50  /-- The pinned `False` basis block, in install order. -/
+    51  def falseBasis : List ConstantInfo := [falseRaw, falseRecRaw]
 
 == Main.lean#L477
    477  def main (args : List String) : IO UInt32 := do
@@ -1339,40 +1308,40 @@
    116        let ds := preparePrelude pre r.decls
    117        checkDecls .verified pins ds) = .error e := by
 
-== ConLeche/Denotes.lean#L270-L290
-   270  structure Model (V : Type w) [SetTheory V] (env : Env) where
-   271    /-- the set a constant denotes, per level assignment -/
-   272    cval : Name → (LevelParam → Nat) → V
-   273    /-- every stored constant is a member of what its type denotes, at
-   274    every level assignment (and every variable environment — the type
-   275    is closed) -/
-   276    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
-   277      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
-   278    /-- whatever the built-in `False` denotes is the empty set -/
-   279    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
-   280      Denotes cval env φ ρ (.const falseName []) F → F = empty
-   281    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
-   282    of the universe the level `u` names, and two of its members `a` and
-   283    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
-   284    membership premises are the graph's domains — `Eq`'s denotation is a
-   285    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
-   286    over `A` again, and a graph read off its domain says nothing -/
-   287    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
-   288      Denotes cval env φ ρ (.const eqName [u]) E →
-   289      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
-   290      app (app (app E A) a) b = eqv a b
+== ConLeche/Denotes.lean#L266-L286
+   266  structure Model (V : Type w) [SetTheory V] (env : Env) where
+   267    /-- the set a constant denotes, per level assignment -/
+   268    cval : Name → (LevelParam → Nat) → V
+   269    /-- every stored constant is a member of what its type denotes, at
+   270    every level assignment (and every variable environment — the type
+   271    is closed) -/
+   272    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
+   273      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
+   274    /-- whatever the built-in `False` denotes is the empty set -/
+   275    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
+   276      Denotes cval env φ ρ (.const falseName []) F → F = empty
+   277    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
+   278    of the universe the level `u` names, and two of its members `a` and
+   279    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
+   280    membership premises are the graph's domains — `Eq`'s denotation is a
+   281    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
+   282    over `A` again, and a graph read off its domain says nothing -/
+   283    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
+   284      Denotes cval env φ ρ (.const eqName [u]) E →
+   285      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
+   286      app (app (app E A) a) b = eqv a b
 
-== ConLeche/Denotes.lean#L134-L135
-   134  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
-   135      (BVarIdx → V) → Expr → V → Prop
+== ConLeche/Denotes.lean#L123-L124
+   123  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
+   124      (BVarIdx → V) → Expr → V → Prop
 
-== ConLeche/Cached/Installed.lean#L452-L457
-   452  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
-   453      (ds : Array Declaration) :
-   454      Except (CheckError × Nat) Env := do
-   455    let p ← ds.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[])
-   456    checkPendingList mode p.2.1 p.2.2.toList
-   457    pure p.2.1.env
+== ConLeche/Cached/Installed.lean#L450-L455
+   450  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
+   451      (ds : Array Declaration) :
+   452      Except (CheckError × Nat) Env := do
+   453    let p ← ds.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[])
+   454    checkPendingList mode p.2.1 p.2.2.toList
+   455    pure p.2.1.env
 
 == ConLeche/Frontend/Prepare.lean#L165-L172
    165  /-- **`preparePrelude`**: the parsed stream, prepared for the fold —
@@ -1392,13 +1361,13 @@
    161      ∃ extra : List Declaration, (∀ d ∈ extra, d ∈ pre.decls.toList) ∧
    162        (preparePrelude pre ds).toList.Perm (ds.toList ++ extra) := by
 
-== ConLeche/Model/StreamConsts.lean#L764-L769
-   764  theorem checkDecls_consts (V : Type w) [SetTheory V]
-   765      {ds : Array Declaration} {env : Env} (accepted : checkDecls .verified pins ds = .ok env)
-   766      {pd : Declaration} (hmem : pd ∈ ds) {cv : ConstantVal} (hcv : Declaration.Declares pd cv) :
-   767      ∃ c, env.find? cv.name = some c ∧
-   768        c.toConstantVal.levelParams = cv.levelParams ∧
-   769        AnnotOf cv.type c.toConstantVal.type := by
+== ConLeche/Model/StreamConsts.lean#L236-L241
+   236  theorem checkDecls_consts (V : Type w) [SetTheory V]
+   237      {ds : Array Declaration} {env : Env} (accepted : checkDecls .verified pins ds = .ok env)
+   238      {pd : Declaration} (hmem : pd ∈ ds) {cv : ConstantVal} (hcv : Declaration.Declares pd cv) :
+   239      ∃ c, env.find? cv.name = some c ∧
+   240        c.toConstantVal.levelParams = cv.levelParams ∧
+   241        c.toConstantVal.type = cv.type := by
 
 == ConLeche/SetTheory/Core.lean#L95-L133
     95  /-- A model of set theory of exactly the strength the checker needs:
@@ -1446,10 +1415,10 @@
    201      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
    202    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
 
-== ConLeche/Kernel/PropWhen.lean#L407-L409
-   407  structure PropWhen where
-   408    private ofRepr ::
-   409    private repr : PropWhenRepr
+== ConLeche/Kernel/PropWhen.lean#L381-L383
+   381  structure PropWhen where
+   382    private ofRepr ::
+   383    private repr : PropWhenRepr
 
 == Main.lean#L107
    107    "  --trusted         the unverified mode: the SAME checker bodies as",

@@ -235,15 +235,9 @@ theorem wellDenotedV_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
     (h : WellDenotedV V ρ (.app f a)) (ha' : WellDenotedV V ρ a')
     (heq : interp V ρ a = interp V ρ a') :
     WellDenotedV V ρ (.app f a') := by
-  obtain ⟨h1, h2⟩ := h
-  rw [WellDenoted_app] at h1
-  rw [AnnotValid_app] at h2
-  obtain ⟨hf, -, v, A, B, hslot, hmem, hcod⟩ := h1
-  refine ⟨?_, ?_⟩
-  · rw [WellDenoted_app]
-    exact ⟨hf, ha'.1, v, A, B, hslot, heq ▸ hmem, hcod⟩
-  · rw [AnnotValid_app]
-    exact ⟨h2.1, ha'.2⟩
+  rw [WellDenotedV, WellDenoted_app] at h ⊢
+  obtain ⟨hf, -, v, A, B, hslot, hmem, hcod⟩ := h
+  exact ⟨hf, ha', v, A, B, hslot, heq ▸ hmem, hcod⟩
 
 /-- The same at a spine's last argument. -/
 theorem wellDenotedV_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}

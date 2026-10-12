@@ -295,11 +295,11 @@ theorem infer_bvarClosed_of_full {env : Env} :
   | _, _, _, _, .const .., _ => rfl
   | _, _, _, _, .natLit _, _ => rfl
   | _, _, _, _, .strLit _, _ => rfl
-  | _, _, _, _, .forallE hs _ hbs _ _, hg => by
+  | _, _, _, _, .forallE hs _ hbs _, hg => by
     simp only [looseBVarsBounded, Bool.and_eq_true]
     exact ⟨infer_bvarClosed_of_full hs hg,
       looseBVarsBounded_of_instantiate1_fvar _ 0 (infer_bvarClosed_of_full hbs hg)⟩
-  | _, _, _, _, .lam hs _ hbt _ _ _ _, hg => by
+  | _, _, _, _, .lam hs _ hbt, hg => by
     simp only [looseBVarsBounded, Bool.and_eq_true]
     exact ⟨infer_bvarClosed_of_full (hs hg) rfl,
       looseBVarsBounded_of_instantiate1_fvar _ 0 (infer_bvarClosed_of_full hbt hg)⟩
@@ -309,8 +309,7 @@ theorem infer_bvarClosed_of_full {env : Env} :
       looseBVarsBounded_of_instantiate1 _ 0 (infer_bvarClosed_of_full hb hg)⟩
   | _, _, _, _, .app hf _ ha _, hg => by
     simp only [looseBVarsBounded, Bool.and_eq_true]
-    exact ⟨infer_bvarClosed_of_full hf hg, infer_bvarClosed_of_full ha hg⟩
-  | _, _, _, _, .appSkip .., hg => nomatch hg
+    exact ⟨infer_bvarClosed_of_full hf hg, infer_bvarClosed_of_full (ha hg) rfl⟩
   | _, _, _, _, .proj hp .., hg => by
     simp only [looseBVarsBounded]
     exact infer_bvarClosed_of_full hp hg

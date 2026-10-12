@@ -108,7 +108,7 @@ theorem teleFit_peel' :
   | w :: ws, T, C, σ, fs, X, hp, hpc, h => by
     have hpc' : PiChain ((ws.length + fs.length) + 1) T := by
       simpa [Nat.add_right_comm] using hpc
-    obtain ⟨u, v, A, B, rfl, hB⟩ := piChain_succ_inv hpc'
+    obtain ⟨A, B, rfl, hB⟩ := piChain_succ_inv hpc'
     simp only [ConLeche.Model.AnnotTerm.peelPis] at hp
     rw [List.map_cons, List.cons_append] at h
     cases h with
@@ -568,7 +568,7 @@ theorem genOutW
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hcl.hmm
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab, hta, -, -⟩ := hab (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls)
+  obtain ⟨ab, hta, -⟩ := hab (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls)
   have hsI : s = sI := (congrArg Prod.snd hr').symm
   subst hsI
   rw [instPis_sort_of_read (φ := ψ) cvI.levelParams (tgtMajor out c).lvls hta hty hs]

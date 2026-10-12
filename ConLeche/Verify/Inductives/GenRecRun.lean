@@ -187,23 +187,19 @@ theorem ClassMajorRun.transport {fe₁ fe : FEnv} {p : BlockShape} (hag : ClassE
 /-! ## The class keys and the classes, in the pass -/
 
 /-- **`classKeyOf`, inverted**: the key moved to the canonical
-parameters, every parameter closed below them, and annotated at depth
-`nP`. -/
-theorem classKeyOf_run {env : Env} {nP : Nat} {params : List Expr} {k k' : ClassKey}
-    {F : Nat} (h : classKeyOf (fueledOps mode F) env nP params k = .ok k') :
-    k'.ind = k.ind ∧ k'.lvls = k.lvls ∧
-    (∀ x ∈ (classKeyCanon params k).ds, x.bvarB = 0 ∧ x.fvarB ≤ nP) ∧
-    (classKeyCanon params k).ds.mapM ((fueledOps mode F).annotate env nP) = .ok k'.ds := by
+parameters, every parameter closed below them. -/
+theorem classKeyOf_run {nP : Nat} {params : List Expr} {k k' : ClassKey}
+    (h : classKeyOf (m := CheckM) nP params k = .ok k') :
+    k' = classKeyCanon params k ∧
+    (∀ x ∈ (classKeyCanon params k).ds, x.bvarB = 0 ∧ x.fvarB ≤ nP) := by
   unfold classKeyOf at h
   simp only at h
   by_cases hg : ((classKeyCanon params k).ds.all fun x => x.bvarB == 0 && x.fvarB ≤ nP) = true
   case neg => rw [ite_eq_right hg] at h; close_throw h
   rw [ite_eq_left hg] at h
-  try simp only [bind, Except.bind] at h
-  obtain ⟨ds, hds, h⟩ := exceptBind_ok h
   simp only [pure, Except.pure, Except.ok.injEq] at h
   subst h
-  refine ⟨rfl, rfl, fun x hx => ?_, hds⟩
+  refine ⟨rfl, fun x hx => ?_⟩
   have := List.all_eq_true.mp hg x hx
   simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at this
   exact this
@@ -212,20 +208,20 @@ theorem classKeyOf_run {env : Env} {nP : Nat} {params : List Expr} {k k' : Class
 the pre-pass's reading `rd` of the stream's raw recursor types, the keys
 made checkable `keys`, the classes `Ms` checked as majors at `fe₁`, one
 per member. -/
-structure ClassesRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (p : BlockShape)
+structure ClassesRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (p : BlockShape)
     (params : List Expr) (ctorsAs : List (List (ConstantVal × Nat))) (rd : ClassRead)
     (Ms : List TargetMajor) : Type where
   keys : List ClassKey
   hrd : classRead p.nP (classNPcOf p fe₁) p.recs = some rd
-  hkeys : rd.classes.mapM (classKeyOf (fueledOps mode F) env₁ p.nP params) = .ok keys
+  hkeys : rd.classes.mapM (classKeyOf (m := CheckM) p.nP params) = .ok keys
   hMs : classMajors (fueledOps mode F) fe₁ p ctorsAs params keys = .ok Ms
   hone : ∀ t, t < p.k → (Ms.filter (·.member == some t)).length = 1
 
-theorem checkBlockClasses_run {fe₁ : FEnv} {env₁ : Env} {p : BlockShape} {params : List Expr}
+theorem checkBlockClasses_run {fe₁ : FEnv} {p : BlockShape} {params : List Expr}
     {ctorsAs : List (List (ConstantVal × Nat))} {rd : ClassRead} {Ms : List TargetMajor}
     {F : Nat}
-    (h : checkBlockClasses (fueledOps mode F) fe₁ env₁ p params ctorsAs = .ok (rd, Ms)) :
-    Nonempty (ClassesRun mode F fe₁ env₁ p params ctorsAs rd Ms) := by
+    (h : checkBlockClasses (fueledOps mode F) fe₁ p params ctorsAs = .ok (rd, Ms)) :
+    Nonempty (ClassesRun mode F fe₁ p params ctorsAs rd Ms) := by
   unfold checkBlockClasses at h
   obtain ⟨rd', hrd, h⟩ := exceptBind_ok h
   obtain ⟨keys, hkeys, h⟩ := exceptBind_ok h
@@ -553,13 +549,12 @@ theorem classRecTysOk_run {fe : FEnv} {g : ClassGen} {k : Nat} {F : Nat} :
 /-! ## The generated rules -/
 
 /-- **One generated rule, as `classRuleOk` ran**: the generated term
-`gen` closed and STORED as generated (`out = gen`: the generator writes
-its binder data), its level parameters the recursor's, resolved and
-inferred at the rule-less recursors' environment; its λ-telescope `n`
-long, the λ-domains resolving at the constructors' environment and
-carrying the family's datum. -/
+`gen` closed and STORED as generated (`out = gen`), its level
+parameters the recursor's, resolved and inferred at the rule-less
+recursors' environment; its λ-telescope `n` long, the λ-domains
+resolving at the constructors' environment. -/
 structure ClassRuleRun (mode : CheckMode) (F : Nat) (w : StructWalkers) (feT feR : FEnv)
-    (cvR : ConstantVal) (pw : PropWhen) (n : Nat) (gen out : Expr) : Type where
+    (cvR : ConstantVal) (n : Nat) (gen out : Expr) : Type where
   rbs : List (Expr × BinderMeta)
   body : Expr
   tyR : Expr
@@ -571,13 +566,12 @@ structure ClassRuleRun (mode : CheckMode) (F : Nat) (w : StructWalkers) (feT feR
   htyR : (fueledOps mode F).inferType feR.env 0 out = .ok tyR
   hstrip : out.stripLams n = some (rbs, body)
   hdoms : ∀ b ∈ rbs, w.resolve feT b.1 = true
-  hpw : ∀ b ∈ rbs, b.2.pw = pw
 
 /-- **`classRuleOk`, inverted.** -/
-theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal} {pw : PropWhen}
+theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal} 
     {n : Nat} {gen out : Expr} {F : Nat}
-    (h : classRuleOk (fueledOps mode F) w feT feR cvR pw n gen = .ok out) :
-    Nonempty (ClassRuleRun mode F w feT feR cvR pw n gen out) := by
+    (h : classRuleOk (fueledOps mode F) w feT feR cvR n gen = .ok out) :
+    Nonempty (ClassRuleRun mode F w feT feR cvR n gen out) := by
   unfold classRuleOk at h
   by_cases hcl : (gen.looseBVarsBounded 0 && !gen.hasFvar) = true
   case neg => rw [ite_eq_right hcl] at h; close_throw h
@@ -595,29 +589,25 @@ theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal}
   by_cases hdoms : (rbs.all fun b => w.resolve feT b.1) = true
   case neg => rw [ite_eq_right hdoms] at h; close_throw h
   rw [ite_eq_left hdoms] at h
-  by_cases hpw : (rbs.all fun b => b.2.pw == pw) = true
-  case neg => rw [ite_eq_right hpw] at h; close_throw h
-  rw [ite_eq_left hpw] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
   subst h
   simp only [Bool.and_eq_true, Bool.not_eq_true'] at hcl
-  simp only [List.all_eq_true, beq_iff_eq] at hdoms hpw
+  simp only [List.all_eq_true] at hdoms
   exact ⟨{
     rbs := rbs, body := body, tyR := tyR, hbv := hcl.1, hfv := hcl.2, hout := rfl,
-    hlp := hlp, hres := hres, htyR := htyR, hstrip := unwrapOr_ok hstrip, hdoms := hdoms,
-    hpw := hpw }⟩
+    hlp := hlp, hres := hres, htyR := htyR, hstrip := unwrapOr_ok hstrip, hdoms := hdoms }⟩
 
 /-- **`classRulesOk`, inverted**: one generated rule per constructor of
 the class. -/
 theorem classRulesOk_run {w : StructWalkers} {feT feR : FEnv} {g : ClassGen}
-    {recOf : Nat → Option Name} {cvR : ConstantVal} {pw : PropWhen} {c : Nat} {F : Nat} :
+    {recOf : Nat → Option Name} {cvR : ConstantVal} {c : Nat} {F : Nat} :
     ∀ {xs : List ClassCtor} {rhss : List Expr},
-      classRulesOk (fueledOps mode F) w feT feR g recOf cvR pw c xs = .ok rhss →
+      classRulesOk (fueledOps mode F) w feT feR g recOf cvR c xs = .ok rhss →
       rhss.length = xs.length ∧
       ∀ (j : Nat) (x : ClassCtor), xs[j]? = some x →
         ∃ gen rhs, rhss[j]? = some rhs ∧
           classGenRule g recOf (cvR.levelParams.map .param) c x = some gen ∧
-          Nonempty (ClassRuleRun mode F w feT feR cvR pw (g.nP + g.slots.length + x.nF)
+          Nonempty (ClassRuleRun mode F w feT feR cvR (g.nP + g.slots.length + x.nF)
             gen rhs)
   | [], rhss, h => by
     simp only [classRulesOk, pure, Except.pure, Except.ok.injEq] at h
@@ -641,14 +631,14 @@ theorem classRulesOk_run {w : StructWalkers} {feT feR : FEnv} {g : ClassGen}
 /-- **`classRecsRulesOk`, inverted**: per recursor, its generated constant,
 its class and its rules. -/
 theorem classRecsRulesOk_run {w : StructWalkers} {feT feR : FEnv} {g : ClassGen}
-    {recOf : Nat → Option Name} {pw : PropWhen} {F : Nat} :
+    {recOf : Nat → Option Name} {F : Nat} :
     ∀ {cvGs : List ConstantVal} {cls : List Nat}
       {out : List (ConstantVal × TargetMajor × List Expr)},
-      classRecsRulesOk (fueledOps mode F) w feT feR g recOf pw cvGs cls = .ok out →
+      classRecsRulesOk (fueledOps mode F) w feT feR g recOf cvGs cls = .ok out →
       out.length = min cvGs.length cls.length ∧
       ∀ (i : Nat) (cvG : ConstantVal) (c : Nat), cvGs[i]? = some cvG → cls[i]? = some c →
         ∃ rhss, out[i]? = some (cvG, g.cls.getD c default, rhss) ∧
-          classRulesOk (fueledOps mode F) w feT feR g recOf cvG pw c (g.ctors.getD c [])
+          classRulesOk (fueledOps mode F) w feT feR g recOf cvG c (g.ctors.getD c [])
             = .ok rhss
   | [], _, out, h => by
     simp only [classRecsRulesOk, pure, Except.pure, Except.ok.injEq] at h
@@ -720,7 +710,7 @@ structure GenStageRun (mode : CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   /-- the generated rules -/
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
-    (Level.zeronessOf (structElimLevel p.elim p.large)) cvGs rd.recCls = .ok out
+    cvGs rd.recCls = .ok out
 
 /-- The generator of a stage run. -/
 @[expose] def GenStageRun.g {F : Nat} {fe : FEnv} {p : BlockShape} {nestedBit : Bool}
@@ -815,7 +805,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   /-- the block's canonical parameters and holes (the positivity check's context) -/
   hctx : blockNestCtx (m := CheckM) p cvTas fe₁.find? = .ok (ctx, holes)
   /-- the class keys, moved to the canonical parameters and annotated -/
-  hkeys : rd.classes.mapM (classKeyOf (fueledOps mode F) env₁ p.nP ctx.params) = .ok keys
+  hkeys : rd.classes.mapM (classKeyOf (m := CheckM) p.nP ctx.params) = .ok keys
   /-- the classes, each a checked major over the canonical parameters -/
   hMs₀ : classMajors (fueledOps mode F) fe₁ p ctorsAs ctx.params keys = .ok Ms₀
   /-- each class, a checked major at the constructors' environment too -/
@@ -844,7 +834,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   /-- the generated rules -/
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p ctx.params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
-    (Level.zeronessOf (structElimLevel p.elim p.large)) cvGs rd.recCls = .ok out
+    cvGs rd.recCls = .ok out
 
 /-- The generator of a run. -/
 @[expose] def GenRecRun.g {F : Nat} {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
@@ -865,7 +855,7 @@ theorem genRecRun_of {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
     {ctx : NestCtx} {holes : List Expr} {rd : ClassRead} {Ms₀ : List TargetMajor}
     {st : NestState}
     (hctx : blockNestCtx (m := CheckM) p cvTas fe₁.find? = .ok (ctx, holes))
-    (hcls : checkBlockClasses (fueledOps mode F) fe₁ env₁ p ctx.params ctorsAs = .ok (rd, Ms₀))
+    (hcls : checkBlockClasses (fueledOps mode F) fe₁ p ctx.params ctorsAs = .ok (rd, Ms₀))
     (hst : nestSeeds (fueledOps mode F) env₁ ctx (classSeeds ctx holes Ms₀) pos = .ok st)
     (h : genRecCheck (ShadowOps.fueled mode F) fe p nestedBit ctx.params st.ctorNfs.toList rd
       Ms₀ cvTas block = .ok out) :

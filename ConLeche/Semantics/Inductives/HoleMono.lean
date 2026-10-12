@@ -18,7 +18,7 @@ the SEMANTIC half of that inversion, over readings (`AnnotTerm`) and
 |---|---|
 | the `whnf` step before every case | `MonoOn.of_eqOn` (the reading of the reduct is the reading of the term — `WhnfClaim`'s conclusion shape) |
 | `const`: the reduct mentions no hole | `ConstOn.of_noBVar`, `ConstOn.monoOn` |
-| `pi`: hole-free domain, positive codomain | `MonoOn.pi` |
+| `pi`: hole-free domain, positive codomain, fibres types | `MonoOn.pi` |
 | `holeApp`: a hole applied to hole-free arguments | `MonoOn.holeApp` |
 | `contApp`: a container instance | `Model/Annot/BlockLfpMono.lean`'s container case, through the container's lfp clause |
 
@@ -28,8 +28,8 @@ the hole values grow (`HoleOn`: spine-wise inclusion at the hole's
 arity).  A term is `MonoOn` a relation when its reading grows along it,
 `ConstOn` when its reading is the same at related frames.  Under a
 binder the relation is `FrameRel.under` — the SAME bound value at both
-frames, taken from the smaller frame's domain (a product only reads its
-codomain on its domain, `piR_subset_mono`) — and along a constructor's
+frames, taken from the smaller frame's domain (a Π-type only reads its
+codomain on its domain, `piV_subset_mono`) — and along a constructor's
 field telescope it is `FrameRel.underTele`.
 
 **The telescope** (`TeleMonoOn`, `spineFit_mono`): a spine fitting a
@@ -136,13 +136,21 @@ theorem ConstOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
   rw [heq ρ (hdom ρ ρ' hR).1, heq ρ' (hdom ρ ρ' hR).2]
   exact hb ρ ρ' hR
 
-/-- **`pi`**: a product with a hole-free domain and a positive codomain
-is positive. -/
-theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (u v : Nat) (hA : ConstOn R A)
-    (hB : MonoOn (R.under A) B) : MonoOn R (.pi u v A B) := by
+/-- **`pi`**: a Π-type with a hole-free domain and a positive codomain
+is positive, as soon as its fibres are types at both frames (the
+grading of the walked field: "not pt" source (1)) — `piV` is monotone in
+fibres that are types (`piV_subset_mono`: a truth value included in a
+type is a truth value, and a type with a fibre that is not one is
+strict there). -/
+theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (hA : ConstOn R A)
+    (hB : MonoOn (R.under A) B)
+    (hT : ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B)) ∧
+      (∀ x, x ∈ˢ interp V ρ' A → IsTy (interp V (cons x ρ') B))) :
+    MonoOn R (.pi A B) := by
   intro ρ ρ' hR
   rw [interp_pi, interp_pi, ← hA ρ ρ' hR]
-  exact piR_subset_mono fun x hx => hB _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
+  exact piV_subset_mono (fun x hx => hB _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩) (hT ρ ρ' hR).1
+    fun x hx => (hT ρ ρ' hR).2 x (hA ρ ρ' hR ▸ hx)
 
 /-- **The hole order at position `h`**: at related frames the hole's
 values, applied to any `n` arguments, grow (a curried family over its

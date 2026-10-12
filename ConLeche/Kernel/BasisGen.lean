@@ -10,63 +10,35 @@ the `evalX` wrappers). -/
 public section
 
 /-!
-# `#annotate_basis` — the pinned declarations, annotated at elaboration time
+# `#stored_basis` — the pinned basis blocks, as the installation stores them
 
-The pinned basis blocks, the standard-axiom prerequisite families and
-the compiler-trust pins are *stored annotated*: the installation
-(`installBasisDecl`, `ConLeche/Kernel/Checker.lean`) puts them into the
-environment verbatim, and the model proofs read their `pw` data off
-the stored constants.  The annotated forms are not a second source of
-truth — they are what **this checker's own annotation pass**
-(`annotateCore` at `.verified`) computes from the raw pins.
-
-`#annotate_basis` runs that recipe while the pin module elaborates and defines the annotated constants with
-`addDecl`/`compileDecl`, so the definition's value is the very term
-`annotateCore` produced — the closed literal the `decide`/`rfl`
-consumers in `ConLeche/Model/*` read, *derived* rather than
-transcribed, and re-derived on every build.  An annotation failure is
-an elaboration error, never a silently stale constant.
-
-## The recipe
-
-Exactly what `checkDecl`'s `.basisDecl` install would do, in
-dependency order:
-
-* the constant's **type** is annotated over the environment holding
-  the pins annotated so far (`over` gives that environment's tail);
-* for a recursor, the install-computed rule fields are filled first —
-  `ctorParams` from the stored constructor, `fire` from
-  `Expr.recRulePlain` — and then each rule's **rhs** is annotated over
-  the environment extended by the recursor itself (a rule's rhs may
-  mention it, as `Nat.rec`'s successor rule does);
-* the result is appended to the environment for the next entry.
-
-## The two commands
+The pinned basis blocks are *stored* by the installation
+(`installBasisDecl`, `ConLeche/Kernel/Checker.lean`) verbatim, and the
+model proofs read the stored constants.  The stored forms differ from
+the raw pins (`ConLeche/Kernel/Basis/*`, which are what a stream's
+records are compared against) in one place only: a recursor's rules
+carry the fields the installation computes — `ctorParams` from the
+stored constructor, `fire` from `Expr.recRulePlain`, and
+the K/η bits (`recRuleBits`).  They are not a second source of truth:
+`#stored_basis` computes them from the raw pins while the module
+elaborates (`pinRecRuleFields`) and defines the results with
+`addDecl`/`compileDecl`, so the definition's value is a closed literal
+the `decide`/`rfl` consumers in `ConLeche/Model/*` read, re-derived on
+every build.
 
 ```
-#annotate_basis over <env : List ConstantInfo>
+#stored_basis over <env : List ConstantInfo>
   | eqA := eqRaw
   | ...
 ```
-defines `ConstantInfo` constants and threads each one into the
-environment for the entries that follow.
-
-```
-#annotate_pins over <env : List ConstantInfo>
-  | propextA := propextRaw
-  | ...
-```
-defines `ConstantVal` constants (the two standard axioms and the four
-compiler-trust pins), each annotated over the *same* environment; a
-pin that must be visible to a later one is passed in the next
-command's `over`.
-
-The `over` term is elaborated and evaluated at `List ConstantInfo`, so
-it may name constants this command defined earlier in the file.
+defines `ConstantInfo` constants, in dependency order, each computed
+over the environment of `<env>` extended by the ones already defined
+(a recursor's rule reads its constructor's parameter count off it).
+The `over` term is elaborated and evaluated at `List ConstantInfo`.
 -/
 
 /- The whole module is elaboration-time code: quoters, the `#eval`-style
-evaluators and the two command elaborators.  The module system wants a
+evaluator and the command elaborator.  The module system wants a
 `CommandElab` to be `meta` (`Cannot add attribute … must be marked as
 `meta``), and `meta section` is how a file that is meta THROUGHOUT says
 so once. -/
@@ -78,8 +50,8 @@ open Lean Elab Command Term Meta
 
 /-! ## Quoting a `ConLeche` value back into a `Lean.Expr`
 
-The annotation runs on real `ConLeche` values; the definition it splices
-must carry them as terms.  These are the structural quoters — one
+The rule fields are computed on real `ConLeche` values; the definition
+the command splices must carry them as terms.  These are the structural quoters — one
 constructor application each, with no sharing (the pins are small; the
 biggest is `Quot.lift`'s rule, a few hundred nodes). -/
 
@@ -124,8 +96,8 @@ private def qPropWhen (pw : ConLeche.PropWhen) : Lean.Expr :=
   | none => mkConst ``ConLeche.PropWhen.never
   | some ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
 
-private def qBinderMeta (m : ConLeche.BinderMeta) : Lean.Expr :=
-  mkApp (mkConst ``ConLeche.BinderMeta.mk) (qPropWhen m.pw)
+private def qBinderMeta (_m : ConLeche.BinderMeta) : Lean.Expr :=
+  mkConst ``ConLeche.BinderMeta.mk
 
 private def qLiteral : ConLeche.Literal → Lean.Expr
   | .natVal n => mkApp (mkConst ``ConLeche.Literal.natVal) (mkRawNatLit n)
@@ -161,8 +133,7 @@ private def qRecRuleFire : ConLeche.RecRuleFire → Lean.Expr
 private def qRecRule (r : ConLeche.RecRule) : Lean.Expr :=
   mkAppN (mkConst ``ConLeche.RecRule.mk)
     #[qName r.ctor, mkRawNatLit r.nfields, mkRawNatLit r.ctorParams,
-      qRecRuleFire r.fire, qExpr r.rhs, qBool r.k, qBool r.eta,
-      qBool r.paramsBlind]
+      qRecRuleFire r.fire, qExpr r.rhs, qBool r.k, qBool r.eta]
 
 private def qIndCaps (c : ConLeche.IndCaps) : Lean.Expr :=
   mkAppN (mkConst ``ConLeche.IndCaps.mk)
@@ -193,48 +164,25 @@ private def qConstantInfo : ConLeche.ConstantInfo → CoreM Lean.Expr
       #[qConstantVal cv, mkRawNatLit mI, mkRawNatLit rP,
         qList recRuleTy (rules.map qRecRule)])
   | .projInfo _ =>
-    throwError "#annotate_basis: a projection table is not a pinnable declaration"
+    throwError "#stored_basis: a projection table is not a pinnable declaration"
 
 /-! ## The recipe -/
 
-/-- Annotate one raw `ConstantInfo` over `env`, exactly as the basis
-install does: the type first, then — for a recursor — the
-install-computed rule fields (`ctorParams` off the stored constructor,
-`fire` off `Expr.recRulePlain`) and the rules' right-hand sides over
-the environment extended with the recursor itself. -/
-def annotateInfo (env : ConLeche.Env) (ci : ConLeche.ConstantInfo) :
-    ConLeche.CheckM ConLeche.ConstantInfo := do
-  let cv := ci.toConstantVal
-  let ty' ← ConLeche.annotateCore .verified env ConLeche.checkFuel 0 cv.type
-  let cv' : ConLeche.ConstantVal := { cv with type := ty' }
-  match ci with
-  | .indInfo _ caps => return .indInfo cv' caps
-  | .ctorInfo _ nP nF => return .ctorInfo cv' nP nF
-  | .axiomInfo _ => return .axiomInfo cv'
-  | .defnInfo _ v h => return .defnInfo cv' v h
-  | .thmInfo _ => return .thmInfo cv'
-  | .projInfo tbl => return .projInfo tbl
-  | .recInfo _ mI rP rules =>
-    let rules := rules.map fun r =>
+/-- The stored form of a raw pin over `env`: the pin itself, except
+that a recursor's rules carry the install-computed fields
+(`ctorParams` off the stored constructor, `fire` off
+`Expr.recRulePlain`, and `recRuleBits`), exactly as the
+basis install computes them. -/
+def pinRecRuleFields (env : ConLeche.Env) : ConLeche.ConstantInfo → ConLeche.ConstantInfo
+  | .recInfo cv mI rP rules =>
+    .recInfo cv mI rP (rules.map fun r =>
       let cnP := match env.find? r.ctor with
         | some (.ctorInfo _ nP _) => nP
         | _ => 0
-      ConLeche.recRuleBits env.find? cv'.name
+      ConLeche.recRuleBits env.find? cv.name
         { r with ctorParams := cnP,
-                 fire := if ConLeche.Expr.recRulePlain ty' mI rP cnP then .plain else .inert,
-                 paramsBlind := true }
-    let envSelf : ConLeche.Env := ⟨.recInfo cv' mI rP rules :: env.consts⟩
-    let mut out : List ConLeche.RecRule := []
-    for r in rules do
-      let rhs' ← ConLeche.annotateCore .verified envSelf ConLeche.checkFuel 0 r.rhs
-      out := out ++ [{ r with rhs := rhs' }]
-    return .recInfo cv' mI rP out
-
-/-- Annotate one raw `ConstantVal` pin's type over `env`. -/
-def annotateVal (env : ConLeche.Env) (cv : ConLeche.ConstantVal) :
-    ConLeche.CheckM ConLeche.ConstantVal := do
-  let ty' ← ConLeche.annotateCore .verified env ConLeche.checkFuel 0 cv.type
-  return { cv with type := ty' }
+                 fire := if ConLeche.Expr.recRulePlain cv.type mI rP cnP then .plain else .inert })
+  | ci => ci
 
 /-! ## Evaluating the raw pins
 
@@ -247,13 +195,6 @@ private unsafe def evalInfoUnsafe (stx : Syntax) : TermElabM ConLeche.ConstantIn
 
 @[implemented_by evalInfoUnsafe]
 private def evalInfo (_stx : Syntax) : TermElabM ConLeche.ConstantInfo :=
-  throwError "unreachable"
-
-private unsafe def evalValUnsafe (stx : Syntax) : TermElabM ConLeche.ConstantVal :=
-  Term.evalTerm ConLeche.ConstantVal constantValTy stx
-
-@[implemented_by evalValUnsafe]
-private def evalVal (_stx : Syntax) : TermElabM ConLeche.ConstantVal :=
   throwError "unreachable"
 
 private unsafe def evalEnvUnsafe (stx : Syntax) : TermElabM (List ConLeche.ConstantInfo) :=
@@ -287,22 +228,17 @@ private def splice (declName : Lean.Name) (ty value : Lean.Expr) :
 
 /-- One `| name := rawTerm` entry.  The leading `|` is what keeps the
 entries from being parsed as one applied term. -/
-syntax annotEntry := " | " ident " := " term
+syntax pinEntry := " | " ident " := " term
 
-/-- `#annotate_basis over <env> | nameA := nameRaw ...` — annotate raw
-`ConstantInfo` pins in order, each over the environment of `<env>`
-extended by the ones already annotated, and define the results. -/
-syntax (name := annotateBasisCmd)
-  "#annotate_basis" " over " term (annotEntry)+ : command
+/-- `#stored_basis over <env> | nameA := nameRaw ...` — compute the
+stored forms of raw `ConstantInfo` pins in order, each over the
+environment of `<env>` extended by the ones already defined, and
+define the results. -/
+syntax (name := storedBasisCmd)
+  "#stored_basis" " over " term (pinEntry)+ : command
 
-/-- `#annotate_pins over <env> | nameA := nameRaw ...` — annotate raw
-`ConstantVal` pins, each over the *same* environment, and define the
-results. -/
-syntax (name := annotatePinsCmd)
-  "#annotate_pins" " over " term (annotEntry)+ : command
-
-@[command_elab annotateBasisCmd]
-def elabAnnotateBasis : CommandElab := fun stx => do
+@[command_elab storedBasisCmd]
+def elabStoredBasis : CommandElab := fun stx => do
   let entries := stx[3].getArgs
   let mut consts : List ConLeche.ConstantInfo ←
     liftTermElabM (evalEnv stx[2])
@@ -310,32 +246,10 @@ def elabAnnotateBasis : CommandElab := fun stx => do
     let id := e[1]
     let rawStx := e[3]
     let raw ← liftTermElabM (evalInfo rawStx)
-    let ci ←
-      match annotateInfo ⟨consts⟩ raw with
-      | .ok ci => pure ci
-      | .error err =>
-        throwErrorAt rawStx
-          "#annotate_basis: annotating {id.getId} failed: {toString err}"
+    let ci := pinRecRuleFields ⟨consts⟩ raw
     liftTermElabM do
       splice ((← getCurrNamespace) ++ id.getId) constantInfoTy (← qConstantInfo ci)
     consts := ci :: consts
-
-@[command_elab annotatePinsCmd]
-def elabAnnotatePins : CommandElab := fun stx => do
-  let entries := stx[3].getArgs
-  let consts : List ConLeche.ConstantInfo ← liftTermElabM (evalEnv stx[2])
-  for e in entries do
-    let id := e[1]
-    let rawStx := e[3]
-    let raw ← liftTermElabM (evalVal rawStx)
-    let cv ←
-      match annotateVal ⟨consts⟩ raw with
-      | .ok cv => pure cv
-      | .error err =>
-        throwErrorAt rawStx
-          "#annotate_pins: annotating {id.getId} failed: {toString err}"
-    liftTermElabM do
-      splice ((← getCurrNamespace) ++ id.getId) constantValTy (qConstantVal cv)
 
 end ConLeche.BasisGen
 

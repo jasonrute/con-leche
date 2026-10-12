@@ -15,14 +15,7 @@ public section
 # The `Empty` block, P tier: the type-reading recipe, executed once
 (task #161, ENDGAME F)
 
-The ENDGAME E seal itemized the basis tier's remaining bill and its
-item 2 — "compute `denoteMeta` at each basis `ConstantInfo`'s type and
-exhibit `AnnotTerm.BitAgree` to `BConst.typeAV c us`" — is the only item
-with twenty-two instances.  This file executes it at the smallest
-block, and the point is not the two constants: it is that **the recipe
-is now a proof and not a design**.
-
-## The recipe, in four moves
+The recipe for a basis constant's type, in three moves:
 
 1. `show` the pinned `ConstantInfo`'s type as a literal `Expr` tree
    (`show … from rfl`) — the `denoteMeta` clauses are `match`es and will
@@ -30,30 +23,10 @@ is now a proof and not a design**.
 2. walk it with `denoteMeta_forallE`/`denoteMeta_sort`/`denoteMeta_app`/
    `denoteMeta_fvar` and `Expr.instantiate1_eq_self` at every closed
    binder body, with the constant leaves supplied by
-   `acval_basis_pinned` (`Model/BasisCons.lean`) — the P tier's
-   basis leaves are pinned *for free*, so no new field is needed;
-3. exhibit `AnnotTerm.BitAgree` from the reading to `BConst.typeAV`;
-4. `bitAgree_wellDenotedV` + `WellDenotedV_bconst_type` grades it and
-   `interp_eq` + `bval_mem_type` inhabits it.
-
-## THE FINDING: the bits match because `pwBit` and `typeAV` were written
-## from the same pin
-
-Move 3 is where the batch could have failed, and it does not, for a
-reason worth naming.  `denoteMeta`'s codomain slot at a binder is
-`pwBit ψ mb.pw`, and `pwBit ψ pw = if pw.holds ψ then 0 else 1`.  At
-`Empty.rec`'s stored binders the pins are `.never` (the motive's
-domain) and `.ifAllZero [u]` (the two outer binders), so the reading's
-numerals are `1` and `0 ↔ ψ u = 0`.  `BConst.typeAV .emptyRec [1, v]`
-carries `v + 1` and `v` in those same three slots.  Zero-ness agrees on
-the nose — `1 = 0 ↔ v + 1 = 0` (both false) and `pwBit ψ (.ifAllZero
-[u]) = 0 ↔ ψ u = 0` — which is the ENDGAME E doctrine *seen from the
-other side*: E showed the hand-built towers' bits are read off the type
-pins; here the **type readings'** bits are read off the same pins, and
-`BitAgree` is precisely the statement that the two readings never
-disagree where anything looks.
-
-Nothing in this file chooses a numeral.
+   `acval_basis_pinned` (`Model/BasisCons.lean`);
+3. the reading is `BConst.typeAV` on the nose (no binder datum is read,
+   task #342 L14a), so `WellDenotedTy_bconst_type` grades it and
+   `bval_mem_type` inhabits it.
 -/
 
 namespace ConLeche.Model
@@ -118,7 +91,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
         rfl)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) (fun _ _ _ => rfl)
-    (fun _ _ => trivial) (fun _ _ => trivial)
+    (fun _ _ => trivial)
     (fun ψ => ⟨_, denoteMeta_emptyA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons (ab := fun _ => []) (s := fun _ => 1)
       (fun ψ => denoteMeta_emptyA_type ψ) fun _ _ ρ vs hsp => by
@@ -134,42 +107,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
     obtain rfl := (Option.some.inj h).symm
     exact bval_mem_type V .empty [1] ρ
 
-/-! ## `Empty.rec` — the recipe's real instance
-
-Two binders, three stored `PropWhen` pins, and the reading's numerals
-are all three of them. -/
-
-/-- `pwBit` at a `.never` pin: the graph regime, unconditionally. -/
-theorem pwBit_never (ψ : Name → Nat) :
-    pwBit ψ ConLeche.PropWhen.never = 1 := by rfl
-
-/-- `pwBit` at a one-parameter `.ifAllZero` pin: zero exactly when the
-parameter is.  One of the *three* shapes every basis binder reduces to
-— see `pwBit_ifAllZero_nil` for another. -/
-theorem pwBit_ifAllZero_single (ψ : Name → Nat) (n : Name) :
-    pwBit ψ (ConLeche.PropWhen.ifAllZero [n]) = 0 ↔ ψ n = 0 := by
-  rw [pwBit_eq_zero_iff]
-  simp
-
-/-! ### The basis binders' `pwBit` shapes
-
-Over `BasisKind.declsA`'s stored `PropWhen`s:
-
-| shape | where | `pwBit` |
-|---|---|---|
-| `.never` | everywhere | `1` (`pwBit_never`) |
-| `.ifAllZero [p]` | `Nat.rec`, `Empty.rec`, `Eq.rec`, `Quot.mk`, `Quot.lift` | `0 ↔ ψ p = 0` |
-| `.ifAllZero []` | `Eq.refl`, `Quot.lift`, `Quot.ind`, `Quot.sound` | `0`, unconditionally |
--/
-
-/-- `pwBit` at the *empty* `.ifAllZero` pin: zero unconditionally,
-because `[].all _` is `true`.  The pin the `Prop`-valued basis
-constants carry (`Eq.refl`, `Quot.ind`, `Quot.sound`,
-and `Quot.lift`'s invariance binder). -/
-theorem pwBit_ifAllZero_nil (ψ : Name → Nat) :
-    pwBit ψ (ConLeche.PropWhen.ifAllZero []) = 0 := by
-  rw [pwBit_eq_zero_iff]
-  simp
+/-! ## `Empty.rec` -/
 
 /-- **`Empty.rec`'s type reading.**  The four moves of the module
 docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
@@ -178,9 +116,8 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
     (hE : env.find? emptyName = some emptyA) :
     denoteMeta (acvalWith m.acval emptyRecA.name A)
         ⟨emptyRecA :: env.consts⟩ ψ 0 emptyRecA.toConstantVal.type
-      = some (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-          (.pi 0 (pwBit ψ .never) (.const .empty [1]) (.sort (ψ uN)))
-          (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .empty [1])
+      = some (.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
+          (.pi (.const .empty [1])
             (.app (.bvar 1) (.bvar 0)))) := by
   have hpd : ConLeche.Verify.pinnedStructT emptyName ψ
       = some (Term.const .empty [1]) := by
@@ -201,31 +138,20 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
   rw [show emptyRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const emptyName [])
-            (.sort (.param uN)) { pw := .never })
+            (.sort (.param uN)) {})
           (Expr.forallE (.const emptyName [])
             (.app (.bvar 1) (.bvar 0))
-            { pw := .ifAllZero [uN] })
-          { pw := .ifAllZero [uN] } from rfl]
+            {})
+          {} from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
-/-- **The reading agrees with `BConst.typeAV` on every numeral anything
-reads.**  Three binders, three `pwBit`s, three `typeAV` slots, and the
-iffs are `pwBit_never` and `pwBit_ifAllZero_single` — nothing here is
-chosen. -/
-theorem bitAgree_emptyRecA (ψ : Name → Nat) :
-    AnnotTerm.BitAgree
-      (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-        (.pi 0 (pwBit ψ .never) (.const .empty [1]) (.sort (ψ uN)))
-        (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .empty [1])
+/-- **The reading is `BConst.typeAV`.** -/
+theorem emptyRecA_reading_eq (ψ : Name → Nat) :
+    (AnnotTerm.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
+        (.pi (.const .empty [1])
           (.app (.bvar 1) (.bvar 0))))
-      (BConst.typeAV .emptyRec [1, ψ uN]) := by
-  have hz : pwBit ψ (ConLeche.PropWhen.ifAllZero [uN]) = 0 ↔ ψ uN = 0 :=
-    pwBit_ifAllZero_single ψ uN
-  refine .pi hz (.pi ?_ (.const _ _) (.sort _))
-    (.pi hz (.const _ _) (.app (.bvar 1) (.bvar 0)))
-  rw [pwBit_never]
-  simp
+      = BConst.typeAV .emptyRec [1, ψ uN] := rfl
 
 /-- **`Empty.rec`, installed at the P tier.** -/
 theorem extendEmptyRec (mp : EnvModelM V μ env)
@@ -252,19 +178,19 @@ theorem extendEmptyRec (mp : EnvModelM V μ env)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))
     (fun _ _ => rfl) ?_
-    (fun _ _ => trivial) (fun _ _ => trivial)
+    (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_)
   · intro ψ₁ ψ₂ hp
     rw [hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)]
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedTy (bitAgree_emptyRecA ψ) ρ).mpr
-      (WellDenotedTy_bconst_type V .emptyRec [1, ψ uN] ρ)
+    rw [emptyRecA_reading_eq]
+    exact WellDenotedTy_bconst_type V .emptyRec [1, ψ uN] ρ
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    rw [AnnotTerm.BitAgree.interp_eq V (bitAgree_emptyRecA ψ) ρ]
+    rw [emptyRecA_reading_eq]
     exact bval_mem_type V .emptyRec [1, ψ uN] ρ
 
 /-! ## The block
@@ -313,11 +239,11 @@ theorem declBasisPB_emptyK {env₂ : Env} (mp : EnvModelM V μ env)
     simp only [show emptyRecA.toConstantVal.type
         = Expr.forallE
             (Expr.forallE (.const emptyName [])
-              (.sort (.param uN)) { pw := .never })
+              (.sort (.param uN)) {})
             (Expr.forallE (.const emptyName [])
               (.app (.bvar 1) (.bvar 0))
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] } from rfl,
+              {})
+            {} from rfl,
       Expr.constsResolve, Bool.and_eq_true, Option.isSome_iff_exists]
     have hf : (⟨emptyRecA :: emptyA :: env.consts⟩ : Env).find?
         emptyName = some emptyA := by

@@ -95,11 +95,11 @@ theorem Expr.ErasedEq.replaceConsts {f g : Name → List Level → Option Expr}
   | .lam t₁ b₁ m₁, b, h => by
     match b, h with
     | .lam t₂ b₂ m₂, h =>
-      exact ⟨h.1, Expr.ErasedEq.replaceConsts hfg h.2.1, Expr.ErasedEq.replaceConsts hfg h.2.2⟩
+      exact ⟨Expr.ErasedEq.replaceConsts hfg h.1, Expr.ErasedEq.replaceConsts hfg h.2⟩
   | .forallE t₁ b₁ m₁, b, h => by
     match b, h with
     | .forallE t₂ b₂ m₂, h =>
-      exact ⟨h.1, Expr.ErasedEq.replaceConsts hfg h.2.1, Expr.ErasedEq.replaceConsts hfg h.2.2⟩
+      exact ⟨Expr.ErasedEq.replaceConsts hfg h.1, Expr.ErasedEq.replaceConsts hfg h.2⟩
   | .letE t₁ v₁ b₁, b, h => by
     match b, h with
     | .letE t₂ v₂ b₂, h =>
@@ -117,6 +117,17 @@ theorem Expr.ErasedEq.replaceConsts {f g : Name → List Level → Option Expr}
   | [], [] => True
   | a :: as, b :: bs => Expr.ErasedEq a b ∧ Expr.ErasedEqL as bs
   | _, _ => False
+
+/-- Pointwise erasure-equal lists of one length are erasure-equal. -/
+theorem erasedEqL_of_getElem : ∀ {as bs : List Expr}, as.length = bs.length →
+    (∀ (q : Nat) (a b : Expr), as[q]? = some a → bs[q]? = some b → Expr.ErasedEq a b) →
+    Expr.ErasedEqL as bs
+  | [], [], _, _ => trivial
+  | [], _ :: _, h, _ => by simp at h
+  | _ :: _, [], h, _ => by simp at h
+  | a :: as, b :: bs, h, he =>
+    ⟨he 0 a b rfl rfl, erasedEqL_of_getElem (by simpa using h)
+      fun q a' b' h1 h2 => he (q + 1) a' b' h1 h2⟩
 
 /-- Two lists of variables at the same consecutive indices are
 erasure-equal. -/
@@ -161,8 +172,8 @@ theorem replaceFVars_erasedEq_idx {g : Nat → Option Expr}
       obtain ⟨ty', rfl⟩ := hg i a hgi
       rfl
   | app a x iha ihx => exact ⟨iha, ihx⟩
-  | lam t b m iht ihb => exact ⟨rfl, iht, ihb⟩
-  | forallE t b m iht ihb => exact ⟨rfl, iht, ihb⟩
+  | lam t b m iht ihb => exact ⟨iht, ihb⟩
+  | forallE t b m iht ihb => exact ⟨iht, ihb⟩
   | letE t v b iht ihv ihb => exact ⟨iht, ihv, ihb⟩
   | proj s i x ih => exact ⟨rfl, rfl, ih⟩
   | bvar => exact Expr.ErasedEq.rfl _
@@ -303,7 +314,7 @@ theorem openPisAtFvars_holeAbs {ctx : NestCtx} :
         rw [holeAbs_forallE] at he
         cases e' with
         | forallE dom' body' mb' =>
-          obtain ⟨-, -, hb⟩ := he
+          obtain ⟨-, hb⟩ := he
           have hop' : openPisAtFvars n (body.instantiate1 (.fvar (ctx.nP + j) dom))
               (ctx.nP + (j + 1)) = some (fvs, r) := by rw [← Nat.add_assoc]; exact hop
           have hb' : Expr.ErasedEq
@@ -403,7 +414,7 @@ theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : E
         obtain ⟨rfl, rfl⟩ := h
         obtain ⟨ta, ba, hta, hba, heq⟩ := denoteMeta_forallE_inv hr
         simp only [mkPisAV, AnnotTerm.pi.injEq] at heq
-        obtain ⟨-, -, hg, rfl⟩ := heq
+        obtain ⟨hg, rfl⟩ := heq
         obtain ⟨hB, hdoms⟩ := denoteMeta_peel n hop (by simpa using hl) hba
         refine ⟨by rwa [show D + 1 + n = D + (n + 1) by omega] at hB, fun l x hx => ?_⟩
         cases l with
@@ -451,7 +462,7 @@ theorem instPisWith_erasedEq :
   | a :: as, b :: bs, e, e', r, ⟨hab, hrest⟩, he, h => by
     match e, e', he, h with
     | .forallE t₁ b₁ m₁, .forallE t₂ b₂ m₂, he, h =>
-      obtain ⟨-, -, hb⟩ := he
+      obtain ⟨-, hb⟩ := he
       have h' : instPisWith as (b₁.instantiate1 a) = some r := h
       show ∃ r', instPisWith bs (b₂.instantiate1 b) = some r' ∧ _
       exact instPisWith_erasedEq hrest (Expr.ErasedEq.instantiate1 hb hab) h'

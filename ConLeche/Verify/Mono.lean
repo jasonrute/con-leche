@@ -60,8 +60,8 @@ theorem whnfBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
   rwa [whnfBody_fst_proj, whnfBody_snd_proj] at this
 
 theorem inferBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
-    MRefines (inferBody mode r₁ env d e) (inferBody mode r₂ env d e) := by
-  have := (inferBody mode (pairFns r₁ r₂ h) env d e).property
+    MRefines (inferBody r₁ env d e) (inferBody r₂ env d e) := by
+  have := (inferBody (pairFns r₁ r₂ h) env d e).property
   rwa [inferBody_fst_proj, inferBody_snd_proj] at this
 
 theorem defeqBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (a b : Expr) :
@@ -69,14 +69,9 @@ theorem defeqBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (a b : Expr) :
   have := (defeqBody mode (pairFns r₁ r₂ h) env d a b).property
   rwa [defeqBody_fst_proj, defeqBody_snd_proj] at this
 
-theorem annotateBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
-    MRefines (annotateBody r₁ env d e) (annotateBody r₂ env d e) := by
-  have := (annotateBody (pairFns r₁ r₂ h) env d e).property
-  rwa [annotateBody_fst_proj, annotateBody_snd_proj] at this
-
 theorem inferBodyIO_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
-    MRefines (inferBodyIO mode r₁ env d e) (inferBodyIO mode r₂ env d e) := by
-  have := (inferBodyIO mode (pairFns r₁ r₂ h) env d e).property
+    MRefines (inferBodyIO r₁ env d e) (inferBodyIO r₂ env d e) := by
+  have := (inferBodyIO (pairFns r₁ r₂ h) env d e).property
   rwa [inferBodyIO_fst_proj, inferBodyIO_snd_proj] at this
 
 theorem ensureSort_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
@@ -91,7 +86,7 @@ end Mono
 theorem pureFns_mono (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
     FnsRefines (pureFns mode env f) (pureFns mode env f')
   | 0, f', _ => by
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro c d e v hv
       rw [show (pureFns mode env 0).whnfCore c d e = whnfCore mode env 0 d e c from rfl,
         whnfCore_zero] at hv
@@ -109,10 +104,6 @@ theorem pureFns_mono (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
         isDefEqCore_zero] at hv
       simp [throw, throwThe, MonadExceptOf.throw] at hv
     · intro d e v hv
-      rw [show (pureFns mode env 0).annotate d e = annotateCore mode env 0 d e from rfl,
-        annotateCore_zero] at hv
-      simp [throw, throwThe, MonadExceptOf.throw] at hv
-    · intro d e v hv
       rw [show (pureFns mode env 0).inferIO d e =
         throw (.internal "fuel exhausted: infer") from rfl] at hv
       simp [throw, throwThe, MonadExceptOf.throw] at hv
@@ -122,21 +113,7 @@ theorem pureFns_mono (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
       fun d e => whnfBody_mono ih d e,
       fun d e => inferBody_mono ih d e,
       fun d a b => defeqBody_mono ih d a b,
-      fun d e => annotateBody_mono ih d e,
-      fun d e => ?_⟩
-    -- the io slot (task #172 B4): both fuels select the same branch
-    show MRefines
-      (if mode.betaGate then
-        inferBodyIO mode (CoreFns.ioView (pureFns mode env f)) env d e
-       else inferBody mode (pureFns mode env f) env d e)
-      (if mode.betaGate then
-        inferBodyIO mode (CoreFns.ioView (pureFns mode env f')) env d e
-       else inferBody mode (pureFns mode env f') env d e)
-    cases hg : mode.betaGate
-    · simp only [Bool.false_eq_true, ite_false]
-      exact inferBody_mono ih d e
-    · simp only [ite_true]
-      exact inferBodyIO_mono ih.ioView d e
+      fun d e => inferBodyIO_mono ih.ioView d e⟩
 
 /-! ## Fueled corollaries -/
 
@@ -160,15 +137,10 @@ theorem isDefEqCore_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
     isDefEqCore mode env f' d a b = .ok r :=
   (pureFns_mono env hle).2.2.2.1 d a b r h
 
-theorem annotateCore_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
-    {d : Nat} {e r : Expr} (h : annotateCore mode env f d e = .ok r) :
-    annotateCore mode env f' d e = .ok r :=
-  (pureFns_mono env hle).2.2.2.2.1 d e r h
-
 theorem inferTypeIO_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
     {d : Nat} {e r : Expr} (h : inferTypeIO mode env f d e = .ok r) :
     inferTypeIO mode env f' d e = .ok r :=
-  (pureFns_mono env hle).2.2.2.2.2 d e r h
+  (pureFns_mono env hle).2.2.2.2 d e r h
 
 theorem ensureSortCore_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
     {d : Nat} {e : Expr} {u : Level}

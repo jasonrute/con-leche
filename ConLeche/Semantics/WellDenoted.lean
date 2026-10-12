@@ -5,48 +5,34 @@ import ConLeche.SetTheory.Derive.Sigma
 @[expose] public section
 
 /-!
-# `WellDenoted`: kinded hereditary truthfulness over `interp` (task #151 tier C)
+# `WellDenoted`: the semantic invariant over `interp` (task #151 tier C; task #342)
 
-The model's invariant on the annotated syntax under the two-regime
-interpretation.  Two clauses carry more than hereditary truthfulness,
-each an interface a consumer forced:
+The model's invariant on the semantic syntax.  It holds of a term when
+it holds of the subterms and one condition on the term's own shape is
+met; the conditions **record what is a type** (`IsTy X := X ∈ univZero
+∨ Strict X`, the sets whose members are all the point or none of them):
 
-* **the application slot carries the product kind** —
-  `∃ v A B, ⟦f⟧ ∈ piR v A B ∧ ⟦a⟧ ∈ A ∧ (v = 0 → fibres are truth
-  values)` — so at a provably-positive kind the membership *pins* the
-  domain (`piR_dom_unique`, no side condition) and the runtime argument
-  re-check becomes derivable;
-* **the λ clause carries the fibre package at the node's own
-  annotation** — `∃ B, (∀ x ∈ ⟦A⟧, ⟦b⟧ ∈ B x) ∧ (v = 0 → fibres are
-  truth values)` — the semantic content of the λ's cached codomain
-  sort, and what `WellDenoted_beta_pos` consumes.
+* an application applies a member of some function space `piR v A B`
+  to a member of its domain `A`; at a proposition (`v = 0`) the fibres
+  are truth values, above it the domain is a type — so in the graph
+  regime the membership *pins* the domain (`piR_dom_unique`);
+* a λ's domain is a type, the body is well-denoted at every value of
+  the domain, and some family of types bounds it;
+* a Π's domain is a type, the body is well-denoted at every value of
+  the domain and denotes a type there;
+* a `let` has its value well-denoted, and its body well-denoted at the
+  value;
+* variables, sorts, constants and the proof are always well-denoted.
 
-**Binder domains are types** (task #342, `IsTy X := X ∈ univZero ∨
-Strict X`): the λ and Π clauses carry `IsTy ⟦A⟧`, the Π clause carries
-`IsTy` of every fibre, the λ clause bounds its body by a family of
-types, and the application slot carries `v ≠ 0 → IsTy A` (at kind `0`
-it asks only the truth-value component).  Every such fact is the
-semantic content of a `Sort` the checker inferred for the binder type;
-`IsTy_univ`, `IsTy_piR` and `IsTy_of_mem_univ` produce them.
+The binders' regimes are read off the values by `interp` (`piV`/`lamV`);
+the type clauses are what makes that reading coherent: an abstraction
+is a member of its function space (`lamV_mem`) because every fibre is a
+type.  The predicate transports along `inst` (`WellDenoted_inst0`); a
+β step at a redex that is not the point keeps the denotation and the
+invariant (`WellDenoted_beta`).
 
-Being a **semantic** predicate on the annotated term, `WellDenoted`
-transports across reduction; the constraint that annotations do not
-cross `Red` binds derivation-backed relations, not this invariant.
-
-## The app clause's kind-`0` component
-
-`app_mem_piR` (`SetModel/Ops.lean`) needs exactly
-`v = 0 → ∀ x ∈ˢ A, B x ∈ˢ univZero` to conclude
-`app ⟦f⟧ ⟦a⟧ ∈ˢ B ⟦a⟧`, the slot's `B` is existentially bound so no
-handle on it survives extraction, and the truth-value route does not
-substitute: an inhabited `piR 0 A B` gives only that `B ⟦a⟧` is
-*inhabited*, never that its inhabitant is `pt`.  So without the
-component the app case at kind `0` could not close from the invariant.
-
-**Established, not assumed**: `appSlot_of_pi` / `WellDenoted_app_of`
-below build the slot from the *annotated* `Π`'s own codomain sort fact
-at the `Π`'s numeral, the same route the λ clause's component takes.
-The two binder clauses are symmetric.
+Every type fact is the semantic content of a `Sort` the checker
+inferred; `IsTy_univ`, `IsTy_piV` and `IsTy_of_mem_univ` produce them.
 -/
 
 namespace ConLeche.Semantics
@@ -62,17 +48,16 @@ variable (V : Type w) [SetTheory V]
 /-- Kinded hereditary truthfulness of the binder/application structure
 under a variable environment (see the module docstring). -/
 def WellDenoted : (Nat → V) → AnnotTerm → Prop
-  | ρ, .pi _u _v A B =>
+  | ρ, .pi A B =>
     WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
     (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
     (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))
-  | ρ, .lam v A b =>
+  | ρ, .lam A b =>
     WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
     (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) b) ∧
     ∃ B : V → V,
       (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
-      (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) ∧
-      (v = 0 → ∀ x, x ∈ˢ interp V ρ A → B x ∈ˢ (univZero : V))
+      (∀ x, x ∈ˢ interp V ρ A → IsTy (B x))
   | ρ, .app f a =>
     WellDenoted ρ f ∧ WellDenoted ρ a ∧
     ∃ (v : Nat) (A : V) (B : V → V),
@@ -105,21 +90,19 @@ def WellDenoted : (Nat → V) → AnnotTerm → Prop
   rw [WellDenoted]
 @[simp] theorem WellDenoted_prf (ρ : Nat → V) :
     WellDenoted V ρ .prf = True := by rw [WellDenoted]
-theorem WellDenoted_pi (ρ : Nat → V) (u v : Nat) (A B : AnnotTerm) :
-    WellDenoted V ρ (.pi u v A B) =
+theorem WellDenoted_pi (ρ : Nat → V) (A B : AnnotTerm) :
+    WellDenoted V ρ (.pi A B) =
       (WellDenoted V ρ A ∧ IsTy (interp V ρ A) ∧
         (∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) B) ∧
         (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))) := by
   rw [WellDenoted]
-theorem WellDenoted_lam (ρ : Nat → V) (v : Nat) (A b : AnnotTerm) :
-    WellDenoted V ρ (.lam v A b) =
+theorem WellDenoted_lam (ρ : Nat → V) (A b : AnnotTerm) :
+    WellDenoted V ρ (.lam A b) =
       (WellDenoted V ρ A ∧ IsTy (interp V ρ A) ∧
         (∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) b) ∧
         ∃ B : V → V,
           (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
-          (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) ∧
-          (v = 0 → ∀ x, x ∈ˢ interp V ρ A →
-            B x ∈ˢ (univZero : V))) := by
+          (∀ x, x ∈ˢ interp V ρ A → IsTy (B x))) := by
   rw [WellDenoted]
 theorem WellDenoted_app (ρ : Nat → V) (f a : AnnotTerm) :
     WellDenoted V ρ (.app f a) =
@@ -169,7 +152,7 @@ theorem WellDenoted_liftN (n : Nat) :
     intro k ρ
     rw [AnnotTerm.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
       interp_liftN, interp_liftN]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ
     rw [AnnotTerm.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
@@ -178,7 +161,7 @@ theorem WellDenoted_liftN (n : Nat) :
         (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · rw [ihb, cons_shiftE]
     · rw [interp_liftN, cons_shiftE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ
     rw [AnnotTerm.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
@@ -228,7 +211,7 @@ theorem WellDenoted_inst :
     intro a k ρ ha
     rw [AnnotTerm.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
       ihb a k ρ ha, interp_inst, interp_inst]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro a k ρ ha
     rw [AnnotTerm.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
       interp_inst]
@@ -242,7 +225,7 @@ theorem WellDenoted_inst :
     · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
         rw [shiftE_succ_cons]; exact ha
       rw [interp_inst, shiftE_succ_cons, cons_instE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro a k ρ ha
     rw [AnnotTerm.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
       interp_inst]
@@ -297,102 +280,74 @@ theorem WellDenoted_zeta {v b : AnnotTerm} {ρ : Nat → V}
   rw [WellDenoted_letE, WellDenoted_inst0 V hv]
   exact and_iff_right hv
 
-/-! ### The graded β step, complete
+/-! ### The graded β step
 
-`Red`'s β cases in both conjuncts, at a provably-positive codomain
-kind: the interp-equality *and* the truthfulness transport, from the
-subject's `WellDenoted` alone — no argument re-check.  This is the
-family-2 removal's core theorem; `app_lamR_pos`
-(`SetModel/Ops.lean`) is its value-level kernel.  At kind `0` the domain
-membership is not recoverable (impredicativity — the #49/#73 residue),
-which is why the runtime gate is a kind test, not a deletion. -/
-theorem WellDenoted_beta_pos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
-    {ρ : Nat → V}
-    (h : WellDenoted V ρ (.app (.lam v A b) a)) :
-    interp V ρ (.app (.lam v A b) a) = interp V ρ (b.inst a) ∧
+At a redex that is not the point, from the subject's `WellDenoted`
+alone: the λ is not the point (`app_pt`), so it is a graph and the
+slot's function space is in the graph regime; the graph fixes its
+domain (`piR_dom_unique`), so the argument lies in the λ's domain, and
+β is `app_lamV`.  At the point there is nothing to show: the claims
+that read this are conditional on "not the point". -/
+
+/-- The λ's own membership, read off its clause: an abstraction whose
+body is bounded by a family of types is a member of that family's
+function space. -/
+theorem WellDenoted_lam_mem {A b : AnnotTerm} {ρ : Nat → V}
+    (h : WellDenoted V ρ (.lam A b)) :
+    ∃ B : V → V, interp V ρ (.lam A b) ∈ˢ piV (interp V ρ A) B ∧
+      (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) := by
+  rw [WellDenoted_lam] at h
+  obtain ⟨-, -, -, B, hfib, hty⟩ := h
+  exact ⟨B, by rw [interp_lam]; exact lamV_mem hfib hty, hty⟩
+
+/-- **The graded β step** at a redex that is not the point. -/
+theorem WellDenoted_beta {A b a : AnnotTerm} {ρ : Nat → V}
+    (h : WellDenoted V ρ (.app (.lam A b) a))
+    (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
+    interp V ρ a ∈ˢ interp V ρ A ∧
+    interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
     WellDenoted V ρ (b.inst a) := by
   rw [WellDenoted_app] at h
   obtain ⟨hlam, ha, v', A', B', hslot, hmem, -, -⟩ := h
-  rw [WellDenoted_lam] at hlam
-  obtain ⟨-, -, hbody, B, hfib, -, -⟩ := hlam
-  -- the slot's product is in the graph regime: the λ is not `pt`
+  have hlne : interp V ρ (.lam A b) ≠ pt := by
+    intro h0; apply hne; rw [interp_app, h0, app_pt]
   have hv' : v' ≠ 0 := by
-    intro h0
-    subst h0
-    have h1 := eq_pt_of_mem_piR_zero hslot
-    rw [interp_lam] at h1
-    exact lamR_ne_pt hv h1
-  -- rigidity pins the slot's domain to the λ's own
-  have hown : interp V ρ (.lam v A b)
-      ∈ˢ piR v (interp V ρ A) B := by
-    rw [interp_lam]
-    exact lamR_mem hfib
-  have hAA : interp V ρ A = A' := piR_dom_unique hv hv' hown hslot
-  have haA : interp V ρ a ∈ˢ interp V ρ A := by
-    rw [hAA]
-    exact hmem
-  refine ⟨?_, ?_⟩
-  · rw [interp_app, interp_lam, app_lamR_pos hv haA, interp_inst0]
-  · exact (WellDenoted_inst0 V ha).mpr (hbody _ haA)
+    intro h0; subst h0; exact hlne (eq_pt_of_mem_piR_zero hslot)
+  obtain ⟨-, -, hbody, B, hfib, -⟩ := (WellDenoted_lam V ρ A b).mp hlam
+  have hgraph : interp V ρ (.lam A b) = graph (fun x => interp V (cons x ρ) b) (interp V ρ A) := by
+    rw [interp_lam] at hlne ⊢; exact lamV_eq_graph hlne
+  have hown : interp V ρ (.lam A b) ∈ˢ piR 1 (interp V ρ A) B := by
+    rw [hgraph, piR_pos (by decide)]; exact graph_mem_piSet hfib
+  have hAA : interp V ρ A = A' := piR_dom_unique (by decide) hv' hown hslot
+  have haA : interp V ρ a ∈ˢ interp V ρ A := hAA ▸ hmem
+  refine ⟨haA, ?_, (WellDenoted_inst0 V ha).mpr (hbody _ haA)⟩
+  rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
+/-! ## The app slot's establishment -/
 
-/-- The graded β step at kind `0` — the residue side: with the
-argument membership supplied (the retained `Prop`-codomain runtime
-check's fact), the equality holds because both sides are the canonical
-proof, and the transport is the hereditary component. -/
-theorem WellDenoted_beta_zero {A b a : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenoted V ρ (.app (.lam 0 A b) a))
-    (hmem : interp V ρ a ∈ˢ interp V ρ A) :
-    interp V ρ (.app (.lam 0 A b) a) = interp V ρ (b.inst a) ∧
-    WellDenoted V ρ (b.inst a) := by
-  rw [WellDenoted_app] at h
-  obtain ⟨hlam, ha, -⟩ := h
-  rw [WellDenoted_lam] at hlam
-  obtain ⟨-, -, hbody, B, hfib, -, hz⟩ := hlam
-  refine ⟨?_, (WellDenoted_inst0 V ha).mpr (hbody _ hmem)⟩
-  rw [interp_app, interp_lam, lamR_zero, app_pt, interp_inst0]
-  exact (eq_pt_of_mem_univZero (hz rfl _ hmem) (hfib _ hmem)).symm
-
-/-! ## The app slot's establishment
-
-The clause's kind-`0` fibre component (see the module docstring) is
-not a wish: it is exactly what an
-*annotated* `Π` hands over at the application site.  Stated at the
-value level, so the supplier is a theorem before the clause that
-consumes it is relied on. -/
-
-/-- **The app slot, established from the function type's own
-annotation.**  Given the function in an annotated `Π`'s
-interpretation, the argument in its domain, and the `Π`'s *codomain
-sort fact at kind `0`*, the slot follows — new component included.
-
-The codomain premise is the `Π`'s own sort fact at its numeral `v`,
-the same route the λ clause's identically-shaped component takes. -/
-theorem appSlot_of_pi {u v : Nat} {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
-    (hf : interp V ρ f ∈ˢ interp V ρ (.pi u v Aa Ba))
+/-- **The app slot**, from the function's membership in a Π-type's
+reading, the argument in its domain, and the domain a type. -/
+theorem appSlot_of_pi {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
+    (hf : interp V ρ f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : interp V ρ a ∈ˢ interp V ρ Aa)
-    (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V))
-    (hdom : v ≠ 0 → IsTy (interp V ρ Aa)) :
+    (hdom : IsTy (interp V ρ Aa)) :
     ∃ (v' : Nat) (A : V) (B : V → V),
       interp V ρ f ∈ˢ piR v' A B ∧ interp V ρ a ∈ˢ A ∧
       (v' = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
       (v' ≠ 0 → IsTy A) := by
   rw [interp_pi] at hf
-  exact ⟨v, interp V ρ Aa, fun x => interp V (cons x ρ) Ba,
-    hf, ha, hcod, hdom⟩
+  exact ⟨_, interp V ρ Aa, fun x => interp V (cons x ρ) Ba,
+    hf, ha, propN_eq_zero.mp, fun _ => hdom⟩
 
 /-- The full app-clause establishment: the hereditary halves plus the
 slot, the shape the `app` claim discharges. -/
-theorem WellDenoted_app_of {u v : Nat} {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
+theorem WellDenoted_app_of {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
     (hokf : WellDenoted V ρ f) (hoka : WellDenoted V ρ a)
-    (hf : interp V ρ f ∈ˢ interp V ρ (.pi u v Aa Ba))
+    (hf : interp V ρ f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : interp V ρ a ∈ˢ interp V ρ Aa)
-    (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V))
-    (hdom : v ≠ 0 → IsTy (interp V ρ Aa)) :
+    (hdom : IsTy (interp V ρ Aa)) :
     WellDenoted V ρ (.app f a) := by
   rw [WellDenoted_app]
-  exact ⟨hokf, hoka, appSlot_of_pi V hf ha hcod hdom⟩
+  exact ⟨hokf, hoka, appSlot_of_pi V hf ha hdom⟩
 
 end ConLeche.Semantics

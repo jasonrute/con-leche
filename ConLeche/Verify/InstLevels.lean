@@ -107,7 +107,7 @@ theorem allLevelParamsDefined_stripPis_body {ps : List Name} :
       obtain ⟨-, rfl⟩ : (ty, m) :: bs' = bs ∧ body' = body := by
         simpa using heq
       simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hp
-      exact ih hb hp.1.2
+      exact ih hb hp.2
 
 /-- Level instantiation commutes with binder opening. -/
 theorem instantiateLevelParams_instantiate1 (ks : List Name) (us : List Level)
@@ -184,7 +184,6 @@ theorem Expr.instantiateLevelParams_self (ks : List Name) :
     | nil => rfl
     | cons x xs ih => simp [Level.subst_param_self, ih]
   induction e <;>
-    simp_all [Expr.instantiateLevelParams, Level.subst_param_self, hmap,
-      Level.substPW_self]
+    simp_all [Expr.instantiateLevelParams, Level.subst_param_self, hmap]
 
 end ConLeche

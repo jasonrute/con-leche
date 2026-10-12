@@ -5436,7 +5436,7 @@
    452  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
    453      (ds : Array Declaration) :
    454      Except (CheckError × Nat) Env := do
-   455    let p ← ds.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[])
+   455    let p ← ds.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[])
    456    checkPendingList mode p.2.1 p.2.2.toList
    457    pure p.2.1.env
 

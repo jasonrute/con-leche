@@ -20,10 +20,9 @@ the literal shapes and their guards (`natLitToConstructor`,
 reducts and pins (`natOpNames`, `natDivModNames`, `natOpEquations`,
 `natOpResult`, `natOpStoredOk`, …), the structure-η fabrications
 (`etaProjs`, `etaFabArgsE`, `andRescueSlots`), the install-time rule
-bits (`recRuleBits`, `recRuleK`, `recFireComparands`),
-the tower entry's readers (`ProjEntry.fireOk`, `ProjEntry.typeAt`), the
-β gate (`betaGateFires`) and the annotation datum's writer
-(`annotBinderMeta`).
+bits (`recRuleBits`, `recRuleK`, `recFireComparands`), the ι licence
+(`iotaCtorLicensed`, `iotaCase3`) and the tower entry's readers
+(`ProjEntry.fireOk`, `ProjEntry.typeAt`).
 
 Split out of `ConLeche/Kernel/Core.lean` at task #305 (prep): a
 relational description of the core's moves — a relation over `Expr`
@@ -37,6 +36,17 @@ their names, docstrings, attributes and relative order.
 -/
 
 namespace ConLeche
+
+/-- **Is the spine's head neither a λ nor a `let`** (nor a loose bound
+variable)?  The io grade's claim of such a term, where the term is not
+the point, is a membership of its io-inferred type (task #342 L18,
+`IORel`): a hereditary claim arises only at an abstraction.  A term in
+weak-head normal form that is not a λ has such a head. -/
+def Expr.ioNeutral (e : Expr) : Bool :=
+  match e.getAppFn with
+  | .lam .. | .letE .. | .bvar _ => false
+  | _ => true
+
 
 /-- Is the expression headed by a stored constructor? -/
 def isCtorApp (env : Env) (e : Expr) : Bool :=
@@ -718,27 +728,12 @@ whole test.) -/
 def towerSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
   (List.range nF).all fun j => (env.findProj? T j).isSome
 
-/-- Are all `nF` projection slots of `T` recursor-backed projection
-functions?  With `towerSlotsAll` the eta
-certificate's slot discipline: a family's slots are all of one kind,
-so the fabricated spine and the per-slot certificates agree. -/
-def recSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
-  (List.range nF).all fun j =>
-    match env.find? (projFnName T j) with
-    | some (.recInfo _ _ _ _) => true
-    | _ => false
-
-/-- The fabricated projections of a structure-eta spine (task #175
-W4c): `.proj T j b` nodes when every slot has a table entry (the
-direct install's structures — the node is what the table types and
-reduces), else projection-function applications. -/
-def etaProjs (env : Env) (T : Name) (us : List Level) (targs : List Expr)
-    (b : Expr) (nF : Nat) : List Expr :=
-  if towerSlotsAll env T nF then
-    (List.range nF).map fun j => Expr.proj T j b
-  else
-    (List.range nF).map fun j =>
-      Expr.mkAppN (.const (projFnName T j) us) (targs ++ [b])
+/-- The fabricated projections of a structure-eta spine: the
+`.proj T j b` nodes (every slot of an η family the checker uses has a
+table entry, `towerSlotsAll`; the node is what the table types and
+reduces). -/
+def etaProjs (T : Name) (b : Expr) (nF : Nat) : List Expr :=
+  (List.range nF).map fun j => Expr.proj T j b
 
 /-- The constructor shape official's `try_eta_struct_core` tests before
 inferring anything (`type_checker.cpp:824-829`): the candidate's head is
@@ -753,12 +748,21 @@ def etaCtorShape (env : Env) (a : Expr) : Bool :=
     | _ => false
   | _ => false
 
-/-- The eta-rescue fabrication's argument spine (task #175 W4c): the projections
-are `etaProjs`' — `.proj` nodes at an all-tower slot family,
-projection-function applications otherwise. -/
-def etaFabArgsE (env : Env) (T : Name) (ust : List Level)
-    (targs : List Expr) (major : Expr) (nF : Nat) : List Expr :=
-  targs ++ etaProjs env T ust targs major nF
+/-- The eta-rescue fabrication's argument spine: the major's type's
+arguments, then the major's projections (`etaProjs`). -/
+def etaFabArgsE (T : Name) (targs : List Expr) (major : Expr) (nF : Nat) :
+    List Expr :=
+  targs ++ etaProjs T major nF
+
+/-- **The licensed telescope check of a spine** (task #342 L18): the
+telescope's syntactic arity, nothing else.  It is applied to spines of
+the subject (the projection fire, `projCert`; the recursor's own
+telescope in `iotaRec`): where the redex is not the point, its spine
+fits its head's telescope by the application slots of its own
+invariant, and a reduction claims nothing of a redex that is the
+point. -/
+def teleArityOk (ty : Expr) (args : List Expr) : Bool :=
+  (Expr.peelPis args.length ty).isSome
 
 /-- **The tower-fire guard** (task #175 W4c/O4, restated at W6):
 `whnfCore` fires the structural rule `proj_i (ctor p⃗ x⃗) ↦ x_i` at a
@@ -886,10 +890,6 @@ def recRuleBits (find? : Name → Option ConstantInfo) (recName : Name)
     (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).k
       = recRuleKOf find? rl.ctor := rfl
 
-@[simp] theorem recRuleBits_paramsBlind (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) :
-    (recRuleBits find? recName rl).paramsBlind = rl.paramsBlind := rfl
-
 @[simp] theorem recRuleBits_eta (find? : Name → Option ConstantInfo)
     (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).eta
       = recRuleEtaOf find? recName rl.ctor := rfl
@@ -940,50 +940,5 @@ def ProjEntry.typeAt (entry : ProjEntry) (us : List Level) (targs : List Expr)
     (pe : Expr) : Expr :=
   (entry.body.instantiateLevelParams entry.levelParams us).instantiateList
     (pe :: targs.reverse)
-
-/-- **THE β SITE'S GATE** (task #161): does the mode's β gate fire at
-this binder?
-
-At `mode.betaGate` (i.e. at `.verified`, and nowhere else) a λ-binder
-whose *validated* annotation datum is `.never` — "the codomain sort is
-nonzero at every valuation" — licenses skipping the certificate: the
-`Red.betaGate` rule's soundness (`Red.betaGate_sound`,
-`ConLeche/Model/Rules/RedSound.lean`) derives the domain membership from the
-redex's own `WellDenoted` slot and consumes no certificate at all.
-
-At a possibly-zero datum, and at every non-gated mode, the certificate
-runs unconditionally — the establishment/consumption asymmetry fence,
-and task #100's de-gating ruling, both untouched: *that* gate read a
-**computed** nonzero sort (unsound-to-model under the domain-relative
-collapse); this one reads a **validated annotation**.
-
-Both arms hand back the same reduct, so reducts stay
-annotation-blind; the dead-branch collapse is `betaGateFires_off`
-(`Verify/BetaGate.lean`).
-
-The gate is a **pure early return**, not a wrapper around the test's
-`Bool`, and that shape is load-bearing: the `else` arm is then the
-pre-gate clause *byte-for-byte*, so every existing proof of every
-non-gated mode continues verbatim after one `simp only` on the
-condition.  (A wrapper around the test would have re-associated the
-certificate's binds and cost every site a `bind_assoc` as well.)
-
-`betaGateFires` is deliberately mode-and-datum only — it reads no
-expression and runs no computation, so it is decidable *before* the
-certificate would have started, which is the whole performance
-point. -/
-@[inline] def betaGateFires (mode : CheckMode) (pw : PropWhen) : Bool :=
-  mode.betaGate && pw.isNever
-
-/-- Is this datum a real (non-placeholder) input annotation? -/
-@[inline] def pwWritten (pw : PropWhen) : Bool := !pw.isNever
-
-/-- The datum a rebuilt binder ends up with: the one threaded in from
-the node below (the chain rule), unless it carries a real input
-annotation — those are judged by validation, never overwritten. -/
-def annotBinderMeta (pw? : Option PropWhen) (mb : BinderMeta) : BinderMeta :=
-  match pw? with
-  | some pw => if pwWritten mb.pw then mb else ⟨pw⟩
-  | none => mb
 
 end ConLeche

@@ -121,7 +121,9 @@ theorem blockCtorReads_of {env : Env} {m : EnvModel V env} {d : BlockData V} {lp
     have h2 := stripPisAV_mkPisAV_take d.nP (d.dsF c j ψ)
       (ctorBodyAVI m (d.memberName c) d.nP cA.2 ψ (d.esF c j ψ)) hle'
     rw [← Option.some.inj (hrd'.symm.trans (hcd.read ψ)), h1] at h2
-    have htk : dsC.take d.nP = (d.dsF c j ψ).take d.nP := (Prod.mk.inj (Option.some.inj h2)).1
+    have htk : (dsC.take d.nP).map (·.2.2) = ((d.dsF c j ψ).take d.nP).map (·.2.2) := by
+      have := congrArg (List.map (·.2.2)) (Prod.mk.inj (Option.some.inj h2)).1
+      simpa only [ppsNorm_map_dom] using this
     rw [htk]
     exact hpars c hc' j cA hcj ψ ρ hsat
   · obtain ⟨ab, abN, hca, -, hlab, hlabN, -, habN, hEq⟩ := hr ψ

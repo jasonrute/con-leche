@@ -4,7 +4,6 @@ import ConLeche.Verify.OfReducePin
 import ConLeche.Semantics.DeclRun
 public import ConLeche.Model.NatEqs
 import ConLeche.Model.Capstone
-public import ConLeche.Model.ErasePwInv
 import ConLeche.Model.DivMod
 public section
 
@@ -52,15 +51,12 @@ and every part of it is already established at the install:
 * the pin fixes the stored type to `.forallE (.const E []) (.const E [])
   mb₀` **on the nose** below the binder meta — both erasures fix a
   `.const` (the `trustCompiler` branch's lesson, reused) — so the
-  type's reading is `.pi 0 (pwBit ψ mb₀.pw) (acval E ψ) (acval E ψ)`
-  and `interp` of it is a `piR` over the element set;
-* the `piR` membership is the constant's own `mem_type` obligation
+  type's reading is `.pi (acval E ψ) (acval E ψ)`
+  and `interp` of it is a `piV` over the element set;
+* the `piV` membership is the constant's own `mem_type` obligation
   (`hmemA`, which `harvestOpaque` proves anyway);
-* the `v = 0` fibre clause is the type reading's **`AnnotValid` `pi`
-  third component** — `htyOk`'s own content.  So **no bit is needed**:
-  the regime datum `mb₀.pw` stays abstract throughout, exactly as the
-  literal tier found (`Model/NatEqs.lean`), and the doctrine that bits are never taken from a
-  metatheorem is not even approached.
+* the slot's numeral is the value-read `propN`, whose `v = 0` fibre
+  clause is `propN_eq_zero`.  The binder datum `mb₀` is never read.
 
 The preservation half is `reduceOps_cons_fresh` (`DivMod.lean`,
 beside its `eq_law` sibling — the law mentions two stored leaves, so
@@ -116,34 +112,24 @@ theorem reduceElemTy_constS (c : Name) :
   unfold ConLeche.reduceElemTy ConLeche.reduceElemName
   split <;> simp [ConLeche.natName, ConLeche.boolName]
 
-/-- **The reduce operation's pinned type, inverted through both
-erasures.**  The domain and the codomain are the *same* bare constant,
-and both erasures fix a `.const`, so the pin leaves exactly the binder
-name and the binder meta free — and neither is ever read below. -/
+/-- **The reduce operation's pinned type**: the domain and the codomain
+are the *same* bare constant (the pin comparison is plain
+equality). -/
 theorem reduceOp_shapeS {c : Name} {type' : Expr}
     (hc : c ∈ ConLeche.reduceOpNames)
-    (h : type'.erasePw
-      = (ConLeche.reduceOpCvA c).type.erasePw) :
+    (h : type'
+      = (ConLeche.reduceOpCvA c).type) :
     ∃ mb₀, type' = .forallE (ConLeche.reduceElemTy c)
       (ConLeche.reduceElemTy c) mb₀ := by
   have hcases : c = ConLeche.reduceNatName ∨ c = ConLeche.reduceBoolName := by
     simpa [ConLeche.reduceOpNames] using hc
-  have hshape : (ConLeche.reduceOpCvA c).type.erasePw
+  have hshape : (ConLeche.reduceOpCvA c).type
       = .forallE
           (ConLeche.reduceElemTy c) (ConLeche.reduceElemTy c)
-          ⟨.never⟩ := by
-    rcases hcases with rfl | rfl <;>
-      simp [ConLeche.reduceOpCvA, ConLeche.reduceNatCvA,
-        ConLeche.reduceBoolCvA, ConLeche.reduceElemTy, ConLeche.reduceNatName,
-        ConLeche.reduceBoolName, ConLeche.natName, ConLeche.boolName,
-        Expr.erasePw]
+          {} := by
+    rcases hcases with rfl | rfl <;> rfl
   rw [hshape] at h
-  obtain ⟨ty', b', m', rfl, hty', hb'⟩ := erasePwNames_forallE_invS h
-  have hE := reduceElemTy_constS c
-  rw [hE] at hty' hb'
-  obtain rfl := erasePw_const_invS hty'
-  obtain rfl := erasePw_const_invS hb'
-  exact ⟨m', by rw [hE]⟩
+  exact ⟨_, h⟩
 
 -- (`reduceElem_sort` in `Verify/OfReducePin.lean` already says the
 -- element inductive is stored level-free at `Sort 1`; the earlier
@@ -167,8 +153,7 @@ theorem reduceCertVar_fvarLeaves (c : Name) :
 recorded identity-certificate run, converted through `DefEqClaim` at
 the pre-insertion environment over the one-entry element context; every
 other stored reduce operation crosses by `reduceOps_entry_cons`.  See
-the module docstring for the route and for why no regime bit is ever
-read. -/
+the module docstring for the route. -/
 theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat}
     {cv : ConstantVal} {value type' value' : Expr}
@@ -176,12 +161,11 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (hfresh : env.find? cv.name = none)
     (hvf' : value'.hasFvar = false)
     (hbv' : value'.looseBVarsBounded 0 = true)
-    (hannv : ConLeche.annotateCore μ env F 0 value = .ok value')
+    (hannv : value' = value)
     (hA : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (A ψ))
     (hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
     (hTaOk : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenotedV V ρ (Ta ψ))
@@ -203,9 +187,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       hfresh m₂ hac hcN hne hf₂ hpin
   subst hne
   -- the recorded certificate, and its annotated subject
-  obtain ⟨-, helemOk, -, valA, pinA, hannA, -, hrun⟩ :=
-    hred (List.contains_iff_mem.mpr hcN)
-  obtain rfl : valA = value' := Except.ok.inj (hannA.symm.trans hannv)
+  obtain ⟨-, helemOk, -, hrun⟩ := hred (List.contains_iff_mem.mpr hcN)
+  subst hannv
   -- the element inductive is stored, level-free, and is not the cons
   obtain ⟨ciE, hfE, hlpE, -⟩ := ConLeche.Verify.reduceElem_sort helemOk
   have hneE : ConLeche.reduceElemName cv.name ≠ cv.name := by
@@ -244,16 +227,14 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       = ConLeche.reduceElemTy cv.name :=
     Expr.instantiate1_eq_self (by rw [hEty]; rfl)
   have hTaShape : ∀ ψ : Name → Nat,
-      Ta ψ = .pi 0 (pwBit ψ mb₀.pw)
-        (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
+      Ta ψ = .pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) := by
     intro ψ
     have h := hTa ψ
     rw [show denoteMeta mp.base2.acval env ψ 0
           (Expr.forallE (ConLeche.reduceElemTy cv.name)
             (ConLeche.reduceElemTy cv.name) mb₀)
-        = some (.pi 0 (pwBit ψ mb₀.pw)
-            (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
+        = some (.pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
             (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) from by
       rw [denoteMeta_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h
     exact (Option.some.inj h).symm
@@ -261,14 +242,14 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have helemTy : ∀ (ψ : Name → Nat) (ρ' : Nat → V),
       IsTy (interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) := by
     intro ψ ρ'
-    have h := (hTaOk ψ ρ').1
-    rw [hTaShape ψ, WellDenoted_pi] at h
+    have h := hTaOk ψ ρ'
+    rw [hTaShape ψ, WellDenotedV, WellDenoted_pi] at h
     exact h.2.1
   -- the certificate variable's syntactic and context packages
-  have hvLeaves : valA.fvarLeaves = [] :=
+  have hvLeaves : value'.fvarLeaves = [] :=
     Expr.fvarLeaves_eq_nil_of_not_hasFvar hvf'
   have hcertLeaves := reduceCertVar_fvarLeaves cv.name
-  have hwsV : ∀ d : Nat, Expr.WScoped d valA :=
+  have hwsV : ∀ d : Nat, Expr.WScoped d value' :=
     fun d => Expr.WScoped.of_not_hasFvar hvf'
   have hwsCert : Expr.WScoped 1 (ConLeche.reduceCertVar cv.name) := by
     rw [ConLeche.reduceCertVar, hEty]
@@ -281,22 +262,22 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     obtain rfl : l = (0, ConLeche.reduceElemTy cv.name) := by simpa using hl
     rw [hEty]; rfl
   have hwsApp : Expr.WScoped 1
-      (Expr.app valA (ConLeche.reduceCertVar cv.name)) := by
+      (Expr.app value' (ConLeche.reduceCertVar cv.name)) := by
     rw [Expr.WScoped]
     exact ⟨hwsV 1, hwsCert⟩
   have hbApp : Expr.looseBVarsBounded 0
-      (Expr.app valA (ConLeche.reduceCertVar cv.name)) = true := by
+      (Expr.app value' (ConLeche.reduceCertVar cv.name)) = true := by
     rw [show Expr.looseBVarsBounded 0
-        (Expr.app valA (ConLeche.reduceCertVar cv.name))
-      = (Expr.looseBVarsBounded 0 valA &&
+        (Expr.app value' (ConLeche.reduceCertVar cv.name))
+      = (Expr.looseBVarsBounded 0 value' &&
           Expr.looseBVarsBounded 0 (ConLeche.reduceCertVar cv.name))
       from rfl, hbv', hbCert]
     rfl
   have hLApp : Expr.LeavesBounded
-      (Expr.app valA (ConLeche.reduceCertVar cv.name)) := by
+      (Expr.app value' (ConLeche.reduceCertVar cv.name)) := by
     intro l hl
-    rw [show (Expr.app valA (ConLeche.reduceCertVar cv.name)).fvarLeaves
-        = valA.fvarLeaves ++ (ConLeche.reduceCertVar cv.name).fvarLeaves
+    rw [show (Expr.app value' (ConLeche.reduceCertVar cv.name)).fvarLeaves
+        = value'.fvarLeaves ++ (ConLeche.reduceCertVar cv.name).fvarLeaves
         from by rw [Expr.fvarLeaves], hvLeaves, List.nil_append] at hl
     exact hLCert l hl
   have hctxCert : ∀ ψ : Name → Nat,
@@ -309,16 +290,15 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     refine ⟨Nat.zero_lt_one, by rw [hEty]; trivial,
       mp.base2.acval (ConLeche.reduceElemName cv.name) ψ,
       elemA mp.base2 cv.name ψ, hdenE ψ 1, rfl, fun ρ' _ => ?_,
-      fun ρ' _ => ⟨⟨mp.base2.acval_wellDenoted _ ψ ρ', mp.acval_validV _ ψ ρ'⟩,
-        helemTy ψ ρ'⟩⟩
+      fun ρ' _ => ⟨mp.base2.acval_wellDenoted _ ψ ρ', helemTy ψ ρ'⟩⟩
     exact acval_interp_closed mp.base2 _ ψ _ _
   have hctxApp : ∀ ψ : Name → Nat,
       CtxOk mp.base2 ψ 1 (elemCtx mp.base2 cv.name ψ)
-        (Expr.app valA (ConLeche.reduceCertVar cv.name)) := by
+        (Expr.app value' (ConLeche.reduceCertVar cv.name)) := by
     intro ψ
     refine ⟨rfl, fun l hl => ?_⟩
-    rw [show (Expr.app valA (ConLeche.reduceCertVar cv.name)).fvarLeaves
-        = valA.fvarLeaves ++ (ConLeche.reduceCertVar cv.name).fvarLeaves
+    rw [show (Expr.app value' (ConLeche.reduceCertVar cv.name)).fvarLeaves
+        = value'.fvarLeaves ++ (ConLeche.reduceCertVar cv.name).fvarLeaves
         from by rw [Expr.fvarLeaves], hvLeaves, List.nil_append] at hl
     exact (hctxCert ψ).2 l hl
   -- the two sides' readings at the certificate's depth
@@ -328,12 +308,12 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     intro ψ
     rw [ConLeche.reduceCertVar, denoteMeta_fvar]
   have hdenV1 : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 1 valA = some (A ψ) := fun ψ =>
+      denoteMeta mp.base2.acval env ψ 1 value' = some (A ψ) := fun ψ =>
     denoteMeta_depth_of_closed mp.base2.acval_closed hvf'
       (fun k => hAclosed ψ k) (hA ψ) 1
   have hdenApp : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 1
-          (Expr.app valA (ConLeche.reduceCertVar cv.name))
+          (Expr.app value' (ConLeche.reduceCertVar cv.name))
         = some (.app (A ψ) (.bvar 0)) := by
     intro ψ
     rw [denoteMeta_app, hdenV1 ψ, hdenCert ψ]
@@ -359,7 +339,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have hgradeCert : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.bvar 0) := by
     intro ρ' _
-    exact ⟨by simp, by simp⟩
+    simp
   have hgradeApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.app (A ψ) (.bvar 0)) := by
     intro ρ' hsat
@@ -370,16 +350,12 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    have hv := (hTaOk ψ ρ').2
-    rw [hTaShape ψ, AnnotValid_pi] at hv
-    refine ⟨⟨hAok ψ ρ', by simp, ?_⟩, ⟨hAvalid ψ ρ', by simp⟩⟩
-    refine ⟨pwBit ψ mb₀.pw,
-      interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
+    rw [WellDenotedV, WellDenoted_app]
+    refine ⟨hAok ψ ρ', by simp, ?_⟩
+    exact ⟨_, interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
       fun _ => interp V ρ'
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
-      hm, hslot ρ' hsat, fun h0 y hy => ?_, fun _ => helemTy ψ ρ'⟩
-    have := hv.2.2 h0 y hy
-    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+      hm, hslot ρ' hsat, propN_eq_zero.mp, fun _ => helemTy ψ ρ'⟩
   -- both sides are members of the element type
   have hmemApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       interp V ρ' (.app (A ψ) (.bvar 0))
@@ -392,12 +368,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    have hv := (hTaOk ψ ρ').2
-    rw [hTaShape ψ, AnnotValid_pi] at hv
     rw [interp_app, interp_bvar]
-    refine app_mem_piR hm (hslot ρ' hsat) fun h0 y hy => ?_
-    have := hv.2.2 h0 y hy
-    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+    exact app_mem_piV hm (hslot ρ' hsat)
   -- the run, converted: two members of one type, so the point does not
   -- separate them
   have hsatx := sat_elemCtx mp.base2 hx
@@ -406,7 +378,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (helemTy ψ (cons x ρ)).eq_of_ne_pt (hmemApp _ hsatx)
       (by rw [interp_bvar]; exact hslot _ hsatx)
     (ihd (d := 1)
-      (a := Expr.app valA (ConLeche.reduceCertVar cv.name))
+      (a := Expr.app value' (ConLeche.reduceCertVar cv.name))
       (b := ConLeche.reduceCertVar cv.name) (Δa := elemCtx mp.base2 cv.name ψ)
       hrun hwsApp hbApp hLApp hwsCert hbCert hLCert
       (hctxApp ψ) (hctxCert ψ) (hdenApp ψ) (hdenCert ψ)

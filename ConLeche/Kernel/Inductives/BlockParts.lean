@@ -132,8 +132,6 @@ namespace BlockShape
 def k (p : BlockShape) : Nat := p.members.length
 /-- The number of constructors of the whole block. -/
 def numCtors (p : BlockShape) : Nat := numCtorsOf p.members
-/-- The constructors of the members before `m`. -/
-def offs (p : BlockShape) (m : Nat) : Nat := numCtorsOf (p.members.take m)
 /-- The members' names, in block order (the positivity walk's `names`). -/
 def memberNames (p : BlockShape) : List Name := p.members.map (·.cvT.name)
 /-- The members' index counts, in block order. -/

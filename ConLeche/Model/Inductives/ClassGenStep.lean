@@ -91,27 +91,44 @@ theorem interp_genRb0 {ρ : Nat → V} {xs fs hs : List V} {minPos : Nat}
       = (fs ++ hs).length + xs.length - 1 - minPos by simp; omega]
   exact consList_prefix_getD hmin
 
+/-- A Π-tower over a codomain that is a type at every fitting spine reads
+as a type. -/
+theorem IsTy_mkPisAV_of :
+    ∀ (tl : List (Nat × AnnotTerm)) {σ : Nat → V} {C : AnnotTerm},
+      (∀ bs, SpineFit σ (tl.map (·.2)) bs → IsTy (interp V (consList bs σ) C)) →
+      IsTy (interp V σ (mkPisAV (tl.map fun p => (0, p.1, p.2)) C))
+  | [], _, _, h => by simpa [mkPisAV] using h [] trivial
+  | _ :: _, _, _, _ => by
+    simp only [List.map_cons, mkPisAV, interp_pi]
+    exact IsTy_piV
+
 /-- **A λ-tower inhabits the Π-tower of the same binder data**, as soon
-as its body inhabits the codomain at every fitting spine — at two frames
-that agree below the telescope's bound. -/
+as its body inhabits the codomain at every fitting spine and the
+codomain is a type there — at two frames that agree below the
+telescope's bound. -/
 theorem lamTower_mem_piTower :
     ∀ (tl : List (Nat × AnnotTerm)) {D : Nat} {σ σ' : Nat → V} {b C : AnnotTerm},
       FieldsBelow D (tl.map (·.2)) → (∀ i, i < D → σ i = σ' i) →
       (∀ bs, SpineFit σ' (tl.map (·.2)) bs →
         interp V (consList bs σ) b ∈ˢ interp V (consList bs σ') C) →
+      (∀ bs, SpineFit σ' (tl.map (·.2)) bs → IsTy (interp V (consList bs σ') C)) →
       interp V σ (mkLamsAV tl b) ∈ˢ interp V σ' (mkPisAV (tl.map fun p => (0, p.1, p.2)) C)
-  | [], D, σ, σ', b, C, _, _, h => by simpa [mkLamsAV, mkPisAV] using h [] trivial
-  | (v, A) :: tl, D, σ, σ', b, C, hb, hag, h => by
-    show lamR v (interp V σ A) (fun x => interp V (cons x σ) (mkLamsAV tl b))
-      ∈ˢ piR v (interp V σ' A) (fun x => interp V (cons x σ') (mkPisAV _ C))
+  | [], D, σ, σ', b, C, _, _, h, _ => by simpa [mkLamsAV, mkPisAV] using h [] trivial
+  | (v, A) :: tl, D, σ, σ', b, C, hb, hag, h, hC => by
+    show lamV (interp V σ A) (fun x => interp V (cons x σ) (mkLamsAV tl b))
+      ∈ˢ piV (interp V σ' A) (fun x => interp V (cons x σ') (mkPisAV _ C))
     have hA : interp V σ A = interp V σ' A := interp_congr_below V A D σ σ' hb.1 hag
     rw [hA]
-    refine lamR_mem fun x hx => ?_
+    refine lamV_mem (fun x hx => ?_) fun x hx =>
+      IsTy_mkPisAV_of tl fun bs hbs => by simpa [consList_cons] using hC (x :: bs) ⟨hx, hbs⟩
     refine lamTower_mem_piTower tl (D := D + 1) hb.2 (fun i hi => ?_) (fun bs hbs => ?_)
+      (fun bs hbs => ?_)
     · cases i with
       | zero => rfl
       | succ i => exact hag i (by omega)
     · have := h (x :: bs) ⟨hx, hbs⟩
+      simpa [consList_cons] using this
+    · have := hC (x :: bs) ⟨hx, hbs⟩
       simpa [consList_cons] using this
 
 /-! ## `hstep` -/

@@ -20,13 +20,12 @@ this module builds one from the graded invariant `EnvModelM`
   of the (closed) annotated leaf `acval n ψ` — under every variable
   environment the same set (`interp_cvalOf`);
 * **the bridge** `Denotes_of_denoteMeta`: wherever the invariant's
-  reading `denoteMeta` reads a term at depth `d`, and the reading is
-  graded and bit-valid (`WellDenotedV`), `interp` of the reading is a
-  `Denotes`-denotation of the term's CLOSURE (`Expr.closeN`, the
-  checker's opened `fvar`s turned back into the de Bruijn indices the
-  relation reads) at the interpreted leaves.  The regime premises of
-  the two binder rules are exactly the invariant's sort facts:
-  `AnnotValid`'s `pi` clause and `WellDenoted`'s `lam` clause.
+  reading `denoteMeta` reads a term at depth `d`, `interp` of the
+  reading is a `Denotes`-denotation of the term's CLOSURE
+  (`Expr.closeN`, the checker's opened `fvar`s turned back into the de
+  Bruijn indices the relation reads) at the interpreted leaves.  Both
+  read a binder's regime off the values (`piV`/`lamV`), so the bridge
+  has no side condition.
 * **the model** `Model.ofEnvModelM`: `mem` from `type_reads` and
   `mem_type` at depth `0` (a stored type has no `fvar`, so it is its
   own closure); `false_empty` from the pinned `False` leaf
@@ -71,9 +70,6 @@ theorem push_eq_cons (x : V) (ρ : Nat → V) : ConLeche.push x ρ = cons x ρ :
 theorem field_eq_projS : ∀ (i : Nat) (p : V), ConLeche.field i p = projS i p
   | 0, _ => rfl
   | i + 1, p => field_eq_projS i (ssnd p)
-
-theorem regime_eq_pwBit (φ : Name → Nat) (pw : ConLeche.PropWhen) :
-    ConLeche.regime φ pw = pwBit φ pw := rfl
 
 /-! ### The literal spines -/
 
@@ -185,63 +181,39 @@ theorem Denotes_strLitToConstructor {acval : Name → (Name → Nat) → AnnotTe
 
 /-! ### The bridge -/
 
-/-- Grading and bit-validity descend `.fst` to its subject. -/
-private theorem wellDenotedV_of_fst {ρ : Nat → V} {e : AnnotTerm}
-    (h : WellDenotedV V ρ (.fst e)) : WellDenotedV V ρ e := by
-  obtain ⟨h1, h2⟩ := h
-  rw [WellDenoted_fst] at h1
-  rw [AnnotValid_fst] at h2
-  exact ⟨h1.1, h2⟩
-
-/-- Grading and bit-validity descend `.snd` to its subject. -/
-private theorem wellDenotedV_of_snd {ρ : Nat → V} {e : AnnotTerm}
-    (h : WellDenotedV V ρ (.snd e)) : WellDenotedV V ρ e := by
-  obtain ⟨h1, h2⟩ := h
-  rw [WellDenoted_snd] at h1
-  rw [AnnotValid_snd] at h2
-  exact ⟨h1.1, h2⟩
-
-/-- Grading and bit-validity descend a tower projection to its subject. -/
-theorem wellDenotedV_of_projAV {ρ : Nat → V} :
-    ∀ (i : Nat) (e : AnnotTerm), WellDenotedV V ρ (projAV i e) → WellDenotedV V ρ e := by
-  intro i
-  induction i with
-  | zero => intro e h; exact wellDenotedV_of_fst h
-  | succ i ih => intro e h; exact wellDenotedV_of_snd (ih (.snd e) h)
-
 /-- A term with no `fvar` is scoped below every depth. -/
 private theorem fvarsBelow_zero_of_not_hasFvar :
     ∀ {e : Expr}, e.hasFvar = false → Expr.fvarsBelow 0 e := by
   intro e
   induction e <;> simp_all [Expr.fvarsBelow, Expr.hasFvar]
 
-/-- **The bridge**: wherever `denoteMeta` reads a term whose reading is
-graded and bit-valid, `interp` of the reading is a denotation of the
-term's closure under `Denotes` at the interpreted leaves. -/
+/-- **The bridge**: wherever `denoteMeta` reads a term, `interp` of the
+reading is a denotation of the term's closure under `Denotes` at the
+interpreted leaves. -/
 theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat} :
     ∀ (d : Nat) (e : Expr) {ta : AnnotTerm},
       denoteMeta acval env φ d e = some ta →
       Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta →
+      ∀ ρ : Nat → V,
         Denotes (cvalOf (V := V) acval) env φ ρ (closeN d e) (interp V ρ ta) := by
   intro d e
   induction d, e using denoteMeta.induct (env := env) with
   | case1 d u =>
-    intro ta h _ _ ρ _
+    intro ta h _ _ ρ
     rw [denoteMeta_sort] at h
     obtain rfl := Option.some.inj h
     rw [interp_sort]
     exact Denotes.sort
   | case2 d idx ty =>
-    intro ta h _ _ ρ _
+    intro ta h _ _ ρ
     rw [denoteMeta_fvar] at h
     obtain rfl := Option.some.inj h
     show Denotes _ _ _ _ (Expr.bvar (0 + (d - 1 - idx))) _
     rw [Nat.zero_add, interp_bvar]
     exact Denotes.bvar
   | case3 d n us ci hf hlen =>
-    intro ta h _ _ ρ _
+    intro ta h _ _ ρ
     rw [denoteMeta_const hf hlen] at h
     obtain rfl := Option.some.inj h
     rw [interp_cvalOf hcl]
@@ -257,104 +229,81 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     rw [denoteMeta, hf] at h
     exact nomatch h
   | case6 d ty body mb ihty ihbody =>
-    intro ta h hfb hlb ρ hw
+    intro ta h hfb hlb ρ
     obtain ⟨tA, bA, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && body.looseBVarsBounded 1) = true := hlb
     rw [Bool.and_eq_true] at hlb'
-    obtain ⟨hw1, hw2⟩ := hw
-    rw [WellDenoted_pi] at hw1
-    rw [AnnotValid_pi] at hw2
     show Denotes _ _ _ _ (Expr.forallE (closeN d ty 0) (closeN d body 1) mb) _
-    rw [interp_pi, ← regime_eq_pwBit]
-    refine Denotes.pi (ihty hta hfb'.1 hlb'.1 ρ ⟨hw1.1, hw2.1⟩) (fun x hx => ?_) ?_
-    · rw [push_eq_cons]
-      have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2)
-        (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2) (cons x ρ)
-        ⟨hw1.2.2.1 x hx, hw2.2.1 x hx⟩
-      rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
-    · intro h0 x hx
-      rw [regime_eq_pwBit] at h0
-      rw [univ_zero]
-      exact hw2.2.2 h0 x hx
+    rw [interp_pi]
+    refine Denotes.pi (ihty hta hfb'.1 hlb'.1 ρ) (fun x _ => ?_)
+    rw [push_eq_cons]
+    have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2)
+      (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2) (cons x ρ)
+    rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
   | case7 d ty body mb ihty ihbody =>
-    intro ta h hfb hlb ρ hw
+    intro ta h hfb hlb ρ
     obtain ⟨tA, bA, hta, hba, rfl⟩ := denoteMeta_lam_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && body.looseBVarsBounded 1) = true := hlb
     rw [Bool.and_eq_true] at hlb'
-    obtain ⟨hw1, hw2⟩ := hw
-    rw [WellDenoted_lam] at hw1
-    rw [AnnotValid_lam] at hw2
-    obtain ⟨hwA, -, hwb, B, hfib, -, hzero⟩ := hw1
     show Denotes _ _ _ _ (Expr.lam (closeN d ty 0) (closeN d body 1) mb) _
-    rw [interp_lam, ← regime_eq_pwBit]
-    refine Denotes.lam (ihty hta hfb'.1 hlb'.1 ρ ⟨hwA, hw2.1⟩) (fun x hx => ?_) ?_
-    · rw [push_eq_cons]
-      have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2)
-        (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2) (cons x ρ)
-        ⟨hwb x hx, hw2.2 x hx⟩
-      rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
-    · intro h0 x hx
-      rw [regime_eq_pwBit] at h0
-      exact eq_pt_of_mem_univZero (hzero h0 x hx) (hfib x hx)
+    rw [interp_lam]
+    refine Denotes.lam (ihty hta hfb'.1 hlb'.1 ρ) (fun x _ => ?_)
+    rw [push_eq_cons]
+    have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2)
+      (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2) (cons x ρ)
+    rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
   | case8 d fe a ihf iha =>
-    intro ta h hfb hlb ρ hw
+    intro ta h hfb hlb ρ
     obtain ⟨fA, aA, hfa, haa, rfl⟩ := denoteMeta_app_inv h
     have hfb' : Expr.fvarsBelow d fe ∧ Expr.fvarsBelow d a := hfb
     have hlb' : (fe.looseBVarsBounded 0 && a.looseBVarsBounded 0) = true := hlb
     rw [Bool.and_eq_true] at hlb'
-    obtain ⟨hw1, hw2⟩ := hw
-    rw [WellDenoted_app] at hw1
-    rw [AnnotValid_app] at hw2
     show Denotes _ _ _ _ (Expr.app (closeN d fe 0) (closeN d a 0)) _
     rw [interp_app]
-    exact Denotes.app (ihf hfa hfb'.1 hlb'.1 ρ ⟨hw1.1, hw2.1⟩)
-      (iha haa hfb'.2 hlb'.2 ρ ⟨hw1.2.1, hw2.2⟩)
+    exact Denotes.app (ihf hfa hfb'.1 hlb'.1 ρ) (iha haa hfb'.2 hlb'.2 ρ)
   | case9 d ty val body ihty ihv ihbody =>
-    intro ta h hfb hlb ρ hw
+    intro ta h hfb hlb ρ
     obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d val ∧
         Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && val.looseBVarsBounded 0 &&
         body.looseBVarsBounded 1) = true := hlb
     simp only [Bool.and_eq_true] at hlb'
-    obtain ⟨hw1, hw2⟩ := hw
-    rw [WellDenoted_letE] at hw1
-    rw [AnnotValid_letE] at hw2
     show Denotes _ _ _ _
       (Expr.letE (closeN d ty 0) (closeN d val 0) (closeN d body 1)) _
     rw [interp_letE]
-    refine Denotes.letE (ihv hva hfb'.2.1 hlb'.1.2 ρ ⟨hw1.1, hw2.1⟩) ?_
+    refine Denotes.letE (ihv hva hfb'.2.1 hlb'.1.2 ρ) ?_
     rw [push_eq_cons]
     have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2.2)
       (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2)
-      (cons (interp V ρ va) ρ) ⟨hw1.2, hw2.2⟩
+      (cons (interp V ρ va) ρ)
     rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2.2] at hb
   | case10 d sn i e ihe =>
-    intro ta h hfb hlb ρ hw
+    intro ta h hfb hlb ρ
     obtain ⟨ia, hia, hcase⟩ := denoteMeta_proj_inv h
     have hfb' : Expr.fvarsBelow d e := hfb
     have hlb' : e.looseBVarsBounded 0 = true := hlb
     show Denotes _ _ _ _ (Expr.proj sn i (closeN d e 0)) _
     rcases hcase with ⟨entry, hfp, rfl⟩ | ⟨hfp, hdec⟩
-    · have hie := ihe hia hfb' hlb' ρ (wellDenotedV_of_projAV _ _ hw)
+    · have hie := ihe hia hfb' hlb' ρ
       rw [projAV_interp, ← field_eq_projS]
       exact Denotes.proj_table hfp hie
     · match i, hdec with
       | 0, hdec =>
         obtain rfl := Option.some.inj hdec
-        have hie := ihe hia hfb' hlb' ρ (wellDenotedV_of_fst hw)
+        have hie := ihe hia hfb' hlb' ρ
         rw [interp_fst]
         exact Denotes.proj_fst hfp hie
       | 1, hdec =>
         obtain rfl := Option.some.inj hdec
-        have hie := ihe hia hfb' hlb' ρ (wellDenotedV_of_snd hw)
+        have hie := ihe hia hfb' hlb' ρ
         rw [interp_snd]
         exact Denotes.proj_snd hfp hie
       | _ + 2, hdec => exact nomatch hdec
   | case11 d k hsup =>
-    intro ta h _ _ ρ _
+    intro ta h _ _ ρ
     rw [denoteMeta, ite_eq_left hsup] at h
     obtain rfl := Option.some.inj h
     exact Denotes.natLit (Denotes_natLitToConstructor hcl hsup ρ k)
@@ -363,7 +312,7 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     rw [denoteMeta, ite_eq_right hsup] at h
     exact nomatch h
   | case13 d s hsup =>
-    intro ta h _ _ ρ _
+    intro ta h _ _ ρ
     rw [denoteMeta, ite_eq_left hsup] at h
     obtain rfl := Option.some.inj h
     exact Denotes.strLit (Denotes_strLitToConstructor hcl hsup ρ s)
@@ -403,7 +352,6 @@ noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
     have hlb : c.toConstantVal.type.looseBVarsBounded 0 = true := hwf.2.2.2.1
     have hbr := Denotes_of_denoteMeta (V := V) m.base2.cval_closedL 0
       c.toConstantVal.type hta (fvarsBelow_zero_of_not_hasFvar hnf) hlb ρ
-      (m.type_wellDenotedTy c hc φ ta hta ρ).1
     rw [Expr.closeN_of_hasFvar _ 0 0 hnf] at hbr
     refine ⟨interp V ρ ta, hbr, ?_⟩
     rw [← interp_cvalOf m.base2.cval_closedL]

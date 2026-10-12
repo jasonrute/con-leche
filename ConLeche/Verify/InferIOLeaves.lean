@@ -138,23 +138,21 @@ theorem inferTypeCoreIO_WScoped {env : Env} (henv : EnvWF env) :
       simp [inferBodyIO, Bind.bind, Except.bind, pure,
         Except.pure, throw, throwThe, MonadExceptOf.throw] at h
     | letE t' v' b' =>
-      exact (inferTypeCoreIO_letE_inv h).elim
+      simp only [WScoped] at hw
+      exact inferTypeCoreIO_WScoped henv fuel (inferTypeCoreIO_letE_inv h)
+        (WScoped.instantiate1_gen hw.2.1 0 hw.2.2)
 
 /-! ## The slot shims (task #172 B4)
 
-The knot's io slot (`inferTypeIO`) inherits each scoping preservation
-from whichever lane the mode selects — `inferTypeIO_off`/`_on` plus
-the full- and io-lane inductions above.  Stated once here so every
-walk that meets a converted call site consumes one name. -/
+The knot's io slot (`inferTypeIO`) is the io lane (`inferTypeIO_on`),
+so it inherits the io lane's scoping preservation.  Stated once here so
+every walk that meets a converted call site consumes one name. -/
 
 theorem inferTypeIO_WScoped {env : Env} (henv : EnvWF env)
     (fuel : Nat) {d : Nat} {e t : Expr}
     (h : inferTypeIO mode env fuel d e = .ok t) (hw : WScoped d e) :
     WScoped d t := by
-  cases hg : mode.betaGate with
-  | false => rw [inferTypeIO_off hg] at h
-             exact inferTypeCore_WScoped henv fuel h hw
-  | true => rw [inferTypeIO_on hg] at h
-            exact inferTypeCoreIO_WScoped henv fuel h hw
+  rw [inferTypeIO_on] at h
+  exact inferTypeCoreIO_WScoped henv fuel h hw
 
 end ConLeche

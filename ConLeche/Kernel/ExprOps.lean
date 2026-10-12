@@ -1,12 +1,6 @@
 module
 
 public import ConLeche.Kernel.Level
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern): its constructors are `public` but the module is
-not `@[expose]`d, so a `cases`-then-`rfl` proof about a datum cannot
-see the reduct.  `import all` gives that view HERE only; nothing this
-module exports depends on it. -/
-import all ConLeche.Kernel.PropWhen
 
 @[expose] public section
 
@@ -616,159 +610,6 @@ def liftLooseBVarsFast (amount c : Nat) (e : Expr) : Expr :=
   funext amount c e
   exact (liftLooseBVarsGo_spec e c {} LiftMemoInv.empty).1.symm
 
-/-! ### `resetMeta` (task #210 Part D)
-
-Every binder's datum reset to the parse placeholder `⟨.never⟩`: the
-stream's recursor rules are compared syntactically against the
-generated ones (official's replay compares an exported recursor
-structurally with the one it generates), and the generated body is
-built from ANNOTATED pieces — the stored constructor's normalised field
-telescopes and index expressions — while the stream's carries the
-placeholder everywhere.  The pure walk is the spec; the executed one is
-memoized by `@[csimp]` (the `mentionsConst` arrangement). -/
-
-def resetMeta : Expr → Expr
-  | .app f a => .app (resetMeta f) (resetMeta a)
-  | .lam ty b _ => .lam (resetMeta ty) (resetMeta b) ⟨.never⟩
-  | .forallE ty b _ => .forallE (resetMeta ty) (resetMeta b) ⟨.never⟩
-  | .letE ty v b => .letE (resetMeta ty) (resetMeta v) (resetMeta b)
-  | .proj s i e => .proj s i (resetMeta e)
-  | .fvar i ty => .fvar i (resetMeta ty)
-  | e => e
-
-/-- The memo's invariant: every recorded answer is the real one. -/
-def ResetMemoInv (memo : Std.HashMap Expr Expr) : Prop :=
-  ∀ (k r : Expr), memo[k]? = some r → r = resetMeta k
-
-theorem ResetMemoInv.empty : ResetMemoInv {} := by
-  intro k r h; simp at h
-
-theorem ResetMemoInv.insert {memo : Std.HashMap Expr Expr} (hm : ResetMemoInv memo)
-    {e r : Expr} (heq : r = resetMeta e) : ResetMemoInv (memo.insert e r) := by
-  intro k r' hk
-  rw [Std.HashMap.getElem?_insert] at hk
-  split at hk
-  · rename_i hbeq
-    cases hk
-    rw [← eq_of_beq hbeq]
-    exact heq
-  · exact hm k r' hk
-
-/-- Memoized `resetMeta`. -/
-def resetMetaGo (memo : Std.HashMap Expr Expr) : Expr → Expr × Std.HashMap Expr Expr
-  | .bvar i => (.bvar i, memo)
-  | .sort u => (.sort u, memo)
-  | .const n us => (.const n us, memo)
-  | .lit l => (.lit l, memo)
-  | e =>
-    match memo[e]? with
-    | some r => (r, memo)
-    | none =>
-      let (r, memo) : Expr × Std.HashMap Expr Expr :=
-        match e with
-        | .fvar i ty =>
-          let (t, memo) := resetMetaGo memo ty
-          (.fvar i t, memo)
-        | .app f a =>
-          let (f', memo) := resetMetaGo memo f
-          let (a', memo) := resetMetaGo memo a
-          (.app f' a', memo)
-        | .lam ty body _ =>
-          let (t, memo) := resetMetaGo memo ty
-          let (b, memo) := resetMetaGo memo body
-          (.lam t b ⟨.never⟩, memo)
-        | .forallE ty body _ =>
-          let (t, memo) := resetMetaGo memo ty
-          let (b, memo) := resetMetaGo memo body
-          (.forallE t b ⟨.never⟩, memo)
-        | .letE ty val body =>
-          let (t, memo) := resetMetaGo memo ty
-          let (w, memo) := resetMetaGo memo val
-          let (b, memo) := resetMetaGo memo body
-          (.letE t w b, memo)
-        | .proj s i sub =>
-          let (u, memo) := resetMetaGo memo sub
-          (.proj s i u, memo)
-        | e => (e, memo)
-      (r, memo.insert e r)
-
-/-- **The memoized walk is `resetMeta`.** -/
-theorem resetMetaGo_spec :
-    ∀ (e : Expr) (memo : Std.HashMap Expr Expr), ResetMemoInv memo →
-      (resetMetaGo memo e).1 = resetMeta e ∧ ResetMemoInv (resetMetaGo memo e).2 := by
-  intro e
-  induction e with
-  | bvar i => intro memo hm; exact ⟨rfl, hm⟩
-  | sort u => intro memo hm; exact ⟨rfl, hm⟩
-  | const n us => intro memo hm; exact ⟨rfl, hm⟩
-  | lit l => intro memo hm; exact ⟨rfl, hm⟩
-  | fvar i ty ih =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := ih memo hm
-      refine ⟨by simp [resetMeta, h1], ?_⟩
-      exact h2.insert (by simp [resetMeta, h1])
-  | app a b iha ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iha memo hm
-      obtain ⟨h3, h4⟩ := ihb _ h2
-      refine ⟨by simp [resetMeta, h1, h3], ?_⟩
-      exact h4.insert (by simp [resetMeta, h1, h3])
-  | lam ty body bi iht ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iht memo hm
-      obtain ⟨h3, h4⟩ := ihb _ h2
-      refine ⟨by simp [resetMeta, h1, h3], ?_⟩
-      exact h4.insert (by simp [resetMeta, h1, h3])
-  | forallE ty body bi iht ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iht memo hm
-      obtain ⟨h3, h4⟩ := ihb _ h2
-      refine ⟨by simp [resetMeta, h1, h3], ?_⟩
-      exact h4.insert (by simp [resetMeta, h1, h3])
-  | letE ty val body iht ihv ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iht memo hm
-      obtain ⟨h3, h4⟩ := ihv _ h2
-      obtain ⟨h5, h6⟩ := ihb _ h4
-      refine ⟨by simp [resetMeta, h1, h3, h5], ?_⟩
-      exact h6.insert (by simp [resetMeta, h1, h3, h5])
-  | proj s i sub ih =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := ih memo hm
-      refine ⟨by simp [resetMeta, h1], ?_⟩
-      exact h2.insert (by simp [resetMeta, h1])
-
-/-- The executed `resetMeta` (one memoized DAG walk). -/
-def resetMetaFast (e : Expr) : Expr := (resetMetaGo {} e).1
-
-@[csimp] theorem resetMeta_eq_resetMetaFast : @resetMeta = @resetMetaFast := by
-  funext e
-  exact (resetMetaGo_spec e {} ResetMemoInv.empty).1.symm
-
 /-- Lower every loose bound variable `≥ cutoff + amount` by `amount`
 (loose variables inside the window `[cutoff, cutoff + amount)` are left
 untouched — callers certify their absence by the `liftLooseBVars`
@@ -951,22 +792,21 @@ def looseBVarsBounded (k : Nat) : Expr → Bool
     looseBVarsBounded k ty && looseBVarsBounded k val && looseBVarsBounded (k + 1) body
   | .proj _ _ e => looseBVarsBounded k e
 
-/-- Is the expression a λ?  The λ-rule's codomain-sort check (task
-#152) fires once per λ *chain* — at the innermost binder, whose body
-is not itself a λ — because that is the granularity the interned
-binder-telescope loop (task #72) can reproduce. -/
+/-- Is the expression a λ? -/
 def isLam : Expr → Bool
   | .lam .. => true
   | _ => false
 
-/-- The prop-ness annotation of a λ node's meta, `none` off λs — the
-head reading the task-#161 chain rule consumes (an outer λ's codomain
-prop-ness is its body-λ's own annotation).  Total, so the walks
-commute with it structurally (`lamPw_instantiateList_fvars`,
-`lamPw_shiftFrom` in `ConLeche/Verify`). -/
-def lamPw : Expr → Option PropWhen
-  | .lam _ _ mbI => some mbI.pw
-  | _ => none
+/-- Is the expression a ∀? -/
+def isForallE : Expr → Bool
+  | .forallE .. => true
+  | _ => false
+
+/-- Two λs: their domains and bodies (the descent of the λ-telescope
+comparison, `defeqLams`). -/
+def lamPair? : Expr → Expr → Option (Expr × Expr × Expr × Expr)
+  | .lam t₁ b₁ _, .lam t₂ b₂ _ => some (t₁, b₁, t₂, b₂)
+  | _, _ => none
 
 /-- Does the expression contain any free variable (`fvar`)?  Input
 declarations must be `fvar`-free; the checker introduces `fvar`s only
@@ -2651,14 +2491,6 @@ def instPisAtLift : List Expr → Expr → Option Expr
 
 /-! ## Pointer-equality shortcut -/
 
-/-- Structural expression equality with a physical-equality shortcut
-(definitionally `a == b`).  Used to validate interned-environment
-entries against the stored constant they cache: the entry was created
-from the very object stored in the environment, so the pointer test
-succeeds without walking either expression. -/
-@[inline] def exprPtrBEq (a b : Expr) : Bool :=
-  withPtrEq a b (fun _ => a == b) (fun h => by subst h; simp)
-
 /-! ## Level-parameter occurrence, and the substitution shortcuts
 
 `Level.hasParam` / `Expr.hasLevelParam` are the spec functions of the
@@ -2698,35 +2530,11 @@ def _root_.ConLeche.Expr.hasLevelParam : Expr → Bool
   | .const _ us => us.any Level.hasParam
   | .fvar _ ty => ty.hasLevelParam
   | .app f a => f.hasLevelParam || a.hasLevelParam
-  | .lam ty body m | .forallE ty body m =>
-    ty.hasLevelParam || body.hasLevelParam || m.pw.hasParams
+  | .lam ty body _ | .forallE ty body _ =>
+    ty.hasLevelParam || body.hasLevelParam
   | .letE ty val body =>
     ty.hasLevelParam || val.hasLevelParam || body.hasLevelParam
   | .proj _ _ e => e.hasLevelParam
-
-/-- `substPW` is the identity on parameter-free data (`never` and
-`ifAllZero []`) — the meta half of the has-param shortcut's
-soundness. -/
-theorem _root_.ConLeche.Level.substPW_eq_self {ks : List Name}
-    {us : List Level} {pw : PropWhen} (h : pw.hasParams = false) :
-    Level.substPW ks us pw = pw := by
-  cases pw with
-  | never => rfl
-  | ifAllZero ps =>
-    cases ps with
-    | nil => rfl
-    | cons p ps => simp at h
-
-/-- Parameter-free data are defined under any parameter list. -/
-theorem _root_.ConLeche.PropWhen.paramsDefined_of_not_hasParams
-    {params : List Name} {pw : PropWhen} (h : pw.hasParams = false) :
-    pw.paramsDefined params = true := by
-  cases pw with
-  | never => rfl
-  | ifAllZero ps =>
-    cases ps with
-    | nil => rfl
-    | cons p ps => simp at h
 
 /-- Level-parameter instantiation is the identity on level-param-free
 expressions. -/
@@ -2758,14 +2566,12 @@ theorem _root_.ConLeche.Expr.instantiateLevelParams_eq_self
     simp [Expr.instantiateLevelParams, ihf h.1, iha h.2]
   | lam ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.instantiateLevelParams, iht ht, ihb hb,
-      Level.substPW_eq_self hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.instantiateLevelParams, iht ht, ihb hb]
   | forallE ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.instantiateLevelParams, iht ht, ihb hb,
-      Level.substPW_eq_self hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.instantiateLevelParams, iht ht, ihb hb]
   | letE ty val body iht ihv ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
     simp [Expr.instantiateLevelParams, iht h.1.1, ihv h.1.2, ihb h.2]
@@ -2853,11 +2659,11 @@ def Expr.instLPGo (ks : List Name) (us : List Level)
         | .lam ty body m =>
           let (t, memo) := instLPGo ks us memo ty
           let (b, memo) := instLPGo ks us memo body
-          (.lam t b ⟨Level.substPW ks us m.pw⟩, memo)
+          (.lam t b m, memo)
         | .forallE ty body m =>
           let (t, memo) := instLPGo ks us memo ty
           let (b, memo) := instLPGo ks us memo body
-          (.forallE t b ⟨Level.substPW ks us m.pw⟩, memo)
+          (.forallE t b m, memo)
         | .letE ty val body =>
           let (t, memo) := instLPGo ks us memo ty
           let (w, memo) := instLPGo ks us memo val
@@ -2999,14 +2805,12 @@ theorem _root_.ConLeche.Expr.allLevelParamsDefined_of_not_hasLevelParam
   induction x with
   | lam ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.allLevelParamsDefined, iht ht, ihb hb,
-      PropWhen.paramsDefined_of_not_hasParams hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.allLevelParamsDefined, iht ht, ihb hb]
   | forallE ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.allLevelParamsDefined, iht ht, ihb hb,
-      PropWhen.paramsDefined_of_not_hasParams hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.allLevelParamsDefined, iht ht, ihb hb]
   | const nm vs =>
     simp only [Expr.hasLevelParam, List.any_eq_false] at h
     simp only [Expr.allLevelParamsDefined, List.all_eq_true]

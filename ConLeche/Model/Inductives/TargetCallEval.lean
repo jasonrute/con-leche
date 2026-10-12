@@ -101,7 +101,6 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hpar : ∀ v, v < ctx.nP → σN (ctx.hiAt prog.length - 1 - v) = xs.getD v pt)
     (htail : ∀ q, σN (q + ctx.hiAt prog.length) = ρ q)
     (hf : fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda)
-    (hval : AnnotValid V (consList (fs.take i) σN) nda)
     {bs : List V}
     (hbs : SpineFit (consList (xs ++ fs) ρ)
       ((teleDoms m.acval env ψ (rP + fvsF.length) [] (tele.map (·.1))).getD []) bs) :
@@ -135,7 +134,7 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
       simp only [callSubst, ite_eq_right h1, ite_eq_right h2, Nat.add_sub_cancel_left, hty, Option.getD_some]
       rw [denoteMeta_fvar]; rfl)
     (ρ := ρ) (σW := σN) hpar htail
-  exact callWalkSem m ψ htl htel hteleHF hopen hwF hargs hs hnda hf hval hag hbs
+  exact callWalkSem m ψ htl htel hteleHF hopen hwF hargs hs hnda hf hag hbs
 
 /-- **An argument spine's reading, split**: the first `n` arguments,
 scoped at `D0`, read at the valuation below the extension `L`; the rest

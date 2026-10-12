@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Verify.Leaves
+import ConLeche.Verify.Leaves
 public import ConLeche.Verify.Denote.Install
 import ConLeche.Kernel.Checker
 

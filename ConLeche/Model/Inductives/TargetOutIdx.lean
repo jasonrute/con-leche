@@ -210,7 +210,7 @@ theorem read_of_sortTail {acval : Name → (Name → Nat) → AnnotTerm} :
       have hsb : SortTail b := hs
       obtain ⟨h1, h2, -⟩ := tail_instantiate1 (.fvar d ty) b 0 (tailOk_of_sortTail hsb)
       obtain ⟨ab, u, rfl, hlen⟩ := ih _ (by rw [h1]; exact hn) (h2.mpr hsb) hba
-      exact ⟨(_, _, ta) :: ab, u, rfl, by simp [hlen]⟩
+      exact ⟨(0, 0, ta) :: ab, u, rfl, by simp [hlen]⟩
 
 /-- **The kernel's index count at an instantiation is the reading's**:
 a type reading as a Π-tower `ab` ending in a sort, whose level- and
@@ -230,8 +230,10 @@ theorem instPis_count_of_read {acval : Name → (Name → Nat) → AnnotTerm} {e
     unfold SortTail; rw [← piBinders_snd_eq, hs]; trivial
   have hse : SortTail e := l2.mp (k2.mp hsty)
   obtain ⟨ab', u', heq, hlen⟩ := read_of_sortTail _ e rfl hse hread
-  obtain ⟨rfl, -⟩ := mkPisAV_sort_eq heq
-  rw [hlen, ← l1, k1, piCount_eq_length]
+  obtain ⟨hab, -⟩ := mkPisAV_sort_eq heq
+  have hl := congrArg List.length hab
+  simp only [List.length_map] at hl
+  rw [hl, hlen, ← l1, k1, piCount_eq_length]
 
 /-! ## The tail's LEVEL (`huniq` at an outside class) -/
 

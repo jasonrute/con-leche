@@ -16,7 +16,6 @@ public import ConLeche.Model.Inductives.BlockModelRecords
 public import ConLeche.Model.Inductives.BlockHoleRead
 public import ConLeche.Model.Inductives.StoredShapes
 public import ConLeche.Model.Inductives.BlockAbsRead
-public import ConLeche.Model.Inductives.BlockHoleValid
 public import ConLeche.Model.Inductives.BlockCaps
 public import ConLeche.Model.Inductives.BlockStageCtors
 public import ConLeche.Model.Inductives.BlockStageTables
@@ -52,7 +51,6 @@ public import ConLeche.Model.Inductives.BlockRecGraph
 public import ConLeche.Model.Inductives.BlockDeclRun
 public import ConLeche.Model.Inductives.BlockRecAssembly
 public import ConLeche.Model.ClaimsIO
-public import ConLeche.Model.IOLicense
 public import ConLeche.Model.WellDenotedTransport
 public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Currency
@@ -113,9 +111,7 @@ public import ConLeche.Model.NatWf
 public import ConLeche.Model.NatStep
 public import ConLeche.Model.DivModCert
 public import ConLeche.Model.Capstone
-public import ConLeche.Model.AxiomBits
 public import ConLeche.Model.BasisCons
-public import ConLeche.Model.BitAgree
 public import ConLeche.Model.BasisTypeOk
 public import ConLeche.Model.EqTower
 public import ConLeche.Model.BasisStep
@@ -148,15 +144,12 @@ public import ConLeche.Model.Annot.BitInst
 public import ConLeche.Model.Annot.BitClosed
 public import ConLeche.Model.Annot.BitInstall
 public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.Valid
-public import ConLeche.Model.Annot.ValidSpine
 public import ConLeche.Model.Annot.BitLevels
 public import ConLeche.Model.Annot.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
 public import ConLeche.Model.Annot.BitRename
 public import ConLeche.Model.AxiomMem
 public import ConLeche.Model.AxiomReduce
-public import ConLeche.Model.ErasePwInv
 public import ConLeche.Model.RecRulesCons
 public import ConLeche.Model.ReduceOps
 
@@ -165,8 +158,8 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the `WellDenoted` bit carriers (`Annot/Bit*`,
-`Annot/Valid*`), `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
+The graded model: the stored-term reading (`Annot/Bit*`),
+`EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,
 SetTheory}/*`, which may not import it;

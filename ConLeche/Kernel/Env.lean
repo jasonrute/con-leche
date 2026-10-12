@@ -25,12 +25,8 @@ startup and threaded as configuration, never re-read at runtime.
   model proves — `no_proof_of_Empty_cached`
   (`ConLeche/Verify/Cached/MainC.lean`) is its letter over the driver
   this binary runs.  The seven TT-lane checks (tasks #126, #129, #130,
-  #135, #136, #137, #146) are off; the β-certificate gate is on — at a
-  λ-binder whose **validated** annotation is `.never` the per-redex
-  argument certificate is skipped (`betaGateFires`,
-  `ConLeche/Kernel/CoreDefs.lean`) — and the io-graded knot slot skips the
-  per-argument application certificate under the same licence.  Every
-  other certificate family runs unconditionally.
+  #135, #136, #137, #146) are off; the λ and η checks (task #342) run,
+  and every certificate family runs.
 * `.trusted` (`--trusted`): the unverified lane — the same checker
   with the work that exists **for certification only** omitted.
   What must not be dropped is everything believed necessary for
@@ -46,8 +42,8 @@ startup and threaded as configuration, never re-read at runtime.
 **The mode is the cores' only parameter** (task #185, 2026-09-06).
 The configuration record that stood between the mode and the
 shipped cores from task #172 B2 to task #185 is gone: every field it
-carried is a function on `CheckMode` below (`ttChecks`,
-`verifiedChecks`, `betaGate`, `ioGate`, `certs`), each a `match` on
+carried is a function on `CheckMode` below (`verifiedChecks`,
+`certs`), each a `match` on
 the two constructors, so each read reduces by `rfl` at either mode —
 the record's `rfl`-eliminability argument, at the enum itself.
 
@@ -59,126 +55,45 @@ inductive CheckMode where
   | trusted
   deriving DecidableEq, Repr, Inhabited
 
-/-- Are the seven TT-lane checks enabled?  **Constantly `false`**: the
-declarative verification lane they served is retired (task #148).
-The gated call sites are kept, statically unreachable, so
-that the checks themselves survive as reviewed code and the accessor
-stays the single place a future lane would turn them back on. -/
-def CheckMode.ttChecks : CheckMode → Bool
-  | _ => false
-
 /-- Are the *verified* mode's extra checks enabled — the checks the
 model lane wants and the trusted lane must not run, because they are
 needed for the soundness *proof* rather than for soundness?  The
 second accessor the kernel branches on
 (task #152: the λ-rule's codomain-sort check, `inferBody`'s `.lam`
-clause).  This is deliberately **not** `ttChecks`: the λ codomain sort
-is a premise of the set lane's annotation pass (`ConLeche/Model`), so it
-must run at `.verified`; and it is a check the reference kernel's
-`infer_lambda` does not run, so it must not run at `.trusted`. -/
+clause; since task #342 also the η body-type comparison and the λ/λ
+body-type comparison of `defeqLams`).  These are premises of the
+rules tier (`ConLeche/Rules`), so they must run at `.verified`; and
+they are checks the reference kernel does not run, so they must not run at `.trusted`. -/
 def CheckMode.verifiedChecks : CheckMode → Bool
   | .trusted => false
-  | _ => true
-
-/-- Is the **β-certificate gate** on (task #161)?  The third accessor
-the kernel branches on: at a λ-binder whose validated annotation datum
-is `.never` the per-redex argument certificate is skipped
-(`betaGateFires`, `ConLeche/Kernel/CoreDefs.lean`).
-
-Two disciplines ride on this accessor being a *mode* accessor rather
-than a second knot:
-
-* **the establishment/consumption asymmetry fence** — the gate reads a
-  *validated* annotation (only meaningful where
-  `verifiedChecks = true`) and
-  wraps the **test** only, so no certificate a possibly-zero datum
-  needs is ever skipped;
-* **the dead-branch collapse** — at `betaGate = false` the gated test
-  is definitionally the ungated one (`betaGateFires_off`), which is
-  what keeps the trusted lane's proofs one rewrite away from their
-  pre-gate form.
-
-Since the R core's retirement the gate is on at the *only* verified
-mode, so `betaGate` and `verifiedChecks` now agree except at
-`.trusted`.
-They stay two accessors because they gate different checks and the
-kernel reads them at different sites. -/
-def CheckMode.betaGate : CheckMode → Bool
-  | .verified => true
-  | _ => false
-
-/-- Is the **io-grade knot slot** the io body (task #170 / #172 B4)?
-Read once per knot level by the cached knot (`coreKnotI`,
-`ConLeche/Cached/CoreC.lean`) to select what the internal inference call
-sites run: the io body, whose application clause skips the
-per-argument certificate at a `.never` binder under the graph-regime
-licence (`ConLeche/Model/IOLicense.lean`) — official's `infer_only`.
-**`true` at both modes** since the licence ruling of 2026-09-06 (the
-trusted mode is defined as the verified one minus certification-only
-work, and the io grade is a *licence*, not a certificate; the retired
-trusted configuration record had it `true` too).  It is its own
-function, and not `betaGate`, so that an attribution probe can flip
-one without the other; the
-mode-parametric spec knot (`coreKnot`, `ConLeche/Kernel/Core.lean`)
-selects its io slot on `betaGate`, the P tier's own bit, so the two
-agree exactly at `.verified` — the one instance the simulation tower
-is stated at (`memoEI_inferIO_sim`, `ConLeche/Verify/Cached/KnotC.lean`).
-Spelled with a wildcard so it is the literal `true` at a *variable*
-mode too. -/
-def CheckMode.ioGate : CheckMode → Bool
   | _ => true
 
 /-- **The certificate families** (task #76's skip list; the twin's
 retirement, 2026-09-06): the work the checker does *only* so the
 soundness proof can consume it, and that the reference kernel does not
-do — the β-redex argument certificate (`whnfAppI`/`betaPeelI`, through
-`betaSkip`), the io-grade application argument certificate
-(`inferSpineIOI`, through `ioSkip`), the recursor/constructor telescope
-certificates and the canonical-index comparison of ι (`iotaRecI`), the
-plain-rule parameter re-comparison, the type-former and per-projection
-telescope certificates of structure η and unit-like conversion
-(`structEtaCertWithI`, `structUnitCertI`), and the K/η rescue's
-synthetic-spine and proof-irrelevance certificates (`majorToCtorI`).
-Read through `ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI` and
-the two skip predicates below; `true` runs them, `false` (the trusted
-mode) skips them outright.
+do — the telescope certificates and the canonical-index comparison of
+ι where the ι licence does not hold (`iotaRecI`), the plain-rule
+parameter re-comparison, and the K rescue's telescope and
+proof-irrelevance certificates (`majorToCtorI`).  Read through
+`ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI`; `true` runs
+them, `false` (the trusted mode) skips them outright.
 
 **Why a second function beside `verifiedChecks`**, when the two agree
 at both constructors.  Both are certification-only work; they differ
 in what the proof towers need of them.  `verifiedChecks` gates checks
-the P tier's *premises* rest on (the λ-codomain sort, the annotation
-validations), so the mode-parametric spec (`ConLeche/Kernel/Core.lean`)
+the P tier's *premises* rest on (the λ and η checks, task #342), so the mode-parametric spec (`ConLeche/Kernel/Core.lean`)
 reads it at the same sites the cached core does.  The certificate
 families have **no switch in the spec** — no proved instance ever
 omits them — so the cached core's reads of `certs` are what the
 simulation tower (`ConLeche/Verify/Cached/*`) must see through: it is
 stated under `hμ : mode.verifiedChecks = true`, and
-`certs_of_verifiedChecks` (`ConLeche/Verify/BetaGate.lean`) turns every
+`certs_of_verifiedChecks` (`ConLeche/Verify/Modes.lean`) turns every
 read into the literal `true` there.  The `.trusted` instance of the
 cached-vs-spec simulation is false, deliberately: the trusted core
 skips what the spec runs. -/
 def CheckMode.certs : CheckMode → Bool
   | .verified => true
   | .trusted => false
-
-/-- **The β site's read** (`whnfAppI`/`betaPeelI`): skip the per-redex
-argument certificate wholesale when the certificate families are off,
-else exactly when the β gate is on and the (validated) annotation
-datum is `.never`.  At `.verified` it is the datum (`pw.isNever`, the
-same predicate as the spec's `betaGateFires .verified pw`); at
-`.trusted` the literal `true` — the β certificate is a certificate
-family, skipped outright, so the licence is moot there. -/
-@[inline] def CheckMode.betaSkip (mode : CheckMode) (pw : PropWhen) : Bool :=
-  !mode.certs || (mode.betaGate && pw.isNever)
-
-/-- **The io site's read** (`inferSpineIOI`): skip the per-argument
-application certificate at a `.never` binder (the graph-regime
-licence, `ConLeche/Model/IOLicense.lean`), or wholesale when the
-certificate families are off.  At `.verified` it is `pw.isNever` — the
-licence reads the datum and nothing else, as the licence ruling of
-2026-09-06 has it — and at `.trusted` it is `true`. -/
-@[inline] def CheckMode.ioSkip (mode : CheckMode) (pw : PropWhen) : Bool :=
-  !mode.certs || pw.isNever
 
 /-- Data common to all constants: name, universe parameters, type. -/
 structure ConstantVal where
@@ -187,41 +102,32 @@ structure ConstantVal where
   type : Expr
   deriving DecidableEq, Repr, Inhabited
 
-/-- How a stored recursor rule may fire (install-computed; parse
-placeholder `.inert`).
+/-- How a stored recursor rule fires (install-computed; parse
+placeholder `.inert`).  The official kernel fires a rule by constructor
+name and field count and compares nothing; the fire here compares what
+the rule's law (`RecRuleLaw`) is stated at.
 
-* `.plain` — a canonical rule (`Expr.recRulePlain`): the constructor's
-  parameters are the recursor's leading arguments and its levels link
-  to the recursor's by name.
-* `.nested lvls pins` — a certified nested-auxiliary rule: the
-  constructor's levels and parameters are *fixed instantiations*, read
-  at install off the recursor type's major-premise domain — `lvls`
-  are levels over the recursor's level parameters, `pins` expressions
-  in the recursor's `rulePrefix`-binder telescope context (index
-  premises between the prefix and the major are supported: the shape
-  certification lowers the stored instantiations out of the
-  `majorIdx`-binder context after checking that no index variable
-  occurs in them).  At fire time the constructor's levels and
-  parameters are checked against these, instantiated at the recursor's
-  actual level and leading-argument spine.
-* `.inert` — never fires; a *matched* inert rule is a positive
-  decline in `iotaRec` (an uncertified nested auxiliary rule).
-
-**Why the fire compares parameters, levels and indices at all** (the
-official kernel's `inductive_reduce_rec` and lean4lean fire by
-constructor name plus `nfields` and compare nothing — typing justifies
-it).  Our soundness argument for a fire is the stored rule law
-(`RecRuleLaw`) at the recursor's own parameters, and the P lane has no
-typing derivation in hand: the redex is only `WellDenotedV`, and since the
-ι-slot licence (2026-09-05) the major slot of a data-motive recursor is
-not even inferred, so nothing but these comparisons relates the
-constructor's `p⃗'`/`idx'` to the recursor's `p⃗`/`idx`.  Moving them
-into a licence was investigated (2026-09-06, `_tmp/iota-uniform/`):
-for *indices* it is refuted at the squash regime (`Acc.rec.{1}` on a
-cross-index `Acc.intro`: the licensed major's membership in `{pt}`
-carries no information, so the uniform fire's law is false); for
-*parameters* see `RecRule.paramsBlind`.
-Stake: ≤ 0.8 % of init-full instructions. -/
+* `.plain` — the installer's rule at a member major
+  (`Expr.recRulePlain`): the constructor's parameters are the
+  recursor's leading arguments and its levels the recursor's, by name.
+  The fire compares the constructor's levels with the recursor's.  Its
+  parameters are compared only at a case-3 redex (`iotaCase3`: not K,
+  and the family may be `Prop` at the constructor's levels): there the
+  constructor application may be the point, and at a `Prop` valuation
+  nothing else ties the constructor's parameters to the recursor's.
+  Elsewhere the major's membership in the family at the recursor's
+  parameters ties them.
+* `.nested lvls pins` — an auxiliary recursor's rule at an outside
+  major (a nested block): the constructor's levels and parameters are
+  fixed instantiations, read at install off the recursor type's major
+  domain (`Expr.nestedRuleSyn`) — `lvls` are levels over the
+  recursor's level parameters, `pins` expressions in the recursor's
+  rule-prefix context.  The fire compares the constructor's levels and
+  parameters with these, instantiated at the redex's levels and leading
+  arguments: the rule's law is stated at that instantiation.
+* `.inert` — the parse placeholder; the installer stores it only where
+  an auxiliary rule's major domain cannot be read (`auxRuleFireR`), and
+  a matched inert rule is a positive decline in `iotaRec`. -/
 inductive RecRuleFire where
   | inert
   | plain
@@ -232,12 +138,11 @@ inductive RecRuleFire where
 parameters, motives and minors) to a `ctor`-headed major premise reduces
 to `rhs` applied to the parameters, motives, minors and the constructor's
 `nfields` fields.  `ctorParams` (the constructor's parameter count) and
-`fire` (the canonical/nested/inert firing mode), the two rescue
-bits `k`/`eta` and the parameter-comparison bit `paramsBlind` are
-*computed at install* from the stored constructor, its inductive's
-capabilities, the recursor type and the installing route — input rules
-carry the parse placeholders `0`/`.inert`/`false`; reduction reads only
-the installed values, never re-deriving them per fire. -/
+`fire` (the canonical/nested/inert firing mode) and the two rescue
+bits `k`/`eta` are *computed at install* from the stored constructor,
+its inductive's capabilities and the recursor type — input rules carry
+the parse placeholders `0`/`.inert`/`false`; reduction reads only the
+installed values, never re-deriving them per fire. -/
 structure RecRule where
   ctor : Name
   nfields : Nat
@@ -262,29 +167,17 @@ structure RecRule where
   is not itself a projection function (whose rescue would loop) — the
   standing condition of `majorToCtor`'s structure-η rescue. -/
   eta : Bool := false
-  /-- **The parameter-comparison bit** (install-computed, parse
-  placeholder `false`): the ι step fires this rule without comparing
-  the recursor's parameter arguments with the constructor's.  The
-  installer and the pinned basis blocks set it, because their rule
-  laws hold at any pair of fitting parameter spines; the projection
-  functions do not, because their laws read the comparison.  The official
-  kernel compares nothing here
-  (`inductive_reduce_rec`), so a set bit is a step towards it. -/
-  paramsBlind : Bool := false
   deriving DecidableEq, Repr, Inhabited
 
-/-- Whether the ι step compares this rule's parameter comparands.  A
-`.plain` rule marked `paramsBlind` fires without them; a `.nested`
-rule's comparands are its stored pins and are compared at every
-route. -/
+/-- Whether the ι step compares this rule's parameter comparands
+outside case 3 (`iotaCompares`).  A `.nested` rule's comparands are
+its stored pins and are compared at every redex; a `.plain` rule's law
+holds at any pair of fitting parameter spines, so its parameters are
+compared only at a case-3 redex. -/
 def RecRule.compareParams (rl : RecRule) : Bool :=
   match rl.fire with
-  | .plain => !rl.paramsBlind
+  | .plain => false
   | _ => true
-
-theorem RecRule.compareParams_plain {rl : RecRule} (hf : rl.fire = .plain)
-    (hb : rl.paramsBlind = false) : rl.compareParams = true := by
-  unfold RecRule.compareParams; rw [hf, hb]; rfl
 
 theorem RecRule.compareParams_nested {rl : RecRule} {lvls : List Level}
     {pins : List Expr} (hf : rl.fire = .nested lvls pins) :

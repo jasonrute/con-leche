@@ -200,13 +200,6 @@ def towerSlotsAllF (fe : FEnv) (T : Name) (nF : Nat) : Bool :=
 def andRescueSlotsF (fe : FEnv) (ctor : Name) (nP : Nat) (ust : List Level) : Bool :=
   andRescueSlotsOf fe.findProj? ctor nP ust
 
-/-- `recSlotsAll` through the index. -/
-def recSlotsAllF (fe : FEnv) (T : Name) (nF : Nat) : Bool :=
-  (List.range nF).all fun j =>
-    match fe.find? (projFnName T j) with
-    | some (.recInfo _ _ _ _) => true
-    | _ => false
-
 end FEnv
 
 /-! ### Indexed guard twins (same result as the `Env` versions) -/

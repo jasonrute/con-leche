@@ -22,8 +22,8 @@ so every move below is the `Empty` module's with the level numeral `1`
 replaced by `0`.  `BConst.typeAV`/`bval_mem_type`/`WellDenotedV_bconst_type`
 are stated at every level list, so nothing new is proved about the
 built-ins; the type readings are recomputed at the `False` pins
-(`denoteMeta_falseA_type`, `denoteMeta_falseRecA_type`) and `BitAgree`d to
-`BConst.typeAV .empty [0]` / `.emptyRec [0, ψ u]`.
+(`denoteMeta_falseA_type`, `denoteMeta_falseRecA_type`) and are
+`BConst.typeAV .empty [0]` / `.emptyRec [0, ψ u]` on the nose.
 
 The point of the pin is the capstone: `no_constant_of_False`
 (`Model/Capstone.lean`) reads the leaf's value off `basis_pinnedL` exactly as
@@ -48,8 +48,7 @@ variable {μ : CheckMode} {env : Env}
 /-! ## `Empty` -/
 
 /-- The `False` former's type reading: `Sort 0`, which is
-`BConst.typeAV .empty [0]` on the nose (no `BitAgree` needed — the
-former has no binder, so there is no numeral to disagree about). -/
+`BConst.typeAV .empty [0]` on the nose. -/
 theorem denoteMeta_falseA_type
     {acval : Name → (Name → Nat) → AnnotTerm} (ψ : Name → Nat) :
     denoteMeta acval ⟨falseA :: env.consts⟩ ψ 0 falseA.toConstantVal.type
@@ -96,7 +95,7 @@ theorem extendFalse (mp : EnvModelM V μ env)
         rfl)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) (fun _ _ _ => rfl)
-    (fun _ _ => trivial) (fun _ _ => trivial)
+    (fun _ _ => trivial)
     (fun ψ => ⟨_, denoteMeta_falseA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons_prop (ab := fun _ => []) fun ψ => denoteMeta_falseA_type ψ))
   · intro ψ ta h ρ
@@ -108,25 +107,17 @@ theorem extendFalse (mp : EnvModelM V μ env)
     obtain rfl := (Option.some.inj h).symm
     exact bval_mem_type V .empty [0] ρ
 
-/-! ## `False.rec` — the recipe at `Prop`
+/-! ## `False.rec` — the recipe at `Prop` -/
 
-Two binders, three stored `PropWhen` pins — the same three as
-`Empty.rec`'s (`.ifAllZero [u]`, `.never`, `.ifAllZero [u]`): the
-motive's domain `False → Sort u` has sort `imax 0 (u+1) = u+1`, never
-`Prop`; the two outer binders' types have sort `imax (u+1) u` and
-`imax 0 u = u`, `Prop` exactly at `u = 0`.  The `pwBit` lemmas are
-`BasisEmpty.lean`'s. -/
-
-/-- **`False.rec`'s type reading.**  The four moves of the module
+/-- **`False.rec`'s type reading.**  The moves of `BasisEmpty`'s module
 docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
 theorem denoteMeta_falseRecA_type {m : EnvModel V env}
     {A : (Name → Nat) → AnnotTerm} (ψ : Name → Nat)
     (hE : env.find? falseName = some falseA) :
     denoteMeta (acvalWith m.acval falseRecA.name A)
         ⟨falseRecA :: env.consts⟩ ψ 0 falseRecA.toConstantVal.type
-      = some (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-          (.pi 0 (pwBit ψ .never) (.const .empty [0]) (.sort (ψ uN)))
-          (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .empty [0])
+      = some (.pi (.pi (.const .empty [0]) (.sort (ψ uN)))
+          (.pi (.const .empty [0])
             (.app (.bvar 1) (.bvar 0)))) := by
   have hpd : ConLeche.Verify.pinnedStructT falseName ψ
       = some (Term.const .empty [0]) := by
@@ -147,31 +138,20 @@ theorem denoteMeta_falseRecA_type {m : EnvModel V env}
   rw [show falseRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const falseName [])
-            (.sort (.param uN)) { pw := .never })
+            (.sort (.param uN)) {})
           (Expr.forallE (.const falseName [])
             (.app (.bvar 1) (.bvar 0))
-            { pw := .ifAllZero [uN] })
-          { pw := .ifAllZero [uN] } from rfl]
+            {})
+          {} from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
-/-- **The reading agrees with `BConst.typeAV` on every numeral anything
-reads.**  Three binders, three `pwBit`s, three `typeAV` slots, and the
-iffs are `pwBit_never` and `pwBit_ifAllZero_single` — nothing here is
-chosen. -/
-theorem bitAgree_falseRecA (ψ : Name → Nat) :
-    AnnotTerm.BitAgree
-      (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-        (.pi 0 (pwBit ψ .never) (.const .empty [0]) (.sort (ψ uN)))
-        (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .empty [0])
+/-- **The reading is `BConst.typeAV`.** -/
+theorem falseRecA_reading_eq (ψ : Name → Nat) :
+    (AnnotTerm.pi (.pi (.const .empty [0]) (.sort (ψ uN)))
+        (.pi (.const .empty [0])
           (.app (.bvar 1) (.bvar 0))))
-      (BConst.typeAV .emptyRec [0, ψ uN]) := by
-  have hz : pwBit ψ (ConLeche.PropWhen.ifAllZero [uN]) = 0 ↔ ψ uN = 0 :=
-    pwBit_ifAllZero_single ψ uN
-  refine .pi hz (.pi ?_ (.const _ _) (.sort _))
-    (.pi hz (.const _ _) (.app (.bvar 1) (.bvar 0)))
-  rw [pwBit_never]
-  simp
+      = BConst.typeAV .emptyRec [0, ψ uN] := rfl
 
 /-- **`False.rec`, installed at the P tier.** -/
 theorem extendFalseRec (mp : EnvModelM V μ env)
@@ -198,19 +178,19 @@ theorem extendFalseRec (mp : EnvModelM V μ env)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))
     (fun _ _ => rfl) ?_
-    (fun _ _ => trivial) (fun _ _ => trivial)
+    (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_)
   · intro ψ₁ ψ₂ hp
     rw [hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)]
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedTy (bitAgree_falseRecA ψ) ρ).mpr
-      (WellDenotedTy_bconst_type V .emptyRec [0, ψ uN] ρ)
+    rw [falseRecA_reading_eq]
+    exact WellDenotedTy_bconst_type V .emptyRec [0, ψ uN] ρ
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    rw [AnnotTerm.BitAgree.interp_eq V (bitAgree_falseRecA ψ) ρ]
+    rw [falseRecA_reading_eq]
     exact bval_mem_type V .emptyRec [0, ψ uN] ρ
 
 /-! ## The block
@@ -260,11 +240,11 @@ theorem declBasisPB_falseK {env₂ : Env} (mp : EnvModelM V μ env)
     simp only [show falseRecA.toConstantVal.type
         = Expr.forallE
             (Expr.forallE (.const falseName [])
-              (.sort (.param uN)) { pw := .never })
+              (.sort (.param uN)) {})
             (Expr.forallE (.const falseName [])
               (.app (.bvar 1) (.bvar 0))
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] } from rfl,
+              {})
+            {} from rfl,
       Expr.constsResolve, Bool.and_eq_true, Option.isSome_iff_exists]
     have hf : (⟨falseRecA :: falseA :: env.consts⟩ : Env).find?
         falseName = some falseA := by

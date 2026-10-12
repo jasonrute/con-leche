@@ -123,7 +123,7 @@ theorem BlockTablesCore.consRecs {envC envR : Env} {mC : EnvModel V envC} {mR : 
     · rw [hag cvTb.name (by rw [hfindT]; rfl)]; exact hleaf ψ
     · exact ⟨fun ψ => by
         rw [hden ψ 0 cvTb.type (constsBound_of_constsResolve _ hres)]; exact hFD.read ψ,
-      hFD.len, hFD.bits, hFD.okTy, hFD.below, hFD.params, hFD.syn⟩
+      hFD.len, hFD.okTy, hFD.below, hFD.params, hFD.syn⟩
   · obtain ⟨hfindC, hlps, hres, hread, hleaf⟩ := hctor c j cA hj
     refine ⟨hfind _ _ hfindC, hlps, Expr.constsResolve_of_find hsome hres, fun ψ => ?_,
       fun ψ => ?_⟩

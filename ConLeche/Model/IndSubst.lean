@@ -57,11 +57,11 @@ theorem liftN_liftN_absorb : ∀ (e : AnnotTerm) {j k m : Nat}, k ≤ j →
   | app f a ihf iha =>
     intro j k m hkj hjk n
     simp only [liftN_app, ihf hkj hjk n, iha hkj hjk n]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro j k m hkj hjk n
     simp only [liftN_lam, ihA hkj hjk n,
       ihb (show k + 1 ≤ j + 1 by omega) (show j + 1 ≤ k + 1 + m by omega) n]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro j k m hkj hjk n
     simp only [liftN_pi, ihA hkj hjk n,
       ihB (show k + 1 ≤ j + 1 by omega) (show j + 1 ≤ k + 1 + m by omega) n]
@@ -100,11 +100,11 @@ theorem inst_liftN_absorb : ∀ (e : AnnotTerm) {j k m : Nat}, j ≤ k →
   | app f b ihf ihb =>
     intro j k m hjk hkj a
     simp only [liftN_app, inst_app, ihf hjk hkj a, ihb hjk hkj a]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro j k m hjk hkj a
     simp only [liftN_lam, inst_lam, ihA hjk hkj a,
       ihb (show j + 1 ≤ k + 1 by omega) (show k + 1 ≤ j + 1 + m by omega) a]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro j k m hjk hkj a
     simp only [liftN_pi, inst_pi, ihA hjk hkj a,
       ihB (show j + 1 ≤ k + 1 by omega) (show k + 1 ≤ j + 1 + m by omega) a]
@@ -156,12 +156,12 @@ theorem inst_liftN_comm : ∀ (e : AnnotTerm) {j k m : Nat}, j + m ≤ k →
   | app f b ihf ihb =>
     intro j k m hjk a
     simp only [liftN_app, inst_app, ihf hjk a, ihb hjk a]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro j k m hjk a
     simp only [liftN_lam, inst_lam, ihA hjk a,
       ihb (show j + 1 + m ≤ k + 1 by omega) a]
     rw [show k + 1 - m = k - m + 1 by omega]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro j k m hjk a
     simp only [liftN_pi, inst_pi, ihA hjk a,
       ihB (show j + 1 + m ≤ k + 1 by omega) a]
@@ -217,11 +217,11 @@ theorem inst_inst_comm : ∀ (e : AnnotTerm) {j k : Nat}, j ≤ k →
   | app f c ihf ihc =>
     intro j k hjk a b
     simp only [inst_app, ihf hjk, ihc hjk]
-  | lam u A c ihA ihc =>
+  | lam A c ihA ihc =>
     intro j k hjk a b
     simp only [inst_lam, ihA hjk, ihc (show j + 1 ≤ k + 1 by omega)]
     rw [show k + 1 - (j + 1) = k - j by omega]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro j k hjk a b
     simp only [inst_pi, ihA hjk, ihB (show j + 1 ≤ k + 1 by omega)]
     rw [show k + 1 - (j + 1) = k - j by omega]

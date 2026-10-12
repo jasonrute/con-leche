@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.Kernel.StdAxioms
-public meta import ConLeche.Kernel.BasisA
 public import ConLeche.Kernel.Core
 public import ConLeche.Kernel.TrustPins
 
@@ -38,10 +37,8 @@ declined:
 record installs nothing and any use of it declines
 (`sorryAxName`, `ConLeche/Kernel/Basis/Names.lean`).
 
-Raw pins below, hand-written through the builder in
-`ConLeche/Kernel/Basis/Builder.lean`; the annotated forms are computed
-from them at elaboration time by `#annotate_pins`
-(`ConLeche/Kernel/BasisGen.lean`).
+The pins below are hand-written through the builder in
+`ConLeche/Kernel/Basis/Builder.lean`.
 -/
 
 namespace ConLeche
@@ -79,11 +76,8 @@ def ofReduceOp (n : Name) : Name :=
 
 /-! ## Pinned shapes
 
-The `True` family, `Bool`, and the reduce operations' types have no
-binders below a codomain (or none at all), so their annotated forms
-coincide with the raw pins except for the one codomain annotation on
-`… → …`; the reduce-operation and `ofReduce*` types are annotated by
-`#annotate_pins` below.
+The `True` family, `Bool`, the reduce operations' types and the
+`ofReduce*` statements.
 -/
 
 /-- Pinned `True` (shape only; capabilities are not pinned). -/
@@ -122,35 +116,23 @@ def ofReduceRaw (n : Name) : ConstantVal :=
     pi "b" τ <|
     pi "h" (eqApp (.app (cnst c) (bv 1)) (bv 0)) (eqApp (bv 2) (bv 1))⟩
 
-/-! ## The annotated pins
+/-- Pinned `Lean.reduceNat`. -/
+def reduceNatCvA : ConstantVal := reduceOpRaw reduceNatName
 
-Computed from the raw pins above by the checker's own annotation pass
-while this module elaborates (`#annotate_pins`,
-`ConLeche/Kernel/BasisGen.lean`), over the pinned prerequisites the
-types mention: the `Eq`/`Nat` basis, the pinned `True` family, the
-installed `Lean.trustCompiler` and the pinned `Bool`.  The `ofReduce*`
-statements speak about the reduce operations, so those are annotated
-first and passed in the second command's environment. -/
+/-- Pinned `Lean.reduceBool`. -/
+def reduceBoolCvA : ConstantVal := reduceOpRaw reduceBoolName
 
-/-- The environment the reduce-operation pins are annotated over. -/
-private def trustPinEnv : List ConstantInfo :=
-  [.indInfo boolCvA {}, .axiomInfo trustCompilerA,
-   .ctorInfo trueIntroCvA 0 0, .indInfo trueCvA {}, natA, eqA]
+/-- Pinned `Lean.ofReduceNat`. -/
+def ofReduceNatA : ConstantVal := ofReduceRaw ofReduceNatName
 
-#annotate_pins over trustPinEnv
-  | reduceNatCvA := reduceOpRaw reduceNatName
-  | reduceBoolCvA := reduceOpRaw reduceBoolName
+/-- Pinned `Lean.ofReduceBool`. -/
+def ofReduceBoolA : ConstantVal := ofReduceRaw ofReduceBoolName
 
-#annotate_pins over
-    (.axiomInfo reduceBoolCvA :: .axiomInfo reduceNatCvA :: trustPinEnv)
-  | ofReduceNatA := ofReduceRaw ofReduceNatName
-  | ofReduceBoolA := ofReduceRaw ofReduceBoolName
-
-/-- The annotated pinned type of a reduce operation. -/
+/-- The pinned type of a reduce operation. -/
 def reduceOpCvA (c : Name) : ConstantVal :=
   if c = reduceNatName then reduceNatCvA else reduceBoolCvA
 
-/-- The annotated pin an `ofReduce*` axiom is matched against. -/
+/-- The pin an `ofReduce*` axiom is matched against. -/
 def ofReducePinA (n : Name) : ConstantVal :=
   if n = ofReduceNatName then ofReduceNatA else ofReduceBoolA
 

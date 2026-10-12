@@ -13,7 +13,8 @@ the point".  Inside ONE type that is equality (`IsTy.eq_of_ne_pt`,
 `ω` are both types of `Sort 1` (the universe is cumulative), and the
 point in the first and `0 = ∅` in the second are "conditionally equal"
 but different.  This is why a ι comparison is upgraded only between fits
-of one telescope — and why a `paramsBlind` rule's index comparison, whose
+of one telescope — and why a `.plain` rule's index comparison outside
+case 3, whose
 two sides sit at two parameter frames, is not.
 -/
 

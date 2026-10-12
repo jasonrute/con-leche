@@ -92,16 +92,6 @@ theorem pure_mono {ε ε' : Type} {x v : α} (h : (pure x : Except ε α) = .ok 
     (pure x : Except ε' α) = .ok v := by
   simpa [pure, Except.pure] using h
 
-theorem pwOfF_mono {ε ε' : Type} {nm : Nat → Except ε Name} {lv : Nat → Except ε Level}
-    {ex : Nat → Except ε Expr} {nm' : Nat → Except ε' Name} {lv' : Nat → Except ε' Level}
-    {ex' : Nat → Except ε' Expr} (hn : Ext nm nm') {r : PwRec} {v : PropWhen}
-    (h : pwOfF nm lv ex r = .ok v) : pwOfF nm' lv' ex' r = .ok v := by
-  cases r with
-  | never => exact pure_mono h
-  | ifAllZero ns =>
-    simp only [pwOfF] at h ⊢
-    exact bind_mono (fun w hw => mapM_mono hn hw) (fun _ _ hx => pure_mono hx) h
-
 theorem nameOfF_mono {ε ε' : Type} {nm : Nat → Except ε Name} {lv : Nat → Except ε Level}
     {ex : Nat → Except ε Expr} {nm' : Nat → Except ε' Name} {lv' : Nat → Except ε' Level}
     {ex' : Nat → Except ε' Expr} (hn : Ext nm nm') {r : NameRec} {v : Name}
@@ -143,15 +133,11 @@ theorem exprOfF_mono {ε ε' : Type} {nm : Nat → Except ε Name} {lv : Nat →
   | lam ty bd pw =>
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)
-      (fun _ _ hx => bind_mono (fun w hw => he _ _ hw)
-        (fun _ _ hy => bind_mono (fun w hw => pwOfF_mono hn hw) (fun _ _ hz => pure_mono hz) hy)
-        hx) h
+      (fun _ _ hx => bind_mono (fun w hw => he _ _ hw) (fun _ _ hy => pure_mono hy) hx) h
   | forallE ty bd pw =>
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)
-      (fun _ _ hx => bind_mono (fun w hw => he _ _ hw)
-        (fun _ _ hy => bind_mono (fun w hw => pwOfF_mono hn hw) (fun _ _ hz => pure_mono hz) hy)
-        hx) h
+      (fun _ _ hx => bind_mono (fun w hw => he _ _ hw) (fun _ _ hy => pure_mono hy) hx) h
   | letE ty vl bd =>
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)

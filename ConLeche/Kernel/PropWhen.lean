@@ -7,25 +7,24 @@ public import ConLeche.Kernel.Name
 (task #161; the small-list constructors, 2026-09-06; the canonical
 representation, task #194, 2026-09-06)
 
-The binder annotation of the validated-annotation design: the reading
-of a codomain sort's zero-ness predicate `Z(l) = {φ | eval φ l = 0}`.
+The reading of a sort's zero-ness predicate
+`Z(l) = {φ | eval φ l = 0}`: the datum the checker's head-symbol
+reader (`ConLeche/Kernel/PropRead.lean`, `proofPW`) and an inductive's
+stored `IndCaps.sortZ` carry.
 
 **This module is the datum's whole boundary.**  It owns the
 representation, the API that is the only way to build, read and
-compare a datum, and — following the `Std.HashMap` pattern that
-`CLAUDE.md` licenses for a self-contained data-structure verification
-— every law about the datum *alone*.  Downstream never re-proves them
-and never sees a constructor:
+compare a datum, and — the `Std.HashMap` pattern `CLAUDE.md` licenses
+for a self-contained data-structure verification — every law about
+the datum *alone*:
 
 * the readout `holds` and its algebra (`holds_inter`,
-  `holds_bindZ_go`, `holds_ext`);
+  `holds_bindZ_go`);
 * the comparison — which is **equality**: `=`/`==`/`DecidableEq`
-  decide zero-ness agreement at every valuation (`eq_iff_holds`), so
-  the checker's validation and defeq sites compare with `==` and no
-  separate comparison exists (task #197);
+  decide zero-ness agreement at every valuation (`eq_iff_holds`);
 * the `inter`/`bindZ` algebra the substitution laws rest on
   (`inter_assoc`, `bindZ_inter`, `bindZ_go_append`,
-  `bindZ_congr_names`, `bindZ_unit`, `paramsDefined_inter_of`).
+  `bindZ_congr_names`, `paramsDefined_inter_of`).
 
 **Canonical by construction (task #194).**  Every value of the type is
 the unique representative of its parameter *set*: the parameter list
@@ -34,19 +33,12 @@ here), the invariant is carried by the constructors themselves, and
 every producer (`ifAllZero`, `inter`, `bindZ`, hence
 `Level.zeronessOf`/`Level.substPW`) normalizes.  Consequently
 `ifAllZero ps = ifAllZero qs ↔ (∀ n, n ∈ ps ↔ n ∈ qs)`
-(`ifAllZero_eq_iff`), `=`/`==`/`DecidableEq`/`Hashable` all decide
-zero-ness agreement, and the level-instantiation identity law
-(`Level.substPW_self`, `ConLeche/Verify/PropWhen.lean`) holds
-unconditionally — amendment 2's counterexample (DESIGN.md, task #161
-P1) was a *normalizing* substitution meeting a *non-canonical* input,
-and non-canonical inputs no longer exist.
+(`ifAllZero_eq_iff`).
 
-What is *not* here is what is not about the datum alone: the laws
-relating it to `Level` (`Level.zeronessOf`, `Level.substPW` —
-`zeronessOf_sound`, `zeronessOf_subst`, `substPW_self`,
-`substPW_comp`, `holds_substPW`) live in `ConLeche/Verify/PropWhen.lean`,
-because `Level` is defined *above* this module, and they are proved
-purely through the API exported here.
+The laws relating the datum to `Level` (`Level.zeronessOf`,
+`Level.substPW`) live in `ConLeche/Verify/PropWhen.lean`, because
+`Level` is defined *above* this module; they are proved through the
+API exported here.
 
 Layering: this module imports `ConLeche.Kernel.Name` and nothing else.
 -/
@@ -170,13 +162,6 @@ theorem lt_asymm {a b : Name} (h : a < b) : ¬ b < a := by
 /-- `gt` read backwards. -/
 theorem lt_of_gt {a b : Name} (h : cmp a b = .gt) : b < a := by
   rw [lt_def, cmp_swap b a, h]; rfl
-
-/-- Trichotomy: names are linearly ordered by `<`. -/
-theorem lt_trichotomy (a b : Name) : a = b ∨ a < b ∨ b < a := by
-  cases h : cmp a b with
-  | eq => exact Or.inl (eq_of_cmp h)
-  | lt => exact Or.inr (Or.inl h)
-  | gt => exact Or.inr (Or.inr (lt_of_gt h))
 
 end Name
 
@@ -302,13 +287,6 @@ theorem all_canon (P : Name → Bool) (ps : List Name) :
     (canon ps).all P = ps.all P :=
   all_eq_of_mem_iff (fun _ => mem_canon) P
 
-theorem canon_eq_nil_iff {ps : List Name} : canon ps = [] ↔ ps = [] := by
-  rw [List.eq_nil_iff_forall_not_mem, List.eq_nil_iff_forall_not_mem]
-  simp only [mem_canon]
-
-theorem isEmpty_canon (ps : List Name) : (canon ps).isEmpty = ps.isEmpty := by
-  rw [Bool.eq_iff_iff, List.isEmpty_iff, List.isEmpty_iff, canon_eq_nil_iff]
-
 /-- **The canonical-form theorem**: two sorted lists with the same
 members are the same list. -/
 theorem sorted_ext : ∀ {as bs : List Name}, Sorted as → Sorted bs →
@@ -341,10 +319,6 @@ theorem sorted_ext : ∀ {as bs : List Name}, Sorted as → Sorted bs →
 /-- Canonicalizing a sorted list is the identity. -/
 theorem canon_eq_self {ps : List Name} (h : Sorted ps) : canon ps = ps :=
   sorted_ext (sorted_canon ps) h fun _ => mem_canon
-
-/-- `canon` is idempotent. -/
-theorem canon_canon (ps : List Name) : canon (canon ps) = canon ps :=
-  canon_eq_self (sorted_canon ps)
 
 theorem canon_pair (p q : Name) : canon [p, q] = merge [p] [q] := by
   simp
@@ -742,33 +716,6 @@ theorem isNever_iff {pw : PropWhen} : isNever pw = true ↔ pw = never := by
   rw [Bool.eq_false_iff]
   exact fun h => ifAllZero_ne_never ps (isNever_iff.mp h)
 
-/-- Does the datum mention any level parameter — is `Level.substPW`
-ever non-trivial on it?  Folded into `Expr.hasLevelParam` and the
-`hasLP` field's recurrence, so the has-param shortcut of
-the level-instantiation walk stays exact. -/
-@[inline] def hasParams (pw : PropWhen) : Bool :=
-  match pw.repr with
-  | .never => false
-  | .always => false
-  | _ => true
-
-private theorem hasParams_eq_toList (pw : PropWhen) :
-    hasParams pw = !pw.toList.isEmpty := by
-  obtain ⟨x⟩ := pw
-  cases x with
-  | many ps h =>
-    have : ps ≠ [] := by
-      intro he; rw [he] at h; simp at h
-    simp [hasParams, toList, this]
-  | _ => simp [hasParams, toList]
-
-@[simp] theorem hasParams_never : hasParams .never = false := by
-  simp [hasParams, never]
-
-@[simp] theorem hasParams_ifAllZero (ps : List Name) :
-    hasParams (ifAllZero ps) = !ps.isEmpty := by
-  rw [hasParams_eq_toList, toList_ifAllZero, isEmpty_canon]
-
 /-- Are all parameters of the datum among `params`?  Folded into
 `Expr.allLevelParamsDefined` (task #161): level instantiation's
 composition law (`Level.substPW_comp`) is *false* for data whose
@@ -997,39 +944,12 @@ theorem paramsDefined_inter_of {params : List Name} {p q : PropWhen}
   cases p <;> cases q <;>
     simp_all [List.all_append]
 
-/-- **Parameter locality**: a datum reads its valuation only at its
-own parameters (the `paramsDefined` footprint) — `denoteMeta`'s
-φ-congruence walk (`denoteMeta_params_ext`) rides this at every binder. -/
-theorem holds_ext {ps : List Name} {pw : PropWhen}
-    (hdef : pw.paramsDefined ps = true) {φ₁ φ₂ : Name → Nat}
-    (hφ : ∀ p ∈ ps, φ₁ p = φ₂ p) : pw.holds φ₁ = pw.holds φ₂ := by
-  cases pw with
-  | never => rfl
-  | ifAllZero qs =>
-    simp only [paramsDefined_ifAllZero, List.all_eq_true] at hdef
-    rw [holds_ifAllZero, holds_ifAllZero]
-    induction qs with
-    | nil => rfl
-    | cons n rest ih =>
-      simp only [List.all_cons]
-      rw [hφ n (by simpa [List.contains_iff_mem] using hdef n (by simp)),
-        ih fun m hm => hdef m (by simp [hm])]
-
 /-! ### `inter` / `bindZ` algebra -/
 
 /-- `inter` is associative (the datum is a set union). -/
 theorem inter_assoc (a b c : PropWhen) :
     (a.inter b).inter c = a.inter (b.inter c) := by
   cases a <;> cases b <;> cases c <;> simp [List.append_assoc]
-
-/-- `inter` is commutative (a set union; canonicity makes it an
-equality). -/
-theorem inter_comm (a b : PropWhen) : a.inter b = b.inter a :=
-  eq_of_holds fun φ => by rw [holds_inter, holds_inter, Bool.and_comm]
-
-/-- `inter` is idempotent. -/
-theorem inter_self (a : PropWhen) : a.inter a = a :=
-  eq_of_holds fun φ => by rw [holds_inter, Bool.and_self]
 
 /-- The `bindZ` fold over an append splits — the list-level half of
 `bindZ_inter`. -/
@@ -1058,23 +978,6 @@ theorem bindZ_congr_names {f g : Name → PropWhen} :
     show (f n).inter _ = (g n).inter _
     rw [h n (by simp), bindZ_congr_names fun m hm => h m (by simp [hm])]
 
-/-- `bindZ` at the unit (`n ↦ ifAllZero [n]`) reproduces the datum —
-an equality, by canonicity.  This is the datum half of the level
-instantiation identity law (`Level.substPW_self`). -/
-theorem bindZ_unit : ∀ pw : PropWhen,
-    pw.bindZ (fun n => .ifAllZero [n]) = pw := by
-  intro pw
-  cases pw with
-  | never => simp
-  | ifAllZero ps => rw [bindZ_ifAllZero]; exact bindZ_unit.go ps
-where
-  go : ∀ ps : List Name,
-      bindZ.go (fun n => PropWhen.ifAllZero [n]) ps = .ifAllZero ps
-  | [] => rfl
-  | n :: rest => by
-    show (PropWhen.ifAllZero [n]).inter _ = _
-    rw [go rest, inter_ifAllZero]
-    rfl
 
 end PropWhen
 

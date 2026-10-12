@@ -9,7 +9,7 @@ import ConLeche.Model.Inductives.GenRuleFree
 import ConLeche.Model.Annot.BitRename
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
@@ -53,31 +53,19 @@ theorem wellDenotedV_piDom_at {B : AnnotTerm} :
         WellDenotedTy V (consList zs ρ) ((tl.map (·.2.2)).getD l default)
   | [], _, _, l, hl, _, _ => absurd hl (Nat.not_lt_zero _)
   | d :: tl, ρ, hv, l, hl, zs, hz => by
-    have hw : WellDenoted V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv.1
-    have hva : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv.2
-    rw [AnnotValid_pi] at hva
+    have hw : WellDenoted V ρ (.pi d.2.2 (mkPisAV tl B)) := hv
+    rw [WellDenoted_pi] at hw
     cases l with
     | zero =>
       match zs, hz with
-      | [], _ => exact ⟨⟨hw.1, by simpa using hva.1⟩, hw.2.1⟩
+      | [], _ => exact ⟨hw.1, hw.2.1⟩
     | succ l =>
       match zs, hz with
       | z :: zs, hz =>
         simp only [List.map_cons, List.take_succ_cons] at hz
         have ih := wellDenotedV_piDom_at (tl := tl) (ρ := cons z ρ)
-          ⟨hw.2.2.1 z hz.1, hva.2.1 z hz.1⟩ l (by simpa using hl) zs hz.2
+          (hw.2.2.1 z hz.1) l (by simpa using hl) zs hz.2
         simpa [consList_cons] using ih
-
-/-- Graded fields are valid fields. -/
-theorem fieldsValid_of_graded {ρ : Nat → V} :
-    ∀ {Fs : List AnnotTerm}, (∀ l, l < Fs.length → ∀ zs : List V, SpineFit ρ (Fs.take l) zs →
-      AnnotValid V (consList zs ρ) (Fs.getD l default)) → FieldsValid ρ Fs
-  | [], _ => trivial
-  | F :: Fs, h => by
-    refine ⟨by simpa using h 0 (by simp) [] trivial, fun a ha => ?_⟩
-    refine fieldsValid_of_graded (ρ := cons a ρ) fun l hl zs hz => ?_
-    have := h (l + 1) (by simpa using hl) (a :: zs) ⟨ha, hz⟩
-    simpa [consList_cons] using this
 
 section Tower
 
@@ -128,7 +116,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
     rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT]; rfl)
   obtain ⟨pd, hpd, -, hrd⟩ := hdomsR _ y hy
   rw [denoteMeta_erasedEq hyE] at hrd
-  -- the prefix's entry: the minor's value, valid there
+  -- the prefix's entry: the minor's value, graded there
   have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
       (R.g.nP + s) default = pd.2.2 := by
@@ -204,8 +192,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
     have hrf : r < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hrF
     obtain ⟨a, ha, hra⟩ := hbs r (R.g.binder (tgtFieldFvs pp.toBlockShape out c j)[r])
       (by rw [List.getElem?_append_left (by simpa using hrf)]; simp [hrf])
-    have hbr : bs[r]'(by omega) = (0, pwBit ψ (R.g.binder
-        (tgtFieldFvs pp.toBlockShape out c j)[r]).2.pw, a) := by
+    have hbr : bs[r]'(by omega) = (0, 0, a) := by
       rw [List.getElem?_eq_getElem (by omega)] at ha; exact Option.some.inj ha
     simp only [List.getElem_take, List.getElem_map, hbr]
     have := readOpenedDoms_getElem (acval := mpC.base2.acval) (env := envC) (ψ := ψ)

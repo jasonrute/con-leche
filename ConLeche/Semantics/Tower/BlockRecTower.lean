@@ -66,11 +66,6 @@ theorem pt_mem_dnegSpace_of {A x : V} (hx : x ∈ˢ A) : (pt : V) ∈ˢ dnegSpac
   rw [h1, piR_zero_empty]
   exact pt_mem_unitSet
 
-/-- `Classical.choice.{s}` is a graph. -/
-theorem choiceV_mem (s : Nat) :
-    choiceV V s ∈ˢ piR s (univ s : V) (fun A => piR s (dnegSpace V A) fun _ => A) :=
-  lamR_mem fun _ _ => lamR_mem fun _ hh => schoice_mem (exists_mem_of_dneg V hh).choose_spec
-
 /-- Elimination at a `Prop`-valued product. -/
 theorem piR_zero_elim {A f x : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) (hx : x ∈ˢ A) :
     ∃ y, y ∈ˢ B x := by
@@ -81,7 +76,7 @@ theorem piR_zero_elim {A f x : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) (hx : x
 
 /-- `Σ' (_ : P), Q` at `Prop` (`Q` at the same depth as `P`). -/
 def andAV (P Q : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [0, 0]) [P, .lam 1 P (Q.liftN 1 0)]
+  AnnotTerm.mkAppN (.const .psigma [0, 0]) [P, .lam P (Q.liftN 1 0)]
 
 /-- The conjunction of a list of propositions (`PUnit` at `[]`). -/
 def andChainAV : List AnnotTerm → AnnotTerm
@@ -92,15 +87,14 @@ theorem interp_andAV {P Q : AnnotTerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
     interp V ρ (andAV P Q) = sigmaSet 0 (interp V ρ P) fun _ => interp V ρ Q := by
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hP
-  have hlam : interp V ρ (.lam 1 P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
-    rw [interp_lam]
-    exact lamR_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]
-  have hfib : (lamR 1 (interp V ρ P) fun _ => interp V ρ Q) ∈ˢ psigmaFibreSpace V 0 (interp V ρ P) :=
-    lamR_mem fun _ _ => by rw [univ_zero]; exact hQ
+  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamV (interp V ρ P) fun _ => interp V ρ Q := by
+    rw [interp_lam, lamV_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]]
+  have hfib : (lamV (interp V ρ P) fun _ => interp V ρ Q) ∈ˢ psigmaFibreSpace V 0 (interp V ρ P) :=
+    lamV_mem_psigmaFibreSpace V fun _ _ => by rw [univ_zero]; exact hQ
   show SetTheory.app (SetTheory.app (psigmaV V 0 0) (interp V ρ P))
-    (interp V ρ (.lam 1 P (Q.liftN 1 0))) = _
+    (interp V ρ (.lam P (Q.liftN 1 0))) = _
   rw [hlam, psigmaV_app V hP' hfib]
-  exact sigma_congr fun x hx => app_lamR_pos Nat.one_ne_zero hx
+  exact sigma_congr fun x hx => app_lamV hx
 
 theorem andAV_univZero {P Q : AnnotTerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
@@ -127,25 +121,24 @@ theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (h
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hPu
   have hQ' : interp V ρ Q ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hQu
   have hps := psigmaV_rr_mem (V := V) 0
-  have hlam : interp V ρ (.lam 1 P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
-    rw [interp_lam]
-    exact lamR_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]
-  show WellDenoted V ρ (.app (.app (.const .psigma [0, 0]) P) (.lam 1 P (Q.liftN 1 0)))
+  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamV (interp V ρ P) fun _ => interp V ρ Q := by
+    rw [interp_lam, lamV_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]]
+  show WellDenoted V ρ (.app (.app (.const .psigma [0, 0]) P) (.lam P (Q.liftN 1 0)))
   rw [WellDenoted_app]
   refine ⟨?_, ?_, 1, psigmaFibreSpace V 0 (interp V ρ P), fun _ => (univ 0 : V), ?_, ?_,
-    fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_piR _ _ _⟩
+    fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_piV⟩
   · rw [WellDenoted_app]
     exact ⟨trivial, hP, 1, univ 0, fun A => piR 1 (psigmaFibreSpace V 0 A) fun _ => (univ 0 : V),
       hps, hP', fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_univ 0⟩
   · rw [WellDenoted_lam]
     refine ⟨hP, Or.inl hPu, fun x _ => ?_, fun _ => (univ 0 : V), fun x _ => ?_,
-      fun _ _ => IsTy_univ 0, fun h0 => absurd h0 Nat.one_ne_zero⟩
+      fun _ _ => IsTy_univ 0⟩
     · rw [WellDenoted_liftN, shiftE_succ_cons, shiftE_zero_zero]; exact hQ
     · rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]; exact hQ'
   · show SetTheory.app (psigmaV V 0 0) (interp V ρ P) ∈ˢ _
     exact app_mem_piR_pos Nat.one_ne_zero hps hP'
   · rw [hlam]
-    exact lamR_mem fun _ _ => hQ'
+    exact lamV_mem_psigmaFibreSpace V fun _ _ => hQ'
 
 /-- The conjunction's formation and grading, from its conjuncts'. -/
 theorem andChainAV_facts {ρ : Nat → V} :
@@ -181,16 +174,26 @@ theorem pt_mem_andChainAV_iff {ρ : Nat → V} :
 
 /-! ## An equation under a `Prop`-valued Π-tower -/
 
-/-- A `Prop`-valued Π-tower over an equation is inhabited by `pt` iff
-the equation holds at every fitting spine. -/
+/-- A Π-tower over an equation reads to a truth value: its fibres are
+truth values all the way down (`piV_eq_zero`). -/
+theorem mkPisAV_eqE_univZero :
+    ∀ {ds : List (Nat × Nat × AnnotTerm)} {l r : AnnotTerm} {ρ : Nat → V},
+      interp V ρ (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V)
+  | [], _, _, _ => eqv_mem_univZero _ _
+  | _ :: ds, l, r, ρ => by
+    show piV _ _ ∈ˢ _
+    rw [piV_eq_zero fun x _ => mkPisAV_eqE_univZero (ds := ds) (l := l) (r := r)]
+    exact piR_zero_mem_univZero
+
+/-- A Π-tower over an equation is inhabited by `pt` iff the equation
+holds at every fitting spine. -/
 theorem pt_mem_mkPisAV_eqE_iff :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {l r : AnnotTerm} {ρ : Nat → V},
-      (∀ d ∈ ds, d.2.1 = 0) →
       ((pt : V) ∈ˢ interp V ρ (mkPisAV ds (.eqE l r)) ↔
         ∀ xs : List V, SpineFit ρ (ds.map (·.2.2)) xs →
           interp V (consList xs ρ) l = interp V (consList xs ρ) r)
-  | [], l, r, ρ, _ => by
-    show (pt : V) ∈ˢ eqv (interp V ρ l) (interp V ρ r) ↔ _
+  | [], l, r, ρ => by
+    show (pt : V) ∈ˢ eqv _ _ ↔ _
     constructor
     · intro h xs hsp
       cases xs with
@@ -200,18 +203,11 @@ theorem pt_mem_mkPisAV_eqE_iff :
       have := h [] trivial
       simp only [consList_nil] at this
       rw [this]; exact pt_mem_eqv_self _
-  | d :: ds, l, r, ρ, hz => by
-    have hd : d.2.1 = 0 := hz d (.head _)
-    have hrest : ∀ x, interp V (cons x ρ) (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V) := by
-      intro x
-      cases ds with
-      | nil => exact eqv_mem_univZero _ _
-      | cons d' ds' =>
-        show piR d'.2.1 _ _ ∈ˢ _
-        rw [hz d' (.tail _ (.head _))]
-        exact piR_zero_mem_univZero
-    show (pt : V) ∈ˢ piR d.2.1 (interp V ρ d.2.2) (fun x => interp V (cons x ρ) (mkPisAV ds (.eqE l r))) ↔ _
-    rw [hd]
+  | d :: ds, l, r, ρ => by
+    have hrest : ∀ x, interp V (cons x ρ) (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V) :=
+      fun _ => mkPisAV_eqE_univZero
+    show (pt : V) ∈ˢ piV (interp V ρ d.2.2) (fun x => interp V (cons x ρ) (mkPisAV ds (.eqE l r))) ↔ _
+    rw [piV_eq_zero fun x _ => hrest x]
     constructor
     · intro h xs hsp
       cases xs with
@@ -220,17 +216,16 @@ theorem pt_mem_mkPisAV_eqE_iff :
         obtain ⟨y, hy⟩ := piR_zero_elim h hsp.1
         have hy' : (pt : V) ∈ˢ interp V (cons x ρ) (mkPisAV ds (.eqE l r)) :=
           eq_pt_of_mem_univZero (hrest x) hy ▸ hy
-        exact (pt_mem_mkPisAV_eqE_iff (fun d' hd' => hz d' (.tail _ hd'))).mp hy' xs hsp.2
+        exact pt_mem_mkPisAV_eqE_iff.mp hy' xs hsp.2
     · intro h
       refine pt_mem_piR_zero_of fun x hx => ?_
-      exact (pt_mem_mkPisAV_eqE_iff (fun d' hd' => hz d' (.tail _ hd'))).mpr
-        fun xs hsp => h (x :: xs) ⟨hx, hsp⟩
+      exact pt_mem_mkPisAV_eqE_iff.mpr fun xs hsp => h (x :: xs) ⟨hx, hsp⟩
 
 /-! ## The Σ'-chain -/
 
 /-- `Σ' (r : T), rest` with `T` at sort `s` and the rest at sort `v`. -/
 def sigAV (s v : Nat) (T rest : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [s, v]) [T, .lam (v + 1) T rest]
+  AnnotTerm.mkAppN (.const .psigma [s, v]) [T, .lam T rest]
 
 /-- The sort of a chain's tail: the proposition `Q` (`0`) at the last
 link, the remaining chain (`s`) before it.  Spelling the last link's
@@ -322,16 +317,17 @@ theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
 theorem psigmaV_uv_mem (u v : Nat) :
     psigmaV V u v ∈ˢ piR (Nat.max u v + 1) (univ u : V)
       (fun A => piR (Nat.max u v + 1) (psigmaFibreSpace V v A)
-        fun _ => (univ (Nat.max u v) : V)) :=
-  lamR_mem fun _ hA => lamR_mem fun _ hB =>
+        fun _ => (univ (Nat.max u v) : V)) := by
+  rw [psigmaV_eq_lamR]
+  exact lamR_mem fun _ hA => lamR_mem fun _ hB =>
     sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
 
 /-- The chain's fibre λ. -/
 theorem sigChain_lam_mem {ρ : Nat → V} {T : AnnotTerm} {Ts : List AnnotTerm} {Q : AnnotTerm}
     (h : ChainOk s ρ (T :: Ts) Q) :
-    (lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
+    (lamV (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
       ∈ˢ psigmaFibreSpace V (tailLv s Ts) (interp V ρ T) :=
-  lamR_mem fun r hr => sigChainV_tail_univ (h.2.2 r hr)
+  lamV_mem_psigmaFibreSpace V fun r hr => sigChainV_tail_univ (h.2.2 r hr)
 
 /-- **The chain reads as the nested pair set.** -/
 theorem interp_sigChainAV :
@@ -339,14 +335,13 @@ theorem interp_sigChainAV :
       interp V ρ (sigChainAV s Ts Q) = sigChainV s ρ Ts Q
   | _, [], _, _ => rfl
   | ρ, T :: Ts, Q, h => by
-    have hlam : interp V ρ (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q))
-        = lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
-      rw [interp_lam]
-      exact lamR_congr fun r hr => interp_sigChainAV (h.2.2 r hr)
+    have hlam : interp V ρ (.lam T (sigChainAV s Ts Q))
+        = lamV (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
+      rw [interp_lam, lamV_congr fun r hr => interp_sigChainAV (h.2.2 r hr)]
     show SetTheory.app (SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T))
-      (interp V ρ (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q))) = _
+      (interp V ρ (.lam T (sigChainAV s Ts Q))) = _
     rw [hlam, psigmaV_app V h.1 (sigChain_lam_mem h), max_tailLv]
-    exact sigma_congr fun r hr => app_lamR_pos (Nat.succ_ne_zero _) hr
+    exact sigma_congr fun r hr => app_lamV hr
 
 /-- **The chain is graded.** -/
 theorem wd_sigChainAV :
@@ -356,26 +351,23 @@ theorem wd_sigChainAV :
   | ρ, T :: Ts, Q, h => by
     have hps := psigmaV_uv_mem (V := V) s (tailLv s Ts)
     show WellDenoted V ρ (.app (.app (.const .psigma [s, tailLv s Ts]) T)
-      (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q)))
+      (.lam T (sigChainAV s Ts Q)))
     rw [WellDenoted_app]
     refine ⟨?_, ?_, Nat.max s (tailLv s Ts) + 1, psigmaFibreSpace V (tailLv s Ts) (interp V ρ T),
       fun _ => (univ (Nat.max s (tailLv s Ts)) : V), ?_, ?_,
-      fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_piR _ _ _⟩
+      fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_piV⟩
     · rw [WellDenoted_app]
       exact ⟨trivial, h.2.1, Nat.max s (tailLv s Ts) + 1, univ s, _, hps, h.1,
         fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_univ s⟩
     · rw [WellDenoted_lam]
       refine ⟨h.2.1, IsTy_of_mem_univ h.1, fun r hr => wd_sigChainAV (h.2.2 r hr),
-        fun _ => (univ (tailLv s Ts) : V), fun r hr => ?_, fun _ _ => IsTy_univ _,
-        fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
+        fun _ => (univ (tailLv s Ts) : V), fun r hr => ?_, fun _ _ => IsTy_univ _⟩
       rw [interp_sigChainAV (h.2.2 r hr)]
       exact sigChainV_tail_univ (h.2.2 r hr)
     · show SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T) ∈ˢ _
       exact app_mem_piR_pos (Nat.succ_ne_zero _) hps h.1
-    · rw [interp_lam]
-      exact lamR_mem fun r hr => by
-        rw [interp_sigChainAV (h.2.2 r hr)]
-        exact sigChainV_tail_univ (h.2.2 r hr)
+    · rw [interp_lam, lamV_congr fun r hr => interp_sigChainAV (h.2.2 r hr)]
+      exact sigChain_lam_mem h
 
 /-- A fitting spine satisfying `Q` inhabits the chain. -/
 theorem sigChainV_inhabited :
@@ -479,26 +471,17 @@ theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
     exact choiceV_app V hu (pt_mem_dnegSpace_of hne.choose_spec)
   · show WellDenoted V ρ (.app (.app (.const .choice [s]) (sigChainAV s Ts Q)) .prf)
     rw [WellDenoted_app]
-    refine ⟨?_, trivial, s, dnegSpace V (sigChainV s ρ Ts Q), fun _ => sigChainV s ρ Ts Q,
-      ?_, ?_, ?_⟩
+    refine ⟨?_, trivial, ?_⟩
     · rw [WellDenoted_app]
-      refine ⟨trivial, wd_sigChainAV h, s, univ s,
-        fun A => piR s (dnegSpace V A) fun _ => A, hchoice, ?_, fun h0 A _ => ?_,
-        fun _ => IsTy_univ s⟩
-      · rw [interp_sigChainAV h]; exact hu
-      · show piR s _ _ ∈ˢ _
-        rw [h0]; exact piR_zero_mem_univZero
-    · show SetTheory.app (choiceV V s) (interp V ρ (sigChainAV s Ts Q)) ∈ˢ _
+      refine ⟨trivial, wd_sigChainAV h, ?_⟩
+      show ∃ v A B, choiceV V s ∈ˢ piR v A B ∧ _
       rw [interp_sigChainAV h]
-      refine app_mem_piR hchoice hu (fun h0 A _ => ?_)
-      show piR s _ _ ∈ˢ _
-      rw [h0]; exact piR_zero_mem_univZero
-    · exact pt_mem_dnegSpace_of hne.choose_spec
-    · refine ⟨fun h0 _ _ => ?_, fun _ => IsTy_piR _ _ _⟩
-      show sigChainV s ρ Ts Q ∈ˢ univZero
-      subst h0
-      have := hu
-      rwa [univ_zero] at this
+      exact piV_slot hchoice hu (IsTy_univ s)
+    · show ∃ v A B, SetTheory.app (choiceV V s) (interp V ρ (sigChainAV s Ts Q))
+        ∈ˢ piR v A B ∧ _
+      rw [interp_sigChainAV h]
+      exact piV_slot (app_mem_piV hchoice hu) (pt_mem_dnegSpace_of hne.choose_spec)
+        (IsTy_piR _ _ _)
 
 /-- **THE KIT'S THEOREM**: at a formed, inhabited chain, the chosen
 element's projections are a fitting spine whose components satisfy
@@ -877,16 +860,6 @@ theorem propBinders_cod {doms : List AnnotTerm} : ∀ d ∈ propBinders doms, d.
   obtain ⟨D, -, rfl⟩ := List.mem_map.mp hd
   rfl
 
-/-- A `Prop`-valued Π-tower over an equation is a truth value. -/
-theorem mkPisAV_eqE_univZero {l r : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {σ : Nat → V},
-      (∀ d ∈ ds, d.2.1 = 0) → interp V σ (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V)
-  | [], _, _ => eqv_mem_univZero _ _
-  | d :: ds, σ, hz => by
-    show piR d.2.1 _ _ ∈ˢ _
-    rw [hz d (.head _)]
-    exact piR_zero_mem_univZero
-
 /-- **One rule's ι equation**, at the CHAIN frame (under the `K` Σ'
 binders, class `c`'s component `bvar (K-1-c)`).  Quantified over the
 rule's prefix `x⃗` (domains `pdoms`) and the constructor's fields `f⃗`
@@ -905,7 +878,7 @@ def iotaEqAV (K c : Nat) (pdoms fdoms es : List AnnotTerm) (mk : AnnotTerm)
 theorem iotaEqAV_univZero {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTerm}
     {ihs : List AnnotTerm} {Rb : AnnotTerm} {σ : Nat → V} :
     interp V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) ∈ˢ (univZero : V) :=
-  mkPisAV_eqE_univZero propBinders_cod
+  mkPisAV_eqE_univZero
 
 /-- **The ι equation is graded** when the domains are graded along the
 telescope and both sides are graded at every fitting spine. -/
@@ -981,7 +954,7 @@ theorem iotaEqAV_law {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTe
     ((xs ++ (es ++ [mk]).map (interp V (consList (xs ++ fs) σ))).foldl SetTheory.app R)
       = interp V (consList ((ihs.map (interp V (consList (xs ++ fs) σ)))) (consList (xs ++ fs) σ))
           Rb := by
-  have heq := (pt_mem_mkPisAV_eqE_iff (V := V) (propBinders_cod (doms := pdoms ++ fdoms))).mp h
+  have heq := (pt_mem_mkPisAV_eqE_iff (V := V)).mp h
     (xs ++ fs) (by rw [propBinders_doms]; exact hsp)
   obtain ⟨hl, hr⟩ := iotaEqAV_sides hR hxl (iotaEqAV_fs_length hxl hsp)
   rw [hl, hr] at heq
@@ -999,7 +972,7 @@ theorem pt_mem_iotaEqAV_of {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : A
         = interp V (consList ((ihs.map (interp V (consList (xs ++ fs) σ))))
             (consList (xs ++ fs) σ)) Rb) :
     (pt : V) ∈ˢ interp V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) := by
-  refine (pt_mem_mkPisAV_eqE_iff (V := V) (propBinders_cod (doms := pdoms ++ fdoms))).mpr
+  refine (pt_mem_mkPisAV_eqE_iff (V := V)).mpr
     fun ys hsp => ?_
   rw [propBinders_doms] at hsp
   have hlen : ys.length = pdoms.length + fdoms.length := by
@@ -1023,47 +996,51 @@ that accumulator. -/
 
 /-- The semantic λ-tower over binder data, with the body a function of
 the ACCUMULATED spine and the leaf frame. -/
-noncomputable def lamTowerA (m : Nat) :
+noncomputable def lamTowerA :
     (Nat → V) → List V → List (Nat × Nat × AnnotTerm) → (List V → (Nat → V) → V) → V
   | ρ, acc, [], g => g acc ρ
-  | ρ, acc, d :: ds, g => lamR m (interp V ρ d.2.2) fun a => lamTowerA m (cons a ρ) (acc ++ [a]) ds g
+  | ρ, acc, d :: ds, g => lamV (interp V ρ d.2.2) fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g
 
 /-- `lamTowerA`'s walk premise: at every leaf frame reached the body is
-in the conclusion's reading, which is a type (a truth value at a zero
-bit).  The type fact is what the value reading's `lamV_mem` asks of the
-innermost fibre (task #342, L6). -/
-def TowerWalkA (m : Nat) (C : AnnotTerm) (g : List V → (Nat → V) → V) :
+in the conclusion's reading, which is a type.  The type fact is what
+`lamV_mem` asks of the innermost fibre (task #342, L6). -/
+def TowerWalkA (C : AnnotTerm) (g : List V → (Nat → V) → V) :
     (Nat → V) → List V → List (Nat × Nat × AnnotTerm) → Prop
-  | ρ, acc, [] => g acc ρ ∈ˢ interp V ρ C ∧ IsTy (interp V ρ C) ∧
-      (m = 0 → interp V ρ C ∈ˢ (univZero : V))
-  | ρ, acc, d :: ds => ∀ a, a ∈ˢ interp V ρ d.2.2 → TowerWalkA m C g (cons a ρ) (acc ++ [a]) ds
+  | ρ, acc, [] => g acc ρ ∈ˢ interp V ρ C ∧ IsTy (interp V ρ C)
+  | ρ, acc, d :: ds => ∀ a, a ∈ˢ interp V ρ d.2.2 → TowerWalkA C g (cons a ρ) (acc ++ [a]) ds
+
+/-- The residual Π-tower's reading along a walk is a type. -/
+theorem towerWalkA_IsTy {C : AnnotTerm} {g : List V → (Nat → V) → V} :
+    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
+      TowerWalkA C g ρ acc ds → IsTy (interp V ρ (mkPisAV ds C))
+  | [], _, _, h => h.2
+  | _ :: _, _, _, _ => IsTy_piV
 
 /-- **The tower inhabits the Π-tower's reading** — `mem_type` of the
 candidate. -/
-theorem lamTowerA_mem {m : Nat} {C : AnnotTerm} {g : List V → (Nat → V) → V} :
+theorem lamTowerA_mem {C : AnnotTerm} {g : List V → (Nat → V) → V} :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
-      (∀ d ∈ ds, (m = 0 ↔ d.2.1 = 0)) → TowerWalkA m C g ρ acc ds →
-      lamTowerA m ρ acc ds g ∈ˢ interp V ρ (mkPisAV ds C)
-  | [], _, _, _, h => h.1
-  | d :: ds, ρ, acc, hz, h => by
-    show lamR m (interp V ρ d.2.2) (fun a => lamTowerA m (cons a ρ) (acc ++ [a]) ds g)
-      ∈ˢ piR d.2.1 (interp V ρ d.2.2) fun a => interp V (cons a ρ) (mkPisAV ds C)
-    exact lamR_mem_zero_agree (hz d (.head _))
-      fun a ha => lamTowerA_mem (fun d' hd' => hz d' (.tail _ hd')) (h a ha)
+      TowerWalkA C g ρ acc ds →
+      lamTowerA ρ acc ds g ∈ˢ interp V ρ (mkPisAV ds C)
+  | [], _, _, h => h.1
+  | d :: ds, ρ, acc, h => by
+    show lamV (interp V ρ d.2.2) (fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g)
+      ∈ˢ piV (interp V ρ d.2.2) fun a => interp V (cons a ρ) (mkPisAV ds C)
+    exact lamV_mem (fun a ha => lamTowerA_mem (h a ha)) fun a ha => towerWalkA_IsTy (h a ha)
 
-/-- **The tower's fold along a fitting spine** (nonzero bit) — the ι
-law's left-hand side. -/
-theorem lamTowerA_fold {m : Nat} (hm : m ≠ 0) {g : List V → (Nat → V) → V} :
+/-- **The tower's fold along a fitting spine** — the ι law's left-hand
+side. -/
+theorem lamTowerA_fold {g : List V → (Nat → V) → V} :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc bs : List V},
       SpineFit ρ (ds.map (·.2.2)) bs →
-      bs.foldl SetTheory.app (lamTowerA m ρ acc ds g) = g (acc ++ bs) (consList bs ρ)
+      bs.foldl SetTheory.app (lamTowerA ρ acc ds g) = g (acc ++ bs) (consList bs ρ)
   | [], _, acc, [], _ => by simp [lamTowerA]
   | [], _, _, _ :: _, hsp => hsp.elim
   | _ :: _, _, _, [], hsp => hsp.elim
   | d :: ds, ρ, acc, b :: bs, hsp => by
-    show bs.foldl SetTheory.app (SetTheory.app (lamR m (interp V ρ d.2.2)
-      fun a => lamTowerA m (cons a ρ) (acc ++ [a]) ds g) b) = _
-    rw [app_lamR_pos hm hsp.1, consList_cons, lamTowerA_fold hm hsp.2]
+    show bs.foldl SetTheory.app (SetTheory.app (lamV (interp V ρ d.2.2)
+      fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g) b) = _
+    rw [app_lamV hsp.1, consList_cons, lamTowerA_fold hsp.2]
     simp
 
 /-! ## The family: its ι equations, its leaf, and its facts -/
@@ -1255,13 +1232,12 @@ theorem hCand_iotaEqsAV_of (cand : Nat → V)
 end Assemble
 
 /-- `TowerWalkA` from the facts at every fitting spine. -/
-theorem towerWalkA_of_spines_body {m : Nat} {C : AnnotTerm} {g : List V → (Nat → V) → V} :
+theorem towerWalkA_of_spines_body {C : AnnotTerm} {g : List V → (Nat → V) → V} :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
       (∀ ys, SpineFit ρ (ds.map (·.2.2)) ys →
         g (acc ++ ys) (consList ys ρ) ∈ˢ interp V (consList ys ρ) C ∧
-          IsTy (interp V (consList ys ρ) C) ∧
-          (m = 0 → interp V (consList ys ρ) C ∈ˢ (univZero : V))) →
-      TowerWalkA m C g ρ acc ds
+          IsTy (interp V (consList ys ρ) C)) →
+      TowerWalkA C g ρ acc ds
   | [], ρ, acc, h => by
     have h0 := h [] trivial
     rw [List.append_nil, consList_nil] at h0
@@ -1373,7 +1349,7 @@ variable {ℓ K : Nat} {rP : Nat → Nat} {rds : Nat → List (Nat × Nat × Ann
 type's binder data whose body is the kit's recursor at the tagged
 major the spine names. -/
 noncomputable def famCandG (D : GraphFamData V ℓ K rP rds concl ρ R) (c : Nat) : V :=
-  lamTowerA ℓ ρ [] (rds c) fun ys _ =>
+  lamTowerA ρ [] (rds c) fun ys _ =>
     (D.kit (prefOf (rP c) ys)).recAt (tagged c (D.tupOf c (idxOf (rP c) ys)) (majOf ys))
 
 /-- A fitting spine's tagged major is a major of the kit. -/
@@ -1385,53 +1361,28 @@ theorem GraphFamData.mem_union (D : GraphFamData V ℓ K rP rds concl ρ R) {c :
   exact tagged_mem_unionSet hc hi hx
 
 /-- **`mem_type` of the candidate**, at every level: the kit's
-recursor lies in its bound, which is the conclusion's reading; at
-`ℓ = 0` that reading is a truth value because the bound is a set of
-level `0`. -/
-theorem famCandG_mem (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat} (hc : c < K)
-    (hbits : ∀ d ∈ rds c, (ℓ = 0 ↔ d.2.1 = 0)) :
+recursor lies in its bound, which is the conclusion's reading, a type. -/
+theorem famCandG_mem (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat} (hc : c < K) :
     famCandG D c ∈ˢ interp V ρ (mkPisAV (rds c) (concl c)) := by
-  refine lamTowerA_mem hbits (towerWalkA_of_spines_body fun ys hsp => ?_)
+  refine lamTowerA_mem (towerWalkA_of_spines_body fun ys hsp => ?_)
   have hu := D.mem_union hc hsp
   have hB := (D.kit (prefOf (rP c) ys)).hB _ hu
   rw [D.hconcl c hc ys hsp] at hB
-  refine ⟨?_, IsTy_of_mem_univ hB, fun h0 => ?_⟩
-  · have hmem := (D.kit (prefOf (rP c) ys)).rec_mem_B hu
-    rw [D.hconcl c hc ys hsp] at hmem
-    simpa using hmem
-  · subst h0
-    rwa [univ_zero] at hB
+  refine ⟨?_, IsTy_of_mem_univ hB⟩
+  have hmem := (D.kit (prefOf (rP c) ys)).rec_mem_B hu
+  rw [D.hconcl c hc ys hsp] at hmem
+  simpa using hmem
 
 /-- **The candidate folds to the kit's recursor** along a fitting spine
-`x⃗ ++ ı⃗ ++ [t]` — at EVERY level.  Above `Prop` it is the tower's
-fold; at `ℓ = 0` both sides are the point (the tower is `lamR 0 …`,
-the recursor lies in a truth value). -/
-theorem famCandG_fold (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat} (hc : c < K)
+`x⃗ ++ ı⃗ ++ [t]` — at EVERY level: the tower's fold (`app_lamV`). -/
+theorem famCandG_fold (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat}
     {xs is : List V} {t : V} (hx : xs.length = rP c)
     (hsp : SpineFit ρ ((rds c).map (·.2.2)) (xs ++ (is ++ [t]))) :
     (xs ++ (is ++ [t])).foldl SetTheory.app (famCandG D c)
       = (D.kit xs).recAt (tagged c (D.tupOf c is) t) := by
-  by_cases hℓ : ℓ = 0
-  · subst hℓ
-    have hu := D.mem_union hc hsp
-    rw [prefOf_split hx, idxOf_split hx, majOf_split] at hu
-    have hB := (D.kit xs).hB _ hu
-    rw [univ_zero] at hB
-    rw [eq_pt_of_mem_univZero hB ((D.kit xs).rec_mem_B hu)]
-    obtain ⟨dd, ds, hrds⟩ : ∃ dd ds, rds c = dd :: ds := by
-      cases h : rds c with
-      | nil =>
-        have hl := hsp.length_eq
-        rw [h] at hl
-        simp at hl
-      | cons dd ds => exact ⟨dd, ds, rfl⟩
-    rw [famCandG, hrds]
-    show (xs ++ (is ++ [t])).foldl SetTheory.app (lamR 0 _ _) = _
-    rw [lamR_zero]
-    exact foldl_app_pt' _
-  · rw [famCandG, lamTowerA_fold hℓ hsp]
-    simp only [List.nil_append]
-    rw [prefOf_split hx, idxOf_split hx, majOf_split]
+  rw [famCandG, lamTowerA_fold hsp]
+  simp only [List.nil_append]
+  rw [prefOf_split hx, idxOf_split hx, majOf_split]
 
 variable {RecTy : Nat → AnnotTerm} {nCt : Nat → Nat} {pdoms : Nat → List AnnotTerm}
   {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
@@ -1452,7 +1403,6 @@ The ι law is `GraphRecKit.rec_eq` at the rule's own decoding. -/
 theorem famCandG_hCand (D : GraphFamData V ℓ K rP rds concl ρ R)
     (dOf : List V → Nat → Nat → List V → R)
     (hTy : ∀ c, c < K → RecTy c = mkPisAV (rds c) (concl c))
-    (hbits : OneElimLevel ℓ K rds)
     (hpl : ∀ c, c < K → (pdoms c).length = rP c)
     (hrule : ∀ c, c < K → ∀ j, j < nCt c → ∀ xs fs : List V,
       xs.length = (pdoms c).length →
@@ -1482,11 +1432,11 @@ theorem famCandG_hCand (D : GraphFamData V ℓ K rP rds concl ρ R)
         (pt : V) ∈ˢ interp V (chainFrame K a ρ) e := by
   refine hCand_iotaEqsAV_of (famCandG D) (fun c hc => ?_) fun c hc j hj xs fs hxl hsp => ?_
   · rw [hTy c hc]
-    exact famCandG_mem D hc (hbits c hc)
+    exact famCandG_mem D hc
   · have hxr : xs.length = rP c := by rw [hxl, hpl c hc]
     have hfit := hrule c hc j hj xs fs hxl hsp
     simp only [List.map_append, List.map_cons, List.map_nil]
-    rw [famCandG_fold D hc hxr hfit]
+    rw [famCandG_fold D hxr hfit]
     have hu := D.mem_union hc hfit
     rw [prefOf_split hxr, idxOf_split hxr, majOf_split] at hu
     rw [(D.kit xs).rec_eq hu (hdec c hc j hj xs fs hxl hsp)]

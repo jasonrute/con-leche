@@ -97,13 +97,17 @@ theorem instCtor_open {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
   rw [hstEq] at hst
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hst.symm)
   refine ⟨?_, fun l x hx => ?_, hb, hrd'⟩
-  · exact readOpenedDoms_eq fvsF _ hi
-      (by rw [openPisAtFvars_length _ hfld, substTele_length, hlab])
+  · rw [← ppsNorm_map_dom]
+    exact readOpenedDoms_eq fvsF _ hi
+      (by rw [openPisAtFvars_length _ hfld, ppsNorm_length, substTele_length, hlab])
       (fun i x hx => by
         obtain ⟨q, hq, -, hd⟩ := hbind i x hx
         exact ⟨q, hq, hd⟩)
   · obtain ⟨q, hq, -, hd⟩ := hbind l x hx
-    rw [hd, List.getD_eq_getElem?_getD, List.getElem?_map, hq]
+    have hq' := congrArg (·[l]?) (ppsNorm_map_dom
+      (AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab))
+    simp only [List.getElem?_map, hq, Option.map_some] at hq'
+    rw [hd, List.getD_eq_getElem?_getD, List.getElem?_map, ← hq']
     rfl
 
 end Inst

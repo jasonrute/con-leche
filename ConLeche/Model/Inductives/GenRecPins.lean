@@ -25,7 +25,6 @@ import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.BlockRecTyping
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
-import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.IndPinGrade
 import ConLeche.Model.IndOpenRev
 import ConLeche.Model.IndFrame
@@ -51,11 +50,9 @@ That grading comes from the stored type's OWN inference
 (`checkConstantVal`): inferring the telescope infers the major's domain
 at the major's depth `mI`, hence every argument of it
 (`storedMajorArg_graded`).  The argument mentions only prefix openers, so
-its typing claim is taken in a context whose index positions are
-replaced by the always-inhabited `Sort 0` — a prefix spine then always
-extends to a context spine, and the grading comes back down to the
-prefix by lifting.  (The stored index domains themselves may be empty:
-the stored type's own grading says nothing below them.)
+it is scoped at the prefix depth, where it infers alike, and its typing
+claim is taken in the prefix context itself (`storedMajorSub_ctx`) — no
+spine of the stored index domains, which may be empty, is needed.
 -/
 
 namespace ConLeche
@@ -146,13 +143,6 @@ universe w
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
-/-- A spine of `truthVal True`s fits a run of `Sort 0`s. -/
-theorem spineFit_replicate_sort0 (σ : Nat → V) :
-    ∀ k : Nat, SpineFit σ (List.replicate k (.sort 0 : AnnotTerm))
-      (List.replicate k (truthVal True : V))
-  | 0 => trivial
-  | k + 1 => ⟨by simpa using truthVal_mem_univ (V := V) True 0, spineFit_replicate_sort0 _ k⟩
-
 section Pins
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
@@ -187,9 +177,12 @@ theorem fvarLeaves_mkAppN_head' {l : Nat × Expr} :
 
 set_option maxHeartbeats 2000000 in
 /-- **A stored major-domain argument, or a head of its application spine,
-over the prefix is graded at every prefix spine** — from the stored
-type's own inference (see the module docstring). -/
-theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+over the prefix, in the prefix context**: inferred at the prefix depth
+(the stored type's own inference infers the major's domain, hence its
+spine's head and arguments; a term scoped at the prefix infers alike
+there), scoped, and in the prefix context — the prefix openers' readings
+are the prefix domains, graded types (see the module docstring). -/
+theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
@@ -198,10 +191,10 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     {x : Expr} (hxA : x ∈ maj.fvarTypeD.getAppArgs ∨
       ∃ args, maj.fvarTypeD = Expr.mkAppN x args)
     (hlt : ∀ l ∈ x.fvarLeaves, l.1 < pp.toBlockShape.rulePrefixAt j) :
-    ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
-      ∀ σ : Nat → V,
-        Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
-        WellDenotedV V σ w := by
+    (∃ tx, ConLeche.inferTypeCore .verified envC F (pp.toBlockShape.rulePrefixAt j) x = .ok tx) ∧
+      Rules.Frame (pp.toBlockShape.rulePrefixAt j) x ∧
+      CtxOk mpC.base2 ψ (pp.toBlockShape.rulePrefixAt j)
+        (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse x := by
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
   generalize hmIdef : pp.toBlockShape.majorIdxAt j = mI at hop hmaj
   generalize hrPdef : pp.toBlockShape.rulePrefixAt j = rP at hlt ⊢
@@ -307,25 +300,20 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
   have hokΔ := blockRuleHokΔ_of (V := V) (pdoms := pdoms) (fdoms := []) (ihdoms := [])
     (nF := 0) (nR := 0) hlenPd rfl rfl (by simpa using hokTower)
   simp only [List.reverse_nil, List.append_nil, List.nil_append, Nat.add_zero] at hokΔ
-  -- the context at `mI`: the prefix, then `Sort 0` at every index position
-  generalize hk : mI - rP = k
-  have hmIk : mI = rP + k := by omega
-  let Δa : List AnnotTerm := List.replicate k (.sort 0) ++ pdoms.reverse
-  have hΔlen : Δa.length = mI := by simp [Δa, hlenPd]; omega
-  have hent : ∀ i, i < rP → Δa[mI - 1 - i]? = some (pdoms.getD i default) := by
-    intro i hi
-    simp only [Δa]
-    rw [List.getElem?_append_right (by simp; omega), List.length_replicate,
-      List.getElem?_reverse (by omega), hlenPd,
-      show rP - 1 - (mI - 1 - i - k) = i from by omega, List.getD_eq_getElem?_getD,
-      List.getElem?_eq_getElem (by omega)]
-    rfl
+  -- the context at the prefix
   have hwsP := (ConLeche.openPisAtFvars_WScoped _ _ 0 hopP hw0).1
   rw [Nat.zero_add] at hwsP
-  have hCE : CtxOk mpC.base2 ψ mI Δa x :=
-    ctxOk_of_openers mpC.base2.acval_closed (Aa := fun i => pdoms.getD i default) hΔlen
+  have hwsR : Expr.WScoped rP x := ConLeche.WScoped.of_leaves_below hwsX hlt
+  have hent : ∀ i, i < rP → pdoms.reverse[rP - 1 - i]? = some (pdoms.getD i default) := by
+    intro i hi
+    rw [List.getElem?_reverse (by omega), hlenPd, show rP - 1 - (rP - 1 - i) = i from by omega,
+      List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+    rfl
+  have hCE : CtxOk mpC.base2 ψ rP pdoms.reverse x :=
+    ctxOk_of_openers mpC.base2.acval_closed (Aa := fun i => pdoms.getD i default)
+      (by rw [List.length_reverse, hlenPd])
       (fun i y hy => by simpa using ConLeche.openPisAtFvars_index _ _ _ hopP i y hy)
-      (fun y hy => (hwsP y hy).mono (by omega))
+      hwsP
       (fun i y hy => by
         have hi : i < rP := by
           have := (List.getElem?_eq_some_iff.mp hy).1
@@ -334,41 +322,39 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
         exact hAa i hi y hy)
       hleafP hlt hent
       (fun i hi ρ hρ => by
-        have hs := Sat_drop hρ k
-        have hdrop : Δa.drop k = pdoms.reverse := by
-          simp only [Δa]; rw [List.drop_append_of_le_length (by simp), List.drop_replicate]
-          simp
-        rw [hdrop] at hs
-        have hq := hokΔ i hi _ hs
+        have hq := hokΔ i hi _ hρ
         rw [List.getD_eq_getElem?_getD, List.getElem?_reverse (by omega), hlenPd,
           show rP - 1 - (rP - 1 - i) = i from by omega] at hq
-        rw [show (fun j => ρ (j + (mI - 1 - i) + 1))
-            = (fun j => (fun j => ρ (j + k)) (j + (rP - 1 - i) + 1)) from by
-          funext j; congr 1; omega]
         exact hq)
-  -- its reading, graded
-  have htx' : ConLeche.inferTypeCore .verified envC F mI x = .ok tx := htx
-  obtain ⟨wa, hwa⟩ := acceptedReads_of mpC.base2 ψ htx' hwsX hbX hLX
+  refine ⟨⟨tx, ?_⟩, ⟨hwsR, hbX, hLX⟩, hCE⟩
+  rw [ConLeche.inferTypeCore_depth_inv mpC.base2.wf F (Expr.WScoped.to_wscopedB hwsR)
+    (Expr.WScoped.to_wscopedB hwsX)]
+  exact htx
+
+/-- **A stored major-domain argument, or a head of its application spine,
+over the prefix is graded at every prefix spine** (`storedMajorSub_ctx`,
+then the inference's soundness). -/
+theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
+    (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
+    (hmaj : fvs[pp.toBlockShape.majorIdxAt j]? = some maj)
+    {x : Expr} (hxA : x ∈ maj.fvarTypeD.getAppArgs ∨
+      ∃ args, maj.fvarTypeD = Expr.mkAppN x args)
+    (hlt : ∀ l ∈ x.fvarLeaves, l.1 < pp.toBlockShape.rulePrefixAt j) :
+    ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
+      ∀ σ : Nat → V,
+        Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
+        WellDenotedV V σ w := by
+  obtain rfl : μ = .verified := CheckMode.eq_verified hμ
+  obtain ⟨⟨tx, htx⟩, hfr, hCE⟩ := storedMajorSub_ctx rfl mpC h hr ψ hop hmaj hxA hlt
+  obtain ⟨wa, hwa⟩ := acceptedReads_of mpC.base2 ψ htx hfr.1 hfr.2.1 hfr.2.2
   obtain ⟨-, -, -, -, hgr, -⟩ :=
     Rules.InferSemFull.global
-      (Rules.infer_sound (Rules.RulesInputs.ofSem mpC ψ) (Rules.inferTypeCore_bridge htx'))
-      ⟨hwsX, hbX, hLX⟩ hCE hwa
-  -- the reading at the prefix
-  have hwsR : Expr.WScoped rP x := ConLeche.WScoped.of_leaves_below hwsX hlt
-  have hlift := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hwsR mI hle
-  rw [hwa] at hlift
-  obtain ⟨w, hw, rfl⟩ : ∃ w, denoteMeta mpC.base2.acval envC ψ rP x = some w ∧
-      wa = w.liftN (mI - rP) 0 := by
-    cases h0 : denoteMeta mpC.base2.acval envC ψ rP x with
-    | none => rw [h0] at hlift; exact nomatch hlift
-    | some w => rw [h0] at hlift; exact ⟨w, rfl, Option.some.inj hlift⟩
-  refine ⟨w, hw, fun σ hσ => ?_⟩
-  have hsat : Sat V Δa (consList (List.replicate k (truthVal True : V)) σ) := by
-    have := sat_of_spineFit (Δ₀ := pdoms.reverse) hσ (spineFit_replicate_sort0 σ k)
-    simpa [Δa] using this
-  have hg := hgr _ hsat
-  rw [hk, WellDenotedV_liftN, shiftE_zero_consList (by simp)] at hg
-  exact hg
+      (Rules.infer_sound (Rules.RulesInputs.ofSem mpC ψ) (Rules.inferTypeCore_bridge htx))
+      hfr hCE hwa
+  exact ⟨wa, hwa, fun σ hσ => hgr σ hσ⟩
 
 /-- **A stored major-domain argument over the prefix is graded at every
 prefix spine** (`storedMajorSub_graded` at an argument). -/
@@ -416,7 +402,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
       (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := (ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape
-              (ConLeche.tgtMajorsOf out)) j r, rhs := rhs, paramsBlind := true }) := by
+              (ConLeche.tgtMajorsOf out)) j r, rhs := rhs }) := by
   intro us hus lvls pins hf q hq
   simp only [ConLeche.recRuleBits_fire] at hf
   simp only [ConLeche.recRuleBits_ctorParams] at hq

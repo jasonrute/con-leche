@@ -32,13 +32,6 @@
 # certified lane now rejects that fixture too, for its own reason; see
 # tests/e2e-expected.txt.  Both lanes agree, so nothing is recorded.)
 
-# The annotated fixture suite's decline fixtures (task #161, suite
-# `annot`, tests/annot-expected.txt): the verified mode validates the
-# "pw" sort annotations and positively declines a mismatched claim;
-# the trusted lane writes the same annotations but never VALIDATES them
-# (validation is certification-only work), so the underlying
-# well-typed declarations accept.  The lane's nature, one line per
-# decline fixture.
-0 annot annot_decline_forall.ndjson
-0 annot annot_decline_lam_chain.ndjson
-0 annot annot_decline_lam_leaf.ndjson
+# (Task #342 L-ck: the annot_decline_* overrides are GONE — binders
+# carry no datum, both lanes accept those streams; see
+# tests/annot-expected.txt.)

@@ -46,28 +46,14 @@ each naming the theorem family that depends on it. -/
 -- `CheckMode` has TWO values, and `.verified` -- the verified graded
 -- lane, `--verified` -- is the first constructor, so it is both the
 -- `Inhabited` default and `Main.lean`'s `Args.mode`.
---
--- The β-certificate gate is ON at it and only at it: the two accessors
--- `betaGate` and `verifiedChecks` separate the same two modes,
--- which is what "two cores" means at the mode level.
 #guard (default : CheckMode) == .verified
-#guard CheckMode.betaGate .verified == true
-#guard CheckMode.betaGate .trusted == false
 
--- The seven-check gate is OFF at every mode (task #148 T7b).  The
--- gated call sites are kept, statically unreachable; these guards are
--- what would notice a mode being added back without the lane that
--- justifies it.
-#guard CheckMode.ttChecks .verified == false
-#guard CheckMode.ttChecks .trusted == false
-
--- The λ-codomain-sort gate (task #152, `inferBody`'s `.lam` clause):
--- ON in the verified lane — the set lane's annotation pass reads the
--- fact off `inferTypeCore_lam_inv`'s `mode.verifiedChecks = true → …`
--- conjunct, so compiling this `false` at a verified mode would make
--- that conjunct vacuous — and OFF at `.trusted`, which is the
--- trusted lane (the reference kernel's `infer_lambda` does not
--- sort-check the body's type).
+-- The verified mode's extra checks (the λ-codomain sort, the η and
+-- λ/λ body-type comparisons): ON in the verified lane — the bridges
+-- read them off the inversions' `mode.verifiedChecks = true → …`
+-- conjuncts, so compiling this `false` at a verified mode would make
+-- those conjuncts vacuous — and OFF at `.trusted`, which is the
+-- trusted lane (the reference kernel runs none of them).
 #guard CheckMode.verifiedChecks .verified == true
 #guard CheckMode.verifiedChecks .trusted == false
 
@@ -140,32 +126,18 @@ private def mkDef (n : String) (ps : List String) (type value : Expr) : Declarat
 
 -- `def arrowType : Type := Prop → Prop` (tutorial test 003)
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "arrowType" [] (.sort (.succ .zero))
-  (.forallE (.sort .zero) (.sort .zero) ⟨.never⟩)]).toBool
+  (.forallE (.sort .zero) (.sort .zero) {})]).toBool
 
 -- `def dependentType : Prop := ∀ (p : Prop), p` (tutorial test 004):
--- impredicativity.  The binder carries the task-#161 sort annotation
--- `.ifAllZero []` ("the codomain is always a proposition"): the
--- verified mode validates annotations and declines a `.never` on a
--- Prop-codomain binder.
+-- impredicativity, in both modes.
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "dependentType" [] (.sort .zero)
-  (.forallE (.sort .zero) (.bvar 0) ⟨.ifAllZero []⟩)]).toBool
-
--- … and the same declaration with the unannotated (`.never`) binder is
--- **accepted** (task #161 P5): `.never` is the parser's placeholder
--- for an absent `"pw"` field, so the annotate pass recomputes it (here
--- to `.ifAllZero []`) and the front door then validates its own write.
--- The design records the consequence deliberately: an explicit
--- `"pw": "never"` is indistinguishable from an absent field and is
--- silently corrected rather than falsified, so the falsifiable claims
--- are exactly the `ifAllZero` ones (see the `bad*` guards below).
-#guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "dependentType" [] (.sort .zero)
-  (.forallE (.sort .zero) (.bvar 0) ⟨.never⟩)]).toBool
+  (.forallE (.sort .zero) (.bvar 0) {})]).toBool
 #guard (checkDeclsPure .trusted (pureOps .trusted) natOpPinSets [mkDef "dependentType" [] (.sort .zero)
-  (.forallE (.sort .zero) (.bvar 0) ⟨.never⟩)]).toBool
+  (.forallE (.sort .zero) (.bvar 0) {})]).toBool
 
 -- `∀ (p : Prop), p : Type` is rejected (it is a Prop).
 #guard checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "bad2" [] (.sort (.succ .zero))
-    (.forallE (.sort .zero) (.bvar 0) ⟨.ifAllZero []⟩)]
+    (.forallE (.sort .zero) (.bvar 0) {})]
   matches .error (.invalid _)
 
 -- Input expressions containing fvars are rejected.
@@ -181,8 +153,8 @@ private def mkThm (n : String) (type value : Expr) : Declaration :=
 -- `theorem t : ∀ (p : Prop), p → p`-shaped: a Prop-typed theorem is accepted
 -- when its (in-fragment) value matches.
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkThm "t"
-    (.forallE (.sort .zero) (.sort .zero) ⟨.never⟩)
-    (.forallE (.sort .zero) (.bvar 0) ⟨.never⟩)])
+    (.forallE (.sort .zero) (.sort .zero) {})
+    (.forallE (.sort .zero) (.bvar 0) {})])
   matches .error (.invalid _)  -- value `∀ p, p : Prop` vs type `Prop → Prop : Prop`? mismatch
 
 -- A theorem whose type is not a proposition is rejected (tutorial 012).
@@ -192,56 +164,12 @@ private def mkThm (n : String) (type value : Expr) : Declaration :=
 -- A theorem stating an accepted Prop with a matching proof-shaped value:
 -- `theorem t2 : Prop-valued-forall` where value has exactly that type.
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "prp" [] (.sort .zero)
-    (.forallE (.sort .zero) (.bvar 0) ⟨.ifAllZero []⟩),
+    (.forallE (.sort .zero) (.bvar 0) {}),
   mkThm "t2" (.sort .zero) (.const (.str .anonymous "prp") [])]).toBool == false
   -- (const prp : Prop, but Prop ≠ prp's type Prop... value `prp : Prop`; type `Prop`:
   --  `prp : Prop` vs declared `Prop : ?` — declared type must be a Prop; `Prop` is not)
 
-/-! ## Sort-annotation validation: the defensive defeq/eta sites (task #161)
-
-The three front-door sites — (forall-cod), (lam-cod-leaf),
-(lam-cod-chain) — are exercised end-to-end by tests/annot/*.ndjson.
-The three *defensive* sites — (defeq-forall), (defeq-lam), (eta) —
-cannot be reached through the spec knot by any input: every path to
-them first infers both compared expressions (`proofIrrel` runs before
-the structural arms and before eta), and the front door validates
-every binder an infer walks, so by comparison time both annotations
-are valid for the same (level-equivalent) codomain sort and `==`
-(complete) accepts.  That redundancy is by design — the checks are
-placed last so they fire only on an otherwise-successful comparison —
-so they are unit-tested here against a stub `CoreFns` whose `infer`
-does not walk (standing in for the hostile hypothetical the P3/P4
-proof rules out). -/
-
-private def stubFns : CoreFns CheckM where
-  whnfCore _ _ e := pure e
-  whnf _ e := pure e
-  infer _ _ := pure (.sort (.succ .zero))
-  defeq _ a b := pure (a == b)
-  annotate _ e := pure e
-  inferIO _ _ := pure (.sort (.succ .zero))
-
-private def pwForall (pw : PropWhen) : Expr :=
-  .forallE (.sort .zero) (.sort .zero) ⟨pw⟩
-
-private def pwLam (pw : PropWhen) : Expr :=
-  .lam (.sort .zero) (.sort .zero) ⟨pw⟩
-
--- (defeq-forall): inequivalent binder annotations on otherwise defeq
--- ∀s are a positive decline at the verified mode …
-#guard quickDefEq .verified stubFns 0
-    (pwForall (.ifAllZero [])) (pwForall .never)
-  matches .error (.notImplemented _)
--- … and no check at the unverified (trusted) lane.
-#guard quickDefEq .trusted stubFns 0
-    (pwForall (.ifAllZero [])) (pwForall .never)
-  matches .ok (some true)
--- Equivalent-but-unequal annotations pass: `PropWhen`'s `==` is
--- semantic agreement, not list equality.
-#guard quickDefEq .verified stubFns 0
-    (pwForall (.ifAllZero [.str .anonymous "u", .str .anonymous "u"]))
-    (pwForall (.ifAllZero [.str .anonymous "u"]))
-  matches .ok (some true)
+/-! ## The `PropWhen` datum (`ConLeche/Kernel/PropWhen.lean`) -/
 
 -- (pw-canonical, task #194): the datum is canonical by construction —
 -- equal parameter SETS are equal VALUES, so `==`, `DecidableEq` and
@@ -267,33 +195,6 @@ private def nW : Name := .str .anonymous "w"
   == PropWhen.ifAllZero [nU, nV]
 #guard Level.zeronessOf (.max (.param nW) (.max (.param nU) (.param nW)))
   == PropWhen.ifAllZero [nU, nW]
-
--- (defeq-lam): the λ congruence arm, same discipline.
-#guard quickDefEq .verified stubFns 0
-    (pwLam (.ifAllZero [])) (pwLam .never)
-  matches .error (.notImplemented _)
-#guard quickDefEq .trusted stubFns 0
-    (pwLam (.ifAllZero [])) (pwLam .never)
-  matches .ok (some true)
-
--- (eta): η-certifying `fun p => f p` against a stuck `f` whose stored
--- ∀-type carries an inequivalent annotation.  The real knot suffices
--- here: `etaCert` infers `f` (an fvar: the stored type is returned,
--- not walked), so the mismatched ∀ meta reaches the comparison.
-private def etaStuckTy (pw : PropWhen) : Expr := pwForall pw
-private def etaStuckF (pw : PropWhen) : Expr :=
-  .fvar 0 (etaStuckTy pw)
-
-#guard etaCert .verified (pureFns .verified Env.empty 100) Env.empty 1
-    (.sort .zero)
-    (.app (etaStuckF (.ifAllZero [])) (.bvar 0)) ⟨.never⟩
-    (etaStuckF (.ifAllZero []))
-  matches .error (.notImplemented _)
-#guard etaCert .trusted (pureFns .trusted Env.empty 100) Env.empty 1
-    (.sort .zero)
-    (.app (etaStuckF (.ifAllZero [])) (.bvar 0)) ⟨.never⟩
-    (etaStuckF (.ifAllZero []))
-  matches .ok true
 
 /-! ## Frontend: basis `_model` companions are ordinary declarations
 
@@ -437,106 +338,39 @@ The constructor form pins the reference kernels' exact spelling
 -- the guard is `false` without the support declarations
 #guard strLitSupported Env.empty == false
 
-/-! ## The β certificate at `--trusted`
+/-! ## Uniform β
 
 The subject is `(fun x : Prop => x) Prop`: the argument's type is
-`Type`, not `Prop`, so the per-redex certificate FAILS and the
-reduction is stuck at the redex.  At `--trusted` the annotation is not
-validated, so the knot runs the certificate unconditionally (the
-task-#100 de-gating), whatever the binder's `pw` datum says. -/
+`Type`, not `Prop`.  β carries no certificate (task #342), so the
+redex reduces in both modes; the ill-typed argument is the business of
+inference, not of reduction. -/
 
-private def gateNever : BinderMeta := ⟨.never⟩
-private def gateMaybe : BinderMeta := ⟨.ifAllZero []⟩
+private def betaRedex : Expr :=
+  .app (.lam (.sort .zero) (.bvar 0) {}) (.sort .zero)
 
-private def gateRedex (mb : BinderMeta) : Expr :=
-  .app (.lam (.sort .zero) (.bvar 0) mb)
-    (.sort .zero)
+#guard (whnfCore .verified Env.empty 100 0 betaRedex).toOption
+  == some (.sort .zero)
+#guard (whnfCore .trusted Env.empty 100 0 betaRedex).toOption
+  == some (.sort .zero)
 
-private def gateStuck (mb : BinderMeta) : Expr := gateRedex mb
-
-#guard (whnfCore .trusted Env.empty 100 0 (gateRedex gateNever)).toOption
-  == some (gateStuck gateNever)
-#guard CheckMode.verifiedChecks .trusted == false
-
-/-! ## The io gate (the io-license batch, `ConLeche/Kernel/CoreIO.lean`)
-
-The take-the-waiver probe for the io app clause's statement, at the
-kernel level: the gated arm of `inferTypeCoreIO_app_inv`'s disjunction
-must be REACHABLE (else the clause's gated branch is a vacuous theorem
-wearing a disjunction), and it must be exactly scoped — datum-exact,
-and datum-**only**: the io skip is a LICENCE, not certification-only
-work, so it fires on the binder's `pw` alone, in both modes.  That is
-where this battery differs from the β gate's above, which reads
-`mode.betaGate` in the mode-parametric spec.
+/-! ## The io grade is official's `infer_only` (`ConLeche/Kernel/CoreIO.lean`)
 
 The subject applies a ∀-typed head to `.bvar 0`, whose inference
-THROWS (out of fragment) — so any lane that runs the argument
-certificate fails, and only a *fired* licence succeeds.  Only the ∀'s
-`pw` datum distinguishes the outcomes. -/
+THROWS (out of fragment) — so any lane that checks the argument fails,
+and the io grade, which does not (task #342), computes the type. -/
 
-private def ioPiTy (mb : BinderMeta) : Expr :=
-  .forallE (.sort .zero) (.sort .zero) mb
+private def ioRedex : Expr :=
+  .app (.fvar 0 (.forallE (.sort .zero) (.sort .zero) {})) (.bvar 0)
 
-private def ioRedex (mb : BinderMeta) : Expr :=
-  .app (.fvar 0 (ioPiTy mb)) (.bvar 0)
-
--- (a) THE io GATE IS LIVE: at a `.never` binder the io lane skips the
--- argument certificate and computes the type.
-#guard (inferTypeCoreIO .verified Env.empty 6 1 (ioRedex gateNever)).toOption
+-- (a) The io grade skips the argument, in both modes.
+#guard (inferTypeCoreIO .verified Env.empty 6 1 ioRedex).toOption
+  == some (.sort .zero)
+#guard (inferTypeCoreIO .trusted Env.empty 6 1 ioRedex).toOption
   == some (.sort .zero)
 
--- (b) THE io GATE IS DATUM-EXACT: at a possibly-zero datum the
--- certificate runs unconditionally (the squash fence,
--- `io_membership_fails_at_squash`).
-#guard (inferTypeCoreIO .verified Env.empty 6 1 (ioRedex gateMaybe)).toOption
+-- (b) The full grade checks it.
+#guard (inferTypeCore .verified Env.empty 6 1 ioRedex).toOption
   == none
-
--- (c) THE io LICENCE IS NOT MODE-GATED: the trusted mode omits the *validation* of the datum, never the licence
--- that reads it — so at `--trusted` the licence fires exactly as at
--- `--verified`, and it is still DATUM-exact there.
-#guard (inferTypeCoreIO .trusted Env.empty 6 1 (ioRedex gateNever)).toOption
-  == some (.sort .zero)
-#guard (inferTypeCoreIO .trusted Env.empty 6 1 (ioRedex gateMaybe)).toOption
-  == none
-
--- (d) THE FULL LANE IS STRICTER AT BOTH DATA: the io grade narrows
--- exactly one check, so the gated arm is not absorbed by the kept one.
-#guard (inferTypeCore .verified Env.empty 6 1 (ioRedex gateNever)).toOption
-  == none
-
-/-! ## The ζ reduct, and the relation between a declared and a stored
-type (`ConLeche/Model/StreamConsts.lean`)
-
-`AnnotOf declared stored` is `stored.resetMeta = declared.zeta.resetMeta`:
-the annotation pass inlines every `let` and rewrites every binder's
-prop-ness datum, and does nothing else.  The guards below pin the two
-halves of `Expr.zeta` a reader is most likely to get wrong. -/
-
--- (a) A `let` is its body with the value substituted.
-#guard Expr.zeta (.letE (.sort .zero) (.const (Name.anonymous.str "v") []) (.bvar 0))
-  == (.const (Name.anonymous.str "v") [] : Expr)
-
--- (b) Under a binder, a `let` whose value mentions that binder keeps
--- mentioning it: the substitution is the capture-avoiding one.  The
--- body `bvar 0` is the let variable and `bvar 1` the λ's; both end up
--- at the λ's.
-#guard Expr.zeta
-    (.lam (.sort .zero)
-      (.letE (.sort .zero) (.bvar 0) (.app (.bvar 0) (.bvar 1))) ⟨.never⟩)
-  == (.lam (.sort .zero) (.app (.bvar 0) (.bvar 0)) ⟨.never⟩ : Expr)
-
--- (c) And the value is LIFTED as it crosses a binder of the body: the
--- inner λ must not capture the outer λ's variable.
-#guard Expr.zeta
-    (.lam (.sort .zero)
-      (.letE (.sort .zero) (.bvar 0)
-        (.lam (.sort .zero) (.app (.bvar 1) (.bvar 0)) ⟨.never⟩)) ⟨.never⟩)
-  == (.lam (.sort .zero)
-       (.lam (.sort .zero) (.app (.bvar 1) (.bvar 0)) ⟨.never⟩) ⟨.never⟩ : Expr)
-
--- (d) So `let x := v; x` is declared where `v` is stored.
-example : ConLeche.AnnotOf
-    (.letE (.sort .zero) (.const (Name.anonymous.str "v") []) (.bvar 0)) (.const (Name.anonymous.str "v") []) := rfl
 
 /-! ## Zero-motive recursors
 

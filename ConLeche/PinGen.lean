@@ -101,7 +101,7 @@ instance : ToExpr ConLeche.PropWhen where
   toTypeExpr := .const ``ConLeche.PropWhen []
 
 instance : ToExpr ConLeche.BinderMeta where
-  toExpr m := .app (.const ``ConLeche.BinderMeta.mk []) (toExpr m.pw)
+  toExpr _ := .const ``ConLeche.BinderMeta.mk []
   toTypeExpr := .const ``ConLeche.BinderMeta []
 
 instance : ToExpr ConLeche.Literal where
@@ -168,9 +168,9 @@ partial def toConLeche : Lean.Expr → Except String ConLeche.Expr
     -- name and binder info: the checker's single normal form
     -- (`.anonymous`, `.default` — task #203, as the frontend strips
     -- a stream and the pin builder emits the hand-written pins)
-    .ok (.lam (← toConLeche ty) (← toConLeche b) ⟨.never⟩)
+    .ok (.lam (← toConLeche ty) (← toConLeche b) {})
   | .forallE _ ty b _ => do
-    .ok (.forallE (← toConLeche ty) (← toConLeche b) ⟨.never⟩)
+    .ok (.forallE (← toConLeche ty) (← toConLeche b) {})
   | .letE _ _ v b _ => toConLeche (b.instantiate1 v)
   | .lit (.natVal n) => .ok (.lit (.natVal n))
   | .lit (.strVal s) => .ok (.lit (.strVal s))

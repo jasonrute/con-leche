@@ -64,8 +64,8 @@ theorem liftN_zero : ∀ (e : AnnotTerm) (k : Nat), liftN 0 e k = e := by
   | const c us => intro _; rfl
   | prf => intro _; rfl
   | app f a ihf iha => intro k; rw [liftN_app, ihf, iha]
-  | lam u A b ihA ihb => intro k; rw [liftN_lam, ihA, ihb]
-  | pi u v A B ihA ihB => intro k; rw [liftN_pi, ihA, ihB]
+  | lam A b ihA ihb => intro k; rw [liftN_lam, ihA, ihb]
+  | pi A B ihA ihB => intro k; rw [liftN_pi, ihA, ihB]
   | letE v b ihv ihb => intro k; rw [liftN_letE, ihv, ihb]
   | eqE a b iha ihb => intro k; rw [liftN_eqE, iha, ihb]
   | fst e ihe => intro k; rw [liftN_fst, ihe]
@@ -89,9 +89,9 @@ theorem liftN_liftN : ∀ (e : AnnotTerm) (n m k : Nat),
   | prf => intro _ _ _; rfl
   | app f a ihf iha =>
     intro n m k; rw [liftN_app, liftN_app, ihf, iha]; rfl
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro n m k; rw [liftN_lam, liftN_lam, ihA, ihb]; rfl
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro n m k; rw [liftN_pi, liftN_pi, ihA, ihB]; rfl
   | letE v b ihv ihb =>
     intro n m k; rw [liftN_letE, liftN_letE, ihv, ihb]; rfl

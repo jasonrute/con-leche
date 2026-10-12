@@ -4,6 +4,7 @@ public import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Kernel.Inductives.FieldTele
 import ConLeche.Verify.Inductives.BlockInv
 import ConLeche.Verify.Shift
+import ConLeche.Verify.Extend.Inversions
 
 public section
 
@@ -211,41 +212,12 @@ local macro_rules
         | exact absurd $h
             (by simp [bind, Except.bind, throw, throwThe, MonadExceptOf.throw]))
 
-/-- A checked constant keeps the record's name and level parameters:
-only its type is replaced, by the annotated one. -/
+/-- A checked constant keeps the record's name and level parameters
+(it is the record itself). -/
 theorem checkConstantVal_lps {env : Env} {cv cvA : ConstantVal} {F : Nat}
     (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
     cvA.name = cv.name ∧ cvA.levelParams = cv.levelParams := by
-  unfold checkConstantVal at h
-  by_cases h1 : (env.find? cv.name).isSome = true
-  · rw [ite_eq_left h1] at h; close_throw h
-  rw [ite_eq_right h1] at h
-  by_cases h2 : reservedBasisNames.contains cv.name = true
-  · rw [ite_eq_left h2] at h; close_throw h
-  rw [ite_eq_right h2] at h
-  by_cases h3 : cv.name.isProjFnShape = true
-  · rw [ite_eq_left h3] at h; close_throw h
-  rw [ite_eq_right h3] at h
-  by_cases h4 : Name.nodup cv.levelParams = true
-  case neg => rw [ite_eq_right h4] at h; close_throw h
-  rw [ite_eq_left h4] at h
-  by_cases h5 : Expr.looseBVarsBounded 0 cv.type = true
-  case neg => rw [ite_eq_right h5] at h; close_throw h
-  rw [ite_eq_left h5] at h
-  by_cases h6 : cv.type.hasFvar = true
-  · rw [ite_eq_left h6] at h; close_throw h
-  rw [ite_eq_right h6] at h
-  obtain ⟨type, _, h⟩ := exceptBind_ok h
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams type = true
-  case neg => rw [ite_eq_right h7] at h; close_throw h
-  rw [ite_eq_left h7] at h
-  by_cases h8 : Expr.constsResolve env type = true
-  case neg => rw [ite_eq_right h8] at h; close_throw h
-  rw [ite_eq_left h8] at h
-  obtain ⟨_, _, h⟩ := exceptBind_ok h
-  obtain ⟨_, _, h⟩ := exceptBind_ok h
-  simp only [pure, Except.pure, Except.ok.injEq] at h
-  subst h
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, rfl⟩ := checkConstantVal_inv h
   exact ⟨rfl, rfl⟩
 
 /-! ## The k recursors consed with their rules, SIMULTANEOUSLY -/
@@ -341,7 +313,7 @@ the `i`-th right-hand side, with the constructor's parameter count
       r.2.2.2[i]? = some cA ∧ r.2.1[i]? = some rhs ∧
       rl = recRuleBits find? r.1.name
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
-          fire := fireOf j r, rhs := rhs, paramsBlind := true }
+          fire := fireOf j r, rhs := rhs }
 
 /-- The recursors' cons finds everything the environment below it
 finds. -/

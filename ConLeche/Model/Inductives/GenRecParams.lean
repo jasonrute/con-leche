@@ -518,7 +518,7 @@ theorem instDom_facts {tyA cvT : Expr} {n l : Nat} {xs tfvs : List Expr} {oA oT 
     obtain ⟨r', hr', hEr⟩ := instPisWith_erasedEq hE (Expr.ErasedEq.rfl cvT) hinstT
     rw [hinst, Option.some.injEq] at hr'
     subst hr'
-    exact ⟨_, htl, hEr.2.1⟩
+    exact ⟨_, htl, hEr.1⟩
 
 end GenRun
 
@@ -778,11 +778,12 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
   obtain ⟨tfvs, trest, hopT⟩ := ConLeche.SameDoms.open_isSome pp.nP (d := 0) hsdT
   obtain ⟨ppsT, bT, hstT, -, -, hbindT⟩ :=
     denoteMeta_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hopT (hFD.read ψ)
-  have hppsT : ppsT = (dR.ppsM rc0.tgt ψ).take pp.nP := by
+  have hppsT : ppsT.map (·.2.2) = ((dR.ppsM rc0.tgt ψ).take pp.nP).map (·.2.2) := by
     have := stripPisAV_mkPisAV_take pp.nP (dR.ppsM rc0.tgt ψ)
       (.sort (dR.resSort.eval ψ)) (by rw [hppsLen, hnPq']; omega)
     rw [this] at hstT
-    exact congrArg Prod.fst (Option.some.inj hstT.symm)
+    obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hstT)
+    exact ppsNorm_map_dom _
   have hdBT : ∀ (i : Nat) (x : Expr), tfvs[i]? = some x →
       denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD x)
         = some ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).getD i default) := by

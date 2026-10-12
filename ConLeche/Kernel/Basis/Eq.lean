@@ -9,10 +9,9 @@ public import ConLeche.Kernel.Basis.Builder
 
 The raw pin — the `Eq` block exactly as an export carries it: the
 toolchain's `Init.Prelude` declaration at the parser's raw binder
-annotations.  The *annotated*
-forms (`eqA`, `eqReflA`, `eqRecA`) are computed from these by the
-checker's own annotation pass at elaboration time; see
-`ConLeche/Kernel/BasisA.lean`.
+annotations.  The *stored*
+forms (`eqA`, `eqReflA`, `eqRecA`) are computed from these at
+elaboration time; see `ConLeche/Kernel/BasisA.lean`.
 -/
 
 namespace ConLeche

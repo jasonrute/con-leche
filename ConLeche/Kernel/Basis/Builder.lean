@@ -26,9 +26,9 @@ one-to-one, non-abbreviating renaming of those constructors at the
 new notion: every one of them is a `def` whose body is a single `Expr`
 constructor application.
 
-The annotated forms are NOT written here: they are computed from these
-raw pins by the checker's own annotation pass at elaboration time
-(`#annotate_basis`, `ConLeche/Kernel/BasisGen.lean`).
+The stored forms are NOT written here: they are computed from these
+raw pins at elaboration time (`#stored_basis`,
+`ConLeche/Kernel/BasisGen.lean`).
 -/
 
 namespace ConLeche
@@ -86,25 +86,25 @@ where the signature says `{…}`.  All five build the same node shape. -/
 /-- `∀ (x : ty), body` — an explicit binder (`x` documents the
 `Init.Prelude` spelling). -/
 def pi (_x : String) (ty body : Expr) : Expr :=
-  .forallE ty body ⟨.never⟩
+  .forallE ty body ⟨⟩
 
 /-- `∀ {x : ty}, body` — an implicit binder in `Init.Prelude` (the
 same node as `pi`; the braces are for the reader). -/
 def piI (_x : String) (ty body : Expr) : Expr :=
-  .forallE ty body ⟨.never⟩
+  .forallE ty body ⟨⟩
 
 /-- `∀ (_ : ty), body` — an anonymous explicit binder (`ty → body`). -/
 def piA (ty body : Expr) : Expr :=
-  .forallE ty body ⟨.never⟩
+  .forallE ty body ⟨⟩
 
 /-- `fun (x : ty) => body` — an explicit binder (name for the reader). -/
 def lm (_x : String) (ty body : Expr) : Expr :=
-  .lam ty body ⟨.never⟩
+  .lam ty body ⟨⟩
 
 /-- `fun {x : ty} => body` — an implicit binder in `Init.Prelude` (the
 same node as `lm`). -/
 def lmI (_x : String) (ty body : Expr) : Expr :=
-  .lam ty body ⟨.never⟩
+  .lam ty body ⟨⟩
 
 /-- Binary application. -/
 def ap2 (f a b : Expr) : Expr := .app (.app f a) b
@@ -116,10 +116,10 @@ def ap3 (f a b c : Expr) : Expr := .app (.app (.app f a) b) c
 def ap4 (f a b c d : Expr) : Expr := .app (.app (.app (.app f a) b) c) d
 
 /-- A raw iota rule: the install-computed fields (`ctorParams`,
-`fire`, `k`, `eta`, `paramsBlind`) at their parse placeholders, which
-is what the exporter emits and what `#annotate_basis` recomputes. -/
+`fire`, `k`, `eta`) at their parse placeholders, which
+is what the exporter emits and what `#stored_basis` recomputes. -/
 def rule (ctor : Name) (nfields : Nat) (rhs : Expr) : RecRule :=
-  ⟨ctor, nfields, 0, .inert, rhs, false, false, false⟩
+  ⟨ctor, nfields, 0, .inert, rhs, false, false⟩
 
 end BasisDSL
 

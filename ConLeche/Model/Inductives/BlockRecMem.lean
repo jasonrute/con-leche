@@ -6,6 +6,7 @@ import ConLeche.Model.Inductives.BlockRecRead
 import ConLeche.Model.Inductives.BlockData
 public import ConLeche.Model.Annot.EnvModelM
 public import ConLeche.Semantics.Tower.BlockRecTower
+public import ConLeche.Model.Inductives.StructFrameKit
 
 public section
 
@@ -89,6 +90,17 @@ def blockRecConclAV (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
     (ψ : Name → Nat) (c : Nat) : AnnotTerm :=
   ((stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c)).map (·.2)).getD default
+
+/-- The binder data are a peel's, hence normalized (`ppsNorm`). -/
+theorem blockRecRdsAV_norm (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+    (p : ConLeche.BlockShape)
+    (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
+    (ψ : Name → Nat) (c : Nat) :
+    ppsNorm (blockRecRdsAV acval envC p rs ψ c) = blockRecRdsAV acval envC p rs ψ c := by
+  unfold blockRecRdsAV
+  cases hst : stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c) with
+  | none => exact List.eq_nil_of_length_eq_zero (ppsNorm_length [])
+  | some q => exact stripPisAV_norm (b := q.2) hst
 
 theorem blockRecTyAV_eq {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}

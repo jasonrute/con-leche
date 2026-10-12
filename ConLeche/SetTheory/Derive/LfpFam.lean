@@ -9,8 +9,10 @@ import ConLeche.SetTheory.Derive.Lfp
 
 The carrier of a directly installed recursive **family** `T : I → Sort w`
 is the least pre-fixed point of its constructor-tower functor acting on
-FAMILIES — graphs over the index-tuple set `I` with values in the
-strict universe `strictU w` (`famSpace`), ordered pointwise (`FamLe`).
+FAMILIES over the index-tuple set `I` with values in the strict
+universe `strictU w` (`famSpace`), ordered pointwise (`FamLe`).  A
+family is its graph over an inhabited `I` and the point over an empty
+one (`famOf`), as the value reading has the type `I → Sort w`.
 This is `Lfp.lean` fibrewise:
 
     lfpFamSet w I F = i ↦ {x ∈ L₀ i | ∀ closed X, x ∈ X i}
@@ -112,8 +114,45 @@ fibres in `C`. -/
 
 section In
 
-/-- The families over `I` with fibres in `C`. -/
-noncomputable def famSpaceIn (C I : V) : V := piSet I fun _ => C
+open Classical in
+/-- The families over `I` with fibres in `C`, as the value reading has
+the type `I → C` (task #342, L16): the graphs over an inhabited `I`,
+the point alone over an empty one (`SetModel/Ops`' `piV` over fibres
+that are not truth values).  Over an empty index set a family is never
+read, so nothing below depends on which single value it is; this one
+makes a block's spelled families and its least fixed point agree. -/
+noncomputable def famSpaceIn (C I : V) : V :=
+  if ∃ i, i ∈ˢ I then piSet I fun _ => C else unitSet
+
+open Classical in
+/-- The family over `I` with fibres `G`: its graph over an inhabited
+`I`, the point over an empty one (the value reading's abstraction
+`lamV` at a body that is never the point, task #342, L16). -/
+noncomputable def famOf (G : V → V) (I : V) : V :=
+  if ∃ i, i ∈ˢ I then graph G I else pt
+
+theorem famSpaceIn_of_ne {C I : V} (h : ∃ i, i ∈ˢ I) :
+    famSpaceIn C I = piSet I fun _ => C := by
+  unfold famSpaceIn; exact ite_eq_left h
+
+theorem famSpaceIn_of_empty {C I : V} (h : ¬ ∃ i, i ∈ˢ I) : famSpaceIn C I = unitSet := by
+  unfold famSpaceIn; exact ite_eq_right h
+
+theorem famOf_of_ne {G : V → V} {I : V} (h : ∃ i, i ∈ˢ I) : famOf G I = graph G I := by
+  unfold famOf; exact ite_eq_left h
+
+theorem famOf_of_empty {G : V → V} {I : V} (h : ¬ ∃ i, i ∈ˢ I) : famOf G I = pt := by
+  unfold famOf; exact ite_eq_right h
+
+/-- β for a family, on the index set. -/
+theorem app_famOf {G : V → V} {I i : V} (hi : i ∈ˢ I) : app (famOf G I) i = G i := by
+  rw [famOf_of_ne ⟨i, hi⟩, app_graph hi]
+
+theorem famOf_congr {G G' : V → V} {I : V} (h : ∀ i, i ∈ˢ I → G i = G' i) :
+    famOf G I = famOf G' I := by
+  unfold famOf; split
+  · exact graph_congr h
+  · rfl
 
 /-- An `F`-closed family: a pre-fixed point of `app F` in the family
 space. -/
@@ -128,24 +167,50 @@ def MonoFamIn (C I F : V) : Prop :=
 def MapsFamIn (C I F : V) : Prop :=
   ∀ X, X ∈ˢ famSpaceIn C I → app F X ∈ˢ famSpaceIn C I
 
-theorem famSpaceIn_app {C I X i : V} (hX : X ∈ˢ famSpaceIn C I) (hi : i ∈ˢ I) : app X i ∈ˢ C :=
-  app_mem_of_mem_piSet hX hi
+theorem famSpaceIn_app {C I X i : V} (hX : X ∈ˢ famSpaceIn C I) (hi : i ∈ˢ I) : app X i ∈ˢ C := by
+  rw [famSpaceIn_of_ne ⟨i, hi⟩] at hX
+  exact app_mem_of_mem_piSet hX hi
+
+/-- **η for a family**: a member of the family space is the family of
+its applications. -/
+theorem famOf_app_eq {C I X : V} (hX : X ∈ˢ famSpaceIn C I) : famOf (fun i => app X i) I = X := by
+  by_cases h : ∃ i, i ∈ˢ I
+  · rw [famSpaceIn_of_ne h] at hX
+    rw [famOf_of_ne h]
+    exact eq_graph_app_of_mem_piSet hX
+  · rw [famSpaceIn_of_empty h, mem_unitSet_iff] at hX
+    rw [famOf_of_empty h, hX]
+
+/-- Off the index set two families over the same index set apply alike
+(both `∅` off an inhabited one, both the point over an empty one). -/
+theorem app_off_famSpaceIn {C D I X Y i : V} (hX : X ∈ˢ famSpaceIn C I)
+    (hY : Y ∈ˢ famSpaceIn D I) (hi : ¬ i ∈ˢ I) : app X i = app Y i := by
+  by_cases h : ∃ j, j ∈ˢ I
+  · rw [famSpaceIn_of_ne h] at hX hY
+    rw [app_off_dom_of_mem_piSet hX hi, app_off_dom_of_mem_piSet hY hi]
+  · rw [famSpaceIn_of_empty h, mem_unitSet_iff] at hX hY
+    rw [hX, hY]
 
 /-- Members of the family space agreeing pointwise are equal. -/
 theorem famSpaceIn_ext {C I X Y : V} (hX : X ∈ˢ famSpaceIn C I) (hY : Y ∈ˢ famSpaceIn C I)
-    (h : ∀ i, i ∈ˢ I → app X i = app Y i) : X = Y :=
-  eq_of_mem_piSet_app_eq hX hY h
+    (h : ∀ i, i ∈ˢ I → app X i = app Y i) : X = Y := by
+  rw [← famOf_app_eq hX, ← famOf_app_eq hY]
+  exact famOf_congr h
 
-/-- A graph with fibres in `C` is in the family space. -/
-theorem graph_mem_famSpaceIn {C I : V} {G : V → V} (h : ∀ i, i ∈ˢ I → G i ∈ˢ C) :
-    graph G I ∈ˢ famSpaceIn C I :=
-  graph_mem_piSet h
+/-- A family with fibres in `C` is in the family space. -/
+theorem famOf_mem_famSpaceIn {C I : V} {G : V → V} (h : ∀ i, i ∈ˢ I → G i ∈ˢ C) :
+    famOf G I ∈ˢ famSpaceIn C I := by
+  by_cases hI : ∃ i, i ∈ˢ I
+  · rw [famOf_of_ne hI, famSpaceIn_of_ne hI]
+    exact graph_mem_piSet h
+  · rw [famOf_of_empty hI, famSpaceIn_of_empty hI]
+    exact mem_unitSet_iff.mpr rfl
 
 /-- The family space grows with its fibre space. -/
 theorem famSpaceIn_mono {C D I : V} (h : C ⊆ˢ D) : famSpaceIn C I ⊆ˢ famSpaceIn D I :=
   fun X hX => by
-    rw [← eq_graph_app_of_mem_piSet hX]
-    exact graph_mem_famSpaceIn fun i hi => h _ (famSpaceIn_app hX hi)
+    rw [← famOf_app_eq hX]
+    exact famOf_mem_famSpaceIn fun i hi => h _ (famSpaceIn_app hX hi)
 
 open Classical in
 /-- **The least pre-fixed family of `F` over `I`** — fibrewise the
@@ -154,20 +219,20 @@ a chosen closed family), dropped to `∅` if it left `C`; the empty
 family otherwise. -/
 noncomputable def lfpFamIn (C I F : V) : V :=
   if h : ∃ L, IsClosedFamIn C I F L then
-    graph (fun i => dropTo C (sep (app (Classical.choose h) i)
+    famOf (fun i => dropTo C (sep (app (Classical.choose h) i)
       (fun x => ∀ X, IsClosedFamIn C I F X → x ∈ˢ app X i))) I
-  else graph (fun _ => empty) I
+  else famOf (fun _ => empty) I
 
 variable {C I F : V}
 
 theorem lfpFamIn_of_not (h : ¬ ∃ L, IsClosedFamIn C I F L) :
-    lfpFamIn C I F = graph (fun _ => empty) I := by
+    lfpFamIn C I F = famOf (fun _ => empty) I := by
   unfold lfpFamIn; exact dite_eq_right h
 
 theorem forall_of_mem_app_lfpFamIn (h : ∃ L, IsClosedFamIn C I F L) {i x : V} (hi : i ∈ˢ I)
     (hx : x ∈ˢ app (lfpFamIn C I F) i) : ∀ X, IsClosedFamIn C I F X → x ∈ˢ app X i := by
   unfold lfpFamIn at hx
-  rw [dite_eq_left h, app_graph hi] at hx
+  rw [dite_eq_left h, app_famOf hi] at hx
   exact (mem_sep.mp (mem_of_mem_dropTo hx)).2
 
 /-- A member of `C` below every closed family's fibre is below the
@@ -176,7 +241,7 @@ theorem subset_app_lfpFamIn (hD : DropClosed C) (h : ∃ L, IsClosedFamIn C I F 
     (hi : i ∈ˢ I) (hY : Y ∈ˢ C) (hYX : ∀ X, IsClosedFamIn C I F X → Y ⊆ˢ app X i) :
     Y ⊆ˢ app (lfpFamIn C I F) i := by
   unfold lfpFamIn
-  rw [dite_eq_left h, app_graph hi]
+  rw [dite_eq_left h, app_famOf hi]
   refine subset_dropTo hD (famSpaceIn_app (Classical.choose_spec h).1 hi) sep_subset hY
     fun x hx => mem_sep.mpr ⟨?_, fun X hX => hYX X hX x hx⟩
   exact hYX _ (Classical.choose_spec h) x hx
@@ -191,8 +256,8 @@ family space. -/
 theorem lfpFamIn_mem (hE : (empty : V) ∈ˢ C) (I F : V) : lfpFamIn C I F ∈ˢ famSpaceIn C I := by
   unfold lfpFamIn
   split
-  · exact graph_mem_famSpaceIn fun _ _ => dropTo_mem hE _
-  · exact graph_mem_famSpaceIn fun _ _ => hE
+  · exact famOf_mem_famSpaceIn fun _ _ => dropTo_mem hE _
+  · exact famOf_mem_famSpaceIn fun _ _ => hE
 
 /-- **Closure**: the least pre-fixed family is a pre-fixed point.  The
 functor must map the space into itself: a fibre dropped to `∅` stays
@@ -324,14 +389,9 @@ theorem strictU_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V}
 
 /-! ## Families of a level -/
 
-/-- The family space over `I`: graphs into the strict universe
+/-- The family space over `I`: families into the strict universe
 `strictU w`. -/
 noncomputable def famSpace (w : Nat) (I : V) : V := famSpaceIn (strictU w) I
-
-/-- A family space is strict: its members are graphs (task #342, L6). -/
-theorem strict_famSpaceIn (C I : V) : Strict (famSpaceIn C I) := strict_piSet
-
-theorem strict_famSpace (w : Nat) (I : V) : Strict (famSpace w I : V) := strict_famSpaceIn _ _
 
 /-- An `F`-closed family: a pre-fixed point of `app F` in the family
 space. -/
@@ -355,11 +415,11 @@ theorem famSpace_ext {w : Nat} {I X Y : V} (hX : X ∈ˢ famSpace w I) (hY : Y �
     (h : ∀ i, i ∈ˢ I → app X i = app Y i) : X = Y :=
   famSpaceIn_ext hX hY h
 
-/-- A graph with fibres in `strictU w` is in the family space. -/
-theorem graph_mem_famSpace {w : Nat} {I : V} {G : V → V}
+/-- A family with fibres in `strictU w` is in the family space. -/
+theorem famOf_mem_famSpace {w : Nat} {I : V} {G : V → V}
     (h : ∀ i, i ∈ˢ I → G i ∈ˢ (strictU w : V)) :
-    graph G I ∈ˢ famSpace w I :=
-  graph_mem_famSpaceIn h
+    famOf G I ∈ˢ famSpace w I :=
+  famOf_mem_famSpaceIn h
 
 /-- **The least pre-fixed family of `F` over `I`** at level `w`. -/
 noncomputable def lfpFamSet (w : Nat) (I F : V) : V := lfpFamIn (strictU w) I F

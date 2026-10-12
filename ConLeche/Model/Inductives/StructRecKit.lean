@@ -12,21 +12,8 @@ public section
 /-!
 # Block library: the constructor's stage and the recursor's frame kit
 
-The leaves' bit validity; the constructor's peel, frames and spine
-kit; the recursor's frame kit; λ-towers folding to their body; the
-recursor rule's kit.
--/
-
-/-!
-## The tower leaves' bit validity
-
-`AnnotValid` for the synthesized leaves.  The leaves contain **no `.pi` node** — λ, application, constants,
-bound variables and the uniform `.proj` spelling only — so their bit
-validity is pure hereditary plumbing: `AnnotValid`'s one genuine
-clause (the `pi` codomain component) never fires, and every lemma
-here is a walk with no semantic content beyond the λ-clause guards.
-`UnderTowerValid` is the single hereditary premise shape, shared by
-the leaves (each IS a `mkLamsC` tower).
+The constructor's peel, frames and spine kit; the recursor's frame kit;
+λ-towers folding to their body; the recursor rule's kit.
 -/
 
 namespace ConLeche.Model
@@ -39,139 +26,6 @@ open ConLeche.SetTheory.Tower
 universe uv
 
 variable {V : Type uv} [SetTheory V]
-
-/-- Hereditary bit validity of a field chain. -/
-@[expose] def FieldsValid (ρ : Nat → V) : List AnnotTerm → Prop
-  | [] => True
-  | F :: Fs => AnnotValid V ρ F ∧
-      ∀ a, a ∈ˢ interp V ρ F → FieldsValid (cons a ρ) Fs
-
-/-- The carrier body (graph regime) is bit-valid (no `pi` nodes;
-hereditary). -/
-theorem towerBodyAVPos_validV {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsValid ρ Fs →
-      AnnotValid V ρ (towerBodyAVPos w Fs)
-  | [], _, _ => trivial
-  | F :: Fs, ρ, hv => by
-    show AnnotValid V ρ (.app (.app (.const .psigma [w, w]) F)
-      (.lam (w + 1) F (towerBodyAVPos w Fs)))
-    rw [AnnotValid_app]
-    refine ⟨?_, ?_⟩
-    · rw [AnnotValid_app]
-      exact ⟨trivial, hv.1⟩
-    · rw [AnnotValid_lam]
-      exact ⟨hv.1, fun a ha => towerBodyAVPos_validV (hv.2 a ha)⟩
-
-/-- The carrier body (squash regime) is bit-valid: every `pi` node
-carries bit `0` over a truth-value codomain (`piR 0`, or `Empty`). -/
-theorem sqBodyAV_validV :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsValid ρ Fs →
-      AnnotValid V ρ (sqBodyAV Fs)
-  | [], _, _ => trivial
-  | F :: Fs, ρ, hv => by
-    show AnnotValid V ρ (negAV (.pi 0 0 F (negAV (sqBodyAV Fs))))
-    unfold negAV
-    rw [AnnotValid_pi]
-    refine ⟨?_, fun _ _ => by simp, fun _ _ _ => ?_⟩
-    · rw [AnnotValid_pi]
-      refine ⟨hv.1, fun x hx => ?_, fun _ x _ => ?_⟩
-      · rw [AnnotValid_pi]
-        exact ⟨sqBodyAV_validV (hv.2 x hx), fun _ _ => by simp,
-          fun _ _ _ => by rw [← univ_zero]; exact empty_mem_univ 0⟩
-      · exact piR_zero_mem_univZero
-    · rw [← univ_zero]; exact empty_mem_univ 0
-
-/-- The carrier body is bit-valid, both regimes. -/
-theorem towerBodyAV_validV {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
-    (hv : FieldsValid ρ Fs) : AnnotValid V ρ (towerBodyAV w Fs) := by
-  by_cases hw : w = 0
-  · subst hw; rw [towerBodyAV_zero]; exact sqBodyAV_validV hv
-  · rw [towerBodyAV_pos hw]; exact towerBodyAVPos_validV hv
-
-/-- Application spines are bit-valid from their parts. -/
-theorem mkAppN_validV :
-    ∀ {args : List AnnotTerm} {f : AnnotTerm} {σ : Nat → V},
-      AnnotValid V σ f → (∀ a ∈ args, AnnotValid V σ a) →
-      AnnotValid V σ (AnnotTerm.mkAppN f args)
-  | [], _, _, hf, _ => hf
-  | a :: args, f, σ, hf, hargs => by
-    rw [AnnotTerm.mkAppN_cons]
-    refine mkAppN_validV ?_ fun a' ha' => hargs a' (.tail _ ha')
-    rw [AnnotValid_app]
-    exact ⟨hf, hargs a (.head _)⟩
-
-/-- The constructor tupler is bit-valid at a fitting frame — the one
-walk that crosses the λ-frame lifts (`AnnotValid_liftN` +
-`shiftE_consList`). -/
-theorem mkTowerGoPos_validV {w : Nat} (hw : w ≠ 0) :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
-      FieldsValid ρp Fs → FieldsBound w ρp Fs → SpineFit ρp Fs bs →
-      AnnotValid V (consList bs ρp) (mkTowerGoPos w Fs)
-  | [], _, [], _, _, _ => trivial
-  | [], _, _ :: _, _, _, hsp => hsp.elim
-  | _ :: _, _, [], _, _, hsp => hsp.elim
-  | F :: Fs, ρp, b :: bs, hv, hb, hsp => by
-    have hlen : bs.length = Fs.length := hsp.2.length_eq
-    have hshift : shiftE (Fs.length + 1) 0 (consList bs (cons b ρp)) = ρp := by
-      rw [← hlen,
-        show bs.length + 1 = bs.length + (0 + 1) by rw [Nat.zero_add],
-        shiftE_consList_add bs (0 + 1) (cons b ρp), Nat.zero_add,
-        shiftE_succ_cons, shiftE_zero_zero]
-    have hA : interp V (consList bs (cons b ρp)) (F.liftN (Fs.length + 1))
-        = interp V ρp F := by
-      rw [interp_liftN, hshift]
-    show AnnotValid V (consList bs (cons b ρp))
-      (.app (.app (.app (.app (.const .psigmaMk [w, w])
-          (F.liftN (Fs.length + 1)))
-          (.lam (w + 1) (F.liftN (Fs.length + 1))
-            ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
-          (.bvar Fs.length))
-        (mkTowerGoPos w Fs))
-    rw [AnnotValid_app]
-    refine ⟨?_, mkTowerGoPos_validV hw (hv.2 b hsp.1) (hb.2 b hsp.1) hsp.2⟩
-    rw [AnnotValid_app]
-    refine ⟨?_, by rw [AnnotValid_bvar]; trivial⟩
-    rw [AnnotValid_app]
-    refine ⟨?_, ?_⟩
-    · rw [AnnotValid_app]
-      refine ⟨by rw [AnnotValid_const]; trivial, ?_⟩
-      rw [AnnotValid_liftN, hshift]
-      exact hv.1
-    · rw [AnnotValid_lam]
-      refine ⟨by rw [AnnotValid_liftN, hshift]; exact hv.1, ?_⟩
-      intro x hx
-      rw [hA] at hx
-      rw [AnnotValid_liftN, ← cons_shiftE, hshift]
-      exact towerBodyAV_validV (hv.2 x hx)
-
-/-- The constructor tupler is bit-valid at a fitting frame, both
-regimes. -/
-theorem mkTowerGo_validV {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
-    {bs : List V} (hv : FieldsValid ρp Fs)
-    (hb : w ≠ 0 → FieldsBound w ρp Fs) (hsp : SpineFit ρp Fs bs) :
-    AnnotValid V (consList bs ρp) (mkTowerGo w Fs) := by
-  by_cases hw : w = 0
-  · subst hw; rw [mkTowerGo_zero]; trivial
-  · rw [mkTowerGo_pos hw]; exact mkTowerGoPos_validV hw hv (hb hw) hsp
-
-/-- The single hereditary validity premise of a `mkLamsC` leaf. -/
-@[expose] def UnderTowerValid (ρ : Nat → V) (b : AnnotTerm) :
-    List (Nat × Nat × AnnotTerm) → Prop
-  | [] => AnnotValid V ρ b
-  | d :: ds => AnnotValid V ρ d.2.2 ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → UnderTowerValid (cons a ρ) b ds
-
-/-- A constant-bit λ-tower is bit-valid from the hereditary premise
-(the λ clause of `AnnotValid` carries no bit component). -/
-theorem mkLamsC_validV {m : Nat} {b : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      UnderTowerValid ρ b ds → AnnotValid V ρ (mkLamsC m ds b)
-  | [], _, h => h
-  | d :: ds, ρ, h => by
-    show AnnotValid V ρ (.lam m d.2.2 (mkLamsC m ds b))
-    rw [AnnotValid_lam]
-    exact ⟨h.1, fun a ha => mkLamsC_validV (h.2 a ha)⟩
-
 
 /-! ## The constructor's peel -/
 
@@ -220,9 +74,8 @@ theorem reverse_map_take_drop (ds : List (Nat × Nat × AnnotTerm)) (nP : Nat) :
 ## The constructor's frames
 
 The opened record at a known peel, the field and parameter parts of
-the reversed constructor context, and the field chain's validity
-(`FieldsValid`) and universe bound (`FieldsBound`), walked like its
-grading (`fieldsOkB_of_frame`).
+the reversed constructor context, and the field chain's universe bound
+(`FieldsBound`), walked like its grading (`fieldsOkB_of_frame`).
 -/
 
 
@@ -240,7 +93,7 @@ theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
   have hst := stripPisAV_mkPisAV pps b
   rw [hlen] at hst
   obtain ⟨rfl, rfl⟩ := PiTeleAV.unique htele (piTeleAV_of_stripPisAV hst)
-  exact hO
+  rwa [ppsNorm_map_dom] at hO
 
 /-- The field entries of the reversed constructor context are the
 peel's field domains. -/
@@ -267,40 +120,6 @@ theorem drop_fields_eq {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
     simp [hlen]
   rw [List.drop_eq_nil_of_le (by rw [hl]; omega), List.nil_append, hl,
     show nP + nF - i - nF = nP - i from by omega]
-
-/-- The field chain's validity, walked like its grading. -/
-theorem fieldsValid_of_frame {Γ : List AnnotTerm} {k nP nF : Nat}
-    (hk : k = nP + nF) (hΓ : Γ.length = k)
-    (okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-      WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)) :
-    ∀ (j : Nat), j ≤ nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
-      FieldsValid ρ (fieldsFrom Γ k nP nF j) := by
-  suffices ∀ (m j : Nat), nF - j = m → j ≤ nF → ∀ ρ : Nat → V,
-      Sat V (Γ.drop (k - (nP + j))) ρ →
-      FieldsValid ρ (fieldsFrom Γ k nP nF j) from
-    fun j => this (nF - j) j rfl
-  intro m
-  induction m with
-  | zero =>
-    intro j hm hj ρ hρ
-    have hjn : j = nF := by omega
-    subst hjn
-    simp only [fieldsFrom, Nat.sub_self, List.range_zero, List.map_nil]
-    trivial
-  | succ m ih =>
-    intro j hm hj ρ hρ
-    have hlt : j < nF := by omega
-    rw [fieldsFrom_succ hlt]
-    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1.2, fun a ha => ?_⟩
-    refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
-    rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
-      List.drop_eq_getElem_cons (l := Γ) (i := k - (nP + j) - 1) (by omega)]
-    have hG : Γ[k - (nP + j) - 1]'(by omega) = Γ.getD (k - 1 - (nP + j)) default := by
-      rw [List.getD, List.getElem?_eq_getElem (by omega)]
-      simp only [Option.getD_some]
-      congr 1; omega
-    rw [hG, show k - (nP + j) - 1 + 1 = k - (nP + j) from by omega]
-    exact Sat_cons V hρ ha
 
 /-- The field chain's universe bound, walked like its grading. -/
 theorem fieldsBound_of_frame {Γ : List AnnotTerm} {k nP nF w : Nat}
@@ -411,14 +230,18 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
 
 /-! ## Lifted Π-towers -/
 
-theorem stripPisAV_mkPisAV_take :
-    ∀ (n : Nat) (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm), n ≤ ds.length →
-      stripPisAV n (mkPisAV ds b) = some (ds.take n, mkPisAV (ds.drop n) b)
-  | 0, _, _, _ => rfl
-  | n + 1, [], _, h => by simp at h
-  | n + 1, d :: ds, b, h => by
-    simp only [mkPisAV, stripPisAV, List.take_succ_cons, List.drop_succ_cons,
-      stripPisAV_mkPisAV_take n ds b (by simpa using h), Option.map_some]
+theorem stripPisAV_mkPisAV_take
+    (n : Nat) (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm) (h : n ≤ ds.length) :
+    stripPisAV n (mkPisAV ds b) = some (ppsNorm (ds.take n), mkPisAV (ds.drop n) b) := by
+  have happ : ∀ (l₁ l₂ : List (Nat × Nat × AnnotTerm)),
+      mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b) := by
+    intro l₁ l₂
+    induction l₁ with
+    | nil => rfl
+    | cons d l₁ ih => simp only [List.cons_append, mkPisAV, ih]
+  have hst := stripPisAV_mkPisAV (ds.take n) (mkPisAV (ds.drop n) b)
+  rw [← happ, List.take_append_drop, List.length_take, Nat.min_eq_left h] at hst
+  exact hst
 
 /-! ## Graded applications along a fit -/
 
@@ -597,7 +420,7 @@ theorem consList_apply_lt :
         List.getElem?_cons_zero, Option.getD_some, cons_zero]
 
 
-/-! ## Recursor-reading kit: bits reset, opening variables, the constructor residual -/
+/-! ## Recursor-reading kit: opening variables, the constructor residual -/
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
@@ -605,8 +428,6 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
 
 
 variable {acval : Name → (Name → Nat) → AnnotTerm}
-
-/-! ## Bits reset -/
 
 /-! ## Syntactic bookkeeping -/
 
@@ -628,13 +449,10 @@ theorem opening_vars_at {n d : Nat} {e : Expr} {fvs : List Expr} {o : Expr}
 ## λ-towers fold to their body
 
 A **graded** λ-tower applied along a fitting spine computes its body
-at the spine's frame — whatever its bits.  A nonzero bit steps by
-β (`app_lamR_pos`); a zero bit collapses the layer to the proof point,
-but the grading's package puts the layer's body values in truth
-values, so the body is the point too (`eq_pt_of_mem_univZero`), and the
-fold of the point is the point.  This is what lets the recursor rule's
-law read the rule's right-hand side without any bit correspondence
-between the rule's λ-annotations and the recursor's elimination level.
+at the spine's frame: each layer steps by β on the domain (`app_lamV`).
+This is what lets the recursor rule's law read the rule's right-hand
+side with no correspondence between the rule's λ-tower and the
+recursor's elimination level.
 -/
 
 
@@ -652,16 +470,14 @@ theorem mkLamsAV_pt_body :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hAty, hrest, B, hB, -, hB0⟩ := hok'
+    obtain ⟨-, -, hrest, -⟩ := hok'
     rw [consList_cons]
     refine mkLamsAV_pt_body (hrest a hsp.1) hsp.2 ?_
-    rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
-    · exact eq_pt_of_mem_univZero (hB0 h0 a hsp.1) (hB a hsp.1)
-    · have := app_lamR_pos (Nat.pos_iff_ne_zero.mp hpos)
-        (A := interp V ρ d.2) (F := fun x => interp V (cons x ρ) (mkLamsAV lds b)) hsp.1
-      simp only [mkLamsAV, interp_lam] at hpt
-      rw [hpt, app_pt] at this
-      exact this.symm
+    have := app_lamV (A := interp V ρ d.2)
+      (F := fun x => interp V (cons x ρ) (mkLamsAV lds b)) hsp.1
+    simp only [mkLamsAV, interp_lam] at hpt
+    rw [hpt, app_pt] at this
+    exact this.symm
 
 /-- **A graded λ-tower folds to its body** along any fitting spine. -/
 theorem mkLamsAV_fold_graded :
@@ -676,24 +492,15 @@ theorem mkLamsAV_fold_graded :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hAty, hrest, B, hB, -, hB0⟩ := hok'
+    obtain ⟨-, -, hrest, -⟩ := hok'
     rw [consList_cons, List.foldl_cons]
-    rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
-    · -- a zero bit: the layer is the point, and so is the body
-      have hpt : interp V ρ (mkLamsAV (d :: lds) b) = (pt : V) := by
-        simp only [mkLamsAV, interp_lam]
-        rw [h0]
-        exact lamR_zero
-      rw [hpt, app_pt, foldl_app_pt']
-      exact (mkLamsAV_pt_body (hrest a hsp.1) hsp.2
-        (eq_pt_of_mem_univZero (hB0 h0 a hsp.1) (hB a hsp.1))).symm
-    · simp only [mkLamsAV, interp_lam]
-      rw [app_lamR_pos (Nat.pos_iff_ne_zero.mp hpos) hsp.1]
-      exact mkLamsAV_fold_graded (hrest a hsp.1) hsp.2
+    simp only [mkLamsAV, interp_lam]
+    rw [app_lamV hsp.1]
+    exact mkLamsAV_fold_graded (hrest a hsp.1) hsp.2
 
 /-- **A graded λ-tower applied along a fitting spine is graded**: each
-step's Π-package is the layer's own (`lamR_mem` over the grading's
-fibre family), or — once a zero layer has collapsed the value to the
+step's Π-package is the layer's own (`lamV_mem` over the grading's
+fibre family), or — once a layer has collapsed the value to the
 point — the trivial one. -/
 theorem mkAppN_wellDenotedV_of_lam :
     ∀ {lds : List (Nat × AnnotTerm)} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
@@ -709,22 +516,21 @@ theorem mkAppN_wellDenotedV_of_lam :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hAty, hrest, B, hB, -, hB0⟩ := hok'
+    obtain ⟨-, hAty, hrest, B, hB, hBty⟩ := hok'
     have ha := hargs a List.mem_cons_self
     rw [AnnotTerm.mkAppN_cons]
     -- the application's package
     have hokApp : WellDenotedV V ρ (.app f a) := by
-      refine ⟨?_, by rw [AnnotValid_app]; exact ⟨hf.2, ha.2⟩⟩
-      rw [WellDenoted_app]
+      rw [WellDenotedV, WellDenoted_app]
       rcases hval with hpt | heq
-      · exact ⟨hf.1, ha.1, 0, interp V σ d.2, fun _ => unitSet,
+      · exact ⟨hf, ha, 0, interp V σ d.2, fun _ => unitSet,
           by rw [hpt, piR_zero]; exact pt_mem_truthVal fun x _ => ⟨pt, pt_mem_unitSet⟩,
           hsp.1, fun _ _ _ => mem_univZero.mpr (Subset.refl _), fun h => absurd rfl h⟩
-      · refine ⟨hf.1, ha.1, d.1, interp V σ d.2, B, ?_, hsp.1, fun h0 x hx => hB0 h0 x hx,
-          fun _ => hAty⟩
+      · refine ⟨hf, ha, propN (interp V σ d.2) B, interp V σ d.2, B, ?_, hsp.1,
+          propN_eq_zero.mp, fun _ => hAty⟩
         rw [heq]
         simp only [mkLamsAV, interp_lam]
-        exact lamR_mem hB
+        exact lamV_mem hB hBty
     refine mkAppN_wellDenotedV_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
       (hrest _ hsp.1) ?_ hsp.2
     -- the continuation's value
@@ -733,9 +539,7 @@ theorem mkAppN_wellDenotedV_of_lam :
     · left; rw [hpt, app_pt]
     · rw [heq]
       simp only [mkLamsAV, interp_lam]
-      rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
-      · left; rw [h0, lamR_zero, app_pt]
-      · right; rw [app_lamR_pos (Nat.pos_iff_ne_zero.mp hpos) hsp.1]
+      right; rw [app_lamV hsp.1]
 
 
 /-!

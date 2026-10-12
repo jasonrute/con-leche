@@ -138,9 +138,10 @@
 #       to avoid (a hidden reference before the read).
 #
 #   ConLeche/Kernel/BasisGen.lean      unsafe, implemented_by
-#       ELABORATOR-ONLY.  `#annotate_basis` / `#annotate_pins` run the
-#       checker's own annotation pass at elaboration time through
-#       `unsafe evalTerm` and splice the resulting literals.  Nothing
+#       ELABORATOR-ONLY.  `#stored_basis` computes the stored basis
+#       pins (the recursors' install-computed rule fields) at
+#       elaboration time through `unsafe evalTerm` and splices the
+#       resulting literals.  Nothing
 #       here is in the binary; the spliced literals are ordinary data
 #       the proofs consume.
 #

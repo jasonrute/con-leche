@@ -270,7 +270,7 @@ theorem formerApp_mem {μ : ConLeche.CheckMode} {env : Env} (mp : EnvModelM V μ
     have := spineFit_frameIdx_of_sat hs
     rw [hlenT] at this
     rw [← hρ₀]; exact this
-  have hf₂ := foldl_app_mem_mkPisAV_pos (fun d hd => hFD.bits ψ d (List.mem_of_mem_take hd))
+  have hf₂ := foldl_app_mem_mkPisAV_pos
     hfit hfm
   rw [show consList (frameIdx nP ρ) ρ₀ = ρ by rw [← hρ₀]; exact consList_frameIdx nP ρ] at hf₂
   rw [acval_interp_closed mp.base2 _ ψ ρ ρ₀]
@@ -453,9 +453,11 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     · rw [List.getElem?_append_left (by rw [hlenF]; exact hi)] at hx
       obtain ⟨q, hq, -, hqd⟩ := hbind i x hx
       rw [Nat.zero_add] at hqd
+      have hq2 := congrArg (Option.map (·.2.2)) hq
+      rw [← List.getElem?_map, ppsNorm_map_dom] at hq2
       rw [hqd, hLpar i hi]
-      simp only [BlockData.params, List.getD_eq_getElem?_getD, List.getElem?_map, hq]
-      rfl
+      simp only [BlockData.params, List.getD_eq_getElem?_getD]
+      rw [hq2]; rfl
     · rw [List.getElem?_append_right (by rw [hlenF]; omega), hlenF] at hx
       have ht : i - d.nP < d.k := by rw [← hlenH]; exact (List.getElem?_eq_some_iff.mp hx).1
       obtain ⟨cvTb, ty, -, -, hrd, -, -, -, -, h⟩ := hhole (i - d.nP) ht
@@ -642,11 +644,7 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     intro ρp hs X hX
     simp only [BlockData.holeCtx, List.reverse_append]
     refine sat_of_spineFit hs (spineFit_range_lift d.k (fun t ht => ?_))
-    obtain ⟨cvTb, hcvb⟩ : ∃ cvTb, cvTas[t]? = some cvTb :=
-      ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact ht)⟩
-    obtain ⟨-, hFDt⟩ := hF t cvTb hcvb
     exact LfpDatum.holeVal_mem hkN hX ht (ab := (d.ppsM t ψ).drop d.nP) rfl
-      (fun x hx => hFDt.bits ψ x (List.mem_of_mem_drop hx))
   -- ## the normal form reads like the crest (the walk's semantic link)
   rw [← hhi] at hfr hCP hca₀
   obtain ⟨abD, abN, B, hcaE, hNE, hlD, hlN, hbits, hEq, hgN, hfrN, hsubN⟩ :=
@@ -739,9 +737,17 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   obtain ⟨abD, abN', B, hhi, hcaE, hNE, hlD, hlN, -, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, -, -,
     hsatFrame⟩ := blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames
       hnP hk hcv0 hop0 hholes hCf hCb hcrest hinf hsort hd hca
-  obtain ⟨rfl, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
+  obtain ⟨hppD, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
   rw [hNr] at hNE
-  obtain ⟨rfl, -⟩ := mkPisAV_inj (hlabN.trans hlN.symm) (Option.some.inj hNE)
+  obtain ⟨hppN, -⟩ := mkPisAV_inj (hlabN.trans hlN.symm) (Option.some.inj hNE)
+  have hN' : ∀ X, mkPisAV abN' X = mkPisAV abN X := fun X => by
+    rw [← mkPisAV_ppsNorm abN', ← hppN, mkPisAV_ppsNorm]
+  have hDm : abD.map (·.2.2) = ab.map (·.2.2) := by
+    rw [← ppsNorm_map_dom abD, ← hppD, ppsNorm_map_dom]
+  have hNm : abN'.map (·.2.2) = abN.map (·.2.2) := by
+    rw [← ppsNorm_map_dom abN', ← hppN, ppsNorm_map_dom]
+  rw [hN'] at hgN
+  rw [hDm, hNm] at hEq
   exact ⟨ab, abN, hhi, hca, hNr, hab, hlab, hlabN, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, hsatFrame⟩
 
 /-! ## The block -/

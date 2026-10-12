@@ -391,7 +391,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
     refine ⟨cvTb, _, by
       show (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?
         ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).memberName mm) = _
-      rw [hname]; exact hfind, fun ψ => ⟨_, hFD.read ψ, ?_, hFD.bits ψ⟩⟩
+      rw [hname]; exact hfind, fun ψ => ⟨_, hFD.read ψ, ?_⟩⟩
     show _ = (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM mm ψ).take
         (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP).map (·.2.2) ++
       (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM mm ψ).drop

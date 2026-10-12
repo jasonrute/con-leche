@@ -35,7 +35,7 @@ the interp-equality half, *does* hypothesise).
 Three things are worth naming:
 
 * **the grading crosses the substitution only because the arguments
-  are graded.**  `WellDenoted_inst`/`AnnotValid_inst` charge for the
+  are graded.**  `WellDenoted_inst` charges for the
   substituted value at every cut, so `wellDenotedV_instSeq` needs
   `∀ w ∈ ws, WellDenotedV V ρ w`.  The conjunct supplies it
   (`∀ z ∈ zs, WellDenotedV V ρ z`); the interp-equality half cannot,
@@ -81,11 +81,8 @@ def padA : AnnotTerm := .eqE (.sort 0) (.sort 0)
   rw [padA, interp_eqE, interp_sort]
 
 theorem wellDenotedV_padA (ρ : Nat → V) : WellDenotedV V ρ padA := by
-  refine ⟨?_, ?_⟩
-  · rw [padA, WellDenoted_eqE]
-    exact ⟨trivial, trivial⟩
-  · rw [padA, AnnotValid_eqE]
-    exact ⟨trivial, trivial⟩
+  rw [WellDenotedV, padA, WellDenoted_eqE]
+  exact ⟨trivial, trivial⟩
 
 /-! ## The chain's ambient environment -/
 
@@ -121,15 +118,10 @@ theorem wellDenotedV_instSeq {ρ : Nat → V} :
     have hstep : WellDenotedV V (chain V ρ ws) (X.inst w ws.length) := by
       have hshift : shiftE ws.length 0 (chain V ρ ws) = ρ :=
         shiftE_chain ρ ws
-      refine ⟨?_, ?_⟩
-      · rw [WellDenoted_inst V X w ws.length (chain V ρ ws)
-          (by rw [hshift]; exact hokw.1)]
-        rw [hshift, ← chain_cons_eq_instE]
-        exact hX.1
-      · rw [AnnotValid_inst V X w ws.length (chain V ρ ws)
-          (by rw [hshift]; exact hokw.2)]
-        rw [hshift, ← chain_cons_eq_instE]
-        exact hX.2
+      rw [WellDenotedV, WellDenoted_inst V X w ws.length (chain V ρ ws)
+        (by rw [hshift]; exact hokw)]
+      rw [hshift, ← chain_cons_eq_instE]
+      exact hX
     have h := ih (fun x hx => hoks x (List.mem_cons_of_mem _ hx)) hstep
     show WellDenotedV V ρ (ConLeche.Model.AnnotTerm.instSeq ws
       ((w :: ws).length - 1 - 1) (X.inst w ((w :: ws).length - 1)))
