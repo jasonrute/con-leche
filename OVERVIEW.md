@@ -1333,3 +1333,42 @@ extracts every linked segment into one text and compares it with
 `tests/overview-links-expected.txt`, so moving or changing the cited
 lines fails the gate and is the reminder to re-read the paragraph that
 cites them and to run `tests/overview-links.sh --update`.
+
+## 13. What the environment stores beyond Lean's
+
+The checker's environment (`ConLeche.Env`, `ConLeche/Kernel/Env.lean`)
+holds the declarations as the export gives them, plus the data below.
+All of it is computed at install from the declarations themselves; none
+of it comes from the input. Running directly on a `Lean.Environment`
+would mean computing the first group on use, or in a memo outside the
+environment, and replacing the second by an on-demand computation.
+
+**Derived per-constant data.** Each entry is either a field Lean
+already stores, or a function of the inductive's and its constructors'
+types.
+
+| Where | Field | Lean's counterpart, or how it is computed |
+|---|---|---|
+| `IndCaps` | `all`, `nparams`, `ctors` | `InductiveVal.all`, `numParams`, `ctors` |
+| `IndCaps` | `ruleK` | `RecursorVal.k` |
+| `IndCaps` | `eta`, `etaCtor`, `etaParams`, `etaFields` | whether the family has structure η, and its constructor's name and counts; from the inductive and its single constructor |
+| `IndCaps` | `unitlike`, `unitParams` | whether all inhabitants are definitionally equal; from the constructor types |
+| `IndCaps` | `sortZ` | the zero-ness of the family's result sort, read off its stored type |
+| `recInfo` | `majorIdx`, `rulePrefix` | sums of `RecursorVal.numParams`, `numMotives`, `numMinors`, `numIndices` |
+| `RecRule` | `ctorParams` | the constructor's `numParams` |
+| `RecRule` | `k`, `eta` | the recursor's K flag and its family's structure η, per rule |
+| `RecRule` | `fire` | `.plain` for a recursor whose major premise is a member of its own block; for an auxiliary recursor of a nested block, `.nested lvls pins`, the container's level and parameter instantiation read off the recursor type's major-premise domain |
+
+**Synthetic constants.** For each structure `T` the installer stores one
+projection table (`projInfo`, a `ProjTable`) under the reserved name
+`T.projTable.0`: for every field the projection's result-type body (the
+type of `.proj T i`), its `Prop` guard level, the structure's sort, and
+the carrier offset `off`, which only the model reads. Lean's kernel
+stores nothing for projections; it computes a projection's type from the
+constructor's type when it meets one (`infer_proj`).
+
+**Not counted.** The `FEnv` lookup indexes are a performance device over
+the same data. The pinned basis blocks and the Nat-op pins are expected
+shapes, compared against the input, so they are code. Some things are
+stored with less than Lean keeps: a theorem without its value, an opaque
+constant as an axiom.
