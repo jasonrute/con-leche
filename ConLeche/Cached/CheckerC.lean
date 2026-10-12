@@ -173,7 +173,7 @@ def checkBlockTailS (block : List ConstantInfo) (q : BlockPass FEnv) :
   flushC
   let out ← genRecCheck (shadowOpsC mode) fe₂ p.toBlockShape
     (blockNestedBit p.toBlockShape kinds) params tbl.toList rd cls cvTas block
-  let recs := blockRecInfosTF fe₂.find? (·.constsResolveF fe₂) p.toBlockShape 0 out
+  let recs := blockRecInfosTF fe₂.find? p.toBlockShape 0 out
   checkBlockTablesF (m := CheckCM) structWalkersC p.toBlockShape
     (p.members.zip (ctorsAs.zip sortsss)) (FEnv.pushAll recs fe₂)
 

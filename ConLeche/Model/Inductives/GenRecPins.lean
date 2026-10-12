@@ -9,7 +9,7 @@ import ConLeche.Model.Capstone
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Verify.Inductives.TargetAuxFire
-import ConLeche.Verify.Inductives.NestedRuleSyn
+public import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Verify.InstSpine
 import ConLeche.Verify.Denote.OpenVars
@@ -41,9 +41,10 @@ public section
 
 `recStagePinsOk`: `RecRulePinsOk` at every stored rule of ANY recursor
 stage (`RecStageG`) whose rules fire by `tgtFireOf` — in particular the
-GENERATED stage (`genRecStage`'s `hpins`).  A `.nested` firing is an
-outside major's; its pins are the stored type's major-domain parameters
-closed over the rule prefix (`nestedRuleSyn_open`), so what the law asks
+GENERATED stage (`genRecStage`'s `hpins`), given that a `.nested` firing
+reads off the stored type (`NestedRead`).  Its pins are then the stored
+type's major-domain parameters closed over the rule prefix
+(`nestedRead_open`), so what the law asks
 is that each parameter's reading is graded at every prefix spine.
 
 That grading comes from the stored type's OWN inference
@@ -381,9 +382,10 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 
 set_option maxHeartbeats 2000000 in
 /-- **The `.nested` pins' law at every stored rule, of ANY recursor
-stage** (`tgtRecPinsOk` without the target check's run).  A `.nested`
-firing is an outside major's; the pins are the stored type's major-domain
-parameters closed over the rule prefix (`nestedRuleSyn_open`), so opened
+stage** (`tgtRecPinsOk` without the target check's run), given that a
+`.nested` firing reads off the stored type (`hread`; the generated stage's
+`GenRecRun.fire_nestedRead`).  The pins are the stored type's major-domain
+parameters closed over the rule prefix (`nestedRead_open`), so opened
 back at the prefix openers they ARE those parameters
 (`instSeq_abstractRange_open`), graded at every prefix spine by the
 stored type's own inference (`storedMajorArg_graded`); `nestedPinGrade`
@@ -397,35 +399,22 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     (m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC))
     (hac : m₃.acval = blockRecAcv mpC.base2.acval envC (tgtRs out) s eqs)
     (φ : Name → Nat) (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat))
-    (hr : (tgtRs out)[j]? = some r) (cA : ConstantVal × Nat) (rhs : Expr) :
+    (hr : (tgtRs out)[j]? = some r) (cA : ConstantVal × Nat) (rhs : Expr)
+    (hread : ∀ lvls pins,
+      ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r = .nested lvls pins →
+      ConLeche.NestedRead (·.constsResolve envC) r.1.levelParams r.1.type
+        (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
+        (ConLeche.tgtMajorsOf out j).nPc lvls pins) :
     RecRulePinsOk m₃ φ r.1 (pp.toBlockShape.rulePrefixAt j)
       (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
-            fire := (ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape
+            fire := (ConLeche.tgtFireOf pp.toBlockShape
               (ConLeche.tgtMajorsOf out)) j r, rhs := rhs }) := by
   intro us hus lvls pins hf q hq
   simp only [ConLeche.recRuleBits_fire] at hf
   simp only [ConLeche.recRuleBits_ctorParams] at hq
-  obtain ⟨-, -, hpinsWf, -⟩ := ConLeche.tgtFireOf_nested hf
-  -- the major is outside
-  have hMo : (ConLeche.tgtMajorsOf out j).member = none := by
-    cases hm : (ConLeche.tgtMajorsOf out j).member with
-    | none => rfl
-    | some t =>
-      simp only [ConLeche.tgtFireOf, hm] at hf
-      exact nomatch hf
-  unfold ConLeche.tgtFireOf at hf
-  rw [hMo] at hf
-  simp only [ConLeche.auxRuleFireR] at hf
-  cases hsyn : Expr.nestedRuleSyn (·.constsResolve envC) r.1.levelParams r.1.type
-      (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
-      (ConLeche.tgtMajorsOf out j).nPc with
-  | none => rw [hsyn] at hf; exact nomatch hf
-  | some lp =>
-  obtain ⟨lvls', pins'⟩ := lp
-  rw [hsyn] at hf
-  injection hf with hl hp
-  rw [hl, hp] at hsyn
+  have hsyn := hread lvls pins hf
+  obtain ⟨-, -, hpinsWf, -⟩ := id hsyn
   -- the stored type's openers
   obtain ⟨_, _, -, ⟨TE⟩⟩ := ConLeche.recStageG_tyGen h hr
   have hopen := TE.hopen
@@ -441,8 +430,8 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
   rw [hRP, hMI] at hsyn
   rw [hRP] at hgradeAt hle0 ⊢
   rw [hMI] at hopen hmaj hle0
-  obtain ⟨-, hpinsE⟩ := ConLeche.nestedRuleSyn_open hsyn hopen hmaj
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, hplen⟩ := ConLeche.nestedRuleSyn_inv hsyn
+  obtain ⟨-, hpinsE⟩ := ConLeche.nestedRead_open hsyn hopen hmaj
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, hplen⟩ := hsyn
   -- the `q`-th pin is the `q`-th parameter, closed
   generalize hds : TE.maj.fvarTypeD.getAppArgs.take (ConLeche.tgtMajorsOf out j).nPc = ds
     at hpinsE

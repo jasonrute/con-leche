@@ -4,7 +4,7 @@ public import ConLeche.Verify.Inductives.BlockRecRun
 import ConLeche.Verify.ProjSlots
 import ConLeche.Verify.CheckerF
 public import ConLeche.Verify.Inductives.BlockWF
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Inductives.DirectGen
 
 public section
@@ -446,10 +446,10 @@ position. -/
 
 /-- The install's rules function: each recursor's stored rules
 at its major `Ms m` (`tgtStoredRules`). -/
-@[expose] def tgtRulesR (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+@[expose] def tgtRulesR (find? : Name → Option ConstantInfo)
     (q : BlockShape) (Ms : Nat → TargetMajor) :
     Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List RecRule :=
-  fun m r => tgtStoredRules find? resolves r.1 (q.majorIdxAt m) (q.rulePrefixAt m) (Ms m) r.2.1
+  fun m r => tgtStoredRules find? r.1 (q.rulePrefixAt m) (Ms m) r.2.1
 
 /-- The checked majors by absolute position. -/
 @[expose] def tgtMajorsOf (out : List (ConstantVal × TargetMajor × List Expr)) :
@@ -457,123 +457,69 @@ at its major `Ms m` (`tgtStoredRules`). -/
   fun m => (out.getD m default).2.1
 
 /-- `consBlockRecsT` is the generic cons at `tgtRulesR`, from any start. -/
-theorem consBlockRecsT_eq_R_gen (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+theorem consBlockRecsT_eq_R_gen (find? : Name → Option ConstantInfo)
     (q : BlockShape) (Ms : Nat → TargetMajor) :
     ∀ (m : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) (env : Env),
       (∀ (i : Nat) (t : ConstantVal × TargetMajor × List Expr), out[i]? = some t →
         Ms (m + i) = t.2.1) →
-      consBlockRecsT find? resolves q m out env
-        = consBlockRecsR (tgtRulesR find? resolves q Ms) q m (tgtRs out) env
+      consBlockRecsT find? q m out env
+        = consBlockRecsR (tgtRulesR find? q Ms) q m (tgtRs out) env
   | _, [], _, _ => rfl
   | m, (cv, M, rhss) :: rest, env, hMs => by
     have h0 : Ms m = M := by simpa using hMs 0 _ rfl
     simp only [consBlockRecsT, tgtRs, List.map_cons, consBlockRecsR, tgtRulesR, h0]
-    exact consBlockRecsT_eq_R_gen find? resolves q Ms (m + 1) rest _
+    exact consBlockRecsT_eq_R_gen find? q Ms (m + 1) rest _
       (fun i t ht => by
         have := hMs (i + 1) t (by simpa using ht)
         rwa [show m + (i + 1) = m + 1 + i by omega] at this)
 
 /-- **`consBlockRecsT` is the generic cons at `tgtRulesR`.** -/
-theorem consBlockRecsT_eq_R (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+theorem consBlockRecsT_eq_R (find? : Name → Option ConstantInfo)
     (q : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr)) (env : Env) :
-    consBlockRecsT find? resolves q 0 out env
-      = consBlockRecsR (tgtRulesR find? resolves q (tgtMajorsOf out)) q 0 (tgtRs out) env :=
-  consBlockRecsT_eq_R_gen find? resolves q _ 0 out env fun i t ht => by
+    consBlockRecsT find? q 0 out env
+      = consBlockRecsR (tgtRulesR find? q (tgtMajorsOf out)) q 0 (tgtRs out) env :=
+  consBlockRecsT_eq_R_gen find? q _ 0 out env fun i t ht => by
     simp [tgtMajorsOf, List.getD_eq_getElem?_getD, ht]
 
-/-- The install's firing at position `j`: `.nested` as `auxRuleFireR`
-reads it at an OUTSIDE major, `.plain` at a member one. -/
-@[expose] def tgtFireOf (resolves : Expr → Bool) (q : BlockShape) (Ms : Nat → TargetMajor)
-    (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) : RecRuleFire :=
+/-- The install's firing at position `j` (the generic `fireOf` shape,
+`RecRulesShape`; the recursor itself is not read): `auxRuleFire` at an
+OUTSIDE major, `.plain` at a member one. -/
+@[expose] def tgtFireOf (q : BlockShape) (Ms : Nat → TargetMajor)
+    (j : Nat) (_r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) : RecRuleFire :=
   match (Ms j).member with
-  | none => auxRuleFireR resolves r.1 (q.majorIdxAt j) (q.rulePrefixAt j) (Ms j).nPc
+  | none => auxRuleFire (Ms j) (q.rulePrefixAt j)
   | some _ => .plain
 
-/-- **A `.nested` firing is an outside major's reading**, with its
-guards (`nestedRuleSyn_inv`): `EnvWF`'s clause at `resolves`. -/
-theorem tgtFireOf_nested {resolves : Expr → Bool} {q : BlockShape} {Ms : Nat → TargetMajor}
+/-- **A `.nested` firing is an outside major's datum**: its levels and
+pins are `auxRuleFire`'s. -/
+theorem tgtFireOf_nested_eq {q : BlockShape} {Ms : Nat → TargetMajor}
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     {lvls : List Level} {pins : List Expr}
-    (h : tgtFireOf resolves q Ms j r = .nested lvls pins) :
-    q.rulePrefixAt j ≤ q.majorIdxAt j ∧
-    (∀ l ∈ lvls, l.allParamsDefined r.1.levelParams = true) ∧
-    (∀ pin ∈ pins, pin.hasFvar = false ∧
-      pin.allLevelParamsDefined r.1.levelParams = true ∧
-      resolves pin = true ∧
-      pin.looseBVarsBounded (q.rulePrefixAt j) = true) ∧
-    ∃ pre dom body D,
-      r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
-      dom.getAppFn = .const D lvls ∧
-      dom.getAppArgs =
-        pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++
-          (List.range (q.majorIdxAt j - q.rulePrefixAt j)).map
-            (fun i => Expr.bvar (q.majorIdxAt j - q.rulePrefixAt j - 1 - i)) := by
+    (h : tgtFireOf q Ms j r = .nested lvls pins) :
+    (Ms j).member = none ∧ lvls = (Ms j).lvls ∧
+      pins = (Ms j).ds.map (Expr.abstractPrefix (q.rulePrefixAt j) 0) := by
   unfold tgtFireOf at h
   split at h
-  · simp only [auxRuleFireR] at h
-    split at h
-    · rename_i lvls' pins' hsyn
-      injection h with h1 h2
-      subst h1 h2
-      obtain ⟨h1, h2, h3, pre, dom, body, D, hs, hfn, hargs, -⟩ := nestedRuleSyn_inv hsyn
-      exact ⟨h1, h2, h3, pre, dom, body, D, hs, hfn, hargs⟩
-    · exact nomatch h
+  · rename_i hm
+    simp only [auxRuleFire, RecRuleFire.nested.injEq] at h
+    exact ⟨hm, h.1.symm, h.2.symm⟩
   · exact nomatch h
 
-/-- **The install's reading check, at one position** (`tgtNestedReads`). -/
-theorem tgtNestedReads_getElem {resolves : Expr → Bool} {q : BlockShape} :
-    ∀ {m : Nat} {out : List (ConstantVal × TargetMajor × List Expr)},
-      tgtNestedReads resolves q m out = true →
-      ∀ {j : Nat} {t : ConstantVal × TargetMajor × List Expr}, out[j]? = some t →
-        t.2.1.member = none →
-        (Expr.nestedRuleSyn resolves t.1.levelParams t.1.type (q.majorIdxAt (m + j))
-          (q.rulePrefixAt (m + j)) t.2.1.nPc).isSome = true
-  | _, [], _, _, _, ht, _ => nomatch ht
-  | m, (cv, M, rhss) :: rest, h, j, t, ht, hm => by
-    simp only [tgtNestedReads, Bool.and_eq_true, Bool.or_eq_true] at h
-    cases j with
-    | zero =>
-      obtain rfl := Option.some.inj ht.symm
-      rcases h.1 with h1 | h1
-      · rw [hm] at h1; exact nomatch h1
-      · exact h1
-    | succ j =>
-      have := tgtNestedReads_getElem h.2 (j := j) (by simpa using ht) hm
-      rwa [show m + 1 + j = m + (j + 1) by omega] at this
-
-/-- **At a checked family every outside major's rules fire `.nested`**:
-the install has checked that each auxiliary recursor's major domain
-reads (`tgtNestedReads`, `genRecCheck`). -/
-theorem tgtFireOf_nested_of_reads {resolves : Expr → Bool} {q : BlockShape}
-    {out : List (ConstantVal × TargetMajor × List Expr)}
-    (h : tgtNestedReads resolves q 0 out = true)
-    {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
-    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajorsOf out j).member = none) :
-    ∃ lvls pins, tgtFireOf resolves q (tgtMajorsOf out) j r = .nested lvls pins := by
-  obtain ⟨t, ht, rfl⟩ : ∃ t, out[j]? = some t ∧ r = (t.1, t.2.2, t.2.1.nIdx, t.2.1.ctors) := by
-    simp only [tgtRs, List.getElem?_map] at hr
-    cases ho : out[j]? with
-    | none => rw [ho] at hr; exact nomatch hr
-    | some t => rw [ho] at hr; exact ⟨t, rfl, (Option.some.inj hr).symm⟩
-  have hM : tgtMajorsOf out j = t.2.1 := by
-    simp [tgtMajorsOf, List.getD_eq_getElem?_getD, ht]
-  rw [hM] at hm
-  have hs := tgtNestedReads_getElem h ht hm
-  rw [Nat.zero_add] at hs
-  unfold tgtFireOf auxRuleFireR
-  rw [hM, hm]
-  dsimp only
-  cases hsyn : Expr.nestedRuleSyn resolves t.1.levelParams t.1.type (q.majorIdxAt j)
-      (q.rulePrefixAt j) t.2.1.nPc with
-  | none => rw [hsyn] at hs; exact nomatch hs
-  | some lp => exact ⟨lp.1, lp.2, rfl⟩
+/-- **At an outside major the rules fire `.nested`**, at `auxRuleFire`'s
+datum. -/
+theorem tgtFireOf_of_out {q : BlockShape} {Ms : Nat → TargetMajor}
+    {j : Nat} (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat))
+    (hm : (Ms j).member = none) :
+    tgtFireOf q Ms j r
+      = .nested (Ms j).lvls ((Ms j).ds.map (Expr.abstractPrefix (q.rulePrefixAt j) 0)) := by
+  simp only [tgtFireOf, hm, auxRuleFire]
 
 /-- **The install's rules have the shape**, at each major's
 parameter count and `tgtFireOf`. -/
-theorem recRulesShape_tgt (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+theorem recRulesShape_tgt (find? : Name → Option ConstantInfo)
     (q : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr)) :
-    RecRulesShape find? (tgtRulesR find? resolves q (tgtMajorsOf out)) (tgtRs out)
-      (fun j => (tgtMajorsOf out j).nPc) (tgtFireOf resolves q (tgtMajorsOf out)) := by
+    RecRulesShape find? (tgtRulesR find? q (tgtMajorsOf out)) (tgtRs out)
+      (fun j => (tgtMajorsOf out j).nPc) (tgtFireOf q (tgtMajorsOf out)) := by
   intro j r hr rl hrl
   obtain ⟨t, ht, rfl⟩ : ∃ t, out[j]? = some t ∧ r = (t.1, t.2.2, t.2.1.nIdx, t.2.1.ctors) := by
     simp only [tgtRs, List.getElem?_map] at hr

@@ -23,7 +23,7 @@ import ConLeche.Verify.Denote.EnvExt
 import ConLeche.Verify.Denote
 import ConLeche.Verify.EnvWF
 import ConLeche.Verify.Extend.Inversions
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Shift
 import ConLeche.Verify.Subst
 public section

@@ -792,7 +792,7 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
                 -- instantiation and leading arguments; nested: the
                 -- stored major-domain instantiations) — the firing mode
                 -- was computed once at install (`sumRules` /
-                -- `auxRuleFireR`), never re-derived per fire
+                -- `auxRuleFire`), never re-derived per fire
                 if ← liftFueled "level comparison" (Level.isEquivList usj
                     (recFireComparands rl cv.levelParams us
                       cvj.levelParams args rP).1) then

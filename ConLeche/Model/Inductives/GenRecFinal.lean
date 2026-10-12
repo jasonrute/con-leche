@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.GenRecAssembly
+import ConLeche.Verify.Inductives.TargetAuxFire
 import ConLeche.Model.Inductives.NestedRecRest
 import ConLeche.Model.Inductives.BlockRecPreHpre
 import ConLeche.Model.Inductives.BlockDeclRun
@@ -68,12 +69,6 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
   obtain ⟨hPos, henvC, hnames, hndM, hN, hS, hcore, hctorsAs, hdR, hlfp, hcov, hmk, hover,
     ⟨R⟩, hheads⟩ := hctx0
   obtain ⟨pk, uOfD, ppsOf, hdRe⟩ := hdR
-  -- every outside major's rules fire `.nested` (the install's reading check)
-  have hreads : ConLeche.tgtNestedReads (fun x => Expr.constsResolve envC x) pp.toBlockShape 0 out
-      = true := by
-    have h0 := R.hreads
-    rwa [show (fun x : Expr => x.constsResolveF (mkFEnv envC)) = (fun x => Expr.constsResolve envC x)
-      from funext (ConLeche.constsResolveF_eq envC)] at h0
   -- the environments are well formed; the formers' and constructors' types closed
   have hwfC : ConLeche.EnvWF envC := mpC.base2.wf
   have hwfI : ConLeche.EnvWF envI := by
@@ -191,7 +186,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA
         (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
-            fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+            fire := ConLeche.tgtFireOf pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
     intro φ j r hr i cA rhs hcA _
     have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
@@ -199,13 +194,13 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     cases hmb : (tgtMajor out j).member with
     | none =>
       have hmb' : (ConLeche.tgtMajorsOf out j).member = none := hmb
-      obtain ⟨lvls, pins, hf⟩ := ConLeche.tgtFireOf_nested_of_reads hreads hr hmb'
+      have hf := ConLeche.tgtFireOf_of_out (q := pp.toBlockShape) r hmb'
       exact genRows3_out hμ R hg hcov h (fun ψ ρ => (hcsem ψ ρ).1) (fun ψ ρ => (hcsem ψ ρ).2.2.1)
         (fun ψ ρ => (hcsem ψ ρ).2.2.2) hr hmb hcA Rd (hcls j hj hmb) hnP hf
         (by rw [ConLeche.recRuleBits_fire]; exact hf)
     | some t =>
       have hmb' : (ConLeche.tgtMajorsOf out j).member = some t := hmb
-      have hplain : ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+      have hplain : ConLeche.tgtFireOf pp.toBlockShape
           (ConLeche.tgtMajorsOf out) j r = .plain := by
         simp only [ConLeche.tgtFireOf, hmb']
       exact genRows3_mem hμ R h hdRe hN hS hcore hlfp hnames (fun ψ ρ => (hcsem ψ ρ).1)
@@ -258,13 +253,13 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       RecRuleKWit m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
         (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
-            fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+            fire := ConLeche.tgtFireOf pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) ∧
       RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
         (pp.toBlockShape.rulePrefixAt j)
         (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
-            fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+            fire := ConLeche.tgtFireOf pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
     intro Rr m₃ hac φ j r hr i cA rhs hcA hrhs
     have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
@@ -274,11 +269,12 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     | none =>
       obtain ⟨-, cvI, Rd⟩ := hrdAll j hj
       have hmb' : (ConLeche.tgtMajorsOf out j).member = none := hmb
-      obtain ⟨lvls, pins, hf⟩ := ConLeche.tgtFireOf_nested_of_reads hreads hr hmb'
+      have hf := ConLeche.tgtFireOf_of_out (q := pp.toBlockShape) r hmb'
       refine genOutExtra hμ R hg hcov h (fun ψ ρ => (hcsem ψ ρ).1) hr hmb hcA Rd (hcls j hj hmb)
         hnP hf hctorCB hctorRd hac φ rfl rfl rfl
         (by rw [ConLeche.recRuleBits_fire]; exact hf) rfl
-        (recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs) ?_
+        (recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs
+          (fun _ _ hf' => R.fire_nestedRead hr hf')) ?_
       intro us hus hℓ
       refine ⟨fun ρ => ?_, fun Ra hRa ρ => ?_⟩
       · rw [blockRecHleaf hac (ConLeche.recStageG_nodup h hndM) hr]
@@ -291,7 +287,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         exact genRuleRaZ hμ R hg h mpC hfind hlenEs hr hcA hrhs hRa hℓ ρ
     | some t =>
       have hmb' : (ConLeche.tgtMajorsOf out j).member = some t := hmb
-      have hplain : ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+      have hplain : ConLeche.tgtFireOf pp.toBlockShape
           (ConLeche.tgtMajorsOf out) j r = .plain := by
         simp only [ConLeche.tgtFireOf, hmb']
       obtain ⟨cvT, G⟩ := genMemAt_of R h hdRe hN hS hcore hlfp hnames hr hmb hcA
@@ -302,12 +298,13 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
   exact blockRecStaged_dataR (ctorTy := fun j i ψ =>
       blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) hμ mpC h
     (ConLeche.recStageG_nodup h hndM)
-    (ConLeche.recRulesShape_tgt envC.find? (·.constsResolve envC) pp.toBlockShape out)
+    (ConLeche.recRulesShape_tgt envC.find? pp.toBlockShape out)
     (fun j r hr lvls pins hf => by
-      obtain ⟨n1, n2, n3, n4⟩ := ConLeche.tgtFireOf_nested hf
+      have hread := R.fire_nestedRead hr hf
+      obtain ⟨n1, n2, n3, pre, dom, body, D, e1, e2, e3, -⟩ := id hread
       exact ⟨n1, n2, fun pin hpin => ⟨(n3 pin hpin).1, (n3 pin hpin).2.1,
         (n3 pin hpin).2.2.1, (n3 pin hpin).2.2.2,
-        tgtFire_pinsNoProj h j r hr lvls pins hf pin hpin⟩, n4⟩)
+        tgtFire_pinsNoProj h j r hr hread pin hpin⟩, pre, dom, body, D, e1, e2, e3⟩)
     (genRecCtor_in R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov)
     (pdoms0 := fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
     (fdoms0 := fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
@@ -319,7 +316,8 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     (fun j r hr => blockRecNCt_ge hr)
     (fun ψ j r hr => blockRulePdomsAV_length hμ mpC h hr ψ)
     (genRecCtor_seam R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov) (genRecHtower R)
-    (fun m₃ hac φ j r hr _ cA rhs _ _ => recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs)
+    (fun m₃ hac φ j r hr _ cA rhs _ _ => recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs
+      (fun _ _ hf' => R.fire_nestedRead hr hf'))
     (fun m₃ hac => hextra _ m₃ hac) hdataS
     (genRecTyZ hμ R hg h mpC)
     (fun _ _ hr _ _ _ hcA hrhs _ _ hRa hℓ ρ =>

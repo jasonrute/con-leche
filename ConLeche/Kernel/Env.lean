@@ -102,12 +102,11 @@ else of the constructor's parameters.
   the recursor's leading arguments).
 * `.nested lvls pins` — an auxiliary recursor's rule at an outside
   major (a nested block): the comparands are fixed instantiations,
-  read at install off the recursor type's major domain
-  (`Expr.nestedRuleSyn`; an auxiliary recursor whose major domain does
-  not read fails the install, `genRecCheck`) — `lvls` are levels over the
-  recursor's level parameters, `pins` expressions in the recursor's
-  rule-prefix context, instantiated at the redex's levels and leading
-  arguments. -/
+  the class's levels and parameters the generated recursor type's major
+  domain applies the container to (`auxRuleFire`) — `lvls` are levels
+  over the recursor's level parameters, `pins` expressions in the
+  recursor's rule-prefix context, instantiated at the redex's levels and
+  leading arguments. -/
 inductive RecRuleFire where
   | plain
   | nested (lvls : List Level) (pins : List Expr)
