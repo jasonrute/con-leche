@@ -109,25 +109,21 @@ theorem checkConstantValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
   · simp only [ite_eq_left h6]
     exact SimC.throw_bind
   simp only [ite_eq_right h6]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).annotate hs
-      rfl
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h6)))
-    (fun s₁ jA w hs₁ hP => ?_)
-  obtain ⟨hjA, hwty⟩ := hP
-  obtain rfl := hjA
+  have hwty : Expr.WScoped 0 cvp.type :=
+    Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h6)
   rw [Expr.allLevelParamsDefinedC_spec]
-  by_cases h7 : Expr.allLevelParamsDefined cvp.levelParams jA = true
+  by_cases h7 : Expr.allLevelParamsDefined cvp.levelParams cvp.type = true
   case neg =>
     simp only [ite_eq_right h7]
     exact SimC.throw_bind
   simp only [ite_eq_left h7]
   rw [constsResolveFC_spec, constsResolveF_eq]
-  by_cases h8 : Expr.constsResolve env jA = true
+  by_cases h8 : Expr.constsResolve env cvp.type = true
   case neg =>
     simp only [ite_eq_right h8]
     exact SimC.throw_bind
   simp only [ite_eq_left h8]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs₁ rfl hwty)
+  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs rfl hwty)
     (fun s₂ jsty wsty hs₂ hP₂ => ?_)
   obtain ⟨hjsty, hwsty⟩ := hP₂
   refine SimC.bind (opSIxC_sim hμ henv hs₂ hjsty hwsty)
@@ -136,7 +132,7 @@ theorem checkConstantValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
 
 /-- `checkDefnValCI` simulates the generic `checkDefnVal`: the record
 pushed onto the index is `mkFEnv` of the fueled environment, whose head
-stores the annotated (fvar-free) value. -/
+stores the (fvar-free) value. -/
 theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvA : ConstantVal}
     {jty : Expr} {value : Expr} {ve : Expr} {hint : ReducibilityHint}
     (htf : Expr.WScoped 0 cvA.type) (hjty : RelC jty cvA.type)
@@ -158,24 +154,21 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
   · simp only [ite_eq_left h2]
     exact SimC.throw_bind
   simp only [ite_eq_right h2]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).annotate hs rfl
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)))
-    (fun s₁ jv w hs₁ hP => ?_)
-  obtain ⟨hjv, hwv⟩ := hP
-  obtain rfl := hjv
+  have hwv : Expr.WScoped 0 value :=
+    Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)
   rw [Expr.allLevelParamsDefinedC_spec]
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams jv = true
+  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams value = true
   case neg =>
     simp only [ite_eq_right h3]
     exact SimC.throw_bind
   simp only [ite_eq_left h3]
   rw [constsResolveFC_spec, constsResolveF_eq]
-  by_cases h4 : Expr.constsResolve env jv = true
+  by_cases h4 : Expr.constsResolve env value = true
   case neg =>
     simp only [ite_eq_right h4]
     exact SimC.throw_bind
   simp only [ite_eq_left h4]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs₁ rfl hwv)
+  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs rfl hwv)
     (fun s₂ jvt wvt hs₂ hP₂ => ?_)
   obtain ⟨hjvt, hwvt⟩ := hP₂
   refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₂ hjvt hjty hwvt htf)
@@ -189,7 +182,7 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     simp only [↓reduceIte]
     refine SimC.pure hs₃ ⟨push_mkFEnv env _, ?_⟩
     intro cv' v' h' hf
-    rw [Env.find?_cons, ite_eq_left (show (ConstantInfo.defnInfo cvA jv
+    rw [Env.find?_cons, ite_eq_left (show (ConstantInfo.defnInfo cvA value
       hint).name = cvA.name from rfl)] at hf
     simp only [Option.some.injEq, ConstantInfo.defnInfo.injEq] at hf
     obtain ⟨-, rfl, -⟩ := hf
@@ -197,7 +190,7 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
 
 /-- `checkDefnValC` simulates the generic `checkDefnVal`: the pushed
 index is `mkFEnv` of the fueled environment, whose head stores the
-annotated (fvar-free) value. -/
+(fvar-free) value. -/
 theorem checkDefnValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvA : ConstantVal}
     {jty : Expr} {value : Expr} {ve : Expr} {hint : ReducibilityHint}
     (htf : Expr.WScoped 0 cvA.type) (hjty : RelC jty cvA.type)
@@ -250,24 +243,21 @@ theorem checkThmValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {
   · simp only [ite_eq_left h2]
     exact SimC.throw_bind
   simp only [ite_eq_right h2]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).annotate hs₃ rfl
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)))
-    (fun s₄ jv w hs₄ hP₄ => ?_)
-  obtain ⟨hjv, hwv⟩ := hP₄
-  obtain rfl := hjv
+  have hwv : Expr.WScoped 0 value :=
+    Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)
   rw [Expr.allLevelParamsDefinedC_spec]
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams jv = true
+  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams value = true
   case neg =>
     simp only [ite_eq_right h3]
     exact SimC.throw_bind
   simp only [ite_eq_left h3]
   rw [constsResolveFC_spec, constsResolveF_eq]
-  by_cases h4 : Expr.constsResolve env jv = true
+  by_cases h4 : Expr.constsResolve env value = true
   case neg =>
     simp only [ite_eq_right h4]
     exact SimC.throw_bind
   simp only [ite_eq_left h4]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs₄ rfl hwv)
+  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs₃ rfl hwv)
     (fun s₅ jvt wvt hs₅ hP₅ => ?_)
   obtain ⟨hjvt, hwvt⟩ := hP₅
   refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₅ hjvt hjty hwvt htf)
@@ -302,24 +292,21 @@ theorem checkOpaqueValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF en
   · simp only [ite_eq_left h2]
     exact SimC.throw_bind
   simp only [ite_eq_right h2]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).annotate hs rfl
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)))
-    (fun s₁ jv w hs₁ hP => ?_)
-  obtain ⟨hjv, hwv⟩ := hP
-  obtain rfl := hjv
+  have hwv : Expr.WScoped 0 value :=
+    Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)
   rw [Expr.allLevelParamsDefinedC_spec]
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams jv = true
+  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams value = true
   case neg =>
     simp only [ite_eq_right h3]
     exact SimC.throw_bind
   simp only [ite_eq_left h3]
   rw [constsResolveFC_spec, constsResolveF_eq]
-  by_cases h4 : Expr.constsResolve env jv = true
+  by_cases h4 : Expr.constsResolve env value = true
   case neg =>
     simp only [ite_eq_right h4]
     exact SimC.throw_bind
   simp only [ite_eq_left h4]
-  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs₁ rfl hwv)
+  refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs rfl hwv)
     (fun s₂ jvt wvt hs₂ hP₂ => ?_)
   obtain ⟨hjvt, hwvt⟩ := hP₂
   refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₂ hjvt hjty hwvt htf)
