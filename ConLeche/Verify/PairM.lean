@@ -899,8 +899,8 @@ macro "fst_core4" x:tactic : tactic =>
     | (rw [defeqProjPair_fst_proj])
     | (rw [defeqStuck_fst_proj])
     | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
-    -- task #161: the β gate's dead branch — unfolding the *one* gate
-    -- primitive hands both arms back to the cascade's own `split`
+    -- an `if` in the cascade: unfolding the `ite` primitive hands
+    -- both arms back to the cascade's own `split`
     | ((rw [PairM.fst_ite]; congr 1) <;> try rfl)
     | (dsimp only [])
     | split))
@@ -954,8 +954,8 @@ macro "snd_core4" x:tactic : tactic =>
     | (rw [defeqProjPair_snd_proj])
     | (rw [defeqStuck_snd_proj])
     | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
-    -- task #161: the β gate's dead branch — unfolding the *one* gate
-    -- primitive hands both arms back to the cascade's own `split`
+    -- an `if` in the cascade: unfolding the `ite` primitive hands
+    -- both arms back to the cascade's own `split`
     | ((rw [PairM.snd_ite]; congr 1) <;> try rfl)
     | (dsimp only [])
     | split))
@@ -1045,8 +1045,8 @@ theorem inferBody_snd_proj (d : Nat) (e : Expr) :
   unfold inferBody
   snd_tac4
 
-/-! The io inference body (task #172 B4): same walk, one clause's gate
-more.  The pairing of the io-grade views is definitionally the io-grade
+/-! The io inference body (task #172 B4): the same walk with the io
+clauses.  The pairing of the io-grade views is definitionally the io-grade
 view of the pairing on the fields the body reads, so the walks go
 through the plain `pairFns` of the viewed records. -/
 

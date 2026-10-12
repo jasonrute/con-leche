@@ -19,7 +19,7 @@ tupler; the projection spine on tower members.
 The tuple tier (`ConLeche/SetModel/TupleTower.lean`) states its laws over
 an abstract dependent telescope `TeleS V n`.  A checked
 direct-structure block does not hand the install a `TeleS` — it hands
-a list of **annotated field domains** (`Fs : List ITerm`, the
+a list of **field domains** (`Fs : List ITerm`, the
 constructor type reading's pi-domains after the parameters, each
 scoped under its predecessors).  This module is the bridge:
 
@@ -263,9 +263,8 @@ their interpretation equations:
   interface facts make this land exactly on the tier's `towerSet w`:
   `sigmaSet` reads its level only through the zero test
   (`sigmaSet_pos`/`sigmaSet_zero`), so `max w w = w` closes the level
-  bookkeeping; and the fibre λ's annotation is the *codomain type's*
-  sort `w + 1 ≠ 0`, so the fibre computes by `app_lamR_pos` in **both**
-  regimes and `sigma_congr` rewrites it to the tier's fibre.  The
+  bookkeeping; and the fibre λ's body is a type at every point, so
+  `lamV_mem` places the fibre in the pair former's fibre space.  The
   premises of `psigmaV_app` are exactly `FieldsBound w` — O5 plus
   cumulativity, nothing else.
 
@@ -287,8 +286,8 @@ instance of the pinned pair former's product membership.
 
 /-- The carrier body, graph regime: the right-nested `.psigma [w, w]`
 application tower over the field domains, terminated by `PUnit.{w}`
-(`{∅}` above `Prop`, task #342 C).  The fibre λ is annotated `w + 1`
-(its body is a type of sort `w`), so it is a graph at every regime. -/
+(`{∅}` above `Prop`, task #342 C).  The fibre λ's body is a type of
+sort `w`, so it reads as a graph (`lamV`). -/
 def towerBodyAVPos (w : Nat) : List ITerm → ITerm
   | [] => .const .punit [w]
   | F :: Fs => .app (.app (.const .psigma [w, w]) F)
@@ -300,7 +299,7 @@ def negAV (P : ITerm) : ITerm := .pi P (.const .empty [0])
 
 /-- The carrier body, **squash regime** (O4): the truth
 value of the field chain's inhabitation, spelled classically as
-`¬ ∀ x₀ : F₀, ¬ ∀ x₁ : F₁, … ¬ True` with bit-`0` Π nodes.  The
+`¬ ∀ x₀ : F₀, ¬ ∀ x₁ : F₁, … ¬ True`, every Π node a truth value.  The
 `.psigma [0, 0]` spelling cannot serve here — its pinned valuation
 reads the first component in `univ 0`, and a `Prop`-declared
 structure may carry data fields (arena tutorial 087) — while `piR 0`
@@ -528,8 +527,8 @@ theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List ITerm} {ρ : Nat → V}
 /-! ## The λ/Π-tower formers
 
 `mkLamsAV`/`mkPisAV` are the generic tower formers over peeled binder
-data; `stripPisAV` is the peel whose inversion hands the wiring the
-`(binder data, body)` decomposition of a stored type's reading. -/
+domains; `stripPisAV` is the peel whose inversion hands the wiring the
+`(domains, body)` decomposition of a stored type's reading. -/
 
 /-- The λ-tower former over a list of domains. -/
 def mkLamsAV : List ITerm → ITerm → ITerm
@@ -551,7 +550,7 @@ theorem IsTy_mkPisAV_sort (ds : List ITerm) (w : Nat) (ρ : Nat → V) :
 
 /-! ### Fits of one telescope of types, compared off the point (task #342 L7)
 
-The conditional claims of the annotation-free design compare two
+The conditional claims compare two
 values only where neither is the point.  Two spines fitting ONE
 telescope whose domains are types are still equal everywhere: position
 by position, under equal earlier values, the two values lie in one
@@ -667,7 +666,7 @@ theorem mkLamsAV_fold :
     rw [app_lamV hsp.1]
     exact mkLamsAV_fold hsp.2
 
-/-! ### The λ-tower over a Π-tower's binder data, generically
+/-! ### The λ-tower over a Π-tower's domains, generically
 
 The constructor and recursor leaves are λ-towers over their Π-type's
 own domains.  `UnderTowerOk` is the single hereditary premise;

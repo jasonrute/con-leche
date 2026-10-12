@@ -41,8 +41,8 @@ bounded by (`targetRecTy`, `Kernel/Inductives/RecCheck.lean`):
   inside at all.  Clause 4 therefore does not read them: it reads the
   MAJOR, whose domain is `T_m p⃗ ı⃗` on the nose, so its reading is a
   spine against the member's FORMER — a λ-tower — and the spine's
-  grading carries the fit (`spineFit_of_major_grading`).  The tower's
-  binder numeral is `w ψ + 1`, never zero, so this survives a
+  grading carries the fit (`spineFit_of_major_grading`).  The former's
+  codomain sort is `w ψ + 1`, never zero, so this survives a
   `Prop`-valued block;
 * the MAJOR's syntactic pin is clause 6, read off the opening's own
   fvars (`interp_of_major_reading`).
@@ -74,7 +74,7 @@ Five statements about the members, all of them the block install's
 own: the shape agreement (`d.nP`, `d.k`), the per-member former data
 (`BlockFormerFacts.fdOf` at the CONSTRUCTORS' environment, which is
 where the recursor stage runs), the member record's name and index
-count, the leaf's λ-TOWER shape (whose binder numeral is
+count, the leaf's λ-TOWER shape (whose codomain sort is
 `w ψ + 1` — never zero, which is why the index clause survives a
 `Prop`-valued block), and official's parameter agreement
 (`BlockFormerFacts.paramsIff`).
@@ -115,7 +115,7 @@ recursor's member and the arity is what its position is read at. -/
 The recursor's own index binders are never inspected by the check, so
 nothing here reads them: what carries the fit is the MAJOR, whose
 domain is the member's FORMER applied to the prefix and index binders.
-The former is a λ-tower whose binder numeral is `w ψ + 1` — **never
+The former is a λ-tower whose codomain sort is `w ψ + 1` — **never
 zero**, so this clause survives a `Prop`-valued block, where the
 rule contract's own fit conjunct is refutable. -/
 

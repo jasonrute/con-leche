@@ -27,11 +27,11 @@ yields**. -/
 structure BlockPass (E : Type) where
   /-- the environment holding all k formers, at the record the pass ran at -/
   env₁ : E
-  /-- the annotated formers, in block order -/
+  /-- the checked formers, in block order -/
   cvTas : List ConstantVal
   /-- the completed record: the sort read -/
   p : BlockParts
-  /-- the annotated constructors, per member, AS DECLARED -/
+  /-- the checked constructors, per member, AS DECLARED -/
   ctorsAs : List (List (ConstantVal × Nat))
   /-- the fields' sorts, per member, per constructor -/
   sortsss : List (List (List Level))

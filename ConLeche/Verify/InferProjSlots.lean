@@ -20,7 +20,7 @@ every `.proj` node (`ProjSlotsOk`), hence no `.proj` node at an EMPTY
 slot (`inferTypeCore_noProjAt`).
 
 This is the source of the stored-term fact `NoProjAt` for a term
-stored WITHOUT an annotation pass but checked by a full inference —
+stored as generated and checked by a full inference —
 the generated recursor types and rules (`classConstOk`, the rule
 records' `htyR`).  It needs no environment invariant: inference never
 reads a slot's contents into its subject, only its presence.

@@ -155,7 +155,7 @@ theorem ITerm.mkAppN_inj_head {f : ITerm} :
     obtain ⟨b₁, b₂, rfl, hl⟩ : ∃ b₁ b₂, bs = b₁ ++ b₂ ∧ b₂.length = as.length :=
       ⟨bs.take (bs.length - as.length), bs.drop (bs.length - as.length), by simp,
         by rw [List.length_drop]; omega⟩
-    rw [annotMkAppN_append] at h
+    rw [iTermMkAppN_append] at h
     obtain ⟨hf, -⟩ := ITerm.mkAppN_inj h hl.symm
     have hne : b₁ ≠ [] := by
       intro h0; subst h0; rw [List.nil_append] at hlt; omega
@@ -170,7 +170,7 @@ theorem ITerm.mkAppN_inj_head {f : ITerm} :
     obtain ⟨a₁, a₂, rfl, hl⟩ : ∃ a₁ a₂, as = a₁ ++ a₂ ∧ a₂.length = bs.length :=
       ⟨as.take (as.length - bs.length), as.drop (as.length - bs.length), by simp,
         by rw [List.length_drop]; omega⟩
-    rw [annotMkAppN_append] at h
+    rw [iTermMkAppN_append] at h
     obtain ⟨hf, -⟩ := ITerm.mkAppN_inj h hl
     have hne : a₁ ≠ [] := by
       intro h0; subst h0; rw [List.nil_append] at hgt; omega

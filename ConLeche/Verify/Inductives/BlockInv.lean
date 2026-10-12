@@ -221,7 +221,7 @@ theorem checkBlockInds_shape {env envI : Env} {p : BlockParts} {isRec : Bool}
   obtain ⟨rfl, rfl, rfl⟩ := h
   exact ⟨ms0, rest, cvTa0, s0, cvs, rfl, rfl, rfl, rfl, hq, hcvs, by cases u; exact hagree⟩
 
-/-- The annotated formers are one per member. -/
+/-- The checked formers are one per member. -/
 theorem checkBlockInds_length {env envI : Env} {p : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {p₁ : BlockShape} {F : Nat}
     (h : checkBlockInds (fueledOps mode F) env p isRec = .ok (envI, cvTas, p₁)) :

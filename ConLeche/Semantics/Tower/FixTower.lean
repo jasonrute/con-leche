@@ -465,7 +465,7 @@ open ConLeche.Term ConLeche.Verify
 
 /-! ## Π-tower boundedness -/
 
-/-- A Π-tower over bounded binder data with a bounded conclusion is
+/-- A Π-tower over bounded binder domains with a bounded conclusion is
 bounded. -/
 theorem mkPisAV_below_of {C : ITerm} :
     ∀ {ds : List ITerm} {k : Nat}, DomsBelow k ds →

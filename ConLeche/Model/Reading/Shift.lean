@@ -207,7 +207,7 @@ decreasing_by
   | (simp [ConLeche.Expr.sizeB])
 
 /-- **One level of weakening**: a `d`-scoped term denoted at `d + 1` is
-its depth-`d` annotation, lifted. -/
+its depth-`d` reading, lifted. -/
 theorem denoteMeta_weaken_top
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ) {d : Nat} {e : Expr}

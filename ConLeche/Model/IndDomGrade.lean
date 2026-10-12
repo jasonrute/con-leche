@@ -7,7 +7,7 @@ public section
 /-!
 # Gradings read back out of `.pi` readings and application spines
 
-`WellDenoted`/`AnnotValid` are conjunctive at `.pi` and `.app`, so a
+`WellDenoted` is conjunctive at `.pi` and `.app`, so a
 graded reading's domain, body and arguments are graded — each one
 projection.
 -/

@@ -48,15 +48,14 @@ applied side's `WellDenoted` app clause needs the *applied* membership
 
 and every part of it is already established at the install:
 
-* the pin fixes the stored type to `.forallE (.const E []) (.const E [])
-  mb₀` **on the nose** below the binder meta — both erasures fix a
-  `.const` (the `trustCompiler` branch's lesson, reused) — so the
-  type's reading is `.pi (acval E ψ) (acval E ψ)`
+* the pin fixes the stored type to `.forallE (.const E []) (.const E [])`
+  **on the nose** — both erasures fix a `.const` (the `trustCompiler`
+  branch's lesson, reused) — so the type's reading is `.pi (acval E ψ) (acval E ψ)`
   and `interp` of it is a `piV` over the element set;
 * the `piV` membership is the constant's own `mem_type` obligation
   (`hmemA`, which `harvestOpaque` proves anyway);
 * the slot's numeral is the value-read `propN`, whose `v = 0` fibre
-  clause is `propN_eq_zero`.  The binder datum `mb₀` is never read.
+  clause is `propN_eq_zero`.
 
 The preservation half is `reduceOps_cons_fresh` (`DivMod.lean`,
 beside its `eq_law` sibling — the law mentions two stored leaves, so
@@ -185,7 +184,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩) (A := A)
       hfresh m₂ hac hcN hne hf₂ hpin
   subst hne
-  -- the recorded certificate, and its annotated subject
+  -- the recorded certificate, and its subject
   obtain ⟨-, helemOk, -, hrun⟩ := hred (List.contains_iff_mem.mpr hcN)
   subst hannv
   -- the element inductive is stored, level-free, and is not the cons

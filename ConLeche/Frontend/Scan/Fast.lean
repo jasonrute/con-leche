@@ -1034,8 +1034,8 @@ decreasing_by
       | exact Nat.sub_lt_sub_left (usizeInBounds b i h) (USize.lt_iff_toNat_lt.mp _hj)
 
 /-- A `lam` binder.  `binderInfo` and `name` are validated and dropped
-(tasks #142, #203); `pw` is the checker's own annotation and is absent from a
-raw export. -/
+(tasks #142, #203); the optional legacy `pw` field is scanned and not
+read (absent from a raw export). -/
 def scanLamExpr (b : @& ByteArray) (i : USize) : ScanRes ExprRec :=
   if byteAt b i == 123 then
     scanLamExprLoop b (i + 1) true 0 0 0 .never

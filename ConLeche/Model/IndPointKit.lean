@@ -19,7 +19,7 @@ or to the fit: a read spine's pointwise lookup, `instSeq`
 over an application, injectivity of `mkAppN` at equal arities, and the
 determinacy of a `TeleFitPA` residual.
 
-They mention no `interp`, no bit, and no environment
+They mention no `interp` and no environment
 except through `TeleFitPA`.  `ITerm.mkAppN_inj` is the one that
 carries the point stage's weight: the crossed constructor residual and
 the fired index pin are both applications of the *same* arity, and the

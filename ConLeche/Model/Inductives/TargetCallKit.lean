@@ -10,7 +10,7 @@ public section
 Generic facts the call's typing (`TargetCallCore.lean`) is read with:
 
 * `interp_mkPisAV_congr` — a Π-tower's value reads only the domains of
-  its binder data.
+  its domains.
 -/
 
 namespace ConLeche.Model

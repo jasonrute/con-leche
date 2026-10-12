@@ -1322,7 +1322,7 @@ def instSpine : List Expr → Nat → Expr → Expr
 The four `@[computed_field]`s of `Expr` (`ConLeche/Kernel/Expr.lean`) are
 declared by their recurrences; these are the same recurrences written
 as ordinary definitions, together with the equivalences that make a
-field read license the traversal cutoff it guards.  Self-contained:
+field read justify the traversal cutoff it guards.  Self-contained:
 they mention nothing but `Expr`.  The cached engine's field facts
 (`ConLeche/Verify/Cached/Erase.lean`) are stated against them. -/
 
@@ -1776,7 +1776,7 @@ normal form in `Kernel/Inductives/Positivity.lean`), and
 `tests/e2e/tower_proj.ndjson` — a two-field structure whose field
 types carry a depth-60 shared tower — exhausts memory on it.
 
-The remedy is the ONE the packed range fields already license (task
+The remedy is the ONE the packed range fields already justify (task
 #210 Part B, and the cached twin `Cached.abstract1` has had it all
 along): **a node whose fvar range is at or below `d` contains no
 `fvar d`, so abstraction returns it unchanged.**  Every closed
@@ -2200,7 +2200,7 @@ def instPisAtLift : List Expr → Expr → Option Expr
 
 `Level.hasParam` / `Expr.hasLevelParam` are the spec functions of the
 `hasLP` computed field (`ConLeche/Kernel/Expr.lean`); the lemmas below
-are the shortcuts a `false` reading licenses.  Self-contained, and the
+are the shortcuts a `false` reading justifies.  Self-contained, and the
 cached engine's field facts (`ConLeche/Verify/Cached/Erase.lean`) are
 stated against them. -/
 

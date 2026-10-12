@@ -82,12 +82,10 @@ theorem lamR_congr {v : Nat} {A : V} {F F' : V → V}
 /-! ## Zero-agreement
 
 `piR`/`lamR` read their numeral **only through the `v = 0` test**, so
-annotations that agree on zero-ness are interchangeable.  This is
-what lets a λ-tower carry its *result* sort at every binder rather than
-the exact `imax` fold: in `(a₁ : A₁) → … → (aₙ : Aₙ) → T` the sort of
-each suffix is `imax (…) r` with `r` the sort of `T`, and
-`imax x y = 0 ↔ y = 0`.  See `SetModel/Value.lean`'s annotation
-convention. -/
+numerals that agree on zero-ness are interchangeable.  In
+`(a₁ : A₁) → … → (aₙ : Aₙ) → T` the sort of each suffix is
+`imax (…) r` with `r` the sort of `T`, and `imax x y = 0 ↔ y = 0`, so
+the result sort and the exact `imax` fold agree on zero-ness. -/
 
 theorem piR_zero_agree {v v' : Nat} (hz : v = 0 ↔ v' = 0) {A : V}
     {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x = B' x) : piR v A B = piR v' A B' := by
@@ -127,9 +125,8 @@ theorem lamR_mem {v : Nat} {A : V} {F B : V → V}
   · rw [lamR_pos (Nat.pos_iff_ne_zero.mp hv), piR_pos (Nat.pos_iff_ne_zero.mp hv)]
     exact graph_mem_piSet hF
 
-/-- Introduction across zero-agreeing annotations: a tower annotated
-with its result sort still inhabits the product annotated with the
-exact `imax`. -/
+/-- Introduction across zero-agreeing numerals: an abstraction at the
+result sort inhabits the function space at the exact `imax`. -/
 theorem lamR_mem_zero_agree {v v' : Nat} (hz : v = 0 ↔ v' = 0) {A : V}
     {F B : V → V} (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x) : lamR v A F ∈ˢ piR v' A B := by
   rw [lamR_zero_agree hz (fun _ _ => rfl) (F' := F)]
@@ -209,7 +206,7 @@ theorem lamR_ne_pt {v : Nat} {A : V} {F : V → V} (hv : v ≠ 0) :
     lamR v A F ≠ pt := by rw [lamR_pos hv]; exact graph_ne_pt
 
 /-- **An abstraction that is not the point is the graph** — the
-annotated reading's form of the value reading's `lamV_eq_graph`
+explicit-numeral form of the value reading's `lamV_eq_graph`
 (task #342, L6).  A lemma that needs a spelled abstraction AS a graph
 goes through this, with the non-point fact as its premise: under the
 value reading the premise is exactly what an empty domain or a point
@@ -242,7 +239,7 @@ theorem eq_of_mem_piR_app_eq {v : Nat} {A f g : V} {B B' : V → V}
 
 /-! ## The graph regime: inversion and junk-freeness
 
-The annotation has already decided the regime, so membership in a
+The numeral has already decided the regime, so membership in a
 positive-regime product is *by definition* graph-hood: no consumer
 dispatches on "graph or proof point". -/
 
@@ -317,8 +314,8 @@ theorem piR_zero_mem_univZero {A : V} {B : V → V} :
     piR 0 A B ∈ˢ (univZero : V) := by
   rw [piR_zero]; exact truthVal_mem_univZero _
 
-/-- A product is in the regime of its codomain bit: a truth value at
-`v = 0`, strict above (task #342). -/
+/-- A function space is in the regime its numeral names: a truth value
+at `v = 0`, strict above (task #342). -/
 theorem Fib_piR (v : Nat) (A : V) (B : V → V) : Fib (decide (v = 0)) (piR v A B) := by
   by_cases hv : v = 0
   · subst hv; simp only [decide_true, Fib_true]; exact piR_zero_mem_univZero

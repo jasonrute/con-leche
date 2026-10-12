@@ -53,11 +53,10 @@ premises (the `a == b` fast path, `headIsProj`, `notProofFast`,
 every rule is sound on its own.  No mode index: the relation describes
 the `.verified` checker.
 
-**No rule reads a binder's annotation** (task #342 S4, the value
-reading of task #344).  The λ/∀ nodes the rules mention carry no
-binder datum at all (task #342 drops the field from `Expr`): λ/∀
-congruence and inference compare and compute no binder datum, β has
-no premise, and a licensed telescope walk certifies nothing.
+**Binders are a domain and a body.**  The λ/∀ nodes the rules mention
+are `(type body)`: λ/∀ congruence and inference compare domains and
+bodies only, β has no premise, and a telescope walk checks the arity
+alone (`teleArityOk`).
 
 Scoping (`WScoped`, `looseBVarsBounded`, `LeavesBounded`, `CtxOk`) and
 readability (`denoteMeta … = some _`) are NOT part of the inductive;
@@ -327,7 +326,7 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
 not an equivalence on terms: it is the checker's verdict, and the
 checker only ever compares terms that are well-formed *together* — a
 fact the rules never state, because well-formedness (scoping, the
-readability of annotations, the grading of the reading) is semantic
+readability of the terms, the grading of the reading) is semantic
 and may not enter this inductive.  Every rule respects one syntactic
 discipline instead: **the subject of each `DefEq` premise is either a
 subterm of the conclusion or is produced by an existence-form `Red` /

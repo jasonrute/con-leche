@@ -42,9 +42,9 @@ public section
 
 `hrhs` of the family premise (`genRecPre_run`): at a typed tuple of
 recursor values and a spine fitting the rule frame, every generated `ih`
-term `λ a⃗, rec_t x⃗ e⃗ (f a⃗)` is graded — a constant-bit λ-tower
+term `λ a⃗, rec_t x⃗ e⃗ (f a⃗)` is graded — a λ-tower
 (`mkLamsAV_wellDenoted`) whose body is the callee's value applied along
-its binder data (`genCallTy`), inhabiting the `ih`'s motive application
+its domains (`genCallTy`), inhabiting the `ih`'s motive application
 (the callee's conclusion, `genRun_conclMot`) — and the residue, the minor
 premise applied to the fields and the `ih` values, is graded: the minor
 premise's type is the rule frame's Π-tower (`genMinorFit`), the `ih`
@@ -73,7 +73,7 @@ variable {F : Nat} {env₁ envC : Env} {pp : BlockParts} {nestedBit : Bool} {pos
 
 set_option maxHeartbeats 16000000 in
 /-- **The minor premise of `(c, j)` at a prefix spine**: its value lies in
-a graded Π-tower at the spine's frame, whose binder data the declared
+a graded Π-tower at the spine's frame, whose domains the declared
 fields and the `ih` values fit (the rule frame's field domains, then the
 `ih` data's domains). -/
 theorem genMinorFit (hμ : μ.verifiedChecks = true)
@@ -205,7 +205,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
     rw [hPdget] at hgr
     rw [← hBE, WellDenoted_liftN, hsh]
     exact hgr.1
-  -- the rule frame's field domains are the fields' binder data
+  -- the rule frame's field domains are the fields' domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
@@ -394,7 +394,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = k by
         simp [hlc, ← hnF]] at this
     exact ⟨this.1, this.2⟩
-  · -- the body: the callee applied along its binder data
+  · -- the body: the callee applied along its domains
     have hagD : ∀ i, i < D → consList (xs ++ fs) (consList rs ρ) i = consList (xs ++ fs) ρ i := by
       intro i hi
       exact consList_congr_below (xs ++ fs) (D := 0) (fun k hk => absurd hk (Nat.not_lt_zero _)) i
@@ -485,7 +485,7 @@ theorem genIhAV_eq_mkLamsAV {K rP D : Nat} {q : IhDatum} :
 set_option maxHeartbeats 16000000 in
 /-- **`hrhs` of the family premise**: at a typed tuple of recursor values
 and a spine fitting the rule frame, the generated `ih` terms are graded
-(a constant-bit λ-tower over `genIhUnder`), and so is the residue at
+(a λ-tower over `genIhUnder`), and so is the residue at
 their values — the minor premise applied to the fields and the `ih`
 values along its graded Π-tower (`genMinorFit`). -/
 theorem genRhs (hμ : μ.verifiedChecks = true)

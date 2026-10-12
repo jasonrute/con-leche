@@ -5,7 +5,7 @@ public import ConLeche.Semantics.Interp
 @[expose] public section
 
 /-!
-# `Sat` — the annotated context's satisfaction, and its transitivity kit
+# `Sat` — a context's satisfaction, and its transitivity kit
 
 `Sat` with its introduction lemmas.  It is model-free (a
 `List ITerm`, a valuation, and `interp`), and the model states its
@@ -22,7 +22,7 @@ universe w
 section
 variable (V : Type w) [SetTheory V]
 
-/-- `ρ` satisfies an annotated context over `interp` — the `Sat`
+/-- `ρ` satisfies a context of `ITerm` types over `interp` — the `Sat`
 transpose. -/
 def Sat (Δa : List ITerm) (ρ : Nat → V) : Prop :=
   ∀ i Aa, Δa[i]? = some Aa →

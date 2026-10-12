@@ -272,8 +272,8 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     | exact IsTy_app_piV_univ V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›)
     | exact slot_of_mem_piV V ‹_› ‹_› (IsTy_quot_app V ‹_› ‹_›)
 
-/-- **Every built-in constant's annotated type reads to a type**: a
-product, a universe, `ω` (`Nat.zero : Nat`) or a unit type
+/-- **Every built-in constant's type reads to a type**: a
+dependent function space, a universe, `ω` (`Nat.zero : Nat`) or a unit type
 (`PUnit.unit : PUnit`). -/
 theorem IsTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     IsTy (interp V ρ (BConst.typeAV c us)) := by
@@ -283,7 +283,7 @@ theorem IsTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     | exact IsTy_omega
     | exact IsTy_of_mem_univ (unitSetAt_mem_univ _)
 
-/-- **Every built-in constant's annotated type is a graded type.** -/
+/-- **Every built-in constant's type is a graded type.** -/
 theorem WellDenotedTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     WellDenotedTy V ρ (BConst.typeAV c us) :=
   ⟨WellDenoted_bconst_type V c us ρ, IsTy_bconst_type V c us ρ⟩

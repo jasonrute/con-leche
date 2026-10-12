@@ -147,8 +147,7 @@ theorem denoteMeta_natZeroA_type (ψ : Name → Nat)
   rw [show natZeroA.toConstantVal.type = Expr.const natName [] from rfl]
   exact denoteMeta_natLeaf (m := m) (A := A) ψ (by decide) hN 0
 
-/-- `Nat.succ`'s type reading — one binder, pinned `.never`, so the
-numeral is `1` on both sides.  Stated at *any* extension whose cons is
+/-- `Nat.succ`'s type reading — one binder, `Nat → Nat`.  Stated at *any* extension whose cons is
 not `Nat`, because the `Nat.rec` row reads it too (its rule's
 constructor is `Nat.succ`). -/
 theorem denoteMeta_natSuccTy {c₀ : ConstantInfo} (ψ : Name → Nat)
@@ -607,7 +606,7 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
     denoteMeta_fvar, Expr.instantiate1, hNc, hZc, hSc, hRc, Level.eval,
     natSuccRa, natMotiveTy, natStepTy]
 
-/-- The motive binder's domain is graded — no numeral is read. -/
+/-- The motive binder's domain is graded. -/
 theorem natMotiveTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (natMotiveTy ψ) :=
   ⟨trivial, IsTy_omega, fun _ _ => trivial, fun _ _ => IsTy_univ _⟩

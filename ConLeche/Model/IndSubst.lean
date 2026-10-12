@@ -12,14 +12,14 @@ The absorption laws at `ITerm`, and the `ITerm.instSeq`
 corollaries (`instSeqAV_*`).
 
 **Why these are not free, and why they are cheap.**  `ITerm.liftN`
-and `ITerm.inst` are `Term`'s clause for clause with the numeral
-slots carried inert (`Semantics/Syntax.lean`), so `erase` is a
+and `ITerm.inst` are `Term`'s clause for clause
+(`Semantics/Syntax.lean`), so `erase` is a
 homomorphism for both — but an equation between *readings* is strictly
 stronger than an equation between their erasures, so no erasure
 argument transports.  So each law is re-proved by the
 same structural induction, and each clause is one `simp only` plus the
-inductive hypothesis: the numerals ride along untouched, which is
-exactly what makes the transposition mechanical.
+inductive hypothesis, which is exactly what makes the transposition
+mechanical.
 -/
 
 namespace ConLeche.Model

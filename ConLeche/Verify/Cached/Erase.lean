@@ -17,7 +17,7 @@ consume, each unconditional:
   so every cutoff the cached operations take is the cutoff the spec
   takes;
 * **the cutoff consequences** — `bvarB_le`, `fvarB_le`, `hasLP_false`:
-  a field at or below the cursor licenses the skip;
+  a field at or below the cursor justifies the skip;
 * **equality** — `beq` is `decide (· = ·)`, so the `EquivBEq` and
   `LawfulHashable` premises of the `Std.HashMap` lemmas are the
   standard ones, and `beq_iff` is `beq_iff_eq`.

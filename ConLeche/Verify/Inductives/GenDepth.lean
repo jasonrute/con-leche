@@ -123,7 +123,7 @@ theorem ClassGen.ihParts_shiftFrom {g : ClassGen} {p t tele d : Nat} {w : Expr}
   show some _ = _
   rw [getAppArgs_shiftFrom, List.map_drop]
 
-/-- The binder datum of a shifted variable is the shifted datum. -/
+/-- The generated binder of a shifted variable is the shifted binder. -/
 theorem ClassGen.binder_shiftFrom (g : ClassGen) {p : Nat} (x : Expr) (hx : ∀ i ty, x = .fvar i ty →
     p ≤ i) : g.binder (shiftFrom p x) = shiftFrom p (g.binder x) := by
   cases x with

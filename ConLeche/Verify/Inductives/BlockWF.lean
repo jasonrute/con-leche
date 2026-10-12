@@ -104,7 +104,7 @@ theorem envWF_consBlockInds {p₁ : BlockShape} {isRec : Bool} :
       exact ⟨h1, h2, Expr.constsResolve_mono h3, h4, h5⟩
 
 /-- **Stage 1 at the run level**: the environment holding the k formers
-is well-formed, and every annotated former's type is closed. -/
+is well-formed, and every checked former's type is closed. -/
 theorem direct_block_inds_wf {env envI : Env} (henv : EnvWF env)
     {p : BlockParts} {isRec : Bool} {cvTas : List ConstantVal} {p₁ : BlockShape} {F : Nat}
     (h : checkBlockInds (fueledOps mode F) env p isRec = .ok (envI, cvTas, p₁)) :

@@ -270,8 +270,8 @@ theorem blockUs_top (k w : Nat) (uf : Nat → Nat) : lv (blockUs k w uf) k = w :
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by simp)]
   simp
 
-/-- The block's family-tuple sort, the numeral every binder of
-`lfpTuple k`'s type carries. -/
+/-- The block's family-tuple sort, the level of the family tuple's pair
+tower in `lfpTuple k`'s type (`tupleFamsAV`). -/
 abbrev blockR (k w : Nat) (uf : Nat → Nat) : Nat := tupleFamSort k (blockUs k w uf)
 
 /-- The block's index-tuple sort. -/

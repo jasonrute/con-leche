@@ -33,7 +33,7 @@ This module proves it, from the run and the family premise
   `denoteMeta_openPis` opens a reading with the very `fvar`s it does,
   so `stripPisAV (mI + 1)` of the reading succeeds and
   `stripPisAV_eq_mkPis` exhibits the reading as `mkPisAV rds concl`.
-  The binder data `rds` and the conclusion `concl` are therefore
+  The domains `rds` and the conclusion `concl` are therefore
   FUNCTIONS OF THE RUN (`blockRecRdsAV`, `blockRecConclAV`), which is
   what lets the recursor model state its `hTyE` at a named spelling
   rather than at an existential;
@@ -74,7 +74,7 @@ def blockRecTyAV (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (ψ : Name → Nat) (c : Nat) : ITerm :=
   (rs[c]?.bind fun r => denoteMeta acval envC ψ 0 r.1.type).getD default
 
-/-- The `i`-th recursor's BINDER DATA: the reading's `mI + 1` Π-entries
+/-- The `i`-th recursor's DOMAINS: the reading's `mI + 1` Π-entries
 — the block's parameters, the `nP … rP-1` stretch, the indices and the
 major. -/
 def blockRecRdsAV (acval : Name → (Name → Nat) → ITerm) (envC : Env)
@@ -101,7 +101,7 @@ theorem blockRecTyAV_eq {acval : Name → (Name → Nat) → ITerm} {envC : Env}
 
 /-- **The identification**: at every `ψ`, the `i`-th stored
 recursor type READS, its reading is GRADED, and it IS the Π-tower
-`mkPisAV rds concl` over the run's own binder data — with the domains'
+`mkPisAV rds concl` over the run's own domains — with the domains'
 readings and the conclusion's reading at the full depth.  This is what
 the recursor model consumes: `hTyE` at `RecTy ψ c := blockRecTyAV …`,
 `rds`/`concl` at the two named spellings. -/

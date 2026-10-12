@@ -467,7 +467,7 @@ theorem classesCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     exact SimC.pure hs₂ rfl
 
 /-- **A generated constant, checked** (`classConstOk`): the cached twin
-of `checkConstantValS_sim` without the annotation step — the stored
+of `checkConstantValS_sim` for a generated constant — the stored
 constant is the input, closed by the guard. -/
 theorem classConstOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     {s₀ : CState} (hs : CSOK mode env s₀) :
