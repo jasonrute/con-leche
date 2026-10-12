@@ -23,17 +23,9 @@ reads these; the dispatch (`BlockRecPreHpre.lean`) and the rule contract
 (`BlockRuleFit.lean`) produce the two largest of its obligations.  This
 file holds the pieces of the stage that read the run directly.
 
-## 1. The `ℓ = 0` arm's LEFT side
-
-The endpoint's `ℓ = 0` arm (`blockRuleRhsOk_base`) asks for two facts:
-the stored rule reads as the point (`tgtRuleRaZ_seam`,
-`TargetSeam.lean`) and the recursor's TYPE is a truth value.  The second is
-here, because it needs the elimination-level package
-(`blockRecElimLevel_run`) and the level PIN (`blockRecElimPin_run`),
-both downstream of the endpoint's file: the type's binder bits follow
-its conclusion's inferred sort, the pin equates that sort with the
-checked elimination level `structElimLevel p.elim p.large`, and a
-Π-tower whose head bit is `0` is a truth value. -/
+The `ℓ = 0` arm's facts (the recursor type a truth value, the stored rule
+the point) read the generated family's syntax and are proved at the
+generated stage (`genRecTyZ`, `genRuleRaZ`, `GenClsFrame.lean`). -/
 
 namespace ConLeche.Model
 open ConLeche.Semantics
@@ -46,30 +38,6 @@ open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
   {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
 
-section TyZero
-
-variable {envC : Env} {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
-  {ctorsAs : List (List (ConstantVal × Nat))}
-  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-
-/-- **THE `ℓ = 0` ARM'S LEFT SIDE**: at a valuation where the checked
-elimination level is zero, every recursor's type reads as a truth
-value — so the recursor's value is the point, and so is every
-application of it. -/
-theorem blockRecTyZ_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
-    ∀ j, j < rs.length → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Level.eval ψ (ConLeche.structElimLevel p.toBlockShape.elim p.toBlockShape.large) = 0 →
-      interp V ρ (blockRecTyAV mpC.base2.acval envC rs ψ j) ∈ˢ (univZero : V) := by
-  -- L17: the recursor into `Prop`.  The annotated reading took the
-  -- truth-value regime off the outermost binder's bit; the value reading
-  -- needs every fibre of the recursor type's Π-tower to be a truth value
-  -- at `ℓ = 0`, a sort fact about the tower's conclusion (the motive's
-  -- codomain `Sort ℓ`) that the stage run carries but this lemma does not
-  -- yet read
-  sorry
-
-end TyZero
 
 /-! ## 1b. `BlockMembersRun` at the seam
 
