@@ -749,9 +749,8 @@ theorem sumBodyAVPos_interp {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Fss : Lis
   have hbv : bval V .psigma [w, w] = psigmaV V w w := rfl
   have hB : (lamR (w + 1) omega fun k =>
         interp V (cons k ρ) (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)))
-      ∈ˢ psigmaFibreSpace V w omega := by
-    rw [psigmaFibreSpace_eq_of_mem V natzero_mem]
-    exact lamR_mem fun k hk => (case_fibre hok hk).2.1
+      ∈ˢ psigmaFibreSpace V w omega :=
+    lamR_mem_psigmaFibreSpace V natzero_mem fun k hk => (case_fibre hok hk).2.1
   show SetTheory.app (SetTheory.app (bval V .psigma [w, w]) omega)
       (interp V ρ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0))))
     = sumSet w (sumFibre w ρ Fss)
@@ -823,8 +822,8 @@ theorem sumBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Fss 
     · show SetTheory.app (interp V ρ (.const .psigma [w, w])) omega ∈ˢ _
       rw [hbv]
       exact app_mem_piR_pos hvac (psigmaV_rr_mem (V := V) w) hA
-    · rw [sumFibreLam_eq hok, psigmaFibreSpace_eq_of_mem V natzero_mem]
-      exact lamR_mem fun k hk => (case_fibre hok hk).2.1
+    · rw [sumFibreLam_eq hok]
+      exact lamR_mem_psigmaFibreSpace V natzero_mem fun k hk => (case_fibre hok hk).2.1
 
 /-- **The carrier body is graded**, both regimes. -/
 theorem sumBodyAV_wellDenoted {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
@@ -1399,8 +1398,7 @@ theorem sumFibreLam_facts {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE
     refine lamV_eq_pos (Nat.succ_ne_zero w) natzero_mem (IsTy_of_mem_univ (n := w) ?_).ne_pt
     rw [← (case_fibre_at hsh hok natzero_mem).1]
     exact (case_fibre_at hsh hok natzero_mem).2.1
-  · rw [psigmaFibreSpace_eq_of_mem V natzero_mem]
-    refine lamR_mem fun k hk => ?_
+  · refine lamR_mem_psigmaFibreSpace V natzero_mem fun k hk => ?_
     rw [← (case_fibre_at hsh hok hk).1]
     exact (case_fibre_at hsh hok hk).2.1
   · rw [WellDenoted_lam]
@@ -1532,9 +1530,8 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hA : interp V ρp E ∈ˢ (univ w : V) := hb.1
     have hpt' : (pt : V) ∈ˢ interp V ρp E := by simpa [consList] using hpt
     have hB : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
-        ∈ˢ psigmaFibreSpace V w (interp V ρp E) := by
-      rw [psigmaFibreSpace_eq_of_mem V hpt']
-      exact lamR_mem fun _ _ => unitSetAt_mem_univ w
+        ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
+      lamR_mem_psigmaFibreSpace V hpt' fun _ _ => unitSetAt_mem_univ w
     have hb' : (unitAt w : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
       exact unitAt_mem_unitSetAt w
@@ -1573,9 +1570,8 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
     have hBm : (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])))
-        ∈ˢ psigmaFibreSpace V w (interp V ρp F) := by
-      rw [psigmaFibreSpace_eq_of_mem V hsp.1]
-      exact lamR_mem fun x hx => by
+        ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
+      lamR_mem_psigmaFibreSpace V hsp.1 fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
     have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
@@ -1640,9 +1636,8 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hA : interp V ρp E ∈ˢ (univ w : V) := hok.2.2.1 hw
     have hpt' : (pt : V) ∈ˢ interp V ρp E := by simpa [consList] using hpt
     have hBm : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
-        ∈ˢ psigmaFibreSpace V w (interp V ρp E) := by
-      rw [psigmaFibreSpace_eq_of_mem V hpt']
-      exact lamR_mem fun _ _ => unitSetAt_mem_univ w
+        ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
+      lamR_mem_psigmaFibreSpace V hpt' fun _ _ => unitSetAt_mem_univ w
     have hbv : interp V ρp (.const .psigmaMk [w, w]) = psigmaMkV V w w := rfl
     have hm0 := psigmaMkV_ww_mem (V := V) w
     have hm1 := app_mem_piV hm0 hA
@@ -1718,9 +1713,8 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
         exact (IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1))).ne_pt)
     have hBm : (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E])))
-        ∈ˢ psigmaFibreSpace V w (interp V ρp F) := by
-      rw [psigmaFibreSpace_eq_of_mem V hsp.1]
-      exact lamR_mem fun x hx => by
+        ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
+      lamR_mem_psigmaFibreSpace V hsp.1 fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
     have hm0 := psigmaMkV_ww_mem (V := V) w

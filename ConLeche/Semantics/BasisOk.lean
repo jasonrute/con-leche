@@ -331,8 +331,32 @@ theorem ndTowerAV_interp {r : Nat} {F : Nat → V} {G : Nat → AnnotTerm} {ρ :
     ∀ (n s d : Nat) (σ : Nat → V), shiftE d 0 σ = ρ →
       (∀ m, m < s + n → interp V ρ (G m) = F m) →
       (∀ m, m < s + n → F m ∈ˢ (univ r : V)) →
-      interp V σ (ndTowerAV r G s d n) = ndTowerSet V r F s n := by
-  sorry
+      interp V σ (ndTowerAV r G s d n) = ndTowerSet V r F s n
+  | 0, _, _, _, _, _, _ => rfl
+  | n + 1, s, d, σ, hσ, hG, hF => by
+    have hC : interp V σ ((G s).liftN d 0) = F s := by
+      rw [interp_liftN, hσ]; exact hG s (by omega)
+    have hA : interp V σ ((G s).liftN d 0) ∈ˢ (univ r : V) := hC ▸ hF s (by omega)
+    have hrest : ∀ x : V, interp V (cons x σ) (ndTowerAV r G (s + 1) (d + 1) n)
+        = ndTowerSet V r F (s + 1) n := fun x =>
+      ndTowerAV_interp n (s + 1) (d + 1) (cons x σ)
+        (by rw [shiftE_succ_cons]; exact hσ) (fun m hm => hG m (by omega))
+        (fun m hm => hF m (by omega))
+    have hB : (lamV (interp V σ ((G s).liftN d 0))
+          fun x => interp V (cons x σ) (ndTowerAV r G (s + 1) (d + 1) n))
+        ∈ˢ psigmaFibreSpace V r (interp V σ ((G s).liftN d 0)) :=
+      lamV_mem_psigmaFibreSpace V fun x _ => by
+        rw [hrest x]; exact ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)
+    have hbv : bval V .psigma [r, r] = psigmaV V r r := rfl
+    show SetTheory.app (SetTheory.app (bval V .psigma [r, r])
+        (interp V σ ((G s).liftN d 0)))
+        (lamV (interp V σ ((G s).liftN d 0))
+          fun x => interp V (cons x σ) (ndTowerAV r G (s + 1) (d + 1) n))
+      = ndTowerSet V r F s (n + 1)
+    rw [hbv, psigmaV_app V hA hB, show Nat.max r r = r from Nat.max_self r]
+    show sigmaSet r _ _ = sigmaSet r (F s) _
+    rw [← hC]
+    exact sigma_congr fun x hx => by rw [app_lamV hx, hrest x]
 
 /-- **The non-dependent tower is graded** (`WellDenoted`). -/
 theorem ndTowerAV_wellDenoted {r : Nat} {F : Nat → V} {G : Nat → AnnotTerm} {ρ : Nat → V} :
@@ -340,8 +364,48 @@ theorem ndTowerAV_wellDenoted {r : Nat} {F : Nat → V} {G : Nat → AnnotTerm} 
       (∀ m, m < s + n → interp V ρ (G m) = F m) →
       (∀ m, m < s + n → WellDenoted V ρ (G m)) →
       (∀ m, m < s + n → F m ∈ˢ (univ r : V)) →
-      WellDenoted V σ (ndTowerAV r G s d n) := by
-  sorry
+      WellDenoted V σ (ndTowerAV r G s d n)
+  | 0, _, _, _, _, _, _, _ => by simp [ndTowerAV]
+  | n + 1, s, d, σ, hσ, hG, hok, hF => by
+    have hC : interp V σ ((G s).liftN d 0) = F s := by
+      rw [interp_liftN, hσ]; exact hG s (by omega)
+    have hCok : WellDenoted V σ ((G s).liftN d 0) := by
+      rw [WellDenoted_liftN, hσ]; exact hok s (by omega)
+    have hA : interp V σ ((G s).liftN d 0) ∈ˢ (univ r : V) := hC ▸ hF s (by omega)
+    have hrest : ∀ x : V, interp V (cons x σ) (ndTowerAV r G (s + 1) (d + 1) n)
+        = ndTowerSet V r F (s + 1) n := fun x =>
+      ndTowerAV_interp V n (s + 1) (d + 1) (cons x σ)
+        (by rw [shiftE_succ_cons]; exact hσ) (fun m hm => hG m (by omega))
+        (fun m hm => hF m (by omega))
+    have hfib : ∀ x, x ∈ˢ interp V σ ((G s).liftN d 0) →
+        interp V (cons x σ) (ndTowerAV r G (s + 1) (d + 1) n) ∈ˢ (univ r : V) := fun x _ => by
+      rw [hrest x]; exact ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)
+    have hbv : interp V σ (.const .psigma [r, r]) = psigmaV V r r := rfl
+    have hvac : ¬ r + 1 = 0 := Nat.succ_ne_zero r
+    show WellDenoted V σ (.app (.app (.const .psigma [r, r]) ((G s).liftN d 0))
+      (.lam ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n)))
+    rw [WellDenoted_app]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [WellDenoted_app]
+      exact ⟨trivial, hCok,
+        ⟨r + 1, univ r,
+          fun A => piR (r + 1) (psigmaFibreSpace V r A) fun _ => (univ r : V),
+          hbv ▸ psigmaV_rr_mem V r, hA, fun h0 => absurd h0 hvac,
+          fun _ => IsTy_univ r⟩⟩
+    · rw [WellDenoted_lam]
+      exact ⟨hCok, IsTy_of_mem_univ hA,
+        fun x _ => ndTowerAV_wellDenoted n (s + 1) (d + 1) (cons x σ)
+          (by rw [shiftE_succ_cons]; exact hσ) (fun m hm => hG m (by omega))
+          (fun m hm => hok m (by omega)) (fun m hm => hF m (by omega)),
+        ⟨fun _ => (univ r : V), hfib, fun _ _ => IsTy_univ r⟩⟩
+    · refine ⟨r + 1, psigmaFibreSpace V r (interp V σ ((G s).liftN d 0)),
+        fun _ => (univ r : V), ?_, ?_, fun h0 => absurd h0 hvac,
+        fun _ => IsTy_piV⟩
+      · show SetTheory.app (interp V σ (.const .psigma [r, r]))
+          (interp V σ ((G s).liftN d 0)) ∈ˢ _
+        rw [hbv]
+        exact app_mem_piR_pos hvac (psigmaV_rr_mem V r) hA
+      · exact lamV_mem_psigmaFibreSpace V hfib
 
 /-- **The projection chain into a tower is graded.** -/
 theorem projAV_wellDenoted_ndTower {r : Nat} (hr : r ≠ 0) {F : Nat → V} :
@@ -388,7 +452,7 @@ theorem tupleSortsAV_facts (k : Nat) (us : List Nat) (ρ : Nat → V) :
 universe, below `k`. -/
 theorem famComp_mem_univ {k : Nat} {us : List Nat} {Is : V}
     (hIs : Is ∈ˢ tupleSortsSpace V k us) (m : Nat) (hm : m < k) :
-    famSpaceV V (lv us k) (projS m Is) ∈ˢ (univ (ConLeche.Term.tupleFamSort k us) : V) := by
+    lfpFamSpace V (lv us k) (projS m Is) ∈ˢ (univ (ConLeche.Term.tupleFamSort k us) : V) := by
   have hproj : projS m Is ∈ˢ (univ (lv us m) : V) := by
     have := projS_mem_ndTowerSet V (tupleIdxSort_ne_zero us) k 0 hIs m hm
     rwa [Nat.zero_add] at this
@@ -415,7 +479,29 @@ theorem tupleFamsAV_facts {k : Nat} {us : List Nat} {j : Nat} {ρ : Nat → V}
     (hIs : ρ j ∈ˢ tupleSortsSpace V k us) :
     interp V ρ (tupleFamsAV k us j) = tupleFamsSpace V k us (ρ j) ∧
       WellDenoted V ρ (tupleFamsAV k us j) := by
-  sorry
+  have hG : ∀ m, m < k → interp V ρ (.pi (projAV m (.bvar j))
+      (.sort (lv us k)) : AnnotTerm) = lfpFamSpace V (lv us k) (projS m (ρ j)) := by
+    intro m _
+    show piV (interp V ρ (projAV m (.bvar j))) _ = _
+    rw [projAV_interp, interp_bvar]
+    rfl
+  have hok : ∀ m, m < k → WellDenoted V ρ (.pi (projAV m (.bvar j))
+      (.sort (lv us k)) : AnnotTerm) := by
+    intro m hm
+    rw [WellDenoted_pi]
+    refine ⟨?_, ?_, fun _ _ => trivial, fun _ _ => IsTy_univ _⟩
+    rotate_left
+    · rw [projAV_interp, interp_bvar]
+      have := projS_mem_ndTowerSet V (tupleIdxSort_ne_zero us) k 0 hIs m hm
+      rw [Nat.zero_add] at this
+      exact IsTy_of_mem_univ this
+    refine projAV_wellDenoted_ndTower V (tupleIdxSort_ne_zero us) m k 0
+      (.bvar j) ρ hm (fun i _ => univ_lv_mem_tupleIdxSort V us i) trivial ?_
+    rw [interp_bvar]; exact hIs
+  exact ⟨ndTowerAV_interp V k 0 0 ρ (shiftE_zero_zero ρ) (fun m hm => hG m (by omega))
+      (fun m hm => famComp_mem_univ V hIs m (by omega)),
+   ndTowerAV_wellDenoted V k 0 0 ρ (shiftE_zero_zero ρ) (fun m hm => hG m (by omega))
+      (fun m hm => hok m (by omega)) (fun m hm => famComp_mem_univ V hIs m (by omega))⟩
 
 theorem bval_mem_lfpTuple (k : Nat) (us : List Nat) (ρ : Nat → V) :
     bval V (.lfpTuple k) us ∈ˢ interp V ρ (BConst.typeAV (.lfpTuple k) us) := by

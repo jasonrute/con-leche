@@ -123,7 +123,7 @@ of the spine's indices, the value. -/
 
 /-- **A held item is an occurrence.** -/
 theorem inTup_occOf (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
-    (hX : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X) {o : Occ V} (hQ : Adm (D.MemberQ ψ) o)
+    {o : Occ V} (hQ : Adm (D.MemberQ ψ) o)
     (hH : Holds (D.frame ψ ρp X) o) : InTup D.N (D.idx ψ ρp) X (D.occOf ψ o) := by
   obtain ⟨i, vs, y⟩ := o
   obtain ⟨t, ht, rfl, hlen⟩ := hQ
@@ -135,11 +135,9 @@ theorem inTup_occOf (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
   unfold occOf
   simp only [ht']
   rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
-      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨-, he⟩ | he
+      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨hf, he⟩ | he
   · rw [he] at hH
-    refine ⟨by omega, Classical.byContradiction fun hni => ?_, hH⟩
-    rw [app_off_dom_of_mem_piSet (hX t (by omega)) hni] at hH
-    exact not_mem_empty _ hH
+    exact ⟨by omega, tupW_mem hf, hH⟩
   · rw [he] at hH
     exact absurd hH (not_mem_empty _)
 
@@ -184,7 +182,7 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
   obtain ⟨t, ht, rfl, hlen⟩ := hQ
   have htN : t < D.N := by omega
   -- the fibre holding `pt`
-  have hocc := inTup_occOf (o := (D.k - 1 - t, vs, pt)) hkN hX ⟨t, ht, rfl, hlen⟩ hpt
+  have hocc := inTup_occOf (o := (D.k - 1 - t, vs, pt)) hkN ⟨t, ht, rfl, hlen⟩ hpt
   have ht' : D.k - 1 - (D.k - 1 - t) = t := by omega
   unfold occOf at hocc
   simp only [ht'] at hocc
@@ -194,14 +192,14 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
   classical
   -- the enlarged tuple
   let X' : Nat → V := fun m => if m = t then
-    graph (fun i => if i = tt then binUnion (app (X t) i) (sing empty) else app (X t) i)
+    famOf (fun i => if i = tt then binUnion (app (X t) i) (sing empty) else app (X t) i)
       (D.idx ψ ρp t) else X m
   have hX' : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X' := by
     intro m hm
     by_cases hmt : m = t
     · subst hmt
       simp only [X', ite_eq_left rfl]
-      refine graph_mem_famSpace fun i hi => ?_
+      refine famOf_mem_famSpace fun i hi => ?_
       split
       · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hX m hm) hi)
       · exact famSpace_app (hX m hm) hi
@@ -214,7 +212,7 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
     simp only at hm hi hy ⊢
     by_cases hmt : m = t
     · subst hmt
-      simp only [X', ite_eq_left rfl, app_graph hi]
+      simp only [X', ite_eq_left rfl, app_famOf hi]
       split
       · exact mem_binUnion.mpr (Or.inl hy)
       · exact hy
@@ -223,7 +221,7 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
   refine ⟨D.frame ψ ρp X', ⟨X, X', hX, hX', rfl, rfl⟩, fun o ho hH => ?_, empty, ?_,
     pt_ne_empty.symm⟩
   · -- every item is kept
-    have := inTup_occOf hkN hX ho hH
+    have := inTup_occOf hkN ho hH
     exact holds_of_inTup ho hH (hgrow _ _ _ this)
   · -- the new element: the spine fits (it holds `pt` at `X`), so at `X'` it reads the
     -- enlarged fibre
@@ -239,7 +237,7 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
     rw [frame_hole ht]
     unfold holeVal
     rw [holeFam_app _ hfit]
-    simp only [X', app_graph hidx, ← htt, ite_eq_left rfl]
+    simp only [X', app_famOf hidx, ← htt, ite_eq_left rfl]
     exact mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl))
 
 /-! ## The assembly -/
@@ -315,7 +313,7 @@ theorem fitAcc_holeOp {ψ : Name → Nat} {ρp : Nat → V} (hkN : D.k ≤ D.N)
     rw [hTB] at this
     exact subset_finUnion (f := fun c => finUnion (TB c) (D.nctors c)) hm _
       (subset_finUnion hj _ this)
-  · exact inTup_occOf hkN hX (hg b hb).1 (hg b hb).2
+  · exact inTup_occOf hkN (hg b hb).1 (hg b hb).2
   · have hsp' : SpineFit (D.frame ψ ρp X') (D.fields ψ m j) fs :=
       hs (D.frame ψ ρp X') ⟨X, X', hX, hX', rfl, rfl⟩ fun b hb =>
         holds_of_inTup (hg b hb).1 (hg b hb).2 (hheld b hb)
