@@ -13,6 +13,7 @@ import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Model.IndDomGrade
 import ConLeche.Verify.InferLeaves
 import ConLeche.Model.Inductives.TypeStep
+import ConLeche.Model.CtxOkKit
 
 public section
 
@@ -299,7 +300,8 @@ theorem frameKey_of_infer {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
     (hlenP : (D.params (Level.substFn φ cv.levelParams us)).length = ds.length)
     (hkty : ∃ ty, ConLeche.inferTypeCore .verified env F hi
-      (Expr.mkAppN (.const (D.member mm) us) ds) = .ok ty) :
+      (Expr.mkAppN (.const (D.member mm) us) ds) = .ok ty)
+    (hpi : ∃ r, ConLeche.instPisWith ds (cv.type.instantiateLevelParams cv.levelParams us) = some r) :
     ∀ ρ, Sat V Δh ρ →
       Sat V (D.params (Level.substFn φ cv.levelParams us)).reverse (keyFrame dsa hi ρ) ∧
       ∀ a ∈ dsa, WellDenotedV V ρ a := by
@@ -324,11 +326,25 @@ theorem frameKey_of_infer {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   intro ρ hρ
   have hwd := hgr ρ hρ
   refine ⟨?_, WellDenotedV_mkAppN_args _ hwd⟩
-  have hwa' := hwa
-  rw [show ds = ds ++ [] from (List.append_nil ds).symm] at hwa'
-  have := keyParamsFit mp hD hmm hf (Nat.le_refl hi) hwa' hlenP.symm (fun x hx => (hds x hx).1)
-    hdsa ρ hwd
-  rwa [show dropV (hi - hi) ρ = ρ by funext j; simp [dropV]] at this
+  obtain ⟨r, hr⟩ := hpi
+  exact keyParamsFit mp hin hD hmm hf hul hty hr hlenP.symm hΔ
+    (fun x hx => ⟨⟨(hds x hx).1, (hds x hx).2, hLds x hx⟩, CtxOk.toS (hCds x hx).toCtxOk⟩) hdsa ρ hρ
+    (fun x hx => CtxOk.leavesGr (hCds x hx).toCtxOk hρ)
+
+/-- **A frame's head is instantiable at its key's parameters** (the
+kernel's `nestInstType`, inverted): the former's stored type peels along
+them — the literal telescope `keyParamsFit` reads the key's inference
+against. -/
+theorem frame_head_instPis {ctx : NestCtx} (hfind : ∀ n, ctx.find? n = env.find? n) {hi : Nat}
+    {us : List Level} {ds : List Expr} {p : Name × Expr}
+    (hinst : ∃ nI, ConLeche.nestInstType (m := CheckM) ctx hi ⟨p.1, us, ds⟩ = .ok (nI, p.2))
+    {cv : ConstantVal} {caps : IndCaps} (hf : env.find? p.1 = some (.indInfo cv caps)) :
+    ∃ r, ConLeche.instPisWith ds (cv.type.instantiateLevelParams cv.levelParams us) = some r := by
+  obtain ⟨nI, h⟩ := hinst
+  obtain ⟨cvC, capsC, hfC, -, hpi, -⟩ := ConLeche.nestInstType_inv h
+  rw [hfind, hf] at hfC
+  obtain ⟨rfl, rfl⟩ : cv = cvC ∧ caps = capsC := by simpa using hfC
+  exact ⟨_, hpi⟩
 
 /-- **A derived frame's group is well formed**: the head in the block, the
 rest its recorded block's other members (`hgrp`, N2-eager) — the whole
@@ -419,6 +435,7 @@ theorem frame_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   -- the key, graded
   have hkey := frameKey_of_infer mp hin hD hmm hf₀ (by rw [hlp₀]; exact hul) hds hLds hΔ hCds
     hdsa (by rw [hlp₀]; exact hlenP) (by rw [hhead]; exact hkty)
+    (frame_head_instPis hcov.find (hinst p₀ List.mem_cons_self) (hhead ▸ hf₀))
   rw [hlp₀] at hkey
   have hle := frameIter mp hD hblkD.nodup hkN hcov.find hlps hndl hul hds hdsa hlenP hg.2 hin
     hblkD.ctors rfl hR₀ hΔ hCds hLds hkey hctors
