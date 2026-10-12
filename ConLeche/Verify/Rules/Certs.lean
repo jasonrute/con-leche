@@ -96,8 +96,7 @@ theorem defEqList_bridge (hd : DefEqBridge env fuel) :
 
 /-- `structEtaProjCerts` ⇒ `EtaProjCerts` (`structEtaProjCerts_inv`,
 one `iotaCerts_bridge` per field). -/
-theorem structEtaProjCerts_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
-    (hio : InferIOBridge env fuel) :
+theorem structEtaProjCerts_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) :
     ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
       {lpsT : List Name} {idxs : List Nat},
       structEtaProjCertsFueled .verified env fuel d T us' targs b lpsT idxs
@@ -150,7 +149,6 @@ is a lemma of its own rather than a step inside the next one.  The
 family's identity is the caller's (`hwfn`, `hfT`); the inversion's own
 is reconciled against it. -/
 theorem structEtaCertWith_projCerts_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
-    (hio : InferIOBridge env fuel)
     {d : Nat} {a b wtb : Expr} {T : Name} {us' : List Level}
     {cvT : ConstantVal} {caps : IndCaps}
     (hwfn : wtb.getAppFn = .const T us')
@@ -166,7 +164,7 @@ theorem structEtaCertWith_projCerts_bridge (hd : DefEqBridge env fuel) (hi : Inf
   obtain ⟨rfl, rfl⟩ := Expr.const.inj hwfn₂
   rw [hfT] at hfT₂
   obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj hfT₂)
-  exact fun htw => structEtaProjCerts_bridge hd hi hio (hproj htw)
+  exact fun htw => structEtaProjCerts_bridge hd hi (hproj htw)
 
 /-- `structEtaCertWith` at a given head-normal type ⇒ `DefEq.structEta`
 (`structEtaCertWith_inv`, with `structEtaCertWith_projCerts_bridge`
@@ -186,7 +184,7 @@ theorem structEtaCertWith_bridge (hw : WhnfBridge env fuel)
     structEtaCertWith_inv h
   exact .structEta (inferTypeIO_bridge hio htb) (hw hwtb) hfn hfc hlen hwfn hfT
     heta hctor hresT hresc hplen hulen hlps hslots hus
-    (structEtaCertWith_projCerts_bridge hd hi hio hwfn hfT h)
+    (structEtaCertWith_projCerts_bridge hd hi hwfn hfT h)
     (defEqList_bridge hd hpar) (defEqList_bridge hd hfields)
 
 /-- `structEtaCert` ⇒ `DefEq.structEta` (`structEtaCert_inv`, then
