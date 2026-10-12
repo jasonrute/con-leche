@@ -53,7 +53,7 @@ shared with `structEtaCertWith_bridge`).
 can build the comparand list's read spine at all, and the length is
 needed to build the spines the motive's equation is about.
 `DefEqListSemU` therefore leads with `as.length = bs.length`,
-discharged in `CertsSound.lean`'s `DefEqList.nil_sound`/`cons_sound`.
+discharged in `CertsSound.lean`'s `DefEqList.nil_soundU`/`cons_soundU`.
 -/
 
 namespace ConLeche.Model.Rules
