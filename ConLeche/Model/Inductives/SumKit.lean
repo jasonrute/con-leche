@@ -596,6 +596,16 @@ structure CtorDataI {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name
     Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
     FieldsBoundSrc ρ (((ds ψ).drop nP).map (·.2.2)) srcs
 
+/-- The constructor type's reading is graded (`okTy` without its `IsTy`). -/
+theorem CtorDataI.okTyV {m : EnvModel V env} {T : Name} {lps : List Name} {cvC : ConstantVal}
+    {nP nF nIdx : Nat} {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
+    {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {srcs : List (Option Nat)}
+    (h : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
+    (ψ : Name → Nat) (ρ : Nat → V) :
+    WellDenotedV V ρ (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ))) :=
+  (h.okTy ψ ρ).1
+
 /-- The data crosses a cons whose head is neither the former nor
 mentioned. -/
 theorem CtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name} {cvC : ConstantVal}
