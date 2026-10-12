@@ -548,6 +548,69 @@ theorem IsTy_mkPisAV_sort (ds : List (Nat × Nat × AnnotTerm)) (w : Nat) (ρ : 
   | nil => exact IsTy_univ w
   | cons _ _ => exact IsTy_piR _ _ _
 
+/-! ### Fits of one telescope of types, compared off the point (task #342 L7)
+
+The conditional claims of the annotation-free design compare two
+values only where neither is the point.  Two spines fitting ONE
+telescope whose domains are types are still equal everywhere: position
+by position, under equal earlier values, the two values lie in one
+type, whose members are all the point or none of them
+(`IsTy.eq_of_ne_pt`).  This is the fragment's `FitsVals_eq_of_cond`. -/
+
+/-- **The domains of a telescope are types** under every fitting
+prefix. -/
+def SpineTy (ρ : Nat → V) : List AnnotTerm → Prop
+  | [] => True
+  | F :: Fs => IsTy (interp V ρ F) ∧ ∀ a, a ∈ˢ interp V ρ F → SpineTy (cons a ρ) Fs
+
+/-- A graded Π-tower's domains are types (`WellDenoted`'s Π clause). -/
+theorem spineTy_of_wellDenoted_mkPisAV {B : AnnotTerm} :
+    ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+      WellDenoted V ρ (mkPisAV ab B) → SpineTy ρ (ab.map (·.2.2))
+  | [], _, _ => trivial
+  | d :: ab, ρ, h => by
+    have h' : WellDenoted V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV ab B)) := h
+    rw [WellDenoted_pi] at h'
+    exact ⟨h'.2.1, fun a ha => spineTy_of_wellDenoted_mkPisAV (h'.2.2.1 a ha)⟩
+
+/-- **Fitting values compared where neither is the point are equal**
+(`FitsVals_eq_of_cond`): two spines fitting one telescope of types,
+equal at every position where neither value is the point, are equal. -/
+theorem spineFit_eq_of_cond :
+    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} {as bs : List V},
+      SpineTy ρ Fs → SpineFit ρ Fs as → SpineFit ρ Fs bs →
+      (∀ p ∈ as.zip bs, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) → as = bs
+  | [], _, [], [], _, _, _, _ => rfl
+  | [], _, _ :: _, _, _, h, _, _ => h.elim
+  | [], _, [], _ :: _, _, _, h, _ => h.elim
+  | _ :: _, _, [], _, _, h, _, _ => h.elim
+  | _ :: _, _, _ :: _, [], _, _, h, _ => h.elim
+  | F :: Fs, ρ, a :: as, b :: bs, hT, ha, hb, h => by
+    have hab : a = b := hT.1.eq_of_ne_pt ha.1 hb.1 (h (a, b) List.mem_cons_self)
+    subst hab
+    rw [spineFit_eq_of_cond (hT.2 a ha.1) ha.2 hb.2
+      fun p hp => h p (List.mem_cons_of_mem _ hp)]
+
+/-- `spineFit_eq_of_cond` positionwise: equal where neither is the
+point, at every position below the spines' common length. -/
+theorem spineFit_eq_of_cond_getD {Fs : List AnnotTerm} {ρ : Nat → V} {as bs : List V}
+    (hT : SpineTy ρ Fs) (ha : SpineFit ρ Fs as) (hb : SpineFit ρ Fs bs)
+    (h : ∀ i, i < Fs.length → as.getD i pt ≠ pt → bs.getD i pt ≠ pt →
+      as.getD i pt = bs.getD i pt) : as = bs := by
+  refine spineFit_eq_of_cond hT ha hb fun p hp => ?_
+  obtain ⟨i, hi, hpi⟩ := List.mem_iff_getElem.mp hp
+  have hia : i < as.length := by
+    have := hi; rw [List.length_zip] at this; omega
+  have hib : i < bs.length := by
+    have := hi; rw [List.length_zip] at this; omega
+  have hiF : i < Fs.length := by rw [← ha.length_eq]; exact hia
+  rw [List.getElem_zip] at hpi
+  subst hpi
+  have := h i hiF
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hia, Option.getD_some,
+    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hib, Option.getD_some] at this
+  exact this
+
 /-- Peel `n` Π-binders off a reading. -/
 def stripPisAV : Nat → AnnotTerm → Option (List (Nat × Nat × AnnotTerm) × AnnotTerm)
   | 0, e => some ([], e)
