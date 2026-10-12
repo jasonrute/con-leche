@@ -203,7 +203,7 @@ theorem psigmaMkV_app {u v : Nat} {A B a b : V} (hA : A ∈ˢ (univ u : V))
 /-- Where the pair type is a truth value the constructor is the point. -/
 theorem psigmaMkV_eq_pt {u v : Nat} (hw : Nat.max u v = 0) : psigmaMkV V u v = pt :=
   lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ =>
-    if_pos hw
+    ite_eq_left hw
 
 /-- The pair constructor inhabits its type. -/
 theorem psigmaMkV_mem (u v : Nat) :

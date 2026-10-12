@@ -796,8 +796,8 @@ theorem choice_mem (mp : EnvModelM V μ env)
   show choiceV V (ψ uN) ∈ˢ _
   simp only [interp_pi, interp_sort, interp_app, interp_bvar,
     cons_zero, cons_succ, hNc]
-  -- L15: `choiceV` is built with `lamR (ψ uN)`; over an empty `A` its
-  -- inner graph `∅` is not a member of `piV (Nonempty A) (fun _ => A)
-  -- = {pt}`.  Restated with `lamV`, it is `lamV_mem` twice with
-  -- `dneg_eq_nonempty` and `nonemptyVal_forces` (the former argument)
-  sorry
+  rw [choiceV]
+  refine lamV_mem (fun A hA => ?_) fun _ _ => IsTy_piV
+  rw [← dneg_eq_nonempty mp hfN hlpN htyN hfNi hlpNi htyNi hfNr htyNr ψ ρ hA]
+  exact lamV_mem (fun _ hh => schoice_mem (exists_mem_of_dneg V hh).choose_spec)
+    fun _ _ => IsTy_of_mem_univ hA
