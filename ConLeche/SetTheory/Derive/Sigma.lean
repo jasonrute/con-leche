@@ -140,8 +140,8 @@ theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
 `PUnit.{w}` and the pair towers' terminator.  At `0` the unit is the
 truth value `True = {pt}` with its proof `pt`; above `0` it is `{∅}`
 with the member `∅` — a set that is neither the proof point nor
-contains it, so it stays a member of the restricted universes stage 1b
-reads `Sort (n+1)` as.  Nothing reads the terminator's member: `∅` is
+contains it, so it is strict (a member of the strict universe, and so
+a type of every positive sort).  Nothing reads the terminator's member: `∅` is
 no Kuratowski pair, so `sfst ∅ = ssnd ∅ = pt` by the non-pair default,
 exactly as at `pt`. -/
 

@@ -10,8 +10,13 @@ public section
 An intersection of types need not be a type: `{ptTag, ∅}` and
 `{ptTag, {∅}}` are strict and their intersection is the point — the two
 closed fibres of `F X i = if ∅ ∈ X i then {ptTag, ∅} else {ptTag, {∅}}`.
-Over the restricted universe (`strictU`, what `univ` becomes at stage 1b)
-`lfpFamIn`/`lfpTuple` drop such a fibre to `∅` (`dropTo`).
+Over the strict universe (`strictU`, the least fixed points' fibre
+space) `lfpFamIn`/`lfpTuple` drop such a fibre to `∅` (`dropTo`).
+
+And why the fibre space is `strictU`, not the universe of types `univ`
+(task #342 stage S1): `univ` is cumulative, so `True = {pt}` is a type
+of every level, but `{pt}` with `∅` added is no type — the adjunction
+`strictU_binUnion_sing_empty_mem` (and the unions) would fail.
 -/
 
 namespace ConLeche.SetTheory.LfpTypesTest
@@ -63,5 +68,20 @@ example {w : Nat} (hw : w ≠ 0) :
   rw [countermodel.2.2]
   unfold dropTo
   rw [ite_eq_right fun h => ((mem_strictU_pos hw).mp h).2.1 rfl]
+
+/-! ## The universe of types is cumulative, but not closed under `∪ {∅}` -/
+
+/-- Cumulativity: `True = {pt}` is a type of `Sort 1`. -/
+example : (unitSet : V) ∈ˢ (univ 1 : V) := univ_mono (Nat.zero_le 1) _ (unitSet_mem_univ 0)
+
+/-- `{pt} ∪ {∅}` is not a type: it holds the point and `∅`, so it is
+neither a truth value nor strict. -/
+example : ¬ (binUnion unitSet (sing empty) : V) ∈ˢ (univ 1 : V) := by
+  intro h
+  rcases IsTy_of_mem_univ h with h0 | hs
+  · have he : (empty : V) ∈ˢ unitSet :=
+      mem_univZero.mp h0 _ (mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl)))
+    exact pt_ne_empty (mem_unitSet_iff.mp he).symm
+  · exact hs.2 (mem_binUnion.mpr (Or.inl pt_mem_unitSet))
 
 end ConLeche.SetTheory.LfpTypesTest
