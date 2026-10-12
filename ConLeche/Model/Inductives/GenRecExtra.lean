@@ -1470,12 +1470,15 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       = ab.length := by
     rw [List.length_map, hlenA ψj, ← List.length_map (f := fun p : Nat × Nat × AnnotTerm => p.2.2),
       hmap, List.length_append, hparsL, hPl, Rd.hnpc]
-  -- L17: the residual is the family applied to its arguments, a type (the
-  -- constructor's codomain), hence not the point
+  -- "not pt" source (1): the residual is the constructor type's codomain,
+  -- a type
   have hne : interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
       ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
         (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1)))) ≠ pt := by
-    sorry
+    have hty := Rules.teleFitPA_rest_isTy hfitC
+      (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ) hWD
+    rw [hrest] at hty
+    exact hty.ne_pt
   have hfit := spineFit_of_wellDenoted_mkAppN_pi hne hokR hmemI hlab
   rw [hmap] at hfit
   refine ⟨_, by rw [List.length_map, hlenA], fun q hq => ?_, hrest, hin, hfit, ?_⟩
