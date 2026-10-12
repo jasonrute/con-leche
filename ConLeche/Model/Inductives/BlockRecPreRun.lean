@@ -422,7 +422,7 @@ theorem blockRecTy_univ_run {envC : Env} (hμ : μ.verifiedChecks = true)
     exact hu ρ
   obtain ⟨us, hs⟩ := exists_uniform_univ hmem
   refine ⟨us, fun ψ c hc ρ => ⟨hs c hc ψ ρ, ?_⟩⟩
-  obtain ⟨-, -, -, -, -, -, -, -, -, hwd⟩ :=
+  obtain ⟨-, -, -, -, -, -, -, -, hwd⟩ :=
     recStage_tyPis hμ mpC h (List.getElem?_eq_getElem hc) ψ
   exact hwd ρ
 
@@ -921,42 +921,42 @@ theorem blockRulePdomsAV_reads (hμ : μ.verifiedChecks = true) (mpC : EnvModelM
     have := (List.getElem?_eq_some_iff.mp hx).1
     omega
   have hle := blockRecHrPle (p := p) h (List.getElem?_eq_some_iff.mp hr).1
-  obtain ⟨fvsL, concl, hopL, -, -, -, -, hbind, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
+  obtain ⟨fvsL, concl, hopL, -, -, -, hbind, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
   have hpre := openPisAtFvars_prefix_getElem (by omega) hopL hop l hl
-  obtain ⟨pd, hpd, -, hread⟩ := hbind l x (by rw [hpre]; exact hx)
+  obtain ⟨pd, hpd, hread⟩ := hbind l x (by rw [hpre]; exact hx)
   rw [hread]
   congr 1
-  rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_map,
+  rw [blockRulePdomsAV, List.getD_eq_getElem?_getD,
     List.getElem?_take, ite_eq_left hl, hpd]
   rfl
 
 /-- **A `.pi` tower's PREFIX domains are graded along their own fitting
 spines** — `piTeleAV_graded` read back at the peel's entries. -/
-theorem prefixDoms_graded_of_tower {rds : List (Nat × Nat × AnnotTerm)} {cc : AnnotTerm}
+theorem prefixDoms_graded_of_tower {rds : List AnnotTerm} {cc : AnnotTerm}
     {rP : Nat} (hrP : rP ≤ rds.length)
     (hwd : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV rds cc))
     {l : Nat} (hl : l < rP) {ρ : Nat → V} {ys : List V}
-    (hys : SpineFit ρ (((rds.take rP).map (·.2.2)).take l) ys) :
-    WellDenotedTy V (consList ys ρ) (((rds.take rP).map (·.2.2)).getD l default) := by
+    (hys : SpineFit ρ ((rds.take rP).take l) ys) :
+    WellDenotedTy V (consList ys ρ) ((rds.take rP).getD l default) := by
   have hlk : l < rds.length := by omega
   have htele := piTeleAV_of_stripPisAV (stripPisAV_mkPisAV rds cc)
   obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ' _ => hwd ρ')
-  simp only [List.append_nil, ppsNorm_map_dom] at okΓ
+  simp only [List.append_nil] at okΓ
   obtain ⟨pd, hpd⟩ : ∃ pd, rds[l]? = some pd :=
     ⟨rds[l]'hlk, List.getElem?_eq_getElem hlk⟩
-  have hentΓ : ((rds.map (·.2.2)).reverse).getD (rds.length - 1 - l) default = pd.2.2 :=
+  have hentΓ : (rds.reverse).getD (rds.length - 1 - l) default = pd :=
     getD_reverse_of_peel rfl hlk hpd
-  have hpdoms : ((rds.take rP).map (·.2.2)).getD l default = pd.2.2 := by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take, ite_eq_left hl, hpd]
+  have hpdoms : (rds.take rP).getD l default = pd := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_take, ite_eq_left hl, hpd]
     rfl
-  have htk : ((rds.take rP).map (·.2.2)).take l = (rds.take l).map (·.2.2) := by
-    rw [← List.map_take, List.take_take, show min l rP = l from by omega]
-  have hdropΓ : ((rds.map (·.2.2)).reverse).drop (rds.length - l)
-      = ((rds.take l).map (·.2.2)).reverse := by
+  have htk : (rds.take rP).take l = rds.take l := by
+    rw [List.take_take, show min l rP = l from by omega]
+  have hdropΓ : (rds.reverse).drop (rds.length - l)
+      = (rds.take l).reverse := by
     rw [reverse_map_take_drop rds l,
       List.drop_append_of_le_length (by simp),
       List.drop_eq_nil_of_le (by simp), List.nil_append]
-  have hsat : Sat V (((rds.map (·.2.2)).reverse).drop (rds.length - l)) (consList ys ρ) := by
+  have hsat : Sat V (rds.reverse.drop (rds.length - l)) (consList ys ρ) := by
     rw [hdropΓ, ← htk]
     simpa using sat_of_spineFit (Sat_nil V ρ) hys
   have hres := okΓ l hlk (consList ys ρ) hsat
@@ -975,7 +975,7 @@ theorem blockRulePdomsAV_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModel
         ((blockRulePdomsAV mpC.base2.acval envC p.toBlockShape rs ψ i).getD l default) := by
   intro l hl ρ ys hys
   have hle := blockRecHrPle (p := p) h (List.getElem?_eq_some_iff.mp hr).1
-  obtain ⟨-, -, -, -, hmk, hlenRds, -, -, -, hwdTy⟩ := recStage_tyPis hμ mpC h hr ψ
+  obtain ⟨-, -, -, -, hmk, hlenRds, -, -, hwdTy⟩ := recStage_tyPis hμ mpC h hr ψ
   refine prefixDoms_graded_of_tower (cc := blockRecConclAV mpC.base2.acval envC
       p.toBlockShape rs ψ i) (by omega) (fun ρ' => by rw [← hmk]; exact hwdTy ρ') hl hys
 
@@ -994,15 +994,15 @@ theorem blockRulePdomsAV_bounded (hμ : μ.verifiedChecks = true) (mpC : EnvMode
   have hlp : (blockRulePdomsAV mpC.base2.acval envC p.toBlockShape rs ψ i).length
       = p.toBlockShape.rulePrefixAt i := blockRulePdomsAV_length hμ mpC h hr ψ
   have hle := blockRecHrPle (p := p) h (List.getElem?_eq_some_iff.mp hr).1
-  obtain ⟨-, -, -, -, -, hlenRds, -, -, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
+  obtain ⟨-, -, -, -, -, hlenRds, -, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
   obtain ⟨hbnd, -⟩ := recStage_tyBounds hμ mpC h hr ψ
   have hlk : l < (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).length := by omega
   obtain ⟨pd, hpd⟩ : ∃ pd, (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i)[l]?
       = some pd :=
     ⟨_, List.getElem?_eq_getElem hlk⟩
   have heq : (blockRulePdomsAV mpC.base2.acval envC p.toBlockShape rs ψ i).getD l default
-      = pd.2.2 := by
-    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_map,
+      = pd := by
+    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD,
       List.getElem?_take, ite_eq_left (by omega), hpd]
     rfl
   have hq := hbnd l hlk
@@ -1668,7 +1668,7 @@ variable {envC : Env} {p : ConLeche.BlockParts}
   {cvTa : ConstantVal} {caps : ConLeche.IndCaps}
   (hcvTa : cvTas[p.toBlockShape.recTgtAt c]? = some cvTa)
   (hfT : envC.find? cvTa.name = some (.indInfo cvTa caps))
-  {nFull : Nat} {resSort : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+  {nFull : Nat} {resSort : Level} {pps : (Name → Nat) → List AnnotTerm}
   (hFD : FormerData mpC.base2 cvTa nFull resSort pps) (hle : p.nP ≤ nFull)
 
 /-! ### 40.15 THE `univZero` PRODUCER — the recursor's CONCLUSION
@@ -1714,19 +1714,19 @@ the claims' `SortSemAt` at the type's opened frame (its context is the
 binder data reversed). -/
 theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {F : Nat} (ψ : Name → Nat) {n : Nat} {T : Expr}
-    {ea : AnnotTerm} {rds : List (Nat × Nat × AnnotTerm)} {cc : AnnotTerm}
+    {ea : AnnotTerm} {rds : List AnnotTerm} {cc : AnnotTerm}
     {fvs : List Expr} {conclE sty : Expr} {u : Level}
     (hw₁ : Expr.WScoped 0 T) (hb₁ : T.looseBVarsBounded 0 = true)
     (hTyE : ea = mkPisAV rds cc) (hlenRds : rds.length = n)
     (hdomsR : ∀ (j : Nat) (x : Expr), fvs[j]? = some x →
-      ∃ pd, rds[j]? = some pd ∧ pd.1 = 0 ∧
-        denoteMeta mpC.base2.acval envC ψ j x.fvarTypeD = some pd.2.2)
+      ∃ pd, rds[j]? = some pd ∧
+        denoteMeta mpC.base2.acval envC ψ j x.fvarTypeD = some pd)
     (hconclRead : denoteMeta mpC.base2.acval envC ψ n conclE = some cc)
     (hwdTy : ∀ ρ : Nat → V, WellDenotedV V ρ ea)
     (hop : ConLeche.openPisAtFvars n T 0 = some (fvs, conclE))
     (hinf : ConLeche.inferTypeCore μ envC F n conclE = .ok sty)
     (hens : ConLeche.ensureSortCore μ envC F n sty = .ok u) :
-    ∀ ρ : Nat → V, Sat V (rds.map (·.2.2)).reverse ρ →
+    ∀ ρ : Nat → V, Sat V rds.reverse ρ →
       interp V ρ cc ∈ˢ (univ (u.eval ψ) : V) := by
   -- the frame's syntax
   have hlenFvs : fvs.length = n :=
@@ -1745,36 +1745,25 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
   -- the frame's semantics: the binder data reads, and is graded
   have hdoms : ∀ (j : Nat) (x : Expr), fvs[j]? = some x →
       denoteMeta mpC.base2.acval envC ψ j (Expr.fvarTypeD x)
-        = some ((rds.map
-            (·.2.2)).getD j default) := by
+        = some (rds.getD j default) := by
     intro j x hx
-    obtain ⟨pd, hpd, -, hrd⟩ := hdomsR j x hx
-    rw [hrd, List.getD_eq_getElem?_getD, List.getElem?_map, hpd]
+    obtain ⟨pd, hpd, hrd⟩ := hdomsR j x hx
+    rw [hrd, List.getD_eq_getElem?_getD, hpd]
     rfl
   have hokTower : ∀ l, l < n →
       ∀ (σ : Nat → V) (ys : List V),
-      SpineFit σ ((rds.map
-          (·.2.2)).take l) ys →
-      WellDenotedTy V (consList ys σ)
-        ((rds.map
-          (·.2.2)).getD l default) := by
+      SpineFit σ (rds.take l) ys →
+      WellDenotedTy V (consList ys σ) (rds.getD l default) := by
     intro l hl σ ys hys
-    have hfull : rds.take
-        (n)
-        = rds :=
+    have hfull : rds.take n = rds :=
       List.take_of_length_le (by omega)
     rw [← hfull] at hys ⊢
     exact prefixDoms_graded_of_tower (cc := cc) (by omega) (fun ρ' => by rw [← hTyE]; exact hwdTy ρ')
       hl hys
   -- the context IS the type's own binder data, reversed
-  have hlenDoms : (rds.map
-      (·.2.2)).length = n := by
-    rw [List.length_map, hlenRds]
+  have hlenDoms : rds.length = n := hlenRds
   have hent : ∀ i, i < n →
-      ((rds.map
-          (·.2.2)).reverse)[n - 1 - i]?
-        = some ((rds.map
-          (·.2.2)).getD i default) := by
+      (rds.reverse)[n - 1 - i]? = some (rds.getD i default) := by
     intro i hi
     rw [List.getElem?_reverse (by omega), hlenDoms,
       show n - 1 - (n - 1 - i) = i
@@ -1783,33 +1772,24 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
       List.getElem?_eq_getElem (by rw [hlenDoms]; omega)]
     rfl
   have hokΔ : ∀ i, i < n → ∀ ρ : Nat → V,
-      Sat V (rds.map
-        (·.2.2)).reverse ρ →
-      WellDenotedTy V (fun j => ρ (j + (n - 1 - i) + 1))
-        ((rds.map
-          (·.2.2)).getD i default) := by
+      Sat V rds.reverse ρ →
+      WellDenotedTy V (fun j => ρ (j + (n - 1 - i) + 1)) (rds.getD i default) := by
     have hq := blockRuleHokΔ_of (V := V)
-      (pdoms := rds.map (·.2.2))
+      (pdoms := rds)
       (fdoms := []) (ihdoms := []) (nF := 0) (nR := 0) hlenDoms rfl rfl
       (by simpa using hokTower)
     simp only [List.reverse_nil, List.append_nil, List.nil_append, Nat.add_zero] at hq
     have hgd : ∀ i, i < n →
-        ((rds.map
-            (·.2.2)).reverse).getD (n - 1 - i) default
-          = (rds.map
-            (·.2.2)).getD i default := by
+        (rds.reverse).getD (n - 1 - i) default = rds.getD i default := by
       intro i hi
       rw [List.getD_eq_getElem?_getD, hent i hi]
       rfl
     intro i hi ρ hρ
     have hq' := hq i hi ρ hρ
     rwa [hgd i hi] at hq'
-  have hctx : CtxOk mpC.base2 ψ (n)
-      (rds.map (·.2.2)).reverse
-      conclE :=
+  have hctx : CtxOk mpC.base2 ψ n rds.reverse conclE :=
     ctxOk_of_openers mpC.base2.acval_closed
-      (Aa := fun i => (rds.map
-        (·.2.2)).getD i default)
+      (Aa := fun i => rds.getD i default)
       (by rw [List.length_reverse, hlenDoms])
       (by simpa using ConLeche.openPisAtFvars_index _ T 0 hop)
       (by simpa using (openPisAtFvars_WScoped _ T 0 hop hw₁).1)
@@ -1837,12 +1817,11 @@ theorem blockRecConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
       = .ok sty)
     (hens : ConLeche.ensureSortCore μ envC F (p.toBlockShape.majorIdxAt c + 1) sty = .ok u) :
     ∀ ρ : Nat → V,
-      Sat V ((blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ c).map
-          (·.2.2)).reverse ρ →
+      Sat V (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ c).reverse ρ →
       interp V ρ (blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ c)
         ∈ˢ (univ (u.eval ψ) : V) := by
   obtain ⟨hw₁, hb₁⟩ := recStage_tyClosed h hr
-  obtain ⟨fvs', concl', hop', -, hTyE, hlenRds, -, hdomsR, hconclRead, hwdTy⟩ :=
+  obtain ⟨fvs', concl', hop', -, hTyE, hlenRds, hdomsR, hconclRead, hwdTy⟩ :=
     recStage_tyPis hμ mpC h hr ψ
   have heqP := Option.some.inj (hop'.symm.trans hop)
   have hfe : fvs' = fvs := congrArg Prod.fst heqP

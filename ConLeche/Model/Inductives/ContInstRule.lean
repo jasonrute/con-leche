@@ -57,19 +57,19 @@ theorem instCtor_open {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
       = some crest)
     {fvsF : List Expr} {cbody : Expr}
     (hfld : ConLeche.openPisAtFvars nF crest hi = some (fvsF, cbody)) :
-    cv.levelParams = lps ∧ ∃ ab : List (Nat × Nat × AnnotTerm),
+    cv.levelParams = lps ∧ ∃ ab : List AnnotTerm,
       (∃ Tys : List AnnotTerm, Tys.length = D.k ∧
         (∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
           ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
           denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
             = some (Tys.getD mm default)) ∧
-        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
+        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse ab
           (D.fields (Level.substFn φ lps us) c j)) ∧ ab.length = nF ∧
       readOpenedDoms mp.base2.acval env φ hi fvsF
-        = (AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).map (·.2.2) ∧
+        = AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab ∧
       (∀ (l : Nat) (x : Expr), fvsF[l]? = some x →
         denoteMeta mp.base2.acval env φ (hi + l) x.fvarTypeD
-          = some (((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).map (·.2.2)).getD l
+          = some ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).getD l
               default)) ∧
       denoteMeta mp.base2.acval env φ (hi + nF) cbody
         = some (AnnotTerm.substAV (instTau mp φ D us hi ds)
@@ -97,18 +97,14 @@ theorem instCtor_open {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
   rw [hstEq] at hst
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hst.symm)
   refine ⟨?_, fun l x hx => ?_, hb, hrd'⟩
-  · rw [← ppsNorm_map_dom]
-    exact readOpenedDoms_eq fvsF _ hi
-      (by rw [openPisAtFvars_length _ hfld, ppsNorm_length, substTele_length, hlab])
+  · exact readOpenedDoms_eq fvsF _ hi
+      (by rw [openPisAtFvars_length _ hfld, substTele_length, hlab])
       (fun i x hx => by
-        obtain ⟨q, hq, -, hd⟩ := hbind i x hx
+        obtain ⟨q, hq, hd⟩ := hbind i x hx
         exact ⟨q, hq, hd⟩)
-  · obtain ⟨q, hq, -, hd⟩ := hbind l x hx
-    have hq' := congrArg (·[l]?) (ppsNorm_map_dom
-      (AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab))
-    simp only [List.getElem?_map, hq, Option.map_some] at hq'
-    rw [hd, List.getD_eq_getElem?_getD, List.getElem?_map, ← hq']
-    rfl
+  · obtain ⟨q, hq, hd⟩ := hbind l x hx
+    rw [List.getD_eq_getElem?_getD, hq]
+    exact hd
 
 end Inst
 

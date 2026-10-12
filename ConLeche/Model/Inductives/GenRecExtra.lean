@@ -215,7 +215,7 @@ theorem denoteMeta_ctorShape {acval : Name → (Name → Nat) → AnnotTerm} {en
       = some (bs, Expr.mkAppN (.const I (cv.levelParams.map .param))
           (ConLeche.structPsAt nF nPc ++ es)))
     (hread : denoteMeta acval env ψ 0 cv.type = some ea) :
-    ∃ (pps : List (Nat × Nat × AnnotTerm)) (Es : List AnnotTerm),
+    ∃ (pps : List AnnotTerm) (Es : List AnnotTerm),
       ea = mkPisAV pps (AnnotTerm.mkAppN
         (acval I (Level.substFn ψ ciI.toConstantVal.levelParams (cv.levelParams.map .param)))
         (paramBvars nPc nF ++ Es)) ∧
@@ -279,7 +279,7 @@ theorem holds_false_of_isNever {lps : List Name} {us : List Level} {pw : ConLech
   exact hh.symm
 
 omit [SetTheory V] in
-theorem domsBelow_drop : ∀ (n : Nat) {k : Nat} {ab : List (Nat × Nat × AnnotTerm)},
+theorem domsBelow_drop : ∀ (n : Nat) {k : Nat} {ab : List AnnotTerm},
     DomsBelow k ab → DomsBelow (k + n) (ab.drop n)
   | 0, _, _, h => h
   | _ + 1, _, [], _ => trivial
@@ -324,7 +324,7 @@ structure GenMemAt (mpC : EnvModelM V μ envC) (d : BlockData V) (pp : BlockPart
   hnPc : (ConLeche.tgtMajorsOf out j).nPc = pp.nP
   hwd : ∀ ψ, d.w ψ = Level.eval ψ pp.toBlockShape.resSort
   hparamsC : ∀ (ψ : Name → Nat) (σ : Nat → V), Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF t i ψ).take d.nP).map (·.2.2)).reverse σ
+      ↔ Sat V ((d.dsF t i ψ).take d.nP).reverse σ
   hlenP : ∀ ψ : Name → Nat, (d.params ψ).length = d.nP
   hctorRead : ∀ ψ' : Name → Nat, denoteMeta mpC.base2.acval envC ψ' 0 cA.1.type
       = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ')
@@ -342,7 +342,7 @@ theorem genMemAt_of
       block ctorsAs out) {memR : Nat → Prop}
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI' : Env}
     (hdR : d = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hN : BlockNamesOk (V := V) d cvTas)
@@ -395,14 +395,14 @@ theorem genMemAt_of
     rw [blockRecCtorTy, hsel, hcd.read ψ']
     rfl
   have hparamsC : ∀ (ψ : Name → Nat) (σ : Nat → V), Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF t i ψ).take d.nP).map (·.2.2)).reverse σ := fun ψ σ =>
+      ↔ Sat V ((d.dsF t i ψ).take d.nP).reverse σ := fun ψ σ =>
     ⟨fun hσ => ((hSt.frames _ htd i cA hcj).1 _ σ).mp (hSt.paramsOf 0 hk0 _ σ hσ _ htd),
       fun hσ => hSt.paramsOf _ htd _ σ (((hSt.frames _ htd i cA hcj).1 _ σ).mpr hσ) 0 hk0⟩
   have hlenP : ∀ ψ : Name → Nat, (d.params ψ).length = d.nP := by
     intro ψ
     have hl := hSt.lenPps 0 ψ hk0
-    show (((d.ppsM 0 ψ).take d.nP).map (·.2.2)).length = d.nP
-    rw [List.length_map, List.length_take]
+    show ((d.ppsM 0 ψ).take d.nP).length = d.nP
+    rw [List.length_take]
     exact Nat.min_eq_left (Nat.le_trans (Nat.le_add_right _ _) (Nat.le_of_eq hl.symm))
   obtain ⟨cvT, hcvT⟩ : ∃ cvT, cvTas[t]? = some cvT :=
     ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact htd)⟩
@@ -570,19 +570,19 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
         (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj)))
           ∈ˢ (univZero : V) := by
       refine mkPisAV_mem_univZero fun vs hvs => ?_
-      rw [← List.take_append_drop d.nP (d.dsF t i ψj), List.map_append] at hvs
+      rw [← List.take_append_drop d.nP (d.dsF t i ψj)] at hvs
       obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_inv hvs
       have hxl : xs.length = d.nP := by
-        rw [hxs.length_eq, List.length_map, List.length_take, hlenD]; omega
+        rw [hxs.length_eq, List.length_take, hlenD]; omega
       have hfl : fs.length = cA.2 := by
-        rw [hfs.length_eq, List.length_map, List.length_drop, hlenD]; omega
-      have hsatD : Sat V (((d.dsF t i ψj).take d.nP).map (·.2.2)).reverse (consList xs ρ) := by
+        rw [hfs.length_eq, List.length_drop, hlenD]; omega
+      have hsatD : Sat V (((d.dsF t i ψj).take d.nP)).reverse (consList xs ρ) := by
         have := sat_of_spineFit (Δ₀ := []) (Sat_nil V ρ) hxs
         rwa [List.append_nil] at this
       have hsat : Sat V (d.params ψj).reverse (consList xs ρ) := (G.hparamsC ψj _).mpr hsatD
       have hxsP : SpineFit ρ (d.params ψj) xs :=
         spineFit_of_sat_consList (by rw [hxl, G.hlenP]) hsat
-      have hFssD : (d.Fss t ψj).getD i [] = ((d.dsF t i ψj).drop d.nP).map (·.2.2) :=
+      have hFssD : (d.Fss t ψj).getD i [] = ((d.dsF t i ψj).drop d.nP) :=
         fssOfR_fixCtorDataList_getD G.hcj
       have hEssD : (d.Ess t ψj).getD i [] = d.esF t i ψj := essOfR_fixCtorDataList_getD G.hcj
       have hfsF : SpineFit (consList xs ρ) ((d.Fss t ψj).getD i []) fs := by
@@ -616,7 +616,7 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     -- the body is the member at the result index readings
     have hpar : d.params ψj = [] := List.eq_nil_of_length_eq_zero (by rw [G.hlenP, hnP0])
     have hsat : Sat V (d.params ψj).reverse ρ := by rw [hpar]; exact Sat_nil V ρ
-    have hFssD : (d.Fss t ψj).getD i [] = ((d.dsF t i ψj).drop d.nP).map (·.2.2) :=
+    have hFssD : (d.Fss t ψj).getD i [] = ((d.dsF t i ψj).drop d.nP) :=
       fssOfR_fixCtorDataList_getD G.hcj
     have hFss : (d.Fss t ψj).getD i [] = [] := by rw [hFssD, hds]; simp
     have hfit0 : SpineFit ρ ((d.Fss t ψj).getD i []) [] := by rw [hFss]; trivial
@@ -791,11 +791,10 @@ theorem genMem_U (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rw [hpsV] at hpar hsp'
   -- the parameters, in the constructor's own parameter telescope (a telescope of types)
   have hD := G.hcf.2.2
-  have hlenD : (((d.dsF t i ψ).take d.nP).map (·.2.2)).length = d.nP := by
-    rw [List.length_map, List.length_take, hD.len ψ]; omega
-  have hTy : SpineTy ρ (((d.dsF t i ψ).take d.nP).map (·.2.2)) := by
-    have := (spineTy_of_wellDenoted_mkPisAV (hD.okTy ψ ρ).1).take d.nP
-    rwa [← List.map_take] at this
+  have hlenD : (((d.dsF t i ψ).take d.nP)).length = d.nP := by
+    rw [List.length_take, hD.len ψ]; omega
+  have hTy : SpineTy ρ (((d.dsF t i ψ).take d.nP)) :=
+    (spineTy_of_wellDenoted_mkPisAV (hD.okTy ψ ρ).1).take d.nP
   have hlenPs := G.hlenP ψ
   have hq' := (spineFit_iff_of_sat_iff (by rw [hlenPs, hlenD]) (G.hparamsC ψ) ρ _
     (by rw [hqs.length_eq])).mp hqs
@@ -908,11 +907,11 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   obtain ⟨j', fs', hfit', heqa⟩ := blockCarrier_case G.hM (d.satOfSpine hpar) G.hmN ht hmaj
   have hj0 : j' = i := by have := hfit'.1; have := G.hjl; omega
   subst hj0
-  have hFssD : (d.Fss t ψ).getD j' [] = ((d.dsF t j' ψ).drop d.nP).map (·.2.2) :=
+  have hFssD : (d.Fss t ψ).getD j' [] = ((d.dsF t j' ψ).drop d.nP) :=
     fssOfR_fixCtorDataList_getD G.hcj
   have hFss0 : (d.Fss t ψ).getD j' [] = [] := by
     apply List.eq_nil_of_length_eq_zero
-    rw [hFssD, List.length_map, List.length_drop, hD.len ψ, hnf0]; omega
+    rw [hFssD, List.length_drop, hD.len ψ, hnf0]; omega
   have hfs0 : fs' = [] := by
     have := hfit'.2.1.length_eq
     rw [hFss0] at this
@@ -937,8 +936,8 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     Option.some.inj ((G.hctorRead ψj).symm.trans (hD.read ψj))
   have hds : d.dsF t j' ψj = d.dsF t j' ψ := (hD.params ψj ψ hlv).1
   have hdsLen : (d.dsF t j' ψ).length = d.nP := by rw [hD.len ψ, hnf0]; rfl
-  have hspC : SpineFit ρ ((d.dsF t j' ψj).map (·.2.2)) ((xs.take d.nP).map (interp V ρ)) := by
-    have h1 := ((spineFit_iff_of_sat_iff (by rw [G.hlenP ψ, List.length_map, List.length_take,
+  have hspC : SpineFit ρ ((d.dsF t j' ψj)) ((xs.take d.nP).map (interp V ρ)) := by
+    have h1 := ((spineFit_iff_of_sat_iff (by rw [G.hlenP ψ, List.length_take,
       hdsLen, Nat.min_self]) (G.hparamsC ψ) ρ _ (by rw [hpar.length_eq])).mp hpar)
     rw [List.take_of_length_le (Nat.le_of_eq hdsLen)] at h1
     rw [hds]; exact h1
@@ -1184,18 +1183,18 @@ theorem genOut_pins (hμ : μ.verifiedChecks = true)
   -- the pins' values, at the base frame
   have hP1 := spineFit_of_teleFitPA (by rw [hdl, hplen']) hTF
   have hbelow := (bvarsBelow_mkPisAV_inv hT0cl).1
-  have hP0 : SpineFit ρ (pps.map (·.2.2))
+  have hP0 : SpineFit ρ (pps)
       ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map
         (interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ))) :=
     spineFit_congr_below hbelow (fun i hi => absurd hi (Nat.not_lt_zero i)) hP1
   -- the constructor's parameters
   obtain ⟨mid, hmid⟩ := hfitC.take (tgtMajor out j).nPc
-  have hY0 : SpineFit ρ (pps.map (·.2.2)) ((ys.take (tgtMajor out j).nPc).map (interp V ρ)) :=
+  have hY0 : SpineFit ρ (pps) ((ys.take (tgtMajor out j).nPc).map (interp V ρ)) :=
     spineFit_of_teleFitPA (by rw [List.length_take, hyl, hplen']; omega) hmid
-  have hTy : SpineTy ρ (pps.map (·.2.2)) := spineTy_of_wellDenoted_mkPisAV (by
+  have hTy : SpineTy ρ (pps) := spineTy_of_wellDenoted_mkPisAV (by
     have := hT0wd ρ; rw [hT0E] at this; exact this)
-  have hlenPs : (pps.map (·.2.2)).length = (tgtMajor out j).nPc := by
-    rw [List.length_map, hplen']
+  have hlenPs : (pps).length = (tgtMajor out j).nPc := by
+    rw [hplen']
   -- the pins' chains are their readings
   have hchain : ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : AnnotTerm,
       denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
@@ -1508,8 +1507,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   have hlab : ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
       (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))).length
       = ab.length := by
-    rw [List.length_map, hlenA ψj, ← List.length_map (f := fun p : Nat × Nat × AnnotTerm => p.2.2),
-      hmap, List.length_append, hparsL, hPl, Rd.hnpc]
+    rw [List.length_map, hlenA ψj, hmap, List.length_append, hparsL, hPl, Rd.hnpc]
   -- "not pt" source (1): the residual is the constructor type's codomain,
   -- a type
   have hne : interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
@@ -1914,8 +1912,8 @@ theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {me
     have := hmap.symm.trans hmap''
     exact List.append_inj_right this (by rw [hlenPars, hlenPars])
   have hidsAB : (tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) (tgtClsψ cvc out ψ j)
-      = (ab.drop nP).map (·.2.2) := by
-    rw [List.map_drop, hmap'', List.drop_left' (hlenPars _)]
+      = (ab.drop nP) := by
+    rw [hmap'', List.drop_left' (hlenPars _)]
   rw [hidsE] at hfitA hlenA
   -- split the residual's fit
   obtain ⟨as₁, as₂, hasE, hfit1, hfit2⟩ := spineFit_append_inv hfitA
@@ -2036,7 +2034,7 @@ theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
     (DenoteMetaSpine.length_eq (Rd.hdsa ψ)).symm.trans Rd.hnpc.symm
   have hplen' : pps.length = (tgtMajor out j).nPc := by rw [hplen, Rd.hnpc]
   have hP1 := spineFit_of_teleFitPA (by rw [hdl, hplen']) hTF
-  have hP0 : SpineFit ρ (pps.map (·.2.2))
+  have hP0 : SpineFit ρ (pps)
       ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map
         (interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ))) :=
     spineFit_congr_below (bvarsBelow_mkPisAV_inv hT0cl).1

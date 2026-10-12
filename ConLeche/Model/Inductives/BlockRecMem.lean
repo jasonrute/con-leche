@@ -80,7 +80,7 @@ major. -/
 def blockRecRdsAV (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
     (p : ConLeche.BlockShape)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (ψ : Name → Nat) (c : Nat) : List (Nat × Nat × AnnotTerm) :=
+    (ψ : Name → Nat) (c : Nat) : List AnnotTerm :=
   ((stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c)).map (·.1)).getD []
 
 /-- The `i`-th recursor's CONCLUSION, read under its `mI + 1`
@@ -90,17 +90,6 @@ def blockRecConclAV (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
     (ψ : Name → Nat) (c : Nat) : AnnotTerm :=
   ((stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c)).map (·.2)).getD default
-
-/-- The binder data are a peel's, hence normalized (`ppsNorm`). -/
-theorem blockRecRdsAV_norm (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
-    (p : ConLeche.BlockShape)
-    (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (ψ : Name → Nat) (c : Nat) :
-    ppsNorm (blockRecRdsAV acval envC p rs ψ c) = blockRecRdsAV acval envC p rs ψ c := by
-  unfold blockRecRdsAV
-  cases hst : stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c) with
-  | none => exact List.eq_nil_of_length_eq_zero (ppsNorm_length [])
-  | some q => exact stripPisAV_norm (b := q.2) hst
 
 theorem blockRecTyAV_eq {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
@@ -113,10 +102,9 @@ theorem blockRecTyAV_eq {acval : Name → (Name → Nat) → AnnotTerm} {envC : 
 /-- **The identification**: at every `ψ`, the `i`-th stored
 recursor type READS, its reading is GRADED, and it IS the Π-tower
 `mkPisAV rds concl` over the run's own binder data — with the domains'
-readings, the bits (`0` and at most `1`) and the conclusion's reading
-at the full depth.  This is what the recursor model consumes: `hTyE` at
-`RecTy ψ c := blockRecTyAV …`, `rds`/`concl` at the two named
-spellings. -/
+readings and the conclusion's reading at the full depth.  This is what
+the recursor model consumes: `hTyE` at `RecTy ψ c := blockRecTyAV …`,
+`rds`/`concl` at the two named spellings. -/
 theorem recStage_tyPis {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
@@ -134,11 +122,9 @@ theorem recStage_tyPis {envC : Env} (hμ : μ.verifiedChecks = true)
               (blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ i) ∧
       (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).length
           = p.toBlockShape.majorIdxAt i + 1 ∧
-      (∀ pd ∈ blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i,
-          pd.1 = 0 ∧ pd.2.1 ≤ 1) ∧
       (∀ (j : Nat) (x : Expr), fvs[j]? = some x →
         ∃ pd, (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i)[j]? = some pd ∧
-          pd.1 = 0 ∧ denoteMeta mpC.base2.acval envC ψ j x.fvarTypeD = some pd.2.2) ∧
+          denoteMeta mpC.base2.acval envC ψ j x.fvarTypeD = some pd) ∧
       denoteMeta mpC.base2.acval envC ψ (p.toBlockShape.majorIdxAt i + 1) concl
           = some (blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ i) ∧
       (∀ ρ : Nat → V, WellDenotedV V ρ (blockRecTyAV mpC.base2.acval envC rs ψ i)) := by
@@ -154,10 +140,9 @@ theorem recStage_tyPis {envC : Env} (hμ : μ.verifiedChecks = true)
     rw [blockRecRdsAV, blockRecTyAV_eq hr hta, hst]; rfl
   have hcon : blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ i = b := by
     rw [blockRecConclAV, blockRecTyAV_eq hr hta, hst]; rfl
-  refine ⟨TE.fvs, TE.concl, hop, hta, ?_, ?_, ?_, ?_, ?_, hwd⟩
+  refine ⟨TE.fvs, TE.concl, hop, hta, ?_, ?_, ?_, ?_, hwd⟩
   · rw [hrds, hcon]; exact (stripPisAV_eq_mkPis hst).1
   · rw [hrds]; exact hlen
-  · rw [hrds]; exact fun pd hpd => stripPisAV_denoteMeta_bits _ hop hta hst pd hpd
   · rw [hrds]; exact fun j x hx => by simpa using hbind j x hx
   · rw [hcon]; simpa using hb
 
@@ -185,8 +170,8 @@ theorem recStage_tyBounds {envC : Env} (hμ : μ.verifiedChecks = true)
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
     (∀ l, l < (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).length →
       ConLeche.Term.Term.bvarsBelow l
-        (((blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).getD l
-          default).2.2).erase) ∧
+        ((blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).getD l
+          default).erase) ∧
     ConLeche.Term.Term.bvarsBelow (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).length
       (blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ i).erase := by
   obtain ⟨_, _, -, ⟨TE⟩⟩ := ConLeche.recStageG_tyGen h hr
@@ -211,7 +196,7 @@ theorem recStage_tyBounds {envC : Env} (hμ : μ.verifiedChecks = true)
       refine ⟨_, List.getElem?_eq_getElem ?_⟩
       rw [ConLeche.Verify.openPisAtFvars_length _ hop, ← hlen]
       exact hl
-    obtain ⟨pd, hpd, -, hread⟩ := hbind l x hx
+    obtain ⟨pd, hpd, hread⟩ := hbind l x hx
     rw [Nat.zero_add] at hread
     rw [List.getD_eq_getElem?_getD, hpd, Option.getD_some]
     refine bvarsBelow_of_reading (m := mpC.base2) ?_ ?_ hread

@@ -37,19 +37,19 @@ inhabit the codomain at every fitting spine and the codomain is a type
 there (`lamV_mem`: the fibres are types — inner Π-types, or the
 codomain). -/
 theorem holeFam_mem_mkPisAV :
-    ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {B : AnnotTerm} {g : List V → V},
-      (∀ vs, SpineFit ρ (ab.map (·.2.2)) vs → g vs ∈ˢ interp V (consList vs ρ) B) →
-      (∀ vs, SpineFit ρ (ab.map (·.2.2)) vs → IsTy (interp V (consList vs ρ) B)) →
-      holeFam ρ (ab.map (·.2.2)) g ∈ˢ interp V ρ (mkPisAV ab B)
+    ∀ {ab : List AnnotTerm} {ρ : Nat → V} {B : AnnotTerm} {g : List V → V},
+      (∀ vs, SpineFit ρ ab vs → g vs ∈ˢ interp V (consList vs ρ) B) →
+      (∀ vs, SpineFit ρ ab vs → IsTy (interp V (consList vs ρ) B)) →
+      holeFam ρ ab g ∈ˢ interp V ρ (mkPisAV ab B)
   | [], _, _, _, h, _ => h [] trivial
   | d :: ab, ρ, B, g, h, hT => by
-    show lamV _ _ ∈ˢ interp V ρ (.pi d.2.2 (mkPisAV ab B))
+    show lamV _ _ ∈ˢ interp V ρ (.pi d (mkPisAV ab B))
     rw [interp_pi]
     refine lamV_mem (fun x hx => holeFam_mem_mkPisAV (fun vs hvs => h (x :: vs) ⟨hx, hvs⟩)
       (fun vs hvs => hT (x :: vs) ⟨hx, hvs⟩)) fun x hx => ?_
     cases ab with
     | nil => exact hT [x] ⟨hx, trivial⟩
-    | cons d' ab => show IsTy (interp V (cons x ρ) (.pi d'.2.2 (mkPisAV ab B))); rw [interp_pi]; exact IsTy_piV
+    | cons d' ab => show IsTy (interp V (cons x ρ) (.pi d' (mkPisAV ab B))); rw [interp_pi]; exact IsTy_piV
 
 namespace LfpDatum
 
@@ -80,7 +80,7 @@ parameter frame as the Π-tower over the member's indices ending in the
 block's sort. -/
 theorem holeVal_mem (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
     (hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) X) {t : Nat} (ht : t < D.k)
-    {ab : List (Nat × Nat × AnnotTerm)} (hab : ab.map (·.2.2) = D.ids t ψ) :
+    {ab : List AnnotTerm} (hab : ab = D.ids t ψ) :
     D.holeVal ψ ρp X t ∈ˢ interp V ρp (mkPisAV ab (.sort (D.w ψ))) := by
   have htN : t < D.N := Nat.lt_of_lt_of_le ht hkN
   unfold holeVal

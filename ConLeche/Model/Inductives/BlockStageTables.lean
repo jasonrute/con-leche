@@ -73,8 +73,8 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
   /-- the fields are bounded at a non-`Prop` block, and each inhabits its sort -/
   boundF : ∀ (m : Nat) (cA : ConstantVal × Nat), m < d.k → d.ctorsM m = [cA] →
     ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.dsF m 0 ψ).take d.nP).map (·.2.2)).reverse ρ → d.isProp = false →
-      FieldsBound (d.w ψ) ρ (((d.dsF m 0 ψ).drop d.nP).map (·.2.2))
+      Sat V (((d.dsF m 0 ψ).take d.nP)).reverse ρ → d.isProp = false →
+      FieldsBound (d.w ψ) ρ (((d.dsF m 0 ψ).drop d.nP))
   /-- the constructors' telescope lengths and bounds -/
   dsLen : ∀ (m j : Nat) (cA : ConstantVal × Nat), m < d.k → (d.ctorsM m)[j]? = some cA →
     ∀ ψ, (d.dsF m j ψ).length = d.nP + cA.2
@@ -86,10 +86,10 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
   foldT : ∀ (m : Nat) (cA : ConstantVal × Nat), m < d.k → d.ctorsM m = [cA] →
     d.nIdxAt m = 0 →
     ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
-      SpineFit ρ ((d.ppsM m ψ).map (·.2.2)) ts →
+      SpineFit ρ ((d.ppsM m ψ)) ts →
       ts.foldl SetTheory.app (interp V ρ (A m ψ))
         = sumSet (d.w ψ) (sumFibre (d.w ψ) (consList ts ρ)
-            [((d.dsF m 0 ψ).drop d.nP).map (·.2.2) ++ [idxEqAV []]])
+            [((d.dsF m 0 ψ).drop d.nP) ++ [idxEqAV []]])
   /-- no member's projections occur in a stored former's type … -/
   noProjT : ∀ (m c : Nat) (cvTb : ConstantVal), m < d.k → cvTasAll[c]? = some cvTb →
     ∀ i, Expr.NoProjAt (d.memberName m) i cvTb.type
@@ -105,10 +105,10 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
     ∀ (i j : Nat), Expr.NoProjAt (d.memberName m) i (bodies.getD j default)
   sortsF : ∀ (m : Nat) (cA : ConstantVal × Nat), m < d.k → d.ctorsM m = [cA] →
     ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.dsF m 0 ψ).take d.nP).map (·.2.2)).reverse ρ →
+      Sat V (((d.dsF m 0 ψ).take d.nP)).reverse ρ →
       ∀ j, j < cA.2 → ∀ as : List V,
-        SpineFit ρ ((((d.dsF m 0 ψ).drop d.nP).map (·.2.2)).take j) as →
-        interp V (consList as ρ) ((((d.dsF m 0 ψ).drop d.nP).map (·.2.2)).getD j default)
+        SpineFit ρ ((((d.dsF m 0 ψ).drop d.nP)).take j) as →
+        interp V (consList as ρ) ((((d.dsF m 0 ψ).drop d.nP)).getD j default)
           ∈ˢ (univ (((sortsOf m).getD j .zero).eval ψ) : V)
 
 /-- **What the tables' loop threads**: the `k` formers with their
@@ -132,7 +132,7 @@ not an arbitrary term's. -/
         = some (mkPisAV (d.dsF c j ψ)
             (AnnotTerm.mkAppN (A c ψ) (paramBvars d.nP cA.2 ++ d.esF c j ψ)))) ∧
       (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) j (d.dsF c j ψ)
-        (((d.dsF c j ψ).drop d.nP).map (·.2.2)) (uChains (d.Fss c ψ)))) ∧
+        (((d.dsF c j ψ).drop d.nP)) (uChains (d.Fss c ψ)))) ∧
   -- the members the tables' loop will still treat: their projection
   -- slots are free (a member with no table of its own is never asked)
   ∀ c, nc ≤ c → c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
@@ -316,7 +316,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
     have hlenP : ∀ ψ : Name → Nat, (d.ppsM i ψ).length = d.nP := by
       intro ψ; have := hFD.len ψ; rwa [hnIdx0, Nat.add_zero] at this
     have hFss1 : ∀ ψ : Name → Nat,
-        d.Fss i ψ = [((d.dsF i 0 ψ).drop d.nP).map (·.2.2)] := by
+        d.Fss i ψ = [((d.dsF i 0 ψ).drop d.nP)] := by
       intro ψ
       have hlen : (d.Fss i ψ).length = 1 := by
         show (fssOfR _ _).length = 1
@@ -324,7 +324,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
         show (fixCtorDataList _ _ _ _ _ _ _ _).length = 1
         rw [fixCtorDataList_length, hctorsEq]; rfl
       obtain ⟨Fs, hFs⟩ := List.length_eq_one_iff.mp hlen
-      have h0 : (d.Fss i ψ).getD 0 [] = ((d.dsF i 0 ψ).drop d.nP).map (·.2.2) :=
+      have h0 : (d.Fss i ψ).getD 0 [] = ((d.dsF i 0 ψ).drop d.nP) :=
         fssOfR_fixCtorDataList_getD hcA0
       rw [hFs] at h0 ⊢
       simp only [List.getD_cons_zero] at h0

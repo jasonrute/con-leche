@@ -98,8 +98,8 @@ theorem spineFit_of_lifted :
 
 /-- **A graded Π-tower stays graded past a fitting prefix.** -/
 theorem wellDenotedV_mkPisAV_append (B : AnnotTerm) :
-    ∀ (ab₁ ab₂ : List (Nat × Nat × AnnotTerm)) (ρ : Nat → V) (as : List V),
-      SpineFit ρ (ab₁.map (·.2.2)) as → WellDenotedV V ρ (mkPisAV (ab₁ ++ ab₂) B) →
+    ∀ (ab₁ ab₂ : List AnnotTerm) (ρ : Nat → V) (as : List V),
+      SpineFit ρ (ab₁) as → WellDenotedV V ρ (mkPisAV (ab₁ ++ ab₂) B) →
       WellDenotedV V (consList as ρ) (mkPisAV ab₂ B)
   | [], _, _, [], _, h => h
   | [], _, _, _ :: _, hf, _ => hf.elim
@@ -273,11 +273,11 @@ theorem grp_typeT {p : Name × Expr} (hp : p ∈ grp) :
     Expr.WScoped hi p.2 ∧ p.2.looseBVarsBounded 0 = true ∧
     (∀ l ∈ p.2.fvarLeaves, ∃ x ∈ ds, l ∈ x.fvarLeaves) ∧
     ∃ mm cv caps, mm < D.k ∧ p.1 = D.member mm ∧
-      env.find? (D.member mm) = some (.indInfo cv caps) ∧ ∃ abF : List (Nat × Nat × AnnotTerm),
+      env.find? (D.member mm) = some (.indInfo cv caps) ∧ ∃ abF : List AnnotTerm,
         denoteMeta mp.base2.acval env (Level.substFn φ lps us) 0 cv.type
           = some (mkPisAV abF (.sort (D.w (Level.substFn φ lps us)))) ∧
-        abF.map (·.2.2) = D.pars mm (Level.substFn φ lps us) ++ D.ids mm (Level.substFn φ lps us) ∧
-        (abF.drop ds.length).map (·.2.2) = D.ids mm (Level.substFn φ lps us) ∧
+        abF = D.pars mm (Level.substFn φ lps us) ++ D.ids mm (Level.substFn φ lps us) ∧
+        (abF.drop ds.length) = D.ids mm (Level.substFn φ lps us) ∧
         denoteMeta mp.base2.acval env φ hi p.2
           = some (mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0
               (abF.drop ds.length)) (.sort (D.w (Level.substFn φ lps us)))) := by
@@ -343,10 +343,10 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
     have hwd := (mp.type_wellDenotedTy _ hmem ψ _ hread
       (fun j => ρ (j + hi))).1
     have hsP := h.parsSat mm hmm ψ _ hs
-    have hfit : SpineFit (fun j => ρ (j + hi)) ((abF.take ds.length).map (·.2.2))
+    have hfit : SpineFit (fun j => ρ (j + hi)) ((abF.take ds.length))
         (dsa.map (interp V ρ)) := by
-      have hm1 : (abF.take ds.length).map (·.2.2) = D.pars mm ψ := by
-        rw [List.map_take, hmap, ← hpl, List.take_left' rfl]
+      have hm1 : (abF.take ds.length) = D.pars mm ψ := by
+        rw [hmap, ← hpl, List.take_left' rfl]
       rw [hm1]
       exact spineFit_of_sat_consList (by rw [List.length_map, hdl, hpl]) hsP
     rw [← List.take_append_drop ds.length abF] at hwd
@@ -455,7 +455,7 @@ theorem crest_readT {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Const
           instPisWith (canonParams ds.length) cvm.type = some ty ∧
           denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
             = some (Tys.getD mm default)) ∧
-        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
+        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab)
           (D.fields (Level.substFn φ lps us) c j)) ∧ ab.length = nF ∧
       denoteMeta mp.base2.acval env φ (hi + grp.length) crest
         = some (mkPisAV (AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)
@@ -818,7 +818,7 @@ theorem crest_read {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Consta
           instPisWith (canonParams ds.length) cvm.type = some ty ∧
           denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
             = some (Tys.getD mm default)) ∧
-        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
+        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab)
           (D.fields (Level.substFn φ lps us) c j)) ∧ ab.length = nF ∧
       denoteMeta mp.base2.acval env φ (hi + grp.length) crest
         = some (mkPisAV (AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)

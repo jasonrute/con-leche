@@ -36,16 +36,16 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env} {φ : Name → 
 
 /-- The type-former leaf's P currency. -/
 theorem sumTyAV_wellDenotedV {w : Nat} {Fss : List (List AnnotTerm)}
-    {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
+    {pps : List AnnotTerm} {ρ : Nat → V}
     (hok : ParamsOkS w ρ Fss pps) :
     WellDenotedV V ρ (sumTyAV w pps Fss) :=
   sumTyAV_wellDenoted hok
 
 /-- The constructor leaf's P currency. -/
 theorem sumMkAV_wellDenotedV {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
-    (hpre : MkPreS w j ρ (fds.map (·.2.2)) Fss bodyC pds) :
-    WellDenotedV V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss) :=
+    {Fss : List (List AnnotTerm)} {pds fds : List AnnotTerm}
+    (hpre : MkPreS w j ρ (fds) Fss bodyC pds) :
+    WellDenotedV V ρ (sumMkAV w j (pds ++ fds) (fds) Fss) :=
   sumMkAV_wellDenoted hpre
 
 /-! ## `AnnotTerm` bookkeeping -/
@@ -60,7 +60,7 @@ theorem DenoteMetaSpine.unique {acval : Name → (Name → Nat) → AnnotTerm} {
 /-! ## The entries -/
 
 /-- A constructor datum: name, field count, field data, index readings. -/
-abbrev CtorDatum := Name × Nat × List (Nat × Nat × AnnotTerm) × List AnnotTerm
+abbrev CtorDatum := Name × Nat × List AnnotTerm × List AnnotTerm
 
 
 /-!
@@ -136,12 +136,12 @@ applied spine is not the point: then no partial application is the
 point (`app_pt`), so each λ is a graph (`lamV_eq_graph`), and a graph
 determines its domain, the slot's. -/
 theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
-    ∀ {args : List AnnotTerm} {ds : List (Nat × Nat × AnnotTerm)} {σ ρ : Nat → V} {f : AnnotTerm},
+    ∀ {args : List AnnotTerm} {ds : List AnnotTerm} {σ ρ : Nat → V} {f : AnnotTerm},
       args.length ≤ ds.length →
       WellDenoted V ρ (AnnotTerm.mkAppN f args) →
       interp V ρ (AnnotTerm.mkAppN f args) ≠ pt →
       interp V ρ f = interp V σ (mkLamsC u ds b) →
-      SpineFit σ ((ds.take args.length).map (·.2.2)) (args.map (interp V ρ))
+      SpineFit σ ((ds.take args.length)) (args.map (interp V ρ))
   | [], _, _, _, _, _, _, _, _ => trivial
   | _ :: _, [], _, _, _, hlen, _, _, _ => by simp at hlen
   | a :: args, d :: ds, σ, ρ, f, hlen, hok, hne, hf => by
@@ -150,7 +150,7 @@ theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
     rw [WellDenoted_app] at hokfa
     obtain ⟨-, -, v, A, B, hfm, ham, -⟩ := hokfa
     have hf' : interp V ρ f
-        = lamV (interp V σ d.2.2) fun x => interp V (cons x σ) (mkLamsC u ds b) := by
+        = lamV (interp V σ d) fun x => interp V (cons x σ) (mkLamsC u ds b) := by
       rw [hf]; rfl
     have hfne : interp V ρ f ≠ pt := by
       intro h0
@@ -167,7 +167,7 @@ theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
       rintro rfl; exact hfne (eq_pt_of_mem_piR_zero hfm)
     have hg := (mem_piR_pos hv hfm).1
     rw [lamV_eq_graph hfne] at hg
-    have hA : A = interp V σ d.2.2 := graph_eq_dom hg
+    have hA : A = interp V σ d := graph_eq_dom hg
     rw [hA] at ham
     have happ : interp V ρ (.app f a) = interp V (cons (interp V ρ a) σ) (mkLamsC u ds b) := by
       rw [interp_app, hf', app_lamV ham]
@@ -179,14 +179,14 @@ theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
 /-- **The body of a graded Π-tower that is a type is a type** at every
 fitting spine (`WellDenoted`'s Π clause: the fibres are types). -/
 theorem IsTy_body_of_mkPisAV {R : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {vs : List V},
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {vs : List V},
       WellDenoted V ρ (mkPisAV ds R) → IsTy (interp V ρ (mkPisAV ds R)) →
-      SpineFit ρ (ds.map (·.2.2)) vs → IsTy (interp V (consList vs ρ) R)
+      SpineFit ρ (ds) vs → IsTy (interp V (consList vs ρ) R)
   | [], _, [], _, hT, _ => hT
   | [], _, _ :: _, _, _, hsp => hsp.elim
   | _ :: _, _, [], _, _, hsp => hsp.elim
   | d :: ds, ρ, v :: vs, hok, _, hsp => by
-    have hok' : WellDenoted V ρ (.pi d.2.2 (mkPisAV ds R)) := hok
+    have hok' : WellDenoted V ρ (.pi d (mkPisAV ds R)) := hok
     rw [WellDenoted_pi] at hok'
     rw [consList_cons]
     exact IsTy_body_of_mkPisAV (hok'.2.2.1 v hsp.1) (hok'.2.2.2 v hsp.1) hsp.2
@@ -202,13 +202,13 @@ private theorem frameIdx_eq_range_reverse (n : Nat) (σ : Nat → V) :
 
 /-- The body of a closed graded Π-type is a type under every valuation
 satisfying the type's telescope. -/
-theorem IsTy_body_of_sat {R : AnnotTerm} {ds : List (Nat × Nat × AnnotTerm)} {σ : Nat → V}
+theorem IsTy_body_of_sat {R : AnnotTerm} {ds : List AnnotTerm} {σ : Nat → V}
     (hT : ∀ ρ : Nat → V, WellDenotedTy V ρ (mkPisAV ds R))
-    (hsat : Sat V ((ds.map (·.2.2)).reverse) σ) : IsTy (interp V σ R) := by
-  have hsp := spineFit_of_sat (Ds := ds.map (·.2.2)) (Δ₀ := []) (by simpa using hsat)
+    (hsat : Sat V ((ds).reverse) σ) : IsTy (interp V σ R) := by
+  have hsp := spineFit_of_sat (Ds := ds) (Δ₀ := []) (by simpa using hsat)
   rw [← frameIdx_eq_range_reverse] at hsp
   have h := IsTy_body_of_mkPisAV (hT _).1 (hT _).2 hsp
-  rwa [show (fun j => σ (j + (ds.map (·.2.2)).length)) = shiftE (ds.map (·.2.2)).length 0 σ from by
+  rwa [show (fun j => σ (j + (ds).length)) = shiftE (ds).length 0 σ from by
       funext j; simp [shiftE], consList_frameIdx] at h
 
 /-- A read spine crosses a cons its terms do not mention. -/
@@ -354,7 +354,7 @@ propositional. -/
 structure CtorDataI {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name)
     (cvC : ConstantVal) (nP nF nIdx : Nat) (resSort : Level) (isProp large : Bool)
     (idxArgs : List Expr)
-    (ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)) (Es : (Name → Nat) → List AnnotTerm)
+    (ds : (Name → Nat) → List AnnotTerm) (Es : (Name → Nat) → List AnnotTerm)
     (srcs : List (Option Nat)) : Prop where
   resid : ∃ (cbs : List (Expr × BinderMeta)) (es : List Expr),
     cvC.type.stripPis (nP + nF)
@@ -377,13 +377,13 @@ structure CtorDataI {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name
   srcIdx : ∀ j l, srcs[j]? = some (some l) → ∀ ψ : Name → Nat,
     (Es ψ)[l]? = some (AnnotTerm.bvar (nF - 1 - j))
   srcProp : large = true → ∀ ψ : Name → Nat, resSort.eval ψ = 0 → ∀ ρ : Nat → V,
-    Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-    FieldsBoundSrc ρ (((ds ψ).drop nP).map (·.2.2)) srcs
+    Sat V (((ds ψ).take nP)).reverse ρ →
+    FieldsBoundSrc ρ (((ds ψ).drop nP)) srcs
 
 /-- The constructor type's reading is graded (`okTy` without its `IsTy`). -/
 theorem CtorDataI.okTyV {m : EnvModel V env} {T : Name} {lps : List Name} {cvC : ConstantVal}
     {nP nF nIdx : Nat} {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
-    {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)}
     (h : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     (ψ : Name → Nat) (ρ : Nat → V) :
@@ -394,7 +394,7 @@ theorem CtorDataI.okTyV {m : EnvModel V env} {T : Name} {lps : List Name} {cvC :
 mentioned. -/
 theorem CtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name} {cvC : ConstantVal}
     {nP nF nIdx : Nat} {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
-    {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)}
     (h : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
@@ -429,7 +429,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hlpsT : cvTa.levelParams = lps)
     (hstripT : cvTa.type.stripPis (nP + nIdx) = some (bs, .sort sT)) :
-    ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List AnnotTerm)
       (Es : (Name → Nat) → List AnnotTerm) (srcs : List (Option Nat)),
       (∀ e ∈ idxArgs, e.constsResolve env₀ = true) ∧
       (∃ (fvsP : List Expr) (crest : Expr) (xFvs : List Expr) (xrest : Expr),
@@ -466,12 +466,11 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
   obtain rfl := inferTypeCore_mkAppN_sort (fvsP ++ idxArgs) htfT
     (by rw [List.length_append, hlenP, hlenI]; exact hstripT) hib
   -- the per-assignment reading
-  have hper : ∀ ψ : Name → Nat, ∃ (ds : List (Nat × Nat × AnnotTerm)) (Es : List AnnotTerm),
+  have hper : ∀ ψ : Name → Nat, ∃ (ds : List AnnotTerm) (Es : List AnnotTerm),
       denoteMeta mp.base2.acval env ψ 0 type'
         = some (mkPisAV ds (ctorBodyAVI mp.base2 T nP nF ψ Es)) ∧
       ds.length = nP + nF ∧ Es.length = nIdx ∧
       DenoteMetaSpine mp.base2.acval env ψ (nP + nF) idxArgs Es ∧
-      ppsNorm ds = ds ∧
       (∀ ρ : Nat → V, WellDenotedTy V ρ (mkPisAV ds (ctorBodyAVI mp.base2 T nP nF ψ Es))) ∧
       DomsBelow 0 ds ∧ (∀ E ∈ Es, Term.bvarsBelow (nP + nF) E.erase) := by
     intro ψ
@@ -518,7 +517,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     obtain ⟨hTeq, hlen⟩ := stripPisAV_eq_mkPis hst'
     subst hTeq
     have hbelowAll := stripPisAV_below hst' (bvarsBelow_of_reading hw hbt' hTa)
-    refine ⟨ds, vs₂, hTa, hlen, by rw [← hsp₂.length, hlenI], hsp₂, stripPisAV_norm hst',
+    refine ⟨ds, vs₂, hTa, hlen, by rw [← hsp₂.length, hlenI], hsp₂,
       hokT'', hbelowAll.1, ?_⟩
     intro E hE
     have hb := hbelowAll.2
@@ -536,8 +535,8 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
   · rw [Expr.getAppArgs_mkAppN, show (Expr.const T (lps.map .param)).getAppArgs = [] from rfl,
       List.nil_append, List.drop_left' hlenP]
   refine ⟨hresid, fun ψ => (hspec ψ).1, fun ψ => (hspec ψ).2.1, fun ψ => (hspec ψ).2.2.1,
-    hlenI, fun ψ => (hspec ψ).2.2.2.1, fun ψ => (hspec ψ).2.2.2.2.2.1,
-    fun ψ => (hspec ψ).2.2.2.2.2.2.1, fun ψ => (hspec ψ).2.2.2.2.2.2.2, ?_,
+    hlenI, fun ψ => (hspec ψ).2.2.2.1, fun ψ => (hspec ψ).2.2.2.2.1,
+    fun ψ => (hspec ψ).2.2.2.2.2.1, fun ψ => (hspec ψ).2.2.2.2.2.2, ?_,
     srcsOf_length _ _ _ _, ?_, ?_, ?_⟩
   · -- level dependence
     intro ψ₁ ψ₂ hφ
@@ -549,7 +548,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
       exact (hspec ψ₁).1
     obtain ⟨hds, hbody⟩ := mkPisAV_inj
       (by rw [(hspec ψ₁).2.1, (hspec ψ₂).2.1]) (Option.some.inj (h1.symm.trans h2))
-    refine ⟨by rw [← (hspec ψ₁).2.2.2.2.1, ← (hspec ψ₂).2.2.2.2.1, hds], ?_⟩
+    refine ⟨hds, ?_⟩
     obtain ⟨-, hargs⟩ := AnnotTerm.mkAppN_inj (f := mp.base2.acval T ψ₁) (g := mp.base2.acval T ψ₂) hbody
       (by rw [List.length_append, List.length_append, (hspec ψ₁).2.2.1, (hspec ψ₂).2.2.1])
     exact List.append_cancel_left hargs
@@ -589,20 +588,20 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     have hc := claimsAt_of hμ mp ψ F
     have hC : Opened mp.base2 ψ (nP + nF) type' (fvsP ++ xFvs)
         (Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs))
-        (((Classical.choose (hper ψ)).map (·.2.2)).reverse)
+        (((Classical.choose (hper ψ))).reverse)
         (ctorBodyAVI mp.base2 T nP nF ψ (Classical.choose (Classical.choose_spec (hper ψ)))) :=
-      opened_of_peel hopAll htf' hbt' (hspec ψ).1 (hspec ψ).2.1 (fun ρ => ((hspec ψ).2.2.2.2.2.1 ρ).1)
+      opened_of_peel hopAll htf' hbt' (hspec ψ).1 (hspec ψ).2.1 (fun ρ => ((hspec ψ).2.2.2.2.1 ρ).1)
     have hlenDs : (Classical.choose (hper ψ)).length = nP + nF := (hspec ψ).2.1
-    have hΓlen : ((((Classical.choose (hper ψ)).map (·.2.2)).reverse)).length = nP + nF := by
-      rw [List.length_reverse, List.length_map, hlenDs]
-    have hρ' : Sat V (((((Classical.choose (hper ψ)).map (·.2.2)).reverse)).drop
+    have hΓlen : ((((Classical.choose (hper ψ))).reverse)).length = nP + nF := by
+      rw [List.length_reverse, hlenDs]
+    have hρ' : Sat V (((((Classical.choose (hper ψ))).reverse)).drop
         (nP + nF - (nP + 0))) ρ := by
       rw [show nP + nF - (nP + 0) = nP + nF - nP from by omega,
         drop_fields_eq hlenDs nP (Nat.le_refl _), Nat.sub_self, List.drop_zero]
       exact hρ
     have hFsEq := fieldsFrom_eq_drop (ds := Classical.choose (hper ψ)) (nP := nP) (nF := nF) hlenDs
     rw [← hFsEq]
-    have h := fieldsBoundSrc_of_frame (Γ := ((Classical.choose (hper ψ)).map (·.2.2)).reverse)
+    have h := fieldsBoundSrc_of_frame (Γ := ((Classical.choose (hper ψ))).reverse)
       (srcs := srcsOf xFvs idxArgs sorts nF) rfl hΓlen ?_ 0 (Nat.zero_le _) ρ hρ'
     · rw [List.drop_zero] at h; exact h
     intro j hj hsj ρ hρ
@@ -655,23 +654,23 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       isProp large cvC nF cvTa = .ok (cvCa, sorts))
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hProp : isProp = true → (Level.isEquiv resSort .zero == some true) = true)
-    {ppsAll : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsAll : (Name → Nat) → List AnnotTerm}
     (hFD : FormerData mp.base2 cvTa (nP + nIdx) resSort ppsAll)
-    {idxArgs : List Expr} {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {idxArgs : List Expr} {ds : (Name → Nat) → List AnnotTerm}
     {Es : (Name → Nat) → List AnnotTerm} {srcs : List (Option Nat)}
     (hCD : CtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     (hleafT : ∀ ψ, ∃ B, mp.base2.acval T ψ = mkLamsC (resSort.eval ψ + 1) (ppsAll ψ) B) :
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ) ∧
+      Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
+        Sat V (((ds ψ).take nP)).reverse ρ) ∧
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-        FieldsOkB (resSort.eval ψ) ρ (((ds ψ).drop nP).map (·.2.2)) ∧
+      Sat V (((ds ψ).take nP)).reverse ρ →
+        FieldsOkB (resSort.eval ψ) ρ (((ds ψ).drop nP)) ∧
         (isProp = false →
-          FieldsBound (resSort.eval ψ) ρ (((ds ψ).drop nP).map (·.2.2))) ∧
-        (∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
+          FieldsBound (resSort.eval ψ) ρ (((ds ψ).drop nP))) ∧
+        (∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
           (∀ E ∈ Es ψ, WellDenotedV V (consList bs ρ) E) ∧
-          SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (Es ψ) bs))) ∧
+          SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (Es ψ) bs))) ∧
     -- the fields' sorts, as the stage read them (task #210 Part A: the
     -- projection table's guard levels at a structure-like block): one
     -- per field, each bounded by the result sort at a non-`Prop` family,
@@ -680,10 +679,10 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     (sorts.length = nF ∧
       (∀ j, j < nF → isProp = false → Level.leq (sorts.getD j .zero) resSort = some true) ∧
       ∀ (ψ : Name → Nat) (ρ : Nat → V),
-        Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
+        Sat V (((ds ψ).take nP)).reverse ρ →
         ∀ j, j < nF → ∀ as : List V,
-          SpineFit ρ ((((ds ψ).drop nP).map (·.2.2)).take j) as →
-          interp V (consList as ρ) ((((ds ψ).drop nP).map (·.2.2)).getD j default)
+          SpineFit ρ ((((ds ψ).drop nP)).take j) as →
+          interp V (consList as ρ) ((((ds ψ).drop nP)).getD j default)
             ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V)) := by
   obtain ⟨⟨_, hccv⟩, -, fvsP, crest, tfvs, trest, xFvs, idxArgs', hopC, hopT, hdoms, hopX,
     -, -, -, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
@@ -699,19 +698,19 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   have hpins := ConLeche.checkStructDomsAt_inv hdoms
   have hlenX : xFvs.length = nF := openPisAtFvars_length _ hopX
   have hframes : ∀ ψ : Name → Nat,
-      (∀ ρ : Nat → V, Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ) ∧
-      (∀ ρ : Nat → V, Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-        FieldsOkB (resSort.eval ψ) ρ (((ds ψ).drop nP).map (·.2.2)) ∧
+      (∀ ρ : Nat → V, Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
+        Sat V (((ds ψ).take nP)).reverse ρ) ∧
+      (∀ ρ : Nat → V, Sat V (((ds ψ).take nP)).reverse ρ →
+        FieldsOkB (resSort.eval ψ) ρ (((ds ψ).drop nP)) ∧
         (isProp = false →
-          FieldsBound (resSort.eval ψ) ρ (((ds ψ).drop nP).map (·.2.2))) ∧
-        (∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
+          FieldsBound (resSort.eval ψ) ρ (((ds ψ).drop nP))) ∧
+        (∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
           (∀ E ∈ Es ψ, WellDenotedV V (consList bs ρ) E) ∧
-          SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (Es ψ) bs))) ∧
-      (∀ ρ : Nat → V, Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
+          SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (Es ψ) bs))) ∧
+      (∀ ρ : Nat → V, Sat V (((ds ψ).take nP)).reverse ρ →
         ∀ j, j < nF → ∀ as : List V,
-          SpineFit ρ ((((ds ψ).drop nP).map (·.2.2)).take j) as →
-          interp V (consList as ρ) ((((ds ψ).drop nP).map (·.2.2)).getD j default)
+          SpineFit ρ ((((ds ψ).drop nP)).take j) as →
+          interp V (consList as ρ) ((((ds ψ).drop nP)).getD j default)
             ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V)) := by
     intro ψ
     have hc := claimsAt_of hμ mp ψ F
@@ -724,7 +723,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     subst hΓt
     have hC : Opened mp.base2 ψ (nP + nF) type' (fvsP ++ xFvs)
         (Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs'))
-        ((ds ψ).map (·.2.2)).reverse (ctorBodyAVI mp.base2 T nP nF ψ (Es ψ)) :=
+        ((ds ψ)).reverse (ctorBodyAVI mp.base2 T nP nF ψ (Es ψ)) :=
       opened_of_peel hopAll htf' hbt' (hCD.read ψ) (hCD.len ψ) (fun ρ => (hCD.okTy ψ ρ).1)
     have hpf := paramFrames hc hT hC (fun i hi => by
       obtain ⟨a, b, ha, hb, hdeq⟩ := hpins i hi
@@ -733,20 +732,19 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       exact ⟨a, b', by rw [List.getElem?_append_left (by omega)]; exact ha, hb',
         by rw [Nat.zero_add] at hdeq; exact hdeq⟩)
     have hlenDs := hCD.len ψ
-    have hlenF : ((((ds ψ).drop nP).map (·.2.2))).length = nF := by simp [hlenDs]
-    have hiff : ∀ ρ : Nat → V, Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ := by
+    have hlenF : ((((ds ψ).drop nP))).length = nF := by simp [hlenDs]
+    have hiff : ∀ ρ : Nat → V, Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
+        Sat V (((ds ψ).take nP)).reverse ρ := by
       intro ρ
       have := (hpf nP (Nat.le_refl _)).1 ρ
       rw [drop_fields_eq hlenDs nP (Nat.le_refl _), Nat.sub_self, List.drop_zero,
         List.drop_zero] at this
-      simp only [ppsNorm_map_dom] at this
       exact this.symm
     have hrow : ∀ j, j < nF → ∃ u, sorts[j]? = some u ∧
         (isProp = false → Level.leq u resSort = some true) ∧
         ∀ ρ : Nat → V,
-          Sat V ((((ds ψ).map (·.2.2)).reverse).drop (nP + nF - (nP + j))) ρ →
-          interp V ρ ((((ds ψ).map (·.2.2)).reverse).getD
+          Sat V ((((ds ψ)).reverse).drop (nP + nF - (nP + j))) ρ →
+          interp V ρ ((((ds ψ)).reverse).getD
             (nP + nF - 1 - (nP + j)) default) ∈ˢ (univ (u.eval ψ) : V) := by
       intro j hj
       obtain ⟨fv, ty, u, hfv, hu, hi, hens, hleq, -⟩ := hfields j hj
@@ -758,22 +756,22 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       have hCtx := hC.ctx (i := nP + j) (by omega) hws hleaf
       have hread := hC.doms (nP + j) fv hfvA
       exact (hc.sortRow hi hens hws hb hL hCtx hread ρ hρ).2
-    have hsortsPart : ∀ ρ : Nat → V, Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
+    have hsortsPart : ∀ ρ : Nat → V, Sat V (((ds ψ).take nP)).reverse ρ →
         ∀ j, j < nF → ∀ as : List V,
-          SpineFit ρ ((((ds ψ).drop nP).map (·.2.2)).take j) as →
-          interp V (consList as ρ) ((((ds ψ).drop nP).map (·.2.2)).getD j default)
+          SpineFit ρ ((((ds ψ).drop nP)).take j) as →
+          interp V (consList as ρ) ((((ds ψ).drop nP)).getD j default)
             ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V) := by
       intro ρ hρ j hj as hsp
       obtain ⟨u, hu, -, hmem⟩ := hrow j hj
-      have hsat := sat_of_spineFit (Δ₀ := (((ds ψ).take nP).map (·.2.2)).reverse) hρ hsp
-      have hdropj : ((((ds ψ).map (·.2.2)).reverse)).drop (nP + nF - (nP + j))
-          = ((((ds ψ).drop nP).map (·.2.2)).take j).reverse ++
-            (((ds ψ).take nP).map (·.2.2)).reverse := by
+      have hsat := sat_of_spineFit (Δ₀ := (((ds ψ).take nP)).reverse) hρ hsp
+      have hdropj : ((((ds ψ)).reverse)).drop (nP + nF - (nP + j))
+          = ((((ds ψ).drop nP)).take j).reverse ++
+            (((ds ψ).take nP)).reverse := by
         rw [reverse_map_take_drop (ds ψ) nP, show nP + nF - (nP + j) = nF - j from by omega,
           List.drop_append_of_le_length (by rw [List.length_reverse, hlenF]; exact Nat.sub_le _ _),
           List.drop_reverse, hlenF, show nF - (nF - j) = j from by omega]
-      have hentj : ((((ds ψ).map (·.2.2)).reverse)).getD (nP + nF - 1 - (nP + j)) default
-          = (((ds ψ).drop nP).map (·.2.2)).getD j default := by
+      have hentj : ((((ds ψ)).reverse)).getD (nP + nF - 1 - (nP + j)) default
+          = (((ds ψ).drop nP)).getD j default := by
         rw [reverse_map_take_drop (ds ψ) nP, show nP + nF - 1 - (nP + j) = nF - 1 - j from by omega,
           List.getD_eq_getElem?_getD, List.getElem?_append_left (by rw [List.length_reverse, hlenF]; omega),
           List.getElem?_reverse (by rw [hlenF]; omega), hlenF,
@@ -783,9 +781,9 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       rw [List.getD_eq_getElem?_getD (l := sorts), hu]
       exact this
     refine ⟨hiff, fun ρ hρ => ?_, hsortsPart⟩
-    have hΓlen : (((ds ψ).map (·.2.2)).reverse).length = nP + nF := by
+    have hΓlen : (((ds ψ)).reverse).length = nP + nF := by
       simp [hlenDs]
-    have hρ' : Sat V ((((ds ψ).map (·.2.2)).reverse).drop (nP + nF - (nP + 0))) ρ := by
+    have hρ' : Sat V ((((ds ψ)).reverse).drop (nP + nF - (nP + 0))) ρ := by
       rw [show nP + nF - (nP + 0) = nP + nF - nP from by omega,
         drop_fields_eq hlenDs nP (Nat.le_refl _), Nat.sub_self, List.drop_zero]
       exact hρ
@@ -811,8 +809,8 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     · -- the index expressions at a fitting field spine
       intro bs hsp
       have hlenB : bs.length = nF := by rw [hsp.length_eq, hlenF]
-      have hsat : Sat V (((ds ψ).map (·.2.2)).reverse) (consList bs ρ) := by
-        have := sat_of_spineFit (Δ₀ := (((ds ψ).take nP).map (·.2.2)).reverse) hρ hsp
+      have hsat : Sat V (((ds ψ)).reverse) (consList bs ρ) := by
+        have := sat_of_spineFit (Δ₀ := (((ds ψ).take nP)).reverse) hρ hsp
         rwa [← reverse_map_take_drop] at this
       have hokR := hC.okR _ hsat
       have hRty := IsTy_body_of_sat (hCD.okTy ψ) hsat
@@ -826,17 +824,17 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
         (ds := ppsAll ψ) (σ := consList bs ρ) (ρ := consList bs ρ) (f := mp.base2.acval T ψ)
         (by simp [paramBvars, hCD.lenE ψ, hFD.len ψ]) hokR hRty.ne_pt (by rw [hB])
       rw [List.take_of_length_le (by simp [paramBvars, hCD.lenE ψ, hFD.len ψ]),
-        ← List.take_append_drop nP (ppsAll ψ), List.map_append, List.map_append] at hfit
+        ← List.take_append_drop nP (ppsAll ψ), List.map_append] at hfit
       obtain ⟨as₁, as₂, heq, h1, h2⟩ := spineFit_append_inv hfit
       have hlen₁ : as₁.length = nP := by
-        rw [h1.length_eq, List.length_map, List.length_take, hFD.len ψ]; omega
+        rw [h1.length_eq, List.length_take, hFD.len ψ]; omega
       have hps : (paramBvars nP nF).map (interp V (consList bs ρ))
           = (List.range nP).reverse.map ρ := by
         rw [paramBvars_eq_paramBvarsAt]
         exact map_paramBvarsAt_interp (fun j => by rw [← hlenB]; exact consList_apply_add bs ρ j)
       obtain ⟨rfl, rfl⟩ := List.append_inj heq (by rw [hlen₁]; simp [paramBvars])
       rw [hps] at h2
-      show SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) ((Es ψ).map (interp V (consList bs ρ)))
+      show SpineFit ρ (((ppsAll ψ).drop nP)) ((Es ψ).map (interp V (consList bs ρ)))
       refine spineFit_congr_below (DomsBelow.drop nP (hFD.below ψ)) ?_ h2
       intro i hi
       rw [Nat.zero_add] at hi
@@ -857,13 +855,13 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
 /-! ## The constructors' data, positionally -/
 
 /-- The constructor data list from position-indexed data functions. -/
-@[expose] def ctorDataList (dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+@[expose] def ctorDataList (dsF : Nat → (Name → Nat) → List AnnotTerm)
     (esF : Nat → (Name → Nat) → List AnnotTerm) (ψ : Name → Nat) :
     List (ConstantVal × Nat) → Nat → List CtorDatum
   | [], _ => []
   | c :: cs, j => (c.1.name, c.2, dsF j ψ, esF j ψ) :: ctorDataList dsF esF ψ cs (j + 1)
 
-theorem ctorDataList_getElem? (dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+theorem ctorDataList_getElem? (dsF : Nat → (Name → Nat) → List AnnotTerm)
     (esF : Nat → (Name → Nat) → List AnnotTerm) (ψ : Name → Nat) :
     ∀ (cs : List (ConstantVal × Nat)) (j i : Nat),
       (ctorDataList dsF esF ψ cs j)[i]? = cs[i]?.map fun c => (c.1.name, c.2, dsF (j + i) ψ, esF (j + i) ψ)
@@ -873,7 +871,7 @@ theorem ctorDataList_getElem? (dsF : Nat → (Name → Nat) → List (Nat × Nat
     simp only [ctorDataList, List.getElem?_cons_succ]
     rw [ctorDataList_getElem? dsF esF ψ cs (j + 1) i, show j + 1 + i = j + (i + 1) from by omega]
 
-theorem ctorDataList_params {dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+theorem ctorDataList_params {dsF : Nat → (Name → Nat) → List AnnotTerm}
     {esF : Nat → (Name → Nat) → List AnnotTerm} {ψ₁ ψ₂ : Name → Nat} :
     ∀ {cs : List (ConstantVal × Nat)} {j : Nat},
       (∀ i, i < cs.length → dsF (j + i) ψ₁ = dsF (j + i) ψ₂ ∧ esF (j + i) ψ₁ = esF (j + i) ψ₂) →
@@ -893,7 +891,7 @@ theorem ctorDataList_params {dsF : Nat → (Name → Nat) → List (Nat × Nat �
 stored, at the block's level parameters, and its data. -/
 @[expose] def CtorFactsAt {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name) (nP nIdx : Nat)
     (resSort : Level) (isProp large : Bool) (idxF : Nat → List Expr)
-    (dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    (dsF : Nat → (Name → Nat) → List AnnotTerm)
     (esF : Nat → (Name → Nat) → List AnnotTerm) (srcsF : Nat → List (Option Nat))
     (j : Nat) (cA : ConstantVal × Nat) : Prop :=
   env.find? cA.1.name = some (.ctorInfo cA.1 nP cA.2) ∧
@@ -910,11 +908,11 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveSha
 /-- **The sum former leaf's hereditary premise**, from the former's
 data and the chains' grading at the parameter frame. -/
 theorem formerWalksS {m : EnvModel V env} {cvT : ConstantVal} {nP : Nat}
-    {resSort : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {resSort : Level} {pps : (Name → Nat) → List AnnotTerm}
     (hFD : FormerData m cvT nP resSort pps)
     {Fss : (Name → Nat) → List (List AnnotTerm)}
     (hFssOk : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V ((pps ψ).map (·.2.2)).reverse ρ →
+      Sat V ((pps ψ)).reverse ρ →
       SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ))
     (ψ : Name → Nat) (ρ : Nat → V) :
     ParamsOkS (resSort.eval ψ) ρ (Fss ψ) (pps ψ) := by
@@ -923,16 +921,16 @@ theorem formerWalksS {m : EnvModel V env} {cvT : ConstantVal} {nP : Nat}
   have htele := piTeleAV_of_stripPisAV hst
   obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := [])
     (fun ρ _ => hFD.okTy ψ ρ)
-  simp only [List.append_nil, ppsNorm_map_dom] at okΓ
-  have hlenΓ : (((pps ψ).map (·.2.2)).reverse).length = nP := by
+  simp only [List.append_nil] at okΓ
+  have hlenΓ : (((pps ψ)).reverse).length = nP := by
     simp [hFD.len ψ]
   have hent : ∀ i, i < nP → ∃ p, (pps ψ)[i]? = some p ∧
-      p.2.2 = (((pps ψ).map (·.2.2)).reverse).getD (nP - 1 - i) default := by
+      p = (((pps ψ)).reverse).getD (nP - 1 - i) default := by
     intro i hi
     have hil : i < (pps ψ).length := by rw [hFD.len ψ]; exact hi
     refine ⟨(pps ψ)[i], List.getElem?_eq_getElem hil, ?_⟩
     rw [getD_reverse_of_peel (hFD.len ψ) hi (List.getElem?_eq_getElem hil)]
-  have hΓnil : (((pps ψ).map (·.2.2)).reverse).drop (nP - 0) = [] := by
+  have hΓnil : (((pps ψ)).reverse).drop (nP - 0) = [] := by
     rw [Nat.sub_zero, List.drop_eq_nil_of_le (by rw [hlenΓ]; exact Nat.le_refl _)]
   have hw := hereditaryWalk (V := V)
     (Q := fun ρ ds => ParamsOkS (resSort.eval ψ) ρ (Fss ψ) ds)
@@ -979,53 +977,53 @@ theorem frameIdx_consList {nIdx : Nat} {is : List V} (hlen : is.length = nIdx) (
 parameters. -/
 theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC : ConstantVal}
     {nP nF nIdx j : Nat} {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
-    {ppsAll ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {ppsAll ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)}
     {Fss Ess : (Name → Nat) → List (List AnnotTerm)}
     (_hFD : FormerData m cvT (nP + nIdx) resSort ppsAll)
     (hCD : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     (hfold : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
+      Sat V (((ppsAll ψ).take nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
         interp V (consList bs ρ) (ctorBodyAVI m T nP nF ψ (Es ψ))
           = sumSet (resSort.eval ψ) (sumFibre (resSort.eval ψ) (consList (idxValsAt ρ (Es ψ) bs) ρ)
               (rChains nIdx nIdx (Fss ψ) (Ess ψ))))
-    (hFsj : ∀ ψ, (Fss ψ)[j]? = some (((ds ψ).drop nP).map (·.2.2)))
+    (hFsj : ∀ ψ, (Fss ψ)[j]? = some (((ds ψ).drop nP)))
     (hEsj : ∀ ψ, (Ess ψ)[j]? = some (Es ψ))
     (hiff : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ)
+      Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
+        Sat V (((ds ψ).take nP)).reverse ρ)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
+      Sat V (((ds ψ).take nP)).reverse ρ →
       SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ))
     (_hIdx : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
-        SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (Es ψ) bs))
+      Sat V (((ds ψ).take nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
+        SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (Es ψ) bs))
     (ψ : Name → Nat) (ρ : Nat → V) :
-    MkPreS (resSort.eval ψ) j ρ (((ds ψ).drop nP).map (·.2.2)) (uChains (Fss ψ))
+    MkPreS (resSort.eval ψ) j ρ (((ds ψ).drop nP)) (uChains (Fss ψ))
         (ctorBodyAVI m T nP nF ψ (Es ψ)) ((ds ψ).take nP) := by
   have hlenDs := hCD.len ψ
   have hlenP : ((ds ψ).take nP).length = nP := List.length_take_of_le (by omega)
-  let Fs : List AnnotTerm := ((ds ψ).drop nP).map (·.2.2)
+  let Fs : List AnnotTerm := ((ds ψ).drop nP)
   have hlenFs : Fs.length = nF := by simp [Fs, hlenDs]
   have hst := stripPisAV_mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ))
   rw [hlenDs] at hst
   have htele := piTeleAV_of_stripPisAV hst
   obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ _ => (hCD.okTy ψ ρ).1)
-  simp only [List.append_nil, ppsNorm_map_dom] at okΓ
-  have hΓplen : ((((ds ψ).take nP).map (·.2.2)).reverse).length = nP := by
-    rw [List.length_reverse, List.length_map, hlenP]
+  simp only [List.append_nil] at okΓ
+  have hΓplen : ((((ds ψ).take nP)).reverse).length = nP := by
+    rw [List.length_reverse, hlenP]
   have okΓp : ∀ i, i < nP → ∀ ρ : Nat → V,
-      Sat V (((((ds ψ).take nP).map (·.2.2)).reverse).drop (nP - i)) ρ →
-      WellDenotedTy V ρ (((((ds ψ).take nP).map (·.2.2)).reverse).getD (nP - 1 - i) default) := by
+      Sat V (((((ds ψ).take nP)).reverse).drop (nP - i)) ρ →
+      WellDenotedTy V ρ (((((ds ψ).take nP)).reverse).getD (nP - 1 - i) default) := by
     intro i hi ρ hρ
     rw [← getD_reverse_take hlenDs hi]
     refine okΓ i (by omega) ρ ?_
     rw [drop_fields_eq hlenDs i (by omega)]
     exact hρ
   have hentP : ∀ i, i < nP → ∃ q, ((ds ψ).take nP)[i]? = some q ∧
-      q.2.2 = ((((ds ψ).take nP).map (·.2.2)).reverse).getD (nP - 1 - i) default := by
+      q = ((((ds ψ).take nP)).reverse).getD (nP - 1 - i) default := by
     intro i hi
     have hil : i < ((ds ψ).take nP).length := by omega
     exact ⟨_, List.getElem?_eq_getElem hil,
@@ -1043,7 +1041,7 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
       exact Sat_nil V ρ)
   · rw [List.drop_zero] at hw; exact hw
   -- the base: at the parameter frame
-  have hρt : Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ := (hiff ψ ρ).mpr hρ
+  have hρt : Sat V (((ppsAll ψ).take nP)).reverse ρ := (hiff ψ ρ).mpr hρ
   have hokFss := hFssOkP ψ ρ hρ
   refine ⟨SumFieldsOkB_uChains hokFss, by rw [uChains_getElem?, hFsj ψ]; rfl, fun bs hsp => ?_⟩
   have hlenI : (idxValsAt ρ (Es ψ) bs).length = nIdx := by
@@ -1086,7 +1084,7 @@ theorem stageCtorGen {T : Name}
     (hlpsT : cvTa.levelParams = lps)
     (hlpsC : cvCa.levelParams = lps)
     {idxArgs : List Expr}
-    {ppsAll ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {ppsAll ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)}
     {Fss Ess : (Name → Nat) → List (List AnnotTerm)}
     -- the block's own capability laws at the cons (task #210 Parts A
@@ -1095,34 +1093,34 @@ theorem stageCtorGen {T : Name}
     (hTlaws : ∀ m₂ : EnvModel V ⟨.ctorInfo cvCa nP nF :: env.consts⟩,
       (∀ n, n ≠ cvCa.name → m₂.acval n = mp.base2.acval n) →
       (∀ ψ, m₂.acval cvCa.name ψ
-        = sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP).map (·.2.2)) (uChains (Fss ψ))) →
+        = sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP)) (uChains (Fss ψ))) →
       CapsLawsAt m₂ T cvTa caps)
     (hFD : FormerData mp.base2 cvTa (nP + nIdx) resSort ppsAll)
     (hCD : CtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     (hfold : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
+      Sat V (((ppsAll ψ).take nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
         interp V (consList bs ρ) (ctorBodyAVI mp.base2 T nP nF ψ (Es ψ))
           = sumSet (resSort.eval ψ) (sumFibre (resSort.eval ψ) (consList (idxValsAt ρ (Es ψ) bs) ρ)
               (rChains nIdx nIdx (Fss ψ) (Ess ψ))))
-    (hFsj : ∀ ψ, (Fss ψ)[j]? = some (((ds ψ).drop nP).map (·.2.2)))
+    (hFsj : ∀ ψ, (Fss ψ)[j]? = some (((ds ψ).drop nP)))
     (hEsj : ∀ ψ, (Ess ψ)[j]? = some (Es ψ))
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ q ∈ lps, ψ₁ q = ψ₂ q) → Fss ψ₁ = Fss ψ₂)
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ Fss ψ, FieldsBelow nP Fs)
     (hiff : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ)
+      Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
+        Sat V (((ds ψ).take nP)).reverse ρ)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
+      Sat V (((ds ψ).take nP)).reverse ρ →
       SumFieldsOkB (resSort.eval ψ) ρ (Fss ψ))
     (hIdx : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ds ψ).take nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP).map (·.2.2)) bs →
-        SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (Es ψ) bs)) :
+      Sat V (((ds ψ).take nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
+        SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (Es ψ) bs)) :
     ∃ mp' : EnvModelM V μ ⟨.ctorInfo cvCa nP nF :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval cvCa.name
-        (fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP).map (·.2.2))
+        (fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP))
           (uChains (Fss ψ))) := by
   obtain ⟨⟨_, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, hnres, -, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
@@ -1138,14 +1136,14 @@ theorem stageCtorGen {T : Name}
     · show cvCa.type.hasFvar = false; rw [hty]; exact htf'
     · show cvCa.type.allLevelParamsDefined cvCa.levelParams = true; rw [hty]; exact htp
     · show cvCa.type.looseBVarsBounded 0 = true; rw [hty]; exact hbt'
-  let Fs : (Name → Nat) → List AnnotTerm := fun ψ => ((ds ψ).drop nP).map (·.2.2)
+  let Fs : (Name → Nat) → List AnnotTerm := fun ψ => ((ds ψ).drop nP)
   let A : (Name → Nat) → AnnotTerm :=
     fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (Fs ψ) (uChains (Fss ψ))
   have hAbelow : ∀ ψ, Term.bvarsBelow 0 (A ψ).erase := fun ψ =>
     sumMkAV_below (hCD.below ψ)
       ((DomsBelow.drop nP (hCD.below ψ)).fields)
       (by rw [Nat.zero_add]; exact uChains_below (hFssBelow ψ))
-      (by show nP + (((ds ψ).drop nP).map (·.2.2)).length = (ds ψ).length
+      (by show nP + (((ds ψ).drop nP)).length = (ds ψ).length
           simp [hCD.len ψ])
   have hwalks := ctorWalksGen hFD hCD hfold hFsj hEsj hiff hFssOkP hIdx
   have hreadC : ∀ ψ : Name → Nat,
@@ -1169,8 +1167,8 @@ theorem stageCtorGen {T : Name}
   · intro ψ₁ ψ₂ hφ
     have hφT : ∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q := by rw [hlpsT, ← hlpsC]; exact hφ
     obtain ⟨-, hw⟩ := hFD.params ψ₁ ψ₂ hφT
-    show sumMkAV _ j (ds ψ₁) (((ds ψ₁).drop nP).map (·.2.2)) (uChains (Fss ψ₁))
-      = sumMkAV _ j (ds ψ₂) (((ds ψ₂).drop nP).map (·.2.2)) (uChains (Fss ψ₂))
+    show sumMkAV _ j (ds ψ₁) (((ds ψ₁).drop nP)) (uChains (Fss ψ₁))
+      = sumMkAV _ j (ds ψ₂) (((ds ψ₂).drop nP)) (uChains (Fss ψ₂))
     rw [hw, (hCD.params ψ₁ ψ₂ hφ).1, hFssParams ψ₁ ψ₂ (by rw [← hlpsC]; exact hφ)]
   · intro ψ ρ
     have := sumMkAV_wellDenotedV (V := V) (hwalks ψ ρ)
@@ -1214,14 +1212,14 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveSha
 /-- The field chains of the constructor data (at the parameter
 frame). -/
 @[expose] def fssOf (nP : Nat) (cds : List CtorDatum) : List (List AnnotTerm) :=
-  cds.map fun cd => (cd.2.2.1.drop nP).map (·.2.2)
+  cds.map fun cd => (cd.2.2.1.drop nP)
 
 /-- The index readings of the constructor data. -/
 @[expose] def essOf (cds : List CtorDatum) : List (List AnnotTerm) :=
   cds.map fun cd => cd.2.2.2
 
 theorem fssOf_getElem? (nP : Nat) (cds : List CtorDatum) (j : Nat) :
-    (fssOf nP cds)[j]? = cds[j]?.map fun cd => (cd.2.2.1.drop nP).map (·.2.2) := by
+    (fssOf nP cds)[j]? = cds[j]?.map fun cd => (cd.2.2.1.drop nP) := by
   simp [fssOf]
 
 theorem essOf_getElem? (cds : List CtorDatum) (j : Nat) :
@@ -1258,7 +1256,7 @@ theorem names_ne_of_nodup {ctorsA : List (ConstantVal × Nat)}
 /-- The facts about the pending constructors at an environment. -/
 @[expose] def PendingAt {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name) (nP nIdx : Nat)
     (resSort : Level) (isProp large : Bool) (idxF : Nat → List Expr)
-    (dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    (dsF : Nat → (Name → Nat) → List AnnotTerm)
     (esF : Nat → (Name → Nat) → List AnnotTerm) (srcsF : Nat → List (Option Nat))
     (ctorsA : List (ConstantVal × Nat)) (k : Nat) : Prop :=
   ∀ i cA, k ≤ i → ctorsA[i]? = some cA →
@@ -1269,14 +1267,14 @@ theorem names_ne_of_nodup {ctorsA : List (ConstantVal × Nat)}
 /-- The facts about the consed constructors at an environment. -/
 @[expose] def ConsedAt {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name) (nP nIdx : Nat)
     (resSort : Level) (isProp large : Bool) (idxF : Nat → List Expr)
-    (dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    (dsF : Nat → (Name → Nat) → List AnnotTerm)
     (esF : Nat → (Name → Nat) → List AnnotTerm) (srcsF : Nat → List (Option Nat))
     (ctorsA : List (ConstantVal × Nat)) (k : Nat) : Prop :=
   ∀ i cA, i < k → ctorsA[i]? = some cA →
     CtorFactsAt m T lps nP nIdx resSort isProp large idxF dsF esF srcsF i cA ∧
     (∀ e ∈ idxF i, e.constsResolve env = true) ∧
     ∀ ψ, m.acval cA.1.name ψ
-      = sumMkAV (resSort.eval ψ) i (dsF i ψ) (((dsF i ψ).drop nP).map (·.2.2))
+      = sumMkAV (resSort.eval ψ) i (dsF i ψ) (((dsF i ψ).drop nP))
           (uChains (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
 
 end ConLeche.Model

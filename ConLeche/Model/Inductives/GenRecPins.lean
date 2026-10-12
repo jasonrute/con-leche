@@ -270,22 +270,22 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
   have hLX : Expr.LeavesBounded x :=
     leavesBounded_of_openers (fun y hy => hbFvs y (List.mem_of_mem_take hy)) hleafP
   -- the recursor type's reading: its prefix domains
-  obtain ⟨fvs', concl', hop', -, hTyE, hlenRds, -, hdomsR, -, hwdTy⟩ :=
+  obtain ⟨fvs', concl', hop', -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
     recStage_tyPis (V := V) rfl mpC h hr ψ
   rw [hmIdef] at hop' hlenRds
   obtain ⟨hff, -⟩ := Prod.mk.inj (Option.some.inj (hop'.symm.trans hop))
   rw [hff] at hdomsR
   generalize hPd : blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j = pdoms
-  have hPdE : pdoms = ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).take
-      rP).map (·.2.2) := by
+  have hPdE : pdoms = (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).take
+      rP := by
     rw [← hPd, blockRulePdomsAV, hrPdef]
   have hlenPd : pdoms.length = rP := by
-    rw [hPdE, List.length_map, List.length_take, hlenRds]; omega
+    rw [hPdE, List.length_take, hlenRds]; omega
   have hAa : ∀ i, i < rP → ∀ y, fvs[i]? = some y →
       denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD y) = some (pdoms.getD i default) := by
     intro i hi y hy
-    obtain ⟨pd, hpd, -, hrd⟩ := hdomsR i y hy
-    rw [hrd, hPdE, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take,
+    obtain ⟨pd, hpd, hrd⟩ := hdomsR i y hy
+    rw [hrd, hPdE, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left hi, hpd]
     rfl
   have hokTower : ∀ l, l < rP → ∀ (σ : Nat → V) (ys : List V),
@@ -545,11 +545,11 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
     rw [← hψ] at hfit
     -- the recursor type's prefix telescope
-    obtain ⟨-, -, -, -, hTyE, hlenRds, -, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
+    obtain ⟨-, -, -, -, hTyE, hlenRds, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
     rw [hMI] at hlenRds
     have hPdE : blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j
-        = ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j).take
-            rP).map (·.2.2) := by
+        = (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j).take
+            rP := by
       rw [blockRulePdomsAV, hRP]
     have htake : ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j).take
         rP).length = rP := by

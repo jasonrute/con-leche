@@ -109,7 +109,7 @@ theorem genNCt {μ : CheckMode} {F : Nat} {envI envC : Env} {pp : BlockParts} {n
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nested posR cvTasR
       block ctorsAsR out) (hg : ConLeche.ClassGenScoped R.g)
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-        (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+        (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
       dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf)
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (hcls : ∀ c, c < (tgtRs out).length → (tgtMajor out c).member = none →

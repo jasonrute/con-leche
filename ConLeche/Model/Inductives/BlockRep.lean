@@ -101,7 +101,7 @@ structure BlockData (V : Type w) where
   /-- per member: its index count -/
   nIdxs : List Nat
   /-- per component: its parameter-and-index telescope reading -/
-  ppsM : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)
+  ppsM : Nat → (Name → Nat) → List AnnotTerm
   /-- per component: its index-tuple sort -/
   uM : Nat → (Name → Nat) → Nat
   /-- per component: its constructors, in order, with their field counts -/
@@ -109,7 +109,7 @@ structure BlockData (V : Type w) where
   /-- per component and constructor: the residual's index arguments -/
   idxF : Nat → Nat → List Expr
   /-- per component and constructor: the type reading's binder data -/
-  dsF : Nat → Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)
+  dsF : Nat → Nat → (Name → Nat) → List AnnotTerm
   /-- per component and constructor: the result's index readings -/
   esF : Nat → Nat → (Name → Nat) → List AnnotTerm
   /-- per component and constructor: the field sources -/
@@ -155,11 +155,11 @@ variable (d : BlockData V)
 
 /-- The parameter telescope (the block's, read off component `0`: the
 components share their parameters). -/
-@[expose] def params (ψ : Name → Nat) : List AnnotTerm := ((d.ppsM 0 ψ).take d.nP).map (·.2.2)
+@[expose] def params (ψ : Name → Nat) : List AnnotTerm := ((d.ppsM 0 ψ).take d.nP)
 
 /-- Component `c`'s own index telescope, at the parameter frame. -/
 @[expose] def IdsM (c : Nat) (ψ : Name → Nat) : List AnnotTerm :=
-  ((d.ppsM c ψ).drop d.nP).map (·.2.2)
+  ((d.ppsM c ψ).drop d.nP)
 
 /-- Component `c`'s constructor data list (the fixpoint kit's, its
 field-kind slots empty: the block's datum classifies no field). -/
@@ -263,7 +263,7 @@ The clause is produced in `BlockLfpHoles.lean`. -/
   N := d.N
   w := d.w
   params := d.params
-  pars := fun m ψ => ((d.ppsM m ψ).take d.nP).map (·.2.2)
+  pars := fun m ψ => ((d.ppsM m ψ).take d.nP)
   ids := fun c ψ => d.IdsM c ψ
   u := fun c ψ => d.uM c ψ
   Φ := d.Φ

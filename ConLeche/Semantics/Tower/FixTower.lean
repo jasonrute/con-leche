@@ -200,7 +200,7 @@ end Slot
 section Fam
 
 variable {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {rss : List (List Bool)}
-  {tlss : List (List (List (Nat × Nat × AnnotTerm)))} {Eiss : List (List (List AnnotTerm))} {Fss Ess : List (List AnnotTerm)}
+  {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))} {Fss Ess : List (List AnnotTerm)}
 
 omit [SetTheory V] in
 theorem consList_snoc' (a : V) (as : List V) (ρ : Nat → V) :
@@ -214,14 +214,13 @@ theorem consList_snoc' (a : V) (as : List V) (ρ : Nat → V) :
 /-- **A Π-tower is graded** when its domains are along the telescope
 and its body is at every fitting spine. -/
 theorem WellDenoted_mkPisAV_of {w : Nat} {R : AnnotTerm} :
-    ∀ {gds : List (Nat × Nat × AnnotTerm)} {σ : Nat → V},
-      FieldsOkB w σ (gds.map (·.2.2)) →
-      (∀ as, SpineFit σ (gds.map (·.2.2)) as → WellDenoted V (consList as σ) R) →
-      (∀ as, SpineFit σ (gds.map (·.2.2)) as → IsTy (interp V (consList as σ) R)) →
+    ∀ {gds : List AnnotTerm} {σ : Nat → V},
+      FieldsOkB w σ gds →
+      (∀ as, SpineFit σ gds as → WellDenoted V (consList as σ) R) →
+      (∀ as, SpineFit σ gds as → IsTy (interp V (consList as σ) R)) →
       WellDenoted V σ (mkPisAV gds R)
   | [], _, _, hR, _ => by simpa [mkPisAV, consList] using hR [] trivial
   | d :: gds, σ, hF, hR, hRt => by
-    rw [List.map_cons] at hF
     obtain ⟨hok, hty, -, hrest⟩ := hF
     simp only [mkPisAV, WellDenoted_pi]
     refine ⟨hok, hty, fun x hx => ?_, fun x hx => ?_⟩
@@ -276,7 +275,7 @@ open ConLeche.Term (Term)
 namespace FixKI
 
 variable {ℓ w u nP : Nat} {ρ₀ : Nat → V} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm}
-  {rss : List (List Bool)} {tlss : List (List (List (Nat × Nat × AnnotTerm)))} {Eiss : List (List (List AnnotTerm))} {rds : List (Nat × Nat × AnnotTerm)}
+  {rss : List (List Bool)} {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))} {rds : List AnnotTerm}
 
 /-- The `l`-th value of a fitting spine is in the `l`-th domain at the
 prefix. -/
@@ -295,7 +294,7 @@ end FixKI
 section WalkFrames
 
 variable {u w : Nat} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm} {rss : List (List Bool)}
-  {tlss : List (List (List (Nat × Nat × AnnotTerm)))} {Eiss : List (List (List AnnotTerm))}
+  {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))}
 
 omit [SetTheory V] in
 /-- The index tuple of a K-frame over a bottom. -/
@@ -309,7 +308,7 @@ end WalkFrames
 section Rec
 
 variable {ℓ w u nP s : Nat} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm}
-  {rss : List (List Bool)} {tlss : List (List (List (Nat × Nat × AnnotTerm)))} {Eiss : List (List (List AnnotTerm))} {rds : List (Nat × Nat × AnnotTerm)}
+  {rss : List (List Bool)} {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))} {rds : List AnnotTerm}
 
 /-- A spine fitting a chain fits a prefix of it. -/
 theorem spineFit_prefix {ρ : Nat → V} {Ds : List AnnotTerm} {as bs : List V}
@@ -447,8 +446,8 @@ theorem isOfW_tupW {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (hI : IdxO
 section Body
 
 variable {ℓ u nP : Nat} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm}
-  {rss : List (List Bool)} {tlss : List (List (List (Nat × Nat × AnnotTerm)))}
-  {Eiss : List (List (List AnnotTerm))} {rds : List (Nat × Nat × AnnotTerm)}
+  {rss : List (List Bool)} {tlss : List (List (List AnnotTerm))}
+  {Eiss : List (List (List AnnotTerm))} {rds : List AnnotTerm}
 
 /-- A tuple of the index set is the tuple of a fitting spine. -/
 theorem mem_idxSet_elim {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {t : V}
@@ -469,7 +468,7 @@ open ConLeche.Term ConLeche.Verify
 /-- A Π-tower over bounded binder data with a bounded conclusion is
 bounded. -/
 theorem mkPisAV_below_of {C : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {k : Nat}, DomsBelow k ds →
+    ∀ {ds : List AnnotTerm} {k : Nat}, DomsBelow k ds →
       Term.bvarsBelow (k + ds.length) C.erase → Term.bvarsBelow k (mkPisAV ds C).erase
   | [], _, _, hC => hC
   | d :: ds, k, hd, hC => by

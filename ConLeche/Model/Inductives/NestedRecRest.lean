@@ -201,7 +201,7 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {nested : Bool}
   {block : List ConstantInfo} {out : List (ConstantVal × TargetMajor × List Expr)}
   {mpC : EnvModelM V μ envC} {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)} {isRec : Bool}
+  {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {isRec : Bool}
   {A : Nat → (Name → Nat) → AnnotTerm}
 
 /-- **`ctor` from the constructors' storage**: carried constructors

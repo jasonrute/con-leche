@@ -47,13 +47,13 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-- **A graded Π-tower grades its binder domains** along any spine
 fitting the domains before them. -/
 theorem wellDenotedV_piDom_at {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+    ∀ {tl : List AnnotTerm} {ρ : Nat → V},
       WellDenotedV V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
-      SpineFit ρ ((tl.map (·.2.2)).take l) zs →
-        WellDenotedTy V (consList zs ρ) ((tl.map (·.2.2)).getD l default)
+      SpineFit ρ (tl.take l) zs →
+        WellDenotedTy V (consList zs ρ) (tl.getD l default)
   | [], _, _, l, hl, _, _ => absurd hl (Nat.not_lt_zero _)
   | d :: tl, ρ, hv, l, hl, zs, hz => by
-    have hw : WellDenoted V ρ (.pi d.2.2 (mkPisAV tl B)) := hv
+    have hw : WellDenoted V ρ (.pi d (mkPisAV tl B)) := hv
     rw [WellDenoted_pi] at hw
     cases l with
     | zero =>
@@ -62,7 +62,7 @@ theorem wellDenotedV_piDom_at {B : AnnotTerm} :
     | succ l =>
       match zs, hz with
       | z :: zs, hz =>
-        simp only [List.map_cons, List.take_succ_cons] at hz
+        simp only [List.take_succ_cons] at hz
         have ih := wellDenotedV_piDom_at (tl := tl) (ρ := cons z ρ)
           (hw.2.2.1 z hz.1) l (by simpa using hl) zs hz.2
         simpa [consList_cons] using ih
@@ -87,9 +87,9 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) :
-    ∃ (bs : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm),
+    ∃ (bs : List AnnotTerm) (b : AnnotTerm),
       (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length ≤ bs.length ∧
-      (bs.map (·.2.2)).take (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length
+      bs.take (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length
         = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ∧
       ∀ (ρ : Nat → V) (xs : List V),
         SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
@@ -104,7 +104,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
   -- the stored type's entry at the minor's slot
   obtain ⟨cls', ty', ifs', body', -, -, -, -, -, -, -, -, -, -, fvs0, o0, hop0, hE⟩ :=
     genRun_binders hμ R hg h mpC ψ hc
-  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, -, hdomsR, -, hwdTy⟩ :=
+  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
     recStage_tyPis (V := V) hμ mpC h hr ψ
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hop1.symm.trans hop0))
   have hle := blockRecHrPle (p := pp) h hc
@@ -114,13 +114,13 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hyE := hE _ y T hy (by
     rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT]; rfl)
-  obtain ⟨pd, hpd, -, hrd⟩ := hdomsR _ y hy
+  obtain ⟨pd, hpd, hrd⟩ := hdomsR _ y hy
   rw [denoteMeta_erasedEq hyE] at hrd
   -- the prefix's entry: the minor's value, graded there
   have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
-      (R.g.nP + s) default = pd.2.2 := by
-    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take,
+      (R.g.nP + s) default = pd := by
+    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left (by omega), hpd]; rfl
   -- read at the rule prefix
   have hlift := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
@@ -192,9 +192,9 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
     have hrf : r < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hrF
     obtain ⟨a, ha, hra⟩ := hbs r (R.g.binder (tgtFieldFvs pp.toBlockShape out c j)[r])
       (by rw [List.getElem?_append_left (by simpa using hrf)]; simp [hrf])
-    have hbr : bs[r]'(by omega) = (0, 0, a) := by
+    have hbr : bs[r]'(by omega) = a := by
       rw [List.getElem?_eq_getElem (by omega)] at ha; exact Option.some.inj ha
-    simp only [List.getElem_take, List.getElem_map, hbr]
+    simp only [List.getElem_take, hbr]
     have := readOpenedDoms_getElem (acval := mpC.base2.acval) (env := envC) (ψ := ψ)
       R.g.pre.length _ r hrf
     simp only [ClassGen.binder] at hra
@@ -259,9 +259,9 @@ theorem genCls_frameV (hμ : μ.verifiedChecks = true)
     rw [hFd] at hbl hbF
     have hw := hwd σ xs (by rw [hPd]; exact hxs)
     have hkb : k < bs.length := by omega
-    have htk : ((bs.map (·.2.2)).take k) = fdoms.take k := by
+    have htk : (bs.take k) = fdoms.take k := by
       rw [← hbF, List.take_take, Nat.min_eq_left (by omega)]
-    have hgd : (bs.map (·.2.2)).getD k default = fdoms.getD k default := by
+    have hgd : bs.getD k default = fdoms.getD k default := by
       rw [← hbF, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_take,
         ite_eq_left hk]
     have := wellDenotedV_piDom_at hw k hkb zs (by rw [htk]; exact hzs)

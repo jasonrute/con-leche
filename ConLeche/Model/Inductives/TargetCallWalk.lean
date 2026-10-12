@@ -566,14 +566,14 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
           = interp V (consList bs σW) xa) := by
   generalize hB : rP + fvsF.length = B at *
   -- the walk's reading of the field
-  obtain ⟨dsW, Xr, os', hndaE, hdomsW, hbitsW, hos', hXr⟩ :=
+  obtain ⟨dsW, Xr, os', hndaE, hdomsW, hos', hXr⟩ :=
     denoteMeta_mkPisOf (acval := m.acval) (env := env) (φ := ψ)
       (D := ctx.hiAt prog.length + i) teleW leafC 0 [] nda (LocList.nil _)
       (by rw [Expr.instantiateList_nil, Nat.add_zero]; exact hnda)
   subst hndaE
   rw [Nat.zero_add] at hos' hXr
   have hlD : dsW.length = teleW.length := by
-    have := congrArg List.length hbitsW; simpa using this
+    rw [teleDoms_length hdomsW, List.length_map]
   have hwX : denoteMeta m.acval env ψ (ctx.hiAt prog.length + i + teleW.length) w = some Xr := by
     rw [← denoteMeta_erasedEq (hopen os' hos')]; exact hXr
   -- the rule's telescope is the walk's, substituted
@@ -596,15 +596,15 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
       exact (hteleHF q hq).2)
   rw [hdomsW, Option.map_some] at hT
   rw [hT, Option.getD_some, spineFit_substAt] at hbs
-  have hbsW : SpineFit σW (dsW.map (·.2.2)) bs :=
+  have hbsW : SpineFit σW dsW bs :=
     (spineFit_teleDoms_holeFree (m := m) (φ := ψ) (Nat.le_add_right _ i) (teleW.map (·.1)) 0 []
-      (dsW.map (·.2.2)) (LocList.nil _) hdomsW
+      dsW (LocList.nil _) hdomsW
       (fun t ht => by
         obtain ⟨q, hq, rfl⟩ := List.mem_map.mp ht
         exact hteleHF q hq)
       (by simpa using hag) bs).mp hbs
   have hbl : bs.length = teleW.length := by
-    rw [hbsW.length_eq, List.length_map, hlD]
+    rw [hbsW.length_eq, hlD]
   refine ⟨by rw [hbl, htl], ?_⟩
   -- the value: the field applied along the telescope lands in the leaf
   have hmem := foldl_app_mem_mkPisAV hbsW hf

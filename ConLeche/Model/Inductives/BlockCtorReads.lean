@@ -39,7 +39,7 @@ canonical parameters, reads at depth `n` as the rest of the tower. -/
 theorem formerHoleTy_read {env : Env} {acval : Name → (Name → Nat) → AnnotTerm}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (acval n ψ).liftN 1 k = acval n ψ)
     {ψ : Name → Nat} {T : Expr} {n : Nat} (hcl : T.hasFvar = false)
-    (hstrip : (T.stripPis n).isSome = true) {ab : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm}
+    (hstrip : (T.stripPis n).isSome = true) {ab : List AnnotTerm} {B : AnnotTerm}
     (hn : n ≤ ab.length) (hr : denoteMeta acval env ψ 0 T = some (mkPisAV ab B)) :
     ∃ ty, instPisWith (canonParams n) T = some ty ∧ Expr.WScoped n ty ∧
       ∀ d, n ≤ d → denoteMeta acval env ψ d ty = some ((mkPisAV (ab.drop n) B).liftN (d - n) 0) := by
@@ -83,7 +83,7 @@ theorem blockCtorReads_of {env : Env} {m : EnvModel V env} {d : BlockData V} {lp
     -- constructors' frames)
     (hpars : ∀ c, c < d.k → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       ∀ (ψ : Name → Nat) (ρ : Nat → V), Sat V (d.params ψ).reverse ρ →
-        Sat V (((d.dsF c j ψ).take d.nP).map (·.2.2)).reverse ρ) :
+        Sat V (((d.dsF c j ψ).take d.nP)).reverse ρ) :
     LfpCtorReads m.acval env d.toLfp := by
   refine ⟨hk.symm, fun c hc j hj => ?_⟩
   have hc' : c < d.k := hc
@@ -121,17 +121,16 @@ theorem blockCtorReads_of {env : Env} {m : EnvModel V env} {d : BlockData V} {lp
     have h2 := stripPisAV_mkPisAV_take d.nP (d.dsF c j ψ)
       (ctorBodyAVI m (d.memberName c) d.nP cA.2 ψ (d.esF c j ψ)) hle'
     rw [← Option.some.inj (hrd'.symm.trans (hcd.read ψ)), h1] at h2
-    have htk : (dsC.take d.nP).map (·.2.2) = ((d.dsF c j ψ).take d.nP).map (·.2.2) := by
-      have := congrArg (List.map (·.2.2)) (Prod.mk.inj (Option.some.inj h2)).1
-      simpa only [ppsNorm_map_dom] using this
+    have htk : (dsC.take d.nP) = ((d.dsF c j ψ).take d.nP) :=
+      (Prod.mk.inj (Option.some.inj h2)).1
     rw [htk]
     exact hpars c hc' j cA hcj ψ ρ hsat
-  · obtain ⟨ab, abN, hca, -, hlab, hlabN, -, habN, hEq⟩ := hr ψ
+  · obtain ⟨ab, abN, hca, -, hlab, hlabN, habN, hEq⟩ := hr ψ
     have hlenP0 : (d.ppsM 0 ψ).length = d.nP + d.nIdxAt 0 := hFD0.len ψ
     have hlenParams : (d.params ψ).length = d.nP := by
-      simp only [BlockData.params, List.length_map, List.length_take, hlenP0]; omega
+      simp only [BlockData.params, List.length_take, hlenP0]; omega
     have habLen : (d.absF ψ c j).length = cA.2 := by
-      rw [← habN, List.length_map, hlabN]
+      rw [← habN, hlabN]
     refine ⟨hlenParams, habLen, ab, (List.range d.k).map fun t =>
       (mkPisAV ((d.ppsM t ψ).drop d.nP) (.sort (d.w ψ))).liftN t 0, hca, hlab,
       by simp [BlockData.toLfp], fun mm hmm => ?_, hEq⟩

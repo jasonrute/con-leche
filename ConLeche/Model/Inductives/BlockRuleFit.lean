@@ -126,23 +126,23 @@ theorem blockCtorSpine_split {mm j : Nat} {cA : ConstantVal × Nat}
     (hcj : (d.ctorsM mm)[j]? = some cA) {ψ : Name → Nat} {ρ : Nat → V}
     {ys : List AnnotTerm}
     (hdsLen : (d.dsF mm j ψ).length = d.nP + cA.2)
-    (hfitC : SpineFit ρ ((d.dsF mm j ψ).map (·.2.2)) (ys.map (interp V ρ)))
+    (hfitC : SpineFit ρ ((d.dsF mm j ψ)) (ys.map (interp V ρ)))
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF mm j ψ).take d.nP).map (·.2.2)).reverse σ)
+      ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
     (hlenP : (d.params ψ).length = d.nP) :
     SpineFit ρ (d.params ψ) ((ys.take d.nP).map (interp V ρ)) ∧
       SpineFit (consList ((ys.take d.nP).map (interp V ρ)) ρ)
         ((d.Fss mm ψ).getD j []) ((ys.drop d.nP).map (interp V ρ)) := by
-  have hle : d.nP ≤ ((d.dsF mm j ψ).map (·.2.2)).length := by
-    rw [List.length_map, hdsLen]; omega
+  have hle : d.nP ≤ ((d.dsF mm j ψ)).length := by
+    rw [hdsLen]; omega
   obtain ⟨h1, h2⟩ := spineFit_split hfitC hle
   simp only [← List.map_take, ← List.map_drop] at h1 h2
-  have hlenD : (((d.dsF mm j ψ).take d.nP).map (·.2.2)).length = d.nP := by
-    rw [List.length_map, List.length_take, hdsLen]; omega
+  have hlenD : (((d.dsF mm j ψ).take d.nP)).length = d.nP := by
+    rw [List.length_take, hdsLen]; omega
   refine ⟨?_, ?_⟩
   · refine (spineFit_iff_of_sat_iff (by rw [hlenP, hlenD]) hparamsC ρ _ ?_).mpr h1
     rw [h1.length_eq, hlenD, hlenP]
-  · have hF : (d.Fss mm ψ).getD j [] = ((d.dsF mm j ψ).drop d.nP).map (·.2.2) :=
+  · have hF : (d.Fss mm ψ).getD j [] = ((d.dsF mm j ψ).drop d.nP) :=
       fssOfR_fixCtorDataList_getD hcj
     rw [hF]
     exact h2
@@ -247,7 +247,7 @@ theorem blockCtorFieldProp {mm j : Nat} {cA : ConstantVal × Nat}
     (hcf : BlockCtorFacts mpC.base2 d lps mm j cA)
     (hlarge : d.large = true) {ψ : Name → Nat} (hw : d.w ψ = 0)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF mm j ψ).take d.nP).map (·.2.2)).reverse σ)
+      ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
     {ρp : Nat → V} (hsat : Sat V (d.params ψ).reverse ρp) :
     ∀ q, q < ((d.Fss mm ψ).getD j []).length →
       srcOfEs ((d.Ess mm ψ).getD j []) ((d.Fss mm ψ).getD j []).length q = none →
@@ -255,15 +255,15 @@ theorem blockCtorFieldProp {mm j : Nat} {cA : ConstantVal × Nat}
         interp V (consList fs ρp) (((d.Fss mm ψ).getD j []).getD q default)
           ∈ˢ (univZero : V) := by
   obtain ⟨-, -, hCD⟩ := hcf
-  have hFssD : (d.Fss mm ψ).getD j [] = ((d.dsF mm j ψ).drop d.nP).map (·.2.2) :=
+  have hFssD : (d.Fss mm ψ).getD j [] = ((d.dsF mm j ψ).drop d.nP) :=
     fssOfR_fixCtorDataList_getD hcj
   have hEssD : (d.Ess mm ψ).getD j [] = d.esF mm j ψ := essOfR_fixCtorDataList_getD hcj
   intro q hq hsrc fs hfs
   rw [hFssD] at hq hfs ⊢
   rw [hFssD, hEssD] at hsrc
   have hbnd := hCD.srcProp hlarge ψ hw ρp (hparamsC ρp |>.mp hsat)
-  have hlenF : (((d.dsF mm j ψ).drop d.nP).map (·.2.2)).length = cA.2 := by
-    rw [List.length_map, List.length_drop, hCD.len ψ]; omega
+  have hlenF : (((d.dsF mm j ψ).drop d.nP)).length = cA.2 := by
+    rw [List.length_drop, hCD.len ψ]; omega
   rw [hlenF] at hq hsrc
   obtain ⟨s', hs⟩ : ∃ s', (d.srcsF mm j)[q]? = some s' :=
     ⟨_, List.getElem?_eq_getElem (by rw [hCD.srcLen]; exact hq)⟩
@@ -286,7 +286,7 @@ theorem blockRuleStoredFit_sq (hM : BlockModelAt mpC.base2 names d)
     (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q) (hw : d.w ψ = 0)
     (hlarge : d.large = true) (hct1 : (d.ctorsM mm).length ≤ 1)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF mm j ψ).take d.nP).map (·.2.2)).reverse σ)
+      ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
     {ρ : Nat → V} {ps is : List V} {ys : List AnnotTerm}
     (hps : SpineFit ρ (d.params ψ) ps)
     (hidx : SpineFit (consList ps ρ) (d.IdsM mm ψ) is)
@@ -483,7 +483,7 @@ indices, ending in a sort. -/
 theorem blockParams_spineTy {ψ : Name → Nat} {B : AnnotTerm} {ρ : Nat → V}
     (hok : WellDenoted V ρ (mkPisAV (d.ppsM 0 ψ) B)) : SpineTy ρ (d.params ψ) := by
   have h := (spineTy_of_wellDenoted_mkPisAV hok).take d.nP
-  rwa [← List.map_take] at h
+  rwa [BlockData.params]
 
 /-! ### 2c. THE LIFT — the criterion as a STANDALONE producer
 
@@ -508,7 +508,7 @@ theorem blockStoredFit_srcVals_zero (hM : BlockModelAt mpC.base2 names d)
     (hcf : BlockCtorFacts mpC.base2 d lps mm j cA)
     (hlarge : d.large = true) {ψ : Name → Nat} (hw : d.w ψ = 0)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF mm j ψ).take d.nP).map (·.2.2)).reverse σ)
+      ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
     (hlenIds : (d.IdsM mm ψ).length = d.nIdxAt mm)
     {ρ : Nat → V} {ps : List V} (hps : SpineFit ρ (d.params ψ) ps)
     (hcN : mm < d.N)
@@ -552,7 +552,7 @@ theorem blockRuleStoredFit_any (hM : BlockModelAt mpC.base2 names d)
     (hlarge : d.w ψ = 0 → d.large = true)
     (hct1 : d.w ψ = 0 → (d.ctorsM mm).length ≤ 1)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF mm j ψ).take d.nP).map (·.2.2)).reverse σ)
+      ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
     {ρ : Nat → V} {ps is : List V} {ys : List AnnotTerm}
     (hps : SpineFit ρ (d.params ψ) ps)
     (hidx : SpineFit (consList ps ρ) (d.IdsM mm ψ) is)
@@ -629,7 +629,7 @@ theorem blockRuleCtorFit_run {mm j : Nat} {cA : ConstantVal × Nat}
     {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
     (hlenP : (d.params ψ).length = d.nP)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
-      ↔ Sat V (((d.dsF mm j ψ).take d.nP).map (·.2.2)).reverse σ)
+      ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
     {ρ : Nat → V} {ys : List AnnotTerm} {ctorTy restC : AnnotTerm}
     (hys : ys.length = d.nP + cA.2)
     (hctorRead : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some ctorTy)
@@ -659,22 +659,21 @@ section TwoStage
 
 omit [SetTheory V] μ in
 /-- A λ-tower at a fixed height determines its domains and body:
-`mkLamsAV` is injective on lists of equal length up to the unread
-numeral components, so the `∀ lds A` binders the
-contract's residue and tower statements carry are TIED and not free.
-(Two spellings, two names: this is about `mkLamsAV`; `lamTele_mkLamsAV`
-is the one about `LamTele`.) -/
+`mkLamsAV` is injective on lists of equal length, so the `∀ lds A`
+binders the contract's residue and tower statements carry are TIED
+and not free.  (Two spellings, two names: this is about `mkLamsAV`;
+`lamTele_mkLamsAV` is the one about `LamTele`.) -/
 theorem mkLamsAV_length_inj :
-    ∀ {lds lds' : List (Nat × AnnotTerm)} {A A' : AnnotTerm},
+    ∀ {lds lds' : List AnnotTerm} {A A' : AnnotTerm},
       lds.length = lds'.length → mkLamsAV lds A = mkLamsAV lds' A' →
-        lds.map (·.2) = lds'.map (·.2) ∧ A = A'
+        lds = lds' ∧ A = A'
   | [], [], _, _, _, h => ⟨rfl, h⟩
   | [], _ :: _, _, _, hl, _ => nomatch hl
   | _ :: _, [], _, _, hl, _ => nomatch hl
   | ld :: lds, ld' :: lds', A, A', hl, h => by
-    have h' : AnnotTerm.lam ld.2 (mkLamsAV lds A)
-        = AnnotTerm.lam ld'.2 (mkLamsAV lds' A') := h
-    obtain ⟨h2, h3⟩ : ld.2 = ld'.2 ∧ mkLamsAV lds A = mkLamsAV lds' A' := by
+    have h' : AnnotTerm.lam ld (mkLamsAV lds A)
+        = AnnotTerm.lam ld' (mkLamsAV lds' A') := h
+    obtain ⟨h2, h3⟩ : ld = ld' ∧ mkLamsAV lds A = mkLamsAV lds' A' := by
       injection h' with b c
       exact ⟨b, c⟩
     obtain ⟨h4, rfl⟩ := mkLamsAV_length_inj (by simpa using hl) h3
@@ -693,7 +692,7 @@ variable {envC : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC} {F : Nat}
   {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
   {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+  {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
 
 omit [SetTheory V] in
 /-- A bounded field chain's entries, one by one. -/

@@ -34,54 +34,12 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
 
 /-! ## The constructor's data -/
 
-/-- The leading Π-entries of a Π-telescope's reading carry zero numerals
-(`stripPisAV` records `(0, 0, A)`; the numerals are not read). -/
-theorem stripPisAV_denoteMeta_bits {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
-    {φ : Name → Nat} :
-    ∀ (n : Nat) {d : Nat} {e : Expr} {fvs : List Expr} {o : Expr} {ea : AnnotTerm}
-      {pps : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm},
-      openPisAtFvars n e d = some (fvs, o) → denoteMeta acval env φ d e = some ea →
-      stripPisAV n ea = some (pps, b) → ∀ p ∈ pps, p.1 = 0 ∧ p.2.1 ≤ 1
-  | 0, _, _, _, _, _, _, _, _, _, hst => by
-    simp only [stripPisAV, Option.some.injEq, Prod.mk.injEq] at hst
-    obtain ⟨rfl, -⟩ := hst
-    exact fun _ h => nomatch h
-  | n + 1, d, e, fvs, o, ea, pps, b, hop, hr, hst => by
-    match e, hop with
-    | .forallE ty bd mb, hop =>
-      obtain ⟨ta, ba, -, hba, rfl⟩ := denoteMeta_forallE_inv hr
-      simp only [openPisAtFvars] at hop
-      split at hop
-      · next fvs' o' hop' =>
-        simp only [stripPisAV] at hst
-        cases hst' : stripPisAV n ba with
-        | none => rw [hst'] at hst; exact nomatch hst
-        | some q =>
-          rw [hst'] at hst
-          simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hst
-          obtain ⟨rfl, -⟩ := hst
-          intro p hp
-          simp only [List.mem_cons] at hp
-          rcases hp with rfl | hp
-          · exact ⟨rfl, Nat.zero_le 1⟩
-          · exact stripPisAV_denoteMeta_bits n hop' hba hst' p hp
-      · exact nomatch hop
-    | .bvar _, hop => nomatch hop
-    | .fvar _ _, hop => nomatch hop
-    | .sort _, hop => nomatch hop
-    | .const _ _, hop => nomatch hop
-    | .app _ _, hop => nomatch hop
-    | .lam _ _ _, hop => nomatch hop
-    | .letE _ _ _, hop => nomatch hop
-    | .proj _ _ _, hop => nomatch hop
-    | .lit _, hop => nomatch hop
-
 /-- **A block constructor's data** at a carrier storing ALL the
 block's formers (see the module docstring). -/
 structure BlockCtorDataI {env : Env} (m : EnvModel V env) (T : Name)
     (lps : List Name) (cvC : ConstantVal) (nP nF nIdx : Nat) (resSort : Level)
     (isProp large : Bool) (idxArgs : List Expr)
-    (ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)) (Es : (Name → Nat) → List AnnotTerm)
+    (ds : (Name → Nat) → List AnnotTerm) (Es : (Name → Nat) → List AnnotTerm)
     (srcs : List (Option Nat)) (fvsP xFvs : List Expr) (xrest : Expr) : Prop
     extends CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs where
   opens : ∃ crest, openPisAtFvars nP cvC.type 0 = some (fvsP, crest) ∧
@@ -92,7 +50,7 @@ structure BlockCtorDataI {env : Env} (m : EnvModel V env) (T : Name)
   pIdx : ∀ k x, fvsP[k]? = some x → ∃ ty, x = Expr.fvar k ty
   idxEq : idxArgs = xrest.getAppArgs.drop nP
   domRead : ∀ ψ i x, xFvs[i]? = some x →
-    denoteMeta m.acval env ψ (nP + i) x.fvarTypeD = some ((ds ψ).getD (nP + i) default).2.2
+    denoteMeta m.acval env ψ (nP + i) x.fvarTypeD = some ((ds ψ).getD (nP + i) default)
   /-- the opened residual is the member at the parameter variables and the
   index arguments (the result the hole reading abstracts) -/
   resShape : xrest = Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs)
@@ -130,7 +88,7 @@ theorem denoteMetaSpine_params {acval : Name → (Name → Nat) → AnnotTerm} {
 /-- The Π-tower's closedness, inverted: the domains under the earlier
 ones, the body under all. -/
 theorem bvarsBelow_mkPisAV_inv {k : Nat} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm}, Term.bvarsBelow k (mkPisAV ds b).erase →
+    ∀ {ds : List AnnotTerm} {b : AnnotTerm}, Term.bvarsBelow k (mkPisAV ds b).erase →
       DomsBelow k ds ∧ Term.bvarsBelow (k + ds.length) b.erase
   | [], _, h => ⟨trivial, by simpa [mkPisAV] using h⟩
   | d :: ds, b, h => by
@@ -193,7 +151,7 @@ they are arguments of the opened residual. -/
 theorem BlockCtorDataI.idxArgs_resolve {env : Env} {m : EnvModel V env} {T : Name}
     {lps : List Name} {cvC : ConstantVal} {nP nF nIdx : Nat} {resSort : Level}
     {isProp large : Bool} {idxArgs : List Expr}
-    {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)} {fvsP xFvs : List Expr} {xrest : Expr}
     (h : BlockCtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs fvsP xFvs
       xrest) {env₀ : Env} (hres : cvC.type.constsResolve env₀ = true) :
@@ -218,7 +176,7 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hlpsT : cvTa.levelParams = lps)
     (hstripT : cvTa.type.stripPis (nP + nIdx) = some (bs, .sort sT)) :
-    ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List AnnotTerm)
       (Es : (Name → Nat) → List AnnotTerm) (srcs : List (Option Nat))
       (fvsP xFvs : List Expr) (xrest : Expr),
       BlockCtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large
@@ -241,7 +199,7 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
   -- every field's opened domain reads to its entry
   have hdomRead : ∀ ψ i x, xFvs[i]? = some x →
       denoteMeta mp.base2.acval env ψ (nP + i) x.fvarTypeD
-        = some ((ds ψ).getD (nP + i) default).2.2 := by
+        = some ((ds ψ).getD (nP + i) default) := by
     intro ψ i x hx
     have hO := opened_of_peel hopAll hcf hcb (hCD.read ψ) (hCD.len ψ) (hCD.okTyV ψ)
     have hxA : (fvsP ++ xFvs)[nP + i]? = some x := by

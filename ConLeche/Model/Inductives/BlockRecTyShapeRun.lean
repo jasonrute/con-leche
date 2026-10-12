@@ -96,7 +96,7 @@ producer. -/
   (∀ (m : Nat) (ψ : Name → Nat), m < d.k →
     ∃ B, mo.acval (d.memberName m) ψ = mkLamsC (d.w ψ + 1) (d.ppsM m ψ) B) ∧
   (∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-    Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ ↔ Sat V (d.params ψ).reverse ρ)
+    Sat V ((d.ppsM m ψ).take d.nP).reverse ρ ↔ Sat V (d.params ψ).reverse ρ)
 
 section Run
 
@@ -153,7 +153,7 @@ theorem blockMembers_IdsM_length {envC : Env} {mo : EnvModel V envC} {d : BlockD
   obtain ⟨cvTb, hcvTa⟩ : ∃ cvTb, cvTas[mm]? = some cvTb :=
     ⟨_, List.getElem?_eq_getElem (by rw [hlenCv]; exact hmm)⟩
   obtain ⟨-, -, -, -, -, hFD⟩ := hcvF _ _ hcvTa
-  rw [BlockData.IdsM, List.length_map, List.length_drop, hFD.len ψ]
+  rw [BlockData.IdsM, List.length_drop, hFD.len ψ]
   omega
 
 end Keys

@@ -228,7 +228,7 @@ theorem extendEq (mp : EnvModelM V μ env)
     (fun ψ ρ => eqValAV_wellDenoted ψ ρ)
     (fun ψ => ⟨_, denoteMeta_eqA_type ψ⟩) ?_ ?_ ?_
     (hind := indStrictHead_cons_prop
-      (ab := fun ψ => [(0, 1, .sort (ψ uN)), (0, 1, .bvar 0), (0, 1, .bvar 1)])
+      (ab := fun ψ => [.sort (ψ uN), .bvar 0, .bvar 1])
       fun ψ => denoteMeta_eqA_type ψ)
   · intro ψ ta h ρ
     rw [denoteMeta_eqA_type ψ] at h
@@ -1343,7 +1343,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
             rw [denoteMeta_fvar] at htb
             obtain rfl := Option.some.inj hta
             obtain rfl := Option.some.inj htb
-            simp only [List.take_succ_cons, List.take_zero, List.map_cons, List.map_nil, h0, h2]
+            simp only [List.take_succ_cons, List.take_zero, h0, h2]
             exact hsat),
         .app (.fvar 2 (.sort .zero)) (.fvar 1 (.sort .zero)),
         (by decide : ConLeche.nestCanonCrest [eqName] [.param uN] 2 eqReflA.toConstantVal.type

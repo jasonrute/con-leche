@@ -329,6 +329,6 @@ theorem grp_arity {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDa
   have hidx : D.names.idxOf p.1 = mm := by rw [hpm]; exact idxOf_member hnN hkN hmm
   have hnA : ConLeche.nestArity ctx p.1 = cv.type.piBinders.1.length := by
     unfold ConLeche.nestArity; rw [hfC]
-  rw [hnA, hidx, ← piCount_eq_length, ← hlen, ← hll, ← List.length_append, ← hmap, List.length_map]
+  rw [hnA, hidx, ← piCount_eq_length, ← hlen, ← hll, ← List.length_append, ← hmap]
 
 end ConLeche.Model

@@ -107,7 +107,7 @@ member's leaf enters only through its FOLD at the fieldless shape
 vacuous. -/
 theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
     {p₁ : BlockShape} {mi : Nat} {isRec : Bool} {T : Name} {cvTa : ConstantVal}
-    {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List AnnotTerm}
     {L : (Name → Nat) → AnnotTerm}
     (hpar : ∀ ψ, p₁.nP = (pps ψ).length)
     (hleaf : ∀ ψ, m'.acval T ψ = L ψ)
@@ -117,14 +117,14 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
       WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
     (hfoldZ : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
-        SpineFit ρ ((pps ψ).map (·.2.2)) ts →
+        SpineFit ρ ((pps ψ)) ts →
         ts.foldl SetTheory.app (interp V ρ (L ψ))
           = sumSet (w ψ) (sumFibre (w ψ) (consList ts ρ) [[] ++ [idxEqAV []]]))
     (hleafC : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true →
       ∀ ψ, m'.acval (ConLeche.blockCapsAt p₁ mi isRec).etaCtor ψ
         = sumMkAV (w ψ) 0 (ds ψ) [] (uChains [[]]))
     (hfit : ∀ (ψ : Name → Nat) (ρ : Nat → V) (as : List V),
-      SpineFit ρ ((pps ψ).map (·.2.2)) as → SpineFit ρ ((ds ψ).map (·.2.2)) as)
+      SpineFit ρ ((pps ψ)) as → SpineFit ρ ((ds ψ)) as)
     (hreadC : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true →
       ∀ (cvC : ConstantVal) (nPc nFc : Nat),
         env'.find? (ConLeche.blockCapsAt p₁ mi isRec).etaCtor

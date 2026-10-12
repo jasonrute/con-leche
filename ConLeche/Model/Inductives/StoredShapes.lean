@@ -596,7 +596,7 @@ facts and `BlockCtorDataI`'s opening facts, without any field kind
 (`BlockCtorDataI.storedCtorFacts`). -/
 structure StoredCtorFacts {V : Type w} [SetTheory V] {env : Env} (m : EnvModel V env) (T : Name)
     (lps : List Name) (cvC : ConstantVal) (nP nF : Nat) (fvsP xFvs : List Expr) (xrest : Expr)
-    (idxArgs : List Expr) (ds : (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    (idxArgs : List Expr) (ds : (Name → Nat) → List AnnotTerm)
     (Es : (Name → Nat) → List AnnotTerm) : Prop where
   read : ∀ ψ : Name → Nat, denoteMeta m.acval env ψ 0 cvC.type
     = some (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ)))
@@ -614,7 +614,7 @@ structure StoredCtorFacts {V : Type w} [SetTheory V] {env : Env} (m : EnvModel V
 theorem BlockCtorDataI.storedCtorFacts {V : Type w} [SetTheory V] {env : Env}
     {m : EnvModel V env} {T : Name} {lps : List Name} {cvC : ConstantVal} {nP nF nIdx : Nat}
     {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
-    {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+    {ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
     {srcs : List (Option Nat)} {fvsP xFvs : List Expr} {xrest : Expr}
     (h : BlockCtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs fvsP xFvs
       xrest)
@@ -656,7 +656,7 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
       cv.levelParams = ctx.lps ∧
       cv.type.stripPis (ctx.nP + ctx.nIdxs.getD t 0) = some (bs, .sort s) ∧ s.eval ψ = w)
     {c nF : Nat} (hc : c < ctx.names.length) {cvC : ConstantVal} {fvsP xFvs : List Expr}
-    {xrest : Expr} {idxArgs : List Expr} {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {xrest : Expr} {idxArgs : List Expr} {ds : (Name → Nat) → List AnnotTerm}
     {Es : (Name → Nat) → List AnnotTerm}
     (hD : StoredCtorFacts m (ctx.names.getD c .anonymous) ctx.lps cvC ctx.nP nF fvsP xFvs xrest
       idxArgs ds Es)
@@ -667,26 +667,26 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env ctx nF crest ksD tyN ts)
     {Δp Δh : List AnnotTerm}
     (hlink : ∀ ca : AnnotTerm, denoteMeta m.acval env ψ (ctx.hiAt 0) crest = some ca →
-      ∃ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
+      ∃ (abD abN : List AnnotTerm) (B : AnnotTerm),
       ca = mkPisAV abD B ∧
       denoteMeta m.acval env ψ (ctx.hiAt 0) tyN = some (mkPisAV abN B) ∧
       abD.length = nF ∧ abN.length = nF ∧
-      FieldsEqOn V Δh (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
+      FieldsEqOn V Δh (abD) (abN) ∧
       Rules.Frame (ctx.hiAt 0) tyN ∧ Rules.LeavesSub tyN crest)
     (hsatH : ∀ ρ : Nat → V, Sat V Δp ρ → ∀ hs : List V, hs.length = ctx.names.length →
       (∀ t, t < ctx.names.length →
         hs.getD t pt = (frameIdx ctx.nP ρ).foldl app
           (interp V ρ (m.acval (ctx.names.getD t .anonymous) ψ))) →
       Sat V Δh (consList hs ρ)) :
-    ∃ (abD abN : List (Nat × Nat × AnnotTerm)) (E : List AnnotTerm),
+    ∃ (abD abN : List AnnotTerm) (E : List AnnotTerm),
       denoteMeta m.acval env ψ (ctx.hiAt 0) crest
         = some (mkPisAV abD (AnnotTerm.mkAppN (.bvar (nF + (ctx.names.length - 1 - c))) E)) ∧
       denoteMeta m.acval env ψ (ctx.hiAt 0) tyN
         = some (mkPisAV abN (AnnotTerm.mkAppN (.bvar (nF + (ctx.names.length - 1 - c))) E)) ∧
       abD.length = nF ∧ abN.length = nF ∧ E = (Es ψ).map (·.liftN ctx.names.length nF) ∧
       StoredFieldShapes V ctx.names.length ctx.nP w (fun t => ctx.nIdxs.getD t 0)
-        (fun t => m.acval (ctx.names.getD t .anonymous) ψ) Δp (abN.map (·.2.2))
-        (((ds ψ).drop ctx.nP).map (·.2.2)) := by
+        (fun t => m.acval (ctx.names.getD t .anonymous) ψ) Δp (abN)
+        (((ds ψ).drop ctx.nP)) := by
   classical
   -- ## the context
   have henv : ConLeche.EnvWF env := m.wf
@@ -864,7 +864,7 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
   obtain ⟨pps, Bb, hst, hBb, hppl, -⟩ := denoteMeta_openPis nF hop hRc
   obtain ⟨rfl, -⟩ := stripPisAV_eq_mkPis hst
   rw [AnnotTerm.substAV_mkPisAV] at hRi
-  have hsubTeleL : ∀ (c : Nat) (ab : List (Nat × Nat × AnnotTerm)),
+  have hsubTeleL : ∀ (c : Nat) (ab : List AnnotTerm),
       (AnnotTerm.substTele (substTau (ctx.nP + ctx.names.length) ctx.nP x) c ab).length
         = ab.length := by
     intro c ab
@@ -943,16 +943,15 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
   -- ## the normal form: the link, its reading and its fields
   obtain ⟨abD, abN, B₀, hRD, hRN, hlD, hlN, hEqF, -, -⟩ := hlink _ hRc
   obtain ⟨hpp, rfl⟩ := mkPisAV_inj (hppl.trans hlD.symm) hRD
-  have hppD : pps.map (·.2.2) = abD.map (·.2.2) := by
-    rw [← ppsNorm_map_dom pps, hpp, ppsNorm_map_dom]
+  have hppD : pps = abD := hpp
   -- the stored field readings are the crest's, the holes filled back
   have hSget : ∀ l p, pps[l]? = some p →
-      (((ds ψ).drop ctx.nP).map (·.2.2)).getD l default
-        = AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) p.2.2 l := by
-    have hTget : ∀ (c : Nat) (ab : List (Nat × Nat × AnnotTerm)) (l : Nat),
+      (((ds ψ).drop ctx.nP)).getD l default
+        = AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) p l := by
+    have hTget : ∀ (c : Nat) (ab : List AnnotTerm) (l : Nat),
         (AnnotTerm.substTele (substTau (ctx.nP + ctx.names.length) ctx.nP x) c ab)[l]?
-          = (ab[l]?).map fun d => (d.1, d.2.1,
-              AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) d.2.2 (c + l)) := by
+          = (ab[l]?).map fun d =>
+              AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) d (c + l) := by
       intro c ab
       induction ab generalizing c with
       | nil => intro l; rfl
@@ -964,21 +963,19 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
           simp only [AnnotTerm.substTele, List.getElem?_cons_succ, ih (c + 1) l]
           rw [show c + 1 + l = c + (l + 1) by omega]
     intro l p hp
-    rw [← ppsNorm_map_dom (List.drop ctx.nP (ds ψ)), ← hTele, ppsNorm_map_dom,
-      List.getD_eq_getElem?_getD, List.getElem?_map, hTget, hp]
+    rw [← hTele, List.getD_eq_getElem?_getD, hTget, hp]
     simp
-  have hFgetD : ∀ l p, pps[l]? = some p → (pps.map (·.2.2)).getD l default = p.2.2 := by
+  have hFgetD : ∀ l p, pps[l]? = some p → (pps).getD l default = p := by
     intro l p hp
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, hp]
-    rfl
+    rw [List.getD_eq_getElem?_getD, hp, Option.getD_some]
   -- the declared fields at the members' applied values are the stored ones, at every frame
   have hdecl : ∀ (ρ : Nat → V) (hs : List V), hs.length = ctx.names.length →
       (∀ t, t < ctx.names.length →
         hs.getD t pt = (frameIdx ctx.nP ρ).foldl app
           (interp V ρ (m.acval (ctx.names.getD t .anonymous) ψ))) →
       ∀ (l : Nat) (as : List V), l < nF → as.length = l →
-        interp V (consList as (consList hs ρ)) ((pps.map (·.2.2)).getD l default)
-          = interp V (consList as ρ) ((((ds ψ).drop ctx.nP).map (·.2.2)).getD l default) := by
+        interp V (consList as (consList hs ρ)) ((pps).getD l default)
+          = interp V (consList as ρ) ((((ds ψ).drop ctx.nP)).getD l default) := by
     intro ρ hs hsl hv l as hl has
     obtain ⟨p, hp⟩ : ∃ p, pps[l]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     rw [hFgetD l p hp, hSget l p hp, interp_substAV, ← has]
@@ -1009,9 +1006,9 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     -- frames satisfying the walk's context)
     intro ρ hρ hs hsl hv l hl as has hfit
     have hl' : l < nF := by simpa [hlN] using hl
-    have hfitD : SpineFit (consList hs ρ) ((pps.map (·.2.2)).take l) as := by
+    have hfitD : SpineFit (consList hs ρ) ((pps).take l) as := by
       refine (spineFit_congr_all (by simp [hlP, hlenD]) (fun i as' hi has' => ?_) as).mpr hfit
-      have hil : i < l := by simp only [List.length_take, List.length_map, hlP] at hi; omega
+      have hil : i < l := by simp only [List.length_take, hlP] at hi; omega
       rw [List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hil, ← List.getD_eq_getElem?_getD,
         List.getD_eq_getElem?_getD (l := List.take l _), List.getElem?_take_of_lt hil,
         ← List.getD_eq_getElem?_getD]

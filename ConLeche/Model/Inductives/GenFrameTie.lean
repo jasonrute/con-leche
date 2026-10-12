@@ -145,20 +145,19 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   have hppsLen : (dR.ppsM 0 ψ).length = dR.nP + dR.nIdxAt 0 := hFD.len ψ
   obtain ⟨ppsT, bT, hstT, -, -, hbindT⟩ :=
     denoteMeta_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hop (hFD.read ψ)
-  have hppsT : ppsT = ppsNorm ((dR.ppsM 0 ψ).take pp.nP) := by
+  have hppsT : ppsT = (dR.ppsM 0 ψ).take pp.nP := by
     have := stripPisAV_mkPisAV_take pp.nP (dR.ppsM 0 ψ)
       (.sort (dR.resSort.eval ψ)) (by rw [hppsLen, hnPq]; omega)
     rw [this] at hstT
     exact congrArg Prod.fst (Option.some.inj hstT.symm)
   have hpl : (dR.params ψ).length = pp.nP := by
-    rw [BlockData.params, List.length_map, List.length_take, hppsLen]; omega
+    rw [BlockData.params, List.length_take, hppsLen]; omega
   have hP : ∀ (l : Nat) (x : Expr), fvsP[l]? = some x →
       denoteMeta mpC.base2.acval envC ψ l (Expr.fvarTypeD x) = some ((dR.params ψ).getD l default) := by
     intro l x hx
-    obtain ⟨pd, hpd, -, hreadD⟩ := hbindT l x hx
+    obtain ⟨pd, hpd, hreadD⟩ := hbindT l x hx
     rw [Nat.zero_add] at hreadD
-    rw [hreadD, BlockData.params, hnPq, List.map_take, ← List.map_take, ← ppsNorm_map_dom, ← hppsT,
-      List.getD_eq_getElem?_getD, List.getElem?_map, hpd]
+    rw [hreadD, BlockData.params, hnPq, ← hppsT, List.getD_eq_getElem?_getD, hpd]
     rfl
   have hdoms := blockRuleHdoms_of (acval := mpC.base2.acval) (envT := envC) (ψ := ψ)
     (fdoms := []) (ihdoms := []) (fvsF := []) (fvsIh := []) hpl rfl rfl hlenP rfl rfl hP

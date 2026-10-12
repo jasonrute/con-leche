@@ -140,24 +140,21 @@ theorem FieldsEqOn.getD_eq :
   | _, [], _, _, _, _, _, _, hl, _ => by simp at hl
   | _, _ :: _, [], h, _, _, _, _, _, _ => h.elim
 
-/-- Two Π-towers over field lists that read alike, with the same binder
-data and the same body, read alike. -/
+/-- Two Π-towers over field lists that read alike, with the same body,
+read alike. -/
 theorem interp_mkPisAV_congr :
-    ∀ {Δ : List AnnotTerm} (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
-      abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) →
-      FieldsEqOn V Δ (abD.map (·.2.2)) (abN.map (·.2.2)) →
+    ∀ {Δ : List AnnotTerm} (abD abN : List AnnotTerm) (B : AnnotTerm),
+      FieldsEqOn V Δ abD abN →
       ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ (mkPisAV abD B) = interp V ρ (mkPisAV abN B)
-  | _, [], [], _, _, _, _, _ => rfl
-  | Δ, d :: abD, e :: abN, B, hb, h, ρ, hρ => by
-    simp only [List.map_cons, List.cons.injEq] at hb
-    obtain ⟨-, hb⟩ := hb
+  | _, [], [], _, _, _, _ => rfl
+  | Δ, d :: abD, e :: abN, B, h, ρ, hρ => by
     simp only [mkPisAV, interp_pi]
     rw [h.1 ρ hρ]
     refine piV_congr fun x hx => ?_
-    have hx' : x ∈ˢ interp V ρ d.2.2 := (h.1 ρ hρ).symm ▸ hx
-    exact interp_mkPisAV_congr abD abN B hb h.2 _ (Sat_cons V hρ hx')
-  | _, [], _ :: _, _, hb, _, _, _ => by simp at hb
-  | _, _ :: _, [], _, hb, _, _, _ => by simp at hb
+    have hx' : x ∈ˢ interp V ρ d := (h.1 ρ hρ).symm ▸ hx
+    exact interp_mkPisAV_congr abD abN B h.2 _ (Sat_cons V hρ hx')
+  | _, [], _ :: _, _, h, _, _ => h.elim
+  | _, _ :: _, [], _, h, _, _ => h.elim
 
 /-- The relation under a binder depends only on the binder's reading at
 the relation's frames. -/

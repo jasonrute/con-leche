@@ -386,9 +386,9 @@ relation still agrees off the hole positions, and the result reads. -/
 /-- A Π-tower positive along a relation is positive field by field, and
 its body satisfies the predicate under the fields. -/
 theorem piPosThen_mkPisAV {P : FrameRel V → AnnotTerm → Prop} :
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (R : FrameRel V) (b : AnnotTerm),
+    ∀ (ab : List AnnotTerm) (R : FrameRel V) (b : AnnotTerm),
       PiPosThen P ab.length R (mkPisAV ab b) →
-      TeleMonoOn R (ab.map (·.2.2)) ∧ P (R.underTele (ab.map (·.2.2))) b
+      TeleMonoOn R ab ∧ P (R.underTele ab) b
   | [], _, _, h => ⟨trivial, h⟩
   | _ :: ab, R, b, h => by
     obtain ⟨h1, h2⟩ := h

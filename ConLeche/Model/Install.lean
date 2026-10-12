@@ -255,10 +255,10 @@ head's obligation; nothing of the collapsed model is consulted. -/
 /-- `indStrictHead_of` at a cons's own leaf. -/
 theorem indStrictHead_cons {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {cv : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
-    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {s : (Name → Nat) → Nat}
+    {ab : (Name → Nat) → List AnnotTerm} {s : (Name → Nat) → Nat}
     (hread : ∀ ψ, denoteMeta (acvalWith acval cv.name A) env ψ 0 cv.type
       = some (mkPisAV (ab ψ) (.sort (s ψ))))
-    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ((ab ψ).map (·.2.2)) vs →
+    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab ψ) vs →
       Strict (vs.foldl SetTheory.app (interp V ρ (A ψ)))) :
     IndStrictHead (V := V) (acvalWith acval cv.name A) env (.indInfo cv caps) :=
   indStrictHead_of hread fun ψ hn ρ vs hsp => by
@@ -269,7 +269,7 @@ theorem indStrictHead_cons {acval : Name → (Name → Nat) → AnnotTerm} {env 
 assignment: nothing to prove. -/
 theorem indStrictHead_cons_prop {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {cv : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
-    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ab : (Name → Nat) → List AnnotTerm}
     (hread : ∀ ψ, denoteMeta (acvalWith acval cv.name A) env ψ 0 cv.type
       = some (mkPisAV (ab ψ) (.sort 0))) :
     IndStrictHead (V := V) (acvalWith acval cv.name A) env (.indInfo cv caps) :=
