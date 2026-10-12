@@ -121,7 +121,8 @@ theorem sortSemAt_of_claims {env : Env} {m : EnvModel V env}
     hLb l (inferTypeCore_fvarLeaves m.wf fuel hi hws l hl)
   have hCt : CtxOk m φ d Δa t :=
     hC.of_subset (inferTypeCore_fvarLeaves m.wf fuel hi hws)
-  obtain ⟨-, heq⟩ := ihw hw hwt hbt hLt hCt hta (denoteMeta_sort _ _ _) hokT
+  obtain ⟨-, heq⟩ := ihw hw hwt hbt hLt hCt hta (denoteMeta_sort _ _ _)
+    (fun ρ hρ => (hokT ρ hρ).1)
   intro ρ hρ
   refine ⟨hokE ρ hρ, ?_⟩
   have hm := hmem ρ hρ

@@ -96,7 +96,8 @@ variable {V : Type w} [SetTheory V]
         interp V ρ aa = interp V ρ ba
 
 /-- Inference, dual success, P currency: the subject's and the
-type's truthfulness — bit validity included — are *conclusions*. -/
+type's truthfulness — bit validity included — are *conclusions*, and
+the type denotes a type. -/
 @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
   ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
@@ -108,7 +109,7 @@ type's truthfulness — bit validity included — are *conclusions*. -/
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) ∧
-        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta) ∧
+        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
         ∀ ρ : Nat → V, Sat V Δa ρ →
           interp V ρ ea ∈ˢ interp V ρ ta
 
