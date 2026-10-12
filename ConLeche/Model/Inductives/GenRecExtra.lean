@@ -23,6 +23,10 @@ import ConLeche.Model.Rules.DefEqSoundKit
 import ConLeche.Verify.InstSpine
 import ConLeche.Verify.PropWhen
 import ConLeche.Verify.Subst
+import ConLeche.Verify.InferLemmas
+import ConLeche.Model.IndFrame
+import ConLeche.Model.IndPointKit
+import ConLeche.Model.WellDenotedTransport
 import ConLeche.Verify.Denote.OpenVars
 import ConLeche.Verify.Denote.TeleOpen
 import ConLeche.Model.Annot.BitRename
@@ -1306,6 +1310,74 @@ theorem genOut_S {j : Nat} {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp
   rw [lfpW_congr mpC Rd.hD Rd.hmm hfm (ψ₂ := ψc) (fun q hq => by
     rw [← hlpC] at hq ⊢; exact hlv q hq)] at hne
   exact hne
+
+/-- A closed leaf is fixed by every instantiation sequence. -/
+theorem instSeq_acval {env : Env} (m : EnvModel V env) (n : Name) (ψ : Name → Nat) :
+    ∀ (ws : List AnnotTerm) (t : Nat),
+      ConLeche.Model.AnnotTerm.instSeq ws t (m.acval n ψ) = m.acval n ψ
+  | [], _ => rfl
+  | w :: ws, t => by
+    show ConLeche.Model.AnnotTerm.instSeq ws (t - 1) ((m.acval n ψ).inst w t) = _
+    rw [acval_inst_self, instSeq_acval m n ψ ws (t - 1)]
+
+/-- **An outside class's constructor residual**: the fit of the
+constructor's type at a full spine leaves the container at the spine's
+parameters and the constructor's index readings (`LfpCaps`'s shape,
+read). -/
+theorem genOut_residual (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
+    (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
+    {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
+    {ψj : Name → Nat} {TVja : AnnotTerm}
+    (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
+    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    (hys : ys.length = (tgtMajor out j).nPc + cA.2)
+    (hfitC : TeleFitPA V ρ TVja ys restC) :
+    ∃ Es : List AnnotTerm,
+      restC = AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
+        ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
+          (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))) ∧
+      ∀ ψ : Name → Nat, (paramBvars (tgtMajor out j).nPc cA.2 ++ Es).length
+        = (tgtMajor out j).nPc
+          + ((tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψ).length := by
+  obtain ⟨hiD, hfc0, hlpC, -⟩ := Rd.hctor i cA hcAM
+  obtain ⟨caps, hfc, -, -, bs, es, hst⟩ := genOut_caps Rd hcAM
+  obtain ⟨pps, Es, hT, hplen, hEl⟩ := denoteMeta_ctorShape hfc
+    (by show (cA.1.levelParams.map Level.param).length = cvI.levelParams.length
+        rw [List.length_map, hlpC]) hst hread
+  change TVja = mkPisAV pps (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind
+    (Level.substFn ψj cvI.levelParams (cA.1.levelParams.map Level.param)))
+    (paramBvars (tgtMajor out j).nPc cA.2 ++ Es)) at hT
+  rw [show Level.substFn ψj cvI.levelParams (cA.1.levelParams.map Level.param) = ψj from by
+    rw [← hlpC]; exact ConLeche.Level.substFn_param_self ψj _] at hT
+  subst hT
+  have htele := piTeleAV_mkPisAV pps (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
+    (paramBvars (tgtMajor out j).nPc cA.2 ++ Es))
+  rw [hplen] at htele
+  have hrest := teleFitPA_rest_eq ((tgtMajor out j).nPc + cA.2) htele hys hfitC
+  rw [instSeqAV_mkAppN, instSeq_acval] at hrest
+  refine ⟨Es, hrest, fun ψ => ?_⟩
+  -- the stored shape's argument count (`LfpOwn.ctorConcl`)
+  obtain ⟨cv8, nPc8, nF8, hf8, bs8, args, hstrip, hargs⟩ :=
+    (hcov.own _ Rd.hD).ctorConcl _ Rd.hmm i hiD
+  rw [hfc0] at hf8
+  obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cv8 ∧ (tgtMajor out j).ds.length = nPc8 ∧ cA.2 = nF8 := by
+    injection hf8 with h; injection h with h1 h2 h3; exact ⟨h1, h2, h3⟩
+  rw [← Rd.hnpc, hst, Rd.hmem] at hstrip
+  have hb := congrArg (fun o => o.map (fun p => p.2.getAppArgs)) hstrip
+  simp only [Option.map_some, Expr.getAppArgs_mkAppN] at hb
+  have hb' := Option.some.inj hb
+  simp only [Expr.getAppArgs, List.nil_append] at hb'
+  have hl := hargs ψ
+  rw [← hb', List.length_append] at hl
+  rw [List.length_append, hEl]
+  have hPs : (ConLeche.structPsAt cA.2 (tgtMajor out j).nPc).length = (tgtMajor out j).nPc := by
+    simp [ConLeche.structPsAt]
+  have hPB : (paramBvars (tgtMajor out j).nPc cA.2).length = (tgtMajor out j).nPc := by
+    simp [paramBvars]
+  rw [hPs] at hl
+  rw [hPB]
+  have := Rd.hnpc
+  omega
 
 end Outside
 
