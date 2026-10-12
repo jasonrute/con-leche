@@ -14,12 +14,12 @@ looked at** (official's `declare_inductive_types`), so the Model tier's
 first block stage is a LOOP over `consBlockInds`, not a single cons.
 Two things follow, and they are the whole content of this module.
 
-* **`blockLeafWalks`** — member `mm`'s leaf `blockTyG … mm` has two
-  hereditary premises (`ParamsOkG`, the tower's bit-validity), walked from the
-  former's telescope down to the frame below the parameters and the
-  member's index variables, where the block-wide base facts — the `k`
-  index telescopes graded (`BlockIdxOk`), the `k` X-chain families
-  graded (`BlockChainsOkG`) and valid — are the base.  The base facts
+* **`blockLeafWalks`** — member `mm`'s leaf `blockTyG … mm` has one
+  hereditary premise (`ParamsOkG`), walked from the former's telescope
+  down to the frame below the parameters and the member's index
+  variables, where the block-wide base facts — the `k` index telescopes
+  graded (`BlockIdxOk`) and the `k` X-chain families graded
+  (`BlockChainsOkG`) — are the base.  The base facts
   are block-wide but the walk is member-local: the target enters
   nowhere.
 
@@ -81,32 +81,24 @@ theorem blockParamFrame_of_sat {pps : List (Nat × Nat × AnnotTerm)} {Ids : Lis
   rw [hsh]
   exact ⟨hρp, hspI⟩
 
-/-- **The block leaf's two hereditary premises**, from the former's
-data and the block-wide base facts at the parameter frame. -/
+/-- **The block leaf's hereditary premise**, from the former's data and
+the block-wide base facts at the parameter frame. -/
 theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
-    (hlen : pps.length = nP + nIdx) (hbits : ∀ d ∈ pps, d.2.1 ≠ 0)
+    (hlen : pps.length = nP + nIdx)
     (hokTy : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps (.sort w)))
-    {mm : Nat} (hmm : mm < k)
+    {mm : Nat}
     (hIdsm : Idss mm = ((pps.drop nP).map (·.2.2)))
     (hIdx : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
-      BlockIdxOk (V := V) k uf ρp Idss ∧ ∀ c, c < k → FieldsValid ρp (Idss c))
+      BlockIdxOk (V := V) k uf ρp Idss)
     (hX : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
       BlockChainsOkG k w ρp uf Idss Chs)
-    (hXV : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
-      ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ c, c < k →
-      ∀ t, t ∈ˢ idxSet (uf c) ρp (Idss c) →
-      SumFieldsValid (cons t (cons Y ρp)) (Chs c))
     (ρ : Nat → V) :
-    ParamsOkG k w ρ uf Idss Chs mm pps ∧
-      UnderTowerValid ρ
-        (.app (projAV mm ((blockBodyG k w uf Idss Chs).liftN
-            (Idss mm).length 0))
-          (mkTowerGo (uf mm) (Idss mm))) pps := by
+    ParamsOkG k w ρ uf Idss Chs mm pps := by
   have hst := stripPisAV_mkPisAV pps (.sort w)
   rw [hlen] at hst
   have htele := piTeleAV_of_stripPisAV hst
   obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ _ => hokTy ρ)
-  simp only [List.append_nil] at okΓ
+  simp only [List.append_nil, ppsNorm_map_dom] at okΓ
   have hlenΓ : ((pps.map (·.2.2)).reverse).length = nP + nIdx := by simp [hlen]
   have hent : ∀ i, i < nP + nIdx → ∃ p, pps[i]? = some p ∧
       p.2.2 = ((pps.map (·.2.2)).reverse).getD (nP + nIdx - 1 - i) default := by
@@ -116,45 +108,22 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
     rw [getD_reverse_of_peel hlen hi (List.getElem?_eq_getElem hil)]
   have hΓnil : ((pps.map (·.2.2)).reverse).drop (nP + nIdx - 0) = [] := by
     rw [Nat.sub_zero, List.drop_eq_nil_of_le (by rw [hlenΓ]; exact Nat.le_refl _)]
-  have hIdsLen : (Idss mm).length = nIdx := by rw [hIdsm]; simp [hlen]
   -- the base facts at a frame satisfying the whole telescope
   have hbase : ∀ ρ : Nat → V, Sat V ((pps.map (·.2.2)).reverse) ρ →
-      BlockBaseG k w ρ uf Idss Chs mm ∧
-      AnnotValid V ρ
-        (.app (projAV mm ((blockBodyG k w uf Idss Chs).liftN
-            (Idss mm).length 0))
-          (mkTowerGo (uf mm) (Idss mm))) := by
+      BlockBaseG k w ρ uf Idss Chs mm := by
     intro ρ hρ
     obtain ⟨hρp, hspI⟩ := blockParamFrame_of_sat hIdsm hρ
     have hsh : shiftE (Idss mm).length 0 ρ = fun j => ρ (j + (Idss mm).length) := by
       rw [shiftE_zero]
     rw [hsh] at hρp hspI
-    obtain ⟨hI, hIV⟩ := hIdx _ hρp
-    refine ⟨⟨by rw [hsh]; exact hI, by rw [hsh]; exact hX _ hρp, by rw [hsh]; exact hspI⟩, ?_⟩
-    have hfr : consList (frameIdx (Idss mm).length ρ) (fun j => ρ (j + (Idss mm).length)) = ρ := by
-      have := consList_frameIdx (Idss mm).length ρ
-      rwa [hsh] at this
-    have hv := blockLeafBody_validV hI hIV (hXV _ hρp) hmm
-      (is := frameIdx (Idss mm).length ρ) hspI
-    rwa [hfr] at hv
-  constructor
-  · have hw := hereditaryWalk (V := V)
-      (Q := fun ρ ds => ParamsOkG k w ρ uf Idss Chs mm ds)
-      hlenΓ hlen hent okΓ
-      (fun ρ hρ => (hbase ρ hρ).1)
-      (fun ρ d ds hd hok hrec => ⟨hbits d hd, hok.1.1, hok.2, hrec⟩)
-      0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
-    simpa using hw
-  · have hw := hereditaryWalk (V := V)
-      (Q := fun ρ ds => UnderTowerValid ρ
-        (.app (projAV mm ((blockBodyG k w uf Idss Chs).liftN
-            (Idss mm).length 0))
-          (mkTowerGo (uf mm) (Idss mm))) ds)
-      hlenΓ hlen hent okΓ
-      (fun ρ hρ => (hbase ρ hρ).2)
-      (fun ρ d ds hd hok hrec => ⟨hok.1.2, hrec⟩)
-      0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
-    simpa using hw
+    exact ⟨by rw [hsh]; exact hIdx _ hρp, by rw [hsh]; exact hX _ hρp, by rw [hsh]; exact hspI⟩
+  have hw := hereditaryWalk (V := V)
+    (Q := fun ρ ds => ParamsOkG k w ρ uf Idss Chs mm ds)
+    hlenΓ hlen hent okΓ
+    (fun ρ hρ => hbase ρ hρ)
+    (fun ρ d ds _ hok hrec => ⟨hok.1, hok.2, hrec⟩)
+    0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
+  simpa using hw
 
 end Walks
 
@@ -185,14 +154,14 @@ private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
   have hst'' := stripPisAV_mkPisAV_take nP (pps ψ) (AnnotTerm.sort (resSort.eval ψ))
     (by rw [hFD.len ψ]; exact hle)
   obtain ⟨rfl, -⟩ := Prod.mk.injEq _ _ _ _ ▸ Option.some.inj (hst'.symm.trans hst'')
-  exact ⟨R, by rw [hΓ]; exact hO⟩
+  exact ⟨R, by rw [← ppsNorm_map_dom ((pps ψ).take nP), hΓ]; exact hO⟩
 
 /-- **The `k` members' PARAMETER telescopes are interchangeable at a
 frame.**  This is official's `check_inductive_types` agreement —
 `checkBlockAgree`, every member's parameter domains definitionally
 member 0's — read semantically, and it is the one base fact the block
-needs that a single family never did: `blockLeafWalks`'s `hIdx`/`hX`/
-`hXV` are stated at a frame satisfying MEMBER `mm`'s parameter
+needs that a single family never did: `blockLeafWalks`'s `hIdx`/`hX`
+are stated at a frame satisfying MEMBER `mm`'s parameter
 telescope, while `Idss c` for `c ≠ mm` is read off member `c`'s own
 type.  The producer is defeq soundness at the opened fvar frame
 (`paramFrames` at `nF = 0`, between two `nP`-binder openings). -/

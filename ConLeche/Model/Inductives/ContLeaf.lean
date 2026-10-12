@@ -74,7 +74,7 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   obtain ⟨cv', caps', hf', hab⟩ := hrd mm hmm
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψ
+  obtain ⟨ab, hta, hmap, -⟩ := hab ψ
   have hmem := ConLeche.Semantics.Env.find?_mem hf
   have hname := ConLeche.Semantics.Env.find?_name hf
   have hin := mp.mem_type _ hmem ψ _ hta ρ
@@ -85,7 +85,14 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
       (ConLeche.Expr.WScoped.of_not_hasFvar hwf.1) hwf.2.2.2.1
       (denoteMeta_erase mp.base2.acval_erase 0 _ hta)
   rw [interp_closed V hcl ρ σ] at hin
-  have hsp' := spineFit_of_wellDenoted_mkAppN_pi hbits hwd hin
+  -- L17: a family instance that is the point (a prefix over an empty
+  -- index domain reads the point, `piV_of_empty`) fixes no domain; the
+  -- former's reading over empty index domains is the inductive
+  -- environment side's
+  have hne : interp V ρ (AnnotTerm.mkAppN
+      (mp.base2.acval (D.member mm) ψ) vs) ≠ pt := by
+    sorry
+  have hsp' := spineFit_of_wellDenoted_mkAppN_pi hne hwd hin
     (by rw [← DenoteMetaSpine.length_eq hsp, hlen, ← List.length_append, ← hmap, List.length_map])
   rwa [hmap] at hsp'
 
@@ -175,7 +182,7 @@ theorem keyLeaf {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatu
             (keyFrame dsa b (dropV (dep - b) ρ)) mm)
           (tupW (D.u mm (Level.substFn φ cv.levelParams us)) (isa.map (interp V ρ))) := by
   obtain ⟨hul, isa, hisa, h⟩ := keyLeafW mp hD hmm hf hbd hwa hlenP hlenI hdsw hdsa
-  exact ⟨hul, isa, hisa, fun ρ hwd => h ρ hwd.1⟩
+  exact ⟨hul, isa, hisa, fun ρ hwd => h ρ hwd⟩
 
 /-- **A container instance grows along a relation** at whose pairs the
 application is graded and its indices are the same, as soon as the
@@ -235,7 +242,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   obtain ⟨cv', caps', hf', hab⟩ := hrd mm hmm
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψ
+  obtain ⟨ab, hta, hmap, -⟩ := hab ψ
   have hpl := h.parsLen mm hmm ψ
   have hmem := ConLeche.Semantics.Env.find?_mem hf
   have hname := ConLeche.Semantics.Env.find?_name hf
@@ -249,14 +256,18 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   generalize hτ : (fun j => dropV (dep - b) ρ (j + b)) = τ
   rw [interp_closed V hcl ρ τ, ← List.take_append_drop ds.length ab, mkPisAV_append'] at hin
   rw [annotMkAppN_append] at hwd
-  have hwd₁ := WellDenoted_mkAppN_head _ hwd.1
+  have hwd₁ := WellDenoted_mkAppN_head _ hwd
   have hlab : (ab.take ds.length).length = ds.length := by
     rw [List.length_take]
     have := congrArg List.length hmap
     simp only [List.length_map, List.length_append] at this
     omega
-  have hsp' := spineFit_of_wellDenoted_mkAppN_pi
-    (fun d hd => hbits d (List.mem_of_mem_take hd)) hwd₁ hin
+  -- L17: as in `keyFit_of_wd`, the parameter prefix's application may be
+  -- the point over an empty index domain
+  have hne : interp V ρ (AnnotTerm.mkAppN (mp.base2.acval (D.member mm) ψ)
+      (dsa.map (AnnotTerm.liftN (dep - b) · 0))) ≠ pt := by
+    sorry
+  have hsp' := spineFit_of_wellDenoted_mkAppN_pi hne hwd₁ hin
     (by rw [List.length_map, ← DenoteMetaSpine.length_eq hdsa, hlab])
   have hmap₁ : (ab.take ds.length).map (·.2.2) = D.pars mm ψ := by
     rw [List.map_take, hmap, hlenP, ← hpl, List.take_left' rfl]

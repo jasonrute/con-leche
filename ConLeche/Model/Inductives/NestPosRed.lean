@@ -252,15 +252,10 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
       rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hbnd), hnba]
     · refine gradedTy_pi_intro (GradedTy.graded hgAT) hgn.graded (fun ρ hρ => (hgAT ρ hρ).2)
         (fun ρ hρ => by rw [← heqn ρ hρ]; exact (hgB ρ hρ).2)
-        fun hv0 ρ hρ x hx => ?_
-      rw [← heqn _ (Sat_cons V hρ hx)]
-      have hgw' := hgw ρ hρ
-      have hval := ((AnnotValid_pi V ρ 0 (pwBit φ mb.pw) ta ba) ▸ hgw'.1.2).2.2 hv0 x hx
-      exact hval
     · intro ρ hρ
       rw [heq ρ hρ]
       simp only [interp_pi]
-      exact piR_congr fun x hx => heqn _ (Sat_cons V hρ hx)
+      exact piV_congr fun x hx => heqn _ (Sat_cons V hρ hx)
   | hole hw => intro hfr _ _ hC hea hgr; exact red_whnf hin hw hfr hC hea hgr
   | frameHole hw => intro hfr _ _ hC hea hgr; exact red_whnf hin hw hfr hC hea hgr
   | contNew hw => intro hfr _ _ hC hea hgr; exact red_whnf hin hw hfr hC hea hgr
@@ -292,7 +287,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     obtain ⟨hwsc, hbc, hLc⟩ := hfrc
     have hbnd : (closeTelescope nds (base + j + 1) res).looseBVarsBounded 0 = true := hbc
     obtain ⟨hwsn, hbn, hLn⟩ := hfrn
-    refine ⟨(0, pwBit φ bm.pw, ta) :: abD, (0, pwBit φ bm.pw, nda) :: abN, B, rfl, ?_,
+    refine ⟨(0, 0, ta) :: abD, (0, 0, nda) :: abN, B, rfl, ?_,
       by simp [hlD], by simp [hlN], by simp [hbits], ⟨heqn, hEq⟩, ?_, ⟨?_, ?_, ?_⟩, ?_⟩
     · -- the reading
       simp only [closeTelescope]
@@ -311,15 +306,9 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
             have := Sat_cons V htl h0
             rwa [cons_eta] at this
           rw [← interp_mkPisAV_congr abD abN B hbits hEq _ hsat]
-          have h := ((WellDenoted_pi V _ 0 (pwBit φ bm.pw) ta (mkPisAV abD B)) ▸
-            (hgr _ htl).1.1).2.2.2 (ρ' 0) h0
+          have h := (cast (WellDenoted_pi V _ ta (mkPisAV abD B))
+            (hgr _ htl).1).2.2.2 (ρ' 0) h0
           rwa [cons_eta] at h)
-        fun hv0 ρ hρ x hx => ?_
-      have hx' : x ∈ˢ interp V ρ ta := (heqn ρ hρ).symm ▸ hx
-      rw [← interp_mkPisAV_congr abD abN B hbits hEq _ (Sat_cons V hρ hx')]
-      have hval := ((AnnotValid_pi V ρ 0 (pwBit φ bm.pw) ta (mkPisAV abD B)) ▸
-        (hgr ρ hρ).1.2).2.2 hv0 x hx'
-      exact hval
     · simp only [closeTelescope, Expr.WScoped]
       exact ⟨hwsn, WScoped.abstract1 0 hwsc⟩
     · simp only [closeTelescope, Expr.looseBVarsBounded, Bool.and_eq_true]

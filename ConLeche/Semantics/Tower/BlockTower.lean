@@ -774,7 +774,7 @@ def ParamsOkG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → Li
     (Chs : Nat → List (List AnnotTerm))
     (m : Nat) : List (Nat × Nat × AnnotTerm) → Prop
   | [] => BlockBaseG k w ρ uf Idss Chs m
-  | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
+  | d :: pps => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
       ∀ a, a ∈ˢ interp V ρ d.2.2 →
         ParamsOkG k w (cons a ρ) uf Idss Chs m pps
 
@@ -875,7 +875,7 @@ theorem blockTyG_fold_strictU {m : Nat} (hm : m < k) :
         = interp V (cons a ρ) (blockTyG k w uf Idss Chs pps m) :=
       app_lamV ha
     rw [List.foldl_cons, happ]
-    exact blockTyG_fold_strictU hm (h.2.2.2 a ha) hsp.2
+    exact blockTyG_fold_strictU hm (h.2.2 a ha) hsp.2
 
 /-- **The leaf inhabits its type's reading.** -/
 theorem blockTyG_mem {m : Nat} (hm : m < k) :
@@ -889,7 +889,7 @@ theorem blockTyG_mem {m : Nat} (hm : m < k) :
         fun a => interp V (cons a ρ) (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
       ∈ˢ piV (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
-    exact lamV_mem (fun a ha => blockTyG_mem hm (h.2.2.2 a ha))
+    exact lamV_mem (fun a ha => blockTyG_mem hm (h.2.2 a ha))
       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)
 
 /-- **The leaf is graded.** -/
@@ -901,9 +901,9 @@ theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
   | d :: pps, ρ, h => by
     show WellDenoted V ρ (.lam d.2.2 (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
     rw [WellDenoted_lam]
-    exact ⟨h.2.1, h.2.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2.2 a ha),
+    exact ⟨h.1, h.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
-       fun a ha => blockTyG_mem hm (h.2.2.2 a ha),
+       fun a ha => blockTyG_mem hm (h.2.2 a ha),
        fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)⟩⟩
 
 /-- **The leaf's application fold**: along a fitting parameter-and-index
