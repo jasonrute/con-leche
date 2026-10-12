@@ -869,10 +869,10 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       congr 1
       simp only [Function.comp]
       rw [denoteMeta_erasedEq hab, hlR, hbsl, hxsOl, hteleL]
-  rw [hidxE]
+  rw [hidxE] at ht' ⊢
   generalize hidxR : (leafR.getAppArgs.drop (R.Ms.getD tt default).nPc).map
     (·.instantiateList (locOpen (R.pre.length + fvsR.length) teleR.length) 0) = idxR
-    at hargs hargsLen hpreE ⊢
+    at hargs hargsLen hpreE ht' ⊢
   -- the callee's class: outside, it names no member
   have hcalOut : ∀ {o : PosTree}, o ∈ ns → I ∈ o.grp.map (·.1) →
       (tgtMajor out r).member = none ∧ I = (tgtMajor out r).ind := by
@@ -1059,16 +1059,31 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             (fun xW hxW => hhf xW (List.mem_of_getElem? (by simpa using hxW)))
           simpa using this)
     rw [hmA] at hyA
-    obtain ⟨-, hG⟩ := admVal_memberLand H hparams hxs hAdmN htm
-      (by rw [List.length_map]; exact hisl) hids (by
-        -- L17: the true leaf (the recursive field's codomain at the true
-        -- valuation) is a type, so not the point
-        sorry) hyA
     have hM1 : tgtClsM mc pp.toBlockShape out r = tm := by
       simp [tgtClsM, hmemC, hrt]
     have hT1 : tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ r
         = tupW (dR.toLfp.u tm ψ) := by
       funext is; simp [tgtClsTup, tgtClsU, tgtClsD, tgtClsM, tgtClsψ, hmemC, hrt]
+    -- the call's index tuple lies in the class's index set, so every fitting
+    -- prefix of the index spine extends (`idx_ext_of_tupW_mem`)
+    have hsP' : Sat V (dR.params ψ).reverse (consList (xs.take dR.nP) ρ) := by
+      have := sat_of_spineFit (Δ₀ := []) (Sat_nil V ρ) hparams
+      rwa [List.append_nil] at this
+    have hI := (mpC.lfpClause_of_mem H.hd0).idxOk ψ _ hsP' tm
+      (Nat.lt_of_lt_of_le htk (mpC.lfpClause_of_mem H.hd0).kN)
+    have hmem' : tupW (dR.toLfp.u tm ψ) (idxR.map fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
+        ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+          default)) ∈ˢ dR.toLfp.idx ψ (consList (xs.take dR.nP) ρ) tm := by
+      have h := ht'
+      rw [tgtClsIs_mem hmemC xs, hT1] at h
+      unfold blockRecIs at h
+      split at h
+      · rw [hrt] at h; exact h
+      · exact absurd h (not_mem_empty _)
+    obtain ⟨-, hG⟩ := admVal_memberLand H hparams hxs hAdmN htm
+      (by rw [List.length_map]; exact hisl) hids (by
+        rw [H.hnP]
+        exact idx_ext_of_tupW_mem hI (by rw [List.length_map, hisl, ← hids]) hmem') hyA
     rcases hG with hG | ⟨hb', -, -, hyY⟩
     · refine Or.inr (Or.inl ?_)
       rw [hM1, hT1]; exact hG
@@ -1123,10 +1138,31 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             (fun xW hxW => hhf xW (List.mem_of_getElem? (by simpa using hxW)))
           simpa using this)
     rw [hmA] at hyA
+    -- the call's index tuple lies in the owner's index set at its true frame,
+    -- so every fitting prefix of the index spine extends (`idx_ext_of_tupW_mem`)
+    obtain ⟨hDeq', hψeq', hFreq'⟩ := nlRel_tie (Dc := Dc) (mc := mc) (cvc := cvc) hcov hF hcls
+      hsel hnPc hpd hfrT hcal hRo
+    have hTO := hcls r hcal hMo'
+    have hDo : nlDb mpC dR ns o ∈ mpC.lfpBlocks := by
+      rw [← hDeq']
+      simp only [tgtClsD, hMo', Option.isSome_none, Bool.false_eq_true, ite_false]
+      exact hTO.hD
+    have hcN : nlComp mpC dR ns o (tgtMajor out r).ind < (nlDb mpC dR ns o).N := by
+      rw [← hMc, ← hDeq']
+      simp only [tgtClsM, tgtClsD, hMo', Option.isSome_none, Bool.false_eq_true, ite_false]
+      exact Nat.lt_of_lt_of_le hTO.hmm (mpC.lfpClause_of_mem hTO.hD).kN
+    have hSatO := (dyn_hAdm H ψ ρ xs hparams par o (by omega) _ _
+      (dyn_top H ψ ρ xs hparams hxs hPP o (by omega) (fun _ _ _ _ => True)
+        (fun _ _ _ _ _ _ _ _ _ => trivial))).1
+    have hIdx := (mpC.lfpClause_of_mem hDo).idxOk _ _ hSatO _ hcN
+    have hmemO := ht'
+    unfold tgtClsIs at hmemO
+    rw [ite_eq_left (tgtClsG_of_mem ht'), hDeq', hψeq', hFreq', hMc, hTc] at hmemO
     obtain ⟨-, hG⟩ := admVal_frameLand H hparams hxs hAdmN hvk
       (by rw [List.length_map, ← hwl]; exact har) (by
-        -- L17: as above, the true leaf is a type
-        sorry) hyA
+        simp only
+        rw [hog, ← hI, hIM]
+        exact fun hlen => idx_ext_of_tupW_mem hIdx hlen hmemO) hyA
     simp only at hG
     rw [← hI, hIM, hog] at hG
     rcases hG with hG | ⟨hob, -, -, hyY⟩
@@ -1300,9 +1336,22 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       rw [hTO'.hmem, hψc, ConLeche.Level.substFn_congr (ConLeche.Level.isEquivList_sound hlvW ψ)]
     simp only [ConLeche.ConstantInfo.toConstantVal] at hyA
     rw [hhead] at hyA
-    exact (former_foldl_mem mpC hTO'.hD hTO'.hmm hsat'' _ his (by
-      -- L17: the container instance at the true valuation is a type
-      sorry) hyA).2
+    -- the call's index tuple lies in the container's index set at the kid's
+    -- frame (the true one's, `hidx''`)
+    obtain ⟨-, -, hFrb''⟩ := nlRel_tie (Dc := Dc) (mc := mc) (cvc := cvc) hcov hF hcls hsel
+      hnPc hpd hfrT hcal hRb
+    have hidxK := hidx'' _ hmN
+    rw [hDcb, show nlψ envC ns ψ b'' = tgtClsψ cvc out ψ r from hψb''.symm,
+      show tgtClsM mc pp.toBlockShape out r = mc r by simp [tgtClsM, hMo'], ← hFrb''] at hidxK
+    have hmemK := ht'
+    unfold tgtClsIs at hmemK
+    rw [ite_eq_left (tgtClsG_of_mem ht'),
+      show tgtClsD dR Dc out r = Dc r by simp [tgtClsD, hMo'],
+      show tgtClsM mc pp.toBlockShape out r = mc r by simp [tgtClsM, hMo'],
+      show tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ r
+        = tupW ((Dc r).u (mc r) (tgtClsψ cvc out ψ r)) by
+          funext is; simp [tgtClsTup, tgtClsU, tgtClsD, tgtClsM, hMo'], ← hidxK] at hmemK
+    exact (former_foldl_mem mpC hTO'.hD hTO'.hmm hsat'' _ his hmemK hyA).2
 
 
 
