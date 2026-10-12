@@ -37,12 +37,11 @@ off that run record:
 
 * `genRuleAt`: the run at one stored `(recursor, constructor)` pair;
 * `openLamsM`'s reading (`denoteMeta_openLamsM`): an opened λ-telescope
-  reads as `mkLamsAV` of its binders' own bits and domains;
+  reads as `mkLamsAV` of its binders' domains;
 * **`htower`** (`genRuleTower`): every stored rule reads as a λ-tower of
   length `rP + nF` — the run strips exactly that many λs;
 * **`hRaZ`** (`genRuleRaZ`): at `ℓ = 0` a stored rule reads as the point —
-  its head λ carries the elimination level's datum (`ClassRuleRun.hpw`)
-  and the prefix is never empty (the rule's own minor premise is in it).
+  its body values are proofs (owed to task #342 L17).
 -/
 
 namespace ConLeche.Model
@@ -257,8 +256,7 @@ theorem genRuleTower (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block 
     List.getD_eq_getElem?_getD, hrc, Option.getD_some, TR.hrP, hnF]
 
 /-- **`hRaZ`, at any reading**: at `ℓ = 0` a stored rule reads as the
-point — its head λ carries the elimination level's datum
-(`ClassRuleRun.hpw`), whose bit is `0` there. -/
+point — its body values are proofs. -/
 theorem genRuleRaZ (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block ctorsAs out)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) {i : Nat} {cA : ConstantVal × Nat}
@@ -267,27 +265,10 @@ theorem genRuleRaZ (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block ct
     (hRa : denoteMeta acv env₃ ψ 0 rhs = some Ra)
     (hℓ : Level.eval ψ (ConLeche.structElimLevel p.elim p.large) = 0) (ρ : Nat → V) :
     interp V ρ Ra = pt := by
-  obtain ⟨rc, c, x, gen, -, -, -, -, -, -, -, -, -, -, -, hgen, ⟨RR⟩⟩ := genRuleAt R hr hcA hrhs
-  have hpos := genRule_slots_pos hgen
-  obtain ⟨k, hk⟩ : ∃ k, R.g.nP + R.g.slots.length + x.nF = k + 1 :=
-    ⟨R.g.nP + R.g.slots.length + x.nF - 1, by omega⟩
-  obtain ⟨rbs, body, hstrip, hpw⟩ : ∃ rbs body, rhs.stripLams (k + 1) = some (rbs, body) ∧
-      ∀ b ∈ rbs, b.2.pw = Level.zeronessOf (ConLeche.structElimLevel p.elim p.large) :=
-    ⟨RR.rbs, RR.body, by rw [← hk]; exact RR.hstrip, RR.hpw⟩
-  clear RR
-  match rhs, hstrip with
-  | .lam dom bd mb, hstrip =>
-    simp only [Expr.stripLams] at hstrip
-    cases hs : bd.stripLams k with
-    | none => rw [hs] at hstrip; exact nomatch hstrip
-    | some q =>
-      rw [hs] at hstrip
-      simp only [Option.map_some, Option.some.injEq] at hstrip
-      have hmb : mb.pw = Level.zeronessOf (ConLeche.structElimLevel p.elim p.large) :=
-        hpw (dom, mb) (by rw [← (Prod.mk.inj hstrip).1]; exact List.mem_cons_self)
-      obtain ⟨ta, ba, -, -, rfl⟩ := denoteMeta_lam_inv hRa
-      have hb : pwBit ψ mb.pw = 0 := by rw [hmb]; exact (pwBit_zeronessOf ψ _).mpr hℓ
-      rw [interp_lam, hb, ConLeche.SetModel.lamR_zero]
+  -- L17: the recursor into `Prop`: at `ℓ = 0` the rule's body values are
+  -- proofs, so the value-read λ-tower is the point (`lamV_eq_pt`); the
+  -- body's typing at the motive's truth-valued fibres is owed
+  sorry
 
 end Tower
 
@@ -717,11 +698,9 @@ theorem readLamBs_params (m : EnvModel V env) {ps : List Name} {ψ₁ ψ₂ : Na
       readLamBs m.acval env ψ₁ j bs = readLamBs m.acval env ψ₂ j bs
   | _, [], _ => rfl
   | j, b :: bs, h => by
-    obtain ⟨h1, h2⟩ := h b List.mem_cons_self
-    have hpw : pwBit ψ₁ b.2.pw = pwBit ψ₂ b.2.pw := by
-      unfold pwBit; rw [ConLeche.PropWhen.holds_ext h2 hq]
+    obtain ⟨h1, -⟩ := h b List.mem_cons_self
     simp only [readLamBs]
-    rw [hpw, denoteMeta_params_extF m hq _ _ h1,
+    rw [denoteMeta_params_extF m hq _ _ h1,
       readLamBs_params m hq (j + 1) bs (fun b' hb' => h b' (List.mem_cons_of_mem _ hb'))]
 
 /-- **The `ih` terms are level-parametric** at the stored rule's
@@ -820,10 +799,10 @@ theorem interp_lamsApp_congr {h1 h2 : AnnotTerm} {args : List AnnotTerm} :
         interp_congr_below V e D σ σ' (by simpa using hargs e he) hag
     rw [← List.foldl_map, ← List.foldl_map (f := interp V σ'), hmap]
   | (v, A) :: tele, D, σ, σ', hT, hargs, hag, hh => by
-    show lamR v (interp V σ A) (fun x => interp V (cons x σ) _)
-      = lamR v (interp V σ' A) (fun x => interp V (cons x σ') _)
+    show lamV (interp V σ A) (fun x => interp V (cons x σ) _)
+      = lamV (interp V σ' A) (fun x => interp V (cons x σ') _)
     rw [← interp_congr_below V A D σ σ' hT.1 hag]
-    refine lamR_congr fun x _ => ?_
+    refine lamV_congr fun x _ => ?_
     refine interp_lamsApp_congr tele (D := D + 1) hT.2 (fun e he => ?_) (fun i hi => ?_)
       (fun bs hbs => ?_)
     · have := hargs e he
@@ -1041,8 +1020,7 @@ theorem genRule_residue {envC : Env} (m : EnvModel V envC)
   have hD : R.g.pre.length + x.nF = p.rulePrefixAt j + cA.2 := by rw [hrP, hnF]
   have hDpos : 0 < R.g.pre.length := by omega
   obtain ⟨C, hC, hRaE, -⟩ := denoteMeta_openLamsM _ hop hRa
-  obtain ⟨-, rfl⟩ : lds = readLamBs acv env₃ ψ 0 bs ∧ A = C :=
-    mkLamsAV_length_inj (by rw [hlen, readLamBs_length, openLamsM_length _ hop, hD])
+  obtain ⟨-, rfl⟩ := mkLamsAV_length_inj (by rw [hlen, readLamBs_length, openLamsM_length _ hop, hD])
       (hlam ▸ hRaE)
   rw [Nat.zero_add] at hC
   have hbE : body = Expr.mkAppN (.fvar (R.g.nP + s) T) body.getAppArgs := by
@@ -1379,71 +1357,6 @@ the contract's premises. -/
 
 end DataS
 
-/-! ## 11. `heqV`: the `ih` terms and the residue are bit-valid -/
-
-section Valid
-
-variable {V : Type w} [SetTheory V]
-
-/-- **A λ-tower over a variable-headed spine is valid** at a frame
-agreeing below its base with one where its telescope is valid, fitted
-at every step, and its arguments valid at every fitting spine. -/
-theorem annotValid_lamsApp {h : AnnotTerm} (hh : ∀ ρ' : Nat → V, AnnotValid V ρ' h)
-    {args : List AnnotTerm} :
-    ∀ (tele : List (Nat × AnnotTerm)) {D : Nat} {σ σc : Nat → V},
-      LamDomsBelow D tele → (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
-      (∀ i, i < D → σ i = σc i) →
-      FieldsValid σ (tele.map (·.2)) →
-      (∀ bs : List V, SpineFit σ (tele.map (·.2)) bs →
-        ∀ e ∈ args, AnnotValid V (consList bs σ) e) →
-      AnnotValid V σc (mkLamsAV tele (AnnotTerm.mkAppN h args))
-  | [], D, σ, σc, _, hargs, hag, _, hv => by
-    refine annotValid_mkAppN (hh _) fun e he => ?_
-    exact (AnnotValid_congr_below e D σ σc (by simpa using hargs e he) hag).mp
-      (by simpa using hv [] trivial e he)
-  | (v, A) :: tele, D, σ, σc, hT, hargs, hag, hF, hv => by
-    show AnnotValid V σc (.lam A _)
-    rw [AnnotValid_lam]
-    have hA := (AnnotValid_congr_below A D σ σc hT.1 hag).mp hF.1
-    refine ⟨hA, fun x hx => ?_⟩
-    rw [← interp_congr_below V A D σ σc hT.1 hag] at hx
-    refine annotValid_lamsApp hh tele (D := D + 1) (σ := cons x σ) hT.2 (fun e he => ?_)
-      (fun i hi => ?_) (hF.2 x hx) (fun bs hbs e he => ?_)
-    · have := hargs e he
-      simpa [Nat.add_assoc, Nat.add_comm 1 tele.length] using this
-    · cases i with
-      | zero => rfl
-      | succ i => exact hag i (by omega)
-    · have := hv (x :: bs) ⟨hx, hbs⟩ e he
-      simpa [consList_cons] using this
-
-/-- The generated residue is bit-valid anywhere: variables applied. -/
-theorem genRb0_valid (ρ : Nat → V) (nPre minPos nF nIh : Nat) :
-    AnnotValid V ρ (genRb0 nPre minPos nF nIh) := by
-  unfold genRb0
-  refine annotValid_mkAppN (by simp) fun a ha => ?_
-  rcases List.mem_append.mp ha with ha | ha <;>
-  · obtain ⟨l, -, rfl⟩ := List.mem_map.mp ha
-    simp
-
-/-- **The stored rule's `ih` pieces are bit-valid** at every stored rule,
-at a frame of prefix and field values fitting the rule frame: every `ih` datum's telescope,
-fitted step by step, and its arguments at every fitting spine. -/
-@[expose] def GenIhPiecesValid {envC : Env} (acval : Name → (Name → Nat) → AnnotTerm)
-    (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen) (rd : ClassRead)
-    (pdoms0 : (Name → Nat) → Nat → List AnnotTerm)
-    (fdoms0 : (Name → Nat) → Nat → Nat → List AnnotTerm) : Prop :=
-  ∀ (ψ : Name → Nat) (ρ : Nat → V) (c j : Nat)
-    (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) (cA : ConstantVal × Nat)
-    (rhs : Expr), (tgtRs out)[c]? = some r → r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs →
-    ∀ ys : List V, SpineFit ρ (pdoms0 ψ c ++ fdoms0 ψ c j) ys →
-    ∀ q ∈ genIhdR acval envC out g rd ψ c j,
-      FieldsValid (consList ys ρ) (q.2.1.map (·.2)) ∧
-        ∀ bs : List V, SpineFit (consList ys ρ) (q.2.1.map (·.2)) bs →
-          ∀ e ∈ q.2.2.1 ++ [q.2.2.2], AnnotValid V (consList bs (consList ys ρ)) e
-
-end Valid
-
 /-! ## 12. The skeleton's `ih` data ARE the stored rule's (kernel D1) -/
 
 section IhEq
@@ -1455,16 +1368,16 @@ variable {mode : CheckMode} {F : Nat} {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} 
 open ConLeche (ScB ClassGenScoped)
 
 theorem readLamBs_eq_readOpened {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
-    {ψ : Name → Nat} {m : ConLeche.BinderMeta} :
+    {ψ : Name → Nat} :
     ∀ (j : Nat) (bl : List (Expr × ConLeche.BinderMeta)) (xs : List Expr),
       bl.length = xs.length →
       (∀ (k : Nat) (b : Expr × ConLeche.BinderMeta) (y : Expr), bl[k]? = some b → xs[k]? = some y →
-        Expr.ErasedEq b.1 y.fvarTypeD ∧ b.2 = m) →
-      readLamBs acval env ψ j bl = (readOpenedDoms acval env ψ j xs).map fun a => (pwBit ψ m.pw, a)
+        Expr.ErasedEq b.1 y.fvarTypeD) →
+      readLamBs acval env ψ j bl = (readOpenedDoms acval env ψ j xs).map fun a => (0, a)
   | _, [], [], _, _ => rfl
   | j, b :: bl, y :: xs, hl, h => by
-    obtain ⟨h1, h2⟩ := h 0 b y rfl rfl
-    simp only [readLamBs, readOpenedDoms, List.map_cons, h2, denoteMeta_erasedEq h1]
+    have h1 := h 0 b y rfl rfl
+    simp only [readLamBs, readOpenedDoms, List.map_cons, denoteMeta_erasedEq h1]
     rw [readLamBs_eq_readOpened (j + 1) bl xs (by simpa using hl) (fun k b' y' hb hy =>
       h (k + 1) b' y' (by simpa using hb) (by simpa using hy))]
   | _, [], _ :: _, hl, _ => nomatch hl
@@ -1472,17 +1385,15 @@ theorem readLamBs_eq_readOpened {acval : Name → (Name → Nat) → AnnotTerm} 
 
 /-- **The skeleton's `ih` data (read off the generator's pieces) are the
 stored rule's** (`genIhdR`): the rule is stored as generated (kernel
-D1), its `ih` λs open to the generator's pieces up to the annotations of
-free variables, and the λ binders carry the family's elimination
-datum. -/
+D1), and its `ih` λs open to the generator's pieces up to the
+annotations of free variables. -/
 theorem genIhdAV_eq_R (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block ctorsAs out)
     (hg : ClassGenScoped R.g)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) {i : Nat} {cA : ConstantVal × Nat}
     (hcA : r.2.2.2[i]? = some cA) {rhs : Expr} (hrhs : r.2.1[i]? = some rhs)
     (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat) :
-    genIhdAV acval env R.g R.rd (pwBit ψ (Level.zeronessOf (ConLeche.structElimLevel p.elim p.large)))
-        ψ j i
+    genIhdAV acval env R.g R.rd 0 ψ j i
       = genIhdR acval env out R.g R.rd ψ j i := by
   obtain ⟨cls, x, -, -, hc, -, -, -, -, -, -, -, -, -, hcx, hnF, hxmem, hrhsE, -, -, -, -⟩ :=
     genFrameAt R hg hr hcA hrhs
@@ -1507,9 +1418,7 @@ theorem genIhdAV_eq_R (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block
   have hqd : x.recs.getD l default = q := by rw [List.getD_eq_getElem?_getD, hq]; rfl
   obtain ⟨rn, xs, idx, bl, call, -, hparts, hop2, -, -, -, hbll, hbl, hdl, hpt⟩ := hihs l q hq
   simp only [List.getElem_map, List.getElem_range, hqE, hqd, hparts, hop2, Option.getD_some]
-  have hbits : pwBit ψ (Level.zeronessOf (ConLeche.structElimLevel p.elim p.large))
-      = pwBit ψ R.g.bm.pw := rfl
-  rw [hbits, ← readLamBs_eq_readOpened _ bl xs hbll hbl, hbll]
+  rw [← readLamBs_eq_readOpened _ bl xs hbll (fun k b y hb hy => (hbl k b y hb hy).1), hbll]
   refine Prod.ext rfl (Prod.ext rfl (Prod.ext ?_ ?_))
   · -- the index arguments
     refine List.ext_getElem (by rw [List.length_map, List.length_map, List.length_dropLast, hdl]; rfl)
@@ -1535,8 +1444,7 @@ theorem genIhsAV_eq_R (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block
     (hr : (tgtRs out)[j]? = some r) {i : Nat} {cA : ConstantVal × Nat}
     (hcA : r.2.2.2[i]? = some cA) {rhs : Expr} (hrhs : r.2.1[i]? = some rhs)
     (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (K : Nat) (ψ : Name → Nat) :
-    genIhsAV acval env K R.g R.rd (pwBit ψ (Level.zeronessOf (ConLeche.structElimLevel p.elim p.large)))
-        ψ j i
+    genIhsAV acval env K R.g R.rd 0 ψ j i
       = genIhsR acval env K out R.g R.rd ψ j i := by
   unfold genIhsAV genIhsR
   rw [genIhdAV_eq_R R hg hr hcA hrhs]
@@ -2065,7 +1973,7 @@ is the minor premise applied to the fields and to its `ih` λs, each of
 which, its callee's recursor constant read as the callee's leaf
 (`genHcallee`), is the generated `ih` term at the chain frame of the
 leaves' values; `hfind`: the stored constructors are installed (the `ih` pieces then name no recursor, `genIhFree_run`).  The family's
-leaf facts come from the equations' `heqB`/`heqV`/`heqP` and the family
+leaf facts come from the equations' `heqB`/`heqP` and the family
 premise `hpre` (as at the target check, `tgtRecDataB`). -/
 theorem genRecHdataS (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
@@ -2078,32 +1986,22 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) ψ, Term.bvarsBelow (tgtRs out).length e.erase)
-    (heqV : ∀ (ψ : Name → Nat) (ρ : Nat → V) (tup : List V), tup.length = (tgtRs out).length →
-      (∀ mm, mm < (tgtRs out).length →
-        tup.getD mm pt ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ mm)) →
-      ∀ e ∈ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
-          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
-          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun _ => genRbAV R.g R.rd)) ψ, AnnotValid V (consList tup ρ) e)
     (heqP : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[i]? = some r → ∀ ψ₁ ψ₂ : Name → Nat,
         (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) → s ψ₁ = s ψ₂ ∧ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) ψ₁ = (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) ψ₂)
     (hpre : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -2112,7 +2010,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) ψ) ρ)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
@@ -2141,7 +2039,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd))
       (fun j => (ConLeche.tgtMajorsOf out j).nPc)
@@ -2158,13 +2056,13 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
             (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
             (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
             (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-            (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+            (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
             (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
             (fun _ => genRbAV R.g R.rd)
             (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA rl rhs := by
   intro m₃ hac φ j r hr i cA rhs hcA hrhs hfire
   have hnd := ConLeche.recStageG_nodup h hndM
-  have hleaf := blockRecLeafOk_of hμ mpC h heqB heqV heqP hpre
+  have hleaf := blockRecLeafOk_of hμ mpC h heqB heqP hpre
   obtain ⟨hreadR, hokR⟩ := blockRuleRhs_read_run hμ mpC h hnd hleaf m₃ hac r
     (List.mem_of_getElem? hr) rhs (List.mem_of_getElem? hrhs)
   intro us hus hℓ usj ρ xs ys restR restC hxl hyl husjl hψ hnest hidx hfitR hfitC
@@ -2175,7 +2073,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
       (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? (fun x => Expr.constsResolve envC x)
@@ -2185,7 +2083,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
         (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
@@ -2199,7 +2097,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
       (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
@@ -2219,7 +2117,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
           (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
@@ -2242,8 +2140,9 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
       rw [← hn]; exact RR.hstrip
     obtain ⟨bs, body, hop⟩ := openLamsM_of_stripLams _ 0 hstrip
     obtain ⟨C, -, hRaE, -⟩ := denoteMeta_openLamsM _ hop hread'
-    obtain ⟨rfl, -⟩ := mkLamsAV_length_inj
+    obtain ⟨hldm, -⟩ := mkLamsAV_length_inj
       (by rw [readLamBs_length, openLamsM_length _ hop]; exact hlen) (hlam.symm.trans hRaE)
+    rw [hldm]
     have hcb : ∀ q ∈ bs, ConstsBound envC q.1 :=
       openLamsM_constsBound _ hstrip (fun q hq => by
         have hres := RR.hdoms q hq
@@ -2261,15 +2160,15 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
       (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
         (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
         pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)
       = mkLamsAV lds A := hlam
-  refine blockRuleHRa_val hlam' (hok ρ).1 (hfit5 lds A hlam' hlen) ?_
-  simp only [genBit]
+  refine blockRuleHRa_val hlam' (hok ρ) (hfit5 lds A hlam' hlen) ?_
+  dsimp only
   rw [genIhsAV_eq_R R hg hr hcA hrhs]
   exact genRule_residue mpC.base2 R hg hr hcA hrhs
     (fun d e hcbe => blockRecDenote_cross_CBNF h _ d e hcbe)
@@ -2288,7 +2187,7 @@ theorem genEqs_eq_R
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) ψ = (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
@@ -2312,167 +2211,11 @@ theorem genRecHeqB (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) ψ →
         Term.bvarsBelow (tgtRs out).length e.erase := fun ψ e he =>
   genRecHeqB_R (mpC := mpC) hμ R hg h ψ e (by rw [← genEqs_eq_R (mpC := mpC) R hg h ψ]; exact he)
-
-/-- **`heqV`** (the skeleton's goal): the equations are bit-valid at every
-tuple (the typing of the tuple is not needed).  The frame, index
-expressions and fired spine are the class side's (`hrowV`, the target
-frame's grading); the `ih` terms are valid from their pieces'
-validity at the base frame (`GenIhPiecesValid`) — the chain frame agrees
-below the rule frame, the head is a variable; the residue is variables
-only. -/
-theorem genRecHeqV_R (hμ : μ.verifiedChecks = true)
-    (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
-      ctorsAs out)
-    (hg : ClassGenScoped R.g)
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
-    (hrowV : ∀ (ψ : Name → Nat) (ρ : Nat → V) (c : Nat)
-      (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      (tgtRs out)[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
-      r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs →
-        FieldsValid ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
-          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ∧
-        ∀ ys : List V, SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape
-            (tgtRs out) ψ c ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
-          (∀ e ∈ tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j,
-            AnnotValid V (consList ys ρ) e) ∧
-          AnnotValid V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
-    (hihV : GenIhPiecesValid (V := V) (envC := envC) mpC.base2.acval out R.g R.rd
-      (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-      (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)) :
-    ∀ (ψ : Name → Nat) (ρ : Nat → V) (tup : List V),
-      tup.length = (tgtRs out).length →
-        (∀ (mm : Nat), mm < (tgtRs out).length →
-          tup.getD mm pt ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ mm)) →
-          ∀ (e : AnnotTerm), e ∈ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
-          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsR mpC.base2.acval envC (tgtRs out).length out R.g R.rd ψ)
-          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun _ => genRbAV R.g R.rd)) ψ → AnnotValid V (consList tup ρ) e := by
-  intro ψ ρ tup hlen _ e he
-  rw [consList_eq_chainFrame hlen ρ]
-  refine annotValid_blockIotaEqsAV (a := fun c => tup.getD c pt) (ρ := ρ)
-    (fun c hc j hj => ?_) (fun c hc j hj ys hys => ?_) e he
-  all_goals
-    obtain ⟨cA, rhs, hcA, hrhs⟩ := tgtRule_exists h hc hj
-    have hr : (tgtRs out)[c]? = some (tgtRs out)[c] := List.getElem?_eq_getElem hc
-  · exact (hrowV ψ ρ c _ hr j cA rhs hcA hrhs).1
-  · dsimp only at hys ⊢
-    obtain ⟨hE, hM⟩ := (hrowV ψ ρ c _ hr j cA rhs hcA hrhs).2 ys hys
-    refine ⟨hE, hM, fun v hv => ?_, genRb0_valid _ _ _ _ _⟩
-    obtain ⟨cls, x, fvs, res, -, hrP, hRP, -, -, -, hop, hFld, -, -, hcx, hnF, -, hrhsE, hcl, -, -,
-      hsl0⟩ := genFrameAt R hg hr hcA hrhs
-    obtain ⟨hpl0, -⟩ := ConLeche.ClassGen.prefixBinders_scoped hg hg.pre
-    have hfl : fvs.length = cA.2 := ConLeche.Verify.openPisAtFvars_length _ hop
-    have hys' : ys.length = R.g.pre.length + x.nF := by
-      have := hys.length_eq
-      rw [List.length_append, blockRulePdomsAV_length hμ mpC h hr ψ, tgtFdomsAV,
-        readOpenedDoms_length_eq, hFld, hfl] at this
-      rw [this, hrP, hnF]
-    rw [genIhsR, List.mem_map] at hv
-    obtain ⟨q, hq, rfl⟩ := hv
-    obtain ⟨hF, hA⟩ := hihV ψ ρ c j _ cA rhs hr hcA hrhs ys hys q hq
-    rw [← hrhsE] at hcl
-    have hb := genIhdAV_below mpC.base2 (g := R.g) (rd := R.rd) (φ := ψ) (c := c) (j := j) hcl
-      (by rw [hcx]; omega) q hq
-    rw [hcx] at hb ⊢
-    unfold genIhAV
-    refine annotValid_lamsApp (fun _ => by simp) q.2.1 (D := R.g.pre.length + x.nF)
-      (σ := consList ys ρ) hb.1 (fun e he => ?_) (fun i hi => ?_) hF (fun bs hbs e he => ?_)
-    · rcases List.mem_append.mp he with he | he
-      · obtain ⟨l, hl, rfl⟩ := List.mem_map.mp he
-        rw [List.mem_range] at hl
-        show _ < _
-        omega
-      · exact hb.2 e he
-    · rw [consList_getD_of_lt _ _ _ (by omega), consList_getD_of_lt _ _ _ (by omega)]
-    · rcases List.mem_append.mp he with he | he
-      · obtain ⟨l, -, rfl⟩ := List.mem_map.mp he
-        simp
-      · exact hA bs hbs e he
-
-/-- **`heqP`** (the skeleton's goal, at its `ih` terms). -/
-theorem genRecHeqP (hμ : μ.verifiedChecks = true)
-    (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
-      ctorsAs out)
-    (hg : ClassGenScoped R.g)
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
-    {s : (Name → Nat) → Nat}
-    (hsP : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      (tgtRs out)[i]? = some r → ∀ (ψ₁ ψ₂ : Name → Nat),
-        (∀ (q : Name), q ∈ r.1.levelParams → ψ₁ q = ψ₂ q) → s ψ₁ = s ψ₂)
-    (hrowP : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
-      r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs → ∀ (ψ₁ ψ₂ : Name → Nat),
-      (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
-        tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ₁ j i
-            = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ₂ j i ∧
-          tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ₁ j i
-            = tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ₂ j i ∧
-          tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ₁ j i
-            = tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ₂ j i) :
-    ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      (tgtRs out)[i]? = some r →
-        ∀ (ψ₁ ψ₂ : Name → Nat), (∀ (q : Name), q ∈ r.1.levelParams → ψ₁ q = ψ₂ q) →
-          s ψ₁ = s ψ₂ ∧ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
-          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
-          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun _ => genRbAV R.g R.rd)) ψ₁ = (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
-          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
-          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun _ => genRbAV R.g R.rd)) ψ₂ := by
-  intro i r hr ψ₁ ψ₂ hq
-  obtain ⟨h1, h2⟩ := genRecHeqP_R (mpC := mpC) hμ R h hsP hrowP i r hr ψ₁ ψ₂ hq
-  refine ⟨h1, ?_⟩
-  rw [genEqs_eq_R (mpC := mpC) R hg h ψ₁, genEqs_eq_R (mpC := mpC) R hg h ψ₂]
-  exact h2
-
-/-- **`heqV`** (the skeleton's goal, at its `ih` terms). -/
-theorem genRecHeqV (hμ : μ.verifiedChecks = true)
-    (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
-      ctorsAs out)
-    (hg : ClassGenScoped R.g)
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
-    (hrowV : ∀ (ψ : Name → Nat) (ρ : Nat → V) (c : Nat)
-      (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      (tgtRs out)[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
-      r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs →
-        FieldsValid ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
-          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ∧
-        ∀ ys : List V, SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape
-            (tgtRs out) ψ c ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
-          (∀ e ∈ tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j,
-            AnnotValid V (consList ys ρ) e) ∧
-          AnnotValid V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
-    (hihV : GenIhPiecesValid (V := V) (envC := envC) mpC.base2.acval out R.g R.rd
-      (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-      (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)) :
-    ∀ (ψ : Name → Nat) (ρ : Nat → V) (tup : List V),
-      tup.length = (tgtRs out).length →
-        (∀ (mm : Nat), mm < (tgtRs out).length →
-          tup.getD mm pt ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ mm)) →
-          ∀ (e : AnnotTerm), e ∈ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
-          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
-          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd (genBit pp ψ) ψ)
-          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun _ => genRbAV R.g R.rd)) ψ → AnnotValid V (consList tup ρ) e := by
-  intro ψ ρ tup hl ht e he
-  rw [genEqs_eq_R (mpC := mpC) R hg h ψ] at he
-  exact genRecHeqV_R hμ R hg h hrowV hihV ψ ρ tup hl ht e he
 
 end Obligations
 

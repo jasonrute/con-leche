@@ -570,8 +570,7 @@ theorem genRun_storedTy (hμ : μ.verifiedChecks = true)
       = R.g.pre.length + (R.g.cls.getD cls default).nIdx + 1 := by
     rw [genRec_mI h hr, hRP]; rfl
   refine ⟨cls, T.gty, S, hgc, hM, T.hgty, hinf, hta, hmI, hRP, ?_⟩
-  rw [← hmI, hTyE, ← hlenRds]
-  exact stripPisAV_mkPisAV _ _
+  rw [← hmI, hTyE, ← hlenRds, stripPisAV_mkPisAV, blockRecRdsAV_norm]
 
 /-- **`GenPreHyps.conclMot`**: the stored conclusion of recursor `c`, at a
 spine of the prefix, an index spine and a major, is the class's motive
@@ -682,7 +681,7 @@ theorem genRun_outW (mpC : EnvModelM V μ envC)
     change envC.find? I = _ at hf₂
     rw [hfI] at hf₂
     obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-    obtain ⟨ab, hta, -, -⟩ := hab (Level.substFn ψ cvI.levelParams us)
+    obtain ⟨ab, hta, -⟩ := hab (Level.substFn ψ cvI.levelParams us)
     have hsI : s = sI := (congrArg Prod.snd hr').symm
     subst hsI
     show D.w (Level.substFn ψ cvI.levelParams us) = _
