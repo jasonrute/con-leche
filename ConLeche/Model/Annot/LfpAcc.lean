@@ -20,10 +20,10 @@ through its fibre law (`FitAcc.accTuple`), hence (W) (`closed_of_acc`,
 at `w = 0` `closedTuple_zero`) and monotonicity (task #327).
 
 * **The relation** relates the hole frames of any two tuples; it is
-  symmetric, reflexive on the space, agrees off the holes, and its holes
-  are RICH at their full arity at a `Type`-valued block (`accRel_rich`:
-  a fibre holding `pt` is enlarged by one non-`pt` element, the other
-  items kept) — the fact the type regime of the run inversion needs.
+  symmetric, reflexive on the space, agrees off the holes, and at a
+  `Type`-valued block its holes at their full arity never hold the point
+  (`accRel_ptFree`: the fibres are strict sets) — the fact the point's
+  stability of the run inversion needs.
 * **Items are occurrences**: a held member-hole item at its full arity is
   an occurrence of the tuple (`occOf`, `inTup_occOf`), and an occurrence
   held by another tuple holds the item at its frame (`holds_of_inTup`).
@@ -171,74 +171,25 @@ theorem holds_of_inTup {ψ : Name → Nat} {ρp X X' : Nat → V} {o : Occ V}
   · rw [he] at hH
     exact absurd hH (not_mem_empty _)
 
-/-! ## Richness -/
+/-! ## Point-free holes -/
 
-/-- **The member holes are rich** along the accessibility relation (at a
-positive level): a fibre holding `pt` gets one non-`pt` element (`∅`) at
-a larger tuple, which holds every item the first one does. -/
-theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (hw : D.w ψ ≠ 0) :
-    RichOn (D.MemberQ ψ) (D.accRel ψ ρp) := by
+/-- **The member holes never hold the point** along the accessibility
+relation (at a positive level): at a fitting spine a hole's value is a
+fibre of the tuple, a strict set; elsewhere it is `∅`. -/
+theorem accRel_ptFree (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (hw : D.w ψ ≠ 0) :
+    PtFreeOn (D.MemberQ ψ) (D.accRel ψ ρp) := by
   rintro _ _ ⟨X, Y, hX, -, rfl, -⟩ i vs hQ hpt
   obtain ⟨t, ht, rfl, hlen⟩ := hQ
   have htN : t < D.N := by omega
-  -- the fibre holding `pt`
-  have hocc := inTup_occOf (o := (D.k - 1 - t, vs, pt)) hkN ⟨t, ht, rfl, hlen⟩ hpt
-  have ht' : D.k - 1 - (D.k - 1 - t) = t := by omega
-  unfold occOf at hocc
-  simp only [ht'] at hocc
-  obtain ⟨-, hidx, -⟩ := hocc
-  obtain ⟨tt, htt⟩ : ∃ tt, tt = tupW (D.u t ψ) vs := ⟨_, rfl⟩
-  rw [← htt] at hidx
-  classical
-  -- the enlarged tuple
-  let X' : Nat → V := fun m => if m = t then
-    famOf (fun i => if i = tt then binUnion (app (X t) i) (sing empty) else app (X t) i)
-      (D.idx ψ ρp t) else X m
-  have hX' : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X' := by
-    intro m hm
-    by_cases hmt : m = t
-    · subst hmt
-      simp only [X', ite_eq_left rfl]
-      refine famOf_mem_famSpace fun i hi => ?_
-      split
-      · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hX m hm) hi)
-      · exact famSpace_app (hX m hm) hi
-    · simp only [X', ite_eq_right hmt]
-      exact hX m hm
-  -- the fibres grow
-  have hgrow : ∀ m i y, InTup D.N (D.idx ψ ρp) X (m, i, y) → InTup D.N (D.idx ψ ρp) X' (m, i, y) := by
-    rintro m i y ⟨hm, hi, hy⟩
-    refine ⟨hm, hi, ?_⟩
-    simp only at hm hi hy ⊢
-    by_cases hmt : m = t
-    · subst hmt
-      simp only [X', ite_eq_left rfl, app_famOf hi]
-      split
-      · exact mem_binUnion.mpr (Or.inl hy)
-      · exact hy
-    · simp only [X', ite_eq_right hmt]
-      exact hy
-  refine ⟨D.frame ψ ρp X', ⟨X, X', hX, hX', rfl, rfl⟩, fun o ho hH => ?_, empty, ?_,
-    pt_ne_empty.symm⟩
-  · -- every item is kept
-    have := inTup_occOf hkN ho hH
-    exact holds_of_inTup ho hH (hgrow _ _ _ this)
-  · -- the new element: the spine fits (it holds `pt` at `X`), so at `X'` it reads the
-    -- enlarged fibre
-    have hfit : SpineFit ρp (D.ids t ψ) vs := by
-      rw [frame_hole ht] at hpt
-      unfold holeVal at hpt
-      rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
-          (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨hf, -⟩ | he
-      · exact hf
-      · rw [he] at hpt
-        exact absurd hpt (not_mem_empty _)
-    show empty ∈ˢ vs.foldl app (D.frame ψ ρp X' (D.k - 1 - t))
-    rw [frame_hole ht]
-    unfold holeVal
-    rw [holeFam_app _ hfit]
-    simp only [X', app_famOf hidx, ← htt, ite_eq_left rfl]
-    exact mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl))
+  rw [frame_hole ht] at hpt
+  unfold holeVal at hpt
+  rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
+      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨hf, he⟩ | he
+  · rw [he] at hpt
+    have hs := famSpace_app (hX t htN) (tupW_mem hf)
+    exact (((mem_strictU_pos hw).mp hs).2).2 hpt
+  · rw [he] at hpt
+    exact not_mem_empty _ hpt
 
 /-! ## The assembly -/
 

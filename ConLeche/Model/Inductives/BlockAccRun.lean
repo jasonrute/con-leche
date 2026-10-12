@@ -232,8 +232,8 @@ theorem holeRelA_accRel {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V} 
     omega
   dsScoped := fun _ _ h => by simp at h
   symm := LfpDatum.accRel_symm
-  rich hw := RichOn.congrQ (fun i n => (holeQ_top_iff hhi hcN hcP har i n).symm)
-    (LfpDatum.accRel_rich (Nat.le_add_right _ _) hw)
+  ptFree hw := PtFreeOn.congrQ (fun i n => (holeQ_top_iff hhi hcN hcP har i n).symm)
+    (LfpDatum.accRel_ptFree (Nat.le_add_right _ _) hw)
   lrefl := by
     rintro _ _ ⟨X, Y, hX, -, rfl, -⟩
     exact LfpDatum.accRel_refl hX

@@ -699,8 +699,12 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       (denoteMeta_noBVar_of_nestOcc dep a hws.1 hhi ha hta)
     obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
-    exact MonoOn.pi hA (ihb hcov (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd)
-      hCop hba hgB (hR.under hhi hA.monoOn))
+    -- the body's fibres are types at both frames ("not pt" source (1):
+    -- the walked field is a graded type)
+    refine MonoOn.pi hA (ihb hcov (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd)
+      hCop hba hgB (hR.under hhi hA.monoOn)) fun ρ ρ' hr => ?_
+    obtain ⟨h1, h2⟩ := hR.dom ρ ρ' hr
+    exact ⟨fun x hx => (hgB _ (Sat_cons V h1 hx)).2, fun x hx => (hgB _ (Sat_cons V h2 hx)).2⟩
   | @hole prog dep kb e w i ty hw hocc hfn hlo hhi' hlen hfree =>
     intro _ hhi hfr Δa ea R hC hea hgr hR
     refine mono_of_whnf hin hw hfr hC hea hgr hR.dom fun hfrw hCw wa hwa hgw => ?_

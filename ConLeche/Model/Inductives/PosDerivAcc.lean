@@ -27,12 +27,12 @@ relation (`HoleRelA`, `NestPosAcc.lean`), carrying the walked subjects'
 constructor's field TYPE, never the point ("not pt" source (1)), so the
 whnf step is `red_sound_ty`, not the global `red_sound`:
 
-* `field` — the type regime, accessibility with a bound of the level
+* `field` — the point's stability, accessibility with a bound of the level
   reading only the non-hole positions the output mentions, and the
   output's facts (`AccConcl`, `OutOk`): the whnf step by `red_sound_ty`;
   `const` (the empty bound); `pi` (a hole-free domain, the body under
-  `underBoth`); `hole` and `frameHole` (the bound `{pt}`, rich at full
-  arity); a container instance by its frame's conclusion at the key
+  `underBoth`, its fibres types by the grading); `hole` and `frameHole`
+  (the bound `{pt}`, never the point at full arity); a container instance by its frame's conclusion at the key
   frames (`accConcl_of_frameAccOut`);
 * `tele` — every field accessible under the earlier ones, their values
   small (`PiAccThen`, `OutTele`);
@@ -70,7 +70,7 @@ variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) (φ : Name → Nat)
   (ctx : NestCtx) (F : Nat)
 
 /-- **What the container rules read**: coverage and the walk
-context's sort at the level (the container case's type regime, N3). -/
+context's sort at the level (the container case's point, N3). -/
 @[expose] def ContOk : Prop := ContCover mp ctx ∧ ctx.sort.eval φ = w
 
 /-- **A frame's conclusion**: at every recorded block holding the frame's
@@ -163,7 +163,7 @@ theorem acc_of_whnf {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
     red_sound_ty hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
   obtain ⟨⟨hTR, ⟨A, hA, hsz, hinv⟩, hout⟩, hok⟩ := kont hfrw (hC.of_subset hsub)
     (ConLeche.whnf_fvarLeaves mp.base2.wf F hw') wa hwa hgw heq
-  exact ⟨⟨fun hw => TypeReg.of_eqOn (P := Sat V Δa) hdom (fun ρ hρ => heq ρ hρ) (hTR hw),
+  exact ⟨⟨fun hw => PtOn.of_eqOn (P := Sat V Δa) hdom (fun ρ hρ => heq ρ hρ) (hTR hw),
     ⟨A, AccOn.of_eqOn (P := Sat V Δa) hdom (fun ρ hρ => heq ρ hρ) hA, hsz, hinv⟩, hout⟩,
     hok.congr_read fun ρ hρ => (heq ρ hρ).symm⟩
 
@@ -334,7 +334,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     refine acc_of_whnf hin hw' hfr hC hea hgr hR.dom fun hfrw _ hlw wa hwa _ heq => ?_
     have hco : ConstOn R wa := ConstOn.of_noBVar hR.agree
       (denoteMeta_noBVar_of_nestOcc dep wt hfrw.1 hhi hocc hwa)
-    refine ⟨⟨fun _ => hco.typeReg, ⟨_, hco.accOn, SizeOn.const (empty_mem_tg w), InvOn.const _ _⟩, ?_⟩, ?_⟩
+    refine ⟨⟨fun _ => hco.ptOn, ⟨_, hco.accOn, SizeOn.const (empty_mem_tg w), InvOn.const _ _⟩, ?_⟩, ?_⟩
     · split
       · exact (outMent_self dep wt).trans hlw
       · exact outMent_self dep e
@@ -358,7 +358,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     obtain ⟨⟨hTRb, ⟨Ab, hAb, hszb, hinvb⟩, houtb⟩, hokb⟩ := ihb hcovk (by omega)
       (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd) hCop hba hgB
-      (hR.underBoth hhi ta (transfer_of_constOn hA))
+      (hR.underBoth hhi ta)
     have hout : OutMent dep e (.forallE a (nb.abstract1 dep 0) bm) := by
       intro q hq ho
       simp only [ConLeche.Expr.nestOcc, Bool.or_eq_true] at ho
@@ -391,21 +391,19 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
         rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hnbB) (dep + 1), hnba]
         rfl
       · exact interp_pi_congr_body fun x hx => hnbr (cons x ρ) (Sat_cons V hρ hx)
-    -- the regime is the values' (`piV`); `TypeReg.pi`'s truth-valued case
-    -- at a positive sort is L17's (`HoleAcc`)
-    refine ⟨⟨fun hw => TypeReg.pi 1 hA (hTRb hw) (fun h => absurd h Nat.one_ne_zero), ?_, hout⟩,
-      hokP⟩
+    -- the body's fibres are types at both frames of every related pair
+    -- ("not pt" source (1): the walked field is a graded type)
+    have hT : FibTyOn R ta ba := fun ρ ρ' hr => by
+      obtain ⟨h1, h2⟩ := hR.dom ρ ρ' hr
+      exact ⟨fun x hx => (hgB _ (Sat_cons V h1 hx)).2, fun x hx => (hgB _ (Sat_cons V h2 hx)).2⟩
+    refine ⟨⟨fun hw => PtOn.pi hA hT (hTRb hw), ?_, hout⟩, hokP⟩
     have hinvP : InvOn (MentP ctx.nP (ctx.hiAt prog.length) dep
         (.forallE a (nb.abstract1 dep 0) bm)) (piBound w ta Ab) := InvOn.pi (NoBVar.mono (fun i hi hn => hi (Or.inl hn))
         (noBVar_not_mentNH hws.1 hbb.1 hholes (fun s _ hs => by
           simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hs
           exact hs.1) hta)) (InvOn.mono hinvb fun i hi => mentP_body i hi)
     have hAb' := AccOn.congrQ (fun i n => (shiftQ_holeQ hhi i n).symm) hAb
-    by_cases hw : w = 0
-    · -- at `w = 0`: a truth-valued Π glues one witness's support per domain value
-      subst hw
-      exact ⟨_, AccOn.pi0 hA hAb', fun _ _ _ => SmallAt.zero _, hinvP⟩
-    · exact ⟨_, AccOn.pi hA hAb', SizeOn.pi hA hszb, hinvP⟩
+    exact ⟨_, AccOn.pi hA hAb' hT hTRb, SizeOn.pi hA hszb, hinvP⟩
   | @hole prog dep kb e wt i ty hw' hocc hfn hlo hhi' hlen hfree =>
     intro _ hhi hfr Δa ea R hC hea hgr hR
     refine acc_of_whnf hin hw' hfr hC hea hgr hR.dom fun hfrw _ hlw wa hwa _ _ => ?_
@@ -425,7 +423,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       refine Or.inl ⟨i - ctx.nP, ?_, ?_, by omega, by rw [← hlenv, hlen]⟩
       · simp only [NestCtx.hiAt] at hhi'; omega
       · simp only [NestCtx.hiAt] at hhi' hhi; omega
-    refine ⟨⟨fun hw => TypeReg.holeApp (hR.rich hw) hR.symm hQ hvs, ⟨_, AccOn.holeApp hQ hvs,
+    refine ⟨⟨fun hw => PtOn.holeApp (hR.ptFree hw) hQ, ⟨_, AccOn.holeApp hQ hvs,
       SizeOn.const (unitSet_mem_tg w), InvOn.const _ _⟩, (outMent_self dep wt).trans hlw⟩,
       hfrw.2.1, hfrw.1, fun hk => ?_, _, by rw [hspine] at hwa; exact hwa, fun _ _ => rfl⟩
     split at hk <;> cases hk
@@ -447,7 +445,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have hQ : HoleQ ctx prog dep (dep - 1 - i) vs.length := by
       refine Or.inr ⟨i - ctx.hiAt 0, h, hk, by omega, by omega, ?_⟩
       rw [← hlenv, har]
-    exact ⟨⟨fun hw => TypeReg.holeApp (hR.rich hw) hR.symm hQ hvs, ⟨_, AccOn.holeApp hQ hvs,
+    exact ⟨⟨fun hw => PtOn.holeApp (hR.ptFree hw) hQ, ⟨_, AccOn.holeApp hQ hvs,
       SizeOn.const (unitSet_mem_tg w), InvOn.const _ _⟩, (outMent_self dep wt).trans hlw⟩,
       hfrw.2.1, hfrw.1, nofun, _, by rw [hspine] at hwa; exact hwa, fun _ _ => rfl⟩
   | @contNew prog dep kb e wt n us L nPc nI cty grp ts hw' hocc hfn hnm hq hlen hquot hidx hds _
@@ -571,7 +569,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd
     rw [show base + j + 1 = base + (j + 1) by omega] at hCop hfr' hba
-    have hR' := hR.underBoth hhi ta (transfer_of_accOn hAf hsm.1)
+    have hR' := hR.underBoth hhi ta
     obtain ⟨hPi, hO⟩ := ihb (fun ⟨k', hk', hkf⟩ => hcovk ⟨k', List.mem_cons_of_mem _ hk', hkf⟩)
       (by omega) hfr' hCop hba hgB
       (by rw [show base + (j + 1) = base + j + 1 by omega]; exact hR') hsm.2

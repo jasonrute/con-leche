@@ -130,7 +130,7 @@ theorem frameAccOut_unextend {w : Nat} {ctx : NestCtx} {prog : List NestHole}
 /-- **A frame's accessibility, read at the reduct** (the leaf, `keyLeaf`):
 a container instance `C.{us} (ds ++ is)` at depth `dep` whose key's
 parameters are read at `b` (the frame's depth), with hole-free indices,
-is in the type regime and accessible along the enclosing relation with
+carries the point vacuously and is accessible along the enclosing relation with
 the frame's bound read `dep - b` positions down (it reads parameter
 positions only). -/
 theorem accConcl_of_frameAccOut {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
@@ -158,27 +158,17 @@ theorem accConcl_of_frameAccOut {μ : ConLeche.CheckMode} (mp : EnvModelM V μ e
     List.map_congr_left fun v hv => hisC isa hisa v hv ρ ρ' hr
   obtain ⟨A, hA, hinv, hacc⟩ := hacc
   refine ⟨?_, ⟨fun ρ => A (dropV (dep - b) ρ), ?_, fun ρ _ _ => hA _, ?_⟩, outMent_self _ _⟩
-  · -- the type regime (at a `Type`-valued level)
-    intro hw htv ρ ρ' hr
-    obtain ⟨h1, h2⟩ := hR.dom ρ ρ' hr
+  · -- the point (at a `Type`-valued level): the instance is the carrier's
+    -- fibre, whose elements are injections, never the point
+    intro hw ρ ρ' hr hpt
+    exfalso
+    obtain ⟨h1, -⟩ := hR.dom ρ ρ' hr
     obtain ⟨hs1, hf1, he1⟩ := hk ρ (hgr ρ h1)
-    obtain ⟨hs2, hf2, he2⟩ := hk ρ' (hgr ρ' h2)
-    -- a truth-valued fibre at a positive level is empty
     have hwψ : D.w ψ ≠ 0 := hwD ▸ hw
-    have hemp : ∀ σ, Sat V (D.params ψ).reverse (keyFrame dsa b (dropV (dep - b) σ)) →
-        SpineFit (keyFrame dsa b (dropV (dep - b) σ)) (D.ids mm ψ) (isa.map (interp V σ)) →
-        interp V σ wa ∈ˢ (univZero : V) →
-        interp V σ wa = app (D.carrier ψ (keyFrame dsa b (dropV (dep - b) σ)) mm)
-          (tupW (D.u mm ψ) (isa.map (interp V σ))) → interp V σ wa = empty := by
-      intro σ hs hfit hz he
-      refine ext fun y => ⟨fun hy => ?_, fun hy => absurd hy (not_mem_empty y)⟩
-      exfalso
-      have hpt := eq_pt_of_mem_univZero hz hy
-      rw [he] at hy
-      obtain ⟨j, fs, -, rfl⟩ := hL.carrier_case hs (Nat.lt_of_lt_of_le hmm hL.kN)
-        (tupW_mem hfit) hy
-      exact hL.injNePt ψ hwψ mm j fs hpt
-    rw [hemp ρ hs1 hf1 (htv ρ ρ' hr).1 he1, hemp ρ' hs2 hf2 (htv ρ ρ' hr).2 he2]
+    rw [he1] at hpt
+    obtain ⟨j, fs, -, hj⟩ := hL.carrier_case hs1 (Nat.lt_of_lt_of_le hmm hL.kN)
+      (tupW_mem hf1) hpt
+    exact hL.injNePt ψ hwψ mm j fs hj.symm
   · -- accessibility
     intro ρ ρ₀ hr x _ hx
     obtain ⟨h1, -⟩ := hR.dom ρ ρ₀ hr
