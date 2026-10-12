@@ -19,6 +19,7 @@ import ConLeche.Model.Inductives.StructEntryKit
 import ConLeche.Model.Annot.BlockLfp
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Rules.RedSoundKit
+import ConLeche.Model.Rules.DefEqSoundKit
 import ConLeche.Verify.InstSpine
 import ConLeche.Verify.PropWhen
 
@@ -334,6 +335,32 @@ theorem genMem_major (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rw [hrt] at hmajIn
   exact hmajIn
 
+/-- **Above `Prop` the member's carrier holds no point**: the major is an
+injection (`blockCarrier_case`), and no injection is the point there. -/
+theorem genMem_ne_pt (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    {ψ : Name → Nat} (hw : d.w ψ ≠ 0)
+    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [a]) restR) :
+    interp V ρ a ≠ pt := by
+  obtain ⟨hpar, hsp', hmaj⟩ := genMem_major hμ h R hS G hr hm ψ hxl hfitR
+  have ht : d.tup ψ t ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ))
+      ∈ˢ d.idx ψ (consList (((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)).take
+        d.nP) ρ) t := tupW_mem hsp'
+  obtain ⟨j', fs', -, heq⟩ := blockCarrier_case G.hM (d.satOfSpine hpar) G.hmN ht hmaj
+  rw [heq]
+  exact (mpC.lfp_ok _ G.hlfp).1.injNePt ψ hw t j' fs'
+
 /-- **(S) at a member class**: where the member's sort is never zero at
 the constructor's levels (the licence reads the member's record,
 `blockCapsAt`, which carries the block's sort zero-ness), the member's
@@ -373,14 +400,92 @@ theorem genMem_S (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   have hc : d.w (Level.substFn φ cA.1.levelParams usj) = d.w ψ :=
     lfpW_congr mpC (D := d.toLfp) G.hlfp G.htd G.hcaps (fun q hq => by
       rw [G.hlpsT] at hq; exact hlv q hq)
-  have hw : d.w ψ ≠ 0 := hc ▸ hne
-  obtain ⟨hpar, hsp', hmaj⟩ := genMem_major hμ h R hS G hr hm ψ hxl hfitR
-  have ht : d.tup ψ t ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ))
-      ∈ˢ d.idx ψ (consList (((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)).take
-        d.nP) ρ) t := tupW_mem hsp'
-  obtain ⟨j', fs', -, heq⟩ := blockCarrier_case G.hM (d.satOfSpine hpar) G.hmN ht hmaj
-  rw [heq]
-  exact (mpC.lfp_ok _ G.hlfp).1.injNePt ψ hw t j' fs'
+  exact genMem_ne_pt hμ h R hS G hr hm (hc ▸ hne) ρ xs a restR hxl hfitR
+
+/-- **At a `Prop` valuation of a member, its constructor is the point**,
+and so is every application of it: every binder of the constructor's
+type carries the family's zero-ness (`CtorDataI.bits`), so the type is
+a truth value; a constructor with no binder at all lies in the
+member's fibre, whose elements are injections, all the point. -/
+theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
+    {cA : ConstantVal × Nat} (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {ψj : Name → Nat} (hw : d.w ψj = 0) (ρ : Nat → V) (ys : List AnnotTerm) :
+    interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
+  refine Rules.interp_mkAppN_pt ?_ ys
+  have hcd := G.hcf.2.2
+  have hmem := mpC.mem_type _ (ConLeche.Semantics.Env.find?_mem G.hcf.1) ψj _ (hcd.read ψj) ρ
+  change interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ _ at hmem
+  cases hds : d.dsF t i ψj with
+  | cons dd ds =>
+    rw [hds] at hmem
+    have hb : dd.2.1 = 0 := (hcd.bits ψj dd (by rw [hds]; exact List.mem_cons_self)).mp hw
+    change interp V ρ (mpC.base2.acval cA.1.name ψj)
+      ∈ˢ interp V ρ (.pi dd.1 dd.2.1 dd.2.2 (mkPisAV ds _)) at hmem
+    rw [interp_pi, hb, piR_zero] at hmem
+    exact eq_pt_of_mem_truthVal hmem
+  | nil =>
+    rw [hds] at hmem
+    have hlen := hcd.len ψj
+    rw [hds, List.length_nil] at hlen
+    have hnP0 : d.nP = 0 := by omega
+    have hnF0 : cA.2 = 0 := by omega
+    -- the body is the member at the result index readings
+    have hpar : d.params ψj = [] := List.eq_nil_of_length_eq_zero (by rw [G.hlenP, hnP0])
+    have hsat : Sat V (d.params ψj).reverse ρ := by rw [hpar]; exact Sat_nil V ρ
+    have hFssD : (d.Fss t ψj).getD i [] = ((d.dsF t i ψj).drop d.nP).map (·.2.2) :=
+      fssOfR_fixCtorDataList_getD G.hcj
+    have hFss : (d.Fss t ψj).getD i [] = [] := by rw [hFssD, hds]; simp
+    have hfit0 : SpineFit ρ ((d.Fss t ψj).getD i []) [] := by rw [hFss]; trivial
+    have hres := G.hM.resIdxFit ψj ρ hsat t G.hmN i G.hjl [] hfit0
+    have hEssD : (d.Ess t ψj).getD i [] = d.esF t i ψj := essOfR_fixCtorDataList_getD G.hcj
+    rw [hEssD] at hres
+    have hleaf := G.hM.leaf t G.htd ψj ρ [] _ (by rw [hpar]; trivial) hres
+    simp only [consList_nil, List.nil_append] at hleaf
+    have hbody : interp V ρ (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj))
+        = ((d.esF t i ψj).map (interp V ρ)).foldl SetTheory.app
+            (interp V ρ (mpC.base2.acval (d.memberName t) ψj)) := by
+      rw [ctorBodyAVI, hnP0, interp_mkAppN_foldl]
+      simp [paramBvars]
+    change interp V ρ (mpC.base2.acval cA.1.name ψj)
+      ∈ˢ interp V ρ (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj)) at hmem
+    rw [hbody, hleaf] at hmem
+    have ht : d.tup ψj t ((d.esF t i ψj).map (interp V ρ)) ∈ˢ d.idx ψj ρ t := by
+      have := tupW_mem (u := d.uM t ψj) hres
+      simp only [consList_nil] at this
+      exact this
+    obtain ⟨j', fs', -, heq⟩ := blockCarrier_case G.hM (ρp := ρ) hsat G.hmN ht (by
+      simpa [consList_nil] using hmem)
+    rw [heq]
+    exact G.hM.mkZero ψj hw t j' fs'
+
+/-- **(P) at a member class**: where the major's domain holds the point
+the member is `Prop` at the recursor's levels (above it the carrier holds
+no point), hence at the constructor's, and every application of the
+constructor is the point. -/
+theorem genMem_P (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
+    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [a]) restR)
+    (hapt : interp V ρ a = pt) (ys : List AnnotTerm) :
+    interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
+  have hw : d.w ψ = 0 := by
+    refine Classical.byContradiction fun hw => ?_
+    exact genMem_ne_pt hμ h R hS G hr hm hw ρ xs a restR hxl hfitR hapt
+  have hc : d.w ψj = d.w ψ :=
+    lfpW_congr mpC (D := d.toLfp) G.hlfp G.htd G.hcaps (fun q hq => by
+      rw [G.hlpsT] at hq; exact hlv q hq)
+  exact genMemCtor_pt G (hc.trans hw) ρ ys
 
 end Member
 
