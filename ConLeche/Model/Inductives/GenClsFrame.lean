@@ -1104,7 +1104,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
       (∀ (σ : Nat → V) (ys : List V),
         SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1.map (·.2)) ys →
-        WellDenotedV V (consList ys σ)
+        WellDenotedTy V (consList ys σ)
           (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
               - 1 - (R.g.nP + st)))
             (q.2.2.1 ++ [q.2.2.2]))) := by
@@ -1323,10 +1323,12 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
     obtain ⟨w, hw, hgw⟩ := harg m e0 hm
     rw [hw]
     exact hgw σ ys hys
-  · -- the conclusion itself
-    obtain ⟨tr, htr⟩ : ∃ tr, ConLeche.inferTypeCore μ envC F (D + (xs.map R.g.binder).length)
-        (Expr.mkAppN f2 as2) = .ok tr := ⟨tb, hinfB⟩
-    obtain ⟨w, hw, hgw⟩ := G2.graded hμ htr hwsB hbB hleafB
+  · -- the conclusion itself, a type: its inferred type is a sort
+    have htb : tb = bt := by
+      rw [hf2] at hinfB
+      exact Except.ok.inj (hinfB.symm.trans hbt)
+    subst htb
+    obtain ⟨w, hw, hgw⟩ := G2.gradedTy hμ hinfB hwbt hwsB hbB hleafB
     rw [denoteMeta_erasedEq hrest2, ConLeche.ClassGen.motVar_eq hst,
       denoteMeta_mkAppN (denoteMetaSpine_of_some _ hsome) (denoteMeta_fvar _ _ _ _)] at hw
     obtain rfl := Option.some.inj hw
