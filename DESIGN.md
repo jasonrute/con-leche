@@ -101730,3 +101730,69 @@ maintainer; §11.3's design):
 **Gates.**  `whitepaper/fragment-gate.sh` green (warning-free, axioms
 pinned).  `links-gate.sh` fails as on the base (#340's stale anchors;
 the prose cites pre-#344 lines and files); not touched.
+
+## TASK #342 — F3: a constructor of a family in `Prop` is the point; ι with no major-slot certificate (2026-10-12, agent/342-f3)
+
+The task (#342 v2 §11.4, lane F3): prove the lemma #349 named as
+missing ("a constructor of a family whose sort evaluates to zero is the
+point"), use it to drop the major-slot certificate from the fragment's
+plain ι in case 3 (family may be `Prop`, motive may not) while keeping
+the full constructor-telescope certificate, and check #349's argument
+for the checker's drop adversarially.  Fragment only
+(`whitepaper/Fragment/Sound.lean`, `Rules.lean`).
+
+**The lemma.**
+- `eq_pt_of_mem_sortZero`: a member of `I zs` is the point, where `I`'s
+  stored type walked along `zs` leaves `Sort u`, `u` evaluates to 0 and
+  `I zs` is a well-denoted type.  `I zs` is a type, so not the point, so
+  `zs` fits `I`'s telescope (`teleFit_of_ne_pt`; the fit is derived, not
+  assumed) and `I zs ∈ Sort 0`, the truth values.
+- `ctorApp_eq_pt_of_sortZero`: a constructor application fitting its
+  stored type, whose residual is `I rps ridx` with `I`'s sort zero,
+  denotes the point.  Helper: `mem_piResidual` (the head applied lies in
+  the residual, which is a type).
+- Stated on the application, not on the constant: the rule has the
+  residual at hand (`hres`/`hshape`), and that is what the slot needs.
+
+**ι with no major-slot certificate.**
+- `Red.iota_core_prop`: `iota_core` without `Infer major tM`/`DefEq tM
+  dM`; the constructor's telescope certificate stays at the full grade.
+  Its semantic premise, per valuation: `Strict ⟦dM⟧ ∨ eval u = 0`, with
+  `u` the constructor's family's sort.  Proof: the redex is not the
+  point, so the unreduced major lies in `dM`.  If it is not the point,
+  its reduction claim gives the reduct.  If it is, `dM` is not strict,
+  so `u` is 0 and the reduct is the point too (the lemma).
+- `Red.iotaProp` (a new `Red` rule) and `Red.iotaProp_sound`: the
+  premise `LevelOracle.eq u .zero` gives the right side at every
+  valuation.  That covers families that are always `Prop` (`Acc`).
+- Not done: for a family that is `Prop` at some valuations only
+  (`Quot.{u}`, `PUnit.{u}`), the left side at the other valuations is
+  F1's case-2 law (a family whose sort evaluates non-zero has strict
+  fibres).  `iota_core_prop`'s disjunction is the interface F1 plugs
+  into.  Without F1 the fragment's `EnvModel` allows a `Type`-sorted
+  family with a truth-value fibre (`typeU n` holds the truth values
+  since #344), so a rule with no level premise cannot be proved yet.
+  `Red.iota` (with the slot certificate) stays until then.
+- No nested variant (`iotaNested`); same proof if needed.
+
+**#349's argument, checked.**  "A recursor's rules list only its own
+family's constructors, so the mutual-block concern doesn't arise; the
+remaining index comparison covers the rest."
+- The conclusion holds; no counterexample.
+- The index comparison is not what covers the slot.  `iota_core_prop`
+  never reads it for the slot.  At a `Prop` valuation the slot comes
+  from the lemma; elsewhere from strict fibres (F1).  The comparisons
+  are still needed by `RecRuleLaw`, conditionally, as before.
+- The own-family fact is not needed by the fragment's proof: the rule's
+  level premise is on the constructor's own family (the residual's
+  head).  The checker tests the recursor's family's `sortZ`.  The two
+  agree because the constructor is of the same block at the same
+  levels (`Level.eqList` on `usj`), and Lean's kernel puts every member
+  of a block, nested auxiliaries included, in one universe.  Probe:
+  `inductive T : Type | mk : Nonempty T → T` is rejected ("mutually
+  inductive types must live in the same universe"), so a nested `Prop`
+  container cannot split the two sorts.
+
+**Gates.**  `whitepaper/fragment-gate.sh` green; pins added for the
+four theorems.  `Red.eq_of_rigid` (F4, `IOGrade.lean`) has an
+`iotaProp` arm.  `links-gate.sh` fails as on the base; not touched.
