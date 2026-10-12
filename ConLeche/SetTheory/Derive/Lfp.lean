@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.SetTheory.Derive.Univ
+public import ConLeche.SetTheory.Derive.Tg
 
 @[expose] public section
 
