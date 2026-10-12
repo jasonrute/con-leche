@@ -6,6 +6,7 @@ public import Fragment.Access
 public import Fragment.UniformBeta
 public import Fragment.Unannot
 public import Fragment.Probe
+public import Fragment.EtaIota
 
 public section
 
@@ -304,3 +305,48 @@ info: 'Fragment.defeqLams_sound' depends on axioms: [propext, Classical.choice, 
 info: 'Fragment.Red.iotaK_core_sem' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.Red.iotaK_core_sem
+
+/--
+info: 'Fragment.Red.iotaEta_core_sem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaEta_core_sem
+
+/--
+info: 'Fragment.Red.iotaEta_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaEta_sound
+
+/--
+info: 'Fragment.etaLaw_vals' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.etaLaw_vals
+
+/--
+info: 'Fragment.Red.projCtor_core_sem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.projCtor_core_sem
+
+/--
+info: 'Fragment.projPt_of_fieldSort' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.projPt_of_fieldSort
+
+/--
+info: 'Fragment.recRuleLawK_of_eta' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.recRuleLawK_of_eta
+
+/--
+info: 'Fragment.iotaEta_noFields' depends on axioms: [propext]
+-/
+#guard_msgs in #print axioms Fragment.iotaEta_noFields
+
+/--
+info: 'Fragment.plainIota_literal_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.plainIota_literal_witness
+
+/--
+info: 'Fragment.etaIota_reduced_major_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.etaIota_reduced_major_witness
