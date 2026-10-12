@@ -179,10 +179,17 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     simp only [Expr.fvarsBelow] at hws
     simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hocc
     exact ⟨ihf hws.1 hd hocc.1 hfa, iha hws.2 hd hocc.2 haa⟩
-  | case9 d ty val body =>
-    intro ea _ _ _ h
-    rw [denoteMeta] at h
-    exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro ea hws hd hocc h
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    simp only [Expr.fvarsBelow] at hws
+    simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hocc
+    refine ⟨ihv hws.2.1 hd hocc.1.2 hva, ?_⟩
+    have hws' : Expr.fvarsBelow (d + 1) (body.instantiate1 (.fvar d ty)) :=
+      Expr.fvarsBelow_instantiate1 0 hws.2.2
+    have hocc' : (body.instantiate1 (.fvar d ty)).nestOcc names lo hi = false := by
+      rw [nestOcc_instantiate1_fvar (by omega) ty body 0]; exact hocc.2
+    exact NoBVar.mono holeP_succ (ihbody hws' (by omega) hocc' hba)
   | case10 d sn i e ihe =>
     intro ea hws hd hocc h
     rw [denoteMeta] at h

@@ -123,6 +123,12 @@ theorem bvarsBelow_liftN (n : Nat) :
     have := ihB (m + 1) (k + 1) h.2
     rw [show m + 1 + n = m + n + 1 by omega] at this
     exact this
+  | letE v b ihv ihb =>
+    intro m k h
+    refine ⟨ihv m k h.1, ?_⟩
+    have := ihb (m + 1) (k + 1) h.2
+    rw [show m + 1 + n = m + n + 1 by omega] at this
+    exact this
   | eqE a b iha ihb =>
     intro m k h
     exact ⟨iha m k h.1, ihb m k h.2⟩

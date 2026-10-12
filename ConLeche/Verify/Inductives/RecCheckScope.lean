@@ -270,6 +270,22 @@ theorem looseBVarsBounded_of_instantiate1_fvar {d : Nat} {ty : Expr} :
       · simp [h1, h2, Expr.looseBVarsBounded] at hb; omega
       · omega
 
+/-- Closing back a body instantiated at any value (a `let`'s, typed at
+its value): no loose bound variable past `k` after it, none past
+`k + 1` before. -/
+theorem looseBVarsBounded_of_instantiate1 {v : Expr} :
+    ∀ (e : Expr) (k : Nat), (e.instantiate1 v k).looseBVarsBounded k = true →
+      e.looseBVarsBounded (k + 1) = true := by
+  intro e
+  induction e <;> intro k hb <;>
+    simp_all [Expr.instantiate1, Expr.looseBVarsBounded]
+  case bvar i =>
+    by_cases h1 : i = k
+    · omega
+    · by_cases h2 : i > k
+      · simp [h1, h2, Expr.looseBVarsBounded] at hb; omega
+      · omega
+
 /-- `infer_full_bvarClosed` at any grade that is the certified one. -/
 theorem infer_bvarClosed_of_full {env : Env} :
     ∀ {g : Rules.Grade} {d : Nat} {e t : Expr}, Rules.Infer env g d e t → g = .full →
@@ -287,6 +303,10 @@ theorem infer_bvarClosed_of_full {env : Env} :
     simp only [looseBVarsBounded, Bool.and_eq_true]
     exact ⟨infer_bvarClosed_of_full (hs hg) rfl,
       looseBVarsBounded_of_instantiate1_fvar _ 0 (infer_bvarClosed_of_full hbt hg)⟩
+  | _, _, _, _, .letE hs _ hv _ hb, hg => by
+    simp only [looseBVarsBounded, Bool.and_eq_true]
+    exact ⟨⟨infer_bvarClosed_of_full (hs hg) rfl, infer_bvarClosed_of_full (hv hg) rfl⟩,
+      looseBVarsBounded_of_instantiate1 _ 0 (infer_bvarClosed_of_full hb hg)⟩
   | _, _, _, _, .app hf _ ha _, hg => by
     simp only [looseBVarsBounded, Bool.and_eq_true]
     exact ⟨infer_bvarClosed_of_full hf hg, infer_bvarClosed_of_full ha hg⟩

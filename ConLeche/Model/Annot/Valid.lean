@@ -65,6 +65,7 @@ environment discipline of `WellDenoted`. -/
     ∀ x, x ∈ˢ interp V ρ A → AnnotValid (cons x ρ) b
   | ρ, .app f a => AnnotValid ρ f ∧ AnnotValid ρ a
   | ρ, .eqE a b => AnnotValid ρ a ∧ AnnotValid ρ b
+  | ρ, .letE v b => AnnotValid ρ v ∧ AnnotValid (cons (interp V ρ v) ρ) b
   | ρ, .fst e => AnnotValid ρ e
   | ρ, .snd e => AnnotValid ρ e
   | _, .bvar _ => True
@@ -101,6 +102,10 @@ theorem AnnotValid_app (ρ : Nat → V) (f a : AnnotTerm) :
 theorem AnnotValid_eqE (ρ : Nat → V) (a b : AnnotTerm) :
     AnnotValid V ρ (.eqE a b) =
       (AnnotValid V ρ a ∧ AnnotValid V ρ b) := by rw [AnnotValid]
+theorem AnnotValid_letE (ρ : Nat → V) (v b : AnnotTerm) :
+    AnnotValid V ρ (.letE v b) =
+      (AnnotValid V ρ v ∧ AnnotValid V (cons (interp V ρ v) ρ) b) := by
+  rw [AnnotValid]
 theorem AnnotValid_fst (ρ : Nat → V) (e : AnnotTerm) :
     AnnotValid V ρ (.fst e) = AnnotValid V ρ e := by
   rw [AnnotValid]
@@ -187,6 +192,10 @@ theorem AnnotValid_liftN (n : Nat) :
         imp_congr Iff.rfl ?_)))
     · rw [ihB, cons_shiftE]
     · rw [interp_liftN, cons_shiftE]
+  | letE v b ihv ihb =>
+    intro k ρ
+    rw [AnnotTerm.liftN_letE, AnnotValid_letE, AnnotValid_letE, ihv,
+      interp_liftN, ihb, cons_shiftE]
   | eqE a b iha ihb =>
     intro k ρ
     rw [AnnotTerm.liftN_eqE, AnnotValid_eqE, AnnotValid_eqE, iha, ihb]
@@ -262,6 +271,15 @@ theorem AnnotValid_inst :
         rw [shiftE_succ_cons]; exact ha
       rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
     · rw [interp_inst, shiftE_succ_cons, cons_instE]
+  | letE v b ihv ihb =>
+    intro a k ρ ha
+    rw [AnnotTerm.inst_letE, AnnotValid_letE, AnnotValid_letE, ihv a k ρ ha,
+      interp_inst]
+    refine and_congr Iff.rfl ?_
+    have ha' : AnnotValid V (shiftE (k + 1) 0
+        (cons (interp V (instE k (interp V (shiftE k 0 ρ) a) ρ) v) ρ)) a := by
+      rw [shiftE_succ_cons]; exact ha
+    rw [ihb a (k + 1) _ ha', shiftE_succ_cons, cons_instE]
   | eqE x y ihx ihy =>
     intro a k ρ ha
     rw [AnnotTerm.inst_eqE, AnnotValid_eqE, AnnotValid_eqE, ihx a k ρ ha,

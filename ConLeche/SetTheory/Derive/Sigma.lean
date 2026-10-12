@@ -135,6 +135,20 @@ theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
     sigmaSet (Nat.max u v) A B ∈ˢ (univ (Nat.max u v) : V) :=
   sigma_mem_univ_tg (mem_tg_of_mem_univ hA) fun x hx => mem_tg_of_mem_univ (hB x hx)
 
+/-- A pair set is in the regime of its level: a truth value at `0`,
+strict above (task #342, L6). -/
+theorem Fib_sigmaSet (w : Nat) (A : V) (B : V → V) : Fib (decide (w = 0)) (sigmaSet w A B) := by
+  by_cases hw : w = 0
+  · subst hw
+    simp only [decide_true, Fib_true]
+    rw [sigmaSet_zero]; exact truthVal_mem_univZero _
+  · simp only [hw, decide_false, Fib_false]
+    rw [sigmaSet_pos hw]; exact strict_sigmaPairs
+
+/-- A pair set is a type. -/
+theorem IsTy_sigmaSet (w : Nat) (A : V) (B : V → V) : IsTy (sigmaSet w A B) :=
+  IsTy_of_Fib (Fib_sigmaSet w A B)
+
 /-! ## The unit at a level (task #342, items B and C)
 
 `PUnit.{w}` and the pair towers' terminator.  At `0` the unit is the
@@ -166,17 +180,34 @@ theorem mem_unitSetAt_iff {w : Nat} {z : V} : z ∈ˢ (unitSetAt w : V) ↔ z = 
 theorem unitAt_mem_unitSetAt (w : Nat) : (unitAt w : V) ∈ˢ unitSetAt w :=
   mem_unitSetAt_iff.mpr rfl
 
+/-- `{∅}` is strict: it is not the point (whose one member is `ptTag`,
+not `∅`), and its one member `∅` is not the point. -/
+theorem strict_sing_empty : Strict (sing empty : V) := by
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · have h1 : (empty : V) = ptTag := mem_pt.mp (h ▸ mem_sing.mpr rfl)
+    have h2 := empty_mem_ptTag (V := V)
+    rw [← h1] at h2
+    exact not_mem_empty _ h2
+  · exact pt_ne_empty (mem_sing.mp h)
+
 theorem unitSetAt_mem_univ : ∀ w : Nat, (unitSetAt w : V) ∈ˢ univ w
   | 0 => unitSetAt_zero (V := V) ▸ unitSet_mem_univ 0
   | n + 1 => by
     rw [unitSetAt_pos (Nat.succ_ne_zero n)]
-    refine mem_univ_of_tg_strict ((tg_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
-      (univChain_one_mem_tg_succ n) (empty_mem_tg _)) ⟨fun h => ?_, fun h => ?_⟩
-    · have h1 : (empty : V) = ptTag := mem_pt.mp (h ▸ mem_sing.mpr rfl)
-      have h2 := empty_mem_ptTag (V := V)
-      rw [← h1] at h2
-      exact not_mem_empty _ h2
-    · exact pt_ne_empty (mem_sing.mp h)
+    exact mem_univ_of_tg_strict ((tg_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
+      (univChain_one_mem_tg_succ n) (empty_mem_tg _)) strict_sing_empty
+
+/-- The unit is in the regime of its level: `{pt}` at `0`, strict
+above (task #342, L6). -/
+theorem Fib_unitSetAt (w : Nat) : Fib (decide (w = 0)) (unitSetAt w : V) := by
+  by_cases hw : w = 0
+  · subst hw
+    simp only [decide_true, Fib_true]
+    rw [unitSetAt_zero, ← univ_zero]; exact unitSet_mem_univ 0
+  · simp only [hw, decide_false, Fib_false]
+    rw [unitSetAt_pos hw]; exact strict_sing_empty
+
+theorem IsTy_unitSetAt (w : Nat) : IsTy (unitSetAt w : V) := IsTy_of_Fib (Fib_unitSetAt w)
 
 theorem empty_ne_kpair (a b : V) : (empty : V) ≠ kpair a b := fun h =>
   not_mem_empty (sing a) (h ▸ mem_upair_left (sing a) (upair a b))

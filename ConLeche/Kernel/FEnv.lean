@@ -235,10 +235,12 @@ def natOpGuardF (fe : FEnv) (c : Name) : Bool :=
     | _ => false) &&
   (if c = natBeqName || c = natBleName || natDivModNames.contains c then
     (match fe.find? boolTrueName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false) &&
     (match fe.find? boolFalseName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false)
    else true)
 

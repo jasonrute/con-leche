@@ -410,15 +410,54 @@ theorem natOpGuard_inv {c : Name} (h : natOpGuard env c = true) :
       split
       · next ciT heq =>
         intro hlp
-        exact ⟨ciT, heq, List.isEmpty_iff.mp (by simpa using hlp)⟩
+        simp only [Bool.and_eq_true] at hlp
+        exact ⟨ciT, heq, List.isEmpty_iff.mp (by simpa using hlp.1)⟩
       · intro hh; exact nomatch hh
     · revert hF
       split
       · next ciF heq =>
         intro hlp
-        exact ⟨ciF, heq, List.isEmpty_iff.mp (by simpa using hlp)⟩
+        simp only [Bool.and_eq_true] at hlp
+        exact ⟨ciF, heq, List.isEmpty_iff.mp (by simpa using hlp.1)⟩
       · intro hh; exact nomatch hh
 
+
+/-- The guard's `Bool` constructors sit at the type `Bool` itself
+(task #342 L8: the comparison recurrences relate two members of one
+type). -/
+theorem natOpGuard_boolTy {c : Name} (h : natOpGuard env c = true)
+    (hc : c = natBeqName ∨ c = natBleName ∨ c ∈ natDivModNames) :
+    (∃ ciT, env.find? boolTrueName = some ciT ∧
+      ciT.toConstantVal.type = .const boolName []) ∧
+    (∃ ciF, env.find? boolFalseName = some ciF ∧
+      ciF.toConstantVal.type = .const boolName []) := by
+  unfold natOpGuard at h
+  simp only [Bool.and_eq_true] at h
+  obtain ⟨-, hbool⟩ := h
+  have hcb : (c = natBeqName || c = natBleName ||
+      natDivModNames.contains c) = true := by
+    rcases hc with rfl | rfl | hm
+    · simp
+    · simp
+    · rw [List.contains_iff_mem.mpr hm, Bool.or_true]
+  rw [ite_eq_left hcb] at hbool
+  simp only [Bool.and_eq_true] at hbool
+  obtain ⟨hT, hF⟩ := hbool
+  constructor
+  · revert hT
+    split
+    · next ciT heq =>
+      intro hlp
+      simp only [Bool.and_eq_true, beq_iff_eq] at hlp
+      exact ⟨ciT, heq, hlp.2⟩
+    · intro hh; exact nomatch hh
+  · revert hF
+    split
+    · next ciF heq =>
+      intro hlp
+      simp only [Bool.and_eq_true, beq_iff_eq] at hlp
+      exact ⟨ciF, heq, hlp.2⟩
+    · intro hh; exact nomatch hh
 
 /-! ## The `Nat` fast-path guard, unpacked
 

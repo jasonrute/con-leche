@@ -351,12 +351,16 @@ noncomputable def blockStepG (w : Nat) (ρp : Nat → V) (Chs : Nat → List (Li
 
 /-- **The block's tuple operator**: componentwise the member's own
 graph over its own index-tuple set, the argument tuple passed to the
-chains as the uniform tupler of its components. -/
+chains as the uniform tupler of its components.  A raw `graph`, not a
+`lamR`: the least fixed point lives in the family space of graphs
+(`famSpace`), whatever the index set; the spelled operator's value
+meets it in `tupleOpV_blockFunVG`, under a premise that the spelled
+family is not the point. -/
 noncomputable def blockPhiG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
     (Idss : Nat → List AnnotTerm) (Chs : Nat → List (List AnnotTerm)) :
     (Nat → V) → Nat → V :=
-  fun Xs m => lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-    (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k))
+  fun Xs m => graph (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k))
+    (idxSet (uf m) ρp (Idss m))
 
 /-- **The block's carrier**: the least pre-fixed tuple of its
 operator. -/
@@ -447,6 +451,15 @@ theorem IsTy_famsSpaceB (hI : BlockIdxOk (V := V) k uf ρp Idss) :
     IsTy (famsSpaceB k w ρp uf Idss) :=
   IsTy_of_mem_univ (ndTowerSet_mem_univ V k 0
     (fun m hm => famSpace_mem_blockR (by omega) (idxTyAV_facts (hI m (by omega))).2.1))
+
+/-- The family tuples are strict, with no premise: the block's tuple
+sort is positive (task #342, L6). -/
+theorem strict_famsSpaceB (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
+    (Idss : Nat → List AnnotTerm) : Strict (famsSpaceB k w ρp uf Idss) := by
+  have h := Fib_ndTowerSet V (blockR k w uf)
+    (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
+  simp only [blockR_ne_zero k w uf, decide_false, Fib_false] at h
+  exact h
 
 /-- The index-set tuple's components are the members' index sets. -/
 theorem projS_idxTup {m : Nat} (hm : m < k) :
@@ -618,8 +631,14 @@ theorem blockFunVG_mem (hok : BlockChainsOkG k w ρp uf Idss Chs) :
     ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun m hm => blockArmG_mem hok hY (by omega)
 
 /-- **The induced tuple operator IS the block's**, on the tuple space
-and below `k` — the congruence `lfpTuple_congr` consumes. -/
-theorem tupleOpV_blockFunVG {Xs : Nat → V} (hXs : InTupleSpace w k (blockIdx uf ρp Idss) Xs) {m : Nat} (hm : m < k) :
+and below `k` — the congruence `lfpTuple_congr` consumes.  The premise
+`hne` (the spelled member family is not the point) is the one place the
+spelled operator is read as the model's graph; the annotated reading
+discharges it by the positive bit (`lamR_ne_pt`), the value reading by
+an inhabited index set. -/
+theorem tupleOpV_blockFunVG {Xs : Nat → V} (hXs : InTupleSpace w k (blockIdx uf ρp Idss) Xs) {m : Nat} (hm : m < k)
+    (hne : lamR (w + 1) (idxSet (uf m) ρp (Idss m))
+      (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k)) ≠ pt) :
     tupleOpV V k (blockFunVG k w ρp uf Idss Chs) Xs m
       = blockPhiG k w ρp uf Idss Chs Xs m := by
   have hmem : ndMkTowerSet Xs 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
@@ -629,7 +648,7 @@ theorem tupleOpV_blockFunVG {Xs : Nat → V} (hXs : InTupleSpace w k (blockIdx u
   rw [← ndMkTowerSet_zero]
   unfold blockFunVG
   rw [app_lamR_pos (blockR_ne_zero k w uf) hmem, projS_ndMkTowerSet k 0 m hm, Nat.zero_add]
-  rfl
+  exact lamR_eq_graph_of_ne_pt hne
 
 /-- The constant's application at the block's two spelled arguments. -/
 theorem blockBodyG_app (hI : BlockIdxOk (V := V) k uf ρp Idss)
@@ -655,7 +674,7 @@ theorem blockBodyG_app (hI : BlockIdxOk (V := V) k uf ρp Idss)
   have hX' : InTupleSpace w k (blockIdx uf ρp Idss) X := fun c hc => by
     have h : X c ∈ˢ famSpace w (projS c (ndMkTowerSet (blockIdx uf ρp Idss) 0 k)) := hX c hc
     rwa [projS_idxTup hc] at h
-  exact tupleOpV_blockFunVG hX' hc
+  exact tupleOpV_blockFunVG hX' hc (lamR_ne_pt (Nat.succ_ne_zero w))
 
 /-- **The carrier tuple reads to the tuple of the members' carriers.** -/
 theorem blockBodyG_interp (hI : BlockIdxOk (V := V) k uf ρp Idss)
@@ -946,15 +965,14 @@ theorem app_blockPhi {Chs : Nat → List (List AnnotTerm)} {Xs : Nat → V} {m :
     (ht : t ∈ˢ idxSet (uf m) ρp (Idss m)) :
     SetTheory.app (blockPhiG k w ρp uf Idss Chs Xs m) t
       = blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k) t :=
-  app_lamR_pos (Nat.succ_ne_zero w) ht
+  app_graph ht
 
 /-- **The block's operator preserves the tuple space.** -/
 theorem blockPhi_maps_of {Chs : Nat → List (List AnnotTerm)}
     (hok : BlockChainsOkG k w ρp uf Idss Chs) :
     MapsTuple w k (blockIdx uf ρp Idss) (blockPhiG k w ρp uf Idss Chs) := by
   intro X hX m hm
-  show lamR (w + 1) (idxSet (uf m) ρp (Idss m)) _ ∈ˢ famSpace w (blockIdx uf ρp Idss m)
-  rw [lamR_pos (Nat.succ_ne_zero w)]
+  show graph _ (idxSet (uf m) ρp (Idss m)) ∈ˢ famSpace w (blockIdx uf ρp Idss m)
   exact graph_mem_famSpace fun t ht =>
     blockStepG_strictU hok (ndMkTowerSet_mem_famsSpaceB hX) hm ht
 
@@ -1029,6 +1047,12 @@ theorem WellDenoted_substAV (τ : Nat → AnnotTerm) :
       intro x j; rw [shiftE_succ_cons]; exact hτ j
     rw [AnnotTerm.substAV_pi, WellDenoted_pi, WellDenoted_pi, ihA k ρ hτ, interp_substAV]
     simp only [ihB (k + 1) _ (hτ' _), interp_substAV, cons_substE]
+  | letE v b ihv ihb =>
+    intro k ρ hτ
+    have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
+      intro x j; rw [shiftE_succ_cons]; exact hτ j
+    rw [AnnotTerm.substAV_letE, WellDenoted_letE, WellDenoted_letE, ihv k ρ hτ, interp_substAV]
+    simp only [ihb (k + 1) _ (hτ' _), cons_substE]
   | eqE a b iha ihb =>
     intro k ρ hτ
     show WellDenoted V ρ (.eqE _ _) ↔ WellDenoted V _ (.eqE _ _)

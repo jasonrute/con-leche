@@ -37,6 +37,14 @@ theorem tupW_pos {u : Nat} (hu : u ≠ 0) (is : List V) : tupW u is = mkTower is
 noncomputable def idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : V :=
   towerSet u (teleOfFields ρp Ids)
 
+/-- The index-tuple set is in the regime of its level: a truth value at
+`0`, strict above, whatever the telescope (task #342, L6). -/
+theorem Fib_idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) :
+    Fib (decide (u = 0)) (idxSet u ρp Ids) := Fib_towerSet u _
+
+theorem IsTy_idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : IsTy (idxSet u ρp Ids) :=
+  IsTy_of_Fib (Fib_idxSet u ρp Ids)
+
 /-- The index tuple type, spelled at the parameter frame. -/
 def idxTyAV (u : Nat) (Ids : List AnnotTerm) : AnnotTerm := towerBodyAV u Ids
 

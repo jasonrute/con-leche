@@ -132,8 +132,28 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
       cases denoteMeta m.acval env φ (b + t + 1) (body.instantiate1 (.fvar (b + t) ty)) with
       | none => rfl
       | some ba => rfl
-  | .letE ty val body, t, _ => by
-    simp only [Expr.substFvars, denoteMeta, Option.map_none]
+  | .letE ty val body, t, hfb => by
+    have hsb : ∀ i, i < b → (s i).looseBVarsBounded 0 = true := fun i hi => (hs i hi).2.1
+    simp only [Expr.substFvars, denoteMeta]
+    have hop : (Expr.substFvars b D s body).instantiate1 (.fvar (D + t) (Expr.substFvars b D s ty))
+        = Expr.substFvars b D s (body.instantiate1 (.fvar (b + t) ty)) := by
+      rw [Expr.substFvars_instantiate1 hsb, Expr.substFvars_fvar_ge (by omega),
+        show b + t - b + D = D + t by omega]
+    rw [denoteMeta_substFvars m hs ty t hfb.1, denoteMeta_substFvars m hs val t hfb.2.1, hop,
+      show D + t + 1 = D + (t + 1) by omega,
+      denoteMeta_substFvars m hs (body.instantiate1 (.fvar (b + t) ty)) (t + 1)
+        (by rw [show b + (t + 1) = b + t + 1 by omega]
+            exact Expr.fvarsBelow_instantiate1 0 hfb.2.2),
+      show b + (t + 1) = b + t + 1 by omega]
+    cases denoteMeta m.acval env φ (b + t) ty with
+    | none => rfl
+    | some ta =>
+    cases denoteMeta m.acval env φ (b + t) val with
+    | none => rfl
+    | some va =>
+      cases denoteMeta m.acval env φ (b + t + 1) (body.instantiate1 (.fvar (b + t) ty)) with
+      | none => rfl
+      | some ba => rfl
   | .proj sn i e, t, hfb => by
     simp only [Expr.substFvars, denoteMeta]
     rw [denoteMeta_substFvars m hs e t hfb]

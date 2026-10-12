@@ -1039,6 +1039,18 @@
 0 natop_before_eq.ndjson
 0 natop_before_ble.ndjson
 1 prelude_bool_redefined.ndjson
+#   natop_booltrue_alias: natop_order without Nat.shiftLeft/shlEx, its
+#                 `Bool.true` constructor renamed `Bool.tt` and a
+#                 definition `Bool.true : BoolAlias := Bool.tt` (with
+#                 `BoolAlias := Bool`) at the front
+#                 (scripts/mk_natop_booltrue_alias.py).  The official
+#                 kernel should accept it (not run), and so did the
+#                 checker until task #342 L8: DECLINE (exit 2) at `Nat.ble`, because
+#                 `natOpGuard` now pins the `Bool` constructors at the
+#                 type `Bool` itself (the comparison recurrences relate
+#                 two members of one type; `divModEnvGuard` already
+#                 required it).  Target verdict: 2 (deliberate).
+2 natop_booltrue_alias.ndjson
 
 # =============================================================# THE INDUCTIVE-AUDIT FIXTURES (task #208; audit task #206, report
 # _tmp/indaudit/REPORT.md, probes _tmp/indaudit/probes/P/*.lean).

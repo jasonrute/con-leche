@@ -11,6 +11,7 @@ import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Denote.StrLit
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.IOLicense
+import ConLeche.Model.Annot.BitInst
 
 public section
 
@@ -55,6 +56,48 @@ variable {m : EnvModel V env}
 `acval_isEmpty`, `acval_oneParam`, `acval_scalar`, `acval_one`,
 `acval_natPair` and `denotePInstLevels`: that file is impl-free, so
 the kit imports it and there is ONE copy. -/
+
+/-! ## ζ: the reduct of a `let`
+
+Shared by `Red.zeta_sound` and `Infer.letE_sound`: a framed `let`'s
+reduct is framed, has no new leaf, and reads as the body's reading
+instantiated at the value's (`denoteMeta_beta`, at the value where β
+has the argument).  The type is not involved. -/
+
+/-- The ζ-reduct's frame, leaves and reading. -/
+theorem zeta_syntax {d : Nat} {ty v body : Expr} {va ba : AnnotTerm}
+    (hf : Frame d (.letE ty v body))
+    (hva : denoteMeta m.acval env φ d v = some va)
+    (hba : denoteMeta m.acval env φ (d + 1)
+      (body.instantiate1 (.fvar d ty)) = some ba) :
+    Frame d (body.instantiate1 v) ∧
+      LeavesSub (body.instantiate1 v) (.letE ty v body) ∧
+      denoteMeta m.acval env φ d (body.instantiate1 v) = some (ba.inst va) := by
+  obtain ⟨hws, hb, hLb⟩ := hf
+  simp only [Expr.WScoped] at hws
+  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
+  have hsub : LeavesSub (body.instantiate1 v) (.letE ty v body) := by
+    intro l hl
+    rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
+    · simp [Expr.fvarLeaves, h2]
+    · simp [Expr.fvarLeaves, h2]
+  refine ⟨⟨ConLeche.Expr.WScoped.instantiate1_gen hws.2.1 0 hws.2.2,
+      ConLeche.Expr.looseBVarsBounded_instantiate1_gen hb.1.2 hb.2,
+      fun l hl => hLb l (hsub l hl)⟩, hsub, ?_⟩
+  rw [denoteMeta_beta m.acval_closed (acval_inst_self m)
+    (ty := ty) hws.2.2.fvarsBelow hws.2.1 hb.1.2 hva 0, hba]
+  rfl
+
+/-- The value of a framed `let` is framed, with no new leaf. -/
+theorem letE_val_frame {d : Nat} {ty v body : Expr}
+    (hf : Frame d (.letE ty v body)) :
+    Frame d v ∧ LeavesSub v (.letE ty v body) := by
+  obtain ⟨hws, hb, hLb⟩ := hf
+  simp only [Expr.WScoped] at hws
+  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
+  have hsub : LeavesSub v (.letE ty v body) := fun l hl => by
+    simp [Expr.fvarLeaves, hl]
+  exact ⟨⟨hws.2.1, hb.1.2, fun l hl => hLb l (hsub l hl)⟩, hsub⟩
 
 /-! ## The two `Nat` constructor readings and the literal expansions -/
 

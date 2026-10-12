@@ -149,6 +149,7 @@ reader can take in at one sitting: the relation
 one rule per syntax form on the checker's own terms — a bound variable
 reads its environment, `Sort u` the types of a level of the universe
 chain, a constant its set, an application the function's graph, a
+`let` its body at its value (its type is not read), a
 binder the dependent
 product, or the truth value of its body when the checker annotated the
 binder as proposition-valued — an annotation it may make only if the
@@ -530,8 +531,10 @@ presentation and matter for the proof:
   the proof consumes them. This is the price of not having a syntactic
   type theory (see §4). The annotation pass also ζ-expands `let`, so
   stored terms are let-free: the reduction and inference arms raise an
-  internal error on a `let` node, and the term language the denotation
-  targets has no `let` former.
+  internal error on a `let` node. The proof side reads a `let` all the
+  same — the denotation's term language has a type-free `let` former,
+  read as its body at its value, and the rules tier's ζ and `let`
+  inference rules are proved sound — so stored `let`s need no ζ pass.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
   not, but its memos are proved to agree with the pure functions at
   every fuel large enough to succeed
@@ -602,7 +605,7 @@ closing operation translates between the two.
 
 **The claims.** Each kernel function gets one claim, in the accepting
 direction only
-([the claim definitions in `ConLeche/Model/Claims.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Claims.lean#L47-L114)):
+([the claim definitions in `ConLeche/Model/Claims.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Claims.lean#L56-L123)):
 
 * `whnfCore`/`whnf` return a term with the same denotation, with the
   invariant preserved;
@@ -1022,7 +1025,7 @@ instead of trusting the operation's name.
   The model side reads the operation's membership off its pinned type
   shape and proves the literal semantics from the certified
   recurrences
-  ([theorem `natOps_install` in `ConLeche/Model/NatEqs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/NatEqs.lean#L1098)).
+  ([theorem `natOps_install` in `ConLeche/Model/NatEqs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/NatEqs.lean#L1147)).
 * **Well-founded operations** (`Nat.div`, `mod`, `gcd`, `land`, `lor`,
   `xor`, `shiftLeft`, `shiftRight`;
   [the list `natDivModNames` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L395-L410))
@@ -1045,16 +1048,16 @@ instead of trusting the operation's name.
   arbitrary variant, because what it consumes is the certificates'
   verdict in the accepted environment and not where the matched
   variant came from:
-  [theorem `divMod_install` in `ConLeche/Model/DivModCert.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/DivModCert.lean#L2017).
+  [theorem `divMod_install` in `ConLeche/Model/DivModCert.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/DivModCert.lean#L2021).
   That is why the two statements of §1 quantify over the list: the pins
   buy accepted `Nat.div` streams, never consistency.
 * **`Bool`.** `Nat.beq` and `Nat.ble` return `Bool.true` or
   `Bool.false`, and the well-founded operations' certificates are
   guarded by `Nat.ble`, so these operations install only once `Bool`
-  and its two constructors are stored, with no universe parameters and
-  with `Bool : Type`
-  ([function `natOpGuard` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L542-L554),
-  [function `natOpCod` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L597-L604)).
+  and its two constructors are stored, with no universe parameters,
+  the constructors at the type `Bool` itself, and with `Bool : Type`
+  ([function `natOpGuard` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L545-L559),
+  [function `natOpCod` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L602-L609)).
   That is the only reason the checker knows the name. `Bool` is not
   pinned: it is the stream's own block, installed like any other, and
   nothing depends on what it denotes — the fast path's result is the

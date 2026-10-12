@@ -31,13 +31,14 @@ stated in `ConLeche/Challenge.lean` (with `sorry`) and proved in
 * `ρ` assigns a set to every de Bruijn index (`BVarIdx`) in scope.
 
 There is one rule per syntax form and no rule at all for a free
-variable (`fvar`), a `let` or a term that does not resolve, so such a
-term denotes nothing.  That is the right reading for stored constants:
-the checker stores every constant's type as a **closed** term — bound
+variable (`fvar`) or a term that does not resolve, so such a term
+denotes nothing.  That is the right reading for stored constants: the
+checker stores every constant's type as a **closed** term — bound
 variables are de Bruijn indices under their binders, there is no
-`fvar`, and its annotation pass has replaced every `let` by its
-reduct — and the relation reads a binder's body by pushing the bound
-value onto `ρ`, with no renaming and no instantiation.
+`fvar` — and the relation reads a binder's body by pushing the bound
+value onto `ρ`, with no renaming and no instantiation.  A `let` is read
+the same way: its value, then its body with the value pushed; its type
+is not read, as no rule reads a type.
 
 The two clauses that carry the type theory:
 
@@ -167,6 +168,10 @@ inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ :
       (hB : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (B x))
       (hP : regime φ m.pw = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ univ 0) :
       Denotes cval env φ ρ (.forallE ty body m) (piR (regime φ m.pw) A B)
+  /-- a `let` denotes its body at its value; the type is not read -/
+  | letE {ρ : BVarIdx → V} {ty v body : Expr} {Y X : V}
+      (hv : Denotes cval env φ ρ v Y) (hb : Denotes cval env φ (push Y ρ) body X) :
+      Denotes cval env φ ρ (.letE ty v body) X
   /-- a projection at a stored table reads the field's position in the
   pair chain -/
   | proj_table {ρ : BVarIdx → V} {T : Name} {i : Nat} {e : Expr} {entry : ProjEntry} {P : V}
@@ -218,6 +223,11 @@ theorem Denotes_functional {V : Type w} [SetTheory V]
     | pi hA' hB' _ =>
       obtain rfl := ihA hA'
       exact ConLeche.SetModel.piR_congr fun x hx => ihB x hx (hB' x hx)
+  | letE _ _ ihv ihb =>
+    cases hw with
+    | letE hv' hb' =>
+      obtain rfl := ihv hv'
+      exact ihb hb'
   | proj_table ht _ ih =>
     cases hw with
     | proj_table ht' he' => rw [ht] at ht'; cases ht'; rw [ih he']

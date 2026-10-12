@@ -62,6 +62,12 @@ theorem AnnotValid_substAV (τ : Nat → AnnotTerm) :
       intro x j; rw [shiftE_succ_cons]; exact hτ j
     rw [AnnotTerm.substAV_pi, AnnotValid_pi, AnnotValid_pi, ihA k ρ hτ, interp_substAV]
     simp only [ihB (k + 1) _ (hτ' _), interp_substAV, cons_substE]
+  | letE v b ihv ihb =>
+    intro k ρ hτ
+    have hτ' : ∀ x, ∀ j, AnnotValid V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
+      intro x j; rw [shiftE_succ_cons]; exact hτ j
+    rw [AnnotTerm.substAV_letE, AnnotValid_letE, AnnotValid_letE, ihv k ρ hτ, interp_substAV]
+    simp only [ihb (k + 1) _ (hτ' _), cons_substE]
   | eqE a b iha ihb =>
     intro k ρ hτ
     show AnnotValid V ρ (.eqE _ _) ↔ AnnotValid V _ (.eqE _ _)

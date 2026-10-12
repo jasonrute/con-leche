@@ -221,6 +221,18 @@ theorem app_lamR_of_not_mem {v : Nat} {A a : V} {F : V → V} (hv : v ≠ 0)
 theorem lamR_ne_pt {v : Nat} {A : V} {F : V → V} (hv : v ≠ 0) :
     lamR v A F ≠ pt := by rw [lamR_pos hv]; exact graph_ne_pt
 
+/-- **An abstraction that is not the point is the graph** — the
+annotated reading's form of the value reading's `lamV_eq_graph`
+(task #342, L6).  A lemma that needs a spelled abstraction AS a graph
+goes through this, with the non-point fact as its premise: under the
+value reading the premise is exactly what an empty domain or a point
+body fails. -/
+theorem lamR_eq_graph_of_ne_pt {v : Nat} {A : V} {F : V → V} (h : lamR v A F ≠ pt) :
+    lamR v A F = graph F A := by
+  by_cases hv : v = 0
+  · subst hv; exact absurd lamR_zero h
+  · exact lamR_pos hv
+
 /-- Eta: a member of a product is the abstraction of its
 applications. -/
 theorem lamR_eta {v : Nat} {A f : V} {B : V → V} (hf : f ∈ˢ piR v A B) :

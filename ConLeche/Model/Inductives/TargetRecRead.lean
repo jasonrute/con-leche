@@ -131,8 +131,31 @@ theorem denoteMeta_open_deepen
       split
       · rw [Option.map_some, hacl]
       · rfl
-  | .letE ty v b, d, as1, as2, _, _, _ => by
-    simp only [Expr.instantiateList, denoteMeta, Option.map_none]
+  | .letE ty v b, d, as1, as2, hl, h1, h2 => by
+    have hlt : ∀ l ∈ ty.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
+    have hlv : ∀ l ∈ v.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
+    have hlb : ∀ l ∈ b.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
+    simp only [Expr.instantiateList, denoteMeta]
+    rw [denoteMeta_open_deepen hacl n B ty d as1 as2 hlt h1 h2,
+      denoteMeta_open_deepen hacl n B v d as1 as2 hlv h1 h2]
+    cases hty : denoteMeta acval env φ (B + d) (ty.instantiateList as1 0) with
+    | none => rfl
+    | some ta =>
+    cases hv : denoteMeta acval env φ (B + d) (v.instantiateList as1 0) with
+    | none => rfl
+    | some va =>
+      simp only [Option.map_some]
+      rw [← Expr.instantiateList_cons, ← Expr.instantiateList_cons,
+        show B + n + d + 1 = B + n + (d + 1) from by omega,
+        show B + d + 1 = B + (d + 1) from by omega,
+        denoteMeta_open_deepen hacl n B b (d + 1)
+          (Expr.fvar (B + d) (ty.instantiateList as1 0) :: as1)
+          (Expr.fvar (B + n + d) (ty.instantiateList as2 0) :: as2) hlb
+          (h1.cons _) (h2.cons _)]
+      cases denoteMeta acval env φ (B + (d + 1))
+          (b.instantiateList (Expr.fvar (B + d) (ty.instantiateList as1 0) :: as1) 0) with
+      | none => rfl
+      | some ba => rfl
   | .app f a, d, as1, as2, hl, h1, h2 => by
     have hlf : ∀ l ∈ f.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
     have hla : ∀ l ∈ a.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
