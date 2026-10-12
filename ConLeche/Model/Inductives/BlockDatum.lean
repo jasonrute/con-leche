@@ -854,7 +854,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       (hj : j < (dZ.ctorsM c).length) =>
     blockHoleGrade_of_run hμ mpD hNZ hctxZ hPos hpN hpL hpP hpI hpR hlenN.symm rfl
       (fun c hc => hCA c hc) hlenCtorsAs hclosedZ hnfZ ψ hc hj
-  -- the hole chains: graded, bit-valid, closed
+  -- the hole chains: graded and closed
   have hchZ := fun (ψ : Name → Nat) => blockHoleChains_facts hHZ ψ
     (fun ρp hs c hc => by
       have hck : c < q.k := by have : c < q.k + 0 := hc; omega
@@ -897,8 +897,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     intro ψ ρp hs
     have hIdxZ : ∀ c, c < dZ.N → IdxOk (dZ.uM c ψ) ρp (dZ.IdsM c ψ) := fun c hc => by
       have hck : c < q.k := by have : c < q.k + 0 := hc; omega
-      exact (hIdxOf c (hcvOf c hck).choose (hcvOf c hck).choose_spec ψ ρp
-        (hρpOf ψ ρp 0 hk0 hs c hck)).1
+      exact hIdxOf c (hcvOf c hck).choose (hcvOf c hck).choose_spec ψ ρp
+        (hρpOf ψ ρp 0 hk0 hs c hck)
     have hkN : dZ.toLfp.k ≤ dZ.toLfp.N := Nat.le_add_right _ _
     have hok : dZ.toLfp.HoleTmOk ψ ρp := fun m hm _ => (hIdxZ m (Nat.lt_of_lt_of_le hm hkN)).2
     have hfib : ∀ X, InTupleSpace (dZ.toLfp.w ψ) dZ.toLfp.N (dZ.toLfp.idx ψ ρp) X →
@@ -982,8 +982,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         show (ppsOf c ψ).length = q.nP + (((ppsOf c ψ).drop q.nP).map (·.2.2)).length
         rw [hIdsLen c ψ]; exact hlenPpsOf c hc ψ)
       hjk hIds0
-      (fun ρp hs => fun c hc => (hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
-        (hρpOf ψ ρp 0 hk0 hs c hc)).1)
+      (fun ρp hs => fun c hc => hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
+        (hρpOf ψ ρp 0 hk0 hs c hc))
       (fun ρp hs => (hchZ ψ).1 ρp hs) (fun ρp hs => (hfunZ ψ ρp hs).1)
       (fun ρp _ j' hj' i hi => by
         rw [hFss0] at hi
@@ -999,16 +999,11 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   obtain ⟨mpR, hEclR, hFDR, hfindR, hagR⟩ :=
     blockRealPass (uOf := uOf) (Chs := fun ψ => dZ.toLfp.holeChains ψ)
       mp hInd hF hndM hE hetaNe hetaFresh hIdsLen hIdsBelow
-      (fun ψ c hc => (hchZ ψ).2.2 c hc)
+      (fun ψ c hc => (hchZ ψ).2 c hc)
       (fun ψ₁ ψ₂ hφ => ⟨(hZparams ψ₁ ψ₂ hφ).1, hparamsH ψ₁ ψ₂ hφ⟩)
-      (fun j hj ψ ρp hρp =>
-        ⟨fun c hc => (hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
-            (hρpOf ψ ρp j hj hρp c hc)).1,
-          fun c hc => (hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
-            (hρpOf ψ ρp j hj hρp c hc)).2⟩)
+      (fun j hj ψ ρp hρp c hc => hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
+          (hρpOf ψ ρp j hj hρp c hc))
       (fun j hj ψ ρp hρp => (hchZ ψ).1 ρp (hρpOf ψ ρp j hj hρp 0 hk0))
-      (fun j hj ψ ρp hρp Y hY c hc t _ =>
-        (hchZ ψ).2.1 ρp (hρpOf ψ ρp j hj hρp 0 hk0) Y hY c hc t)
       hfoldZH
   -- ## the constructors, read again at the REAL carrier
   obtain ⟨pk, hpk, habsR⟩ : ∃ pk : Nat → BlockMemberPick, (∀ m : Nat, m < q.k →
@@ -1146,7 +1141,6 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       (∀ (ψ : Name → Nat) (ρ : Nat → V),
         Sat V ((((pk m).dsF j ψ).take q.nP).map (·.2.2)).reverse ρ →
           FieldsOkB (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2)) ∧
-          FieldsValid ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2)) ∧
           (q.isProp = false →
             FieldsBound (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2))) ∧
           (∀ bs : List V, SpineFit ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2)) bs →
@@ -1408,13 +1402,13 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       exact hlenPpsOf c hc ψ
     · -- idxOk
       intro m hm ψ ρp hρp c hc
-      exact (hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
-        (hρpOf ψ ρp m hm hρp c hc)).1
+      exact hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
+        (hρpOf ψ ρp m hm hρp c hc)
     · -- frames
       intro m hm j cA hj
       exact ⟨(hframes m hm j cA hj).1, fun ψ ρ hρ =>
-        ⟨((hframes m hm j cA hj).2 ψ ρ hρ).1, ((hframes m hm j cA hj).2 ψ ρ hρ).2.1,
-          fun bs hbs => (((hframes m hm j cA hj).2 ψ ρ hρ).2.2.2 bs hbs).2⟩⟩
+        ⟨((hframes m hm j cA hj).2 ψ ρ hρ).1,
+          fun bs hbs => (((hframes m hm j cA hj).2 ψ ρ hρ).2.2 bs hbs).2⟩⟩
     · -- capsU
       intro m hm cvTa hcv env' m' kk cA hkk hu hcvC hlpsCA hreadCA hFD' hleaf' hleafC'
       have hnIdx0 : q.nIdxs.getD m 0 = 0 := by
@@ -1590,8 +1584,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       rw [h0]
     have h := blockHoleFold_params (A := blockLeafH (blockDataOf V q ctorsAs pk uOf ppsOf))
       hHR rfl (ψ := ψ) (fun _ _ => rfl) (fun c hc => hSC.lenPps c ψ hc) hm hIds0
-      (fun ρp hs => fun c hc => (hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
-        (hρpOf ψ ρp 0 hk0 hs c hc)).1)
+      (fun ρp hs => fun c hc => hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
+        (hρpOf ψ ρp 0 hk0 hs c hc))
       (fun ρp hs => hSC.holeOk ψ ρp hs) (fun ρp hs => (hSC.holeFun ψ ρp hs).1)
       (fun ρp hsρ j' hj' => blockOverride hHR (fun t ht => hacvR t ht ψ) ρp hsρ
         (Nat.lt_of_lt_of_le hm (Nat.le_add_right _ _)) hj')
@@ -1681,7 +1675,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       intro m cA hm hcs ψ ρ hρ hnp
       have hcs' : ctorsAs.getD m [] = [cA] := hcs
       have hcA : (ctorsAs.getD m [])[0]? = some cA := by rw [hcs']; rfl
-      exact ((hframes m hm 0 cA hcA).2 ψ ρ hρ).2.2.1 hnp
+      exact ((hframes m hm 0 cA hcA).2 ψ ρ hρ).2.1 hnp
     · -- dsLen
       intro m j cA hm hj ψ
       exact (hpk m hm j cA hj).len ψ
