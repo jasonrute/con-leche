@@ -444,7 +444,7 @@ theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
     (hm : IOMem m φ d T ρ v) : v = pt := by
   obtain ⟨hwT, hvm⟩ := hm.of_reading hT
   obtain ⟨hftt, hsub, tta, htta, hrow⟩ := hsem hfT hCT hT
-  rcases hrow ρ hρ hLT hwT.1 with h | h | h
+  rcases (hrow ρ hρ hLT hwT.1).1 with h | h | h
   · -- "not pt" source (1): the type is a type
     exact absurd h hwT.ne_pt
   · obtain ⟨hwtt, hTm⟩ := h.of_reading htta

@@ -59,7 +59,7 @@ theorem InferSemFull.toIO {d : Nat} {e t : Expr}
   intro hf Δa ea hC hea
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hf hC hea
   exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ =>
-    IORel.of_mem hta (hrow ρ hρ hL).2.1 (hrow ρ hρ hL).2.2⟩
+    IORelN.of_mem hta (hrow ρ hρ hL).2.1 (hrow ρ hρ hL).2.2⟩
 
 /-- A rule that establishes is sound at either grade. -/
 theorem InferSemFull.toSem {g : Grade} {d : Nat} {e t : Expr}
@@ -108,7 +108,7 @@ theorem InferSem.of_uniform {g : Grade} {d : Nat} {e t : Expr}
     intro hfe Δa ea hC hea
     obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
     exact ⟨hft, hsub, ta, hta, fun ρ hρ hL hge =>
-      IORel.of_mem hta (hrow ρ hρ hL (fun _ => hge)).2.1
+      IORelN.of_mem hta (hrow ρ hρ hL (fun _ => hge)).2.1
         (hrow ρ hρ hL (fun _ => hge)).2.2⟩
 
 /-- **The sort fact at a grade** (`sortSemAt_of_claims` at the
@@ -148,7 +148,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
     obtain rfl : ua = .sort (u.eval φ) := (Option.some.inj hua).symm
     intro ρ hρ hL hgr
     have hty := hgr rfl
-    rcases hrow ρ hρ hL hty.1 with h | h | h
+    rcases (hrow ρ hρ hL hty.1).1 with h | h | h
     · -- "not pt" source (1): the subject is a type
       exact absurd h hty.ne_pt
     · obtain ⟨hgs, hm⟩ := h.of_reading hsa
@@ -543,7 +543,9 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
     LeavesGr.open hC.lam_ty hC.lam_body hL.lam_ty hL.lam_body htyA hokty
   have hrow : ∀ x, x ∈ˢ interp V ρ tyA →
       IORel m φ (d + 1) bt (cons x ρ) (interp V (cons x ρ) ba) := fun x hx =>
-    hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x) (hgr.lam_body x hx)
+    (hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x) (hgr.lam_body x hx)).1
+  -- a λ is not neutral
+  refine ⟨?_, fun h => by simp [ConLeche.Expr.ioNeutral, ConLeche.Expr.getAppFn] at h⟩
   rw [interp_lam]
   by_cases hall : ∀ x, x ∈ˢ interp V ρ tyA → interp V (cons x ρ) ba = pt
   · exact Or.inl (lamV_eq_pt hall)
@@ -699,7 +701,8 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
     have hgv : WellDenotedV V ρ va := hgr.letE_val
     have h := hrow ρ hρ (hL.of_subset hsub) ((WellDenotedV_zeta hgv).mp hgr)
     rw [interp_zeta]
-    exact h
+    -- a `let` is not neutral
+    exact ⟨h.1, fun h' => by simp [ConLeche.Expr.ioNeutral, ConLeche.Expr.getAppFn] at h'⟩
 
 /-- **The io grade's application, uncertified** (Lean's `infer_only`;
 the fragment's `InferIO.app_sound`).  The claim is the hereditary
@@ -766,15 +769,14 @@ theorem Infer.app_soundIO {d : Nat}
   obtain ⟨v, A, B, hfslot, haslot, -⟩ := (cast (WellDenoted_app V ρ fa aa) hge).2.2
   rw [interp_app]
   by_cases hfp : interp V ρ fa = pt
-  · rw [hfp, app_pt]; exact Or.inl rfl
-  rcases hrowF ρ hρ hL.app_fn hokf with h | h | h
-  · exact absurd h hfp
+  · rw [hfp, app_pt]; exact IORelN.pt
+  obtain ⟨hrelF, hneuF⟩ := hrowF ρ hρ hL.app_fn hokf
+  by_cases hm : IOMem m φ d tf ρ (interp V ρ fa)
   · -- the head is a member of its type
-    obtain ⟨hgtfa, hrowfM⟩ := h.of_reading htfa
+    obtain ⟨hgtfa, hrowfM⟩ := hm.of_reading htfa
     -- "not pt" source (1): the head's inferred type `tfa` is a type
     obtain ⟨hokpa, hredfρ⟩ :=
       hredf ρ hρ (hL.app_fn.of_subset htfsub) hgtfa.1 hgtfa.ne_pt
-    have hAty : IsTy (interp V ρ Aa) := hokpa.pi_dom.2
     have hf' : interp V ρ fa ∈ˢ piV (interp V ρ Aa) fun x => interp V (cons x ρ) Ba := by
       have h2 := hrowfM
       rw [hredfρ, interp_pi] at h2
@@ -783,11 +785,22 @@ theorem Infer.app_soundIO {d : Nat}
       rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
     have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa :=
       Rules.slotTransfer Nat.one_ne_zero hgr hfslot haslot
-    refine IORel.of_mem hcross
+    refine IORelN.of_mem hcross
       ((WellDenotedTy_inst0 hoka).mpr ⟨hokpa.pi_body _ ha2, hokpa.pi_fib _ ha2⟩) ?_
     rw [interp_inst0]
     exact app_mem_piV hf' ha2
-  · -- "not pt" source (4): the head's claim is hereditary, its type the ∀
+  rcases hrelF with h | h | h
+  · exact absurd h hfp
+  · exact absurd h hm
+  · -- "not pt" source (4): the head's claim is hereditary, its type the ∀;
+    -- the head is then not neutral, nor is the application
+    refine ⟨?main, fun hneu => ?neu⟩
+    case neu =>
+      have hfneu : f.ioNeutral = true := by
+        simpa [ConLeche.Expr.ioNeutral, ConLeche.Expr.getAppFn] using hneu
+      rcases hneuF hfneu with h' | h'
+      · exact absurd h' hfp
+      · exact absurd h' hm
     obtain ⟨ty', body', mb', rfl⟩ := h.forallE
     have heq := Red.rigid hwr trivial
     injection heq with hty hbody
@@ -1007,10 +1020,10 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
   intro σ hσ hL hgr
   have hLpe' : LeavesGr m φ d pe σ := hL.proj_arg
   have hokPe : WellDenotedV V σ vp := ProjAV.hoistV hgr
-  rcases hrowP σ hσ hLpe' hokPe with h | h | h
+  rcases (hrowP σ hσ hLpe' hokPe).1 with h | h | h
   · -- the scrutinee is the point, and so is its projection
-    refine Or.inl ?_
     rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
+    exact IORelN.pt
   · obtain ⟨hokTpe, hmemPe⟩ := h.of_reading htpea
     -- "not pt" source (1): the scrutinee's inferred type `tpea` is a type
     obtain ⟨hokTe, heqTe⟩ :=
@@ -1019,7 +1032,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
         simp only [beq_iff_eq] at hp ⊢
         exact hprop hp)) σ vs vp restA hlenVs hokTe hokPe
       (heqTe ▸ hmemPe) hpeel
-    exact IORel.of_mem hrest hrow.2.1 hrow.2.2
+    exact IORelN.of_mem hrest hrow.2.1 hrow.2.2
   · obtain ⟨_, _, _, rfl⟩ := h.forallE
     exact absurd (Red.rigid hter trivial ▸ hhead) (IsRigid.not_const (e := .forallE _ _ _) trivial)
 

@@ -78,6 +78,12 @@ decreasing_by
     (ρ : Nat → V) (v : V) : Prop :=
   v = pt ∨ IOMem m φ d T ρ v ∨ IOHered m φ d T ρ v
 
+/-- **The io claim with its neutral clause**: at a subject whose spine
+head is no λ and no `let` (`Expr.ioNeutral`), not hereditary. -/
+@[expose] def IORelN (m : EnvModel V env) (φ : Name → Nat) (d : Nat) (e T : Expr)
+    (ρ : Nat → V) (v : V) : Prop :=
+  IORel m φ d T ρ v ∧ (e.ioNeutral = true → v = pt ∨ IOMem m φ d T ρ v)
+
 variable {m : EnvModel V env} {φ : Name → Nat}
 
 theorem IOHered_forallE {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
@@ -106,6 +112,17 @@ theorem IOMem.of_reading {d : Nat} {T : Expr} {ta : AnnotTerm} {ρ : Nat → V} 
   obtain ⟨ta', hta', hw, hmem⟩ := h
   obtain rfl : ta' = ta := Option.some.inj (hta'.symm.trans hT)
   exact ⟨hw, hmem⟩
+
+/-- A membership is the io claim, neutral clause included. -/
+theorem IORelN.of_mem {d : Nat} {e T : Expr} {ta : AnnotTerm} {ρ : Nat → V} {v : V}
+    (hT : denoteMeta m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
+    (hmem : v ∈ˢ interp V ρ ta) : IORelN m φ d e T ρ v :=
+  ⟨Or.inr (Or.inl ⟨ta, hT, hw, hmem⟩), fun _ => Or.inr ⟨ta, hT, hw, hmem⟩⟩
+
+/-- The point satisfies the io claim. -/
+theorem IORelN.pt {d : Nat} {e T : Expr} {ρ : Nat → V} :
+    IORelN m φ d e T ρ (pt : V) :=
+  ⟨Or.inl rfl, fun _ => Or.inl rfl⟩
 
 /-- A membership is the io claim. -/
 theorem IORel.of_mem {d : Nat} {T : Expr} {ta : AnnotTerm} {ρ : Nat → V} {v : V}

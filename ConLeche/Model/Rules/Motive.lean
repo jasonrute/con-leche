@@ -189,7 +189,9 @@ subject's grading is a conclusion; the type is a graded type
 grading is a premise (`InferClaimIO`'s premise form), and the claim is
 the hereditary `IORel` of task #346 (`IORel.lean`), keyed on the type's
 syntax: at Lean's `infer_only` (no argument check at an application) an
-io-inferred type need not hold its term. -/
+io-inferred type need not hold its term.  At a subject whose head is
+no λ and no `let` (`Expr.ioNeutral`) the claim is not hereditary
+(`IORelN`): η's consumer. -/
 @[expose] def InferSemIO {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
@@ -199,7 +201,7 @@ io-inferred type need not hold its term. -/
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          WellDenotedV V ρ ea → IORel m φ d t ρ (interp V ρ ea)
+          WellDenotedV V ρ ea → IORelN m φ d e t ρ (interp V ρ ea)
 
 /-- **A proposition's io claim is the point** (proof irrelevance at the
 io grade): at every satisfying valuation, a value satisfying the io
@@ -225,7 +227,9 @@ sort, at the hereditary clause's witness. -/
 /-- **`Certs`' motive**: the certified spine fits the telescope's
 reading, substitution-peeling.  At a licensed walk the skipped slots are
 recovered from the spine's own grading and the head's membership
-(`slotTransfer`), which are therefore premises exactly there. -/
+(`slotTransfer`) where the spine is not the point ("not pt" source (2):
+a reduction claims nothing of a redex that is the point), which are
+therefore premises exactly there. -/
 @[expose] def CertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (lic : Bool) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
@@ -240,7 +244,8 @@ recovered from the spine's own grading and the head's membership
         WellDenotedV V ρ Ta → (∀ x ∈ vs, WellDenotedV V ρ x) →
         (lic = true →
           WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
-            interp V ρ fa ∈ˢ interp V ρ Ta) →
+            interp V ρ fa ∈ˢ interp V ρ Ta ∧
+            interp V ρ (AnnotTerm.mkAppN fa vs) ≠ pt) →
         TeleFitPA V ρ Ta vs resta ∧ WellDenotedV V ρ resta
 
 /-- **`CertsF`' motive** (task #342 L10): the full-grade certificate

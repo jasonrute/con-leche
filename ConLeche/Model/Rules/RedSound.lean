@@ -437,9 +437,11 @@ theorem Red.natOp_sound (hin : RulesInputs V m φ) {d : Nat} {c : Name}
   rw [interp_app, interp_app, heqa, heqb, ← interp_app, ← interp_app]
   exact heqra
 
-/-- The tower law's iota clause at a certified spine
-(`teleFit_of_teleFitPA`). -/
-theorem Red.proj_soundU (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat}
+/-- The tower law's iota clause at the licensed spine
+(`teleFit_of_teleFitPA`): conditional on the point — a projection that
+is not the point has a scrutinee that is not (`projS_pt`), whose spine
+the licensed walk then fits ("not pt" source (2)). -/
+theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat}
     {e : Expr} {entry : ProjEntry} {us : List Level} {cvC : ConstantVal}
     {nP nF : Nat}
     (hent : env.findProj? sn i = some entry)
@@ -451,7 +453,7 @@ theorem Red.proj_soundU (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Na
     (hctor : env.find? entry.ctor = some (.ctorInfo cvC nP nF))
     (hcerts : CertsSem m φ d true
       (cvC.type.instantiateLevelParams cvC.levelParams us) e.getAppArgs) :
-    RedSemU m φ d (.proj sn i e)
+    RedSem m φ d (.proj sn i e)
       (e.getAppArgs.getD (entry.numParams + i) (.bvar 0)) := by
   intro hf Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hf
@@ -530,7 +532,7 @@ theorem Red.proj_soundU (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Na
         ConLeche.Expr.LeavesBounded.of_not_hasFvar hnfC⟩
       hTC hTCd (frame_spine ⟨hws, hb, hLe⟩ hCe) hspa
   refine ⟨hfF, fun l hl => hsube l (ConLeche.fvarLeaves_getAppArgs hmemArg l hl),
-    vs.getD (entry.numParams + i) default, hfvd, fun σ hσ hL hg => ?_⟩
+    vs.getD (entry.numParams + i) default, hfvd, fun σ hσ hL hg hne => ?_⟩
   have hgvp : WellDenotedV V σ (AnnotTerm.mkAppN
       (m.acval entry.ctor (Level.substFn φ entry.levelParams us)) vs) := by
     rw [← hveq]
@@ -545,26 +547,12 @@ theorem Red.proj_soundU (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Na
   have hLeσ : LeavesGr m φ d e σ := hL.of_subset hsube
   obtain ⟨hfitσ, -⟩ := hfitA σ hσ (LeavesGr.of_fvarLeaves_nil
       (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfC))
-    (leavesGr_spine hLeσ) (hokTCa σ).1 hoA (fun _ => ⟨hgvp, hmemC⟩)
+    (leavesGr_spine hLeσ) (hokTCa σ).1 hoA (fun _ => ⟨hgvp, hmemC, by
+      rw [← hveq]; intro h0
+      exact hne (by rw [projAV_interp, h0, ConLeche.SetTheory.Tower.projS_pt])⟩)
   refine ⟨hokArg, ?_⟩
   have hfit : TeleFit V σ TCa (vs.map (interp V σ)) (interp V σ resta) :=
     teleFit_of_teleFitPA (by rw [← hspa.length]; exact hpc) hfitσ
   rw [hveq, hB (towerGuardAt_of_fireOk hO5 hfire) σ vs _ hlenVs hgvp hfit]
-
-theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat}
-    {e : Expr} {entry : ProjEntry} {us : List Level} {cvC : ConstantVal}
-    {nP nF : Nat}
-    (hent : env.findProj? sn i = some entry)
-    (hhead : e.getAppFn = .const entry.ctor us)
-    (hi : i < entry.numFields)
-    (hlen : e.getAppArgs.length = entry.numParams + entry.numFields)
-    (hus : us.length = entry.levelParams.length)
-    (hfire : entry.fireOk us = true)
-    (hctor : env.find? entry.ctor = some (.ctorInfo cvC nP nF))
-    (hcerts : CertsSem m φ d true
-      (cvC.type.instantiateLevelParams cvC.levelParams us) e.getAppArgs) :
-    RedSem m φ d (.proj sn i e)
-      (e.getAppArgs.getD (entry.numParams + i) (.bvar 0)) :=
-  (Red.proj_soundU hin hent hhead hi hlen hus hfire hctor hcerts).cond
 
 end ConLeche.Model.Rules

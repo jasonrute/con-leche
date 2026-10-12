@@ -305,7 +305,7 @@ theorem DefEq.proofIrrel_sound {d : Nat} {a ta b : Expr}
   intro hfa _ Δa aa ba hCa _ haa _ ρ hρ hLa _ hwa _ hna _
   obtain ⟨hfta, hsub, taa, htaa, hrow⟩ := hta hfa hCa haa
   exact absurd (hpt hfta (hCa.of_subset hsub) htaa ρ _ hρ (hLa.of_subset hsub)
-    (hrow ρ hρ hLa hwa)) hna
+    (hrow ρ hρ hLa hwa).1) hna
 
 /-- Unit-like structure: the two inferred types and their reducts are
 types ("not pt" source (1)), so their reductions and the certificate's
@@ -323,7 +323,7 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
     (htlen : wta.getAppArgs.length = caps.unitParams)
     (hlv : us'.length = cvT.levelParams.length)
     (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb wtb)
-    (hwtbr : Red env d tb wtb)
+    (hwtbr : Red env d tb wtb) (hwtbF : wtb.isForallE = false)
     (hd : DefEqSem m φ d wta wtb) :
     DefEqSem m φ d a b := by
   intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB hna hnb
@@ -331,7 +331,7 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   obtain ⟨hfta, hsuba, taa, htaa, hXA⟩ := hta hfa hCa hda
   -- neither side is the point, and their types reduce to non-∀s
   -- (`Red.rigid`): the io claims are memberships
-  obtain ⟨hokTa, hmemA⟩ := (IORel.mem_of_red (hXA ρ hρ hLa hokA) hna hwtar
+  obtain ⟨hokTa, hmemA⟩ := (IORel.mem_of_red (hXA ρ hρ hLa hokA).1 hna hwtar
     (not_forallE_of_getAppFn hthead)).of_reading htaa
   have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsuba
   have hLtaρ : LeavesGr m φ d ta ρ := hLa.of_subset hsuba
@@ -340,15 +340,8 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   have hCwa : CtxOkS m φ d Δa wta := hCta.of_subset hsubWA
   have hLwaρ : LeavesGr m φ d wta ρ := hLtaρ.of_subset hsubWA
   obtain ⟨hftb, hsubb, tba, htba, hXB⟩ := htb hfb hCb hdb
-  -- L18 (S4 ledger): the rule does not say that `b`'s reduced type is no
-  -- ∀.  Where it is one, `b`'s io claim may be hereditary (not a
-  -- membership), and the comparison `wta ≡ wtb` is conditional on a
-  -- graded side, which a hereditary claim's type need not be.  A premise
-  -- "`wtb` is not a ∀" (the checker's comparison of a family's
-  -- application with a ∀ fails anyway) discharges it, as for `a`.
-  have hwtbnf : ∀ ty body mb, wtb ≠ .forallE ty body mb := sorry
-  obtain ⟨hokTb, hmemB⟩ := (IORel.mem_of_red (hXB ρ hρ hLb hokB) hnb hwtbr
-    hwtbnf).of_reading htba
+  obtain ⟨hokTb, hmemB⟩ := (IORel.mem_of_red (hXB ρ hρ hLb hokB).1 hnb hwtbr
+    (fun ty body mb h => by rw [h] at hwtbF; exact nomatch hwtbF)).of_reading htba
   have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubb
   have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubb
   obtain ⟨hfWB, hsubWB, wtba, hwtba, hYB⟩ := hwtb hftb hCtb htba
@@ -653,6 +646,7 @@ its io claim is a membership — for an atom-headed `b` (the fragment's
 `etaIO_sound`). -/
 theorem DefEq.eta_sound {d : Nat}
     {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    (hneu : b.ioNeutral = true)
     (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
     (hty : DefEqSem m φ d ty₂ ty₁)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
@@ -663,15 +657,10 @@ theorem DefEq.eta_sound {d : Nat}
   refine DefEq.eta_core (fun hf Δa ea hC hea => ?_) hwtb hty hbody ht₁ htB
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := htb hf hC hea
   refine ⟨hft, hsub, ta, hta, fun ρ hρ hL hw hn => ?_⟩
-  rcases hrow ρ hρ hL hw with h | h | h
+  -- `b`'s head is no λ and no `let`: its io claim is not hereditary
+  rcases (hrow ρ hρ hL hw).2 hneu with h | h
   · exact absurd h hn
   · exact h.of_reading hta
-  · -- L18 (S4 ledger): `b`'s io claim is hereditary only where `b`'s
-    -- head is a λ or a `let` (the fragment's `IORel_neutral`), and η
-    -- against such a `b` is unsound (`eta_lam_io_unsound`).  The rule
-    -- needs the premise that `b`'s head is a variable, a constant or a
-    -- projection — the checker meets `b` in weak-head normal form.
-    sorry
 
 set_option maxHeartbeats 800000 in
 /-- **Structure η at the conditional motive** (task #342 L11b).  Neither
@@ -716,7 +705,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
   -- not the point and its type reduces to a family's application, so
   -- its io claim is a membership (`Red.rigid`)
   obtain ⟨hftb, hsubtb, tba, htba, hX⟩ := htb hfb hCb hdb
-  obtain ⟨hokTb, hmemB0⟩ := (IORel.mem_of_red (hX ρ hρ hLb hokB) hneB hwtbr
+  obtain ⟨hokTb, hmemB0⟩ := (IORel.mem_of_red (hX ρ hρ hLb hokB).1 hneB hwtbr
     (not_forallE_of_getAppFn hthead)).of_reading htba
   have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubtb
   have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubtb
