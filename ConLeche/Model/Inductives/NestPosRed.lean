@@ -63,13 +63,16 @@ variable {V : Type w} [SetTheory V]
 its bit is honest. -/
 theorem graded_pi_intro {Δ : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
     (hA : Graded V Δ A) (hB : Graded V (A :: Δ) B)
+    (hAt : ∀ ρ : Nat → V, Sat V Δ ρ → IsTy (interp V ρ A))
+    (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B))
     (hbit : v = 0 → ∀ ρ : Nat → V, Sat V Δ ρ → ∀ x, x ∈ˢ interp V ρ A →
       interp V (cons x ρ) B ∈ˢ (univZero : V)) :
     Graded V Δ (.pi u v A B) := by
   intro ρ hρ
   refine ⟨?_, ?_⟩
   · rw [WellDenoted_pi]
-    exact ⟨(hA ρ hρ).1, fun x hx => (hB _ (Sat_cons V hρ hx)).1⟩
+    exact ⟨(hA ρ hρ).1, hAt ρ hρ, fun x hx => (hB _ (Sat_cons V hρ hx)).1,
+      fun x hx => hBt _ (Sat_cons V hρ hx)⟩
   · rw [AnnotValid_pi]
     exact ⟨(hA ρ hρ).2, fun x hx => (hB _ (Sat_cons V hρ hx)).2,
       fun hv x hx => hbit hv ρ hρ x hx⟩
@@ -216,9 +219,10 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgA, hgB⟩ := WellDenotedV.hoist_pi (V := V) hgw
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgw
+    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
     have hCw : CtxOkP m φ dep Δa (.forallE a b mb) := hC.of_subset hsub
-    have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgA
+    have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     obtain ⟨hfrn, hsubn, nba, hnba, hgn, heqn⟩ :=
       ihb (frame_open2 hws.1 hb.1 hws.2 hb.2 hLa hLbd) hCop hba hgB
     obtain ⟨hwsn, hbn, hLn⟩ := hfrn
@@ -248,7 +252,13 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     · rw [denoteMeta_forallE, hta]
       simp only [bind, Option.bind]
       rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hbnd), hnba]
-    · refine graded_pi_intro hgA hgn fun hv0 ρ hρ x hx => ?_
+    · refine graded_pi_intro hgA hgn (fun ρ hρ => (hgAT ρ hρ).2)
+        (fun ρ hρ => by
+          rw [← heqn ρ hρ]
+          have h := ((WellDenoted_pi V _ 0 (pwBit φ mb.pw) ta ba) ▸
+            (hgw _ (Sat_tail hρ)).1).2.2.2 (ρ 0) (hρ 0 ta rfl)
+          rwa [cons_eta] at h)
+        fun hv0 ρ hρ x hx => ?_
       rw [← heqn _ (Sat_cons V hρ hx)]
       have hgw' := hgw ρ hρ
       have hval := ((AnnotValid_pi V ρ 0 (pwBit φ mb.pw) ta ba) ▸ hgw'.2).2.2 hv0 x hx
@@ -274,11 +284,12 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgA, hgB⟩ := WellDenotedV.hoist_pi (V := V) hgr
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgr
+    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
     -- the field
     obtain ⟨hfrn, hsubn, nda, hnda, hgn, heqn⟩ := iha ⟨hws.1, hb.1, hLa⟩ hC.forallE_ty hta hgA
     -- the rest, one binder down
-    have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgA
+    have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hb.1 hws.2 hb.2 hLa hLbd
     rw [show base + j + 1 = base + (j + 1) by omega] at hCop hfr' hba
     obtain ⟨abD, abN, B, hbaE, hrd, hlD, hlN, hbits, hEq, hgN, hfrc, hsubc⟩ :=
@@ -297,7 +308,20 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
       rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 _ 0 hbnd), hrd]
       rfl
     · -- the grading
-      refine graded_pi_intro hgn (graded_cons_congr heqn hgN) fun hv0 ρ hρ x hx => ?_
+      refine graded_pi_intro hgn (graded_cons_congr heqn hgN)
+        (fun ρ hρ => by rw [← heqn ρ hρ]; exact (hgAT ρ hρ).2)
+        (fun ρ' hρ' => by
+          have htl := Sat_tail hρ'
+          have h0 : ρ' 0 ∈ˢ interp V (fun j => ρ' (j + 1)) ta := by
+            rw [heqn _ htl]; exact hρ' 0 nda rfl
+          have hsat : Sat V (ta :: Δa) ρ' := by
+            have := Sat_cons V htl h0
+            rwa [cons_eta] at this
+          rw [← interp_mkPisAV_congr abD abN B hbits hEq _ hsat]
+          have h := ((WellDenoted_pi V _ 0 (pwBit φ bm.pw) ta (mkPisAV abD B)) ▸
+            (hgr _ htl).1).2.2.2 (ρ' 0) h0
+          rwa [cons_eta] at h)
+        fun hv0 ρ hρ x hx => ?_
       have hx' : x ∈ˢ interp V ρ ta := (heqn ρ hρ).symm ▸ hx
       rw [← interp_mkPisAV_congr abD abN B hbits hEq _ (Sat_cons V hρ hx')]
       have hval := ((AnnotValid_pi V ρ 0 (pwBit φ bm.pw) ta (mkPisAV abD B)) ▸

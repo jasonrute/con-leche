@@ -60,6 +60,15 @@ theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTer
       (h _ (Sat_tail hρ)).2).2.1 (ρ 0) (hρ 0 A rfl)
     rwa [hcons] at this
 
+/-- The `WellDenotedV` ∀-splitter, the domain a graded type. -/
+theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+    (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
+      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) :=
+  ⟨fun ρ hρ => ⟨(WellDenotedV.hoist_pi (V := V) h).1 ρ hρ,
+      ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1⟩,
+    (WellDenotedV.hoist_pi (V := V) h).2⟩
+
 /-- The `WellDenotedV` λ-splitter. -/
 theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam v A b)) :

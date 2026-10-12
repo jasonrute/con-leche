@@ -219,7 +219,7 @@ theorem walkCtx_holes
       (formerTys.getD t default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (formerTys.getD t default) ∧
       ∃ T : AnnotTerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
-        (∀ σ : Nat → V, WellDenotedV V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T) :
+        (∀ σ : Nat → V, WellDenotedTy V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T) :
     ∃ Δ', FvarList (D + formerTys.length) ((ConLeche.targetHoles formerTys D).reverse ++ L) ∧
       WalkCtx V mT φ (D + formerTys.length) (consList hv σ) Δ'
         ((ConLeche.targetHoles formerTys D).reverse ++ L) := by
@@ -231,7 +231,7 @@ theorem walkCtx_holes
   have hTsLen : Ts.length = k := by simp [Ts]
   have hTsGet : ∀ t, t < k → ∃ T, Ts.getD t default = T ∧
       denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
-      Term.bvarsBelow 0 T.erase ∧ (∀ σ : Nat → V, WellDenotedV V σ T) ∧
+      Term.bvarsBelow 0 T.erase ∧ (∀ σ : Nat → V, WellDenotedTy V σ T) ∧
       ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T := by
     intro t ht
     obtain ⟨hf, hb, -, T, hT, hG, hvT⟩ := hformer t ht
@@ -314,7 +314,7 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
       (formerTys.getD t default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (formerTys.getD t default) ∧
       ∃ T : AnnotTerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
-        (∀ σ : Nat → V, WellDenotedV V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T)
+        (∀ σ : Nat → V, WellDenotedTy V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T)
     (hnames : ∀ (n : Name) (t : Nat), names.findIdx? (· == n) = some t →
       t < formerTys.length ∧ ∃ ci : ConLeche.ConstantInfo, envT.find? n = some ci ∧
         lvls.length = ci.toConstantVal.levelParams.length ∧

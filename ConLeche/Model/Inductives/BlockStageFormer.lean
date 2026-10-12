@@ -142,7 +142,7 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
       (Q := fun ρ ds => ParamsOkG k w ρ uf Idss Chs mm ds)
       hlenΓ hlen hent okΓ
       (fun ρ hρ => (hbase ρ hρ).1)
-      (fun ρ d ds hd hok hrec => ⟨hbits d hd, hok.1, hrec⟩)
+      (fun ρ d ds hd hok hrec => ⟨hbits d hd, hok.1.1, hok.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
     simpa using hw
   · have hw := hereditaryWalk (V := V)
@@ -152,7 +152,7 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
           (mkTowerGo (uf mm) (Idss mm))) ds)
       hlenΓ hlen hent okΓ
       (fun ρ hρ => (hbase ρ hρ).2)
-      (fun ρ d ds hd hok hrec => ⟨hok.2, hrec⟩)
+      (fun ρ d ds hd hok hrec => ⟨hok.1.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
     simpa using hw
 
@@ -297,7 +297,7 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     hAparams hAok hAvalid (fun ψ => ⟨_, hreadI ψ⟩) ?_ ?_ ?_
   · intro ψ ta hta ρ
     obtain rfl := Option.some.inj ((hreadI ψ).symm.trans hta)
-    exact hFD.okTy ψ ρ
+    exact ⟨hFD.okTy ψ ρ, IsTy_mkPisAV_sort _ _ _⟩
   · intro ψ ta hta ρ
     obtain rfl := Option.some.inj ((hreadI ψ).symm.trans hta)
     exact hAmem ψ ρ
