@@ -40,9 +40,9 @@ theorem nestCtors_typed {ops : CheckerOps CheckM} {env : Env} {ctx : NestCtx}
       {st' : NestState},
       nestCtors ctx ops env rec prog hi us ds names holes cs st = .ok (os, st') →
       os.length = cs.length ∧ ∀ (j : Nat) (cA : ConstantVal × Nat), cs[j]? = some cA →
-        ∃ crest ty, nestCrest names us ds holes
+        ∃ crest ty u, nestCrest names us ds holes
             (cA.1.type.instantiateLevelParams cA.1.levelParams us) = some crest ∧
-          ops.inferType env hi crest = .ok ty
+          ops.inferType env hi crest = .ok ty ∧ ops.ensureSort env hi ty = .ok u
   | [], st, os, st', h => by
     simp only [nestCtors, pure, Except.pure, Except.ok.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, -⟩ := h
@@ -62,6 +62,7 @@ theorem nestCtors_typed {ops : CheckerOps CheckM} {env : Env} {ctx : NestCtx}
     rename_i ty hty
     split at h
     · simp at h
+    rename_i u hsort
     split at h
     · simp at h
     split at h
@@ -78,7 +79,7 @@ theorem nestCtors_typed {ops : CheckerOps CheckM} {env : Env} {ctx : NestCtx}
       | zero =>
         simp only [List.getElem?_cons_zero, Option.some.injEq] at hj
         subst hj
-        exact ⟨crest, ty, unwrapOr_ok hcrest, hty⟩
+        exact ⟨crest, ty, u, unwrapOr_ok hcrest, hty, hsort⟩
       | succ j =>
         simp only [List.getElem?_cons_succ] at hj
         exact hall j cA hj
@@ -300,7 +301,8 @@ theorem checkBlockPositivity_inv_gen {ops : CheckerOps CheckM} {env₁ : Env}
         ∃ crest tyN, nestCrest (p.nestCtx fvsP find?).names (p.lps.map .param) fvsP holes
             cA.1.type = some crest ∧
           (nfs.getD c []).getD j default = tyN ∧
-          (∃ ty, ops.inferType env₁ ((p.nestCtx fvsP find?).hiAt 0) crest = .ok ty) ∧
+          (∃ ty u, ops.inferType env₁ ((p.nestCtx fvsP find?).hiAt 0) crest = .ok ty ∧
+            ops.ensureSort env₁ ((p.nestCtx fvsP find?).hiAt 0) ty = .ok u) ∧
           tyN.allLevelParamsDefined p.lps = true ∧
           (∃ xq sorts, openPisAtFvars cA.2 tyN ((p.nestCtx fvsP find?).hiAt 0) = some xq ∧
             checkStructFieldSortsI ops env₁ (Level.isEquiv p.resSort .zero == some true) false
@@ -314,7 +316,7 @@ theorem checkBlockPositivity_inv_gen {ops : CheckerOps CheckM} {env₁ : Env}
   obtain ⟨-, hall⟩ := nestRoot_inv hr
   obtain ⟨st₀, os, st₁, hms, hoc⟩ := hall c cs hc
   obtain ⟨hlen, htyped⟩ := nestCtors_typed hms
-  obtain ⟨crest, ty, hcrest, hty⟩ := htyped j cA hj
+  obtain ⟨crest, ty, u, hcrest, hty, hsort⟩ := htyped j cA hj
   have hl := hlps c cs hc cA (List.mem_of_getElem? hj)
   rw [rootCrest_eq _ _ hl] at hcrest
   obtain ⟨o, hoj⟩ : ∃ o, os[j]? = some o :=
@@ -327,7 +329,7 @@ theorem checkBlockPositivity_inv_gen {ops : CheckerOps CheckM} {env₁ : Env}
   rw [Expr.instantiateLevelParams_self] at hA'
   obtain ⟨hlp, xq, sorts, hxq, hsorts⟩ :=
     checkAbsCtorSorts_inv (checkAbsCtorSortsAll_inv hA c cs os hc hoc) j cA o hj hoj
-  exact ⟨crest, o.2, hcrest, outs_getD hoc hoj default, ⟨ty, hty⟩, hlp, ⟨xq, sorts, hxq, hsorts⟩,
-    A, hA', hocc⟩
+  exact ⟨crest, o.2, hcrest, outs_getD hoc hoj default, ⟨ty, u, hty, hsort⟩, hlp,
+    ⟨xq, sorts, hxq, hsorts⟩, A, hA', hocc⟩
 
 end ConLeche

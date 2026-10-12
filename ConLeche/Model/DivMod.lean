@@ -172,6 +172,7 @@ theorem divMod_entry_cons {m : EnvModel V env} {φ : Name → Nat}
     (hf₂ : (⟨c₀ :: env.consts⟩ : Env).find? c
       = some (.defnInfo cv' v' hint')) :
     natOpGuard (⟨c₀ :: env.consts⟩ : Env) c = true ∧
+    ConLeche.natOpTyPinned (⟨c₀ :: env.consts⟩ : Env) c cv'.type = true ∧
     ∀ (ρ : Nat → V) (x y : V),
       x ∈ˢ interp V ρ (m₂.acval ConLeche.natName φ) →
       y ∈ˢ interp V ρ (m₂.acval ConLeche.natName φ) →
@@ -181,7 +182,7 @@ theorem divMod_entry_cons {m : EnvModel V env} {φ : Name → Nat}
     split at hf₂
     · next heq => exact absurd heq.symm hne
     · exact hf₂
-  obtain ⟨hg, hclauses⟩ := hprev c hcN cv' v' hint' hfE
+  obtain ⟨hg, hpin, hclauses⟩ := hprev c hcN cv' v' hint' hfE
   -- every head the clauses read is stored, hence not the fresh name
   have hstored := dmValNames_stored hcN hg (by simp [hfE])
   have hmove : ∀ n ∈ dmValNames c, m₂.acval n φ = m.acval n φ := by
@@ -196,7 +197,7 @@ theorem divMod_entry_cons {m : EnvModel V env} {φ : Name → Nat}
   have hnat : m₂.acval ConLeche.natName φ = m.acval ConLeche.natName φ :=
     hmove _ (by simp [dmValNames])
   refine ⟨ConLeche.Verify.natOpGuard_cons hfresh hg,
-    fun ρ x y hx hy => ?_⟩
+    ConLeche.Verify.natOpTyPinned_cons hfresh hpin, fun ρ x y hx hy => ?_⟩
   rw [hnat] at hx hy
   exact (divModClausesV_congr hcN
     (fun n hn => by rw [hmove n hn])).mp (hclauses ρ x y hx hy)

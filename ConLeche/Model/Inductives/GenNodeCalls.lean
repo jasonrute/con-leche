@@ -490,10 +490,10 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       obtain ⟨hfC, -⟩ := hcore.2.2.2 m hmk j cA hcj
       have hw := mpC.base2.wf _ (List.mem_of_find?_eq_some hfC)
       -- the member forest
-      obtain ⟨crest, ks, ts, hcrest, hd, ⟨ty, hty⟩, hforest, he⟩ :=
+      obtain ⟨crest, ks, ts, hcrest, hd, ⟨ty, u, hty, hsort⟩, hforest, he⟩ :=
         hMF m _ (by rw [hcsR, ← hctM]) j cA hcj
       obtain ⟨nds, cur, htele0, htyN, hndC, hnl, hcrC, hcurC, -, hsemB⟩ := blk_ctorFit mk ψ hN
-        hcoreK hnamesD rfl hnPD hkD hcv0 hop0 hholes0 hcj hw.1 hw.2.2.2.1 hcrest hty hd
+        hcoreK hnamesD rfl hnPD hkD hcv0 hop0 hholes0 hcj hw.1 hw.2.2.2.1 hcrest hty hsort hd
       -- the entry: the member constructor's recorded normal form (the root
       -- frame's, `MemberForests`), the class matching it (its parameters the
       -- canonical ones)

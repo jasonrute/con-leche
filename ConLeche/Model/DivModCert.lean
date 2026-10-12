@@ -2065,8 +2065,10 @@ theorem divMod_install {F : Nat} (mp : EnvModelM V μ env)
       (show cq ≠ (ConstantInfo.defnInfo ⟨c, lps, type'⟩ value'
         hint).name from hne) hf₂
   subst hne
-  clear hf₂ hcqN
-  refine ⟨(ConLeche.divModEnvGuard_inv hgenv).1, fun ρ x y hx hy => ?_⟩
+  clear hcqN
+  refine ⟨(ConLeche.divModEnvGuard_inv hgenv).1,
+    ConLeche.natOpTyPinned_of_deps (Or.inr hcmem)
+      (ConLeche.divModEnvGuard_inv hgenv).2.1 hf₂, fun ρ x y hx hy => ?_⟩
   have hnatNe : ConLeche.natName ≠ cq :=
     (ConLeche.natDivModNames_ne_env hcmem).1.symm
   rw [hac, show acvalWith mp.base2.acval cq A ConLeche.natName

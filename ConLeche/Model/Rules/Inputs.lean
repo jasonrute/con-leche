@@ -18,16 +18,19 @@ Eight fields are the laws `EnvModelM` already carries: `ConstType`,
 `Model/Annot/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
 each of them off the fold's invariant.
 
-Two fields are NEW SHAPES:
+Three fields are NEW SHAPES:
 
 * `NatSuccRow` / `NatOpRow` — the literal accelerations' semantic
   content, stated at the shapes `reduceNat` fires on with the
   arguments already at literal readings (`rawNatLit?`), and with the
-  subject's reading a premise.  They are proved in
-  `Model/NatStep.lean` from `EnvModelM.nat_ops`/`div_mod`, which is
-  where the content lives; they stay ARGUMENTS of `ofEnvModelM`
-  because that file sits above this one (`Model/Capstone.lean`'s
-  `RulesInputs.ofSem` supplies them).
+  subject's reading a premise;
+* `NatOpHead` — a fired operation's head is a function over the `Nat`
+  leaf (its pinned type), whence its arguments' domain.
+
+The three are proved in `Model/NatStep.lean` from
+`EnvModelM.nat_ops`/`div_mod`, which is where the content lives; they stay
+ARGUMENTS of `ofEnvModelM` because that file sits above this one
+(`Model/Capstone.lean`'s `RulesInputs.ofSem` supplies them).
 
 The row for the `Red.natLit` step (`lit n ↦ natLitToConstructor n`)
 needs no input: the reading is invisible to the step
@@ -73,6 +76,23 @@ graded. -/
       ∀ ρ : Nat → V, WellDenotedV V ρ ea →
         WellDenotedV V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
+/-- **The binary acceleration's head**: a stored operation the rule fires
+on is read over the `Nat` leaf, a function on `Nat` of a function on `Nat`
+(its stored type is pinned at install, `natOpTyPinned`), and the literal
+basis is stored.  `Red.natOp_sound` reads the domains off it: the redex is
+not the point, so neither is the head, whose graph fixes its domain
+(`piR_dom_unique`, task #342 L12). -/
+@[expose] def NatOpHead {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
+    Prop :=
+  ∀ {c : Name}, c ∈ natBinOpNames → ConLeche.natOpStored env c = true →
+    ConLeche.natLitSupported env = true ∧
+    ∀ {d : Nat} {ca : AnnotTerm},
+      denoteMeta m.acval env φ d (.const c []) = some ca →
+      ∀ ρ : Nat → V, ∃ (b₁ b₂ : Nat) (X : V),
+        interp V ρ ca ∈ˢ piR b₁ (interp V ρ (m.acval natName (Level.substFn φ [] [])))
+          (fun _ => piR b₂ (interp V ρ (m.acval natName (Level.substFn φ [] [])))
+            (fun _ => X))
+
 /-- **The environment-level inputs of the rules soundness**, at one
 `(env, m, φ)`, sorted by discharging tier. -/
 structure RulesInputs (V : Type w) [SetTheory V] {env : Env}
@@ -99,15 +119,18 @@ structure RulesInputs (V : Type w) [SetTheory V] {env : Env}
   nat_succ : NatSuccRow m φ
   /-- literal tier: the binary operations -/
   nat_op : NatOpRow m φ
+  /-- literal tier: the binary operations' heads, over `Nat` -/
+  nat_op_head : NatOpHead m φ
 
 /-- **The env-tier inputs, from the fold's invariant**: every field but
-the two literal rows is an `EnvModelM` projection; the rows stay
-arguments because `natSuccRow_of`/`natOpRow_of` (`Model/NatStep.lean`)
+the three literal rows is an `EnvModelM` projection; the rows stay
+arguments because `natSuccRow_of`/`natOpRow_of`/`natOpHead_of` (`Model/NatStep.lean`)
 sit above this file — `Model/Capstone.lean`'s `RulesInputs.ofSem`
 supplies them. -/
 theorem RulesInputs.ofEnvModelM {env : Env} {φ : Name → Nat}
     (mp : EnvModelM V μ env)
-    (hsucc : NatSuccRow mp.base2 φ) (hop : NatOpRow mp.base2 φ) :
+    (hsucc : NatSuccRow mp.base2 φ) (hop : NatOpRow mp.base2 φ)
+    (hhead : NatOpHead mp.base2 φ) :
     RulesInputs V mp.base2 φ where
   const_ty := mp.constType
   leaf_valid := mp.acvalValid
@@ -119,5 +142,6 @@ theorem RulesInputs.ofEnvModelM {env : Env} {φ : Name → Nat}
   ind_fib := mp.indFibLaw φ
   nat_succ := hsucc
   nat_op := hop
+  nat_op_head := hhead
 
 end ConLeche.Model.Rules

@@ -926,6 +926,115 @@ theorem eqRecValAV_congr {ψ₁ ψ₂ : Name → Nat} (hu : ψ₁ uN = ψ₂ uN)
     eqReflValAV_congr hu]
 
 set_option maxHeartbeats 1000000 in
+/-- **`Eq.rec`'s licence facts.**  The rule is K (`Eq.refl` has no
+fields): at ANY major in the major's domain `eqv a b` the recursor
+fires to the minor premise (`eqRecRaTower_app₆` against
+`eqRecRa_app₄`, which never look at the major's value), and the
+transport is the row's four `WellDenotedV_app_of` steps.
+`Eq.refl` binds two parameters; (S)/(P)/(U) concern rules that are not
+K and are vacuous. -/
+theorem eqRecExtra {m : EnvModel V env}
+    (m₂ : EnvModel V ⟨eqRecA :: env.consts⟩)
+    (hE : env.find? eqName = some eqA)
+    (hR : env.find? eqReflName = some eqReflA)
+    (hEv : ∀ ψ : Name → Nat, m.acval eqName ψ = eqValAV ψ)
+    (hRv : ∀ ψ : Name → Nat, m.acval eqReflName ψ = eqReflValAV ψ)
+    (hac : m₂.acval = acvalWith m.acval eqRecA.name eqRecValAV)
+    (φ : Name → Nat) :
+    RecRuleExtra m₂ φ eqRecA.name eqRecA.toConstantVal 5 4
+      eqRecRule := by
+  intro us _ TVa hTVa
+  obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
+      ψ = Level.substFn φ eqRecA.toConstantVal.levelParams us :=
+    ⟨_, rfl⟩
+  have hz : pwBit ψ (ConLeche.PropWhen.ifAllZero [u1N]) = 0 ↔ ψ u1N = 0 :=
+    pwBit_ifAllZero_single ψ u1N
+  have hRa : denoteMeta m₂.acval ⟨eqRecA :: env.consts⟩ φ 0
+      (eqRecRule.rhs.instantiateLevelParams
+        eqRecA.toConstantVal.levelParams us)
+      = some (eqRecRa (pwBit ψ (.ifAllZero [u1N])) ψ) := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denoteMeta_eqRec_rhs (m := m) _ hE hR hEv hRv]
+  have hTyRead : denoteMeta m₂.acval ⟨eqRecA :: env.consts⟩ φ 0
+      (eqRecA.toConstantVal.type.instantiateLevelParams
+        eqRecA.toConstantVal.levelParams us)
+      = some (eqRecTy (pwBit ψ (.ifAllZero [u1N])) ψ) := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denoteMeta_eqRecA_type (m := m) _ hE hR hEv hRv]
+  obtain rfl : TVa = _ :=
+    (Option.some.inj (hTyRead.symm.trans hTVa)).symm
+  have hrecL : m₂.acval eqRecA.name
+      (Level.substFn φ eqRecA.toConstantVal.levelParams us)
+      = eqRecValAV ψ := by
+    rw [hac, acvalWith_self, hψ]
+  have hR' : (⟨eqRecA :: env.consts⟩ : Env).find? eqReflName
+      = some eqReflA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hR
+  refine ⟨fun _ => ⟨rfl, fun Ra hRa' ρ xs a restR hxs hfitR => ?_⟩,
+    fun cvj cnP cnF hfj => ?_⟩
+  · obtain rfl : Ra = _ := (Option.some.inj (hRa'.symm.trans hRa))
+    obtain ⟨x1, x2, x3, x4, x5, rfl⟩ :
+        ∃ p q r s t, xs = [p, q, r, s, t] := by
+      match xs, hxs with
+      | [p, q, r, s, t], _ => exact ⟨p, q, r, s, t, rfl⟩
+    rw [eqRecTy] at hfitR
+    cases hfitR with | cons f1 hfitR =>
+    cases hfitR with | cons f2 hfitR =>
+    cases hfitR with | cons f3 hfitR =>
+    cases hfitR with | cons f4 hfitR =>
+    cases hfitR with | cons f5 hfitR =>
+    cases hfitR with | cons f6 _ =>
+    rw [interp_sort] at f1
+    rw [interp_inst0] at f2
+    simp only [interp_bvar, cons] at f2
+    rw [interp_inst0, interp_inst_cons1,
+      (eqRecMotiveTy_data ρ f1 f2).1] at f3
+    rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+      (eqRecMinorTy_data ρ f1 f2 f3).1] at f4
+    rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+      interp_inst_cons3] at f5
+    simp only [interp_bvar, cons] at f5
+    rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+      interp_inst_cons3, interp_inst_cons4,
+      (eqSpine_interp (ρ := cons (interp V ρ x5) (cons (interp V ρ x4)
+          (cons (interp V ρ x3) (cons (interp V ρ x2)
+            (cons (interp V ρ x1) ρ))))) (i := 4) (j := 3) (k := 0)
+        (by simp [cons]) (by simp [cons]) (by simp [cons])
+        f1 f2 f5).1] at f6
+    refine ⟨?_, ?_⟩
+    · -- the fired equality: both sides are the minor premise
+      simp only [List.take, List.cons_append, List.nil_append,
+        AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL, interp_app]
+      rw [← AnnotTerm.BitAgree.interp_eq V (bitAgree_eqRecValAV ψ) ρ,
+        eqRecRaTower_app₆ ψ hz ρ f1 f2 f3 f4 f5 f6,
+        eqRecRa_app₄ ψ hz ρ f1 f2 f3 f4]
+    · -- the transport
+      intro hxsA
+      simp only [List.take, AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil]
+      have hRm := (eqRecRa_data ψ hz ρ).2
+      rw [eqRecRaSpace] at hRm
+      have h1 := WellDenotedV_app_of ((eqRecRa_data ψ hz ρ).1)
+        (hxsA x1 (by simp)) hRm f1
+        (fun hb0 _ _ => by rw [hb0]; exact piR_zero_mem_univZero)
+        (fun _ => IsTy_univ _)
+      have h2 := WellDenotedV_app_of h1.1 (hxsA x2 (by simp)) h1.2 f2
+        (fun hb0 _ _ => by rw [hb0]; exact piR_zero_mem_univZero)
+        (fun _ => IsTy_of_mem_univ f1)
+      have h3 := WellDenotedV_app_of h2.1 (hxsA x3 (by simp)) h2.2 f3
+        (fun hb0 _ _ => by rw [hb0]; exact piR_zero_mem_univZero)
+        (fun _ => IsTy_piR _ _ _)
+      exact (WellDenotedV_app_of h3.1 (hxsA x4 (by simp)) h3.2 f4
+        (fun hb0 _ _ => by
+          rw [← univ_zero, ← hz.mp hb0]
+          exact (eqRecMinorTy_data ρ f1 f2 f3).2.2)
+        (fun _ => IsTy_of_mem_univ (eqRecMinorTy_data ρ f1 f2 f3).2.2)).1
+  · rw [show RecRule.ctor eqRecRule = eqReflName from rfl, hR'] at hfj
+    obtain rfl : cvj = eqReflA.toConstantVal := by
+      injection Option.some.inj hfj with a1 _ _
+      exact a1.symm
+    exact ⟨rfl, fun h => (nomatch h)⟩
+
+set_option maxHeartbeats 1000000 in
 /-- **`Eq.rec`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
 `.nested` conjuncts are `nomatch`; the fired equality is the minor
 premise on both sides (`eqRecRaTower_app₆` against `eqRecRa_app₄`),
@@ -940,7 +1049,8 @@ theorem eqRecLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ eqRecA.name eqRecA.toConstantVal 5 4
       eqRecRule := by
-  refine ⟨by decide, fun us hus => ?_, sorry⟩
+  refine ⟨by decide, fun us hus => ?_,
+    eqRecExtra (m := m) m₂ hE hR hEv hRv hac φ⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ eqRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩

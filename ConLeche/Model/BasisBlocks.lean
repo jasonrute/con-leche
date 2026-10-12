@@ -1205,6 +1205,90 @@ theorem natRecTyRead (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     denoteMeta_natRecA_type (m := m) _ hN hZ hS, ← hψ]
   rfl
 
+/-- The major of a `Nat.rec` spine fitting the recursor's instantiated
+type reads in `ω`, which holds no point. -/
+theorem natRecMajor_ne_pt (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
+    (hN : env.find? natName = some natA)
+    (hZ : env.find? natZeroName = some natZeroA)
+    (hS : env.find? natSuccName = some natSuccA)
+    (hac : m₂.acval = acvalWith m.acval natRecA.name A)
+    (φ : Name → Nat) (us : List Level) {TVa : AnnotTerm}
+    (hTVa : denoteMeta m₂.acval ⟨natRecA :: env.consts⟩ φ 0
+        (natRecA.toConstantVal.type.instantiateLevelParams
+          natRecA.toConstantVal.levelParams us) = some TVa)
+    (ρ : Nat → V) {xs : List AnnotTerm} {a restR : AnnotTerm}
+    (hxs : xs.length = 3) (hfit : TeleFitPA V ρ TVa (xs ++ [a]) restR) :
+    interp V ρ a ≠ pt := by
+  obtain rfl : TVa = _ := (Option.some.inj
+    ((natRecTyRead (m := m) m₂ hN hZ hS hac φ us rfl).symm.trans
+      hTVa)).symm
+  obtain ⟨-, -, -, -, -, -, -, ha⟩ := natRecTelescope _ ρ hxs a restR hfit
+  intro h
+  rw [h] at ha
+  exact pt_not_mem_omega ha
+
+/-- **`Nat.rec`'s licence facts**, either rule: not K; the major's
+domain `ω` holds no point, so (S) and (P) hold outright; no indices,
+`paramsBlind`, `.plain`, so (U) is the trivial index pin. -/
+theorem natRecExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
+    (hN : env.find? natName = some natA)
+    (hZ : env.find? natZeroName = some natZeroA)
+    (hS : env.find? natSuccName = some natSuccA)
+    (hac : m₂.acval = acvalWith m.acval natRecA.name A)
+    (φ : Name → Nat) (rl : RecRule) (hk : rl.k = false)
+    (hpb : rl.paramsBlind = true) (hfire : rl.fire = .plain)
+    (harity : ∀ (cvj : ConstantVal) (cnP cnF : Nat),
+      (⟨natRecA :: env.consts⟩ : Env).find? rl.ctor
+        = some (.ctorInfo cvj cnP cnF) →
+      (cvj.type.stripPis (rl.ctorParams + rl.nfields)).isSome = true) :
+    RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3 rl := by
+  intro us _ TVa hTVa
+  refine ⟨fun h => by simp [hk] at h, fun cvj cnP cnF hfj =>
+    ⟨harity cvj cnP cnF hfj, fun _ usj _ _ TVja _ => ⟨?_, ?_, ?_⟩⟩⟩
+  · intro _ ρ xs a restR hxs hfit
+    exact natRecMajor_ne_pt (m := m) m₂ hN hZ hS hac φ us hTVa ρ hxs hfit
+  · intro ρ xs a restR hxs hfit ha
+    exact absurd ha
+      (natRecMajor_ne_pt (m := m) m₂ hN hZ hS hac φ us hTVa ρ hxs hfit)
+  · intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
+    refine ⟨fun h => by simp [hpb] at h, fun lvls pins h => ?_,
+      fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
+    rw [hfire] at h
+    cases h
+
+/-- `Nat.rec`'s `zero` rule's licence facts. -/
+theorem natRecZeroExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
+    (hN : env.find? natName = some natA)
+    (hZ : env.find? natZeroName = some natZeroA)
+    (hS : env.find? natSuccName = some natSuccA)
+    (hac : m₂.acval = acvalWith m.acval natRecA.name A)
+    (φ : Name → Nat) :
+    RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3
+      natRecZeroRule :=
+  natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl rfl rfl
+    (fun _ _ _ _ => rfl)
+
+/-- `Nat.rec`'s `succ` rule's licence facts. -/
+theorem natRecSuccExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
+    (hN : env.find? natName = some natA)
+    (hZ : env.find? natZeroName = some natZeroA)
+    (hS : env.find? natSuccName = some natSuccA)
+    (hac : m₂.acval = acvalWith m.acval natRecA.name A)
+    (φ : Name → Nat) :
+    RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3
+      natRecSuccRule := by
+  refine natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl rfl rfl ?_
+  intro cvj cnP cnF hfj
+  have hS' : (⟨natRecA :: env.consts⟩ : Env).find? natSuccName
+      = some natSuccA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hS
+  rw [show RecRule.ctor natRecSuccRule = natSuccName from rfl,
+    hS'] at hfj
+  injection Option.some.inj hfj with a1 _ _
+  have hcvj : cvj = natSuccA.toConstantVal := a1.symm
+  subst hcvj
+  rfl
+
 /-- **`Nat.rec`'s `zero` row.** -/
 theorem natRecZeroLaw {m : EnvModel V env}
     (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
@@ -1216,7 +1300,8 @@ theorem natRecZeroLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecZeroRule := by
-  refine ⟨Nat.le_refl 3, fun us hus => ?_, sorry⟩
+  refine ⟨Nat.le_refl 3, fun us hus => ?_,
+    natRecZeroExtra (m := m) m₂ hN hZ hS hac φ⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
@@ -1277,7 +1362,8 @@ theorem natRecSuccLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecSuccRule := by
-  refine ⟨Nat.le_refl 3, fun us hus => ?_, sorry⟩
+  refine ⟨Nat.le_refl 3, fun us hus => ?_,
+    natRecSuccExtra (m := m) m₂ hN hZ hS hac φ⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩

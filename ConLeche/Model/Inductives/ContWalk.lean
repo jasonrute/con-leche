@@ -9,8 +9,6 @@ import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.Inductives.ContSubst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Model.Rules.Inputs
-import ConLeche.Model.Rules.Sound
-import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.SumKit
 import ConLeche.Verify.Inductives.NestContInv
@@ -19,6 +17,7 @@ import ConLeche.Model.Inductives.BlockHoleValid
 import ConLeche.Semantics.Tower.BlockTower
 import ConLeche.Verify.Inductives.NestNfScope
 import ConLeche.Model.WellDenotedTransport
+import ConLeche.Model.Inductives.TypeStep
 
 public section
 
@@ -876,9 +875,10 @@ theorem frameIter (hin : RulesInputs V mp.base2 φ) {F : Nat}
       (∀ (x : ConstantVal × Nat) (crest : Expr), Q x →
         ConLeche.nestCrest (grp.map (·.1)) us ds (grpHoles hi grp)
           (x.1.type.instantiateLevelParams x.1.levelParams us) = some crest →
-        (∃ ty, ConLeche.inferTypeCore .verified env F (hi + grp.length) crest = .ok ty) →
+        (∃ ty u, ConLeche.inferTypeCore .verified env F (hi + grp.length) crest = .ok ty ∧
+          ConLeche.ensureSortCore .verified env F (hi + grp.length) ty = .ok u) →
         ∃ ca, Frame (hi + grp.length) crest ∧ CtxOkP mp.base2 φ (hi + grp.length) Δ crest ∧
-          denoteMeta mp.base2.acval env φ (hi + grp.length) crest = some ca ∧ Graded V Δ ca) →
+          denoteMeta mp.base2.acval env φ (hi + grp.length) crest = some ca ∧ GradedTy V Δ ca) →
       (∀ x ∈ ctors, Q x) →
       ∀ x ∈ ctors, CtorWalked mp.base2 φ ctx (hi + grp.length) us ds (grp.map (·.1))
         (grpHoles hi grp) R x) :
@@ -919,11 +919,8 @@ theorem frameIter (hin : RulesInputs V mp.base2 φ) {F : Nat}
         crest_read mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hc hj hfc
       rw [hcr] at hcr'
       obtain rfl := Option.some.inj hcr'
-      obtain ⟨ty, hty⟩ := hinf
-      have hIS : InferSemFull mp.base2 φ (hi + grp.length) crest ty :=
-        infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-      obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hrd
-      exact ⟨_, hfr, hC, hrd, hgr⟩)
+      obtain ⟨ty, u, hty, hsort⟩ := hinf
+      exact ⟨_, hfr, hC, hrd, gradedTy_of_sort hin hty hsort hfr hC.toCtxOk hrd⟩)
     hQ
   have hkNN := h.kN
   have htr : ∀ ρ ρ', R₀ ρ ρ' → ∀ g, InGrp D grp g → ∀ t j fs,
