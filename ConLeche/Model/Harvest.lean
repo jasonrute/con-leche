@@ -243,7 +243,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
     exact (hrE ρ (Sat_nil V ρ)).1
-  have hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
+  have : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       AnnotValid V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
@@ -317,7 +317,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         (denoteMeta_erase mp.base2.acval_erase 0 value' (hA ψ)))
       hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq)) hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
     show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -446,7 +446,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
           (hAclosed ψ) (hA ψ) 2
       obtain ⟨hSelfBin, hSelfUn, hBoolS⟩ := natSelfHead_install (φ := φ) mp
         hcmem hfresh hpin hsE hTa hTok hA2
-        (fun ψ ρ => ⟨hAok ψ ρ, hAvalid ψ ρ⟩) hmemA
+        (fun ψ ρ => ⟨hAok ψ ρ, ψ ρ⟩) hmemA
       exact natOps_install mp ((hclaims φ).2.2.1) (mp.nat_ops φ)
         hcmem hfresh hlpcv hsE hg2 hdeps₂ hruns hA hAclosed hvf' hbv'
         hSelfBin hSelfUn hBoolS _ rfl
@@ -469,7 +469,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         hTa (fun ψ ρ => by
           obtain ⟨sta, hsta, hT1, -, -⟩ := hrowsT ψ
           exact hT1 ρ (Sat_nil V ρ))
-        (fun ψ ρ => ⟨hAok ψ ρ, hAvalid ψ ρ⟩) hmemA _ rfl
+        (fun ψ ρ => ⟨hAok ψ ρ, ψ ρ⟩) hmemA _ rfl
     · exact divMod_cons_fresh (mp.div_mod φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh
@@ -626,7 +626,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
     exact (hrE ρ (Sat_nil V ρ)).1
-  have hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
+  have : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       AnnotValid V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
@@ -698,7 +698,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
         (denoteMeta_erase mp.base2.acval_erase 0 value' (hA ψ)))
       hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq)) hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
     show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -803,8 +803,6 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     (hmemA : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta mp.base2.acval env ψ 0 type' = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
@@ -888,7 +886,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       hAvclosed hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq))
     hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
     show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -1076,7 +1074,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
     exact (hrE ρ (Sat_nil V ρ)).1
-  have hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
+  have : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       AnnotValid V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
@@ -1149,7 +1147,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq))
     hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
     show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -1220,7 +1218,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     -- run is what makes the law true of it (`Model/ReduceOps.lean`);
     -- every *other* stored operation crosses by the transport inside.
     exact reduceOps_install hμ mp hfresh hvf' hbv' hannv hA hAclosed
-      hAok hAvalid hTa
+      hAok hTa
       (fun ψ ρ => by
         obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
         exact htE ρ (Sat_nil V ρ))

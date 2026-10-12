@@ -163,7 +163,7 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     subst hr
     refine ⟨natLit mp.base2 φ K,
       denoteMeta_natLit_spine mp.base2 hnat d K, fun ρ _ => ⟨?_, ?_⟩⟩
-    · exact (natLit_facts mp.base2 (mp.nat_heads φ) mp.acvalValid hnat
+    · exact (natLit_facts mp.base2 (mp.nat_heads φ) hnat
         ρ K).1
     · rw [interp_app, interp_app]
       exact hop ρ
@@ -195,68 +195,60 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
       · exact denoteMeta_levelless_const hfT hlpT
       · exact denoteMeta_levelless_const hfF hlpF
     refine ⟨mp.base2.acval bn φ, hread, fun ρ _ => ⟨?_, ?_⟩⟩
-    · exact ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acvalValid _ _ ρ⟩
+    · exact mp.base2.acval_wellDenoted _ _ ρ
     · rw [interp_app, interp_app]
       exact hop ρ
   rcases h14 with rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|
     rfl|rfl|rfl
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_add mp.base2 (mp.nat_ops φ) (mp.nat_heads φ)
-        mp.acvalValid hfc ρ n₁ n₂)
+      (fun ρ => natOpV_add mp.base2 (mp.nat_ops φ) (mp.nat_heads φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_sub mp.base2 (mp.nat_ops φ) (mp.nat_heads φ)
-        mp.acvalValid hfc ρ n₁ n₂)
+      (fun ρ => natOpV_sub mp.base2 (mp.nat_ops φ) (mp.nat_heads φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_mul mp.base2 (mp.nat_ops φ) (mp.nat_heads φ)
-        mp.acvalValid hfc ρ n₁ n₂)
+      (fun ρ => natOpV_mul mp.base2 (mp.nat_ops φ) (mp.nat_heads φ) hfc ρ n₁ n₂)
   · -- `pow`: the reduct exists only below the official exponent cap
     exact close _ (by
         have hres' := hres
         simp +decide [natOpResult] at hres'
         exact hres'.2.symm)
-      (fun ρ => natOpV_pow mp.base2 (mp.nat_ops φ) (mp.nat_heads φ)
-        mp.acvalValid hfc ρ n₁ n₂)
+      (fun ρ => natOpV_pow mp.base2 (mp.nat_ops φ) (mp.nat_heads φ) hfc ρ n₁ n₂)
   · refine closeB (Or.inl rfl)
       (if n₁ = n₂ then ConLeche.boolTrueName else ConLeche.boolFalseName)
       (by by_cases hh : n₁ = n₂ <;> simp [hh])
       (by simpa +decide [natOpResult] using hres.symm) ?_
-    exact fun ρ => natOpV_beq mp.base2 (mp.nat_ops φ) (mp.nat_heads φ)
-      mp.acvalValid hfc ρ n₁ n₂
+    exact fun ρ => natOpV_beq mp.base2 (mp.nat_ops φ) (mp.nat_heads φ) hfc ρ n₁ n₂
   · refine closeB (Or.inr rfl)
       (if n₁ ≤ n₂ then ConLeche.boolTrueName else ConLeche.boolFalseName)
       (by by_cases hh : n₁ ≤ n₂ <;> simp [hh])
       (by simpa +decide [natOpResult] using hres.symm) ?_
-    exact fun ρ => natOpV_ble mp.base2 (mp.nat_ops φ) (mp.nat_heads φ)
-      mp.acvalValid hfc ρ n₁ n₂
+    exact fun ρ => natOpV_ble mp.base2 (mp.nat_ops φ) (mp.nat_heads φ) hfc ρ n₁ n₂
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_div (mp.nat_ops φ) (mp.nat_heads φ) mp.acvalValid
+      (fun ρ => natOpV_div (mp.nat_ops φ) (mp.nat_heads φ)
         (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_mod (mp.nat_ops φ) (mp.nat_heads φ) mp.acvalValid
+      (fun ρ => natOpV_mod (mp.nat_ops φ) (mp.nat_heads φ)
         (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_gcd (mp.nat_ops φ) (mp.nat_heads φ) mp.acvalValid
+      (fun ρ => natOpV_gcd (mp.nat_ops φ) (mp.nat_heads φ)
         (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_land (mp.nat_ops φ) (mp.nat_heads φ) mp.acvalValid
+      (fun ρ => natOpV_land (mp.nat_ops φ) (mp.nat_heads φ)
         (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_lor (mp.nat_ops φ) (mp.nat_heads φ) mp.acvalValid
+      (fun ρ => natOpV_lor (mp.nat_ops φ) (mp.nat_heads φ)
         (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_xor (mp.nat_ops φ) (mp.nat_heads φ) mp.acvalValid
+      (fun ρ => natOpV_xor (mp.nat_ops φ) (mp.nat_heads φ)
         (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_shiftLeft (mp.nat_ops φ) (mp.nat_heads φ)
-        mp.acvalValid (mp.div_mod φ) hfc ρ n₁ n₂)
+      (fun ρ => natOpV_shiftLeft (mp.nat_ops φ) (mp.nat_heads φ) (mp.div_mod φ) hfc ρ n₁ n₂)
   · exact close _ (by simpa +decide [natOpResult] using hres.symm)
-      (fun ρ => natOpV_shiftRight (mp.nat_ops φ) (mp.nat_heads φ)
-        mp.acvalValid (mp.div_mod φ) hfc ρ n₁ n₂)
+      (fun ρ => natOpV_shiftRight (mp.nat_ops φ) (mp.nat_heads φ) (mp.div_mod φ) hfc ρ n₁ n₂)
 
 /-- **`NatOpHead`, proved.**  A stored operation the rule fires on keeps
 its pinned type `Nat → Nat → cod` in its `EnvModelM.nat_ops`/`div_mod`
 entry; its leaf inhabits that type's reading (`mem_type`), a two-step
-function space over the `Nat` leaf, at the stored regime bits. -/
+function space over the `Nat` leaf, its regimes read off the values. -/
 theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     Rules.NatOpHead mp.base2 φ := by
   intro c hc hst
@@ -288,7 +280,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   refine ⟨hnat, fun {d ca} hca ρ => ?_⟩
   obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, -, -, hlpN, -⟩ :=
     ConLeche.natLitSupported_inv hnat
-  obtain ⟨mb₁, mb₂, cod, hty, hcodB, hcodN⟩ := natOpTyPinned_shape_bin hnp hpin
+  obtain ⟨_, _, cod, hty, hcodB, hcodN⟩ := natOpTyPinned_shape_bin hnp hpin
   -- the head reads to the operation's leaf
   obtain ⟨cvc, vc, hcnt, hfc, hlpc⟩ := hdeps c (ConLeche.mem_natOpDeps_self hmemN)
   rw [hf] at hfc
@@ -320,12 +312,11 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   have hmem := mp.mem_type _ (ConLeche.Semantics.Env.find?_mem hf) φ _ hta ρ
   rw [show (ConstantInfo.defnInfo cv v hh).name = c from
     ConLeche.Semantics.Env.find?_name hf, interp_pi] at hmem
-  refine ⟨pwBit φ mb₁.pw, pwBit φ mb₂.pw, interp V ρ (mp.base2.acval codN φ), ?_⟩
   rw [substFn_nil]
   have hfib : (fun x => interp V (cons x ρ)
         ((.pi (mp.base2.acval ConLeche.natName φ)
           (mp.base2.acval codN φ)) : AnnotTerm))
-      = fun _ => piR (pwBit φ mb₂.pw) (interp V ρ (mp.base2.acval ConLeche.natName φ))
+      = fun _ => piV (interp V ρ (mp.base2.acval ConLeche.natName φ))
           (fun _ => interp V ρ (mp.base2.acval codN φ)) := by
     funext x
     rw [interp_pi]
@@ -334,6 +325,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     · funext y
       exact acval_interp_closed mp.base2 _ φ _ ρ
   rw [hfib] at hmem
-  exact hmem
+  unfold piV at hmem
+  exact ⟨_, _, _, hmem⟩
 
 end ConLeche.Model

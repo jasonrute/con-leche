@@ -271,7 +271,6 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     (hAbelow : ∀ ψ, Term.bvarsBelow 0 (A ψ).erase)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q) → A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (A ψ))
     (hAmem : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (mkPisAV (pps ψ) (.sort (resSort.eval ψ))))
     (hAstrict : ∀ (ψ : Name → Nat) (ρ : Nat → V) (vs : List V),
@@ -297,7 +296,7 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
       (fun _ _ _ _ h => nomatch h))
     (fun ψ kk => AnnotTerm.liftN_eq_self _
       (Term.bvarsBelow.mono (Nat.zero_le kk) (hAbelow ψ)) 1)
-    hAparams hAok hAvalid (fun ψ => ⟨_, hreadI ψ⟩) ?_ ?_ ?_
+    hAparams hAok (fun ψ => ⟨_, hreadI ψ⟩) ?_ ?_ ?_
     (hind := indStrictHead_cons hreadI fun ψ hn ρ vs hsp =>
       ((mem_strictU_pos hn).mp (hAstrict ψ ρ vs hsp)).2)
   · intro ψ ta hta ρ
@@ -429,7 +428,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
       ConLeche.envWF_cons_blockInd mp.base2.wf hhf hlp (hres i cvTa hi) hlb hspi
     obtain ⟨mpI, hacI⟩ := stageBlockFormer mp (names := names) hE hfresh
       (hnresOf i cvTa hi) (hpshapeOf i cvTa hi) hcb hwfI (hFD i cvTa hi)
-      (hAbelowOf i cvTa hi) (hAparamsOf i cvTa hi) (hAokOf i cvTa hi) (hAvalidOf i cvTa hi)
+      (hAbelowOf i cvTa hi) (hAparamsOf i cvTa hi) (hAokOf i cvTa hi)
       (hAmemOf i cvTa hi) (hAstrictOf i cvTa hi)
       (fun m₂ hac => hTlawsOf i cvTa hi mp.base2 (hFD i cvTa hi) hfresh hcb hfreshC m₂ hac)
     -- the invariants at the extension
@@ -491,7 +490,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
       exact hfreshC j cvTb hj he
     obtain ⟨mp', hE₂, hFD₂, hcons₂, hag₂⟩ :=
       stageBlockFormers hnames hndN hnresOf hpshapeOf htyWF hAbelowOf hAparamsOf hAokOf
-        hAvalidOf hAmemOf hAstrictOf hetaNe hTlawsOf rest (i + 1) _ mpI hrest' (by simp at hk; omega) hE'
+        hAmemOf hAstrictOf hetaNe hTlawsOf rest (i + 1) _ mpI hrest' (by simp at hk; omega) hE'
         hres' hfreshOf' hfreshC' hFD' hcons'
     refine ⟨mp', hE₂, hFD₂, hcons₂, fun n hn => ?_⟩
     rw [hag₂ n (fun cvTb hcvTb => hn cvTb (List.mem_cons_of_mem _ hcvTb)), hacI]

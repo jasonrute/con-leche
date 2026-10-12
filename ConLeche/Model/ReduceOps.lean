@@ -180,7 +180,6 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (A ψ))
     (hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
     (hTaOk : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenotedV V ρ (Ta ψ))

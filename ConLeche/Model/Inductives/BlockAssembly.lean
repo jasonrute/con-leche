@@ -412,7 +412,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
       obtain ⟨bs, hst⟩ := hF.stripOf j cvTa hj
       exact ⟨htf, hlpd, hbt,
         ConLeche.stripPis_isSome_of_le (Nat.le_add_right _ _) (by rw [hst]; rfl)⟩)
-    hAbelowOf hAparamsOf hAokOf hAvalidOf hAmemOf hAstrictOf hetaNe hTlawsOf
+    hAbelowOf hAparamsOf hAokOf hAmemOf hAstrictOf hetaNe hTlawsOf
     cvTas 0 env mp (fun j => by rw [Nat.zero_add]) (Nat.zero_add _)
     (hE.exceptL q.memberNames) hF.resolveOf (fun j cvTa _ hj => hF.freshOf j cvTa hj)
     hetaFresh hF.fdOf
