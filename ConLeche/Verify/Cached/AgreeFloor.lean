@@ -268,35 +268,6 @@ theorem checkOpaqueValCI_shape (mode : CheckMode) (fe : FEnv) (cvA : ConstantVal
   yields
   all_goals exact Yields.pure rfl
 
-theorem checkDefnValC_skels (mode : CheckMode) {fe : FEnv}
-    {sk : List InstallSkel} (h : SkelIs fe sk) (cvA : ConstantVal)
-    (jty value : Expr) (hint : ReducibilityHint) :
-    Yields (checkDefnValC mode fe cvA jty value hint)
-      (fun fe' => SkelIs fe' (.defn cvA.name :: sk)) := by
-  unfold checkDefnValC
-  refine Yields.bind' (checkDefnValCI_shape mode fe cvA jty value hint) fun ci hci => ?_
-  obtain ⟨v, rfl⟩ := hci
-  exact Yields.pure (h.push _)
-
-theorem checkThmValC_skels (mode : CheckMode) {fe : FEnv}
-    {sk : List InstallSkel} (h : SkelIs fe sk) (cvA : ConstantVal)
-    (jty value : Expr) :
-    Yields (checkThmValC mode fe cvA jty value)
-      (fun fe' => SkelIs fe' (.thm cvA.name :: sk)) := by
-  unfold checkThmValC
-  yields
-  all_goals (apply Yields.pure; exact h.push _)
-
-theorem checkOpaqueValC_skels (mode : CheckMode) {fe : FEnv}
-    {sk : List InstallSkel} (h : SkelIs fe sk) (cvA : ConstantVal)
-    (jty value : Expr) :
-    Yields (checkOpaqueValC mode fe cvA jty value)
-      (fun fe' => SkelIs fe' (.ax cvA.name :: sk)) := by
-  unfold checkOpaqueValC
-  refine Yields.bind' (checkOpaqueValCI_shape mode fe cvA jty value) fun ci hci => ?_
-  subst hci
-  exact Yields.pure (h.push _)
-
 /-! ## The per-member stages' skeletons
 
 Every stage's install decision is the block's own or a freshness
@@ -992,13 +963,8 @@ theorem checkDeclC_skels (mode : CheckMode) {fe : FEnv}
         rw [← hp]; exact h.push _
       yields
       all_goals (apply Yields.pure; exact h2)
-    · rw [← hp]; exact checkDefnValC_skels mode h cvA jty value hint
-  | thmDecl cv value =>
-    simp only []
-    refine Yields.bind' (checkConstantValC_name mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    rw [← hp]
-    exact checkThmValC_skels mode h cvA jty value
+    · exact Yields.ofThrow
+  | thmDecl cv value => exact Yields.ofThrow
   | opaqueDecl cv value =>
     simp only []
     refine Yields.bind' (checkConstantValC_name mode fe cv) fun p hp => ?_
@@ -1012,7 +978,7 @@ theorem checkDeclC_skels (mode : CheckMode) {fe : FEnv}
         rw [← hp]; exact h.push _
       yields
       all_goals (apply Yields.pure; exact h2)
-    · rw [← hp]; exact checkOpaqueValC_skels mode h cvA jty value
+    · exact Yields.ofThrow
   | axiomDecl cv =>
     simp only []
     -- task #293: `Quot.sound` is compared with the pin and installs

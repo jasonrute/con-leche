@@ -114,9 +114,9 @@ def installHeaderC (fe : FEnv) (cv : ConstantVal) :
     throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
   pure cv
 
-/-- The value half of `checkDefnValC`/`checkThmValC`/`checkOpaqueValC`
-minus its inference: the value's syntactic guards —
-`installValueGuards`'s cached twin.  Returns the value, as stored. -/
+/-- The value's syntactic guards (those of `checkDefnValCI`, without its
+inference) — `installValueGuards`'s cached twin.  Returns the value, as
+stored. -/
 def installValueGuardsC (fe : FEnv) (cvA : ConstantVal) (value : Expr) : CheckCM Expr := do
   unless Expr.looseBVarsBounded 0 value do
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
