@@ -679,6 +679,25 @@ theorem prepareMajorFueled_ind {env : Env} {fuel d : Nat} {recName : Name}
         dsimp only at h
         exact hmaj h (hlit h₂ (hwhnf h₁ ha))
 
+/-- **The recursor's arity at a successful iota step** (task #342 L18):
+the stored type has the spine's number of syntactic ∀-binders. -/
+theorem iotaRec_arity {env : Env} {fuel d : Nat} {e eout : Expr} {c : Name}
+    {us : List Level} {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule}
+    (h : iotaRecFueled mode env fuel d e = .ok (some eout))
+    (hfn : e.getAppFn = .const c us)
+    (hfc : env.find? c = some (.recInfo cv mI rP rules)) :
+    (Expr.peelPis (mI + 1) cv.type).isSome = true := by
+  dsimp only [iotaRecFueled] at h
+  simp only [iotaRec, Bind.bind, Except.bind] at h
+  rw [hfn] at h
+  dsimp only at h
+  rw [hfc] at h
+  dsimp only at h
+  by_cases hlen : e.getAppArgs.length = mI + 1 ∧
+      us.length = cv.levelParams.length ∧ (Expr.peelPis (mI + 1) cv.type).isSome = true
+  · exact hlen.2.2
+  · rw [ite_eq_right hlen] at h; exact nomatch h
+
 /-- Inversion of a successful iota step. -/
 theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
     (h : iotaRecFueled mode env fuel d e = .ok (some eout)) :
@@ -742,7 +761,7 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   intro h
   dsimp only at h
   by_cases hlen : e.getAppArgs.length = mI + 1 ∧
-      us.length = cv.levelParams.length
+      us.length = cv.levelParams.length ∧ (Expr.peelPis (mI + 1) cv.type).isSome = true
   case neg => rw [ite_eq_right hlen] at h; exact nomatch h
   rw [ite_eq_left hlen] at h
   try simp only [Bind.bind, Except.bind] at h
@@ -847,14 +866,14 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
     simp only [↓reduceIte, pure, Except.pure, Except.ok.injEq,
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
-      cnF, r, rfl, hfc, hlen.1, hlen.2, hprep, hmfn, hfj, hrule,
+      cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
       hml, hplain0, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
       fun _ => ⟨hmcerts, hidx⟩, h.symm⟩
   · rw [ite_eq_right h3] at h
     simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq,
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
-      cnF, r, rfl, hfc, hlen.1, hlen.2, hprep, hmfn, hfj, hrule,
+      cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
       hml, hplain0, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
       fun h3' => absurd h3' h3, h.symm⟩
 
@@ -1438,19 +1457,21 @@ theorem iotaCerts_step_inv_gate {env : Env} {fuel d : Nat} {lic : Bool}
     {rest : List Expr}
     (h : iotaCertsFueled mode env fuel d lic (.forallE ty body m) (arg :: rest) =
       .ok true) :
-    lic = true ∨
-    ∃ ta, inferTypeIO mode env fuel d arg = .ok ta ∧
+    (lic = true ∧ (Expr.peelPis rest.length body).isSome = true) ∨
+    ∃ ta, inferTypeCore mode env fuel d arg = .ok ta ∧
       isDefEqCore mode env fuel d ta ty = .ok true ∧
       iotaCertsFueled mode env fuel d lic (body.instantiate1 arg) rest = .ok true := by
   dsimp only [iotaCertsFueled] at h
   simp only [iotaCerts, Bind.bind, Except.bind] at h
-  simp only [inferTypeIO_def, defeq_def, iotaCerts_fold] at h
+  simp only [infer_def, defeq_def, iotaCerts_fold] at h
   cases lic with
-  | true => exact Or.inl rfl
+  | true =>
+    simp only [↓reduceIte, pure, Except.pure, Except.ok.injEq] at h
+    exact Or.inl ⟨rfl, h⟩
   | false =>
   refine Or.inr ?_
   simp only [Bool.false_eq_true, ↓reduceIte] at h
-  cases hta : inferTypeIO mode env fuel d arg with
+  cases hta : inferTypeCore mode env fuel d arg with
   | error err => rw [hta] at h; exact nomatch h
   | ok ta =>
   rw [hta] at h
@@ -1996,7 +2017,7 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
       wta.getAppArgs.length = caps.unitParams ∧
       us'.length = cvT.levelParams.length ∧
       inferTypeIO mode env fuel d b = .ok tb ∧
-      whnf mode env fuel d tb = .ok wtb ∧
+      whnf mode env fuel d tb = .ok wtb ∧ wtb.isForallE = false ∧
       isDefEqCore mode env fuel d wta wtb = .ok true := by
   dsimp only [structUnitCertFueled] at h
   rw [structUnitCert] at h
@@ -2056,13 +2077,17 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | ok wtb => ?_
   rw [hwtb] at h
   try dsimp only at h
+  cases hF : wtb.isForallE with
+  | true => simp [hF, pure, Except.pure] at h
+  | false =>
+  simp only [hF, Bool.false_eq_true, ↓reduceIte] at h
   exact ⟨ta, wta, T, us', cvT, caps, tb, wtb, rfl, hwta, hwfn, hfT,
-    he1, he2, he3, he4, rfl, hwtb, h⟩
+    he1, he2, he3, he4, rfl, hwtb, hF, h⟩
 
 /-- Inversion of a successful eta certification. -/
 theorem etaCert_inv {env : Env} {fuel d : Nat} {ty₁ body₁ b : Expr}
     (h : etaCertFueled mode env fuel d ty₁ body₁ b = .ok true) :
-    ∃ tb ty₂ fb m₂,
+    b.ioNeutral = true ∧ ∃ tb ty₂ fb m₂,
       inferTypeIO mode env fuel d b = .ok tb ∧
       whnf mode env fuel d tb = .ok (.forallE ty₂ fb m₂) ∧
       isDefEqCore mode env fuel d ty₂ ty₁ = .ok true ∧
@@ -2074,6 +2099,11 @@ theorem etaCert_inv {env : Env} {fuel d : Nat} {ty₁ body₁ b : Expr}
   dsimp only [etaCertFueled] at h
   simp only [etaCert, Bind.bind, Except.bind] at h
   simp only [inferTypeIO_def, whnf_def, defeq_def, infer_def] at h
+  cases hneu : b.ioNeutral with
+  | false => simp [hneu, pure, Except.pure] at h
+  | true =>
+  simp only [hneu, Bool.not_true, Bool.false_eq_true, ↓reduceIte] at h
+  refine ⟨rfl, ?_⟩
   cases htb : inferTypeIO mode env fuel d b with
   | error err => rw [htb] at h; exact nomatch h
   | ok tb =>

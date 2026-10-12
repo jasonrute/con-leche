@@ -447,6 +447,12 @@ theorem _root_.ConLeche.Model.WellDenotedV.pi_body {ρ : Nat → V} {A B : Annot
     ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) B := fun x hx =>
   (cast (WellDenoted_pi V ρ A B) h).2.2.1 x hx
 
+/-- A graded Π-type's fibres are types. -/
+theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V}
+    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
+    ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
+  (cast (WellDenoted_pi V ρ A B) h).2.2.2 x hx
+
 theorem _root_.ConLeche.Model.WellDenotedV.lam_dom {ρ : Nat → V} {A b : AnnotTerm}
     (h : WellDenotedV V ρ (.lam A b)) : WellDenotedTy V ρ A :=
   ⟨(cast (WellDenoted_lam V ρ A b) h).1, (cast (WellDenoted_lam V ρ A b) h).2.1⟩

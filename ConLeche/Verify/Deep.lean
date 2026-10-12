@@ -454,6 +454,35 @@ private theorem reduceNatIf_some {g : Bool} {x : CheckM (Option Expr)}
   · exact absurd h (by simp [pure, Except.pure])
   · exact h
 
+/-- Shifting keeps a telescope's syntactic arity (task #342 L18). -/
+private theorem peelPis_isSome_shiftFrom (p : Nat) :
+    ∀ (k : Nat) (e : Expr),
+      (Expr.peelPis k (shiftFrom p e)).isSome = (Expr.peelPis k e).isSome
+  | 0, _ => rfl
+  | k + 1, .forallE ty b m => by
+    simp only [shiftFrom, Expr.peelPis]
+    exact peelPis_isSome_shiftFrom p k b
+  | _ + 1, .bvar _ | _ + 1, .sort _ | _ + 1, .const _ _ | _ + 1, .app _ _
+  | _ + 1, .lam _ _ _ | _ + 1, .letE _ _ _ | _ + 1, .lit _ | _ + 1, .proj _ _ _ => rfl
+  | _ + 1, .fvar idx ty => by
+    simp only [shiftFrom]; split <;> rfl
+
+/-- Shifting keeps the head's kind (task #342 L18). -/
+private theorem ioNeutral_shiftFrom (p : Nat) (e : Expr) :
+    (shiftFrom p e).ioNeutral = e.ioNeutral := by
+  unfold Expr.ioNeutral
+  rw [getAppFn_shiftFrom]
+  cases e.getAppFn <;> try rfl
+  case fvar idx ty =>
+    simp only [shiftFrom]
+    by_cases h : idx ≥ p <;> simp [h]
+
+/-- Shifting keeps a ∀ a ∀ (task #342 L18). -/
+private theorem isForallE_shiftFrom (p : Nat) (e : Expr) :
+    (shiftFrom p e).isForallE = e.isForallE := by
+  cases e <;> try rfl
+  case fvar idx ty => simp only [shiftFrom]; split <;> rfl
+
 private theorem iotaCerts_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (lic : Bool) :
     ∀ {args : List Expr} {ty : Expr}, WScoped d ty →
@@ -473,29 +502,29 @@ private theorem iotaCerts_shift (henv : EnvWF env)
     | .forallE ty' body mb =>
       have hwty' : WScoped d ty' ∧ WScoped d body := by
         simpa only [WScoped] using hwty
-      show (if lic then pure true
+      show (if lic then pure (Expr.peelPis (rest.map (shiftFrom p)).length (shiftFrom p body)).isSome
         else (do
-          let ta ← (pureFns mode env fuel).inferIO (d + 1) (shiftFrom p arg)
+          let ta ← (pureFns mode env fuel).infer (d + 1) (shiftFrom p arg)
           if ← (pureFns mode env fuel).defeq (d + 1) ta (shiftFrom p ty') then
             iotaCerts (pureFns mode env fuel) env (d + 1) lic
               ((shiftFrom p body).instantiate1 (shiftFrom p arg))
               (rest.map (shiftFrom p))
           else pure false : CheckM Bool)) =
-        (if lic then pure true
+        (if lic then pure (Expr.peelPis rest.length body).isSome
         else (do
-          let ta ← (pureFns mode env fuel).inferIO d arg
+          let ta ← (pureFns mode env fuel).infer d arg
           if ← (pureFns mode env fuel).defeq d ta ty' then
             iotaCerts (pureFns mode env fuel) env d lic (body.instantiate1 arg) rest
           else pure false : CheckM Bool))
       have hrest := ihrest (WScoped.instantiate1_gen hwarg 0 hwty'.2) hwrest
       rw [shiftFrom_instantiate1_gen] at hrest
       by_cases hg : lic = true
-      · rw [ite_eq_left hg, ite_eq_left hg]
+      · rw [ite_eq_left hg, ite_eq_left hg, List.length_map, peelPis_isSome_shiftFrom]
       · rw [ite_eq_right hg, ite_eq_right hg]
-        refine bind_congr _ (ih.inferIO hpd hwarg) ?_
+        refine bind_congr _ (ih.infer hpd hwarg) ?_
         intro ta hta
         refine bind_congr_eq
-          (ih.defeq hpd (inferTypeIO_WScoped henv fuel hta hwarg)
+          (ih.defeq hpd (inferTypeCore_WScoped henv fuel hta hwarg)
             hwty'.1) ?_
         intro bb _
         refine ite_congr' (fun _ => ?_) (fun _ => rfl)
@@ -865,7 +894,9 @@ private theorem structUnitCert_shift (henv : EnvWF env)
     have hwtb : WScoped d tb := inferTypeIO_WScoped henv fuel htb hwb
     refine bind_congr _ (ih.whnf hpd hwtb) ?_
     intro wtb hwtb'
-    exact ih.defeq hpd hwwta (whnf_WScoped henv fuel hwtb' hwtb)
+    rw [isForallE_shiftFrom]
+    exact ite_congr' (fun _ => rfl)
+      (fun _ => ih.defeq hpd hwwta (whnf_WScoped henv fuel hwtb' hwtb))
 
 private theorem etaCert_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d)
@@ -876,6 +907,8 @@ private theorem etaCert_shift (henv : EnvWF env)
         (shiftFrom p body₁) (shiftFrom p b) =
       etaCert mode (pureFns mode env fuel) env d ty₁ body₁ b := by
   simp only [etaCert]
+  rw [ioNeutral_shiftFrom]
+  refine ite_congr' (fun _ => rfl) (fun _ => ?_)
   refine bind_congr _ (ih.inferIO hpd hwb) ?_
   intro tb htb
   have hwtb : WScoped d tb := inferTypeIO_WScoped henv fuel htb hwb
@@ -2674,13 +2707,6 @@ private theorem defeqStuck_shift (henv : EnvWF env)
       (defEqList_shift henv ih hpd hwa'.getAppArgs hwb'.getAppArgs) ?_
     intro b₂ _
     exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
-  case lam.bvar ty1 body1 m1 i =>
-    simp only [WScoped] at hwwa
-    have he := etaCert_shift henv ih hpd hwwa.1 hwwa.2 hwwb
-    try simp only [shiftFrom_fvar] at he
-    refine bind_congr_eq he ?_
-    intro bb _
-    exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
   case lam.fvar ty1 body1 m1 ix tt =>
     simp only [WScoped] at hwwa
     have he := etaCert_shift henv ih hpd hwwa.1 hwwa.2 hwwb
@@ -2718,13 +2744,6 @@ private theorem defeqStuck_shift (henv : EnvWF env)
     refine bind_congr_eq he ?_
     intro bb _
     exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
-  case lam.letE ty1 body1 m1 lty lv lb =>
-    simp only [WScoped] at hwwa
-    have he := etaCert_shift henv ih hpd hwwa.1 hwwa.2 hwwb
-    try simp only [shiftFrom_fvar] at he
-    refine bind_congr_eq he ?_
-    intro bb _
-    exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
   case lam.lit ty1 body1 m1 ll =>
     simp only [WScoped] at hwwa
     have he := etaCert_shift henv ih hpd hwwa.1 hwwa.2 hwwb
@@ -2735,13 +2754,6 @@ private theorem defeqStuck_shift (henv : EnvWF env)
   case lam.proj ty1 body1 m1 ps pi2 pe2 =>
     simp only [WScoped] at hwwa
     have he := etaCert_shift henv ih hpd hwwa.1 hwwa.2 hwwb
-    try simp only [shiftFrom_fvar] at he
-    refine bind_congr_eq he ?_
-    intro bb _
-    exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
-  case bvar.lam i ty2 body2 m2 =>
-    simp only [WScoped] at hwwb
-    have he := etaCert_shift henv ih hpd hwwb.1 hwwb.2 hwwa
     try simp only [shiftFrom_fvar] at he
     refine bind_congr_eq he ?_
     intro bb _
@@ -2783,13 +2795,6 @@ private theorem defeqStuck_shift (henv : EnvWF env)
     refine bind_congr_eq he ?_
     intro bb _
     exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
-  case letE.lam lty lv lb ty2 body2 m2 =>
-    simp only [WScoped] at hwwb
-    have he := etaCert_shift henv ih hpd hwwb.1 hwwb.2 hwwa
-    try simp only [shiftFrom_fvar] at he
-    refine bind_congr_eq he ?_
-    intro bb _
-    exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
   case lit.lam ll ty2 body2 m2 =>
     simp only [WScoped] at hwwb
     have he := etaCert_shift henv ih hpd hwwb.1 hwwb.2 hwwa
@@ -2801,12 +2806,6 @@ private theorem defeqStuck_shift (henv : EnvWF env)
     simp only [WScoped] at hwwb
     have he := etaCert_shift henv ih hpd hwwb.1 hwwb.2 hwwa
     try simp only [shiftFrom_fvar] at he
-    refine bind_congr_eq he ?_
-    intro bb _
-    exact ite_congr' (fun _ => rfl) (fun _ => hstuck)
-  case lam.lam ty1 body1 m1 ty2 body2 m2 =>
-    simp only [WScoped] at hwwa
-    have he := etaCert_shift henv ih hpd hwwa.1 hwwa.2 hwwb
     refine bind_congr_eq he ?_
     intro bb _
     exact ite_congr' (fun _ => rfl) (fun _ => hstuck)

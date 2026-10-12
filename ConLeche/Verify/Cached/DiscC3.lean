@@ -902,7 +902,8 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
       match env.find? c with
       | some (.recInfo cv mI rP rules) =>
         if e.getAppArgs.length = mI + 1 ∧
-            us.length = cv.levelParams.length then
+            us.length = cv.levelParams.length ∧
+            (Expr.peelPis (mI + 1) cv.type).isSome = true then
           prepareMajor mi (fueledFns mode env) env d c rules
               (e.getAppArgs.getD mI (.bvar 0)) >>=
             fun major =>
@@ -999,7 +1000,8 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
         refine SimC.pureB ?_
         simp only [hargs.length]
         by_cases hlen : (Expr.getAppArgs i).length = mI + 1 ∧
-            us.length = cv.levelParams.length
+            us.length = cv.levelParams.length ∧
+            (Expr.peelPis (mI + 1) cv.type).isSome = true
         · rw [ite_eq_left hlen, ite_eq_left hlen]
           refine SimC.bind_left
             (pureBvar_eff hs 0)

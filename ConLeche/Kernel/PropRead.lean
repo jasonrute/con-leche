@@ -168,13 +168,16 @@ def headProofPW (find? : Name → Option ConstantInfo) : Expr →
   | .fvar _ ty => typeSortPW find? ty
   | .sort _ | .forallE .. | .lit _ => some .never
   | .proj S i _ =>
-    -- the field's stored type, when its datum does not depend on the
-    -- structure's levels
+    -- the field's stored type, when it is never a proposition: a "not a
+    -- proof" answer only.  A projection's reading is graded at any
+    -- nested pair, whatever the scrutinee's type, so the field's type
+    -- does not make it the point (task #342 L18): "a proof" is the slow
+    -- path's, which infers the scrutinee's type
     match find? (projTableName S) with
     | some (.projInfo tbl) =>
       if i < tbl.numFields then
         match typeSortPW find? (tbl.entry i).body with
-        | some pw => if pw.isNever || pw == .ifAllZero [] then some pw else none
+        | some pw => if pw.isNever then some pw else none
         | none => none
       else none
     | _ => none

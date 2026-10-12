@@ -155,14 +155,14 @@ theorem projLitToCtor_bridge (hw : WhnfBridge env fuel)
 /-- `projCertAt` at `.verified` ⇒ the constructor's stored type and a
 licensed `Certs` walk (`projCertAtFueled_verified`, `projCert_inv`,
 `iotaCerts_bridge`). -/
-theorem projCertAt_bridge (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
+theorem projCertAt_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
     {d : Nat} {c : Name} {us : List Level} {args : List Expr}
     (h : projCertAtFueled .verified env fuel d true true c us args = .ok true) :
     ∃ cvC nP nF, env.find? c = some (.ctorInfo cvC nP nF) ∧
       Certs env d true (cvC.type.instantiateLevelParams cvC.levelParams us) args := by
   obtain ⟨cvC, nP, nF, hc, hcerts⟩ :=
     projCert_inv (projCertAtFueled_verified (mode := .verified) rfl h)
-  exact ⟨cvC, nP, nF, hc, iotaCerts_bridge hd hio hcerts⟩
+  exact ⟨cvC, nP, nF, hc, iotaCerts_bridge hd hi hcerts⟩
 
 /-- `majorToCtor` ⇒ `Red.refl` or one of the three rescues
 (`majorToCtor_inv`; the rescue's proof-irrelevance / structure-η
@@ -177,7 +177,7 @@ reads them from.  `majorToCtor` itself ignores its `_recName` argument
 caller must: `iotaRec_inv` hands it over at the one site that runs the
 chain (through `prepareMajor_bridge`, which passes it through). -/
 theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
-    (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
+    (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {recName : Name} {rules : List RecRule} {major major' : Expr}
     (hrec : ∃ cv mI rP, env.find? recName = some (.recInfo cv mI rP rules))
     (h : majorToCtorFueled .verified env fuel d recName rules major = .ok major') :
@@ -189,9 +189,13 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
   rcases harm with ⟨hk, hlps, hle, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩ |
     ⟨heta, hnz, hlen, hlps, rfl, hcert⟩ |
     ⟨rfl, hlen, hlps, hslots, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩
-  · exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
-      hlps hle rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
-      (inferTypeIO_bridge hio htf) (hd hdq) (proofIrrel_bridge hw hio hpirr)
+  · -- the major's half of the `proofIrrel (fab, major)` run: a proof
+    obtain ⟨-, -, -, tb, stb, vT, -, -, -, -, htb, hstb, hwstb, hvT⟩ :=
+      proofIrrel_inv hpirr
+    exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
+      hlps hle rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hi hcerts)
+      (inferTypeIO_bridge hio htf) (hd hdq) (inferTypeIO_bridge hio htb)
+      (inferTypeIO_bridge hio hstb) (hw hwstb) hvT
   · -- the η certificate's run at `(fab, major, tmaj)`: its two name
     -- guards and, at a projection-function family, its per-field
     -- telescope certificates (`structEtaCertWith_projCerts_bridge`)
@@ -206,16 +210,19 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
       exact (Expr.const.inj hfn₂).1.symm
     refine .rescueEta hfr heta hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh)
       hfn hlen hlps hnz rfl hsc1 hsc2 hsc3 hresT₂ (by rw [← hcf]; exact hresc₂) ?_
-    exact structEtaCertWith_projCerts_bridge hd hio hfn hfT hcert
-  · exact .rescueAnd hfr hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
-      hlen hlps hslots rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
-      (inferTypeIO_bridge hio htf) (hd hdq) (proofIrrel_bridge hw hio hpirr)
+    exact structEtaCertWith_projCerts_bridge hd hi hfn hfT hcert
+  · obtain ⟨-, -, -, tb, stb, vT, -, -, -, -, htb, hstb, hwstb, hvT⟩ :=
+      proofIrrel_inv hpirr
+    exact .rescueAnd hfr hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
+      hlen hlps hslots rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hi hcerts)
+      (inferTypeIO_bridge hio htf) (hd hdq) (inferTypeIO_bridge hio htb)
+      (inferTypeIO_bridge hio hstb) (hw hwstb) hvT
 
 /-- `prepareMajor` ⇒ a `Red` chain (`prepareMajorFueled_ind` with the
 motive `Red env d a ·`: each of the three steps is a `Red.trans`).
 `hrec` is `majorToCtor_bridge`'s, passed through. -/
 theorem prepareMajor_bridge (hw : WhnfBridge env fuel)
-    (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
+    (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {recName : Name} {rules : List RecRule} {a m : Expr}
     (hrec : ∃ cv mI rP, env.find? recName = some (.recInfo cv mI rP rules))
     (h : prepareMajorFueled .verified env fuel d recName rules a = .ok m) :
@@ -223,8 +230,21 @@ theorem prepareMajor_bridge (hw : WhnfBridge env fuel)
   prepareMajorFueled_ind h (Red env d a)
     (fun hwh hp => .trans hp (hw hwh))
     (fun hl hp => .trans hp (litMajorToCtor_bridge hw hl))
-    (fun hm hp => .trans hp (majorToCtor_bridge hw hd hio hrec hm))
+    (fun hm hp => .trans hp (majorToCtor_bridge hw hd hi hio hrec hm))
     .refl
+
+/-- Level instantiation keeps a telescope's syntactic arity. -/
+theorem peelPis_isSome_instantiateLevelParams (ks : List Name) (us : List Level) :
+    ∀ (k : Nat) {e : Expr}, (Expr.peelPis k e).isSome = true →
+      (Expr.peelPis k (e.instantiateLevelParams ks us)).isSome = true
+  | 0, _, _ => rfl
+  | k + 1, .forallE _ b _, h => by
+    simp only [Expr.instantiateLevelParams, Expr.peelPis] at h ⊢
+    exact peelPis_isSome_instantiateLevelParams ks us k h
+  | _ + 1, .bvar _, h | _ + 1, .fvar _ _, h | _ + 1, .sort _, h
+  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _ _, h
+  | _ + 1, .letE _ _ _, h | _ + 1, .lit _, h | _ + 1, .proj _ _ _, h => by
+    simp [Expr.peelPis] at h
 
 /-- `iotaRec` ⇒ `Red.iota` (`iotaRec_inv`, `prepareMajor_bridge`,
 `defEqList_bridge`, the licensed recursor spine, and at a case-3 redex
@@ -239,35 +259,41 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hplain, hlev, hpeq,
     h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
-    prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
+    prepareMajor_bridge hw hd hi hio ⟨cv, mI, rP, hfc⟩ hprep
+  -- the licensed recursor spine's arity: the checker's test on the
+  -- stored type (task #342 L18)
+  have harity : (Expr.peelPis e.getAppArgs.length
+      (cv.type.instantiateLevelParams cv.levelParams us)).isSome = true := by
+    rw [hlen]
+    exact peelPis_isSome_instantiateLevelParams _ _ _ (iotaRec_arity h hfn hfc)
   by_cases hne : mI = rP
   · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
       hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-      .licensed
+      (.licensed harity)
       (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
       (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
   · by_cases hc3 : iotaCase3 env.find? rl cvj usj = true
     · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv (h3 hc3).2 hne
       exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        .licensed
+        (.licensed harity)
         (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
         (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
     · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        .licensed
+        (.licensed harity)
         (fun hc => absurd hc hc3)
         (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
 
 /-- A firing projection rule (`reduceProjCore`) is a `Red` chain: the
 string-literal expansion, then `Red.proj` under its certificate. -/
 theorem reduceProjCore_bridge (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
-    (hio : InferIOBridge env fuel) {d : Nat} {sn : Name} {i : Nat} {c m : Expr}
+    (hinf : InferBridge env fuel) {d : Nat} {sn : Name} {i : Nat} {c m : Expr}
     (h : reduceProjCoreFueled .verified env fuel d sn i c = .ok (some m)) :
     Red env d (.proj sn i c) m := by
   obtain ⟨e₃, us, entry, hlit, hfn, hfp, hi, hlen, hus, hfire, rfl, hcert⟩ :=
     reduceProjCore_inv h
-  obtain ⟨cvC, nP, nF, hc, hcerts⟩ := projCertAt_bridge hd hio hcert
+  obtain ⟨cvC, nP, nF, hc, hcerts⟩ := projCertAt_bridge hd hinf hcert
   exact .trans (.projArg (projLitToCtor_bridge hw hlit))
     (.proj hfp hfn hi hlen hus hfire hc hcerts)
 
@@ -303,7 +329,7 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
       · exact .projArg (hw h2)
     rcases hcase with rfl | ⟨m, hr, hcont⟩
     · exact .refl
-    · exact .trans hR (.trans (reduceProjCore_bridge hw hd hio hr) (hwc hcont))
+    · exact .trans hR (.trans (reduceProjCore_bridge hw hd hi hr) (hwc hcont))
 
 /-- One `whnfStep` under a bridged continuation is a `Red` chain
 (`whnfStep_inv`: `whnfCore`, then acceleration or δ into `k`, or the

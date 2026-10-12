@@ -803,6 +803,11 @@ def isLam : Expr → Bool
   | .lam .. => true
   | _ => false
 
+/-- Is the expression a ∀? -/
+def isForallE : Expr → Bool
+  | .forallE .. => true
+  | _ => false
+
 /-- Two λs: their domains and bodies (the descent of the λ-telescope
 comparison, `defeqLams`). -/
 def lamPair? : Expr → Expr → Option (Expr × Expr × Expr × Expr)

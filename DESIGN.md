@@ -102531,3 +102531,96 @@ and `spine_mem_univ_of_neverChain` are unused after L-ck's
 
 **Gates.**  `lake build`, `lake test`: no warnings but `declaration uses
 sorry` in ledger files.  No checker change.
+
+## TASK #342 — L18: λ, η and the io grade at the value reading (2026-10-12, agent/342-l18)
+
+Lane L18, stage S4, on `port-342-s4`.  Discharges the last S4 ledger
+lines: the io application (`Infer.app_soundIO`), `DefEqLams.inner/outer`,
+`DefEq.eta`, the licensed walk (`Certs.licensed`) and the fast
+reader's licence (`prf_of_isProofFast`, whole, after L-ck's `PropRead`).
+The ledger is empty and the 13 `Axioms.lean` pins carry no `sorryAx`.
+`Denotes.lean`, `MainTheorem` and `Challenge` are unchanged
+(`tests/challenge.sh` green).
+
+**The io claim (#346's `IORel`).**  `Model/Rules/IORel.lean`: `IOMem`
+(a graded type holding the value), `IOHered` (at a syntactic ∀: a graph
+over the domain, not everywhere the point, every application satisfying
+the claim at the opened body) and `IORel` (point ∨ member ∨
+hereditary), keyed on the inferred type's `Expr`, not its reading (a
+stored constant may read as a Π).  `InferSemIO` concludes `IORelN`:
+`IORel` plus the neutral clause "a subject whose head is no λ and no
+`let` (`Expr.ioNeutral`) has a non-hereditary claim".  It is carried
+through a reduction of the type by `Red.rigid` (`Rules/Rigid.lean`: a ∀
+or a sort reduces only to itself, rescues included) and through an
+application's argument by `IORel_substFvarAt` (`denoteMeta_substFvarAt`).
+Every io inference rule is proved: leaves and ∀ as memberships (the
+latter's sorts through rigidity), λ hereditary (#346's
+`InferIO.lam_sound`), `let` by ζ, the application with no certificate
+(a non-point head is a graph, `slotTransfer`; "not pt" source (4) where
+the head's claim is hereditary), the projection (the point's projection
+is the point; a hereditary scrutinee is excluded by rigidity).
+`InferClaimIO` (`Model/ClaimsIO.lean`) states `IORel`.
+
+**The consumers.**  Proof irrelevance at io: `PropPt` (`Motive.lean`), by
+`prop_pt_io` in `Sound.lean`'s mutual block (it recurses into a ∀'s body
+inference, `propPt_forallE`).  Structure η, the η rescue and unit-like:
+not the point, type reducing to a family's application ⇒ membership
+(`IORel.mem_of_red`).  The rescues become conditional (`RedSem`); ι and
+the projection rule too (their licensed walk needs the redex not the
+point).
+
+**Rules changes** (`Rules/Rel.lean`; each a premise the model needs,
+each verdict-neutral on well-typed input):
+- `DefEq.eta`: `b.ioNeutral = true`.  η against a λ-headed `b` with an
+  io-inferred type is unsound (#346 `eta_lam_io_unsound`); the checker
+  meets `b` in weak-head normal form.  Checker guard in `etaCert`.
+- `DefEq.structUnit`: `wtb.isForallE = false`.  A hereditary `b` has a
+  ∀ type, whose reading need not be graded, so `wta ≡ wtb` would say
+  nothing.  Checker guard in `structUnitCert`.
+- `Certs.licensed`: `(Expr.peelPis args.length T).isSome`.  The licensed
+  fit (`teleFitPA_of_peel_ne_pt`) needs the telescope's ∀-chain;
+  `iotaCerts` at a licensed walk returns the arity test, `iotaRec`
+  checks it on the recursor's stored type (`iotaRec_arity`), nothing in
+  the model knew a recursor's arity.
+- `Certs.cert`: the argument's type at the FULL grade.  An io-inferred
+  type need not hold its term (the point, or a hereditary value), so the
+  unlicensed certificate's slot claim is unprovable at io.  The
+  unlicensed walks certify the K/`And` rescues' synthetic spines and the
+  projection-function η certificates only.
+- `Red.rescueK`/`rescueAnd`: the last premise `DefEq fab major` becomes
+  the major's half of the checker's `proofIrrel (fab, major)` run (io
+  type, its io sort, `Prop`).  The major is then a proof, the point at
+  every valuation, and the conditional claim is vacuous; the fabrication
+  needs only its reading.  The certificate, the fabrication's type check
+  and the K flag are unread by the model (L-dead: candidates to delete,
+  with the official kernel, which has neither certificate).
+
+**The fast reader** (`Kernel/PropRead.lean`): the projection arm answers
+"not a proof" only.  A projection's reading is graded at any nested pair
+whatever the scrutinee's type, so `proj S i (Bar.mk 1)` and
+`proj S i (Bar.mk 2)` would be equated by `DefEq.proofFast` (a
+counterexample to the arm's soundness, not to the checker's verdicts:
+the slow path then decides).  `prf_of_isProofFast`
+(`Model/Rules/ProofFastSound.lean`): through λ (an abstraction of the
+point), `let` (the ζ-reduct) and application (the point applied) to a
+constant or variable head whose type the type-sort reader reads as a
+proposition; that type is a truth value (`typeSort_mem_univZero`: its
+fibres are, recursively, and a residual type former's application lands
+in its peeled zero sort, `typeFormer_mem_univ`); identity wrappers are
+δβ reductions (`redSem_unwrapIdDefs`).  The reader's answers survive
+opening a binder, ζ/β instantiation and level instantiation
+(`Verify/PropReadInst.lean`, model-free; level instantiation uses
+`EnvWF`'s `allLevelParamsDefined` through `substPW_comp`).  The
+`NeverChain` lemmas, `eval_eq_zero_of_isProp` and the fence go.
+
+**λ/η.**  `DefEqLams.inner/outer` and `DefEq.eta_core` are the
+fragment's proofs at the real reading (`IsTy.eq_of_ne_pt`, `lamV_eta`).
+
+**Gates.**  `lake build`, `lake test` warning-free, no `sorry` in the
+tree.  `tests/challenge.sh` green.  Verdicts (arena, e2e, annot; one run,
+8 jobs): 626/626 as expected, arena 90/92.  `instructions:u`
+(`--verified --jobs=1`, one run each) against L-ck's final binary
+(lck3): init-full 411.93 G → 412.53 G (+0.15 %), mathlib-prefix
+562.94 G → 563.73 G (+0.14 %); 57 977 / 131 902 declarations accepted,
+exit 0, as before.  `overview-links.sh` and `quote-gate`
+deferred (OVERVIEW §3/§4 edited, linked source lines moved).

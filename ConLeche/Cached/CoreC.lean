@@ -163,20 +163,20 @@ def iotaCertsIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool) :
   | ty, acc, arg :: rest => do
     match ty with
     | .forallE dom body _ =>
-      if lic then pure true
+      if lic then pure (Expr.peelPis rest.length body).isSome
       else do
         let dom' ← instListM dom acc
-        let ta ← r.inferIO depth arg
+        let ta ← r.infer depth arg
         if ← r.defeq depth ta dom' then
           iotaCertsIAux r fe depth lic body (arg :: acc) rest
         else pure false
     | .bvar _ =>
       match acc with
-      | [] => pure lic
+      | [] => pure false
       | _ :: _ => do
         let ty' ← instListM ty acc
         iotaCertsIAux r fe depth lic ty' [] (arg :: rest)
-    | _ => pure lic
+    | _ => pure false
 termination_by _ acc args => (args.length, acc.length)
 decreasing_by
   all_goals first
@@ -509,7 +509,8 @@ def structUnitCertI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
         let tb ← r.inferIO depth b
         let wtb ← r.whnf depth tb
         -- no type-application certificate (task #342 L11b), as
-        -- official's `is_def_eq_unit_like`
+        -- official's `is_def_eq_unit_like`; no ∀ (task #342 L18)
+        if wtb.isForallE then pure false else
         r.defeq depth wta wtb
       else pure false
     | _ => pure false
@@ -520,6 +521,7 @@ spec). -/
 def etaCertI (r : CoreFnsI) (_fe : FEnv) (depth : Nat)
     (ty₁ body₁ : Expr) (b : Expr) :
     CheckCM Bool := do
+  if !b.ioNeutral then pure false else
   let tb ← r.inferIO depth b
   let wtb ← r.whnf depth tb
   match wtb with
@@ -751,7 +753,8 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
       let args ← pure (Expr.getAppArgsC e)
       -- checker change #9 (twin of `Core.lean`'s `iotaRec`): guard the
       -- recursor's level arity before the rule's RHS is instantiated.
-      if args.length = mI + 1 ∧ us.length = cv.levelParams.length then do
+      if args.length = mI + 1 ∧ us.length = cv.levelParams.length ∧
+          (Expr.peelPis (mI + 1) cv.type).isSome = true then do
         let bvar0 ← pure (Expr.mkBvar 0)
         let major ← prepareMajorI mode r fe depth cn rules (args.getD mI bvar0)
         match Expr.getAppFn major with

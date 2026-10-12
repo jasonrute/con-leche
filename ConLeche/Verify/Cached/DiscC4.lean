@@ -70,7 +70,7 @@ private theorem iotaRecI_of_arityOk_false {mi : CheckMode} {r : CoreFnsI}
       | recInfo cv mI rP rules =>
         dsimp only at h ⊢
         rw [ite_eq_right]
-        rintro ⟨hlen, hlvl⟩
+        rintro ⟨hlen, hlvl, -⟩
         rw [iotaNumArgs_zero, hlen, hlvl] at h
         simp at h
       | _ => rfl
