@@ -602,7 +602,8 @@ theorem frameVals_sat {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : L
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some] at e
         rw [← e, List.length_nil, Nat.zero_add, show nPc + i - nPc = i by omega]
       · simp only [List.getElem_map, List.getElem_range]
-        exact LfpDatum.holeVal_mem h.kN hX hik hmap fun d hd => hbits d (List.mem_of_mem_drop hd)
+        exact LfpDatum.holeVal_mem h.kN hX.toU hik hmap
+          fun d hd => hbits d (List.mem_of_mem_drop hd)
   simpa using this
 
 section Frame
@@ -736,7 +737,7 @@ theorem grpVals_fit (ρ X : Nat → V)
                 (mkPisAV (abF.drop ds.length) (.sort (D.w (Level.substFn φ lps us)))) 0 := by
           rw [AnnotTerm.substAV_mkPisAV]; rfl
         rw [heq, interp_substAV, ← keyFrame_eq_substE (DenoteMetaSpine.length_eq hdsa).symm]
-        exact LfpDatum.holeVal_mem h.kN hX hmm hmap
+        exact LfpDatum.holeVal_mem h.kN hX.toU hmm hmap
           fun d hd => hbits d (List.mem_of_mem_drop hd)
   simpa using this
 

@@ -131,6 +131,12 @@ theorem sumSet_zero_mem_univZero (f : Nat → V) : sumSet 0 f ∈ˢ (univZero : 
   rw [sigmaSet_zero]
   exact truthVal_mem_univZero _
 
+/-- Above `0` the carrier is strict: its members are pairs. -/
+theorem strict_sumSet {w : Nat} (hw : w ≠ 0) (f : Nat → V) : Strict (sumSet w f) := by
+  unfold sumSet
+  rw [sigmaSet_pos hw]
+  exact strict_sigmaPairs
+
 /-! ## Degeneracy checks -/
 
 /-- Zero constructors: the carrier is empty in the graph regime. -/

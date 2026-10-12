@@ -138,13 +138,11 @@ def PropS : {n : Nat} → TeleS V n → Prop
   | _, .nil => True
   | _, .cons A B => A ∈ˢ (univZero : V) ∧ ∀ a, a ∈ˢ A → PropS (B a)
 
-/-- `BoundS w T`: every field set lives in the axiomatic level `tg w`,
-hereditarily — the formation premise, a size bound (per-field sorts
-`≤ w` via the chain's cumulativity; a `Prop` field's `{pt}` is in
-`tg w`, not in `univ w`, task #342). -/
+/-- `BoundS w T`: every field set lives in `univ w`, hereditarily —
+the formation premise (per-field sorts `≤ w` via cumulativity). -/
 def BoundS (w : Nat) : {n : Nat} → TeleS V n → Prop
   | _, .nil => True
-  | _, .cons A B => A ∈ˢ (tg w : V) ∧ ∀ a, a ∈ˢ A → BoundS w (B a)
+  | _, .cons A B => A ∈ˢ (univ w : V) ∧ ∀ a, a ∈ˢ A → BoundS w (B a)
 
 /-! ## Auxiliary lemmas -/
 
@@ -342,8 +340,8 @@ theorem towerSet_mem_univ {w : Nat} : ∀ {n} (T : TeleS V n),
   | _, .nil, _ => unitSetAt_mem_univ w
   | _, .cons A B, hb => by
     simp only [towerSet]
-    have h := sigma_mem_univ_tg (u := w) (v := w) hb.1
-      (fun a ha => mem_tg_of_mem_univ (towerSet_mem_univ (B a) (hb.2 a ha)))
+    have h := sigma_mem_univ (u := w) (v := w) hb.1
+      (fun a ha => towerSet_mem_univ (B a) (hb.2 a ha))
     rwa [show Nat.max w w = w from Nat.max_self w] at h
 
 /-- **Formation, squash regime — UNCONDITIONAL**: at `w = 0` the

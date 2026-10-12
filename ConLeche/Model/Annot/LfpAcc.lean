@@ -203,7 +203,7 @@ theorem accRel_rich (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (h
       simp only [X', ite_eq_left rfl]
       refine graph_mem_famSpace fun i hi => ?_
       split
-      · exact univ_binUnion_sing_empty_mem hw (famSpace_app (hX m hm) hi)
+      · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hX m hm) hi)
       · exact famSpace_app (hX m hm) hi
     · simp only [X', ite_eq_right hmt]
       exact hX m hm

@@ -328,7 +328,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     refine acc_of_whnf hin hw' hfr hC hea hgr hR.dom fun hfrw _ hlw wa hwa _ heq => ?_
     have hco : ConstOn R wa := ConstOn.of_noBVar hR.agree
       (denoteMeta_noBVar_of_nestOcc dep wt hfrw.1 hhi hocc hwa)
-    refine ⟨⟨fun _ => hco.typeReg, ⟨_, hco.accOn, SizeOn.const (empty_mem_univ w), InvOn.const _ _⟩, ?_⟩, ?_⟩
+    refine ⟨⟨fun _ => hco.typeReg, ⟨_, hco.accOn, SizeOn.const (empty_mem_tg w), InvOn.const _ _⟩, ?_⟩, ?_⟩
     · split
       · exact (outMent_self dep wt).trans hlw
       · exact outMent_self dep e
@@ -412,7 +412,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       · -- hole-free: the body is (the type regime)
         have hco : ConstOn R (.pi 0 (pwBit φ bm.pw) ta ba) :=
           ConstOn.pi 0 _ hA (hTRb hw (hB0 hv0))
-        exact ⟨_, hco.accOn, SizeOn.const (empty_mem_univ w), InvOn.const _ _⟩
+        exact ⟨_, hco.accOn, SizeOn.const (empty_mem_tg w), InvOn.const _ _⟩
     · exact ⟨_, AccOn.pi 0 hv0 hA hAb', SizeOn.pi hA hszb, hinvP⟩
   | @hole prog dep kb e wt i ty hw' hocc hfn hlo hhi' hlen hfree =>
     intro _ hhi hfr Δa ea R hC hea hgr hR
@@ -434,7 +434,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       · simp only [NestCtx.hiAt] at hhi'; omega
       · simp only [NestCtx.hiAt] at hhi' hhi; omega
     refine ⟨⟨fun hw => TypeReg.holeApp (hR.rich hw) hR.symm hQ hvs, ⟨_, AccOn.holeApp hQ hvs,
-      SizeOn.const (unitSet_mem_univ w), InvOn.const _ _⟩, (outMent_self dep wt).trans hlw⟩,
+      SizeOn.const (unitSet_mem_tg w), InvOn.const _ _⟩, (outMent_self dep wt).trans hlw⟩,
       hfrw.2.1, hfrw.1, fun hk => ?_, _, by rw [hspine] at hwa; exact hwa, fun _ _ => rfl⟩
     split at hk <;> cases hk
   | @frameHole prog dep kb e wt i ty h hw' hocc hfn hlo hhi' hk hfree har =>
@@ -456,7 +456,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       refine Or.inr ⟨i - ctx.hiAt 0, h, hk, by omega, by omega, ?_⟩
       rw [← hlenv, har]
     exact ⟨⟨fun hw => TypeReg.holeApp (hR.rich hw) hR.symm hQ hvs, ⟨_, AccOn.holeApp hQ hvs,
-      SizeOn.const (unitSet_mem_univ w), InvOn.const _ _⟩, (outMent_self dep wt).trans hlw⟩,
+      SizeOn.const (unitSet_mem_tg w), InvOn.const _ _⟩, (outMent_self dep wt).trans hlw⟩,
       hfrw.2.1, hfrw.1, nofun, _, by rw [hspine] at hwa; exact hwa, fun _ _ => rfl⟩
   | @contNew prog dep kb e wt n us L nPc nI cty grp ts hw' hocc hfn hnm hq hlen hquot hidx hds _
       hnI hhead _ hfrD ihf =>

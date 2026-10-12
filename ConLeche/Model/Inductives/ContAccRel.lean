@@ -76,7 +76,7 @@ theorem tuple_enlarge {w' k : Nat} (hw : w' ≠ 0) {Is Y : Nat → V}
         simp only [Y'', ite_eq_left rfl]
         refine graph_mem_famSpace fun i hi => ?_
         split
-        · exact univ_binUnion_sing_empty_mem hw (famSpace_app (hY m hm) hi)
+        · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hY m hm) hi)
         · exact famSpace_app (hY m hm) hi
       · simp only [Y'', ite_eq_right hmt]
         exact hY m hm

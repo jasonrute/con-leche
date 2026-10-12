@@ -408,7 +408,7 @@ tuple mixed into the carrier to any related frame and tuple. -/
 @[expose] def FrameCtorAcc (w b nP : Nat) (Q' : Nat → Nat → Prop) (R₀ : FrameRel V)
     (D : LfpDatum V) (ψ : Name → Nat) (grp : List (Name × Expr)) (dsa : List AnnotTerm) (hi : Nat)
     (g j : Nat) : Prop :=
-  ∃ TB : (Nat → V) → V, (∀ σ, w ≠ 0 → TB σ ∈ˢ (univ w : V)) ∧
+  ∃ TB : (Nat → V) → V, (∀ σ, w ≠ 0 → TB σ ∈ˢ (tg w : V)) ∧
     (∀ σ σ', (∀ q, ParamPos b nP q → σ q = σ' q) → TB σ = TB σ') ∧
     ∀ ρ ρ₀ Y, R₀ ρ ρ₀ → InTupleSpace (D.w ψ) D.N (D.idx ψ (keyFrame dsa hi ρ)) Y →
       ∀ t fs, D.HFits ψ (keyFrame dsa hi ρ) (mixT (InGrp D grp) (D.carrier ψ (keyFrame dsa hi ρ)) Y)
@@ -427,7 +427,7 @@ relation with admissible enclosing items. -/
 @[expose] def FrameAccOut (w : Nat) (ctx : NestCtx) (prog : List NestHole) (hi : Nat)
     (R₀ : FrameRel V) (D : LfpDatum V) (ψ : Name → Nat) (dsa : List AnnotTerm) (G : Nat → Prop) :
     Prop :=
-  ∃ A : (Nat → V) → V, (∀ ρ, w ≠ 0 → A ρ ∈ˢ (univ w : V)) ∧ InvOn (ParamPos hi ctx.nP) A ∧
+  ∃ A : (Nat → V) → V, (∀ ρ, w ≠ 0 → A ρ ∈ˢ (tg w : V)) ∧ InvOn (ParamPos hi ctx.nP) A ∧
     ∀ c, G c → ∀ ρ ρ₀, R₀ ρ ρ₀ → ∀ i, i ∈ˢ D.idx ψ (keyFrame dsa hi ρ) c →
       ∀ x, x ∈ˢ app (D.carrier ψ (keyFrame dsa hi ρ) c) i →
         ∃ (B : V) (g : V → Occ V), B ⊆ˢ A ρ ∧
@@ -738,7 +738,7 @@ theorem frameAccOut_of {w : Nat}
     if hgj : InGrp D grp g ∧ j < D.nctors g then Classical.choose (hper g j hgj.1 hgj.2)
     else fun _ => empty
   have hTB : ∀ g j (hG : InGrp D grp g) (hj : j < D.nctors g),
-      (∀ σ, w ≠ 0 → TBt g j σ ∈ˢ (univ w : V)) ∧
+      (∀ σ, w ≠ 0 → TBt g j σ ∈ˢ (tg w : V)) ∧
       (∀ σ σ', (∀ q, ParamPos (hi + grp.length) ctx.nP q → σ q = σ' q) → TBt g j σ = TBt g j σ') ∧
       ∀ ρ ρ₀ Y, R₀ ρ ρ₀ → InTupleSpace (D.w (Level.substFn φ lps us)) D.N
           (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y →
@@ -760,11 +760,11 @@ theorem frameAccOut_of {w : Nat}
       simp only [TBt, dite_eq_left (show InGrp D grp g ∧ j < D.nctors g from ⟨hG, hj⟩)]
     rw [e]
     exact Classical.choose_spec (hper g j hG hj)
-  have hTBsz : ∀ g j σ, w ≠ 0 → TBt g j σ ∈ˢ (univ w : V) := by
+  have hTBsz : ∀ g j σ, w ≠ 0 → TBt g j σ ∈ˢ (tg w : V) := by
     intro g j σ hw
     by_cases hgj : InGrp D grp g ∧ j < D.nctors g
     · exact (hTB g j hgj.1 hgj.2).1 σ hw
-    · simp only [TBt, dite_eq_right hgj]; exact empty_mem_univ w
+    · simp only [TBt, dite_eq_right hgj]; exact empty_mem_tg w
   -- the frame valuations of two frames agreeing at the parameters agree at the parameters
   have hpar : ∀ (ρ ρ' Y Y' : Nat → V), (∀ q, ParamPos hi ctx.nP q → ρ q = ρ' q) →
       ∀ q, ParamPos (hi + grp.length) ctx.nP q →
@@ -786,7 +786,7 @@ theorem frameAccOut_of {w : Nat}
   let A0 : (Nat → V) → V := fun ρ =>
     LfpDatum.finUnion (fun c => LfpDatum.finUnion (fun j => TBt c j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ
       (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))) (D.nctors c)) D.N
-  have hA0 : ∀ ρ, w ≠ 0 → A0 ρ ∈ˢ (univ w : V) := fun ρ hw =>
+  have hA0 : ∀ ρ, w ≠ 0 → A0 ρ ∈ˢ (tg w : V) := fun ρ hw =>
     LfpDatum.finUnion_mem hw fun c _ => LfpDatum.finUnion_mem hw fun j _ => hTBsz c j _ hw
   -- the relation's tails and index sets
   have hagree : ∀ ρ ρ', R₀ ρ ρ' → AgreeOff (holeP hi ctx.nP hi) ρ ρ' := by

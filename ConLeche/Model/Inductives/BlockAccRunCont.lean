@@ -105,7 +105,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     show _ = d.nIdxAt t
     omega
   -- the relation, and the fields' values small
-  have hR := holeRelA_accRel (m := mp.base2) hhi hcNl hcP har (hsatFrame ρp hs)
+  have hR := holeRelA_accRel (m := mp.base2) hhi hcNl hcP har (fun X hX => hsatFrame ρp hs X hX.toU)
   have hG' : ∀ ρ ρ₀, d.toLfp.accRel ψ ρp ρ ρ₀ → FieldsOkB (d.w ψ) ρ (abN.map (·.2.2)) := by
     rintro _ _ ⟨X, Y, hX, -, rfl, -⟩
     rw [hab]

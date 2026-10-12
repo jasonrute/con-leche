@@ -76,6 +76,14 @@ theorem mem_univ_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) 
 theorem mem_strictU_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) (hs : Strict T) :
     T ∈ˢ (strictU n : V) := mem_strictU_of_strict h hs
 
+/-- A member of `univ n` that is strict above `0` is a member of the
+strict universe (at `0` the two agree). -/
+theorem mem_strictU_of_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V))
+    (hs : n ≠ 0 → Strict T) : T ∈ˢ (strictU n : V) := by
+  by_cases hn : n = 0
+  · subst hn; rw [strictU_zero]; rw [univ_zero] at h; exact h
+  · exact mem_strictU_of_mem_univ h (hs hn)
+
 theorem strict_univ (n : Nat) : Strict (univ n : V) := strict_tyU n
 
 theorem univ_mem_tg_succ (n : Nat) : (univ n : V) ∈ˢ tg (n + 1) := tyU_mem_tg_succ n

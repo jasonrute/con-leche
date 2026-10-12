@@ -428,7 +428,7 @@ theorem blk_ctorFit {env : Env} {μ' : ConLeche.CheckMode} (mk : EnvModelM V μ'
   have hnl : nds.length = cA.2 := (ConLeche.posD_tele_open htele).2.1
   refine ⟨nds, cur, htele, htyN, hndC, hnl, hfr.2.1, hresB, fun ρp hs Y hY t fs hf => ?_,
     fun σ hsat fs hfs => ?_⟩
-  · have hsat := hsatFrame ρp hs Y hY
+  · have hsat := hsatFrame ρp hs Y hY.toU
     have hfit := (hEqA.spineFit_iff hsat fs).mpr hf.2.1
     obtain ⟨hfl, -, hmem⟩ := posD_tele_fieldMem hin htele (fun i q hq => (hndC i q hq).1) hresB
       (by rw [hhi]; exact hfr) (by rw [hhi]; exact hCP) (by rw [hhi]; exact hca) hgr rfl hlab hsat

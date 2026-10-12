@@ -123,7 +123,7 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
   -- the hole value inhabits the same index tower
   have hgm : D.holeVal ψ ρp (D.carrier ψ ρp) mm
       ∈ˢ interp V ρp (mkPisAV (ab.drop (D.pars mm ψ).length) (.sort (D.w ψ))) :=
-    LfpDatum.holeVal_mem h.kN (lfpTuple_mem _ _ _ _) hmm hmap₂ hbits₂
+    LfpDatum.holeVal_mem h.kN (lfpTuple_mem _ _ _ _).toU hmm hmap₂ hbits₂
   -- they agree on every fitting index spine: the leaf, `holeVal_app`
   have heq := eq_of_mem_mkPisAV_pos hbits₂ hf₂ hgm fun is' his' => by
     rw [hmap₂] at his'

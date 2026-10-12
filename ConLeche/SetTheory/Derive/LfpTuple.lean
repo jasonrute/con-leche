@@ -42,6 +42,17 @@ variable {V : Type u} [SetTheory V]
 def InTupleSpace (w k : Nat) (Is : Nat → V) (X : Nat → V) : Prop :=
   ∀ m, m < k → X m ∈ˢ famSpace w (Is m)
 
+/-- The tuple is a tuple of families of TYPES: each member's fibres lie
+in `univ w`, not necessarily in the strict universe (task #342).  It is
+what a hole frame binds (the holes' type is `I → Sort w`); the tuple
+space is inside it (`InTupleSpace.toU`). -/
+def InTupleSpaceU (w k : Nat) (Is : Nat → V) (X : Nat → V) : Prop :=
+  ∀ m, m < k → X m ∈ˢ famSpaceIn (univ w) (Is m)
+
+theorem InTupleSpace.toU {w k : Nat} {Is X : Nat → V} (h : InTupleSpace w k Is X) :
+    InTupleSpaceU w k Is X :=
+  fun m hm => famSpace_subset_univ w (Is m) _ (h m hm)
+
 /-- The componentwise order on tuples of families. -/
 def TupleLe (k : Nat) (Is : Nat → V) (X Y : Nat → V) : Prop :=
   ∀ m, m < k → FamLe (Is m) (X m) (Y m)

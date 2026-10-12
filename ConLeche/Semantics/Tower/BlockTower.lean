@@ -469,6 +469,13 @@ theorem blockStepG_univ (hok : BlockChainsOkG k w ρp uf Idss Chs)
     blockStepG w ρp Chs m Y t ∈ˢ (univ w : V) :=
   sumSet_univ_of_okB (hok Y hY m hm t ht)
 
+/-- The operator's fibre is in the strict universe. -/
+theorem blockStepG_strictU (hok : BlockChainsOkG k w ρp uf Idss Chs)
+    {Y : V} (hY : Y ∈ˢ famsSpaceB k w ρp uf Idss) {m : Nat} (hm : m < k) {t : V}
+    (ht : t ∈ˢ idxSet (uf m) ρp (Idss m)) :
+    blockStepG w ρp Chs m Y t ∈ˢ (strictU w : V) :=
+  sumSet_strictU_of_okB (hok Y hY m hm t ht)
+
 /-- Member `m`'s graph lives in its own family space. -/
 theorem blockArmG_mem (hok : BlockChainsOkG k w ρp uf Idss Chs)
     {Y : V} (hY : Y ∈ˢ famsSpaceB k w ρp uf Idss) {m : Nat} (hm : m < k) :
@@ -562,8 +569,14 @@ section Body
 variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
   {Chs : Nat → List (List AnnotTerm)}
 
-theorem lfpFamSpace_eq' (w : Nat) (I : V) : lfpFamSpace V w I = famSpace w I :=
+/-- The type `I → Sort w` is the space of families of types. -/
+theorem lfpFamSpace_eq_univ (w : Nat) (I : V) : lfpFamSpace V w I = famSpaceIn (univ w) I :=
   piR_pos (Nat.succ_ne_zero w)
+
+/-- The family space (strict fibres) is inside the type `I → Sort w`. -/
+theorem famSpace_subset_lfpFamSpace (w : Nat) (I : V) : famSpace w I ⊆ˢ lfpFamSpace V w I := by
+  rw [lfpFamSpace_eq_univ]
+  exact famSpace_subset_univ w I
 
 /-- The spelled index tuple inhabits the constant's first domain. -/
 theorem idxTup_mem (hI : BlockIdxOk (V := V) k uf ρp Idss) :
@@ -600,8 +613,7 @@ theorem tupleOpV_blockFunVG {Xs : Nat → V} (hXs : InTupleSpace w k (blockIdx u
       = blockPhiG k w ρp uf Idss Chs Xs m := by
   have hmem : ndMkTowerSet Xs 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
     ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun c hc => by
-      rw [lfpFamSpace_eq']
-      exact hXs c (by omega)
+      exact famSpace_subset_lfpFamSpace w _ _ (hXs c (by omega))
   show projS m (SetTheory.app _ (mkTower ((List.range k).map Xs))) = _
   rw [← ndMkTowerSet_zero]
   unfold blockFunVG
@@ -655,8 +667,8 @@ theorem blockFamG_tuple_mem (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
     ndMkTowerSet (blockFamG k w ρp uf Idss Chs) 0 k
       ∈ˢ famsSpaceB k w ρp uf Idss :=
   ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun m hm => by
-    rw [lfpFamSpace_eq']
-    exact lfpTuple_mem w k (blockIdx uf ρp Idss) _ m (by omega)
+    exact famSpace_subset_lfpFamSpace w _ _
+      (lfpTuple_mem w k (blockIdx uf ρp Idss) _ m (by omega))
 
 /-- **The carrier tuple is graded.** -/
 theorem blockBodyG_wellDenoted (hI : BlockIdxOk (V := V) k uf ρp Idss)
@@ -779,14 +791,12 @@ theorem blockLeafBodyG_facts {ρ : Nat → V} {m : Nat} (hm : m < k)
   refine ⟨?_, ?_, ?_⟩
   · rw [interp_app, hpv, htv]
   · rw [interp_app, hpv, htv]
-    exact famSpace_app hfam htmem
+    exact famSpace_app_univ hfam htmem
   · rw [WellDenoted_app]
     refine ⟨hpok, htok, w + 1, idxSet (uf m) (shiftE (Idss m).length 0 ρ) (Idss m),
       fun _ => (univ w : V), ?_, ?_, fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
     · rw [hpv]
-      have := hfam
-      rwa [← lfpFamSpace_eq' (V := V) w
-        (idxSet (uf m) (shiftE (Idss m).length 0 ρ) (Idss m))] at this
+      exact famSpace_subset_lfpFamSpace w _ _ hfam
     · rw [htv]; exact htmem
 
 /-- **The leaf inhabits its type's reading.** -/
@@ -881,8 +891,7 @@ theorem ndMkTowerSet_mem_famsSpaceB {Xs : Nat → V}
     (hXs : InTupleSpace w k (blockIdx uf ρp Idss) Xs) :
     ndMkTowerSet Xs 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
   ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun c hc => by
-    rw [lfpFamSpace_eq']
-    exact hXs c (by omega)
+    exact famSpace_subset_lfpFamSpace w _ _ (hXs c (by omega))
 
 theorem projS_ndMkTowerSet_zero {Xs : Nat → V} {c : Nat} (hc : c < k) :
     projS c (ndMkTowerSet Xs 0 k) = Xs c := by
@@ -900,9 +909,9 @@ theorem blockPhi_maps_of {Chs : Nat → List (List AnnotTerm)}
     MapsTuple w k (blockIdx uf ρp Idss) (blockPhiG k w ρp uf Idss Chs) := by
   intro X hX m hm
   show lamR (w + 1) (idxSet (uf m) ρp (Idss m)) _ ∈ˢ famSpace w (blockIdx uf ρp Idss m)
-  rw [← lfpFamSpace_eq']
-  exact lamR_mem fun t ht =>
-    blockStepG_univ hok (ndMkTowerSet_mem_famsSpaceB hX) hm ht
+  rw [lamR_pos (Nat.succ_ne_zero w)]
+  exact graph_mem_famSpace fun t ht =>
+    blockStepG_strictU hok (ndMkTowerSet_mem_famsSpaceB hX) hm ht
 
 end Functor
 

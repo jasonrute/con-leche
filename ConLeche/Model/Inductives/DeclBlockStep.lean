@@ -351,7 +351,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
     -- the fields with holes are small at a `Type`-valued block (the grading)
     (fun ψ ρp hs _ X hX c hc j hj =>
       ((blockHoleGrade_of_run hμ mpI hN (hcore.holeCtx hlpsA hparsT) hPos rfl rfl rfl rfl rfl hkD rfl hctorsAt
-        hlenCtorsAs hclosedC hnfs ψ hc hj).2 ρp hs X hX).1)
+        hlenCtorsAs hclosedC hnfs ψ hc hj).2 ρp hs X hX.toU).1)
   have hstC : LfpStored (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)
       (blockDataOf V p₁ ctorsAs pk uOf ppsOf).toLfp := by
     refine ⟨fun mm hmm => ?_, fun c hc j hj => ?_⟩
