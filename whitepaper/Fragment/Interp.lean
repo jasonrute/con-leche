@@ -28,6 +28,14 @@ at a binder the regime is read off the values (`piV`/`lamV`,
 | `app f a` | `app ⟦f⟧ ⟦a⟧` |
 | `lam A b` | `lamV ⟦A⟧ (fun x => ⟦b⟧ (x :: ρ))` |
 | `pi A B` | `piV ⟦A⟧ (fun x => ⟦B⟧ (x :: ρ))` |
+| `letE T v b` | `⟦b⟧ (⟦v⟧ :: ρ)` |
+
+A `let` reads its body at the value's value; its type is not read,
+as no type is read anywhere (the counterpart of con-leche's `Denotes`
+`let` rule: `Denotes ρ v Y → Denotes (Y :: ρ) b X → Denotes ρ (let x :
+T := v; b) X`, `interp_letE_of`).  The checker's ζ step substitutes
+the value (`Red.zeta`), which the β-substitution lemma makes an
+identity on every environment (`interp_zeta`), the point included.
 
 `app` is uniform — `app pt a = pt` is the proposition regime's β and
 `app_graph` the graph regime's — so the whole regime dispatch lives in
@@ -135,6 +143,7 @@ noncomputable def interp (M : Name → List Nat → V) (φ : Name → Nat) : (Na
   | ρ, .app f a => app (interp M φ ρ f) (interp M φ ρ a)
   | ρ, .lam A b => lamV (interp M φ ρ A) fun x => interp M φ (cons x ρ) b
   | ρ, .pi A B => piV (interp M φ ρ A) fun x => interp M φ (cons x ρ) B
+  | ρ, .letE _ v b => interp M φ (cons (interp M φ ρ v) ρ) b
 
 variable (M : Name → List Nat → V) (φ : Name → Nat)
 
@@ -151,6 +160,16 @@ variable (M : Name → List Nat → V) (φ : Name → Nat)
 @[simp] theorem interp_pi (ρ : Nat → V) (A : Expr) (B : Expr) :
     interp M φ ρ (.pi A B) =
       piV (interp M φ ρ A) fun x => interp M φ (cons x ρ) B := rfl
+@[simp] theorem interp_letE (ρ : Nat → V) (T v b : Expr) :
+    interp M φ ρ (.letE T v b) = interp M φ (cons (interp M φ ρ v) ρ) b := rfl
+
+/-- **The `let` clause, in `Denotes`' shape**: a `let` whose value
+denotes `Y` and whose body denotes `X` at `Y` pushed denotes `X`.  The
+type is not read. -/
+theorem interp_letE_of {ρ : Nat → V} {T v b : Expr} {Y X : V}
+    (hv : interp M φ ρ v = Y) (hb : interp M φ (cons Y ρ) b = X) :
+    interp M φ ρ (.letE T v b) = X := by
+  rw [interp_letE, hv, hb]
 
 /-! ## The substitution lemmas -/
 
@@ -179,6 +198,10 @@ theorem interp_liftN (n : Nat) :
     congr 1
     funext x
     rw [ihB, cons_shiftE]
+  | letE T v b _ ihv ihb =>
+    intro k ρ
+    simp only [Expr.liftN_letE, interp_letE, ihv]
+    rw [ihb, cons_shiftE]
 
 /-- Instantiation is an environment update. -/
 theorem interp_inst :
@@ -211,12 +234,23 @@ theorem interp_inst :
     congr 1
     funext x
     rw [ihB, shiftE_succ_cons, cons_instE]
+  | letE T v b _ ihv ihb =>
+    intro a k ρ
+    simp only [Expr.inst_letE, interp_letE, ihv]
+    rw [ihb, shiftE_succ_cons, cons_instE]
 
 /-- **The β-substitution lemma**: substituting for the innermost
 variable is consing its value. -/
 theorem interp_inst0 (e a : Expr) (ρ : Nat → V) :
     interp M φ ρ (e.inst a) = interp M φ (cons (interp M φ ρ a) ρ) e := by
   rw [interp_inst, shiftE_zero_zero, instE_zero]
+
+/-- **ζ is an identity**: a `let` denotes what its body with the value
+substituted denotes — at every environment, the point included (as β
+is at a λ that is a graph; ζ has no λ that could be the point). -/
+theorem interp_zeta (T v b : Expr) (ρ : Nat → V) :
+    interp M φ ρ (.letE T v b) = interp M φ ρ (b.inst v) := by
+  rw [interp_letE, interp_inst0]
 
 /-- Level instantiation is a change of valuation. -/
 theorem interp_instL (ps : List Name) (ls : List Level) :
@@ -246,6 +280,10 @@ theorem interp_instL (ps : List Name) (ls : List Level) :
     congr 1
     funext x
     exact ihB _
+  | letE T v b _ ihv ihb =>
+    intro ρ
+    simp only [Expr.instL_letE, interp_letE, ihv]
+    exact ihb _
 
 /-- The interpretation of a spine. -/
 theorem interp_mkAppN (ρ : Nat → V) :

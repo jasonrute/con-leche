@@ -40,6 +40,9 @@ The cases the paper dwells on, each its own lemma:
   major, even on a recursion over proofs: the major's binder domain is
   a type, so the major and its reduct are both the point or neither is;
 * `DefEq.eta_sound` — η, from the library's η law;
+* `Red.zeta_sound`, `Infer.letE_sound` — `let` by substitution: ζ is
+  an identity at every environment (`interp_zeta`), and the type checks
+  on the value are not used (`Infer.letE_sat` is what they give);
 * `DefEq.proofIrrel_sound` — proof irrelevance claims nothing: two
   proofs are the point, and the claim is about non-proofs;
 * `Infer.app_sound` — the application rule, where no Π-injectivity is
@@ -127,6 +130,16 @@ theorem beta_sound {Γ : List Expr} {A b a : Expr} :
     rw [piR_dom_unique hown hslot]; exact hmem
   refine ⟨(WellDenoted_inst0 m.M φ ha).mpr (hbody _ haA), ?_⟩
   rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
+
+/-- **ζ, with no certificate** (task #342, F4): the `let` and its
+reduct denote alike at every environment (`interp_zeta`), so neither
+the point hypothesis nor the context is used; the reduct's invariant is
+the `let`'s, through the substitution lemma. -/
+theorem zeta_sound {Γ : List Expr} {T v b : Expr} :
+    RedSem m φ Γ (.letE T v b) (b.inst v) := by
+  intro ρ _ hw _
+  rw [WellDenoted_letE] at hw
+  exact ⟨(WellDenoted_inst0 m.M φ hw.1).mpr hw.2, interp_zeta m.M φ T v b ρ⟩
 
 theorem delta_sound {Γ : List Expr} {c : Name} {ls : List Level} {ci : ConstInfo} {v : Expr}
     (hfind : env.find? c = some ci) (hv : ci.value? = some v)
@@ -335,6 +348,42 @@ theorem app_sound {Γ : List Expr} {f a tf A B ta : Expr}
   · rw [interp_app, interp_inst0]
     exact app_mem_piV hmemf hmema
 
+/-- **`let`, by substitution** (task #342, F4): the body with the value
+substituted carries the claim, and the `let` denotes what it denotes
+(`interp_zeta`); its invariant is the `let`'s (`WellDenoted_letE`
+against `WellDenoted_inst0`).  The type checks on the value (`hT`,
+`hu`, `hv`, `hd`) are not used: `interp` reads no type, and the body
+is inferred at the value itself, not at a variable of the type. -/
+theorem letE_sound {Γ : List Expr} {T v b s tv B : Expr} {u : Level}
+    (_hT : InferSem m φ Γ T s) (_hu : RedSem m φ Γ s (.sort u))
+    (hv : InferSem m φ Γ v tv) (_hd : DefEqSem m φ Γ tv T)
+    (hb : InferSem m φ Γ (b.inst v) B) :
+    InferSem m φ Γ (.letE T v b) B := by
+  intro ρ hs
+  obtain ⟨hwv, -⟩ := hv ρ hs
+  obtain ⟨hwb, hwB, hTB, hmem⟩ := hb ρ hs
+  refine ⟨?_, hwB, hTB, ?_⟩
+  · rw [WellDenoted_letE]; exact ⟨hwv, (WellDenoted_inst0 m.M φ hwv).mp hwb⟩
+  · rw [interp_zeta]; exact hmem
+
+/-- **What the value checks give** (task #342, F4): the value's value is
+a member of the type's, so the value extends a satisfying environment
+to one satisfying the context extended by the type.  The substitution
+version does not need it (`letE_sound`); a version that opens the body
+at a let-variable of type `T` would (the body's claim is then stated at
+`T :: Γ`).  The type and the value's inferred type are both types,
+never the point, so `DefEq`'s conditional claim applies to them. -/
+theorem letE_sat {Γ : List Expr} {T v s tv : Expr} {u : Level}
+    (hT : InferSem m φ Γ T s) (hu : RedSem m φ Γ s (.sort u))
+    (hv : InferSem m φ Γ v tv) (hd : DefEqSem m φ Γ tv T) {ρ : Nat → V}
+    (hs : Sat m.M φ Γ ρ) :
+    Sat m.M φ (T :: Γ) (cons (interp m.M φ ρ v) ρ) := by
+  obtain ⟨hwT, hmemT⟩ := mem_typeU_of hT hu hs
+  have hTT := IsTy_of_mem_typeU hmemT
+  obtain ⟨-, hwtv, hTtv, hmem⟩ := hv ρ hs
+  rw [hd ρ hs hwtv hwT hTtv.ne_pt hTT.ne_pt] at hmem
+  exact (Sat_cons m.M φ).mpr ⟨hs, hwT, hTT, hmem⟩
+
 end Infer
 
 namespace DefEq
@@ -345,13 +394,16 @@ body and `b` applied lie in one type — the body's inferred type is the
 neither is the body's claim makes them equal; a member of a product is
 the abstraction of its applications (`SetLib.lamV_eta`). -/
 theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B t₁ : Expr}
-    (htb : InferSem m φ Γ b tb) (hr : RedSem m φ Γ tb (.pi A₂ B))
+    (htb : ∀ ρ, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ b → interp m.M φ ρ b ≠ pt →
+      WellDenoted m.M φ ρ tb ∧ IsTy (interp m.M φ ρ tb) ∧
+        interp m.M φ ρ b ∈ˢ interp m.M φ ρ tb)
+    (hr : RedSem m φ Γ tb (.pi A₂ B))
     (hA : DefEqSem m φ Γ A₂ A₁)
     (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0)))
     (ht₁ : InferSem m φ (A₁ :: Γ) b₁ t₁) (htB : DefEqSem m φ (A₁ :: Γ) t₁ B) :
     DefEqSem m φ Γ (.lam A₁ b₁) b := by
-  intro ρ hs hlam hwb _ _
-  obtain ⟨-, hwtb, hTtb, hmemb⟩ := htb ρ hs
+  intro ρ hs hlam hwb _ hnb
+  obtain ⟨hwtb, hTtb, hmemb⟩ := htb ρ hs hwb hnb
   obtain ⟨hwpi, hepi⟩ := hr ρ hs hwtb hTtb.ne_pt
   rw [hepi, interp_pi] at hmemb
   rw [WellDenoted_pi] at hwpi
@@ -880,6 +932,101 @@ theorem cmp_vals {Γ : List Expr} {ρ : Nat → V} (hs : Sat m.M φ Γ ρ) {as b
   obtain ⟨⟨a, b⟩, hab, rfl⟩ := List.mem_map.mp hp
   exact h (a, b) hab ρ hs (ha a (List.of_mem_zip hab).1) (hb b (List.of_mem_zip hab).2) h1 h2
 
+/-! ## A constructor of a family in `Prop` is the point (task #342 F3) -/
+
+/-- Every element of a list zipped with one of the same length has a
+partner. -/
+theorem List.exists_mem_zip_of_length {α β : Type} :
+    ∀ {as : List α} {bs : List β}, as.length = bs.length →
+      ∀ a ∈ as, ∃ b, (a, b) ∈ as.zip bs
+  | [], _, _, _, h => by simp at h
+  | _ :: _, [], h, _, _ => by simp at h
+  | a :: as, b :: bs, h, x, hx => by
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact ⟨b, by simp⟩
+    · obtain ⟨y, hy⟩ := exists_mem_zip_of_length (by simpa using h) x hx
+      exact ⟨y, List.mem_cons_of_mem _ hy⟩
+
+/-- **Walking a type along fitting terms**: the head applied to the
+terms lies in the residual (`Expr.piResidual`), and the residual is a
+type. -/
+theorem mem_piResidual {ρ : Nat → V} :
+    ∀ {T : Expr} {as : List Expr} {R : Expr} {f : V},
+      WellDenoted m.M φ ρ T → IsTy (interp m.M φ ρ T) → f ∈ˢ interp m.M φ ρ T →
+      (∀ a ∈ as, WellDenoted m.M φ ρ a) →
+      TeleFit m.M φ ρ T as → Expr.piResidual T as = some R →
+      appList f (as.map (interp m.M φ ρ)) ∈ˢ interp m.M φ ρ R ∧ IsTy (interp m.M φ ρ R)
+  | T, [], R, f, _, hty, hf, _, _, h => by
+    simp at h; subst h; exact ⟨hf, hty⟩
+  | .pi A B, a :: as, R, f, hT, _, hf, has, hfit, h => by
+    rw [Expr.piResidual_pi_cons] at h
+    obtain ⟨hmem, hfit'⟩ := hfit
+    rw [WellDenoted_pi] at hT
+    have hwa := has a List.mem_cons_self
+    rw [interp_pi] at hf
+    have hfa := app_mem_piV hf hmem
+    have := mem_piResidual ((WellDenoted_inst0 m.M φ hwa).mpr (hT.2.2.1 _ hmem))
+      (by rw [interp_inst0]; exact hT.2.2.2 _ hmem)
+      (by rw [interp_inst0]; exact hfa)
+      (fun b hb => has b (List.mem_cons_of_mem a hb)) hfit' h
+    simpa only [List.map_cons, appList_cons] using this
+  | .bvar _, _ :: _, _, _, _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .sort _, _ :: _, _, _, _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .const _ _, _ :: _, _, _, _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .app _ _, _ :: _, _, _, _, _, _, _, _, h => by simp [Expr.piResidual] at h
+  | .lam _ _, _ :: _, _, _, _, _, _, _, _, h => by simp [Expr.piResidual] at h
+
+/-- **A member of a family whose sort evaluates to zero is the point.**
+The family `I`'s stored type, walked along the application's
+arguments, leaves `Sort u`, and `u` evaluates to `0`.  The application
+is a type (`hty`), so not the point; so it fits `I`'s telescope
+(`teleFit_of_ne_pt`) and lies in `Sort 0`, the truth values, whose
+members are the point.  (A fibre outside the telescope is not reached:
+the fit is derived, not assumed.) -/
+theorem eq_pt_of_mem_sortZero {ρ : Nat → V} {I : Name} {Ii : ConstInfo} {lsI : List Level}
+    {zs : List Expr} {u : Level} {y : V}
+    (hI : env.find? I = some Ii) (hlsI : lsI.length = Ii.lparams.length)
+    (hpisI : Ii.type.hasPis zs.length = true)
+    (hsort : Expr.piResidual (Ii.type.instL Ii.lparams lsI) zs = some (.sort u))
+    (hu : Level.eval φ u = 0)
+    (hw : WellDenoted m.M φ ρ (Expr.mkAppN (.const I lsI) zs))
+    (hty : IsTy (interp m.M φ ρ (Expr.mkAppN (.const I lsI) zs)))
+    (hy : y ∈ˢ interp m.M φ ρ (Expr.mkAppN (.const I lsI) zs)) : y = pt := by
+  have hT := m.type_ok I Ii hI φ ρ lsI hlsI
+  have hfit := teleFit_of_ne_pt hT.1 (by rw [interp_const]; exact hT.2.2)
+    (by rw [Expr.hasPis_instL]; exact hpisI) hw hty.ne_pt
+  obtain ⟨hmem, -⟩ := mem_piResidual hT.1 hT.2.1 hT.2.2 (WellDenoted_mkAppN m.M φ hw).2 hfit hsort
+  rw [interp_sort, hu, mem_typeU_zero] at hmem
+  rw [interp_mkAppN_appList, interp_const] at hy
+  exact eq_pt_of_mem_univ_zero hmem hy
+
+/-- **A constructor of a family whose sort evaluates to zero denotes the
+point** (task #342 F3, the lemma #349 named as missing).  The
+constructor applied to arguments that fit its stored type, whose
+residual is the family `I` at some parameters and indices, at a level
+where `I`'s sort evaluates to zero: the application lies in that
+residual, a type of `Sort 0`, so it is the point
+(`eq_pt_of_mem_sortZero`).  No argument of the application is read
+beyond its fit: at such a level the constructor's arguments are not
+constrained by its value (#345). -/
+theorem ctorApp_eq_pt_of_sortZero {ρ : Nat → V} {cj : Name} {usj : List Level} {cij : ConstInfo}
+    {margs : List Expr} {I : Name} {Ii : ConstInfo} {lsI : List Level} {zs : List Expr} {u : Level}
+    (hcij : env.find? cj = some cij) (husj : usj.length = cij.lparams.length)
+    (hmargs : ∀ a ∈ margs, WellDenoted m.M φ ρ a)
+    (hfit : TeleFit m.M φ ρ (cij.type.instL cij.lparams usj) margs)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs =
+      some (Expr.mkAppN (.const I lsI) zs))
+    (hI : env.find? I = some Ii) (hlsI : lsI.length = Ii.lparams.length)
+    (hpisI : Ii.type.hasPis zs.length = true)
+    (hsort : Expr.piResidual (Ii.type.instL Ii.lparams lsI) zs = some (.sort u))
+    (hu : Level.eval φ u = 0) :
+    interp m.M φ ρ (Expr.mkAppN (.const cj usj) margs) = pt := by
+  have hT := m.type_ok cj cij hcij φ ρ usj husj
+  obtain ⟨hmem, hty⟩ := mem_piResidual hT.1 hT.2.1 hT.2.2 hmargs hfit hres
+  have hw := WellDenoted_piResidual hT.1 hmargs hfit hres
+  rw [interp_mkAppN_appList, interp_const]
+  exact eq_pt_of_mem_sortZero hI hlsI hpisI hsort hu hw hty hmem
+
 namespace Red
 
 /-- **ι, the semantic core** (task #347) of `iota_core` and
@@ -1244,6 +1391,143 @@ theorem iota_core_strict {Γ : List Expr} {c : Name} {us : List Level} {ci : Con
   exact teleFit_of_ne_pt hcjT.1 (by rw [interp_const]; exact hcjT.2.2)
     (by rw [Expr.hasPis_instL]; exact hpis') hwmajor (hmajeq ▸ hmajne)
 
+/-- **ι with no major-slot certificate** (task #342 F3; #342 v2 §11.4
+case 3: the family may be `Prop`, the motive may not).  The
+constructor's telescope keeps its full-grade certificate (every
+parameter and field, #349); the reduced major's slot needs none.  The
+redex is not the point, so the whole unreduced spine fits the
+recursor's telescope (`teleFit_of_ne_pt`) and the unreduced major lies
+in its domain `dM`.  If the unreduced major is not the point, its
+reduction claim gives the reduct's value.  If it is, then at this
+valuation either `dM` is strict — impossible, it holds the point — or
+the constructor's family `I` has a sort that evaluates to zero, and then
+the reduced constructor application is the point too
+(`ctorApp_eq_pt_of_sortZero`), a member of `dM`.
+
+The disjunction `hcase` is the semantic interface: `Red.iotaProp`
+supplies its right side at every valuation (the family's sort is `0`
+at every valuation, a level test); the case-2 environment law (#347,
+lane F1: a family whose sort evaluates non-zero has strict fibres)
+supplies its left side where the sort is not zero, which makes the rule
+for a family that may be `Prop` at some valuations only (`Quot.{u}`,
+`PUnit.{u}`).  The index comparisons are passed on in their conditional
+form, as in `iota_core`; the slot does not use them. -/
+theorem iota_core_prop {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {margs : List Expr} {rhs : Expr}
+    {dM bM : Expr} {doms' tys' : List Expr} {nP numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    {Ii : ConstInfo} {u : Level}
+    (hnB : numBefore ≤ majorIdx)
+    (hfind : env.find? c = some ci)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSem m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hcij : env.find? cj = some cij)
+    (husj : usj.length = cij.lparams.length)
+    (hpis' : cij.type.hasPis margs.length = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSem m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSem m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = nP)
+    (hI : env.find? I = some Ii) (hlsI : lsI.length = Ii.lparams.length)
+    (hpisI : Ii.type.hasPis (rps ++ ridx).length = true)
+    (hsort : Expr.piResidual (Ii.type.instL Ii.lparams lsI) (rps ++ ridx) = some (.sort u))
+    (hcase : ∀ ρ : Nat → V, Sat m.M φ Γ ρ → (∀ a ∈ args, WellDenoted m.M φ ρ a) →
+      Strict (interp m.M φ ρ dM) ∨ Level.eval φ u = 0)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSem m φ Γ p.1 p.2)
+    (hlaw : ∀ ρ : Nat → V, Sat m.M φ Γ ρ → (∀ a ∈ args, WellDenoted m.M φ ρ a) →
+      (∀ a ∈ margs, WellDenoted m.M φ ρ a) →
+      TeleFitV m.M φ ρ (ci.type.instL ci.lparams us)
+        ((args.take majorIdx).map (interp m.M φ ρ) ++
+          [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interp m.M φ ρ))]) →
+      TeleFitV m.M φ ρ (cij.type.instL cij.lparams usj) (margs.map (interp m.M φ ρ)) →
+      (∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
+        piBodyV ρ (cij.type.instL cij.lparams usj) (margs.map (interp m.M φ ρ)) = some (B, ρ') →
+        B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = nP →
+        ∀ p ∈ (ridx.map (interp m.M φ ρ')).zip
+          (((args.take majorIdx).map (interp m.M φ ρ)).drop numBefore),
+          p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+      appList (m.M c (us.map (Level.eval φ)))
+          ((args.take majorIdx).map (interp m.M φ ρ) ++
+            [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interp m.M φ ρ))]) ≠ pt →
+      appList (m.M c (us.map (Level.eval φ)))
+          ((args.take majorIdx).map (interp m.M φ ρ) ++
+            [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interp m.M φ ρ))])
+        = appList (interp m.M φ ρ rhs)
+            (((args.take majorIdx).map (interp m.M φ ρ)).take numBefore ++
+              (margs.map (interp m.M φ ρ)).drop nP) ∧
+      WellDenoted m.M φ ρ rhs ∧
+      SpineOk (interp m.M φ ρ rhs)
+        (((args.take majorIdx).map (interp m.M φ ρ)).take numBefore ++
+          (margs.map (interp m.M φ ρ)).drop nP)) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN rhs (args.take numBefore ++ margs.drop nP)) := by
+  refine iota_core_sem hnB hfind hus hlen hpis hmaj hmeq hcij husj hpis' ?_ hres hshape hrps hX hlaw
+  intro ρ hs hw hn
+  obtain ⟨-, hargs⟩ := WellDenoted_mkAppN m.M φ hw
+  have hsplit := List.take_append_getD (Expr.bvar 0) args _ hlen
+  have hwT := (m.type_ok c ci hfind φ ρ us hus).1
+  have hcT : interp m.M φ ρ (Expr.const c us) ∈ˢ interp m.M φ ρ (ci.type.instL ci.lparams us) := by
+    rw [interp_const]; exact (m.type_ok c ci hfind φ ρ us hus).2.2
+  -- the whole unreduced spine fits, the major included: the major lies in `dM`
+  have hfitAll : TeleFit m.M φ ρ (ci.type.instL ci.lparams us) args :=
+    teleFit_of_ne_pt hwT hcT (by rw [Expr.hasPis_instL, hlen]; exact hpis) hw hn
+  have hfitAll' := hfitAll
+  rw [hsplit] at hfitAll'
+  have hmajD := teleFit_snoc_mem hfitAll' hresM
+  have hfitxs : TeleFit m.M φ ρ (ci.type.instL ci.lparams us) (args.take majorIdx) := by
+    have hsub : Expr.mkAppN (Expr.const c us) args =
+        .app (Expr.mkAppN (Expr.const c us) (args.take majorIdx))
+          (args.getD majorIdx (Expr.bvar 0)) := by
+      conv => lhs; rw [hsplit]
+      rw [Expr.mkAppN_append]; rfl
+    have hw' := hsub ▸ hw
+    have hn' := hsub ▸ hn
+    rw [WellDenoted_app] at hw'
+    refine teleFit_of_ne_pt hwT hcT ?_ hw'.1 (fn_ne_pt hn')
+    rw [Expr.hasPis_instL]
+    exact Expr.hasPis_of_succ _ _ (by
+      have : (args.take majorIdx).length = majorIdx := by simp [hlen]
+      rw [this]; exact hpis)
+  -- the constructor's fit, from its certificate
+  have hmargs : ∀ a ∈ margs, WellDenoted m.M φ ρ a := by
+    intro a ha
+    have hl : margs.length = tys'.length := by rw [htys', Expr.length_of_piDomains hdoms']
+    obtain ⟨t, ht⟩ := List.exists_mem_zip_of_length hl a ha
+    exact (hI' (a, t) ht ρ hs).1
+  have hcjT := m.type_ok _ cij hcij φ ρ usj husj
+  have hfit' := teleFit_of_certs hs hcjT.1 hmargs hdoms' htys' hI' hD'
+  subst hmeq
+  -- the reduced major is well-denoted: its spine fits the constructor's telescope
+  have hwmajor : WellDenoted m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs) := by
+    have hp : (cij.type.instL cij.lparams usj).hasPis margs.length = true := by
+      rw [Expr.hasPis_instL]; exact hpis'
+    refine WellDenoted_mkAppN_of_spineOk m.M φ ρ (WellDenoted_const m.M φ ρ _ _) hmargs ?_
+    exact spineOk_of_teleFitV m.M φ hcjT.1 (by rw [interp_const]; exact hcjT.2.2)
+      (teleFitV_of_teleFit m.M φ ρ hp hfit')
+  -- the reduced major's slot, with no certificate
+  have hwmaj0 : WellDenoted m.M φ ρ (args.getD majorIdx (Expr.bvar 0)) := by
+    apply hargs
+    have hmem : args.getD majorIdx (Expr.bvar 0) ∈
+        args.take majorIdx ++ [args.getD majorIdx (Expr.bvar 0)] := by simp
+    rwa [← hsplit] at hmem
+  have hslot : interp m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs) ∈ˢ interp m.M φ ρ dM := by
+    by_cases hm0 : interp m.M φ ρ (args.getD majorIdx (Expr.bvar 0)) = pt
+    · rcases hcase ρ hs hargs with hstr | hz
+      · exact absurd hm0 (ne_pt_of_mem_strict hstr hmajD)
+      · subst hshape
+        rw [ctorApp_eq_pt_of_sortZero hcij husj hmargs hfit' hres hI hlsI hpisI hsort hz, ← hm0]
+        exact hmajD
+    · rw [← (hmaj ρ hs hwmaj0 hm0).2]; exact hmajD
+  exact ⟨hwmajor, teleFit_snoc hfitxs hresM hslot, hfit'⟩
+
 /-- **The major's domain is strict at a never-`Prop` family** (task
 #342 F1): where the domain the recursor's telescope leaves for the
 major is a stored inductive family at its parameters and indices whose
@@ -1389,6 +1673,63 @@ theorem iota_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {
   subst hnB hmI hctor
   refine iota_core (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
     hresM hIM hDM hdoms' htys' hI' hD' hres hshape hrps hX ?_
+  intro ρ hs hargs hmargs hfitV hfitV' hX' hn
+  have hP' : ∀ p ∈ ((margs.map (interp m.M φ ρ)).take numParams).zip
+      (((args.take (numParams + numMotives + numMinors + numIndices)).map
+        (interp m.M φ ρ)).take numParams), p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
+    rw [← List.map_take, ← List.map_take, List.take_take, Nat.min_eq_left (by omega)]
+    exact cmp_vals hs (fun a ha => hmargs a (List.mem_of_mem_take ha))
+      (fun a ha => hargs a (List.mem_of_mem_take ha)) hP
+  exact m.rec_rules c ci numParams numMotives numMinors numIndices rules
+    hfind hkind rl hrl hinst cij hcij φ ρ us usj _ _ hus husj
+    (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
+    hfitV hfitV' ((Level.eqList_iff _ _).mp hlv φ) hP' hX' hn
+
+/-- **ι on a family in `Prop`** (`Red.iotaProp`): `iota_core_prop` with
+the environment's `RecRuleLaw`; the oracle's `u = 0` is the right side
+of its case split at every valuation. -/
+theorem iotaProp_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
+    {dM bM : Expr} {doms' tys' : List Expr} {numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    {Ii : ConstInfo} {u : Level}
+    (hnB : numBefore = numParams + numMotives + numMinors)
+    (hmI : majorIdx = numParams + numMotives + numMinors + numIndices)
+    (hfind : env.find? c = some ci)
+    (hkind : ci.kind = .recursor numParams numMotives numMinors numIndices rules)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSem m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hrl : rl ∈ rules) (hctor : rl.ctor = cj) (hinst : rl.inst = none)
+    (hcij : env.find? cj = some cij)
+    (husj : usj.length = cij.lparams.length)
+    (hmlen : margs.length = numParams + rl.nfields)
+    (hpis' : cij.type.hasPis (numParams + rl.nfields) = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSem m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSem m φ Γ p.1 p.2)
+    (hlv : Level.eqList usj (us.drop (us.length - usj.length)) = true)
+    (hP : ∀ p ∈ (margs.take numParams).zip (args.take numParams), DefEqSem m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = numParams)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSem m φ Γ p.1 p.2)
+    (hI : env.find? I = some Ii) (hlsI : lsI.length = Ii.lparams.length)
+    (hpisI : Ii.type.hasPis (rps ++ ridx).length = true)
+    (hsort : Expr.piResidual (Ii.type.instL Ii.lparams lsI) (rps ++ ridx) = some (.sort u))
+    (hu : LevelOracle.eq u .zero = true) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take numBefore ++ margs.drop numParams)) := by
+  subst hnB hmI hctor
+  refine iota_core_prop (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
+    hresM hdoms' htys' hI' hD' hres hshape hrps hI hlsI hpisI hsort
+    (fun _ _ _ => Or.inr (by rw [eval_eq_of_oracle hu]; rfl)) hX ?_
   intro ρ hs hargs hmargs hfitV hfitV' hX' hn
   have hP' : ∀ p ∈ ((margs.map (interp m.M φ ρ)).take numParams).zip
       (((args.take (numParams + numMotives + numMinors + numIndices)).map
@@ -1558,6 +1899,7 @@ theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
   | _, _, _, .trans h₁ h₂ => Red.trans_sound (red_sound h₁) (red_sound h₂)
   | _, _, _, .appFn h => Red.appFn_sound (red_sound h)
   | _, _, _, .beta => Red.beta_sound
+  | _, _, _, .zeta => Red.zeta_sound
   | _, _, _, .delta hfind hv hls => Red.delta_sound hfind hv hls
   | _, _, _, .iota hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij husj hmlen hpis' hresM
       hIM hDM hdoms' htys' hI' hD' hlv hP hres hshape hrps hX =>
@@ -1566,6 +1908,12 @@ theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
       hdoms' htys' (fun p hp => infer_sound (hI' p hp)) (fun p hp => defeq_sound (hD' p hp))
       hlv (fun p hp => defeq_sound (hP p hp)) hres hshape hrps
       (fun p hp => defeq_sound (hX p hp))
+  | _, _, _, .iotaProp hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij husj hmlen hpis' hresM
+      hdoms' htys' hI' hD' hlv hP hres hshape hrps hX hI hlsI hpisI hsort hu =>
+    Red.iotaProp_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst hcij husj
+      hmlen hpis' hresM hdoms' htys' (fun p hp => infer_sound (hI' p hp))
+      (fun p hp => defeq_sound (hD' p hp)) hlv (fun p hp => defeq_sound (hP p hp)) hres hshape hrps
+      (fun p hp => defeq_sound (hX p hp)) hI hlsI hpisI hsort hu
   | _, _, _, .iotaNested hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij hcijk husj hmlen
       hpis' hresM hIM hDM hdoms' htys' hI' hD' _ _ _ hres hshape hrps hX =>
     Red.iotaNested_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst
@@ -1582,7 +1930,6 @@ theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
     Red.iotaNestedStrict_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor
       hinst hcij hcijk husj hmlen hpis' hresM hdM hI₀ hk₀ hls₀ hd₀ hpis₀ hlvl hres hshape hrps
       (fun p hp => defeq_sound (hX p hp))
-
 theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
     DefEq env Γ a b → DefEqSem m φ Γ a b
   | _, _, _, .refl => DefEq.refl_sound
@@ -1605,7 +1952,8 @@ theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
     DefEq.appIn_sound (defeq_sound hf) (infer_sound hI) (red_sound hr) (defeqIn_sound ha)
   | _, _, _, .app hf ha => DefEq.app_sound (defeq_sound hf) (defeq_sound ha)
   | _, _, _, .eta htb hr hA hbody ht₁ htB =>
-    DefEq.eta_sound (infer_sound htb) (red_sound hr) (defeq_sound hA) (defeq_sound hbody)
+    DefEq.eta_sound (fun ρ hs _ _ => (infer_sound htb ρ hs).2) (red_sound hr) (defeq_sound hA)
+      (defeq_sound hbody)
       (infer_sound ht₁) (defeq_sound htB)
   | _, _, _, .proofIrrel hta htta hu hu0 _ _ _ _ =>
     DefEq.proofIrrel_sound (infer_sound hta) (infer_sound htta) (red_sound hu) hu0
@@ -1637,6 +1985,9 @@ theorem infer_sound [LevelOracle] : ∀ {Γ : List Expr} {e T : Expr},
     Infer.lam_sound (infer_sound hA) (red_sound hu) (infer_sound hb)
   | _, _, _, .app hf hr ha hd =>
     Infer.app_sound (infer_sound hf) (red_sound hr) (infer_sound ha) (defeq_sound hd)
+  | _, _, _, .letE hT hu hv hd hb =>
+    Infer.letE_sound (infer_sound hT) (red_sound hu) (infer_sound hv) (defeq_sound hd)
+      (infer_sound hb)
 
 end
 

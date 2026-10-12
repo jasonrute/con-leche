@@ -42,6 +42,7 @@ def closedAt (k : Nat) : Expr → Bool
   | app f a => closedAt k f && closedAt k a
   | lam A b => closedAt k A && closedAt (k + 1) b
   | pi A B => closedAt k A && closedAt (k + 1) B
+  | letE T v b => closedAt k T && closedAt k v && closedAt (k + 1) b
 
 /-- The constants a term mentions. -/
 def consts : Expr → List Name
@@ -51,6 +52,7 @@ def consts : Expr → List Name
   | app f a => consts f ++ consts a
   | lam A b => consts A ++ consts b
   | pi A B => consts A ++ consts B
+  | letE T v b => consts T ++ consts v ++ consts b
 
 /-- Every level parameter the term uses — in sorts, constant
 instantiations — is one of `ps`. -/
@@ -61,6 +63,7 @@ def lparamsIn (ps : List Name) : Expr → Bool
   | app f a => lparamsIn ps f && lparamsIn ps a
   | lam A b => lparamsIn ps A && lparamsIn ps b
   | pi A B => lparamsIn ps A && lparamsIn ps B
+  | letE T v b => lparamsIn ps T && lparamsIn ps v && lparamsIn ps b
 
 /-- Does the term use the bound variable `i` (of the enclosing
 context)?  Under a binder the variable is `i + 1`. -/
@@ -71,6 +74,7 @@ def usesVar (i : Nat) : Expr → Bool
   | app f a => usesVar i f || usesVar i a
   | lam A b => usesVar i A || usesVar (i + 1) b
   | pi A B => usesVar i A || usesVar (i + 1) B
+  | letE T v b => usesVar i T || usesVar i v || usesVar (i + 1) b
 
 end Expr
 

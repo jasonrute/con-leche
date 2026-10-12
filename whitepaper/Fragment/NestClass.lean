@@ -89,6 +89,13 @@ theorem Expr.usesVar_lt_of_closedAt : ∀ {e : Expr} {k i : Nat}, e.closedAt k =
     rcases hu with hu | hu
     · exact Expr.usesVar_lt_of_closedAt hc.1 hu
     · have := Expr.usesVar_lt_of_closedAt hc.2 hu; omega
+  | .letE T v b, k, i, hc, hu => by
+    simp only [Expr.closedAt_letE, Bool.and_eq_true] at hc
+    simp only [Expr.usesVar_letE, Bool.or_eq_true] at hu
+    rcases hu with (hu | hu) | hu
+    · exact Expr.usesVar_lt_of_closedAt hc.1.1 hu
+    · exact Expr.usesVar_lt_of_closedAt hc.1.2 hu
+    · have := Expr.usesVar_lt_of_closedAt hc.2 hu; omega
 
 section Envs
 

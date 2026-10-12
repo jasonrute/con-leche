@@ -69,6 +69,14 @@ theorem inst_not_uses : ∀ (e a : Expr) (k : Nat), e.usesVar k = false →
     rcases hc with hc | hc
     · exact Or.inl (inst_not_uses A a k hu.1 c hc)
     · exact Or.inr (inst_not_uses B a (k + 1) hu.2 c hc)
+  | letE T v b, a, k, hu, c, hc => by
+    simp only [usesVar_letE, Bool.or_eq_false_iff] at hu
+    rw [inst_letE, consts_letE, List.mem_append, List.mem_append] at hc
+    rw [consts_letE, List.mem_append, List.mem_append]
+    rcases hc with (hc | hc) | hc
+    · exact Or.inl (Or.inl (inst_not_uses T a k hu.1.1 c hc))
+    · exact Or.inl (Or.inr (inst_not_uses v a k hu.1.2 c hc))
+    · exact Or.inr (inst_not_uses b a (k + 1) hu.2 c hc)
 
 /-- A lifted term uses no variable in the gap the lifting opens. -/
 theorem usesVar_liftN_gap : ∀ (a : Expr) (n k i : Nat), k ≤ i → i < k + n →
@@ -84,6 +92,9 @@ theorem usesVar_liftN_gap : ∀ (a : Expr) (n k i : Nat), k ≤ i → i < k + n 
     simp [usesVar_liftN_gap A n k i h1 h2, usesVar_liftN_gap b n (k + 1) (i + 1) (by omega) (by omega)]
   | pi A B, n, k, i, h1, h2 => by
     simp [usesVar_liftN_gap A n k i h1 h2, usesVar_liftN_gap B n (k + 1) (i + 1) (by omega) (by omega)]
+  | letE T v b, n, k, i, h1, h2 => by
+    simp [usesVar_liftN_gap T n k i h1 h2, usesVar_liftN_gap v n k i h1 h2,
+      usesVar_liftN_gap b n (k + 1) (i + 1) (by omega) (by omega)]
 
 /-- Instantiation at a higher index leaves the use of a lower variable
 alone. -/
@@ -113,6 +124,9 @@ theorem usesVar_inst_lt : ∀ (e a : Expr) (i k : Nat), i < k →
   | pi A B, a, i, k, hik => by
     simp only [inst_pi, usesVar_pi, usesVar_inst_lt A a i k hik,
       usesVar_inst_lt B a (i + 1) (k + 1) (by omega)]
+  | letE T v b, a, i, k, hik => by
+    simp only [inst_letE, usesVar_letE, usesVar_inst_lt T a i k hik, usesVar_inst_lt v a i k hik,
+      usesVar_inst_lt b a (i + 1) (k + 1) (by omega)]
 
 /-- Instantiation keeps a term closed: closed below `j + 1` with the
 argument closed below `j - k` (it is lifted by `k`), the instance is
@@ -146,6 +160,11 @@ theorem closedAt_inst : ∀ (e a : Expr) (k j : Nat), k ≤ j → e.closedAt (j 
     simp only [inst_pi, closedAt_pi, Bool.and_eq_true]
     exact ⟨closedAt_inst A a k j hkj he.1 ha,
       closedAt_inst B a (k + 1) (j + 1) (by omega) he.2 (by rwa [Nat.add_sub_add_right])⟩
+  | letE T v b, a, k, j, hkj, he, ha => by
+    simp only [closedAt_letE, Bool.and_eq_true] at he
+    simp only [inst_letE, closedAt_letE, Bool.and_eq_true]
+    exact ⟨⟨closedAt_inst T a k j hkj he.1.1 ha, closedAt_inst v a k j hkj he.1.2 ha⟩,
+      closedAt_inst b a (k + 1) (j + 1) (by omega) he.2 (by rwa [Nat.add_sub_add_right])⟩
 
 /-- Instantiation uses the level parameters of the term and the
 argument. -/
@@ -172,6 +191,11 @@ theorem lparamsIn_inst {ps : List Name} : ∀ (e a : Expr) (k : Nat), e.lparamsI
     simp only [lparamsIn_pi, Bool.and_eq_true] at he
     simp only [inst_pi, lparamsIn_pi, Bool.and_eq_true]
     exact ⟨lparamsIn_inst A a k he.1 ha, lparamsIn_inst B a (k + 1) he.2 ha⟩
+  | letE T v b, a, k, he, ha => by
+    simp only [lparamsIn_letE, Bool.and_eq_true] at he
+    simp only [inst_letE, lparamsIn_letE, Bool.and_eq_true]
+    exact ⟨⟨lparamsIn_inst T a k he.1.1 ha, lparamsIn_inst v a k he.1.2 ha⟩,
+      lparamsIn_inst b a (k + 1) he.2 ha⟩
 
 /-- Level instantiation touches no variable. -/
 theorem usesVar_instL (ps : List Name) (ls : List Level) : ∀ (e : Expr) (i : Nat),
@@ -184,6 +208,9 @@ theorem usesVar_instL (ps : List Name) (ls : List Level) : ∀ (e : Expr) (i : N
     simp only [instL_lam, usesVar_lam, usesVar_instL ps ls A i, usesVar_instL ps ls b (i + 1)]
   | pi A B, i => by
     simp only [instL_pi, usesVar_pi, usesVar_instL ps ls A i, usesVar_instL ps ls B (i + 1)]
+  | letE T v b, i => by
+    simp only [instL_letE, usesVar_letE, usesVar_instL ps ls T i, usesVar_instL ps ls v i,
+      usesVar_instL ps ls b (i + 1)]
 
 /-- The substitution chain keeps a term closed: closed below the
 substituted binders, `d` and `j`, with every argument closed below
@@ -318,6 +345,10 @@ theorem lparamsIn_instL {ps qs : List Name} {ls : List Level} (hl : ∀ l ∈ ls
   | pi A B, h => by
     simp only [lparamsIn_pi, Bool.and_eq_true] at h
     simp [lparamsIn_instL hl hlen h.1, lparamsIn_instL hl hlen h.2]
+  | letE T v b, h => by
+    simp only [lparamsIn_letE, Bool.and_eq_true] at h
+    simp [lparamsIn_instL hl hlen h.1.1, lparamsIn_instL hl hlen h.1.2,
+      lparamsIn_instL hl hlen h.2]
 
 end Expr
 
