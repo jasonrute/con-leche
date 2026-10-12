@@ -271,57 +271,18 @@ section Walks2
 
 variable {env : Env} {f : Nat}
 
-/-- `etaCertI` simulates its fueled original.  The cached representation
-stores `BinderMeta`s directly, so the spec side reads the very
-arguments the twin is given. -/
+/-- `etaCertI` simulates its fueled original. -/
 theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
-    {ty₁ body₁ b : Expr} {ty₁x body₁x bx : Expr} {m₁ : BinderMeta}
+    {ty₁ body₁ b : Expr} {ty₁x body₁x bx : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀)
     (hty : RelC ty₁ ty₁x) (hbody : RelC body₁ body₁x) (hb : RelC b bx)
     (hwty : Expr.WScoped d ty₁x) (hwbody : Expr.WScoped d body₁x)
     (hwb : Expr.WScoped d bx) :
     SimC mode env s₀ RelVC
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-        ty₁ body₁ m₁ b)
-      (etaCert mode (fueledFns mode env) env d ty₁x body₁x m₁ bx) := by
-  show SimC mode env s₀ RelVC
-    ((coreKnotI mode (mkFEnv env) f).inferIO d b >>= fun tb =>
-      (coreKnotI mode (mkFEnv env) f).whnf d tb >>= fun wtb =>
-      
-      match wtb with
-      | .forallE ty₂ _ m₂ =>
-        (coreKnotI mode (mkFEnv env) f).defeq d ty₂ ty₁ >>= fun r =>
-        if r then
-          pure (Expr.fvar d ty₁) >>= fun fv =>
-          inst1M body₁ fv >>= fun b₁ =>
-          pure (Expr.app b fv) >>= fun ba =>
-          (coreKnotI mode (mkFEnv env) f).defeq (d + 1) b₁ ba
-            >>= fun r₂ =>
-          if r₂ = true then
-            if (mode.verifiedChecks && !(m₁.pw == m₂.pw)) = true then
-              (throw (.notImplemented "sort-annotation mismatch (eta)")
-                : CheckCM Unit) >>= fun _ => pure true
-            else pure true
-          else pure false
-        else pure false
-      | _ => pure false)
-    ((fueledFns mode env).inferIO d bx >>= fun tb =>
-      (fueledFns mode env).whnf d tb >>= fun wtb =>
-      match wtb with
-      | .forallE ty₂ _ m₂ =>
-        (fueledFns mode env).defeq d ty₂ ty₁x >>= fun r =>
-        if r then
-          (fueledFns mode env).defeq (d + 1)
-            (body₁x.instantiate1 (.fvar d ty₁x))
-            (.app bx (.fvar d ty₁x)) >>= fun r₂ =>
-          if r₂ = true then
-            if (mode.verifiedChecks && !(m₁.pw == m₂.pw)) = true then
-              (throw (.notImplemented "sort-annotation mismatch (eta)")
-                : FueledM Unit) >>= fun _ => pure true
-            else pure true
-          else pure false
-        else pure false
-      | _ => pure false)
+        ty₁ body₁ b)
+      (etaCert mode (fueledFns mode env) env d ty₁x body₁x bx) := by
+  unfold etaCertI etaCert
   obtain rfl := hty
   obtain rfl := hbody
   obtain rfl := hb
@@ -335,12 +296,8 @@ theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
   obtain rfl := hwtbd
   cases wtb with
   | forallE ty₂ b₂ m₂ =>
-    have hwty₂x : Expr.WScoped d (ty₂) := by
-      rw [show (Expr.forallE ty₂ b₂ m₂)
-          = Expr.forallE (ty₂) (b₂) m₂ from rfl] at hwwtb
-      simp only [Expr.WScoped] at hwwtb
-      exact hwwtb.1
-    refine SimC.bind (ih.defeq hs₂ rfl hty hwty₂x hwty)
+    simp only [Expr.WScoped] at hwwtb
+    refine SimC.bind (ih.defeq hs₂ rfl hty hwwtb.1 hwty)
       (fun s₄ r r' hs₄ hPr => ?_)
     obtain rfl : r = r' := hPr
     cases r with
@@ -367,8 +324,9 @@ theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
         simp only [Expr.WScoped]
         exact ⟨Expr.WScoped.mono (Nat.le_succ d) hwb, Nat.lt_succ_self d,
           hwty⟩
-      refine SimC.bind (ih.defeq hs₇ hQb₁ hQba'
-        (Expr.WScoped.instantiate1 hwty 0 hwbody) hwapp)
+      have hwb₁ : Expr.WScoped (d + 1) (body₁.instantiate1 (.fvar d ty₁)) :=
+        Expr.WScoped.instantiate1 hwty 0 hwbody
+      refine SimC.bind (ih.defeq hs₇ hQb₁ hQba' hwb₁ hwapp)
         (fun s₈ r₂ r₂x hs₈ hPr₂ => ?_)
       obtain rfl : r₂ = r₂x := hPr₂
       cases r₂ with
@@ -378,7 +336,21 @@ theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
       | true =>
         simp only [↓reduceIte]
         split
-        · exact SimC.throw_bind
+        · refine SimC.bind (ih.infer hs₈ hQb₁ hwb₁) (fun s₉ t₁ t₁x hs₉ hP₉ => ?_)
+          obtain ⟨ht₁, hwt₁⟩ := hP₉
+          refine SimC.bind_left (inst1M_eff hs₉ (rfl : RelC b₂ b₂) hQfv')
+            (fun s₁₀ t₂ hs₁₀ hQt₂ => ?_)
+          refine SimC.bind (ih.defeq hs₁₀ ht₁ hQt₂ hwt₁
+            (Expr.WScoped.instantiate1 hwty 0 hwwtb.2))
+            (fun s₁₁ r₃ r₃x hs₁₁ hP₃ => ?_)
+          obtain rfl : r₃ = r₃x := hP₃
+          cases r₃ with
+          | false =>
+            simp only [Bool.false_eq_true, ↓reduceIte]
+            exact SimC.pure hs₁₁ rfl
+          | true =>
+            simp only [↓reduceIte]
+            exact SimC.pure hs₁₁ rfl
         · exact SimC.pure hs₈ rfl
   | bvar k => exact SimC.pure hs₂ rfl
   | sort u => exact SimC.pure hs₂ rfl

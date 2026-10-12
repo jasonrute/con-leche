@@ -137,7 +137,8 @@ macro_rules
         | ((with_reducible apply Yields.bind); intro)
         | with_reducible exact Yields.ofThrow
         | ((with_reducible apply Yields.ofDecCases) <;> intro)
-        | split)
+        | split
+        | dsimp only [])
 
 syntax "yields" : tactic
 macro_rules
@@ -230,21 +231,21 @@ theorem checkConstantValC_name (mode : CheckMode) (fe : FEnv)
   yields
   all_goals (apply Yields.pure; rfl)
 
-theorem annotConstantValC_fresh (mode : CheckMode) (fe : FEnv)
+theorem annotConstantValC_fresh (fe : FEnv)
     (cv : ConstantVal) :
-    Yields (annotConstantValC mode fe cv)
+    Yields (annotConstantValC fe cv)
       (fun p => p.1.name = cv.name ∧ fe.find? cv.name = none) := by
   unfold annotConstantValC
   yields
   all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
 
-theorem annotValueC_fresh (mode : CheckMode) (fe : FEnv) (cv : ConstantVal)
+theorem annotValueC_fresh (fe : FEnv) (cv : ConstantVal)
     (value : Expr) :
-    Yields (annotValueC mode fe cv value)
+    Yields (annotValueC fe cv value)
       (fun r => r.1.name = cv.name ∧ fe.find? cv.name = none) := by
   unfold annotValueC
   ybind
-  refine Yields.bind' (annotConstantValC_fresh mode fe cv) fun p hp => ?_
+  refine Yields.bind' (annotConstantValC_fresh fe cv) fun p hp => ?_
   obtain ⟨cvA, jty⟩ := p
   ybind
   exact Yields.pure hp
@@ -642,16 +643,16 @@ theorem classRecTysOk_names (ops : CheckerOps CheckCM) (fe : FEnv) (g : ClassGen
 /-- Every recursor's generated rules: the generated constants kept, in
 order. -/
 theorem classRecsRulesOk_fst (ops : CheckerOps CheckCM) (w : StructWalkers) (feT feR : FEnv)
-    (g : ClassGen) (recOf : Nat → Option Name) (pw : PropWhen) :
+    (g : ClassGen) (recOf : Nat → Option Name) :
     ∀ (cvGs : List ConstantVal) (cs : List Nat), cvGs.length ≤ cs.length →
-      Yields (classRecsRulesOk ops w feT feR g recOf pw cvGs cs)
+      Yields (classRecsRulesOk ops w feT feR g recOf cvGs cs)
         (fun out => out.map (·.1) = cvGs)
   | [], _, _ => by unfold classRecsRulesOk; exact Yields.pure rfl
   | _ :: _, [], h => by simp at h
   | cvG :: cvs, c :: cs, h => by
     unfold classRecsRulesOk
     refine Yields.bind fun _ => ?_
-    refine Yields.bind' (classRecsRulesOk_fst ops w feT feR g recOf pw cvs cs
+    refine Yields.bind' (classRecsRulesOk_fst ops w feT feR g recOf cvs cs
       (by simpa using h)) fun xs hxs => ?_
     exact Yields.pure (by simp [hxs])
 
@@ -704,7 +705,7 @@ theorem genRecCheck_names (so : ShadowOps CheckCM) (fe : FEnv)
   refine Yields.bind fun pre => ?_
   refine Yields.bind' (classRecTysOk_names _ fe _ p.k p.recs cvRis _) fun cvGs hG => ?_
   refine Yields.bind fun _ => ?_
-  refine Yields.bind' (classRecsRulesOk_fst _ _ fe _ _ _ _ cvGs _ (by omega))
+  refine Yields.bind' (classRecsRulesOk_fst _ _ fe _ _ _ cvGs _ (by omega))
     fun out hout => ?_
   refine Yields.bind fun _ => Yields.pure ?_
   have hlen : out.length = cvGs.length := by simpa using congrArg List.length hout
@@ -1120,7 +1121,7 @@ theorem annotStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (annotValueC_fresh mode fe cv value) fun r hr => ?_
+    · refine Yields.bind' (annotValueC_fresh fe cv value) fun r hr => ?_
       obtain ⟨cvA, jty, jv⟩ := r
       apply Yields.pure
       show SkelIs (fe.push (.defnInfo cvA jv hint)) (.defn cv.name :: sk)
@@ -1128,7 +1129,7 @@ theorem annotStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
   | thmDecl cv value =>
     simp only []
     ybind
-    refine Yields.bind' (annotConstantValC_fresh mode fe cv) fun p hr => ?_
+    refine Yields.bind' (annotConstantValC_fresh fe cv) fun p hr => ?_
     obtain ⟨cvA, jty⟩ := p
     apply Yields.pure
     show SkelIs (fe.push (.thmInfo cvA)) (.thm cv.name :: sk)
@@ -1137,7 +1138,7 @@ theorem annotStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (annotValueC_fresh mode fe cv value) fun r hr => ?_
+    · refine Yields.bind' (annotValueC_fresh fe cv value) fun r hr => ?_
       obtain ⟨cvA, jty, jv⟩ := r
       apply Yields.pure
       show SkelIs (fe.push (.axiomInfo cvA)) (.ax cv.name :: sk)

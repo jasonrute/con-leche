@@ -60,18 +60,6 @@ theorem fvarsBelow_mono {d d' : Nat} (h : d ≤ d') :
   | .lit l => .lit l
   | .proj s i e => .proj s i (shiftFrom p e)
 
-/-- Shifting reads through to a λ's prop-ness datum unchanged (task
-#161 P5): `shiftFrom` copies binder metadata, so the chain rule's
-`(lam-cod-chain)` read is the same on both sides of a shift. -/
-theorem lamPw_shiftFrom {p : Nat} :
-    ∀ (e : Expr), (shiftFrom p e).lamPw = e.lamPw := by
-  intro e
-  cases e with
-  | fvar idx ty =>
-    simp only [shiftFrom]
-    split <;> rfl
-  | _ => rfl
-
 /-- Shifting from `p` does nothing to a term whose reachable `fvar`s are
 below `p`... except inside `fvar` type annotations, which `fvarsBelow` does
 not constrain; hence this lemma requires annotation-free positions only in

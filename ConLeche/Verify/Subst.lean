@@ -91,18 +91,18 @@ theorem stripPis_instantiate1_isSome {v : Expr} :
       simp only [instantiate1, stripPis, Option.isSome_map] at h ⊢
       exact ih (j + 1) h
 
-/-- Structural equality up to `fvar` names and annotations and binder
-names — exactly what the interpretation never reads. -/
+/-- Structural equality up to `fvar` types — exactly what the
+interpretation never reads. -/
 @[expose] def ErasedEq : Expr → Expr → Prop
   | .bvar i, .bvar j => i = j
   | .fvar i _, .fvar j _ => i = j
   | .sort u, .sort v => u = v
   | .const n us, .const n' us' => n = n' ∧ us = us'
   | .app f a, .app g b => ErasedEq f g ∧ ErasedEq a b
-  | .lam ty b m, .lam ty' b' m' =>
-    m = m' ∧ ErasedEq ty ty' ∧ ErasedEq b b'
-  | .forallE ty b m, .forallE ty' b' m' =>
-    m = m' ∧ ErasedEq ty ty' ∧ ErasedEq b b'
+  | .lam ty b _, .lam ty' b' _ =>
+    ErasedEq ty ty' ∧ ErasedEq b b'
+  | .forallE ty b _, .forallE ty' b' _ =>
+    ErasedEq ty ty' ∧ ErasedEq b b'
   | .letE ty v b, .letE ty' v' b' =>
     ErasedEq ty ty' ∧ ErasedEq v v' ∧ ErasedEq b b'
   | .lit l, .lit l' => l = l'
@@ -153,12 +153,12 @@ theorem ErasedEq.instantiate1 :
     intro e' v v' k he hv
     match e', he with
     | .lam ty' body' m', he =>
-      exact ⟨he.1, ihty he.2.1 hv, ihbody he.2.2 hv⟩
+      exact ⟨ihty he.1 hv, ihbody he.2 hv⟩
   | forallE ty body m ihty ihbody =>
     intro e' v v' k he hv
     match e', he with
     | .forallE ty' body' m', he =>
-      exact ⟨he.1, ihty he.2.1 hv, ihbody he.2.2 hv⟩
+      exact ⟨ihty he.1 hv, ihbody he.2 hv⟩
   | letE ty vl body ihty ihv ihbody =>
     intro e' v v' k he hv
     match e', he with
@@ -324,9 +324,9 @@ theorem ErasedEq.symm : ∀ {e₁ e₂ : Expr}, ErasedEq e₁ e₂ → ErasedEq 
   | .const _ _, .const _ _, h => ⟨Eq.symm h.1, Eq.symm h.2⟩
   | .app _ _, .app _ _, h => ⟨ErasedEq.symm h.1, ErasedEq.symm h.2⟩
   | .lam _ _ _, .lam _ _ _, h =>
-    ⟨Eq.symm h.1, ErasedEq.symm h.2.1, ErasedEq.symm h.2.2⟩
+    ⟨ErasedEq.symm h.1, ErasedEq.symm h.2⟩
   | .forallE _ _ _, .forallE _ _ _, h =>
-    ⟨Eq.symm h.1, ErasedEq.symm h.2.1, ErasedEq.symm h.2.2⟩
+    ⟨ErasedEq.symm h.1, ErasedEq.symm h.2⟩
   | .letE _ _ _, .letE _ _ _, h =>
     ⟨ErasedEq.symm h.1, ErasedEq.symm h.2.1, ErasedEq.symm h.2.2⟩
   | .lit _, .lit _, h => Eq.symm h
@@ -395,20 +395,20 @@ theorem ErasedEq.trans :
     | .lam ty₂ body₂ m₂, h12 =>
       match e₃, h23 with
       | .lam ty₃ body₃ m₃, h23 =>
-        have x : m = m₂ ∧ ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
-        have y : m₂ = m₃ ∧ ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
-        exact show m = m₃ ∧ ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
-          ⟨x.1.trans y.1, ihty x.2.1 y.2.1, ihbody x.2.2 y.2.2⟩
+        have x : ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
+        have y : ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
+        exact show ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
+          ⟨ihty x.1 y.1, ihbody x.2 y.2⟩
   | forallE ty body m ihty ihbody =>
     intro e₂ e₃ h12 h23
     match e₂, h12 with
     | .forallE ty₂ body₂ m₂, h12 =>
       match e₃, h23 with
       | .forallE ty₃ body₃ m₃, h23 =>
-        have x : m = m₂ ∧ ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
-        have y : m₂ = m₃ ∧ ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
-        exact show m = m₃ ∧ ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
-          ⟨x.1.trans y.1, ihty x.2.1 y.2.1, ihbody x.2.2 y.2.2⟩
+        have x : ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
+        have y : ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
+        exact show ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
+          ⟨ihty x.1 y.1, ihbody x.2 y.2⟩
   | letE ty vl body ihty ihv ihbody =>
     intro e₂ e₃ h12 h23
     match e₂, h12 with

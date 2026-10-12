@@ -104,13 +104,13 @@ theorem WScoped.of_erasedEq : ∀ (x : Expr) {x₀ : Expr} {D n : Nat}, Expr.Era
     match x₀, he with
     | .lam ty' b' m', he =>
       simp only [Expr.WScoped] at hw hw₀ ⊢
-      exact ⟨iht he.2.1 hw.1 hw₀.1, ihb he.2.2 hw.2 hw₀.2⟩
+      exact ⟨iht he.1 hw.1 hw₀.1, ihb he.2 hw.2 hw₀.2⟩
   | forallE ty b m iht ihb =>
     intro x₀ D n he hw hw₀
     match x₀, he with
     | .forallE ty' b' m', he =>
       simp only [Expr.WScoped] at hw hw₀ ⊢
-      exact ⟨iht he.2.1 hw.1 hw₀.1, ihb he.2.2 hw.2 hw₀.2⟩
+      exact ⟨iht he.1 hw.1 hw₀.1, ihb he.2 hw.2 hw₀.2⟩
   | letE ty v b iht ihv ihb =>
     intro x₀ D n he hw hw₀
     match x₀, he with

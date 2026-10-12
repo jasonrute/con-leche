@@ -103,7 +103,14 @@ theorem inferTypeCore_projSlotsOk {env : Env} :
       have hb := inferTypeCore_projSlotsOk fuel h2
         (FvarTysOk.instantiate1 (fvarTysOk_fvar.mpr hty) body 0 hf.2)
       exact projSlotsOk_forallE.mpr ⟨hty, ProjSlotsOk.of_instantiate1 body 0 hb⟩
-    | letE ty v b => exact (inferTypeCore_letE_inv h).elim
+    | letE ty v b =>
+      obtain ⟨tty, -, tv, h1, -, h2, -, h3⟩ := inferTypeCore_letE_inv h
+      rw [fvarTysOk_letE] at hf
+      have hty := inferTypeCore_projSlotsOk fuel h1 hf.1
+      have hv := inferTypeCore_projSlotsOk fuel h2 hf.2.1
+      have hb := inferTypeCore_projSlotsOk fuel h3
+        (FvarTysOk.instantiate1 hf.2.1 b 0 hf.2.2)
+      exact projSlotsOk_letE.mpr ⟨hty, hv, ProjSlotsOk.of_instantiate1 b 0 hb⟩
     | proj sn i pe =>
       obtain ⟨tpe, -, T, -, entry, h1, -, -, hent, -, -, -, -, hT⟩ := inferTypeCore_proj_inv h
       subst hT

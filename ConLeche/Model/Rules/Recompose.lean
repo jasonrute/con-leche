@@ -5,7 +5,7 @@ public import ConLeche.Model.ClaimsIO
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 
 public section
 

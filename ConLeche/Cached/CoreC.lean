@@ -8,7 +8,7 @@ public import ConLeche.Cached.StateC
 # The cached checker core
 
 The core over the computed-field representation: `whnfCore`, `whnf`,
-`infer`, `defeq` and `annotate`, each memoized in `CState`; a
+`infer`, `inferIO` and `defeq`, each memoized in `CState`; a
 syntactic read is the operation itself (task #198).
 
 See DESIGN.md, "The cached checker".
@@ -19,10 +19,10 @@ ties them at a mode.  The verified core is this knot at `.verified`;
 the trusted core is this same knot at `.trusted` — there is no second
 implementation: what
 the trusted mode omits is exactly what `mode.verifiedChecks` gates
-here (group A: the annotation validations, the λ-codomain sort check,
-the projection certificate) plus what `mode.certs` gates (the
-certificate families: every `certAtI` / `certUnlessI` site and the
-`betaSkip` / `ioSkip` reads), and nothing else (DESIGN.md, "CORET
+here (group A: the λ-codomain sort check, the η body-type comparison,
+the λ/λ body-type comparison, the projection certificate) plus what
+`mode.certs` gates (the certificate families: every `certAtI` /
+`certUnlessI` site), and nothing else (DESIGN.md, "CORET
 RETIRED").  Every read is a `match` on the two-constructor enum
 (`ConLeche/Kernel/Env.lean`), so at either literal mode it reduces by
 `rfl` and the branch is gone, not collapsed.
@@ -42,15 +42,11 @@ structure CoreFnsI where
   whnf : Nat → Expr → CheckCM Expr
   infer : Nat → Expr → CheckCM Expr
   defeq : Nat → Expr → Expr → CheckCM Bool
-  annotate : Nat → Expr → CheckCM Expr
   /-- Type inference at the **infer-only grade** (task #170 / #172 B4)
   — the twin of `CoreFns.inferIO` (`ConLeche/Kernel/Core.lean`): what
-  every internal inference call site runs.  The knot selects the
-  grade's meaning per mode (`mode.ioGate`): the io body (own memo,
-  `CState.inferIOC`) at **both modes** since the licence ruling of
-  2026-09-06 — the io skip is a licence, not certification-only work
-  — and the full `infer` only at `ioGate = false`, which no mode
-  spells any more (the retired R core). -/
+  every internal inference call site runs: the io body under its own
+  memo (`CState.inferIOC`), at both modes (task #346: official's
+  `infer_only`). -/
   inferIO : Nat → Expr → CheckCM Expr
 
 /-- The io-grade view (twin of `CoreFns.ioView`): the record whose
@@ -166,9 +162,8 @@ def iotaCertsIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool) :
   | _, _, [] => pure true
   | ty, acc, arg :: rest => do
     match ty with
-    | .forallE dom body mb =>
-      if lic && mb.pw.isNever then
-        iotaCertsIAux r fe depth lic body (arg :: acc) rest
+    | .forallE dom body _ =>
+      if lic then pure true
       else do
         let dom' ← instListM dom acc
         let ta ← r.inferIO depth arg
@@ -177,16 +172,16 @@ def iotaCertsIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool) :
         else pure false
     | .bvar _ =>
       match acc with
-      | [] => pure false
+      | [] => pure lic
       | _ :: _ => do
         let ty' ← instListM ty acc
         iotaCertsIAux r fe depth lic ty' [] (arg :: rest)
-    | _ => pure false
+    | _ => pure lic
 termination_by _ acc args => (args.length, acc.length)
 decreasing_by
-  · apply Prod.Lex.left; simp
-  · apply Prod.Lex.left; simp
-  · apply Prod.Lex.right' <;> simp
+  all_goals first
+    | (apply Prod.Lex.left; simp; done)
+    | (apply Prod.Lex.right' <;> simp)
 
 /-- Twin of `iotaCerts` (certify a spine against a recursor telescope);
 the bulk-instantiating accumulator loop at the empty accumulator. -/
@@ -292,10 +287,9 @@ at the end of this module (`…PC` at `.verified`, `…TC` at `.trusted`;
 the `…RC` half retired with the R core, 2026-09-05).  Every read below
 is one of the `CheckMode` functions of `ConLeche/Kernel/Env.lean`, each
 a `match` on the enum.  The ι cone (`structEtaCertWithI` →
-`majorToCtorI` → `prepareMajorI` → `iotaRecI`) reads its ι-slot
-licence off `mode.betaGate` — the same function the β site reads —
-and keeps only the TT-lane residue on `mode.ttChecks`, a literal
-`false` at each mode. -/
+`majorToCtorI` → `prepareMajorI` → `iotaRecI`) reads the mode through
+`certAtI`/`certUnlessI` and keeps only the TT-lane residue on
+`mode.ttChecks`, a literal `false` at each mode. -/
 variable (mode : CheckMode)
 
 /-! ### The certificate-family switch (the twin's retirement, 2026-09-06)
@@ -304,9 +298,8 @@ variable (mode : CheckMode)
 list as a mode function: the certificate families the reference
 kernel does not run and only the soundness proof consumes.  Every such
 certificate below is spelled through one of the two wrappers here, so
-the list of `certAtI`/`certUnlessI` sites — plus the `betaSkip` and
-`ioSkip` reads — **is** the list of what the trusted core omits beyond
-group A.  At `.verified` the function is `true`, so `certAtI .verified
+the list of `certAtI`/`certUnlessI` sites **is** the list of what the
+trusted core omits beyond group A.  At `.verified` the function is `true`, so `certAtI .verified
 c` is `c` by `rfl` (`certAtI_verified`); the simulation tower
 (`ConLeche/Verify/Cached/*`), stated under `hμ : mode.verifiedChecks =
 true`, sees through the wrapper by `certAtI_of_verifiedChecks` — the
@@ -525,20 +518,23 @@ def structUnitCertI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
 /-- Twin of `etaCert` (the λ's pieces come pre-destructured, as in the
 spec). -/
 def etaCertI (r : CoreFnsI) (_fe : FEnv) (depth : Nat)
-    (ty₁ body₁ : Expr) (m₁ : BinderMeta) (b : Expr) :
+    (ty₁ body₁ : Expr) (b : Expr) :
     CheckCM Bool := do
   let tb ← r.inferIO depth b
   let wtb ← r.whnf depth tb
   match wtb with
-  | .forallE ty₂ _ m₂ => do
-    -- prop-ness agreement checked LAST (task #161); see `etaCert`
+  | .forallE ty₂ cod₂ _ => do
     if ← r.defeq depth ty₂ ty₁ then do
       let fv ← pure (Expr.fvar depth ty₁)
       let b₁ ← inst1M body₁ fv
       let ba ← pure (Expr.app b fv)
       unless ← r.defeq (depth + 1) b₁ ba do return false
-      if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-        throw (.notImplemented "sort-annotation mismatch (eta)")
+      -- the η check (task #342, T2; see `etaCert`): the λ body's
+      -- full-grade type is the ∀'s codomain at the variable
+      if mode.verifiedChecks then do
+        let t₁ ← r.infer (depth + 1) b₁
+        let t₂ ← inst1M cod₂ fv
+        unless ← r.defeq (depth + 1) t₁ t₂ do return false
       pure true
     else pure false
   | _ => pure false
@@ -804,11 +800,10 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
                       (defEqListI r fe depth (margs.take rl.ctorParams)
                         cmpArgs)
                     else pure true) then do
-                  -- ONE certificate family: the recursor telescope run
-                  -- (licensed off `mode.betaGate`, over the redex's own
-                  -- spine, the major unreduced) and, at a case-3 redex
-                  -- (task #342 L10: not K, the constructor's family may
-                  -- be `Prop` at its levels), the constructor telescope
+                  -- ONE certificate family: at a case-3 redex (task #342
+                  -- L10: not K, the constructor's family may be `Prop` at
+                  -- its levels; the recursor's spine is never certified,
+                  -- task #349), the constructor telescope
                   -- at the FULL grade and the canonical-index comparison
                   -- (which exists only where indices do — the spec's
                   -- `iotaRec`).  Nothing here is read outside the family,
@@ -816,16 +811,13 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
                   -- types are looked up only where a certificate consumes
                   -- them (DESIGN.md, "CORET RETIRED", inversion 22).
                   if ← certAtI mode (do
-                      let tyRec ← constTyAtM fe c cn us
-                      if ← iotaCertsI r fe depth mode.betaGate tyRec args then
-                        if iotaCase3 fe.find? rl cvj usj then do
-                          let tyCtor ← constTyAtM fe cj cjn usj
-                          if ← iotaCertsFullI r fe depth tyCtor margs then
-                            iotaIndexOkI r fe depth mI rP rl.ctorParams tyCtor
-                              margs ((args.take mI).drop rP)
-                          else pure false
-                        else pure true
-                      else pure false) then do
+                      if iotaCase3 fe.find? rl cvj usj then do
+                        let tyCtor ← constTyAtM fe cj cjn usj
+                        if ← iotaCertsFullI r fe depth tyCtor margs then
+                          iotaIndexOkI r fe depth mI rP rl.ctorParams tyCtor
+                            margs ((args.take mI).drop rP)
+                        else pure false
+                      else pure true) then do
                       let rhs ← ruleRhsAtM fe c cj cn cjn us
                       let red ← mkAppNM rhs
                         (args.take rP ++ margs.drop rl.ctorParams)
@@ -874,7 +866,7 @@ def reduceProjCoreI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (sn : Name)
         let arg := args.getD (entry.numParams + i) bvar0
         -- task #100 de-gating / task #175 W6 / `projCertAt`: see the
         -- spec `reduceProjCore`
-        if ← projCertAtI r fe depth mode.verifiedChecks mode.betaGate k us args then
+        if ← projCertAtI r fe depth mode.verifiedChecks true k us args then
           pure (some arg)
         else pure none
       else pure none
@@ -899,19 +891,9 @@ def whnfAppI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
   | v, [] => pure v
   | v, a :: rest => do
     match v with
-    | .lam ty body mb => do
-        -- task #161: the β gate is a pure early return; the `else`
-        -- arm is the pre-gate clause, verbatim (`betaGateFires`)
-        if mode.betaSkip mb.pw then
-          betaPeelI r fe depth k body [a] rest
-        else do
-          -- task #172 B4: the β certificate's inference at the io grade
-          let ta ← r.inferIO depth a
-          if ← r.defeq depth ta ty then
-            betaPeelI r fe depth k body [a] rest
-          else do
-            let fa ← pure (Expr.app v a)
-            mkAppNM fa rest
+    | .lam _ body _ =>
+        -- Task #342 S0: uniform β, no certificate, at every λ
+        betaPeelI r fe depth k body [a] rest
     | _ => do
       let fa ← pure (Expr.app v a)
       -- the ι step is tried only where it could fire; every other
@@ -941,21 +923,9 @@ def betaPeelI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
     k e'
   | t, acc, a :: rest => do
     match t with
-    | .lam ty body mb => do
-        -- task #161: the β gate is a pure early return; the `else`
-        -- arm is the pre-gate clause, verbatim (`betaGateFires`)
-        if mode.betaSkip mb.pw then
-          betaPeelI r fe depth k body (a :: acc) rest
-        else do
-          let ty' ← instListM ty acc
-          -- task #172 B4: the io grade (see `whnfAppI`)
-          let ta ← r.inferIO depth a
-          if ← r.defeq depth ta ty' then
-            betaPeelI r fe depth k body (a :: acc) rest
-          else do
-            let f' ← instListM t acc
-            let fa ← pure (Expr.app f' a)
-            mkAppNM fa rest
+    | .lam _ body _ =>
+        -- Task #342 S0: uniform β (see `whnfAppI`)
+        betaPeelI r fe depth k body (a :: acc) rest
     | _ => do
       let e' ← instListM t acc
       let v ← k e'
@@ -998,11 +968,10 @@ def whnfCoreStepI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat)
       match ← reduceProjCoreI mode r fe depth sn i c with
       | some m' => k m'
       | none => pure e
-    | .letE _ _ _ =>
-      -- unreachable by construction, as in the spec body (task #241):
-      -- the annotate pass returns the ζ reduct, so no `letE` node
-      -- survives into the checked world
-      throw (.internal "whnfCore: `let` in an annotated expression")
+    | .letE _ v b => do
+      -- Task #342 S0: ζ, Lean's way (lets are stored as Lean stores them)
+      let e' ← inst1M b v
+      k e'
     | .bvar _ =>
       throw (.notImplemented "whnf beyond the supported fragment")
 
@@ -1052,52 +1021,24 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
         inferSpineI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
 
-/-- **The io-grade spine walk** (task #172 B4): `inferSpineI` with the
-per-argument certificate gated — the ONE io-graded check
-(`inferBodyIO`'s app clause, `ConLeche/Kernel/Core.lean`), in the bulk
-telescope form.  At a ∀ step whose annotation datum is `.never` the
-argument's inference and the domain comparison are skipped; the
-returned type is the same telescope walk either way, so the lane is
-annotation-blind in its results.  A syntactic `.forallE` is its own
-whnf, so the syntactic step's datum is the datum the pure io body
-reads off the whnf'd type.
-
-**The licence reads the datum and nothing else** (the ruling of
-2026-09-06).  It used to carry a `mode.verifiedChecks &&` mode conjunct; that
-conjunct made the *trusted* core run the certificate the verified core
-skips — an inversion of what the trusted mode is defined to be (the
-real mode with certification-only steps omitted).  Validating the
-datum is certification-only work and stays in group A; consuming it is
-not.  The P tier's licensing theorem (`io_domain_transfer`,
-`Model/IOLicense.lean`) never used the mode conjunct either: it spends
-only `pwBit_ne_zero_of_isNever`.
-
-**The read is `mode.ioSkip mt.pw`** (the twin's retirement): at
-`.verified` that is `mt.pw.isNever` by `rfl` — the datum alone, as
-above — and at `.trusted` it is `true`: the per-argument
-certificate at an internal inference is a certificate family
-(official's `infer_only` runs none), skipped wholesale. -/
+/-- **The io-grade spine walk**: `inferBodyIO`'s app clause
+(`ConLeche/Kernel/Core.lean`) in the bulk telescope form — official's
+`infer_only`: the function's type is walked through the arguments with
+no argument inference and no domain comparison (task #342).  A
+syntactic `.forallE` is its own whnf; anything else is instantiated and
+whnf'd before the next step. -/
 def inferSpineIOI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
     Expr → Array Expr → List Expr → CheckCM Expr
   | ty, acc, [] => instListRevM ty acc
   | ty, acc, a :: rest => do
     match ty with
-    | .forallE dom body mt => do
-      unless mode.ioSkip mt.pw do
-        let dom' ← instListRevM dom acc
-        let ta ← r.infer depth a
-        unless ← r.defeq depth ta dom' do
-          throw (.invalid "application type mismatch")
+    | .forallE _ body _ => do
       inferSpineIOI r fe depth body (acc.push a) rest
     | _ => do
       let ty' ← instListRevM ty acc
       let w ← r.whnf depth ty'
       match w with
-      | .forallE dom body mt => do
-        unless mode.ioSkip mt.pw do
-          let ta ← r.infer depth a
-          unless ← r.defeq depth ta dom do
-            throw (.invalid "application type mismatch")
+      | .forallE _ body _ => do
         inferSpineIOI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
 
@@ -1157,18 +1098,12 @@ value-determined by the peel phase's domain sorts and the leaf phase's
 body-type sort and cannot fail (task #100 stage 6: the per-level
 λ-annotation re-check is gone with the stored annotations). -/
 def inferLamsOutI (d : Nat) :
-    List InferLamEntry → Nat → Expr → PropWhen → CheckCM Expr
-  | [], _j, cur, _prevPw => pure cur
-  | (tyo, mb) :: rest, j, cur, prevPw => do
-    -- Task #161, the chain rule (see `inferBody`'s `.lam` clause): a
-    -- node's prop-ness annotation must agree with its inner
-    -- neighbour's (the innermost step compares the entry with itself
-    -- — vacuously true).
-    if mode.verifiedChecks && !(mb.pw == prevPw) then
-      throw (.notImplemented "sort-annotation mismatch (lam-cod-chain)")
+    List InferLamEntry → Nat → Expr → CheckCM Expr
+  | [], _j, cur => pure cur
+  | (tyo, mb) :: rest, j, cur => do
     let tyAbs ← abstractRangeM tyo d j
     let node ← pure (Expr.forallE tyAbs cur mb)
-    inferLamsOutI d rest (j - 1) node mb.pw
+    inferLamsOutI d rest (j - 1) node
 
 /-- Leaf phase of `inferLamsI`: bulk-open the residual body, infer it,
 then rebuild outward.
@@ -1182,39 +1117,10 @@ def inferLamsLeafI (r : CoreFnsI) (d : Nat) (t : Expr) (k : Nat)
     (fvs : Array Expr) (stk : List InferLamEntry) : CheckCM Expr := do
   let ob ← instListRevM t fvs
   let bt ← r.infer (d + k) ob
-  match t with
-  | .lam .. => pure ()
-  | _ =>
-    if mode.verifiedChecks then
-      let btt ← r.inferIO (d + k) bt
-      let wbtt ← r.whnf (d + k) btt
-      match wbtt with
-      | .sort vb =>
-        -- Task #161: validate the innermost binder's prop-ness
-        -- annotation against the chain's body-type sort — the leaf
-        -- half of the spec's `.lam` clause check.
-        match stk with
-        | (_, mb₀) :: _ => do
-          let pv ← pure (Level.zeronessOf vb)
-          unless pv == mb₀.pw do
-            throw (.notImplemented
-              "sort-annotation mismatch (lam-cod-leaf)")
-        | [] => pure ()
-      | _ => throw (.invalid "expected a sort")
+  -- Task #342 S0: the honesty checks (`(lam-cod-leaf)`/`(lam-cod-chain)`)
+  -- and the leaf's extra body-sort inference (task #152) are gone
   let cur ← abstractRangeM bt d k
-  -- The fold's initial neighbour: a λ residual (the fuel-exhausted
-  -- path) supplies its own annotation — the head entry's chain check
-  -- then compares against it, exactly as the spec's per-node clause
-  -- does; a non-λ residual makes the head entry's step vacuous (its
-  -- codomain fact is the leaf check above).
-  let prevPw ← do
-    match t with
-    | .lam _ _ mbT => pure mbT.pw
-    | _ =>
-      pure (match stk with
-        | (_, mb₀) :: _ => mb₀.pw
-        | [] => .never)
-  inferLamsOutI mode d stk (k - 1) cur prevPw
+  inferLamsOutI d stk (k - 1) cur
 
 /-- λ-telescope inference loop (task #72; used by `inferBodyI`'s and
 `inferBodyIOI`'s lam cases): peel the raw λ-chain, checking each opened
@@ -1235,45 +1141,32 @@ def inferLamsI (r : CoreFnsI) (d : Nat) :
         inferLamsI r d fuel body (k + 1) (fvs.push fv)
           ((tyo, mb) :: stk)
       | _ => throw (.invalid "expected a sort")
-    | _ => inferLamsLeafI mode r d t k fvs stk
-  | 0, t, k, fvs, stk => inferLamsLeafI mode r d t k fvs stk
+    | _ => inferLamsLeafI r d t k fvs stk
+  | 0, t, k, fvs, stk => inferLamsLeafI r d t k fvs stk
 
 /-- Rebuild loop of `inferPisI`: fold the accumulated domain sorts by
 `imax`, innermost binder first — exactly the chained `∀`-rule's result
-value.
-
-Task #272 (GitHub issue #9): the codomain sort's zero-ness datum is
-THREADED, not recomputed.  `zeronessOf (imax u v) = zeronessOf v`
-holds definitionally, so every node of a ∀ telescope shares the leaf's
-datum — the chain the annotation loop already folds
-(`annotateBindersOutI`).  The fold used to read it out of a
-`Level`-keyed memo, which MISSED at every step (a node's key
-`.imax u v` is new each time) and then walked `zeronessOf` down the
-growing right spine: `O(k²)` in the telescope depth `k`, and it was
-90 % of the check phase on a ∀ chain of 40 000 binders. -/
-def inferPisOutI : List (Level × PropWhen) → Level → PropWhen →
-    CheckCM Level
-  | [], v, _pv => pure v
-  | (u, pw) :: rest, v, pv => do
-    -- Task #161: validate the node's prop-ness annotation against its
-    -- inferred codomain sort (`pv` is the zero-ness of `v`, the spec
-    -- `∀`-clause's `v` at this node).
-    if mode.verifiedChecks && !(pv == pw) then
-      throw (.notImplemented "sort-annotation mismatch (forall-cod)")
+value.  The fold reads no per-node datum: a `Level`-keyed lookup here
+would miss at every step (a node's key `.imax u v` is new each time),
+and a walk down the growing right spine is `O(k²)` in the telescope
+depth `k` (task #272, GitHub issue #9: it was 90 % of the check phase
+on a ∀ chain of 40 000 binders). -/
+def inferPisOutI : List Level → Level → CheckCM Level
+  | [], v => pure v
+  | u :: rest, v => do
     let v' ← pure (.imax u v)
-    -- `zeronessOf v' = zeronessOf v = pv` (the `.imax` clause).
-    inferPisOutI rest v' pv
+    inferPisOutI rest v'
 
 /-- Leaf phase of `inferPisI`: bulk-open the residual body, infer its
 sort, then fold the domain sorts outward. -/
 def inferPisLeafI (r : CoreFnsI) (d : Nat) (t : Expr) (k : Nat)
-    (fvs : Array Expr) (stk : List (Level × PropWhen)) : CheckCM Expr := do
+    (fvs : Array Expr) (stk : List Level) : CheckCM Expr := do
   let ob ← instListRevM t fvs
   let bt ← r.infer (d + k) ob
   let wbt ← r.whnf (d + k) bt
   match wbt with
   | .sort v => do
-    let iv ← inferPisOutI mode stk v (Level.zeronessOf v)
+    let iv ← inferPisOutI stk v
     pure (Expr.sort iv)
   | _ => throw (.invalid "expected a sort")
 
@@ -1283,11 +1176,11 @@ its codomain sort — the stored annotation is not read): peel the raw
 accumulating its sort, infer the bulk-opened leaf's sort once, and
 fold `imax` outward. -/
 def inferPisI (r : CoreFnsI) (d : Nat) :
-    Nat → Expr → Nat → Array Expr → List (Level × PropWhen) →
+    Nat → Expr → Nat → Array Expr → List Level →
       CheckCM Expr
   | fuel + 1, t, k, fvs, stk => do
     match t with
-    | .forallE ty body mb => do
+    | .forallE ty body _ => do
       let tyo ← instListRevM ty fvs
       let tty ← r.infer (d + k) tyo
       let wtty ← r.whnf (d + k) tty
@@ -1295,10 +1188,10 @@ def inferPisI (r : CoreFnsI) (d : Nat) :
       | .sort u => do
         let fv ← pure (Expr.fvar (d + k) tyo)
         inferPisI r d fuel body (k + 1) (fvs.push fv)
-          ((u, mb.pw) :: stk)
+          (u :: stk)
       | _ => throw (.invalid "expected a sort")
-    | _ => inferPisLeafI mode r d t k fvs stk
-  | 0, t, k, fvs, stk => inferPisLeafI mode r d t k fvs stk
+    | _ => inferPisLeafI r d t k fvs stk
+  | 0, t, k, fvs, stk => inferPisLeafI r d t k fvs stk
 
 /-- Twin of `inferBody`. -/
 def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
@@ -1332,17 +1225,16 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         pure (Expr.const si [])
       else throw (.notImplemented
         "string literals before the String support declarations")
-    | .forallE ty body mb => do
+    | .forallE ty body _ => do
       -- Binder-telescope loop (task #72 discipline; the codomain sort
-      -- is inferred; task #161: each node's prop-ness annotation is
-      -- validated against it in the rebuild fold).
+      -- is inferred).
       let tty ← r.infer depth ty
       let wtty ← r.whnf depth tty
       match wtty with
       | .sort u => do
         let fv ← pure (Expr.fvar depth ty)
         let fuel ← peelFuelM
-        inferPisI mode r depth fuel body 1 #[fv] [(u, mb.pw)]
+        inferPisI r depth fuel body 1 #[fv] [u]
       | _ => throw (.invalid "expected a sort")
     | .lam ty body mb => do
       let tty ← r.infer depth ty
@@ -1353,7 +1245,7 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         -- open in bulk, rebuild with `abstractRange`.
         let fv ← pure (Expr.fvar depth ty)
         let fuel ← peelFuelM
-        inferLamsI mode r depth fuel body 1 #[fv] [(ty, mb)]
+        inferLamsI r depth fuel body 1 #[fv] [(ty, mb)]
       | _ => throw (.invalid "expected a sort")
     | .app _ _ => do
       -- Bulk telescope consumption (task #50): infer the spine head
@@ -1371,8 +1263,12 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         match fe.findProj? Tn i with
         | some entry => do
           let targs ← pure (Expr.getAppArgsC te)
-          if T = sn ∧ targs.length = entry.numParams ∧
-              us.length = entry.levelParams.length then do
+          -- Task #342 S0: the annotate pass's `.proj` guards, here
+          unless T = sn do
+            throw (.invalid "invalid projection: the node names another structure")
+          unless targs.length = entry.numParams do
+            throw (.invalid "projection parameter mismatch")
+          if us.length = entry.levelParams.length then do
             -- the official `infer_proj` restriction (task #175
             -- W4c/O4), as in the spec body
             if Level.isEquiv entry.structSort .zero == some true then
@@ -1389,13 +1285,21 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
             -- frontier's out-of-memory, DESIGN.md "The affine frontier")
             pure (entry.typeAtI us targs pe)
           else throw (.notImplemented "projection without a native entry")
-        | none => throw (.notImplemented "projection without a native entry")
-      | _ => throw (.notImplemented "projection without a native entry")
-    | .letE _ _ _ =>
-      -- unreachable by construction, as in the spec body (task #241):
-      -- the official `infer_let` triple lives in `annotateBodyI`'s own
-      -- `.letE` clause, which returns the ζ reduct (task #217)
-      throw (.internal "inferType: `let` in an annotated expression")
+        | none =>
+          throw (projMissError fe.find? (fe.find? (projTableName Tn)).isSome Tn sn i
+            (Expr.getAppArgsC te).length)
+      | _ => throw (.invalid "invalid projection: not a structure-like type, or no such field")
+    | .letE ty v b => do
+      -- Task #342 S0: official `infer_let` (the annotation is a type,
+      -- the value's type matches it, then the body with the value
+      -- substituted — the ζ reduct, as Lean's kernel infers it)
+      let tty ← r.infer depth ty
+      let _ ← ensureSortI r depth tty
+      let tv ← r.infer depth v
+      unless ← r.defeq depth tv ty do
+        throw (.invalid "let value type mismatch")
+      let ob ← inst1M b v
+      r.infer depth ob
     | .bvar _ =>
       throw (.notImplemented "inferType beyond the supported fragment")
 
@@ -1414,8 +1318,8 @@ def inferBodyIOI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
       let h ← pure (Expr.getAppFn e)
       let args ← pure (Expr.getAppArgsC e)
       let tf ← r.infer depth h
-      inferSpineIOI mode r fe depth tf #[] args
-    | .forallE ty body mb => do
+      inferSpineIOI r fe depth tf #[] args
+    | .forallE ty body _ => do
       -- the pure io ∀ clause, **chained** (deliberately not the
       -- task-#72 telescope loop: the loops are the front door's
       -- optimization, and looping the io lane would owe the whole
@@ -1430,9 +1334,6 @@ def inferBodyIOI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         let ob ← inst1M body fv
         let bt ← r.infer (depth + 1) ob
         let v ← ensureSortI r (depth + 1) bt
-        if mode.verifiedChecks then
-          unless Level.zeronessOf v == mb.pw do
-            throw (.notImplemented "sort-annotation mismatch (forall-cod)")
         let iu ← pure (.imax u v)
         pure (Expr.sort iu)
       | _ => throw (.invalid "expected a sort")
@@ -1442,26 +1343,42 @@ def inferBodyIOI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
       let fv ← pure (Expr.fvar depth ty)
       let ob ← inst1M body fv
       let bt ← r.infer (depth + 1) ob
-      if mode.verifiedChecks then
-        match body.lamPw with
-        | some pwI =>
-          unless mb.pw == pwI do
-            throw (.notImplemented
-              "sort-annotation mismatch (lam-cod-chain)")
-        | none =>
-          let btt ← r.infer (depth + 1) bt
-          let vb ← ensureSortI r (depth + 1) btt
-          unless Level.zeronessOf vb == mb.pw do
-            throw (.notImplemented
-              "sort-annotation mismatch (lam-cod-leaf)")
       let bAbs ← abstract1M bt depth
       pure (Expr.forallE ty bAbs mb)
-    | _ => inferBodyI mode r fe depth e
+    | .letE _ v b => do
+      -- official `infer_let` at `infer_only`: the body at its value,
+      -- no check of the type or the value (task #342 R-C)
+      let ob ← inst1M b v
+      r.infer depth ob
+    | _ => inferBodyI r fe depth e
 
 /-- Twin of `boolTrueShortcut`. -/
 def boolTrueShortcutI (r : CoreFnsI) (depth : Nat) (a : Expr) : CheckCM Bool := do
   let w ← r.whnf depth a
   pure (Expr.isBoolTrue w)
+
+/-- Twin of `defeqLamsInner`. -/
+def defeqLamsInnerI (r : CoreFnsI) (depth : Nat) (b₁ b₂ : Expr) : CheckCM Bool := do
+  unless ← r.defeq (depth + 1) b₁ b₂ do return false
+  if mode.verifiedChecks then do
+    let t₁ ← r.infer (depth + 1) b₁
+    let t₂ ← r.infer (depth + 1) b₂
+    unless ← r.defeq (depth + 1) t₁ t₂ do return false
+  pure true
+
+/-- Twin of `defeqLams`. -/
+def defeqLamsI (r : CoreFnsI) :
+    Nat → Nat → Expr → Expr → Expr → Expr → CheckCM Bool
+  | fuel, depth, ty₁, body₁, ty₂, body₂ => do
+    unless ← r.defeq depth ty₁ ty₂ do return false
+    let fv ← pure (Expr.fvar depth ty₂)
+    let b₁ ← inst1M body₁ fv
+    let b₂ ← inst1M body₂ fv
+    match fuel, Expr.lamPair? b₁ b₂ with
+    | fuel + 1, some (ty₁', body₁', ty₂', body₂') =>
+      if b₁ == b₂ then pure true
+      else defeqLamsI r fuel (depth + 1) ty₁' body₁' ty₂' body₂'
+    | _, _ => defeqLamsInnerI mode r depth b₁ b₂
 
 /-- Twin of `quickDefEq`. -/
 def quickDefEqI (r : CoreFnsI) (depth : Nat) (a b : Expr) :
@@ -1472,24 +1389,16 @@ def quickDefEqI (r : CoreFnsI) (depth : Nat) (a b : Expr) :
     let ok ← liftFueled "level comparison" (← isEquivLM u v)
     pure (some ok)
   | .lit l₁, .lit l₂ => pure (some (l₁ == l₂))
-  | .forallE ty₁ body₁ m₁, .forallE ty₂ body₂ m₂ => do
+  | .forallE ty₁ body₁ _, .forallE ty₂ body₂ _ => do
     unless ← r.defeq depth ty₁ ty₂ do return some false
     let fv ← pure (Expr.fvar depth ty₂)
     let b₁ ← inst1M body₁ fv
     let b₂ ← inst1M body₂ fv
     unless ← r.defeq (depth + 1) b₁ b₂ do return some false
-    if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-      throw (.notImplemented "sort-annotation mismatch (defeq-forall)")
     pure (some true)
-  | .lam ty₁ body₁ m₁, .lam ty₂ body₂ m₂ => do
-    unless ← r.defeq depth ty₁ ty₂ do return some false
-    let fv ← pure (Expr.fvar depth ty₂)
-    let b₁ ← inst1M body₁ fv
-    let b₂ ← inst1M body₂ fv
-    unless ← r.defeq (depth + 1) b₁ b₂ do return some false
-    if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-      throw (.notImplemented "sort-annotation mismatch (defeq-lam)")
-    pure (some true)
+  | .lam ty₁ body₁ _, .lam ty₂ body₂ _ => do
+    let ok ← defeqLamsI mode r lamsFuel depth ty₁ body₁ ty₂ body₂
+    pure (some ok)
   | _, _ => pure none
 
 /-- Twin of `defeqOffset`. -/
@@ -1659,11 +1568,11 @@ def defeqStuckI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
         else stuckIrrelI mode r fe depth a b
       else stuckIrrelI mode r fe depth a b
     else stuckIrrelI mode r fe depth a b
-  | .lam ty₁ body₁ m₁, _ => do
-    if ← etaCertI mode r fe depth ty₁ body₁ m₁ b then pure true
+  | .lam ty₁ body₁ _, _ => do
+    if ← etaCertI mode r fe depth ty₁ body₁ b then pure true
     else stuckIrrelI mode r fe depth a b
-  | _, .lam ty₂ body₂ m₂ => do
-    if ← etaCertI mode r fe depth ty₂ body₂ m₂ a then pure true
+  | _, .lam ty₂ body₂ _ => do
+    if ← etaCertI mode r fe depth ty₂ body₂ a then pure true
     else stuckIrrelI mode r fe depth a b
   | _, _ => stuckIrrelI mode r fe depth a b
 
@@ -1696,239 +1605,6 @@ def defeqBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → Expr → CheckCM Bo
     let b₂ ← r.whnfCore false depth b₁
     if a₂ == a₁ && b₂ == b₁ then defeqStuckI mode r fe depth a₁ b₁
     else r.defeq depth a₂ b₂
-
-/-! ### Annotation binder-telescope loops (task #72; see the
-`inferLamsI` block comment) -/
-
-/-- Stack entry of the annotation loops: binder name, annotated opened
-domain, binder info. -/
-abbrev AnnotBinderEntry := Expr × BinderMeta
-
-/-- The cached twin of `annotBinderMeta`. -/
-def annotBinderMetaI (pw? : Option PropWhen) (mb : BinderMeta) : BinderMeta :=
-  match pw? with
-  | some pw => if pwWritten mb.pw then mb else ⟨pw⟩
-  | none => mb
-
-/-- Rebuild loop of the annotation binder-telescope loops: fold the
-stack (innermost binder first, `j` its binder level), rebuilding one
-binder node per entry.
-
-Task #161 P5 — the untrusted write: `pw?` is the datum written just
-below, threaded outward (`zeronessOf (imax u v) = zeronessOf v` makes
-every ∀ node's codomain-sort zero-ness its inner neighbour's, and the
-λ chain rule says the same of λ nodes — so the telescope pays one
-computation, in the leaf phase, and every node above reads).  `none` =
-no write (unverified mode).  A node whose input datum is a real
-annotation (`pwWritten`) is left alone — validation judges it, and it
-is that datum that travels on. -/
-def annotateBindersOutI (mk : Expr → Expr → BinderMeta → Expr)
-    (d : Nat) (pw? : Option PropWhen) :
-    List AnnotBinderEntry → Nat → Expr → CheckCM Expr
-  | [], _j, cur => pure cur
-  | (ty', mb) :: rest, j, cur => do
-    let tyAbs ← abstractRangeM ty' d j
-    let node ← pure (mk tyAbs cur (annotBinderMetaI pw? mb))
-    -- Task #161 P5 (proof-lane repair): thread the datum *just
-    -- written* outward rather than re-stamping the leaf's.  The two
-    -- differ only above an explicitly-annotated binder, and there the
-    -- chain rule is what the spec's `annotPwPi`/`annotPwLam` read —
-    -- they see the rebuilt inner node, not the leaf.  One fold, one
-    -- rule, both passes.
-    annotateBindersOutI mk d
-      (pw?.map fun _ => (annotBinderMetaI pw? mb).pw)
-      rest (j - 1) node
-
-/-- The ∀ telescope's datum (task #161 P5), computed once: the leaf
-codomain sort's zero-ness — shared by every node of the telescope
-because `zeronessOf (imax u v) = zeronessOf v`.  A ∀ residual (the
-fuel path) supplies its own already-written datum instead, exactly as `annotPwPi` reads it. -/
-def annotPwPiI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (body' : Expr) :
-    CheckCM PropWhen := do
-  -- task #168 stage 2: the head-symbol reader first (it subsumes the
-  -- chain read), as in the spec
-  match typeSortPW fe.find? body' with
-  | some pw => pure pw
-  | none => do
-    let bt ← r.inferIO depth body'
-    let v ← ensureSortI r depth bt
-    pure (Level.zeronessOf v)
-
-/-- The telescope loop's write.  UNGATED since 2026-09-06: writing the
-datum is part of the real checker's algorithm (the readers and the
-licences consume it); only *validating* it is certification-only work,
-so the trusted mode annotates exactly as the verified mode does.  The
-`Option` shape is kept — `annotBinderMetaI` still leaves an
-already-written annotation alone. -/
-def annotatePisPwI (r : CoreFnsI) (fe : FEnv) (d k : Nat) (leaf' : Expr) :
-    CheckCM (Option PropWhen) := do
-  let p ← annotPwPiI r fe (d + k) leaf'
-  pure (some p)
-
-/-- Leaf phase of `annotatePisI`: bulk-open and annotate the residual
-body, then rebuild outward. -/
-def annotatePisLeafI (r : CoreFnsI) (fe : FEnv) (d : Nat) (t : Expr) (k : Nat)
-    (fvs : Array Expr) (stk : List AnnotBinderEntry) : CheckCM Expr := do
-  let to ← instListRevM t fvs
-  let leaf' ← r.annotate (d + k) to
-  let pw? ← annotatePisPwI r fe d k leaf'
-  let cur ← abstractRangeM leaf' d k
-  annotateBindersOutI (fun ty b mb => .forallE ty b mb) d pw?
-    stk (k - 1) cur
-
-/-- ∀-telescope annotation loop (task #72; `annotateBodyI`'s forallE
-case): peel the raw ∀-chain, annotating each opened domain on the way
-in.  `k ≥ 1` counts the opened binders (first binder peeled inline by
-the caller), `fvs` their free variables innermost-first. -/
-def annotatePisI (r : CoreFnsI) (fe : FEnv) (d : Nat) :
-    Nat → Expr → Nat → Array Expr → List AnnotBinderEntry → CheckCM Expr
-  | fuel + 1, t, k, fvs, stk => do
-    match t with
-    | .forallE ty body mb => do
-      let tyo ← instListRevM ty fvs
-      let ty' ← r.annotate (d + k) tyo
-      let fv ← pure (Expr.fvar (d + k) ty')
-      annotatePisI r fe d fuel body (k + 1) (fvs.push fv)
-        ((ty', mb) :: stk)
-    | _ => annotatePisLeafI r fe d t k fvs stk
-  | 0, t, k, fvs, stk => annotatePisLeafI r fe d t k fvs stk
-
-/-- The λ chain's datum (task #161 P5): the zero-ness of the sort of
-the innermost body's TYPE; every λ node of the chain shares it (the
-`(lam-cod-chain)` rule).  A λ residual supplies its own already-written
-datum, exactly as `inferLamsLeafI` reads it. -/
-def annotPwLamI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (body' : Expr) :
-    CheckCM PropWhen := do
-  -- task #168 stage 2: the reader first, as in the spec
-  match proofPW fe.find? body' with
-  | some pw => pure pw
-  | none => do
-    let bt ← r.inferIO depth body'
-    let btt ← r.inferIO depth bt
-    let vb ← ensureSortI r depth btt
-    pure (Level.zeronessOf vb)
-
-/-- The λ twin of `annotatePisPwI`, ungated with it. -/
-def annotateLamsPwI (r : CoreFnsI) (fe : FEnv) (d k : Nat) (leaf' : Expr) :
-    CheckCM (Option PropWhen) := do
-  let p ← annotPwLamI r fe (d + k) leaf'
-  pure (some p)
-
-/-- Leaf phase of `annotateLamsI` (as `annotatePisLeafI`, rebuilding
-λ-nodes). -/
-def annotateLamsLeafI (r : CoreFnsI) (fe : FEnv) (d : Nat) (t : Expr) (k : Nat)
-    (fvs : Array Expr) (stk : List AnnotBinderEntry) : CheckCM Expr := do
-  let to ← instListRevM t fvs
-  let leaf' ← r.annotate (d + k) to
-  let pw? ← annotateLamsPwI r fe d k leaf'
-  let cur ← abstractRangeM leaf' d k
-  annotateBindersOutI (fun ty b mb => .lam ty b mb) d pw?
-    stk (k - 1) cur
-
-/-- λ-telescope annotation loop (task #72; `annotateBodyI`'s lam
-case). -/
-def annotateLamsI (r : CoreFnsI) (fe : FEnv) (d : Nat) :
-    Nat → Expr → Nat → Array Expr → List AnnotBinderEntry → CheckCM Expr
-  | fuel + 1, t, k, fvs, stk => do
-    match t with
-    | .lam ty body mb => do
-      let tyo ← instListRevM ty fvs
-      let ty' ← r.annotate (d + k) tyo
-      let fv ← pure (Expr.fvar (d + k) ty')
-      annotateLamsI r fe d fuel body (k + 1) (fvs.push fv)
-        ((ty', mb) :: stk)
-    | _ => annotateLamsLeafI r fe d t k fvs stk
-  | 0, t, k, fvs, stk => annotateLamsLeafI r fe d t k fvs stk
-
-/-- Twin of `annotateBody`. -/
-def annotateBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
-  fun depth e => do
-    match e with
-    | .bvar _ => pure e
-    | .fvar idx _ =>
-      if idx < depth then pure e
-      else throw (.invalid "free variable out of scope")
-    | .sort _ => pure e
-    | .const .. => pure e
-    | .lit (.natVal _) => do
-      if natLitSupportedF fe then pure e
-      else throw (.invalid "Nat literal without the Nat basis declarations")
-    | .lit (.strVal _) => do
-      if strLitSupportedF fe then pure e
-      else throw (.notImplemented
-        "string literals before the String support declarations")
-    | .app f a => do
-      -- structural (task #100 stage 6: the application checks moved to
-      -- the driver's inference sweep)
-      let f' ← r.annotate depth f
-      let a' ← r.annotate depth a
-      pure (Expr.app f' a')
-    | .forallE ty body mb => do
-      -- Binder-telescope loop (task #72): peel the whole ∀-chain,
-      -- open in bulk, rebuild with `abstractRange`.
-      let ty' ← r.annotate depth ty
-      let fv ← pure (Expr.fvar depth ty')
-      let fuel ← peelFuelM
-      annotatePisI r fe depth fuel body 1 #[fv] [(ty', mb)]
-    | .lam ty body mb => do
-      -- The λ-loop is chain-identical only on bvar-closed nodes (the
-      -- chained tails re-open exactly what they closed); disciplined
-      -- inputs always are, and the cached bound decides in O(1).
-      if (← bvarBoundM e) = 0 then do
-        let ty' ← r.annotate depth ty
-        let fv ← pure (Expr.fvar depth ty')
-        let fuel ← peelFuelM
-        annotateLamsI r fe depth fuel body 1 #[fv] [(ty', mb)]
-      else do
-        let ty' ← r.annotate depth ty
-        let fv ← pure (Expr.fvar depth ty')
-        let ob ← inst1M body fv
-        let body' ← r.annotate (depth + 1) ob
-        let bAbs ← abstract1M body' depth
-        -- task #161 P5: the single-binder write (the λ-loop's rule at
-        -- a chain of length one; see `annotateLamsLeafI`)
-        let pw ← if !pwWritten mb.pw then
-            annotPwLamI r fe (depth + 1) body'
-          else pure mb.pw
-        pure (Expr.lam ty' bAbs ⟨pw⟩)
-    | .letE ty v b => do
-      -- official `infer_let` check order (see the spec body): the
-      -- annotation is a type, the value's inferred type matches it,
-      -- then the body with the value transparent (zeta at annotate;
-      -- `inst1M` keeps the substitution sharing-preserving).  Task #217
-      -- (audit follow-up #206-S1) put the triple back: the pass returns
-      -- the ζ reduct, so `inferBodyI`'s `.letE` arm never sees the node
-      -- — task #241 made that arm a positive `.internal` error.
-      let ty' ← r.annotate depth ty
-      let tty ← r.infer depth ty'
-      let _ ← ensureSortI r depth tty
-      let v' ← r.annotate depth v
-      let tv ← r.infer depth v'
-      unless ← r.defeq depth tv ty' do
-        throw (.invalid "let value type mismatch")
-      let ob ← inst1M b v
-      r.annotate depth ob
-    | .proj sn i pe => do
-      let e' ← r.annotate depth pe
-      let tpe ← r.inferIO depth e'
-      let te ← r.whnf depth tpe
-      match Expr.getAppFn te with
-      | .const T _ => do
-        let Tn ← pure T
-        match fe.findProj? Tn i with
-        | some entry => do
-          let targs ← pure (Expr.getAppArgsC te)
-          -- TASK #271 (issue #7), as in the pure twin
-          unless T = sn do
-            throw (.invalid "invalid projection: the node names another structure")
-          unless targs.length = entry.numParams do
-            throw (.invalid "projection parameter mismatch")
-          pure (Expr.proj T i e')
-        | none =>
-          -- official's `infer_proj` verdict, as in the pure twin
-          throw (projMissError fe.find? (fe.find? (projTableName Tn)).isSome Tn sn i
-            (Expr.getAppArgsC te).length)
-      | _ => throw (.invalid "invalid projection: not a structure-like type, or no such field")
 
 /-! ## The memoized knot -/
 
@@ -1983,7 +1659,6 @@ def coreKnotI (fe : FEnv) : Nat → CoreFnsI
       whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
       infer := fun _ _ => throw (.internal "fuel exhausted: infer")
       defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
-      annotate := fun _ _ => throw (.internal "fuel exhausted: annotate")
       inferIO := fun _ _ => throw (.internal "fuel exhausted: infer") }
   | fuel + 1 =>
     -- **NOT a `Thunk`** (task #179).  The previous fuel level used to be
@@ -2024,25 +1699,15 @@ def coreKnotI (fe : FEnv) : Nat → CoreFnsI
       whnf := memoEI (·.whnfC) (fun st mp => { st with whnfC := mp })
         (fun d e => whnfBodyI (prev ()) fe d e)
       infer := memoEI (·.inferC) (fun st mp => { st with inferC := mp })
-        (fun d e => inferBodyI mode (prev ()) fe d e)
+        (fun d e => inferBodyI (prev ()) fe d e)
       defeq := memoBI
         (fun d a b => defeqBodyI mode (prev ()) fe d a b)
-      annotate := memoEI (·.annotC) (fun st mp => { st with annotC := mp })
-        (fun d e => annotateBodyI (prev ()) fe d e)
-      -- **The io slot** (task #170 / #172 B4), selected once per knot
-      -- level: at `ioGate` the io body under its OWN memo
-      -- (`CState.inferIOC` — the task-#170 memo ruling: a hit in the io
-      -- memo never serves a full-infer query), tied to the io-grade
-      -- view of the previous level (the grade propagates); at
-      -- `ioGate = false` — no mode any more — the full inference
-      -- closure, verbatim, under one memo, because the two grades are
-      -- the same function there (task #170: "in R mode infer_only is
-      -- just equivalent to infer").
-      inferIO := if mode.ioGate then
-          memoEI (·.inferIOC) (fun st mp => { st with inferIOC := mp })
-            (fun d e => inferBodyIOI mode (prev ()).ioView fe d e)
-        else
-          memoEI (·.inferC) (fun st mp => { st with inferC := mp })
-            (fun d e => inferBodyI mode (prev ()) fe d e) }
+      -- **The io slot** (task #170 / #172 B4, task #346): the io body
+      -- under its OWN memo (`CState.inferIOC` — the task-#170 memo
+      -- ruling: a hit in the io memo never serves a full-infer query),
+      -- tied to the io-grade view of the previous level (the grade
+      -- propagates)
+      inferIO := memoEI (·.inferIOC) (fun st mp => { st with inferIOC := mp })
+        (fun d e => inferBodyIOI (prev ()).ioView fe d e) }
 
 end ConLeche.Cached

@@ -27,7 +27,7 @@ it:
   index domains, the shared rule prefix);
 * the stored family's shape (lengths, the bridge from the checked
   constants to the stored ones, each recursor's constructors);
-* per rule, the rule's λ-TOWER (`RuleTower`: annotated, resolved,
+* per rule, the rule's λ-TOWER (`RuleTower`: stored as checked, resolved,
   typed at the rule-less recursors' environment, its binders the
   recursor's prefix and the constructor's fields, binder by binder).
 
@@ -53,7 +53,7 @@ theorem consBlockRecsBareF_mkFEnv (p : BlockShape) :
 /-! ## The records -/
 
 /-- **One rule's λ-tower, as checked**: the stream's right-hand side
-`rhs` annotated into `out` (the STORED rule) at the rule-less recursors'
+`rhs`, stored as `out = rhs`, at the rule-less recursors'
 environment `envR`, typed there, its λ-tower compared binder by binder
 with the recursor type's prefix and the constructor's fields at the
 constructors' environment `envT`. -/
@@ -76,12 +76,11 @@ structure RuleTower (mode : CheckMode) (F : Nat) (envR envT : Env) (p : BlockSha
   hrecTy : recTys[ri]? = some recTy
   hbv : rhs.looseBVarsBounded 0 = true
   hfv : rhs.hasFvar = false
-  hann : annotateCore mode envR F 0 rhs = .ok out
+  hout : out = rhs
   hlp : out.allLevelParamsDefined cvR.levelParams = true
   hres : out.constsResolve envR = true
   htyR : inferTypeCore mode envR F 0 out = .ok tyR
   hstrip : Expr.stripLams (p.rulePrefixAt ri + cA.2) out = some (rbs, body)
-  hpw : ∀ b ∈ rbs, b.2.pw = Level.zeronessOf (structElimLevel p.elim p.large)
   hpref : openPisAtFvars (p.rulePrefixAt ri) recTy 0 = some (fvsPref, oPref)
   hcpar : Expr.instPisAt (fvsPref.take p.nP) cA.1.type = some (cpref, crest)
   hfld : openPisAtFvars cA.2 crest (p.rulePrefixAt ri) = some (fvsF, cbody)
@@ -102,9 +101,8 @@ structure RuleTower (mode : CheckMode) (F : Nat) (envR envT : Env) (p : BlockSha
 /-- **One rule's stored right-hand side, at ANY major**: `out`, stored
 at the rule-less recursors' environment `envR` — closed, its level
 parameters the recursor's, its constants resolved and its type inferred
-there, and no `.proj` node at an empty table slot.  The stream's rule
-annotated (`RuleOutOk.of_annotate`) or a generated rule stored as
-generated. -/
+there, and no `.proj` node at an empty table slot (a generated rule
+stored as generated). -/
 structure RuleOutOk (mode : CheckMode) (F : Nat) (envR : Env) (cvR : ConstantVal)
     (out : Expr) : Prop where
   hbv : out.looseBVarsBounded 0 = true
@@ -225,7 +223,7 @@ structure RecStage (mode : CheckMode) (F : Nat) (env : Env) (p : BlockParts)
   /-- one stored rule per constructor -/
   rulesLenAt : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
     rs[i]? = some r → r.2.1.length = r.2.2.2.length
-  /-- (c) every stored rule, annotated at the rule-less recursors -/
+  /-- (c) every stored rule, checked at the rule-less recursors -/
   ruleOut : ∀ (c : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) (i : Nat)
     (rhs : Expr), rs[c]? = some r → r.2.1[i]? = some rhs →
     ∃ rc, p.recs[c]? = some rc ∧
@@ -286,7 +284,7 @@ theorem tyGenAt (R : RecStage mode F env p cvTas ctorsAs rs mem) {i : Nat}
     simpa using hcu'
   exact ⟨rc, u, hrc, hcu, ⟨E⟩⟩
 
-/-- **A stored rule is annotated at the rule-less recursors** (any major). -/
+/-- **A stored rule is checked at the rule-less recursors** (any major). -/
 theorem ruleOutOf (R : RecStage mode F env p cvTas ctorsAs rs mem)
     {c : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[c]? = some r) {rhs : Expr} (hrhs : rhs ∈ r.2.1) :

@@ -152,7 +152,7 @@ theorem open_of_erasedEq_closeLams :
     cases e with
     | lam a b bm' =>
       simp only [closeLams] at he
-      obtain ⟨hm, ha, hbE⟩ := he
+      obtain ⟨ha, hbE⟩ := he
       have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeLams_bounded nds (d + 1) body hcl' hb
@@ -167,7 +167,7 @@ theorem open_of_erasedEq_closeLams :
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hb' hnd
           subst hb' hnd
-          exact ⟨ha, hm⟩
+          exact ⟨ha, rfl⟩
         | succ i =>
           simp only [List.getElem?_cons_succ] at hb' hnd
           exact hdoms i b' nd hb' hnd

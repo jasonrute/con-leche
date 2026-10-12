@@ -35,7 +35,7 @@ theorem bridge (env : Env) :
   | succ fuel ih =>
     obtain ⟨hwc, hw, hd, hi, hio⟩ := ih
     exact ⟨whnfCore_bridge_succ hwc hw hd hi hio, whnf_bridge_succ hwc hw,
-      defeq_bridge_succ hwc hw hd hio, infer_bridge_succ hw hd hi,
+      defeq_bridge_succ hwc hw hd hi hio, infer_bridge_succ hw hd hi,
       inferIO_bridge_succ hw hio⟩
 
 theorem whnfCore_bridge {fuel d : Nat} {e e' : Expr}

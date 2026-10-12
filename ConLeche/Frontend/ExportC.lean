@@ -155,9 +155,12 @@ resolved. -/
     pure (Expr.mkConst nm ls)
   | .app f a => do pure (Expr.mkApp (← ex f) (← ex a))
   | .lam ty bd pw => do
-    pure (Expr.mkLam (← ex ty) (← ex bd) ⟨← pwOfF nm lv ex pw⟩)
+    -- Task #342 S0: the optional `pw` field is parsed and dropped
+    let _ ← pwOfF nm lv ex pw
+    pure (Expr.mkLam (← ex ty) (← ex bd) ⟨⟩)
   | .forallE ty bd pw => do
-    pure (Expr.mkForallE (← ex ty) (← ex bd) ⟨← pwOfF nm lv ex pw⟩)
+    let _ ← pwOfF nm lv ex pw
+    pure (Expr.mkForallE (← ex ty) (← ex bd) ⟨⟩)
   | .letE ty vl bd => do
     pure (Expr.mkLetE (← ex ty) (← ex vl) (← ex bd))
   | .proj tn ix s => do
