@@ -13,6 +13,7 @@ import ConLeche.Semantics.Frame
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Verify.Leaves
 import ConLeche.Verify.Cached.Erase
+import ConLeche.Model.Inductives.TypeStep
 
 public section
 
@@ -179,19 +180,21 @@ premises without the hole relation). -/
     (∀ x ∈ ds, Expr.LeavesBounded x) →
     NodesSem mp.base2 φ ctx Δ0 ts
 
-/-- **What a derivation proves of its nodes** (see the module docstring). -/
+/-- **What a derivation proves of its nodes** (see the module docstring).
+The walked subjects are the constructors' field TYPES, never the point
+(task #342, L12: "not pt" source (1)), so they carry `GradedTy`. -/
 @[expose] def NodeJ : PosJ → List PosTree → Prop
   | .field prog dep _ e _ _, ts =>
     ctx.hiAt prog.length ≤ dep → Frame dep e →
     ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
       CtxOkP mp.base2 φ dep Δa e → denoteMeta mp.base2.acval env φ dep e = some ea →
-      Graded V Δa ea → Δa.drop (dep - ctx.hiAt prog.length) = stackCtx mp.base2 φ ctx prog Δ0 →
+      GradedTy V Δa ea → Δa.drop (dep - ctx.hiAt prog.length) = stackCtx mp.base2 φ ctx prog Δ0 →
       NodesSem mp.base2 φ ctx Δ0 ts
   | .tele prog base _ j cur _ _ _, ts =>
     ctx.hiAt prog.length ≤ base + j → Frame (base + j) cur →
     ∀ {Δa : List AnnotTerm} {ca : AnnotTerm},
       CtxOkP mp.base2 φ (base + j) Δa cur →
-      denoteMeta mp.base2.acval env φ (base + j) cur = some ca → Graded V Δa ca →
+      denoteMeta mp.base2.acval env φ (base + j) cur = some ca → GradedTy V Δa ca →
       Δa.drop (base + j - ctx.hiAt prog.length) = stackCtx mp.base2 φ ctx prog Δ0 →
       NodesSem mp.base2 φ ctx Δ0 ts
   | .ctors prog hi us ds names holes cs, ts =>
@@ -200,10 +203,11 @@ premises without the hole relation). -/
     (∀ (x : ConstantVal × Nat) (crest : Expr), Q x →
       ConLeche.nestCrest names us ds holes (x.1.type.instantiateLevelParams x.1.levelParams us)
         = some crest →
-      (∃ ty, ConLeche.inferTypeCore .verified env F hi crest = .ok ty) →
+      (∃ ty u, ConLeche.inferTypeCore .verified env F hi crest = .ok ty ∧
+        ConLeche.ensureSortCore .verified env F hi ty = .ok u) →
       ∃ ca, Frame hi crest ∧ CtxOkP mp.base2 φ hi (stackCtx mp.base2 φ ctx prog Δ0) crest ∧
         denoteMeta mp.base2.acval env φ hi crest = some ca ∧
-        Graded V (stackCtx mp.base2 φ ctx prog Δ0) ca) →
+        GradedTy V (stackCtx mp.base2 φ ctx prog Δ0) ca) →
     (∀ x ∈ cs, Q x) → NodesSem mp.base2 φ ctx Δ0 ts
   | .frame prog us ds grp, ts => FrameNodes mp φ ctx Δ0 prog us ds grp ts
   | .seed key, ts =>
@@ -217,18 +221,19 @@ variable {φ : Name → Nat}
 /-! ## Pieces -/
 
 /-- **The whnf step, relation-free**: the reduct is framed, in the
-context, read and graded. -/
+context, read and graded.  The subject walked here is always a TYPE
+(task #342, L12: "not pt" source (1)), so the step is `red_sound_ty`. -/
 theorem whnf_facts {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
     (hin : RulesInputs V mp.base2 φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
     {Δa : List AnnotTerm} {ea : AnnotTerm}
     (hC : CtxOkP mp.base2 φ dep Δa e) (hea : denoteMeta mp.base2.acval env φ dep e = some ea)
-    (hgr : Graded V Δa ea) :
+    (hgr : GradedTy V Δa ea) :
     Frame dep w ∧ CtxOkP mp.base2 φ dep Δa w ∧
-      ∃ wa, denoteMeta mp.base2.acval env φ dep w = some wa ∧ Graded V Δa wa := by
+      ∃ wa, denoteMeta mp.base2.acval env φ dep w = some wa ∧ GradedTy V Δa wa := by
   have hw' : ConLeche.whnf .verified env F dep e = .ok w := hw
   obtain ⟨hfrw, hsub, wa, hwa, hgw, -⟩ :=
-    red_sound_global hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
+    red_sound_ty hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
   exact ⟨hfrw, hC.of_subset hsub, wa, hwa, hgw⟩
 
 /-- The context seen at a shallower frame stack. -/
@@ -321,12 +326,9 @@ theorem frame_nodes {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       crest_read mp hD hblkD.nodup hkN hcov.find hlps hndl hul hds hdsa hlenP hg.2 hc hj hfc
     rw [hcr] at hcr'
     obtain rfl := Option.some.inj hcr'
-    obtain ⟨ty, hty⟩ := hinf
-    have hIS : InferSemFull mp.base2 φ (ctx.hiAt prog.length + (p₀ :: ps₀).length) crest ty :=
-      infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-    obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hrd
+    obtain ⟨ty, u, hty, hsort⟩ := hinf
     rw [stackCtx_frame hcov.find hgT]
-    exact ⟨_, hfr, hC, hrd, hgr⟩
+    exact ⟨_, hfr, hC, hrd, gradedTy_of_sort hin hty hsort hfr hC.toCtxOk hrd⟩
   · -- every walked constructor is one of the group's constructors
     intro x hx
     obtain ⟨hctorsIn, -⟩ := ConLeche.groupCtors_spec hctors
@@ -392,8 +394,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgw
-    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     refine ihb (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd) hCop hba hgB ?_
     rw [show dep + 1 - ctx.hiAt prog.length = (dep - ctx.hiAt prog.length) + 1 by omega,
@@ -465,7 +466,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       hsort htele hu4 hres hidx hrest ihtele ihrest =>
     intro hhi Q hprem hQ
     obtain ⟨ca, hfr, hC, hca, hgr⟩ :=
-      hprem (cv, nF) crest (hQ _ List.mem_cons_self) hcrest ⟨ty, hty⟩
+      hprem (cv, nF) crest (hQ _ List.mem_cons_self) hcrest ⟨ty, sv, hty, hsort⟩
     refine NodesSem.append ?_ (ihrest hhi Q hprem fun y hy => hQ y (List.mem_cons_of_mem _ hy))
     subst hhi
     exact ihtele (by omega) hfr hC hca hgr (by simp)
@@ -478,9 +479,8 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgr
-    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
-    have hA := iha hhi ⟨hws.1, hbb.1, hLa⟩ hC.forallE_ty hta hgA hΔ
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgr.graded
+    have hA := iha hhi ⟨hws.1, hbb.1, hLa⟩ hC.forallE_ty hta hgAT hΔ
     have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd
     rw [show base + j + 1 = base + (j + 1) by omega] at hCop hfr' hba

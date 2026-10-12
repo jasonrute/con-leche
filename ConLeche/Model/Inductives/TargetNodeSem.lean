@@ -60,6 +60,8 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts) :
@@ -67,7 +69,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
       denoteMeta m.acval env ψ (d.nP + d.k) crest = some ca ∧
-      Rules.Graded V (d.holeCtx ψ).reverse ca := by
+      Rules.GradedTy V (d.holeCtx ψ).reverse ca := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
   have hcL : (p.nestCtx fvsP env.find?).lps = lps := hlps
@@ -93,7 +95,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   rw [← denoteMeta_erasedEq herased] at hca
   obtain ⟨-, -, -, hhi, -, -, -, -, -, hfr, hCP, hgr, -⟩ :=
     blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames hnP hk hcv0 hop0
-      hholes hCf hCb hcrest hinf hd hca
+      hholes hCf hCb hcrest hinf hsort hd hca
   exact ⟨_, hhi, hfr, hCP, hca, hgr⟩
 
 /-- **Every node of a member constructor's derivation is read in its stack
@@ -117,12 +119,14 @@ theorem memberCtor_nodesSem {μ : ConLeche.CheckMode} {env : Env} (mk : EnvModel
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts) (ψ : Name → Nat) :
     NodesSem mk.base2 ψ (p.nestCtx fvsP env.find?) (d.holeCtx ψ).reverse ts := by
   obtain ⟨ca, hhi, hfr, hCP, hca, hgr⟩ := blockCtorCrest (Rules.RulesInputs.ofSem mk ψ) hN hcore
-    hnames hlps hnP hk hcv0 hop0 hholes hcj hCf hCb hcrest hinf hd
+    hnames hlps hnP hk hcv0 hop0 hholes hcj hCf hCb hcrest hinf hsort hd
   obtain ⟨nds, cur, hD, -⟩ := hd
   have hΔ0 : ((d.holeCtx ψ).reverse).length = (p.nestCtx fvsP env.find?).hiAt 0 := by
     rw [hhi]; exact hCP.1

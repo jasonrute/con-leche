@@ -549,13 +549,13 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
         ((blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf).holeCtx ψ).reverse ts := by
     intro m cs j cA crest ks tyN ts hcs hj hcr hd ψ
     obtain ⟨hcj, hCf, hCb⟩ := hcl2 m cs hcs j cA hj
-    obtain ⟨crest', -, -, hcr', -, -, ⟨ty, hty⟩, -⟩ := hder m cs hcs j cA hj
+    obtain ⟨crest', -, -, hcr', -, -, ⟨ty, u, hty, hsort⟩, -⟩ := hder m cs hcs j cA hj
     rw [hcr] at hcr'
     obtain rfl := Option.some.inj hcr'
     subst hctxE
     exact memberCtor_nodesSem mk hN hcoreK rfl rfl rfl
       (by simp [blockDataOf, blockDataPre, BlockData.withPhi, ConLeche.BlockShape.k,
-        ConLeche.BlockShape.memberNames]) h1 h2 h3 hcov hcj hCf hCb hcr hty hd ψ
+        ConLeche.BlockShape.memberNames]) h1 h2 h3 hcov hcj hCf hCb hcr hty hsort hd ψ
   -- the chosen forests: one per outside class
   -- a forest's facts, member constructor's or seed's
   have hsrcD : ∀ ts : List PosTree,
@@ -610,13 +610,13 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     intro q
     by_cases h : ∃ cs cA, ctorsAsR[q.1]? = some cs ∧ cs[q.2]? = some cA
     · obtain ⟨cs, cA, hcs, hj⟩ := h
-      obtain ⟨crest, ks, ts, hcr, hd, -, hty, -, -, -, htr⟩ := hder q.1 cs hcs q.2 cA hj
+      obtain ⟨crest, ks, ts, hcr, hd, -, ⟨ty, u, hty, hsort⟩, -, -, -, htr⟩ := hder q.1 cs hcs q.2 cA hj
       refine ⟨ts, fun cs' cA' hcs' hj' => ?_⟩
       rw [hcs] at hcs'
       obtain rfl := Option.some.inj hcs'
       rw [hj] at hj'
       obtain rfl := Option.some.inj hj'
-      exact ⟨crest, ks, hcr, hd, hty, htr.mono hposT⟩
+      exact ⟨crest, ks, hcr, hd, ⟨ty, hty⟩, htr.mono hposT⟩
     · exact ⟨[], fun cs cA hcs hj => absurd ⟨cs, cA, hcs, hj⟩ h⟩
   obtain ⟨tsM, htsM⟩ := Classical.axiomOfChoice hexM
   let rtC : List PosTree := (List.range out.length).flatMap fun c => tsOf c
