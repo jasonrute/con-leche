@@ -22,6 +22,11 @@ import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.DefEqSoundKit
 import ConLeche.Verify.InstSpine
 import ConLeche.Verify.PropWhen
+import ConLeche.Verify.Subst
+import ConLeche.Verify.Denote.OpenVars
+import ConLeche.Verify.Denote.TeleOpen
+import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Inductives.StructFrameKit
 
 public section
 
@@ -163,6 +168,98 @@ theorem eval_ne_zero_of_isNever {lps : List Name} {us : List Level} {v : Level}
 theorem blockCapsAt_sortZ (p : BlockShape) (mi : Nat) (isRec : Bool) :
     (ConLeche.blockCapsAt p mi isRec).sortZ = Level.zeronessOf p.resSort := by
   rcases blockCapsAt_cases p mi isRec with ⟨c, -, h⟩ | h <;> rw [h]
+
+omit [SetTheory V] in
+theorem openFvars_getElem? : ∀ (k d q : Nat), q < k →
+    (openFvars d k)[q]? = some (.fvar (d + q) (.sort .zero))
+  | 0, _, _, h => absurd h (Nat.not_lt_zero _)
+  | k + 1, d, 0, _ => by simp [openFvars]
+  | k + 1, d, q + 1, h => by
+    rw [openFvars_succ, List.getElem?_cons_succ, openFvars_getElem? k (d + 1) q (by omega)]
+    congr 2; omega
+
+omit [SetTheory V] in
+theorem openFvars_length : ∀ (k d : Nat), (openFvars d k).length = k
+  | 0, _ => rfl
+  | k + 1, d => by rw [openFvars_succ, List.length_cons, openFvars_length k (d + 1)]
+
+omit [SetTheory V] in
+theorem openFvars_closed : ∀ (k d : Nat), ∀ a ∈ openFvars d k, a.looseBVarsBounded 0 = true
+  | 0, _, a, h => nomatch h
+  | k + 1, d, a, h => by
+    rw [openFvars_succ] at h
+    rcases List.mem_cons.mp h with rfl | h
+    · rfl
+    · exact openFvars_closed k (d + 1) a h
+
+/-- **A stored constructor type of the recorded shape reads as a Π-tower
+over its parameters and fields ending in its family at the parameter
+variables** (`ctorBodyAVI`'s shape): the syntactic shape (`LfpCaps`)
+opened at variables (`openPisAtFvars_stripPis`) and read
+(`denoteMeta_openPis`), the parameter variables reading as the
+parameters' de Bruijn indices. -/
+theorem denoteMeta_ctorShape {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+    {ψ : Name → Nat} {cv : ConstantVal} {I : Name} {nPc nF : Nat}
+    {bs : List (Expr × BinderMeta)} {es : List Expr} {ciI : ConstantInfo} {ea : AnnotTerm}
+    (hfI : env.find? I = some ciI)
+    (hlI : (cv.levelParams.map Level.param).length = ciI.toConstantVal.levelParams.length)
+    (hst : cv.type.stripPis (nPc + nF)
+      = some (bs, Expr.mkAppN (.const I (cv.levelParams.map .param))
+          (ConLeche.structPsAt nF nPc ++ es)))
+    (hread : denoteMeta acval env ψ 0 cv.type = some ea) :
+    ∃ (pps : List (Nat × Nat × AnnotTerm)) (Es : List AnnotTerm),
+      ea = mkPisAV pps (AnnotTerm.mkAppN
+        (acval I (Level.substFn ψ ciI.toConstantVal.levelParams (cv.levelParams.map .param)))
+        (paramBvars nPc nF ++ Es)) ∧
+      pps.length = nPc + nF ∧ Es.length = es.length := by
+  obtain ⟨fvs, o, hop⟩ := openPisAtFvars_of_stripPis_isSome (nPc + nF) (e := cv.type) 0
+    (by rw [hst]; rfl)
+  obtain ⟨bs', body₀, hst', -, -, herase⟩ := openPisAtFvars_stripPis (nPc + nF) hop
+  rw [hst] at hst'
+  obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj hst').symm
+  obtain ⟨pps, b, hsAV, hb, hplen, -⟩ := denoteMeta_openPis (nPc + nF) hop hread
+  rw [Nat.zero_add, denoteMeta_erasedEq herase, Expr.instSeq_mkAppN,
+    Expr.instSeq_eq_self _ _ (show (Expr.const I (cv.levelParams.map .param)).looseBVarsBounded 0
+      = true from rfl)] at hb
+  obtain ⟨fa, vs, hfa, hspv, rfl⟩ := denoteMeta_mkAppN_inv hb
+  rw [denoteMeta_const hfI hlI] at hfa
+  obtain rfl := Option.some.inj hfa
+  obtain ⟨hea, -⟩ := stripPisAV_eq_mkPis hsAV
+  have hlenv := hspv.length
+  rw [List.length_map, List.length_append] at hlenv
+  have hPs : (ConLeche.structPsAt nF nPc).length = nPc := by
+    simp [ConLeche.structPsAt]
+  refine ⟨pps, vs.drop nPc, ?_, hplen, by rw [List.length_drop]; omega⟩
+  rw [hea]
+  suffices hP : vs.take nPc = paramBvars nPc nF by
+    rw [← hP, List.take_append_drop]
+  -- the parameter part
+  have hspP := hspv.take nPc
+  rw [← List.map_take, List.take_left' hPs] at hspP
+  have hPL : (paramBvars nPc nF).length = nPc := by simp [paramBvars]
+  have hlt : (vs.take nPc).length = (paramBvars nPc nF).length := by
+    rw [List.length_take, hPL]; omega
+  refine List.ext_getElem hlt fun q h1 h2 => ?_
+  have hq : q < nPc := by rw [hPL] at h2; exact h2
+  have hg := hspP.getD default q (by rw [List.length_map, hPs]; exact hq)
+  have harg : ((ConLeche.structPsAt nF nPc).map
+      (Expr.instSeq (openFvars 0 (nPc + nF)) (nPc + nF - 1) ·)).getD q default
+      = .fvar q (.sort .zero) := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_map]
+    have hel : (ConLeche.structPsAt nF nPc)[q]? = some (.bvar (nF + nPc - 1 - q)) := by
+      simp [ConLeche.structPsAt, List.getElem?_map, List.getElem?_range hq]
+    rw [hel, Option.map_some, Option.getD_some]
+    have := Expr.instSeq_bvar (openFvars 0 (nPc + nF)) (nPc + nF - 1) (nF + nPc - 1 - q)
+      (openFvars_closed _ 0) (by omega) (by rw [openFvars_length]; omega)
+    rw [show nPc + nF - 1 - (nF + nPc - 1 - q) = q from by omega,
+      openFvars_getElem? _ 0 q (by omega)] at this
+    rw [Nat.zero_add] at this
+    exact (Option.some.inj this).symm
+  rw [harg, denoteMeta_fvar] at hg
+  have hgv := (Option.some.inj hg)
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1, Option.getD_some] at hgv
+  rw [← hgv]
+  simp [paramBvars]
 
 end Generic
 
@@ -559,7 +656,7 @@ theorem genMem_residual {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
 omit [SetTheory V] in
 theorem getD_take' {α : Type _} {l : List α} {n q : Nat} {x : α} (hq : q < n) :
     (l.take n).getD q x = l.getD q x := by
-  simp [List.getD_eq_getElem?_getD, List.getElem?_take, hq]
+  simp [List.getD_eq_getElem?_getD, hq]
 
 omit [SetTheory V] in
 theorem getD_drop' {α : Type _} {l : List α} {n q : Nat} {x : α} :
