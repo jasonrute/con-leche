@@ -80,8 +80,6 @@ monotone by `Mono.lean`. -/
     fun hle h => inferTypeCore_mono hle h⟩
   defeq d a b := ⟨fun F => isDefEqCore mode env F d a b,
     fun hle h => isDefEqCore_mono hle h⟩
-  annotate d e := ⟨fun F => annotateCore mode env F d e,
-    fun hle h => annotateCore_mono hle h⟩
   inferIO d e := ⟨fun F => inferTypeIO mode env F d e,
     fun hle h => inferTypeIO_mono hle h⟩
 
@@ -99,23 +97,21 @@ theorem iotaCerts_atF (d : Nat) (lic : Bool) (F : Nat) :
         iotaCerts (pureFns mode env F) env d lic ty args
   | _, [] => rfl
   | .forallE ty body mb, arg :: rest => by
-    show (if lic && mb.pw.isNever then
-        iotaCerts (fueledFns mode env) env d lic (body.instantiate1 arg) rest
+    show (if lic then pure true
       else (do
         let ta ← (fueledFns mode env).inferIO d arg
         if ← (fueledFns mode env).defeq d ta ty then
           iotaCerts (fueledFns mode env) env d lic (body.instantiate1 arg) rest
-        else pure false : FueledM Bool)).val F = (if lic && mb.pw.isNever then
-        iotaCerts (pureFns mode env F) env d lic (body.instantiate1 arg) rest
+        else pure false : FueledM Bool)).val F = (if lic then pure true
       else do
         let ta ← (pureFns mode env F).inferIO d arg
         if ← (pureFns mode env F).defeq d ta ty then
           iotaCerts (pureFns mode env F) env d lic (body.instantiate1 arg) rest
         else pure false)
-    by_cases hg : (lic && mb.pw.isNever) = true
-    · rw [ite_eq_left hg, ite_eq_left hg]
-      exact iotaCerts_atF d lic F (body.instantiate1 arg) rest
-    · rw [ite_eq_right hg, ite_eq_right hg]
+    cases lic with
+    | true => rfl
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
       rw [FueledM.atF_bind]
       congr 1
       funext ta
@@ -125,7 +121,7 @@ theorem iotaCerts_atF (d : Nat) (lic : Bool) (F : Nat) :
       cases b with
       | true =>
         simp only [↓reduceIte]
-        exact iotaCerts_atF d lic F (body.instantiate1 arg) rest
+        exact iotaCerts_atF d false F (body.instantiate1 arg) rest
       | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
   | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
@@ -276,20 +272,6 @@ theorem ensureSort_atF (d : Nat) (e : Expr) (F : Nat) :
   unfold ensureSort
   atF_tac
 
-/-- Task #161 P5: the ∀/λ writes at a fixed fuel.  Both are the chain
-read, or `infer`/`ensureSort` calls the cascade already knows. -/
-theorem annotPwPi_atF {env : Env} (d : Nat) (e : Expr) (F : Nat) :
-    (annotPwPi (fueledFns mode env) env d e).val F =
-      annotPwPi (pureFns mode env F) env d e := by
-  unfold annotPwPi
-  atF_tac <;> exact ensureSort_atF _ _ _
-
-theorem annotPwLam_atF {env : Env} (d : Nat) (e : Expr) (F : Nat) :
-    (annotPwLam (fueledFns mode env) env d e).val F =
-      annotPwLam (pureFns mode env F) env d e := by
-  unfold annotPwLam
-  atF_tac <;> exact ensureSort_atF _ _ _
-
 theorem proofIrrel_atF (d : Nat) (a b : Expr) (F : Nat) :
     (proofIrrel (fueledFns mode env) d a b).val F =
       proofIrrel (pureFns mode env F) d a b := by
@@ -314,9 +296,9 @@ theorem structUnitCert_atF (d : Nat) (a b : Expr) (F : Nat) :
   unfold structUnitCert
   atF_tac
 
-theorem etaCert_atF (d : Nat) (ty body : Expr) (mb : BinderMeta) (b : Expr) (F : Nat) :
-    (etaCert mi (fueledFns mode env) env d ty body mb b).val F =
-      etaCert mi (pureFns mode env F) env d ty body mb b := by
+theorem etaCert_atF (d : Nat) (ty body : Expr) (b : Expr) (F : Nat) :
+    (etaCert mi (fueledFns mode env) env d ty body b).val F =
+      etaCert mi (pureFns mode env F) env d ty body b := by
   unfold etaCert
   atF_tac
 
@@ -494,11 +476,36 @@ theorem reduceProjCore_atF (d : Nat) (sn : Name) (i : Nat) (e : Expr) (F : Nat) 
   unfold reduceProjCore
   atF_core3 (rw [projLitToCtor_atF])
 
+theorem defeqLamsInner_atF (d : Nat) (b₁ b₂ : Expr) (F : Nat) :
+    (defeqLamsInner mi (fueledFns mode env) d b₁ b₂).val F =
+      defeqLamsInner mi (pureFns mode env F) d b₁ b₂ := by
+  unfold defeqLamsInner
+  atF_tac
+
+theorem defeqLams_atF (F : Nat) :
+    ∀ (k d : Nat) (ty₁ body₁ ty₂ body₂ : Expr),
+      (defeqLams mi (fueledFns mode env) k d ty₁ body₁ ty₂ body₂).val F =
+        defeqLams mi (pureFns mode env F) k d ty₁ body₁ ty₂ body₂
+  | k, d, ty₁, body₁, ty₂, body₂ => by
+    rw [defeqLams.eq_def, defeqLams.eq_def]
+    rw [FueledM.atF_bind]
+    congr 1
+    funext ok
+    cases ok with
+    | false => rfl
+    | true =>
+      simp only [↓reduceIte]
+      split
+      · split
+        · rfl
+        · exact defeqLams_atF F _ (d + 1) _ _ _ _
+      · exact defeqLamsInner_atF d _ _ F
+
 theorem quickDefEq_atF (d : Nat) (a b : Expr) (F : Nat) :
     (quickDefEq mi (fueledFns mode env) d a b).val F =
       quickDefEq mi (pureFns mode env F) d a b := by
   unfold quickDefEq
-  atF_tac3
+  atF_core3 (rw [defeqLams_atF])
 
 theorem defeqOffset_atF (d : Nat) (a b : Expr) (F : Nat) :
     (defeqOffset (fueledFns mode env) d a b).val F =
@@ -659,15 +666,6 @@ theorem defeqBody_atF (d : Nat) (a b : Expr) (F : Nat) :
     (defeqBody mode (fueledFns mode env) env d a b).val F =
       defeqBody mode (pureFns mode env F) env d a b := by
   unfold defeqBody
-  atF_tac4
-
-theorem annotateBody_atF (d : Nat) (e : Expr) (F : Nat) :
-    (annotateBody (fueledFns mode env) env d e).val F =
-      annotateBody (pureFns mode env F) env d e := by
-  -- task #161 P5: `annotPwPi`/`annotPwLam` unfold alongside the body,
-  -- as in `PairM.lean` — the writes are infer + `ensureSort` calls the
-  -- cascade already commutes.
-  unfold annotateBody annotPwPi annotPwLam
   atF_tac4
 
 end AtF
