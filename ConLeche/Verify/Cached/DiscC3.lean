@@ -71,18 +71,16 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
               | .const T' ust =>
                 if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
                     ust.length = cvT.levelParams.length ∧
-                    capsNeverZero cvT.levelParams ust caps = true then
+                    capsNeverZero cvT.levelParams ust caps = true ∧
+                    reservedBasisNames.contains T = false ∧
+                    reservedBasisNames.contains caps.etaCtor = false ∧
+                    towerSlotsAll env T caps.etaFields = true then
                   let fab := Expr.mkAppN (.const caps.etaCtor ust)
-                    (etaFabArgsE env T ust tmaj.getAppArgs major
-                      caps.etaFields)
+                    (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
                   if fab.wscopedB d && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    if reservedBasisNames.contains T = false ∧
-                        reservedBasisNames.contains caps.etaCtor = false ∧
-                        towerSlotsAll env T caps.etaFields = true then
-                      pure fab
-                    else pure major
+                    pure fab
                   else pure major
                 else pure major
               | _ => pure major
@@ -195,10 +193,12 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                   if bq ∧ margs.length = caps.etaParams ∧
                       ust.length = cvT.levelParams.length ∧
                       capsNeverZero cvT.levelParams ustL caps
-                        = true then
+                        = true ∧
+                      reservedBasisNames.contains T = false ∧
+                      reservedBasisNames.contains caps.etaCtor = false ∧
+                      (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
                     pure T >>= fun TI =>
-                    projAppsI (mkFEnv env) T TI ust margs i
-                        caps.etaFields >>= fun projs =>
+                    projNodesI TI i (List.range caps.etaFields) >>= fun projs =>
                     pure caps.etaCtor >>= fun ctorI =>
                     pure (Expr.const ctorI ust) >>= fun h =>
                     mkAppNM h (margs ++ projs) >>= fun fab =>
@@ -206,12 +206,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       Expr.looseBVarsBounded 0 fab &&
                       Expr.leafGuard fab i) >>=
                       fun g =>
-                    if g then
-                      if reservedBasisNames.contains T = false ∧
-                          reservedBasisNames.contains caps.etaCtor = false ∧
-                          (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
-                        pure fab
-                      else pure i
+                    if g then pure fab
                     else pure i
                   else pure i
                 | _ => pure i
@@ -434,12 +429,12 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       subst bq
                       simp only [hmargs.length,
                         beq_iff_eq]
+                      rw [towerSlotsAllF_mkFEnv]
                       split
                       · refine SimC.bind_left (pureEq_eff hs₂r T)
                           (fun s₂t TI hs₂r hQTI => ?_)
                         subst TI
-                        refine SimC.bind_left (projAppsC_eff T ust
-                          caps.etaFields hs₂r hmargs hden)
+                        refine SimC.bind_left (etaProjsC_eff T caps.etaFields hs₂r hden)
                           (fun s₃ projs hs₃ hQp => ?_)
                         refine SimC.bind_left (pureEq_eff hs₃
                           caps.etaCtor)
@@ -453,7 +448,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           (fun s₅ fab hs₅ hQfab => ?_)
                         have hQfab' : RelC fab
                             (Expr.mkAppN (.const caps.etaCtor ust)
-                              (etaFabArgsE env T ust (Expr.getAppArgs tmaj) i
+                              (etaFabArgsE T (Expr.getAppArgs tmaj) i
                                 caps.etaFields)) := hQfab
                         refine SimC.pureB ?_
                         rw [wscopedB_spec' hQfab',
@@ -464,10 +459,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           have hwfab := Expr.WScoped.of_wscopedB
                             (by simp only [Bool.and_eq_true] at hguard
                                 exact hguard.1.1)
-                          rw [towerSlotsAllF_mkFEnv]
-                          split
-                          · exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
-                          · exact SimC.pure hs₅ ⟨hden, hmaj⟩
+                          exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
                         · exact SimC.pure hs₅ ⟨hden, hmaj⟩
                       · exact SimC.pure hs₂r ⟨hden, hmaj⟩
                     | bvar k =>

@@ -290,7 +290,7 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       ust.length = cvT.levelParams.length →
       capsNeverZero cvT.levelParams ust caps = true →
       fab = Expr.mkAppN (.const caps.etaCtor ust)
-        (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields) →
+        (etaFabArgsE T tmaj.getAppArgs major caps.etaFields) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
       reservedBasisNames.contains T = false →
@@ -470,7 +470,7 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       Level.isEquivList us us' = some true →
       DefEqList env d (a.getAppArgs.take caps.etaParams) wtb.getAppArgs →
       DefEqList env d (a.getAppArgs.drop caps.etaParams)
-        (etaProjs env T us' wtb.getAppArgs b caps.etaFields) →
+        (etaProjs T b caps.etaFields) →
       DefEq env d a b
   /-- **Unit-like structure** (`structUnitCert`, `Kernel/Core.lean`):
   both sides inhabit the same stored unit-like family — `a`'s

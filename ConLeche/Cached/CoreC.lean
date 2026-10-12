@@ -362,19 +362,6 @@ def propIrrelI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
     | _ => pure false
   | _ => pure false
 
-/-- The projection-application spine
-`[proj_0 targs b, …]` (structural recursion; the spec side is a pure
-`List.map`). -/
-def projAppsFnI (T : Name) (us' : List Level) (targs : List Expr)
-    (b : Expr) : List Nat → CheckCM (List Expr)
-  | [] => pure []
-  | i :: rest => do
-    let pf ← pure (projFnName T i)
-    let h ← pure (Expr.const pf us')
-    let r ← mkAppNM h (targs ++ [b])
-    let rs ← projAppsFnI T us' targs b rest
-    pure (r :: rs)
-
 /-- The `.proj T i b` spine (the tower spelling, task #175
 W4c). -/
 def projNodesI (T : Name) (b : Expr) : List Nat → CheckCM (List Expr)
@@ -383,16 +370,6 @@ def projNodesI (T : Name) (b : Expr) : List Nat → CheckCM (List Expr)
     let r ← pure (Expr.proj T i b)
     let rs ← projNodesI T b rest
     pure (r :: rs)
-
-/-- Twin of `etaProjs`: the tower spelling at an all-tower slot family
-(`towerSlotsAll` through the index), the projection-function spelling
-otherwise. -/
-def projAppsI (fe : FEnv) (Tn T : Name) (us' : List Level)
-    (targs : List Expr) (b : Expr) (nF : Nat) :
-    CheckCM (List Expr) :=
-  if fe.towerSlotsAllF Tn nF then
-    projNodesI T b (List.range nF)
-  else projAppsFnI T us' targs b (List.range nF)
 
 /-- Twin of `structEtaCertWith`. -/
 def structEtaCertWithI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
@@ -422,7 +399,7 @@ def structEtaCertWithI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                 -- no type-application certificate (task #342 L11b)
                 if ← defEqListI r fe depth
                     (aargs.take caps.etaParams) targs then do
-                  let projs ← projAppsI fe Tn T us' targs b caps.etaFields
+                  let projs ← projNodesI T b (List.range caps.etaFields)
                   defEqListI r fe depth (aargs.drop caps.etaParams) projs
                 else pure false
               else pure false
@@ -563,24 +540,23 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
               let ustL ← pure ust
               -- instantiated non-Prop guard, as in the spec body
               -- `majorToCtor` (task #61)
+              -- and the η law's keys, as in the spec body
               if (← pure (T' == T)) ∧ margs.length = caps.etaParams ∧
                   ust.length = cvT.levelParams.length ∧
-                  capsNeverZero cvT.levelParams ustL caps = true then do
+                  capsNeverZero cvT.levelParams ustL caps = true ∧
+                  reservedBasisNames.contains T = false ∧
+                  reservedBasisNames.contains caps.etaCtor = false ∧
+                  fe.towerSlotsAllF T caps.etaFields = true then do
                 let TI ← pure T
-                let projs ← projAppsI fe T TI ust margs major caps.etaFields
+                let projs ← projNodesI TI major (List.range caps.etaFields)
                 let ctorI ← pure caps.etaCtor
                 let h ← pure (Expr.const ctorI ust)
                 let fab ← mkAppNM h (margs ++ projs)
+                -- no certificate on the fabricated spine (task #342 L11b)
                 if ← pure (Expr.wscopedBC depth fab &&
                     Expr.looseBVarsBounded 0 fab &&
-                    Expr.leafGuard fab major) then do
-                  -- no certificate on the fabricated spine (task #342
-                  -- L11b); the η law's guards, as in the spec body
-                  if reservedBasisNames.contains T = false ∧
-                      reservedBasisNames.contains caps.etaCtor = false ∧
-                      fe.towerSlotsAllF T caps.etaFields = true then
-                    pure fab
-                  else pure major
+                    Expr.leafGuard fab major) then
+                  pure fab
                 else pure major
               else pure major
             | _ => pure major

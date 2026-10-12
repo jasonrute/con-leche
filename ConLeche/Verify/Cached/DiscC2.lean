@@ -546,37 +546,6 @@ section Walks4
 
 variable {env : Env} {f : Nat}
 
-/-- The cached projection-function spine
-denotes the spec's mapped list. -/
-theorem projAppsFnC_eff (T : Name) (us' : List Level) :
-    ∀ (l : List Nat) {s₀ : CState}, CSOK mode env s₀ →
-      ∀ {targs : List Expr} {xs : List Expr} {b : Expr} {xb : Expr},
-      RelCL targs xs → RelC b xb →
-      CEff mode env s₀ (fun rs => RelCL rs
-          (l.map fun i => Expr.mkAppN (.const (projFnName T i) us')
-            (xs ++ [xb])))
-        (projAppsFnI T us' targs b l)
-  | [], s₀, hs, targs, xs, b, xb, htargs, hb => by
-    exact CEff.pure hs RelCL.nil
-  | i :: rest, s₀, hs, targs, xs, b, xb, htargs, hb => by
-    show CEff mode env s₀ _
-      (pure (projFnName T i) >>= fun pf =>
-        pure (Expr.const pf us') >>= fun hd =>
-        mkAppNM hd (targs ++ [b]) >>= fun r =>
-        projAppsFnI T us' targs b rest >>= fun rs =>
-        pure (r :: rs))
-    refine CEff.bind (pureEq_eff hs (projFnName T i)) (fun s₀' pf hs₀' hQpf => ?_)
-    subst hQpf
-    refine CEff.bind
-      (pureC_eff hs₀' (x := Expr.const (projFnName T i) us'))
-      (fun s₁ hd hs₁ hQh => ?_)
-    refine CEff.bind
-      (mkAppNM_eff hs₁ hQh (htargs.append (RelCL.cons hb RelCL.nil)))
-      (fun s₂ r hs₂ hQr => ?_)
-    refine CEff.bind (projAppsFnC_eff T us' rest hs₂ htargs hb)
-      (fun s₃ rs hs₃ hQrs => ?_)
-    exact CEff.pure hs₃ (RelCL.cons hQr hQrs)
-
 /-- The cached `.proj` spine (the tower spelling, task #175 W4c). -/
 theorem projNodesC_eff (T : Name) :
     ∀ (l : List Nat) {s₀ : CState}, CSOK mode env s₀ →
@@ -603,19 +572,12 @@ theorem towerSlotsAllF_mkFEnv (env : Env) (T : Name) (n : Nat) :
   simp only [FEnv.towerSlotsAllF, towerSlotsAll, mkFEnv_findProj?]
   all_goals rfl
 
-/-- The cached fabricated-projection spine
-denotes `etaProjs` (task #175 W4c: by entry kind). -/
-theorem projAppsC_eff (T : Name) (us' : List Level) (nF : Nat)
-    {s₀ : CState} (hs : CSOK mode env s₀)
-    {targs : List Expr} {xs : List Expr} {b : Expr} {xb : Expr}
-    (htargs : RelCL targs xs) (hb : RelC b xb) :
-    CEff mode env s₀ (fun rs => RelCL rs (etaProjs env T us' xs xb nF))
-      (projAppsI (mkFEnv env) T T us' targs b nF) := by
-  unfold projAppsI etaProjs
-  rw [towerSlotsAllF_mkFEnv]
-  split
-  · exact projNodesC_eff T (List.range nF) hs hb
-  · exact projAppsFnC_eff T us' (List.range nF) hs htargs hb
+/-- The cached fabricated-projection spine denotes `etaProjs`. -/
+theorem etaProjsC_eff (T : Name) (nF : Nat)
+    {s₀ : CState} (hs : CSOK mode env s₀) {b : Expr} {xb : Expr} (hb : RelC b xb) :
+    CEff mode env s₀ (fun rs => RelCL rs (etaProjs T xb nF))
+      (projNodesI T b (List.range nF)) :=
+  projNodesC_eff T (List.range nF) hs hb
 
 /-- Prefix of a related list. -/
 theorem RelCL.take {l : List Expr} {xs : List Expr} (h : RelCL l xs)
@@ -657,7 +619,7 @@ private theorem structEtaCertWithC_unfold (env : Env) (d : Nat)
                   if r₃ then
                     defEqList (fueledFns mode env) env d
                       (a.getAppArgs.drop caps.etaParams)
-                      (etaProjs env T us' wtb.getAppArgs b caps.etaFields)
+                      (etaProjs T b caps.etaFields)
                   else pure false
                 else pure false
               else pure false
@@ -707,7 +669,7 @@ theorem structEtaCertWithC_sim (ih : SSimC mode env f)
                     defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env)
                         d (aargs.take caps.etaParams) targs >>= fun r₃ =>
                     if r₃ then
-                      projAppsI (mkFEnv env) Tn T us' targs j caps.etaFields >>=
+                      projNodesI T j (List.range caps.etaFields) >>=
                         fun projs =>
                       defEqListI (coreKnotI mode (mkFEnv env) f)
                         (mkFEnv env) d (aargs.drop caps.etaParams) projs
@@ -794,25 +756,14 @@ theorem structEtaCertWithC_sim (ih : SSimC mode env f)
                       exact SimC.pure hs₅ rfl
                     | true =>
                       simp only [↓reduceIte]
-                      refine SimC.bind_left (projAppsC_eff T us'
-                        caps.etaFields hs₅ htargs hdenb)
+                      refine SimC.bind_left (etaProjsC_eff T caps.etaFields hs₅ hdenb)
                         (fun s₆ projs hs₆ hQp => ?_)
-                      have hwprojs : ∀ x ∈ etaProjs env T us'
-                          (Expr.getAppArgs w) j caps.etaFields,
+                      have hwprojs : ∀ x ∈ etaProjs T j caps.etaFields,
                           Expr.WScoped d x := by
                         intro x hx
                         unfold etaProjs at hx
-                        split at hx
-                        · obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
-                          simpa [Expr.WScoped] using hwb
-                        · obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
-                          refine Expr.WScoped.mkAppN
-                            (by simp [Expr.WScoped]) ?_
-                          intro y hy
-                          rcases List.mem_append.mp hy with hy | hy
-                          · exact hwwtb.getAppArgs y hy
-                          · rcases List.mem_singleton.mp hy with rfl
-                            exact hwb
+                        obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
+                        simpa [Expr.WScoped] using hwb
                       exact defEqListC_sim ih hs₆
                         (haargs.drop caps.etaParams) hQp
                         (fun x hx => hwa.getAppArgs x

@@ -717,17 +717,12 @@ whole test.) -/
 def towerSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
   (List.range nF).all fun j => (env.findProj? T j).isSome
 
-/-- The fabricated projections of a structure-eta spine (task #175
-W4c): `.proj T j b` nodes when every slot has a table entry (the
-direct install's structures — the node is what the table types and
-reduces), else projection-function applications. -/
-def etaProjs (env : Env) (T : Name) (us : List Level) (targs : List Expr)
-    (b : Expr) (nF : Nat) : List Expr :=
-  if towerSlotsAll env T nF then
-    (List.range nF).map fun j => Expr.proj T j b
-  else
-    (List.range nF).map fun j =>
-      Expr.mkAppN (.const (projFnName T j) us) (targs ++ [b])
+/-- The fabricated projections of a structure-eta spine: the
+`.proj T j b` nodes (every slot of an η family the checker uses has a
+table entry, `towerSlotsAll`; the node is what the table types and
+reduces). -/
+def etaProjs (T : Name) (b : Expr) (nF : Nat) : List Expr :=
+  (List.range nF).map fun j => Expr.proj T j b
 
 /-- The constructor shape official's `try_eta_struct_core` tests before
 inferring anything (`type_checker.cpp:824-829`): the candidate's head is
@@ -742,12 +737,11 @@ def etaCtorShape (env : Env) (a : Expr) : Bool :=
     | _ => false
   | _ => false
 
-/-- The eta-rescue fabrication's argument spine (task #175 W4c): the projections
-are `etaProjs`' — `.proj` nodes at an all-tower slot family,
-projection-function applications otherwise. -/
-def etaFabArgsE (env : Env) (T : Name) (ust : List Level)
-    (targs : List Expr) (major : Expr) (nF : Nat) : List Expr :=
-  targs ++ etaProjs env T ust targs major nF
+/-- The eta-rescue fabrication's argument spine: the major's type's
+arguments, then the major's projections (`etaProjs`). -/
+def etaFabArgsE (T : Name) (targs : List Expr) (major : Expr) (nF : Nat) :
+    List Expr :=
+  targs ++ etaProjs T major nF
 
 /-- **The tower-fire guard** (task #175 W4c/O4, restated at W6):
 `whnfCore` fires the structural rule `proj_i (ctor p⃗ x⃗) ↦ x_i` at a

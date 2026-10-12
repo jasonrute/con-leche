@@ -909,7 +909,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
          tmaj.getAppArgs.length = caps.etaParams ∧
          ust.length = cvT.levelParams.length ∧
          major' = Expr.mkAppN (.const caps.etaCtor ust)
-           (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields) ∧
+           (etaFabArgsE T tmaj.getAppArgs major caps.etaFields) ∧
          (reservedBasisNames.contains T = false ∧
            reservedBasisNames.contains caps.etaCtor = false ∧
            towerSlotsAll env T caps.etaFields = true)) ∨
@@ -1324,21 +1324,24 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
     dsimp only at h
     by_cases hTl : T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
         ust.length = cvT.levelParams.length ∧
-        capsNeverZero cvT.levelParams ust caps = true
+        capsNeverZero cvT.levelParams ust caps = true ∧
+        reservedBasisNames.contains T = false ∧
+        reservedBasisNames.contains caps.etaCtor = false ∧
+        towerSlotsAll env T caps.etaFields = true
     case neg =>
       rw [ite_eq_right hTl] at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
-    obtain ⟨rfl, hplen, hlvl, hnz⟩ := hTl
-    rw [ite_eq_left ⟨rfl, hplen, hlvl, hnz⟩] at h
+    rw [ite_eq_left hTl] at h
+    obtain ⟨rfl, hplen, hlvl, hnz, hG⟩ := hTl
     cases hguard : (Expr.mkAppN (.const caps.etaCtor ust)
-          (etaFabArgsE env T' ust tmaj.getAppArgs major
+          (etaFabArgsE T' tmaj.getAppArgs major
             caps.etaFields)).wscopedB d &&
         (Expr.mkAppN (.const caps.etaCtor ust)
-          (etaFabArgsE env T' ust tmaj.getAppArgs major
+          (etaFabArgsE T' tmaj.getAppArgs major
             caps.etaFields)).looseBVarsBounded 0 &&
         (Expr.mkAppN (.const caps.etaCtor ust)
-          (etaFabArgsE env T' ust tmaj.getAppArgs major
+          (etaFabArgsE T' tmaj.getAppArgs major
             caps.etaFields)).fvarLeaves.all
           (fun l => major.fvarLeaves.contains l) with
     | false =>
@@ -1348,16 +1351,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       exact Or.inl h.symm
     | true =>
     rw [hguard] at h
-    simp only [↓reduceIte] at h
-    by_cases hG : reservedBasisNames.contains T' = false ∧
-        reservedBasisNames.contains caps.etaCtor = false ∧
-        towerSlotsAll env T' caps.etaFields = true
-    case neg =>
-      rw [ite_eq_right hG] at h
-      simp only [pure, Except.pure, Except.ok.injEq] at h
-      exact Or.inl h.symm
-    rw [ite_eq_left hG] at h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
+    simp only [↓reduceIte, pure, Except.pure, Except.ok.injEq] at h
     subst h
     simp only [Bool.and_eq_true] at hguard
     exact Or.inr ⟨hguard.1.1, hguard.1.2, hguard.2,
@@ -1724,7 +1718,7 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
       defEqListFueled mode env fuel d (a.getAppArgs.take caps.etaParams)
         wtb.getAppArgs = .ok true ∧
       defEqListFueled mode env fuel d (a.getAppArgs.drop caps.etaParams)
-        (etaProjs env T us' wtb.getAppArgs b caps.etaFields) = .ok true := by
+        (etaProjs T b caps.etaFields) = .ok true := by
   dsimp only [structEtaCertWithFueled] at h
   rw [structEtaCertWith] at h
   simp only [defEqList_fold] at h

@@ -490,28 +490,19 @@ theorem unfoldDefinition_occDeep {env : Env} {names : List Name}
   · intro h; exact nomatch h
 
 /-- The η-rescue's fabricated fields. -/
-theorem etaFabArgsE_occDeep {env : Env} {names : List Name} {T : Name} {ust : List Level}
+theorem etaFabArgsE_occDeep {names : List Name} {T : Name}
     {targs : List Expr} {major : Expr} {nF : Nat}
-    (hpf : ∀ j, projFnName T j ∉ names) (ht : ∀ x ∈ targs, x.occDeep names = false)
+    (ht : ∀ x ∈ targs, x.occDeep names = false)
     (hm : major.occDeep names = false) :
-    ∀ x ∈ etaFabArgsE env T ust targs major nF, x.occDeep names = false := by
+    ∀ x ∈ etaFabArgsE T targs major nF, x.occDeep names = false := by
   intro x hx
   simp only [etaFabArgsE, List.mem_append] at hx
   rcases hx with hx | hx
   · exact ht x hx
   · unfold etaProjs at hx
-    split at hx
-    · simp only [List.mem_map, List.mem_range] at hx
-      obtain ⟨j, -, rfl⟩ := hx
-      simpa [Expr.occDeep] using hm
-    · simp only [List.mem_map, List.mem_range] at hx
-      obtain ⟨j, -, rfl⟩ := hx
-      refine Expr.occDeep_mkAppN (Expr.occDeep_const (hpf j)) ?_
-      intro y hy
-      simp only [List.mem_append, List.mem_singleton] at hy
-      rcases hy with hy | rfl
-      · exact ht y hy
-      · exact hm
+    simp only [List.mem_map, List.mem_range] at hx
+    obtain ⟨j, -, rfl⟩ := hx
+    simpa [Expr.occDeep] using hm
 
 /-- The stuck-major rescue fabricates member-free constructor
 applications: the heads are stored constructors or a non-member
@@ -548,7 +539,7 @@ theorem majorToCtor_occDeep {env : Env} {names : List Name}
     rw [hfT] at hfT'
     obtain ⟨-, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj hfT')
     refine Expr.occDeep_mkAppN (Expr.occDeep_const (hec ▸ hctor)) ?_
-    exact etaFabArgsE_occDeep (hN.2.2.2.2.2.1 T) hargs hm
+    exact etaFabArgsE_occDeep hargs hm
   · refine Expr.occDeep_mkAppN (Expr.occDeep_const hctor) ?_
     intro x hx
     simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hx

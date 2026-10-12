@@ -426,7 +426,7 @@ def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
                     (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
                   defEqList r env depth
                     (a.getAppArgs.drop caps.etaParams)
-                    (etaProjs env T us' wtb.getAppArgs b caps.etaFields)
+                    (etaProjs T b caps.etaFields)
                 else pure false
               else pure false
             else pure false
@@ -616,33 +616,31 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
               -- parametric `Sort u` that a `Prop` instantiation
               -- collapses, which is exactly the case the guard exists
               -- for.
+              -- the last three conjuncts are the keys of the η law:
+              -- neither the family nor its constructor a reserved basis
+              -- name, every field slot a projection-table entry
               if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
                   ust.length = cvT.levelParams.length ∧
-                  capsNeverZero cvT.levelParams ust caps = true then
+                  capsNeverZero cvT.levelParams ust caps = true ∧
+                  reservedBasisNames.contains T = false ∧
+                  reservedBasisNames.contains caps.etaCtor = false ∧
+                  towerSlotsAll env T caps.etaFields = true then
                 -- no constructor-telescope arity pin, as in the K
                 -- branch, and no level-count pin: the η bit is set
                 -- only at a constructor stored with the former's own
                 -- level parameters (`RecCtorsStored`), which the
                 -- fabrication's levels are those of
                 let fab := Expr.mkAppN (.const caps.etaCtor ust)
-                    (etaFabArgsE env T ust tmaj.getAppArgs major
-                      caps.etaFields)
-                -- scope guard, as in the K branch
+                    (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
+                -- scope guard, as in the K branch.  No certificate on
+                -- the fabricated spine: the major is the fabrication by
+                -- the family's η law, and the fabrication fits the η
+                -- constructor's telescope by the coherence law (task
+                -- #342 L11b).
                 if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                     fab.fvarLeaves.all
                       (fun l => major.fvarLeaves.contains l) then
-                  -- no certificate on the fabricated spine: the major
-                  -- is the fabrication by the family's η law, and the
-                  -- fabrication fits the η constructor's telescope by
-                  -- the coherence law (task #342 L11b).  The guards
-                  -- are the ones the η law is keyed on: neither the
-                  -- family nor its constructor a reserved basis name,
-                  -- every field slot a projection-table entry.
-                  if reservedBasisNames.contains T = false ∧
-                      reservedBasisNames.contains caps.etaCtor = false ∧
-                      towerSlotsAll env T caps.etaFields = true then
-                    pure fab
-                  else pure major
+                  pure fab
                 else pure major
               else pure major
             | _ => pure major

@@ -221,18 +221,11 @@ theorem propIrrelI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     propIrrelI r fe₁ = propIrrelI r fe₂ := by
   funext depth a b; unfold propIrrelI; simp only [hfe]
 
-/-- `projAppsI` reads `fe` only through `find?`. -/
-theorem projAppsI_congr (hfe : fe₁.find? = fe₂.find?) :
-    projAppsI fe₁ = projAppsI fe₂ := by
-  funext Tn T us' targs b nF; unfold projAppsI
-  simp only [towerSlotsAllF_congr hfe]
-
 /-- `structEtaCertWithI` reads `fe` only through `find?`. -/
 theorem structEtaCertWithI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     structEtaCertWithI r fe₁ = structEtaCertWithI r fe₂ := by
   funext depth a b wtb; unfold structEtaCertWithI
-  simp only [hfe, towerSlotsAllF_congr hfe, defEqListI_congr hfe,
-    projAppsI_congr hfe]
+  simp only [hfe, towerSlotsAllF_congr hfe, defEqListI_congr hfe]
 
 /-- `structEtaCertI` reads `fe` only through `find?`. -/
 theorem structEtaCertI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
@@ -261,7 +254,7 @@ theorem majorToCtorI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     majorToCtorI mode r fe₁ = majorToCtorI mode r fe₂ := by
   funext depth recName rules major; unfold majorToCtorI
   simp only [isCtorAppC_congr hfe, hfe, constTyAtM_congr hfe,
-    iotaCertsI_congr hfe, projAppsI_congr hfe,
+    iotaCertsI_congr hfe,
     towerSlotsAllF_congr hfe, andRescueSlotsF_congr hfe]
 
 /-- `litMajorToCtorI` reads `fe` only through `find?`. -/

@@ -732,7 +732,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (hlv : ust.length = cvT.levelParams.length)
     (_hnz : ConLeche.capsNeverZero cvT.levelParams ust caps = true)
     (hfab : fab = Expr.mkAppN (.const caps.etaCtor ust)
-      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields))
+      (ConLeche.etaFabArgsE T tmaj.getAppArgs major caps.etaFields))
     (hws : fab.wscopedB d = true) (hb : fab.looseBVarsBounded 0 = true)
     (hlv' : fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true)
     (hresT : ConLeche.reservedBasisNames.contains T = false)
@@ -780,7 +780,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     dsimp only [ConLeche.ConstantInfo.toConstantVal] at h
     rw [h, hlpsE]
   have hspF : DenoteMetaSpine m.acval env φ d
-      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields)
+      (ConLeche.etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
       (tsa ++ ps) := hspt.append hsps
   have hdF : denoteMeta m.acval env φ d fab
       = some (AnnotTerm.mkAppN

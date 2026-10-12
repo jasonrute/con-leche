@@ -561,26 +561,19 @@ private theorem iotaCertsFull_shift (henv : EnvWF env)
     | .lit l => rfl
     | .proj sp i' e' => rfl
 
-/-- The fabricated projections commute with the shift (task #175 W4c:
-both entry kinds — the `.proj` nodes by `shiftFrom`'s own clause, the
-projection-function applications by `shiftFrom_mkAppN`). -/
-private theorem etaProjs_shift (p : Nat) (env : Env) (T : Name)
-    (us : List Level) (targs : List Expr) (b : Expr) (nF : Nat) :
-    etaProjs env T us (List.map (shiftFrom p) targs) (shiftFrom p b) nF
-      = List.map (shiftFrom p) (etaProjs env T us targs b nF) := by
+/-- The fabricated projections commute with the shift (the `.proj`
+nodes by `shiftFrom`'s own clause). -/
+private theorem etaProjs_shift (p : Nat) (T : Name) (b : Expr) (nF : Nat) :
+    etaProjs T (shiftFrom p b) nF
+      = List.map (shiftFrom p) (etaProjs T b nF) := by
   unfold etaProjs
-  split
-  · rw [List.map_map]
-    rfl
-  · rw [List.map_map]
-    refine List.map_congr_left fun j _ => ?_
-    rw [Function.comp_apply, shiftFrom_mkAppN, List.map_append]
-    rfl
+  rw [List.map_map]
+  rfl
 
-private theorem etaFabArgsE_shift (p : Nat) (env : Env) (T : Name)
-    (ust : List Level) (targs : List Expr) (major : Expr) (nF : Nat) :
-    etaFabArgsE env T ust (List.map (shiftFrom p) targs) (shiftFrom p major)
-      nF = List.map (shiftFrom p) (etaFabArgsE env T ust targs major nF) := by
+private theorem etaFabArgsE_shift (p : Nat) (T : Name)
+    (targs : List Expr) (major : Expr) (nF : Nat) :
+    etaFabArgsE T (List.map (shiftFrom p) targs) (shiftFrom p major)
+      nF = List.map (shiftFrom p) (etaFabArgsE T targs major nF) := by
   unfold etaFabArgsE
   rw [List.map_append, etaProjs_shift]
 
@@ -718,22 +711,15 @@ private theorem structEtaCertWith_shift (henv : EnvWF env)
       refine bind_congr_eq h2 ?_
       intro b₃ _
       refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-      have hlist := etaProjs_shift p env T us' wtb.getAppArgs b caps.etaFields
-      have hwprojs : ∀ x ∈ etaProjs env T us' wtb.getAppArgs b caps.etaFields,
+      have hlist := etaProjs_shift p T b caps.etaFields
+      have hwprojs : ∀ x ∈ etaProjs T b caps.etaFields,
           WScoped d x := by
         intro x hx
         unfold etaProjs at hx
-        split at hx
-        · obtain ⟨i, -, rfl⟩ := List.mem_map.mp hx
-          simpa [WScoped] using hwb
-        · obtain ⟨i, -, rfl⟩ := List.mem_map.mp hx
-          refine Expr.WScoped.mkAppN (by simp [WScoped]) ?_
-          intro y hy
-          rcases List.mem_append.mp hy with hy | hy
-          · exact hwwtb.getAppArgs y hy
-          · rw [List.mem_singleton.mp hy]; exact hwb
+        obtain ⟨i, -, rfl⟩ := List.mem_map.mp hx
+        simpa [WScoped] using hwb
       have h3 := defEqList_shift henv ih hpd (as := a.getAppArgs.drop caps.etaParams)
-        (bs := etaProjs env T us' wtb.getAppArgs b caps.etaFields)
+        (bs := etaProjs T b caps.etaFields)
         (fun x hx => hwa.getAppArgs x (List.mem_of_mem_drop hx))
         hwprojs
       rw [List.map_drop, ← hlist] at h3
@@ -1038,37 +1024,29 @@ private theorem majorToCtor_shift (henv : EnvWF env)
               rw [etaFabArgsE_shift]
               have hfab : Expr.mkAppN (Expr.const caps.etaCtor ust)
                   (List.map (shiftFrom p)
-                    (etaFabArgsE env T ust tmaj.getAppArgs major
+                    (etaFabArgsE T tmaj.getAppArgs major
                       caps.etaFields)) =
                   shiftFrom p (Expr.mkAppN (.const caps.etaCtor ust)
-                    (etaFabArgsE env T ust tmaj.getAppArgs major
+                    (etaFabArgsE T tmaj.getAppArgs major
                       caps.etaFields)) := by
                 rw [shiftFrom_mkAppN]
                 rfl
               rw [hfab]
-              have hwfabArgs : ∀ x ∈ etaFabArgsE env T ust tmaj.getAppArgs
+              have hwfabArgs : ∀ x ∈ etaFabArgsE T tmaj.getAppArgs
                   major caps.etaFields, WScoped d x := by
                 intro x hx
                 unfold etaFabArgsE at hx
                 rcases List.mem_append.mp hx with hx | hx
                 · exact hwtmaj.getAppArgs x hx
                 · unfold etaProjs at hx
-                  split at hx
-                  · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
-                    simpa [WScoped] using hwmaj
-                  · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
-                    refine Expr.WScoped.mkAppN (by simp [WScoped]) ?_
-                    intro y hy
-                    rcases List.mem_append.mp hy with hy | hy
-                    · exact hwtmaj.getAppArgs y hy
-                    · rw [List.mem_singleton.mp hy]; exact hwmaj
+                  obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
+                  simpa [WScoped] using hwmaj
               have hwfab : WScoped d (Expr.mkAppN (.const caps.etaCtor ust)
-                  (etaFabArgsE env T ust tmaj.getAppArgs major
+                  (etaFabArgsE T tmaj.getAppArgs major
                     caps.etaFields)) :=
                 Expr.WScoped.mkAppN (by simp [WScoped]) hwfabArgs
               rw [wscopedB_shiftFrom _ hpd, looseBVarsBounded_shiftFrom,
                 fvarLeaves_all_contains_shiftFrom hpd hwfab hwmaj]
-              refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
               exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
             · -- the `And`-only rescue (or no rescue)
               refine ite_rel _ (fun _ => ?_) (fun _ => rfl)

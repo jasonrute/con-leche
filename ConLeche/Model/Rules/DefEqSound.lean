@@ -474,7 +474,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (hparams : DefEqListSem m φ d (a.getAppArgs.take caps.etaParams)
       wtb.getAppArgs)
     (hfields : DefEqListSem m φ d (a.getAppArgs.drop caps.etaParams)
-      (ConLeche.etaProjs env T us' wtb.getAppArgs b caps.etaFields)) :
+      (ConLeche.etaProjs T b caps.etaFields)) :
     DefEqSem m φ d a b := by
   intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB hneA _
   -- the stuck side's inferred type, reduced: a type
