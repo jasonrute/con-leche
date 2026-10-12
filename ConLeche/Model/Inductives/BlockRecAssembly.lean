@@ -53,7 +53,7 @@ no `.proj` node at an empty slot of the BARE-`k` environment
 below are fields of the stage's rule record (`RecStage.ruleOutOf`,
 `Verify/Inductives/RecStage.lean`). -/
 
-section Annot
+section RuleOut
 
 /-- **`blockRecStaged_of`'s `hnoRhs`**: a stored rule's right-hand side
 mentions no EMPTY projection slot of the constructors' environment.
@@ -101,7 +101,7 @@ theorem recStage_rhsInfer {envC : Env} {p : BlockParts} {cvTas : List ConstantVa
   obtain ⟨i, rc, -, -, Q⟩ := R.ruleOutOf hc hrhsA
   exact Q.htyR
 
-end Annot
+end RuleOut
 
 /-! ## 5. The stage's VALUATION
 

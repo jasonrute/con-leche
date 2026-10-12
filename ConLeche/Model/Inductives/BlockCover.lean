@@ -182,23 +182,23 @@ theorem consBlockInds_consts {p₁ : BlockShape} {isRec : Bool} :
 
 
 /-- The recursors' cons at the majors (`consBlockRecsT`), as a list. -/
-theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ (m : Nat) (out : List (ConstantVal × ConLeche.TargetMajor × List Expr))
       (env : Env), ∃ new : List ConstantInfo,
-      (ConLeche.consBlockRecsT find? res q m out env).consts = new ++ env.consts ∧
+      (ConLeche.consBlockRecsT find? q m out env).consts = new ++ env.consts ∧
       ∀ c ∈ new, ∃ o ∈ out, ∃ mI rP rules, c = .recInfo o.1 mI rP rules
   | _, [], _ => ⟨[], rfl, fun _ h => nomatch h⟩
   | m, o :: rest, env => by
     obtain ⟨cv, M, rhss⟩ := o
-    obtain ⟨new, hnew, hall⟩ := consBlockRecsT_consts (find? := find?) (res := res) (q := q)
+    obtain ⟨new, hnew, hall⟩ := consBlockRecsT_consts (find? := find?) (q := q)
       (m + 1) rest ⟨.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m)
-        (ConLeche.tgtStoredRules find? res cv (q.majorIdxAt m) (q.rulePrefixAt m) M rhss)
+        (ConLeche.tgtStoredRules find? cv (q.rulePrefixAt m) M rhss)
           :: env.consts⟩
     refine ⟨new ++ [.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m)
-        (ConLeche.tgtStoredRules find? res cv (q.majorIdxAt m) (q.rulePrefixAt m) M rhss)],
+        (ConLeche.tgtStoredRules find? cv (q.rulePrefixAt m) M rhss)],
       ?_, fun c hc => ?_⟩
-    · show (ConLeche.consBlockRecsT find? res q (m + 1) rest _).consts = _
+    · show (ConLeche.consBlockRecsT find? q (m + 1) rest _).consts = _
       rw [hnew]; simp
     · rcases List.mem_append.mp hc with h | h
       · obtain ⟨r', hr', rest'⟩ := hall c h
@@ -207,10 +207,10 @@ theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo} {res : Expr
         exact ⟨_, List.mem_cons_self, _, _, _, rfl⟩
 
 /-- A name absent above the cons at the majors was absent below it. -/
-theorem find?_none_consBlockRecsT {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem find?_none_consBlockRecsT {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ {m : Nat} {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)} {env : Env}
-      {n : Name}, (ConLeche.consBlockRecsT find? res q m out env).find? n = none →
+      {n : Name}, (ConLeche.consBlockRecsT find? q m out env).find? n = none →
       env.find? n = none
   | _, [], _, _, h => h
   | m, (cv, M, rhss) :: rest, env, n, h => by

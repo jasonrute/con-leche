@@ -21,22 +21,14 @@ The generated recursor stage generates, per class `c`, the recursor type
     classGenRecTy g c = Π (prefix) (ı⃗ : index domains) (t : I D⃗ ı⃗), motive_c ı⃗ t
 
 (`Kernel/Inductives/GenRec.lean`), checks it as a constant — stored as
-generated (every binder datum written, `ClassGen.bm`), inferred at the
-empty context (`classRecTyOk`, `classConstOk`).  What the graph route's producer at the
-generated family (`graphRecPre_gen`, `ClassRecKit.lean`) asks of the
-type's binder data, read off the generator's syntax and the two runs:
-
-* **every binder numeral is the elimination level's zero bit**
-  (`classGenRecTy_bits`) — the ∀ clause validated each binder's datum
-  against its codomain's sort (the bits law, `stripPisAV_denoteMeta_pw`),
-  and the conclusion `motive_c ı⃗ t` is sorted at `Sort elim`: its head
-  is the motive's variable, whose domain is the motive type
-  `∀ ı⃗ t, Sort elim`.  So `OneElimLevel` holds at
-  `Level.eval φ elim` (`hbits`);
-* **the prefix is SHARED** (`classGenRecTy_prefix_eq`): the first
-  `nP + #slots` binders of two classes' types read to the same binder
-  data — both types are telescopes over the one prefix (`SameDoms`), and
-  every numeral is the one bit.
+generated, inferred at the empty context (`classRecTyOk`,
+`classConstOk`).  This file reads that type for the graph route's
+producer at the generated family (`graphRecPre_gen`,
+`ClassRecKit.lean`): the syntax helpers, the full inference of an
+opened ∀-telescope's body (`inferTypeCore_openPis_body`), and the
+conclusion `motive_c ı⃗ t`, read at a frame of the prefix, an index
+spine and a major as the motive's value applied to them
+(`classGenRecTy_concl`).
 -/
 
 namespace ConLeche.Model
@@ -184,8 +176,6 @@ theorem fvarLeaves_mkAppN_head {i : Nat} {T : Expr} :
   | [], _, h => h
   | a :: as, f, h => fvarLeaves_mkAppN_head as (f := .app f a)
       (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl h)
-
-/-! ## The bits -/
 
 /-! ## The conclusion -/
 

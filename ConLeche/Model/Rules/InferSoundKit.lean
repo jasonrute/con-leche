@@ -42,7 +42,7 @@ variable {env : Env} {φ : Name → Nat}
 
 The consumption motive's entry into every non-leaf clause: the io
 grade's premise splits hereditarily into the parts' gradings, and at
-an application into the **hereditary app slot** the io licence reads.
+an application into the **hereditary app slot** the io claim reads.
 -/
 
 /-- The `WellDenoted` ∀-splitter, the domain a graded type. -/
@@ -217,7 +217,7 @@ the only environment facts consumed are the four memberships and
 `Char`'s universe membership. -/
 
 /-- **The string chain, at the environment**, at the
-validated-annotation currency. -/
+`denoteMeta` currency. -/
 theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     (hnh : NatHeads m φ)
     (hg : ConLeche.strLitSupported env = true) {d : Nat} {s : String}
@@ -242,7 +242,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       = ciN.toConstantVal.levelParams := by rw [levelParamsAt, hfN]
   have hlpAtC : levelParamsAt env ConLeche.listConsName
       = ciC.toConstantVal.levelParams := by rw [levelParamsAt, hfC]
-  -- every leaf is closed, graded and bit-valid
+  -- every leaf is closed and graded
   have hleafC : ∀ (n : Name) (ψ : Name → Nat) (σ : Nat → V),
       interp V σ (m.acval n ψ) = interp V ρ (m.acval n ψ) := fun n ψ σ =>
     interp_closed V (by rw [m.acval_erase]; exact m.cval_closed n ψ) σ ρ

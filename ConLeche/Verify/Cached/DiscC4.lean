@@ -1779,8 +1779,8 @@ theorem inferBodyC_sim (ih : SSimC mode env f) (henv : EnvWF env)
         have htargs : RelCL (Expr.getAppArgsC te) ((Expr.getAppArgs te)) :=
           Expr.getAppArgsC_spec te
         rw [htargs.length]
-        -- the cached core's three node guards (task #342: the annotate
-        -- pass's, now in inference) throw where the spec's joint guard
+        -- the cached core's three node guards (until task #342 the
+        -- annotate pass's, now inference's) throw where the spec's joint guard
         -- throws; a cached throw simulates anything
         by_cases hT : T = sn
         case neg =>
@@ -1822,13 +1822,11 @@ theorem inferBodyC_sim (ih : SSimC mode env f) (henv : EnvWF env)
     | letE t' v' b' => exact SimC.throw
     | proj s' j' e' => exact SimC.throw
 
-/-- The io inference body's walk (task #172 B4), at the gated mode
-(the io memo step consults it only there; the gate-off slot is the
-full-inference memo, covered by `inferBodyC_sim`).  The leaf, `letE`
-and `proj` arms are `inferBodyC_sim`'s with the recursion at the io
-slot; the two binder arms are the io lane's own **chained** clauses;
-the application arm is the gated spine with
-`inferSpineIO_sound_body`. -/
+/-- The io inference body's walk (task #172 B4), at the verified mode.
+The leaf, `letE` and `proj` arms are `inferBodyC_sim`'s with the
+recursion at the io slot; the two binder arms are the io lane's own
+**chained** clauses; the application arm is the io spine walk
+(`inferSpineIOI`, no argument check) with `inferSpineIO_sound_body`. -/
 theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true)
     (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
@@ -2027,7 +2025,7 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true)
     exact hres hs₅
   | app g' a =>
     dsimp only
-    -- the gated spine; `inferSpineIO_sound_body` (at the gated mode)
+    -- the io spine walk; `inferSpineIO_sound_body`
     -- reproduces the loop's verdict in the chained io body over the
     -- io-grade view
     refine SimC.wr ?_

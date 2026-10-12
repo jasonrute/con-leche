@@ -39,7 +39,7 @@ Differences from `ConLeche.Expr`, each deliberate:
 * **`fst`/`snd` are formers, and their type arguments live in the
   premise.**  A projection on a *modeled* structure never reaches this
   layer: the checker accepts no `.proj` node without a native table
-  entry (task #175 wiring W5 — the annotation-time rewrites into
+  entry (task #175 wiring W5 — the rewrites of `.proj` into
   eliminations are gone).  A projection on the **pinned pair** or on a
   direct structure's tower entry does: `ProjEntry.native` nodes are
   first-class by design and survive into stored terms — carrying the

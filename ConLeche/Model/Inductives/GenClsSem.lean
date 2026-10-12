@@ -39,7 +39,7 @@ import ConLeche.Verify.InstLevels
 public section
 
 /-!
-# The generated recursor types' binder data, read (lane GENREC-CLS)
+# The generated recursor types' domains, read (lane GENREC-CLS)
 
 The class-side facts of the generated stage's family premise
 (`GenPreSem`, `GenRecPreRun.lean`) read the STORED recursor types' binder
@@ -75,11 +75,11 @@ theorem mkAppN_append' : ∀ (as bs : List Expr) (f : Expr),
 
 omit [SetTheory V] in
 /-- Lifting an application spine lifts its head and arguments. -/
-theorem annotLiftN_mkAppN (n k : Nat) :
+theorem iTermLiftN_mkAppN (n k : Nat) :
     ∀ (as : List ITerm) (f : ITerm),
       (ITerm.mkAppN f as).liftN n k = ITerm.mkAppN (f.liftN n k) (as.map (·.liftN n k))
   | [], _ => rfl
-  | a :: as, f => annotLiftN_mkAppN n k as (.app f a)
+  | a :: as, f => iTermLiftN_mkAppN n k as (.app f a)
 
 omit [SetTheory V] in
 /-- Scoping transfers along erasure: the annotations are the scoped
@@ -138,9 +138,9 @@ variable {F : Nat} {env₁ envC : Env} {p : BlockParts} {nestedBit : Bool} {pos 
   {out : List (ConstantVal × TargetMajor × List Expr)}
 
 set_option maxHeartbeats 1600000 in
-/-- **The stored binder data of recursor `c`, read**: its class `cls`'s
+/-- **The stored domains of recursor `c`, read**: its class `cls`'s
 former instantiated at the class's parameters (`ty`), opened at the rule
-prefix to the index openers `ifs`; the stored binder data are `rP + nIdx
+prefix to the index openers `ifs`; the stored domains are `rP + nIdx
 + 1` entries whose index entries are the readings of the openers' domains
 and whose major entry is the reading of `I lvls (ds ++ ifs)` (the stored
 type IS the generated one). -/
@@ -208,7 +208,7 @@ theorem genRun_binders (hμ : μ.verifiedChecks = true)
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hst.symm.trans hst'))
   have hlenF : fvs.length = R.g.pre.length + (tgtMajor out c).nIdx + 1 := by
     rw [ConLeche.Verify.openPisAtFvars_length _ hop]
-  -- entry `i` of the stored binder data is the reading of `nds[i]`
+  -- entry `i` of the stored domains is the reading of `nds[i]`
   have hent : ∀ i nd, i < R.g.pre.length + (tgtMajor out c).nIdx + 1 →
       nds[i]? = some nd →
       denoteMeta mpC.base2.acval envC ψ i nd
@@ -816,9 +816,9 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
         show (tgtMajor out c).ds.length + (tgtClsD d Dc out c).k - 1
             - ((tgtClsD d Dc out c).k - 1 - tgtClsM mc pp.toBlockShape out c)
           = (tgtMajor out c).ds.length + tgtClsM mc pp.toBlockShape out c by omega,
-        hr, Option.getD_some, annotLiftN_mkAppN,
+        hr, Option.getD_some, iTermLiftN_mkAppN,
         liftN_eq_self_of_closed (mpC.base2.cval_closedL _ _) 0 _]
-    rw [ITerm.substAV_mkAppN, hhead, ← annotMkAppN_append] at heq
+    rw [ITerm.substAV_mkAppN, hhead, ← iTermMkAppN_append] at heq
     have hvsE := ITerm.mkAppN_inj_head heq.symm
     have hvsM := denoteMetaSpine_eq_map hvs
     rw [tgtEsAV, hcbE, hcE, Expr.getAppArgs_mkAppN, hB]

@@ -18,7 +18,7 @@ does not produce, over PLAIN hypotheses (no class kit):
   `Prop`-valued class under a large eliminator a per-major LICENCE (fits at
   one index tuple coincide — the elimination guard's criterion).
 * **`hconclTy`** (`genConclTy_of`): the conclusion's typing at every fit of
-  the generated binder data, read at the generated classes.
+  the generated domains, read at the generated classes.
 
 Ported from the parked class checker's `ClassInd.lean` (`ClassPres.uniq`,
 `genConclTy_of`); `genUniq` states the one-node-per-class presentation's

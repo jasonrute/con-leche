@@ -1338,12 +1338,10 @@
 0 tower_mutual.ndjson
 # tower_nested (task #246): a NESTED block -- a container `NBox` on the
 # fixpoint route, then `NTow` nesting it -- whose constructor carries
-# the same depth-60 tower.  The nested rung specialises the container
-# and moves every motive, pin and domain out of the rule-prefix context
-# with `Expr.lowerBVars`, a plain rebuild that had neither cutoff nor
-# memo; it now carries both, as `abstract1` does (`lowerBVarsGo`, keyed
-# by the node and the CUTOFF, behind an `O(1)` loose-bvar field read),
-# with the kernel-checked `lowerBVarsGo_spec` and `@[csimp]`.
+# the same depth-60 tower.  It was written for the nested rung's
+# `Expr.lowerBVars` (a plain rebuild, later memoised); the auxiliary
+# recursor's `.nested` pins are now its class's parameters closed over
+# the rule prefix by memoised `abstract1` passes (`Expr.abstractPrefix`).
 0 tower_nested.ndjson
 # TASK #271 (issues #5 and #7) — THE INDUCTIVE BLOCK'S REDUNDANT
 # FIELDS.  Official's replay compares every exported CONSTRUCTOR and

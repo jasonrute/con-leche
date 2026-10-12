@@ -711,7 +711,7 @@ the check certified — one chosen tuple, pinned by its ι equations
     blockRecAV c  :=  projAV c (fst (choice.{s} (Σ' rs : ⟨RecTy_0, …, RecTy_{K-1}⟩, IotaAll rs) prf))
 
 with `RecTy_c` the READING of the stream's recursor type of class `c`
-(a `mkPisAV` over its binder data: the parameters, the arbitrary
+(a `mkPisAV` over its binder domains: the parameters, the arbitrary
 `nP…rP-1` stretch, the indices and the major, then the conclusion) and
 
     IotaAll rs  =  ⋀_{c,j} ∀ x⃗ f⃗, eqE (app^ (projAV c rs) [x⃗, e⃗_j, C_j p⃗ f⃗]) (Rb_{c,j}[rec ↦ rs])
@@ -914,7 +914,7 @@ theorem iotaEqAV_sides {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm}
     simp only [List.map_append, hpre, List.append_assoc]
   rw [interp_mkAppN, foldl_app_map, hhead, hargs]
 
-/-- The length of a fit of the rule's binder data. -/
+/-- The length of a fit of the rule's binder domains. -/
 theorem iotaEqAV_fs_length {pdoms fdoms : List ITerm} {σ : Nat → V} {xs fs : List V}
     (hxl : xs.length = pdoms.length) (hsp : SpineFit σ (pdoms ++ fdoms) (xs ++ fs)) :
     fs.length = fdoms.length := by
@@ -970,13 +970,13 @@ theorem pt_mem_iotaEqAV_of {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm
 /-! ## The λ-tower whose body sees the spine
 
 The candidate the graph kit supplies (`famCandG`) is a λ-tower over the
-recursor's whole binder data whose body needs the PREFIX values (the
+recursor's binder domains whose body needs the PREFIX values (the
 parameters and the arbitrary stretch: the kit is built per prefix
 frame), the INDEX values and the MAJOR — i.e. the accumulated spine,
 not just the leaf frame.  `lamTowerA` is the semantic λ-tower with
 that accumulator. -/
 
-/-- The semantic λ-tower over binder data, with the body a function of
+/-- The semantic λ-tower over binder domains, with the body a function of
 the ACCUMULATED spine and the leaf frame. -/
 noncomputable def lamTowerA :
     (Nat → V) → List V → List ITerm → (List V → (Nat → V) → V) → V
@@ -1168,7 +1168,7 @@ variable {s K : Nat} {RecTy : Nat → ITerm} {nCt : Nat → Nat} {pdoms : Nat �
   {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
   {ihs : Nat → Nat → List ITerm} {Rb : Nat → Nat → ITerm} {ρ : Nat → V}
 
-/-- **The ι equations are graded** when every rule's binder data is
+/-- **The ι equations are graded** when every rule's binder domains are
 graded along the telescope and both its sides are graded at every
 fitting spine — the Model tier's half (G1's `WellDenoted` under
 `CtxOk`, and the leaf's own grading for the left-hand side). -/
@@ -1328,7 +1328,7 @@ variable {ℓ K : Nat} {rP : Nat → Nat} {rds : Nat → List ITerm}
   {concl : Nat → ITerm} {ρ : Nat → V} {R : Type uv}
 
 /-- **The candidate at class `c`**: the λ-tower over the recursor
-type's binder data whose body is the kit's recursor at the tagged
+type's binder domains whose body is the kit's recursor at the tagged
 major the spine names. -/
 noncomputable def famCandG (D : GraphFamData V ℓ K rP rds concl ρ R) (c : Nat) : V :=
   lamTowerA ρ [] (rds c) fun ys _ =>

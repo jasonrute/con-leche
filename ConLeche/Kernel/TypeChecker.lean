@@ -40,10 +40,8 @@ def inferTypeCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Expr :=
   (pureFns mode env fuel).infer depth e
 
 /-- Type inference at the io grade (fueled): the knot's `inferIO` slot
-— what every internal inference call site runs (task #170).  At a
-gate-off mode this **is** `inferTypeCore` (`inferTypeIO_off`,
-`Verify/Knot.lean`); at the gated mode it is the io lane
-(`inferTypeIO_on`). -/
+— what every internal inference call site runs (task #170).  At every
+mode it is the io lane (`inferTypeIO_on`, `Verify/Knot.lean`). -/
 def inferTypeIO (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Expr :=
   (pureFns mode env fuel).inferIO depth e
 

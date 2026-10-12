@@ -17,8 +17,8 @@ recursor's own numbering (`openPisParamsIdx`).  This file is that
 check's model side: the CONVERSE of the recursor type's index clause
 (`blockRecIdxFit_run` is the forward one), which is what the kit
 regimes' `hconclTy` needs — a carrier element's index values fit the
-MEMBER's telescope, and the recursor's conclusion is licensed only at a
-fit of the RECURSOR's binder data.
+MEMBER's telescope, and the recursor's conclusion is typed only at a
+fit of the RECURSOR's domains.
 
 Two pieces (the pass's inversion is the family record's `idxDoms`,
 `Verify/Inductives/RecStage.lean`):

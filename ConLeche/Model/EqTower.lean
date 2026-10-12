@@ -201,7 +201,7 @@ theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
   exact eqv_mem_univZero _ _
 
 /-- **`EqLaw` from the tower.**  Any environment carrier whose `Eq`
-leaf is the annotated tower satisfies the field. -/
+leaf is the tower `eqValAV` satisfies the field. -/
 theorem eqLaw_of_tower {env : ConLeche.Env} (m : EnvModel V env)
     (hleaf : ∀ ψ : Name → Nat, m.acval eqName ψ = eqValAV ψ) :
     EqLaw m := by

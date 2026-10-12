@@ -610,30 +610,6 @@ def liftLooseBVarsFast (amount c : Nat) (e : Expr) : Expr :=
   funext amount c e
   exact (liftLooseBVarsGo_spec e c {} LiftMemoInv.empty).1.symm
 
-/-- Lower every loose bound variable `≥ cutoff + amount` by `amount`
-(loose variables inside the window `[cutoff, cutoff + amount)` are left
-untouched — callers certify their absence by the `liftLooseBVars`
-roundtrip).  Used by the nested-rule shape certification to read a
-recursor's constructor-parameter instantiations out of the
-major-premise domain (an `mI`-binder context) into the rule-prefix
-context (`rP` binders): `p = (p.lowerBVars (mI - rP) 0).liftLooseBVars
-(mI - rP) 0` holds exactly when `p` mentions no index variable. -/
-def lowerBVars (amount : Nat) : (cutoff : Nat) → Expr → Expr
-  | c, .bvar i => if i ≥ c + amount then .bvar (i - amount) else .bvar i
-  | _, .fvar i ty => .fvar i ty
-  | _, .sort u => .sort u
-  | _, .const n us => .const n us
-  | c, .app a b => .app (lowerBVars amount c a) (lowerBVars amount c b)
-  | c, .lam ty body =>
-    .lam (lowerBVars amount c ty) (lowerBVars amount (c + 1) body)
-  | c, .forallE ty body =>
-    .forallE (lowerBVars amount c ty) (lowerBVars amount (c + 1) body)
-  | c, .letE ty v body =>
-    .letE (lowerBVars amount c ty) (lowerBVars amount c v)
-      (lowerBVars amount (c + 1) body)
-  | _, .lit l => .lit l
-  | c, .proj s i e => .proj s i (lowerBVars amount c e)
-
 /-- Replace `bvar d` by `v`, *lifting* `v`'s loose `bvar`s past the
 binders crossed on the way — the general capture-avoiding substitution
 for an open `v` (unlike `instantiate1`, which requires `v` to be
@@ -1341,52 +1317,12 @@ def instSpine : List Expr → Nat → Expr → Expr
   | [], _, e => e
   | a :: as, t, e => instSpine as (t - 1) (e.instantiate1 a t)
 
-/-- **The syntactic reading of a nested rule's instantiation**: the
-major's level and parameter instantiations, read off the
-recursor type's major-premise domain
-(`∀ …prefix… …indices…, ∀ (t : D.{lvls} p₁ … p_cnP i₁ … i_k), …`,
-`k = mI - rP`).  The parameter instantiations are returned *lowered into
-the rule-prefix context* (`rP` binders; `lowerBVars`) — the lift-back
-roundtrip certifies that no index variable occurs in them — and the
-domain's trailing arguments must be exactly the index variables in
-order.  `none` when the prefix exceeds the major's position, the major
-domain is not a constant-headed application of exactly `cnP + k`
-arguments of this split shape, or an instantiation fails the syntactic
-well-formedness guards (closed, bounded by the prefix telescope,
-constants resolving by `resolves`, levels declared in `lps`) — the
-facts `EnvWF` records for a stored `.nested` rule
-(`nestedRuleSyn_inv`).  The installer stores it
-for the rules of a recursor whose major is outside its block
-(`tgtStoredRules`, `auxRuleFireR`). -/
-def nestedRuleSyn (resolves : Expr → Bool) (lps : List Name) (tyA : Expr) (mI rP cnP : Nat) :
-    Option (List Level × List Expr) :=
-  if rP ≤ mI then
-    match tyA.stripPis mI with
-    | some (_, .forallE dom _) =>
-      match dom.getAppFn with
-      | .const _D lvls =>
-        let args := dom.getAppArgs
-        let k := mI - rP
-        let pins := (args.take cnP).map (lowerBVars k 0)
-        if args.length = cnP + k ∧
-            args.take cnP == pins.map (liftLooseBVars k 0) ∧
-            args.drop cnP ==
-              (List.range k).map (fun i => Expr.bvar (k - 1 - i)) ∧
-            pins.all (fun p => !p.hasFvar && p.looseBVarsBounded rP &&
-              resolves p && p.allLevelParamsDefined lps) ∧
-            lvls.all (Level.allParamsDefined lps) then
-          some (lvls, pins)
-        else none
-      | _ => none
-    | _ => none
-  else none
-
 /-! ## Derived-field spec functions, and their exactness
 
 The four `@[computed_field]`s of `Expr` (`ConLeche/Kernel/Expr.lean`) are
 declared by their recurrences; these are the same recurrences written
 as ordinary definitions, together with the equivalences that make a
-field read license the traversal cutoff it guards.  Self-contained:
+field read justify the traversal cutoff it guards.  Self-contained:
 they mention nothing but `Expr`.  The cached engine's field facts
 (`ConLeche/Verify/Cached/Erase.lean`) are stated against them. -/
 
@@ -1840,7 +1776,7 @@ normal form in `Kernel/Inductives/Positivity.lean`), and
 `tests/e2e/tower_proj.ndjson` — a two-field structure whose field
 types carry a depth-60 shared tower — exhausts memory on it.
 
-The remedy is the ONE the packed range fields already license (task
+The remedy is the ONE the packed range fields already justify (task
 #210 Part B, and the cached twin `Cached.abstract1` has had it all
 along): **a node whose fvar range is at or below `d` contains no
 `fvar d`, so abstraction returns it unchanged.**  Every closed
@@ -2032,220 +1968,6 @@ def abstract1Fast (e : Expr) (d : Nat) (k : Nat := 0) : Expr :=
     @abstract1 = @abstract1Fast := by
   funext e d k
   exact (abstract1Go_spec e k {} Abs1MemoInv.empty).1.symm
-
-/-! ### `lowerBVars` reads the loose-bvar bound, and memoizes
-
-`lowerBVars` rebuilds every node it walks, so on a DAG-shared term it
-is `O(tree)` — the same shape `abstract1` had before task #233.  It is
-the walk the nested rule reading runs on the rule-prefix pins
-(`nestedRuleSyn`); `tests/e2e/tower_nested.ndjson` — a nested block
-whose constructor carries a depth-60 shared tower over the
-constructor's own first field — is its fixture.
-
-Both remedies, as `abstract1` carries both: a node whose loose-bvar
-bound is at or below `c + amount` holds no variable the lowering
-moves, so it comes back unchanged from an `O(1)` field read; and where
-the bound is above it, the memo — keyed by the node and the CUTOFF,
-which shifts under binders — shares the rebuild across the paths that
-reach a shared node. -/
-
-/-- Lowering a term whose loose variables all sit below the window is
-the identity. -/
-theorem lowerBVars_of_bvarBound_le :
-    ∀ (e : Expr) (amount c : Nat), e.bvarBound ≤ c + amount →
-      lowerBVars amount c e = e := by
-  intro e
-  induction e with
-  | bvar i =>
-    intro amount c h
-    rw [Expr.bvarBound] at h
-    rw [lowerBVars, ite_eq_right (by omega)]
-  | fvar i ty _ => intro amount c _; rfl
-  | sort u => intro amount c _; rfl
-  | const n us => intro amount c _; rfl
-  | lit l => intro amount c _; rfl
-  | app f a ihf iha =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le] at h
-    rw [lowerBVars, ihf amount c h.1, iha amount c h.2]
-  | lam ty body iht ihb =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le] at h
-    rw [lowerBVars, iht amount c h.1, ihb amount (c + 1) (by omega)]
-  | forallE ty body iht ihb =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le] at h
-    rw [lowerBVars, iht amount c h.1, ihb amount (c + 1) (by omega)]
-  | letE ty val body iht ihv ihb =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le, Nat.max_le] at h
-    rw [lowerBVars, iht amount c h.1.1, ihv amount c h.1.2,
-      ihb amount (c + 1) (by omega)]
-  | proj sn i sub ih =>
-    intro amount c h
-    rw [Expr.bvarBound] at h
-    rw [lowerBVars, ih amount c h]
-
-/-- The memo's invariant: every recorded answer is the real one. -/
-def LowerMemoInv (amount : Nat) (memo : Std.HashMap (Expr × Nat) Expr) : Prop :=
-  ∀ (k : Expr × Nat) (r : Expr), memo[k]? = some r → r = lowerBVars amount k.2 k.1
-
-theorem LowerMemoInv.empty {amount : Nat} : LowerMemoInv amount {} := by
-  intro k r h; simp at h
-
-theorem LowerMemoInv.insert {amount : Nat} {memo : Std.HashMap (Expr × Nat) Expr}
-    (hm : LowerMemoInv amount memo) {e : Expr} {c : Nat} {r : Expr}
-    (heq : r = lowerBVars amount c e) :
-    LowerMemoInv amount (memo.insert (e, c) r) := by
-  intro key r' hk
-  rw [Std.HashMap.getElem?_insert] at hk
-  split at hk
-  · rename_i hbeq
-    cases hk
-    rw [← eq_of_beq hbeq]
-    exact heq
-  · exact hm key r' hk
-
-@[inherit_doc lowerBVars_of_bvarBound_le]
-def lowerBVarsGo (amount : Nat) (memo : Std.HashMap (Expr × Nat) Expr)
-    (e : Expr) (c : Nat) : Expr × Std.HashMap (Expr × Nat) Expr :=
-  if e.bvarB ≤ c + amount then (e, memo) else
-  match e with
-  | .bvar i => (if i ≥ c + amount then .bvar (i - amount) else .bvar i, memo)
-  | .fvar idx ty => (.fvar idx ty, memo)
-  | .sort u => (.sort u, memo)
-  | .const n us => (.const n us, memo)
-  | .lit l => (.lit l, memo)
-  | e =>
-    match memo[(e, c)]? with
-    | some r => (r, memo)
-    | none =>
-      let (r, memo) : Expr × Std.HashMap (Expr × Nat) Expr :=
-        match e with
-        | .app f a =>
-          let (f', memo) := lowerBVarsGo amount memo f c
-          let (a', memo) := lowerBVarsGo amount memo a c
-          (.app f' a', memo)
-        | .lam ty body =>
-          let (t, memo) := lowerBVarsGo amount memo ty c
-          let (b, memo) := lowerBVarsGo amount memo body (c + 1)
-          (.lam t b, memo)
-        | .forallE ty body =>
-          let (t, memo) := lowerBVarsGo amount memo ty c
-          let (b, memo) := lowerBVarsGo amount memo body (c + 1)
-          (.forallE t b, memo)
-        | .letE ty val body =>
-          let (t, memo) := lowerBVarsGo amount memo ty c
-          let (w, memo) := lowerBVarsGo amount memo val c
-          let (b, memo) := lowerBVarsGo amount memo body (c + 1)
-          (.letE t w b, memo)
-        | .proj s i sub =>
-          let (u, memo) := lowerBVarsGo amount memo sub c
-          (.proj s i u, memo)
-        | e => (e, memo)
-      (r, memo.insert (e, c) r)
-
-/-- **The memoized walk is `lowerBVars`.** -/
-theorem lowerBVarsGo_spec {amount : Nat} :
-    ∀ (e : Expr) (c : Nat) (memo : Std.HashMap (Expr × Nat) Expr),
-      LowerMemoInv amount memo →
-      (lowerBVarsGo amount memo e c).1 = lowerBVars amount c e ∧
-        LowerMemoInv amount (lowerBVarsGo amount memo e c).2 := by
-  intro e
-  induction e with
-  | bvar i =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · exact ⟨rfl, hm⟩
-  | sort u =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | const n us =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | lit l =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | fvar i ty _ =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | app f a ihf iha =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := ihf c memo hm
-        obtain ⟨h3, h4⟩ := iha c _ h2
-        refine ⟨by simp [lowerBVars, h1, h3], ?_⟩
-        exact h4.insert (by simp [lowerBVars, h1, h3])
-  | lam ty body iht ihb =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := iht c memo hm
-        obtain ⟨h3, h4⟩ := ihb (c + 1) _ h2
-        refine ⟨by simp [lowerBVars, h1, h3], ?_⟩
-        exact h4.insert (by simp [lowerBVars, h1, h3])
-  | forallE ty body iht ihb =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := iht c memo hm
-        obtain ⟨h3, h4⟩ := ihb (c + 1) _ h2
-        refine ⟨by simp [lowerBVars, h1, h3], ?_⟩
-        exact h4.insert (by simp [lowerBVars, h1, h3])
-  | letE ty val body iht ihv ihb =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := iht c memo hm
-        obtain ⟨h3, h4⟩ := ihv c _ h2
-        obtain ⟨h5, h6⟩ := ihb (c + 1) _ h4
-        refine ⟨by simp [lowerBVars, h1, h3, h5], ?_⟩
-        exact h6.insert (by simp [lowerBVars, h1, h3, h5])
-  | proj sn i sub ih =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := ih c memo hm
-        refine ⟨by simp [lowerBVars, h1], ?_⟩
-        exact h2.insert (by simp [lowerBVars, h1])
-
-@[inherit_doc lowerBVarsGo]
-def lowerBVarsFast (amount : Nat) (c : Nat) (e : Expr) : Expr :=
-  (lowerBVarsGo amount {} e c).1
-
-@[csimp] theorem lowerBVars_eq_lowerBVarsFast :
-    @lowerBVars = @lowerBVarsFast := by
-  funext amount c e
-  exact (lowerBVarsGo_spec e c {} LowerMemoInv.empty).1.symm
 
 /-! ### `instantiate1Lift` reads the loose-bvar bound, and memoizes
 
@@ -2478,7 +2200,7 @@ def instPisAtLift : List Expr → Expr → Option Expr
 
 `Level.hasParam` / `Expr.hasLevelParam` are the spec functions of the
 `hasLP` computed field (`ConLeche/Kernel/Expr.lean`); the lemmas below
-are the shortcuts a `false` reading licenses.  Self-contained, and the
+are the shortcuts a `false` reading justifies.  Self-contained, and the
 cached engine's field facts (`ConLeche/Verify/Cached/Erase.lean`) are
 stated against them. -/
 

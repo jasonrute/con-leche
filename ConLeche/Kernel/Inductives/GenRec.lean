@@ -21,7 +21,7 @@ recursors.  The stream's recursor rules are never read.
   their inductive hypotheses) and every recursor's class off the stream's
   RAW recursor types (they mention the constructors, so they are checked
   only here, at the constructors' environment).  Every class key is moved
-  to the block's canonical parameters and annotated (`classKeyOf`), then
+  to the block's canonical parameters (`classKeyOf`), then
   checked as a major (`targetMajorOf`: a member at the block's levels and
   parameters, or a stored inductive at an auxiliary type of the block,
   `is_nested`), with exactly one class per member.
@@ -49,8 +49,10 @@ recursors.  The stream's recursor rules are never read.
 * **Installation.**  Each generated type is checked as a constant
   (`checkConstantValF`) under the stream's name and level parameters and
   must be `isDefEq` to the stream's (checked) type; each generated rule is
-  annotated, resolved and typed at the environment holding the rule-less
-  generated recursors.  What is stored is the generated family.
+  resolved and typed at the environment holding the rule-less generated
+  recursors.  What is stored is the generated family; an auxiliary
+  recursor's rules fire `.nested` at its class's levels and parameters
+  (`auxRuleFire`).
 -/
 
 namespace ConLeche
@@ -355,8 +357,8 @@ def classFormerTy (fe : FEnv) (cvTas : List ConstantVal) (M : TargetMajor) : m E
     | _ => throw (.internal "generated recursor: a class's former vanished")
 
 /-- **A generated constant, checked** — `checkConstantValF`: the
-generated type is stored as the generator built it (no annotation pass,
-task #342); inference validates it like any other declared type. -/
+generated type is stored as the generator built it; inference validates
+it like any other declared type. -/
 def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m ConstantVal := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
@@ -409,9 +411,8 @@ def classRecTysOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) :
   | [], _, _ => pure []
   | _, _, _ => throw (.internal "generated recursor: recursor list")
 
-/-- **One generated rule, installed** (as generated: its binder data are
-written): resolved and typed at the
-rule-less recursors' environment `feR` (its level parameters the
+/-- **One generated rule, installed** (as generated): resolved and typed
+at the rule-less recursors' environment `feR` (its level parameters the
 recursor's), its λ-telescope over the prefix and the fields `n` long,
 its λ-domains resolving at the constructors' environment `feT`.
 Returns the rule (stored). -/
@@ -490,10 +491,7 @@ def classSeeds (ctx : NestCtx) (holes : List Expr) (Ms : List TargetMajor) :
 stream's RAW recursor types): moved to the block's canonical parameter
 variables `params` (`classKeyCanon`), its parameters closed over them
 (no loose bound variable, no free variable past the parameters — the
-guard `targetMajorOf` repeats at an outside class), and annotated at the
-formers' environment `env` over the parameters (depth `nP`): the raw
-stream carries no binder datum, and both the positivity check's seed and
-the generated recursor types read the annotated parameters. -/
+guard `targetMajorOf` repeats at an outside class). -/
 def classKeyOf (nP : Nat) (params : List Expr)
     (k : ClassKey) : m ClassKey := do
   let k := classKeyCanon params k
@@ -537,7 +535,7 @@ nodes: the pass walked every class from the empty stack); `params` are
 the block's canonical parameter variables, `nestedBit` the elimination
 guard's container bit as the caller reads it (`blockNestedBit`), to which
 every outside class adds.  Returns every recursor, generated, with its
-class and its generated annotated rules (what the install stores). -/
+class and its generated rules (what the install stores). -/
 def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Bool)
     (params : List Expr) (tbl : List NestCtorNf) (rd : ClassRead) (Ms : List TargetMajor)
     (cvTas : List ConstantVal) (block : List ConstantInfo) :
@@ -571,11 +569,6 @@ def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Boo
   let out ← classRecsRulesOk (so.opsRuleR feR) so.walkers fe feR g
     (classRecOf rd.recCls cvGs) cvGs rd.recCls
   so.flush
-  -- every auxiliary recursor's rules fire `.nested`: its major domain
-  -- reads as the container's instantiation (`tgtNestedReads`)
-  unless tgtNestedReads (·.constsResolveF fe) p 0 out do
-    throw (.internal "generated recursor: an auxiliary recursor's major domain does not \
-      read as its container's instantiation")
   pure out
 
 /-- The records `consBlockRecsBareF` pushes, in push order. -/

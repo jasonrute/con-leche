@@ -121,10 +121,6 @@ theorem constsResolveF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
       constsResolveF_congr hfe b]
   | .proj s _ e => by simp only [Expr.constsResolveF, hfe, constsResolveF_congr hfe e]
 
-theorem constsResolveF_congr' {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    (fun e : Expr => e.constsResolveF fe₁) = (fun e => e.constsResolveF fe₂) :=
-  funext (constsResolveF_congr hfe)
-
 theorem stdAxiomOkF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cv : ConstantVal) :
     stdAxiomOkF fe₁ cv = stdAxiomOkF fe₂ cv := by
   simp only [stdAxiomOkF, hfe]
@@ -938,14 +934,13 @@ theorem genRecCheck_twin {fe₁ fe₂ : FEnv} (ht : Twin fe₁ fe₂) (p : Block
     classesNfs_env (sharedOpsC_envFree mode fe₂) fe₂.env,
     classesCtors_env (sharedOpsC_envFree mode fe₂) fe₁.env,
     classesCtors_env (sharedOpsC_envFree mode fe₂) fe₂.env,
-    classFormerTy_congr' hfe, classRecTysOk_congr (sharedOpsC_envFree mode fe₂) hfe,
-    constsResolveF_congr' hfe]
+    classFormerTy_congr' hfe, classRecTysOk_congr (sharedOpsC_envFree mode fe₂) hfe]
 
 theorem blockRecInfosTF_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (p : BlockShape)
     (k : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) :
-    blockRecInfosTF fe₁.find? (·.constsResolveF fe₁) p k out =
-      blockRecInfosTF fe₂.find? (·.constsResolveF fe₂) p k out := by
-  rw [hfe, constsResolveF_congr' hfe]
+    blockRecInfosTF fe₁.find? p k out =
+      blockRecInfosTF fe₂.find? p k out := by
+  rw [hfe]
 
 end RecStageC
 

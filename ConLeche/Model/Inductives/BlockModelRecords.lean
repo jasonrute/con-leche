@@ -202,7 +202,7 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
   -- the constructors' leaves
   · intro c hc j cA hj ψ
     exact (hcore.2.2 c (by rw [← hNk]; exact hc) j cA hj).2.2 ψ
-  -- the field lists' lengths against the constructors' binder data
+  -- the field lists' lengths against the constructors' domains
   · intro ψ c j hj
     rw [hdsLenA ψ c j _ (hcAof c j hj), hnF ψ c j _ (hcAof c j hj)]
   -- the field chains are graded at every parameter frame

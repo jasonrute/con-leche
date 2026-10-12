@@ -15,7 +15,7 @@ The basis tier's fourth block, and the only one that
   branch, unused by every earlier block), and
 * reads a leaf that is **not** `pinnedStructT`: `Quot.lift`'s and
   `Quot.sound`'s stored types both mention the pinned `Eq` former,
-  whose annotated leaf is the basis install's own tower.  The P tier
+  whose leaf is the basis install's own tower.  The P tier
   crosses that gap with **`EqLaw`** — the `EnvModelM` field whose
   *supplier* is the `Eq` block, and whose grading half is exactly what
   the reading's `htyOk` row needs.  The field is
@@ -1122,7 +1122,7 @@ theorem extendQuotInd (mp : EnvModelM V μ env)
 /-! ## The `Eq` bridge
 
 `Quot.sound`'s and `Quot.lift`'s stored types conclude at the pinned
-`Eq` former, whose annotated leaf is **not** `pinnedStructT` — it is
+`Eq` former, whose leaf is **not** `pinnedStructT` — it is
 the basis install's own tower.  The crossing is `EqLaw`, the
 `EnvModelM` field, and it crosses **both** halves at once: its value
 half computes the spine, and its grading half is exactly the reading's

@@ -64,8 +64,8 @@ replace `Name.beq`/`Level.beq`/`Expr.beq` in compiled code through
 (`Name.beq_eq_beqPtr`, `Level.beq_eq_beqPtr`, `Expr.beq_eq_beqMemo`) —
 **USER RULING, 2026-09-05, verbatim:** *"do *not* use
 `implemented_by`.  If you can prove them equal, use `csimp`."*  A
-`csimp` substitution is not an escape at all: the compiler is licensed
-by a theorem this repository proves, not by an unchecked attribute.
+`csimp` substitution is not an escape at all: the compiler's substitution is
+justified by a theorem this repository proves, not by an unchecked attribute.
 The address reads behind them go through `Init.Util`'s `withPtrEq` and
 `withPtrAddr`, whose side conditions those files discharge, and the
 equality memo carries its invariant in its value type (`Expr.EqPair`)

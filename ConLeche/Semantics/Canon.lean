@@ -6,9 +6,9 @@ public import ConLeche.Verify.Denote
 @[expose] public section
 
 /-!
-# The annotated literal spines
+# The literal spines over `ITerm`
 
-The annotated `Nat`-literal and character-list spines (`natLitAV`,
+The `ITerm` `Nat`-literal and character-list spines (`natLitAV`,
 `charListAV`) and their erasure laws: each erases pointwise onto its
 `Term` spine (`natLitT`, `charListT`), as `projAV` does onto `projNV`.
 -/
@@ -21,13 +21,12 @@ open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level inferTypeCore whnf
   natLitSupported strLitSupported)
 
-/-- The annotated `Nat`-literal spine (the `natLitT` mirror over the
-annotated valuation). -/
+/-- The `ITerm` `Nat`-literal spine (the `natLitT` mirror). -/
 def natLitAV (za sa : ITerm) : Nat → ITerm
   | 0 => za
   | n + 1 => .app sa (natLitAV za sa n)
 
-/-- The annotated character-list spine (the `charListT` mirror). -/
+/-- The `ITerm` character-list spine (the `charListT` mirror). -/
 def charListAV (nilA consA ofNatA za sa : ITerm) :
     List Char → ITerm
   | [] => nilA

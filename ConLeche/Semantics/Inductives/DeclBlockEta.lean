@@ -302,11 +302,11 @@ theorem extEta_snoc {env env' : Env} {c₀ : ConstantInfo} (hx : ExtEta env env'
 /-- **The recursors' conses at their MAJORS are an `ExtEta` extension**
 (`consBlockRecsT`, the family the install conses), when every
 recursor name is fresh at the constructors' environment. -/
-theorem consBlockRecsT_extEta {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem consBlockRecsT_extEta {find? : Name → Option ConstantInfo}
     {q : BlockShape} {envC : Env} :
     ∀ {m : Nat} {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)} {env : Env},
       ExtEta envC env → (∀ r ∈ ConLeche.tgtRs out, envC.find? r.1.name = none) →
-      ExtEta envC (ConLeche.consBlockRecsT find? res q m out env)
+      ExtEta envC (ConLeche.consBlockRecsT find? q m out env)
   | _, [], _, hx, _ => hx
   | m, (cv, M, rhss) :: rest, env, hx, hfr => by
     simp only [ConLeche.consBlockRecsT]

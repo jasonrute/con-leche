@@ -76,7 +76,7 @@ theorem about the interpretation (`interp_zeta`), not a clause here.
 A `.proj` node carries an index and a subject, and nothing else: the
 pair's type arguments `A` and `B` are not in it — the checker recovers
 them at *use* time, by whnf-ing the subject's inferred type
-(`ConLeche/Kernel/Core.lean`, the `.proj` clause of `annotateBody`).  A
+(`ConLeche/Kernel/Core.lean`, the `.proj` clause of `inferBody`).  A
 denotation that is a function of the expression alone therefore cannot
 emit a constant applied to `A` and `B`, and a *relational* denotation is
 not an option either: the defeq claim of the fuel induction needs both

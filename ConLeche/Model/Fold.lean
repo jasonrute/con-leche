@@ -23,7 +23,7 @@ import ConLeche.Verify.Denote.EnvExt
 import ConLeche.Verify.Denote
 import ConLeche.Verify.EnvWF
 import ConLeche.Verify.Extend.Inversions
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Shift
 import ConLeche.Verify.Subst
 public section
@@ -249,9 +249,9 @@ which some stored constant has type `Empty`.*
 
 Hypotheses are **input-level only** — the accepted run, the stored
 constant, its type, plus the validating mode, which is part of the
-goal's letter (the annotated checker *is* the verified mode;
-`--trusted` ignores annotations by design).  No residue: every tier
-step is discharged (`axiomStepPB_of`, `basisStepPB_of`, `declBlock`).
+goal's letter (the checker the model covers *is* the verified mode;
+`--trusted` omits the certification-only work by design).  No
+residue: every tier step is discharged (`axiomStepPB_of`, `basisStepPB_of`, `declBlock`).
 
 `SetTheory V` is the standing parametricity of the consistency
 argument (project rule: consistency proofs stay parametric in the

@@ -128,7 +128,7 @@ theorem whnfStep_inv {env : Env} {fuel d : Nat} {k : Expr → CheckM Expr}
     exact ⟨e₁, rfl, Or.inr (Or.inr ⟨hrn, hu, h.symm⟩)⟩
 
 /-- Inversion for the λ-rule of `inferTypeCore` (infer-only: the
-annotation is reused whole).  The last conjunct is the **codomain
+domain is reused whole).  The last conjunct is the **codomain
 sort** (task #152), delivered at the verified modes only, in the
 shape the checker computes it (infer, then whnf to a sort).  At
 `.trusted`, which does not run the check, it is vacuous. -/
@@ -222,8 +222,7 @@ theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
     exact ⟨tf, ty', body', rfl, hw, h.symm, ta, rfl, hde⟩
 
 /-- Inversion for the ∀-rule of `inferTypeCore` (task #100 stage 6:
-the codomain sort is inferred from the opened body — the stored
-annotation is not read). -/
+the codomain sort is inferred from the opened body). -/
 theorem inferTypeCore_forall_inv {env : Env} {fuel d : Nat}
     {ty body t : Expr}
     (h : inferTypeCore mode env (fuel + 1) d (.forallE ty body) = .ok t) :

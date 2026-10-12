@@ -215,8 +215,7 @@ theorem piCount_eq_length : ∀ e : Expr, piCount e = e.piBinders.1.length := by
   | forallE t b _ ihb => simp [piCount, ConLeche.Expr.piBinders, ihb]
   | _ => simp [piCount, ConLeche.Expr.piBinders]
 
-/-- A Π-tower over a sort determines its domains (the binder data's
-numeral components are not read) and its sort. -/
+/-- A Π-tower over a sort determines its domains and its sort. -/
 theorem mkPisAV_sort_eq : ∀ {ab ab' : List ITerm} {u u' : Nat},
     mkPisAV ab (.sort u) = mkPisAV ab' (.sort u') →
       ab = ab' ∧ u = u'

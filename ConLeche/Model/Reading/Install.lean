@@ -106,7 +106,7 @@ theorem denoteMeta_acval_congr
       | strVal s => exact absurd rfl (hstr s)
 
 /-- **The install corollary**: choosing the new declaration's
-annotated leaf moves no denotation in the environment it was checked
+leaf moves no denotation in the environment it was checked
 in. -/
 theorem denoteMeta_acvalWith_fresh
     {acval : Name → (Name → Nat) → ITerm} {n : Name}
@@ -121,9 +121,9 @@ theorem denoteMeta_acvalWith_fresh
 
 /-! ## The spine -/
 
-/-- **Head swap under a spine.**  If the head's annotation survives a
+/-- **Head swap under a spine.**  If the head's reading survives a
 move to another head — for whatever reason: the same term, an
-unfolding, a different term with the same validated annotation — then
+unfolding, a different term with the same reading — then
 so does the whole application's, unchanged. -/
 theorem denoteMeta_mkAppN_swap {acval : Name → (Name → Nat) → ITerm}
     {d : Nat} :

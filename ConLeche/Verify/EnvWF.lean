@@ -156,7 +156,7 @@ theorem stripPis_isSome_of_le :
       -- context, and the recursor type's major-premise domain applies
       -- the constructor family to exactly their liftings past the
       -- index binders followed by the index variables in order
-      -- (validated once at install, `nestedRuleSyn`)
+      -- (what the generated stage stores, `genStage_nestedRead`)
       ∀ lvls pins, RecRule.fire r = .nested lvls pins →
         rP ≤ mI ∧
         (∀ l ∈ lvls, l.allParamsDefined cv.levelParams = true) ∧

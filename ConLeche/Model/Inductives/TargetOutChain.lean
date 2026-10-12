@@ -28,7 +28,7 @@ index expressions (`tgtOutEs`, the substituted recorded result indices).
   index values (which fit the container's index telescope, so the
   recursor's index binders, `tgtOutIdxConv`) and the fired
   spine (the injection, in the carrier at that tuple, which is the
-  major's domain there, `tgtOutMajor`) fit the recursor's binder data.
+  major's domain there, `tgtOutMajor`) fit the recursor's domains.
 -/
 
 namespace ConLeche.Model

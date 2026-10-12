@@ -181,7 +181,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
   obtain ⟨bs, b, hBE, hbl, hbs, hb⟩ :=
     denoteMeta_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
       hlift
-  -- the rule frame's field domains are the tower's first binder data
+  -- the rule frame's field domains are the tower's first domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]

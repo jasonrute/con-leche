@@ -370,7 +370,7 @@ theorem findProj?_consBlockRecsR {R : Nat → RecDatum → List RecRule} {q : Bl
     exact nomatch hsh)]
 
 /-- The RULE-LESS cons stores no projection table either — the bare
-environment is where the stage annotates a rule's right-hand side, so
+environment is where the stage types a rule's right-hand side, so
 its empty slots are `envC`'s. -/
 theorem findProj?_consBlockRecsBare {q : BlockShape} :
     ∀ {m : Nat} {ls : List (ConstantVal × Nat)} {env : Env},
@@ -386,8 +386,8 @@ theorem findProj?_consBlockRecsBare {q : BlockShape} :
 /-- **`NoProjEnv` across the recursors' cons.**  A `.proj T i` node can
 enter only through a recursor's stored TYPE or one of its rules'
 right-hand sides; both are premises, and both come from
-`annotateCore_noProjAt` at the environment the stage annotates in
-(`Verify/ProjSlots.lean` — the slot `(T, i)` is empty there because the
+`inferTypeCore_noProjAt` at the environment the stage infers in
+(`Verify/InferProjSlots.lean` — the slot `(T, i)` is empty there because the
 members' projection tables are consed AFTER the recursors). -/
 theorem noProjEnv_consBlockRecsR {R : Nat → RecDatum → List RecRule}
     {q : BlockShape} {T : Name} {i : Nat} :
@@ -626,7 +626,7 @@ is then refutable.  With it both guards are untouched
 (`ConLeche.natLitSupported_consBlockRecsR` /
 `strLitSupported_consBlockRecsR`).
 `hnoTy`/`hnoRhs` are the `.proj`-freedom of the stage's two stored
-pieces; they are `annotateCore_noProjAt` at the bare-`k` environment,
+pieces; they are `inferTypeCore_noProjAt` at the bare-`k` environment,
 whose `findProj?` is `envC`'s (`findProj?_consBlockRecsR`). -/
 theorem blockRecStaged_of
     (hrhs : ∀ r ∈ rs, ∀ rhs ∈ r.2.1,

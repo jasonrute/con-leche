@@ -27,7 +27,7 @@ of `Motive.lean`:
   (`exists_of_all`); the rest of the spine API is
   `Model/Reading/Lemmas.lean`'s, shared;
 * `interp_mkAppN_congrK`, `constTy_pkg`, `denoteMeta_const_arityK`;
-* the annotated `take`/`drop`/`getD` list algebra.
+* the `take`/`drop`/`getD` list algebra over readings.
 -/
 
 namespace ConLeche.Model.Rules
@@ -175,7 +175,7 @@ theorem denoteMeta_const_arityK {acval : Name → (Name → Nat) → ITerm}
   · next hlen => exact ⟨hlen, (Option.some.inj h).symm⟩
   · exact nomatch h
 
-/-! ## The annotated list algebra -/
+/-! ## The list algebra over readings -/
 
 /-- Pointwise reading of a map equality at `getD` slots. -/
 theorem map_interp_getD_eqK {ρ : Nat → V} {as bs : List ITerm}
@@ -245,7 +245,7 @@ theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : ITerm}
     (h : WellDenoted V ρ (ITerm.mkAppN f (as ++ [a])))
     (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
     WellDenoted V ρ (ITerm.mkAppN f (as ++ [a'])) := by
-  rw [annotMkAppN_append] at h ⊢
+  rw [iTermMkAppN_append] at h ⊢
   exact wellDenoted_app_congr_argK h ha' heq
 
 /-! ## The fired rule's right-hand side and the telescope residual -/
@@ -415,8 +415,8 @@ parameter prefix, and this is what turns the law's OPEN reading at
 depth `rP` into the instantiated comparand's reading at the ambient
 depth. -/
 
-/-- **The base-independence of the opened validated reading**: a
-constant-frame subject's reverse opening reads to the same annotation at every base.  The lift the
+/-- **The base-independence of the opened reading**: a
+constant-frame subject's reverse opening reads to the same term at every base.  The lift the
 induction has to absorb is killed by `ITerm.liftN_eq_self` at the
 erasure's bvar bound — `denoteMeta_closed`'s route, one depth up. -/
 theorem denoteMeta_openRev_base {acval : Name → (Name → Nat) → ITerm}

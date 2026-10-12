@@ -3,7 +3,7 @@ module
 import ConLeche.Model.Env.Laws
 import ConLeche.Model.Reading.Lemmas
 import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Shift
 import ConLeche.Kernel.Checker
 import ConLeche.Kernel.CheckerBase
