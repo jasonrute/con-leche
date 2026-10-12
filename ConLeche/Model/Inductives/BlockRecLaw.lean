@@ -78,6 +78,159 @@ iterated form would need an `EnvModelM` at each intermediate
 environment, and the statement `hrecP` is posed at is about an
 arbitrary `EnvModel` of the final one. -/
 
+/-- **(S)'s `iotaCtorLicensed` guard, across the `k` recursors' cons**:
+mirrors `iotaCtorLicensed_cons_of_isSome` (`Model/RecRulesCons.lean`) —
+it reads `find?` only at the constructor's result family, and that
+name is stored below the new recursors (not one of the `k` fresh
+names) whenever the constructor's type resolves. -/
+theorem iotaCtorLicensed_consBlockRecsR_of_isSome {R : Nat → RecDatum → List RecRule}
+    {q : BlockShape} {rs : List RecDatum} {envC : Env}
+    (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
+    {cvj : ConstantVal} {usj : List Level}
+    (hT : ∀ T us, cvj.type.piResult.getAppFn = .const T us →
+      (envC.find? T).isSome = true) :
+    ConLeche.iotaCtorLicensed (consBlockRecsR R q 0 rs envC).find? cvj usj
+      = ConLeche.iotaCtorLicensed envC.find? cvj usj := by
+  unfold ConLeche.iotaCtorLicensed
+  match hh : cvj.type.piResult.getAppFn with
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
+  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .const T us =>
+    dsimp only
+    have hiso := hT T us hh
+    obtain ⟨ciT, hciT⟩ : ∃ ciT, envC.find? T = some ciT := by
+      cases hfind : envC.find? T with
+      | none => rw [hfind] at hiso; exact absurd hiso (by decide)
+      | some ciT => exact ⟨ciT, rfl⟩
+    rw [find?_consBlockRecsR_keep hfr T ciT hciT, hciT]
+
+/-- **`RecRuleExtra` survives the recursors' cons** —
+`recRuleLaw_consBlockRecsR_prefix`'s sibling for the `RecRuleExtra`
+conjunct, `recRuleExtra_cons_prefix`'s (`Model/RecRulesCons.lean`) twin
+at `consBlockRecsR`: the crossing is `hmono` in place of
+`denoteMeta_cons_mono` and the valuation's agreement off the new names
+(`hacvAt`) in place of `acvalWith_ne`.  Clause (S)'s `iotaCtorLicensed`
+guard agrees with the constructors' environment's for the same reason
+as there (`iotaCtorLicensed_consBlockRecsR_of_isSome`). -/
+theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
+    {envC : Env} {acv : Name → (Name → Nat) → AnnotTerm} (mpC : EnvModelM V μ envC)
+    (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
+    (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
+    (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
+    (m₃ : EnvModel V (consBlockRecsR R q 0 rs envC))
+    (hac : m₃.acval = acv) (φ : Name → Nat)
+    {n : Name} {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule}
+    (hfE : envC.find? n = some (.recInfo cv mI rP rules))
+    {rl : RecRule} (hmem : rl ∈ rules) (hfire : RecRule.fire rl ≠ .inert) :
+    RecRuleExtra m₃ φ n cv mI rP rl := by
+  have hacvAt : ∀ x : Name, (envC.find? x).isSome = true →
+      m₃.acval x = mpC.base2.acval x := by
+    intro x hx
+    rw [hac]
+    refine hag x fun r hr hh => ?_
+    rw [hh, hfr r hr] at hx
+    exact nomatch hx
+  have hmono : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound envC e →
+      ∀ {ea : AnnotTerm}, denoteMeta mpC.base2.acval envC ψ d e = some ea →
+        denoteMeta m₃.acval (consBlockRecsR R q 0 rs envC) ψ d e = some ea := by
+    intro ψ d e hcb ea h
+    rw [hac]
+    exact denoteMeta_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
+  obtain ⟨-, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  obtain ⟨-, -, -, -, -, hrec', -⟩ :=
+    mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
+  obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
+  intro us hlen TVa hTVa
+  obtain ⟨TVa', hTVa', -, -⟩ := mpC.constType 0 n _ us hfE rfl (by exact hlen)
+  obtain rfl : TVa' = TVa :=
+    Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
+      (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
+  have hpinCB : ∀ lvls pins, RecRule.fire rl = .nested lvls pins → ∀ i : Nat,
+      ConstsBound envC (openRev 0 rP
+        ((pins.getD i default).instantiateLevelParams cv.levelParams us)) := by
+    intro lvls pins hfr' i
+    obtain ⟨-, -, hpinsWf, -⟩ := hnest lvls pins hfr'
+    refine constsBound_openRev (constsBound_of_constsResolve _ ?_) 0 rP
+    rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
+    by_cases hilt : i < pins.length
+    · exact (hpinsWf _ (ConLeche.getD_mem hilt)).2.2.1
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]
+      rfl
+  obtain ⟨hK, hCtor⟩ := hextra us hlen TVa' hTVa'
+  refine ⟨?_, ?_⟩
+  · intro hk
+    obtain ⟨hnf, hRalaw⟩ := hK hk
+    refine ⟨hnf, fun Ra hRa ρ xs a restR hxl hfit => ?_⟩
+    obtain ⟨Ra', hRa0', -, -, -⟩ := hlaw0 us hlen
+    obtain rfl : Ra' = Ra :=
+      Option.some.inj ((hmono _ 0 _ (constsBound_of_constsResolve _ (by
+        rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
+        exact hRres)) hRa0').symm.trans hRa)
+    have hacvR : m₃.acval n = mpC.base2.acval n := hacvAt n (by rw [hfE]; rfl)
+    rw [hacvR]
+    exact hRalaw Ra' hRa0' ρ xs a restR hxl hfit
+  · intro cvj cnP cnF hfcj
+    have hfcjE : envC.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) := by
+      obtain ⟨⟨cvj', cnP', cnF', h0⟩, -, -⟩ :=
+        mpC.base2.rec_ctors n cv mI rP rules hfE rl hmem
+      have heq := Option.some.inj
+        ((find?_consBlockRecsR_keep (R := R) (q := q) hfr _ _ h0).symm.trans hfcj)
+      rw [← heq]
+      exact h0
+    have hacvC : m₃.acval (RecRule.ctor rl) = mpC.base2.acval (RecRule.ctor rl) :=
+      hacvAt _ (by rw [hfcjE]; rfl)
+    obtain ⟨harity, hnk⟩ := hCtor cvj cnP cnF hfcjE
+    refine ⟨harity, ?_⟩
+    intro hk usj husj heq TVja hTVja
+    obtain ⟨TVja', hTVja', -, -⟩ :=
+      mpC.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
+    obtain rfl : TVja' = TVja :=
+      Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
+        (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
+    obtain ⟨hS, hP, hU⟩ := hnk hk usj husj heq TVja' hTVja'
+    refine ⟨?_, ?_, ?_⟩
+    · intro hlic ρ xs a restR hxl hfit
+      refine hS ?_ ρ xs a restR hxl hfit
+      obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
+        mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
+      dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
+      have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
+          (envC.find? T).isSome = true :=
+        fun T us' heq' =>
+          ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
+      rwa [iotaCtorLicensed_consBlockRecsR_of_isSome hfr hTiso] at hlic
+    · intro ρ xs a restR hxl hfit hapt ys restC hfitC
+      rw [hacvC]
+      exact hP ρ xs a restR hxl hfit hapt ys restC hfitC
+    · intro ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested0 hpin0
+      obtain ⟨-, -, -, hpinsOk, -⟩ := hlaw0 us hlen
+      have hnested' : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          ∀ i, i < RecRule.ctorParams rl →
+          ∀ vpa : AnnotTerm,
+            denoteMeta mpC.base2.acval envC φ rP
+              (openRev 0 rP ((pins.getD i default).instantiateLevelParams
+                cv.levelParams us)) = some vpa →
+            interp V ρ (ys.getD i default) ≠ pt →
+            interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
+            interp V ρ (ys.getD i default)
+              = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
+        intro lvls pins hfr' i hi vpa hvpa hney hnex
+        exact hnested0 lvls pins hfr' i hi vpa
+          (hmono _ rP _ (hpinCB lvls pins hfr' i) hvpa) hney hnex
+      rw [hacvC] at hfitR hplain0 hpin0
+      have hUout := hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
+      refine ⟨hUout.1, ?_, ?_⟩
+      · intro lvls pins hfr' i hi vpa hvpa2
+        obtain ⟨vpa₀, hvpa0, -⟩ := hpinsOk lvls pins hfr' i hi
+        have hvpa0E : denoteMeta m₃.acval (consBlockRecsR R q 0 rs envC) φ rP
+            (openRev 0 rP ((pins.getD i default).instantiateLevelParams
+              cv.levelParams us)) = some vpa₀ :=
+          hmono _ rP _ (hpinCB lvls pins hfr' i) hvpa0
+        obtain rfl : vpa₀ = vpa := Option.some.inj (hvpa0E.symm.trans hvpa2)
+        exact hUout.2.1 lvls pins hfr' i hi vpa₀ hvpa0
+      · rw [hacvC]
+        exact hUout.2.2
+
 /-- **A stored recursor's law crosses the recursors' cons.** -/
 theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
     {envC : Env} {acv : Name → (Name → Nat) → AnnotTerm} (mpC : EnvModelM V μ envC)
@@ -105,7 +258,8 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     rw [hac]
     exact denoteMeta_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
   obtain ⟨hrPle, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
-  refine ⟨hrPle, fun us hlen => ?_, sorry⟩
+  refine ⟨hrPle, fun us hlen => ?_,
+    recRuleExtra_consBlockRecsR_prefix mpC hfr hpsh hag m₃ hac φ hfE hmem hfire⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
