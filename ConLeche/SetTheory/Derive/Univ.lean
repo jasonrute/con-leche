@@ -98,6 +98,9 @@ theorem IsTy_omega : IsTy (omega : V) := IsTy_of_strict strict_omega
 /-- `∅` is a type. -/
 theorem IsTy_empty : IsTy (empty : V) := IsTy_of_strict strict_empty
 
+/-- An equation is a type (a truth value). -/
+theorem IsTy_eqv (x y : V) : IsTy (eqv x y) := Or.inl (eqv_mem_univZero x y)
+
 theorem univ_mem_tg_succ (n : Nat) : (univ n : V) ∈ˢ tg (n + 1) := tyU_mem_tg_succ n
 
 theorem univ_mem_univ (n : Nat) : (univ n : V) ∈ˢ univ (n + 1) := tyU_mem_tyU_succ n

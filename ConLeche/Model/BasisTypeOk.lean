@@ -148,16 +148,24 @@ theorem WellDenoted_lfpTuple (k : Nat) (us : List Nat) (ρ : Nat → V) :
   show WellDenoted V ρ (.pi _ _ (tupleSortsAV k us)
     (.pi _ _ (.pi _ _ (tupleFamsAV k us 0) (tupleFamsAV k us 1)) (tupleFamsAV k us 1)))
   rw [WellDenoted_pi]
-  refine ⟨(tupleSortsAV_facts V k us ρ).2, fun Is hIs => ?_⟩
+  refine ⟨(tupleSortsAV_facts V k us ρ).2,
+    by rw [(tupleSortsAV_facts V k us ρ).1]; exact IsTy_tupleSortsSpace V k us,
+    fun Is hIs => ?_, fun _ _ => IsTy_piR _ _ _⟩
   rw [(tupleSortsAV_facts V k us ρ).1] at hIs
   have h0 : WellDenoted V (cons Is ρ) (tupleFamsAV k us 0) :=
     (tupleFamsAV_facts V (j := 0) (ρ := cons Is ρ) hIs).2
   have h1 : ∀ x : V, WellDenoted V (cons x (cons Is ρ)) (tupleFamsAV k us 1) :=
     fun x => (tupleFamsAV_facts V (j := 1) (ρ := cons x (cons Is ρ)) hIs).2
+  have t0 : IsTy (interp V (cons Is ρ) (tupleFamsAV k us 0)) := by
+    rw [(tupleFamsAV_facts V (j := 0) (ρ := cons Is ρ) hIs).1]
+    exact IsTy_tupleFamsSpace V hIs
+  have t1 : ∀ x : V, IsTy (interp V (cons x (cons Is ρ)) (tupleFamsAV k us 1)) := fun x => by
+    rw [(tupleFamsAV_facts V (j := 1) (ρ := cons x (cons Is ρ)) hIs).1]
+    exact IsTy_tupleFamsSpace V hIs
   rw [WellDenoted_pi]
-  refine ⟨?_, fun F _ => h1 F⟩
+  refine ⟨?_, IsTy_piR _ _ _, fun F _ => h1 F, fun F _ => t1 F⟩
   rw [WellDenoted_pi]
-  exact ⟨h0, fun x _ => h1 x⟩
+  exact ⟨h0, t0, fun x _ => h1 x, fun x _ => t1 x⟩
 
 set_option maxHeartbeats 4000000 in
 theorem AnnotValid_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
@@ -231,10 +239,10 @@ binder, the `piR` fact is `bval_mem_type` at that binder, and the
 fibre obligation is `AnnotValid_bconst_type`'s `pi` clause verbatim. -/
 theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
     {u v : Nat} {A B : AnnotTerm} (h : BConst.typeAV c us = .pi u v A B)
-    {a : V} (ha : a ∈ˢ interp V ρ A) :
+    {a : V} (ha : a ∈ˢ interp V ρ A) (hS : IsTy (interp V ρ A)) :
     ∃ (w : Nat) (S : V) (F : V → V), bval V c us ∈ˢ piR w S F ∧
-      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) := by
-  refine ⟨v, interp V ρ A, fun x => interp V (cons x ρ) B, ?_, ha, ?_⟩
+      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
+  refine ⟨v, interp V ρ A, fun x => interp V (cons x ρ) B, ?_, ha, ?_, fun _ => hS⟩
   · have hm := bval_mem_type V c us ρ
     rw [h, interp_pi] at hm; exact hm
   · have hv := AnnotValid_bconst_type V c us ρ
@@ -247,10 +255,10 @@ theorem bconst_app_dataAV (c : BConst) (us : List Nat) (ρ : Nat → V)
     {u v u2 v2 : Nat} {A A2 B2 : AnnotTerm}
     (h : BConst.typeAV c us = .pi u v A (.pi u2 v2 A2 B2))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
-    {a : V} (ha : a ∈ˢ interp V (cons a1 ρ) A2) :
+    {a : V} (ha : a ∈ˢ interp V (cons a1 ρ) A2) (hS : IsTy (interp V (cons a1 ρ) A2)) :
     ∃ (w : Nat) (S : V) (F : V → V),
       app (bval V c us) a1 ∈ˢ piR w S F ∧
-      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) := by
+      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
   have hv := AnnotValid_bconst_type V c us ρ
   rw [h, AnnotValid_pi] at hv
   have hm := bval_mem_type V c us ρ
@@ -258,7 +266,7 @@ theorem bconst_app_dataAV (c : BConst) (us : List Nat) (ρ : Nat → V)
   have h1 := app_mem_piR hm ha1 hv.2.2
   rw [interp_pi] at h1
   refine ⟨v2, interp V (cons a1 ρ) A2,
-    fun x => interp V (cons x (cons a1 ρ)) B2, h1, ha, ?_⟩
+    fun x => interp V (cons x (cons a1 ρ)) B2, h1, ha, ?_, fun _ => hS⟩
   have h2 := hv.2.1 a1 ha1
   rw [AnnotValid_pi] at h2
   exact h2.2.2
@@ -274,10 +282,11 @@ theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
     (h : BConst.typeAV c us = .pi u v A (.pi u2 v2 A2 (.pi u3 v3 A3 B3)))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a2 : V} (ha2 : a2 ∈ˢ interp V (cons a1 ρ) A2)
-    {a : V} (ha : a ∈ˢ interp V (cons a2 (cons a1 ρ)) A3) :
+    {a : V} (ha : a ∈ˢ interp V (cons a2 (cons a1 ρ)) A3)
+    (hS : IsTy (interp V (cons a2 (cons a1 ρ)) A3)) :
     ∃ (w : Nat) (S : V) (F : V → V),
       app (app (bval V c us) a1) a2 ∈ˢ piR w S F ∧
-      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) := by
+      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
   have hv := AnnotValid_bconst_type V c us ρ
   rw [h, AnnotValid_pi] at hv
   have hm := bval_mem_type V c us ρ
@@ -289,7 +298,7 @@ theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
   have h2 := app_mem_piR h1 ha2 hv2.2.2
   rw [interp_pi] at h2
   refine ⟨v3, interp V (cons a2 (cons a1 ρ)) A3,
-    fun x => interp V (cons x (cons a2 (cons a1 ρ))) B3, h2, ha, ?_⟩
+    fun x => interp V (cons x (cons a2 (cons a1 ρ))) B3, h2, ha, ?_, fun _ => hS⟩
   have hv3 := hv2.2.1 a2 ha2
   rw [AnnotValid_pi] at hv3
   exact hv3.2.2
@@ -306,10 +315,11 @@ theorem bconst_app_data4 (c : BConst) (us : List Nat) (ρ : Nat → V)
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a2 : V} (ha2 : a2 ∈ˢ interp V (cons a1 ρ) A2)
     {a3 : V} (ha3 : a3 ∈ˢ interp V (cons a2 (cons a1 ρ)) A3)
-    {a : V} (ha : a ∈ˢ interp V (cons a3 (cons a2 (cons a1 ρ))) A4) :
+    {a : V} (ha : a ∈ˢ interp V (cons a3 (cons a2 (cons a1 ρ))) A4)
+    (hS : IsTy (interp V (cons a3 (cons a2 (cons a1 ρ))) A4)) :
     ∃ (w : Nat) (S : V) (F : V → V),
       app (app (app (bval V c us) a1) a2) a3 ∈ˢ piR w S F ∧
-      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) := by
+      a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
   have hv := AnnotValid_bconst_type V c us ρ
   rw [h, AnnotValid_pi] at hv
   have hm := bval_mem_type V c us ρ
@@ -326,7 +336,7 @@ theorem bconst_app_data4 (c : BConst) (us : List Nat) (ρ : Nat → V)
   rw [interp_pi] at h3
   refine ⟨v4, interp V (cons a3 (cons a2 (cons a1 ρ))) A4,
     fun x => interp V (cons x (cons a3 (cons a2 (cons a1 ρ)))) B4,
-    h3, ha, ?_⟩
+    h3, ha, ?_, fun _ => hS⟩
   have hv4 := hv3.2.1 a3 ha3
   rw [AnnotValid_pi] at hv4
   exact hv4.2.2
@@ -344,11 +354,29 @@ clause's data at `relAV`'s inner binder, whose numeral is `1` because
 `Prop` as a type is `Sort 1`. -/
 theorem rel_app_data {u : Nat} {A R a b : V}
     (hR : R ∈ˢ piR (Nat.max u 1) A fun _ => piR 1 A fun _ => (univ 0 : V))
-    (ha : a ∈ˢ A) (hb : b ∈ˢ A) :
+    (ha : a ∈ˢ A) (hb : b ∈ˢ A) (hA : A ∈ˢ (univ u : V)) :
     ∃ (w : Nat) (S : V) (F : V → V), app R a ∈ˢ piR w S F ∧ b ∈ˢ S ∧
-      (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) :=
+      (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) :=
   ⟨1, A, fun _ => univ 0, app_mem_piR_pos (maxOne_ne_zero u) hR ha, hb,
-    fun h => absurd h Nat.one_ne_zero⟩
+    fun h => absurd h Nat.one_ne_zero, fun _ => IsTy_of_mem_univ hA⟩
+
+/-- A dependent pair type is a type. -/
+theorem IsTy_psigma_app {u v : Nat} {A B : V} (hA : A ∈ˢ (univ u : V))
+    (hB : B ∈ˢ psigmaFibreSpace V v A) : IsTy (app (app (psigmaV V u v) A) B) := by
+  rw [psigmaV_app V hA hB]
+  exact IsTy_of_mem_univ (sigma_mem_univ hA fun x hx => psigmaFibre_apply V hB hx)
+
+/-- A relation's value is a type (a truth value). -/
+theorem IsTy_rel_app {u : Nat} {A R a b : V}
+    (hR : R ∈ˢ piR (Nat.max u 1) A fun _ => piR 1 A fun _ => (univ 0 : V))
+    (ha : a ∈ˢ A) (hb : b ∈ˢ A) : IsTy (app (app R a) b) := by
+  have h1 := app_mem_piR_pos (maxOne_ne_zero u) hR ha
+  exact IsTy_of_mem_univ (app_mem_piR_pos Nat.one_ne_zero h1 hb)
+
+/-- A quotient is a type. -/
+theorem IsTy_quot_app {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V))
+    (hR : R ∈ˢ relSpace V u A) : IsTy (app (app (quotV V u) A) R) := by
+  rw [quotV_app V hA hR]; exact IsTy_of_mem_univ (quotSet_mem_univ hA)
 
 set_option maxHeartbeats 4000000 in
 theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
@@ -363,25 +391,53 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
       WellDenoted_bvar, WellDenoted_sort, WellDenoted_const,
       interp_pi, interp_app, interp_eqE, interp_sort,
       interp_const, interp_bvar, cons_zero, cons_succ,
-      true_and, and_true, and_self, implies_true, ite_false]
+      true_and, and_self, implies_true, ite_false]
   all_goals
     (repeat' first
-      | exact ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (Nat.succ_ne_zero _)⟩
-      | exact ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h Nat.one_ne_zero⟩
-      | exact ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (maxOne_ne_zero _)⟩
-      | exact ⟨_, _, _, ‹_›, natzero_mem, fun h => absurd h (Nat.succ_ne_zero _)⟩
-      | exact ⟨_, _, _, ‹_›, pt_mem_unitSet, fun h => absurd h (Nat.succ_ne_zero _)⟩
-      | exact ⟨_, _, _, ‹_›,
+      | exact IsTy_piR _ _ _
+      | exact IsTy_univ _
+      | exact IsTy_omega
+      | exact IsTy_empty
+      | exact IsTy_eqv _ _
+      | exact IsTy_of_mem_univ ‹_›
+      | exact IsTy_of_mem_univ (unitSetAt_mem_univ _)
+      | exact IsTy_quot_app V ‹_› ‹_›
+      | exact IsTy_psigma_app V ‹_› ‹_›
+      | exact IsTy_of_mem_univ (app_mem_piR_pos (Nat.succ_ne_zero _) ‹_› ‹_›)
+      | exact IsTy_of_mem_univ (app_mem_piR_pos Nat.one_ne_zero ‹_› ‹_›)
+      | exact IsTy_of_mem_univ (app_mem_piR_pos (Nat.succ_ne_zero _) ‹_› natzero_mem)
+      | exact IsTy_of_mem_univ (app_mem_piR_pos (Nat.succ_ne_zero _) ‹_›
+          (app_mem_piR_pos Nat.one_ne_zero (natSuccV_mem V) ‹_›))
+      | exact IsTy_of_mem_univ (app_mem_piR_pos Nat.one_ne_zero ‹_›
+          (quotMk_mem_quot V ‹_› ‹_› ‹_›))
+      | exact IsTy_rel_app V ‹_› ‹_› ‹_›
+      | exact ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (Nat.succ_ne_zero _),
+          fun _ => IsTy_of_mem_univ ‹_›⟩
+      | refine ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (Nat.succ_ne_zero _), fun _ => ?_⟩
+      | refine ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h Nat.one_ne_zero, fun _ => ?_⟩
+      | refine ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (maxOne_ne_zero _), fun _ => ?_⟩
+      | refine ⟨_, _, _, ‹_›, natzero_mem, fun h => absurd h (Nat.succ_ne_zero _),
+          fun _ => ?_⟩
+      | refine ⟨_, _, _, ‹_›, pt_mem_unitSet, fun h => absurd h (Nat.succ_ne_zero _),
+          fun _ => ?_⟩
+      | refine ⟨_, _, _, ‹_›,
           app_mem_piR_pos Nat.one_ne_zero (natSuccV_mem V) ‹_›,
-          fun h => absurd h (Nat.succ_ne_zero _)⟩
-      | exact ⟨_, _, _, ‹_›, ‹_›,
-          fun hz _ _ => mem_univZero_of_zero V hz ‹_›⟩
+          fun h => absurd h (Nat.succ_ne_zero _), fun _ => ?_⟩
+      | refine ⟨_, _, _, ‹_›, ‹_›,
+          fun hz _ _ => mem_univZero_of_zero V hz ‹_›, fun _ => ?_⟩
       | (apply rel_app_data V <;> assumption)
+      | (refine bconst_app_data V _ _ ρ rfl ?_ ?_ <;>
+          (first | assumption | exact IsTy_univ _ | exact IsTy_piR _ _ _ | exact IsTy_omega |
+            exact IsTy_of_mem_univ ‹_›))
+      | (refine bconst_app_dataAV V _ _ ρ rfl ?_ ?_ ?_ <;>
+          (first | assumption | exact IsTy_univ _ | exact IsTy_piR _ _ _ | exact IsTy_omega |
+            exact IsTy_of_mem_univ ‹_›))
+      | (refine bconst_app_data3 V _ _ ρ rfl ?_ ?_ ?_ ?_ <;>
+          (first | assumption | exact IsTy_univ _ | exact IsTy_piR _ _ _ | exact IsTy_omega |
+            exact IsTy_of_mem_univ ‹_›))
       | (refine ⟨_, _, _, ‹_›, quotMk_mem_quot V ?_ ?_ ?_,
-            fun h => absurd h Nat.one_ne_zero⟩ <;> assumption)
-      | (refine bconst_app_data V _ _ ρ rfl ?_; assumption)
-      | (refine bconst_app_dataAV V _ _ ρ rfl ?_ ?_ <;> assumption)
-      | (refine bconst_app_data3 V _ _ ρ rfl ?_ ?_ ?_ <;> assumption)
+            fun h => absurd h Nat.one_ne_zero, fun _ => ?_⟩ <;>
+          (first | assumption | exact IsTy_quot_app V ‹_› ‹_›))
       | apply And.intro
       | intro _
       | trivial)

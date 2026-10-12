@@ -86,7 +86,7 @@ theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : 
     rwa [ite_eq_right (Nat.succ_ne_zero w)] at this
   · unfold famTyAV
     rw [WellDenoted_pi]
-    exact ⟨hok, fun _ _ => trivial⟩
+    exact ⟨hok, hv ▸ IsTy_of_mem_univ hu, fun _ _ => trivial, fun _ _ => IsTy_univ w⟩
 
 
 omit [SetTheory V] in
@@ -210,16 +210,24 @@ theorem WellDenoted_mkPisAV_of {w : Nat} {R : AnnotTerm} :
     ∀ {gds : List (Nat × Nat × AnnotTerm)} {σ : Nat → V},
       FieldsOkB w σ (gds.map (·.2.2)) →
       (∀ as, SpineFit σ (gds.map (·.2.2)) as → WellDenoted V (consList as σ) R) →
+      (∀ as, SpineFit σ (gds.map (·.2.2)) as → IsTy (interp V (consList as σ) R)) →
       WellDenoted V σ (mkPisAV gds R)
-  | [], _, _, hR => by simpa [mkPisAV, consList] using hR [] trivial
-  | d :: gds, σ, hF, hR => by
+  | [], _, _, hR, _ => by simpa [mkPisAV, consList] using hR [] trivial
+  | d :: gds, σ, hF, hR, hRt => by
     rw [List.map_cons] at hF
-    obtain ⟨hok, -, hrest⟩ := hF
+    obtain ⟨hok, hty, -, hrest⟩ := hF
     simp only [mkPisAV, WellDenoted_pi]
-    refine ⟨hok, fun x hx => ?_⟩
-    refine WellDenoted_mkPisAV_of (hrest x hx) fun as hsp => ?_
-    have := hR (x :: as) ⟨hx, hsp⟩
-    rwa [consList_cons] at this
+    refine ⟨hok, hty, fun x hx => ?_, fun x hx => ?_⟩
+    · refine WellDenoted_mkPisAV_of (hrest x hx) (fun as hsp => ?_) fun as hsp => ?_
+      · have := hR (x :: as) ⟨hx, hsp⟩
+        rwa [consList_cons] at this
+      · have := hRt (x :: as) ⟨hx, hsp⟩
+        rwa [consList_cons] at this
+    · cases gds with
+      | nil =>
+        have := hRt [x] ⟨hx, trivial⟩
+        simpa [mkPisAV, consList] using this
+      | cons _ _ => exact IsTy_piR _ _ _
 
 
 end Fam

@@ -975,10 +975,6 @@ theorem eqChainAV_inhab :
       rw [hlift]
       refine (eqChainAV_inhab r ρ).mpr fun hall => h ⟨of_mem_truthVal hx, hall⟩
 
-/-- An equation reads to a type (a truth value). -/
-theorem IsTy_eqv (a b : V) : IsTy (eqv a b) := by
-  unfold eqv; exact Or.inl (truthVal_mem_univZero _)
-
 /-- The chain reads to a type: `∅`, or a product. -/
 theorem IsTy_eqChainAV : ∀ (eqs : List (AnnotTerm × AnnotTerm)) (ρ : Nat → V),
     IsTy (interp V ρ (eqChainAV eqs))

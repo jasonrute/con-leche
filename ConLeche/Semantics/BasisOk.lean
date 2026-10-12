@@ -478,6 +478,15 @@ theorem famComp_mem_univ {k : Nat} {us : List Nat} {Is : V}
   · exact Nat.le_trans (ConLeche.Term.lv_le_levMax us m) (Nat.le_max_left _ _)
   · exact Nat.le_max_right _ _
 
+/-- The index-set tuples are a type. -/
+theorem IsTy_tupleSortsSpace (k : Nat) (us : List Nat) : IsTy (tupleSortsSpace V k us) :=
+  IsTy_of_mem_univ (ndTowerSet_mem_univ V k 0 fun m _ => univ_lv_mem_tupleIdxSort V us m)
+
+/-- The family tuples at an index-set tuple are a type. -/
+theorem IsTy_tupleFamsSpace {k : Nat} {us : List Nat} {Is : V}
+    (hIs : Is ∈ˢ tupleSortsSpace V k us) : IsTy (tupleFamsSpace V k us Is) :=
+  IsTy_of_mem_univ (ndTowerSet_mem_univ V k 0 fun m hm => famComp_mem_univ V hIs m (by omega))
+
 /-- **The family tuple's type**: its value and its grading, at an
 environment whose `j`-th variable is an index-set tuple. -/
 theorem tupleFamsAV_facts {k : Nat} {us : List Nat} {j : Nat} {ρ : Nat → V}
