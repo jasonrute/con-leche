@@ -166,21 +166,8 @@ theorem reduceNatI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
 theorem iotaCertsIAux_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     iotaCertsIAux r fe₁ = iotaCertsIAux r fe₂ := by
   funext depth lic ty acc args
-  induction ty, acc, args using iotaCertsIAux.induct (lic := lic) with
-  | case1 ty acc => rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def]
-  | case2 acc arg rest dom body mb h ih =>
-    rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def]; simp only [h, ih]
-  | case3 acc arg rest dom body mb h ih =>
-    rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def]; simp only [h, ih]
-  | case4 arg rest i => rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def]
-  | case5 arg rest i head tail ih =>
-    rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def]; simp only [ih]
-  | case6 ty acc arg rest h₁ h₂ =>
-    rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def]
-    cases ty with
-    | forallE d b m => exact (h₁ _ _ _ rfl).elim
-    | bvar i => exact (h₂ _ rfl).elim
-    | _ => rfl
+  induction ty, acc, args using iotaCertsIAux.induct (lic := lic) <;>
+    rw [iotaCertsIAux.eq_def, iotaCertsIAux.eq_def] <;> simp_all <;> split <;> simp_all
 
 /-- `iotaCertsI` only threads `fe`. -/
 theorem iotaCertsI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
@@ -320,7 +307,7 @@ theorem iotaRecI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     iotaRecI mode r fe₁ = iotaRecI mode r fe₂ := by
   funext depth e; unfold iotaRecI
   simp only [hfe, prepareMajorI_congr hfe, defEqListI_congr hfe,
-    constTyAtM_congr hfe, iotaCertsI_congr hfe, iotaCertsFullI_congr hfe,
+    constTyAtM_congr hfe, iotaCertsFullI_congr hfe,
     iotaIndexOkI_congr hfe, ruleRhsAtM_congr hfe]
 
 /-- `projCertI` reads `fe` only through `find?`. -/
@@ -343,27 +330,23 @@ theorem whnfAppI_betaPeelI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI
         = whnfAppI mode r fe₂ depth k v args) ∧
       (∀ t acc args, betaPeelI mode r fe₁ depth k t acc args
         = betaPeelI mode r fe₂ depth k t acc args) := by
-  refine whnfAppI.mutual_induct mode
+  refine whnfAppI.mutual_induct
     (fun v args => whnfAppI mode r fe₁ depth k v args
       = whnfAppI mode r fe₂ depth k v args)
     (fun t acc args => betaPeelI mode r fe₁ depth k t acc args
       = betaPeelI mode r fe₂ depth k t acc args)
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_
   · intro v; rw [whnfAppI.eq_def, whnfAppI.eq_def]
-  · intro a rest ty body mb h ih
-    rw [whnfAppI.eq_def, whnfAppI.eq_def]; simp only [h, ih]
-  · intro a rest ty body mb h ih
-    rw [whnfAppI.eq_def, whnfAppI.eq_def]; simp only [h, ih]
+  · intro a rest ty body mb ih
+    rw [whnfAppI.eq_def, whnfAppI.eq_def]; simp only [ih]
   · intro v a rest hnl ih
     rw [whnfAppI.eq_def, whnfAppI.eq_def]
     cases v with
     | lam ty body mb => exact (hnl _ _ _ rfl).elim
     | _ => simp only [iotaArityOk_congr hfe, iotaRecI_congr hfe, ih]
   · intro t acc; rw [betaPeelI.eq_def, betaPeelI.eq_def]
-  · intro acc arg rest ty body mb h ih
-    rw [betaPeelI.eq_def, betaPeelI.eq_def]; simp only [h, ih]
-  · intro acc arg rest ty body mb h ih
-    rw [betaPeelI.eq_def, betaPeelI.eq_def]; simp only [h, ih]
+  · intro acc arg rest ty body mb ih
+    rw [betaPeelI.eq_def, betaPeelI.eq_def]; simp only [ih]
   · intro ty acc arg rest hnl ih
     rw [betaPeelI.eq_def, betaPeelI.eq_def]
     cases ty with
@@ -412,7 +395,7 @@ theorem inferSpineI_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
 
 /-- `inferSpineIOI` only threads `fe`. -/
 theorem inferSpineIOI_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    inferSpineIOI mode r fe₁ = inferSpineIOI mode r fe₂ := by
+    inferSpineIOI r fe₁ = inferSpineIOI r fe₂ := by
   funext depth ty acc args
   induction args generalizing ty acc with
   | nil => rfl
@@ -439,14 +422,14 @@ theorem whnfBodyI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
 
 /-- `inferBodyI` reads `fe` only through `find?`. -/
 theorem inferBodyI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    inferBodyI mode r fe₁ = inferBodyI mode r fe₂ := by
+    inferBodyI r fe₁ = inferBodyI r fe₂ := by
   funext depth e; unfold inferBodyI
   simp only [hfe, natLitSupportedF_congr hfe, strLitSupportedF_congr hfe,
     constTyAtM_congr hfe, inferSpineI_congr hfe, findProj?_congr hfe]
 
 /-- `inferBodyIOI` reads `fe` only through `find?`. -/
 theorem inferBodyIOI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    inferBodyIOI mode r fe₁ = inferBodyIOI mode r fe₂ := by
+    inferBodyIOI r fe₁ = inferBodyIOI r fe₂ := by
   funext depth e; unfold inferBodyIOI
   simp only [inferSpineIOI_congr hfe, inferBodyI_congr hfe]
 
@@ -497,70 +480,6 @@ theorem defeqBodyI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
   simp only [propIrrelI_congr hfe, lazyDeltaReductionI_congr hfe,
     defeqProjPairI_congr hfe, defeqStuckI_congr hfe]
 
-/-- `annotPwPiI` reads `fe` only through `find?`. -/
-theorem annotPwPiI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotPwPiI r fe₁ = annotPwPiI r fe₂ := by
-  funext depth body'; unfold annotPwPiI; simp only [hfe]
-
-/-- `annotatePisPwI` reads `fe` only through `find?`. -/
-theorem annotatePisPwI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotatePisPwI r fe₁ = annotatePisPwI r fe₂ := by
-  funext d k leaf'; unfold annotatePisPwI; simp only [annotPwPiI_congr hfe]
-
-/-- `annotatePisLeafI` reads `fe` only through `find?`. -/
-theorem annotatePisLeafI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotatePisLeafI r fe₁ = annotatePisLeafI r fe₂ := by
-  funext d t k fvs stk; unfold annotatePisLeafI
-  simp only [annotatePisPwI_congr hfe]
-
-/-- `annotatePisI` reads `fe` only through `find?`. -/
-theorem annotatePisI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotatePisI r fe₁ = annotatePisI r fe₂ := by
-  funext d fuel
-  induction fuel with
-  | zero =>
-    funext t k fvs stk
-    simp only [annotatePisI, annotatePisLeafI_congr hfe]
-  | succ fuel ih =>
-    funext t k fvs stk
-    simp only [annotatePisI, ih, annotatePisLeafI_congr hfe]
-
-/-- `annotPwLamI` reads `fe` only through `find?`. -/
-theorem annotPwLamI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotPwLamI r fe₁ = annotPwLamI r fe₂ := by
-  funext depth body'; unfold annotPwLamI; simp only [hfe]
-
-/-- `annotateLamsPwI` reads `fe` only through `find?`. -/
-theorem annotateLamsPwI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotateLamsPwI r fe₁ = annotateLamsPwI r fe₂ := by
-  funext d k leaf'; unfold annotateLamsPwI; simp only [annotPwLamI_congr hfe]
-
-/-- `annotateLamsLeafI` reads `fe` only through `find?`. -/
-theorem annotateLamsLeafI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotateLamsLeafI r fe₁ = annotateLamsLeafI r fe₂ := by
-  funext d t k fvs stk; unfold annotateLamsLeafI
-  simp only [annotateLamsPwI_congr hfe]
-
-/-- `annotateLamsI` reads `fe` only through `find?`. -/
-theorem annotateLamsI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotateLamsI r fe₁ = annotateLamsI r fe₂ := by
-  funext d fuel
-  induction fuel with
-  | zero =>
-    funext t k fvs stk
-    simp only [annotateLamsI, annotateLamsLeafI_congr hfe]
-  | succ fuel ih =>
-    funext t k fvs stk
-    simp only [annotateLamsI, ih, annotateLamsLeafI_congr hfe]
-
-/-- `annotateBodyI` reads `fe` only through `find?`. -/
-theorem annotateBodyI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    annotateBodyI r fe₁ = annotateBodyI r fe₂ := by
-  funext depth e; unfold annotateBodyI
-  simp only [natLitSupportedF_congr hfe, strLitSupportedF_congr hfe,
-    annotatePisI_congr hfe, annotateLamsI_congr hfe, annotPwLamI_congr hfe,
-    findProj?_congr hfe, hfe]
-
 /-! ## The knot, and the operation records built on it -/
 
 /-- **The knot reads the index only through `find?`.**  `ensureSortI`
@@ -573,8 +492,7 @@ theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
   | succ F ih =>
     unfold coreKnotI
     simp only [ih, whnfCoreBodyI_congr hfe, whnfBodyI_congr hfe,
-      inferBodyI_congr hfe, defeqBodyI_congr hfe, annotateBodyI_congr hfe,
-      inferBodyIOI_congr hfe]
+      inferBodyI_congr hfe, defeqBodyI_congr hfe, inferBodyIOI_congr hfe]
 
 /-- `opSIxC` reads `fe` only through `find?`. -/
 theorem opSIxC_congr (hfe : fe₁.find? = fe₂.find?) :

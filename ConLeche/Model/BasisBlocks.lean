@@ -167,7 +167,7 @@ theorem denoteMeta_natSuccTy {c₀ : ConstantInfo} (ψ : Name → Nat)
     ψ hne hN d
   rw [show natSuccA.toConstantVal.type
       = Expr.forallE (.const natName [])
-          (.const natName []) { pw := .never } from rfl]
+          (.const natName []) {} from rfl]
   simp [denoteMeta_forallE, Expr.instantiate1, hNc]
 
 theorem denoteMeta_natSuccA_type (ψ : Name → Nat)
@@ -227,7 +227,7 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
   rw [show natRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const natName [])
-            (.sort (.param uN)) { pw := .never })
+            (.sort (.param uN)) {})
           (Expr.forallE
             (.app (.bvar 0) (.const natZeroName []))
             (Expr.forallE
@@ -236,14 +236,14 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
                   (.app (.bvar 2) (.bvar 0))
                   (.app (.bvar 3)
                     (.app (.const natSuccName []) (.bvar 1)))
-                  { pw := .ifAllZero [uN] })
-                { pw := .ifAllZero [uN] })
+                  {})
+                {})
               (Expr.forallE (.const natName [])
                 (.app (.bvar 3) (.bvar 0))
-                { pw := .ifAllZero [uN] })
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] })
-          { pw := .ifAllZero [uN] } from rfl]
+                {})
+              {})
+            {})
+          {} from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hNc, hZc, hSc, Level.eval]
 
@@ -411,12 +411,12 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
       · refine ⟨natSuccA.toConstantVal, 1, ?_, rfl,
           ⟨natA.toConstantVal, _, by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN,
             rfl⟩,
-          .forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero)) { pw := .never }, by decide,
+          .forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero)) {}, by decide,
           by decide, fun ψ => ⟨rfl, [(0, 0, .bvar 0)], ?_, rfl⟩⟩
         · show (⟨natSuccA :: env.consts⟩ : ConLeche.Env).find? natSuccA.name = _
           rw [ConLeche.Env.find?_cons, ite_eq_left rfl]; rfl
         · show denoteMeta _ _ _ 1 (.forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero))
-            { pw := .never }) = _
+            {}) = _
           simp [denoteMeta_forallE, ConLeche.Expr.instantiate1, denoteMeta_fvar, mkPisAV])
     (hnd := nodup_one _) (hlen := rfl)
     (hall := lfpAll_one (n := natName) (c := natA) rfl rfl
@@ -502,10 +502,9 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
 
 /-! ### The two firing rules
 
-The three telescope domains, named once.  The motive's reading is
-`SetModel/Value.lean`'s `natMotiveSpace`; the step's is the value-read
-`natStepSpaceV`, which differs from `natStepSpace` (and so from what
-`natRecV` reads) where a fibre `M n` is empty — the L15 debt. -/
+The three telescope domains, named once.  Their readings are
+`SetModel/Value.lean`'s `natMotiveSpace` and `natStepSpace`, the spaces
+`natRecV` abstracts over. -/
 
 /-- The motive binder's domain reading. -/
 def natMotiveTy (ψ : Name → Nat) : AnnotTerm :=
@@ -520,14 +519,11 @@ def natStepTy : AnnotTerm :=
 theorem natMotiveTy_interp (ψ : Name → Nat) (ρ : Nat → V) :
     interp V ρ (natMotiveTy ψ) = natMotiveSpace V (ψ uN) := by
   rw [natMotiveTy, interp_pi, natMotiveSpace]
-  exact piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩
+  rfl
 
-/-- The step binder's domain reading: the value-read step space (a truth
-value where a fibre `M n` is empty, unlike `natStepSpace`, whose numeral
-is the motive's level; task #342 L15 restates `natRecV` over it). -/
+/-- The step binder's domain reading: the step space. -/
 theorem natStepTy_interp (ρ : Nat → V) (M z : V) :
-    interp V (cons z (cons M ρ)) (natStepTy)
-      = piV omega fun n => piV (app M n) fun _ => app M (natsucc n) := by
+    interp V (cons z (cons M ρ)) (natStepTy) = natStepSpace V M := by
   rw [natStepTy, interp_pi]
   simp only [interp_const, bval]
   refine piV_congr fun n hn => ?_
@@ -563,7 +559,7 @@ theorem denoteMeta_natRec_zeroRhs (ψ : Name → Nat)
     denoteMeta_natRec_leaves (m := m) (A := A) ψ hN hZ hS
   rw [show natRecZeroRule.rhs = Expr.lam
       (Expr.forallE (.const natName [])
-        (.sort (.param uN)) { pw := .never })
+        (.sort (.param uN)) {})
       (Expr.lam
         (.app (.bvar 0) (.const natZeroName []))
         (Expr.lam
@@ -571,11 +567,11 @@ theorem denoteMeta_natRec_zeroRhs (ψ : Name → Nat)
             (Expr.forallE
               (.app (.bvar 2) (.bvar 0))
               (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] })
-          (.bvar 1) { pw := .ifAllZero [uN] })
-        { pw := .ifAllZero [uN] })
-      { pw := .ifAllZero [uN] } from rfl]
+              {})
+            {})
+          (.bvar 1) {})
+        {})
+      {} from rfl]
   simp [denoteMeta_lam, denoteMeta_forallE, denoteMeta_sort, denoteMeta_app,
     denoteMeta_fvar, Expr.instantiate1, hNc, hZc, hSc, Level.eval,
     natZeroRa, natMotiveTy, natStepTy]
@@ -610,7 +606,7 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
         [Level.param uN] uN = ψ uN from rfl]
   rw [show natRecSuccRule.rhs = Expr.lam
       (Expr.forallE (.const natName [])
-        (.sort (.param uN)) { pw := .never })
+        (.sort (.param uN)) {})
       (Expr.lam
         (.app (.bvar 0) (.const natZeroName []))
         (Expr.lam
@@ -618,17 +614,17 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
             (Expr.forallE
               (.app (.bvar 2) (.bvar 0))
               (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] })
+              {})
+            {})
           (Expr.lam (.const natName [])
             (.app (.app (.bvar 1) (.bvar 0))
               (.app (.app (.app (.app
                 (.const (natName.str "rec") [.param uN]) (.bvar 3))
                 (.bvar 2)) (.bvar 1)) (.bvar 0)))
-            { pw := .ifAllZero [uN] })
-          { pw := .ifAllZero [uN] })
-        { pw := .ifAllZero [uN] })
-      { pw := .ifAllZero [uN] } from rfl]
+            {})
+          {})
+        {})
+      {} from rfl]
   simp [denoteMeta_lam, denoteMeta_forallE, denoteMeta_sort, denoteMeta_app,
     denoteMeta_fvar, Expr.instantiate1, hNc, hZc, hSc, hRc, Level.eval,
     natSuccRa, natMotiveTy, natStepTy]
@@ -655,7 +651,9 @@ theorem natStepTy_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) (M z : V)
         = app M (app (natSuccV V) n) := by
     intro n ih; simp [interp_app, interp_bvar, interp_const, cons,
       bval]
-  have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V) fun _ => univ (ψ uN) := hM
+  have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V) fun _ => univ (ψ uN) := by
+    rw [← piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩]
+    exact hM
   refine ⟨trivial, IsTy_omega, fun n hn => ?_, fun _ _ => IsTy_piV⟩
   have hn' : n ∈ˢ (omega : V) := by
     simpa [interp_const, bval] using hn
@@ -687,7 +685,7 @@ theorem natZeroRa_interp (ψ : Name → Nat) (ρ : Nat → V) :
       = lamV (natMotiveSpace V (ψ uN))
           (fun M => lamV (app M natzero)
             (fun z => lamV
-              (piV omega fun n => piV (app M n) fun _ => app M (natsucc n))
+              (natStepSpace V M)
               (fun _ => z))) := by
   simp only [natZeroRa, interp_lam, interp_app, interp_bvar,
     interp_const, cons, bval, natMotiveTy_interp, natStepTy_interp]
@@ -697,7 +695,7 @@ theorem natSuccRa_interp (ψ : Name → Nat) (ρ : Nat → V) :
       = lamV (natMotiveSpace V (ψ uN))
           (fun M => lamV (app M natzero)
             (fun z => lamV
-              (piV omega fun n => piV (app M n) fun _ => app M (natsucc n))
+              (natStepSpace V M)
               (fun s => lamV omega
                 (fun n => app (app s n)
                   (app (app (app (app (natRecV V (ψ uN)) M) z) s)
@@ -715,8 +713,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
     (h3 : WellDenoted V ρ e3) (h4 : WellDenoted V ρ e4)
     (m1 : interp V ρ e1 ∈ˢ natMotiveSpace V u)
     (m2 : interp V ρ e2 ∈ˢ app (interp V ρ e1) natzero)
-    (m3 : interp V ρ e3 ∈ˢ piV omega fun n =>
-      piV (app (interp V ρ e1) n) fun _ => app (interp V ρ e1) (natsucc n))
+    (m3 : interp V ρ e3 ∈ˢ natStepSpace V (interp V ρ e1))
     (m4 : interp V ρ e4 ∈ˢ (omega : V)) :
     WellDenoted V ρ
       (.app (.app (.app (.app (.const .natRec [u]) e1) e2) e3) e4) := by
@@ -725,7 +722,6 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
       = natMotiveSpace V u := by
     simp only [arrowA, natTyAV, AnnotTerm.lift, AnnotTerm.liftN, interp_pi,
       interp_const, interp_sort, bval, natMotiveSpace]
-    exact piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩
   have d2 : ∀ a1 : V, interp V (cons a1 ρ)
       (.app (.bvar 0) natZeroAV) = app a1 natzero := by
     intro a1
@@ -734,7 +730,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
   have d3 : ∀ a1 a2 : V, interp V (cons a2 (cons a1 ρ))
       (AnnotTerm.pi natTyAV (.pi (.app (.bvar 2) (.bvar 0))
         (.app (.bvar 3) (natSuccAV (.bvar 1)))))
-      = piV omega fun n => piV (app a1 n) fun _ => app a1 (natsucc n) := by
+      = natStepSpace V a1 := by
     intro a1 a2
     rw [interp_pi]
     simp only [natTyAV, interp_const, bval]
@@ -780,7 +776,7 @@ theorem natZeroRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
   have hin : ∀ M z : V, M ∈ˢ natMotiveSpace V (ψ uN) → z ∈ˢ app M natzero →
       WellDenoted V (cons z (cons M ρ)) (.lam (natStepTy) (.bvar 1)) ∧
         interp V (cons z (cons M ρ)) (.lam (natStepTy) (.bvar 1)) ∈ˢ
-          piV (piV omega fun n => piV (app M n) fun _ => app M (natsucc n))
+          piV (natStepSpace V M)
             fun _ => app M natzero := by
     intro M z hM hz
     refine ⟨?_, ?_⟩
@@ -793,8 +789,9 @@ theorem natZeroRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
       exact lamV_mem (fun _ _ => by simpa [interp_bvar, cons] using hz)
         fun _ _ => hMz M hM
   refine ⟨natMotiveTy_wellDenotedV ψ ρ, IsTy_piR _ _ _, fun M hM => ?_, ?_⟩
-  · have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V)
-        fun _ => univ (ψ uN) := hM
+  · have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V) fun _ => univ (ψ uN) := by
+      rw [← piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩]
+      exact hM
     rw [WellDenoted_lam, hzty]
     refine ⟨⟨trivial, trivial, ψ uN + 1, omega, fun _ => univ (ψ uN),
         by simpa [interp_bvar, cons] using hM',
@@ -804,7 +801,7 @@ theorem natZeroRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
       hMz M hM, fun z hz => (hin M z hM hz).1, ?_⟩
     exact ⟨_, fun z hz => (hin M z hM hz).2, fun _ _ => IsTy_piV⟩
   · refine ⟨fun M => piV (app M natzero) fun _ =>
-        piV (piV omega fun n => piV (app M n) fun _ => app M (natsucc n))
+        piV (natStepSpace V M)
           fun _ => app M natzero,
       fun M hM => ?_, fun _ _ => IsTy_piV⟩
     rw [interp_lam, hzty]
@@ -823,7 +820,7 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
   -- the fourth λ's body, at a fixed motive/minor/step
   have body : ∀ (M z s : V), M ∈ˢ natMotiveSpace V (ψ uN) →
       z ∈ˢ app M natzero →
-      s ∈ˢ (piV omega fun n => piV (app M n) fun _ => app M (natsucc n)) →
+      s ∈ˢ (natStepSpace V M) →
       ∀ n : V, n ∈ˢ (omega : V) →
       WellDenoted V (cons n (cons s (cons z (cons M ρ))))
           (.app (.app (.bvar 1) (.bvar 0))
@@ -835,16 +832,12 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
                 (.bvar 2)) (.bvar 1)) (.bvar 0)))
           ∈ˢ app M (natsucc n) := by
     intro M z s hM hz hs n hn
-    -- L15: `natRecV` reads its step through `natStepSpace` (numeral); the
-    -- value-read step space differs where a fibre `M n` is empty
-    have hs' : s ∈ˢ natStepSpace V (ψ uN) M := by
-      sorry
     have hsn : app s n ∈ˢ piV (app M n) (fun _ => app M (natsucc n)) :=
       app_mem_piV (B := fun k => piV (app M k) fun _ => app M (natsucc k)) hs hn
     have hrec : app (app (app (app (natRecV V (ψ uN)) M) z) s) n
         ∈ˢ app M n := by
-      rw [natRecV_app V hM hz hs' hn]
-      exact natRecV_mem_fibre V hM hz hs' hn
+      rw [natRecV_app V hM hz hs hn]
+      exact natRecV_mem_fibre V hz hs hn
     have espine : interp V (cons n (cons s (cons z (cons M ρ))))
         (.app (.app (.app (.app (.const .natRec [ψ uN]) (.bvar 3))
           (.bvar 2)) (.bvar 1)) (.bvar 0))
@@ -881,7 +874,7 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
       exact app_mem_piV hsn hrec
   -- the fourth λ, at a motive, a minor and a step
   have hlam4 : ∀ M z s : V, M ∈ˢ natMotiveSpace V (ψ uN) → z ∈ˢ app M natzero →
-      s ∈ˢ (piV omega fun n => piV (app M n) fun _ => app M (natsucc n)) →
+      s ∈ˢ (natStepSpace V M) →
       WellDenoted V (cons s (cons z (cons M ρ)))
           (.lam (.const .nat [])
             (.app (.app (.bvar 1) (.bvar 0))
@@ -917,7 +910,7 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
               (.app (.app (.bvar 1) (.bvar 0))
                 (.app (.app (.app (.app (.const .natRec [ψ uN]) (.bvar 3))
                   (.bvar 2)) (.bvar 1)) (.bvar 0)))))
-          ∈ˢ piV (piV omega fun n => piV (app M n) fun _ => app M (natsucc n))
+          ∈ˢ piV (natStepSpace V M)
               fun _ => piV omega fun n => app M (natsucc n) := by
     intro M z hM hz
     refine ⟨?_, ?_⟩
@@ -929,8 +922,9 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
       exact lamV_mem (fun s hs => (hlam4 M z s hM hz hs).2) fun _ _ => IsTy_piV
   rw [WellDenotedV, natSuccRa, WellDenoted_lam, natMotiveTy_interp]
   refine ⟨natMotiveTy_wellDenotedV ψ ρ, IsTy_piR _ _ _, fun M hM => ?_, ?_⟩
-  · have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V)
-        fun _ => univ (ψ uN) := hM
+  · have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V) fun _ => univ (ψ uN) := by
+      rw [← piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩]
+      exact hM
     rw [WellDenoted_lam, hzty]
     refine ⟨⟨trivial, trivial, ψ uN + 1, omega, fun _ => univ (ψ uN),
         by simpa [interp_bvar, cons] using hM',
@@ -940,16 +934,11 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
       hMty M hM _ natzero_mem, fun z hz => (hlam3 M z hM hz).1, ?_⟩
     exact ⟨_, fun z hz => (hlam3 M z hM hz).2, fun _ _ => IsTy_piV⟩
   · refine ⟨fun M => piV (app M natzero) fun _ =>
-        piV (piV omega fun n => piV (app M n) fun _ => app M (natsucc n))
+        piV (natStepSpace V M)
           fun _ => piV omega fun n => app M (natsucc n),
       fun M hM => ?_, fun _ _ => IsTy_piV⟩
     rw [interp_lam, hzty]
     exact lamV_mem (fun z hz => (hlam3 M z hM hz).2) fun _ _ => IsTy_piV
-
-/-- The value-read step space `(n : Nat) → M n → M (n + 1)` (the step
-binder's reading, `natStepTy_interp`). -/
-noncomputable abbrev natStepSpaceV (M : V) : V :=
-  piV omega fun n => piV (app M n) fun _ => app M (natsucc n)
 
 /-! ### The two rows
 
@@ -973,7 +962,7 @@ theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
     ∃ M z s : AnnotTerm, xs = [M, z, s] ∧
       interp V ρ M ∈ˢ natMotiveSpace V (ψ uN) ∧
       interp V ρ z ∈ˢ app (interp V ρ M) natzero ∧
-      interp V ρ s ∈ˢ natStepSpaceV (interp V ρ M) ∧
+      interp V ρ s ∈ˢ natStepSpace V (interp V ρ M) ∧
       interp V ρ tl ∈ˢ (omega : V) := by
   obtain ⟨M, z, s, rfl⟩ : ∃ a b c, xs = [a, b, c] := by
     match xs, hxs with
@@ -989,7 +978,7 @@ theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
   · have heq : (piV (omega : V) fun x =>
           piV (app (interp V ρ M) x)
             fun _ => app (interp V ρ M) (app (natSuccV V) x))
-        = natStepSpaceV (interp V ρ M) :=
+        = natStepSpace V (interp V ρ M) :=
       piV_congr fun n hn => piV_congr fun _ _ => by rw [natSuccV_app V hn]
     rw [← heq]
     simpa [AnnotTerm.inst, AnnotTerm.liftN_zero, natStepTy,
@@ -1004,7 +993,7 @@ theorem natZeroRa_mem (ψ : Name → Nat) (ρ : Nat → V) :
     interp V ρ (natZeroRa ψ)
       ∈ˢ piV (natMotiveSpace V (ψ uN))
         (fun M => piV (app M natzero)
-          (fun _ => piV (natStepSpaceV M) (fun _ => app M natzero))) := by
+          (fun _ => piV (natStepSpace V M) (fun _ => app M natzero))) := by
   rw [natZeroRa_interp]
   refine lamV_mem (fun M hM => lamV_mem (fun z hz => lamV_mem (fun _ _ => hz)
     fun _ _ => ?_) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
@@ -1015,7 +1004,7 @@ theorem natSuccRa_mem (ψ : Name → Nat) (ρ : Nat → V) :
     interp V ρ (natSuccRa ψ)
       ∈ˢ piV (natMotiveSpace V (ψ uN))
         (fun M => piV (app M natzero)
-          (fun _ => piV (natStepSpaceV M)
+          (fun _ => piV (natStepSpace V M)
             (fun _ => piV omega
               (fun n => app M (natsucc n))))) := by
   rw [natSuccRa_interp]
@@ -1023,13 +1012,10 @@ theorem natSuccRa_mem (ψ : Name → Nat) (ρ : Nat → V) :
     lamV_mem (fun s hs => lamV_mem (fun n hn => ?_) fun n hn =>
       IsTy_of_mem_univ (natMotive_apply V hM (natsucc_mem hn)))
       fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
-  -- L15: `natRecV` reads its step through `natStepSpace` (numeral)
-  have hs' : s ∈ˢ natStepSpace V (ψ uN) M := by
-    sorry
   have hsn := app_mem_piV (B := fun k => piV (app M k) fun _ => app M (natsucc k)) hs hn
   refine app_mem_piV hsn ?_
-  rw [natRecV_app V hM hz hs' hn]
-  exact natRecV_mem_fibre V hM hz hs' hn
+  rw [natRecV_app V hM hz hs hn]
+  exact natRecV_mem_fibre V hz hs hn
 
 /-- The `zero` rule's transport: three `WellDenoted_app` steps over
 `natZeroRa_mem`. -/
@@ -1037,7 +1023,7 @@ theorem natZeroRa_transport (ψ : Name → Nat) (ρ : Nat → V)
     {M z s : AnnotTerm}
     (hM : interp V ρ M ∈ˢ natMotiveSpace V (ψ uN))
     (hz : interp V ρ z ∈ˢ app (interp V ρ M) natzero)
-    (hs : interp V ρ s ∈ˢ natStepSpaceV (interp V ρ M))
+    (hs : interp V ρ s ∈ˢ natStepSpace V (interp V ρ M))
     (okM : WellDenotedV V ρ M) (okz : WellDenotedV V ρ z)
     (oks : WellDenotedV V ρ s) :
     WellDenotedV V ρ (.app (.app (.app (natZeroRa ψ) M) z) s) := by
@@ -1058,7 +1044,7 @@ theorem natSuccRa_transport (ψ : Name → Nat) (ρ : Nat → V)
     {M z s n : AnnotTerm}
     (hM : interp V ρ M ∈ˢ natMotiveSpace V (ψ uN))
     (hz : interp V ρ z ∈ˢ app (interp V ρ M) natzero)
-    (hs : interp V ρ s ∈ˢ natStepSpaceV (interp V ρ M))
+    (hs : interp V ρ s ∈ˢ natStepSpace V (interp V ρ M))
     (hn : interp V ρ n ∈ˢ (omega : V))
     (okM : WellDenotedV V ρ M) (okz : WellDenotedV V ρ z)
     (oks : WellDenotedV V ρ s) (okn : WellDenotedV V ρ n) :
@@ -1227,10 +1213,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
       List.append_nil, AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL,
       hctorL, interp_app, interp_const, bval, ConLeche.Term.lv,
       List.getD_cons_zero]
-    -- L15: `natRecV` reads its step through `natStepSpace` (numeral)
-    have hs' : interp V ρ s ∈ˢ natStepSpace V (ψ uN) (interp V ρ M) := by
-      sorry
-    rw [natRecV_app V hM hz hs' (natzero_mem (V := V)), natrec_zero,
+    rw [natRecV_app V hM hz hs (natzero_mem (V := V)), natrec_zero,
       natZeroRa_interp, app_lamV hM, app_lamV hz, app_lamV hs]
   · intro hxsA _
     simp only [List.take]
@@ -1297,19 +1280,16 @@ theorem natRecSuccLaw {m : EnvModel V env}
   cases hfitC with | cons hn _ =>
   have hn' : interp V ρ n ∈ˢ (omega : V) := by
     simpa [interp_const, bval] using hn
-  -- L15: `natRecV` reads its step through `natStepSpace` (numeral)
-  have hs' : interp V ρ s ∈ˢ natStepSpace V (ψ uN) (interp V ρ M) := by
-    sorry
   refine ⟨?_, ?_⟩
   · simp only [List.take, List.drop, List.cons_append, List.nil_append,
       AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL,
       hctorL, interp_app, interp_const, bval, ConLeche.Term.lv,
       List.getD_cons_zero, show natRecSuccRule.ctorParams = 0 from rfl]
     rw [natSuccV_app V hn',
-      natRecV_app V hM hz hs' (natsucc_mem hn'), natrec_succ _ _ hn',
+      natRecV_app V hM hz hs (natsucc_mem hn'), natrec_succ _ _ hn',
       natSuccRa_interp]
     rw [app_lamV hM, app_lamV hz, app_lamV hs, app_lamV hn',
-      natRecV_app V hM hz hs' hn']
+      natRecV_app V hM hz hs hn']
   · intro hxsA hysA
     simp only [List.take, List.drop,
       show natRecSuccRule.ctorParams = 0 from rfl]
@@ -1444,7 +1424,7 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
       rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN2
     rw [show natSuccA.toConstantVal.type
       = Expr.forallE (.const natName [])
-        (.const natName []) { pw := .never } from rfl]
+        (.const natName []) {} from rfl]
     simp [Expr.constsResolve, hf]
   refine (extendNatSucc mp2 hN2 hZ2 hf3 hwf3).trans fun mp3 => ?_
   have hN3 : (⟨natSuccA :: natZeroA :: natA :: env.consts⟩
@@ -1482,7 +1462,7 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
           = Expr.forallE
               (Expr.forallE
                 (.const natName []) (.sort (.param uN))
-                { pw := .never })
+                {})
               (Expr.forallE
                 (.app (.bvar 0) (.const natZeroName []))
                 (Expr.forallE
@@ -1492,14 +1472,14 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
                       (.app (.bvar 2) (.bvar 0))
                       (.app (.bvar 3)
                         (.app (.const natSuccName []) (.bvar 1)))
-                      { pw := .ifAllZero [uN] })
-                    { pw := .ifAllZero [uN] })
+                      {})
+                    {})
                   (Expr.forallE
                     (.const natName []) (.app (.bvar 3) (.bvar 0))
-                    { pw := .ifAllZero [uN] })
-                  { pw := .ifAllZero [uN] })
-                { pw := .ifAllZero [uN] })
-              { pw := .ifAllZero [uN] } from rfl]
+                    {})
+                  {})
+                {})
+              {} from rfl]
       simp only [Expr.constsResolve, hfN, hfZ, hfS, Option.isSome_some,
         Bool.and_self]
     · intro cv mI rP rules heq

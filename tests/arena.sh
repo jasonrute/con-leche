@@ -325,8 +325,8 @@ e2e_half() {
 }
 
 # --- the annotated suite (task #161) --------------------------------
-# Hand-written export streams whose binder records carry the "pw"
-# sort-annotation field; see tests/annot-expected.txt's header.
+# Hand-written export streams whose binder records carry the legacy "pw"
+# field, which the parser drops; see tests/annot-expected.txt's header.
 annot_half() {
   annot_ok=0
   annot_total=0
@@ -344,14 +344,9 @@ annot_half() {
   done < "$ANNOT_EXPECTED"
 }
 
-# THE CERTIFIED SWEEP, RESTORED (task #161 P5, 2026-09-01).  The P2..P5
-# suspension is over: the annotate pass writes the `pw` datum for every
-# binder of every unannotated stream, so the arena and e2e suites run at
-# `--verified` again — validated, not merely checked.  A regression in
-# the pass shows up here as a `sort-annotation mismatch (<site>)`
-# decline against a certified expectation.  The annotated fixture suite
-# stays and is now the pass's *negative* gate: the annot_decline_*
-# streams carry explicit wrong claims the pass must not overwrite.
+# The arena and e2e suites run at `--verified`, then the annotated
+# fixture suite: its streams carry a legacy binder datum the parser
+# drops, so it pins that no such field changes a verdict.
 arena_half
 echo "arena tutorial: $accepted/$total_good good tests accepted"
 if [ -f "$E2E_EXPECTED" ]; then

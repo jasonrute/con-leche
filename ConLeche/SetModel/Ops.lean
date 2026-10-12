@@ -445,6 +445,14 @@ theorem app_mem_piV {A f a : V} {B : V → V} (hf : f ∈ˢ piV A B) (ha : a ∈
     exact app_mem_piR hf ha fun _ => propN_eq_zero.mp hb
   · exact app_mem_piR_pos hb hf ha
 
+/-- **The application slot** a member of a function space supplies at
+an argument of its domain, the domain a type: the numeral is `propN`'s,
+with its fibre fact. -/
+theorem piV_slot {A f a : V} {B : V → V} (hf : f ∈ˢ piV A B) (ha : a ∈ˢ A) (hA : IsTy A) :
+    ∃ (v : Nat) (A' : V) (B' : V → V), f ∈ˢ piR v A' B' ∧ a ∈ˢ A' ∧
+      (v = 0 → ∀ x, x ∈ˢ A' → B' x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A') :=
+  ⟨propN A B, A, B, hf, ha, propN_eq_zero.mp, fun _ => hA⟩
+
 /-- **Introduction**: body values in fibres that are types abstract into
 the function space.  Where every fibre is a truth value every body value
 is the point, and so is the abstraction; where one fibre is not, it is

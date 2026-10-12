@@ -66,11 +66,6 @@ theorem pt_mem_dnegSpace_of {A x : V} (hx : x ∈ˢ A) : (pt : V) ∈ˢ dnegSpac
   rw [h1, piR_zero_empty]
   exact pt_mem_unitSet
 
-/-- `Classical.choice.{s}` is a graph. -/
-theorem choiceV_mem (s : Nat) :
-    choiceV V s ∈ˢ piR s (univ s : V) (fun A => piR s (dnegSpace V A) fun _ => A) :=
-  lamR_mem fun _ _ => lamR_mem fun _ hh => schoice_mem (exists_mem_of_dneg V hh).choose_spec
-
 /-- Elimination at a `Prop`-valued product. -/
 theorem piR_zero_elim {A f x : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) (hx : x ∈ˢ A) :
     ∃ y, y ∈ˢ B x := by
@@ -322,8 +317,9 @@ theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
 theorem psigmaV_uv_mem (u v : Nat) :
     psigmaV V u v ∈ˢ piR (Nat.max u v + 1) (univ u : V)
       (fun A => piR (Nat.max u v + 1) (psigmaFibreSpace V v A)
-        fun _ => (univ (Nat.max u v) : V)) :=
-  lamR_mem fun _ hA => lamR_mem fun _ hB =>
+        fun _ => (univ (Nat.max u v) : V)) := by
+  rw [psigmaV_eq_lamR]
+  exact lamR_mem fun _ hA => lamR_mem fun _ hB =>
     sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
 
 /-- The chain's fibre λ. -/
@@ -475,26 +471,17 @@ theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
     exact choiceV_app V hu (pt_mem_dnegSpace_of hne.choose_spec)
   · show WellDenoted V ρ (.app (.app (.const .choice [s]) (sigChainAV s Ts Q)) .prf)
     rw [WellDenoted_app]
-    refine ⟨?_, trivial, s, dnegSpace V (sigChainV s ρ Ts Q), fun _ => sigChainV s ρ Ts Q,
-      ?_, ?_, ?_⟩
+    refine ⟨?_, trivial, ?_⟩
     · rw [WellDenoted_app]
-      refine ⟨trivial, wd_sigChainAV h, s, univ s,
-        fun A => piR s (dnegSpace V A) fun _ => A, hchoice, ?_, fun h0 A _ => ?_,
-        fun _ => IsTy_univ s⟩
-      · rw [interp_sigChainAV h]; exact hu
-      · show piR s _ _ ∈ˢ _
-        rw [h0]; exact piR_zero_mem_univZero
-    · show SetTheory.app (choiceV V s) (interp V ρ (sigChainAV s Ts Q)) ∈ˢ _
+      refine ⟨trivial, wd_sigChainAV h, ?_⟩
+      show ∃ v A B, choiceV V s ∈ˢ piR v A B ∧ _
       rw [interp_sigChainAV h]
-      refine app_mem_piR hchoice hu (fun h0 A _ => ?_)
-      show piR s _ _ ∈ˢ _
-      rw [h0]; exact piR_zero_mem_univZero
-    · exact pt_mem_dnegSpace_of hne.choose_spec
-    · refine ⟨fun h0 _ _ => ?_, fun _ => IsTy_piR _ _ _⟩
-      show sigChainV s ρ Ts Q ∈ˢ univZero
-      subst h0
-      have := hu
-      rwa [univ_zero] at this
+      exact piV_slot hchoice hu (IsTy_univ s)
+    · show ∃ v A B, SetTheory.app (choiceV V s) (interp V ρ (sigChainAV s Ts Q))
+        ∈ˢ piR v A B ∧ _
+      rw [interp_sigChainAV h]
+      exact piV_slot (app_mem_piV hchoice hu) (pt_mem_dnegSpace_of hne.choose_spec)
+        (IsTy_piR _ _ _)
 
 /-- **THE KIT'S THEOREM**: at a formed, inhabited chain, the chosen
 element's projections are a fitting spine whose components satisfy

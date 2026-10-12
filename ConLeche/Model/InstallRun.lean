@@ -136,18 +136,14 @@ theorem annotStepC_model (hμ : μ.verifiedChecks = true)
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, hcvA, hwty, hwv, F₁, hI, hV⟩ := annotValueC_run hμ henv hresA hval
+        obtain ⟨hres₁, rfl, rfl, rfl, hwty, hwv, hI, hV⟩ := annotValueC_run hresA hval
         refine value .defn (fun cvA jv => .defnInfo cvA jv hint)
-          (.defnDecl cv val hint) cvA jv rfl
-          hres₁ rfl rfl (by rw [hcvA]; exact hwty)
-          (fun _ => hwv) ?_
+          (.defnDecl cvA jv hint) cvA jv rfl
+          hres₁ rfl rfl hwty (fun _ => hwv) ?_
         intro F hC
-        have hnat' : (natOpNames.contains cv.name || natDivModNames.contains cv.name) = false :=
+        have hnat' : (natOpNames.contains cvA.name || natDivModNames.contains cvA.name) = false :=
           Bool.not_eq_true _ ▸ hnat
-        exact ⟨max F₁ F, checkDecl_of_split_defn hnat' rfl
-          (installConstantVal_mono (Nat.le_max_left _ _) hI)
-          (installValue_mono (Nat.le_max_left _ _) hV)
-          (checkValueGroup_mono (Nat.le_max_right _ _) hC)⟩
+        exact ⟨F, checkDecl_of_split_defn hnat' rfl hI hV hC⟩
     | thmDecl cv val =>
       -- phase A installed the header alone: the flush, the header's
       -- install half, the push of the RAW value
@@ -160,18 +156,16 @@ theorem annotStepC_model (hμ : μ.verifiedChecks = true)
       obtain ⟨pr, s₂, hcv, h⟩ := bindC_ok h
       obtain ⟨cvA, jty⟩ := pr
       rw [hfe] at hcv
-      obtain ⟨hs₂, hcvA, hwty, F₁, hI⟩ :=
-        annotConstantValC_run hμ henv (flushC_csok hresA) hcv
+      obtain ⟨hs₂, rfl, rfl, hwty, hI⟩ :=
+        annotConstantValC_run (μ := μ) (flushC_csok hresA) hcv
       obtain ⟨hv, rfl⟩ := pureC_ok h
       simp only [Prod.mk.injEq] at hv
       obtain ⟨rfl, rfl⟩ := hv
-      refine value .thm (fun cvA _ => .thmInfo cvA) (.thmDecl cv val) cvA val
+      refine value .thm (fun cvA _ => .thmInfo cvA) (.thmDecl cvA val) cvA val
         rfl
-        hs₂.residue rfl rfl (by rw [hcvA]; exact hwty) (fun h => absurd rfl h) ?_
+        hs₂.residue rfl rfl hwty (fun h => absurd rfl h) ?_
       intro F hC
-      exact ⟨max F₁ F, checkDecl_of_split_thm rfl
-        (installConstantVal_mono (Nat.le_max_left _ _) hI) rfl
-        (checkValueGroup_mono (Nat.le_max_right _ _) hC)⟩
+      exact ⟨F, checkDecl_of_split_thm rfl hI rfl hC⟩
     | opaqueDecl cv val =>
       unfold annotStepC at hstepC
       simp only [] at hstepC
@@ -184,16 +178,13 @@ theorem annotStepC_model (hμ : μ.verifiedChecks = true)
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, hcvA, hwty, hwv, F₁, hI, hV⟩ := annotValueC_run hμ henv hresA hval
-        refine value .opaque (fun cvA _ => .axiomInfo cvA) (.opaqueDecl cv val)
+        obtain ⟨hres₁, rfl, rfl, rfl, hwty, hwv, hI, hV⟩ := annotValueC_run hresA hval
+        refine value .opaque (fun cvA _ => .axiomInfo cvA) (.opaqueDecl cvA jv)
           cvA jv rfl
-          hres₁ rfl rfl (by rw [hcvA]; exact hwty) (fun _ => hwv) ?_
+          hres₁ rfl rfl hwty (fun _ => hwv) ?_
         intro F hC
-        have hred' : reduceOpNames.contains cv.name = false := Bool.not_eq_true _ ▸ hred
-        exact ⟨max F₁ F, checkDecl_of_split_opaque hred' rfl
-          (installConstantVal_mono (Nat.le_max_left _ _) hI)
-          (installValue_mono (Nat.le_max_left _ _) hV)
-          (checkValueGroup_mono (Nat.le_max_right _ _) hC)⟩
+        have hred' : reduceOpNames.contains cvA.name = false := Bool.not_eq_true _ ▸ hred
+        exact ⟨F, checkDecl_of_split_opaque hred' rfl hI hV hC⟩
     | axiomDecl cv => unfold annotStepC at hstepC; exact ordinary _ hstepC
     | basisDecl kind => unfold annotStepC at hstepC; exact ordinary _ hstepC
     | quotDecl k cv => unfold annotStepC at hstepC; exact ordinary _ hstepC

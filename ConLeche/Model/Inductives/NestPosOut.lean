@@ -40,11 +40,11 @@ theorem erasedEq_nestOcc {names : List Name} {lo hi : Nat} :
   | lam ty bd mm iht ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
-    simp only [Expr.nestOcc, iht _ h.2.1, ihb _ h.2.2]
+    simp only [Expr.nestOcc, iht _ h.1, ihb _ h.2]
   | forallE ty bd mm iht ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
-    simp only [Expr.nestOcc, iht _ h.2.1, ihb _ h.2.2]
+    simp only [Expr.nestOcc, iht _ h.1, ihb _ h.2]
   | letE ty v bd iht ihv ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
@@ -85,11 +85,11 @@ theorem erasedEq_abstract1_instantiate1 {d : Nat} {ty : Expr} :
   | lam t b mm iht ihb =>
     intro k hb
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    exact ⟨rfl, iht k hb.1, ihb (k + 1) hb.2⟩
+    exact ⟨iht k hb.1, ihb (k + 1) hb.2⟩
   | forallE t b mm iht ihb =>
     intro k hb
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    exact ⟨rfl, iht k hb.1, ihb (k + 1) hb.2⟩
+    exact ⟨iht k hb.1, ihb (k + 1) hb.2⟩
   | letE t v b iht ihv ihb =>
     intro k hb
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
@@ -173,7 +173,7 @@ theorem open_of_erasedEq_closeTelescope :
     cases e with
     | forallE a b bm' =>
       simp only [closeTelescope] at he
-      obtain ⟨-, ha, hbE⟩ := he
+      obtain ⟨ha, hbE⟩ := he
       have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeTelescope_bounded nds (d + 1) body hcl' hb

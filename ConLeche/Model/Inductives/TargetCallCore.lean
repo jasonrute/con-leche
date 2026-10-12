@@ -2,7 +2,7 @@ module
 
 import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Semantics.Kit
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 public import ConLeche.Model.Inductives.TargetIhData
 import ConLeche.Model.Inductives.TargetResidue
 public import ConLeche.Model.Inductives.TargetFrame

@@ -139,11 +139,11 @@ theorem eraseFVars_of_erasedEq : ∀ {a b : Expr}, Expr.ErasedEq a b → eraseFV
     show Expr.app (eraseFVars f) (eraseFVars a) = Expr.app (eraseFVars g) (eraseFVars b)
     rw [eraseFVars_of_erasedEq h.1, eraseFVars_of_erasedEq h.2]
   | .lam t b m, .lam t' b' m', h => by
-    obtain ⟨rfl, h1, h2⟩ := h
+    obtain ⟨h1, h2⟩ := h
     show Expr.lam (eraseFVars t) (eraseFVars b) m = Expr.lam (eraseFVars t') (eraseFVars b') m
     rw [eraseFVars_of_erasedEq h1, eraseFVars_of_erasedEq h2]
   | .forallE t b m, .forallE t' b' m', h => by
-    obtain ⟨rfl, h1, h2⟩ := h
+    obtain ⟨h1, h2⟩ := h
     show Expr.forallE (eraseFVars t) (eraseFVars b) m
       = Expr.forallE (eraseFVars t') (eraseFVars b') m
     rw [eraseFVars_of_erasedEq h1, eraseFVars_of_erasedEq h2]

@@ -51,10 +51,6 @@ def inferTypeIO (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Expr :=
 def isDefEqCore (env : Env) (fuel depth : Nat) (a b : Expr) : CheckM Bool :=
   (pureFns mode env fuel).defeq depth a b
 
-/-- The annotation pass (fueled). -/
-def annotateCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Expr :=
-  (pureFns mode env fuel).annotate depth e
-
 /-- `ensureSort` over the pure knot (fueled). -/
 def ensureSortCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Level :=
   ensureSort (pureFns mode env fuel) env depth e

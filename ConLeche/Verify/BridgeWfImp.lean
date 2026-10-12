@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Verify.BridgeDecl
 import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Extend.Inversions
 
 public section
 
@@ -219,64 +220,15 @@ macro "throwM_elim" h:ident : tactic =>
       Except.bind, reduceCtorEq] at $h:ident)
 
 /-- The type-slot `ConstWF` facts of a successfully checked constant:
-level parameters and constant resolution are checked outright, and the
-annotated type inherits closedness and fvar-freedom from the raw
-checks through `annotate`. -/
+level parameters, constant resolution, closedness and fvar-freedom are
+all checked outright (the stored type is the declared one). -/
 theorem checkConstantVal_typeWF {env : Env} {cv cvA : ConstantVal}
     {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
     cvA.type.hasFvar = false ∧
     cvA.type.allLevelParamsDefined cvA.levelParams = true ∧
     cvA.type.constsResolve env = true ∧
     cvA.type.looseBVarsBounded 0 = true := by
-  unfold checkConstantVal at h
-  by_cases h1 : (env.find? cv.name).isSome = true
-  · rw [ite_eq_left h1] at h; throwM_elim h
-  rw [ite_eq_right h1] at h
-  by_cases h2 : reservedBasisNames.contains cv.name = true
-  · rw [ite_eq_left h2] at h; throwM_elim h
-  rw [ite_eq_right h2] at h
-  by_cases h3 : cv.name.isProjFnShape = true
-  · rw [ite_eq_left h3] at h; throwM_elim h
-  rw [ite_eq_right h3] at h
-  by_cases h4 : Name.nodup cv.levelParams = true
-  case neg => rw [ite_eq_right h4] at h; throwM_elim h
-  rw [ite_eq_left h4] at h
-  by_cases h5 : Expr.looseBVarsBounded 0 cv.type = true
-  case neg => rw [ite_eq_right h5] at h; throwM_elim h
-  rw [ite_eq_left h5] at h
-  by_cases h6 : cv.type.hasFvar = true
-  · rw [ite_eq_left h6] at h; throwM_elim h
-  rw [ite_eq_right h6] at h
-  revert h
-  match hann : (fueledOps mode F).annotate env 0 cv.type with
-  | .error e => intro h; exact nomatch h
-  | .ok type => ?_
-  intro h
-  simp only [Bind.bind, Except.bind] at h
-  have hann' : annotateCore mode env F 0 cv.type = .ok type := hann
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams type = true
-  case neg => rw [ite_eq_right h7] at h; exact nomatch h
-  rw [ite_eq_left h7] at h
-  by_cases h8 : Expr.constsResolve env type = true
-  case neg => rw [ite_eq_right h8] at h; exact nomatch h
-  rw [ite_eq_left h8] at h
-  revert h
-  match hity : (fueledOps mode F).inferType env 0 type with
-  | .error e => intro h; exact nomatch h
-  | .ok stype => ?_
-  intro h
-  simp only [Bind.bind, Except.bind] at h
-  revert h
-  match hsty : (fueledOps mode F).ensureSort env 0 stype with
-  | .error e => intro h; exact nomatch h
-  | .ok u => ?_
-  intro h
-  simp only [Bind.bind, Except.bind, pure, Except.pure,
-    Except.ok.injEq] at h
-  subst h
-  refine ⟨?_, h7, h8, annotateCore_looseBVars F cv.type hann' h5⟩
-  exact not_hasFvar_of_fvarsBelow_zero
-    ((annotateCore_WScoped F cv.type hann'
-      (WScoped.of_not_hasFvar (Bool.not_eq_true _ |>.mp h6))).fvarsBelow)
+  obtain ⟨-, -, -, -, hlb, hif, -, -, htp, htr, -, -, rfl⟩ := checkConstantVal_inv h
+  exact ⟨hif, htp, htr, hlb⟩
 
 end ConLeche

@@ -8,10 +8,10 @@ public import ConLeche.Semantics.WellDenoted
 @[expose] public section
 
 /-!
-# `bval_mem_type` — every built-in inhabits its annotated type
+# `bval_mem_type` — every built-in inhabits its spelled type
 
 The skeleton's `const` row's supplier: every built-in's value lies in
-the reading of `BConst.typeAV`, over `piR`/`lamR`.
+the reading of `BConst.typeAV`, over `piV`/`lamV`.
 
 ## The proof pattern
 
@@ -21,23 +21,21 @@ Each case is three moves, and the first two are mechanical:
    definitional);
 2. `simp only` with `BConst.typeAV`, the smart constructors it mentions,
    and the `interp` clause equations — this reduces
-   `interp ρ (typeAV c us)` to the tower's *own space*, which is the
-   whole point of having read the numeral convention off `Value.lean`
-   rather than choosing one;
-3. apply the tower's membership argument — `lamR_mem` down the
-   binders, then the constant's own semantic fact.
+   `interp ρ (typeAV c us)` to the tower's *own space*: the constants'
+   spaces are the value reading of their spelled binder types;
+3. apply the tower's membership argument — `lamV_mem` down the
+   binders (each fibre a type), then the constant's own semantic fact.
 
-No universe side condition is needed: `lamR_mem` has no premise beyond
-the fibres and `app_mem_piR_pos` none at all.  `Empty.rec` is a *graph*
-(`emptyRecV = lamR v … (lamR v ∅ …)`), so its case is two `lamR_mem`s
-over a vacuous domain rather than a proof-point argument.
+No universe side condition is needed.  `Empty.rec` is the point (its
+inner abstraction is over `∅`), and its type's inner function space is
+`{pt}`.
 
 ## The `Nat.succ` wrinkle
 
 `typeAV`'s step premise mentions `Nat.succ`'s *value*
 (`natSuccAV (.bvar 1)` interprets to `app (natSuccV V) n`) while
 `natStepSpace` is written with the operator `natsucc`.  They agree on
-`ω`, which is what the outer product quantifies over
+`ω`, which is what the outer function space quantifies over
 (`natStepSpace_eq`).
 -/
 
@@ -68,34 +66,36 @@ theorem bval_mem_natZero (us : List Nat) (ρ : Nat → V) :
 
 theorem bval_mem_natSucc (us : List Nat) (ρ : Nat → V) :
     bval V .natSucc us ∈ˢ interp V ρ (BConst.typeAV .natSucc us) := by
-  sorry
+  show natSuccV V ∈ˢ _
+  simp only [BConst.typeAV, arrowA, natTyAV, interp_pi, interp_const,
+    AnnotTerm.lift, AnnotTerm.liftN, bval]
+  exact natSuccV_memV V
 
 /-- The step space as `interp` produces it (with `Nat.succ`'s *value*
 applied) is the one the tower is written with (`natsucc`): they agree
 on `ω`. -/
-theorem natStepSpace_eq {u : Nat} (M : V) :
-    (piR u (omega : V) fun n =>
-        piR u (app M n) fun _ => app M (app (natSuccV V) n))
-      = natStepSpace V u M :=
-  piR_congr fun n hn => by rw [natSuccV_app V hn]
+theorem natStepSpace_eq (M : V) :
+    (piV (omega : V) fun n => piV (app M n) fun _ => app M (app (natSuccV V) n))
+      = natStepSpace V M :=
+  piV_congr fun n hn => by rw [natSuccV_app V hn]
 
 /-- `Nat.rec`'s type, as `interp` produces it. -/
 theorem interp_type_natRec (us : List Nat) (ρ : Nat → V) :
     interp V ρ (BConst.typeAV .natRec us) =
-      piR (lv us 0) (natMotiveSpace V (lv us 0)) fun M =>
-        piR (lv us 0) (app M natzero) fun _ =>
-          piR (lv us 0) (natStepSpace V (lv us 0) M) fun _ =>
-            piR (lv us 0) omega fun n => app M n := by
-  sorry
+      piV (natMotiveSpace V (lv us 0)) fun M =>
+        piV (app M natzero) fun _ =>
+          piV (natStepSpace V M) fun _ =>
+            piV omega fun n => app M n := by
+  simp only [BConst.typeAV, arrowA, natTyAV, natZeroAV, natSuccAV,
+    interp_pi, interp_const, interp_app, interp_bvar, interp_sort,
+    AnnotTerm.lift, AnnotTerm.liftN, cons_zero, cons_succ, bval, natMotiveSpace]
+  refine piV_congr fun M _ => piV_congr fun z _ => ?_
+  rw [natStepSpace_eq]
 
 theorem bval_mem_natRec (us : List Nat) (ρ : Nat → V) :
     bval V .natRec us ∈ˢ interp V ρ (BConst.typeAV .natRec us) := by
   rw [interp_type_natRec]
-  show natRecV V (lv us 0) ∈ˢ _
-  refine lamR_mem fun M hM => lamR_mem fun z hz =>
-    lamR_mem fun s hs => ?_
-  refine lamR_mem fun n hn => ?_
-  exact natRecV_mem_fibre V hM hz hs hn
+  exact natRecV_mem V (lv us 0)
 
 /-! ## `PUnit` -/
 
@@ -120,78 +120,176 @@ theorem bval_mem_empty (us : List Nat) (ρ : Nat → V) :
   simp only [BConst.typeAV, interp_sort]
   exact empty_mem_univ _
 
+/-- `Empty.rec`: its inner abstraction is over `∅`, so it is the point,
+and so is the whole constant; its type's inner function space is
+`{pt}`. -/
 theorem bval_mem_emptyRec (us : List Nat) (ρ : Nat → V) :
     bval V .emptyRec us
       ∈ˢ interp V ρ (BConst.typeAV .emptyRec us) := by
-  sorry
+  show emptyRecV V (lv us 1) ∈ˢ _
+  simp only [BConst.typeAV, arrowA, emptyAV, interp_pi, interp_const,
+    interp_app, interp_bvar, interp_sort, AnnotTerm.lift, AnnotTerm.liftN, cons_zero,
+    cons_succ, bval]
+  exact lamV_mem (fun _ _ => lamV_mem (fun t ht => absurd ht (not_mem_empty t))
+    fun t ht => absurd ht (not_mem_empty t)) fun _ _ => IsTy_piV
 
 /-! ## The dependent pair `.psigma` -/
 
 theorem bval_mem_psigma (us : List Nat) (ρ : Nat → V) :
     bval V .psigma us ∈ˢ interp V ρ (BConst.typeAV .psigma us) := by
-  sorry
+  show psigmaV V (lv us 0) (lv us 1) ∈ˢ _
+  simp only [BConst.typeAV, arrowA, interp_pi, interp_bvar,
+    interp_sort, AnnotTerm.lift, AnnotTerm.liftN, cons_zero]
+  exact psigmaV_mem V _ _
 
-/-- **`.psigmaMk`** — the case the proof pattern does not reach.
-`psigmaMkV`'s body carries no `if max u v = 0 then pt` tag (the
-annotation squashes the tower instead), so the innermost pointwise
-obligation would be `spair a b ∈ˢ sigmaSet 0 A B'` — **false**, since a
-kind-`0` `sigmaSet` is a truth value and `spair a b ≠ pt`.  The kind-`0`
-argument therefore moves from the leaf to the root: split first, then
-exhibit the tower's *inhabitation* with `pt_mem_piR_zero`. -/
+/-- A dependent pair type is a type. -/
+theorem IsTy_psigmaV_app {u v : Nat} {A B : V} (hA : A ∈ˢ (univ u : V))
+    (hB : B ∈ˢ psigmaFibreSpace V v A) : IsTy (app (app (psigmaV V u v) A) B) := by
+  rw [psigmaV_app V hA hB]
+  exact IsTy_of_mem_univ (sigma_mem_univ hA fun x hx => psigmaFibre_apply V hB hx)
+
+/-- **`.psigmaMk`**: four abstractions; the pair is the point where its
+type is a truth value (`max u v = 0`). -/
 theorem bval_mem_psigmaMk (us : List Nat) (ρ : Nat → V) :
     bval V .psigmaMk us
       ∈ˢ interp V ρ (BConst.typeAV .psigmaMk us) := by
-  sorry
+  show psigmaMkV V (lv us 0) (lv us 1) ∈ˢ _
+  simp only [BConst.typeAV, arrowA, psigmaAV, interp_pi, interp_bvar,
+    interp_sort, interp_app, interp_const, AnnotTerm.lift, AnnotTerm.liftN,
+    AnnotTerm.mkAppN, cons_zero, cons_succ, bval, lv, List.getD_cons_zero,
+    List.getD_cons_succ]
+  refine lamV_mem (fun A hA => lamV_mem (fun B hB => lamV_mem (fun a ha =>
+    lamV_mem (fun b hb => ?_) fun _ _ => IsTy_psigmaV_app V hA hB)
+    fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  rw [psigmaV_app V hA hB]
+  split
+  · rename_i hw
+    rw [hw]
+    exact pt_mem_sigma ha hb
+  · rename_i hw
+    exact spair_mem hw ha hb
 
 /-! ## `Quot` -/
 
 theorem bval_mem_quot (us : List Nat) (ρ : Nat → V) :
     bval V .quot us ∈ˢ interp V ρ (BConst.typeAV .quot us) := by
-  sorry
+  show quotV V (lv us 0) ∈ˢ _
+  simp only [BConst.typeAV, relAV, interp_pi, interp_bvar,
+    interp_sort, AnnotTerm.lift, AnnotTerm.liftN, cons_zero]
+  exact lamV_mem (fun _ hA => lamV_mem (fun _ _ => quotSet_mem_univ hA)
+    fun _ _ => IsTy_univ _) fun _ _ => IsTy_piV
+
+/-- A quotient is a type. -/
+theorem IsTy_quotV_app {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V))
+    (hR : R ∈ˢ relSpace V A) : IsTy (app (app (quotV V u) A) R) := by
+  rw [quotV_app V hA hR]; exact IsTy_of_mem_univ (quotSet_mem_univ hA)
 
 theorem bval_mem_quotMk (us : List Nat) (ρ : Nat → V) :
     bval V .quotMk us ∈ˢ interp V ρ (BConst.typeAV .quotMk us) := by
-  sorry
+  show quotMkV V (lv us 0) ∈ˢ _
+  simp only [BConst.typeAV, relAV, quotAV, interp_pi, interp_bvar,
+    interp_sort, interp_app, interp_const, AnnotTerm.lift, AnnotTerm.liftN,
+    AnnotTerm.mkAppN, cons_zero, cons_succ, bval, lv, List.getD_cons_zero]
+  refine lamV_mem (fun A hA => lamV_mem (fun R hR => lamV_mem (fun a ha => ?_)
+    fun _ _ => IsTy_quotV_app V hA hR) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  rw [quotV_app V hA hR]
+  exact quotClass_mem ha
 
-/-- **`Quot.lift`** — six binders, five of them `lamR_mem`, and the
-tail is `quotLiftR_mem`.  Its kind-`0` fibre premise comes from the
-third binder (`B ∈ˢ univ v`, and `univ 0 = univZero`), so nothing new
-is needed. -/
+/-- **`Quot.lift`**: five abstractions, and the tail is
+`quotLiftR_mem`. -/
 theorem bval_mem_quotLift (us : List Nat) (ρ : Nat → V) :
     bval V .quotLift us
       ∈ˢ interp V ρ (BConst.typeAV .quotLift us) := by
-  sorry
+  show quotLiftV V (lv us 0) (lv us 1) ∈ˢ _
+  simp only [BConst.typeAV, relAV, quotAV, interp_pi, interp_bvar,
+    interp_sort, interp_app, interp_const, interp_eqE, AnnotTerm.lift,
+    AnnotTerm.liftN, AnnotTerm.mkAppN, cons_zero, cons_succ, bval, lv, List.getD_cons_zero]
+  refine lamV_mem (fun A hA => lamV_mem (fun R hR => lamV_mem (fun B hB =>
+    lamV_mem (fun f hf => lamV_mem (fun _ _ => ?_) fun _ _ => IsTy_piV)
+    fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  rw [quotV_app V hA hR]
+  exact quotLiftR_mem V hf (IsTy_of_mem_univ hB)
 
 /-! ## The `pt`-valued propositions
 
 `Quot.ind`, `Quot.sound` and `propext` have `bval = pt`, so their
-cases are *inhabitation* arguments rather than typings: every binder is
-`piR 0`, closed by `pt_mem_piR_zero_of`. -/
+cases are *inhabitation* arguments rather than typings: every binder's
+abstraction of the point is the point (`pt_mem_piV_ty`). -/
+
+/-- The point inhabits a function space whose fibres are types holding
+it. -/
+theorem pt_mem_piV_ty {A : V} {B : V → V} (h : ∀ x, x ∈ˢ A → (pt : V) ∈ˢ B x)
+    (hB : ∀ x, x ∈ˢ A → IsTy (B x)) : (pt : V) ∈ˢ piV A B := by
+  have hm := lamV_mem (F := fun _ => (pt : V)) h hB
+  rwa [lamV_eq_pt fun _ _ => rfl] at hm
 
 theorem bval_mem_quotInd (us : List Nat) (ρ : Nat → V) :
     bval V .quotInd us ∈ˢ interp V ρ (BConst.typeAV .quotInd us) := by
-  sorry
+  show (pt : V) ∈ˢ _
+  simp only [BConst.typeAV, relAV, quotAV, quotMkAV, interp_pi,
+    interp_bvar, interp_sort, interp_app, interp_const, AnnotTerm.lift,
+    AnnotTerm.liftN, AnnotTerm.mkAppN, cons_zero, cons_succ, bval, lv, List.getD_cons_zero]
+  refine pt_mem_piV_ty V (fun A hA => pt_mem_piV_ty V (fun R hR => pt_mem_piV_ty V (fun M hM =>
+    pt_mem_piV_ty V (fun mi hmi => pt_mem_piV_ty V (fun q hq => ?_) fun q hq => ?_)
+      fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  · have hMq : app M q ∈ˢ (univ 0 : V) := app_mem_piV hM hq
+    rw [quotV_app V hA hR] at hq
+    obtain ⟨a, ha, rfl⟩ := quotClass_surj hq
+    have h1 := app_mem_piV hmi ha
+    rw [quotMkV_app V hA hR ha] at h1
+    exact mem_univ_zero hMq h1 ▸ h1
+  · exact IsTy_of_mem_univ (app_mem_piV hM hq)
 
 theorem bval_mem_quotSound (us : List Nat) (ρ : Nat → V) :
     bval V .quotSound us
       ∈ˢ interp V ρ (BConst.typeAV .quotSound us) := by
-  sorry
+  show (pt : V) ∈ˢ _
+  simp only [BConst.typeAV, relAV, quotMkAV, interp_pi,
+    interp_bvar, interp_sort, interp_app, interp_const,
+    interp_eqE, AnnotTerm.lift, AnnotTerm.liftN, AnnotTerm.mkAppN, cons_zero, cons_succ,
+    bval, lv, List.getD_cons_zero]
+  refine pt_mem_piV_ty V (fun A hA => pt_mem_piV_ty V (fun R hR => pt_mem_piV_ty V (fun a ha =>
+    pt_mem_piV_ty V (fun b hb => pt_mem_piV_ty V (fun _wv hwv => ?_) fun _ _ => IsTy_eqv _ _)
+      fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  rw [quotMkV_app V hA hR ha, quotMkV_app V hA hR hb,
+    SetTheory.quotSound ha hb hwv]
+  exact pt_mem_eqv_self _
 
 theorem bval_mem_propext (us : List Nat) (ρ : Nat → V) :
     bval V .propext us ∈ˢ interp V ρ (BConst.typeAV .propext us) := by
-  sorry
+  show (pt : V) ∈ˢ _
+  simp only [BConst.typeAV, interp_pi, interp_bvar, interp_sort,
+    interp_eqE, cons_zero, cons_succ]
+  refine pt_mem_piV_ty V (fun A hA => pt_mem_piV_ty V (fun B hB => pt_mem_piV_ty V (fun f hf =>
+    pt_mem_piV_ty V (fun g hg => ?_) fun _ _ => IsTy_eqv _ _)
+      fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  have hAB : A = B := by
+    refine prop_ext hA hB (fun hp => ?_) (fun hp => ?_)
+    · have h1 : app f pt ∈ˢ B := app_mem_piV hf hp
+      exact mem_univ_zero hB h1 ▸ h1
+    · have h1 : app g pt ∈ˢ A := app_mem_piV hg hp
+      exact mem_univ_zero hA h1 ▸ h1
+  rw [hAB]
+  exact pt_mem_eqv_self _
 
 /-! ## `Classical.choice` -/
 
 theorem bval_mem_choice (us : List Nat) (ρ : Nat → V) :
     bval V .choice us ∈ˢ interp V ρ (BConst.typeAV .choice us) := by
-  sorry
+  show choiceV V (lv us 0) ∈ˢ _
+  simp only [BConst.typeAV, negTyAV, arrowA, emptyAV, interp_pi,
+    interp_bvar, interp_sort, interp_const, AnnotTerm.lift, AnnotTerm.liftN, cons_zero,
+    cons_succ, bval, piV_dneg_eq]
+  exact choiceV_mem V _
 
 /-! ## `lfpFam` (task #188) -/
 
 theorem bval_mem_lfpFam (us : List Nat) (ρ : Nat → V) :
     bval V .lfpFam us ∈ˢ interp V ρ (BConst.typeAV .lfpFam us) := by
-  sorry
+  show lfpFamV V (lv us 0) (lv us 1) ∈ˢ _
+  simp only [BConst.typeAV, arrowA, interp_pi, interp_sort, interp_bvar, AnnotTerm.lift,
+    AnnotTerm.liftN, cons_zero, cons_succ]
+  exact lfpFamV_mem V (lv us 0) (lv us 1)
 
 /-! ## `lfpTuple k` (#315)
 
@@ -220,7 +318,7 @@ membership (`sigma_mem_univ` at the joint level `max r r = r`). -/
 theorem psigmaV_rr_mem (r : Nat) :
     psigmaV V r r ∈ˢ piR (r + 1) (univ r : V)
       (fun A => piR (r + 1) (psigmaFibreSpace V r A) fun _ => (univ r : V)) := by
-  rw [psigmaV, show Nat.max r r = r from Nat.max_self r]
+  rw [psigmaV_eq_lamR, show Nat.max r r = r from Nat.max_self r]
   exact lamR_mem fun A hA => lamR_mem fun B hB => by
     have h := sigma_mem_univ (u := r) (v := r) hA
       (fun x hx => psigmaFibre_apply V hB hx)
@@ -407,7 +505,24 @@ theorem tupleFamsAV_facts {k : Nat} {us : List Nat} {j : Nat} {ρ : Nat → V}
 
 theorem bval_mem_lfpTuple (k : Nat) (us : List Nat) (ρ : Nat → V) :
     bval V (.lfpTuple k) us ∈ˢ interp V ρ (BConst.typeAV (.lfpTuple k) us) := by
-  sorry
+  show lfpTupleV V k us ∈ˢ _
+  simp only [BConst.typeAV, interp_pi]
+  rw [(tupleSortsAV_facts V k us ρ).1]
+  have hfams1 : ∀ Is x : V, Is ∈ˢ tupleSortsSpace V k us →
+      interp V (cons x (cons Is ρ)) (tupleFamsAV k us 1) = tupleFamsSpace V k us Is :=
+    fun Is x hIs => (tupleFamsAV_facts V (j := 1) (ρ := cons x (cons Is ρ)) hIs).1
+  have hdom : ∀ Is : V, Is ∈ˢ tupleSortsSpace V k us →
+      (piV (interp V (cons Is ρ) (tupleFamsAV k us 0)) fun x =>
+          interp V (cons x (cons Is ρ)) (tupleFamsAV k us 1))
+        = piV (tupleFamsSpace V k us Is) fun _ => tupleFamsSpace V k us Is := fun Is hIs => by
+    rw [(tupleFamsAV_facts V (j := 0) (ρ := cons Is ρ) hIs).1]
+    exact piV_congr fun x _ => hfams1 Is x hIs
+  have h := lfpTupleV_mem V k us
+  rw [piV_congr fun Is hIs => show _ = piV (interp V (cons Is ρ) (.pi (tupleFamsAV k us 0)
+      (tupleFamsAV k us 1))) (fun x => interp V (cons x (cons Is ρ)) (tupleFamsAV k us 1)) by
+    rw [interp_pi, hdom Is hIs]
+    exact piV_congr fun x _ => (hfams1 Is x hIs).symm] at h
+  exact h
 
 /-! ## The capstone
 

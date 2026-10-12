@@ -101,7 +101,6 @@ io slot joins as the sixth component.) -/
   (∀ d e, rel.R (r₁.whnf d e) (r₂.whnf d e)) ∧
   (∀ d e, rel.R (r₁.infer d e) (r₂.infer d e)) ∧
   (∀ d a b, rel.R (r₁.defeq d a b) (r₂.defeq d a b)) ∧
-  (∀ d e, rel.R (r₁.annotate d e) (r₂.annotate d e)) ∧
   (∀ d e, rel.R (r₁.inferIO d e) (r₂.inferIO d e))
 
 /-- Relatedness transports along the io-grade view: the view only
@@ -109,7 +108,7 @@ permutes fields. -/
 theorem FnsRel.ioView {rel : MonadRel M₁ M₂} {r₁ : CoreFns M₁}
     {r₂ : CoreFns M₂} (h : FnsRel rel r₁ r₂) :
     FnsRel rel r₁.ioView r₂.ioView :=
-  ⟨h.1, h.2.1, h.2.2.2.2.2, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2⟩
+  ⟨h.1, h.2.1, h.2.2.2.2, h.2.2.2.1, h.2.2.2.2⟩
 
 /-- The paired record. -/
 def pairFns {rel : MonadRel M₁ M₂} (r₁ : CoreFns M₁) (r₂ : CoreFns M₂)
@@ -118,8 +117,7 @@ def pairFns {rel : MonadRel M₁ M₂} (r₁ : CoreFns M₁) (r₂ : CoreFns M�
   whnf d e := ⟨(r₁.whnf d e, r₂.whnf d e), h.2.1 d e⟩
   infer d e := ⟨(r₁.infer d e, r₂.infer d e), h.2.2.1 d e⟩
   defeq d a b := ⟨(r₁.defeq d a b, r₂.defeq d a b), h.2.2.2.1 d a b⟩
-  annotate d e := ⟨(r₁.annotate d e, r₂.annotate d e), h.2.2.2.2.1 d e⟩
-  inferIO d e := ⟨(r₁.inferIO d e, r₂.inferIO d e), h.2.2.2.2.2 d e⟩
+  inferIO d e := ⟨(r₁.inferIO d e, r₂.inferIO d e), h.2.2.2.2 d e⟩
 
 section Commute
 
@@ -132,23 +130,21 @@ theorem iotaCerts_fst (d : Nat) (lic : Bool) :
         iotaCerts r₁ env d lic ty args
   | _, [] => rfl
   | .forallE ty body mb, arg :: rest => by
-    show (if lic && mb.pw.isNever then
-        iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
+    show (if lic then pure true
       else (do
         let ta ← (pairFns r₁ r₂ h).inferIO d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
           iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
-        else pure false : PairM rel Bool)).val.1 = (if lic && mb.pw.isNever then
-        iotaCerts r₁ env d lic (body.instantiate1 arg) rest
+        else pure false : PairM rel Bool)).val.1 = (if lic then pure true
       else do
         let ta ← r₁.inferIO d arg
         if ← r₁.defeq d ta ty then
           iotaCerts r₁ env d lic (body.instantiate1 arg) rest
         else pure false)
-    by_cases hg : (lic && mb.pw.isNever) = true
-    · rw [ite_eq_left hg, ite_eq_left hg]
-      exact iotaCerts_fst d lic (body.instantiate1 arg) rest
-    · rw [ite_eq_right hg, ite_eq_right hg]
+    cases lic with
+    | true => rfl
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
       rw [PairM.fst_bind]
       congr 1
       funext ta
@@ -158,7 +154,7 @@ theorem iotaCerts_fst (d : Nat) (lic : Bool) :
       cases b with
       | true =>
         simp only [↓reduceIte]
-        exact iotaCerts_fst d lic (body.instantiate1 arg) rest
+        exact iotaCerts_fst d false (body.instantiate1 arg) rest
       | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
   | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
@@ -170,23 +166,21 @@ theorem iotaCerts_snd (d : Nat) (lic : Bool) :
         iotaCerts r₂ env d lic ty args
   | _, [] => rfl
   | .forallE ty body mb, arg :: rest => by
-    show (if lic && mb.pw.isNever then
-        iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
+    show (if lic then pure true
       else (do
         let ta ← (pairFns r₁ r₂ h).inferIO d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
           iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
-        else pure false : PairM rel Bool)).val.2 = (if lic && mb.pw.isNever then
-        iotaCerts r₂ env d lic (body.instantiate1 arg) rest
+        else pure false : PairM rel Bool)).val.2 = (if lic then pure true
       else do
         let ta ← r₂.inferIO d arg
         if ← r₂.defeq d ta ty then
           iotaCerts r₂ env d lic (body.instantiate1 arg) rest
         else pure false)
-    by_cases hg : (lic && mb.pw.isNever) = true
-    · rw [ite_eq_left hg, ite_eq_left hg]
-      exact iotaCerts_snd d lic (body.instantiate1 arg) rest
-    · rw [ite_eq_right hg, ite_eq_right hg]
+    cases lic with
+    | true => rfl
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
       rw [PairM.snd_bind]
       congr 1
       funext ta
@@ -196,7 +190,7 @@ theorem iotaCerts_snd (d : Nat) (lic : Bool) :
       cases b with
       | true =>
         simp only [↓reduceIte]
-        exact iotaCerts_snd d lic (body.instantiate1 arg) rest
+        exact iotaCerts_snd d false (body.instantiate1 arg) rest
       | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
   | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
@@ -309,6 +303,64 @@ theorem defEqList_snd (d : Nat) :
     | false => rfl
   | [], _ :: _ => rfl
   | _ :: _, [] => rfl
+
+theorem defeqLamsInner_fst (d : Nat) (b₁ b₂ : Expr) :
+    (defeqLamsInner mode (pairFns r₁ r₂ h) d b₁ b₂).val.1 =
+      defeqLamsInner mode r₁ d b₁ b₂ := by
+  unfold defeqLamsInner
+  repeat (first
+    | rfl
+    | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
+    | (dsimp only [])
+    | split)
+
+theorem defeqLams_fst :
+    ∀ (fuel d : Nat) (ty₁ body₁ ty₂ body₂ : Expr),
+      (defeqLams mode (pairFns r₁ r₂ h) fuel d ty₁ body₁ ty₂ body₂).val.1 =
+        defeqLams mode r₁ fuel d ty₁ body₁ ty₂ body₂
+  | fuel, d, ty₁, body₁, ty₂, body₂ => by
+    rw [defeqLams.eq_def, defeqLams.eq_def]
+    rw [PairM.fst_bind]
+    congr 1
+    funext ok
+    cases ok with
+    | false => rfl
+    | true =>
+      simp only [↓reduceIte]
+      split
+      · split
+        · rfl
+        · exact defeqLams_fst _ (d + 1) _ _ _ _
+      · exact defeqLamsInner_fst d _ _
+
+theorem defeqLamsInner_snd (d : Nat) (b₁ b₂ : Expr) :
+    (defeqLamsInner mode (pairFns r₁ r₂ h) d b₁ b₂).val.2 =
+      defeqLamsInner mode r₂ d b₁ b₂ := by
+  unfold defeqLamsInner
+  repeat (first
+    | rfl
+    | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
+    | (dsimp only [])
+    | split)
+
+theorem defeqLams_snd :
+    ∀ (fuel d : Nat) (ty₁ body₁ ty₂ body₂ : Expr),
+      (defeqLams mode (pairFns r₁ r₂ h) fuel d ty₁ body₁ ty₂ body₂).val.2 =
+        defeqLams mode r₂ fuel d ty₁ body₁ ty₂ body₂
+  | fuel, d, ty₁, body₁, ty₂, body₂ => by
+    rw [defeqLams.eq_def, defeqLams.eq_def]
+    rw [PairM.snd_bind]
+    congr 1
+    funext ok
+    cases ok with
+    | false => rfl
+    | true =>
+      simp only [↓reduceIte]
+      split
+      · split
+        · rfl
+        · exact defeqLams_snd _ (d + 1) _ _ _ _
+      · exact defeqLamsInner_snd d _ _
 
 theorem iotaIndexOk_fst (d : Nat) (mI rP cnP : Nat) (tyCtor : Expr)
     (margs idx : List Expr) :
@@ -478,6 +530,7 @@ macro "fst_step" : tactic =>
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
+    | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -497,6 +550,7 @@ macro "snd_step" : tactic =>
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
+    | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -594,15 +648,15 @@ theorem structUnitCert_snd_proj (d : Nat) (a b : Expr) :
   unfold structUnitCert
   snd_tac
 
-theorem etaCert_fst_proj (d : Nat) (ty body : Expr) (mb : BinderMeta) (b : Expr) :
-    (etaCert mode (pairFns r₁ r₂ h) env d ty body mb b).val.1 =
-      etaCert mode r₁ env d ty body mb b := by
+theorem etaCert_fst_proj (d : Nat) (ty body : Expr) (b : Expr) :
+    (etaCert mode (pairFns r₁ r₂ h) env d ty body b).val.1 =
+      etaCert mode r₁ env d ty body b := by
   unfold etaCert
   fst_tac
 
-theorem etaCert_snd_proj (d : Nat) (ty body : Expr) (mb : BinderMeta) (b : Expr) :
-    (etaCert mode (pairFns r₁ r₂ h) env d ty body mb b).val.2 =
-      etaCert mode r₂ env d ty body mb b := by
+theorem etaCert_snd_proj (d : Nat) (ty body : Expr) (b : Expr) :
+    (etaCert mode (pairFns r₁ r₂ h) env d ty body b).val.2 =
+      etaCert mode r₂ env d ty body b := by
   unfold etaCert
   snd_tac
 
@@ -648,6 +702,7 @@ macro "fst_step2" : tactic =>
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
+    | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -677,6 +732,7 @@ macro "snd_step2" : tactic =>
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
+    | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -851,6 +907,7 @@ macro "fst_core3" x:tactic : tactic =>
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
+    | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -887,6 +944,7 @@ macro "snd_core3" x:tactic : tactic =>
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
+    | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -1074,6 +1132,7 @@ macro "fst_core4" x:tactic : tactic =>
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
+    | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -1133,6 +1192,7 @@ macro "snd_core4" x:tactic : tactic =>
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
+    | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -1238,14 +1298,14 @@ theorem whnfBody_snd_proj (d : Nat) (e : Expr) :
   whnfLoop_snd_proj d whnfLoopFuel e
 
 theorem inferBody_fst_proj (d : Nat) (e : Expr) :
-    (inferBody mode (pairFns r₁ r₂ h) env d e).val.1 =
-      inferBody mode r₁ env d e := by
+    (inferBody (pairFns r₁ r₂ h) env d e).val.1 =
+      inferBody r₁ env d e := by
   unfold inferBody
   fst_tac4
 
 theorem inferBody_snd_proj (d : Nat) (e : Expr) :
-    (inferBody mode (pairFns r₁ r₂ h) env d e).val.2 =
-      inferBody mode r₂ env d e := by
+    (inferBody (pairFns r₁ r₂ h) env d e).val.2 =
+      inferBody r₂ env d e := by
   unfold inferBody
   snd_tac4
 
@@ -1255,14 +1315,14 @@ view of the pairing on the fields the body reads, so the walks go
 through the plain `pairFns` of the viewed records. -/
 
 theorem inferBodyIO_fst_proj (d : Nat) (e : Expr) :
-    (inferBodyIO mode (pairFns r₁ r₂ h) env d e).val.1 =
-      inferBodyIO mode r₁ env d e := by
+    (inferBodyIO (pairFns r₁ r₂ h) env d e).val.1 =
+      inferBodyIO r₁ env d e := by
   unfold inferBodyIO
   fst_tac4
 
 theorem inferBodyIO_snd_proj (d : Nat) (e : Expr) :
-    (inferBodyIO mode (pairFns r₁ r₂ h) env d e).val.2 =
-      inferBodyIO mode r₂ env d e := by
+    (inferBodyIO (pairFns r₁ r₂ h) env d e).val.2 =
+      inferBodyIO r₂ env d e := by
   unfold inferBodyIO
   snd_tac4
 
@@ -1276,24 +1336,6 @@ theorem defeqBody_snd_proj (d : Nat) (a b : Expr) :
     (defeqBody mode (pairFns r₁ r₂ h) env d a b).val.2 =
       defeqBody mode r₂ env d a b := by
   unfold defeqBody
-  snd_tac4
-
--- Task #161 P5: the ∀/λ clauses' untrusted `pw` write is one more
--- inference call under the same cascade (`annotPwPi` = infer +
--- `ensureSort`; `annotPwLam` = the chain read, else infer + infer +
--- `ensureSort`).  Unfolding them alongside `annotateBody` puts their
--- binds in front of the level-4 rewrites — no new lemma is needed, the
--- calls are exactly the kind the `letE`/`proj` clauses already make.
-theorem annotateBody_fst_proj (d : Nat) (e : Expr) :
-    (annotateBody (pairFns r₁ r₂ h) env d e).val.1 =
-      annotateBody r₁ env d e := by
-  unfold annotateBody annotPwPi annotPwLam
-  fst_tac4
-
-theorem annotateBody_snd_proj (d : Nat) (e : Expr) :
-    (annotateBody (pairFns r₁ r₂ h) env d e).val.2 =
-      annotateBody r₂ env d e := by
-  unfold annotateBody annotPwPi annotPwLam
   snd_tac4
 
 end Commute

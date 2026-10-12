@@ -416,15 +416,12 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
     (hokE : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ vE)
     (ρ : Nat → V) (hsat : Sat V Δa ρ) :
     ∃ w : V, w ∈ˢ interp V ρ vE := by
-  obtain ⟨-, appliedA, tp, hann, hinf, hde⟩ := hfacts
-  -- the annotated applied proof keeps the frame
-  have hWA : Expr.WScoped 4 appliedA :=
-    ConLeche.annotateCore_WScoped F _ hann hW
-  have hBA : appliedA.looseBVarsBounded 0 = true :=
-    ConLeche.annotateCore_looseBVars F _ hann hB
-  have hsub := ConLeche.annotateCore_leaves_sub F _ hann hW hB
-  have hLA : Expr.LeavesBounded appliedA := fun l hl => hL l (hsub l hl)
-  have hCA' : CtxOk mp.base2 ψ 4 Δa appliedA := hCA.of_subset hsub
+  obtain ⟨-, tp, hinf, hde⟩ := hfacts
+  -- the applied proof is checked as stored
+  have hWA := hW
+  have hBA := hB
+  have hLA := hL
+  have hCA' := hCA
   -- the readings
   obtain ⟨ea, hea⟩ := hacc hinf hWA hBA hLA
   obtain ⟨ta, hta⟩ :=

@@ -302,10 +302,10 @@ theorem lpDefF_openPisAtFvars {ps : List Name} :
         obtain ⟨rfl, rfl⟩ := h
         simp only [lpDefF, Bool.and_eq_true] at he
         obtain ⟨h1, h2⟩ := lpDefF_openPisAtFvars n _ (i + 1) hrec
-          (lpDefF_instantiate1 (v := .fvar i dom) rfl _ _ he.1.2)
+          (lpDefF_instantiate1 (v := .fvar i dom) rfl _ _ he.2)
         refine ⟨fun x hx => ?_, h2⟩
         rcases List.mem_cons.mp hx with rfl | hx
-        · exact he.1.1
+        · exact he.1
         · exact h1 x hx
       · exact nomatch h
     | _ => simp [ConLeche.openPisAtFvars] at h

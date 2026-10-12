@@ -240,7 +240,6 @@ FALLBACK = {
     ('ConLeche.Model.AxiomMem', 'ConLeche.Verify.StdAxiomPin'),
     ('ConLeche.Model.Claims', 'ConLeche.Semantics.Skeleton'),
     ('ConLeche.Model.IndProjEta', 'ConLeche.Model.IndProjCaps'),
-    ('ConLeche.Model.ReduceOps', 'ConLeche.Model.ErasePwInv'),
     ('ConLeche.Model.Tiers', 'ConLeche.Model.CtxOkKit'),
     ('ConLeche.Semantics.Skeleton', 'ConLeche.Semantics.Univ'),
     # lane NESTIND session 9: `TargetClassCall`'s public statements name

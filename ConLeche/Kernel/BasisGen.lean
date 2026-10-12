@@ -124,8 +124,8 @@ private def qPropWhen (pw : ConLeche.PropWhen) : Lean.Expr :=
   | none => mkConst ``ConLeche.PropWhen.never
   | some ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
 
-private def qBinderMeta (m : ConLeche.BinderMeta) : Lean.Expr :=
-  mkApp (mkConst ``ConLeche.BinderMeta.mk) (qPropWhen m.pw)
+private def qBinderMeta (_m : ConLeche.BinderMeta) : Lean.Expr :=
+  mkConst ``ConLeche.BinderMeta.mk
 
 private def qLiteral : ConLeche.Literal → Lean.Expr
   | .natVal n => mkApp (mkConst ``ConLeche.Literal.natVal) (mkRawNatLit n)
@@ -205,7 +205,8 @@ the environment extended with the recursor itself. -/
 def annotateInfo (env : ConLeche.Env) (ci : ConLeche.ConstantInfo) :
     ConLeche.CheckM ConLeche.ConstantInfo := do
   let cv := ci.toConstantVal
-  let ty' ← ConLeche.annotateCore .verified env ConLeche.checkFuel 0 cv.type
+  -- Task #342 S0: no annotate pass; the stored form is the raw pin
+  let ty' := cv.type
   let cv' : ConLeche.ConstantVal := { cv with type := ty' }
   match ci with
   | .indInfo _ caps => return .indInfo cv' caps
@@ -226,15 +227,16 @@ def annotateInfo (env : ConLeche.Env) (ci : ConLeche.ConstantInfo) :
     let envSelf : ConLeche.Env := ⟨.recInfo cv' mI rP rules :: env.consts⟩
     let mut out : List ConLeche.RecRule := []
     for r in rules do
-      let rhs' ← ConLeche.annotateCore .verified envSelf ConLeche.checkFuel 0 r.rhs
+      let _ := envSelf
+      let rhs' := r.rhs
       out := out ++ [{ r with rhs := rhs' }]
     return .recInfo cv' mI rP out
 
 /-- Annotate one raw `ConstantVal` pin's type over `env`. -/
 def annotateVal (env : ConLeche.Env) (cv : ConLeche.ConstantVal) :
     ConLeche.CheckM ConLeche.ConstantVal := do
-  let ty' ← ConLeche.annotateCore .verified env ConLeche.checkFuel 0 cv.type
-  return { cv with type := ty' }
+  let _ := env
+  return cv
 
 /-! ## Evaluating the raw pins
 

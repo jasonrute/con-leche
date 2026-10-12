@@ -4,6 +4,7 @@ import ConLeche.Kernel.StdAxioms
 public import ConLeche.Kernel.TypeChecker
 public import ConLeche.Kernel.NatOpPins
 public import ConLeche.Kernel.Inductives.StructParts
+public import Std.Data.HashSet
 
 @[expose] public section
 
@@ -25,7 +26,6 @@ instantiated with the pure knot (`fueledOps`/`pureOps`, the
 verification's subject) and, in `ConLeche/Cached/CheckerC.lean`, with the
 memoized cached knot the binary executes. -/
 structure CheckerOps (m : Type → Type) where
-  annotate : Env → Nat → Expr → m Expr
   inferType : Env → Nat → Expr → m Expr
   isDefEq : Env → Nat → Expr → Expr → m Bool
   ensureSort : Env → Nat → Expr → m Level
@@ -53,7 +53,6 @@ variable (mode : CheckMode)
 
 /-- The pure instantiation, at an arbitrary fuel. -/
 def fueledOps (F : Nat) : CheckerOps CheckM where
-  annotate env d e := annotateCore mode env F d e
   inferType env d e := inferTypeCore mode env F d e
   isDefEq env d a b := isDefEqCore mode env F d a b
   ensureSort env d e := ensureSortCore mode env F d e
@@ -81,18 +80,51 @@ unchanged.  `where_` names the slot, e.g. `"type of Foo"`.
 (`ConLeche/Kernel/Inductives/StructParts.lean`), so a DAG-shared term
 does not unfold here.  The companion `unknownConstError`
 (`ConLeche/Kernel/Core.lean`) decides the same question inside
-inference, which the annotation pass reaches before this guard runs. -/
+inference, which runs after this guard. -/
 def unresolvedConstsError (where_ : String) (e : Expr) : CheckError :=
   if e.mentionsConst sorryAxName then
     .notImplemented s!"use of the sorryAx axiom in {where_}"
   else .invalid s!"unknown constant in {where_}"
 
+/-- Task #342 S0: does the term contain a string literal?  (Error path
+only; a memoized walk.) -/
+partial def Expr.hasStrLitGo (memo : Std.HashSet Expr) : Expr → Bool × Std.HashSet Expr
+  | .lit (.strVal _) => (true, memo)
+  | .bvar _ | .sort _ | .const .. | .lit _ => (false, memo)
+  | e =>
+    if memo.contains e then (false, memo) else
+    let memo := memo.insert e
+    match e with
+    | .fvar _ ty => Expr.hasStrLitGo memo ty
+    | .app f a =>
+      let (r, memo) := Expr.hasStrLitGo memo f
+      if r then (true, memo) else Expr.hasStrLitGo memo a
+    | .lam t b _ | .forallE t b _ =>
+      let (r, memo) := Expr.hasStrLitGo memo t
+      if r then (true, memo) else Expr.hasStrLitGo memo b
+    | .letE t v b =>
+      let (r, memo) := Expr.hasStrLitGo memo t
+      if r then (true, memo) else
+      let (r, memo) := Expr.hasStrLitGo memo v
+      if r then (true, memo) else Expr.hasStrLitGo memo b
+    | .proj _ _ x => Expr.hasStrLitGo memo x
+    | _ => (false, memo)
+
+/-- Task #342 S0: `unresolvedConstsError` with the annotate pass's
+literal guard ahead of it (the pass ran before the constant-resolution
+guard, and declined on a string literal without the String support
+declarations; the guard now sits in inference, after this one, so the
+install's error path re-asks it). -/
+def unresolvedConstsErrorL (strOk : Bool) (where_ : String) (e : Expr) : CheckError :=
+  if !strOk && (Expr.hasStrLitGo {} e).1 then
+    .notImplemented "string literals before the String support declarations"
+  else unresolvedConstsError where_ e
+
 variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- Checks common to all declarations: fresh name, well-formed universe
 parameters, and a type that is a type and mentions only declared
-parameters.  Returns the constant with its type **annotated**
-(`annotate`); the guards run on the annotated type. -/
+parameters.  Returns the constant. -/
 def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m ConstantVal := do
   if (env.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
@@ -106,14 +138,13 @@ def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Con
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if cv.type.hasFvar then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let type ← ops.annotate env 0 cv.type
-  unless type.allLevelParamsDefined cv.levelParams do
+  unless cv.type.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless type.constsResolve env do
-    throw (unresolvedConstsError s!"type of {cv.name}" type)
-  let stype ← ops.inferType env 0 type
+  unless cv.type.constsResolve env do
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
+  let stype ← ops.inferType env 0 cv.type
   let _u ← ops.ensureSort env 0 stype
-  pure { cv with type := type }
+  pure cv
 
 /-- Open the first `n` `∀`-binders at fresh free variables `0..n-1`
 (each fvar's type is the binder domain, instantiated with the earlier

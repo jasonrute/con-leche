@@ -117,7 +117,7 @@ theorem EndsInSort.of_erasedEq {u : Level} :
     match e', h with
     | .forallE A' b' mb', h =>
       match e, he with
-      | .forallE A b mb, he => exact EndsInSort.of_erasedEq m he.2.2 h
+      | .forallE A b mb, he => exact EndsInSort.of_erasedEq m he.2 h
       | .bvar _, he | .fvar _ _, he | .sort _, he | .const _ _, he | .app _ _, he
       | .lam _ _ _, he | .letE _ _ _, he | .lit _, he | .proj _ _ _, he => exact he.elim
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h | .lam _ _ _, h

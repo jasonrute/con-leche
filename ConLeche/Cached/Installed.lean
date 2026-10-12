@@ -107,12 +107,12 @@ def annotConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if Expr.hasFvar cv.type then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let jty ← (coreKnotI mode fe checkFuel).annotate 0 cv.type
+  let jty := cv.type
   unless Expr.allLevelParamsDefinedC cv.levelParams jty do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
   unless constsResolveFC fe jty do
-    throw (unresolvedConstsError s!"type of {cv.name}" jty)
-  pure (⟨cv.name, cv.levelParams, jty⟩, jty)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" jty)
+  pure (cv, jty)
 
 /-- The value half of `checkDefnValC`/`checkThmValC`/`checkOpaqueValC`
 minus its inference: the guards and the annotation —
@@ -122,11 +122,11 @@ def annotValC (fe : FEnv) (cvA : ConstantVal) (value : Expr) : CheckCM Expr := d
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
+  let jv := value
   unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
     throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
   unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
   pure jv
 
 /-- Phase A's install of a separable value declaration: the
@@ -136,8 +136,8 @@ annotated value. -/
 def annotValueC (fe : FEnv) (cv : ConstantVal) (value : Expr) :
     CheckCM (ConstantVal × Expr × Expr) := do
   flushC
-  let (cvA, jty) ← annotConstantValC mode fe cv
-  let jv ← annotValC mode fe cvA value
+  let (cvA, jty) ← annotConstantValC fe cv
+  let jv ← annotValC fe cvA value
   pure (cvA, jty, jv)
 
 /-- Phase A's step body: annotate-and-install for the three value
@@ -152,7 +152,7 @@ def annotStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then do
       pure (← checkDeclStepC mode pins fe (.defnDecl cv value hint), pend)
     else do
-      let r ← annotValueC mode fe cv value
+      let r ← annotValueC fe cv value
       -- RC linearity: the counter is read BEFORE the push, so that
       -- `fe` reaches `push` unshared (read after it, the push copies
       -- the whole index at every install)
@@ -165,7 +165,7 @@ def annotStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
     -- annotates it, `checkPending`), so phase A never enters a
     -- theorem's body
     flushC
-    let r ← annotConstantValC mode fe cv
+    let r ← annotConstantValC fe cv
     let vis := fe.visibleBelow
     pure (fe.push (.thmInfo r.1),
       pend.push ⟨⟨.thm, r.1, value⟩, i, vis⟩)
@@ -173,7 +173,7 @@ def annotStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
     if reduceOpNames.contains cv.name then do
       pure (← checkDeclStepC mode pins fe (.opaqueDecl cv value), pend)
     else do
-      let r ← annotValueC mode fe cv value
+      let r ← annotValueC fe cv value
       let vis := fe.visibleBelow
       pure (fe.push (.axiomInfo r.1),
         pend.push ⟨⟨.opaque, r.1, r.2.2⟩, i, vis⟩)
@@ -274,7 +274,7 @@ def checkPending (fe : FEnv) (pc : PendingCheck) : CheckCM Unit := do
         throw (.invalid s!"type of theorem {pc.vg.cvA.name} is not a proposition")
       -- a theorem's value arrives raw: its guards and annotation run
       -- here, at the view (`annotValC` — `installValue`'s twin)
-      annotValC mode fe pc.vg.cvA pc.vg.jv
+      annotValC fe pc.vg.cvA pc.vg.jv
     else pure pc.vg.jv
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
   unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt pc.vg.cvA.type do

@@ -289,7 +289,7 @@ theorem checkBlockPass_inv {env : Env} {p₀ : BlockParts} {isRec : Bool}
         ((p₀.complete p₁).members.zip q.cvTas) = .ok (q.ctorsAs, q.sortsss) ∧
       blockNestCtx (m := CheckM) (p₀.complete p₁).toBlockShape q.cvTas q.env₁.find?
         = .ok (ctx, holes) ∧
-      checkBlockClasses (fueledOps mode F) (mkFEnv q.env₁) q.env₁ (p₀.complete p₁).toBlockShape
+      checkBlockClasses (fueledOps mode F) (mkFEnv q.env₁) (p₀.complete p₁).toBlockShape
         ctx.params q.ctorsAs = .ok (q.rd, q.cls) ∧
       checkBlockPositivity (m := CheckM) (fueledOps mode F) q.env₁ q.env₁.find?
         (p₀.complete p₁) q.cvTas q.ctorsAs = .ok (q.kinds, q.nfs, pos) ∧

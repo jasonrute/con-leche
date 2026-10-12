@@ -83,12 +83,12 @@ theorem fvarsBelow_of_erasedEq {d : Nat} :
     intro b h hb
     cases b <;> simp only [Expr.ErasedEq] at h
     simp only [Expr.fvarsBelow] at hb ⊢
-    exact ⟨iht h.2.1 hb.1, ihb h.2.2 hb.2⟩
+    exact ⟨iht h.1 hb.1, ihb h.2 hb.2⟩
   | forallE t bd m iht ihb =>
     intro b h hb
     cases b <;> simp only [Expr.ErasedEq] at h
     simp only [Expr.fvarsBelow] at hb ⊢
-    exact ⟨iht h.2.1 hb.1, ihb h.2.2 hb.2⟩
+    exact ⟨iht h.1 hb.1, ihb h.2 hb.2⟩
   | letE t v bd iht ihv ihb =>
     intro b h hb
     cases b <;> simp only [Expr.ErasedEq] at h

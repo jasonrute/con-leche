@@ -30,14 +30,12 @@ must supply is the leaf `A` with
 
 ## The stored type's reading is the pin's
 
-`matchesPin` compares through `erasePw`, so the pin fixes the stored
-type up to binder names and binder metas.  `denoteMeta` reads neither
-(the binders' regimes are read off the values, `piV`/`lamV`), so the
-`erasePw` inversions recover the stored telescope's reading exactly.
+`matchesPin` is plain equality, so the pin fixes the stored type on
+the nose, and its reading is the pin's.
 The memberships are `Model/AxiomMem.lean`'s.
 
 `Lean.trustCompiler`'s type is a **bare constant**, so the pin fixes
-`type' = .const trueName []` **on the nose** (`erasePw_const_invS`) and
+`type' = .const trueName []` and
 the leaf is the stored `True.intro`'s valuation.
 -/
 
@@ -68,8 +66,7 @@ theorem axiomSkip (mp : EnvModelM V μ env) :
 /-- **The `trustCompiler` branch, discharged.**
 
 The pin fixes the axiom's type to the stored `True` *on the nose* —
-`ConstantVal.matchesPin` compares through `erasePw`, and
-neither erasure moves a `.const` — so this is the one pinned axiom
+`ConstantVal.matchesPin` is plain equality — so this is the one pinned axiom
 whose `denoteMeta` reading is computable from the pin alone (see the
 module docstring).  The leaf is the stored `True.intro`'s
 annotated valuation, and the membership is that constant's own
@@ -86,7 +83,7 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     -⟩ := hcv'
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the guard's two pin hits, unpacked
@@ -116,14 +113,13 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
       | 0, 0, hTi =>
         simp only [ConstantVal.matchesPin, Bool.and_eq_true,
           decide_eq_true_eq, beq_iff_eq] at hTi
-        exact ⟨hTi.1.2, erasePw_const_invS hTi.2⟩
+        exact ⟨hTi.1.2, hTi.2⟩
     | _ => exact nomatch hTi
-  -- **the pin bites on the nose**: a `.const` has no binder, so
-  -- `erasePw` forgives nothing here
+  -- **the pin bites on the nose**
   have htyA : type' = .const ConLeche.trueName [] := by
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       decide_eq_true_eq, beq_iff_eq] at hA
-    exact erasePw_const_invS hA.2
+    exact hA.2
   have hnameTi : ciTi.name = ConLeche.trueIntroName := Env.find?_name hfTi
   -- the leaf: the stored `True.intro`'s *annotated* valuation
   refine harvestAxiom (V := V) hμ mp hcv
@@ -170,7 +166,7 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     -⟩ := hcv'
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   have hwfc : ConLeche.EnvWF ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::

@@ -148,8 +148,8 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
-  obtain ⟨hvf', hbv'⟩ := annotate_syntax hannv hvhf hvlb
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
+  obtain ⟨hvf', hbv'⟩ := stored_syntax hannv hvhf hvlb
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the scoping packages of the primed forms
@@ -454,7 +454,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     -- preserves the stored entries
     intro φ
     by_cases hno : ConLeche.natDivModNames.contains cv.name = true
-    · obtain ⟨hgenv, _, -, -, _, -, hcerts⟩ := hdmc hno
+    · obtain ⟨hgenv, _, -, -, hcerts⟩ := hdmc hno
       exact divMod_install mp (mp.div_mod φ) mp.eq_law
         (fun {d} {e} {t} hrun hw hb hL =>
           acceptedReads_of mp.base2 φ hrun hw hb hL)
@@ -528,8 +528,8 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
-  obtain ⟨hvf', hbv'⟩ := annotate_syntax hannv hvhf hvlb
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
+  obtain ⟨hvf', hbv'⟩ := stored_syntax hannv hvhf hvlb
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the scoping packages of the primed forms
@@ -806,7 +806,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the type's scoping package
@@ -971,8 +971,8 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
-  obtain ⟨hvf', hbv'⟩ := annotate_syntax hannv hvhf hvlb
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
+  obtain ⟨hvf', hbv'⟩ := stored_syntax hannv hvhf hvlb
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the scoping packages of the primed forms

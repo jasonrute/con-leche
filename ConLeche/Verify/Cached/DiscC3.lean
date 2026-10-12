@@ -762,37 +762,13 @@ private theorem certBlock_reshape {α β γ : Type}
     | false => simp
     | true => simp only [ite_true]
 
-/-- The ι step's certificate family, written as one `Bool` block that is
-then branched on, is the nested chain that branches after the
-recursor's run: a failed run leaves the case-3 block undone on both
-sides, and a passed one reaches the same continuation. -/
-private theorem certBlock_reshape2 {α γ : Type}
-    (A : CheckCM α) (B : α → CheckCM Bool) (G : CheckCM Bool)
-    (F : CheckCM (Option γ)) :
-    ((A >>= fun a =>
-        B a >>= fun r₂ =>
-        if r₂ then G else pure false) >>= fun ok =>
-      if ok then F else pure none)
-      = (A >>= fun a =>
-          B a >>= fun r₂ =>
-          if r₂ then (G >>= fun r₄ => if r₄ then F else pure none)
-          else pure none) := by
-  simp only [bind_assoc]
-  congr 1
-  funext a
-  congr 1
-  funext r₂
-  cases r₂ with
-  | false => simp
-  | true => simp only [ite_true]
-
 /-- The shared certificate tail of the iota step (after the firing-mode
-comparands): the recursor's licensed telescope run over the redex's own
-spine and, at a case-3 redex (task #342 L10), the constructor's
-full-grade run and the canonical-index comparison.  The name indices
+comparands): at a case-3 redex (task #342 L10), the constructor's
+full-grade run and the canonical-index comparison (the recursor's own
+spine is not certified, task #349).  The name indices
 `cI jI` are unconstrained `Name` parameters. -/
 private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
-    {mi : CheckMode} {d : Nat} {i major : Expr} {ex majorx : Expr} {cI jI : Name}
+    {d : Nat} {i major : Expr} {ex majorx : Expr} {cI jI : Name}
     {c cj : Name}
     {us usj : List Level}
     {cv cvj : ConstantVal} {mI rP cnP cnF : Nat}
@@ -806,11 +782,7 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     (hargs : RelCL args ex.getAppArgs)
     (hmargs : RelCL margs majorx.getAppArgs) :
     SimC mode env s₀ (RelOC d)
-      ((constTyAtM (mkFEnv env) cI c us >>= fun tyRec =>
-          iotaCertsI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mi.betaGate
-              tyRec args >>= fun r₂ =>
-          if r₂ then
-            (if iotaCase3 env.find? rl cvj usj then
+      ((if iotaCase3 env.find? rl cvj usj then
               constTyAtM (mkFEnv env) jI cj usj >>= fun tyCtor =>
               iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
                   tyCtor margs >>= fun r₃ =>
@@ -818,19 +790,14 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
                 iotaIndexOkI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mI rP
                     rl.ctorParams tyCtor margs ((args.take mI).drop rP)
               else pure false
-            else pure true)
-          else pure false) >>= fun ok =>
+            else pure true) >>= fun ok =>
         if ok then
           ruleRhsAtM (mkFEnv env) cI jI c cj us >>= fun rhs =>
           mkAppNM rhs (args.take rP ++
               margs.drop rl.ctorParams) >>= fun red =>
           pure (some red)
         else pure none)
-      (iotaCerts (fueledFns mode env) env d mi.betaGate
-          (cv.type.instantiateLevelParams cv.levelParams us)
-          ex.getAppArgs >>= fun r₂ =>
-        if r₂ then
-          (if iotaCase3 env.find? rl cvj usj then
+      ((if iotaCase3 env.find? rl cvj usj then
             iotaCertsFull (fueledFns mode env) env d
                 (cvj.type.instantiateLevelParams cvj.levelParams usj)
                 majorx.getAppArgs >>= fun r₃ =>
@@ -845,74 +812,57 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
               (rl.rhs.instantiateLevelParams cv.levelParams us)
               (ex.getAppArgs.take rP ++
                 majorx.getAppArgs.drop rl.ctorParams)))
-          else pure none
-        else pure none) := by
-  rw [certBlock_reshape2]
-  have hwrecty : Expr.WScoped d
-      (cv.type.instantiateLevelParams cv.levelParams us) := by
-    obtain ⟨htf, -⟩ := henv _ (find?_mem hfc)
-    exact wscoped_instLevels_of_not_hasFvar htf _ _
+          else pure none) := by
   have hwctorty : Expr.WScoped d
       (cvj.type.instantiateLevelParams cvj.levelParams usj) := by
     obtain ⟨htf, -⟩ := henv _ (find?_mem hfj)
     exact wscoped_instLevels_of_not_hasFvar htf _ _
-  refine SimC.bind_left (constTyAtM_eff hs hfc)
-    (fun s₁ tyRec hs₁ hQrec => ?_)
-  simp only [ConstantInfo.toConstantVal] at hQrec
-  refine SimC.bind (iotaCertsC_sim ih hs₁ hQrec hwrecty hargs hw.getAppArgs)
-    (fun s₂ r₂ r₂' hs₂ hPr₂ => ?_)
-  obtain rfl : r₂ = r₂' := hPr₂
-  cases r₂ with
+  have hs₂ := hs
+  refine SimC.bind (P := RelVC) ?_ (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
+  · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
+    · rw [ite_eq_left h3, ite_eq_left h3]
+      refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
+        (fun s₃ tyCtor hs₃ hQctor => ?_)
+      simp only [ConstantInfo.toConstantVal] at hQctor
+      refine SimC.bind (iotaCertsFullC_sim ih hs₃ hQctor hwctorty hmargs
+        hmaj.getAppArgs)
+        (fun s₄ r₃ r₃' hs₄ hPr₃ => ?_)
+      obtain rfl : r₃ = r₃' := hPr₃
+      cases r₃ with
+      | false =>
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        exact SimC.pure hs₄ rfl
+      | true =>
+        simp only [↓reduceIte]
+        exact iotaIndexOkC_sim ih hs₄ hQctor hwctorty hmargs
+          hmaj.getAppArgs ((hargs.take mI).drop rP)
+          (fun x hx => hw.getAppArgs x
+            (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
+    · rw [ite_eq_right h3, ite_eq_right h3]
+      exact SimC.pure hs₂ rfl
+  obtain rfl : r₄ = r₄' := hPr₄
+  cases r₄ with
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
-    exact SimC.pure hs₂ trivial
+    exact SimC.pure hs₆ trivial
   | true =>
     simp only [↓reduceIte]
-    refine SimC.bind (P := RelVC) ?_ (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
-    · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
-      · rw [ite_eq_left h3, ite_eq_left h3]
-        refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
-          (fun s₃ tyCtor hs₃ hQctor => ?_)
-        simp only [ConstantInfo.toConstantVal] at hQctor
-        refine SimC.bind (iotaCertsFullC_sim ih hs₃ hQctor hwctorty hmargs
-          hmaj.getAppArgs)
-          (fun s₄ r₃ r₃' hs₄ hPr₃ => ?_)
-        obtain rfl : r₃ = r₃' := hPr₃
-        cases r₃ with
-        | false =>
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          exact SimC.pure hs₄ rfl
-        | true =>
-          simp only [↓reduceIte]
-          exact iotaIndexOkC_sim ih hs₄ hQctor hwctorty hmargs
-            hmaj.getAppArgs ((hargs.take mI).drop rP)
-            (fun x hx => hw.getAppArgs x
-              (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
-      · rw [ite_eq_right h3, ite_eq_right h3]
-        exact SimC.pure hs₂ rfl
-    obtain rfl : r₄ = r₄' := hPr₄
-    cases r₄ with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.pure hs₆ trivial
-    | true =>
-      simp only [↓reduceIte]
-      refine SimC.bind_left (ruleRhsAtM_eff hs₆ hfc hrule)
-        (fun s₇ rhs hs₇ hQrhs => ?_)
-      refine SimC.bind_left (mkAppNM_eff hs₇ hQrhs
-        ((hargs.take rP).append (hmargs.drop rl.ctorParams)))
-        (fun s₈ red hs₈ hQred => ?_)
-      refine SimC.pure hs₈ ⟨hQred, ?_⟩
-      refine Expr.WScoped.mkAppN ?_ ?_
-      · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
-          henv _ (find?_mem hfc)
-        obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
-          rfl rl (List.mem_of_find?_eq_some hrule)
-        exact wscoped_instLevels_of_not_hasFvar hrf _ _
-      · intro x hx
-        rcases List.mem_append.mp hx with hx | hx
-        · exact hw.getAppArgs x (List.mem_of_mem_take hx)
-        · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
+    refine SimC.bind_left (ruleRhsAtM_eff hs₆ hfc hrule)
+      (fun s₇ rhs hs₇ hQrhs => ?_)
+    refine SimC.bind_left (mkAppNM_eff hs₇ hQrhs
+      ((hargs.take rP).append (hmargs.drop rl.ctorParams)))
+      (fun s₈ red hs₈ hQred => ?_)
+    refine SimC.pure hs₈ ⟨hQred, ?_⟩
+    refine Expr.WScoped.mkAppN ?_ ?_
+    · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
+        henv _ (find?_mem hfc)
+      obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
+        rfl rl (List.mem_of_find?_eq_some hrule)
+      exact wscoped_instLevels_of_not_hasFvar hrf _ _
+    · intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact hw.getAppArgs x (List.mem_of_mem_take hx)
+      · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
 
 /-- Simulation of the major chain, in either order (the K flag is the
 single rule's stored bit, read identically on both sides). -/
@@ -981,12 +931,6 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
                           else pure true) >>=
                         fun r₁ =>
                       if r₁ then
-                        iotaCerts (fueledFns mode env) env d mi.betaGate
-                            (cv.type.instantiateLevelParams
-                              cv.levelParams us)
-                            e.getAppArgs >>=
-                          fun r₂ =>
-                        if r₂ then
                           (if iotaCase3 env.find? rl cvj usj then
                             iotaCertsFull (fueledFns mode env) env d
                                 (cvj.type.instantiateLevelParams
@@ -1010,7 +954,6 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
                                 major.getAppArgs.drop
                                   rl.ctorParams)))
                           else pure none
-                        else pure none
                       else pure none
                     else pure none
                 else pure none
@@ -1022,8 +965,8 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
     | _ => pure none) := rfl
 
 /-- `iotaRecI` simulates its fueled original.  The ι mode `mi` is
-separate from the knot's `mode` (`iotaRecI` reads `mi.betaGate` for the
-slot licence; the walks apply this at the ι cone's own mode `mi`). -/
+separate from the knot's `mode` (the walks apply this at the ι cone's
+own mode `mi`). -/
 theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {mi : CheckMode} (hmi : mi.verifiedChecks = true) {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀)

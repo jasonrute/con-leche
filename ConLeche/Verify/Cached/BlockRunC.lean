@@ -401,8 +401,8 @@ theorem mono {β α : Type} {P : β → α → Prop} {c : CheckCM β} {p : Fuele
 end SimG
 
 /-- The rule stage's `inferType` at the rule-less recursors'
-environment: it flushes last, so it hands on a state that is an
-invariant state of ANY environment. -/
+environment: it flushes first and last, so it hands on a state that is
+an invariant state of ANY environment. -/
 theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR : EnvWF envR)
     (envT : Env) {d : Nat} {e : Expr} (hw : WScoped d e) :
     SimG (CSOK mode envR) (CSOK mode envT) (RelW d)
@@ -410,8 +410,13 @@ theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR 
       ((fueledOpsM mode).inferType envR d e) := by
   intro s₀ hs v' s' hr
   simp only [sharedOpsRuleR] at hr
+  obtain ⟨u₀, s₀', hfl₀, hr⟩ := bindC_ok hr
+  rw [flushC_run] at hfl₀
+  injection hfl₀ with hfl₀
+  obtain rfl : s₀.flushed = s₀' := congrArg Prod.snd hfl₀
+  have hs₀' : CSOK mode envR s₀.flushed := flushC_csok hs.residue
   obtain ⟨t, s₁, hinf, hr⟩ := bindC_ok hr
-  obtain ⟨hs₁, w, hrel, F, hF⟩ := opE_infer_sim hμ henvR hs hw t s₁ hinf
+  obtain ⟨hs₁, w, hrel, F, hF⟩ := opE_infer_sim hμ henvR hs₀' hw t s₁ hinf
   obtain ⟨u, s₂, hfl, hr⟩ := bindC_ok hr
   rw [flushC_run] at hfl
   injection hfl with hfl

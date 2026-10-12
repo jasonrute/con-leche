@@ -227,7 +227,7 @@ theorem prepareMajor_bridge (hw : WhnfBridge env fuel)
     .refl
 
 /-- `iotaRec` ⇒ `Red.iota` (`iotaRec_inv`, `prepareMajor_bridge`,
-`defEqList_bridge`, `iotaCerts_bridge`, and at a case-3 redex
+`defEqList_bridge`, the licensed recursor spine, and at a case-3 redex
 `iotaCertsFull_bridge` and `iotaIndexOk_inv`). -/
 theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
@@ -237,25 +237,25 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     Red env d e e'' := by
   obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP, cnF, rl,
     hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hplain, hlev, hpeq,
-    hcerts, h3, rfl⟩ := iotaRec_inv h
+    h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
     prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
   by_cases hne : mI = rP
   · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
       hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-      (iotaCerts_bridge hd hio hcerts)
+      .licensed
       (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
       (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
   · by_cases hc3 : iotaCase3 env.find? rl cvj usj = true
     · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv (h3 hc3).2 hne
       exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        (iotaCerts_bridge hd hio hcerts)
+        .licensed
         (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
         (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
     · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        (iotaCerts_bridge hd hio hcerts)
+        .licensed
         (fun hc => absurd hc hc3)
         (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
 
@@ -286,11 +286,11 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
   | .bvar _, h =>
     rw [whnfCore_succ] at h
     simp [whnfCoreBody, throw, throwThe, MonadExceptOf.throw] at h
-  | .letE _ _ _, h => exact (whnfCore_letE_inv h).elim
+  | .letE _ _ _, h => exact .trans .zeta (hwc (whnfCore_letE_inv h))
   | .app f a, h =>
     obtain ⟨f', hf, hcase⟩ := whnf_app_inv h
     have hRf : Red env d (.app f a) (.app f' a) := .appFn (hwc hf)
-    rcases hcase with ⟨ty, body, mb, rfl, hbody, -⟩ | ⟨e'', hiota, hcont⟩ | rfl
+    rcases hcase with ⟨ty, body, mb, rfl, hbody⟩ | ⟨e'', hiota, hcont⟩ | rfl
     · refine .trans hRf (.trans ?_ (hwc hbody))
       exact .beta
     · exact .trans hRf (.trans (iotaRec_bridge hw hd hi hio hiota) (hwc hcont))

@@ -37,11 +37,10 @@ def checkDefnVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let value ← ops.annotate env 0 value
   unless value.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless value.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" value)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" value)
   let vtype ← ops.inferType env 0 value
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in definition {cv.name}")
@@ -51,12 +50,12 @@ def checkDefnVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
 (whose type must additionally be a proposition).  **A theorem is
 stored by its statement only**: `thmInfo` carries no value — a theorem
 is opaque to reduction (`unfoldDefinition` has no `thmInfo` arm), and
-the annotated value is a *realizability witness*, checked against the
+the checked value is a *realizability witness*, checked against the
 statement and then discarded, exactly as an opaque's is: the result
 environment does not mention `value`, so nothing downstream can read a
 proof term.  This is what lets the driver install a theorem before its
 value is looked at at all (phase A pushes the statement; phase B
-annotates and checks the value from the pending record,
+checks the value from the pending record,
 `ConLeche/Cached/Installed.lean`). -/
 def checkThmVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     (value : Expr) : m Env := do
@@ -69,11 +68,11 @@ def checkThmVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let jv ← ops.annotate env 0 value
+  let jv := value
   unless jv.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless jv.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" jv)
   let vtype ← ops.inferType env 0 jv
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in theorem {cv.name}")
@@ -94,11 +93,10 @@ def checkOpaqueVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let value ← ops.annotate env 0 value
   unless value.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless value.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" value)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" value)
   let vtype ← ops.inferType env 0 value
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in opaque {cv.name}")
@@ -147,7 +145,7 @@ The guards are spelled with the already-certified `Nat.ble` (never the
 `Nat.le`/`Nat.lt` `Prop` inductives) and the numeral `1` as
 `Nat.succ Nat.zero`, so the model side consumes them through the
 existing `NatOps` literal semantics for `ble`/`sub`.  The op's
-self-reference is `.const c []`, substituted with the stored annotated
+self-reference is `.const c []`, substituted with the stored
 value before checking (all statement components are application
 spines, so `Expr.substConst0` applies). -/
 def divModCertStmts (c : Name) : List (List Expr × Expr) :=
@@ -249,7 +247,7 @@ def divModCertGuard (env : Env) (c : Name) (annVal : Expr)
 
 /-- Check the pinned certificates of op `c`: per certificate, the
 vendored proof (with the op's self-references replaced by the stored
-annotated value — the checks run in the *pre-insertion* environment,
+value — the checks run in the *pre-insertion* environment,
 exactly like the structural-Nat certification: post-insertion the op's
 own just-enabled fast path would participate in checking the very
 certificates that justify it) is applied to free variables typed by
@@ -262,7 +260,7 @@ def checkDivModCerts (ops : CheckerOps m) (env : Env) (c : Name)
   | [], [] => pure true
   | (hyps, eqE) :: srest, proof :: prest => do
     if divModCertGuard env c annVal hyps eqE proof then
-      let appliedA ← ops.annotate env 4
+      let appliedA :=
         (divModCertApplied (Expr.substConstAll c annVal proof)
           (hyps.map (Expr.substConst0 c annVal)))
       let tp ← ops.inferType env 4 appliedA
@@ -318,7 +316,7 @@ match" — the only place a thrown error is recovered from, and it is
 scoped to exactly this attempt. -/
 def checkDivModPinAt (ops : CheckerOps m) (env : Env) (c : Name)
     (value' : Expr) (ps : NatOpPinSet) : m Bool := do
-  let pinA ← ops.annotate env 0 (divModDeclPin ps c)
+  let pinA := (divModDeclPin ps c)
   let okPin ← ops.isDefEq env 0 value' pinA
   if okPin then
     checkDivModCerts ops env c value' (divModCertStmts c)
@@ -388,7 +386,7 @@ def checkDivModPin (ops : CheckerOps m) (pins : List NatOpPinSet)
 /-- The `Lean.reduceNat`/`Lean.reduceBool` install gate, run after the
 ordinary opaque check (`env2` is the already-extended environment,
 `env` the pre-insertion one the comparisons run in; `value` the
-declaration's raw witness value, annotated again here — the stored
+declaration's witness value, checked again here — the stored
 constant is an `axiomInfo`, which carries no value):
 
 * the stored constant must carry the pinned type;
@@ -406,8 +404,8 @@ def checkReducePin (ops : CheckerOps m) (env env2 : Env) (c : Name)
     (value : Expr) : m Unit := do
   if reduceStoredOk env2 c && reduceElemOk env c then
     if reducePinGuard env c then do
-      let valA ← ops.annotate env 0 value
-      let pinA ← ops.annotate env 0 (reduceDeclPin c)
+      let valA := value
+      let pinA := (reduceDeclPin c)
       let okPin ← ops.isDefEq env 0 valA pinA
       if okPin then do
         let x := reduceCertVar c

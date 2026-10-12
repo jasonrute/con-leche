@@ -108,7 +108,7 @@ minor premise, an inductive hypothesis and a rule concludes in a motive
 application, a proposition exactly where the elimination level is zero —
 the generator WRITES this datum and nothing is annotated (inference
 validates every written datum at the verified modes). -/
-def ClassGen.bm (g : ClassGen) : BinderMeta := ⟨Level.zeronessOf g.elim⟩
+def ClassGen.bm (_g : ClassGen) : BinderMeta := ⟨⟩
 
 /-- A generated binder of an opened variable. -/
 def ClassGen.binder (g : ClassGen) (x : Expr) : Expr × BinderMeta := (x.fvarTypeD, g.bm)
@@ -421,11 +421,10 @@ def classRecTysOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) :
 written): resolved and typed at the
 rule-less recursors' environment `feR` (its level parameters the
 recursor's), its λ-telescope over the prefix and the fields `n` long,
-its λ-domains resolving at the constructors' environment `feT` and
-annotated with the family's elimination datum `pw`.  Returns the
-annotated rule (stored). -/
+its λ-domains resolving at the constructors' environment `feT`.
+Returns the rule (stored). -/
 def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR : ConstantVal)
-    (pw : PropWhen) (n : Nat) (gen : Expr) : m Expr := do
+    (n : Nat) (gen : Expr) : m Expr := do
   unless gen.looseBVarsBounded 0 && !gen.hasFvar do
     throw (.internal s!"generated recursor: a rule of {cvR.name} is not closed")
   let genA := gen
@@ -440,32 +439,29 @@ def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR :
       recursor's prefix and the constructor's fields")
   unless rbs.all (fun b => w.resolve feT b.1) do
     throw (unresolvedConstsError s!"the domains of a generated rule of {cvR.name}" genA)
-  unless rbs.all (fun b => b.2.pw == pw) do
-    throw (.internal s!"generated recursor: a rule of {cvR.name} does not annotate its \
-      λ-binders with the family's elimination datum")
   pure genA
 
 /-- A recursor's generated rules, one per constructor of its class. -/
 def classRulesOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
-    (recOf : Nat → Option Name) (cvR : ConstantVal) (pw : PropWhen) (c : Nat) :
+    (recOf : Nat → Option Name) (cvR : ConstantVal) (c : Nat) :
     List ClassCtor → m (List Expr)
   | [] => pure []
   | x :: xs => do
     let gen ← unwrapOr (classGenRule g recOf (cvR.levelParams.map .param) c x)
       (.invalid s!"generated recursor: the rule of {x.cv.name} calls a class whose recursor the \
         stream omits (official: unknown constant)")
-    let r ← classRuleOk ops w feT feR cvR pw (g.nP + g.slots.length + x.nF) gen
-    let rs ← classRulesOk ops w feT feR g recOf cvR pw c xs
+    let r ← classRuleOk ops w feT feR cvR (g.nP + g.slots.length + x.nF) gen
+    let rs ← classRulesOk ops w feT feR g recOf cvR c xs
     pure (r :: rs)
 
 /-- Every recursor's generated rules, at the rule-less recursors'
 environment `feR`, with its class. -/
 def classRecsRulesOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
-    (recOf : Nat → Option Name) (pw : PropWhen) :
+    (recOf : Nat → Option Name) :
     List ConstantVal → List Nat → m (List (ConstantVal × TargetMajor × List Expr))
   | cvG :: cvs, c :: cs => do
-    let rhss ← classRulesOk ops w feT feR g recOf cvG pw c (g.ctors.getD c [])
-    let xs ← classRecsRulesOk ops w feT feR g recOf pw cvs cs
+    let rhss ← classRulesOk ops w feT feR g recOf cvG c (g.ctors.getD c [])
+    let xs ← classRecsRulesOk ops w feT feR g recOf cvs cs
     pure ((cvG, g.cls.getD c default, rhss) :: xs)
   | _, _ => pure []
 
@@ -506,14 +502,13 @@ guard `targetMajorOf` repeats at an outside class), and annotated at the
 formers' environment `env` over the parameters (depth `nP`): the raw
 stream carries no binder datum, and both the positivity check's seed and
 the generated recursor types read the annotated parameters. -/
-def classKeyOf (ops : CheckerOps m) (env : Env) (nP : Nat) (params : List Expr)
+def classKeyOf (nP : Nat) (params : List Expr)
     (k : ClassKey) : m ClassKey := do
   let k := classKeyCanon params k
   unless k.ds.all (fun x => x.bvarB == 0 && x.fvarB ≤ nP) do
     throw (.invalid "target rec: the major's parameters mention more than the \
       recursor's parameters")
-  let ds ← k.ds.mapM (ops.annotate env nP)
-  pure { k with ds := ds }
+  pure k
 
 /-- **The classes, read and checked** (before the positivity check, at the
 formers' environment `fe₁`/`env₁`): the UNVERIFIED pre-pass on the
@@ -521,14 +516,14 @@ stream's raw recursor types (`classRead`), every class key made checkable
 (`classKeyOf`), every class checked as a major over the block's canonical
 parameters `params` (`classMajors`), exactly one class per member.
 Returns the pre-pass's reading and the classes. -/
-def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (env₁ : Env) (p : BlockShape)
+def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (p : BlockShape)
     (params : List Expr) (ctorsAs : List (List (ConstantVal × Nat))) :
     m (ClassRead × List TargetMajor) := do
   -- [UNVERIFIED] the pre-pass: the classes, the layout, each recursor's class
   let rd ← unwrapOr (classRead p.nP (classNPcOf p fe₁) p.recs)
     (.invalid "generated recursor: the recursor family is not of the generated shape \
       (official: invalid recursor)")
-  let keys ← rd.classes.mapM (classKeyOf ops env₁ p.nP params)
+  let keys ← rd.classes.mapM (classKeyOf (m := m) p.nP params)
   let Ms ← classMajors ops fe₁ p ctorsAs params keys
   unless (List.range p.k).all (fun t => (Ms.filter (·.member == some t)).length == 1) do
     throw (.invalid "generated recursor: the recursor family does not have exactly one class \
@@ -582,7 +577,7 @@ def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Boo
   let feR := so.ruleEnv p Ms cvGs rd.recCls fe
   so.flush
   let out ← classRecsRulesOk (so.opsRuleR feR) so.walkers fe feR g
-    (classRecOf rd.recCls cvGs) (Level.zeronessOf elim) cvGs rd.recCls
+    (classRecOf rd.recCls cvGs) cvGs rd.recCls
   so.flush
   pure out
 

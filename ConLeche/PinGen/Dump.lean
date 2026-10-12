@@ -190,8 +190,8 @@ def quotePropWhen : Option (List ConLeche.Name) → Lean.Expr
   | none => .const ``ConLeche.PropWhen.never []
   | some ps => .app (.const ``ConLeche.PropWhen.ifAllZero []) (quoteNameList ps)
 
-def quoteBinderMeta (pw : Option (List ConLeche.Name)) : Lean.Expr :=
-  .app (.const ``ConLeche.BinderMeta.mk []) (quotePropWhen pw)
+def quoteBinderMeta (_pw : Option (List ConLeche.Name)) : Lean.Expr :=
+  .const ``ConLeche.BinderMeta.mk []
 
 /-- A reference as an *absolute* `.bvar` (entry references) or an
 inline constant.  `assemble` rewrites the `.bvar`s into de Bruijn
@@ -350,14 +350,14 @@ partial def shareExpr (e : ConLeche.Expr) : ShareM PinRef := do
       let fv ← shareExpr f
       let av ← shareExpr a
       pushEntry (.exApp fv av)
-    | .lam ty b m => do
+    | .lam ty b _ => do
       let tv ← shareExpr ty
       let bv ← shareExpr b
-      pushEntry (.exLam tv bv m.pw.toList?)
-    | .forallE ty b m => do
+      pushEntry (.exLam tv bv none)
+    | .forallE ty b _ => do
       let tv ← shareExpr ty
       let bv ← shareExpr b
-      pushEntry (.exForall tv bv m.pw.toList?)
+      pushEntry (.exForall tv bv none)
     | .letE ty v b => do
       let tv ← shareExpr ty
       let vv ← shareExpr v
