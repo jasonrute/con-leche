@@ -310,7 +310,7 @@ recursive field (anything applied to it would mention the block, which
 official rejects).  The normal form: `nestedBlockPositivity` returns
 every constructor's type in official's `check_positivity` form (a
 field `Id' T` normalised to `T`, the member abstracted to its hole),
-the one function's product. -/
+the one function's Π-type. -/
 
 @[expose] def cF4 : Expr := .const (nm "F4") []
 @[expose] def cId : Expr := .const (nm "Id'") []

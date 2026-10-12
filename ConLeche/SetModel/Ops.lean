@@ -38,7 +38,7 @@ universe u
 
 variable {V : Type u} [SetTheory V]
 
-/-- The dependent product at codomain sort `v`: a truth value at `0`,
+/-- The dependent function space at codomain sort `v`: a truth value at `0`,
 the set of function graphs above it. -/
 noncomputable def piR (v : Nat) (A : V) (B : V → V) : V :=
   if v = 0 then truthVal (∀ x, x ∈ˢ A → ∃ y, y ∈ˢ B x) else piSet A B
@@ -79,43 +79,9 @@ theorem lamR_congr {v : Nat} {A : V} {F F' : V → V}
   · rw [lamR_pos (Nat.pos_iff_ne_zero.mp hv), lamR_pos (Nat.pos_iff_ne_zero.mp hv)]
     exact graph_congr h
 
-/-! ## Zero-agreement
-
-`piR`/`lamR` read their numeral **only through the `v = 0` test**, so
-numerals that agree on zero-ness are interchangeable.  In
-`(a₁ : A₁) → … → (aₙ : Aₙ) → T` the sort of each suffix is
-`imax (…) r` with `r` the sort of `T`, and `imax x y = 0 ↔ y = 0`, so
-the result sort and the exact `imax` fold agree on zero-ness. -/
-
-theorem piR_zero_agree {v v' : Nat} (hz : v = 0 ↔ v' = 0) {A : V}
-    {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x = B' x) : piR v A B = piR v' A B' := by
-  by_cases hv : v = 0
-  · rw [hv, hz.mp hv]; exact piR_congr h
-  · have hv' : v' ≠ 0 := fun h0 => hv (hz.mpr h0)
-    rw [piR_pos hv, piR_pos hv']
-    exact piSet_congr h
-
-theorem lamR_zero_agree {v v' : Nat} (hz : v = 0 ↔ v' = 0) {A : V}
-    {F F' : V → V} (h : ∀ x, x ∈ˢ A → F x = F' x) : lamR v A F = lamR v' A F' := by
-  by_cases hv : v = 0
-  · rw [hv, hz.mp hv, lamR_zero, lamR_zero]
-  · have hv' : v' ≠ 0 := fun h0 => hv (hz.mpr h0)
-    rw [lamR_pos hv, lamR_pos hv']
-    exact graph_congr h
-
-/-- `imax`'s zero test is its codomain's — the arithmetic behind the
-tower convention. -/
-theorem imax_eq_zero_iff (x y : Nat) :
-    (if y = 0 then 0 else Nat.max x y) = 0 ↔ y = 0 := by
-  by_cases hy : y = 0
-  · simp [hy]
-  · rw [ite_eq_right hy]
-    exact ⟨fun h => absurd (Nat.le_zero.mp (h ▸ Nat.le_max_right x y)) hy,
-      fun h => absurd h hy⟩
-
 /-! ## Introduction, elimination, beta, eta -/
 
-/-- Introduction: fibre-wise members abstract into the product.  At
+/-- Introduction: fibre-wise members abstract into the function space.  At
 `v = 0` the premise itself witnesses every fibre inhabited. -/
 theorem lamR_mem {v : Nat} {A : V} {F B : V → V}
     (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x) : lamR v A F ∈ˢ piR v A B := by
@@ -125,21 +91,14 @@ theorem lamR_mem {v : Nat} {A : V} {F B : V → V}
   · rw [lamR_pos (Nat.pos_iff_ne_zero.mp hv), piR_pos (Nat.pos_iff_ne_zero.mp hv)]
     exact graph_mem_piSet hF
 
-/-- Introduction across zero-agreeing numerals: an abstraction at the
-result sort inhabits the function space at the exact `imax`. -/
-theorem lamR_mem_zero_agree {v v' : Nat} (hz : v = 0 ↔ v' = 0) {A : V}
-    {F B : V → V} (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x) : lamR v A F ∈ˢ piR v' A B := by
-  rw [lamR_zero_agree hz (fun _ _ => rfl) (F' := F)]
-  exact lamR_mem hF
-
-/-- **Proof irrelevance at products**: inhabitants of a `Prop`-valued
-product are the canonical proof. -/
+/-- **Proof irrelevance at function spaces**: inhabitants of a `Prop`-valued
+function space are the canonical proof. -/
 theorem eq_pt_of_mem_piR_zero {A f : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) :
     f = pt := by
   rw [piR_zero] at hf; exact eq_pt_of_mem_truthVal hf
 
 /-- **Squash-regime introduction from inhabitation.**  At `v = 0` the
-product is a truth value, so membership of the canonical proof needs
+function space is a truth value, so membership of the canonical proof needs
 only that every fibre is *inhabited* — strictly weaker than
 `lamR_mem`'s pointwise `F x ∈ˢ B x`, and the form every tower whose
 value carries no regime tag has to use at kind `0`
@@ -217,7 +176,7 @@ theorem lamR_eq_graph_of_ne_pt {v : Nat} {A : V} {F : V → V} (h : lamR v A F �
   · subst hv; exact absurd lamR_zero h
   · exact lamR_pos hv
 
-/-- Eta: a member of a product is the abstraction of its
+/-- Eta: a member of a function space is the abstraction of its
 applications. -/
 theorem lamR_eta {v : Nat} {A f : V} {B : V → V} (hf : f ∈ˢ piR v A B) :
     lamR v A (fun x => app f x) = f := by
@@ -228,7 +187,7 @@ theorem lamR_eta {v : Nat} {A f : V} {B : V → V} (hf : f ∈ˢ piR v A B) :
     rw [lamR_pos hv']
     exact eq_graph_app_of_mem_piSet hf
 
-/-- Function extensionality for product members: on-domain agreement is
+/-- Function extensionality for function-space members: on-domain agreement is
 total agreement.  At `v = 0` both sides are the canonical proof; above
 it both are graphs over `A`, whose off-domain applications are the same
 canonical junk. -/
@@ -240,11 +199,11 @@ theorem eq_of_mem_piR_app_eq {v : Nat} {A f g : V} {B B' : V → V}
 /-! ## The graph regime: inversion and junk-freeness
 
 The numeral has already decided the regime, so membership in a
-positive-regime product is *by definition* graph-hood: no consumer
+positive-regime function space is *by definition* graph-hood: no consumer
 dispatches on "graph or proof point". -/
 
-/-- **The prized inversion.**  A member of a graph-regime product is a
-graph whose domain is exactly the product's domain, whose applications
+/-- **The prized inversion.**  A member of a graph-regime function space is a
+graph whose domain is exactly the function space's domain, whose applications
 land pointwise in the fibres, which is never the proof point, and which
 applies to the canonical junk `∅` off the domain.  Every clause is by
 definition of `piSet`; nothing about `B` is used. -/
@@ -258,7 +217,7 @@ theorem mem_piR_pos {v : Nat} {A f : V} {B : V → V} (hv : v ≠ 0)
   exact ⟨eq_graph_app_of_mem_piSet hf, fun x hx => app_mem_of_mem_piSet hf hx,
     fun a ha => app_off_dom_of_mem_piSet hf ha, ne_pt_of_mem_piSet hf⟩
 
-/-- The proof point never inhabits a graph-regime product — for *any*
+/-- The proof point never inhabits a graph-regime function space — for *any*
 domain and *any* fibre family, in particular a universe-valued one. -/
 theorem not_pt_mem_piR_pos {v : Nat} {A : V} {B : V → V} (hv : v ≠ 0) :
     ¬ (pt : V) ∈ˢ piR v A B :=
@@ -285,7 +244,7 @@ theorem app_off_dom_piR_pos {v : Nat} {A f a : V} {B : V → V} (hv : v ≠ 0)
   (mem_piR_pos hv hf).2.2.1 a ha
 
 /-- **Domain uniqueness, unconditional.**  A graph determines its own
-domain, so membership in two graph-regime products identifies their
+domain, so membership in two graph-regime function spaces identifies their
 domains — with no `≠ pt` side condition. -/
 theorem piR_dom_unique {v v' : Nat} {A A' f : V} {B B' : V → V}
     (hv : v ≠ 0) (hv' : v' ≠ 0)
@@ -306,7 +265,7 @@ theorem piR_dom_unique {v v' : Nat} {A A' f : V} {B B' : V → V}
 
 /-! ## The truth-value regime -/
 
-/-- **Impredicativity.**  A product landing in `Prop` is a truth value
+/-- **Impredicativity.**  A function space landing in `Prop` is a truth value
 — for an arbitrary domain `A` and arbitrary fibres, with no size
 condition.  This is the one place a set-theoretic model of Lean has to
 say something, and here it is the `v = 0` branch of a numeral test. -/
@@ -321,7 +280,7 @@ theorem Fib_piR (v : Nat) (A : V) (B : V → V) : Fib (decide (v = 0)) (piR v A 
   · subst hv; simp only [decide_true, Fib_true]; exact piR_zero_mem_univZero
   · simp only [hv, decide_false, Fib_false]; rw [piR_pos hv]; exact strict_piSet
 
-/-- A product is a type. -/
+/-- A function space is a type. -/
 theorem IsTy_piR (v : Nat) (A : V) (B : V → V) : IsTy (piR v A B) :=
   IsTy_of_Fib (Fib_piR v A B)
 

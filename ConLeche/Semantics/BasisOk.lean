@@ -297,7 +297,7 @@ tuple `Is` and the family tuple — and reads the members' index sets off
 `Is` with `projAV`.  Both towers are non-dependent (`ndTowerAV`), so
 their readings and gradings need only that each component reads to the
 carrier's own at the tower's depth and is itself graded; the tower's app slots are supplied by the `[r, r]`
-instance of the pinned pair former's product membership, exactly as the
+instance of the pinned pair former's function-space membership, exactly as the
 dependent tower kit's are. -/
 
 /-- **The uniform projection spelling reads back as `projS`** — the
@@ -312,7 +312,7 @@ theorem projAV_interp :
     rw [projAV_interp i (.snd e) ρ]
     rfl
 
-/-- The `[r, r]` instance of the pinned pair former's product
+/-- The `[r, r]` instance of the pinned pair former's function-space
 membership (`sigma_mem_univ` at the joint level `max r r = r`). -/
 theorem psigmaV_rr_mem (r : Nat) :
     psigmaV V r r ∈ˢ piR (r + 1) (univ r : V)

@@ -104,7 +104,7 @@ theorem projS_ndMkTowerSet {g : Nat → V} :
     rw [ssnd_spair, projS_ndMkTowerSet n (s + 1) i (Nat.lt_of_succ_lt_succ hi),
       show s + 1 + i = s + (i + 1) from by omega]
 
-/-! ## The pinned pair constructor's four-step product -/
+/-! ## The pinned pair constructor's four-step function space -/
 
 /-- The pair constructor `psigmaMk.{r,r}` inhabits its function space,
 at the joint level `max r r = r`. -/

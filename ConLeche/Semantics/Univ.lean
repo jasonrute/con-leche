@@ -11,7 +11,7 @@ Under `interp` there is no `pt` in the positive regime, and the
 universe question reads:
 
 > Do `interp`'s universes contain values that break the graph
-> inversion at universe-codomain products — i.e. can something the
+> inversion at universe-codomain function spaces — i.e. can something the
 > `SetTheory` universe tower happens to contain sneak into
 > `⟦(x : A) → Sort k⟧` without being a graph?
 
@@ -27,17 +27,17 @@ are in `U`, which enlarges `U`, never `piSet A B`.  So
 does anywhere else.
 
 A `Type`-level abstraction is never `pt` (`lamR_ne_pt`), and the proof
-point inhabits no graph-regime product (`not_pt_mem_piR_pos`), so
+point inhabits no graph-regime function space (`not_pt_mem_piR_pos`), so
 `ConLeche/SetTheory/Core.lean`'s transitivity clause and the ω-chain
 need no change for this layer.
 
 Two further facts are proved below:
 
 * **The formation law is the `imax` rule, exactly** (`piR_mem_univ`),
-  and it is *sharp*: a graph-regime product with inhabited fibres is
+  and it is *sharp*: a graph-regime function space with inhabited fibres is
   never a truth value (`piR_pos_not_mem_univZero`).
 * **The proof point is not in `univ 0` at all**
-  (`pt_not_mem_univZero`), and the empty-domain graph-regime product
+  (`pt_not_mem_univZero`), and the empty-domain graph-regime function space
   `piR v ∅ B = {∅}` does not contain it.
 -/
 
@@ -52,7 +52,7 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## Formation along the tower -/
 
-/-- **The `imax` rule, exactly.**  `Prop`-valued products land in
+/-- **The `imax` rule, exactly.**  `Prop`-valued function spaces land in
 `univ 0` whatever their domain (impredicativity); above `0` they land
 at `max u v`. -/
 theorem piR_mem_univ {u v : Nat} {A : V} {B : V → V}
@@ -72,10 +72,10 @@ theorem piR_mem_univ {u v : Nat} {A : V} {B : V → V}
 
 
 open Classical in
-/-- Sharpness of the regime split: a graph-regime product whose fibres
+/-- Sharpness of the regime split: a graph-regime function space whose fibres
 are all inhabited is **not** a truth value.  So the regime numeral is
 not merely an upper bound on where the value lands — the two regimes are
-genuinely disjoint, and a `Type`-level product never sneaks into
+genuinely disjoint, and a `Type`-level function space never sneaks into
 `Prop`. -/
 theorem piR_pos_not_mem_univZero {v : Nat} (hv : v ≠ 0) {A : V} {B : V → V}
     (hinh : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ B x) : ¬ piR v A B ∈ˢ (univZero : V) := by
@@ -93,7 +93,7 @@ theorem piR_pos_not_mem_univZero {v : Nat} (hv : v ≠ 0) {A : V} {B : V → V}
 
 /-! ## The inversion is fibre-blind -/
 
-/-- Membership in a graph-regime product **is** graph-hood: separation
+/-- Membership in a graph-regime function space **is** graph-hood: separation
 from `power (sigmaPairs A B)`, a property of `f`'s own members.  This
 is the formal content of "nothing a universe contains can break the
 inversion". -/
@@ -107,7 +107,7 @@ theorem mem_piR_pos_iff {v : Nat} (hv : v ≠ 0) {A f : V} {B : V → V} :
 /- `pt_not_mem_univZero` (the proof point is not a truth value) is a
 point law of `SetTheory/Derive/Pt.lean`. -/
 
-/-- The empty-domain graph-regime product is `{∅}`, whose only member
+/-- The empty-domain graph-regime function space is `{∅}`, whose only member
 is the empty graph. -/
 theorem not_pt_mem_piR_empty {v : Nat} (hv : v ≠ 0) (B : V → V) :
     ¬ (pt : V) ∈ˢ piR v (empty : V) B := not_pt_mem_piR_pos hv
