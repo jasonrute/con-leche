@@ -2194,7 +2194,7 @@ parameters, `nP + 2 + (n + nK)` arguments before the indices and the
 major at `nP + 2 + (n + nK) + nI`. -/
 theorem rec_rule_lawN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
     RecRuleLaw (S.M₃N m.M N) S.recName (S.recInfoN N) S.nP (S.nP + 2 + (S.n + N.nK))
-      (S.nP + 2 + (S.n + N.nK) + S.nI) ⟨c.name, c.fields.length, S.ruleRhsN N c j, none⟩
+      (S.nP + 2 + (S.n + N.nK) + S.nI) ⟨c.name, c.fields.length, S.ruleRhsN N c j, none, false⟩
       (S.ctorInfo c) := by
   intro φ ρ us usj xs ys hus husj hxs hys hfitR hfitC hlv hpar hidx hne
   have hS := hok.scoped
@@ -2857,7 +2857,7 @@ theorem rule1_core (φ : Name → Nat) (ρ : Nat → V) {us usj : List Level} {x
 theorem rec_rule_law1N {j : Nat} {c : CtorSpec} (hc : N.K.ctors[j]? = some c) :
     RecRuleLawN (S.M₃N m.M N) N.aux (S.rec1Info N) N.nPK (S.nP + 2 + (S.n + N.nK))
       (S.nP + 2 + (S.n + N.nK) + 0)
-      ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0)⟩ (N.KS.ctorInfo c) := by
+      ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0), false⟩ (N.KS.ctorInfo c) := by
   intro φ ρ us usj xs ys hus husj hxs hys hfitR hfitC _ hne
   exact rule1_core hs m hok φ ρ hc hus husj hxs hys hfitR hfitC N.nPK rfl hne
 

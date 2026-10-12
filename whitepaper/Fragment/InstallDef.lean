@@ -268,6 +268,22 @@ def EnvModel.transport {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
     rw [← TeleFitV_congr_model (hT ls)] at hfit
     rw [← h I (by simp [hfind])]
     exact law φ ρ ls vs h1 h2 hfit
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    have law := m.rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
+    have hsc := hs c ci hfind
+    have hT : ∀ us, ∀ d ∈ (ci.type.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d (hsc.1.2.1 d hd) ls
+    have hR : ∀ us, ∀ d ∈ (rl.rhs.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d ((hsc.2.2 nP nM nMin nI rules hkind rl hrl).1.2.1 d hd) ls
+    have hc : ∀ ls, m.M c ls = M' c ls := h c (by simp [hfind])
+    intro φ ρ us vs h1 h2 hfit hne
+    rw [← TeleFitV_congr_model (hT us)] at hfit
+    have res := law φ ρ us vs h1 h2 hfit (by rwa [hc])
+    rwa [hc, interp_consts (hR us), WellDenoted_consts (hR us)] at res
 
 /-- The transported model's assignment is the new one. -/
 theorem EnvModel.transport_M {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
@@ -352,7 +368,7 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
     rw [WellDenoted_instL, WellDenoted_instL, interp_instL, interp_instL, ← heq]
     exact ⟨hTw, heq ▸ hTty, hvsem.1, hvsem.2.2.2⟩
   refine ⟨{ M := M', type_ok := ?_, unfold := ?_, rec_rules := ?_,
-              rec_rules_nested := ?_, ind_fib := ?_ },
+              rec_rules_nested := ?_, ind_fib := ?_, rec_rules_k := ?_ },
     fun n hn ls => hM'n n (Env.ne_of_isSome_find? hn hfresh) ls⟩
   · -- `type_ok`
     intro n ci' hfind φ ρ ls hlen
@@ -409,6 +425,15 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
       rw [hkind] at hk
       cases hk
     · have := m₀.ind_fib n ci' nP nI cs S' hfind hk
+      rwa [hm₀] at this
+  · -- `rec_rules_k`: the new constant is a definition, not a recursor
+    intro n ci' nP nM nMin nI rules hfind hk rl hrl hkr
+    rw [Env.find?_add] at hfind
+    split at hfind
+    · cases hfind
+      rw [hkind] at hk
+      cases hk
+    · have := m₀.rec_rules_k n ci' nP nM nMin nI rules hfind hk rl hrl hkr
       rwa [hm₀] at this
 
 end Fragment

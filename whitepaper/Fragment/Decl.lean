@@ -320,11 +320,22 @@ def ruleRhs (c : CtorSpec) (j : Nat) : Expr :=
     (mkAppN (.bvar (nF + S.n - 1 - j))
       (varsAt 0 nF ++ c.recFields.map fun kf => S.ihVal nF kf.1 kf.2))
 
-/-- The recursor's rules, one per constructor. -/
+/-- **Is the block K-like?** (task #342 F2; Lean's kernel,
+`init_K_target`): one family, not nested (Lean elaborates a nested
+block into a mutual one, which is not K), whose sort is `Prop`
+syntactically, with exactly one constructor, which has no fields. -/
+def isK : Bool :=
+  S.nest.isNone && S.sort == .zero &&
+    match S.ctors with
+    | [c] => c.fields.isEmpty
+    | _ => false
+
+/-- The recursor's rules, one per constructor, flagged K when the
+block is (`isK`). -/
 def rules : List RecRule :=
   (List.range S.n).map fun j =>
     let c := S.ctors.getD j ⟨"", [], []⟩
-    ⟨c.name, c.fields.length, S.ruleRhs c j, none⟩
+    ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩
 
 /-! ### The nested block's recursors
 
@@ -507,7 +518,7 @@ def rule1Rhs (N : NestInfo) (c : CtorSpec) (j : Nat) : Expr :=
 def rulesN (N : NestInfo) : List RecRule :=
   (List.range S.n).map fun j =>
     let c := S.ctors.getD j ⟨"", [], []⟩
-    ⟨c.name, c.fields.length, S.ruleRhsN N c j, none⟩
+    ⟨c.name, c.fields.length, S.ruleRhsN N c j, none, false⟩
 
 /-- `T.rec_1`'s rules, one per constructor of the container, each
 with its stored instantiation: the container's levels and the class's
@@ -515,7 +526,7 @@ arguments. -/
 def rules1 (N : NestInfo) : List RecRule :=
   (List.range (N.nK)).map fun j =>
     let c := N.K.ctors.getD j ⟨"", [], []⟩
-    ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0)⟩
+    ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0), false⟩
 
 /-! ### What is stored -/
 

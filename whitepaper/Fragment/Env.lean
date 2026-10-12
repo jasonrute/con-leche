@@ -50,6 +50,14 @@ structure RecRule where
   recursor's (`Red.iota`).  Con-leche's `.nested` certification of a
   rule (`tests/e2e/src/nested_rec.lean`). -/
   inst : Option (List Level × List Expr) := none
+  /-- **The K flag** (task #342 F2; Lean's `RecursorVal.k`): the rule
+  belongs to a K-like family — one family (not mutual, not nested),
+  always a proposition, with one constructor and no fields (`Eq`,
+  `HEq`, `True`).  Such a rule fires on any major whose type is the
+  family, with no constructor in sight (`Red.iotaK`): the reduct is
+  the right-hand side at the recursor's parameters, motives and minors
+  alone. -/
+  k : Bool := false
   deriving DecidableEq
 
 /-- What kind of constant a name is stored as. -/

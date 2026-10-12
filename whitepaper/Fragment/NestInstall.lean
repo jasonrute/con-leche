@@ -147,6 +147,23 @@ noncomputable def mInstallN : EnvModel V (S.install env) where
     · split at hfind
       · cases hfind; simp [recInfoN] at hkind
       · exact (mCtorsN hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [install_eq_installN hok, S.installN_find?] at hfind
+    split at hfind
+    · -- `T.rec_1`: a nested block is not K
+      cases hfind
+      simp only [rec1Info, ConstKind.recursor.injEq] at hkind
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+      obtain ⟨j, c', hc', rfl⟩ := S.mem_rules1 N hrl
+      cases hk
+    · split at hfind
+      · -- `T.rec`: likewise
+        cases hfind
+        simp only [recInfoN, ConstKind.recursor.injEq] at hkind
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+        obtain ⟨j, c', hc', rfl⟩ := S.mem_rulesN N hrl
+        cases hk
+      · exact (mCtorsN hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 omit hs in
 /-- **The block laws survive the nested installation**: the new

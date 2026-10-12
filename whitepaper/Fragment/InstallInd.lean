@@ -298,6 +298,11 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
         fun _ ps is _ _ => hF _ ps is
     · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).ind_fib I ci nP nI cs S'
         hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 omit hpl in
 theorem mIndF_M (F : List Nat → List V → List V → V)
@@ -614,6 +619,11 @@ noncomputable def mInd : EnvModel V (S.envInd env) where
             (by have := FitsVals_length _ _ hp; simpa [nP] using this) hp)
           (S.contOk_of_plain m.M _ hpl ps) is
     · exact (m₃ hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · exact (m₃ hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mInd_M : (mInd hpl hs m hok).M = S.M₃ m.M := rfl
 
@@ -837,6 +847,11 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
     split at hfind
     · cases hfind; simp [ctorInfo] at hkind
     · exact (mInd hpl hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+    split at hfind
+    · cases hfind; simp [ctorInfo] at hkind
+    · exact (mInd hpl hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mCtors_M : (mCtors hpl hs m hok).M = S.M₃ m.M := rfl
 

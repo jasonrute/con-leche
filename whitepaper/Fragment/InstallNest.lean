@@ -479,6 +479,11 @@ noncomputable def mIndFN (F : List Nat → List V → List V → V)
         fun _ ps is _ _ => hF _ ps is
     · exact (m.toEnvModel.transport hs (S.M₁F m.M F) (agree_M₁FN hok m.M F)).ind_fib I ci nP nI
         cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · exact (m.toEnvModel.transport hs (S.M₁F m.M F) (agree_M₁FN hok m.M F)).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mIndFN_M (F : List Nat → List V → List V → V)
     (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V))
@@ -873,6 +878,11 @@ noncomputable def mIndN : EnvModel V (S.envInd env) where
       exact indFib_of_readers hok.scoped (fun φ => reader₃₀m hs m hok φ)
         fun φ ps is hp _ => fam_typeU hs m hok φ hp is
     · exact (m₃N hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · exact (m₃N hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mIndN_M : (mIndN hs m hok).M = S.M₃N m.M N := rfl
 
@@ -1049,6 +1059,11 @@ noncomputable def mCtorsN : EnvModel V (S.envCtors env) where
     split at hfind
     · cases hfind; simp [ctorInfo] at hkind
     · exact (mIndN hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+    split at hfind
+    · cases hfind; simp [ctorInfo] at hkind
+    · exact (mIndN hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mCtorsN_M : (mCtorsN hs m hok).M = S.M₃N m.M N := rfl
 

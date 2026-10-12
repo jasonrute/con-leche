@@ -121,6 +121,24 @@ noncomputable def mInstall : EnvModel V (S.install env) where
     split at hfind
     · cases hfind; simp [recInfo] at hkind
     · exact (mCtors hpl hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.install_find? hpl] at hfind
+    split at hfind
+    · -- the new recursor: its rules are flagged K only for a K-like block
+      rename_i hc
+      subst hc
+      cases hfind
+      simp only [recInfo, ConstKind.recursor.injEq] at hkind
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+      obtain ⟨j, c', hc', rfl⟩ := S.mem_rules hrl
+      obtain ⟨c, hK, hnf⟩ := isK_spec hk
+      rw [hK] at hc'
+      obtain ⟨rfl, rfl⟩ : j = 0 ∧ c' = c := by
+        cases j with
+        | zero => simp only [List.getElem?_cons_zero, Option.some.injEq] at hc'; exact ⟨rfl, hc'.symm⟩
+        | succ j => simp at hc'
+      exact rec_rule_lawK hpl hs m hok hK hnf
+    · exact (mCtors hpl hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mInstall_M : (mInstall hpl hs m hok).M = S.M₃ m.M := rfl
 
