@@ -314,11 +314,15 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
       · exact ⟨cv2, mI2, rP2, [], h₀⟩
     refine ⟨?_, ?_⟩
     · intro T cvT caps hf hcap hres hfamS φ' us hus
-      obtain ⟨TVa, hTVa, hokT, hlaw⟩ :=
+      obtain ⟨TVa, hTVa, hokT, hlaw, hcoh⟩ :=
         he T cvT caps ((hsame _ _
           (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf) hcap
           hres (hfam T caps hfamS) φ' us hus
-      exact ⟨TVa, by rw [← hde]; exact hTVa, hokT, hlaw⟩
+      refine ⟨TVa, by rw [← hde]; exact hTVa, hokT, hlaw,
+        hcoh.transport (fun cvC nPc nFc hf₂ => (hsame _ _
+          (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf₂)
+        (fun cvC nPc nFc TCa _ hTCa => by rw [← hde]; exact hTCa) rfl
+        (fun _ _ _ => rfl)⟩
     · intro T cvT caps hf hcap hres φ' us hus
       obtain ⟨TVa, hTVa, hokT, hlaw⟩ :=
         hu T cvT caps ((hsame _ _
@@ -353,8 +357,12 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     · -- (C) the η law (task #175 W4c): the former's lookup is unchanged
       -- by the swap, and the reading is `hde`
       intro cvT' capsT' hfT' us hus
-      obtain ⟨TVa, hTVa, hok, hlaw'⟩ := hetaL cvT' capsT' ((hsame _ _
+      obtain ⟨TVa, hTVa, hok, hlaw', hcoh⟩ := hetaL cvT' capsT' ((hsame _ _
         (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hfT') us hus
-      exact ⟨TVa, by rw [← hde]; exact hTVa, hok, hlaw'⟩
+      exact ⟨TVa, by rw [← hde]; exact hTVa, hok, hlaw', fun he =>
+        (hcoh he).transport (fun cvC nPc nFc hf₂ => (hsame _ _
+          (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf₂)
+        (fun cvC nPc nFc TCa _ hTCa => by rw [← hde]; exact hTCa) rfl
+        (fun _ _ _ => rfl)⟩
 
 end ConLeche.Model

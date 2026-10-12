@@ -1416,7 +1416,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         ⟨((hframes m hm j cA hj).2 ψ ρ hρ).1, ((hframes m hm j cA hj).2 ψ ρ hρ).2.1,
           fun bs hbs => (((hframes m hm j cA hj).2 ψ ρ hρ).2.2.2 bs hbs).2⟩⟩
     · -- capsU
-      intro m hm cvTa hcv env' m' kk cA hkk hu hFD' hleaf' hleafC'
+      intro m hm cvTa hcv env' m' kk cA hkk hu hcvC hlpsCA hreadCA hFD' hleaf' hleafC'
       have hnIdx0 : q.nIdxs.getD m 0 = 0 := by
         rw [blockNIdxs_getD (q := q) (j := m) hm]
         exact blockCapsAt_unitlike_nIdx hu
@@ -1465,7 +1465,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         (pps := ppsOf m) (ds := (pk m).dsF 0) (L := fun ψ =>
           blockLeafH (blockDataOf V q ctorsAs pk uOf ppsOf) m ψ)
         (fun hU _ => absurd hu (by rw [hU]; simp))
-        (fun ψ => (hlenP ψ).symm) hleaf' hFD'.read hFD'.okTy ?_ ?_ ?_
+        (fun ψ => (hlenP ψ).symm) hleaf' hFD'.read hFD'.okTy ?_ ?_ ?_ ?_
       · -- the fold at the fieldless shape
         intro _ ψ ρ ts hsp
         unfold blockLeafH
@@ -1493,6 +1493,13 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         have hiff := (hframes m hm 0 cA hkk).1 ψ ρ'
         rwa [List.take_of_length_le (Nat.le_of_eq (hlenP ψ)),
           List.take_of_length_le (Nat.le_of_eq (hlenD ψ))] at hiff
+      · -- the η constructor's stored type reads over the same domains
+        intro _ cvC nPc nFc hfC
+        rw [hcaps] at hfC
+        have hfC' : env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) := by
+          rw [hnameC]; exact hfC
+        obtain rfl := hcvC cvC nPc nFc hfC'
+        exact ⟨hlpsCA, _, hreadCA⟩
   have hmnameNe' : ∀ (c m : Nat), c < q.k → m < q.k → c ≠ m →
       q.memberNames.getD c .anonymous ≠ q.memberNames.getD m .anonymous := by
     intro c m hc hm hcm

@@ -187,18 +187,26 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
     tmaj₀, tmaj, T, us₀, ust, cvT, caps, rfl, hfj, hpi, hfT, hinf, hwh, hfn, harm⟩
   · exact .refl
   rcases harm with ⟨hk, hlps, hle, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩ |
-    ⟨heta, hnz, hlen, hlps, rfl, hcerts, hcert⟩ |
+    ⟨heta, hnz, hlen, hlps, rfl, hcert⟩ |
     ⟨rfl, hlen, hlps, hslots, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩
   · exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlps hle rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
       (inferTypeIO_bridge hio htf) (hd hdq) (proofIrrel_bridge hw hio hpirr)
-  · refine .rescueEta hfr heta hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh)
-      hfn hlen hlps hnz rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
-      ?_ ?_
-    · -- the per-field telescope certificates: the η certificate ran
-      -- them (`structEtaCertWith_projCerts_bridge`)
-      exact structEtaCertWith_projCerts_bridge hd hio hfn hfT hcert
-    · exact structEtaCertWith_bridge hw hd hio hinf hwh hcert
+  · -- the η certificate's run at `(fab, major, tmaj)`: its two name
+    -- guards and, at a projection-function family, its per-field
+    -- telescope certificates (`structEtaCertWith_projCerts_bridge`)
+    obtain ⟨c₂, us₂, -, -, -, T₂, us₂', cvT₂, caps₂, hfn₂, -, -, hwfn₂, hfT₂, -,
+      hctor₂, hresT₂, hresc₂, -⟩ := structEtaCertWith_inv hcert
+    rw [hfn] at hwfn₂
+    obtain ⟨rfl, rfl⟩ := Expr.const.inj hwfn₂
+    rw [hfT] at hfT₂
+    obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj hfT₂)
+    have hcf : c₂ = caps.etaCtor := by
+      rw [ConLeche.Expr.getAppFn_mkAppN] at hfn₂
+      exact (Expr.const.inj hfn₂).1.symm
+    refine .rescueEta hfr heta hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh)
+      hfn hlen hlps hnz rfl hsc1 hsc2 hsc3 hresT₂ (by rw [← hcf]; exact hresc₂) ?_
+    exact structEtaCertWith_projCerts_bridge hd hio hfn hfT hcert
   · exact .rescueAnd hfr hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlen hlps hslots rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
       (inferTypeIO_bridge hio htf) (hd hdq) (proofIrrel_bridge hw hio hpirr)
