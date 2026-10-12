@@ -435,10 +435,11 @@ theorem grp_arity {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDa
     unfold SortTail; rw [← piBinders_snd_eq, hs]; trivial
   have hse : SortTail cv.type := l2.mp (k2.mp hsty)
   obtain ⟨ab', u', heq, hlen⟩ := read_of_sortTail _ cv.type rfl hse hread
-  obtain ⟨rfl, -⟩ := mkPisAV_sort_eq heq
+  obtain ⟨hab', -⟩ := mkPisAV_sort_eq heq
+  have hll : ab.length = ab'.length := by simpa using congrArg List.length hab'
   have hidx : D.names.idxOf p.1 = mm := by rw [hpm]; exact idxOf_member hnN hkN hmm
   have hnA : ConLeche.nestArity ctx p.1 = cv.type.piBinders.1.length := by
     unfold ConLeche.nestArity; rw [hfC]
-  rw [hnA, hidx, ← piCount_eq_length, ← hlen, ← List.length_append, ← hmap, List.length_map]
+  rw [hnA, hidx, ← piCount_eq_length, ← hlen, ← hll, ← List.length_append, ← hmap, List.length_map]
 
 end ConLeche.Model
