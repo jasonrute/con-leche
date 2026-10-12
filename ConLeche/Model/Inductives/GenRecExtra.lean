@@ -1475,6 +1475,35 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     rw [interp_sort] at this
     exact this
 
+/-- **The class's sort at the constructor's levels is its sort at the
+class's.** -/
+theorem genOut_wCongr {j : Nat} {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
+    {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
+    {ψj ψc : Name → Nat} (hlv : ∀ p ∈ cA.1.levelParams, ψj p = ψc p) :
+    (tgtClsD d Dc out j).w ψj = (tgtClsD d Dc out j).w ψc := by
+  obtain ⟨-, -, hlpC, -⟩ := Rd.hctor i cA hcAM
+  obtain ⟨caps, hfc, -⟩ := genOut_caps Rd hcAM
+  have hfm : envC.find? ((tgtClsD d Dc out j).member (tgtClsM mc pp.toBlockShape out j))
+      = some (.indInfo cvI caps) := by rw [Rd.hmem]; exact hfc
+  exact lfpW_congr mpC Rd.hD Rd.hmm hfm (fun q hq => by rw [← hlpC] at hq; exact hlv q hq)
+
+/-- **(P) at an outside class**: at a `Prop` valuation of the class a
+fitting graded constructor application lies in a truth value (its
+residual is the container at fitting arguments, `genOut_typed`). -/
+theorem genOut_P (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
+    (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
+    {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
+    {ψj ψc : Name → Nat} (hlv : ∀ p ∈ cA.1.levelParams, ψj p = ψc p)
+    (hw : (tgtClsD d Dc out j).w ψc = 0) {TVja : AnnotTerm}
+    (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
+    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    (hys : ys.length = (tgtMajor out j).nPc + cA.2)
+    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenotedV V ρ y) :
+    interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
+  obtain ⟨args, -, -, -, hin, -, hU⟩ := genOut_typed hcov Rd hcAM hread hys hfitC hWD
+  rw [genOut_wCongr Rd hcAM hlv, hw] at hU
+  exact mem_univ_zero hU hin
+
 end Outside
 
 end ConLeche.Model
