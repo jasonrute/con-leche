@@ -40,8 +40,9 @@ off that run record:
   reads as `mkLamsAV` of its binders' domains;
 * **`htower`** (`genRuleTower`): every stored rule reads as a λ-tower of
   length `rP + nF` — the run strips exactly that many λs;
-* **`hRaZ`** (`genRuleRaZ`): at `ℓ = 0` a stored rule reads as the point —
-  its body values are proofs (owed to task #342 L17).
+* **`hRaZ`** is not here: at `ℓ = 0` a stored rule reads as the point
+  because its minor premise does (`genRuleRaZ`, `GenClsFrame.lean`, over
+  the minor premise's reading `genMinor_pt`).
 -/
 
 namespace ConLeche.Model
@@ -219,7 +220,7 @@ theorem genRuleAt (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block cto
 
 end Run
 
-/-! ## 3. `htower` and `hRaZ` -/
+/-! ## 3. `htower` -/
 
 section Tower
 
@@ -254,21 +255,6 @@ theorem genRuleTower (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block 
   refine ⟨_, C, hL, ?_⟩
   rw [readLamBs_length, openLamsM_length _ ho, BlockShape.rulePrefixAt,
     List.getD_eq_getElem?_getD, hrc, Option.getD_some, TR.hrP, hnF]
-
-/-- **`hRaZ`, at any reading**: at `ℓ = 0` a stored rule reads as the
-point — its body values are proofs. -/
-theorem genRuleRaZ (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block ctorsAs out)
-    {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
-    (hr : (tgtRs out)[j]? = some r) {i : Nat} {cA : ConstantVal × Nat}
-    (hcA : r.2.2.2[i]? = some cA) {rhs : Expr} (hrhs : r.2.1[i]? = some rhs)
-    {acv : Name → (Name → Nat) → AnnotTerm} {env₃ : Env} {ψ : Name → Nat} {Ra : AnnotTerm}
-    (hRa : denoteMeta acv env₃ ψ 0 rhs = some Ra)
-    (hℓ : Level.eval ψ (ConLeche.structElimLevel p.elim p.large) = 0) (ρ : Nat → V) :
-    interp V ρ Ra = pt := by
-  -- L17: the recursor into `Prop`: at `ℓ = 0` the rule's body values are
-  -- proofs, so the value-read λ-tower is the point (`lamV_eq_pt`); the
-  -- body's typing at the motive's truth-valued fibres is owed
-  sorry
 
 end Tower
 
@@ -1865,22 +1851,6 @@ theorem genRecHtower
                 denoteMeta acv env₃ ψ 0 rhs = some Ra →
                   ∃ lds A, Ra = mkLamsAV lds A ∧ lds.length = pp.rulePrefixAt j + cA.2 :=
   fun _ _ hr _ _ _ hcA hrhs _ _ _ _ hRa => genRuleTower R hr hcA hrhs hRa
-
-/-- **`hRaZ`** (the skeleton's goal, at any environment's reading). -/
-theorem genRecHRaZ
-    (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
-      ctorsAs out) {env₃ : Env} {acv : Name → (Name → Nat) → AnnotTerm} :
-    ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      (tgtRs out)[j]? = some r →
-        ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
-          r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-            ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-                (ConLeche.tgtMajorsOf out) j r ≠ ConLeche.RecRuleFire.inert →
-              ∀ (ψ : Name → Nat) (Ra : AnnotTerm),
-                denoteMeta acv env₃ ψ 0 rhs = some Ra →
-                  Level.eval ψ (ConLeche.structElimLevel pp.elim pp.large) = 0 →
-                    ∀ (ρ : Nat → V), interp V ρ Ra = pt :=
-  fun _ _ hr _ _ _ hcA hrhs _ _ _ hRa hℓ ρ => genRuleRaZ R hr hcA hrhs hRa hℓ ρ
 
 /-- **`heqP`** (the skeleton's goal), given the family level's
 parametricity (`blockRecLevel_run`'s `hsP`) and the CLASS SIDE's

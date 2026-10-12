@@ -971,7 +971,8 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
         (by rw [ConLeche.projTele_stripPis]; rfl) (hTad d)
     obtain ⟨restj, hpeel⟩ := peelPis_of_piChain _ hpc
     rw [hlpe, ← hvT'] at hA
-    exact (hA hgj ρ tsa ea restj hlenVs hgTm hg hmemMW hpeel).1
+    exact (hA hgj ρ tsa ea restj hlenVs hgTm
+      (by rw [← heqTm]; exact hgT0.ne_pt) hg hmemMW hpeel).1
   have hoksF : ∀ x ∈ (tsa ++ [projAV (0 + env.projOff andName) ea,
       projAV (1 + env.projOff andName) ea]), WellDenotedV V ρ x := by
     intro x hx

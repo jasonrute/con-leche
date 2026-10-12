@@ -931,6 +931,9 @@ dummy binders carry the reading only; the law never reads them. -/
           vs.length = entry.numParams →
           WellDenotedV V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →
+          -- the subject's type is not the point (a type, at the caller)
+          interp V ρ (AnnotTerm.mkAppN
+            (m.acval T (Level.substFn φ entry.levelParams us)) vs) ≠ pt →
           WellDenotedV V ρ x →
           interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →

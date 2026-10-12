@@ -19,8 +19,7 @@ The counterparts of `HoleRel.drop`, `HoleRel.dropBase` and `HoleRel.extendEmpty`
   frame hole);
 * `HoleRelA.extendEmpty`: a frameless relation at the block's own depth
   extended by enclosing frames holding `∅` on both sides — their holes are
-  blind (`∅` applied is `∅`) and never hold `pt`, so richness there is
-  vacuous.
+  blind (`∅` applied is `∅`) and never hold `pt`.
 
 The admissible items move with the positions (`holeQ_shift`,
 `holeQ_nil`).
@@ -79,17 +78,12 @@ theorem HoleRelA.drop {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : Li
   symm := by
     rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
     exact ⟨ρ', ρ, hR.symm ρ ρ' hr, rfl, rfl⟩
-  rich hw := by
-    rintro _ _ ⟨ρ, ρ₀, hr, rfl, rfl⟩ i vs hQ hpt
+  ptFree hw := by
+    rintro _ _ ⟨ρ, ρ₀, hr, rfl, rfl⟩ i vs hQ
     have hQ' : HoleQ ctx prog d (i + (d - h)) vs.length := by
       have := holeQ_shift (k := d - h) hQ
       rwa [show h + (d - h) = d by omega] at this
-    obtain ⟨ρ'', hr'', hle'', z, hz, hzp⟩ := hR.rich hw ρ ρ₀ hr (i + (d - h)) vs hQ' hpt
-    refine ⟨fun j => ρ'' (j + (d - h)), ⟨ρ, ρ'', hr'', rfl, rfl⟩, fun o ho hH => ?_, z, hz, hzp⟩
-    have hQo : HoleQ ctx prog d (o.1 + (d - h)) o.2.1.length := by
-      have := holeQ_shift (k := d - h) ho
-      rwa [show h + (d - h) = d by omega] at this
-    exact hle'' (o.1 + (d - h), o.2) hQo hH
+    exact hR.ptFree hw ρ ρ₀ hr (i + (d - h)) vs hQ'
   lrefl := by
     rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
     exact ⟨ρ, ρ, hR.lrefl ρ ρ' hr, rfl, rfl⟩
@@ -114,19 +108,13 @@ theorem HoleRelA.dropBase {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa 
   symm := by
     rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
     exact ⟨ρ', ρ, hR.symm ρ ρ' hr, rfl, rfl⟩
-  rich hw := by
+  ptFree hw := by
     have hle0 : ctx.hiAt 0 ≤ d := by simp only [NestCtx.hiAt] at hle ⊢; omega
-    rintro _ _ ⟨ρ, ρ₀, hr, rfl, rfl⟩ i vs hQ hpt
+    rintro _ _ ⟨ρ, ρ₀, hr, rfl, rfl⟩ i vs hQ
     have hQ' : HoleQ ctx prog d (i + (d - ctx.hiAt 0)) vs.length := by
       have := holeQ_nil (prog := prog) (holeQ_shift (k := d - ctx.hiAt 0) hQ)
       rwa [show ctx.hiAt 0 + (d - ctx.hiAt 0) = d by omega] at this
-    obtain ⟨ρ'', hr'', hle'', z, hz, hzp⟩ := hR.rich hw ρ ρ₀ hr _ vs hQ' hpt
-    refine ⟨fun j => ρ'' (j + (d - ctx.hiAt 0)), ⟨ρ, ρ'', hr'', rfl, rfl⟩, fun o ho hH => ?_,
-      z, hz, hzp⟩
-    have hQo : HoleQ ctx prog d (o.1 + (d - ctx.hiAt 0)) o.2.1.length := by
-      have := holeQ_nil (prog := prog) (holeQ_shift (k := d - ctx.hiAt 0) ho)
-      rwa [show ctx.hiAt 0 + (d - ctx.hiAt 0) = d by omega] at this
-    exact hle'' (o.1 + (d - ctx.hiAt 0), o.2) hQo hH
+    exact hR.ptFree hw ρ ρ₀ hr _ vs hQ'
   lrefl := by
     rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
     exact ⟨ρ, ρ, hR.lrefl ρ ρ' hr, rfl, rfl⟩
@@ -157,49 +145,26 @@ theorem HoleRelA.extendEmpty {ctx : NestCtx} {Δ0 : List AnnotTerm} {R00 : Frame
   symm := by
     rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
     exact ⟨ρ', ρ, hR.symm ρ ρ' hr, rfl, rfl⟩
-  rich hw := by
+  ptFree hw := by
     rintro _ _ ⟨ρ, ρ₀, hr, rfl, rfl⟩ i vs hQ hpt
-    -- an item at an enclosing frame's hole never holds anything
-    have hfr : ∀ (σ : Nat → V) (j : Nat) (us : List V), j < prog.length →
-        ¬ ∃ y, y ∈ˢ us.foldl app (consList (List.replicate prog.length empty) σ j) := by
-      rintro σ j us hj ⟨y, hy⟩
-      rw [consList_replicate_lt _ _ _ hj, foldlApp_empty] at hy
-      exact not_mem_empty y hy
-    -- an admissible position at or beyond the enclosing frames is a member hole
-    have hmem : ∀ j n, HoleQ ctx prog (ctx.hiAt prog.length) j n → prog.length ≤ j →
-        HoleQ ctx [] (ctx.hiAt 0) (j - prog.length) n := by
-      rintro j n (⟨t, ht, hlt, rfl, hn⟩ | ⟨jj, hk, hj, hlt, rfl, hn⟩) hge
+    -- an enclosing frame's hole holds nothing
+    by_cases hip : i < prog.length
+    · rw [consList_replicate_lt _ _ _ hip, foldlApp_empty] at hpt
+      exact not_mem_empty _ hpt
+    -- an admissible position beyond the enclosing frames is a member hole
+    obtain ⟨j, rfl⟩ : ∃ j, i = j + prog.length := ⟨i - prog.length, by omega⟩
+    have hQ0 : HoleQ ctx [] (ctx.hiAt 0) j vs.length := by
+      rcases hQ with ⟨t, ht, hlt, hi, hn⟩ | ⟨jj, hk, hj, hlt, hi, hn⟩
       · refine Or.inl ⟨t, ht, ?_, ?_, hn⟩
         · simp only [NestCtx.hiAt] at hlt ⊢; omega
-        · simp only [NestCtx.hiAt] at hge ⊢; omega
+        · simp only [NestCtx.hiAt] at hi ⊢; omega
       · have := (List.getElem?_eq_some_iff.mp hj).1
         simp only [List.length_reverse] at this
-        simp only [NestCtx.hiAt] at hge; omega
-    by_cases hip : i < prog.length
-    · exact absurd ⟨pt, hpt⟩ (hfr ρ i vs hip)
-    obtain ⟨j, rfl⟩ : ∃ j, i = j + prog.length := ⟨i - prog.length, by omega⟩
-    have hQ0 := hmem _ _ hQ (by omega)
-    rw [show j + prog.length - prog.length = j by omega] at hQ0
-    have ea : ∀ (σ : Nat → V) (k : Nat),
-        consList (List.replicate prog.length (empty : V)) σ (k + prog.length) = σ k := fun σ k => by
-      have := consList_apply_add (List.replicate prog.length (empty : V)) σ k
-      rwa [List.length_replicate] at this
+        simp only [NestCtx.hiAt] at hi; omega
+    have ea := consList_apply_add (List.replicate prog.length (empty : V)) ρ j
+    rw [List.length_replicate] at ea
     rw [ea] at hpt
-    obtain ⟨ρ'', hr'', hle'', z, hz, hzp⟩ := hR.rich hw ρ ρ₀ hr j vs hQ0 hpt
-    refine ⟨consList (List.replicate prog.length empty) ρ'', ⟨ρ, ρ'', hr'', rfl, rfl⟩,
-      fun o ho hH => ?_, z, by rw [ea]; exact hz, hzp⟩
-    obtain ⟨oi, us, y⟩ := o
-    by_cases hoi : oi < prog.length
-    · exact absurd ⟨y, hH⟩ (hfr ρ oi us hoi)
-    obtain ⟨oj, rfl⟩ : ∃ oj, oi = oj + prog.length := ⟨oi - prog.length, by omega⟩
-    have hQo := hmem _ _ ho (by simp only; omega)
-    simp only [show oj + prog.length - prog.length = oj by omega] at hQo
-    show y ∈ˢ us.foldl app (consList (List.replicate prog.length empty) ρ'' (oj + prog.length))
-    rw [ea]
-    have hH' : y ∈ˢ us.foldl app (consList (List.replicate prog.length empty) ρ
-      (oj + prog.length)) := hH
-    rw [ea] at hH'
-    exact hle'' (oj, us, y) hQo hH'
+    exact hR.ptFree hw ρ ρ₀ hr j vs hQ0 hpt
   lrefl := by
     rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
     exact ⟨ρ, ρ, hR.lrefl ρ ρ' hr, rfl, rfl⟩

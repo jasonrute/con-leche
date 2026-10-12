@@ -225,7 +225,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
             (by rw [ConLeche.projTele_stripPis]; rfl) (hTad d)
         obtain ⟨restj, hpeel⟩ := peelPis_of_piChain _ hpc
         rw [← hlpsTj] at hA
-        exact (hA hgj ρ tsa ba restj hlenVs hokW hokB hmemB hpeel).1
+        exact (hA hgj ρ tsa ba restj hlenVs hokW hneW hokB hmemB hpeel).1
       · rw [hb, List.map_append, hps, hctr', hlpsT']
       · rw [List.map_append, hps]; exact hfC'
   · -- NO FIELD: `CapsOk`'s law

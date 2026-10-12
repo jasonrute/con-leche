@@ -59,7 +59,7 @@ member's leaf as a function of the assignment.
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetTheory
-open ConLeche.SetModel (lamR app_lamR_pos)
+open ConLeche.SetModel (lamV app_lamV lamV_eq_pt lamV_ne_pt_of lamV_eq_graph)
 open ConLeche.SetTheory.Tower (projS)
 
 open ConLeche.Semantics (AnnotTerm)
@@ -72,11 +72,12 @@ section HoleFam
 variable {V : Type w} [SetTheory V]
 
 /-- **The λ-tower over a telescope** `Fs`, read progressively from `ρ`,
-of `g` at the bound values — in the graph regime (a type-valued
-function; the hole values). -/
+of `g` at the bound values — value-read (`lamV`), the reading of the
+spelled hole term (the hole values): a level all of whose continuations
+are empty is the point. -/
 @[expose] noncomputable def holeFam (ρ : Nat → V) : List AnnotTerm → (List V → V) → V
   | [], g => g []
-  | F :: Fs, g => lamR 1 (interp V ρ F) fun a => holeFam (cons a ρ) Fs fun as => g (a :: as)
+  | F :: Fs, g => lamV (interp V ρ F) fun a => holeFam (cons a ρ) Fs fun as => g (a :: as)
 
 omit [SetTheory V] in
 theorem shiftE_one_succ (n : Nat) (ρ : Nat → V) :
@@ -290,9 +291,57 @@ theorem holeFam_app :
   | _, [], _ :: _, _, h => h.elim
   | _, _ :: _, [], _, h => h.elim
   | ρ, F :: Fs, a :: as, g, h => by
-    show as.foldl app (app (lamR 1 (interp V ρ F) _) a) = g (a :: as)
-    rw [app_lamR_pos (by decide) h.1]
+    show as.foldl app (app (lamV (interp V ρ F) _) a) = g (a :: as)
+    rw [app_lamV h.1]
     exact holeFam_app (fun bs => g (a :: bs)) h.2
+
+/-- **Where the tower is the point**: with leaves that are never the
+point at a fitting spine, a level is the point exactly when no spine
+fits its telescope — the same for any two such leaf families. -/
+theorem holeFam_eq_pt_iff :
+    ∀ {ρ : Nat → V} {Fs : List AnnotTerm} {g g' : List V → V},
+      (∀ vs, SpineFit ρ Fs vs → g vs ≠ pt) → (∀ vs, SpineFit ρ Fs vs → g' vs ≠ pt) →
+      (holeFam ρ Fs g = pt ↔ holeFam ρ Fs g' = pt)
+  | _, [], _, _, hg, hg' => ⟨fun h => absurd h (hg [] trivial), fun h => absurd h (hg' [] trivial)⟩
+  | ρ, F :: Fs, g, g', hg, hg' => by
+    show lamV _ _ = pt ↔ lamV _ _ = pt
+    have key : ∀ x, x ∈ˢ interp V ρ F →
+        (holeFam (cons x ρ) Fs (fun as => g (x :: as)) = pt ↔
+          holeFam (cons x ρ) Fs (fun as => g' (x :: as)) = pt) := fun x hx =>
+      holeFam_eq_pt_iff (fun vs hvs => hg (x :: vs) ⟨hx, hvs⟩)
+        (fun vs hvs => hg' (x :: vs) ⟨hx, hvs⟩)
+    constructor
+    · intro h
+      refine lamV_eq_pt fun x hx => (key x hx).mp ?_
+      exact Classical.byContradiction fun hne => lamV_ne_pt_of hx hne h
+    · intro h
+      refine lamV_eq_pt fun x hx => (key x hx).mpr ?_
+      exact Classical.byContradiction fun hne => lamV_ne_pt_of hx hne h
+
+/-- **Off a fitting spine the tower's value does not depend on its
+leaves** (as long as they are never the point at a fitting spine): it is
+the point where a level is, `∅` where a graph is applied off its domain. -/
+theorem holeFam_foldl_nofit :
+    ∀ {ρ : Nat → V} {Fs : List AnnotTerm} {vs : List V} {g g' : List V → V},
+      (∀ vs, SpineFit ρ Fs vs → g vs ≠ pt) → (∀ vs, SpineFit ρ Fs vs → g' vs ≠ pt) →
+      vs.length = Fs.length → ¬ SpineFit ρ Fs vs →
+      vs.foldl app (holeFam ρ Fs g) = vs.foldl app (holeFam ρ Fs g')
+  | _, [], [], _, _, _, _, _, hn => absurd trivial hn
+  | _, [], _ :: _, _, _, _, _, h, _ => by simp at h
+  | _, _ :: _, [], _, _, _, _, h, _ => by simp at h
+  | ρ, F :: Fs, a :: vs, g, g', hg, hg', hlen, hn => by
+    show vs.foldl app (app (lamV (interp V ρ F) _) a) = vs.foldl app (app (lamV (interp V ρ F) _) a)
+    by_cases ha : a ∈ˢ interp V ρ F
+    · rw [app_lamV ha, app_lamV ha]
+      exact holeFam_foldl_nofit (fun ws hws => hg (a :: ws) ⟨ha, hws⟩)
+        (fun ws hws => hg' (a :: ws) ⟨ha, hws⟩) (by simpa using hlen) fun h => hn ⟨ha, h⟩
+    · have hpt := holeFam_eq_pt_iff (ρ := ρ) (Fs := F :: Fs) hg hg'
+      change lamV _ _ = pt ↔ lamV _ _ = pt at hpt
+      by_cases hp : lamV (interp V ρ F) (fun x => holeFam (cons x ρ) Fs fun as => g (x :: as)) = pt
+      · rw [hp, hpt.mp hp, app_pt]
+      · have hp' := fun h => hp (hpt.mpr h)
+        rw [lamV_eq_graph hp, lamV_eq_graph hp', app_graph_of_not_mem ha,
+          app_graph_of_not_mem ha]
 
 namespace LfpDatum
 

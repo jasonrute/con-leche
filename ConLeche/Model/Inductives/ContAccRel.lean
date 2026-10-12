@@ -24,10 +24,10 @@ A frame hole stands for its member's whole application (it takes no
 parameters), and a group member's hole value reads its key frame only
 through the index telescope, which reads alike at two frames agreeing off
 the holes (N2's `TeleEq`), so a hole value does not move when the
-enclosing frame changes off the holes (`grpVals_eq`).  Richness: a
-new hole is enlarged at the SAME enclosing frame (`lrefl`, the tuple
-enlarged at one fibre as in `LfpDatum.accRel_rich`); an enclosing hole by
-the enclosing relation's own richness, the tuple kept on the group.
+enclosing frame changes off the holes (`grpVals_eq`).  The holes never
+hold the point: a new hole's value at its full arity is a fibre of the
+tuple (a strict set, as in `LfpDatum.accRel_ptFree`) or `∅`; an enclosing
+hole is the enclosing relation's.
 -/
 
 namespace ConLeche.Model
@@ -43,62 +43,6 @@ open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestHole N
 universe w
 
 variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
-
-/-! ## Hole values -/
-
-theorem foldlApp_mono_holeFam {ρ : Nat → V} {Fs : List AnnotTerm} {vs : List V}
-    {g g' : List V → V} (hlen : vs.length = Fs.length) (hg : ∀ bs, g bs ⊆ˢ g' bs) :
-    vs.foldl app (holeFam ρ Fs g) ⊆ˢ vs.foldl app (holeFam ρ Fs g') := by
-  rcases holeFam_foldl_full (ρ := ρ) (Fs := Fs) (vs := vs) g hlen with ⟨hf, he⟩ | he
-  · rw [he, holeFam_app g' hf]
-    exact hg vs
-  · rw [he]
-    intro x hx
-    exact absurd hx (not_mem_empty x)
-
-/-! ## Enlarging a tuple at one fibre -/
-
-open Classical in
-/-- **A tuple enlarged by `∅` at one fibre** stays in the space (at a
-positive level) and contains the old one. -/
-theorem tuple_enlarge {w' k : Nat} (hw : w' ≠ 0) {Is Y : Nat → V}
-    (hY : InTupleSpace w' k Is Y) {t : Nat} {tt : V} :
-    ∃ Y'' : Nat → V, InTupleSpace w' k Is Y'' ∧ (∀ m i, app (Y m) i ⊆ˢ app (Y'' m) i) ∧
-      (t < k → tt ∈ˢ Is t → (empty : V) ∈ˢ app (Y'' t) tt) := by
-  by_cases htk : t < k
-  · have hfam : famOf (fun i => if i = tt then binUnion (app (Y t) i) (sing empty)
-        else app (Y t) i) (Is t) ∈ˢ famSpace w' (Is t) :=
-      famOf_mem_famSpace fun i hi => by
-        split
-        · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hY t htk) hi)
-        · exact famSpace_app (hY t htk) hi
-    let Y'' : Nat → V := fun m => if m = t then
-      famOf (fun i => if i = tt then binUnion (app (Y t) i) (sing empty) else app (Y t) i)
-        (Is t) else Y m
-    refine ⟨Y'', ?_, ?_, ?_⟩
-    · intro m hm
-      by_cases hmt : m = t
-      · subst hmt
-        simp only [Y'', ite_eq_left rfl]
-        exact hfam
-      · simp only [Y'', ite_eq_right hmt]
-        exact hY m hm
-    · intro m i y hy
-      by_cases hmt : m = t
-      · subst hmt
-        simp only [Y'', ite_eq_left rfl]
-        by_cases hi : i ∈ˢ Is m
-        · rw [app_famOf hi]
-          split
-          · exact mem_binUnion.mpr (Or.inl hy)
-          · exact hy
-        · rwa [← app_off_famSpaceIn (hY m htk) hfam hi]
-      · simp only [Y'', ite_eq_right hmt]
-        exact hy
-    · intro _ htt
-      simp only [Y'', ite_eq_left rfl, app_famOf htt]
-      exact mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl))
-  · exact ⟨Y, hY, fun _ _ => Subset.refl _, fun h => absurd h htk⟩
 
 /-! ## The admissible items of a frame's walk -/
 
@@ -207,15 +151,20 @@ theorem grp_idx_lt {p : Name × Expr} (hp : p ∈ grp) : D.names.idxOf p.1 < D.k
 
 omit hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg in
 /-- **The frame hole's value at full arity** is an occurrence of the tuple
-at its member, or `∅`. -/
+at its member, or `∅`, or the point. -/
 theorem grp_hole_full {mm : Nat} (ρp Y : Nat → V) {vs : List V}
     (hlen : vs.length = (D.ids mm (Level.substFn φ lps us)).length) :
     (SpineFit ρp (D.ids mm (Level.substFn φ lps us)) vs ∧
       vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm)
         = app (Y mm) (tupW (D.u mm (Level.substFn φ lps us)) vs)) ∨
-      vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm) = empty := by
+      (¬ SpineFit ρp (D.ids mm (Level.substFn φ lps us)) vs ∧
+        (vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm) = empty ∨
+          vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm) = pt)) := by
   unfold LfpDatum.holeVal
-  exact holeFam_foldl_full _ hlen
+  rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids mm (Level.substFn φ lps us)) (vs := vs)
+      (fun vs => app (Y mm) (tupW (D.u mm (Level.substFn φ lps us)) vs)) hlen with h | h
+  · exact Or.inl h
+  · exact Or.inr h
 
 /-- A group member's index is in the group. -/
 theorem grp_inGrp {p : Name × Expr} (hp : p ∈ grp) : InGrp D grp (D.names.idxOf p.1) := by
@@ -282,7 +231,7 @@ theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = 
     (news := grpNews us ds (ctx.hiAt prog.length) grp) (i := i) (n := n)
   rw [hnl] at hQiff
   refine
-    { dom := ?_, agree := ?_, dsScoped := ?_, symm := ?_, rich := ?_, lrefl := ?_ }
+    { dom := ?_, agree := ?_, dsScoped := ?_, symm := ?_, ptFree := ?_, lrefl := ?_ }
   · -- the context
     rintro _ _ ⟨ρ, ρ', Y, Y', hr, hY, hY', rfl, rfl⟩
     obtain ⟨h1, h2⟩ := hR₀.dom ρ ρ' hr
@@ -317,13 +266,14 @@ theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = 
   · -- symmetric
     rintro _ _ ⟨ρ, ρ', Y, Y', hr, hY, hY', rfl, rfl⟩
     exact ⟨ρ', ρ, Y', Y, hR₀.symm ρ ρ' hr, hY', hY, rfl, rfl⟩
-  · -- rich
+  · -- point-free: a new hole's value at its full arity is a fibre of the
+    -- tuple (a strict set) or `∅`; an enclosing hole is the enclosing
+    -- relation's
     intro hw
     have hw' : D.w (Level.substFn φ lps us) ≠ 0 := by rw [hwD]; exact hw
     rintro _ _ ⟨ρ, ρ₀, Y, Y₀, hr, hY, hY₀, rfl, rfl⟩ i vs hQ hpt
     rcases (hQiff i vs.length).mp hQ with ⟨j, hk, hjk, rfl, hn⟩ | ⟨hle, hQ'⟩
-    · -- a new hole: enlarge the tuple at the same enclosing frame
-      obtain ⟨hj, rfl⟩ := hnewj _ hk hjk
+    · obtain ⟨hj, rfl⟩ := hnewj _ hk hjk
       obtain ⟨mm, hmm, hidx, har⟩ := hmm_of _ hj
       rw [hposG _ _ _ _ hj, hidx] at hpt
       have hlenv : vs.length = (D.ids mm (Level.substFn φ lps us)).length := by
@@ -332,75 +282,14 @@ theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = 
           (keyFrame dsa (ctx.hiAt prog.length) ρ) Y hlenv with ⟨hfv, he⟩ | he
       · rw [he] at hpt
         have hmmN : mm < D.N := Nat.lt_of_lt_of_le hmm (mp.lfp_ok D hD).1.kN
-        have htt : tupW (D.u mm (Level.substFn φ lps us)) vs
-            ∈ˢ D.idx (Level.substFn φ lps us) (keyFrame dsa (ctx.hiAt prog.length) ρ) mm :=
-          tupW_mem hfv
-        obtain ⟨Y'', hY'', hle'', hz⟩ := tuple_enlarge (t := mm)
-          (tt := tupW (D.u mm (Level.substFn φ lps us)) vs) hw' hY
-        refine ⟨consList (grpVals D (Level.substFn φ lps us) grp
-            (keyFrame dsa (ctx.hiAt prog.length) ρ) Y'') ρ,
-          ⟨ρ, ρ, Y, Y'', hR₀.lrefl ρ ρ₀ hr, hY, hY'', rfl, rfl⟩, ?_, empty, ?_,
-          pt_ne_empty.symm⟩
-        · rintro ⟨i', vs', y⟩ ho hH
-          unfold Adm at ho
-          rcases (hQiff i' vs'.length).mp ho with ⟨j', hk', hjk', rfl, hn'⟩ | ⟨hle', -⟩
-          · obtain ⟨hj', rfl⟩ := hnewj _ hk' hjk'
-            obtain ⟨mm', hmm', hidx', har'⟩ := hmm_of _ hj'
-            unfold Holds at hH ⊢
-            simp only at hH ⊢
-            rw [hposG _ _ _ _ hj', hidx'] at hH ⊢
-            unfold LfpDatum.holeVal at hH ⊢
-            exact foldlApp_mono_holeFam (by simp only at hn'; omega)
-              (fun bs => hle'' mm' _) y hH
-          · unfold Holds at hH ⊢
-            simp only at hH ⊢
-            rw [hposE _ _ _ _ hle'] at hH ⊢
-            exact hH
-        · show empty ∈ˢ vs.foldl app (consList (grpVals D (Level.substFn φ lps us) grp
-            (keyFrame dsa (ctx.hiAt prog.length) ρ) Y'') ρ (grp.length - 1 - j))
-          rw [hposG _ _ _ _ hj, hidx, LfpDatum.holeVal_app hfv]
-          exact hz hmmN htt
-      · rw [he] at hpt
-        exact absurd hpt (not_mem_empty _)
-    · -- an enclosing hole: the enclosing relation's richness
-      rw [hposE _ _ _ _ hle] at hpt
-      obtain ⟨ρ'', hr'', hle'', z, hz, hzp⟩ := hR₀.rich hw ρ ρ₀ hr (i - grp.length) vs hQ' hpt
-      let Y'' : Nat → V := mixT (InGrp D grp)
-        (D.carrier (Level.substFn φ lps us) (keyFrame dsa (ctx.hiAt prog.length) ρ'')) Y
-      have hY'' : InTupleSpace (D.w (Level.substFn φ lps us)) D.N
-          (D.idx (Level.substFn φ lps us) (keyFrame dsa (ctx.hiAt prog.length) ρ'')) Y'' := by
-        intro c hc
-        show mixT (InGrp D grp) _ Y c ∈ˢ _
-        unfold mixT
-        split
-        · rename_i hG
-          rw [← grp_idx_eq mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hG (hagree ρ ρ'' hr'')]
-          exact hY c hc
-        · exact lfpTuple_mem _ _ _ _ c hc
-      have hgv : grpVals D (Level.substFn φ lps us) grp (keyFrame dsa (ctx.hiAt prog.length) ρ'') Y''
-          = grpVals D (Level.substFn φ lps us) grp (keyFrame dsa (ctx.hiAt prog.length) ρ) Y :=
-        (grpVals_eq mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg (hagree ρ ρ'' hr'')
-          (fun p hp => by
-            show Y _ = mixT (InGrp D grp) _ Y _
-            unfold mixT
-            rw [ite_eq_left (grp_inGrp mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hp)])).symm
-      refine ⟨consList (grpVals D (Level.substFn φ lps us) grp
-          (keyFrame dsa (ctx.hiAt prog.length) ρ'') Y'') ρ'',
-        ⟨ρ, ρ'', Y, Y'', hr'', hY, hY'', rfl, rfl⟩, ?_, z, ?_, hzp⟩
-      · rintro ⟨i', vs', y⟩ ho hH
-        unfold Adm at ho
-        unfold Holds at hH ⊢
-        simp only at hH ⊢
-        rcases (hQiff i' vs'.length).mp ho with ⟨j', hk', hjk', rfl, -⟩ | ⟨hle', hQo⟩
-        · obtain ⟨hj', -⟩ := hnewj _ hk' hjk'
-          rw [hgv, hposG _ _ _ _ hj']
-          rw [hposG _ _ _ _ hj'] at hH
-          exact hH
-        · rw [hposE _ _ _ _ hle'] at hH ⊢
-          exact hle'' (i' - grp.length, vs', y) hQo hH
-      · show z ∈ˢ vs.foldl app (consList _ ρ'' i)
-        rw [hposE _ _ _ _ hle]
-        exact hz
+        exact ((mem_strictU_pos hw').mp (famSpace_app (hY mm hmmN) (tupW_mem hfv))).2.2 hpt
+      · rcases he.2 with he | he
+        · rw [he] at hpt
+          exact not_mem_empty _ hpt
+        · rw [he] at hpt
+          exact not_mem_self _ hpt
+    · rw [hposE _ _ _ _ hle] at hpt
+      exact hR₀.ptFree hw ρ ρ₀ hr (i - grp.length) vs hQ' hpt
   · -- left-reflexive
     rintro _ _ ⟨ρ, ρ', Y, Y', hr, hY, -, rfl, rfl⟩
     exact ⟨ρ, ρ, Y, Y, hR₀.lrefl ρ ρ' hr, hY, hY, rfl, rfl⟩

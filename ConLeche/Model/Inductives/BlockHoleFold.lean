@@ -80,7 +80,7 @@ theorem blockTyG_holeVal {c : Nat} (hc : c < d.k)
   unfold blockTyG
   rw [show ((d.ppsM c ψ).map fun dd => (d.w ψ + 1, dd.2.2))
       = ((d.ppsM c ψ).map (·.2.2)).map (d.w ψ + 1, ·) by rw [List.map_map]; rfl,
-    interp_mkLamsAV_pos (Nat.succ_ne_zero _), hsplit,
+    interp_mkLamsAV_holeFam, hsplit,
     holeFam_foldl_prefix _ _ hsp, hfr]
   unfold LfpDatum.holeVal
   refine holeFam_congr fun is' his' => ?_

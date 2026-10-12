@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Model.Inductives.TargetNodeDynOf
 import ConLeche.Model.Inductives.TargetCallLand
+import ConLeche.Model.Annot.LfpFormer
 import ConLeche.Model.Annot.BlockLfpTup
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Semantics.Tower.SumTower
@@ -62,7 +63,7 @@ set_option maxHeartbeats 1000000 in
 visit's hypotheses extended by node `0`'s own tuple `Y` (at any owner
 function: the empty stack has no frame hole). -/
 theorem admVal_frame0 (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : Nat → V)
-    (xs : List V) (hparams : SpineFit ρ (d.params ψ) (xs.take d.nP))
+    (xs : List V) (hparams : SpineFit ρ (d.params ψ) (xs.take d.nP)) (hxs : d.nP ≤ xs.length)
     (hids : ∀ t, t < ctx.names.length → (d.toLfp.ids t ψ).length = ctx.nIdxs.getD t 0)
     {Y : Nat → V}
     (hY : InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ (consList (xs.take d.nP) ρ)) Y)
@@ -104,15 +105,53 @@ theorem admVal_frame0 (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : N
         List.length_nil]
       omega
     rw [consList_append, ← hlv, consList_apply_add, H.hnP]
-  · -- a member hole: `Y` where the indices fit, nothing elsewhere
+  · -- a member hole: `Y` where the indices fit; off the fit the true value
+    -- (the carrier's hole value: the tower off a fitting spine does not read
+    -- the tuple, `holeFam_foldl_nofit`)
     intro t ht is his y hy
     have htk : t < d.k := by rw [← hkc]; exact ht
     have hidx : ctx.hiAt ([] : List NestHole).length - 1 - (ctx.nP + t) = d.k - 1 - t := by
       simp only [List.length_nil]; rw [hhi0, H.hnP]; omega
     rw [hidx, ← hkk, LfpDatum.frame_hole (by rw [hkk]; exact htk)] at hy
-    obtain ⟨hfit, hyY⟩ := holeVal_foldl_mem (by rw [hids t ht, his]) hy
-    exact ⟨fun _ => Or.inr ⟨rfl, Nat.lt_of_lt_of_le htk hcl.kN, tupW_mem hfit, hyY⟩,
-      fun hn => absurd (by rw [hnP]; exact hfit) hn⟩
+    have hisl : is.length = (d.toLfp.ids t ψ).length := by rw [hids t ht, his]
+    by_cases hfit : SpineFit (consList (xs.take d.nP) ρ) (d.toLfp.ids t ψ) is
+    · rw [LfpDatum.holeVal_app hfit] at hy
+      exact ⟨fun _ => Or.inr ⟨rfl, Nat.lt_of_lt_of_le htk hcl.kN, tupW_mem hfit, hy⟩,
+        fun hn => absurd (by rw [hnP]; exact hfit) hn⟩
+    refine ⟨fun h => absurd (by rw [← hnP]; exact h) hfit, fun _ => ?_⟩
+    have hxs' : ctx.nP ≤ xs.length := by rw [H.hnP]; exact hxs
+    have htk' : t < d.toLfp.k := htk
+    obtain ⟨cv, caps, hf, hlps⟩ := H.hlpsM _ (List.getElem_mem ht)
+    have hlen : (ctx.lps.map Level.param).length = cv.levelParams.length := by
+      rw [List.length_map, hlps]
+    have hc : denoteMeta mpC.base2.acval envC ψ xs.length
+        (.const (ctx.names[t]'ht) (ctx.lps.map Level.param))
+          = some (mpC.base2.acval (ctx.names[t]'ht) ψ) := by
+      have h1 := H.htr ψ xs.length _ (denoteMeta_const (acval := mk.base2.acval) (φ := ψ)
+        (d := xs.length) hf hlen)
+      rw [h1, show (ConstantInfo.indInfo cv caps).toConstantVal = cv from rfl, hlps,
+        ConLeche.Level.substFn_param_self, H.hag _ (by rw [hf]; rfl)]
+    rw [trueVal_member mpC ctx ψ ρ xs H.hparF hxs' [] ht hc]
+    have hmem : d.toLfp.member t = ctx.names[t] := by
+      unfold LfpDatum.member
+      rw [List.getD_eq_getElem?_getD, ← H.hnames, List.getElem?_eq_getElem ht, Option.getD_some]
+    rw [← hmem]
+    have hpl : (xs.take d.nP).length = (d.params ψ).length := hparams.length_eq
+    have hfe := former_app_eq mpC H.hd0 htk' hsP ρ
+    have hpl' : (xs.take d.nP).length = (d.toLfp.params ψ).length := hpl
+    rw [frameIdx_consList hpl' ρ] at hfe
+    rw [H.hnP, hfe]
+    have htN : t < d.toLfp.N := Nat.lt_of_lt_of_le htk hcl.kN
+    have hC : InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ (consList (xs.take d.nP) ρ))
+        (d.toLfp.carrier ψ (consList (xs.take d.nP) ρ)) := lfpTuple_mem _ _ _ _
+    have hne : ∀ (Z : Nat → V), InTupleSpace (d.toLfp.w ψ) d.toLfp.N
+        (d.toLfp.idx ψ (consList (xs.take d.nP) ρ)) Z →
+        ∀ ws, SpineFit (consList (xs.take d.nP) ρ) (d.toLfp.ids t ψ) ws →
+          app (Z t) (tupW (d.toLfp.u t ψ) ws) ≠ pt := fun Z hZ ws hws =>
+      (IsTy_of_mem_strictU (famSpace_app (hZ t htN) (tupW_mem hws))).ne_pt
+    unfold LfpDatum.holeVal at hy ⊢
+    rw [holeFam_foldl_nofit (hne _ hC) (hne _ hY) hisl hfit]
+    exact hy
 
 end Block
 

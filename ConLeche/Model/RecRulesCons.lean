@@ -491,9 +491,9 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
       · refine constsBound_of_constsResolve _ ?_
         rw [ConLeche.projTele_constsResolve, ConLeche.Expr.constsResolve_instantiateLevelParams]
         exact (ConLeche.projEntry_body_wf mp.base2.wf hfP).2.2.1
-    · intro hg ρ vs x rest hlen hokT hokx hmem hpeel
-      rw [hac, acvalWith_ne hnT] at hokT hmem
-      exact hA hg ρ vs x rest hlen hokT hokx hmem hpeel
+    · intro hg ρ vs x rest hlen hokT hneT hokx hmem hpeel
+      rw [hac, acvalWith_ne hnT] at hokT hneT hmem
+      exact hA hg ρ vs x rest hlen hokT hneT hokx hmem hpeel
     · -- the constructor type's reading crosses (task #175 W6): a
       -- prefix lookup's closed type
       rw [hac]

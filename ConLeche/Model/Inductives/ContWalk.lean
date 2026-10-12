@@ -69,8 +69,8 @@ theorem holeFam_append_apply :
   | [], _, _ :: _, _, _, _, h => h.elim
   | _ :: _, _, [], _, _, _, h => h.elim
   | F :: Fs, ρ, a :: as, Gs, g, is, h => by
-    show (as ++ is).foldl app (app (lamR 1 (interp V ρ F) _) a) = _
-    rw [app_lamR_pos (by decide) h.1, consList_cons]
+    show (as ++ is).foldl app (app (lamV (interp V ρ F) _) a) = _
+    rw [app_lamV h.1, consList_cons]
     exact holeFam_append_apply (Fs := Fs) Gs (fun as => g (a :: as)) is h.2
 
 /-- **A spine of values each inhabiting its entry read below the earlier
