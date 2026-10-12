@@ -2217,6 +2217,48 @@ theorem genRecHeqB (hμ : μ.verifiedChecks = true)
         Term.bvarsBelow (tgtRs out).length e.erase := fun ψ e he =>
   genRecHeqB_R (mpC := mpC) hμ R hg h ψ e (by rw [← genEqs_eq_R (mpC := mpC) R hg h ψ]; exact he)
 
+/-- **`heqP`** (the skeleton's goal, at its `ih` terms). -/
+theorem genRecHeqP (hμ : μ.verifiedChecks = true)
+    (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
+      ctorsAs out)
+    (hg : ClassGenScoped R.g)
+    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+    {s : (Name → Nat) → Nat}
+    (hsP : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
+      (tgtRs out)[i]? = some r → ∀ (ψ₁ ψ₂ : Name → Nat),
+        (∀ (q : Name), q ∈ r.1.levelParams → ψ₁ q = ψ₂ q) → s ψ₁ = s ψ₂)
+    (hrowP : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
+      (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
+      r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs → ∀ (ψ₁ ψ₂ : Name → Nat),
+      (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
+        tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ₁ j i
+            = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ₂ j i ∧
+          tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ₁ j i
+            = tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ₂ j i ∧
+          tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ₁ j i
+            = tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ₂ j i) :
+    ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
+      (tgtRs out)[i]? = some r →
+        ∀ (ψ₁ ψ₂ : Name → Nat), (∀ (q : Name), q ∈ r.1.levelParams → ψ₁ q = ψ₂ q) →
+          s ψ₁ = s ψ₂ ∧ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
+          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
+          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
+          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
+          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
+          (fun _ => genRbAV R.g R.rd)) ψ₁ = (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
+          (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
+          (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
+          (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
+          (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
+          (fun _ => genRbAV R.g R.rd)) ψ₂ := by
+  intro i r hr ψ₁ ψ₂ hq
+  obtain ⟨h1, h2⟩ := genRecHeqP_R (mpC := mpC) hμ R h hsP hrowP i r hr ψ₁ ψ₂ hq
+  refine ⟨h1, ?_⟩
+  rw [genEqs_eq_R (mpC := mpC) R hg h ψ₁, genEqs_eq_R (mpC := mpC) R hg h ψ₂]
+  exact h2
+
 end Obligations
 
 end ConLeche.Model

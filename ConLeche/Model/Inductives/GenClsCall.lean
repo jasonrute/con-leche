@@ -148,7 +148,7 @@ set_option maxHeartbeats 16000000 in
 /-- **The motive of class `t`, read in any recursor's prefix, is the
 Π-tower of the callee's index and major domains** — those domains
 opened at the rule prefix are the tower's opened at the motive's slot,
-lifted past the prefix's later slots; every binder numeral is `1`. -/
+lifted past the prefix's later slots. -/
 theorem genMotRds (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
@@ -159,7 +159,6 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
     ∃ (pds : List (Nat × Nat × AnnotTerm)) (R0 : AnnotTerm),
       (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
           (R.g.nP + st) default = mkPisAV pds R0 ∧ R0 = .sort (Level.eval ψ R.g.elim) ∧
-      (∀ p ∈ pds, p.2.1 ≠ 0) ∧
       ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ T).map (·.2.2)).drop
           R.g.pre.length
         = liftDomsK (R.g.pre.length - (R.g.nP + st)) 0 (pds.map (·.2.2)) := by
@@ -234,21 +233,8 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
   have hifsDl : ifsD.length = (R.g.cls.getD cls default).nIdx :=
     ConLeche.Verify.openPisAtFvars_length _ hopD
   have hbl' : bs.length = ifsD.length := by rw [hbl, List.length_map]
-  refine ⟨bs ++ [(0, pwBit ψ (default : BinderMeta).pw, A)], _, ?_, rfl, ?_, ?_⟩
+  refine ⟨bs ++ [(0, 0, A)], _, ?_, rfl, ?_⟩
   · rw [hPdget, hPE, mkPisAV_append]; rfl
-  · intro p hp
-    rcases List.mem_append.mp hp with hp | hp
-    · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hp
-      obtain ⟨z, hz⟩ : ∃ z, ifsD[k]? = some z := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-      obtain ⟨a, ha, -⟩ := hbs k (ConLeche.classBinder z) (by rw [List.getElem?_map, hz]; rfl)
-      rw [List.getElem?_eq_getElem hk] at ha
-      rw [Option.some.inj ha]
-      have hdef : (ConLeche.classBinder z).2.pw = .never := rfl
-      simp [hdef, pwBit]
-    · simp only [List.mem_singleton] at hp
-      subst hp
-      have hdef : (default : BinderMeta).pw = .never := rfl
-      simp [hdef, pwBit]
   · generalize hm : R.g.pre.length - d = m at hidxR hmajR ⊢
     have hrP : R.g.pre.length = d + m := by omega
     refine List.ext_getElem (by
@@ -384,7 +370,6 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
         ConLeche.ClassRead.motiveSlot ⟨R.g.slots, []⟩ t = some st ∧
         R.g.nP + st < R.g.pre.length ∧ xs.length = R.g.pre.length ∧
         pp.toBlockShape.rulePrefixAt q.1 = R.g.pre.length ∧
-        (∀ p ∈ pds, p.2.1 ≠ 0) ∧
         (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
           (R.g.nP + st) default = mkPisAV pds (.sort (Level.eval ψ R.g.elim)) ∧
         ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1).map
@@ -410,7 +395,7 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
   have hbl : bs.length = q.2.1.length := by rw [hbs.length_eq, List.length_map]
   have hmp : R.g.nP + st < xs.length := by omega
   have hmem := spineFit_mem_getD hspP (R.g.nP + st) (by omega)
-  obtain ⟨pds, R0, hPdE, hR0, hbits, hdrop⟩ := genMotRds hμ R hg h mpC ψ hc hK hcls hst
+  obtain ⟨pds, R0, hPdE, hR0, hdrop⟩ := genMotRds hμ R hg h mpC ψ hc hK hcls hst
   rw [hPdE] at hmem
   have hW := hMot ρ (xs ++ fs ++ bs) (SpineFit.append hsp hbs)
   have hhead : interp V (consList (xs ++ fs ++ bs) ρ)
@@ -426,13 +411,20 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
     have := congrArg List.length hdrop
     rw [List.length_drop, hlenRdsT, hRPT, liftDomsK_length, List.length_map, hMT] at this
     rw [List.length_append, hcnt, ← hcls, hgcT, List.length_singleton]; omega
-  have hfit := spineFit_of_wellDenoted_mkAppN_pi (R := R0) hbits hW.1
+  -- L17: the motive's application is a type (it lands in a universe), so
+  -- not the point; the membership needs the very fit this establishes,
+  -- and is owed with the motive's grading at its prefix slot
+  have hne : interp V (consList (xs ++ fs ++ bs) ρ)
+      (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length - 1
+        - (R.g.nP + st))) (q.2.2.1 ++ [q.2.2.2])) ≠ pt := by
+    sorry
+  have hfit := spineFit_of_wellDenoted_mkAppN_pi (R := R0) hne hW
     (by rw [hhead]; exact hmem) hpdsl.symm
   have e1 : consList (xs ++ fs ++ bs) ρ = consList bs (consList (xs ++ fs) ρ) :=
     consList_append _ _ _
   rw [e1] at hfit
   subst hR0
-  exact ⟨t, st, pds, hK, hcls, hst, hstl, hxlP, hRPT, hbits, hPdE, hdrop, hfit⟩
+  exact ⟨t, st, pds, hK, hcls, hst, hstl, hxlP, hRPT, hPdE, hdrop, hfit⟩
 
 set_option maxHeartbeats 16000000 in
 /-- **`GenPreSem.callTy`**: every generated call fits its callee's binder
@@ -460,7 +452,7 @@ theorem genCallTy (hμ : μ.verifiedChecks = true)
         (xs ++ (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))
           ++ [interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2])) := by
   intro c hc j hj xs fs hxl hsp q hq bs hbs
-  obtain ⟨t, st, pds, hK, -, -, hstl, hxlP, hRPT, -, -, hdrop, hfit⟩ :=
+  obtain ⟨t, st, pds, hK, -, -, hstl, hxlP, hRPT, -, hdrop, hfit⟩ :=
     genIhMot hμ R hg h mpC hfind bit ψ ρ c hc j hj xs fs hxl hsp q hq bs hbs
   refine ⟨hK, by rw [hxlP, hRPT], ?_⟩
   obtain ⟨hspP, -⟩ := spineFit_append_at hxl hsp
