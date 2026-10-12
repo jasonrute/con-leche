@@ -699,6 +699,37 @@ theorem teleFit_of_inst0 {aa : AnnotTerm} {L : List V} {E : AnnotTerm}
   have := teleFit_of_inst hpc h
   rwa [shiftE_zero_zero, instE_zero] at this
 
+/-- **The fit re-instantiates, under the ∀-chain guard** (the converse
+of `teleFit_of_inst`). -/
+theorem teleFit_inst_of {aa : AnnotTerm} :
+    ∀ {L : List V} {E : AnnotTerm} {k : Nat} {ρ : Nat → V} {rest : V},
+      PiChain L.length E →
+      TeleFit V (instE k (interp V (shiftE k 0 ρ) aa) ρ) E L rest →
+      TeleFit V ρ (E.inst aa k) L rest := by
+  intro L
+  induction L with
+  | nil =>
+    intro E k ρ rest _ h
+    rw [teleFit_nil_inv h, ← interp_inst]
+    exact .nil
+  | cons y ys ih =>
+    intro E k ρ rest hpc h
+    obtain ⟨u, v, A, B, rfl, hB⟩ := piChain_succ_inv hpc
+    rw [AnnotTerm.inst_pi]
+    cases h with
+    | cons hmem hfit =>
+      refine .cons (by rw [interp_inst]; exact hmem) ?_
+      rw [cons_instE, ← shiftE_succ_cons y k ρ] at hfit
+      exact ih (E := B) (k := k + 1) (ρ := cons y ρ) hB hfit
+
+/-- `teleFit_inst_of` at the head binder. -/
+theorem teleFit_inst0_of {aa : AnnotTerm} {L : List V} {E : AnnotTerm}
+    {ρ : Nat → V} {rest : V} (hpc : PiChain L.length E)
+    (h : TeleFit V (cons (interp V ρ aa) ρ) E L rest) :
+    TeleFit V ρ (E.inst aa) L rest := by
+  refine teleFit_inst_of (k := 0) hpc ?_
+  rwa [shiftE_zero_zero, instE_zero]
+
 /-- **An annotation-level fit is a value-level fit**
 (`teleFit_of_teleFitPA`). -/
 theorem teleFit_of_teleFitPA {ρ : Nat → V} :
@@ -715,6 +746,52 @@ theorem teleFit_of_teleFitPA {ρ : Nat → V} :
     exact .cons hmem (teleFit_of_inst0 (by rw [List.length_map]; exact hpcB)
       (ih (PiChain.inst a 0 hpcB)))
 
+
+/-- A value-level fit's length is a ∀-chain of the telescope. -/
+theorem piChain_of_teleFit {ρ : Nat → V} {T : AnnotTerm} {L : List V} {rest : V}
+    (h : TeleFit V ρ T L rest) : PiChain L.length T := by
+  induction h with
+  | nil => trivial
+  | cons _ _ ih => exact ih
+
+/-- **A value-level fit at a spine's readings is an annotation-level
+fit** (`teleFit_of_teleFitPA`'s converse), under the ∀-chain guard. -/
+theorem teleFitPA_of_teleFit {ρ : Nat → V} :
+    ∀ (vs : List AnnotTerm) {T : AnnotTerm} {rest : V},
+      PiChain vs.length T → TeleFit V ρ T (vs.map (interp V ρ)) rest →
+      ∃ resta, TeleFitPA V ρ T vs resta
+  | [], T, _, _, _ => ⟨T, .nil⟩
+  | x :: xs, T, rest, hpc, h => by
+    obtain ⟨u, v, A, B, rfl, hB⟩ := piChain_succ_inv hpc
+    cases h with
+    | cons hmem hfit =>
+      obtain ⟨resta, hres⟩ := teleFitPA_of_teleFit xs (PiChain.inst x 0 hB)
+        (teleFit_inst0_of (by rw [List.length_map]; exact hB) hfit)
+      exact ⟨resta, .cons hmem hres⟩
+
+/-- **Two fits of one graded telescope, equal where neither value is the
+point, are equal** (`spineFit_eq_of_cond` at a `TeleFit`): each domain
+is a type (`WellDenoted`'s Π clause), so `IsTy.eq_of_ne_pt` decides the
+point case position by position. -/
+theorem teleFit_eq_of_cond :
+    ∀ {as bs : List V} {T : AnnotTerm} {ρ : Nat → V} {r₁ r₂ : V},
+      WellDenoted V ρ T → TeleFit V ρ T as r₁ → TeleFit V ρ T bs r₂ →
+      as.length = bs.length →
+      (∀ p ∈ as.zip bs, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) → as = bs
+  | [], [], _, _, _, _, _, _, _, _, _ => rfl
+  | [], _ :: _, _, _, _, _, _, _, _, hl, _ => by simp at hl
+  | _ :: _, [], _, _, _, _, _, _, _, hl, _ => by simp at hl
+  | a :: as, b :: bs, _, ρ, _, _, hT, ha, hb, hl, h => by
+    cases ha with
+    | @cons _ u v A B _ _ _ hma hfa =>
+      cases hb with
+      | cons hmb hfb =>
+        rw [WellDenoted_pi] at hT
+        have hab : a = b :=
+          hT.2.1.eq_of_ne_pt hma hmb (h (a, b) List.mem_cons_self)
+        subst hab
+        rw [teleFit_eq_of_cond (hT.2.2.1 a hma) hfa hfb (by simpa using hl)
+          fun p hp => h p (List.mem_cons_of_mem _ hp)]
 
 /-! ## The δ identity -/
 

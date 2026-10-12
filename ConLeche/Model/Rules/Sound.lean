@@ -85,11 +85,10 @@ theorem red_sound (hin : RulesInputs V m φ) :
       (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
       (defeq_sound hin hpi)).cond
   | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
-      hfab hws hb hlv' hcerts hproj hpi =>
-    Red.rescueEta_sound hin hrec heta hctor hres hind (infer_sound hin htm)
-      (red_sound hin htmaj) hthead hlen hlv hnz hfab hws hb hlv'
-      (certs_sound hin hcerts)
-      (fun hno => etaProjCerts_sound hin (hproj hno)) (defeq_sound hin hpi)
+      hfab hws hb hlv' hresT hresC hproj =>
+    (Red.rescueEta_sound hin hrec heta hctor hres hind (infer_sound hin htm)
+      (red_sound hin htmaj) hthead hlen hlv hnz hfab hws hb hlv' hresT hresC
+      (fun hno => etaProjCerts_sound hin (hproj hno))).cond
 
 theorem defeq_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
@@ -111,20 +110,19 @@ theorem defeq_sound (hin : RulesInputs V m φ) :
     DefEq.proofIrrel_sound (infer_sound hin hta) (infer_sound hin htta)
       (red_sound hin hu) hu0 (infer_sound hin htb) (infer_sound hin httb)
       (red_sound hin hv) hv0
-  | _, _, _, .structUnit hta hwta hthead hind hunit hresT htlen hlv htb hwtb hd
-      hcerts =>
+  | _, _, _, .structUnit hta hwta hthead hind hunit hresT htlen hlv htb hwtb hd =>
     DefEq.structUnit_sound hin (infer_sound hin hta) (red_sound hin hwta) hthead
       hind hunit hresT htlen hlv (infer_sound hin htb) (red_sound hin hwtb)
-      (defeq_sound hin hd) (certs_sound hin hcerts)
+      (defeq_sound hin hd)
   | _, _, _, .eta htb hwtb hty hbody ht₁ htB =>
     DefEq.eta_sound (infer_sound hin htb) (red_sound hin hwtb)
       (defeq_sound hin hty) (defeq_sound hin hbody) (infer_sound hin ht₁)
       (defeq_sound hin htB)
   | _, _, _, .structEta htb hwtb hhead hctor hlen hthead hind heta hetaCtor hresT
-      hresc htlen hlv hlps hslots hus hcerts hproj hparams hfields =>
+      hresc htlen hlv hlps hslots hus hproj hparams hfields =>
     DefEq.structEta_sound hin (infer_sound hin htb) (red_sound hin hwtb) hhead
       hctor hlen hthead hind heta hetaCtor hresT hresc htlen hlv hlps hslots hus
-      (certs_sound hin hcerts) (fun hno => etaProjCerts_sound hin (hproj hno))
+      (fun hno => etaProjCerts_sound hin (hproj hno))
       (defEqList_sound hin hparams) (defEqList_sound hin hfields)
 
 theorem defEqLams_sound (hin : RulesInputs V m φ) :

@@ -39,21 +39,6 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 section TowerFits
 
-/-- **A value spine fitting a Π-tower's domains is a `TeleFit` of the
-tower**, with the body at the extended frame as residual. -/
-theorem teleFit_mkPisAV_of_spineFit {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V},
-      SpineFit ρ (tl.map (·.2.2)) bs →
-      TeleFit V ρ (mkPisAV tl B) bs (interp V (consList bs ρ) B)
-  | [], ρ, [], _ => by
-    show TeleFit V ρ B [] (interp V ρ B)
-    exact TeleFit.nil
-  | [], _, _ :: _, h => h.elim
-  | _ :: _, _, [], h => h.elim
-  | d :: tl, ρ, b :: bs, h => by
-    rw [consList_cons]
-    exact TeleFit.cons h.1 (teleFit_mkPisAV_of_spineFit h.2)
-
 /-- **A `SpineFit` of a Π-tower's domains at the readings of a spine is
 a `TeleFitPA` of the tower at the spine** — `spineFit_of_teleFitPA`'s
 converse. -/

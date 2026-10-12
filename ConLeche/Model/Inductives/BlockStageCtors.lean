@@ -215,6 +215,13 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
     ∀ {env' : Env} (m' : EnvModel V env') (kk : Nat) (cA : ConstantVal × Nat),
     (d.ctorsM m)[kk]? = some cA →
     (ConLeche.blockCapsAt p₁ m isRec).unitlike = true →
+    -- the constructor's stored type and its reading, for the η law's
+    -- telescope coherence (task #342 L11b)
+    (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
+    cA.1.levelParams = cvTa.levelParams →
+    (∀ ψ, denoteMeta m'.acval env' ψ 0 cA.1.type
+      = some (mkPisAV (d.dsF m kk ψ)
+          (ctorBodyAVI m' (d.memberName m) d.nP cA.2 ψ (d.esF m kk ψ)))) →
     FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
     (∀ ψ, m'.acval cvTa.name ψ = A m ψ) →
     (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
@@ -343,16 +350,19 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
   have hTlawsOf : ∀ {env' : Env} (m' : EnvModel V env') (kk : Nat) (cA : ConstantVal × Nat),
       (d.ctorsM m)[kk]? = some cA →
       BlockCtorsCore m' d lps cvTasAll p₁ isRec A m →
+      (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
       FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
       (∀ ψ, m'.acval (d.memberName m) ψ = A m ψ) →
       (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
         (((d.dsF m kk ψ).drop d.nP).map (·.2.2))
         (uChains (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)))) →
       CapsLawsAt m' (d.memberName m) cvTa (ConLeche.blockCapsAt p₁ m isRec) := by
-    intro env' m' kk cA hkk hinv' hFD' hleaf' hleafC'
+    intro env' m' kk cA hkk hinv' hcvC hFD' hleaf' hleafC'
     rw [hTname] at hleaf' ⊢
     by_cases hu : (ConLeche.blockCapsAt p₁ m isRec).unitlike = true
-    · refine hS.capsU m hm cvTa hcvTa m' kk cA hkk hu hFD' hleaf' (fun ψ => ?_)
+    · refine hS.capsU m hm cvTa hcvTa m' kk cA hkk hu hcvC
+        (by rw [hlpsA cA (List.mem_of_getElem? hkk), hS.lpsT m cvTa hm hcvTa])
+        (hinv'.2.2.1 m kk cA hkk).2.2.1.read hFD' hleaf' (fun ψ => ?_)
       rw [hleafC' ψ, hFssEq ψ]
     · have hU : (ConLeche.blockCapsAt p₁ m isRec).unitlike = false := by simpa using hu
       exact blockCapsLawsAt_vacuous m' hU (hinv'.2.1 m cvTa hcvTa hU)
@@ -427,8 +437,8 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
             refine ⟨by rw [hac, acvalWith_ne hne]; exact h1, ?_⟩
             rw [ConLeche.Env.find?_cons_of_isSome hfresh h2]; exact h2⟩)
       (ConLeche.blockCapsAt p₁ m isRec) (A m)
-      (fun m' kk cA hkk hinv' hFD' hleaf' hleafC' =>
-        hTlawsOf m' kk cA hkk hinv'.1 hFD' hleaf' hleafC')
+      (fun m' kk cA hkk hinv' hcvC hFD' hleaf' hleafC' =>
+        hTlawsOf m' kk cA hkk hinv'.1 hcvC hFD' hleaf' hleafC')
       hfold
       (d.ctorsM m) 0 env mp (fun i => by rw [Nat.zero_add]) (Nat.zero_add _) hE
       (by rw [hTname]; exact hfindT) hFD (fun ψ => by rw [hTname]; exact hleafT ψ)
