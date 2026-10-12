@@ -189,6 +189,85 @@ theorem Certs.cert_sound {d : Nat} {lic : Bool}
     hgtaA.ne_pt hokDom.ne_pt
   exact heq ▸ hmem
 
+/-! ### The full-grade certificate (task #342 L10, ι's case 3) -/
+
+theorem CertsF.nil_sound {d : Nat} {T : Expr} : CertsFSem m φ d T [] := by
+  intro _ Δa Ta vs _ _ _ hsp
+  cases hsp
+  exact ⟨Ta, fun _ _ _ _ hgT => ⟨by simp, .nil, hgT⟩⟩
+
+/-- The certified slot: the full-grade inference ESTABLISHES the
+argument's grading and its membership in its inferred type, a type
+equal to the binder's domain ("not pt" source (1)). -/
+theorem CertsF.cert_sound {d : Nat} {ty body arg ta : Expr} {mb : BinderMeta}
+    {rest : List Expr}
+    (hta : InferSemFull m φ d arg ta) (hd : DefEqSem m φ d ta ty)
+    (hrest : CertsFSem m φ d (body.instantiate1 arg) rest) :
+    CertsFSem m φ d (.forallE ty body mb) (arg :: rest) := by
+  intro hfT Δa Ta vs hCT hTa hargs hsp
+  obtain ⟨hwty, hbty, hLbty⟩ := hfT
+  obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d ty ∧ Expr.WScoped d body := by
+    simpa [Expr.WScoped] using hwty
+  obtain ⟨hdomb, hbodyb⟩ :
+      ty.looseBVarsBounded 0 = true ∧ Expr.looseBVarsBounded 1 body = true := by
+    simpa [Expr.looseBVarsBounded, Bool.and_eq_true] using hbty
+  have hLbdom : Expr.LeavesBounded ty := fun l hl =>
+    hLbty l (by simp [Expr.fvarLeaves, hl])
+  have hCdom : CtxOkS m φ d Δa ty := hCT.forallE_ty
+  obtain ⟨doma, bodya, hdoma, hbodya, rfl⟩ := denoteMeta_forallE_inv hTa
+  cases hsp with | @cons _ aa _ vs' haa hsp' =>
+  obtain ⟨hfarg, hCarg⟩ := hargs arg List.mem_cons_self
+  obtain ⟨hwa, hba, hLa⟩ := hfarg
+  have hbody' : denoteMeta m.acval env φ d (body.instantiate1 arg)
+      = some (bodya.inst aa) := by
+    rw [denoteMeta_beta m.acval_closed (acval_inst_self m)
+      (ty := ty) hbodyw.fvarsBelow hwa hba haa 0, hbodya]
+    rfl
+  have hLbbody : Expr.LeavesBounded (body.instantiate1 arg) := by
+    intro l hl
+    rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
+    · exact hLbty l (by simp [Expr.fvarLeaves, hl'])
+    · exact hLa l hl'
+  have hsubBody : ∀ l ∈ (body.instantiate1 arg).fvarLeaves,
+      l ∈ (Expr.forallE ty body mb).fvarLeaves ∨ l ∈ arg.fvarLeaves := by
+    intro l hl
+    rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
+    · exact Or.inl (by simp [Expr.fvarLeaves, hl'])
+    · exact Or.inr hl'
+  have hCbody : CtxOkS m φ d Δa (body.instantiate1 arg) := by
+    refine ⟨hCT.1, fun l hl => ?_⟩
+    rcases hsubBody l hl with hl' | hl'
+    · exact hCT.2 l hl'
+    · exact hCarg.2 l hl'
+  obtain ⟨resta, hfit⟩ :=
+    hrest ⟨ConLeche.Expr.WScoped.instantiate1_gen hwa 0 hbodyw,
+        ConLeche.Expr.looseBVarsBounded_instantiate1_gen hba hbodyb, hLbbody⟩
+      hCbody hbody' (fun x hx => hargs x (List.mem_cons_of_mem arg hx)) hsp'
+  -- the certificate's two runs, read outside the valuation
+  obtain ⟨hfta, hsubta, taA, htaA, hA⟩ := hta ⟨hwa, hba, hLa⟩ hCarg haa
+  refine ⟨resta, fun ρ hρ hLT hLargs hgT => ?_⟩
+  have hLarg : LeavesGr m φ d arg ρ := hLargs arg List.mem_cons_self
+  obtain ⟨hokA, hgtaA, hmem⟩ := hA ρ hρ hLarg
+  have hokDom : WellDenotedTy V ρ doma := hgT.pi_dom
+  -- "not pt" source (1): both sides of the slot comparison are types
+  have heq := hd hfta ⟨hdomw, hdomb, hLbdom⟩ (hCarg.of_subset hsubta) hCdom
+    htaA hdoma ρ hρ (hLarg.of_subset hsubta) hLT.forallE_ty hgtaA.1 hokDom.1
+    hgtaA.ne_pt hokDom.ne_pt
+  have hmemA : interp V ρ aa ∈ˢ interp V ρ doma := heq ▸ hmem
+  have hokBody : WellDenotedV V ρ (bodya.inst aa) :=
+    (WellDenotedV_inst0 hokA).mpr (hgT.pi_body _ hmemA)
+  have hLbody : LeavesGr m φ d (body.instantiate1 arg) ρ := by
+    intro l hl
+    rcases hsubBody l hl with hl' | hl'
+    · exact hLT l hl'
+    · exact hLarg l hl'
+  obtain ⟨hgvs', hfit', hgresta⟩ := hfit ρ hρ hLbody
+    (fun x hx => hLargs x (List.mem_cons_of_mem arg hx)) hokBody
+  refine ⟨fun x hx => ?_, .cons hmemA hfit', hgresta⟩
+  rcases List.mem_cons.mp hx with rfl | hx'
+  · exact hokA
+  · exact hgvs' x hx'
+
 theorem DefEqList.nil_sound {d : Nat} : DefEqListSem m φ d [] [] := by
   refine ⟨rfl, ?_⟩
   intro Δa asa bsa _ _ hsa hsb _ _ _ _ _ _ p hp

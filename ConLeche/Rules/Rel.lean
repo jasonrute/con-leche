@@ -190,8 +190,16 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   applied to exactly its telescope, whose prepared major (the `Red`
   premise: `prepareMajor`'s whnf / literal / rescue chain) is a
   constructor application with a firing rule.  The level comparands,
-  the parameter comparison, the two licensed telescope certificates
-  and the index comparison are the checker's, in its order. -/
+  the parameter comparison, the recursor's licensed telescope
+  certificate over the redex's own spine, and (case 3 only) the
+  constructor's full-grade telescope certificate and the index
+  comparison are the checker's, in its order.
+
+  **The ι licence** (task #342 L10): `iotaCase3` is the checker's test.
+  A K rule, and a rule whose constructor's family is never `Prop` at the
+  constructor's levels (case 2), carry no constructor certificate and no
+  index comparison; case 3 carries both, and compares the parameters of
+  a `.plain` rule too (`iotaCompares`). -/
   | iota {d : Nat} {e : Expr} {c : Name} {us : List Level} {cv : ConstantVal}
       {mI rP : Nat} {rules : List RecRule} {major : Expr} {cj : Name}
       {usj : List Level} {cvj : ConstantVal} {cnP cnF : Nat} {rl : RecRule}
@@ -209,18 +217,19 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       Level.isEquivList usj
         (recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).1 = some true →
-      (rl.compareParams = true →
+      (iotaCompares env.find? rl cvj usj = true →
         DefEqList env d (major.getAppArgs.take rl.ctorParams)
           (recFireComparands rl cv.levelParams us cvj.levelParams
             e.getAppArgs rP).2) →
       Certs env d true (cv.type.instantiateLevelParams cv.levelParams us)
-        (e.getAppArgs.take mI ++ [major]) →
-      Certs env d true (cvj.type.instantiateLevelParams cvj.levelParams usj)
-        major.getAppArgs →
-      (mI ≠ rP →
+        e.getAppArgs →
+      (iotaCase3 env.find? rl cvj usj = true →
+        CertsF env d (cvj.type.instantiateLevelParams cvj.levelParams usj)
+          major.getAppArgs) →
+      (iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
         piResidual (cvj.type.instantiateLevelParams cvj.levelParams usj)
           major.getAppArgs = some residual) →
-      (mI ≠ rP →
+      (iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
         DefEqList env d (residual.getAppArgs.drop rl.ctorParams)
           ((e.getAppArgs.take mI).drop rP)) →
       Red env d e
@@ -605,6 +614,17 @@ inductive Certs (env : Env) : Nat → Bool → Expr → List Expr → Prop where
       Infer env .io d arg ta → DefEq env d ta ty →
       Certs env d lic (body.instantiate1 arg) rest →
       Certs env d lic (.forallE ty body mb) (arg :: rest)
+
+/-- **The full-grade telescope certificate** (`iotaCertsFull`,
+`Kernel/Core.lean`; ι's case 3, task #342 L10): each argument's
+FULL-grade type is definitionally equal to its binder domain, the
+domains instantiated along the spine; no slot is skipped. -/
+inductive CertsF (env : Env) : Nat → Expr → List Expr → Prop where
+  | nil {d : Nat} {T : Expr} : CertsF env d T []
+  | cert {d : Nat} {ty body arg ta : Expr} {mb : BinderMeta} {rest : List Expr} :
+      Infer env .full d arg ta → DefEq env d ta ty →
+      CertsF env d (body.instantiate1 arg) rest →
+      CertsF env d (.forallE ty body mb) (arg :: rest)
 
 /-- **Pairwise definitional equality** (`defEqList`, `Kernel/Core.lean`). -/
 inductive DefEqList (env : Env) : Nat → List Expr → List Expr → Prop where

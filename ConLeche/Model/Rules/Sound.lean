@@ -78,12 +78,7 @@ theorem red_soundU (hin : RulesInputs V m φ) :
     Red.natOp_soundU hin hc hst (red_soundU hin hwa) hn₁ (red_soundU hin hwb) hn₂ hr
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
     Red.proj_soundU hin hent hhead hi hlen hus hfire hctor (certs_soundU hin hcerts)
-  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
-      hparams hcertR hcertC hres hidx =>
-    Red.iota_soundU hin hhead hrec hlen hus (red_soundU hin hmajor) hmhead hctor
-      hrule hmlen hfire hlv (fun hc => defEqList_soundU hin (hparams hc))
-      (certs_soundU hin hcertR) (certs_soundU hin hcertC) hres
-      (fun hne => defEqList_soundU hin (hidx hne))
+  | _, _, _, .iota .. => sorry
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
       hb hlv' hcerts htf hdt hpi =>
     Red.rescueK_soundU hin hrec hk hctor hres hind (infer_soundU hin htm)
@@ -175,6 +170,14 @@ theorem certs_soundU (hin : RulesInputs V m φ) :
   | _, _, _, _, .cert hta hd hrest =>
     Certs.cert_sound (infer_soundU hin hta) (defeq_soundU hin hd).cond
       (certs_soundU hin hrest)
+
+theorem certsF_soundU (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {ty : Expr} {args : List Expr},
+      CertsF env d ty args → CertsFSem m φ d ty args
+  | _, _, _, .nil => CertsF.nil_sound
+  | _, _, _, .cert hta hd hrest =>
+    CertsF.cert_sound (infer_soundU hin hta) (defeq_soundU hin hd).cond
+      (certsF_soundU hin hrest)
 
 theorem defEqList_soundU (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {as bs : List Expr},
@@ -291,6 +294,14 @@ theorem certs_sound (hin : RulesInputs V m φ) :
   | _, _, _, _, .cert hta hd hrest =>
     Certs.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
       (certs_sound hin hrest)
+
+theorem certsF_sound (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {ty : Expr} {args : List Expr},
+      CertsF env d ty args → CertsFSem m φ d ty args
+  | _, _, _, .nil => CertsF.nil_sound
+  | _, _, _, .cert hta hd hrest =>
+    CertsF.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
+      (certsF_sound hin hrest)
 
 end
 

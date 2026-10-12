@@ -202,6 +202,66 @@ theorem iotaCerts_snd (d : Nat) (lic : Bool) :
   | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
+theorem iotaCertsFull_fst (d : Nat) :
+    ∀ (ty : Expr) (args : List Expr),
+      (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.1 =
+        iotaCertsFull r₁ env d ty args
+  | _, [] => rfl
+  | .forallE ty body mb, arg :: rest => by
+    show ((do
+        let ta ← (pairFns r₁ r₂ h).infer d arg
+        if ← (pairFns r₁ r₂ h).defeq d ta ty then
+          iotaCertsFull (pairFns r₁ r₂ h) env d (body.instantiate1 arg) rest
+        else pure false : PairM rel Bool)).val.1 = (do
+        let ta ← r₁.infer d arg
+        if ← r₁.defeq d ta ty then
+          iotaCertsFull r₁ env d (body.instantiate1 arg) rest
+        else pure false)
+    rw [PairM.fst_bind]
+    congr 1
+    funext ta
+    rw [PairM.fst_bind]
+    congr 1
+    funext b
+    cases b with
+    | true =>
+      simp only [↓reduceIte]
+      exact iotaCertsFull_fst d (body.instantiate1 arg) rest
+    | false => rfl
+  | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
+
+theorem iotaCertsFull_snd (d : Nat) :
+    ∀ (ty : Expr) (args : List Expr),
+      (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.2 =
+        iotaCertsFull r₂ env d ty args
+  | _, [] => rfl
+  | .forallE ty body mb, arg :: rest => by
+    show ((do
+        let ta ← (pairFns r₁ r₂ h).infer d arg
+        if ← (pairFns r₁ r₂ h).defeq d ta ty then
+          iotaCertsFull (pairFns r₁ r₂ h) env d (body.instantiate1 arg) rest
+        else pure false : PairM rel Bool)).val.2 = (do
+        let ta ← r₂.infer d arg
+        if ← r₂.defeq d ta ty then
+          iotaCertsFull r₂ env d (body.instantiate1 arg) rest
+        else pure false)
+    rw [PairM.snd_bind]
+    congr 1
+    funext ta
+    rw [PairM.snd_bind]
+    congr 1
+    funext b
+    cases b with
+    | true =>
+      simp only [↓reduceIte]
+      exact iotaCertsFull_snd d (body.instantiate1 arg) rest
+    | false => rfl
+  | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
+
 theorem defEqList_fst (d : Nat) :
     ∀ (as bs : List Expr),
       (defEqList (pairFns r₁ r₂ h) env d as bs).val.1 =
@@ -417,6 +477,7 @@ macro "fst_step" : tactic =>
     | rfl
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
+    | (rw [iotaCertsFull_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -435,6 +496,7 @@ macro "snd_step" : tactic =>
     | rfl
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
+    | (rw [iotaCertsFull_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -585,6 +647,7 @@ macro "fst_step2" : tactic =>
     | rfl
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
+    | (rw [iotaCertsFull_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -613,6 +676,7 @@ macro "snd_step2" : tactic =>
     | rfl
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
+    | (rw [iotaCertsFull_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -786,6 +850,7 @@ macro "fst_core3" x:tactic : tactic =>
     | $x:tactic
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
+    | (rw [iotaCertsFull_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -821,6 +886,7 @@ macro "snd_core3" x:tactic : tactic =>
     | $x:tactic
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
+    | (rw [iotaCertsFull_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])
@@ -1007,6 +1073,7 @@ macro "fst_core4" x:tactic : tactic =>
     | $x:tactic
     | (rw [liftFueled_fst_proj])
     | (rw [iotaCerts_fst])
+    | (rw [iotaCertsFull_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [structEtaProjCerts_fst])
@@ -1065,6 +1132,7 @@ macro "snd_core4" x:tactic : tactic =>
     | $x:tactic
     | (rw [liftFueled_snd_proj])
     | (rw [iotaCerts_snd])
+    | (rw [iotaCertsFull_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [structEtaProjCerts_snd])

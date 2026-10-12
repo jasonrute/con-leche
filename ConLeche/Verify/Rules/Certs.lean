@@ -53,6 +53,26 @@ theorem iotaCerts_bridge (hd : DefEqBridge env fuel) (hio : InferIOBridge env fu
       intro h
       simp [iotaCertsFueled, iotaCerts, pure, Except.pure] at h
 
+/-- `iotaCertsFull` ⇒ `CertsF` (`iotaCertsFull_step_inv`; every slot
+through `hi` and `hd`; task #342 L10). -/
+theorem iotaCertsFull_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) :
+    ∀ {d : Nat} {ty : Expr} {args : List Expr},
+      iotaCertsFullFueled .verified env fuel d ty args = .ok true →
+      CertsF env d ty args := by
+  intro d ty args
+  induction args generalizing ty with
+  | nil => intro _; exact .nil
+  | cons arg rest ih =>
+    match ty with
+    | .forallE ty₀ body mb =>
+      intro h
+      obtain ⟨ta, hta, hde, hrest⟩ := iotaCertsFull_step_inv h
+      exact .cert (hi hta) (hd hde) (ih hrest)
+    | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
+    | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+      intro h
+      simp [iotaCertsFullFueled, iotaCertsFull, pure, Except.pure] at h
+
 /-- `defEqList` ⇒ `DefEqList` (`defEqList_step_inv`). -/
 theorem defEqList_bridge (hd : DefEqBridge env fuel) :
     ∀ {d : Nat} {as bs : List Expr},

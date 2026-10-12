@@ -219,27 +219,37 @@ theorem prepareMajor_bridge (hw : WhnfBridge env fuel)
     .refl
 
 /-- `iotaRec` ⇒ `Red.iota` (`iotaRec_inv`, `prepareMajor_bridge`,
-`defEqList_bridge`, `iotaCerts_bridge` twice, `iotaIndexOk_inv`). -/
+`defEqList_bridge`, `iotaCerts_bridge`, and at a case-3 redex
+`iotaCertsFull_bridge` and `iotaIndexOk_inv`). -/
 theorem iotaRec_bridge (hw : WhnfBridge env fuel)
-    (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
+    (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
+    (hio : InferIOBridge env fuel)
     {d : Nat} {e e'' : Expr}
     (h : iotaRecFueled .verified env fuel d e = .ok (some e'')) :
     Red env d e e'' := by
   obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP, cnF, rl,
     hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hplain, hlev, hpeq,
-    hcerts, hmcerts, hidx, rfl⟩ := iotaRec_inv h
+    hcerts, h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
     prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
   by_cases hne : mI = rP
   · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
       hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-      (iotaCerts_bridge hd hio hcerts) (iotaCerts_bridge hd hio hmcerts)
-      (fun hc => absurd hne hc) (fun hc => absurd hne hc)
-  · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv hidx hne
-    exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-      hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-      (iotaCerts_bridge hd hio hcerts) (iotaCerts_bridge hd hio hmcerts)
-      (fun _ => hres) (fun _ => defEqList_bridge hd hdl)
+      (iotaCerts_bridge hd hio hcerts)
+      (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
+      (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
+  · by_cases hc3 : iotaCase3 env.find? rl cvj usj = true
+    · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv (h3 hc3).2 hne
+      exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
+        hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
+        (iotaCerts_bridge hd hio hcerts)
+        (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
+        (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
+    · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
+        hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
+        (iotaCerts_bridge hd hio hcerts)
+        (fun hc => absurd hc hc3)
+        (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
 
 /-- A firing projection rule (`reduceProjCore`) is a `Red` chain: the
 string-literal expansion, then `Red.proj` under its certificate. -/
@@ -258,7 +268,7 @@ theorem reduceProjCore_bridge (hw : WhnfBridge env fuel) (hd : DefEqBridge env f
 throw). -/
 theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
     (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
-    (hio : InferIOBridge env fuel) :
+    (hi : InferBridge env fuel) (hio : InferIOBridge env fuel) :
     WhnfCoreBridge env (fuel + 1) := by
   intro c d e e' h
   match e, h with
@@ -279,7 +289,7 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
         exact .beta (ta := a) (fun h => absurd hnev (by simp [h]))
           (fun h => absurd hnev (by simp [h]))
       · exact .beta (fun _ => inferTypeIO_bridge hio hta) (fun _ => hd hde)
-    · exact .trans hRf (.trans (iotaRec_bridge hw hd hio hiota) (hwc hcont))
+    · exact .trans hRf (.trans (iotaRec_bridge hw hd hi hio hiota) (hwc hcont))
     · exact hRf
   | .proj sn i pe, h =>
     obtain ⟨e₂, hst, hcase⟩ := whnf_proj_inv h

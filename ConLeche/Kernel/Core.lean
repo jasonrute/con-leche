@@ -288,6 +288,23 @@ def iotaCerts (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool) :
       else pure false
   | _, _ :: _ => pure false
 
+/-- **The full-grade telescope certificate** (task #342 L10, ι's case
+3): every argument is inferred at the FULL grade, which establishes
+its invariant, and its type is compared with its domain; no slot is
+skipped.  The constructor spine of a case-3 redex is not a subterm of
+the redex: at a valuation where the family is `Prop` the reduced major
+is the point, its reduction says nothing, and only this run grades
+its fields and puts them in their domains. -/
+def iotaCertsFull (r : CoreFns m) (env : Env) (depth : Nat) :
+    Expr → List Expr → m Bool
+  | _, [] => pure true
+  | .forallE ty body _, arg :: rest => do
+    let ta ← r.infer depth arg
+    if ← r.defeq depth ta ty then
+      iotaCertsFull r env depth (body.instantiate1 arg) rest
+    else pure false
+  | _, _ :: _ => pure false
+
 /-- Pairwise definitional equality of two spines (used to check a
 major's constructor parameters against the recursor's). -/
 def defEqList (r : CoreFns m) (env : Env) (depth : Nat) :
@@ -906,35 +923,41 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
                 if ← liftFueled "level comparison" (Level.isEquivList usj
                     (recFireComparands rl cv.levelParams us
                       cvj.levelParams args rP).1) then
-                 -- the parameter comparison, run unless the rule is a
-                 -- `.plain` one the installing route marked
-                 -- `paramsBlind` (`RecRule.compareParams`)
-                 if ← (if rl.compareParams then
+                 -- the parameter comparison, run where the rule asks for
+                 -- it (`RecRule.compareParams`) and at every case-3 redex
+                 -- (`iotaCompares`, task #342 L10)
+                 if ← (if iotaCompares env.find? rl cvj usj then
                     defEqList r env depth (margs.take rl.ctorParams)
                       (recFireComparands rl cv.levelParams us
                         cvj.levelParams args rP).2
                     else pure true) then
-                  -- the two telescope runs, *licensed* (`iotaCerts`'
-                  -- docstring): the redex is a subterm of the subject.
-                  -- The mode read is the β gate's accessor — the one
-                  -- place a certificate-skip may read the validated
-                  -- datum (`CheckMode.betaGate`'s docstring)
+                  -- the recursor telescope, *licensed* (`iotaCerts`'
+                  -- docstring), over the redex's own spine: the major is
+                  -- the unreduced one, a subterm of the redex.  The mode
+                  -- read is the β gate's accessor — the one place a
+                  -- certificate-skip may read the validated datum
+                  -- (`CheckMode.betaGate`'s docstring)
                   if ← iotaCerts r env depth mode.betaGate
                      (cv.type.instantiateLevelParams cv.levelParams us)
-                     (args.take mI ++ [major]) then
-                   if ← iotaCerts r env depth mode.betaGate
-                      (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                      margs then
-                    -- the recursor's index arguments must match the
-                    -- constructor's canonical index tuple, where the
-                    -- recursor has indices (`iotaIndexOk`)
-                    if ← iotaIndexOk r env depth mI rP rl.ctorParams
-                        (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                        margs ((args.take mI).drop rP) then
-                      pure (some (Expr.mkAppN
-                        (rl.rhs.instantiateLevelParams cv.levelParams us)
-                        (args.take rP ++ margs.drop rl.ctorParams)))
-                    else pure none
+                     args then
+                   -- **the ι licence** (task #342 L10): a K rule, or a
+                   -- family never `Prop` at the constructor's levels
+                   -- (`iotaCtorLicensed`), fires with no constructor
+                   -- certificate and no index comparison; case 3
+                   -- certifies the constructor telescope at the full
+                   -- grade and compares the indices (`iotaIndexOk`)
+                   if ← (if iotaCase3 env.find? rl cvj usj then do
+                       if ← iotaCertsFull r env depth
+                           (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                           margs then
+                         iotaIndexOk r env depth mI rP rl.ctorParams
+                           (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                           margs ((args.take mI).drop rP)
+                       else pure false
+                     else pure true) then
+                    pure (some (Expr.mkAppN
+                      (rl.rhs.instantiateLevelParams cv.levelParams us)
+                      (args.take rP ++ margs.drop rl.ctorParams)))
                    else pure none
                   else pure none
                  else pure none
