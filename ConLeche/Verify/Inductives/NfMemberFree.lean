@@ -577,8 +577,6 @@ theorem projEntry_typeAt_occDeep {env : Env} {names : List Name}
 
 /-- The io slot inherits preservation from the io lane. -/
 theorem inferTypeIO_occDeep_of {env : Env} {names : List Name} {fuel : Nat}
-    (hC : ∀ {d : Nat} {e t : Expr}, inferTypeCore mode env fuel d e = .ok t →
-      e.occDeep names = false → t.occDeep names = false)
     (hIO : ∀ {d : Nat} {e t : Expr}, inferTypeCoreIO mode env fuel d e = .ok t →
       e.occDeep names = false → t.occDeep names = false)
     {d : Nat} {e t : Expr} (h : inferTypeIO mode env fuel d e = .ok t)
@@ -606,7 +604,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
     obtain ⟨ihCore, ihLoop, ihInf, ihIO⟩ := whnfPres_occDeep hN fuel
     have ihI : ∀ {d : Nat} {e t : Expr}, inferTypeIO mode env fuel d e = .ok t →
         e.occDeep names = false → t.occDeep names = false :=
-      fun h he => inferTypeIO_occDeep_of ihInf ihIO h he
+      fun h he => inferTypeIO_occDeep_of ihIO h he
     refine ⟨?_, ?_, ?_, ?_⟩
     · -- whnfCore
       intro c d e e' h he
