@@ -84,7 +84,7 @@ theorem genOutIdxLen {envC : Env} {mpC : EnvModelM V μ envC}
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
   generalize hψ : Level.substFn ψ cvI.levelParams M.lvls = ψ' at hlenP ⊢
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψ'
+  obtain ⟨ab, hta, hmap⟩ := hab ψ'
   have hc := instPis_count_of_read hta cvI.levelParams M.lvls hty hs
   have hpl := hC.parsLen mm hcl.hmm ψ'
   have habl : ab.length = (D.pars mm ψ').length + (D.ids mm ψ').length := by

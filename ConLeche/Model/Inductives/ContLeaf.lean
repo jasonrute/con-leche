@@ -74,7 +74,7 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   obtain ⟨cv', caps', hf', hab⟩ := hrd mm hmm
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψ
+  obtain ⟨ab, hta, hmap⟩ := hab ψ
   have hmem := ConLeche.Semantics.Env.find?_mem hf
   have hname := ConLeche.Semantics.Env.find?_name hf
   have hin := mp.mem_type _ hmem ψ _ hta ρ
@@ -242,7 +242,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   obtain ⟨cv', caps', hf', hab⟩ := hrd mm hmm
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψ
+  obtain ⟨ab, hta, hmap⟩ := hab ψ
   have hpl := h.parsLen mm hmm ψ
   have hmem := ConLeche.Semantics.Env.find?_mem hf
   have hname := ConLeche.Semantics.Env.find?_name hf

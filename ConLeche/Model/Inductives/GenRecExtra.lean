@@ -1571,7 +1571,7 @@ theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {me
     injection hfm with h'; injection h' with a b; exact ⟨a, b⟩
   have hconsI := List.mem_of_find?_eq_some hf₀
   have hwfI := mpC.base2.wf _ hconsI
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψj
+  obtain ⟨ab, hta, hmap⟩ := hab ψj
   obtain ⟨ab', hta', hmap', -⟩ := hab (tgtClsψ cvc out ψ j)
   rw [denoteMeta_params_ext mpC.base2 (φ₂ := tgtClsψ cvc out ψ j)
     (fun q hq => by
