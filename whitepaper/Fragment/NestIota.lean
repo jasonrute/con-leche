@@ -2861,6 +2861,83 @@ theorem rec_rule_law1N {j : Nat} {c : CtorSpec} (hc : N.K.ctors[j]? = some c) :
   intro φ ρ us usj xs ys hus husj hxs hys hfitR hfitC _ hne
   exact rule1_core hs m hok φ ρ hc hus husj hxs hys hfitR hfitC N.nPK rfl hne
 
+
+omit hs m in
+/-- At a valuation where a nested block is a proposition its
+eliminator is into `Prop`: a nested block's large eliminator is on a
+never-`Prop` sort (`z_false_of_large`). -/
+theorem qv_of_z (φ : Name → Nat) (hz : S.z (S.lparams.map φ) = true) : S.qv φ = true := by
+  have hlarge : S.large = false := by
+    cases h : S.large
+    · rfl
+    · rw [z_false_of_large hok φ h] at hz; cases hz
+  simp [qv, ℓ, hlarge]
+
+/-- **The slot law of a `T.rec` rule** (`RecRuleSlotLaw`, task #342
+F2): where the block is a proposition the eliminator is into `Prop`
+and the recursor's application is the point (`qv_of_z`); above it the
+fibre the major lies in holds no point (`mem_Fam_false`). -/
+theorem rec_rule_slotN {j : Nat} {c : CtorSpec} :
+    RecRuleSlotLaw (S.M₃N m.M N) S.recName (S.recInfoN N) (S.nP + 2 + (S.n + N.nK) + S.nI)
+      ⟨c.name, c.fields.length, S.ruleRhsN N c j, none, false⟩ (S.ctorInfo c) := by
+  intro φ ρ us usj xs ys hus _ hxs hfit _
+  have hS := hok.scoped
+  simp only [recInfoN] at hus hfit ⊢
+  rw [TeleFitV_instL] at hfit
+  left
+  cases hz : S.z (S.lparams.map (Level.substVal φ S.recLparams us))
+  · -- above a proposition the fibre holds no point
+    exfalso
+    have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
+    rw [recTypeN_eq, TeleFitV_mkPis _ _ (by
+        simp only [List.length_append, List.length_singleton, hxs, length_recCtxN, oN]; omega),
+      List.reverse_append, List.reverse_singleton, List.singleton_append] at hfit
+    obtain ⟨t, is, minsK, mins, m1, m', ps, heq, hi, hminsK, hmins, hps⟩ := fits_recCtxN_split S N hfit
+    obtain ⟨rfl, hxs'⟩ := List.cons.inj heq
+    rw [hxs'] at hfit
+    obtain ⟨hp, -, -, -, -, -, ht⟩ :=
+      (Reader.fits_recCtxN_iff S N hS R₃.R hi hminsK hmins hps).mp hfit
+    obtain ⟨_, _, _, _, _, _, h⟩ := (S.mem_Fam_false m.M _ (noRecDepN hok)
+      (domsBounded_ofN hs m hok _ ρ hps hp) (contOk hs m hok _ hp) hz).mp ht
+    exact tag_ne_pt h.symm
+  · -- at a proposition the eliminator is into `Prop`
+    rw [recSetN_eq hs m hok φ ρ hus, lamCtx_eq_pt _ _ (fun _ _ => by simp [qv_of_z hok _ hz]),
+      appList_pt]
+
+/-- **The slot law of a `T.rec_1` rule** (`RecRuleSlotLaw`, task #342
+F2): as for `T.rec`, with the class in place of the fibre — above a
+proposition its members are tagged tuples (`ClassLaws.inv`). -/
+theorem rec_rule_slot1N {j : Nat} {c : CtorSpec} :
+    RecRuleSlotLaw (S.M₃N m.M N) N.aux (S.rec1Info N) (S.nP + 2 + (S.n + N.nK) + 0)
+      ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0), false⟩
+      (N.KS.ctorInfo c) := by
+  intro φ ρ us usj xs ys hus _ hxs hfit _
+  have hS := hok.scoped
+  simp only [rec1Info] at hus hfit ⊢
+  rw [TeleFitV_instL] at hfit
+  left
+  cases hz : S.z (S.lparams.map (Level.substVal φ S.recLparams us))
+  · -- above a proposition the class holds no point
+    exfalso
+    have R₃ := reader₃N hs m hok (Level.substVal φ S.recLparams us)
+    have hidxM := fun ps hp =>
+      memberIdx_fits hs m hok (Level.substVal φ S.recLparams us) (ps := ps) hp
+    rw [rec1Type_eq, TeleFitV_mkPis _ _ (by
+        simp only [List.length_append, List.length_singleton, hxs, length_rec1Ctx, oN]; omega),
+      List.reverse_append, List.reverse_singleton, List.singleton_append] at hfit
+    obtain ⟨t, minsK, mins, m1, m', ps, heq, hminsK, hmins, hps⟩ := fits_rec1Ctx_split S N hfit
+    obtain ⟨rfl, hxs'⟩ := List.cons.inj heq
+    rw [hxs'] at hfit
+    obtain ⟨hp, -, -, -, -, hmaj⟩ :=
+      (Reader.fits_rec1Ctx_iff S N hS R₃.R hok.nest hminsK hmins hps hidxM).mp hfit
+    unfold classAt at hmaj
+    obtain ⟨_, _, _, _, _, h⟩ :=
+      (classLaws hs m hok _ hz hp).inv _ (S.Fam_mem_univ m.M _ _ _) _ hmaj
+    exact tag_ne_pt h.symm
+  · -- at a proposition the eliminator is into `Prop`
+    rw [rec1Set_eq hs m hok φ ρ hus, lamCtx_eq_pt _ _ (fun _ _ => by simp [qv_of_z hok _ hz]),
+      appList_pt]
+
 end IndSpec
 
 end Fragment

@@ -31,7 +31,12 @@ constants:
   law (`RecRuleLawK`): at any major value in the recursor's domain the
   recursor is the rule's right-hand side at its parameters, motives and
   minors, the fact `Red.iotaK` needs to fire with no constructor and no
-  certificate.
+  certificate;
+* **`rec_rules_slot`** — where a recursor's major is the point, the
+  recursor's application or the rule's constructor is
+  (`RecRuleSlotLaw`), the fact `Red.iotaSlot` needs to go without a
+  slot certificate and without a premise linking the major's domain to
+  the constructor's family.
 
 The proof against these laws is the env-free part of the paper.  That
 the empty environment has a model, and that adding a definition or
@@ -242,6 +247,34 @@ def RecRuleLawN (M : Name → List Nat → V) (c : Name) (ci : ConstInfo)
     WellDenoted M φ ρ (rl.rhs.instL ci.lparams us) ∧
     SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop nPc)
 
+/-- **The point in the major's slot** (task #342 F2, the installer fact
+behind `Red.iotaSlot`/`Red.iotaNestedSlot`): for a recursor `c` and its
+rule `rl` firing on the constructor stored as `cij`, wherever the
+recursor's telescope holds the point as the major (after values `xs`
+fitting it), either the recursor's application there is the point or
+the rule's constructor, applied to anything, is — provided, for a rule
+of the block's own constructors (`rl.inst = none`), that the
+constructor's levels evaluate as the recursor's last ones (the level
+comparison ι runs).  On generated recursors: the major's domain is the
+family at the recursor's own levels; where its sort evaluates to zero
+the constructor (of the same family, at the same levels) is the point,
+and where it does not the domain is strict and holds no point.  On a
+nested block the family is `Prop` only where the eliminator is
+(`blockLargeElimAllowed`), so there the recursor's application is the
+point.  This is what lets the ι rules with no slot certificate go
+without a premise linking the major's domain to the constructor's
+family. -/
+def RecRuleSlotLaw (M : Name → List Nat → V) (c : Name) (ci : ConstInfo) (majorIdx : Nat)
+    (rl : RecRule) (cij : ConstInfo) : Prop :=
+  ∀ (φ : Name → Nat) (ρ : Nat → V) (us usj : List Level) (xs ys : List V),
+    us.length = ci.lparams.length → usj.length = cij.lparams.length →
+    xs.length = majorIdx →
+    TeleFitV M φ ρ (ci.type.instL ci.lparams us) (xs ++ [pt]) →
+    (rl.inst = none →
+      usj.map (Level.eval φ) = (us.drop (us.length - usj.length)).map (Level.eval φ)) →
+    appList (M c (us.map (Level.eval φ))) (xs ++ [pt]) = pt ∨
+      appList (M rl.ctor (usj.map (Level.eval φ))) ys = pt
+
 /-- **The fibres' regime follows the stored sort** (task #342 F1,
 the ι licence of #347 and §11.4): for a stored inductive type former
 `I` (stored as `ci`, with `nP` parameters and `nI` indices and its
@@ -308,6 +341,15 @@ structure EnvModel (V : Type u) [SetLib V] (env : Env) where
   admissible, which is strict above a proposition. -/
   ind_fib : ∀ (I : Name) (ci : ConstInfo) (nP nI : Nat) (ctors : List Name) (S : IndSpec),
     env.find? I = some ci → ci.kind = .induct nP nI ctors S → IndFibLaw M I ci nP nI S
+  /-- Every rule of every stored recursor satisfies the slot law (task
+  #342 F2): where the major is the point, the recursor's application or
+  the rule's constructor is. -/
+  rec_rules_slot : ∀ (c : Name) (ci : ConstInfo) (numParams numMotives numMinors numIndices : Nat)
+    (rules : List RecRule),
+    env.find? c = some ci →
+    ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+    ∀ rl ∈ rules, ∀ cij : ConstInfo, env.find? rl.ctor = some cij →
+      RecRuleSlotLaw M c ci (numParams + numMotives + numMinors + numIndices) rl cij
   /-- Every rule flagged K of every stored recursor satisfies the K law
   (task #342 F2): inversion of the least fixed point plus the plain law
   at the recursor's own parameters (`IndSpec.rec_rule_lawK`). -/
@@ -328,5 +370,6 @@ def EnvModel.empty (M : Name → List Nat → V) : EnvModel V Env.empty where
   rec_rules_nested := fun _ _ _ _ _ _ _ h => by simp at h
   ind_fib := fun _ _ _ _ _ _ h => by simp at h
   rec_rules_k := fun _ _ _ _ _ _ _ h => by simp at h
+  rec_rules_slot := fun _ _ _ _ _ _ _ h => by simp at h
 
 end Fragment

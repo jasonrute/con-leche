@@ -951,6 +951,33 @@ theorem isK_spec (h : S.isK = true) : ∃ c, S.ctors = [c] ∧ c.fields = [] := 
     exact ⟨c, hcs, List.isEmpty_iff.mp hc⟩
   · cases hc
 
+omit [IndLib V] [LevelOracle] hpl hs m hok in
+/-- A spine up to a recursor's major splits as the parameters, the
+motive, the minors and the indices. -/
+theorem split_recSpine {xs : List V} (hxs : xs.length = S.nP + 1 + S.n + S.nI) :
+    ∃ (ps : List V) (m' : V) (mins is : List V),
+      xs = ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ∧ ps.length = S.nP ∧
+      mins.length = S.n ∧ is.length = S.nI := by
+  obtain ⟨m', rest, hd⟩ : ∃ m' rest, xs.drop S.nP = m' :: rest := by
+    cases hd : xs.drop S.nP with
+    | nil =>
+      have := congrArg List.length hd
+      simp only [List.length_drop, List.length_nil, hxs] at this
+      omega
+    | cons m' rest => exact ⟨m', rest, rfl⟩
+  have hrest : rest.length = S.n + S.nI := by
+    have := congrArg List.length hd
+    simp only [List.length_drop, List.length_cons, hxs] at this
+    omega
+  exact ⟨(xs.take S.nP).reverse, m', (rest.take S.n).reverse, (rest.drop S.n).reverse,
+    by
+      rw [List.reverse_reverse, List.reverse_reverse, List.reverse_reverse, List.append_assoc,
+        List.append_assoc, List.take_append_drop, List.singleton_append, ← hd,
+        List.take_append_drop],
+    by simp only [List.length_reverse, List.length_take, hxs]; omega,
+    by simp only [List.length_reverse, List.length_take, hrest]; omega,
+    by simp only [List.length_reverse, List.length_drop, hrest]; omega⟩
+
 /-- **The K law of a generated rule** (`RecRuleLawK`, task #342 F2):
 for a block with one constructor `c`, which has no fields, at ANY
 values fitting the recursor's telescope — the major's value whatever
@@ -983,29 +1010,7 @@ theorem rec_rule_lawK {c : CtorSpec} (hK : S.ctors = [c]) (hnf : c.fields = []) 
     have hne' : vs ≠ [] := by intro h; simp [h] at hlen
     exact ⟨vs.dropLast, vs.getLast hne', (List.dropLast_concat_getLast hne').symm⟩
   have hxs : xs.length = S.nP + 1 + S.n + S.nI := by simpa using hlen
-  obtain ⟨m', rest, hd⟩ : ∃ m' rest, xs.drop S.nP = m' :: rest := by
-    cases hd : xs.drop S.nP with
-    | nil =>
-      have := congrArg List.length hd
-      simp only [List.length_drop, List.length_nil, hxs] at this
-      omega
-    | cons m' rest => exact ⟨m', rest, rfl⟩
-  have hrest : rest.length = S.n + S.nI := by
-    have := congrArg List.length hd
-    simp only [List.length_drop, List.length_cons, hxs] at this
-    omega
-  obtain ⟨ps, mins, is, hxs', hps, hmins, hi⟩ : ∃ ps mins is,
-      xs = ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ∧ ps.length = S.nP ∧
-        mins.length = S.n ∧ is.length = S.nI :=
-    ⟨(xs.take S.nP).reverse, (rest.take S.n).reverse, (rest.drop S.n).reverse,
-      by
-        rw [List.reverse_reverse, List.reverse_reverse, List.reverse_reverse, List.append_assoc,
-          List.append_assoc, List.take_append_drop, List.singleton_append, ← hd,
-          List.take_append_drop],
-      by simp only [List.length_reverse, List.length_take, hxs]; omega,
-      by simp only [List.length_reverse, List.length_take, hrest]; omega,
-      by simp only [List.length_reverse, List.length_drop, hrest]; omega⟩
-  subst hxs'
+  obtain ⟨ps, m', mins, is, rfl, hps, hmins, hi⟩ := split_recSpine hxs
   rw [recType_eq, TeleFitV_mkPis _ _ (by
       simp only [List.length_append, List.length_singleton, List.length_reverse, hps, hmins, hi,
         length_recCtx]; omega),
@@ -1036,6 +1041,43 @@ theorem rec_rule_lawK {c : CtorSpec} (hK : S.ctors = [c]) (hnf : c.fields = []) 
   rw [h2] at core
   rw [h1]
   exact core
+
+
+/-- **The slot law of a generated rule** (`RecRuleSlotLaw`, task #342
+F2): where the recursor's telescope holds the point as the major, the
+fibre it lies in — the family at the recursor's own parameters,
+indices and levels (`fits_recCtx_iff`) — holds the point, so the
+family's sort is zero there (above it the fibre is a set of tagged
+values, `mem_Fam_false`); the constructor, at levels that evaluate as
+the recursor's (the level comparison), is then the point
+(`ctorSet` at a proposition). -/
+theorem rec_rule_slot {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
+    RecRuleSlotLaw (S.M₃ m.M) S.recName S.recInfo (S.nP + 1 + S.n + S.nI)
+      ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩ (S.ctorInfo c) := by
+  intro φ ρ us usj xs ys hus husj hxs hfit hlv
+  have hS := hok.scoped
+  simp only [recInfo, ctorInfo] at hus husj hfit hlv ⊢
+  have hlv := hlv trivial
+  rw [TeleFitV_instL] at hfit
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
+  obtain ⟨ps, m', mins, is, rfl, hps, hmins, hi⟩ := split_recSpine hxs
+  rw [recType_eq, TeleFitV_mkPis _ _ (by
+      simp only [List.length_append, List.length_singleton, List.length_reverse, hps, hmins, hi,
+        length_recCtx]; omega),
+    show (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++ [(pt : V)]).reverse
+      = pt :: is ++ mins ++ [m'] ++ ps by simp [List.reverse_append]] at hfit
+  obtain ⟨hp, -, -, -, ht⟩ := (R₃.R.fits_recCtx_iff hS hi hmins hps).mp hfit
+  right
+  cases hz : S.z (S.lparams.map (Level.substVal φ S.recLparams us))
+  · -- above a proposition the fibre holds no point
+    exfalso
+    obtain ⟨_, _, _, _, _, _, h⟩ := (S.mem_Fam_false m.M _ (noRecDep hok)
+      (domsBounded_of hpl hs m hok _ ρ hps hp) (S.contOk_of_plain m.M _ hpl ps) hz).mp ht
+    exact tag_ne_pt h.symm
+  · -- at a proposition the constructor is the point
+    rw [R₃.ctor j c hc, ← lparams_map_substVal hok φ husj, block_valuation_eq hS φ hus husj hlv]
+    unfold ctorSet
+    rw [lamCtx_eq_pt _ _ (fun _ _ => by simp [ctorVal, hz]), appList_pt]
 
 end IndSpec
 
