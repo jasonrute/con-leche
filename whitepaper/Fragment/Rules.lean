@@ -293,24 +293,26 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   F1, completing F3's `Red.iotaProp`; #342 v2 §11.4 case 3).  `Red.iota`
   without the reduced major's slot certificate, for any family: the
   constructor's telescope certificate stays at the full grade (every
-  parameter and field, #349), and so do the three comparisons.  The
-  major's domain must be the family `I` the constructor's residual type
-  is headed by, at levels the oracle finds equal to the residual's (a
-  check the checker can make; on the recursors the installer generates
-  it holds by construction).  At each valuation, the environment's fibre
-  law (`EnvModel.ind_fib`) makes the domain strict where `I`'s sort is
-  not zero, and the constructor application the point where it is
-  (`Sound.lean`, `slot_case`, `iota_core_slot`): this is the rule for a
-  family that is a proposition at some valuations only (`Quot.{u}`,
-  `PUnit.{u}`). -/
+  parameter and field, #349), and so do the three comparisons; nothing
+  else is tested.  Why the slot needs nothing: where the unreduced
+  major is not the point its reduction claim gives the reduct; where it
+  is, the environment's slot law (`EnvModel.rec_rules_slot`, F2) makes
+  the constructor application the point too, given the redex is not
+  (`Sound.lean`, `slot_of_law`, `iota_core_slot`).  On the generated
+  recursors that law holds because the major's domain is the
+  constructor's own family at the recursor's levels, a fibre holding the
+  point is a truth value there, and the constructor of a family in
+  `Prop` is the point (`IndSpec.rec_rule_slot`).  F1's version of this
+  rule had a premise linking the major's domain to the constructor's
+  family; F2 proved the link as an installer fact and dropped it.  This
+  is the rule for a family that is a proposition at some valuations
+  only (`Quot.{u}`, `PUnit.{u}`). -/
   | iotaSlot {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
       {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
       {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
       {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
       {dM bM : Expr} {doms' tys' : List Expr}
-      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
-      {Ii : ConstInfo} {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
-      {ls₀ : List Level} {dargs : List Expr} :
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
       env.find? c = some ci →
       ci.kind = .recursor numParams numMotives numMinors numIndices rules →
       us.length = ci.lparams.length →
@@ -340,28 +342,21 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       rps.length = numParams →
       (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
         (numParams + numMotives + numMinors)), DefEq env Γ p.1 p.2) →
-      -- the major's domain is the constructor's family, at oracle-equal levels
-      env.find? I = some Ii → Ii.kind = .induct nP₀ nI₀ cs₀ S₀ →
-      lsI.length = Ii.lparams.length → Ii.type.hasPis (nP₀ + nI₀) = true →
-      (rps ++ ridx).length = nP₀ + nI₀ →
-      dM = mkAppN (const I ls₀) dargs → dargs.length = nP₀ + nI₀ →
-      Level.eqList lsI ls₀ = true →
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
   /-- **ι, nested, with no major-slot certificate** (task #342 F1):
-  `Red.iotaNested` without the reduced major's slot certificate, under
-  `Red.iotaSlot`'s premises on the major's domain (the container's
-  family, at levels equal to the constructor's residual's). -/
+  `Red.iotaNested` without the reduced major's slot certificate, with
+  no further premise: the slot law of an auxiliary recursor's rule
+  (`IndSpec.rec_rule_slot1N`) holds because a nested block is a
+  proposition only where its eliminator is. -/
   | iotaNestedSlot {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
       {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
       {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
       {cij : ConstInfo} {I' : Name} {nPc nfj : Nat} {margs : List Expr} {rl : RecRule}
       {lvs : List Level} {pinst : List Expr}
       {dM bM : Expr} {doms' tys' : List Expr}
-      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
-      {Ii : ConstInfo} {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
-      {ls₀ : List Level} {dargs : List Expr} :
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
       env.find? c = some ci →
       ci.kind = .recursor numParams numMotives numMinors numIndices rules →
       us.length = ci.lparams.length →
@@ -393,12 +388,6 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       rps.length = nPc →
       (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
         (numParams + numMotives + numMinors)), DefEq env Γ p.1 p.2) →
-      -- the major's domain is the constructor's family, at oracle-equal levels
-      env.find? I = some Ii → Ii.kind = .induct nP₀ nI₀ cs₀ S₀ →
-      lsI.length = Ii.lparams.length → Ii.type.hasPis (nP₀ + nI₀) = true →
-      (rps ++ ridx).length = nP₀ + nI₀ →
-      dM = mkAppN (const I ls₀) dargs → dargs.length = nP₀ + nI₀ →
-      Level.eqList lsI ls₀ = true →
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
