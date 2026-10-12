@@ -74,6 +74,7 @@ theorem piBodyV_append : ∀ (vs ws : List V) (ρ : Nat → V) (T : Expr),
   | _ :: _, _, _, .const _ _ => rfl
   | _ :: _, _, _, .app _ _ => rfl
   | _ :: _, _, _, .lam _ _ => rfl
+  | _ :: _, _, _, .letE _ _ _ => rfl
 
 end ReadEnv
 

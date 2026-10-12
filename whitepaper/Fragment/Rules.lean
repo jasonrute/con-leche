@@ -13,7 +13,7 @@ variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
 `i + 1` binders in between):
 
 * `Red env Γ e e'` — **head reduction**: β at every binder with no
-  certificate, δ, ι, closed under `appFn` and `trans` (and `refl`).
+  certificate, ζ, δ, ι, closed under `appFn` and `trans` (and `refl`).
 * `DefEq env Γ a b` — **definitional equality**, the checker's verdict
   `true`: `refl`, `symm`, reduce-the-left-side, sorts by the level
   oracle, constants, congruence for `app`/`lam`/`pi`, η, proof
@@ -78,6 +78,13 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   domain. -/
   | beta {Γ : List Expr} {A b a : Expr} :
       Red env Γ (app (lam A b) a) (b.inst a)
+  /-- **ζ** (task #342, F4): a `let` reduces to its body with the value
+  substituted, with no certificate, as β (con-leche's `whnfCore` on
+  `.letE`, S0's `inst1M b v`; official `whnf_core`).  Unlike β it
+  needs no case split on the point: the `let` and its reduct denote
+  alike at every environment (`interp_zeta`). -/
+  | zeta {Γ : List Expr} {T v b : Expr} :
+      Red env Γ (letE T v b) (b.inst v)
   /-- **δ** (`Red.delta`, `Rel.lean:132`): a definition unfolds to its
   value, at the use's level instantiation.  (With `appFn`, an applied
   definition unfolds at its head.) -/
@@ -535,6 +542,21 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ f tf → Red env Γ tf (pi A B) →
       Infer env Γ a ta → DefEq env Γ ta A →
       Infer env Γ (app f a) (B.inst a)
+  /-- **`let`, by substitution** (task #342, F4; official `infer_let`
+  with the body instantiated rather than opened at a let-variable, as
+  the checker does, design #342 v2 §11.x): the type's type reduces to a
+  sort, the value's inferred type is definitionally equal to the type,
+  and the result is the inferred type of the body with the value
+  substituted.  The two checks on the value are Lean's (they reject
+  `let x : T := v; b` with `v : T` false even where the body ignores
+  `x`); the soundness proof does not use them (`Sound.lean`,
+  `Infer.letE_sound`), because `interp` reads no type and the body is
+  inferred at the value itself. -/
+  | letE {Γ : List Expr} {T v b s tv B : Expr} {u : Level} :
+      Infer env Γ T s → Red env Γ s (sort u) →
+      Infer env Γ v tv → DefEq env Γ tv T →
+      Infer env Γ (b.inst v) B →
+      Infer env Γ (letE T v b) B
 
 end
 
