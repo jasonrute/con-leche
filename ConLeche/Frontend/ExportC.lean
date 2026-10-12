@@ -116,11 +116,6 @@ structure Lk (ε : Type) where
 /-- The serial parse's lookups: the state's own tables. -/
 @[inline] def StateD.lk (st : StateD) : Lk String := ⟨st.name, st.level, st.expr⟩
 
-/-- The `pw` datum, over the name lookup. -/
-@[inline] def pwOfF (nm : Nat → Except ε Name) (_lv : Nat → Except ε Level) (_ex : Nat → Except ε Expr) : PwRec → Except ε PropWhen
-  | .never => pure .never
-  | .ifAllZero ns => do pure (.ifAllZero (← ns.mapM nm))
-
 /-- A name-table entry's value. -/
 @[inline] def nameOfF (nm : Nat → Except ε Name) (_lv : Nat → Except ε Level) (_ex : Nat → Except ε Expr) (r : NameRec) : Except ε Name :=
   match r with
@@ -154,12 +149,10 @@ resolved. -/
     let ls ← us.mapM lv
     pure (Expr.mkConst nm ls)
   | .app f a => do pure (Expr.mkApp (← ex f) (← ex a))
-  | .lam ty bd pw => do
-    -- Task #342 S0: the optional `pw` field is parsed and dropped
-    let _ ← pwOfF nm lv ex pw
+  -- a legacy binder's optional `pw` field is scanned and not read
+  | .lam ty bd _ => do
     pure (Expr.mkLam (← ex ty) (← ex bd) ⟨⟩)
-  | .forallE ty bd pw => do
-    let _ ← pwOfF nm lv ex pw
+  | .forallE ty bd _ => do
     pure (Expr.mkForallE (← ex ty) (← ex bd) ⟨⟩)
   | .letE ty vl bd => do
     pure (Expr.mkLetE (← ex ty) (← ex vl) (← ex bd))
@@ -169,7 +162,6 @@ resolved. -/
   | .strVal s => pure (Expr.mkLit (.strVal s))
 
 /-- The builders over an `Lk` record. -/
-@[inline] def pwOf (L : Lk ε) (r : PwRec) : Except ε PropWhen := pwOfF L.name L.level L.expr r
 @[inline] def nameOf (L : Lk ε) (r : NameRec) : Except ε Name := nameOfF L.name L.level L.expr r
 @[inline] def levelOf (L : Lk ε) (r : LevelRec) : Except ε Level := levelOfF L.name L.level L.expr r
 @[inline] def exprOf (L : Lk ε) (r : ExprRec) : Except ε Expr := exprOfF L.name L.level L.expr r
