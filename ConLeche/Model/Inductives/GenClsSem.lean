@@ -423,7 +423,7 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hmmk
   rw [hfM] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab0, hta0, -, -⟩ := hab ψ
+  obtain ⟨ab0, hta0, -⟩ := hab ψ
   have hstrip : (cvI.type.stripPis (tgtMajor out c).ds.length).isSome = true := by
     have hok := tailOk_of_read _ cvI.type rfl hta0
     obtain ⟨l1, -, l3⟩ := tail_instantiateLevelParams cvI.levelParams (tgtMajor out c).lvls cvI.type
