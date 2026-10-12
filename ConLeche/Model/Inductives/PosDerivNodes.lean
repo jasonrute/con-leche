@@ -27,7 +27,10 @@ the depth of the frames it is derived under (`t.anc`), in the STACK CONTEXT
 of those frames (`stackCtx`: each frame hole typed by its container's former
 at the key's levels, over `Δ0`), with bounded leaves (`NodeSemAt`).
 
-The cases follow `posD_mono`: the whnf step by `red_sound`; a container
+The cases follow `posD_mono`, carrying the walked subjects' `GradedTy`
+(task #342, L12: every field, telescope and crest here is a
+constructor's field TYPE, never the point, "not pt" source (1)): the
+whnf step by `red_sound_ty`; a container
 instance's key read off the reduct's spine (`contNew`/`contHit`); a
 seed's key read off its frame's typing (K.52, `acceptedReads_of`), in the
 context by its leaves (the caller's premise); a frame's constructors read at the frame's

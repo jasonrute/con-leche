@@ -22,11 +22,14 @@ accessibility at the instantiation is proved by INDUCTION ON THE
 DERIVATION `PosD`, never on the run.  The run is read once, by `nestPos_deriv`.
 
 The motive `AccJ` reads each judgment along an accessibility hole
-relation (`HoleRelA`, `NestPosAcc.lean`):
+relation (`HoleRelA`, `NestPosAcc.lean`), carrying the walked subjects'
+`GradedTy` (task #342, L12): every field, telescope and crest here is a
+constructor's field TYPE, never the point ("not pt" source (1)), so the
+whnf step is `red_sound_ty`, not the global `red_sound`:
 
 * `field` — the type regime, accessibility with a bound of the level
   reading only the non-hole positions the output mentions, and the
-  output's facts (`AccConcl`, `OutOk`): the whnf step by `red_sound`;
+  output's facts (`AccConcl`, `OutOk`): the whnf step by `red_sound_ty`;
   `const` (the empty bound); `pi` (a hole-free domain, the body under
   `underBoth`); `hole` and `frameHole` (the bound `{pt}`, rich at full
   arity); a container instance by its frame's conclusion at the key

@@ -24,10 +24,13 @@ is proved by INDUCTION ON THE DERIVATION `PosD`
 (`Verify/Inductives/PosDeriv.lean`), never on the run.  The run is read
 once, by `nestPos_deriv`.
 
-The motive `MonoJ` reads each judgment:
+The motive `MonoJ` reads each judgment, carrying the walked subjects'
+`GradedTy` (task #342, L12): every field, telescope and crest here is a
+constructor's field TYPE, never the point ("not pt" source (1)), so the
+whnf step is `red_sound_ty`, not the global `red_sound`:
 
 * `field` — the term's reading grows along every hole relation (the
-  whnf step by `red_sound`; `const`, `pi`, `hole`, `frameHole` as the
+  whnf step by `red_sound_ty`; `const`, `pi`, `hole`, `frameHole` as the
   hole-monotonicity kit's case lemmas; a container instance by its
   frame's conclusion at the key's frames, `monoOn_of_famLe`);
 * `tele` — every field grows under the earlier ones, the result read at

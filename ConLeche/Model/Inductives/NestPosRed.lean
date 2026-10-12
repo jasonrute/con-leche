@@ -27,16 +27,18 @@ The install stores a constructor type AS DECLARED; the positivity walk
 the kernel's `whnf` and returns the field's NORMAL FORM.  The model reads
 the fields with holes off that normal form (where the flat shape, the
 applied holes and U4 are syntactic facts the walk checked), and ties it
-to the declared type SEMANTICALLY: `whnf`'s denotation lemma (`red_sound`,
-`RedSem`) at every step, so the normal form reads, at every frame
-satisfying the walk's context, as the declared term does.
+to the declared type SEMANTICALLY: `whnf`'s denotation lemma (`red_sound_ty`,
+`RedJ`) at every step — the walked subject is always a constructor
+FIELD TYPE, never the point (task #342, L12: "not pt" source (1)), so
+the readers carry `GradedTy` throughout — so the normal form reads, at
+every frame satisfying the walk's context, as the declared term does.
 
 * `FieldsEqOn V Δ As Bs`: two field lists read alike along every prefix
   satisfying `Δ` extended by the earlier fields;
 * `posD_red`, by induction on the positivity DERIVATION (never
   on the run): one field — the output is framed, its leaves the
-  input's, and it reads graded and equal to the input at every
-  satisfying frame; the telescope — the input reads as a Π-tower over
+  input's, and it reads as a graded TYPE and equal to the input at
+  every satisfying frame; the telescope — the input reads as a Π-tower over
   `abD`, the closed normal form as a Π-tower over `abN` with the same
   binder bits and the same body, and `FieldsEqOn Δ abD abN`;
 * `memberCtorD_red`: a member constructor's normal form.
