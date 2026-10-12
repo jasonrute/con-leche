@@ -763,7 +763,7 @@ grade, and keeps the two grades' results apart.
 // datum says "maybe a proposition"; the ported checker's is infer_only.
 #real[
   The checker's cheap grade is `infer_only` exactly. Like it, the
-  grade does not check a local definition's value against its type
+  grade does not check a let-binding's value against its type
   (the full grade does, @sec:infer); the soundness proof needs no
   such check, since the value is substituted.
 ]
