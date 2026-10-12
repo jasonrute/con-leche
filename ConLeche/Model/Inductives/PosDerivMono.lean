@@ -9,10 +9,10 @@ import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Semantics.Frame
 import ConLeche.Model.Rules.IotaSoundKit
-import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Model.IndDomGrade
 import ConLeche.Verify.InferLeaves
+import ConLeche.Model.Inductives.TypeStep
 
 public section
 
@@ -24,10 +24,13 @@ is proved by INDUCTION ON THE DERIVATION `PosD`
 (`Verify/Inductives/PosDeriv.lean`), never on the run.  The run is read
 once, by `nestPos_deriv`.
 
-The motive `MonoJ` reads each judgment:
+The motive `MonoJ` reads each judgment, carrying the walked subjects'
+`GradedTy` (task #342, L12): every field, telescope and crest here is a
+constructor's field TYPE, never the point ("not pt" source (1)), so the
+whnf step is `red_sound_ty`, not the global `red_sound`:
 
 * `field` — the term's reading grows along every hole relation (the
-  whnf step by `red_sound`; `const`, `pi`, `hole`, `frameHole` as the
+  whnf step by `red_sound_ty`; `const`, `pi`, `hole`, `frameHole` as the
   hole-monotonicity kit's case lemmas; a container instance by its
   frame's conclusion at the key's frames, `monoOn_of_famLe`);
 * `tele` — every field grows under the earlier ones, the result read at
@@ -120,13 +123,13 @@ module docstring). -/
     ctx.hiAt prog.length ≤ dep → Frame dep e →
     ∀ {Δa : List AnnotTerm} {ea : AnnotTerm} {R : FrameRel V},
       CtxOkP mp.base2 φ dep Δa e → denoteMeta mp.base2.acval env φ dep e = some ea →
-      Graded V Δa ea → HoleRel mp.base2 φ ctx prog dep Δa R → MonoOn R ea
+      GradedTy V Δa ea → HoleRel mp.base2 φ ctx prog dep Δa R → MonoOn R ea
   | .tele prog base nF j cur ks _ res =>
     ((∃ k ∈ ks, k.flat = false) → ContCover mp ctx) →
     ctx.hiAt prog.length ≤ base + j → Frame (base + j) cur →
     ∀ {Δa : List AnnotTerm} {ca : AnnotTerm} {R : FrameRel V},
       CtxOkP mp.base2 φ (base + j) Δa cur → denoteMeta mp.base2.acval env φ (base + j) cur = some ca →
-      Graded V Δa ca → HoleRel mp.base2 φ ctx prog (base + j) Δa R →
+      GradedTy V Δa ca → HoleRel mp.base2 φ ctx prog (base + j) Δa R →
       PiPosThen (ResultAt mp.base2 φ ctx.nP (ctx.hiAt prog.length) (base + j + nF) res) nF R ca
   | .ctors prog hi us ds names holes cs =>
     ContCover mp ctx → ctx.hiAt prog.length = hi →
@@ -135,9 +138,10 @@ module docstring). -/
     (∀ (x : ConstantVal × Nat) (crest : Expr), Q x →
       ConLeche.nestCrest names us ds holes (x.1.type.instantiateLevelParams x.1.levelParams us)
         = some crest →
-      (∃ ty, ConLeche.inferTypeCore .verified env F hi crest = .ok ty) →
+      (∃ ty u, ConLeche.inferTypeCore .verified env F hi crest = .ok ty ∧
+        ConLeche.ensureSortCore .verified env F hi ty = .ok u) →
       ∃ ca, Frame hi crest ∧ CtxOkP mp.base2 φ hi Δ crest ∧
-        denoteMeta mp.base2.acval env φ hi crest = some ca ∧ Graded V Δ ca) →
+        denoteMeta mp.base2.acval env φ hi crest = some ca ∧ GradedTy V Δ ca) →
     (∀ x ∈ cs, Q x) → ∀ x ∈ cs, CtorWalked mp.base2 φ ctx hi us ds names holes R x
   | .frame prog us ds grp => FrameMono mp φ ctx prog us ds grp
   | .seed _ => True
@@ -218,19 +222,21 @@ theorem posD_frame_inv {ops : ConLeche.CheckerOps CheckM} {ctx : NestCtx} :
   | _ => trivial
 
 /-- **The whnf step** of every field rule: the reduct reads as the term,
-so it is enough to prove the reduct's reading monotone. -/
+so it is enough to prove the reduct's reading monotone.  The subject
+walked here is always a TYPE (task #342, L12: "not pt" source (1)), so
+the step is `red_sound_ty`. -/
 theorem mono_of_whnf {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
     (hin : RulesInputs V mp.base2 φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
     {Δa : List AnnotTerm} {ea : AnnotTerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa e) (hea : denoteMeta mp.base2.acval env φ dep e = some ea)
-    (hgr : Graded V Δa ea) (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ')
+    (hgr : GradedTy V Δa ea) (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ')
     (k : Frame dep w → CtxOkP mp.base2 φ dep Δa w → ∀ wa,
-      denoteMeta mp.base2.acval env φ dep w = some wa → Graded V Δa wa → MonoOn R wa) :
+      denoteMeta mp.base2.acval env φ dep w = some wa → GradedTy V Δa wa → MonoOn R wa) :
     MonoOn R ea := by
   have hw' : ConLeche.whnf .verified env F dep e = .ok w := hw
   obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ :=
-    red_sound_global hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
+    red_sound_ty hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
   exact MonoOn.of_eqOn (Q := Sat V Δa) hdom (fun ρ hρ => heq ρ hρ)
     (k hfrw (hC.of_subset hsub) wa hwa hgw)
 
@@ -441,7 +447,7 @@ theorem contNew_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
       (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
     {Δa : List AnnotTerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)))
-    (hgr : Graded V Δa wa) (hR : HoleRel mp.base2 φ ctx prog dep Δa R)
+    (hgr : GradedTy V Δa wa) (hR : HoleRel mp.base2 φ ctx prog dep Δa R)
     (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     {nI : Nat} {cty : Expr}
     (hnI : ConLeche.nestInstType (m := CheckM) ctx (ctx.hiAt prog.length) ⟨D.member mm, us, ds⟩
@@ -473,7 +479,7 @@ theorem contNew_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
   obtain ⟨-, hids, -⟩ := n2_link mp hD hmm hcov.find hnI hf (by rw [hcvl]; exact hnd)
     (by rw [hcvl]; exact hul) (by rw [hcvl, hlenP]) hdsw hdsa
   refine monoOn_of_famLe mp hD hmm hf hhid hwa (by rw [hcvl, hlenP]) (by rw [hids, hisl])
-    (fun x hx => (hdsw x hx).1) hdsa hR.dom hgr hisC fun ρ ρ' hr => ?_
+    (fun x hx => (hdsw x hx).1) hdsa hR.dom hgr.graded hisC fun ρ ρ' hr => ?_
   have := hle _ _ ⟨ρ, ρ', hr, rfl, rfl⟩ mm ⟨hmm, by
     rw [List.contains_iff_mem, List.mem_map]; exact ⟨_, hheadmem, rfl⟩⟩
   rw [hcvl]
@@ -622,7 +628,7 @@ theorem contHit_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
     (hwa : denoteMeta mp.base2.acval env φ dep (Expr.mkAppN (.const n us) (ds ++ is)) = some wa)
     {Δa : List AnnotTerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa (Expr.mkAppN (.const n us) (ds ++ is)))
-    (hgr : Graded V Δa wa) (hR : HoleRel mp.base2 φ ctx prog dep Δa R)
+    (hgr : GradedTy V Δa wa) (hR : HoleRel mp.base2 φ ctx prog dep Δa R)
     (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hdsw : ∀ x ∈ ds, Expr.WScoped (ctx.hiAt prog.length) x ∧ x.looseBVarsBounded 0 = true)
     (hfree : ∀ x ∈ ds, x.fvarB ≤ ctx.hiAt 0) (hLds : ∀ x ∈ ds, Expr.LeavesBounded x)
@@ -661,7 +667,7 @@ theorem contHit_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
       ⟨leaves_mkAppN_arg (List.mem_append_left _ hx) hl,
         ConLeche.Expr.fvarLeaves_lt_of_wscoped (hds0 x hx) l hl⟩
   refine monoOn_of_famLe mp hD hmm hf hle0d hwa hlenP.symm (by rw [hids, hisl]) hds0 hdsa0
-    hR.dom hgr hisC fun ρ ρ' hr => ?_
+    hR.dom hgr.graded hisC fun ρ ρ' hr => ?_
   exact (hpos _ _ hR00 (by rw [List.length_drop, hC.1]; omega) hC0 dsa0 hdsa0 _ _
     ⟨ρ, ρ', hr, rfl, rfl⟩).1
 
@@ -691,8 +697,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hA : ConstOn R ta := ConstOn.of_noBVar hR.agree
       (denoteMeta_noBVar_of_nestOcc dep a hws.1 hhi ha hta)
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgw
-    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     exact MonoOn.pi 0 _ hA (ihb hcov (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd)
       hCop hba hgB (hR.under hhi hA.monoOn))
@@ -810,7 +815,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     intro hcov hhi Δ R hR Q hprem hQ x hx
     rcases List.mem_cons.mp hx with rfl | hx
     · obtain ⟨ca, hfr, hC, hca, hgr⟩ :=
-        hprem (cv, nF) crest (hQ _ List.mem_cons_self) hcrest ⟨ty, hty⟩
+        hprem (cv, nF) crest (hQ _ List.mem_cons_self) hcrest ⟨ty, sv, hty, hsort⟩
       refine ⟨nodup_of_nameNodup hnd, crest, ca, cur, hcrest, hca, hres, hidx, ?_⟩
       have := ihtele (fun _ => hcov) (by omega) hfr hC hca hgr hR
       rw [hhi] at this
@@ -827,10 +832,9 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgr
-    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgr.graded
     have hA := iha (fun hk => hcovk ⟨k, List.mem_cons_self, hk⟩) hhi ⟨hws.1, hbb.1, hLa⟩
-      hC.forallE_ty hta hgA hR
+      hC.forallE_ty hta hgAT hR
     have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd
     rw [show base + j + 1 = base + (j + 1) by omega] at hCop hfr' hba

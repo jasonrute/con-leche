@@ -118,6 +118,8 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List ConLeche.PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts)
@@ -137,7 +139,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
       ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e := by
   obtain ⟨-, ab, hhi, -, hca, hab, -, habLen, -, -, -, hfr, hCP, hgr, -, hsatFrame⟩ :=
     blockCtorHoleCtx (Rules.RulesInputs.ofSem mp ψ) hN hcore hnames hlps hnP hk
-      hcv0 hop0 hholes hcj hCf hCb hcrest hinf hd hnf
+      hcv0 hop0 hholes hcj hCf hCb hcrest hinf hsort hd hnf
   -- the bounds: the reading of a well-scoped term
   have hbelow : FieldsBelow (d.nP + d.k) (d.absF ψ c j) ∧
       ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase := by
@@ -164,7 +166,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
       WellDenotedTy V (consList as σ) ((d.absF ψ c j).getD i default) := by
     intro i hi as has
     rw [hget i hi]
-    refine wellDenotedV_mkPisAV_dom hgr i _ (List.getElem?_eq_getElem hi) _ ?_
+    refine wellDenotedV_mkPisAV_dom hgr.graded i _ (List.getElem?_eq_getElem hi) _ ?_
     rw [← htake i]
     exact sat_of_spineFit hσ has
   -- U2's universe bound, per field
@@ -210,7 +212,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     fieldsValid_of_prefix _ σ fun i hi as has => (hdom i (by omega) as has).1.2,
     fun fs hfs e he => ?_⟩
   -- the result index readings: arguments of the graded body
-  have hbody := gradedV_mkPisAV_body hgr (consList fs σ)
+  have hbody := gradedV_mkPisAV_body hgr.graded (consList fs σ)
     (by rw [← hFab]; exact sat_of_spineFit hσ hfs)
   exact WellDenotedV_mkAppN_args _ hbody e he
 
@@ -264,11 +266,11 @@ theorem blockHoleGrade_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks
     have : c < d.k + d.nInst := hc
     omega
   have hcj : (d.ctorsM c)[j]? = some (d.ctorsM c)[j] := List.getElem?_eq_getElem hj
-  obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, hty⟩, -, ⟨xq, sorts, hxq, hsorts⟩, -⟩ :=
+  obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, u, hty, hsort⟩, -, ⟨xq, sorts, hxq, hsorts⟩, -⟩ :=
     hder c (d.ctorsM c) (hctorsAs c hck) j _ hcj
   obtain ⟨hCf, hCb⟩ := hclosed c j _ hcj
   exact blockCtorHoleGrade_of_walk mp hN hcore hnames hlps hnP hres hk hcv0 hop0
-    hholes hcj hCf hCb hcrest hty hd (hnfs c j _ hcj) hxq hsorts
+    hholes hcj hCf hCb hcrest hty hsort hd (hnfs c j _ hcj) hxq hsorts
 
 /-- **The hole context is satisfied below the members' formers applied to
 the parameters**: a member's former, applied to the block's parameters at
@@ -412,7 +414,7 @@ theorem blockRunLink (ψ : Name → Nat)
         obtain rfl := Option.some.inj hc
         exact (hclosed c j cA hj).1)
       (nestArityOk_of_formers hN hF hnames hnP hnIdxs hk) (ctorLps_of hlpsA hlps hlenCA hctorsAs)
-  obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, hty⟩, hlpN, ⟨xq, sorts, hxq, hsorts⟩, -⟩ :=
+  obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, u, hty, hsort⟩, hlpN, ⟨xq, sorts, hxq, hsorts⟩, -⟩ :=
     hder c (d.ctorsM c) (hctorsAs c hc) j cA hcj
   generalize (nfs.getD c []).getD j default = tyN at hd hlpN hxq hsorts ⊢
   have hCf : cA.1.type.hasFvar = false := hD.hasFvar
@@ -453,7 +455,7 @@ theorem blockRunLink (ψ : Name → Nat)
       (fun ca hca => by
         obtain ⟨abD, abN, B, -, hcaE, hNE, hlD, hlN, -, -, -, -, hfrN, -, -, hEq, hsubN, -, -⟩ :=
           blockWalkCtx hin hN hF (fun t ht ρ h => hparsT t ht ψ ρ h) hnames hnP hk hcv0 hop0
-            hholes hCf hCb hcrest hty hd (by rw [← hhiQ]; exact hca)
+            hholes hCf hCb hcrest hty hsort hd (by rw [← hhiQ]; exact hca)
         exact ⟨abD, abN, B, hcaE, by rw [hhiQ]; exact hNE, hlD, hlN, hEq,
           by rw [hhiQ]; exact hfrN, hsubN⟩)
       (fun ρ hρ hs hsl hv => blockHoleCtx_sat mp hN hF hparsT ψ ρ hρ hs (hsl.trans hkL)
@@ -466,7 +468,7 @@ theorem blockRunLink (ψ : Name → Nat)
   -- the link, again, at the crest's reading
   obtain ⟨abD', abN', B, -, hcaE, hNE, hlD', hlN', hbits, -, -, -, -, -, -, hEq, -, hcbN, -⟩ :=
     blockWalkCtx hin hN hF (fun t ht ρ h => hparsT t ht ψ ρ h) hnames hnP hk hcv0 hop0 hholes hCf
-      hCb hcrest hty hd hRD
+      hCb hcrest hty hsort hd hRD
   obtain ⟨h1, -⟩ := mkPisAV_inj (hlD.trans hlD'.symm) hcaE
   subst h1
   rw [hRN] at hNE

@@ -126,6 +126,56 @@ theorem natOpGuard_cons {env : Env} {c₀ : ConstantInfo} {c : Name}
     · next hc => rw [ite_eq_right hc]
 
 
+/-- A pinned operation codomain survives any environment change that keeps
+the stored `Bool` entry's constant value. -/
+theorem natOpCod_of_find {env env' : Env} {c : Name} {e : Expr}
+    (hb : ∀ ci, env.find? boolName = some ci →
+      ∃ ci', env'.find? boolName = some ci' ∧ ci'.toConstantVal = ci.toConstantVal)
+    (h : natOpCod env c e = true) : natOpCod env' c e = true := by
+  unfold natOpCod at h ⊢
+  split at h
+  · next hc =>
+    rw [ite_eq_left hc]
+    simp only [Bool.and_eq_true] at h ⊢
+    refine ⟨h.1, ?_⟩
+    have h2 := h.2
+    revert h2
+    cases hf : env.find? boolName with
+    | none => intro h2; exact absurd h2 (by simp)
+    | some ci =>
+      intro h2
+      obtain ⟨ci', hf', hcv⟩ := hb ci hf
+      rw [hf']; dsimp only; rw [hcv]; exact h2
+  · next hc => rw [ite_eq_right hc]; exact h
+
+/-- A pinned operation type survives any environment change that keeps
+the stored `Bool` entry's constant value. -/
+theorem natOpTyPinned_of_find {env env' : Env} {c : Name} {ty : Expr}
+    (hb : ∀ ci, env.find? boolName = some ci →
+      ∃ ci', env'.find? boolName = some ci' ∧ ci'.toConstantVal = ci.toConstantVal)
+    (h : natOpTyPinned env c ty = true) : natOpTyPinned env' c ty = true := by
+  unfold natOpTyPinned at h ⊢
+  split at h
+  · next hc =>
+    rw [ite_eq_left hc]
+    split at h
+    · simp only [Bool.and_eq_true] at h ⊢
+      exact ⟨h.1, natOpCod_of_find hb h.2⟩
+    · exact nomatch h
+  · next hc =>
+    rw [ite_eq_right hc]
+    split at h
+    · simp only [Bool.and_eq_true] at h ⊢
+      exact ⟨h.1, natOpCod_of_find hb h.2⟩
+    · exact nomatch h
+
+/-- The pinned operation type is monotone under a fresh install. -/
+theorem natOpTyPinned_cons {env : Env} {c₀ : ConstantInfo} {c : Name} {ty : Expr}
+    (hfresh : env.find? c₀.name = none) (h : natOpTyPinned env c ty = true) :
+    natOpTyPinned ⟨c₀ :: env.consts⟩ c ty = true :=
+  natOpTyPinned_of_find (fun ci hf =>
+    ⟨ci, by rw [Env.find?_cons_of_isSome hfresh (by rw [hf]; rfl)]; exact hf, rfl⟩) h
+
 /-! ## The projection-table transport
 
 The head case is a hypothesis (the install must establish its own

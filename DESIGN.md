@@ -101717,3 +101717,92 @@ interim globals `red_sound_global` (L12) and `defeq_sound_global` (L10).
 axiom.  Proof-only lane: no verdict change, so no e2e/arena run.
 `overview-links.sh`/`links-gate.sh` deferred (the `Sound.lean` anchors
 moved).
+
+
+## TASK #342 — L12: the literal rows and the positivity readers at the conditional claims (2026-10-12, agent/342-l12)
+
+Lane L12, stage S3 (`_tmp/342v2-design.md` §11.5 row S3), under the
+annotated reading, after L9 (and merged with L11).  No checker change;
+`Denotes.lean`, `MainTheorem`, `Challenge` and `Axioms.lean` unchanged.
+
+**`Red.natSucc`/`Red.natOp` at the conditional motive** (`RedSound.lean`).
+The argument's claim is conditional, so the step needs the argument
+equal to its literal even where the argument is the point:
+- the argument lies in `Nat`: the redex is not the point, so neither is
+  its head ("not pt" source (2), `app_pt`); a head read at kind `0` is
+  the point (`eq_pt_of_mem_piR_zero`), so the head is a graph and fixes
+  its domain (`piR_dom_unique`) — against `NatHeads`' `Nat.succ ∈ piR 1
+  Nat Nat`, or for a binary operation against the new input `NatOpHead`
+  (`arg_mem_of_head`; the second argument through the partial
+  application, `app_mem_piR_pos`);
+- the literal lies in `Nat` too (`rawNatLit_facts`, `NatHeads`), and
+  `Nat` is a type, so `IsTy.eq_of_ne_pt` gives the equation from the
+  argument's conditional claim.
+Both arms of `red_sound` are native now; the `…_soundU` versions stay
+for the side induction (L13 deletes them with it).
+
+**Finding: the rules tier did not know an operation's type.**
+`Red.natOp`'s guard is `natOpStored` (a definition is stored, task #161
+B3); the pinned type `Nat → Nat → cod` is checked at the operation's
+install (`natOpStoredOk` over `natOpDeps`) but was not kept by the
+invariant.  It is now: the `NatOps` and `DivMod` entries
+(`Model/Annot/Laws.lean`) carry `natOpTyPinned env c cv.type`, kept
+across fresh conses (`natOpTyPinned_cons`, `Verify/Denote/Install.lean`)
+and the rule-list swap (`natOpTyPinned_of_find`: the `Bool` entry keeps
+its constant value), established at the installs
+(`natOpTyPinned_of_deps`, `Verify/DivModInv.lean`).  `RulesInputs` gains
+`nat_op_head : NatOpHead`, proved in `Model/NatStep.lean`
+(`natOpHead_of`: the shape lemma, `denoteMeta_pinnedBinTy`, `mem_type`)
+and supplied by `RulesInputs.ofSem`.
+
+**The positivity readers** (`PosDerivMono`, `PosDerivNodes`,
+`PosDerivAcc`, `NestPosRed`) carry the walked types' `GradedTy` instead
+of `Graded` and read their whnf steps through `red_sound_ty`
+(`Sound.lean`: a graded TYPE reduces to a graded type with the same
+reading, "not pt" source (1)); `Model/Inductives/TypeStep.lean` has
+`whnf_ty`, `gradedTy_of_sort`, `WellDenotedV.hoist_piTy'` (a Π's body is
+a graded type: `WellDenoted_pi`'s fibre `IsTy`) and `gradedTy_pi_intro`.
+The entry points are constructor crests: their inferred type passes the
+sort test, so they read as members of a universe (`gradedTy_of_sort`).
+The sort test was already in the derivation (`PosD.ctorsCons`' `hsort`)
+and in the run (`nestCtors`); the inversions that dropped it
+(`nestCtors_typed`, `checkBlockPositivity_inv_gen`,
+`checkBlockPositivity_derivM`, `posD_ctors_typed`, `MemberForests`) now
+keep it.  `red_sound_global` is gone.
+
+**What remains on the interim side induction.**
+- In the rules tier: `Red.iota` and the three rescues (L10), `DefEq.lam`,
+  `DefEq.eta`, `DefEq.structEta` (L11's record).
+- Outside it, one consumer: `defeq_sound_global`, read by the
+  recursor-class match (`TargetDefeqTie.param_read_eq`, via
+  `GenFrameTie.genNodeFrameTie`).  It compares the PARAMETERS of two
+  instances of one nested container (the class's major and a positivity
+  node's key), which may be proofs; a conditional comparison says nothing
+  where one side is the point.  Not done here.  Route: read both
+  instances `C.{us} ds` at one valuation (the rule prefix's, with the
+  holes at the members' values), graded and not the point (both are
+  types); then by induction along the spine the partial applications
+  have equal values, a value that is not the point is a graph
+  (`eq_pt_of_mem_piR_zero`), its domain is fixed by the value
+  (`piR_dom_unique`) and is a type (`WellDenoted_app`'s `v ≠ 0 → IsTy A`),
+  so the i-th parameters are two members of one type and
+  `IsTy.eq_of_ne_pt` upgrades the conditional comparison.  The work is
+  the plumbing of the two instances' gradings to that valuation (the
+  class side from the recursor's major domain, the node side from the
+  walk's `frameKey_of_infer`); it is the same shape as L7's open
+  `.nested`-pin coherence (a), so it belongs with that.
+
+**For L13.**  After L10 lands and the three `DefEq` rules move (S4 for
+`lam`/`eta`), `red_soundU`/`defeq_soundU` are read by
+`defeq_sound_global` alone; that consumer has to move first (above), or
+the side induction cannot go and `Red.beta`'s premises stay.
+
+**Gates.**  `lake build`, `lake test`: no warnings; `Axioms.lean`
+unchanged.  Arena tutorial and e2e as the base (one run, `--jobs=8`; no
+checker change).  `tests/challenge.sh` green.  No `sorry`, no new axiom.
+OVERVIEW's soundness paragraph says how the literal accelerations read
+the point; `overview-links.sh`/`links-gate.sh` deferred.  The shake
+allowlist gained three "compensated" entries (import edges moved by the
+new `TypeStep` imports).
+
+29 files under `ConLeche/`, +755 −273 against `port-342`.

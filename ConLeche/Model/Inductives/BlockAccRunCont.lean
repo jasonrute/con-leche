@@ -69,6 +69,8 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
       ContOk mp ψ (d.w ψ) (p.nestCtx fvsP env.find?))
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     (hnf : d.nfFF c j = tyN)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
     (hG : ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
@@ -86,7 +88,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
             = interp V (consList fs (d.toLfp.frame ψ ρp X')) e) := by
   obtain ⟨ab, abN, hhi, hca, hNr, hab, habLen, hlabN, hfr, hCP, hgr, hfrN, -, -, hEq,
     hsatFrame⟩ := blockCtorHoleCtx hin hN hcore hnames hlps hnP hk hcv0 hop0 hholes hcj
-      hCf hCb hcrest hinf hd hnf
+      hCf hCb hcrest hinf hsort hd hnf
   generalize hL : d.holeCtx ψ = L at hCP hgr hEq hsatFrame
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
@@ -296,11 +298,11 @@ theorem blockAccTuple_of_run {env : Env} (mp : EnvModelM V .verified env) {F : N
         have : c < d.k + d.nInst := hc
         omega
       have hcj : (d.ctorsM c)[j]? = some (d.ctorsM c)[j] := List.getElem?_eq_getElem hj
-      obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, hty⟩, -⟩ :=
+      obtain ⟨crest, ksr, tsr, hcrest, hd, -, ⟨ty, u, hty, hsort⟩, -⟩ :=
         hder c (d.ctorsM c) (hctorsAs c hck) j _ hcj
       obtain ⟨hCf, hCb⟩ := hclosed c j _ hcj
       obtain ⟨ord, Af, h1, h2, h3, h4⟩ := blockCtorAcc_of_walk mp hin hN hcore hnames hlps hnP
-        hnIdxs hk hcv0 hop0 hholes hcj hCf hCb hcrest hd (fun _ => hcovk fvsP) hty
+        hnIdxs hk hcv0 hop0 hholes hcj hCf hCb hcrest hd (fun _ => hcovk fvsP) hty hsort
         (hnfs c j _ hcj) hs (hG c hc j hj)
       exact ⟨(ord, Af), fun _ _ => ⟨h1, h2, h3, h4⟩⟩
     · exact ⟨(fun _ => true, fun _ _ => empty), fun hc hj => absurd ⟨hc, hj⟩ hcj'⟩
