@@ -38,7 +38,7 @@ inductive Expr where
   | app (f a : Expr)
   /-- Abstraction `fun (x : A) => b`. -/
   | lam (A b : Expr)
-  /-- The dependent product `(x : A) → B`. -/
+  /-- The Π-type `(x : A) → B`. -/
   | pi (A B : Expr)
   /-- `let x : ty := v; b` (task #342, F4).  Kept as Lean stores it: the
   checker substitutes the value (`Red.zeta`, `Infer.letE`), and the

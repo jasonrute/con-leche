@@ -150,7 +150,7 @@ comment block at the top of `lib.typ`.
     a λ's domain only ever enters as the set its denotation is a graph
     over. The real proof already drops the premise at the io grade,
     so the full grade could too if Lean conformance were checked
-    elsewhere. The ∀ rule does read its sort premise: the product's
+    elsewhere. The ∀ rule does read its sort premise: the Π-type's
     level depends on it. (Fragment lane, stages 1–3; §2b lane.)
 
 11. **One `Sat` clause instead of a context predicate.** Defining
@@ -535,7 +535,7 @@ comment block at the top of `lib.typ`.
     container's set in the model at the class's arguments with that
     fibre in the nested position).  Monotonicity and accessibility
     of the operator then ask of that clause exactly what they ask of a
-    reflexive field's product: it grows with the fibre, and a value
+    reflexive field's function space: it grows with the fibre, and a value
     in it has a support in the fibre coded inside one set
     (`ContClause`: `mono`, `acc`; plus `mem_univ` for the operator to
     stay in the universe, and `inhab_one`, item 35).  The installation
@@ -765,8 +765,8 @@ comment block at the top of `lib.typ`.
     sound because inside one sort the two regimes agree
     (`SetLib.piR_eq_of_mem_typeU`): where the regimes differ the fibres
     are both truth values and strict, hence empty; over an inhabited
-    domain both products are then empty; over an empty domain the
-    propositional product `{pt}` is in no `Sort (n+1)` and the function
+    domain both function spaces are then empty; over an empty domain the
+    propositional function space `{pt}` is in no `Sort (n+1)` and the function
     space, which holds a graph, is in no `Sort 0`
     (`pi_over_false_sorts`).  The only remaining reads of an annotation
     are inference's honesty checks.  The sharp negative half
@@ -785,11 +785,11 @@ comment block at the top of `lib.typ`.
     off the values (task #344).**  `PropWhen` is gone from the
     fragment (`Syntax.lean`), and no rule reads or checks a binder
     datum.  The interpretation (`Interp.lean`, `SetLib.piV`/`lamV`)
-    takes a product to be propositional exactly when every fibre over
+    takes a function space to be propositional exactly when every fibre over
     its domain is a truth value, and an abstraction to be the point
     exactly when every body value is.  Over a nonempty domain this is
     what an honest annotation said; over an EMPTY domain the values say
-    nothing, and the reading is fixed: the product is `{pt}`, the
+    nothing, and the reading is fixed: the function space is `{pt}`, the
     abstraction the point, whatever the body's sort.  Two consequences,
     both forced (`Unannot.lean`):
     * **`Sort (n+1)` holds the truth values** (`typeU (n+1)` is the
@@ -818,7 +818,7 @@ comment block at the top of `lib.typ`.
     over an empty domain the body is evaluated nowhere, so whether the
     codomain is a proposition is a fact about the syntax (the inferred
     sort), i.e. the annotation or a derivation; and reading an empty
-    product as a function space by default makes `False → False : Prop`
+    Π-type as a function space by default makes `False → False : Prop`
     denote `{empty graph}`, after which `∀ n : Nat, False → False` must
     be either a truth value (then `app pt 3 = pt` is no member of the
     fibre) or a set of graphs inside `Prop` (no impredicative `Prop`).

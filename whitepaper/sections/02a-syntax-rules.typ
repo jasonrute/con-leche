@@ -281,7 +281,7 @@ $forall x : A'. thin sans("True")$ denote the same truth value whatever
 $A$ and $A'$ are.  Our proof argues instead: the head denotes a member
 of what the $forall$ denotes, because reduction preserves denotations;
 the argument denotes a member of the domain, by the certificate; and
-applying a member of a product to a member of its domain lands in the
+applying a member of a function space to a member of its domain lands in the
 fibre.  The second half of this section carries this out.
 
 *The local definition.*  The two checks on the value are what Lean

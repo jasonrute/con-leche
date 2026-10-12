@@ -275,12 +275,12 @@ a member of that set's admissible part. -/
 theorem mem_adm_of {X X' x : V} (hx : x ∈ˢ S.adm ls X) (hx' : x ∈ˢ X') : x ∈ˢ S.adm ls X' :=
   (S.mem_adm ls).mpr ⟨hx', ((S.mem_adm ls).mp hx).2⟩
 
-/-- **The body of a reflexive field's product**: the family's fibre —
+/-- **The body of a reflexive field's function space**: the family's fibre —
 its admissible part under at least one binder (task #344).  The
-product is read by values (`SetLib.piV`), and over an arbitrary family
-in the universe a fibre `{pt}` would put a Type-sorted field's product
+function space is read by values (`SetLib.piV`), and over an arbitrary family
+in the universe a fibre `{pt}` would put a Type-sorted field's function space
 in the propositional regime; the admissible part, a strict set above a
-proposition, keeps the product a function space wherever its domain is
+proposition, keeps it a function space wherever its domain is
 inhabited, so the field's set grows with the family (`piCtx_retype`).
 On the block's own family the fibres are admissible already. -/
 def reflBody (tele : List Expr) (X : V) : V := if tele = [] then X else S.adm ls X

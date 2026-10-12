@@ -89,7 +89,7 @@ include V in
 /-- **No closed term inhabits an empty inductive type.**  For a block
 without constructors, parameters, indices and level parameters whose
 recursor the environment stores, no closed term has the type former's
-type: in a model, the recursor's set lies in the product over the
+type: in a model, the recursor's set lies in the function space over the
 motives and the fibre, and at the motive with the empty fibre a
 member of the type would be a member of the empty set. -/
 theorem no_empty_inductive_inhabitant {env : Env} (hacc : Accepted env) {S : IndSpec}

@@ -49,7 +49,7 @@ variable {V : Type w} [SetLib V]
 
 /-! ## Point-denoting non-proofs -/
 
-/-- `Nat → False → Nat`: every fibre is `{pt}`, so the product is the
+/-- `Nat → False → Nat`: every fibre is `{pt}`, so the function space is the
 truth value `{pt}`, although its sort is `Type`. -/
 theorem piV_const_one {A : V} : piV A (fun _ => one) = one := by
   unfold piV

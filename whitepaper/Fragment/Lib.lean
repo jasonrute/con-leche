@@ -182,10 +182,10 @@ theorem ne_pt_of_mem_piSet {A f : V} {B : V → V} (hf : f ∈ˢ piSet A B) : f 
 nothing else; the interpretation computes it from the values
 (`piV`/`lamV`, below). -/
 
-/-- **The propositional product** `Π₀(A, B)`: the truth value "every
+/-- **The propositional function space** `Π₀(A, B)`: the truth value "every
 fibre is `{pt}`".  When the fibres are truth values it is their
 intersection `⋂ x ∈ A, B x` (the empty intersection being `{pt}`):
-`{pt}` exactly when every fibre is, `∅` otherwise — the product of
+`{pt}` exactly when every fibre is, `∅` otherwise — the function space of
 subsets of a singleton.  Reducible, so proofs that unfold `piR true`
 keep working. -/
 abbrev piProp (A : V) (B : V → V) : V := truthVal (∀ x, x ∈ˢ A → B x = one)
@@ -272,7 +272,7 @@ theorem piR_dom_unique {A A' f : V} {B B' : V → V}
     (h1 : f ∈ˢ piR false A B) (h2 : f ∈ˢ piR false A' B') : A = A' :=
   piSet_dom_unique h1 h2
 
-/-- **Impredicativity**: a product landing in `Prop` is a truth value,
+/-- **Impredicativity**: a function space landing in `Prop` is a truth value,
 whatever its domain. -/
 theorem piR_true_mem_univ_zero {A : V} {B : V → V} :
     piR true A B ∈ˢ (univ 0 : V) := truthVal_mem_univ_zero _
@@ -474,7 +474,7 @@ open Classical in
 /-- Is every body value over the domain the point? -/
 noncomputable def ptB (A : V) (F : V → V) : Bool := decide (∀ x, x ∈ˢ A → F x = pt)
 
-/-- **The product, regime read off the fibres.** -/
+/-- **The function space, regime read off the fibres.** -/
 noncomputable def piV (A : V) (B : V → V) : V := piR (propB A B) A B
 
 /-- **The abstraction, regime read off the body values.** -/
@@ -550,7 +550,7 @@ theorem app_mem_piV {A f a : V} {B : V → V} (hf : f ∈ˢ piV A B) (ha : a ∈
     app f a ∈ˢ B a := app_mem_piR hf ha
 
 /-- **Introduction**: body values in fibres that are types abstract into
-the product.  Where every fibre is a truth value every body value is
+the function space.  Where every fibre is a truth value every body value is
 the point, and so is the abstraction; where one fibre is not, it is
 strict, its body value is not the point, and the abstraction is the
 graph. -/
@@ -571,7 +571,7 @@ theorem lamV_mem {A : V} {F B : V → V} (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B 
     rw [lamV_eq_pt fun x hx => eq_pt_of_mem_univ_zero (h0 x hx) (hF x hx)]
     exact pt_mem_truthVal fun x hx => eq_one_of_mem_univ_zero (h0 x hx) (hF x hx)
 
-/-- **η**: a member of a product whose fibres are types is the
+/-- **η**: a member of a function space whose fibres are types is the
 abstraction of its applications. -/
 theorem lamV_eta {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hB : ∀ x, x ∈ˢ A → IsTy (B x)) :
     lamV A (fun x => app f x) = f := by
@@ -593,7 +593,7 @@ theorem lamV_eta {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hB : ∀ x, x �
     exact graph_app_eq hf'
 
 /-- **`∀`-formation in the sorts' sets `typeU`**, with no regime
-premise: over fibres in `Sort 0` the product is a truth value; over
+premise: over fibres in `Sort 0` the function space is a truth value; over
 fibres in a positive sort it is a truth value or a strict function
 space, a type either way. -/
 theorem piV_mem_typeU {u v : Nat} {A : V} {B : V → V}
@@ -622,7 +622,7 @@ theorem eq_pt_of_mem_piV {A f : V} {B : V → V} (hB : ∀ x, x ∈ˢ A → ∀ 
   unfold piV at hf; rw [hp] at hf
   exact eq_pt_of_mem_piR_true hf
 
-/-- Over an empty domain the product is `{pt}`. -/
+/-- Over an empty domain the function space is `{pt}`. -/
 theorem piV_of_empty {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) : piV A B = one := by
   unfold piV
   rw [propB_eq_true.mpr fun x hx => absurd hx (h x), piR_true]

@@ -43,7 +43,7 @@ are recorded here so every lane works from the same spec. Task #324.
   substitution, as the checker does). No literals, no `proj`, no
   `mdata`.
 * **The model reads binders off the values** (ruling of 2026-10-12): a
-  product is propositional iff every fibre is a truth value, an
+  function space is propositional iff every fibre is a truth value, an
   abstraction is the point iff every body value is; over an empty
   domain both read "proposition". Sorts denote the types of their
   universe (truth values included above `Prop`); the point is

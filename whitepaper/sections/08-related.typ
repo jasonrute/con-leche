@@ -16,14 +16,14 @@ existence of $n$ inaccessible cardinals. It is the starting point of
 our model, whose interpretation follows the thesis's: a proof is one
 point, a proposition $forall x : alpha. thin
 beta$ is the intersection of its fibres with the singleton of that
-point — our propositional product $Pi_0$ (@sec:interp) — and a $forall$
+point — our propositional function space $Pi_0$ (@sec:interp) — and a $forall$
 into a higher universe is the full dependent function space. To decide
 which reading applies, the thesis first translates every well-typed
 term into a language in which the propositional and the
 non-propositional $forall$ and $lambda$ are separate constructs, using
 the sort of each body, which is well defined given the thesis's
 unique typing theorem. Our interpretation reads the regime off the
-values instead (@sec:interp) — a product is a proposition when all its
+values instead (@sec:interp) — a function space is a proposition when all its
 fibres are truth values — so it consults no typing information and our
 proof does not need unique typing. Over an empty domain, where the
 values say nothing, both are read as propositions, and the claims are
@@ -85,7 +85,7 @@ develops functions, ordinals and fixpoint theory over the axioms, and
 proves set-theoretic models of the Calculus of Constructions sound, as
 well as its extension with a hierarchy of universes (interpreted by
 Grothendieck universes) and an extension with the natural numbers. The
-set theory is given by axioms, as ours is (@sec:lib). Products are
+set theory is given by axioms, as ours is (@sec:lib). Π-types are
 interpreted by one clause: with Aczel's encoding of a function as the
 set of pairs $(x, y)$ with $y$ in its value at $x$, a function into
 propositions collapses to a proposition, so the interpretation, like
