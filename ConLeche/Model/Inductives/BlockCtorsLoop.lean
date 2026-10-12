@@ -68,10 +68,8 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
     {ppsAll : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     {idxF : Nat → List Expr} {dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     {esF : Nat → (Name → Nat) → List AnnotTerm} {srcsF : Nat → List (Option Nat)}
-    {Uss : (Name → Nat) → List (List Nat)}
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ lps, ψ₁ q = ψ₂ q) →
       fssOf nP (ctorDataList dsF esF ψ₁ ctorsA 0) = fssOf nP (ctorDataList dsF esF ψ₂ ctorsA 0))
-    (hUssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ lps, ψ₁ q = ψ₂ q) → Uss ψ₁ = Uss ψ₂)
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ fssOf nP (ctorDataList dsF esF ψ ctorsA 0),
       FieldsBelow nP Fs)
     (hiff : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -80,9 +78,7 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ →
       SumFieldsOkB (resSort.eval ψ) ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)) ∧
-      SumFieldsValid ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)) ∧
-      (resSort.eval ψ ≠ 0 → SumFieldsSorts (resSort.eval ψ) (Uss ψ) ρ
-        (fssOf nP (ctorDataList dsF esF ψ ctorsA 0))))
+      SumFieldsValid ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
     (hIdx : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((dsF j ψ).take nP).map (·.2.2)).reverse ρ →
       ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop nP).map (·.2.2)) bs →
@@ -102,9 +98,7 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
       FormerData m' cvTa (nP + nIdx) resSort ppsAll →
       (∀ ψ, m'.acval T ψ = leafT ψ) →
       (∀ ψ, m'.acval cA.1.name ψ
-        = sumMkAV (resSort.eval ψ) k (dsF k ψ) ((Uss ψ).getD k [])
-            (((dsF k ψ).drop nP).map (·.2.2))
-            (uSorts (Uss ψ) (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
+        = sumMkAV (resSort.eval ψ) k (dsF k ψ) (((dsF k ψ).drop nP).map (·.2.2))
             (uChains (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))) →
       CapsLawsAt m' T cvTa caps)
     (hfold : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -123,7 +117,7 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
       FormerData mp.base2 cvTa (nP + nIdx) resSort ppsAll →
       (∀ ψ, mp.base2.acval T ψ = leafT ψ) →
       ConsedAt mp.base2 T lps nP nIdx resSort isProp large
-        idxF dsF esF srcsF Uss ctorsA k →
+        idxF dsF esF srcsF ctorsA k →
       PendingAt mp.base2 T lps nP nIdx resSort isProp large
         idxF dsF esF srcsF ctorsA k →
       Inv mp.base2 →
@@ -134,10 +128,10 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
         FormerData mp'.base2 cvTa (nP + nIdx) resSort ppsAll ∧
         (∀ ψ, mp'.base2.acval T ψ = leafT ψ) ∧
         ConsedAt mp'.base2 T lps nP nIdx resSort isProp large
-          idxF dsF esF srcsF Uss ctorsA ctorsA.length ∧
+          idxF dsF esF srcsF ctorsA ctorsA.length ∧
         Inv mp'.base2 :=
   ctorsLoopEta (p := memberShapeI T lps nP nIdx resSort isProp large)
-    hμ hCtors hnd hlpsT hlpsA hFssParams hUssParams hFssBelow hiff hFssOkP hIdx Inv hInv
+    hμ hCtors hnd hlpsT hlpsA hFssParams hFssBelow hiff hFssOkP hIdx Inv hInv
     caps leafT hTlawsOf (fun e => ConLeche.BlockEtaInv e names ctorsOf)
     (fun _ _ _ hfresh hE => hE.cons hfresh)
     (fun _ cA hcA hfresh hE _ _ _ hf hne hres hcape _ =>

@@ -104,14 +104,6 @@ structure BlockData (V : Type w) where
   ppsM : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)
   /-- per component: its index-tuple sort -/
   uM : Nat → (Name → Nat) → Nat
-  /-- per component: its index binders' own sorts (task #342 L2b) -/
-  isM : Nat → (Name → Nat) → List Nat
-  /-- per component: its constructors' declared fields' sorts, per
-  constructor (the install's `checkBlockCtors` output, evaluated) -/
-  ussM : Nat → (Name → Nat) → List (List Nat)
-  /-- per component and constructor: the fields WITH HOLES' sorts (the
-  install's `checkAbsCtorSorts` computation, re-run by the model) -/
-  absSF : Nat → Nat → (Name → Nat) → List Nat
   /-- per component: its constructors, in order, with their field counts -/
   ctorsM : Nat → List (ConstantVal × Nat)
   /-- per component and constructor: the residual's index arguments -/
@@ -274,19 +266,12 @@ The clause is produced in `BlockLfpHoles.lean`. -/
   pars := fun m ψ => ((d.ppsM m ψ).take d.nP).map (·.2.2)
   ids := fun c ψ => d.IdsM c ψ
   u := fun c ψ => d.uM c ψ
-  isorts := fun c ψ => d.isM c ψ
   Φ := d.Φ
   inj := d.inj
   nctors := fun c => (d.ctorsM c).length
   ctorName := fun c j => ((d.ctorsM c).getD j default).1.name
   fields := d.absF
   resIdx := d.absE
-
-/-- **The hole chains' sorts** at a level assignment: each chain's
-fields with holes at their own sorts (`absSF`), its index equation at
-`0` (task #342 L2b) — `LfpDatum.holeChainSorts` at the datum. -/
-@[expose] def BlockData.holeSorts (d : BlockData V) (ψ : Name → Nat) : Nat → List (List Nat) :=
-  fun c => (List.range (d.ctorsM c).length).map fun j => d.absSF c j ψ ++ [0]
 
 /-! ## The clause -/
 
@@ -297,7 +282,7 @@ structure BlockModelAt (m : EnvModel V env) (names : List Name) (d : BlockData V
   names : d.memberNames = names
   /-- at every parameter frame every component's index telescope is graded -/
   idxOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
-    ∀ c, c < d.N → IdxOk (d.uM c ψ) (d.isM c ψ) ρp (d.IdsM c ψ)
+    ∀ c, c < d.N → IdxOk (d.uM c ψ) ρp (d.IdsM c ψ)
   /-- **`Φ` maps the tuple space** over the components' index-tuple sets
   into itself -/
   maps : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →

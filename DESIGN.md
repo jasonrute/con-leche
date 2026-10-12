@@ -100821,117 +100821,48 @@ allowlisted `public import …Derive.Lfp` line is gone; `GraphRec`'s
 `Derive.Pt` and `LfpFam`'s `Derive.Graphs` imports were clean removals
 by the task #223 criterion. No `sorry`, no new axiom.
 
-## TASK #342 — L2B-FIELD-SORTS: per-field sorts in the spelled carriers (2026-10-11, agent/342-l2b-field-sorts)
+## TASK #342 — L2B-REVERT: the per-field sorts reverted (2026-10-12, agent/342-l2b-revert)
 
-Lane L2b of stage 1a (`_tmp/342-design.md` §2.1 "cumulativity in the
-spelled carriers", §7 risk 1), on the maintainer's ruling (b) for the
-data L2 found missing. A pure strengthening: no checker change, no
-statement change, no `sorry`, no new axiom.
+The v2 re-plan (`_tmp/342v2-design.md` §2, L2b row) found L2b
+unnecessary once `univ` is re-targeted to #344's cumulative `tyU`:
+`{pt} ∈ tyU w` at every positive level, so `psigma.{w,w}` with a
+`Prop` field already typechecks semantically and the per-field sorts
+(`FieldsSorts`, `absCtorSortsRun`, the restricted-`Psi` sorts) buy
+nothing a uniform `w` did not already have. Ruling Q4 (§10):
+revert, recommended because the machinery existed only for #340's
+strict universe that this port is replacing.
 
-**What changed.** Every spelled pair tower now reads each field at its
-OWN sort: `psigma.{uᵢ, w}` / `psigmaMk.{uᵢ, w}` instead of `[w, w]`.
-- The spellings take the sorts as data (`List Nat`, field order; a
-  missing entry reads `w`): `towerBodyAV w us Fs`, `mkTowerGo w us Fs`,
-  `mkTowerGoU w us Fs E`, `towersAV w Uss Fss` (the sum carrier's
-  case split), `sumBodyAV`/`sumTyAV`/`sumInjAtAV` (`Uss`),
-  `sumMkAV w j ds us Fs Uss Fss`, `idxTyAV u us Ids`, `famTyAV`,
-  `holeTmAV u us m Is`, and the block leaves `blockArmG`…`blockTyG`
-  (`Iss` index sorts, `Lss` chain sorts).
-- One new predicate, `FieldsSorts w us ρ Fs` (`TowerKit`): one sort per
-  field, hereditarily `uᵢ ≤ w` and the field's reading in `univ uᵢ`.
-  `FieldsBound`/`FieldsOkB` are unchanged: they are now only the SIZE
-  (formation) bounds. The spelled leaves' domain slots read
-  `FieldsSorts`; the one cumulative step left in the pair machinery is
-  `FieldsSorts.toBound` (the tail towers' formation in `univ w`).
-- The index equation `idxEqAV` is spelled at sort `0` (`uSorts`,
-  `LfpDatum.holeChainSorts`, `FieldsSorts_append_idxEq`).
-- The projection spellings' Σ packages read the field's sort too:
-  `projAV_wellDenoted_tower` (`TowerKit`) and
-  `wellDenoted_projAV_tower` (`StructEntryKit`, the projection tables'
-  typing law). This was a cumulative use L2's list did not name (a
-  `.fst` package `⟨u, v, A, …⟩` with `A` a truth value at `u = w`).
+`git revert -m 1 ad35cc057` (the L2b merge commit, parent 1 being the
+pre-L2b tree) applied with no conflicts: nothing landed on `port-342`
+between the L2b merge and this revert, and no later lane had built on
+L2b's per-field data. +1078 −2066 over 31 files, undoing L2b's
++1951 −1078 net plus its own DESIGN record (−115) and the whitepaper
+anchor repoints it made; the `ConLeche/Model/Inductives/*`,
+`ConLeche/Model/Annot/*`, `ConLeche/Semantics/Tower/*` and
+`ConLeche/Model/BasisLfp.lean` files are back to their pre-L2b
+bodies. No proof elsewhere depended on the per-field sorts, so no
+repair was needed anywhere outside the reverted files themselves —
+`lake build` and `lake test` are warning-free with zero edits beyond
+the revert.
 
-**Where the sorts come from.**
-- *Declared fields* (the constructors' leaves, the projection tables):
-  the run's own output `sortsss` (`checkBlockCtors`), evaluated —
-  `BlockData.ussM` (via `BlockMemberPick.ussF`); the facts from
-  `ctorFramesGen`'s sorts output (`BlockDatum.hussAt`).
-- *Fields with holes* (the block former's leaf, ruling (b)):
-  `absCtorSortsRun` (`BlockHoleGrade`) is the model's definition of the
-  computation `checkAbsCtorSorts` runs and discards — the same
-  `checkStructFieldSortsI` call on the same inputs (the first former
-  opened at the parameters, the members as holes, the positivity normal
-  form opened at the hole context, the run's own fuel `F`), its `.ok`
-  value, `[]` otherwise. `absCtorSortsRun_eq` proves it IS the
-  existential the proof already had: the existential came from
-  inverting that very run, so the equality is a rewrite (`hcv0`, `hop0`,
-  `hxq`, `hsorts`). No information was missing; (b) needed no fallback.
-  `BlockData.absSF`, `BlockData.holeSorts`; `blockHoleGrade_of_run`
-  gains the conjunct "the fields with holes are sorted at
-  `absCtorSortsRun`", from `teleBound_walk`, which now returns each
-  domain's membership at its OWN inferred sort (the bound at `w` is
-  `univ_mono` at the caller).
-- *Index binders*: the recorded `isorts` (`checkBlockIdxSorts`);
-  `blockIdxFacts_of` returns them (`isOf`); `LfpDatum.isorts`,
-  `BlockData.isM`; `IdxOk u us ρp Ids := FieldsOkB ∧ FieldsSorts`.
+`port-342` had not moved since the L2b merge (still at `ad35cc057`
+when this lane started), so no intervening merge was needed before
+landing.
 
-**Why `restrictΨ`.** A leaf must depend on the block's level parameters
-only (the consed constant's `params` obligation), but nothing proves
-the run's `Level` expressions mention only `q.lps`. So the datum
-evaluates every sort at `restrictΨ q.lps ψ` (as `uOf` already did), and
-the facts proved at `restrictΨ q.lps ψ` carry over to `ψ` because the
-readings (`ppsOf`, `dsF`, `absF` via `nfFieldsRead_params`, the result
-sort) read only `q.lps` (`hholeSo`, `hussAt`).
-
-**The cumulative uses, final list** (every `univ_mono` in
-`Semantics`/`Model`/`SetModel`, every spelled `.psigma`/`.psigmaMk`
-level re-read):
-1. *Declared constructor fields*: **fixed** (spelled at `sortsss`).
-2. *Fields with holes*: **fixed** (spelled at `absCtorSortsRun`).
-3. *The index-equation proof field*: **fixed** (spelled at `0`).
-4. *Index telescopes* (`idxTyAV`, the hole terms' and the leaves'
-   tuplers): **fixed** (spelled at `isorts`).
-5. *Projection Σ packages* (`projAV_wellDenoted_tower`,
-   `wellDenoted_projAV_tower`): **fixed**.
-6. *Size/formation bounds*, not spellings — kept, by design read at `w`:
-   `FieldsSorts.toBound` (the towers' formation), `sigma_mem_univ`
-   (`Semantics/Univ.lean`, behind `psigmaV_uv_mem`), the `FieldsOkB`/
-   `FieldsBound` bounds of the declared fields (`SumKit.ctorFramesGen`),
-   the fields with holes (`BlockHoleGrade.hbound` →
-   `LfpClause.fieldsOk`), the index domains (`FixKit.idxOk_of`), and the
-   index equation's (`truthVal_mem_univ`).
-7. *The recursors' family level* (`BlockRecPreRun.exists_uniform_univ`,
-   L2's item 5): **open**, see below.
-8. *`sigChainV_univ` at `K = 0`* (L2's item 4 remainder): unchanged; no
-   block reaches it.
-9. Positive-to-positive (survive restriction): `natAV` in the sum
-   carrier, the `lfpTuple` index-set and family towers
-   (`Value.lean:517`, `BasisOk.lean:473`, `BlockTower.lean:411/417`).
-
-**For 1b (L4).**
-- Item 6: these are SIZE bounds and should read `tg` once `univ :=
-  typeU` (at `w ≥ 1` a `Prop` field's `{pt}` is in `tg w`, not in
-  `typeU w`): `FieldsBound`, `FieldsOkB`'s bound conjunct,
-  `LfpClause.fieldsOk`, `teleBound_walk`'s callers, `idxOk_of`'s
-  `FieldsOkB`. `towerSet_univ_teleOfFields`/`towerSet_mem_univ` then
-  need a `typeU` twin from `FieldsSorts` (members are pairs, hence
-  strict, at `w ≠ 0`; a truth value at `0`), and `sigma_mem_univ` a
-  twin at `max u v`.
-- Item 7, precisely: each recursor type lies in `univ (uᶜ.eval ψ)` for
-  the level `uᶜ` the run inferred, and they are raised to the max.
-  Under `typeU` that is sound iff at every `ψ` the `uᶜ.eval ψ` are all
-  `0` or all positive. In Lean they are (each recursor type ends in
-  `motive … : Sort u` at the block's one elimination level, so its sort
-  is `imax … u`), but the run's existential `us` does not say so. Two
-  routes: (a) a lemma reading the recursor type's spelled Π-tower
-  (`blockRecTyAV`): its innermost codomain is the motive's application,
-  so its interpretation is a truth value iff the elimination level is
-  `0` at `ψ`, then take `s ψ := if elim.eval ψ = 0 then 0 else
-  maxLevelEval us ψ`; (b) keep the max and prove the mixed case empty
-  from (a)'s lemma. Neither falls out of this lane.
-
-**Gates:** `lake build`, `lake test` (warning-free; `Axioms.lean`
-unchanged), `tests/arena.sh` (incl. `tests/challenge.sh`; shake: the
-`TowerKit → Semantics.Univ` import dropped), after merging `port-342`
-(L3). The whitepaper's `BlockLfp`/`FixKit` citations repointed (moves
-only) and `links-expected.txt` regenerated.
+**Gates:** `lake build`, `lake test` (warning-free, no proof
+breakage). `tests/arena.sh`'s full battery passed (layering, shake,
+trust-surface, overview-links, quote-gate, no-local-paths, challenge,
+the arena/e2e/annot suites, the mode/IO/worker/install/DAG-tower
+gates, the trusted and `--jobs=1`/`--jobs=4` sweeps), except one
+sub-check of `tests/pindump.sh`: the `leanprover-lean4-v4.33.0`
+pinner's `natop-pins-export` exe failed to link because
+`/nix/store/cbzk9mphdh7wvsl0nkdxx9jp1xwdfxjs-elan-4.2.3`'s
+`nix-support/ld-wrapper.sh` is gone from this machine's Nix store (the
+path no longer exists at all, confirmed with `find /nix/store`). That
+pinner reproduced byte-for-byte on this same tree's ancestor
+(`l2b-field-sorts-logs/arena.log`, 2026-10-11 19:20) and this revert
+touches no file under `pins/`, `pinners/` or `tests/pindump.sh`
+(`git diff --stat ad35cc057 HEAD -- pins/ pinners/ tests/pindump.sh`
+is empty): a host Nix-store regression between the two runs, not a
+property of this lane's content or of #342. No `sorry`, no new axiom,
+no statement change.

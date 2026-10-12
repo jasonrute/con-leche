@@ -85,13 +85,12 @@ theorem ndMkTowerAV_below {r b : Nat} {Gty G : Nat → AnnotTerm} :
 
 section LeafBelow
 
-variable {k w nP nIdx : Nat} {uf : Nat → Nat} {Iss : Nat → List Nat} {Idss : Nat → List AnnotTerm}
-  {Lss : Nat → List (List Nat)} {Chs : Nat → List (List AnnotTerm)}
+variable {k w nP nIdx : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
+  {Chs : Nat → List (List AnnotTerm)}
 
 omit [SetTheory V] in
-theorem famTyAV_below {u w : Nat} {us : List Nat} {Ids : List AnnotTerm}
-    (h : FieldsBelow nP Ids) :
-    Term.bvarsBelow nP (famTyAV u us w Ids).erase := by
+theorem famTyAV_below {u w : Nat} {Ids : List AnnotTerm} (h : FieldsBelow nP Ids) :
+    Term.bvarsBelow nP (famTyAV u w Ids).erase := by
   unfold famTyAV
   simp only [AnnotTerm.erase_pi, AnnotTerm.erase_sort, Term.bvarsBelow]
   exact ⟨towerBodyAV_below h, trivial⟩
@@ -101,12 +100,12 @@ omit [SetTheory V] in
 theorem blockArmAV_below {m : Nat} (hIds : ∀ c, FieldsBelow nP (Idss c))
     (hchains : ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
     Term.bvarsBelow (nP + 1)
-      (blockArmG w uf Iss Idss Lss Chs m).erase := by
+      (blockArmG w uf Idss Chs m).erase := by
   unfold blockArmG
   simp only [AnnotTerm.erase_lam, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
   · rw [AnnotTerm.erase_liftN]
-    exact VExprAux.bvarsBelow_liftN 1 (idxTyAV (uf m) (Iss m) (Idss m)).erase nP 0
+    exact VExprAux.bvarsBelow_liftN 1 (idxTyAV (uf m) (Idss m)).erase nP 0
       (towerBodyAV_below (hIds m))
   · exact sumBodyAV_below hchains
 
@@ -114,26 +113,26 @@ omit [SetTheory V] in
 /-- The block's operator, below the parameter frame. -/
 theorem blockFunAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
     (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
-    Term.bvarsBelow nP (blockFunG k w uf Iss Idss Lss Chs).erase := by
+    Term.bvarsBelow nP (blockFunG k w uf Idss Chs).erase := by
   unfold blockFunG
   simp only [AnnotTerm.erase_lam, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
   · unfold famsTyBAV
     have := ndTowerAV_below (r := blockR k w uf)
-      (G := fun m => famTyAV (uf m) (Iss m) w (Idss m)) (b := nP) k 0 0
+      (G := fun m => famTyAV (uf m) w (Idss m)) (b := nP) k 0 0
       (fun i _ => famTyAV_below (hIds i))
     rwa [Nat.add_zero] at this
   · exact ndMkTowerAV_below (r := blockR k w uf) (b := nP + 1) k 0
       (fun i _ => by
         rw [AnnotTerm.erase_liftN]
-        exact VExprAux.bvarsBelow_liftN 1 (famTyAV (uf i) (Iss i) w (Idss i)).erase nP 0
+        exact VExprAux.bvarsBelow_liftN 1 (famTyAV (uf i) w (Idss i)).erase nP 0
           (famTyAV_below (hIds i)))
       (fun i hi => blockArmAV_below hIds (hchains i (by omega)))
 
 omit [SetTheory V] in
 /-- The index-set tuple, below the parameter frame. -/
 theorem idxTupAV_below (hIds : ∀ c, FieldsBelow nP (Idss c)) :
-    Term.bvarsBelow nP (idxTupAV k w uf Iss Idss).erase := by
+    Term.bvarsBelow nP (idxTupAV k w uf Idss).erase := by
   unfold idxTupAV
   exact ndMkTowerAV_below (r := blockS k w uf) (b := nP) k 0
     (fun _ _ => by simp only [AnnotTerm.erase_sort]; trivial)
@@ -143,7 +142,7 @@ omit [SetTheory V] in
 /-- The block's carrier tuple, below the parameter frame. -/
 theorem blockBodyAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
     (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
-    Term.bvarsBelow nP (blockBodyG k w uf Iss Idss Lss Chs).erase := by
+    Term.bvarsBelow nP (blockBodyG k w uf Idss Chs).erase := by
   unfold blockBodyG
   rw [AnnotTerm.erase_mkAppN]
   refine VExprAux.bvarsBelow_mkAppN (by simp [Term.bvarsBelow]) ?_
@@ -162,7 +161,7 @@ theorem blockTyAV_below {m : Nat} {pps : List (Nat × Nat × AnnotTerm)}
     (hIds : ∀ c, FieldsBelow nP (Idss c))
     (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
     Term.bvarsBelow 0
-      (blockTyG k w uf Iss Idss Lss Chs pps m).erase := by
+      (blockTyG k w uf Idss Chs pps m).erase := by
   refine mkLamsAV_below hp.mapC ?_
   rw [List.length_map, hlen, Nat.zero_add, ← hIdsLen]
   simp only [AnnotTerm.erase_app, Term.bvarsBelow]
@@ -170,7 +169,7 @@ theorem blockTyAV_below {m : Nat} {pps : List (Nat × Nat × AnnotTerm)}
   · refine projAV_below ?_
     rw [AnnotTerm.erase_liftN]
     exact VExprAux.bvarsBelow_liftN (Idss m).length
-      (blockBodyG k w uf Iss Idss Lss Chs).erase nP 0
+      (blockBodyG k w uf Idss Chs).erase nP 0
       (blockBodyAV_below hIds hchains)
   · exact mkTowerGo_below (w := uf m) (hIds m)
 
@@ -182,8 +181,8 @@ end Below
 
 section Currency
 
-variable {k w nP : Nat} {uf : Nat → Nat} {Iss : Nat → List Nat} {Idss : Nat → List AnnotTerm}
-  {Lss : Nat → List (List Nat)} {Chs : Nat → List (List AnnotTerm)}
+variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
+  {Chs : Nat → List (List AnnotTerm)}
 
 /-- The non-dependent tuple VALUE is bit-valid, hereditarily from its
 components'. -/
@@ -212,13 +211,13 @@ theorem ndMkTowerAV_validV {r : Nat} {Gty G : Nat → AnnotTerm} {ρ : Nat → V
 
 /-- **The block's carrier tuple is bit-valid** at the parameter
 frame. -/
-theorem blockBodyAV_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf Iss ρp Idss)
+theorem blockBodyAV_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf ρp Idss)
     (hIV : ∀ c, c < k → FieldsValid ρp (Idss c))
     (hchains : ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ c, c < k →
       ∀ t, t ∈ˢ idxSet (uf c) ρp (Idss c) →
       SumFieldsValid (cons t (cons Y ρp))
         (Chs c)) :
-    AnnotValid V ρp (blockBodyG k w uf Iss Idss Lss Chs) := by
+    AnnotValid V ρp (blockBodyG k w uf Idss Chs) := by
   unfold blockBodyG
   refine mkAppN_validV (by simp) ?_
   intro a ha
@@ -231,7 +230,7 @@ theorem blockBodyAV_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf Iss 
   · -- the operator
     unfold blockFunG
     rw [AnnotValid_lam]
-    have hfam : ∀ i, i < k → AnnotValid V ρp (famTyAV (uf i) (Iss i) w (Idss i)) := by
+    have hfam : ∀ i, i < k → AnnotValid V ρp (famTyAV (uf i) w (Idss i)) := by
       intro i hi
       unfold famTyAV
       rw [AnnotValid_pi]
@@ -256,7 +255,7 @@ theorem blockBodyAV_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf Iss 
 
 /-- The leaf's body is bit-valid at the frame below the parameters and
 the member's index variables. -/
-theorem blockLeafBody_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf Iss ρp Idss)
+theorem blockLeafBody_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf ρp Idss)
     (hIV : ∀ c, c < k → FieldsValid ρp (Idss c))
     (hchains : ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ c, c < k →
       ∀ t, t ∈ˢ idxSet (uf c) ρp (Idss c) →
@@ -264,13 +263,13 @@ theorem blockLeafBody_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf Is
         (Chs c))
     {m : Nat} (hm : m < k) {is : List V} (hsp : SpineFit ρp (Idss m) is) :
     AnnotValid V (consList is ρp)
-      (.app (projAV m ((blockBodyG k w uf Iss Idss Lss Chs).liftN
+      (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
           (Idss m).length 0))
-        (mkTowerGo (uf m) (Iss m) (Idss m))) := by
+        (mkTowerGo (uf m) (Idss m))) := by
   have hsh : shiftE (Idss m).length 0 (consList is ρp) = ρp := by
     rw [← hsp.length_eq]; exact shiftE_consList is ρp
   rw [AnnotValid_app]
-  refine ⟨?_, mkTowerGo_validV (hIV m hm) hsp⟩
+  refine ⟨?_, mkTowerGo_validV (hIV m hm) (fun _ => (hI m hm).2) hsp⟩
   refine projAV_validV ?_
   rw [AnnotValid_liftN, hsh]
   exact blockBodyAV_validV hI hIV hchains
@@ -279,12 +278,12 @@ theorem blockLeafBody_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf Is
 premise, valid under the tower. -/
 theorem blockTyAV_wellDenotedV {m : Nat} (hm : m < k)
     {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
-    (hok : ParamsOkG k w ρ uf Iss Idss Lss Chs m pps)
+    (hok : ParamsOkG k w ρ uf Idss Chs m pps)
     (hval : UnderTowerValid ρ
-      (.app (projAV m ((blockBodyG k w uf Iss Idss Lss Chs).liftN
+      (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
           (Idss m).length 0))
-        (mkTowerGo (uf m) (Iss m) (Idss m))) pps) :
-    WellDenotedV V ρ (blockTyG k w uf Iss Idss Lss Chs pps m) :=
+        (mkTowerGo (uf m) (Idss m))) pps) :
+    WellDenotedV V ρ (blockTyG k w uf Idss Chs pps m) :=
   ⟨blockTyG_wellDenoted hm hok, mkLamsC_validV (m := w + 1) hval⟩
 
 end Currency
