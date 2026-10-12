@@ -6,7 +6,6 @@ public import ConLeche.Semantics.Kit
 public import ConLeche.Semantics.WellDenoted
 public import ConLeche.Semantics.DefEqList
 public import ConLeche.Semantics.EqTower
-public import ConLeche.Semantics.EraseInv
 public import ConLeche.Semantics.DivModEval
 public import ConLeche.Semantics.Frame
 public import ConLeche.Semantics.LitParams

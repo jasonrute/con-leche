@@ -1276,8 +1276,8 @@
 0 tower_prelude.ndjson
 # tower_axiom_pin: `propext` with a tower type, over a standardly-shaped
 # stored `Iff` family (the only shape that reaches the pin comparison at
-# all) -> divergent standard-axiom pin (`ConstantVal.matchesPin` through
-# `Expr.erasePwEq`).
+# all) -> divergent standard-axiom pin (`ConstantVal.matchesPin`, through
+# `Expr`'s memoised `==`).
 2 tower_axiom_pin.ndjson
 # tower_axiom_nonstd: the same tower under a NON-pinned axiom name ->
 # the positive "non-standard axiom" decline, on the name alone.  No pin
