@@ -73,13 +73,6 @@ accepted as pinned definitions of their own types.]
 real checker never unfolds a theorem or an opaque — #src("ConLeche/Rules/Rel.lean", 130, 133)[only a definition
 unfolds].]
 
-#left-out[K-like reduction][A recursor of a proposition with one
-field-less constructor, such as `Eq.rec`, fires on a proof that is not
-a constructor application: the checker #src("ConLeche/Rules/Rel.lean", 225, 244)[fabricates the constructor
-application] from the proof's type and equates the two by proof
-irrelevance. @sec:ext-k shows this
-follows from the extensionality of the model.]
-
 #left-out[Structure η and unit-likeness][#src("ConLeche/Rules/Rel.lean", 431, 434)[A constructor applied to the
 projections of `b` is definitionally equal to `b`], and #src("ConLeche/Rules/Rel.lean", 463, 468)[any two terms of a
 structure type with one field-less constructor are equal]. Whether a
@@ -92,22 +85,7 @@ them from extensionality.]
 never unfolds a theorem, unlike the official kernel, which still does: at a
 stuck proof `h` of `A ∧ B` — which older elaborators emit for a case
 split on a conjunction — the recursor #src("ConLeche/Rules/Rel.lean", 286, 306)[fires on `And.intro h.1 h.2`],
-fabricated and certified the way the K rescue is.]
-
-#left-out[`let`][The fragment has no `let`. The real checker's
-#src("ConLeche/Kernel/Core.lean", 2003, 2032)[annotation pass], which runs once when a declaration enters, replaces
-every `let x := v; b` by `b[x := v]`, so no later stage ever sees one.]
-
-#left-out[The infer-only grade][The real checker infers types at #src("ConLeche/Rules/Rel.lean", 77, 82)[two
-grades]: the full grade of the
-fragment, and an "infer-only" grade used inside reduction and the
-equality test on terms that were checked once already, which #src("ConLeche/Rules/Rel.lean", 544, 547)[skips the
-argument check] at an application whose binder is annotated #ann[never] and the domain check at a
-`λ`. Beside it sits #src("ConLeche/Rules/Rel.lean", 409, 411)[a fast path for proof irrelevance] that reads the
-annotations at the two terms' heads instead of inferring their types. Both are justified by the
-semantic invariant of §2: at a #ann[never] binder the domain can be read off the
-function's set, and two terms whose head annotations say #ann[always a
-proposition] both denote the one proof point.]
+fabricated from `h`'s type.]
 
 #left-out[Fuel, memo tables, the executable checker and its bridge
 theorem][In the fragment the relations are the checker. The real
@@ -138,21 +116,20 @@ context, and two free variables are #src("ConLeche/Rules/Rel.lean", 355, 356)[co
 terms, and the statement's relation reads them with de Bruijn indices
 under binders, with no opening at all.
 
+// PORT: master's `AnnotTerm` also carries a numeral at every binder and
+// `denoteMeta` reads it; after the port the layer is as described here.
 *An erased intermediate layer.* The real proof does not interpret the
 checker's terms directly. It first reads a term into an erased language,
 #src("ConLeche/Semantics/Syntax.lean", 66, 90)[`AnnotTerm`]: de Bruijn
 indices, sorts at concrete numbers (the level valuation already
-applied), built-in constants at concrete levels, and at every binder
-the sort of the body as a number — the annotation and the level
-valuation combined into one numeral. That reading, #src("ConLeche/Model/Annot/Bit.lean", 144, 147)[`denoteMeta`], is partial only for
-syntactic reasons — a `let`, an unknown constant, a wrong number of
-levels, a projection with no table — and it reads the annotation without
-checking it: the check is the semantic invariant, which the theorem below
-demands of the reading. The interpretation
+applied), and built-in constants at concrete levels. That reading,
+#src("ConLeche/Model/Annot/Bit.lean", 144, 147)[`denoteMeta`], is partial only for
+syntactic reasons — an unknown constant, a wrong number of levels, a
+projection with no table. The interpretation
 #src("ConLeche/Semantics/Interp.lean", 150, 160)[`interp`] then maps
-the erased term to a set, dispatching on the numeral at each binder.
-The paper folds the two steps into one denotation that reads the
-coloured datum at the level valuation directly.
+the erased term to a set, reading each binder's regime off the values
+as @sec:interp does. The paper folds the two steps into one
+denotation on the terms themselves.
 
 *Six relations, not three, and a second grade.* Beside reduction,
 definitional equality and inference the real description has three
@@ -165,32 +142,8 @@ install produces it: every structure's projections go through its
 table. A rule with a premise
 about a list needs a relation of its own in a mutual block; the paper
 inlines them into the rules that use them. Inference also carries a
-grade index, the infer-only grade above.
-
-*β without a certificate is a choice of model.* In the fragment's
-model the certificate of rule beta-cert cannot simply go: a β that
-fires at every binder is
-#src("whitepaper/Fragment/UniformBeta.lean", 147, 152)[unsound]. A
-stored `c : Sort 1` whose value is an ill-typed redex
-$(lambda h : A thin ann(sans("always")). thin h) thick "Prop"$, with $A$
-an empty proposition, satisfies the semantic environment invariant (the
-redex denotes the point, a member of `Sort 1`), and a datum-blind β
-reduces it to `Prop`. The obstruction is the universes, not the rules.
-If `Sort (n+1)` denotes
-#src("whitepaper/Fragment/Uniform/Model.lean", 75)[the members of the
-universe that are not the point and do not contain it], no such `c` has
-a model, and with an invariant that also records which sets are types,
-and claims that say nothing of a term denoting the point,
-#src("whitepaper/Fragment/Uniform/Sound.lean", 839, 842)[β at every
-binder is sound] with neither a certificate nor an annotation to
-compare — δ and ι included. Even ι on a recursion over proofs needs no
-β certificate to reduce its major premise:
-#src("whitepaper/Fragment/Uniform/Sound.lean", 468, 474)[the major's
-binder domain is a type], so the major and its reduct are both the
-point or neither is. What this does not yet carry over is the
-environment side: that installing a definition or an inductive block
-keeps a model in these universes, the counterpart of
-@sec:env, @sec:ind and @sec:nested.
+grade index, for the cheaper grade of @sec:io, which the fragment
+states as a relation of its own.
 
 *The bridge and the recomposition.* Because the real checker is a
 program, its proof has three parts where the paper has one. #src("ConLeche/Verify/Rules/Bridge.lean", 25, 28)[The bridge] turns an accepting

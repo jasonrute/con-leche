@@ -2,7 +2,7 @@
 
 This directory holds a self-contained, human-accessible account of the core
 proof idea of con-leche: the modelling and consistency proof that bridges
-annotated expressions, the *inductive* (relational) description of checking,
+Lean's terms, the *inductive* (relational) description of checking,
 and a set theory given *with libraries*. Authorship line on every rendering:
 "Joachim Breitner, Lean FRO" (the AI-authorship note at the top says the rest). Maintainer rulings of 2026-09-25
 are recorded here so every lane works from the same spec. Task #324.
@@ -39,46 +39,50 @@ are recorded here so every lane works from the same spec. Task #324.
   variable carries its own type, so the checker keeps no context). No index
   shifting in the paper — if a rule's presentation would need it, the
   named form is the one to write. `sort l`,
-  `const c ls`, `app`, `lam A (pw) b`, `pi A (pw) B`. No `let` (the real
-  checker's annotation pass inlines it — say so), no literals, no `proj`,
-  no `mdata`.
-* **Annotation**: each binder carries the coloured datum `pw : PropWhen`
-  (= "never a proposition" | "a proposition exactly when these level
-  parameters are all zero"), exactly con-leche's sealed `PropWhen`
-  (`ConLeche/Kernel/PropWhen.lean`). In grammars, rules, premises and terms
-  the annotation is typeset in ONE distinguished colour: a reader who
-  ignores the colour sees Lean as it is.
+  `const c ls`, `app`, `lam A b`, `pi A B`, `let x : T := v; b` (by
+  substitution, as the checker does). No literals, no `proj`, no
+  `mdata`.
+* **The model reads binders off the values** (ruling of 2026-10-12): a
+  product is propositional iff every fibre is a truth value, an
+  abstraction is the point iff every body value is; over an empty
+  domain both read "proposition". Sorts denote the types of their
+  universe (truth values included above `Prop`); the point is
+  `{ptTag}` in con-leche. The claims of reduction and equality say
+  nothing about the point.
+* **The colour** marks the certification tax: the checks con-leche
+  makes that the official kernel does not (the λ/η body-type premises,
+  the case-3 constructor certificate of ι). A reader who ignores the
+  colour sees the official kernel's rules.
 * **Levels**: zero, succ, max, imax, param. Universe polymorphism stays
-  (declarations have level parameters; `pw` refers to them). The
+  (declarations have level parameters). The
   operations ≤ and = on levels are ASSUMED correct and complete (a
   parameter of the development with a specification, not a definition).
-  `zeroness : Level → PropWhen` IS defined (it is exact and small).
-* **Reduction**: β at a `never` gate (uncertified), β certified (the
-  argument's type is inferred and compared to the domain), δ, and in the
-  environment section ι. Head-reduction closed under `appFn` and `trans`.
+* **Reduction**: β (no premise), ζ, δ, and in the environment section ι
+  (with K, and the step through projections as theorems).
+  Head-reduction closed under `appFn` and `trans`.
 * **Definitional equality**: refl, symm, reduce-left, sort (level oracle),
-  const, congruences for app/λ/∀, η, proof irrelevance. NO transitivity
-  rule — and the paper explains why none can be added.
-* **Inference**: one grade (drop the io grade, `appSkip`, `proofFast`).
-  The ∀/λ rules CHECK the annotation: infer the body's sort `v`, require
-  `zeroness v = pw`.
+  const, congruences for app/λ/∀, η, proof irrelevance; λ-congruence and
+  η compare the bodies' types (innermost level of a λ-telescope only).
+  NO transitivity rule — and the paper explains why none can be added.
+* **Inference**: Lean's rules at the full grade; the cheaper grade
+  (`infer_only`, the hereditary claim) as its own subsection.
 * **Certificate walks** (`Certs`, `DefEqList`, `EtaProjCerts`): folded into
   the rules that use them.
 * **Environment section**: `def`s (δ) and single, non-mutual, non-nested
   inductives with parameters, indices, recursive AND reflexive fields
   (reflexive fields make types large and matter to the modelling); the
   recursor with large elimination and the subsingleton criterion for Prop
-  inductives (the annotation reappears here). No `theorem`/`opaque`
+  inductives. No `theorem`/`opaque`
   distinction, no axioms, no Quot, no pinned basis blocks: `False` is
   whatever empty Prop inductive the stream declares.
 * **Consistency corollary**: no accepted environment stores a constant
   whose type is an inductive in Prop with zero constructors.
 * **Dropped, with one sentence each in a "what we left out" list**:
   projections, mutual/nested blocks, Nat/String literals and the Nat fast
-  path, Quot, pinned blocks, axioms/trust, K-like reduction, structure η,
+  path, Quot, pinned blocks, axioms/trust, structure η,
   unit-likeness, the And rescue, fuel/caches/the executable checker and its
   bridge theorem, the two-phase parallel fold, the AnnotTerm intermediate
-  layer (the paper has ONE denotation, directly on annotated terms).
+  layer (the paper has ONE denotation, directly on the terms).
 * **A later section**: K-like reduction, η for structures, unit-likeness
   etc. all FOLLOW from extensionality of the model — show this.
 * **Set theory with libraries**: ONE abstract structure, stated
@@ -95,20 +99,22 @@ are recorded here so every lane works from the same spec. Task #324.
 ## Order of presentation
 
 1. Introduction: what is being proved, the shape of the argument, why
-   there is no typing judgement, what the colour means.
-2. The env-free fragment, completely: terms and annotations; levels; the
+   there is no typing judgement, how a `∀` or a `λ` is interpreted.
+2. The env-free fragment, completely: terms; levels; the
    relations (reduction, defeq, inference); the library; the denotation;
    the invariant; the three claims and their proof — "by induction" where
-   nothing interesting happens, and full discussion where the annotation
-   plays a role or a syntactic proof would fail (no subject reduction for
-   proof-λs, no Π-injectivity, why defeq cannot be transitive, proof
-   irrelevance for free).
+   nothing interesting happens, and full discussion where the reading of
+   a binder or the point plays a role or a syntactic proof would fail (no
+   Π-injectivity, why defeq cannot be transitive, proof irrelevance for
+   free); the certification tax; the cheaper grade.
 3. Adding definitions: the environment, what a definition's check is,
    δ, the model contract and how the model grows with a definition.
 4. Adding inductive types: what is checked, the fixpoint in the model,
-   the recursor, ι, large elimination; the consistency corollary.
-5. Extensionality corollaries (K, η, unit-like).
-6. What we left out, and how the real proof differs from the fragment
+   the recursor, ι and when it needs a certificate (K, the step through
+   projections), large elimination; the consistency corollary.
+5. Nested inductive types (the full check, the model as a sketch).
+6. Extensionality corollaries (η for structures, unit-like).
+7. What we left out, and how the real proof differs from the fragment
    (fvar, AnnotTerm layer, bridge, ...), with links.
 
 Links: unobtrusive, `blob/master/...#L..-L..` into the real proof AND into
@@ -274,3 +280,17 @@ changes tack. Its citations go to con-leche. The nested fragment stays
 in the repository (built and gated) and is mentioned once as a
 verified restricted case. This is the one exception to "no
 pen-and-paper claim without the fragment behind it".
+
+## Rulings of 2026-10-12: the design as it is
+
+* The paper describes the design the fragment proves: terms without
+  binder data, the model reading binders off the values, claims silent
+  about the point, the certification tax, the cheaper grade, ι with its
+  three laws and K, `let` by substitution.
+* **Path independence**: describe the design as it is, as if it had
+  always been so. No mention of what the design used to have, not even
+  in contrast ("no longer", "unlike before"); the same for NOTES.md
+  entries. `// PORT:` Typst comments mark real-checker statements and
+  citations that change when the port lands (they do not render).
+* The cheaper grade skips the `let` value check, as `infer_only` does;
+  the full grade keeps it.
