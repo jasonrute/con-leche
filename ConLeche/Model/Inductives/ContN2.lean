@@ -143,7 +143,7 @@ theorem noBVarTele_of_piDomsFree {names : List Name} {lo hi : Nat} :
         (by rw [piCount_instantiate1_fvar]; exact hn)
         (PiDomsFree.instantiate1 hnot ty b 0 hb)
         (Expr.WScoped.instantiate1 hws.1 0 hws.2) (by omega) hba
-      exact ⟨(_, _, ta) :: ab, u, rfl, ⟨hA, NoBVarTele.mono holeP_succ hab⟩, by simp [hlen]⟩
+      exact ⟨(0, 0, ta) :: ab, u, rfl, ⟨hA, NoBVarTele.mono holeP_succ hab⟩, by simp [hlen]⟩
 
 /-! ## Telescopes read the same at two frames -/
 
@@ -215,16 +215,19 @@ theorem piCount_eq_length : ∀ e : Expr, piCount e = e.piBinders.1.length := by
   | forallE t b mb _ ihb => simp [piCount, ConLeche.Expr.piBinders, ihb]
   | _ => simp [piCount, ConLeche.Expr.piBinders]
 
+/-- A Π-tower over a sort determines its domains (the binder data's
+numeral components are not read) and its sort. -/
 theorem mkPisAV_sort_eq : ∀ {ab ab' : List (Nat × Nat × AnnotTerm)} {u u' : Nat},
-    mkPisAV ab (.sort u) = mkPisAV ab' (.sort u') → ab = ab' ∧ u = u'
+    mkPisAV ab (.sort u) = mkPisAV ab' (.sort u') →
+      ab.map (·.2.2) = ab'.map (·.2.2) ∧ u = u'
   | [], [], _, _, h => ⟨rfl, by simpa [mkPisAV] using h⟩
   | [], _ :: _, _, _, h => by simp [mkPisAV] at h
   | _ :: _, [], _, _, h => by simp [mkPisAV] at h
   | d :: ab, d' :: ab', u, u', h => by
     simp only [mkPisAV, AnnotTerm.pi.injEq] at h
-    obtain ⟨h1, h2, h3, h4⟩ := h
-    obtain ⟨rfl, rfl⟩ := mkPisAV_sort_eq h4
-    exact ⟨by rw [Prod.ext h1 (Prod.ext h2 h3)], rfl⟩
+    obtain ⟨h1, h4⟩ := h
+    obtain ⟨h2, rfl⟩ := mkPisAV_sort_eq h4
+    exact ⟨by simp [h1, h2], rfl⟩
 
 /-- The parameter frame of a key: its parameters' values over the frame
 seen from the walk's hole bound. -/
@@ -519,9 +522,12 @@ theorem n2_link {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatu
       (Expr.WScoped.of_not_hasFvar (by rw [Expr.hasFvar_instantiateLevelParams]; exact hcl)) hty
   obtain ⟨ab'', u, hread, hnob, hlen''⟩ :=
     noBVarTele_of_piDomsFree (m := mp.base2) (φ := φ) _ ty rfl hPDF hWty (Nat.le_refl _) hcrd
-  obtain ⟨rfl, -⟩ := mkPisAV_sort_eq hread
+  obtain ⟨hdoms, -⟩ := mkPisAV_sort_eq hread
+  rw [← hdoms] at hnob
   refine ⟨?_, fun ρ ρ' hag => ?_⟩
-  · rw [hnI, ← piCount_eq_length, ← hlen'', substTele_length, ← hmap, List.length_map]
+  · have hl := congrArg List.length hdoms
+    simp only [List.length_map, substTele_length] at hl
+    rw [hnI, ← piCount_eq_length, ← hlen'', ← hl, ← hmap, List.length_map]
   · have hte := teleEq_substTele _ _ 0 (teleEq_of_noBVarTele hnob hag)
     rw [← keyFrame_eq_substE hdl, ← keyFrame_eq_substE hdl] at hte
     rwa [hmap] at hte
@@ -579,7 +585,7 @@ theorem denoteMeta_piEndsSort {s : Level} :
       obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
       obtain ⟨ab, rfl⟩ := ih (b.instantiate1 (.fvar d ty))
         (by rw [piCount_instantiate1_fvar]; exact hn) (PiEndsSort.instantiate1 _ b 0 hf) hba
-      exact ⟨(_, _, ta) :: ab, rfl⟩
+      exact ⟨(0, 0, ta) :: ab, rfl⟩
 
 /-- **The level link** (the kernel's N3): a
 container instance checked by `nestInstType` lives at the block's sort —
