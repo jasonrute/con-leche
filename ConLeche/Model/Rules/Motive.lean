@@ -92,12 +92,9 @@ inference motives are not conditional: an inferred type is a type, never
 the point.
 
 The `…U` motives are the same statements without the point condition.
-They are the **interim** side induction (`Model/Rules/Sound.lean`,
-`red_soundU` …): the ι rules (task #342 L10) and the definitional-equality
-rules (L11) are still proved unconditionally and reach the conditional
-motives through `RedSemU.cond`/`DefEqSemU.cond`.  The side induction needs
-β certified (`Red.beta`'s guarded premises); it goes, with those premises,
-once L10/L11 have proved their rules at the conditional motives. -/
+Some rules conclude them, a strengthening (ι and the K/`And` rescues,
+`RedSemU`; the λ-telescope congruence, `DefEqLamsSem`), and reach the
+conditional motives through `RedSemU.cond`/`DefEqSemU.cond`. -/
 
 /-- **`Red`'s motive**: a reduction of a framed, readable subject
 preserves the frame and reads; at a valuation where the subject is
@@ -115,7 +112,7 @@ interpretation. -/
           WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
           WellDenotedV V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
 
-/-- `RedSem` without the point condition (the interim side motive). -/
+/-- `RedSem` without the point condition (a strengthening some rules conclude). -/
 @[expose] def RedSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e e' : Expr) : Prop :=
   Frame d e →
@@ -142,8 +139,26 @@ neither is the point, they are equal. -/
       interp V ρ aa ≠ pt → interp V ρ ba ≠ pt →
       interp V ρ aa = interp V ρ ba
 
-/-- `DefEqSem` without the point condition (the interim side motive). -/
+/-- `DefEqSem` without the point condition (a strengthening some rules conclude). -/
 @[expose] def DefEqSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (d : Nat) (a b : Expr) : Prop :=
+  Frame d a → Frame d b →
+  ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
+    CtxOkS m φ d Δa a → CtxOkS m φ d Δa b →
+    denoteMeta m.acval env φ d a = some aa →
+    denoteMeta m.acval env φ d b = some ba →
+    ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d a ρ → LeavesGr m φ d b ρ →
+      WellDenotedV V ρ aa → WellDenotedV V ρ ba →
+      interp V ρ aa = interp V ρ ba
+
+/-- **`DefEqLams`' motive** (task #349): UNCONDITIONAL — at a valuation
+where both λ-telescopes are graded they are equal, the point included.
+The innermost level's body-type comparison puts the two bodies in one
+type, whose members are all the point or none, so the bodies' conditional
+claim is an equation; an equation of the bodies at every value of the
+variable is an equation of the λs, so the claim propagates outward with
+no further type comparison (the fragment's `LamsSem`). -/
+@[expose] def DefEqLamsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (a b : Expr) : Prop :=
   Frame d a → Frame d b →
   ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
@@ -170,7 +185,10 @@ subject's grading is a conclusion; the type is a graded type
             interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- **`Infer`'s motive at the io grade** — consumption: the subject's
-grading is a premise (`InferClaimIO`'s premise form). -/
+grading is a premise (`InferClaimIO`'s premise form).  Membership is the
+annotated reading's claim; at Lean's `infer_only` (no argument check at
+an application) the claim is the hereditary `IORel` of task #346 (the
+fragment's `IOGrade.lean`), owed by task #342 L18. -/
 @[expose] def InferSemIO {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
@@ -249,7 +267,7 @@ second spine. -/
       ∀ p ∈ (asa.map (interp V ρ)).zip (bsa.map (interp V ρ)),
         p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2
 
-/-- `DefEqListSem` without the point condition (the interim side motive). -/
+/-- `DefEqListSem` without the point condition (a strengthening some rules conclude). -/
 @[expose] def DefEqListSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (as bs : List Expr) : Prop :=
   as.length = bs.length ∧
@@ -276,7 +294,7 @@ stuck side fit — `CertsSem` at every listed index. -/
     CertsSem m φ d false (cvp.type.instantiateLevelParams cvp.levelParams us')
       (targs ++ [b])
 
-/-! ### The interim side motives weaken to the conditional ones -/
+/-! ### The unconditional motives weaken to the conditional ones -/
 
 theorem RedSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     {d : Nat} {e e' : Expr} (h : RedSemU m φ d e e') : RedSem m φ d e e' := by
@@ -286,6 +304,11 @@ theorem RedSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 
 theorem DefEqSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     {d : Nat} {a b : Expr} (h : DefEqSemU m φ d a b) : DefEqSem m φ d a b :=
+  fun hfa hfb _ _ _ hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _ =>
+    h hfa hfb hCa hCb haa hba ρ hρ hLa hLb hwa hwb
+
+theorem DefEqLamsSem.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
+    {d : Nat} {a b : Expr} (h : DefEqLamsSem m φ d a b) : DefEqSem m φ d a b :=
   fun hfa hfb _ _ _ hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _ =>
     h hfa hfb hCa hCb haa hba ρ hρ hLa hLb hwa hwb
 

@@ -20,7 +20,7 @@ rules:
 | `a == b` | `DefEq.refl` |
 | the `Bool.true` shortcut | `boolTrueShortcut_bridge` |
 | the cheap `whnfCore` of both sides | `DefEq.redBoth` |
-| `quickDefEq` (`QuickExit`) | `refl` / `sort` / `forallE` / `lam` |
+| `quickDefEq` (`QuickExit`) | `refl` / `sort` / `forallE` / `lams` |
 | `propIrrel` | `propIrrel_bridge` |
 | `defeqOffset` | `refl` / `natZero` / `natSucc` / `app` |
 | `tryUnfoldProjApp` | the `whnfCore` bridge |
@@ -42,8 +42,11 @@ theorem quickExit_bridge (hd : DefEqBridge env fuel) {d : Nat} {a b : Expr}
   | refl => exact .refl
   | sort hle => exact .sort hle
   | lit => exact .refl
-  | forallE hdt hbd hpw => exact .forallE (hd hdt) (hd hbd) hpw
-  | lam hdt hbd hpw => exact .lam (hd hdt) (hd hbd) hpw
+  | forallE hdt hbd _ => exact .forallE (hd hdt) (hd hbd)
+  -- **owed to task #342 L-ck** (the S4 sorry ledger): `DefEqLams` needs
+  -- the innermost level's body-type comparison (T1) and the outer
+  -- levels' descent as `DefEqLams`, runs the checker makes from S0-F on
+  | lam _ _ _ => exact sorry
 
 theorem quickDefEq_bridge (hd : DefEqBridge env fuel) {d : Nat} {a b : Expr}
     (h : quickDefEqFueled .verified env fuel d a b = .ok (some true)) :

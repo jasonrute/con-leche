@@ -30,9 +30,9 @@ namespace ConLeche.Rules
 
 variable {env : Env} {fuel : Nat}
 
-/-- `iotaCerts` ⇒ `Certs` (`iotaCerts_step_inv_gate`; a licensed
-`.never` slot lands on `Certs.skip`, a certified one on `Certs.cert`
-through `inferTypeIO_bridge` and `hd`). -/
+/-- `iotaCerts` ⇒ `Certs` (`iotaCerts_step_inv_gate`; a licensed walk
+lands on `Certs.licensed`, a certified slot on `Certs.cert` through
+`inferTypeIO_bridge` and `hd`). -/
 theorem iotaCerts_bridge (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel) :
     ∀ {d : Nat} {lic : Bool} {ty : Expr} {args : List Expr},
       iotaCertsFueled .verified env fuel d lic ty args = .ok true →
@@ -46,7 +46,8 @@ theorem iotaCerts_bridge (hd : DefEqBridge env fuel) (hio : InferIOBridge env fu
       intro h
       rcases iotaCerts_step_inv_gate h with ⟨hg, hrest⟩ | ⟨ta, hta, hde, hrest⟩
       · rw [Bool.and_eq_true] at hg
-        exact .skip hg.1 hg.2 (ih hrest)
+        obtain rfl := hg.1
+        exact .licensed
       · exact .cert (inferTypeIO_bridge hio hta) (hd hde) (ih hrest)
     | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
     | .letE _ _ _ | .lit _ | .proj _ _ _ =>
@@ -214,16 +215,18 @@ theorem structUnitCert_bridge (hw : WhnfBridge env fuel)
     hres hplen hulen (inferTypeIO_bridge hio htb) (hw hwtb) (hd hde)
     (iotaCerts_bridge hd hio hic)
 
-/-- `etaCert` ⇒ `DefEq.eta` (`etaCert_inv`; the annotation agreement is
-the inversion's `verifiedChecks = true →` conjunct at `rfl`). -/
+/-- `etaCert` ⇒ `DefEq.eta` (`etaCert_inv`).  **Owed to task #342 L-ck**
+(the S4 sorry ledger): the rule's body-type premise (T2, the λ's opened
+body's full-grade type against the ∀'s body) is a run the checker makes
+from S0-F on; today's `etaCert` compares the binder data instead. -/
 theorem etaCert_bridge (hw : WhnfBridge env fuel)
     (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {ty body b : Expr} {mb : BinderMeta}
     (h : etaCertFueled .verified env fuel d ty body mb b = .ok true) :
     DefEq env d (.lam ty body mb) b := by
-  obtain ⟨tb, ty₂, fb, m₂, htb, hwtb, hdty, hdbody, hpw⟩ := etaCert_inv h
-  exact .eta (inferTypeIO_bridge hio htb) (hw hwtb) (hd hdty) (hd hdbody)
-    (hpw rfl)
+  obtain ⟨tb, ty₂, fb, m₂, htb, hwtb, hdty, hdbody, -⟩ := etaCert_inv h
+  exact .eta (t₁ := sorry) (inferTypeIO_bridge hio htb) (hw hwtb) (hd hdty) (hd hdbody)
+    sorry sorry
 
 /-- `stuckIrrel` ⇒ one of its four arms (`structEtaCert_bridge` twice —
 the second through `DefEq.structEtaR` —, `structUnitCert_bridge`,

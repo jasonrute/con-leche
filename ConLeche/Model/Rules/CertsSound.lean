@@ -14,9 +14,6 @@ public section
 (pointwise), at one valuation (task #342, L9).  The certificate's slot
 comparison is between two types (the argument's inferred type and the
 binder's domain), so the conditional `DefEqSem` decides it outright.
-`DefEqList` has both the conditional lemmas and the interim
-unconditional ones (`…_soundU`, for the side induction of
-`Sound.lean`).
 -/
 
 namespace ConLeche.Model.Rules
@@ -124,35 +121,16 @@ theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
     (fun x hx => hgvs x (List.mem_cons_of_mem aa hx)) hlicP'
   exact ⟨.cons hmemA hfit', hgresta⟩
 
-/-- The licensed slot: the head prefix's app slot transfers the argument. -/
-theorem Certs.skip_sound {d : Nat} {lic : Bool}
-    {ty body arg : Expr} {mb : BinderMeta} {rest : List Expr}
-    (hlic : lic = true) (hnev : mb.pw.isNever = true)
-    (hrest : CertsSem m φ d lic (body.instantiate1 arg) rest) :
-    CertsSem m φ d lic (.forallE ty body mb) (arg :: rest) := by
-  intro hfT Δa Ta fa vs hCT hTa hargs hsp
-  obtain ⟨hwty, hbty, hLbty⟩ := hfT
-  obtain ⟨-, hbodyw⟩ : Expr.WScoped d ty ∧ Expr.WScoped d body := by
-    simpa [Expr.WScoped] using hwty
-  obtain ⟨-, hbodyb⟩ :
-      ty.looseBVarsBounded 0 = true ∧ Expr.looseBVarsBounded 1 body = true := by
-    simpa [Expr.looseBVarsBounded, Bool.and_eq_true] using hbty
-  obtain ⟨doma, bodya, hdoma, hbodya, rfl⟩ := denoteMeta_forallE_inv hTa
-  cases hsp with | @cons _ aa _ vs' haa hsp' =>
-  obtain ⟨hfarg, hCarg⟩ := hargs arg List.mem_cons_self
-  obtain ⟨resta, hstep⟩ := certs_step (fa := fa) hrest hCT hargs hsp' hbodyw
-    hbodyb hLbty hbodya haa hfarg hCarg
-  refine ⟨resta, fun ρ hρ hLT hLargs hgT hgvs hlicP => hstep ρ hρ hLT hLargs hgT
-    hgvs hlicP ?_⟩
-  -- THE LICENCE: the binder's datum is `.never`, so the head prefix's
-  -- own app slot transfers the argument into the telescope's domain
-  obtain ⟨hokS, hfaM⟩ := hlicP hlic
-  have hokApp : WellDenotedV V ρ (.app fa aa) := mkAppN_head vs' hokS
-  obtain ⟨v', A', B', hslot, ha, -⟩ :=
-    ((WellDenoted_app V ρ fa aa) ▸ hokApp.1).2.2
-  have hf' := hfaM
-  rw [interp_pi] at hf'
-  exact slotTransfer (pwBit_ne_zero_of_isNever hnev φ) hf' hslot ha
+/-- **The licensed walk** (`Certs.licensed`): no certificate at all.
+
+**Owed to task #342 L18** (the S4 sorry ledger).  Under the annotated
+reading only a `.never` slot transferred its argument from the head
+prefix's app slot (`slotTransfer`); with no datum, the transfer holds
+where the application is not the point (a graph determines its domain,
+`piR_dom_unique`), so the motive needs the fragment's conditional form
+(`teleFit_of_ne_pt`). -/
+theorem Certs.licensed_sound {d : Nat} {T : Expr} {args : List Expr} :
+    CertsSem m φ d true T args := sorry
 
 /-- The certified slot: the certificate's run supplies the membership. -/
 theorem Certs.cert_sound {d : Nat} {lic : Bool}
@@ -295,34 +273,6 @@ theorem DefEqList.cons_sound {d : Nat} {a b : Expr} {as bs : List Expr}
       (fun x hx => hLb x (List.mem_cons_of_mem b hx))
       (fun x hx => hga x (List.mem_cons_of_mem va hx))
       (fun x hx => hgb x (List.mem_cons_of_mem vb hx)) p hp
-
-/-- The interim unconditional `DefEqList` (the side induction). -/
-theorem DefEqList.nil_soundU {d : Nat} : DefEqListSemU m φ d [] [] := by
-  refine ⟨rfl, ?_⟩
-  intro Δa asa bsa _ _ hsa hsb _ _ _ _ _ _
-  cases hsa
-  cases hsb
-  rfl
-
-theorem DefEqList.cons_soundU {d : Nat} {a b : Expr} {as bs : List Expr}
-    (h : DefEqSemU m φ d a b) (hs : DefEqListSemU m φ d as bs) :
-    DefEqListSemU m φ d (a :: as) (b :: bs) := by
-  refine ⟨by simp [hs.1], ?_⟩
-  intro Δa asa bsa hfa hfb hsa hsb ρ hρ hLa hLb hga hgb
-  cases hsa with | @cons _ va _ vas hva hsa' =>
-  cases hsb with | @cons _ vb _ vbs hvb hsb' =>
-  obtain ⟨hfa1, hCa1⟩ := hfa a List.mem_cons_self
-  obtain ⟨hfb1, hCb1⟩ := hfb b List.mem_cons_self
-  simp only [List.map_cons, List.cons.injEq]
-  refine ⟨h hfa1 hfb1 hCa1 hCb1 hva hvb ρ hρ (hLa a List.mem_cons_self)
-      (hLb b List.mem_cons_self) (hga va List.mem_cons_self)
-      (hgb vb List.mem_cons_self),
-    hs.2 (fun x hx => hfa x (List.mem_cons_of_mem a hx))
-      (fun x hx => hfb x (List.mem_cons_of_mem b hx)) hsa' hsb' ρ hρ
-      (fun x hx => hLa x (List.mem_cons_of_mem a hx))
-      (fun x hx => hLb x (List.mem_cons_of_mem b hx))
-      (fun x hx => hga x (List.mem_cons_of_mem va hx))
-      (fun x hx => hgb x (List.mem_cons_of_mem vb hx))⟩
 
 theorem EtaProjCerts.nil_sound {d : Nat} {T : Name} {us' : List Level}
     {targs : List Expr} {b : Expr} {lpsT : List Name} :

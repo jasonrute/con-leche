@@ -21,7 +21,7 @@ public section
 | `.lit` | `inferTypeCore_natLit_inv'` / `_strLit_inv'` | `inferTypeCoreIO_lit_eq` | `Infer.natLit` / `strLit` |
 | `.forallE` | `inferTypeCore_forall_inv` | `inferTypeCoreIO_forall_inv` | `Infer.forallE` (+ `ensureSortCore_inv`) |
 | `.lam` | `inferTypeCore_lam_inv` | `inferTypeCoreIO_lam_inv` | `Infer.lam` |
-| `.app` | `inferTypeCore_app_inv` | `inferTypeCoreIO_app_inv` | `Infer.app` / `Infer.appSkip` |
+| `.app` | `inferTypeCore_app_inv` | `inferTypeCoreIO_app_inv` | `Infer.app` |
 | `.proj` | `inferTypeCore_proj_inv` | `inferTypeCoreIO_proj_inv` | `Infer.proj` |
 | `.letE` | `inferTypeCore_letE_inv` | `inferTypeCoreIO_letE_inv` | — |
 
@@ -133,14 +133,9 @@ theorem inferTypeCoreIO_bvar_inv {d i : Nat} {t : Expr}
   rw [inferTypeCoreIO_succ] at h
   simp [inferBodyIO, throw, throwThe, MonadExceptOf.throw] at h
 
-/-- `lamPw` is `none` exactly off a λ — the shape the rule's chain
-premises are stated at, against the checker's `isLam` guard. -/
-theorem lamPw_eq_none_iff {e : Expr} : e.lamPw = none ↔ e.isLam = false := by
-  cases e <;> simp [Expr.lamPw, Expr.isLam]
-
 /-- **`inferTypeCore` at `fuel + 1`**, full grade. -/
 theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
-    (hi : InferBridge env fuel) (hio : InferIOBridge env fuel) :
+    (hi : InferBridge env fuel) :
     InferBridge env (fuel + 1) := by
   intro d e t h
   match e, h with
@@ -162,38 +157,25 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
     obtain ⟨hg, rfl⟩ := inferTypeCore_strLit_inv' h
     exact .strLit hg
   | .forallE ty body mb, h =>
-    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, hz, rfl⟩ :=
+    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ :=
       inferTypeCore_forall_inv h
     exact .forallE (hi hty) (hw hwt) (hi hbt) (hw (ensureSortCore_inv hes))
-      (hz rfl)
   | .app f a, h =>
     obtain ⟨tf, ty', body', m', htf, hwf, rfl, ta, hta, hde⟩ :=
       inferTypeCore_app_inv h
-    exact .app (hi htf) (hw hwf) (hi hta) (hd hde)
+    exact .app (hi htf) (hw hwf) (fun _ => hi hta) (fun _ => hd hde)
   | .proj sn i pe, h =>
     obtain ⟨tpe, te, T, us, entry, hpe, hwpe, hfn, hentry, hlen, hlvl, hprop,
       rfl, rfl⟩ := inferTypeCore_proj_inv h
     simp only [beq_iff_eq] at hprop
     exact .proj (hi hpe) (hw hwpe) hfn hentry hlen hlvl hprop
   | .lam ty body mb, h =>
-    obtain ⟨tty, u, bt, hty, hwt, hbt, hleaf, hchain, rfl⟩ :=
+    obtain ⟨tty, u, bt, hty, hwt, hbt, -, -, rfl⟩ :=
       inferTypeCore_lam_inv h
-    cases hlp : body.lamPw with
-    | none =>
-      obtain ⟨btt, v, hbtt, hwv, hzv⟩ := hleaf rfl (lamPw_eq_none_iff.mp hlp)
-      exact .lam (fun _ => hi hty) (fun _ => hw hwt) (hi hbt)
-        (fun pwI hp => hchain rfl pwI hp)
-        (fun _ => inferTypeIO_bridge hio hbtt) (fun _ => hw hwv)
-        (fun _ => hzv)
-    | some pwI =>
-      exact .lam (btt := bt) (v := .zero) (fun _ => hi hty) (fun _ => hw hwt)
-        (hi hbt) (fun pwI' hp => hchain rfl pwI' hp)
-        (fun hn => absurd (hlp.symm.trans hn) (by simp))
-        (fun hn => absurd (hlp.symm.trans hn) (by simp))
-        (fun hn => absurd (hlp.symm.trans hn) (by simp))
+    exact .lam (fun _ => hi hty) (fun _ => hw hwt) (hi hbt)
 
 /-- **`inferTypeCoreIO` at `fuel + 1`**, io grade. -/
-theorem inferIO_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
+theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
     (hio : InferIOBridge env fuel) :
     InferIOBridge env (fuel + 1) := by
   intro d e t h
@@ -221,36 +203,22 @@ theorem inferIO_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fue
     obtain ⟨hg, rfl⟩ := inferTypeCore_strLit_inv' h
     exact .strLit hg
   | .forallE ty body mb, h =>
-    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, hz, rfl⟩ :=
+    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ :=
       inferTypeCoreIO_forall_inv h
     exact .forallE (hio hty) (hw hwt) (hio hbt) (hw (ensureSortCore_inv hes))
-      (hz rfl)
   | .proj sn i pe, h =>
     obtain ⟨tpe, te, T, us, entry, hpe, hwpe, hfn, hentry, hlen, hlvl, hprop,
       rfl, rfl⟩ := inferTypeCoreIO_proj_inv h
     simp only [beq_iff_eq] at hprop
     exact .proj (hio hpe) (hw hwpe) hfn hentry hlen hlvl hprop
   | .app f a, h =>
-    obtain ⟨tf, ty', body', m', htf, hwf, rfl, hcert⟩ :=
+    obtain ⟨tf, ty', body', m', htf, hwf, rfl, -⟩ :=
       inferTypeCoreIO_app_inv h
-    rcases hcert with hnever | ⟨ta, hta, hde⟩
-    · exact .appSkip (hio htf) (hw hwf) hnever
-    · exact .app (hio htf) (hw hwf) (hio hta) (hd hde)
+    exact .app (ta := a) (hio htf) (hw hwf) (fun hg => nomatch hg)
+      (fun hg => nomatch hg)
   | .lam ty body mb, h =>
-    obtain ⟨bt, hbt, hleaf, hchain, rfl⟩ := inferTypeCoreIO_lam_inv h
-    cases hlp : body.lamPw with
-    | none =>
-      obtain ⟨btt, v, hbtt, hes, hzv⟩ := hleaf rfl (lamPw_eq_none_iff.mp hlp)
-      exact .lam (s := ty) (u := .zero) (fun hg => nomatch hg) (fun hg => nomatch hg)
-        (hio hbt) (fun pwI hp => hchain rfl pwI hp)
-        (fun _ => hio hbtt) (fun _ => hw (ensureSortCore_inv hes))
-        (fun _ => hzv)
-    | some pwI =>
-      exact .lam (s := ty) (u := .zero) (btt := bt) (v := .zero)
-        (fun hg => nomatch hg) (fun hg => nomatch hg)
-        (hio hbt) (fun pwI' hp => hchain rfl pwI' hp)
-        (fun hn => absurd (hlp.symm.trans hn) (by simp))
-        (fun hn => absurd (hlp.symm.trans hn) (by simp))
-        (fun hn => absurd (hlp.symm.trans hn) (by simp))
+    obtain ⟨bt, hbt, -, -, rfl⟩ := inferTypeCoreIO_lam_inv h
+    exact .lam (s := ty) (u := .zero) (fun hg => nomatch hg) (fun hg => nomatch hg)
+      (hio hbt)
 
 end ConLeche.Rules

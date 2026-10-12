@@ -20,19 +20,14 @@ public section
 
 One lemma per constructor of `Infer`, at the constructor's grade
 (`InferSem m φ g …` dispatches to the establishment motive at `.full`
-and the consumption motive at `.io`).  The application clause's
-`appSkip` is the io grade's gated arm: `io_domain_transfer` against
-the subject's own hereditary app slot.
-
-The λ rule's chain case needs the SHAPE of the body's inferred type
-(a ∀ at the inner λ's own annotation, `Infer.lam_shape`), which the master induction reads off the premise
-derivation and hands in as `hshape`.
+and the consumption motive at `.io`).  The io grade is Lean's
+`infer_only` (task #342 S4): its application runs no certificate
+(`Infer.app_soundIO`, owed to L18 with the hereditary `IORel`).
 
 The motives are per valuation (task #342, L9): the context discipline
 outside `ρ` is the structural `CtxOkS`, and the leaves' grading
 (`LeavesGr`), `Sat` and, at the io grade, the subject's grading are
-premises at the one valuation `ρ`.  These lemmas are shared by the
-interim unconditional side induction and the main one, so they take the
+premises at the one valuation `ρ`.  They take the
 conditional reduction and comparison claims (`RedSem`, `DefEqSem`),
 whose subjects here are always types: an inferred type and its weak
 head normal form, a Π's domain, a sort.  Their "not the point" premises
@@ -300,9 +295,12 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
     {ty body s bs : Expr} {u v : Level} {mb : BinderMeta}
     (hs : InferSem m φ g d ty s) (hu : RedSem m φ d s (.sort u))
     (hbs : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bs)
-    (hv : RedSem m φ (d + 1) bs (.sort v))
-    (hz : Level.zeronessOf v = mb.pw) :
+    (hv : RedSem m φ (d + 1) bs (.sort v)) :
     InferSem m φ g d (.forallE ty body mb) (.sort (.imax u v)) := by
+  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule validates
+  -- no binder datum; the annotated reading's bit law needs one, the value
+  -- reading (`piV`) none
+  have hz : Level.zeronessOf v = mb.pw := sorry
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -362,17 +360,21 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
 /-- A λ: the fibre regime fact from the leaf sort run or, at a chain node, from
 the copied annotation (`piR_zero_mem_univZero`). -/
 theorem Infer.lam_sound {g : Grade} {d : Nat}
-    {ty body s bt btt : Expr} {u v : Level} {mb : BinderMeta}
+    {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
     (hs : g = .full → InferSemFull m φ d ty s)
     (hu : g = .full → RedSem m φ d s (.sort u))
-    (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt)
-    (hshape : ∀ tyI bI mbI, body = .lam tyI bI mbI →
-      ∃ btI, bt = .forallE (tyI.instantiate1 (.fvar d ty)) btI mbI)
-    (hchain : ∀ pwI, body.lamPw = some pwI → mb.pw = pwI)
-    (hbtt : body.lamPw = none → InferSemIO m φ (d + 1) bt btt)
-    (hv : body.lamPw = none → RedSem m φ (d + 1) btt (.sort v))
-    (hz : body.lamPw = none → Level.zeronessOf v = mb.pw) :
+    (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
     InferSem m φ g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule validates
+  -- no codomain datum (the former chain premises); the annotated reading's
+  -- λ bit needs them, the value reading (`lamV`) none
+  obtain ⟨btt, v, hshape, hchain, hbtt, hv, hz⟩ : ∃ (btt : Expr) (v : Level),
+      (∀ tyI bI mbI, body = .lam tyI bI mbI →
+        ∃ btI, bt = .forallE (tyI.instantiate1 (.fvar d ty)) btI mbI) ∧
+      (∀ pwI, body.lamPw = some pwI → mb.pw = pwI) ∧
+      (body.lamPw = none → InferSemIO m φ (d + 1) bt btt) ∧
+      (body.lamPw = none → RedSem m φ (d + 1) btt (.sort v)) ∧
+      (body.lamPw = none → Level.zeronessOf v = mb.pw) := sorry
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -522,8 +524,8 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
       (fun x hx => (hrow x hx).2.2)
       (fun x hx => (hrow x hx).2.1.2) hfib).2
 
-/-- An application, the kept arm. -/
-theorem Infer.app_sound {g : Grade} {d : Nat}
+/-- An application, certified (the full grade's arm). -/
+theorem Infer.app_soundCert {g : Grade} {d : Nat}
     {f a tf ty body ta : Expr} {mt : BinderMeta}
     (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
     (hta : InferSem m φ g d a ta) (hd : DefEqSem m φ d ta ty) :
@@ -653,15 +655,20 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
   rw [interp_zeta]
   exact hmem
 
-/-- **The io licence** (the application's gated arm): the skipped
-membership from the subject's own hereditary app slot,
-`io_domain_transfer` + `piR_dom_unique` at a bit pinned positive by
-`pwBit_ne_zero_of_isNever`. -/
-theorem Infer.appSkip_sound {d : Nat}
+/-- **The io grade's application, uncertified** (Lean's `infer_only`):
+the skipped membership from the subject's own hereditary app slot,
+`io_domain_transfer` + `piR_dom_unique` at a bit pinned positive.
+
+**Owed to task #342 L18** (the S4 sorry ledger): no rule reads the
+binder's datum any more.  Under the value reading the head's graph
+regime is read off its value (a head that is not the point is a graph),
+and the claim is the hereditary `IORel` of task #346 (the fragment's
+`InferIO.app_sound`): membership fails at an io-inferred λ. -/
+theorem Infer.app_soundIO {d : Nat}
     {f a tf ty body : Expr} {mt : BinderMeta}
-    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
-    (hnev : mt.pw.isNever = true) :
+    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt)) :
     InferSemIO m φ d (.app f a) (body.instantiate1 a) := by
+  have hnev : mt.pw.isNever = true := sorry
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
   simp only [Expr.WScoped] at hws
@@ -738,6 +745,18 @@ theorem Infer.appSkip_sound {d : Nat}
     exact io_domain_transfer hw0 hfslot haslot hf'
   exact ⟨(WellDenotedTy_inst0 hoka).mpr ⟨hokBa _ ha2, hBty _ ha2⟩,
     (sound_app V hokf.1 hoka.1 hf2 ha2 hcod0 (fun _ => hAty)).2⟩
+
+/-- **An application** (`Infer.app`): the full grade's certificate, or
+the io grade's none. -/
+theorem Infer.app_sound {g : Grade} {d : Nat}
+    {f a tf ty body ta : Expr} {mt : BinderMeta}
+    (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
+    (hta : g = .full → InferSemFull m φ d a ta)
+    (hd : g = .full → DefEqSem m φ d ta ty) :
+    InferSem m φ g d (.app f a) (body.instantiate1 a) := by
+  cases g with
+  | full => exact Infer.app_soundCert htf hw (hta rfl) (hd rfl)
+  | io => exact Infer.app_soundIO htf hw
 
 /-- A projection: the tower law's typing clause. -/
 theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
