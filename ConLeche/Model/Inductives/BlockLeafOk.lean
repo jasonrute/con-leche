@@ -9,8 +9,8 @@ public section
 
 A member's former leaf (`blockTyG`: the block operator's tower, the
 index-set tuple and the carrier tuple under the parameter frame) is
-closed (`blockTyAV_below`) and, graded at the hereditary premise, valid
-under the tower (`blockTyAV_wellDenotedV`).
+closed (`blockTyAV_below`) and graded at the hereditary premise
+(`blockTyAV_wellDenotedV`).
 -/
 
 namespace ConLeche.Model
@@ -24,8 +24,6 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
 universe w'
 
 variable {V : Type w'} [SetTheory V]
-
-/-! ## The validity walk at k -/
 
 /-! ## Closedness -/
 
@@ -184,107 +182,13 @@ section Currency
 variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
   {Chs : Nat → List (List AnnotTerm)}
 
-/-- The non-dependent tuple VALUE is bit-valid, hereditarily from its
-components'. -/
-theorem ndMkTowerAV_validV {r : Nat} {Gty G : Nat → AnnotTerm} {ρ : Nat → V} :
-    ∀ (n s : Nat), (∀ i, i < s + n → AnnotValid V ρ (Gty i)) →
-      (∀ i, i < s + n → AnnotValid V ρ (G i)) →
-      AnnotValid V ρ (ndMkTowerAV r Gty G s n)
-  | 0, _, _, _ => by simp [ndMkTowerAV]
-  | n + 1, s, hGty, hG => by
-    show AnnotValid V ρ (AnnotTerm.mkAppN (.const .psigmaMk [r, r])
-      [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
-       G s, ndMkTowerAV r Gty G (s + 1) n])
-    refine mkAppN_validV (by simp) ?_
-    intro a ha
-    simp only [List.mem_cons] at ha
-    rcases ha with rfl | rfl | rfl | rfl | h
-    · exact hGty s (by omega)
-    · rw [AnnotValid_lam]
-      exact ⟨hGty s (by omega), fun x _ =>
-        ndTowerAV_annotValid V n (s + 1) 1 (cons x ρ)
-          (by rw [shiftE_succ_cons, shiftE_zero_zero]) (fun i hi => hGty i (by omega))⟩
-    · exact hG s (by omega)
-    · exact ndMkTowerAV_validV n (s + 1) (fun i hi => hGty i (by omega))
-        (fun i hi => hG i (by omega))
-    · exact nomatch h
-
-/-- **The block's carrier tuple is bit-valid** at the parameter
-frame. -/
-theorem blockBodyAV_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf ρp Idss)
-    (hIV : ∀ c, c < k → FieldsValid ρp (Idss c))
-    (hchains : ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ c, c < k →
-      ∀ t, t ∈ˢ idxSet (uf c) ρp (Idss c) →
-      SumFieldsValid (cons t (cons Y ρp))
-        (Chs c)) :
-    AnnotValid V ρp (blockBodyG k w uf Idss Chs) := by
-  unfold blockBodyG
-  refine mkAppN_validV (by simp) ?_
-  intro a ha
-  simp only [List.mem_cons] at ha
-  rcases ha with rfl | rfl | h
-  · -- the index-set tuple
-    unfold idxTupAV
-    exact ndMkTowerAV_validV k 0 (fun _ _ => trivial)
-      (fun i hi => towerBodyAV_validV (hIV i (by omega)))
-  · -- the operator
-    unfold blockFunG
-    rw [AnnotValid_lam]
-    have hfam : ∀ i, i < k → AnnotValid V ρp (famTyAV (uf i) w (Idss i)) := by
-      intro i hi
-      unfold famTyAV
-      rw [AnnotValid_pi]
-      exact ⟨towerBodyAV_validV (hIV i hi), fun _ _ => trivial,
-        fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
-    refine ⟨?_, fun Y hY => ?_⟩
-    · unfold famsTyBAV
-      exact ndTowerAV_annotValid V k 0 0 ρp (shiftE_zero_zero ρp)
-        (fun i hi => hfam i (by omega))
-    · rw [(famsTyBAV_facts (w := w) hI).1] at hY
-      have hsh1 : shiftE 1 0 (cons Y ρp) = ρp := by
-        rw [show (1 : Nat) = 0 + 1 from rfl, shiftE_succ_cons, shiftE_zero_zero]
-      refine ndMkTowerAV_validV k 0 (fun i hi => ?_) (fun i hi => ?_)
-      · rw [AnnotValid_liftN, hsh1]; exact hfam i (by omega)
-      · unfold blockArmG
-        rw [AnnotValid_lam]
-        refine ⟨by rw [AnnotValid_liftN, hsh1]; exact towerBodyAV_validV (hIV i (by omega)),
-          fun t ht => ?_⟩
-        rw [interp_liftN, hsh1, (idxTyAV_facts (hI i (by omega))).1] at ht
-        exact sumBodyAV_validV (hchains Y hY i (by omega) t ht)
-  · exact nomatch h
-
-/-- The leaf's body is bit-valid at the frame below the parameters and
-the member's index variables. -/
-theorem blockLeafBody_validV {ρp : Nat → V} (hI : BlockIdxOk (V := V) k uf ρp Idss)
-    (hIV : ∀ c, c < k → FieldsValid ρp (Idss c))
-    (hchains : ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ c, c < k →
-      ∀ t, t ∈ˢ idxSet (uf c) ρp (Idss c) →
-      SumFieldsValid (cons t (cons Y ρp))
-        (Chs c))
-    {m : Nat} (hm : m < k) {is : List V} (hsp : SpineFit ρp (Idss m) is) :
-    AnnotValid V (consList is ρp)
-      (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
-          (Idss m).length 0))
-        (mkTowerGo (uf m) (Idss m))) := by
-  have hsh : shiftE (Idss m).length 0 (consList is ρp) = ρp := by
-    rw [← hsp.length_eq]; exact shiftE_consList is ρp
-  rw [AnnotValid_app]
-  refine ⟨?_, mkTowerGo_validV (hIV m hm) (fun _ => (hI m hm).2) hsp⟩
-  refine projAV_validV ?_
-  rw [AnnotValid_liftN, hsh]
-  exact blockBodyAV_validV hI hIV hchains
-
 /-- **The block former leaf's P currency**: graded at the hereditary
-premise, valid under the tower. -/
+premise. -/
 theorem blockTyAV_wellDenotedV {m : Nat} (hm : m < k)
     {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
-    (hok : ParamsOkG k w ρ uf Idss Chs m pps)
-    (hval : UnderTowerValid ρ
-      (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
-          (Idss m).length 0))
-        (mkTowerGo (uf m) (Idss m))) pps) :
+    (hok : ParamsOkG k w ρ uf Idss Chs m pps) :
     WellDenotedV V ρ (blockTyG k w uf Idss Chs pps m) :=
-  ⟨blockTyG_wellDenoted hm hok, mkLamsC_validV (m := w + 1) hval⟩
+  blockTyG_wellDenoted hm hok
 
 end Currency
 
