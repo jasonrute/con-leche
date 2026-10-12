@@ -101149,3 +101149,107 @@ enters a context is already `WellDenotedTy` or sits in a universe
 **Gates.** `lake build`, `lake test`: no warnings. No `sorry`, no new
 axiom. The checker binary is not rebuilt (no `Kernel`/`Driver` change),
 so the arena and e2e verdicts are port-342's.
+
+## TASK #342 — L-LET: `let` in the reading, in `Denotes` and in the rules tier (2026-10-12, agent/342-l-let)
+
+Lane L-let, stage S2 of the revised port (`_tmp/342v2-design.md` §11.3,
+with the rulings of §11.x: no let-variables, substitution as nanoda
+does, a `let` rule in `Denotes`, lets stored as Lean has them; R-C
+revised: the io grade does not check the value).  Template: F4 on
+`frag-342`.  It lands under the annotated reading: the annotate pass
+still ζ-reduces, so the checker stores no `let` and its `letE` arms stay
+positive errors until S4's L-ck.  No checker code changed.
+
+**The statement.**  `Denotes` gets one rule, type ignored, no side
+condition:
+
+```lean
+  /-- a `let` denotes its body at its value; the type is not read -/
+  | letE {ρ : BVarIdx → V} {ty v body : Expr} {Y X : V}
+      (hv : Denotes cval env φ ρ v Y) (hb : Denotes cval env φ (push Y ρ) body X) :
+      Denotes cval env φ ρ (.letE ty v body) X
+```
+
+and its case in `Denotes_functional`.  The module docstring's "the
+annotation pass has replaced every `let`" became the rule.
+`MainTheorem`/`Challenge` text unchanged; `tests/challenge.sh` green;
+the `#print axioms` pins unchanged.
+
+**The reading.**
+- `Term` and `AnnotTerm` gain a type-free `letE v b` (body under one
+  binder), as `eqE` carries no type: nothing reads a `let`'s type.
+- `interp ρ (letE v b) = interp (cons ⟦v⟧ρ ρ) b`; `WellDenoted` and
+  `AnnotValid`: the value at ρ, the body at `cons ⟦v⟧ ρ`.
+- `interp_zeta` (every ρ, the point included), `WellDenoted_zeta`,
+  `WellDenotedV_zeta`, `WellDenotedV.letE_val`.
+- `denote`/`denoteMeta` read a stored `letE ty v b` as the former, the
+  body opened at `fvar d ty` as a binder's.  `denoteMeta` also asks the
+  type to read and drops it (deviation, below).
+- `Denotes_of_denoteMeta` (the bridge) gets the `letE` case.
+
+**Rules and soundness** (`Rules/Rel.lean`, `Model/Rules/*`).
+- `Red.zeta : Red env d (.letE ty v body) (body.instantiate1 v)`, no
+  premise.  `Red.zeta_sound` is unconditional (`interp_zeta`).
+- `Infer.letE` at both grades, the full-grade checks behind
+  `g = .full →` as `Infer.lam` does: the type's type reduces to a sort,
+  the value's full-grade type `DefEq` the type; the body at its value at
+  the grade.  `Infer.letE_sound` takes only the value's full-grade claim
+  (behind `g = .full →`) and the body's claim: at the full grade the
+  establishment motive concludes the subject's grading, and the value's
+  grading comes from its own inference; at the io grade it comes from
+  the subject's.  The type's sort and the comparison are not consumed.
+- Wired into `red_sound`/`infer_sound`.  `zeta_syntax` and
+  `letE_val_frame` (`RedSoundKit`) are the shared syntactic side.
+
+**Hygiene.**  `Expr` already carried `letE` in every scope operation;
+the work was the two term languages and the readings: `letE` cases in
+the lift/inst/substAV/erase/closedness lemmas, every `denoteMeta.induct`
+proof (level instantiation, φ-congruence, acval agreement, env
+extension and swap, depth shift, `substFvarAt`/`substFvars`, renaming,
+the leaf-free lift, hole and nest walks, `targetAbs`/open-deepen
+readers), and `ReadsAt` (which now reads a `let`'s three parts),
+`StoredShapes`' `nestOcc` reader, `constsBound_of_read`,
+`infer_bvarClosed_of_full` (with a general
+`looseBVarsBounded_of_instantiate1`).  55 files, +817 −121 against
+`port-342`.
+
+**Deviations.**
+1. `AnnotTerm.letE` carries no type (the design said "a `let` node").
+   `denoteMeta` still asks the type to read: `constsBound_of_read`
+   (a read term names only stored constants; used in `BlockPosRun` and
+   on a stored type in `GenFrameTie`) and the fvar-type heredity of
+   `ConstsBound` need the type's constants, and the body is opened at
+   `fvar d ty`.  `denote` (the erasure target) does not ask it, which
+   `denoteMeta_erase` allows.
+2. The installer's telescope peels are not changed (see L-ck below).
+3. One `Infer.letE` rule with grade-guarded premises, not two rules.
+
+**Tests.**  `tests/ConLecheTests/LetDenotes.lean`: the rule, a `let`
+whose type denotes nothing still denotes, uniqueness, ζ in the reading.
+
+**Gates** (the integration-branch subset).  `lake build` and `lake
+test` warning-free; arena tutorial 90/92 and e2e 470/470 (one parallel
+run; no checker change); `tests/challenge.sh` green; no `sorry`, no new
+axiom.  `overview-links.sh` deferred: the `Denotes.lean` anchors moved
+(the rule adds lines above `Model`) and OVERVIEW §1/§4 gained a
+sentence each.
+
+**For L-ck (S4).**
+- `whnfCore`'s `.letE` arm (S0: `inst1M b v`) bridges to `Red.zeta`;
+  `infer`/`inferIO`'s `.letE` arms bridge to `Infer.letE`: full grade =
+  infer `ty`, ensure sort, infer `v` at the full grade, `isDefEq tv ty`,
+  then the body at its value at the same grade; io grade = the body
+  only.  The `Verify/Rules` inversions need the `letE` arm; nothing in
+  the model changes.
+- The installer peels syntactically (`stripPis`, `piBinders`,
+  `instPisWith`, `openPisParamsIdx`: `BlockInstall(F)`, `SumInstall(F)`,
+  `StructParts`, `BlockParts`, `RecCheck`, `Positivity`, `GenRec`,
+  `ClassRead`).  Once stored constructor types keep their `let`s, a
+  `let` on a telescope's spine stops those peels: a decline, not an
+  unsound accept.  Matching official means ζ at the peels — `whnf` at
+  each binder as `whnfTelescope` already does (the model side is then
+  `red_whnf` with `Red.zeta`), or a spine ζ-normalisation before the
+  peels (its model side: `zeta_syntax` + `WellDenotedV_zeta` per step).
+  Lets inside field domains already reach the readers (`nestOcc`,
+  `ReadsAt`, `targetAbs`), which now read all three parts.
+- `StreamConsts`' "up to ζ" disjunct goes with the annotate pass.
