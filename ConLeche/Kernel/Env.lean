@@ -87,14 +87,14 @@ structure ConstantVal where
 /-- How a stored recursor rule fires (install-computed; parse
 placeholder `.plain`).  The official kernel fires a rule by constructor
 name and field count and compares nothing; the fire here compares what
-the rule's law (`RecRuleLaw`) is stated at, in the same case split for
-both modes: the levels always; the parameters (and the indices) only at
-a case-3 redex (`iotaCase3`: not K, and the family may be `Prop` at the
-constructor's levels).  There the constructor application may be the
-point, and at a `Prop` valuation nothing else ties the constructor's
-parameters to the comparands; elsewhere the major's membership in the
-family at the comparands ties its fields, and the law reads nothing
-else of the constructor's parameters.
+the rule's law (`RecRuleLaw`) is stated at, and only at a case-3 redex
+(`iotaCase3`: not K, and the family may be `Prop` at the comparand
+levels): the levels, the parameters and the indices.  There the
+constructor application may be the point, and at a `Prop` valuation
+nothing else ties the constructor's levels and parameters to the
+comparands; elsewhere the major's membership in the family at the
+comparands ties its fields, and the law reads nothing else of the
+constructor's levels or parameters.
 
 * `.plain` — the installer's rule at a member major: the comparands
   are the recursor's own instantiation and leading arguments (the

@@ -232,8 +232,7 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     (h : iotaRecFueled .verified env fuel d e = .ok (some e'')) :
     Red env d e e'' := by
   obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP, cnF, rl,
-    hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hlev, hpeq,
-    h3, rfl⟩ := iotaRec_inv h
+    hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
     prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
   -- the licensed recursor spine's arity: the checker's test on the
@@ -242,24 +241,26 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
       (cv.type.instantiateLevelParams cv.levelParams us)).isSome = true := by
     rw [hlen]
     exact peelPis_isSome_instantiateLevelParams _ _ _ (iotaRec_arity h hfn hfc)
-  by_cases hne : mI = rP
-  · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-      hlev (fun hc => defEqList_bridge hd (hpeq hc))
-      harity
-      (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
-      (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
-  · by_cases hc3 : iotaCase3 env.find? rl cvj usj = true
-    · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv (h3 hc3).2 hne
-      exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-        hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        harity
-        (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
-        (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
+  by_cases hc3 : iotaCase3 env.find? rl cvj
+      (recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1 = true
+  · obtain ⟨hlev, hpeq, hcerts, hidx⟩ := h3 hc3
+    by_cases hne : mI = rP
     · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-        hlev (fun hc => defEqList_bridge hd (hpeq hc))
+        (fun _ => hlev) (fun _ => defEqList_bridge hd hpeq)
         harity
-        (fun hc => absurd hc hc3)
-        (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
+        (fun _ => iotaCertsFull_bridge hd hi hcerts)
+        (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
+    · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv hidx hne
+      exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
+        (fun _ => hlev) (fun _ => defEqList_bridge hd hpeq)
+        harity
+        (fun _ => iotaCertsFull_bridge hd hi hcerts)
+        (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
+  · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
+      (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
+      harity
+      (fun hc => absurd hc hc3)
+      (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
 
 /-- A firing projection rule (`reduceProjCore`) is a `Red` chain: the
 string-literal expansion, then `Red.proj` under its certificate. -/

@@ -71,32 +71,37 @@ def capsNeverZero (lps : List Name) (us : List Level) (caps : IndCaps) :
 
 /-- **The ι licence's case test** (task #342 L10, the licence of task
 #349's prototype): is the constructor's family never `Prop` at the
-constructor's levels?  Then (case 2) the ι step fires with no
-constructor certificate and no index comparison: the family's fibres
-are strict there, so the major is not the point and its reduction is
-an equation, and the constructor application, not being the point
-either, fits its telescope.  Read off the family's recorded sort
-zero-ness (`IndCaps.sortZ`, recorded for every block member and for
-the pinned `Nat`, `Empty` and `Quot`). -/
+level instantiation `us`?  The ι step asks it at the rule's comparand
+levels (`recFireComparands`: the recursor's own instantiation, or a
+nested rule's stored one), not at the constructor's, which it does not
+compare there.  Then (case 2) the ι step fires with no check of the
+constructor application: the family's fibres at the recursor's major
+domain are strict, so the major is not the point and its reduction is
+an equation, and the constructor application, being the major's value
+and not the point, is an injection of fields that fit the family's
+constructor there.  Read off the family's recorded sort zero-ness
+(`IndCaps.sortZ`, recorded for every block member and for the pinned
+`Nat`, `Empty` and `Quot`). -/
 def iotaCtorLicensed (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
-    (usj : List Level) : Bool :=
+    (us : List Level) : Bool :=
   match (cvj.type.piResult).getAppFn with
   | .const T _ =>
     match find? T with
     | some (.indInfo cvT caps) =>
-      cvT.levelParams.length == usj.length && capsNeverZero cvT.levelParams usj caps
+      cvT.levelParams.length == us.length && capsNeverZero cvT.levelParams us caps
     | _ => false
   | _ => false
 
-/-- **Case 3 of the ι licence** (task #342 L10): a rule that is not K
-whose constructor's family may be `Prop` at the constructor's levels.
-There the constructor telescope is certified at the full grade, and the
-parameters and the indices are compared (task #342 L7's counterexample:
-at a `Prop` valuation nothing else ties the two parameter spines), for
-a `.plain` and a `.nested` rule alike (task #342 S5b). -/
+/-- **Case 3 of the ι licence** (task #342 L10, S5c): a rule that is not
+K whose constructor's family may be `Prop` at the comparand levels `us`.
+There the constructor's levels and parameters are compared with the
+comparands, the constructor telescope is certified at the full grade,
+and the indices are compared (task #342 L7's counterexample: at a
+`Prop` valuation nothing else ties the two spines), for a `.plain` and
+a `.nested` rule alike. -/
 def iotaCase3 (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
-    (usj : List Level) : Bool :=
-  !rl.k && !iotaCtorLicensed find? cvj usj
+    (us : List Level) : Bool :=
+  !rl.k && !iotaCtorLicensed find? cvj us
 
 /-- Unfold the (application of a) definition at the head, one step.
 `none` when the head is not an unfoldable constant.  **Theorems are

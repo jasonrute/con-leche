@@ -163,20 +163,40 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
       exact hfcj
     obtain ⟨harity, hnk⟩ := hCtor cvj cnP cnF hfcjE
     refine ⟨harity, ?_⟩
-    intro hk usj husj heq TVja hTVja
-    obtain ⟨TVja', hTVja', -, -⟩ :=
-      mp.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
-    obtain rfl : TVja' = TVja := by
-      refine Option.some.inj (Eq.trans ?_ hTVja)
+    intro hk
+    -- a constructor type's reading at the cons is the prefix's
+    have hTVjaOf : ∀ usj : List Level, usj.length = cvj.levelParams.length →
+        ∀ TVja : ITerm, denoteMeta m₂.acval ⟨c₀ :: env.consts⟩ φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
+        denoteMeta mp.base2.acval env φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
+      intro usj husj TVja hTVja
+      obtain ⟨TVja', hTVja', -, -⟩ :=
+        mp.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
+      obtain rfl : TVja' = TVja := by
+        refine Option.some.inj (Eq.trans ?_ hTVja)
+        rw [hac]
+        exact (denoteMeta_cons_mono hfresh
+          ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
+          (constsBound_instType mp.base2.wf
+            (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm
+      exact hTVja'
+    have hTVjaTo : ∀ usj : List Level, ∀ TVja : ITerm,
+        denoteMeta mp.base2.acval env φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
+        denoteMeta m₂.acval ⟨c₀ :: env.consts⟩ φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
+      intro usj TVja hTVja
       rw [hac]
-      exact (denoteMeta_cons_mono hfresh
+      exact denoteMeta_cons_mono hfresh
         ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm
-    obtain ⟨hS, hP, hU⟩ := hnk hk usj husj heq TVja' hTVja'
-    refine ⟨?_, ?_, ?_⟩
-    · intro hlic ρ xs a restR hxl hfit
-      refine hS ?_ ρ xs a restR hxl hfit
+          (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja
+    -- (S)/(T)'s `iotaCtorLicensed` guard is the prefix's
+    have hlicE : ∀ lvs : List Level,
+        ConLeche.iotaCtorLicensed (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj lvs
+          = ConLeche.iotaCtorLicensed env.find? cvj lvs := by
+      intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
         mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
@@ -184,7 +204,23 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           (env.find? T).isSome = true :=
         fun T us' heq' =>
           ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
-      rwa [iotaCtorLicensed_cons_of_isSome hfresh hTiso] at hlic
+      exact iotaCtorLicensed_cons_of_isSome hfresh hTiso
+    obtain ⟨hS, hT, hPU⟩ := hnk hk
+    refine ⟨fun hlic => hS (by rwa [hlicE] at hlic), ?_, ?_⟩
+    · intro hlic usj husj TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
+      rw [hlicE] at hlic
+      have hTVja0 := hTVjaOf usj husj TVja hTVja
+      rw [hac, acvalWith_ne hnC] at hfitR hne
+      obtain ⟨usj', ys', TVja', restC', h1, h2, h3, h4, h5, h6, h7, h8⟩ :=
+        hT hlic usj husj TVja hTVja0 ρ xs ys restR restC hxl hyl
+          hfitR hfitC hxwd hywd hne
+      refine ⟨usj', ys', TVja', restC', h1, h2, hTVjaTo usj' TVja' h3, h4, h5, h6, h7, ?_⟩
+      rw [hac, acvalWith_ne hnC]
+      exact h8
+    intro usj husj heq TVja hTVja
+    have hTVja' := hTVjaOf usj husj TVja hTVja
+    obtain ⟨hP, hU⟩ := hPU usj husj heq TVja hTVja'
+    refine ⟨?_, ?_⟩
     · intro ρ xs a restR hxl hfit hapt ys restC hfitC
       rw [hac, acvalWith_ne hnC]
       exact hP ρ xs a restR hxl hfit hapt ys restC hfitC

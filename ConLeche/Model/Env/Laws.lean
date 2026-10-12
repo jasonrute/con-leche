@@ -413,8 +413,7 @@ theorem indStrictHead_of {acval : Name → (Name → Nat) → ITerm} {env : Env}
 
 /-! ## The fired modeled-iota contract (task #161, iota tier)
 
-The stored recursors' fired rules at the validated-annotation
-currency:
+The stored recursors' fired rules, at the stored terms' reading:
 
 * **The law is `ITerm`-indexed**: the truthfulness transport is
   inherently about the applied reduct's *reading* (the ι step must
@@ -433,7 +432,9 @@ currency:
   constructor application is not the point, the major's membership in
   the family at the comparands ties its fields; where it is the point,
   the index pin is the only premise (`RecRuleExtra`'s (U) derives it
-  from the step's case-3 comparisons).  The `.nested` pins' grading
+  from the step's case-3 comparisons).  It does take the level
+  equation; the ι step has it at case 3, and at case 2 reads the fired
+  application at the comparand levels first (`RecRuleExtra`'s (T)).  The `.nested` pins' grading
   clause quantifies the pin's own open reading (`denoteMeta` at depth
   `rP`), at the reading substituted along the argument prefix —
   `ITerm.instRevChain`.
@@ -451,7 +452,7 @@ mathematics lives (a `Prop`-valued motive's minors at the squash
 regime).  **Consumer**: the ι rule's soundness (`Red.iota_sound`,
 `Model/Rules/IotaSound.lean`). -/
 
-/-- **The annotated telescope fit** (substitution-peeling): each argument reading inhabits its
+/-- **The telescope fit of readings** (substitution-peeling): each argument reading inhabits its
 progressively-substituted domain, one ambient environment, the
 residual an `ITerm` at that environment. -/
 inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
@@ -482,7 +483,7 @@ theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
       obtain ⟨mid, hm⟩ := ih n
       exact ⟨mid, TeleFitPA.cons hmem hm⟩
 
-/-- The annotated reverse-opening substitution chain (outermost
+/-- The reverse-opening substitution chain of readings (outermost
 argument consumed first, each at cut `0`, lifted past the arguments
 still to come). -/
 @[expose] def _root_.ConLeche.Model.ITerm.instRevChain :
@@ -517,13 +518,13 @@ conditional claims. -/
       interp V ρ (cargsa.getD (cnP + i) default)
         = interp V ρ (xs.getD (rP + i) default)
 
-/-- **The ι licence's environment facts, one rule** (task #342 L10).
-`RecRuleLaw`'s main clause takes the parameter and index comparisons
-as equations; under the conditional claims the ι step has them only
-where neither side is the point, and at a K rule or a family that is
-never `Prop` at the constructor's levels it runs no constructor
-certificate and no index comparison.  What the step consumes instead,
-at its own levels:
+/-- **The ι licence's environment facts, one rule** (task #342 L10, S5c).
+`RecRuleLaw`'s main clause takes the levels, parameters and index
+comparisons as equations; under the conditional claims the ι step has
+them only where neither side is the point, and at a K rule or a family
+that is never `Prop` at the comparand levels it runs no check of the
+constructor application at all.  What the step consumes instead, at the
+recursor's levels:
 
 * **K** (`RecRule.k`): the rule's law at the recursor's own
   parameters, for any major value in the major's domain (#349's
@@ -532,17 +533,27 @@ at its own levels:
 * **the constructor's arity**: its stored type binds the spine
   syntactically, so a graded application of it that is not the point
   fits its telescope;
-* **(S) case 2**: where the family is never `Prop` at the
-  constructor's levels (`iotaCtorLicensed`, the checker's test), the
-  recursor's major domain holds no point;
+* **(S) case 2**: where the family is never `Prop` at the comparand
+  levels (`iotaCtorLicensed`, the checker's test), the recursor's major
+  domain holds no point;
+* **(T) case 2, the constructor's levels**: there a fired application
+  that is not the point, at the constructor's own levels and spine, is
+  also an application of the constructor at the comparand levels, to a
+  graded spine with the same fields that fits its telescope there —
+  the major's membership in the family at the comparands ties the
+  injection's fields (the same argument as for the parameters), so the
+  main law applies at the comparand levels;
 * **(P) the slot at the point**: where the major domain holds the
   point, every fitting constructor application is the point (the
   family is `Prop` there; F3/F2's slot law);
 * **(U) coherence**: at a fired spine where the constructor application
-  is the point (case 3, where the step compares the parameters with the
-  rule's comparands and the indices), the conditional index comparison
-  is an equation (L7's `blockRule_coherent`, read off the parameters'
-  conditional comparison). -/
+  is the point (case 3, where the step compares the levels and
+  parameters with the rule's comparands and the indices), the
+  conditional index comparison is an equation (L7's
+  `blockRule_coherent`, read off the parameters' conditional
+  comparison).
+
+(P) and (U) are read only at case 3, so they take the level equation. -/
 @[expose] def RecRuleExtra {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
     (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
@@ -569,6 +580,44 @@ at its own levels:
     -- the constructor's arity
     (cvj.type.stripPis (RecRule.ctorParams rl + RecRule.nfields rl)).isSome = true ∧
     (RecRule.k rl = false →
+    -- (S)
+    (ConLeche.iotaCtorLicensed env.find? cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
+      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
+        xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+        interp V ρ a ≠ pt) ∧
+    -- (T)
+    (ConLeche.iotaCtorLicensed env.find? cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
+      ∀ (usj : List Level), usj.length = cvj.levelParams.length →
+      ∀ TVja : ITerm,
+        denoteMeta m.acval env φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
+      ∀ (ρ : Nat → V) (xs ys : List ITerm) (restR restC : ITerm),
+        xs.length = mI →
+        ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
+        TeleFitPA V ρ TVa
+          (xs ++ [ITerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys]) restR →
+        TeleFitPA V ρ TVja ys restC →
+        (∀ x ∈ xs, WellDenoted V ρ x) → (∀ y ∈ ys, WellDenoted V ρ y) →
+        interp V ρ (ITerm.mkAppN
+          (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) ≠ pt →
+        ∃ (usj' : List Level) (ys' : List ITerm) (TVja' restC' : ITerm),
+          usj'.length = cvj.levelParams.length ∧
+          Level.substFn φ cvj.levelParams usj'
+            = Level.substFn φ cvj.levelParams
+                (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 ∧
+          denoteMeta m.acval env φ 0
+            (cvj.type.instantiateLevelParams cvj.levelParams usj') = some TVja' ∧
+          ys'.length = ys.length ∧
+          ys'.drop (RecRule.ctorParams rl) = ys.drop (RecRule.ctorParams rl) ∧
+          (∀ y ∈ ys', WellDenoted V ρ y) ∧
+          TeleFitPA V ρ TVja' ys' restC' ∧
+          interp V ρ (ITerm.mkAppN
+              (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj')) ys')
+            = interp V ρ (ITerm.mkAppN
+              (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys)) ∧
     ∀ (usj : List Level), usj.length = cvj.levelParams.length →
       Level.substFn φ cvj.levelParams usj
         = Level.substFn φ cvj.levelParams
@@ -576,11 +625,6 @@ at its own levels:
     ∀ TVja : ITerm,
       denoteMeta m.acval env φ 0
         (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
-    -- (S)
-    (ConLeche.iotaCtorLicensed env.find? cvj usj = true →
-      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
-        xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
-        interp V ρ a ≠ pt) ∧
     -- (P)
     (∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
