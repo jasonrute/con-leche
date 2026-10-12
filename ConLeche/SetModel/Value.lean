@@ -364,6 +364,13 @@ value is a member of the family space for EVERY functor. -/
 /-- `I → Sort w`, the family space. -/
 noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piR (w + 1) I fun _ => univ w
 
+/-- The family space is strict: its members are graphs, never the
+point (task #342, L6). -/
+theorem strict_lfpFamSpace (w : Nat) (I : V) : Strict (lfpFamSpace V w I) := by
+  have h := Fib_piR (w + 1) I fun _ => (univ w : V)
+  simp only [Nat.add_one_ne_zero, decide_false, Fib_false] at h
+  exact h
+
 /-- `(I → Sort w) → (I → Sort w)`, the functor space. -/
 noncomputable def lfpFamFunSpace (u w : Nat) (I : V) : V :=
   piR (Nat.max u (w + 1)) (lfpFamSpace V w I) fun _ => lfpFamSpace V w I
@@ -420,6 +427,16 @@ theorem ndTowerSet_mem_univ {r : Nat} {F : Nat → V} :
     have h := sigma_mem_univ (u := r) (v := r) (hF s (by omega))
       (fun _ _ => ndTowerSet_mem_univ n (s + 1) fun m hm => hF m (by omega))
     rwa [show Nat.max r r = r from Nat.max_self r] at h
+
+/-- **Regime** of the non-dependent tower: a truth value at `0`, strict
+above (task #342, L6). -/
+theorem Fib_ndTowerSet (r : Nat) (F : Nat → V) :
+    ∀ (s n : Nat), Fib (decide (r = 0)) (ndTowerSet V r F s n)
+  | _, 0 => Fib_unitSetAt r
+  | s, _ + 1 => Fib_sigmaSet r (F s) _
+
+theorem IsTy_ndTowerSet (r : Nat) (F : Nat → V) (s n : Nat) : IsTy (ndTowerSet V r F s n) :=
+  IsTy_of_Fib (Fib_ndTowerSet V r F s n)
 
 /-- **Intro**: a tuple whose components sit in the tower's components
 is a member (graph regime — the towers here are always at a positive
