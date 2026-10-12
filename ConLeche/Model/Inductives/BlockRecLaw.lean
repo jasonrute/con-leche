@@ -489,7 +489,9 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
                   cv.levelParams us)) = some vpa →
               interp V ρ (ys.getD i default)
                 = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) →
-          IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs →
+          (interp V ρ (AnnotTerm.mkAppN
+              (m₃.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+            IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
           denoteMeta m₃.acval env φ 0
               (cv.type.instantiateLevelParams cv.levelParams us) = some TVa →
           denoteMeta m₃.acval env φ 0
@@ -528,7 +530,7 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
   intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl hψ
     hcmpP hcmpN hidx hTVa hTVja hfitR hfitC
   obtain ⟨hdata, hok⟩ := hspine cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC
-    hxl hyl hujl hψ hcmpP hcmpN (hidx sorry) hTVa hTVja hfitR hfitC
+    hxl hyl hujl hψ hcmpP hcmpN hidx hTVa hTVja hfitR hfitC
   refine ⟨?_, hok⟩
   rw [hleaf]
   rcases hdata with hdata | ⟨hL, hR⟩

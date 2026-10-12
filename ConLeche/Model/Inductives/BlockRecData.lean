@@ -1070,8 +1070,10 @@ abbrev BlockRuleFire (m₃ : EnvModel V (ConLeche.consBlockRecsR R p.toBlockShap
         interp V ρ (ys.getD q default)
           = interp V ρ (AnnotTerm.instRevChain
               (xs.take (p.toBlockShape.rulePrefixAt j)) vpa)) →
-    IotaIndexPin (V := V) ρ restC (ConLeche.RecRule.ctorParams rl)
-      (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) xs →
+    (interp V ρ (AnnotTerm.mkAppN (m₃.acval (ConLeche.RecRule.ctor rl)
+        (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+      IotaIndexPin (V := V) ρ restC (ConLeche.RecRule.ctorParams rl)
+        (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) xs) →
     denoteMeta m₃.acval (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) φ 0
         (r.1.type.instantiateLevelParams r.1.levelParams us) = some TVa →
     denoteMeta m₃.acval (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) φ 0
@@ -2055,8 +2057,10 @@ body must unfold outside this module. -/
             interp V ρ (ys.getD q default)
               = interp V ρ (AnnotTerm.instRevChain
                   (xs.take (p.toBlockShape.rulePrefixAt j)) vpa)) →
-        IotaIndexPin (V := V) ρ restC nP
-          (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) xs →
+        (interp V ρ (AnnotTerm.mkAppN
+            (mpC.base2.acval cA.1.name (Level.substFn φ cA.1.levelParams usj)) ys) = pt →
+          IotaIndexPin (V := V) ρ restC nP
+            (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) xs) →
         TeleFitPA V ρ
           (blockRecTyAV mpC.base2.acval envC rs (Level.substFn φ r.1.levelParams us) j)
           (xs ++ [AnnotTerm.mkAppN
@@ -2235,7 +2239,7 @@ theorem blockRuleRhsOk_base {envC : Env} (hμ : μ.verifiedChecks = true)
     rw [← denoteMeta_instLevels (acvalParamsAt_of_core m₃) (ks := r.1.levelParams) (us := us) φ]
     exact hreadR φ us
   unfold BlockRuleBase
-  rw [hstored] at hfitR ⊢
+  rw [hstored] at hfitR hidx ⊢
   rw [hnp] at hyl hidx ⊢
   rw [hnf] at hyl
   rw [hac] at hreadRa hokR ⊢

@@ -1044,7 +1044,11 @@ theorem genRows3_mem (hμ : μ.verifiedChecks = true)
   have hpinW : d.w ψ = 0 →
       ((d.Ess t ψ).getD i []).map
         (interp V (consList ((ys.drop d.nP).map (interp V ρ))
-          (consList ((ys.take d.nP).map (interp V ρ)) ρ))) = ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) := fun _ => by
+          (consList ((ys.take d.nP).map (interp V ρ)) ρ))) = ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) := fun hw0 => by
+    have hguard : interp V ρ (AnnotTerm.mkAppN
+        (mpC.base2.acval cA.1.name (Level.substFn φ cA.1.levelParams usj)) ys) = pt := by
+      rw [blockCtorMajor_value hM hcj hfindC hmN hlv hqs hfq]
+      exact hM.mkZero ψ hw0 _ _ _
     have hrPle := blockRecHrPle (p := pp) h hj
     have hEssD : (d.Ess t ψ).getD i [] = d.esF t i ψ := essOfR_fixCtorDataList_getD hcj
     have hnI : (d.esF t i ψ).length
@@ -1053,7 +1057,7 @@ theorem genRows3_mem (hμ : μ.verifiedChecks = true)
       rw [List.length_map, hEssD] at hq
       rw [hq, ← hsp'.length_eq, List.length_map, List.length_drop, hxl]
     exact blockRuleIdxPin_run hcj hcf hlv (by rw [hyl, hdnP]) hxl hrPle hnI (hctorRead _) hfitC
-      (by rw [hdnP]; exact hpinC)
+      (by rw [hdnP]; exact hpinC hguard)
   -- the counting guard, for the `Prop` arm
   have hct1 : d.w ψ = 0 → (d.ctorsM t).length ≤ 1 := fun hw0 => by
     rw [hwd] at hw0
