@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Env.EnvModelM
+public import ConLeche.Model.Reading.ConsCross
 import ConLeche.Verify.Inductives.ReplaceApps
 
 public section
@@ -9,7 +9,7 @@ public section
 /-!
 # The canonical constructor crest (M2)
 
-`LfpCtorReads` (`Model/Annot/EnvModelM.lean`) records the readings of a
+`LfpCtorReads` (`Model/Env/EnvModelM.lean`) records the readings of a
 stored constructor type's canonical abstraction (`nestCanonCrest`: its
 whole member applications abstracted at the canonical holes, its
 parameters instantiated at the canonical variables) and of the members'

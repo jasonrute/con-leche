@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Model.Annot.BlockLfpTup
+import ConLeche.Model.Env.BlockLfpTup
 import ConLeche.Semantics.Hoist
 public import ConLeche.Model.Inductives.BlockStageCtors
 import ConLeche.Model.Rules.Inputs
@@ -14,10 +14,10 @@ import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Semantics.Kit
 import ConLeche.Semantics.Tower.SumTower
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Inductives.BlockCtorReads
-import ConLeche.Model.Annot.CanonCrest
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.CanonCrest
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.NatEqs
 
 public section

@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Verify.StdAxiomPin
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 import ConLeche.Model.NatEqs
 import ConLeche.Verify.OfReducePin
 

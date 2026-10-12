@@ -1,9 +1,9 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-import ConLeche.Model.Annot.BlockLfpTup
+public import ConLeche.Model.Env.EnvModelM
+import ConLeche.Model.Env.BlockLfpTup
 import ConLeche.Model.NatEqs
-import ConLeche.Model.Annot.Bit
+import ConLeche.Model.Reading.DenoteMeta
 
 public section
 

@@ -17,7 +17,7 @@ import ConLeche.Model.Inductives.BlockRecPreHpre
 import ConLeche.Model.Levels
 import ConLeche.Verify.Level
 import ConLeche.Verify.Subst
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Inductives.BlockRuleParams
 import ConLeche.Model.Inductives.NestPosOut
 import ConLeche.Verify.Inductives.NestCallSyn

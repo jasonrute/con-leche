@@ -2,8 +2,8 @@ module
 
 public import ConLeche.Model.Inductives.TargetNodeTie
 import ConLeche.Model.Inductives.TargetCallLand
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Semantics.Tower.TowerKit

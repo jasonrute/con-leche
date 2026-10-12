@@ -702,7 +702,7 @@
    323    refine ⟨haA, ?_, (WellDenoted_inst0 V ha).mpr (hbody _ haA)⟩
    324    rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
-== ConLeche/Model/Annot/EnvModel.lean#L38-L67
+== ConLeche/Model/Env/EnvModel.lean#L38-L67
     38  structure EnvModel (env : Env) where
     39    /-- the shared, model-free environment well-formedness -/
     40    wf : EnvWF env

@@ -129,7 +129,7 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.GenRecStage', 'ConLeche.Verify.Inductives.GenRecRun'),
     ('ConLeche.Model.Inductives.GenRecStage', 'ConLeche.Verify.Inductives.RecStage'),
     ('ConLeche.Model.Inductives.GenRecStage', 'ConLeche.Verify.Inductives.ClassGenScope'),
-    ('ConLeche.Model.Inductives.GenRecStage', 'ConLeche.Verify.Inductives.ClassGenAnnot'),
+    ('ConLeche.Model.Inductives.GenRecStage', 'ConLeche.Verify.Inductives.ClassGenSyntax'),
     # lane LIBMERGE (the block library merged into fewer modules): four
     # re-exports the model calls demotable, each MEASURED by demoting it
     # alone.  `BlockRecTower`'s public statements name `dnegSpace`,
@@ -191,7 +191,7 @@ FALLBACK = {
     # `NestCallRun` loses `FEnv` (`:42`, `RecCheckRun`).
     ('ConLeche.Model.Inductives.TargetCallEntry', 'ConLeche.Model.Inductives.TargetNodeRb'),
     ('ConLeche.Model.Inductives.TargetCallEntry', 'ConLeche.Verify.Inductives.RecCheckRun'),
-    ('ConLeche.Model.Inductives.TargetCallRead', 'ConLeche.Model.Annot.BitSubstFvars'),
+    ('ConLeche.Model.Inductives.TargetCallRead', 'ConLeche.Model.Reading.SubstFvars'),
     ('ConLeche.Model.Inductives.TargetCallRead', 'ConLeche.Model.Inductives.NestPosMono'),
     ('ConLeche.Model.Inductives.TargetCallRead', 'ConLeche.Model.Inductives.TargetNodeRead'),
     ('ConLeche.Verify.Inductives.NestCallRun', 'ConLeche.Verify.Inductives.RecCheckRun'),
@@ -312,11 +312,11 @@ FALLBACK = {
     # lane GENREC-PORT: the generator's syntax modules, each MEASURED by
     # demoting it alone.  `ClassGenScope`'s `@[expose] def ScB` names
     # `WScoped` (`Unknown identifier WScoped`, `ClassGenScope.lean:57`);
-    # `ClassGenAnnot`'s statements name `closeTelescope` (`:166`) and
+    # `ClassGenSyntax`'s statements name `closeTelescope` (`:166`) and
     # `Expr.ErasedEq` (`:46`); `ClassGenMinorSyn`'s `Expr.ErasedEq` (`:204`).
     ('ConLeche.Verify.Inductives.ClassGenScope', 'ConLeche.Verify.Shift'),
-    ('ConLeche.Verify.Inductives.ClassGenAnnot', 'ConLeche.Kernel.Inductives.Positivity'),
-    ('ConLeche.Verify.Inductives.ClassGenAnnot', 'ConLeche.Verify.Subst'),
+    ('ConLeche.Verify.Inductives.ClassGenSyntax', 'ConLeche.Kernel.Inductives.Positivity'),
+    ('ConLeche.Verify.Inductives.ClassGenSyntax', 'ConLeche.Verify.Subst'),
     ('ConLeche.Verify.Inductives.ClassGenMinorSyn', 'ConLeche.Verify.Subst'),
     # lane HOLE2 (the positivity walk's cached simulation): three
     # re-exports the model calls demotable, each MEASURED by demoting it
@@ -346,7 +346,7 @@ FALLBACK = {
     # lane CONTSEM session 4: `ContN2`'s `keyFrame_eq_substE` states
     # `substTau` (`BitSubstFvars`); MEASURED by demoting it alone
     # (`Unknown identifier substTau`, `ContN2.lean:295`).
-    ('ConLeche.Model.Inductives.ContN2', 'ConLeche.Model.Annot.BitSubstFvars'),
+    ('ConLeche.Model.Inductives.ContN2', 'ConLeche.Model.Reading.SubstFvars'),
     # lane NESTIND session 3: `RecCheckRun`'s public statements
     # (`TargetMajorRun fe …`, `TargetTyEntry`) name `FEnv`/`BlockShape`/
     # `ConstantVal`/`Expr`, all through `BlockTail`; MEASURED by demoting it
@@ -355,7 +355,7 @@ FALLBACK = {
     ('ConLeche.Verify.Inductives.NestScope', 'ConLeche.Verify.Shift'),
     ('ConLeche.Verify.Cached.NestPosC', 'ConLeche.Verify.Inductives.NestScope'),
     ('ConLeche.Verify.Inductives.PositivityInv', 'ConLeche.Kernel.Inductives.BlockInstall'),
-    ('ConLeche.Model.Inductives.BlockPosRun', 'ConLeche.Model.Annot.BlockLfpTup'),
+    ('ConLeche.Model.Inductives.BlockPosRun', 'ConLeche.Model.Env.BlockLfpTup'),
     ('ConLeche.Model.Inductives.BlockPosRun', 'ConLeche.Model.Inductives.BlockHoleRead'),
     ('ConLeche.Model.Inductives.BlockPosRun', 'ConLeche.Model.Inductives.BlockStageCtors'),
     ('ConLeche.Model.Inductives.BlockPosRun', 'ConLeche.Model.Inductives.NestPosMono'),
@@ -487,7 +487,7 @@ FALLBACK = {
     # and reaches only through this re-export.
     ('ConLeche.Model.Inductives.FixKit',
      'ConLeche.Model.Inductives.FixWitness'),
-    ('ConLeche.Model.Install',        'ConLeche.Model.Annot.BitExtend'),
+    ('ConLeche.Model.Install',        'ConLeche.Model.Reading.EnvExtend'),
     ('ConLeche.Model.Install',        'ConLeche.Semantics.ConstsBound'),
     ('ConLeche.Model.Install',        'ConLeche.Verify.Extend.Sibs'),
     ('ConLeche.Semantics.IndRecsCore','ConLeche.Verify.Denote.EnvExt'),
@@ -508,9 +508,9 @@ FALLBACK = {
     # / `SwapNResS`.  Demoting any one of them fails the build with an
     # `Unknown identifier` at the corresponding name.
     ('ConLeche.Model.Inductives.BlockStageRec',
-     'ConLeche.Model.Annot.EnvModelM'),
+     'ConLeche.Model.Env.EnvModelM'),
     ('ConLeche.Model.Inductives.BlockStageRec',
-     'ConLeche.Model.Annot.BitConsCross'),
+     'ConLeche.Model.Reading.ConsCross'),
     ('ConLeche.Model.Inductives.BlockStageRec',
      'ConLeche.Semantics.IndBlockFacts'),
     # task #315 (M5, O-1's file): `Model/Inductives/BlockRecRule.lean`
@@ -531,7 +531,7 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.BlockRecRule',
      'ConLeche.Semantics.Tower.BlockRecTower'),
     # task #315 (M5, the leaf's membership): `Model/Inductives/BlockRecMem.lean`
-    # re-exports `Model/Annot/EnvModelM.lean` for the kernel types its public
+    # re-exports `Model/Env/EnvModelM.lean` for the kernel types its public
     # statements name through the file's `variable` binder (`CheckMode`,
     # `Env`, `ConstantVal`, `BlockShape`, `RecShape`) and
     # `Semantics/Tower/BlockRecTower.lean` for `blockRecAV`/`BlockRecPre`, which
@@ -539,7 +539,7 @@ FALLBACK = {
     # attributed to no census row.  MEASURED one at a time: demoting either
     # line fails the build with `Unknown identifier` at exactly those names.
     ('ConLeche.Model.Inductives.BlockRecMem',
-     'ConLeche.Model.Annot.EnvModelM'),
+     'ConLeche.Model.Env.EnvModelM'),
     ('ConLeche.Model.Inductives.BlockRecMem',
      'ConLeche.Semantics.Tower.BlockRecTower'),
     # task #253: `PushChain` is an exposed `def … : Prop` whose BODY names
@@ -563,8 +563,8 @@ FALLBACK = {
     # task #305 closing: `FixRecRead`'s public signatures resolve
     # `SetTheory`, `AnnotTerm`, `denoteMeta`, `EnvModel` and `openFvars`
     # only through `FixRecReadDefs`'s re-export; the model calls the edge
-    # demotable once the file's two new plain imports (`Annot/BitInst`,
-    # `Annot/BitRename`, needed after `Model/Steps/*`'s re-exports went)
+    # demotable once the file's two new plain imports (`Reading/Inst`,
+    # `Reading/ErasedEq`, needed after `Model/Steps/*`'s re-exports went)
     # cover the constants, but a plain import is invisible to a public
     # statement (the #290 class) — the build says so for every substitute
     # tried.
@@ -624,7 +624,7 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.BlockData'),
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.NestPosMono'),
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.NestPosOut'),
-    ('ConLeche.Model.Inductives.BlockHoleRead','ConLeche.Model.Annot.Bit'),
+    ('ConLeche.Model.Inductives.BlockHoleRead','ConLeche.Model.Reading.DenoteMeta'),
     # lane ALPHA1: after the positivity files' imports narrowed, the model
     # calls six more edges demotable; each MEASURED by demoting it alone,
     # all coverage failures one tier down: `IndFieldGrade` without
@@ -705,8 +705,8 @@ FALLBACK = {
     # `BlockCtorReads.lean:57`), `PosDerivInv`'s `HoleImg` (unknown
     # `nestHoleImg_lt_nP`, `NestNfScope.lean:230`).
     ('ConLeche.Verify.Inductives.ReplaceApps', 'ConLeche.Kernel.Inductives.Positivity'),
-    ('ConLeche.Model.Annot.CanonCrest', 'ConLeche.Model.Annot.EnvModelM'),
-    ('ConLeche.Model.Annot.CanonCrest', 'ConLeche.Model.Annot.BitConsCross'),
+    ('ConLeche.Model.Env.CanonCrest', 'ConLeche.Model.Env.EnvModelM'),
+    ('ConLeche.Model.Env.CanonCrest', 'ConLeche.Model.Reading.ConsCross'),
     ('ConLeche.Verify.Inductives.HoleBack', 'ConLeche.Verify.SubstFvars'),
     ('ConLeche.Model.Inductives.BlockHoleGrade', 'ConLeche.Verify.Inductives.NfMemberFree'),
     ('ConLeche.Model.Inductives.BlockHoleRead', 'ConLeche.Verify.Inductives.ReplaceApps'),
@@ -723,7 +723,7 @@ FALLBACK = {
     # `DenoteMetaSpine` directly; MEASURED by demoting it alone (unknown
     # identifier `DenoteMetaSpine`, `Motive.lean:240`, `:261`, `:281`,
     # `:282`, `:296`, `:297`).
-    ('ConLeche.Model.Rules.Motive', 'ConLeche.Model.Annot.BitLemmas'),
+    ('ConLeche.Model.Rules.Motive', 'ConLeche.Model.Reading.Lemmas'),
     # task #342 (s4-shake): `CertsSound`'s and `ProofFastSound`'s own public
     # statements name `SetTheory` directly, reached only through `Inputs`'
     # public re-export of `SetTheory.Core`; MEASURED by demoting it alone
@@ -742,7 +742,7 @@ FALLBACK = {
     # `frameIdx`/`AgreeOff` through `NestPosMono`'s own re-export chain
     # (`:48`, `:90`, `:91`, `:109`, `:113`, `:126`-`:131`, `:159`); each
     # MEASURED by demoting it alone.
-    ('ConLeche.Model.Inductives.TargetCallLand', 'ConLeche.Model.Annot.BitSubstFvars'),
+    ('ConLeche.Model.Inductives.TargetCallLand', 'ConLeche.Model.Reading.SubstFvars'),
     ('ConLeche.Model.Inductives.TargetCallLand', 'ConLeche.Model.Inductives.NestPosMono'),
     # task #342 (s4-shake): `GenRecExtra`'s own public statements name
     # `SetTheory` directly, reached only through `GenClsData`'s public

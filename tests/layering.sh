@@ -204,7 +204,7 @@ rulesv = sorted((a, b) for a in mods for b in edges[a]
 # `Kernel/DeclCheck`, `Cached/*` — EXCEPT the doors listed in
 # RULES_CLOSURE_DOORS, which are the impl modules the base tiers' own
 # public re-exports still carry into every model module (measured at the
-# closing: `Model/Annot/EnvModel` → `Verify/EnvWF` →(public) `Kernel/Core`,
+# closing: `Model/Env/EnvModel` → `Verify/EnvWF` →(public) `Kernel/Core`,
 # `Verify/Denote` →(public) `Kernel/Checker`, `EnvModelM` → `Verify/ProjTele`
 # → `ProjSlots` → `Abstract` → `Knot` →(public) `Kernel/CoreIO`, …; the
 # DESIGN record of task #305's closing holds the full chain list and the

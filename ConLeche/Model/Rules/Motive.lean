@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Model.Rules.IORel
 
 public section

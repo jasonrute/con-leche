@@ -3,8 +3,8 @@ module
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitClosed
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.Closed
 import ConLeche.Semantics.LitStep
 
 public section

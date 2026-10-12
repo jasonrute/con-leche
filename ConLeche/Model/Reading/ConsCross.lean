@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.BitExtendTower
-import ConLeche.Model.Annot.BitInstall
+public import ConLeche.Model.Reading.TowerExtend
+import ConLeche.Model.Reading.Install
 public import ConLeche.Verify.Denote.OpenVars
 import ConLeche.Verify.InferLemmas
 import ConLeche.Semantics.EnvFacts

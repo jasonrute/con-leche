@@ -1,10 +1,10 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Env.EnvModelM
+import ConLeche.Model.Reading.Lemmas
 import ConLeche.Model.Currency
 public import ConLeche.Rules.Rel
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Rules.Rigid
 

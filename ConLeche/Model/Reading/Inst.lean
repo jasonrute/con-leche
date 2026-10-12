@@ -1,9 +1,9 @@
 module
 
-public import ConLeche.Model.Annot.BitShift
+public import ConLeche.Model.Reading.Shift
 import ConLeche.Semantics.DenoteClosed
 public import ConLeche.Verify.Subst
-import ConLeche.Model.Annot.Bit
+import ConLeche.Model.Reading.DenoteMeta
 
 public section
 
@@ -14,12 +14,9 @@ The substitution crossing the β/ζ clauses of the P-tier step proof run
 through.
 
 **It does not cost `EnvWF`.**  Same reason as `denoteMeta_shiftFrom`
-(`BitShift.lean`): `denoteMeta`'s binder numeral is `pwBit φ mb.pw`
-— a function of the term's own meta — and `Expr.substFvarAt` carries
-binder metas through **unchanged** (`Verify/Subst.lean`: the
-`.lam`/`.forallE` clauses copy the meta `m` verbatim).  So the numeral
-is literally the same expression on both sides of every binder clause
-and each closes by the recursion alone.
+(`Reading/Shift.lean`): `denoteMeta`'s binder clauses read only the
+binder's domain and body, which `Expr.substFvarAt` substitutes
+structurally, so each closes by the recursion alone.
 
 **It costs two leaf premises.**
 
@@ -117,7 +114,7 @@ variable {env : Env} {φ : Name → Nat}
 variable {acval : Name → (Name → Nat) → AnnotTerm}
 
 /-- The `Nat`-literal spine is `inst`-invariant when its two heads
-are.  `BitShift.lean`'s `natLitAV_liftN` one operation over. -/
+are.  `Reading/Shift.lean`'s `natLitAV_liftN` one operation over. -/
 private theorem natLitAV_inst {za sa y : AnnotTerm} {k : Nat}
     (hz : za.inst y k = za) (hs : sa.inst y k = sa) :
     ∀ n : Nat, (natLitAV za sa n).inst y k = natLitAV za sa n := by

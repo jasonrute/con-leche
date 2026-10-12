@@ -6,10 +6,10 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.Inductives.GenRuleSyn
 import ConLeche.Model.Inductives.GenRuleFree
-import ConLeche.Model.Annot.BitRename
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Bit
+import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Env.LfpFormer
+import ConLeche.Model.Reading.DenoteMeta
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun

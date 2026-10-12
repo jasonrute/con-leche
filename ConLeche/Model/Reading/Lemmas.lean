@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.Bit
+public import ConLeche.Model.Reading.DenoteMeta
 
 public section
 
@@ -10,10 +10,10 @@ public section
 The fixed lemma surface the model tier consumes `denoteMeta` through —
 clause equations, inversions, the depth shift, the environment
 crossing.  Fuel-free, and the binder inversions conclude
-`ea = .pi ta ba` (resp. `.lam (pwBit φ mb.pw)`)
-*definitionally*.  Every premise is one the *reading itself* needs
-(`hacl`: leaf lift-invariance; `FindPreserved`/`LitGuardsAgree`: the
-constant and literal clauses read the environment).
+`ea = .pi ta ba` (resp. `.lam ta ba`) *definitionally*.  Every premise
+is one the *reading itself* needs (`hacl`: leaf lift-invariance;
+`FindPreserved`/`LitGuardsAgree`: the constant and literal clauses read
+the environment).
 -/
 
 namespace ConLeche.Model

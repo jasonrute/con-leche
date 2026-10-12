@@ -26,7 +26,7 @@ one piece of work, because all three need the same fact:
 The iota rule is `.plain`: outside case 3 the kernel fires it on a syntactic
 constructor head and takes the parameters from the RECURSOR's spine
 and the fields from the CONSTRUCTOR's, comparing the two parameter
-spines nowhere (`Model/Annot/Laws.lean`, and `recFireComparands` at a
+spines nowhere (`Model/Env/Laws.lean`, and `recFireComparands` at a
 `.plain` rule copies the level arguments and drops the comparison).
 So nothing syntactic ties the two spines, and the model must pay for
 the tie.  It pays with the MAJOR PREMISE: `BlockRuleDataB` hands a

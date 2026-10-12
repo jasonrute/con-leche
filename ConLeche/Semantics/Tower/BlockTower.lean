@@ -965,7 +965,7 @@ end Functor
 
 Charter item 2: a block's operator is the interpretation of its
 constructor types with HOLES at the members.  A constructor's fields
-with holes (`LfpDatum.fields`, `Model/Annot/BlockLfp.lean`) are read at
+with holes (`LfpDatum.fields`, `Model/Env/BlockLfp.lean`) are read at
 the parameters, then one variable per member (the holes), then the
 earlier fields.  The block's operator term (`blockPhiG`/`blockTyG`,
 above) is generic in its chains; this section builds the

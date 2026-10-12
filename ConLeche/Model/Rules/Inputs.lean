@@ -14,8 +14,8 @@ discharges each field.
 
 Eight fields are the laws `EnvModelM` already carries: `ConstType`,
 `NatHeads`, `AcvalDefnInst`, `TowerOk`, `RecRules`,
-`CapsOk` and `IndFibLaw`, all of them `Model/Annot/Laws.lean`'s (re-exported by
-`Model/Annot/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
+`CapsOk` and `IndFibLaw`, all of them `Model/Env/Laws.lean`'s (re-exported by
+`Model/Env/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
 each of them off the fold's invariant.
 
 Three fields are NEW SHAPES:

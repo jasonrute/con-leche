@@ -8,7 +8,7 @@ import ConLeche.Model.RecRulesCons
 public import ConLeche.Model.ReduceOps
 public import ConLeche.Model.Cover
 import ConLeche.Semantics.DeclRun
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 
 public section
 

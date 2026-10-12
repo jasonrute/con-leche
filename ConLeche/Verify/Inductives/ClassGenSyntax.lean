@@ -17,7 +17,6 @@ readings need, as pure syntax:
 * **the shared prefix stays shared** (`SameDoms`): two telescopes with
   the same first `n` domains keep them equal through `abstract1` and
   `instantiate1`, and open to the same variables;
-* **a plain term is left alone by annotation** (`annotateCore_plain`);
 * **a motive's type keeps its shape** (`EndsInSort`): `∀ …, Sort u`
   survives erasure and the de Bruijn operations.
 -/

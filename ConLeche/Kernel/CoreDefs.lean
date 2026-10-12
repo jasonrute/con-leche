@@ -766,7 +766,7 @@ family every field's sort is bounded by the structure's (the O5 bound
 `checkStructFieldSortsI` checks), so at a zero instantiation every
 field is a proposition; for a `Prop`-declared family the guard says
 so of the projected field directly (`TowerEntryLaw`'s iota clause,
-`ConLeche/Model/Annot/EnvModelM.lean`).  Ungated rules on a data field of a
+`ConLeche/Model/Env/EnvModelM.lean`).  Ungated rules on a data field of a
 `Prop`-declared structure stay out: such a node is not even typed
 (`inferBody`'s guard). -/
 def ProjEntry.fireOk (entry : ProjEntry) (us : List Level) : Bool :=

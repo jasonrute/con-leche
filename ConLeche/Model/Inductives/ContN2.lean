@@ -1,17 +1,17 @@
 module
 
 public import ConLeche.Model.Inductives.NestPosMono
-import ConLeche.Model.Annot.EnvModelM
+import ConLeche.Model.Env.EnvModelM
 import ConLeche.Semantics.SubstAV
-public import ConLeche.Model.Annot.BitSubstFvars
+public import ConLeche.Model.Reading.SubstFvars
 import ConLeche.Verify.Inductives.NestContInv
 import ConLeche.Model.Inductives.ContSubst
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 import ConLeche.Model.Inductives.BlockHoleRead
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
-import ConLeche.Model.Annot.BitRename
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Model.Reading.Levels
 
 public section
 

@@ -5,7 +5,7 @@ import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Model.Inductives.StructFrameKit
 public import ConLeche.Model.IndPinGrade
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 
 public section
 

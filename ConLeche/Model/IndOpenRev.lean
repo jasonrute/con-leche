@@ -5,7 +5,7 @@ public import ConLeche.Model.IndSubst
 import ConLeche.Verify.Subst
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Verify.Denote.IndFrame
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 public section
 
 /-!

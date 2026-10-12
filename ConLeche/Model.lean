@@ -54,13 +54,13 @@ public import ConLeche.Model.ClaimsIO
 public import ConLeche.Model.WellDenotedTransport
 public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Currency
-public import ConLeche.Model.Annot.EnvModel
-public import ConLeche.Model.Annot.Laws
-public import ConLeche.Model.Annot.BlockLfp
-public import ConLeche.Model.Annot.BlockLfpMono
-public import ConLeche.Model.Annot.LfpAcc
-public import ConLeche.Model.Annot.LfpFormer
-public import ConLeche.Model.Annot.BitSubstFvars
+public import ConLeche.Model.Env.EnvModel
+public import ConLeche.Model.Env.Laws
+public import ConLeche.Model.Env.BlockLfp
+public import ConLeche.Model.Env.BlockLfpMono
+public import ConLeche.Model.Env.LfpAcc
+public import ConLeche.Model.Env.LfpFormer
+public import ConLeche.Model.Reading.SubstFvars
 public import ConLeche.Model.Inductives.ContSubst
 public import ConLeche.Model.Inductives.ContSem
 public import ConLeche.Model.Inductives.ContInst
@@ -98,7 +98,7 @@ public import ConLeche.Model.Inductives.GenRecStage
 public import ConLeche.Model.Inductives.GenRecClasses
 public import ConLeche.Model.Inductives.GenRecPins
 public import ConLeche.Model.Inductives.GenRecParams
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Model.BasisLfp
 public import ConLeche.Model.Rules.Recompose
 public import ConLeche.Model.Tiers
@@ -137,17 +137,17 @@ public import ConLeche.Model.Harvest
 public import ConLeche.Model.Fold
 public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
-public import ConLeche.Model.Annot.Bit
-public import ConLeche.Model.Annot.BitLemmas
-public import ConLeche.Model.Annot.BitShift
-public import ConLeche.Model.Annot.BitInst
-public import ConLeche.Model.Annot.BitClosed
-public import ConLeche.Model.Annot.BitInstall
-public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.BitLevels
-public import ConLeche.Model.Annot.LpDefF
+public import ConLeche.Model.Reading.DenoteMeta
+public import ConLeche.Model.Reading.Lemmas
+public import ConLeche.Model.Reading.Shift
+public import ConLeche.Model.Reading.Inst
+public import ConLeche.Model.Reading.Closed
+public import ConLeche.Model.Reading.Install
+public import ConLeche.Model.Reading.EnvExtend
+public import ConLeche.Model.Reading.Levels
+public import ConLeche.Model.Reading.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
-public import ConLeche.Model.Annot.BitRename
+public import ConLeche.Model.Reading.ErasedEq
 public import ConLeche.Model.AxiomMem
 public import ConLeche.Model.AxiomReduce
 public import ConLeche.Model.RecRulesCons
@@ -158,7 +158,7 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the stored-term reading (`Annot/Bit*`),
+The graded model: the stored-term reading (`Reading/DenoteMeta*`),
 `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,

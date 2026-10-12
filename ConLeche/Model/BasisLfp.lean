@@ -1,13 +1,13 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 import ConLeche.SetTheory.Derive.Universe
 public section
 
 /-!
 # The pinned basis types' LFP CLAUSES, by hand
 
-The environment invariant's lfp clause (`Model/Annot/BlockLfp.lean`)
+The environment invariant's lfp clause (`Model/Env/BlockLfp.lean`)
 is PRODUCED by the uniform install for every block it checks.  The
 pinned basis types are not installed by it: their denotations are
 hand-written (`bval`, `SetModel/Value.lean`).  This file proves the

@@ -252,7 +252,7 @@ end BlockData
 /-! ## The block's LFP CLAUSE
 
 The part of the representation the environment invariant records
-(`Model/Annot/BlockLfp.lean`): the datum is `d`'s own fields — the
+(`Model/Env/BlockLfp.lean`): the datum is `d`'s own fields — the
 operator IS `d.Φ` — with the constructors' fields read with holes.
 The clause is produced in `BlockLfpHoles.lean`. -/
 

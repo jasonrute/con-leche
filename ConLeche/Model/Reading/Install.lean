@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitClosed
+public import ConLeche.Model.Reading.Closed
 public import ConLeche.Semantics.Install
 import ConLeche.Verify.EnvGuards
 
@@ -10,11 +10,11 @@ public section
 # `denoteMeta` at an install (task #161, P3.2)
 
 The install-tier surface: the leaf-valuation congruence and its fresh
-corollary, and the spine head swap.  `pwBit φ m.pw` mentions no
-valuation and `denoteMeta` has no fuel, so:
+corollary, and the spine head swap.  `denoteMeta` has no fuel and its
+binder clauses read no valuation, so:
 
-* `denoteMeta_acval_congr` walks the fifteen clauses, the binder cases
-  by the induction hypotheses alone;
+* `denoteMeta_acval_congr` walks the clauses, the binder cases by the
+  induction hypotheses alone;
 * `denoteMeta_mkAppN_swap` is stated at one reading and the argument
   rides along on `rfl`.
 -/

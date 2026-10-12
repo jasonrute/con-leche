@@ -2,17 +2,17 @@ module
 
 public import ConLeche.Model.Inductives.BlockStageCtors
 import ConLeche.Model.Inductives.BlockHoleRead
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.Verify.EnvWF
-import ConLeche.Model.Annot.CanonCrest
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Env.CanonCrest
+import ConLeche.Model.Reading.ErasedEq
 
 public section
 
 /-!
 # M2 at the uniform install: the constructors' canonical readings
 
-`LfpCtorReads` (`Model/Annot/EnvModelM.lean`) for a uniform block's
+`LfpCtorReads` (`Model/Env/EnvModelM.lean`) for a uniform block's
 datum `d.toLfp`, at the constructors' environment: the reading fact the
 constructors' stage carries (`BlockAbsRead`: the CANONICAL abstraction —
 parameters the variables `0 ..< nP`, each member's whole application the

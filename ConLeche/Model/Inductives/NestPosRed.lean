@@ -8,8 +8,8 @@ public import ConLeche.Model.CtxOkP
 import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Inductives.TypeStep
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Semantics.Frame
 import ConLeche.Verify.Leaves
 import ConLeche.Verify.Abstract

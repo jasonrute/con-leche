@@ -18,7 +18,7 @@ fact.
 
 `strLitSupported_listNames` comes with them: it is the same kind of
 fact (a guard inversion producing two `isSome` obligations) and
-`Model/Annot/BitExtendTower` reads it at the same clause.
+`Model/Reading/TowerExtend` reads it at the same clause.
 -/
 
 namespace ConLeche.Semantics

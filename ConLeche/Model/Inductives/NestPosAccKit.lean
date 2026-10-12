@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Inductives.NestPosAcc
 public import ConLeche.Model.Inductives.ContFrame
-import ConLeche.Model.Annot.LfpAcc
+import ConLeche.Model.Env.LfpAcc
 
 public section
 

@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitShift
+public import ConLeche.Model.Reading.Shift
 import ConLeche.Semantics.DenoteClosed
 
 public section
@@ -9,11 +9,11 @@ public section
 # `denoteMeta`, closed and depth-independent (task #161, P3.2)
 
 **Closedness is not an induction**: it is `denoteMeta_erase`
-(`Annot/Bit.lean`) composed with `denote_closed` and
-`AnnotTerm.liftN_eq_self` (a lift cannot be moved by a numeral slot).
+(`Reading/DenoteMeta.lean`) composed with `denote_closed` and
+`AnnotTerm.liftN_eq_self`.
 
 **The depth statement drops `EnvWF`**, following the shift it is built
-on (see `BitShift.lean`).
+on (see `Reading/Shift.lean`).
 -/
 
 namespace ConLeche.Model

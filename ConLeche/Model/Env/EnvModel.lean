@@ -11,8 +11,7 @@ public section
 
 The leaf valuation `acval` with the facts the model tier reads of it:
 the fold stores each new constant's leaf as its **`denoteMeta`
-reading** (bit numerals, so that unfolding does not move the
-reading), and the carrier holds only the
+reading** (so that unfolding does not move the reading), and the carrier holds only the
 syntactic, `V`-free facts about the environment plus the leaves'
 closedness, parameter footprint and truthfulness.
 -/

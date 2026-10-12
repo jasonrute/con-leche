@@ -11,13 +11,15 @@ public section
 `AnnotTerm`: no checker run, no fuel, no mode.  The binders carry no
 datum to read (the regime is read off the values by `interp`,
 `piV`/`lamV`), so the level crossing is plain algebra
-(`Annot/BitLevels.lean`, `denotePInstLevels`) and two readings of one
+(`Reading/Levels.lean`, `denotePInstLevels`) and two readings of one
 term at one valuation are equal.
 
-History: until task #342 (L14a) the binders read the checker's
-annotation `pwBit φ m.pw` into a regime numeral, and `AnnotValid`
-(deleted) held that numeral to account; the binder datum field itself
-is gone from `Expr` as of task #342's close.
+The `Reading/` modules are `denoteMeta`'s metatheory: its lemma
+battery (`Lemmas`), closedness (`Closed`), depth shift (`Shift`),
+instantiation (`Inst`, `SubstFvars`), the level crossing (`Levels`),
+blindness to erasure (`ErasedEq`), the environment crossings
+(`EnvExtend`, `TowerExtend`, `ConsCross`, `Install`) and its level
+footprint (`LpDefF`).
 -/
 
 namespace ConLeche.Model

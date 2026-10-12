@@ -1,11 +1,11 @@
 module
 
 public import ConLeche.Denotes
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Verify.Close
 import ConLeche.Verify.Denote.VClosed
 import ConLeche.SetModel.TupleTower
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.Lemmas
 
 public section
 
@@ -14,7 +14,7 @@ public section
 
 `ConLeche/Denotes.lean` states what a model of an environment is;
 this module builds one from the graded invariant `EnvModelM`
-(`Model/Annot/EnvModelM.lean`) the fold establishes.  Three steps:
+(`Model/Env/EnvModelM.lean`) the fold establishes.  Three steps:
 
 * **the leaves become sets**: `cvalOf acval n ψ` is the interpretation
   of the (closed) annotated leaf `acval n ψ` — under every variable

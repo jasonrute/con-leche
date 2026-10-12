@@ -8,7 +8,7 @@ public section
 # The structure-capability laws across a fresh cons (task #161, caps
 tier)
 
-The statements (`TeleFit`, `EtaLaw`, `UnitLaw`, `CapsOk`) live in `Annot/Laws.lean` beside `NatOps`,
+The statements (`TeleFit`, `EtaLaw`, `UnitLaw`, `CapsOk`) live in `Env/Laws.lean` beside `NatOps`,
 `DivMod` and `EqLaw` — the `EnvModelM` field `caps_ok` must mention
 them.  This file is the *preservation* half: `capsOk_cons_fresh`, the obligation every
 value-kind harvest discharges.

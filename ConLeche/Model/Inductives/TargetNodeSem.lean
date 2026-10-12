@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.PosDerivNodes
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Inductives.PosDerivTie

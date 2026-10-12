@@ -3,9 +3,9 @@ module
 import ConLeche.Model.Inductives.ContCtor
 public import ConLeche.Model.Inductives.ContLeaf
 import ConLeche.Model.Inductives.ContFrame
-import ConLeche.Model.Annot.BlockLfpTup
-import ConLeche.Model.Annot.BlockLfpMono
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Env.BlockLfpTup
+import ConLeche.Model.Env.BlockLfpMono
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.Inductives.ContSubst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Model.Rules.Inputs

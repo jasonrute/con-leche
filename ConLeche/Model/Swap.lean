@@ -1,10 +1,10 @@
 module
 
 import ConLeche.Verify.Denote.EnvExt
-import ConLeche.Model.Annot.Bit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitLevels
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.Levels
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Tiers
 import ConLeche.Verify.BridgeWfImp

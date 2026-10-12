@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitExtend
+public import ConLeche.Model.Reading.EnvExtend
 public import ConLeche.Verify.ProjSlots
 
 public section

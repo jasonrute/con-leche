@@ -1,16 +1,16 @@
 module
 
 public import ConLeche.Model.Rules.Inputs
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.Lemmas
 import ConLeche.Verify.InferLeaves
-import ConLeche.Model.Annot.BitLevels
-import ConLeche.Model.Annot.BitClosed
-import ConLeche.Model.Annot.BitInstall
+import ConLeche.Model.Reading.Levels
+import ConLeche.Model.Reading.Closed
+import ConLeche.Model.Reading.Install
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Denote.StrLit
 import ConLeche.Model.WellDenotedTransport
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 
 public section
 
@@ -23,7 +23,7 @@ this file mentions a run.
 Sections, in the order the rules consume them:
 
 * the level crossing and the assignment-independent literal slots
-  (`Model/Annot/BitLevels.lean`'s `acval_*`/`denotePInstLevels`,
+  (`Model/Reading/Levels.lean`'s `acval_*`/`denotePInstLevels`,
   imported);
 * the two `Nat` constructor readings and the literal expansions'
   blindness;
@@ -34,7 +34,7 @@ Sections, in the order the rules consume them:
   is the LOWEST kit of the four, so a fact more than one rules file
   needs lives here and nowhere else.  `DenoteMetaSpine`'s own list
   algebra, `denoteMeta_mkAppN(_inv)` and the tower entry's two
-  readings are `Model/Annot/BitLemmas.lean`'s, imported.
+  readings are `Model/Reading/Lemmas.lean`'s, imported.
 -/
 
 namespace ConLeche.Model.Rules
@@ -50,7 +50,7 @@ universe w
 variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 variable {m : EnvModel V env}
 
-/-! ## The level crossing — `Model/Annot/BitLevels.lean`, imported
+/-! ## The level crossing — `Model/Reading/Levels.lean`, imported
 
 `acval_isEmpty`, `acval_oneParam`, `acval_scalar`, `acval_one`,
 `acval_natPair` and `denotePInstLevels`: that file is impl-free, so
@@ -399,7 +399,7 @@ theorem slotTransfer {v v' : Nat} {A A' f a : V} {B B' : V → V}
   · rw [piR_dom_unique hv hv' hf hslot]; exact ha
 
 
-/-! ## The spine kit — `Model/Annot/BitLemmas.lean`, imported
+/-! ## The spine kit — `Model/Reading/Lemmas.lean`, imported
 
 `DenoteMetaSpine` and its list algebra (`length`, `getD_read`,
 `take`, `drop`, `append`, `map_list`, `snoc`, `getD`, `mem`),
@@ -509,7 +509,7 @@ theorem frame_spine {d : Nat} {Δa : List AnnotTerm} {a : Expr}
     hC.of_subset (fun l hl => ConLeche.fvarLeaves_getAppArgs hx l hl)⟩
 
 /-! ## The tower entry's telescope (the entry's two READINGS are
-`Model/Annot/BitLemmas.lean`'s) -/
+`Model/Reading/Lemmas.lean`'s) -/
 
 /-- A stored tower entry's body telescope is closed. -/
 theorem towerEntry_tele_closed (hwf : ConLeche.EnvWF env) {T : Name} {i : Nat}

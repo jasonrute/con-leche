@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Inductives.ContWalk
 import ConLeche.Model.Inductives.ContN2
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.Inductives.ContCtor
 import ConLeche.Model.NatEqs
 import ConLeche.Semantics.Tower.FixTower
@@ -10,8 +10,8 @@ import ConLeche.Verify.Inductives.HoleBack
 import ConLeche.Verify.Inductives.ReplaceApps
 import ConLeche.Verify.SubstFvars
 import ConLeche.Model.Inductives.ContSubst
-import ConLeche.Model.Annot.BitSubstFvars
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.SubstFvars
+import ConLeche.Model.Reading.Levels
 import ConLeche.Verify.Inductives.ClassGenScope
 
 public section

@@ -1,9 +1,9 @@
 module
 
-public import ConLeche.Model.Annot.Bit
+public import ConLeche.Model.Reading.DenoteMeta
 import ConLeche.Verify.Shift
-import ConLeche.Model.Annot.BitInst
-public import ConLeche.Model.Annot.EnvModel
+import ConLeche.Model.Reading.Inst
+public import ConLeche.Model.Env.EnvModel
 public import ConLeche.Semantics.SubstAV
 public import ConLeche.Verify.SubstFvars
 import ConLeche.Verify.Denote.Shift

@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitLevels
+public import ConLeche.Model.Reading.Levels
 
 public section
 
@@ -92,7 +92,7 @@ end LpDefF
 
 /-! ## 2. The reading is ψ-congruent at the `lpDefF` footprint
 
-`denoteMeta_params_ext` (`Model/Annot/BitLevels.lean`) with the one
+`denoteMeta_params_ext` (`Model/Reading/Levels.lean`) with the one
 difference in the binder cases: the body is opened at an `fvar`, and
 `lpDefF` of an opened body needs nothing of the fvar's annotation. -/
 

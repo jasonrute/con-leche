@@ -15,7 +15,7 @@ inductive: the recursor's uniqueness is ONE induction over the majors,
 a corollary of this clause (`Model/Inductives/BlockRecGraph.lean`).
 
 **Why a separate datum.**  The clause is recorded in `EnvModelM`
-(`Model/Annot/EnvModelM.lean`), which sits BELOW the block
+(`Model/Env/EnvModelM.lean`), which sits BELOW the block
 representation (`BlockData`/`BlockModelAt`,
 `Model/Inductives/BlockRep.lean`) in the import order.  So the clause
 is stated over `LfpDatum`, the part of a block's representation the

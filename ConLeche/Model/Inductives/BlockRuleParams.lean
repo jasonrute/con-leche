@@ -13,7 +13,7 @@ components ψ-congruent there.  This file has the recursors' pinned
 level parameters, the congruence of `pdoms`, and the equation list's
 congruence in its components.  The opened residue `Rb0` carries `fvar`
 openers, whose type annotations `denoteMeta` never reads; its
-congruence goes through `lpDefF` (`Model/Annot/LpDefF.lean`), the
+congruence goes through `lpDefF` (`Model/Reading/LpDefF.lean`), the
 `allLevelParamsDefined` footprint with `fvar` types ignored. -/
 
 namespace ConLeche.Model

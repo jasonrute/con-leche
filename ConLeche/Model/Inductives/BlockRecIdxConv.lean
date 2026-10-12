@@ -3,7 +3,7 @@ module
 public import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Inductives.BlockRecTyShapeRun
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 
 public section
 

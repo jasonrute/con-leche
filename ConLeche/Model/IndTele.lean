@@ -1,8 +1,8 @@
 module
 
-import ConLeche.Model.Annot.Laws
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Env.Laws
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Verify.Inductives.NestedRuleSyn
 import ConLeche.Verify.Shift
 import ConLeche.Kernel.Checker

@@ -20,7 +20,7 @@ variables exactly as a stored telescope's did, and the checker's
 `instantiateList` is that telescope's `instPisAt` peel along the
 arguments and the subject (`instPisAt_projTele`,
 `instPisAt_typeAt`) — so the tower law's typing clause keeps its
-`peelPis` shape (`TowerEntryLaw`, `ConLeche/Model/Annot/EnvModelM.lean`)
+`peelPis` shape (`TowerEntryLaw`, `ConLeche/Model/Env/EnvModelM.lean`)
 with the stored type replaced by the telescope over the stored body.
 The binder domains are never consumed by the peel or by the law;
 they are a syntactic carrier for the reading only.

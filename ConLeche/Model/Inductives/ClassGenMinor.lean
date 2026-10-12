@@ -1,9 +1,9 @@
 module
 
-import ConLeche.Model.Annot.Bit
+import ConLeche.Model.Reading.DenoteMeta
 import ConLeche.Semantics.Tower.SumTower
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.LfpFormer
 public import ConLeche.Model.Inductives.ClassGenStep
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.NestPosOut
@@ -18,8 +18,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Semantics.Kit
 import ConLeche.Model.Inductives.SumKit
-import ConLeche.Model.Annot.BitRename
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Model.Reading.Inst
 
 public section
 

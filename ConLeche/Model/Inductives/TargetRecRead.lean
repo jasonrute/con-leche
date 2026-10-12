@@ -1,7 +1,7 @@
 module
 
-import ConLeche.Model.Annot.Bit
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Model.Reading.Lemmas
 import ConLeche.Model.Rules.Sound
 public import ConLeche.Model.Inductives.BlockRecRule
 

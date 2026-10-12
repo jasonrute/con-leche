@@ -1,12 +1,12 @@
 module
 
 public import ConLeche.Verify.Inductives.ClassGenScope
-public import ConLeche.Verify.Inductives.ClassGenAnnot
+public import ConLeche.Verify.Inductives.ClassGenSyntax
 import ConLeche.Model.Inductives.NestPosOut
 import ConLeche.Verify.Mono
 import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Verify.Denote.Shift
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Verify.Rules.InferBridge
 public import ConLeche.Model.Inductives.ClassRecKit
 import ConLeche.Verify.Leaves

@@ -16,7 +16,7 @@ recorded member-abstracted constructor type with its parameter and hole
 variables replaced ALL AT ONCE — by the key's parameters and by the
 frame's holes or the other members' formers — and its reading is the
 recorded reading so substituted (`denoteMeta_substFvars`,
-`Model/Annot/BitSubstFvars.lean`).  The one semantic lemma
+`Model/Reading/SubstFvars.lean`).  The one semantic lemma
 (`interp_substAV`) reads it at the valuation holding `τ`'s values; for
 `τ` of length one it is `interp_inst`'s content.
 -/

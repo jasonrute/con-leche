@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Verify.Shift
 
 public section
@@ -8,13 +8,11 @@ public section
 /-!
 # `denoteMeta`'s depth shift (task #161, P3.2)
 
-**No `EnvWF`.**  `denoteMeta` runs no checker: its binder numeral is
-`pwBit φ mb.pw`, a function of the term's own meta, and
-`Expr.shiftFrom` carries metas through unchanged — so the numeral is
-literally the same expression on both sides and the clause closes by
-the recursion alone.
+**No `EnvWF`.**  `denoteMeta` runs no checker and its binder clauses
+read nothing but the binder's domain and body, which `Expr.shiftFrom`
+shifts structurally, so each clause closes by the recursion alone.
 
-`hacl` is kept: it is the *leaf* obligation (stored annotations are
+`hacl` is kept: it is the *leaf* obligation (stored leaves are
 lift-invariant), which the constant and literal clauses need.
 -/
 

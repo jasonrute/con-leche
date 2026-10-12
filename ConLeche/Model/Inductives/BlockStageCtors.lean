@@ -5,7 +5,7 @@ import ConLeche.Model.Inductives.FixKit
 import ConLeche.Model.Inductives.BlockCaps
 import ConLeche.Model.Inductives.BlockRep
 public import ConLeche.Model.Inductives.BlockAbsRead
-import ConLeche.Model.Annot.LfpHoleOp
+import ConLeche.Model.Env.LfpHoleOp
 import ConLeche.Model.Inductives.BlockHoleFold
 public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Semantics.Inductives.DeclBlockEta

@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.BlockLfp
-import ConLeche.Model.Annot.BlockLfpTup
+public import ConLeche.Model.Env.BlockLfp
+import ConLeche.Model.Env.BlockLfpTup
 public import ConLeche.Semantics.Inductives.TeleAcc
 import ConLeche.SetModel.Access
 

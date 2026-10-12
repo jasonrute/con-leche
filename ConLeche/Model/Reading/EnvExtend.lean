@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitInstall
+public import ConLeche.Model.Reading.Install
 public import ConLeche.Semantics.ConstsBound
 
 public section
@@ -8,12 +8,11 @@ public section
 /-!
 # `denoteMeta` across an environment extension (task #161, P3.2)
 
-`denoteMeta`'s binder numeral is `pwBit φ mb.pw`: a function of the
-term's own validated meta and the valuation `φ`, mentioning no
-environment at all, so the binder clauses close on the two induction
-hypotheses alone, exactly like `.app`.  The two premises are the ones
-the *reading itself* needs: `denoteMeta` consults `env` only through
-`find?` (`FindPreserved`) and the two support guards (`LitGuardsAgree`).
+`denoteMeta`'s binder clauses read no environment, so they close on the
+two induction hypotheses alone, exactly like `.app`.  The two premises
+are the ones the *reading itself* needs: `denoteMeta` consults `env`
+only through `find?` (`FindPreserved`) and the two support guards
+(`LitGuardsAgree`).
 -/
 
 namespace ConLeche.Model

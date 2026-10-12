@@ -22,7 +22,7 @@ their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
 `DefEqListSem`, `CertsSem`, `CertsFSem`) and conclude the UNCONDITIONAL
 `RedSemU`: no step reads that the redex is not the point.  The
 induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's licence is read through the law's
-`RecRuleExtra` (`Model/Annot/Laws.lean`): the recursor's spine fits by
+`RecRuleExtra` (`Model/Env/Laws.lean`): the recursor's spine fits by
 its licensed certificate; a K rule fires by the law at the recursor's
 own parameters; otherwise the fired constructor application's value is
 the major's (by the major's reduction where the major is not the

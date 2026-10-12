@@ -2,11 +2,11 @@ module
 
 public import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Verify.Level
-import ConLeche.Model.Annot.Bit
+import ConLeche.Model.Reading.DenoteMeta
 import ConLeche.Verify.Shift
 import ConLeche.Model.BasisEmpty
-import ConLeche.Model.Annot.Laws
-public import ConLeche.Model.Annot.EnvModelM
+import ConLeche.Model.Env.Laws
+public import ConLeche.Model.Env.EnvModelM
 import ConLeche.Model.Capstone
 
 public section

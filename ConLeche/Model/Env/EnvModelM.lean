@@ -1,10 +1,10 @@
 module
 
-public import ConLeche.Model.Annot.Laws
-import ConLeche.Model.Annot.BitLevels
-import ConLeche.Model.Annot.BitClosed
+public import ConLeche.Model.Env.Laws
+import ConLeche.Model.Reading.Levels
+import ConLeche.Model.Reading.Closed
 public import ConLeche.Semantics.EnvFacts
-public import ConLeche.Model.Annot.BlockLfp
+public import ConLeche.Model.Env.BlockLfp
 public import ConLeche.Semantics.Inductives.FieldsEqOn
 import ConLeche.Kernel.Inductives.Positivity
 import ConLeche.Verify.Denote
@@ -19,7 +19,7 @@ The install tier's target, per the P4 design note in DESIGN.md: the
 environment carrier (`EnvModel`) *contained*, plus the fields the P
 bundles read.
 
-**The laws the fields are stated over live in `Model/Annot/Laws.lean`**
+**The laws the fields are stated over live in `Model/Env/Laws.lean`**
 (`NatOps`, `DivMod`, `EqLaw`, `ReduceOps`, the caps kit, the iota kit
 and the tower kit), so that the rules tier's inputs can name them
 without importing the establishment surface below.  This file keeps the
@@ -304,7 +304,7 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   environment (`declBlock`, `EnvModelM.addLfp`) and copied by every
   other extension -/
   lfpBlocks : List (LfpDatum V)
-  /-- **the lfp clause of every recorded block** (`Annot/BlockLfp.lean`):
+  /-- **the lfp clause of every recorded block** (`Env/BlockLfp.lean`):
   its members' denotations are the least fixed point of its operator,
   whose fibres are the constructors' injections; and its members are
   stored inductive formers (which is what lets every extension

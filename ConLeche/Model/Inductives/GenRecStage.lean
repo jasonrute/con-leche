@@ -3,7 +3,7 @@ module
 public import ConLeche.Verify.Inductives.GenRecRun
 public import ConLeche.Verify.Inductives.RecStage
 public import ConLeche.Verify.Inductives.ClassGenScope
-public import ConLeche.Verify.Inductives.ClassGenAnnot
+public import ConLeche.Verify.Inductives.ClassGenSyntax
 import ConLeche.Model.Inductives.ClassGenRead
 import ConLeche.Model.Inductives.NestPosOut
 import ConLeche.Model.Inductives.StructFrameKit

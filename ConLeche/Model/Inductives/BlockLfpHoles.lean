@@ -11,7 +11,7 @@ public section
 Charter item 2: every stored `I p⃗` is the least fixed point of its
 right-hand-side operator — the interpretation of its constructor types
 with holes at the block's members.  The clause the environment records
-(`Model/Annot/BlockLfp.lean`) says so through `LfpClause.holes`: the fit
+(`Model/Env/BlockLfp.lean`) says so through `LfpClause.holes`: the fit
 relation of the operator's fibre IS the telescope fit of the
 constructors' fields with holes (`BlockData.absF`, `BlockRep.lean`) at
 the hole frame (`LfpDatum.frame`: the parameter frame with each member's

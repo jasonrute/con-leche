@@ -17,7 +17,7 @@ import ConLeche.Model.Inductives.BlockCover
 import ConLeche.Model.Inductives.TargetClasses
 import ConLeche.Model.Inductives.TargetCallKit
 import ConLeche.Model.Inductives.StructEntryKit
-import ConLeche.Model.Annot.BlockLfp
+import ConLeche.Model.Env.BlockLfp
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.DefEqSoundKit
@@ -30,10 +30,10 @@ import ConLeche.Model.IndPointKit
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Verify.Denote.OpenVars
 import ConLeche.Verify.Denote.TeleOpen
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.ContInst
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.Inductives.TargetClass
 

@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.Bit
-public import ConLeche.Model.Annot.EnvModel
+public import ConLeche.Model.Reading.DenoteMeta
+public import ConLeche.Model.Env.EnvModel
 public import ConLeche.Semantics.Sat
 public import ConLeche.Verify.Shift
 

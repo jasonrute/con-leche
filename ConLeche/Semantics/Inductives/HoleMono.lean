@@ -20,7 +20,7 @@ the SEMANTIC half of that inversion, over readings (`AnnotTerm`) and
 | `const`: the reduct mentions no hole | `ConstOn.of_noBVar`, `ConstOn.monoOn` |
 | `pi`: hole-free domain, positive codomain, fibres types | `MonoOn.pi` |
 | `holeApp`: a hole applied to hole-free arguments | `MonoOn.holeApp` |
-| `contApp`: a container instance | `Model/Annot/BlockLfpMono.lean`'s container case, through the container's lfp clause |
+| `contApp`: a container instance | `Model/Env/BlockLfpMono.lean`'s container case, through the container's lfp clause |
 
 **The relation.**  A `FrameRel` relates a SMALLER frame to a LARGER
 one: the frames agree off the hole positions (`FrameRel.AgreesOff`) and
@@ -38,7 +38,7 @@ fits it at the larger frame — the operator's fibre grows
 (`LfpDatum.hfits_mono`).  This is the consumer's core: the block
 operator built from the constructor types with holes is monotone as
 soon as every field reading is `MonoOn` the tuple order
-(`Model/Annot/BlockLfpMono.lean`).
+(`Model/Env/BlockLfpMono.lean`).
 
 Nothing here is about `Expr` or the kernel: the run inversion supplies
 each case's premises (`NoBVar` from "the reduct mentions no hole", the

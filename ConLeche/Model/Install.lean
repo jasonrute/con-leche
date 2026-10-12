@@ -1,11 +1,11 @@
 module
 
 public import ConLeche.Model.Tiers
-public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Reading.EnvExtend
+public import ConLeche.Model.Reading.ConsCross
 public import ConLeche.Semantics.ConstsBound
 public import ConLeche.Verify.Extend.Sibs
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 
 public section
 

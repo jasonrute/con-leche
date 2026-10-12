@@ -1,9 +1,9 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Env.EnvModelM
+public import ConLeche.Model.Reading.ConsCross
 import ConLeche.Model.Install
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 
 public section
 

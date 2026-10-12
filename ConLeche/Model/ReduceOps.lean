@@ -13,7 +13,7 @@ recorded certificate run (task #161)
 
 `DeclAxiomRun`'s `ofReduce*` branch needs the innermost membership
 obligation `op a = a`: the `EnvModelM` field `ReduceOps`
-(`Annot/Laws.lean`), which is not derivable (an erasure factoring of
+(`Env/Laws.lean`), which is not derivable (an erasure factoring of
 `interp` is refuted at the very λ-nodes the operation's leaf is made
 of).  This file is its supplier.
 

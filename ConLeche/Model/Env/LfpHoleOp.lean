@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BlockLfp
+public import ConLeche.Model.Env.BlockLfp
 public import ConLeche.Semantics.Tower.BlockTower
 
 public section

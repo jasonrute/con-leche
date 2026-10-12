@@ -6,11 +6,11 @@ module
 -- entry's reading live there, not here.
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitShift
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.Shift
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Verify.Denote.OpenVars
-import ConLeche.Model.Annot.BitClosed
+import ConLeche.Model.Reading.Closed
 import ConLeche.Semantics.DenoteClosed
 
 public section
@@ -19,13 +19,13 @@ public section
 # The ι kit (task #305)
 
 The spine, frame and fit lemmas the ι rule and the three stuck-major
-rescues need, stated over `Model/Annot/BitLemmas.lean`'s
+rescues need, stated over `Model/Reading/Lemmas.lean`'s
 `DenoteMetaSpine` and the `Frame`/`Graded`/`LeavesSub` abbreviations
 of `Motive.lean`:
 
 * the `DenoteMetaSpine` residue only the ι rules use
   (`exists_of_all`); the rest of the spine API is
-  `Model/Annot/BitLemmas.lean`'s, shared;
+  `Model/Reading/Lemmas.lean`'s, shared;
 * `interp_mkAppN_congrK`, `constTy_pkg`, `denoteMeta_const_arityK`;
 * the annotated `take`/`drop`/`getD` list algebra.
 -/
@@ -44,7 +44,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 
 /-! ## The `DenoteMetaSpine` API
 
-`mem` and `getD` are `Model/Annot/BitLemmas.lean`'s; what is left here
+`mem` and `getD` are `Model/Reading/Lemmas.lean`'s; what is left here
 is the residue only the ι rules use. -/
 
 namespace DenoteMetaSpine

@@ -6,7 +6,7 @@ import ConLeche.Model.Inductives.GenRecRules
 import ConLeche.Model.Inductives.GenRecPreRun
 import ConLeche.Model.Inductives.NestedRecRest
 import ConLeche.Model.Inductives.TargetResidue
-import ConLeche.Model.Annot.LpDefF
+import ConLeche.Model.Reading.LpDefF
 import ConLeche.Model.Inductives.GenRecPins
 import ConLeche.Model.Inductives.ClassGenRead
 import ConLeche.Model.Inductives.NestPosOut
@@ -29,7 +29,7 @@ import ConLeche.Model.Inductives.TargetOutSat
 import ConLeche.Model.Inductives.GenRecParams
 import ConLeche.Verify.InferLeaves
 import ConLeche.Verify.CheckerF
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 
 public section
 

@@ -29,11 +29,11 @@ import ConLeche.Model.Inductives.TargetOutIdx
 import ConLeche.Model.Inductives.TargetClasses
 import ConLeche.Model.Inductives.TargetGraph
 import ConLeche.Model.Inductives.NestedRecPins
-import ConLeche.Model.Annot.BlockLfp
-import ConLeche.Model.Annot.BitClosed
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Env.BlockLfp
+import ConLeche.Model.Reading.Closed
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Levels
 import ConLeche.Model.NatEqs
 import ConLeche.Model.IndOpenRev

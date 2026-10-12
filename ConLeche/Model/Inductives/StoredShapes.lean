@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.LfpHoleOp
+public import ConLeche.Model.Env.LfpHoleOp
 public import ConLeche.Semantics.NoBVar
 public import ConLeche.Model.Inductives.BlockData
 public import ConLeche.Model.Inductives.NestPosOut
@@ -12,11 +12,11 @@ public import ConLeche.Model.Inductives.NestPosMono
 import ConLeche.Model.Inductives.BlockHoleRead
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructEntryKit
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.IndPointKit
-import ConLeche.Model.Annot.BitRename
-public import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.ErasedEq
+public import ConLeche.Model.Reading.Inst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Verify.Inductives.DirectGen
 import ConLeche.Verify.Denote.TeleOpen

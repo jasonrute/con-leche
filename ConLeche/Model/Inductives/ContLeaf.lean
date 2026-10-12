@@ -6,15 +6,15 @@ import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.IndStageKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 import ConLeche.Model.Inductives.BlockData
 import ConLeche.Model.Inductives.TargetCallKit
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Model.NatEqs
-import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Env.LfpFormer
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.Inst
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Semantics.Tower.TowerKit
 

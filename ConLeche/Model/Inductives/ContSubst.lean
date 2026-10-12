@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.BitSubstFvars
-import ConLeche.Model.Annot.BitLevels
+public import ConLeche.Model.Reading.SubstFvars
+import ConLeche.Model.Reading.Levels
 import ConLeche.Semantics.Tower.TowerKit
 
 public section
@@ -29,7 +29,7 @@ valuation holding those values (`spineFit_substTele`): the parameter
 frame `⟦ds⟧`, and at each member slot the frame's hole value or the
 member's former.  The Expr half is `Expr.frameCrest_eq`
 (`Verify/SubstFvars.lean`), the reading half `denoteMeta_substFvars`
-(`Model/Annot/BitSubstFvars.lean`), the levels `denotePInstLevels`.
+(`Model/Reading/SubstFvars.lean`), the levels `denotePInstLevels`.
 -/
 
 namespace ConLeche.Model

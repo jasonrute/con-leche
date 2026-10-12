@@ -3,8 +3,8 @@ module
 import ConLeche.Kernel.Inductives.Positivity
 public import ConLeche.Verify.Inductives.ReplaceApps
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Annot.BitLemmas
-public import ConLeche.Model.Annot.Bit
+import ConLeche.Model.Reading.Lemmas
+public import ConLeche.Model.Reading.DenoteMeta
 public section
 
 /-!

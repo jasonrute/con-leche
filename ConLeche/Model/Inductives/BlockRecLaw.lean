@@ -588,7 +588,7 @@ step would accept (inversion of the family's least fixed point,
 discharged at the run).  The rest (`RecRuleExtraNK`: the arity, (S),
 (P), (U)) is passed through. -/
 
-/-- **`RecRuleLaw`'s main conjunct, named** (`Model/Annot/Laws.lean`,
+/-- **`RecRuleLaw`'s main conjunct, named** (`Model/Env/Laws.lean`,
 verbatim). -/
 @[expose] def RecRuleMain {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
@@ -673,7 +673,7 @@ verbatim). -/
 
 /-- **`RecRuleExtra` past its K clause, named**: the constructor's
 arity, and for a rule that is not K the (S), (P), (U) clauses
-(`Model/Annot/Laws.lean`, verbatim). -/
+(`Model/Env/Laws.lean`, verbatim). -/
 @[expose] def RecRuleExtraNK {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
     (_n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=

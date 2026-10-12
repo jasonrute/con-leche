@@ -2,8 +2,8 @@ module
 
 public import ConLeche.Verify.InferLeaves
 public import ConLeche.Semantics.Skeleton
-import ConLeche.Model.Annot.Bit
-import ConLeche.Model.Annot.EnvModel
+import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Model.Env.EnvModel
 public import ConLeche.Model.Currency
 
 public section

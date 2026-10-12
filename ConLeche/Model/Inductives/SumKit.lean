@@ -4,9 +4,9 @@ import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Semantics.Tower.SumTower
 public import ConLeche.Verify.Inductives.DirectInv
 public import ConLeche.Model.Inductives.StructEntryKit
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.Inductives.NestPosMono
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 import ConLeche.Model.IndPointKit
 
 public section

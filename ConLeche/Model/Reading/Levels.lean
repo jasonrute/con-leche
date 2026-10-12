@@ -1,19 +1,18 @@
 module
 
 import ConLeche.Verify.InstLevels
-public import ConLeche.Model.Annot.Bit
-public import ConLeche.Model.Annot.EnvModel
+public import ConLeche.Model.Reading.DenoteMeta
+public import ConLeche.Model.Env.EnvModel
 
 public section
 
 /-!
 # The level crossing for `denoteMeta`: algebra, outright (task #161, P3)
 
-The crossing **is** algebra: `denoteMeta` runs no checker function,
-its binder numerals ride the metas that `Expr.instantiateLevelParams`
-pushes `Level.substPW` through, and `PropWhen.holds_substPW` says the
-pushed datum reads out the composed valuation's bit.  So the theorem
-below is
+The crossing **is** algebra: `denoteMeta` runs no checker function, its
+binders read no level datum, and the sort and constant clauses read the
+instantiated levels through `Level.eval` of the composed valuation.  So
+the theorem below is
 
 * **unconditional** — no checker residue, no `EnvWF`, and
 * an **equality** — there is no fuel, and no run that instantiation
@@ -122,9 +121,9 @@ theorem acval_natPair (m : EnvModel V env)
 
 /-- **The level crossing for `denoteMeta`, unconditional and exact**:
 reading an instantiated term at `φ` is reading the term at the
-composed valuation `Level.substFn φ ks us`.  The binder step is
-`pwBit_substPW` (i.e. `PropWhen.holds_substPW`); the constant step is
-`EnvModel.acval_params` + `Level.substFn_map_subst`. -/
+composed valuation `Level.substFn φ ks us`.  The binder steps are the
+induction hypotheses; the constant step is `EnvModel.acval_params` +
+`Level.substFn_map_subst`. -/
 theorem denotePInstLevels (m : EnvModel V env)
     (φ : Name → Nat) (ks : List Name) (us : List Level) :
     ∀ (d : Nat) (e : Expr),
@@ -238,10 +237,7 @@ theorem denotePInstLevels (m : EnvModel V env)
       | strVal s => exact absurd rfl (hstr s)
 
 /-- **The reading's φ-congruence at the expression's own parameters**
-(the harvest layer's `hAparams` supplier).  The binder numeral's step
-is `PropWhen.holds_ext` at the meta's `paramsDefined` conjunct — which
-is why the datum's footprint is folded into
-`Expr.allLevelParamsDefined` (task #161). -/
+(the harvest layer's `hAparams` supplier). -/
 theorem denoteMeta_params_ext (m : EnvModel V env)
     {ps : List Name} {φ₁ φ₂ : Name → Nat}
     (hφ : ∀ p ∈ ps, φ₁ p = φ₂ p) :

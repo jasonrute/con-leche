@@ -8,7 +8,7 @@ import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Semantics.DefEqStep
 import ConLeche.Semantics.LitStep
-import ConLeche.Model.Annot.BitShift
+import ConLeche.Model.Reading.Shift
 
 public section
 
@@ -66,7 +66,7 @@ theorem DefEq.fvar_soundU {d i : Nat} {ty₁ ty₂ : Expr} :
   rfl
 
 /-- `acval_const_congr'` with `AcvalParams`
-(`Model/Annot/EnvModel.lean`, `acvalParams m`). -/
+(`Model/Env/EnvModel.lean`, `acvalParams m`). -/
 theorem DefEq.const_soundU {d : Nat} {n : Name} {us us' : List Level}
     (h : Level.isEquivList us us' = some true) :
     DefEqSemU m φ d (.const n us) (.const n us') := by

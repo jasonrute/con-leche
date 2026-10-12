@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Verify.Subst
 
 public section
@@ -9,12 +9,10 @@ public section
 # The reading's blindness to erasure (task #161, IND TIER)
 
 **`denoteMeta_erasedEq`** — the reading is blind to exactly what
-`Expr.ErasedEq` ignores.  `ErasedEq` keeps the binder *metadata*
-(`m = m'`), which is the only part of a binder `denoteMeta` reads that
-`denote` does not (`pwBit φ m.pw`).  It ignores binder names and `fvar`
-type annotations, and `denoteMeta`'s binder clauses instantiate with the
-binder's own name and type — so the recursive step goes through
-`Expr.ErasedEq.instantiate1` at two `fvar`s with the same index.
+`Expr.ErasedEq` ignores: `fvar` type annotations.  `denoteMeta`'s
+binder clauses instantiate with the binder's own type, so the
+recursive step goes through `Expr.ErasedEq.instantiate1` at two
+`fvar`s with the same index.
 -/
 
 namespace ConLeche.Model

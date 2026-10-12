@@ -1,7 +1,7 @@
 module
 
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.Inst
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Kernel.Checker
 public import ConLeche.Model.IndDomGrade

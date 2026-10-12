@@ -6,13 +6,13 @@ module
 public import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Verify.PropRead
-import ConLeche.Model.Annot.BitClosed
+import ConLeche.Model.Reading.Closed
 import ConLeche.Verify.InstLevels
 import ConLeche.Semantics.Hoist
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 import ConLeche.Rules.Rigid
 
 public section

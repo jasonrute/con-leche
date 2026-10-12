@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Verify.BinderLoop
 public import ConLeche.Model.Inductives.TowerCons
 public import ConLeche.Model.IndTowerRead
@@ -12,7 +12,7 @@ import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Mono
 import ConLeche.Verify.Subst
 import ConLeche.Kernel.Inductives.StructParts
-import ConLeche.Model.Annot.BitInstall
+import ConLeche.Model.Reading.Install
 import ConLeche.Verify.EnvWF
 import ConLeche.Model.IndFrame
 import ConLeche.Model.IndDomGrade
@@ -21,7 +21,7 @@ import ConLeche.Verify.BridgeWfImp
 import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Model.Tiers
 import ConLeche.Semantics.Tower.SumTower
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 import ConLeche.Verify.Inductives.DirectInv
 
 public section
