@@ -11,7 +11,6 @@ public import ConLeche.Verify.Cached.DiscC3
 public import ConLeche.Verify.Cached.BinderLoopC
 public import ConLeche.Verify.Cached.DiscC4
 public import ConLeche.Verify.Cached.DiscC5
-public import ConLeche.Verify.Cached.DiscC6
 public import ConLeche.Verify.Cached.KnotC
 public import ConLeche.Verify.Cached.SimCS
 public import ConLeche.Verify.Cached.BridgeCS1
