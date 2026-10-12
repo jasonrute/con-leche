@@ -318,6 +318,44 @@ theorem Expr.constsResolve_instantiateLevelParams {env : Env} (ks : List Name)
   intro e
   induction e <;> simp_all [Expr.instantiateLevelParams, Expr.constsResolve]
 
+/-- Resolution survives `piResult` (peeling leading `∀`s keeps every
+constant the residual mentions — task #342 L10, the `RecRuleExtra`
+transport's clause (S)). -/
+theorem Expr.constsResolve_piResult {env : Env} :
+    ∀ {e : Expr}, e.constsResolve env = true → e.piResult.constsResolve env = true
+  | .forallE _ b _, h => by
+      have hb : b.constsResolve env = true := by
+        simp only [Expr.constsResolve, Bool.and_eq_true] at h
+        exact h.2
+      exact Expr.constsResolve_piResult (e := b) hb
+  | .bvar _, h | .sort _, h | .lit _, h | .const _ _, h | .fvar _ _, h
+  | .app _ _, h | .lam _ _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
+      simpa [Expr.piResult] using h
+
+/-- Resolution survives `getAppFn` (peeling an application spine's
+head keeps every constant it mentions). -/
+theorem Expr.constsResolve_getAppFn {env : Env} :
+    ∀ {e : Expr}, e.constsResolve env = true → e.getAppFn.constsResolve env = true
+  | .app f _, h => by
+      have hf : f.constsResolve env = true := by
+        simp only [Expr.constsResolve, Bool.and_eq_true] at h
+        exact h.1
+      exact Expr.constsResolve_getAppFn (e := f) hf
+  | .bvar _, h | .sort _, h | .lit _, h | .const _ _, h | .fvar _ _, h
+  | .lam _ _ _, h | .forallE _ _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
+      simpa [Expr.getAppFn] using h
+
+/-- **A resolving expression's `piResult`'s head constant is stored**
+(task #342 L10): the constructor's stored type resolves (`ConstWF`),
+so the family name heading its result — the one `iotaCtorLicensed`
+looks up — is stored too, hence never the fresh name of a cons. -/
+theorem Expr.find?_isSome_of_piResult_getAppFn_const {env : Env} {e : Expr}
+    {T : Name} {us : List Level} (hres : e.constsResolve env = true)
+    (heq : e.piResult.getAppFn = .const T us) : (env.find? T).isSome = true := by
+  have h2 := Expr.constsResolve_getAppFn (Expr.constsResolve_piResult hres)
+  rw [heq] at h2
+  simpa [Expr.constsResolve] using h2
+
 /-- Extending with a fresh, well-formed constant preserves `EnvWF`. -/
 theorem EnvWF.cons {c : ConstantInfo} {env : Env}
     (henv : EnvWF env)
