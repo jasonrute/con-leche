@@ -646,7 +646,9 @@ about one rule, stated over the environment's laws and never over the
 implementation, at one valuation at a time. β's lemma reads no premise:
 a redex that is not the point has a λ that is not the point, which is
 a function on its own domain, and the argument's typing puts the
-argument there. The ι rules, the literal accelerations and the
+argument there. The literal accelerations read the argument's domain
+off the operation's graph, `Nat`, and equate the argument with its
+literal inside that type. The ι rules and the
 definitional-equality rules are proved by a second, unconditional
 induction, which reads β's certificate; they reach the conditional
 claims by weakening

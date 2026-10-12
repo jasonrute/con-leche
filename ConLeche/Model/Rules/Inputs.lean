@@ -20,14 +20,17 @@ each of them off the fold's invariant.
 
 Three fields are NEW SHAPES:
 
-* `NatSuccRow` / `NatOpRow` / `NatOpHead` — the literal accelerations' semantic
+* `NatSuccRow` / `NatOpRow` — the literal accelerations' semantic
   content, stated at the shapes `reduceNat` fires on with the
   arguments already at literal readings (`rawNatLit?`), and with the
-  subject's reading a premise.  They are proved in
-  `Model/NatStep.lean` from `EnvModelM.nat_ops`/`div_mod`, which is
-  where the content lives; they stay ARGUMENTS of `ofEnvModelM`
-  because that file sits above this one (`Model/Capstone.lean`'s
-  `RulesInputs.ofSem` supplies them).
+  subject's reading a premise;
+* `NatOpHead` — a fired operation's head is a function over the `Nat`
+  leaf (its pinned type), whence its arguments' domain.
+
+The three are proved in `Model/NatStep.lean` from
+`EnvModelM.nat_ops`/`div_mod`, which is where the content lives; they stay
+ARGUMENTS of `ofEnvModelM` because that file sits above this one
+(`Model/Capstone.lean`'s `RulesInputs.ofSem` supplies them).
 
 The row for the `Red.natLit` step (`lit n ↦ natLitToConstructor n`)
 needs no input: the reading is invisible to the step
