@@ -72,10 +72,10 @@ def CheckMode.verifiedChecks : CheckMode → Bool
 retirement, 2026-09-06): the work the checker does *only* so the
 soundness proof can consume it, and that the reference kernel does not
 do — the telescope certificates and the canonical-index comparison of
-ι where the ι licence does not hold (`iotaRecI`), the plain-rule
-parameter re-comparison, and the K rescue's telescope and
+ι where the ι licence does not hold (`iotaRecI`), the case-3
+parameter comparison, and the K rescue's telescope and
 proof-irrelevance certificates (`majorToCtorI`).  Read through
-`ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI`; `true` runs
+`ConLeche/Cached/CoreC.lean`'s `certAtI`; `true` runs
 them, `false` (the trusted mode) skips them outright.
 
 **Why a second function beside `verifiedChecks`**, when the two agree

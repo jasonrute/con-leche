@@ -18,7 +18,8 @@ public section
 The install (`tgtStoredRules`) stores every rule of a recursor
 whose major is OUTSIDE its block (a nested block's container) as
 `auxRuleFireR` reads it: `.nested lvls pins`, the syntactic reading of
-the recursor type's major domain (`Expr.nestedRuleSyn`), or `.inert`.
+the recursor type's major domain (`Expr.nestedRuleSyn`; the install
+has checked that it reads, `tgtNestedReads`).
 That every such rule satisfies `EnvWF`'s `.nested` clause is
 `envWF_consBlockRecsT` (`Verify/Cached/TargetRecC.lean`), by
 `nestedRuleSyn_inv`.

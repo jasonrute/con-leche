@@ -754,8 +754,8 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
   obtain ⟨out', hout, h⟩ := exceptBind_ok h
   obtain ⟨u8, -, h⟩ := exceptBind_ok h
   by_cases hreads : tgtNestedReads (·.constsResolveF fe) p 0 out' = true
-  case neg => rw [if_neg hreads] at h; close_throw h
-  rw [if_pos hreads] at h
+  case neg => rw [ite_eq_right hreads] at h; close_throw h
+  rw [ite_eq_left hreads] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
   subst h
   simp only [Bool.not_eq_true] at helim

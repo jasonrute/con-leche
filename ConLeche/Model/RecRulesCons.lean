@@ -289,7 +289,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
             (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm
       exact hok ρ zs TVa' restR hzl hzok hTVa' hfit
   · intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl
-      hψ hpin hTVa hTVja hfitR hfitC
+      hψ hyWD hpin hTVa hTVja hfitR hfitC
     -- **the environment invariant, not the cons's kind**: the rule's
     -- constructor is stored, and the cons is fresh
     have hnC : RecRule.ctor rl ≠ c₀.name := by
@@ -326,7 +326,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     rw [hac, acvalWith_ne hnC] at hfitR hpin
     rw [hac, acvalWith_ne hnN, acvalWith_ne hnC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
-      hujl hψ hpin hTVa' hTVja' hfitR hfitC
+      hujl hψ hyWD hpin hTVa' hTVja' hfitR hfitC
 
 /-- **The fired iota contract survives a fresh cons that is
 not itself a recursor** — `recRuleLaw_cons_prefix` at every stored

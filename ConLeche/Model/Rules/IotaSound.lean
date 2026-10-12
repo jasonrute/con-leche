@@ -239,7 +239,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   by_cases hk : rl.k = true
   · -- **K**: the law at the recursor's own parameters; the major is not read
     obtain ⟨hnf0, hKlaw⟩ := hK hk
-    obtain ⟨heqK, htrK⟩ := hKlaw Ra hRa0 ρ (xs.take mI) _ restR hxs0len hfitRVal
+    obtain ⟨heqK, htrK⟩ := hKlaw Ra hRa0 ρ (xs.take mI) _ restR hxs0len hfitRVal hoX0
     have hysdrop : ys.drop (RecRule.ctorParams rl) = [] :=
       List.drop_of_length_le (by rw [hlenYs, hnf0, Nat.add_zero]; exact Nat.le_refl _)
     have hred : xs.take rP ++ ys.drop (RecRule.ctorParams rl) = (xs.take mI).take rP := by
@@ -586,7 +586,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       hplainC hnestedC hpinC
   -- **fire the law**
   obtain ⟨heqLaw, htrans⟩ := hlaw cvj cnP cnF hctor usj ρ (xs.take mI) ys
-    TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hpinU
+    TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hoY hpinU
     (hTVaD 0) (hTVjaD 0) hfitR' hfitC
   rw [List.take_take, Nat.min_eq_left hrPle] at heqLaw htrans
   have hsubj : interp V ρ (AnnotTerm.mkAppN

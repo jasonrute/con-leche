@@ -579,6 +579,7 @@ at its own levels:
       ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
         xs.length = mI →
         TeleFitPA V ρ TVa (xs ++ [a]) restR →
+        (∀ x ∈ xs, WellDenotedV V ρ x) →
         interp V ρ (AnnotTerm.mkAppN
             (m.acval n (Level.substFn φ cv.levelParams us)) (xs ++ [a]))
           = interp V ρ (AnnotTerm.mkAppN Ra (xs.take rP)) ∧
@@ -693,6 +694,10 @@ section note). -/
           = Level.substFn φ cvj.levelParams
               (ConLeche.recFireComparands rl cv.levelParams us
                 cvj.levelParams [] rP).1 →
+        -- the fired spine is graded (task #342 S5b: the constructor's own
+        -- parameters are not compared outside case 3; its application is
+        -- read at them, `genOutCtorOwn`)
+        (∀ y ∈ ys, WellDenotedV V ρ y) →
         -- the index pin, owed only where the fired constructor application
         -- is the point (task #342 L10: a family never `Prop` at the
         -- instance fires with no index comparison; the law reads the pin

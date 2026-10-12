@@ -309,8 +309,7 @@ cons at a rules function `R` whose stored
 rules have the SHAPE (`RecRulesShape`), the `.nested` firings' pins
 facts (`hnest`), the stage's record at any majors (`RecStageG`), the
 stored names distinct (`hnd`), the LEAF's facts with the family premise
-(`BlockRecLeafOk`) and the rule seam (`hnew`, at every non-`.inert`
-firing). -/
+(`BlockRecLeafOk`) and the rule seam (`hnew`). -/
 theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : BlockParts} {cvTas : List ConstantVal}
     {ctorsAs : List (List (ConstantVal × Nat))}
@@ -328,7 +327,6 @@ theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
       ∃ cvj cnP cnF, envC.find? cA.1.name = some (.ctorInfo cvj cnP cnF))
     (hleaf : BlockRecLeafOk mpC rs s eqs)
     (hnew : AtStoredRules mpC R p rs s eqs nPc fireOf fun m₃ φ j r _ _ _ rl =>
-      fireOf j r ≠ .inert →
         RecRuleLaw m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j)
           (p.toBlockShape.rulePrefixAt j) rl) :
     BlockRecStagedAt (V := V) μ envC (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC)

@@ -177,8 +177,8 @@ theorem instPisAt_isSome_of_stripPis :
 
 /-! ## The rule-shape residue
 
-The four `V`-free facts about `recRulePlain` and `recFireComparands`
-that the recursor-group installs read. -/
+The `V`-free facts about `recFireComparands` that the recursor-group
+installs read. -/
 
 /-- The fire comparand levels of a plain rule. -/
 theorem recFireComparands_plain {rl : RecRule} {lps : List Name}

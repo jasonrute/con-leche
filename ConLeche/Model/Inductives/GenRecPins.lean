@@ -412,9 +412,8 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     cases hm : (ConLeche.tgtMajorsOf out j).member with
     | none => rfl
     | some t =>
-      revert hf
-      simp only [ConLeche.tgtFireOf, hm]
-      split <;> simp
+      simp only [ConLeche.tgtFireOf, hm] at hf
+      exact nomatch hf
   unfold ConLeche.tgtFireOf at hf
   rw [hMo] at hf
   simp only [ConLeche.auxRuleFireR] at hf
