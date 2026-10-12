@@ -265,7 +265,7 @@ theorem classMajorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {
 /-- **One class key made checkable**: its parameters scoped at
 the parameter count (the guard keeps every free variable a canonical
 parameter). -/
-theorem classKeyOfS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
+theorem classKeyOfS_sim {nP : Nat}
     {params : List Expr} (hpl : params.length = nP) (hp : ∀ x ∈ params, WScoped nP x)
     (k : ClassKey) {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun v w => v = w ∧ ∀ x ∈ v.ds, WScoped nP x)
@@ -302,7 +302,7 @@ theorem classKeysLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     exact SimC.pure hs ⟨rfl, fun k hk => hbs k (List.mem_reverse.mp hk)⟩
   | a :: l, bs, _, hs, hbs => by
     simp only [List.mapM.loop]
-    refine SimC.bind (classKeyOfS_sim hμ henv hpl hp a hs) (fun s₁ b b' hs₁ hB => ?_)
+    refine SimC.bind (classKeyOfS_sim hpl hp a hs) (fun s₁ b b' hs₁ hB => ?_)
     obtain ⟨rfl, hwb⟩ := hB
     exact classKeysLoopS_sim hμ henv hpl hp l (b :: bs) hs₁ (fun k hk => by
       rcases List.mem_cons.mp hk with rfl | hk
