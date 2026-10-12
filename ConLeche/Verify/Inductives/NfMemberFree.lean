@@ -641,7 +641,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           exact ihCore hbeta (Expr.occDeep_instantiate1 he.2 body 0 hf'.2)
         · obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj,
             cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
-            hmfn, hfj, hrule, hml, -, hlev, hpeq, hmcerts, -, rfl⟩ :=
+            hmfn, hfj, hrule, hml, hlev, hpeq, hmcerts, -, rfl⟩ :=
             iotaRec_inv hio
           have hc : c ∉ names := Expr.not_mem_of_getAppFn happ hfn
           have hmaj : major.occDeep names = false :=

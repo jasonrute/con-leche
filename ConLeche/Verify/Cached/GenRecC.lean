@@ -746,8 +746,11 @@ theorem genRecCheckS_simG (hμ : mode.verifiedChecks = true) {env₂ : Env}
   refine SimG.bind (classRecsRulesOkS_simG (envT := env₂) hμ henvR cvGs rd.recCls)
     fun out out' hO => ?_
   obtain rfl : out = out' := hO
-  exact SimG.bind (flushC_simG.mono (fun _ h => CSOKAll.residue h) (fun _ h => h))
-    fun _ _ _ => SimG.pure (fun _ h => h) rfl
+  refine SimG.bind (flushC_simG.mono (fun _ h => CSOKAll.residue h) (fun _ h => h))
+    fun _ _ _ => ?_
+  split
+  · exact SimG.pure (fun _ h => h) rfl
+  · exact SimG.throw_bind
 
 /-- **The generated recursor stage at the cached driver** is reproduced
 by the pure fueled stage. -/

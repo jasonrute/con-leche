@@ -284,7 +284,7 @@ premises, discharged per instance. -/
 parameter count. -/
 @[expose] def sumRulesR (find? : Name → Option ConstantInfo) (q : BlockShape) (nP : Nat) :
     Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List RecRule :=
-  fun m r => sumRules find? r.1.name nP (q.majorIdxAt m) (q.rulePrefixAt m) r.1.type r.2.2.2 r.2.1
+  fun _ r => sumRules find? r.1.name nP r.2.2.2 r.2.1
 
 /-- **`consBlockRecs` is the generic cons at `sumRulesR`.** -/
 theorem consBlockRecs_eq_R (find? : Name → Option ConstantInfo) (q : BlockShape) (nP : Nat) :

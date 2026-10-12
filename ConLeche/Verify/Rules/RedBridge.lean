@@ -232,7 +232,7 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     (h : iotaRecFueled .verified env fuel d e = .ok (some e'')) :
     Red env d e e'' := by
   obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP, cnF, rl,
-    hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hplain, hlev, hpeq,
+    hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hlev, hpeq,
     h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
     prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
@@ -244,19 +244,19 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     exact peelPis_isSome_instantiateLevelParams _ _ _ (iotaRec_arity h hfn hfc)
   by_cases hne : mI = rP
   · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-      hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
+      hlev (fun hc => defEqList_bridge hd (hpeq hc))
       harity
       (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
       (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
   · by_cases hc3 : iotaCase3 env.find? rl cvj usj = true
     · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv (h3 hc3).2 hne
       exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-        hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
+        hlev (fun hc => defEqList_bridge hd (hpeq hc))
         harity
         (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
         (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
     · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
-        hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
+        hlev (fun hc => defEqList_bridge hd (hpeq hc))
         harity
         (fun hc => absurd hc hc3)
         (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)

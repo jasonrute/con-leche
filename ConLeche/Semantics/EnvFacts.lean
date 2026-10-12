@@ -65,7 +65,7 @@ structure EnvFacts (env : Env) where
   defn_eq : ∀ cv value hint,
     ConstantInfo.defnInfo cv value hint ∈ env.consts → ∀ ψ : Name → Nat,
       denoteClosed cval env ψ value = some (cval cv.name ψ)
-  /-- **Every stored fireable recursor rule's right-hand side denotes**,
+  /-- **Every stored recursor rule's right-hand side denotes**,
   at every instantiation of the recursor's level parameters.
 
   `ty_denotes` covers stored *types*; a rule's `rhs` is not one.
@@ -76,7 +76,7 @@ structure EnvFacts (env : Env) where
   the ι rule's `denoteClosed` side condition. -/
   rec_rhs_denotes : ∀ n cv mI rP rules,
     env.find? n = some (.recInfo cv mI rP rules) →
-    ∀ r ∈ rules, RecRule.fire r ≠ .inert →
+    ∀ r ∈ rules,
       ∀ (us : List Level) (ψ : Name → Nat),
         us.length = cv.levelParams.length →
         ∃ R, denoteClosed cval env ψ
@@ -88,7 +88,7 @@ structure EnvFacts (env : Env) where
   `mI < rP`).  Backed by `rec_rules`' `RecRuleLaw`. -/
   rec_params_le : ∀ n cv mI rP rules,
     env.find? n = some (.recInfo cv mI rP rules) →
-    ∀ r ∈ rules, RecRule.fire r ≠ .inert → rP ≤ mI
+    ∀ r ∈ rules, rP ≤ mI
   /-- Every stored native projection-table entry is a pinned pair entry
   with its block stored (`ProjOkT`).  Syntactic; the projection
   clauses need it to identify the entry's type as a *concrete* closed

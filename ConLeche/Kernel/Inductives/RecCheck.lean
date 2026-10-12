@@ -586,13 +586,27 @@ syntactic reading of the recursor type's major domain
 (`Expr.nestedRuleSyn`, the major's parameter count `nPc`, constants
 resolving by `resolves`) — `.nested lvls pins`, with `pins` the major's
 parameters lowered into the rule-prefix context, whose guards are
-`EnvWF`'s `.nested` clause (`nestedRuleSyn_inv`); `.inert` when the
-reading fails (a matched major then declines at fire time; measured
-never to happen at a checked outside major). -/
+`EnvWF`'s `.nested` clause (`nestedRuleSyn_inv`).  The install has
+checked that the reading succeeds at every outside major
+(`tgtNestedReads`, `genRecCheck`); the `.plain` arm only makes the
+function total. -/
 def auxRuleFireR (resolves : Expr → Bool) (cv : ConstantVal) (mI rP nPc : Nat) : RecRuleFire :=
   match Expr.nestedRuleSyn resolves cv.levelParams cv.type mI rP nPc with
   | some (lvls, pins) => .nested lvls pins
-  | none => .inert
+  | none => .plain
+
+/-- **Every auxiliary recursor's major domain reads** (`Expr.nestedRuleSyn`
+at the recursor in position `m`, the major's parameter count): the
+condition under which every rule `tgtStoredRules` stores at an outside
+major is `.nested`.  `genRecCheck` checks it of the checked family. -/
+def tgtNestedReads (resolves : Expr → Bool) (p : BlockShape) :
+    Nat → List (ConstantVal × TargetMajor × List Expr) → Bool
+  | _, [] => true
+  | m, (cv, M, _) :: rest =>
+    (M.member.isSome ||
+      (Expr.nestedRuleSyn resolves cv.levelParams cv.type (p.majorIdxAt m) (p.rulePrefixAt m)
+        M.nPc).isSome) &&
+    tgtNestedReads resolves p (m + 1) rest
 
 /-- **One checked recursor's stored rules, at its major**: `sumRules` at the
 MAJOR's parameter count and constructors;
@@ -601,7 +615,7 @@ fires as `auxRuleFireR` reads it (`.nested` at the major's
 instantiation), at a member major as `sumRules` builds it. -/
 def tgtStoredRules (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
     (cv : ConstantVal) (mI rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
-  let rules := sumRules find? cv.name M.nPc mI rP cv.type M.ctors rhss
+  let rules := sumRules find? cv.name M.nPc M.ctors rhss
   match M.member with
   | none => rules.map fun rl => { rl with fire := auxRuleFireR resolves cv mI rP M.nPc }
   | some _ => rules

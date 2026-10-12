@@ -21,8 +21,8 @@ implementation: what
 the trusted mode omits is exactly what `mode.verifiedChecks` gates
 here (group A: the λ-codomain sort check, the η body-type comparison,
 the λ/λ body-type comparison, the projection certificate) plus what
-`mode.certs` gates (the certificate families: every `certAtI` /
-`certUnlessI` site), and nothing else (DESIGN.md, "CORET
+`mode.certs` gates (the certificate families: every `certAtI`
+site), and nothing else (DESIGN.md, "CORET
 RETIRED").  Every read is a `match` on the two-constructor enum
 (`ConLeche/Kernel/Env.lean`), so at either literal mode it reduces by
 `rfl` and the branch is gone, not collapsed.
@@ -244,7 +244,7 @@ at the end of this module (`…PC` at `.verified`, `…TC` at `.trusted`;
 the `…RC` half retired with the R core, 2026-09-05).  Every read below
 is one of the `CheckMode` functions of `ConLeche/Kernel/Env.lean`, each
 a `match` on the enum.  The ι cone (`majorToCtorI` → `prepareMajorI`
-→ `iotaRecI`) reads the mode through `certAtI`/`certUnlessI`. -/
+→ `iotaRecI`) reads the mode through `certAtI`. -/
 variable (mode : CheckMode)
 
 /-! ### The certificate-family switch (the twin's retirement, 2026-09-06)
@@ -252,8 +252,8 @@ variable (mode : CheckMode)
 `CheckMode.certs` (`ConLeche/Kernel/Env.lean`) is the task-#76 skip
 list as a mode function: the certificate families the reference
 kernel does not run and only the soundness proof consumes.  Every such
-certificate below is spelled through one of the two wrappers here, so
-the list of `certAtI`/`certUnlessI` sites **is** the list of what the
+certificate below is spelled through the wrapper here, so
+the list of `certAtI` sites **is** the list of what the
 trusted core omits beyond group A.  At `.verified` the function is `true`, so `certAtI .verified
 c` is `c` by `rfl` (`certAtI_verified`); the simulation tower
 (`ConLeche/Verify/Cached/*`), stated under `hμ : mode.verifiedChecks =
@@ -265,14 +265,6 @@ families; otherwise it is `true` without running. -/
 @[inline] def certAtI (mode : CheckMode) (c : CheckCM Bool) : CheckCM Bool :=
   if mode.certs then c else pure true
 
-/-- `certAtI` with a *verdict-relevant* exception: `keep = true` runs
-the check at every mode (the twin's judgement at ι's parameter
-comparison — nested-rule comparands and projection-function rules
-compare in both modes, ordinary plain rules only when certifying). -/
-@[inline] def certUnlessI (mode : CheckMode) (keep : Bool) (c : CheckCM Bool) :
-    CheckCM Bool :=
-  if mode.certs || keep then c else pure true
-
 /-- At a mode running the certificate families the wrapper is the
 certificate — the simulation tower's blindness to the switch, under
 its `hμ`. -/
@@ -280,10 +272,6 @@ its `hμ`. -/
     (hμ : mode.verifiedChecks = true) (c : CheckCM Bool) :
     certAtI mode c = c := by
   cases mode <;> simp_all [certAtI, CheckMode.certs, CheckMode.verifiedChecks]
-@[simp] theorem certUnlessI_of_verifiedChecks {mode : CheckMode}
-    (hμ : mode.verifiedChecks = true) (keep : Bool) (c : CheckCM Bool) :
-    certUnlessI mode keep c = c := by
-  cases mode <;> simp_all [certUnlessI, CheckMode.certs, CheckMode.verifiedChecks]
 /-- … and at the two modes the wrapper is the certificate or the
 constant `true`, by `rfl`. -/
 @[simp] theorem certAtI_verified (c : CheckCM Bool) :
@@ -636,40 +624,32 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
             match rules.find? (fun r' => r'.ctor == cjn) with
             | some rl => do
               let margs ← pure (Expr.getAppArgsC major)
-              if margs.length = rl.ctorParams + rl.nfields then
-               if rl.fire = .inert then
-                 throw (.notImplemented
-                   "iota reduction over a nested auxiliary recursor rule")
-               else do
+              if margs.length = rl.ctorParams + rl.nfields then do
                 -- (the ι batch: the two `stripPis` pins are gone — see
                 -- the spec's `iotaRec`)
-                -- the comparands (canonical: recursor's levels/args;
-                -- nested: the stored major-domain instantiations)
+                -- the level comparands (plain: the recursor's levels;
+                -- nested: the stored major-domain instantiation)
                 let cmpLvls : List Level ←
                   match rl.fire with
                   | .nested lvls _ => substLevelTreesM cv.levelParams us lvls
-                  | _ =>
+                  | .plain =>
                     substLevelTreesM cv.levelParams us
                       (cvj.levelParams.map Level.param)
-                let cmpArgs : List Expr ←
-                  match rl.fire with
-                  | .nested _ pins =>
-                    pinArgsI cv.levelParams us (args.take rP) (rP - 1) pins
-                  | _ => pure (args.take rl.ctorParams)
                 if ← liftFueled "level comparison"
                     (← isEquivListLM usj cmpLvls) then do
-                 -- the parameter comparison: run where the rule asks
-                 -- for it (`RecRule.compareParams`; official's
-                 -- `inductive_reduce_rec` compares nothing) and at every
-                 -- case-3 redex (`iotaCompares`, task #342 L10).  Where
-                 -- it is run it is verdict-relevant for a nested rule
-                 -- (the comparands ARE the pins), and a certificate
-                 -- family for a plain rule (case 3)
-                 if ← (if iotaCompares fe.find? rl cvj usj then
-                    certUnlessI mode
-                      (match rl.fire with | .nested _ _ => true | _ => false)
-                      (defEqListI r fe depth (margs.take rl.ctorParams)
-                        cmpArgs)
+                 -- the parameter comparison, a certificate at a case-3
+                 -- redex only (task #342 L10, S5b; official's
+                 -- `inductive_reduce_rec` compares nothing): the
+                 -- comparands (plain: the recursor's leading arguments;
+                 -- nested: the stored pins at them) are built only there
+                 if ← (if iotaCase3 fe.find? rl cvj usj then
+                    certAtI mode (do
+                      let cmpArgs : List Expr ←
+                        match rl.fire with
+                        | .nested _ pins =>
+                          pinArgsI cv.levelParams us (args.take rP) (rP - 1) pins
+                        | .plain => pure (args.take rl.ctorParams)
+                      defEqListI r fe depth (margs.take rl.ctorParams) cmpArgs)
                     else pure true) then do
                   -- ONE certificate family: at a case-3 redex (task #342
                   -- L10: not K, the constructor's family may be `Prop` at

@@ -481,15 +481,13 @@ theorem consBlockRecsT_eq_R (find? : Name → Option ConstantInfo) (resolves : E
   consBlockRecsT_eq_R_gen find? resolves q _ 0 out env fun i t ht => by
     simp [tgtMajorsOf, List.getD_eq_getElem?_getD, ht]
 
-/-- The install's firing at position `j`: `.nested` (or
-`.inert`) as `auxRuleFireR` reads it at an OUTSIDE major, `sumRules`'
-test at a member one. -/
+/-- The install's firing at position `j`: `.nested` as `auxRuleFireR`
+reads it at an OUTSIDE major, `.plain` at a member one. -/
 @[expose] def tgtFireOf (resolves : Expr → Bool) (q : BlockShape) (Ms : Nat → TargetMajor)
     (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) : RecRuleFire :=
   match (Ms j).member with
   | none => auxRuleFireR resolves r.1 (q.majorIdxAt j) (q.rulePrefixAt j) (Ms j).nPc
-  | some _ => if Expr.recRulePlain r.1.type (q.majorIdxAt j) (q.rulePrefixAt j) (Ms j).nPc
-      then .plain else .inert
+  | some _ => .plain
 
 /-- **A `.nested` firing is an outside major's reading**, with its
 guards (`nestedRuleSyn_inv`): `EnvWF`'s clause at `resolves`. -/
@@ -520,7 +518,55 @@ theorem tgtFireOf_nested {resolves : Expr → Bool} {q : BlockShape} {Ms : Nat �
       obtain ⟨h1, h2, h3, pre, dom, body, bm, D, hs, hfn, hargs, -⟩ := nestedRuleSyn_inv hsyn
       exact ⟨h1, h2, h3, pre, dom, body, bm, D, hs, hfn, hargs⟩
     · exact nomatch h
-  · split at h <;> exact nomatch h
+  · exact nomatch h
+
+/-- **The install's reading check, at one position** (`tgtNestedReads`). -/
+theorem tgtNestedReads_getElem {resolves : Expr → Bool} {q : BlockShape} :
+    ∀ {m : Nat} {out : List (ConstantVal × TargetMajor × List Expr)},
+      tgtNestedReads resolves q m out = true →
+      ∀ {j : Nat} {t : ConstantVal × TargetMajor × List Expr}, out[j]? = some t →
+        t.2.1.member = none →
+        (Expr.nestedRuleSyn resolves t.1.levelParams t.1.type (q.majorIdxAt (m + j))
+          (q.rulePrefixAt (m + j)) t.2.1.nPc).isSome = true
+  | _, [], _, _, _, ht, _ => nomatch ht
+  | m, (cv, M, rhss) :: rest, h, j, t, ht, hm => by
+    simp only [tgtNestedReads, Bool.and_eq_true, Bool.or_eq_true] at h
+    cases j with
+    | zero =>
+      obtain rfl := Option.some.inj ht.symm
+      rcases h.1 with h1 | h1
+      · rw [hm] at h1; exact nomatch h1
+      · exact h1
+    | succ j =>
+      have := tgtNestedReads_getElem h.2 (j := j) (by simpa using ht) hm
+      rwa [show m + 1 + j = m + (j + 1) by omega] at this
+
+/-- **At a checked family every outside major's rules fire `.nested`**:
+the install has checked that each auxiliary recursor's major domain
+reads (`tgtNestedReads`, `genRecCheck`). -/
+theorem tgtFireOf_nested_of_reads {resolves : Expr → Bool} {q : BlockShape}
+    {out : List (ConstantVal × TargetMajor × List Expr)}
+    (h : tgtNestedReads resolves q 0 out = true)
+    {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajorsOf out j).member = none) :
+    ∃ lvls pins, tgtFireOf resolves q (tgtMajorsOf out) j r = .nested lvls pins := by
+  obtain ⟨t, ht, rfl⟩ : ∃ t, out[j]? = some t ∧ r = (t.1, t.2.2, t.2.1.nIdx, t.2.1.ctors) := by
+    simp only [tgtRs, List.getElem?_map] at hr
+    cases ho : out[j]? with
+    | none => rw [ho] at hr; exact nomatch hr
+    | some t => rw [ho] at hr; exact ⟨t, rfl, (Option.some.inj hr).symm⟩
+  have hM : tgtMajorsOf out j = t.2.1 := by
+    simp [tgtMajorsOf, List.getD_eq_getElem?_getD, ht]
+  rw [hM] at hm
+  have hs := tgtNestedReads_getElem h ht hm
+  rw [Nat.zero_add] at hs
+  unfold tgtFireOf auxRuleFireR
+  rw [hM, hm]
+  dsimp only
+  cases hsyn : Expr.nestedRuleSyn resolves t.1.levelParams t.1.type (q.majorIdxAt j)
+      (q.rulePrefixAt j) t.2.1.nPc with
+  | none => rw [hsyn] at hs; exact nomatch hs
+  | some lp => exact ⟨lp.1, lp.2, rfl⟩
 
 /-- **The install's rules have the shape**, at each major's
 parameter count and `tgtFireOf`. -/

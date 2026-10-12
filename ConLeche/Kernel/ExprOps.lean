@@ -1341,23 +1341,6 @@ def instSpine : List Expr → Nat → Expr → Expr
   | [], _, e => e
   | a :: as, t, e => instSpine as (t - 1) (e.instantiate1 a t)
 
-/-- A recursor rule is *canonical* when its constructor's parameters
-are exactly the recursor's own leading arguments: the major premise's
-type applies the eliminated family to the first `cnP` telescope
-variables.  Rules for nested auxiliary constructors (whose parameters
-are instantiations like `Array Syntax`) are not canonical; they are
-stored `.nested` when the syntactic reading succeeds (`nestedRuleSyn`
-below) and `.inert` otherwise —
-`iotaRec` never fires an inert rule, so it carries no fold
-obligation. -/
-def recRulePlain (recTy : Expr) (mI rP cnP : Nat) : Bool :=
-  decide (cnP ≤ rP) && decide (rP ≤ mI) &&
-  match recTy.stripPis mI with
-  | some (_, .forallE dom _ _) =>
-    dom.getAppArgs.take cnP ==
-      (List.range cnP).map (fun k => Expr.bvar (mI - 1 - k))
-  | _ => false
-
 /-- **The syntactic reading of a nested rule's instantiation**: the
 major's level and parameter instantiations, read off the
 recursor type's major-premise domain

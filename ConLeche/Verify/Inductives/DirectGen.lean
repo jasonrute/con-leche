@@ -696,15 +696,13 @@ theorem Level.isNeverZero_sound (φ : Name → Nat) :
 
 /-- A stored rule is constructor `j`'s rule at right-hand side `j`. -/
 theorem sumRules_getElem? {find? : Name → Option ConstantInfo}
-    {recName : Name} {nP mI rP : Nat} {recTy : Expr} :
+    {recName : Name} {nP : Nat} :
     ∀ {ctorsA : List (ConstantVal × Nat)} {rhss : List Expr} {r : RecRule},
-      r ∈ sumRules find? recName nP mI rP recTy ctorsA rhss →
+      r ∈ sumRules find? recName nP ctorsA rhss →
       ∃ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
         ctorsA[j]? = some cA ∧ rhss[j]? = some rhs ∧
         r = recRuleBits find? recName
-          { ctor := cA.1.name, nfields := cA.2, ctorParams := nP,
-            fire := if Expr.recRulePlain recTy mI rP nP then .plain
-              else .inert,
+          { ctor := cA.1.name, nfields := cA.2, ctorParams := nP, fire := .plain,
             rhs := rhs }
   | [], _, r, h => by simp [sumRules] at h
   | _ :: _, [], r, h => by simp [sumRules] at h
