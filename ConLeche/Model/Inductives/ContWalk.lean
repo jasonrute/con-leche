@@ -545,7 +545,7 @@ theorem crest_frameT {Δh : List AnnotTerm} (hΔ : Δh.length = hi)
     refine CtxOkP.extend (by simp [grpTys]) hΔ fun l hl => ?_
     rcases hleaves l hl with ⟨x, hx, hlx⟩ | ⟨i, hi', rfl⟩
     · exact Or.inl ((hCds x hx).2 l hlx)
-    · obtain ⟨hw, -, -, mm, cv, caps, -, -, -, abF, -, -, -, -, hta⟩ :=
+    · obtain ⟨hw, -, -, mm, cv, caps, -, -, -, abF, -, -, -, hta⟩ :=
         grp_typeT mp hD hlps hnd hul hds hdsa hlenP hgT (List.getElem_mem hi')
       have hread : denoteMeta mp.base2.acval env φ (hi + i) grp[i].2
           = some ((mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default)
