@@ -139,7 +139,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
       (∀ r ∈ ls, ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (acv r.1.name ψ)) →
       (∀ r ∈ ls, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
         denoteMeta mp.base2.acval env ψ 0 r.1.type = some ta ∧
-        (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+        (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
         (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta)) →
       ∃ mp' : EnvModelM V μ (consBlockRecsBare q m ls env), mp'.base2.acval = acv
   | _, [], env, mp, _, _, _, _, _, hag, _, _, _, _, _, _ =>
@@ -160,7 +160,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
         denoteMeta (acvalWith mp.base2.acval r0.1.name (acv r0.1.name))
             ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts⟩ ψ 0
             r0.1.type = some ta ∧
-          (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+          (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
           (∀ ρ : Nat → V, interp V ρ (acv r0.1.name ψ) ∈ˢ interp V ρ ta) := by
       intro ψ
       obtain ⟨ta, hta, hokta, hmemta⟩ := hrd r0 hmem0 ψ
@@ -544,7 +544,7 @@ variable {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List Rec
   (hval : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (acv r.1.name ψ))
   (hrd : ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
     denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
-    (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+    (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
     (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta))
 
 include mpC hnd hfr hnres hpsh hty hag hcl hlift hpar hok hval hrd
