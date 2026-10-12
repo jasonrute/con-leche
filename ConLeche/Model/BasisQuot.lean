@@ -2211,6 +2211,93 @@ theorem quotLiftRa_app {E : AnnotTerm} {b u v : Nat}
 
 /-! ### The row -/
 
+/-- **`Quot.lift`'s licence facts**: as `quotIndExtra`, the major's
+domain read off the sixth binder. -/
+theorem quotLiftExtra {m : EnvModel V env}
+    (m₂ : EnvModel V ⟨quotLiftA :: env.consts⟩)
+    (hQ : env.find? quotName = some quotA)
+    (hM : env.find? quotMkName = some quotMkA)
+    (hE : env.find? eqName = some eqA)
+    (hac : m₂.acval = acvalWith m.acval quotLiftA.name
+      (fun ψ => AnnotTerm.const .quotLift [ψ uN, ψ vN]))
+    (φ : Name → Nat) :
+    RecRuleExtra m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
+      quotLiftRule := by
+  intro us _ TVa hTVa
+  obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
+      ψ = Level.substFn φ quotLiftA.toConstantVal.levelParams us :=
+    ⟨_, rfl⟩
+  have hTyRead : denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+      (quotLiftA.toConstantVal.type.instantiateLevelParams
+        quotLiftA.toConstantVal.levelParams us)
+      = some (quotLiftTy
+          (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
+          (pwBit ψ (.ifAllZero [vN])) (ψ uN) (ψ vN)) := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denoteMeta_quotLiftA_type (m := m) _ hQ hE]
+  obtain rfl : TVa = _ :=
+    (Option.some.inj (hTyRead.symm.trans hTVa)).symm
+  have hM' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotMkName
+      = some quotMkA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hM
+  have hQ' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotName
+      = some quotA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hQ
+  refine ⟨fun h => (nomatch h), fun cvj cnP cnF hfj => ?_⟩
+  rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hM'] at hfj
+  obtain ⟨rfl, rfl, rfl⟩ :
+      cvj = quotMkA.toConstantVal ∧ cnP = 2 ∧ cnF = 1 := by
+    injection Option.some.inj hfj with a1 a2 a3
+    exact ⟨a1.symm, a2.symm, a3.symm⟩
+  refine ⟨rfl, fun _ usj _ hlev TVja _ => ?_⟩
+  have hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN
+      = ψ uN := by
+    rw [congrFun hlev uN, hψ]
+    show Level.eval φ (Level.subst quotLiftA.toConstantVal.levelParams
+      us (.param uN)) = _
+    rw [Level.subst, Level.eval_subst_go]
+  have hctorL : m₂.acval (RecRule.ctor quotLiftRule)
+      (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
+      = AnnotTerm.const .quotMk [ψ uN] := by
+    rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hac,
+      acvalWith_ne (by decide), ← hulev]
+    refine acval_basis_pinned (m := m) hM (by decide) ?_
+    simp +decide [ConLeche.Verify.pinnedStructT]
+  obtain ⟨hS, hP⟩ := quotRuleExtra_of (V := V) hQ' hulev hctorL
+    (P := fun ρ a => ∃ (xs : List AnnotTerm) (restR : AnnotTerm),
+      xs.length = 5 ∧ TeleFitPA V ρ (quotLiftTy
+          (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
+          (pwBit ψ (.ifAllZero [vN])) (ψ uN) (ψ vN)) (xs ++ [a]) restR)
+    (fun ρ a ⟨xs, restR, hxs, hfit⟩ => by
+      obtain ⟨x1, x2, x3, x4, x5, rfl⟩ :
+          ∃ p q r s t, xs = [p, q, r, s, t] := by
+        match xs, hxs with
+        | [p, q, r, s, t], _ => exact ⟨p, q, r, s, t, rfl⟩
+      rw [quotLiftTy] at hfit
+      cases hfit with | cons f1 hfit =>
+      cases hfit with | cons f2 hfit =>
+      cases hfit with | cons f3 hfit =>
+      cases hfit with | cons f4 hfit =>
+      cases hfit with | cons f5 hfit =>
+      cases hfit with | cons f6 _ =>
+      rw [interp_sort] at f1
+      rw [interp_inst0, quotRelTy_interp (ψ uN)] at f2
+      rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+        interp_inst_cons3, interp_inst_cons4,
+        (quotApp_data (u := ψ uN) (i := 4) (j := 3)
+          (ρ := cons (interp V ρ x5) (cons (interp V ρ x4)
+            (cons (interp V ρ x3) (cons (interp V ρ x2)
+              (cons (interp V ρ x1) ρ)))))
+          (by simp [cons]) (by simp [cons]) f1 f2).2.2] at f6
+      exact ⟨_, _, f6⟩)
+  refine ⟨fun hlic ρ xs a restR hxs hfit =>
+      hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
+    fun ρ xs a restR hxs hfit ha ys _ _ =>
+      hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
+  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
+  refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),
+    fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
+
 set_option maxHeartbeats 1000000 in
 /-- **`Quot.lift`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
 `.nested` conjuncts are `nomatch`.  The two telescope fits are peeled
@@ -2228,7 +2315,8 @@ theorem quotLiftLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
       quotLiftRule := by
-  refine ⟨Nat.le_refl 5, fun us hus => ?_, sorry⟩
+  refine ⟨Nat.le_refl 5, fun us hus => ?_,
+    quotLiftExtra (m := m) m₂ hQ hM hE hac φ⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotLiftA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
