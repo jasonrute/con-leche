@@ -25,7 +25,7 @@ There is an AI-written overview of the project in [OVERVIEW.md](./OVERVIEW.md).
 * Accelerated Nat operations are performed using Lean’s `Nat` type.
 * It accepts only the three standard Lean axioms in the input stream.
 
-  For practicality reasons, it silently *ignores* the [`sorryAx`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/ParsedC.lean#L247-L248) axiom declarations from the standard library, but will complain it is actually used. The (deprecated) `trustCompiler`, `ofReduceBool` and `ofReduceNat` axioms are replaced with simple definitions of the same type.
+  For practicality reasons, it silently *ignores* the [`sorryAx`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/ParsedC.lean#L217-L218) axiom declarations from the standard library, but will complain it is actually used. The (deprecated) `trustCompiler`, `ofReduceBool` and `ofReduceNat` axioms are replaced with simple definitions of the same type.
 
   The checker (at the moment) will reject any other axiom.
 * The checker processes files in three phases: *parsing* the input stream, *installing* all declarations (including annotating) and *checking*. All stages can use paralleism with [`--jobs`](https://github.com/leanprover/con-leche/blob/master/Main.lean#L124).
@@ -92,7 +92,7 @@ Future work: The assumption that we need a ω-chain is maybe unnecessary strong.
 
 In our set interpretation, false propositions are *∅* and true propositions are *{∅}*, so proof irrelevance and propositional extensionality is built in. This causes problems when interpreting Lean’s `∀`: If the pi type is building a proposition we need to model this differently than if we are building a type. But we want the interpretation to be syntax directed, and *not* depend on type inference!
 
-To resolve this, the checker annotates every `.pi` and `.lambda` with a [`PropWhen`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/PropWhen.lean#L381-L383) datum that says under which level assignments this is a proposition or a type. This is either “always type” or “prop when all of these level parameters are zero”.
+To resolve this, the checker annotates every `.pi` and `.lambda` with a [`PropWhen`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/PropWhen.lean#L35-L38) datum that says under which level assignments this is a proposition or a type. This is either “always type” or “prop when all of these level parameters are zero”.
 
 With this annotation we can have a syntactic interpretation `[e]`. On top of this we define a *semantic* typing predicate that we can then show is preserved by reduction.
 
