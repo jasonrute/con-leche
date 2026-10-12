@@ -191,8 +191,8 @@ theorem substFvars_erasedEq_self {b D : Nat} {s : Nat → Expr}
   | const n us => intro _; exact Expr.ErasedEq.rfl _
   | lit l => intro _; exact Expr.ErasedEq.rfl _
   | app f a ihf iha => intro h; exact ⟨ihf h.1, iha h.2⟩
-  | lam t body m iht ihb => intro h; exact ⟨rfl, iht h.1, ihb h.2⟩
-  | forallE t body m iht ihb => intro h; exact ⟨rfl, iht h.1, ihb h.2⟩
+  | lam t body m iht ihb => intro h; exact ⟨iht h.1, ihb h.2⟩
+  | forallE t body m iht ihb => intro h; exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb => intro h; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
   | proj n i e ih => intro h; exact ⟨rfl, rfl, ih h⟩
 

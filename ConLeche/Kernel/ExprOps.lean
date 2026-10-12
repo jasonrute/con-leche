@@ -798,13 +798,16 @@ def looseBVarsBounded (k : Nat) : Expr → Bool
     looseBVarsBounded k ty && looseBVarsBounded k val && looseBVarsBounded (k + 1) body
   | .proj _ _ e => looseBVarsBounded k e
 
-/-- Is the expression a λ?  The λ-rule's codomain-sort check (task
-#152) fires once per λ *chain* — at the innermost binder, whose body
-is not itself a λ — because that is the granularity the interned
-binder-telescope loop (task #72) can reproduce. -/
+/-- Is the expression a λ? -/
 def isLam : Expr → Bool
   | .lam .. => true
   | _ => false
+
+/-- Two λs: their domains and bodies (the descent of the λ-telescope
+comparison, `defeqLams`). -/
+def lamPair? : Expr → Expr → Option (Expr × Expr × Expr × Expr)
+  | .lam t₁ b₁ _, .lam t₂ b₂ _ => some (t₁, b₁, t₂, b₂)
+  | _, _ => none
 
 /-- Does the expression contain any free variable (`fvar`)?  Input
 declarations must be `fvar`-free; the checker introduces `fvar`s only

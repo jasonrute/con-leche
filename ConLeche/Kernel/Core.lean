@@ -1429,12 +1429,13 @@ def defeqLams (r : CoreFns m) :
     Nat → Nat → Expr → Expr → Expr → Expr → m Bool
   | fuel, depth, ty₁, body₁, ty₂, body₂ => do
     unless ← r.defeq depth ty₁ ty₂ do return false
-    match fuel, body₁.instantiate1 (.fvar depth ty₂),
-        body₂.instantiate1 (.fvar depth ty₂) with
-    | fuel + 1, b₁@(.lam ty₁' body₁' _), b₂@(.lam ty₂' body₂' _) =>
+    let b₁ := body₁.instantiate1 (.fvar depth ty₂)
+    let b₂ := body₂.instantiate1 (.fvar depth ty₂)
+    match fuel, Expr.lamPair? b₁ b₂ with
+    | fuel + 1, some (ty₁', body₁', ty₂', body₂') =>
       if b₁ == b₂ then pure true
       else defeqLams r fuel (depth + 1) ty₁' body₁' ty₂' body₂'
-    | _, b₁, b₂ => defeqLamsInner mode r depth b₁ b₂
+    | _, _ => defeqLamsInner mode r depth b₁ b₂
 
 /-- **The easy cases** (the official kernel's `quick_is_def_eq`): the
 syntactic fast path, and the pairs whose verdict is decided on the spot

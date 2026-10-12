@@ -1401,11 +1401,11 @@ def defeqLamsI (r : CoreFnsI) :
     let fv ← pure (Expr.fvar depth ty₂)
     let b₁ ← inst1M body₁ fv
     let b₂ ← inst1M body₂ fv
-    match fuel, b₁, b₂ with
-    | fuel + 1, .lam ty₁' body₁' _, .lam ty₂' body₂' _ =>
+    match fuel, Expr.lamPair? b₁ b₂ with
+    | fuel + 1, some (ty₁', body₁', ty₂', body₂') =>
       if b₁ == b₂ then pure true
       else defeqLamsI r fuel (depth + 1) ty₁' body₁' ty₂' body₂'
-    | _, _, _ => defeqLamsInnerI mode r depth b₁ b₂
+    | _, _ => defeqLamsInnerI mode r depth b₁ b₂
 
 /-- Twin of `quickDefEq`. -/
 def quickDefEqI (r : CoreFnsI) (depth : Nat) (a b : Expr) :

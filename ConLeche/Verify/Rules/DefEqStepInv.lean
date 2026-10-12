@@ -139,7 +139,9 @@ theorem defeqLams_inv {k d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr}
   refine ⟨rfl, ?_⟩
   simp only [Bind.bind, Except.bind, ↓reduceIte] at h
   split at h
-  · refine Or.inl ⟨_, _, _, _, _, _, _, rfl, ‹_›, ‹_›, ?_⟩
+  · obtain ⟨m₁, m₂, h₁, h₂⟩ := Expr.lamPair?_some ‹_›
+    refine Or.inl ⟨_, _, _, _, _, _, _, rfl, h₁, h₂, ?_⟩
+    rw [h₁, h₂] at h
     split at h
     · next heq => exact Or.inl (eq_of_beq heq)
     · exact Or.inr h

@@ -210,9 +210,9 @@ theorem replaceFVars_erasedEq_substFvars {g : Nat → Option Expr} {b D : Nat} {
   | app f a ihf iha =>
     intro h; exact ⟨ihf h.1, iha h.2⟩
   | lam t body m iht ihb =>
-    intro h; exact ⟨rfl, iht h.1, ihb h.2⟩
+    intro h; exact ⟨iht h.1, ihb h.2⟩
   | forallE t body m iht ihb =>
-    intro h; exact ⟨rfl, iht h.1, ihb h.2⟩
+    intro h; exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb =>
     intro h; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
   | proj n i e ih =>
@@ -241,11 +241,11 @@ theorem ErasedEq.substFvars {b D : Nat} {s : Nat → Expr} :
   | lam t body m iht ihb =>
     intro y h
     cases y <;> simp only [ErasedEq] at h
-    exact ⟨h.1, iht h.2.1, ihb h.2.2⟩
+    exact ⟨iht h.1, ihb h.2⟩
   | forallE t body m iht ihb =>
     intro y h
     cases y <;> simp only [ErasedEq] at h
-    exact ⟨h.1, iht h.2.1, ihb h.2.2⟩
+    exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb =>
     intro y h
     cases y <;> simp only [ErasedEq] at h
@@ -276,14 +276,14 @@ theorem ErasedEq.mkPisOf_inv :
   | _ :: _, [], _, _, hl, _ => by simp at hl
   | (t, bm) :: r, (t', bm') :: r', X, X', hl, h => by
     simp only [Expr.mkPisOf, ErasedEq] at h
-    obtain ⟨hm, ht, hr⟩ := h
+    obtain ⟨ht, hr⟩ := h
     obtain ⟨hall, hX⟩ := ErasedEq.mkPisOf_inv (by simpa using hl) hr
     refine ⟨fun l p p' hp hp' => ?_, hX⟩
     cases l with
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hp hp'
       subst hp; subst hp'
-      exact ⟨hm, ht⟩
+      exact ⟨rfl, ht⟩
     | succ l => exact hall l p p' (by simpa using hp) (by simpa using hp')
 
 /-- **Opening commutes with the substitution**, at variables above `b`

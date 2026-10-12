@@ -167,8 +167,13 @@ variable {ops : CheckerOps m}
 
 theorem checkConstantValF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
     (hfe : fe₁.find? = fe₂.find?) (cv : ConstantVal) :
-    checkConstantValF ops fe₁ cv = checkConstantValF ops fe₂ cv := sorry -- task #342 S0 prototype
+    checkConstantValF ops fe₁ cv = checkConstantValF ops fe₂ cv := by
+  unfold checkConstantValF
+  simp only [h.inferType fe₁.env, h.inferType fe₂.env,
+    h.ensureSort fe₁.env, h.ensureSort fe₂.env, hfe, constsResolveF_congr hfe,
+    strLitSupportedF_congr hfe]
 
+omit [MonadExceptOf CheckError m] in
 theorem checkDivModCertsF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
     (hfe : fe₁.find? = fe₂.find?) (c : Name) (annVal : Expr) :
     ∀ (stmts : List (List Expr × Expr)) (proofs : List Expr),
@@ -188,7 +193,9 @@ theorem checkDivModCertsF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
 omit [MonadExceptOf CheckError m] in
 theorem checkDivModPinAtF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
     (hfe : fe₁.find? = fe₂.find?) (c : Name) (value' : Expr) (ps : NatOpPinSet) :
-    checkDivModPinAtF ops fe₁ c value' ps = checkDivModPinAtF ops fe₂ c value' ps := sorry -- task #342 S0 prototype
+    checkDivModPinAtF ops fe₁ c value' ps = checkDivModPinAtF ops fe₂ c value' ps := by
+  unfold checkDivModPinAtF
+  simp only [h.isDefEq fe₁.env, h.isDefEq fe₂.env, checkDivModCertsF_congr h hfe]
 
 theorem checkDivModPinLoopF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
     (hfe : fe₁.find? = fe₂.find?) (c : Name) (value' : Expr) :
@@ -340,17 +347,24 @@ theorem opSIxC_congr' {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
     opSIxC mode fe₁ = opSIxC mode fe₂ := opSIxC_congr hfe
 
 theorem checkConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?)
-    (cv : ConstantVal) : checkConstantValC mode fe₁ cv = checkConstantValC mode fe₂ cv := sorry -- task #342 S0 prototype
+    (cv : ConstantVal) : checkConstantValC mode fe₁ cv = checkConstantValC mode fe₂ cv := by
+  unfold checkConstantValC
+  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, opSIxC_congr hfe, hfe,
+    strLitSupportedF_congr hfe]
 
 /-- A definition's value check reads its index only through `find?`. -/
 theorem checkDefnValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
     (jty value : Expr) (hint : ReducibilityHint) :
-    checkDefnValCI mode fe₁ cvA jty value hint = checkDefnValCI mode fe₂ cvA jty value hint := sorry -- task #342 S0 prototype
+    checkDefnValCI mode fe₁ cvA jty value hint = checkDefnValCI mode fe₂ cvA jty value hint := by
+  unfold checkDefnValCI
+  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
 /-- An opaque's value check reads its index only through `find?`. -/
 theorem checkOpaqueValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
     (jty value : Expr) :
-    checkOpaqueValCI mode fe₁ cvA jty value = checkOpaqueValCI mode fe₂ cvA jty value := sorry -- task #342 S0 prototype
+    checkOpaqueValCI mode fe₁ cvA jty value = checkOpaqueValCI mode fe₂ cvA jty value := by
+  unfold checkOpaqueValCI
+  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
 theorem checkDefnValC_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
     (jty value : Expr) (hint : ReducibilityHint) :
@@ -634,15 +648,6 @@ theorem classesNfs_env (h : EnvFree ops) (env : Env) (p : BlockShape) (formerTys
     unfold classesNfs
     simp only [targetMajorNfs_env h env, ih]
 
-theorem classKeyOf_env (h : EnvFree ops) (env : Env) (nP : Nat) (params : List Expr)
-    (k : ClassKey) : classKeyOf ops env nP params k = classKeyOf ops Env.empty nP params k := by
-  unfold classKeyOf
-  rfl
-
-theorem classKeyOf_env' (h : EnvFree ops) (env : Env) (nP : Nat) (params : List Expr) :
-    classKeyOf ops env nP params = classKeyOf ops Env.empty nP params :=
-  funext (classKeyOf_env h env nP params)
-
 theorem targetCtorsOf_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (I : Name) :
     targetCtorsOf fe₁ I = targetCtorsOf fe₂ I := by
   simp only [targetCtorsOf, hfe]
@@ -675,13 +680,12 @@ theorem classNPcOf_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) 
   simp only [classNPcOf, hfe]
 
 theorem checkBlockClasses_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
-    (hfe : fe₁.find? = fe₂.find?) (env₁ env₂ : Env) (p : BlockShape) (params : List Expr)
+    (hfe : fe₁.find? = fe₂.find?) (p : BlockShape) (params : List Expr)
     (ctorsAs : List (List (ConstantVal × Nat))) :
     checkBlockClasses ops fe₁ p params ctorsAs =
       checkBlockClasses ops fe₂ p params ctorsAs := by
   unfold checkBlockClasses
-  simp only [classNPcOf_congr hfe, classKeyOf_env' h env₁, classKeyOf_env' h env₂,
-    classMajors_congr h hfe]
+  simp only [classNPcOf_congr hfe, classMajors_congr h hfe]
 
 theorem classFormerTy_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?)
     (cvTas : List ConstantVal) (M : TargetMajor) :
@@ -1089,7 +1093,7 @@ theorem checkBlockPassS_twin {fe₁ fe₂ : FEnv} (ht : Twin fe₁ fe₂) (p₀ 
   have htL := ht.pushAll L
   have h := sharedOpsC_envFree mode (FEnv.pushAll L fe₂)
   simp only [sharedOpsC_congr htL.find, checkBlockCtorsF_congr h htL.find htL.find, htL.find,
-    checkBlockClasses_congr h htL.find (FEnv.pushAll L fe₁).env (FEnv.pushAll L fe₂).env,
+    checkBlockClasses_congr h htL.find,
     checkBlockPositivity_env h (FEnv.pushAll L fe₁).env,
     checkBlockPositivity_env h (FEnv.pushAll L fe₂).env,
     nestSeeds_env h (FEnv.pushAll L fe₁).env, nestSeeds_env h (FEnv.pushAll L fe₂).env]
@@ -1166,7 +1170,12 @@ theorem checkShapelessS_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
 theorem checkThmValC_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
     (jty value : Expr) :
     RelRun (PushedFrom fe₁ fe₂) (checkThmValC mode fe₁ cvA jty value)
-      (checkThmValC mode fe₂ cvA jty value) := sorry -- task #342 S0 prototype
+      (checkThmValC mode fe₂ cvA jty value) := by
+  unfold checkThmValC
+  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, opSIxC_congr hfe,
+    strLitSupportedF_congr hfe]
+  relrun
+  all_goals exact RelRun.pure (PushedFrom.push _ _ _)
 
 /-- **Every declaration step at twin indices pushes the same constants
 onto each, or fails alike.** -/
@@ -1267,7 +1276,7 @@ worker view (no constants of its own) the pushed constants are its
 environment, reversed. -/
 def installStep (mode : CheckMode) (pins : List NatOpPinSet) (W : FEnv) (pd : Declaration) :
     Except CheckError (List ConstantInfo × Option ValueGroup) :=
-  match valueStep mode W pd with
+  match valueStep W pd with
   | some (.ok (ci, vg)) => .ok ([ci], some vg)
   | some (.error e) => .error e
   | none =>
@@ -1294,7 +1303,7 @@ theorem Twin.ofViewAgrees {B : BaseIdx} {S : Slots} {fe : FEnv} (hag : ViewAgree
 
 /-- Where `valueStep` has no verdict, phase A's step is the ordinary step. -/
 theorem annotStepC_of_valueStep_none {pins : List NatOpPinSet} {i : Nat} {fe W : FEnv}
-    {pend : Array PendingCheck} {pd : Declaration} (h : valueStep mode W pd = none) :
+    {pend : Array PendingCheck} {pd : Declaration} (h : valueStep W pd = none) :
     annotStepC mode pins i fe pend pd = (checkDeclStepC mode pins fe pd >>= fun fe' =>
       pure (fe', pend)) := by
   cases pd with
@@ -1346,7 +1355,7 @@ theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {
     exact valueStep_commit hag hand hv
   · exact nomatch h
   · rename_i hv
-    have hs := annotStepC_of_valueStep_none (pins := pins) (i := i) (fe := fe) (pend := pend) hv
+    have hs := annotStepC_of_valueStep_none (mode := mode) (pins := pins) (i := i) (fe := fe) (pend := pend) hv
     have ht := Twin.ofViewAgrees hag hidx
     split at h
     · rename_i W' s' hW
@@ -1383,7 +1392,7 @@ theorem installStep_commit_error {pins : List NatOpPinSet} {B : BaseIdx} {S : Sl
     cases h
     exact valueStep_commit_error hag hand hv
   · rename_i hv
-    have hs := annotStepC_of_valueStep_none (pins := pins) (i := i) (fe := fe) (pend := pend) hv
+    have hs := annotStepC_of_valueStep_none (mode := mode) (pins := pins) (i := i) (fe := fe) (pend := pend) hv
     have ht := Twin.ofViewAgrees hag hidx
     split at h
     · exact nomatch h

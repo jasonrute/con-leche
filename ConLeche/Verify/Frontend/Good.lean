@@ -140,8 +140,18 @@ theorem exprOfF_mono {ε ε' : Type} {nm : Nat → Except ε Name} {lv : Nat →
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)
       (fun _ _ hx => bind_mono (fun w hw => he _ _ hw) (fun _ _ hy => pure_mono hy) hx) h
-  | lam ty bd pw => sorry -- task #342 S0 prototype
-  | forallE ty bd pw => sorry -- task #342 S0 prototype
+  | lam ty bd pw =>
+    simp only [exprOfF] at h ⊢
+    exact bind_mono (fun w hw => pwOfF_mono hn hw)
+      (fun _ _ hx => bind_mono (fun w hw => he _ _ hw)
+        (fun _ _ hy => bind_mono (fun w hw => he _ _ hw) (fun _ _ hz => pure_mono hz) hy)
+        hx) h
+  | forallE ty bd pw =>
+    simp only [exprOfF] at h ⊢
+    exact bind_mono (fun w hw => pwOfF_mono hn hw)
+      (fun _ _ hx => bind_mono (fun w hw => he _ _ hw)
+        (fun _ _ hy => bind_mono (fun w hw => he _ _ hw) (fun _ _ hz => pure_mono hz) hy)
+        hx) h
   | letE ty vl bd =>
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)

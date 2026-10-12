@@ -18,7 +18,8 @@ every stored expression:
   stored structures in its `.proj` nodes (`constsResolve`'s clause
   reads `find? s`), so when `T` is not stored there is no `.proj T _`
   node at all: the pre-block constants;
-* `inferTypeCore_projSlotsOk` — full-grade inference types a `.proj`
+* `inferTypeCore_projSlotsOk` (`Verify/InferProjSlots.lean`) — full-grade
+  inference types a `.proj`
   node only where a *tower* table entry types it, hereditarily through
   the fvar types it threads (`Expr.ProjSlotsOk`).  So an expression
   whose inference succeeded has no `.proj T i` node when the slot
@@ -496,31 +497,5 @@ theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     exact nomatch hfe
 
 end Expr
-
-/-! ## Inference meets only slotted projection nodes -/
-
-variable (mode : CheckMode)
-
-/-- **The inference walk**: every `.proj` node of an expression whose
-full-grade inference succeeded sits at a tower table slot
-(hereditarily), provided the input's fvar types do — which is vacuous
-for the checker's closed inputs and preserved by inference's own
-openings.  (Inference types a `.proj sn i` node only through the table
-entry of `(sn, i)`.) -/
-theorem inferTypeCore_projSlotsOk {env : Env} :
-    ∀ (fuel : Nat) (e : Expr) {d : Nat} {t : Expr},
-      inferTypeCore mode env fuel d e = .ok t → Expr.FvarTysOk env e →
-      Expr.ProjSlotsOk env e := sorry
-
-/-- **The block-side source, packaged**: a closed expression whose
-inference succeeded at an environment where the slot `(T, i)` is empty
-has no `.proj T i` node. -/
-theorem inferTypeCore_noProjAt {env : Env} {fuel d : Nat} {e t : Expr}
-    {T : Name} {i : Nat}
-    (h : inferTypeCore mode env fuel d e = .ok t) (hfv : e.hasFvar = false)
-    (hslot : env.findProj? T i = none) :
-    Expr.NoProjAt T i e :=
-  Expr.ProjSlotsOk.noProjAt hslot e
-    (inferTypeCore_projSlotsOk mode fuel e h (Expr.FvarTysOk.of_not_hasFvar e hfv))
 
 end ConLeche

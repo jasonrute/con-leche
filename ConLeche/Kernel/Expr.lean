@@ -89,12 +89,9 @@ instance : LawfulBEq Level where
   eq_of_beq h := of_decide_eq_true h
   rfl := by simp [BEq.beq, Level.beq]
 
-/-- Metadata carried by a binder (`forallE`, `lam`): the codomain
-prop-ness annotation `pw` (task #161 — the validated-annotation design;
-one datum per binder, written by the untrusted annotate pass or the
-input stream and *validated* by the checker; the reduction rules never
-read it).  Unannotated input defaults to `.never` at the parser — a
-definite, validatable claim.  There is no display `BinderInfo`
+/-- Metadata carried by a binder (`forallE`, `lam`): nothing (task
+#342 — the checker reads no binder datum; the empty structure stays
+until the node shapes drop it).  There is no display `BinderInfo`
 (task #205): the official kernel's equality and hash ignore it — the
 frontend validates a stream's spelling and drops it (`scanBinderInfo`). -/
 structure BinderMeta where

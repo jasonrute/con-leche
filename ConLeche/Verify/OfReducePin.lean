@@ -49,9 +49,9 @@ theorem ofReducePin_type {n : Name}
                .app (.const (ofReduceOp n) []) (.bvar 1), .bvar 0])
             (Expr.mkAppN (.const eqName [.succ .zero])
               [.const (reduceElemName (ofReduceOp n)) [],
-               .bvar 2, .bvar 1]) ⟨.ifAllZero []⟩)
-          ⟨.ifAllZero []⟩)
-        ⟨.ifAllZero []⟩ := by
+               .bvar 2, .bvar 1]) ⟨⟩)
+          ⟨⟩)
+        ⟨⟩ := by
   rcases hn with rfl | rfl <;> rfl
 
 /-- The element inductive's pinned type is `Sort 1`. -/

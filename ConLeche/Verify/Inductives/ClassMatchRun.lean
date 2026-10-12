@@ -51,14 +51,14 @@ theorem Expr.ErasedEq.ranges : ∀ {a b : Expr}, Expr.ErasedEq a b →
   | lam t b' m iht ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
-    obtain ⟨-, h1, h2⟩ := h
+    obtain ⟨h1, h2⟩ := h
     obtain ⟨e1, e2⟩ := iht h1
     obtain ⟨e3, e4⟩ := ihb h2
     simp [Expr.fvarRange, Expr.bvarBound, e1, e2, e3, e4]
   | forallE t b' m iht ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
-    obtain ⟨-, h1, h2⟩ := h
+    obtain ⟨h1, h2⟩ := h
     obtain ⟨e1, e2⟩ := iht h1
     obtain ⟨e3, e4⟩ := ihb h2
     simp [Expr.fvarRange, Expr.bvarBound, e1, e2, e3, e4]
@@ -104,13 +104,13 @@ theorem replaceFVars_eq_of_erasedEq {g : Nat → Option Expr} {d : Nat}
   | lam t b' m iht ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
-    obtain ⟨rfl, h1, h2⟩ := h
+    obtain ⟨h1, h2⟩ := h
     simp only [Expr.fvarsBelow] at ha
     simp only [Expr.replaceFVars, iht h1 ha.1, ihb h2 ha.2]
   | forallE t b' m iht ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
-    obtain ⟨rfl, h1, h2⟩ := h
+    obtain ⟨h1, h2⟩ := h
     simp only [Expr.fvarsBelow] at ha
     simp only [Expr.replaceFVars, iht h1 ha.1, ihb h2 ha.2]
   | letE t v b' iht ihv ihb =>

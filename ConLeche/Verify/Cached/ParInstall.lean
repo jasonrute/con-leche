@@ -76,14 +76,20 @@ variable {mode : CheckMode}
 /-- `annotConstantValC` reads its index through `find?` alone (the
 duplicate guard, the knot, `constsResolveFC`). -/
 theorem annotConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    annotConstantValC fe₁ = annotConstantValC fe₂ := sorry -- task #342 S0 prototype
+    annotConstantValC fe₁ = annotConstantValC fe₂ := by
+  funext cv
+  unfold annotConstantValC
+  simp only [constsResolveFC_congr hfe, hfe, strLitSupportedF_congr hfe]
 
 /-- `annotValC` reads its index through `find?` alone (the knot and
 `constsResolveFC`), so it is congruent in the index: phase B's
 annotation of a theorem's value at the prefix view is the annotation
 at the environment the view names. -/
 theorem annotValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    annotValC fe₁ = annotValC fe₂ := sorry -- task #342 S0 prototype
+    annotValC fe₁ = annotValC fe₂ := by
+  funext cvA value
+  unfold annotValC
+  simp only [constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
 /-- Phase A's value install reads its index through `find?` alone. -/
 theorem annotValueC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
@@ -410,7 +416,7 @@ constant the serial step pushes and the pending check it records, or
 its error; `none` for every other kind (`installStep` installs those
 with the cached checker's own step, at the same view).  The memo state
 is dropped here — nothing of it crosses to the commit. -/
-def valueStep (mode : CheckMode) (W : FEnv) : Declaration →
+def valueStep (W : FEnv) : Declaration →
     Option (Except CheckError (ConstantInfo × ValueGroup))
   | .defnDecl cv value hint =>
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then none
@@ -433,11 +439,41 @@ computes from a fresh state when `valueStep` has a verdict. -/
 private theorem annotStepC_value {pins : List NatOpPinSet} {i : Nat} {fe W : FEnv}
     {pend : Array PendingCheck} {pd : Declaration}
     (hfe : W.find? = fe.find?) {r : Except CheckError (ConstantInfo × ValueGroup)}
-    (h : valueStep mode W pd = some r) :
+    (h : valueStep W pd = some r) :
     (match annotStepC mode pins i fe pend pd {} with
       | .ok ((fe', pend'), _) => Except.ok (fe', pend')
       | .error e => .error e) =
-      (r.map fun (ci, vg) => (fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩)) := sorry -- task #342 S0 prototype
+      (r.map fun (ci, vg) => (fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩)) := by
+  have hflush : (flushC : CheckCM Unit) {} = .ok ((), ({} : CState).flushed) := rfl
+  cases pd with
+  | defnDecl cv value hint =>
+    by_cases hnat : (natOpNames.contains cv.name || natDivModNames.contains cv.name) = true
+    · simp only [valueStep, hnat, ↓reduceIte] at h
+      exact nomatch h
+    · simp only [valueStep, hnat, Bool.false_eq_true, ↓reduceIte, Option.some.injEq] at h
+      subst h
+      simp only [annotStepC, hnat, Bool.false_eq_true, ↓reduceIte,
+        annotValueC_congr hfe, bind, StateT.bind, pure, StateT.pure]
+      cases annotValueC fe cv value {} <;> rfl
+  | thmDecl cv value =>
+    simp only [valueStep, Option.some.injEq] at h
+    subst h
+    simp only [annotStepC, annotConstantValC_congr hfe, bind, StateT.bind,
+      pure, StateT.pure, hflush, Except.bind]
+    cases annotConstantValC fe cv ({} : CState).flushed <;> rfl
+  | opaqueDecl cv value =>
+    by_cases hred : reduceOpNames.contains cv.name = true
+    · simp only [valueStep, hred, ↓reduceIte] at h
+      exact nomatch h
+    · simp only [valueStep, hred, Bool.false_eq_true, ↓reduceIte, Option.some.injEq] at h
+      subst h
+      simp only [annotStepC, hred, Bool.false_eq_true, ↓reduceIte,
+        annotValueC_congr hfe, bind, StateT.bind, pure, StateT.pure]
+      cases annotValueC fe cv value {} <;> rfl
+  | axiomDecl _ => exact nomatch h
+  | basisDecl _ => exact nomatch h
+  | quotDecl _ _ => exact nomatch h
+  | indDecl _ _ => exact nomatch h
 
 /-- **The commit step**: a value record a worker installed at the view
 whose lookups are the serial index's is the serial fold's step — the
@@ -446,18 +482,30 @@ serial counter. -/
 theorem valueStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
     {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {ci : ConstantInfo}
     {vg : ValueGroup} (hag : ViewAgrees B S fe) (hand : andPinOk pd = true)
-    (h : valueStep mode (workerView B S fe.visibleBelow) pd = some (.ok (ci, vg))) :
+    (h : valueStep (workerView B S fe.visibleBelow) pd = some (.ok (ci, vg))) :
     annotDeclStep mode pins (i, fe, pend) pd =
-      .ok (i + 1, fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩) := sorry -- task #342 S0 prototype
+      .ok (i + 1, fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩) := by
+  have hs := annotStepC_value (mode := mode) (pins := pins) (i := i) (pend := pend) (funext hag) h
+  unfold annotDeclStep
+  simp only [hand, ↓reduceIte]
+  revert hs
+  cases annotStepC mode pins i fe pend pd {} with
+  | error e => intro hs; simp [Except.map] at hs
+  | ok p =>
+    obtain ⟨⟨fe', pend'⟩, s'⟩ := p
+    intro hs
+    simp only [Except.map, Except.ok.injEq, Prod.mk.injEq] at hs
+    obtain ⟨rfl, rfl⟩ := hs
+    rfl
 
 /-- A failing worker's install is the serial step's failure, with the
 same error at the same position. -/
 theorem valueStep_commit_error {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots}
     {i : Nat} {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {e : CheckError}
     (hag : ViewAgrees B S fe) (hand : andPinOk pd = true)
-    (h : valueStep mode (workerView B S fe.visibleBelow) pd = some (.error e)) :
+    (h : valueStep (workerView B S fe.visibleBelow) pd = some (.error e)) :
     annotDeclStep mode pins (i, fe, pend) pd = .error (e, i) := by
-  have hs := annotStepC_value (pins := pins) (i := i) (pend := pend) (funext hag) h
+  have hs := annotStepC_value (mode := mode) (pins := pins) (i := i) (pend := pend) (funext hag) h
   unfold annotDeclStep
   simp only [hand, ↓reduceIte]
   revert hs
