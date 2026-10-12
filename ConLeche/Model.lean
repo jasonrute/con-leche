@@ -139,13 +139,13 @@ public import ConLeche.Model.Fold
 public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
 public import ConLeche.Model.Annot.Bit
+public import ConLeche.Model.ErasePwInv
 public import ConLeche.Model.Annot.BitLemmas
 public import ConLeche.Model.Annot.BitShift
 public import ConLeche.Model.Annot.BitInst
 public import ConLeche.Model.Annot.BitClosed
 public import ConLeche.Model.Annot.BitInstall
 public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.Bit
 public import ConLeche.Model.Annot.BitLevels
 public import ConLeche.Model.Annot.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
@@ -160,8 +160,8 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the `WellDenoted` bit carriers (`Annot/Bit*`,
-`Annot/Valid*`), `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
+The graded model: the stored-term reading (`Annot/Bit*`),
+`EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,
 SetTheory}/*`, which may not import it;

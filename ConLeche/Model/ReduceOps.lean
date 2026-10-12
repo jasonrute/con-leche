@@ -4,6 +4,7 @@ import ConLeche.Verify.OfReducePin
 import ConLeche.Semantics.DeclRun
 public import ConLeche.Model.NatEqs
 import ConLeche.Model.Capstone
+public import ConLeche.Model.ErasePwInv
 import ConLeche.Model.DivMod
 public section
 
@@ -257,8 +258,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have helemTy : ∀ (ψ : Name → Nat) (ρ' : Nat → V),
       IsTy (interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) := by
     intro ψ ρ'
-    have h := (hTaOk ψ ρ').1
-    rw [hTaShape ψ, WellDenoted_pi] at h
+    have h := hTaOk ψ ρ'
+    rw [hTaShape ψ, WellDenotedV, WellDenoted_pi] at h
     exact h.2.1
   -- the certificate variable's syntactic and context packages
   have hvLeaves : valA.fvarLeaves = [] :=
@@ -305,8 +306,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     refine ⟨Nat.zero_lt_one, by rw [hEty]; trivial,
       mp.base2.acval (ConLeche.reduceElemName cv.name) ψ,
       elemA mp.base2 cv.name ψ, hdenE ψ 1, rfl, fun ρ' _ => ?_,
-      fun ρ' _ => ⟨⟨mp.base2.acval_wellDenoted _ ψ ρ', mp.acval_validV _ ψ ρ'⟩,
-        helemTy ψ ρ'⟩⟩
+      fun ρ' _ => ⟨mp.base2.acval_wellDenoted _ ψ ρ', helemTy ψ ρ'⟩⟩
     exact acval_interp_closed mp.base2 _ ψ _ _
   have hctxApp : ∀ ψ : Name → Nat,
       CtxOk mp.base2 ψ 1 (elemCtx mp.base2 cv.name ψ)
@@ -355,7 +355,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have hgradeCert : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.bvar 0) := by
     intro ρ' _
-    exact ⟨by simp, by simp⟩
+    simp
   have hgradeApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.app (A ψ) (.bvar 0)) := by
     intro ρ' hsat
@@ -366,16 +366,12 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    have hv := (hTaOk ψ ρ').2
-    rw [hTaShape ψ, AnnotValid_pi] at hv
-    refine ⟨⟨hAok ψ ρ', by simp, ?_⟩, ⟨hAvalid ψ ρ', by simp⟩⟩
-    refine ⟨pwBit ψ mb₀.pw,
-      interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
+    rw [WellDenotedV, WellDenoted_app]
+    refine ⟨hAok ψ ρ', by simp, ?_⟩
+    exact ⟨_, interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
       fun _ => interp V ρ'
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
-      hm, hslot ρ' hsat, fun h0 y hy => ?_, fun _ => helemTy ψ ρ'⟩
-    have := hv.2.2 h0 y hy
-    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+      hm, hslot ρ' hsat, propN_eq_zero.mp, fun _ => helemTy ψ ρ'⟩
   -- both sides are members of the element type
   have hmemApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       interp V ρ' (.app (A ψ) (.bvar 0))
@@ -388,12 +384,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    have hv := (hTaOk ψ ρ').2
-    rw [hTaShape ψ, AnnotValid_pi] at hv
     rw [interp_app, interp_bvar]
-    refine app_mem_piR hm (hslot ρ' hsat) fun h0 y hy => ?_
-    have := hv.2.2 h0 y hy
-    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+    exact app_mem_piV hm (hslot ρ' hsat)
   -- the run, converted: two members of one type, so the point does not
   -- separate them
   have hsatx := sat_elemCtx mp.base2 hx

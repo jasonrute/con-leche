@@ -22,11 +22,8 @@ public section
 /-!
 # The reading's ∀-telescope (task #161, IND TIER part 2)
 
-`PiTeleAV`: a reading's ∀-telescope.  `denoteMeta` reads a `∀` to
-`.pi 0 (pwBit φ mb.pw)`, so the reading's telescope carries *bits*, and
-`PiTeleAV`'s `cons` quantifies them existentially.  Nothing downstream
-reads them — the consumers are `TeleFitPA` (which quantifies its own)
-and `wellDenotedV_mkAppN_of_fit` (which takes them from the grading).
+`PiTeleAV`: a reading's ∀-telescope (`denoteMeta` reads a `∀` to
+`.pi`); its consumers are `TeleFitPA` and `wellDenotedV_mkAppN_of_fit`.
 
 `consN` names the environment a fit ends in.
 -/
@@ -48,12 +45,10 @@ variable {acval : Name → (Name → Nat) → AnnotTerm}
 
 /-! ## The reading's telescope -/
 
-/-- **A reading's ∀-telescope.**  The bits are existential
-(see the module docstring): a `∀` reads to `.pi 0 (pwBit φ mb.pw)` and
-no consumer of this file reads either component. -/
+/-- **A reading's ∀-telescope.** -/
 inductive PiTeleAV : Nat → AnnotTerm → List AnnotTerm → AnnotTerm → Prop
   | nil {T : AnnotTerm} : PiTeleAV 0 T [] T
-  | cons {k u v : Nat} {A B R : AnnotTerm} {Γ : List AnnotTerm} :
+  | cons {k : Nat} {A B R : AnnotTerm} {Γ : List AnnotTerm} :
       PiTeleAV k B Γ R → PiTeleAV (k + 1) (.pi A B) (Γ ++ [A]) R
 
 theorem PiTeleAV.length : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
@@ -66,10 +61,10 @@ theorem PiTeleAV.length : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
 /-- A telescope of positive length exposes its head `.pi`. -/
 theorem PiTeleAV.succ_inv {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
     {R : AnnotTerm} (h : PiTeleAV (k + 1) T Γ R) :
-    ∃ (u v : Nat) (A B : AnnotTerm) (Γ' : List AnnotTerm),
+    ∃ (A B : AnnotTerm) (Γ' : List AnnotTerm),
       T = .pi A B ∧ Γ = Γ' ++ [A] ∧ PiTeleAV k B Γ' R := by
   cases h with
-  | cons h' => exact ⟨_, _, _, _, _, rfl, rfl, h'⟩
+  | cons h' => exact ⟨_, _, _, rfl, rfl, h'⟩
 
 /-! ## The environment a fit ends in -/
 

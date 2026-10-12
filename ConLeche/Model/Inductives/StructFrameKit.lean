@@ -1112,7 +1112,7 @@ theorem PiTeleAV.unique :
   | nil => intro h'; cases h'; exact ⟨rfl, rfl⟩
   | @cons k u v A B R Γ₁ h ih =>
     intro h'
-    obtain ⟨u', v', A', B', Γ₂, hT, hΓ, h₂⟩ := h'.succ_inv
+    obtain ⟨A', B', Γ₂, hT, hΓ, h₂⟩ := h'.succ_inv
     obtain ⟨rfl, rfl, rfl, rfl⟩ : u = u' ∧ v = v' ∧ A = A' ∧ B = B' := by
       injection hT with a b c d
       exact ⟨a, b, c, d⟩

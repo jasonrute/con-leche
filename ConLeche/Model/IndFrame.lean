@@ -285,7 +285,7 @@ theorem teleFitPA_of_tower :
     exact TeleFitPA.nil
   | succ k ihk =>
     intro T Γ R h ws ρ hlen hmem
-    obtain ⟨u, v, A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
+    obtain ⟨A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
     match ws, hlen with
     | w :: ws', hlen =>
     have hlen' : ws'.length = k := by simpa using hlen
