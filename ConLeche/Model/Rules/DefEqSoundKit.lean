@@ -19,6 +19,7 @@ HERE only. -/
 import all ConLeche.Kernel.PropWhen
 import ConLeche.Semantics.Hoist
 import ConLeche.Model.Annot.BitLevels
+import ConLeche.Rules.Rigid
 
 public section
 
@@ -566,37 +567,91 @@ theorem etaFabArgsV_eq (val : Name → V) (T : Name) (ts : List V) (b : V)
         (fun j => (ts ++ [b]).foldl SetTheory.app (val (projFnName T j))) := by
   rfl
 
-/-! ## The two proof-irrelevance sides
+/-! ## Proof irrelevance at the io grade (task #342 L18)
 
-Stated at the motives: the premises are the rule's
-`InferSemIO`/`RedSem` derivations, and the inferred type's frames are
-the motives' own conclusions. -/
+The fragment's `eq_pt_of_IORel_prop`: a term whose io-inferred type's
+io-inferred sort reduces to `Prop` is the point.  A member of the type:
+the type is a truth value.  Hereditary: the type is a ∀ whose sort is
+`Prop`, so its body's sort is `Prop` (inversion of `Infer.forallE` at
+the syntax, `Sound.lean`; a sort reduces only to itself), and the
+application at the hereditary clause's witness is the point by the
+body's claim — against the witness.  The recursion over the ∀'s body is
+`Sound.lean`'s `prop_pt_io` (it needs the body's inference claim); the
+steps are here. -/
 
-/-- A term whose type's type reduces to a zero-equivalent sort
-interprets to `pt`. -/
-theorem prop_side_pt' {m : EnvModel V env} {d : Nat} {a ta tta : Expr}
-    {u : Level} {Δa : List AnnotTerm} {aa : AnnotTerm}
-    (hta : InferSemIO m φ d a ta) (htta : InferSemIO m φ d ta tta)
-    (hu : RedSem m φ d tta (.sort u))
-    (hu0 : Level.isEquiv u .zero = some true)
-    (hfa : Frame d a) (hCa : CtxOkS m φ d Δa a)
-    (hda : denoteMeta m.acval env φ d a = some aa)
-    (ρ : Nat → V) (hρ : Sat V Δa ρ) (hLa : LeavesGr m φ d a ρ)
-    (hokA : WellDenotedV V ρ aa) : interp V ρ aa = (pt : V) := by
-  obtain ⟨hfta, hsub1, taa, htaa, hA⟩ := hta hfa hCa hda
-  have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsub1
-  have hLta : LeavesGr m φ d ta ρ := hLa.of_subset hsub1
-  obtain ⟨hoktaa, hmemA⟩ := hA ρ hρ hLa hokA
-  obtain ⟨hftta, hsub2, ttaa, httaa, hT⟩ := htta hfta hCta htaa
-  obtain ⟨hokttaa, hmemT⟩ := hT ρ hρ hLta hoktaa.1
-  have hCtta : CtxOkS m φ d Δa tta := hCta.of_subset hsub2
-  obtain ⟨-, -, sa, hsa, hs⟩ := hu hftta hCtta httaa
-  rw [denoteMeta_sort] at hsa
-  obtain rfl : sa = AnnotTerm.sort (u.eval φ) := (Option.some.inj hsa).symm
-  have h0 : Level.eval φ u = 0 := ConLeche.Level.isEquiv_sound hu0 φ
-  -- "not pt" source (1): the type of a type is a type, never the point
-  obtain ⟨-, heq⟩ := hs ρ hρ (hLta.of_subset hsub2) hokttaa.1 hokttaa.ne_pt
-  rw [heq, interp_sort, h0] at hmemT
-  exact mem_univ_zero hmemT hmemA
+/-- The member half: a member of a type whose type reduces to a sort
+evaluating to zero is the point ("not pt" source (1): the type and its
+type are types). -/
+theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
+    (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
+    (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
+    (hfT : Frame d T) {Δa : List AnnotTerm} {ta : AnnotTerm}
+    (hCT : CtxOkS m φ d Δa T) (hT : denoteMeta m.acval env φ d T = some ta)
+    (ρ : Nat → V) (v : V) (hρ : Sat V Δa ρ) (hLT : LeavesGr m φ d T ρ)
+    (hm : IOMem m φ d T ρ v) : v = pt := by
+  obtain ⟨hwT, hvm⟩ := hm.of_reading hT
+  obtain ⟨hftt, hsub, tta, htta, hrow⟩ := hsem hfT hCT hT
+  rcases hrow ρ hρ hLT hwT.1 with h | h | h
+  · -- "not pt" source (1): the type is a type
+    exact absurd h hwT.ne_pt
+  · obtain ⟨hwtt, hTm⟩ := h.of_reading htta
+    obtain ⟨-, -, sa, hsa, hs⟩ := hrs hftt (hCT.of_subset hsub) htta
+    rw [denoteMeta_sort] at hsa
+    obtain rfl : sa = AnnotTerm.sort (w.eval φ) := (Option.some.inj hsa).symm
+    -- "not pt" source (1): the type's type is a type
+    obtain ⟨-, heq⟩ := hs ρ hρ (hLT.of_subset hsub) hwtt.1 hwtt.ne_pt
+    rw [heq, interp_sort, hw0] at hTm
+    exact mem_univ_zero hTm hvm
+  · obtain ⟨_, _, _, rfl⟩ := h.forallE
+    exact nomatch Red.rigid hr trivial
+
+/-- At a type that is not a ∀ the io claim is the point or a member. -/
+theorem propPt_of_not_forallE {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
+    (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
+    (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
+    (hnf : ∀ ty body mb, T ≠ .forallE ty body mb) : PropPt m φ d T := by
+  intro hfT Δa ta hCT hT ρ v hρ hLT h
+  rcases h.of_not_forallE hnf with h | h
+  · exact h
+  · exact propPt_of_mem hsem hrs hr hw0 hfT hCT hT ρ v hρ hLT h
+
+/-- At a ∀: the member half as above; the hereditary half is the
+point at its witness by the body's claim, a contradiction. -/
+theorem propPt_forallE {m : EnvModel V env} {d : Nat} {ty body tt : Expr}
+    {mb : ConLeche.BinderMeta} {w : Level}
+    (hsem : InferSemIO m φ d (.forallE ty body mb) tt) (hrs : RedSem m φ d tt (.sort w))
+    (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
+    (hbody : PropPt m φ (d + 1) (body.instantiate1 (.fvar d ty))) :
+    PropPt m φ d (.forallE ty body mb) := by
+  intro hfT Δa ta hCT hT ρ v hρ hLT h
+  rcases h with h | h | h
+  · exact h
+  · exact propPt_of_mem hsem hrs hr hw0 hfT hCT hT ρ v hρ hLT h
+  · rw [IOHered_forallE] at h
+    obtain ⟨tya, htya, hwT, -, ⟨x₀, hx₀, hne⟩, hall⟩ := h
+    exact absurd (hbody (hfT.forallE_open hfT.forallE_ty)
+      (CtxOkS.openS hCT.forallE_ty hCT.forallE_body htya)
+      (ta := (denoteMeta m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty))).getD
+        default) (by
+          obtain ⟨_, ba, -, hba, -⟩ := denoteMeta_forallE_inv hT
+          rw [hba]; rfl)
+      (cons x₀ ρ) _ (Sat_cons V hρ hx₀)
+      (LeavesGr.open hCT.forallE_ty hCT.forallE_body hLT.forallE_ty hLT.forallE_body
+        htya hwT)
+      (hall x₀ hx₀)) hne
+
+/-- A ∀'s sort `imax u v` reducing to a sort that evaluates to zero:
+`v` evaluates to zero (a sort reduces only to itself). -/
+theorem eval_zero_of_red_imax {d : Nat} {u v w : Level}
+    (hr : Red env d (.sort (.imax u v)) (.sort w)) (hw0 : w.eval φ = 0) :
+    v.eval φ = 0 := by
+  have h := Red.rigid hr trivial
+  injection h with h
+  subst h
+  revert hw0
+  simp only [Level.eval]
+  split
+  · next h => exact fun _ => h
+  · next h => exact fun h' => absurd (Nat.max_eq_zero_iff.mp h').2 h
 
 end ConLeche.Model.Rules

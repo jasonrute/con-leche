@@ -10,6 +10,7 @@ import ConLeche.Semantics.Frame
 import ConLeche.Semantics.LitStep
 import ConLeche.Semantics.Skeleton
 import ConLeche.Model.Rules.RedSoundKit
+import ConLeche.Rules.Rigid
 
 public section
 
@@ -57,7 +58,8 @@ theorem InferSemFull.toIO {d : Nat} {e t : Expr}
     (h : InferSemFull m φ d e t) : InferSemIO m φ d e t := by
   intro hf Δa ea hC hea
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hf hC hea
-  exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ => (hrow ρ hρ hL).2⟩
+  exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ =>
+    IORel.of_mem hta (hrow ρ hρ hL).2.1 (hrow ρ hρ hL).2.2⟩
 
 /-- A rule that establishes is sound at either grade. -/
 theorem InferSemFull.toSem {g : Grade} {d : Nat} {e t : Expr}
@@ -66,33 +68,23 @@ theorem InferSemFull.toSem {g : Grade} {d : Nat} {e t : Expr}
   | full => exact h
   | io => exact h.toIO
 
-/-- **The uniform view of the inference motive.**  Both grades
-conclude the type's frame, leaf inclusion and reading outside the
-valuation, and at each valuation `ρ` where the context is satisfied and
-the subject's leaves are graded: the subject's grading, the type's
-grading and the membership.  They differ only in where the SUBJECT's
-grading at `ρ` sits — a premise at `.io`, a conclusion at `.full`.
-Reading a premise derivation's motive through this lemma, and building
-the conclusion's through `InferSem.of_uniform`, is what lets one
-argument serve both grades. -/
-theorem InferSem.apply {g : Grade} {d : Nat} {e t : Expr}
-    (h : InferSem m φ g d e t) (hfe : Frame d e) {Δa : List AnnotTerm}
+/-- **The full grade's view of the inference motive**, in the uniform
+shape `InferSem.of_uniform` builds: at each valuation `ρ` where the
+context is satisfied and the subject's leaves are graded, the subject's
+grading, the type's grading and the membership.  The io grade's claim
+is the hereditary `IORel` instead (task #342 L18), read case by case. -/
+theorem InferSem.apply {d : Nat} {e t : Expr}
+    (h : InferSem m φ .full d e t) (hfe : Frame d e) {Δa : List AnnotTerm}
     {ea : AnnotTerm} (hC : CtxOkS m φ d Δa e)
     (hea : denoteMeta m.acval env φ d e = some ea) :
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          (g = .io → WellDenotedV V ρ ea) →
+          (Grade.full = .io → WellDenotedV V ρ ea) →
           WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
             interp V ρ ea ∈ˢ interp V ρ ta := by
-  cases g with
-  | full =>
-    obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
-    exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ => hrow ρ hρ hL⟩
-  | io =>
-    obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
-    exact ⟨hft, hsub, ta, hta, fun ρ hρ hL hg =>
-      ⟨hg rfl, hrow ρ hρ hL (hg rfl)⟩⟩
+  obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
+  exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ => hrow ρ hρ hL⟩
 
 /-- `InferSem.apply`'s converse: the uniform statement builds the
 motive at either grade. -/
@@ -116,34 +108,56 @@ theorem InferSem.of_uniform {g : Grade} {d : Nat} {e t : Expr}
     intro hfe Δa ea hC hea
     obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
     exact ⟨hft, hsub, ta, hta, fun ρ hρ hL hge =>
-      (hrow ρ hρ hL (fun _ => hge)).2⟩
+      IORel.of_mem hta (hrow ρ hρ hL (fun _ => hge)).2.1
+        (hrow ρ hρ hL (fun _ => hge)).2.2⟩
 
 /-- **The sort fact at a grade** (`sortSemAt_of_claims` at the
-motives): a subject whose inferred type
-reduces to `.sort u` reads into the universe — and is graded, which at
-the io grade is the premise and at the full grade the first motive's
-conclusion — at every valuation where the context is satisfied and the
-subject's leaves are graded.  The totality factor the run version routes
-(`InferReads`) is the existence form of `InferSem`. -/
+motives): a subject whose inferred type reduces to `.sort u` reads into
+the universe — and is graded, which at the io grade is the premise and
+at the full grade the first motive's conclusion — at every valuation
+where the context is satisfied and the subject's leaves are graded.
+At the io grade the claim is `IORel`: the subject is a type there ("not
+pt" source (1)), and a sort is no ∀ — the inferred type reduces to a
+sort, and a ∀ reduces only to itself (`Red.rigid`) — so it is a member. -/
 theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
     (hs : InferSem m φ g d e s) (hu : RedSem m φ d s (.sort u))
+    (hur : g = .io → Red env d s (.sort u))
     (hfe : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
     (hC : CtxOkS m φ d Δa e)
     (hea : denoteMeta m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-      (g = .io → WellDenotedV V ρ ea) →
+      (g = .io → WellDenotedTy V ρ ea) →
       WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) := by
-  obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs.apply hfe hC hea
-  obtain ⟨-, -, ua, hua, hred⟩ := hu hfs (hC.of_subset hsub) hsa
-  rw [denoteMeta] at hua
-  obtain rfl : ua = .sort (u.eval φ) := (Option.some.inj hua).symm
-  intro ρ hρ hL hgr
-  obtain ⟨hge, hgs, hm⟩ := hrow ρ hρ hL hgr
-  -- "not pt" source (1): the inferred type `sa` is a type
-  have heq := (hred ρ hρ (hL.of_subset hsub) hgs.1 hgs.ne_pt).2
-  refine ⟨hge, ?_⟩
-  rw [heq, interp_sort] at hm
-  exact hm
+  cases g with
+  | full =>
+    obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs.apply hfe hC hea
+    obtain ⟨-, -, ua, hua, hred⟩ := hu hfs (hC.of_subset hsub) hsa
+    rw [denoteMeta] at hua
+    obtain rfl : ua = .sort (u.eval φ) := (Option.some.inj hua).symm
+    intro ρ hρ hL _
+    obtain ⟨hge, hgs, hm⟩ := hrow ρ hρ hL (fun hg => nomatch hg)
+    -- "not pt" source (1): the inferred type `sa` is a type
+    have heq := (hred ρ hρ (hL.of_subset hsub) hgs.1 hgs.ne_pt).2
+    refine ⟨hge, ?_⟩
+    rw [heq, interp_sort] at hm
+    exact hm
+  | io =>
+    obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs hfe hC hea
+    obtain ⟨-, -, ua, hua, hred⟩ := hu hfs (hC.of_subset hsub) hsa
+    rw [denoteMeta] at hua
+    obtain rfl : ua = .sort (u.eval φ) := (Option.some.inj hua).symm
+    intro ρ hρ hL hgr
+    have hty := hgr rfl
+    rcases hrow ρ hρ hL hty.1 with h | h | h
+    · -- "not pt" source (1): the subject is a type
+      exact absurd h hty.ne_pt
+    · obtain ⟨hgs, hm⟩ := h.of_reading hsa
+      -- "not pt" source (1): the inferred type `sa` is a type
+      have heq := (hred ρ hρ (hL.of_subset hsub) hgs.1 hgs.ne_pt).2
+      rw [heq, interp_sort] at hm
+      exact ⟨hty.1, hm⟩
+    · obtain ⟨_, _, _, rfl⟩ := h.forallE
+      exact nomatch Red.rigid (hur rfl) trivial
 
 /-- A sort has the successor sort. -/
 theorem Infer.sort_sound {g : Grade} {d : Nat} {u : Level} :
@@ -291,8 +305,10 @@ theorem Infer.strLit_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
 theorem Infer.forallE_sound {g : Grade} {d : Nat}
     {ty body s bs : Expr} {u v : Level} {mb : BinderMeta}
     (hs : InferSem m φ g d ty s) (hu : RedSem m φ d s (.sort u))
+    (hur : g = .io → Red env d s (.sort u))
     (hbs : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bs)
-    (hv : RedSem m φ (d + 1) bs (.sort v)) :
+    (hv : RedSem m φ (d + 1) bs (.sort v))
+    (hvr : g = .io → Red env (d + 1) bs (.sort v)) :
     InferSem m φ g d (.forallE ty body mb) (.sort (.imax u v)) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
@@ -306,18 +322,18 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
   obtain ⟨hwopen, hbopen, hLopen⟩ :=
     frame_open2 hws.1 hb.1 hws.2 hb.2 hLty hLbody
   obtain ⟨tyA, baA, htyA, hbaA, rfl⟩ := denoteMeta_forallE_inv hea
-  have hdomU := sortSem_of hs hu ⟨hws.1, hb.1, hLty⟩ hC.forallE_ty htyA
+  have hdomU := sortSem_of hs hu hur ⟨hws.1, hb.1, hLty⟩ hC.forallE_ty htyA
   have hCop : CtxOkS m φ (d + 1) (tyA :: Δa)
       (body.instantiate1 (.fvar d ty)) :=
     CtxOkS.openS hC.forallE_ty hC.forallE_body htyA
-  have hcodU := sortSem_of hbs hv ⟨hwopen, hbopen, hLopen⟩ hCop hbaA
+  have hcodU := sortSem_of hbs hv hvr ⟨hwopen, hbopen, hLopen⟩ hCop hbaA
   refine ⟨⟨by simp [Expr.WScoped], by simp [Expr.looseBVarsBounded],
       fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
     (fun l hl => by simp [Expr.fvarLeaves] at hl),
     _, by rw [denoteMeta], ?_⟩
   intro ρ hρ hL hgr
   -- the domain: its own sort run; at the io grade off the subject
-  have hdom := hdomU ρ hρ hL.forallE_ty (fun hg => (hgr hg).pi_dom.1)
+  have hdom := hdomU ρ hρ hL.forallE_ty (fun hg => (hgr hg).pi_dom)
   have hdomTy : WellDenotedTy V ρ tyA := ⟨hdom.1, IsTy_of_mem_univ hdom.2⟩
   -- the codomain, at every point of the domain
   have hcod : ∀ x, x ∈ˢ interp V ρ tyA →
@@ -326,7 +342,7 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
     fun x hx => hcodU (cons x ρ) (Sat_cons V hρ hx)
       (LeavesGr.open hC.forallE_ty hC.forallE_body hL.forallE_ty
         hL.forallE_body htyA hdomTy)
-      (fun hg => (hgr hg).pi_body x hx)
+      (fun hg => ⟨(hgr hg).pi_body x hx, (hgr hg).pi_fib x hx⟩)
   have hrow := sound_pi V (u := u.eval φ) (v := v.eval φ)
     hdom.1 (fun x hx => (hcod x hx).1) hdom.2
     (fun x hx => (hcod x hx).2)
@@ -335,12 +351,12 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
 
 /-- A λ: the body's inferred types are types, so the abstraction is a
 member of their function space (`lamV_mem`). -/
-theorem Infer.lam_sound {g : Grade} {d : Nat}
+theorem Infer.lam_soundFull {d : Nat}
     {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
-    (hs : g = .full → InferSemFull m φ d ty s)
-    (hu : g = .full → RedSem m φ d s (.sort u))
-    (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSem m φ g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    (hs : InferSemFull m φ d ty s)
+    (hu : RedSem m φ d s (.sort u))
+    (hbt : InferSem m φ .full (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
+    InferSem m φ .full d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -419,12 +435,9 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
   -- the domain's grading: established at the full grade by its own
   -- sort run, consumed at the io grade off the subject (`lam_dom`)
   have hokty : WellDenotedTy V ρ tyA := by
-    cases g with
-    | full =>
-      have h := sortSem_of (g := .full) (hs rfl) (hu rfl) ⟨hws.1, hb.1, hLty⟩
-        hC.lam_ty htyA ρ hρ hL.lam_ty (fun hg => by simp at hg)
-      exact ⟨h.1, IsTy_of_mem_univ h.2⟩
-    | io => exact (hgr rfl).lam_dom
+    have h := sortSem_of (g := .full) hs hu (fun hg => nomatch hg) ⟨hws.1, hb.1, hLty⟩
+      hC.lam_ty htyA ρ hρ hL.lam_ty (fun hg => nomatch hg)
+    exact ⟨h.1, IsTy_of_mem_univ h.2⟩
   -- the opened body at every point of the domain
   have hLop : ∀ x, LeavesGr m φ (d + 1) (body.instantiate1 (.fvar d ty))
       (cons x ρ) := fun _ =>
@@ -433,7 +446,7 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
       WellDenotedV V (cons x ρ) ba ∧ WellDenotedTy V (cons x ρ) btA ∧
         interp V (cons x ρ) ba ∈ˢ interp V (cons x ρ) btA := fun x hx =>
     hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x)
-      (fun hg => (hgr hg).lam_body x hx)
+      (fun hg => nomatch hg)
   refine ⟨?_, ?_, ?_⟩
   · -- the λ's own grading
     rw [WellDenotedV, WellDenoted_lam]
@@ -452,12 +465,117 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
       (fun x hx => (hrow x hx).2.2)
       (fun x hx => (hrow x hx).2.1.2)).2
 
+/-- **A λ at the io grade** (the fragment's `InferIO.lam_sound`): no
+domain check.  Where every body value is the point, so is the
+abstraction; otherwise it is the graph of its body values over its own
+domain, a graded type off the subject's grading (`lam_dom`), and its
+every application is a body value, which satisfies the body's claim:
+the hereditary claim at the ∀ of the body's type. -/
+theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
+    (hbt : InferSemIO m φ (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
+    InferSemIO m φ d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+  intro hfr Δa ea hC hea
+  obtain ⟨hws, hb, hLb⟩ := hfr
+  simp only [Expr.WScoped] at hws
+  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
+  have hLty : Expr.LeavesBounded ty := fun l hl =>
+    hLb l (by simp [Expr.fvarLeaves, hl])
+  have hLbody : Expr.LeavesBounded body := fun l hl =>
+    hLb l (by simp [Expr.fvarLeaves, hl])
+  obtain ⟨tyA, ba, htyA, hba, rfl⟩ := denoteMeta_lam_inv hea
+  obtain ⟨hwopen, hbopen, hLopen⟩ :=
+    frame_open2 hws.1 hb.1 hws.2 hb.2 hLty hLbody
+  have hCop : CtxOkS m φ (d + 1) (tyA :: Δa)
+      (body.instantiate1 (.fvar d ty)) :=
+    CtxOkS.openS hC.lam_ty hC.lam_body htyA
+  -- the opened body's inferred type
+  obtain ⟨hbtf, hbtsub, btA, hbtA, hrowB⟩ :=
+    hbt ⟨hwopen, hbopen, hLopen⟩ hCop hba
+  obtain ⟨hwbt, hbtb, hLbt⟩ := hbtf
+  -- the abstraction round trip
+  have hleaf : Expr.LeafCond d ty (body.instantiate1 (.fvar d ty)) := by
+    intro l hl hd
+    rcases Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
+    · exact absurd hd (by
+        have := Expr.fvarLeaves_lt_of_wscoped hws.2 l h2
+        omega)
+    · rw [Expr.fvarLeaves] at h2
+      rcases List.mem_cons.mp h2 with rfl | h3
+      · exact rfl
+      · exact absurd hd (by
+          have := Expr.fvarLeaves_lt_of_wscoped hws.1 l h3
+          omega)
+  have hcons : Expr.fvarConsistent d ty bt :=
+    Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
+  have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
+    ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
+  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
+      = some (.pi tyA btA) := by
+    rw [denoteMeta, htyA, hround, hbtA]
+    rfl
+  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d) mb).fvarLeaves,
+      l ∈ (Expr.lam ty body mb).fvarLeaves := by
+    intro l hl
+    simp only [Expr.fvarLeaves, List.mem_append] at hl ⊢
+    rcases hl with h2 | h2
+    · exact Or.inl h2
+    · obtain ⟨hlbt, hlne⟩ := ConLeche.Expr.fvarLeaves_abstract1_ne bt 0 hwbt l h2
+      rcases Expr.fvarLeaves_instantiate1 body 0 (hbtsub l hlbt) with h3 | h3
+      · exact Or.inr h3
+      · rw [Expr.fvarLeaves] at h3
+        rcases List.mem_cons.mp h3 with rfl | h4
+        · exact absurd rfl hlne
+        · exact Or.inl h4
+  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d) mb) := by
+    simp only [Expr.WScoped]
+    exact ⟨hws.1, ConLeche.WScoped.abstract1 0 hwbt⟩
+  have hbT : (Expr.forallE ty (bt.abstract1 d) mb).looseBVarsBounded 0
+      = true := by
+    simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
+    exact ⟨hb.1, ConLeche.looseBVarsBounded_abstract1 bt 0 hbtb⟩
+  refine ⟨⟨hwT, hbT, fun l hl => hLb l (hsubT l hl)⟩,
+    hsubT, _, hta, ?_⟩
+  intro ρ hρ hL hgr
+  -- the domain's grading, off the subject's ("not pt" source (1))
+  have hokty : WellDenotedTy V ρ tyA := hgr.lam_dom
+  have hLop : ∀ x, LeavesGr m φ (d + 1) (body.instantiate1 (.fvar d ty))
+      (cons x ρ) := fun _ =>
+    LeavesGr.open hC.lam_ty hC.lam_body hL.lam_ty hL.lam_body htyA hokty
+  have hrow : ∀ x, x ∈ˢ interp V ρ tyA →
+      IORel m φ (d + 1) bt (cons x ρ) (interp V (cons x ρ) ba) := fun x hx =>
+    hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x) (hgr.lam_body x hx)
+  rw [interp_lam]
+  by_cases hall : ∀ x, x ∈ˢ interp V ρ tyA → interp V (cons x ρ) ba = pt
+  · exact Or.inl (lamV_eq_pt hall)
+  obtain ⟨x₀, hx₀, hx₀'⟩ : ∃ x, x ∈ˢ interp V ρ tyA ∧ interp V (cons x ρ) ba ≠ pt :=
+    Classical.byContradiction fun hn => hall fun x hx =>
+      Classical.byContradiction fun hx' => hn ⟨x, hx, hx'⟩
+  rw [lamV_eq_graph (lamV_ne_pt_of hx₀ hx₀')]
+  refine Or.inr (Or.inr ?_)
+  rw [IOHered_forallE]
+  obtain ⟨-, -, -, Bl, hBl, -⟩ := cast (WellDenoted_lam V ρ tyA ba) hgr
+  refine ⟨tyA, htyA, hokty, ⟨Bl, graph_mem_piSet hBl⟩,
+    ⟨x₀, hx₀, by rw [app_graph hx₀]; exact hx₀'⟩, fun x hx => ?_⟩
+  rw [app_graph hx, hround]
+  exact hrow x hx
+
+/-- A λ, at either grade. -/
+theorem Infer.lam_sound {g : Grade} {d : Nat}
+    {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
+    (hs : g = .full → InferSemFull m φ d ty s)
+    (hu : g = .full → RedSem m φ d s (.sort u))
+    (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
+    InferSem m φ g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+  cases g with
+  | full => exact Infer.lam_soundFull (hs rfl) (hu rfl) hbt
+  | io => exact Infer.lam_soundIO hbt
+
 /-- An application, certified (the full grade's arm). -/
-theorem Infer.app_soundCert {g : Grade} {d : Nat}
+theorem Infer.app_soundCert {d : Nat}
     {f a tf ty body ta : Expr} {mt : BinderMeta}
-    (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
-    (hta : InferSem m φ g d a ta) (hd : DefEqSem m φ d ta ty) :
-    InferSem m φ g d (.app f a) (body.instantiate1 a) := by
+    (htf : InferSem m φ .full d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
+    (hta : InferSem m φ .full d a ta) (hd : DefEqSem m φ d ta ty) :
+    InferSem m φ .full d (.app f a) (body.instantiate1 a) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -553,39 +671,52 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
     (htv : g = .full → InferSemFull m φ d v tv)
     (hb : InferSem m φ g d (body.instantiate1 v) t) :
     InferSem m φ g d (.letE ty v body) t := by
-  refine InferSem.of_uniform ?_
-  intro Δa ea hfr hC hea
-  obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
-  obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hfr hva hba
-  obtain ⟨hfv, hsubv⟩ := letE_val_frame hfr
-  obtain ⟨hft, htsub, ta, hta, hrow⟩ :=
-    hb.apply hfr' (hC.of_subset hsub) hred
-  refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
-  intro ρ hρ hL hgr
-  have hgv : WellDenotedV V ρ va := by
-    cases g with
-    | io => exact (hgr rfl).letE_val
-    | full =>
+  cases g with
+  | full =>
+    refine InferSem.of_uniform ?_
+    intro Δa ea hfr hC hea
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
+    obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hfr hva hba
+    obtain ⟨hfv, hsubv⟩ := letE_val_frame hfr
+    obtain ⟨hft, htsub, ta, hta, hrow⟩ :=
+      hb.apply hfr' (hC.of_subset hsub) hred
+    refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
+    intro ρ hρ hL _
+    have hgv : WellDenotedV V ρ va := by
       obtain ⟨-, -, _, -, hrowv⟩ := htv rfl hfv (hC.of_subset hsubv) hva
       exact (hrowv ρ hρ (hL.of_subset hsubv)).1
-  obtain ⟨hge, hgt, hmem⟩ := hrow ρ hρ (hL.of_subset hsub)
-    (fun hg => (WellDenotedV_zeta hgv).mp (hgr hg))
-  refine ⟨(WellDenotedV_zeta hgv).mpr hge, hgt, ?_⟩
-  rw [interp_zeta]
-  exact hmem
+    obtain ⟨hge, hgt, hmem⟩ := hrow ρ hρ (hL.of_subset hsub) (fun hg => nomatch hg)
+    refine ⟨(WellDenotedV_zeta hgv).mpr hge, hgt, ?_⟩
+    rw [interp_zeta]
+    exact hmem
+  | io =>
+    intro hfr Δa ea hC hea
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
+    obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hfr hva hba
+    obtain ⟨hft, htsub, ta, hta, hrow⟩ := hb hfr' (hC.of_subset hsub) hred
+    refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
+    intro ρ hρ hL hgr
+    have hgv : WellDenotedV V ρ va := hgr.letE_val
+    have h := hrow ρ hρ (hL.of_subset hsub) ((WellDenotedV_zeta hgv).mp hgr)
+    rw [interp_zeta]
+    exact h
 
-/-- **The io grade's application, uncertified** (Lean's `infer_only`):
-the skipped membership from the subject's own hereditary app slot.  A
-head that is not the point is a graph, which fixes its domain
-(`piR_dom_unique`, through `slotTransfer`).
-
-**Owed to task #342 L18** (the S4 sorry ledger): at a head that is the
-point the slot's domain says nothing about the Π's; the claim is the
-hereditary `IORel` of task #346 (the fragment's `InferIO.app_sound`):
-membership fails at an io-inferred λ. -/
+/-- **The io grade's application, uncertified** (Lean's `infer_only`;
+the fragment's `InferIO.app_sound`).  The claim is the hereditary
+`IORel`.  Where the head is the point, so is the application.  Where it
+is not, the subject's own app slot is in the graph regime, and a graph
+determines its domain (`slotTransfer`): if the head is a member of its
+type ("not pt" source (1): that type is a type, so its reduct to the ∀
+is an equation), the argument lies in the ∀'s domain and the
+application in its body; if the head's claim is hereditary ("not pt"
+source (4)), the type is syntactically the ∀ (`Red.rigid`), the graph's
+domain is its domain, and the claim at the opened body, at the
+argument's value, is the claim at the body instantiated with the
+argument (`IORel_substFvarAt`). -/
 theorem Infer.app_soundIO {d : Nat}
     {f a tf ty body : Expr} {mt : BinderMeta}
-    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt)) :
+    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
+    (hwr : Red env d tf (.forallE ty body mt)) :
     InferSemIO m φ d (.app f a) (body.instantiate1 a) := by
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -630,54 +761,68 @@ theorem Infer.app_soundIO {d : Nat}
     · rw [Expr.fvarLeaves]
       exact List.mem_append_right _ h2
   intro ρ hρ hL hge
-  -- **the premise, spent**: the parts' grading and the hereditary slot
   have hokf : WellDenotedV V ρ fa := hge.app_fn
   have hoka : WellDenotedV V ρ aa := hge.app_arg
-  have hslot := (cast (WellDenoted_app V ρ fa aa) hge).2.2
-  obtain ⟨hgtfa, hrowfM⟩ := hrowF ρ hρ hL.app_fn hokf
-  -- "not pt" source (1): the head's inferred type `tfa` is a type
-  obtain ⟨hokpa, hredfρ⟩ :=
-    hredf ρ hρ (hL.app_fn.of_subset htfsub) hgtfa.1 hgtfa.ne_pt
-  have hAty : IsTy (interp V ρ Aa) := hokpa.pi_dom.2
-  have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
-    hokpa.pi_body
-  have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
-    (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
-  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
-    rw [← hredfρ]
-    exact hrowfM
-  -- **THE LICENCE**: the skipped membership, from the subject's own
-  -- hereditary app slot at a bit pinned positive by the datum
-  have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa := by
-    obtain ⟨v, A, B, hfslot, haslot, -⟩ := hslot
-    have hf' := hf2
-    rw [interp_pi] at hf'
-    by_cases hfp : interp V ρ fa = pt
-    · -- L18: the io application at a head that is the point (`IORel`)
-      sorry
+  obtain ⟨v, A, B, hfslot, haslot, -⟩ := (cast (WellDenoted_app V ρ fa aa) hge).2.2
+  rw [interp_app]
+  by_cases hfp : interp V ρ fa = pt
+  · rw [hfp, app_pt]; exact Or.inl rfl
+  rcases hrowF ρ hρ hL.app_fn hokf with h | h | h
+  · exact absurd h hfp
+  · -- the head is a member of its type
+    obtain ⟨hgtfa, hrowfM⟩ := h.of_reading htfa
+    -- "not pt" source (1): the head's inferred type `tfa` is a type
+    obtain ⟨hokpa, hredfρ⟩ :=
+      hredf ρ hρ (hL.app_fn.of_subset htfsub) hgtfa.1 hgtfa.ne_pt
+    have hAty : IsTy (interp V ρ Aa) := hokpa.pi_dom.2
+    have hf' : interp V ρ fa ∈ˢ piV (interp V ρ Aa) fun x => interp V (cons x ρ) Ba := by
+      have h2 := hrowfM
+      rw [hredfρ, interp_pi] at h2
+      exact h2
     have hgr : interp V ρ fa ∈ˢ piR 1 (interp V ρ Aa) fun x => interp V (cons x ρ) Ba := by
       rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
-    exact Rules.slotTransfer Nat.one_ne_zero hgr hfslot haslot
-  exact ⟨(WellDenotedTy_inst0 hoka).mpr ⟨hokBa _ ha2, hBty _ ha2⟩,
-    (sound_app V hokf hoka hf2 ha2 hAty).2⟩
+    have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa :=
+      Rules.slotTransfer Nat.one_ne_zero hgr hfslot haslot
+    refine IORel.of_mem hcross
+      ((WellDenotedTy_inst0 hoka).mpr ⟨hokpa.pi_body _ ha2, hokpa.pi_fib _ ha2⟩) ?_
+    rw [interp_inst0]
+    exact app_mem_piV hf' ha2
+  · -- "not pt" source (4): the head's claim is hereditary, its type the ∀
+    obtain ⟨ty', body', mb', rfl⟩ := h.forallE
+    have heq := Red.rigid hwr trivial
+    injection heq with hty hbody
+    subst hty hbody
+    rw [IOHered_forallE] at h
+    obtain ⟨tya, htya, -, ⟨B', hB'⟩, -, hall⟩ := h
+    have hgr : interp V ρ fa ∈ˢ piR 1 (interp V ρ tya) B' := by
+      rw [piR_pos Nat.one_ne_zero]; exact hB'
+    have ha2 : interp V ρ aa ∈ˢ interp V ρ tya :=
+      Rules.slotTransfer Nat.one_ne_zero hgr hfslot haslot
+    have hsub := IORel_substFvarAt hws.2 hb.2 haa (body.instantiate1 (.fvar d ty)) d ρ
+      (SetTheory.app (interp V ρ fa) (interp V ρ aa)) (Nat.le_refl d)
+      (ConLeche.Expr.fvarsBelow_instantiate1 0 hwfe.2.fvarsBelow)
+      (by rw [Nat.sub_self, shiftE_zero_zero]; exact hoka)
+      (by rw [Nat.sub_self, shiftE_zero_zero, instE_zero]; exact hall _ ha2)
+    rwa [ConLeche.Expr.substFvarAt_instantiate1_self body 0 hwfe.2.fvarsBelow] at hsub
 
 /-- **An application** (`Infer.app`): the full grade's certificate, or
 the io grade's none. -/
 theorem Infer.app_sound {g : Grade} {d : Nat}
     {f a tf ty body ta : Expr} {mt : BinderMeta}
     (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
+    (hwr : g = .io → Red env d tf (.forallE ty body mt))
     (hta : g = .full → InferSemFull m φ d a ta)
     (hd : g = .full → DefEqSem m φ d ta ty) :
     InferSem m φ g d (.app f a) (body.instantiate1 a) := by
   cases g with
   | full => exact Infer.app_soundCert htf hw (hta rfl) (hd rfl)
-  | io => exact Infer.app_soundIO htf hw
+  | io => exact Infer.app_soundIO htf hw (hwr rfl)
 
-/-- A projection: the tower law's typing clause. -/
-theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
+/-- A projection at the full grade: the tower law's typing clause. -/
+theorem Infer.proj_soundFull (hin : RulesInputs V m φ) {d : Nat}
     {sn : Name} {i : Nat} {pe tpe te : Expr} {us : List Level}
     {entry : ProjEntry}
-    (htpe : InferSem m φ g d pe tpe) (hte : RedSem m φ d tpe te)
+    (htpe : InferSem m φ .full d pe tpe) (hte : RedSem m φ d tpe te)
     (hhead : te.getAppFn = .const sn us)
     (hent : env.findProj? sn i = some entry)
     (hlen : te.getAppArgs.length = entry.numParams)
@@ -685,7 +830,7 @@ theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
     (hprop : Level.isEquiv entry.structSort .zero = some true →
       Level.isEquiv (Level.subst entry.levelParams us entry.fieldSort) .zero
         = some true) :
-    InferSem m φ g d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe) := by
+    InferSem m φ .full d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -770,5 +915,130 @@ theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
       simp only [beq_iff_eq] at hp ⊢
       exact hprop hp)) σ vs vp restA hlenVs hokTe hokPe
     (heqTe ▸ hmemPe) hpeel
+
+/-- **A projection at the io grade** (the io claim's projection
+consumer): a projection of the point is the point (`projS_pt`); a
+scrutinee that is a member of its type gets the tower law's typing
+clause; and the scrutinee's claim is not hereditary, its type reducing
+to the structure's application, which no ∀ does (`Red.rigid`). -/
+theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
+    {sn : Name} {i : Nat} {pe tpe te : Expr} {us : List Level}
+    {entry : ProjEntry}
+    (htpe : InferSemIO m φ d pe tpe) (hte : RedSem m φ d tpe te)
+    (hter : Red env d tpe te)
+    (hhead : te.getAppFn = .const sn us)
+    (hent : env.findProj? sn i = some entry)
+    (hlen : te.getAppArgs.length = entry.numParams)
+    (hus : us.length = entry.levelParams.length)
+    (hprop : Level.isEquiv entry.structSort .zero = some true →
+      Level.isEquiv (Level.subst entry.levelParams us entry.fieldSort) .zero
+        = some true) :
+    InferSemIO m φ d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe) := by
+  intro hfr Δa ea hC hea
+  obtain ⟨hws, hb, hLb⟩ := hfr
+  simp only [Expr.WScoped] at hws
+  simp only [Expr.looseBVarsBounded] at hb
+  have hLpe : Expr.LeavesBounded pe := fun l hl =>
+    hLb l (by simpa [Expr.fvarLeaves] using hl)
+  have hCpe : CtxOkS m φ d Δa pe := hC.proj_arg
+  obtain ⟨vp, hvp, rfl⟩ := denoteMeta_proj_inv_tower hent hea
+  -- the scrutinee's inferred type, and its reduct (readings)
+  obtain ⟨htpef, htpesub, tpea, htpea, hrowP⟩ :=
+    htpe ⟨hws, hb, hLpe⟩ hCpe hvp
+  obtain ⟨htef, htesub, tea, htea, hredT⟩ :=
+    hte htpef (hCpe.of_subset htpesub) htpea
+  obtain ⟨hwte', hbte, hLte⟩ := htef
+  -- the tower law's typing clause
+  obtain ⟨-, -, -, ⟨cvT, capsT, hfT, hlpsT, -⟩, hO5, _, -, -, hlaw, -⟩ :=
+    hin.tower_ok sn i entry hent
+  obtain ⟨⟨Ta, hTa, hA⟩, -⟩ := hlaw us hus
+  -- the reduced type's spine, at the former's leaf
+  rw [show te = Expr.mkAppN te.getAppFn te.getAppArgs from
+    (Expr.mkAppN_getApp te).symm, hhead] at htea
+  obtain ⟨vT, vs, hvT, hspt, hteq⟩ := denoteMeta_mkAppN_inv htea
+  have hlenT : us.length
+      = (ConstantInfo.indInfo cvT capsT).toConstantVal.levelParams.length := by
+    show us.length = cvT.levelParams.length
+    rw [hlpsT]; exact hus
+  rw [denoteMeta_const hfT hlenT] at hvT
+  have hvT' : vT = m.acval sn (Level.substFn φ entry.levelParams us) := by
+    rw [← hlpsT]; exact (Option.some.inj hvT).symm
+  subst hvT'
+  subst hteq
+  -- the residual: the entry type's peel, read
+  have hframes : ∀ x ∈ te.getAppArgs ++ [pe],
+      Expr.WScoped d x ∧ x.looseBVarsBounded 0 = true := by
+    intro x hx
+    rcases List.mem_append.mp hx with hx' | hx'
+    · exact ⟨hwte'.getAppArgs x hx',
+        ConLeche.looseBVarsBounded_getAppArgs hbte x hx'⟩
+    · rcases List.mem_singleton.mp hx' with rfl
+      exact ⟨hws, hb⟩
+  obtain ⟨restA, hrest, hpeel⟩ :=
+    denoteMeta_typeAt_peel hent hTa hlen hframes (hspt.snoc hvp)
+  have hlenVs : vs.length = entry.numParams := by
+    rw [← hspt.length]; exact hlen
+  -- the returned type's leaves: the spine's or the subject's
+  have hleaves : ∀ l ∈ (entry.typeAt us te.getAppArgs pe).fvarLeaves,
+      (∃ x ∈ te.getAppArgs, l ∈ x.fvarLeaves) ∨ l ∈ pe.fvarLeaves := by
+    intro l hl
+    rw [ProjEntry.typeAt_eq_instSpine entry us hlen pe] at hl
+    rcases fvarLeaves_instSpine _ hl with hty | ⟨a, ha, hla⟩
+    · rw [Expr.fvarLeaves_eq_nil_of_not_hasFvar
+        (ConLeche.projEntry_body_hasFvar m.wf hent us)] at hty
+      exact nomatch hty
+    · rcases List.mem_append.mp ha with ha | ha
+      · exact Or.inl ⟨a, ha, hla⟩
+      · rcases List.mem_singleton.mp ha with rfl
+        exact Or.inr hla
+  refine ⟨⟨ConLeche.projEntry_typeAt_WScoped m.wf hent us hlen
+      (fun a ha => hwte'.getAppArgs a ha) hws,
+    ConLeche.projEntry_typeAt_looseBVars m.wf hent us hlen
+      (fun a ha => ConLeche.looseBVarsBounded_getAppArgs hbte a ha) hb,
+    fun l hl => ?_⟩, fun l hl => ?_, restA, hrest, ?_⟩
+  · rcases hleaves l hl with ⟨x, hx, hlx⟩ | hlx
+    · exact hLte l (ConLeche.fvarLeaves_getAppArgs hx l hlx)
+    · exact hLpe l hlx
+  · rcases hleaves l hl with ⟨x, hx, hlx⟩ | hlx
+    · rw [Expr.fvarLeaves]
+      exact htpesub l (htesub l (ConLeche.fvarLeaves_getAppArgs hx l hlx))
+    · rw [Expr.fvarLeaves]
+      exact hlx
+  intro σ hσ hL hgr
+  have hLpe' : LeavesGr m φ d pe σ := hL.proj_arg
+  have hokPe : WellDenotedV V σ vp := ProjAV.hoistV hgr
+  rcases hrowP σ hσ hLpe' hokPe with h | h | h
+  · -- the scrutinee is the point, and so is its projection
+    refine Or.inl ?_
+    rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
+  · obtain ⟨hokTpe, hmemPe⟩ := h.of_reading htpea
+    -- "not pt" source (1): the scrutinee's inferred type `tpea` is a type
+    obtain ⟨hokTe, heqTe⟩ :=
+      hredT σ hσ (hLpe'.of_subset htpesub) hokTpe.1 hokTpe.ne_pt
+    have hrow := hA (towerGuardAt_of hO5 (fun hp => by
+        simp only [beq_iff_eq] at hp ⊢
+        exact hprop hp)) σ vs vp restA hlenVs hokTe hokPe
+      (heqTe ▸ hmemPe) hpeel
+    exact IORel.of_mem hrest hrow.2.1 hrow.2.2
+  · obtain ⟨_, _, _, rfl⟩ := h.forallE
+    exact absurd (Red.rigid hter trivial ▸ hhead) (IsRigid.not_const (e := .forallE _ _ _) trivial)
+
+/-- A projection, at either grade. -/
+theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
+    {sn : Name} {i : Nat} {pe tpe te : Expr} {us : List Level}
+    {entry : ProjEntry}
+    (htpe : InferSem m φ g d pe tpe) (hte : RedSem m φ d tpe te)
+    (hter : g = .io → Red env d tpe te)
+    (hhead : te.getAppFn = .const sn us)
+    (hent : env.findProj? sn i = some entry)
+    (hlen : te.getAppArgs.length = entry.numParams)
+    (hus : us.length = entry.levelParams.length)
+    (hprop : Level.isEquiv entry.structSort .zero = some true →
+      Level.isEquiv (Level.subst entry.levelParams us entry.fieldSort) .zero
+        = some true) :
+    InferSem m φ g d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe) := by
+  cases g with
+  | full => exact Infer.proj_soundFull hin htpe hte hhead hent hlen hus hprop
+  | io => exact Infer.proj_soundIO hin htpe hte (hter rfl) hhead hent hlen hus hprop
 
 end ConLeche.Model.Rules

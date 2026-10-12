@@ -3,6 +3,7 @@ module
 public import ConLeche.Model.Annot.EnvModelM
 public import ConLeche.Rules.Rel
 public import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Rules.IORel
 
 public section
 
@@ -185,10 +186,10 @@ subject's grading is a conclusion; the type is a graded type
             interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- **`Infer`'s motive at the io grade** — consumption: the subject's
-grading is a premise (`InferClaimIO`'s premise form).  Membership is the
-annotated reading's claim; at Lean's `infer_only` (no argument check at
-an application) the claim is the hereditary `IORel` of task #346 (the
-fragment's `IOGrade.lean`), owed by task #342 L18. -/
+grading is a premise (`InferClaimIO`'s premise form), and the claim is
+the hereditary `IORel` of task #346 (`IORel.lean`), keyed on the type's
+syntax: at Lean's `infer_only` (no argument check at an application) an
+io-inferred type need not hold its term. -/
 @[expose] def InferSemIO {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
@@ -198,8 +199,22 @@ fragment's `IOGrade.lean`), owed by task #342 L18. -/
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          WellDenotedV V ρ ea →
-          WellDenotedTy V ρ ta ∧ interp V ρ ea ∈ˢ interp V ρ ta
+          WellDenotedV V ρ ea → IORel m φ d t ρ (interp V ρ ea)
+
+/-- **A proposition's io claim is the point** (proof irrelevance at the
+io grade): at every satisfying valuation, a value satisfying the io
+claim at the type `T` is the point.  What the io inference of `T`'s
+own sort, reducing to `Prop`, gives (`Sound.lean`, `prop_pt_io`): the
+member half by the type's sort, the hereditary half by the ∀'s body's
+sort, at the hereditary clause's witness. -/
+@[expose] def PropPt {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (d : Nat) (T : Expr) : Prop :=
+  Frame d T →
+  ∀ {Δa : List AnnotTerm} {ta : AnnotTerm},
+    CtxOkS m φ d Δa T →
+    denoteMeta m.acval env φ d T = some ta →
+    ∀ (ρ : Nat → V) (v : V), Sat V Δa ρ → LeavesGr m φ d T ρ →
+      IORel m φ d T ρ v → v = pt
 
 /-- The grade-dispatched inference motive. -/
 @[expose] def InferSem {env : Env} (m : EnvModel V env) (φ : Name → Nat) :

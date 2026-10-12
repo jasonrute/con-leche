@@ -115,12 +115,6 @@ theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
     rintro rfl; exact hn (eq_pt_of_mem_piR_zero hf)
   exact ⟨v, A, B, hv, hf, hx, hT hv⟩
 
-/-- A graded Π-type's fibres are types. -/
-theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V}
-    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
-    ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
-  (cast (WellDenoted_pi V ρ A B) h).2.2.2 x hx
-
 theorem DefEq.refl_sound {d : Nat} {a : Expr} : DefEqSem m φ d a a :=
   DefEq.refl_soundU.cond
 
@@ -300,17 +294,18 @@ theorem DefEq.proofFast_sound (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
   intro _ _ Δa aa ba hCa hCb haa _ ρ hρ hLa _ _ _ hna _
   exact absurd (prf_of_isProofFast hin.const_ty ha hCa haa ρ hρ hLa) hna
 
-/-- Both sides are the point (`prop_side_pt'`): vacuous at the
-conditional motive. -/
-theorem DefEq.proofIrrel_sound {d : Nat}
-    {a ta tta b tb ttb : Expr} {u v : Level}
-    (hta : InferSemIO m φ d a ta) (htta : InferSemIO m φ d ta tta)
-    (hu : RedSem m φ d tta (.sort u)) (hu0 : Level.isEquiv u .zero = some true)
-    (_htb : InferSemIO m φ d b tb) (_httb : InferSemIO m φ d tb ttb)
-    (_hv : RedSem m φ d ttb (.sort v)) (_hv0 : Level.isEquiv v .zero = some true) :
+/-- **Proof irrelevance at the io grade**: the left side's io claim at its
+io-inferred type, whose io-inferred sort reduces to `Prop` (`PropPt`,
+`Sound.lean`'s `prop_pt_io`), makes it the point: vacuous at the
+conditional motive.  The right side's premises are the checker's
+symmetric run, not consumed. -/
+theorem DefEq.proofIrrel_sound {d : Nat} {a ta b : Expr}
+    (hta : InferSemIO m φ d a ta) (hpt : PropPt m φ d ta) :
     DefEqSem m φ d a b := by
   intro hfa _ Δa aa ba hCa _ haa _ ρ hρ hLa _ hwa _ hna _
-  exact absurd (prop_side_pt' hta htta hu hu0 hfa hCa haa ρ hρ hLa hwa) hna
+  obtain ⟨hfta, hsub, taa, htaa, hrow⟩ := hta hfa hCa haa
+  exact absurd (hpt hfta (hCa.of_subset hsub) htaa ρ _ hρ (hLa.of_subset hsub)
+    (hrow ρ hρ hLa hwa)) hna
 
 /-- Unit-like structure: the two inferred types and their reducts are
 types ("not pt" source (1)), so their reductions and the certificate's
@@ -320,6 +315,7 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
     {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
     {cvT : ConstantVal} {caps : IndCaps}
     (hta : InferSemIO m φ d a ta) (hwta : RedSem m φ d ta wta)
+    (hwtar : Red env d ta wta)
     (hthead : wta.getAppFn = .const T us')
     (hind : env.find? T = some (.indInfo cvT caps))
     (hunit : caps.unitlike = true)
@@ -327,12 +323,16 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
     (htlen : wta.getAppArgs.length = caps.unitParams)
     (hlv : us'.length = cvT.levelParams.length)
     (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb wtb)
+    (hwtbr : Red env d tb wtb)
     (hd : DefEqSem m φ d wta wtb) :
     DefEqSem m φ d a b := by
-  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB _ _
+  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB hna hnb
   -- the two sides' inferred types, reduced, with their readings
   obtain ⟨hfta, hsuba, taa, htaa, hXA⟩ := hta hfa hCa hda
-  obtain ⟨hokTa, hmemA⟩ := hXA ρ hρ hLa hokA
+  -- neither side is the point, and their types reduce to non-∀s
+  -- (`Red.rigid`): the io claims are memberships
+  obtain ⟨hokTa, hmemA⟩ := (IORel.mem_of_red (hXA ρ hρ hLa hokA) hna hwtar
+    (not_forallE_of_getAppFn hthead)).of_reading htaa
   have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsuba
   have hLtaρ : LeavesGr m φ d ta ρ := hLa.of_subset hsuba
   obtain ⟨hfWA, hsubWA, wtaa, hwtaa, hYA⟩ := hwta hfta hCta htaa
@@ -340,7 +340,15 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   have hCwa : CtxOkS m φ d Δa wta := hCta.of_subset hsubWA
   have hLwaρ : LeavesGr m φ d wta ρ := hLtaρ.of_subset hsubWA
   obtain ⟨hftb, hsubb, tba, htba, hXB⟩ := htb hfb hCb hdb
-  obtain ⟨hokTb, hmemB⟩ := hXB ρ hρ hLb hokB
+  -- L18 (S4 ledger): the rule does not say that `b`'s reduced type is no
+  -- ∀.  Where it is one, `b`'s io claim may be hereditary (not a
+  -- membership), and the comparison `wta ≡ wtb` is conditional on a
+  -- graded side, which a hereditary claim's type need not be.  A premise
+  -- "`wtb` is not a ∀" (the checker's comparison of a family's
+  -- application with a ∀ fails anyway) discharges it, as for `a`.
+  have hwtbnf : ∀ ty body mb, wtb ≠ .forallE ty body mb := sorry
+  obtain ⟨hokTb, hmemB⟩ := (IORel.mem_of_red (hXB ρ hρ hLb hokB) hnb hwtbr
+    hwtbnf).of_reading htba
   have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubb
   have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubb
   obtain ⟨hfWB, hsubWB, wtba, hwtba, hYB⟩ := hwtb hftb hCtb htba
@@ -640,10 +648,9 @@ theorem DefEq.eta_core {d : Nat}
   rw [interp_lam, lamV_congr hpt, ← hdom]
   exact lamV_eta hmem fun x hx => hokW.pi_fib x hx
 
-/-- **η, typed**, with `b`'s io-inferred type: the io claim is membership
-here.  (**Owed to task #342 L18** with the hereditary io claim `IORel`:
-membership where `b` is not the point holds for an atom-headed `b`, the
-fragment's `etaIO_sound`.) -/
+/-- **η, typed**, with `b`'s io-inferred type: where `b` is not the point,
+its io claim is a membership — for an atom-headed `b` (the fragment's
+`etaIO_sound`). -/
 theorem DefEq.eta_sound {d : Nat}
     {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
     (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
@@ -655,7 +662,16 @@ theorem DefEq.eta_sound {d : Nat}
     DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
   refine DefEq.eta_core (fun hf Δa ea hC hea => ?_) hwtb hty hbody ht₁ htB
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := htb hf hC hea
-  exact ⟨hft, hsub, ta, hta, fun ρ hρ hL hw _ => hrow ρ hρ hL hw⟩
+  refine ⟨hft, hsub, ta, hta, fun ρ hρ hL hw hn => ?_⟩
+  rcases hrow ρ hρ hL hw with h | h | h
+  · exact absurd h hn
+  · exact h.of_reading hta
+  · -- L18 (S4 ledger): `b`'s io claim is hereditary only where `b`'s
+    -- head is a λ or a `let` (the fragment's `IORel_neutral`), and η
+    -- against such a `b` is unsound (`eta_lam_io_unsound`).  The rule
+    -- needs the premise that `b`'s head is a variable, a constant or a
+    -- projection — the checker meets `b` in weak-head normal form.
+    sorry
 
 set_option maxHeartbeats 800000 in
 /-- **Structure η at the conditional motive** (task #342 L11b).  Neither
@@ -672,6 +688,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     {cnP cnF : Nat} {T : Name} {us' : List Level} {cvT : ConstantVal}
     {caps : IndCaps}
     (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb wtb)
+    (hwtbr : Red env d tb wtb)
     (hhead : a.getAppFn = .const c us)
     (hctor : env.find? c = some (.ctorInfo cvc cnP cnF))
     (_hlen : a.getAppArgs.length = cnP + cnF)
@@ -694,10 +711,13 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (hfields : DefEqListSem m φ d (a.getAppArgs.drop caps.etaParams)
       (ConLeche.etaProjs env T us' wtb.getAppArgs b caps.etaFields)) :
     DefEqSem m φ d a b := by
-  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB hneA _
-  -- the stuck side's inferred type, reduced: a type
+  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB hneA hneB
+  -- the stuck side's inferred type, reduced: a type; the stuck side is
+  -- not the point and its type reduces to a family's application, so
+  -- its io claim is a membership (`Red.rigid`)
   obtain ⟨hftb, hsubtb, tba, htba, hX⟩ := htb hfb hCb hdb
-  obtain ⟨hokTb, hmemB0⟩ := hX ρ hρ hLb hokB
+  obtain ⟨hokTb, hmemB0⟩ := (IORel.mem_of_red (hX ρ hρ hLb hokB) hneB hwtbr
+    (not_forallE_of_getAppFn hthead)).of_reading htba
   have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubtb
   have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubtb
   obtain ⟨hfW, hsubW, wtba, hwtba, hY⟩ := hwtb hftb hCtb htba
