@@ -963,7 +963,7 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (hfire : ConLeche.RecRule.fire rl = .plain)
     (hpb : ConLeche.RecRule.paramsBlind rl = true)
     (hk : ConLeche.RecRule.k rl = ConLeche.recRuleKOf envC.find? cA.1.name) :
-    RecRuleKWit m₃ φ r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j) rl ∧
+    RecRuleKWit m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j) rl ∧
     RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
       (pp.toBlockShape.rulePrefixAt j) rl := by
   have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
@@ -1012,7 +1012,7 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
         (pp.toBlockShape.rulePrefixAt j)).1) (rP := pp.toBlockShape.rulePrefixAt j) hfire rfl
     obtain ⟨restR', restC, hfitR', hfitC, hpin, hval⟩ :=
       genMem_K hμ h R hS G hr hm hnP hone hnf0 hlv ρ xs a restR hxl hfit
-    refine ⟨cA.1, d.nP, cA.2,
+    refine Or.inr ⟨cA.1, d.nP, cA.2,
       (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
         (pp.toBlockShape.rulePrefixAt j)).1, xs.take pp.nP, _, restR', restC,
       hfind3, ?_, ?_, rfl, fun hb => absurd hb (by rw [hpb]; decide),

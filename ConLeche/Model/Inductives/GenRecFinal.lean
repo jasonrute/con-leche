@@ -273,7 +273,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
       ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
           (ConLeche.tgtMajorsOf out) j r ≠ ConLeche.RecRuleFire.inert →
-      RecRuleKWit m₃ φ r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
+      RecRuleKWit m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
         (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape

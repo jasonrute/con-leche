@@ -7,6 +7,8 @@ public import ConLeche.Model.Inductives.BlockRecRule
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructEntryKit
 import ConLeche.Model.Inductives.StructRecKit
+import ConLeche.Model.Inductives.FixKit
+import ConLeche.Model.Rules.DefEqSoundKit
 
 public section
 
@@ -796,13 +798,20 @@ constructor applied to a spine the main law accepts — its parameter
 comparisons, the guarded index pin, both fits — graded where the
 recursor's arguments are. -/
 @[expose] def RecRuleKWit {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
+    (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
   RecRule.k rl = true → RecRule.nfields rl = 0 ∧
   ∀ us : List Level, us.length = cv.levelParams.length →
   ∀ TVa : AnnotTerm,
     denoteMeta m.acval env φ 0 (cv.type.instantiateLevelParams cv.levelParams us) = some TVa →
   ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
     xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+  -- both sides are the point (a recursor that eliminates only into `Prop` here)
+  (interp V ρ (AnnotTerm.mkAppN (m.acval n (Level.substFn φ cv.levelParams us)) (xs ++ [a]))
+      = pt ∧
+    ∀ Ra : AnnotTerm,
+      denoteMeta m.acval env φ 0
+        ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us) = some Ra →
+      interp V ρ Ra = pt) ∨
   ∃ (cvj : ConstantVal) (cnP cnF : Nat) (usj : List Level) (ys : List AnnotTerm)
     (TVja restR' restC : AnnotTerm),
     env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) ∧
@@ -842,15 +851,20 @@ fieldless spine's field part is empty. -/
 theorem recRuleLaw_of_main {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     {n : Name} {cv : ConstantVal} {mI rP : Nat} {rl : RecRule}
     (hrPle : rP ≤ mI) (hmain : RecRuleMain m φ n cv mI rP rl)
-    (hK : RecRuleKWit m φ cv mI rP rl) (hNK : RecRuleExtraNK m φ n cv mI rP rl) :
+    (hK : RecRuleKWit m φ n cv mI rP rl) (hNK : RecRuleExtraNK m φ n cv mI rP rl) :
     RecRuleLaw m φ n cv mI rP rl := by
   refine ⟨hrPle, hmain, fun us hus TVa hTVa => ⟨fun hk => ?_, hNK us hus TVa hTVa⟩⟩
   obtain ⟨hnf, hwit⟩ := hK hk
   refine ⟨hnf, fun Ra hRa ρ xs a restR hxl hfit => ?_⟩
+  obtain ⟨Ra', hRa', hokRa, -, hsp⟩ := hmain us hus
+  have hRR : Ra' = Ra := Option.some.inj (hRa'.symm.trans hRa)
+  rw [hRR] at hokRa hsp
+  rcases hwit us hus TVa hTVa ρ xs a restR hxl hfit with ⟨hL, hR⟩ | hwit
+  · have hRpt := hR Ra hRa
+    exact ⟨hL.trans (Rules.interp_mkAppN_pt hRpt _).symm, fun hxs =>
+      mkAppN_wellDenotedV_of_pt (hokRa ρ) hRpt fun x hx => hxs x (List.mem_of_mem_take hx)⟩
   obtain ⟨cvj, cnP, cnF, usj, ys, TVja, restR', restC, hfj, hyl, husj, hψ, hcmpP, hcmpN, hpin,
-    hTVja, hfitR, hfitC, hval, hwd⟩ := hwit us hus TVa hTVa ρ xs a restR hxl hfit
-  obtain ⟨Ra', hRa', -, -, hsp⟩ := hmain us hus
-  obtain rfl : Ra' = Ra := Option.some.inj (hRa'.symm.trans hRa)
+    hTVja, hfitR, hfitC, hval, hwd⟩ := hwit
   obtain ⟨heq, hok⟩ := hsp cvj cnP cnF hfj usj ρ xs ys TVa TVja restR' restC hxl hyl husj hψ
     hcmpP hcmpN hpin hTVa hTVja hfitR hfitC
   have hdrop : ys.drop (RecRule.ctorParams rl) = [] := by
@@ -878,7 +892,7 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
     (hiota : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       BlockIotaAt V K c (leafF ψ) (pdomsF ψ) (fdomsF ψ) (esF ψ) (mkF ψ) (ihsF ψ) (RbF ψ) ρ)
     (hpins : RecRulePinsOk m₃ φ cv rP rl)
-    (hK : RecRuleKWit m₃ φ cv mI rP rl) (hNK : RecRuleExtraNK m₃ φ n cv mI rP rl)
+    (hK : RecRuleKWit m₃ φ n cv mI rP rl) (hNK : RecRuleExtraNK m₃ φ n cv mI rP rl)
     (hrhs : ∀ us : List Level, us.length = cv.levelParams.length →
       ∃ Ra : AnnotTerm,
         denoteMeta m₃.acval env φ 0
