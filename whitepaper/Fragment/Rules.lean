@@ -109,7 +109,8 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   syntactic binders, `Expr.hasPis`).  Both are needed only where the
   major may denote the point (a family that may be a proposition):
   where the major's domain is strict, `iota_core_strict` (`Sound.lean`)
-  needs neither.  They make the environment's ι law (`EnvModel.lean`,
+  needs neither; where the constructor's family is a proposition at
+  every valuation, `Red.iotaProp` needs no slot certificate.  They make the environment's ι law (`EnvModel.lean`,
   `RecRuleLaw`) applicable: they put every argument in its domain.
 
   The **three comparisons** after them are `Rel.lean`'s too
@@ -161,6 +162,67 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       rps.length = numParams →
       (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
         (numParams + numMotives + numMinors)), DefEq env Γ p.1 p.2) →
+      Red env Γ (mkAppN (const c us) args)
+        (mkAppN (rl.rhs.instL ci.lparams us)
+          (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
+  /-- **ι on a family in `Prop`, with no major-slot certificate** (task
+  #342 F3; #342 v2 §11.4 case 3).  `Red.iota` without the reduced
+  major's slot certificate, for a constructor whose family's sort
+  evaluates to zero at every valuation: the family `I` the
+  constructor's residual type is headed by is stored, its type walked
+  along the residual's parameters and indices leaves `Sort u`, and the
+  oracle decides `u = 0`.  The constructor's telescope certificate stays
+  at the full grade (every parameter and field, #349), and so do the
+  three comparisons.  Why the slot needs nothing: the unreduced major
+  lies in the slot whenever the redex is not the point, and where it is
+  the point so is the reduced constructor application
+  (`ctorApp_eq_pt_of_sortZero`, `Red.iota_core_prop`).  This covers the
+  families that are always propositions (`Acc`); a family that may be
+  a proposition at some valuations only (`Quot.{u}`, `PUnit.{u}`) also
+  needs the case-2 environment law at the others (lane F1), and keeps
+  `Red.iota` until then. -/
+  | iotaProp {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+      {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+      {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+      {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
+      {dM bM : Expr} {doms' tys' : List Expr}
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+      {Ii : ConstInfo} {u : Level} :
+      env.find? c = some ci →
+      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+      us.length = ci.lparams.length →
+      args.length = numParams + numMotives + numMinors + numIndices + 1 →
+      ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true →
+      Red env Γ (args.getD (numParams + numMotives + numMinors + numIndices) (bvar 0))
+        major →
+      major = mkAppN (const cj usj) margs →
+      rl ∈ rules → rl.ctor = cj → rl.inst = none →
+      env.find? cj = some cij →
+      usj.length = cij.lparams.length →
+      margs.length = numParams + rl.nfields →
+      cij.type.hasPis (numParams + rl.nfields) = true →
+      -- the major's slot, located but not certified
+      piResidual (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
+      -- the constructor's telescope certificate
+      piDomains (cij.type.instL cij.lparams usj) margs = some doms' →
+      tys'.length = doms'.length →
+      (∀ p ∈ margs.zip tys', Infer env Γ p.1 p.2) →
+      (∀ p ∈ tys'.zip doms', DefEq env Γ p.1 p.2) →
+      -- the constructor's levels, parameters and residual indices against the recursor's
+      Level.eqList usj (us.drop (us.length - usj.length)) = true →
+      (∀ p ∈ (margs.take numParams).zip (args.take numParams), DefEq env Γ p.1 p.2) →
+      piResidual (cij.type.instL cij.lparams usj) margs = some residual →
+      residual = mkAppN (const I lsI) (rps ++ ridx) →
+      rps.length = numParams →
+      (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
+        (numParams + numMotives + numMinors)), DefEq env Γ p.1 p.2) →
+      -- the constructor's family is a proposition at every valuation
+      env.find? I = some Ii →
+      lsI.length = Ii.lparams.length →
+      Ii.type.hasPis (rps ++ ridx).length = true →
+      piResidual (Ii.type.instL Ii.lparams lsI) (rps ++ ridx) = some (sort u) →
+      LevelOracle.eq u .zero = true →
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))

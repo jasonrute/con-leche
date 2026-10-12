@@ -350,3 +350,23 @@ info: 'Fragment.plainIota_literal_witness' depends on axioms: [propext, Classica
 info: 'Fragment.etaIota_reduced_major_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.etaIota_reduced_major_witness
+
+/--
+info: 'Fragment.eq_pt_of_mem_sortZero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.eq_pt_of_mem_sortZero
+
+/--
+info: 'Fragment.ctorApp_eq_pt_of_sortZero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.ctorApp_eq_pt_of_sortZero
+
+/--
+info: 'Fragment.Red.iota_core_prop' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iota_core_prop
+
+/--
+info: 'Fragment.Red.iotaProp_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaProp_sound
