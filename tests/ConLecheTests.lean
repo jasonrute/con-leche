@@ -385,7 +385,7 @@ e2e `corner_rec_empty_prefix`), so these drive the kernel directly. -/
 private def zNm (s : String) : Name := .str .anonymous s
 
 private def zRule (c : Name) (rhs : Expr) : RecRule :=
-  { ctor := c, nfields := 0, ctorParams := 0, fire := .inert, rhs := rhs }
+  { ctor := c, nfields := 0, ctorParams := 0, fire := .plain, rhs := rhs }
 
 /-- `inductive T : Prop | c` with the zero-motive `T.rec : (t : T) → T`
 and the given rule right-hand side. -/

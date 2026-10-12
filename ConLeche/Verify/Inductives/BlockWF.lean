@@ -282,15 +282,15 @@ premises, discharged per instance. -/
 
 /-- The member cons' rules function: `sumRules` at the block's
 parameter count. -/
-@[expose] def sumRulesR (find? : Name → Option ConstantInfo) (q : BlockShape) (nP : Nat) :
+@[expose] def sumRulesR (find? : Name → Option ConstantInfo) (nP : Nat) :
     Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List RecRule :=
-  fun m r => sumRules find? r.1.name nP (q.majorIdxAt m) (q.rulePrefixAt m) r.1.type r.2.2.2 r.2.1
+  fun _ r => sumRules find? r.1.name nP r.2.2.2 r.2.1
 
 /-- **`consBlockRecs` is the generic cons at `sumRulesR`.** -/
 theorem consBlockRecs_eq_R (find? : Name → Option ConstantInfo) (q : BlockShape) (nP : Nat) :
     ∀ (m : Nat) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
       (env : Env),
-      consBlockRecs find? q nP m rs env = consBlockRecsR (sumRulesR find? q nP) q m rs env
+      consBlockRecs find? q nP m rs env = consBlockRecsR (sumRulesR find? nP) q m rs env
   | _, [], _ => rfl
   | m, (cvRa, rhss, nIdx, ctorsA) :: rest, env => by
     simp only [consBlockRecs, consBlockRecsR]

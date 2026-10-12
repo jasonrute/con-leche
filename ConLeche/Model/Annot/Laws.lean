@@ -450,10 +450,14 @@ currency:
   values and cannot substitute): `denoteMeta_beta` gives the residual
   identity directly, and the index pin decomposes the residual at the
   ambient environment.
-* **The `.nested` pin clause quantifies the pin's own open reading**
-  (`denoteMeta` at depth `rP`), concluding at the reading substituted
-  along the argument prefix — `AnnotTerm.instRevChain`.  The supplier
-  converts the recorded comparand runs through the claims.
+* **The law takes no parameter comparison.**  Where the fired
+  constructor application is not the point, the major's membership in
+  the family at the comparands ties its fields; where it is the point,
+  the index pin is the only premise (`RecRuleExtra`'s (U) derives it
+  from the step's case-3 comparisons).  The `.nested` pins' grading
+  clause quantifies the pin's own open reading (`denoteMeta` at depth
+  `rP`), at the reading substituted along the argument prefix —
+  `AnnotTerm.instRevChain`.
 * **The fired equality is present**, and the transport clause grades
   the applied reduct.
 * The law **carries the RHS reading** (`∃ Ra`), with the bare-`R`
@@ -555,11 +559,11 @@ at its own levels:
 * **(P) the slot at the point**: where the major domain holds the
   point, every fitting constructor application is the point (the
   family is `Prop` there; F3/F2's slot law);
-* **(U) coherence**: at a fired spine, the conditional comparisons the
-  step ran are equations — the parameters where they are compared (a
-  `.nested` rule's pins always, a `.plain` rule's where the major is
-  the point, case 3), the index pin where the major is the point (L7's
-  `blockRule_coherent`). -/
+* **(U) coherence**: at a fired spine where the constructor application
+  is the point (case 3, where the step compares the parameters with the
+  rule's comparands and the indices), the conditional index comparison
+  is an equation (L7's `blockRule_coherent`, read off the parameters'
+  conditional comparison). -/
 @[expose] def RecRuleExtra {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
     (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
@@ -575,6 +579,7 @@ at its own levels:
       ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
         xs.length = mI →
         TeleFitPA V ρ TVa (xs ++ [a]) restR →
+        (∀ x ∈ xs, WellDenotedV V ρ x) →
         interp V ρ (AnnotTerm.mkAppN
             (m.acval n (Level.substFn φ cv.levelParams us)) (xs ++ [a]))
           = interp V ρ (AnnotTerm.mkAppN Ra (xs.take rP)) ∧
@@ -622,6 +627,8 @@ at its own levels:
             interp V ρ (ys.getD i default) ≠ pt → interp V ρ (xs.getD i default) ≠ pt →
             interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) →
         (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          interp V ρ (AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           ∀ i, i < RecRule.ctorParams rl →
           ∀ vpa : AnnotTerm,
             denoteMeta m.acval env φ rP
@@ -635,18 +642,9 @@ at its own levels:
         (interp V ρ (AnnotTerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           IotaIndexPinC (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
-        (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
-          ∀ i, i < RecRule.ctorParams rl →
-          ∀ vpa : AnnotTerm,
-            denoteMeta m.acval env φ rP
-              (ConLeche.Verify.openRev 0 rP
-                ((pins.getD i default).instantiateLevelParams
-                  cv.levelParams us)) = some vpa →
-            interp V ρ (ys.getD i default)
-              = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) ∧
-        (interp V ρ (AnnotTerm.mkAppN
+        interp V ρ (AnnotTerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
-          IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs)))
+          IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs))
 
 /-- **One rule's fired modeled-iota contract at `interp`** (see the
 section note). -/
@@ -666,11 +664,9 @@ section note). -/
       -- refutable: the checker's certificate is about the pins
       -- instantiated at the public frame, and converts only
       -- context-guarded).  The grading is stated of the chained term
-      -- the equality half names, at the chain's own environment:
-      -- `TeleFitPA` is that environment's `Sat` in closed form.
-      -- It stays an OUTER conjunct (the consumer feeds it to
-      -- `DefEqClaim` to *produce* the equality clause consumed
-      -- by the inner block — inner placement is circular).
+      -- at the chain's own environment: `TeleFitPA` is that
+      -- environment's `Sat` in closed form.  The consumer reads it to
+      -- run the case-3 pin comparison's claim (`RecRuleExtra`'s (U)).
       (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
         ∀ i, i < RecRule.ctorParams rl →
         ∃ vpa : AnnotTerm,
@@ -698,17 +694,10 @@ section note). -/
           = Level.substFn φ cvj.levelParams
               (ConLeche.recFireComparands rl cv.levelParams us
                 cvj.levelParams [] rP).1 →
-        (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
-          ∀ i, i < RecRule.ctorParams rl →
-          ∀ vpa : AnnotTerm,
-            denoteMeta m.acval env φ rP
-              (ConLeche.Verify.openRev 0 rP
-                ((pins.getD i default).instantiateLevelParams
-                  cv.levelParams us)) = some vpa →
-            interp V ρ (ys.getD i default)
-              = interp V ρ
-                  (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP)
-                    vpa)) →
+        -- the fired spine is graded (task #342 S5b: the constructor's own
+        -- parameters are not compared outside case 3; its application is
+        -- read at them, `genOutCtorOwn`)
+        (∀ y ∈ ys, WellDenotedV V ρ y) →
         -- the index pin, owed only where the fired constructor application
         -- is the point (task #342 L10: a family never `Prop` at the
         -- instance fires with no index comparison; the law reads the pin
@@ -748,8 +737,7 @@ section note). -/
   ∀ (n : Name) (cv : ConstantVal) (mI rP : Nat)
     (rules : List RecRule),
     env.find? n = some (.recInfo cv mI rP rules) →
-    ∀ rl ∈ rules, RecRule.fire rl ≠ .inert →
-      RecRuleLaw m φ n cv mI rP rl
+    ∀ rl ∈ rules, RecRuleLaw m φ n cv mI rP rl
 
 /-! ## The tower projection law (task #175 wiring, W5)
 

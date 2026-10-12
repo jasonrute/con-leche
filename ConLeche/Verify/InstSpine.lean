@@ -126,8 +126,6 @@ theorem recFireComparands_snd_shift {p : Nat} (rl : RecRule)
       shiftFrom_eq_self_of_not_hasFvar (by
         rw [hasFvar_instantiateLevelParams]
         exact hpins lvls pins hf pin hpin)]
-  | inert =>
-    simp only [recFireComparands, hf, List.map_take]
   | plain =>
     simp only [recFireComparands, hf, List.map_take]
 
@@ -152,10 +150,6 @@ theorem recFireComparands_snd_WScoped {d : Nat} (rl : RecRule)
         rw [hasFvar_instantiateLevelParams]
         exact hpins lvls pins hf pin hpin))
       (fun a ha => hargs a (List.mem_of_mem_take ha))
-  | inert =>
-    intro x hx
-    simp only [recFireComparands, hf] at hx
-    exact hargs x (List.mem_of_mem_take hx)
   | plain =>
     intro x hx
     simp only [recFireComparands, hf] at hx
@@ -183,8 +177,8 @@ theorem instPisAt_isSome_of_stripPis :
 
 /-! ## The rule-shape residue
 
-The four `V`-free facts about `recRulePlain` and `recFireComparands`
-that the recursor-group installs read. -/
+The `V`-free facts about `recFireComparands` that the recursor-group
+installs read. -/
 
 /-- The fire comparand levels of a plain rule. -/
 theorem recFireComparands_plain {rl : RecRule} {lps : List Name}

@@ -188,16 +188,15 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   applied to exactly its telescope, whose prepared major (the `Red`
   premise: `prepareMajor`'s whnf / literal / rescue chain) is a
   constructor application with a firing rule.  The level comparands,
-  the parameter comparison, the recursor telescope's syntactic arity
-  over the redex's own spine, and (case 3 only) the
-  constructor's full-grade telescope certificate and the index
-  comparison are the checker's, in its order.
+  the recursor telescope's syntactic arity over the redex's own spine,
+  and (case 3 only) the parameter comparison, the constructor's
+  full-grade telescope certificate and the index comparison are the
+  checker's, in its order.
 
   **The ι licence** (task #342 L10): `iotaCase3` is the checker's test.
   A K rule, and a rule whose constructor's family is never `Prop` at the
   constructor's levels (case 2), carry no constructor certificate and no
-  index comparison; case 3 carries both, and compares the parameters of
-  a `.plain` rule too (`iotaCompares`). -/
+  parameter or index comparison; case 3 carries all three. -/
   | iota {d : Nat} {e : Expr} {c : Name} {us : List Level} {cv : ConstantVal}
       {mI rP : Nat} {rules : List RecRule} {major : Expr} {cj : Name}
       {usj : List Level} {cvj : ConstantVal} {cnP cnF : Nat} {rl : RecRule}
@@ -211,11 +210,10 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       env.find? cj = some (.ctorInfo cvj cnP cnF) →
       rules.find? (fun r' => r'.ctor == cj) = some rl →
       major.getAppArgs.length = rl.ctorParams + rl.nfields →
-      rl.fire ≠ .inert →
       Level.isEquivList usj
         (recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).1 = some true →
-      (iotaCompares env.find? rl cvj usj = true →
+      (iotaCase3 env.find? rl cvj usj = true →
         DefEqList env d (major.getAppArgs.take rl.ctorParams)
           (recFireComparands rl cv.levelParams us cvj.levelParams
             e.getAppArgs rP).2) →

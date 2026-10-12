@@ -18,8 +18,7 @@ model proofs read the stored constants.  The stored forms differ from
 the raw pins (`ConLeche/Kernel/Basis/*`, which are what a stream's
 records are compared against) in one place only: a recursor's rules
 carry the fields the installation computes — `ctorParams` from the
-stored constructor, `fire` from `Expr.recRulePlain`, and
-the K/η bits (`recRuleBits`).  They are not a second source of truth:
+stored constructor and the K/η bits (`recRuleBits`).  They are not a second source of truth:
 `#stored_basis` computes them from the raw pins while the module
 elaborates (`pinRecRuleFields`) and defines the results with
 `addDecl`/`compileDecl`, so the definition's value is a closed literal
@@ -124,7 +123,6 @@ private def qConstantVal (cv : ConLeche.ConstantVal) : Lean.Expr :=
     (qNames cv.levelParams) (qExpr cv.type)
 
 private def qRecRuleFire : ConLeche.RecRuleFire → Lean.Expr
-  | .inert => mkConst ``ConLeche.RecRuleFire.inert
   | .plain => mkConst ``ConLeche.RecRuleFire.plain
   | .nested lvls pins =>
     mkApp2 (mkConst ``ConLeche.RecRuleFire.nested) (qLevels lvls)
@@ -170,9 +168,9 @@ private def qConstantInfo : ConLeche.ConstantInfo → CoreM Lean.Expr
 
 /-- The stored form of a raw pin over `env`: the pin itself, except
 that a recursor's rules carry the install-computed fields
-(`ctorParams` off the stored constructor, `fire` off
-`Expr.recRulePlain`, and `recRuleBits`), exactly as the
-basis install computes them. -/
+(`ctorParams` off the stored constructor, and `recRuleBits`; `fire`
+stays `.plain`, every basis recursor's major being a member), exactly as
+the basis install computes them. -/
 def pinRecRuleFields (env : ConLeche.Env) : ConLeche.ConstantInfo → ConLeche.ConstantInfo
   | .recInfo cv mI rP rules =>
     .recInfo cv mI rP (rules.map fun r =>
@@ -180,8 +178,7 @@ def pinRecRuleFields (env : ConLeche.Env) : ConLeche.ConstantInfo → ConLeche.C
         | some (.ctorInfo _ nP _) => nP
         | _ => 0
       ConLeche.recRuleBits env.find? cv.name
-        { r with ctorParams := cnP,
-                 fire := if ConLeche.Expr.recRulePlain cv.type mI rP cnP then .plain else .inert })
+        { r with ctorParams := cnP })
   | ci => ci
 
 /-! ## Evaluating the raw pins

@@ -90,30 +90,13 @@ def iotaCtorLicensed (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
 
 /-- **Case 3 of the ι licence** (task #342 L10): a rule that is not K
 whose constructor's family may be `Prop` at the constructor's levels.
-There the constructor telescope is certified at the full grade, the
-indices are compared, and a `.plain` rule compares its parameters too
-(task #342 L7's counterexample: at a `Prop` valuation nothing else
-ties the two parameter spines). -/
+There the constructor telescope is certified at the full grade, and the
+parameters and the indices are compared (task #342 L7's counterexample:
+at a `Prop` valuation nothing else ties the two parameter spines), for
+a `.plain` and a `.nested` rule alike (task #342 S5b). -/
 def iotaCase3 (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
     (usj : List Level) : Bool :=
   !rl.k && !iotaCtorLicensed find? cvj usj
-
-/-- Does the ι step compare the rule's parameter comparands?  Where
-the rule asks for it (`RecRule.compareParams`), and at every case-3
-redex. -/
-def iotaCompares (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
-    (usj : List Level) : Bool :=
-  rl.compareParams || iotaCase3 find? rl cvj usj
-
-theorem iotaCompares_of_compareParams {find? : Name → Option ConstantInfo} {rl : RecRule}
-    {cvj : ConstantVal} {usj : List Level} (h : rl.compareParams = true) :
-    iotaCompares find? rl cvj usj = true := by
-  simp [iotaCompares, h]
-
-theorem iotaCompares_of_case3 {find? : Name → Option ConstantInfo} {rl : RecRule}
-    {cvj : ConstantVal} {usj : List Level} (h : iotaCase3 find? rl cvj usj = true) :
-    iotaCompares find? rl cvj usj = true := by
-  simp [iotaCompares, h]
 
 /-- Unfold the (application of a) definition at the head, one step.
 `none` when the head is not an unfoldable constant.  **Theorems are
@@ -916,8 +899,7 @@ arguments; for a certified nested (`.nested`) rule both are the stored
 major-domain instantiations, at the recursor's level instantiation and
 (for the parameters) instantiated at the recursor's leading-argument
 spine (the stored pins live in the `rP`-binder prefix context — index
-arguments never occur in them, by the shape certification).
-(Junk for `.inert` rules — `iotaRec` declines before reading it.) -/
+arguments never occur in them, by the shape certification). -/
 def recFireComparands (rl : RecRule) (lps : List Name)
     (us : List Level) (cvjLps : List Name) (args : List Expr)
     (rP : Nat) : List Level × List Expr :=
@@ -926,7 +908,7 @@ def recFireComparands (rl : RecRule) (lps : List Name)
     (lvls.map (Level.subst lps us),
      pins.map fun p => Expr.instSpine (args.take rP) (rP - 1)
        (p.instantiateLevelParams lps us))
-  | _ =>
+  | .plain =>
     (cvjLps.map fun p => Level.subst lps us (.param p),
      args.take rl.ctorParams)
 

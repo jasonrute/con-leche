@@ -1062,7 +1062,7 @@ theorem iotaRec_WScoped (henv : EnvWF env)
     cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
     hmfn, hfj,
     hrule,
-    hml, -, hlev, hpeq, hmcerts, -, rfl⟩ :=
+    hml, hlev, hpeq, hmcerts, -, rfl⟩ :=
     iotaRec_inv h
   have hargs : ∀ x, x ∈ e.getAppArgs → WScoped d x :=
     fun x hx => hw.getAppArgs x hx
@@ -1307,7 +1307,6 @@ private theorem iotaRec_shift (henv : EnvWF env)
         dsimp only
         simp only [getAppArgs_shiftFrom, List.length_map]
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-        refine ite_rel _ (fun _ => rfl) (fun _ => ?_)
         -- the level comparand does not read the argument spine
         refine bind_rel_eq _
           (by rw [recFireComparands_fst_congr rl cv.levelParams us
@@ -1336,7 +1335,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
           cvj.levelParams e.getAppArgs rP hpins,
           List.map_take] at h1
         refine bind_rel_eq _ ?_ ?_
-        · by_cases hcp : iotaCompares env.find? rl cvj usj = true
+        · by_cases hcp : iotaCase3 env.find? rl cvj usj = true
           · rw [ite_eq_left hcp, ite_eq_left hcp]; exact h1
           · rw [ite_eq_right hcp, ite_eq_right hcp]
         intro b₁ _

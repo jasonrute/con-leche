@@ -108,10 +108,9 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
     {rules : List RecRule} (hnN : n ≠ c₀.name)
     (hfE : env.find? n = some (.recInfo cv mI rP rules))
-    {rl : RecRule} (hmem : rl ∈ rules)
-    (hfire : RecRule.fire rl ≠ .inert) :
+    {rl : RecRule} (hmem : rl ∈ rules) :
     RecRuleExtra m₂ φ n cv mI rP rl := by
-  obtain ⟨-, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  obtain ⟨-, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem
   have hnC : RecRule.ctor rl ≠ c₀.name := by
     obtain ⟨⟨cvj', cnP', cnF', hst⟩, -, -⟩ :=
       mp.base2.rec_ctors n cv mI rP rules hfE rl hmem
@@ -190,8 +189,9 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
       rw [hac, acvalWith_ne hnC]
       exact hP ρ xs a restR hxl hfit hapt ys restC hfitC
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested0 hpin0
-      obtain ⟨-, -, -, hpinsOk, -⟩ := hlaw0 us hlen
       have hnested' : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          interp V ρ (AnnotTerm.mkAppN
+            (mp.base2.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           ∀ i, i < RecRule.ctorParams rl →
           ∀ vpa : AnnotTerm,
             denoteMeta mp.base2.acval env φ rP
@@ -201,35 +201,16 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
             interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
             interp V ρ (ys.getD i default)
               = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
-        intro lvls pins hfr' i hi vpa hvpa hney hnex
-        refine hnested0 lvls pins hfr' i hi vpa ?_ hney hnex
+        intro lvls pins hfr' hpt i hi vpa hvpa hney hnex
+        refine hnested0 lvls pins hfr' (by rw [hac, acvalWith_ne hnC]; exact hpt) i hi vpa ?_
+          hney hnex
         rw [hac]
         exact denoteMeta_cons_mono hfresh
           (((hntc.rulePinD (ConLeche.Semantics.Env.find?_mem hfE) hmem hfr'
             i).instantiateLevelParams _ _).openRev 0 rP) _ rP
           (hpinCB lvls pins hfr' i) hvpa
-      rw [hac, acvalWith_ne hnC] at hfitR hplain0 hpin0
-      have hUout := hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
-      refine ⟨?_, ?_⟩
-      · -- the OUTPUT's own `.nested` equation is re-read at the
-        -- EXTENDED environment: a fresh prefix reading (`hpinsOk`'s
-        -- own witness, independent of the one given) is moved forward
-        -- and identified with the given one by determinism, exactly as
-        -- `TVa`/`TVja` above
-        intro lvls pins hfr' i hi vpa hvpa2
-        obtain ⟨vpa₀, hvpa0, -⟩ := hpinsOk lvls pins hfr' i hi
-        have hvpa0E : denoteMeta m₂.acval ⟨c₀ :: env.consts⟩ φ rP
-            (ConLeche.Verify.openRev 0 rP ((pins.getD i default).instantiateLevelParams
-              cv.levelParams us)) = some vpa₀ := by
-          rw [hac]
-          exact denoteMeta_cons_mono hfresh
-            (((hntc.rulePinD (ConLeche.Semantics.Env.find?_mem hfE) hmem hfr'
-              i).instantiateLevelParams _ _).openRev 0 rP) _ rP
-            (hpinCB lvls pins hfr' i) hvpa0
-        obtain rfl : vpa₀ = vpa := Option.some.inj (hvpa0E.symm.trans hvpa2)
-        exact hUout.1 lvls pins hfr' i hi vpa₀ hvpa0
-      · rw [hac, acvalWith_ne hnC]
-        exact hUout.2
+      rw [hac, acvalWith_ne hnC] at hfitR hplain0 hpin0 ⊢
+      exact hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
 
 /-- **The fired iota contract survives a fresh cons that is
 not itself a recursor.**
@@ -255,12 +236,11 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
     {rules : List RecRule} (hnN : n ≠ c₀.name)
     (hfE : env.find? n = some (.recInfo cv mI rP rules))
-    {rl : RecRule} (hmem : rl ∈ rules)
-    (hfire : RecRule.fire rl ≠ .inert) :
+    {rl : RecRule} (hmem : rl ∈ rules) :
     RecRuleLaw m₂ φ n cv mI rP rl := by
-  obtain ⟨hrPle, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  obtain ⟨hrPle, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem
   refine ⟨hrPle, fun us hlen => ?_,
-    recRuleExtra_cons_prefix mp hfresh hntc m₂ hac φ hnN hfE hmem hfire⟩
+    recRuleExtra_cons_prefix mp hfresh hntc m₂ hac φ hnN hfE hmem⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
@@ -309,7 +289,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
             (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm
       exact hok ρ zs TVa' restR hzl hzok hTVa' hfit
   · intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl
-      hψ hnested hpin hTVa hTVja hfitR hfitC
+      hψ hyWD hpin hTVa hTVja hfitR hfitC
     -- **the environment invariant, not the cons's kind**: the rule's
     -- constructor is stored, and the cons is fresh
     have hnC : RecRule.ctor rl ≠ c₀.name := by
@@ -342,38 +322,11 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
         ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm
-    -- the `.nested` premise, contravariantly: a prefix pin reading is
-    -- moved FORWARD and fed to the hypothesis in hand
-    have hnested' : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
-        ∀ i, i < RecRule.ctorParams rl →
-        ∀ vpa : AnnotTerm,
-          denoteMeta mp.base2.acval env φ rP
-            (openRev 0 rP ((pins.getD i default).instantiateLevelParams
-              cv.levelParams us)) = some vpa →
-          interp V ρ (ys.getD i default)
-            = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
-      intro lvls pins hn i hi vpa hvpa
-      refine hnested lvls pins hn i hi vpa ?_
-      obtain ⟨-, -, hpinsWf, -⟩ := hnest lvls pins hn
-      have hpinCR : ConLeche.Expr.constsResolve env (pins.getD i default)
-          = true := by
-        by_cases hilt : i < pins.length
-        · obtain ⟨-, -, hres, -⟩ := hpinsWf _ (ConLeche.getD_mem hilt)
-          exact hres
-        · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]
-          rfl
-      rw [hac]
-      exact denoteMeta_cons_mono hfresh
-        (((hntc.rulePinD (ConLeche.Semantics.Env.find?_mem hfE) hmem hn
-          i).instantiateLevelParams _ _).openRev 0 rP) _ rP
-        (constsBound_openRev (constsBound_of_constsResolve _ (by
-          rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
-          exact hpinCR)) 0 rP) hvpa
     -- the two leaves the conclusion mentions are the prefix's
     rw [hac, acvalWith_ne hnC] at hfitR hpin
     rw [hac, acvalWith_ne hnN, acvalWith_ne hnC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
-      hujl hψ hnested' hpin hTVa' hTVja' hfitR hfitC
+      hujl hψ hyWD hpin hTVa' hTVja' hfitR hfitC
 
 /-- **The fired iota contract survives a fresh cons that is
 not itself a recursor** — `recRuleLaw_cons_prefix` at every stored
@@ -387,7 +340,7 @@ theorem recRules_cons_fresh (mp : EnvModelM V μ env)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) : RecRules m₂ φ := by
-  intro n cv mI rP rules hf rl hmem hfire
+  intro n cv mI rP rules hf rl hmem
   -- the recursor is stored in the prefix: either the cons is not a
   -- recursor at all (the value kinds' `noConfusion`), or it is one
   -- with no rules (a basis recursor whose block installs its ι
@@ -401,7 +354,7 @@ theorem recRules_cons_fresh (mp : EnvModelM V μ env)
     exact nomatch hmem
   exact recRuleLaw_cons_prefix mp hfresh hntc m₂ hac φ hnN
     (by rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnN hh.symm)] at hf
-        exact hf) hmem hfire
+        exact hf) hmem
 
 /-- **The fired iota contract at a *recursor* cons.**  The
 prefix rows are `recRuleLaw_cons_prefix` unchanged; the new
@@ -417,10 +370,9 @@ theorem recRules_cons_rec (mp : EnvModelM V μ env)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat)
-    (hnew : ∀ rl ∈ rules₀, RecRule.fire rl ≠ .inert →
-      RecRuleLaw m₂ φ c₀.name cv₀ mI₀ rP₀ rl) :
+    (hnew : ∀ rl ∈ rules₀, RecRuleLaw m₂ φ c₀.name cv₀ mI₀ rP₀ rl) :
     RecRules m₂ φ := by
-  intro n cv mI rP rules hf rl hmem hfire
+  intro n cv mI rP rules hf rl hmem
   by_cases hnN : n = c₀.name
   · subst hnN
     have hself : c₀ = .recInfo cv mI rP rules :=
@@ -429,12 +381,12 @@ theorem recRules_cons_rec (mp : EnvModelM V μ env)
         = .recInfo cv mI rP rules := hkind.symm.trans hself
     injection heq with h1 h2 h3 h4
     subst h1; subst h2; subst h3; subst h4
-    exact hnew rl hmem hfire
+    exact hnew rl hmem
   · exact recRuleLaw_cons_prefix mp hfresh
       (fun _ heq => by rw [hkind] at heq; exact nomatch heq)
       m₂ hac φ hnN
       (by rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnN hh.symm)] at hf
-          exact hf) hmem hfire
+          exact hf) hmem
 
 /-! ## The tower projection law across a fresh cons (task #175 wiring, W5)
 

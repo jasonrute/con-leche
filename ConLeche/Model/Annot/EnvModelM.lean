@@ -413,12 +413,12 @@ def toEnvFacts {V : Type w} [SetTheory V] {μ : CheckMode}
   defn_eq := fun cv value hint hmem ψ =>
     denoteMeta_erase m.base2.acval_erase 0 value
       (m.defn_reads ψ cv value ⟨hint, hmem⟩)
-  rec_rhs_denotes := fun n cv mI rP rules hf r hr hfire us ψ hlen => by
-    obtain ⟨-, hus, -⟩ := m.rec_rules ψ n cv mI rP rules hf r hr hfire
+  rec_rhs_denotes := fun n cv mI rP rules hf r hr us ψ hlen => by
+    obtain ⟨-, hus, -⟩ := m.rec_rules ψ n cv mI rP rules hf r hr
     obtain ⟨Ra, hRa, -, -⟩ := hus us hlen
     exact ⟨Ra.erase, denoteMeta_erase m.base2.acval_erase 0 _ hRa⟩
-  rec_params_le := fun n cv mI rP rules hf r hr hfire =>
-    (m.rec_rules (fun _ => 0) n cv mI rP rules hf r hr hfire).1
+  rec_params_le := fun n cv mI rP rules hf r hr =>
+    (m.rec_rules (fun _ => 0) n cv mI rP rules hf r hr).1
   proj_ok := m.base2.proj_ok
   nat_op_guard := fun c hmem hst => by
     obtain ⟨cv, v, hh, hf⟩ := ConLeche.natOpStored_inv hst

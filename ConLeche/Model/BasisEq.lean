@@ -892,7 +892,7 @@ theorem eqRecExtra {m : EnvModel V env}
   have hR' : (⟨eqRecA :: env.consts⟩ : Env).find? eqReflName
       = some eqReflA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hR
-  refine ⟨fun _ => ⟨rfl, fun Ra hRa' ρ xs a restR hxs hfitR => ?_⟩,
+  refine ⟨fun _ => ⟨rfl, fun Ra hRa' ρ xs a restR hxs hfitR _ => ?_⟩,
     fun cvj cnP cnF hfj => ?_⟩
   · obtain rfl : Ra = _ := (Option.some.inj (hRa'.symm.trans hRa))
     obtain ⟨x1, x2, x3, x4, x5, rfl⟩ :
@@ -980,7 +980,7 @@ theorem eqRecLaw {m : EnvModel V env}
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev hnested hpin hTVa hTVja hfitR hfitC
+    hlev _ hpin hTVa hTVja hfitR hfitC
   have hR' : (⟨eqRecA :: env.consts⟩ : Env).find? eqReflName
       = some eqReflA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hR
@@ -1240,7 +1240,7 @@ theorem extendEqRec (mp : EnvModelM V μ env)
     exact (eqRecRaTower_data ψ ρ).2
   · intro m₂ hac φ
     refine recRules_cons_rec mp hfresh eqRecA_eq m₂ hac φ ?_
-    intro rl hrl _
+    intro rl hrl
     rcases List.mem_cons.mp hrl with rfl | hr'
     · exact eqRecLaw (m := mp.base2) m₂ hE hR hEv hRv hac φ
     · exact nomatch hr'

@@ -694,11 +694,10 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       env.find? cj = some (.ctorInfo cvj cnP cnF) ∧
       rules.find? (fun r' => r'.ctor == cj) = some r ∧
       major.getAppArgs.length = r.ctorParams + r.nfields ∧
-      r.fire ≠ .inert ∧
       Level.isEquivList usj
         (recFireComparands r cv.levelParams us cvj.levelParams
           e.getAppArgs rP).1 = some true ∧
-      (iotaCompares env.find? r cvj usj = true →
+      (iotaCase3 env.find? r cvj usj = true →
         defEqListFueled mode env fuel d (major.getAppArgs.take r.ctorParams)
           (recFireComparands r cv.levelParams us cvj.levelParams
             e.getAppArgs rP).2 = .ok true) ∧
@@ -789,10 +788,6 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   case neg => rw [ite_eq_right hml] at h; exact nomatch h
   rw [ite_eq_left hml] at h
   try simp only [Bind.bind, Except.bind] at h
-  by_cases hplain0 : r.fire = .inert
-  case pos => rw [ite_eq_left hplain0] at h; exact nomatch h
-  rw [ite_eq_right hplain0] at h
-  try simp only [Bind.bind, Except.bind] at h
   cases hlev : Level.isEquivList usj
       (recFireComparands r cv.levelParams us cvj.levelParams
         e.getAppArgs rP).1 with
@@ -806,7 +801,7 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   | true =>
   simp only [↓reduceIte] at h
   try simp only [Bind.bind, Except.bind] at h
-  cases hpeq : (if iotaCompares env.find? r cvj usj then
+  cases hpeq : (if iotaCase3 env.find? r cvj usj then
       defEqListFueled mode env fuel d (major.getAppArgs.take r.ctorParams)
         (recFireComparands r cv.levelParams us cvj.levelParams e.getAppArgs rP).2
       else .ok true) with
@@ -849,14 +844,14 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
       cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
-      hml, hplain0, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
+      hml, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
       fun _ => ⟨hmcerts, hidx⟩, h.symm⟩
   · rw [ite_eq_right h3] at h
     simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq,
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
       cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
-      hml, hplain0, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
+      hml, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
       fun h3' => absurd h3' h3, h.symm⟩
 
 /-- Inversion of the canonical-index comparison where the recursor has
@@ -2536,7 +2531,7 @@ theorem whnfPres_WScoped {env : Env} (henv : EnvWF env) :
             cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
             hmfn, hfj,
             hrule,
-            hml, -, hlev, hpeq, hmcerts, -, rfl⟩ :=
+            hml, hlev, hpeq, hmcerts, -, rfl⟩ :=
             iotaRec_inv hio
           have hwapp : WScoped d (Expr.app f' a) := by
             simp only [WScoped]
