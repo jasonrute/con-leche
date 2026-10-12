@@ -101627,3 +101627,106 @@ definitions exposed, pins in `Axioms.lean` for `inferIO_sound`,
 `eta_lam_io_unsound`, `io_type_value_collision` (the three standard
 axioms).  `links-gate.sh` fails as before (#340's stale anchors), with
 an unchanged report.
+
+## TASK #342 — F4: `let` in the fragment, by substitution (2026-10-12, agent/342-f4)
+
+Fragment lane F4 of #342 v2 §11.4, under the maintainer's rulings of
+§11.x: lets stay as Lean stores them (no ζ pass at install), the
+checker handles them by substitution (no let-variables in the port), a
+`let` rule in `Denotes`, the io grade checks the value at the full
+grade (R-C).  The template for S2's L-let.
+
+**The io grade came with it.**  #346's `InferIO`/`IORel`
+(`agent/346-io`) was not on `frag-342`; F4 owes the io `let` rule, so
+the lane merged `agent/346-io` first (conflicts only in the import
+lists, the pins and the appended DESIGN records).  `frag-342` now
+carries #346.
+
+**What landed** (`whitepaper/Fragment/*`):
+- `Expr.letE T v b`; `liftN`/`inst`/`instL` act on all three parts.
+- `interp ρ (letE T v b) = interp (cons (interp ρ v) ρ) b`, the type
+  not read.  In `Denotes`' shape, `interp_letE_of`: value denotes `Y`,
+  body denotes `X` at `cons Y ρ` ⇒ the `let` denotes `X`.  No typing
+  side condition is needed for the clause.
+- `WellDenoted ρ (letE T v b) ↔ WellDenoted ρ v ∧ WellDenoted (cons ⟦v⟧ ρ) b`;
+  the type is not read, as in `interp`.  `WellDenoted_liftN/inst/instL`
+  and the substitution lemmas gain one case each.
+- `interp_zeta`: `⟦letE T v b⟧ρ = ⟦b.inst v⟧ρ` at **every** ρ, the point
+  included (β's substitution lemma; there is no λ that could be the
+  point).
+- Rules: `Red.zeta` (no certificate); `Infer.letE` (type's sort, value's
+  inferred type `DefEq` the type, result = the inferred type of
+  `b.inst v`); `InferIO.letE` (same value checks at the full grade,
+  body at io).
+- Soundness: `Red.zeta_sound`, `Infer.letE_sound`,
+  `InferIO.letE_sound`, wired into `red_sound`/`infer_sound`/
+  `inferIO_sound`; `defeq_sound` needs nothing new (a `let` meets
+  `DefEq` through `redL` + `zeta`, as the checker's `whnfCore` ζ).
+  Pins in `Axioms.lean` (three standard axioms) for those three,
+  `interp_zeta` and `Infer.letE_sat`.
+- The syntactic predicates (`closedAt`, `consts`, `lparamsIn`,
+  `usesVar`) read all three parts; their lemmas in `Hygiene`,
+  `NestRead`, `NestClass`, `InstallScope` gain the case.  New:
+  `Expr.consts_of_inst`, `Expr.closedAt_of_inst` (an instance closed
+  below `n` comes from a term closed below `n + 1`), needed by
+  `ScopeOfInfer` because the body is only ever typed instantiated.
+
+**Findings.**
+1. **The value checks are not used by the soundness proof** of the
+   substitution version, at either grade: `interp` reads no type, and
+   the body is typed at the value itself.  They stay as rule premises
+   because they are what the checker runs (and what rejects
+   `uh_let_erase_type`/`_value` as official does), but their claims are
+   not consumed.  Consequence for R-C: under substitution, the io let
+   could skip the value check exactly as `infer_only` does, with no
+   proof cost; R-C's full-grade check is a verdict choice, not a proof
+   need.  It becomes a proof need only with let-variables (below).
+2. ζ is unconditional, like β at a graph and unlike nothing: the
+   conditional ("not the point") reading of `RedSem` is never used.
+3. The fragment's inductive installer reads only generated types
+   (`Decl.lean` generators), which contain no `let`; the readers of
+   stored telescopes (`piDomains`, `piResidual`, `piBodyV`, `TeleFitV`)
+   simply do not match a `letE` (a sound non-reduction).  The real
+   installer reads stored constructor types, so L-let owes the ζ at the
+   telescope peels and a ζ lemma for the spelled telescopes (§11.3's
+   Install row); the fragment does not model that.
+
+**Notes for L-let (the real `Denotes` rule).**
+- The rule is exactly §11.3's: `Denotes ρ v Y → Denotes (cons Y ρ) b X →
+  Denotes ρ (.letE ty v b) X`, type ignored, no side condition;
+  `Denotes_unique` one case.  `interp_letE_of` is its fragment form.
+- `WellDenoted`'s `let` clause: the value at ρ, the body at
+  `cons ⟦v⟧ ρ`; nothing about the type.  The type need not be read
+  anywhere in the statement side.
+- Every structural lemma over terms gets one case: lifting,
+  instantiation, level instantiation, the four scope predicates and
+  their congruences.  Expect the bulk of L-let's diff there (here about
+  half of +394 lines, in the scope and hygiene files).
+- `Infer.letE`'s soundness takes only the instantiated body's claim
+  plus `WellDenoted_inst0` and `interp_zeta`.
+- Scope of a typed `let`: from the instantiated body, by
+  `closedAt_of_inst`/`consts_of_inst`; level parameters need no lemma
+  (the checker checks them on the stored term).
+
+**What the let-variable version would need later** (deferred by the
+maintainer; §11.3's design):
+- Context entries `T` or `(T, v)`; `Sat` adds `ρ i = interp (shift ρ) v`
+  for a let entry; `CtxOk` adds that `v` is `WellDenoted` at the tail.
+- `Infer.letE` opens the body at `(T, v) :: Γ`.  Its soundness then
+  needs `⟦v⟧ ∈ ⟦T⟧` to extend `Sat`: that is `Infer.letE_sat`, which
+  uses both value checks (full-grade inference of `v`, `DefEq` of two
+  types, which are never the point).  At the io grade the value's
+  `IORel` claim would NOT give membership (it may be hereditary), so
+  R-C's full-grade check becomes a proof need there.
+- The result type is abstracted back as a `letE` over the variable when
+  it occurs; `interp_zeta` makes that equal to the substituted type.
+- `Red.zetaDelta` (a let-variable reduces to its value): `Sat`'s
+  equation, unconditional.  The claims stay per-ρ; a let entry only
+  narrows the valuations.
+- In the fragment's de Bruijn setting, `Γ` would become
+  `List (Expr × Option Expr)` and every `A :: Γ` in `Rules.lean` an
+  `(A, none) :: Γ`; that is the mechanical part.
+
+**Gates.**  `whitepaper/fragment-gate.sh` green (warning-free, axioms
+pinned).  `links-gate.sh` fails as on the base (#340's stale anchors;
+the prose cites pre-#344 lines and files); not touched.
