@@ -2786,12 +2786,13 @@
 0 uh_root_erase_unif.ndjson
 0 uh_nest_key_redex.ndjson
 0 uh_nest_key_erase.ndjson
-# ACCEPTED SUPERSET (reported by lane UNIFCHK, not ruled): a non-uniform
-# occurrence only in a `let`'s type, or in an unused `let` value.  The check
-# reads the STORED constructor type, the ζ reduct of the declared one.
-# Official v4.33.1+ 1; ours 0 (before and after the lane).
-0 uh_let_erase_type.ndjson
-0 uh_let_erase_value.ndjson
+# A non-uniform occurrence only in a `let`'s type, or in an unused `let`
+# value.  FLIP (task #342 L-ck): 0 → 1 — the check reads the stored
+# constructor type, which since the annotate pass's deletion is the
+# declared one with its `let`s (before: the ζ reduct, an accepted
+# superset reported by lane UNIFCHK).  Official v4.33.1+ 1.
+1 uh_let_erase_type.ndjson
+1 uh_let_erase_value.ndjson
 # KEEPPROJ (2026-09-29): a projection whose structure argument is stuck
 # keeps it as it was (official `whnf_core`), so `(step (id c) 24 x).1 =
 # (step c 24 x).1` compares `step … =?= step …` arguments first.  Returning
