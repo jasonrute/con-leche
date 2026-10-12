@@ -8,6 +8,7 @@ public import ConLeche.Model.Inductives.BlockHoleRead
 public import ConLeche.Model.Inductives.NestPosMono
 public import ConLeche.Model.Inductives.PosDerivMono
 import ConLeche.Model.Inductives.NestPosRed
+import ConLeche.Model.Inductives.TypeStep
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.Rules.InferSoundKit
@@ -585,6 +586,8 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List ConLeche.PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts)
@@ -597,10 +600,10 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) ∧
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
-      Rules.Graded V (d.holeCtx ψ).reverse ca ∧
+      Rules.GradedTy V (d.holeCtx ψ).reverse ca ∧
       Rules.Frame (d.nP + d.k) tyN ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse tyN ∧
-      Rules.Graded V (d.holeCtx ψ).reverse (mkPisAV abN B) ∧
+      Rules.GradedTy V (d.holeCtx ψ).reverse (mkPisAV abN B) ∧
       FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
       Rules.LeavesSub tyN crest ∧ ConstsBound env tyN ∧
       (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
@@ -629,11 +632,11 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   have hB : crest.looseBVarsBounded 0 = true := looseBVarsBounded_nestCrest hCb hshapeH hcrest
   have hfr : Rules.Frame (d.nP + d.k) crest := ⟨hW, hB, hLB⟩
   have hC : CtxOk m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest := hCP.toCtxOk
-  -- ## U2: the reading is graded at that context
-  rw [hhi] at hinf
-  have hIS : Rules.InferSemFull m ψ (d.nP + d.k) crest ty :=
-    Rules.infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hinf)
-  obtain ⟨-, -, ta, -, hgr, -⟩ := hIS.global hfr hC hca₀
+  -- ## U2: the reading is a graded TYPE at that context (`crest` is the
+  -- member constructor's own type, never the point, "not pt" source (1);
+  -- `ty`'s own ensureSort test makes it read as a universe)
+  rw [hhi] at hinf hsort
+  have hgr : Rules.GradedTy V (d.holeCtx ψ).reverse ca := gradedTy_of_sort hin hinf hsort hfr hC hca₀
   have hkN : d.toLfp.k ≤ d.toLfp.N := Nat.le_add_right _ _
   have hsatFrame : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
@@ -679,6 +682,8 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List ConLeche.PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts)
@@ -694,11 +699,11 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       abN.map (·.2.2) = d.absF ψ c j ∧ abD.length = cA.2 ∧ abN.length = cA.2 ∧
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
-      Rules.Graded V (d.holeCtx ψ).reverse (mkPisAV abD (AnnotTerm.mkAppN
+      Rules.GradedTy V (d.holeCtx ψ).reverse (mkPisAV abD (AnnotTerm.mkAppN
         (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       Rules.Frame (d.nP + d.k) tyN ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse tyN ∧
-      Rules.Graded V (d.holeCtx ψ).reverse (mkPisAV abN (AnnotTerm.mkAppN
+      Rules.GradedTy V (d.holeCtx ψ).reverse (mkPisAV abN (AnnotTerm.mkAppN
         (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
       (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
@@ -735,7 +740,7 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     rw [denoteMeta_erasedEq herased]; exact hAr
   obtain ⟨abD, abN', B, hhi, hcaE, hNE, hlD, hlN, -, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, -, -,
     hsatFrame⟩ := blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames
-      hnP hk hcv0 hop0 hholes hCf hCb hcrest hinf hd hca
+      hnP hk hcv0 hop0 hholes hCf hCb hcrest hinf hsort hd hca
   obtain ⟨rfl, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
   rw [hNr] at hNE
   obtain ⟨rfl, -⟩ := mkPisAV_inj (hlabN.trans hlN.symm) (Option.some.inj hNE)
@@ -771,8 +776,10 @@ theorem checkBlockPositivity_derivM {env : Env} (hwf : ConLeche.EnvWF env) {F : 
           ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
             cA.2 crest ks ((nfs.getD c []).getD j default) ts ∧
           (kinds.getD c []).getD j [] = ks ∧
-          (∃ ty, (fueledOps .verified F).inferType env
-            ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty) ∧
+          (∃ ty u, (fueledOps .verified F).inferType env
+            ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty ∧
+            (fueledOps .verified F).ensureSort env
+              ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u) ∧
           ((nfs.getD c []).getD j default).allLevelParamsDefined p.lps = true ∧
           (∃ xq sorts, openPisAtFvars cA.2 ((nfs.getD c []).getD j default)
               ((p.nestCtx fvsP env.find?).hiAt 0) = some xq ∧

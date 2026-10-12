@@ -14,6 +14,7 @@ import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
+import ConLeche.Model.Inductives.TypeStep
 
 public section
 
@@ -914,9 +915,10 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
       (∀ (x : ConstantVal × Nat) (crest : Expr), Q x →
         ConLeche.nestCrest (grp.map (·.1)) us ds (grpHoles hi grp)
           (x.1.type.instantiateLevelParams x.1.levelParams us) = some crest →
-        (∃ ty, ConLeche.inferTypeCore .verified env F (hi + grp.length) crest = .ok ty) →
+        (∃ ty u, ConLeche.inferTypeCore .verified env F (hi + grp.length) crest = .ok ty ∧
+          ConLeche.ensureSortCore .verified env F (hi + grp.length) ty = .ok u) →
         ∃ ca, Frame (hi + grp.length) crest ∧ CtxOkP mp.base2 φ (hi + grp.length) Δ crest ∧
-          denoteMeta mp.base2.acval env φ (hi + grp.length) crest = some ca ∧ Graded V Δ ca ∧
+          denoteMeta mp.base2.acval env φ (hi + grp.length) crest = some ca ∧ GradedTy V Δ ca ∧
           TeleSmall w x.2 R ca) →
       (∀ x ∈ ctors, Q x) →
       ∀ x ∈ ctors, CtorWalkedA mp.base2 φ w ctx ((grpNews us ds hi grp).reverse ++ prog)
@@ -945,11 +947,8 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
         crest_read mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hGc.1 hj hfc
       rw [hcr] at hcr'
       obtain rfl := Option.some.inj hcr'
-      obtain ⟨ty, hty⟩ := hinf
-      have hIS : InferSemFull mp.base2 φ (hi + grp.length) crest ty :=
-        infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-      obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hrd
-      refine ⟨_, hfr, hC, hrd, hgr, ?_⟩
+      obtain ⟨ty, u, hty, hsort⟩ := hinf
+      refine ⟨_, hfr, hC, hrd, gradedTy_of_sort hin hty hsort hfr hC.toCtxOk hrd, ?_⟩
       have hlW : (AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)
           (grpX mp.base2 φ D hi grp ds (hi + grp.length))) 0 ab).length = x.2 := by
         rw [substTele_length, hlen]
