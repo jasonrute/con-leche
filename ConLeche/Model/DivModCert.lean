@@ -448,7 +448,7 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
     {vE : AnnotTerm}
     (hvE : denoteMeta mp.base2.acval env ψ 4
       (Expr.substConst0 c annVal st.2) = some vE)
-    (hokE : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ vE)
+    (hokE : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ vE)
     (ρ : Nat → V) (hsat : Sat V Δa ρ) :
     ∃ w : V, w ∈ˢ interp V ρ vE := by
   obtain ⟨-, appliedA, tp, hann, hinf, hde⟩ := hfacts
@@ -477,8 +477,10 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
     hCA'.of_subset
       (ConLeche.inferTypeCore_fvarLeaves mp.base2.wf F hinf hWA)
   -- the defeq run identifies the inferred type with the statement
-  have heq := hdeC hde hWtp hBtp hLtp hWE hBE hLE hCtp hCE hta hvE
-    (fun σ hσ => (hokT σ hσ).1) hokE ρ hsat
+  have heq : interp V ρ ta = interp V ρ vE :=
+    eq_of_IsTy_of_ne_pt (hokT ρ hsat).2 (hokE ρ hsat).2 fun _ _ =>
+      hdeC hde hWtp hBtp hLtp hWE hBE hLE hCtp hCE hta hvE
+        (fun σ hσ => (hokT σ hσ).1) (fun σ hσ => (hokE σ hσ).1) ρ hsat
   exact ⟨interp V ρ ea, by rw [← heq]; exact hmem ρ hsat⟩
 
 /-! ## The frame's leaf discipline
@@ -955,7 +957,7 @@ theorem dmStmtEq {F : Nat} {mp : EnvModelM V μ env} {c : Name}
     (value' := value') fr.eqStored hnatRead hdl hdr
   -- the statement's grading
   have hokE : ∀ ρ : Nat → V, Sat V Δa ρ →
-      WellDenotedV V ρ ((.app (.app (.app (mp.base2.acval eqName
+      WellDenotedTy V ρ ((.app (.app (.app (mp.base2.acval eqName
         (Level.substFn ψ eqA.toConstantVal.levelParams
           [Level.zero.succ])) (mp.base2.acval ConLeche.natName ψ)) lhsa)
         rhsa : AnnotTerm)) := by
@@ -963,11 +965,13 @@ theorem dmStmtEq {F : Nat} {mp : EnvModelM V μ env} {c : Name}
     obtain ⟨hx, hy⟩ := hslots ρ hρ
     obtain ⟨hokl, hml, -⟩ := hfl ρ hx hy
     obtain ⟨hokr, hmr, -⟩ := hfr ρ hx hy
-    exact ((heqlaw fr.eqStored _).2 ρ _ lhsa rhsa
+    have h := (heqlaw fr.eqStored (Level.substFn ψ eqA.toConstantVal.levelParams
+        [Level.zero.succ])).2 ρ (mp.base2.acval ConLeche.natName ψ) lhsa rhsa
       ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩ hokl hokr
       (by rw [eqSubst_uN, hmove ρ]; exact fr.natU ρ4)
       (by rw [hmove ρ]; exact hml)
-      (by rw [hmove ρ]; exact hmr)).1
+      (by rw [hmove ρ]; exact hmr)
+    exact ⟨h.1, Or.inl h.2⟩
   -- the statement's syntactic frame
   obtain ⟨hlL, hbL, hwL⟩ := dmNatFrag_syntax lhs hlhs
   obtain ⟨hlR, hbR, hwR⟩ := dmNatFrag_syntax rhs hrhs

@@ -777,75 +777,75 @@
    225        Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
    226        ∀ ρ : Nat → V, WellDenotedV V ρ ta →
 
-== ConLeche/Model/Claims.lean#L47-L114
-    47  /-- Head normalisation, dual success, P currency. -/
-    48  @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-    49      (φ : Name → Nat) (fuel : Nat) : Prop :=
-    50    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
-    51      whnfCore μ env fuel d e = .ok e' →
-    52      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
-    53      Expr.LeavesBounded e →
-    54      ∀ {ea ea' : AnnotTerm},
-    55        CtxOk m φ d Δa e →
-    56        denoteMeta m.acval env φ d e = some ea →
-    57        denoteMeta m.acval env φ d e' = some ea' →
-    58        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-    59        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
-    60          ∀ ρ : Nat → V, Sat V Δa ρ →
-    61            interp V ρ ea = interp V ρ ea'
-    62  
-    63  /-- The reduction loop, dual success, P currency. -/
-    64  @[expose] def WhnfClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-    65      (φ : Name → Nat) (fuel : Nat) : Prop :=
-    66    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
-    67      whnf μ env fuel d e = .ok e' →
-    68      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
-    69      Expr.LeavesBounded e →
-    70      ∀ {ea ea' : AnnotTerm},
-    71        CtxOk m φ d Δa e →
-    72        denoteMeta m.acval env φ d e = some ea →
-    73        denoteMeta m.acval env φ d e' = some ea' →
-    74        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-    75        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
-    76          ∀ ρ : Nat → V, Sat V Δa ρ →
-    77            interp V ρ ea = interp V ρ ea'
-    78  
-    79  /-- Definitional equality, P currency. -/
-    80  @[expose] def DefEqClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-    81      (φ : Name → Nat) (fuel : Nat) : Prop :=
-    82    ∀ {d : Nat} {a b : Expr} {Δa : List AnnotTerm},
-    83      ConLeche.isDefEqCore μ env fuel d a b = .ok true →
-    84      Expr.WScoped d a → a.looseBVarsBounded 0 = true →
-    85      Expr.LeavesBounded a →
-    86      Expr.WScoped d b → b.looseBVarsBounded 0 = true →
-    87      Expr.LeavesBounded b →
-    88      ∀ {aa ba : AnnotTerm},
-    89        CtxOk m φ d Δa a →
-    90        CtxOk m φ d Δa b →
-    91        denoteMeta m.acval env φ d a = some aa →
-    92        denoteMeta m.acval env φ d b = some ba →
-    93        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ aa) →
-    94        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ba) →
-    95        ∀ ρ : Nat → V, Sat V Δa ρ →
-    96          interp V ρ aa = interp V ρ ba
-    97  
-    98  /-- Inference, dual success, P currency: the subject's and the
-    99  type's truthfulness — bit validity included — are *conclusions*, and
-   100  the type denotes a type. -/
-   101  @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
-   102      (φ : Name → Nat) (fuel : Nat) : Prop :=
-   103    ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
-   104      inferTypeCore μ env fuel d e = .ok t →
-   105      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
-   106      Expr.LeavesBounded e →
-   107      ∀ {ea ta : AnnotTerm},
-   108        CtxOk m φ d Δa e →
-   109        denoteMeta m.acval env φ d e = some ea →
-   110        denoteMeta m.acval env φ d t = some ta →
-   111        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) ∧
-   112          (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
-   113          ∀ ρ : Nat → V, Sat V Δa ρ →
-   114            interp V ρ ea ∈ˢ interp V ρ ta
+== ConLeche/Model/Claims.lean#L56-L123
+    56  /-- Head normalisation, dual success, P currency. -/
+    57  @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+    58      (φ : Name → Nat) (fuel : Nat) : Prop :=
+    59    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
+    60      whnfCore μ env fuel d e = .ok e' →
+    61      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
+    62      Expr.LeavesBounded e →
+    63      ∀ {ea ea' : AnnotTerm},
+    64        CtxOk m φ d Δa e →
+    65        denoteMeta m.acval env φ d e = some ea →
+    66        denoteMeta m.acval env φ d e' = some ea' →
+    67        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+    68        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
+    69          ∀ ρ : Nat → V, Sat V Δa ρ →
+    70            interp V ρ ea = interp V ρ ea'
+    71  
+    72  /-- The reduction loop, dual success, P currency. -/
+    73  @[expose] def WhnfClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+    74      (φ : Name → Nat) (fuel : Nat) : Prop :=
+    75    ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
+    76      whnf μ env fuel d e = .ok e' →
+    77      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
+    78      Expr.LeavesBounded e →
+    79      ∀ {ea ea' : AnnotTerm},
+    80        CtxOk m φ d Δa e →
+    81        denoteMeta m.acval env φ d e = some ea →
+    82        denoteMeta m.acval env φ d e' = some ea' →
+    83        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+    84        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
+    85          ∀ ρ : Nat → V, Sat V Δa ρ →
+    86            interp V ρ ea = interp V ρ ea'
+    87  
+    88  /-- Definitional equality, P currency. -/
+    89  @[expose] def DefEqClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+    90      (φ : Name → Nat) (fuel : Nat) : Prop :=
+    91    ∀ {d : Nat} {a b : Expr} {Δa : List AnnotTerm},
+    92      ConLeche.isDefEqCore μ env fuel d a b = .ok true →
+    93      Expr.WScoped d a → a.looseBVarsBounded 0 = true →
+    94      Expr.LeavesBounded a →
+    95      Expr.WScoped d b → b.looseBVarsBounded 0 = true →
+    96      Expr.LeavesBounded b →
+    97      ∀ {aa ba : AnnotTerm},
+    98        CtxOk m φ d Δa a →
+    99        CtxOk m φ d Δa b →
+   100        denoteMeta m.acval env φ d a = some aa →
+   101        denoteMeta m.acval env φ d b = some ba →
+   102        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ aa) →
+   103        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ba) →
+   104        ∀ ρ : Nat → V, Sat V Δa ρ →
+   105          interp V ρ aa = interp V ρ ba
+   106  
+   107  /-- Inference, dual success, P currency: the subject's and the
+   108  type's truthfulness — bit validity included — are *conclusions*, and
+   109  the type denotes a type. -/
+   110  @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
+   111      (φ : Name → Nat) (fuel : Nat) : Prop :=
+   112    ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
+   113      inferTypeCore μ env fuel d e = .ok t →
+   114      Expr.WScoped d e → e.looseBVarsBounded 0 = true →
+   115      Expr.LeavesBounded e →
+   116      ∀ {ea ta : AnnotTerm},
+   117        CtxOk m φ d Δa e →
+   118        denoteMeta m.acval env φ d e = some ea →
+   119        denoteMeta m.acval env φ d t = some ta →
+   120        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) ∧
+   121          (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
+   122          ∀ ρ : Nat → V, Sat V Δa ρ →
+   123            interp V ρ ea ∈ˢ interp V ρ ta
 
 == ConLeche/Rules/Rel.lean#L92-L96
     92  mutual
@@ -1078,8 +1078,8 @@
    115  
    116  /-- The pinned defining expression of a pin-certified WF-recursive op
 
-== ConLeche/Model/NatEqs.lean#L1098
-  1098  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
+== ConLeche/Model/NatEqs.lean#L1147
+  1147  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
 
 == ConLeche/Kernel/CoreDefs.lean#L395-L410
    395  /-- The WF-recursive operations with a *pinned-declaration* certified
@@ -1131,33 +1131,35 @@
     17  
     18  The proofs are written with *controlled* dependencies: no `simp`, no
 
-== ConLeche/Model/DivModCert.lean#L2017
-  2017  theorem divMod_install {F : Nat} (mp : EnvModelM V μ env)
+== ConLeche/Model/DivModCert.lean#L2021
+  2021  theorem divMod_install {F : Nat} (mp : EnvModelM V μ env)
 
-== ConLeche/Kernel/CoreDefs.lean#L542-L554
-   542  def natOpGuard (env : Env) (c : Name) : Bool :=
-   543    natLitSupported env &&
-   544    (natOpDeps c).all (fun n => match env.find? n with
-   545      | some (.defnInfo cv _ _) => cv.levelParams.isEmpty
-   546      | _ => false) &&
-   547    (if c = natBeqName || c = natBleName || natDivModNames.contains c then
-   548      (match env.find? boolTrueName with
-   549        | some ci => ci.toConstantVal.levelParams.isEmpty
-   550        | none => false) &&
-   551      (match env.find? boolFalseName with
-   552        | some ci => ci.toConstantVal.levelParams.isEmpty
-   553        | none => false)
-   554     else true)
+== ConLeche/Kernel/CoreDefs.lean#L545-L559
+   545  def natOpGuard (env : Env) (c : Name) : Bool :=
+   546    natLitSupported env &&
+   547    (natOpDeps c).all (fun n => match env.find? n with
+   548      | some (.defnInfo cv _ _) => cv.levelParams.isEmpty
+   549      | _ => false) &&
+   550    (if c = natBeqName || c = natBleName || natDivModNames.contains c then
+   551      (match env.find? boolTrueName with
+   552        | some ci => ci.toConstantVal.levelParams.isEmpty &&
+   553            ci.toConstantVal.type == .const boolName []
+   554        | none => false) &&
+   555      (match env.find? boolFalseName with
+   556        | some ci => ci.toConstantVal.levelParams.isEmpty &&
+   557            ci.toConstantVal.type == .const boolName []
+   558        | none => false)
+   559     else true)
 
-== ConLeche/Kernel/CoreDefs.lean#L597-L604
-   597  def natOpCod (env : Env) (c : Name) (e : Expr) : Bool :=
-   598    if c = natBeqName || c = natBleName then
-   599      e == .const boolName [] &&
-   600      (match env.find? boolName with
-   601       | some ci => ci.toConstantVal.levelParams.isEmpty &&
-   602           ci.toConstantVal.type == .sort (.succ .zero)
-   603       | none => false)
-   604    else e == .const natName []
+== ConLeche/Kernel/CoreDefs.lean#L602-L609
+   602  def natOpCod (env : Env) (c : Name) (e : Expr) : Bool :=
+   603    if c = natBeqName || c = natBleName then
+   604      e == .const boolName [] &&
+   605      (match env.find? boolName with
+   606       | some ci => ci.toConstantVal.levelParams.isEmpty &&
+   607           ci.toConstantVal.type == .sort (.succ .zero)
+   608       | none => false)
+   609    else e == .const natName []
 
 == ConLeche/Frontend/Prepare.lean#L165-L172
    165  /-- **`preparePrelude`**: the parsed stream, prepared for the fold —

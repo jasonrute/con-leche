@@ -101149,3 +101149,104 @@ enters a context is already `WellDenotedTy` or sits in a universe
 **Gates.** `lake build`, `lake test`: no warnings. No `sorry`, no new
 axiom. The checker binary is not rebuilt (no `Kernel`/`Driver` change),
 so the arena and e2e verdicts are port-342's.
+## TASK #342 — L8-NAT-QUOT: the `Nat`/`Quot` consumers ready for the point-conditional claims (2026-10-12, agent/342-l8-nat-quot)
+
+Lane L8, stage S2 of the revised port (`_tmp/342v2-design.md` §3.4 R4/R5,
+§11.5). It reads under the annotated model; `Denotes.lean`,
+`MainTheorem`, `Challenge` and `Axioms.lean` are unchanged.
+
+**Scope as found.** L5 had already brought the `Nat` and `Quot` claim
+consumers to S2's typed facts: `NatHeads`' `IsTy` conjunct,
+`DmBinV`/`DmUnV`'s `IsTy natS`, `quotRelTy_wellDenotedV`'s `IsTy (ρ 0)`,
+the `BasisQuot` `IsTy` facts, `WellDenotedTy` from `InferClaim`. Nothing
+of the typed reading was left. What was left is the preparation for
+S3, where `DefEqClaim` concludes an equation only between two readings
+that are not the point (the fragment's `DefEqSem`).
+
+**The consumers, prepared.** Every `DefEqClaim` consumer outside the
+rules tier and `Model/Inductives` now takes its equation only away from
+the point, closing with `IsTy.eq_of_ne_pt` (two members of one type) or
+the new `eq_of_IsTy_of_ne_pt` (two types; `Model/Claims.lean`). The
+claim application sits under `fun _ _ =>`; S3 drops that wrapper and
+nothing else at these sites.
+- `Harvest` (definition, theorem, opaque): the value's inferred type
+  against the declared type, both types (`hTaTy` is hoisted from the
+  `htyOk` row).
+- `DivModCert.certValue`: the inferred type against the certificate
+  statement; `hokE` is now `WellDenotedTy` (`EqLaw`'s truth-value row).
+- `ReduceOps`: `op a` against `a`, both in the element type (`hmemApp`).
+- `NatEqs.natEqLaw_of_run`: both sides members of one type `S`, the
+  stored `Nat` (`NatHeads`' `IsTy`) or `Bool`; `NatArg.package` and
+  `natBinHead_app_package` keep the membership, `natBoolConst_package`
+  and `natBool_isTy` supply the `Bool` constructors'.
+
+**Finding: the `Bool` constructors' type.** The comparison recurrences
+(`beq 0 0 = Bool.true`, `ble 0 y = Bool.true`, …) relate a `Bool`
+application to the constant `Bool.true`. `natOpGuard` only checked that
+`Bool.true`/`Bool.false` are stored and level-free, so `⟦Bool.true⟧`
+could be the point (a `Bool.true` stored at a proposition, or at an
+alias of `Bool`), and the conditional claim would not give the
+recurrence. `divModEnvGuard` already pinned the constructors at
+`.const Bool []`; `natOpGuard` (and `natOpGuardF`) now do so for every
+`Bool`-valued operation (`natOpGuard_boolTy`). This is a checker
+change in S2; it lands with the proof that consumes it (`NatEqs`).
+Verdicts: no change on real streams (arena 90/92, e2e unchanged);
+the new fixture `natop_booltrue_alias` (`Bool.true : BoolAlias :=
+Bool.tt`, built by `scripts/mk_natop_booltrue_alias.py`) went from
+accept to decline (2), deliberately.
+
+**Not needed.** `NatHeads` stays at `IsTy`, not `Strict`: the
+consumers equate two members of one type, which `IsTy.eq_of_ne_pt`
+does for truth values and strict sets alike. The `NatOps`/`DivMod`
+laws stay unconditional, because they are derived inside a type. The
+literal reductions (`lit ↔ succ`, the fast path) are unconditional
+facts, and S3's conditional `RedSem` only weakens them.
+
+**For S3.**
+- L9: changing `DefEqClaim` to the conditional form leaves the six
+  sites above with one edit each (`fun _ _ => h …` becomes `h …`).
+- L7's consumers do the same thing: `GenRecParams.prefixDoms_agree_inst`
+  and `StructFrameKit.defEqRow` compare types (domains, `WellDenotedTy`
+  in hand), so the same move applies. The rules tier's own uses are
+  L9/L11's.
+- `WhnfClaim` consumers outside the rules tier read sort facts. Their
+  subjects are types, never the point.
+- `Quot.lift` ι is case 3 (L10). After lean4#14977 it is case 2 (§11.7).
+
+**For S4 (L15): the `bval` constants and `lamV`.** At numeral `v = 0`
+both `lamR 0` and `lamV` give the point (the bodies are proofs). At
+`v ≠ 0`, `lamR v A F = lamV A F` unless every `F x` (`x ∈ A`) is the
+point, which includes an empty `A`. So a constant changes exactly
+where one of its binders can have an empty domain or all-point bodies
+at a positive numeral:
+- `natSuccV`, and the type formers `psigmaV`, `quotV`, `lfpFamV`'s
+  outer formers: domains inhabited, bodies types. Unchanged in value;
+  restated with `lamV`.
+- `natRecV`: `app M natzero` and `natStepSpace` may be `∅` or `{pt}`
+  (`univ u`, `u ≥ 1`, holds truth values), and `natrec z s n` may be
+  the point for every `n`.
+- `psigmaMkV`, `quotMkV`: the innermost domain (`app B a`, `A`) may be
+  empty, and the emptiness propagates outward through all-point bodies.
+- `quotLiftV`: `quotLiftR` ranges over `quotSet` (empty when `A` is), its
+  bodies `app f (qrep …)` are the point when `B` is a truth value, and
+  the invariance binder's domain `quotInvSpace` is `∅` when invariance
+  fails. R5: it becomes `lamV`.
+- `emptyRecV` (inner abstraction over `∅`: the point), `choiceV` (over
+  `dnegSpace`, a truth value), `lfpFamV`/`lfpTupleV` (over index spaces
+  that may be empty).
+
+None of this can move before S4. Under the annotated reading a
+constant must be a member of its annotated type `piR v …`, and in
+exactly these cases `lamV` is not one. `lamV` itself arrives with
+L14a. L15 restates each constant with `lamV` and turns the `*_app`
+laws into `app_lamV`, which needs no premise.
+
+**Gates** (the integration-branch subset, COMMON.md 2026-10-12).
+- `lake build` and `lake test`: no warnings; axioms pinned (20).
+- The arena tutorial at 90/92; e2e 471/471, the new fixture included.
+- `tests/challenge.sh` green.
+- No `sorry`, no new axiom.
+- OVERVIEW's `Bool` sentence was updated and its citations repointed
+  (`overview-links --update`).
+- `whitepaper/links-gate.sh` is deferred. It drifts further at the
+  `Claims`, `NatEqs` and `DivModCert` citations, for W1/W2.

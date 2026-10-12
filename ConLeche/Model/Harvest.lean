@@ -249,6 +249,13 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
     exact (hrE ρ (Sat_nil V ρ)).2
   -- the membership at the declared type, across the defeq run
+  -- the declared type is a type: its sort run
+  have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
+    intro ψ ρ
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2
   have hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ) := by
     intro ψ ρ
@@ -271,9 +278,12 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     have hLvt : Expr.LeavesBounded vtype := fun l hl => by
       rw [hnlvt] at hl
       exact absurd hl (List.not_mem_nil)
-    have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
-      (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
+    -- both sides are types, so neither is the point
+    have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ) fun _ _ =>
+        ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+          (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -323,10 +333,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
-    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
-      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
-      (Sat_nil V ρ)).2⟩
+    exact ⟨htE ρ (Sat_nil V ρ), hTaTy ψ ρ⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -437,12 +444,12 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
           = some (A ψ) := fun ψ =>
         denoteMeta_depth_of_closed mp.base2.acval_closed hvf'
           (hAclosed ψ) (hA ψ) 2
-      obtain ⟨hSelfBin, hSelfUn⟩ := natSelfHead_install (φ := φ) mp
+      obtain ⟨hSelfBin, hSelfUn, hBoolS⟩ := natSelfHead_install (φ := φ) mp
         hcmem hfresh hpin hsE hTa hTok hA2
         (fun ψ ρ => ⟨hAok ψ ρ, hAvalid ψ ρ⟩) hmemA
       exact natOps_install mp ((hclaims φ).2.2.1) (mp.nat_ops φ)
         hcmem hfresh hlpcv hsE hg2 hdeps₂ hruns hA hAclosed hvf' hbv'
-        hSelfBin hSelfUn _ rfl
+        hSelfBin hSelfUn hBoolS _ rfl
     · exact natOps_cons_fresh mp (mp.nat_ops φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
@@ -625,6 +632,13 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
     exact (hrE ρ (Sat_nil V ρ)).2
   -- the membership at the declared type, across the defeq run
+  -- the declared type is a type: its sort run
+  have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
+    intro ψ ρ
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2
   have hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ) := by
     intro ψ ρ
@@ -647,9 +661,12 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     have hLvt : Expr.LeavesBounded vtype := fun l hl => by
       rw [hnlvt] at hl
       exact absurd hl (List.not_mem_nil)
-    have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
-      (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
+    -- both sides are types, so neither is the point
+    have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ) fun _ _ =>
+        ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+          (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -697,10 +714,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
-    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
-      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
-      (Sat_nil V ρ)).2⟩
+    exact ⟨htE ρ (Sat_nil V ρ), hTaTy ψ ρ⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -1068,6 +1082,13 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
     exact (hrE ρ (Sat_nil V ρ)).2
   -- the membership at the declared type, across the defeq run
+  -- the declared type is a type: its sort run
+  have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
+    intro ψ ρ
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2
   have hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ) := by
     intro ψ ρ
@@ -1090,9 +1111,12 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     have hLvt : Expr.LeavesBounded vtype := fun l hl => by
       rw [hnlvt] at hl
       exact absurd hl (List.not_mem_nil)
-    have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
-      (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
+    -- both sides are types, so neither is the point
+    have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ) fun _ _ =>
+        ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+          (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -1141,10 +1165,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
-    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
-      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
-      (Sat_nil V ρ)).2⟩
+    exact ⟨htE ρ (Sat_nil V ρ), hTaTy ψ ρ⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
