@@ -83,7 +83,7 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
       = D.holeVal ψ ρp (D.carrier ψ ρp) mm := by
   obtain ⟨h, -, hrd, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv, caps, hf, hab⟩ := hrd mm hmm
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψ
+  obtain ⟨ab, hta, hmap⟩ := hab ψ
   have hpl := h.parsLen mm hmm ψ
   have hsP := h.parsSat mm hmm ψ ρp hs
   generalize hρ₀ : shiftE (D.pars mm ψ).length 0 ρp = ρ₀
@@ -101,8 +101,6 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
     rw [List.map_take, hmap, List.take_left' rfl]
   have hmap₂ : (ab.drop (D.pars mm ψ).length).map (·.2.2) = D.ids mm ψ := by
     rw [List.map_drop, hmap, List.drop_left' rfl]
-  have hbits₂ : ∀ d ∈ ab.drop (D.pars mm ψ).length, d.2.1 ≠ 0 :=
-    fun d hd => hbits d (List.mem_of_mem_drop hd)
   rw [hsplit, mkPisAV_append'] at hfm
   have hfit : SpineFit ρ₀ ((ab.take (D.pars mm ψ).length).map (·.2.2))
       (frameIdx (D.pars mm ψ).length ρp) := by
@@ -114,7 +112,7 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
   -- the hole value inhabits the same index tower
   have hgm : D.holeVal ψ ρp (D.carrier ψ ρp) mm
       ∈ˢ interp V ρp (mkPisAV (ab.drop (D.pars mm ψ).length) (.sort (D.w ψ))) :=
-    LfpDatum.holeVal_mem h.kN (lfpTuple_mem _ _ _ _).toU hmm hmap₂ hbits₂
+    LfpDatum.holeVal_mem h.kN (lfpTuple_mem _ _ _ _).toU hmm hmap₂
   -- they agree on every fitting index spine: the leaf, `holeVal_app`
   have heq := eq_of_mem_mkPisAV_pos hf₂ hgm fun is' his' => by
     rw [hmap₂] at his'

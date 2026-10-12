@@ -70,7 +70,7 @@ clause, whose `leaf` and `ctor` read the leaf valuation at those names
 member `mm`'s stored type reads, at every level
 assignment, as the Π-tower over its own parameters and indices (the
 binders of its hole value, `LfpDatum.holeVal`) ending in the block's
-sort, every binder in the graph regime.  What makes a container's frame
+sort.  What makes a container's frame
 hole — the hole value at the container's instantiation — inhabit the
 container's type (the walk's context), and a group-mate's former agree
 with its hole value applied to the frame's parameters. -/
@@ -79,7 +79,7 @@ with its hole value applied to the frame's parameters. -/
   ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
     ∀ ψ : Name → Nat, ∃ ab : List (Nat × Nat × AnnotTerm),
       denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort (D.w ψ))) ∧
-      ab.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ ∧ ∀ d ∈ ab, d.2.1 ≠ 0
+      ab.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ
 
 /-! ### The recorded constructor readings (M2)
 
