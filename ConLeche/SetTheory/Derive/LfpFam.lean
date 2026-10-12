@@ -328,6 +328,11 @@ theorem strictU_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V}
 `strictU w`. -/
 noncomputable def famSpace (w : Nat) (I : V) : V := famSpaceIn (strictU w) I
 
+/-- A family space is strict: its members are graphs (task #342, L6). -/
+theorem strict_famSpaceIn (C I : V) : Strict (famSpaceIn C I) := strict_piSet
+
+theorem strict_famSpace (w : Nat) (I : V) : Strict (famSpace w I : V) := strict_famSpaceIn _ _
+
 /-- An `F`-closed family: a pre-fixed point of `app F` in the family
 space. -/
 def IsClosedFam (w : Nat) (I F X : V) : Prop := IsClosedFamIn (strictU w) I F X

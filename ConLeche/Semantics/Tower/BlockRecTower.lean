@@ -313,6 +313,11 @@ theorem sigChainV_univ :
     exact univ_mono (Nat.zero_le s) _ (by rw [univ_zero]; exact h.1)
   | _, _ :: _, _, h => sigChainV_tail_univ h
 
+/-- The chain is a type (task #342, L6). -/
+theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
+    (h : ChainOk s ρ Ts Q) : IsTy (sigChainV s ρ Ts Q) :=
+  IsTy_of_mem_univ (sigChainV_univ h)
+
 /-- The pair former's product membership at `[u, v]`. -/
 theorem psigmaV_uv_mem (u v : Nat) :
     psigmaV V u v ∈ˢ piR (Nat.max u v + 1) (univ u : V)
@@ -1024,10 +1029,13 @@ noncomputable def lamTowerA (m : Nat) :
   | ρ, acc, d :: ds, g => lamR m (interp V ρ d.2.2) fun a => lamTowerA m (cons a ρ) (acc ++ [a]) ds g
 
 /-- `lamTowerA`'s walk premise: at every leaf frame reached the body is
-in the conclusion's reading (a truth value at a zero bit). -/
+in the conclusion's reading, which is a type (a truth value at a zero
+bit).  The type fact is what the value reading's `lamV_mem` asks of the
+innermost fibre (task #342, L6). -/
 def TowerWalkA (m : Nat) (C : AnnotTerm) (g : List V → (Nat → V) → V) :
     (Nat → V) → List V → List (Nat × Nat × AnnotTerm) → Prop
-  | ρ, acc, [] => g acc ρ ∈ˢ interp V ρ C ∧ (m = 0 → interp V ρ C ∈ˢ (univZero : V))
+  | ρ, acc, [] => g acc ρ ∈ˢ interp V ρ C ∧ IsTy (interp V ρ C) ∧
+      (m = 0 → interp V ρ C ∈ˢ (univZero : V))
   | ρ, acc, d :: ds => ∀ a, a ∈ˢ interp V ρ d.2.2 → TowerWalkA m C g (cons a ρ) (acc ++ [a]) ds
 
 /-- **The tower inhabits the Π-tower's reading** — `mem_type` of the
@@ -1251,6 +1259,7 @@ theorem towerWalkA_of_spines_body {m : Nat} {C : AnnotTerm} {g : List V → (Nat
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
       (∀ ys, SpineFit ρ (ds.map (·.2.2)) ys →
         g (acc ++ ys) (consList ys ρ) ∈ˢ interp V (consList ys ρ) C ∧
+          IsTy (interp V (consList ys ρ) C) ∧
           (m = 0 → interp V (consList ys ρ) C ∈ˢ (univZero : V))) →
       TowerWalkA m C g ρ acc ds
   | [], ρ, acc, h => by
@@ -1386,7 +1395,7 @@ theorem famCandG_mem (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat} (hc 
   have hu := D.mem_union hc hsp
   have hB := (D.kit (prefOf (rP c) ys)).hB _ hu
   rw [D.hconcl c hc ys hsp] at hB
-  refine ⟨?_, fun h0 => ?_⟩
+  refine ⟨?_, IsTy_of_mem_univ hB, fun h0 => ?_⟩
   · have hmem := (D.kit (prefOf (rP c) ys)).rec_mem_B hu
     rw [D.hconcl c hc ys hsp] at hmem
     simpa using hmem
