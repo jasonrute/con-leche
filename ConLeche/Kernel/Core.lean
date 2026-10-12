@@ -855,11 +855,16 @@ exactly its telescope (params, motives, minors, indices, major), the
 major premise whnfs to a fully applied constructor with a matching
 rule (a literal major converts to constructor form — see
 `litMajorToCtor` —, a
-stuck major may be rescued — see `majorToCtor`), and the spine is
-certified against the recursor's own (pinned, annotated) type with
-`iotaCerts` (per-slot infer+defeq; task #100 de-gating retired the
-possibly-Prop annotation gate of tasks #49/#71 — unsound-to-model
-under the domain-relative collapse, DESIGN.md).  The
+stuck major may be rescued — see `majorToCtor`), and the redex's own
+spine is certified against the recursor's own (pinned, annotated) type
+with `iotaCerts` (per-slot infer+defeq, licensed at a `.never`
+binder).  The constructor side follows **the ι licence** (task #342
+L10): a K rule, and a rule whose constructor's family is never `Prop`
+at the constructor's levels (`iotaCtorLicensed`), fire with no
+constructor certificate and no index comparison; every other rule
+(case 3, `iotaCase3`) certifies the constructor telescope at the full
+grade (`iotaCertsFull`), compares the indices (`iotaIndexOk`), and
+compares a `.plain` rule's parameters too (`iotaCompares`).  The
 result is the rule's rhs applied to the non-index prefix and the
 constructor's fields; over-application is handled by the outer app
 recursion. -/

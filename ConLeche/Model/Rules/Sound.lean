@@ -25,20 +25,23 @@ of the codomain validation reads the SHAPE of the body's inferred type
 off the premise derivation (`Infer.lam_shape`), which the per-rule
 lemma cannot see.
 
-**Two inductions (task #342, L9, L11).**  The claims are conditional on
-the point (`Motive.lean`): `red_sound`, `defeq_sound` … conclude the
-conditional motives.  Their ι rules (`Red.iota`, the three rescues), the
-two literal accelerations, and three `DefEq` rules (`lam`, `eta`,
+**Two inductions (task #342, L9, L10, L11).**  The claims are
+conditional on the point (`Motive.lean`): `red_sound`, `defeq_sound` …
+conclude the conditional motives.  The structure-η rescue, the two
+literal accelerations, and three `DefEq` rules (`lam`, `eta`,
 `structEta`) are, for now, the **interim** unconditional side induction
 (`red_soundU`, `defeq_soundU` …) weakened (`RedSemU.cond`,
 `DefEqSemU.cond`); every other rule is proved at the conditional
-motive, from the conditional claims of its premises.  The side
+motive, from the conditional claims of its premises.  ι and the K and
+`And` rescues (L10) are one lemma each, from conditional premises to
+the unconditional conclusion, so both inductions call them.  The side
 induction reads `Red.beta`'s certificate premises, which the conditional
-one does not.  Task #342 L10 (ι) and L12 (the literal rows) move their
-rules to the conditional induction.  λ-congruence and η need the
-body-type check of the value reading (S4); structure η needs its two
-spines in one telescope of types (the DESIGN record of L11).  The side
-induction goes, and with it β's premises, once all of these are moved.
+one does not.  Task #342 L12 (the literal rows) moves its rules to the
+conditional induction.  λ-congruence and η need the body-type check of
+the value reading (S4); structure η, and the structure-η rescue, need
+their two spines in one telescope of types (the DESIGN record of L11).
+The side induction goes, and with it β's premises, once all of these
+are moved.
 -/
 
 namespace ConLeche.Model.Rules

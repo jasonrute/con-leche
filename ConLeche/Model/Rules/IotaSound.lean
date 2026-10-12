@@ -9,17 +9,34 @@ import ConLeche.Semantics.DefEqList
 public section
 
 /-!
-# The soundness of the ι rule and the three stuck-major rescues (task #305)
+# The soundness of the ι rule and the three stuck-major rescues (task #305, #342 L10)
 
 One lemma per constructor: `Red.iota`, `Red.rescueK`, `Red.rescueEta`,
 `Red.rescueAnd`; the master induction (`Sound.lean`) consumes them by
 name.  The shared helpers live in `IotaSoundKit.lean`.
 
-**These are the INTERIM UNCONDITIONAL proofs** (task #342, L9): every
-lemma below is proved at the `…U` per-valuation motives
-(`RedSemU`/`DefEqListSemU`, `Model/Rules/Motive.lean`), with no "not the
-point" side condition.  L10 proves the ι rules at the CONDITIONAL
-motives under the new licence and deletes these.
+**Conditional premises, unconditional conclusions** (task #342, L10).
+`Red.iota_sound`, `Red.rescueK_sound` and `Red.rescueAnd_sound` take
+their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
+`DefEqListSem`, `CertsSem`, `CertsFSem`) and conclude the UNCONDITIONAL
+`RedSemU`: no step reads that the redex is not the point.  So one lemma
+serves both inductions of `Sound.lean`: the conditional one weakens
+the conclusion (`RedSemU.cond`), the interim side induction (which
+stays while λ-congruence, η and structure η need it, task #342 L11)
+weakens its premises.  The ι step's licence is read through the law's
+`RecRuleExtra` (`Model/Annot/Laws.lean`): the recursor's spine fits by
+its licensed certificate; a K rule fires by the law at the recursor's
+own parameters; otherwise the fired constructor application's value is
+the major's (by the major's reduction where the major is not the
+point, which at case 2 it never is; by the slot law where it is,
+case 3), its spine fits (case 3's full-grade certificate, or the graph
+regime of a graded application that is not the point,
+`teleFitPA_of_graded_ne_pt`), and the comparisons the step ran become
+equations (`RecRuleExtra`'s (U)).  The two fabricating rescues (K,
+`And`) equate their fabrication with the major through the one type
+both inhabit (`IsTy.eq_of_ne_pt`).  `Red.rescueEta_soundU` stays
+unconditional: its certificate (`DefEq.structEta`'s) is the
+coherence-law lane's (task #342 L11's finding 2).
 
 ## Two rule shapes this file relies on
 
@@ -48,12 +65,12 @@ and the `CertsSem` that grades the spine — exactly the four facts the
 (`Verify/Rules/Certs.lean`'s `structEtaCertWith_projCerts_bridge`,
 shared with `structEtaCertWith_bridge`).
 
-**`DefEqListSemU` concludes the walk's length.**  `Red.iota_sound`'s
+**`DefEqListSem` concludes the walk's length.**  `Red.iota_sound`'s
 `.nested` fire needs `pins.length = RecRule.ctorParams rl` before it
 can build the comparand list's read spine at all, and the length is
 needed to build the spines the motive's equation is about.
-`DefEqListSemU` therefore leads with `as.length = bs.length`,
-discharged in `CertsSound.lean`'s `DefEqList.nil_soundU`/`cons_soundU`.
+`DefEqListSem` therefore leads with `as.length = bs.length`,
+discharged in `CertsSound.lean`'s `DefEqList.nil_sound`/`cons_sound`.
 -/
 
 namespace ConLeche.Model.Rules
