@@ -270,7 +270,7 @@ block and are left out with it.
 `checkDecls`
 ([function `checkDecls` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L452-L457))
 installs every declaration of `ds` first — a definition, theorem or
-opaque annotated and pushed with its check recorded, everything else
+opaque guarded and pushed with its check recorded, everything else
 checked in full as it is installed — and then checks every recorded
 declaration against the prefix of the environment it was installed at.
 The driver runs the same two phases with a heartbeat between the steps
@@ -345,10 +345,10 @@ Read from the outside in:
    ([function `installLoop` in `ConLeche/Driver/ParInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Driver/ParInstall.lean#L155))
    takes every record, each from a fresh memo state, through the install step
    ([function `annotStepC` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L148-L151)):
-   a definition or opaque is annotated and pushed with its check
-   *recorded* — the annotated header and value and the number of
+   a definition or opaque is guarded and pushed with its check
+   *recorded* — the header and value and the number of
    constants installed before it — a theorem is installed by its
-   statement alone (its header annotated, the stored constant carrying
+   statement alone (the stored constant carrying
    no value; the raw value is recorded for the check and never entered
    by this loop: a theorem is opaque to reduction), and
    an axiom, an inductive or
@@ -441,7 +441,7 @@ Read from the outside in:
    ([theorem `checkDecls_sound` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/MainC.lean#L37-L42)).
 4. **The pure checker** (`ConLeche/Kernel/*`) is a fueled, memo-free
    presentation of the same algorithm: `whnfCore`, `whnf`, `inferType`,
-   `isDefEq` and the annotation pass are defined by one mutual
+   `isDefEq` (and inference at the infer-only grade) are defined by one mutual
    recursion on a fuel parameter
    ([the entry points in `ConLeche/Kernel/TypeChecker.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/TypeChecker.lean#L29-L56));
    on exhaustion every operation throws
@@ -519,22 +519,18 @@ declared under that name; `And` is pinned (§5) so that the rescue is
 always there to fire. Two things differ from a textbook
 presentation and matter for the proof:
 
-* **Annotation.** Before a declaration's terms are checked, an
-  annotation pass
-  ([function `annotateBody` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1955))
-  records at every binder the sort of its codomain as a "Prop-when"
-  datum, a function of the level parameters
-  ([the `PropWhen` module's account in `ConLeche/Kernel/PropWhen.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/PropWhen.lean#L1-L40)),
-  stored in the binder's metadata
-  ([structure `BinderMeta` in `ConLeche/Kernel/Expr.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Expr.lean#L100-L102)).
-  The checker validates the coherence of these annotations at run time;
-  the proof consumes them. This is the price of not having a syntactic
-  type theory (see §4). The annotation pass also ζ-expands `let`, so
-  stored terms are let-free: the reduction and inference arms raise an
-  internal error on a `let` node. The proof side reads a `let` all the
-  same — the denotation's term language has a type-free `let` former,
-  read as its body at its value, and the rules tier's ζ and `let`
-  inference rules are proved sound — so stored `let`s need no ζ pass.
+* **Two inference grades, and the λ checks.** Inference runs at the
+  full grade on a declaration's own terms (application arguments, λ
+  domains and `let` values checked) and at the official kernel's
+  infer-only grade on the terms reduction and definitional equality
+  build on their way
+  ([function `inferBodyIO` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1285)).
+  Beyond the official kernel, the verified mode compares the opened
+  bodies' full-grade types at the innermost level of a λ/λ comparison
+  ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1427))
+  and at η; the proof consumes them. Binders carry no data the checker
+  reads, and declarations are stored as declared, `let`s included:
+  `whnfCore` ζ-reduces and inference runs the official `infer_let`.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
   not, but its memos are proved to agree with the pure functions at
   every fuel large enough to succeed
