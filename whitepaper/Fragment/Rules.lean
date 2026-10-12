@@ -220,6 +220,106 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
 
+  /-- **ι, case 2** (task #342 F1; #347's licence, #342 v2 §11.4): `Red.iota`
+  with **no certificate at all** — no major slot, no constructor
+  telescope — where the major's domain (what the recursor's telescope
+  leaves after the spine, `Expr.piResidual`) is a stored inductive
+  family applied to its parameters and indices whose stored sort is
+  **never `Prop`** at the use: one level test, `1 ≤ u` at every
+  valuation (`LevelOracle.le`, con-leche's `sortZ` read as `never`).
+  The environment law `EnvModel.ind_strict` makes that domain strict,
+  so a redex that is not the point has a major that is not the point;
+  its reduction claim then applies, and the reduced constructor
+  application fits the constructor's telescope with no certificate
+  (`Sound.lean`, `iota_core_strict`).  The three comparisons are
+  `Red.iota`'s, unchanged. -/
+  | iotaStrict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+      {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+      {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+      {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
+      {dM bM : Expr} {I₀ : Name} {ls₀ : List Level} {dargs : List Expr} {ci₀ : ConstInfo}
+      {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
+      env.find? c = some ci →
+      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+      us.length = ci.lparams.length →
+      args.length = numParams + numMotives + numMinors + numIndices + 1 →
+      ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true →
+      Red env Γ (args.getD (numParams + numMotives + numMinors + numIndices) (bvar 0))
+        major →
+      major = mkAppN (const cj usj) margs →
+      rl ∈ rules → rl.ctor = cj → rl.inst = none →
+      env.find? cj = some cij →
+      usj.length = cij.lparams.length →
+      margs.length = numParams + rl.nfields →
+      cij.type.hasPis (numParams + rl.nfields) = true →
+      -- case 2: the major's domain is a stored family whose sort is never `Prop` at the use
+      piResidual (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
+      dM = mkAppN (const I₀ ls₀) dargs →
+      env.find? I₀ = some ci₀ → ci₀.kind = .induct nP₀ nI₀ cs₀ S₀ →
+      ls₀.length = ci₀.lparams.length → dargs.length = nP₀ + nI₀ →
+      ci₀.type.hasPis (nP₀ + nI₀) = true →
+      LevelOracle.le (.succ .zero) (S₀.sort.subst ci₀.lparams ls₀) = true →
+      -- the constructor's levels, parameters and residual indices against the recursor's
+      Level.eqList usj (us.drop (us.length - usj.length)) = true →
+      (∀ p ∈ (margs.take numParams).zip (args.take numParams), DefEq env Γ p.1 p.2) →
+      piResidual (cij.type.instL cij.lparams usj) margs = some residual →
+      residual = mkAppN (const I lsI) (rps ++ ridx) →
+      rps.length = numParams →
+      (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
+        (numParams + numMotives + numMinors)), DefEq env Γ p.1 p.2) →
+      Red env Γ (mkAppN (const c us) args)
+        (mkAppN (rl.rhs.instL ci.lparams us)
+          (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
+  /-- **ι, nested, case 2** (task #342 F1): `Red.iotaNested` with no
+  certificate, under `Red.iotaStrict`'s level test on the major's
+  domain. -/
+  | iotaNestedStrict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+      {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+      {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+      {cij : ConstInfo} {I' : Name} {nPc nfj : Nat} {margs : List Expr} {rl : RecRule}
+      {lvs : List Level} {pinst : List Expr}
+      {dM bM : Expr} {I₀ : Name} {ls₀ : List Level} {dargs : List Expr} {ci₀ : ConstInfo}
+      {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
+      {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr} :
+      env.find? c = some ci →
+      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+      us.length = ci.lparams.length →
+      args.length = numParams + numMotives + numMinors + numIndices + 1 →
+      ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true →
+      Red env Γ (args.getD (numParams + numMotives + numMinors + numIndices) (bvar 0))
+        major →
+      major = mkAppN (const cj usj) margs →
+      rl ∈ rules → rl.ctor = cj → rl.inst = some (lvs, pinst) →
+      env.find? cj = some cij →
+      cij.kind = .ctor I' nPc nfj →
+      usj.length = cij.lparams.length →
+      margs.length = nPc + rl.nfields →
+      cij.type.hasPis (nPc + rl.nfields) = true →
+      -- case 2: the major's domain is a stored family whose sort is never `Prop` at the use
+      piResidual (ci.type.instL ci.lparams us)
+        (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
+      dM = mkAppN (const I₀ ls₀) dargs →
+      env.find? I₀ = some ci₀ → ci₀.kind = .induct nP₀ nI₀ cs₀ S₀ →
+      ls₀.length = ci₀.lparams.length → dargs.length = nP₀ + nI₀ →
+      ci₀.type.hasPis (nP₀ + nI₀) = true →
+      LevelOracle.le (.succ .zero) (S₀.sort.subst ci₀.lparams ls₀) = true →
+      -- the constructor's levels and parameters against the stored instantiation
+      Level.eqList usj (lvs.map (Level.subst ci.lparams us)) = true →
+      pinst.length = nPc →
+      (∀ p ∈ (margs.take nPc).zip
+        (pinst.map fun e => instChain (e.instL ci.lparams us) (args.take numParams)),
+        DefEq env Γ p.1 p.2) →
+      piResidual (cij.type.instL cij.lparams usj) margs = some residual →
+      residual = mkAppN (const I lsI) (rps ++ ridx) →
+      rps.length = nPc →
+      (∀ p ∈ ridx.zip ((args.take (numParams + numMotives + numMinors + numIndices)).drop
+        (numParams + numMotives + numMinors)), DefEq env Γ p.1 p.2) →
+      Red env Γ (mkAppN (const c us) args)
+        (mkAppN (rl.rhs.instL ci.lparams us)
+          (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
+
 /-- **Definitional equality**: the verdict `true` of the checker's
 `isDefEq`.
 

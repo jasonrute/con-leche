@@ -21,13 +21,17 @@ constants:
 * **`rec_rules`** — every recursor rule's ι equation holds in the
   model, on values, and its right-hand side is well-denoted with a
   well-formed application chain (con-leche's `RecRuleLaw`,
-  `ConLeche/Model/Annot/Laws.lean`).
+  `ConLeche/Model/Annot/Laws.lean`);
+* **`ind_strict`** — every stored inductive family has strict fibres (not the
+  point, and without it) where its stored sort is not zero
+  (`IndStrictLaw`), the fact the certificate-free ι of a never-`Prop`
+  family needs (`Red.iotaStrict`).
 
 The proof against these laws is the env-free part of the paper.  That
 the empty environment has a model, and that adding a definition or
 installing an inductive block preserves having one, is the
 environment section's business (part 2), which must construct `M` for
-the new constants and discharge the three laws.
+the new constants and discharge the laws.
 -/
 
 namespace Fragment

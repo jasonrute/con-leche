@@ -187,6 +187,36 @@ info: 'Fragment.Red.iota_core_strict' depends on axioms: [propext, Classical.cho
 #guard_msgs in #print axioms Fragment.Red.iota_core_strict
 
 /--
+info: 'Fragment.Red.strict_dom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.strict_dom
+
+/--
+info: 'Fragment.Red.iotaStrict_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaStrict_sound
+
+/--
+info: 'Fragment.Red.iotaNestedStrict_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaNestedStrict_sound
+
+/--
+info: 'Fragment.IndSpec.indStrict_of_readers' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.indStrict_of_readers
+
+/--
+info: 'Fragment.IndSpec.Reader.strict_app' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.Reader.strict_app
+
+/--
+info: 'Fragment.IndSpec.strict_adm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.strict_adm
+
+/--
 info: 'Fragment.DefEq.lam_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.DefEq.lam_sound
