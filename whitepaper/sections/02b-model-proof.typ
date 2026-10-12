@@ -722,8 +722,8 @@ codomain at the argument, and the argument's type is never compared
 with the domain. The fragment has
 #src("whitepaper/Fragment/IOGrade.lean", 60, 95)[that grade]: the
 rules of @sec:infer without app's argument comparison, without the
-$lambda$'s check of its domain, and without the check of a local
-definition's value against its type. What can it claim?
+$lambda$'s check of its domain, and without the check of a
+let-binding's value against its type. What can it claim?
 
 Not membership. $(lambda h : sans("False"). thin (h.sans("elim") : sans("Nat"))) thick 0$
 gets the type `Nat` from that grade, is well-denoted, and denotes the
