@@ -101067,6 +101067,13 @@ The λ's content is in its domain's `IsTy` and the kind-`0` component.
 - L-let: a let-bound entry in a context is a `CtxOk` entry, so its type
   owes `WellDenotedTy` like any binder.
 
-**Gates.** `lake build`, `lake test` (warning-free; `Axioms.lean`
-unchanged), `tests/arena.sh`, `tests/challenge.sh`,
-`whitepaper/links-gate.sh`. No `sorry`, no new axiom.
+**Gates** (the integration-branch subset, COMMON.md 2026-10-12).
+- `lake build` and `lake test`: no warnings, `Axioms.lean` unchanged.
+- e2e 470/470 and the arena tutorial at 90/92, the baseline.
+- `tests/challenge.sh` green.
+- No `sorry`, no new axiom.
+- OVERVIEW's citations were repointed and its invariant/claim sentences
+  updated (`overview-links --update`).
+- `whitepaper/links-gate.sh` is deferred. It now differs at the
+  `WellDenoted`, `Motive`, `InferSound`, `EnvModel`, `FixKit`, `NatEqs`
+  and `BasisQuot` citations, for W1/W2.
