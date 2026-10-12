@@ -1615,7 +1615,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
           exact (henv _ (find?_mem hfj)).1
         refine bind_rel_eq _ ?_ ?_
         · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
-          · rw [if_pos h3, if_pos h3]
+          · rw [ite_eq_left h3, ite_eq_left h3]
             have h3c := iotaCertsFull_shift henv ih hpd
               (ty := cvj.type.instantiateLevelParams cvj.levelParams usj)
               (WScoped.of_not_hasFvar htel₂)
@@ -1635,7 +1635,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
                 (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
             simp only [List.map_drop, List.map_take] at hidx
             exact hidx
-          · rw [if_neg h3, if_neg h3]
+          · rw [ite_eq_right h3, ite_eq_right h3]
         intro b₄ _
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
         have hrhs : (rl.rhs.instantiateLevelParams cv.levelParams

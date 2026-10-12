@@ -849,7 +849,7 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     (hfc : env.find? c = some (.recInfo cv mI rP rules))
     (hfj : env.find? cj = some (.ctorInfo cvj cnP cnF))
     (hrule : rules.find? (fun r' => r'.ctor == cj) = some rl)
-    (hmd : RelC major majorx) (hmaj : Expr.WScoped d majorx)
+    (_hmd : RelC major majorx) (hmaj : Expr.WScoped d majorx)
     (hargs : RelCL args ex.getAppArgs)
     (hmargs : RelCL margs majorx.getAppArgs) :
     SimC mode env s₀ (RelOC d)
@@ -917,7 +917,7 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     simp only [↓reduceIte]
     refine SimC.bind (P := RelVC) ?_ (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
     · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
-      · rw [if_pos h3, if_pos h3]
+      · rw [ite_eq_left h3, ite_eq_left h3]
         refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
           (fun s₃ tyCtor hs₃ hQctor => ?_)
         simp only [ConstantInfo.toConstantVal] at hQctor
@@ -935,7 +935,7 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
             hmaj.getAppArgs ((hargs.take mI).drop rP)
             (fun x hx => hw.getAppArgs x
               (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
-      · rw [if_neg h3, if_neg h3]
+      · rw [ite_eq_right h3, ite_eq_right h3]
         exact SimC.pure hs₂ rfl
     obtain rfl : r₄ = r₄' := hPr₄
     cases r₄ with

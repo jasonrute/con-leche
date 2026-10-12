@@ -931,7 +931,7 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   simp only [↓reduceIte] at h
   try simp only [Bind.bind, Except.bind] at h
   by_cases h3 : iotaCase3 env.find? r cvj usj = true
-  · rw [if_pos h3] at h
+  · rw [ite_eq_left h3] at h
     try simp only [Bind.bind, Except.bind] at h
     cases hmcerts : iotaCertsFullFueled mode env fuel d
         (cvj.type.instantiateLevelParams cvj.levelParams usj)
@@ -962,7 +962,7 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       cnF, r, rfl, hfc, hlen.1, hlen.2, hprep, hmfn, hfj, hrule,
       hml, hplain0, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq), hcerts,
       fun _ => ⟨hmcerts, hidx⟩, h.symm⟩
-  · rw [if_neg h3] at h
+  · rw [ite_eq_right h3] at h
     simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq,
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
