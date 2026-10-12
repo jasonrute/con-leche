@@ -95,6 +95,7 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
     (leafT : (Name → Nat) → AnnotTerm)
     (hTlawsOf : ∀ {env' : Env} (m' : EnvModel V env') (k : Nat) (cA : ConstantVal × Nat),
       ctorsA[k]? = some cA → Inv m' →
+      (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
       FormerData m' cvTa (nP + nIdx) resSort ppsAll →
       (∀ ψ, m'.acval T ψ = leafT ψ) →
       (∀ ψ, m'.acval cA.1.name ψ

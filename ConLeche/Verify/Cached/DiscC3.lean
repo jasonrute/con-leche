@@ -78,16 +78,9 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
                   if fab.wscopedB d && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    iotaCerts (fueledFns mode env) env d false
-                        (cvj.type.instantiateLevelParams
-                          cvj.levelParams ust)
-                        (etaFabArgsE env T ust tmaj.getAppArgs major
-                          caps.etaFields) >>= fun rc =>
-                    if rc then
-                      structEtaCertWith mode (fueledFns mode env) env d fab major
-                          tmaj >>= fun r =>
-                      if r then pure fab
-                      else pure major
+                    structEtaCertWith mode (fueledFns mode env) env d fab major
+                        tmaj >>= fun r =>
+                    if r then pure fab
                     else pure major
                   else pure major
                 else pure major
@@ -213,15 +206,9 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       Expr.leafGuard fab i) >>=
                       fun g =>
                     if g then
-                      constTyAtM (mkFEnv env) ctorI rl.ctor ust >>=
-                        fun tyCtor =>
-                      iotaCertsI (coreKnotI .verified (mkFEnv env) f) (mkFEnv env)
-                          d false tyCtor (margs ++ projs) >>= fun rc =>
-                      if rc then
-                        structEtaCertWithI .verified (coreKnotI .verified (mkFEnv env) f)
-                            (mkFEnv env) d fab i tmaj >>= fun r =>
-                        if r then pure fab
-                        else pure i
+                      structEtaCertWithI .verified (coreKnotI .verified (mkFEnv env) f)
+                          (mkFEnv env) d fab i tmaj >>= fun r =>
+                      if r then pure fab
                       else pure i
                     else pure i
                   else pure i
@@ -475,52 +462,18 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           have hwfab := Expr.WScoped.of_wscopedB
                             (by simp only [Bool.and_eq_true] at hguard
                                 exact hguard.1.1)
-                          -- the relocated synthetic-spine certificate
-                          refine SimC.bind_left (constTyAtM_eff hs₅ hfj)
-                            (fun s₅c tyCtor hs₅c hQty => ?_)
-                          simp only [ConstantInfo.toConstantVal] at hQty
-                          have hwty : Expr.WScoped d
-                              (cvj.type.instantiateLevelParams
-                                cvj.levelParams ust) := by
-                            obtain ⟨htf, -⟩ := henv _ (find?_mem hfj)
-                            exact wscoped_instLevels_of_not_hasFvar
-                              htf _ _
-                          refine SimC.bind (iotaCertsC_sim ih hs₅c hQty
-                            hwty (hmargs.append hQp) (fun x hx => ?_))
-                            (fun s₅d rc rc' hs₅d hPrc => ?_)
-                          · rcases List.mem_append.mp hx with hx | hx
-                            · exact hwtmaj.getAppArgs x hx
-                            · unfold etaProjs at hx
-                              split at hx
-                              · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
-                                simpa [Expr.WScoped] using hmaj
-                              · obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
-                                refine Expr.WScoped.mkAppN
-                                  (by simp [Expr.WScoped]) ?_
-                                intro y hy
-                                rcases List.mem_append.mp hy with hy | hy
-                                · exact hwtmaj.getAppArgs y hy
-                                · rw [List.mem_singleton.mp hy]
-                                  exact hmaj
-                          obtain rfl : rc = rc' := hPrc
-                          cases rc with
-                          | false =>
-                            simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₅d ⟨hden, hmaj⟩
+                          refine SimC.bind (structEtaCertWithC_sim hμ ih
+                            henv hs₅ hQfab' hden rfl
+                            hwfab hmaj hwtmaj)
+                            (fun s₆ r r' hs₆ hPr => ?_)
+                          obtain rfl : r = r' := hPr
+                          cases r with
                           | true =>
                             simp only [↓reduceIte]
-                            refine SimC.bind (structEtaCertWithC_sim hμ ih
-                              henv hs₅d hQfab' hden rfl
-                              hwfab hmaj hwtmaj)
-                              (fun s₆ r r' hs₆ hPr => ?_)
-                            obtain rfl : r = r' := hPr
-                            cases r with
-                            | true =>
-                              simp only [↓reduceIte]
-                              exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
-                            | false =>
-                              simp only [Bool.false_eq_true, ↓reduceIte]
-                              exact SimC.pure hs₆ ⟨hden, hmaj⟩
+                            exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
+                          | false =>
+                            simp only [Bool.false_eq_true, ↓reduceIte]
+                            exact SimC.pure hs₆ ⟨hden, hmaj⟩
                         · exact SimC.pure hs₅ ⟨hden, hmaj⟩
                       · exact SimC.pure hs₂r ⟨hden, hmaj⟩
                     | bvar k =>
