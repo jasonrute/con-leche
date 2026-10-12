@@ -71,8 +71,8 @@ theorem denoteMeta_proj (acval : Name → (Name → Nat) → AnnotTerm)
   rfl
 
 theorem denoteMeta_forallE (acval : Name → (Name → Nat) → AnnotTerm)
-    (d : Nat) (ty body : Expr) (mb : ConLeche.BinderMeta) :
-    denoteMeta acval env φ d (.forallE ty body mb)
+    (d : Nat) (ty body : Expr) :
+    denoteMeta acval env φ d (.forallE ty body)
       = (do
         let ta ← denoteMeta acval env φ d ty
         let ba ← denoteMeta acval env φ (d + 1)
@@ -81,8 +81,8 @@ theorem denoteMeta_forallE (acval : Name → (Name → Nat) → AnnotTerm)
   rw [denoteMeta]
 
 theorem denoteMeta_lam (acval : Name → (Name → Nat) → AnnotTerm)
-    (d : Nat) (ty body : Expr) (mb : ConLeche.BinderMeta) :
-    denoteMeta acval env φ d (.lam ty body mb)
+    (d : Nat) (ty body : Expr) :
+    denoteMeta acval env φ d (.lam ty body)
       = (do
         let ta ← denoteMeta acval env φ d ty
         let ba ← denoteMeta acval env φ (d + 1)
@@ -150,8 +150,8 @@ theorem denoteMeta_proj_inv {d : Nat} {s : Name} {i : Nat} {e : Expr}
       exact ⟨ia, rfl, Or.inr ⟨rfl, h⟩⟩
 
 theorem denoteMeta_forallE_inv {d : Nat} {ty bd : Expr}
-    {mb : ConLeche.BinderMeta} {ea : AnnotTerm}
-    (h : denoteMeta acval env φ d (.forallE ty bd mb) = some ea) :
+    {ea : AnnotTerm}
+    (h : denoteMeta acval env φ d (.forallE ty bd) = some ea) :
     ∃ ta ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ (d + 1)
         (bd.instantiate1 (.fvar d ty)) = some ba ∧
@@ -168,8 +168,8 @@ theorem denoteMeta_forallE_inv {d : Nat} {ty bd : Expr}
       exact ⟨ta, ba, rfl, rfl, (Option.some.inj h).symm⟩
 
 theorem denoteMeta_lam_inv {d : Nat} {ty bd : Expr}
-    {mb : ConLeche.BinderMeta} {ea : AnnotTerm}
-    (h : denoteMeta acval env φ d (.lam ty bd mb) = some ea) :
+    {ea : AnnotTerm}
+    (h : denoteMeta acval env φ d (.lam ty bd) = some ea) :
     ∃ ta ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ (d + 1)
         (bd.instantiate1 (.fvar d ty)) = some ba ∧

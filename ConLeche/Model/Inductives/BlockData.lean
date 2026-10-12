@@ -26,7 +26,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  BinderMeta)
+ )
 
 universe w
 
@@ -62,7 +62,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps BinderMeta)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
 
@@ -110,7 +110,7 @@ theorem openPisAtFvars_constsResolve {env₀ : Env} :
     exact ⟨(fun x hx => nomatch hx), he⟩
   | n + 1, e, d, fvs, o, he, hop => by
     match e, he, hop with
-    | .forallE dom bd mb, he, hop =>
+    | .forallE dom bd, he, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs₁ e₁ h₁ =>
@@ -140,8 +140,8 @@ theorem Expr.constsResolve_of_mem_getAppArgs {env₀ : Env} :
   | .fvar _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
   | .sort _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
   | .const _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
-  | .lam _ _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
-  | .forallE _ _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
+  | .lam _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
+  | .forallE _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
   | .letE _ _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
   | .proj _ _ _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
   | .lit _, _, _, ha => absurd ha (by simp [Expr.getAppArgs])
@@ -170,7 +170,7 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     {F : Nat} {T : Name}
     {lps : List Name} {nP nF nIdx : Nat} {resSort : Level}
     {isProp large : Bool} {cvC cvTa cvCa : ConstantVal} {env₁ : Env} {caps : IndCaps}
-    {bs : List (Expr × BinderMeta)} {sorts : List Level} {sT : Level}
+    {bs : List Expr} {sorts : List Level} {sT : Level}
     (hCtor : ConLeche.checkSumCtor (ConLeche.fueledOps μ F) env₁ env T lps nP nIdx resSort
       isProp large cvC nF cvTa = .ok (cvCa, sorts))
     (hfT : env.find? T = some (.indInfo cvTa caps))

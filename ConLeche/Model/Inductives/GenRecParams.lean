@@ -50,15 +50,15 @@ variable {μ : CheckMode}
 
 /-- A term with `n` leading `∀`s has the same first `n` domains as itself. -/
 theorem SameDoms.of_stripPis :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × BinderMeta)} {r : Expr},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {r : Expr},
       e.stripPis n = some (bs, r) → SameDoms n e e
   | 0, _, _, _, _ => trivial
-  | n + 1, .forallE A b m, bs, r, h => by
+  | n + 1, .forallE A b, bs, r, h => by
     simp only [Expr.stripPis, Option.map_eq_some_iff] at h
     obtain ⟨⟨bs', r'⟩, h', -⟩ := h
     exact ⟨rfl, SameDoms.of_stripPis n h'⟩
   | n + 1, .bvar _, _, _, h | n + 1, .fvar _ _, _, _, h | n + 1, .sort _, _, _, h
-  | n + 1, .const _ _, _, _, h | n + 1, .app _ _, _, _, h | n + 1, .lam _ _ _, _, _, h
+  | n + 1, .const _ _, _, _, h | n + 1, .app _ _, _, _, h | n + 1, .lam _ _, _, _, h
   | n + 1, .letE _ _ _, _, _, h | n + 1, .lit _, _, _, h | n + 1, .proj _ _ _, _, _, h => by
     simp [Expr.stripPis] at h
 
@@ -67,12 +67,12 @@ theorem SameDoms.mono :
     ∀ {n m : Nat} {e₁ e₂ : Expr}, m ≤ n → SameDoms n e₁ e₂ → SameDoms m e₁ e₂
   | _, 0, _, _, _, _ => trivial
   | 0, m + 1, _, _, hle, _ => absurd hle (by omega)
-  | n + 1, m + 1, .forallE A b _, .forallE A' b' _, hle, h =>
+  | n + 1, m + 1, .forallE A b, .forallE A' b', hle, h =>
     ⟨h.1, SameDoms.mono (by omega) h.2⟩
 
 /-- A run on a `∀` carries a run on its domain. -/
 theorem inferTypeCore_forallE_dom {envK : Env} {F d : Nat} {ty bd s : Expr}
-    {mb : BinderMeta} (h : inferTypeCore μ envK F d (.forallE ty bd mb) = .ok s) :
+    (h : inferTypeCore μ envK F d (.forallE ty bd) = .ok s) :
     ∃ F₀ tty, F = F₀ + 1 ∧ inferTypeCore μ envK F₀ d ty = .ok tty := by
   cases F with
   | zero =>
@@ -91,25 +91,25 @@ theorem inferTypeCore_spine_defeq {envK : Env} {F d : Nat} :
     ∀ (as : List Expr) {f tf t : Expr} {m : Nat}, m ≤ as.length → SameDoms m tf tf →
       inferTypeCore μ envK F d f = .ok tf →
       inferTypeCore μ envK F d (Expr.mkAppN f as) = .ok t →
-      ∀ l, l < m → ∃ D b mb ta, instPisWith (as.take l) tf = some (.forallE D b mb) ∧
+      ∀ l, l < m → ∃ D b ta, instPisWith (as.take l) tf = some (.forallE D b) ∧
         inferTypeCore μ envK F d (as.getD l default) = .ok ta ∧
         isDefEqCore μ envK F d ta D = .ok true
   | [], _, _, _, m, hm, _, _, _, l, hl => absurd hl (by simp at hm; omega)
   | a :: as, f, tf, t, m, hm, hsd, hf, h, l, hl => by
     obtain ⟨tfa, hfa⟩ := Model.inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
-    obtain ⟨tf', ty', body', m', hf', hw, rfl, ta, hta, hde⟩ := inferTypeCore_app_inv' hfa
+    obtain ⟨tf', ty', body', hf', hw, rfl, ta, hta, hde⟩ := inferTypeCore_app_inv' hfa
     rw [show tf' = tf from Except.ok.inj (hf'.symm.trans hf)] at hw
     obtain ⟨m₀, rfl⟩ : ∃ m₀, m = m₀ + 1 := ⟨m - 1, by omega⟩
     match tf, hsd, hw with
-    | .forallE A b mb, hsd, hw =>
-      obtain ⟨rfl, rfl, rfl⟩ := Expr.forallE.inj (whnf_forallE_eq hw)
+    | .forallE A b, hsd, hw =>
+      obtain ⟨rfl, rfl⟩ := Expr.forallE.inj (whnf_forallE_eq hw)
       cases l with
-      | zero => exact ⟨ty', body', m', ta, rfl, hta, hde⟩
+      | zero => exact ⟨ty', body', ta, rfl, hta, hde⟩
       | succ l =>
-        obtain ⟨D, b', mb', ta', hi, hta', hde'⟩ := inferTypeCore_spine_defeq as
+        obtain ⟨D, b', ta', hi, hta', hde'⟩ := inferTypeCore_spine_defeq as
           (f := .app f a) (tf := body'.instantiate1 a) (m := m₀) (by simp at hm; omega)
           (SameDoms.instantiate1 m₀ 0 hsd.2) hfa h l (by omega)
-        exact ⟨D, b', mb', ta', hi, hta', hde'⟩
+        exact ⟨D, b', ta', hi, hta', hde'⟩
 
 /-- An application spine erasure-equal to another: heads and arguments
 pairwise. -/
@@ -139,7 +139,7 @@ open SetTheory
 open ConLeche.Verify
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars closeTelescope
-  ClassGen ClassGenScoped SameDoms classGenRecTy classBinder BinderMeta GenRecRun ClassRecTyRun
+  ClassGen ClassGenScoped SameDoms classGenRecTy classBinder GenRecRun ClassRecTyRun
   FEnv mkFEnv NestState TargetMajor RecShape BlockShape BlockParts instPisWith)
 
 variable {μ : CheckMode}
@@ -210,7 +210,7 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
       ∀ (cvT : ConstantVal) caps, envC.find? I = some (.indInfo cvT caps) →
         cvT.levelParams = p.lps → cvT.type.hasFvar = false → SameDoms p.nP cvT.type cvT.type →
         ∃ (xs : List Expr) (o : Expr) (F' : Nat), openPisAtFvars p.nP cvG.type 0 = some (xs, o) ∧
-          ∀ l, l < p.nP → ∃ D b mb, instPisWith (xs.take l) cvT.type = some (.forallE D b mb) ∧
+          ∀ l, l < p.nP → ∃ D b, instPisWith (xs.take l) cvT.type = some (.forallE D b) ∧
             ConLeche.isDefEqCore μ envC F' p.nP ((xs.map Expr.fvarTypeD).getD l default) D
               = .ok true := by
   obtain ⟨-, -, -, -, -, hfv0, -, -, stype, u0, hinf, -, hcvEq⟩ :=
@@ -251,7 +251,7 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
   -- the generated telescope
   obtain ⟨s, hm⟩ := ConLeche.classRead_recCls_motive R.hrd c (List.mem_of_getElem? hc)
   have hmv := ConLeche.ClassGen.motVar_eq (g := R.g) hm
-  generalize hnds : R.g.pre ++ ifs.map R.g.binder ++ [(maj, R.g.bm)] = nds
+  generalize hnds : R.g.pre ++ ifs.map R.g.binder ++ [maj] = nds
     at hgty hcl
   generalize hB : Expr.mkAppN (R.g.motVar c)
     (ifs ++ [.fvar (R.g.pre.length + ifs.length) maj]) = B at hgty hbb
@@ -266,13 +266,13 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
   have hNP : p.nP ≤ N := by
     have : R.g.pre.length = R.pre.length := rfl
     omega
-  have hndN : nds[N]? = some (maj, R.g.bm) := by
+  have hndN : nds[N]? = some maj := by
     rw [← hnds, List.getElem?_append_right (by simp [hN.symm] <;> omega)]
     simp [← hN]
   obtain ⟨xN, hxN⟩ : ∃ x, xs[N]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
   -- the major domain: `I` applied to the prefix's parameter variables
   have hmajR : maj = Expr.mkAppN (.const I (p.lps.map .param)) (R.ctx.params ++ ifs) := hmajE
-  have hMD : Expr.ErasedEq xN.fvarTypeD maj := hxs N xN maj hxN (by rw [hndN]; rfl)
+  have hMD : Expr.ErasedEq xN.fvarTypeD maj := hxs N xN maj hxN (by rw [hndN])
   rw [hmajR] at hMD
   obtain ⟨f', as', hMDe, hf', has'⟩ := erasedEq_mkAppN_inv _ hMD
   obtain ⟨-, hargs⟩ := ConLeche.erasedEq_mkAppN_args _ has' (hMDe ▸ hMD)
@@ -316,8 +316,8 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
   rw [hndsLen] at hop
   obtain ⟨xsN, xs1, o, hopN, hop1, hxsplit⟩ := openPisAtFvars_split N (m := 1) hop
   have hlxsN : xsN.length = N := ConLeche.Verify.openPisAtFvars_length _ hopN
-  obtain ⟨dom, bo, mbo, rfl⟩ : ∃ dom bo mbo, o = .forallE dom bo mbo := by
-    cases o <;> first | exact ⟨_, _, _, rfl⟩ | simp [openPisAtFvars] at hop1
+  obtain ⟨dom, bo, rfl⟩ : ∃ dom bo, o = .forallE dom bo := by
+    cases o <;> first | exact ⟨_, _, rfl⟩ | simp [openPisAtFvars] at hop1
   simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hop1
   obtain ⟨rfl, -⟩ := hop1
   have hdom : dom = tN := by
@@ -341,7 +341,7 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
   subst htf
   obtain ⟨o', hopP⟩ := ConLeche.openPisAtFvars_prefix p.nP (N₁ + 1 + 1) type 0 (by omega) hop
   refine ⟨xs.take p.nP, o', F₀, by rw [htype]; exact hopP, fun l hl => ?_⟩
-  obtain ⟨D, b, mb, ta, hinst, hta, hde⟩ := ConLeche.inferTypeCore_spine_defeq as'
+  obtain ⟨D, b, ta, hinst, hta, hde⟩ := ConLeche.inferTypeCore_spine_defeq as'
     (m := p.nP) (by omega) hsdT hconst htty l hl
   -- the argument: the `l`-th opener
   obtain ⟨xl, hxl⟩ : ∃ x, xs[l]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
@@ -361,7 +361,7 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
     · rw [List.getElem?_take, List.getElem?_take, ite_eq_left hj, ite_eq_left hj, hargEq j (by omega)]
     · rw [List.getElem?_take, List.getElem?_take, ite_eq_right hj, ite_eq_right hj]
   rw [htake] at hinst
-  refine ⟨D, b, mb, by rw [List.take_take, Nat.min_eq_left (by omega)]; exact hinst, ?_⟩
+  refine ⟨D, b, by rw [List.take_take, Nat.min_eq_left (by omega)]; exact hinst, ?_⟩
   have hgetA : ((xs.take p.nP).map Expr.fvarTypeD).getD l default = Al := by
     rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take, ite_eq_left hl, hxl]
     rfl
@@ -442,11 +442,11 @@ of a closed type, is scoped at `l`, bvar-closed, has only that
 opening's variables as leaves, and is (up to erasure) the domain `T`'s
 OWN opening binds. -/
 theorem instDom_facts {tyA cvT : Expr} {n l : Nat} {xs tfvs : List Expr} {oA oT : Expr}
-    {D b : Expr} {mb : BinderMeta}
+    {D b : Expr}
     (hopA : openPisAtFvars n tyA 0 = some (xs, oA)) (hwA : Expr.WScoped 0 tyA)
     (hopT : openPisAtFvars n cvT 0 = some (tfvs, oT)) (hfvT : cvT.hasFvar = false)
     (hbT : cvT.looseBVarsBounded 0 = true) (hl : l < n)
-    (hinst : instPisWith (xs.take l) cvT = some (.forallE D b mb)) :
+    (hinst : instPisWith (xs.take l) cvT = some (.forallE D b)) :
     Expr.WScoped l D ∧ D.looseBVarsBounded 0 = true ∧
       (∀ lf ∈ D.fvarLeaves, Expr.fvar lf.1 lf.2 ∈ xs) ∧
       ∃ x, tfvs[l]? = some x ∧ Expr.ErasedEq x.fvarTypeD D := by
@@ -477,7 +477,7 @@ theorem instDom_facts {tyA cvT : Expr} {n l : Nat} {xs tfvs : List Expr} {oA oT 
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at h
     exact h.1
   · intro lf hlf
-    have hlf' : lf ∈ (Expr.forallE D b mb).fvarLeaves := by
+    have hlf' : lf ∈ (Expr.forallE D b).fvarLeaves := by
       simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl hlf
     rcases ConLeche.fvarLeaves_instPisWith hinst lf hlf' with h | ⟨a, ha, h⟩
     · rw [Expr.fvarLeaves_eq_nil_of_not_hasFvar hfvT] at h; exact nomatch h
@@ -493,8 +493,8 @@ theorem instDom_facts {tyA cvT : Expr} {n l : Nat} {xs tfvs : List Expr} {oA oT 
     obtain ⟨rfl, rfl⟩ : f₁ = tfvs.take l ∧ oTl = o₁ := by
       have := Option.some.inj (hA1.symm.trans hopTl)
       exact ⟨congrArg Prod.fst this, (congrArg Prod.snd this).symm⟩
-    obtain ⟨dom', b', m', rfl⟩ : ∃ dom' b' m', oTl = .forallE dom' b' m' := by
-      cases oTl <;> first | exact ⟨_, _, _, rfl⟩ | simp [openPisAtFvars] at hB1
+    obtain ⟨dom', b', rfl⟩ : ∃ dom' b', oTl = .forallE dom' b' := by
+      cases oTl <;> first | exact ⟨_, _, rfl⟩ | simp [openPisAtFvars] at hB1
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hB1
     obtain ⟨rfl, -⟩ := hB1
     have htl : tfvs[l]? = some (.fvar l dom') := by
@@ -803,17 +803,17 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
   -- the compared terms
   let Dof : Nat → Expr := fun l =>
     match instPisWith (xs0.take l) cvTP.type with
-    | some (.forallE D _ _) => D
+    | some (.forallE D _) => D
     | _ => default
-  have hDof : ∀ l, l < pp.nP → ∃ b mb, instPisWith (xs0.take l) cvTP.type
-      = some (.forallE (Dof l) b mb) ∧
+  have hDof : ∀ l, l < pp.nP → ∃ b, instPisWith (xs0.take l) cvTP.type
+      = some (.forallE (Dof l) b) ∧
       ConLeche.isDefEqCore μ envC F' pp.nP ((xs0.map Expr.fvarTypeD).getD l default) (Dof l)
         = .ok true := by
     intro l hl
-    obtain ⟨D, b, mb, hinst, hde⟩ := hdeqs l hl
+    obtain ⟨D, b, hinst, hde⟩ := hdeqs l hl
     have hD : Dof l = D := by simp only [Dof, hinst]
     rw [hD]
-    exact ⟨b, mb, hinst, hde⟩
+    exact ⟨b, hinst, hde⟩
   have hbsget : ∀ l, l < pp.nP → ((List.range pp.nP).map Dof).getD l default = Dof l := by
     intro l hl
     rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hl]; rfl
@@ -821,7 +821,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
       (∀ lf ∈ (Dof l).fvarLeaves, Expr.fvar lf.1 lf.2 ∈ xs0) ∧
       ∃ x, tfvs[l]? = some x ∧ Expr.ErasedEq x.fvarTypeD (Dof l) := by
     intro l hl
-    obtain ⟨b, mb, hinst, -⟩ := hDof l hl
+    obtain ⟨b, hinst, -⟩ := hDof l hl
     exact instDom_facts hopc hwA hopT hfvT hbndT hl hinst
   have hfitA : SpineFit ρ (pdoms.take pp.nP) (xs.take pp.nP) :=
     spineFit_take hfit (by rw [hlenPd]; omega)
@@ -836,7 +836,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
       rw [← denoteMeta_erasedEq hE, hdBT l x hx])
     hokA hokB (fun l hl => by
       rw [hbsget l hl]
-      obtain ⟨_, _, -, hde⟩ := hDof l hl
+      obtain ⟨_, -, hde⟩ := hDof l hl
       exact hde) hfitA
   -- the members' parameter agreement
   have hlenPD : (dR.params ψ).length = dR.nP := by

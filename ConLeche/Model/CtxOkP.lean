@@ -74,12 +74,12 @@ theorem of_subset {d : Nat} {Δa : List AnnotTerm} {e e' : Expr}
     CtxOkP m φ d Δa e' :=
   ⟨hC.1, fun l hl => hC.2 l (hsub l hl)⟩
 
-theorem forallE_ty {d : Nat} {Δa : List AnnotTerm} {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOkP m φ d Δa (.forallE ty body mb)) : CtxOkP m φ d Δa ty :=
+theorem forallE_ty {d : Nat} {Δa : List AnnotTerm} {ty body : Expr}
+    (hC : CtxOkP m φ d Δa (.forallE ty body)) : CtxOkP m φ d Δa ty :=
   hC.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
-theorem forallE_body {d : Nat} {Δa : List AnnotTerm} {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOkP m φ d Δa (.forallE ty body mb)) : CtxOkP m φ d Δa body :=
+theorem forallE_body {d : Nat} {Δa : List AnnotTerm} {ty body : Expr}
+    (hC : CtxOkP m φ d Δa (.forallE ty body)) : CtxOkP m φ d Δa body :=
   hC.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 /-- **Opening a binder** whose domain reads graded under the context. -/

@@ -92,11 +92,11 @@ so nothing is added at runtime. -/
 
 @[inline] def mkApp (f a : Expr) : Expr := .app f a
 
-@[inline] def mkLam (ty body : Expr) (m : BinderMeta) : Expr :=
-  .lam ty body m
+@[inline] def mkLam (ty body : Expr) : Expr :=
+  .lam ty body
 
-@[inline] def mkForallE (ty body : Expr) (m : BinderMeta) :
-    Expr := .forallE ty body m
+@[inline] def mkForallE (ty body : Expr) :
+    Expr := .forallE ty body
 
 @[inline] def mkLetE (ty val body : Expr) : Expr :=
   .letE ty val body
@@ -130,11 +130,11 @@ recurrence is the compiler's (the census row above). -/
 
 @[simp] theorem mkApp_eq (f a : Expr) : mkApp f a = .app f a := rfl
 
-@[simp] theorem mkLam_eq (ty b : Expr) (m : BinderMeta) :
-    mkLam ty b m = .lam ty b m := rfl
+@[simp] theorem mkLam_eq (ty b : Expr) :
+    mkLam ty b = .lam ty b := rfl
 
-@[simp] theorem mkForallE_eq (ty b : Expr) (m : BinderMeta) :
-    mkForallE ty b m = .forallE ty b m := rfl
+@[simp] theorem mkForallE_eq (ty b : Expr) :
+    mkForallE ty b = .forallE ty b := rfl
 
 @[simp] theorem mkLetE_eq (ty v b : Expr) :
     mkLetE ty v b = .letE ty v b := rfl

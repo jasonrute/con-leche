@@ -81,9 +81,9 @@ structure ClassCtor where
   deriving Inhabited
 
 /-- Close a telescope of `λ`s (`closeTelescope`'s twin). -/
-def closeLams : List (Expr × BinderMeta) → Nat → Expr → Expr
+def closeLams : List Expr → Nat → Expr → Expr
   | [], _, body => body
-  | (dom, bm) :: bs, i, body => .lam dom ((closeLams bs (i + 1) body).abstract1 i 0) bm
+  | dom :: bs, i, body => .lam dom ((closeLams bs (i + 1) body).abstract1 i 0)
 
 /-- What generation reads: the block, the classes, the layout, the
 constructors, the elimination level. -/
@@ -97,21 +97,14 @@ structure ClassGen where
   ctors : List (List ClassCtor)
   elim : Level
   /-- the generated prefix binders (`ClassGen.prefixBinders`), computed once -/
-  pre : List (Expr × BinderMeta) := []
+  pre : List Expr := []
 
 /-- The binder of an opened variable (the motive types' binders: their
 codomains are sorts, never zero). -/
-def classBinder (x : Expr) : Expr × BinderMeta := (x.fvarTypeD, default)
-
-/-- **The generated binders' datum**: every binder of a recursor type, a
-minor premise, an inductive hypothesis and a rule concludes in a motive
-application, a proposition exactly where the elimination level is zero —
-the generator WRITES this datum and nothing is annotated (inference
-validates every written datum at the verified modes). -/
-def ClassGen.bm (_g : ClassGen) : BinderMeta := ⟨⟩
+def classBinder (x : Expr) : Expr := x.fvarTypeD
 
 /-- A generated binder of an opened variable. -/
-def ClassGen.binder (g : ClassGen) (x : Expr) : Expr × BinderMeta := (x.fvarTypeD, g.bm)
+def ClassGen.binder (_g : ClassGen) (x : Expr) : Expr := x.fvarTypeD
 
 /-- The prefix variable of slot `s`. -/
 def ClassGen.slotVar (g : ClassGen) (s : Nat) : Expr := .fvar (g.nP + s) (.sort .zero)
@@ -130,7 +123,7 @@ def ClassGen.major (g : ClassGen) (c : Nat) (d : Nat) : Option (List Expr × Exp
 /-- Class `c`'s motive type at depth `d`: `∀ ı⃗ (t : I D⃗ ı⃗), Sort ℓ`. -/
 def ClassGen.motiveTy (g : ClassGen) (c d : Nat) : Option Expr := do
   let (ifs, maj) ← g.major c d
-  pure (closeTelescope (ifs.map classBinder) d (.forallE maj (.sort g.elim) default))
+  pure (closeTelescope (ifs.map classBinder) d (.forallE maj (.sort g.elim)))
 
 /-- The inductive hypothesis of a recursive field whose WALKED type is `w`
 (`∀ a⃗, J E⃗ e⃗`, landing at class `t`), opened at `d`: its telescope and its
@@ -157,24 +150,24 @@ def ClassGen.minorTy (g : ClassGen) (c : Nat) (x : ClassCtor) (d : Nat) : Option
     let e := d + x.nF + l
     let (xs, idx) ← g.ihParts t tele (ws.getD i default) e
     pure (closeTelescope (xs.map g.binder) e
-      (Expr.mkAppN (g.motVar t) (idx ++ [Expr.mkAppN (fvs.getD i default) xs])), g.bm)
+      (Expr.mkAppN (g.motVar t) (idx ++ [Expr.mkAppN (fvs.getD i default) xs])))
   let concl := Expr.mkAppN (g.motVar c)
     (res.getAppArgs.drop ci.nPc ++ [Expr.mkAppN (.const x.cv.name ci.lvls) (ci.ds ++ fvs)])
   pure (closeTelescope (fvs.map g.binder ++ ihs) d concl)
 
 /-- The prefix binders (parameters, then every slot in the stream's
 order). -/
-def ClassGen.prefixBinders (g : ClassGen) : Option (List (Expr × BinderMeta)) := do
+def ClassGen.prefixBinders (g : ClassGen) : Option (List Expr) := do
   let slotBs ← (List.range g.slots.length).mapM fun s => do
     let d := g.nP + s
     match g.slots.getD s default with
     | .motive _ =>
       let c := ((List.range s).filter fun s' =>
         match g.slots.getD s' default with | .motive _ => true | _ => false).length
-      pure ((← g.motiveTy c d), g.bm)
+      g.motiveTy c d
     | .minor c C _ =>
       let x ← (g.ctors.getD c []).find? (·.cv.name == C)
-      pure ((← g.minorTy c x d), g.bm)
+      g.minorTy c x d
   pure (g.params.map g.binder ++ slotBs)
 
 /-- **The generated recursor type** at class `c`. -/
@@ -183,7 +176,7 @@ def classGenRecTy (g : ClassGen) (c : Nat) : Option Expr := do
   let rP := pre.length
   let (ifs, maj) ← g.major c rP
   let t : Expr := .fvar (rP + ifs.length) maj
-  pure (closeTelescope (pre ++ ifs.map g.binder ++ [(maj, g.bm)]) 0
+  pure (closeTelescope (pre ++ ifs.map g.binder ++ [maj]) 0
     (Expr.mkAppN (g.motVar c) (ifs ++ [t])))
 
 /-- **The generated rule** of a recursor at class `c` for its constructor
@@ -259,7 +252,7 @@ has the datum's telescope `tele`, the datum's leaf head and indices, and
 a leaf class matching the inductive hypothesis's class `Mc` per component
 (`targetK53`). -/
 def classNodesAgree (ops : CheckerOps m) (env : Env) (p : BlockShape) (formerTys : List Expr)
-    (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (leaf : Expr) (fvs : List Expr)
+    (Mc : TargetMajor) (tele : List Expr) (leaf : Expr) (fvs : List Expr)
     (i : Nat) (ctor : Name) : List NestCtorNf → m Unit
   | [] => pure ()
   | e :: es => do
@@ -361,10 +354,9 @@ def classFormerTy (fe : FEnv) (cvTas : List ConstantVal) (M : TargetMajor) : m E
     | some (.indInfo cv _) => pure (cv.type.instantiateLevelParams cv.levelParams M.lvls)
     | _ => throw (.internal "generated recursor: a class's former vanished")
 
-/-- **A generated constant, checked** — `checkConstantValF` without the
-annotation pass: the generator writes every binder datum (`ClassGen.bm`)
-and its pieces are annotated terms already, so the type is stored as
-generated; inference validates the data. -/
+/-- **A generated constant, checked** — `checkConstantValF`: the
+generated type is stored as the generator built it (no annotation pass,
+task #342); inference validates it like any other declared type. -/
 def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m ConstantVal := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
@@ -437,7 +429,7 @@ def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR :
   let (rbs, _) ← unwrapOr (genA.stripLams n)
     (.internal s!"generated recursor: a rule of {cvR.name} is not a λ-telescope over the \
       recursor's prefix and the constructor's fields")
-  unless rbs.all (fun b => w.resolve feT b.1) do
+  unless rbs.all (fun b => w.resolve feT b) do
     throw (unresolvedConstsError s!"the domains of a generated rule of {cvR.name}" genA)
   pure genA
 

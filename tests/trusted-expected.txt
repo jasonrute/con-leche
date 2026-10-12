@@ -32,6 +32,8 @@
 # certified lane now rejects that fixture too, for its own reason; see
 # tests/e2e-expected.txt.  Both lanes agree, so nothing is recorded.)
 
-# (Task #342 L-ck: the annot_decline_* overrides are GONE — binders
-# carry no datum, both lanes accept those streams; see
-# tests/annot-expected.txt.)
+# (Task #342 L-ck: the annot_decline_* overrides were GONE already —
+# binders carried no datum, both lanes accepted those streams.  Task
+# #342 (s5a-bm): the annotation suite itself (tests/annot/,
+# tests/annot-expected.txt) is deleted along with `BinderMeta` — there
+# is no longer a binder datum for it to exercise.)

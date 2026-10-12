@@ -154,7 +154,7 @@ def iotaCertsFullIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
   | _, _, [] => pure true
   | ty, acc, arg :: rest => do
     match ty with
-    | .forallE dom body _ => do
+    | .forallE dom body => do
         let dom' ← instListM dom acc
         let ta ← r.infer depth arg
         if ← r.defeq depth ta dom' then
@@ -401,7 +401,7 @@ def etaCertI (r : CoreFnsI) (_fe : FEnv) (depth : Nat)
   let tb ← r.inferIO depth b
   let wtb ← r.whnf depth tb
   match wtb with
-  | .forallE ty₂ cod₂ _ => do
+  | .forallE ty₂ cod₂ => do
     if ← r.defeq depth ty₂ ty₁ then do
       let fv ← pure (Expr.fvar depth ty₁)
       let b₁ ← inst1M body₁ fv
@@ -739,7 +739,7 @@ def whnfAppI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
   | v, [] => pure v
   | v, a :: rest => do
     match v with
-    | .lam _ body _ =>
+    | .lam _ body =>
         -- Task #342 S0: uniform β, no certificate, at every λ
         betaPeelI r fe depth k body [a] rest
     | _ => do
@@ -771,7 +771,7 @@ def betaPeelI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
     k e'
   | t, acc, a :: rest => do
     match t with
-    | .lam _ body _ =>
+    | .lam _ body =>
         -- Task #342 S0: uniform β (see `whnfAppI`)
         betaPeelI r fe depth k body (a :: acc) rest
     | _ => do
@@ -848,7 +848,7 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
   | ty, acc, [] => instListRevM ty acc
   | ty, acc, a :: rest => do
     match ty with
-    | .forallE dom body _mt => do
+    | .forallE dom body => do
       -- per-argument re-check (task #100 de-gating: the former
       -- possibly-Prop gate of task #49 is unsound-to-model under the
       -- domain-relative collapse; the certificate runs
@@ -862,7 +862,7 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
       let ty' ← instListRevM ty acc
       let w ← r.whnf depth ty'
       match w with
-      | .forallE dom body _mt => do
+      | .forallE dom body => do
         let ta ← r.infer depth a
         unless ← r.defeq depth ta dom do
           throw (.invalid "application type mismatch")
@@ -880,13 +880,13 @@ def inferSpineIOI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
   | ty, acc, [] => instListRevM ty acc
   | ty, acc, a :: rest => do
     match ty with
-    | .forallE _ body _ => do
+    | .forallE _ body => do
       inferSpineIOI r fe depth body (acc.push a) rest
     | _ => do
       let ty' ← instListRevM ty acc
       let w ← r.whnf depth ty'
       match w with
-      | .forallE _ body _ => do
+      | .forallE _ body => do
         inferSpineIOI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
 
@@ -937,7 +937,7 @@ chained spec's next step. -/
 
 /-- Stack entry of `inferLamsI`: binder name, opened domain and binder
 meta. -/
-abbrev InferLamEntry := Expr × BinderMeta
+abbrev InferLamEntry := Expr
 
 /-- Rebuild loop of `inferLamsI`: fold the stack (innermost binder
 first, `j` its binder level relative to the ambient depth `d`).  The
@@ -948,9 +948,9 @@ body-type sort and cannot fail (task #100 stage 6: the per-level
 def inferLamsOutI (d : Nat) :
     List InferLamEntry → Nat → Expr → CheckCM Expr
   | [], _j, cur => pure cur
-  | (tyo, mb) :: rest, j, cur => do
+  | tyo :: rest, j, cur => do
     let tyAbs ← abstractRangeM tyo d j
-    let node ← pure (Expr.forallE tyAbs cur mb)
+    let node ← pure (Expr.forallE tyAbs cur)
     inferLamsOutI d rest (j - 1) node
 
 /-- Leaf phase of `inferLamsI`: bulk-open the residual body, infer it,
@@ -979,7 +979,7 @@ def inferLamsI (r : CoreFnsI) (d : Nat) :
     Nat → Expr → Nat → Array Expr → List InferLamEntry → CheckCM Expr
   | fuel + 1, t, k, fvs, stk => do
     match t with
-    | .lam ty body mb => do
+    | .lam ty body => do
       let tyo ← instListRevM ty fvs
       let tty ← r.infer (d + k) tyo
       let wtty ← r.whnf (d + k) tty
@@ -987,7 +987,7 @@ def inferLamsI (r : CoreFnsI) (d : Nat) :
       | .sort _ => do
         let fv ← pure (Expr.fvar (d + k) tyo)
         inferLamsI r d fuel body (k + 1) (fvs.push fv)
-          ((tyo, mb) :: stk)
+          (tyo :: stk)
       | _ => throw (.invalid "expected a sort")
     | _ => inferLamsLeafI r d t k fvs stk
   | 0, t, k, fvs, stk => inferLamsLeafI r d t k fvs stk
@@ -1028,7 +1028,7 @@ def inferPisI (r : CoreFnsI) (d : Nat) :
       CheckCM Expr
   | fuel + 1, t, k, fvs, stk => do
     match t with
-    | .forallE ty body _ => do
+    | .forallE ty body => do
       let tyo ← instListRevM ty fvs
       let tty ← r.infer (d + k) tyo
       let wtty ← r.whnf (d + k) tty
@@ -1073,7 +1073,7 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         pure (Expr.const si [])
       else throw (.notImplemented
         "string literals before the String support declarations")
-    | .forallE ty body _ => do
+    | .forallE ty body => do
       -- Binder-telescope loop (task #72 discipline; the codomain sort
       -- is inferred).
       let tty ← r.infer depth ty
@@ -1084,7 +1084,7 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         let fuel ← peelFuelM
         inferPisI r depth fuel body 1 #[fv] [u]
       | _ => throw (.invalid "expected a sort")
-    | .lam ty body mb => do
+    | .lam ty body => do
       let tty ← r.infer depth ty
       let wtty ← r.whnf depth tty
       match wtty with
@@ -1093,7 +1093,7 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         -- open in bulk, rebuild with `abstractRange`.
         let fv ← pure (Expr.fvar depth ty)
         let fuel ← peelFuelM
-        inferLamsI r depth fuel body 1 #[fv] [(ty, mb)]
+        inferLamsI r depth fuel body 1 #[fv] [ty]
       | _ => throw (.invalid "expected a sort")
     | .app _ _ => do
       -- Bulk telescope consumption (task #50): infer the spine head
@@ -1167,7 +1167,7 @@ def inferBodyIOI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
       let args ← pure (Expr.getAppArgsC e)
       let tf ← r.infer depth h
       inferSpineIOI r fe depth tf #[] args
-    | .forallE ty body _ => do
+    | .forallE ty body => do
       -- the pure io ∀ clause, **chained** (deliberately not the
       -- task-#72 telescope loop: the loops are the front door's
       -- optimization, and looping the io lane would owe the whole
@@ -1185,14 +1185,14 @@ def inferBodyIOI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         let iu ← pure (.imax u v)
         pure (Expr.sort iu)
       | _ => throw (.invalid "expected a sort")
-    | .lam ty body mb => do
+    | .lam ty body => do
       -- the pure io λ clause, chained; no domain-sort run (task #168
       -- stage 2, as in the spec)
       let fv ← pure (Expr.fvar depth ty)
       let ob ← inst1M body fv
       let bt ← r.infer (depth + 1) ob
       let bAbs ← abstract1M bt depth
-      pure (Expr.forallE ty bAbs mb)
+      pure (Expr.forallE ty bAbs)
     | .letE _ v b => do
       -- official `infer_let` at `infer_only`: the body at its value,
       -- no check of the type or the value (task #342 R-C)
@@ -1237,14 +1237,14 @@ def quickDefEqI (r : CoreFnsI) (depth : Nat) (a b : Expr) :
     let ok ← liftFueled "level comparison" (← isEquivLM u v)
     pure (some ok)
   | .lit l₁, .lit l₂ => pure (some (l₁ == l₂))
-  | .forallE ty₁ body₁ _, .forallE ty₂ body₂ _ => do
+  | .forallE ty₁ body₁, .forallE ty₂ body₂ => do
     unless ← r.defeq depth ty₁ ty₂ do return some false
     let fv ← pure (Expr.fvar depth ty₂)
     let b₁ ← inst1M body₁ fv
     let b₂ ← inst1M body₂ fv
     unless ← r.defeq (depth + 1) b₁ b₂ do return some false
     pure (some true)
-  | .lam ty₁ body₁ _, .lam ty₂ body₂ _ => do
+  | .lam ty₁ body₁, .lam ty₂ body₂ => do
     let ok ← defeqLamsI mode r lamsFuel depth ty₁ body₁ ty₂ body₂
     pure (some ok)
   | _, _ => pure none
@@ -1416,10 +1416,10 @@ def defeqStuckI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
         else stuckIrrelI r fe depth a b
       else stuckIrrelI r fe depth a b
     else stuckIrrelI r fe depth a b
-  | .lam ty₁ body₁ _, _ => do
+  | .lam ty₁ body₁, _ => do
     if ← etaCertI mode r fe depth ty₁ body₁ b then pure true
     else stuckIrrelI r fe depth a b
-  | _, .lam ty₂ body₂ _ => do
+  | _, .lam ty₂ body₂ => do
     if ← etaCertI mode r fe depth ty₂ body₂ a then pure true
     else stuckIrrelI r fe depth a b
   | _, _ => stuckIrrelI r fe depth a b

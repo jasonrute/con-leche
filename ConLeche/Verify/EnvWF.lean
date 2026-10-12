@@ -130,7 +130,7 @@ theorem stripPis_isSome_of_le :
     match n, hle with
     | n + 1, hle =>
       match e, h with
-      | .forallE d bo m, h =>
+      | .forallE d bo, h =>
         simp only [Expr.stripPis, Option.isSome_map] at h ⊢
         exact ih (by omega) h
 
@@ -164,8 +164,8 @@ theorem stripPis_isSome_of_le :
           pin.allLevelParamsDefined cv.levelParams = true ∧
           pin.constsResolve env = true ∧
           pin.looseBVarsBounded rP = true) ∧
-        ∃ pre dom body bm D,
-          cv.type.stripPis mI = some (pre, .forallE dom body bm) ∧
+        ∃ pre dom body D,
+          cv.type.stripPis mI = some (pre, .forallE dom body) ∧
           dom.getAppFn = .const D lvls ∧
           dom.getAppArgs =
             pins.map (Expr.liftLooseBVars (mI - rP) 0) ++
@@ -274,11 +274,11 @@ theorem Expr.constsResolve_of_find {env env' : Env}
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h ⊢
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty body mb ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h ⊢
     exact ⟨ihty h.1, ihbody h.2⟩
-  | forallE ty body mb ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h ⊢
     exact ⟨ihty h.1, ihbody h.2⟩
@@ -323,13 +323,13 @@ constant the residual mentions — task #342 L10, the `RecRuleExtra`
 transport's clause (S)). -/
 theorem Expr.constsResolve_piResult {env : Env} :
     ∀ {e : Expr}, e.constsResolve env = true → e.piResult.constsResolve env = true
-  | .forallE _ b _, h => by
+  | .forallE _ b, h => by
       have hb : b.constsResolve env = true := by
         simp only [Expr.constsResolve, Bool.and_eq_true] at h
         exact h.2
       exact Expr.constsResolve_piResult (e := b) hb
   | .bvar _, h | .sort _, h | .lit _, h | .const _ _, h | .fvar _ _, h
-  | .app _ _, h | .lam _ _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
+  | .app _ _, h | .lam _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
       simpa [Expr.piResult] using h
 
 /-- Resolution survives `getAppFn` (peeling an application spine's
@@ -342,7 +342,7 @@ theorem Expr.constsResolve_getAppFn {env : Env} :
         exact h.1
       exact Expr.constsResolve_getAppFn (e := f) hf
   | .bvar _, h | .sort _, h | .lit _, h | .const _ _, h | .fvar _ _, h
-  | .lam _ _ _, h | .forallE _ _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
+  | .lam _ _, h | .forallE _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
       simpa [Expr.getAppFn] using h
 
 /-- **A resolving expression's `piResult`'s head constant is stored**

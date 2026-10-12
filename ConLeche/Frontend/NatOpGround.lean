@@ -62,10 +62,10 @@ def usedConstsGo (seen : Std.HashSet Expr) (acc : Array Name) (e : Expr) :
   | .app f a .. =>
     let (seen, acc) := usedConstsGo seen acc f
     usedConstsGo seen acc a
-  | .lam ty b _ .. =>
+  | .lam ty b .. =>
     let (seen, acc) := usedConstsGo seen acc ty
     usedConstsGo seen acc b
-  | .forallE ty b _ .. =>
+  | .forallE ty b .. =>
     let (seen, acc) := usedConstsGo seen acc ty
     usedConstsGo seen acc b
   | .letE ty v b .. =>

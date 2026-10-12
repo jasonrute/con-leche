@@ -303,11 +303,11 @@ theorem piResidual_frameK {m : EnvModel V env} {d : Nat}
     | .sort _, h => exact nomatch h
     | .const _ _, h => exact nomatch h
     | .app _ _, h => exact nomatch h
-    | .lam _ _ _, h => exact nomatch h
+    | .lam _ _, h => exact nomatch h
     | .letE _ _ _, h => exact nomatch h
     | .lit _, h => exact nomatch h
     | .proj _ _ _, h => exact nomatch h
-    | .forallE ty body mb, h =>
+    | .forallE ty body, h =>
     obtain ⟨⟨hwa, hba, hLa⟩, hCa⟩ := hfrA a (by simp)
     simp only [Expr.WScoped] at hw
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
@@ -343,11 +343,11 @@ theorem piResidual_leavesGrK {m : EnvModel V env} {d : Nat} {ρ : Nat → V} :
     | .sort _, h => exact nomatch h
     | .const _ _, h => exact nomatch h
     | .app _ _, h => exact nomatch h
-    | .lam _ _ _, h => exact nomatch h
+    | .lam _ _, h => exact nomatch h
     | .letE _ _ _, h => exact nomatch h
     | .lit _, h => exact nomatch h
     | .proj _ _ _, h => exact nomatch h
-    | .forallE ty body mb, h =>
+    | .forallE ty body, h =>
     refine ih h (fun l hl => ?_) (fun x hx => hA x (by simp [hx]))
     rcases Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
     · exact hT l (by simp [Expr.fvarLeaves, h2])
@@ -386,11 +386,11 @@ theorem teleFitPA_residualK {acval : Name → (Name → Nat) → AnnotTerm}
     | .sort _, hpr, _, _ => exact nomatch hpr
     | .const _ _, hpr, _, _ => exact nomatch hpr
     | .app _ _, hpr, _, _ => exact nomatch hpr
-    | .lam _ _ _, hpr, _, _ => exact nomatch hpr
+    | .lam _ _, hpr, _, _ => exact nomatch hpr
     | .letE _ _ _, hpr, _, _ => exact nomatch hpr
     | .lit _, hpr, _, _ => exact nomatch hpr
     | .proj _ _ _, hpr, _, _ => exact nomatch hpr
-    | .forallE dom body mb, hpr, hwty, hty => ?_
+    | .forallE dom body, hpr, hwty, hty => ?_
     cases hsp with | @cons _ va _ vs' ha hsp' => ?_
     obtain ⟨hwa, hba⟩ := hargs a List.mem_cons_self
     obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d dom ∧ Expr.WScoped d body := by

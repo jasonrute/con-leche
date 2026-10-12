@@ -649,8 +649,8 @@ theorem blockRecStaged_of
           pin.constsResolve envC = true ∧
           pin.looseBVarsBounded (q.rulePrefixAt j) = true ∧
           ∀ (T : Name) (i : Nat), envC.findProj? T i = none → Expr.NoProjAt T i pin) ∧
-        ∃ pre dom body bm D,
-          r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+        ∃ pre dom body D,
+          r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
           dom.getAppFn = .const D lvls ∧
           dom.getAppArgs =
             pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++

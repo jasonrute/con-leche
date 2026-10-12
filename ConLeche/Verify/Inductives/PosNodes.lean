@@ -272,13 +272,13 @@ theorem posD_tele_open : ∀ {J : PosJ} {ts : List PosTree}, PosD ops env ctx J 
     | .tele prog base nF j cur ks nds res =>
       ks.length = nF ∧ nds.length = nF ∧ ∃ xs, openPisAtFvars nF cur (base + j) = some (xs, res) ∧
         ∀ (i : Nat) (x : Expr), xs[i]? = some x → ∃ k nd ts', ks[i]? = some k ∧
-          nds[i]?.map (·.1) = some nd ∧
+          nds[i]? = some nd ∧
           PosD ops env ctx (.field prog (base + j + i) 0 x.fvarTypeD k nd) ts' ∧ ∀ t ∈ ts', t ∈ ts
     | _ => True := by
   intro J ts h
   induction h with
   | teleNil => exact ⟨rfl, rfl, [], by simp [openPisAtFvars], fun _ _ hx => nomatch hx⟩
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha _ _ ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha _ _ ihb =>
     obtain ⟨hkl, hnl, xs, hop, hall⟩ := ihb
     refine ⟨by simp [hkl], by simp [hnl], .fvar (base + j) a :: xs, ?_, fun i x hx => ?_⟩
     · simp only [openPisAtFvars]

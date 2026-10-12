@@ -36,7 +36,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level NestCtx NestHole BinderMeta)
+open ConLeche (Env Expr Name Level NestCtx NestHole)
 
 universe w
 
@@ -76,13 +76,13 @@ set_option maxHeartbeats 1600000 in
 /-- **A field's call, read** (see the module docstring). -/
 theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     {ctx : NestCtx} {prog : List NestHole} {i rP : Nat} {fvsF : List Expr}
-    {teleW tele : List (Expr × BinderMeta)} {leafC w : Expr}
+    {teleW tele : List Expr} {leafC w : Expr}
     (htl : tele.length = teleW.length)
-    (htel : ∀ (l : Nat) (p p' : Expr × BinderMeta), tele[l]? = some p → teleW[l]? = some p' →
-      p.2 = p'.2 ∧ Expr.ErasedEq p.1 (Expr.substFvars (ctx.hiAt prog.length + i)
-        (rP + fvsF.length) (callSubst ctx prog fvsF) p'.1))
-    (hteleHF : ∀ p ∈ teleW, p.1.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false ∧
-      Expr.fvarsBelow (ctx.hiAt prog.length + i) p.1)
+    (htel : ∀ (l : Nat) (p p' : Expr), tele[l]? = some p → teleW[l]? = some p' →
+      Expr.ErasedEq p (Expr.substFvars (ctx.hiAt prog.length + i)
+        (rP + fvsF.length) (callSubst ctx prog fvsF) p'))
+    (hteleHF : ∀ p ∈ teleW, p.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false ∧
+      Expr.fvarsBelow (ctx.hiAt prog.length + i) p)
     (hopen : ∀ os, LocList (ctx.hiAt prog.length + i) teleW.length os →
       Expr.ErasedEq (leafC.instantiateList os 0) w)
     (hwF : Expr.fvarsBelow (ctx.hiAt prog.length + i + teleW.length) w)
@@ -103,7 +103,7 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hf : fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda)
     {bs : List V}
     (hbs : SpineFit (consList (xs ++ fs) ρ)
-      ((teleDoms m.acval env ψ (rP + fvsF.length) [] (tele.map (·.1))).getD []) bs) :
+      ((teleDoms m.acval env ψ (rP + fvsF.length) [] tele).getD []) bs) :
     bs.length = tele.length ∧
     ∃ (ha : AnnotTerm) (argsA : List AnnotTerm),
       denoteMeta m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppFn = some ha ∧

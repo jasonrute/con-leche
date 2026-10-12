@@ -94,7 +94,7 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
     rw [denoteMeta_substFvars m hs fe t hfb.1, denoteMeta_substFvars m hs a t hfb.2]
     cases denoteMeta m.acval env φ (b + t) fe <;>
       cases denoteMeta m.acval env φ (b + t) a <;> rfl
-  | .forallE ty body mb, t, hfb => by
+  | .forallE ty body, t, hfb => by
     have hsb : ∀ i, i < b → (s i).looseBVarsBounded 0 = true := fun i hi => (hs i hi).2.1
     simp only [Expr.substFvars, denoteMeta]
     have hop : (Expr.substFvars b D s body).instantiate1 (.fvar (D + t) (Expr.substFvars b D s ty))
@@ -113,7 +113,7 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
       cases denoteMeta m.acval env φ (b + t + 1) (body.instantiate1 (.fvar (b + t) ty)) with
       | none => rfl
       | some ba => rfl
-  | .lam ty body mb, t, hfb => by
+  | .lam ty body, t, hfb => by
     have hsb : ∀ i, i < b → (s i).looseBVarsBounded 0 = true := fun i hi => (hs i hi).2.1
     simp only [Expr.substFvars, denoteMeta]
     have hop : (Expr.substFvars b D s body).instantiate1 (.fvar (D + t) (Expr.substFvars b D s ty))

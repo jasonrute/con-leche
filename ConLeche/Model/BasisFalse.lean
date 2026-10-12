@@ -133,11 +133,9 @@ theorem denoteMeta_falseRecA_type {m : EnvModel V env}
   rw [show falseRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const falseName [])
-            (.sort (.param uN)) {})
+            (.sort (.param uN)))
           (Expr.forallE (.const falseName [])
-            (.app (.bvar 1) (.bvar 0))
-            {})
-          {} from rfl]
+            (.app (.bvar 1) (.bvar 0))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
@@ -235,11 +233,9 @@ theorem declBasisPB_falseK {env₂ : Env} (mp : EnvModelM V μ env)
     simp only [show falseRecA.toConstantVal.type
         = Expr.forallE
             (Expr.forallE (.const falseName [])
-              (.sort (.param uN)) {})
+              (.sort (.param uN)))
             (Expr.forallE (.const falseName [])
-              (.app (.bvar 1) (.bvar 0))
-              {})
-            {} from rfl,
+              (.app (.bvar 1) (.bvar 0))) from rfl,
       Expr.constsResolve, Bool.and_eq_true, Option.isSome_iff_exists]
     have hf : (⟨falseRecA :: falseA :: env.consts⟩ : Env).find?
         falseName = some falseA := by

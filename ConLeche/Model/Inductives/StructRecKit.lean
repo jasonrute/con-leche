@@ -224,7 +224,7 @@ any depth above the parameters (`paramBvarsAt`).
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta)
+ )
 
 
 /-! ## Lifted Π-towers -/
@@ -327,13 +327,13 @@ theorem openPisAtFvars_of_stripPis_isSome :
   | 0, e, _, _ => ⟨[], e, rfl⟩
   | n + 1, e, d, h => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [Expr.stripPis, Option.isSome_map] at h
       obtain ⟨fvs, o, ho⟩ := openPisAtFvars_of_stripPis_isSome n (d + 1)
         (Expr.stripPis_instantiate1_isSome (v := .fvar d dom) n 0 h)
       exact ⟨.fvar d dom :: fvs, o, by simp only [openPisAtFvars, ho]⟩
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       simp [Expr.stripPis] at h
 
 /-! ## Per-index scoping -/
@@ -349,7 +349,7 @@ theorem openPisAtFvars_typeWScoped :
     exact nomatch hx
   | n + 1, e, d, fvs, o, hop, hw, i, x, hx => by
     match e, hop with
-    | .forallE dom body mb, hop =>
+    | .forallE dom body, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -373,7 +373,7 @@ theorem openPisAtFvars_typeWScoped :
           exact this
       · exact nomatch hop
     | .bvar _, hop | .fvar _ _, hop | .sort _, hop | .const _ _, hop | .app _ _, hop
-    | .lam _ _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
+    | .lam _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
       simp [openPisAtFvars] at hop
 
 /-! ## Frame shifts under a consed spine -/
@@ -423,7 +423,7 @@ theorem consList_apply_lt :
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta PropWhen)
+  PropWhen)
 
 
 variable {acval : Name → (Name → Nat) → AnnotTerm}

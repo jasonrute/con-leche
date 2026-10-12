@@ -66,7 +66,7 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     intro hc _ ea h
     rw [constsBound_const, hf] at hc
     exact nomatch hc
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro hc hnp ea h
     rw [constsBound_forallE] at hc
     have hnp' := fun j => Expr.noProjAt_forallE.mp (hnp j)
@@ -78,7 +78,7 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     rw [denoteMeta, ihty hc.1 (fun j => (hnp' j).1) hta, ihbody hcb hnpb hba]
     rfl
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro hc hnp ea h
     rw [constsBound_lam] at hc
     have hnp' := fun j => Expr.noProjAt_lam.mp (hnp j)
@@ -156,8 +156,8 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

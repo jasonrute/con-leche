@@ -117,7 +117,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
   have hPi := memberCtorD_acc mp hin hteleD hhead hok hcovk hfr hCP hca hgr hR
   rw [← habLen] at hPi
   obtain ⟨Af, htele, hinv, hQf⟩ := teleAccP_of_piAccThen ab abN _ (ctx.hiAt 0) 0
-    (nds.map (·.1)) L.reverse _ (d.toLfp.MemberQ ψ) hEq hR.dom
+    nds L.reverse _ (d.toLfp.MemberQ ψ) hEq hR.dom
     (fun ρ ρ₀ h hw => (hG' ρ ρ₀ h).toBound hw)
     (holeQ_top_iff hhi hcNl hcP har) (Nat.le_refl _) hPi
   -- the syntax: the opened normal form, U4
@@ -147,9 +147,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     · simp only [ite_eq_left hl]
       obtain ⟨x, hx⟩ : ∃ x, xs[l]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
       obtain ⟨k, nd, hkk, hnd, hE, -, -⟩ := hxs l x hx
-      have hnd' : (nds.map (·.1))[l]? = some nd := by
-        rw [List.getElem?_map]; exact hnd
-      have hinvl := hinv l nd (by omega) hnd'
+      have hinvl := hinv l nd (by omega) hnd
       rw [Nat.zero_add] at hinvl
       refine hinvl τ τ' fun i hi => ?_
       rcases hi with hi | ⟨hlt, hpar⟩

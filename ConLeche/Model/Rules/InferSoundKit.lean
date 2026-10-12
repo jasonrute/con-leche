@@ -244,8 +244,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       IsTy (interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] []))) := by
   obtain ⟨hs, ciS, ciO, ciL, ciN, ciC, ciH, ciF, pL, pN, pC, hfS, hfO,
     hfL, hfN, hfC, hfH, hfF, hlpS, hlpO, hlpL, hlpN, hlpC, hlpH, hlpF,
-    hTS, hTH, ⟨mbO, hTO⟩, ⟨mbL, hTL⟩, ⟨mbN, hTN⟩,
-    ⟨mb1, mb2, mb3, hTC⟩, ⟨mbF, hTF⟩⟩ :=
+    hTS, hTH, hTO, hTL, hTN, hTC, hTF⟩ :=
     ConLeche.strLitSupported_inv hg
   obtain ⟨cvNat, capsNat, cv0, i0, j0, cv1, i1, j1, hfNat, hfZ, hfSc,
     hlpNat, hlpZ, hlpSc, hTNat, hTZ, hTSc⟩ :=
@@ -341,8 +340,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hIN : ciN.toConstantVal.type.instantiateLevelParams
       ciN.toConstantVal.levelParams [Level.zero]
       = Expr.forallE (.sort (Level.succ Level.zero))
-          (.app (.const ConLeche.listName [Level.zero]) (.bvar 0))
-          {} := by
+          (.app (.const ConLeche.listName [Level.zero]) (.bvar 0)) := by
     rw [hlpN, hTN]
     simp [Expr.instantiateLevelParams, Level.subst, Level.subst.go]
   have hRN : denoteMeta m.acval env φ 0
@@ -366,10 +364,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       = Expr.forallE (.sort (Level.succ Level.zero))
           (.forallE (.bvar 0)
             (.forallE (.app (.const ConLeche.listName [Level.zero]) (.bvar 1))
-              (.app (.const ConLeche.listName [Level.zero]) (.bvar 2))
-              {})
-            {})
-          {} := by
+              (.app (.const ConLeche.listName [Level.zero]) (.bvar 2)))) := by
     rw [hlpC, hTC]
     simp [Expr.instantiateLevelParams, Level.subst, Level.subst.go]
   have hRC : denoteMeta m.acval env φ 0
@@ -386,32 +381,26 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     rw [hIC, denoteMeta_forallE, denoteMeta_sort,
       show (Expr.forallE (.bvar 0)
             (.forallE (.app (.const ConLeche.listName [Level.zero]) (.bvar 1))
-              (.app (.const ConLeche.listName [Level.zero]) (.bvar 2))
-              {})
-            {}).instantiate1
+              (.app (.const ConLeche.listName [Level.zero]) (.bvar 2)))).instantiate1
           (.fvar 0 (Expr.sort (Level.succ Level.zero)))
         = Expr.forallE (.fvar 0 (Expr.sort (Level.succ Level.zero)))
             (.forallE
               (.app (.const ConLeche.listName [Level.zero])
                 (.fvar 0 (Expr.sort (Level.succ Level.zero))))
               (.app (.const ConLeche.listName [Level.zero])
-                (.fvar 0 (Expr.sort (Level.succ Level.zero))))
-              {})
-            {} from rfl,
+                (.fvar 0 (Expr.sort (Level.succ Level.zero))))) from rfl,
       denoteMeta_forallE, denoteMeta_fvar,
       show (Expr.forallE
               (.app (.const ConLeche.listName [Level.zero])
                 (.fvar 0 (Expr.sort (Level.succ Level.zero))))
               (.app (.const ConLeche.listName [Level.zero])
-                (.fvar 0 (Expr.sort (Level.succ Level.zero))))
-              {}).instantiate1
+                (.fvar 0 (Expr.sort (Level.succ Level.zero))))).instantiate1
           (.fvar (0 + 1) (.fvar 0 (Expr.sort (Level.succ Level.zero))))
         = Expr.forallE
             (.app (.const ConLeche.listName [Level.zero])
               (.fvar 0 (Expr.sort (Level.succ Level.zero))))
             (.app (.const ConLeche.listName [Level.zero])
-              (.fvar 0 (Expr.sort (Level.succ Level.zero))))
-            {} from rfl,
+              (.fvar 0 (Expr.sort (Level.succ Level.zero)))) from rfl,
       denoteMeta_forallE, denoteMeta_app, hKL, denoteMeta_fvar,
       show (Expr.app (.const ConLeche.listName [Level.zero])
               (.fvar 0 (Expr.sort (Level.succ Level.zero)))).instantiate1
@@ -426,8 +415,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   -- `Char.ofNat`
   have hIF : ciF.toConstantVal.type.instantiateLevelParams
       ciF.toConstantVal.levelParams []
-      = Expr.forallE (.const ConLeche.natName []) (.const ConLeche.charName [])
-          {} := by
+      = Expr.forallE (.const ConLeche.natName []) (.const ConLeche.charName []) := by
     rw [hlpF, hTF]
     simp [Expr.instantiateLevelParams]
   have hRF : denoteMeta m.acval env φ 0
@@ -447,8 +435,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       = Expr.forallE
           (.app (.const ConLeche.listName [Level.zero])
             (.const ConLeche.charName []))
-          (.const ConLeche.stringName [])
-          {} := by
+          (.const ConLeche.stringName []) := by
     rw [hlpO, hTO]
     simp [Expr.instantiateLevelParams, Level.subst]
   have hRO : denoteMeta m.acval env φ 0
@@ -558,11 +545,11 @@ theorem denoteMeta_instPisAt_peel
     | .sort _, hpr, _, _ => exact nomatch hpr
     | .const _ _, hpr, _, _ => exact nomatch hpr
     | .app _ _, hpr, _, _ => exact nomatch hpr
-    | .lam _ _ _, hpr, _, _ => exact nomatch hpr
+    | .lam _ _, hpr, _, _ => exact nomatch hpr
     | .letE _ _ _, hpr, _, _ => exact nomatch hpr
     | .lit _, hpr, _, _ => exact nomatch hpr
     | .proj _ _ _, hpr, _, _ => exact nomatch hpr
-    | .forallE dom body mb, hpr, hwty, hty => ?_
+    | .forallE dom body, hpr, hwty, hty => ?_
     -- the peel's own step
     simp only [Expr.instPisAt, Option.map_eq_some_iff] at hpr
     obtain ⟨⟨ds', rest'⟩, hpr', heq⟩ := hpr

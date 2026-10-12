@@ -131,11 +131,11 @@ theorem Expr.readsAt_of_nestOcc {names : List Name} {lo hi : Nat} {env : Env}
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h
     exact ⟨ihf h.1, iha h.2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h
     exact ⟨iht h.1, ihb h.2⟩
@@ -158,21 +158,21 @@ theorem Expr.readsAt_of_nestOcc {names : List Name} {lo hi : Nat} {env : Env}
   | _ => intro _; trivial
 
 theorem piResult_of_stripPis_sort :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × ConLeche.BinderMeta)} {s : Level},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
       e.stripPis n = some (bs, .sort s) → e.piResult = .sort s
   | 0, e, bs, s, h => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
     rw [h.2]; rfl
   | n + 1, e, bs, s, h => by
     match e with
-    | .forallE ty b m =>
+    | .forallE ty b =>
       simp only [Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', r⟩, hr, heq⟩ := h
       simp only [Prod.mk.injEq] at heq
       obtain ⟨-, rfl⟩ := heq
       show b.piResult = _
       exact piResult_of_stripPis_sort n hr
-    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _ _
+    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
     | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [Expr.stripPis])
 
 /-- **No literal-support constant a reading consults is a block member**
@@ -220,7 +220,7 @@ theorem blockMembers_notLit {env envI : Env} (hwf : ConLeche.EnvWF env)
       simp only [ConLeche.stringOfListTyOk, Bool.and_eq_true] at hO
       obtain ⟨-, hO⟩ := hO
       change (match cvTb.type with
-        | .forallE (.app (.const l1 us1) (.const c1 [])) (.const c2 []) _mb =>
+        | .forallE (.app (.const l1 us1) (.const c1 [])) (.const c2 []) =>
           l1 == ConLeche.listName && us1 == [.zero] && c1 == ConLeche.charName &&
             c2 == ConLeche.stringName
         | _ => false) = true at hO
@@ -264,7 +264,7 @@ theorem blockMembers_notLit {env envI : Env} (hwf : ConLeche.EnvWF env)
     simp only [ConLeche.charOfNatTyOk, Bool.and_eq_true] at hCO
     obtain ⟨-, hCO⟩ := hCO
     obtain ⟨dom, m, hty, hc2⟩ : ∃ dom m, ci.toConstantVal.type
-        = .forallE dom (.const ConLeche.charName []) m ∧ True := by
+        = .forallE dom (.const ConLeche.charName []) ∧ True := by
       split at hCO
       · rename_i c1 c2 mb heq
         simp only [Bool.and_eq_true, beq_iff_eq] at hCO
@@ -380,9 +380,9 @@ theorem openPisAtFvars_erasedEq_body :
     exact he
   | n + 1, e, e', d, xs, xs', r, r', he, h, h' => by
     cases e with
-    | forallE t b bm =>
+    | forallE t b =>
       cases e' with
-      | forallE t' b' bm' =>
+      | forallE t' b' =>
         obtain ⟨-, hb⟩ := he
         simp only [openPisAtFvars] at h h'
         split at h
@@ -407,7 +407,7 @@ theorem stripPis_of_openPis :
   | 0, _, _, _, _, _, _ + 1, hj => absurd hj (by omega)
   | n + 1, e, d, fvs, body, h, j + 1, hj => by
     cases e with
-    | forallE t b bm =>
+    | forallE t b =>
       simp only [openPisAtFvars] at h
       split at h
       · rename_i fvs' o hop
@@ -464,11 +464,11 @@ theorem erasedEq_fvarsBelow {d : Nat} :
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
     exact ⟨ihf _ h.1 ha.1, iha _ h.2 ha.2⟩
-  | lam t bd mm iht ihb =>
+  | lam t bd iht ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
     exact ⟨iht _ h.1 ha.1, ihb _ h.2 ha.2⟩
-  | forallE t bd mm iht ihb =>
+  | forallE t bd iht ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
     exact ⟨iht _ h.1 ha.1, ihb _ h.2 ha.2⟩

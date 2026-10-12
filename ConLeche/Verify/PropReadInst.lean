@@ -41,7 +41,7 @@ theorem getApp_instantiate1_of_const {v : Expr} {k : Nat} {c : Name}
     simp only [instantiate1, getAppFn, getAppArgs, List.map_append, List.map_cons,
       List.map_nil] at ih ⊢
     exact ⟨ih.1, by rw [ih.2]⟩
-  | .bvar _, h | .fvar _ _, h | .sort _, h | .lam _ _ _, h | .forallE _ _ _, h
+  | .bvar _, h | .fvar _ _, h | .sort _, h | .lam _ _, h | .forallE _ _, h
   | .letE _ _ _, h | .lit _, h | .proj _ _ _, h => nomatch h
 
 /-- A spine whose head is no constant and not the instantiated `bvar`
@@ -60,7 +60,7 @@ theorem getAppFn_instantiate1_not_const {v : Expr} {k : Nat} :
     · next hi => exact h2 (by rw [hi])
     · split at h <;> exact nomatch h
   | .const c' us', h1, _ => absurd rfl (h1 c' us')
-  | .fvar _ _, _, _ | .sort _, _, _ | .lam _ _ _, _, _ | .forallE _ _ _, _, _
+  | .fvar _ _, _, _ | .sort _, _, _ | .lam _ _, _, _ | .forallE _ _, _, _
   | .letE _ _ _, _, _ | .lit _, _, _ | .proj _ _ _, _, _ => by
     intro c us h; simp [instantiate1, getAppFn] at h
 
@@ -116,14 +116,14 @@ theorem unwrapIdDefs_instantiate1 (find? : Name → Option ConstantInfo) {v : Ex
 where
   lamProj?_lt : ∀ {k₀ : Nat} {e : Expr} {kk j : Nat},
       lamProj? k₀ e = some (kk, j) → j < kk
-    | k₀, .lam _ b _, kk, j, h => lamProj?_lt (k₀ := k₀ + 1) (e := b) h
+    | k₀, .lam _ b, kk, j, h => lamProj?_lt (k₀ := k₀ + 1) (e := b) h
     | k₀, .bvar i, kk, j, h => by
       simp only [lamProj?] at h
       split at h
       · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h); assumption
       · exact nomatch h
     | _, .fvar _ _, _, _, h | _, .sort _, _, _, h | _, .const _ _, _, _, h
-    | _, .app _ _, _, _, h | _, .forallE _ _ _, _, _, h | _, .letE _ _ _, _, _, h
+    | _, .app _ _, _, _, h | _, .forallE _ _, _, _, h | _, .letE _ _ _, _, _, h
     | _, .lit _, _, _, h | _, .proj _ _ _, _, _, h => nomatch h
 
 /-- **A peeled sort survives instantiating a bound variable.** -/
@@ -146,7 +146,7 @@ theorem peelPisW_sort_instantiate1 (find? : Name → Option ConstantInfo)
     rw [peelPisW_succ_eq] at h ⊢
     revert h
     cases hu : unwrapIdDefs find? 4 e with
-    | forallE ty b m =>
+    | forallE ty b =>
       intro h
       rcases unwrapIdDefs_instantiate1 find? (v := v) (k := k) 4 e with h' | h'
       · rw [h', hu]
@@ -167,17 +167,17 @@ theorem residualPW_peelPisW_instantiate1 (find? : Name → Option ConstantInfo)
 theorem binderDom_instantiate1 {v : Expr} :
     ∀ (j : Nat) (e : Expr) (k : Nat) {D : Expr}, e.binderDom j = some D →
       (e.instantiate1 v k).binderDom j = some (D.instantiate1 v (k + j))
-  | 0, .forallE A _ _, k, D, h => by
+  | 0, .forallE A _, k, D, h => by
     simp only [binderDom] at h; cases h; rfl
-  | j + 1, .forallE _ b _, k, D, h => by
+  | j + 1, .forallE _ b, k, D, h => by
     simp only [binderDom, instantiate1] at h ⊢
     rw [binderDom_instantiate1 j b (k + 1) h]
     congr 2; omega
   | 0, .bvar _, _, _, h | 0, .fvar _ _, _, _, h | 0, .sort _, _, _, h
-  | 0, .const _ _, _, _, h | 0, .app _ _, _, _, h | 0, .lam _ _ _, _, _, h
+  | 0, .const _ _, _, _, h | 0, .app _ _, _, _, h | 0, .lam _ _, _, _, h
   | 0, .letE _ _ _, _, _, h | 0, .lit _, _, _, h | 0, .proj _ _ _, _, _, h
   | _ + 1, .bvar _, _, _, h | _ + 1, .fvar _ _, _, _, h | _ + 1, .sort _, _, _, h
-  | _ + 1, .const _ _, _, _, h | _ + 1, .app _ _, _, _, h | _ + 1, .lam _ _ _, _, _, h
+  | _ + 1, .const _ _, _, _, h | _ + 1, .app _ _, _, _, h | _ + 1, .lam _ _, _, _, h
   | _ + 1, .letE _ _ _, _, _, h | _ + 1, .lit _, _, _, h
   | _ + 1, .proj _ _ _, _, _, h => nomatch h
 
@@ -193,7 +193,7 @@ theorem numArgs_instantiate1 {v : Expr} {k : Nat} :
     split
     · next hi => exact absurd (by rw [hi]) h
     · split <;> rfl
-  | .fvar _ _, _ | .sort _, _ | .const _ _, _ | .lam _ _ _, _ | .forallE _ _ _, _
+  | .fvar _ _, _ | .sort _, _ | .const _ _, _ | .lam _ _, _ | .forallE _ _, _
   | .letE _ _ _, _ | .lit _, _ | .proj _ _ _, _ => rfl
 
 /-- Instantiating the head variable by a variable keeps the arity. -/
@@ -209,7 +209,7 @@ theorem numArgs_instantiate1_head {i : Nat} {t : Expr} {k : Nat} :
     simp only [getAppFn] at h
     cases h
     simp [instantiate1, numArgs, getAppFn]
-  | .fvar _ _, h | .sort _, h | .const _ _, h | .lam _ _ _, h | .forallE _ _ _, h
+  | .fvar _ _, h | .sort _, h | .const _ _, h | .lam _ _, h | .forallE _ _, h
   | .letE _ _ _, h | .lit _, h | .proj _ _ _, h => nomatch h
 
 /-- The head of an instantiated spine whose head is not the variable. -/
@@ -225,31 +225,31 @@ theorem getAppFn_instantiate1_of_ne {v : Expr} {k : Nat} :
     split
     · next hi => exact absurd (by rw [hi]) h
     · split <;> rfl
-  | .fvar _ _, _ | .sort _, _ | .const _ _, _ | .lam _ _ _, _ | .forallE _ _ _, _
+  | .fvar _ _, _ | .sort _, _ | .const _ _, _ | .lam _ _, _ | .forallE _ _, _
   | .letE _ _ _, _ | .lit _, _ | .proj _ _ _, _ => rfl
 
 /-- The walk at a type that is neither a ∀ nor a sort reads its head. -/
 theorem typeSortPWGo_eq_head (find? : Name → Option ConstantInfo) (root : Expr)
     (d : Nat) :
-    ∀ {X : Expr}, (∀ ty b m, X ≠ .forallE ty b m) → (∀ u, X ≠ .sort u) →
+    ∀ {X : Expr}, (∀ ty b, X ≠ .forallE ty b) → (∀ u, X ≠ .sort u) →
       typeSortPWGo find? root X d = headTypePW find? root d X.getAppFn X.numArgs
-  | .forallE ty b m, h1, _ => absurd rfl (h1 ty b m)
+  | .forallE ty b, h1, _ => absurd rfl (h1 ty b)
   | .sort u, _, h2 => absurd rfl (h2 u)
   | .bvar _, _, _ | .fvar _ _, _, _ | .const _ _, _, _ | .app _ _, _, _
-  | .lam _ _ _, _, _ | .letE _ _ _, _, _ | .lit _, _, _ | .proj _ _ _, _, _ => rfl
+  | .lam _ _, _, _ | .letE _ _ _, _, _ | .lit _, _, _ | .proj _ _ _, _, _ => rfl
 
 theorem not_forallE_instantiate1_of_fvar {i : Nat} {t : Expr} {j : Nat} :
-    ∀ {X : Expr}, (∀ ty b m, X ≠ .forallE ty b m) →
-      ∀ ty b m, X.instantiate1 (.fvar i t) j ≠ .forallE ty b m
-  | .bvar k, _, ty, b, m, h => by
+    ∀ {X : Expr}, (∀ ty b, X ≠ .forallE ty b) →
+      ∀ ty b, X.instantiate1 (.fvar i t) j ≠ .forallE ty b
+  | .bvar k, _, ty, b, h => by
     simp only [instantiate1] at h
     split at h
     · exact nomatch h
     · split at h <;> exact nomatch h
-  | .forallE ty₀ b₀ m₀, h1, _, _, _, _ => absurd rfl (h1 ty₀ b₀ m₀)
-  | .fvar _ _, _, _, _, _, h | .sort _, _, _, _, _, h | .const _ _, _, _, _, _, h
-  | .app _ _, _, _, _, _, h | .lam _ _ _, _, _, _, _, h | .letE _ _ _, _, _, _, _, h
-  | .lit _, _, _, _, _, h | .proj _ _ _, _, _, _, _, h => by
+  | .forallE ty₀ b₀, h1, _, _, _ => absurd rfl (h1 ty₀ b₀)
+  | .fvar _ _, _, _, _, h | .sort _, _, _, _, h | .const _ _, _, _, _, h
+  | .app _ _, _, _, _, h | .lam _ _, _, _, _, h | .letE _ _ _, _, _, _, h
+  | .lit _, _, _, _, h | .proj _ _ _, _, _, _, h => by
     simp [instantiate1] at h
 
 theorem not_sort_instantiate1_of_fvar {i : Nat} {t : Expr} {j : Nat} :
@@ -260,16 +260,16 @@ theorem not_sort_instantiate1_of_fvar {i : Nat} {t : Expr} {j : Nat} :
     · exact nomatch h
     · split at h <;> exact nomatch h
   | .sort u₀, h1, _, _ => absurd rfl (h1 u₀)
-  | .fvar _ _, _, _, h | .forallE _ _ _, _, _, h | .const _ _, _, _, h
-  | .app _ _, _, _, h | .lam _ _ _, _, _, h | .letE _ _ _, _, _, h
+  | .fvar _ _, _, _, h | .forallE _ _, _, _, h | .const _ _, _, _, h
+  | .app _ _, _, _, h | .lam _ _, _, _, h | .letE _ _ _, _, _, h
   | .lit _, _, _, h | .proj _ _ _, _, _, h => by
     simp [instantiate1] at h
 
 /-- The opening at a residual (neither a ∀ nor a sort): the head. -/
 theorem typeSortPWGo_open_head (find? : Name → Option ConstantInfo) {A B : Expr}
-    {m : BinderMeta} {i : Nat} {X : Expr} {j : Nat} {pw : PropWhen}
-    (h1 : ∀ ty b m, X ≠ .forallE ty b m) (h2 : ∀ u, X ≠ .sort u)
-    (h : typeSortPWGo find? (.forallE A B m) X (j + 1) = some pw) :
+    {i : Nat} {X : Expr} {j : Nat} {pw : PropWhen}
+    (h1 : ∀ ty b, X ≠ .forallE ty b) (h2 : ∀ u, X ≠ .sort u)
+    (h : typeSortPWGo find? (.forallE A B) X (j + 1) = some pw) :
     typeSortPWGo find? (B.instantiate1 (.fvar i A)) (X.instantiate1 (.fvar i A) j) j
       = some pw := by
   rw [typeSortPWGo_eq_head find? _ _ h1 h2] at h
@@ -305,54 +305,54 @@ theorem typeSortPWGo_open_head (find? : Name → Option ConstantInfo) {A B : Exp
       · exact nomatch h
     | fvar idx ty => intro h; simpa [instantiate1, headTypePW] using h
     | const c us => intro h; simpa [instantiate1, headTypePW] using h
-    | sort _ | app _ _ | lam _ _ _ | forallE _ _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
+    | sort _ | app _ _ | lam _ _ | forallE _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
       intro h; simp [headTypePW] at h
 
 /-- **Opening a ∀'s outermost binder keeps the reader's answer**
 (`typeSortPWGo`'s telescope `bvar` heads become the opening variable,
 whose carried type is the binder's domain). -/
 theorem typeSortPWGo_open (find? : Name → Option ConstantInfo) {A B : Expr}
-    {m : BinderMeta} {i : Nat} :
+    {i : Nat} :
     ∀ (X : Expr) (j : Nat) {pw : PropWhen},
-      typeSortPWGo find? (.forallE A B m) X (j + 1) = some pw →
+      typeSortPWGo find? (.forallE A B) X (j + 1) = some pw →
       typeSortPWGo find? (B.instantiate1 (.fvar i A)) (X.instantiate1 (.fvar i A) j) j
         = some pw := by
   intro X
   induction X with
-  | forallE ty b mb _ ihb =>
+  | forallE ty b _ ihb =>
     intro j pw h
     simp only [typeSortPWGo, instantiate1] at h ⊢
     exact ihb (j + 1) h
   | sort u => intro j pw h; simpa [typeSortPWGo, instantiate1] using h
   | bvar k =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
   | fvar k t =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
   | const c us =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
   | app f a _ _ =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
-  | lam t b mb _ _ =>
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
+  | lam t b _ _ =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
   | letE t v b _ _ _ =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
   | lit l =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
   | proj s k e _ =>
     intro j pw h
-    exact typeSortPWGo_open_head find? (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+    exact typeSortPWGo_open_head find? (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
 
 /-- **The reader's answer at a ∀ is its opened body's.** -/
 theorem typeSortPW_forallE_open (find? : Name → Option ConstantInfo) {A B : Expr}
-    {m : BinderMeta} (i : Nat) {pw : PropWhen}
-    (h : typeSortPW find? (.forallE A B m) = some pw) :
+    (i : Nat) {pw : PropWhen}
+    (h : typeSortPW find? (.forallE A B) = some pw) :
     typeSortPW find? (B.instantiate1 (.fvar i A)) = some pw := by
   unfold typeSortPW at h ⊢
   simp only [typeSortPWGo] at h
@@ -363,7 +363,7 @@ theorem typeSortPW_forallE_open (find? : Name → Option ConstantInfo) {A B : Ex
 /-- The number of λ, `let` and application layers the proof reader
 walks through before it reads a head. -/
 @[expose] def Expr.proofDepth : Expr → Nat
-  | .lam _ b _ => proofDepth b + 1
+  | .lam _ b => proofDepth b + 1
   | .letE _ _ b => proofDepth b + 1
   | .app f _ => proofDepth f + 1
   | _ => 0
@@ -376,7 +376,7 @@ theorem proofPW_instantiate1 (find? : Name → Option ConstantInfo) {v : Expr} :
         (b.instantiate1 v k).proofDepth = b.proofDepth := by
   intro b
   induction b with
-  | lam t b m _ ihb =>
+  | lam t b _ ihb =>
     intro k pw h
     simp only [proofPW, instantiate1, Expr.proofDepth] at h ⊢
     obtain ⟨h1, h2⟩ := ihb (k + 1) h
@@ -396,7 +396,7 @@ theorem proofPW_instantiate1 (find? : Name → Option ConstantInfo) {v : Expr} :
   | const c us => intro k pw h; exact ⟨h, rfl⟩
   | sort u => intro k pw h; exact ⟨h, rfl⟩
   | lit l => intro k pw h; exact ⟨h, rfl⟩
-  | forallE t b m _ _ => intro k pw h; exact ⟨h, rfl⟩
+  | forallE t b _ _ => intro k pw h; exact ⟨h, rfl⟩
   | proj sn i e _ => intro k pw h; exact ⟨h, rfl⟩
 
 /-! ## Instantiating level parameters -/
@@ -462,7 +462,7 @@ theorem peelPisW_instantiateLevelParams (find? : Name → Option ConstantInfo)
     intro e
     rw [peelPisW_succ_eq, peelPisW_succ_eq, unwrapIdDefs_instantiateLevelParams]
     cases unwrapIdDefs find? 4 e with
-    | forallE ty b m => simp only [Expr.instantiateLevelParams, ih]
+    | forallE ty b => simp only [Expr.instantiateLevelParams, ih]
     | _ => rfl
 
 theorem residualPW_map_instantiateLevelParams (ks : List Name) (us : List Level)
@@ -501,7 +501,7 @@ theorem allLevelParamsDefined_getAppArgs {ps : List Name} :
     · exact allLevelParamsDefined_getAppArgs h.1 a ha
     · exact h.2
   | .bvar _, _, _, ha | .fvar _ _, _, _, ha | .sort _, _, _, ha | .const _ _, _, _, ha
-  | .lam _ _ _, _, _, ha | .forallE _ _ _, _, _, ha | .letE _ _ _, _, _, ha
+  | .lam _ _, _, _, ha | .forallE _ _, _, _, ha | .letE _ _ _, _, _, ha
   | .lit _, _, _, ha | .proj _ _ _, _, _, ha => by simp [getAppArgs] at ha
 
 theorem allLevelParamsDefined_getD {ps : List Name} {e : Expr}
@@ -547,7 +547,7 @@ theorem allLevelParamsDefined_peelPisW (find? : Name → Option ConstantInfo)
     have hu := allLevelParamsDefined_unwrapIdDefs find? 4 h
     revert hp hu
     cases unwrapIdDefs find? 4 e with
-    | forallE ty b m =>
+    | forallE ty b =>
       intro hp hu
       simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hu
       exact ih hu.2 hp
@@ -606,19 +606,19 @@ theorem headTypePW_instantiateLevelParams {env : Env} (henv : EnvWF env)
         rw [peelPisW_instantiateLevelParams, residualPW_map_instantiateLevelParams, hh]
         rfl
     · exact nomatch hh
-  | sort _ | app _ _ | lam _ _ _ | forallE _ _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
+  | sort _ | app _ _ | lam _ _ | forallE _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
     simp [headTypePW] at hh
 
 theorem typeSortPWGo_instantiateLevelParams_head {env : Env} (henv : EnvWF env)
     (ks : List Name) (us : List Level) (root : Expr) {X : Expr} {d : Nat}
-    {pw : PropWhen} (h1 : ∀ ty b m, X ≠ .forallE ty b m) (h2 : ∀ u, X ≠ .sort u)
+    {pw : PropWhen} (h1 : ∀ ty b, X ≠ .forallE ty b) (h2 : ∀ u, X ≠ .sort u)
     (h : typeSortPWGo env.find? root X d = some pw) :
     typeSortPWGo env.find? (root.instantiateLevelParams ks us)
       (X.instantiateLevelParams ks us) d = some (Level.substPW ks us pw) := by
-  have h1' : ∀ ty b m, X.instantiateLevelParams ks us ≠ .forallE ty b m := by
-    intro ty b m he
+  have h1' : ∀ ty b, X.instantiateLevelParams ks us ≠ .forallE ty b := by
+    intro ty b he
     cases X <;> simp only [Expr.instantiateLevelParams, reduceCtorEq] at he
-    case forallE ty₀ b₀ m₀ => exact h1 ty₀ b₀ m₀ rfl
+    case forallE ty₀ b₀ => exact h1 ty₀ b₀ rfl
   have h2' : ∀ u, X.instantiateLevelParams ks us ≠ .sort u := by
     intro u he
     cases X <;> simp only [Expr.instantiateLevelParams, reduceCtorEq] at he
@@ -638,7 +638,7 @@ theorem typeSortPWGo_instantiateLevelParams {env : Env} (henv : EnvWF env)
         (X.instantiateLevelParams ks us) d = some (Level.substPW ks us pw) := by
   intro X
   induction X with
-  | forallE ty b m _ ihb =>
+  | forallE ty b _ ihb =>
     intro d pw h
     simp only [typeSortPWGo, Expr.instantiateLevelParams] at h ⊢
     exact ihb (d + 1) h
@@ -647,11 +647,11 @@ theorem typeSortPWGo_instantiateLevelParams {env : Env} (henv : EnvWF env)
     simp only [typeSortPWGo, Expr.instantiateLevelParams] at h ⊢
     obtain rfl := Option.some.inj h
     rfl
-  | bvar _ | fvar _ _ | const _ _ | app _ _ _ _ | lam _ _ _ _ _ | letE _ _ _ _ _ _
+  | bvar _ | fvar _ _ | const _ _ | app _ _ _ _ | lam _ _ _ _ | letE _ _ _ _ _ _
   | lit _ | proj _ _ _ _ =>
     intro d pw h
     exact typeSortPWGo_instantiateLevelParams_head henv ks us root
-      (fun _ _ _ h => nomatch h) (fun _ h => nomatch h) h
+      (fun _ _ h => nomatch h) (fun _ h => nomatch h) h
 
 /-- The reader at a stored type's level instantiation. -/
 theorem typeSortPW_instantiateLevelParams {env : Env} (henv : EnvWF env)

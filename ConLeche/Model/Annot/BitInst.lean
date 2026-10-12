@@ -251,7 +251,7 @@ theorem denoteMeta_substFvarAt
       denoteMeta_substFvarAt hacl hainst hwa hba ha b D hpD hfb.2]
     cases denoteMeta acval env φ (D + 1) fe <;>
       cases denoteMeta acval env φ (D + 1) b <;> rfl
-  | .forallE ty body mb, D, hpD, hfb => by
+  | .forallE ty body, D, hpD, hfb => by
     simp only [ConLeche.Expr.substFvarAt, denoteMeta]
     rw [denoteMeta_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
       ← ConLeche.Expr.substFvarAt_instantiate1 hpD hba body 0,
@@ -266,7 +266,7 @@ theorem denoteMeta_substFvarAt
           (body.instantiate1 (.fvar (D + 1) ty)) with
       | none => rfl
       | some ba => rfl
-  | .lam ty body mb, D, hpD, hfb => by
+  | .lam ty body, D, hpD, hfb => by
     simp only [ConLeche.Expr.substFvarAt, denoteMeta]
     rw [denoteMeta_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
       ← ConLeche.Expr.substFvarAt_instantiate1 hpD hba body 0,

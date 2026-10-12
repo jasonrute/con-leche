@@ -69,7 +69,7 @@ theorem openPisAtFvars_leaves :
   | succ k ih =>
     intro e d fvs body h l hl
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with
@@ -80,7 +80,7 @@ theorem openPisAtFvars_leaves :
         obtain ⟨rfl, rfl⟩ := h
         -- a leaf of the head opener resolves directly
         have head : l ∈ (Expr.fvar d dom).fvarLeaves →
-            l ∈ (Expr.forallE dom bodyE mb).fvarLeaves ∨
+            l ∈ (Expr.forallE dom bodyE).fvarLeaves ∨
               Expr.fvar l.1 l.2 ∈
                 Expr.fvar d dom :: p.1 := by
           intro hl'
@@ -126,7 +126,7 @@ theorem openPisAtFvars_bounded :
   | succ k ih =>
     intro e d fvs body h hb
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with
@@ -165,7 +165,7 @@ theorem instPisAt_bounded :
   | cons a sp ih =>
     intro ty ds rs h hb hsp
     match ty, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [Expr.instPisAt] at h
       cases h1 : Expr.instPisAt sp (body.instantiate1 a) with
       | none => rw [h1] at h; exact nomatch h
@@ -201,7 +201,7 @@ theorem openPisAtFvars_length :
   | succ k ih =>
     intro e d fvs body h
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases h1 : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with

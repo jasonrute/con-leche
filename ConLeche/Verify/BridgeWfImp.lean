@@ -69,7 +69,7 @@ theorem openPisAtFvars_index :
   | succ n ih =>
     intro e i fvs body h j x hx
     cases e with
-    | forallE dom bodyE mb =>
+    | forallE dom bodyE =>
       simp only [openPisAtFvars] at h
       revert h
       cases hrec : openPisAtFvars n
@@ -89,7 +89,7 @@ theorem openPisAtFvars_index :
           obtain ⟨ty', hx'⟩ := ih _ (i + 1) hrec j x hx
           exact ⟨ty', by rw [hx']; congr 1; omega⟩
     | bvar _ | fvar _ _ | sort _ | const _ _ | app _ _
-    | lam _ _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
+    | lam _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
       exact nomatch h
 
 /-- Opening a `∀`-telescope at fresh free variables produces variables
@@ -108,7 +108,7 @@ theorem openPisAtFvars_WScoped :
   | succ n ih =>
     intro e i fvs body h hw
     cases e with
-    | forallE dom bodyE mb =>
+    | forallE dom bodyE =>
       simp only [openPisAtFvars] at h
       revert h
       cases hrec : openPisAtFvars n
@@ -138,7 +138,7 @@ theorem openPisAtFvars_WScoped :
     | sort u => exact nomatch h
     | const c us => exact nomatch h
     | app f a => exact nomatch h
-    | lam b c d => exact nomatch h
+    | lam b c => exact nomatch h
     | letE b c d => exact nomatch h
     | lit l => exact nomatch h
     | proj s k e => exact nomatch h
@@ -176,7 +176,7 @@ theorem wscopedB_substConst0 {n : Name} {r : Expr}
     simp only [Expr.substConst0, Expr.wscopedB, Bool.and_eq_true] at he ⊢
     exact ⟨wscopedB_substConst0 hr f he.1, wscopedB_substConst0 hr a he.2⟩
   | .bvar _, _, he | .fvar _ _, _, he | .sort _, _, he | .lit _, _, he
-  | .lam _ _ _, _, he | .forallE _ _ _, _, he
+  | .lam _ _, _, he | .forallE _ _, _, he
   | .letE _ _ _, _, he | .proj _ _ _, _, he => he
 
 /-! ## The div/mod pin gate, `wfOpsM mode` runs to pure runs -/

@@ -32,8 +32,8 @@ variable {mode : CheckMode}
 /-! ## 1. Scoping -/
 
 theorem piBinders_WScoped {d : Nat} : ∀ {e : Expr}, WScoped d e →
-    (∀ b ∈ e.piBinders.1, WScoped d b.1) ∧ WScoped d e.piBinders.2
-  | .forallE ty b m, h => by
+    (∀ b ∈ e.piBinders.1, WScoped d b) ∧ WScoped d e.piBinders.2
+  | .forallE ty b, h => by
     simp only [WScoped] at h
     obtain ⟨h1, h2⟩ := piBinders_WScoped h.2
     simp only [Expr.piBinders]
@@ -308,7 +308,7 @@ theorem TargetMajScoped.getD {l : List TargetMajor}
 
 theorem targetK53S_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockShape}
     {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t) {Mc : TargetMajor}
-    (hMc : TargetMajScoped Mc) {tele : List (Expr × BinderMeta)} {majDom f : Expr}
+    (hMc : TargetMajScoped Mc) {tele : List Expr} {majDom f : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ RelVC
       (targetK53 (sharedOpsC mode (mkFEnv env)) env p formerTys Mc tele majDom f)
@@ -497,8 +497,8 @@ theorem envWF_consBlockRecsT {find? : Name → Option ConstantInfo} {q : BlockSh
         refine ⟨k1, k2, fun pin hpin => ?_, ?_⟩
         · obtain ⟨p1, p2, p3, p4⟩ := k3 pin hpin
           exact ⟨p1, p2, Expr.constsResolve_of_find hdomEnv p3, p4⟩
-        · obtain ⟨pre, dom, body, bm, D, e1, e2, e3, -⟩ := k4
-          exact ⟨pre, dom, body, bm, D, e1, e2, e3⟩
+        · obtain ⟨pre, dom, body, D, e1, e2, e3, -⟩ := k4
+          exact ⟨pre, dom, body, D, e1, e2, e3⟩
       · exact nomatch hf
 
 end ConLeche.Cached

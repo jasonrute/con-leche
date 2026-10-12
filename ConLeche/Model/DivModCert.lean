@@ -188,11 +188,10 @@ theorem dmUnV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 theorem dmBinV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
     {o : Name} {cio : ConstantInfo}
     (hf : env.find? o = some cio)
-    {mb₁ mb₂ : ConLeche.BinderMeta} {codN : Name}
+    {codN : Name}
     (hty : cio.toConstantVal.type
       = .forallE (.const ConLeche.natName [])
-      (.forallE (.const ConLeche.natName []) (.const codN []) mb₂)
-      mb₁)
+      (.forallE (.const ConLeche.natName []) (.const codN [])))
     {ciN codCi : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = [])
@@ -218,9 +217,9 @@ theorem dmBinV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
 theorem dmUnV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
     {o : Name} {cio : ConstantInfo}
     (hf : env.find? o = some cio)
-    {mb₁ : ConLeche.BinderMeta} {codN : Name}
+    {codN : Name}
     (hty : cio.toConstantVal.type
-      = .forallE (.const ConLeche.natName []) (.const codN []) mb₁)
+      = .forallE (.const ConLeche.natName []) (.const codN []))
     {ciN codCi : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = [])
@@ -364,8 +363,8 @@ theorem dmNatFrag_graded {m : EnvModel V env} {ψ : Name → Nat}
         rw [denoteMeta_fvar]
       · exact ⟨by simp, by rw [interp_bvar]; exact hy,
           by rw [interp_bvar]; rfl⟩
-  | .bvar _, h | .sort _, h | .lam _ _ _, h | .letE _ _ _, h
-  | .forallE _ _ _, h | .lit _, h | .proj _ _ _, h => by
+  | .bvar _, h | .sort _, h | .lam _ _, h | .letE _ _ _, h
+  | .forallE _ _, h | .lit _, h | .proj _ _ _, h => by
     simp [dmNatFrag] at h
 
 /-! ## One certificate, converted
@@ -635,8 +634,8 @@ theorem dmNatFrag_syntax {bins uns : List Name} :
         fun d hd => dmFvarWScoped (by omega)
           (Expr.WScoped.of_not_hasFvar
             (e := .const ConLeche.natName []) rfl)⟩
-  | .bvar _, h | .sort _, h | .lam _ _ _, h | .letE _ _ _, h
-  | .forallE _ _ _, h | .lit _, h | .proj _ _ _, h => by
+  | .bvar _, h | .sort _, h | .lam _ _, h | .letE _ _ _, h
+  | .forallE _ _, h | .lit _, h | .proj _ _ _, h => by
     simp [dmNatFrag] at h
 
 /-- Scoping survives the operation substitution (the `WScoped` twin of
@@ -656,7 +655,7 @@ theorem wscoped_substConst0 {c : Name} {v : Expr}
     exact dmApp_wscoped (wscoped_substConst0 hv f hw.1)
       (wscoped_substConst0 hv a hw.2)
   | .bvar _, _, hw | .fvar _ _, _, hw | .sort _, _, hw
-  | .lit _, _, hw | .lam _ _ _, _, hw | .forallE _ _ _, _, hw
+  | .lit _, _, hw | .lam _ _, _, hw | .forallE _ _, _, hw
   | .letE _ _ _, _, hw | .proj _ _ _, _, hw => hw
 
 /-! ## The certificate frame
@@ -1695,7 +1694,7 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
     rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnn hh.symm)] at hf
   -- the numeral heads, at the prefix
   obtain ⟨cvN, capsN, cv0, i0, j0, cv1, i1, j1, hfN2, hfZ2, hfS2,
-    hlpN, hlpZ, hlpS, htyN, htyZ, mbS, htyS⟩ :=
+    hlpN, hlpZ, hlpS, htyN, htyZ, htyS⟩ :=
     ConLeche.natLitSupported_inv hs
   have hfN : env.find? ConLeche.natName
       = some (.indInfo cvN capsN) := hdown _ _ hnN hfN2
@@ -1729,7 +1728,7 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
     exact ⟨cvn, vn, hintn, hdown _ _ hnc hfn2, hd.1, hpinn⟩
   obtain ⟨cvb, vb, hintb, hfble, hlpble, hpinb⟩ :=
     hstoredDep _ hbleDep hbleNe
-  obtain ⟨mbb, mbb2, codb, htyb, hcodb⟩ :=
+  obtain ⟨codb, htyb, hcodb⟩ :=
     natOpTyPinned_binaryE (by decide) hpinb
   obtain ⟨rfl, ciB, hfB2, hlpB, htyB⟩ := natOpCod_ble hcodb
   have hfB : env.find? ConLeche.boolName = some ciB :=
@@ -1902,7 +1901,7 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
     by_cases hnc : n = c
     · -- the operation itself, through the value front door
       subst hnc
-      obtain ⟨mbT, mbT2, codT, htyT2, hcodT⟩ :=
+      obtain ⟨codT, htyT2, hcodT⟩ :=
         natOpTyPinned_binaryE hnu (htyS2 ▸ hpinS2)
       have hcodN : codT = Expr.const ConLeche.natName [] := by
         unfold ConLeche.natOpCod at hcodT
@@ -1912,7 +1911,6 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
         simpa using hcodT
       subst hcodN
       have hTshape := denoteMeta_pinnedBinTy (codN := ConLeche.natName)
-        (mb₁ := mbT) (mb₂ := mbT2)
         mp.base2 ψ hfN hlpN hfN hlpN
       rw [← htyT2] at hTshape
       obtain heq : Ta ψ = _ :=
@@ -1923,7 +1921,7 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
         (heq ▸ hTok ψ ρ)
     · obtain ⟨cvn, vn, hintn, hfn, hlpn, hpinn⟩ :=
         hstoredDep n hnd hnc
-      obtain ⟨mbn, mbn2, codn, htyn, hcodn⟩ :=
+      obtain ⟨codn, htyn, hcodn⟩ :=
         natOpTyPinned_binaryE hnu hpinn
       have hcodN : codn = Expr.const ConLeche.natName [] := by
         unfold ConLeche.natOpCod at hcodn

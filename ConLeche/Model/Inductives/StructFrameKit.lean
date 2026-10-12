@@ -51,7 +51,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  BinderMeta inferTypeCore ensureSortCore whnf openPisAtFvars)
+  inferTypeCore ensureSortCore whnf openPisAtFvars)
 
 variable {mode : CheckMode}
 
@@ -85,7 +85,7 @@ theorem inferTypeCore_mkAppN_fn_inv {env : Env} {F d : Nat} :
   | [], _, t, h => ⟨t, h⟩
   | a :: as, f, t, h => by
     obtain ⟨tfa, hfa⟩ := inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
-    obtain ⟨tf, _, _, _, hf, -⟩ := ConLeche.inferTypeCore_app_inv' hfa
+    obtain ⟨tf, _, _, hf, -⟩ := ConLeche.inferTypeCore_app_inv' hfa
     exact ⟨tf, hf⟩
 
 /-- **A spine into a sort**: applying a head whose type is a
@@ -93,7 +93,7 @@ theorem inferTypeCore_mkAppN_fn_inv {env : Env} {F d : Nat} :
 `Sort s` — the sort carries no bound variables, so the per-argument
 instantiations leave it alone. -/
 theorem inferTypeCore_mkAppN_sort {env : Env} {F d : Nat} :
-    ∀ (as : List Expr) {f ty : Expr} {bs : List (Expr × BinderMeta)}
+    ∀ (as : List Expr) {f ty : Expr} {bs : List Expr}
       {s : Level} {t : Expr},
       inferTypeCore mode env F d f = .ok ty →
       ty.stripPis as.length = some (bs, .sort s) →
@@ -105,17 +105,17 @@ theorem inferTypeCore_mkAppN_sort {env : Env} {F d : Nat} :
       Prod.mk.injEq] at hst
     exact hst.2
   | a :: as, f, ty, bs, s, t, hf, hst, h => by
-    obtain ⟨dom, body, mb, rfl⟩ :
-        ∃ dom body mb, ty = .forallE dom body mb := by
+    obtain ⟨dom, body, rfl⟩ :
+        ∃ dom body, ty = .forallE dom body := by
       cases ty <;> first
-        | exact ⟨_, _, _, rfl⟩
+        | exact ⟨_, _, rfl⟩
         | simp [Expr.stripPis] at hst
     obtain ⟨tfa, hfa⟩ := inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
-    obtain ⟨tf, ty', body', m', hf', hw, rfl, -⟩ :=
+    obtain ⟨tf, ty', body', hf', hw, rfl, -⟩ :=
       ConLeche.inferTypeCore_app_inv' hfa
-    obtain rfl : tf = .forallE dom body mb :=
+    obtain rfl : tf = .forallE dom body :=
       Except.ok.inj (hf'.symm.trans hf)
-    obtain ⟨rfl, rfl, rfl⟩ := Expr.forallE.inj (ConLeche.whnf_forallE_eq hw)
+    obtain ⟨rfl, rfl⟩ := Expr.forallE.inj (ConLeche.whnf_forallE_eq hw)
     simp only [List.length_cons, Expr.stripPis, Option.map_eq_some_iff] at hst
     obtain ⟨⟨bs', body₀⟩, hst', heq⟩ := hst
     simp only [Prod.mk.injEq] at heq
@@ -158,7 +158,7 @@ theorem piBits_of_infer {env : Env} (hver : mode.verifiedChecks = true) :
     exact ⟨F, t, v₀, h, hens, fun _ => Iff.rfl⟩
   | n + 1, F, d, e, t, v₀, fvs, opened, hop, h, hens => by
     match e, hop, h with
-    | .forallE dom body mb, hop, h =>
+    | .forallE dom body, hop, h =>
       match F, h with
       | 0, h => rw [ConLeche.inferTypeCore_zero] at h; exact nomatch h
       | F + 1, h =>
@@ -179,7 +179,7 @@ theorem piBits_of_infer {env : Env} (hver : mode.verifiedChecks = true) :
             exact hv φ
         · exact nomatch hop
     | .bvar _, hop, _ | .fvar _ _, hop, _ | .sort _, hop, _
-    | .const _ _, hop, _ | .app _ _, hop, _ | .lam _ _ _, hop, _
+    | .const _ _, hop, _ | .app _ _, hop, _ | .lam _ _, hop, _
     | .letE _ _ _, hop, _ | .lit _, hop, _ | .proj _ _ _, hop, _ =>
       simp [openPisAtFvars] at hop
 
@@ -198,7 +198,7 @@ theorem openPisAtFvars_add :
     simpa using h'
   | n + 1, m, e, d, fvs, fvs', o, o', h, h' => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [openPisAtFvars] at h
       split at h
       · next fvs₁ e₁ h₁ =>
@@ -212,13 +212,13 @@ theorem openPisAtFvars_add :
         rfl
       · exact nomatch h
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       simp [openPisAtFvars] at h
 
 /-- Opening a telescope whose stripped body is a sort reaches that
 sort (sorts carry no bound variables). -/
 theorem openPisAtFvars_of_stripPis_sort :
-    ∀ (n : Nat) {e : Expr} (d : Nat) {bs : List (Expr × BinderMeta)}
+    ∀ (n : Nat) {e : Expr} (d : Nat) {bs : List Expr}
       {s : Level},
       e.stripPis n = some (bs, .sort s) →
       ∃ fvs, openPisAtFvars n e d = some (fvs, .sort s)
@@ -227,7 +227,7 @@ theorem openPisAtFvars_of_stripPis_sort :
     exact ⟨[], by rw [h.2]; rfl⟩
   | n + 1, e, d, bs, s, h => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', body₀⟩, hst', heq⟩ := h
       simp only [Prod.mk.injEq] at heq
@@ -247,7 +247,7 @@ theorem openPisAtFvars_of_stripPis_sort :
         | none => none) = _
       rw [hop]
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       simp [Expr.stripPis] at h
 
 
@@ -440,8 +440,8 @@ the literal's reading consults.  (`fvar` annotations are never read.) -/
 @[expose] def Expr.ReadsAt (P : Name → Prop) (env : Env) : Expr → Prop
   | .const n _ => P n
   | .app f a => Expr.ReadsAt P env f ∧ Expr.ReadsAt P env a
-  | .lam ty b _ => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env b
-  | .forallE ty b _ => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env b
+  | .lam ty b => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env b
+  | .forallE ty b => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env b
   | .letE ty v b => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env v ∧ Expr.ReadsAt P env b
   | .proj _ _ e => Expr.ReadsAt P env e
   | .lit (.natVal _) => natLitSupported env = true → P natZeroName ∧ P natSuccName
@@ -463,8 +463,8 @@ theorem Expr.ReadsAt.instantiate1 {P : Name → Prop} {env : Env} {v : Expr}
     · exact hv
     · split <;> trivial
   | app f a ihf iha => intro k h; exact ⟨ihf k h.1, iha k h.2⟩
-  | lam t b m iht ihb => intro k h; exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE t b m iht ihb => intro k h; exact ⟨iht k h.1, ihb (k + 1) h.2⟩
+  | lam t b iht ihb => intro k h; exact ⟨iht k h.1, ihb (k + 1) h.2⟩
+  | forallE t b iht ihb => intro k h; exact ⟨iht k h.1, ihb (k + 1) h.2⟩
   | proj s i e ihe => intro k h; exact ihe k h
   | letE t v b iht ihv ihb => intro k h; exact ⟨iht k h.1, ihv k h.2.1, ihb (k + 1) h.2.2⟩
   | _ => intro _ h; exact h
@@ -492,11 +492,11 @@ theorem denoteMeta_agree_of_readsAt
     dsimp only
     rw [ite_eq_right hlen, ite_eq_right hlen]
   | case5 d n us hf => intro _; rw [denoteMeta, denoteMeta, hf]
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro hcr
     rw [denoteMeta, denoteMeta, ihty hcr.1,
       ihbody (Expr.ReadsAt.instantiate1 (v := .fvar d ty) (by simp [Expr.ReadsAt]) _ 0 hcr.2)]
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro hcr
     rw [denoteMeta, denoteMeta, ihty hcr.1,
       ihbody (Expr.ReadsAt.instantiate1 (v := .fvar d ty) (by simp [Expr.ReadsAt]) _ 0 hcr.2)]
@@ -534,8 +534,8 @@ theorem denoteMeta_agree_of_readsAt
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -572,7 +572,7 @@ theorem denoteMeta_openPis {acval : Name → (Name → Nat) → AnnotTerm} {env 
       fun i x hx => by simp at hx⟩
   | n + 1, d, e, fvs, o, ea, hop, hden => by
     match e, hop with
-    | .forallE dom body mb, hop =>
+    | .forallE dom body, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -598,7 +598,7 @@ theorem denoteMeta_openPis {acval : Name → (Name → Nat) → AnnotTerm} {env 
               by rw [show d + (i + 1) = d + 1 + i from by omega]; exact hpd⟩
       · exact nomatch hop
     | .bvar _, hop | .fvar _ _, hop | .sort _, hop | .const _ _, hop
-    | .app _ _, hop | .lam _ _ _, hop | .letE _ _ _, hop | .lit _, hop
+    | .app _ _, hop | .lam _ _, hop | .letE _ _ _, hop | .lit _, hop
     | .proj _ _ _, hop =>
       simp [openPisAtFvars] at hop
 
@@ -1544,7 +1544,7 @@ structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
 pre-block environment and the annotated telescope shape. -/
 theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     {F : Nat} {cvT cvTa : ConstantVal} {nP : Nat} {resSort : Level}
-    {bs : List (Expr × ConLeche.BinderMeta)}
+    {bs : List Expr}
     (hccv : ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok cvTa)
     (hstrip : cvTa.type.stripPis nP = some (bs, .sort resSort)) :
     ∃ pps : (Name → Nat) → List AnnotTerm,

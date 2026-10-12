@@ -19,7 +19,7 @@ how the normal form relates to the declared type is semantic
 
 namespace ConLeche.Model
 
-open ConLeche (Env Expr Name Level NestCtx BinderMeta closeTelescope openPisAtFvars)
+open ConLeche (Env Expr Name Level NestCtx closeTelescope openPisAtFvars)
 
 /-! ## Erasure-level lemmas -/
 
@@ -37,11 +37,11 @@ theorem erasedEq_nestOcc {names : List Name} {lo hi : Nat} :
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
     simp only [Expr.nestOcc, ihf _ h.1, iha _ h.2]
-  | lam ty bd mm iht ihb =>
+  | lam ty bd iht ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
     simp only [Expr.nestOcc, iht _ h.1, ihb _ h.2]
-  | forallE ty bd mm iht ihb =>
+  | forallE ty bd iht ihb =>
     intro b h
     cases b <;> simp only [Expr.ErasedEq] at h
     simp only [Expr.nestOcc, iht _ h.1, ihb _ h.2]
@@ -82,11 +82,11 @@ theorem erasedEq_abstract1_instantiate1 {d : Nat} {ty : Expr} :
     intro k hb
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     exact ⟨ihf k hb.1, iha k hb.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k hb
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     exact ⟨iht k hb.1, ihb (k + 1) hb.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k hb
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     exact ⟨iht k hb.1, ihb (k + 1) hb.2⟩
@@ -117,8 +117,8 @@ theorem nestOcc_abstract1 {names : List Name} {lo hi d : Nat} (hd : ¬ (lo ≤ d
   | const n us => intro k; rfl
   | lit l => intro k; rfl
   | app f a ihf iha => intro k; simp [Expr.abstract1, Expr.nestOcc, ihf, iha]
-  | lam t b mm iht ihb => intro k; simp [Expr.abstract1, Expr.nestOcc, iht, ihb]
-  | forallE t b mm iht ihb => intro k; simp [Expr.abstract1, Expr.nestOcc, iht, ihb]
+  | lam t b iht ihb => intro k; simp [Expr.abstract1, Expr.nestOcc, iht, ihb]
+  | forallE t b iht ihb => intro k; simp [Expr.abstract1, Expr.nestOcc, iht, ihb]
   | letE t v b iht ihv ihb => intro k; simp [Expr.abstract1, Expr.nestOcc, iht, ihv, ihb]
   | proj s i e ih => intro k; simp [Expr.abstract1, Expr.nestOcc, ih]
 
@@ -160,21 +160,21 @@ theorem erasedEq_getApp :
 body is the telescope's body and its domains the closed pieces, up to
 erasure. -/
 theorem open_of_erasedEq_closeTelescope :
-    ∀ (nds : List (Expr × BinderMeta)) (d : Nat) (body e : Expr),
-      (∀ p ∈ nds, p.1.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
+    ∀ (nds : List Expr) (d : Nat) (body e : Expr),
+      (∀ p ∈ nds, p.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
       Expr.ErasedEq e (closeTelescope nds d body) →
       ∃ xs rest, openPisAtFvars nds.length e d = some (xs, rest) ∧ Expr.ErasedEq rest body ∧
-        ∀ (i : Nat) (x nd : Expr), xs[i]? = some x → nds[i]?.map (·.1) = some nd →
+        ∀ (i : Nat) (x nd : Expr), xs[i]? = some x → nds[i]? = some nd →
           Expr.ErasedEq x.fvarTypeD nd
   | [], d, body, e, _, _, he => by
     refine ⟨[], e, by simp [openPisAtFvars], by simpa [closeTelescope] using he,
       fun i x nd hx _ => nomatch hx⟩
-  | (dom, bm) :: nds, d, body, e, hcl, hb, he => by
+  | dom :: nds, d, body, e, hcl, hb, he => by
     cases e with
-    | forallE a b bm' =>
+    | forallE a b =>
       simp only [closeTelescope] at he
       obtain ⟨ha, hbE⟩ := he
-      have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
+      have hcl' : ∀ p ∈ nds, p.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeTelescope_bounded nds (d + 1) body hcl' hb
       have hE : Expr.ErasedEq (b.instantiate1 (.fvar d a)) (closeTelescope nds (d + 1) body) :=
@@ -187,7 +187,7 @@ theorem open_of_erasedEq_closeTelescope :
       · cases i with
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hx
-          simp only [List.getElem?_cons_zero, Option.map_some, Option.some.injEq] at hnd
+          simp only [List.getElem?_cons_zero, Option.some.injEq] at hnd
           subst hx hnd
           exact ha
         | succ i =>

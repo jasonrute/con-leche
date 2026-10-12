@@ -34,7 +34,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  BlockShape BlockParts MemberShape BinderMeta RecRule)
+  BlockShape BlockParts MemberShape RecRule)
 
 universe w
 
@@ -87,7 +87,7 @@ structure BlockFormerFacts {env : Env} (mp : EnvModelM V μ env) (q : BlockShape
     cvTa.type.looseBVarsBounded 0 = true
   /-- the member's telescope, stripped at its OWN result sort -/
   stripOf : ∀ (m : Nat) (cvTa : ConstantVal), cvTas[m]? = some cvTa →
-    ∃ bs : List (Expr × BinderMeta),
+    ∃ bs : List Expr,
       cvTa.type.stripPis (q.nP + q.nIdxs.getD m 0) = some (bs, .sort (sOf m))
   /-- and that sort's VALUE is the block's (official's `Level.isEquiv`) -/
   sEval : ∀ (m : Nat) (ψ : Name → Nat), (sOf m).eval ψ = q.resSort.eval ψ
@@ -210,7 +210,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     exact hrun
   -- the syntactic facts of one member's former
   have hsyn : ∀ (m : Nat) (cvTa : ConstantVal), cvTas[m]? = some cvTa →
-      ∃ (ms : MemberShape) (bs : List (Expr × BinderMeta)),
+      ∃ (ms : MemberShape) (bs : List Expr),
         (p₀.toBlockShape.withSort s0).members[m]? = some ms ∧
         cvTa.name = ms.cvT.name ∧ cvTa.levelParams = ms.cvT.levelParams ∧
         env.find? cvTa.name = none ∧
@@ -711,7 +711,7 @@ theorem blockCtorFunsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     (hlpsOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
       cvTb.levelParams = q.lps)
     (hstripOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
-      ∃ bs : List (Expr × BinderMeta),
+      ∃ bs : List Expr,
         cvTb.type.stripPis (q.nP + q.nIdxs.getD j 0) = some (bs, .sort (sOf j)))
     (hfindOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
       envI.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt q j isRec)))

@@ -108,7 +108,7 @@ theorem denoteMeta_shiftFrom
       denoteMeta_shiftFrom hacl a d hpd hw.2]
     cases denoteMeta acval env φ d fe <;>
       cases denoteMeta acval env φ d a <;> rfl
-  | .forallE ty body mb, d, hpd, hw => by
+  | .forallE ty body, d, hpd, hw => by
     rw [ConLeche.Expr.WScoped] at hw
     have hwb : Expr.WScoped (d + 1)
         (body.instantiate1 (.fvar d ty)) :=
@@ -126,7 +126,7 @@ theorem denoteMeta_shiftFrom
           (body.instantiate1 (.fvar d ty)) with
       | none => rfl
       | some ba => rfl
-  | .lam ty body mb, d, hpd, hw => by
+  | .lam ty body, d, hpd, hw => by
     rw [ConLeche.Expr.WScoped] at hw
     have hwb : Expr.WScoped (d + 1)
         (body.instantiate1 (.fvar d ty)) :=

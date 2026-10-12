@@ -151,9 +151,9 @@ resolved. -/
   | .app f a => do pure (Expr.mkApp (← ex f) (← ex a))
   -- a legacy binder's optional `pw` field is scanned and not read
   | .lam ty bd _ => do
-    pure (Expr.mkLam (← ex ty) (← ex bd) ⟨⟩)
+    pure (Expr.mkLam (← ex ty) (← ex bd))
   | .forallE ty bd _ => do
-    pure (Expr.mkForallE (← ex ty) (← ex bd) ⟨⟩)
+    pure (Expr.mkForallE (← ex ty) (← ex bd))
   | .letE ty vl bd => do
     pure (Expr.mkLetE (← ex ty) (← ex vl) (← ex bd))
   | .proj tn ix s => do
@@ -231,7 +231,7 @@ that consumes it, exactly as before. -/
 without reducing (`check_constructors`), and the count past the
 parameters is the `numFields` of the constructor it generates. -/
 def indPiTeleLen : Expr → Nat
-  | .forallE _ b _ => indPiTeleLen b + 1
+  | .forallE _ b => indPiTeleLen b + 1
   | _ => 0
 
 /-- One recursor rule of an inductive record, resolved. -/

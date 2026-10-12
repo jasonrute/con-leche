@@ -35,10 +35,10 @@ theorem whnfLoopFuel_succ : ∃ n, whnfLoopFuel = n + 1 :=
 /-- `Expr.lamPair?`, read back: two λs. -/
 theorem Expr.lamPair?_some {B₁ B₂ t₁ b₁ t₂ b₂ : Expr}
     (h : Expr.lamPair? B₁ B₂ = some (t₁, b₁, t₂, b₂)) :
-    ∃ m₁ m₂, B₁ = .lam t₁ b₁ m₁ ∧ B₂ = .lam t₂ b₂ m₂ := by
+    B₁ = .lam t₁ b₁ ∧ B₂ = .lam t₂ b₂ := by
   cases B₁ <;> cases B₂ <;> simp only [Expr.lamPair?, reduceCtorEq] at h
   obtain ⟨rfl, rfl, rfl, rfl⟩ := by simpa using h
-  exact ⟨_, _, rfl, rfl⟩
+  exact ⟨rfl, rfl⟩
 
 @[simp] theorem pureFns_whnfCore (env : Env) (f d : Nat) (e : Expr) (c : Bool) :
     (pureFns mode env (f + 1)).whnfCore c d e =

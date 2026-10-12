@@ -100,20 +100,20 @@ theorem instSeq_abstractRange_open {pre : List Expr}
     simp only [Expr.abstractRange]
     rw [Expr.instSeq_app, ihf c hb.1 (fun l h => hl l (by simp [Expr.fvarLeaves, h])),
       iha c hb.2 (fun l h => hl l (by simp [Expr.fvarLeaves, h]))]
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro c hb hl
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     simp only [Expr.abstractRange]
-    rw [instSeq_lam pre _ _ _ _ (by omega),
+    rw [instSeq_lam pre _ _ _ (by omega),
       iht c hb.1 (fun l h => hl l (by simp [Expr.fvarLeaves, h])),
       show c + (n + 1) - 1 + 1 = (c + 1) + (n + 1) - 1 by omega,
       ihb (c + 1) (by rw [show c + 1 = c + 1 from rfl]; exact hb.2)
         (fun l h => hl l (by simp [Expr.fvarLeaves, h]))]
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro c hb hl
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     simp only [Expr.abstractRange]
-    rw [Expr.instSeq_forallE pre _ _ _ _ (by omega),
+    rw [Expr.instSeq_forallE pre _ _ _ (by omega),
       iht c hb.1 (fun l h => hl l (by simp [Expr.fvarLeaves, h])),
       show c + (n + 1) - 1 + 1 = (c + 1) + (n + 1) - 1 by omega,
       ihb (c + 1) hb.2 (fun l h => hl l (by simp [Expr.fvarLeaves, h]))]

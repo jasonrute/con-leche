@@ -172,20 +172,20 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
 
 /-- The β redex's syntactic side: the reduct's frame, its leaf inclusion
 and its reading. -/
-theorem beta_syntax {d : Nat} {ty body a : Expr} {mb : ConLeche.BinderMeta}
+theorem beta_syntax {d : Nat} {ty body a : Expr}
     {ba aa : AnnotTerm}
-    (hws : Expr.WScoped d (.app (.lam ty body mb) a))
-    (hb : (Expr.app (.lam ty body mb) a).looseBVarsBounded 0 = true)
-    (hLb : Expr.LeavesBounded (.app (.lam ty body mb) a))
+    (hws : Expr.WScoped d (.app (.lam ty body) a))
+    (hb : (Expr.app (.lam ty body) a).looseBVarsBounded 0 = true)
+    (hLb : Expr.LeavesBounded (.app (.lam ty body) a))
     (hbb : denoteMeta m.acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty)) = some ba)
     (haa : denoteMeta m.acval env φ d a = some aa) :
     Frame d (body.instantiate1 a) ∧
-      LeavesSub (body.instantiate1 a) (.app (.lam ty body mb) a) ∧
+      LeavesSub (body.instantiate1 a) (.app (.lam ty body) a) ∧
       denoteMeta m.acval env φ d (body.instantiate1 a) = some (ba.inst aa) := by
   simp only [Expr.WScoped] at hws
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-  have hsubred : LeavesSub (body.instantiate1 a) (.app (.lam ty body mb) a) := by
+  have hsubred : LeavesSub (body.instantiate1 a) (.app (.lam ty body) a) := by
     intro l hl
     rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
     · simp [Expr.fvarLeaves, h2]
@@ -202,8 +202,8 @@ not the point has a λ that is not the point ("not pt" source (2): the
 point applied is the point), so the λ is a graph whose domain the
 application slot fixes, and β is `app_lamV` at a graded argument
 (`betaV`). -/
-theorem Red.beta_sound {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
-    RedSem m φ d (.app (.lam ty body mb) a) (body.instantiate1 a) := by
+theorem Red.beta_sound {d : Nat} {ty body a : Expr} :
+    RedSem m φ d (.app (.lam ty body) a) (body.instantiate1 a) := by
   intro hf Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hf
   obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv hea

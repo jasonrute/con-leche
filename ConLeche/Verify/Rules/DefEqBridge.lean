@@ -41,12 +41,12 @@ by induction on its descent budget): the innermost level is
 outer level is `DefEqLams.outer` over the next level's run, and two
 syntactically equal bodies close by `DefEqLams.refl`. -/
 theorem defeqLams_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) :
-    ∀ (k : Nat) {d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂ : BinderMeta},
+    ∀ (k : Nat) {d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr},
       defeqLamsFueled .verified env fuel k d ty₁ bd₁ ty₂ bd₂ = .ok true →
-      DefEqLams env d (.lam ty₁ bd₁ m₁) (.lam ty₂ bd₂ m₂)
-  | k, d, ty₁, bd₁, ty₂, bd₂, m₁, m₂, h => by
+      DefEqLams env d (.lam ty₁ bd₁) (.lam ty₂ bd₂)
+  | k, d, ty₁, bd₁, ty₂, bd₂, h => by
     obtain ⟨hdt, hrest⟩ := defeqLams_inv h
-    rcases hrest with ⟨k', ty₁', bd₁', m₁', ty₂', bd₂', m₂', rfl, h1, h2, heq | hk⟩ | hin
+    rcases hrest with ⟨k', ty₁', bd₁', ty₂', bd₂', rfl, h1, h2, heq | hk⟩ | hin
     · refine .outer (hd hdt) ?_
       rw [h1, h2, heq]
       exact .refl

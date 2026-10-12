@@ -184,7 +184,7 @@ theorem denoteMeta_open_deepen
       | none =>
         dsimp only
         rcases i with _ | _ | i <;> rfl
-  | .lam ty b bi, d, as1, as2, hl, h1, h2 | .forallE ty b bi, d, as1, as2, hl, h1, h2 => by
+  | .lam ty b, d, as1, as2, hl, h1, h2 | .forallE ty b, d, as1, as2, hl, h1, h2 => by
     have hlt : ∀ l ∈ ty.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
     have hlb : ∀ l ∈ b.fvarLeaves, l.1 < B := fun l h => hl l (by simp [Expr.fvarLeaves, h])
     simp only [Expr.instantiateList, denoteMeta]
@@ -226,12 +226,12 @@ theorem wscoped_of_leaves_mem {D : Nat} {L : List Expr} (hL : FvarList D L) :
     simp only [Expr.WScoped]
     exact ⟨ihf fun l h => hl l (by simp [Expr.fvarLeaves, h]),
       iha fun l h => hl l (by simp [Expr.fvarLeaves, h])⟩
-  | lam ty b _ ihty ihb =>
+  | lam ty b ihty ihb =>
     intro hl
     simp only [Expr.WScoped]
     exact ⟨ihty fun l h => hl l (by simp [Expr.fvarLeaves, h]),
       ihb fun l h => hl l (by simp [Expr.fvarLeaves, h])⟩
-  | forallE ty b _ ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro hl
     simp only [Expr.WScoped]
     exact ⟨ihty fun l h => hl l (by simp [Expr.fvarLeaves, h]),

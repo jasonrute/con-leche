@@ -17,7 +17,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta)
+ )
 
 universe w
 
@@ -38,7 +38,7 @@ every constructor's data, from its stage run. -/
 theorem blockCtorFuns_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     {F : Nat} {T : Name} {lps : List Name}
     {nP nIdx : Nat} {resSort : Level} {isProp large : Bool} {cvTa : ConstantVal}
-    {env₁ : Env} {caps : IndCaps} {bs : List (Expr × BinderMeta)}
+    {env₁ : Env} {caps : IndCaps} {bs : List Expr}
     {ctorsA : List (ConstantVal × Nat)} {sT : Level}
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hlpsT : cvTa.levelParams = lps)

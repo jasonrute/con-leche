@@ -35,7 +35,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics ConLeche.SetModel
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  BinderMeta)
+ )
 
 universe w
 

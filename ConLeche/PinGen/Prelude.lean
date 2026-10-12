@@ -97,8 +97,8 @@ where
   go : ConLeche.Expr → NameSet → NameSet
     | .const n _, s => s.insert (toLeanName n)
     | .app f a, s => go a (go f s)
-    | .lam ty b _, s => go b (go ty s)
-    | .forallE ty b _, s => go b (go ty s)
+    | .lam ty b, s => go b (go ty s)
+    | .forallE ty b, s => go b (go ty s)
     | .letE ty v b, s => go b (go v (go ty s))
     | .proj _ _ x, s => go x s
     | .fvar _ ty, s => go ty s

@@ -19,7 +19,7 @@ open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps BinderMeta)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
 

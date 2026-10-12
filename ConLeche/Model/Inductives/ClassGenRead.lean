@@ -64,11 +64,11 @@ theorem erasedEq_mkAppN_inv :
     | .app f' a', hg => exact ⟨f', a' :: as', rfl, hg.1, by simp [hl]⟩
 
 theorem EndsInSort.closeTelescope {u : Level} {m : Nat} {B : Expr} (hB : EndsInSort m u B) :
-    ∀ (nds : List (Expr × BinderMeta)) (i : Nat),
+    ∀ (nds : List Expr) (i : Nat),
       EndsInSort (nds.length + m) u (closeTelescope nds i B)
   | [], _ => by simpa [ConLeche.closeTelescope] using hB
-  | (dom, bm) :: nds, i => by
-    rw [show (List.length ((dom, bm) :: nds)) + m = (nds.length + m) + 1 by simp; omega]
+  | dom :: nds, i => by
+    rw [show (List.length (dom :: nds)) + m = (nds.length + m) + 1 by simp; omega]
     exact EndsInSort.abstract1 _ 0 (EndsInSort.closeTelescope hB nds (i + 1))
 
 /-! ## The inference, peeled to the conclusion -/
@@ -83,7 +83,7 @@ theorem inferTypeCore_openPis_body (hμ : μ.verifiedChecks = true) {envK : Env}
         ConLeche.ensureSortCore μ envK F (d + (n + 1)) bt = .ok u
   | n, d, F, e, s, fvs, o, hop, hinf => by
     match e, hop with
-    | .forallE ty bd mb, hop =>
+    | .forallE ty bd, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -105,7 +105,7 @@ theorem inferTypeCore_openPis_body (hμ : μ.verifiedChecks = true) {envK : Env}
             exact ConLeche.ensureSortCore_mono (Nat.le_succ _) hu
       · exact nomatch hop
     | .bvar _, hop | .fvar _ _, hop | .sort _, hop | .const _ _, hop | .app _ _, hop
-    | .lam _ _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
+    | .lam _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
       simp [openPisAtFvars] at hop
 
 /-! ## The motive's slot -/
@@ -173,7 +173,7 @@ theorem ClassGen.motiveTy_endsInSort {g : ClassGen} {c d : Nat} {T : Expr}
   subst h
   obtain ⟨ty0, body0, hty0, hop, hmj⟩ := ConLeche.ClassGen.major_inv hmaj
   have hl := ConLeche.Verify.openPisAtFvars_length _ hop
-  have := EndsInSort.closeTelescope (m := 1) (u := g.elim) (B := .forallE maj (.sort g.elim) default)
+  have := EndsInSort.closeTelescope (m := 1) (u := g.elim) (B := .forallE maj (.sort g.elim))
     rfl (ifs.map classBinder) d
   rwa [List.length_map, hl] at this
 
@@ -252,7 +252,7 @@ theorem classGenRecTy_concl
   obtain ⟨hpl, -⟩ := ConLeche.ClassGen.prefixBinders_scoped hg hg.pre
   obtain ⟨ifs, maj, hmaj, hifl, rfl, hcl, hbb⟩ := ConLeche.classGenRecTy_spec hg hgty
   obtain ⟨hifs, -⟩ := ConLeche.ClassGen.major_scoped hg (by omega) hmaj
-  generalize hnds : g.pre ++ ifs.map g.binder ++ [(maj, g.bm)] = nds at hread hcl
+  generalize hnds : g.pre ++ ifs.map g.binder ++ [maj] = nds at hread hcl
   generalize hbody : Expr.mkAppN (g.motVar c) (ifs ++ [.fvar (g.pre.length + ifs.length) maj])
     = body at hread hbb
   have hn : nds.length = g.pre.length + (g.cls.getD c default).nIdx + 1 := by

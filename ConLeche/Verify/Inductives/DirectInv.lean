@@ -74,8 +74,8 @@ theorem structConstWF {env : Env} {c : ConstantInfo}
             pin.allLevelParamsDefined cv.levelParams = true ∧
             pin.constsResolve env = true ∧
             pin.looseBVarsBounded rP = true) ∧
-          ∃ pre dom body bm D,
-            cv.type.stripPis mI = some (pre, .forallE dom body bm) ∧
+          ∃ pre dom body D,
+            cv.type.stripPis mI = some (pre, .forallE dom body) ∧
             dom.getAppFn = .const D lvls ∧
             dom.getAppArgs =
               pins.map (Expr.liftLooseBVars (mI - rP) 0) ++

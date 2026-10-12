@@ -670,7 +670,7 @@ theorem openPisAtFvars_split :
   | n + 1, m, e, d, F, o', h => by
     rw [show n + 1 + m = n + m + 1 from by omega] at h
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [openPisAtFvars] at h
       split at h
       · next fvs₁ e₁ h₁ =>
@@ -682,7 +682,7 @@ theorem openPisAtFvars_split :
         · rw [show d + (n + 1) = d + 1 + n from by omega]; exact hB
       · exact nomatch h
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       simp [openPisAtFvars] at h
 
 /-- **The shorter opening's openers are the longer one's prefix.** -/
@@ -1070,8 +1070,8 @@ theorem inferTypeCore_pos {envK : Env} {d : Nat} {e r : Expr} {F : Nat}
 own witnesses: the codomain's sort `v` and
 the node's own sort. -/
 theorem inferTypeCore_forallE_peel {envK : Env}
-    {d F : Nat} {ty bd s : Expr} {mb : ConLeche.BinderMeta}
-    (h : ConLeche.inferTypeCore μ envK F d (.forallE ty bd mb) = .ok s) :
+    {d F : Nat} {ty bd s : Expr}
+    (h : ConLeche.inferTypeCore μ envK F d (.forallE ty bd) = .ok s) :
     ∃ (F₀ : Nat) (udom v : Level) (bt₁ : Expr),
       F = F₀ + 1 ∧ 1 ≤ F₀ ∧
       ConLeche.inferTypeCore μ envK F₀ (d + 1) (bd.instantiate1 (.fvar d ty)) = .ok bt₁ ∧
@@ -1113,7 +1113,7 @@ theorem inferTypeCore_openPis_sortZ (hμ : μ.verifiedChecks = true) {envK : Env
     exact ⟨u, hsort, rfl⟩
   | n + 1, d, F, G, e, fvs, o, s, bt, u, hFG, hop, hinf, hcon, hsort => by
     match e, hop with
-    | .forallE ty bd mb, hop =>
+    | .forallE ty bd, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -1138,7 +1138,7 @@ theorem inferTypeCore_openPis_sortZ (hμ : μ.verifiedChecks = true) {envK : Env
     | .sort _, hop => nomatch hop
     | .const _ _, hop => nomatch hop
     | .app _ _, hop => nomatch hop
-    | .lam _ _ _, hop => nomatch hop
+    | .lam _ _, hop => nomatch hop
     | .letE _ _ _, hop => nomatch hop
     | .proj _ _ _, hop => nomatch hop
     | .lit _, hop => nomatch hop

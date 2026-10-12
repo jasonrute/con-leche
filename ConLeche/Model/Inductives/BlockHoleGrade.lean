@@ -291,7 +291,7 @@ theorem occDeep_openPisAtFvars {names : List Name} :
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, -⟩ := h
     exact nomatch hx
-  | n + 1, .forallE dom body bm, i, fvs, r, he, h, x, hx => by
+  | n + 1, .forallE dom body, i, fvs, r, he, h, x, hx => by
     simp only [openPisAtFvars] at h
     simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
     have hfv : (Expr.fvar i dom).occDeep names = false := by simpa [Expr.occDeep] using he.1
@@ -317,7 +317,7 @@ theorem occDeep_instPisWith {names : List Name} :
   | [], e, r, _, he, h => by
     simp only [instPisWith, Option.some.injEq] at h
     exact h ▸ he
-  | a :: as, .forallE d b bm, r, ha, he, h => by
+  | a :: as, .forallE d b, r, ha, he, h => by
     simp only [instPisWith] at h
     simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
     exact occDeep_instPisWith as _ r (fun x hx => ha x (List.mem_cons_of_mem _ hx))

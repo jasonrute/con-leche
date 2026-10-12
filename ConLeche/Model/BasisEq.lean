@@ -155,9 +155,7 @@ theorem denoteMeta_eqReflTy {c₀ : ConstantInfo} (ψ : Name → Nat)
       = Expr.forallE (.sort (.param uN))
           (Expr.forallE (.bvar 0)
             (.app (.app (.app (.const eqName [.param uN]) (.bvar 1))
-              (.bvar 0)) (.bvar 0))
-            {})
-          {} from rfl]
+              (.bvar 0)) (.bvar 0))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, eqReflTy, eqSpine, hEc,
     Level.eval]
@@ -639,9 +637,7 @@ theorem denoteMeta_eqRecA_type (ψ : Name → Nat)
                 (Expr.forallE
                   (.app (.app (.app (.const eqName [.param uN])
                     (.bvar 2)) (.bvar 1)) (.bvar 0))
-                  (.sort (.param u1N))
-                  {})
-                {})
+                  (.sort (.param u1N))))
               (Expr.forallE
                 (.app (.app (.bvar 0) (.bvar 1))
                   (.app (.app (.const eqReflName [.param uN])
@@ -650,13 +646,7 @@ theorem denoteMeta_eqRecA_type (ψ : Name → Nat)
                   (Expr.forallE
                     (.app (.app (.app (.const eqName [.param uN])
                       (.bvar 4)) (.bvar 3)) (.bvar 0))
-                    (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))
-                    {})
-                  {})
-                {})
-              {})
-            {})
-          {} from rfl]
+                    (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))))))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, eqRecTy, eqRecMotiveTy, eqRecMinorTy,
     eqSpine, eqReflSpine, hEc, hRc, Level.eval]
@@ -1285,9 +1275,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
         = Expr.forallE (.sort (.param uN))
             (Expr.forallE (.bvar 0)
               (.app (.app (.app (.const eqName [.param uN]) (.bvar 1))
-                (.bvar 0)) (.bvar 0))
-              {})
-            {} from rfl]
+                (.bvar 0)) (.bvar 0))) from rfl]
     simp [Expr.constsResolve, hf]
   obtain ⟨mp2, hac2, hc2⟩ := extendEqRefl mp1 hE1 hEv1 hf2 hwf2
   have hE2 : (⟨eqReflA :: eqA :: env.consts⟩ : Env).find? eqName
@@ -1329,9 +1317,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
                 = Expr.forallE (.sort (.param uN))
                     (Expr.forallE (.bvar 0)
                       (.app (.app (.app (.const eqName [.param uN]) (.bvar 1))
-                        (.bvar 0)) (.bvar 0))
-                      {})
-                    {} from rfl] at hrd
+                        (.bvar 0)) (.bvar 0))) from rfl] at hrd
             obtain ⟨ta, ba, hta, hba, he⟩ := denoteMeta_forallE_inv hrd
             obtain ⟨tb, bb, htb, -, he'⟩ := denoteMeta_forallE_inv hba
             simp only [mkPisAV] at he
@@ -1353,8 +1339,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
         fun ψ => ⟨rfl, rfl, [], [.pi (.bvar 1) (.sort 0)], ?_, rfl, rfl,
           fun mm hmm => by
             obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
-            refine ⟨eqA.toConstantVal, _, .forallE (.fvar 0 (.sort .zero)) (.sort .zero)
-              {}, hE2, rfl, ?_⟩
+            refine ⟨eqA.toConstantVal, _, .forallE (.fvar 0 (.sort .zero)) (.sort .zero), hE2, rfl, ?_⟩
             simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_fvar, Expr.instantiate1, Level.eval],
           trivial⟩⟩
       simp [denoteMeta_app, denoteMeta_fvar, mkPisAV, eqLfp]⟩
@@ -1388,9 +1373,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
                     (Expr.forallE
                       (.app (.app (.app (.const eqName [.param uN])
                         (.bvar 2)) (.bvar 1)) (.bvar 0))
-                      (.sort (.param u1N))
-                      {})
-                    {})
+                      (.sort (.param u1N))))
                   (Expr.forallE
                     (.app (.app (.bvar 0) (.bvar 1))
                       (.app (.app (.const eqReflName [.param uN])
@@ -1399,13 +1382,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
                       (Expr.forallE
                         (.app (.app (.app (.const eqName [.param uN])
                           (.bvar 4)) (.bvar 3)) (.bvar 0))
-                        (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))
-                        {})
-                      {})
-                    {})
-                  {})
-                {})
-              {} from rfl]
+                        (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))))))) from rfl]
       simp [Expr.constsResolve, hfE, hfR]
     · intro cv mI rP rules heq
       injection heq with h1' _ _ h4'

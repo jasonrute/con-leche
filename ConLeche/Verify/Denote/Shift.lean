@@ -102,11 +102,11 @@ theorem denote_bvarsBelow (hcl : ∀ n ψ, Term.Closed (cval n ψ)) :
     intro _ _ v h; simp only [denote_const, h1, ite_eq_right h2] at h; exact nomatch h
   | case5 d n us h1 =>
     intro _ _ v h; rw [denote_const, h1] at h; exact nomatch h
-  | case6 d ty body mb h1 ihty =>
+  | case6 d ty body h1 ihty =>
     intro _ _ v h; rw [denote_forallE, h1] at h; exact nomatch h
-  | case7 d ty body mb B h1 h2 ihty ihbody =>
+  | case7 d ty body B h1 h2 ihty ihbody =>
     intro _ _ v h; rw [denote_forallE, h1, h2] at h; exact nomatch h
-  | case8 d ty body mb B h1 B' h2 ihty ihbody =>
+  | case8 d ty body B h1 B' h2 ihty ihbody =>
     intro hws hb v h
     rw [denote_forallE, h1, h2] at h
     obtain rfl : v = .pi B B' := (Option.some.inj h).symm
@@ -115,11 +115,11 @@ theorem denote_bvarsBelow (hcl : ∀ n ψ, Term.Closed (cval n ψ)) :
     exact ⟨ihty hws.1 hb.1 h1,
       ihbody (Expr.WScoped.instantiate1 hws.1 0 hws.2)
         (looseBVarsBounded_instantiate1 body 0 hb.2) h2⟩
-  | case9 d ty body mb h1 ihty =>
+  | case9 d ty body h1 ihty =>
     intro _ _ v h; rw [denote_lam, h1] at h; exact nomatch h
-  | case10 d ty body mb B h1 h2 ihty ihbody =>
+  | case10 d ty body B h1 h2 ihty ihbody =>
     intro _ _ v h; rw [denote_lam, h1, h2] at h; exact nomatch h
-  | case11 d ty body mb B h1 B' h2 ihty ihbody =>
+  | case11 d ty body B h1 B' h2 ihty ihbody =>
     intro hws hb v h
     rw [denote_lam, h1, h2] at h
     obtain rfl : v = .lam B B' := (Option.some.inj h).symm
@@ -196,8 +196,8 @@ theorem denote_bvarsBelow (hcl : ∀ n ψ, Term.Closed (cval n ψ)) :
     | .sort u => exact (k1 u rfl).elim
     | .fvar a c => exact (k2 a c rfl).elim
     | .const a b => exact (k3 a b rfl).elim
-    | .forallE b c dd => exact (k4 b c dd rfl).elim
-    | .lam b c dd => exact (k5 b c dd rfl).elim
+    | .forallE b c => exact (k4 b c rfl).elim
+    | .lam b c => exact (k5 b c rfl).elim
     | .app a b => exact (k6 a b rfl).elim
     | .letE b c dd => exact (k7 b c dd rfl).elim
     | .proj a b c => exact (k8 a b c rfl).elim

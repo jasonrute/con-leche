@@ -168,14 +168,14 @@ the `.proj` clause. -/
         some (cval n (Level.substFn φ ci.toConstantVal.levelParams us))
       else none
     | none => none
-  | d, .forallE ty body m =>
+  | d, .forallE ty body =>
     match denote cval env φ d ty with
     | none => none
     | some A =>
       match denote cval env φ (d + 1) (body.instantiate1 (.fvar d ty)) with
       | none => none
       | some B => some (.pi A B)
-  | d, .lam ty body m =>
+  | d, .lam ty body =>
     match denote cval env φ d ty with
     | none => none
     | some A =>
@@ -261,8 +261,8 @@ theorem denote_app (cval : TConstVal) (env : Env) (φ : Name → Nat)
   rw [denote]
 
 theorem denote_forallE (cval : TConstVal) (env : Env) (φ : Name → Nat)
-    (d : Nat) (ty body : Expr) (m : BinderMeta) :
-    denote cval env φ d (.forallE ty body m) =
+    (d : Nat) (ty body : Expr) :
+    denote cval env φ d (.forallE ty body) =
       match denote cval env φ d ty with
       | none => none
       | some A =>
@@ -272,8 +272,8 @@ theorem denote_forallE (cval : TConstVal) (env : Env) (φ : Name → Nat)
   rw [denote]
 
 theorem denote_lam (cval : TConstVal) (env : Env) (φ : Name → Nat)
-    (d : Nat) (ty body : Expr) (m : BinderMeta) :
-    denote cval env φ d (.lam ty body m) =
+    (d : Nat) (ty body : Expr) :
+    denote cval env φ d (.lam ty body) =
       match denote cval env φ d ty with
       | none => none
       | some A =>

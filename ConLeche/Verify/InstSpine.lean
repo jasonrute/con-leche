@@ -167,7 +167,7 @@ theorem instPisAt_isSome_of_stripPis :
   | [], e, _ => by simp [Expr.instPisAt]
   | a :: as, e, h => by
     match e, h with
-    | .forallE dom body m, h =>
+    | .forallE dom body, h =>
       simp only [List.length_cons, Expr.stripPis, Option.isSome_map] at h
       have h' : ((body.instantiate1 a).stripPis as.length).isSome = true :=
         Expr.stripPis_instantiate1_isSome as.length 0 h

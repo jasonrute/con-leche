@@ -26,7 +26,7 @@ open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BinderMeta PropWhen)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal PropWhen)
 
 universe w
 
@@ -84,7 +84,7 @@ domain).
 -/
 
 
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps BinderMeta)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps)
 
 
 /-! ## Kit -/
@@ -356,7 +356,7 @@ structure CtorDataI {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name
     (idxArgs : List Expr)
     (ds : (Name → Nat) → List AnnotTerm) (Es : (Name → Nat) → List AnnotTerm)
     (srcs : List (Option Nat)) : Prop where
-  resid : ∃ (cbs : List (Expr × BinderMeta)) (es : List Expr),
+  resid : ∃ (cbs : List Expr) (es : List Expr),
     cvC.type.stripPis (nP + nF)
       = some (cbs, Expr.mkAppN (.const T (lps.map .param)) (ConLeche.structPsAt nF nP ++ es)) ∧
     es.length = nIdx
@@ -422,7 +422,7 @@ holding the former. -/
 theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     {F : Nat} {T : Name} {lps : List Name} {nP nF nIdx : Nat} {resSort : Level}
     {isProp large : Bool} {cvC cvTa cvCa : ConstantVal} {env₀ : Env} {caps : IndCaps}
-    {bs : List (Expr × ConLeche.BinderMeta)}
+    {bs : List Expr}
     {sorts : List Level} {sT : Level}
     (hCtor : ConLeche.checkSumCtor (ConLeche.fueledOps μ F) env₀ env T lps nP nIdx resSort
       isProp large cvC nF cvTa = .ok (cvCa, sorts))
@@ -847,7 +847,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveShape
-  BinderMeta RecRule)
+  RecRule)
 
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
@@ -1204,7 +1204,7 @@ theorem stageCtorGen {T : Name}
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveShape
-  BinderMeta)
+ )
 
 
 /-! ## The chains of a data list -/

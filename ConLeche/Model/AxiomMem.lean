@@ -33,7 +33,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  BinderMeta)
+ )
 
 universe w
 
@@ -73,37 +73,35 @@ shapes. -/
 theorem iff_shapeS {ty : Expr}
     (h : ty
       = iffA.toConstantVal.type) :
-    ∃ m₁ m₂, ty = .forallE (.sort .zero)
-      (.forallE (.sort .zero) (.sort .zero) m₂) m₁ := by
+    ty = .forallE (.sort .zero)
+      (.forallE (.sort .zero) (.sort .zero)) := by
   simp only [iffA, ConstantInfo.toConstantVal] at h
   subst h
-  exact ⟨_, _, rfl⟩
+  rfl
 
 /-- The stored `Iff.rec`'s shape.  Five telescope binders and four
 nested ones. -/
 theorem iffRec_shapeS {ty : Expr}
     (h : ty
       = iffRecA.toConstantVal.type) :
-    ∃ m₁ m₂ m₃ m₄ m₅ mt mmp mr mmpr ma,
-      ty = .forallE (.sort .zero)
+    ty = .forallE (.sort .zero)
         (.forallE (.sort .zero)
           (.forallE
             (.forallE
               (.app (.app (.const iffName []) (.bvar 1)) (.bvar 0))
-              (.sort (.param uN)) mt)
+              (.sort (.param uN)))
             (.forallE
-              (.forallE (.forallE (.bvar 2) (.bvar 2) mr)
-                (.forallE (.forallE (.bvar 2) (.bvar 4) ma)
+              (.forallE (.forallE (.bvar 2) (.bvar 2))
+                (.forallE (.forallE (.bvar 2) (.bvar 4))
                   (.app (.bvar 2)
                     (.app (.app (.app (.app (.const iffIntroName [])
-                      (.bvar 4)) (.bvar 3)) (.bvar 1)) (.bvar 0)))
-                  mmpr) mmp)
+                      (.bvar 4)) (.bvar 3)) (.bvar 1)) (.bvar 0)))))
               (.forallE
                 (.app (.app (.const iffName []) (.bvar 3)) (.bvar 2))
-                (.app (.bvar 2) (.bvar 0)) m₅) m₄) m₃) m₂) m₁ := by
+                (.app (.bvar 2) (.bvar 0)))))) := by
   simp only [iffRecA, ConstantInfo.toConstantVal] at h
   subst h
-  exact ⟨_, _, _, _, _, _, _, _, _, _, rfl⟩
+  rfl
 
 /-! ## The stored `Iff` family's `interp` memberships
 
@@ -121,7 +119,7 @@ theorem iffVal_app₂_memP (mp : EnvModelM V μ env)
     SetTheory.app (SetTheory.app
         (interp V ρ (mp.base2.acval iffName ψ)) A) B
       ∈ˢ (univ 0 : V) := by
-  obtain ⟨m₁, m₂, hsh⟩ := iff_shapeS htyI
+  have hsh := iff_shapeS htyI
   have hden : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.indInfo cvI caps).toConstantVal.type
       = some (.pi (.sort 0)
@@ -176,8 +174,7 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
       (interp V ρ (mp.base2.acval iffName ψ)) A) B) :
     A = B := by
   refine Classical.byContradiction fun hne => ?_
-  obtain ⟨m₁, m₂, m₃, m₄, m₅, mt, mmp, mr, mmpr, ma, hsh⟩ :=
-    iffRec_shapeS htyIr
+  have hsh := iffRec_shapeS htyIr
   -- the parameterless family members do not read the assignment, so
   -- the recursor may be read at **any** level assignment
   have hIval : mp.base2.acval iffName (fun _ => 0)
@@ -278,16 +275,15 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
 theorem propext_shapeS {type' : Expr}
     (h : type'
       = propextA.type) :
-    ∃ m₁ m₂ m₃,
-      type' = .forallE (.sort .zero)
+    type' = .forallE (.sort .zero)
         (.forallE (.sort .zero)
           (.forallE
             (.app (.app (.const iffName []) (.bvar 1)) (.bvar 0))
             (.app (.app (.app (.const eqName [.succ .zero])
-                (.sort .zero)) (.bvar 2)) (.bvar 1)) m₃) m₂) m₁ := by
+                (.sort .zero)) (.bvar 2)) (.bvar 1)))) := by
   simp only [propextA] at h
   subst h
-  exact ⟨_, _, _, rfl⟩
+  rfl
 
 /-! ## `propext`'s membership
 
@@ -314,7 +310,7 @@ theorem propext_mem (mp : EnvModelM V μ env)
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       beq_iff_eq] at hApin
     exact hApin.2
-  obtain ⟨m₁, m₂, m₃, hsh⟩ := propext_shapeS hApinT
+  have hsh := propext_shapeS hApinT
   rw [hsh] at hta
   -- the `Eq` former's one level parameter is pinned to `1`
   have heqψ : Level.substFn ψ eqA.toConstantVal.levelParams
@@ -336,7 +332,7 @@ theorem propext_mem (mp : EnvModelM V μ env)
           (.forallE
             (.app (.app (.const iffName []) (.bvar 1)) (.bvar 0))
             (.app (.app (.app (.const eqName [.succ .zero])
-                (.sort .zero)) (.bvar 2)) (.bvar 1)) m₃) m₂) m₁)
+                (.sort .zero)) (.bvar 2)) (.bvar 1)))))
       = some (.pi (.sort 0) (.pi (.sort 0)
           (.pi (.app (.app (mp.base2.acval iffName ψ) (.bvar 1)) (.bvar 0))
             (.app (.app (.app (mp.base2.acval eqName
@@ -379,43 +375,42 @@ contradiction hypothesis; the motive's β is `app_lamV`. -/
 theorem nonempty_shapeS {ty : Expr}
     (h : ty
       = nonemptyA.toConstantVal.type) :
-    ∃ m₁, ty = .forallE (.sort (.param uN)) (.sort .zero) m₁ := by
+    ty = .forallE (.sort (.param uN)) (.sort .zero) := by
   simp only [nonemptyA, ConstantInfo.toConstantVal] at h
   subst h
-  exact ⟨_, rfl⟩
+  rfl
 
 /-- The stored `Nonempty.intro`'s shape. -/
 theorem nonemptyIntro_shapeS {ty : Expr}
     (h : ty
       = nonemptyIntroA.toConstantVal.type) :
-    ∃ m₁ m₂, ty = .forallE (.sort (.param uN))
+    ty = .forallE (.sort (.param uN))
       (.forallE (.bvar 0)
-        (.app (.const nonemptyName [.param uN]) (.bvar 1)) m₂) m₁ := by
+        (.app (.const nonemptyName [.param uN]) (.bvar 1))) := by
   simp only [nonemptyIntroA, ConstantInfo.toConstantVal] at h
   subst h
-  exact ⟨_, _, rfl⟩
+  rfl
 
 /-- The stored `Nonempty.rec`'s shape. -/
 theorem nonemptyRec_shapeS {ty : Expr}
     (h : ty
       = nonemptyRecA.toConstantVal.type) :
-    ∃ m₁ m₂ m₃ m₄ mt mv,
-      ty = .forallE (.sort (.param uN))
+    ty = .forallE (.sort (.param uN))
         (.forallE
           (.forallE
             (.app (.const nonemptyName [.param uN]) (.bvar 0))
-            (.sort .zero) mt)
+            (.sort .zero))
           (.forallE
             (.forallE (.bvar 1)
               (.app (.bvar 1)
                 (.app (.app (.const nonemptyIntroName [.param uN])
-                  (.bvar 2)) (.bvar 0))) mv)
+                  (.bvar 2)) (.bvar 0))))
             (.forallE
               (.app (.const nonemptyName [.param uN]) (.bvar 2))
-              (.app (.bvar 2) (.bvar 0)) m₄) m₃) m₂) m₁ := by
+              (.app (.bvar 2) (.bvar 0))))) := by
   simp only [nonemptyRecA, ConstantInfo.toConstantVal] at h
   subst h
-  exact ⟨_, _, _, _, _, _, rfl⟩
+  rfl
 
 /-- A member of the `Nonempty` family, referenced at its own level
 parameter, reads to its leaf at the plain assignment. -/
@@ -440,7 +435,7 @@ theorem nonemptyVal_app_mem (mp : EnvModelM V μ env)
     (ψ : Name → Nat) (ρ : Nat → V) {A : V} (hA : A ∈ˢ univ (ψ uN)) :
     SetTheory.app (interp V ρ (mp.base2.acval nonemptyName ψ)) A
       ∈ˢ (univ 0 : V) := by
-  obtain ⟨m₁, hsh⟩ := nonempty_shapeS htyN
+  have hsh := nonempty_shapeS htyN
   have hden : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.indInfo cvN capsN).toConstantVal.type
       = some (.pi (.sort (ψ uN)) (.sort 0)) := by
@@ -465,7 +460,7 @@ theorem nonemptyIntroVal_app₂_memP (mp : EnvModelM V μ env)
     SetTheory.app (SetTheory.app
         (interp V ρ (mp.base2.acval nonemptyIntroName ψ)) A) a
       ∈ˢ SetTheory.app (interp V ρ (mp.base2.acval nonemptyName ψ)) A := by
-  obtain ⟨m₁, m₂, hsh⟩ := nonemptyIntro_shapeS htyNi
+  have hsh := nonemptyIntro_shapeS htyNi
   have hN : ∀ e, denoteMeta mp.base2.acval env ψ e
       (.const nonemptyName [.param uN])
       = some (mp.base2.acval nonemptyName ψ) :=
@@ -517,8 +512,7 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
       (interp V ρ (mp.base2.acval nonemptyName ψ)) A) :
     ∃ x, x ∈ˢ A := by
   refine Classical.byContradiction fun hno => ?_
-  obtain ⟨m₁, m₂, m₃, m₄, mt, mv, hsh⟩ :=
-    nonemptyRec_shapeS htyNr
+  have hsh := nonemptyRec_shapeS htyNr
   have hN : ∀ e, denoteMeta mp.base2.acval env ψ e
       (.const nonemptyName [.param uN])
       = some (mp.base2.acval nonemptyName ψ) :=
@@ -626,14 +620,13 @@ theorem dneg_eq_nonempty (mp : EnvModelM V μ env)
 stored `Nonempty` reference is pinned to `[.param u]`. -/
 theorem choice_shapeS {type' : Expr}
     (h : type' = choiceA.type) :
-    ∃ m₁ m₂,
-      type' = .forallE (.sort (.param uN))
+    type' = .forallE (.sort (.param uN))
         (.forallE
           (.app (.const nonemptyName [.param uN]) (.bvar 0))
-          (.bvar 1) m₂) m₁ := by
+          (.bvar 1)) := by
   simp only [choiceA] at h
   subst h
-  exact ⟨_, _, rfl⟩
+  rfl
 
 /-- **`Classical.choice` inhabits its stored type's reading.**  The
 leaf is the layer's own `choice` constant; `dneg_eq_nonempty`
@@ -654,7 +647,7 @@ theorem choice_mem (mp : EnvModelM V μ env)
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       beq_iff_eq] at hApin
     exact hApin.2
-  obtain ⟨m₁, m₂, hsh⟩ := choice_shapeS hApinT
+  have hsh := choice_shapeS hApinT
   rw [hsh] at hta
   have hN : ∀ e, denoteMeta mp.base2.acval env ψ e
       (.const nonemptyName [.param uN])
@@ -665,7 +658,7 @@ theorem choice_mem (mp : EnvModelM V μ env)
       (.forallE (.sort (.param uN))
         (.forallE
           (.app (.const nonemptyName [.param uN]) (.bvar 0))
-          (.bvar 1) m₂) m₁)
+          (.bvar 1)))
       = some (.pi (.sort (ψ uN))
           (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 0))
             (.bvar 1))) := by

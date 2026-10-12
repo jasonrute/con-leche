@@ -437,7 +437,7 @@ residual to weak head normal form before every binder; at a `.sort`
 residual that reduction is the identity and no further binder can
 appear, so `n` is exactly the number of binders official counts. -/
 def Expr.piSortTeleLen? : Expr → Option Nat
-  | .forallE _ body _ => (Expr.piSortTeleLen? body).map (· + 1)
+  | .forallE _ body => (Expr.piSortTeleLen? body).map (· + 1)
   | .sort _ => some 0
   | _ => none
 

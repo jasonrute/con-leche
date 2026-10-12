@@ -69,13 +69,13 @@ open Expr
 `instPisAtLift_head`) -/
 
 theorem stripPis_instantiate1_full {v : Expr} :
-    ∀ (k : Nat) {e : Expr} {bs : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs : List Expr}
       {body : Expr} (j : Nat),
       e.stripPis k = some (bs, body) →
       ∃ bs', (e.instantiate1 v j).stripPis k =
           some (bs', body.instantiate1 v (j + k)) ∧
-        ∀ (i : Nat) (b : Expr × BinderMeta), bs[i]? = some b →
-          bs'[i]? = some (b.1.instantiate1 v (j + i), b.2) := by
+        ∀ (i : Nat) (b : Expr), bs[i]? = some b →
+          bs'[i]? = some (b.instantiate1 v (j + i)) := by
   intro k
   induction k with
   | zero =>
@@ -86,25 +86,25 @@ theorem stripPis_instantiate1_full {v : Expr} :
   | succ k ih =>
     intro e bs body j h
     match e, h with
-    | .forallE d bo m, h =>
+    | .forallE d bo, h =>
       simp only [stripPis] at h
       cases hs : bo.stripPis k with
       | none => rw [hs] at h; exact nomatch h
       | some p =>
         rw [hs] at h
         simp only [Option.map_some, Option.some.injEq] at h
-        obtain ⟨hb, hbody⟩ : (d, m) :: p.1 = bs ∧ p.2 = body := by
+        obtain ⟨hb, hbody⟩ : d :: p.1 = bs ∧ p.2 = body := by
           cases h; exact ⟨rfl, rfl⟩
         subst hbody
         obtain ⟨bs', h1, h2⟩ := ih (j + 1) (by rw [hs])
-        refine ⟨(d.instantiate1 v j, m) :: bs', ?_, ?_⟩
+        refine ⟨d.instantiate1 v j :: bs', ?_, ?_⟩
         · simp only [instantiate1, stripPis, h1,
             show j + 1 + k = j + (k + 1) from by omega, Option.map_some]
         · intro i b hbi
           rw [← hb] at hbi
           cases i with
           | zero =>
-            obtain rfl : (d, m) = b := by simpa using hbi
+            obtain rfl : d = b := by simpa using hbi
             rfl
           | succ i =>
             simp only [List.getElem?_cons_succ] at hbi ⊢
@@ -115,13 +115,13 @@ theorem stripPis_instantiate1_full {v : Expr} :
 characterized by the raw telescope's binder list. -/
 theorem instPisAt_head :
     ∀ (args : List Expr) {e : Expr} {ds : List Expr} {rest : Expr} {mrem : Nat}
-      {bs : List (Expr × BinderMeta)} {body : Expr}
-      {b : Expr × BinderMeta},
+      {bs : List Expr} {body : Expr}
+      {b : Expr},
       Expr.instPisAt args e = some (ds, rest) →
       e.stripPis (args.length + (mrem + 1)) = some (bs, body) →
       bs[args.length]? = some b →
       ∃ bodyR, rest = .forallE
-        (instSeq args (args.length - 1) b.1) bodyR b.2 := by
+        (instSeq args (args.length - 1) b) bodyR := by
   intro args
   induction args with
   | nil =>
@@ -130,22 +130,22 @@ theorem instPisAt_head :
     obtain ⟨-, rfl⟩ := h
     rw [show [].length + (mrem + 1) = mrem + 1 from by simp] at hstrip
     match e, hstrip with
-    | .forallE d bo m, hstrip =>
+    | .forallE d bo, hstrip =>
       simp only [stripPis] at hstrip
       cases hs : bo.stripPis mrem with
       | none => rw [hs] at hstrip; exact nomatch hstrip
       | some p =>
         rw [hs] at hstrip
         simp only [Option.map_some, Option.some.injEq] at hstrip
-        obtain ⟨hbs, -⟩ : (d, m) :: p.1 = bs ∧ p.2 = body := by
+        obtain ⟨hbs, -⟩ : d :: p.1 = bs ∧ p.2 = body := by
           cases hstrip; exact ⟨rfl, rfl⟩
         rw [← hbs] at hb
-        obtain rfl : (d, m) = b := by simpa using hb
+        obtain rfl : d = b := by simpa using hb
         exact ⟨bo, rfl⟩
   | cons a as ih =>
     intro e ds rest mrem bs body b h hstrip hb
     match e, h with
-    | .forallE d bo m, h =>
+    | .forallE d bo, h =>
       simp only [instPisAt, Option.map_eq_some_iff] at h
       obtain ⟨⟨ds', rest'⟩, h', heq⟩ := h
       obtain ⟨-, rfl⟩ : d :: ds' = ds ∧ rest' = rest := by simpa using heq
@@ -157,14 +157,14 @@ theorem instPisAt_head :
       | some q =>
         rw [hs] at hstrip
         simp only [Option.map_some, Option.some.injEq] at hstrip
-        obtain ⟨hbs, -⟩ : (d, m) :: q.1 = bs ∧ q.2 = body := by
+        obtain ⟨hbs, -⟩ : d :: q.1 = bs ∧ q.2 = body := by
           cases hstrip; exact ⟨rfl, rfl⟩
         rw [← hbs] at hb
         simp only [List.length_cons, List.getElem?_cons_succ] at hb
         obtain ⟨bs', hstrip', hpos⟩ :=
           stripPis_instantiate1_full (v := a) (as.length + (mrem + 1)) 0 hs
-        obtain ⟨bodyR, hhead⟩ := ih (b := (b.1.instantiate1 a as.length,
-            b.2)) h' hstrip'
+        obtain ⟨bodyR, hhead⟩ := ih (b := b.instantiate1 a as.length)
+          h' hstrip'
           (by rw [hpos as.length b hb]; simp)
         exact ⟨bodyR, by rw [hhead]; rfl⟩
 
@@ -198,11 +198,11 @@ theorem instSeq_proj :
 /-- A stripped telescope's binder domains are bounded at their own
 depth. -/
 theorem stripPis_binder_bounded :
-    ∀ (k : Nat) {e : Expr} {bs : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs : List Expr}
       {body : Expr} {j : Nat},
       e.stripPis k = some (bs, body) → e.looseBVarsBounded j = true →
-      ∀ (i : Nat) (b : Expr × BinderMeta), bs[i]? = some b →
-        b.1.looseBVarsBounded (j + i) = true := by
+      ∀ (i : Nat) (b : Expr), bs[i]? = some b →
+        b.looseBVarsBounded (j + i) = true := by
   intro k
   induction k with
   | zero =>
@@ -213,15 +213,15 @@ theorem stripPis_binder_bounded :
   | succ k ih =>
     intro e bs body j h hb i b hbi
     match e, h with
-    | .forallE ty bo m, h =>
+    | .forallE ty bo, h =>
       simp only [stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', body'⟩, hbstrip, heq⟩ := h
-      obtain ⟨rfl, -⟩ : (ty, m) :: bs' = bs ∧ body' = body := by
+      obtain ⟨rfl, -⟩ : ty :: bs' = bs ∧ body' = body := by
         simpa using heq
       simp only [looseBVarsBounded, Bool.and_eq_true] at hb
       cases i with
       | zero =>
-        obtain rfl : (ty, m) = b := by simpa using hbi
+        obtain rfl : ty = b := by simpa using hbi
         simpa using hb.1
       | succ i =>
         simp only [List.getElem?_cons_succ] at hbi
@@ -235,27 +235,27 @@ theorem structProjBodiesGo_spec (T : Name) :
     ∀ (k i : Nat) (r : Expr) (bs : List Expr),
       structProjBodiesGo T k i r = some bs →
       bs.length = k ∧
-      ∀ j, j < k → ∃ b' mb,
+      ∀ j, j < k → ∃ b',
         ((List.range j).foldl
             (fun acc jj => acc.bind (Expr.instPisAtLift [structProjArgP T (i + jj)]))
             (some r))
-          = some (.forallE (bs.getD j default) b' mb)
+          = some (.forallE (bs.getD j default) b')
   | 0, i, r, bs, h => by
     simp only [structProjBodiesGo, Option.some.injEq] at h
     subst h
     exact ⟨rfl, fun j hj => absurd hj (Nat.not_lt_zero _)⟩
   | k + 1, i, r, bs, h => by
     match r, h with
-    | .forallE fdom body mb, h =>
+    | .forallE fdom body, h =>
       simp only [structProjBodiesGo, Option.map_eq_some_iff] at h
       obtain ⟨bs', hrec, rfl⟩ := h
       obtain ⟨hlen, hrest⟩ := structProjBodiesGo_spec T k (i + 1) _ bs' hrec
       refine ⟨by simp [hlen], fun j hj => ?_⟩
       cases j with
-      | zero => exact ⟨body, mb, rfl⟩
+      | zero => exact ⟨body, rfl⟩
       | succ j =>
-        obtain ⟨b', mb', hj'⟩ := hrest j (by omega)
-        refine ⟨b', mb', ?_⟩
+        obtain ⟨b', hj'⟩ := hrest j (by omega)
+        refine ⟨b', ?_⟩
         rw [List.range_succ_eq_map, List.foldl_cons, List.foldl_map]
         simp only [List.getD_cons_succ, Option.bind_some, Expr.instPisAtLift,
           Nat.add_zero]
@@ -264,7 +264,7 @@ theorem structProjBodiesGo_spec (T : Name) :
         funext acc jj
         rw [show i + (jj + 1) = i + 1 + jj from by omega]
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       exact nomatch h
 
 /-- **The bodies are the peel's domains**: body `i` is the head domain
@@ -274,9 +274,9 @@ per field. -/
 theorem structProjBodies_spec {T : Name} {nP nF : Nat} {cty : Expr}
     {bodies : Array Expr} (h : structProjBodies T nP nF cty = some bodies) :
     bodies.size = nF ∧
-    ∀ i, i < nF → ∃ b' mb,
+    ∀ i, i < nF → ∃ b',
       structProjResidP T nP cty i
-        = some (.forallE (bodies.getD i default) b' mb) := by
+        = some (.forallE (bodies.getD i default) b') := by
   unfold structProjBodies at h
   cases hr : Expr.instPisAtLift (structProjPs nP) cty with
   | none => rw [hr] at h; exact nomatch h
@@ -286,8 +286,8 @@ theorem structProjBodies_spec {T : Name} {nP nF : Nat} {cty : Expr}
     obtain ⟨bs, hgo, rfl⟩ := h
     obtain ⟨hlen, hspec⟩ := structProjBodiesGo_spec T nF 0 r bs hgo
     refine ⟨by simp [hlen], fun i hi => ?_⟩
-    obtain ⟨b', mb, hfold⟩ := hspec i hi
-    refine ⟨b', mb, ?_⟩
+    obtain ⟨b', hfold⟩ := hspec i hi
+    refine ⟨b', ?_⟩
     have hgetD : bs.toArray.getD i default = bs.getD i default := by
       simp [Array.getD, List.getD_eq_getElem?_getD]
       split <;> simp_all
@@ -333,12 +333,12 @@ theorem Expr.NoProjAt.instantiate1Lift {T : Name} {i : Nat} {v : Expr}
     rw [noProjAt_app] at h
     rw [Expr.instantiate1Lift, noProjAt_app]
     exact ⟨ihf d h.1, iha d h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d h
     rw [noProjAt_lam] at h
     rw [Expr.instantiate1Lift, noProjAt_lam]
     exact ⟨ihty d h.1, ihb (d + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d h
     rw [noProjAt_forallE] at h
     rw [Expr.instantiate1Lift, noProjAt_forallE]
@@ -363,12 +363,12 @@ theorem Expr.NoProjAt.instPisAtLift {T : Name} {i : Nat} :
     rw [← h]; exact he
   | a :: as, e, r, ha, h, he => by
     match e, h with
-    | .forallE ty body m, h =>
+    | .forallE ty body, h =>
       rw [noProjAt_forallE] at he
       exact Expr.NoProjAt.instPisAtLift as (fun b hb => ha b (List.mem_cons_of_mem _ hb))
         h ((ha a List.mem_cons_self).instantiate1Lift body 0 he.2)
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       exact nomatch h
 
 /-- The bodies' generator preserves the absence: each step peels one
@@ -384,7 +384,7 @@ theorem noProjAt_structProjBodiesGo {T T' : Name} {i : Nat}
     rw [← h]; intro b hb; exact absurd hb List.not_mem_nil
   | k + 1, n, r, bs, h, hr => by
     match r, h with
-    | .forallE fdom body mb, h =>
+    | .forallE fdom body, h =>
       simp only [structProjBodiesGo, Option.map_eq_some_iff] at h
       obtain ⟨bs', hgo, rfl⟩ := h
       rw [noProjAt_forallE] at hr
@@ -530,12 +530,12 @@ theorem structProjBody_open {T : Name} {nP nF : Nat} {cty : Expr}
     {bodies : Array Expr} (h : structProjBodies T nP nF cty = some bodies)
     (hstrip : (cty.stripPis (nP + nF)).isSome = true)
     (hcl : cty.looseBVarsBounded 0 = true) {i : Nat} (hi : i < nF) :
-    ∃ (cds : List Expr) (bodyC : Expr) (mb : BinderMeta),
+    ∃ (cds : List Expr) (bodyC : Expr),
       Expr.instPisAt (fvsD nP ++ projArgsD T i nP) cty
         = some (cds, .forallE
-            (Expr.instSpine (fvsD nP ++ [tfvD nP]) nP (bodies.getD i default)) bodyC mb) := by
+            (Expr.instSpine (fvsD nP ++ [tfvD nP]) nP (bodies.getD i default)) bodyC) := by
   obtain ⟨-, hspec⟩ := structProjBodies_spec h
-  obtain ⟨b', mb, hres⟩ := hspec i hi
+  obtain ⟨b', hres⟩ := hspec i hi
   rw [structProjResidP_eq] at hres
   -- the raw telescope's binder `nP + i`
   have hlenB : (structProjPs nP ++ (List.range i).map (structProjArgP T)).length = nP + i := by
@@ -550,21 +550,21 @@ theorem structProjBody_open {T : Name} {nP nF : Nat} {cty : Expr}
   -- the bvar peel's head: the body is the domain's capture-avoiding sequence
   obtain ⟨bodyR, hhead⟩ := instPisAtLift_head _ (mrem := 0) hres
     (by rw [hlenB]; exact hs) (by rw [hlenB]; exact hb)
-  obtain ⟨hbody, -, -⟩ := Expr.forallE.inj hhead
+  obtain ⟨hbody, -⟩ := Expr.forallE.inj hhead
   -- the fvar peel exists, and its head is the domain's plain sequence
   obtain ⟨⟨cds, rest⟩, hpa⟩ := Option.isSome_iff_exists.mp
     (instPisAt_isSome_of_stripPis (fvsD nP ++ projArgsD T i nP)
       (by rw [hlenF]; exact stripPis_isSome_of_le (by omega) hstrip))
   obtain ⟨bodyC, hheadF⟩ := instPisAt_head _ (mrem := 0) hpa
     (by rw [hlenF]; exact hs) (by rw [hlenF]; exact hb)
-  refine ⟨cds, bodyC, b.2, ?_⟩
+  refine ⟨cds, bodyC, ?_⟩
   rw [hpa, hheadF, hbody, Expr.instSpine_eq_instSeq]
   -- the collapse
-  have hdomB : b.1.looseBVarsBounded (nP + i) = true := by
+  have hdomB : b.looseBVarsBounded (nP + i) = true := by
     have := stripPis_binder_bounded (nP + i + 1) hs hcl (nP + i) b hb
     simpa using this
   have hcol := instSeq_instSeqLift (fvsD nP ++ [tfvD nP]) nP (fvsD_closed nP)
-    (by simp [fvsD_length]) _ (structProjArgs_bounded T nP i) b.1
+    (by simp [fvsD_length]) _ (structProjArgs_bounded T nP i) b
   rw [hlenB, structProjArgs_instSeq,
     instSeq_eq_self_of_bounded _ _ hdomB (by simp [fvsD_length]; omega)] at hcol
   rw [hlenB, hlenF, hcol]
@@ -586,12 +586,12 @@ theorem Expr.hasLooseBVar_eq_false_of_bound : ∀ (e : Expr) (i : Nat),
     simp only [Expr.bvarBound, Nat.max_le] at h
     simp only [Expr.hasLooseBVar, Bool.or_eq_false_iff]
     exact ⟨hasLooseBVar_eq_false_of_bound f i h.1, hasLooseBVar_eq_false_of_bound a i h.2⟩
-  | .lam ty b _, i, h => by
+  | .lam ty b, i, h => by
     simp only [Expr.bvarBound, Nat.max_le] at h
     simp only [Expr.hasLooseBVar, Bool.or_eq_false_iff]
     exact ⟨hasLooseBVar_eq_false_of_bound ty i h.1,
       hasLooseBVar_eq_false_of_bound b (i + 1) (by omega)⟩
-  | .forallE ty b _, i, h => by
+  | .forallE ty b, i, h => by
     simp only [Expr.bvarBound, Nat.max_le] at h
     simp only [Expr.hasLooseBVar, Bool.or_eq_false_iff]
     exact ⟨hasLooseBVar_eq_false_of_bound ty i h.1,
@@ -627,13 +627,13 @@ theorem Expr.hasLooseBVarB_eq : ∀ (i : Nat) (e : Expr), e.hasLooseBVarB i = e.
     · rename_i hcut
       exact (Expr.hasLooseBVar_eq_false_of_bound _ _ (Expr.bvarB_eq _ ▸ hcut)).symm
     · simp only [Expr.hasLooseBVar, ihf, iha]
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     rw [Expr.hasLooseBVarB]
     split
     · rename_i hcut
       exact (Expr.hasLooseBVar_eq_false_of_bound _ _ (Expr.bvarB_eq _ ▸ hcut)).symm
     · simp only [Expr.hasLooseBVar, iht, ihb]
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     rw [Expr.hasLooseBVarB]
     split
     · rename_i hcut

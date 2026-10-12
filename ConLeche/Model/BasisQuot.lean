@@ -495,29 +495,20 @@ theorem denoteMeta_quotIndA_type (ψ : Name → Nat)
       = Expr.forallE (.sort (.param uN))
           (Expr.forallE
             (Expr.forallE (.bvar 0)
-              (Expr.forallE (.bvar 1) (.sort .zero)
-                {})
-              {})
+              (Expr.forallE (.bvar 1) (.sort .zero)))
             (Expr.forallE
               (Expr.forallE
                 (.app (.app (.const quotName [.param uN]) (.bvar 1))
-                  (.bvar 0)) (.sort .zero)
-                {})
+                  (.bvar 0)) (.sort .zero))
               (Expr.forallE
                 (Expr.forallE (.bvar 2)
                   (.app (.bvar 1)
                     (.app (.app (.app (.const quotMkName [.param uN])
-                      (.bvar 3)) (.bvar 2)) (.bvar 0)))
-                  {})
+                      (.bvar 3)) (.bvar 2)) (.bvar 0))))
                 (Expr.forallE
                   (.app (.app (.const quotName [.param uN]) (.bvar 3))
                     (.bvar 2))
-                  (.app (.bvar 2) (.bvar 0))
-                  {})
-                {})
-              {})
-            {})
-          {} from rfl]
+                  (.app (.bvar 2) (.bvar 0)))))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, quotRelTy, quotApp, quotMkApp,
     quotIndMotiveTy, quotIndMinorTy, quotIndTy,
@@ -1133,9 +1124,7 @@ theorem denoteMeta_quotSoundA_type (ψ : Name → Nat)
       = Expr.forallE (.sort (.param uN))
           (Expr.forallE
             (Expr.forallE (.bvar 0)
-              (Expr.forallE (.bvar 1) (.sort .zero)
-                {})
-              {})
+              (Expr.forallE (.bvar 1) (.sort .zero)))
             (Expr.forallE (.bvar 1)
               (Expr.forallE (.bvar 2)
                 (Expr.forallE
@@ -1146,12 +1135,7 @@ theorem denoteMeta_quotSoundA_type (ψ : Name → Nat)
                     (.app (.app (.app (.const quotMkName [.param uN])
                       (.bvar 4)) (.bvar 3)) (.bvar 2)))
                     (.app (.app (.app (.const quotMkName [.param uN])
-                      (.bvar 4)) (.bvar 3)) (.bvar 1)))
-                  {})
-                {})
-              {})
-            {})
-          {} from rfl]
+                      (.bvar 4)) (.bvar 3)) (.bvar 1))))))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, quotRelTy, quotApp, quotMkApp, quotSoundTy,
     hQc, hMc, hEc, Level.eval]
@@ -1739,13 +1723,11 @@ theorem denoteMeta_quotLiftA_type (ψ : Name → Nat)
       = Expr.forallE (.sort (.param uN))
           (Expr.forallE
             (Expr.forallE (.bvar 0)
-              (Expr.forallE (.bvar 1) (.sort .zero)
-                {})
-              {})
+              (Expr.forallE (.bvar 1) (.sort .zero)))
             (Expr.forallE (.sort (.param vN))
               (Expr.forallE
                 (Expr.forallE (.bvar 2)
-                  (.bvar 1) {})
+                  (.bvar 1))
                 (Expr.forallE
                   (Expr.forallE (.bvar 3)
                     (Expr.forallE (.bvar 4)
@@ -1753,19 +1735,11 @@ theorem denoteMeta_quotLiftA_type (ψ : Name → Nat)
                         (.app (.app (.bvar 4) (.bvar 1)) (.bvar 0))
                         (.app (.app (.app (.const eqName [.param vN])
                           (.bvar 4)) (.app (.bvar 3) (.bvar 2)))
-                          (.app (.bvar 3) (.bvar 1)))
-                        {})
-                      {})
-                    {})
+                          (.app (.bvar 3) (.bvar 1))))))
                   (Expr.forallE
                     (.app (.app (.const quotName [.param uN]) (.bvar 4))
                       (.bvar 3))
-                    (.bvar 3) {})
-                  {})
-                {})
-              {})
-            {})
-          {} from rfl]
+                    (.bvar 3)))))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, quotRelTy, quotApp, quotLiftInvTy,
     quotLiftTy, hQc, hEc, Level.eval]
@@ -2414,14 +2388,10 @@ theorem declBasisPB_quotK {env₁ : Env} (mp : EnvModelM V μ env)
       = Expr.forallE (.sort (.param uN))
           (Expr.forallE
             (Expr.forallE (.bvar 0)
-              (Expr.forallE (.bvar 1) (.sort .zero)
-                {})
-              {})
+              (Expr.forallE (.bvar 1) (.sort .zero)))
             (Expr.forallE (.bvar 1)
               (.app (.app (.const quotName [.param uN]) (.bvar 2))
-                (.bvar 1)) {})
-            {})
-          {} from rfl]
+                (.bvar 1)))) from rfl]
     simp [Expr.constsResolve, hf]
   refine (extendQuotMk mp1 hQ1 hf2  hwf2).trans fun mp2 => ?_
   have hQ2 : (⟨quotMkA :: quotA :: env.consts⟩ : Env).find? quotName
@@ -2454,15 +2424,12 @@ theorem declBasisPB_quotK {env₁ : Env} (mp : EnvModelM V μ env)
           = Expr.forallE (.sort (.param uN))
               (Expr.forallE
                 (Expr.forallE (.bvar 0)
-                  (Expr.forallE (.bvar 1) (.sort .zero)
-                    {})
-                  {})
+                  (Expr.forallE (.bvar 1) (.sort .zero)))
                 (Expr.forallE
                   (.sort (.param vN))
                   (Expr.forallE
                     (Expr.forallE (.bvar 2)
-                      (.bvar 1)
-                      {})
+                      (.bvar 1))
                     (Expr.forallE
                       (Expr.forallE (.bvar 3)
                         (Expr.forallE (.bvar 4)
@@ -2471,20 +2438,11 @@ theorem declBasisPB_quotK {env₁ : Env} (mp : EnvModelM V μ env)
                             (.app (.app (.app
                               (.const eqName [.param vN]) (.bvar 4))
                               (.app (.bvar 3) (.bvar 2)))
-                              (.app (.bvar 3) (.bvar 1)))
-                            {})
-                          {})
-                        {})
+                              (.app (.bvar 3) (.bvar 1))))))
                       (Expr.forallE
                         (.app (.app (.const quotName [.param uN])
                           (.bvar 4)) (.bvar 3))
-                        (.bvar 3)
-                        {})
-                      {})
-                    {})
-                  {})
-                {})
-              {} from rfl]
+                        (.bvar 3)))))) from rfl]
       simp [Expr.constsResolve, hfQ, hfE]
     · intro cv mI rP rules heq
       injection heq with h1' _ _ h4'
@@ -2529,30 +2487,21 @@ theorem declBasisPB_quotK {env₁ : Env} (mp : EnvModelM V μ env)
           = Expr.forallE (.sort (.param uN))
               (Expr.forallE
                 (Expr.forallE (.bvar 0)
-                  (Expr.forallE (.bvar 1) (.sort .zero)
-                    {})
-                  {})
+                  (Expr.forallE (.bvar 1) (.sort .zero)))
                 (Expr.forallE
                   (Expr.forallE
                     (.app (.app (.const quotName [.param uN]) (.bvar 1))
-                      (.bvar 0)) (.sort .zero)
-                    {})
+                      (.bvar 0)) (.sort .zero))
                   (Expr.forallE
                     (Expr.forallE (.bvar 2)
                       (.app (.bvar 1)
                         (.app (.app (.app
                           (.const quotMkName [.param uN])
-                          (.bvar 3)) (.bvar 2)) (.bvar 0)))
-                      {})
+                          (.bvar 3)) (.bvar 2)) (.bvar 0))))
                     (Expr.forallE
                       (.app (.app (.const quotName [.param uN])
                         (.bvar 3)) (.bvar 2))
-                      (.app (.bvar 2) (.bvar 0))
-                      {})
-                    {})
-                  {})
-                {})
-              {} from rfl]
+                      (.app (.bvar 2) (.bvar 0)))))) from rfl]
       simp [Expr.constsResolve, hfQ, hfM]
     · intro cv mI rP rules heq
       injection heq with h1' _ _ h4'
@@ -2602,9 +2551,7 @@ theorem declBasisPB_quotK {env₁ : Env} (mp : EnvModelM V μ env)
         = Expr.forallE (.sort (.param uN))
             (Expr.forallE
               (Expr.forallE (.bvar 0)
-                (Expr.forallE (.bvar 1) (.sort .zero)
-                  {})
-                {})
+                (Expr.forallE (.bvar 1) (.sort .zero)))
               (Expr.forallE (.bvar 1)
                 (Expr.forallE (.bvar 2)
                   (Expr.forallE
@@ -2617,12 +2564,7 @@ theorem declBasisPB_quotK {env₁ : Env} (mp : EnvModelM V μ env)
                         (.bvar 4)) (.bvar 3)) (.bvar 2)))
                       (.app (.app (.app
                         (.const quotMkName [.param uN])
-                        (.bvar 4)) (.bvar 3)) (.bvar 1)))
-                    {})
-                  {})
-                {})
-              {})
-            {} from rfl]
+                        (.bvar 4)) (.bvar 3)) (.bvar 1))))))) from rfl]
     simp [Expr.constsResolve, hfQ, hfM, hfE]
   exact extendQuotSound mp4 hQ4 hM4 hE4 hf5  hwf5
 

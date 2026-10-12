@@ -161,10 +161,10 @@ theorem constsBound_of_instantiate1 {env₀ : Env} {v : Expr} :
   | app f a ihf iha =>
     intro k h; simp only [Expr.instantiate1, constsBound_app] at h ⊢
     exact ⟨ihf k h.1, iha k h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro k h; simp only [Expr.instantiate1, constsBound_lam] at h ⊢
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro k h; simp only [Expr.instantiate1, constsBound_forallE] at h ⊢
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
   | letE ty v' b iht ihv ihb =>

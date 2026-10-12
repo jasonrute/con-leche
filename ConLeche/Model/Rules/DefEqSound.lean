@@ -194,11 +194,11 @@ theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : 
 types, never the point ("not pt" source (1)), so the premises' claims
 apply with no condition. -/
 theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
-    {m₁ m₂ : BinderMeta}
+   
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
-    DefEqSem m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
+    DefEqSem m φ d (.forallE ty₁ body₁) (.forallE ty₂ body₂) := by
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
@@ -341,7 +341,7 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   have hLwaρ : LeavesGr m φ d wta ρ := hLtaρ.of_subset hsubWA
   obtain ⟨hftb, hsubb, tba, htba, hXB⟩ := htb hfb hCb hdb
   obtain ⟨hokTb, hmemB⟩ := (IORel.mem_of_red (hXB ρ hρ hLb hokB).1 hnb hwtbr
-    (fun ty body mb h => by rw [h] at hwtbF; exact nomatch hwtbF)).of_reading htba
+    (fun ty body h => by rw [h] at hwtbF; exact nomatch hwtbF)).of_reading htba
   have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubb
   have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubb
   obtain ⟨hfWB, hsubWB, wtba, hwtba, hYB⟩ := hwtb hftb hCtb htba
@@ -416,14 +416,14 @@ they are both the point or neither, and where neither is the bodies'
 conditional claim makes them equal (`IsTy.eq_of_ne_pt`).  The claim is
 unconditional: no side need be off the point. -/
 theorem DefEqLams.inner_sound {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ : Expr}
-    {m₁ m₂ : BinderMeta}
+   
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂)))
     (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂)) t₁)
     (ht₂ : InferSemFull m φ (d + 1) (body₂.instantiate1 (.fvar d ty₂)) t₂)
     (ht : DefEqSem m φ (d + 1) t₁ t₂) :
-    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
+    DefEqLamsSem m φ d (.lam ty₁ body₁) (.lam ty₂ body₂) := by
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
@@ -462,11 +462,11 @@ theorem DefEqLams.inner_sound {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ :
 variable, unconditionally, so the λs are; the domains are types ("not
 pt" source (1)), so their conditional claim applies. -/
 theorem DefEqLams.outer_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
-    {m₁ m₂ : BinderMeta}
+   
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqLamsSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
-    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
+    DefEqLamsSem m φ d (.lam ty₁ body₁) (.lam ty₂ body₂) := by
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
@@ -501,7 +501,7 @@ is the abstraction of its applications (`lamV_eta`).  `hmb` is the
 claim of `b`'s type: where `b` is not the point it is a member of it,
 which the type's io claim gives for an atom-headed `b`. -/
 theorem DefEq.eta_core {d : Nat}
-    {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    {ty₁ body₁ b tb ty₂ B t₁ : Expr}
     (htb : Frame d b → ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
       CtxOkS m φ d Δa b → denoteMeta m.acval env φ d b = some ea →
       Frame d tb ∧ LeavesSub tb b ∧
@@ -509,13 +509,13 @@ theorem DefEq.eta_core {d : Nat}
           ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d b ρ →
             WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
             WellDenotedTy V ρ ta ∧ interp V ρ ea ∈ˢ interp V ρ ta)
-    (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (hwtb : RedSem m φ d tb (.forallE ty₂ B))
     (hty : DefEqSem m φ d ty₂ ty₁)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
       (.app b (.fvar d ty₁)))
     (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
     (htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
-    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
+    DefEqSem m φ d (.lam ty₁ body₁) b := by
   intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB _ hnb
   obtain ⟨hwF1, hbF1, hLF1⟩ := hfa
   obtain ⟨hwF2, hbF2, hLF2⟩ := hfb
@@ -542,8 +542,8 @@ theorem DefEq.eta_core {d : Nat}
   obtain ⟨hfW, hsubW, wtba, hwtba, hY⟩ := hwtb hftb hCtb htba
   -- "not pt" source (1): `b`'s type is a type
   obtain ⟨hokW, heqW⟩ := hY ρ hρ hLtbρ hokTb.1 hokTb.ne_pt
-  have hCwr : CtxOkS m φ d Δa (Expr.forallE ty₂ B m₂) := hCtb.of_subset hsubW
-  have hLwρ : LeavesGr m φ d (Expr.forallE ty₂ B m₂) ρ := hLtbρ.of_subset hsubW
+  have hCwr : CtxOkS m φ d Δa (Expr.forallE ty₂ B) := hCtb.of_subset hsubW
+  have hLwρ : LeavesGr m φ d (Expr.forallE ty₂ B) ρ := hLtbρ.of_subset hsubW
   obtain ⟨ta₂, ba₂, hta₂, hba₂, rfl⟩ := denoteMeta_forallE_inv hwtba
   have hokTa₂ : WellDenotedTy V ρ ta₂ := hokW.pi_dom
   -- the two domains agree ("not pt" source (1): two types)
@@ -646,15 +646,15 @@ theorem DefEq.eta_core {d : Nat}
 its io claim is a membership — for an atom-headed `b` (the fragment's
 `etaIO_sound`). -/
 theorem DefEq.eta_sound {d : Nat}
-    {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    {ty₁ body₁ b tb ty₂ B t₁ : Expr}
     (hneu : b.ioNeutral = true)
-    (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B))
     (hty : DefEqSem m φ d ty₂ ty₁)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
       (.app b (.fvar d ty₁)))
     (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
     (htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
-    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
+    DefEqSem m φ d (.lam ty₁ body₁) b := by
   refine DefEq.eta_core (fun hf Δa ea hC hea => ?_) hwtb hty hbody ht₁ htB
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := htb hf hC hea
   refine ⟨hft, hsub, ta, hta, fun ρ hρ hL hw hn => ?_⟩

@@ -77,7 +77,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
-  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState BinderMeta)
+  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState)
 
 universe w
 
@@ -116,8 +116,8 @@ theorem iotaCtorLicensed_inv {f : Name → Option ConstantInfo} {cvj : ConstantV
   revert h
   unfold ConLeche.iotaCtorLicensed
   match hpr : (cvj.type.piResult).getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => intro h; exact nomatch h
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => intro h; exact nomatch h
   | .const T us₀ =>
     dsimp only
     match hfT : f T with
@@ -133,32 +133,32 @@ theorem iotaCtorLicensed_inv {f : Name → Option ConstantInfo} {cvj : ConstantV
 /-- An application spine over a head that is not a `∀` is its own
 `piResult`. -/
 theorem piResult_mkAppN_of_ne : ∀ (args : List Expr) (f : Expr),
-    (∀ b c d, f ≠ .forallE b c d) → (Expr.mkAppN f args).piResult = Expr.mkAppN f args
+    (∀ b c, f ≠ .forallE b c) → (Expr.mkAppN f args).piResult = Expr.mkAppN f args
   | [], f, hf => by
     cases f with
-    | forallE b c d => exact absurd rfl (hf b c d)
+    | forallE b c => exact absurd rfl (hf b c)
     | _ => rfl
-  | a :: as, f, _ => piResult_mkAppN_of_ne as (.app f a) (fun _ _ _ h => nomatch h)
+  | a :: as, f, _ => piResult_mkAppN_of_ne as (.app f a) (fun _ _ h => nomatch h)
 
 /-- **A syntactic telescope ending in a constant application** has that
 constant at the head of its `piResult`. -/
 theorem piResult_getAppFn_of_stripPis {I : Name} {us : List Level} :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × BinderMeta)} {args : List Expr},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {args : List Expr},
       e.stripPis n = some (bs, Expr.mkAppN (.const I us) args) →
       (e.piResult).getAppFn = .const I us
   | 0, e, bs, args, h => by
     simp only [ConLeche.Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
-    rw [h.2, piResult_mkAppN_of_ne args (.const I us) (fun _ _ _ h => nomatch h), getAppFn_mkAppN_const]
+    rw [h.2, piResult_mkAppN_of_ne args (.const I us) (fun _ _ h => nomatch h), getAppFn_mkAppN_const]
   | n + 1, e, bs, args, h => by
     match e with
-    | .forallE ty b m =>
+    | .forallE ty b =>
       simp only [ConLeche.Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', r⟩, hr, heq⟩ := h
       simp only [Prod.mk.injEq] at heq
       obtain ⟨-, rfl⟩ := heq
       show b.piResult.getAppFn = _
       exact piResult_getAppFn_of_stripPis n hr
-    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _ _
+    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
     | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [ConLeche.Expr.stripPis])
 
 /-- **A never-zero sort datum, instantiated, is never zero.** -/
@@ -208,7 +208,7 @@ opened at variables (`openPisAtFvars_stripPis`) and read
 parameters' de Bruijn indices. -/
 theorem denoteMeta_ctorShape {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {ψ : Name → Nat} {cv : ConstantVal} {I : Name} {nPc nF : Nat}
-    {bs : List (Expr × BinderMeta)} {es : List Expr} {ciI : ConstantInfo} {ea : AnnotTerm}
+    {bs : List Expr} {es : List Expr} {ciI : ConstantInfo} {ea : AnnotTerm}
     (hfI : env.find? I = some ciI)
     (hlI : (cv.levelParams.map Level.param).length = ciI.toConstantVal.levelParams.length)
     (hst : cv.type.stripPis (nPc + nF)
@@ -1318,7 +1318,7 @@ theorem genOut_caps {j : Nat} {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc
     ∃ caps, envC.find? (tgtMajor out j).ind = some (.indInfo cvI caps) ∧
       (∀ ψ : Name → Nat, (tgtClsD d Dc out j).w ψ = 0 → caps.sortZ.holds ψ = true) ∧
       (caps.ruleK = true → (tgtClsD d Dc out j).nctors (tgtClsM mc pp.toBlockShape out j) = 1) ∧
-      ∃ (bs : List (Expr × BinderMeta)) (es : List Expr),
+      ∃ (bs : List Expr) (es : List Expr),
         cA.1.type.stripPis ((tgtMajor out j).nPc + cA.2)
           = some (bs, Expr.mkAppN (.const (tgtMajor out j).ind (cA.1.levelParams.map .param))
               (ConLeche.structPsAt cA.2 (tgtMajor out j).nPc ++ es)) := by

@@ -32,7 +32,7 @@ open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockShape TargetMajor
-  NestCtx NestHole NestCtorNf BinderMeta PosD PosTree NestFieldKind PosNodeOk nestHoleImg
+  NestCtx NestHole NestCtorNf PosD PosTree NestFieldKind PosNodeOk nestHoleImg
   closeTelescope targetPiDomsWith targetMajorNfs openPisAtFvars)
 
 /-! ## K.53′'s comparison, as one erasure equation -/
@@ -53,8 +53,8 @@ theorem replaceFVars_congr_below {f g : Nat → Option Expr} {d : Nat}
   | const n us => intro _; rfl
   | lit l => intro _; rfl
   | app f a ihf iha => intro h; simp only [Expr.replaceFVars, ihf h.1, iha h.2]
-  | lam t body m iht ihb => intro h; simp only [Expr.replaceFVars, iht h.1, ihb h.2]
-  | forallE t body m iht ihb => intro h; simp only [Expr.replaceFVars, iht h.1, ihb h.2]
+  | lam t body iht ihb => intro h; simp only [Expr.replaceFVars, iht h.1, ihb h.2]
+  | forallE t body iht ihb => intro h; simp only [Expr.replaceFVars, iht h.1, ihb h.2]
   | letE t v body iht ihv ihb =>
     intro h; simp only [Expr.replaceFVars, iht h.1, ihv h.2.1, ihb h.2.2]
   | proj n i e ih => intro h; simp only [Expr.replaceFVars, ih h]
@@ -91,11 +91,11 @@ theorem entryDs_readback {ops : ConLeche.CheckerOps ConLeche.CheckM} {env : Env}
 depth, its type bvar-closed, its trees the telescope's. -/
 theorem tele_field {ops : ConLeche.CheckerOps ConLeche.CheckM} {env : Env} {ctx : NestCtx}
     {prog : List NestHole} {base nF : Nat} {crest : Expr} {ks : List NestFieldKind}
-    {nds : List (Expr × BinderMeta)} {cur : Expr} {ts : List PosTree}
+    {nds : List Expr} {cur : Expr} {ts : List PosTree}
     (hd : PosD ops env ctx (.tele prog base nF 0 crest ks nds cur) ts)
     (hcb : crest.looseBVarsBounded 0 = true) {i : Nat} (hi : i < nF) :
     ∃ (e : Expr) (k : NestFieldKind) (nd : Expr) (tsi : List PosTree),
-      nds[i]?.map (·.1) = some nd ∧ PosD ops env ctx (.field prog (base + i) 0 e k nd) tsi ∧
+      nds[i]? = some nd ∧ PosD ops env ctx (.field prog (base + i) 0 e k nd) tsi ∧
       e.looseBVarsBounded 0 = true ∧ ∀ t ∈ tsi, t ∈ ts := by
   obtain ⟨-, -, xs, hop, hall⟩ := ConLeche.posD_tele_open hd
   have hxl : xs.length = nF := ConLeche.Verify.openPisAtFvars_length _ hop

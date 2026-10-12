@@ -51,11 +51,11 @@ theorem constsBound_replaceConsts {env₀ : Env} {f : Name → List Level → Op
     intro h
     simp only [ConLeche.Expr.replaceConsts, constsBound_app] at h ⊢
     exact ⟨iha h.1, ihb h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceConsts, constsBound_lam] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceConsts, constsBound_forallE] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
@@ -91,11 +91,11 @@ theorem noProjAt_replaceConsts {T : Name} {q : Nat} {f : Name → List Level →
     intro h
     simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_app] at h ⊢
     exact ⟨iha h.1, ihb h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_lam] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_forallE] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
@@ -117,7 +117,7 @@ theorem constsBound_instPisWith {env₀ : Env} :
     simp only [instPisWith, Option.some.injEq] at h; subst h; exact he
   | a :: as, e, r, has, he, h => by
     match e, h with
-    | .forallE t b m, h =>
+    | .forallE t b, h =>
       have h' : instPisWith as (b.instantiate1 a) = some r := h
       simp only [constsBound_forallE] at he
       exact constsBound_instPisWith (fun x hx => has x (List.mem_cons_of_mem _ hx))
@@ -130,7 +130,7 @@ theorem noProjAt_instPisWith {T : Name} {q : Nat} :
     simp only [instPisWith, Option.some.injEq] at h; subst h; exact he
   | a :: as, e, r, has, he, h => by
     match e, h with
-    | .forallE t b m, h =>
+    | .forallE t b, h =>
       have h' : instPisWith as (b.instantiate1 a) = some r := h
       simp only [ConLeche.Expr.noProjAt_forallE] at he
       exact noProjAt_instPisWith (fun x hx => has x (List.mem_cons_of_mem _ hx))
@@ -164,11 +164,11 @@ theorem constsBound_replaceApps {env₀ : Env} {f : Name → List Level → Opti
       exact hf _ _ _ hc
     · simp only [constsBound_app] at h ⊢
       exact ⟨iha h.1, ihx h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceApps, constsBound_lam] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceApps, constsBound_forallE] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
@@ -208,11 +208,11 @@ theorem noProjAt_replaceApps {T : Name} {q : Nat} {f : Name → List Level → O
       exact hf _ _ _ hc
     · simp only [ConLeche.Expr.noProjAt_app] at h ⊢
       exact ⟨iha h.1, ihx h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceApps, ConLeche.Expr.noProjAt_lam] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [ConLeche.Expr.replaceApps, ConLeche.Expr.noProjAt_forallE] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩

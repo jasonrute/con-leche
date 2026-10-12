@@ -116,8 +116,8 @@ module docstring). -/
       denoteMeta mp.base2.acval env φ (base + j) cur = some ca → GradedTy V Δa ca →
       HoleRelA mp.base2 φ w ctx prog (base + j) Δa R →
       PiAccThen w ctx prog (ResultAt mp.base2 φ ctx.nP (ctx.hiAt prog.length) (base + j + nF) res)
-        nF (base + j) (nds.map (·.1)) R ca ∧
-      OutTele mp.base2 φ ctx prog ks (nds.map (·.1)) (base + j) Δa ca
+        nF (base + j) nds R ca ∧
+      OutTele mp.base2 φ ctx prog ks nds (base + j) Δa ca
   | .ctors prog hi us ds names holes cs =>
     ContOk mp φ w ctx → ctx.hiAt prog.length = hi →
     ∀ {Δ : List AnnotTerm} {R : FrameRel V}, HoleRelA mp.base2 φ w ctx prog hi Δ R →
@@ -342,7 +342,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       · exact ⟨hfrw.2.1, hfrw.1, fun _ => hocc, wa, hwa, fun _ _ => rfl⟩
       · rename_i hne
         exact ⟨hfr.2.1, hfr.1, fun _ => by simpa using hne, ea, hea, fun ρ hρ => heq ρ hρ⟩
-  | @pi prog dep kb e a b bm k nb ts hw' hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw' hocc ha hb ihb =>
     intro hcovk hhi hfr Δa ea R hC hea hgr hR
     refine acc_of_whnf hin hw' hfr hC hea hgr hR.dom fun hfrw hCw hlw wa hwa hgw _ => ?_
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
@@ -359,7 +359,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     obtain ⟨⟨hTRb, ⟨Ab, hAb, hszb, hinvb⟩, houtb⟩, hokb⟩ := ihb hcovk (by omega)
       (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd) hCop hba hgB
       (hR.underBoth hhi ta)
-    have hout : OutMent dep e (.forallE a (nb.abstract1 dep 0) bm) := by
+    have hout : OutMent dep e (.forallE a (nb.abstract1 dep 0)) := by
       intro q hq ho
       simp only [ConLeche.Expr.nestOcc, Bool.or_eq_true] at ho
       have hwa' : ∀ l ∈ a.fvarLeaves, l ∈ e.fvarLeaves :=
@@ -375,7 +375,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
           rcases hl' with rfl | hl'
           · simp at hlq; omega
           · exact ⟨l, hwa' l hl', hlq⟩
-    have hokP : OutOk mp.base2 φ ctx prog dep Δa k (.forallE a (nb.abstract1 dep 0) bm)
+    have hokP : OutOk mp.base2 φ ctx prog dep Δa k (.forallE a (nb.abstract1 dep 0))
         (.pi ta ba) := by
       obtain ⟨hnbB, hnbW, hnbO, nba, hnba, hnbr⟩ := hokb
       refine ⟨?_, ?_, fun hk => ?_, .pi ta nba, ?_, fun ρ hρ => ?_⟩
@@ -398,7 +398,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       exact ⟨fun x hx => (hgB _ (Sat_cons V h1 hx)).2, fun x hx => (hgB _ (Sat_cons V h2 hx)).2⟩
     refine ⟨⟨fun hw => PtOn.pi hA hT (hTRb hw), ?_, hout⟩, hokP⟩
     have hinvP : InvOn (MentP ctx.nP (ctx.hiAt prog.length) dep
-        (.forallE a (nb.abstract1 dep 0) bm)) (piBound w ta Ab) := InvOn.pi (NoBVar.mono (fun i hi hn => hi (Or.inl hn))
+        (.forallE a (nb.abstract1 dep 0))) (piBound w ta Ab) := InvOn.pi (NoBVar.mono (fun i hi hn => hi (Or.inl hn))
         (noBVar_not_mentNH hws.1 hbb.1 hholes (fun s _ hs => by
           simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hs
           exact hs.1) hta)) (InvOn.mono hinvb fun i hi => mentP_body i hi)
@@ -554,7 +554,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   | teleNil =>
     intro _ _ hfr Δa ca R _ hca _ hR
     exact ⟨⟨hR.agree, hca, hfr.1⟩, trivial⟩
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha hb iha ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro hcovk hhi hfr Δa ca R hC hca hgr hR
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
     obtain ⟨hws, hbb, hLb⟩ := hfr
@@ -588,7 +588,7 @@ the result's indices hole-free — coverage needed only when some field's
 kind is not flat. -/
 theorem memberCtorD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hin : RulesInputs V mp.base2 φ) {w : Nat} {ctx : NestCtx} {F nF : Nat}
-    {crest cur : Expr} {ks : List NestFieldKind} {nds : List (Expr × ConLeche.BinderMeta)}
+    {crest cur : Expr} {ks : List NestFieldKind} {nds : List Expr}
     {ts : List PosTree}
     (htele : PosD (fueledOps .verified F) env ctx (.tele [] (ctx.hiAt 0) nF 0 crest ks nds cur) ts)
     (hhead : ConLeche.nestResHead cur = true)
@@ -598,7 +598,7 @@ theorem memberCtorD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hC : CtxOkP mp.base2 φ (ctx.hiAt 0) Δa crest)
     (hca : denoteMeta mp.base2.acval env φ (ctx.hiAt 0) crest = some ca) (hgr : GradedTy V Δa ca)
     (hR : HoleRelA mp.base2 φ w ctx [] (ctx.hiAt 0) Δa R) :
-    PiAccThen w ctx [] ResultIdxConst nF (ctx.hiAt 0) (nds.map (·.1)) R ca :=
+    PiAccThen w ctx [] ResultIdxConst nF (ctx.hiAt 0) nds R ca :=
   PiAccThen.mono (fun _ _ h => resultIdxConst_of_resultAt (by simp) hhead hok h) nF _ _ R ca
     (posD_acc mp hin htele hcov (by simp) hfr hC hca hgr hR).1
 

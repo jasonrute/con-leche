@@ -92,9 +92,6 @@ private def qPropWhen : ConLeche.PropWhen → Lean.Expr
   | .never => mkConst ``ConLeche.PropWhen.never
   | .ifAllZero ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
 
-private def qBinderMeta (_m : ConLeche.BinderMeta) : Lean.Expr :=
-  mkConst ``ConLeche.BinderMeta.mk
-
 private def qLiteral : ConLeche.Literal → Lean.Expr
   | .natVal n => mkApp (mkConst ``ConLeche.Literal.natVal) (mkRawNatLit n)
   | .strVal s => mkApp (mkConst ``ConLeche.Literal.strVal) (mkStrLit s)
@@ -105,10 +102,10 @@ private def qExpr : ConLeche.Expr → Lean.Expr
   | .sort u => mkApp (mkConst ``ConLeche.Expr.sort) (qLevel u)
   | .const n us => mkApp2 (mkConst ``ConLeche.Expr.const) (qName n) (qLevels us)
   | .app f a => mkApp2 (mkConst ``ConLeche.Expr.app) (qExpr f) (qExpr a)
-  | .lam ty b m =>
-    mkApp3 (mkConst ``ConLeche.Expr.lam) (qExpr ty) (qExpr b) (qBinderMeta m)
-  | .forallE ty b m =>
-    mkApp3 (mkConst ``ConLeche.Expr.forallE) (qExpr ty) (qExpr b) (qBinderMeta m)
+  | .lam ty b =>
+    mkApp2 (mkConst ``ConLeche.Expr.lam) (qExpr ty) (qExpr b)
+  | .forallE ty b =>
+    mkApp2 (mkConst ``ConLeche.Expr.forallE) (qExpr ty) (qExpr b)
   | .letE ty v b =>
     mkApp3 (mkConst ``ConLeche.Expr.letE) (qExpr ty) (qExpr v) (qExpr b)
   | .lit l => mkApp (mkConst ``ConLeche.Expr.lit) (qLiteral l)

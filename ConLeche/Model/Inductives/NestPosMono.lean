@@ -80,9 +80,9 @@ theorem nestOcc_instantiate1_fvar {names : List Name} {lo hi d : Nat}
   | lit l => intro k; rfl
   | app f a ihf iha =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, ihf, iha]
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihb]
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihb]
   | letE t v b iht ihv ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihv, ihb]
@@ -137,7 +137,7 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     intro ea _ _ _ h
     rw [denoteMeta, hf] at h
     exact nomatch h
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro ea hws hd hocc h
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     simp only [Expr.fvarsBelow] at hws
@@ -148,7 +148,7 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     have hocc' : (body.instantiate1 (.fvar d ty)).nestOcc names lo hi = false := by
       rw [nestOcc_instantiate1_fvar (by omega) ty body 0]; exact hocc.2
     exact NoBVar.mono holeP_succ (ihbody hws' (by omega) hocc' hba)
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro ea hws hd hocc h
     rw [denoteMeta] at h
     rcases hta : denoteMeta m.acval env φ d ty with _ | ta
@@ -240,8 +240,8 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

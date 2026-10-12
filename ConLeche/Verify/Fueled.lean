@@ -96,7 +96,7 @@ theorem iotaCertsFull_atF (d : Nat) (F : Nat) :
       (iotaCertsFull (fueledFns mode env) env d ty args).val F =
         iotaCertsFull (pureFns mode env F) env d ty args
   | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
+  | .forallE ty body, arg :: rest => by
     show ((do
         let ta ← (fueledFns mode env).infer d arg
         if ← (fueledFns mode env).defeq d ta ty then
@@ -118,7 +118,7 @@ theorem iotaCertsFull_atF (d : Nat) (F : Nat) :
       exact iotaCertsFull_atF d F (body.instantiate1 arg) rest
     | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
 theorem defEqList_atF (d : Nat) (F : Nat) :

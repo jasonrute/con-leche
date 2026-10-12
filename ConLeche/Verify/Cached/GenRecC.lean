@@ -359,7 +359,7 @@ theorem classesNfsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p
 /-- Node agreement at one recursive field, at every entry. -/
 theorem classNodesAgreeS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockShape} {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t)
-    {Mc : TargetMajor} (hMc : TargetMajScoped Mc) {tele : List (Expr × BinderMeta)}
+    {Mc : TargetMajor} (hMc : TargetMajScoped Mc) {tele : List Expr}
     {leaf : Expr} {fvs : List Expr} {i : Nat} {ctor : Name} :
     ∀ (es : List NestCtorNf) {s₀ : CState}, CSOK mode env s₀ →
       SimC mode env s₀ RelVC
@@ -605,7 +605,7 @@ theorem classRuleOkS_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR
   obtain ⟨rfl, -⟩ := hX
   obtain ⟨rbs, body⟩ := x
   dsimp only
-  by_cases h5 : (rbs.all fun b => StructWalkers.plain.resolve (mkFEnv envT) b.1) = true
+  by_cases h5 : (rbs.all fun b => StructWalkers.plain.resolve (mkFEnv envT) b) = true
   case neg => simp only [h5]; exact SimG.throw_bind
   simp only [h5, ite_true]
   exact SimG.pure (fun _ h => h) rfl

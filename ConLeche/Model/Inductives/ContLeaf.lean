@@ -291,7 +291,7 @@ theorem certsF_of_infer_spine {env : Env} {d : Nat} :
   | [], _, _, _, _, _, _ => .nil
   | a :: as, f, T0, r, hf, hpi, ⟨T, hT⟩ => by
     match T0, hpi with
-    | .forallE A B m, hpi =>
+    | .forallE A B, hpi =>
       have hpi' : ConLeche.instPisWith as (B.instantiate1 a) = some r := hpi
       obtain ⟨_, h1⟩ := infer_mkAppN_head as (f := .app f a) hT
       cases h1 with

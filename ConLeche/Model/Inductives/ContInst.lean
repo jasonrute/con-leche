@@ -103,10 +103,10 @@ theorem replaceApps_canon_fill {names : List Name} {us : List Level} {n : Nat}
     split
     · rename_i h hh; exact hhit _ _ hh
     · simp only [replaceFVars, iha hb.1, ihx hb.2]
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [replaceApps, replaceFVars, iht hb.1, ihb hb.2]
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [replaceApps, replaceFVars, iht hb.1, ihb hb.2]
   | letE t v body iht ihv ihb =>

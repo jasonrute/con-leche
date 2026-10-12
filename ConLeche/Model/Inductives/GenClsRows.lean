@@ -37,7 +37,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
-  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState BinderMeta
+  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
 
 universe w
@@ -113,7 +113,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
   obtain ⟨y, hy⟩ : ∃ y, fvs1[R.g.nP + s]? = some y :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hyE := hE _ y T hy (by
-    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT]; rfl)
+    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT])
   obtain ⟨pd, hpd, hrd⟩ := hdomsR _ y hy
   rw [denoteMeta_erasedEq hyE] at hrd
   -- the prefix's entry: the minor's value, graded there
@@ -135,16 +135,16 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
         obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
         rw [hxe]; exact ConLeche.ScB.fvar (by omega) hty) (by omega)
-  have hihS : ∀ l ty bm', ihs[l]? = some (ty, bm') →
+  have hihS : ∀ l ty, ihs[l]? = some ty →
       ConLeche.ScB (R.g.pre.length + x.nF + l) ty := by
-    intro l ty bm' hl
+    intro l ty hl
     have hl' : l < x.recs.length := by
       rw [← hihl]; exact (List.getElem?_eq_some_iff.mp hl).1
     obtain ⟨⟨i, t, tele⟩, hq⟩ : ∃ q, x.recs[l]? = some q :=
       ⟨_, List.getElem?_eq_getElem hl'⟩
     obtain ⟨⟨ty', hty', hl2⟩, -, -, st, hst, hstl⟩ := hih l i t tele hq
     rw [hl] at hl2
-    obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hl2)
+    obtain rfl := Option.some.inj hl2
     obtain ⟨hiF, -⟩ := ConLeche.ClassGen.recs_mem (List.mem_of_getElem? hq)
     have hi : i < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hiF
     obtain ⟨tyf, hxe, htyf⟩ := hfvsS i _ (List.getElem?_eq_getElem hi)
@@ -152,7 +152,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some, hxe]
     exact ConLeche.ScB.fvar (by omega) (htyf.mono (by omega))
   have hcl : ∀ p ∈ (tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs,
-      p.1.looseBVarsBounded 0 = true := by
+      p.looseBVarsBounded 0 = true := by
     intro p hp
     rcases List.mem_append.mp hp with hp | hp
     · obtain ⟨y', hy', rfl⟩ := List.mem_map.mp hp
@@ -160,7 +160,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
       obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
       rw [hxe]; exact hty.2
     · obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem hp
-      exact (hihS l _ _ (List.getElem?_eq_getElem hl)).2
+      exact (hihS l _ (List.getElem?_eq_getElem hl)).2
   have hbbS : ConLeche.ScB (R.g.pre.length + x.nF)
       (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
         [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)

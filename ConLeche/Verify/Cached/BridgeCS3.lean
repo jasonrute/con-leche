@@ -88,7 +88,7 @@ theorem whnfTelescopeS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     refine SimC.bind (opE_whnf_sim hμ henv hs hw) (fun s₁ e' e'' hs₁ hR => ?_)
     obtain ⟨rfl, hw'⟩ := hR
     split
-    · next nm dom body bm =>
+    · next dom body =>
       simp only [WScoped] at hw'
       refine SimC.bind (whnfTelescopeS_sim hμ henv hs₁ (WScoped.instantiate1 hw'.1 0 hw'.2))
         (fun s₂ q q' hs₂ hQ => ?_)

@@ -41,7 +41,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
-  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState BinderMeta
+  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
 
 universe w
@@ -189,20 +189,20 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
     ConLeche.Verify.openPisAtFvars_length _ hop1
   obtain ⟨y, hy⟩ : ∃ y, fvs1[d]? = some y := ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hyE := hE d y Tm hy (by
-    rw [List.append_assoc, List.getElem?_append_left hdP, hpreT]; rfl)
+    rw [List.append_assoc, List.getElem?_append_left hdP, hpreT])
   obtain ⟨pd, hpd, hrd⟩ := hdomsR1 d y hy
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD d
       default = pd := by
     rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left (by omega), hpd]; rfl
   rw [← hTm] at hyE
-  have hcl : ∀ p ∈ ifsD.map ConLeche.classBinder, p.1.looseBVarsBounded 0 = true := by
+  have hcl : ∀ p ∈ ifsD.map ConLeche.classBinder, p.looseBVarsBounded 0 = true := by
     intro p hp
     obtain ⟨z, hz, rfl⟩ := List.mem_map.mp hp
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hz
     obtain ⟨tz, hxe, htz⟩ := hifsD k _ (List.getElem?_eq_getElem hk)
     rw [hxe]; exact htz.2
-  have hbb : (Expr.forallE majD (.sort R.g.elim) default).looseBVarsBounded 0 = true := by
+  have hbb : (Expr.forallE majD (.sort R.g.elim)).looseBVarsBounded 0 = true := by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hmajS.2, trivial⟩
   obtain ⟨bs, b, hPE, hbl, hbs, hb⟩ := denoteMeta_closeTelescope_read _ d _ _ hcl hbb hyE hrd
@@ -307,8 +307,8 @@ theorem genPdoms_read (hμ : μ.verifiedChecks = true)
     (ψ : Name → Nat) {c : Nat} (hc : c < (tgtRs out).length) :
     (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
         = R.g.pre.length ∧
-      ∀ (i : Nat) (b : Expr × BinderMeta), R.g.pre[i]? = some b →
-        denoteMeta mpC.base2.acval envC ψ i b.1
+      ∀ (i : Nat) (b : Expr), R.g.pre[i]? = some b →
+        denoteMeta mpC.base2.acval envC ψ i b
           = some ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD i
               default) := by
   have hrc : (tgtRs out)[c]? = some ((tgtRs out)[c]'hc) := List.getElem?_eq_getElem hc
@@ -323,7 +323,7 @@ theorem genPdoms_read (hμ : μ.verifiedChecks = true)
   refine ⟨by rw [blockRulePdomsAV_length hμ mpC h hrc ψ, hRPc], fun i b hb => ?_⟩
   have hi : i < R.g.pre.length := (List.getElem?_eq_some_iff.mp hb).1
   obtain ⟨y, hy⟩ : ∃ y, fvs1[i]? = some y := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-  have hyE := hE i y b.1 hy (by rw [List.append_assoc, List.getElem?_append_left hi, hb]; rfl)
+  have hyE := hE i y b hy (by rw [List.append_assoc, List.getElem?_append_left hi, hb])
   obtain ⟨pd, hpd, hrd⟩ := hdomsR1 i y hy
   rw [← denoteMeta_erasedEq hyE, hrd, blockRulePdomsAV, List.getD_eq_getElem?_getD,
     List.getElem?_take, ite_eq_left (by omega), hpd]

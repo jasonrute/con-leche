@@ -229,12 +229,10 @@ def Expr.instantiateLevelParams (ks : List Name) (us : List Level) : Expr → Ex
   | .sort u => .sort (Level.subst ks us u)
   | .const n vs => .const n (vs.map (Level.subst ks us))
   | .app f a => .app (f.instantiateLevelParams ks us) (a.instantiateLevelParams ks us)
-  | .lam ty body m =>
+  | .lam ty body =>
     .lam (ty.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
-      m
-  | .forallE ty body m =>
+  | .forallE ty body =>
     .forallE (ty.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
-      m
   | .letE ty val body => .letE (ty.instantiateLevelParams ks us)
       (val.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
   | .lit l => .lit l
@@ -251,7 +249,7 @@ def Expr.allLevelParamsDefined (params : List Name) : Expr → Bool
   | .sort u => u.allParamsDefined params
   | .const _ us => us.all (Level.allParamsDefined params)
   | .app f a => f.allLevelParamsDefined params && a.allLevelParamsDefined params
-  | .lam t b _ | .forallE t b _ =>
+  | .lam t b | .forallE t b =>
     t.allLevelParamsDefined params && b.allLevelParamsDefined params
   | .letE t v b => t.allLevelParamsDefined params && v.allLevelParamsDefined params
       && b.allLevelParamsDefined params
@@ -305,11 +303,11 @@ def Expr.allLevelParamsDefinedGo (params : List Name) (memo : Std.HashMap Expr B
           let (b₁, memo) := allLevelParamsDefinedGo params memo f
           let (b₂, memo) := allLevelParamsDefinedGo params memo a
           (b₁ && b₂, memo)
-        | .lam t b _ =>
+        | .lam t b =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo b
           (b₁ && b₂, memo)
-        | .forallE t b _ =>
+        | .forallE t b =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo b
           (b₁ && b₂, memo)
@@ -352,7 +350,7 @@ theorem Expr.allLevelParamsDefinedGo_spec {params : List Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [allLevelParamsDefined, h1, h3], ?_⟩
       exact h4.insert (by simp [allLevelParamsDefined, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [allLevelParamsDefinedGo]
     split
@@ -362,7 +360,7 @@ theorem Expr.allLevelParamsDefinedGo_spec {params : List Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [allLevelParamsDefined, h1, h3], ?_⟩
       exact h4.insert (by simp [allLevelParamsDefined, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [allLevelParamsDefinedGo]
     split

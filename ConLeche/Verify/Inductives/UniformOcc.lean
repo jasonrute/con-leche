@@ -47,8 +47,8 @@ theorem nestOcc_zero_instantiate1 {names : List Name} {i : Nat} {ty : Expr} :
     · simp [Expr.nestOcc]
     · split <;> rfl
   | app f a ihf iha => intro k; simp [Expr.instantiate1, Expr.nestOcc, ihf, iha]
-  | lam t b mm iht ihb => intro k; simp [Expr.instantiate1, Expr.nestOcc, iht, ihb]
-  | forallE t b mm iht ihb => intro k; simp [Expr.instantiate1, Expr.nestOcc, iht, ihb]
+  | lam t b iht ihb => intro k; simp [Expr.instantiate1, Expr.nestOcc, iht, ihb]
+  | forallE t b iht ihb => intro k; simp [Expr.instantiate1, Expr.nestOcc, iht, ihb]
   | letE t v b iht ihv ihb => intro k; simp [Expr.instantiate1, Expr.nestOcc, iht, ihv, ihb]
   | proj s j e ih => intro k; simp [Expr.instantiate1, Expr.nestOcc, ih]
   | _ => intro k; rfl
@@ -61,9 +61,9 @@ theorem nestOcc_zero_of {names : List Name} {lo hi : Nat} :
   | fvar i ty _ => intro _; simp [Expr.nestOcc]
   | app f a ihf iha =>
     intro h; simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢; exact ⟨ihf h.1, iha h.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro h; simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro h; simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
     intro h; simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢
@@ -76,7 +76,7 @@ constant there. -/
 theorem piDomsOcc_zero_of {names : List Name} {lo hi : Nat} :
     ∀ (n : Nat) (e : Expr), e.piDomsOcc names lo hi n = false → e.piDomsOcc names 0 0 n = false
   | 0, _, _ => rfl
-  | n + 1, .forallE d b bm, h => by
+  | n + 1, .forallE d b, h => by
     simp only [Expr.piDomsOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨nestOcc_zero_of _ h.1, piDomsOcc_zero_of n b h.2⟩
   | _ + 1, .bvar _, _ | _ + 1, .fvar .., _ | _ + 1, .sort _, _ | _ + 1, .const .., _
@@ -89,7 +89,7 @@ theorem piDomsOcc_zero_instantiate1 {names : List Name} {x : Nat} {t : Expr} :
     ∀ (n : Nat) (e : Expr) (k : Nat),
       (e.instantiate1 (.fvar x t) k).piDomsOcc names 0 0 n = e.piDomsOcc names 0 0 n
   | 0, _, _ => rfl
-  | n + 1, .forallE d b bm, k => by
+  | n + 1, .forallE d b, k => by
     simp only [Expr.instantiate1, Expr.piDomsOcc, nestOcc_zero_instantiate1,
       piDomsOcc_zero_instantiate1 n b (k + 1)]
   | _ + 1, .bvar j, k => by
@@ -110,7 +110,7 @@ theorem nestOcc_zero_of_instPisWith {names : List Name} :
   | [], e, crest, _, hi', _, hc => by
     simp only [instPisWith, Option.some.injEq] at hi'
     subst hi'; exact hc
-  | p :: ps, .forallE d b bm, crest, hp, hi', hd, hc => by
+  | p :: ps, .forallE d b, crest, hp, hi', hd, hc => by
     obtain ⟨i, ty, rfl⟩ := hp _ List.mem_cons_self
     simp only [instPisWith] at hi'
     simp only [List.length_cons, Expr.piDomsOcc, Bool.or_eq_false_iff] at hd

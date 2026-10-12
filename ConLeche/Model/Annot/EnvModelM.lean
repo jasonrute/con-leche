@@ -168,7 +168,7 @@ constructor's residual is the former at the constructor's parameters. -/
     (caps.ruleK = true → D.nctors mm = 1)) ∧
   ∀ c, c < D.k → ∀ j, j < D.nctors c → ∃ cv nPc nF,
     env.find? (D.ctorName c j) = some (.ctorInfo cv nPc nF) ∧
-    ∃ (bs : List (Expr × ConLeche.BinderMeta)) (es : List Expr),
+    ∃ (bs : List Expr) (es : List Expr),
       cv.type.stripPis (nPc + nF)
         = some (bs, Expr.mkAppN (.const (D.member c) (cv.levelParams.map .param))
             (ConLeche.structPsAt nF nPc ++ es))

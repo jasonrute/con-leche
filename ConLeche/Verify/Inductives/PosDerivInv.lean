@@ -239,7 +239,7 @@ theorem nestFields_deriv (hrec : RunDeriv ops env ctx rec)
     {prog : List NestHole} {base : Nat}
     {err : CheckError} (hhi : ctx.hiAt prog.length ≤ base) (hsc : ProgScoped ctx prog) :
     ∀ (nF j : Nat) (cur : Expr) (st : NestState) (ks : List NestFieldKind)
-      (nds : List (Expr × BinderMeta)) (res : Expr) (st' : NestState),
+      (nds : List Expr) (res : Expr) (st' : NestState),
       nestFields rec prog base err nF j cur st = .ok (ks, nds, res, st') →
       WScoped (base + j) cur → DerivCache ops env ctx st →
       DerivCache ops env ctx st' ∧
@@ -256,7 +256,7 @@ theorem nestFields_deriv (hrec : RunDeriv ops env ctx rec)
     intro j cur st ks nds res st' h hws hI
     unfold nestFields at h
     split at h
-    · rename_i a b bm
+    · rename_i a b
       simp only [bind, Except.bind] at h
       split at h
       · simp at h
@@ -767,7 +767,7 @@ theorem nestPos_deriv (hctx : NestCtxOk ctx) (hroot : NestRootOk ctx)
       rw [ite_eq_right (by simpa using hocc)] at hrun
       split at hrun
       · -- `pi`
-        rename_i a b bm
+        rename_i a b
         by_cases ha : a.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true
         · rw [ite_eq_left ha] at hrun
           simp [throw, throwThe, MonadExceptOf.throw] at hrun

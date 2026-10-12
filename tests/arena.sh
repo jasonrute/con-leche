@@ -57,7 +57,6 @@ TESTS_DIR="${1:-_tmp/arena-tests}"
 BIN=.lake/build/bin/con-leche
 EXPECTED=tests/arena-expected.txt
 E2E_EXPECTED=tests/e2e-expected.txt
-ANNOT_EXPECTED=tests/annot-expected.txt
 T_EXPECTED=tests/trusted-expected.txt
 
 if [ ! -d "$TESTS_DIR" ]; then
@@ -324,46 +323,21 @@ e2e_half() {
   done < "$E2E_EXPECTED"
 }
 
-# --- the annotated suite (task #161) --------------------------------
-# Hand-written export streams whose binder records carry the legacy "pw"
-# field, which the parser drops; see tests/annot-expected.txt's header.
-annot_half() {
-  annot_ok=0
-  annot_total=0
-  while read -r exp rel; do
-    case "$exp" in ''|'#'*) continue;; esac
-    resolve "$exp" annot "$rel" ""
-    annot_total=$((annot_total+1))
-    timeout 60 "$BIN" $MODEFLAG "tests/annot/$rel" >/dev/null 2>&1
-    got=$?
-    if [ "$got" != "$want" ]; then
-      mismatch "ANNOT FAIL" "$rel" "$want" "$got"
-    else
-      annot_ok=$((annot_ok+1))
-    fi
-  done < "$ANNOT_EXPECTED"
-}
-
-# The arena and e2e suites run at `--verified`, then the annotated
-# fixture suite: its streams carry a legacy binder datum the parser
-# drops, so it pins that no such field changes a verdict.
+# The arena and e2e suites run at `--verified`.
 arena_half
 echo "arena tutorial: $accepted/$total_good good tests accepted"
 if [ -f "$E2E_EXPECTED" ]; then
   e2e_half
   echo "e2e: $e2e_ok/$e2e_total as expected"
 fi
-annot_half
-echo "annot suite: $annot_ok/$annot_total as expected"
-
 
 # The mode flags: the modes parse and judge the smoke fixtures alike —
 # the verified lane (`--verified`, the default) and the trusted lane
 # (`--trusted`) — and an unknown option is a usage error (exit 3), not
 # a silently ignored one: a verdict's provenance must be readable off
 # the invocation.
-SPLIT_GOOD=tests/annot/annot_split_good.ndjson
-SPLIT_BAD=tests/annot/annot_split_bad.ndjson
+SPLIT_GOOD=tests/mode/split_good.ndjson
+SPLIT_BAD=tests/mode/split_bad.ndjson
 mode_ok=0
 mode_total=0
 mode_case() {
@@ -574,7 +548,7 @@ echo "progress lane: $prog_ok/$prog_total as expected"
 # `ulimit -v` (CLAUDE.md): each worker thread reserves about 1 GiB of
 # ADDRESS SPACE, so an address-space cap aborts the default worker
 # count at thread creation (exit 134) before it bounds anything.
-SPLIT_BAD2=tests/annot/annot_split_bad2.ndjson
+SPLIT_BAD2=tests/mode/split_bad2.ndjson
 jobs_ok=0
 jobs_total=0
 jobs_check() { # <description> <condition-result>
@@ -780,7 +754,6 @@ if [ "$MODE_SWEEPS" = on ]; then
   arena_half
   t_arena=$arena_checked
   e2e_half
-  annot_half
   SWEEP=cert
   MODEFLAG=""
   if [ "$fail" = "$t_fail_before" ]; then
@@ -788,8 +761,7 @@ if [ "$MODE_SWEEPS" = on ]; then
     # deliberately do not agree — they are the recorded divergences of
     # the unverified lane, counted here so a silently emptied
     # tests/trusted-expected.txt is visible in the summary line.
-    echo "trusted sweep: $t_arena arena + $e2e_total e2e +" \
-         "$annot_total annot as expected" \
+    echo "trusted sweep: $t_arena arena + $e2e_total e2e" \
          "(${#T_OVR[@]} recorded divergences)"
   else
     echo "trusted sweep: DIVERGED — see the lines above" \
@@ -806,12 +778,11 @@ if [ "$MODE_SWEEPS" = on ]; then
     j_fail_before=$fail
     arena_half
     e2e_half
-    annot_half
     SWEEP=cert
     MODEFLAG=""
     if [ "$fail" = "$j_fail_before" ]; then
-      echo "--jobs=$jn sweep: $arena_checked arena + $e2e_total e2e +" \
-           "$annot_total annot as at the default worker count"
+      echo "--jobs=$jn sweep: $arena_checked arena + $e2e_total e2e" \
+           "as at the default worker count"
     else
       echo "--jobs=$jn sweep: DIVERGED — see the lines above"
     fi

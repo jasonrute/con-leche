@@ -64,7 +64,7 @@ variable {acv : Name → (Name → Nat) → AnnotTerm} {env : Env} {ψ : Name �
 
 /-- `readLamBs` keeps one entry per binder. -/
 theorem readLamBs_length :
-    ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)),
+    ∀ (j : Nat) (bs : List Expr),
       (readLamBs acv env ψ j bs).length = bs.length
   | _, [] => rfl
   | j, _ :: bs => by simp [readLamBs, readLamBs_length (j + 1) bs]
@@ -73,18 +73,18 @@ theorem readLamBs_length :
 λ-tower of the binders' own bits and domains (each read at its depth)
 over the body's reading. -/
 theorem denoteMeta_openLamsM :
-    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {r : Expr}
+    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List Expr} {r : Expr}
       {L : AnnotTerm},
       openLamsM n e j = some (bs, r) → denoteMeta acv env ψ j e = some L →
       ∃ C, denoteMeta acv env ψ (j + n) r = some C ∧
         L = mkLamsAV (readLamBs acv env ψ j bs) C ∧
-        ∀ (k : Nat) (b : Expr × ConLeche.BinderMeta), bs[k]? = some b →
-          ∃ a, denoteMeta acv env ψ (j + k) b.1 = some a
+        ∀ (k : Nat) (b : Expr), bs[k]? = some b →
+          ∃ a, denoteMeta acv env ψ (j + k) b = some a
   | 0, e, j, bs, r, L, h, hL => by
     simp only [openLamsM, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨L, by simpa using hL, rfl, fun k b hb => nomatch hb⟩
-  | n + 1, .lam dom body m, j, bs, r, L, h, hL => by
+  | n + 1, .lam dom body, j, bs, r, L, h, hL => by
     simp only [openLamsM] at h
     cases hi : openLamsM n (body.instantiate1 (.fvar j dom)) (j + 1) with
     | none => rw [hi] at h; exact nomatch h
@@ -108,20 +108,20 @@ theorem denoteMeta_openLamsM :
           exact ⟨a, by rw [show j + (k + 1) = j + 1 + k by omega]; exact ha⟩
   | _ + 1, .bvar _, _, _, _, _, h, _ | _ + 1, .fvar _ _, _, _, _, _, h, _
   | _ + 1, .sort _, _, _, _, _, h, _ | _ + 1, .const _ _, _, _, _, _, h, _
-  | _ + 1, .app _ _, _, _, _, _, h, _ | _ + 1, .forallE _ _ _, _, _, _, _, h, _
+  | _ + 1, .app _ _, _, _, _, _, h, _ | _ + 1, .forallE _ _, _, _, _, _, h, _
   | _ + 1, .letE _ _ _, _, _, _, _, h, _ | _ + 1, .lit _, _, _, _, _, h, _
   | _ + 1, .proj _ _ _, _, _, _, _, h, _ => nomatch h
 
 /-- A term whose `n` leading binders are λs opens them. -/
 theorem openLamsM_of_stripLams :
-    ∀ (n : Nat) {e : Expr} (j : Nat) {bs : List (Expr × ConLeche.BinderMeta)} {b : Expr},
+    ∀ (n : Nat) {e : Expr} (j : Nat) {bs : List Expr} {b : Expr},
       e.stripLams n = some (bs, b) →
       ∃ bs' r, openLamsM n e j = some (bs', r)
   | 0, e, j, bs, b, h => by
     simp only [Expr.stripLams, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨[], e, rfl⟩
-  | n + 1, .lam dom body m, j, bs, b, h => by
+  | n + 1, .lam dom body, j, bs, b, h => by
     simp only [Expr.stripLams] at h
     cases hs : body.stripLams n with
     | none => rw [hs] at h; exact nomatch h
@@ -132,10 +132,10 @@ theorem openLamsM_of_stripLams :
       obtain ⟨bs', r, ho⟩ := openLamsM_of_stripLams n (j + 1) (e := body.instantiate1
         (.fvar j dom)) (bs := q'.1) (b := q'.2) (by rw [show body.instantiate1 (.fvar j dom)
           = body.instantiate1 (.fvar j dom) 0 from rfl, hq'])
-      exact ⟨(dom, m) :: bs', r, by simp [openLamsM, ho]⟩
+      exact ⟨dom :: bs', r, by simp [openLamsM, ho]⟩
   | _ + 1, .bvar _, _, _, _, h | _ + 1, .fvar _ _, _, _, _, h | _ + 1, .sort _, _, _, _, h
   | _ + 1, .const _ _, _, _, _, h | _ + 1, .app _ _, _, _, _, h
-  | _ + 1, .forallE _ _ _, _, _, _, h | _ + 1, .letE _ _ _, _, _, _, h
+  | _ + 1, .forallE _ _, _, _, _, h | _ + 1, .letE _ _ _, _, _, _, h
   | _ + 1, .lit _, _, _, _, h | _ + 1, .proj _ _ _, _, _, _, h => nomatch h
 
 end Open
@@ -277,15 +277,15 @@ open ConLeche (ScB)
 /-- An opened λ-telescope of a scoped term: its binders' domains are
 scoped at their depths, its body at the extended depth. -/
 theorem openLamsM_scoped :
-    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {r : Expr},
+    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List Expr} {r : Expr},
       openLamsM n e j = some (bs, r) → ScB j e →
-      (∀ (k : Nat) (b : Expr × ConLeche.BinderMeta), bs[k]? = some b → ScB (j + k) b.1) ∧
+      (∀ (k : Nat) (b : Expr), bs[k]? = some b → ScB (j + k) b) ∧
         ScB (j + n) r
   | 0, e, j, bs, r, h, he => by
     simp only [openLamsM, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨(fun k b hb => nomatch hb), by simpa using he⟩
-  | n + 1, .lam dom body m, j, bs, r, h, he => by
+  | n + 1, .lam dom body, j, bs, r, h, he => by
     simp only [openLamsM] at h
     cases hi : openLamsM n (body.instantiate1 (.fvar j dom)) (j + 1) with
     | none => rw [hi] at h; exact nomatch h
@@ -309,7 +309,7 @@ theorem openLamsM_scoped :
         rwa [show j + (k + 1) = j + 1 + k by omega]
   | _ + 1, .bvar _, _, _, _, h, _ | _ + 1, .fvar _ _, _, _, _, h, _
   | _ + 1, .sort _, _, _, _, h, _ | _ + 1, .const _ _, _, _, _, h, _
-  | _ + 1, .app _ _, _, _, _, h, _ | _ + 1, .forallE _ _ _, _, _, _, h, _
+  | _ + 1, .app _ _, _, _, _, h, _ | _ + 1, .forallE _ _, _, _, _, h, _
   | _ + 1, .letE _ _ _, _, _, _, h, _ | _ + 1, .lit _, _, _, _, h, _
   | _ + 1, .proj _ _ _, _, _, _, h, _ => nomatch h
 
@@ -328,8 +328,8 @@ theorem readD_below' (m : EnvModel V env) {φ : Name → Nat} {D : Nat} {e : Exp
     rw [this]; exact hD
 
 theorem readLamBs_below (m : EnvModel V env) {φ : Name → Nat} :
-    ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)),
-      (∀ (k : Nat) (b : Expr × ConLeche.BinderMeta), bs[k]? = some b → ScB (j + k) b.1) →
+    ∀ (j : Nat) (bs : List Expr),
+      (∀ (k : Nat) (b : Expr), bs[k]? = some b → ScB (j + k) b) →
       0 < j → LamDomsBelow j (readLamBs m.acval env φ j bs)
   | _, [], _, _ => trivial
   | j, b :: bs, h, hj => by
@@ -399,9 +399,9 @@ theorem genIhdAV_below (m : EnvModel V env) {out : List (ConstantVal × TargetMa
   generalize hD' : g.pre.length + (genCtorAt g rd c j).nF = D at *
   generalize ((genCtorAt g rd c j).recs.getD l default).2.2 = tele
   -- the opened pieces: scoped at their depths, or absent
-  have hopen : ∃ (bs : List (Expr × ConLeche.BinderMeta)) (call : Expr),
+  have hopen : ∃ (bs : List Expr) (call : Expr),
       (openLamsM tele A D).getD ([], default) = (bs, call) ∧
-      (∀ (k : Nat) (b : Expr × ConLeche.BinderMeta), bs[k]? = some b → ScB (D + k) b.1) ∧
+      (∀ (k : Nat) (b : Expr), bs[k]? = some b → ScB (D + k) b) ∧
       (ScB (D + bs.length) call ∨ call = default) := by
     cases ho : openLamsM tele A D with
     | none => exact ⟨[], default, rfl, (fun k b hb => nomatch hb), Or.inr rfl⟩
@@ -649,14 +649,14 @@ theorem lpDefF_getAppArgs {ps : List Name} {e : Expr} (h : lpDefF ps e = true) :
 /-- An opened λ-telescope keeps the footprint: in its domains, its binders'
 data and its body. -/
 theorem openLamsM_lp {ps : List Name} :
-    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {r : Expr},
+    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List Expr} {r : Expr},
       openLamsM n e j = some (bs, r) → lpDefF ps e = true →
-      (∀ b ∈ bs, lpDefF ps b.1 = true) ∧ lpDefF ps r = true
+      (∀ b ∈ bs, lpDefF ps b = true) ∧ lpDefF ps r = true
   | 0, e, j, bs, r, h, he => by
     simp only [openLamsM, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨(fun b hb => nomatch hb), he⟩
-  | n + 1, .lam dom body m, j, bs, r, h, he => by
+  | n + 1, .lam dom body, j, bs, r, h, he => by
     simp only [openLamsM] at h
     cases hi : openLamsM n (body.instantiate1 (.fvar j dom)) (j + 1) with
     | none => rw [hi] at h; exact nomatch h
@@ -673,14 +673,14 @@ theorem openLamsM_lp {ps : List Name} :
       · exact hbs b hb
   | _ + 1, .bvar _, _, _, _, h, _ | _ + 1, .fvar _ _, _, _, _, h, _
   | _ + 1, .sort _, _, _, _, h, _ | _ + 1, .const _ _, _, _, _, h, _
-  | _ + 1, .app _ _, _, _, _, h, _ | _ + 1, .forallE _ _ _, _, _, _, h, _
+  | _ + 1, .app _ _, _, _, _, h, _ | _ + 1, .forallE _ _, _, _, _, h, _
   | _ + 1, .letE _ _ _, _, _, _, h, _ | _ + 1, .lit _, _, _, _, h, _
   | _ + 1, .proj _ _ _, _, _, _, h, _ => nomatch h
 
 theorem readLamBs_params (m : EnvModel V env) {ps : List Name} {ψ₁ ψ₂ : Name → Nat}
     (hq : ∀ q ∈ ps, ψ₁ q = ψ₂ q) :
-    ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)),
-      (∀ b ∈ bs, lpDefF ps b.1 = true) →
+    ∀ (j : Nat) (bs : List Expr),
+      (∀ b ∈ bs, lpDefF ps b = true) →
       readLamBs m.acval env ψ₁ j bs = readLamBs m.acval env ψ₂ j bs
   | _, [], _ => rfl
   | j, b :: bs, h => by
@@ -717,10 +717,10 @@ theorem genIhsAV_params (m : EnvModel V env) {out : List (ConstantVal × TargetM
   generalize (genRuleArgs out (g.pre.length + (genCtorAt g rd c j).nF) c j).getD
     ((genCtorAt g rd c j).nF + l) default = A at hA ⊢
   generalize ((genCtorAt g rd c j).recs.getD l default).2.2 = tele
-  obtain ⟨bs, call, hbc, hbs, hcall⟩ : ∃ (bs : List (Expr × ConLeche.BinderMeta)) (call : Expr),
+  obtain ⟨bs, call, hbc, hbs, hcall⟩ : ∃ (bs : List Expr) (call : Expr),
       (openLamsM tele A (g.pre.length + (genCtorAt g rd c j).nF)).getD ([], default)
         = (bs, call) ∧
-      (∀ b ∈ bs, lpDefF ps b.1 = true) ∧
+      (∀ b ∈ bs, lpDefF ps b = true) ∧
       lpDefF ps call = true := by
     cases ho : openLamsM tele A (g.pre.length + (genCtorAt g rd c j).nF) with
     | none => exact ⟨[], default, rfl, (fun b hb => nomatch hb), rfl⟩
@@ -815,12 +815,12 @@ theorem readLamBs_cross {env₁ env₂ : Env} {acv₁ acv₂ : Name → (Name �
     {ψ : Name → Nat} {P : Expr → Prop}
     (hcross : ∀ (d : Nat) (e : Expr), P e →
       denoteMeta acv₁ env₁ ψ d e = denoteMeta acv₂ env₂ ψ d e) :
-    ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)), (∀ b ∈ bs, P b.1) →
+    ∀ (j : Nat) (bs : List Expr), (∀ b ∈ bs, P b) →
       readLamBs acv₁ env₁ ψ j bs = readLamBs acv₂ env₂ ψ j bs
   | _, [], _ => rfl
   | j, b :: bs, h => by
     simp only [readLamBs]
-    rw [hcross j b.1 (h b List.mem_cons_self),
+    rw [hcross j b (h b List.mem_cons_self),
       readLamBs_cross hcross (j + 1) bs (fun b' hb' => h b' (List.mem_cons_of_mem _ hb'))]
 
 open ConLeche (ScB) in
@@ -833,9 +833,9 @@ theorem genIh_value {envC : Env} (m : EnvModel V envC) {acv : Name → (Name →
     (hcross : ∀ (d : Nat) (e : Expr), CBNF envC e →
       denoteMeta m.acval envC ψ d e = denoteMeta acv env₃ ψ d e)
     {D rP tele K t' : Nat} {a : Nat → V} {argE : Expr}
-    {bl : List (Expr × ConLeche.BinderMeta)} {call : Expr}
+    {bl : List Expr} {call : Expr}
     (hop : openLamsM tele argE D = some (bl, call)) (hsc : ScB D argE)
-    (hfreeL : (∀ b ∈ bl, CBNF envC b.1) ∧
+    (hfreeL : (∀ b ∈ bl, CBNF envC b) ∧
       ∀ e ∈ call.getAppArgs.drop rP, CBNF envC e)
     {rn : Name} {rlvls : List Level} (hfn : call.getAppFn = .const rn rlvls)
     (hlenc : rP < call.getAppArgs.length)
@@ -939,12 +939,12 @@ stored rule resolve at the constructors' environment. -/
 @[expose] def GenIhFree (env : Env) (out : List (ConstantVal × TargetMajor × List Expr))
     (g : ClassGen) (rd : ClassRead) (c j : Nat) : Prop :=
   ∀ l, l < (genCtorAt g rd c j).recs.length →
-    ∀ (bl : List (Expr × ConLeche.BinderMeta)) (call : Expr),
+    ∀ (bl : List Expr) (call : Expr),
       openLamsM ((genCtorAt g rd c j).recs.getD l default).2.2
           ((genRuleArgs out (g.pre.length + (genCtorAt g rd c j).nF) c j).getD
             ((genCtorAt g rd c j).nF + l) default)
           (g.pre.length + (genCtorAt g rd c j).nF) = some (bl, call) →
-        (∀ b ∈ bl, CBNF env b.1) ∧
+        (∀ b ∈ bl, CBNF env b) ∧
           ∀ e ∈ call.getAppArgs.drop g.pre.length, CBNF env e
 
 end Residue
@@ -1107,12 +1107,12 @@ section DataS
 variable {V : Type w} [SetTheory V]
 
 theorem stripLams_length' :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × ConLeche.BinderMeta)} {b : Expr},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {b : Expr},
       e.stripLams n = some (bs, b) → bs.length = n
   | 0, e, bs, b, h => by
     simp only [Expr.stripLams, Option.some.injEq, Prod.mk.injEq] at h
     rw [← h.1]; rfl
-  | n + 1, .lam dom body m, bs, b, h => by
+  | n + 1, .lam dom body, bs, b, h => by
     simp only [Expr.stripLams] at h
     cases hs : body.stripLams n with
     | none => rw [hs] at h; exact nomatch h
@@ -1122,20 +1122,20 @@ theorem stripLams_length' :
       rw [← (Prod.mk.inj h).1, List.length_cons, stripLams_length' n (bs := q.1) (b := q.2)
         (by rw [hs])]
   | _ + 1, .bvar _, _, _, h | _ + 1, .fvar _ _, _, _, h | _ + 1, .sort _, _, _, h
-  | _ + 1, .const _ _, _, _, h | _ + 1, .app _ _, _, _, h | _ + 1, .forallE _ _ _, _, _, h
+  | _ + 1, .const _ _, _, _, h | _ + 1, .app _ _, _, _, h | _ + 1, .forallE _ _, _, _, h
   | _ + 1, .letE _ _ _, _, _, h | _ + 1, .lit _, _, _, h | _ + 1, .proj _ _ _, _, _, h => by
     simp [Expr.stripLams] at h
 
 /-- The opened domains of a λ-telescope whose stripped domains name only
 constants of `env` name only constants of `env`. -/
 theorem openLamsM_constsBound {env : Env} :
-    ∀ (n : Nat) {e : Expr} {j : Nat} {rbs bs : List (Expr × ConLeche.BinderMeta)} {b r : Expr},
-      e.stripLams n = some (rbs, b) → (∀ q ∈ rbs, ConstsBound env q.1) →
-      openLamsM n e j = some (bs, r) → ∀ q ∈ bs, ConstsBound env q.1
+    ∀ (n : Nat) {e : Expr} {j : Nat} {rbs bs : List Expr} {b r : Expr},
+      e.stripLams n = some (rbs, b) → (∀ q ∈ rbs, ConstsBound env q) →
+      openLamsM n e j = some (bs, r) → ∀ q ∈ bs, ConstsBound env q
   | 0, e, j, rbs, bs, b, r, _, _, ho, q, hq => by
     simp only [openLamsM, Option.some.injEq, Prod.mk.injEq] at ho
     rw [← ho.1] at hq; exact nomatch hq
-  | n + 1, .lam dom body m, j, rbs, bs, b, r, hs, hrbs, ho, q, hq => by
+  | n + 1, .lam dom body, j, rbs, bs, b, r, hs, hrbs, ho, q, hq => by
     simp only [Expr.stripLams] at hs
     cases hs' : body.stripLams n with
     | none => rw [hs'] at hs; exact nomatch hs
@@ -1150,7 +1150,7 @@ theorem openLamsM_constsBound {env : Env} :
         rw [hi] at ho
         simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at ho
         rw [← ho.1] at hq
-        have hdom : ConstsBound env dom := hrbs (dom, m) List.mem_cons_self
+        have hdom : ConstsBound env dom := hrbs dom List.mem_cons_self
         rcases List.mem_cons.mp hq with rfl | hq
         · exact hdom
         · have hsome := Expr.stripLams_instantiate1_isSome (v := .fvar j dom) n 0 (e := body)
@@ -1170,7 +1170,7 @@ theorem openLamsM_constsBound {env : Env} :
   | _ + 1, .bvar _, _, _, _, _, _, h, _, _, _, _ | _ + 1, .fvar _ _, _, _, _, _, _, h, _, _, _, _
   | _ + 1, .sort _, _, _, _, _, _, h, _, _, _, _ | _ + 1, .const _ _, _, _, _, _, _, h, _, _, _, _
   | _ + 1, .app _ _, _, _, _, _, _, h, _, _, _, _
-  | _ + 1, .forallE _ _ _, _, _, _, _, _, h, _, _, _, _
+  | _ + 1, .forallE _ _, _, _, _, _, _, h, _, _, _, _
   | _ + 1, .letE _ _ _, _, _, _, _, _, h, _, _, _, _ | _ + 1, .lit _, _, _, _, _, _, h, _, _, _, _
   | _ + 1, .proj _ _ _, _, _, _, _, _, h, _, _, _, _ => by simp [Expr.stripLams] at h
 
@@ -1267,7 +1267,7 @@ same generated prefix. -/
   ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
     (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
     r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-    ∀ (ψ : Name → Nat) (bs : List (Expr × ConLeche.BinderMeta)) (body : Expr),
+    ∀ (ψ : Name → Nat) (bs : List Expr) (body : Expr),
       openLamsM (p.rulePrefixAt j + cA.2) rhs 0 = some (bs, body) →
       (readLamBs acval envC ψ 0 bs).take (p.rulePrefixAt j)
         = blockRulePdomsAV acval envC p (tgtRs out) ψ j
@@ -1281,7 +1281,7 @@ fields at the class's instantiation, annotated as generated. -/
   ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
     (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
     r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-    ∀ (ψ : Name → Nat) (bs : List (Expr × ConLeche.BinderMeta)) (body : Expr),
+    ∀ (ψ : Name → Nat) (bs : List Expr) (body : Expr),
       openLamsM (p.rulePrefixAt j + cA.2) rhs 0 = some (bs, body) →
       (readLamBs acval envC ψ 0 bs).drop (p.rulePrefixAt j)
         = tgtFdomsAV p out acval envC ψ j i
@@ -1347,10 +1347,10 @@ open ConLeche (ScB ClassGenScoped)
 
 theorem readLamBs_eq_readOpened {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {ψ : Name → Nat} :
-    ∀ (j : Nat) (bl : List (Expr × ConLeche.BinderMeta)) (xs : List Expr),
+    ∀ (j : Nat) (bl : List Expr) (xs : List Expr),
       bl.length = xs.length →
-      (∀ (k : Nat) (b : Expr × ConLeche.BinderMeta) (y : Expr), bl[k]? = some b → xs[k]? = some y →
-        Expr.ErasedEq b.1 y.fvarTypeD) →
+      (∀ (k : Nat) (b : Expr) (y : Expr), bl[k]? = some b → xs[k]? = some y →
+        Expr.ErasedEq b y.fvarTypeD) →
       readLamBs acval env ψ j bl = readOpenedDoms acval env ψ j xs
   | _, [], [], _, _ => rfl
   | j, b :: bl, y :: xs, hl, h => by
@@ -1396,7 +1396,7 @@ theorem genIhdAV_eq_R (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block
   have hqd : x.recs.getD l default = q := by rw [List.getD_eq_getElem?_getD, hq]; rfl
   obtain ⟨rn, xs, idx, bl, call, -, hparts, hop2, -, -, -, hbll, hbl, hdl, hpt⟩ := hihs l q hq
   simp only [List.getElem_map, List.getElem_range, hqE, hqd, hparts, hop2, Option.getD_some]
-  rw [← readLamBs_eq_readOpened _ bl xs hbll (fun k b y hb hy => (hbl k b y hb hy).1), hbll]
+  rw [← readLamBs_eq_readOpened _ bl xs hbll (fun k b y hb hy => hbl k b y hb hy), hbll]
   refine Prod.ext rfl (Prod.ext rfl (Prod.ext ?_ ?_))
   · -- the index arguments
     refine List.ext_getElem (by rw [List.length_map, List.length_map, List.length_dropLast, hdl]; rfl)
@@ -1441,11 +1441,11 @@ variable {F : Nat} {fe₁ : FEnv} {env₁ : Env} {envC : Env} {pp : BlockParts} 
 open ConLeche (ScB ClassGenScoped)
 
 theorem closeTelescope_append' :
-    ∀ (A B : List (Expr × ConLeche.BinderMeta)) (i : Nat) (body : Expr),
+    ∀ (A B : List Expr) (i : Nat) (body : Expr),
       ConLeche.closeTelescope (A ++ B) i body
         = ConLeche.closeTelescope A i (ConLeche.closeTelescope B (i + A.length) body)
   | [], B, i, body => by simp [ConLeche.closeTelescope]
-  | (d, bm) :: A, B, i, body => by
+  | d :: A, B, i, body => by
     simp only [List.cons_append, ConLeche.closeTelescope]
     rw [closeTelescope_append' A B (i + 1) body,
       show i + 1 + A.length = i + (A.length + 1) by omega]
@@ -1453,9 +1453,9 @@ theorem closeTelescope_append' :
 
 theorem readLamBs_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {ψ : Name → Nat} :
-    ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)) (k : Nat) (hk : k < bs.length),
+    ∀ (j : Nat) (bs : List Expr) (k : Nat) (hk : k < bs.length),
       (readLamBs acval env ψ j bs)[k]'(by simp [readLamBs_length]; exact hk)
-        = (denoteMeta acval env ψ (j + k) bs[k].1).getD default
+        = (denoteMeta acval env ψ (j + k) bs[k]).getD default
   | _, [], _, hk => absurd hk (Nat.not_lt_zero _)
   | j, b :: bs, 0, _ => by simp [readLamBs]
   | j, b :: bs, k + 1, hk => by
@@ -1511,8 +1511,8 @@ theorem genRuleFieldRead
     ⟨_, by rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left,
       List.getElem?_map, List.getElem?_eq_getElem (by simpa using hk')]; rfl⟩
   have hkb : R.g.pre.length + k < bs.length := by simp [readLamBs_length] at hk; omega
-  have hE := (hbs (R.g.pre.length + k) bs[R.g.pre.length + k] nd
-    (List.getElem?_eq_getElem hkb) hnd).1
+  have hE := hbs (R.g.pre.length + k) bs[R.g.pre.length + k] nd
+    (List.getElem?_eq_getElem hkb) hnd
   rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, List.getElem?_map,
     List.getElem?_eq_getElem (by simpa using hk')] at hnd
   obtain rfl := (Option.some.inj hnd).symm
@@ -1547,13 +1547,13 @@ theorem genRulePrefRead (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
   obtain ⟨-, -, -, -, -, -, -, -, _st, _u, -, -, hcvE⟩ := ConLeche.classConstOk_inv TR.hcv
   have hty : r.1.type = TR.gty := congrArg ConstantVal.type hcvE
   obtain ⟨ifs, maj, -, -, hgty, hbnd, hbody⟩ := ConLeche.classGenRecTy_spec hg TR.hgty
-  have hpreB : ∀ q ∈ R.g.pre, q.1.looseBVarsBounded 0 = true := fun q hq =>
+  have hpreB : ∀ q ∈ R.g.pre, q.looseBVarsBounded 0 = true := fun q hq =>
     hbnd q (List.mem_append_left _ (List.mem_append_left _ hq))
-  have hrestB : ∀ q ∈ ifs.map R.g.binder ++ [(maj, R.g.bm)], q.1.looseBVarsBounded 0 = true :=
+  have hrestB : ∀ q ∈ ifs.map R.g.binder ++ [maj], q.looseBVarsBounded 0 = true :=
     fun q hq => hbnd q (by rw [List.append_assoc]; exact List.mem_append_right _ hq)
   rw [List.append_assoc, closeTelescope_append'] at hgty
   have hEq0 : Expr.ErasedEq r.1.type (ConLeche.closeTelescope R.g.pre 0
-      (ConLeche.closeTelescope (ifs.map R.g.binder ++ [(maj, R.g.bm)]) (0 + R.g.pre.length)
+      (ConLeche.closeTelescope (ifs.map R.g.binder ++ [maj]) (0 + R.g.pre.length)
         (Expr.mkAppN (R.g.motVar cls) (ifs ++ [.fvar (R.g.pre.length + ifs.length) maj])))) := by
     rw [hty, hgty]
     exact Expr.ErasedEq.rfl _
@@ -1571,9 +1571,9 @@ theorem genRulePrefRead (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
   rw [List.getElem_take, readLamBs_getElem 0 bs k (by omega), Nat.zero_add]
   obtain ⟨nd, hnd⟩ : ∃ nd, (R.g.pre ++ fvs.map R.g.binder)[k]? = some nd :=
     ⟨_, by rw [List.getElem?_append_left hkP]; exact List.getElem?_eq_getElem hkP⟩
-  have hE := (hbs k bs[k] nd (List.getElem?_eq_getElem (by omega)) hnd).1
+  have hE := hbs k bs[k] nd (List.getElem?_eq_getElem (by omega)) hnd
   rw [List.getElem?_append_left hkP] at hnd
-  have hT := hdomsT k xsT[k] nd.1 (List.getElem?_eq_getElem (by omega)) (by rw [hnd]; rfl)
+  have hT := hdomsT k xsT[k] nd (List.getElem?_eq_getElem (by omega)) (by rw [hnd])
   have hr' := hreads k xsT[k] (List.getElem?_eq_getElem (by omega))
   rw [denoteMeta_erasedEq hE, ← denoteMeta_erasedEq hT, hr', Option.getD_some,
     List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk']
@@ -1729,8 +1729,8 @@ theorem genIhFree_run
   · -- a telescope domain
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
     have hkx : k < xs.length := by rw [← hbll]; exact hk
-    have hE := (hblE k bl[k] xs[k] (List.getElem?_eq_getElem hk)
-      (List.getElem?_eq_getElem hkx)).1
+    have hE := hblE k bl[k] xs[k] (List.getElem?_eq_getElem hk)
+      (List.getElem?_eq_getElem hkx)
     rw [CBNF_of_erasedEq hE]
     have hk' : k < xs'.length := by
       have := congrArg List.length hxs; simp at this; omega
@@ -2099,7 +2099,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
     obtain ⟨hldm, -⟩ := mkLamsAV_length_inj
       (by rw [readLamBs_length, openLamsM_length _ hop]; exact hlen) (hlam.symm.trans hRaE)
     rw [hldm]
-    have hcb : ∀ q ∈ bs, ConstsBound envC q.1 :=
+    have hcb : ∀ q ∈ bs, ConstsBound envC q :=
       openLamsM_constsBound _ hstrip (fun q hq => by
         have hres := RR.hdoms q hq
         simp only [ConLeche.StructWalkers.plain] at hres

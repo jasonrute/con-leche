@@ -280,7 +280,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   refine ⟨hnat, fun {d ca} hca ρ => ?_⟩
   obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, -, -, hlpN, -⟩ :=
     ConLeche.natLitSupported_inv hnat
-  obtain ⟨_, _, cod, hty, hcodB, hcodN⟩ := natOpTyPinned_shape_bin hnp hpin
+  obtain ⟨cod, hty, hcodB, hcodN⟩ := natOpTyPinned_shape_bin hnp hpin
   -- the head reads to the operation's leaf
   obtain ⟨cvc, vc, hcnt, hfc, hlpc⟩ := hdeps c (ConLeche.mem_natOpDeps_self hmemN)
   rw [hf] at hfc

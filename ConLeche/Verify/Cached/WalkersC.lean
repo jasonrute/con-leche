@@ -33,7 +33,7 @@ theorem instPisAtLiftC_eq : ∀ (as : List Expr) (e : Expr),
   | _ :: _, .letE .. => rfl
   | _ :: _, .lit _ => rfl
   | _ :: _, .proj .. => rfl
-  | a :: as, .forallE _ body _ => by
+  | a :: as, .forallE _ body => by
     simp only [instPisAtLiftC, Expr.instPisAtLift, Expr.instantiate1LiftC_spec]
     exact instPisAtLiftC_eq as _
 
@@ -49,7 +49,7 @@ theorem structProjBodiesGoC_eq (T : Name) : ∀ (k i : Nat) (r : Expr),
   | _ + 1, _, .letE .. => rfl
   | _ + 1, _, .lit _ => rfl
   | _ + 1, _, .proj .. => rfl
-  | k + 1, i, .forallE fdom body _ => by
+  | k + 1, i, .forallE fdom body => by
     simp only [structProjBodiesGoC, structProjBodiesGo, Expr.instantiate1LiftC_spec]
     rw [structProjBodiesGoC_eq T k (i + 1)]
 

@@ -39,7 +39,7 @@ open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps BinderMeta)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
 
@@ -202,7 +202,7 @@ theorem openPisAtFvars_constsBound {env₀ : Env} :
     exact ⟨(fun x hx => nomatch hx), he⟩
   | n + 1, e, d, fvs, o, he, hop => by
     match e, he, hop with
-    | .forallE dom bd mb, he, hop =>
+    | .forallE dom bd, he, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs₁ e₁ h₁ =>
@@ -287,7 +287,7 @@ values.
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveShape
-  BinderMeta RecRule)
+  RecRule)
 
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -556,7 +556,7 @@ theorem frameIdx_eq_reverse_map (n : Nat) (σ : Nat → V) :
 
 
 
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps BinderMeta
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
   RecRule)
 
 
@@ -741,7 +741,7 @@ spine from a graded application — that it is the parameters' λ-tower
 -/
 
 
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps BinderMeta ProjEntry)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps ProjEntry)
 
 
 /-! ## The one-constructor fibre -/
@@ -1227,7 +1227,7 @@ The former's leaf is ABSTRACT here too (`L`, with `hlam`/`hfold`).
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveShape
-  BinderMeta ProjEntry ProjTable RecRule RecFieldKind projTableName)
+  ProjEntry ProjTable RecRule RecFieldKind projTableName)
 
 
 /-! ## Small facts -/
@@ -1496,7 +1496,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
     rw [hbody, hac]
     exact denoteMeta_cons_mono hfresh hcrossC ψ 0 hcbC (hCDread ψ)
   -- the body, opened at the variables
-  obtain ⟨cds, bodyB, mbB, hcf⟩ :=
+  obtain ⟨cds, bodyB, hcf⟩ :=
     ConLeche.structProjBody_open hbodies hstripC hCb hi
   refine ⟨rfl, rfl, hi, ⟨cvTa, caps, hfT₂, hlpsT, hcaps⟩,
     hO5 i hi, cvCa, hfC₂, hlpsC, ?_, ?_⟩
@@ -1677,7 +1677,7 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
   | 0, _, _, _, _, _, _, _, _, _, _, _, _, _, _, k, hk, _, _ => absurd hk (Nat.not_lt_zero k)
   | n + 1, d, e, fvs, o, Δ, tl, hop, hlen, hC, hws, hb, hL, hread, hinf, k, hk, ρ, hρ => by
     match e, hop, hws, hb with
-    | .forallE ty body mb, hop, hws, hb =>
+    | .forallE ty body, hop, hws, hb =>
       simp only [ConLeche.openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -1734,7 +1734,7 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
           simpa using this
       · exact nomatch hop
     | .bvar _, hop, _, _ | .fvar _ _, hop, _, _ | .sort _, hop, _, _
-    | .const _ _, hop, _, _ | .app _ _, hop, _, _ | .lam _ _ _, hop, _, _
+    | .const _ _, hop, _, _ | .app _ _, hop, _, _ | .lam _ _, hop, _, _
     | .letE _ _ _, hop, _, _ | .lit _, hop, _, _ | .proj _ _ _, hop, _, _ =>
       simp [ConLeche.openPisAtFvars] at hop
 

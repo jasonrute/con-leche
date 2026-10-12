@@ -77,15 +77,15 @@ theorem Frame.open_body {d : Nat} {ty' bd : Expr} (hty' : Frame d ty')
     · exact hty'.2.1
     · exact hty'.2.2 l h3
 
-theorem Frame.forallE_ty {d : Nat} {ty bd : Expr} {mb : ConLeche.BinderMeta}
-    (h : Frame d (.forallE ty bd mb)) : Frame d ty := by
+theorem Frame.forallE_ty {d : Nat} {ty bd : Expr}
+    (h : Frame d (.forallE ty bd)) : Frame d ty := by
   obtain ⟨hw, hb, hL⟩ := h
   simp only [Expr.WScoped] at hw
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
   exact ⟨hw.1, hb.1, fun l hl => hL l (by simp [Expr.fvarLeaves, hl])⟩
 
 theorem Frame.forallE_open {d : Nat} {ty bd ty' : Expr}
-    {mb : ConLeche.BinderMeta} (h : Frame d (.forallE ty bd mb))
+    (h : Frame d (.forallE ty bd))
     (hty' : Frame d ty') :
     Frame (d + 1) (bd.instantiate1 (.fvar d ty')) := by
   obtain ⟨hw, hb, hL⟩ := h
@@ -94,15 +94,15 @@ theorem Frame.forallE_open {d : Nat} {ty bd ty' : Expr}
   exact Frame.open_body hty' hw.2 hb.2
     (fun l hl => hL l (by simp [Expr.fvarLeaves, hl]))
 
-theorem Frame.lam_ty {d : Nat} {ty bd : Expr} {mb : ConLeche.BinderMeta}
-    (h : Frame d (.lam ty bd mb)) : Frame d ty := by
+theorem Frame.lam_ty {d : Nat} {ty bd : Expr}
+    (h : Frame d (.lam ty bd)) : Frame d ty := by
   obtain ⟨hw, hb, hL⟩ := h
   simp only [Expr.WScoped] at hw
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
   exact ⟨hw.1, hb.1, fun l hl => hL l (by simp [Expr.fvarLeaves, hl])⟩
 
 theorem Frame.lam_open {d : Nat} {ty bd ty' : Expr}
-    {mb : ConLeche.BinderMeta} (h : Frame d (.lam ty bd mb))
+    (h : Frame d (.lam ty bd))
     (hty' : Frame d ty') :
     Frame (d + 1) (bd.instantiate1 (.fvar d ty')) := by
   obtain ⟨hw, hb, hL⟩ := h
@@ -287,14 +287,14 @@ theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
     obtain ⟨-, heq⟩ := hs ρ hρ (hLT.of_subset hsub) hwtt.1 hwtt.ne_pt
     rw [heq, interp_sort, hw0] at hTm
     exact mem_univ_zero hTm hvm
-  · obtain ⟨_, _, _, rfl⟩ := h.forallE
+  · obtain ⟨_, _, rfl⟩ := h.forallE
     exact nomatch Red.rigid hr trivial
 
 /-- At a type that is not a ∀ the io claim is the point or a member. -/
 theorem propPt_of_not_forallE {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
     (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
     (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
-    (hnf : ∀ ty body mb, T ≠ .forallE ty body mb) : PropPt m φ d T := by
+    (hnf : ∀ ty body, T ≠ .forallE ty body) : PropPt m φ d T := by
   intro hfT Δa ta hCT hT ρ v hρ hLT h
   rcases h.of_not_forallE hnf with h | h
   · exact h
@@ -303,11 +303,11 @@ theorem propPt_of_not_forallE {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : 
 /-- At a ∀: the member half as above; the hereditary half is the
 point at its witness by the body's claim, a contradiction. -/
 theorem propPt_forallE {m : EnvModel V env} {d : Nat} {ty body tt : Expr}
-    {mb : ConLeche.BinderMeta} {w : Level}
-    (hsem : InferSemIO m φ d (.forallE ty body mb) tt) (hrs : RedSem m φ d tt (.sort w))
+    {w : Level}
+    (hsem : InferSemIO m φ d (.forallE ty body) tt) (hrs : RedSem m φ d tt (.sort w))
     (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
     (hbody : PropPt m φ (d + 1) (body.instantiate1 (.fvar d ty))) :
-    PropPt m φ d (.forallE ty body mb) := by
+    PropPt m φ d (.forallE ty body) := by
   intro hfT Δa ta hCT hT ρ v hρ hLT h
   rcases h with h | h | h
   · exact h
