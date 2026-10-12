@@ -646,12 +646,14 @@ about one rule, stated over the environment's laws and never over the
 implementation, at one valuation at a time. β's lemma reads no premise:
 a redex that is not the point has a λ that is not the point, which is
 a function on its own domain, and the argument's typing puts the
-argument there. The literal accelerations read the argument's domain
-off the operation's graph, `Nat`, and equate the argument with its
-literal inside that type. The ι rules and the
-definitional-equality rules are proved by a second, unconditional
-induction, which reads β's certificate; they reach the conditional
-claims by weakening
+argument there. The other definitional-equality rules read the point
+the same way: two arguments of equal heads lie in one domain, a type,
+so they are both the point or neither is. The literal accelerations
+read the argument's domain off the operation's graph, `Nat`, and equate
+the argument with its literal inside that type. The ι rules,
+λ-congruence, η and structure η are proved by a second,
+unconditional induction, which reads β's certificate; they reach the
+conditional claims by weakening
 ([the master induction in `ConLeche/Model/Rules/Sound.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Rules/Sound.lean#L41-L44)).
 And the *recomposition*, which is a few lines per claim: bridge the
 run, apply the soundness
