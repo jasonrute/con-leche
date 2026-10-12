@@ -193,6 +193,18 @@ theorem Red.betaGate_sound {d : Nat}
   exact ⟨hfr, hsub, ba.inst aa, hred, fun ρ hρ => (hstep ρ hρ).2,
     fun ρ hρ => (hstep ρ hρ).1⟩
 
+/-- **ζ**: unconditional — a `let` and its reduct interpret alike at
+every valuation (`interp_zeta`), and with the value graded (a part of
+the `let`'s grading) the reduct is graded (`WellDenotedV_zeta`). -/
+theorem Red.zeta_sound {d : Nat} {ty v body : Expr} :
+    RedSem m φ d (.letE ty v body) (body.instantiate1 v) := by
+  intro hf Δa ea hC hea hg
+  obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
+  obtain ⟨hfr, hsub, hred⟩ := zeta_syntax hf hva hba
+  exact ⟨hfr, hsub, ba.inst va, hred,
+    fun ρ hρ => (WellDenotedV_zeta (hg ρ hρ).letE_val).mp (hg ρ hρ),
+    fun ρ hρ => interp_zeta V va ba ρ⟩
+
 /-- `betaPosV` / `betaZeroV` with the certificate's membership. -/
 theorem Red.beta_sound {d : Nat}
     {ty body a ta : Expr} {mb : BinderMeta}

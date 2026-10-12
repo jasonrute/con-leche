@@ -40,6 +40,7 @@ The clauses in one line each:
 | `app f a` | `app ⟦f⟧ ⟦a⟧` | uniform: graph application above `0`, `app pt _ = pt` at `0` |
 | `lam v A b` | `lamR v ⟦A⟧ (fun x => ⟦b⟧ₓ)` | annotation |
 | `pi u v A B` | `piR v ⟦A⟧ (fun x => ⟦B⟧ₓ)` | annotation |
+| `letE v b` | `⟦b⟧` at `cons ⟦v⟧ ρ` | — (the value, then the body at it) |
 | `eqE a b` | `eqv ⟦a⟧ ⟦b⟧` | truth value |
 | `fst e` / `snd e` | `sfst ⟦e⟧` / `ssnd ⟦e⟧` | — |
 | `prf` | `pt` | the canonical proof |
@@ -50,9 +51,8 @@ squash regime's β, and its graph clause (`app_graph`) is precisely the
 graph regime's.  So the whole two-regime dispatch lives in the two
 binder cases and nowhere else.
 
-There is no `letE` clause: the syntax has no such former since task
-#241 — no stored expression carries a `let`, so the denotation returns
-`none` there.
+A `letE` reads its value at `ρ` and its body at the value; the type
+is not in the node and is not read.
 -/
 
 namespace ConLeche.Semantics
@@ -154,6 +154,7 @@ noncomputable def interp : (Nat → V) → AnnotTerm → V
   | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
   | ρ, .lam v A b => lamR v (interp ρ A) fun x => interp (cons x ρ) b
   | ρ, .pi _ v A B => piR v (interp ρ A) fun x => interp (cons x ρ) B
+  | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
   | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
   | ρ, .fst e => sfst (interp ρ e)
   | ρ, .snd e => ssnd (interp ρ e)
@@ -173,6 +174,8 @@ noncomputable def interp : (Nat → V) → AnnotTerm → V
 @[simp] theorem interp_pi (ρ : Nat → V) (u v : Nat) (A B : AnnotTerm) :
     interp V ρ (.pi u v A B) =
       piR v (interp V ρ A) fun x => interp V (cons x ρ) B := rfl
+@[simp] theorem interp_letE (ρ : Nat → V) (v b : AnnotTerm) :
+    interp V ρ (.letE v b) = interp V (cons (interp V ρ v) ρ) b := rfl
 @[simp] theorem interp_eqE (ρ : Nat → V) (a b : AnnotTerm) :
     interp V ρ (.eqE a b) = eqv (interp V ρ a) (interp V ρ b) := rfl
 @[simp] theorem interp_fst (ρ : Nat → V) (e : AnnotTerm) :

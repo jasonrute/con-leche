@@ -77,6 +77,13 @@ theorem noBVar_exists' {α : Type} :
     cases i with
     | zero => exact hi.elim
     | succ i => exact hi
+  | letE v b ihv ihb =>
+    intro P h
+    refine ⟨ihv fun a => (h a).1, NoBVar.mono (fun i hi => ?_)
+      (ihb (P := fun a => shiftP (P a)) fun a => (h a).2)⟩
+    cases i with
+    | zero => exact hi.elim
+    | succ i => exact hi
 
 /-- **A hole-free domain inside the output reads only mentioned non-hole
 positions.** -/

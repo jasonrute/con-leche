@@ -131,7 +131,18 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → AnnotTerm} {env
     obtain ⟨fa, aa, hfa, haa, -⟩ := denoteMeta_app_inv h
     exact constsBound_app.mpr ⟨ihf hfa fun l h' => hl l (by simp [Expr.fvarLeaves, h']),
       iha haa fun l h' => hl l (by simp [Expr.fvarLeaves, h'])⟩
-  | case9 d ty val body => intro _ h _; rw [denoteMeta] at h; exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro _ h hl
+    obtain ⟨ta, va, ba, hta, hva, hba, -⟩ := denoteMeta_letE_inv h
+    have hty := ihty hta fun l h' => hl l (by simp [Expr.fvarLeaves, h'])
+    refine constsBound_letE.mpr ⟨hty, ihv hva fun l h' => hl l (by simp [Expr.fvarLeaves, h']),
+      constsBound_of_instantiate1 _ 0 (ihbody hba fun l h' => ?_)⟩
+    rcases Expr.fvarLeaves_instantiate1 body 0 h' with h3 | h3
+    · exact hl l (by simp [Expr.fvarLeaves, h3])
+    · simp only [Expr.fvarLeaves, List.mem_cons] at h3
+      rcases h3 with rfl | h3
+      · exact hty
+      · exact hl l (by simp [Expr.fvarLeaves, h3])
   | case10 d sn j e ihe =>
     intro _ h hl
     obtain ⟨ea', hea', -⟩ := denoteMeta_proj_inv h

@@ -44,6 +44,7 @@ def NoBVar (P : Nat → Prop) : AnnotTerm → Prop
   | .app f a => NoBVar P f ∧ NoBVar P a
   | .lam _ A b => NoBVar P A ∧ NoBVar (shiftP P) b
   | .pi _ _ A B => NoBVar P A ∧ NoBVar (shiftP P) B
+  | .letE v b => NoBVar P v ∧ NoBVar (shiftP P) b
   | .eqE a b => NoBVar P a ∧ NoBVar P b
   | .fst e => NoBVar P e
   | .snd e => NoBVar P e
@@ -84,6 +85,10 @@ theorem interp_congr_noBVar :
     congr 1
     funext x
     exact ihB h.2 (agreeOff_cons hag x)
+  | letE v b ihv ihb =>
+    intro P σ σ' h hag
+    simp only [interp_letE, ihv h.1 hag]
+    exact ihb h.2 (agreeOff_cons hag _)
   | eqE a b iha ihb =>
     intro P σ σ' h hag
     simp only [interp_eqE, iha h.1 hag, ihb h.2 hag]
@@ -112,6 +117,7 @@ theorem NoBVar.mono :
   | app f a ihf iha => intro P Q h h'; exact ⟨ihf h h'.1, iha h h'.2⟩
   | lam v A b ihA ihb => intro P Q h h'; exact ⟨ihA h h'.1, ihb (shiftP_mono h) h'.2⟩
   | pi u v A B ihA ihB => intro P Q h h'; exact ⟨ihA h h'.1, ihB (shiftP_mono h) h'.2⟩
+  | letE v b ihv ihb => intro P Q h h'; exact ⟨ihv h h'.1, ihb (shiftP_mono h) h'.2⟩
   | eqE a b iha ihb => intro P Q h h'; exact ⟨iha h h'.1, ihb h h'.2⟩
   | fst e ihe => intro P Q h h'; exact ihe h h'
   | snd e ihe => intro P Q h h'; exact ihe h h'
@@ -144,6 +150,13 @@ theorem NoBVar_of_bvarsBelow :
   | pi u v A B ihA ihB =>
     intro k P h hP
     refine ⟨ihA h.1 hP, ihB (k := k + 1) h.2 ?_⟩
+    intro i hi
+    cases i with
+    | zero => exact hi.elim
+    | succ i => exact Nat.succ_le_succ (hP i hi)
+  | letE v b ihv ihb =>
+    intro k P h hP
+    refine ⟨ihv h.1 hP, ihb (k := k + 1) h.2 ?_⟩
     intro i hi
     cases i with
     | zero => exact hi.elim

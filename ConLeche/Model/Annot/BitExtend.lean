@@ -81,9 +81,13 @@ theorem denoteMeta_envExtend {env₀ env : Env}
     intro hc
     rw [constsBound_app] at hc
     rw [denoteMeta, denoteMeta, ihf hc.1, iha hc.2]
-  | case9 d ty val body =>
-    intro _
-    rw [denoteMeta, denoteMeta]
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hc
+    rw [constsBound_letE] at hc
+    have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
+      ConstsBound.instantiate1
+        (by rw [constsBound_fvar]; exact hc.1) _ _ hc.2.2
+    rw [denoteMeta, denoteMeta, ihty hc.1, ihv hc.2.1, ihbody hcb]
   | case10 d sn i e ihe =>
     intro hc
     rw [constsBound_proj] at hc
@@ -214,10 +218,15 @@ theorem denoteMeta_envExtend_mono {env₀ env : Env}
     obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv h
     rw [denoteMeta, ihf hc.1 hfa, iha hc.2 haa]
     rfl
-  | case9 d ty val body =>
-    intro _ ea h
-    rw [denoteMeta] at h
-    exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hc ea h
+    rw [constsBound_letE] at hc
+    have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
+      ConstsBound.instantiate1
+        (by rw [constsBound_fvar]; exact hc.1) _ _ hc.2.2
+    obtain ⟨ta, va, ba, hta, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    rw [denoteMeta, ihty hc.1 hta, ihv hc.2.1 hva, ihbody hcb hba]
+    rfl
   | case10 d sn i e ihe =>
     intro hc ea h
     rw [constsBound_proj] at hc
@@ -319,10 +328,11 @@ theorem denoteMeta_envExtend_mono_ok {env₀ env : Env}
     obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv h
     rw [denoteMeta, ihf hfa, iha haa]
     rfl
-  | case9 d ty val body =>
+  | case9 d ty val body ihty ihv ihbody =>
     intro ea h
-    rw [denoteMeta] at h
-    exact nomatch h
+    obtain ⟨ta, va, ba, hta, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    rw [denoteMeta, ihty hta, ihv hva, ihbody hba]
+    rfl
   | case10 d sn i e ihe =>
     intro ea h
     obtain ⟨ea', hea', hcase⟩ := denoteMeta_proj_inv h

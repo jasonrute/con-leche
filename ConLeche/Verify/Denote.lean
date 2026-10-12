@@ -25,7 +25,7 @@ The clauses in one line each:
 | `.app f a` | `.app ⟦f⟧ ⟦a⟧` |
 | `.proj` | `.fst ⟦e⟧` / `.snd ⟦e⟧` |
 | `.lit (.natVal n)` | `natLitT ⟦zero⟧ ⟦succ⟧ n` |
-| `.letE` | `none` — there is no `letE` former |
+| `.letE ty v b` | `.letE ⟦v⟧ ⟦b opened⟧` — the type is not read |
 
 Four properties of that reading are worth stating rather than reading
 off the table.
@@ -52,11 +52,10 @@ The recursion over the environment lives in the *incremental
 construction of the valuation* as declarations install, which is
 `EnvModel`'s own induction and needs no separate termination argument.
 
-## There is no `let` in the term language
+## A `let` is a former, not a substitution
 
-**Every clause maps a constructor to a constructor** — or, at `letE`,
-to `none`.  That is not cosmetic, and the `letE` clause is where it was
-decided.  The principle to preserve, if any clause is ever tempted to
+**Every clause maps a constructor to a constructor.**  That is not
+cosmetic.  The principle to preserve, if any clause is ever tempted to
 compute:
 
 > **A structural `denote` is what keeps the substitution
@@ -67,17 +66,10 @@ for a `letE` — would force this layer's metatheory to prove that
 lifting commutes with instantiation, and then that lifting commutes
 with lifting, and the swamp `ConLeche/Term/Subst.lean` is proud of
 avoiding (lean4lean's 123 syntactic lemmas) would reappear one layer
-down.
-
-The term language does not carry a `letE` former either, for the reason
-that made one dead weight: **no stored expression carries a `let`**.
-`annotateBody` is the one pass that meets a `letE` node from the
-stream, and it runs the official `infer_let` triple and returns the
-ζ *reduct*; every other kernel arm that could meet a `letE` —
-`whnfCore`'s ζ step, `inferBody`'s and `inferBodyIO`'s triples — is a
-positive `.internal` error.  So the clause is `none` and the `letE`
-case of every reduction walk and every transport lemma is **vacuous**:
-they all carry `denote… = some _` as a premise.
+down.  So a stored `let` (terms keep their `let`s as Lean writes them)
+denotes the `letE` former: the value, and the body opened at a fresh
+variable, exactly as a binder's body.  The type is not read.  ζ is a
+theorem about the interpretation (`interp_zeta`), not a clause here.
 
 ## Projections, and why the layer grew a former for them
 
@@ -194,10 +186,15 @@ the `.proj` clause. -/
     match denote cval env φ d f, denote cval env φ d a with
     | some vf, some va => some (.app vf va)
     | _, _ => none
-  | _, .letE _ _ _ =>
-    -- **`none` by design** (task #241): `Term` has no `letE` former.
-    -- See "There is no `let` in the term language" above.
-    none
+  | d, .letE ty v b =>
+    -- the type is not read; the body is opened at a fresh variable,
+    -- as a binder's body (see "A `let` is a former" above)
+    match denote cval env φ d v with
+    | none => none
+    | some vv =>
+      match denote cval env φ (d + 1) (b.instantiate1 (.fvar d ty)) with
+      | none => none
+      | some B => some (.letE vv B)
   | d, .proj sn i e =>
     -- the pair side's index decoded by `projPair?`; a tower-backed entry (task #175 wiring W3)
     -- reads field `i` by the uniform iterated spelling instead — the
@@ -287,7 +284,13 @@ theorem denote_lam (cval : TConstVal) (env : Env) (φ : Name → Nat)
 
 theorem denote_letE (cval : TConstVal) (env : Env) (φ : Name → Nat)
     (d : Nat) (ty val body : Expr) :
-    denote cval env φ d (.letE ty val body) = none := by
+    denote cval env φ d (.letE ty val body) =
+      match denote cval env φ d val with
+      | none => none
+      | some vv =>
+        match denote cval env φ (d + 1) (body.instantiate1 (.fvar d ty)) with
+        | none => none
+        | some B => some (.letE vv B) := by
   rw [denote]
 
 theorem denote_proj (cval : TConstVal) (env : Env) (φ : Name → Nat)

@@ -107,8 +107,8 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
   | case7 d ty body m ihty ihbody =>
     rw [denoteMeta, denoteMeta, ihty, ihbody]
   | case8 d f a ihf iha => rw [denoteMeta, denoteMeta, ihf, iha]
-  | case9 d ty val body =>
-    rw [denoteMeta, denoteMeta]
+  | case9 d ty val body ihty ihv ihbody =>
+    rw [denoteMeta, denoteMeta, ihty, ihv, ihbody]
   | case10 d sn i e ihe =>
     rw [denoteMeta, denoteMeta, ihe, hproj sn i]
   | case11 d n hsup =>

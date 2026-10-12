@@ -73,6 +73,8 @@ inductive AnnotTerm.BitAgree : AnnotTerm → AnnotTerm → Prop where
   | pi {u u' v v' : Nat} {A A' B B' : AnnotTerm} :
       (v = 0 ↔ v' = 0) → BitAgree A A' → BitAgree B B' →
       BitAgree (.pi u v A B) (.pi u' v' A' B')
+  | letE {v v' b b' : AnnotTerm} :
+      BitAgree v v' → BitAgree b b' → BitAgree (.letE v b) (.letE v' b')
   | eqE {a a' b b' : AnnotTerm} :
       BitAgree a a' → BitAgree b b' →
       BitAgree (.eqE a b) (.eqE a' b')
@@ -92,6 +94,7 @@ theorem refl : ∀ e : AnnotTerm, BitAgree e e
   | .app f a => .app (refl f) (refl a)
   | .lam _ A b => .lam Iff.rfl (refl A) (refl b)
   | .pi _ _ A B => .pi Iff.rfl (refl A) (refl B)
+  | .letE v b => .letE (refl v) (refl b)
   | .eqE a b => .eqE (refl a) (refl b)
   | .fst e => .fst (refl e)
   | .snd e => .snd (refl e)
@@ -118,6 +121,8 @@ theorem interp_eq : ∀ {e e' : AnnotTerm}, BitAgree e e' →
     intro ρ
     simp only [interp_pi, ihA ρ]
     exact piR_zero_agree hz fun x _ => ihB (cons x ρ)
+  | letE _ _ ihv ihb =>
+    intro ρ; simp only [interp_letE, ihv ρ, ihb]
   | eqE _ _ iha ihb =>
     intro ρ; simp only [interp_eqE, iha, ihb]
   | fst _ ih => intro ρ; simp only [interp_fst, ih]
@@ -155,6 +160,9 @@ theorem wellDenoted : ∀ {e e' : AnnotTerm}, BitAgree e e' →
       (forall_congr' fun x => imp_congr Iff.rfl (ihB (cons x ρ)))
       (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     rw [interp_eq V hB (cons x ρ)]
+  | letE hv _ ihv ihb =>
+    intro ρ
+    rw [WellDenoted_letE, WellDenoted_letE, ihv ρ, interp_eq V hv ρ, ihb]
   | eqE _ _ iha ihb =>
     intro ρ; rw [WellDenoted_eqE, WellDenoted_eqE, iha ρ, ihb ρ]
   | fst he ih =>
@@ -189,6 +197,9 @@ theorem validV : ∀ {e e' : AnnotTerm}, BitAgree e e' →
       ⟨fun hh h0 x hx => ?_, fun hh h0 x hx => ?_⟩)
     · rw [← interp_eq V hB (cons x ρ)]; exact hh (hz.mpr h0) x hx
     · rw [interp_eq V hB (cons x ρ)]; exact hh (hz.mp h0) x hx
+  | letE hv _ ihv ihb =>
+    intro ρ
+    rw [AnnotValid_letE, AnnotValid_letE, ihv ρ, interp_eq V hv ρ, ihb]
   | eqE _ _ iha ihb =>
     intro ρ; rw [AnnotValid_eqE, AnnotValid_eqE, iha ρ, ihb ρ]
   | fst _ ih => intro ρ; rw [AnnotValid_fst, AnnotValid_fst, ih ρ]

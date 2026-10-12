@@ -150,9 +150,11 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
     rw [denoteMeta, denoteMeta, ← ihf hd.1, ← iha hd.2]
-  | case9 d ty val body =>
-    intro _
-    rw [denoteMeta, denoteMeta]
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hd
+    simp only [lpDefF, Bool.and_eq_true] at hd
+    rw [denoteMeta, denoteMeta, ← ihty hd.1.1, ← ihv hd.1.2,
+      ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
   | case10 d sn i e ihe =>
     intro hd
     rw [denoteMeta, denoteMeta, ← ihe (by simpa [lpDefF] using hd)]

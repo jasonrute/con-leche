@@ -167,9 +167,51 @@ theorem targetAbs_read
   | .lit l, d, as2, as1, _, _ => by
     simp only [ConLeche.targetAbs, Expr.instantiateList]
     exact readAgree_refl (V := V) _
-  | .letE ty v b, d, as2, as1, _, _ => by
+  | .letE ty v b, d, as2, as1, h2, h1 => by
+    have iht := targetAbs_read hnames ty d as2 as1 h2 h1
+    have ihv := targetAbs_read hnames v d as2 as1 h2 h1
     simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta]
-    trivial
+    revert iht ihv
+    cases hT2 : denoteMeta m.acval env φ (B + formerTys.length + d)
+        ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList as2 0)
+      <;> cases hT1 : denoteMeta m.acval env φ (B + formerTys.length + d) (ty.instantiateList as1 0)
+      <;> cases hA2 : denoteMeta m.acval env φ (B + formerTys.length + d)
+        ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) v).instantiateList as2 0)
+      <;> cases hA1 : denoteMeta m.acval env φ (B + formerTys.length + d) (v.instantiateList as1 0)
+      <;> simp [ReadAgree]
+    rename_i T2 T1 A2 A1
+    intro _ hA
+    rw [← Expr.instantiateList_cons, ← Expr.instantiateList_cons,
+      show B + formerTys.length + d + 1 = B + formerTys.length + (d + 1) from by omega]
+    have ihb := targetAbs_read hnames b (d + 1)
+      (Expr.fvar (B + formerTys.length + d)
+        ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList
+          as2 0) :: as2)
+      (Expr.fvar (B + formerTys.length + d) (ty.instantiateList as1 0) :: as1)
+      (h2.cons _) (h1.cons _)
+    revert ihb
+    cases denoteMeta m.acval env φ (B + formerTys.length + (d + 1))
+        ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) b).instantiateList
+          (Expr.fvar (B + formerTys.length + d)
+            ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList
+              as2 0) :: as2) 0)
+      <;> cases denoteMeta m.acval env φ (B + formerTys.length + (d + 1))
+        (b.instantiateList (Expr.fvar (B + formerTys.length + d) (ty.instantiateList as1 0) :: as1) 0)
+      <;> simp [ReadAgree]
+    rename_i b2 b1
+    intro hb vals τ hvl hτ
+    obtain ⟨hAv, hAw⟩ := hA vals τ hvl hτ
+    have hbx : ∀ x : V, interp V (cons x (consList vals τ)) b2 = interp V (cons x (consList vals τ)) b1 ∧
+        (WellDenoted V (cons x (consList vals τ)) b2 → WellDenoted V (cons x (consList vals τ)) b1) := by
+      intro x
+      have := hb (vals ++ [x]) τ (by simp [hvl]) hτ
+      simpa [consList_append] using this
+    refine ⟨?_, fun hw => ?_⟩
+    · rw [interp_letE, interp_letE, hAv]; exact (hbx _).1
+    · rw [WellDenoted_letE] at hw ⊢
+      obtain ⟨w1, w2⟩ := hw
+      refine ⟨hAw w1, ?_⟩
+      rw [← hAv]; exact (hbx _).2 w2
   | .const n us, d, as2, as1, _, _ => by
     simp only [ConLeche.targetAbs]
     split

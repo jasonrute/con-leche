@@ -161,8 +161,10 @@ theorem denotePInstLevels (m : EnvModel V env)
     simp only [pwBit_substPW]
   | case8 d fe a ihf iha =>
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ihf, iha]
-  | case9 d ty val body =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta]
+  | case9 d ty val body ihty ihv ihbody =>
+    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta,
+      ← Expr.instantiateLevelParams_instantiate1 ks us body 0,
+      ihty, ihv, ihbody]
   | case10 d sn i e ihe =>
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ihe]
   | case11 d k hsup =>
@@ -294,9 +296,12 @@ theorem denoteMeta_params_ext (m : EnvModel V env)
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd
     rw [denoteMeta, denoteMeta, ← ihf hd.1, ← iha hd.2]
-  | case9 d ty val body =>
-    intro _
-    rw [denoteMeta, denoteMeta]
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hd
+    simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd
+    rw [denoteMeta, denoteMeta, ← ihty hd.1.1, ← ihv hd.1.2,
+      ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1.1 0
+        hd.2)]
   | case10 d sn i e ihe =>
     intro hd
     rw [denoteMeta, denoteMeta,
