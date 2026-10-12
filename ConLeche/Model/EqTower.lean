@@ -179,17 +179,18 @@ theorem eqValAV_mem (ψ : Name → Nat) (ρ : Nat → V) :
 /-- The tower is graded (`WellDenoted`), at every environment. -/
 theorem eqValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (eqValAV ψ) := by
-  refine ⟨trivial, fun A _ => ⟨trivial, fun a _ => ⟨trivial,
+  refine ⟨trivial, IsTy_univ _, fun A hA => ⟨trivial, IsTy_of_mem_univ hA,
+    fun a _ => ⟨trivial, IsTy_of_mem_univ hA,
     fun b _ => ⟨trivial, trivial⟩, ?_⟩, ?_⟩, ?_⟩
   · exact ⟨fun _ => univZero, fun _ _ => eqv_mem_univZero _ _,
-      fun h => nomatch h⟩
+      fun _ _ => IsTy_univZero, fun h => nomatch h⟩
   · exact ⟨fun _ => piR 1 A (fun _ => univZero),
       fun _ _ => lamR_mem fun _ _ => eqv_mem_univZero _ _,
-      fun h => nomatch h⟩
+      fun _ _ => IsTy_piR _ _ _, fun h => nomatch h⟩
   · exact ⟨fun x => piR 1 x (fun _ => piR 1 x (fun _ => univZero)),
       fun _ _ => lamR_mem fun _ _ =>
         lamR_mem fun _ _ => eqv_mem_univZero _ _,
-      fun h => nomatch h⟩
+      fun _ _ => IsTy_piR _ _ _, fun h => nomatch h⟩
 
 /-- The tower is bit-valid (`AnnotValid`) — the `lam` clause is
 bit-free, so this is pure structure. -/
@@ -218,12 +219,13 @@ theorem eqReflValAV_mem (ψ : Name → Nat) (ρ : Nat → V) :
 
 theorem eqReflValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (eqReflValAV ψ) := by
-  refine ⟨trivial, fun A _ => ⟨trivial, fun _a _ => trivial, ?_⟩, ?_⟩
+  refine ⟨trivial, IsTy_univ _, fun A hA => ⟨trivial, IsTy_of_mem_univ hA,
+    fun _a _ => trivial, ?_⟩, ?_⟩
   · exact ⟨fun x => eqv x x, fun x _ => pt_mem_eqv_self x,
-      fun _ x _ => eqv_mem_univZero x x⟩
+      fun x _ => IsTy_eqv x x, fun _ x _ => eqv_mem_univZero x x⟩
   · exact ⟨fun x => piR 0 x (fun y => eqv y y),
       fun _ _ => pt_mem_piR_zero_of fun y _ => pt_mem_eqv_self y,
-      fun _ _ _ => piR_zero_mem_univZero⟩
+      fun _ _ => IsTy_piR _ _ _, fun _ _ _ => piR_zero_mem_univZero⟩
 
 theorem eqReflValAV_validV (ψ : Name → Nat) (ρ : Nat → V) :
     AnnotValid V ρ (eqReflValAV ψ) :=
@@ -269,10 +271,11 @@ theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
         (interp V ρ Aa)) (interp V ρ la)
       ∈ˢ piR 1 (interp V ρ Aa) (fun _ => univZero) :=
     app_mem_piR_pos Nat.one_ne_zero h1 ha
+  have hAty : IsTy (interp V ρ Aa) := IsTy_of_mem_univ hA
   refine ⟨⟨⟨⟨⟨eqValAV_wellDenoted ψ ρ, hAa.1, 1, _, _, hmem, hA,
-      fun h => nomatch h⟩, hla.1, 1, _, _, h1, ha,
-      fun h => nomatch h⟩, hra.1, 1, _, _, h2, hb,
-      fun h => nomatch h⟩,
+      (fun h => nomatch h), fun _ => IsTy_univ _⟩, hla.1, 1, _, _, h1, ha,
+      (fun h => nomatch h), fun _ => hAty⟩, hra.1, 1, _, _, h2, hb,
+      (fun h => nomatch h), fun _ => hAty⟩,
     ⟨⟨eqValAV_validV ψ ρ, hAa.2⟩, hla.2⟩, hra.2⟩, ?_⟩
   rw [interp_app, interp_app, interp_app,
     eqValAV_app₃ ψ ρ _ _ _ hA ha hb]

@@ -128,7 +128,7 @@ theorem Certs.skip_sound {d : Nat} {lic : Bool}
   have hokBody : ∀ (ρ : Nat → V), Sat V Δa ρ →
       ∀ x, x ∈ˢ interp V ρ doma → WellDenotedV V (cons x ρ) bodya :=
     fun ρ hρ x hx =>
-      ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).2 x hx,
+      ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).2.2.1 x hx,
         ((AnnotValid_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).2).2.1 x hx⟩
   -- THE LICENCE: the binder's datum is `.never`, so the head prefix's
   -- own app slot transfers the argument into the telescope's domain
@@ -173,14 +173,14 @@ theorem Certs.cert_sound {d : Nat} {lic : Bool}
   have hokBody : ∀ (ρ : Nat → V), Sat V Δa ρ →
       ∀ x, x ∈ˢ interp V ρ doma → WellDenotedV V (cons x ρ) bodya :=
     fun ρ hρ x hx =>
-      ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).2 x hx,
+      ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).2.2.1 x hx,
         ((AnnotValid_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).2).2.1 x hx⟩
   -- the certificate: the argument inhabits the binder's domain
   obtain ⟨hfta, hsubta, taA, htaA, hgtaA, hmem⟩ := hta hfarg hCarg haa hokA
   have hmemA : ∀ ρ : Nat → V, Sat V Δa ρ →
       interp V ρ aa ∈ˢ interp V ρ doma := fun ρ hρ =>
     (hd hfta ⟨hdomw, hdomb, hLbdom⟩ (hCarg.of_subset hsubta) hCdom htaA hdoma
-      hgtaA hokDom ρ hρ) ▸ hmem ρ hρ
+      hgtaA.graded hokDom ρ hρ) ▸ hmem ρ hρ
   exact certs_step hrest hCT hgT hargs hsp' hgvs hlicP hbodyw hbodyb hLbty
     hbodya haa hfarg hCarg hokA hokBody hmemA
 

@@ -199,7 +199,7 @@ theorem walkCtx_blockFrame {envT : Env} {mT : EnvModel V envT} {ψ : Name → Na
             (rP + nF + nR - 1 - i) default))
     (hokΔ : ∀ i, i < rP + nF + nR →
       ∀ ρ : Nat → V, Sat V (ihdoms.reverse ++ (pdoms ++ fdoms).reverse) ρ →
-        WellDenotedV V (fun j => ρ (j + (rP + nF + nR - 1 - i) + 1))
+        WellDenotedTy V (fun j => ρ (j + (rP + nF + nR - 1 - i) + 1))
           ((ihdoms.reverse ++ (pdoms ++ fdoms).reverse).getD (rP + nF + nR - 1 - i) default))
     (hlbF : ∀ x ∈ fvsPref ++ fvsF ++ fvsIh, (Expr.fvarTypeD x).looseBVarsBounded 0 = true)
     (hcbF : ∀ x ∈ fvsPref ++ fvsF ++ fvsIh, ConstsBound envT x)

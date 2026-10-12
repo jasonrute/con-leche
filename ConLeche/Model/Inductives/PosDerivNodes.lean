@@ -392,8 +392,9 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgA, hgB⟩ := WellDenotedV.hoist_pi (V := V) hgw
-    have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgA
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgw
+    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
+    have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     refine ihb (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd) hCop hba hgB ?_
     rw [show dep + 1 - ctx.hiAt prog.length = (dep - ctx.hiAt prog.length) + 1 by omega,
       List.drop_succ_cons, hΔ]
@@ -477,9 +478,10 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgA, hgB⟩ := WellDenotedV.hoist_pi (V := V) hgr
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgr
+    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
     have hA := iha hhi ⟨hws.1, hbb.1, hLa⟩ hC.forallE_ty hta hgA hΔ
-    have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgA
+    have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd
     rw [show base + j + 1 = base + (j + 1) by omega] at hCop hfr' hba
     have hrest := ihb (by omega) hfr' hCop hba hgB (by

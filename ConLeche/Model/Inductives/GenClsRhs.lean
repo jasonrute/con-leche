@@ -214,7 +214,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
       (xs.take (R.g.nP + s)) (spineFit_take hxs (by omega))
     rw [hPdget] at hgr
     rw [← hBE, WellDenotedV_liftN, hsh]
-    exact hgr
+    exact hgr.1
   -- the rule frame's field domains are the fields' binder data
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
@@ -296,17 +296,21 @@ the result a truth value at a zero bit. -/
 theorem underTowerOk_of_spines {m : Nat} {b T : AnnotTerm} :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {σ : Nat → V},
       (∀ k, k < ds.length → ∀ zs : List V, SpineFit σ ((ds.map (·.2.2)).take k) zs →
-        WellDenoted V (consList zs σ) ((ds.map (·.2.2)).getD k default)) →
+        WellDenoted V (consList zs σ) ((ds.map (·.2.2)).getD k default) ∧
+          IsTy (interp V (consList zs σ) ((ds.map (·.2.2)).getD k default))) →
       (∀ zs : List V, SpineFit σ (ds.map (·.2.2)) zs →
         WellDenoted V (consList zs σ) b ∧ interp V (consList zs σ) b ∈ˢ interp V (consList zs σ) T ∧
-          (m = 0 → interp V (consList zs σ) T ∈ˢ (univZero : V))) →
+          (m = 0 → interp V (consList zs σ) T ∈ˢ (univZero : V)) ∧
+          IsTy (interp V (consList zs σ) T)) →
       UnderTowerOk m σ b T ds
   | [], σ, _, hb => by
     have := hb [] trivial
     simp only [consList_nil] at this
     exact this
   | d :: ds, σ, hd, hb => by
-    refine ⟨by simpa using hd 0 (by simp) [] trivial, fun a ha => ?_⟩
+    have h0 := hd 0 (by simp) [] trivial
+    simp only [List.map_cons, List.getD_cons_zero, consList_nil] at h0
+    refine ⟨h0.1, h0.2, fun a ha => ?_⟩
     refine underTowerOk_of_spines (fun k hk zs hzs => ?_) (fun zs hzs => ?_)
     · have := hd (k + 1) (by simpa using hk) (a :: zs) ⟨ha, hzs⟩
       simpa [consList_cons] using this
@@ -403,13 +407,14 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
             ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = k by
           simp [hlc, ← hnF]]
       exact SpineFit.append hysR hzs
-    have := (G2.ok _ (by simp at hk; omega) _ _ hfit).1
+    have := G2.ok _ (by simp at hk; omega) _ _ hfit
     rw [consList_append, list_getD_append_right (by simp [hlc, ← hnF]),
       show R.g.pre.length + (genCtorAt R.g R.rd c j).nF + k
         - (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = k by
         simp [hlc, ← hnF]] at this
-    simpa [Function.comp_def] using this
+    simp only [Function.comp_def] at this ⊢
+    exact ⟨this.1.1, this.2⟩
   · -- the body: the callee applied along its binder data
     rw [List.map_map] at hzs
     simp only [Function.comp_def] at hzs
@@ -490,9 +495,9 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
           = (fs ++ zs).length + xs.length - 1 - classMotPos R.g (genClsOf R.rd q.1) by
           rw [List.length_append, hfl, hzl, ← hxfl, List.length_append, hfl]; omega]
       exact consList_prefix_getD hmt
-    refine ⟨hWD.1, by rw [hT0]; exact hIn, fun h0 => ?_⟩
-    rw [hT0]
     have hu := genRec_conclTy hμ h ψ ρ q.1 hK _ hfitR
+    refine ⟨hWD.1, by rw [hT0]; exact hIn, fun h0 => ?_, by rw [hT0]; exact IsTy_of_mem_univ hu⟩
+    rw [hT0]
     have he : Level.eval ψ (ConLeche.structElimLevel pp.toBlockShape.elim pp.toBlockShape.large)
         = 0 := (pwBit_zeronessOf ψ _).mp h0
     rw [he, univ_zero] at hu

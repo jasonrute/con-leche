@@ -154,7 +154,8 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
     (fun ψ => ⟨_, hreads ψ⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)
-      exact ⟨by rw [WellDenoted_sort]; trivial, by rw [AnnotValid_sort]; trivial⟩)
+      exact ⟨⟨by rw [WellDenoted_sort]; trivial, by rw [AnnotValid_sort]; trivial⟩,
+        IsTy_univ _⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)
       exact interp_sort_mem V ρ 0)

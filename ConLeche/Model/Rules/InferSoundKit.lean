@@ -60,6 +60,15 @@ theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTer
       (h _ (Sat_tail hρ)).2).2.1 (ρ 0) (hρ 0 A rfl)
     rwa [hcons] at this
 
+/-- The `WellDenotedV` ∀-splitter, the domain a graded type. -/
+theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+    (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
+      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) :=
+  ⟨fun ρ hρ => ⟨(WellDenotedV.hoist_pi (V := V) h).1 ρ hρ,
+      ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1⟩,
+    (WellDenotedV.hoist_pi (V := V) h).2⟩
+
 /-- The `WellDenotedV` λ-splitter. -/
 theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam v A b)) :
@@ -83,7 +92,7 @@ theorem WellDenotedV.hoist_app {Δa : List AnnotTerm} {f a : AnnotTerm}
       ∀ ρ : Nat → V, Sat V Δa ρ →
         ∃ (v : Nat) (A : V) (B : V → V),
           interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
-          (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) :=
+          (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A) :=
   ⟨fun ρ hρ => ⟨((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).1,
       ((AnnotValid_app V ρ f a) ▸ (h ρ hρ).2).1⟩,
     fun ρ hρ => ⟨((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).2.1,
@@ -116,7 +125,7 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
           ((AnnotValid_pi V σ u v A B) ▸ hokT.2).1⟩
       have hokB : ∀ y, y ∈ˢ interp V σ A → WellDenotedV V (cons y σ) B :=
         fun y hy =>
-          ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).2 y hy,
+          ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.2.1 y hy,
             ((AnnotValid_pi V σ u v A B) ▸ hokT.2).2.1 y hy⟩
       have hfib : v = 0 → ∀ y, y ∈ˢ interp V σ A →
           interp V (cons y σ) B ∈ˢ (univZero : V) :=
@@ -127,7 +136,8 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
         refine ⟨?_, ?_⟩
         · rw [WellDenoted_app]
           exact ⟨hf.1, hokx.1, v, interp V σ A,
-            (fun y => interp V (cons y σ) B), hmem, hx, hfib⟩
+            (fun y => interp V (cons y σ) B), hmem, hx, hfib,
+            fun _ => ((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.1⟩
         · rw [AnnotValid_app]; exact ⟨hf.2, hokx.2⟩
       have hmem' : interp V ρ (.app f x)
           ∈ˢ interp V (cons (interp V ρ x) σ) B := by
@@ -180,7 +190,8 @@ theorem charList_facts {ρ : Nat → V}
         interp V ρ ((.app KF (natLitAV Kz Ks c.toNat)) : AnnotTerm)
           ∈ˢ interp V ρ KH := by
     intro c
-    have hnat := natLit_factsAV hokKz.1 hokKs.1 hz hsucc c.toNat
+    have hNatTy : IsTy (interp V ρ KNat) := ((WellDenoted_pi V ρ 0 bF KNat KH) ▸ hokTF.1).2.1
+    have hnat := natLit_factsAV hokKz.1 hokKs.1 hz hsucc hNatTy c.toNat
     have hokNum : WellDenotedV V ρ (natLitAV Kz Ks c.toNat) :=
       ⟨hnat.1, AnnotValid_natLitAV hokKz.2 hokKs.2 c.toNat⟩
     have h := wellDenotedV_mkAppN_of_fit (V := V) (ρ := ρ)
@@ -256,7 +267,8 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     (ρ : Nat → V) :
     WellDenotedV V ρ ea ∧
       interp V ρ ea ∈ˢ
-        interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] [])) := by
+        interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] [])) ∧
+      IsTy (interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] []))) := by
   obtain ⟨hs, ciS, ciO, ciL, ciN, ciC, ciH, ciF, pL, pN, pC, hfS, hfO,
     hfL, hfN, hfC, hfH, hfF, hlpS, hlpO, hlpL, hlpN, hlpC, hlpH, hlpF,
     hTS, hTH, ⟨mbO, hTO⟩, ⟨mbL, hTL⟩, ⟨mbN, hTN⟩,
@@ -294,7 +306,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     intro n ci us ta hf hnt hlen hta
     obtain ⟨ta', hta', hok, hmem⟩ := hct 0 n ci us hf hnt hlen
     obtain rfl : ta = ta' := Option.some.inj (hta.symm.trans hta')
-    exact ⟨hok, hmem⟩
+    exact ⟨fun σ => (hok σ).1, hmem⟩
   -- the shared `.const` readings
   have hKL : ∀ D : Nat, denoteMeta m.acval env φ D
       (.const ConLeche.listName [.zero])
@@ -334,6 +346,23 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       rfl
     have h := (head _ _ _ _ hfH (ConLeche.isTowerEntry_false_of_find? hfH (fun _ _ h => by simp [ConLeche.charName] at h)) (by simp [hlpH]) hR).2 ρ
     rw [hlpH, interp_sort] at h
+    exact h
+  -- `String` is a type in `univ 1`
+  have hStringU : interp V ρ
+      (m.acval ConLeche.stringName (Level.substFn φ [] []))
+      ∈ˢ (univ 1 : V) := by
+    have hIS : ciS.toConstantVal.type.instantiateLevelParams
+        ciS.toConstantVal.levelParams []
+        = Expr.sort (Level.succ Level.zero) := by
+      rw [hlpS, hTS]
+      simp [Expr.instantiateLevelParams, Level.subst]
+    have hR : denoteMeta m.acval env φ 0
+        (ciS.toConstantVal.type.instantiateLevelParams
+          ciS.toConstantVal.levelParams []) = some ((.sort 1) : AnnotTerm) := by
+      rw [hIS, denoteMeta_sort]
+      rfl
+    have h := (head _ _ _ _ hfS (ConLeche.isTowerEntry_false_of_find? hfS (fun _ _ h => by simp [ConLeche.stringName] at h)) (by simp [hlpS]) hR).2 ρ
+    rw [hlpS, interp_sort] at h
     exact h
   -- `List.nil`
   have hIN : ciN.toConstantVal.type.instantiateLevelParams
@@ -470,7 +499,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     rfl
   obtain ⟨hokRO, hmemRO⟩ := head _ _ _ _ hfO (ConLeche.isTowerEntry_false_of_find? hfO (fun _ _ h => by simp [ConLeche.stringOfListName] at h)) (by simp [hlpO]) hRO
   -- the numeral heads
-  obtain ⟨hz, hsucc⟩ := hnh hs ρ
+  obtain ⟨hz, hsucc, -⟩ := hnh hs ρ
   -- the chain
   obtain ⟨hclA, hclm⟩ :=
     charList_facts (V := V) (ρ := ρ)
@@ -513,7 +542,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       have := hmemRO ρ
       rwa [hlpO] at this)
     (TeleFit.cons (by rw [interp_app]; exact hclm) TeleFit.nil)
-  refine ⟨h.1, ?_⟩
+  refine ⟨h.1, ?_, IsTy_of_mem_univ hStringU⟩
   have h2 := h.2
   rwa [hleafC ConLeche.stringName (Level.substFn φ [] []) _] at h2
 

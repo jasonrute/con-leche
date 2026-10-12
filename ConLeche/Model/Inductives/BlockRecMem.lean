@@ -280,7 +280,7 @@ theorem hrd_of_pre {envC : Env} (hμ : μ.verifiedChecks = true)
       ConLeche.Semantics.BlockRecPre V (s ψ) K (RecTy ψ) (eqs ψ) ρ) :
     ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) :=
   hrd_of_mem hμ mpC h (hmem_of_pre hK hty hacv hpre)
 

@@ -644,7 +644,7 @@ dummy binders carry the reading only; the law never reads them. -/
           interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →
           ConLeche.Model.AnnotTerm.peelPis Ta (vs ++ [x]) = some rest →
-          WellDenotedV V ρ (projAV (i + entry.off) x) ∧ WellDenotedV V ρ rest ∧
+          WellDenotedV V ρ (projAV (i + entry.off) x) ∧ WellDenotedTy V ρ rest ∧
             interp V ρ (projAV (i + entry.off) x) ∈ˢ interp V ρ rest)) ∧
       -- (B) the iota law: the projection of a *graded* constructor
       -- application is the selected field, at every valuation under
@@ -695,7 +695,7 @@ checker's own front door, which is establishment. -/
     AnnotValid V ρ (m.acval n ψ)
 
 /-- **The `const` clause's residue, P currency**: a stored constant's
-leaf inhabits its type's graded reading. -/
+leaf inhabits its type's reading, a graded type. -/
 @[expose] def ConstType {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) : Prop :=
   ∀ (d : Nat) (n : Name) (ci : ConLeche.ConstantInfo) (us : List Level),
@@ -705,7 +705,7 @@ leaf inhabits its type's graded reading. -/
       denoteMeta m.acval env φ d
         (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us) = some ta ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       ∀ ρ : Nat → V,
         interp V ρ (m.acval n
             (Level.substFn φ ci.toConstantVal.levelParams us))
@@ -713,7 +713,7 @@ leaf inhabits its type's graded reading. -/
 
 /-- **The `Nat`-literal clause's residue, over the core**: the zero's
 membership and the successor's, at the annotated valuation's own
-`Nat` leaf. -/
+`Nat` leaf, which is a type. -/
 @[expose] def NatHeads {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) : Prop :=
   ConLeche.natLitSupported env = true →
@@ -723,7 +723,8 @@ membership and the successor's, at the annotated valuation's own
     interp V ρ (m.acval natSuccName (Level.substFn φ [] []))
       ∈ˢ piR 1 (interp V ρ (m.acval natName (Level.substFn φ [] [])))
         (fun _ => interp V ρ
-          (m.acval natName (Level.substFn φ [] [])))
+          (m.acval natName (Level.substFn φ [] []))) ∧
+    IsTy (interp V ρ (m.acval natName (Level.substFn φ [] [])))
 
 /-- **The unfolding supplier the P-tier delta exit consumes**: a stored
 definition's validated annotation *is* the constant's own leaf, at

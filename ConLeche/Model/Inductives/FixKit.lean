@@ -581,8 +581,8 @@ theorem mkAppN_wellDenotedV_of_pt :
     have ha := hargs a List.mem_cons_self
     refine mkAppN_wellDenotedV_of_pt (f := .app f a) ?_ ?_
       (fun b hb => hargs b (List.mem_cons_of_mem _ hb))
-    · refine ⟨⟨hf.1, ha.1, 0, image (fun _ => interp V ρ a) unitSet, fun _ => unitSet, ?_, ?_, ?_⟩,
-        hf.2, ha.2⟩
+    · refine ⟨⟨hf.1, ha.1, 0, image (fun _ => interp V ρ a) unitSet, fun _ => unitSet, ?_, ?_, ?_,
+        fun h => absurd rfl h⟩, hf.2, ha.2⟩
       · rw [hpt]; exact pt_mem_piR_zero_of fun _ _ => pt_mem_unitSet
       · exact mem_image.mpr ⟨pt, pt_mem_unitSet, rfl⟩
       · intro _ _ _; rw [← univ_zero]; exact unitSet_mem_univ 0
@@ -970,7 +970,7 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
       WellDenotedV V ρ x →
       interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN L vs) →
       ConLeche.Model.AnnotTerm.peelPis (mkPisAV eds R) (vs ++ [x]) = some rest →
-      WellDenotedV V ρ (projAV (i + 1) x) ∧ WellDenotedV V ρ rest ∧
+      WellDenotedV V ρ (projAV (i + 1) x) ∧ WellDenotedTy V ρ rest ∧
         interp V ρ (projAV (i + 1) x) ∈ˢ interp V ρ rest := by
   intro ρ vs x rest hlenVs hokApp hokx hmem hpeel
   have hlenFs : (((ds.drop nP).map (·.2.2))).length = nF := by simp [hlenDs]
@@ -1023,14 +1023,33 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
   · -- the projection's grading
     exact ⟨wellDenoted_projAV_succ_fibre (fun hw => hokB _ hsatC) hokx.1 hx (by rw [hlenFs]; exact hi),
       projAV_validV hokx.2⟩
-  · -- the residual's grading
-    rw [hrest, hlen']
-    refine wellDenotedV_instSeq _ ?_ ?_
-    · intro w' hw'
-      rcases List.mem_append.mp hw' with h | h
-      · exact WellDenotedV_mkAppN_args vs hokApp w' h
-      · rw [List.mem_singleton] at h; subst h; exact hokx
-    · rw [hchain]; exact hokR _ hframeX hframeS
+  · -- the residual's grading, and it is a type: the field's sort at a
+    -- fitting prefix (squash: the point prefix agrees with one)
+    refine ⟨?_, ?_⟩
+    · rw [hrest, hlen']
+      refine wellDenotedV_instSeq _ ?_ ?_
+      · intro w' hw'
+        rcases List.mem_append.mp hw' with h | h
+        · exact WellDenotedV_mkAppN_args vs hokApp w' h
+        · rw [List.mem_singleton] at h; subst h; exact hokx
+      · rw [hchain]; exact hokR _ hframeX hframeS
+    · rw [hinterpRest]
+      by_cases hw : w = 0
+      · subst hw
+        obtain ⟨hpt, as', hspAs⟩ := fixFibre_zero_elim hx
+        obtain ⟨hpre, -⟩ := spineFit_prefix_next hspAs (by rw [hlenFs]; exact hi)
+        have hlenTake : (as'.take i).length = i :=
+          spineFit_take_length hspAs (by rw [hlenFs]; omega)
+        rw [hpt, dropS_pt, projList_pt]
+        rw [interp_congr_lifts i
+          (free_of_diff hlenDs hi (hsorts _ hsatC) (hguard rfl).2 hfree hspAs)
+          (consList_prefix_agree hlenTake _).2]
+        exact IsTy_of_mem_univ (hsorts _ hsatC i hi _ hpre)
+      · obtain ⟨fs, heq, hspF, -⟩ := fixFibre_elim hw hx
+        have hlenF : fs.length = nF := by rw [hspF.length_eq, hlenFs]
+        rw [heq, dropS_one_inj, projList_mkTower_take (by omega)]
+        exact IsTy_of_mem_univ (hsorts _ hsatC i hi _
+          (spineFit_prefix_next hspF (by rw [hlenFs]; exact hi)).1)
   · -- the membership
     rw [hinterpRest, projAV_interp]
     by_cases hw : w = 0
@@ -1677,7 +1696,8 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
         | succ k =>
           -- open the binder, walk on
           have hC' : CtxOk mp.base2 ψ (d + 1) (t0.2.2 :: Δ) (body.instantiate1 (.fvar d ty)) :=
-            CtxOk.open hC.forallE_body hCty hread0 fun ρ hρ => (hrow ρ hρ).1
+            CtxOk.open hC.forallE_body hCty hread0 fun ρ hρ =>
+              ⟨(hrow ρ hρ).1, IsTy_of_mem_univ (hrow ρ hρ).2⟩
           obtain ⟨hws', hb', hL'⟩ := frame_open2 hws2.1 hbty hws2.2 hbb hLty hLbody
           have hread' : ∀ k a, fvs'[k]? = some a →
               denoteMeta mp.base2.acval env ψ (d + 1 + k) a.fvarTypeD = some (tl'.getD k default).2.2 := by

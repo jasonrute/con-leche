@@ -272,7 +272,7 @@ theorem drop_fields_eq {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
 theorem fieldsValid_of_frame {Γ : List AnnotTerm} {k nP nF : Nat}
     (hk : k = nP + nF) (hΓ : Γ.length = k)
     (okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-      WellDenotedV V ρ (Γ.getD (k - 1 - i) default)) :
+      WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)) :
     ∀ (j : Nat), j ≤ nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
       FieldsValid ρ (fieldsFrom Γ k nP nF j) := by
   suffices ∀ (m j : Nat), nF - j = m → j ≤ nF → ∀ ρ : Nat → V,
@@ -291,7 +291,7 @@ theorem fieldsValid_of_frame {Γ : List AnnotTerm} {k nP nF : Nat}
     intro j hm hj ρ hρ
     have hlt : j < nF := by omega
     rw [fieldsFrom_succ hlt]
-    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).2, fun a ha => ?_⟩
+    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1.2, fun a ha => ?_⟩
     refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
     rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
       List.drop_eq_getElem_cons (l := Γ) (i := k - (nP + j) - 1) (by omega)]
@@ -652,7 +652,7 @@ theorem mkLamsAV_pt_body :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hrest, B, hB, hB0⟩ := hok'
+    obtain ⟨-, hAty, hrest, B, hB, -, hB0⟩ := hok'
     rw [consList_cons]
     refine mkLamsAV_pt_body (hrest a hsp.1) hsp.2 ?_
     rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
@@ -676,7 +676,7 @@ theorem mkLamsAV_fold_graded :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hrest, B, hB, hB0⟩ := hok'
+    obtain ⟨-, hAty, hrest, B, hB, -, hB0⟩ := hok'
     rw [consList_cons, List.foldl_cons]
     rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
     · -- a zero bit: the layer is the point, and so is the body
@@ -709,7 +709,7 @@ theorem mkAppN_wellDenotedV_of_lam :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hrest, B, hB, hB0⟩ := hok'
+    obtain ⟨-, hAty, hrest, B, hB, -, hB0⟩ := hok'
     have ha := hargs a List.mem_cons_self
     rw [AnnotTerm.mkAppN_cons]
     -- the application's package
@@ -719,8 +719,9 @@ theorem mkAppN_wellDenotedV_of_lam :
       rcases hval with hpt | heq
       · exact ⟨hf.1, ha.1, 0, interp V σ d.2, fun _ => unitSet,
           by rw [hpt, piR_zero]; exact pt_mem_truthVal fun x _ => ⟨pt, pt_mem_unitSet⟩,
-          hsp.1, fun _ _ _ => mem_univZero.mpr (Subset.refl _)⟩
-      · refine ⟨hf.1, ha.1, d.1, interp V σ d.2, B, ?_, hsp.1, fun h0 x hx => hB0 h0 x hx⟩
+          hsp.1, fun _ _ _ => mem_univZero.mpr (Subset.refl _), fun h => absurd rfl h⟩
+      · refine ⟨hf.1, ha.1, d.1, interp V σ d.2, B, ?_, hsp.1, fun h0 x hx => hB0 h0 x hx,
+          fun _ => hAty⟩
         rw [heq]
         simp only [mkLamsAV, interp_lam]
         exact lamR_mem hB

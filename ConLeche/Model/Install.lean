@@ -286,7 +286,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
@@ -344,7 +344,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta := by
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta := by
     intro c hc ψ ta hta ρ
     rcases List.mem_cons.mp hc with h | h
     · subst h; exact htyOk ψ ta hta ρ
@@ -353,7 +353,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
         Option.some.inj
           ((hcompM ψ _ (hbound _ h).1 (hh.projTower.type h) hta').symm.trans
             hta)
-      exact mp.type_wellDenotedV c h ψ ta' hta' ρ
+      exact mp.type_wellDenotedTy c h ψ ta' hta' ρ
   have hmt : ∀ c ∈ (⟨c₀ :: env.consts⟩ : Env).consts,
       ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
@@ -400,7 +400,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     acval_validV := acvalWith_validV (n := c₀.name)
       mp.acval_validV hAvalid
     type_reads := htr
-    type_wellDenotedV := hto
+    type_wellDenotedTy := hto
     mem_type := hmt
     defn_reads := hdr
     nat_heads := hnh

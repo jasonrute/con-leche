@@ -133,13 +133,13 @@ theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (h
   show WellDenoted V ρ (.app (.app (.const .psigma [0, 0]) P) (.lam 1 P (Q.liftN 1 0)))
   rw [WellDenoted_app]
   refine ⟨?_, ?_, 1, psigmaFibreSpace V 0 (interp V ρ P), fun _ => (univ 0 : V), ?_, ?_,
-    fun h0 => absurd h0 Nat.one_ne_zero⟩
+    fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_piR _ _ _⟩
   · rw [WellDenoted_app]
     exact ⟨trivial, hP, 1, univ 0, fun A => piR 1 (psigmaFibreSpace V 0 A) fun _ => (univ 0 : V),
-      hps, hP', fun h0 => absurd h0 Nat.one_ne_zero⟩
+      hps, hP', fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_univ 0⟩
   · rw [WellDenoted_lam]
-    refine ⟨hP, fun x _ => ?_, fun _ => (univ 0 : V), fun x _ => ?_,
-      fun h0 => absurd h0 Nat.one_ne_zero⟩
+    refine ⟨hP, Or.inl hPu, fun x _ => ?_, fun _ => (univ 0 : V), fun x _ => ?_,
+      fun _ _ => IsTy_univ 0, fun h0 => absurd h0 Nat.one_ne_zero⟩
     · rw [WellDenoted_liftN, shiftE_succ_cons, shiftE_zero_zero]; exact hQ
     · rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]; exact hQ'
   · show SetTheory.app (psigmaV V 0 0) (interp V ρ P) ∈ˢ _
@@ -355,13 +355,14 @@ theorem wd_sigChainAV :
     rw [WellDenoted_app]
     refine ⟨?_, ?_, Nat.max s (tailLv s Ts) + 1, psigmaFibreSpace V (tailLv s Ts) (interp V ρ T),
       fun _ => (univ (Nat.max s (tailLv s Ts)) : V), ?_, ?_,
-      fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
+      fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_piR _ _ _⟩
     · rw [WellDenoted_app]
       exact ⟨trivial, h.2.1, Nat.max s (tailLv s Ts) + 1, univ s, _, hps, h.1,
-        fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
+        fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_univ s⟩
     · rw [WellDenoted_lam]
-      refine ⟨h.2.1, fun r hr => wd_sigChainAV (h.2.2 r hr), fun _ => (univ (tailLv s Ts) : V),
-        fun r hr => ?_, fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
+      refine ⟨h.2.1, IsTy_of_mem_univ h.1, fun r hr => wd_sigChainAV (h.2.2 r hr),
+        fun _ => (univ (tailLv s Ts) : V), fun r hr => ?_, fun _ _ => IsTy_univ _,
+        fun h0 => absurd h0 (Nat.succ_ne_zero _)⟩
       rw [interp_sigChainAV (h.2.2 r hr)]
       exact sigChainV_tail_univ (h.2.2 r hr)
     · show SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T) ∈ˢ _
@@ -477,7 +478,8 @@ theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
       ?_, ?_, ?_⟩
     · rw [WellDenoted_app]
       refine ⟨trivial, wd_sigChainAV h, s, univ s,
-        fun A => piR s (dnegSpace V A) fun _ => A, hchoice, ?_, fun h0 A _ => ?_⟩
+        fun A => piR s (dnegSpace V A) fun _ => A, hchoice, ?_, fun h0 A _ => ?_,
+        fun _ => IsTy_univ s⟩
       · rw [interp_sigChainAV h]; exact hu
       · show piR s _ _ ∈ˢ _
         rw [h0]; exact piR_zero_mem_univZero
@@ -487,11 +489,11 @@ theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
       show piR s _ _ ∈ˢ _
       rw [h0]; exact piR_zero_mem_univZero
     · exact pt_mem_dnegSpace_of hne.choose_spec
-    · intro h0 _ _
+    · refine ⟨fun h0 _ _ => ?_, fun _ => IsTy_piR _ _ _⟩
       show sigChainV s ρ Ts Q ∈ˢ univZero
-      rw [h0]
+      subst h0
       have := hu
-      rwa [h0, univ_zero] at this
+      rwa [univ_zero] at this
 
 /-- **THE KIT'S THEOREM**: at a formed, inhabited chain, the chosen
 element's projections are a fitting spine whose components satisfy
@@ -911,7 +913,8 @@ theorem wd_iotaEqAV {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTer
             (prefVarsAV pdoms.length fdoms.length ++ es ++ [mk])) ∧
         WellDenoted V (consList ys σ) (instsAV 0 ihs Rb)) :
     WellDenoted V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) := by
-  refine WellDenoted_mkPisAV_of (by simpa using hdoms) fun ys hsp => ?_
+  refine WellDenoted_mkPisAV_of (by simpa using hdoms) (fun ys hsp => ?_)
+    (fun _ _ => IsTy_eqv _ _)
   rw [propBinders_doms] at hsp
   rw [WellDenoted_eqE]
   exact hbody ys hsp

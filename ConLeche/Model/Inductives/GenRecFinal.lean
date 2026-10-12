@@ -152,7 +152,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     have hj : j < blockRecNCt (tgtRs out) c :=
       Nat.lt_of_lt_of_le (List.getElem?_eq_some_iff.mp hcA).1 (blockRecNCt_ge hr)
     refine ⟨fieldsValid_of_graded fun l hl zs hzs =>
-      (genCls_frameV hμ R hg h mpC hfind ψ hc hj l hl ρ zs hzs).2, fun ys hys => ?_⟩
+      (genCls_frameV hμ R hg h mpC hfind ψ hc hj l hl ρ zs hzs).1.2, fun ys hys => ?_⟩
     obtain ⟨hE, hM⟩ := hargs ψ ρ c hc j hj ys hys
     exact ⟨fun e he => (hE e he).2, hM.2⟩
   have hihV : GenIhPiecesValid (V := V) (envC := envC) mpC.base2.acval out R.g R.rd
@@ -248,11 +248,11 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       ∀ (σ : Nat → V) (ys : List V),
         SpineFit σ ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).take l) ys →
-        WellDenoted V (consList ys σ)
+        WellDenotedTy V (consList ys σ)
           ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
             ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).getD l default) :=
     fun ψ c hc j hj l hl σ ys hys =>
-      (genCls_frameV hμ R hg h mpC hfind ψ hc hj l hl σ ys hys).1
+      genCls_frameV hμ R hg h mpC hfind ψ hc hj l hl σ ys hys
   have hpre := genRecPre_run hμ R hg h hTy hdRe hlfp hN hS hcore hnames hcls hsem hframe hargs
     hrhs
   have heqB := genRecHeqB (mpC := mpC) hμ R hg h

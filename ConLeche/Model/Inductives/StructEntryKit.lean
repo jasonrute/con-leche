@@ -290,14 +290,14 @@ theorem WellDenoted_congr_below :
     rw [WellDenoted_lam, WellDenoted_lam, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
     constructor
-    · rintro ⟨h1, h2, B, hB, hB0⟩
-      refine ⟨h1, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx),
-        B, fun x hx => ?_, hB0⟩
+    · rintro ⟨h1, ht, h2, B, hB, hBt, hB0⟩
+      refine ⟨h1, ht, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx),
+        B, fun x hx => ?_, hBt, hB0⟩
       rw [← interp_congr_below V b (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact hB x hx
-    · rintro ⟨h1, h2, B, hB, hB0⟩
-      refine ⟨h1, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx),
-        B, fun x hx => ?_, hB0⟩
+    · rintro ⟨h1, ht, h2, B, hB, hBt, hB0⟩
+      refine ⟨h1, ht, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx),
+        B, fun x hx => ?_, hBt, hB0⟩
       rw [interp_congr_below V b (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact hB x hx
   | pi u v A B ihA ihB =>
@@ -305,10 +305,16 @@ theorem WellDenoted_congr_below :
     rw [WellDenoted_pi, WellDenoted_pi, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
     constructor
-    · rintro ⟨h1, h2⟩
-      exact ⟨h1, fun x hx => (ihB (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx)⟩
-    · rintro ⟨h1, h2⟩
-      exact ⟨h1, fun x hx => (ihB (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx)⟩
+    · rintro ⟨h1, ht, h2, h3⟩
+      refine ⟨h1, ht, fun x hx => (ihB (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx),
+        fun x hx => ?_⟩
+      rw [← interp_congr_below V B (k + 1) _ _ hb.2 (cons_agree_below hag x)]
+      exact h3 x hx
+    · rintro ⟨h1, ht, h2, h3⟩
+      refine ⟨h1, ht, fun x hx => (ihB (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx),
+        fun x hx => ?_⟩
+      rw [interp_congr_below V B (k + 1) _ _ hb.2 (cons_agree_below hag x)]
+      exact h3 x hx
   | eqE a b iha ihb =>
     intro k ρ ρ' hb hag
     rw [WellDenoted_eqE, WellDenoted_eqE, iha k ρ ρ' hb.1 hag, ihb k ρ ρ' hb.2 hag]

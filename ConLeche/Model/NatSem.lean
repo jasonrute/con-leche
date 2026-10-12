@@ -74,13 +74,13 @@ theorem natLit_facts (m : EnvModel V env) (hnh : NatHeads m φ)
     WellDenotedV V ρ (natLit m φ n) ∧
       interp V ρ (natLit m φ n)
         ∈ˢ interp V ρ (m.acval ConLeche.natName φ) := by
-  obtain ⟨hz, hsucc⟩ := hnh hs ρ
-  rw [substFn_nil] at hz hsucc
+  obtain ⟨hz, hsucc, hNty⟩ := hnh hs ρ
+  rw [substFn_nil] at hz hsucc hNty
   have h := natLit_factsAV (V := V)
     (za := m.acval ConLeche.natZeroName φ)
     (sa := m.acval ConLeche.natSuccName φ)
     (natA := m.acval ConLeche.natName φ)
-    (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ) hz hsucc n
+    (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ) hz hsucc hNty n
   exact ⟨⟨h.1, AnnotValid_natLitAV (hval _ _ ρ) (hval _ _ ρ) n⟩, h.2⟩
 
 /-- Numeral membership alone (the induction's staple). -/

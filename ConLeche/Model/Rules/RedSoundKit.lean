@@ -306,9 +306,9 @@ theorem betaDomPos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
     {ρ : Nat → V} (h : WellDenoted V ρ (.app (.lam v A b) a)) :
     interp V ρ a ∈ˢ interp V ρ A := by
   rw [WellDenoted_app] at h
-  obtain ⟨hlam, -, v', A', B', hslot, hmem, -⟩ := h
+  obtain ⟨hlam, -, v', A', B', hslot, hmem, -, -⟩ := h
   rw [WellDenoted_lam] at hlam
-  obtain ⟨-, -, B, hfib, -⟩ := hlam
+  obtain ⟨-, -, -, B, hfib, -, -⟩ := hlam
   have hv' : v' ≠ 0 := by
     intro h0
     subst h0
@@ -379,7 +379,7 @@ theorem mkAppN_of_fitA {ρ : Nat → V} :
           ((AnnotValid_pi V ρ u v A B) ▸ hokT.2).1⟩
       have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
         fun y hy =>
-          ⟨((WellDenoted_pi V ρ u v A B) ▸ hokT.1).2 y hy,
+          ⟨((WellDenoted_pi V ρ u v A B) ▸ hokT.1).2.2.1 y hy,
             ((AnnotValid_pi V ρ u v A B) ▸ hokT.2).2.1 y hy⟩
       have hfib : v = 0 → ∀ y, y ∈ˢ interp V ρ A →
           interp V (cons y ρ) B ∈ˢ (univZero : V) :=
@@ -390,7 +390,8 @@ theorem mkAppN_of_fitA {ρ : Nat → V} :
         refine ⟨?_, ?_⟩
         · rw [WellDenoted_app]
           exact ⟨hf.1, hokx.1, v, interp V ρ A,
-            (fun y => interp V (cons y ρ) B), hmem, hx, hfib⟩
+            (fun y => interp V (cons y ρ) B), hmem, hx, hfib,
+            fun _ => ((WellDenoted_pi V ρ u v A B) ▸ hokT.1).2.1⟩
         · rw [AnnotValid_app]; exact ⟨hf.2, hokx.2⟩
       have hmem' : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
         rw [interp_inst0, interp_app]

@@ -68,7 +68,7 @@ theorem walkCtx_consLifted {envT : Env} {mT : EnvModel V envT} {φ : Name → Na
     {ty : Expr} (hlT : ∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ L)
     (hbT : ty.looseBVarsBounded 0 = true) (hcbT : ConstsBound envT ty)
     {T : AnnotTerm} (hT : denoteMeta mT.acval envT φ B ty = some T)
-    (hGT : ∀ σ : Nat → V, Sat V Δ σ → WellDenotedV V σ T)
+    (hGT : ∀ σ : Nat → V, Sat V Δ σ → WellDenotedTy V σ T)
     {v : V} (hv : v ∈ˢ interp V ρ T) :
     WalkCtx V mT φ (B + n + 1) (cons v (consList vs ρ)) (T.liftN n 0 :: (Δi ++ Δ))
       (Expr.fvar (B + n) ty :: (Li ++ L)) := by
@@ -79,7 +79,7 @@ theorem walkCtx_consLifted {envT : Env} {mT : EnvModel V envT} {φ : Name → Na
     rw [hd, hT]; rfl
   refine hW.cons hta hbT hcbT (fun l hl => List.mem_append_right _ (hlT l hl)) ?_ ?_
   · intro σ hσ
-    rw [WellDenotedV_liftN, shiftE_zero]
+    rw [WellDenotedTy_liftN, shiftE_zero]
     have h := Sat_drop hσ n
     rw [List.drop_append_of_le_length (by omega), List.drop_eq_nil_of_le (by omega),
       List.nil_append] at h
@@ -110,7 +110,7 @@ theorem walkCtx_ihs {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat}
       (tys.getD r default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (tys.getD r default) ∧
       denoteMeta mT.acval envT φ B (tys.getD r default) = some (Ts.getD r default) ∧
-      (∀ σ : Nat → V, Sat V Δ σ → WellDenotedV V σ (Ts.getD r default)) ∧
+      (∀ σ : Nat → V, Sat V Δ σ → WellDenotedTy V σ (Ts.getD r default)) ∧
       vals.getD r pt ∈ˢ interp V ρ (Ts.getD r default)) :
     WalkCtx V mT φ (B + Ts.length) (consList vals ρ) ((ihDomsLifted Ts).reverse ++ Δ)
       ((ihFvarsAt B tys).reverse ++ L) := by

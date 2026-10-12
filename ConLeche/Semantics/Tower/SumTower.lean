@@ -334,7 +334,7 @@ theorem numeralAV_wellDenoted : ∀ (i : Nat) (ρ : Nat → V), WellDenoted V ρ
     show WellDenoted V ρ (.app (.const .natSucc []) (numeralAV i))
     rw [WellDenoted_app]
     refine ⟨trivial, numeralAV_wellDenoted i ρ, 1, omega, fun _ => omega, natSuccV_mem V, ?_,
-      fun h => absurd h Nat.one_ne_zero⟩
+      fun h => absurd h Nat.one_ne_zero, fun _ => IsTy_omega⟩
     rw [interp_numeralAV]
     exact vnat_mem_omega i
 
@@ -358,7 +358,8 @@ theorem mkAppN_wellDenoted_of_pt_head :
     refine mkAppN_wellDenoted_of_pt_head ?_ ?_ fun a' ha' => hargs a' (.tail _ ha')
     · rw [WellDenoted_app]
       refine ⟨hf, hargs a (.head _), 0, sing (interp V σ a), fun _ => unitSet, ?_,
-        mem_sing.mpr rfl, fun _ _ _ => by rw [← univ_zero]; exact unitSet_mem_univ 0⟩
+        mem_sing.mpr rfl, fun _ _ _ => by rw [← univ_zero]; exact unitSet_mem_univ 0,
+        fun h => absurd rfl h⟩
       rw [hpt]
       exact pt_mem_piR_zero fun _ _ => ⟨pt, pt_mem_unitSet⟩
     · rw [interp_app, hpt, app_pt]
@@ -435,13 +436,17 @@ theorem natRecAV_wellDenoted {u : Nat} {M z s k : AnnotTerm} {σ : Nat → V}
     exact this
   show WellDenoted V σ (.app (.app (.app (.app (.const .natRec [u]) M) z) s) k)
   rw [WellDenoted_app]
-  refine ⟨?_, hokk, u, omega, fun n => SetTheory.app (interp V σ M) n, ?_, hk, hz4⟩
+  refine ⟨?_, hokk, u, omega, fun n => SetTheory.app (interp V σ M) n, ?_, hk, hz4,
+    fun _ => IsTy_omega⟩
   · rw [WellDenoted_app]
-    refine ⟨?_, hoks, u, natStepSpace V u (interp V σ M), _, ?_, hs, hz3⟩
+    refine ⟨?_, hoks, u, natStepSpace V u (interp V σ M), _, ?_, hs, hz3,
+      fun _ => IsTy_piR _ _ _⟩
     · rw [WellDenoted_app]
-      refine ⟨?_, hokz, u, SetTheory.app (interp V σ M) natzero, _, ?_, hz, hz2⟩
+      refine ⟨?_, hokz, u, SetTheory.app (interp V σ M) natzero, _, ?_, hz, hz2,
+        fun _ => IsTy_of_mem_univ (natMotive_apply V hM natzero_mem)⟩
       · rw [WellDenoted_app]
-        exact ⟨trivial, hokM, u, natMotiveSpace V u, _, hbv ▸ h0, hM, hz1⟩
+        exact ⟨trivial, hokM, u, natMotiveSpace V u, _, hbv ▸ h0, hM, hz1,
+          fun _ => IsTy_piR _ _ _⟩
       · show SetTheory.app (interp V σ (.const .natRec [u])) (interp V σ M) ∈ˢ _
         rw [hbv]; exact h1
     · show SetTheory.app (SetTheory.app (interp V σ (.const .natRec [u])) (interp V σ M))
@@ -475,7 +480,8 @@ theorem natSortMotiveAV_app (w : Nat) (σ : Nat → V) {n : V} (hn : n ∈ˢ (om
 theorem natSortMotiveAV_wellDenoted (w : Nat) (σ : Nat → V) : WellDenoted V σ (natSortMotiveAV w) := by
   show WellDenoted V σ (.lam (w + 1) natAV (.sort w))
   rw [WellDenoted_lam]
-  exact ⟨trivial, fun _ _ => trivial, fun _ => univ (w + 1), fun _ _ => univ_mem_univ w,
+  exact ⟨trivial, IsTy_omega, fun _ _ => trivial, fun _ => univ (w + 1),
+    fun _ _ => univ_mem_univ w, fun _ _ => IsTy_univ _,
     fun h => absurd h (Nat.succ_ne_zero _)⟩
 
 /-- **The fibre selector**: the type spellings `Ts` are scoped `d`
@@ -574,12 +580,13 @@ theorem caseAVAt_facts {w : Nat} :
       refine natRecAV_wellDenoted (natSortMotiveAV_wellDenoted w σ) ?_ ?_ hokk hM hz hs hk
       · rw [WellDenoted_liftN]; exact hokT T (.head _)
       · rw [WellDenoted_lam]
-        refine ⟨trivial, fun b hb => ?_,
+        refine ⟨trivial, IsTy_omega, fun b hb => ?_,
           fun _ => piR (w + 1) (univ w : V) fun _ => (univ w : V), ?_,
-          fun h => absurd h (Nat.succ_ne_zero _)⟩
+          fun _ _ => IsTy_piR _ _ _, fun h => absurd h (Nat.succ_ne_zero _)⟩
         · rw [WellDenoted_lam]
-          refine ⟨trivial, fun a _ => (hinner a b hb).2.2,
-            fun _ => (univ w : V), fun a _ => (hinner a b hb).1, fun h => absurd h (Nat.succ_ne_zero _)⟩
+          refine ⟨trivial, IsTy_univ w, fun a _ => (hinner a b hb).2.2,
+            fun _ => (univ w : V), fun a _ => (hinner a b hb).1, fun _ _ => IsTy_univ w,
+            fun h => absurd h (Nat.succ_ne_zero _)⟩
         · intro b hb
           exact lamR_mem fun a _ => (hinner a b hb).1
 
@@ -783,11 +790,12 @@ theorem sqSumBodyAV_wellDenoted {ρ : Nat → V} {Fss : List (List AnnotTerm)} (
     WellDenoted V ρ (sqSumBodyAV Fss) := by
   unfold sqSumBodyAV negAV
   rw [WellDenoted_pi]
-  refine ⟨?_, fun _ _ => by simp⟩
+  refine ⟨?_, IsTy_piR _ _ _, fun _ _ => by simp, fun _ _ => IsTy_empty⟩
   rw [WellDenoted_pi]
-  refine ⟨trivial, fun k hk => ?_⟩
+  refine ⟨trivial, IsTy_omega, fun k hk => ?_, fun _ _ => IsTy_piR _ _ _⟩
   rw [WellDenoted_pi]
-  exact ⟨(case_fibre hok hk).2.2, fun _ _ => by simp⟩
+  exact ⟨(case_fibre hok hk).2.2, IsTy_of_mem_univ (case_fibre hok hk).2.1,
+    fun _ _ => by simp, fun _ _ => IsTy_empty⟩
 
 /-- The graph body is graded: the two `.psigma` slots from
 `psigmaV_rr_mem`, the fibre λ from the selector's facts. -/
@@ -802,12 +810,14 @@ theorem sumBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) {ρ : Nat → V} {Fss 
   · rw [WellDenoted_app]
     exact ⟨trivial, trivial, w + 1, univ w,
       fun A => piR (w + 1) (psigmaFibreSpace V w A) fun _ => (univ w : V),
-      hbv ▸ psigmaV_rr_mem (V := V) w, hA, fun h => absurd h hvac⟩
+      hbv ▸ psigmaV_rr_mem (V := V) w, hA, fun h => absurd h hvac,
+      fun _ => IsTy_univ w⟩
   · rw [WellDenoted_lam]
-    exact ⟨trivial, fun k hk => (case_fibre hok hk).2.2,
-      fun _ => (univ w : V), fun k hk => (case_fibre hok hk).2.1, fun h => absurd h hvac⟩
+    exact ⟨trivial, IsTy_omega, fun k hk => (case_fibre hok hk).2.2,
+      fun _ => (univ w : V), fun k hk => (case_fibre hok hk).2.1,
+      fun _ _ => IsTy_univ w, fun h => absurd h hvac⟩
   · refine ⟨w + 1, psigmaFibreSpace V w omega, fun _ => (univ w : V), ?_, ?_,
-      fun h => absurd h hvac⟩
+      fun h => absurd h hvac, fun _ => IsTy_piR _ _ _⟩
     · show SetTheory.app (interp V ρ (.const .psigma [w, w])) omega ∈ˢ _
       rw [hbv]
       exact app_mem_piR_pos hvac (psigmaV_rr_mem (V := V) w) hA
@@ -829,11 +839,12 @@ def sumTyAV (w : Nat) (pps : List (Nat × Nat × AnnotTerm)) (Fss : List (List A
   mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)
 
 /-- `ParamsOkS`: the leaf's one hereditary premise — the parameter
-domains graded, with the per-constructor chain grading at the base. -/
+domains graded types, with the per-constructor chain grading at the
+base. -/
 def ParamsOkS (w : Nat) (ρ : Nat → V) (Fss : List (List AnnotTerm)) :
     List (Nat × Nat × AnnotTerm) → Prop
   | [] => SumFieldsOkB w ρ Fss
-  | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧
+  | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
       ∀ a, a ∈ˢ interp V ρ d.2.2 → ParamsOkS w (cons a ρ) Fss pps
 
 /-- **The leaf inhabits its type's reading.** -/
@@ -852,7 +863,7 @@ theorem sumTyAV_mem {w : Nat} {Fss : List (List AnnotTerm)} :
       ∈ˢ piR d.2.1 (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
     exact lamR_mem_zero_agree (iff_of_false (Nat.succ_ne_zero w) h.1)
-      (fun a ha => sumTyAV_mem (h.2.2 a ha))
+      (fun a ha => sumTyAV_mem (h.2.2.2 a ha))
 
 /-- **The leaf is graded.** -/
 theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
@@ -863,9 +874,10 @@ theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
     show WellDenoted V ρ (.lam (w + 1) d.2.2
       (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
     rw [WellDenoted_lam]
-    exact ⟨h.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2 a ha),
+    exact ⟨h.2.1, h.2.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
-       fun a ha => sumTyAV_mem (h.2.2 a ha),
+       fun a ha => sumTyAV_mem (h.2.2.2 a ha),
+       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ),
        fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩⟩
 
 /-- **The leaf's application fold**: along a fitting parameter spine
@@ -963,6 +975,12 @@ theorem eqChainAV_inhab :
       rw [hlift]
       refine (eqChainAV_inhab r ρ).mpr fun hall => h ⟨of_mem_truthVal hx, hall⟩
 
+/-- The chain reads to a type: `∅`, or a product. -/
+theorem IsTy_eqChainAV : ∀ (eqs : List (AnnotTerm × AnnotTerm)) (ρ : Nat → V),
+    IsTy (interp V ρ (eqChainAV eqs))
+  | [], _ => IsTy_empty
+  | (_, _) :: _, _ => IsTy_piR _ _ _
+
 /-- **The index equation reads to the truth value of every equation
 holding.** -/
 theorem idxEqAV_interp (eqs : List (AnnotTerm × AnnotTerm)) (ρ : Nat → V) :
@@ -1006,16 +1024,19 @@ theorem eqChainAV_wellDenoted :
   | (a, b) :: r, ρ, hok => by
     show WellDenoted V ρ (.pi 0 0 (.eqE a b) ((eqChainAV r).liftN 1 0))
     rw [WellDenoted_pi, WellDenoted_eqE]
-    refine ⟨hok (a, b) List.mem_cons_self, fun x _ => ?_⟩
-    rw [WellDenoted_liftN, show (1 : Nat) = 0 + 1 from rfl, shiftE_succ_cons, shiftE_zero_zero]
-    exact eqChainAV_wellDenoted fun e he => hok e (List.mem_cons_of_mem _ he)
+    refine ⟨hok (a, b) List.mem_cons_self, IsTy_eqv _ _, fun x _ => ?_, fun x _ => ?_⟩
+    · rw [WellDenoted_liftN, show (1 : Nat) = 0 + 1 from rfl, shiftE_succ_cons,
+        shiftE_zero_zero]
+      exact eqChainAV_wellDenoted fun e he => hok e (List.mem_cons_of_mem _ he)
+    · rw [interp_liftN]; exact IsTy_eqChainAV r _
 
 /-- **The index equation is graded** from its sides' gradings. -/
 theorem idxEqAV_wellDenoted {eqs : List (AnnotTerm × AnnotTerm)} {ρ : Nat → V} (hok : EqsOk ρ eqs) :
     WellDenoted V ρ (idxEqAV eqs) := by
   unfold idxEqAV negAV
   rw [WellDenoted_pi]
-  exact ⟨eqChainAV_wellDenoted hok, fun _ _ => trivial⟩
+  exact ⟨eqChainAV_wellDenoted hok, IsTy_eqChainAV eqs ρ, fun _ _ => trivial,
+    fun _ _ => IsTy_empty⟩
 
 /-! ## The restricted chain -/
 
@@ -1028,10 +1049,11 @@ theorem FieldsOkB_append_idxEq {w : Nat} {eqs : List (AnnotTerm × AnnotTerm)} :
       FieldsOkB w ρ (Fs ++ [idxEqAV eqs])
   | [], ρ, _, hE => by
     refine ⟨idxEqAV_wellDenoted (by simpa [consList] using hE [] trivial),
+      IsTy_of_mem_univ (idxEqAV_mem_univ eqs ρ 0),
       fun _ => idxEqAV_mem_univ eqs ρ w, fun _ _ => trivial⟩
   | F :: Fs, ρ, hok, hE => by
-    refine ⟨hok.1, hok.2.1, fun a ha => ?_⟩
-    refine FieldsOkB_append_idxEq (hok.2.2 a ha) fun bs hsp => ?_
+    refine ⟨hok.1, hok.2.1, hok.2.2.1, fun a ha => ?_⟩
+    refine FieldsOkB_append_idxEq (hok.2.2.2 a ha) fun bs hsp => ?_
     have := hE (a :: bs) ⟨ha, hsp⟩
     rwa [consList_cons] at this
 
@@ -1149,7 +1171,8 @@ theorem FieldsOkB_liftFields {w n : Nat} :
   | [], _, _ => Iff.rfl
   | F :: Fs, k, σ => by
     simp only [liftFields_cons, FieldsOkB, WellDenoted_liftN, interp_liftN]
-    refine and_congr Iff.rfl (and_congr Iff.rfl (forall_congr' fun a => imp_congr Iff.rfl ?_))
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr Iff.rfl
+      (forall_congr' fun a => imp_congr Iff.rfl ?_)))
     rw [cons_shiftE]
     exact FieldsOkB_liftFields
 
@@ -1340,8 +1363,9 @@ theorem sumFibreLam_facts {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE
     rw [← (case_fibre_at hsh hok hk).1]
     exact (case_fibre_at hsh hok hk).2.1
   · rw [WellDenoted_lam]
-    exact ⟨trivial, fun k hk => (case_fibre_at hsh hok hk).2.2, fun _ => (univ w : V),
-      fun k hk => (case_fibre_at hsh hok hk).2.1, fun h => absurd h (Nat.succ_ne_zero _)⟩
+    exact ⟨trivial, IsTy_omega, fun k hk => (case_fibre_at hsh hok hk).2.2,
+      fun _ => (univ w : V), fun k hk => (case_fibre_at hsh hok hk).2.1,
+      fun _ _ => IsTy_univ w, fun h => absurd h (Nat.succ_ne_zero _)⟩
 
 /-- **The injection reads to `injW`**: the pair at a numeral tag with
 a fitting payload, the point at squash. -/
@@ -1422,13 +1446,16 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
     show WellDenoted V σ (.app (.app (.app (.app (.const .psigmaMk [w, w]) natAV)
       (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
     rw [WellDenoted_app]
-    refine ⟨?_, hokpay, w, _, _, ?_, hpay', hz4⟩
+    refine ⟨?_, hokpay, w, _, _, ?_, hpay', hz4,
+      fun _ => IsTy_of_mem_univ (psigmaFibre_apply V hBm (vnat_mem_omega i))⟩
     · rw [WellDenoted_app]
-      refine ⟨?_, hoktag, w, omega, _, ?_, by rw [htag]; exact vnat_mem_omega i, hz3⟩
+      refine ⟨?_, hoktag, w, omega, _, ?_, by rw [htag]; exact vnat_mem_omega i, hz3,
+        fun _ => IsTy_omega⟩
       · rw [WellDenoted_app]
-        refine ⟨?_, hBok, w, psigmaFibreSpace V w omega, _, ?_, by rw [hBv]; exact hBm, hz2⟩
+        refine ⟨?_, hBok, w, psigmaFibreSpace V w omega, _, ?_, by rw [hBv]; exact hBm, hz2,
+          fun _ => IsTy_piR _ _ _⟩
         · rw [WellDenoted_app]
-          exact ⟨trivial, trivial, w, univ w, _, hbv ▸ hm0, hA, hz1⟩
+          exact ⟨trivial, trivial, w, univ w, _, hbv ▸ hm0, hA, hz1, fun _ => IsTy_univ w⟩
         · show SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega ∈ˢ _
           rw [hbv]; exact hm1
       · show SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
@@ -1580,7 +1607,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       WellDenoted V (consList bs ρp) (mkTowerGoUPos w E Fs)
   | [], ρp, [], hok, _, hpt => by
     have hokE : WellDenoted V ρp E := hok.1
-    have hA : interp V ρp E ∈ˢ (univ w : V) := hok.2.1 hw
+    have hA : interp V ρp E ∈ˢ (univ w : V) := hok.2.2.1 hw
     have hpt' : (pt : V) ∈ˢ interp V ρp E := by simpa [consList] using hpt
     have hBm : (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V))
         ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
@@ -1616,16 +1643,20 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     show WellDenoted V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
       (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     rw [WellDenoted_app]
-    refine ⟨?_, trivial, w, _, _, ?_, hb', hz4⟩
+    refine ⟨?_, trivial, w, _, _, ?_, hb', hz4, fun _ => by
+      rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
+      exact IsTy_of_mem_univ (unitSetAt_mem_univ w)⟩
     · rw [WellDenoted_app]
-      refine ⟨?_, trivial, w, interp V ρp E, _, ?_, hpt', hz3⟩
+      refine ⟨?_, trivial, w, interp V ρp E, _, ?_, hpt', hz3, fun _ => IsTy_of_mem_univ hA⟩
       · rw [WellDenoted_app]
-        refine ⟨?_, ?_, w, psigmaFibreSpace V w (interp V ρp E), _, ?_, ?_, hz2⟩
+        refine ⟨?_, ?_, w, psigmaFibreSpace V w (interp V ρp E), _, ?_, ?_, hz2,
+          fun _ => IsTy_piR _ _ _⟩
         · rw [WellDenoted_app]
-          exact ⟨trivial, hokE, w, univ w, _, hbv ▸ hm0, hA, hz1⟩
+          exact ⟨trivial, hokE, w, univ w, _, hbv ▸ hm0, hA, hz1, fun _ => IsTy_univ w⟩
         · rw [WellDenoted_lam]
-          exact ⟨hokE, fun _ _ => trivial, fun _ => (univ w : V),
-            fun _ _ => unitSetAt_mem_univ w, fun h => absurd h (Nat.succ_ne_zero w)⟩
+          exact ⟨hokE, IsTy_of_mem_univ hA, fun _ _ => trivial, fun _ => (univ w : V),
+            fun _ _ => unitSetAt_mem_univ w, fun _ _ => IsTy_univ w,
+            fun h => absurd h (Nat.succ_ne_zero w)⟩
         · show SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E) ∈ˢ _
           rw [hbv]; exact hm1
         · rw [hlam]; exact hBm
@@ -1725,7 +1756,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           (.bvar Fs.length))
         (mkTowerGoUPos w E Fs))
     rw [WellDenoted_app]
-    refine ⟨?_, mkTowerGoUPos_wellDenoted hw (hok.2.2 b hsp.1) hsp.2 hpt, ?_⟩
+    refine ⟨?_, mkTowerGoUPos_wellDenoted hw (hok.2.2.2 b hsp.1) hsp.2 hpt, ?_⟩
     · rw [WellDenoted_app]
       refine ⟨?_, trivial, ?_⟩
       · rw [WellDenoted_app]
@@ -1734,21 +1765,24 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           refine ⟨trivial, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
-          · exact ⟨w, univ w, _, hm0, by rw [interp_liftN, hshift]; exact hAm, hz1⟩
+          · exact ⟨w, univ w, _, hm0, by rw [interp_liftN, hshift]; exact hAm, hz1,
+              fun _ => IsTy_univ w⟩
         · rw [WellDenoted_lam]
-          refine ⟨?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
+          · rw [hA]; exact hok.2.1
           · intro x hx
             rw [hA] at hx
             rw [WellDenoted_liftN, ← cons_shiftE, hshift]
-            exact towerBodyAV_wellDenoted (hok.2.2 x hx)
-          · refine ⟨fun _ => (univ w : V), fun x hx => ?_,
+            exact towerBodyAV_wellDenoted (hok.2.2.2 x hx)
+          · refine ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w,
               fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
             rw [hA] at hx
             rw [hBfun x, towerBodyAV_interp (fun _ => hb.2 x hx)]
             exact towerSet_univ_teleOfFields (hb.2 x hx)
-        · refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2⟩
+        · refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2,
+            fun _ => IsTy_piR _ _ _⟩
           · show SetTheory.app (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
               (interp V (consList bs (cons b ρp))
@@ -1757,7 +1791,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
             exact hm1
           · rw [hBv]
             exact hBm
-      · refine ⟨w, interp V ρp F, _, ?_, ?_, hz3⟩
+      · refine ⟨w, interp V ρp F, _, ?_, ?_, hz3, fun _ => hok.2.1⟩
         · show SetTheory.app (SetTheory.app
               (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
@@ -1773,7 +1807,8 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           exact hsp.1
     · refine ⟨w, SetTheory.app (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b, _,
-        ?_, hrm, hz4⟩
+        ?_, hrm, hz4, fun _ => by
+          rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1))⟩
       show SetTheory.app (SetTheory.app (SetTheory.app
           (interp V (consList bs (cons b ρp))
             (.const .psigmaMk [w, w]))
@@ -1828,7 +1863,7 @@ def sumMkAV (w j : Nat) (ds : List (Nat × Nat × AnnotTerm)) (Fs : List AnnotTe
   mkLamsC w ds (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV [])))
 
 /-- `MkPreS`: the constructor leaf's ONE hereditary premise — each
-parameter domain graded, and under every fitting parameter spine every
+parameter domain graded and a type, and under every fitting parameter spine every
 constructor's chain is graded, this constructor's chain is the `j`-th,
 and the type reading's body reads back as SOME tagged union whose
 `j`-th fibre holds the point-terminated tuple. -/
@@ -1837,7 +1872,7 @@ def MkPreS (w j : Nat) (ρ : Nat → V) (Fs : List AnnotTerm) (Fss : List (List 
   | [] => SumFieldsOkB w ρ Fss ∧ Fss[j]? = some (Fs ++ [idxEqAV []]) ∧ ∀ bs, SpineFit ρ Fs bs →
       ∃ f : Nat → V, interp V (consList bs ρ) bodyC = sumSet w f ∧
         (if w = 0 then (pt : V) else mkTower (bs ++ [pt])) ∈ˢ f j
-  | d :: pds => WellDenoted V ρ d.2.2 ∧
+  | d :: pds => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
       ∀ a, a ∈ˢ interp V ρ d.2.2 → MkPreS w j (cons a ρ) Fs Fss bodyC pds
 
 /-- The injection body at a fitting field frame: its value and its
@@ -1883,18 +1918,19 @@ theorem underTowerOkS_fields {w j : Nat} {bodyC : AnnotTerm} {ρp : Nat → V}
       rw [hsplit, List.map_nil, List.append_nil]; exact hsp
     obtain ⟨hv, hok2⟩ := sumInj_at_fields hok hj hspF
     obtain ⟨f, hf, hmem⟩ := hbody bs hspF
-    refine ⟨hok2, ?_, ?_⟩
+    refine ⟨hok2, ?_, ?_, ?_⟩
     · rw [hf, hv]; exact injW_mem hmem
     · intro h0
       rw [hf, h0]
       exact sumSet_zero_mem_univZero _
+    · rw [hf]; exact IsTy_sumSet w f
   | d :: rest, pre, bs, hsplit, hsp => by
     have hokF : FieldsOkB w ρp (Fs ++ [idxEqAV []]) := hok _ (List.mem_of_getElem? hj)
     have hd : FieldsOkB w (consList bs ρp) (d.2.2 :: (rest.map (·.2.2) ++ [idxEqAV []])) := by
       have := FieldsOkB.drop (Fs₁ := pre) (Fs₂ := d.2.2 :: (rest.map (·.2.2) ++ [idxEqAV []]))
         (by rw [hsplit, List.append_assoc] at hokF; simpa using hokF) hsp
       exact this
-    refine ⟨hd.1, fun a ha => ?_⟩
+    refine ⟨hd.1, hd.2.1, fun a ha => ?_⟩
     have hstep : UnderTowerOk w (consList (bs ++ [a]) ρp)
         (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) bodyC rest :=
       underTowerOkS_fields hok hj hbody (pre := pre ++ [d.2.2])
@@ -1912,7 +1948,7 @@ theorem underTowerOk_of_mkPreS {w j : Nat} {bodyC : AnnotTerm}
   | [], ρ, h, hFs =>
     underTowerOkS_fields h.1 h.2.1 h.2.2 (pre := []) (bs := []) (by simpa using hFs) trivial
   | d :: pds, ρ, h, hFs =>
-    ⟨h.1, fun a ha => underTowerOk_of_mkPreS (h.2 a ha) hFs⟩
+    ⟨h.1, h.2.1, fun a ha => underTowerOk_of_mkPreS (h.2.2 a ha) hFs⟩
 
 /-- **The constructor leaf inhabits its type's reading.** -/
 theorem sumMkAV_mem {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
@@ -1976,7 +2012,7 @@ member of a product the next index inhabits. -/
 def AppChainOk (M : V) (is : List V) : Prop :=
   ∀ l, l < is.length → ∃ (v : Nat) (A : V) (B : V → V),
     (is.take l).foldl SetTheory.app M ∈ˢ piR v A B ∧ is.getD l pt ∈ˢ A ∧
-    (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V))
+    (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A)
 
 /-- An application spine graded by the chain: its grading and its
 value as the fold. -/
@@ -1989,16 +2025,16 @@ theorem mkAppN_wellDenoted_of_chain :
           = (args.map (interp V σ)).foldl SetTheory.app (interp V σ f)
   | [], _, _, hf, _, _ => ⟨hf, rfl⟩
   | a :: args, f, σ, hf, hargs, hchain => by
-    obtain ⟨v, A, B, hm, ha, hz⟩ := hchain 0 (by simp)
+    obtain ⟨v, A, B, hm, ha, hz, hA⟩ := hchain 0 (by simp)
     simp only [List.take_zero, List.foldl_nil, List.map_cons, List.getD_cons_zero] at hm ha
     have hoka : WellDenoted V σ (.app f a) := by
       rw [WellDenoted_app]
-      exact ⟨hf, hargs a List.mem_cons_self, v, A, B, hm, ha, hz⟩
+      exact ⟨hf, hargs a List.mem_cons_self, v, A, B, hm, ha, hz, hA⟩
     have hchain' : AppChainOk (interp V σ (.app f a)) (args.map (interp V σ)) := by
       intro l hl
-      obtain ⟨v', A', B', hm', ha', hz'⟩ := hchain (l + 1) (by simpa using hl)
+      obtain ⟨v', A', B', hm', ha', hz', hA'⟩ := hchain (l + 1) (by simpa using hl)
       simp only [List.map_cons, List.take_succ_cons, List.foldl_cons, List.getD_cons_succ] at hm' ha'
-      exact ⟨v', A', B', hm', ha', hz'⟩
+      exact ⟨v', A', B', hm', ha', hz', hA'⟩
     have ih := mkAppN_wellDenoted_of_chain (args := args) (f := .app f a) hoka
       (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha')) hchain'
     rw [AnnotTerm.mkAppN_cons]

@@ -110,7 +110,7 @@ theorem wellDenotedV_mkPisAV_append (B : AnnotTerm) :
     obtain ⟨h1, h2⟩ := h
     simp only [List.cons_append, mkPisAV, WellDenoted_pi, AnnotValid_pi] at h1 h2
     exact wellDenotedV_mkPisAV_append B ab₁ ab₂ (cons a ρ) as hf.2
-      ⟨h1.2 a hf.1, h2.2.1 a hf.1⟩
+      ⟨h1.2.2.1 a hf.1, h2.2.1 a hf.1⟩
 
 /-- **The frame's group is well formed**: its names distinct, the
 container's WHOLE recorded block (N2-eager: `PosD.frame.hgrp`), each at
@@ -346,8 +346,8 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
     rw [← keyFrame_eq_substE hdl] <;>
   · -- the member's closed type, graded at every frame, past the parameters
     have hmem := ConLeche.Semantics.Env.find?_mem hf
-    have hwd := mp.type_wellDenotedV _ hmem ψ _ hread
-      (fun j => ρ (j + hi))
+    have hwd := (mp.type_wellDenotedTy _ hmem ψ _ hread
+      (fun j => ρ (j + hi))).1
     have hsP := h.parsSat mm hmm ψ _ hs
     have hfit : SpineFit (fun j => ρ (j + hi)) ((abF.take ds.length).map (·.2.2))
         (dsa.map (interp V ρ)) := by
@@ -568,6 +568,7 @@ theorem crest_frameT {Δh : List AnnotTerm} (hΔ : Δh.length = hi)
         have hs' : Sat V Δh (fun j => σ (j + i)) := by
           have h1 := Sat_drop hσ i
           rwa [List.drop_drop, List.drop_left' (by simp [grpTys]; omega)] at h1
+        refine ⟨?_, by rw [interp_liftN]; exact IsTy_mkPisAV_sort _ _ _⟩
         rw [WellDenotedV_liftN, show shiftE i 0 σ = fun j => σ (j + i) by funext j; simp [shiftE]]
         obtain ⟨hk1, hk2⟩ := hkey _ hs'
         exact grp_typeT_wd mp hD hlps hnd hul hds hdsa hlenP hgT (List.getElem_mem hi') hta _

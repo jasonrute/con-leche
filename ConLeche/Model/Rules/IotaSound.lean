@@ -535,7 +535,7 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the major's io-inferred type, reduced, is the family at its spine
   obtain ⟨hfT0, hsubT0, tm0a, htm0a, hgT0, hmemM0⟩ := htm hfM hCM hea hgM
   obtain ⟨hfTm, hsubTm, tmaja, htmaja, hgTm, heqTm⟩ :=
-    htmaj hfT0 (hCM.of_subset hsubT0) htm0a hgT0
+    htmaj hfT0 (hCM.of_subset hsubT0) htm0a hgT0.graded
   have hCTm : CtxOk m φ d Δa tmaj :=
     (hCM.of_subset hsubT0).of_subset hsubTm
   rw [show tmaj = Expr.mkAppN tmaj.getAppFn tmaj.getAppArgs from
@@ -624,7 +624,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the major's io-inferred type, reduced, is the family at its spine
   obtain ⟨hfT0, hsubT0, tm0a, htm0a, hgT0, hmemM0⟩ := htm hfM hCM hea hgM
   obtain ⟨hfTm, hsubTm, tmaja, htmaja, hgTm, heqTm⟩ :=
-    htmaj hfT0 (hCM.of_subset hsubT0) htm0a hgT0
+    htmaj hfT0 (hCM.of_subset hsubT0) htm0a hgT0.graded
   have hCTm : CtxOk m φ d Δa tmaj :=
     (hCM.of_subset hsubT0).of_subset hsubTm
   have hmemMW : ∀ ρ : Nat → V, Sat V Δa ρ →
@@ -902,7 +902,7 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the major's io-inferred type, reduced, is `And` at its parameters
   obtain ⟨hfT0, hsubT0, tm0a, htm0a, hgT0, hmemM0⟩ := htm hfM hCM hea hgM
   obtain ⟨hfTm, hsubTm, tmaja, htmaja, hgTm, heqTm⟩ :=
-    htmaj hfT0 (hCM.of_subset hsubT0) htm0a hgT0
+    htmaj hfT0 (hCM.of_subset hsubT0) htm0a hgT0.graded
   have hCTm : CtxOk m φ d Δa tmaj :=
     (hCM.of_subset hsubT0).of_subset hsubTm
   have hmemMW : ∀ ρ : Nat → V, Sat V Δa ρ →

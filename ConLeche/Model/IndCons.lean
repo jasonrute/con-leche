@@ -124,7 +124,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
@@ -194,7 +194,7 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
     (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
@@ -239,7 +239,7 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
     (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →

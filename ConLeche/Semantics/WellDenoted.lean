@@ -21,6 +21,14 @@ each an interface a consumer forced:
   truth values)` — the semantic content of the λ's cached codomain
   sort, and what `WellDenoted_beta_pos` consumes.
 
+**Binder domains are types** (task #342, `IsTy X := X ∈ univZero ∨
+Strict X`): the λ and Π clauses carry `IsTy ⟦A⟧`, the Π clause carries
+`IsTy` of every fibre, the λ clause bounds its body by a family of
+types, and the application slot carries `v ≠ 0 → IsTy A` (at kind `0`
+it asks only the truth-value component).  Every such fact is the
+semantic content of a `Sort` the checker inferred for the binder type;
+`IsTy_univ`, `IsTy_piR` and `IsTy_of_mem_univ` produce them.
+
 Being a **semantic** predicate on the annotated term, `WellDenoted`
 transports across reduction; the constraint that annotations do not
 cross `Red` binds derivation-backed relations, not this invariant.
@@ -55,19 +63,22 @@ variable (V : Type w) [SetTheory V]
 under a variable environment (see the module docstring). -/
 def WellDenoted : (Nat → V) → AnnotTerm → Prop
   | ρ, .pi _u _v A B =>
-    WellDenoted ρ A ∧
-    ∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B
+    WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
+    (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
+    (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))
   | ρ, .lam v A b =>
-    WellDenoted ρ A ∧
+    WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
     (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) b) ∧
     ∃ B : V → V,
       (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
+      (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) ∧
       (v = 0 → ∀ x, x ∈ˢ interp V ρ A → B x ∈ˢ (univZero : V))
   | ρ, .app f a =>
     WellDenoted ρ f ∧ WellDenoted ρ a ∧
     ∃ (v : Nat) (A : V) (B : V → V),
       interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
-      (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V))
+      (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
+      (v ≠ 0 → IsTy A)
   | ρ, .fst e =>
     WellDenoted ρ e ∧
     ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
@@ -95,15 +106,17 @@ def WellDenoted : (Nat → V) → AnnotTerm → Prop
     WellDenoted V ρ .prf = True := by rw [WellDenoted]
 theorem WellDenoted_pi (ρ : Nat → V) (u v : Nat) (A B : AnnotTerm) :
     WellDenoted V ρ (.pi u v A B) =
-      (WellDenoted V ρ A ∧
-        ∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) B) := by
+      (WellDenoted V ρ A ∧ IsTy (interp V ρ A) ∧
+        (∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) B) ∧
+        (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))) := by
   rw [WellDenoted]
 theorem WellDenoted_lam (ρ : Nat → V) (v : Nat) (A b : AnnotTerm) :
     WellDenoted V ρ (.lam v A b) =
-      (WellDenoted V ρ A ∧
+      (WellDenoted V ρ A ∧ IsTy (interp V ρ A) ∧
         (∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) b) ∧
         ∃ B : V → V,
           (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
+          (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) ∧
           (v = 0 → ∀ x, x ∈ˢ interp V ρ A →
             B x ∈ˢ (univZero : V))) := by
   rw [WellDenoted]
@@ -112,7 +125,8 @@ theorem WellDenoted_app (ρ : Nat → V) (f a : AnnotTerm) :
       (WellDenoted V ρ f ∧ WellDenoted V ρ a ∧
         ∃ (v : Nat) (A : V) (B : V → V),
           interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
-          (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V))) := by
+          (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
+          (v ≠ 0 → IsTy A)) := by
   rw [WellDenoted]
 theorem WellDenoted_fst (ρ : Nat → V) (e : AnnotTerm) :
     WellDenoted V ρ (.fst e) =
@@ -151,17 +165,20 @@ theorem WellDenoted_liftN (n : Nat) :
   | lam v A b ihA ihb =>
     intro k ρ
     rw [AnnotTerm.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
-        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl))
+        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · rw [ihb, cons_shiftE]
     · rw [interp_liftN, cons_shiftE]
   | pi u v A B ihA ihB =>
     intro k ρ
     rw [AnnotTerm.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
-    refine and_congr Iff.rfl (forall_congr' fun x => imp_congr Iff.rfl ?_)
-    rw [ihB, cons_shiftE]
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+    · rw [ihB, cons_shiftE]
+    · rw [interp_liftN, cons_shiftE]
   | eqE a b iha ihb =>
     intro k ρ
     rw [AnnotTerm.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
@@ -204,10 +221,10 @@ theorem WellDenoted_inst :
     intro a k ρ ha
     rw [AnnotTerm.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
       interp_inst]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
-        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl))
+        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
         rw [shiftE_succ_cons]; exact ha
       rw [ihb a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
@@ -218,10 +235,13 @@ theorem WellDenoted_inst :
     intro a k ρ ha
     rw [AnnotTerm.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
       interp_inst]
-    refine and_congr Iff.rfl (forall_congr' fun x => imp_congr Iff.rfl ?_)
-    have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-      rw [shiftE_succ_cons]; exact ha
-    rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+    · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+        rw [shiftE_succ_cons]; exact ha
+      rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
+    · rw [interp_inst, shiftE_succ_cons, cons_instE]
   | eqE x y ihx ihy =>
     intro a k ρ ha
     rw [AnnotTerm.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
@@ -259,9 +279,9 @@ theorem WellDenoted_beta_pos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
     interp V ρ (.app (.lam v A b) a) = interp V ρ (b.inst a) ∧
     WellDenoted V ρ (b.inst a) := by
   rw [WellDenoted_app] at h
-  obtain ⟨hlam, ha, v', A', B', hslot, hmem, -⟩ := h
+  obtain ⟨hlam, ha, v', A', B', hslot, hmem, -, -⟩ := h
   rw [WellDenoted_lam] at hlam
-  obtain ⟨-, hbody, B, hfib, -⟩ := hlam
+  obtain ⟨-, -, hbody, B, hfib, -, -⟩ := hlam
   -- the slot's product is in the graph regime: the λ is not `pt`
   have hv' : v' ≠ 0 := by
     intro h0
@@ -295,7 +315,7 @@ theorem WellDenoted_beta_zero {A b a : AnnotTerm} {ρ : Nat → V}
   rw [WellDenoted_app] at h
   obtain ⟨hlam, ha, -⟩ := h
   rw [WellDenoted_lam] at hlam
-  obtain ⟨-, hbody, B, hfib, hz⟩ := hlam
+  obtain ⟨-, -, hbody, B, hfib, -, hz⟩ := hlam
   refine ⟨?_, (WellDenoted_inst0 V ha).mpr (hbody _ hmem)⟩
   rw [interp_app, interp_lam, lamR_zero, app_pt, interp_inst0]
   exact (eq_pt_of_mem_univZero (hz rfl _ hmem) (hfib _ hmem)).symm
@@ -319,13 +339,15 @@ theorem appSlot_of_pi {u v : Nat} {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
     (hf : interp V ρ f ∈ˢ interp V ρ (.pi u v Aa Ba))
     (ha : interp V ρ a ∈ˢ interp V ρ Aa)
     (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V)) :
+      interp V (cons x ρ) Ba ∈ˢ (univZero : V))
+    (hdom : v ≠ 0 → IsTy (interp V ρ Aa)) :
     ∃ (v' : Nat) (A : V) (B : V → V),
       interp V ρ f ∈ˢ piR v' A B ∧ interp V ρ a ∈ˢ A ∧
-      (v' = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) := by
+      (v' = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
+      (v' ≠ 0 → IsTy A) := by
   rw [interp_pi] at hf
   exact ⟨v, interp V ρ Aa, fun x => interp V (cons x ρ) Ba,
-    hf, ha, hcod⟩
+    hf, ha, hcod, hdom⟩
 
 /-- The full app-clause establishment: the hereditary halves plus the
 slot, the shape the `app` claim discharges. -/
@@ -334,9 +356,10 @@ theorem WellDenoted_app_of {u v : Nat} {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
     (hf : interp V ρ f ∈ˢ interp V ρ (.pi u v Aa Ba))
     (ha : interp V ρ a ∈ˢ interp V ρ Aa)
     (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V)) :
+      interp V (cons x ρ) Ba ∈ˢ (univZero : V))
+    (hdom : v ≠ 0 → IsTy (interp V ρ Aa)) :
     WellDenoted V ρ (.app f a) := by
   rw [WellDenoted_app]
-  exact ⟨hokf, hoka, appSlot_of_pi V hf ha hcod⟩
+  exact ⟨hokf, hoka, appSlot_of_pi V hf ha hcod hdom⟩
 
 end ConLeche.Semantics

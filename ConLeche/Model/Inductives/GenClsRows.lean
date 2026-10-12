@@ -50,7 +50,7 @@ theorem wellDenotedV_piDom_at {B : AnnotTerm} :
     ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
       WellDenotedV V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
       SpineFit ρ ((tl.map (·.2.2)).take l) zs →
-        WellDenotedV V (consList zs ρ) ((tl.map (·.2.2)).getD l default)
+        WellDenotedTy V (consList zs ρ) ((tl.map (·.2.2)).getD l default)
   | [], _, _, l, hl, _, _ => absurd hl (Nat.not_lt_zero _)
   | d :: tl, ρ, hv, l, hl, zs, hz => by
     have hw : WellDenoted V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv.1
@@ -59,13 +59,13 @@ theorem wellDenotedV_piDom_at {B : AnnotTerm} :
     cases l with
     | zero =>
       match zs, hz with
-      | [], _ => exact ⟨hw.1, by simpa using hva.1⟩
+      | [], _ => exact ⟨⟨hw.1, by simpa using hva.1⟩, hw.2.1⟩
     | succ l =>
       match zs, hz with
       | z :: zs, hz =>
         simp only [List.map_cons, List.take_succ_cons] at hz
         have ih := wellDenotedV_piDom_at (tl := tl) (ρ := cons z ρ)
-          ⟨hw.2 z hz.1, hva.2.1 z hz.1⟩ l (by simpa using hl) zs hz.2
+          ⟨hw.2.2.1 z hz.1, hva.2.1 z hz.1⟩ l (by simpa using hl) zs hz.2
         simpa [consList_cons] using ih
 
 /-- Graded fields are valid fields. -/
@@ -228,7 +228,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         exact this)
     rw [hPdget] at hgr
     rw [← hBE, WellDenotedV_liftN, hsh]
-    exact hgr
+    exact hgr.1
 
 set_option maxHeartbeats 1600000 in
 /-- **The rule frame is graded** along its own fitting spines: the prefix
@@ -248,7 +248,7 @@ theorem genCls_frameV (hμ : μ.verifiedChecks = true)
       ∀ (σ : Nat → V) (ys : List V),
         SpineFit σ ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).take l) ys →
-        WellDenotedV V (consList ys σ)
+        WellDenotedTy V (consList ys σ)
           ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
             ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).getD l default) := by
   intro l hl σ ys hys

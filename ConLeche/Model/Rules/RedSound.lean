@@ -220,7 +220,7 @@ theorem Red.beta_sound {d : Nat}
     intro ρ hρ
     have h1 := hmemA ρ hρ
     rw [hd hfta ⟨hwsA.1.1, hbA.1.1, hLty⟩ (hC.app_arg.of_subset hsubta)
-      hC.app_fn.lam_ty htaA htya hgtaA (fun σ hσ => lamDomV (hgf σ hσ))
+      hC.app_fn.lam_ty htaA htya hgtaA.graded (fun σ hσ => lamDomV (hgf σ hσ))
       ρ hρ] at h1
     exact h1
   have hstep : ∀ ρ : Nat → V, Sat V Δa ρ →
@@ -450,7 +450,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
   obtain ⟨resta, hfitA, -⟩ :=
     hcerts ⟨ConLeche.Expr.WScoped.of_not_hasFvar hnfC, hbdC,
         ConLeche.Expr.LeavesBounded.of_not_hasFvar hnfC⟩
-      hTC hTCd (fun σ _ => hokTCa σ)
+      hTC hTCd (fun σ _ => (hokTCa σ).1)
       (frame_spine ⟨hws, hb, hLe⟩ hCe) hspa hoA
       (fun _ => ⟨hgvp, hmemC⟩)
   refine ⟨hfF, fun l hl => hsube l (ConLeche.fvarLeaves_getAppArgs hmemArg l hl),

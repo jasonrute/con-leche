@@ -40,7 +40,7 @@ theorem WellDenoted.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm
     fun ρ hρ => ?_⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
-  have := ((WellDenoted_pi V _ u v A B) ▸ h _ (Sat_tail hρ)).2
+  have := ((WellDenoted_pi V _ u v A B) ▸ h _ (Sat_tail hρ)).2.2.1
     (ρ 0) (hρ 0 A rfl)
   rwa [hcons] at this
 
@@ -54,7 +54,7 @@ theorem WellDenoted.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
     fun ρ hρ => ?_⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
-  have := ((WellDenoted_lam V _ v A b) ▸ h _ (Sat_tail hρ)).2.1
+  have := ((WellDenoted_lam V _ v A b) ▸ h _ (Sat_tail hρ)).2.2.1
     (ρ 0) (hρ 0 A rfl)
   rwa [hcons] at this
 
@@ -64,11 +64,14 @@ theorem WellDenoted.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
 inhabitant of the domain extends the valuation into `A :: Δa`. -/
 theorem WellDenoted.of_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
     (hA : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A)
-    (hB : ∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ B) :
+    (hB : ∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ B)
+    (hAt : ∀ ρ : Nat → V, Sat V Δa ρ → IsTy (interp V ρ A))
+    (hBt : ∀ ρ : Nat → V, Sat V (A :: Δa) ρ → IsTy (interp V ρ B)) :
     ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi u v A B) := by
   intro ρ hρ
   rw [WellDenoted_pi]
-  exact ⟨hA ρ hρ, fun x hx => hB _ (Sat_cons (V := V) hρ hx)⟩
+  exact ⟨hA ρ hρ, hAt ρ hρ, fun x hx => hB _ (Sat_cons (V := V) hρ hx),
+    fun x hx => hBt _ (Sat_cons (V := V) hρ hx)⟩
 
 /-! ### The head transfer
 
@@ -125,6 +128,7 @@ example :
   have hpi : ∀ ρ : Nat → V, Sat V [AnnotTerm.sort 0] ρ →
       WellDenoted V ρ (.pi 1 2 (.sort 0) (.sort 1)) :=
     WellDenoted.of_pi (fun _ _ => by simp) (fun _ _ => by simp)
+      (fun _ _ => IsTy_univ 0) (fun _ _ => IsTy_univ 1)
   exact ⟨hpi _ sat_sort0_empty, (WellDenoted.hoist_pi hpi).1⟩
 
 end ConLeche.Semantics

@@ -246,7 +246,7 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
       denoteMeta mp.base2.acval env ψ (nP + i) x.fvarTypeD
         = some ((ds ψ).getD (nP + i) default).2.2 := by
     intro ψ i x hx
-    have hO := opened_of_peel hopAll hcf hcb (hCD.read ψ) (hCD.len ψ) (hCD.okTy ψ)
+    have hO := opened_of_peel hopAll hcf hcb (hCD.read ψ) (hCD.len ψ) (hCD.okTyV ψ)
     have hxA : (fvsP ++ xFvs)[nP + i]? = some x := by
       rw [List.getElem?_append_right (by omega), hlenP, Nat.add_sub_cancel_left]
       exact hx

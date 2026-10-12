@@ -194,7 +194,7 @@ from the frame — which is what makes `CtxOk` a projection
   (∀ (j : Nat) (x : Expr), as2[j]? = some x →
     denoteMeta mT.acval envT φ (D - 1 - j) (Expr.fvarTypeD x) = some (Δa.getD j default)) ∧
   (∀ s, s < D → ∀ ρ : Nat → V, Sat V Δa ρ →
-    WellDenotedV V (fun j => ρ (j + s + 1)) (Δa.getD s default)) ∧
+    WellDenotedTy V (fun j => ρ (j + s + 1)) (Δa.getD s default)) ∧
   (∀ x ∈ as2, (Expr.fvarTypeD x).looseBVarsBounded 0 = true) ∧
   (∀ x ∈ as2, ConstsBound envT x) ∧
   (∀ x ∈ as2, ∀ l ∈ (Expr.fvarTypeD x).fvarLeaves, Expr.fvar l.1 l.2 ∈ as2)
@@ -213,7 +213,7 @@ theorem WalkCtx.cons {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat} {D 
     (hta : denoteMeta mT.acval envT φ D ty = some ta)
     (hlb : ty.looseBVarsBounded 0 = true) (hcb : ConstsBound envT ty)
     (hcl : ∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ as2)
-    (hG : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta)
+    (hG : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta)
     (hx : x ∈ˢ interp V ρfull ta) :
     WalkCtx V mT φ (D + 1) (cons x ρfull) (ta :: Δa) (Expr.fvar D ty :: as2) := by
   obtain ⟨hlen, hsat, hdoms, hok, hlbs, hcbs, hcls⟩ := h

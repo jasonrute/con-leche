@@ -136,10 +136,11 @@ theorem Graded.snd {Δa : List AnnotTerm} {e : AnnotTerm}
 /-- `WellDenoted.hoist_pi` at `Graded`. -/
 theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
     (h : Graded V Δa (.pi u v A B)) :
-    Graded V Δa A ∧ Graded V (A :: Δa) B := by
+    GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨h1 ρ hρ, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
+  refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
   · exact ((AnnotValid_pi V ρ u v A B) ▸ (h ρ hρ).2).1
+  · exact ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1
   · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
       funext i; cases i with | zero => rfl | succ i => rfl
     have := ((AnnotValid_pi V _ u v A B) ▸
@@ -149,10 +150,11 @@ theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
 /-- `WellDenoted.hoist_lam` at `Graded`. -/
 theorem Graded.lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
     (h : Graded V Δa (.lam v A b)) :
-    Graded V Δa A ∧ Graded V (A :: Δa) b := by
+    GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨h1 ρ hρ, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
+  refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
   · exact ((AnnotValid_lam V ρ v A b) ▸ (h ρ hρ).2).1
+  · exact ((WellDenoted_lam V ρ v A b) ▸ (h ρ hρ).1).2.1
   · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
       funext i; cases i with | zero => rfl | succ i => rfl
     have := ((AnnotValid_lam V _ v A b) ▸
@@ -344,7 +346,7 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
         ((AnnotValid_app V ρ f a) ▸ hokApp.2).2⟩
     have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
       fun y hy =>
-        ⟨((WellDenoted_pi V ρ w v A B) ▸ hokT.1).2 y hy,
+        ⟨((WellDenoted_pi V ρ w v A B) ▸ hokT.1).2.2.1 y hy,
           ((AnnotValid_pi V ρ w v A B) ▸ hokT.2).2.1 y hy⟩
     have hf' : interp V ρ f
         ∈ˢ piR v (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
@@ -530,7 +532,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
           ConLeche.PropWhen.zeronessOf_sound] at hb
         exact beq_iff_eq.mp hb
       have huniv := typeFormer_mem_univ_zero hct hfnT hfI hntI hlenI hpeel hz
-        htya (hokT ρ hρ)
+        htya (hokT ρ hρ).1
       exact mem_univ_zero huniv hx
     · -- an fvar-headed type former (`h : motive n`): the head's type
       -- is in the context too
@@ -545,7 +547,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
         ty.getAppArgs.length hpeel htyy
       rw [eval_eq_zero_of_isProp hprop φ] at hchain
       have huniv := mem_univ_zero_of_spine hfnT htya (denoteMeta_fvar _ _ _ _)
-        hchain (hokY ρ hρ) (hokT ρ hρ) hy
+        hchain (hokY ρ hρ).1 (hokT ρ hρ).1 hy
       exact mem_univ_zero huniv hx
   · -- a sort, a ∀, a literal: never a proof
     exact absurd hprop (by simp)
@@ -600,9 +602,9 @@ theorem prop_side_pt' {m : EnvModel V env} {d : Nat} {a ta tta : Expr}
   obtain ⟨hfta, hsub1, taa, htaa, hoktaa, hmemA⟩ := hta hfa hCa hda hokA
   have hCta : CtxOk m φ d Δa ta := hCa.of_subset hsub1
   obtain ⟨hftta, hsub2, ttaa, httaa, hokttaa, hmemT⟩ :=
-    htta hfta hCta htaa hoktaa
+    htta hfta hCta htaa hoktaa.graded
   have hCtta : CtxOk m φ d Δa tta := hCta.of_subset hsub2
-  obtain ⟨-, -, sa, hsa, -, heq⟩ := hu hftta hCtta httaa hokttaa
+  obtain ⟨-, -, sa, hsa, -, heq⟩ := hu hftta hCtta httaa hokttaa.graded
   rw [denoteMeta_sort] at hsa
   obtain rfl : sa = AnnotTerm.sort (u.eval φ) := (Option.some.inj hsa).symm
   have h0 : Level.eval φ u = 0 := ConLeche.Level.isEquiv_sound hu0 φ

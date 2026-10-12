@@ -322,13 +322,15 @@ theorem towerBodyAV_pos {w : Nat} (hw : w ≠ 0) (Fs : List AnnotTerm) :
     towerBodyAV w Fs = towerBodyAVPos w Fs := ite_eq_right hw
 
 /-- `FieldsOkB w ρ Fs`: the hereditary grading the body's `WellDenoted`
-consumes — each domain is itself graded and, in the graph regime, its
-interpretation is bounded, at every fitting prefix.  (At squash the
-carrier is a truth value whatever the fields are — `towerBodyAV`'s
-`sqBodyAV` spelling — so no bound is asked.) -/
+consumes — each domain is itself graded and a type and, in the graph
+regime, its interpretation is bounded, at every fitting prefix.  (At
+squash the carrier is a truth value whatever the fields are —
+`towerBodyAV`'s `sqBodyAV` spelling — so no bound is asked; the domains
+are still types, which the spelling's `Π`s need.) -/
 def FieldsOkB (w : Nat) (ρ : Nat → V) : List AnnotTerm → Prop
   | [] => True
-  | F :: Fs => WellDenoted V ρ F ∧ (w ≠ 0 → interp V ρ F ∈ˢ (univ w : V)) ∧
+  | F :: Fs => WellDenoted V ρ F ∧ IsTy (interp V ρ F) ∧
+      (w ≠ 0 → interp V ρ F ∈ˢ (univ w : V)) ∧
       ∀ a, a ∈ˢ interp V ρ F → FieldsOkB w (cons a ρ) Fs
 
 theorem FieldsOkB.toBound {w : Nat} (hw : w ≠ 0) :
@@ -336,7 +338,7 @@ theorem FieldsOkB.toBound {w : Nat} (hw : w ≠ 0) :
       FieldsOkB w ρ Fs → FieldsBound w ρ Fs
   | [], _, _ => trivial
   | _ :: Fs, _, h =>
-    ⟨h.2.1 hw, fun a ha => FieldsOkB.toBound hw (Fs := Fs) (h.2.2 a ha)⟩
+    ⟨h.2.2.1 hw, fun a ha => FieldsOkB.toBound hw (Fs := Fs) (h.2.2.2 a ha)⟩
 
 /-! ## The squash spelling's interpretation -/
 
@@ -377,6 +379,12 @@ theorem sqBodyAV_interp :
     · rintro ⟨x, hx, y, hy⟩ hall
       exact (hin x).mp (hall x hx) ⟨y, hy⟩
 
+/-- The squash body's reading is a type (a truth value). -/
+theorem IsTy_sqBody (Fs : List AnnotTerm) (ρ : Nat → V) :
+    IsTy (interp V ρ (sqBodyAV Fs)) := by
+  rw [sqBodyAV_interp]
+  exact Or.inl towerSet_zero_univZero_teleOfFields
+
 /-- **The squash body is graded** from the chain's own gradings. -/
 theorem sqBodyAV_wellDenoted :
     ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsOkB 0 ρ Fs →
@@ -386,11 +394,12 @@ theorem sqBodyAV_wellDenoted :
     show WellDenoted V ρ (negAV (.pi 0 0 F (negAV (sqBodyAV Fs))))
     unfold negAV
     rw [WellDenoted_pi]
-    refine ⟨?_, fun _ _ => by simp⟩
+    refine ⟨?_, IsTy_piR _ _ _, fun _ _ => by simp, fun _ _ => IsTy_empty⟩
     rw [WellDenoted_pi]
-    refine ⟨hok.1, fun x hx => ?_⟩
+    refine ⟨hok.1, hok.2.1, fun x hx => ?_, fun _ _ => IsTy_piR _ _ _⟩
     rw [WellDenoted_pi]
-    exact ⟨sqBodyAV_wellDenoted (hok.2.2 x hx), fun _ _ => by simp⟩
+    exact ⟨sqBodyAV_wellDenoted (hok.2.2.2 x hx), IsTy_sqBody _ _,
+      fun _ _ => by simp, fun _ _ => IsTy_empty⟩
 
 /-- **The carrier body reads back as the tier's carrier**: under the
 hereditary bound (O5's semantic form), the `.psigma` spelling
@@ -469,7 +478,7 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
   | [], ρ, _ => by simp [towerBodyAVPos]
   | F :: Fs, ρ, hok => by
     have hb : FieldsBound w ρ (F :: Fs) := hok.toBound hw
-    have hA : interp V ρ F ∈ˢ (univ w : V) := hok.2.1 hw
+    have hA : interp V ρ F ∈ˢ (univ w : V) := hok.2.2.1 hw
     have hG : ∀ x, x ∈ˢ interp V ρ F →
         interp V (cons x ρ) (towerBodyAVPos w Fs)
           = towerSet w (teleOfFields (cons x ρ) Fs) :=
@@ -486,16 +495,20 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
         ⟨w + 1, univ w,
           fun A => piR (w + 1) (psigmaFibreSpace V w A)
             fun _ => (univ w : V),
-          hbv ▸ psigmaV_rr_mem (V := V) w, hA, fun h => absurd h hvac⟩⟩
+          hbv ▸ psigmaV_rr_mem (V := V) w, hA, fun h => absurd h hvac,
+          fun _ => IsTy_univ w⟩⟩
     · -- the fibre λ
       rw [WellDenoted_lam]
-      refine ⟨hok.1, fun x hx => towerBodyAVPos_wellDenoted hw (hok.2.2 x hx),
-        ⟨fun _ => (univ w : V), fun x hx => ?_, fun h => absurd h hvac⟩⟩
+      refine ⟨hok.1, hok.2.1,
+        fun x hx => towerBodyAVPos_wellDenoted hw (hok.2.2.2 x hx),
+        ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w,
+          fun h => absurd h hvac⟩⟩
       rw [hG x hx]
       exact towerSet_univ_teleOfFields (hb.2 x hx)
     · -- the outer application's kind slot
       refine ⟨w + 1, psigmaFibreSpace V w (interp V ρ F),
-        fun _ => (univ w : V), ?_, ?_, fun h => absurd h hvac⟩
+        fun _ => (univ w : V), ?_, ?_, fun h => absurd h hvac,
+        fun _ => IsTy_piR _ _ _⟩
       · show SetTheory.app (interp V ρ (.const .psigma [w, w]))
             (interp V ρ F) ∈ˢ _
         rw [hbv]
@@ -527,6 +540,13 @@ data — the shape of a stored Π-type's reading. -/
 def mkPisAV : List (Nat × Nat × AnnotTerm) → AnnotTerm → AnnotTerm
   | [], b => b
   | d :: ds, b => .pi d.1 d.2.1 d.2.2 (mkPisAV ds b)
+
+/-- A Π-tower over a sort reads to a type: a product, or the universe. -/
+theorem IsTy_mkPisAV_sort (ds : List (Nat × Nat × AnnotTerm)) (w : Nat) (ρ : Nat → V) :
+    IsTy (interp V ρ (mkPisAV ds (.sort w))) := by
+  cases ds with
+  | nil => exact IsTy_univ w
+  | cons _ _ => exact IsTy_piR _ _ _
 
 /-- Peel `n` Π-binders off a reading. -/
 def stripPisAV : Nat → AnnotTerm → Option (List (Nat × Nat × AnnotTerm) × AnnotTerm)
@@ -590,14 +610,14 @@ def mkLamsC (m : Nat) (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm) :
   mkLamsAV (ds.map fun d => (m, d.2.2)) b
 
 /-- The hereditary premise of the constant-bit tower's laws: each
-domain graded, and at every fitting spine the body is graded, a member
-of the result type's reading, and — when the bit is zero — that
-reading is a truth value. -/
+domain graded and a type, and at every fitting spine the body is
+graded, a member of the result type's reading, which is a type, and —
+when the bit is zero — that reading is a truth value. -/
 def UnderTowerOk (m : Nat) (ρ : Nat → V) (b T : AnnotTerm) :
     List (Nat × Nat × AnnotTerm) → Prop
   | [] => WellDenoted V ρ b ∧ interp V ρ b ∈ˢ interp V ρ T ∧
-      (m = 0 → interp V ρ T ∈ˢ (univZero : V))
-  | d :: ds => WellDenoted V ρ d.2.2 ∧
+      (m = 0 → interp V ρ T ∈ˢ (univZero : V)) ∧ IsTy (interp V ρ T)
+  | d :: ds => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
       ∀ a, a ∈ˢ interp V ρ d.2.2 → UnderTowerOk m (cons a ρ) b T ds
 
 /-- The residual Π-tower is a truth value at a zero bit (either the
@@ -606,7 +626,7 @@ theorem underTowerOk_res_univZero {m : Nat} {b T : AnnotTerm} (h0 : m = 0) :
     ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
       (∀ d ∈ ds, (m = 0 ↔ d.2.1 = 0)) → UnderTowerOk m ρ b T ds →
       interp V ρ (mkPisAV ds T) ∈ˢ (univZero : V)
-  | [], _, _, h => h.2.2 h0
+  | [], _, _, h => h.2.2.1 h0
   | d :: ds, ρ, hz, _ => by
     show piR d.2.1 _ _ ∈ˢ _
     rw [(hz d (.head _)).mp h0]
@@ -627,7 +647,15 @@ theorem mkLamsC_mem {m : Nat} {b T : AnnotTerm} :
         fun a => interp V (cons a ρ) (mkPisAV ds T)
     exact lamR_mem_zero_agree (hz d (.head _))
       fun a ha => mkLamsC_mem (fun d' hd' => hz d' (.tail _ hd'))
-        (h.2 a ha)
+        (h.2.2 a ha)
+
+/-- The residual Π-tower's reading is a type: a product, or the base's
+type. -/
+theorem underTowerOk_res_IsTy {m : Nat} {b T : AnnotTerm} :
+    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+      UnderTowerOk m ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
+  | [], _, h => h.2.2.2
+  | _ :: _, _, _ => IsTy_piR _ _ _
 
 /-- **The constant-bit tower is graded** (`WellDenoted`): the fibre
 packages are the interpreted residual Π-towers, membership from
@@ -641,13 +669,14 @@ theorem mkLamsC_wellDenoted {m : Nat} {b T : AnnotTerm} :
   | d :: ds, ρ, hz, h => by
     show WellDenoted V ρ (.lam m d.2.2 (mkLamsC m ds b))
     rw [WellDenoted_lam]
-    refine ⟨h.1, fun a ha => mkLamsC_wellDenoted
-        (fun d' hd' => hz d' (.tail _ hd')) (h.2 a ha),
+    refine ⟨h.1, h.2.1, fun a ha => mkLamsC_wellDenoted
+        (fun d' hd' => hz d' (.tail _ hd')) (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV ds T),
        fun a ha => mkLamsC_mem (fun d' hd' => hz d' (.tail _ hd'))
-         (h.2 a ha),
+         (h.2.2 a ha),
+       fun a ha => underTowerOk_res_IsTy (h.2.2 a ha),
        fun h0 a ha => underTowerOk_res_univZero h0
-         (fun d' hd' => hz d' (.tail _ hd')) (h.2 a ha)⟩⟩
+         (fun d' hd' => hz d' (.tail _ hd')) (h.2.2 a ha)⟩⟩
 
 
 /-!
@@ -975,7 +1004,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
           (.bvar Fs.length))
         (mkTowerGoPos w Fs))
     rw [WellDenoted_app]
-    refine ⟨?_, mkTowerGoPos_wellDenoted hw (hok.2.2 b hsp.1) hsp.2, ?_⟩
+    refine ⟨?_, mkTowerGoPos_wellDenoted hw (hok.2.2.2 b hsp.1) hsp.2, ?_⟩
     · -- the triple-application head
       rw [WellDenoted_app]
       refine ⟨?_, trivial, ?_⟩
@@ -988,23 +1017,25 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
           · exact ⟨w, univ w, _, hm0, by rw [interp_liftN, hshift]; exact hAm,
-              hz1⟩
+              hz1, fun _ => IsTy_univ w⟩
         · -- the fibre λ
           rw [WellDenoted_lam]
-          refine ⟨?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
+          · rw [hA]; exact hok.2.1
           · intro x hx
             rw [hA] at hx
             rw [WellDenoted_liftN, ← cons_shiftE, hshift]
-            exact towerBodyAV_wellDenoted (hok.2.2 x hx)
-          · refine ⟨fun _ => (univ w : V), fun x hx => ?_,
+            exact towerBodyAV_wellDenoted (hok.2.2.2 x hx)
+          · refine ⟨fun _ => (univ w : V), fun x hx => ?_, fun _ _ => IsTy_univ w,
               fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
             rw [hA] at hx
             rw [hBfun x, towerBodyAV_interp (fun _ => hb.2 x hx)]
             exact towerSet_univ_teleOfFields (hb.2 x hx)
         · -- the second application's kind slot
-          refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2⟩
+          refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2,
+            fun _ => IsTy_piR _ _ _⟩
           · show SetTheory.app (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
               (interp V (consList bs (cons b ρp))
@@ -1014,7 +1045,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
           · rw [hBv]
             exact hBm
       · -- the third application's kind slot
-        refine ⟨w, interp V ρp F, _, ?_, ?_, hz3⟩
+        refine ⟨w, interp V ρp F, _, ?_, ?_, hz3, fun _ => hok.2.1⟩
         · show SetTheory.app (SetTheory.app
               (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
@@ -1031,7 +1062,8 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
     · -- the outer application's kind slot
       refine ⟨w, SetTheory.app (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs)) b, _,
-        ?_, hrm, hz4⟩
+        ?_, hrm, hz4, fun _ => by
+          rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1))⟩
       show SetTheory.app (SetTheory.app (SetTheory.app
           (interp V (consList bs (cons b ρp))
             (.const .psigmaMk [w, w]))
@@ -1066,7 +1098,7 @@ theorem FieldsOkB.drop {w : Nat} :
   | _ :: _, [], _, _, _, hsp => hsp.elim
   | _ :: Fs₁, a :: as, Fs₂, ρ, h, hsp => by
     exact FieldsOkB.drop (Fs₁ := Fs₁) (as := as) (Fs₂ := Fs₂)
-      (ρ := cons a ρ) (h.2.2 a hsp.1) hsp.2
+      (ρ := cons a ρ) (h.2.2.2 a hsp.1) hsp.2
 
 
 /-!

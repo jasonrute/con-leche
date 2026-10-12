@@ -96,7 +96,7 @@ and the run is the io lane's. -/
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
         ∀ ρ : Nat → V, Sat V Δa ρ →
           interp V ρ ea ∈ˢ interp V ρ ta
 

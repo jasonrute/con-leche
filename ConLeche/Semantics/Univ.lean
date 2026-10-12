@@ -71,16 +71,6 @@ theorem piR_mem_univ {u v : Nat} {A : V} {B : V → V}
       (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hB x hx))))
       strict_piSet
 
-/-- A product is in the regime of its codomain bit: a truth value at
-`v = 0`, strict above (task #342). -/
-theorem Fib_piR (v : Nat) (A : V) (B : V → V) : Fib (decide (v = 0)) (piR v A B) := by
-  by_cases hv : v = 0
-  · subst hv; simp only [decide_true, Fib_true]; exact piR_zero_mem_univZero
-  · simp only [hv, decide_false, Fib_false]; rw [piR_pos hv]; exact strict_piSet
-
-/-- A product is a type. -/
-theorem IsTy_piR (v : Nat) (A : V) (B : V → V) : IsTy (piR v A B) :=
-  IsTy_of_Fib (Fib_piR v A B)
 
 open Classical in
 /-- Sharpness of the regime split: a graph-regime product whose fibres

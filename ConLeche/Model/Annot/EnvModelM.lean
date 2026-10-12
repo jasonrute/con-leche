@@ -32,8 +32,8 @@ The fields, each a payoff of the fuel-free reading:
   stored definition's or theorem's value *reads*, to the constant's own
   leaf; `denoteMeta` has no fuel, and a checked value is never out of
   fragment.
-* **the stored types read, are graded, and are inhabited** —
-  `type_reads`/`type_wellDenotedV`/`mem_type`, at the *uninstantiated* type
+* **the stored types read, are graded types, and are inhabited** —
+  `type_reads`/`type_wellDenotedTy`/`mem_type`, at the *uninstantiated* type
   over every ground assignment; `denotePInstLevels` (an equality)
   delivers every instantiated form, so no arity or fuel bookkeeping
   appears anywhere.
@@ -166,10 +166,10 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   type_reads : ∀ c ∈ env.consts, ∀ ψ : Name → Nat,
     ∃ ta : AnnotTerm,
       denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta
-  /-- the stored types' readings are graded -/
-  type_wellDenotedV : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+  /-- the stored types' readings are graded types -/
+  type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : AnnotTerm),
     denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
-    ∀ ρ : Nat → V, WellDenotedV V ρ ta
+    ∀ ρ : Nat → V, WellDenotedTy V ρ ta
   /-- stored constants inhabit their types' readings (a projection
   table's constant type is the closed dummy `Sort 1` and its leaf is
   `Sort 0`, so the row holds of tables too; that a table is not a term
@@ -277,7 +277,7 @@ theorem constType (m : EnvModelM V μ env) : ConstType m.base2 φ := by
             ci.toConstantVal.type :=
     denotePInstLevels m.base2 φ ci.toConstantVal.levelParams us d
       ci.toConstantVal.type
-  refine ⟨ta, ?_, m.type_wellDenotedV ci hmem _ ta hta, ?_⟩
+  refine ⟨ta, ?_, m.type_wellDenotedTy ci hmem _ ta hta, ?_⟩
   · rw [hcross]; exact hdepth
   · have := m.mem_type ci hmem _ ta hta
     rwa [hname] at this
@@ -335,7 +335,7 @@ binder. -/
     show AnnotValid V _ (.const .empty [0])
     simp
   type_reads := fun c hc => nomatch hc
-  type_wellDenotedV := fun c hc => nomatch hc
+  type_wellDenotedTy := fun c hc => nomatch hc
   mem_type := fun c hc => nomatch hc
   defn_reads := fun ψ cv value hmem => by
     obtain ⟨hint, hdt⟩ := hmem

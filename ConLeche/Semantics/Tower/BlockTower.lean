@@ -158,8 +158,8 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       exact lamR_mem fun _ _ => ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)
     have hBok : WellDenoted V ρ (.lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n)) := by
       rw [WellDenoted_lam]
-      refine ⟨hGtyok s (by omega), fun x _ => ?_, fun _ => (univ r : V),
-        fun x _ => ?_, fun h0 => absurd h0 hvac⟩
+      refine ⟨hGtyok s (by omega), IsTy_of_mem_univ hAu, fun x _ => ?_, fun _ => (univ r : V),
+        fun x _ => ?_, fun _ _ => IsTy_univ r, fun h0 => absurd h0 hvac⟩
       · exact ndTowerAV_wellDenoted V n (s + 1) 1 (cons x ρ)
           (by rw [shiftE_succ_cons, shiftE_zero_zero]) (fun m hm => hGty m (by omega))
           (fun m hm => hGtyok m (by omega)) (fun m hm => hF m (by omega))
@@ -191,12 +191,15 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       have h3 := app_mem_piR_pos hr h2 hamem
       intro l hl
       match l, hl with
-      | 0, _ => exact ⟨r, univ r, _, hstep, hAu, fun h0 => absurd h0 hr⟩
+      | 0, _ => exact ⟨r, univ r, _, hstep, hAu, fun h0 => absurd h0 hr, fun _ => IsTy_univ r⟩
       | 1, _ =>
         exact ⟨r, psigmaFibreSpace V r (interp V ρ (Gty s)), _, h1, hBmem,
-          fun h0 => absurd h0 hr⟩
-      | 2, _ => exact ⟨r, interp V ρ (Gty s), _, h2, hamem, fun h0 => absurd h0 hr⟩
-      | 3, _ => exact ⟨r, _, _, h3, hbmem, fun h0 => absurd h0 hr⟩
+          fun h0 => absurd h0 hr, fun _ => IsTy_piR _ _ _⟩
+      | 2, _ => exact ⟨r, interp V ρ (Gty s), _, h2, hamem, fun h0 => absurd h0 hr,
+          fun _ => IsTy_of_mem_univ hAu⟩
+      | 3, _ => exact ⟨r, _, _, h3, hbmem, fun h0 => absurd h0 hr, fun _ => by
+          rw [hBapp]; exact IsTy_of_mem_univ
+            (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega))⟩
     have hcl := mkAppN_wellDenoted_of_chain (f := (.const .psigmaMk [r, r] : AnnotTerm))
       (args := [Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
         G s, ndMkTowerAV r Gty G (s + 1) n]) (σ := ρ) trivial
@@ -439,6 +442,12 @@ theorem famsTyBAV_facts (hI : BlockIdxOk (V := V) k uf ρp Idss) :
       (fun m hm => (famTyAV_facts (w := w) (hI m (by omega))).2.2)
       (fun m hm => famSpace_mem_blockR (by omega) (idxTyAV_facts (hI m (by omega))).2.1)⟩
 
+/-- The family tuples are a type. -/
+theorem IsTy_famsSpaceB (hI : BlockIdxOk (V := V) k uf ρp Idss) :
+    IsTy (famsSpaceB k w ρp uf Idss) :=
+  IsTy_of_mem_univ (ndTowerSet_mem_univ V k 0
+    (fun m hm => famSpace_mem_blockR (by omega) (idxTyAV_facts (hI m (by omega))).2.1))
+
 /-- The index-set tuple's components are the members' index sets. -/
 theorem projS_idxTup {m : Nat} (hm : m < k) :
     projS m (ndMkTowerSet (blockIdx uf ρp Idss) 0 k) = idxSet (uf m) ρp (Idss m) := by
@@ -508,7 +517,8 @@ theorem blockArmG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
     exact sumBodyAV_interp (hok Y hY m hm t ht)
   · unfold blockArmG
     rw [WellDenoted_lam]
-    refine ⟨hiok, fun t ht => ?_, fun _ => (univ w : V), fun t ht => ?_,
+    refine ⟨hiok, by rw [hiv]; exact IsTy_of_mem_univ (idxTyAV_facts (hI m hm)).2.1,
+      fun t ht => ?_, fun _ => (univ w : V), fun t ht => ?_, fun _ _ => IsTy_univ w,
       fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
     · rw [hiv] at ht
       exact sumBodyAV_wellDenoted (hok Y hY m hm t ht)
@@ -552,7 +562,8 @@ theorem blockFunG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
     exact lamR_congr fun Y hY => (hbody Y hY).1
   · unfold blockFunG
     rw [WellDenoted_lam]
-    refine ⟨hfok, fun Y hY => ?_, fun _ => famsSpaceB k w ρp uf Idss, fun Y hY => ?_,
+    refine ⟨hfok, by rw [hfv]; exact IsTy_famsSpaceB hI, fun Y hY => ?_,
+      fun _ => famsSpaceB k w ρp uf Idss, fun Y hY => ?_, fun _ _ => IsTy_famsSpaceB hI,
       fun h0 => absurd h0 (blockR_ne_zero k w uf)⟩
     · rw [hfv] at hY; exact (hbody Y hY).2
     · rw [hfv] at hY
@@ -699,12 +710,13 @@ theorem blockBodyG_wellDenoted (hI : BlockIdxOk (V := V) k uf ρp Idss)
   show WellDenoted V ρp (.app (.app (.const (.lfpTuple k) (blockUs k w uf)) _) _)
   rw [WellDenoted_app]
   refine ⟨?_, hfok, tupleFamSort k (blockUs k w uf), _, _, hhead, ?_,
-    fun h0 => absurd h0 (blockR_ne_zero k w uf)⟩
+    fun h0 => absurd h0 (blockR_ne_zero k w uf), fun _ => IsTy_piR _ _ _⟩
   · rw [WellDenoted_app]
     exact ⟨trivial, hiok, tupleFamSort k (blockUs k w uf),
       tupleSortsSpace V k (blockUs k w uf), _,
       hc ▸ lfpTupleV_mem V k (blockUs k w uf), hiv ▸ hIs,
-      fun h0 => absurd h0 (blockR_ne_zero k w uf)⟩
+      fun h0 => absurd h0 (blockR_ne_zero k w uf),
+      fun _ => IsTy_tupleSortsSpace V k _⟩
   · rw [hfv]; exact hF
 
 end Body
@@ -728,7 +740,7 @@ def ParamsOkG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → Li
     (Chs : Nat → List (List AnnotTerm))
     (m : Nat) : List (Nat × Nat × AnnotTerm) → Prop
   | [] => BlockBaseG k w ρ uf Idss Chs m
-  | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧
+  | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
       ∀ a, a ∈ˢ interp V ρ d.2.2 →
         ParamsOkG k w (cons a ρ) uf Idss Chs m pps
 
@@ -794,7 +806,8 @@ theorem blockLeafBodyG_facts {ρ : Nat → V} {m : Nat} (hm : m < k)
     exact famSpace_app_univ hfam htmem
   · rw [WellDenoted_app]
     refine ⟨hpok, htok, w + 1, idxSet (uf m) (shiftE (Idss m).length 0 ρ) (Idss m),
-      fun _ => (univ w : V), ?_, ?_, fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
+      fun _ => (univ w : V), ?_, ?_, fun h0 => absurd h0 (Nat.succ_ne_zero w),
+      fun _ => IsTy_of_mem_univ (idxTyAV_facts (hI m hm)).2.1⟩
     · rw [hpv]
       exact famSpace_subset_lfpFamSpace w _ _ hfam
     · rw [htv]; exact htmem
@@ -812,7 +825,7 @@ theorem blockTyG_mem {m : Nat} (hm : m < k) :
       ∈ˢ piR d.2.1 (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
     exact lamR_mem_zero_agree (iff_of_false (Nat.succ_ne_zero w) h.1)
-      (fun a ha => blockTyG_mem hm (h.2.2 a ha))
+      (fun a ha => blockTyG_mem hm (h.2.2.2 a ha))
 
 /-- **The leaf is graded.** -/
 theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
@@ -823,9 +836,10 @@ theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
   | d :: pps, ρ, h => by
     show WellDenoted V ρ (.lam (w + 1) d.2.2 (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
     rw [WellDenoted_lam]
-    exact ⟨h.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2 a ha),
+    exact ⟨h.2.1, h.2.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
-       fun a ha => blockTyG_mem hm (h.2.2 a ha),
+       fun a ha => blockTyG_mem hm (h.2.2.2 a ha),
+       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ),
        fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩⟩
 
 /-- **The leaf's application fold**: along a fitting parameter-and-index
@@ -983,7 +997,7 @@ theorem WellDenoted_substAV (τ : Nat → AnnotTerm) :
     have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
     rw [AnnotTerm.substAV_pi, WellDenoted_pi, WellDenoted_pi, ihA k ρ hτ, interp_substAV]
-    simp only [ihB (k + 1) _ (hτ' _), cons_substE]
+    simp only [ihB (k + 1) _ (hτ' _), interp_substAV, cons_substE]
   | eqE a b iha ihb =>
     intro k ρ hτ
     show WellDenoted V ρ (.eqE _ _) ↔ WellDenoted V _ (.eqE _ _)
@@ -1275,10 +1289,11 @@ theorem FieldsOkB_holeEntsAV {w k : Nat} {H : Nat → AnnotTerm} {σ : Nat → V
         = consList as (substE V (holeTau k H) 0 σ) := by
       have := substE_consList V (holeTau k H) as 0 σ
       rwa [Nat.add_zero] at this
-    show (WellDenoted V _ (AnnotTerm.substAV _ F _) ∧ _ ∧ _) ↔ (WellDenoted V _ F ∧ _ ∧ _)
+    show (WellDenoted V _ (AnnotTerm.substAV _ F _) ∧ _ ∧ _ ∧ _) ↔ (WellDenoted V _ F ∧ _ ∧ _ ∧ _)
     rw [WellDenoted_substAV (holeTau k H) F as.length _ (holeTau_wellDenoted hH as),
       interp_substAV, hs]
-    refine and_congr Iff.rfl (and_congr Iff.rfl (forall_congr' fun a => imp_congr Iff.rfl ?_))
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr Iff.rfl
+      (forall_congr' fun a => imp_congr Iff.rfl ?_)))
     have := FieldsOkB_holeEntsAV (w := w) hH Fs (as ++ [a])
     rw [List.length_append, List.length_singleton, consList_append, consList_append] at this
     exact this
@@ -1319,23 +1334,26 @@ theorem mkLamsAV_one_wellDenoted {b : AnnotTerm} :
   | T :: Ts, ρ, hT, hb => by
     show WellDenoted V ρ (.lam 1 T (mkLamsAV (Ts.map (1, ·)) b))
     rw [WellDenoted_lam]
-    refine ⟨hT.1, fun x hx => mkLamsAV_one_wellDenoted (hT.2.2 x hx)
+    have hT' := fun x => exists_IsTy_mem (interp V (cons x ρ) (mkLamsAV (Ts.map (1, ·)) b))
+    refine ⟨hT.1, hT.2.1, fun x hx => mkLamsAV_one_wellDenoted (hT.2.2.2 x hx)
       (fun vs hvs => hb (x :: vs) ⟨hx, hvs⟩),
-      fun x => ConLeche.SetTheory.sing (interp V (cons x ρ) (mkLamsAV (Ts.map (1, ·)) b)),
-      fun x _ => ConLeche.SetTheory.mem_sing.mpr rfl, fun h => absurd h (by decide)⟩
+      fun x => Classical.choose (hT' x),
+      fun x _ => (Classical.choose_spec (hT' x)).2,
+      fun x _ => (Classical.choose_spec (hT' x)).1, fun h => absurd h (by decide)⟩
 
 theorem FieldsOkB_zero_of {w : Nat} :
     ∀ {Ts : List AnnotTerm} {ρ : Nat → V}, FieldsOkB w ρ Ts → FieldsOkB 0 ρ Ts
   | [], _, _ => trivial
-  | _ :: _, _, h => ⟨h.1, fun h0 => absurd rfl h0, fun a ha => FieldsOkB_zero_of (h.2.2 a ha)⟩
+  | _ :: _, _, h => ⟨h.1, h.2.1, fun h0 => absurd rfl h0,
+      fun a ha => FieldsOkB_zero_of (h.2.2.2 a ha)⟩
 
 theorem FieldsOkB_append_iff {w : Nat} :
     ∀ {A B : List AnnotTerm} {ρ : Nat → V},
       FieldsOkB w ρ A → (∀ vs, SpineFit ρ A vs → FieldsOkB w (consList vs ρ) B) →
       FieldsOkB w ρ (A ++ B)
   | [], _, _, _, hB => hB [] trivial
-  | _ :: _, _, _, hA, hB => ⟨hA.1, hA.2.1, fun a ha =>
-      FieldsOkB_append_iff (hA.2.2 a ha) fun vs hvs => hB (a :: vs) ⟨ha, hvs⟩⟩
+  | _ :: _, _, _, hA, hB => ⟨hA.1, hA.2.1, hA.2.2.1, fun a ha =>
+      FieldsOkB_append_iff (hA.2.2.2 a ha) fun vs hvs => hB (a :: vs) ⟨ha, hvs⟩⟩
 
 theorem fieldsBound_liftFields {w n : Nat} :
     ∀ {Fs : List AnnotTerm} {k : Nat} {σ : Nat → V},
@@ -1380,7 +1398,8 @@ theorem holeTmAV_wellDenoted (hIall : BlockIdxOk (V := V) k uf ρp Idss) {m : Na
       projS_mem_famsSpaceB hm hY
     rw [WellDenoted_app]
     refine ⟨?_, ?_, w + 1, idxSet (uf m) ρp (Idss m), fun _ => (univ w : V), ?_, ?_,
-      fun h => absurd h (Nat.succ_ne_zero w)⟩
+      fun h => absurd h (Nat.succ_ne_zero w),
+      fun _ => IsTy_of_mem_univ (idxTyAV_facts (hIall m hm)).2.1⟩
     · have hFu : ∀ c, c < 0 + k → lfpFamSpace V w (idxSet (uf c) ρp (Idss c))
           ∈ˢ (univ (blockR k w uf) : V) := fun c hc =>
         famSpace_mem_blockR (by omega) (idxTyAV_facts (hIall c (by omega))).2.1

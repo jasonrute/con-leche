@@ -33,10 +33,18 @@ bit validity. -/
     Prop :=
   WellDenoted V ρ e ∧ AnnotValid V ρ e
 
+/-- **A graded type** (task #342, L5): a graded reading whose
+denotation is a type (`IsTy`: a truth value or a strict set).  The
+currency of the context's entries (`CtxOk`) and of inferred types
+(`InferSem`), the fragment's `Sat`/`InferSem` typing clause. -/
+@[expose] def WellDenotedTy (V : Type w) [SetTheory V] (ρ : Nat → V) (e : AnnotTerm) :
+    Prop :=
+  WellDenotedV V ρ e ∧ IsTy (interp V ρ e)
+
 /-- The P-tier context discipline over `denoteMeta`
 — scope bound, leaf types annotate, their interpretations read the
-telescope, and they are `WellDenotedV` under every satisfying valuation.
-No fuel parameter. -/
+telescope, and they are graded types (`WellDenotedTy`) under every
+satisfying valuation.  No fuel parameter. -/
 @[expose] def CtxOk {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (d : Nat) (Δa : List AnnotTerm) (e : Expr) : Prop :=
   Δa.length = d ∧
@@ -47,4 +55,4 @@ No fuel parameter. -/
       (∀ ρ : Nat → V, Sat V Δa ρ →
         interp V ρ tya
           = interp V (fun j => ρ (j + (d - 1 - l.1) + 1)) Aa) ∧
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ tya)
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ tya)

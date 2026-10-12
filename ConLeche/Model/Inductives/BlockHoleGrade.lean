@@ -59,12 +59,14 @@ theorem fieldsOkB_of_prefix {w : Nat} :
     ∀ (Fs : List AnnotTerm) (σ : Nat → V),
       (∀ i, i < Fs.length → ∀ as : List V, SpineFit σ (Fs.take i) as →
         WellDenoted V (consList as σ) (Fs.getD i default) ∧
+        IsTy (interp V (consList as σ) (Fs.getD i default)) ∧
         (w ≠ 0 → interp V (consList as σ) (Fs.getD i default) ∈ˢ (univ w : V))) →
       FieldsOkB w σ Fs
   | [], _, _ => trivial
   | F :: Fs, σ, h => by
     have h0 := h 0 (by simp) [] trivial
-    refine ⟨h0.1, h0.2, fun a ha => fieldsOkB_of_prefix Fs (cons a σ) fun i hi as has => ?_⟩
+    refine ⟨h0.1, h0.2.1, h0.2.2,
+      fun a ha => fieldsOkB_of_prefix Fs (cons a σ) fun i hi as has => ?_⟩
     exact h (i + 1) (by simp; omega) (a :: as) ⟨ha, has⟩
 
 /-- A field list is hereditarily bit-valid when each field is, at every
@@ -159,7 +161,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     intro i; rw [hFab, List.map_take]
   -- U2's grading, per field
   have hdom : ∀ i, i < ab.length → ∀ as : List V, SpineFit σ ((d.absF ψ c j).take i) as →
-      WellDenotedV V (consList as σ) ((d.absF ψ c j).getD i default) := by
+      WellDenotedTy V (consList as σ) ((d.absF ψ c j).getD i default) := by
     intro i hi as has
     rw [hget i hi]
     refine wellDenotedV_mkPisAV_dom hgr i _ (List.getElem?_eq_getElem hi) _ ?_
@@ -203,8 +205,9 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some] at h2
   have hlenF : (d.absF ψ c j).length = ab.length := by rw [hFab, List.length_map]
   refine ⟨fieldsOkB_of_prefix _ σ fun i hi as has =>
-      ⟨(hdom i (by omega) as has).1, fun hw => hbound hw i (by omega) as has⟩,
-    fieldsValid_of_prefix _ σ fun i hi as has => (hdom i (by omega) as has).2,
+      ⟨(hdom i (by omega) as has).1.1, (hdom i (by omega) as has).2,
+        fun hw => hbound hw i (by omega) as has⟩,
+    fieldsValid_of_prefix _ σ fun i hi as has => (hdom i (by omega) as has).1.2,
     fun fs hfs e he => ?_⟩
   -- the result index readings: arguments of the graded body
   have hbody := gradedV_mkPisAV_body hgr (consList fs σ)
@@ -881,7 +884,7 @@ theorem teleTake_ok {pps : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm} (n : 
       FieldsOkB 0 σ ((pps.take n).map (·.2.2)) ∧ FieldsValid σ ((pps.take n).map (·.2.2)) := by
   have hdom : ∀ σ : Nat → V, ∀ i, i < ((pps.take n).map (·.2.2)).length → ∀ as : List V,
       SpineFit σ (((pps.take n).map (·.2.2)).take i) as →
-      WellDenotedV V (consList as σ) (((pps.take n).map (·.2.2)).getD i default) := by
+      WellDenotedTy V (consList as σ) (((pps.take n).map (·.2.2)).getD i default) := by
     intro σ i hi as has
     have hi' : i < pps.length := by simp at hi; omega
     have hin : i < n := by simp at hi; omega
@@ -898,7 +901,8 @@ theorem teleTake_ok {pps : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm} (n : 
     simpa using sat_of_spineFit (Sat_nil V σ) has
   have hb' := hb.fields
   refine ⟨by rw [List.map_take]; exact fieldsBelow_take n hb', fun σ =>
-    ⟨fieldsOkB_of_prefix _ σ fun i hi as has => ⟨(hdom σ i hi as has).1, fun h => absurd rfl h⟩,
-      fieldsValid_of_prefix _ σ fun i hi as has => (hdom σ i hi as has).2⟩⟩
+    ⟨fieldsOkB_of_prefix _ σ fun i hi as has => ⟨(hdom σ i hi as has).1.1,
+        (hdom σ i hi as has).2, fun h => absurd rfl h⟩,
+      fieldsValid_of_prefix _ σ fun i hi as has => (hdom σ i hi as has).1.2⟩⟩
 
 end ConLeche.Model

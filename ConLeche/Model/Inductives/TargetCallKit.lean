@@ -277,14 +277,16 @@ theorem targetAbs_read
       | (rw [interp_pi, interp_pi, hAv]; exact piR_congr fun x _ => (hbx x).1)
     · first
       | (rw [WellDenoted_lam] at hw ⊢
-         obtain ⟨w1, w2, Bf, w3, w4⟩ := hw
-         refine ⟨hAw w1, fun x hx => (hbx x).2 (w2 x (hAv ▸ hx)), Bf, fun x hx => ?_,
-           fun hv0 x hx => w4 hv0 x (hAv ▸ hx)⟩
+         obtain ⟨w1, wt, w2, Bf, w3, wBt, w4⟩ := hw
+         refine ⟨hAw w1, hAv ▸ wt, fun x hx => (hbx x).2 (w2 x (hAv ▸ hx)), Bf, fun x hx => ?_,
+           fun x hx => wBt x (hAv ▸ hx), fun hv0 x hx => w4 hv0 x (hAv ▸ hx)⟩
          rw [← (hbx x).1]
          exact w3 x (hAv ▸ hx))
       | (rw [WellDenoted_pi] at hw ⊢
-         obtain ⟨w1, w2⟩ := hw
-         exact ⟨hAw w1, fun x hx => (hbx x).2 (w2 x (hAv ▸ hx))⟩)
+         obtain ⟨w1, wt, w2, w3⟩ := hw
+         refine ⟨hAw w1, hAv ▸ wt, fun x hx => (hbx x).2 (w2 x (hAv ▸ hx)), fun x hx => ?_⟩
+         rw [← (hbx x).1]
+         exact w3 x (hAv ▸ hx))
 
 end Abs
 

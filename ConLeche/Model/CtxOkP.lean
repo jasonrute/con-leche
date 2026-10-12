@@ -44,7 +44,7 @@ docstring). -/
   Δa.length = d ∧ ∀ l ∈ e.fvarLeaves, l.1 < d ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
     denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Δa[d - 1 - l.1]? = some Aa ∧
     ∀ σ : Nat → V, Sat V (Δa.drop (d - l.1)) σ →
-      interp V σ tl = interp V σ Aa ∧ WellDenotedV V σ tl
+      interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl
 
 namespace CtxOkP
 
@@ -63,7 +63,7 @@ theorem toCtxOk {d : Nat} {Δa : List AnnotTerm} {e : Expr} (h : CtxOkP m φ d �
     rw [e]
     exact (hk _ hs).1
   · have hs := Sat_drop hρ (d - l.1)
-    refine (WellDenotedV_liftN V (d - l.1) tl 0 ρ).mpr ?_
+    refine (WellDenotedTy_liftN (d - l.1) tl 0 ρ).mpr ?_
     have e : shiftE (d - l.1) 0 ρ = fun j => ρ (j + (d - l.1)) := by
       funext j; simp [shiftE]
     rw [e]
@@ -86,17 +86,17 @@ theorem forallE_body {d : Nat} {Δa : List AnnotTerm} {ty body : Expr} {mb : Con
 theorem openS {d : Nat} {Δa : List AnnotTerm} {ty body : Expr} {ta : AnnotTerm}
     (ht : CtxOkP m φ d Δa ty) (hb : CtxOkP m φ d Δa body)
     (hty : denoteMeta m.acval env φ d ty = some ta)
-    (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta) :
+    (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) :
     CtxOkP m φ (d + 1) (ta :: Δa) (body.instantiate1 (.fvar d ty)) := by
   have hwt : Expr.WScoped d ty := (toCtxOk ht).wScoped
   have hold : ∀ l : Nat × Expr, (l.1 < d ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
       denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Δa[d - 1 - l.1]? = some Aa ∧
       ∀ σ : Nat → V, Sat V (Δa.drop (d - l.1)) σ →
-        interp V σ tl = interp V σ Aa ∧ WellDenotedV V σ tl) →
+        interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl) →
       (l.1 < d + 1 ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
       denoteMeta m.acval env φ l.1 l.2 = some tl ∧ (ta :: Δa)[d + 1 - 1 - l.1]? = some Aa ∧
       ∀ σ : Nat → V, Sat V ((ta :: Δa).drop (d + 1 - l.1)) σ →
-        interp V σ tl = interp V σ Aa ∧ WellDenotedV V σ tl) := by
+        interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl) := by
     rintro l ⟨hlt, hws, tl, Aa, htl, hA, hk⟩
     refine ⟨by omega, hws, tl, Aa, htl, ?_, ?_⟩
     · rw [show d + 1 - 1 - l.1 = (d - 1 - l.1) + 1 by omega]; simpa using hA
@@ -132,10 +132,10 @@ theorem extend {h g : Nat} {Δ Ts : List AnnotTerm} {e : Expr} (hTs : Ts.length 
       (l.1 < h ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
         denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Δ[h - 1 - l.1]? = some Aa ∧
         ∀ σ : Nat → V, Sat V (Δ.drop (h - l.1)) σ →
-          interp V σ tl = interp V σ Aa ∧ WellDenotedV V σ tl) ∨
+          interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl) ∨
       (∃ p, p < g ∧ l.1 = h + p ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl,
         denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Ts[g - 1 - p]? = some tl ∧
-        ∀ σ : Nat → V, Sat V ((Ts ++ Δ).drop (g - p)) σ → WellDenotedV V σ tl)) :
+        ∀ σ : Nat → V, Sat V ((Ts ++ Δ).drop (g - p)) σ → WellDenotedTy V σ tl)) :
     CtxOkP m φ (h + g) (Ts ++ Δ) e := by
   refine ⟨by rw [List.length_append, hTs, hΔ]; omega, fun l hl => ?_⟩
   rcases hleaf l hl with ⟨hlt, hws, tl, Aa, htl, hA, hk⟩ | ⟨p, hp, hl1, hws, tl, htl, hT, hk⟩
@@ -172,7 +172,7 @@ theorem ctxOkP_of_openers {k : Nat} {fvs : List Expr} {Aa : Nat → AnnotTerm}
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fvs)
     (hltE : ∀ l ∈ e.fvarLeaves, l.1 < n)
     (hent : ∀ i, i < n → Δa[k - 1 - i]? = some (Aa i))
-    (hokA : ∀ i, i < n → ∀ σ : Nat → V, Sat V (Δa.drop (k - i)) σ → WellDenotedV V σ (Aa i)) :
+    (hokA : ∀ i, i < n → ∀ σ : Nat → V, Sat V (Δa.drop (k - i)) σ → WellDenotedTy V σ (Aa i)) :
     CtxOkP m φ k Δa e := by
   refine ⟨hΔlen, fun l hl => ?_⟩
   obtain ⟨pos, hpos⟩ := List.getElem?_of_mem (hleaf l hl)
