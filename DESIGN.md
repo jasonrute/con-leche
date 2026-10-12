@@ -101077,3 +101077,75 @@ The λ's content is in its domain's `IsTy` and the kind-`0` component.
 - `whitepaper/links-gate.sh` is deferred. It now differs at the
   `WellDenoted`, `Motive`, `InferSound`, `EnvModel`, `FixKit`, `NatEqs`
   and `BasisQuot` citations, for W1/W2.
+
+## TASK #342 — L6-LEAVES: the spelled leaves' type and regime facts (2026-10-12, agent/342-l6-leaves)
+
+Lane L6, stage S2 (`_tmp/342v2-design.md` §3.2–3.3, §11.5), under the
+annotated reading.  The checker, `Denotes.lean`, `MainTheorem`,
+`Challenge` and `Axioms.lean` are unchanged; the checker binary is not
+rebuilt by this lane.
+
+**Scope found.** L5 had already done most of what the S2 row gave L6:
+every spelled λ and Π in `Semantics/Tower/*`, `Model/Basis*` and the
+block leaves has the typed `WellDenoted` (domain `IsTy`, λ bodies bounded
+by a family of types, Π fibres `IsTy`), and every carrier type that
+enters a context is already `WellDenotedTy` or sits in a universe
+(`IsTy_of_mem_univ`). L6 adds the remainder:
+
+- **Regime facts for the carrier sets** (unconditional, both readings):
+  `Fib_sigmaSet`/`IsTy_sigmaSet`, `strict_sing_empty`,
+  `Fib_unitSetAt`/`IsTy_unitSetAt` (`Derive/Sigma`),
+  `Fib_towerSet`/`IsTy_towerSet` (`TupleTower`),
+  `Fib_ndTowerSet`/`IsTy_ndTowerSet`, `strict_lfpFamSpace` (`Value`),
+  `strict_famSpaceIn`/`strict_famSpace` (`LfpFam`),
+  `Fib_idxSet`/`IsTy_idxSet` (`FixTower`), `strict_famsSpaceB`
+  (`BlockTower`), `IsTy_sigChainV` (`BlockRecTower`).  `Fib (decide
+  (w = 0)) X` reads: a truth value at `0`, strict above; with
+  `ne_pt_of_mem_strict` it says a positive-level carrier's members are
+  never the point, the fact S4's `lamV_mem`/`lamV_eq_graph` premises
+  come from.
+- **The one graph-reading leaf.**  Of the leaves only the block operator
+  needs a spelled abstraction AS a graph (the least fixed point lives in
+  `famSpace`, a space of graphs).  `blockPhiG` is now a raw `graph`;
+  the spelled operator meets it in `tupleOpV_blockFunVG`, which takes
+  the premise `hne : lamR (w+1) (idxSet …) (blockStepG …) ≠ pt` and
+  closes by `lamR_eq_graph_of_ne_pt` (`SetModel/Ops`, the annotated
+  form of `lamV_eq_graph`).  The caller (`blockBodyG_app`) discharges it
+  by `lamR_ne_pt`.  `app_blockPhi` is `app_graph`; `blockPhi_maps_of` is
+  `graph_mem_famSpace` with no rewrite.
+- **The walk's type fact.**  `TowerWalkA`'s leaf carries `IsTy` of the
+  conclusion's reading (from the kit's bound in `famCandG_mem`), the
+  innermost fibre fact `lamV_mem` asks for; the outer fibres are Π
+  readings (`IsTy_piR`).
+
+**What S4 owes here (L15/L16/L17).**
+- β (`app_lamR_pos`, ~50 sites in the leaves) becomes the premise-free
+  `app_lamV`; membership (`lamR_mem`, `lamR_mem_zero_agree`) becomes
+  `lamV_mem` with the fibres' `IsTy`, which every spelled λ's
+  `WellDenoted` and `TowerWalkA` already carry.  Mechanical.
+- `tupleOpV_blockFunVG`: the caller must supply `lamV … ≠ pt`
+  (`lamV_ne_pt_of` at an inhabited index tuple, the body `blockStepG …`
+  a type, `IsTy.ne_pt`).  Over an EMPTY index set (`Fin 0`-like
+  families) the spelled family is the point and the model's operator the
+  empty graph.  `lfpTuple_congr` asks for equality of the operator
+  values, but `lfpTuple` reads its operator only through `TupleLe`, i.e.
+  through `app (Φ X m) i` at `i ∈ Is m` (`IsClosedTuple`, `FamLe`).  So
+  the congruence can be weakened to equality of applications on the
+  index set, which holds vacuously at an empty one and by `app_lamV` at
+  an inhabited one; then `tupleOpV_blockFunVG` needs no premise at all.
+  The alternative is a `tupleOpV` that re-graphs its component over the
+  index set (`SetModel/Value`, L15).
+- `lfpFamSpace`/`natMotiveSpace`/`relSpace` are `piR (w+1) …`; under
+  `piV` they are `{pt}` over an empty domain while `famSpace` stays
+  `{∅}`; `famSpace_subset_lfpFamSpace` then fails at an empty index set
+  and needs the same treatment.
+- `holeFam` (`Model/Annot/BlockLfp`) and `lamTowerA` are model-side
+  λ-towers written with `lamR`; under S4 they become `lamV` and their
+  spelled counterparts (`interp_mkLamsAV_pos`, `lamTowerA_fold`) need
+  no premise.
+- `Model/EqTower`'s forcing lemmas (`bit_forced_*`) are about the
+  annotation and go with it.
+
+**Gates.** `lake build`, `lake test`: no warnings. No `sorry`, no new
+axiom. The checker binary is not rebuilt (no `Kernel`/`Driver` change),
+so the arena and e2e verdicts are port-342's.
