@@ -658,7 +658,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     -, hres, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, -, -, -, hlbt, hitf, type', stype, u, hann', htp', -, hst,
     hens, rfl⟩ := ConLeche.checkConstantVal_inv hccv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann' hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   simp only at htf' hbt' htp' hst hens hopC hresid
   have hw : Expr.WScoped 0 type' := Expr.WScoped.of_not_hasFvar htf'
   have hL : Expr.LeavesBounded type' := Expr.LeavesBounded.of_not_hasFvar htf'
@@ -912,7 +912,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     -, -, -, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, -, -, -, hlbt, hitf, type', -, -, hann', -, -, -, -, rfl⟩ :=
     ConLeche.checkConstantVal_inv hccv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann' hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   simp only at htf' hbt' hopC hsorts
   have hlenP : fvsP.length = nP := openPisAtFvars_length _ hopC
   have hopAll := openPisAtFvars_add nP hopC (by rw [Nat.zero_add]; exact hopX)
@@ -1402,7 +1402,7 @@ theorem stageCtorGen {T : Name}
   obtain ⟨⟨_, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, hnres, hpshape, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
     ConLeche.checkConstantVal_inv hccv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann' hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   have hCname : cvCa.name = cvC.name := by rw [hty]
   have hcb : ConstsBound env cvCa.type := constsBound_of_constsResolve _ htr
   have hTC : T ≠ cvCa.name := by

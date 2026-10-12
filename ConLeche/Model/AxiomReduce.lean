@@ -325,7 +325,7 @@ theorem axiomOfReduce (hμ : μ.verifiedChecks = true)
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv'
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   obtain ⟨stype, usort, hst, hens⟩ := hrunT
