@@ -147,7 +147,7 @@ the model's hole frame of every tuple of the tuple space, and the
 members' index telescopes are valid. -/
 theorem holeChains_valid {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ ρp)
     (hIV : ∀ m, m < D.k → FieldsValid ρp (D.ids m ψ))
-    (hF : ∀ X : Nat → V, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N →
+    (hF : ∀ X : Nat → V, InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N →
       ∀ j, j < D.nctors c →
       FieldsValid (D.frame ψ ρp X) (D.fields ψ c j) ∧
       ∀ fs, SpineFit (D.frame ψ ρp X) (D.fields ψ c j) fs →
@@ -155,8 +155,8 @@ theorem holeChains_valid {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk
     {Y : V} (hY : Y ∈ˢ famsSpaceB D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ))
     (t : V) {m : Nat} (hm : m < D.N) :
     SumFieldsValid (cons t (cons Y ρp)) (D.holeChains ψ m) := by
-  have hX : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) (fun c => SetTheory.Tower.projS c Y) :=
-    fun c hc => by rw [← lfpFamSpace_eq']; exact projS_mem_famsSpaceB hc hY
+  have hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) (fun c => SetTheory.Tower.projS c Y) :=
+    fun c hc => by rw [← lfpFamSpace_eq_univ]; exact projS_mem_famsSpaceB hc hY
   have hag : D.holeTmFrame ψ ρp t Y = D.frame ψ ρp fun c => SetTheory.Tower.projS c Y :=
     holeTmFrame_frame (fun _ _ => rfl) hok
   have hH : ∀ m', m' < D.k → AnnotValid V (cons t (cons Y ρp)) (D.holeTm ψ m') := fun m' hm' =>

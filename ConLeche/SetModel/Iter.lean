@@ -49,13 +49,13 @@ theorem mem_natUnion {f : Nat → V} {x : V} : x ∈ˢ natUnion f ↔ ∃ n, x �
     exact ⟨natFibre f (vnat n), mem_image.mpr ⟨vnat n, vnat_mem_omega n, rfl⟩,
       by rw [natFibre_vnat]; exact hn⟩
 
-/-- **Formation** (graph regime): a countable union of members of a
-positive level is a member. -/
-theorem natUnion_mem_univ_pos {w : Nat} (hw : w ≠ 0) {f : Nat → V}
-    (h : ∀ n, f n ∈ˢ (univ w : V)) : natUnion f ∈ˢ (univ w : V) := by
+/-- A countable union of members of a positive axiomatic level is a
+member (a size bound). -/
+theorem natUnion_mem_tg_pos {w : Nat} (hw : w ≠ 0) {f : Nat → V}
+    (h : ∀ n, f n ∈ˢ (tg w : V)) : natUnion f ∈ˢ (tg w : V) := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   unfold natUnion
-  refine (univ_isTGUniverse (Nat.succ_ne_zero w')).famUnion_mem (omega_mem_univ_succ w') ?_
+  refine (tg_isTGUniverse (Nat.succ_ne_zero w')).famUnion_mem (omega_mem_tg_succ w') ?_
   intro k hk
   obtain ⟨n, rfl, hfib⟩ := natFibre_of_mem f hk
   rw [hfib]

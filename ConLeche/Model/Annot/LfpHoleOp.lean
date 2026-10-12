@@ -235,14 +235,14 @@ tuple space. -/
 theorem holeChains_ok {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ ρp) (hkN : D.k ≤ D.N)
     (hIall : BlockIdxOk (V := V) D.N (fun c => D.u c ψ) ρp (fun c => D.ids c ψ))
     (hres : ∀ c, c < D.N → ∀ j, j < D.nctors c → (D.resIdx ψ c j).length = (D.ids c ψ).length)
-    (hF : ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
+    (hF : ∀ X, InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
       FieldsOkB (D.w ψ) (D.frame ψ ρp X) (D.fields ψ c j) ∧
       ∀ fs, SpineFit (D.frame ψ ρp X) (D.fields ψ c j) fs →
         ∀ e ∈ D.resIdx ψ c j, WellDenoted V (consList fs (D.frame ψ ρp X)) e) :
     BlockChainsOkG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ) := by
   intro Y hY m hm t ht Fs hFs
-  have hX : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) (fun c => projS c Y) := fun c hc => by
-    rw [← lfpFamSpace_eq']; exact projS_mem_famsSpaceB hc hY
+  have hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) (fun c => projS c Y) := fun c hc => by
+    rw [← lfpFamSpace_eq_univ]; exact projS_mem_famsSpaceB hc hY
   have hag : substE V (holeTau D.k (D.holeTm ψ)) 0 (cons t (cons Y ρp))
       = D.frame ψ ρp fun c => projS c Y :=
     holeTmFrame_frame (fun _ _ => rfl) hok

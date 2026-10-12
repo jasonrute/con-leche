@@ -50,11 +50,13 @@ asserted — see Core.lean's module doc.
   `tg (n+1) = univChain (n+2)` (shifted so `univChain 1`, the first
   chain member known inductive, is a member of every positive level);
   cumulativity, `tg_mem_tg`, `omega ∈ tg (n+1)`, closure transport.
-- [x] `Derive/TypeU.lean` — the restricted universes (task #342):
-  `Strict`, `IsTy`, `Fib`, `typeU` (truth values at `0`, the strict
-  members of `tg n` above) and their laws; `pt ∉ ω`.
-- [x] `Derive/Univ.lean` — `univ`, what `Sort n` means; for now an
-  alias of `tg` with its corollaries (task #342 flips it to `typeU`).
+- [x] `Derive/TypeU.lean` — strict sets and types (task #342):
+  `Strict`, `IsTy`, `Fib`; the strict universe `strictU` (truth values
+  at `0`, the strict members of `tg n` above: the least fixed points'
+  fibre space) and the cumulative universe of types `tyU` (the members
+  of `tg n` that are types), with their laws; `pt ∉ ω`.
+- [x] `Derive/Univ.lean` — `univ`, what `Sort n` means: `tyU`, with its
+  corollaries (cumulativity, the size bounds through `tg`).
 - [x] `Derive/Sigma.lean` — `sigmaSet` (level-0 truth value /
   `sigmaPairs`), `spair := kpair`, classical `sfst`/`ssnd` with `pt`
   defaults; all interface sigma laws.

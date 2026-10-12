@@ -77,7 +77,7 @@ theorem frame_param {ψ : Name → Nat} {ρp X : Nat → V} (i : Nat) :
 parameter frame as the Π-tower over the member's indices ending in the
 block's sort. -/
 theorem holeVal_mem (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
-    (hX : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X) {t : Nat} (ht : t < D.k)
+    (hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) X) {t : Nat} (ht : t < D.k)
     {ab : List (Nat × Nat × AnnotTerm)} (hab : ab.map (·.2.2) = D.ids t ψ)
     (hbits : ∀ d ∈ ab, d.2.1 ≠ 0) :
     D.holeVal ψ ρp X t ∈ˢ interp V ρp (mkPisAV ab (.sort (D.w ψ))) := by

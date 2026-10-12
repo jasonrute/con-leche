@@ -6,23 +6,25 @@ public import ConLeche.SetTheory.Derive.Tg
 @[expose] public section
 
 /-!
-# The restricted universes (task #342)
+# Strict sets, types, and the two universes over `tg` (task #342)
 
-What a sort denotes, in the target design of task #342 (the whitepaper
-fragment's `typeU`, `whitepaper/Fragment/Lib.lean` on `agent/340-brave`):
-`Sort 0` the truth values, `Sort (n+1)` the members of the axiomatic
-level `tg (n+1)` that are not the proof point and do not contain it
-(**strict** sets).  A **type** is a truth value or a strict set; its
-members are all the point (a truth value) or none of them (a strict
-set).  That dichotomy is what makes β sound at every binder without a
-certificate: a member of a type of positive sort is never the point
-(`ne_pt_of_mem_strict`).
+A **strict** set is neither the proof point nor contains it; a **type**
+is a truth value or a strict set.  Its members are all the point (a
+truth value) or none of them (a strict set): a member of a strict set
+is never the point (`ne_pt_of_mem_strict`).
 
-The chain `tg` (`Derive/Tg.lean`) sizes things; `typeU` is what the
-typing will read.  Nothing reads `typeU` yet: stage 1b flips `univ`
-(`Derive/Univ.lean`) to it (ruling R2).  The zero regime is stated
-with `univZero`, which is `tg 0`, `typeU 0` and `univ 0` alike, before
-and after the flip.
+Two universes are carved out of the axiomatic chain `tg`
+(`Derive/Tg.lean`), equal at `0` (the truth values, `univZero`):
+* **`tyU n`**, the universe of types (task #344's `typeU`): the members
+  of `tg n` that are types.  It is cumulative (`tyU_mono`): a truth value
+  is a type at every level.  This is what a sort denotes: `univ := tyU`
+  (`Derive/Univ.lean`, ruling R2).
+* **`strictU n`**, the strict universe (task #340's `typeU`): above `0`
+  the strict members of `tg n`.  It is not cumulative from `0`
+  (`{pt} ∉ strictU 1`), but it is closed under the unions and the `∅`
+  adjunction the least fixed points need (`Derive/LfpFam.lean`), which
+  `tyU` is not (`{pt} ∪ ω` is no type).  It is the fibre space of the
+  inductive families and tuples.
 
 Also here, the last point law: `pt ∉ ω` (the others are in
 `Derive/Pt.lean` and `Derive/Graphs.lean`).
@@ -67,27 +69,28 @@ def Fib : Bool → V → Prop
 @[simp] theorem Fib_false {X : V} : Fib false X ↔ Strict X := Iff.rfl
 
 open Classical in
-/-- **What `Sort n` will denote**: the truth values at `0`, the strict
-members of the axiomatic level `tg n` above. -/
-noncomputable def typeU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) Strict
+/-- **The strict universe**: the truth values at `0`, the strict
+members of the axiomatic level `tg n` above (the fibre space of the
+least fixed points). -/
+noncomputable def strictU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) Strict
 
-theorem typeU_zero : (typeU 0 : V) = univZero := by
-  unfold typeU; rw [ite_eq_left rfl, tg_zero]
+theorem strictU_zero : (strictU 0 : V) = univZero := by
+  unfold strictU; rw [ite_eq_left rfl, tg_zero]
 
-theorem mem_typeU_zero {T : V} : T ∈ˢ (typeU 0 : V) ↔ T ∈ˢ univZero := by
-  rw [typeU_zero]
+theorem mem_strictU_zero {T : V} : T ∈ˢ (strictU 0 : V) ↔ T ∈ˢ univZero := by
+  rw [strictU_zero]
 
-theorem mem_typeU_pos {n : Nat} (hn : n ≠ 0) {T : V} :
-    T ∈ˢ (typeU n : V) ↔ T ∈ˢ tg n ∧ Strict T := by
-  unfold typeU; rw [ite_eq_right hn]; exact mem_sep
+theorem mem_strictU_pos {n : Nat} (hn : n ≠ 0) {T : V} :
+    T ∈ˢ (strictU n : V) ↔ T ∈ˢ tg n ∧ Strict T := by
+  unfold strictU; rw [ite_eq_right hn]; exact mem_sep
 
-theorem typeU_subset_tg (n : Nat) : (typeU n : V) ⊆ˢ tg n := by
+theorem strictU_subset_tg (n : Nat) : (strictU n : V) ⊆ˢ tg n := by
   by_cases hn : n = 0
-  · subst hn; intro T hT; rw [tg_zero]; exact mem_typeU_zero.mp hT
-  · intro T hT; exact ((mem_typeU_pos hn).mp hT).1
+  · subst hn; intro T hT; rw [tg_zero]; exact mem_strictU_zero.mp hT
+  · intro T hT; exact ((mem_strictU_pos hn).mp hT).1
 
-theorem mem_tg_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ (typeU n : V)) : T ∈ˢ tg n :=
-  typeU_subset_tg n T h
+theorem mem_tg_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) : T ∈ˢ tg n :=
+  strictU_subset_tg n T h
 
 theorem ne_pt_of_mem_univZero {T : V} (h : T ∈ˢ (univZero : V)) : T ≠ pt := by
   rintro rfl; exact pt_not_mem_univZero h
@@ -106,26 +109,26 @@ theorem IsTy_of_Fib {p : Bool} {X : V} (h : Fib p X) : IsTy X := by
 
 theorem Fib.ne_pt {p : Bool} {X : V} (h : Fib p X) : X ≠ pt := (IsTy_of_Fib h).ne_pt
 
-theorem IsTy_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ (typeU n : V)) : IsTy T := by
+theorem IsTy_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) : IsTy T := by
   by_cases hn : n = 0
-  · subst hn; exact Or.inl (mem_typeU_zero.mp h)
-  · exact Or.inr ((mem_typeU_pos hn).mp h).2
+  · subst hn; exact Or.inl (mem_strictU_zero.mp h)
+  · exact Or.inr ((mem_strictU_pos hn).mp h).2
 
-/-- A member of `typeU n` is in the regime of `n`'s zero-ness. -/
-theorem Fib_of_mem_typeU {n : Nat} {T : V} (h : T ∈ˢ (typeU n : V)) :
+/-- A member of `strictU n` is in the regime of `n`'s zero-ness. -/
+theorem Fib_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) :
     Fib (decide (n = 0)) T := by
   by_cases hn : n = 0
-  · subst hn; exact mem_typeU_zero.mp h
-  · simp only [hn, decide_false]; exact ((mem_typeU_pos hn).mp h).2
+  · subst hn; exact mem_strictU_zero.mp h
+  · simp only [hn, decide_false]; exact ((mem_strictU_pos hn).mp h).2
 
 /-- A truth value or strict member of `tg n` in the right regime is a
-member of `typeU n`. -/
-theorem mem_typeU_of {n : Nat} {T : V} (hT : T ∈ˢ tg n) (hf : Fib (decide (n = 0)) T) :
-    T ∈ˢ (typeU n : V) := by
+member of `strictU n`. -/
+theorem mem_strictU_of {n : Nat} {T : V} (hT : T ∈ˢ tg n) (hf : Fib (decide (n = 0)) T) :
+    T ∈ˢ (strictU n : V) := by
   by_cases hn : n = 0
-  · subst hn; exact mem_typeU_zero.mpr hf
+  · subst hn; exact mem_strictU_zero.mpr hf
   · simp only [hn, decide_false, Fib_false] at hf
-    exact (mem_typeU_pos hn).mpr ⟨hT, hf⟩
+    exact (mem_strictU_pos hn).mpr ⟨hT, hf⟩
 
 /-- **(P)**: a member of a strict set is not the point. -/
 theorem ne_pt_of_mem_strict {T x : V} (hT : Strict T) (hx : x ∈ˢ T) : x ≠ pt := by
@@ -194,46 +197,126 @@ theorem univZero_mem_tg_succ (n : Nat) : (univZero : V) ∈ˢ tg (n + 1) := by
   rw [tg_zero] at h
   exact tg_mono (Nat.succ_le_succ (Nat.zero_le n)) _ h
 
-/-- `Sort n` is strict. -/
-theorem strict_typeU (n : Nat) : Strict (typeU n : V) := by
+/-- `strictU n` is strict. -/
+theorem strict_strictU (n : Nat) : Strict (strictU n : V) := by
   by_cases hn : n = 0
-  · subst hn; rw [typeU_zero]; exact strict_univZero
-  · refine ⟨?_, fun h => ((mem_typeU_pos hn).mp h).2.1 rfl⟩
-    -- `typeU n` has two distinct members, the point at most one
+  · subst hn; rw [strictU_zero]; exact strict_univZero
+  · refine ⟨?_, fun h => ((mem_strictU_pos hn).mp h).2.1 rfl⟩
+    -- `strictU n` has two distinct members, the point at most one
     obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
-    have h1 : (empty : V) ∈ˢ typeU (m + 1) :=
-      (mem_typeU_pos hn).mpr ⟨empty_mem_tg _, strict_empty⟩
-    have h2 : (univZero : V) ∈ˢ typeU (m + 1) :=
-      (mem_typeU_pos hn).mpr ⟨univZero_mem_tg_succ m, strict_univZero⟩
+    have h1 : (empty : V) ∈ˢ strictU (m + 1) :=
+      (mem_strictU_pos hn).mpr ⟨empty_mem_tg _, strict_empty⟩
+    have h2 : (univZero : V) ∈ˢ strictU (m + 1) :=
+      (mem_strictU_pos hn).mpr ⟨univZero_mem_tg_succ m, strict_univZero⟩
     refine ne_pt_of_two h1 h2 fun h => ?_
     have h3 : (unitSet : V) ∈ˢ univZero := mem_univZero.mpr (Subset.refl _)
     rw [← h] at h3
     exact not_mem_empty _ h3
 
-theorem IsTy_typeU (n : Nat) : IsTy (typeU n : V) := Or.inr (strict_typeU n)
+theorem IsTy_strictU (n : Nat) : IsTy (strictU n : V) := Or.inr (strict_strictU n)
 
-theorem typeU_mem_tg_succ (n : Nat) : (typeU n : V) ∈ˢ tg (n + 1) := by
+theorem strictU_mem_tg_succ (n : Nat) : (strictU n : V) ∈ˢ tg (n + 1) := by
   by_cases hn : n = 0
-  · subst hn; rw [typeU_zero]; exact univZero_mem_tg_succ 0
-  · unfold typeU; rw [ite_eq_right hn]
+  · subst hn; rw [strictU_zero]; exact univZero_mem_tg_succ 0
+  · unfold strictU; rw [ite_eq_right hn]
+    exact (tg_isTGUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
+
+theorem strictU_mem_strictU_succ (n : Nat) : (strictU n : V) ∈ˢ strictU (n + 1) :=
+  (mem_strictU_pos (Nat.succ_ne_zero n)).mpr ⟨strictU_mem_tg_succ n, strict_strictU n⟩
+
+/-- `ω` is a type of every positive sort. -/
+theorem omega_mem_strictU_succ (n : Nat) : (omega : V) ∈ˢ strictU (n + 1) :=
+  (mem_strictU_pos (Nat.succ_ne_zero n)).mpr ⟨omega_mem_tg_succ n, strict_omega⟩
+
+/-- The empty type is a type of every sort. -/
+theorem empty_mem_strictU (n : Nat) : (empty : V) ∈ˢ strictU n := by
+  by_cases hn : n = 0
+  · subst hn; exact mem_strictU_zero.mpr (mem_univZero.mpr (empty_subset _))
+  · exact (mem_strictU_pos hn).mpr ⟨empty_mem_tg n, strict_empty⟩
+
+theorem unitSet_mem_strictU_zero : (unitSet : V) ∈ˢ strictU 0 :=
+  mem_strictU_zero.mpr (mem_univZero.mpr (Subset.refl _))
+
+/-! ## The universe of types (task #342 stage S1, task #344's `typeU`) -/
+
+open Classical in
+/-- **The universe of types at level `n`**: the truth values at `0`,
+above the members of the axiomatic level `tg n` that are types. -/
+noncomputable def tyU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) IsTy
+
+theorem tyU_zero : (tyU 0 : V) = univZero := by
+  unfold tyU; rw [ite_eq_left rfl, tg_zero]
+
+/-- Membership, uniformly in the level: at `0` every truth value is a
+type, so `tyU 0` is `sep (tg 0) IsTy` too. -/
+theorem mem_tyU {n : Nat} {T : V} : T ∈ˢ (tyU n : V) ↔ T ∈ˢ tg n ∧ IsTy T := by
+  by_cases hn : n = 0
+  · subst hn; rw [tyU_zero, tg_zero]
+    exact ⟨fun h => ⟨h, Or.inl h⟩, fun h => h.1⟩
+  · unfold tyU; rw [ite_eq_right hn]; exact mem_sep
+
+theorem mem_tg_of_mem_tyU {n : Nat} {T : V} (h : T ∈ˢ (tyU n : V)) : T ∈ˢ tg n :=
+  (mem_tyU.mp h).1
+
+theorem IsTy_of_mem_tyU {n : Nat} {T : V} (h : T ∈ˢ (tyU n : V)) : IsTy T :=
+  (mem_tyU.mp h).2
+
+/-- **Cumulativity.** -/
+theorem tyU_mono {m n : Nat} (h : m ≤ n) : (tyU m : V) ⊆ˢ tyU n := fun _ hT =>
+  mem_tyU.mpr ⟨tg_mono h _ (mem_tg_of_mem_tyU hT), IsTy_of_mem_tyU hT⟩
+
+/-- A strict type is a type. -/
+theorem strictU_subset_tyU (n : Nat) : (strictU n : V) ⊆ˢ tyU n := fun _ hT =>
+  mem_tyU.mpr ⟨mem_tg_of_mem_strictU hT, IsTy_of_mem_strictU hT⟩
+
+/-- A member of `tyU` that is strict is a member of `strictU`. -/
+theorem mem_strictU_of_strict {n : Nat} {T : V} (hT : T ∈ˢ (tyU n : V)) (hs : Strict T) :
+    T ∈ˢ (strictU n : V) := by
+  by_cases hn : n = 0
+  · subst hn; rw [strictU_zero]; rw [tyU_zero] at hT; exact hT
+  · exact (mem_strictU_pos hn).mpr ⟨mem_tg_of_mem_tyU hT, hs⟩
+
+/-- A member of `tyU` at a positive level that is not a truth value is
+strict. -/
+theorem strict_of_mem_tyU {n : Nat} {T : V} (hT : T ∈ˢ (tyU n : V)) (h0 : ¬ T ∈ˢ univZero) :
+    Strict T := (IsTy_of_mem_tyU hT).resolve_left h0
+
+theorem mem_tyU_of_IsTy {n : Nat} {T : V} (hT : T ∈ˢ tg n) (h : IsTy T) : T ∈ˢ (tyU n : V) :=
+  mem_tyU.mpr ⟨hT, h⟩
+
+theorem mem_tyU_of_strict {n : Nat} {T : V} (hT : T ∈ˢ tg n) (h : Strict T) :
+    T ∈ˢ (tyU n : V) := mem_tyU_of_IsTy hT (IsTy_of_strict h)
+
+/-- A truth value is a type of every level. -/
+theorem mem_tyU_of_mem_univZero {n : Nat} {T : V} (hT : T ∈ˢ (univZero : V)) :
+    T ∈ˢ (tyU n : V) :=
+  tyU_mono (Nat.zero_le n) _ (by rw [tyU_zero]; exact hT)
+
+theorem strict_tyU (n : Nat) : Strict (tyU n : V) := by
+  by_cases hn : n = 0
+  · subst hn; rw [tyU_zero]; exact strict_univZero
+  · refine ⟨?_, fun h => (IsTy_of_mem_tyU h).ne_pt rfl⟩
+    refine ne_pt_of_two (mem_tyU_of_strict (empty_mem_tg n) strict_empty)
+      (mem_tyU_of_strict (V := V) (n := n) ?_ strict_univZero) ?_
+    · obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
+      exact univZero_mem_tg_succ m
+    · intro h
+      have h3 : (unitSet : V) ∈ˢ univZero := mem_univZero.mpr (Subset.refl _)
+      rw [← h] at h3
+      exact not_mem_empty _ h3
+
+theorem tyU_mem_tg_succ (n : Nat) : (tyU n : V) ∈ˢ tg (n + 1) := by
+  by_cases hn : n = 0
+  · subst hn; rw [tyU_zero]; exact univZero_mem_tg_succ 0
+  · unfold tyU; rw [ite_eq_right hn]
     exact (tg_isTGUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
 
 /-- `Sort n : Sort (n+1)`. -/
-theorem typeU_mem_typeU_succ (n : Nat) : (typeU n : V) ∈ˢ typeU (n + 1) :=
-  (mem_typeU_pos (Nat.succ_ne_zero n)).mpr ⟨typeU_mem_tg_succ n, strict_typeU n⟩
+theorem tyU_mem_tyU_succ (n : Nat) : (tyU n : V) ∈ˢ tyU (n + 1) :=
+  mem_tyU_of_strict (tyU_mem_tg_succ n) (strict_tyU n)
 
-/-- `ω` is a type of every positive sort. -/
-theorem omega_mem_typeU_succ (n : Nat) : (omega : V) ∈ˢ typeU (n + 1) :=
-  (mem_typeU_pos (Nat.succ_ne_zero n)).mpr ⟨omega_mem_tg_succ n, strict_omega⟩
-
-/-- The empty type is a type of every sort. -/
-theorem empty_mem_typeU (n : Nat) : (empty : V) ∈ˢ typeU n := by
-  by_cases hn : n = 0
-  · subst hn; exact mem_typeU_zero.mpr (mem_univZero.mpr (empty_subset _))
-  · exact (mem_typeU_pos hn).mpr ⟨empty_mem_tg n, strict_empty⟩
-
-/- `typeU` is the opaque operator stage 1b's `univ` will be; its laws
-are the lemmas above. -/
-attribute [irreducible] typeU
+/- `strictU` and `tyU` are opaque operators; their laws are the lemmas
+above. -/
+attribute [irreducible] strictU tyU
 
 end ConLeche.SetTheory

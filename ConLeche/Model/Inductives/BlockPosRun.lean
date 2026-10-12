@@ -604,7 +604,7 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
       Rules.LeavesSub tyN crest ∧ ConstsBound env tyN ∧
       (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-        ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+        ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
           Sat V (d.holeCtx ψ).reverse (d.toLfp.frame ψ ρp X)) := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
@@ -636,7 +636,7 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   obtain ⟨-, -, ta, -, hgr, -⟩ := hIS hfr hC hca₀
   have hkN : d.toLfp.k ≤ d.toLfp.N := Nat.le_add_right _ _
   have hsatFrame : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-      ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+      ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       Sat V (d.holeCtx ψ).reverse (d.toLfp.frame ψ ρp X) := by
     intro ρp hs X hX
     simp only [BlockData.holeCtx, List.reverse_append]
@@ -702,7 +702,7 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
         (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
       (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-        ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+        ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
           Sat V (d.holeCtx ψ).reverse (d.toLfp.frame ψ ρp X)) := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP

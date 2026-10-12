@@ -62,7 +62,7 @@ theorem teleSmall_mkPisAV {w : Nat} (hw : w ≠ 0) :
     · have hok0 := hok ρ ρ₀ hR
       simp only [List.map_cons] at hok0
       rw [h0 ρ (hdom ρ ρ₀ hR).1] at ha
-      exact fun _ => (univ_isTGUniverse hw).transitive hok0.1 ha
+      exact fun _ => (tg_isTGUniverse hw).transitive (mem_tg_of_mem_univ hok0.1) ha
     · refine teleSmall_mkPisAV hw abD abN B (x.2.2 :: Δ) (R.underBoth x.2.2) hrest
         (underBoth_dom hdom) ?_
       rintro _ _ ⟨a, ρ, ρ₀, rfl, rfl, hR, ha, -⟩
@@ -151,7 +151,7 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
         · intro hw
           have hok0 := hok ρ ρ₀ hR hw
           simp only [List.map_cons] at hok0
-          exact hok0.1
+          exact mem_tg_of_mem_univ hok0.1
         · rw [← hUE]
           exact TeleAccP.congr _ (l + 1) (shiftQ Q) _
             (fun l' hl' _ => by simp only [ite_eq_right (show l' ≠ l by omega)]) htele'

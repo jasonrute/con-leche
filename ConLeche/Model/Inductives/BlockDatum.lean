@@ -893,7 +893,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       AccW (dZ.w ψ) dZ.k (blockIdx (fun c => dZ.uM c ψ) ρp (fun c => dZ.IdsM c ψ))
         (blockPhiG dZ.k (dZ.w ψ) ρp (fun c => dZ.uM c ψ) (fun c => dZ.IdsM c ψ)
           (dZ.toLfp.holeChains ψ)) ∧
-      ∃ A, (dZ.w ψ ≠ 0 → A ∈ˢ (univ (dZ.w ψ) : V)) ∧ dZ.toLfp.FitAcc ψ ρp A := by
+      ∃ A, (dZ.w ψ ≠ 0 → A ∈ˢ (tg (dZ.w ψ) : V)) ∧ dZ.toLfp.FitAcc ψ ρp A := by
     intro ψ ρp hs
     have hIdxZ : ∀ c, c < dZ.N → IdxOk (dZ.uM c ψ) ρp (dZ.IdsM c ψ) := fun c hc => by
       have hck : c < q.k := by have : c < q.k + 0 := hc; omega
@@ -917,7 +917,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     have hGw : ∀ c, c < dZ.N → ∀ j, j < (dZ.ctorsM c).length →
         ∀ X, InTupleSpace (dZ.toLfp.w ψ) dZ.toLfp.N (dZ.toLfp.idx ψ ρp) X →
         FieldsOkB (dZ.w ψ) (dZ.toLfp.frame ψ ρp X) (dZ.absF ψ c j) :=
-      fun c hc j hj X hX => (((hGZ ψ c hc j hj).2 ρp hs X hX)).1
+      fun c hc j hj X hX => (((hGZ ψ c hc j hj).2 ρp hs X hX.toU)).1
     obtain ⟨A, hA, hfa⟩ := blockAcc_of_run hμ mpD hNZ hctxZ hPos hpN hpL hpP hpI hpR hlenN.symm
       rfl hlenCtorsAs (fun c hc => hCA c hc) hclosedZ hnfZ hcovD ψ ρp hs hGw
     exact ⟨⟨A, hA, hfa.accTuple hfib⟩, A, hA, hfa⟩

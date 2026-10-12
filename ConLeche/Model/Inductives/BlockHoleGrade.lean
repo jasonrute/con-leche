@@ -128,7 +128,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     (FieldsBelow (d.nP + d.k) (d.absF ψ c j) ∧
       ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase) ∧
     ∀ (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
-    ∀ X : Nat → V, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+    ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     FieldsValid (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
@@ -240,7 +240,7 @@ theorem blockHoleGrade_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks
     (FieldsBelow (d.nP + d.k) (d.absF ψ c j) ∧
       ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase) ∧
     ∀ (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
-    ∀ X : Nat → V, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+    ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     FieldsValid (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
@@ -805,7 +805,7 @@ theorem blockHoleChains_facts {env : Env} {m : EnvModel V env} {d : BlockData V}
       (FieldsBelow (d.nP + d.k) (d.absF ψ c j) ∧
         ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase) ∧
       ∀ (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
-      ∀ X : Nat → V, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+      ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
       FieldsValid (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
       ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →

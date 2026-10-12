@@ -98,10 +98,10 @@ theorem lfp0_frame (ψ : Name → Nat) (ρp X : Nat → V) :
   rw [tupW_zero]
 
 /-- **The carrier's only fibre is `C`**, when `C` is an `F`-closed set
-of the level lying below every `F`-closed set of the level. -/
+of the strict universe lying below every `F`-closed set of it. -/
 theorem lfp0_carrier {ψ : Name → Nat} {ρp : Nat → V} {C : V}
-    (hCu : C ∈ˢ (univ (w ψ) : V)) (hC : F C ⊆ˢ C)
-    (hleast : ∀ S, S ∈ˢ (univ (w ψ) : V) → F S ⊆ˢ S → C ⊆ˢ S) :
+    (hCu : C ∈ˢ (strictU (w ψ) : V)) (hC : F C ⊆ˢ C)
+    (hleast : ∀ S, S ∈ˢ (strictU (w ψ) : V) → F S ⊆ˢ S → C ⊆ˢ S) :
     app ((lfp0 nm w F inj n cn flds).carrier ψ ρp 0) pt = C := by
   let D := lfp0 nm w F inj n cn flds
   have hI : D.idx ψ ρp = fun _ => (unitSet : V) := funext (lfp0_idx ψ ρp)
@@ -131,10 +131,10 @@ block**, from its fibre function's level, fibre description, and the
 leaf's value as the least `F`-closed set (monotonicity is the clause's
 accessibility's, `hFacc`). -/
 theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name → Nat) → V}
-    (hmaps : ∀ (ψ : Name → Nat) S, S ∈ˢ (univ (w ψ) : V) → F S ∈ˢ (univ (w ψ) : V))
+    (hmaps : ∀ (ψ : Name → Nat) S, S ∈ˢ (strictU (w ψ) : V) → F S ∈ˢ (strictU (w ψ) : V))
     (hfib : ∀ S x, x ∈ˢ F S ↔ ∃ j fs, fits S j fs ∧ x = inj j fs)
-    (hCu : ∀ ψ, C ψ ∈ˢ (univ (w ψ) : V)) (hC : ∀ ψ, F (C ψ) ⊆ˢ C ψ)
-    (hleast : ∀ ψ S, S ∈ˢ (univ (w ψ) : V) → F S ⊆ˢ S → C ψ ⊆ˢ S)
+    (hCu : ∀ ψ, C ψ ∈ˢ (strictU (w ψ) : V)) (hC : ∀ ψ, F (C ψ) ⊆ˢ C ψ)
+    (hleast : ∀ ψ S, S ∈ˢ (strictU (w ψ) : V) → F S ⊆ˢ S → C ψ ⊆ˢ S)
     (hleaf : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval nm ψ) = C ψ)
     -- the hole reading: the fit IS the fields' fit at the hole
     (hholes : ∀ (ρp : Nat → V) S j fs, fits S j fs ↔ j < n ∧ SpineFit (cons S ρp) (flds j) fs)
@@ -209,7 +209,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
   fieldsOk := fun ψ ρp _ hw X hX _ _ j hj => by
     show FieldsOkB (w ψ) ((lfp0 nm w F inj n cn flds).frame ψ ρp X) (flds j)
     rw [lfp0_frame]
-    exact hfok ψ ρp _ hw (famSpace_app (hX 0 Nat.one_pos)
+    exact hfok ψ ρp _ hw (famSpace_app_univ (hX 0 Nat.one_pos)
       (by rw [lfp0_idx]; exact pt_mem_unitSet)) j hj
 
 end Lfp0
@@ -228,9 +228,9 @@ theorem emptyLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm : Na
     (hleaf : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval nm ψ) = empty) :
     LfpClause acval (emptyLfp (V := V) nm w) :=
   lfp0_clause (C := fun _ => empty) (fits := fun _ _ _ => False)
-    (fun _ _ _ => empty_mem_univ w)
+    (fun _ _ _ => empty_mem_strictU w)
     (fun _ x => ⟨fun h => absurd h (not_mem_empty x), fun ⟨_, _, h, _⟩ => h.elim⟩)
-    (fun _ => empty_mem_univ w) (fun _ => Subset.refl _)
+    (fun _ => empty_mem_strictU w) (fun _ => Subset.refl _)
     (fun _ _ _ _ x hx => absurd hx (not_mem_empty x)) hleaf
     (fun _ _ j _ => ⟨False.elim, fun h => absurd h.1 (Nat.not_lt_zero j)⟩)
     (fun _ hw _ _ => by show (unitAt w : V) = pt; rw [show w = 0 from hw, unitAt_zero])
@@ -240,7 +240,7 @@ theorem emptyLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm : Na
       rw [unitAt_pos hw]; exact pt_ne_empty.symm)
     (fun j hj => absurd hj (Nat.not_lt_zero j))
     (fun _ _ _ _ _ j hj => absurd hj (Nat.not_lt_zero j))
-    (fun _ => ⟨empty, fun _ => empty_mem_univ w, fun _ _ _ h => h.elim⟩)
+    (fun _ => ⟨empty, fun _ => empty_mem_tg w, fun _ _ _ h => h.elim⟩)
 
 theorem spineFit_nil_iff {ρ : Nat → V} {fs : List V} : SpineFit ρ [] fs ↔ fs = [] := by
   cases fs <;> simp [SpineFit]
@@ -313,12 +313,23 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn 
     LfpClause acval (natLfp (V := V) nm zn sn) :=
   lfp0_clause (C := fun _ => omega) (fits := natFits)
     (fun _ S hS => by
-      have hU : IsTGUniverse (Mem (V := V)) (univ 1) := univ_isTGUniverse (by decide)
-      have h0 : (empty : V) ∈ˢ univ 1 := hU.empty_mem hS
-      refine hU.sUnion_mem (hU.upair_mem hS (hU.upair_mem hS h0 h0) (hU.image_mem hS ?_))
-      intro m hm
-      have hmU : m ∈ˢ (univ 1 : V) := hU.transitive hS hm
-      exact hU.binUnion_mem hS hmU (hU.sing_mem hS hmU))
+      have hS' := mem_tg_of_mem_strictU hS
+      have hU : IsTGUniverse (Mem (V := V)) (tg 1) := tg_isTGUniverse (by decide)
+      have h0 : (empty : V) ∈ˢ tg 1 := hU.empty_mem hS'
+      refine (mem_strictU_pos (by decide)).mpr ⟨hU.sUnion_mem (hU.upair_mem hS'
+        (hU.upair_mem hS' h0 h0) (hU.image_mem hS' ?_)), fun he => ?_, fun hp => ?_⟩
+      · intro m hm
+        have hmU : m ∈ˢ (tg 1 : V) := hU.transitive hS' hm
+        exact hU.binUnion_mem hS' hmU (hU.sing_mem hS' hmU)
+      · -- `∅` is a member, and the point's one member is not `∅`
+        have h1 : (empty : V) ∈ˢ natF S := mem_natF.mpr (Or.inl rfl)
+        rw [he] at h1
+        have h2 := empty_mem_ptTag (V := V)
+        rw [← mem_pt.mp h1] at h2
+        exact not_mem_empty _ h2
+      · rcases mem_natF.mp hp with h | ⟨m, -, h⟩
+        · exact pt_ne_empty h
+        · exact vsucc_ne_pt m h.symm)
     (fun S x => by
       rw [mem_natF]
       constructor
@@ -328,7 +339,7 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn 
       · rintro ⟨j, fs, ⟨rfl, rfl⟩ | ⟨rfl, m, rfl, hm⟩, rfl⟩
         · exact Or.inl rfl
         · exact Or.inr ⟨m, hm, rfl⟩)
-    (fun _ => omega_mem_univ_succ 0)
+    (fun _ => omega_mem_strictU_succ 0)
     (fun _ x hx => by
       rcases mem_natF.mp hx with rfl | ⟨m, hm, rfl⟩
       · exact empty_mem_omega
@@ -397,7 +408,7 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn 
       · exact ⟨by simp, fun _ => by simpa using hS, fun _ _ => trivial⟩)
     -- the successor's support is its predecessor
     (fun _ => by
-      refine ⟨unitSet, fun _ => unitSet_mem_univ 1, fun S j fs h => ?_⟩
+      refine ⟨unitSet, fun _ => unitSet_mem_tg 1, fun S j fs h => ?_⟩
       rcases h with h | ⟨hj, m, hfs, hm⟩
       · exact ⟨empty, fun _ => empty, empty_subset _, fun b hb => absurd hb (not_mem_empty b),
           fun _ _ => Or.inl h⟩
@@ -449,7 +460,7 @@ theorem app_eqLfp_carrier {ψ : Name → Nat} {ρp : Nat → V} {t : V}
   let K : Nat → V := fun _ => graph (eqFib ρp) (idxSet (lv ψ) ρp [.bvar 1])
   have hK : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) K := fun _ _ =>
     graph_mem_famSpace fun _ _ => by
-      show _ ∈ˢ (univ 0 : V); rw [univ_zero]; exact truthVal_mem_univZero _
+      show _ ∈ˢ (strictU 0 : V); rw [strictU_zero]; exact truthVal_mem_univZero _
   have hcl : IsClosedTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) K :=
     ⟨hK, TupleLe.refl _ _ _⟩
   have hmono : MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
@@ -492,7 +503,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
     exact ⟨⟨by simp, fun _ => hA, fun _ _ => trivial⟩, ⟨hA, fun _ _ => trivial⟩⟩
   maps := fun ψ ρp _ X _ _ _ =>
     graph_mem_famSpace fun _ _ => by
-      show _ ∈ˢ (univ 0 : V); rw [univ_zero]; exact truthVal_mem_univZero _
+      show _ ∈ˢ (strictU 0 : V); rw [strictU_zero]; exact truthVal_mem_univZero _
   fitAcc := fun ψ ρp _ => ⟨empty, fun hw => absurd rfl hw, fun X _ c _ t j fs hf =>
     ⟨empty, fun _ => (0, pt, pt), empty_subset _, fun b hb => absurd hb (not_mem_empty b),
       fun Y _ _ => by

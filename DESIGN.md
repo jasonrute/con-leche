@@ -100866,3 +100866,124 @@ touches no file under `pins/`, `pinners/` or `tests/pindump.sh`
 is empty): a host Nix-store regression between the two runs, not a
 property of this lane's content or of #342. No `sorry`, no new axiom,
 no statement change.
+## TASK #342 — L4P-FLIP: `univ` is the cumulative universe of types (2026-10-12, agent/342-l4p-flip)
+
+Lane L4′, stage S1 of the revised port (`_tmp/342v2-design.md` §2, §3.1,
+§7 row S1, §10). It restarts the paused `agent/342-l4-flip` (which made
+`univ` L1's strict universe) with task #344's universe of types. The
+checker, `Denotes.lean` (its `sort` clause keeps its text), `MainTheorem`,
+`Challenge` and `Axioms.lean` are unchanged. It is a strengthening that
+is valid under the annotated reading: every set a type term denotes today
+is a truth value or strict (L1–L3).
+
+**The universes** (`Derive/TypeU.lean`, `Derive/Univ.lean`).
+- L1's strict universe is renamed **`strictU`** (truth values at `0`;
+  above, the strict members of `tg n`).
+- The new **`tyU n`** is `tg 0` at `0` and `sep (tg n) IsTy` above (the
+  fragment's #344 `typeU`). `mem_tyU` is uniform in the level. It is
+  cumulative (`tyU_mono`), contains `strictU` (`strictU_subset_tyU`), and
+  is strict itself; `tyU n ∈ tyU (n+1)`.
+- `univ := tyU`. `univ_mono` holds again, and so do `unitSet_mem_univ n`
+  at every level and `univ_subset_succ`.
+- What is gone: `univ_isTGUniverse` (above `0`, `univ` is not transitive:
+  `{pt}` is a member, `pt` is not), `univChain_one_mem_univ_succ`, and
+  `univ_mem_of_subset_mem`/`univ_sep_mem`. The last two are now
+  `tg_mem_of_subset_mem`/`tg_sep_mem` in `Lfp.lean`, which imports only
+  `Tg`.
+- New bridges: `mem_univ`, `mem_tg_of_mem_univ`, `mem_univ_of_tg_strict`,
+  `mem_univ_of_mem_univZero`, `strictU_subset_univ`,
+  `mem_strictU_of_univ` (strict above `0` ⇒ in `strictU`), `strict_univ`,
+  `univ_mem_univ_of_lt`.
+
+**The least fixed points' fibre space is `strictU`** (as designed).
+- `famSpace w`, `IsClosedFam`, `lfpFamSet` and `lfpTuple`'s and
+  `sepTuple`'s `dropTo` are over `strictU w`.
+- The three level facts are `strictU_dropClosed`,
+  `strictU_famUnion_mem` and `strictU_binUnion_sing_empty_mem`.
+  `univ_dropClosed` also holds (a subset of a truth value is a truth
+  value); the other two fail for `univ`. The regression test in
+  `tests/ConLecheTests/LfpTypes.lean` shows `{pt} ∪ {∅} ∉ univ 1`.
+- A family of the space is a family of types (`famSpace_app_univ`,
+  `famSpace_subset_univ`, `famSpaceIn_mono`). The basis constants' types
+  (`lfpFamSpace` is `I → Sort w`, so `famSpaceIn (univ w) I`) take
+  `lfpFamSet`/`lfpTuple` by that inclusion (`lfpFamSpace_eq_univ`,
+  `famSpace_subset_lfpFamSpace` in `BlockTower`; `Value.lean`).
+- `blockPhi_maps_of` reads the operator's fibre in `strictU`
+  (`blockStepG_strictU`, from `sumSet_strictU_of_okB` and
+  `strict_sumSet`: a tagged sum above `0` is a set of pairs).
+- `lfp0_clause`'s `hmaps`/`hCu`/`hleast` and `lfp0_carrier` are stated
+  at `strictU`. `Nat`'s operator keeps `strictU 1`: `natF S` holds `∅`
+  and successors, never the point.
+
+**The hole frames bind families of types** (not foreseen by the design,
+which placed the `adm` bridge at S4). `holeChains_ok`/`holeChains_valid`
+turn every `Y ∈ famsSpaceB` (the denotation of `⟨I_m → Sort w⟩`, now
+`univ`-valued) into a tuple, and read the fields' typing there. That
+tuple need not be strict: a fibre can be `{pt}`. So the hole-frame facts
+are quantified over the larger space **`InTupleSpaceU`** (fibres in
+`univ w`; `LfpTuple.lean`). The strict tuple space sits inside it
+(`InTupleSpace.toU`).
+- Changed: `LfpDatum.holeVal_mem`, `blockWalkCtx`/`blockCtorHoleCtx`'s
+  frame satisfaction, `blockHoleGrade_of_run`'s and
+  `blockHoleChains_facts`' field facts, and the `hF` premises of
+  `holeChains_ok`/`holeChains_valid`.
+- Every consumer at a strict tuple adds `.toU`: `LfpFormer`,
+  `TargetCallPatch`, `TargetCallFrame`, `ContWalk`, `BlockAccRunCont`,
+  `BlockDatum`, `DeclBlockStep`.
+- No `adm` is needed in S1. The facts come from `Sat` of the hole
+  context, which any family of types satisfies.
+
+**Size bounds read `tg`.** The re-routing is kept from the paused WIP:
+`GraphRec` (`B u ∈ univ ℓ` read through `mem_tg_of_mem_univ`), `Access`
+(`natUnion_mem_tg_pos`; `natUnion_mem_univ_pos` is gone, with no
+remaining user), `Iter`, `sigma_mem_univ_tg`, `quotSet_mem_univ` and
+`unitSetAt_mem_univ` (strict above `0`, so in `univ`), and
+`Semantics/Univ.piR_mem_univ` (with `Fib_piR`/`IsTy_piR`). Before this
+lane `univ` was `tg` by defeq; that defeq is now gone, so these
+producers were also fixed:
+- `ContAccFrame` (the `TB`/`A` bounds: `tg w`);
+- `BlockDatum`'s `FitAcc` bound;
+- `PosDerivAcc` (`SizeOn.const`);
+- `BlockAccRun` (`TeleSmall` via `tg` transitivity);
+- `BasisLfp` (`hFacc`).
+
+**Deviations from the paused WIP.**
+- `FieldsBound`/`BoundS`/`FieldsOkB` stay at `univ`.
+  - The WIP moved them to `tg` because `{pt} ∉` its strict `univ 1`.
+  - Under the cumulative `univ` a `Prop` field is a type of every
+    level, and the readers use them as typings (`towerSet_univ_*`, the
+    λ/Π domains).
+  - So `TupleTower`, `TowerKit`, `SumTower`, `FixTower`, `BlockRecTower`
+    (the `tailLv` choice), `BasisOk` and `GenRecPins` keep the
+    port-342 text.
+- The strict-only corollaries are not carried over: `univ_mono_pos`,
+  `mem_univ_mono(_strict)`, `unitSet_mem_univ_zero` and
+  `truthVal_mem_univ_zero`.
+- `univ_famUnion_mem` is now `strictU_famUnion_mem`.
+
+**Tests.**
+- `AccessTests` builds its examples with strict fibres (`nil_or_mem`,
+  `tag_image_mem_strictU` in `strictU`) and bounds in `tg`.
+- `LfpTypes` adds cumulativity (`{pt} ∈ univ 1`) and the counterexample
+  `{pt} ∪ {∅} ∉ univ 1`.
+
+**Merges.** This lane merged `agent/342-l2b-revert` 7c5f7a1a8, the L2b
+revert, before touching `Semantics/Tower`. Q4 rules that revert, and it
+touches the same files. Once L2b-revert landed, `port-342` was merged in.
+It added only that lane's DESIGN record, so nothing needed re-gating.
+
+**For S2.**
+- `InTupleSpaceU` is the space a hole frame ranges over. L5's typed
+  `WellDenoted`/`CtxOk` should state hole contexts over it, not over the
+  strict space.
+- `IsTy` holds for every `univ` member (`IsTy_of_mem_univ`), and
+  `ne_pt_of_mem_univ` gives "a type is not the point" directly.
+
+**Gates.**
+- `lake build` and `lake test`: no warnings, `Axioms.lean` unchanged.
+- `tests/arena.sh`, `tests/challenge.sh` and `whitepaper/links-gate.sh`.
+  The `LfpTuple`/`GraphRec` citations were repointed and the file was
+  regenerated with `--update`.
+- The `shake` allowlist line for `Univ.lean`'s `TypeU` import was
+  dropped: the import is now used.
+- No `sorry`, no new axiom.

@@ -381,7 +381,7 @@ theorem max_succ_ne_zero (u w : Nat) : Nat.max u (w + 1) ≠ 0 := by
 theorem lfpFamSet_mem_space (w : Nat) (I F : V) : lfpFamSet w I F ∈ˢ lfpFamSpace V w I := by
   unfold lfpFamSpace
   rw [piR_pos (Nat.succ_ne_zero w)]
-  exact lfpFamSet_mem w I F
+  exact famSpace_subset_univ w I _ (lfpFamSet_mem w I F)
 
 theorem lfpFamV_mem (u w : Nat) :
     lfpFamV V u w ∈ˢ piR (Nat.max u (w + 1)) (univ u : V) fun I =>
@@ -527,7 +527,8 @@ theorem lfpTuple_mkTower_mem (k : Nat) (us : List Nat) (Is Φ : V) :
   show lfpTuple (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i
     ∈ˢ lfpFamSpace V (lv us k) (projS (0 + i) Is)
   rw [lfpFamSpace, piR_pos (Nat.succ_ne_zero _), Nat.zero_add]
-  exact lfpTuple_mem (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i hi
+  exact famSpace_subset_univ _ _ _
+    (lfpTuple_mem (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i hi)
 
 theorem lfpTupleV_app {k : Nat} {us : List Nat} {Is F : V}
     (hIs : Is ∈ˢ tupleSortsSpace V k us)

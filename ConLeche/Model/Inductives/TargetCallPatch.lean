@@ -55,7 +55,7 @@ theorem frame0_sat (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) {ρp : Nat
   obtain ⟨cvTb, hcvb⟩ : ∃ cvTb, cvTas[t]? = some cvTb :=
     ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact ht)⟩
   obtain ⟨-, hFDt⟩ := hF t cvTb hcvb
-  exact LfpDatum.holeVal_mem hcl.kN hY ht (ab := (d.ppsM t ψ).drop d.nP) rfl
+  exact LfpDatum.holeVal_mem hcl.kN hY.toU ht (ab := (d.ppsM t ψ).drop d.nP) rfl
     (fun x hx => hFDt.bits ψ x (List.mem_of_mem_drop hx))
 
 set_option maxHeartbeats 1000000 in

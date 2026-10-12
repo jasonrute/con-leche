@@ -771,6 +771,13 @@ theorem sumSet_univ_of_okB {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTer
     | none => exact empty_mem_univ w
     | some Fs => exact towerSet_univ_teleOfFields ((hok Fs (List.mem_of_getElem? h)).toBound hw)
 
+/-- The carrier's formation in the strict universe, the least fixed
+points' fibre space. -/
+theorem sumSet_strictU_of_okB {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
+    (hok : SumFieldsOkB w ρ Fss) :
+    sumSet w (sumFibre w ρ Fss) ∈ˢ (strictU w : V) :=
+  mem_strictU_of_univ (sumSet_univ_of_okB hok) fun hw => strict_sumSet hw _
+
 /-- The squash body is graded. -/
 theorem sqSumBodyAV_wellDenoted {ρ : Nat → V} {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB 0 ρ Fss) :
     WellDenoted V ρ (sqSumBodyAV Fss) := by

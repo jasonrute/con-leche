@@ -18,9 +18,9 @@ This is `LfpFam.lean` componentwise:
     lfpTuple w k Is Φ m = graph (i ↦ {x ∈ app (L₀ m) i | ∀ closed X, x ∈ app (X m) i}) (Is m)
 
 over a classically chosen closed tuple `L₀` (the empty tuple when
-there is none), a fibre that left `univ w` dropped to `∅` (`dropTo`,
-`LfpFam.lean`: an intersection of types need not be a type once `univ`
-is the restricted universe) — TOTAL, as `lfpFamSet` is.  Under a closed
+there is none), a fibre that left `strictU w` dropped to `∅` (`dropTo`,
+`LfpFam.lean`: an intersection of strict sets need not be strict) —
+TOTAL, as `lfpFamSet` is.  Under a closed
 tuple, monotonicity and `MapsTuple` nothing is dropped
 (`mem_app_lfpTuple`), the least pre-fixed tuple is a fixed point
 (`lfpTuple_eq`) and supports simultaneous structural induction
@@ -41,6 +41,17 @@ variable {V : Type u} [SetTheory V]
 (positions `≥ k` are unconstrained junk). -/
 def InTupleSpace (w k : Nat) (Is : Nat → V) (X : Nat → V) : Prop :=
   ∀ m, m < k → X m ∈ˢ famSpace w (Is m)
+
+/-- The tuple is a tuple of families of TYPES: each member's fibres lie
+in `univ w`, not necessarily in the strict universe (task #342).  It is
+what a hole frame binds (the holes' type is `I → Sort w`); the tuple
+space is inside it (`InTupleSpace.toU`). -/
+def InTupleSpaceU (w k : Nat) (Is : Nat → V) (X : Nat → V) : Prop :=
+  ∀ m, m < k → X m ∈ˢ famSpaceIn (univ w) (Is m)
+
+theorem InTupleSpace.toU {w k : Nat} {Is X : Nat → V} (h : InTupleSpace w k Is X) :
+    InTupleSpaceU w k Is X :=
+  fun m hm => famSpace_subset_univ w (Is m) _ (h m hm)
 
 /-- The componentwise order on tuples of families. -/
 def TupleLe (k : Nat) (Is : Nat → V) (X Y : Nat → V) : Prop :=
@@ -69,12 +80,12 @@ def MapsTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Pr
 open Classical in
 /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
 intersection of the closed tuples when there is one (separated from a
-chosen closed tuple), dropped to `∅` if it left `univ w`; the empty
+chosen closed tuple), dropped to `∅` if it left `strictU w`; the empty
 tuple otherwise. -/
 noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
   fun m =>
     if h : ∃ L, IsClosedTuple w k Is Φ L then
-      graph (fun i => dropTo (univ w) (sep (app (Classical.choose h m) i)
+      graph (fun i => dropTo (strictU w) (sep (app (Classical.choose h m) i)
         (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
     else graph (fun _ => empty) (Is m)
 
@@ -96,12 +107,12 @@ theorem forall_of_mem_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) {m : N
 /-- A member of the level below every closed tuple's fibre is below the
 least tuple's. -/
 theorem subset_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) {m : Nat} (hm : m < k)
-    {i Y : V} (hi : i ∈ˢ Is m) (hY : Y ∈ˢ (univ w : V))
+    {i Y : V} (hi : i ∈ˢ Is m) (hY : Y ∈ˢ (strictU w : V))
     (hYX : ∀ X, IsClosedTuple w k Is Φ X → Y ⊆ˢ app (X m) i) :
     Y ⊆ˢ app (lfpTuple w k Is Φ m) i := by
   unfold lfpTuple
   rw [dite_eq_left h, app_graph hi]
-  refine subset_dropTo (univ_dropClosed w) (famSpace_app ((Classical.choose_spec h).1 m hm) hi)
+  refine subset_dropTo (strictU_dropClosed w) (famSpace_app ((Classical.choose_spec h).1 m hm) hi)
     sep_subset hY fun x hx => mem_sep.mpr ⟨?_, fun X hX => hYX X hX x hx⟩
   exact hYX _ (Classical.choose_spec h) x hx
 
@@ -118,8 +129,8 @@ theorem lfpTuple_mem (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → 
   intro m _
   unfold lfpTuple
   split
-  · exact graph_mem_famSpace fun _ _ => dropTo_mem (empty_mem_univ w) _
-  · exact graph_mem_famSpace fun _ _ => empty_mem_univ w
+  · exact graph_mem_famSpace fun _ _ => dropTo_mem (empty_mem_strictU w) _
+  · exact graph_mem_famSpace fun _ _ => empty_mem_strictU w
 
 /-- **Closure**: the least pre-fixed tuple is a pre-fixed point.  The
 operator must map the tuple space into itself: a fibre dropped to `∅`
@@ -165,15 +176,15 @@ theorem lfpTuple_eq (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w 
     fun _ hi => app_lfpTuple_eq h hmono hmaps hm hi
 
 /-- The tuple of separations of the carrier by a per-member property,
-a fibre that left `univ w` dropped to `∅`. -/
+a fibre that left `strictU w` dropped to `∅`. -/
 noncomputable def sepTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V)
     (P : Nat → V → V → Prop) : Nat → V :=
-  fun m => graph (fun i => dropTo (univ w) (sep (app (lfpTuple w k Is Φ m) i) (P m i))) (Is m)
+  fun m => graph (fun i => dropTo (strictU w) (sep (app (lfpTuple w k Is Φ m) i) (P m i))) (Is m)
 
 /-- The separated tuple is in the tuple space. -/
 theorem sepTuple_mem (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V)
     (P : Nat → V → V → Prop) : InTupleSpace w k Is (sepTuple w k Is Φ P) := fun _ _ =>
-  graph_mem_famSpace fun _ _ => dropTo_mem (empty_mem_univ w) _
+  graph_mem_famSpace fun _ _ => dropTo_mem (empty_mem_strictU w) _
 
 /-- A member of the separated tuple is in the carrier and has the
 property. -/
@@ -202,10 +213,10 @@ theorem lfpTuple_induction (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoT
   have hSle := sepTuple_le w k Is Φ P
   have hS : IsClosedTuple w k Is Φ (sepTuple w k Is Φ P) := by
     refine ⟨hSmem, fun m hm i hi => ?_⟩
-    show _ ⊆ˢ app (graph (fun i => dropTo (univ w) (sep (app (lfpTuple w k Is Φ m) i) (P m i)))
+    show _ ⊆ˢ app (graph (fun i => dropTo (strictU w) (sep (app (lfpTuple w k Is Φ m) i) (P m i)))
       (Is m)) i
     rw [app_graph hi]
-    refine subset_dropTo (univ_dropClosed w) (famSpace_app (lfpTuple_mem w k Is Φ m hm) hi)
+    refine subset_dropTo (strictU_dropClosed w) (famSpace_app (lfpTuple_mem w k Is Φ m hm) hi)
       sep_subset (famSpace_app (hmaps _ hSmem m hm) hi) fun y hy => ?_
     refine mem_sep.mpr ⟨?_, hP m hm i hi y hy⟩
     exact lfpTuple_closed h hmono hmaps m hm i hi y

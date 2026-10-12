@@ -3595,17 +3595,17 @@
   1393      t ∈ˢ S.Fam M ls ps is ↔ t = pt ∧ ∃ x, S.Mem M ls ps is x := by
   1394    rw [S.mem_Fam M ls hnr hb hco]
 
-== ConLeche/SetTheory/Derive/LfpTuple.lean#L70-L79
-    70  /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
-    71  intersection of the closed tuples when there is one (separated from a
-    72  chosen closed tuple), dropped to `∅` if it left `univ w`; the empty
-    73  tuple otherwise. -/
-    74  noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
-    75    fun m =>
-    76      if h : ∃ L, IsClosedTuple w k Is Φ L then
-    77        graph (fun i => dropTo (univ w) (sep (app (Classical.choose h m) i)
-    78          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
-    79      else graph (fun _ => empty) (Is m)
+== ConLeche/SetTheory/Derive/LfpTuple.lean#L81-L90
+    81  /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
+    82  intersection of the closed tuples when there is one (separated from a
+    83  chosen closed tuple), dropped to `∅` if it left `strictU w`; the empty
+    84  tuple otherwise. -/
+    85  noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
+    86    fun m =>
+    87      if h : ∃ L, IsClosedTuple w k Is Φ L then
+    88        graph (fun i => dropTo (strictU w) (sep (app (Classical.choose h m) i)
+    89          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
+    90      else graph (fun _ => empty) (Is m)
 
 == ConLeche/Model/Annot/BlockLfp.lean#L338-L345
    338    /-- **`Φ` maps the tuple space into itself** -/
@@ -3792,22 +3792,22 @@
    103  level is closed under subsets). -/
    104  noncomputable def gGraph : V := lfpFamIn (tg ℓ) U (gStep ℓ U Dec pred B st)
 
-== ConLeche/SetModel/GraphRec.lean#L227-L229
-   227  theorem graph_mem_B {u v : V} (hu : u ∈ˢ U) (hv : v ∈ˢ app K.G u) : v ∈ˢ K.B u :=
-   228    gGraph_mem_B K.hB K.hpred hu hv
-   229  
+== ConLeche/SetModel/GraphRec.lean#L229-L231
+   229  theorem graph_mem_B {u v : V} (hu : u ∈ˢ U) (hv : v ∈ˢ app K.G u) : v ∈ˢ K.B u :=
+   230    gGraph_mem_B K.hB K.hpred hu hv
+   231  
 
-== ConLeche/SetModel/GraphRec.lean#L265-L269
-   265      graph (fun j => K.recAt j) (K.pred d) ∈ˢ piSet (K.pred d) (fun j => app K.G j) :=
-   266    graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
-   267  
-   268  /-- **The ι law, at ANY decoding**: the recursor at a major is the
-   269  step at that decoding, the `ih`s being the recursor at the
+== ConLeche/SetModel/GraphRec.lean#L267-L271
+   267      graph (fun j => K.recAt j) (K.pred d) ∈ˢ piSet (K.pred d) (fun j => app K.G j) :=
+   268    graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
+   269  
+   270  /-- **The ι law, at ANY decoding**: the recursor at a major is the
+   271  step at that decoding, the `ih`s being the recursor at the
 
-== ConLeche/SetModel/GraphRec.lean#L185-L187
-   185    /-- the step lands in the bound (the rule's certified typing) -/
-   186    hst : ∀ u, u ∈ˢ U → ∀ d, Dec u d → ∀ g,
-   187      g ∈ˢ piSet (pred d) (fun j => app (gGraph ℓ U Dec pred B st) j) → st d g ∈ˢ B u
+== ConLeche/SetModel/GraphRec.lean#L187-L189
+   187    /-- the step lands in the bound (the rule's certified typing) -/
+   188    hst : ∀ u, u ∈ˢ U → ∀ d, Dec u d → ∀ g,
+   189      g ∈ˢ piSet (pred d) (fun j => app (gGraph ℓ U Dec pred B st) j) → st d g ∈ˢ B u
 
 == ConLeche/Model/Inductives/ClassGenUniq.lean#L13-L19
     13  * **`huniq`** (`genUniq`): two decodings of a major are equal, or the
