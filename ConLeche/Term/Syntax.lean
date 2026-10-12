@@ -31,14 +31,11 @@ Differences from `ConLeche.Expr`, each deliberate:
   at every assignment.  The layer therefore cannot state a polymorphic
   fact internally — and does not need to, because it has no definable
   constants at all.
-* **There is no `letE`.**  No stored expression carries a `let`: the
-  annotation pass runs the official `infer_let` triple and returns the
-  ζ *reduct* (task #217), and every kernel arm that used to accept a
-  `letE` node downstream of it is a positive error (task #241).  So the
-  denotation's `letE` clause is `none`, the former is gone, and the
-  substitution metatheory stays as small as it was — see
-  `ConLeche/Verify/Denote.lean`'s "There is no `let` in the term
-  language".
+* **`letE` carries no type.**  `letE v b` is `let x := v; b`, the
+  body under one binder.  Stored terms keep their `let`s as Lean
+  writes them, so the denotation needs the node; its type is not read
+  (the interpretation reads the value, then the body at the value), so
+  the former does not carry it, as `eqE` carries no type.
 * **`fst`/`snd` are formers, and their type arguments live in the
   premise.**  A projection on a *modeled* structure never reaches this
   layer: the checker accepts no `.proj` node without a native table
@@ -196,6 +193,9 @@ inductive Term where
   | lam (ty body : Term)
   /-- `(_ : ty) → body` -/
   | pi (ty body : Term)
+  /-- `let _ := val; body`, **without the type**: the body is under one
+  binder, read at the value -/
+  | letE (val body : Term)
   /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
   `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
   and a census (task #237) found no definition and no theorem in any

@@ -297,6 +297,11 @@ theorem bvarsBelow_inst {m : Nat} {a : Term} (ha : Term.bvarsBelow m a) :
     refine ⟨ihA k h.1, ?_⟩
     have hB := ihB (k + 1) (by rw [show m + (k + 1) + 1 = m + k + 1 + 1 from by omega]; exact h.2)
     rwa [show m + (k + 1) = m + k + 1 from by omega] at hB
+  | letE v b ihv ihb =>
+    intro k h
+    refine ⟨ihv k h.1, ?_⟩
+    have hB := ihb (k + 1) (by rw [show m + (k + 1) + 1 = m + k + 1 + 1 from by omega]; exact h.2)
+    rwa [show m + (k + 1) = m + k + 1 from by omega] at hB
 
 omit [SetTheory V] in
 /-- The ih substitution's bound: the residue bounded `nR` binders down

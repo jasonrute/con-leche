@@ -315,6 +315,11 @@ theorem WellDenoted_congr_below :
         fun x hx => ?_⟩
       rw [interp_congr_below V B (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact h3 x hx
+  | letE v b ihv ihb =>
+    intro k ρ ρ' hb hag
+    rw [WellDenoted_letE, WellDenoted_letE, ihv k ρ ρ' hb.1 hag,
+      interp_congr_below V v k ρ ρ' hb.1 hag,
+      ihb (k + 1) _ _ hb.2 (cons_agree_below hag _)]
   | eqE a b iha ihb =>
     intro k ρ ρ' hb hag
     rw [WellDenoted_eqE, WellDenoted_eqE, iha k ρ ρ' hb.1 hag, ihb k ρ ρ' hb.2 hag]
@@ -364,6 +369,11 @@ theorem AnnotValid_congr_below :
         fun h0 x hx => ?_⟩
       rw [interp_congr_below V B (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact h3 h0 x hx
+  | letE v b ihv ihb =>
+    intro k ρ ρ' hb hag
+    rw [AnnotValid_letE, AnnotValid_letE, ihv k ρ ρ' hb.1 hag,
+      interp_congr_below V v k ρ ρ' hb.1 hag,
+      ihb (k + 1) _ _ hb.2 (cons_agree_below hag _)]
   | eqE a b iha ihb =>
     intro k ρ ρ' hb hag
     rw [AnnotValid_eqE, AnnotValid_eqE, iha k ρ ρ' hb.1 hag, ihb k ρ ρ' hb.2 hag]
@@ -820,10 +830,23 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
     obtain ⟨Xa, rfl⟩ := iha hw.2 hq (fun l hl' => hl l (by
       simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inr hl')) haa
     exact ⟨.app Xf Xa, by rw [AnnotTerm.liftN_app]⟩
-  | case9 d ty val body =>
-    intro _ q hq hl ea h
-    rw [denoteMeta] at h
-    exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hw q hq hl ea h
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    simp only [Expr.WScoped] at hw
+    obtain ⟨Xv, rfl⟩ := ihv hw.2.1 hq (fun l hl' => hl l (by
+      simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl (Or.inr hl'))) hva
+    obtain ⟨Xb, rfl⟩ := ihbody (Expr.WScoped.instantiate1 hw.1 0 hw.2.2) (q := q) (by omega) (by
+      intro l hl'
+      rcases Expr.fvarLeaves_instantiate1 body 0 hl' with hl' | hl'
+      · exact hl l (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inr hl')
+      · simp only [Expr.fvarLeaves, List.mem_cons] at hl'
+        rcases hl' with rfl | hl'
+        · exact fun h => by simp at h; omega
+        · exact hl l (by
+            simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl (Or.inl hl'))) hba
+    refine ⟨.letE Xv Xb, ?_⟩
+    rw [AnnotTerm.liftN_letE, show d + 1 - 1 - q = d - 1 - q + 1 from by omega]
   | case10 d sn i e ihe =>
     intro hw q hq hl ea h
     obtain ⟨ia, hia, hcase⟩ := denoteMeta_proj_inv h

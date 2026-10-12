@@ -139,6 +139,10 @@ theorem Expr.readsAt_of_nestOcc {names : List Name} {lo hi : Nat} {env : Env}
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h
     exact ⟨iht h.1, ihb h.2⟩
+  | letE t v b iht ihv ihb =>
+    intro h
+    simp only [Expr.nestOcc, Bool.or_eq_false_iff] at h
+    exact ⟨iht h.1.1, ihv h.1.2, ihb h.2⟩
   | proj s i e ihe => intro h; exact ihe h
   | lit l =>
     intro _
@@ -436,6 +440,12 @@ theorem noBVar_liftN_one : ∀ (X : AnnotTerm) (c : Nat), NoBVar (fun i => i = c
   | pi u v A B ihA ihB =>
     intro c
     refine ⟨ihA c, NoBVar.mono (fun i hi => ?_) (ihB (c + 1))⟩
+    cases i with
+    | zero => exact absurd hi (by simp [shiftP])
+    | succ i => show i + 1 = c + 1; simp only [shiftP] at hi; omega
+  | letE v b ihv ihb =>
+    intro c
+    refine ⟨ihv c, NoBVar.mono (fun i hi => ?_) (ihb (c + 1))⟩
     cases i with
     | zero => exact absurd hi (by simp [shiftP])
     | succ i => show i + 1 = c + 1; simp only [shiftP] at hi; omega

@@ -21,6 +21,7 @@ numeral sorts**:
 |---|---|---|
 | `pi A B` | `pi u v A B` | the domain's sort `u` and the body's sort `v` |
 | `lam A b` | `lam u A b` | the sort `u` of the body's **type** (the codomain), which `interp` dispatches on |
+| `letE v b` | `letE v b` | none (the type is not read, so neither node carries it) |
 | everything else | the same node | none |
 
 **Design rulings this file implements** (task #151's own):
@@ -35,10 +36,9 @@ numeral sorts**:
   it: the rules tier's `Infer.forallE` carries the sort premises of
   both binder positions and `Infer.lam` the codomain's
   (`ConLeche/Rules/Rel.lean`).  Hence:
-* **There is no `letE` former at all** (task #241) — the slot question
-  is moot: no stored expression carries a `let`, so the denotation's
-  `letE` clause is `none` and the node never reaches this syntax.  See
-  `ConLeche/Term/Syntax.lean` and `ConLeche/Verify/Denote.lean`.
+* **`letE` gets no annotation and no type slot**: the interpretation
+  reads the value and then the body at the value, so nothing reads the
+  type (task #342, L-let).
 * **`eqE` gets no annotation**, and since task #237 carries no type
   slot either — exactly as `Term` does; see
   `ConLeche/Term/Syntax.lean` on why the type was never constrained.
@@ -78,6 +78,9 @@ inductive AnnotTerm where
   | lam (u : Nat) (ty body : AnnotTerm)
   /-- `(_ : ty) → body`, with `ty`'s sort `u` and `body`'s sort `v` -/
   | pi (u v : Nat) (ty body : AnnotTerm)
+  /-- `let _ := val; body`: the body under one binder, read at the
+  value; no type slot, as in `Term` -/
+  | letE (val body : AnnotTerm)
   /-- `@Eq _ lhs rhs`; no annotation, and no type slot either, as in
   `Term` (task #237) -/
   | eqE (lhs rhs : AnnotTerm)
@@ -99,6 +102,7 @@ def erase : AnnotTerm → Term
   | .app f a => .app (erase f) (erase a)
   | .lam _ A b => .lam (erase A) (erase b)
   | .pi _ _ A B => .pi (erase A) (erase B)
+  | .letE v b => .letE (erase v) (erase b)
   | .eqE a b => .eqE (erase a) (erase b)
   | .fst e => .fst (erase e)
   | .snd e => .snd (erase e)
@@ -114,6 +118,8 @@ def erase : AnnotTerm → Term
     erase (.lam u A b) = .lam (erase A) (erase b) := rfl
 @[simp] theorem erase_pi (u v : Nat) (A B : AnnotTerm) :
     erase (.pi u v A B) = .pi (erase A) (erase B) := rfl
+@[simp] theorem erase_letE (v b : AnnotTerm) :
+    erase (.letE v b) = .letE (erase v) (erase b) := rfl
 @[simp] theorem erase_eqE (a b : AnnotTerm) :
     erase (.eqE a b) = .eqE (erase a) (erase b) := rfl
 @[simp] theorem erase_fst (e : AnnotTerm) :
@@ -131,6 +137,7 @@ def liftN (n : Nat) : AnnotTerm → (k : Nat := 0) → AnnotTerm
   | .app f a, k => .app (liftN n f k) (liftN n a k)
   | .lam u A b, k => .lam u (liftN n A k) (liftN n b (k + 1))
   | .pi u v A B, k => .pi u v (liftN n A k) (liftN n B (k + 1))
+  | .letE v b, k => .letE (liftN n v k) (liftN n b (k + 1))
   | .eqE a b, k => .eqE (liftN n a k) (liftN n b k)
   | .fst e, k => .fst (liftN n e k)
   | .snd e, k => .snd (liftN n e k)
@@ -149,6 +156,7 @@ def inst : AnnotTerm → AnnotTerm → (k : Nat := 0) → AnnotTerm
   | .app f b, a, k => .app (inst f a k) (inst b a k)
   | .lam u A b, a, k => .lam u (inst A a k) (inst b a (k + 1))
   | .pi u v A B, a, k => .pi u v (inst A a k) (inst B a (k + 1))
+  | .letE v b, a, k => .letE (inst v a k) (inst b a (k + 1))
   | .eqE b c, a, k => .eqE (inst b a k) (inst c a k)
   | .fst e, a, k => .fst (inst e a k)
   | .snd e, a, k => .snd (inst e a k)
@@ -222,6 +230,8 @@ theorem projPair?_cases₂ {i : Nat} {e x e' x' : AnnotTerm}
     liftN n (.lam u A b) k = .lam u (liftN n A k) (liftN n b (k + 1)) := rfl
 @[simp] theorem liftN_pi (n k u v : Nat) (A B : AnnotTerm) :
     liftN n (.pi u v A B) k = .pi u v (liftN n A k) (liftN n B (k + 1)) := rfl
+@[simp] theorem liftN_letE (n k : Nat) (v b : AnnotTerm) :
+    liftN n (.letE v b) k = .letE (liftN n v k) (liftN n b (k + 1)) := rfl
 @[simp] theorem liftN_eqE (n k : Nat) (a b : AnnotTerm) :
     liftN n (.eqE a b) k = .eqE (liftN n a k) (liftN n b k) := rfl
 @[simp] theorem liftN_fst (n k : Nat) (e : AnnotTerm) :
@@ -244,6 +254,8 @@ theorem projPair?_cases₂ {i : Nat} {e x e' x' : AnnotTerm}
     inst (.lam u A b) a k = .lam u (inst A a k) (inst b a (k + 1)) := rfl
 @[simp] theorem inst_pi (a : AnnotTerm) (k u v : Nat) (A B : AnnotTerm) :
     inst (.pi u v A B) a k = .pi u v (inst A a k) (inst B a (k + 1)) := rfl
+@[simp] theorem inst_letE (a : AnnotTerm) (k : Nat) (v b : AnnotTerm) :
+    inst (.letE v b) a k = .letE (inst v a k) (inst b a (k + 1)) := rfl
 @[simp] theorem inst_eqE (a : AnnotTerm) (k : Nat) (b c : AnnotTerm) :
     inst (.eqE b c) a k = .eqE (inst b a k) (inst c a k) := rfl
 @[simp] theorem inst_fst (a : AnnotTerm) (k : Nat) (e : AnnotTerm) :
@@ -275,6 +287,8 @@ rewriting with them, never by re-deriving a sort fact. -/
       Term.liftN_lam]
   | pi u v A B ihA ihB => intro n k; simp only [liftN_pi, erase_pi, ihA, ihB,
       Term.liftN_pi]
+  | letE v b ihv ihb => intro n k; simp only [liftN_letE, erase_letE, ihv, ihb,
+      Term.liftN_letE]
   | eqE a b iha ihb => intro n k; simp only [liftN_eqE, erase_eqE,
       iha, ihb, Term.liftN_eqE]
   | fst e ih => intro n k; simp only [liftN_fst, erase_fst, ih,
@@ -304,6 +318,8 @@ rewriting with them, never by re-deriving a sort fact. -/
       Term.inst_lam]
   | pi u v A B ihA ihB => intro a k; simp only [inst_pi, erase_pi, ihA, ihB,
       Term.inst_pi]
+  | letE v b ihv ihb => intro a k; simp only [inst_letE, erase_letE, ihv, ihb,
+      Term.inst_letE]
   | eqE b c ihb ihc => intro a k; simp only [inst_eqE, erase_eqE,
       ihb, ihc, Term.inst_eqE]
   | fst e ih => intro a k; simp only [inst_fst, erase_fst, ih,
@@ -344,6 +360,7 @@ theorem erase_eq_const {ea : AnnotTerm} {c : BConst} {us : List Nat}
   | app f a => rw [AnnotTerm.erase_app] at h; exact nomatch h
   | lam u ty b => rw [AnnotTerm.erase_lam] at h; exact nomatch h
   | pi u v ty b => rw [AnnotTerm.erase_pi] at h; exact nomatch h
+  | letE v b => rw [AnnotTerm.erase_letE] at h; exact nomatch h
   | eqE l r => rw [AnnotTerm.erase_eqE] at h; exact nomatch h
   | fst e => rw [AnnotTerm.erase_fst] at h; exact nomatch h
   | snd e => rw [AnnotTerm.erase_snd] at h; exact nomatch h

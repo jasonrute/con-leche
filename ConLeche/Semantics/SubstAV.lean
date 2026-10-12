@@ -38,6 +38,7 @@ def substAV (τ : Nat → AnnotTerm) : AnnotTerm → (k : Nat) → AnnotTerm
   | .app f a, k => .app (substAV τ f k) (substAV τ a k)
   | .lam u A b, k => .lam u (substAV τ A k) (substAV τ b (k + 1))
   | .pi u v A B, k => .pi u v (substAV τ A k) (substAV τ B (k + 1))
+  | .letE v b, k => .letE (substAV τ v k) (substAV τ b (k + 1))
   | .eqE a b, k => .eqE (substAV τ a k) (substAV τ b k)
   | .fst e, k => .fst (substAV τ e k)
   | .snd e, k => .snd (substAV τ e k)
@@ -49,6 +50,8 @@ def substAV (τ : Nat → AnnotTerm) : AnnotTerm → (k : Nat) → AnnotTerm
     substAV τ (.pi u v A B) k = .pi u v (substAV τ A k) (substAV τ B (k + 1)) := rfl
 @[simp] theorem substAV_lam (τ : Nat → AnnotTerm) (u : Nat) (A b : AnnotTerm) (k : Nat) :
     substAV τ (.lam u A b) k = .lam u (substAV τ A k) (substAV τ b (k + 1)) := rfl
+@[simp] theorem substAV_letE (τ : Nat → AnnotTerm) (v b : AnnotTerm) (k : Nat) :
+    substAV τ (.letE v b) k = .letE (substAV τ v k) (substAV τ b (k + 1)) := rfl
 @[simp] theorem substAV_fst (τ : Nat → AnnotTerm) (e : AnnotTerm) (k : Nat) :
     substAV τ (.fst e) k = .fst (substAV τ e k) := rfl
 @[simp] theorem substAV_snd (τ : Nat → AnnotTerm) (e : AnnotTerm) (k : Nat) :
@@ -77,6 +80,7 @@ theorem substAV_eq_self (τ : Nat → AnnotTerm) : ∀ (e : AnnotTerm) {k : Nat}
   | app f a ihf iha => intro k h; rw [substAV_app, ihf h.1, iha h.2]
   | lam u A b ihA ihb => intro k h; rw [substAV_lam, ihA h.1, ihb h.2]
   | pi u v A B ihA ihB => intro k h; rw [substAV_pi, ihA h.1, ihB h.2]
+  | letE v b ihv ihb => intro k h; rw [substAV_letE, ihv h.1, ihb h.2]
   | eqE a b iha ihb => intro k h; show AnnotTerm.eqE _ _ = _; rw [iha h.1, ihb h.2]
   | fst e ihe => intro k h; rw [substAV_fst, ihe h]
   | snd e ihe => intro k h; rw [substAV_snd, ihe h]
@@ -148,6 +152,9 @@ theorem interp_substAV (τ : Nat → AnnotTerm) :
     congr 1
     funext x
     rw [ihB, ← cons_substE]
+  | letE v b ihv ihb =>
+    intro k ρ
+    rw [AnnotTerm.substAV_letE, interp_letE, interp_letE, ihv, ihb, ← cons_substE]
   | eqE a b iha ihb =>
     intro k ρ
     show interp V ρ (.eqE _ _) = _

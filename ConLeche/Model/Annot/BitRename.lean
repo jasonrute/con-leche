@@ -75,7 +75,13 @@ theorem denoteMeta_erasedEq {acval : Name → (Name → Nat) → AnnotTerm}
           (d + 1)]
   | .letE ty vl body, e₂, he, d => by
     match e₂, he with
-    | .letE ty' vl' body', he => rw [denoteMeta, denoteMeta]
+    | .letE ty' vl' body', he =>
+      obtain ⟨h0, h1, h2⟩ :
+          Expr.ErasedEq ty ty' ∧ Expr.ErasedEq vl vl' ∧ Expr.ErasedEq body body' := he
+      simp only [denoteMeta_letE, denoteMeta_erasedEq h0 d, denoteMeta_erasedEq h1 d,
+        denoteMeta_erasedEq (Expr.ErasedEq.instantiate1 h2
+          (show Expr.ErasedEq (.fvar d ty) (.fvar d ty') from rfl))
+          (d + 1)]
   | .lit l, e₂, he, _ => by
     match e₂, he with
     | .lit l', he => obtain rfl : l = l' := he; rfl

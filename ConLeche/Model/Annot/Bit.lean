@@ -167,12 +167,15 @@ checker runs, no fuel, no mode.  See the module docstring for the
     let fa ← denoteMeta acval env φ d f
     let aa ← denoteMeta acval env φ d a
     some (.app fa aa)
-  | _, .letE _ _ _ =>
-    -- **`none` by design** (task #241).  `AnnotTerm` has no `letE`
-    -- former, and it needs none: the checker's own `letE` arms are
-    -- positive errors, so an accepting run never reaches this clause
-    -- (`inferTypeCore_letE_inv`).
-    none
+  | d, .letE ty v b => do
+    -- the type must read (its constants resolve, as everywhere in a
+    -- stored term), but the reading drops it: nothing reads a `let`'s
+    -- type.  The body is opened at a fresh variable, as a binder's.
+    let _ ← denoteMeta acval env φ d ty
+    let va ← denoteMeta acval env φ d v
+    let ba ← denoteMeta acval env φ (d + 1)
+      (b.instantiate1 (.fvar d ty))
+    some (.letE va ba)
   | d, .proj sn i e => do
     let ea ← denoteMeta acval env φ d e
     -- the entry-kind branch (task #175 wiring W3): a tower-backed
@@ -295,10 +298,22 @@ theorem denoteMeta_erase {acval : Name → (Name → Nat) → AnnotTerm}
     obtain rfl := Option.some.inj h
     rw [denote_app, ihf hfa, iha haa]
     rfl
-  | case9 d ty val body =>
+  | case9 d ty val body ihty ihv ihbody =>
     intro ea h
     rw [denoteMeta] at h
-    exact nomatch h
+    rcases hta : denoteMeta acval env φ d ty with _ | ta
+    · rw [hta] at h; exact nomatch h
+    rw [hta] at h
+    rcases hva : denoteMeta acval env φ d val with _ | va
+    · rw [hva] at h; exact nomatch h
+    rw [hva] at h
+    rcases hba : denoteMeta acval env φ (d + 1)
+        (body.instantiate1 (.fvar d ty)) with _ | ba
+    · rw [hba] at h; exact nomatch h
+    rw [hba] at h
+    obtain rfl := Option.some.inj h
+    rw [denote_letE, ihv hva, ihbody hba]
+    rfl
   | case10 d sn i e ihe =>
     intro ea h
     rw [denoteMeta] at h

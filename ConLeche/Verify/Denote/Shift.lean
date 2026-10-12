@@ -141,18 +141,29 @@ theorem denote_bvarsBelow (hcl : ∀ n ψ, Term.Closed (cval n ψ)) :
     split at h
     · next vf va k1 k2 => exact (hbad vf va k1 k2).elim
     · exact nomatch h
-  | case14 d ty val body =>
-    intro _ _ v h; rw [denote_letE] at h; exact nomatch h
-  | case15 d sn i e h1 ihe =>
+  | case14 d ty val body h1 ihv =>
+    intro _ _ v h; rw [denote_letE, h1] at h; exact nomatch h
+  | case15 d ty val body B h1 h2 ihv ihbody =>
+    intro _ _ v h; rw [denote_letE, h1, h2] at h; exact nomatch h
+  | case16 d ty val body B h1 B' h2 ihv ihbody =>
+    intro hws hb v h
+    rw [denote_letE, h1, h2] at h
+    obtain rfl : v = .letE B B' := (Option.some.inj h).symm
+    simp only [Expr.WScoped] at hws
+    simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
+    exact ⟨ihv hws.2.1 hb.1.2 h1,
+      ihbody (Expr.WScoped.instantiate1 hws.1 0 hws.2.2)
+        (looseBVarsBounded_instantiate1 body 0 hb.2) h2⟩
+  | case17 d sn i e h1 ihe =>
     intro _ _ v h; rw [denote_proj, h1] at h; exact nomatch h
-  | case16 d sn i e B h1 entry h2 ihe =>
+  | case18 d sn i e B h1 entry h2 ihe =>
     intro hws hb v h
     rw [denote_proj, h1, h2] at h
     simp only [Option.some.injEq] at h
     simp only [Expr.WScoped] at hws
     obtain rfl : v = projNV (i + entry.off) B := h.symm
     exact projNV_bvarsBelow _ (ihe hws hb h1)
-  | case17 d sn i e B h1 h2 ihe =>
+  | case19 d sn i e B h1 h2 ihe =>
     intro hws hb v h
     rw [denote_proj, h1, h2] at h
     simp only [Expr.WScoped] at hws
@@ -163,22 +174,22 @@ theorem denote_bvarsBelow (hcl : ∀ n ψ, Term.Closed (cval n ψ)) :
     · simp only [Term.projPair?, Option.some.injEq] at h
       exact h ▸ hB
     · exact nomatch h
-  | case18 d n hg =>
+  | case20 d n hg =>
     intro _ _ v h
     rw [denote_natLit, ite_eq_left hg] at h
     obtain rfl := (Option.some.inj h).symm
     exact Term.bvarsBelow.mono (Nat.zero_le d)
       (natLitT_closed (hcl _ _) (hcl _ _) n)
-  | case19 d n hg =>
+  | case21 d n hg =>
     intro _ _ v h; rw [denote_natLit, ite_eq_right hg] at h; exact nomatch h
-  | case20 d t hg =>
+  | case22 d t hg =>
     intro _ _ v h
     rw [denote_strLit, ite_eq_left hg] at h
     obtain rfl := (Option.some.inj h).symm
     exact Term.bvarsBelow.mono (Nat.zero_le d) (strLitT_closed hcl t)
-  | case21 d t hg =>
+  | case23 d t hg =>
     intro _ _ v h; rw [denote_strLit, ite_eq_right hg] at h; exact nomatch h
-  | case22 d x k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 =>
+  | case24 d x k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 =>
     intro _ _ v h
     match x with
     | .bvar i => rw [denote_bvar] at h; exact nomatch h

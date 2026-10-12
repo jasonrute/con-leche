@@ -679,6 +679,11 @@ theorem bvarsBelow_substAV (τ : Nat → AnnotTerm) {n b : Nat}
     refine ⟨ihA k h.1, ?_⟩
     have := ihB (k + 1) (by rw [show k + 1 + n = k + n + 1 by omega]; exact h.2)
     rwa [show k + 1 + b = k + b + 1 by omega] at this
+  | letE v' b' ihv ihb =>
+    intro k h
+    refine ⟨ihv k h.1, ?_⟩
+    have := ihb (k + 1) (by rw [show k + 1 + n = k + n + 1 by omega]; exact h.2)
+    rwa [show k + 1 + b = k + b + 1 by omega] at this
   | eqE a b' iha ihb =>
     intro k h
     exact ⟨iha k h.1, ihb k h.2⟩

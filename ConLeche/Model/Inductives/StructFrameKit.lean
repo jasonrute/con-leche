@@ -521,6 +521,7 @@ the literal's reading consults.  (`fvar` annotations are never read.) -/
   | .app f a => Expr.ReadsAt P env f ∧ Expr.ReadsAt P env a
   | .lam ty b _ => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env b
   | .forallE ty b _ => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env b
+  | .letE ty v b => Expr.ReadsAt P env ty ∧ Expr.ReadsAt P env v ∧ Expr.ReadsAt P env b
   | .proj _ _ e => Expr.ReadsAt P env e
   | .lit (.natVal _) => natLitSupported env = true → P natZeroName ∧ P natSuccName
   | .lit (.strVal _) => strLitSupported env = true →
@@ -544,7 +545,7 @@ theorem Expr.ReadsAt.instantiate1 {P : Name → Prop} {env : Env} {v : Expr}
   | lam t b m iht ihb => intro k h; exact ⟨iht k h.1, ihb (k + 1) h.2⟩
   | forallE t b m iht ihb => intro k h; exact ⟨iht k h.1, ihb (k + 1) h.2⟩
   | proj s i e ihe => intro k h; exact ihe k h
-  | letE => intro _ _; trivial
+  | letE t v b iht ihv ihb => intro k h; exact ⟨iht k h.1, ihv k h.2.1, ihb (k + 1) h.2.2⟩
   | _ => intro _ h; exact h
 
 /-- **A reading consults the leaves only at the names it looks up**: two
@@ -581,9 +582,10 @@ theorem denoteMeta_agree_of_readsAt
   | case8 d f a ihf iha =>
     intro hcr
     rw [denoteMeta, denoteMeta, ihf hcr.1, iha hcr.2]
-  | case9 d ty val body =>
-    intro _
-    rw [denoteMeta, denoteMeta]
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hcr
+    rw [denoteMeta, denoteMeta, ihty hcr.1, ihv hcr.2.1,
+      ihbody (Expr.ReadsAt.instantiate1 (v := .fvar d ty) (by simp [Expr.ReadsAt]) _ 0 hcr.2.2)]
   | case10 d sn i e ihe =>
     intro hcr
     rw [denoteMeta, denoteMeta, ihe hcr]

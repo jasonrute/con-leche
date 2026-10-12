@@ -77,8 +77,8 @@ theorem teleSmall_zero : ∀ (n : Nat) (R : FrameRel V) (r : AnnotTerm), TeleSma
   | 0, _, _ => trivial
   | n + 1, R, .pi _ _ A B => ⟨fun _ _ _ x _ => SmallAt.zero x, teleSmall_zero n (R.underBoth A) B⟩
   | _ + 1, _, .bvar _ | _ + 1, _, .sort _ | _ + 1, _, .const _ _ | _ + 1, _, .app _ _
-  | _ + 1, _, .lam _ _ _ | _ + 1, _, .eqE _ _ | _ + 1, _, .fst _ | _ + 1, _, .snd _
-  | _ + 1, _, .prf => trivial
+  | _ + 1, _, .lam _ _ _ | _ + 1, _, .letE _ _ | _ + 1, _, .eqE _ _ | _ + 1, _, .fst _
+  | _ + 1, _, .snd _ | _ + 1, _, .prf => trivial
 
 /-! ## The walked accessibility onto the datum's fields -/
 

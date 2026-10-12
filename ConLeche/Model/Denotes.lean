@@ -311,10 +311,26 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     rw [interp_app]
     exact Denotes.app (ihf hfa hfb'.1 hlb'.1 ρ ⟨hw1.1, hw2.1⟩)
       (iha haa hfb'.2 hlb'.2 ρ ⟨hw1.2.1, hw2.2⟩)
-  | case9 d ty val body =>
-    intro ta h
-    rw [denoteMeta] at h
-    exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro ta h hfb hlb ρ hw
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d val ∧
+        Expr.fvarsBelow d body := hfb
+    have hlb' : (ty.looseBVarsBounded 0 && val.looseBVarsBounded 0 &&
+        body.looseBVarsBounded 1) = true := hlb
+    simp only [Bool.and_eq_true] at hlb'
+    obtain ⟨hw1, hw2⟩ := hw
+    rw [WellDenoted_letE] at hw1
+    rw [AnnotValid_letE] at hw2
+    show Denotes _ _ _ _
+      (Expr.letE (closeN d ty 0) (closeN d val 0) (closeN d body 1)) _
+    rw [interp_letE]
+    refine Denotes.letE (ihv hva hfb'.2.1 hlb'.1.2 ρ ⟨hw1.1, hw2.1⟩) ?_
+    rw [push_eq_cons]
+    have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2.2)
+      (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2)
+      (cons (interp V ρ va) ρ) ⟨hw1.2, hw2.2⟩
+    rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2.2] at hb
   | case10 d sn i e ihe =>
     intro ta h hfb hlb ρ hw
     obtain ⟨ia, hia, hcase⟩ := denoteMeta_proj_inv h

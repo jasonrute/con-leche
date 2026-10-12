@@ -82,6 +82,14 @@ theorem substAV_holeBack_liftN {nP k : Nat} {x : Nat → AnnotTerm}
     | zero => omega
     | succ i => show c ≤ i ∧ i < c + k; omega
 
+  | letE v b ihv ihb =>
+    intro c h
+    rw [AnnotTerm.substAV_letE, AnnotTerm.liftN_letE, ihv c h.1, ihb (c + 1) (NoBVar.mono ?_ h.2)]
+    intro i hi
+    cases i with
+    | zero => omega
+    | succ i => show c ≤ i ∧ i < c + k; omega
+
 section Frame
 
 variable {V : Type w} [SetTheory V]

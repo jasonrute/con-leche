@@ -90,6 +90,17 @@ theorem denoteMeta_lam (acval : Name → (Name → Nat) → AnnotTerm)
         some (.lam (pwBit φ mb.pw) ta ba)) := by
   rw [denoteMeta]
 
+theorem denoteMeta_letE (acval : Name → (Name → Nat) → AnnotTerm)
+    (d : Nat) (ty v body : Expr) :
+    denoteMeta acval env φ d (.letE ty v body)
+      = (do
+        let _ ← denoteMeta acval env φ d ty
+        let va ← denoteMeta acval env φ d v
+        let ba ← denoteMeta acval env φ (d + 1)
+          (body.instantiate1 (.fvar d ty))
+        some (.letE va ba)) := by
+  rw [denoteMeta]
+
 theorem denoteMeta_natLit {acval : Name → (Name → Nat) → AnnotTerm}
     {d n : Nat} (hg : natLitSupported env = true) :
     denoteMeta acval env φ d (.lit (.natVal n))
@@ -173,6 +184,27 @@ theorem denoteMeta_lam_inv {d : Nat} {ty bd : Expr}
     | some ba =>
       rw [ht, hb] at h
       exact ⟨ta, ba, rfl, rfl, (Option.some.inj h).symm⟩
+
+theorem denoteMeta_letE_inv {d : Nat} {ty v bd : Expr} {ea : AnnotTerm}
+    (h : denoteMeta acval env φ d (.letE ty v bd) = some ea) :
+    ∃ ta va ba, denoteMeta acval env φ d ty = some ta ∧
+      denoteMeta acval env φ d v = some va ∧
+      denoteMeta acval env φ (d + 1)
+        (bd.instantiate1 (.fvar d ty)) = some ba ∧
+      ea = .letE va ba := by
+  rw [denoteMeta] at h
+  cases ht : denoteMeta acval env φ d ty with
+  | none => rw [ht] at h; exact nomatch h
+  | some ta =>
+  cases hv : denoteMeta acval env φ d v with
+  | none => rw [ht, hv] at h; exact nomatch h
+  | some va =>
+    cases hb : denoteMeta acval env φ (d + 1)
+        (bd.instantiate1 (.fvar d ty)) with
+    | none => rw [ht, hv, hb] at h; exact nomatch h
+    | some ba =>
+      rw [ht, hv, hb] at h
+      exact ⟨ta, va, ba, rfl, rfl, rfl, (Option.some.inj h).symm⟩
 
 theorem denoteMeta_natLit_inv {d n : Nat} {ea : AnnotTerm}
     (h : denoteMeta acval env φ d (.lit (.natVal n)) = some ea) :

@@ -97,10 +97,20 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv h
     rw [denoteMeta, ihf hc.1 (fun j => (hnp' j).1) hfa, iha hc.2 (fun j => (hnp' j).2) haa]
     rfl
-  | case9 d ty val body =>
-    intro _ _ ea h
-    rw [denoteMeta] at h
-    exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro hc hnp ea h
+    rw [constsBound_letE] at hc
+    have hnp' := fun j => Expr.noProjAt_letE.mp (hnp j)
+    have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
+      ConstsBound.instantiate1
+        (by rw [constsBound_fvar]; exact hc.1) _ _ hc.2.2
+    have hnpb : ∀ j, Expr.NoProjAt T j (body.instantiate1 (.fvar d ty)) :=
+      fun j => Expr.NoProjAt.instantiate1 (Expr.noProjAt_fvar.mpr (hnp' j).1) _ _
+        (hnp' j).2.2
+    obtain ⟨ta, va, ba, hta, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    rw [denoteMeta, ihty hc.1 (fun j => (hnp' j).1) hta,
+      ihv hc.2.1 (fun j => (hnp' j).2.1) hva, ihbody hcb hnpb hba]
+    rfl
   | case10 d sn j e ihe =>
     intro hc hnp ea h
     rw [constsBound_proj] at hc
