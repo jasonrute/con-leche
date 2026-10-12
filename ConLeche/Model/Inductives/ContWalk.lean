@@ -9,8 +9,6 @@ import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.Inductives.ContSubst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Model.Rules.Inputs
-import ConLeche.Model.Rules.Sound
-import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.SumKit
 import ConLeche.Verify.Inductives.NestContInv

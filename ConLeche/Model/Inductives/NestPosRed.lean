@@ -7,7 +7,6 @@ public import ConLeche.Model.Rules.Inputs
 public import ConLeche.Model.CtxOkP
 import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.Inductives.TypeStep
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.BitRename

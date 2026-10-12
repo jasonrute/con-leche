@@ -10,7 +10,6 @@ import ConLeche.Verify.Inductives.NestContInv
 import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Semantics.Frame
-import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Verify.Leaves
 import ConLeche.Verify.Cached.Erase
 import ConLeche.Model.Inductives.TypeStep

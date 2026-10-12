@@ -10,9 +10,7 @@ public import ConLeche.Model.Inductives.PosDerivMono
 import ConLeche.Model.Inductives.NestPosRed
 import ConLeche.Model.Inductives.TypeStep
 import ConLeche.Semantics.Tower.FixTower
-import ConLeche.Model.Rules.Sound
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Verify.Rules.Bridge
 import ConLeche.Semantics.Kit
 import ConLeche.Semantics.Tower.SumTower
 import ConLeche.Model.Annot.BitRename

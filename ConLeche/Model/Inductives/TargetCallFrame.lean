@@ -4,8 +4,6 @@ public import ConLeche.Model.Inductives.TargetNodeDynOf
 import ConLeche.Model.Inductives.ContWalk
 import ConLeche.Model.Inductives.NestPosRed
 import ConLeche.Model.Inductives.StructFrameKit
-import ConLeche.Model.Rules.Sound
-import ConLeche.Verify.Rules.Bridge
 import ConLeche.Verify.InferLeaves
 import ConLeche.Verify.InferLemmas
 import ConLeche.Verify.Denote.IndFrame
