@@ -674,6 +674,127 @@ theorem genMem_U (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rw [← G.hdnP]
   exact hl
 
+set_option maxHeartbeats 4000000 in
+/-- **The K witness at a member class** (inversion of the least fixed
+point): at a member with one fieldless constructor, the major in the
+carrier at the recursor's parameters and index tuple is that
+constructor's injection at no fields, so it is the value of the
+constructor applied to the recursor's own parameters, whose stored fit's
+index clause is the recursor's index tuple (the index pin); the spine
+fits both types. -/
+theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
+    (hone : (d.ctorsM t).length = 1) (hnf0 : cA.2 = 0)
+    {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
+    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [a]) restR) :
+    ∃ restR' restC,
+      TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+        (xs ++ [AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take pp.nP)]) restR' ∧
+      TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj)
+        (xs.take pp.nP) restC ∧
+      IotaIndexPin (V := V) ρ restC pp.nP (pp.toBlockShape.majorIdxAt j)
+        (pp.toBlockShape.rulePrefixAt j) xs ∧
+      interp V ρ a
+        = interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take pp.nP)) := by
+  have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
+  have hrPle := blockRecHrPle (p := pp) h hj
+  have hnP' : d.nP ≤ pp.toBlockShape.rulePrefixAt j := by rw [G.hdnP]; exact hnP
+  have hD := G.hcf.2.2
+  obtain ⟨hpar, hsp', hmaj⟩ := genMem_major hμ h R hS G hr hm ψ hxl hfitR
+  have hpsV : ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)).take d.nP
+      = (xs.take d.nP).map (interp V ρ) := by
+    rw [← List.map_take, List.take_take, Nat.min_eq_left hnP']
+  rw [hpsV] at hpar hsp' hmaj
+  rw [← G.hdnP]
+  -- the carrier's decomposition: the one constructor, no fields
+  have ht : d.tup ψ t ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ))
+      ∈ˢ d.idx ψ (consList ((xs.take d.nP).map (interp V ρ)) ρ) t := tupW_mem hsp'
+  obtain ⟨j', fs', hfit', heqa⟩ := blockCarrier_case G.hM (d.satOfSpine hpar) G.hmN ht hmaj
+  have hj0 : j' = i := by have := hfit'.1; have := G.hjl; omega
+  subst hj0
+  have hFssD : (d.Fss t ψ).getD j' [] = ((d.dsF t j' ψ).drop d.nP).map (·.2.2) :=
+    fssOfR_fixCtorDataList_getD G.hcj
+  have hFss0 : (d.Fss t ψ).getD j' [] = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    rw [hFssD, List.length_map, List.length_drop, hD.len ψ, hnf0]; omega
+  have hfs0 : fs' = [] := by
+    have := hfit'.2.1.length_eq
+    rw [hFss0] at this
+    exact List.eq_nil_of_length_eq_zero this
+  subst hfs0
+  -- the constructor at the recursor's parameters: its value, its fit
+  have hyl : (xs.take d.nP).length = d.nP := by rw [List.length_take, hxl]; omega
+  have hqs : SpineFit ρ (d.params ψ) (((xs.take d.nP).take d.nP).map (interp V ρ)) := by
+    rw [List.take_take, Nat.min_self]; exact hpar
+  have hfq : SpineFit (consList (((xs.take d.nP).take d.nP).map (interp V ρ)) ρ)
+      ((d.Fss t ψ).getD j' []) (((xs.take d.nP).drop d.nP).map (interp V ρ)) := by
+    rw [hFss0, List.drop_eq_nil_of_le (Nat.le_of_eq hyl)]; trivial
+  have hval := blockCtorMajor_value G.hM G.hcj G.hcf.1 G.hmN hlv hqs hfq
+  rw [List.drop_eq_nil_of_le (Nat.le_of_eq hyl), List.map_nil] at hval
+  have heq : interp V ρ a
+      = interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take d.nP)) := by
+    rw [heqa, hval]
+  obtain ⟨restR', hfitR'⟩ := Rules.teleFitPA_snoc_congr xs hfitR heq
+  have hct : blockRecCtorTy mpC.base2.acval envC (tgtRs out) j j' ψj
+      = mkPisAV (d.dsF t j' ψj)
+          (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t j' ψj)) :=
+    Option.some.inj ((G.hctorRead ψj).symm.trans (hD.read ψj))
+  have hds : d.dsF t j' ψj = d.dsF t j' ψ := (hD.params ψj ψ hlv).1
+  have hdsLen : (d.dsF t j' ψ).length = d.nP := by rw [hD.len ψ, hnf0]; rfl
+  have hspC : SpineFit ρ ((d.dsF t j' ψj).map (·.2.2)) ((xs.take d.nP).map (interp V ρ)) := by
+    have h1 := ((spineFit_iff_of_sat_iff (by rw [G.hlenP ψ, List.length_map, List.length_take,
+      hdsLen, Nat.min_self]) (G.hparamsC ψ) ρ _ (by rw [hpar.length_eq])).mp hpar)
+    rw [List.take_of_length_le (Nat.le_of_eq hdsLen)] at h1
+    rw [hds]; exact h1
+  obtain ⟨restC, hfitC⟩ := teleFitPA_mkPisAV_of_spineFit
+    (b := ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t j' ψj))
+    (by rw [hds, hdsLen, hyl]) hspC
+  rw [← hct] at hfitC
+  refine ⟨restR', restC, hfitR', hfitC, ?_, heq⟩
+  -- the index pin: the residual's index readings are the stored fit's
+  have hD' := hD
+  have hteleC := piTeleAV_mkPisAV (d.dsF t j' ψj)
+    (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t j' ψj))
+  rw [hD.len ψj] at hteleC
+  rw [hct] at hfitC
+  have hrest := teleFitPA_rest_eq (d.nP + cA.2) hteleC (by rw [hyl, hnf0]; rfl) hfitC
+  unfold ctorBodyAVI at hrest
+  rw [instSeqAV_mkAppN] at hrest
+  have hes : d.esF t j' ψj = d.esF t j' ψ := (hD.params ψj ψ hlv).2
+  have hEssD : (d.Ess t ψ).getD j' [] = d.esF t j' ψ := essOfR_fixCtorDataList_getD G.hcj
+  have hlenE : (d.esF t j' ψ).length
+      = pp.toBlockShape.majorIdxAt j - pp.toBlockShape.rulePrefixAt j := by
+    rw [hD.lenE ψ, ← G.hlenIds ψ, ← hsp'.length_eq, List.length_map, List.length_drop, hxl]
+  have hcarLen : ((paramBvars d.nP cA.2 ++ d.esF t j' ψj).map
+      (ConLeche.Model.AnnotTerm.instSeq (xs.take d.nP) (d.nP + cA.2 - 1))).length
+      = d.nP + (d.esF t j' ψ).length := by
+    rw [List.length_map, List.length_append, paramBvars, List.length_map, List.length_range, hes]
+  refine ⟨_, _, hrest, Or.inr (by rw [hcarLen, hlenE]), fun q hq => ?_⟩
+  have hq' : q < (d.esF t j' ψ).length := by rw [hlenE]; exact hq
+  have hres := genMem_residual G (ys := xs.take d.nP) hlv (by rw [hyl, hnf0]; rfl)
+    (by rw [hct]; exact hfitC) hrest hcarLen q hq'
+  rw [hres]
+  -- the stored fit's index clause, at no fields
+  have hIdxOk := G.hM.idxOk ψ _ (d.satOfSpine hpar) t G.hmN
+  have hql : q < (d.IdsM t ψ).length := by
+    rw [← hsp'.length_eq, List.length_map, List.length_drop, hxl]; omega
+  have hstep := hfit'.2.2 q hql
+  rw [hEssD, consList_nil] at hstep
+  rw [hstep, BlockData.tup, projS_tupW hIdxOk hsp' hql, getD_map_pt (by
+    rw [List.length_drop, hxl]; omega), getD_drop']
+
 end Member
 
 end ConLeche.Model
