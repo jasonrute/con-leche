@@ -200,6 +200,7 @@ structure GenMemAt (mpC : EnvModelM V μ envC) (d : BlockData V) (pp : BlockPart
   hlfp : d.toLfp ∈ mpC.lfpBlocks
   hlenIds : ∀ ψ : Name → Nat, (d.IdsM t ψ).length = d.nIdxAt t
   hlpsT : cvT.levelParams = cA.1.levelParams
+  hctLen : (d.ctorsM t).length = (pp.toBlockShape.members.getD t default).ctors.length
 
 set_option maxHeartbeats 4000000 in
 /-- **A member class's facts, from the run** (`genRows3_mem`'s preamble). -/
@@ -216,6 +217,8 @@ theorem genMemAt_of
       pp.ctorNamesAt)
     (hcore : BlockCtorsCore mpC.base2 d pp.lps cvTas pp.toBlockShape isRec A d.k)
     (hlfp : d.toLfp ∈ mpC.lfpBlocks)
+    (hnames : ctorsAs.map (·.map (fun cA => (cA.1.name, cA.2)))
+      = pp.members.map (fun ms => ms.ctors.map (fun c => (c.1.name, c.2))))
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) {t : Nat} (hm : (tgtMajor out j).member = some t)
     {i : Nat} {cA : ConstantVal × Nat} (hcA : r.2.2.2[i]? = some cA) :
@@ -275,7 +278,14 @@ theorem genMemAt_of
       = some (.indInfo cvT (ConLeche.blockCapsAt pp.toBlockShape t isRec)) := by
     rw [hN.1 t cvT hcvT]; exact hfT
   refine ⟨cvT, hcj, htd, hmN, hjl, hM, hcf, hdnP, hnPc', hwd, hparamsC, hlenP, hctorRead,
-    hcaps, hlfp, hSt.lenIds t htd, ?_⟩
+    hcaps, hlfp, hSt.lenIds t htd, ?_, ?_⟩
+  rotate_left
+  · have hc0 := congrArg (fun L => (L[t]?).map List.length) hnames
+    simp only [List.getElem?_map, hms, hctors, Option.map_some, List.length_map,
+      Option.some.injEq] at hc0
+    rw [hctM, hc0]
+    show _ = (pp.members.getD t default).ctors.length
+    rw [List.getD_eq_getElem?_getD, hms, Option.getD_some]
   -- the member's former carries the constructor's level parameters (`LfpCtorReads`)
   obtain ⟨-, -, -, hrdC⟩ := mpC.lfp_ok _ hlfp
   obtain ⟨cv, nPc, nF, hfc, -, hall, -⟩ := hrdC.2 t htd i hjl
@@ -378,7 +388,9 @@ theorem genMem_S (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
     {ψ : Name → Nat} {usj : List Level} {φ : Name → Nat}
     (hlv : ∀ q ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj q = ψ q)
-    (hlic : ConLeche.iotaCtorLicensed envC.find? cA.1 usj = true)
+    {f : Name → Option ConstantInfo}
+    (hfm : f (d.memberName t) = some (.indInfo cvT (ConLeche.blockCapsAt pp.toBlockShape t isRec)))
+    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true)
     (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
@@ -389,7 +401,7 @@ theorem genMem_S (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
   rw [piResult_getAppFn_of_stripPis _ hres] at hhead
   obtain ⟨rfl, -⟩ := ConLeche.Expr.const.inj hhead
-  rw [G.hcaps] at hfT
+  rw [hfm] at hfT
   obtain ⟨rfl, rfl⟩ : cvT = cvT' ∧ ConLeche.blockCapsAt pp.toBlockShape t isRec = caps := by
     injection hfT with h'; injection h' with h1 h2; exact ⟨h1, h2⟩
   unfold ConLeche.capsNeverZero at hnz
@@ -794,6 +806,114 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rw [hEssD, consList_nil] at hstep
   rw [hstep, BlockData.tup, projS_tupW hIdxOk hsp' hql, getD_map_pt (by
     rw [List.length_drop, hxl]; omega), getD_drop']
+
+set_option maxHeartbeats 8000000 in
+/-- **The licence's facts at a member rule**, at the recursors' cons:
+the reading crossings (`blockRuleTVa_run`, `blockRecDenote_cross`), then
+the base-frame facts above. -/
+theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
+    (hctorCB : ConstsBound envC cA.1.type)
+    {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
+    {m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC)}
+    (hac : m₃.acval = blockRecAcv mpC.base2.acval envC (tgtRs out) s eqs) (φ : Name → Nat)
+    {rl : ConLeche.RecRule} (hct : ConLeche.RecRule.ctor rl = cA.1.name)
+    (hnf : ConLeche.RecRule.nfields rl = cA.2)
+    (hnp : ConLeche.RecRule.ctorParams rl = pp.nP)
+    (hfire : ConLeche.RecRule.fire rl = .plain)
+    (hpb : ConLeche.RecRule.paramsBlind rl = true)
+    (hk : ConLeche.RecRule.k rl = ConLeche.recRuleKOf envC.find? cA.1.name) :
+    RecRuleKWit m₃ φ r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j) rl ∧
+    RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
+      (pp.toBlockShape.rulePrefixAt j) rl := by
+  have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
+  have hrPle := blockRecHrPle (p := pp) h hj
+  have hcv := recStage_cvFacts h
+  have hkeep := find?_consBlockRecsR_keep (R := Rr) (q := pp.toBlockShape)
+    (fun r' hr' => (hcv r' hr').1)
+  have hfind3 : (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC).find?
+      (ConLeche.RecRule.ctor rl) = some (.ctorInfo cA.1 d.nP cA.2) := by
+    rw [hct]; exact hkeep _ _ G.hcf.1
+  have hstored : m₃.acval (ConLeche.RecRule.ctor rl) = mpC.base2.acval cA.1.name := by
+    rw [hct]; exact blockRecAcv_stored h hac (by rw [G.hcf.1]; rfl)
+  have hnpd : ConLeche.RecRule.ctorParams rl = d.nP := by rw [hnp, G.hdnP]
+  -- the constructor's reading at the cons
+  have hTVjaOf : ∀ usj : List Level,
+      denoteMeta m₃.acval (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC) φ 0
+        (cA.1.type.instantiateLevelParams cA.1.levelParams usj)
+      = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i
+          (Level.substFn φ cA.1.levelParams usj)) := by
+    intro usj
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₃) φ]
+    exact blockRecDenote_cross h hac _ 0 cA.1.type hctorCB (G.hctorRead _)
+  refine ⟨fun hk1 => ?_, ?_⟩
+  · ------------------------------------------------------------------ K
+    rw [hk] at hk1
+    obtain ⟨cvj', cnP', T, us₀, cvT', caps, h1, h2, h3, h4⟩ := ConLeche.recRuleKOf_inv hk1
+    rw [G.hcf.1] at h1
+    obtain ⟨rfl, -, hnf0⟩ : cA.1 = cvj' ∧ d.nP = cnP' ∧ cA.2 = 0 := by
+      injection h1 with h'; injection h' with a b c; exact ⟨a, b, c⟩
+    -- the family is the member, whose record makes it single-constructor
+    obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
+    rw [piResult_getAppFn_of_stripPis _ hres] at h2
+    obtain ⟨rfl, -⟩ := ConLeche.Expr.const.inj h2
+    rw [G.hcaps] at h3
+    obtain ⟨-, rfl⟩ : cvT = cvT' ∧ ConLeche.blockCapsAt pp.toBlockShape t isRec = caps := by
+      injection h3 with h'; injection h' with a b; exact ⟨a, b⟩
+    have hone : (d.ctorsM t).length = 1 := by
+      rw [G.hctLen]
+      rcases blockCapsAt_cases pp.toBlockShape t isRec with ⟨c, hc, -⟩ | hc
+      · rw [hc]; rfl
+      · rw [hc] at h4; exact nomatch h4
+    refine ⟨by rw [hnf, hnf0], fun us hus TVa hTVa ρ xs a restR hxl hfit => ?_⟩
+    obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
+    have hlv := blockRuleLevelAgree (φ := φ) (lps := cA.1.levelParams) (lpsR := r.1.levelParams)
+      (us := us) (usj := (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
+        (pp.toBlockShape.rulePrefixAt j)).1) (rP := pp.toBlockShape.rulePrefixAt j) hfire rfl
+    obtain ⟨restR', restC, hfitR', hfitC, hpin, hval⟩ :=
+      genMem_K hμ h R hS G hr hm hnP hone hnf0 hlv ρ xs a restR hxl hfit
+    refine ⟨cA.1, d.nP, cA.2,
+      (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
+        (pp.toBlockShape.rulePrefixAt j)).1, xs.take pp.nP, _, restR', restC,
+      hfind3, ?_, ?_, rfl, fun hb => absurd hb (by rw [hpb]; decide),
+      fun lvls pins hn => absurd hn (by rw [hfire]; exact fun h => nomatch h),
+      fun _ => by rw [hnp]; exact hpin, hTVjaOf _, by rw [hstored]; exact hfitR',
+      hfitC, by rw [hstored]; exact hval, fun hxs y hy => hxs y (List.mem_of_mem_take hy)⟩
+    · rw [List.length_take, hnp, hnf, hnf0, hxl]; omega
+    · rw [ConLeche.recFireComparands_plain hfire, List.length_map]
+  · ------------------------------------------------------------------ NK
+    intro us hus TVa hTVa cvj cnP cnF hfind
+    rw [hfind3] at hfind
+    obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cvj ∧ d.nP = cnP ∧ cA.2 = cnF := by
+      injection hfind with h'; injection h' with a b c; exact ⟨a, b, c⟩
+    obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
+    refine ⟨by rw [hnpd, hnf, hres]; rfl, fun _ usj husj hψ TVja hTVja => ?_⟩
+    obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
+    rw [hTVjaOf] at hTVja
+    obtain rfl := Option.some.inj hTVja
+    have hlv := blockRuleLevelAgree hfire hψ
+    rw [hstored]
+    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_, fun ρ xs a restR hxl hfit hapt ys restC _ =>
+      genMem_P hμ h R hS G hr hm hlv ρ xs a restR hxl hfit hapt ys, ?_⟩
+    · exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
+    · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ _ hcP _ hpinC
+      refine ⟨fun hb => absurd hb (by rw [hpb]; decide),
+        fun lvls pins hn => absurd hn (by rw [hfire]; exact fun h => nomatch h), fun hpt => ?_⟩
+      rw [hnp] at hpinC hyl ⊢
+      rw [hnf] at hyl
+      refine genMem_U hμ h R hS G hr hm hnP hlv hxl hyl hfitR hfitC
+        (fun q hq h1 h2 => hcP hfire (Or.inr hpt) q (by rw [hnp]; exact hq)
+          (by have := G.hdnP; omega) h1 h2) (hpinC hpt)
 
 end Member
 
