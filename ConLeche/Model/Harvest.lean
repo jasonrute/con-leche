@@ -444,12 +444,12 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
           = some (A ψ) := fun ψ =>
         denoteMeta_depth_of_closed mp.base2.acval_closed hvf'
           (hAclosed ψ) (hA ψ) 2
-      obtain ⟨hSelfBin, hSelfUn⟩ := natSelfHead_install (φ := φ) mp
+      obtain ⟨hSelfBin, hSelfUn, hBoolS⟩ := natSelfHead_install (φ := φ) mp
         hcmem hfresh hpin hsE hTa hTok hA2
         (fun ψ ρ => ⟨hAok ψ ρ, hAvalid ψ ρ⟩) hmemA
       exact natOps_install mp ((hclaims φ).2.2.1) (mp.nat_ops φ)
         hcmem hfresh hlpcv hsE hg2 hdeps₂ hruns hA hAclosed hvf' hbv'
-        hSelfBin hSelfUn _ rfl
+        hSelfBin hSelfUn hBoolS _ rfl
     · exact natOps_cons_fresh mp (mp.nat_ops φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
