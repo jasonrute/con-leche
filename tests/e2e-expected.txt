@@ -2858,3 +2858,27 @@
 0 pinstall_ok.ndjson
 1 pinstall_reject_mid.ndjson
 1 pinstall_dup.ndjson
+# --- the openai/math completeness run (2026-10-10; parked by task #348,
+# see DESIGN.md "TASK #348"): two of its three exit-3 causes, pinned at
+# today's verdict, to be looked into later (after the checker rewrite).
+# spine_arg_order.ndjson (cause A): `2*(x+5000000)+1+1 = 2*(x+5000000)+2`
+# by rfl.  From the challenges RandomizedMeanPayoff
+# (`OAI.MeanPayoff.DetRealizer.total_formula`) and UniformFourier
+# (`OAI.PowerSaving.Cluster.certificate`).  The lazy-delta same-head
+# shortcut `defeqSpine` compares the arguments first to last; official
+# `is_def_eq_args` compares them last to first, fails `1 =?= 2` at once
+# and unfolds.  con-leche first decides `M+1 =?= M` by unary succ descent
+# and exhausts checkFuel (exit 3).  Official accepts.  Today 3, TARGET 0.
+3 spine_arg_order.ndjson
+# natmul_deep_major.ndjson (cause B): `st 0 1 = st (W*200033) 1` by rfl.
+# From the challenges PeriodicGroup (`OAI.SourceBurnside.RawNumberPrep.
+# seed_run`) and LogspaceEquality (`OAI.ExactDerandomization.Vessel.
+# Basket.Sack.Ground.advances._proof_1_2`; MatchingFPRAS's
+# `OAI.MatchingFPRAS.ExecutableEstimator.upperRealizer` has the same
+# cause).  ι on `List.replicate (W*200033) false` whnfs its major, a
+# 200033-deep whnf/reduceNat first-argument recursion; official performs
+# it on its native stack and accepts, con-leche's checkFuel (100000 knot
+# levels) is exhausted (exit 3).  A larger checkFuel alone accepts it but
+# overflows the native stack on spine_arg_order: the fix needs a stack
+# policy.  Today 3, TARGET 0.
+3 natmul_deep_major.ndjson
