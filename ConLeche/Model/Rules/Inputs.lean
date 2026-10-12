@@ -51,30 +51,27 @@ reading of `w` interprets as the packed literal, which reads and is
 graded. -/
 @[expose] def NatSuccRow {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
     Prop :=
-  ∀ {d : Nat} {w : Expr} {n : Nat} {Δa : List AnnotTerm} {ea : AnnotTerm},
+  ∀ {d : Nat} {w : Expr} {n : Nat} {ea : AnnotTerm},
     ConLeche.natLitSupported env = true →
     ConLeche.rawNatLit? w = some n →
     denoteMeta m.acval env φ d (.app (.const natSuccName []) w) = some ea →
-    Graded V Δa ea →
     ∃ ra, denoteMeta m.acval env φ d (.lit (.natVal (n + 1))) = some ra ∧
-      Graded V Δa ra ∧
-      ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ra
+      ∀ ρ : Nat → V, WellDenotedV V ρ ea →
+        WellDenotedV V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
 /-- **The binary acceleration's semantic row**: a stored operation on
 two literal readings interprets as `natOpResult`, which reads and is
 graded. -/
 @[expose] def NatOpRow {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
     Prop :=
-  ∀ {d : Nat} {c : Name} {wa wb r : Expr} {n₁ n₂ : Nat} {Δa : List AnnotTerm}
-    {ea : AnnotTerm},
+  ∀ {d : Nat} {c : Name} {wa wb r : Expr} {n₁ n₂ : Nat} {ea : AnnotTerm},
     c ∈ natBinOpNames → ConLeche.natOpStored env c = true →
     ConLeche.rawNatLit? wa = some n₁ → ConLeche.rawNatLit? wb = some n₂ →
     ConLeche.natOpResult c n₁ n₂ = some r →
     denoteMeta m.acval env φ d (.app (.app (.const c []) wa) wb) = some ea →
-    Graded V Δa ea →
     ∃ ra, denoteMeta m.acval env φ d r = some ra ∧
-      Graded V Δa ra ∧
-      ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ra
+      ∀ ρ : Nat → V, WellDenotedV V ρ ea →
+        WellDenotedV V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
 /-- **The environment-level inputs of the rules soundness**, at one
 `(env, m, φ)`, sorted by discharging tier. -/

@@ -478,9 +478,9 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
       (ConLeche.inferTypeCore_fvarLeaves mp.base2.wf F hinf hWA)
   -- the defeq run identifies the inferred type with the statement
   have heq : interp V ρ ta = interp V ρ vE :=
-    eq_of_IsTy_of_ne_pt (hokT ρ hsat).2 (hokE ρ hsat).2 fun _ _ =>
-      hdeC hde hWtp hBtp hLtp hWE hBE hLE hCtp hCE hta hvE
-        (fun σ hσ => (hokT σ hσ).1) (fun σ hσ => (hokE σ hσ).1) ρ hsat
+    eq_of_IsTy_of_ne_pt (hokT ρ hsat).2 (hokE ρ hsat).2
+      (hdeC hde hWtp hBtp hLtp hWE hBE hLE hCtp hCE hta hvE
+        (fun σ hσ => (hokT σ hσ).1) (fun σ hσ => (hokE σ hσ).1) ρ hsat)
   exact ⟨interp V ρ ea, by rw [← heq]; exact hmem ρ hsat⟩
 
 /-! ## The frame's leaf discipline

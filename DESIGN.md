@@ -101478,3 +101478,143 @@ comparison sites of `RecRuleLaw`).
 **Gates.**  `lake build` and `lake test` warning-free; `Axioms.lean`
 unchanged; arena tutorial and e2e as the base (one run; no checker
 change).  No `sorry`, no new axiom.
+
+## TASK #342 — L9: per-valuation conditional motives, one β rule (2026-10-12, agent/342-l9)
+
+Lane L9, stage S3 (`_tmp/342v2-design.md` §3.2, §11.5 row S3), under the
+annotated reading.  It blocks L10–L13.  `Denotes.lean`, `MainTheorem`,
+`Challenge` and `Axioms.lean` are unchanged; no checker code changed.
+
+**The motives** (`Model/Rules/Motive.lean`) are per valuation, the
+fragment's shape (#344): the subject's grading, its leaves' grading and
+`Sat` are premises at one `ρ`, and so are the conclusions; reading
+existence (`∃ ea'`, `∃ ta`, `∃ resta`) stays outside `ρ` and reads no
+grading.  `RedSem`, `DefEqSem` and `DefEqListSem` are conditional on the
+point: a reduct is graded and equal where the subject is not the point,
+two sides are equal where neither is.  `InferSemFull`/`InferSemIO`,
+`CertsSem`, `EtaProjCertsSem` are per valuation and not conditional.
+
+**Finding: the context discipline had to split.**  `CtxOk` carries the
+leaf types' grading at every satisfying valuation.  Opening a binder
+(β's reduct, the λ/∀ congruences, η, the λ rule) puts the binder's
+domain into the context, and under conditional claims a domain inside a
+reduct is graded only at the valuations where the reduct's subject is
+not the point.  So the motives carry `CtxOkS` (`Model/Currency.lean`:
+`CtxOk` without its fourth conjunct) outside `ρ` and `LeavesGr` (that
+conjunct at `ρ` only) inside.  `CtxOkS.openS` opens a binder with no
+grading; `LeavesGr.open` needs the domain graded at `ρ`.  The claims
+keep `CtxOk` (`CtxOk.toS`, `CtxOk.leavesGr` convert); nothing outside the
+rules tier changed its context discipline.  The fragment's `Sat`
+carries the entries' grading and `IsTy` instead; the real `Sat`
+(Semantics) is grading-free, so the split is the cheaper of the two.
+
+**One β rule** (`Rules/Rel.lean`): `Red.betaGate` and `Red.beta` merge into
+
+```lean
+  | beta {d : Nat} {ty body a ta : Expr} {mb : BinderMeta} :
+      (mb.pw.isNever = false → Infer env .io d a ta) →
+      (mb.pw.isNever = false → DefEq env d ta ty) →
+      Red env d (.app (.lam ty body mb) a) (body.instantiate1 a)
+```
+
+`Red.beta_sound` (the conditional motive) reads neither premise: a redex
+that is not the point has a λ that is not the point ("not pt" source
+(2): `app_pt`); a λ read at kind `0` is the point (`lamR_zero`), so the
+λ is read at a positive kind, where β is the graph's application
+(`betaPosV`).  The premises are the checker's certificate where its gate
+does not fire; only the interim side induction reads them
+(`Red.beta_soundU`, `betaZeroV`).  L13 deletes them with the checker's
+certificate, once the side induction is gone.  The bridge
+(`Verify/Rules/RedBridge.lean`) builds the rule from both checker paths.
+
+**Deviation: an interim unconditional side induction.**  The design
+expected L9 to make the claims conditional and leave substantial ι /
+definitional-equality parts on an unconditional side lemma.  A side
+LEMMA per rule is not enough: the ι rule's premises are `DefEqList`,
+`Red` and `Certs` derivations, and under the conditional motives their
+claims are conditional; L7's counterexample shows that conditional
+parameter/index comparisons cannot give the ι law its unconditional pins
+(a case-3 plain rule compares no parameters).  So the side is a whole
+INDUCTION: `red_soundU`, `defeq_soundU`, … (`Model/Rules/Sound.lean`)
+over the same relations at the unconditional per-valuation motives
+(`RedSemU`, `DefEqSemU`, `DefEqListSemU`).  It is sound only with β
+certified, which is why `Red.beta` keeps its guarded premises for now.
+The conditional induction (`red_sound`, `defeq_sound`, …) proves its
+rules natively where L9 could, and takes the rest as the side
+induction's result weakened (`RedSemU.cond`, `DefEqSemU.cond`):
+
+| Rule | Conditional induction |
+|---|---|
+| `Red.refl/trans/appFn/projArg/beta/zeta/delta/natLit/strLit/proj` | native (`appFn`: source (2); `projArg`: a projection of the point is the point, `projS_pt`/`sfst_pt`/`ssnd_pt`; `beta`: above) |
+| `Infer.*`, `Certs.*`, `EtaProjCerts.*` | native, one lemma shared by both inductions; every conditional sub-claim they read is between types ("not pt" source (1), five sites in `InferSound`, one in `CertsSound`, one in `DefEqSoundKit.prop_side_pt'`) |
+| `DefEqList.*` | native (pointwise conditional) |
+| `Red.natSucc`, `Red.natOp` | interim (side induction) — L12 |
+| `Red.iota`, `rescueK`, `rescueEta`, `rescueAnd` | interim — L10 |
+| every `DefEq` rule | interim (`defeq_sound := (defeq_soundU hin h).cond`) — L11 |
+
+**The claims** (`Model/Claims.lean`): `WhnfCoreClaim`/`WhnfClaim`
+conclude the reduct's grading and the equation where the subject is not
+the point; `DefEqClaim` concludes the equation where neither side is;
+`InferClaim`/`InferClaimIO` unchanged.  Consumers:
+- L8's six sites (`Harvest` ×3, `DivModCert.certValue`, `ReduceOps`,
+  `NatEqs.natEqLaw_of_run`): the `fun _ _ =>` wrapper dropped.
+- L7's two: `GenRecParams.prefixDoms_agree_inst` (both sides domains
+  of graded telescopes: `eq_of_IsTy_of_ne_pt` after the lift
+  rewrite), `StructFrameKit.ClaimsAt.defEqRow` (now takes the two
+  sides' `WellDenotedTy`; its two callers pass the telescope entries'
+  `okΓ` whole).
+- `Tiers.sortSemAt_of_claims`: the inferred type is a type.
+- The positivity readers (`PosDerivMono`, `PosDerivNodes`,
+  `PosDerivAcc`, `NestPosRed`) read whnf steps of the types they walk
+  through `red_sound_global`, an **interim** global form over the side
+  induction: their motives carry the walked types' grading, not their
+  `IsTy`.  The five `InferSemFull` readers in `Model/Inductives` use
+  `InferSemFull.global` (not interim).
+
+**For L10 (ι).**  `Red.iota_soundU` and the three rescues
+(`IotaSound.lean`) are the per-valuation unconditional proofs to turn
+into conditional ones at `RedSem`, against conditional `DefEqListSem`
+(the `∀ p ∈ zip, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2` form, which is
+`spineFit_eq_of_cond`'s), conditional `RedSem` for the major, and
+`CertsSem`.  The cases: family never `Prop` at the instance — the major
+is not the point (`IndFibLaw`, source (3)), so the major's reduction
+is an equation and `blockRule_coherent` applies; motive into `Prop` —
+the redex is the point (vacuous); case 3 — the pre-ruled parameter
+comparison plus F3 (a constructor of a family whose sort is `0` is the
+point, `app_pt`).  Then replace the four interim arms of `red_sound`.
+Nothing in the conditional claims assumes parameters are compared.
+
+**For L11 (definitional equality).**  `DefEq.*_soundU` (`DefEqSound.lean`)
+to the conditional `DefEqSem`, then `defeq_sound` becomes a mutual
+member of the conditional induction.  Congruences need IsTy.eq_of_ne_pt
+on the arguments (an argument that is the point lies in a domain whose
+members are all the point); `proofIrrel`/`proofFast` conclude the point
+on both sides (vacuous); `structEta`/`structUnit` read conditional
+`DefEqList`s of fields.
+
+**For L12.**  `Red.natSucc`/`natOp` at the conditional motive: the
+argument's claim needs the argument in `Nat` ("not pt" source (3)), from
+the head's graph (source (2): the redex is not the point, so the head
+is not, so its domain is `Nat`, `piR_dom_unique` against `NatHeads`'
+`piR 1`); `IsTy natS` plus `IsTy.eq_of_ne_pt` against the literal's
+membership then gives the argument's equation even when it is the
+point.  The positivity readers' `IsTy` (to retire `red_sound_global`).
+
+**For L13.**  When `red_soundU`/`defeq_soundU` are gone, `Red.beta`'s two
+premises are read by nothing: delete them with `whnfAppI`/`betaPeelI`
+and the gate, and the bridge's two β arms become one.
+
+**Gates** (the integration-branch subset, COMMON.md).
+- `lake build` and `lake test`: no warnings; `Axioms.lean` unchanged
+  (20 pins).
+- The arena tutorial at 90/92; e2e 471/471 (one run; no checker
+  change).
+- `tests/challenge.sh` green.
+- No `sorry`, no new axiom.
+- OVERVIEW §4's claim bullets and the soundness paragraph updated;
+  `overview-links.sh` and `whitepaper/links-gate.sh` deferred (the
+  `Claims`, `Motive`, `Rel`, `Sound` anchors moved).
+
+39 files, +2482 −1401 against `port-342` (the rules tier's five
+soundness files and `Sound.lean` carry most of it: the per-valuation
+reshaping, both inductions).

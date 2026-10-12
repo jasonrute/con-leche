@@ -678,12 +678,12 @@ theorem natEqLaw_of_run (mp : EnvModelM V μ env) {ψ : Name → Nat}
   have hρ : Sat V (natCtx2 mp.base2 ψ) (cons y (cons x ρ)) :=
     sat_natCtx2 mp.base2 hx hy
   -- two members of one type: the point does not separate them
-  exact (hS _ hρ).eq_of_ne_pt (hga _ hρ).2 (hgr _ hρ).2 fun _ _ =>
-    hde hrun hwl hbl hLl hwr hbr hLr
+  exact (hS _ hρ).eq_of_ne_pt (hga _ hρ).2 (hgr _ hρ).2
+    (hde hrun hwl hbl hLl hwr hbr hLr
       (ctxOk_natCtx2 mp.base2 mp.acvalValid hfN hlpN hNty hll)
       (ctxOk_natCtx2 mp.base2 mp.acvalValid hfN hlpN hNty hlr)
       hla hra (fun σ hσ => (hga σ hσ).1) (fun σ hσ => (hgr σ hσ).1)
-      (cons y (cons x ρ)) hρ
+      (cons y (cons x ρ)) hρ)
 
 /-! ## The crossing: substituted readings at the prefix are raw
 readings at the extension -/

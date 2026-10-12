@@ -86,7 +86,7 @@ the `Nat.succ` leaf, the argument to the numeral spine, and
 `natLit_succ` is the packing. -/
 theorem natSuccRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     Rules.NatSuccRow mp.base2 φ := by
-  intro d w n Δa ea hnat hraw hea hg
+  intro d w n ea hnat hraw hea
   obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, hfZ, hfS, hlpN,
     hlpZ, hlpS, -⟩ := ConLeche.natLitSupported_inv hnat
   obtain ⟨fa, wa, hfa, hwa, rfl⟩ := denoteMeta_app_inv hea
@@ -98,11 +98,10 @@ theorem natSuccRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     Option.some.inj
       (hwa.symm.trans (denoteMeta_rawNatLit mp.base2 hnat hraw d))
   refine ⟨natLit mp.base2 φ (n + 1),
-    denoteMeta_natLit_spine mp.base2 hnat d (n + 1), ?_, ?_⟩
+    denoteMeta_natLit_spine mp.base2 hnat d (n + 1), fun ρ hg => ⟨?_, ?_⟩⟩
   · rw [natLit_succ]
     exact hg
-  · intro ρ _
-    rw [natLit_succ]
+  · rw [natLit_succ]
 
 set_option maxHeartbeats 1600000 in
 /-- **`NatOpRow`, proved.**  The fourteen certified binary operations
@@ -112,7 +111,7 @@ recurrence law (`EnvModelM.nat_ops` / `EnvModelM.div_mod`, through the
 `natOpV_*` transports) computes the interpretation of `natOpResult`. -/
 theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     Rules.NatOpRow mp.base2 φ := by
-  intro d c wa wb r n₁ n₂ Δa ea hc hstored hrawa hrawb hres hea hg
+  intro d c wa wb r n₁ n₂ ea hc hstored hrawa hrawb hres hea
   have h14 : c = ConLeche.natAddName ∨ c = ConLeche.natSubName ∨
       c = ConLeche.natMulName ∨ c = ConLeche.natPowName ∨
       c = ConLeche.natBeqName ∨ c = ConLeche.natBleName ∨
@@ -154,16 +153,16 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         (interp V ρ (natLit mp.base2 φ n₂))
         = interp V ρ (natLit mp.base2 φ K)) →
       ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
-        Rules.Graded V Δa ra ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ →
+        ∀ ρ : Nat → V, WellDenotedV V ρ ((.app (.app (mp.base2.acval c φ)
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm)) →
+          WellDenotedV V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
               (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm))
             = interp V ρ ra := by
     intro K hr hop
     subst hr
     refine ⟨natLit mp.base2 φ K,
-      denoteMeta_natLit_spine mp.base2 hnat d K, fun ρ _ => ?_,
-      fun ρ _ => ?_⟩
+      denoteMeta_natLit_spine mp.base2 hnat d K, fun ρ _ => ⟨?_, ?_⟩⟩
     · exact (natLit_facts mp.base2 (mp.nat_heads φ) mp.acvalValid hnat
         ρ K).1
     · rw [interp_app, interp_app]
@@ -178,8 +177,9 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         (interp V ρ (natLit mp.base2 φ n₂))
         = interp V ρ (mp.base2.acval bn φ)) →
       ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
-        Rules.Graded V Δa ra ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ →
+        ∀ ρ : Nat → V, WellDenotedV V ρ ((.app (.app (mp.base2.acval c φ)
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm)) →
+          WellDenotedV V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
               (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm))
             = interp V ρ ra := by
@@ -194,7 +194,7 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
       rcases hbn with rfl | rfl
       · exact denoteMeta_levelless_const hfT hlpT
       · exact denoteMeta_levelless_const hfF hlpF
-    refine ⟨mp.base2.acval bn φ, hread, fun ρ _ => ?_, fun ρ _ => ?_⟩
+    refine ⟨mp.base2.acval bn φ, hread, fun ρ _ => ⟨?_, ?_⟩⟩
     · exact ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acvalValid _ _ ρ⟩
     · rw [interp_app, interp_app]
       exact hop ρ

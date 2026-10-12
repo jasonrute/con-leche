@@ -298,7 +298,8 @@ theorem dyn_ctorFit {F : Nat} {envI envC : Env} {mk : EnvModelM V μ envI}
   have hty' : ConLeche.inferTypeCore .verified envI F
       (ctx.hiAt u.anc.length + u.grp.length) crest = .ok ty := hty
   obtain ⟨-, -, -, -, hgr, -, -⟩ :=
-    Rules.infer_sound (Rules.RulesInputs.ofSem mk ψ) (ConLeche.Rules.inferTypeCore_bridge hty')
+    Rules.InferSemFull.global
+      (Rules.infer_sound (Rules.RulesInputs.ofSem mk ψ) (ConLeche.Rules.inferTypeCore_bridge hty'))
       hfr hCP.toCtxOk hrd
   -- the walked normal forms: closed and scoped
   have hhiP : ctx.hiAt ((grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length) u.grp).reverse

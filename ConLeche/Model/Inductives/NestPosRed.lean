@@ -205,7 +205,7 @@ theorem red_whnf (hin : RulesInputs V m φ) {F dep : Nat} {e w : Expr}
     (hea : denoteMeta m.acval env φ dep e = some ea) (hgr : Graded V Δa ea) :
     Frame dep w ∧ LeavesSub w e ∧ ∃ nda, denoteMeta m.acval env φ dep w = some nda ∧
       Graded V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda := by
-  obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_sound hin
+  obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_sound_global hin
     (ConLeche.Rules.whnf_bridge (show ConLeche.whnf .verified env F dep e = .ok w from hw)) hfr
     hC.toCtxOk hea hgr
   exact ⟨hfrw, hsub, wa, hwa, hgw, heq⟩

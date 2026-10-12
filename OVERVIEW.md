@@ -608,10 +608,18 @@ direction only
 ([the claim definitions in `ConLeche/Model/Claims.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Claims.lean#L56-L123)):
 
 * `whnfCore`/`whnf` return a term with the same denotation, with the
-  invariant preserved;
-* `isDefEq` answering `true` means the two denotations are equal;
+  invariant preserved, wherever the term does not denote the proof
+  point;
+* `isDefEq` answering `true` means the two denotations are equal
+  wherever neither is the proof point;
 * `inferType` returns a type that denotes a type, and the term's
   denotation is a member of it.
+
+The first two say nothing about proofs. A type is never the point, so
+a comparison or reduction of types — which is what declarations,
+inference and the certificates run — is claimed outright; between two
+members of one type, the point does not separate them either, because
+a type's members are all the point or none.
 
 They are proved through a *relational description* of the checker.
 Six mutually inductive relations over the checker's own terms say what
@@ -635,7 +643,13 @@ on fuel, mechanical, each checker site landing on one rule
 The *soundness*: a derivation implies the claim's conclusion — one
 structural induction over the six relations, every case one lemma
 about one rule, stated over the environment's laws and never over the
-implementation
+implementation, at one valuation at a time. β's lemma reads no premise:
+a redex that is not the point has a λ that is not the point, which is
+a function on its own domain, and the argument's typing puts the
+argument there. The ι rules, the literal accelerations and the
+definitional-equality rules are proved by a second, unconditional
+induction, which reads β's certificate; they reach the conditional
+claims by weakening
 ([the master induction in `ConLeche/Model/Rules/Sound.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Rules/Sound.lean#L41-L44)).
 And the *recomposition*, which is a few lines per claim: bridge the
 run, apply the soundness

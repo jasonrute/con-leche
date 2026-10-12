@@ -393,7 +393,7 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     ⟨_, Rules.inferTypeCore_bridge hta⟩
   obtain ⟨hFrB, hCB, hGB⟩ := WalkCtx.subjOkL hacl1 hin hL0 hW0 hBL hBb hba
     ⟨_, Rules.inferTypeCore_bridge htb⟩
-  have heq := Rules.defeq_sound hin (Rules.isDefEqCore_bridge hd) hFrA hFrB hCA hCB haa hba
+  have heq := Rules.defeq_sound_global hin (Rules.isDefEqCore_bridge hd) hFrA hFrB hCA hCB haa hba
     hGA hGB _ hW0.2.1
   rw [hA] at haa
   rw [hB] at hba

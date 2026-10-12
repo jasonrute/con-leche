@@ -297,4 +297,270 @@ theorem CtxOk.open {d : Nat} {Δa : List AnnotTerm} {body ty : Expr}
       (body.instantiate1 (.fvar d ty)) :=
   CtxOk.openS ht hb hty hok
 
+/-! ## The per-valuation discipline (task #342, L9)
+
+`CtxOkS` is `CtxOk` without its grading conjunct, and `LeavesGr` is that
+conjunct at one valuation.  The per-valuation motives
+(`Model/Rules/Motive.lean`) carry the pair: opening a binder needs the
+domain graded at the valuation in hand only, never at every satisfying
+one. -/
+
+/-- The full discipline gives the structural one. -/
+theorem CtxOk.toS {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    (hC : CtxOk m φ d Δa e) : CtxOkS m φ d Δa e := by
+  refine ⟨hC.1, fun l hl => ?_⟩
+  obtain ⟨h1, h2, tya, Aa, h3, h4, h5, -⟩ := hC.2 l hl
+  exact ⟨h1, h2, tya, Aa, h3, h4, h5⟩
+
+/-- The full discipline grades the leaves at every satisfying valuation. -/
+theorem CtxOk.leavesGr {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    (hC : CtxOk m φ d Δa e) {ρ : Nat → V} (hρ : Sat V Δa ρ) :
+    LeavesGr m φ d e ρ := by
+  intro l hl tya hden
+  obtain ⟨-, -, tya', Aa, h3, -, -, h6⟩ := hC.2 l hl
+  rw [h3] at hden
+  cases hden
+  exact h6 ρ hρ
+
+/-- The structural discipline and the leaves' grading at every satisfying
+valuation are the full one. -/
+theorem CtxOkS.toCtxOk {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    (hC : CtxOkS m φ d Δa e)
+    (hg : ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ) :
+    CtxOk m φ d Δa e := by
+  refine ⟨hC.1, fun l hl => ?_⟩
+  obtain ⟨h1, h2, tya, Aa, h3, h4, h5⟩ := hC.2 l hl
+  exact ⟨h1, h2, tya, Aa, h3, h4, h5, fun ρ hρ => hg ρ hρ l hl tya h3⟩
+
+namespace CtxOkS
+
+theorem length {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    (h : CtxOkS m φ d Δa e) : Δa.length = d := h.1
+
+/-- `CtxOkS` implies well-scopedness. -/
+theorem wScoped {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    (hC : CtxOkS m φ d Δa e) : Expr.WScoped d e :=
+  wScoped_of_leaves e
+    (Verify.Expr.fvarsBelow_of_fvarLeaves (e := e) (fun l hl => (hC.2 l hl).1))
+    (fun l hl => (hC.2 l hl).2.1)
+
+theorem of_fvarLeaves_nil {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    (hlen : Δa.length = d) (h : e.fvarLeaves = []) :
+    CtxOkS m φ d Δa e := by
+  refine ⟨hlen, fun l hl => ?_⟩
+  rw [h] at hl
+  exact nomatch hl
+
+theorem nil {e : Expr} (h : e.fvarLeaves = []) :
+    CtxOkS m φ 0 ([] : List AnnotTerm) e :=
+  of_fvarLeaves_nil rfl h
+
+theorem of_subset {d : Nat} {Δa : List AnnotTerm} {e e' : Expr}
+    (hC : CtxOkS m φ d Δa e)
+    (hsub : ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves) :
+    CtxOkS m φ d Δa e' :=
+  ⟨hC.1, fun l hl => hC.2 l (hsub l hl)⟩
+
+theorem app {d : Nat} {Δa : List AnnotTerm} {f x : Expr}
+    (hf : CtxOkS m φ d Δa f) (hx : CtxOkS m φ d Δa x) :
+    CtxOkS m φ d Δa (.app f x) := by
+  refine ⟨hf.1, fun l hl => ?_⟩
+  rw [Expr.fvarLeaves] at hl
+  rcases List.mem_append.mp hl with h | h
+  · exact hf.2 l h
+  · exact hx.2 l h
+
+theorem app_fn {d : Nat} {Δa : List AnnotTerm} {f x : Expr}
+    (hC : CtxOkS m φ d Δa (.app f x)) : CtxOkS m φ d Δa f :=
+  hC.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
+
+theorem app_arg {d : Nat} {Δa : List AnnotTerm} {f x : Expr}
+    (hC : CtxOkS m φ d Δa (.app f x)) : CtxOkS m φ d Δa x :=
+  hC.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
+
+theorem forallE_ty {d : Nat} {Δa : List AnnotTerm}
+    {ty body : Expr} {mb : ConLeche.BinderMeta}
+    (hC : CtxOkS m φ d Δa (.forallE ty body mb)) :
+    CtxOkS m φ d Δa ty :=
+  hC.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
+
+theorem forallE_body {d : Nat} {Δa : List AnnotTerm}
+    {ty body : Expr} {mb : ConLeche.BinderMeta}
+    (hC : CtxOkS m φ d Δa (.forallE ty body mb)) :
+    CtxOkS m φ d Δa body :=
+  hC.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
+
+theorem lam_ty {d : Nat} {Δa : List AnnotTerm}
+    {ty body : Expr} {mb : ConLeche.BinderMeta}
+    (hC : CtxOkS m φ d Δa (.lam ty body mb)) :
+    CtxOkS m φ d Δa ty :=
+  hC.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
+
+theorem lam_body {d : Nat} {Δa : List AnnotTerm}
+    {ty body : Expr} {mb : ConLeche.BinderMeta}
+    (hC : CtxOkS m φ d Δa (.lam ty body mb)) :
+    CtxOkS m φ d Δa body :=
+  hC.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
+
+theorem proj_arg {d : Nat} {Δa : List AnnotTerm} {sn : Name}
+    {i : Nat} {e : Expr}
+    (hC : CtxOkS m φ d Δa (.proj sn i e)) :
+    CtxOkS m φ d Δa e :=
+  hC.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact hl
+
+/-- Weakening by one binder. -/
+theorem weakenTop {d : Nat} {Δa : List AnnotTerm} {Ba : AnnotTerm} {e : Expr}
+    (hC : CtxOkS m φ d Δa e) : CtxOkS m φ (d + 1) (Ba :: Δa) e := by
+  have hw : Expr.WScoped d e := hC.wScoped
+  refine ⟨by simp [hC.1], fun l hl => ?_⟩
+  obtain ⟨hlt, hfb, tya, Aa, hden, hi, hlink⟩ := hC.2 l hl
+  have hwl : Expr.WScoped d l.2 :=
+    (ConLeche.Expr.WScoped_leaves e hw l hl).2.mono (by omega)
+  refine ⟨by omega, hfb, tya.liftN 1 0, Aa, ?_, ?_, ?_⟩
+  · rw [denoteMeta_weaken_top m.acval_closed hwl, hden]
+    rfl
+  · rw [show d + 1 - 1 - l.1 = (d - 1 - l.1) + 1 from by omega]
+    simpa using hi
+  · intro ρ hρ
+    rw [show d + 1 - 1 - l.1 = d - 1 - l.1 + 1 from by omega,
+      show AnnotTerm.liftN 1 tya 0 = tya.lift from rfl,
+      interp_lift (V := V) tya ρ, hlink _ (Sat_tail hρ)]
+    congr 1
+
+/-- **Opening a binder**, with no grading at all: the context's new
+entry is the opened variable's own type reading. -/
+theorem openS {d : Nat} {Δa : List AnnotTerm} {body ty : Expr}
+    {ta : AnnotTerm}
+    (ht : CtxOkS m φ d Δa ty) (hb : CtxOkS m φ d Δa body)
+    (hty : denoteMeta m.acval env φ d ty = some ta) :
+    CtxOkS m φ (d + 1) (ta :: Δa)
+      (body.instantiate1 (.fvar d ty)) := by
+  have hwt : Expr.WScoped d ty := ht.wScoped
+  refine ⟨by simp [hb.1], fun l hl => ?_⟩
+  rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
+  · exact (weakenTop (Ba := ta) hb).2 l hl'
+  · rw [ConLeche.Expr.fvarLeaves] at hl'
+    rcases List.mem_cons.mp hl' with rfl | hl''
+    · refine ⟨by omega, hwt.fvarsBelow, ta.liftN 1 0, ta, ?_, ?_, ?_⟩
+      · rw [denoteMeta_weaken_top m.acval_closed hwt, hty]
+        rfl
+      · rw [show d + 1 - 1 - d = 0 from by omega]
+        rfl
+      · intro ρ hρ
+        show interp V ρ (AnnotTerm.liftN 1 ta 0)
+          = interp V (fun j => ρ (j + (d + 1 - 1 - d) + 1)) ta
+        rw [show d + 1 - 1 - d = 0 from by omega,
+          show AnnotTerm.liftN 1 ta 0 = ta.lift from rfl,
+          interp_lift (V := V) ta ρ]
+    · exact (weakenTop (Ba := ta) ht).2 l hl''
+
+end CtxOkS
+
+namespace LeavesGr
+
+theorem of_subset {d : Nat} {e e' : Expr} {ρ : Nat → V}
+    (h : LeavesGr m φ d e ρ)
+    (hsub : ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves) :
+    LeavesGr m φ d e' ρ :=
+  fun l hl => h l (hsub l hl)
+
+theorem of_fvarLeaves_nil {d : Nat} {e : Expr} {ρ : Nat → V}
+    (h : e.fvarLeaves = []) : LeavesGr m φ d e ρ := by
+  intro l hl
+  rw [h] at hl
+  exact nomatch hl
+
+theorem app {d : Nat} {f x : Expr} {ρ : Nat → V}
+    (hf : LeavesGr m φ d f ρ) (hx : LeavesGr m φ d x ρ) :
+    LeavesGr m φ d (.app f x) ρ := by
+  intro l hl
+  rw [Expr.fvarLeaves] at hl
+  rcases List.mem_append.mp hl with h | h
+  · exact hf l h
+  · exact hx l h
+
+theorem app_fn {d : Nat} {f x : Expr} {ρ : Nat → V}
+    (h : LeavesGr m φ d (.app f x) ρ) : LeavesGr m φ d f ρ :=
+  h.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
+
+theorem app_arg {d : Nat} {f x : Expr} {ρ : Nat → V}
+    (h : LeavesGr m φ d (.app f x) ρ) : LeavesGr m φ d x ρ :=
+  h.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
+
+theorem forallE_ty {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.forallE ty body mb) ρ) :
+    LeavesGr m φ d ty ρ :=
+  h.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
+
+theorem forallE_body {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.forallE ty body mb) ρ) :
+    LeavesGr m φ d body ρ :=
+  h.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
+
+theorem lam_ty {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.lam ty body mb) ρ) :
+    LeavesGr m φ d ty ρ :=
+  h.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
+
+theorem lam_body {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.lam ty body mb) ρ) :
+    LeavesGr m φ d body ρ :=
+  h.of_subset fun _ hl => by
+    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
+
+theorem proj_arg {d : Nat} {sn : Name} {i : Nat} {e : Expr} {ρ : Nat → V}
+    (h : LeavesGr m φ d (.proj sn i e) ρ) : LeavesGr m φ d e ρ :=
+  h.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact hl
+
+/-- Weakening by one binder: the leaves' readings lift, the valuation
+gains a head. -/
+theorem weakenTop {d : Nat} {Δa : List AnnotTerm} {e : Expr} {ρ : Nat → V}
+    (hC : CtxOkS m φ d Δa e) (h : LeavesGr m φ d e (fun j => ρ (j + 1))) :
+    LeavesGr m φ (d + 1) e ρ := by
+  have hw : Expr.WScoped d e := hC.wScoped
+  intro l hl tya hden
+  have hlt : l.1 < d := (hC.2 l hl).1
+  have hwl : Expr.WScoped d l.2 :=
+    (ConLeche.Expr.WScoped_leaves e hw l hl).2.mono (by omega)
+  rw [denoteMeta_weaken_top m.acval_closed hwl] at hden
+  obtain ⟨tya₀, h₀, rfl⟩ := Option.map_eq_some_iff.mp hden
+  refine (WellDenotedTy_liftN 1 tya₀ 0 ρ).mpr ?_
+  rw [shiftE_zero]
+  exact h l hl tya₀ h₀
+
+/-- **Opening a binder at one valuation**: the opened variable's type is
+graded at the outer valuation. -/
+theorem «open» {d : Nat} {Δa : List AnnotTerm} {body ty : Expr}
+    {ta : AnnotTerm} {ρ : Nat → V} {x : V}
+    (hCt : CtxOkS m φ d Δa ty) (hCb : CtxOkS m φ d Δa body)
+    (ht : LeavesGr m φ d ty ρ) (hb : LeavesGr m φ d body ρ)
+    (hty : denoteMeta m.acval env φ d ty = some ta)
+    (hok : WellDenotedTy V ρ ta) :
+    LeavesGr m φ (d + 1) (body.instantiate1 (.fvar d ty)) (cons x ρ) := by
+  have hwt : Expr.WScoped d ty := hCt.wScoped
+  intro l hl tya hden
+  rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
+  · exact weakenTop (ρ := cons x ρ) hCb hb l hl' tya hden
+  · rw [ConLeche.Expr.fvarLeaves] at hl'
+    rcases List.mem_cons.mp hl' with rfl | hl''
+    · rw [denoteMeta_weaken_top m.acval_closed hwt, hty] at hden
+      cases hden
+      refine (WellDenotedTy_liftN 1 ta 0 (cons x ρ)).mpr ?_
+      rw [shiftE_zero]
+      exact hok
+    · exact weakenTop (ρ := cons x ρ) hCt ht l hl'' tya hden
+
+end LeavesGr
+
 end ConLeche.Model

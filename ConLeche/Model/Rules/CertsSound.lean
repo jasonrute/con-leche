@@ -11,7 +11,12 @@ public section
 # The soundness of the three list walks (task #305)
 
 `Certs` (one step per constructor), `DefEqList` and `EtaProjCerts`
-(pointwise).
+(pointwise), at one valuation (task #342, L9).  The certificate's slot
+comparison is between two types (the argument's inferred type and the
+binder's domain), so the conditional `DefEqSem` decides it outright.
+`DefEqList` has both the conditional lemmas and the interim
+unconditional ones (`…_soundU`, for the side induction of
+`Sound.lean`).
 -/
 
 namespace ConLeche.Model.Rules
@@ -29,45 +34,41 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env}
 
 theorem Certs.nil_sound {d : Nat} {lic : Bool} {T : Expr} :
     CertsSem m φ d lic T [] := by
-  intro _ Δa Ta _ vs _ _ hgT _ hsp _ _
+  intro _ Δa Ta _ vs _ _ _ hsp
   cases hsp
-  exact ⟨Ta, fun _ _ => .nil, hgT⟩
+  exact ⟨Ta, fun _ _ _ _ hgT _ _ => ⟨.nil, hgT⟩⟩
 
-/-- **One slot of the certificate walk, after the slot membership.**
-The two `Certs` rules differ only in how `hmemA` is obtained — the
-licence's transfer or the certificate's run — so everything downstream
-(the residual's reading, its frame, its grading, the licence handed to
-the tail, and `TeleFitPA.cons`) is shared. -/
+/-- **One slot of the certificate walk, given the slot membership.**
+The two `Certs` rules differ only in how the membership at `ρ` is
+obtained — the licence's transfer or the certificate's run — so
+everything else (the residual's reading, its frame, its grading, the
+licence handed to the tail, and `TeleFitPA.cons`) is shared. -/
 theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
     {mb : ConLeche.BinderMeta} {rest : List Expr}
     {Δa : List AnnotTerm} {doma bodya fa aa : AnnotTerm}
     {vs' : List AnnotTerm}
     (hrest : CertsSem m φ d lic (body.instantiate1 arg) rest)
-    (hCT : CtxOk m φ d Δa (.forallE ty body mb))
-    (hgT : Graded V Δa (.pi 0 (pwBit φ mb.pw) doma bodya))
-    (hargs : ∀ x ∈ arg :: rest, Frame d x ∧ CtxOk m φ d Δa x)
+    (hCT : CtxOkS m φ d Δa (.forallE ty body mb))
+    (hargs : ∀ x ∈ arg :: rest, Frame d x ∧ CtxOkS m φ d Δa x)
     (hsp' : DenoteMetaSpine m.acval env φ d rest vs')
-    (hgvs : ∀ x ∈ aa :: vs', Graded V Δa x)
-    (hlicP : lic = true →
-      Graded V Δa (AnnotTerm.mkAppN fa (aa :: vs')) ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ →
-          interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mb.pw) doma bodya))
     (hbodyw : Expr.WScoped d body)
     (hbodyb : Expr.looseBVarsBounded 1 body = true)
     (hLbty : Expr.LeavesBounded (.forallE ty body mb))
     (hbodya : denoteMeta m.acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty)) = some bodya)
     (haa : denoteMeta m.acval env φ d arg = some aa)
-    (hfarg : Frame d arg) (hCarg : CtxOk m φ d Δa arg)
-    (hokA : Graded V Δa aa)
-    (hokBody : ∀ ρ : Nat → V, Sat V Δa ρ →
-      ∀ x, x ∈ˢ interp V ρ doma → WellDenotedV V (cons x ρ) bodya)
-    (hmemA : ∀ ρ : Nat → V, Sat V Δa ρ →
-      interp V ρ aa ∈ˢ interp V ρ doma) :
+    (hfarg : Frame d arg) (hCarg : CtxOkS m φ d Δa arg) :
     ∃ resta : AnnotTerm,
-      (∀ ρ : Nat → V, Sat V Δa ρ →
-        TeleFitPA V ρ (.pi 0 (pwBit φ mb.pw) doma bodya) (aa :: vs') resta) ∧
-        Graded V Δa resta := by
+      ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d (.forallE ty body mb) ρ →
+        (∀ x ∈ arg :: rest, LeavesGr m φ d x ρ) →
+        WellDenotedV V ρ (.pi 0 (pwBit φ mb.pw) doma bodya) →
+        (∀ x ∈ aa :: vs', WellDenotedV V ρ x) →
+        (lic = true →
+          WellDenotedV V ρ (AnnotTerm.mkAppN fa (aa :: vs')) ∧
+            interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mb.pw) doma bodya)) →
+        interp V ρ aa ∈ˢ interp V ρ doma →
+        TeleFitPA V ρ (.pi 0 (pwBit φ mb.pw) doma bodya) (aa :: vs') resta ∧
+          WellDenotedV V ρ resta := by
   obtain ⟨hwa, hba, hLa⟩ := hfarg
   have hbody' : denoteMeta m.acval env φ d (body.instantiate1 arg)
       = some (bodya.inst aa) := by
@@ -79,34 +80,49 @@ theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
     rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
     · exact hLbty l (by simp [Expr.fvarLeaves, hl'])
     · exact hLa l hl'
-  have hCbody : CtxOk m φ d Δa (body.instantiate1 arg) := by
-    refine ⟨hCT.1, fun l hl => ?_⟩
+  have hsubBody : ∀ l ∈ (body.instantiate1 arg).fvarLeaves,
+      l ∈ (Expr.forallE ty body mb).fvarLeaves ∨ l ∈ arg.fvarLeaves := by
+    intro l hl
     rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
-    · exact hCT.2 l (by simp [Expr.fvarLeaves, hl'])
+    · exact Or.inl (by simp [Expr.fvarLeaves, hl'])
+    · exact Or.inr hl'
+  have hCbody : CtxOkS m φ d Δa (body.instantiate1 arg) := by
+    refine ⟨hCT.1, fun l hl => ?_⟩
+    rcases hsubBody l hl with hl' | hl'
+    · exact hCT.2 l hl'
     · exact hCarg.2 l hl'
-  have hokBody' : Graded V Δa (bodya.inst aa) := fun ρ hρ =>
-    (WellDenotedV_inst0 (hokA ρ hρ)).mpr (hokBody ρ hρ _ (hmemA ρ hρ))
+  obtain ⟨resta, hfit⟩ :=
+    hrest (fa := .app fa aa)
+      ⟨ConLeche.Expr.WScoped.instantiate1_gen hwa 0 hbodyw,
+        ConLeche.Expr.looseBVarsBounded_instantiate1_gen hba hbodyb, hLbbody⟩
+      hCbody hbody'
+      (fun x hx => hargs x (List.mem_cons_of_mem arg hx)) hsp'
+  refine ⟨resta, fun ρ hρ hLT hLargs hgT hgvs hlicP hmemA => ?_⟩
+  have hokA : WellDenotedV V ρ aa := hgvs aa List.mem_cons_self
+  have hokBody : WellDenotedV V ρ (bodya.inst aa) :=
+    (WellDenotedV_inst0 hokA).mpr (hgT.pi_body _ hmemA)
+  have hLbody : LeavesGr m φ d (body.instantiate1 arg) ρ := by
+    intro l hl
+    rcases hsubBody l hl with hl' | hl'
+    · exact hLT l hl'
+    · exact hLargs arg List.mem_cons_self l hl'
   have hlicP' : lic = true →
-      Graded V Δa (AnnotTerm.mkAppN (.app fa aa) vs') ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ →
-          interp V ρ (.app fa aa) ∈ˢ interp V ρ (bodya.inst aa) := by
+      WellDenotedV V ρ (AnnotTerm.mkAppN (.app fa aa) vs') ∧
+        interp V ρ (.app fa aa) ∈ˢ interp V ρ (bodya.inst aa) := by
     intro hl
     obtain ⟨hokS, hfaM⟩ := hlicP hl
-    refine ⟨hokS, fun ρ hρ => ?_⟩
+    refine ⟨hokS, ?_⟩
     have hoks : ∀ x ∈ [aa], WellDenotedV V ρ x := by
       intro x hx
       rw [List.mem_singleton] at hx
       subst hx
-      exact hokA ρ hρ
-    exact (mkAppN_of_fitA [aa] (hgT ρ hρ) (mkAppN_head (aa :: vs') (hokS ρ hρ))
-      hoks (hfaM ρ hρ) (TeleFitPA.cons (hmemA ρ hρ) .nil)).2
-  obtain ⟨resta, hfit, hgresta⟩ :=
-    hrest ⟨ConLeche.Expr.WScoped.instantiate1_gen hwa 0 hbodyw,
-        ConLeche.Expr.looseBVarsBounded_instantiate1_gen hba hbodyb, hLbbody⟩
-      hCbody hbody' hokBody'
-      (fun x hx => hargs x (List.mem_cons_of_mem arg hx)) hsp'
-      (fun x hx => hgvs x (List.mem_cons_of_mem aa hx)) hlicP'
-  exact ⟨resta, fun ρ hρ => .cons (hmemA ρ hρ) (hfit ρ hρ), hgresta⟩
+      exact hokA
+    exact (mkAppN_of_fitA [aa] hgT (mkAppN_head (aa :: vs') hokS)
+      hoks hfaM (TeleFitPA.cons hmemA .nil)).2
+  obtain ⟨hfit', hgresta⟩ := hfit ρ hρ hLbody
+    (fun x hx => hLargs x (List.mem_cons_of_mem arg hx)) hokBody
+    (fun x hx => hgvs x (List.mem_cons_of_mem aa hx)) hlicP'
+  exact ⟨.cons hmemA hfit', hgresta⟩
 
 /-- The licensed slot: the head prefix's app slot transfers the argument. -/
 theorem Certs.skip_sound {d : Nat} {lic : Bool}
@@ -114,37 +130,29 @@ theorem Certs.skip_sound {d : Nat} {lic : Bool}
     (hlic : lic = true) (hnev : mb.pw.isNever = true)
     (hrest : CertsSem m φ d lic (body.instantiate1 arg) rest) :
     CertsSem m φ d lic (.forallE ty body mb) (arg :: rest) := by
-  intro hfT Δa Ta fa vs hCT hTa hgT hargs hsp hgvs hlicP
+  intro hfT Δa Ta fa vs hCT hTa hargs hsp
   obtain ⟨hwty, hbty, hLbty⟩ := hfT
-  obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d ty ∧ Expr.WScoped d body := by
+  obtain ⟨-, hbodyw⟩ : Expr.WScoped d ty ∧ Expr.WScoped d body := by
     simpa [Expr.WScoped] using hwty
-  obtain ⟨hdomb, hbodyb⟩ :
+  obtain ⟨-, hbodyb⟩ :
       ty.looseBVarsBounded 0 = true ∧ Expr.looseBVarsBounded 1 body = true := by
     simpa [Expr.looseBVarsBounded, Bool.and_eq_true] using hbty
   obtain ⟨doma, bodya, hdoma, hbodya, rfl⟩ := denoteMeta_forallE_inv hTa
   cases hsp with | @cons _ aa _ vs' haa hsp' =>
   obtain ⟨hfarg, hCarg⟩ := hargs arg List.mem_cons_self
-  have hokA : Graded V Δa aa := hgvs aa List.mem_cons_self
-  have hokBody : ∀ (ρ : Nat → V), Sat V Δa ρ →
-      ∀ x, x ∈ˢ interp V ρ doma → WellDenotedV V (cons x ρ) bodya :=
-    fun ρ hρ x hx =>
-      ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).2.2.1 x hx,
-        ((AnnotValid_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).2).2.1 x hx⟩
+  obtain ⟨resta, hstep⟩ := certs_step (fa := fa) hrest hCT hargs hsp' hbodyw
+    hbodyb hLbty hbodya haa hfarg hCarg
+  refine ⟨resta, fun ρ hρ hLT hLargs hgT hgvs hlicP => hstep ρ hρ hLT hLargs hgT
+    hgvs hlicP ?_⟩
   -- THE LICENCE: the binder's datum is `.never`, so the head prefix's
   -- own app slot transfers the argument into the telescope's domain
-  have hmemA : ∀ ρ : Nat → V, Sat V Δa ρ →
-      interp V ρ aa ∈ˢ interp V ρ doma := by
-    intro ρ hρ
-    obtain ⟨hokS, hfaM⟩ := hlicP hlic
-    have hokApp : WellDenotedV V ρ (.app fa aa) :=
-      mkAppN_head vs' (hokS ρ hρ)
-    obtain ⟨v', A', B', hslot, ha, -⟩ :=
-      ((WellDenoted_app V ρ fa aa) ▸ hokApp.1).2.2
-    have hf' := hfaM ρ hρ
-    rw [interp_pi] at hf'
-    exact slotTransfer (pwBit_ne_zero_of_isNever hnev φ) hf' hslot ha
-  exact certs_step hrest hCT hgT hargs hsp' hgvs hlicP hbodyw hbodyb hLbty
-    hbodya haa hfarg hCarg hokA hokBody hmemA
+  obtain ⟨hokS, hfaM⟩ := hlicP hlic
+  have hokApp : WellDenotedV V ρ (.app fa aa) := mkAppN_head vs' hokS
+  obtain ⟨v', A', B', hslot, ha, -⟩ :=
+    ((WellDenoted_app V ρ fa aa) ▸ hokApp.1).2.2
+  have hf' := hfaM
+  rw [interp_pi] at hf'
+  exact slotTransfer (pwBit_ne_zero_of_isNever hnev φ) hf' hslot ha
 
 /-- The certified slot: the certificate's run supplies the membership. -/
 theorem Certs.cert_sound {d : Nat} {lic : Bool}
@@ -152,7 +160,7 @@ theorem Certs.cert_sound {d : Nat} {lic : Bool}
     (hta : InferSemIO m φ d arg ta) (hd : DefEqSem m φ d ta ty)
     (hrest : CertsSem m φ d lic (body.instantiate1 arg) rest) :
     CertsSem m φ d lic (.forallE ty body mb) (arg :: rest) := by
-  intro hfT Δa Ta fa vs hCT hTa hgT hargs hsp hgvs hlicP
+  intro hfT Δa Ta fa vs hCT hTa hargs hsp
   obtain ⟨hwty, hbty, hLbty⟩ := hfT
   obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d ty ∧ Expr.WScoped d body := by
     simpa [Expr.WScoped] using hwty
@@ -161,52 +169,81 @@ theorem Certs.cert_sound {d : Nat} {lic : Bool}
     simpa [Expr.looseBVarsBounded, Bool.and_eq_true] using hbty
   have hLbdom : Expr.LeavesBounded ty := fun l hl =>
     hLbty l (by simp [Expr.fvarLeaves, hl])
-  have hCdom : CtxOk m φ d Δa ty :=
-    hCT.of_subset (fun l hl => by simp [Expr.fvarLeaves, hl])
+  have hCdom : CtxOkS m φ d Δa ty := hCT.forallE_ty
   obtain ⟨doma, bodya, hdoma, hbodya, rfl⟩ := denoteMeta_forallE_inv hTa
   cases hsp with | @cons _ aa _ vs' haa hsp' =>
   obtain ⟨hfarg, hCarg⟩ := hargs arg List.mem_cons_self
-  have hokA : Graded V Δa aa := hgvs aa List.mem_cons_self
-  have hokDom : Graded V Δa doma := fun ρ hρ =>
-    ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).1,
-      ((AnnotValid_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).2).1⟩
-  have hokBody : ∀ (ρ : Nat → V), Sat V Δa ρ →
-      ∀ x, x ∈ˢ interp V ρ doma → WellDenotedV V (cons x ρ) bodya :=
-    fun ρ hρ x hx =>
-      ⟨((WellDenoted_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).1).2.2.1 x hx,
-        ((AnnotValid_pi V ρ 0 _ doma bodya) ▸ (hgT ρ hρ).2).2.1 x hx⟩
-  -- the certificate: the argument inhabits the binder's domain
-  obtain ⟨hfta, hsubta, taA, htaA, hgtaA, hmem⟩ := hta hfarg hCarg haa hokA
-  have hmemA : ∀ ρ : Nat → V, Sat V Δa ρ →
-      interp V ρ aa ∈ˢ interp V ρ doma := fun ρ hρ =>
-    (hd hfta ⟨hdomw, hdomb, hLbdom⟩ (hCarg.of_subset hsubta) hCdom htaA hdoma
-      hgtaA.graded hokDom ρ hρ) ▸ hmem ρ hρ
-  exact certs_step hrest hCT hgT hargs hsp' hgvs hlicP hbodyw hbodyb hLbty
-    hbodya haa hfarg hCarg hokA hokBody hmemA
+  obtain ⟨resta, hstep⟩ := certs_step (fa := fa) hrest hCT hargs hsp' hbodyw
+    hbodyb hLbty hbodya haa hfarg hCarg
+  -- the certificate's two runs, read outside the valuation
+  obtain ⟨hfta, hsubta, taA, htaA, hA⟩ := hta hfarg hCarg haa
+  refine ⟨resta, fun ρ hρ hLT hLargs hgT hgvs hlicP => hstep ρ hρ hLT hLargs hgT
+    hgvs hlicP ?_⟩
+  have hLarg : LeavesGr m φ d arg ρ := hLargs arg List.mem_cons_self
+  obtain ⟨hgtaA, hmem⟩ := hA ρ hρ hLarg (hgvs aa List.mem_cons_self)
+  have hokDom : WellDenotedTy V ρ doma := hgT.pi_dom
+  -- "not pt" source (1): both sides of the slot comparison are types —
+  -- the argument's inferred type and the binder's domain
+  have heq := hd hfta ⟨hdomw, hdomb, hLbdom⟩ (hCarg.of_subset hsubta) hCdom
+    htaA hdoma ρ hρ (hLarg.of_subset hsubta) hLT.forallE_ty hgtaA.1 hokDom.1
+    hgtaA.ne_pt hokDom.ne_pt
+  exact heq ▸ hmem
 
 theorem DefEqList.nil_sound {d : Nat} : DefEqListSem m φ d [] [] := by
   refine ⟨rfl, ?_⟩
-  intro Δa asa bsa _ _ hsa hsb _ _ _ _
+  intro Δa asa bsa _ _ hsa hsb _ _ _ _ _ _ p hp
   cases hsa
   cases hsb
-  rfl
+  simp at hp
 
 theorem DefEqList.cons_sound {d : Nat} {a b : Expr} {as bs : List Expr}
     (h : DefEqSem m φ d a b) (hs : DefEqListSem m φ d as bs) :
     DefEqListSem m φ d (a :: as) (b :: bs) := by
   refine ⟨by simp [hs.1], ?_⟩
-  intro Δa asa bsa hfa hfb hsa hsb hga hgb ρ hρ
+  intro Δa asa bsa hfa hfb hsa hsb ρ hρ hLa hLb hga hgb p hp
+  cases hsa with | @cons _ va _ vas hva hsa' =>
+  cases hsb with | @cons _ vb _ vbs hvb hsb' =>
+  obtain ⟨hfa1, hCa1⟩ := hfa a List.mem_cons_self
+  obtain ⟨hfb1, hCb1⟩ := hfb b List.mem_cons_self
+  simp only [List.map_cons, List.zip_cons_cons, List.mem_cons] at hp
+  rcases hp with rfl | hp
+  · exact h hfa1 hfb1 hCa1 hCb1 hva hvb ρ hρ (hLa a List.mem_cons_self)
+      (hLb b List.mem_cons_self) (hga va List.mem_cons_self)
+      (hgb vb List.mem_cons_self)
+  · exact hs.2 (fun x hx => hfa x (List.mem_cons_of_mem a hx))
+      (fun x hx => hfb x (List.mem_cons_of_mem b hx)) hsa' hsb' ρ hρ
+      (fun x hx => hLa x (List.mem_cons_of_mem a hx))
+      (fun x hx => hLb x (List.mem_cons_of_mem b hx))
+      (fun x hx => hga x (List.mem_cons_of_mem va hx))
+      (fun x hx => hgb x (List.mem_cons_of_mem vb hx)) p hp
+
+/-- The interim unconditional `DefEqList` (the side induction). -/
+theorem DefEqList.nil_soundU {d : Nat} : DefEqListSemU m φ d [] [] := by
+  refine ⟨rfl, ?_⟩
+  intro Δa asa bsa _ _ hsa hsb _ _ _ _ _ _
+  cases hsa
+  cases hsb
+  rfl
+
+theorem DefEqList.cons_soundU {d : Nat} {a b : Expr} {as bs : List Expr}
+    (h : DefEqSemU m φ d a b) (hs : DefEqListSemU m φ d as bs) :
+    DefEqListSemU m φ d (a :: as) (b :: bs) := by
+  refine ⟨by simp [hs.1], ?_⟩
+  intro Δa asa bsa hfa hfb hsa hsb ρ hρ hLa hLb hga hgb
   cases hsa with | @cons _ va _ vas hva hsa' =>
   cases hsb with | @cons _ vb _ vbs hvb hsb' =>
   obtain ⟨hfa1, hCa1⟩ := hfa a List.mem_cons_self
   obtain ⟨hfb1, hCb1⟩ := hfb b List.mem_cons_self
   simp only [List.map_cons, List.cons.injEq]
-  refine ⟨h hfa1 hfb1 hCa1 hCb1 hva hvb (hga va List.mem_cons_self)
-      (hgb vb List.mem_cons_self) ρ hρ,
+  refine ⟨h hfa1 hfb1 hCa1 hCb1 hva hvb ρ hρ (hLa a List.mem_cons_self)
+      (hLb b List.mem_cons_self) (hga va List.mem_cons_self)
+      (hgb vb List.mem_cons_self),
     hs.2 (fun x hx => hfa x (List.mem_cons_of_mem a hx))
-      (fun x hx => hfb x (List.mem_cons_of_mem b hx)) hsa' hsb'
+      (fun x hx => hfb x (List.mem_cons_of_mem b hx)) hsa' hsb' ρ hρ
+      (fun x hx => hLa x (List.mem_cons_of_mem a hx))
+      (fun x hx => hLb x (List.mem_cons_of_mem b hx))
       (fun x hx => hga x (List.mem_cons_of_mem va hx))
-      (fun x hx => hgb x (List.mem_cons_of_mem vb hx)) ρ hρ⟩
+      (fun x hx => hgb x (List.mem_cons_of_mem vb hx))⟩
 
 theorem EtaProjCerts.nil_sound {d : Nat} {T : Name} {us' : List Level}
     {targs : List Expr} {b : Expr} {lpsT : List Name} :

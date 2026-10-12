@@ -438,9 +438,10 @@ step (a type-former-typed head). -/
 theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
     {d : Nat} {a : Expr} {Δa : List AnnotTerm} {aa : AnnotTerm}
     (h : isProofFast env.find? a = true)
-    (hCa : CtxOk m φ d Δa a)
+    (hCa : CtxOkS m φ d Δa a)
     (hda : denoteMeta m.acval env φ d a = some aa)
-    (ρ : Nat → V) (hρ : Sat V Δa ρ) : interp V ρ aa = (pt : V) := by
+    (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ) :
+    interp V ρ aa = (pt : V) := by
   obtain ⟨pw, hpw, hprop⟩ := isProofFast_inv env.find? h
   rcases proofPW_some_inv env.find? hpw with
     ⟨ty, bd, mb, rfl, rfl⟩ | ⟨-, hhead⟩
@@ -510,8 +511,10 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
   · -- an fvar head: the context supplies the membership
     rw [hfn, denoteMeta_fvar] at hfa
     obtain rfl := Option.some.inj hfa
-    obtain ⟨-, -, tya, Aa, htya, hAa, heq, hokT⟩ :=
+    obtain ⟨-, -, tya, Aa, htya, hAa, heq⟩ :=
       hCa.2 _ (mem_fvarLeaves_of_getAppFn hfn)
+    have hokT : WellDenotedTy V ρ tya :=
+      hL _ (mem_fvarLeaves_of_getAppFn hfn) tya htya
     have hx : interp V ρ (.bvar (d - 1 - idx)) ∈ˢ interp V ρ tya := by
       rw [interp_bvar, heq ρ hρ]
       exact hρ _ _ hAa
@@ -532,14 +535,15 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
           ConLeche.PropWhen.zeronessOf_sound] at hb
         exact beq_iff_eq.mp hb
       have huniv := typeFormer_mem_univ_zero hct hfnT hfI hntI hlenI hpeel hz
-        htya (hokT ρ hρ).1
+        htya hokT.1
       exact mem_univ_zero huniv hx
     · -- an fvar-headed type former (`h : motive n`): the head's type
       -- is in the context too
-      obtain ⟨-, -, tyyA, Ay, htyy, hAy, heqy, hokY⟩ :=
-        hCa.2 _ (mem_fvarLeaves_of_getAppFn' hfn
+      have hmemY := mem_fvarLeaves_of_getAppFn' hfn
           (mem_fvarLeaves_of_ty (idx := idx)
-            (mem_fvarLeaves_of_getAppFn hfnT)))
+            (mem_fvarLeaves_of_getAppFn hfnT))
+      obtain ⟨-, -, tyyA, Ay, htyy, hAy, heqy⟩ := hCa.2 _ hmemY
+      have hokY : WellDenotedTy V ρ tyyA := hL _ hmemY tyyA htyy
       have hy : interp V ρ (.bvar (d - 1 - idy)) ∈ˢ interp V ρ tyyA := by
         rw [interp_bvar, heqy ρ hρ]
         exact hρ _ _ hAy
@@ -547,7 +551,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
         ty.getAppArgs.length hpeel htyy
       rw [eval_eq_zero_of_isProp hprop φ] at hchain
       have huniv := mem_univ_zero_of_spine hfnT htya (denoteMeta_fvar _ _ _ _)
-        hchain (hokY ρ hρ).1 (hokT ρ hρ).1 hy
+        hchain hokY.1 hokT.1 hy
       exact mem_univ_zero huniv hx
   · -- a sort, a ∀, a literal: never a proof
     exact absurd hprop (by simp)
@@ -595,21 +599,24 @@ theorem prop_side_pt' {m : EnvModel V env} {d : Nat} {a ta tta : Expr}
     (hta : InferSemIO m φ d a ta) (htta : InferSemIO m φ d ta tta)
     (hu : RedSem m φ d tta (.sort u))
     (hu0 : Level.isEquiv u .zero = some true)
-    (hfa : Frame d a) (hCa : CtxOk m φ d Δa a)
+    (hfa : Frame d a) (hCa : CtxOkS m φ d Δa a)
     (hda : denoteMeta m.acval env φ d a = some aa)
-    (hokA : Graded V Δa aa)
-    (ρ : Nat → V) (hρ : Sat V Δa ρ) : interp V ρ aa = (pt : V) := by
-  obtain ⟨hfta, hsub1, taa, htaa, hoktaa, hmemA⟩ := hta hfa hCa hda hokA
-  have hCta : CtxOk m φ d Δa ta := hCa.of_subset hsub1
-  obtain ⟨hftta, hsub2, ttaa, httaa, hokttaa, hmemT⟩ :=
-    htta hfta hCta htaa hoktaa.graded
-  have hCtta : CtxOk m φ d Δa tta := hCta.of_subset hsub2
-  obtain ⟨-, -, sa, hsa, -, heq⟩ := hu hftta hCtta httaa hokttaa.graded
+    (ρ : Nat → V) (hρ : Sat V Δa ρ) (hLa : LeavesGr m φ d a ρ)
+    (hokA : WellDenotedV V ρ aa) : interp V ρ aa = (pt : V) := by
+  obtain ⟨hfta, hsub1, taa, htaa, hA⟩ := hta hfa hCa hda
+  have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsub1
+  have hLta : LeavesGr m φ d ta ρ := hLa.of_subset hsub1
+  obtain ⟨hoktaa, hmemA⟩ := hA ρ hρ hLa hokA
+  obtain ⟨hftta, hsub2, ttaa, httaa, hT⟩ := htta hfta hCta htaa
+  obtain ⟨hokttaa, hmemT⟩ := hT ρ hρ hLta hoktaa.1
+  have hCtta : CtxOkS m φ d Δa tta := hCta.of_subset hsub2
+  obtain ⟨-, -, sa, hsa, hs⟩ := hu hftta hCtta httaa
   rw [denoteMeta_sort] at hsa
   obtain rfl : sa = AnnotTerm.sort (u.eval φ) := (Option.some.inj hsa).symm
   have h0 : Level.eval φ u = 0 := ConLeche.Level.isEquiv_sound hu0 φ
-  have hT := hmemT ρ hρ
-  rw [heq ρ hρ, interp_sort, h0] at hT
-  exact mem_univ_zero hT (hmemA ρ hρ)
+  -- "not pt" source (1): the type of a type is a type, never the point
+  obtain ⟨-, heq⟩ := hs ρ hρ (hLta.of_subset hsub2) hokttaa.1 hokttaa.ne_pt
+  rw [heq, interp_sort, h0] at hmemT
+  exact mem_univ_zero hmemT hmemA
 
 end ConLeche.Model.Rules

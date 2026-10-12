@@ -4,6 +4,7 @@ public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Rules.Recompose
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Rules.Sound
+import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Verify.BetaGate
 import ConLeche.Verify.InferLemmas
@@ -75,9 +76,9 @@ theorem inferReads_of (hμ : μ.verifiedChecks = true)
     InferReads m μ φ fuel := by
   intro d e t Δa ea hrun hws hb hLb hC hea
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
-  obtain ⟨-, -, ta, hta, -, -, -⟩ :=
+  obtain ⟨-, -, ta, hta, -⟩ :=
     Rules.infer_sound hin (Rules.inferTypeCore_bridge hrun)
-      ⟨hws, hb, hLb⟩ hC hea
+      ⟨hws, hb, hLb⟩ hC.toS hea
   exact ⟨ta, hta⟩
 
 /-! ## The derived sort fact -/
@@ -126,7 +127,8 @@ theorem sortSemAt_of_claims {env : Env} {m : EnvModel V env}
   intro ρ hρ
   refine ⟨hokE ρ hρ, ?_⟩
   have hm := hmem ρ hρ
-  rw [heq ρ hρ, interp_sort] at hm
+  -- "not pt" source (1): the inferred type is a type
+  rw [heq ρ hρ (hokT ρ hρ).2.ne_pt, interp_sort] at hm
   exact hm
 
 /-! ## The subject-side totality walk

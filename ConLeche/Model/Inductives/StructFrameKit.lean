@@ -953,8 +953,9 @@ theorem sortRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr} {u : Level}
       WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) :=
   hc.sort hC hws hb hL hi (ConLeche.ensureSortCore_inv hens) hea
 
-/-- A definitional-equality run at a context: the readings interpret
-alike. -/
+/-- A definitional-equality run between two types at a context: the
+readings interpret alike ("not pt" source (1): types are not the point,
+so the conditional claim decides). -/
 theorem defEqRow (hc : ClaimsAt μ m φ F) {d : Nat} {a b : Expr}
     {Δ : List AnnotTerm} {aa ba : AnnotTerm}
     (h : ConLeche.isDefEqCore μ env F d a b = .ok true)
@@ -965,10 +966,12 @@ theorem defEqRow (hc : ClaimsAt μ m φ F) {d : Nat} {a b : Expr}
     (hCa : CtxOk m φ d Δ a) (hCb : CtxOk m φ d Δ b)
     (haa : denoteMeta m.acval env φ d a = some aa)
     (hbA : denoteMeta m.acval env φ d b = some ba)
-    (hoka : ∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedV V ρ aa)
-    (hokb : ∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedV V ρ ba) :
-    ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ aa = interp V ρ ba :=
-  hc.defeq h hwa hba hLa hwb hbb hLb hCa hCb haa hbA hoka hokb
+    (hoka : ∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedTy V ρ aa)
+    (hokb : ∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedTy V ρ ba) :
+    ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ aa = interp V ρ ba := fun ρ hρ =>
+  eq_of_IsTy_of_ne_pt (hoka ρ hρ).2 (hokb ρ hρ).2
+    (hc.defeq h hwa hba hLa hwb hbb hLb hCa hCb haa hbA (fun σ hσ => (hoka σ hσ).1)
+      (fun σ hσ => (hokb σ hσ).1) ρ hρ)
 
 end ClaimsAt
 
@@ -1402,11 +1405,11 @@ theorem paramFrames {m : EnvModel V env} {F : Nat}
         (fun ρ hρ => by
           have := hC.okΓ 0 (by omega) ρ
           rw [Nat.sub_zero, List.drop_eq_nil_of_le (by have := hC.len; omega)] at this
-          exact (this hρ).1)
+          exact this hρ)
         (fun ρ hρ => by
           have := hT.okΓ 0 (by omega) ρ
           rw [Nat.sub_zero, List.drop_eq_nil_of_le (by have := hT.len; omega)] at this
-          exact (this hρ).1) ρ hρ
+          exact this hρ) ρ hρ
   | succ i ih =>
     intro j hj hjn
     rcases Nat.lt_or_ge j (i + 1) with hjl | hjg
@@ -1500,8 +1503,8 @@ theorem paramFrames {m : EnvModel V env} {F : Nat}
     have hda := hC.doms (i + 1) a ha
     have hdb := hT.doms (i + 1) b hb
     exact hc.defEqRow hdeq hwa hba hLa hwb hbb hLb hCa hCb hda hdb
-      (fun ρ hρ => (hC.okΓ (i + 1) (by omega) ρ hρ).1)
-      (fun ρ hρ => (hT.okΓ (i + 1) (by omega) ρ ((hsat ρ).mp hρ)).1) ρ hρ
+      (fun ρ hρ => hC.okΓ (i + 1) (by omega) ρ hρ)
+      (fun ρ hρ => hT.okΓ (i + 1) (by omega) ρ ((hsat ρ).mp hρ)) ρ hρ
 
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower

@@ -633,7 +633,7 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   rw [hhi] at hinf
   have hIS : Rules.InferSemFull m ψ (d.nP + d.k) crest ty :=
     Rules.infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hinf)
-  obtain ⟨-, -, ta, -, hgr, -⟩ := hIS hfr hC hca₀
+  obtain ⟨-, -, ta, -, hgr, -⟩ := hIS.global hfr hC hca₀
   have hkN : d.toLfp.k ≤ d.toLfp.N := Nat.le_add_right _ _
   have hsatFrame : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →

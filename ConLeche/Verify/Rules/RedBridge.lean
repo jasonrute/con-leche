@@ -275,8 +275,10 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
     rcases hcase with ⟨ty, body, mb, rfl, hbody, hcert⟩ | ⟨e'', hiota, hcont⟩ | rfl
     · refine .trans hRf (.trans ?_ (hwc hbody))
       rcases hcert with hg | ⟨ta, hta, hde⟩
-      · exact .betaGate (by simpa [betaGateFires] using hg)
-      · exact .beta (inferTypeIO_bridge hio hta) (hd hde)
+      · have hnev : mb.pw.isNever = true := by simpa [betaGateFires] using hg
+        exact .beta (ta := a) (fun h => absurd hnev (by simp [h]))
+          (fun h => absurd hnev (by simp [h]))
+      · exact .beta (fun _ => inferTypeIO_bridge hio hta) (fun _ => hd hde)
     · exact .trans hRf (.trans (iotaRec_bridge hw hd hio hiota) (hwc hcont))
     · exact hRf
   | .proj sn i pe, h =>

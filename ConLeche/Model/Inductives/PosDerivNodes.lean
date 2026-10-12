@@ -228,7 +228,7 @@ theorem whnf_facts {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
       ∃ wa, denoteMeta mp.base2.acval env φ dep w = some wa ∧ Graded V Δa wa := by
   have hw' : ConLeche.whnf .verified env F dep e = .ok w := hw
   obtain ⟨hfrw, hsub, wa, hwa, hgw, -⟩ :=
-    red_sound hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
+    red_sound_global hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
   exact ⟨hfrw, hC.of_subset hsub, wa, hwa, hgw⟩
 
 /-- The context seen at a shallower frame stack. -/
@@ -324,7 +324,7 @@ theorem frame_nodes {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     obtain ⟨ty, hty⟩ := hinf
     have hIS : InferSemFull mp.base2 φ (ctx.hiAt prog.length + (p₀ :: ps₀).length) crest ty :=
       infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-    obtain ⟨-, -, -, -, hgr, -⟩ := hIS hfr hC.toCtxOk hrd
+    obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hrd
     rw [stackCtx_frame hcov.find hgT]
     exact ⟨_, hfr, hC, hrd, hgr⟩
   · -- every walked constructor is one of the group's constructors
