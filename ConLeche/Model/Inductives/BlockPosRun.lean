@@ -64,12 +64,12 @@ theorem wellDenotedV_mkPisAV_dom :
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (mkPisAV ab B)) →
       ∀ (i : Nat) (x : Nat × Nat × AnnotTerm), ab[i]? = some x →
       ∀ ρ : Nat → V, Sat V (((ab.take i).map (·.2.2)).reverse ++ Δa) ρ →
-        WellDenotedV V ρ x.2.2
+        WellDenotedTy V ρ x.2.2
   | [], _, _, _, i, x, hx, _, _ => by simp at hx
   | y :: ab, Δa, B, h, 0, x, hx, ρ, hρ => by
     simp only [List.getElem?_cons_zero, Option.some.injEq] at hx
     subst hx
-    exact (Rules.WellDenotedV.hoist_pi (V := V) h).1 ρ (by simpa using hρ)
+    exact (Rules.WellDenotedV.hoist_piTy (V := V) h).1 ρ (by simpa using hρ)
   | y :: ab, Δa, B, h, i + 1, x, hx, ρ, hρ => by
     simp only [List.getElem?_cons_succ] at hx
     refine wellDenotedV_mkPisAV_dom (Rules.WellDenotedV.hoist_pi (V := V) h).2 i x hx ρ ?_
@@ -480,7 +480,7 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [hLlen]; exact hi)]
     rfl
   have hokA : ∀ i, i < d.nP + d.k → ∀ σ : Nat → V, Sat V (L.reverse.drop (d.nP + d.k - i)) σ →
-      WellDenotedV V σ (L.getD i default) := by
+      WellDenotedTy V σ (L.getD i default) := by
     intro i hi σ hdrop
     rw [List.drop_reverse, hLlen, show d.nP + d.k - (d.nP + d.k - i) = i by omega] at hdrop
     by_cases hiP : i < d.nP
@@ -514,12 +514,12 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
         List.nil_append] at hsP
       have hsh : shiftE t 0 σ = fun j => σ (j + t) := by
         funext j; simp [shiftE]
-      refine (WellDenotedV_liftN V t _ 0 σ).mpr ?_
+      refine (WellDenotedTy_liftN t _ 0 σ).mpr ?_
       rw [hsh]
       have hsT := hparsT t ht _ hsP
       have := wellDenotedV_mkPisAV_drop d.nP (Δa := []) (fun ρ _ => hFDt.okTy ψ ρ) _
         (by rw [List.append_nil]; exact hsT)
-      exact this
+      exact ⟨this, IsTy_mkPisAV_sort _ _ _⟩
   intro x hx
   have hLeq : L = d.holeCtx ψ := rfl
   rw [← hLeq]
