@@ -11,7 +11,7 @@ The simulation walks for the definitional-equality pieces
 (`quickDefEqI`, `defeqOffsetI`, `tryUnfoldProjAppI`, `lazyDeltaStepI`,
 the two lazy-delta loops, `defeqProjPairI`, `defeqStuckI`) and
 `defeqBodyI` (`ConLeche/Cached/CoreC.lean`).  A decided `Expr` comparison on the
-cached side is the spec's structural comparison (`beq_transferC`): the
+cached side is the spec's structural comparison: the
 two sides are the same terms, with no store in sight.
 -/
 
@@ -26,14 +26,6 @@ variable {mode : CheckMode}
 section Walks
 
 variable {env : Env} {f : Nat}
-
-/-- Decided `Expr` equality decides expression equality on the field
-invariant. -/
-private theorem beq_transferC {i j : Expr} {a b : Expr}
-    (ha : RelC i a) (hb : RelC j b) : (i == j) = (a == b) := by
-  obtain rfl := ha
-  obtain rfl := hb
-  rfl
 
 /-- The one-sided-λ (right) stuck arm (the cached representation
 stores `Name`s directly; `lam`/`forallE` carry no other binder datum). -/

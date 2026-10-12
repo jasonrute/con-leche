@@ -184,16 +184,6 @@ theorem betaPeel_lam (r : CoreFns m) (env : Env) (depth : Nat)
       = betaPeelLam mode r env depth k body acc a rest := by
   rw [betaPeel, betaPeelLam]
 
-/-- `iotaRec` is `none` whenever the spine head is not a constant. -/
-theorem iotaRec_head_not_const (r : CoreFns m) (env : Env) (depth : Nat)
-    {e : Expr} (h : ∀ c us, e.getAppFn ≠ .const c us) :
-    iotaRec r env depth e = pure none := by
-  unfold iotaRec
-  split
-  · rename_i c us hc
-    exact absurd hc (h c us)
-  · rfl
-
 /-! ## The head-normalization loop mirror (task #106)
 
 The cached `whnfCoreStepI`/`whnfCoreLoopI` run beta, iota and
@@ -366,13 +356,6 @@ theorem appStep_mono {d : Nat} {w a : Expr} {F F' : Nat}
   rw [← appStep_atF d k kF' F' hkF']
   exact (appStep (fueledFns mode env) env d k w a).property hle h
 
-theorem projLitToCtor_mono {d : Nat} {e : Expr} {F F' : Nat}
-    (hle : F ≤ F') {res : Expr}
-    (h : projLitToCtor (pureFns mode env F) env d e = .ok res) :
-    projLitToCtor (pureFns mode env F') env d e = .ok res := by
-  rw [← projLitToCtor_atF] at h ⊢
-  exact (projLitToCtor (fueledFns mode env) env d e).property hle h
-
 theorem reduceProjCore_mono {d : Nat} {sn : Name} {i : Nat} {e : Expr} {F F' : Nat}
     (hle : F ≤ F') {o : Option Expr}
     (h : reduceProjCore mi (pureFns mode env F) env d sn i e = .ok o) :
@@ -412,16 +395,6 @@ private theorem bind_ok {α β : Type} {x : Except CheckError α}
     rw [hx] at h
     exact ⟨a, rfl, h⟩
 
-/-- An application chain over an application base is never a lambda. -/
-private theorem mkAppN_app_ne_lam :
-    ∀ (ys : List Expr) (f a₀ : Expr) (ty body : Expr)
-     , Expr.mkAppN (.app f a₀) ys ≠ .lam ty body
-  | [], _, _, _, _ => by exact fun h => nomatch h
-  | y :: ys, f, a₀, ty, body => by
-    rw [show Expr.mkAppN (.app f a₀) (y :: ys)
-      = Expr.mkAppN (.app (.app f a₀) y) ys from rfl]
-    exact mkAppN_app_ne_lam ys (.app f a₀) y ty body
-
 /-- The bulk substitution of a lambda, exposed. -/
 theorem instList_lam (ty body : Expr)
     (acc : List Expr) :
@@ -440,25 +413,6 @@ theorem instList_cons0 (body : Expr) (a : Expr)
 theorem instList_single (body : Expr) (a : Expr) :
     body.instantiateList [a] = body.instantiate1 a := by
   rw [instList_cons0, Expr.instantiateList_nil]
-
-/-- `appStep` on a stuck application chain with a non-constant head:
-one more stuck application. -/
-private theorem appStep_stuck (F d : Nat) (kF : Expr → CheckM Expr)
-    {w : Expr} (a : Expr)
-    (hnl : ∀ ty body, w ≠ Expr.lam ty body)
-    (hnc : ∀ c us, w.getAppFn ≠ Expr.const c us) :
-    appStep (pureFns mode env F) env d kF w a = .ok (.app w a) := by
-  have hiota : iotaRec (pureFns mode env F) env d (.app w a) = pure none := by
-    refine iotaRec_head_not_const _ env d ?_
-    intro c us h
-    exact hnc c us h
-  cases w with
-  | lam ty body => exact absurd rfl (hnl ty body)
-  | _ =>
-    unfold appStep
-    dsimp only
-    rw [hiota]
-    rfl
 
 private theorem ok_bind {α β : Type} (a : α)
     (f : α → Except CheckError β) :
@@ -1592,6 +1546,5 @@ theorem inferSpineIO_sound_body (d : Nat)
     exact hP
 
 end InferIOSnoc
-
 
 end ConLeche

@@ -146,11 +146,6 @@ lemma that leaves `fvar` leaves to `shiftFrom_fvar`). -/
 private theorem shiftFrom_app (p : Nat) (f a : Expr) :
     shiftFrom p (.app f a) = .app (shiftFrom p f) (shiftFrom p a) := rfl
 
-/-- `shiftFrom` distributes over `letE` (definitional). -/
-private theorem shiftFrom_letE (p : Nat) (ty v b : Expr) :
-    shiftFrom p (.letE ty v b) =
-      .letE (shiftFrom p ty) (shiftFrom p v) (shiftFrom p b) := rfl
-
 /-- `getD` with the (shift-invariant) `bvar 0` default commutes with
 mapping the shift. -/
 private theorem getD_map_shiftFrom (p : Nat) :
@@ -453,19 +448,6 @@ private theorem reduceNatIf_some {g : Bool} {x : CheckM (Option Expr)}
   cases g
   · exact absurd h (by simp [pure, Except.pure])
   · exact h
-
-/-- Shifting keeps a telescope's syntactic arity (task #342 L18). -/
-private theorem peelPis_isSome_shiftFrom (p : Nat) :
-    ∀ (k : Nat) (e : Expr),
-      (Expr.peelPis k (shiftFrom p e)).isSome = (Expr.peelPis k e).isSome
-  | 0, _ => rfl
-  | k + 1, .forallE ty b => by
-    simp only [shiftFrom, Expr.peelPis]
-    exact peelPis_isSome_shiftFrom p k b
-  | _ + 1, .bvar _ | _ + 1, .sort _ | _ + 1, .const _ _ | _ + 1, .app _ _
-  | _ + 1, .lam _ _ | _ + 1, .letE _ _ _ | _ + 1, .lit _ | _ + 1, .proj _ _ _ => rfl
-  | _ + 1, .fvar idx ty => by
-    simp only [shiftFrom]; split <;> rfl
 
 /-- Shifting keeps the head's kind (task #342 L18). -/
 private theorem ioNeutral_shiftFrom (p : Nat) (e : Expr) :
@@ -1176,7 +1158,6 @@ private theorem projLitToCtor_shift (_henv : EnvWF env)
   | .letE ty v body, _ => rfl
   | .proj sn i pe, _ => rfl
 
-
 /-- The projection rule commutes with the shift. -/
 private theorem reduceProjCore_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {sn : Name} {i : Nat}
@@ -1725,7 +1706,6 @@ private theorem infer_step (henv : EnvWF env)
       · rw [ite_eq_right hs, ite_eq_right hs, ← hsh]
         rfl
 
-
 /-- The io *lane* (the leaf knot, `inferTypeCoreIO`) commutes with the
 shift (task #172 B4): `infer_step`'s walk with the io folds, the io
 scoping lemmas, and the one gated clause split on its (shift-invariant)
@@ -1900,7 +1880,6 @@ private theorem inferIOCore_step (henv : EnvWF env)
           rfl
       · rw [ite_eq_right hs, ite_eq_right hs, ← hsh]
         rfl
-
 
 /-- The knot's io *slot* commutes with the shift, at `fuel + 1`
 (task #172 B4): it is the io lane's walk through `inferTypeIO_on`. -/

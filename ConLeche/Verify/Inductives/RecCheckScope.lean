@@ -191,34 +191,6 @@ theorem targetAbs_WScoped {names : List Name} {lvls : List Level} {holes : List 
 
 /-! ## The abstract frame (`targetMoveF`, `targetAbsFields`) -/
 
-/-- Replacing free variables by scoped terms keeps the scope. -/
-theorem replaceFVars_WScoped {g : Nat → Option Expr} {d : Nat}
-    (hg : ∀ i r, g i = some r → WScoped d r) :
-    ∀ (e : Expr), WScoped d e → WScoped d (e.replaceFVars g) := by
-  intro e
-  induction e with
-  | fvar i ty _ =>
-    intro hw
-    simp only [Expr.replaceFVars]
-    cases hgi : g i with
-    | none => exact hw
-    | some r => exact hg i r hgi
-  | app a b iha ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iha hw.1, ihb hw.2⟩
-  | lam ty b iht ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iht hw.1, ihb hw.2⟩
-  | forallE ty b iht ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iht hw.1, ihb hw.2⟩
-  | letE ty v b iht ihv ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iht hw.1, ihv hw.2.1, ihb hw.2.2⟩
-  | proj s i sub ih =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped; exact ih hw
-  | _ => intro hw; simpa [Expr.replaceFVars] using hw
-
 /-- **Replacing every free variable below `d` by a term scoped at `d`**
 scopes the result at `d` whenever its free variables are below `d`
 (no well-scopedness of the input is needed: every free variable the

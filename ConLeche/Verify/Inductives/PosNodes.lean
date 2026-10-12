@@ -302,9 +302,8 @@ theorem posD_tele_open : ∀ {J : PosJ} {ts : List PosTree}, PosD ops env ctx J 
 
 The nested recursor's classes are the block's members and the nodes
 REACHED from them by calls (`PosTree.Reached`: a member constructor's
-or a seed's roots, and every kid of a reached node); a reached node is a
-node in the sense of `PosNodeOk` (`PosTree.Reached.nodeOk`), strictly
-lower than its caller (`PosTree.height_kid`).  Outside majors no member
+or a seed's roots, and every kid of a reached node); a reached node is
+strictly lower than its caller (`PosTree.height_kid`).  Outside majors no member
 constructor reaches (official's auxiliary types whnf erases, a group mate
 nothing calls: `corner_posderiv_major_{delta,group}`) are seeds' roots or
 unreached: the recursor stage inducts on them at the true frame after the
@@ -324,14 +323,6 @@ theorem PosTree.mem_forest_of_mem {ts : List PosTree} {t : PosTree} (h : t ∈ t
     rcases List.mem_cons.mp h with rfl | h
     · exact PosTree.mem_forest_cons.mpr (Or.inl (PosTree.mem_nodes.mpr (Or.inl rfl)))
     · exact PosTree.mem_forest_cons.mpr (Or.inr (ih h))
-
-/-- **Every reached node is a node** (`PosNodeOk`), given the roots are. -/
-theorem PosTree.Reached.nodeOk {ts : List PosTree}
-    (hroots : ∀ r ∈ ts, PosNodeOk ops env ctx r) {t : PosTree} (h : PosTree.Reached ts t) :
-    PosNodeOk ops env ctx t := by
-  induction h with
-  | root hr => exact hroots _ hr
-  | kid _ hk ih => exact posD_nodes ih.1 _ (PosTree.mem_forest_of_mem hk)
 
 end Nodes
 

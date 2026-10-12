@@ -415,48 +415,6 @@ theorem FvarTysOk.instantiate1 {v : Expr} (hv : FvarTysOk env v) :
     rw [Expr.instantiate1, fvarTysOk_proj]
     exact ihe d h
 
-/-- Abstraction drops fvar nodes and keeps every slot fact. -/
-theorem ProjSlotsOk.abstract1 :
-    ∀ (e : Expr) (d k : Nat), ProjSlotsOk env e →
-      ProjSlotsOk env (e.abstract1 d k) := by
-  intro e
-  induction e with
-  | bvar j => intro d k _; simp [Expr.abstract1]
-  | sort u => intro d k _; simp [Expr.abstract1]
-  | const n vs => intro d k _; simp [Expr.abstract1]
-  | lit l => intro d k _; simp [Expr.abstract1]
-  | fvar idx ty _ =>
-    intro d k h
-    rw [Expr.abstract1]
-    split
-    · simp
-    · exact h
-  | app f a ihf iha =>
-    intro d k h
-    rw [projSlotsOk_app] at h
-    rw [Expr.abstract1, projSlotsOk_app]
-    exact ⟨ihf d k h.1, iha d k h.2⟩
-  | lam ty b ihty ihb =>
-    intro d k h
-    rw [projSlotsOk_lam] at h
-    rw [Expr.abstract1, projSlotsOk_lam]
-    exact ⟨ihty d k h.1, ihb d (k + 1) h.2⟩
-  | forallE ty b ihty ihb =>
-    intro d k h
-    rw [projSlotsOk_forallE] at h
-    rw [Expr.abstract1, projSlotsOk_forallE]
-    exact ⟨ihty d k h.1, ihb d (k + 1) h.2⟩
-  | letE t val b iht ihval ihb =>
-    intro d k h
-    rw [projSlotsOk_letE] at h
-    rw [Expr.abstract1, projSlotsOk_letE]
-    exact ⟨iht d k h.1, ihval d k h.2.1, ihb d (k + 1) h.2.2⟩
-  | proj s j e ihe =>
-    intro d k h
-    rw [projSlotsOk_proj] at h
-    rw [Expr.abstract1, projSlotsOk_proj]
-    exact ⟨h.1, ihe d k h.2⟩
-
 /-- **The annotation source**: an occupied slot at every `.proj` node
 means an *empty* slot's node is absent. -/
 theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :

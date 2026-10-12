@@ -20,7 +20,6 @@ records and never unfolds a stage.
 
 | stage | kernel function | record / inversion |
 |---|---|---|
-| the stream's recursor types | `classStreamRecs` | `classStreamRecs_run` |
 | the classes as majors | `classMajors` | `classMajors_run` |
 | the classes' table entries | `classesNfs` | `classesNfs_run` |
 | one constructor's datum, `ih`s, node agreement | `classCtorOf` | `ClassCtorRun` / `classCtorOf_run` |
@@ -57,32 +56,6 @@ local macro_rules
 /-! ## Guards -/
 
 /-! ## The stream's recursor types -/
-
-/-- **`classStreamRecs`, inverted**: every stream recursor constant,
-checked. -/
-theorem classStreamRecs_run {fe : FEnv} {F : Nat} :
-    ∀ {recs : List RecShape} {cvs : List ConstantVal},
-      classStreamRecs (fueledOps mode F) fe recs = .ok cvs →
-      cvs.length = recs.length ∧
-      ∀ (i : Nat) (rc : RecShape), recs[i]? = some rc →
-        ∃ cv, cvs[i]? = some cv ∧ checkConstantValF (fueledOps mode F) fe rc.cvR = .ok cv
-  | [], cvs, h => by
-    simp only [classStreamRecs, pure, Except.pure, Except.ok.injEq] at h
-    subst h
-    exact ⟨rfl, fun i rc hi => nomatch hi⟩
-  | rc :: rcs, cvs, h => by
-    unfold classStreamRecs at h
-    obtain ⟨cv, hcv, h⟩ := exceptBind_ok h
-    obtain ⟨cvs', hcvs, h⟩ := exceptBind_ok h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
-    subst h
-    obtain ⟨hlen, hall⟩ := classStreamRecs_run hcvs
-    refine ⟨by simp [hlen], fun i rc' hi => ?_⟩
-    cases i with
-    | zero =>
-      obtain rfl : rc = rc' := by simpa using hi
-      exact ⟨cv, rfl, hcv⟩
-    | succ i => simpa using hall i rc' (by simpa using hi)
 
 /-! ## The classes -/
 
@@ -765,18 +738,6 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
     hk := hk, helim := helim, hMs := hMs, hctors := hctors,
     hminors := by simpa using hminors, hformer := hformer,
     hpre := unwrapOr_ok hpre, hcvGs := hcvGs, hrules := hout, hreads := hreads }⟩
-
-/-- **The install's recursor stage, inverted**: `checkBlockRec` at the
-fueled operations IS the generated stage at `ShadowOps.fueled`. -/
-theorem checkBlockRec_run {env : Env} {p : BlockParts} {nested : Bool} {params : List Expr}
-    {tbl : List NestCtorNf} {rd : ClassRead} {Ms₀ : List TargetMajor}
-    {block : List ConstantInfo} {cvTas : List ConstantVal}
-    {out : List (ConstantVal × TargetMajor × List Expr)} {F : Nat}
-    (h : checkBlockRec (fueledOps mode F) env p nested params tbl rd Ms₀ block cvTas
-      = .ok out) :
-    Nonempty (GenStageRun mode F (mkFEnv env) p.toBlockShape nested params tbl rd Ms₀ cvTas
-      block out) :=
-  genRecCheck_run h
 
 /-- **The generated recursor stage with the pass's classes and walk** —
 the record every proof about the family reads: the pass's context

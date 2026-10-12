@@ -64,15 +64,6 @@ theorem stepAll_at (c : Ctr) (l : List LineRec) (t : Tb) :
       rw [this]
       cases r.idAt t <;> rfl
 
-/-- The counter after lines that bind something in table `t` does not
-depend on where it started. -/
-theorem stepAll_at_of_ne (c c' : Ctr) {l : List LineRec} {t : Tb} (h : idsT t l ≠ []) :
-    (c.stepAll l).at t = (c'.stepAll l).at t := by
-  rw [stepAll_at, stepAll_at]
-  cases hl : (idsT t l).getLast? with
-  | some i => rfl
-  | none => exact absurd (List.getLast?_eq_none_iff.mp hl) h
-
 /-! ## Keys -/
 
 /-- Keys `K` name the indices `l`, in order. -/
@@ -1588,13 +1579,6 @@ theorem startsGo_spec (ks : Array Keys) (a : Nat) :
     intro hsz ha' hacc hi j hj
     rw [startsGo, dite_eq_right h]
     exact hacc j (by omega)
-
-/-- The starts of a segment built from keys. -/
-theorem Seg.mk'_starts (a : Nat) (ts : Array (CTab α)) (ks : Array Keys) :
-    ∀ j, j ≤ ks.size → (Seg.mk' a ts ks).starts.getD j 0 = startsSpec ks a j :=
-  startsGo_spec ks a 0 a #[a] rfl rfl (fun j hj => by
-    have : j = 0 := by omega
-    subst this; rfl) (Nat.zero_le _)
 
 /-! ## The pages after a window -/
 

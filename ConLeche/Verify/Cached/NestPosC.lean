@@ -48,20 +48,6 @@ theorem nestContainer_closed {ctx : NestCtx} (hc : NestCtxOk ctx) {C : Name}
   obtain ⟨n, nPc, hf⟩ := nestContainer_mem h x hx
   exact hc _ _ hf
 
-theorem lookup_mem {β : Type} :
-    ∀ {l : List (Name × β)} {a : Name} {b : β}, l.lookup a = some b → (a, b) ∈ l
-  | [], _, _, h => nomatch h
-  | (x, y) :: l, a, b, h => by
-    simp only [List.lookup] at h
-    split at h
-    · next hxa =>
-      simp only [Option.some.injEq] at h
-      subst h
-      have : a = x := by simpa using hxa
-      subst this
-      exact List.mem_cons_self
-    · exact List.mem_cons_of_mem _ (lookup_mem h)
-
 /-! ## The environment-reading steps (no operation) -/
 
 section Pure
@@ -444,7 +430,6 @@ theorem nestPosS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {ctx 
               rcases r with ⟨k, st₂⟩
               exact SimC.pure hs₂ ⟨rfl, hww⟩
           · exact SimC.throw
-
 
 /-- **The root frame at the shared operations.** -/
 theorem nestRootS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {ctx : NestCtx}

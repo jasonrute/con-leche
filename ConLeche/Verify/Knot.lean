@@ -31,7 +31,6 @@ these positivity witnesses instead. -/
 theorem whnfLoopFuel_succ : ∃ n, whnfLoopFuel = n + 1 :=
   ⟨4611686018427387903, by unfold whnfLoopFuel; rfl⟩
 
-
 /-- `Expr.lamPair?`, read back: two λs. -/
 theorem Expr.lamPair?_some {B₁ B₂ t₁ b₁ t₂ b₂ : Expr}
     (h : Expr.lamPair? B₁ B₂ = some (t₁, b₁, t₂, b₂)) :
@@ -325,10 +324,6 @@ theorem reduceProjCore_fold (env : Env) (fuel : Nat) :
     reduceProjCore mode (pureFns mode env fuel) env = reduceProjCoreFueled mode env fuel := rfl
 theorem quickDefEq_fold (env : Env) (fuel : Nat) :
     quickDefEq mode (pureFns mode env fuel) = quickDefEqFueled mode env fuel := rfl
-theorem defeqLams_fold (env : Env) (fuel : Nat) :
-    defeqLams mode (pureFns mode env fuel) = defeqLamsFueled mode env fuel := rfl
-theorem defeqLamsInner_fold (env : Env) (fuel : Nat) :
-    defeqLamsInner mode (pureFns mode env fuel) = defeqLamsInnerFueled mode env fuel := rfl
 theorem defeqOffset_fold (env : Env) (fuel : Nat) :
     defeqOffset (pureFns mode env fuel) = defeqOffsetFueled mode env fuel := rfl
 theorem tryUnfoldProjApp_fold (env : Env) (fuel : Nat) :

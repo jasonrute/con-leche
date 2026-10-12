@@ -76,7 +76,6 @@ theorem instantiate1_instantiate1 {a b : Expr}
   | lit l => intro j k hjk; simp [instantiate1]
   | proj s i e ih => intro j k hjk; simp [instantiate1, ih _ _ hjk]
 
-
 /-- Instantiation preserves a `∀`-telescope's arity. -/
 theorem stripPis_instantiate1_isSome {v : Expr} :
     ∀ (k : Nat) {e : Expr} (j : Nat), (e.stripPis k).isSome →
@@ -112,11 +111,6 @@ interpretation never reads. -/
 theorem ErasedEq.rfl : ∀ (e : Expr), ErasedEq e e := by
   intro e
   induction e <;> simp_all [ErasedEq]
-
-/-- Equal terms are `ErasedEq` (the shape the `==` comparisons of the
-kernel hand their consumers, `eq_of_beq` first). -/
-theorem ErasedEq.of_eq {a b : Expr} (h : a = b) : ErasedEq a b :=
-  h ▸ ErasedEq.rfl a
 
 theorem ErasedEq.instantiate1 :
     ∀ {e e' v v' : Expr} {k : Nat}, ErasedEq e e' → ErasedEq v v' →
@@ -1019,7 +1013,6 @@ theorem fvarsBelow_instantiate1_gen {d : Nat} {a : Expr} (ha : fvarsBelow d a) :
     · exact ha
     · split <;> simp [fvarsBelow]
 
-
 /-- Replace `fvar p` by `a`, lowering higher `fvar` indices. -/
 @[expose] def substFvarAt (p : Nat) (a : Expr) : Expr → Expr
   | .bvar i => .bvar i
@@ -1088,7 +1081,6 @@ theorem substFvarAt_instantiate1_self {d : Nat} {ty a : Expr} :
   | _ =>
     intro k hb
     simp_all [instantiate1, substFvarAt, fvarsBelow]
-
 
 /-! ### `instantiate1`, constructor by constructor
 

@@ -2010,16 +2010,6 @@ constant's closed type, and `instPisAt` preserves scoping.
 (`instPisAt_WScoped` moved here from `BridgeWfImp` so the leaf modules
 can reach it.) -/
 
-/-- A stored constant's type has no fvars (`ConstWF`), after any level
-instantiation — the projection certificate's telescope (task #175 W6). -/
-theorem const_ty_hasFvar {env : Env} (henv : EnvWF env) {n : Name}
-    {ci : ConstantInfo} (hf : env.find? n = some ci) (us : List Level) :
-    (ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams
-      us).hasFvar = false := by
-  have hwf := henv _ (List.mem_of_find?_eq_some hf)
-  rw [Expr.hasFvar_instantiateLevelParams]
-  exact hwf.1
-
 /-- A stored projection entry's body is well-formed (`EnvWF`'s table
 clause at the view, task #175 S1): fvar-free, level-defined,
 resolving, scoped at the parameters and the subject. -/
@@ -2218,7 +2208,6 @@ theorem projLitToCtorFueled_inv {env : Env} {fuel d : Nat} {e e₁ : Expr}
     simp only [projLitToCtorFueled, projLitToCtor, pure, Except.pure,
       Except.ok.injEq] at h
     exact Or.inl h.symm
-
 
 /-- A predicate passes through a firing projection rule
 (`reduceProjCore`) when it passes to an application's arguments,
@@ -2646,7 +2635,6 @@ theorem natPred?_WScoped {d : Nat} {e x : Expr} (h : e.natPred? = some x)
       simp only [WScoped] at hw
       exact hw.2
     · exact nomatch h
-
 
 /-! ## The lazy-delta loops' pairs (lane CHEAPPROJ)
 

@@ -190,7 +190,6 @@ theorem Expr.occDeep_const {names : List Name} {n : Name} {us : List Level}
     (h : n ∉ names) : (Expr.const n us).occDeep names = false := by
   simpa [Expr.occDeep] using h
 
-
 /-! ## The environment hypothesis -/
 
 /-- **What reduction and inference can copy out of the environment names
@@ -320,7 +319,6 @@ theorem natOpResult_const {c : Name} {a b : Nat} {bn : Name}
   rw [ite_eq_right hl] at h
   exact nomatch h
 
-
 /-- Literal acceleration's reducts, precisely: a literal, or a `Bool`
 constructor produced while `Nat.beq` or `Nat.ble` is stored. -/
 theorem reduceNat_inv_bool {env : Env} {fuel d : Nat} {e e₂ : Expr}
@@ -437,18 +435,7 @@ theorem reduceNat_inv_bool {env : Env} {fuel d : Nat} {e e₂ : Expr}
           | none => intro h; simp [pure, Except.pure] at h
       · intro h; simp [pure, Except.pure] at h
 
-
 /-! ## The reduction steps -/
-
-theorem Expr.occDeep_piResult {names : List Name} :
-    ∀ {e : Expr}, e.occDeep names = false → e.piResult.occDeep names = false := by
-  intro e
-  induction e with
-  | forallE t b _ ihb =>
-    intro h
-    simp only [Expr.occDeep, Bool.or_eq_false_iff] at h
-    exact ihb h.2
-  | _ => intro h; exact h
 
 /-- Unfolding a (non-member) definition at the head. -/
 theorem unfoldDefinition_occDeep {env : Env} {names : List Name}
@@ -544,7 +531,6 @@ theorem majorToCtor_occDeep {env : Env} {names : List Name}
     · exact hargs x hx
     · simpa [Expr.occDeep] using hm
     · simpa [Expr.occDeep] using hm
-
 
 /-- The body of a projection-table entry at member-free arguments. -/
 theorem projEntry_typeAt_occDeep {env : Env} {names : List Name}
@@ -894,7 +880,6 @@ theorem whnf_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env nam
     (he : e.occDeep names = false) : w.occDeep names = false :=
   (whnfPres_occDeep hN fuel).2.1 h he
 
-
 /-! ## Part 2: the walk's normal form -/
 
 /-- What the walk's judgments say about member constants: a field's
@@ -975,7 +960,6 @@ theorem memberCtorD_nestOcc_zero {env : Env} {ctx : NestCtx} {F nF : Nat} {crest
     (hcrest : crest.occDeep ctx.names = false) :
     tyN.nestOcc ctx.names 0 0 = false :=
   Expr.nestOcc_zero_of_occDeep _ (memberCtorD_occDeep hN hd hcrest)
-
 
 /-! ### The crest's premise, from the kernel's data
 
@@ -1195,24 +1179,6 @@ theorem nestCrest_occDeep {names : List Name} {us : List Level} {ds holes : List
   · exact hds x (List.mem_of_getElem? hx)
   · exact hholes x (List.mem_of_getElem? hx)
 
-
-/-- The crest premise at the ROOT frame: a stored constructor that passed
-the uniform check (`nestUniformOk`), at member-free canonical parameters
-and holes. -/
-theorem rootCrest_occDeep {ctx : NestCtx} {cv : ConstantVal} {holes : List Expr}
-    {crest : Expr} (hu : nestUniformOk ctx cv = true) (hcty : cv.type.hasFvar = false)
-    (hlen : ctx.params.length = ctx.nP)
-    (hc : nestCrest ctx.names (ctx.lps.map .param) ctx.params holes
-      (cv.type.instantiateLevelParams cv.levelParams (ctx.lps.map .param)) = some crest)
-    (hds : ∀ x ∈ ctx.params, x.occDeep ctx.names = false)
-    (hholes : ∀ x ∈ holes, x.occDeep ctx.names = false) :
-    crest.occDeep ctx.names = false := by
-  obtain ⟨A, hA, hAocc⟩ := nestRootCanon_nestOcc_zero hu
-  unfold nestRootCanon at hA
-  rw [← hlen] at hA
-  exact nestCrest_occDeep hc (by rw [hasFvar_instantiateLevelParams]; exact hcty) hA hAocc
-    hds hholes
-
 /-! ## Part 3: the formers' environment -/
 
 theorem piResult_of_stripPis_sort' :
@@ -1266,7 +1232,6 @@ theorem Expr.occDeep_of_constsResolve {env : Env} {names : List Name}
     intro h; simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact ih h.2
   | _ => intro _; rfl
-
 
 /-! ### The string-support declarations' result types are no sorts -/
 

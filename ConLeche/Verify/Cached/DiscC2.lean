@@ -162,21 +162,6 @@ theorem boolTrueShortcutIfC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
   · exact SimC.pure hs rfl
   · exact boolTrueShortcutC_sim ih hs hden hw
 
-/-- `propIrrelC_sim` under the once-per-entry gate (the audit's D3):
-the pruned branch is `pure false` twinned. -/
-theorem propIrrelIfC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
-    {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hdena : RelC i a) (hdenb : RelC j b)
-    (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) (g : Bool) :
-    SimC mode env s₀ RelVC
-      (if g then propIrrelI (coreKnotI mode (mkFEnv env) f)
-        (mkFEnv env) d i j else pure false)
-      (if g then propIrrel (fueledFns mode env) env d a b
-        else pure false) := by
-  cases g
-  · exact SimC.pure hs rfl
-  · exact propIrrelC_sim ih hs hdena hdenb hwa hwb
-
 /-- `proofIrrelI` simulates its fueled original. -/
 theorem proofIrrelC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
     {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)

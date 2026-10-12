@@ -283,14 +283,6 @@ theorem RelRun.ofThrowBind {α β : Type} {R : β → β → Prop} {e : CheckErr
     {k₁ k₂ : α → CheckCM β} : RelRun R ((throw e : CheckCM α) >>= k₁) (throw e >>= k₂) :=
   fun _ => .inl ⟨e, rfl, rfl⟩
 
-theorem RelRun.dite {α : Type} {R : α → α → Prop} {c : Prop} {d : Decidable c}
-    {a₁ a₂ : ¬c → CheckCM α} {b₁ b₂ : c → CheckCM α}
-    (ha : ∀ h, RelRun R (a₁ h) (a₂ h)) (hb : ∀ h, RelRun R (b₁ h) (b₂ h)) :
-    RelRun R (@dite _ c d b₁ a₁) (@dite _ c d b₂ a₂) := by
-  by_cases h : c
-  · rw [dite_eq_left h, dite_eq_left h]; exact hb h
-  · rw [dite_eq_right h, dite_eq_right h]; exact ha h
-
 theorem RelRun.ite {α : Type} {R : α → α → Prop} {c : Prop} {d : Decidable c}
     {t₁ t₂ e₁ e₂ : CheckCM α}
     (ht : c → RelRun R t₁ t₂) (he : ¬c → RelRun R e₁ e₂) :
@@ -332,19 +324,11 @@ theorem PushedFrom.trans {fe₁ fe₂ a₁ a₂ b₁ b₂ : FEnv} (h : PushedFro
   obtain ⟨L', rfl, rfl⟩ := h'
   exact ⟨L ++ L', FEnv.pushAll_append _ _ _, FEnv.pushAll_append _ _ _⟩
 
-theorem PushedFrom.twin {fe₁ fe₂ a₁ a₂ : FEnv} (ht : Twin fe₁ fe₂)
-    (h : PushedFrom fe₁ fe₂ a₁ a₂) : Twin a₁ a₂ := by
-  obtain ⟨L, rfl, rfl⟩ := h
-  exact ht.pushAll L
-
 /-! ## The cached declaration stages -/
 
 section Cached
 
 variable {mode : CheckMode}
-
-theorem opSIxC_congr' {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    opSIxC mode fe₁ = opSIxC mode fe₂ := opSIxC_congr hfe
 
 theorem checkConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?)
     (cv : ConstantVal) : checkConstantValC mode fe₁ cv = checkConstantValC mode fe₂ cv := by
@@ -719,16 +703,6 @@ end RecStage
 section FStages
 
 variable {ops : CheckerOps m}
-
-theorem checkStructDomsAtF_congr (h : EnvFree ops) (fe₁ fe₂ : FEnv) (off : Nat)
-    (fvs doms : List Expr) :
-    ∀ j, checkStructDomsAtF ops fe₁ off fvs doms j = checkStructDomsAtF ops fe₂ off fvs doms j
-  | 0 => rfl
-  | j + 1 => by
-    have ih := checkStructDomsAtF_congr h fe₁ fe₂ off fvs doms j
-    unfold checkStructDomsAtF
-    simp only [h.isDefEq fe₁.env, h.isDefEq fe₂.env]
-    rw [ih]
 
 theorem checkStructDomsAtFA_congr (h : EnvFree ops) (fe₁ fe₂ : FEnv) (off : Nat)
     (fvs doms : Array Expr) :

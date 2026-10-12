@@ -33,9 +33,6 @@ theorem appHole?_some {f : Name → List Level → Option Expr} {b n : Nat} {e h
   | none => rw [hp] at hh; exact nomatch hh
   | some p => rw [hp] at hh; exact ⟨p.1, p.2, hh⟩
 
-theorem phApp?_lam {b n : Nat} {t body : Expr} :
-    (Expr.lam t body).phApp? b n = none := by cases n <;> rfl
-
 /-- The one-node unfolding at an application. -/
 theorem replaceApps_app (f : Name → List Level → Option Expr) (b n : Nat) (a x : Expr) :
     (Expr.app a x).replaceApps f b n =
@@ -55,81 +52,6 @@ theorem replaceApps_const (f : Name → List Level → Option Expr) (b n : Nat) 
   cases (Expr.const c us).appHole? f b n <;> rfl
 
 /-! ## Structural facts -/
-
-/-- **A property built bottom-up survives the replacement** when every
-image has it. -/
-theorem replaceApps_rec {P : Expr → Prop} {f : Name → List Level → Option Expr} {b n : Nat}
-    (hf : ∀ c us h, f c us = some h → P h)
-    (happ : ∀ a x, P a → P x → P (.app a x))
-    (hlam : ∀ t body, P t → P body → P (.lam t body))
-    (hpi : ∀ t body, P t → P body → P (.forallE t body))
-    (hlet : ∀ t v body, P t → P v → P body → P (.letE t v body))
-    (hproj : ∀ s i x, P x → P (.proj s i x))
-    (hbvar : ∀ i, P (.bvar i)) (hfvar : ∀ i ty, P (.fvar i ty)) (hsort : ∀ u, P (.sort u))
-    (hconst : ∀ c us, P (.const c us)) (hlit : ∀ l, P (.lit l)) :
-    ∀ e : Expr, P (e.replaceApps f b n) := by
-  intro e
-  induction e with
-  | bvar i => exact hbvar i
-  | fvar i ty _ => exact hfvar i ty
-  | sort u => exact hsort u
-  | lit l => exact hlit l
-  | const c us =>
-    rw [replaceApps_const]
-    split
-    · rename_i h hh
-      obtain ⟨c', us', hc⟩ := appHole?_some hh
-      exact hf _ _ _ hc
-    · exact hconst c us
-  | app a x iha ihx =>
-    rw [replaceApps_app]
-    split
-    · rename_i h hh
-      obtain ⟨c', us', hc⟩ := appHole?_some hh
-      exact hf _ _ _ hc
-    · exact happ _ _ iha ihx
-  | lam t body iht ihb => exact hlam _ _ iht ihb
-  | forallE t body iht ihb => exact hpi _ _ iht ihb
-  | letE t v body iht ihv ihb => exact hlet _ _ _ iht ihv ihb
-  | proj s i x ih => exact hproj _ _ _ ih
-
-/-- **A relation between the input and the result**, proved node by node:
-`R e (replaceApps e)` whenever `R` holds at every hit and is a congruence
-for the nodes the replacement keeps. -/
-theorem replaceApps_rel {R : Expr → Expr → Prop} {f : Name → List Level → Option Expr}
-    {b n : Nat}
-    (hhit : ∀ e h, e.appHole? f b n = some h → R e h)
-    (happ : ∀ a x a' x', R a a' → R x x' → R (.app a x) (.app a' x'))
-    (hlam : ∀ t body t' body', R t t' → R body body' → R (.lam t body) (.lam t' body'))
-    (hpi : ∀ t body t' body', R t t' → R body body' →
-      R (.forallE t body) (.forallE t' body'))
-    (hlet : ∀ t v body t' v' body', R t t' → R v v' → R body body' →
-      R (.letE t v body) (.letE t' v' body'))
-    (hproj : ∀ s i x x', R x x' → R (.proj s i x) (.proj s i x'))
-    (hbvar : ∀ i, R (.bvar i) (.bvar i)) (hfvar : ∀ i ty, R (.fvar i ty) (.fvar i ty))
-    (hsort : ∀ u, R (.sort u) (.sort u)) (hconst : ∀ c us, R (.const c us) (.const c us))
-    (hlit : ∀ l, R (.lit l) (.lit l)) :
-    ∀ e : Expr, R e (e.replaceApps f b n) := by
-  intro e
-  induction e with
-  | bvar i => exact hbvar i
-  | fvar i ty _ => exact hfvar i ty
-  | sort u => exact hsort u
-  | lit l => exact hlit l
-  | const c us =>
-    rw [replaceApps_const]
-    split
-    · rename_i h hh; exact hhit _ _ hh
-    · exact hconst c us
-  | app a x iha ihx =>
-    rw [replaceApps_app]
-    split
-    · rename_i h hh; exact hhit _ _ hh
-    · exact happ _ _ _ _ iha ihx
-  | lam t body iht ihb => exact hlam _ _ _ _ iht ihb
-  | forallE t body iht ihb => exact hpi _ _ _ _ iht ihb
-  | letE t v body iht ihv ihb => exact hlet _ _ _ _ _ _ iht ihv ihb
-  | proj s i x ih => exact hproj _ _ _ _ ih
 
 /-- The loose-bvar bound survives when the images are closed. -/
 theorem looseBVarsBounded_replaceApps {f : Name → List Level → Option Expr} {b n : Nat}
@@ -175,41 +97,6 @@ theorem looseBVarsBounded_replaceApps {f : Name → List Level → Option Expr} 
   | fvar i ty _ => intro k h; exact h
   | sort u => intro k h; exact h
   | lit l => intro k h; exact h
-
-/-- Scoping survives when the images are scoped. -/
-theorem WScoped_replaceApps {f : Name → List Level → Option Expr} {b n d : Nat}
-    (hf : ∀ c us h, f c us = some h → WScoped d h) :
-    ∀ e : Expr, WScoped d e → WScoped d (e.replaceApps f b n) := by
-  intro e
-  induction e with
-  | const c us =>
-    intro _
-    rw [replaceApps_const]
-    split
-    · rename_i h hh
-      obtain ⟨c', us', hc⟩ := appHole?_some hh
-      exact hf _ _ _ hc
-    · simp [WScoped]
-  | app a x iha ihx =>
-    intro h
-    rw [replaceApps_app]
-    split
-    · rename_i h' hh
-      obtain ⟨c', us', hc⟩ := appHole?_some hh
-      exact hf _ _ _ hc
-    · simp only [WScoped] at h ⊢
-      exact ⟨iha h.1, ihx h.2⟩
-  | lam t body iht ihb =>
-    intro h; simp only [replaceApps, WScoped] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
-  | forallE t body iht ihb =>
-    intro h; simp only [replaceApps, WScoped] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
-  | letE t v body iht ihv ihb =>
-    intro h; simp only [replaceApps, WScoped] at h ⊢; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
-  | proj s i x ih => intro h; simp only [replaceApps, WScoped] at h ⊢; exact ih h
-  | bvar i => intro h; exact h
-  | fvar i ty _ => intro h; exact h
-  | sort u => intro h; exact h
-  | lit l => intro h; exact h
 
 /-- The leaves of the result are the input's or an image's. -/
 theorem fvarLeaves_replaceApps {f : Name → List Level → Option Expr} {b n : Nat} :
@@ -501,48 +388,6 @@ theorem replaceApps_instantiate1_fvar {f : Name → List Level → Option Expr} 
 
 /-! ## Leaves and scoping -/
 
-/-- A leaf's own annotation's leaves are leaves. -/
-theorem fvarLeaves_leaf_closed : ∀ (e : Expr) {i : Nat} {ty : Expr}, (i, ty) ∈ e.fvarLeaves →
-    ∀ l ∈ (Expr.fvar i ty).fvarLeaves, l ∈ e.fvarLeaves := by
-  intro e
-  induction e with
-  | fvar j t ih =>
-    intro i ty hl l hl'
-    simp only [fvarLeaves, List.mem_cons] at hl hl' ⊢
-    rcases hl with h | hl
-    · cases h
-      exact hl'
-    · rcases hl' with rfl | hl'
-      · exact .inr hl
-      · exact .inr (ih hl l (by simp [fvarLeaves, hl']))
-  | app f a ihf iha =>
-    intro i ty hl l hl'
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    exact hl.imp (fun h => ihf h l hl') (fun h => iha h l hl')
-  | lam t b iht ihb =>
-    intro i ty hl l hl'
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    exact hl.imp (fun h => iht h l hl') (fun h => ihb h l hl')
-  | forallE t b iht ihb =>
-    intro i ty hl l hl'
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    exact hl.imp (fun h => iht h l hl') (fun h => ihb h l hl')
-  | letE t v b iht ihv ihb =>
-    intro i ty hl l hl'
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    rcases hl with (h | h) | h
-    · exact .inl (.inl (iht h l hl'))
-    · exact .inl (.inr (ihv h l hl'))
-    · exact .inr (ihb h l hl')
-  | proj s k x ih =>
-    intro i ty hl l hl'
-    simp only [fvarLeaves] at hl ⊢
-    exact ih hl l hl'
-  | bvar => intro i ty hl; simp [fvarLeaves] at hl
-  | sort => intro i ty hl; simp [fvarLeaves] at hl
-  | const => intro i ty hl; simp [fvarLeaves] at hl
-  | lit => intro i ty hl; simp [fvarLeaves] at hl
-
 /-- **Scoping from the leaves**: a term whose every leaf is below `d` and
 scoped below itself is scoped at `d` (the converse of `WScoped_leaves`). -/
 theorem WScoped_of_leaves : ∀ (e : Expr) {d : Nat},
@@ -677,7 +522,6 @@ theorem wscoped_instPisWith {d : Nat} :
       exact wscoped_instPisWith (fun x hx => ha x (List.mem_cons_of_mem _ hx))
         (WScoped.instantiate1_gen (ha a List.mem_cons_self) 0 he.2) h'
 
-
 /-- The canonical parameter variables' leaves: themselves, annotated `Sort 0`. -/
 theorem fvarLeaves_nestPhs {n : Nat} :
     ∀ x ∈ nestPhs n, ∀ l ∈ x.fvarLeaves, ∃ i, i < n ∧ l = (i, .sort .zero) := by
@@ -686,8 +530,6 @@ theorem fvarLeaves_nestPhs {n : Nat} :
   obtain ⟨i, hi, rfl⟩ := hx
   simp only [fvarLeaves, List.mem_cons, List.not_mem_nil, or_false] at hl
   exact ⟨i, hi, hl⟩
-
-theorem nestPhs_length (n : Nat) : (nestPhs n).length = n := by simp [nestPhs]
 
 /-- The canonical substitution's images are the canonical holes. -/
 theorem nestCanonSub_some {names : List Name} {us : List Level} {n : Nat} {c : Name}

@@ -1020,11 +1020,6 @@ theorem nestRootOk_of_open {ctx : NestCtx} {T rest : Expr}
   ∀ (c : Nat) (cs : List (ConstantVal × Nat)), css[c]? = some cs →
     CtorsRec ops env ctx tbl [] (ctx.hiAt 0) (ctx.lps.map .param) ctx.params ctx.names holes cs
 
-theorem CtorsRecRoot.mono {holes : List Expr} {tbl tbl' : List NestCtorNf}
-    (hs : ∀ e ∈ tbl, e ∈ tbl') {css : List (List (ConstantVal × Nat))}
-    (h : CtorsRecRoot ops env ctx holes tbl css) : CtorsRecRoot ops env ctx holes tbl' css :=
-  fun c cs hc => (h c cs hc).mono hs
-
 /-- The canonical parameters are hole-free readers of themselves: read
 back, they are unchanged. -/
 theorem params_readback {ctx : NestCtx} (hroot : NestRootOk ctx) (prog : List NestHole) :

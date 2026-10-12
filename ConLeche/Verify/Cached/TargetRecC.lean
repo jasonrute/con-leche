@@ -31,23 +31,6 @@ variable {mode : CheckMode}
 
 /-! ## 1. Scoping -/
 
-theorem piBinders_WScoped {d : Nat} : ∀ {e : Expr}, WScoped d e →
-    (∀ b ∈ e.piBinders.1, WScoped d b) ∧ WScoped d e.piBinders.2
-  | .forallE ty b, h => by
-    simp only [WScoped] at h
-    obtain ⟨h1, h2⟩ := piBinders_WScoped h.2
-    simp only [Expr.piBinders]
-    refine ⟨?_, h2⟩
-    intro x hx
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact h.1
-    · exact h1 x hx
-  | .bvar _, h | .fvar .., h | .sort _, h | .const .., h | .app .., h | .lam .., h
-  | .letE .., h | .lit _, h | .proj .., h => by
-    constructor
-    · intro b hb; simp [Expr.piBinders] at hb
-    · simpa [Expr.piBinders] using h
-
 theorem WScoped.default_expr {d : Nat} : WScoped d (default : Expr) :=
   WScoped.of_not_hasFvar (by rfl)
 
@@ -355,15 +338,6 @@ theorem flushC_simG : SimG CSOKF CSOKF RelVC flushC (Pure.pure () : FueledM Unit
   injection hr with hr
   obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
   exact ⟨hs.flushed, (), rfl, 0, rfl⟩
-
-/-- A flush into any environment's invariant. -/
-theorem flushC_simG_to {A : CState → Prop} (hA : ∀ s, A s → CSOKF s) (env' : Env) :
-    SimG A (CSOK mode env') RelVC flushC (Pure.pure () : FueledM Unit) := by
-  intro s₀ hs v' s' hr
-  rw [flushC_run] at hr
-  injection hr with hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨flushC_csok (hA s₀ hs), (), rfl, 0, rfl⟩
 
 /-- The shared operations read the index only through `find?`
 (`coreKnotI_congr`). -/

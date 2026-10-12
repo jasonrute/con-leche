@@ -27,12 +27,6 @@ theorem Expr.numArgs_shiftFrom {p : Nat} :
   induction e <;> simp_all [shiftFrom, numArgs]
   case fvar => split <;> rfl
 
-theorem lamProj?_shiftFrom {p : Nat} :
-    ∀ (k : Nat) (e : Expr), lamProj? k (shiftFrom p e) = lamProj? k e := by
-  intro k e
-  induction e generalizing k <;> simp_all [shiftFrom, lamProj?]
-  split <;> rfl
-
 /-- `getD` through a mapped list, the default mapped too. -/
 theorem List.getD_map_shiftFrom {p : Nat} (l : List Expr) (i : Nat) (d : Expr) :
     (l.map (shiftFrom p)).getD i (shiftFrom p d) = shiftFrom p (l.getD i d) := by
@@ -92,13 +86,6 @@ theorem peelPisW_succ_eq (find? : Name → Option ConstantInfo) (n : Nat) (e : E
     rw [unwrapIdDefs_succ_of_not_const find? (by intro c us h; exact nomatch h)]
     rfl
   | _ => rfl
-
-theorem shiftFrom_not_forallE {p : Nat} {e : Expr} (h : ∀ ty b, e ≠ .forallE ty b) :
-    ∀ ty b, shiftFrom p e ≠ .forallE ty b := by
-  intro ty b he
-  cases e <;> simp only [shiftFrom, reduceCtorEq] at he
-  case fvar => split at he <;> exact nomatch he
-  case forallE ty₀ b₀ => exact h ty₀ b₀ rfl
 
 theorem peelPisW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
     ∀ (n : Nat) (e : Expr),

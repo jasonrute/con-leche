@@ -190,12 +190,6 @@ theorem reduceNat_atF (d : Nat) (e : Expr) (F : Nat) :
   unfold reduceNat
   atF_tac
 
-theorem boolTrueShortcut_atF (d : Nat) (e : Expr) (F : Nat) :
-    (boolTrueShortcut (fueledFns mode env) d e).val F =
-      boolTrueShortcut (pureFns mode env F) d e := by
-  unfold boolTrueShortcut
-  atF_tac
-
 theorem ensureSort_atF (d : Nat) (e : Expr) (F : Nat) :
     (ensureSort (fueledFns mode env) env d e).val F =
       ensureSort (pureFns mode env F) env d e := by
@@ -240,7 +234,6 @@ macro "atF_step2" : tactic =>
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [reduceNat_atF])
-    | (rw [boolTrueShortcut_atF])
     | (rw [ensureSort_atF])
     | (rw [proofIrrel_atF])
     | (rw [propIrrel_atF])
@@ -339,7 +332,6 @@ macro "atF_core3" x:tactic : tactic =>
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [reduceNat_atF])
-    | (rw [boolTrueShortcut_atF])
     | (rw [ensureSort_atF])
     | (rw [proofIrrel_atF])
     | (rw [propIrrel_atF])
@@ -477,7 +469,6 @@ macro "atF_core4" x:tactic : tactic =>
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [reduceNat_atF])
-    | (rw [boolTrueShortcut_atF])
     | (rw [ensureSort_atF])
     | (rw [proofIrrel_atF])
     | (rw [propIrrel_atF])

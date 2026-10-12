@@ -216,14 +216,6 @@ theorem checkValueGroup_of_facts {vg : ValueGroup} {jv stype vtype : Expr} {u : 
 
 /-! ## Fuel -/
 
-theorem checkValueGroup_mono {F' : Nat} (hle : F ≤ F') {vg : ValueGroup}
-    (h : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
-    checkValueGroup (fueledOps μ F') env vg = .ok () := by
-  obtain ⟨stype, u, hst, hsort, hthm, jv, hiv, hjv', vtype, hvt, hde⟩ := checkValueGroup_inv h
-  exact checkValueGroup_of_facts (inferTypeCore_mono hle hst) (ensureSortCore_mono hle hsort)
-    hthm hiv hjv' (inferTypeCore_mono hle hvt)
-    (isDefEqCore_mono hle hde)
-
 /-! ## `checkDecl` from the two halves -/
 
 theorem checkConstantVal_of_facts {cv : ConstantVal} {stype : Expr} {u : Level}
