@@ -198,8 +198,9 @@ def proofPW (find? : Name → Option ConstantInfo) : Expr → Option PropWhen
 
 /-- Is the datum "always zero" — the sort is `Prop` at every
 valuation? -/
-@[inline] def PropWhen.isProp (pw : PropWhen) : Bool :=
-  pw == (.ifAllZero [])
+@[inline] def PropWhen.isProp : PropWhen → Bool
+  | .ifAllZero [] => true
+  | _ => false
 
 /-- **Definitely not a proof** (the no arm): the datum is known and is
 not always-zero. -/

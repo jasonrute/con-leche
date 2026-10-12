@@ -92,15 +92,15 @@ theorem blockCtorReads_of {env : Env} {m : EnvModel V env} {d : BlockData V} {lp
   have hname : d.toLfp.ctorName c j = cA.1.name := by
     show ((d.ctorsM c).getD j default).1.name = _
     rw [List.getD_eq_getElem?_getD, hcj]; rfl
-  obtain ⟨hfind, hlpsC, -⟩ := hcore.2.2.2 c hc' j cA hcj
-  obtain ⟨-, Acr, hAcr, hr⟩ := (hcore.2.2.1 c j cA hcj).2.2.2
+  obtain ⟨hfind, hlpsC, -⟩ := hcore.2.2 c hc' j cA hcj
+  obtain ⟨-, Acr, hAcr, hr⟩ := (hcore.2.1 c j cA hcj).2.2.2
   have hCf := hclosed c j cA hcj
   -- the parameter telescope's length (member 0's former)
   have hk0 : 0 < d.k := Nat.lt_of_le_of_lt (Nat.zero_le c) hc'
   obtain ⟨cvTa0, hcv0⟩ : ∃ cvTa0, cvTas[0]? = some cvTa0 :=
     ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact hk0)⟩
   obtain ⟨-, -, -, hFD0⟩ := hcore.1 0 cvTa0 hcv0
-  have hcd := (hcore.2.2.1 c j cA hcj).2.2.1
+  have hcd := (hcore.2.1 c j cA hcj).2.2.1
   obtain ⟨A', hA', hocc'⟩ := hocc c hc' j cA hcj
   rw [hAcr] at hA'
   obtain rfl := Option.some.inj hA'

@@ -805,8 +805,8 @@ theorem genRun_lic (mpC : EnvModelM V μ envC)
     obtain ⟨cA, hcj⟩ : ∃ cA,
         ((blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf).ctorsM 0)[0]? = some cA :=
       ⟨_, List.getElem?_eq_getElem hsf.1⟩
-    obtain ⟨hfindC, hlpsC, -⟩ := hcore.2.2.2 0 hk0 0 cA hcj
-    obtain ⟨-, -, hcd, -⟩ := hcore.2.2.1 0 0 cA hcj
+    obtain ⟨hfindC, hlpsC, -⟩ := hcore.2.2 0 hk0 0 cA hcj
+    obtain ⟨-, -, hcd, -⟩ := hcore.2.1 0 0 cA hcj
     have hsrc : ∀ gs : List V,
         (blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf).StoredFit ψ
           (consList (xs.take (blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf).nP) ρ)

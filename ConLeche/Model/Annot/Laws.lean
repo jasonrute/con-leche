@@ -26,7 +26,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  ReducibilityHint IndCaps projFnName RecRule)
+  ReducibilityHint IndCaps RecRule)
 
 universe w
 
@@ -170,10 +170,11 @@ completed family (`EtaFamilyStored`).  They live here because the
   reading by determinism.  The equality-form crossing is refutable
   at support-completing installs, so no backward transfer ever
   appears.
-* **The fired content is value-level**: `ts`, `x`, `y` are bare `V`s,
-  and the fabricated η spine is `projSpines`/`etaFabArgsV` — the
-  kernel's `etaFabArgsE` at the `interp` values of the `acval` leaves
-  at the same assignment.
+* **The fired content is value-level**: `ts`, `x`, `y` are bare `V`s.
+  The η half is owed only for a fieldless family (`EtaFamilyStored`'s
+  `etaFields = 0`), so its fabricated spine is the parameters `ts`; a
+  family with fields reads its η law off its projection table's tower
+  entries (`TowerEtaLaw`).
 
 **Establishment**: at the inductive install, which re-runs its defeq
 certificates through the claims.  Consumers: the structure-η and
@@ -203,20 +204,6 @@ theorem teleFit_nil_inv {ρ : Nat → V} {T : AnnotTerm} {rest : V}
   cases h; rfl
 
 end
-
-/-- The projection spines' values: each stored projection function
-applied to the type arguments and the stuck member. -/
-@[expose] noncomputable def projSpines {V : Type w} [SetTheory V]
-    (val : Name → V) (T : Name) (ts : List V) (b : V) (nF : Nat) :
-    List V :=
-  (List.range nF).map fun j =>
-    (ts ++ [b]).foldl SetTheory.app (val (projFnName T j))
-
-/-- The fabricated η spine's values (`etaFabArgsE`'s value level). -/
-@[expose] noncomputable def etaFabArgsV {V : Type w} [SetTheory V]
-    (val : Name → V) (T : Name) (ts : List V) (b : V) (nF : Nat) :
-    List V :=
-  ts ++ projSpines val T ts b nF
 
 /-- **The η constructor's telescope coherence** (task #342 L11b): at the
 use's levels `us`, a member `x` of the family `T` at parameters `ts`
@@ -288,17 +275,12 @@ telescope coherence (`EtaCoherent`). -/
       TeleFit V ρ TVa ts rest →
       x ∈ˢ ts.foldl SetTheory.app
         (interp V ρ (m.acval T (Level.substFn φ' cvT.levelParams us))) →
-      x = (etaFabArgsV
-            (fun n => interp V ρ
-              (m.acval n (Level.substFn φ' cvT.levelParams us)))
-            T ts x caps.etaFields).foldl SetTheory.app
+      x = ts.foldl SetTheory.app
           (interp V ρ
             (m.acval caps.etaCtor
               (Level.substFn φ' cvT.levelParams us)))) ∧
     EtaCoherent m φ' T caps.etaCtor cvT.levelParams us TVa caps.etaParams
-      (fun ρ ts x => etaFabArgsV
-        (fun n => interp V ρ (m.acval n (Level.substFn φ' cvT.levelParams us)))
-        T ts x caps.etaFields)
+      (fun _ ts _ => ts)
 
 /-- **The fired unit-like law of a unit-like stored family.** -/
 @[expose] def UnitLaw {V : Type w} [SetTheory V] {env : Env}

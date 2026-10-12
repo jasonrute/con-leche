@@ -107,7 +107,7 @@ def usage : String := String.intercalate "\n" [
   "  --trusted         the unverified mode: the SAME checker bodies as",
   "                    --verified, instantiated at the mode with the",
   "                    certification-only work switched off (the",
-  "                    verifiedChecks and certs mode functions false):",
+  "                    verifiedChecks mode function false):",
   "                    the lambda-codomain sort check, the lambda/lambda",
   "                    and eta body-type comparisons, the projection",
   "                    certificate and the certificate families (iota's",

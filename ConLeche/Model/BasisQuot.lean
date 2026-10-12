@@ -2,11 +2,6 @@ module
 
 public import ConLeche.Model.BasisBlocks
 import ConLeche.Semantics.BasisRules
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 import ConLeche.Model.Cover
 
 public section
@@ -759,7 +754,7 @@ theorem quotMk_licensed_ne_zero {find? : Name → Option ConstantInfo}
     generalize Level.substPW [uN] usj (ConLeche.PropWhen.ifAllZero [uN]) = pw at hnv ⊢
     cases pw with
     | never => rfl
-    | ifAllZero ps => simp at hnv
+    | ifAllZero ps => exact nomatch hnv
   rw [ConLeche.Level.holds_substPW] at hh
   intro h0
   have h0' : Level.substFn φ [uN] usj uN = 0 := h0

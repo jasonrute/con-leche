@@ -2,12 +2,7 @@ module
 
 public import ConLeche.Kernel.PropRead
 public import ConLeche.Verify.Shift
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
 import ConLeche.Kernel.PropWhen
-import all ConLeche.Kernel.PropWhen
 
 public section
 

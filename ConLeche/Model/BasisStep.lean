@@ -72,8 +72,7 @@ theorem declStep_preserves_of_basis_cons (mp : EnvModelM V μ env)
     -- `caps_ok`: a reserved name, or a kind no stored family mentions
     (hcaps : ConLeche.reservedBasisNames.contains c₀.name = true ∨
       ((∀ cv caps, c₀ ≠ .indInfo cv caps) ∧
-        (∀ cv np nf, c₀ ≠ .ctorInfo cv np nf) ∧
-        (∀ cv mI rP rules, c₀ ≠ .recInfo cv mI rP rules)))
+        (∀ cv np nf, c₀ ≠ .ctorInfo cv np nf)))
     -- `reduce_ops`: not an axiom, or not a trusted operation's name
     (hred : (∀ cv, c₀ ≠ .axiomInfo cv) ∨
       c₀.name ∉ ConLeche.reduceOpNames)
@@ -121,9 +120,9 @@ theorem declStep_preserves_of_basis_cons (mp : EnvModelM V μ env)
   · -- `eq_law`: `Eq` is stored in the prefix, one `acvalWith_ne`
     exact eqLaw_cons_fresh mp.eq_law hnEq _ rfl
   · -- `caps_ok`: reserved name, or a kind no family mentions
-    rcases hcaps with hres | ⟨h1, h2, h3⟩
+    rcases hcaps with hres | ⟨h1, h2⟩
     · exact capsOk_cons_basis mp mp.caps_ok hfresh hh.projTower hres _ rfl
-    · exact capsOk_cons_fresh mp mp.caps_ok hfresh hh.projTower h1 h2 h3 _ rfl
+    · exact capsOk_cons_fresh mp mp.caps_ok hfresh hh.projTower h1 h2 _ rfl
   · -- `rec_rules`: `EnvModel.rec_ctors` supplies the constructor
     -- disequality, so freshness is enough
     exact fun φ => recRules_cons_fresh mp hfresh hh.projTower hnotrec _ rfl φ

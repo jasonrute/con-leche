@@ -233,7 +233,6 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     {nP : Nat} {resSort : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     (hfresh : env.find? cvTa.name = none)
     (hnres : ConLeche.reservedBasisNames.contains cvTa.name = false)
-    (hpshape : cvTa.name.isProjFnShape = false)
     (hcb : ConstsBound env cvTa.type)
     (hwfI : ConLeche.EnvWF ⟨.indInfo cvTa caps :: env.consts⟩)
     (hFD : FormerData mp.base2 cvTa nP resSort pps)
@@ -277,7 +276,7 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
   · intro m₂ hac
     refine capsOk_cons_native mp (c₀ := .indInfo cvTa caps)
       (A := A) (T := cvTa.name) hfresh
-      (ConsCrossEnv.ofNtc fun _ h => nomatch h) hpshape
+      (ConsCrossEnv.ofNtc fun _ h => nomatch h)
       (Or.inl ⟨cvTa, caps, rfl, rfl⟩) ?_ m₂ hac ?_
     · -- the OTHER stored families: outside the block they are closed;
       -- a still-pending MEMBER's η constructor is a `ctorInfo`, which
@@ -312,8 +311,6 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
       cvTasAll[j']? = some c' → j ≠ j' → c.name ≠ c'.name)
     (hnresOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
       ConLeche.reservedBasisNames.contains cvTa.name = false)
-    (hpshapeOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
-      cvTa.name.isProjFnShape = false)
     (htyWF : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
       cvTa.type.hasFvar = false ∧
       cvTa.type.allLevelParamsDefined cvTa.levelParams = true ∧
@@ -394,7 +391,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
         ⟨.indInfo cvTa (ConLeche.blockCapsAt p₁ i isRec) :: env.consts⟩ :=
       ConLeche.envWF_cons_blockInd mp.base2.wf hhf hlp (hres i cvTa hi) hlb hspi
     obtain ⟨mpI, hacI⟩ := stageBlockFormer mp (names := names) hE hfresh
-      (hnresOf i cvTa hi) (hpshapeOf i cvTa hi) hcb hwfI (hFD i cvTa hi)
+      (hnresOf i cvTa hi) hcb hwfI (hFD i cvTa hi)
       (hAbelowOf i cvTa hi) (hAparamsOf i cvTa hi) (hAokOf i cvTa hi)
       (hAmemOf i cvTa hi) (hAstrictOf i cvTa hi)
       (fun m₂ hac => hTlawsOf i cvTa hi mp.base2 (hFD i cvTa hi) hfresh hcb hfreshC m₂ hac)
@@ -456,7 +453,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
           exact hh))]
       exact hfreshC j cvTb hj he
     obtain ⟨mp', hE₂, hFD₂, hcons₂, hag₂⟩ :=
-      stageBlockFormers hnames hndN hnresOf hpshapeOf htyWF hAbelowOf hAparamsOf hAokOf
+      stageBlockFormers hnames hndN hnresOf htyWF hAbelowOf hAparamsOf hAokOf
         hAmemOf hAstrictOf hetaNe hTlawsOf rest (i + 1) _ mpI hrest' (by simp at hk; omega) hE'
         hres' hfreshOf' hfreshC' hFD' hcons'
     refine ⟨mp', hE₂, hFD₂, hcons₂, fun n hn => ?_⟩

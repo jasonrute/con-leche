@@ -8,8 +8,7 @@ public section
 # The structure-capability laws across a fresh cons (task #161, caps
 tier)
 
-The statements (`TeleFit`, `projSpines`/`etaFabArgsV`, `EtaLaw`,
-`UnitLaw`, `CapsOk`) live in `Annot/Laws.lean` beside `NatOps`,
+The statements (`TeleFit`, `EtaLaw`, `UnitLaw`, `CapsOk`) live in `Annot/Laws.lean` beside `NatOps`,
 `DivMod` and `EqLaw` — the `EnvModelM` field `caps_ok` must mention
 them.  This file is the *preservation* half: `capsOk_cons_fresh`, the obligation every
 value-kind harvest discharges.
@@ -18,16 +17,14 @@ The law **carries the instantiated former type's reading**, so the
 crossing must move that reading forward too
 (`denoteMeta_cons_fresh_mono`, on `ConstsBound` of the instantiated type
 — `constsBound_instType`).  Everything else is `acvalWith_ne` at the
-three families of leaves the law mentions (the former, the capability
-constructor, the documented projection functions), each `≠` the fresh
-name because `EtaFamilyStored` *stores* them at kinds the four
-value-kind harvests never cons.
+two leaves the law mentions (the former and the capability
+constructor), each `≠` the fresh name because `EtaFamilyStored`
+*stores* them at kinds the value-kind harvests never cons.
 
 The head case is therefore not a case at all: a `defnInfo`/`thmInfo`/
-`axiomInfo` cons can be neither the former (an `indInfo` lookup), nor
-the capability constructor (a `ctorInfo` lookup), nor a projection
-function (a `recInfo` lookup), so all three disequalities are
-`ConstantInfo.noConfusion`.  This is *simpler* than
+`axiomInfo` cons can be neither the former (an `indInfo` lookup) nor
+the capability constructor (a `ctorInfo` lookup), so both
+disequalities are `ConstantInfo.noConfusion`.  This is *simpler* than
 `natOps_cons_fresh`, whose head case needs a disjunctive premise.
 -/
 
@@ -38,7 +35,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  IndCaps projFnName)
+  IndCaps)
 
 universe w
 
@@ -66,23 +63,21 @@ theorem constsBound_instType {env : Env} (hwf : ConLeche.EnvWF env)
 
 /-! ## The family descent
 
-An extended-environment family whose three stored members are all of
-kinds the cons is not descends verbatim to the prefix, and its three
-name families miss the fresh name. -/
+An extended-environment family whose two stored members are of kinds
+the cons is not descends verbatim to the prefix, and its two names miss
+the fresh name. -/
 
 /-- **The stored family descends past a value-kind cons**, together
-with the three disequalities the law's leaf transport needs. -/
+with the two disequalities the law's leaf transport needs. -/
 theorem etaFamilyStored_descend {c₀ : ConstantInfo} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps}
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (hnotctor : ∀ cv np nf, c₀ ≠ .ctorInfo cv np nf)
-    (hnotrec : ∀ cv mI rP rules, c₀ ≠ .recInfo cv mI rP rules)
     (hf : (⟨c₀ :: env.consts⟩ : Env).find? T = some (.indInfo cvT caps))
     (hfam : ConLeche.EtaFamilyStored ⟨c₀ :: env.consts⟩ T caps) :
     env.find? T = some (.indInfo cvT caps) ∧
       ConLeche.EtaFamilyStored env T caps ∧
-      T ≠ c₀.name ∧ caps.etaCtor ≠ c₀.name ∧
-      ∀ j, j < caps.etaFields → projFnName T j ≠ c₀.name := by
+      T ≠ c₀.name ∧ caps.etaCtor ≠ c₀.name := by
   obtain ⟨hCres, ⟨cvC, cnP, cnF, hfC⟩, hfP⟩ := hfam
   -- the former is not the cons: the cons is not an `indInfo`
   have hnT : T ≠ c₀.name := by
@@ -94,23 +89,12 @@ theorem etaFamilyStored_descend {c₀ : ConstantInfo} {T : Name}
     intro heq
     rw [heq, ConLeche.Env.find?_cons, ite_eq_left rfl] at hfC
     exact hnotctor cvC cnP cnF (Option.some.inj hfC)
-  -- no projection function is the cons: they are `recInfo`s
-  have hnP : ∀ j, j < caps.etaFields → projFnName T j ≠ c₀.name := by
-    intro j hj heq
-    obtain ⟨cv2, mI2, rP2, rules2, hf2⟩ := hfP j hj
-    rw [heq, ConLeche.Env.find?_cons, ite_eq_left rfl] at hf2
-    exact hnotrec cv2 mI2 rP2 rules2 (Option.some.inj hf2)
   have hdown : ∀ n : Name, n ≠ c₀.name →
       (⟨c₀ :: env.consts⟩ : Env).find? n = env.find? n := by
     intro n hn
     rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hn hh.symm)]
-  refine ⟨by rwa [hdown _ hnT] at hf, ⟨hCres, ⟨cvC, cnP, cnF, ?_⟩, ?_⟩,
-    hnT, hnC, hnP⟩
-  · rwa [hdown _ hnC] at hfC
-  · intro j hj
-    obtain ⟨cv2, mI2, rP2, rules2, hf2⟩ := hfP j hj
-    rw [hdown _ (hnP j hj)] at hf2
-    exact ⟨cv2, mI2, rP2, rules2, hf2⟩
+  exact ⟨by rwa [hdown _ hnT] at hf,
+    ⟨hCres, ⟨cvC, cnP, cnF, by rwa [hdown _ hnC] at hfC⟩, hfP⟩, hnT, hnC⟩
 
 /-! ## Why the unit half of `CapsOk` carries no `EtaFamilyStored` premise
 
@@ -119,17 +103,14 @@ theorem etaFamilyStored_descend {c₀ : ConstantInfo} {T : Name}
 T caps` premise would make the field **unusable by its own consumer**.
 The unit law's only evidence is `structUnitCertFueled`'s verdict, and
 `structUnitCert_inv` (`Verify/InferLemmas.lean`) yields nine
-facts, *none* of which mentions `caps.etaCtor` or `projFnName T j`:
-the certificate never looks at a constructor or a projection.  Nor is
-the premise derivable from the environment: `EtaFamilyStored` is a
-statement about what is *stored* under two name families that an
-`indInfo` entry's `caps` record merely *names*, and `EnvWF` relates
-the two not at all.  `blockCapsAt` (`Kernel/Inductives/BlockInstall.lean`)
-computes `eta` and `unitlike` by two independent checks, so a
-`unitlike`-but-not-`eta` family — whose projection indices install as
-elimination *templates* (`projInfo`), not projection functions
-(`recInfo`) — is exactly the shape the premise excludes and the
-certificate accepts.
+facts, *none* of which mentions `caps.etaCtor`: the certificate never
+looks at a constructor.  Nor is the premise derivable from the
+environment: `EtaFamilyStored` is a statement about what is *stored*
+under a name that an `indInfo` entry's `caps` record merely *names*,
+and `EnvWF` relates the two not at all.  `blockCapsAt`
+(`Kernel/Inductives/BlockInstall.lean`) computes `eta` and `unitlike`
+by two independent checks, so a `unitlike`-but-not-`eta` family is
+exactly the shape the premise excludes and the certificate accepts.
 
 `etaFamilyStored_not_derivable` below is that gap, mechanized. -/
 
@@ -175,7 +156,7 @@ theorem etaFamilyStored_not_derivable :
 
 /-- **`CapsOk` at a fresh value-kind cons** — every `defnInfo`,
 `thmInfo` and `axiomInfo` harvest discharges its `caps_ok` obligation
-here.  (An `indInfo`/`ctorInfo`/`recInfo` cons may *complete* a family
+here.  (An `indInfo`/`ctorInfo` cons may *complete* a family
 and so genuinely owes the law; those installs supply it bespoke.) -/
 theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
     (hprev : CapsOk mp.base2)
@@ -184,30 +165,16 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
     (hntc : ConsCrossEnv env c₀)
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (hnotctor : ∀ cv np nf, c₀ ≠ .ctorInfo cv np nf)
-    (hnotrec : ∀ cv mI rP rules, c₀ ≠ .recInfo cv mI rP rules)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A) :
     CapsOk m₂ := by
   constructor
   · -- the η half
     intro T cvT caps hf hcape hres hfam φ' us hlen
-    obtain ⟨hfE, hfam₀, hnT, hnC, hnP⟩ :=
-      etaFamilyStored_descend hnotind hnotctor hnotrec hf hfam
+    obtain ⟨hfE, hfam₀, hnT, hnC⟩ :=
+      etaFamilyStored_descend hnotind hnotctor hf hfam
     obtain ⟨TVa, hTVa, hokTVa, hlaw, hcoh⟩ :=
       hprev.1 T cvT caps hfE hcape hres hfam₀ φ' us hlen
-    have hfab : ∀ ρ ts x, etaFabArgsV
-          (fun n => interp V ρ
-            (m₂.acval n (Level.substFn φ' cvT.levelParams us)))
-          T ts x caps.etaFields
-        = etaFabArgsV
-          (fun n => interp V ρ
-            (mp.base2.acval n (Level.substFn φ' cvT.levelParams us)))
-          T ts x caps.etaFields := by
-      intro ρ ts x
-      unfold etaFabArgsV projSpines
-      refine congrArg _ (List.map_congr_left fun j hj => ?_)
-      dsimp only
-      rw [hac, acvalWith_ne (hnP j (List.mem_range.mp hj))]
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
       exact denoteMeta_cons_mono hfresh
@@ -216,10 +183,11 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT] at hmem
-      rw [hfab, hac, acvalWith_ne hnC]
+      rw [hac, acvalWith_ne hnC]
       exact hlaw ρ ts rest x hlents hfit hmem
     · refine hcoh.transport (fun cvC nPc nFc hf₂ => ?_)
-        (fun cvC nPc nFc TCa hf hTCa => ?_) (by rw [hac, acvalWith_ne hnT]) hfab
+        (fun cvC nPc nFc TCa hf hTCa => ?_) (by rw [hac, acvalWith_ne hnT])
+        (fun _ _ _ => rfl)
       · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
       · rw [hac]
         exact denoteMeta_cons_mono hfresh

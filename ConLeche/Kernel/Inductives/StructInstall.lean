@@ -74,12 +74,6 @@ def checkStructProjTable (T C : Name) (lps : List Name) (nP nF : Nat)
       b.allLevelParamsDefined lps && b.constsResolve env &&
       b.looseBVarsBounded (nP + 1)) do
     throw (.internal "direct structure: projection body scoping")
-  -- the projection-function name family (the key of the η-family
-  -- predicate) must be free too: a block family has
-  -- no projection functions, and the model's η law for the block is
-  -- discharged by the tower, never by `EtaFamilyStored`
-  unless (List.range nF).all (fun j => (env.find? (projFnName T j)).isNone) do
-    throw (.invalid "projection name family taken")
   unless (env.find? (projTableName T)).isNone do
     throw (.invalid "projection table taken")
   pure ⟨.projInfo ⟨T, lps, nP, C, nF, resSort, bodies, guards, off⟩ :: env.consts⟩

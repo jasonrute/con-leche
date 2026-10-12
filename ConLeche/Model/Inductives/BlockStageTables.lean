@@ -58,7 +58,7 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
     (cA.1.type.stripPis (d.nP + cA.2)).isSome = true
   /-- the block's `Prop` flag is its sort's zeroness -/
   propFlag : d.isProp = (Level.isEquiv d.resSort .zero == some true)
-  /-- no member's name, and no constructor's, is a projection function's -/
+  /-- no member's name is projection-shaped (the table's name is) -/
   shapeT : ∀ m, m < d.k → (d.memberName m).isProjFnShape = false
   /-- no member's name, its recursor's or its constructor's is reserved -/
   resT : ∀ m, m < d.k → ConLeche.reservedBasisNames.contains (d.memberName m) = false
@@ -148,7 +148,7 @@ theorem blockTablesCore_of {env : Env} {m' : EnvModel V env} {d : BlockData V}
       ∀ j, NoProjEnv env (d.memberName c) j) :
     BlockTablesCore m' d lps cvTasAll p₁ isRec A 0 := by
   obtain ⟨hnameOf, hctorLt, hlenCv⟩ := hN
-  obtain ⟨hform, -, hdata, hconsed⟩ := h
+  obtain ⟨hform, hdata, hconsed⟩ := h
   refine ⟨hform, fun c j cA hj => ?_, fun c _ hc h1 h2 j => hnp c hc h1 h2 j⟩
   obtain ⟨hfind, hlps, hleafC⟩ := hconsed c (by
     have := hctorLt c j cA hj
@@ -337,7 +337,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
     | ok env' =>
     rw [hT] at h
     rw [hqlps, hqnP, hqres, hTn] at hT
-    obtain ⟨bodies, hbodies, -, -, hfreshTbl, henvOut⟩ := ConLeche.checkStructProjTable_inv hT
+    obtain ⟨bodies, hbodies, -, hfreshTbl, henvOut⟩ := ConLeche.checkStructProjTable_inv hT
     have hnpT : ∀ j, NoProjEnv env cvTb.name j := by
       rw [← hTn']; exact hcore.2.2 i (Nat.le_refl _) hik ⟨cA, hctorsEq⟩ hnIdx0
     obtain ⟨tbl, mp', henv, hstructN, hfreshT, hac⟩ :=

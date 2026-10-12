@@ -51,7 +51,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  IndCaps projFnName RecRule)
+  IndCaps RecRule)
 
 universe w
 

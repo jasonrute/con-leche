@@ -506,7 +506,7 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     rw [hctorsAs c hc] at hcs
     obtain rfl := Option.some.inj hcs
     have hck : c < dR.k := hN.2.2 ▸ hN.2.1 c j cA hcA
-    obtain ⟨hf, -⟩ := hcore.2.2.2 c hck j cA hcA
+    obtain ⟨hf, -⟩ := hcore.2.2 c hck j cA hcA
     have hw := mpC.base2.wf _ (List.mem_of_find?_eq_some hf)
     exact ⟨hcA, hw.1, hw.2.2.2.1⟩
   have hcl : ∀ (c : Nat) (cs : List (ConstantVal × Nat)), ctorsAsR[c]? = some cs →

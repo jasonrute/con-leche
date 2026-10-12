@@ -179,17 +179,6 @@ def quoteName : ConLeche.Name → Lean.Expr
   | .str p s => mkApp2 (.const ``ConLeche.Name.str []) (quoteName p) (mkStrLit s)
   | .num p n => mkApp2 (.const ``ConLeche.Name.num []) (quoteName p) (mkRawNatLit n)
 
-def quoteNameList (ns : List ConLeche.Name) : Lean.Expr :=
-  ns.foldr
-    (fun n acc => mkApp3 (.const ``List.cons [.zero]) nameT (quoteName n) acc)
-    (.app (.const ``List.nil [.zero]) nameT)
-
-/-- Quote a `PropWhen` through its public interface (`never` /
-`ifAllZero`) — the representation is private. -/
-def quotePropWhen : Option (List ConLeche.Name) → Lean.Expr
-  | none => .const ``ConLeche.PropWhen.never []
-  | some ps => .app (.const ``ConLeche.PropWhen.ifAllZero []) (quoteNameList ps)
-
 def quoteBinderMeta (_pw : Option (List ConLeche.Name)) : Lean.Expr :=
   .const ``ConLeche.BinderMeta.mk []
 

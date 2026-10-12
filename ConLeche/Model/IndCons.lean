@@ -32,26 +32,18 @@ and `reservedBasisNames` is the sixteen pinned names — `Nat`,
 * `eq_law` goes through `eqLaw_cons_fresh` for the same reason: no
   block member is named `Eq`, so the pinned spine's law is untouched.
 
-The projection conses (the projection functions' `recInfo`s and the
-`projInfo` templates) carry no reserved check of their own, but their names are
-`projFnName T i`, and `projFnName_ne_reserved` supplies the same four
-disequalities.
-
 What is left is exactly the tier's bill: `caps_ok` and `rec_rules`,
 plus the tower and its type's reading.  Both remaining rows are taken
 here in `natHeads_cons_offNat`'s shape — quantified over any carrier
 whose base and `acval` are the extension's — so a caller never spells
 `declStep_preserves_of_cons`'s anonymous-constructor carrier.
 
-**The `caps_ok` gap is not only at the family's own conses.**
+**The `caps_ok` gap is at the family's own conses.**
 `capsOk_cons_fresh` descends the stored-family predicate past a cons
-of a kind no family mentions, and `EtaFamilyStored` mentions three:
-`indInfo` (the former), `ctorInfo` (the capability constructor) and
-**`recInfo`** (a projection slot).  So the *projection-function*
-install — a `recInfo` cons — can complete a family that was not
-previously stored, which is why the η law's establishment sits at the
-projection install.  `declStep_preserves_of_ind_cons` therefore keeps
-`caps_ok` open at every ind-tier cons and never guesses a route.
+of a kind no family mentions, and `EtaFamilyStored` mentions two:
+`indInfo` (the former) and `ctorInfo` (the capability constructor).
+`declStep_preserves_of_ind_cons` therefore keeps `caps_ok` open at
+every ind-tier cons and never guesses a route.
 -/
 
 namespace ConLeche.Model
@@ -100,8 +92,7 @@ rows an inductive block genuinely establishes. -/
 theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
     (hfresh : env.find? c₀.name = none)
-    -- the name: `blockShape?`'s guard at a member,
-    -- `projFnName_ne_reserved` at a projection slot
+    -- the name: `blockShape?`'s guard at a member
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     -- the kind: an inductive block installs no value kind and no axiom
     (hnotdefn : ∀ cv v hint, c₀ ≠ .defnInfo cv v hint)
@@ -218,9 +209,9 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ h <;> exact nomatch h
 
-/-- **The P step at a *recursor* cons** — the block's recursors and the
-projection functions, both stored as `recInfo`.  Only `caps_ok` and
-`rec_rules` stay open; both are the install's to establish. -/
+/-- **The P step at a *recursor* cons** — the block's recursors, stored
+as `recInfo`.  Only `caps_ok` and `rec_rules` stay open; both are the
+install's to establish. -/
 theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
     (hfresh : env.find? c₀.name = none)

@@ -14,12 +14,13 @@ straight from the direct parse (`ConLeche/Frontend/ExportC.lean`, task
 
 `checkDeclStepC` is the fold's step for every declaration kind that is
 checked as it is installed: axioms, inductive and basis blocks, the
-pinned `Nat`-operation and `reduce*` declarations — and, on this step,
-a definition, theorem or opaque too.  The declaration fold itself,
-`checkDecls` (`ConLeche/Cached/Installed.lean`), installs every record
-first (a separable value declaration by the install half of this
-step, annotated and pushed with its check recorded; everything else by
-this step) and checks the recorded declarations afterwards; the
+pinned `Nat`-operation definitions and `reduce*` opaques.  The
+declaration fold itself, `checkDecls` (`ConLeche/Cached/Installed.lean`),
+installs every record first (a separable value declaration — every
+theorem, every other definition and opaque — by its own install half,
+pushed with its check recorded; everything else by this step) and
+checks the recorded declarations afterwards, so this step never sees a
+separable value declaration: it throws an internal error on one; the
 binary's driver (`ConLeche/Driver/*`) runs that fold with a heartbeat between
 the steps and returns its environment together with the proof that
 `checkDecls` returns it.  The fold runs at `.verified` and at
@@ -103,34 +104,6 @@ def checkDefnValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
     throw (.invalid s!"type mismatch in definition {cvA.name}")
   pure (.defnInfo cvA jv hint)
 
-/-- Check and install a definition's value against its annotated type `jty`. -/
-def checkDefnValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
-    (value : Expr) (hint : ReducibilityHint) : CheckCM FEnv := do
-  let ci ← checkDefnValCI mode fe cvA jty value hint
-  pure (fe.push ci)
-
-/-- Check a theorem's value against its `Prop` statement `jty`; stored opaque. -/
-def checkThmValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
-    (value : Expr) : CheckCM FEnv := do
-  let jsty ← (coreKnotI mode fe checkFuel).infer 0 jty
-  let ul ← opSIxC mode fe 0 jsty
-  unless (← liftFueled "level comparison" (Level.isEquiv ul .zero)) do
-    throw (.invalid s!"type of theorem {cvA.name} is not a proposition")
-  unless Expr.looseBVarsBounded 0 value do
-    throw (.invalid s!"loose bound variable in value of {cvA.name}")
-  if value.hasFvar then
-    throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv := value
-  unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
-    throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
-  unless constsResolveFC fe jv do
-    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
-  let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
-    throw (.invalid s!"type mismatch in theorem {cvA.name}")
-  -- stored by statement only: a stored theorem carries no value
-  pure (fe.push (.thmInfo cvA))
-
 /-- Check an opaque's value against `jty`, returning the axiom record
 to install, unpushed (as `checkDefnValCI`). -/
 def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
@@ -149,12 +122,6 @@ def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
     throw (.invalid s!"type mismatch in opaque {cvA.name}")
   pure (.axiomInfo cvA)
 
-/-- Check an opaque's value against `jty`; installed as an axiom. -/
-def checkOpaqueValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
-    (value : Expr) : CheckCM FEnv := do
-  let ci ← checkOpaqueValCI mode fe cvA jty value
-  pure (fe.push ci)
-
 /-- `checkBasisDecl`'s cached twin: the body the three records that
 install a pinned basis block share (task #293). -/
 def checkBasisDeclC (fe : FEnv) (kind : BasisKind) : CheckCM FEnv := do
@@ -164,7 +131,11 @@ def checkBasisDeclC (fe : FEnv) (kind : BasisKind) : CheckCM FEnv := do
   kind.declsA.foldlM installBasisDeclF fe
 
 /-- One converted declaration (inductive and basis blocks reuse the
-`Expr`-level drivers).
+`Expr`-level drivers).  A separable value declaration (a theorem, a
+definition other than a pinned `Nat` operation, an opaque other than a
+`reduce*` one) never reaches it — phase A installs it by its install
+half (`installStepC`, `ConLeche/Cached/Installed.lean`) — and is an
+internal error here.
 `pins` is the `Nat.div`/`Nat.mod` pin-variant list the install gate
 tries (task #304), threaded from the fold.
 
@@ -205,20 +176,19 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
         checkDivModPinF (sharedOpsC mode fe) pins fe fe2 cvA.name
       pure (fe.push ci)
     else
-      checkDefnValC mode fe cvA jty value hint
-  | .thmDecl cv value => do
-    let (cvA, jty) ← checkConstantValC mode fe cv
-    checkThmValC mode fe cvA jty value
+      throw (.internal s!"definition {cvA.name} reached the ordinary step")
+  | .thmDecl cv _ =>
+    throw (.internal s!"theorem {cv.name} reached the ordinary step")
   | .opaqueDecl cv value => do
     let (cvA, jty) ← checkConstantValC mode fe cv
-    -- RC linearity: branch before the value check, so the common arm
-    -- hands `fe` to its push unshared.
+    -- only a `reduce*` opaque reaches this step: phase A installs the
+    -- others (`installStepC`)
     if reduceOpNames.contains cvA.name then do
       let ci ← checkOpaqueValCI mode fe cvA jty value
       checkReducePinF (sharedOpsC mode fe) fe (fe.overlay [ci]) cvA.name value
       pure (fe.push ci)
     else
-      checkOpaqueValC mode fe cvA jty value
+      throw (.internal s!"opaque {cvA.name} reached the ordinary step")
   | .axiomDecl cv =>
     -- `checkDecl`'s twin (task #293): `Quot.sound` is the pinned
     -- quotient block's own record — compared with the pin, installing

@@ -206,8 +206,6 @@ about a name the kernel fabricates:
 * the body of every projection-table entry (a `.proj` node's type);
 * constructors are no members (the K / `And` rescues and the `Nat`
   literal's constructor form fabricate constructor heads);
-* no member is named like a projection function (the structure-η
-  rescue fabricates them);
 * the literal-support names (`Nat`, `String` and its constructor form's
   constants) are no members when the literal support is on;
 * the `Bool` constructors are no members when `Nat.beq`/`Nat.ble` are
@@ -222,7 +220,6 @@ about a name the kernel fabricates:
       (r.eta = true → recRuleEtaOf env.find? n r.ctor = true)) ∧
   (∀ T i entry, env.findProj? T i = some entry → entry.body.occDeep names = false) ∧
   (∀ c cv nP nF, env.find? c = some (.ctorInfo cv nP nF) → c ∉ names) ∧
-  (∀ T j, projFnName T j ∉ names) ∧
   (natLitSupported env = true → natName ∉ names) ∧
   (strLitSupported env = true →
     stringName ∉ names ∧ stringOfListName ∉ names ∧ listNilName ∉ names ∧
@@ -242,7 +239,7 @@ theorem strLitList_occDeep {names : List Name} (hc : charName ∉ names)
 theorem strLitToConstructor_occDeep {env : Env} {names : List Name}
     (hN : WhnfNamesFree env names) (hs : strLitSupported env = true) (s : String) :
     (strLitToConstructor s).occDeep names = false := by
-  obtain ⟨-, hso, hn, hk, hc, ho⟩ := hN.2.2.2.2.2.2.2.1 hs
+  obtain ⟨-, hso, hn, hk, hc, ho⟩ := hN.2.2.2.2.2.2.1 hs
   rw [strLitToConstructor_eq]
   simp only [Expr.occDeep, strLitList_occDeep hc hn hk ho, Bool.or_false]
   simpa using hso
@@ -689,7 +686,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           · refine ihN hcont ?_
             rcases reduceNat_inv_bool hrn with ⟨k, rfl⟩ | ⟨bn, rfl, hbn, hst⟩
             · rfl
-            · obtain ⟨ht, hf⟩ := hN.2.2.2.2.2.2.2.2 hst
+            · obtain ⟨ht, hf⟩ := hN.2.2.2.2.2.2.2 hst
               rcases hbn with rfl | rfl
               · exact Expr.occDeep_const ht
               · exact Expr.occDeep_const hf
@@ -752,7 +749,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.2.1 hs).1
+          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs).1
       case natCase =>
         dsimp only [inferBody, Bind.bind, Except.bind, pure, Except.pure] at h
         revert h
@@ -764,7 +761,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs)
+          exact Expr.occDeep_const (hN.2.2.2.2.2.1 hs)
     | forallE ty body m =>
       obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ := inferTypeCore_forall_inv h
       rfl
@@ -848,7 +845,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.2.1 hs).1
+          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs).1
       case natCase =>
         dsimp only [inferBodyIO, Bind.bind, Except.bind, pure, Except.pure] at h
         revert h
@@ -860,7 +857,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs)
+          exact Expr.occDeep_const (hN.2.2.2.2.2.1 hs)
     | forallE ty body m =>
       obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ := inferTypeCoreIO_forall_inv h
       rfl
@@ -896,19 +893,6 @@ theorem whnf_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env nam
     (fuel : Nat) {d : Nat} {e w : Expr} (h : whnf mode env fuel d e = .ok w)
     (he : e.occDeep names = false) : w.occDeep names = false :=
   (whnfPres_occDeep hN fuel).2.1 h he
-
-/-- Part 1 at the walk's occurrence test.  The input premise must see the
-annotations (`occDeep`): with `e.nestOcc names 0 0 = false` alone the
-claim is FALSE — the structure-η rescue at a projection-FUNCTION
-structure (`etaProjs`' non-table branch) copies the parameters of the
-stuck major's INFERRED type, i.e. of a free variable's annotation, into
-the reduct (`S.proj.j.{us} p⃗ x`), and those parameters need only be
-defeq (e.g. proof-irrelevantly) to the member-free ones the recursor
-application carries. -/
-theorem whnf_nestOcc_zero {env : Env} {names : List Name} (hN : WhnfNamesFree env names)
-    (fuel : Nat) {d : Nat} {e w : Expr} (h : whnf mode env fuel d e = .ok w)
-    (he : e.occDeep names = false) : w.nestOcc names 0 0 = false :=
-  Expr.nestOcc_zero_of_occDeep _ (whnf_occDeep hN fuel h he)
 
 
 /-! ## Part 2: the walk's normal form -/
@@ -1336,12 +1320,10 @@ theorem listConsTyOk_piResult {ci : ConstantInfo} (h : listConsTyOk (some ci) = 
 /-- **Part 3: `WhnfNamesFree` at the formers' environment.**  `envI` is
 the block's formers (members `names`, stored as `indInfo`s whose types
 are syntactic telescopes ending in a sort) consed onto a pre-block
-`env`: fresh there, and `envI` agrees with `env` off the members.  Three
+`env`: fresh there, and `envI` agrees with `env` off the members.  Two
 facts about the pre-block environment are needed beyond `EnvWF`, each
 an install-time invariant of the checker's environments:
 
-* `hproj`: no member is named like a projection function
-  (`checkConstantVal` rejects `Name.isProjFnShape`);
 * `hRecEta`: a set η-rescue bit is the store's verdict (the η part of
   `RecCtorsStored`, `ConLeche/Verify/EnvPreds.lean`);
 * `hBool`: `Nat.beq`/`Nat.ble` are stored only with the `Bool`
@@ -1353,7 +1335,6 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
       ∃ k bs s, cvTb.type.stripPis k = some (bs, .sort s))
     (hfresh : ∀ cvTb ∈ cvTas, env.find? cvTb.name = none)
     (hI : ∀ n, (∀ cvTb ∈ cvTas, cvTb.name ≠ n) → envI.find? n = env.find? n)
-    (hproj : ∀ n ∈ names, n.isProjFnShape = false)
     (hRecEta : ∀ n cv mI rP rules, env.find? n = some (.recInfo cv mI rP rules) →
       ∀ r ∈ rules, r.eta = true → recRuleEtaOf env.find? n r.ctor = true)
     (hBool : natOpStored env natBeqName = true ∨ natOpStored env natBleName = true →
@@ -1392,7 +1373,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     exact hs _ _ (Option.some.inj hf')
   have hres : ∀ e : Expr, e.constsResolve env = true → e.occDeep names = false :=
     Expr.occDeep_of_constsResolve hmemE
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- stored types
     intro n ci hf hn
     rw [hnon n hn] at hf
@@ -1427,10 +1408,6 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
   · -- constructors
     intro c cv nP nF hf
     exact hnotInd c _ hf (fun cv' caps h => nomatch h)
-  · -- projection-function names
-    intro T j hn
-    have := hproj _ hn
-    simp [projFnName, Name.isProjFnShape] at this
   · -- `Nat`
     intro hs
     obtain ⟨-, -, cv0, i0, j0, -, -, -, -, h0, -, -, -, -, -, hty0, -⟩ := natLitSupported_inv hs

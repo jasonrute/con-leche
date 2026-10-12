@@ -403,7 +403,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
         rw [hlenNames]; exact (List.getElem?_eq_some_iff.mp hj').1
       rw [hnameG j c hjl hj, hnameG j' c' hjl' hj']
       exact nodup_getElem_ne hnd hjl hjl' hjj)
-    hF.nresOf hF.pshapeOf
+    hF.nresOf
     (fun j cvTa hj => by
       obtain ⟨htf, hlpd, hbt⟩ := hF.tyWFOf j cvTa hj
       obtain ⟨bs, hst⟩ := hF.stripOf j cvTa hj
@@ -425,92 +425,10 @@ theorem find?_none_of_consB {c : ConstantInfo} {env : Env} {n : Name}
   · exact nomatch h
   · exact h
 
-/-- **A structure-like member's projection-FUNCTION family is free at
-the pre-table environment.**  The member's own table check requires
-its `nF` projection names fresh where it runs, and every environment
-the tables' loop threads is a cons over the previous one — so the
-family is free already where the loop started, and (by the install's
-other conses) below it. -/
-theorem blockTablesFamFree {q : BlockShape} :
-    ∀ (l : List (MemberShape × List (ConstantVal × Nat) × List (List Level)))
-      (env env₂ : Env),
-      ConLeche.checkBlockTables (m := ConLeche.CheckM) q l env = .ok env₂ →
-      ∀ (i : Nat) (e : MemberShape × List (ConstantVal × Nat) × List (List Level)),
-        l[i]? = some e → ∀ (cA : ConstantVal × Nat) (sorts : List Level),
-        e.2.1 = [cA] → e.2.2 = [sorts] → e.1.nIdx = 0 → 0 < cA.2 →
-        env.find? (projFnName e.1.cvT.name 0) = none
-  | [], _, _, _, _, _, hi, _, _, _, _, _, _ => by simp at hi
-  | (ms, ctorsA, sortss) :: rest, env, env₂, h, i, e, hi, cA, sorts, hc, hs, hidx, hpos => by
-    have hkey : ∃ env' : Env,
-        ConLeche.checkBlockTables (m := ConLeche.CheckM) q rest env' = .ok env₂ ∧
-        (∀ n : Name, env'.find? n = none → env.find? n = none) ∧
-        (∀ (cB : ConstantVal × Nat) (sortsB : List Level),
-          ctorsA = [cB] → sortss = [sortsB] → ms.nIdx = 0 → 0 < cB.2 →
-          env.find? (projFnName ms.cvT.name 0) = none) := by
-      cases ctorsA with
-      | nil =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ hcc _ _ _ => by simp at hcc⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | cons cA0 ctl =>
-      cases ctl with
-      | cons c2 ctl2 =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ hcc _ _ _ => by simp at hcc⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | nil =>
-      cases sortss with
-      | nil =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ _ hss _ _ => by simp at hss⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | cons s0 stl =>
-      cases stl with
-      | cons s2 stl2 =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ _ hss _ _ => by simp at hss⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | nil =>
-      rw [ConLeche.checkBlockTables] at h
-      by_cases hidx0 : (ms.nIdx == 0) = true
-      case neg =>
-        rw [ite_eq_right hidx0] at h
-        exact ⟨env, h, fun _ hh => hh, fun _ _ _ _ hii _ =>
-          absurd (by rw [hii]; rfl) hidx0⟩
-      rw [ite_eq_left hidx0] at h
-      cases hT : ConLeche.checkStructProjTable (m := ConLeche.CheckM) ms.cvT.name cA0.1.name
-          q.lps q.nP cA0.2 q.resSort (ConLeche.structProjGuards cA0.1.type q.nP cA0.2 s0)
-          1 cA0.1 env with
-      | error er => rw [hT] at h; exact nomatch h
-      | ok env' =>
-        rw [hT] at h
-        have hinv := ConLeche.checkStructProjTable_inv hT
-        obtain ⟨_bodies, _hb1, _hb2, hfree, _hb4, henvOut⟩ := hinv
-        refine ⟨env', h, fun n hn => ?_, fun cB sortsB hcc _ _ hposB => ?_⟩
-        · rw [henvOut] at hn
-          exact find?_none_of_consB hn
-        · obtain rfl : cB = cA0 := by simpa using hcc.symm
-          exact Option.isNone_iff_eq_none.mp
-            (List.all_eq_true.mp hfree 0 (List.mem_range.mpr hposB))
-    obtain ⟨env', hrest, hmono, hhere⟩ := hkey
-    cases i with
-    | zero =>
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
-      subst hi
-      exact hhere cA sorts hc hs hidx hpos
-    | succ j =>
-      simp only [List.getElem?_cons_succ] at hi
-      exact hmono _ (blockTablesFamFree rest env' env₂ hrest j e hi cA sorts hc hs hidx hpos)
-
 /-- **A structure-like member's projection TABLE name is free at the
-pre-table environment** — the `projTableName` twin of
-`blockTablesFamFree`, and by the same argument: the member's own table
-check requires the name fresh where it runs, and every environment the
-tables' loop threads is a cons over the previous one.
+pre-table environment**: the member's own table check requires the
+name fresh where it runs, and every environment the tables' loop
+threads is a cons over the previous one.
 
 It is what carries `annotateCore`'s projection-slot guarantee to the
 block's OWN members: a constructor type annotated at the formers'
@@ -572,7 +490,7 @@ theorem blockTablesTblFree {q : BlockShape} :
       | error er => rw [hT] at h; exact nomatch h
       | ok env' =>
         rw [hT] at h
-        obtain ⟨_bodies, _hb1, _hb2, _hb3, hfreshT, henvOut⟩ :=
+        obtain ⟨_bodies, _hb1, _hb2, hfreshT, henvOut⟩ :=
           ConLeche.checkStructProjTable_inv hT
         refine ⟨env', h, fun n hn => ?_, fun _ _ _ _ _ => hfreshT⟩
         rw [henvOut] at hn

@@ -86,7 +86,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     have hj' : (dR.ctorsM c)[j]? = some cA := by
       rw [← Option.some.inj ((hctorsAs c hcl).symm.trans hc)] at hj; exact hj
     have hck : c < dR.k := by rw [← hN.2.2]; exact hN.2.1 c j cA hj'
-    have hf := (hcore.2.2.2 c hck j cA hj').1
+    have hf := (hcore.2.2 c hck j cA hj').1
     have hw := hwfC _ (List.mem_of_find?_eq_some hf)
     exact ConLeche.ScB.of_closed hw.1 hw.2.2.2.1 0
   have hpos := ConLeche.checkBlockPositivity_nfScoped hwfI hT hct hPos

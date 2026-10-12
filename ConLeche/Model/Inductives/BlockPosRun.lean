@@ -115,7 +115,7 @@ theorem BlockCtorsCore.holeCtx {env : Env} {m : EnvModel V env} {d : BlockData V
       Sat V (((d.ppsM t ψ).take d.nP).map (·.2.2)).reverse ρ) :
     BlockHoleCtxFacts m d lps cvTas p₁ isRec :=
   ⟨fun c cvTb hc => ⟨(h.1 c cvTb hc).1, (h.1 c cvTb hc).2.2.2⟩,
-    fun c j cA hj => ⟨(h.2.2.1 c j cA hj).2.2.1, (h.2.2.1 c j cA hj).2.2.2⟩, hlpsA, hparsT⟩
+    fun c j cA hj => ⟨(h.2.1 c j cA hj).2.2.1, (h.2.1 c j cA hj).2.2.2⟩, hlpsA, hparsT⟩
 
 omit [SetTheory V] in
 /-- **Every stored constructor at the block's own levels** (the root

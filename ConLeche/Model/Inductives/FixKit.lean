@@ -1324,7 +1324,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
       mp'.base2.acval = acvalWith mp.base2.acval (ConstantInfo.projInfo tbl).name
         (fun _ => .sort 0) := by
   have hwf' : ConLeche.EnvWF envOut := ConLeche.direct_table_wf mp.base2.wf hTbl
-  obtain ⟨bodies, hbodies, -, -, hfresh, rfl⟩ := ConLeche.checkStructProjTable_inv hTbl
+  obtain ⟨bodies, hbodies, -, hfresh, rfl⟩ := ConLeche.checkStructProjTable_inv hTbl
   let tbl : ProjTable := ⟨T, lps, nP, cvCa.name, nF, resSort,
     bodies, ConLeche.structProjGuards cvCa.type nP nF sorts, 1⟩
   -- the field-chain facts, in the frames' spelling
@@ -1836,13 +1836,11 @@ theorem fibreUnitLaw {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
 /-- **The fieldless η law**: a member is the one
 
 tagged empty tuple, and the constructor along the parameters is that
-tuple (the point at a squash instance) — the fabricated η spine at no
-field is the constructor at the parameters. -/
+tuple (the point at a squash instance). -/
 theorem fibreEtaLaw0 {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps}
     {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     {L : (Name → Nat) → AnnotTerm}
-    (hfields : caps.etaFields = 0)
     (hleaf : ∀ ψ, m.acval T ψ = L ψ)
     (hfold : ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
       SpineFit ρ ((pps ψ).map (·.2.2)) ts →
@@ -1875,14 +1873,10 @@ theorem fibreEtaLaw0 {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     · rw [denotePInstLevels m φ' cvC.levelParams us 0 cvC.type, hlpsC]
       exact hB _
     · have hsp := spineFit_of_teleFit (by rw [hlen, hpar]) hfitT
-      rw [hfields]
-      simp only [etaFabArgsV, projSpines, List.range_zero, List.map_nil, List.append_nil]
       exact ⟨_, teleFit_mkPisAV_of_spineFit (hfit _ ρ ts hsp)⟩
   · intro ρ ts rest x hlen hfitT hx
     have hsp := spineFit_of_teleFit (by rw [hlen, hpar]) hfitT
     rw [hleaf, hfold _ ρ ts hsp] at hx
-    rw [hfields]
-    simp only [etaFabArgsV, projSpines, List.range_zero, List.map_nil, List.append_nil]
     rw [hleafC]
     by_cases hw : w (Level.substFn φ' cvT.levelParams us) = 0
     · rw [hw] at hx

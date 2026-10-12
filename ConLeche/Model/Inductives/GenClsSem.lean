@@ -1416,7 +1416,7 @@ theorem genClsRd_mem (hμ : μ.verifiedChecks = true)
     rw [hDe, hMe]
     obtain ⟨hjM, hcAM⟩ := List.getElem?_eq_some_iff.mp hcA
     have hcA' : (d.ctorsM t)[j]? = some cA := by rw [hctM]; exact hcA
-    obtain ⟨hfc, hlpc, -⟩ := hcore.2.2.2 t htd j cA hcA'
+    obtain ⟨hfc, hlpc, -⟩ := hcore.2.2 t htd j cA hcA'
     refine ⟨(List.getElem?_eq_some_iff.mp hcA').1, ?_, by rw [hlpc, hlpsT], fun mm hmm => ?_⟩
     · have hname : d.toLfp.ctorName t j = cA.1.name := by
         show ((d.ctorsM t).getD j default).1.name = _

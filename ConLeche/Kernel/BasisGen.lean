@@ -88,13 +88,10 @@ private def qLevel : ConLeche.Level → Lean.Expr
 private def qLevels (us : List ConLeche.Level) : Lean.Expr :=
   qList levelTy (us.map qLevel)
 
-/-- The zero-ness datum through its public API (the representation is
-`private` to `ConLeche/Kernel/PropWhen.lean`): `never`, or `ifAllZero`
-of its parameter list. -/
-private def qPropWhen (pw : ConLeche.PropWhen) : Lean.Expr :=
-  match pw.toList? with
-  | none => mkConst ``ConLeche.PropWhen.never
-  | some ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
+/-- The zero-ness datum. -/
+private def qPropWhen : ConLeche.PropWhen → Lean.Expr
+  | .never => mkConst ``ConLeche.PropWhen.never
+  | .ifAllZero ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
 
 private def qBinderMeta (_m : ConLeche.BinderMeta) : Lean.Expr :=
   mkConst ``ConLeche.BinderMeta.mk

@@ -474,14 +474,13 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -740,14 +739,13 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -929,14 +927,13 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -1183,14 +1180,13 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp

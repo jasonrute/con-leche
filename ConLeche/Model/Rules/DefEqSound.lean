@@ -742,7 +742,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the stuck side: the η law and the coherence law
   obtain ⟨ps, hsps, hfps, TCa, hTCa, hside⟩ := etaSide hin hind heta hresT
     (by rw [hetaCtor]; exact hresc) (by rw [hetaCtor]; exact hctor) hlv htlen htow
-    hfb hCb (frame_spine hfW hCr) hdb hspt
+    hfb hCb hdb hspt
   obtain ⟨hLps, hokps, hb, restC, hfitC⟩ :=
     hside ρ hρ hLb (leavesGr_spine hLrρ) hokW hneW hokB hmemB
   obtain ⟨-, hoA⟩ := hoist_spineV asa hokA

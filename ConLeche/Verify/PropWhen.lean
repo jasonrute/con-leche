@@ -1,25 +1,16 @@
 module
 
 public import ConLeche.Verify.Level
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern): its constructors are `public` but the module is
-not `@[expose]`d, so a `cases`-then-`rfl` proof about a datum cannot
-see the reduct.  `import all` gives that view HERE only; nothing this
-module exports depends on it. -/
 import ConLeche.Kernel.PropWhen
-import all ConLeche.Kernel.PropWhen
 
 public section
 
 /-!
 # The zero-ness datum against `Level` (task #161)
 
-`ConLeche/Kernel/PropWhen.lean` owns the datum: its representation, its
-API, and every law about the datum *alone* (the readout algebra,
-`eq_iff_holds` — equality decides zero-ness agreement — and the
-`inter`/`bindZ` algebra).  This file is a *consumer* of that API; it
-proves what the datum alone cannot say, namely how it relates to
-`Level`:
+`ConLeche/Kernel/PropWhen.lean` owns the datum and the laws about the
+datum alone (the readout algebra and the `inter`/`bindZ` algebra).
+This file proves how it relates to `Level`:
 
 * **Soundness of the readout** — `zeronessOf_sound`:
   `(zeronessOf l).holds φ = (eval φ l == 0)`.
@@ -29,12 +20,7 @@ proves what the datum alone cannot say, namely how it relates to
 * **The composition law** — `substPW_comp`, under the same
   parameter-definedness hypothesis the level side has
   (`PropWhen.paramsDefined`), with `zeronessOf_paramsDefined`, and
-  the semantic reading
-  `holds_substPW`.
-
-Nothing here unfolds the datum's representation: every step goes
-through the exported `casesZ` view and the `_never`/`_ifAllZero`
-equations.
+  the semantic reading `holds_substPW`.
 -/
 
 namespace ConLeche.PropWhen
@@ -80,7 +66,7 @@ theorem zeronessOf_subst (ks : List Name) (vs : List Level) :
       zeronessOf (subst ks vs l) = substPW ks vs (zeronessOf l)
   | .zero => rfl
   | .succ l => rfl
-  | .param n => rfl
+  | .param n => (inter_nil _).symm
   | .max a b => by
     show (zeronessOf (subst ks vs a)).inter (zeronessOf (subst ks vs b))
       = substPW ks vs ((zeronessOf a).inter (zeronessOf b))

@@ -366,22 +366,6 @@ theorem checkOpaqueValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.f
   unfold checkOpaqueValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
-theorem checkDefnValC_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) (hint : ReducibilityHint) :
-    RelRun (PushedFrom fe₁ fe₂) (checkDefnValC mode fe₁ cvA jty value hint)
-      (checkDefnValC mode fe₂ cvA jty value hint) := by
-  unfold checkDefnValC
-  rw [checkDefnValCI_congr hfe]
-  exact RelRun.bind_same fun _ => RelRun.pure (PushedFrom.push _ _ _)
-
-theorem checkOpaqueValC_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) :
-    RelRun (PushedFrom fe₁ fe₂) (checkOpaqueValC mode fe₁ cvA jty value)
-      (checkOpaqueValC mode fe₂ cvA jty value) := by
-  unfold checkOpaqueValC
-  rw [checkOpaqueValCI_congr hfe]
-  exact RelRun.bind_same fun _ => RelRun.pure (PushedFrom.push _ _ _)
-
 theorem installBasisDeclF_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?)
     (ci : ConstantInfo) :
     RelRun (PushedFrom fe₁ fe₂) (installBasisDeclF fe₁ ci) (installBasisDeclF fe₂ ci) := by
@@ -1167,16 +1151,6 @@ theorem checkShapelessS_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
   simp only [checkConstantValC_congr hfe]
   relrun
 
-theorem checkThmValC_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) :
-    RelRun (PushedFrom fe₁ fe₂) (checkThmValC mode fe₁ cvA jty value)
-      (checkThmValC mode fe₂ cvA jty value) := by
-  unfold checkThmValC
-  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, opSIxC_congr hfe,
-    strLitSupportedF_congr hfe]
-  relrun
-  all_goals exact RelRun.pure (PushedFrom.push _ _ _)
-
 /-- **Every declaration step at twin indices pushes the same constants
 onto each, or fails alike.** -/
 theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twin fe₁ fe₂)
@@ -1204,12 +1178,10 @@ theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twi
         checkDivModPinF_congr h hfe hov]
       relrun
       all_goals exact RelRun.pure (PushedFrom.push _ _ _)
-    · exact checkDefnValC_twin hfe cvA jty value hint
+    · exact RelRun.ofThrow
   | thmDecl cv value =>
     unfold checkDeclC
-    simp only [checkConstantValC_congr hfe]
-    refine RelRun.bind_same fun r => ?_
-    exact checkThmValC_twin hfe r.1 r.2 value
+    exact RelRun.ofThrow
   | opaqueDecl cv value =>
     unfold checkDeclC
     simp only [checkConstantValC_congr hfe]
@@ -1227,7 +1199,7 @@ theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twi
       simp only [sharedOpsC_congr hfe, checkReducePinF_congr h hfe hov]
       relrun
       all_goals exact RelRun.pure (PushedFrom.push _ _ _)
-    · exact checkOpaqueValC_twin hfe cvA jty value
+    · exact RelRun.ofThrow
   | axiomDecl cv =>
     unfold checkDeclC
     simp only [checkConstantValC_congr hfe, stdAxiomOkF_congr hfe, trustCompilerOkF_congr hfe,
