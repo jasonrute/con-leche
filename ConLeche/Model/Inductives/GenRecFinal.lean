@@ -18,6 +18,7 @@ import ConLeche.Model.Inductives.GenClsFrame
 import ConLeche.Model.Inductives.GenClsCall
 import ConLeche.Model.Inductives.GenClsRhs
 import ConLeche.Model.Inductives.GenClsData
+import ConLeche.Model.Inductives.GenRecExtra
 import ConLeche.Verify.Inductives.GenRecScoped
 import ConLeche.Verify.Inductives.NestNfScope
 
@@ -260,6 +261,45 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
   have heqP := genRecHeqP hμ R hg h hsP hrowP
   have hdataS := genRecHdataS hμ R hg h hndM heqB heqV heqP hpre hfind
     (genRulePrefRead hμ mpC R hg h) (genRuleFieldRead R hg mpC.base2.acval) hrow3
+  -- the ι licence's facts (task #342 L10)
+  have hseam := genRecCtor_seam R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov
+  have hextra : ∀ (Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) →
+        List ConLeche.RecRule) (s' : (Name → Nat) → Nat) (eqs : (Name → Nat) → List AnnotTerm)
+      (m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC)),
+      m₃.acval = blockRecAcv mpC.base2.acval envC (tgtRs out) s' eqs →
+      ∀ (φ : Name → Nat) (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
+      (tgtRs out)[j]? = some r →
+      ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
+      r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
+      ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+          (ConLeche.tgtMajorsOf out) j r ≠ ConLeche.RecRuleFire.inert →
+      RecRuleKWit m₃ φ r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
+        (ConLeche.recRuleBits envC.find? r.1.name
+          { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
+            fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+              (ConLeche.tgtMajorsOf out) j r, rhs := rhs, paramsBlind := true }) ∧
+      RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
+        (pp.toBlockShape.rulePrefixAt j)
+        (ConLeche.recRuleBits envC.find? r.1.name
+          { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
+            fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+              (ConLeche.tgtMajorsOf out) j r, rhs := rhs, paramsBlind := true }) := by
+    intro Rr s' eqs m₃ hac φ j r hr i cA rhs hcA _ hne
+    have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
+    obtain ⟨hnP, -⟩ := hrdAll j hj
+    obtain ⟨-, hctorCB, -⟩ := hseam j r hr i cA hcA
+    cases hmb : (tgtMajor out j).member with
+    | none => sorry
+    | some t =>
+      have hmb' : (ConLeche.tgtMajorsOf out j).member = some t := hmb
+      have hplain : ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+          (ConLeche.tgtMajorsOf out) j r = .plain := by
+        revert hne
+        simp only [ConLeche.tgtFireOf, hmb']
+        split <;> simp
+      obtain ⟨cvT, G⟩ := genMemAt_of R h hdRe hN hS hcore hlfp hnames hr hmb hcA
+      exact genMemExtra hμ h R (fun ψ ρ => (hcsem ψ ρ).1) G hr hmb hnP hctorCB hac φ rfl rfl
+        G.hnPc (by rw [ConLeche.recRuleBits_fire]; exact hplain) rfl rfl
   unfold BlockRecStagedT
   rw [ConLeche.consBlockRecsT_eq_R]
   exact blockRecStaged_dataR (ctorTy := fun j i ψ =>
@@ -282,7 +322,8 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     (fun j r hr => blockRecNCt_ge hr)
     (fun ψ j r hr => blockRulePdomsAV_length hμ mpC h hr ψ)
     (genRecCtor_seam R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov) (genRecHtower R)
-    (fun m₃ hac φ j r hr _ cA rhs _ _ => recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs) sorry hdataS
+    (fun m₃ hac φ j r hr _ cA rhs _ _ => recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs)
+    (fun m₃ hac => hextra _ _ _ m₃ hac) hdataS
     (blockRecTyZ_run hμ mpC h) (genRecHRaZ R)
 
 end ConLeche.Model
