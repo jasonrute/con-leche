@@ -106,6 +106,29 @@ theorem checkConstantVal_inv {env : Env} {cv cv' : ConstantVal}
     by simpa using hif,
     stype, u, htp, htr, by first | rfl | exact hst, by first | rfl | exact hsort, h.symm⟩
 
+/-- `checkConstantVal_inv` with the stored type named: the constant is
+stored with its declared type (`type' = cv.type`), spelled as the
+record update the inductive installer's readers destructure. -/
+theorem checkConstantVal_inv_stored {env : Env} {cv cv' : ConstantVal}
+    (h : checkConstantVal (fueledOps mode F) env cv = .ok cv') :
+    env.find? cv.name = none ∧
+    reservedBasisNames.contains cv.name = false ∧
+    cv.name.isProjFnShape = false ∧
+    Name.nodup cv.levelParams = true ∧
+    cv.type.looseBVarsBounded 0 = true ∧
+    cv.type.hasFvar = false ∧
+    ∃ type' stype u,
+      type' = cv.type ∧
+      type'.allLevelParamsDefined cv.levelParams = true ∧
+      type'.constsResolve env = true ∧
+      inferTypeCore mode env F 0 type' = .ok stype ∧
+      ensureSortCore mode env F 0 stype = .ok u ∧
+      cv' = { cv with type := type' } := by
+  obtain ⟨hf, hr, hp, hn, hl, hi, stype, u, ha, hc, hs, he, heq⟩ :=
+    checkConstantVal_inv h
+  exact ⟨hf, hr, hp, hn, hl, hi, cv.type, stype, u, rfl, ha, hc, hs, he,
+    by rw [heq]⟩
+
 /-- Reserved basis names are all `str`-shaped. -/
 theorem reservedBasisNames_not_num (p : Name) (k : Nat) :
     reservedBasisNames.contains (Name.num p k) = false := rfl

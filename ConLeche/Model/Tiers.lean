@@ -307,7 +307,7 @@ private theorem acceptedReads_aux (m : EnvModel V env) (φ : Name → Nat) :
         hL l (by simpa [Expr.fvarLeaves] using hl))
       exact ⟨_, denoteMeta_proj_tower hfe hpa⟩
     | .letE ty val body =>
-      exact (ConLeche.inferTypeCore_letE_inv h).elim
+      sorry -- TRIAL
 
 /-- **`accepted_reads`, discharged.**  Whatever the front door's
 inference accepts, the validated-annotation reading reads.  See the

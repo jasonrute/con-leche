@@ -39,8 +39,8 @@ IGNORED (an `fvar` reads as its de Bruijn slot). -/
   | .sort u => u.allParamsDefined ps
   | .const _ us => us.all (Level.allParamsDefined ps)
   | .app f a => lpDefF ps f && lpDefF ps a
-  | .lam t b m => lpDefF ps t && lpDefF ps b && m.pw.paramsDefined ps
-  | .forallE t b m => lpDefF ps t && lpDefF ps b && m.pw.paramsDefined ps
+  | .lam t b m => lpDefF ps t && lpDefF ps b
+  | .forallE t b m => lpDefF ps t && lpDefF ps b
   | .letE t v b => lpDefF ps t && lpDefF ps v && lpDefF ps b
   | .lit _ => true
   | .proj _ _ e => lpDefF ps e
@@ -59,11 +59,11 @@ theorem lpDefF_of_allLevelParamsDefined :
   | lam t b m iht ihb =>
     intro h
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at h
-    simp only [lpDefF, iht h.1.1, ihb h.1.2, h.2, Bool.and_self]
+    simp only [lpDefF, iht h.1, ihb h.2, Bool.and_self]
   | forallE t b m iht ihb =>
     intro h
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at h
-    simp only [lpDefF, iht h.1.1, ihb h.1.2, h.2, Bool.and_self]
+    simp only [lpDefF, iht h.1, ihb h.2, Bool.and_self]
   | letE t v b iht ihv ihb =>
     intro h
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at h
@@ -131,13 +131,13 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
   | case6 d ty body mb ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
-      ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.1.2)]
+    rw [denoteMeta, denoteMeta, ← ihty hd.1,
+      ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
   | case7 d ty body mb ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
-      ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.1.2)]
+    rw [denoteMeta, denoteMeta, ← ihty hd.1,
+      ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
   | case8 d fe a ihf iha =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd

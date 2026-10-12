@@ -440,7 +440,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
   obtain ⟨⟨_, hccv⟩, hresid, fvsP, crest, tfvs, trest, xFvs, idxArgs, hopC, -, -, hopX, hlenI,
     -, hres, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, -, -, -, hlbt, hitf, type', stype, u, hann', htp', -, hst,
-    hens, rfl⟩ := ConLeche.checkConstantVal_inv hccv
+    hens, rfl⟩ := ConLeche.checkConstantVal_inv_stored hccv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   simp only at htf' hbt' htp' hst hens hopC hresid
   have hw : Expr.WScoped 0 type' := Expr.WScoped.of_not_hasFvar htf'
@@ -688,7 +688,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   obtain ⟨⟨_, hccv⟩, -, fvsP, crest, tfvs, trest, xFvs, idxArgs', hopC, hopT, hdoms, hopX,
     -, -, -, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, -, -, -, hlbt, hitf, type', -, -, hann', -, -, -, -, rfl⟩ :=
-    ConLeche.checkConstantVal_inv hccv
+    ConLeche.checkConstantVal_inv_stored hccv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   simp only at htf' hbt' hopC hsorts
   have hlenP : fvsP.length = nP := openPisAtFvars_length _ hopC
@@ -1126,7 +1126,7 @@ theorem stageCtorGen {T : Name}
           (uChains (Fss ψ))) := by
   obtain ⟨⟨_, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
   obtain ⟨-, hnres, hpshape, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
-    ConLeche.checkConstantVal_inv hccv
+    ConLeche.checkConstantVal_inv_stored hccv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   have hCname : cvCa.name = cvC.name := by rw [hty]
   have hcb : ConstsBound env cvCa.type := constsBound_of_constsResolve _ htr

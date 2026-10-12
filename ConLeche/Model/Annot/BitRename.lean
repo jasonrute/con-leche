@@ -58,8 +58,9 @@ theorem denoteMeta_erasedEq {acval : Name → (Name → Nat) → AnnotTerm}
   | .forallE ty body m, e₂, he, d => by
     match e₂, he with
     | .forallE ty' body' m', he =>
-      obtain ⟨rfl, h1, h2⟩ :
-          m = m' ∧ Expr.ErasedEq ty ty' ∧ Expr.ErasedEq body body' := he
+      obtain ⟨h1, h2⟩ :
+          Expr.ErasedEq ty ty' ∧ Expr.ErasedEq body body' := he
+      obtain ⟨⟩ := m; obtain ⟨⟩ := m'
       simp only [denoteMeta_forallE, denoteMeta_erasedEq h1 d,
         denoteMeta_erasedEq (Expr.ErasedEq.instantiate1 h2
           (show Expr.ErasedEq (.fvar d ty) (.fvar d ty') from rfl))
@@ -67,8 +68,9 @@ theorem denoteMeta_erasedEq {acval : Name → (Name → Nat) → AnnotTerm}
   | .lam ty body m, e₂, he, d => by
     match e₂, he with
     | .lam ty' body' m', he =>
-      obtain ⟨rfl, h1, h2⟩ :
-          m = m' ∧ Expr.ErasedEq ty ty' ∧ Expr.ErasedEq body body' := he
+      obtain ⟨h1, h2⟩ :
+          Expr.ErasedEq ty ty' ∧ Expr.ErasedEq body body' := he
+      obtain ⟨⟩ := m; obtain ⟨⟩ := m'
       simp only [denoteMeta_lam, denoteMeta_erasedEq h1 d,
         denoteMeta_erasedEq (Expr.ErasedEq.instantiate1 h2
           (show Expr.ErasedEq (.fvar d ty) (.fvar d ty') from rfl))
