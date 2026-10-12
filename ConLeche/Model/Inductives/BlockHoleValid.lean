@@ -124,17 +124,18 @@ theorem mkLamsAV_one_validV {b : AnnotTerm} :
       (fun vs hvs => hb (x :: vs) ⟨hx, hvs⟩)⟩
 
 /-- **The hole term is bit-valid** at the operator's frame. -/
-theorem holeTmAV_validV {u m : Nat} {us : List Nat} {Is : List AnnotTerm} {ρp : Nat → V}
-    (hI : FieldsValid ρp Is) (t Y : V) :
-    AnnotValid V (cons t (cons Y ρp)) (holeTmAV u us m Is) := by
+theorem holeTmAV_validV {u m : Nat} {Is : List AnnotTerm} {ρp : Nat → V}
+    (hI : FieldsValid ρp Is) (hb : u ≠ 0 → FieldsBound u ρp Is) (t Y : V) :
+    AnnotValid V (cons t (cons Y ρp)) (holeTmAV u m Is) := by
   have hsh : shiftE 2 0 (cons t (cons Y ρp)) = ρp := by
     rw [show (2 : Nat) = 1 + 1 by rfl, shiftE_succ_cons, shiftE_succ_cons, shiftE_zero_zero]
   unfold holeTmAV
   refine mkLamsAV_one_validV ?_ fun is his => ?_
   · rw [FieldsValid_liftFields, hsh]; exact hI
   · rw [AnnotValid_app]
-    refine ⟨projAV_validV (by simp), mkTowerGo_validV ?_ his⟩
-    rw [FieldsValid_liftFields, hsh]; exact hI
+    refine ⟨projAV_validV (by simp), mkTowerGo_validV ?_ (fun hu => ?_) his⟩
+    · rw [FieldsValid_liftFields, hsh]; exact hI
+    · rw [fieldsBound_liftFields, hsh]; exact hb hu
 
 namespace LfpDatum
 
@@ -159,7 +160,7 @@ theorem holeChains_valid {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk
   have hag : D.holeTmFrame ψ ρp t Y = D.frame ψ ρp fun c => SetTheory.Tower.projS c Y :=
     holeTmFrame_frame (fun _ _ => rfl) hok
   have hH : ∀ m', m' < D.k → AnnotValid V (cons t (cons Y ρp)) (D.holeTm ψ m') := fun m' hm' =>
-    holeTmAV_validV (hIV m' hm') t Y
+    holeTmAV_validV (hIV m' hm') (hok m' hm') t Y
   intro Fs hFs
   unfold holeChains holeChs termChs at hFs
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hFs

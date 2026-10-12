@@ -38,24 +38,19 @@ noncomputable def idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : V 
   towerSet u (teleOfFields ρp Ids)
 
 /-- The index tuple type, spelled at the parameter frame. -/
-def idxTyAV (u : Nat) (us : List Nat) (Ids : List AnnotTerm) : AnnotTerm := towerBodyAV u us Ids
+def idxTyAV (u : Nat) (Ids : List AnnotTerm) : AnnotTerm := towerBodyAV u Ids
 
 
 /-- The index telescope's grading, with the bound in both regimes (the
 index domains' sorts are at most `u`, so the tuple type is a graph-regime
 tower even at `u = 0` where `FieldsOkB` alone asks for no bound). -/
-def IdxOk (u : Nat) (us : List Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : Prop :=
-  FieldsOkB u ρp Ids ∧ FieldsSorts u us ρp Ids
+def IdxOk (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : Prop :=
+  FieldsOkB u ρp Ids ∧ FieldsBound u ρp Ids
 
-theorem IdxOk.bound {u : Nat} {us : List Nat} {ρp : Nat → V} {Ids : List AnnotTerm}
-    (h : IdxOk u us ρp Ids) : FieldsBound u ρp Ids := h.2.toBound
-
-theorem idxTyAV_facts {u : Nat} {us : List Nat} {ρp : Nat → V} {Ids : List AnnotTerm}
-    (h : IdxOk u us ρp Ids) :
-    interp V ρp (idxTyAV u us Ids) = idxSet u ρp Ids ∧
-      idxSet u ρp Ids ∈ˢ (univ u : V) ∧ WellDenoted V ρp (idxTyAV u us Ids) :=
-  ⟨towerBodyAV_interp (fun _ => h.2), towerSet_univ_of_okB (fun _ => h.bound),
-    towerBodyAV_wellDenoted h.1 (fun _ => h.2)⟩
+theorem idxTyAV_facts {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : IdxOk u ρp Ids) :
+    interp V ρp (idxTyAV u Ids) = idxSet u ρp Ids ∧
+      idxSet u ρp Ids ∈ˢ (univ u : V) ∧ WellDenoted V ρp (idxTyAV u Ids) :=
+  ⟨towerBodyAV_interp (fun _ => h.2), towerSet_univ_of_okB (fun _ => h.2), towerBodyAV_wellDenoted h.1⟩
 
 /-- A fitting index spine's tuple is in the tuple set. -/
 theorem tupW_mem {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {is : List V}
@@ -74,14 +69,13 @@ theorem foldl_app_pt' : ∀ (ts : List V), ts.foldl SetTheory.app (pt : V) = pt
 /-! ## The family type -/
 
 /-- `I → Sort w`, spelled. -/
-def famTyAV (u : Nat) (us : List Nat) (w : Nat) (Ids : List AnnotTerm) : AnnotTerm :=
-  .pi u (w + 1) (idxTyAV u us Ids) (.sort w)
+def famTyAV (u w : Nat) (Ids : List AnnotTerm) : AnnotTerm :=
+  .pi u (w + 1) (idxTyAV u Ids) (.sort w)
 
-theorem famTyAV_facts {u w : Nat} {us : List Nat} {ρp : Nat → V} {Ids : List AnnotTerm}
-    (h : IdxOk u us ρp Ids) :
-    interp V ρp (famTyAV u us w Ids) = lfpFamSpace V w (idxSet u ρp Ids) ∧
+theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : IdxOk u ρp Ids) :
+    interp V ρp (famTyAV u w Ids) = lfpFamSpace V w (idxSet u ρp Ids) ∧
       lfpFamSpace V w (idxSet u ρp Ids) ∈ˢ (univ (Nat.max u (w + 1)) : V) ∧
-      WellDenoted V ρp (famTyAV u us w Ids) := by
+      WellDenoted V ρp (famTyAV u w Ids) := by
   obtain ⟨hv, hu, hok⟩ := idxTyAV_facts h
   refine ⟨?_, ?_, ?_⟩
   · unfold famTyAV lfpFamSpace
@@ -182,12 +176,12 @@ theorem spineFit_pt_of_bound0 {ρ : Nat → V} :
 
 
 /-- **The index tuple's retraction**, at both regimes. -/
-theorem projS_tupW {us : List Nat} (hI : IdxOk u us ρp Ids) {is : List V} (hsp : SpineFit ρp Ids is) {l : Nat}
+theorem projS_tupW (hI : IdxOk u ρp Ids) {is : List V} (hsp : SpineFit ρp Ids is) {l : Nat}
     (hl : l < Ids.length) : projS l (tupW u is) = is.getD l pt := by
   have hislen : is.length = Ids.length := hsp.length_eq
   by_cases hu : u = 0
   · subst hu
-    rw [tupW_zero, projS_pt, spineFit_pt_of_bound0 hI.bound hsp l (by omega)]
+    rw [tupW_zero, projS_pt, spineFit_pt_of_bound0 hI.2 hsp l (by omega)]
   · rw [tupW_pos hu, projS_mkTower l is (by omega), List.getD_eq_getElem?_getD,
       List.getElem?_eq_getElem (by omega), Option.getD_some]
 
@@ -426,13 +420,12 @@ theorem spineFit_zero_replicate :
     rw [List.length_cons, List.replicate_succ]
     exact congrArg _ (spineFit_zero_replicate (hb.2 pt ha) hsp')
 
-theorem isOfW_tupW {u : Nat} {us : List Nat} {ρp : Nat → V} {Ids : List AnnotTerm}
-    (hI : IdxOk u us ρp Ids)
+theorem isOfW_tupW {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (hI : IdxOk u ρp Ids)
     {is : List V} (hsp : SpineFit ρp Ids is) : isOfW u Ids.length (tupW u is) = is := by
   by_cases hu : u = 0
   · rw [isOfW, ite_eq_left hu]
     subst hu
-    exact (spineFit_zero_replicate hI.bound hsp).symm
+    exact (spineFit_zero_replicate hI.2 hsp).symm
   · rw [isOfW, tupW, ite_eq_right hu, ite_eq_right hu]
     exact projList_mkTower _ _ hsp.length_eq
 

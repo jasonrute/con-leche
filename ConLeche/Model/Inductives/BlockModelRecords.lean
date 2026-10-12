@@ -52,7 +52,7 @@ theorem BlockCtorsStage.idxOkAt {envI : Env} {d : BlockData V}
     {ctorsOf : Name → List Name}
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf) (hk0 : 0 < d.k) :
     ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
-      ∀ c, c < d.N → IdxOk (d.uM c ψ) (d.isM c ψ) ρp (d.IdsM c ψ) := by
+      ∀ c, c < d.N → IdxOk (d.uM c ψ) ρp (d.IdsM c ψ) := by
   intro ψ ρp hs c hc
   have hNk : d.N = d.k := by rw [BlockData.N, hS.inst]; rfl
   exact hS.idxOk 0 hk0 ψ ρp hs c (by rw [← hNk]; exact hc)
@@ -174,8 +174,7 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
       rfl
     rw [hfam]
     exact blockHFits_lfp_iff hH hinst (fun c _ => hS.leaf c ψ) hs (fun c hc => hS.lenPps c ψ hc)
-      (fun c hc => hidxOk ψ ρp hs c (by rw [hNk]; exact hc)) (hS.holeOk ψ ρp hs)
-      (hS.holeSo ψ ρp hs) hck
+      (fun c hc => hidxOk ψ ρp hs c (by rw [hNk]; exact hc)) (hS.holeOk ψ ρp hs) hck
       (fun j' hj' => blockOverride hH (fun t ht => hacv t ht ψ) ρp hs hc hj') t j fs
   have hmaps : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
       MapsTuple (d.w ψ) d.N (d.idx ψ ρp) (d.Φ ψ ρp) := by
@@ -186,19 +185,15 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
     rw [hNk]
     exact blockPhi_maps_of (hS.holeOk ψ ρp hs)
   refine blockModelAt_of_stages mo rfl hinj hlenC (by rw [hNk]; exact hk0) hlenPps
-    hidxOk hfib hmaps (fun ψ ρp hs => (hS.holeFun ψ ρp hs).2) hcarrier (fun ψ => d.toLfp.holeChains ψ)
-    (fun ψ => d.holeSorts ψ) ?_ ?_ ?_
+    hidxOk hfib hmaps (fun ψ ρp hs => (hS.holeFun ψ ρp hs).2) hcarrier (fun ψ => d.toLfp.holeChains ψ) ?_ ?_
     hparams ?_
-    (fun ψ c j hj => hFssD ψ c j _ (hcAof c j hj)) ?_ hparamsC ?_ ?_ ?_
+    (fun ψ c j hj => hFssD ψ c j _ (hcAof c j hj)) ?_ hparamsC ?_ ?_
   -- the members' leaves: the block operator at the HOLE chains
   · intro mm hmm ψ
     obtain ⟨hnameOf, -, hlenCv⟩ := hN
     have hmmlt : mm < cvTas.length := by rw [hlenCv]; exact hmm
     have hcv : cvTas[mm]? = some cvTas[mm] := List.getElem?_eq_getElem hmmlt
     rw [hnameOf mm _ hcv, (hcore.1 mm _ hcv).2.2.1 ψ, hS.leaf mm ψ, hNk]
-  -- the hole chains are sorted
-  · intro ψ ρp hs
-    rw [hNk]; exact hS.holeSo ψ ρp hs
   -- the hole chains are graded, and their operator IS the datum's
   · intro ψ ρp hs
     refine ⟨by rw [hNk]; exact hS.holeOk ψ ρp hs, fun X _ c _ => ?_⟩
@@ -222,17 +217,6 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
     rw [hFsEq]
     have hfr := hS.frames c (by rw [← hNk]; exact hc) j _ (hcAof c j hjc)
     exact (hfr.2 ψ ρ ((hfr.1 ψ ρ).mp ((hparams ψ c hc ρ).mp hsat))).1
-  -- the field chains are sorted at every parameter frame
-  · intro ψ ρ hsat c hc hw i Fs hFs
-    have hjlt : i < (d.Fss c ψ).length := (List.getElem?_eq_some_iff.mp hFs).1
-    have hjc : i < (d.ctorsM c).length := by rw [← hlenC ψ c]; exact hjlt
-    have hFsEq : Fs = ((d.dsF c i ψ).drop d.nP).map (·.2.2) := by
-      rw [← hFssD ψ c i _ (hcAof c i hjc), List.getD_eq_getElem?_getD, hFs]
-      rfl
-    rw [hFsEq]
-    have hfr := hS.frames c (by rw [← hNk]; exact hc) i _ (hcAof c i hjc)
-    exact hS.fieldSorts c (by rw [← hNk]; exact hc) i _ (hcAof c i hjc) ψ ρ
-      ((hfr.1 ψ ρ).mp ((hparams ψ c hc ρ).mp hsat)) hw
   -- the constructors' RESULT index readings fit the component's telescope
   · intro ψ ρ hsat c hc j hj fs hfs
     have hjc := hcAof c j hj
@@ -290,8 +274,7 @@ theorem blockResIdxFit_of_records {envC envI : Env} {mo : EnvModel V envC} {d : 
     rfl
   rw [hfam] at hfit ⊢
   exact blockResIdxFit_lfp hH (fun c _ => hS.leaf c ψ) hs (fun c hc => hS.lenPps c ψ hc)
-    (fun c hc => hidxOk ψ ρp hs c (by rw [hNk]; exact hc)) (hS.holeOk ψ ρp hs)
-    (hS.holeSo ψ ρp hs) hc
+    (fun c hc => hidxOk ψ ρp hs c (by rw [hNk]; exact hc)) (hS.holeOk ψ ρp hs) hc
     (fun j' hj' => blockOverride hH (fun t ht => hacv t ht ψ) ρp hs hc hj')
     (fun j' hj' fs' hf' => hM.resIdxFit ψ ρp hs c hc j' hj' fs' hf') j hj fs hfit
 
