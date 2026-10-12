@@ -85,6 +85,17 @@ inductive InferIO [LevelOracle] (env : Env) : List Expr → Expr → Expr → Pr
   | app {Γ : List Expr} {f a tf A B : Expr} :
       InferIO env Γ f tf → Red env Γ tf (pi A B) →
       InferIO env Γ (app f a) (B.inst a)
+  /-- **`let`, by substitution, the value checked at the full grade**
+  (task #342, F4; ruling R-C): the type's sort and the value against
+  the type at the FULL grade (`Infer`, `DefEq`), as `Infer.letE` —
+  a deviation from `infer_only`, which skips both — then the body with
+  the value substituted at the io grade.  The soundness proof uses
+  neither check (`InferIO.letE_sound`). -/
+  | letE {Γ : List Expr} {T v b s tv B : Expr} {u : Level} :
+      Infer env Γ T s → Red env Γ s (sort u) →
+      Infer env Γ v tv → DefEq env Γ tv T →
+      InferIO env Γ (b.inst v) B →
+      InferIO env Γ (letE T v b) B
 
 /-! ## Reductions of sorts and `∀`s are trivial -/
 
@@ -139,6 +150,7 @@ def IOHered : Expr → (Nat → V) → V → Prop
   | .const _ _, _, _ => False
   | .app _ _, _, _ => False
   | .lam _ _, _, _ => False
+  | .letE _ _ _, _, _ => False
 
 /-- **The io claim**: the point, a member, or hereditarily a member. -/
 def IORel (T : Expr) (ρ : Nat → V) (v : V) : Prop :=
@@ -323,6 +335,19 @@ theorem InferIO.pi_sound {Γ : List Expr} {A B s t : Expr} {u v : Level}
   exact piV_mem_typeU (sortMem hA hu hs hwA hTA) fun x hx =>
     sortMem hB hv ((Sat_cons m.M φ).mpr ⟨hs, hwA, hTA, hx⟩) (hwB x hx) (hTB x hx)
 
+omit [LevelOracle] in
+/-- **`let`, by substitution** (task #342, F4): the `let` denotes what
+the instantiated body denotes (`interp_zeta`), and is well-denoted
+exactly when the body is at the value (`WellDenoted_letE`), so the
+body's claim is the `let`'s.  The full-grade checks on the value are
+not used. -/
+theorem InferIO.letE_sound {Γ : List Expr} {T v b B : Expr}
+    (hb : InferIOSem m φ Γ (b.inst v) B) : InferIOSem m φ Γ (.letE T v b) B := by
+  intro ρ hs hw
+  rw [WellDenoted_letE] at hw
+  rw [interp_zeta]
+  exact hb ρ hs ((WellDenoted_inst0 m.M φ hw.1).mpr hw.2)
+
 /-- **Soundness of the io grade**: every io-inferred type satisfies
 the hereditary claim. -/
 theorem inferIO_sound : ∀ {Γ : List Expr} {e T : Expr},
@@ -334,6 +359,7 @@ theorem inferIO_sound : ∀ {Γ : List Expr} {e T : Expr},
     InferIO.pi_sound (inferIO_sound hA) hu (inferIO_sound hB) hv
   | _, _, _, .lam hb => InferIO.lam_sound (inferIO_sound hb)
   | _, _, _, .app hf hr => InferIO.app_sound (inferIO_sound hf) hr
+  | _, _, _, .letE _ _ _ _ hb => InferIO.letE_sound (inferIO_sound hb)
 
 /-! ## Consumer: proof irrelevance -/
 

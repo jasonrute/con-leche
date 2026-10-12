@@ -396,3 +396,28 @@ info: 'Fragment.eta_lam_io_unsound' depends on axioms: [propext, Classical.choic
 info: 'Fragment.io_type_value_collision' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.io_type_value_collision
+
+/--
+info: 'Fragment.interp_zeta' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.interp_zeta
+
+/--
+info: 'Fragment.Red.zeta_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.zeta_sound
+
+/--
+info: 'Fragment.Infer.letE_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Infer.letE_sound
+
+/--
+info: 'Fragment.Infer.letE_sat' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Infer.letE_sat
+
+/--
+info: 'Fragment.InferIO.letE_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.InferIO.letE_sound

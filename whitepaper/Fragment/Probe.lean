@@ -259,6 +259,7 @@ theorem instL_nil_nil : ∀ e : Expr, e.instL [] [] = e
   | .app f a => by simp [Expr.instL, instL_nil_nil f, instL_nil_nil a]
   | .lam A b => by simp [Expr.instL, instL_nil_nil A, instL_nil_nil b]
   | .pi A B => by simp [Expr.instL, instL_nil_nil A, instL_nil_nil B]
+  | .letE T v b => by simp [Expr.instL, instL_nil_nil T, instL_nil_nil v, instL_nil_nil b]
 
 /-- **The environment has a model.** -/
 noncomputable def sortModel : EnvModel V sortEnv where

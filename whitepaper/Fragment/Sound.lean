@@ -40,6 +40,9 @@ The cases the paper dwells on, each its own lemma:
   major, even on a recursion over proofs: the major's binder domain is
   a type, so the major and its reduct are both the point or neither is;
 * `DefEq.eta_sound` — η, from the library's η law;
+* `Red.zeta_sound`, `Infer.letE_sound` — `let` by substitution: ζ is
+  an identity at every environment (`interp_zeta`), and the type checks
+  on the value are not used (`Infer.letE_sat` is what they give);
 * `DefEq.proofIrrel_sound` — proof irrelevance claims nothing: two
   proofs are the point, and the claim is about non-proofs;
 * `Infer.app_sound` — the application rule, where no Π-injectivity is
@@ -127,6 +130,16 @@ theorem beta_sound {Γ : List Expr} {A b a : Expr} :
     rw [piR_dom_unique hown hslot]; exact hmem
   refine ⟨(WellDenoted_inst0 m.M φ ha).mpr (hbody _ haA), ?_⟩
   rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
+
+/-- **ζ, with no certificate** (task #342, F4): the `let` and its
+reduct denote alike at every environment (`interp_zeta`), so neither
+the point hypothesis nor the context is used; the reduct's invariant is
+the `let`'s, through the substitution lemma. -/
+theorem zeta_sound {Γ : List Expr} {T v b : Expr} :
+    RedSem m φ Γ (.letE T v b) (b.inst v) := by
+  intro ρ _ hw _
+  rw [WellDenoted_letE] at hw
+  exact ⟨(WellDenoted_inst0 m.M φ hw.1).mpr hw.2, interp_zeta m.M φ T v b ρ⟩
 
 theorem delta_sound {Γ : List Expr} {c : Name} {ls : List Level} {ci : ConstInfo} {v : Expr}
     (hfind : env.find? c = some ci) (hv : ci.value? = some v)
@@ -334,6 +347,42 @@ theorem app_sound {Γ : List Expr} {f a tf A B ta : Expr}
   · rw [interp_inst0]; exact hfib _ hmema
   · rw [interp_app, interp_inst0]
     exact app_mem_piV hmemf hmema
+
+/-- **`let`, by substitution** (task #342, F4): the body with the value
+substituted carries the claim, and the `let` denotes what it denotes
+(`interp_zeta`); its invariant is the `let`'s (`WellDenoted_letE`
+against `WellDenoted_inst0`).  The type checks on the value (`hT`,
+`hu`, `hv`, `hd`) are not used: `interp` reads no type, and the body
+is inferred at the value itself, not at a variable of the type. -/
+theorem letE_sound {Γ : List Expr} {T v b s tv B : Expr} {u : Level}
+    (_hT : InferSem m φ Γ T s) (_hu : RedSem m φ Γ s (.sort u))
+    (hv : InferSem m φ Γ v tv) (_hd : DefEqSem m φ Γ tv T)
+    (hb : InferSem m φ Γ (b.inst v) B) :
+    InferSem m φ Γ (.letE T v b) B := by
+  intro ρ hs
+  obtain ⟨hwv, -⟩ := hv ρ hs
+  obtain ⟨hwb, hwB, hTB, hmem⟩ := hb ρ hs
+  refine ⟨?_, hwB, hTB, ?_⟩
+  · rw [WellDenoted_letE]; exact ⟨hwv, (WellDenoted_inst0 m.M φ hwv).mp hwb⟩
+  · rw [interp_zeta]; exact hmem
+
+/-- **What the value checks give** (task #342, F4): the value's value is
+a member of the type's, so the value extends a satisfying environment
+to one satisfying the context extended by the type.  The substitution
+version does not need it (`letE_sound`); a version that opens the body
+at a let-variable of type `T` would (the body's claim is then stated at
+`T :: Γ`).  The type and the value's inferred type are both types,
+never the point, so `DefEq`'s conditional claim applies to them. -/
+theorem letE_sat {Γ : List Expr} {T v s tv : Expr} {u : Level}
+    (hT : InferSem m φ Γ T s) (hu : RedSem m φ Γ s (.sort u))
+    (hv : InferSem m φ Γ v tv) (hd : DefEqSem m φ Γ tv T) {ρ : Nat → V}
+    (hs : Sat m.M φ Γ ρ) :
+    Sat m.M φ (T :: Γ) (cons (interp m.M φ ρ v) ρ) := by
+  obtain ⟨hwT, hmemT⟩ := mem_typeU_of hT hu hs
+  have hTT := IsTy_of_mem_typeU hmemT
+  obtain ⟨-, hwtv, hTtv, hmem⟩ := hv ρ hs
+  rw [hd ρ hs hwtv hwT hTtv.ne_pt hTT.ne_pt] at hmem
+  exact (Sat_cons m.M φ).mpr ⟨hs, hwT, hTT, hmem⟩
 
 end Infer
 
@@ -1389,6 +1438,7 @@ theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
   | _, _, _, .trans h₁ h₂ => Red.trans_sound (red_sound h₁) (red_sound h₂)
   | _, _, _, .appFn h => Red.appFn_sound (red_sound h)
   | _, _, _, .beta => Red.beta_sound
+  | _, _, _, .zeta => Red.zeta_sound
   | _, _, _, .delta hfind hv hls => Red.delta_sound hfind hv hls
   | _, _, _, .iota hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij husj hmlen hpis' hresM
       hIM hDM hdoms' htys' hI' hD' hlv hP hres hshape hrps hX =>
@@ -1459,6 +1509,9 @@ theorem infer_sound [LevelOracle] : ∀ {Γ : List Expr} {e T : Expr},
     Infer.lam_sound (infer_sound hA) (red_sound hu) (infer_sound hb)
   | _, _, _, .app hf hr ha hd =>
     Infer.app_sound (infer_sound hf) (red_sound hr) (infer_sound ha) (defeq_sound hd)
+  | _, _, _, .letE hT hu hv hd hb =>
+    Infer.letE_sound (infer_sound hT) (red_sound hu) (infer_sound hv) (defeq_sound hd)
+      (infer_sound hb)
 
 end
 

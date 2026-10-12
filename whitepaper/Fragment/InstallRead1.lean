@@ -167,6 +167,7 @@ theorem TeleFitV_instL (M : Name → List Nat → V) (φ : Name → Nat) (ps : L
   | _, .const _ _, _ :: _ => Iff.rfl
   | _, .app _ _, _ :: _ => Iff.rfl
   | _, .lam _ _, _ :: _ => Iff.rfl
+  | _, .letE _ _ _, _ :: _ => Iff.rfl
 
 omit [IndLib V] in
 /-- The body a level-instantiated telescope leaves is the body the
@@ -182,6 +183,7 @@ theorem piBodyV_instL (ps : List Name) (ls : List Level) : ∀ {ρ : Nat → V} 
   | _, .const _ _, _ :: _ => rfl
   | _, .app _ _, _ :: _ => rfl
   | _, .lam _ _, _ :: _ => rfl
+  | _, .letE _ _ _, _ :: _ => rfl
 
 /-- With distinct level parameters, instantiating them and evaluating
 is evaluating their substitutes: the concrete levels, read back
