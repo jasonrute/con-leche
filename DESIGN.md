@@ -101127,12 +101127,14 @@ enters a context is already `WellDenotedTy` or sits in a universe
   (`lamV_ne_pt_of` at an inhabited index tuple, the body `blockStepG …`
   a type, `IsTy.ne_pt`).  Over an EMPTY index set (`Fin 0`-like
   families) the spelled family is the point and the model's operator the
-  empty graph: `lfpTuple_congr` asks for equality of the operator values,
-  so either it is weakened to equality of applications on the index set
-  (the lfp only reads `app (Φ X m) i` for `i ∈ Is m`, but
-  `IsClosedTuple` also asks `Φ X m ∈ famSpace`) or `tupleOpV` re-graphs
-  its component over the index set.  The second is local to
-  `SetModel/Value` (`lfpTupleV`, L15) and needs no change to L3's lfp.
+  empty graph.  `lfpTuple_congr` asks for equality of the operator
+  values, but `lfpTuple` reads its operator only through `TupleLe`, i.e.
+  through `app (Φ X m) i` at `i ∈ Is m` (`IsClosedTuple`, `FamLe`).  So
+  the congruence can be weakened to equality of applications on the
+  index set, which holds vacuously at an empty one and by `app_lamV` at
+  an inhabited one; then `tupleOpV_blockFunVG` needs no premise at all.
+  The alternative is a `tupleOpV` that re-graphs its component over the
+  index set (`SetModel/Value`, L15).
 - `lfpFamSpace`/`natMotiveSpace`/`relSpace` are `piR (w+1) …`; under
   `piV` they are `{pt}` over an empty domain while `famSpace` stays
   `{∅}`; `famSpace_subset_lfpFamSpace` then fails at an empty index set
