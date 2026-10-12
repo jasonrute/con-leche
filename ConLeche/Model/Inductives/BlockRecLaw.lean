@@ -7,6 +7,8 @@ public import ConLeche.Model.Inductives.BlockRecRule
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructEntryKit
 import ConLeche.Model.Inductives.StructRecKit
+import ConLeche.Model.Inductives.FixKit
+import ConLeche.Model.Rules.DefEqSoundKit
 
 public section
 
@@ -78,6 +80,159 @@ iterated form would need an `EnvModelM` at each intermediate
 environment, and the statement `hrecP` is posed at is about an
 arbitrary `EnvModel` of the final one. -/
 
+/-- **(S)'s `iotaCtorLicensed` guard, across the `k` recursors' cons**:
+mirrors `iotaCtorLicensed_cons_of_isSome` (`Model/RecRulesCons.lean`) —
+it reads `find?` only at the constructor's result family, and that
+name is stored below the new recursors (not one of the `k` fresh
+names) whenever the constructor's type resolves. -/
+theorem iotaCtorLicensed_consBlockRecsR_of_isSome {R : Nat → RecDatum → List RecRule}
+    {q : BlockShape} {rs : List RecDatum} {envC : Env}
+    (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
+    {cvj : ConstantVal} {usj : List Level}
+    (hT : ∀ T us, cvj.type.piResult.getAppFn = .const T us →
+      (envC.find? T).isSome = true) :
+    ConLeche.iotaCtorLicensed (consBlockRecsR R q 0 rs envC).find? cvj usj
+      = ConLeche.iotaCtorLicensed envC.find? cvj usj := by
+  unfold ConLeche.iotaCtorLicensed
+  match hh : cvj.type.piResult.getAppFn with
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
+  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .const T us =>
+    dsimp only
+    have hiso := hT T us hh
+    obtain ⟨ciT, hciT⟩ : ∃ ciT, envC.find? T = some ciT := by
+      cases hfind : envC.find? T with
+      | none => rw [hfind] at hiso; exact absurd hiso (by decide)
+      | some ciT => exact ⟨ciT, rfl⟩
+    rw [find?_consBlockRecsR_keep hfr T ciT hciT, hciT]
+
+/-- **`RecRuleExtra` survives the recursors' cons** —
+`recRuleLaw_consBlockRecsR_prefix`'s sibling for the `RecRuleExtra`
+conjunct, `recRuleExtra_cons_prefix`'s (`Model/RecRulesCons.lean`) twin
+at `consBlockRecsR`: the crossing is `hmono` in place of
+`denoteMeta_cons_mono` and the valuation's agreement off the new names
+(`hacvAt`) in place of `acvalWith_ne`.  Clause (S)'s `iotaCtorLicensed`
+guard agrees with the constructors' environment's for the same reason
+as there (`iotaCtorLicensed_consBlockRecsR_of_isSome`). -/
+theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
+    {envC : Env} {acv : Name → (Name → Nat) → AnnotTerm} (mpC : EnvModelM V μ envC)
+    (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
+    (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
+    (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
+    (m₃ : EnvModel V (consBlockRecsR R q 0 rs envC))
+    (hac : m₃.acval = acv) (φ : Name → Nat)
+    {n : Name} {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule}
+    (hfE : envC.find? n = some (.recInfo cv mI rP rules))
+    {rl : RecRule} (hmem : rl ∈ rules) (hfire : RecRule.fire rl ≠ .inert) :
+    RecRuleExtra m₃ φ n cv mI rP rl := by
+  have hacvAt : ∀ x : Name, (envC.find? x).isSome = true →
+      m₃.acval x = mpC.base2.acval x := by
+    intro x hx
+    rw [hac]
+    refine hag x fun r hr hh => ?_
+    rw [hh, hfr r hr] at hx
+    exact nomatch hx
+  have hmono : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound envC e →
+      ∀ {ea : AnnotTerm}, denoteMeta mpC.base2.acval envC ψ d e = some ea →
+        denoteMeta m₃.acval (consBlockRecsR R q 0 rs envC) ψ d e = some ea := by
+    intro ψ d e hcb ea h
+    rw [hac]
+    exact denoteMeta_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
+  obtain ⟨-, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  obtain ⟨-, -, -, -, -, hrec', -⟩ :=
+    mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
+  obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
+  intro us hlen TVa hTVa
+  obtain ⟨TVa', hTVa', -, -⟩ := mpC.constType 0 n _ us hfE rfl (by exact hlen)
+  obtain rfl : TVa' = TVa :=
+    Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
+      (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
+  have hpinCB : ∀ lvls pins, RecRule.fire rl = .nested lvls pins → ∀ i : Nat,
+      ConstsBound envC (openRev 0 rP
+        ((pins.getD i default).instantiateLevelParams cv.levelParams us)) := by
+    intro lvls pins hfr' i
+    obtain ⟨-, -, hpinsWf, -⟩ := hnest lvls pins hfr'
+    refine constsBound_openRev (constsBound_of_constsResolve _ ?_) 0 rP
+    rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
+    by_cases hilt : i < pins.length
+    · exact (hpinsWf _ (ConLeche.getD_mem hilt)).2.2.1
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]
+      rfl
+  obtain ⟨hK, hCtor⟩ := hextra us hlen TVa' hTVa'
+  refine ⟨?_, ?_⟩
+  · intro hk
+    obtain ⟨hnf, hRalaw⟩ := hK hk
+    refine ⟨hnf, fun Ra hRa ρ xs a restR hxl hfit => ?_⟩
+    obtain ⟨Ra', hRa0', -, -, -⟩ := hlaw0 us hlen
+    obtain rfl : Ra' = Ra :=
+      Option.some.inj ((hmono _ 0 _ (constsBound_of_constsResolve _ (by
+        rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
+        exact hRres)) hRa0').symm.trans hRa)
+    have hacvR : m₃.acval n = mpC.base2.acval n := hacvAt n (by rw [hfE]; rfl)
+    rw [hacvR]
+    exact hRalaw Ra' hRa0' ρ xs a restR hxl hfit
+  · intro cvj cnP cnF hfcj
+    have hfcjE : envC.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) := by
+      obtain ⟨⟨cvj', cnP', cnF', h0⟩, -, -⟩ :=
+        mpC.base2.rec_ctors n cv mI rP rules hfE rl hmem
+      have heq := Option.some.inj
+        ((find?_consBlockRecsR_keep (R := R) (q := q) hfr _ _ h0).symm.trans hfcj)
+      rw [← heq]
+      exact h0
+    have hacvC : m₃.acval (RecRule.ctor rl) = mpC.base2.acval (RecRule.ctor rl) :=
+      hacvAt _ (by rw [hfcjE]; rfl)
+    obtain ⟨harity, hnk⟩ := hCtor cvj cnP cnF hfcjE
+    refine ⟨harity, ?_⟩
+    intro hk usj husj heq TVja hTVja
+    obtain ⟨TVja', hTVja', -, -⟩ :=
+      mpC.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
+    obtain rfl : TVja' = TVja :=
+      Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
+        (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
+    obtain ⟨hS, hP, hU⟩ := hnk hk usj husj heq TVja' hTVja'
+    refine ⟨?_, ?_, ?_⟩
+    · intro hlic ρ xs a restR hxl hfit
+      refine hS ?_ ρ xs a restR hxl hfit
+      obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
+        mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
+      dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
+      have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
+          (envC.find? T).isSome = true :=
+        fun T us' heq' =>
+          ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
+      rwa [iotaCtorLicensed_consBlockRecsR_of_isSome hfr hTiso] at hlic
+    · intro ρ xs a restR hxl hfit hapt ys restC hfitC
+      rw [hacvC]
+      exact hP ρ xs a restR hxl hfit hapt ys restC hfitC
+    · intro ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested0 hpin0
+      obtain ⟨-, -, -, hpinsOk, -⟩ := hlaw0 us hlen
+      have hnested' : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          ∀ i, i < RecRule.ctorParams rl →
+          ∀ vpa : AnnotTerm,
+            denoteMeta mpC.base2.acval envC φ rP
+              (openRev 0 rP ((pins.getD i default).instantiateLevelParams
+                cv.levelParams us)) = some vpa →
+            interp V ρ (ys.getD i default) ≠ pt →
+            interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
+            interp V ρ (ys.getD i default)
+              = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
+        intro lvls pins hfr' i hi vpa hvpa hney hnex
+        exact hnested0 lvls pins hfr' i hi vpa
+          (hmono _ rP _ (hpinCB lvls pins hfr' i) hvpa) hney hnex
+      rw [hacvC] at hfitR hplain0 hpin0
+      have hUout := hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
+      refine ⟨hUout.1, ?_, ?_⟩
+      · intro lvls pins hfr' i hi vpa hvpa2
+        obtain ⟨vpa₀, hvpa0, -⟩ := hpinsOk lvls pins hfr' i hi
+        have hvpa0E : denoteMeta m₃.acval (consBlockRecsR R q 0 rs envC) φ rP
+            (openRev 0 rP ((pins.getD i default).instantiateLevelParams
+              cv.levelParams us)) = some vpa₀ :=
+          hmono _ rP _ (hpinCB lvls pins hfr' i) hvpa0
+        obtain rfl : vpa₀ = vpa := Option.some.inj (hvpa0E.symm.trans hvpa2)
+        exact hUout.2.1 lvls pins hfr' i hi vpa₀ hvpa0
+      · rw [hacvC]
+        exact hUout.2.2
+
 /-- **A stored recursor's law crosses the recursors' cons.** -/
 theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
     {envC : Env} {acv : Name → (Name → Nat) → AnnotTerm} (mpC : EnvModelM V μ envC)
@@ -104,8 +259,9 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     intro ψ d e hcb ea h
     rw [hac]
     exact denoteMeta_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
-  obtain ⟨hrPle, hlaw0⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
-  refine ⟨hrPle, fun us hlen => ?_⟩
+  obtain ⟨hrPle, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  refine ⟨hrPle, fun us hlen => ?_,
+    recRuleExtra_consBlockRecsR_prefix mpC hfr hpsh hag m₃ hac φ hfE hmem hfire⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
@@ -172,7 +328,7 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
             = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
       intro lvls pins hn i hi vpa hvpa
       exact hnested lvls pins hn i hi vpa (hmono _ rP _ (hpinCB lvls pins hn i) hvpa)
-    rw [hacvC] at hfitR
+    rw [hacvC] at hfitR hpin
     rw [hacvR, hacvC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
       hujl hψ hplain hnested' hpin hTVa' hTVja' hfitR hfitC
@@ -445,6 +601,279 @@ context-guarded grading — vacuous at a rule that does not fire
           TeleFitPA V ρ TVa zs restR →
           WellDenotedV V ρ (ConLeche.Model.AnnotTerm.instRevChain zs vpa)
 
+/-! ### 7a. `RecRuleLaw`'s licence facts (task #342 L10)
+
+`RecRuleExtra` splits in two.  Its K clause (the law at ANY major) is
+derived from the main law at a FIRED spine — the K witness
+(`RecRuleKWit`): at a K rule every major value in the major's domain is
+the value of the fieldless constructor applied to parameters the ι
+step would accept (inversion of the family's least fixed point,
+discharged at the run).  The rest (`RecRuleExtraNK`: the arity, (S),
+(P), (U)) is passed through. -/
+
+/-- **`RecRuleLaw`'s main conjunct, named** (`Model/Annot/Laws.lean`,
+verbatim). -/
+@[expose] def RecRuleMain {env : Env}
+    (m : EnvModel V env) (φ : Name → Nat)
+    (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) :
+    Prop :=
+  ∀ us : List Level, us.length = cv.levelParams.length →
+    ∃ Ra : AnnotTerm,
+      denoteMeta m.acval env φ 0
+        ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us)
+        = some Ra ∧
+      (∀ ρ : Nat → V, WellDenotedV V ρ Ra) ∧
+      -- The nested pins' open readings are carried with a
+      -- CONTEXT-GUARDED chain grading (an unconditional `∀ ρ` form is
+      -- refutable: the checker's certificate is about the pins
+      -- instantiated at the public frame, and converts only
+      -- context-guarded).  The grading is stated of the chained term
+      -- the equality half names, at the chain's own environment:
+      -- `TeleFitPA` is that environment's `Sat` in closed form.
+      -- It stays an OUTER conjunct (the consumer feeds it to
+      -- `DefEqClaim` to *produce* the equality clause consumed
+      -- by the inner block — inner placement is circular).
+      (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+        ∀ i, i < RecRule.ctorParams rl →
+        ∃ vpa : AnnotTerm,
+          denoteMeta m.acval env φ rP
+            (ConLeche.Verify.openRev 0 rP
+              ((pins.getD i default).instantiateLevelParams
+                cv.levelParams us)) = some vpa ∧
+          ∀ (ρ : Nat → V) (zs : List AnnotTerm) (TVa restR : AnnotTerm),
+            zs.length = rP →
+            (∀ z ∈ zs, WellDenotedV V ρ z) →
+            denoteMeta m.acval env φ 0
+              (cv.type.instantiateLevelParams cv.levelParams us)
+              = some TVa →
+            TeleFitPA V ρ TVa zs restR →
+            WellDenotedV V ρ
+              (ConLeche.Model.AnnotTerm.instRevChain zs vpa)) ∧
+      ∀ (cvj : ConstantVal) (cnP cnF : Nat),
+        env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) →
+      ∀ (usj : List Level) (ρ : Nat → V) (xs ys : List AnnotTerm)
+        (TVa TVja restR restC : AnnotTerm),
+        xs.length = mI →
+        ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
+        usj.length = cvj.levelParams.length →
+        Level.substFn φ cvj.levelParams usj
+          = Level.substFn φ cvj.levelParams
+              (ConLeche.recFireComparands rl cv.levelParams us
+                cvj.levelParams [] rP).1 →
+        -- the ι step's parameter comparison, supplied only for a rule
+        -- that is not `paramsBlind`
+        (RecRule.paramsBlind rl = false → RecRule.fire rl = .plain →
+          ∀ i, i < RecRule.ctorParams rl → i < mI →
+            interp V ρ (ys.getD i default)
+              = interp V ρ (xs.getD i default)) →
+        (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          ∀ i, i < RecRule.ctorParams rl →
+          ∀ vpa : AnnotTerm,
+            denoteMeta m.acval env φ rP
+              (ConLeche.Verify.openRev 0 rP
+                ((pins.getD i default).instantiateLevelParams
+                  cv.levelParams us)) = some vpa →
+            interp V ρ (ys.getD i default)
+              = interp V ρ
+                  (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP)
+                    vpa)) →
+        -- the index pin, owed only where the fired constructor application
+        -- is the point (task #342 L10: a family never `Prop` at the
+        -- instance fires with no index comparison; the law reads the pin
+        -- only at a `Prop` valuation)
+        (interp V ρ (AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+          IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
+        denoteMeta m.acval env φ 0
+          (cv.type.instantiateLevelParams cv.levelParams us)
+          = some TVa →
+        denoteMeta m.acval env φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj)
+          = some TVja →
+        TeleFitPA V ρ TVa
+          (xs ++ [AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl)
+              (Level.substFn φ cvj.levelParams usj)) ys]) restR →
+        TeleFitPA V ρ TVja ys restC →
+        interp V ρ
+            (AnnotTerm.mkAppN
+              (m.acval n (Level.substFn φ cv.levelParams us))
+              (xs ++ [AnnotTerm.mkAppN
+                (m.acval (RecRule.ctor rl)
+                  (Level.substFn φ cvj.levelParams usj)) ys]))
+          = interp V ρ
+              (AnnotTerm.mkAppN Ra
+                (xs.take rP ++ ys.drop (RecRule.ctorParams rl))) ∧
+        ((∀ a ∈ xs, WellDenotedV V ρ a) → (∀ b ∈ ys, WellDenotedV V ρ b) →
+          WellDenotedV V ρ
+            (AnnotTerm.mkAppN Ra
+              (xs.take rP ++ ys.drop (RecRule.ctorParams rl))))
+
+/-- **`RecRuleExtra` past its K clause, named**: the constructor's
+arity, and for a rule that is not K the (S), (P), (U) clauses
+(`Model/Annot/Laws.lean`, verbatim). -/
+@[expose] def RecRuleExtraNK {env : Env}
+    (m : EnvModel V env) (φ : Name → Nat)
+    (_n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
+  ∀ us : List Level, us.length = cv.levelParams.length →
+    ∀ TVa : AnnotTerm,
+      denoteMeta m.acval env φ 0
+        (cv.type.instantiateLevelParams cv.levelParams us) = some TVa →
+    ∀ (cvj : ConstantVal) (cnP cnF : Nat),
+      env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) →
+    -- the constructor's arity
+    (cvj.type.stripPis (RecRule.ctorParams rl + RecRule.nfields rl)).isSome = true ∧
+    (RecRule.k rl = false →
+    ∀ (usj : List Level), usj.length = cvj.levelParams.length →
+      Level.substFn φ cvj.levelParams usj
+        = Level.substFn φ cvj.levelParams
+            (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 →
+    ∀ TVja : AnnotTerm,
+      denoteMeta m.acval env φ 0
+        (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
+    -- (S)
+    (ConLeche.iotaCtorLicensed env.find? cvj usj = true →
+      ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
+        xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+        interp V ρ a ≠ pt) ∧
+    -- (P)
+    (∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
+        xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+        interp V ρ a = pt →
+      ∀ (ys : List AnnotTerm) (restC : AnnotTerm), TeleFitPA V ρ TVja ys restC →
+        ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
+        (∀ y ∈ ys, WellDenotedV V ρ y) →
+        interp V ρ (AnnotTerm.mkAppN
+          (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt) ∧
+    -- (U)
+    (∀ (ρ : Nat → V) (xs ys : List AnnotTerm) (restR restC : AnnotTerm),
+        xs.length = mI →
+        ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
+        TeleFitPA V ρ TVa
+          (xs ++ [AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys]) restR →
+        TeleFitPA V ρ TVja ys restC →
+        (∀ x ∈ xs, WellDenotedV V ρ x) → (∀ y ∈ ys, WellDenotedV V ρ y) →
+        (RecRule.fire rl = .plain →
+          (RecRule.paramsBlind rl = false ∨
+            interp V ρ (AnnotTerm.mkAppN
+              (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt) →
+          ∀ i, i < RecRule.ctorParams rl → i < mI →
+            interp V ρ (ys.getD i default) ≠ pt → interp V ρ (xs.getD i default) ≠ pt →
+            interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) →
+        (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          ∀ i, i < RecRule.ctorParams rl →
+          ∀ vpa : AnnotTerm,
+            denoteMeta m.acval env φ rP
+              (ConLeche.Verify.openRev 0 rP
+                ((pins.getD i default).instantiateLevelParams
+                  cv.levelParams us)) = some vpa →
+            interp V ρ (ys.getD i default) ≠ pt →
+            interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
+            interp V ρ (ys.getD i default)
+              = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) →
+        (interp V ρ (AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+          IotaIndexPinC (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
+        (RecRule.paramsBlind rl = false → RecRule.fire rl = .plain →
+          ∀ i, i < RecRule.ctorParams rl → i < mI →
+            interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) ∧
+        (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          ∀ i, i < RecRule.ctorParams rl →
+          ∀ vpa : AnnotTerm,
+            denoteMeta m.acval env φ rP
+              (ConLeche.Verify.openRev 0 rP
+                ((pins.getD i default).instantiateLevelParams
+                  cv.levelParams us)) = some vpa →
+            interp V ρ (ys.getD i default)
+              = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) ∧
+        (interp V ρ (AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+          IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs)))
+
+
+/-- **The K witness**: at a K rule the constructor has no fields, and
+every major value in the recursor's major domain is the value of the
+constructor applied to a spine the main law accepts — its parameter
+comparisons, the guarded index pin, both fits — graded where the
+recursor's arguments are. -/
+@[expose] def RecRuleKWit {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
+  RecRule.k rl = true → RecRule.nfields rl = 0 ∧
+  ∀ us : List Level, us.length = cv.levelParams.length →
+  ∀ TVa : AnnotTerm,
+    denoteMeta m.acval env φ 0 (cv.type.instantiateLevelParams cv.levelParams us) = some TVa →
+  ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
+    xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+  -- both sides are the point (a recursor that eliminates only into `Prop` here)
+  (interp V ρ (AnnotTerm.mkAppN (m.acval n (Level.substFn φ cv.levelParams us)) (xs ++ [a]))
+      = pt ∧
+    ∀ Ra : AnnotTerm,
+      denoteMeta m.acval env φ 0
+        ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us) = some Ra →
+      interp V ρ Ra = pt) ∨
+  ∃ (cvj : ConstantVal) (cnP cnF : Nat) (usj : List Level) (ys : List AnnotTerm)
+    (TVja restR' restC : AnnotTerm),
+    env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) ∧
+    ys.length = RecRule.ctorParams rl + RecRule.nfields rl ∧
+    usj.length = cvj.levelParams.length ∧
+    Level.substFn φ cvj.levelParams usj
+      = Level.substFn φ cvj.levelParams
+          (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 ∧
+    (RecRule.paramsBlind rl = false → RecRule.fire rl = .plain →
+      ∀ i, i < RecRule.ctorParams rl → i < mI →
+        interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) ∧
+    (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+      ∀ i, i < RecRule.ctorParams rl →
+      ∀ vpa : AnnotTerm,
+        denoteMeta m.acval env φ rP
+          (openRev 0 rP ((pins.getD i default).instantiateLevelParams cv.levelParams us))
+          = some vpa →
+        interp V ρ (ys.getD i default)
+          = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) ∧
+    (interp V ρ (AnnotTerm.mkAppN
+        (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+      IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) ∧
+    denoteMeta m.acval env φ 0 (cvj.type.instantiateLevelParams cvj.levelParams usj)
+      = some TVja ∧
+    TeleFitPA V ρ TVa
+      (xs ++ [AnnotTerm.mkAppN
+        (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys]) restR' ∧
+    TeleFitPA V ρ TVja ys restC ∧
+    interp V ρ a = interp V ρ (AnnotTerm.mkAppN
+      (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) ∧
+    ((∀ x ∈ xs, WellDenotedV V ρ x) → ∀ y ∈ ys, WellDenotedV V ρ y)
+
+/-- **`RecRuleLaw` from its main conjunct, the K witness and the rest**:
+the K law is the main law at the witness's fired spine — the major
+enters the recursor's application only through its value, and the
+fieldless spine's field part is empty. -/
+theorem recRuleLaw_of_main {env : Env} {m : EnvModel V env} {φ : Name → Nat}
+    {n : Name} {cv : ConstantVal} {mI rP : Nat} {rl : RecRule}
+    (hrPle : rP ≤ mI) (hmain : RecRuleMain m φ n cv mI rP rl)
+    (hK : RecRuleKWit m φ n cv mI rP rl) (hNK : RecRuleExtraNK m φ n cv mI rP rl) :
+    RecRuleLaw m φ n cv mI rP rl := by
+  refine ⟨hrPle, hmain, fun us hus TVa hTVa => ⟨fun hk => ?_, hNK us hus TVa hTVa⟩⟩
+  obtain ⟨hnf, hwit⟩ := hK hk
+  refine ⟨hnf, fun Ra hRa ρ xs a restR hxl hfit => ?_⟩
+  obtain ⟨Ra', hRa', hokRa, -, hsp⟩ := hmain us hus
+  have hRR : Ra' = Ra := Option.some.inj (hRa'.symm.trans hRa)
+  rw [hRR] at hokRa hsp
+  rcases hwit us hus TVa hTVa ρ xs a restR hxl hfit with ⟨hL, hR⟩ | hwit
+  · have hRpt := hR Ra hRa
+    exact ⟨hL.trans (Rules.interp_mkAppN_pt hRpt _).symm, fun hxs =>
+      mkAppN_wellDenotedV_of_pt (hokRa ρ) hRpt fun x hx => hxs x (List.mem_of_mem_take hx)⟩
+  obtain ⟨cvj, cnP, cnF, usj, ys, TVja, restR', restC, hfj, hyl, husj, hψ, hcmpP, hcmpN, hpin,
+    hTVja, hfitR, hfitC, hval, hwd⟩ := hwit
+  obtain ⟨heq, hok⟩ := hsp cvj cnP cnF hfj usj ρ xs ys TVa TVja restR' restC hxl hyl husj hψ
+    hcmpP hcmpN hpin hTVa hTVja hfitR hfitC
+  have hdrop : ys.drop (RecRule.ctorParams rl) = [] := by
+    rw [List.drop_eq_nil_iff, hyl, hnf]; omega
+  rw [hdrop, List.append_nil] at heq hok
+  refine ⟨?_, fun hxs => hok hxs (hwd hxs)⟩
+  rw [← heq, interp_mkAppN_foldl, interp_mkAppN_foldl, List.map_append, List.map_append,
+    List.map_singleton, List.map_singleton, hval]
+
 /-- **A new block recursor's rule law, at either firing**.  `hpins` is
 `RecRuleLaw`'s outer `.nested` conjunct — the pins'
 open readings and their context-guarded grading — vacuous at a `.plain`
@@ -463,6 +892,7 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
     (hiota : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       BlockIotaAt V K c (leafF ψ) (pdomsF ψ) (fdomsF ψ) (esF ψ) (mkF ψ) (ihsF ψ) (RbF ψ) ρ)
     (hpins : RecRulePinsOk m₃ φ cv rP rl)
+    (hK : RecRuleKWit m₃ φ n cv mI rP rl) (hNK : RecRuleExtraNK m₃ φ n cv mI rP rl)
     (hrhs : ∀ us : List Level, us.length = cv.levelParams.length →
       ∃ Ra : AnnotTerm,
         denoteMeta m₃.acval env φ 0
@@ -489,7 +919,9 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
                   cv.levelParams us)) = some vpa →
               interp V ρ (ys.getD i default)
                 = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) →
-          IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs →
+          (interp V ρ (AnnotTerm.mkAppN
+              (m₃.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
+            IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
           denoteMeta m₃.acval env φ 0
               (cv.type.instantiateLevelParams cv.levelParams us) = some TVa →
           denoteMeta m₃.acval env φ 0
@@ -522,7 +954,7 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
             WellDenotedV V ρ (AnnotTerm.mkAppN Ra
               (xs.take rP ++ ys.drop (RecRule.ctorParams rl))))) :
     RecRuleLaw m₃ φ n cv mI rP rl := by
-  refine ⟨hrPle, fun us hus => ?_⟩
+  refine recRuleLaw_of_main hrPle (fun us hus => ?_) hK hNK
   obtain ⟨Ra, hRa, hokRa, hspine⟩ := hrhs us hus
   refine ⟨Ra, hRa, hokRa, hpins us hus, ?_⟩
   intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl hψ

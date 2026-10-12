@@ -206,7 +206,7 @@ theorem lfpCtor_fieldsLen {μ : CheckMode} {env : Env} {mp : EnvModelM V μ env}
     (hj : j < D.nctors mm) {cv : ConstantVal} {nPc nF : Nat}
     (hf : env.find? (D.ctorName mm j) = some (.ctorInfo cv nPc nF)) (ψ : Name → Nat) :
     (D.fields ψ mm j).length = nF := by
-  obtain ⟨-, -, -, hrdC⟩ := mp.lfp_ok D hD
+  obtain ⟨-, -, -, hrdC, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv', nPc', nF', hf', -, -, -, A, -, -, hA⟩ := hrdC.2 mm hmm j hj
   rw [hf] at hf'
   obtain ⟨-, -, rfl⟩ : cv = cv' ∧ nPc = nPc' ∧ nF = nF' := by

@@ -188,6 +188,30 @@ theorem iotaCertsI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
   funext depth lic ty args; unfold iotaCertsI
   simp only [iotaCertsIAux_congr hfe]
 
+/-- `iotaCertsFullIAux` only threads `fe`. -/
+theorem iotaCertsFullIAux_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
+    iotaCertsFullIAux r fe₁ = iotaCertsFullIAux r fe₂ := by
+  funext depth ty acc args
+  induction ty, acc, args using iotaCertsFullIAux.induct with
+  | case1 ty acc => rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]
+  | case2 acc arg rest dom body mb ih =>
+    rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]; simp only [ih]
+  | case3 arg rest i => rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]
+  | case4 arg rest i head tail ih =>
+    rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]; simp only [ih]
+  | case5 ty acc arg rest h₁ h₂ =>
+    rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]
+    cases ty with
+    | forallE d b m => exact (h₁ _ _ _ rfl).elim
+    | bvar i => exact (h₂ _ rfl).elim
+    | _ => rfl
+
+/-- `iotaCertsFullI` only threads `fe`. -/
+theorem iotaCertsFullI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
+    iotaCertsFullI r fe₁ = iotaCertsFullI r fe₂ := by
+  funext depth ty args; unfold iotaCertsFullI
+  simp only [iotaCertsFullIAux_congr hfe]
+
 /-- `defEqListI` only threads `fe`. -/
 theorem defEqListI_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     defEqListI r fe₁ = defEqListI r fe₂ := by
@@ -296,8 +320,8 @@ theorem iotaRecI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     iotaRecI mode r fe₁ = iotaRecI mode r fe₂ := by
   funext depth e; unfold iotaRecI
   simp only [hfe, prepareMajorI_congr hfe, defEqListI_congr hfe,
-    constTyAtM_congr hfe, iotaCertsI_congr hfe, iotaIndexOkI_congr hfe,
-    ruleRhsAtM_congr hfe]
+    constTyAtM_congr hfe, iotaCertsI_congr hfe, iotaCertsFullI_congr hfe,
+    iotaIndexOkI_congr hfe, ruleRhsAtM_congr hfe]
 
 /-- `projCertI` reads `fe` only through `find?`. -/
 theorem projCertI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :

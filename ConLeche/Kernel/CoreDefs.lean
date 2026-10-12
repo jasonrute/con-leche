@@ -59,6 +59,52 @@ def capsNeverZero (lps : List Name) (us : List Level) (caps : IndCaps) :
     Bool :=
   (Level.substPW lps us caps.sortZ).isNever
 
+/-- **The ι licence's case test** (task #342 L10, the licence of task
+#349's prototype): is the constructor's family never `Prop` at the
+constructor's levels?  Then (case 2) the ι step fires with no
+constructor certificate and no index comparison: the family's fibres
+are strict there, so the major is not the point and its reduction is
+an equation, and the constructor application, not being the point
+either, fits its telescope.  Read off the family's recorded sort
+zero-ness (`IndCaps.sortZ`, recorded for every block member and for
+the pinned `Nat`, `Empty` and `Quot`). -/
+def iotaCtorLicensed (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
+    (usj : List Level) : Bool :=
+  match (cvj.type.piResult).getAppFn with
+  | .const T _ =>
+    match find? T with
+    | some (.indInfo cvT caps) =>
+      cvT.levelParams.length == usj.length && capsNeverZero cvT.levelParams usj caps
+    | _ => false
+  | _ => false
+
+/-- **Case 3 of the ι licence** (task #342 L10): a rule that is not K
+whose constructor's family may be `Prop` at the constructor's levels.
+There the constructor telescope is certified at the full grade, the
+indices are compared, and a `.plain` rule compares its parameters too
+(task #342 L7's counterexample: at a `Prop` valuation nothing else
+ties the two parameter spines). -/
+def iotaCase3 (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
+    (usj : List Level) : Bool :=
+  !rl.k && !iotaCtorLicensed find? cvj usj
+
+/-- Does the ι step compare the rule's parameter comparands?  Where
+the rule asks for it (`RecRule.compareParams`), and at every case-3
+redex. -/
+def iotaCompares (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
+    (usj : List Level) : Bool :=
+  rl.compareParams || iotaCase3 find? rl cvj usj
+
+theorem iotaCompares_of_compareParams {find? : Name → Option ConstantInfo} {rl : RecRule}
+    {cvj : ConstantVal} {usj : List Level} (h : rl.compareParams = true) :
+    iotaCompares find? rl cvj usj = true := by
+  simp [iotaCompares, h]
+
+theorem iotaCompares_of_case3 {find? : Name → Option ConstantInfo} {rl : RecRule}
+    {cvj : ConstantVal} {usj : List Level} (h : iotaCase3 find? rl cvj usj = true) :
+    iotaCompares find? rl cvj usj = true := by
+  simp [iotaCompares, h]
+
 /-- Unfold the (application of a) definition at the head, one step.
 `none` when the head is not an unfoldable constant.  **Theorems are
 opaque to reduction**: a stored `thmInfo` never unfolds, so whether a

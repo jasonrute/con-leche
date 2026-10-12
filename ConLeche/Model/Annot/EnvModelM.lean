@@ -154,6 +154,28 @@ parameter binders. -/
             denoteMeta acval env ψ (nPc + mm) ty = some (Tys.getD mm default)) ∧
           FieldsEqOn V (D.params ψ ++ Tys).reverse (ab.map (·.2.2)) (D.fields ψ c j)
 
+/-- **A recorded block's capability records and constructor shapes**
+(task #342 L10): each member's stored capabilities are sound for the
+datum — the sort zero-ness datum holds wherever the block's sort is
+zero, and the K capability is claimed only at a single constructor —
+and each constructor's stored type concludes, past its parameters and
+fields, in its member at its own level parameters applied to the
+parameter variables and then the index expressions (official's
+`check_constructors`: the result's parameters are the parameters).  The
+ι licence's facts at an outside class read them: a container's
+capabilities decide its sort's zero-ness and its K rule, and its
+constructor's residual is the former at the constructor's parameters. -/
+@[expose] def LfpCaps {V : Type w} [SetTheory V] (env : Env) (D : LfpDatum V) : Prop :=
+  (∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
+    (∀ ψ : Name → Nat, D.w ψ = 0 → caps.sortZ.holds ψ = true) ∧
+    (caps.ruleK = true → D.nctors mm = 1)) ∧
+  ∀ c, c < D.k → ∀ j, j < D.nctors c → ∃ cv nPc nF,
+    env.find? (D.ctorName c j) = some (.ctorInfo cv nPc nF) ∧
+    ∃ (bs : List (Expr × ConLeche.BinderMeta)) (es : List Expr),
+      cv.type.stripPis (nPc + nF)
+        = some (bs, Expr.mkAppN (.const (D.member c) (cv.levelParams.map .param))
+            (ConLeche.structPsAt nF nPc ++ es))
+
 section
 variable {V}
 
@@ -268,7 +290,7 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   stored inductive formers (which is what lets every extension
   transport the clause: an extension never re-reads a stored name) -/
   lfp_ok : ∀ D ∈ lfpBlocks, LfpClause base2.acval D ∧ LfpStored env D ∧
-    LfpReads base2.acval env D ∧ LfpCtorReads base2.acval env D
+    LfpReads base2.acval env D ∧ LfpCtorReads base2.acval env D ∧ LfpCaps env D
 
 namespace EnvModelM
 
@@ -377,7 +399,7 @@ def toEnvFacts {V : Type w} [SetTheory V] {μ : CheckMode}
     denoteMeta_erase m.base2.acval_erase 0 value
       (m.defn_reads ψ cv value ⟨hint, hmem⟩)
   rec_rhs_denotes := fun n cv mI rP rules hf r hr hfire us ψ hlen => by
-    obtain ⟨-, hus⟩ := m.rec_rules ψ n cv mI rP rules hf r hr hfire
+    obtain ⟨-, hus, -⟩ := m.rec_rules ψ n cv mI rP rules hf r hr hfire
     obtain ⟨Ra, hRa, -, -⟩ := hus us hlen
     exact ⟨Ra.erase, denoteMeta_erase m.base2.acval_erase 0 _ hRa⟩
   rec_params_le := fun n cv mI rP rules hf r hr hfire =>
@@ -452,18 +474,19 @@ the recorded list is unchanged, so `(mp.addLfp …).base2 = mp.base2`
 definitionally. -/
 @[expose] def addLfp (mp : EnvModelM V μ env) (D : LfpDatum V)
     (hL : LfpClause mp.base2.acval D) (hst : LfpStored env D)
-    (hrd : LfpReads mp.base2.acval env D) (hrdC : LfpCtorReads mp.base2.acval env D) :
+    (hrd : LfpReads mp.base2.acval env D) (hrdC : LfpCtorReads mp.base2.acval env D)
+    (hcaps : LfpCaps env D) :
     EnvModelM V μ env :=
   { mp with
     lfpBlocks := D :: mp.lfpBlocks
     lfp_ok := fun D' hD' => by
       rcases List.mem_cons.mp hD' with rfl | h
-      · exact ⟨hL, hst, hrd, hrdC⟩
+      · exact ⟨hL, hst, hrd, hrdC, hcaps⟩
       · exact mp.lfp_ok D' h }
 
 
-theorem mem_addLfp (mp : EnvModelM V μ env) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC) :
-    D ∈ (mp.addLfp D hL hst hrd hrdC).lfpBlocks := List.mem_cons_self
+theorem mem_addLfp (mp : EnvModelM V μ env) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC) (hcaps) :
+    D ∈ (mp.addLfp D hL hst hrd hrdC hcaps).lfpBlocks := List.mem_cons_self
 
 /-- A recorded block's clause, read off the carrier. -/
 theorem lfpClause_of_mem (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.lfpBlocks) :
@@ -492,11 +515,12 @@ theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
       denoteMeta mp.base2.acval env ψ d A = some ta →
       denoteMeta acval' env' ψ d A = some ta) :
     ∀ D ∈ mp.lfpBlocks, LfpClause acval' D ∧ LfpStored env' D ∧ LfpReads acval' env' D ∧
-      LfpCtorReads acval' env' D := by
+      LfpCtorReads acval' env' D ∧ LfpCaps env' D := by
   intro D hD
-  obtain ⟨hL, ⟨hst, hstC⟩, hrd, hnk, hrdC⟩ := mp.lfp_ok D hD
+  obtain ⟨hL, ⟨hst, hstC⟩, hrd, ⟨hnk, hrdC⟩, ⟨hcK, hcC⟩⟩ := mp.lfp_ok D hD
   refine ⟨hL.congr (fun mm hmm => ?_) (fun c hc j hj => ?_),
-    ⟨fun mm hmm => ?_, fun c hc j hj => ?_⟩, fun mm hmm => ?_, hnk, fun c hc j hj => ?_⟩
+    ⟨fun mm hmm => ?_, fun c hc j hj => ?_⟩, fun mm hmm => ?_, ⟨hnk, fun c hc j hj => ?_⟩,
+    ⟨fun mm hmm => ?_, fun c hc j hj => ?_⟩⟩
   · obtain ⟨cv, caps, hf⟩ := hst mm hmm
     exact hag _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h
   · obtain ⟨cv, a, b, hf⟩ := hstC c hc j hj
@@ -527,6 +551,10 @@ theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
       obtain ⟨cvm, caps, ty, hfm, hty, hr⟩ := hTys mm hmm
       exact ⟨cvm, caps, ty, hfind _ _ hfm fun _ _ _ _ h => ConstantInfo.noConfusion h, hty,
         hreadC _ _ hfm (fun _ _ _ _ h => ConstantInfo.noConfusion h) ty (.inr ⟨_, hty⟩) ψ _ _ hr⟩
+  · obtain ⟨cv, caps, hf, hz, hk⟩ := hcK mm hmm
+    exact ⟨cv, caps, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h, hz, hk⟩
+  · obtain ⟨cv, nPc, nF, hf, hsh⟩ := hcC c hc j hj
+    exact ⟨cv, nPc, nF, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h, hsh⟩
 
 end EnvModelM
 

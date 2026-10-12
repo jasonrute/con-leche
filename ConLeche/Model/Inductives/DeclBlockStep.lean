@@ -1,5 +1,7 @@
 module
 
+import ConLeche.Model.Inductives.BlockCaps
+import ConLeche.Verify.PropWhen
 import ConLeche.Model.Inductives.GenRecFinal
 import ConLeche.Verify.Inductives.GenRecRun
 import ConLeche.Verify.EnvBound
@@ -414,8 +416,57 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
       (fun c hc j cA hj ψ ρ hsat =>
         ((hS.toBlockCtorsStage.frames c hc j cA hj).1 ψ ρ).mp
           (hS.toBlockCtorsStage.paramsOf 0 hk0 ψ ρ hsat c hc))
+  -- the members' capability records and the constructors' shapes (task #342 L10)
+  have hcapsC : LfpCaps (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)
+      (blockDataOf V p₁ ctorsAs pk uOf ppsOf).toLfp := by
+    refine ⟨fun mm hmm => ?_, fun c hc j hj => ?_⟩
+    · obtain ⟨cvTb, hcv⟩ : ∃ cvTb, cvTas[mm]? = some cvTb :=
+        ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact hmm)⟩
+      have hname := hN.1 mm cvTb hcv
+      refine ⟨cvTb, ConLeche.blockCapsAt p₁ mm isRec, by
+        show (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?
+          ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).memberName mm) = _
+        rw [hname]; exact (hcoreC.1 mm cvTb hcv).1, fun ψ hw => ?_, fun hk => ?_⟩
+      · have hsz : (ConLeche.blockCapsAt p₁ mm isRec).sortZ = Level.zeronessOf p₁.resSort := by
+          rcases blockCapsAt_cases p₁ mm isRec with ⟨c, -, h⟩ | h <;> rw [h]
+        rw [hsz, ConLeche.PropWhen.zeronessOf_sound]
+        have hw' : Level.eval ψ p₁.resSort = 0 := hw
+        rw [hw']; rfl
+      · rcases blockCapsAt_cases p₁ mm isRec with ⟨c, hc, h⟩ | h
+        · show (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM mm)).length = 1
+          have hmmK : mm < ctorsAs.length := by
+            rw [hlenCtorsAs]; exact hmm
+          have hc0 := congrArg (fun L => (L.getD mm []).length) hnames
+          simp only [List.getD_eq_getElem?_getD, List.getElem?_map,
+            List.getElem?_eq_getElem hmmK, Option.map_some, Option.getD_some,
+            List.length_map] at hc0
+          show (ctorsAs.getD mm []).length = 1
+          rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hmmK, Option.getD_some, hc0]
+          have hmm' : mm < p₁.members.length := by
+            have := congrArg List.length hnames
+            simp only [List.length_map] at this
+            omega
+          rw [List.getElem?_eq_getElem hmm', Option.map_some, Option.getD_some, List.length_map]
+          have hc' : (p₁.members.getD mm default).ctors = [c] := hc
+          rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hmm', Option.getD_some] at hc'
+          rw [hc']; rfl
+        · rw [h] at hk; exact nomatch hk
+    · have hck : c < (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k := hc
+      have hcj : ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j]?
+          = some ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j] :=
+        List.getElem?_eq_getElem hj
+      obtain ⟨hfind, hlpsC, -⟩ := hcoreC.2.2.2 c hck j _ hcj
+      obtain ⟨cbs, es, hres, -⟩ := (hcoreC.2.2.1 c j _ hcj).2.2.1.resid
+      refine ⟨((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j].1,
+        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP,
+        ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j].2, ?_, cbs, es, ?_⟩
+      · show (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?
+          (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c).getD j default).1.name = _
+        rw [List.getD_eq_getElem?_getD, hcj, Option.getD_some]
+        exact hfind
+      · rw [hres, hlpsC]; rfl
   let mpC := mpC₀.addLfp (blockDataOf V p₁ ctorsAs pk uOf ppsOf).toLfp hLC hstC hrdC
-    hcrC
+    hcrC hcapsC
   -- ## coverage at the block's record: the members leave the
   -- exemption list; the block owns its constructors
   have hlpsNd : p₁.lps.Nodup := by
@@ -423,7 +474,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
     rw [hlps₀ ms0 (by rw [hmem0]; exact List.mem_cons_self)] at h0
     rw [hq]; exact h0
   have hcovMpC : LfpCover mpC [] :=
-    (hcovC hcov).addLfp_to _ _ _ _ _ hndM hkLen.symm
+    (hcovC hcov).addLfp_to _ _ _ _ _ _ hndM hkLen.symm
       (fun mm hmm cv caps hf => by
         obtain ⟨cvTb, hcv⟩ := hcvOfK mm hmm
         have hf' := (hcoreC.1 mm cvTb hcv).1
@@ -682,7 +733,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
     genRecStage (mpC := mpC) (A := blockLeafH (blockDataOf V p₁ ctorsAs pk uOf ppsOf)) hμ
       ⟨hPos, rfl, hnames, hndM, hN, hS.toBlockCtorsStage, hcoreC,
         fun c hc => hctorsAs c hc, ⟨pk, uOf, ppsOf, rfl⟩,
-        EnvModelM.mem_addLfp mpC₀ _ hLC hstC hrdC hcrC, hcovMpC, hmkI, hover, hR, hheads⟩
+        EnvModelM.mem_addLfp mpC₀ _ hLC hstC hrdC hcrC hcapsC, hcovMpC, hmkI, hover, hR, hheads⟩
   have hcoreT :=
     (blockTablesCore_of hN hcoreC hnpEnvC).consRecs hag hfindMono hden hnpMono hslotC
   -- ## coverage across the recursors' conses: only recursors

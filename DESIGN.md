@@ -101806,3 +101806,83 @@ allowlist gained three "compensated" entries (import edges moved by the
 new `TypeStep` imports).
 
 29 files under `ConLeche/`, +755 −273 against `port-342`.
+
+## TASK #342 — L10: the ι licence, in the checker and at the conditional claims (2026-10-12, agent/342-l10)
+
+Lane L10, stage S3 (`_tmp/342v2-design.md` §11.4, §11.5 row S3; ruling
+R-B: the licence lands in S3), under the annotated reading.
+`Denotes.lean`, `MainTheorem`, `Challenge` and `Axioms.lean` are
+unchanged (`tests/challenge.sh` green, 20 pins).
+
+**The checker** (`iotaRec`/`iotaRecI`; `iotaCtorLicensed`, `iotaCase3`,
+`iotaCompares` in `Kernel/CoreDefs.lean`), #349's licence:
+- the recursor's spine: certified as before (`iotaCerts`, licensed at a
+  `.never` binder under the annotated reading), now over the redex's
+  OWN spine (the unreduced major), not over the prepared one;
+- K rules and case 2 (`iotaCtorLicensed`: the constructor's family is
+  never `Prop` at the constructor's levels, read off `caps.sortZ`): no
+  constructor certificate, no index comparison; K keeps `tfab ≡ tmaj`;
+- case 3 (`iotaCase3`): the constructor telescope at the FULL grade
+  (`iotaCertsFull`, new rule `CertsF`), the index comparison, and the
+  parameters of a `.plain` rule compared too (`iotaCompares`; L7's
+  counterexample);
+- `sortZ` recorded for every block member (`blockCapsAt`) and the
+  pinned `Nat`/`Empty` (never) and `Quot` (`zeronessOf u`), S0's fix.
+**Deferred to the coherence-law lane** (coordinator, 2026-10-12): the
+conversion struct-η and unit-like certificates and the struct-η major
+rescue's certificates are unchanged in the checker and the rules;
+`Red.rescueEta` stays on the side induction (`rescueEta_soundU`).
+Bridge and simulation repaired (`iotaCertsFull_bridge`,
+`iotaCertsFullC_sim`, `iotaRec_inv`, PairM/Fueled/Deep/KnotCongr).
+
+**The model.**
+- `Red.iota_sound`, `Red.rescueK_sound`, `Red.rescueAnd_sound`
+  (`Model/Rules/IotaSound.lean`): CONDITIONAL premises, UNCONDITIONAL
+  conclusion (`RedSemU`), so one lemma serves both inductions. The
+  four interim arms of `red_sound` are gone but `rescueEta`'s.
+  "Not pt" sources: the major lies in the major's domain by the
+  recursor's licensed fit; where it is not the point its reduction
+  claim is an equation (2); a graded application that is not the point
+  fits its ∀-telescope (`teleFitPA_of_graded_ne_pt`, `app_pt` +
+  `slotTransfer`); the K/`And` fabrication and the major lie in one
+  type (1), so conditional proof irrelevance is an equation
+  (`IsTy.eq_of_ne_pt`).
+- `RecRuleLaw` (`Model/Annot/Laws.lean`): its index pin is owed only
+  where the fired constructor application is the point; a third
+  conjunct `RecRuleExtra` states what the licence consumes: K (the law
+  at the recursor's own parameters for ANY major in the domain,
+  F2's inversion), the constructor's arity, (S) case 2's major domain
+  holds no point, (P) where it holds the point every fitting
+  constructor application (full length, graded) is the point, (U) the
+  conditional comparisons are equations (`blockRule_coherent`'s route
+  for the index pin; the `.nested` pins at every valuation via
+  `genOutCtorFit` and `spineFit_eq_of_cond`, L7's route).
+- Producers: the five basis rows (Nat.rec ×2, Quot.ind, Quot.lift,
+  Eq.rec — K), the cons transports (`recRuleExtra_cons_prefix`,
+  `…_consBlockRecsR_prefix`), and the generated stage
+  (`GenRecExtra.lean`, new: member classes via `blockCapsAt`, the lfp
+  inversion for K; outside classes via a new `lfp_ok` conjunct
+  `LfpCaps`: a recorded member's caps are sound — `w = 0 → sortZ`,
+  `ruleK → one constructor` — and its constructors end in the member
+  at the parameter variables; produced at `DeclBlockStep` and the
+  basis lfp reads). No clause was false for any family.
+- The class match (`TargetDefeqTie.param_read_eq`) is read through the
+  conditional `defeq_sound` and completed along the class former's
+  parameter telescope (`spineFit_eq_of_cond_getD`, "not pt" source (1)):
+  **`defeq_sound_global` is deleted**; with L12, no interim global
+  remains outside the rules tier.
+
+**Still on the side induction after L10:** `Red.rescueEta` and
+`DefEq.structEta` (coherence-law lane), `DefEq.lam`, `DefEq.eta` (S4).
+So the side induction, and with it β's certificate premises, stays:
+L13 still cannot delete β's certificate in S3 (L11's finding).
+
+**Verdicts and cost** (`instructions:u`, `--verified --jobs=1`, one
+run each, RSS-guarded, against `port-342` at 5163e6cd1): init-full
+482.53 G → 480.31 G (−0.46 %), mathlib-prefix 679.02 G → 676.31 G
+(−0.40 %); 57 977 / 131 902 declarations accepted, exit 0, as before.
+Arena 90/92, e2e 471/471 as before.
+
+**For L13.** β's premises are read by `red_soundU`, which stays for
+λ/η/structure η and the η rescue; nothing in the ι path reads them
+any more.

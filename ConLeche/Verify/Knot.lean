@@ -225,6 +225,9 @@ abbrev iotaRecFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr 
 abbrev iotaCertsFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Bool → Expr →
     List Expr → CheckM Bool := iotaCerts (pureFns mode env fuel) env
 
+abbrev iotaCertsFullFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
+    List Expr → CheckM Bool := iotaCertsFull (pureFns mode env fuel) env
+
 abbrev iotaIndexOkFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Nat → Nat → Nat →
     Expr → List Expr → List Expr → CheckM Bool := iotaIndexOk (pureFns mode env fuel) env
 
@@ -322,6 +325,8 @@ theorem iotaRec_fold (env : Env) (fuel : Nat) :
     iotaRec mode (pureFns mode env fuel) env = iotaRecFueled mode env fuel := rfl
 theorem iotaCerts_fold (env : Env) (fuel : Nat) :
     iotaCerts (pureFns mode env fuel) env = iotaCertsFueled mode env fuel := rfl
+theorem iotaCertsFull_fold (env : Env) (fuel : Nat) :
+    iotaCertsFull (pureFns mode env fuel) env = iotaCertsFullFueled mode env fuel := rfl
 theorem iotaIndexOk_fold (env : Env) (fuel : Nat) :
     iotaIndexOk (pureFns mode env fuel) env = iotaIndexOkFueled mode env fuel := rfl
 theorem defEqList_fold (env : Env) (fuel : Nat) :

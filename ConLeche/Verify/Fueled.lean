@@ -131,6 +131,36 @@ theorem iotaCerts_atF (d : Nat) (lic : Bool) (F : Nat) :
   | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
+theorem iotaCertsFull_atF (d : Nat) (F : Nat) :
+    ∀ (ty : Expr) (args : List Expr),
+      (iotaCertsFull (fueledFns mode env) env d ty args).val F =
+        iotaCertsFull (pureFns mode env F) env d ty args
+  | _, [] => rfl
+  | .forallE ty body mb, arg :: rest => by
+    show ((do
+        let ta ← (fueledFns mode env).infer d arg
+        if ← (fueledFns mode env).defeq d ta ty then
+          iotaCertsFull (fueledFns mode env) env d (body.instantiate1 arg) rest
+        else pure false : FueledM Bool)).val F = (do
+        let ta ← (pureFns mode env F).infer d arg
+        if ← (pureFns mode env F).defeq d ta ty then
+          iotaCertsFull (pureFns mode env F) env d (body.instantiate1 arg) rest
+        else pure false)
+    rw [FueledM.atF_bind]
+    congr 1
+    funext ta
+    rw [FueledM.atF_bind]
+    congr 1
+    funext b
+    cases b with
+    | true =>
+      simp only [↓reduceIte]
+      exact iotaCertsFull_atF d F (body.instantiate1 arg) rest
+    | false => rfl
+  | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
+
 theorem defEqList_atF (d : Nat) (F : Nat) :
     ∀ (as bs : List Expr),
       (defEqList (fueledFns mode env) env d as bs).val F =
@@ -214,6 +244,7 @@ macro "atF_step" : tactic =>
     | rfl
     | (rw [liftFueled_atF])
     | (rw [iotaCerts_atF])
+    | (rw [iotaCertsFull_atF])
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [structEtaProjCerts_atF])
@@ -312,6 +343,7 @@ macro "atF_step2" : tactic =>
     | rfl
     | (rw [liftFueled_atF])
     | (rw [iotaCerts_atF])
+    | (rw [iotaCertsFull_atF])
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [structEtaProjCerts_atF])
@@ -414,6 +446,7 @@ macro "atF_core3" x:tactic : tactic =>
     | $x:tactic
     | (rw [liftFueled_atF])
     | (rw [iotaCerts_atF])
+    | (rw [iotaCertsFull_atF])
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [structEtaProjCerts_atF])
@@ -530,6 +563,7 @@ macro "atF_core4" x:tactic : tactic =>
     | $x:tactic
     | (rw [liftFueled_atF])
     | (rw [iotaCerts_atF])
+    | (rw [iotaCertsFull_atF])
     | (rw [iotaIndexOk_atF])
     | (rw [defEqList_atF])
     | (rw [structEtaProjCerts_atF])

@@ -210,6 +210,25 @@ recovered from the spine's own grading and the head's membership
             interp V ρ fa ∈ˢ interp V ρ Ta) →
         TeleFitPA V ρ Ta vs resta ∧ WellDenotedV V ρ resta
 
+/-- **`CertsF`' motive** (task #342 L10): the full-grade certificate
+ESTABLISHES its arguments' grading (each slot ran `Infer .full`), so,
+unlike `CertsSem`, it takes no grading of the spine and concludes it,
+with the fit and the residual's grading. -/
+@[expose] def CertsFSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (d : Nat) (ty : Expr) (args : List Expr) : Prop :=
+  Frame d ty →
+  ∀ {Δa : List AnnotTerm} {Ta : AnnotTerm} {vs : List AnnotTerm},
+    CtxOkS m φ d Δa ty →
+    denoteMeta m.acval env φ d ty = some Ta →
+    (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
+    DenoteMetaSpine m.acval env φ d args vs →
+    ∃ resta : AnnotTerm,
+      ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
+        (∀ x ∈ args, LeavesGr m φ d x ρ) →
+        WellDenotedV V ρ Ta →
+        (∀ x ∈ vs, WellDenotedV V ρ x) ∧ TeleFitPA V ρ Ta vs resta ∧
+          WellDenotedV V ρ resta
+
 /-- **`DefEqList`'s motive**: the walk's LENGTH, and pointwise `interp`
 equality where neither side is the point.  The length is a conclusion
 of its own because the pointwise equality is only available once both

@@ -100,8 +100,6 @@ theorem genClassNodes {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat
   by_cases hgd : ∃ c, c < (tgtRs out).length ∧
       tgtClsG dR mpC.base2.acval envC pp.toBlockShape out ψ ρ xs c
   case neg => exact ⟨TgtNodePres.empty, fun c hc hg => absurd ⟨c, hc, hg⟩ hgd⟩
-  -- the frame half of the class tie
-  have hfrT := genNodeFrameTie hμ hbase R h hparG hctxR ns ψ ρ xs
   -- the dynamic part: the admissible frames and the calls
   have H := dynCtx_of hbase hmkC hmk hag hsubC htr hcoreK hok hkids hpar hsem hF hparF hparS
   have hparams : SpineFit ρ (dR.params ψ) (xs.take dR.nP) := by
@@ -124,6 +122,22 @@ theorem genClassNodes {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat
       omega
     rw [List.length_take, hpl] at hl
     omega
+  -- every listed node's true frame satisfies its recorded block's parameters
+  have hnodeSat : ∀ t ∈ ns,
+      Sat V ((lfpSel mpC dR.toLfp t.key.cname).params (nodeψ envC ψ t)).reverse
+        (nodeFr mpC.base2.acval envC (pp.nestCtx fvsP envI.find?) ψ ρ xs t) := by
+    intro t ht
+    obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem ht
+    have hb : i + 1 < ns.length + 1 := by omega
+    have hadm := dyn_top H ψ ρ xs hparams hxs hPP (i + 1) hb (fun _ _ _ _ => True)
+      (fun _ _ _ _ _ _ _ _ _ => trivial)
+    have := (dyn_hAdm H ψ ρ xs hparams par (i + 1) hb _ _ hadm).1
+    have hget : ns.getD (i + 1 - 1) default = ns[i] := by
+      rw [Nat.add_sub_cancel, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi,
+        Option.getD_some]
+    simpa only [nlDb, nlψ, nlFr, Nat.add_one_ne_zero, ite_false, hget] using this
+  -- the frame half of the class tie
+  have hfrT := genNodeFrameTie hμ hbase R h hparG hg hcls hsel hctxR ns hF ψ ρ xs hnodeSat
   have Dy : TgtNodeDyn μ F mpC (pp.nestCtx fvsP envI.find?) dR pp.toBlockShape
       (cvTasR.map (·.type)) out Dc mc cvc ns ψ ρ xs
       (genCallT (tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ) ρ

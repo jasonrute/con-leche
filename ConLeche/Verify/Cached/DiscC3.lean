@@ -809,9 +809,34 @@ private theorem certBlock_reshape {α β γ : Type}
     | false => simp
     | true => simp only [ite_true]
 
-/-- The shared certificate tail of the
-iota step (after the firing-mode comparands) — the two licensed
-telescope runs and the canonical-index comparison.  The name indices
+/-- The ι step's certificate family, written as one `Bool` block that is
+then branched on, is the nested chain that branches after the
+recursor's run: a failed run leaves the case-3 block undone on both
+sides, and a passed one reaches the same continuation. -/
+private theorem certBlock_reshape2 {α γ : Type}
+    (A : CheckCM α) (B : α → CheckCM Bool) (G : CheckCM Bool)
+    (F : CheckCM (Option γ)) :
+    ((A >>= fun a =>
+        B a >>= fun r₂ =>
+        if r₂ then G else pure false) >>= fun ok =>
+      if ok then F else pure none)
+      = (A >>= fun a =>
+          B a >>= fun r₂ =>
+          if r₂ then (G >>= fun r₄ => if r₄ then F else pure none)
+          else pure none) := by
+  simp only [bind_assoc]
+  congr 1
+  funext a
+  congr 1
+  funext r₂
+  cases r₂ with
+  | false => simp
+  | true => simp only [ite_true]
+
+/-- The shared certificate tail of the iota step (after the firing-mode
+comparands): the recursor's licensed telescope run over the redex's own
+spine and, at a case-3 redex (task #342 L10), the constructor's
+full-grade run and the canonical-index comparison.  The name indices
 `cI jI` are unconstrained `Name` parameters. -/
 private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     {mi : CheckMode} {d : Nat} {i major : Expr} {ex majorx : Expr} {cI jI : Name}
@@ -824,21 +849,23 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     (hfc : env.find? c = some (.recInfo cv mI rP rules))
     (hfj : env.find? cj = some (.ctorInfo cvj cnP cnF))
     (hrule : rules.find? (fun r' => r'.ctor == cj) = some rl)
-    (hmd : RelC major majorx) (hmaj : Expr.WScoped d majorx)
+    (_hmd : RelC major majorx) (hmaj : Expr.WScoped d majorx)
     (hargs : RelCL args ex.getAppArgs)
     (hmargs : RelCL margs majorx.getAppArgs) :
     SimC mode env s₀ (RelOC d)
       ((constTyAtM (mkFEnv env) cI c us >>= fun tyRec =>
           iotaCertsI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mi.betaGate
-              tyRec (args.take mI ++ [major]) >>= fun r₂ =>
+              tyRec args >>= fun r₂ =>
           if r₂ then
-            constTyAtM (mkFEnv env) jI cj usj >>= fun tyCtor =>
-            iotaCertsI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-                mi.betaGate tyCtor margs >>= fun r₃ =>
-            if r₃ then
-              iotaIndexOkI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mI rP
-                  rl.ctorParams tyCtor margs ((args.take mI).drop rP)
-            else pure false
+            (if iotaCase3 env.find? rl cvj usj then
+              constTyAtM (mkFEnv env) jI cj usj >>= fun tyCtor =>
+              iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
+                  tyCtor margs >>= fun r₃ =>
+              if r₃ then
+                iotaIndexOkI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d mI rP
+                    rl.ctorParams tyCtor margs ((args.take mI).drop rP)
+              else pure false
+            else pure true)
           else pure false) >>= fun ok =>
         if ok then
           ruleRhsAtM (mkFEnv env) cI jI c cj us >>= fun rhs =>
@@ -848,25 +875,26 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
         else pure none)
       (iotaCerts (fueledFns mode env) env d mi.betaGate
           (cv.type.instantiateLevelParams cv.levelParams us)
-          (ex.getAppArgs.take mI ++ [majorx]) >>= fun r₂ =>
+          ex.getAppArgs >>= fun r₂ =>
         if r₂ then
-          iotaCerts (fueledFns mode env) env d mi.betaGate
-              (cvj.type.instantiateLevelParams cvj.levelParams usj)
-              majorx.getAppArgs >>= fun r₃ =>
-          if r₃ then
-            iotaIndexOk (fueledFns mode env) env d mI rP rl.ctorParams
+          (if iotaCase3 env.find? rl cvj usj then
+            iotaCertsFull (fueledFns mode env) env d
                 (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                majorx.getAppArgs ((ex.getAppArgs.take mI).drop rP) >>=
-              fun r₄ =>
-            if r₄ then
-              pure (some (Expr.mkAppN
-                (rl.rhs.instantiateLevelParams cv.levelParams us)
-                (ex.getAppArgs.take rP ++
-                  majorx.getAppArgs.drop rl.ctorParams)))
-            else pure none
+                majorx.getAppArgs >>= fun r₃ =>
+            if r₃ then
+              iotaIndexOk (fueledFns mode env) env d mI rP rl.ctorParams
+                  (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                  majorx.getAppArgs ((ex.getAppArgs.take mI).drop rP)
+            else pure false
+          else pure true) >>= fun r₄ =>
+          if r₄ then
+            pure (some (Expr.mkAppN
+              (rl.rhs.instantiateLevelParams cv.levelParams us)
+              (ex.getAppArgs.take rP ++
+                majorx.getAppArgs.drop rl.ctorParams)))
           else pure none
         else pure none) := by
-  rw [certBlock_reshape]
+  rw [certBlock_reshape2]
   have hwrecty : Expr.WScoped d
       (cv.type.instantiateLevelParams cv.levelParams us) := by
     obtain ⟨htf, -⟩ := henv _ (find?_mem hfc)
@@ -878,14 +906,8 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
   refine SimC.bind_left (constTyAtM_eff hs hfc)
     (fun s₁ tyRec hs₁ hQrec => ?_)
   simp only [ConstantInfo.toConstantVal] at hQrec
-  refine SimC.bind (iotaCertsC_sim ih hs₁ hQrec hwrecty
-    ((hargs.take mI).append (RelCL.cons hmd RelCL.nil)) ?_)
+  refine SimC.bind (iotaCertsC_sim ih hs₁ hQrec hwrecty hargs hw.getAppArgs)
     (fun s₂ r₂ r₂' hs₂ hPr₂ => ?_)
-  · intro x hx
-    rcases List.mem_append.mp hx with hx | hx
-    · exact hw.getAppArgs x (List.mem_of_mem_take hx)
-    · rcases List.mem_singleton.mp hx with rfl
-      exact hmaj
   obtain rfl : r₂ = r₂' := hPr₂
   cases r₂ with
   | false =>
@@ -893,47 +915,51 @@ private theorem iotaRec_certs_tail (ih : SSimC mode env f) (henv : EnvWF env)
     exact SimC.pure hs₂ trivial
   | true =>
     simp only [↓reduceIte]
-    refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
-      (fun s₃ tyCtor hs₃ hQctor => ?_)
-    simp only [ConstantInfo.toConstantVal] at hQctor
-    refine SimC.bind (iotaCertsC_sim ih hs₃ hQctor hwctorty hmargs
-      hmaj.getAppArgs)
-      (fun s₄ r₃ r₃' hs₄ hPr₃ => ?_)
-    obtain rfl : r₃ = r₃' := hPr₃
-    cases r₃ with
+    refine SimC.bind (P := RelVC) ?_ (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
+    · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
+      · rw [ite_eq_left h3, ite_eq_left h3]
+        refine SimC.bind_left (constTyAtM_eff hs₂ hfj)
+          (fun s₃ tyCtor hs₃ hQctor => ?_)
+        simp only [ConstantInfo.toConstantVal] at hQctor
+        refine SimC.bind (iotaCertsFullC_sim ih hs₃ hQctor hwctorty hmargs
+          hmaj.getAppArgs)
+          (fun s₄ r₃ r₃' hs₄ hPr₃ => ?_)
+        obtain rfl : r₃ = r₃' := hPr₃
+        cases r₃ with
+        | false =>
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          exact SimC.pure hs₄ rfl
+        | true =>
+          simp only [↓reduceIte]
+          exact iotaIndexOkC_sim ih hs₄ hQctor hwctorty hmargs
+            hmaj.getAppArgs ((hargs.take mI).drop rP)
+            (fun x hx => hw.getAppArgs x
+              (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
+      · rw [ite_eq_right h3, ite_eq_right h3]
+        exact SimC.pure hs₂ rfl
+    obtain rfl : r₄ = r₄' := hPr₄
+    cases r₄ with
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.pure hs₄ trivial
+      exact SimC.pure hs₆ trivial
     | true =>
       simp only [↓reduceIte]
-      refine SimC.bind (iotaIndexOkC_sim ih hs₄ hQctor hwctorty hmargs
-        hmaj.getAppArgs ((hargs.take mI).drop rP)
-        (fun x hx => hw.getAppArgs x
-          (List.mem_of_mem_take (List.mem_of_mem_drop hx))))
-        (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)
-      obtain rfl : r₄ = r₄' := hPr₄
-      cases r₄ with
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        exact SimC.pure hs₆ trivial
-      | true =>
-        simp only [↓reduceIte]
-        refine SimC.bind_left (ruleRhsAtM_eff hs₆ hfc hrule)
-          (fun s₇ rhs hs₇ hQrhs => ?_)
-        refine SimC.bind_left (mkAppNM_eff hs₇ hQrhs
-          ((hargs.take rP).append (hmargs.drop rl.ctorParams)))
-          (fun s₈ red hs₈ hQred => ?_)
-        refine SimC.pure hs₈ ⟨hQred, ?_⟩
-        refine Expr.WScoped.mkAppN ?_ ?_
-        · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
-            henv _ (find?_mem hfc)
-          obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
-            rfl rl (List.mem_of_find?_eq_some hrule)
-          exact wscoped_instLevels_of_not_hasFvar hrf _ _
-        · intro x hx
-          rcases List.mem_append.mp hx with hx | hx
-          · exact hw.getAppArgs x (List.mem_of_mem_take hx)
-          · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
+      refine SimC.bind_left (ruleRhsAtM_eff hs₆ hfc hrule)
+        (fun s₇ rhs hs₇ hQrhs => ?_)
+      refine SimC.bind_left (mkAppNM_eff hs₇ hQrhs
+        ((hargs.take rP).append (hmargs.drop rl.ctorParams)))
+        (fun s₈ red hs₈ hQred => ?_)
+      refine SimC.pure hs₈ ⟨hQred, ?_⟩
+      refine Expr.WScoped.mkAppN ?_ ?_
+      · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
+          henv _ (find?_mem hfc)
+        obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
+          rfl rl (List.mem_of_find?_eq_some hrule)
+        exact wscoped_instLevels_of_not_hasFvar hrf _ _
+      · intro x hx
+        rcases List.mem_append.mp hx with hx | hx
+        · exact hw.getAppArgs x (List.mem_of_mem_take hx)
+        · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
 
 /-- Simulation of the major chain, in either order (the K flag is the
 single rule's stored bit, read identically on both sides). -/
@@ -994,7 +1020,7 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
                           cvj.levelParams e.getAppArgs rP).1) >>=
                       fun okl =>
                     if okl then
-                      (if rl.compareParams then
+                      (if iotaCompares env.find? rl cvj usj then
                           defEqList (fueledFns mode env) env d
                             (major.getAppArgs.take rl.ctorParams)
                             (recFireComparands rl cv.levelParams us
@@ -1005,29 +1031,31 @@ private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
                         iotaCerts (fueledFns mode env) env d mi.betaGate
                             (cv.type.instantiateLevelParams
                               cv.levelParams us)
-                            (e.getAppArgs.take mI ++ [major]) >>=
+                            e.getAppArgs >>=
                           fun r₂ =>
                         if r₂ then
-                          iotaCerts (fueledFns mode env) env d mi.betaGate
-                              (cvj.type.instantiateLevelParams
-                                cvj.levelParams usj)
-                              major.getAppArgs >>= fun r₃ =>
-                          if r₃ then
-                            iotaIndexOk (fueledFns mode env) env d mI rP
-                                rl.ctorParams
+                          (if iotaCase3 env.find? rl cvj usj then
+                            iotaCertsFull (fueledFns mode env) env d
                                 (cvj.type.instantiateLevelParams
                                   cvj.levelParams usj)
-                                major.getAppArgs
-                                ((e.getAppArgs.take mI).drop rP) >>=
-                              fun r₄ =>
-                            if r₄ then
-                              pure (some (Expr.mkAppN
-                                (rl.rhs.instantiateLevelParams
-                                  cv.levelParams us)
-                                (e.getAppArgs.take rP ++
-                                  major.getAppArgs.drop
-                                    rl.ctorParams)))
-                            else pure none
+                                major.getAppArgs >>= fun r₃ =>
+                            if r₃ then
+                              iotaIndexOk (fueledFns mode env) env d mI rP
+                                  rl.ctorParams
+                                  (cvj.type.instantiateLevelParams
+                                    cvj.levelParams usj)
+                                  major.getAppArgs
+                                  ((e.getAppArgs.take mI).drop rP)
+                            else pure false
+                          else pure true) >>=
+                            fun r₄ =>
+                          if r₄ then
+                            pure (some (Expr.mkAppN
+                              (rl.rhs.instantiateLevelParams
+                                cv.levelParams us)
+                              (e.getAppArgs.take rP ++
+                                major.getAppArgs.drop
+                                  rl.ctorParams)))
                           else pure none
                         else pure none
                       else pure none
@@ -1153,11 +1181,12 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
                           exact SimC.pure hs₆ trivial
                         | true =>
                           simp only [↓reduceIte]
+                          rw [show (mkFEnv env).find? = env.find? from funext (mkFEnv_find? env)]
                           refine SimC.bind (P := RelVC) ?_
                             (fun s₇ r₁ r₁' hs₇ hPr₁ => ?_)
                           · -- the parameter comparison, absent from both
                             -- sides at a `paramsBlind` rule
-                            by_cases hcp : rl.compareParams = true
+                            by_cases hcp : iotaCompares env.find? rl cvj usj = true
                             · rw [ite_eq_left hcp, ite_eq_left hcp]
                               exact defEqListC_sim ih hs₆
                                 (hmargs.take rl.ctorParams)
@@ -1200,8 +1229,11 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
                           exact SimC.pure hs₆ trivial
                         | true =>
                           simp only [↓reduceIte]
-                          rw [ite_eq_left (RecRule.compareParams_nested hfire),
-                            ite_eq_left (RecRule.compareParams_nested hfire)]
+                          rw [show (mkFEnv env).find? = env.find? from funext (mkFEnv_find? env),
+                            ite_eq_left (iotaCompares_of_compareParams
+                              (RecRule.compareParams_nested hfire)),
+                            ite_eq_left (iotaCompares_of_compareParams
+                              (RecRule.compareParams_nested hfire))]
                           refine SimC.bind (defEqListC_sim ih hs₆
                             (hmargs.take rl.ctorParams) hQc
                             (fun x hx => hmaj.getAppArgs x

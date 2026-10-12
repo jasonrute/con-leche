@@ -78,7 +78,12 @@ def blockCapsAt (p : BlockShape) (mi : Nat) (isRec : Bool) : IndCaps :=
       all := p.memberNames
       nparams := p.nP
       ctors := [c.1.name] }
-  | cs, _ => { all := p.memberNames, nparams := p.nP, ctors := cs.map (·.1.name) }
+  -- Task #349: the result sort's zero-ness is recorded for EVERY member,
+  -- not only single-constructor ones: the ι licence (`ctorTeleLicensed`)
+  -- reads it at every redex (left at the default `ifAllZero []`, every
+  -- multi-constructor family read "always `Prop`" and fell into case 3)
+  | cs, _ => { sortZ := Level.zeronessOf p.resSort, all := p.memberNames, nparams := p.nP,
+               ctors := cs.map (·.1.name) }
 
 /-- Does some binder domain of the SYNTACTIC `∀`-telescope of `e`
 mention one of `names`?  No reduction: the walk stops at the first

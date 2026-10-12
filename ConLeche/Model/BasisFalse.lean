@@ -70,6 +70,12 @@ theorem extendFalse (mp : EnvModelM V μ env)
       (fun ψ => by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]; rfl))
     (hrdC := lfp0_ctorReads (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
       (fun ψ => ⟨_, by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]⟩) fun j hj => absurd hj (Nat.not_lt_zero j))
+    (hcaps := lfp0_caps (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
+      (fun ψ _ => by
+        show ConLeche.PropWhen.holds ψ (ConLeche.PropWhen.ifAllZero []) = true
+        rw [ConLeche.PropWhen.holds_ifAllZero]; rfl)
+      (fun h => absurd h (by decide))
+      (fun j hj => absurd hj (Nat.not_lt_zero j)))
     (hnd := nodup_one _) (hlen := rfl)
     (hall := lfpAll_one (n := falseName) (c := falseA) rfl rfl
       (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)

@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Kernel.Basis.Names
+public import ConLeche.Kernel.Level
 
 @[expose] public section
 

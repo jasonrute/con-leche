@@ -571,6 +571,57 @@ private theorem iotaCerts_shift (henv : EnvWF env)
     | .lit l => rfl
     | .proj sp i' e' => rfl
 
+private theorem iotaCertsFull_shift (henv : EnvWF env)
+    (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) :
+    ∀ {args : List Expr} {ty : Expr}, WScoped d ty →
+      (∀ x ∈ args, WScoped d x) →
+      iotaCertsFull (pureFns mode env fuel) env (d + 1) (shiftFrom p ty)
+          (args.map (shiftFrom p)) =
+        iotaCertsFull (pureFns mode env fuel) env d ty args := by
+  intro args
+  induction args with
+  | nil => intro ty _ _; rfl
+  | cons arg rest ihrest =>
+    intro ty hwty hwargs
+    have hwarg : WScoped d arg := hwargs arg (List.mem_cons_self ..)
+    have hwrest : ∀ x ∈ rest, WScoped d x :=
+      fun x hx => hwargs x (List.mem_cons_of_mem _ hx)
+    match ty with
+    | .forallE ty' body mb =>
+      have hwty' : WScoped d ty' ∧ WScoped d body := by
+        simpa only [WScoped] using hwty
+      show (do
+          let ta ← (pureFns mode env fuel).infer (d + 1) (shiftFrom p arg)
+          if ← (pureFns mode env fuel).defeq (d + 1) ta (shiftFrom p ty') then
+            iotaCertsFull (pureFns mode env fuel) env (d + 1)
+              ((shiftFrom p body).instantiate1 (shiftFrom p arg))
+              (rest.map (shiftFrom p))
+          else pure false : CheckM Bool) =
+        (do
+          let ta ← (pureFns mode env fuel).infer d arg
+          if ← (pureFns mode env fuel).defeq d ta ty' then
+            iotaCertsFull (pureFns mode env fuel) env d (body.instantiate1 arg) rest
+          else pure false : CheckM Bool)
+      have hrest := ihrest (WScoped.instantiate1_gen hwarg 0 hwty'.2) hwrest
+      rw [shiftFrom_instantiate1_gen] at hrest
+      refine bind_congr _ (ih.infer hpd hwarg) ?_
+      intro ta hta
+      refine bind_congr_eq
+        (ih.defeq hpd (inferTypeCore_WScoped henv fuel hta hwarg)
+          hwty'.1) ?_
+      intro bb _
+      refine ite_congr' (fun _ => ?_) (fun _ => rfl)
+      exact hrest
+    | .bvar i => rfl
+    | .fvar idx ty'' => rw [shiftFrom_fvar]; rfl
+    | .sort u => rfl
+    | .const n' us => rfl
+    | .app f a => rfl
+    | .lam ty'' body' m' => rfl
+    | .letE ty'' v' b' => rfl
+    | .lit l => rfl
+    | .proj sp i' e' => rfl
+
 /-- The fabricated projections commute with the shift (task #175 W4c:
 both entry kinds — the `.proj` nodes by `shiftFrom`'s own clause, the
 projection-function applications by `shiftFrom_mkAppN`). -/
@@ -1540,7 +1591,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
           cvj.levelParams e.getAppArgs rP hpins,
           List.map_take] at h1
         refine bind_rel_eq _ ?_ ?_
-        · by_cases hcp : rl.compareParams = true
+        · by_cases hcp : iotaCompares env.find? rl cvj usj = true
           · rw [ite_eq_left hcp, ite_eq_left hcp]; exact h1
           · rw [ite_eq_right hcp, ite_eq_right hcp]
         intro b₁ _
@@ -1552,13 +1603,9 @@ private theorem iotaRec_shift (henv : EnvWF env)
         have h2 := iotaCerts_shift henv ih hpd mode.betaGate
           (ty := cv.type.instantiateLevelParams cv.levelParams us)
           (WScoped.of_not_hasFvar htel₁)
-          (args := e.getAppArgs.take mI ++ [major])
-          (fun x hx => by
-            rcases List.mem_append.mp hx with hx | hx
-            · exact hwe.getAppArgs x (List.mem_of_mem_take hx)
-            · rw [List.mem_singleton.mp hx]; exact hwmaj)
+          (args := e.getAppArgs)
+          (fun x hx => hwe.getAppArgs x hx)
         rw [shiftFrom_eq_self_of_not_hasFvar htel₁] at h2
-        simp only [List.map_append, List.map_take, List.map] at h2
         refine bind_rel_eq _ h2 ?_
         intro b₂ _
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
@@ -1566,25 +1613,29 @@ private theorem iotaRec_shift (henv : EnvWF env)
             usj).hasFvar = false := by
           rw [hasFvar_instantiateLevelParams]
           exact (henv _ (find?_mem hfj)).1
-        have h3 := iotaCerts_shift henv ih hpd mode.betaGate
-          (ty := cvj.type.instantiateLevelParams cvj.levelParams usj)
-          (WScoped.of_not_hasFvar htel₂)
-          (args := major.getAppArgs)
-          (fun x hx => hwmaj.getAppArgs x hx)
-        rw [shiftFrom_eq_self_of_not_hasFvar htel₂] at h3
-        refine bind_rel_eq _ h3 ?_
-        intro b₃ _
-        refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-        -- the index comparison (only where indices exist): the closed
-        -- telescope peeled along the shifted spines
-        have hidx := iotaIndexOk_shift henv ih hpd htel₂
-          (mI := mI) (rP := rP) (cnP := rl.ctorParams)
-          (margs := major.getAppArgs) (idx := (e.getAppArgs.take mI).drop rP)
-          (fun x hx => hwmaj.getAppArgs x hx)
-          (fun x hx => hwe.getAppArgs x
-            (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
-        simp only [List.map_drop, List.map_take] at hidx
-        refine bind_rel_eq _ hidx ?_
+        refine bind_rel_eq _ ?_ ?_
+        · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
+          · rw [ite_eq_left h3, ite_eq_left h3]
+            have h3c := iotaCertsFull_shift henv ih hpd
+              (ty := cvj.type.instantiateLevelParams cvj.levelParams usj)
+              (WScoped.of_not_hasFvar htel₂)
+              (args := major.getAppArgs)
+              (fun x hx => hwmaj.getAppArgs x hx)
+            rw [shiftFrom_eq_self_of_not_hasFvar htel₂] at h3c
+            refine bind_congr_eq h3c ?_
+            intro b₃ _
+            refine ite_congr' (fun _ => ?_) (fun _ => rfl)
+            -- the index comparison (only where indices exist): the closed
+            -- telescope peeled along the shifted spines
+            have hidx := iotaIndexOk_shift henv ih hpd htel₂
+              (mI := mI) (rP := rP) (cnP := rl.ctorParams)
+              (margs := major.getAppArgs) (idx := (e.getAppArgs.take mI).drop rP)
+              (fun x hx => hwmaj.getAppArgs x hx)
+              (fun x hx => hwe.getAppArgs x
+                (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
+            simp only [List.map_drop, List.map_take] at hidx
+            exact hidx
+          · rw [ite_eq_right h3, ite_eq_right h3]
         intro b₄ _
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
         have hrhs : (rl.rhs.instantiateLevelParams cv.levelParams

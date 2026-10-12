@@ -264,6 +264,78 @@ theorem extendQuotMk (mp : EnvModelM V μ env)
     rw [AnnotTerm.BitAgree.interp_eq V (bitAgree_quotMkA ψ) ρ]
     exact bval_mem_type V .quotMk [ψ uN] ρ
 
+/-! ## The substitution-peeling kit
+
+`TeleFitPA` peels by `B.inst a` at cut `0`, so after `k` peels a
+domain carries a *chain* of instantiations at cuts `k-1, …, 0`.
+`interp_inst0` turns the outermost into a `cons`; these four turn the
+rest into `cons`es too, so a `k`-deep telescope domain's reading is
+read at the `k`-fold `cons` environment — which is the environment
+every space lemma below is stated at.  (`BasisBlocks.lean`'s
+`interp_liftN_succ_inst` is the special case where the domain is a
+*lifted* earlier argument; this is the general shape.) -/
+
+theorem interp_inst_cons1 (e a : AnnotTerm) (x1 : V) (ρ : Nat → V) :
+    interp V (cons x1 ρ) (e.inst a 1)
+      = interp V (cons x1 (cons (interp V ρ a) ρ)) e := by
+  have hsh : shiftE 1 0 (cons x1 ρ) = ρ := by
+    funext j; simp [shiftE, cons]
+  rw [interp_inst, hsh]
+  congr 1
+  funext i
+  match i with
+  | 0 => rfl
+  | 1 => rfl
+  | (_ + 2) => rfl
+
+theorem interp_inst_cons2 (e a : AnnotTerm) (x1 x2 : V) (ρ : Nat → V) :
+    interp V (cons x2 (cons x1 ρ)) (e.inst a 2)
+      = interp V (cons x2 (cons x1 (cons (interp V ρ a) ρ))) e := by
+  have hsh : shiftE 2 0 (cons x2 (cons x1 ρ)) = ρ := by
+    funext j; simp [shiftE, cons]
+  rw [interp_inst, hsh]
+  congr 1
+  funext i
+  match i with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | (_ + 3) => rfl
+
+theorem interp_inst_cons3 (e a : AnnotTerm) (x1 x2 x3 : V) (ρ : Nat → V) :
+    interp V (cons x3 (cons x2 (cons x1 ρ))) (e.inst a 3)
+      = interp V (cons x3 (cons x2 (cons x1 (cons (interp V ρ a) ρ))))
+          e := by
+  have hsh : shiftE 3 0 (cons x3 (cons x2 (cons x1 ρ))) = ρ := by
+    funext j; simp [shiftE, cons]
+  rw [interp_inst, hsh]
+  congr 1
+  funext i
+  match i with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | 3 => rfl
+  | (_ + 4) => rfl
+
+theorem interp_inst_cons4 (e a : AnnotTerm) (x1 x2 x3 x4 : V)
+    (ρ : Nat → V) :
+    interp V (cons x4 (cons x3 (cons x2 (cons x1 ρ)))) (e.inst a 4)
+      = interp V (cons x4 (cons x3 (cons x2 (cons x1
+          (cons (interp V ρ a) ρ))))) e := by
+  have hsh : shiftE 4 0 (cons x4 (cons x3 (cons x2 (cons x1 ρ)))) = ρ := by
+    funext j; simp [shiftE, cons]
+  rw [interp_inst, hsh]
+  congr 1
+  funext i
+  match i with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | 3 => rfl
+  | 4 => rfl
+  | (_ + 5) => rfl
+
 /-! ## `Quot.ind`
 
 The block's `Prop`-valued eliminator.  Every one of its binders is
@@ -682,6 +754,152 @@ theorem denoteMeta_quotInd_rhs (ψ : Name → Nat)
     quotIndMotiveTy, quotIndMinorTy, quotIndRa, pwBit_never,
     pwBit_ifAllZero_nil, hQc, hMc, Level.eval]
 
+/-! ### The licence facts, shared by both rows
+
+Both recursors fire `Quot.mk`, whose family `Quot.{u} α r : Sort u` is
+`Prop` exactly at `u = 0`: the stored `Quot` records `zeronessOf u`,
+so a licensed constructor level is never zero and the major's domain,
+`quotSet` above `Prop`, is strict; where the major is the point the
+level is `0`, and there `Quot.mk`'s value is the canonical proof. -/
+
+/-- **The ι licence at `Quot.mk`**: the constructor's level is not
+zero at any valuation (the stored `Quot`'s `sortZ` is `zeronessOf u`). -/
+theorem quotMk_licensed_ne_zero {find? : Name → Option ConstantInfo}
+    (hQ : find? quotName = some quotA) {usj : List Level}
+    (h : ConLeche.iotaCtorLicensed find? quotMkA.toConstantVal usj = true)
+    (φ : Name → Nat) :
+    Level.substFn φ quotMkA.toConstantVal.levelParams usj uN ≠ 0 := by
+  obtain ⟨cvT, caps, hq, hlp, hz⟩ : ∃ cvT caps,
+      quotA = .indInfo cvT caps ∧ cvT.levelParams = [uN] ∧
+        caps.sortZ = .ifAllZero [uN] := ⟨_, _, rfl, rfl, rfl⟩
+  have hfn : (quotMkA.toConstantVal.type.piResult).getAppFn
+      = .const quotName [.param uN] := by rfl
+  rw [hq] at hQ
+  unfold ConLeche.iotaCtorLicensed at h
+  rw [hfn] at h
+  simp only [hQ, Bool.and_eq_true] at h
+  have hb := pwBit_ne_zero_of_isNever h.2 φ
+  rw [hlp, hz, pwBit_substPW, ne_eq, pwBit_ifAllZero_single] at hb
+  exact hb
+
+/-- A spine on `Quot.mk` at `Prop` is the canonical proof. -/
+theorem interp_quotMk_zero_spine (ρ : Nat → V) :
+    ∀ (ys : List AnnotTerm) {f : AnnotTerm}, interp V ρ f = pt →
+      interp V ρ (AnnotTerm.mkAppN f ys) = pt
+  | [], _, h => h
+  | y :: ys, f, h => by
+    rw [AnnotTerm.mkAppN_cons]
+    exact interp_quotMk_zero_spine ρ ys (by rw [interp_app, h, app_pt])
+
+/-- The licence facts of a `Quot.mk` rule, from the major's domain.
+`hmaj` reads the major of a fitting recursor spine into `quotSet` at
+the recursor's level `u`, which is the constructor's (`hulev`). -/
+theorem quotRuleExtra_of {find? : Name → Option ConstantInfo}
+    (hQ : find? quotName = some quotA)
+    {acv : AnnotTerm} {u : Nat} {usj : List Level} {φ : Name → Nat}
+    (hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN = u)
+    (hctor : acv = AnnotTerm.const .quotMk [u])
+    {P : (Nat → V) → AnnotTerm → Prop}
+    (hmaj : ∀ ρ a, P ρ a → ∃ Aset R : V, interp V ρ a ∈ˢ quotSet u Aset R) :
+    (ConLeche.iotaCtorLicensed find? quotMkA.toConstantVal usj = true →
+      ∀ ρ a, P ρ a → interp V ρ a ≠ pt) ∧
+    (∀ ρ a, P ρ a → interp V ρ a = pt →
+      ∀ ys : List AnnotTerm, interp V ρ (AnnotTerm.mkAppN acv ys) = pt) := by
+  refine ⟨fun hlic ρ a hP ha => ?_, fun ρ a hP ha ys => ?_⟩
+  · obtain ⟨Aset, R, hm⟩ := hmaj ρ a hP
+    have hne := quotMk_licensed_ne_zero hQ hlic φ
+    rw [hulev] at hne
+    rw [ha] at hm
+    exact (strict_quotSet hne Aset R).2 hm
+  · obtain ⟨Aset, R, hm⟩ := hmaj ρ a hP
+    rw [ha] at hm
+    have h0 : u = 0 := Classical.byContradiction fun hne =>
+      (strict_quotSet hne Aset R).2 hm
+    subst hctor h0
+    refine interp_quotMk_zero_spine ρ ys ?_
+    simp only [interp_const, bval, ConLeche.Term.lv, List.getD_cons_zero]
+    rw [quotMkV, lamR_zero]
+
+/-- **`Quot.ind`'s licence facts**: not K; `Quot.mk`'s arity; (S)
+and (P) from the major's domain (`quotRuleExtra_of`); no indices, a
+`paramsBlind` `.plain` rule, so (U) is the trivial index pin. -/
+theorem quotIndExtra {m : EnvModel V env}
+    (m₂ : EnvModel V ⟨quotIndA :: env.consts⟩)
+    (hQ : env.find? quotName = some quotA)
+    (hM : env.find? quotMkName = some quotMkA)
+    (hac : m₂.acval = acvalWith m.acval quotIndA.name
+      (fun ψ => AnnotTerm.const .quotInd [ψ uN]))
+    (φ : Name → Nat) :
+    RecRuleExtra m₂ φ quotIndA.name quotIndA.toConstantVal 4 4
+      quotIndRule := by
+  intro us _ TVa hTVa
+  obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
+      ψ = Level.substFn φ quotIndA.toConstantVal.levelParams us :=
+    ⟨_, rfl⟩
+  have hTyRead : denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+      (quotIndA.toConstantVal.type.instantiateLevelParams
+        quotIndA.toConstantVal.levelParams us)
+      = some (quotIndTy (ψ uN)) := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denoteMeta_quotIndA_type (m := m) _ hQ hM, ← hψ]
+  obtain rfl : TVa = _ :=
+    (Option.some.inj (hTyRead.symm.trans hTVa)).symm
+  have hM' : (⟨quotIndA :: env.consts⟩ : Env).find? quotMkName
+      = some quotMkA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hM
+  have hQ' : (⟨quotIndA :: env.consts⟩ : Env).find? quotName
+      = some quotA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hQ
+  refine ⟨fun h => (nomatch h), fun cvj cnP cnF hfj => ?_⟩
+  rw [show RecRule.ctor quotIndRule = quotMkName from rfl, hM'] at hfj
+  obtain ⟨rfl, rfl, rfl⟩ :
+      cvj = quotMkA.toConstantVal ∧ cnP = 2 ∧ cnF = 1 := by
+    injection Option.some.inj hfj with a1 a2 a3
+    exact ⟨a1.symm, a2.symm, a3.symm⟩
+  refine ⟨rfl, fun _ usj _ hlev TVja _ => ?_⟩
+  have hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN
+      = ψ uN := by
+    rw [congrFun hlev uN, hψ]
+    show Level.eval φ (Level.subst quotIndA.toConstantVal.levelParams
+      us (.param uN)) = _
+    rw [Level.subst, Level.eval_subst_go]
+  have hctorL : m₂.acval (RecRule.ctor quotIndRule)
+      (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
+      = AnnotTerm.const .quotMk [ψ uN] := by
+    rw [show RecRule.ctor quotIndRule = quotMkName from rfl, hac,
+      acvalWith_ne (by decide), ← hulev]
+    refine acval_basis_pinned (m := m) hM (by decide) ?_
+    simp +decide [ConLeche.Verify.pinnedStructT]
+  obtain ⟨hS, hP⟩ := quotRuleExtra_of (V := V) hQ' hulev hctorL
+    (P := fun ρ a => ∃ (xs : List AnnotTerm) (restR : AnnotTerm),
+      xs.length = 4 ∧ TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [a]) restR)
+    (fun ρ a ⟨xs, restR, hxs, hfit⟩ => by
+      obtain ⟨x1, x2, x3, x4, rfl⟩ : ∃ p q r s, xs = [p, q, r, s] := by
+        match xs, hxs with
+        | [p, q, r, s], _ => exact ⟨p, q, r, s, rfl⟩
+      rw [quotIndTy] at hfit
+      cases hfit with | cons f1 hfit =>
+      cases hfit with | cons f2 hfit =>
+      cases hfit with | cons f3 hfit =>
+      cases hfit with | cons f4 hfit =>
+      cases hfit with | cons f5 _ =>
+      rw [interp_sort] at f1
+      rw [interp_inst0, quotRelTy_interp (ψ uN)] at f2
+      rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+        interp_inst_cons3,
+        (quotApp_data (u := ψ uN) (i := 3) (j := 2)
+          (ρ := cons (interp V ρ x4) (cons (interp V ρ x3)
+            (cons (interp V ρ x2) (cons (interp V ρ x1) ρ))))
+          (by simp [cons]) (by simp [cons]) f1 f2).2.2] at f5
+      exact ⟨_, _, f5⟩)
+  refine ⟨fun hlic ρ xs a restR hxs hfit =>
+      hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
+    fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
+      hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
+  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
+  refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),
+    fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
+
 /-- **`Quot.ind`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
 `.nested` conjuncts are `nomatch`; the fired equality is `pt = pt`
 (`bval .quotInd` is the canonical proof and so is the RHS tower), and
@@ -697,7 +915,8 @@ theorem quotIndLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotIndA.name quotIndA.toConstantVal 4 4
       quotIndRule := by
-  refine ⟨Nat.le_refl 4, fun us hus => ?_⟩
+  refine ⟨Nat.le_refl 4, fun us hus => ?_,
+    quotIndExtra (m := m) m₂ hQ hM hac φ⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotIndA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
@@ -1563,78 +1782,6 @@ theorem quotLiftTy_mem {E : AnnotTerm} {b u v : Nat} (hz : b = 0 ↔ v = 0)
   exact quotLiftR_mem V hf fun hv0 => by
     rw [← univ_zero, ← hv0]; exact hB
 
-/-! ### The substitution-peeling kit
-
-`TeleFitPA` peels by `B.inst a` at cut `0`, so after `k` peels a
-domain carries a *chain* of instantiations at cuts `k-1, …, 0`.
-`interp_inst0` turns the outermost into a `cons`; these four turn the
-rest into `cons`es too, so a `k`-deep telescope domain's reading is
-read at the `k`-fold `cons` environment — which is the environment
-every space lemma above is stated at.  (`BasisBlocks.lean`'s
-`interp_liftN_succ_inst` is the special case where the domain is a
-*lifted* earlier argument; this is the general shape.) -/
-
-theorem interp_inst_cons1 (e a : AnnotTerm) (x1 : V) (ρ : Nat → V) :
-    interp V (cons x1 ρ) (e.inst a 1)
-      = interp V (cons x1 (cons (interp V ρ a) ρ)) e := by
-  have hsh : shiftE 1 0 (cons x1 ρ) = ρ := by
-    funext j; simp [shiftE, cons]
-  rw [interp_inst, hsh]
-  congr 1
-  funext i
-  match i with
-  | 0 => rfl
-  | 1 => rfl
-  | (_ + 2) => rfl
-
-theorem interp_inst_cons2 (e a : AnnotTerm) (x1 x2 : V) (ρ : Nat → V) :
-    interp V (cons x2 (cons x1 ρ)) (e.inst a 2)
-      = interp V (cons x2 (cons x1 (cons (interp V ρ a) ρ))) e := by
-  have hsh : shiftE 2 0 (cons x2 (cons x1 ρ)) = ρ := by
-    funext j; simp [shiftE, cons]
-  rw [interp_inst, hsh]
-  congr 1
-  funext i
-  match i with
-  | 0 => rfl
-  | 1 => rfl
-  | 2 => rfl
-  | (_ + 3) => rfl
-
-theorem interp_inst_cons3 (e a : AnnotTerm) (x1 x2 x3 : V) (ρ : Nat → V) :
-    interp V (cons x3 (cons x2 (cons x1 ρ))) (e.inst a 3)
-      = interp V (cons x3 (cons x2 (cons x1 (cons (interp V ρ a) ρ))))
-          e := by
-  have hsh : shiftE 3 0 (cons x3 (cons x2 (cons x1 ρ))) = ρ := by
-    funext j; simp [shiftE, cons]
-  rw [interp_inst, hsh]
-  congr 1
-  funext i
-  match i with
-  | 0 => rfl
-  | 1 => rfl
-  | 2 => rfl
-  | 3 => rfl
-  | (_ + 4) => rfl
-
-theorem interp_inst_cons4 (e a : AnnotTerm) (x1 x2 x3 x4 : V)
-    (ρ : Nat → V) :
-    interp V (cons x4 (cons x3 (cons x2 (cons x1 ρ)))) (e.inst a 4)
-      = interp V (cons x4 (cons x3 (cons x2 (cons x1
-          (cons (interp V ρ a) ρ))))) e := by
-  have hsh : shiftE 4 0 (cons x4 (cons x3 (cons x2 (cons x1 ρ)))) = ρ := by
-    funext j; simp [shiftE, cons]
-  rw [interp_inst, hsh]
-  congr 1
-  funext i
-  match i with
-  | 0 => rfl
-  | 1 => rfl
-  | 2 => rfl
-  | 3 => rfl
-  | 4 => rfl
-  | (_ + 5) => rfl
-
 /-! ### `Quot.lift`'s type reading, and its rule -/
 
 /-- **`Quot.lift`'s type reading.** -/
@@ -2064,6 +2211,93 @@ theorem quotLiftRa_app {E : AnnotTerm} {b u v : Nat}
 
 /-! ### The row -/
 
+/-- **`Quot.lift`'s licence facts**: as `quotIndExtra`, the major's
+domain read off the sixth binder. -/
+theorem quotLiftExtra {m : EnvModel V env}
+    (m₂ : EnvModel V ⟨quotLiftA :: env.consts⟩)
+    (hQ : env.find? quotName = some quotA)
+    (hM : env.find? quotMkName = some quotMkA)
+    (hE : env.find? eqName = some eqA)
+    (hac : m₂.acval = acvalWith m.acval quotLiftA.name
+      (fun ψ => AnnotTerm.const .quotLift [ψ uN, ψ vN]))
+    (φ : Name → Nat) :
+    RecRuleExtra m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
+      quotLiftRule := by
+  intro us _ TVa hTVa
+  obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
+      ψ = Level.substFn φ quotLiftA.toConstantVal.levelParams us :=
+    ⟨_, rfl⟩
+  have hTyRead : denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+      (quotLiftA.toConstantVal.type.instantiateLevelParams
+        quotLiftA.toConstantVal.levelParams us)
+      = some (quotLiftTy
+          (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
+          (pwBit ψ (.ifAllZero [vN])) (ψ uN) (ψ vN)) := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denoteMeta_quotLiftA_type (m := m) _ hQ hE]
+  obtain rfl : TVa = _ :=
+    (Option.some.inj (hTyRead.symm.trans hTVa)).symm
+  have hM' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotMkName
+      = some quotMkA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hM
+  have hQ' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotName
+      = some quotA := by
+    rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hQ
+  refine ⟨fun h => (nomatch h), fun cvj cnP cnF hfj => ?_⟩
+  rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hM'] at hfj
+  obtain ⟨rfl, rfl, rfl⟩ :
+      cvj = quotMkA.toConstantVal ∧ cnP = 2 ∧ cnF = 1 := by
+    injection Option.some.inj hfj with a1 a2 a3
+    exact ⟨a1.symm, a2.symm, a3.symm⟩
+  refine ⟨rfl, fun _ usj _ hlev TVja _ => ?_⟩
+  have hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN
+      = ψ uN := by
+    rw [congrFun hlev uN, hψ]
+    show Level.eval φ (Level.subst quotLiftA.toConstantVal.levelParams
+      us (.param uN)) = _
+    rw [Level.subst, Level.eval_subst_go]
+  have hctorL : m₂.acval (RecRule.ctor quotLiftRule)
+      (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
+      = AnnotTerm.const .quotMk [ψ uN] := by
+    rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hac,
+      acvalWith_ne (by decide), ← hulev]
+    refine acval_basis_pinned (m := m) hM (by decide) ?_
+    simp +decide [ConLeche.Verify.pinnedStructT]
+  obtain ⟨hS, hP⟩ := quotRuleExtra_of (V := V) hQ' hulev hctorL
+    (P := fun ρ a => ∃ (xs : List AnnotTerm) (restR : AnnotTerm),
+      xs.length = 5 ∧ TeleFitPA V ρ (quotLiftTy
+          (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
+          (pwBit ψ (.ifAllZero [vN])) (ψ uN) (ψ vN)) (xs ++ [a]) restR)
+    (fun ρ a ⟨xs, restR, hxs, hfit⟩ => by
+      obtain ⟨x1, x2, x3, x4, x5, rfl⟩ :
+          ∃ p q r s t, xs = [p, q, r, s, t] := by
+        match xs, hxs with
+        | [p, q, r, s, t], _ => exact ⟨p, q, r, s, t, rfl⟩
+      rw [quotLiftTy] at hfit
+      cases hfit with | cons f1 hfit =>
+      cases hfit with | cons f2 hfit =>
+      cases hfit with | cons f3 hfit =>
+      cases hfit with | cons f4 hfit =>
+      cases hfit with | cons f5 hfit =>
+      cases hfit with | cons f6 _ =>
+      rw [interp_sort] at f1
+      rw [interp_inst0, quotRelTy_interp (ψ uN)] at f2
+      rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+        interp_inst_cons3, interp_inst_cons4,
+        (quotApp_data (u := ψ uN) (i := 4) (j := 3)
+          (ρ := cons (interp V ρ x5) (cons (interp V ρ x4)
+            (cons (interp V ρ x3) (cons (interp V ρ x2)
+              (cons (interp V ρ x1) ρ)))))
+          (by simp [cons]) (by simp [cons]) f1 f2).2.2] at f6
+      exact ⟨_, _, f6⟩)
+  refine ⟨fun hlic ρ xs a restR hxs hfit =>
+      hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
+    fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
+      hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
+  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
+  refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),
+    fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
+
 set_option maxHeartbeats 1000000 in
 /-- **`Quot.lift`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
 `.nested` conjuncts are `nomatch`.  The two telescope fits are peeled
@@ -2081,7 +2315,8 @@ theorem quotLiftLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
       quotLiftRule := by
-  refine ⟨Nat.le_refl 5, fun us hus => ?_⟩
+  refine ⟨Nat.le_refl 5, fun us hus => ?_,
+    quotLiftExtra (m := m) m₂ hQ hM hE hac φ⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotLiftA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩

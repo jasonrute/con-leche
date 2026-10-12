@@ -1354,8 +1354,10 @@ the contract's premises. -/
             interp V ρ (ys.getD q default)
               = interp V ρ (AnnotTerm.instRevChain
                   (xs.take (p.toBlockShape.rulePrefixAt j)) vpa)) →
-        IotaIndexPin (V := V) ρ restC nP
-          (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) xs →
+        (interp V ρ (AnnotTerm.mkAppN
+            (mpC.base2.acval cA.1.name (Level.substFn φ cA.1.levelParams usj)) ys) = pt →
+          IotaIndexPin (V := V) ρ restC nP
+            (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) xs) →
         TeleFitPA V ρ
           (blockRecTyAV mpC.base2.acval envC rs (Level.substFn φ r.1.levelParams us) j)
           (xs ++ [AnnotTerm.mkAppN

@@ -100,7 +100,8 @@ major matches node `b`'s key read back. -/
 /-- **The frame half of the class tie at a node list**: an outside class
 matching a listed node's key read back reads its parameters as the
 read-back key's at every prefix spine it is guarded at (the class match's
-defeq soundness, `params_read_eq`). -/
+defeq soundness, `param_read_eq`, along the family's parameter
+telescope). -/
 @[expose] def NodeFrameTie (envC : Env) (F : Nat) (formerTys : List Expr) : Prop :=
   ∀ c, c < (tgtRs out).length → ∀ t ∈ ns, NodeMajor F envC p formerTys ctx (tgtMajor out c) t →
     SpineFit ρ (blockRulePdomsAV acval envC p (tgtRs out) ψ c) xs →

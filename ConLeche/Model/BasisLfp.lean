@@ -604,6 +604,24 @@ theorem eqLfp_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLe
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hd
       rcases hd with rfl | rfl | rfl <;> exact Nat.one_ne_zero⟩⟩
 
+/-- **`Eq`'s capability records** (`LfpCaps`): its sort is zero everywhere,
+so its zero-ness datum must hold everywhere; it has one constructor. -/
+theorem eqLfp_caps {env : ConLeche.Env}
+    {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps}
+    (hf : env.find? nm = some (.indInfo cv caps))
+    (hz : ∀ ψ : Name → Nat, caps.sortZ.holds ψ = true)
+    (hC : ∃ cv' nPc nF, env.find? cn = some (.ctorInfo cv' nPc nF) ∧
+      ∃ (bs : List (ConLeche.Expr × ConLeche.BinderMeta)) (es : List ConLeche.Expr),
+        cv'.type.stripPis (nPc + nF)
+          = some (bs, ConLeche.Expr.mkAppN (.const nm (cv'.levelParams.map .param))
+              (ConLeche.structPsAt nF nPc ++ es))) :
+    LfpCaps env (eqLfp (V := V) nm cn lv) := by
+  refine ⟨fun mm hmm => ?_, fun c hc j _ => ?_⟩
+  · obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
+    exact ⟨cv, caps, hf, fun ψ _ => hz ψ, fun _ => rfl⟩
+  · obtain rfl : c = 0 := Nat.lt_one_iff.mp hc
+    exact hC
+
 /-- `Eq` is stored at an environment holding its former and constructor. -/
 theorem eqLfp_stored {env : ConLeche.Env}
     (hT : ∃ cv caps, env.find? nm = some (.indInfo cv caps))
@@ -666,6 +684,27 @@ theorem lfp0_ctorReads {acval : Name → (Name → Nat) → AnnotTerm} {env : Co
     · show FieldsEqOn V _ (ab.map (·.2.2)) (flds j)
       rw [hmap]
       exact FieldsEqOn.refl _ _
+
+/-- **A one-member unparameterized block's capability records** (`LfpCaps`):
+its stored capabilities are sound for the datum, and its constructors
+conclude in it. -/
+theorem lfp0_caps {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps}
+    {nm : Name} {w : (Name → Nat) → Nat} {F : V → V}
+    {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name} {flds : Nat → List AnnotTerm}
+    (hf : env.find? nm = some (.indInfo cv caps))
+    (hz : ∀ ψ : Name → Nat, w ψ = 0 → caps.sortZ.holds ψ = true)
+    (hk : caps.ruleK = true → n = 1)
+    (hC : ∀ j, j < n → ∃ cv' nPc nF, env.find? (cn j) = some (.ctorInfo cv' nPc nF) ∧
+      ∃ (bs : List (ConLeche.Expr × ConLeche.BinderMeta)) (es : List ConLeche.Expr),
+        cv'.type.stripPis (nPc + nF)
+          = some (bs, ConLeche.Expr.mkAppN (.const nm (cv'.levelParams.map .param))
+              (ConLeche.structPsAt nF nPc ++ es))) :
+    LfpCaps env (lfp0 (V := V) nm w F inj n cn flds) := by
+  refine ⟨fun mm hmm => ?_, fun c hc j hj => ?_⟩
+  · obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
+    exact ⟨cv, caps, hf, hz, hk⟩
+  · obtain rfl : c = 0 := Nat.lt_one_iff.mp hc
+    exact hC j hj
 
 /-- A one-member block without constructors is stored once its former is
 the head of the cons. -/

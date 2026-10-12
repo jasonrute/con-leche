@@ -194,6 +194,37 @@ def iotaCertsI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool)
     (ty : Expr) (args : List Expr) : CheckCM Bool :=
   iotaCertsIAux r fe depth lic ty [] args
 
+/-- Twin of `iotaCertsFull` (task #342 L10, ι's case 3), bulk form as
+`iotaCertsIAux`: every slot is certified, its argument inferred at the
+FULL grade. -/
+def iotaCertsFullIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
+    Expr → List Expr → List Expr → CheckCM Bool
+  | _, _, [] => pure true
+  | ty, acc, arg :: rest => do
+    match ty with
+    | .forallE dom body _ => do
+        let dom' ← instListM dom acc
+        let ta ← r.infer depth arg
+        if ← r.defeq depth ta dom' then
+          iotaCertsFullIAux r fe depth body (arg :: acc) rest
+        else pure false
+    | .bvar _ =>
+      match acc with
+      | [] => pure false
+      | _ :: _ => do
+        let ty' ← instListM ty acc
+        iotaCertsFullIAux r fe depth ty' [] (arg :: rest)
+    | _ => pure false
+termination_by _ acc args => (args.length, acc.length)
+decreasing_by
+  · apply Prod.Lex.left; simp
+  · apply Prod.Lex.right' <;> simp
+
+/-- Twin of `iotaCertsFull`, at the empty accumulator. -/
+def iotaCertsFullI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
+    (ty : Expr) (args : List Expr) : CheckCM Bool :=
+  iotaCertsFullIAux r fe depth ty [] args
+
 /-- Twin of `defEqList`. -/
 def defEqListI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
     List Expr → List Expr → CheckCM Bool
@@ -769,43 +800,43 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
                   | _ => pure (args.take rl.ctorParams)
                 if ← liftFueled "level comparison"
                     (← isEquivListLM usj cmpLvls) then do
-                 -- the parameter comparison: not run at all for a
-                 -- `.plain` rule the installing route marked
-                 -- `paramsBlind` (`RecRule.compareParams`; official's
-                 -- `inductive_reduce_rec` compares nothing).  Where it
-                 -- is run it is verdict-relevant for a nested rule
+                 -- the parameter comparison: run where the rule asks
+                 -- for it (`RecRule.compareParams`; official's
+                 -- `inductive_reduce_rec` compares nothing) and at every
+                 -- case-3 redex (`iotaCompares`, task #342 L10).  Where
+                 -- it is run it is verdict-relevant for a nested rule
                  -- (the comparands ARE the pins) and for a
                  -- projection-function rule, and a certificate family
                  -- for every other plain rule — the retired twin's
                  -- judgement, kept
-                 if ← (if rl.compareParams then
+                 if ← (if iotaCompares fe.find? rl cvj usj then
                     certUnlessI mode
                       ((match rl.fire with | .nested _ _ => true | _ => false)
                         || Name.isProjFnShape cn)
                       (defEqListI r fe depth (margs.take rl.ctorParams)
                         cmpArgs)
                     else pure true) then do
-                  -- ONE certificate family: the two instantiated
-                  -- types, the two telescope runs and the
-                  -- canonical-index comparison (which exists only
-                  -- where indices do — the spec's `iotaRec`).  The
-                  -- telescope runs are licensed (`iotaCertsIAux`) off
-                  -- `mode.betaGate` — the same function the β site
-                  -- reads, `true` at `.verified`.  Nothing here is
-                  -- read outside the family, so the whole block is
-                  -- what `.trusted` omits: the types are looked up
-                  -- only where a certificate consumes them (DESIGN.md,
-                  -- "CORET RETIRED", inversion 22).
+                  -- ONE certificate family: the recursor telescope run
+                  -- (licensed off `mode.betaGate`, over the redex's own
+                  -- spine, the major unreduced) and, at a case-3 redex
+                  -- (task #342 L10: not K, the constructor's family may
+                  -- be `Prop` at its levels), the constructor telescope
+                  -- at the FULL grade and the canonical-index comparison
+                  -- (which exists only where indices do — the spec's
+                  -- `iotaRec`).  Nothing here is read outside the family,
+                  -- so the whole block is what `.trusted` omits: the
+                  -- types are looked up only where a certificate consumes
+                  -- them (DESIGN.md, "CORET RETIRED", inversion 22).
                   if ← certAtI mode (do
                       let tyRec ← constTyAtM fe c cn us
-                      if ← iotaCertsI r fe depth mode.betaGate tyRec
-                          (args.take mI ++ [major]) then do
-                        let tyCtor ← constTyAtM fe cj cjn usj
-                        if ← iotaCertsI r fe depth mode.betaGate tyCtor
-                            margs then
-                          iotaIndexOkI r fe depth mI rP rl.ctorParams tyCtor
-                            margs ((args.take mI).drop rP)
-                        else pure false
+                      if ← iotaCertsI r fe depth mode.betaGate tyRec args then
+                        if iotaCase3 fe.find? rl cvj usj then do
+                          let tyCtor ← constTyAtM fe cj cjn usj
+                          if ← iotaCertsFullI r fe depth tyCtor margs then
+                            iotaIndexOkI r fe depth mI rP rl.ctorParams tyCtor
+                              margs ((args.take mI).drop rP)
+                          else pure false
+                        else pure true
                       else pure false) then do
                       let rhs ← ruleRhsAtM fe c cj cn cjn us
                       let red ← mkAppNM rhs

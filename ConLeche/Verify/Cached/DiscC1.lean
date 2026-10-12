@@ -290,6 +290,152 @@ theorem iotaCertsC_sim (ih : SSimC mode env f) {d : Nat} {lic : Bool} :
   rw [Expr.instantiateList_nil] at this
   exact this
 
+/-- The bulk-accumulating full-grade certificate loop (task #342 L10)
+simulates its fueled original. -/
+theorem iotaCertsFullCAux_sim (ih : SSimC mode env f) {d : Nat} :
+    ∀ {args : List Expr} {xs : List Expr} {acc : List Expr}
+      {ws : List Expr} {ty : Expr} {tyx : Expr} {s₀ : CState},
+      CSOK mode env s₀ →
+      RelC ty tyx → RelCL acc ws →
+      Expr.WScoped d (tyx.instantiateList ws) →
+      RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
+      SimC mode env s₀ RelVC
+        (iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty acc
+          args)
+        (iotaCertsFull (fueledFns mode env) env d (tyx.instantiateList ws) xs)
+  | [], xs, acc, ws, ty, tyx, s₀, hs, hty, hacc, hwty, hargs, hwargs => by
+    obtain rfl := hargs.nil_inv
+    rw [iotaCertsFullIAux.eq_def]
+    dsimp only
+    exact SimC.pure hs rfl
+  | a :: as, xs, acc, ws, ty, tyx, s₀, hs, hty, hacc, hwty, hargs, hwargs => by
+    obtain ⟨x, xs, rfl, hax, hasxs⟩ := hargs.cons_inv
+    rw [iotaCertsFullIAux.eq_def]
+    obtain rfl := hty
+    cases ty with
+    | forallE t b m =>
+      rw [show (Expr.instantiateList (Expr.forallE t b m) ws)
+          = .forallE ((Expr.instantiateList t ws))
+              ((Expr.instantiateList b ws 1)) m by
+        simp [Expr.instantiateList]] at hwty ⊢
+      have hwtb : Expr.WScoped d ((Expr.instantiateList t ws))
+          ∧ Expr.WScoped d ((Expr.instantiateList b ws 1)) := by
+        simpa only [Expr.WScoped] using hwty
+      show SimC mode env s₀ RelVC
+        (instListM t acc >>= fun dom' =>
+          (coreKnotI mode (mkFEnv env) f).infer d a >>= fun ta =>
+          (coreKnotI mode (mkFEnv env) f).defeq d ta dom' >>= fun r =>
+          if r then iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f)
+            (mkFEnv env) d b (a :: acc) as
+          else pure false)
+        ((fueledFns mode env).infer d x >>= fun ta =>
+          (fueledFns mode env).defeq d ta ((Expr.instantiateList t ws)) >>=
+            fun r =>
+          if r then iotaCertsFull (fueledFns mode env) env d
+            (((Expr.instantiateList b ws 1)).instantiate1 x) xs
+          else pure false)
+      have hwx : Expr.WScoped d x := hwargs x (List.mem_cons_self ..)
+      refine SimC.bind_left (instListM_eff (d := 0) hs rfl hacc)
+        (fun s₁ dom' hs₁ hQdom => ?_)
+      refine SimC.bind (ih.infer hs₁ hax hwx) (fun s₂ ta tax hs₂ hP => ?_)
+      obtain ⟨htax, hwtax⟩ := hP
+      refine SimC.bind (ih.defeq hs₂ htax hQdom hwtax hwtb.1)
+        (fun s₃ rb r hs₃ hP₂ => ?_)
+      obtain rfl : rb = r := hP₂
+      cases rb with
+      | true =>
+        simp only [↓reduceIte]
+        rw [← Expr.instantiateList_cons]
+        refine iotaCertsFullCAux_sim ih hs₃ rfl (RelCL.cons hax hacc) ?_
+          hasxs (fun x' hx' => hwargs x' (List.mem_cons_of_mem _ hx'))
+        rw [Expr.instantiateList_cons]
+        exact Expr.WScoped.instantiate1_gen hwx 0 hwtb.2
+      | false =>
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        exact SimC.pure hs₃ rfl
+    | bvar k =>
+      match acc with
+      | [] =>
+        obtain rfl := hacc.nil_inv
+        rw [Expr.instantiateList_nil]
+        exact SimC.pure hs rfl
+      | a' :: acc' =>
+        obtain ⟨w, ws', rfl, ha'w, hacc'⟩ := hacc.cons_inv
+        show SimC mode env s₀ RelVC
+          (instListM (Expr.bvar k) (a' :: acc') >>= fun ty' =>
+            iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env)
+              d ty' [] (a :: as))
+          (iotaCertsFull (fueledFns mode env) env d
+            ((Expr.instantiateList (Expr.bvar k) (w :: ws')))
+            (x :: xs))
+        refine SimC.bind_left (instListM_eff (d := 0) hs rfl hacc)
+          (fun s₁ ty' hs₁ hQty => ?_)
+        have := iotaCertsFullCAux_sim ih (acc := []) (ws := [])
+          (args := a :: as) (xs := x :: xs) hs₁ hQty RelCL.nil
+          (by rw [Expr.instantiateList_nil]; exact hwty)
+          (RelCL.cons hax hasxs) hwargs
+        rwa [Expr.instantiateList_nil] at this
+    | sort u =>
+      rw [show (Expr.instantiateList (Expr.sort u) ws)
+          = .sort u by simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | const nm us =>
+      rw [show (Expr.instantiateList (Expr.const nm us) ws)
+          = .const nm us by simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | lit l =>
+      rw [show (Expr.instantiateList (Expr.lit l) ws)
+          = .lit l by simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | fvar idx t =>
+      rw [show (Expr.instantiateList (Expr.fvar idx t) ws)
+          = .fvar idx t by simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | app f' a' =>
+      rw [show (Expr.instantiateList (Expr.app f' a') ws)
+          = .app ((Expr.instantiateList f' ws))
+              ((Expr.instantiateList a' ws)) by
+        simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | lam t b m =>
+      rw [show (Expr.instantiateList (Expr.lam t b m) ws)
+          = .lam ((Expr.instantiateList t ws))
+              ((Expr.instantiateList b ws 1)) m by
+        simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | letE t v b =>
+      rw [show (Expr.instantiateList (Expr.letE t v b) ws)
+          = .letE ((Expr.instantiateList t ws))
+              ((Expr.instantiateList v ws))
+              ((Expr.instantiateList b ws 1)) by
+        simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+    | proj sn j e' =>
+      rw [show (Expr.instantiateList (Expr.proj sn j e') ws)
+          = .proj sn j ((Expr.instantiateList e' ws)) by
+        simp [Expr.instantiateList]]
+      exact SimC.pure hs rfl
+termination_by args _ acc => (args.length, acc.length)
+decreasing_by
+  all_goals first
+    | (apply Prod.Lex.left; simp; done)
+    | (apply Prod.Lex.right' <;> simp)
+
+/-- `iotaCertsFullI` simulates its fueled original. -/
+theorem iotaCertsFullC_sim (ih : SSimC mode env f) {d : Nat} :
+    ∀ {args : List Expr} {xs : List Expr} {ty : Expr} {tyx : Expr}
+      {s₀ : CState}, CSOK mode env s₀ →
+      RelC ty tyx → Expr.WScoped d tyx →
+      RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
+      SimC mode env s₀ RelVC
+        (iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty args)
+        (iotaCertsFull (fueledFns mode env) env d tyx xs) := by
+  intro args xs ty tyx s₀ hs hty hwty hargs hwargs
+  have := iotaCertsFullCAux_sim ih (acc := []) (ws := []) hs hty RelCL.nil
+    (by rw [Expr.instantiateList_nil]; exact hwty) hargs hwargs
+  rw [Expr.instantiateList_nil] at this
+  exact this
+
 end Walks
 
 section Walks2

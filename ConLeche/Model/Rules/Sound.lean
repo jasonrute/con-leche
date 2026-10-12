@@ -25,19 +25,21 @@ of the codomain validation reads the SHAPE of the body's inferred type
 off the premise derivation (`Infer.lam_shape`), which the per-rule
 lemma cannot see.
 
-**Two inductions (task #342, L9, L11, L12).**  The claims are conditional
-on the point (`Motive.lean`): `red_sound`, `defeq_sound` … conclude the
-conditional motives.  Their ι rules (`Red.iota`, the three rescues) and
-three `DefEq` rules (`lam`, `eta`, `structEta`) are, for now, the
-**interim** unconditional side induction (`red_soundU`, `defeq_soundU` …)
-weakened (`RedSemU.cond`, `DefEqSemU.cond`); every other rule is proved at
-the conditional motive, from the conditional claims of its premises.  The
-side induction reads `Red.beta`'s certificate premises, which the
-conditional one does not.  Task #342 L10 (ι) moves its rules to the
-conditional induction.  λ-congruence and η need the body-type check of
-the value reading (S4); structure η needs its two spines in one telescope
-of types (the DESIGN record of L11).  The side induction goes, and with it
-β's premises, once all of these are moved.
+**Two inductions (task #342, L9, L10, L11, L12).**  The claims are
+conditional on the point (`Motive.lean`): `red_sound`, `defeq_sound` …
+conclude the conditional motives.  The structure-η rescue and three
+`DefEq` rules (`lam`, `eta`, `structEta`) are, for now, the **interim**
+unconditional side induction (`red_soundU`, `defeq_soundU` …) weakened
+(`RedSemU.cond`, `DefEqSemU.cond`); every other rule is proved at the
+conditional motive, from the conditional claims of its premises.  ι and
+the K and `And` rescues (L10) are one lemma each, from conditional
+premises to the unconditional conclusion, so both inductions call them.
+The side induction reads `Red.beta`'s certificate premises, which the
+conditional one does not.  λ-congruence and η need the body-type check
+of the value reading (S4); structure η, and the structure-η rescue, need
+their two spines in one telescope of types (the DESIGN record of L11).
+The side induction goes, and with it β's premises, once all of these
+are moved.
 -/
 
 namespace ConLeche.Model.Rules
@@ -79,16 +81,16 @@ theorem red_soundU (hin : RulesInputs V m φ) :
     Red.proj_soundU hin hent hhead hi hlen hus hfire hctor (certs_soundU hin hcerts)
   | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
       hparams hcertR hcertC hres hidx =>
-    Red.iota_soundU hin hhead hrec hlen hus (red_soundU hin hmajor) hmhead hctor
-      hrule hmlen hfire hlv (fun hc => defEqList_soundU hin (hparams hc))
-      (certs_soundU hin hcertR) (certs_soundU hin hcertC) hres
-      (fun hne => defEqList_soundU hin (hidx hne))
+    Red.iota_sound hin hhead hrec hlen hus (red_soundU hin hmajor).cond hmhead hctor
+      hrule hmlen hfire hlv (fun hc => (defEqList_soundU hin (hparams hc)).cond)
+      (certs_soundU hin hcertR) (fun h3 => certsF_soundU hin (hcertC h3)) hres
+      (fun h3 hne => (defEqList_soundU hin (hidx h3 hne)).cond)
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
       hb hlv' hcerts htf hdt hpi =>
-    Red.rescueK_soundU hin hrec hk hctor hres hind (infer_soundU hin htm)
-      (red_soundU hin htmaj) hthead hlv hnP hfab hws hb hlv'
-      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt)
-      (defeq_soundU hin hpi)
+    Red.rescueK_sound hin hrec hk hctor hres hind (infer_soundU hin htm)
+      (red_soundU hin htmaj).cond hthead hlv hnP hfab hws hb hlv'
+      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt).cond
+      (defeq_soundU hin hpi).cond
   | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
       hfab hws hb hlv' hcerts hproj hpi =>
     Red.rescueEta_soundU hin hrec heta hctor hres hind (infer_soundU hin htm)
@@ -97,10 +99,10 @@ theorem red_soundU (hin : RulesInputs V m φ) :
       (fun hno => etaProjCerts_soundU hin (hproj hno)) (defeq_soundU hin hpi)
   | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
       hfab hws hb hlv' hcerts htf hdt hpi =>
-    Red.rescueAnd_soundU hin hrec hctor hres hind (infer_soundU hin htm)
-      (red_soundU hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
-      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt)
-      (defeq_soundU hin hpi)
+    Red.rescueAnd_sound hin hrec hctor hres hind (infer_soundU hin htm)
+      (red_soundU hin htmaj).cond hthead hlen hlv hslots hfab hws hb hlv'
+      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt).cond
+      (defeq_soundU hin hpi).cond
 
 theorem defeq_soundU (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSemU m φ d a b
@@ -175,6 +177,14 @@ theorem certs_soundU (hin : RulesInputs V m φ) :
     Certs.cert_sound (infer_soundU hin hta) (defeq_soundU hin hd).cond
       (certs_soundU hin hrest)
 
+theorem certsF_soundU (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {ty : Expr} {args : List Expr},
+      CertsF env d ty args → CertsFSem m φ d ty args
+  | _, _, _, .nil => CertsF.nil_sound
+  | _, _, _, .cert hta hd hrest =>
+    CertsF.cert_sound (infer_soundU hin hta) (defeq_soundU hin hd).cond
+      (certsF_soundU hin hrest)
+
 theorem defEqList_soundU (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {as bs : List Expr},
       DefEqList env d as bs → DefEqListSemU m φ d as bs
@@ -215,12 +225,30 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
   | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
     Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
-  -- **interim** (task #342, L10): ι and the three rescues through the side
-  -- induction
-  | _, _, _, h@(.iota ..) => (red_soundU hin h).cond
-  | _, _, _, h@(.rescueK ..) => (red_soundU hin h).cond
+  -- ι and the K/`And` rescues (task #342 L10): one lemma each, from the
+  -- conditional claims of their premises
+  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
+      hparams hcertR hcertC hres hidx =>
+    (Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
+      hrule hmlen hfire hlv (fun hc => defEqList_sound hin (hparams hc))
+      (certs_sound hin hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
+      (fun h3 hne => defEqList_sound hin (hidx h3 hne))).cond
+  | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
+      hb hlv' hcerts htf hdt hpi =>
+    (Red.rescueK_sound hin hrec hk hctor hres hind (infer_sound hin htm)
+      (red_sound hin htmaj) hthead hlv hnP hfab hws hb hlv'
+      (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
+      (defeq_sound hin hpi)).cond
+  | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
+      hfab hws hb hlv' hcerts htf hdt hpi =>
+    (Red.rescueAnd_sound hin hrec hctor hres hind (infer_sound hin htm)
+      (red_sound hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
+      (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
+      (defeq_sound hin hpi)).cond
+  -- **interim** (task #342 L10 → the coherence-law lane): the structure-η
+  -- rescue's certificate is read by its unconditional proof, through the
+  -- side induction
   | _, _, _, h@(.rescueEta ..) => (red_soundU hin h).cond
-  | _, _, _, h@(.rescueAnd ..) => (red_soundU hin h).cond
 
 theorem defeq_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
@@ -291,7 +319,13 @@ theorem certs_sound (hin : RulesInputs V m φ) :
     Certs.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
       (certs_sound hin hrest)
 
-end
+theorem certsF_sound (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {ty : Expr} {args : List Expr},
+      CertsF env d ty args → CertsFSem m φ d ty args
+  | _, _, _, .nil => CertsF.nil_sound
+  | _, _, _, .cert hta hd hrest =>
+    CertsF.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
+      (certsF_sound hin hrest)
 
 theorem defEqList_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {as bs : List Expr},
@@ -299,6 +333,8 @@ theorem defEqList_sound (hin : RulesInputs V m φ) :
   | _, _, _, .nil => DefEqList.nil_sound
   | _, _, _, .cons h hs =>
     DefEqList.cons_sound (defeq_sound hin h) (defEqList_sound hin hs)
+
+end
 
 theorem etaProjCerts_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
@@ -343,26 +379,5 @@ theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
   have hs' := fun ρ hρ => hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ).1 (hg ρ hρ).2.ne_pt
   exact ⟨hf', hsub, ea', hea', fun ρ hρ => ⟨(hs' ρ hρ).1, (hs' ρ hρ).2 ▸ (hg ρ hρ).2⟩,
     fun ρ hρ => (hs' ρ hρ).2⟩
-
-/-- **Interim** (task #342; the last consumer of the side induction outside
-the rules tier): a comparison of two globally graded sides,
-unconditionally, through the side induction.  The recursor-class match
-(`Model/Inductives/TargetDefeqTie.lean`) compares the PARAMETERS of two
-instances of one container, which may be proofs; under the conditional
-claims it needs the two parameter spines placed in one telescope of
-types (both instances graded at one valuation, the container's graph
-fixing each parameter's domain from the equal prefix), as
-`spineFit_eq_of_cond` does for the block rules (the DESIGN record of
-L12). -/
-theorem defeq_sound_global (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
-    (h : DefEq env d a b) (hfa : Frame d a) (hfb : Frame d b)
-    {Δa : List AnnotTerm} {aa ba : AnnotTerm}
-    (hCa : CtxOk m φ d Δa a) (hCb : CtxOk m φ d Δa b)
-    (haa : denoteMeta m.acval env φ d a = some aa)
-    (hba : denoteMeta m.acval env φ d b = some ba)
-    (hga : Graded V Δa aa) (hgb : Graded V Δa ba) :
-    ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ aa = interp V ρ ba := fun ρ hρ =>
-  defeq_soundU hin h hfa hfb hCa.toS hCb.toS haa hba ρ hρ (hCa.leavesGr hρ)
-    (hCb.leavesGr hρ) (hga ρ hρ) (hgb ρ hρ)
 
 end ConLeche.Model.Rules

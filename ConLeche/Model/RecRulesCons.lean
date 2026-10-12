@@ -66,6 +66,171 @@ theorem constsBound_openRev {env₀ : Env} {e : Expr}
       (.fvar (d + n) (.sort .zero)) 0)
     exact ConstsBound.instantiate1 (by simp) _ 0 ih
 
+/-- **(S)'s `iotaCtorLicensed` guard is the prefix's**: it reads
+`find?` only at the constructor's result family, and that name is
+stored (not the fresh one) whenever the constructor's type resolves —
+guaranteed here by `ConstWF` (`EnvModel.wf`). -/
+theorem iotaCtorLicensed_cons_of_isSome {c₀ : ConstantInfo} {env : Env}
+    (hfresh : env.find? c₀.name = none) {cvj : ConstantVal} {usj : List Level}
+    (hT : ∀ T us, cvj.type.piResult.getAppFn = .const T us →
+      (env.find? T).isSome = true) :
+    ConLeche.iotaCtorLicensed (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj usj
+      = ConLeche.iotaCtorLicensed env.find? cvj usj := by
+  unfold ConLeche.iotaCtorLicensed
+  match hh : cvj.type.piResult.getAppFn with
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
+  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .const T us =>
+    dsimp only
+    rw [ConLeche.Env.find?_cons_of_isSome hfresh (hT T us hh)]
+
+/-- **`RecRuleExtra` survives a fresh cons that is not itself a
+recursor** (task #342 L10 cons sub-lane): `recRuleLaw_cons_prefix`'s
+sibling for the `RecRuleExtra` conjunct.  Every lookup is a prefix
+lookup — the environment invariant, not the cons's kind, gives the
+rule's constructor stored (`EnvModel.rec_ctors`) — every reading
+premise is produced at the prefix and moved FORWARD by
+`denoteMeta_cons_mono`, and the two leaves the clauses mention
+(`acval n`, `acval rl.ctor`) are the prefix's by `acvalWith_ne`.  New
+here: the K clause's `∀ Ra` is identified with the main law's own `Ra`
+the same way; the arity clause is syntactic, hence untouched; clause
+(S)'s `iotaCtorLicensed` guard, read at the extended environment's
+`find?`, agrees with the prefix's reading because it consults `find?`
+only at the constructor's result family — a name the constructor's
+(resolving) stored type names, hence itself stored, hence not the
+fresh one (`iotaCtorLicensed_cons_of_isSome`). -/
+theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
+    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    (hfresh : env.find? c₀.name = none)
+    (hntc : ConsCrossEnv env c₀)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
+    (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
+    {rules : List RecRule} (hnN : n ≠ c₀.name)
+    (hfE : env.find? n = some (.recInfo cv mI rP rules))
+    {rl : RecRule} (hmem : rl ∈ rules)
+    (hfire : RecRule.fire rl ≠ .inert) :
+    RecRuleExtra m₂ φ n cv mI rP rl := by
+  obtain ⟨-, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  have hnC : RecRule.ctor rl ≠ c₀.name := by
+    obtain ⟨⟨cvj', cnP', cnF', hst⟩, -, -⟩ :=
+      mp.base2.rec_ctors n cv mI rP rules hfE rl hmem
+    intro hh
+    rw [hh, hfresh] at hst
+    exact nomatch hst
+  obtain ⟨-, -, -, -, -, hrec', -⟩ :=
+    mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
+  obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
+  intro us hlen TVa hTVa
+  obtain ⟨TVa', hTVa', -, -⟩ := mp.constType 0 n _ us hfE rfl (by exact hlen)
+  obtain rfl : TVa' = TVa := by
+    refine Option.some.inj (Eq.trans ?_ hTVa)
+    rw [hac]
+    exact (denoteMeta_cons_mono hfresh
+      ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
+      (constsBound_instType mp.base2.wf
+        (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm
+  have hpinCB : ∀ lvls pins, RecRule.fire rl = .nested lvls pins → ∀ i : Nat,
+      ConstsBound env (ConLeche.Verify.openRev 0 rP
+        ((pins.getD i default).instantiateLevelParams cv.levelParams us)) := by
+    intro lvls pins hfr' i
+    obtain ⟨-, -, hpinsWf, -⟩ := hnest lvls pins hfr'
+    refine constsBound_openRev (constsBound_of_constsResolve _ ?_) 0 rP
+    rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
+    by_cases hilt : i < pins.length
+    · exact (hpinsWf _ (ConLeche.getD_mem hilt)).2.2.1
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]
+      rfl
+  obtain ⟨hK, hCtor⟩ := hextra us hlen TVa' hTVa'
+  refine ⟨?_, ?_⟩
+  · intro hk
+    obtain ⟨hnf, hRalaw⟩ := hK hk
+    refine ⟨hnf, fun Ra hRa ρ xs a restR hxl hfit => ?_⟩
+    obtain ⟨Ra', hRa0', -, -, -⟩ := hlaw0 us hlen
+    obtain rfl : Ra' = Ra := by
+      refine Option.some.inj (Eq.trans ?_ hRa)
+      rw [hac]
+      exact (denoteMeta_cons_mono hfresh
+        ((hntc.ruleRhs (ConLeche.Semantics.Env.find?_mem hfE) hmem).instantiateLevelParams
+          _ _) _ 0
+        (constsBound_of_constsResolve _ (by
+          rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
+          exact hRres)) hRa0').symm
+    rw [hac, acvalWith_ne hnN]
+    exact hRalaw Ra' hRa0' ρ xs a restR hxl hfit
+  · intro cvj cnP cnF hfcj
+    have hfcjE : env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) := by
+      rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hfcj
+      exact hfcj
+    obtain ⟨harity, hnk⟩ := hCtor cvj cnP cnF hfcjE
+    refine ⟨harity, ?_⟩
+    intro hk usj husj heq TVja hTVja
+    obtain ⟨TVja', hTVja', -, -⟩ :=
+      mp.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
+    obtain rfl : TVja' = TVja := by
+      refine Option.some.inj (Eq.trans ?_ hTVja)
+      rw [hac]
+      exact (denoteMeta_cons_mono hfresh
+        ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
+        (constsBound_instType mp.base2.wf
+          (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm
+    obtain ⟨hS, hP, hU⟩ := hnk hk usj husj heq TVja' hTVja'
+    refine ⟨?_, ?_, ?_⟩
+    · intro hlic ρ xs a restR hxl hfit
+      refine hS ?_ ρ xs a restR hxl hfit
+      obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
+        mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
+      dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
+      have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
+          (env.find? T).isSome = true :=
+        fun T us' heq' =>
+          ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
+      rwa [iotaCtorLicensed_cons_of_isSome hfresh hTiso] at hlic
+    · intro ρ xs a restR hxl hfit hapt ys restC hfitC
+      rw [hac, acvalWith_ne hnC]
+      exact hP ρ xs a restR hxl hfit hapt ys restC hfitC
+    · intro ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested0 hpin0
+      obtain ⟨-, -, -, hpinsOk, -⟩ := hlaw0 us hlen
+      have hnested' : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
+          ∀ i, i < RecRule.ctorParams rl →
+          ∀ vpa : AnnotTerm,
+            denoteMeta mp.base2.acval env φ rP
+              (ConLeche.Verify.openRev 0 rP ((pins.getD i default).instantiateLevelParams
+                cv.levelParams us)) = some vpa →
+            interp V ρ (ys.getD i default) ≠ pt →
+            interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
+            interp V ρ (ys.getD i default)
+              = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
+        intro lvls pins hfr' i hi vpa hvpa hney hnex
+        refine hnested0 lvls pins hfr' i hi vpa ?_ hney hnex
+        rw [hac]
+        exact denoteMeta_cons_mono hfresh
+          (((hntc.rulePinD (ConLeche.Semantics.Env.find?_mem hfE) hmem hfr'
+            i).instantiateLevelParams _ _).openRev 0 rP) _ rP
+          (hpinCB lvls pins hfr' i) hvpa
+      rw [hac, acvalWith_ne hnC] at hfitR hplain0 hpin0
+      have hUout := hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
+      refine ⟨hUout.1, ?_, ?_⟩
+      · -- the OUTPUT's own `.nested` equation is re-read at the
+        -- EXTENDED environment: a fresh prefix reading (`hpinsOk`'s
+        -- own witness, independent of the one given) is moved forward
+        -- and identified with the given one by determinism, exactly as
+        -- `TVa`/`TVja` above
+        intro lvls pins hfr' i hi vpa hvpa2
+        obtain ⟨vpa₀, hvpa0, -⟩ := hpinsOk lvls pins hfr' i hi
+        have hvpa0E : denoteMeta m₂.acval ⟨c₀ :: env.consts⟩ φ rP
+            (ConLeche.Verify.openRev 0 rP ((pins.getD i default).instantiateLevelParams
+              cv.levelParams us)) = some vpa₀ := by
+          rw [hac]
+          exact denoteMeta_cons_mono hfresh
+            (((hntc.rulePinD (ConLeche.Semantics.Env.find?_mem hfE) hmem hfr'
+              i).instantiateLevelParams _ _).openRev 0 rP) _ rP
+            (hpinCB lvls pins hfr' i) hvpa0
+        obtain rfl : vpa₀ = vpa := Option.some.inj (hvpa0E.symm.trans hvpa2)
+        exact hUout.2.1 lvls pins hfr' i hi vpa₀ hvpa0
+      · rw [hac, acvalWith_ne hnC]
+        exact hUout.2.2
+
 /-- **The fired iota contract survives a fresh cons that is
 not itself a recursor.**
 
@@ -93,8 +258,9 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     {rl : RecRule} (hmem : rl ∈ rules)
     (hfire : RecRule.fire rl ≠ .inert) :
     RecRuleLaw m₂ φ n cv mI rP rl := by
-  obtain ⟨hrPle, hlaw0⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
-  refine ⟨hrPle, fun us hlen => ?_⟩
+  obtain ⟨hrPle, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  refine ⟨hrPle, fun us hlen => ?_,
+    recRuleExtra_cons_prefix mp hfresh hntc m₂ hac φ hnN hfE hmem hfire⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
@@ -204,7 +370,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
           rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
           exact hpinCR)) 0 rP) hvpa
     -- the two leaves the conclusion mentions are the prefix's
-    rw [hac, acvalWith_ne hnC] at hfitR
+    rw [hac, acvalWith_ne hnC] at hfitR hpin
     rw [hac, acvalWith_ne hnN, acvalWith_ne hnC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
       hujl hψ hplain hnested' hpin hTVa' hTVja' hfitR hfitC
