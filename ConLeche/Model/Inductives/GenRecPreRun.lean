@@ -964,8 +964,8 @@ theorem genRecPre_run (hμ : μ.verifiedChecks = true)
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
       (∀ e ∈ tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j,
-        WellDenotedV V (consList ys ρ) e) ∧
-      WellDenotedV V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
+        WellDenoted V (consList ys ρ) e) ∧
+      WellDenoted V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
     (hrhs : ∀ (ψ : Name → Nat) (ρ : Nat → V) (rs : List V), rs.length = (tgtRs out).length →
       (∀ c, c < (tgtRs out).length →
         rs.getD c pt ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c)) →
@@ -973,8 +973,8 @@ theorem genRecPre_run (hμ : μ.verifiedChecks = true)
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
       (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ c j,
-        WellDenotedV V (consList ys (consList rs ρ)) v) ∧
-      WellDenotedV V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd
+        WellDenoted V (consList ys (consList rs ρ)) v) ∧
+      WellDenoted V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd
           0 ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
         (genRbAV R.g R.rd c j)) :
     ∀ (ψ : Name → Nat) (ρ : Nat → V),

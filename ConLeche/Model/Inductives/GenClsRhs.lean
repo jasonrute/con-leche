@@ -88,7 +88,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
     (hxs : SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs) :
     ∃ (bs : List AnnotTerm) (b : AnnotTerm),
       xs.getD (R.g.nP + genMinorSlot R.g R.rd c j) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) ∧
-      WellDenotedV V (consList xs ρ) (mkPisAV bs b) ∧
+      WellDenoted V (consList xs ρ) (mkPisAV bs b) ∧
       ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
       ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j).length →
       (∀ (l : Nat) (q : IhDatum) (hv : V),
@@ -199,11 +199,11 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
     exact this
   have hmemB : xs.getD (R.g.nP + s) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) := by
     rw [← hBE, interp_liftN, hsh]; exact hmem
-  have hwdB : WellDenotedV V (consList xs ρ) (mkPisAV bs b) := by
+  have hwdB : WellDenoted V (consList xs ρ) (mkPisAV bs b) := by
     have hgr := blockRulePdomsAV_graded (V := V) hμ mpC h hr ψ (R.g.nP + s) (by omega) ρ
       (xs.take (R.g.nP + s)) (spineFit_take hxs (by omega))
     rw [hPdget] at hgr
-    rw [← hBE, WellDenotedV_liftN, hsh]
+    rw [← hBE, WellDenoted_liftN, hsh]
     exact hgr.1
   -- the rule frame's field domains are the fields' binder data
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
@@ -437,7 +437,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
     have hframe : SpineFit (consList rs ρ) (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape
         (tgtRs out) ψ c ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
         ++ q.2.1) ((xs ++ fs) ++ zs) := SpineFit.append hysR hzs
-    obtain ⟨hWD, hIn⟩ := Rules.wellDenotedV_mkAppN_of_fit (ρ := consList zs (consList (xs ++ fs)
+    obtain ⟨hWD, hIn⟩ := Rules.wellDenoted_mkAppN_of_fit (ρ := consList zs (consList (xs ++ fs)
         (consList rs ρ))) (σ := ρ)
         (Ta := blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ q.1)
         (f := .bvar (D + q.2.1.length + ((tgtRs out).length - 1 - q.1))) (prefVarsAV R.g.pre.length ((genCtorAt R.g R.rd c j).nF + q.2.1.length)
@@ -525,8 +525,8 @@ theorem genRhs (hμ : μ.verifiedChecks = true)
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
       (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ c j,
-        WellDenotedV V (consList ys (consList rs ρ)) v) ∧
-      WellDenotedV V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd
+        WellDenoted V (consList ys (consList rs ρ)) v) ∧
+      WellDenoted V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd
           0 ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
         (genRbAV R.g R.rd c j) := by
   intro c hc j hj ys hys
@@ -537,7 +537,7 @@ theorem genRhs (hμ : μ.verifiedChecks = true)
   have hfl : fs.length = (genCtorAt R.g R.rd c j).nF := hfs.length_eq.trans hnF.symm
   -- each ih term: its tower, sound
   have hIh : ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j,
-      WellDenotedV V (consList (xs ++ fs) (consList rs ρ))
+      WellDenoted V (consList (xs ++ fs) (consList rs ρ))
         (genIhAV (tgtRs out).length R.g.pre.length (R.g.pre.length + (genCtorAt R.g R.rd c j).nF) q) ∧
       interp V (consList (xs ++ fs) (consList rs ρ))
           (genIhAV (tgtRs out).length R.g.pre.length (R.g.pre.length + (genCtorAt R.g R.rd c j).nF) q)
@@ -613,7 +613,7 @@ theorem genRhs (hμ : μ.verifiedChecks = true)
         fs.length hvals.length := by rw [genRbAV, hxl, hfl, hHl]
     rw [hRb]
     unfold genRb0
-    refine (Rules.wellDenotedV_mkAppN_of_fit (ρ := consList hvals (consList (xs ++ fs) ρ))
+    refine (Rules.wellDenoted_mkAppN_of_fit (ρ := consList hvals (consList (xs ++ fs) ρ))
       (σ := consList xs ρ) (Ta := mkPisAV bs b)
       (rest := interp V (consList (fs ++ hvals) (consList xs ρ)) b) (f := .bvar (hvals.length + fs.length
         + (xs.length - 1 - (R.g.nP + genMinorSlot R.g R.rd c j))))

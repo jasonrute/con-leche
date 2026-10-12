@@ -25,10 +25,10 @@ Semantic and syntactic pieces of a tower entry's install:
   instantiation sequence (`peelPis_of_piTeleAV`, the fit-free spine of
   `teleFitPA_of_tower`), and a `mkPisAV` tower is a `PiTeleAV`;
 * a graded application of a λ-tower that is not the point **fits** the tower
-  (`spineFit_of_wellDenotedV_mkAppN_lam`): the application clause's package
+  (`spineFit_of_wellDenoted_mkAppN_lam`): the application clause's package
   pins each argument to the layer's domain (a graph's domain is
   rigid, `graph_dom_of_mem_piSet`) — the converse of
-  `mkAppN_wellDenotedV_of_lam`;
+  `mkAppN_wellDenoted_of_lam`;
 * the projection spelling is graded at a tower member in the graph
   regime (`wellDenoted_projAV_tower`, the pair chain's Σ packages) and at
   the point in the squash regime (`wellDenoted_projAV_pt`);
@@ -107,10 +107,10 @@ theorem instSeq_pi_dom :
 tower**: no partial application is the point (`app_pt`), so each layer
 is a graph (`lamV_eq_graph`), the application clause's package puts the
 argument in a domain that graph inhabits as a function, and a graph's
-domain is rigid (`mkAppN_wellDenotedV_of_lam`'s converse). -/
-theorem spineFit_of_wellDenotedV_mkAppN_lam :
+domain is rigid (`mkAppN_wellDenoted_of_lam`'s converse). -/
+theorem spineFit_of_wellDenoted_mkAppN_lam :
     ∀ {lds : List AnnotTerm} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
-      WellDenotedV V ρ (AnnotTerm.mkAppN f args) →
+      WellDenoted V ρ (AnnotTerm.mkAppN f args) →
       interp V ρ (AnnotTerm.mkAppN f args) ≠ pt →
       interp V ρ f = interp V σ (mkLamsAV lds b) →
       args.length = lds.length →
@@ -137,7 +137,7 @@ theorem spineFit_of_wellDenotedV_mkAppN_lam :
     rw [piR_pos hv] at hf
     have hmem : interp V ρ a ∈ˢ interp V σ d := graph_dom_of_mem_piSet hf _ ha
     refine ⟨hmem, ?_⟩
-    refine spineFit_of_wellDenotedV_mkAppN_lam (b := b) hok hne ?_ (by simpa using hlen)
+    refine spineFit_of_wellDenoted_mkAppN_lam (b := b) hok hne ?_ (by simpa using hlen)
     rw [interp_app, hval]
     simp only [mkLamsAV, interp_lam]
     rw [app_lamV hmem]
@@ -248,7 +248,7 @@ theorem interp_mkAppN_foldl (ρ : Nat → V) (as : List AnnotTerm) (f : AnnotTer
 ## The projection entry's kit, continued
 
 * the grading is a congruence below a variable bound
-  (`WellDenotedV_congr_below`, `interp_congr_below`'s twin for the two
+  (`WellDenoted_congr_below`, `interp_congr_below`'s twin for the two
   truthfulness halves);
 * the field chain's per-field grading at a fitting prefix
   (`fieldsOkB_getD`, `fieldsValid_getD`);
@@ -328,11 +328,6 @@ theorem WellDenoted_congr_below :
     intro k ρ ρ' hb hag
     rw [WellDenoted_snd, WellDenoted_snd, ihe k ρ ρ' hb hag,
       interp_congr_below V e k ρ ρ' hb hag]
-
-theorem WellDenotedV_congr_below (e : AnnotTerm) (k : Nat) (ρ ρ' : Nat → V)
-    (hb : Term.bvarsBelow k e.erase) (hag : ∀ i, i < k → ρ i = ρ' i) :
-    WellDenotedV V ρ e ↔ WellDenotedV V ρ' e := by
-  exact WellDenoted_congr_below e k ρ ρ' hb hag
 
 /-! ## The field chain, indexed -/
 
@@ -462,7 +457,7 @@ absent from the opened telescope's later annotations
 (`openPisAtFvars_leaf_free`), a leaf-free reading is a lift at the
 leaf's index (`denoteMeta_liftN_of_leaf_free`), and interpretation and
 grading are invariant under a lift's index (`interp_congr_lifts`,
-`wellDenotedV_congr_lifts`).
+`wellDenoted_congr_lifts`).
 -/
 
 
@@ -833,10 +828,9 @@ theorem interp_congr_lift {e X : AnnotTerm} {k : Nat} (h : e = X.liftN 1 k) {ρ 
   subst h
   rw [interp_liftN, interp_liftN, shiftE_congr_off hag]
 
-theorem wellDenotedV_congr_lift {e X : AnnotTerm} {k : Nat} (h : e = X.liftN 1 k) {ρ ρ' : Nat → V}
-    (hag : ∀ i, i ≠ k → ρ i = ρ' i) : WellDenotedV V ρ e ↔ WellDenotedV V ρ' e := by
+theorem wellDenoted_congr_lift {e X : AnnotTerm} {k : Nat} (h : e = X.liftN 1 k) {ρ ρ' : Nat → V}
+    (hag : ∀ i, i ≠ k → ρ i = ρ' i) : WellDenoted V ρ e ↔ WellDenoted V ρ' e := by
   subst h
-  simp only [WellDenotedV]
   rw [WellDenoted_liftN, WellDenoted_liftN, shiftE_congr_off hag]
 
 /-- **Invariance under the free indices**: two valuations that differ
@@ -889,11 +883,11 @@ theorem interp_congr_lifts :
         rw [this]
         exact hag i hge
 
-theorem wellDenotedV_congr_lifts :
+theorem wellDenoted_congr_lifts :
     ∀ (N : Nat) {e : AnnotTerm} {ρ ρ' : Nat → V},
       (∀ i, i < N → ρ i ≠ ρ' i → ∃ X : AnnotTerm, e = X.liftN 1 i) →
       (∀ i, N ≤ i → ρ i = ρ' i) →
-      (WellDenotedV V ρ e ↔ WellDenotedV V ρ' e) := by
+      (WellDenoted V ρ e ↔ WellDenoted V ρ' e) := by
   intro N
   induction N with
   | zero =>
@@ -903,7 +897,7 @@ theorem wellDenotedV_congr_lifts :
   | succ N ih =>
     intro e ρ ρ' hfree hag
     let ρ'' : Nat → V := fun i => if i = N then ρ' N else ρ i
-    have h1 : WellDenotedV V ρ e ↔ WellDenotedV V ρ'' e := by
+    have h1 : WellDenoted V ρ e ↔ WellDenoted V ρ'' e := by
       by_cases hN : ρ N = ρ' N
       · have : ρ'' = ρ := by
           funext i
@@ -913,7 +907,7 @@ theorem wellDenotedV_congr_lifts :
           · rfl
         rw [this]
       · obtain ⟨X, hX⟩ := hfree N (Nat.lt_succ_self N) hN
-        exact wellDenotedV_congr_lift hX fun i hi => by
+        exact wellDenoted_congr_lift hX fun i hi => by
           show ρ i = (if i = N then ρ' N else ρ i)
           rw [ite_eq_right hi]
     rw [h1]
@@ -1177,7 +1171,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
       ((w = 0 → ∀ j, j < i → used j = true → (sorts.getD j .zero).eval ψ = 0) →
         ∀ ρ : Nat → V, Frame ρ →
           Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) →
-          WellDenotedV V ρ fdomA) ∧
+          WellDenoted V ρ fdomA) ∧
       (∀ ρ : Nat → V, Frame ρ →
         Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) →
         interp V ρ fdomA
@@ -1264,7 +1258,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
     -- graph regime the projections fit; at a squash instance they are
     -- the point spine, which differs from a fitting prefix only at
     -- unused slots, where the field is a lift
-    have hokPre : WellDenotedV V (consList (projList i (dropS off (ρ 0))) (fun j => ρ (j + 1)))
+    have hokPre : WellDenoted V (consList (projList i (dropS off (ρ 0))) (fun j => ρ (j + 1)))
         (((ds.drop nP)).getD i default) := by
       by_cases hw : w = 0
       · obtain ⟨hpt, as', hspAs⟩ := hsq ρ hx hsat hw
@@ -1272,7 +1266,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
         rw [hpt, dropS_pt, projList_pt]
         have hlenTake : (as'.take i).length = i :=
           spineFit_take_length hspAs (by rw [hlenFs]; omega)
-        rw [wellDenotedV_congr_lifts i
+        rw [wellDenoted_congr_lifts i
           (free_of_diff hlenDs hi (hsorts _ hsat) (hguard hw) hfree hspAs)
           (consList_prefix_agree hlenTake _).2]
         exact fieldsOkB_getD (hokB _ hsat) (by rw [hlenFs]; exact hi) hpre
@@ -1281,7 +1275,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
         rw [projList_take nF i _ (Nat.le_of_lt hi)] at hpre
         exact fieldsOkB_getD (hokB _ hsat) (by rw [hlenFs]; exact hi) hpre
     -- the readings' gradings at the frame
-    have hokArgs : ∀ w' ∈ entryParamBvars nP ++ entryProjAVs off i, WellDenotedV V ρ w' := by
+    have hokArgs : ∀ w' ∈ entryParamBvars nP ++ entryProjAVs off i, WellDenoted V ρ w' := by
       intro w' hw'
       rcases List.mem_append.mp hw' with hw' | hw'
       · obtain ⟨k, -, rfl⟩ := List.mem_map.mp hw'
@@ -1290,8 +1284,8 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
         have hj' : j < i := List.mem_range.mp hj
         exact hokProj ρ hx hsat j (by omega)
     rw [hfdomA, ← hlen']
-    refine wellDenotedV_instSeq _ hokArgs ?_
-    rw [(WellDenotedV_congr_below _ (nP + i) _ _ hFiBelow (chain_entry_agree nP off i ρ))]
+    refine wellDenoted_instSeq _ hokArgs ?_
+    rw [(WellDenoted_congr_below _ (nP + i) _ _ hFiBelow (chain_entry_agree nP off i ρ))]
     rw [← hFi]
     exact hokPre
   · -- the value at the frame

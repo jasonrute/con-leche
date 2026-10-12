@@ -86,7 +86,7 @@ theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
     (hb : e.looseBVarsBounded 0 = true)
     (hread : denoteMeta m.acval env φ 0 e = some (mkPisAV pps b))
     (hlen : pps.length = k)
-    (hok : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps b)) :
+    (hok : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps b)) :
     Opened m φ k e fvs o pps.reverse b := by
   obtain ⟨Γ, R, htele, hO⟩ := opened_of hop hcl hb hread hok
   have hst := stripPisAV_mkPisAV pps b
@@ -499,13 +499,13 @@ theorem mkLamsAV_fold_graded :
 step's Π-package is the layer's own (`lamV_mem` over the grading's
 fibre family), or — once a layer has collapsed the value to the
 point — the trivial one. -/
-theorem mkAppN_wellDenotedV_of_lam :
+theorem mkAppN_wellDenoted_of_lam :
     ∀ {lds : List AnnotTerm} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
-      WellDenotedV V ρ f → (∀ a ∈ args, WellDenotedV V ρ a) →
+      WellDenoted V ρ f → (∀ a ∈ args, WellDenoted V ρ a) →
       WellDenoted V σ (mkLamsAV lds b) →
       (interp V ρ f = (pt : V) ∨ interp V ρ f = interp V σ (mkLamsAV lds b)) →
       SpineFit σ lds (args.map (interp V ρ)) →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f args)
+      WellDenoted V ρ (AnnotTerm.mkAppN f args)
   | [], _, _, [], _, _, hf, _, _, _, _ => hf
   | [], _, _, _ :: _, _, _, _, _, _, _, hsp => hsp.elim
   | _ :: _, _, _, [], _, _, hf, _, _, _, _ => hf
@@ -517,8 +517,8 @@ theorem mkAppN_wellDenotedV_of_lam :
     have ha := hargs a List.mem_cons_self
     rw [AnnotTerm.mkAppN_cons]
     -- the application's package
-    have hokApp : WellDenotedV V ρ (.app f a) := by
-      rw [WellDenotedV, WellDenoted_app]
+    have hokApp : WellDenoted V ρ (.app f a) := by
+      rw [WellDenoted_app]
       rcases hval with hpt | heq
       · exact ⟨hf, ha, 0, interp V σ d, fun _ => unitSet,
           by rw [hpt, piR_zero]; exact pt_mem_truthVal fun x _ => ⟨pt, pt_mem_unitSet⟩,
@@ -528,7 +528,7 @@ theorem mkAppN_wellDenotedV_of_lam :
         rw [heq]
         simp only [mkLamsAV, interp_lam]
         exact lamV_mem hB hBty
-    refine mkAppN_wellDenotedV_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
+    refine mkAppN_wellDenoted_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
       (hrest _ hsp.1) ?_ hsp.2
     -- the continuation's value
     rw [interp_app]

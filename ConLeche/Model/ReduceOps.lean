@@ -40,7 +40,7 @@ context kit collapses to `elemA`/`sat_elemCtx` below.
 ## What the conversion costs: the gradings
 
 `DefEqClaim` compares **graded** readings.  The certificate
-variable's side is free (`WellDenotedV` of a `.bvar` is `True`); the
+variable's side is free (`WellDenoted` of a `.bvar` is `True`); the
 applied side's `WellDenoted` app clause needs the *applied* membership
 
 > `∃ v A' B', interp ρ (A ψ) ∈ˢ piR v A' B' ∧ x ∈ˢ A' ∧
@@ -167,7 +167,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
-    (hTaOk : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenotedV V ρ (Ta ψ))
+    (hTaOk : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (Ta ψ))
     (hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ))
     (hred : ConLeche.reduceOpNames.contains cv.name = true →
@@ -242,7 +242,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       IsTy (interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) := by
     intro ψ ρ'
     have h := hTaOk ψ ρ'
-    rw [hTaShape ψ, WellDenotedV, WellDenoted_pi] at h
+    rw [hTaShape ψ, WellDenoted_pi] at h
     exact h.2.1
   -- the certificate variable's syntactic and context packages
   have hvLeaves : value'.fvarLeaves = [] :=
@@ -336,11 +336,11 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   -- the gradings: the bare variable is free, the applied side is the
   -- constant's own `mem_type`/`type_wellDenotedTy` content
   have hgradeCert : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
-      WellDenotedV V ρ' (.bvar 0) := by
+      WellDenoted V ρ' (.bvar 0) := by
     intro ρ' _
     simp
   have hgradeApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
-      WellDenotedV V ρ' (.app (A ψ) (.bvar 0)) := by
+      WellDenoted V ρ' (.app (A ψ) (.bvar 0)) := by
     intro ρ' hsat
     have hfib : (fun y => interp V (cons y ρ')
           (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ))
@@ -349,7 +349,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    rw [WellDenotedV, WellDenoted_app]
+    rw [WellDenoted_app]
     refine ⟨hAok ψ ρ', by simp, ?_⟩
     exact ⟨_, interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
       fun _ => interp V ρ'

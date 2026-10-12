@@ -100,7 +100,7 @@ scoping package is carried so the claims can be applied. -/
     whnf μ env fuel d t = .ok (.sort u) →
     denoteMeta m.acval env φ d e = some ea →
     ∀ ρ : Nat → V, Sat V Δa ρ →
-      WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V)
+      WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V)
 
 /-- **`SortSemAt`'s discharge**: the
 sort fact at `fuel` from the claims at `fuel` plus the one totality

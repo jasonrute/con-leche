@@ -109,11 +109,11 @@ record. -/
     -- the spine's **grading**, and that it is a proposition (the
     -- certificate frame reads exactly these)
     ∀ (ρ : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ Aa → WellDenotedV V ρ la → WellDenotedV V ρ ra →
+      WellDenoted V ρ Aa → WellDenoted V ρ la → WellDenoted V ρ ra →
       interp V ρ Aa ∈ˢ (univ (ψ uN) : V) →
       interp V ρ la ∈ˢ interp V ρ Aa →
       interp V ρ ra ∈ˢ interp V ρ Aa →
-      WellDenotedV V ρ
+      WellDenoted V ρ
           (.app (.app (.app (m.acval eqName ψ) Aa) la) ra) ∧
         interp V ρ (.app (.app (.app (m.acval eqName ψ) Aa) la) ra)
           ∈ˢ (univZero : V)
@@ -269,7 +269,7 @@ telescope coherence (`EtaCoherent`). -/
     denoteMeta m.acval env φ' 0
       (cvT.type.instantiateLevelParams cvT.levelParams us)
       = some TVa ∧
-    (∀ ρ : Nat → V, WellDenotedV V ρ TVa) ∧
+    (∀ ρ : Nat → V, WellDenoted V ρ TVa) ∧
     (∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
       ts.length = caps.etaParams →
       TeleFit V ρ TVa ts rest →
@@ -291,7 +291,7 @@ telescope coherence (`EtaCoherent`). -/
     denoteMeta m.acval env φ' 0
       (cvT.type.instantiateLevelParams cvT.levelParams us)
       = some TVa ∧
-    (∀ ρ : Nat → V, WellDenotedV V ρ TVa) ∧
+    (∀ ρ : Nat → V, WellDenoted V ρ TVa) ∧
     ∀ (ρ : Nat → V) (ts : List V) (rest : V) (x y : V),
       ts.length = caps.unitParams →
       TeleFit V ρ TVa ts rest →
@@ -421,7 +421,7 @@ currency:
 
 * **The law is `AnnotTerm`-indexed**: the truthfulness transport is
   inherently about the applied reduct's *reading* (the ι step must
-  hand the whnf loop a graded reading), and `WellDenotedV` is
+  hand the whnf loop a graded reading), and `WellDenoted` is
   `AnnotTerm`-indexed.  A value-level law, as for the caps, would not
   carry that conjunct.
 * **`TeleFitPA` is substitution-peeling** — `B.inst a` at the
@@ -561,12 +561,12 @@ at its own levels:
       ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
         xs.length = mI →
         TeleFitPA V ρ TVa (xs ++ [a]) restR →
-        (∀ x ∈ xs, WellDenotedV V ρ x) →
+        (∀ x ∈ xs, WellDenoted V ρ x) →
         interp V ρ (AnnotTerm.mkAppN
             (m.acval n (Level.substFn φ cv.levelParams us)) (xs ++ [a]))
           = interp V ρ (AnnotTerm.mkAppN Ra (xs.take rP)) ∧
-        ((∀ x ∈ xs, WellDenotedV V ρ x) →
-          WellDenotedV V ρ (AnnotTerm.mkAppN Ra (xs.take rP)))) ∧
+        ((∀ x ∈ xs, WellDenoted V ρ x) →
+          WellDenoted V ρ (AnnotTerm.mkAppN Ra (xs.take rP)))) ∧
     ∀ (cvj : ConstantVal) (cnP cnF : Nat),
       env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) →
     -- the constructor's arity
@@ -590,7 +590,7 @@ at its own levels:
         interp V ρ a = pt →
       ∀ (ys : List AnnotTerm) (restC : AnnotTerm), TeleFitPA V ρ TVja ys restC →
         ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
-        (∀ y ∈ ys, WellDenotedV V ρ y) →
+        (∀ y ∈ ys, WellDenoted V ρ y) →
         interp V ρ (AnnotTerm.mkAppN
           (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt) ∧
     -- (U)
@@ -601,7 +601,7 @@ at its own levels:
           (xs ++ [AnnotTerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys]) restR →
         TeleFitPA V ρ TVja ys restC →
-        (∀ x ∈ xs, WellDenotedV V ρ x) → (∀ y ∈ ys, WellDenotedV V ρ y) →
+        (∀ x ∈ xs, WellDenoted V ρ x) → (∀ y ∈ ys, WellDenoted V ρ y) →
         (RecRule.fire rl = .plain →
           interp V ρ (AnnotTerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
@@ -640,7 +640,7 @@ section note). -/
       denoteMeta m.acval env φ 0
         ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us)
         = some Ra ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ Ra) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ Ra) ∧
       -- The nested pins' open readings are carried with a
       -- CONTEXT-GUARDED chain grading (an unconditional `∀ ρ` form is
       -- refutable: the checker's certificate is about the pins
@@ -658,12 +658,12 @@ section note). -/
                 cv.levelParams us)) = some vpa ∧
           ∀ (ρ : Nat → V) (zs : List AnnotTerm) (TVa restR : AnnotTerm),
             zs.length = rP →
-            (∀ z ∈ zs, WellDenotedV V ρ z) →
+            (∀ z ∈ zs, WellDenoted V ρ z) →
             denoteMeta m.acval env φ 0
               (cv.type.instantiateLevelParams cv.levelParams us)
               = some TVa →
             TeleFitPA V ρ TVa zs restR →
-            WellDenotedV V ρ
+            WellDenoted V ρ
               (ConLeche.Model.AnnotTerm.instRevChain zs vpa)) ∧
       ∀ (cvj : ConstantVal) (cnP cnF : Nat),
         env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) →
@@ -679,7 +679,7 @@ section note). -/
         -- the fired spine is graded (task #342 S5b: the constructor's own
         -- parameters are not compared outside case 3; its application is
         -- read at them, `genOutCtorOwn`)
-        (∀ y ∈ ys, WellDenotedV V ρ y) →
+        (∀ y ∈ ys, WellDenoted V ρ y) →
         -- the index pin, owed only where the fired constructor application
         -- is the point (task #342 L10: a family never `Prop` at the
         -- instance fires with no index comparison; the law reads the pin
@@ -707,8 +707,8 @@ section note). -/
           = interp V ρ
               (AnnotTerm.mkAppN Ra
                 (xs.take rP ++ ys.drop (RecRule.ctorParams rl))) ∧
-        ((∀ a ∈ xs, WellDenotedV V ρ a) → (∀ b ∈ ys, WellDenotedV V ρ b) →
-          WellDenotedV V ρ
+        ((∀ a ∈ xs, WellDenoted V ρ a) → (∀ b ∈ ys, WellDenoted V ρ b) →
+          WellDenoted V ρ
             (AnnotTerm.mkAppN Ra
               (xs.take rP ++ ys.drop (RecRule.ctorParams rl)))))
   ∧ RecRuleExtra m φ n cv mI rP rl
@@ -741,7 +741,7 @@ transported across every other cons
 
 **Why the typing law is stated over a syntactic peel** (`peelPis`)
 rather than a `TeleFitPA` fit: the `.proj` infer row holds the
-subject's *reduced type* as a graded reading (`WellDenotedV` of the family
+subject's *reduced type* as a graded reading (`WellDenoted` of the family
 application) and the subject's membership in it — never a certified
 parameter spine, since the family application is a *type* the run
 produced, not an application it checked.  Building a fit from the
@@ -788,7 +788,7 @@ an all-tower family. -/
     ∃ TVa : AnnotTerm,
       denoteMeta m.acval env φ 0
         (cvT.type.instantiateLevelParams cvT.levelParams us) = some TVa ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ TVa) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ TVa) ∧
       (∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
         ts.length = entry.numParams →
         TeleFit V ρ TVa ts rest →
@@ -899,16 +899,16 @@ dummy binders carry the reading only; the law never reads them. -/
         (TowerGuardAt φ entry us →
         ∀ (ρ : Nat → V) (vs : List AnnotTerm) (x rest : AnnotTerm),
           vs.length = entry.numParams →
-          WellDenotedV V ρ (AnnotTerm.mkAppN
+          WellDenoted V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →
           -- the subject's type is not the point (a type, at the caller)
           interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) ≠ pt →
-          WellDenotedV V ρ x →
+          WellDenoted V ρ x →
           interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →
           ConLeche.Model.AnnotTerm.peelPis Ta (vs ++ [x]) = some rest →
-          WellDenotedV V ρ (projAV (i + entry.off) x) ∧ WellDenotedTy V ρ rest ∧
+          WellDenoted V ρ (projAV (i + entry.off) x) ∧ WellDenotedTy V ρ rest ∧
             interp V ρ (projAV (i + entry.off) x) ∈ˢ interp V ρ rest)) ∧
       -- (B) the iota law: the projection of a *graded* constructor
       -- application is the selected field, at every valuation under
@@ -928,7 +928,7 @@ dummy binders carry the reading only; the law never reads them. -/
         (TowerGuardAt φ entry us →
         ∀ (ρ : Nat → V) (ys : List AnnotTerm) (rest : V),
         ys.length = entry.numParams + entry.numFields →
-        WellDenotedV V ρ (AnnotTerm.mkAppN
+        WellDenoted V ρ (AnnotTerm.mkAppN
           (m.acval entry.ctor (Level.substFn φ entry.levelParams us)) ys) →
         TeleFit V ρ TCa (ys.map (interp V ρ)) rest →
         interp V ρ (projAV (i + entry.off) (AnnotTerm.mkAppN

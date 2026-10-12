@@ -934,7 +934,7 @@ theorem blockRulePdomsAV_reads (hμ : μ.verifiedChecks = true) (mpC : EnvModelM
 spines** — `piTeleAV_graded` read back at the peel's entries. -/
 theorem prefixDoms_graded_of_tower {rds : List AnnotTerm} {cc : AnnotTerm}
     {rP : Nat} (hrP : rP ≤ rds.length)
-    (hwd : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV rds cc))
+    (hwd : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV rds cc))
     {l : Nat} (hl : l < rP) {ρ : Nat → V} {ys : List V}
     (hys : SpineFit ρ ((rds.take rP).take l) ys) :
     WellDenotedTy V (consList ys ρ) ((rds.take rP).getD l default) := by
@@ -1722,7 +1722,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
       ∃ pd, rds[j]? = some pd ∧
         denoteMeta mpC.base2.acval envC ψ j x.fvarTypeD = some pd)
     (hconclRead : denoteMeta mpC.base2.acval envC ψ n conclE = some cc)
-    (hwdTy : ∀ ρ : Nat → V, WellDenotedV V ρ ea)
+    (hwdTy : ∀ ρ : Nat → V, WellDenoted V ρ ea)
     (hop : ConLeche.openPisAtFvars n T 0 = some (fvs, conclE))
     (hinf : ConLeche.inferTypeCore μ envC F n conclE = .ok sty)
     (hens : ConLeche.ensureSortCore μ envC F n sty = .ok u) :
@@ -1851,7 +1851,7 @@ end ConclUniv
 * the equation's LEFT-hand side, the recursor VARIABLE applied to the
   rule's spine.  Its head's membership is `hwd`'s own hypothesis (the
   chain slot inhabits the recursor type's reading), so it is
-  `Rules.wellDenotedV_mkAppN_of_fit` at the RECURSOR's fit — the same
+  `Rules.wellDenoted_mkAppN_of_fit` at the RECURSOR's fit — the same
   shape §40.11's arguments took at the CONSTRUCTOR's. -/
 
 section Hwd

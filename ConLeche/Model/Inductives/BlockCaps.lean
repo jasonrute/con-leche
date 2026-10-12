@@ -114,7 +114,7 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
     (hread : ∀ ψ, denoteMeta m'.acval env' ψ 0 cvTa.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
+      WellDenoted V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
     (hfoldZ : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
         SpineFit ρ ((pps ψ)) ts →

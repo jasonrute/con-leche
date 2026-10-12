@@ -105,11 +105,11 @@ places both spines in one telescope of types (the DESIGN record of task
 /-- The slot of a graded application whose head is not the point: the
 graph regime, and a domain that is a type. -/
 theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
-    (hw : WellDenotedV V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
+    (hw : WellDenoted V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
     ∃ (v : Nat) (A : V) (B : V → V), v ≠ 0 ∧
       interp V ρ f ∈ˢ piR v A B ∧ interp V ρ x ∈ˢ A ∧ IsTy A := by
   have h := hw
-  rw [WellDenotedV, WellDenoted_app] at h
+  rw [WellDenoted_app] at h
   obtain ⟨-, -, v, A, B, hf, hx, -, hT⟩ := h
   have hv : v ≠ 0 := by
     rintro rfl; exact hn (eq_pt_of_mem_piR_zero hf)
@@ -172,14 +172,14 @@ theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : 
   have hmk := (natLit_factsAV (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ)
     hz hs hT k).2
   have hw := hwb
-  rw [WellDenotedV, WellDenoted_app] at hw
+  rw [WellDenoted_app] at hw
   obtain ⟨-, -, v, A, B, hfm, hxm, -, -⟩ := hw
   have hv : v ≠ 0 := by
     rintro rfl
     exact (mem_piR_pos Nat.one_ne_zero hs).2.2.2 (eq_pt_of_mem_piR_zero hfm)
   have hA := piR_dom_unique Nat.one_ne_zero hv hs hfm
   rw [← hA] at hxm
-  have hwk : WellDenotedV V ρ (natLitAV (m.acval natZeroName (Level.substFn φ [] []))
+  have hwk : WellDenoted V ρ (natLitAV (m.acval natZeroName (Level.substFn φ [] []))
       (m.acval natSuccName (Level.substFn φ [] [])) k) := by
     simp only [natLitAV] at hwa
     exact hwa.app_arg
@@ -507,7 +507,7 @@ theorem DefEq.eta_core {d : Nat}
       Frame d tb ∧ LeavesSub tb b ∧
         ∃ ta, denoteMeta m.acval env φ d tb = some ta ∧
           ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d b ρ →
-            WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
+            WellDenoted V ρ ea → interp V ρ ea ≠ pt →
             WellDenotedTy V ρ ta ∧ interp V ρ ea ∈ˢ interp V ρ ta)
     (hwtb : RedSem m φ d tb (.forallE ty₂ B))
     (hty : DefEqSem m φ d ty₂ ty₁)
@@ -571,11 +571,11 @@ theorem DefEq.eta_core {d : Nat}
   have hlift : ∀ x, interp V (cons x ρ) ba.lift = interp V ρ ba := fun x =>
     interp_lift_cons V ba x ρ
   have hokApp : ∀ x, x ∈ˢ interp V ρ ta →
-      WellDenotedV V (cons x ρ) (.app ba.lift (.bvar 0)) := by
+      WellDenoted V (cons x ρ) (.app ba.lift (.bvar 0)) := by
     intro x hx
-    have hok0 : WellDenotedV V (cons x ρ) ba.lift :=
-      (WellDenotedV_liftN V 1 ba 0 (cons x ρ)).mpr (by rw [shiftE_zero]; exact hokB)
-    rw [WellDenotedV, WellDenoted_app]
+    have hok0 : WellDenoted V (cons x ρ) ba.lift :=
+      (WellDenoted_liftN V 1 ba 0 (cons x ρ)).mpr (by rw [shiftE_zero]; exact hokB)
+    rw [WellDenoted_app]
     refine ⟨hok0, by simp, _, interp V ρ ta₂, (fun y => interp V (cons y ρ) ba₂),
       ?_, ?_, propN_eq_zero.mp, fun _ => hokTa₂.2⟩
     · rw [hlift]; exact hmem
@@ -624,7 +624,7 @@ theorem DefEq.eta_core {d : Nat}
     have hρ' := Sat_cons V hρ hx
     obtain ⟨hft₁, hsub₁, t₁a, ht₁a, hrow₁⟩ := ht₁ hfopen hCopen hbda
     obtain ⟨hw₁, hT₁, hm₁⟩ := hrow₁ _ hρ' (hLopenBody x)
-    have hokB₂ : WellDenotedV V (cons x ρ) ba₂ := hokW.pi_body x hx₂
+    have hokB₂ : WellDenoted V (cons x ρ) ba₂ := hokW.pi_body x hx₂
     have hTB₂ : IsTy (interp V (cons x ρ) ba₂) := hokW.pi_fib x hx₂
     -- "not pt" source (1): the body's type and the fibre are types
     have heT := htB hft₁ hfB (hCopen.of_subset hsub₁) hCB ht₁a hdB _ hρ'

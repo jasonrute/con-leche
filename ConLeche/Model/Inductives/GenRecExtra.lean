@@ -1448,7 +1448,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
     {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
-    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenotedV V ρ y) :
+    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y) :
     ∃ args : List AnnotTerm,
       args.length = (tgtMajor out j).nPc
         + ((tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψj).length ∧
@@ -1470,8 +1470,8 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
     ConLeche.Semantics.Env.find?_name hfc0
   have hcons := List.mem_of_find?_eq_some hfc0
-  have hTV : WellDenotedV V ρ TVja := (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ).1
-  have hf : WellDenotedV V ρ (mpC.base2.acval cA.1.name ψj) :=
+  have hTV : WellDenoted V ρ TVja := (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ).1
+  have hf : WellDenoted V ρ (mpC.base2.acval cA.1.name ψj) :=
     (mpC.base2.acval_wellDenoted _ ψj ρ)
   have hmem : interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ interp V ρ TVja := by
     exact mpC.mem_type _ hcons ψj TVja hread ρ
@@ -1560,7 +1560,7 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (hpc : Rules.PiChain ((tgtMajor out j).ds.length + cA.2) T0)
     {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
     (hys : ys.length = (tgtMajor out j).ds.length + cA.2)
-    (hfitC : TeleFitPA V ρ T0 ys restC) (hWD : ∀ y ∈ ys, WellDenotedV V ρ y) :
+    (hfitC : TeleFitPA V ρ T0 ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y) :
     ((ys.drop (tgtMajor out j).ds.length).map (interp V ρ)).length
         = ((tgtClsD d Dc out j).fields (tgtClsψ cvc out ψ j) (tgtClsM mc pp.toBlockShape out j)
             i).length ∧
@@ -1822,7 +1822,7 @@ theorem genOut_P (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
     {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
-    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenotedV V ρ y) :
+    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y) :
     interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
   obtain ⟨args, -, -, -, hin, -, hU⟩ := genOut_typed hcov Rd hcAM hread hys hfitC hWD
   rw [genOut_wCongr Rd hcAM hlv, hw] at hU
@@ -1850,7 +1850,7 @@ theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {me
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [maj]) restR)
-    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenotedV V ρ y)
+    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y)
     (hpar : ∀ q, q < (tgtMajor out j).nPc → interp V ρ (ys.getD q default)
       = interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ)
           ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).getD q default))

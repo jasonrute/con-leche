@@ -27,7 +27,7 @@ binders (`genMinorSetup`: the minor premise's type IS the one built at the
 rule prefix).  The minor premise's domain is graded wherever the prefix
 fits (it is a binder domain of the stored, inferred recursor type), and a
 graded Π-tower grades its binder domains along their fitting spines
-(`wellDenotedV_piDom_at`): the field domains are graded — `hframe` of the
+(`wellDenoted_piDom_at`): the field domains are graded — `hframe` of the
 family premise, and the field half of `hrowV`.
 -/
 
@@ -46,9 +46,9 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **A graded Π-tower grades its binder domains** along any spine
 fitting the domains before them. -/
-theorem wellDenotedV_piDom_at {B : AnnotTerm} :
+theorem wellDenoted_piDom_at {B : AnnotTerm} :
     ∀ {tl : List AnnotTerm} {ρ : Nat → V},
-      WellDenotedV V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
+      WellDenoted V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
       SpineFit ρ (tl.take l) zs →
         WellDenotedTy V (consList zs ρ) (tl.getD l default)
   | [], _, _, l, hl, _, _ => absurd hl (Nat.not_lt_zero _)
@@ -63,7 +63,7 @@ theorem wellDenotedV_piDom_at {B : AnnotTerm} :
       match zs, hz with
       | z :: zs, hz =>
         simp only [List.take_succ_cons] at hz
-        have ih := wellDenotedV_piDom_at (tl := tl) (ρ := cons z ρ)
+        have ih := wellDenoted_piDom_at (tl := tl) (ρ := cons z ρ)
           (hw.2.2.1 z hz.1) l (by simpa using hl) zs hz.2
         simpa [consList_cons] using ih
 
@@ -93,7 +93,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ∧
       ∀ (ρ : Nat → V) (xs : List V),
         SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
-        WellDenotedV V (consList xs ρ) (mkPisAV bs b) := by
+        WellDenoted V (consList xs ρ) (mkPisAV bs b) := by
   obtain ⟨cls, s, x, T, res, ws, ihs, hgc, hgx, hms, hxmem, hMaj, ⟨ihs0, hsS⟩, hpreT, hTs, hrP,
     hopR, hCB, hnF, hcv, hwsR, hihl, hih, ⟨sc, hmc, hscl⟩, hTE⟩ := genMinorSetup R hg h hfind hc hj
   have hr : (tgtRs out)[c]? = some ((tgtRs out)[c]'hc) := List.getElem?_eq_getElem hc
@@ -214,7 +214,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         have := spineFit_take hxs (i := R.g.nP + s) (by omega)
         exact this)
     rw [hPdget] at hgr
-    rw [← hBE, WellDenotedV_liftN, hsh]
+    rw [← hBE, WellDenoted_liftN, hsh]
     exact hgr.1
 
 set_option maxHeartbeats 1600000 in
@@ -264,7 +264,7 @@ theorem genCls_frameV (hμ : μ.verifiedChecks = true)
     have hgd : bs.getD k default = fdoms.getD k default := by
       rw [← hbF, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_take,
         ite_eq_left hk]
-    have := wellDenotedV_piDom_at hw k hkb zs (by rw [htk]; exact hzs)
+    have := wellDenoted_piDom_at hw k hkb zs (by rw [htk]; exact hzs)
     rw [hgd] at this
     rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left,
       ← List.getD_eq_getElem?_getD, consList_append]

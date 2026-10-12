@@ -127,7 +127,7 @@ theorem recStage_tyPis {envC : Env} (hμ : μ.verifiedChecks = true)
           denoteMeta mpC.base2.acval envC ψ j x.fvarTypeD = some pd) ∧
       denoteMeta mpC.base2.acval envC ψ (p.toBlockShape.majorIdxAt i + 1) concl
           = some (blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ i) ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ (blockRecTyAV mpC.base2.acval envC rs ψ i)) := by
+      (∀ ρ : Nat → V, WellDenoted V ρ (blockRecTyAV mpC.base2.acval envC rs ψ i)) := by
   obtain ⟨R⟩ := h
   obtain ⟨_, _, -, -, ⟨TE⟩⟩ := R.tyGenAt hr
   have hop := TE.hopen

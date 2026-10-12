@@ -614,16 +614,16 @@ theorem prefixDoms_agree_inst :
       rfl
     -- the gradings at the opening's own depth
     have hokAl : ∀ ρ : Nat → V, Sat V domsA.reverse ρ →
-        WellDenotedV V ρ ((domsA.getD l default).liftN (rP - l) 0) := by
+        WellDenoted V ρ ((domsA.getD l default).liftN (rP - l) 0) := by
       intro ρ hρ
-      refine (WellDenotedV_liftN V (rP - l) _ 0 ρ).mpr ?_
+      refine (WellDenoted_liftN V (rP - l) _ 0 ρ).mpr ?_
       obtain ⟨ρ₂, zs, hzlen, hfitZ, rfl⟩ := sat_reverse_cases hlenA hρ
       rw [shiftE_consList_take l hzlen]
       exact (hokA l hl ρ₂ (zs.take l) (spineFit_take_any hfitZ l)).1
     have hokBl : ∀ ρ : Nat → V, Sat V domsA.reverse ρ →
-        WellDenotedV V ρ ((domsB.getD l default).liftN (rP - l) 0) := by
+        WellDenoted V ρ ((domsB.getD l default).liftN (rP - l) 0) := by
       intro ρ hρ
-      refine (WellDenotedV_liftN V (rP - l) _ 0 ρ).mpr ?_
+      refine (WellDenoted_liftN V (rP - l) _ 0 ρ).mpr ?_
       obtain ⟨ρ₂, zs, hzlen, hfitZ, rfl⟩ := sat_reverse_cases hlenA hρ
       rw [shiftE_consList_take l hzlen]
       refine (hokB l hl ρ₂ (zs.take l) ?_).1

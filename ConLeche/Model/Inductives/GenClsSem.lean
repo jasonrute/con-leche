@@ -253,7 +253,7 @@ theorem genCls_inst_graded (hμ : μ.verifiedChecks = true)
         = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC p.toBlockShape (tgtRs out) ψ c).reverse σ →
-        WellDenotedV V σ w := by
+        WellDenoted V σ w := by
   obtain ⟨cls, ty, ifs, body, -, -, -, -, hifl, hRP, hmI, -, -, -, fvs, o, hop, hE⟩ :=
     genRun_binders hμ R hg h mpC ψ hc
   have hr : (tgtRs out)[c]? = some ((tgtRs out)[c]'hc) := List.getElem?_eq_getElem hc
@@ -535,7 +535,7 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
   have hisl : is.length = nI := by rw [hisK.length_eq, hψc, hidsLen]
   obtain ⟨-, -, -, -, hTyE, hlenRds, -, -, hwdTy⟩ :=
     recStage_tyPis (V := V) hμ mpC h (List.getElem?_eq_getElem hc) ψ
-  have hwdR : ∀ ρ' : Nat → V, WellDenotedV V ρ'
+  have hwdR : ∀ ρ' : Nat → V, WellDenoted V ρ'
       (mkPisAV (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)
         (blockRecConclAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)) :=
     fun ρ' => by rw [← hTyE]; exact hwdTy ρ'

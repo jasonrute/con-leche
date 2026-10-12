@@ -217,7 +217,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
+    obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy' (V := V) hgw.graded
     have hCw : CtxOkP m φ dep Δa (.forallE a b) := hC.of_subset hsub
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     obtain ⟨hfrn, hsubn, nba, hnba, hgn, heqn⟩ :=
@@ -272,7 +272,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgr.graded
+    obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy' (V := V) hgr.graded
     -- the field
     obtain ⟨hfrn, hsubn, nda, hnda, hgn, heqn⟩ := iha ⟨hws.1, hb.1, hLa⟩ hC.forallE_ty hta hgAT
     -- the rest, one binder down

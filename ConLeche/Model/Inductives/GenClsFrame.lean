@@ -124,7 +124,7 @@ theorem graded_of_infer_openers (hμ : μ.verifiedChecks = true) {envC : Env}
     (hwsE : Expr.WScoped D e) (hbE : e.looseBVarsBounded 0 = true)
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fr) :
     ∃ w, denoteMeta mpC.base2.acval envC ψ D e = some w ∧
-      (∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenotedV V (consList ys σ) w) ∧
+      (∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenoted V (consList ys σ) w) ∧
       (∀ u, ConLeche.whnf μ envC F D t = .ok (.sort u) →
         ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys →
           IsTy (interp V (consList ys σ) w)) := by
@@ -294,7 +294,7 @@ theorem GradedFrame.graded (hμ : μ.verifiedChecks = true) {envC : Env}
     (hwsE : Expr.WScoped D e) (hbE : e.looseBVarsBounded 0 = true)
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fr) :
     ∃ w, denoteMeta mpC.base2.acval envC ψ D e = some w ∧
-      ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenotedV V (consList ys σ) w :=
+      ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys → WellDenoted V (consList ys σ) w :=
   let ⟨w, hw, hg, _⟩ :=
     graded_of_infer_openers hμ mpC ψ G.len G.shape G.ws G.lb G.rd G.ok hinf hwsE hbE hleaf
   ⟨w, hw, hg⟩
@@ -951,8 +951,8 @@ theorem genArgs_graded (hμ : μ.verifiedChecks = true)
     (hys : SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys) :
     (∀ e ∈ tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j,
-      WellDenotedV V (consList ys ρ) e) ∧
-    WellDenotedV V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j) := by
+      WellDenoted V (consList ys ρ) e) ∧
+    WellDenoted V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j) := by
   obtain ⟨cls, s, x, res, ws, ihs, fvs1, o1, xs', rest, hgc, hgx, hms, hxmem, hMaj, hrP, hmp,
     hopR, hCB, hnF, hcv, hwsR, hihl, hih, -, hop1, hle, hlenF, hshF, hwbF, hPd, hxl', hshX,
     hwbX, hdF, -, hrest, hbbS, hinfX, ⟨tR, hinfR⟩, hwsRest, hbRest, hleafs, -, -, -⟩ :=
@@ -969,7 +969,7 @@ theorem genArgs_graded (hμ : μ.verifiedChecks = true)
         [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
           ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j)])[m]? = some e →
       ∃ w, denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF) e = some w ∧
-        WellDenotedV V (consList ys ρ) w := by
+        WellDenoted V (consList ys ρ) w := by
     intro m a e ha he
     have hEa := hargE m e a he ha
     have haA : a ∈ (Expr.mkAppN f' as').getAppArgs := by
@@ -1092,7 +1092,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
       (∀ e ∈ q.2.2.1 ++ [q.2.2.2], ∀ (σ : Nat → V) (ys : List V),
         SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1) ys →
-        WellDenotedV V (consList ys σ) e) ∧
+        WellDenoted V (consList ys σ) e) ∧
       (∀ (σ : Nat → V) (ys : List V),
         SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1) ys →
@@ -1283,7 +1283,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
           SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
             ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
             ++ readOpenedDoms mpC.base2.acval envC ψ D zs) ys →
-          WellDenotedV V (consList ys σ) w := by
+          WellDenoted V (consList ys σ) w := by
     intro m e he
     obtain ⟨a, ha⟩ : ∃ a, as2[m]? = some a :=
       ⟨_, List.getElem?_eq_getElem (by rw [has2l]; exact (List.getElem?_eq_some_iff.mp he).1)⟩

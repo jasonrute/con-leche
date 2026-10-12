@@ -1285,8 +1285,8 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
       (∀ e ∈ tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j,
-        WellDenotedV V (consList ys ρ) e) ∧
-      WellDenotedV V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
+        WellDenoted V (consList ys ρ) e) ∧
+      WellDenoted V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
     (hrhs : ∀ rs : List V, rs.length = (tgtRs out).length →
       (∀ c, c < (tgtRs out).length →
         rs.getD c pt ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c)) →
@@ -1294,8 +1294,8 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
       (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length g rd 0 ψ c j,
-        WellDenotedV V (consList ys (consList rs ρ)) v) ∧
-      WellDenotedV V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length g rd
+        WellDenoted V (consList ys (consList rs ρ)) v) ∧
+      WellDenoted V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length g rd
           0 ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
         (genRbAV g rd c j)) :
     ∀ (rs : List V), rs.length = (tgtRs out).length →
@@ -1395,7 +1395,7 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
         ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c) := by
       rw [hhead]; exact ht c hc
     rw [← hch] at hTF hmem'
-    refine (Rules.wellDenotedV_mkAppN_of_fit _
+    refine (Rules.wellDenoted_mkAppN_of_fit _
       (f := .bvar ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
           + (tgtFdomsK (tgtRs out).length mpC.base2.acval envC pp.toBlockShape out ψ c j).length
           + ((tgtRs out).length - 1 - c))) (hwdTy ρ) trivial (fun x hx => ?_)
@@ -1405,15 +1405,15 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       · obtain ⟨k, -, rfl⟩ := List.mem_map.mp hx
         trivial
       · obtain ⟨e, he, rfl⟩ := List.mem_map.mp hx
-        rw [hch, ← hwl, wellDenotedV_liftN_chainFrame]
+        rw [hch, ← hwl, wellDenoted_liftN_chainFrame]
         exact hE e he
     · rw [List.mem_singleton] at hx
-      rw [hx, tgtMkK, hch, ← hwl, wellDenotedV_liftN_chainFrame]
+      rw [hx, tgtMkK, hch, ← hwl, wellDenoted_liftN_chainFrame]
       exact hMk
   · -- the residue, at the `ih` values
     obtain ⟨hIv, hRv⟩ := hrhs as hl ht c hc j hj (xs ++ fs) hbase
     rw [wd_instsAV (fun v hv => hIv v hv)]
-    have key := (wellDenotedV_liftN_chainFrame (K := (tgtRs out).length)
+    have key := (wellDenoted_liftN_chainFrame (K := (tgtRs out).length)
       (a := fun c => as.getD c pt) (ρ := ρ)
       ((xs ++ fs) ++ (genIhsAV mpC.base2.acval envC (tgtRs out).length g rd 0 ψ c
         j).map (interp V (consList (xs ++ fs) (consList as ρ))))

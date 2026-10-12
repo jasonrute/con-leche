@@ -357,8 +357,8 @@ environment through its slot values.  The `∃ w S F` witnesses are
 `bconst_app_dataAV`/`_data3` — nothing is chosen. -/
 
 /-- The relation binder's domain is graded, unconditionally. -/
-theorem quotRelTy_wellDenotedV (ρ : Nat → V) (hA : IsTy (ρ 0)) :
-    WellDenotedV V ρ quotRelTy :=
+theorem quotRelTy_wellDenoted (ρ : Nat → V) (hA : IsTy (ρ 0)) :
+    WellDenoted V ρ quotRelTy :=
   ⟨trivial, hA, fun _ _ => ⟨trivial, hA, fun _ _ => trivial, fun _ _ => IsTy_univ 0⟩,
     fun _ _ => IsTy_piV⟩
 
@@ -537,13 +537,13 @@ theorem pt_mem_unitPropR : (pt : V) ∈ˢ unitPropR V :=
 
 /-- **A `λ` whose body is the canonical proof is graded** — the fibre is
 `unitPropR`, a type; and it is the canonical proof itself. -/
-theorem WellDenotedV_lam_zero_pt {ρ : Nat → V} {Aa b : AnnotTerm}
+theorem WellDenoted_lam_zero_pt {ρ : Nat → V} {Aa b : AnnotTerm}
     (hA : WellDenotedTy V ρ Aa)
-    (hb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) b)
+    (hb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) b)
     (hpt : ∀ x, x ∈ˢ interp V ρ Aa → interp V (cons x ρ) b = pt) :
-    WellDenotedV V ρ (.lam Aa b) ∧ interp V ρ (.lam Aa b) = pt := by
+    WellDenoted V ρ (.lam Aa b) ∧ interp V ρ (.lam Aa b) = pt := by
   refine ⟨?_, by rw [interp_lam]; exact lamV_eq_pt hpt⟩
-  rw [WellDenotedV, WellDenoted_lam]
+  rw [WellDenoted_lam]
   exact ⟨hA.1, hA.2, fun x hx => hb x hx, fun _ => unitPropR V,
     fun x hx => by rw [hpt x hx]; exact pt_mem_unitPropR,
     fun _ _ => Or.inl unitPropR_mem_univZero⟩
@@ -551,19 +551,19 @@ theorem WellDenotedV_lam_zero_pt {ρ : Nat → V} {Aa b : AnnotTerm}
 /-- **The canonical proof applied to anything is graded, and is again
 the canonical proof.**  The `∃ w S F` witness is `w = 0`, the
 argument's own domain, and the constant `unitPropR` fibre. -/
-theorem WellDenotedV_app_pt {ρ : Nat → V} {f a : AnnotTerm} {S : V}
-    (hf : WellDenotedV V ρ f) (hfi : interp V ρ f = pt)
-    (ha : WellDenotedV V ρ a) (hmem : interp V ρ a ∈ˢ S) :
-    WellDenotedV V ρ (.app f a) ∧ interp V ρ (.app f a) = pt := by
+theorem WellDenoted_app_pt {ρ : Nat → V} {f a : AnnotTerm} {S : V}
+    (hf : WellDenoted V ρ f) (hfi : interp V ρ f = pt)
+    (ha : WellDenoted V ρ a) (hmem : interp V ρ a ∈ˢ S) :
+    WellDenoted V ρ (.app f a) ∧ interp V ρ (.app f a) = pt := by
   refine ⟨?_, by rw [interp_app, hfi, app_pt]⟩
-  rw [WellDenotedV, WellDenoted_app]
+  rw [WellDenoted_app]
   exact ⟨hf, ha, 0, S, fun _ => unitPropR V,
     by rw [hfi]; exact pt_mem_piR_zero fun _ _ => ⟨pt, pt_mem_unitPropR⟩,
     hmem, fun _ _ _ => unitPropR_mem_univZero, fun h => absurd rfl h⟩
 
 /-! ### The two domains, graded -/
 
-theorem quotIndMotiveTy_wellDenotedV {u : Nat} {Aset R : V} (ρ : Nat → V)
+theorem quotIndMotiveTy_wellDenoted {u : Nat} {Aset R : V} (ρ : Nat → V)
     (hA : Aset ∈ˢ (univ u : V)) (hR : R ∈ˢ relSpace V Aset) :
     WellDenotedTy V (cons R (cons Aset ρ)) (quotIndMotiveTy u) := by
   obtain ⟨hok, hint⟩ := quotApp_data (u := u) (i := 1) (j := 0)
@@ -571,7 +571,7 @@ theorem quotIndMotiveTy_wellDenotedV {u : Nat} {Aset R : V} (ρ : Nat → V)
   exact ⟨⟨hok, by rw [hint]; exact IsTy_of_mem_univ (quotSet_mem_univ hA),
       fun _ _ => trivial, fun _ _ => IsTy_univ 0⟩, IsTy_piV⟩
 
-theorem quotIndMinorTy_wellDenotedV {u : Nat} {Aset R M : V} (ρ : Nat → V)
+theorem quotIndMinorTy_wellDenoted {u : Nat} {Aset R M : V} (ρ : Nat → V)
     (hA : Aset ∈ˢ (univ u : V)) (hR : R ∈ˢ relSpace V Aset)
     (hM : M ∈ˢ quotIndMotiveSpace V u Aset R) :
     WellDenotedTy V (cons M (cons R (cons Aset ρ))) (quotIndMinorTy u) := by
@@ -617,20 +617,20 @@ def quotIndRa (u : Nat) : AnnotTerm :=
 /-- The three inner `λ`s of `Quot.ind`'s RHS, at a type and a relation. -/
 theorem quotIndRa_inner (u : Nat) (ρ : Nat → V) {Aset R : V}
     (hAset : Aset ∈ˢ (univ u : V)) (hR : R ∈ˢ relSpace V Aset) :
-    WellDenotedV V (cons R (cons Aset ρ))
+    WellDenoted V (cons R (cons Aset ρ))
         (.lam (quotIndMotiveTy u) (.lam (quotIndMinorTy u)
           (.lam (.bvar 3) (.app (.bvar 1) (.bvar 0))))) ∧
       interp V (cons R (cons Aset ρ))
         (.lam (quotIndMotiveTy u) (.lam (quotIndMinorTy u)
           (.lam (.bvar 3) (.app (.bvar 1) (.bvar 0))))) = pt := by
   have hM3 : ∀ M, M ∈ˢ quotIndMotiveSpace V u Aset R →
-      WellDenotedV V (cons M (cons R (cons Aset ρ)))
+      WellDenoted V (cons M (cons R (cons Aset ρ)))
           (.lam (quotIndMinorTy u) (.lam (.bvar 3) (.app (.bvar 1) (.bvar 0)))) ∧
         interp V (cons M (cons R (cons Aset ρ)))
           (.lam (quotIndMinorTy u) (.lam (.bvar 3) (.app (.bvar 1) (.bvar 0)))) = pt := by
     intro M hM
     have hmk : ∀ mk, mk ∈ˢ quotIndMinorSpace V u Aset R M →
-        WellDenotedV V (cons mk (cons M (cons R (cons Aset ρ))))
+        WellDenoted V (cons mk (cons M (cons R (cons Aset ρ))))
             (.lam (.bvar 3) (.app (.bvar 1) (.bvar 0))) ∧
           interp V (cons mk (cons M (cons R (cons Aset ρ))))
             (.lam (.bvar 3) (.app (.bvar 1) (.bvar 0))) = pt := by
@@ -640,22 +640,22 @@ theorem quotIndRa_inner (u : Nat) (ρ : Nat → V) {Aset R : V}
       have hdom : interp V (cons mk (cons M (cons R (cons Aset ρ))))
           (AnnotTerm.bvar 3) = Aset := by simp [interp_bvar, cons]
       have hbody : ∀ a : V, a ∈ˢ Aset →
-          WellDenotedV V (cons a (cons mk (cons M (cons R (cons Aset ρ)))))
+          WellDenoted V (cons a (cons mk (cons M (cons R (cons Aset ρ)))))
               (.app (.bvar 1) (.bvar 0)) ∧
             interp V (cons a (cons mk (cons M (cons R (cons Aset ρ)))))
               (.app (.bvar 1) (.bvar 0)) = pt := fun a ha =>
-        WellDenotedV_app_pt (S := Aset) trivial (by
+        WellDenoted_app_pt (S := Aset) trivial (by
           rw [interp_bvar]
           show cons a (cons mk (cons M (cons R (cons Aset ρ)))) 1 = pt
           exact hmkpt) trivial (by rw [interp_bvar]; exact ha)
-      exact WellDenotedV_lam_zero_pt
+      exact WellDenoted_lam_zero_pt
         ⟨trivial, by rw [hdom]; exact IsTy_of_mem_univ hAset⟩
         (fun a ha => (hbody a (by rwa [hdom] at ha)).1)
         (fun a ha => (hbody a (by rwa [hdom] at ha)).2)
-    exact WellDenotedV_lam_zero_pt (quotIndMinorTy_wellDenotedV ρ hAset hR hM)
+    exact WellDenoted_lam_zero_pt (quotIndMinorTy_wellDenoted ρ hAset hR hM)
       (fun mk h => (hmk mk (by rwa [quotIndMinorTy_interp ρ hAset hR] at h)).1)
       (fun mk h => (hmk mk (by rwa [quotIndMinorTy_interp ρ hAset hR] at h)).2)
-  exact WellDenotedV_lam_zero_pt (quotIndMotiveTy_wellDenotedV ρ hAset hR)
+  exact WellDenoted_lam_zero_pt (quotIndMotiveTy_wellDenoted ρ hAset hR)
     (fun M h => (hM3 M (by rwa [quotIndMotiveTy_interp ρ hAset hR] at h)).1)
     (fun M h => (hM3 M (by rwa [quotIndMotiveTy_interp ρ hAset hR] at h)).2)
 
@@ -664,21 +664,21 @@ five `λ`s whose bodies are all the canonical proof (the innermost
 because the minor premise itself is: its fibres are truth values,
 `eq_pt_of_mem_piV`). -/
 theorem quotIndRa_facts (u : Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (quotIndRa u) ∧ interp V ρ (quotIndRa u) = (pt : V) := by
+    WellDenoted V ρ (quotIndRa u) ∧ interp V ρ (quotIndRa u) = (pt : V) := by
   rw [quotIndRa]
-  refine WellDenotedV_lam_zero_pt ⟨trivial, IsTy_univ _⟩ ?_ ?_
+  refine WellDenoted_lam_zero_pt ⟨trivial, IsTy_univ _⟩ ?_ ?_
   rotate_left
   · intro Aset hAset
     rw [interp_sort] at hAset
-    refine (WellDenotedV_lam_zero_pt
-      ⟨quotRelTy_wellDenotedV _ (IsTy_of_mem_univ hAset), IsTy_piV⟩ ?_ ?_).2 <;>
+    refine (WellDenoted_lam_zero_pt
+      ⟨quotRelTy_wellDenoted _ (IsTy_of_mem_univ hAset), IsTy_piV⟩ ?_ ?_).2 <;>
     intro R hR <;> rw [quotRelTy_interp] at hR
     · exact (quotIndRa_inner u ρ hAset hR).1
     · exact (quotIndRa_inner u ρ hAset hR).2
   intro Aset hAset
   rw [interp_sort] at hAset
-  refine (WellDenotedV_lam_zero_pt
-    ⟨quotRelTy_wellDenotedV _ (IsTy_of_mem_univ hAset), IsTy_piV⟩ ?_ ?_).1 <;>
+  refine (WellDenoted_lam_zero_pt
+    ⟨quotRelTy_wellDenoted _ (IsTy_of_mem_univ hAset), IsTy_piV⟩ ?_ ?_).1 <;>
   intro R hR <;> rw [quotRelTy_interp] at hR
   · exact (quotIndRa_inner u ρ hAset hR).1
   · exact (quotIndRa_inner u ρ hAset hR).2
@@ -686,8 +686,8 @@ theorem quotIndRa_facts (u : Nat) (ρ : Nat → V) :
 theorem quotIndRa_interp (u : Nat) (ρ : Nat → V) :
     interp V ρ (quotIndRa u) = (pt : V) := (quotIndRa_facts u ρ).2
 
-theorem quotIndRa_wellDenotedV (u : Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (quotIndRa u) := (quotIndRa_facts u ρ).1
+theorem quotIndRa_wellDenoted (u : Nat) (ρ : Nat → V) :
+    WellDenoted V ρ (quotIndRa u) := (quotIndRa_facts u ρ).1
 
 /-- **`Quot.ind`'s rule's RHS reading.** -/
 theorem denoteMeta_quotInd_rhs (ψ : Name → Nat)
@@ -872,7 +872,7 @@ theorem quotIndExtra {m : EnvModel V env}
 /-- **`Quot.ind`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
 `.nested` conjuncts are `nomatch`; the fired equality is `pt = pt`
 (`bval .quotInd` is the canonical proof and so is the RHS tower), and
-the transport is five `WellDenotedV_app_pt` steps whose domains come
+the transport is five `WellDenoted_app_pt` steps whose domains come
 straight off the two telescope fits — no domain has to be
 identified. -/
 theorem quotIndLaw {m : EnvModel V env}
@@ -895,7 +895,7 @@ theorem quotIndLaw {m : EnvModel V env}
       = some (quotIndRa (ψ uN)) := by
     rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
       denoteMeta_quotInd_rhs (m := m) _ hQ hM]
-  refine ⟨quotIndRa (ψ uN), hRa, fun ρ => quotIndRa_wellDenotedV _ ρ, ?_, ?_⟩
+  refine ⟨quotIndRa (ψ uN), hRa, fun ρ => quotIndRa_wellDenoted _ ρ, ?_, ?_⟩
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
@@ -959,12 +959,12 @@ theorem quotIndLaw {m : EnvModel V env}
     simp only [show quotIndRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
       AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil]
-    have h1 := WellDenotedV_app_pt (quotIndRa_wellDenotedV (ψ uN) ρ)
+    have h1 := WellDenoted_app_pt (quotIndRa_wellDenoted (ψ uN) ρ)
       (quotIndRa_interp (ψ uN) ρ) (hxsA x1 (by simp)) f1
-    have h2 := WellDenotedV_app_pt h1.1 h1.2 (hxsA x2 (by simp)) f2
-    have h3 := WellDenotedV_app_pt h2.1 h2.2 (hxsA x3 (by simp)) f3
-    have h4 := WellDenotedV_app_pt h3.1 h3.2 (hxsA x4 (by simp)) f4
-    exact (WellDenotedV_app_pt h4.1 h4.2 (hysA y3 (by simp)) g3).1
+    have h2 := WellDenoted_app_pt h1.1 h1.2 (hxsA x2 (by simp)) f2
+    have h3 := WellDenoted_app_pt h2.1 h2.2 (hxsA x3 (by simp)) f3
+    have h4 := WellDenoted_app_pt h3.1 h3.2 (hxsA x4 (by simp)) f4
+    exact (WellDenoted_app_pt h4.1 h4.2 (hysA y3 (by simp)) g3).1
 
 /-- **`Quot.ind`, installed at the P tier.** -/
 theorem extendQuotInd (mp : EnvModelM V μ env)
@@ -1145,27 +1145,27 @@ binders of `Quot.sound`'s type (and the three of `Quot.lift`'s
 invariance premise) are five applications of one lemma: the product is
 graded and *is itself* a truth value, which is exactly what the next
 binder out needs. -/
-theorem WellDenotedV_pi_zero {ρ : Nat → V} {Aa B : AnnotTerm}
-    (hA : WellDenotedV V ρ Aa) (hAt : IsTy (interp V ρ Aa))
-    (hB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) B)
+theorem WellDenoted_pi_zero {ρ : Nat → V} {Aa B : AnnotTerm}
+    (hA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
+    (hB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) B)
     (hz : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) B ∈ˢ (univZero : V)) :
-    WellDenotedV V ρ (.pi Aa B) ∧
+    WellDenoted V ρ (.pi Aa B) ∧
       interp V ρ (.pi Aa B) ∈ˢ (univZero : V) := by
   refine ⟨⟨hA, hAt, fun x hx => hB x hx, fun x hx => Or.inl (hz x hx)⟩, ?_⟩
   rw [interp_pi, piV_eq_zero hz]
   exact piR_zero_mem_univZero
 
 /-- **`Quot.sound`'s type reading is graded** — five
-`WellDenotedV_pi_zero` steps whose innermost slot is `EqLaw`'s grading
+`WellDenoted_pi_zero` steps whose innermost slot is `EqLaw`'s grading
 half. -/
-theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
+theorem quotSoundTy_wellDenoted {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ u : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V)) :
     WellDenotedTy V ρ (quotSoundTy E u) := by
@@ -1173,7 +1173,7 @@ theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
   -- arguments, whose readings are the block's two applied formers
   have hin : ∀ Aset R a b w : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → a ∈ˢ Aset → b ∈ˢ Aset →
-      WellDenotedV V (cons w (cons b (cons a (cons R (cons Aset ρ)))))
+      WellDenoted V (cons w (cons b (cons a (cons R (cons Aset ρ)))))
           (.app (.app (.app E (quotApp u 4 3)) (quotMkApp u 4 3 2))
             (quotMkApp u 4 3 1)) ∧
         interp V (cons w (cons b (cons a (cons R (cons Aset ρ)))))
@@ -1197,7 +1197,7 @@ theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
       (by rw [hTint, hrint]; exact quotClass_mem hb)
   have h5 : ∀ Aset R a b : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → a ∈ˢ Aset → b ∈ˢ Aset →
-      WellDenotedV V (cons b (cons a (cons R (cons Aset ρ))))
+      WellDenoted V (cons b (cons a (cons R (cons Aset ρ))))
           (.pi (.app (.app (.bvar 2) (.bvar 1)) (.bvar 0))
             (.app (.app (.app E (quotApp u 4 3)) (quotMkApp u 4 3 2))
               (quotMkApp u 4 3 1))) ∧
@@ -1210,12 +1210,12 @@ theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
       (k := 0) (ρ := cons b (cons a (cons R (cons Aset ρ))))
       (by simp [cons]) (by simp [cons]) (by simp [cons]) hR ha hb
       (IsTy_of_mem_univ hAset)
-    exact WellDenotedV_pi_zero hrok (by rw [hrint]; exact IsTy_relV_app hR ha hb)
+    exact WellDenoted_pi_zero hrok (by rw [hrint]; exact IsTy_relV_app hR ha hb)
       (fun w _ => (hin Aset R a b w hAset hR ha hb).1)
       (fun w _ => (hin Aset R a b w hAset hR ha hb).2)
   have h4 : ∀ Aset R a : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → a ∈ˢ Aset →
-      WellDenotedV V (cons a (cons R (cons Aset ρ)))
+      WellDenoted V (cons a (cons R (cons Aset ρ)))
           (.pi (.bvar 2)
             (.pi (.app (.app (.bvar 2) (.bvar 1)) (.bvar 0))
               (.app (.app (.app E (quotApp u 4 3))
@@ -1229,13 +1229,13 @@ theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
     intro Aset R a hAset hR ha
     have hdom : interp V (cons a (cons R (cons Aset ρ)))
         (AnnotTerm.bvar 2) = Aset := by simp [interp_bvar, cons]
-    exact WellDenotedV_pi_zero (Aa := .bvar 2) trivial
+    exact WellDenoted_pi_zero (Aa := .bvar 2) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hAset)
       (fun b hb => (h5 Aset R a b hAset hR ha (by rwa [hdom] at hb)).1)
       (fun b hb => (h5 Aset R a b hAset hR ha (by rwa [hdom] at hb)).2)
   have h3 : ∀ Aset R : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset →
-      WellDenotedV V (cons R (cons Aset ρ))
+      WellDenoted V (cons R (cons Aset ρ))
           (.pi (.bvar 1)
             (.pi (.bvar 2)
               (.pi (.app (.app (.bvar 2) (.bvar 1)) (.bvar 0))
@@ -1251,12 +1251,12 @@ theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
     intro Aset R hAset hR
     have hdom : interp V (cons R (cons Aset ρ)) (AnnotTerm.bvar 1)
         = Aset := by simp [interp_bvar, cons]
-    exact WellDenotedV_pi_zero (Aa := .bvar 1) trivial
+    exact WellDenoted_pi_zero (Aa := .bvar 1) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hAset)
       (fun a ha => (h4 Aset R a hAset hR (by rwa [hdom] at ha)).1)
       (fun a ha => (h4 Aset R a hAset hR (by rwa [hdom] at ha)).2)
   have h2 : ∀ Aset : V, Aset ∈ˢ (univ u : V) →
-      WellDenotedV V (cons Aset ρ)
+      WellDenoted V (cons Aset ρ)
           (.pi quotRelTy
             (.pi (.bvar 1)
               (.pi (.bvar 2)
@@ -1272,15 +1272,15 @@ theorem quotSoundTy_wellDenotedV {E : AnnotTerm} {u : Nat} (ρ : Nat → V)
                     (quotMkApp u 4 3 2)) (quotMkApp u 4 3 1))))))
           ∈ˢ (univZero : V) := by
     intro Aset hAset
-    exact WellDenotedV_pi_zero (Aa := quotRelTy)
-      (quotRelTy_wellDenotedV _ (IsTy_of_mem_univ hAset))
+    exact WellDenoted_pi_zero (Aa := quotRelTy)
+      (quotRelTy_wellDenoted _ (IsTy_of_mem_univ hAset))
       (by rw [quotRelTy_interp]; exact IsTy_relSpace _)
       (fun R hR => (h3 Aset R hAset
         (by rwa [quotRelTy_interp] at hR)).1)
       (fun R hR => (h3 Aset R hAset
         (by rwa [quotRelTy_interp] at hR)).2)
   rw [quotSoundTy]
-  have h := WellDenotedV_pi_zero (Aa := .sort u) trivial (IsTy_univ u)
+  have h := WellDenoted_pi_zero (Aa := .sort u) trivial (IsTy_univ u)
     (fun Aset hAset => (h2 Aset (by rwa [interp_sort] at hAset)).1)
     (fun Aset hAset => (h2 Aset (by rwa [interp_sort] at hAset)).2)
   exact ⟨h.1, Or.inl h.2⟩
@@ -1373,7 +1373,7 @@ theorem extendQuotSound (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact quotSoundTy_wellDenotedV ρ (mp.eq_law hE ψ).2
+    exact quotSoundTy_wellDenoted ρ (mp.eq_law hE ψ).2
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
@@ -1390,20 +1390,20 @@ concludes at the `Eq` former read **at `v`**, so the bridge is
 
 /-- One application step, with the fibre named — the shape every
 `RecRuleLaw` transport peels with. -/
-theorem WellDenotedV_app_of {ρ : Nat → V} {f a : AnnotTerm} {S : V}
-    {F : V → V} (hf : WellDenotedV V ρ f) (ha : WellDenotedV V ρ a)
+theorem WellDenoted_app_fibre {ρ : Nat → V} {f a : AnnotTerm} {S : V}
+    {F : V → V} (hf : WellDenoted V ρ f) (ha : WellDenoted V ρ a)
     (hfm : interp V ρ f ∈ˢ piV S F) (ham : interp V ρ a ∈ˢ S) (hS : IsTy S) :
-    WellDenotedV V ρ (.app f a) ∧
+    WellDenoted V ρ (.app f a) ∧
       interp V ρ (.app f a) ∈ˢ F (interp V ρ a) :=
-  ⟨by rw [WellDenotedV, WellDenoted_app]; exact ⟨hf, ha, slot_of_mem_piV V hfm ham hS⟩,
+  ⟨by rw [WellDenoted_app]; exact ⟨hf, ha, slot_of_mem_piV V hfm ham hS⟩,
     by rw [interp_app]; exact app_mem_piV hfm ham⟩
 
 /-- A `.pi`, graded from its parts. -/
-theorem WellDenotedV_pi_of {ρ : Nat → V} {Aa B : AnnotTerm}
-    (hA : WellDenotedV V ρ Aa) (hAt : IsTy (interp V ρ Aa))
-    (hB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) B)
+theorem WellDenoted_pi_of {ρ : Nat → V} {Aa B : AnnotTerm}
+    (hA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
+    (hB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) B)
     (hBt : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) B)) :
-    WellDenotedV V ρ (.pi Aa B) :=
+    WellDenoted V ρ (.pi Aa B) :=
   ⟨hA, hAt, hB, hBt⟩
 
 /-- A `.pi`'s reading is a type. -/
@@ -1414,12 +1414,12 @@ theorem IsTy_interp_pi {ρ : Nat → V} {Aa B : AnnotTerm} :
 /-- **A `λ`, graded and placed at once** — the combined step every
 basis tower's walk takes: the fibre named once serves both
 `WellDenoted`'s existential and `lamV_mem`'s hypothesis. -/
-theorem WellDenotedV_lam_mem {ρ : Nat → V} {Aa bd : AnnotTerm}
-    {F : V → V} (hA : WellDenotedV V ρ Aa) (hAt : IsTy (interp V ρ Aa))
-    (hb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) bd ∧
+theorem WellDenoted_lam_piV {ρ : Nat → V} {Aa bd : AnnotTerm}
+    {F : V → V} (hA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
+    (hb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) bd ∧
       interp V (cons x ρ) bd ∈ˢ F x)
     (hFt : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (F x)) :
-    WellDenotedV V ρ (.lam Aa bd) ∧
+    WellDenoted V ρ (.lam Aa bd) ∧
       interp V ρ (.lam Aa bd) ∈ˢ piV (interp V ρ Aa) F := by
   refine ⟨⟨hA, hAt, fun x hx => (hb x hx).1, F, fun x hx => (hb x hx).2, hFt⟩, ?_⟩
   rw [interp_lam]
@@ -1451,18 +1451,18 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V))
     (hR : R ∈ˢ relSpace V Aset) (hAty : IsTy Aset) (hB : B ∈ˢ (univ v : V))
     (hf : f ∈ˢ piV Aset fun _ => B) :
     interp V (cons f (cons B (cons R (cons Aset ρ))))
         (quotLiftInvTy E) = quotInvSpace V Aset R f ∧
-      WellDenotedV V (cons f (cons B (cons R (cons Aset ρ))))
+      WellDenoted V (cons f (cons B (cons R (cons Aset ρ))))
         (quotLiftInvTy E) := by
   have hfm : ∀ a : V, a ∈ˢ Aset → app f a ∈ˢ B := fun a ha => app_mem_piV hf ha
   have hd1 : interp V (cons f (cons B (cons R (cons Aset ρ)))) (AnnotTerm.bvar 3) = Aset := by
@@ -1474,7 +1474,7 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
           (.app (.app (.app E (.bvar 4)) (.app (.bvar 3) (.bvar 2)))
             (.app (.bvar 3) (.bvar 1)))
         = eqv (app f a) (app f b) ∧
-      WellDenotedV V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
+      WellDenoted V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
           (.app (.app (.app E (.bvar 4)) (.app (.bvar 3) (.bvar 2)))
             (.app (.bvar 3) (.bvar 1))) ∧
       interp V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
@@ -1489,18 +1489,18 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
     have hfb : interp V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
         (.app (.bvar 3) (.bvar 1)) = app f b := by
       simp [interp_app, interp_bvar, cons]
-    have hokfa : WellDenotedV V (cons w (cons b (cons a
+    have hokfa : WellDenoted V (cons w (cons b (cons a
         (cons f (cons B (cons R (cons Aset ρ)))))))
         (.app (.bvar 3) (.bvar 2)) :=
-      (WellDenotedV_app_of (S := Aset) (F := fun _ => B)
+      (WellDenoted_app_fibre (S := Aset) (F := fun _ => B)
         (ρ := cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
         (f := .bvar 3) (a := .bvar 2) trivial trivial
         (by simpa [interp_bvar, cons] using hf) (by simpa [interp_bvar, cons] using ha)
         hAty).1
-    have hokfb : WellDenotedV V (cons w (cons b (cons a
+    have hokfb : WellDenoted V (cons w (cons b (cons a
         (cons f (cons B (cons R (cons Aset ρ)))))))
         (.app (.bvar 3) (.bvar 1)) :=
-      (WellDenotedV_app_of (S := Aset) (F := fun _ => B)
+      (WellDenoted_app_fibre (S := Aset) (F := fun _ => B)
         (ρ := cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
         (f := .bvar 3) (a := .bvar 1) trivial trivial
         (by simpa [interp_bvar, cons] using hf) (by simpa [interp_bvar, cons] using hb)
@@ -1514,7 +1514,7 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
     rw [interp_app, interp_app, interp_app, hB', hfa, hfb,
       hval _ _ _ _ hB (hfm a ha) (hfm b hb)]
   have hstep : ∀ a : V, a ∈ˢ Aset → ∀ b : V, b ∈ˢ Aset →
-      WellDenotedV V (cons b (cons a (cons f (cons B (cons R (cons Aset ρ))))))
+      WellDenoted V (cons b (cons a (cons f (cons B (cons R (cons Aset ρ))))))
           (.pi (.app (.app (.bvar 4) (.bvar 1)) (.bvar 0))
             (.app (.app (.app E (.bvar 4))
               (.app (.bvar 3) (.bvar 2)))
@@ -1529,12 +1529,12 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
       (j := 1) (k := 0) (ρ := cons b (cons a (cons f (cons B (cons R (cons Aset ρ))))))
       (by simp [cons]) (by simp [cons])
       (by simp [cons]) hR ha hb hAty
-    exact WellDenotedV_pi_zero hrok
+    exact WellDenoted_pi_zero hrok
       (by rw [hrint]; exact IsTy_relV_app hR ha hb)
       (fun w _ => (hbody a b ha hb w).2.1)
       (fun w _ => (hbody a b ha hb w).2.2)
   have hlev : ∀ a : V, a ∈ˢ Aset →
-      WellDenotedV V (cons a (cons f (cons B (cons R (cons Aset ρ)))))
+      WellDenoted V (cons a (cons f (cons B (cons R (cons Aset ρ)))))
           (.pi (.bvar 4)
             (.pi (.app (.app (.bvar 4) (.bvar 1)) (.bvar 0))
               (.app (.app (.app E (.bvar 4))
@@ -1547,7 +1547,7 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
                 (.app (.bvar 3) (.bvar 2)))
                 (.app (.bvar 3) (.bvar 1)))))
           ∈ˢ (univZero : V) := fun a ha =>
-    WellDenotedV_pi_zero (Aa := .bvar 4) trivial
+    WellDenoted_pi_zero (Aa := .bvar 4) trivial
       (by rw [hd2 a]; exact hAty)
       (fun b hb => (hstep a ha b (by rwa [hd2 a] at hb)).1)
       (fun b hb => (hstep a ha b (by rwa [hd2 a] at hb)).2)
@@ -1563,35 +1563,35 @@ theorem quotLiftInvTy_data {E : AnnotTerm} {v : Nat} {Aset R B f : V}
     rw [interp_pi, hrint]
     exact piV_congr fun w _ => (hbody a b ha hb w).1
   · rw [quotLiftInvTy]
-    exact (WellDenotedV_pi_zero (Aa := .bvar 3) trivial
+    exact (WellDenoted_pi_zero (Aa := .bvar 3) trivial
       (by rw [hd1]; exact hAty)
       (fun a ha => (hlev a (by rwa [hd1] at ha)).1)
       (fun a ha => (hlev a (by rwa [hd1] at ha)).2)).1
 
 /-- **`Quot.lift`'s type reading is graded.** -/
-theorem quotLiftTy_wellDenotedV {E : AnnotTerm} {u v : Nat}
+theorem quotLiftTy_wellDenoted {E : AnnotTerm} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V))
     (ρ : Nat → V) :
     WellDenotedTy V ρ (quotLiftTy E u v) := by
   have h6 : ∀ Aset R B f h : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → B ∈ˢ (univ v : V) →
-      WellDenotedV V (cons h (cons f (cons B (cons R (cons Aset ρ)))))
+      WellDenoted V (cons h (cons f (cons B (cons R (cons Aset ρ)))))
         (.pi (quotApp u 4 3) (.bvar 3)) := by
     intro Aset R B f h hAset hR hB
     obtain ⟨hqok, hqint⟩ := quotApp_data (u := u) (i := 4) (j := 3)
       (ρ := cons h (cons f (cons B (cons R (cons Aset ρ)))))
       (by simp [cons]) (by simp [cons]) hAset hR
-    exact WellDenotedV_pi_of hqok
+    exact WellDenoted_pi_of hqok
       (by rw [hqint]; exact IsTy_of_mem_univ (quotSet_mem_univ hAset))
       (fun _ _ => trivial)
       (fun q _ => by
@@ -1602,17 +1602,17 @@ theorem quotLiftTy_wellDenotedV {E : AnnotTerm} {u v : Nat}
   have h5 : ∀ Aset R B f : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → B ∈ˢ (univ v : V) →
       f ∈ˢ piV Aset (fun _ => B) →
-      WellDenotedV V (cons f (cons B (cons R (cons Aset ρ))))
+      WellDenoted V (cons f (cons B (cons R (cons Aset ρ))))
         (.pi (quotLiftInvTy E)
           (.pi (quotApp u 4 3) (.bvar 3))) := by
     intro Aset R B f hAset hR hB hf
     obtain ⟨hinvEq, hinv⟩ := quotLiftInvTy_data ρ hval hgr hR
       (IsTy_of_mem_univ hAset) hB hf
-    exact WellDenotedV_pi_of hinv (by rw [hinvEq]; exact IsTy_piR _ _ _)
+    exact WellDenoted_pi_of hinv (by rw [hinvEq]; exact IsTy_piR _ _ _)
       (fun h _ => h6 Aset R B f h hAset hR hB) (fun _ _ => IsTy_interp_pi)
   have h4 : ∀ Aset R B : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → B ∈ˢ (univ v : V) →
-      WellDenotedV V (cons B (cons R (cons Aset ρ)))
+      WellDenoted V (cons B (cons R (cons Aset ρ)))
         (.pi (.pi (.bvar 2) (.bvar 1))
           (.pi (quotLiftInvTy E)
             (.pi (quotApp u 4 3) (.bvar 3)))) := by
@@ -1622,37 +1622,37 @@ theorem quotLiftTy_wellDenotedV {E : AnnotTerm} {u v : Nat}
         = piV Aset (fun _ => B) := by
       rw [interp_pi]
       simp only [interp_bvar, cons]
-    refine WellDenotedV_pi_of ?_ IsTy_interp_pi
+    refine WellDenoted_pi_of ?_ IsTy_interp_pi
       (fun f hf => h5 Aset R B f hAset hR hB (by rwa [hdom] at hf))
       (fun _ _ => IsTy_interp_pi)
-    exact WellDenotedV_pi_of (Aa := .bvar 2) trivial
+    exact WellDenoted_pi_of (Aa := .bvar 2) trivial
       (by simpa [interp_bvar, cons] using IsTy_of_mem_univ hAset)
       (fun _ _ => trivial)
       (fun a _ => by simpa [interp_bvar, cons] using IsTy_of_mem_univ hB)
   have h3 : ∀ Aset R : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset →
-      WellDenotedV V (cons R (cons Aset ρ))
+      WellDenoted V (cons R (cons Aset ρ))
         (.pi (.sort v)
           (.pi (.pi (.bvar 2) (.bvar 1))
             (.pi (quotLiftInvTy E)
               (.pi (quotApp u 4 3) (.bvar 3))))) := fun Aset R hAset hR =>
-    WellDenotedV_pi_of (Aa := .sort v) trivial (IsTy_univ v)
+    WellDenoted_pi_of (Aa := .sort v) trivial (IsTy_univ v)
       (fun B hB => h4 Aset R B hAset hR (by rwa [interp_sort] at hB))
       (fun _ _ => IsTy_interp_pi)
   have h2 : ∀ Aset : V, Aset ∈ˢ (univ u : V) →
-      WellDenotedV V (cons Aset ρ)
+      WellDenoted V (cons Aset ρ)
         (.pi quotRelTy
           (.pi (.sort v)
             (.pi (.pi (.bvar 2) (.bvar 1))
               (.pi (quotLiftInvTy E)
                 (.pi (quotApp u 4 3) (.bvar 3)))))) := fun Aset hAset =>
-    WellDenotedV_pi_of (Aa := quotRelTy)
-      (quotRelTy_wellDenotedV _ (IsTy_of_mem_univ hAset))
+    WellDenoted_pi_of (Aa := quotRelTy)
+      (quotRelTy_wellDenoted _ (IsTy_of_mem_univ hAset))
       (by rw [quotRelTy_interp]; exact IsTy_relSpace _)
       (fun R hR => h3 Aset R hAset (by rwa [quotRelTy_interp] at hR))
       (fun _ _ => IsTy_interp_pi)
   rw [quotLiftTy]
-  exact ⟨WellDenotedV_pi_of (Aa := .sort u) trivial (IsTy_univ u)
+  exact ⟨WellDenoted_pi_of (Aa := .sort u) trivial (IsTy_univ u)
     (fun Aset hAset => h2 Aset (by rwa [interp_sort] at hAset))
     (fun _ _ => IsTy_interp_pi), IsTy_interp_pi⟩
 
@@ -1664,11 +1664,11 @@ theorem quotLiftTy_mem {E : AnnotTerm} {u v : Nat}
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V))
     (ρ : Nat → V) :
@@ -1791,20 +1791,20 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V))
     (ρ : Nat → V) :
-    WellDenotedV V ρ (quotLiftRa E u v) ∧
+    WellDenoted V ρ (quotLiftRa E u v) ∧
       interp V ρ (quotLiftRa E u v) ∈ˢ quotLiftRaSpace V u v := by
   have h6 : ∀ Aset R B f h : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → B ∈ˢ (univ v : V) →
       f ∈ˢ piV Aset (fun _ => B) →
-      WellDenotedV V (cons h (cons f (cons B (cons R (cons Aset ρ)))))
+      WellDenoted V (cons h (cons f (cons B (cons R (cons Aset ρ)))))
           (.lam (.bvar 4) (.app (.bvar 2) (.bvar 0))) ∧
         interp V (cons h (cons f (cons B (cons R (cons Aset ρ)))))
           (.lam (.bvar 4) (.app (.bvar 2) (.bvar 0)))
@@ -1813,10 +1813,10 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
     have hdom : interp V (cons h (cons f (cons B
         (cons R (cons Aset ρ))))) (AnnotTerm.bvar 4) = Aset := by
       simp [interp_bvar, cons]
-    have := WellDenotedV_lam_mem (F := fun _ => B) (bd := .app (.bvar 2) (.bvar 0))
+    have := WellDenoted_lam_piV (F := fun _ => B) (bd := .app (.bvar 2) (.bvar 0))
       (ρ := cons h (cons f (cons B (cons R (cons Aset ρ))))) (Aa := .bvar 4) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hAset)
-      (fun a ha => WellDenotedV_app_of (S := Aset) (F := fun _ => B)
+      (fun a ha => WellDenoted_app_fibre (S := Aset) (F := fun _ => B)
         (ρ := cons a (cons h (cons f (cons B (cons R (cons Aset ρ))))))
         (f := .bvar 2) (a := .bvar 0) trivial trivial
         (by simpa [interp_bvar, cons] using hf)
@@ -1827,7 +1827,7 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
   have h5 : ∀ Aset R B f : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → B ∈ˢ (univ v : V) →
       f ∈ˢ piV Aset (fun _ => B) →
-      WellDenotedV V (cons f (cons B (cons R (cons Aset ρ))))
+      WellDenoted V (cons f (cons B (cons R (cons Aset ρ))))
           (.lam (quotLiftInvTy E)
             (.lam (.bvar 4) (.app (.bvar 2) (.bvar 0)))) ∧
         interp V (cons f (cons B (cons R (cons Aset ρ))))
@@ -1838,13 +1838,13 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
     intro Aset R B f hAset hR hB hf
     obtain ⟨hinvint, hinvok⟩ := quotLiftInvTy_data ρ hval hgr
       hR (IsTy_of_mem_univ hAset) hB hf
-    have := WellDenotedV_lam_mem (F := fun _ => piV Aset (fun _ => B)) hinvok
+    have := WellDenoted_lam_piV (F := fun _ => piV Aset (fun _ => B)) hinvok
       (by rw [hinvint]; exact IsTy_piR _ _ _)
       (fun h _ => h6 Aset R B f h hAset hR hB hf) (fun _ _ => IsTy_piV)
     rwa [hinvint] at this
   have h4 : ∀ Aset R B : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset → B ∈ˢ (univ v : V) →
-      WellDenotedV V (cons B (cons R (cons Aset ρ)))
+      WellDenoted V (cons B (cons R (cons Aset ρ)))
           (.lam (.pi (.bvar 2) (.bvar 1))
             (.lam (quotLiftInvTy E)
               (.lam (.bvar 4) (.app (.bvar 2) (.bvar 0))))) ∧
@@ -1860,20 +1860,20 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
         (AnnotTerm.pi (.bvar 2) (.bvar 1))
         = piV Aset (fun _ => B) := by
       rw [interp_pi]; simp only [interp_bvar, cons]
-    have hdok : WellDenotedV V (cons B (cons R (cons Aset ρ)))
+    have hdok : WellDenoted V (cons B (cons R (cons Aset ρ)))
         (AnnotTerm.pi (.bvar 2) (.bvar 1)) :=
-      WellDenotedV_pi_of (Aa := .bvar 2) trivial
+      WellDenoted_pi_of (Aa := .bvar 2) trivial
         (by simpa [interp_bvar, cons] using IsTy_of_mem_univ hAset)
         (fun _ _ => trivial)
         (fun a _ => by simpa [interp_bvar, cons] using IsTy_of_mem_univ hB)
-    have := WellDenotedV_lam_mem (F := fun f => piV (quotInvSpace V Aset R f)
+    have := WellDenoted_lam_piV (F := fun f => piV (quotInvSpace V Aset R f)
         (fun _ => piV Aset (fun _ => B))) hdok IsTy_interp_pi
       (fun f hf => h5 Aset R B f hAset hR hB (by rwa [hdom] at hf))
       (fun _ _ => IsTy_piV)
     rwa [hdom] at this
   have h3 : ∀ Aset R : V, Aset ∈ˢ (univ u : V) →
       R ∈ˢ relSpace V Aset →
-      WellDenotedV V (cons R (cons Aset ρ))
+      WellDenoted V (cons R (cons Aset ρ))
           (.lam (.sort v)
             (.lam (.pi (.bvar 2) (.bvar 1))
               (.lam (quotLiftInvTy E)
@@ -1888,14 +1888,14 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
               (fun f => piV (quotInvSpace V Aset R f)
                 (fun _ => piV Aset (fun _ => B)))) := by
     intro Aset R hAset hR
-    have := WellDenotedV_lam_mem (F := fun B => piV (piV Aset (fun _ => B))
+    have := WellDenoted_lam_piV (F := fun B => piV (piV Aset (fun _ => B))
         (fun f => piV (quotInvSpace V Aset R f) (fun _ => piV Aset (fun _ => B))))
       (Aa := .sort v) (ρ := cons R (cons Aset ρ)) trivial (IsTy_univ v)
       (fun B hB => h4 Aset R B hAset hR (by rwa [interp_sort] at hB))
       (fun _ _ => IsTy_piV)
     rwa [interp_sort] at this
   have h2 : ∀ Aset : V, Aset ∈ˢ (univ u : V) →
-      WellDenotedV V (cons Aset ρ)
+      WellDenoted V (cons Aset ρ)
           (.lam quotRelTy
             (.lam (.sort v)
               (.lam (.pi (.bvar 2) (.bvar 1))
@@ -1913,15 +1913,15 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
                 (fun f => piV (quotInvSpace V Aset R f)
                   (fun _ => piV Aset (fun _ => B))))) := by
     intro Aset hAset
-    have := WellDenotedV_lam_mem (F := fun R => piV (univ v : V) (fun B =>
+    have := WellDenoted_lam_piV (F := fun R => piV (univ v : V) (fun B =>
         piV (piV Aset (fun _ => B))
           (fun f => piV (quotInvSpace V Aset R f) (fun _ => piV Aset (fun _ => B)))))
-      (quotRelTy_wellDenotedV _ (IsTy_of_mem_univ hAset))
+      (quotRelTy_wellDenoted _ (IsTy_of_mem_univ hAset))
       (by rw [quotRelTy_interp]; exact IsTy_relSpace _)
       (fun R hR => h3 Aset R hAset (by rwa [quotRelTy_interp] at hR))
       (fun _ _ => IsTy_piV)
     rwa [quotRelTy_interp] at this
-  have := WellDenotedV_lam_mem (F := fun Aset => piV (relSpace V Aset) (fun R =>
+  have := WellDenoted_lam_piV (F := fun Aset => piV (relSpace V Aset) (fun R =>
       piV (univ v : V) (fun B =>
         piV (piV Aset (fun _ => B))
           (fun f => piV (quotInvSpace V Aset R f) (fun _ => piV Aset (fun _ => B))))))
@@ -1931,20 +1931,20 @@ theorem quotLiftRa_facts {E : AnnotTerm} {u v : Nat}
   rw [interp_sort] at this
   exact this
 
-theorem quotLiftRa_wellDenotedV {E : AnnotTerm} {u v : Nat}
+theorem quotLiftRa_wellDenoted {E : AnnotTerm} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V))
     (ρ : Nat → V) :
-    WellDenotedV V ρ (quotLiftRa E u v) :=
+    WellDenoted V ρ (quotLiftRa E u v) :=
   (quotLiftRa_facts hval hgr ρ).1
 
 /-! ### The two sides of the fired equality -/
@@ -1972,11 +1972,11 @@ theorem quotLiftRa_app {E : AnnotTerm} {u v : Nat}
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
     (hgr : ∀ (ρ' : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ' Aa → WellDenotedV V ρ' la → WellDenotedV V ρ' ra →
+      WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
       interp V ρ' ra ∈ˢ interp V ρ' Aa →
-      WellDenotedV V ρ' (.app (.app (.app E Aa) la) ra) ∧
+      WellDenoted V ρ' (.app (.app (.app E Aa) la) ra) ∧
         interp V ρ' (.app (.app (.app E Aa) la) ra)
           ∈ˢ (univZero : V))
     (ρ : Nat → V) {Aset R B f h a : V}
@@ -2095,7 +2095,7 @@ set_option maxHeartbeats 1000000 in
 with `interp_inst_cons1`..`_cons4`, which put every substituted domain
 at exactly the `cons` environment its space lemma is stated at; the
 fired equality is `quotLiftV_fired` against `quotLiftRa_app`; the
-transport is six `WellDenotedV_app_of` steps over `quotLiftRaSpace`. -/
+transport is six `WellDenoted_app_fibre` steps over `quotLiftRaSpace`. -/
 theorem quotLiftLaw {m : EnvModel V env}
     (m₂ : EnvModel V ⟨quotLiftA :: env.consts⟩)
     (hQ : env.find? quotName = some quotA)
@@ -2125,7 +2125,7 @@ theorem quotLiftLaw {m : EnvModel V env}
     rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
       denoteMeta_quotLift_rhs (m := m) _ hE]
   refine ⟨_, hRa,
-    fun ρ => quotLiftRa_wellDenotedV hval0 hgr0 ρ, ?_, ?_⟩
+    fun ρ => quotLiftRa_wellDenoted hval0 hgr0 ρ, ?_, ?_⟩
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
@@ -2250,12 +2250,12 @@ theorem quotLiftLaw {m : EnvModel V env}
     have hRa := quotLiftRa_facts (u := ψ uN) hval0 hgr0 ρ
     have hRm := hRa.2
     rw [quotLiftRaSpace] at hRm
-    have h1 := WellDenotedV_app_of hRa.1 (hxsA x1 (by simp)) hRm f1 (IsTy_univ _)
-    have h2 := WellDenotedV_app_of h1.1 (hxsA x2 (by simp)) h1.2 f2 (IsTy_relSpace _)
-    have h3 := WellDenotedV_app_of h2.1 (hxsA x3 (by simp)) h2.2 f3 (IsTy_univ _)
-    have h4 := WellDenotedV_app_of h3.1 (hxsA x4 (by simp)) h3.2 f4 IsTy_piV
-    have h5 := WellDenotedV_app_of h4.1 (hxsA x5 (by simp)) h4.2 f5 (IsTy_piR _ _ _)
-    exact (WellDenotedV_app_of h5.1 (hysA y3 (by simp)) h5.2 hg3
+    have h1 := WellDenoted_app_fibre hRa.1 (hxsA x1 (by simp)) hRm f1 (IsTy_univ _)
+    have h2 := WellDenoted_app_fibre h1.1 (hxsA x2 (by simp)) h1.2 f2 (IsTy_relSpace _)
+    have h3 := WellDenoted_app_fibre h2.1 (hxsA x3 (by simp)) h2.2 f3 (IsTy_univ _)
+    have h4 := WellDenoted_app_fibre h3.1 (hxsA x4 (by simp)) h3.2 f4 IsTy_piV
+    have h5 := WellDenoted_app_fibre h4.1 (hxsA x5 (by simp)) h4.2 f5 (IsTy_piR _ _ _)
+    exact (WellDenoted_app_fibre h5.1 (hysA y3 (by simp)) h5.2 hg3
       (IsTy_of_mem_univ f1)).1
 
 /-- The two `EqLaw` halves at the assignment `Quot.lift` reads the
@@ -2267,11 +2267,11 @@ theorem quotLift_eqLaws (mp : EnvModelM V μ env)
       app (app (app (interp V ρ (mp.base2.acval eqName
         (Level.substFn ψ [uN] [Level.param vN]))) T) x) y = eqv x y) ∧
     (∀ (ρ : Nat → V) (Aa la ra : AnnotTerm),
-      WellDenotedV V ρ Aa → WellDenotedV V ρ la → WellDenotedV V ρ ra →
+      WellDenoted V ρ Aa → WellDenoted V ρ la → WellDenoted V ρ ra →
       interp V ρ Aa ∈ˢ (univ (ψ vN) : V) →
       interp V ρ la ∈ˢ interp V ρ Aa →
       interp V ρ ra ∈ˢ interp V ρ Aa →
-      WellDenotedV V ρ (.app (.app (.app (mp.base2.acval eqName
+      WellDenoted V ρ (.app (.app (.app (mp.base2.acval eqName
           (Level.substFn ψ [uN] [Level.param vN])) Aa) la) ra) ∧
         interp V ρ (.app (.app (.app (mp.base2.acval eqName
           (Level.substFn ψ [uN] [Level.param vN])) Aa) la) ra)
@@ -2326,7 +2326,7 @@ theorem extendQuotLift (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact quotLiftTy_wellDenotedV (quotLift_eqLaws mp hE ψ).1
+    exact quotLiftTy_wellDenoted (quotLift_eqLaws mp hE ψ).1
       (quotLift_eqLaws mp hE ψ).2 ρ
   · intro ψ ta h ρ
     rw [hty ψ] at h

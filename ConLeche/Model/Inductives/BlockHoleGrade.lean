@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.BlockPosRun
+import ConLeche.Semantics.Hoist
 public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Model.IndDomGrade
@@ -69,11 +70,11 @@ theorem fieldsOkB_of_prefix {w : Nat} :
 /-- A graded Π-tower's body is graded under all its binders. -/
 theorem gradedV_mkPisAV_body :
     ∀ {ab : List AnnotTerm} {Δa : List AnnotTerm} {B : AnnotTerm},
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (mkPisAV ab B)) →
-      ∀ ρ : Nat → V, Sat V ((ab).reverse ++ Δa) ρ → WellDenotedV V ρ B
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (mkPisAV ab B)) →
+      ∀ ρ : Nat → V, Sat V ((ab).reverse ++ Δa) ρ → WellDenoted V ρ B
   | [], _, _, h, ρ, hρ => h ρ (by simpa using hρ)
   | _ :: _, _, _, h, ρ, hρ =>
-    gradedV_mkPisAV_body (Rules.WellDenotedV.hoist_pi (V := V) h).2 ρ
+    gradedV_mkPisAV_body (Semantics.WellDenoted.hoist_pi (V := V) h).2 ρ
       (by simpa [List.reverse_cons, List.append_assoc] using hρ)
 
 /-! ## One constructor -/
@@ -119,7 +120,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
-      ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e := by
+      ∀ e ∈ d.absE ψ c j, WellDenoted V (consList fs (d.toLfp.frame ψ ρp X)) e := by
   obtain ⟨-, ab, hhi, -, hca, hab, -, habLen, -, -, -, hfr, hCP, hgr, -, hsatFrame⟩ :=
     blockCtorHoleCtx (Rules.RulesInputs.ofSem mp ψ) hN hcore hnames hlps hnP hk
       hcv0 hop0 hholes hcj hCf hCb hcrest hinf hsort hd hnf
@@ -149,7 +150,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
       WellDenotedTy V (consList as σ) ((d.absF ψ c j).getD i default) := by
     intro i hi as has
     rw [hget i hi]
-    refine wellDenotedV_mkPisAV_dom hgr.graded i _ (List.getElem?_eq_getElem hi) _ ?_
+    refine wellDenoted_mkPisAV_dom hgr.graded i _ (List.getElem?_eq_getElem hi) _ ?_
     rw [← htake i]
     exact sat_of_spineFit hσ has
   -- U2's universe bound, per field
@@ -196,7 +197,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
   -- the result index readings: arguments of the graded body
   have hbody := gradedV_mkPisAV_body hgr.graded (consList fs σ)
     (by rw [← hFab]; exact sat_of_spineFit hσ hfs)
-  exact WellDenotedV_mkAppN_args _ hbody e he
+  exact WellDenoted_mkAppN_args _ hbody e he
 
 /-! ## The block -/
 
@@ -230,7 +231,7 @@ theorem blockHoleGrade_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks
     ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
     ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
-      ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e := by
+      ∀ e ∈ d.absE ψ c j, WellDenoted V (consList fs (d.toLfp.frame ψ ρp X)) e := by
   obtain rfl := ConLeche.CheckMode.eq_verified hμ
   obtain ⟨kinds, nfs, nodes⟩ := posKs
   obtain ⟨cvTa0, fvsP, rest, holes, hcv0, hop0, hholes, hder, -⟩ :=
@@ -801,7 +802,7 @@ theorem blockHoleChains_facts {env : Env} {m : EnvModel V env} {d : BlockData V}
       ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
       ∀ fs : List V, SpineFit (d.toLfp.frame ψ ρp X) (d.absF ψ c j) fs →
-        ∀ e ∈ d.absE ψ c j, WellDenotedV V (consList fs (d.toLfp.frame ψ ρp X)) e) :
+        ∀ e ∈ d.absE ψ c j, WellDenoted V (consList fs (d.toLfp.frame ψ ρp X)) e) :
     (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
       BlockChainsOkG d.N (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
         (d.toLfp.holeChains ψ)) ∧
@@ -861,7 +862,7 @@ theorem fieldsBelow_take : ∀ {Fs : List AnnotTerm} {k : Nat} (n : Nat),
 hereditarily graded at every frame — a member's parameter
 telescope, read off its former's type. -/
 theorem teleTake_ok {pps : List AnnotTerm} {B : AnnotTerm} (n : Nat)
-    (hok : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps B)) (hb : DomsBelow 0 pps) :
+    (hok : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps B)) (hb : DomsBelow 0 pps) :
     FieldsBelow 0 ((pps.take n)) ∧ ∀ σ : Nat → V,
       FieldsOkB 0 σ ((pps.take n)) := by
   have hdom : ∀ σ : Nat → V, ∀ i, i < ((pps.take n)).length → ∀ as : List V,
@@ -875,7 +876,7 @@ theorem teleTake_ok {pps : List AnnotTerm} {B : AnnotTerm} (n : Nat)
         List.getElem?_eq_getElem hi']
       rfl
     rw [hget]
-    refine wellDenotedV_mkPisAV_dom (Δa := []) (fun ρ _ => hok ρ) i _
+    refine wellDenoted_mkPisAV_dom (Δa := []) (fun ρ _ => hok ρ) i _
       (List.getElem?_eq_getElem hi') _ ?_
     have h1 : ((pps.take n)).take i = (pps.take i) := by
       rw [List.take_take, Nat.min_eq_left (Nat.le_of_lt hin)]

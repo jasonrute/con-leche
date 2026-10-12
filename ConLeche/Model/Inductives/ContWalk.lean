@@ -97,16 +97,16 @@ theorem spineFit_of_lifted :
       rwa [consList_append, consList_cons, consList_nil] at this
 
 /-- **A graded Π-tower stays graded past a fitting prefix.** -/
-theorem wellDenotedV_mkPisAV_append (B : AnnotTerm) :
+theorem wellDenoted_mkPisAV_append (B : AnnotTerm) :
     ∀ (ab₁ ab₂ : List AnnotTerm) (ρ : Nat → V) (as : List V),
-      SpineFit ρ (ab₁) as → WellDenotedV V ρ (mkPisAV (ab₁ ++ ab₂) B) →
-      WellDenotedV V (consList as ρ) (mkPisAV ab₂ B)
+      SpineFit ρ (ab₁) as → WellDenoted V ρ (mkPisAV (ab₁ ++ ab₂) B) →
+      WellDenoted V (consList as ρ) (mkPisAV ab₂ B)
   | [], _, _, [], _, h => h
   | [], _, _, _ :: _, hf, _ => hf.elim
   | _ :: _, _, _, [], hf, _ => hf.elim
   | d :: ab₁, ab₂, ρ, a :: as, hf, h => by
-    simp only [WellDenotedV, List.cons_append, mkPisAV, WellDenoted_pi] at h
-    exact wellDenotedV_mkPisAV_append B ab₁ ab₂ (cons a ρ) as hf.2 (h.2.2.1 a hf.1)
+    simp only [List.cons_append, mkPisAV, WellDenoted_pi] at h
+    exact wellDenoted_mkPisAV_append B ab₁ ab₂ (cons a ρ) as hf.2 (h.2.2.1 a hf.1)
 
 /-- **The frame's group is well formed**: its names distinct, the
 container's WHOLE recorded block (N2-eager: `PosD.frame.hgrp`), each at
@@ -308,7 +308,7 @@ parameters fit and read graded. -/
 theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
     (hta : denoteMeta mp.base2.acval env φ hi p.2 = some ta) (ρ : Nat → V)
     (hs : Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ))
-    (hw : ∀ a ∈ dsa, WellDenotedV V ρ a) : WellDenotedV V ρ ta := by
+    (hw : ∀ a ∈ dsa, WellDenoted V ρ a) : WellDenoted V ρ ta := by
   obtain ⟨-, -, -, mm, cv, caps, hmm, -, hf, abF, hread, hmap, -, hrd⟩ :=
     grp_typeT mp hD hlps hnd hul hds hdsa hlenP hgT hp
   rw [hta] at hrd
@@ -318,7 +318,7 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
   have hdl : dsa.length = ds.length := (DenoteMetaSpine.length_eq hdsa).symm
   have hpl : (D.pars mm ψ).length = ds.length := (h.parsLen mm hmm ψ).trans hlenP
   -- the substituted tower is the tail tower at the key frame
-  have hτ : ∀ j, WellDenotedV V (shiftE 0 0 ρ)
+  have hτ : ∀ j, WellDenoted V (shiftE 0 0 ρ)
       (substTau ds.length hi (fun i => dsa.getD i default) j) := by
     intro j
     rw [shiftE_zero_zero]
@@ -350,7 +350,7 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
       rw [hm1]
       exact spineFit_of_sat_consList (by rw [List.length_map, hdl, hpl]) hsP
     rw [← List.take_append_drop ds.length abF] at hwd
-    exact wellDenotedV_mkPisAV_append _ _ _ _ _ hfit hwd
+    exact wellDenoted_mkPisAV_append _ _ _ _ _ hfit hwd
 
 omit hnN in
 /-- The frame's substituted variables are scoped, bvar-closed and read. -/
@@ -507,7 +507,7 @@ theorem crest_frameT {Δh : List AnnotTerm} (hΔ : Δh.length = hi)
     (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ hi Δh x) (hLds : ∀ x ∈ ds, Expr.LeavesBounded x)
     (hkey : ∀ ρ, Sat V Δh ρ →
       Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ) ∧
-      ∀ a ∈ dsa, WellDenotedV V ρ a)
+      ∀ a ∈ dsa, WellDenoted V ρ a)
     {e crest : Expr} (hcl : e.hasFvar = false) (hbb : e.looseBVarsBounded 0 = true)
     (hcr : ConLeche.nestCrest (grp.map (·.1)) us ds (grpHoles hi grp) e = some crest) :
     Frame (hi + grp.length) crest ∧
@@ -562,7 +562,7 @@ theorem crest_frameT {Δh : List AnnotTerm} (hΔ : Δh.length = hi)
           have h1 := Sat_drop hσ i
           rwa [List.drop_drop, List.drop_left' (by simp [grpTys]; omega)] at h1
         refine ⟨?_, by rw [interp_liftN]; exact IsTy_mkPisAV_sort _ _ _⟩
-        rw [WellDenotedV_liftN, show shiftE i 0 σ = fun j => σ (j + i) by funext j; simp [shiftE]]
+        rw [WellDenoted_liftN, show shiftE i 0 σ = fun j => σ (j + i) by funext j; simp [shiftE]]
         obtain ⟨hk1, hk2⟩ := hkey _ hs'
         exact grp_typeT_wd mp hD hlps hnd hul hds hdsa hlenP hgT (List.getElem_mem hi') hta _
           hk1 hk2
@@ -836,7 +836,7 @@ theorem crest_frame {Δh : List AnnotTerm} (hΔ : Δh.length = hi)
     (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ hi Δh x) (hLds : ∀ x ∈ ds, Expr.LeavesBounded x)
     (hkey : ∀ ρ, Sat V Δh ρ →
       Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ) ∧
-      ∀ a ∈ dsa, WellDenotedV V ρ a)
+      ∀ a ∈ dsa, WellDenoted V ρ a)
     {e crest : Expr} (hcl : e.hasFvar = false) (hbb : e.looseBVarsBounded 0 = true)
     (hcr : ConLeche.nestCrest (grp.map (·.1)) us ds (grpHoles hi grp) e = some crest) :
     Frame (hi + grp.length) crest ∧
@@ -858,7 +858,7 @@ theorem frameIter (hin : RulesInputs V mp.base2 φ) {F : Nat}
     (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ hi Δh x) (hLds : ∀ x ∈ ds, Expr.LeavesBounded x)
     (hkey : ∀ ρ, Sat V Δh ρ →
       Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ) ∧
-      ∀ a ∈ dsa, WellDenotedV V ρ a)
+      ∀ a ∈ dsa, WellDenoted V ρ a)
     {ctors : List (ConstantVal × Nat)}
     (hgc : ConLeche.groupCtors ctx ds.length (grp.map (·.1)) = some ctors)
     (hwalk : ∀ {Δ : List AnnotTerm} {R : FrameRel V},

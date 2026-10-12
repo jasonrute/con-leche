@@ -164,7 +164,7 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.StructFrameKit', 'ConLeche.Verify.BinderLoop'),
     # lane DELMOD s2: `StructRecSpine`'s `IndPinGrade` re-export is what the
     # struct/fix proofs downstream reach `IndPinGrade`/`IndReduct` through;
-    # MEASURED by demoting it alone (unknown identifier: `wellDenotedV_instSeq`
+    # MEASURED by demoting it alone (unknown identifier: `wellDenoted_instSeq`
     # at `StructBodyFrames.lean:295` and `FixEntryLaw.lean:261`, then
     # `denoteMeta_mkAppN_of` at `BlockRecTyShapeRun.lean:242`).
     ('ConLeche.Model.Inductives.StructRecKit', 'ConLeche.Model.IndPinGrade'),
@@ -578,14 +578,14 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.FixKit','ConLeche.Model.Inductives.FixChains'),
     # task #315 M3: `BlockStageFormer`'s public statements resolve
     # `SetTheory` (its namespace block's bare `open`), `AnnotTerm`,
-    # `WellDenotedV` and `Sat` only through `BlockLeafOk`'s re-export; the
+    # `WellDenoted` and `Sat` only through `BlockLeafOk`'s re-export; the
     # model calls the edge demotable once the file's two plain imports
     # (`FixStageFormer`, `Verify/Inductives/BlockWF`, both PROOF-only)
     # cover the constants, but a plain import is invisible to a public
     # statement.  Demoting it makes the build say `unknown identifier
     # SetTheory` at the `open`, and adding the `public import
     # ConLeche.SetTheory.Core` lean's own note suggests only moves the
-    # failure on to `AnnotTerm`/`WellDenotedV`/`Sat` — both blind classes
+    # failure on to `AnnotTerm`/`WellDenoted`/`Sat` — both blind classes
     # (#223 §6's first and the #290 one) in one line.
     ('ConLeche.Model.Inductives.BlockStageFormer','ConLeche.Model.Inductives.BlockLeafOk'),
     # task #315 (lane RECLIB session 6, the import gate after the old
@@ -615,7 +615,7 @@ FALLBACK = {
     # `paramBvarsAt`/`BlockCtorDataI` (`StoredShapes.lean:784`), `holeP`
     # (`:348`), `HoleIn` (`:419`), the `AnnotTerm`/`denoteMeta` of
     # `BlockHoleRead.lean:350`; downstream reaches through the other two
-    # (`mkAppN_wellDenotedV_of_pt`, `BlockRecData.lean:3549`; a `rw` over
+    # (`mkAppN_wellDenoted_of_pt`, `BlockRecData.lean:3549`; a `rw` over
     # `nestHoles` stops matching at `BlockHoleGrade.lean:322`).
     ('ConLeche.Model.Inductives.HoleSubst','ConLeche.Semantics.NoBVar'),
     ('ConLeche.Model.Inductives.NestPosOut','ConLeche.Kernel.Inductives.Positivity'),
@@ -634,7 +634,7 @@ FALLBACK = {
     # (`:289`), without its `IndPrefixGrade` `prefixGradeFire` (`:258`);
     # `BlockHoleRead` without `FixRec` loses `Expr.ErasedEq` (`:70`);
     # `StructBodyFrames` without `StructRecSpine`'s `IndProjKit` loses
-    # `wellDenotedV_instSeq` (`:295`).
+    # `wellDenoted_instSeq` (`:295`).
     ('ConLeche.Model.IndParamGrade', 'ConLeche.Model.IndDomGrade'),
     ('ConLeche.Model.IndParamGrade', 'ConLeche.Model.IndRuns'),
     ('ConLeche.Model.IndPlainParam', 'ConLeche.Model.IndFieldGrade'),
@@ -654,7 +654,7 @@ FALLBACK = {
     # `NestCtx` in `GenNodeList`, `ConLeche.tgtMajorsOf`/`BlockNamesOk` in
     # `GenRecClasses`, `erasedEq_mkAppN_inv` in `GenClsSem` through
     # `GenRecPreRun`, `readOpenedDoms_getElem` in `GenClsRows` through
-    # `GenRecRules`, `WellDenotedV_mkAppN_args` in `FixKit` through
+    # `GenRecRules`, `WellDenoted_mkAppN_args` in `FixKit` through
     # `IndPointKit`, `instPisWith_eq_instPisAt`/`targetK53_true` one tier
     # below `TargetIhSlot`/`TargetRuleData`, and the `GenDepth`/
     # `GenK53Rename`/`InferProjSlots` statements); not yet measured one

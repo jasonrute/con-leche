@@ -52,17 +52,17 @@ the argument's own application slot puts it in the telescope's domain
 theorem teleFitPA_of_peel_ne_pt {ρ : Nat → V} :
     ∀ (vs : List AnnotTerm) {T f r : AnnotTerm},
       ConLeche.Model.AnnotTerm.peelPis T vs = some r →
-      WellDenotedV V ρ T → interp V ρ f ∈ˢ interp V ρ T →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
+      WellDenoted V ρ T → interp V ρ f ∈ˢ interp V ρ T →
+      WellDenoted V ρ (AnnotTerm.mkAppN f vs) →
       interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
       TeleFitPA V ρ T vs r
   | [], T, _, r, hp, _, _, _, _ => by
     obtain rfl : T = r := Option.some.inj hp
     exact .nil
   | x :: xs, .pi A B, f, r, hp, hT, hmem, hg, hne => by
-    have hg' : WellDenotedV V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
+    have hg' : WellDenoted V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
     have hne' : interp V ρ (AnnotTerm.mkAppN (.app f x) xs) ≠ pt := hne
-    have happ : WellDenotedV V ρ (.app f x) := mkAppN_head xs hg'
+    have happ : WellDenoted V ρ (.app f x) := mkAppN_head xs hg'
     obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ f x) happ).2.2
     have hmem' := hmem
     rw [interp_pi] at hmem'
@@ -72,9 +72,9 @@ theorem teleFitPA_of_peel_ne_pt {ρ : Nat → V} :
     have hgr : interp V ρ f ∈ˢ piR 1 (interp V ρ A) fun y => interp V (cons y ρ) B := by
       rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hmem' hfne
     have hxA : interp V ρ x ∈ˢ interp V ρ A := slotTransfer Nat.one_ne_zero hgr hslot hx
-    have hokx : WellDenotedV V ρ x := happ.app_arg
-    have hBx : WellDenotedV V ρ (B.inst x) :=
-      (WellDenotedV_inst0 hokx).mpr (hT.pi_body _ hxA)
+    have hokx : WellDenoted V ρ x := happ.app_arg
+    have hBx : WellDenoted V ρ (B.inst x) :=
+      (WellDenoted_inst0 _ hokx).mpr (hT.pi_body _ hxA)
     have hmemB : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
       rw [interp_inst0, interp_app]
       exact app_mem_piV hmem' hxA
@@ -170,8 +170,8 @@ theorem CertsF.cert_sound {d : Nat} {ty body arg ta : Expr}
     htaA hdoma ρ hρ (hLarg.of_subset hsubta) hLT.forallE_ty hgtaA.1 hokDom.1
     hgtaA.ne_pt hokDom.ne_pt
   have hmemA : interp V ρ aa ∈ˢ interp V ρ doma := heq ▸ hmem
-  have hokBody : WellDenotedV V ρ (bodya.inst aa) :=
-    (WellDenotedV_inst0 hokA).mpr (hgT.pi_body _ hmemA)
+  have hokBody : WellDenoted V ρ (bodya.inst aa) :=
+    (WellDenoted_inst0 _ hokA).mpr (hgT.pi_body _ hmemA)
   have hLbody : LeavesGr m φ d (body.instantiate1 arg) ρ := by
     intro l hl
     rcases hsubBody l hl with hl' | hl'

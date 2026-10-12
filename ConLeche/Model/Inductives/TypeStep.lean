@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Model.Rules.Inputs
+import ConLeche.Semantics.Hoist
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.CtxOkKit
@@ -51,15 +52,15 @@ theorem whnf_ty (hin : RulesInputs V m φ) {F d : Nat} {e w : Expr}
   red_sound_ty hin (ConLeche.Rules.whnf_bridge hw) hf hC hea hg
 
 /-- **The `GradedTy` ∀-splitter**: both the domain and the body are graded
-TYPES (`WellDenotedV.hoist_piTy` already gives the domain; the body's
+TYPES (`WellDenoted.hoist_piTy` already gives the domain; the body's
 `IsTy` at `ρ ⊨ A :: Δa` is the fibre `IsTy` at `ρ 0 ∈ ⟦A⟧` of the tail
-valuation, the same move `WellDenotedV.hoist_pi` makes for the body's
+valuation, the same move `Semantics.WellDenoted.hoist_pi` makes for the body's
 grading). -/
-theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
+theorem _root_.ConLeche.Semantics.WellDenoted.hoist_piTy' {Δa : List AnnotTerm} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedTy V ρ B) := by
-  obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) h
+  obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy (V := V) h
   refine ⟨hgAT, fun ρ hρ => ⟨hgB ρ hρ, ?_⟩⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
@@ -75,7 +76,7 @@ theorem gradedTy_pi_intro {Δ : List AnnotTerm} {A B : AnnotTerm}
     (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B)) :
     GradedTy V Δ (.pi A B) := fun ρ hρ => by
   refine ⟨?_, ?_⟩
-  · rw [WellDenotedV, WellDenoted_pi]
+  · rw [WellDenoted_pi]
     exact ⟨hA ρ hρ, hAt ρ hρ, fun x hx => hB _ (Sat_cons V hρ hx),
       fun x hx => hBt _ (Sat_cons V hρ hx)⟩
   · rw [interp_pi]; exact IsTy_piV

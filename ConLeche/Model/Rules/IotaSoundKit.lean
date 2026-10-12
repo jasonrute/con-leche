@@ -128,7 +128,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
       (∀ d : Nat, denoteMeta m.acval env φ d
         (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us) = some ta) ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       (∀ ρ : Nat → V,
         interp V ρ (m.acval n
           (Level.substFn φ ci.toConstantVal.levelParams us)) ∈ˢ interp V ρ ta) ∧
@@ -224,29 +224,29 @@ theorem take_getD_splitAK {as : List AnnotTerm} {k : Nat}
 
 /-! ## The redex's own slots
 
-`wellDenotedV_app_congr_argK` and `wellDenotedV_mkAppN_snoc_congrK`:
+`wellDenoted_app_congr_argK` and `wellDenoted_mkAppN_snoc_congrK`:
 the subject's grading is about the ORIGINAL major slot and the licensed
 walk is handed the prepared one, so the last argument is exchanged
 along the reduction's own `interp` equation. -/
 
 /-- **An app's argument may be exchanged for an interpretation-equal
 graded one**. -/
-theorem wellDenotedV_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
-    (h : WellDenotedV V ρ (.app f a)) (ha' : WellDenotedV V ρ a')
+theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
+    (h : WellDenoted V ρ (.app f a)) (ha' : WellDenoted V ρ a')
     (heq : interp V ρ a = interp V ρ a') :
-    WellDenotedV V ρ (.app f a') := by
-  rw [WellDenotedV, WellDenoted_app] at h ⊢
+    WellDenoted V ρ (.app f a') := by
+  rw [WellDenoted_app] at h ⊢
   obtain ⟨hf, -, v, A, B, hslot, hmem, hcod⟩ := h
   exact ⟨hf, ha', v, A, B, hslot, heq ▸ hmem, hcod⟩
 
 /-- The same at a spine's last argument. -/
-theorem wellDenotedV_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}
+theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}
     {as : List AnnotTerm}
-    (h : WellDenotedV V ρ (AnnotTerm.mkAppN f (as ++ [a])))
-    (ha' : WellDenotedV V ρ a') (heq : interp V ρ a = interp V ρ a') :
-    WellDenotedV V ρ (AnnotTerm.mkAppN f (as ++ [a'])) := by
+    (h : WellDenoted V ρ (AnnotTerm.mkAppN f (as ++ [a])))
+    (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
+    WellDenoted V ρ (AnnotTerm.mkAppN f (as ++ [a'])) := by
   rw [annotMkAppN_append] at h ⊢
-  exact wellDenotedV_app_congr_argK h ha' heq
+  exact wellDenoted_app_congr_argK h ha' heq
 
 /-! ## The fired rule's right-hand side and the telescope residual -/
 

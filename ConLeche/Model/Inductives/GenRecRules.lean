@@ -1309,7 +1309,7 @@ the contract's premises. -/
           = Level.substFn φ cA.1.levelParams
               (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
                 (p.toBlockShape.rulePrefixAt j)).1 →
-        (∀ y ∈ ys, WellDenotedV V ρ y) →
+        (∀ y ∈ ys, WellDenoted V ρ y) →
         (interp V ρ (AnnotTerm.mkAppN
             (mpC.base2.acval cA.1.name (Level.substFn φ cA.1.levelParams usj)) ys) = pt →
           IotaIndexPin (V := V) ρ restC nP
@@ -2048,7 +2048,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
     rw [← hac, ← denoteMeta_instLevels (acvalParamsAt_of_core m₃) (ks := r.1.levelParams)
       (us := us) φ]
     exact hreadR φ us
-  have hok : ∀ ρ' : Nat → V, WellDenotedV V ρ' (blockRuleRaOf
+  have hok : ∀ ρ' : Nat → V, WellDenoted V ρ' (blockRuleRaOf
       (blockRecAcv mpC.base2.acval envC (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)

@@ -212,7 +212,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   obtain ⟨-, hoX⟩ := hoist_spineV xs hg
   have hLmajSlot : LeavesGr m φ d (e.getAppArgs.getD mI (.bvar 0)) ρ :=
     leavesGr_spine hL _ (ConLeche.getD_mem hmIlt)
-  have hokMajArg : WellDenotedV V ρ (xs.getD mI default) :=
+  have hokMajArg : WellDenoted V ρ (xs.getD mI default) :=
     hoX _ (ConLeche.getD_mem (by rw [← hspx.length]; exact hmIlt))
   have hLmj : LeavesGr m φ d major ρ := hLmajSlot.of_subset hsubmj
   have hLargsC : ∀ x ∈ major.getAppArgs, LeavesGr m φ d x ρ :=
@@ -226,7 +226,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   have hsplit := take_getD_splitAK hxsLen
   have hfitRVal : TeleFitPA V ρ TVa (xs.take mI ++ [xs.getD mI default]) restR := by
     rw [← hsplit]; exact hfitRVal0
-  have hoX0 : ∀ x ∈ xs.take mI, WellDenotedV V ρ x :=
+  have hoX0 : ∀ x ∈ xs.take mI, WellDenoted V ρ x :=
     fun x hx => hoX x (List.mem_of_mem_take hx)
   have hxs0len : (xs.take mI).length = mI := by
     rw [List.length_take, hxsLen]; omega
@@ -250,7 +250,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   obtain ⟨hS, hP, hU⟩ := hextNK hk' usj hlenUj hψ TVja (hTVjaD 0)
   -- the case-3 run, at this valuation
   have hC3 : ConLeche.iotaCase3 env.find? rl cvj usj = true →
-      (∀ y ∈ ys, WellDenotedV V ρ y) ∧ ∃ restC, TeleFitPA V ρ TVja ys restC := by
+      (∀ y ∈ ys, WellDenoted V ρ y) ∧ ∃ restC, TeleFitPA V ρ TVja ys restC := by
     intro h3
     obtain ⟨restC, hC3⟩ := hcertC h3 hfJ hCJ (hTVjaD d) hfrC hspy
     obtain ⟨hoY, hfitC, -⟩ := hC3 ρ hρ
@@ -270,7 +270,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   have hcase : interp V ρ (xs.getD mI default)
         = interp V ρ (AnnotTerm.mkAppN
             (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) ∧
-      (∀ y ∈ ys, WellDenotedV V ρ y) ∧
+      (∀ y ∈ ys, WellDenoted V ρ y) ∧
       ∃ restC, TeleFitPA V ρ TVja ys restC := by
     by_cases hapt : interp V ρ (xs.getD mI default) = pt
     · -- case 3 at a `Prop` valuation: the slot law (P)
@@ -452,7 +452,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
         denoteMeta m.acval env φ rP (ConLeche.Verify.openRev 0 rP
           ((pins.getD j default).instantiateLevelParams cv.levelParams us))
           = some vv →
-        WellDenotedV V ρ (AnnotTerm.instRevChain (xs.take rP) vv) := by
+        WellDenoted V ρ (AnnotTerm.instRevChain (xs.take rP) vv) := by
       intro vv j hj hvv
       obtain ⟨vpa', hvpa', hok'⟩ := hpinsOk lvls pins hn j (by omega)
       obtain rfl : vpa' = vv := Option.some.inj (hvpa'.symm.trans hvv)
@@ -478,7 +478,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     have hlenB : pins.length = bsa.length := by
       have := hspB.length
       simpa using this
-    have hgB : ∀ x ∈ bsa, WellDenotedV V ρ x := by
+    have hgB : ∀ x ∈ bsa, WellDenoted V ρ x := by
       intro x hx
       obtain ⟨j, hj, rfl⟩ := mem_getD_index hx
       have hjp : j < pins.length := by omega
@@ -545,7 +545,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       (ConLeche.Expr.mkAppN_getApp residual).symm] at hresC
     obtain ⟨Ha, cargsa, -, hspRes, hCeq⟩ := denoteMeta_mkAppN_inv hresC
     -- the residual is graded: the constructor's fit grades its residual
-    have hRcA : WellDenotedV V ρ (AnnotTerm.mkAppN Ha cargsa) :=
+    have hRcA : WellDenoted V ρ (AnnotTerm.mkAppN Ha cargsa) :=
       hCeq ▸ teleFitPA_rest_graded hfitC (hokTVja ρ) hoY
     obtain ⟨-, hoCargs⟩ := hoist_spineV cargsa hRcA
     have hspIdx : DenoteMetaSpine m.acval env φ d ((e.getAppArgs.take mI).drop rP)
@@ -760,7 +760,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     rwa [List.length_map] at this
   obtain ⟨resta, hfitPA⟩ := teleFitPA_of_teleFit (tsa ++ ps) hpc hfitC
   obtain ⟨-, hoTs⟩ := hoist_spineV tsa hgTm
-  have hoksF : ∀ x ∈ tsa ++ ps, WellDenotedV V ρ x := by
+  have hoksF : ∀ x ∈ tsa ++ ps, WellDenoted V ρ x := by
     intro x hx
     rcases List.mem_append.mp hx with hx' | hx'
     · exact hoTs x hx'

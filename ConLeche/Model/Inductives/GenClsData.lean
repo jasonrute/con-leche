@@ -169,7 +169,7 @@ theorem genOutCtorFit (hμ : μ.verifiedChecks = true)
       denoteMeta mpC.base2.acval envC (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls) 0
         cA.1.type = some T0 ∧
       T0 = mkPisAV pps b0 ∧ pps.length = (tgtMajor out c).ds.length ∧
-      (∀ σ : Nat → V, WellDenotedV V σ T0) ∧ Term.bvarsBelow 0 T0.erase ∧
+      (∀ σ : Nat → V, WellDenoted V σ T0) ∧ Term.bvarsBelow 0 T0.erase ∧
       Rules.PiChain ((tgtMajor out c).ds.length + cA.2) T0 ∧
       ∀ C : AnnotTerm,
         denoteMeta mpC.base2.acval envC ψ (tgtRP pp.toBlockShape c) (tgtCrest out c j) = some C →

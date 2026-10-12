@@ -11,25 +11,17 @@ public section
 /-!
 # The P-generation claims: the ladder over `denoteMeta` (task #161, P3.3)
 
-The soundness ladder over **`denoteMeta`**, the validated-annotation
-reading (no annotation fuel: there is no run to pay for):
+The soundness ladder over **`denoteMeta`**, the reading of stored terms
+(no fuel: there is no run to pay for):
 
-* the truthfulness currency is `WellDenotedV := WellDenoted ∧ AnnotValid`:
-  the hereditary invariant plus bit validity — the claims *establish*
-  the regime bits they dispatch on, clause by clause, from the run
-  inversions (never from a validity metatheorem);
+* the truthfulness currency is the semantic invariant `WellDenoted`;
 * the context discipline is `CtxOk`, with leaf truthfulness
-  `WellDenotedV`.
+  `WellDenoted`.
 
 The **dual-success** shape: every `denoteMeta` sits in a premise, never
 a conclusion, so the smallest-fuel refutation rule has nothing to bite
-on.  Where a sort run's residue would be consumed, the P tier consumes
-the validation sites' run-inversion conjuncts instead: binder bits are
-equal data (`==` ⇒ equal bits, canonical in `{0,1}`); the λ front door
-is `inferTypeCore_lam_inv`'s conjunct + `pwBit_zero_mem_univZero`, the
-chain case `piR_zero_mem_univZero`; level instantiation is
-`denotePInstLevels`; the environment crossing is `denoteMeta_envExtend`
-(`FindPreserved`/`LitGuardsAgree`).
+on.  Level instantiation is `denotePInstLevels`; the environment
+crossing is `denoteMeta_envExtend` (`FindPreserved`/`LitGuardsAgree`).
 -/
 
 namespace ConLeche.Model
@@ -66,9 +58,9 @@ is not the point. -/
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d e' = some ea' →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ea) →
       (∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
-          WellDenotedV V ρ ea') ∧
+          WellDenoted V ρ ea') ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
           interp V ρ ea = interp V ρ ea'
 
@@ -84,9 +76,9 @@ point (task #342, L9). -/
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d e' = some ea' →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ea) →
       (∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
-          WellDenotedV V ρ ea') ∧
+          WellDenoted V ρ ea') ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
           interp V ρ ea = interp V ρ ea'
 
@@ -107,8 +99,8 @@ comparing two types or two members of one type closes with
       CtxOk m φ d Δa b →
       denoteMeta m.acval env φ d a = some aa →
       denoteMeta m.acval env φ d b = some ba →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ aa) →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ba) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ aa) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ba) →
       ∀ ρ : Nat → V, Sat V Δa ρ →
         interp V ρ aa ≠ pt → interp V ρ ba ≠ pt →
         interp V ρ aa = interp V ρ ba
@@ -126,7 +118,7 @@ the type denotes a type. -/
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) ∧
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ea) ∧
         (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
         ∀ ρ : Nat → V, Sat V Δa ρ →
           interp V ρ ea ∈ˢ interp V ρ ta

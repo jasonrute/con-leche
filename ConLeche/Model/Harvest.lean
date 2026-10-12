@@ -22,7 +22,7 @@ P machinery at the prefix environment, the P invariant extends —
 * the new leaf `A ψ` is the value's own `denoteMeta` reading (the
   `acceptedReads_of` totality leaf at the infer run); its laws are
   `denoteMeta_closed` / `denoteMeta_params_ext` / the claims'
-  `WellDenotedV` conclusions at `Sat_nil`;
+  `WellDenoted` conclusions at `Sat_nil`;
 * the membership (`hmemNew`) is the claims' membership at the value
   run carried across the defeq run by the defeq claim;
 * `nat_heads` at the extension derives from guard reflection
@@ -202,7 +202,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   -- the value's rows: gradings and the membership at its own type
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
       denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (A ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
@@ -216,7 +216,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
@@ -432,7 +432,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
             (fun _ _ _ h => ConstantInfo.noConfusion h)⟩
           (ConLeche.natOpGuard_deps hg2).1
       have hTok : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-          WellDenotedV V ρ (Ta ψ) := fun ψ ρ => by
+          WellDenoted V ρ (Ta ψ) := fun ψ ρ => by
         obtain ⟨sta, hsta, hT1, -, -⟩ := hrowsT ψ
         exact hT1 ρ (Sat_nil V ρ)
       have hA2 : ∀ ψ, denoteMeta mp.base2.acval env ψ 2 value'
@@ -579,7 +579,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   -- the value's rows: gradings and the membership at its own type
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
       denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (A ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
@@ -593,7 +593,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
@@ -836,7 +836,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
@@ -1020,7 +1020,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   -- the value's rows: gradings and the membership at its own type
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
       denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (A ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
@@ -1034,7 +1034,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
         (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by

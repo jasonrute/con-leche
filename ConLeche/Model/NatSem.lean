@@ -70,7 +70,7 @@ theorem natLit_zero (m : EnvModel V env) :
 theorem natLit_facts (m : EnvModel V env) (hnh : NatHeads m φ)
     (hs : natLitSupported env = true)
     (ρ : Nat → V) (n : Nat) :
-    WellDenotedV V ρ (natLit m φ n) ∧
+    WellDenoted V ρ (natLit m φ n) ∧
       interp V ρ (natLit m φ n)
         ∈ˢ interp V ρ (m.acval ConLeche.natName φ) := by
   obtain ⟨hz, hsucc, hNty⟩ := hnh hs ρ

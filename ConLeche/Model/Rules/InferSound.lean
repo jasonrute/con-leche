@@ -81,8 +81,8 @@ theorem InferSem.apply {d : Nat} {e t : Expr}
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          (Grade.full = .io → WellDenotedV V ρ ea) →
-          WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
+          (Grade.full = .io → WellDenoted V ρ ea) →
+          WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
             interp V ρ ea ∈ˢ interp V ρ ta := by
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
   exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ => hrow ρ hρ hL⟩
@@ -95,8 +95,8 @@ theorem InferSem.of_uniform {g : Grade} {d : Nat} {e t : Expr}
       Frame d t ∧ LeavesSub t e ∧
         ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
           ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-            (g = .io → WellDenotedV V ρ ea) →
-            WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
+            (g = .io → WellDenoted V ρ ea) →
+            WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
               interp V ρ ea ∈ˢ interp V ρ ta) :
     InferSem m φ g d e t := by
   cases g with
@@ -128,7 +128,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
     (hea : denoteMeta m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
       (g = .io → WellDenotedTy V ρ ea) →
-      WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) := by
+      WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) := by
   cases g with
   | full =>
     obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs.apply hfe hC hea
@@ -338,7 +338,7 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
   have hdomTy : WellDenotedTy V ρ tyA := ⟨hdom.1, IsTy_of_mem_univ hdom.2⟩
   -- the codomain, at every point of the domain
   have hcod : ∀ x, x ∈ˢ interp V ρ tyA →
-      WellDenotedV V (cons x ρ) baA ∧
+      WellDenoted V (cons x ρ) baA ∧
         interp V (cons x ρ) baA ∈ˢ (univ (v.eval φ) : V) :=
     fun x hx => hcodU (cons x ρ) (Sat_cons V hρ hx)
       (LeavesGr.open hC.forallE_ty hC.forallE_body hL.forallE_ty
@@ -444,20 +444,20 @@ theorem Infer.lam_soundFull {d : Nat}
       (cons x ρ) := fun _ =>
     LeavesGr.open hC.lam_ty hC.lam_body hL.lam_ty hL.lam_body htyA hokty
   have hrow : ∀ x, x ∈ˢ interp V ρ tyA →
-      WellDenotedV V (cons x ρ) ba ∧ WellDenotedTy V (cons x ρ) btA ∧
+      WellDenoted V (cons x ρ) ba ∧ WellDenotedTy V (cons x ρ) btA ∧
         interp V (cons x ρ) ba ∈ˢ interp V (cons x ρ) btA := fun x hx =>
     hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x)
       (fun hg => nomatch hg)
   refine ⟨?_, ?_, ?_⟩
   · -- the λ's own grading
-    rw [WellDenotedV, WellDenoted_lam]
+    rw [WellDenoted_lam]
     exact ⟨hokty.1, hokty.2, fun x hx => (hrow x hx).1,
       fun x => interp V (cons x ρ) btA,
       fun x hx => (hrow x hx).2.2,
       fun x hx => (hrow x hx).2.1.2⟩
   · -- the copied ∀-type's grading
     refine ⟨?_, IsTy_piV⟩
-    rw [WellDenotedV, WellDenoted_pi]
+    rw [WellDenoted_pi]
     exact ⟨hokty.1, hokty.2, fun x hx => (hrow x hx).2.1.1,
       fun x hx => (hrow x hx).2.1.2⟩
   · -- the membership row
@@ -640,7 +640,7 @@ theorem Infer.app_soundCert {d : Nat}
   obtain ⟨hokpa, hredfρ⟩ := hredf ρ hρ hLtf hgtfa.1 hgtfa.ne_pt
   -- the ∀'s reading, split
   have hAty : WellDenotedTy V ρ Aa := hokpa.pi_dom
-  have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
+  have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) Ba :=
     hokpa.pi_body
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
     (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
@@ -685,11 +685,11 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
       hb.apply hfr' (hC.of_subset hsub) hred
     refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
     intro ρ hρ hL _
-    have hgv : WellDenotedV V ρ va := by
+    have hgv : WellDenoted V ρ va := by
       obtain ⟨-, -, _, -, hrowv⟩ := htv rfl hfv (hC.of_subset hsubv) hva
       exact (hrowv ρ hρ (hL.of_subset hsubv)).1
     obtain ⟨hge, hgt, hmem⟩ := hrow ρ hρ (hL.of_subset hsub) (fun hg => nomatch hg)
-    refine ⟨(WellDenotedV_zeta hgv).mpr hge, hgt, ?_⟩
+    refine ⟨(WellDenoted_zeta _ hgv).mpr hge, hgt, ?_⟩
     rw [interp_zeta]
     exact hmem
   | io =>
@@ -699,8 +699,8 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
     obtain ⟨hft, htsub, ta, hta, hrow⟩ := hb hfr' (hC.of_subset hsub) hred
     refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
     intro ρ hρ hL hgr
-    have hgv : WellDenotedV V ρ va := hgr.letE_val
-    have h := hrow ρ hρ (hL.of_subset hsub) ((WellDenotedV_zeta hgv).mp hgr)
+    have hgv : WellDenoted V ρ va := hgr.letE_val
+    have h := hrow ρ hρ (hL.of_subset hsub) ((WellDenoted_zeta _ hgv).mp hgr)
     rw [interp_zeta]
     -- a `let` is not neutral
     exact ⟨h.1, fun h' => by simp [ConLeche.Expr.ioNeutral, ConLeche.Expr.getAppFn] at h'⟩
@@ -765,8 +765,8 @@ theorem Infer.app_soundIO {d : Nat}
     · rw [Expr.fvarLeaves]
       exact List.mem_append_right _ h2
   intro ρ hρ hL hge
-  have hokf : WellDenotedV V ρ fa := hge.app_fn
-  have hoka : WellDenotedV V ρ aa := hge.app_arg
+  have hokf : WellDenoted V ρ fa := hge.app_fn
+  have hoka : WellDenoted V ρ aa := hge.app_arg
   obtain ⟨v, A, B, hfslot, haslot, -⟩ := (cast (WellDenoted_app V ρ fa aa) hge).2.2
   rw [interp_app]
   by_cases hfp : interp V ρ fa = pt
@@ -1020,7 +1020,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
       exact hlx
   intro σ hσ hL hgr
   have hLpe' : LeavesGr m φ d pe σ := hL.proj_arg
-  have hokPe : WellDenotedV V σ vp := ProjAV.hoistV hgr
+  have hokPe : WellDenoted V σ vp := ProjAV.hoistV hgr
   rcases (hrowP σ hσ hLpe' hokPe).1 with h | h | h
   · -- the scrutinee is the point, and so is its projection
     rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]

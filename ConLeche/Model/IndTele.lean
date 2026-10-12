@@ -23,7 +23,7 @@ public section
 # The reading's ∀-telescope (task #161, IND TIER part 2)
 
 `PiTeleAV`: a reading's ∀-telescope (`denoteMeta` reads a `∀` to
-`.pi`); its consumers are `TeleFitPA` and `wellDenotedV_mkAppN_of_fit`.
+`.pi`); its consumers are `TeleFitPA` and `wellDenoted_mkAppN_of_fit`.
 
 `consN` names the environment a fit ends in.
 -/

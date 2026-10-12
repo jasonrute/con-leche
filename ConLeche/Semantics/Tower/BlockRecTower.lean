@@ -1170,7 +1170,7 @@ variable {s K : Nat} {RecTy : Nat → AnnotTerm} {nCt : Nat → Nat} {pdoms : Na
 
 /-- **The ι equations are graded** when every rule's binder data is
 graded along the telescope and both its sides are graded at every
-fitting spine — the Model tier's half (G1's `WellDenotedV` under
+fitting spine — the Model tier's half (G1's `WellDenoted` under
 `CtxOk`, and the leaf's own grading for the left-hand side). -/
 theorem hEq_iotaEqsAV_of
     (hwd : ∀ rs : List V, rs.length = K →

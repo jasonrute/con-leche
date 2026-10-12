@@ -20,29 +20,29 @@ instantiated pins.
 
 The route, in one line: the certificate is about the instantiated pin at the public
 frame, `pinCross` turns that object into this one **syntactically**,
-and `wellDenotedV_instSeq` carries the grading across the substitution
+and `wellDenoted_instSeq` carries the grading across the substitution
 because the fired prefix is graded (which the conjunct, unlike
 the interp-equality half, *does* hypothesise).
 
 ```
    the checker's certificate on the instantiated pin
-     ⇒ InferClaim                      ∀ σ, Sat V Δ σ → WellDenotedV V σ w0
+     ⇒ InferClaim                      ∀ σ, Sat V Δ σ → WellDenoted V σ w0
      ⇒ at σ := chain V ρ (zs ++ padA…)   Sat by the prefix fit
-     ⇒ wellDenotedV_instSeq                   WellDenotedV V ρ (instSeq … w0)
-     ⇒ pinCross                          WellDenotedV V ρ (instRevChain zs vpa)
+     ⇒ wellDenoted_instSeq                   WellDenoted V ρ (instSeq … w0)
+     ⇒ pinCross                          WellDenoted V ρ (instRevChain zs vpa)
 ```
 
 Three things are worth naming:
 
 * **the grading crosses the substitution only because the arguments
   are graded.**  `WellDenoted_inst` charges for the
-  substituted value at every cut, so `wellDenotedV_instSeq` needs
-  `∀ w ∈ ws, WellDenotedV V ρ w`.  The conjunct supplies it
-  (`∀ z ∈ zs, WellDenotedV V ρ z`); the interp-equality half cannot,
+  substituted value at every cut, so `wellDenoted_instSeq` needs
+  `∀ w ∈ ws, WellDenoted V ρ w`.  The conjunct supplies it
+  (`∀ z ∈ zs, WellDenoted V ρ z`); the interp-equality half cannot,
   which is why the *equality* goes through the top-down descent;
 * **the padding must be graded too**, and must inhabit its context
   slot: the spine's padding is charged a grading by
-  `wellDenotedV_instSeq`.  `.prf` is the
+  `wellDenoted_instSeq`.  `.prf` is the
   obvious candidate and it **fails**: `pt_not_mem_univZero`.  The
   padding that works is `padA := .eqE (.sort 0) (.sort 0)` —
   its reading is `eqv (univ 0) (univ 0) ∈ˢ univ 0` (`eqv_mem_univ`) and
@@ -80,8 +80,8 @@ def padA : AnnotTerm := .eqE (.sort 0) (.sort 0)
     interp V ρ padA = eqv (univ 0 : V) (univ 0) := by
   rw [padA, interp_eqE, interp_sort]
 
-theorem wellDenotedV_padA (ρ : Nat → V) : WellDenotedV V ρ padA := by
-  rw [WellDenotedV, padA, WellDenoted_eqE]
+theorem wellDenoted_padA (ρ : Nat → V) : WellDenoted V ρ padA := by
+  rw [padA, WellDenoted_eqE]
   exact ⟨trivial, trivial⟩
 
 /-! ## The chain's ambient environment -/
@@ -104,26 +104,26 @@ the ambient one, is graded at the ambient one.
 `chain_cons_eq_instE` is the whole content — the chain's `cons` step
 *is* the `instE` the substitution lemma produces — and
 `shiftE_chain` cancels the lift each argument carries. -/
-theorem wellDenotedV_instSeq {ρ : Nat → V} :
+theorem wellDenoted_instSeq {ρ : Nat → V} :
     ∀ (ws : List AnnotTerm) {X : AnnotTerm},
-      (∀ w ∈ ws, WellDenotedV V ρ w) →
-      WellDenotedV V (chain V ρ ws) X →
-      WellDenotedV V ρ (ConLeche.Model.AnnotTerm.instSeq ws (ws.length - 1) X) := by
+      (∀ w ∈ ws, WellDenoted V ρ w) →
+      WellDenoted V (chain V ρ ws) X →
+      WellDenoted V ρ (ConLeche.Model.AnnotTerm.instSeq ws (ws.length - 1) X) := by
   intro ws
   induction ws with
   | nil => intro X _ hX; exact hX
   | cons w ws ih =>
     intro X hoks hX
-    have hokw : WellDenotedV V ρ w := hoks w List.mem_cons_self
-    have hstep : WellDenotedV V (chain V ρ ws) (X.inst w ws.length) := by
+    have hokw : WellDenoted V ρ w := hoks w List.mem_cons_self
+    have hstep : WellDenoted V (chain V ρ ws) (X.inst w ws.length) := by
       have hshift : shiftE ws.length 0 (chain V ρ ws) = ρ :=
         shiftE_chain ρ ws
-      rw [WellDenotedV, WellDenoted_inst V X w ws.length (chain V ρ ws)
+      rw [WellDenoted_inst V X w ws.length (chain V ρ ws)
         (by rw [hshift]; exact hokw)]
       rw [hshift, ← chain_cons_eq_instE]
       exact hX
     have h := ih (fun x hx => hoks x (List.mem_cons_of_mem _ hx)) hstep
-    show WellDenotedV V ρ (ConLeche.Model.AnnotTerm.instSeq ws
+    show WellDenoted V ρ (ConLeche.Model.AnnotTerm.instSeq ws
       ((w :: ws).length - 1 - 1) (X.inst w ((w :: ws).length - 1)))
     simpa using h
 
@@ -241,13 +241,13 @@ theorem nestedPinGrade {acval : Name → (Name → Nat) → AnnotTerm}
         (Expr.instSpine os (rP - 1) p) = some w0 →
       ∀ σ : Nat → V,
         Sat V (List.replicate cnF (.sort 0) ++ ΓP) σ →
-        WellDenotedV V σ w0)
+        WellDenoted V σ w0)
     -- the repaired conjunct's own hypotheses
     {ρ : Nat → V} {zs : List AnnotTerm} {restR : AnnotTerm}
     (hzslen : zs.length = rP)
-    (hzsOk : ∀ z ∈ zs, WellDenotedV V ρ z)
+    (hzsOk : ∀ z ∈ zs, WellDenoted V ρ z)
     (hfit : TeleFitPA V ρ TVa zs restR) :
-    WellDenotedV V ρ (ConLeche.Model.AnnotTerm.instRevChain zs vpa) := by
+    WellDenoted V ρ (ConLeche.Model.AnnotTerm.instRevChain zs vpa) := by
   obtain ⟨w0, hw0, hcross⟩ := pinCross (acval := acval) (cval := cval)
     (env := env) (φ := φ) (cnF := cnF) hacl hainst hlink hcl padA hoslen
     hshape hwsOs hbOs hpw hpb hvpden hzslen (vals := zs) (n := rP)
@@ -261,12 +261,12 @@ theorem nestedPinGrade {acval : Name → (Name → Nat) → AnnotTerm}
   rw [show rP + cnF - 1
       = (zs ++ List.replicate cnF padA).length - 1 from by
     rw [hZlen]]
-  refine wellDenotedV_instSeq _ ?_ ?_
+  refine wellDenoted_instSeq _ ?_ ?_
   · intro x hx
     rcases List.mem_append.mp hx with hx' | hx'
     · exact hzsOk x hx'
     · obtain rfl := List.eq_of_mem_replicate hx'
-      exact wellDenotedV_padA ρ
+      exact wellDenoted_padA ρ
   · exact hcert w0 hw0 _
       (sat_padded_chain (cnF := cnF) htowerP hzslen hfit)
 

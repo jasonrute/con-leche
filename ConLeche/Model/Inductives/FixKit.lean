@@ -521,18 +521,18 @@ variable {V : Type w} [SetTheory V]
 /-- An application spine over a function whose reading is the point is
 graded whenever the head and the arguments are: the `.app` clause is
 witnessed at regime `0` by the singleton of the argument's reading. -/
-theorem mkAppN_wellDenotedV_of_pt :
+theorem mkAppN_wellDenoted_of_pt :
     ∀ {f : AnnotTerm} {args : List AnnotTerm} {ρ : Nat → V},
-      WellDenotedV V ρ f → interp V ρ f = (pt : V) →
-      (∀ a ∈ args, WellDenotedV V ρ a) →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f args)
+      WellDenoted V ρ f → interp V ρ f = (pt : V) →
+      (∀ a ∈ args, WellDenoted V ρ a) →
+      WellDenoted V ρ (AnnotTerm.mkAppN f args)
   | _, [], _, hf, _, _ => hf
   | f, a :: args, ρ, hf, hpt, hargs => by
     rw [AnnotTerm.mkAppN_cons]
     have ha := hargs a List.mem_cons_self
-    refine mkAppN_wellDenotedV_of_pt (f := .app f a) ?_ ?_
+    refine mkAppN_wellDenoted_of_pt (f := .app f a) ?_ ?_
       (fun b hb => hargs b (List.mem_cons_of_mem _ hb))
-    · rw [WellDenotedV, WellDenoted_app]
+    · rw [WellDenoted_app]
       refine ⟨hf, ha, 0, image (fun _ => interp V ρ a) unitSet, fun _ => unitSet, ?_, ?_, ?_,
         fun h => absurd rfl h⟩
       · rw [hpt]; exact pt_mem_piR_zero_of fun _ _ => pt_mem_unitSet
@@ -888,15 +888,15 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List AnnotTerm}
     (hokR : ∀ ρ : Nat → V,
       ρ 0 ∈ˢ sumSet w (sumFibre w (fun j => ρ (j + 1)) [((ds.drop nP)) ++ [idxEqAV []]]) →
       Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) →
-      WellDenotedV V ρ R) :
+      WellDenoted V ρ R) :
     ∀ (ρ : Nat → V) (vs : List AnnotTerm) (x rest : AnnotTerm),
       vs.length = nP →
-      WellDenotedV V ρ (AnnotTerm.mkAppN L vs) →
+      WellDenoted V ρ (AnnotTerm.mkAppN L vs) →
       interp V ρ (AnnotTerm.mkAppN L vs) ≠ pt →
-      WellDenotedV V ρ x →
+      WellDenoted V ρ x →
       interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN L vs) →
       ConLeche.Model.AnnotTerm.peelPis (mkPisAV eds R) (vs ++ [x]) = some rest →
-      WellDenotedV V ρ (projAV (i + 1) x) ∧ WellDenotedTy V ρ rest ∧
+      WellDenoted V ρ (projAV (i + 1) x) ∧ WellDenotedTy V ρ rest ∧
         interp V ρ (projAV (i + 1) x) ∈ˢ interp V ρ rest := by
   intro ρ vs x rest hlenVs hokApp hneApp hokx hmem hpeel
   have hlenFs : (((ds.drop nP))).length = nF := by simp [hlenDs]
@@ -905,7 +905,7 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List AnnotTerm}
     obtain ⟨B, hB⟩ := hlam
     -- the family applied to the parameters is not the point (the law's
     -- premise: it is the type of `x`, "not pt" source (1) at the caller)
-    have h := spineFit_of_wellDenotedV_mkAppN_lam (lds := pps)
+    have h := spineFit_of_wellDenoted_mkAppN_lam (lds := pps)
       (b := B) (σ := ρ)
       hokApp hneApp (by rw [hB]) (by simp [hlenVs, hlenPps])
     exact h
@@ -953,10 +953,10 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List AnnotTerm}
     -- fitting prefix (squash: the point prefix agrees with one)
     refine ⟨?_, ?_⟩
     · rw [hrest, hlen']
-      refine wellDenotedV_instSeq _ ?_ ?_
+      refine wellDenoted_instSeq _ ?_ ?_
       · intro w' hw'
         rcases List.mem_append.mp hw' with h | h
-        · exact WellDenotedV_mkAppN_args vs hokApp w' h
+        · exact WellDenoted_mkAppN_args vs hokApp w' h
         · rw [List.mem_singleton] at h; subst h; exact hokx
       · rw [hchain]; exact hokR _ hframeX hframeS
     · rw [hinterpRest]
@@ -1673,7 +1673,7 @@ theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
         ConLeche.inferTypeCore μ env F (d + k) a.fvarTypeD = .ok t ∧
         ConLeche.ensureSortCore μ env F (d + k) t = .ok u ∧ Level.eval ψ u ≤ w) →
       ∀ k, k < n → ∀ ρ : Nat → V, Sat V (((tl.take k)).reverse ++ Δ) ρ →
-        WellDenotedV V ρ (tl.getD k default) ∧ interp V ρ (tl.getD k default) ∈ˢ (univ w : V)
+        WellDenoted V ρ (tl.getD k default) ∧ interp V ρ (tl.getD k default) ∈ˢ (univ w : V)
   | 0, _, _, _, _, _, _, _, _, _, _, _, _, _, _, k, hk, _, _ => absurd hk (Nat.not_lt_zero k)
   | n + 1, d, e, fvs, o, Δ, tl, hop, hlen, hC, hws, hb, hL, hread, hinf, k, hk, ρ, hρ => by
     match e, hop, hws, hb with
@@ -1767,7 +1767,7 @@ theorem fixEmptyUnitLaw {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     (hread : ∀ ψ, denoteMeta m.acval env ψ 0 cvT.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
+      WellDenoted V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
     (hpar : ∀ ψ, caps.unitParams = (pps ψ).length) :
     UnitLaw m φ' T cvT caps := by
   intro us _
@@ -1806,7 +1806,7 @@ theorem fibreUnitLaw {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     (hread : ∀ ψ, denoteMeta m.acval env ψ 0 cvT.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
+      WellDenoted V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
     (hpar : ∀ ψ, caps.unitParams = (pps ψ).length) :
     UnitLaw m φ' T cvT caps := by
   intro us _
@@ -1848,7 +1848,7 @@ theorem fibreEtaLaw0 {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
     (hread : ∀ ψ, denoteMeta m.acval env ψ 0 cvT.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
+      WellDenoted V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
     (hfit : ∀ (ψ : Name → Nat) (ρ : Nat → V) (as : List V),
       SpineFit ρ ((pps ψ)) as → SpineFit ρ ((ds ψ)) as)
     (hpar : ∀ ψ, caps.etaParams = (pps ψ).length)

@@ -74,7 +74,7 @@ theorem formerFit (hin : RulesInputs V m φ) {d : Nat} {T : Name}
     (hTVa : denoteMeta m.acval env φ 0
       (cvT.type.instantiateLevelParams cvT.levelParams us') = some TVa)
     (ρ : Nat → V)
-    (hok : WellDenotedV V ρ (AnnotTerm.mkAppN
+    (hok : WellDenoted V ρ (AnnotTerm.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams us')) tsa))
     (hne : interp V ρ (AnnotTerm.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) ≠ pt) :
@@ -125,16 +125,16 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
           (cvC.type.instantiateLevelParams cvC.levelParams us') = some TCa ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d b ρ →
           (∀ x ∈ targs, LeavesGr m φ d x ρ) →
-          WellDenotedV V ρ (AnnotTerm.mkAppN
+          WellDenoted V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) →
           interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) ≠ pt →
-          WellDenotedV V ρ ba →
+          WellDenoted V ρ ba →
           interp V ρ ba ∈ˢ interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) →
           (∀ x ∈ ConLeche.etaProjs T b caps.etaFields,
             LeavesGr m φ d x ρ) ∧
-          (∀ x ∈ ps, WellDenotedV V ρ x) ∧
+          (∀ x ∈ ps, WellDenoted V ρ x) ∧
           interp V ρ ba = ((tsa ++ ps).map (interp V ρ)).foldl SetTheory.app
             (interp V ρ (m.acval caps.etaCtor
               (Level.substFn φ cvT.levelParams us'))) ∧

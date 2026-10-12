@@ -27,20 +27,13 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- The P-tier truthfulness currency: the semantic invariant
-`WellDenoted` (task #342 L14a: no longer paired with a validity of the
-binder annotations, which nothing reads; the name goes in S5). -/
-abbrev WellDenotedV (V : Type w) [SetTheory V] (ρ : Nat → V) (e : AnnotTerm) :
-    Prop :=
-  WellDenoted V ρ e
-
 /-- **A graded type** (task #342, L5): a graded reading whose
 denotation is a type (`IsTy`: a truth value or a strict set).  The
 currency of the context's entries (`CtxOk`) and of inferred types
 (`InferSem`), the fragment's `Sat`/`InferSem` typing clause. -/
 @[expose] def WellDenotedTy (V : Type w) [SetTheory V] (ρ : Nat → V) (e : AnnotTerm) :
     Prop :=
-  WellDenotedV V ρ e ∧ IsTy (interp V ρ e)
+  WellDenoted V ρ e ∧ IsTy (interp V ρ e)
 
 /-- The P-tier context discipline over `denoteMeta`
 — scope bound, leaf types annotate, their interpretations read the

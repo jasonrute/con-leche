@@ -255,8 +255,8 @@ theorem frame_atom {d : Nat} {e : Expr} (h : e.fvarLeaves = [])
 /-- The two components of a graded application are graded. -/
 theorem graded_app {Δa : List AnnotTerm} {f x : AnnotTerm}
     (h : Graded V Δa (.app f x)) : Graded V Δa f ∧ Graded V Δa x :=
-  ⟨fun σ hσ => by have h1 := h σ hσ; rw [WellDenotedV, WellDenoted_app] at h1; exact h1.1,
-   fun σ hσ => by have h1 := h σ hσ; rw [WellDenotedV, WellDenoted_app] at h1; exact h1.2.1⟩
+  ⟨fun σ hσ => by have h1 := h σ hσ; rw [WellDenoted_app] at h1; exact h1.1,
+   fun σ hσ => by have h1 := h σ hσ; rw [WellDenoted_app] at h1; exact h1.2.1⟩
 
 
 /-- An application's grading depends on its two components only through
@@ -265,10 +265,10 @@ their VALUES, so it transfers along equal-valued graded replacements
 theorem appCongrV {σ : Nat → V} {f a f' a' : AnnotTerm}
     (heqf : interp V σ f = interp V σ f')
     (heqa : interp V σ a = interp V σ a')
-    (hgf' : WellDenotedV V σ f') (hga' : WellDenotedV V σ a')
-    (h : WellDenotedV V σ (.app f a)) : WellDenotedV V σ (.app f' a') := by
+    (hgf' : WellDenoted V σ f') (hga' : WellDenoted V σ a')
+    (h : WellDenoted V σ (.app f a)) : WellDenoted V σ (.app f' a') := by
   have h1 := h
-  rw [WellDenotedV, WellDenoted_app] at h1 ⊢
+  rw [WellDenoted_app] at h1 ⊢
   obtain ⟨-, -, v, A, B, h2, h3, h4⟩ := h1
   exact ⟨hgf', hga', v, A, B, heqf ▸ h2, heqa ▸ h3, h4⟩
 
@@ -307,15 +307,15 @@ theorem congr :
       obtain ⟨-, u, v, A, Bf, hs, hA, hB⟩ := hok1
       exact ⟨hok', u, v, A, Bf, heq ▸ hs, hA, hB⟩
 
-/-- `WellDenotedV` form of the congruence. -/
+/-- `WellDenoted` form of the congruence. -/
 theorem congrV {i : Nat} {e e' : AnnotTerm} {σ : Nat → V}
-    (heq : interp V σ e = interp V σ e') (hok' : WellDenotedV V σ e')
-    (hok : WellDenotedV V σ (projAV i e)) : WellDenotedV V σ (projAV i e') :=
+    (heq : interp V σ e = interp V σ e') (hok' : WellDenoted V σ e')
+    (hok : WellDenoted V σ (projAV i e)) : WellDenoted V σ (projAV i e') :=
   congr heq hok' hok
 
-/-- `WellDenotedV` of the subject, off the spine's. -/
+/-- `WellDenoted` of the subject, off the spine's. -/
 theorem hoistV {i : Nat} {e : AnnotTerm} {σ : Nat → V}
-    (hok : WellDenotedV V σ (projAV i e)) : WellDenotedV V σ e :=
+    (hok : WellDenoted V σ (projAV i e)) : WellDenoted V σ e :=
   hoist hok
 
 /-- The interpretation of the spine, at equal-valued subjects. -/
@@ -331,16 +331,16 @@ end ProjAV
 
 /-- A λ's domain annotation is graded when the λ is. -/
 theorem lamDomV {A b : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenotedV V ρ (.lam A b)) : WellDenotedV V ρ A := by
-  rw [WellDenotedV, WellDenoted_lam] at h; exact h.1
+    (h : WellDenoted V ρ (.lam A b)) : WellDenoted V ρ A := by
+  rw [WellDenoted_lam] at h; exact h.1
 
 /-- **The graded β step** at a redex that is not the point
 (`WellDenoted_beta`). -/
 theorem betaV {A b a : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenotedV V ρ (.app (.lam A b) a))
+    (h : WellDenoted V ρ (.app (.lam A b) a))
     (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
     interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
-      WellDenotedV V ρ (b.inst a) :=
+      WellDenoted V ρ (b.inst a) :=
   (WellDenoted_beta V h hne).2
 
 /-! ## The telescope walk's one-slot kit -/
@@ -349,11 +349,11 @@ theorem betaV {A b a : AnnotTerm} {ρ : Nat → V}
 spine**, and places it in the residual's reading. -/
 theorem mkAppN_of_fitA {ρ : Nat → V} :
     ∀ (vs : List AnnotTerm) {Ta f rest : AnnotTerm},
-      WellDenotedV V ρ Ta → WellDenotedV V ρ f →
-      (∀ x ∈ vs, WellDenotedV V ρ x) →
+      WellDenoted V ρ Ta → WellDenoted V ρ f →
+      (∀ x ∈ vs, WellDenoted V ρ x) →
       interp V ρ f ∈ˢ interp V ρ Ta →
       TeleFitPA V ρ Ta vs rest →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f vs) ∧
+      WellDenoted V ρ (AnnotTerm.mkAppN f vs) ∧
         interp V ρ (AnnotTerm.mkAppN f vs) ∈ˢ interp V ρ rest := by
   intro vs
   induction vs with
@@ -366,25 +366,25 @@ theorem mkAppN_of_fitA {ρ : Nat → V} :
     cases hfit with
     | @cons A B _ _ _ hx hfit' =>
       have hpi := cast (WellDenoted_pi V ρ A B) hokT
-      have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
+      have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenoted V (cons y ρ) B :=
         fun y hy => hpi.2.2.1 y hy
-      have hokx : WellDenotedV V ρ x := hoks x List.mem_cons_self
-      have hstep : WellDenotedV V ρ (.app f x) :=
+      have hokx : WellDenoted V ρ x := hoks x List.mem_cons_self
+      have hstep : WellDenoted V ρ (.app f x) :=
         WellDenoted_app_of V hf hokx hmem hx hpi.2.1
       rw [interp_pi] at hmem
       have hmem' : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
         rw [interp_inst0, interp_app]
         exact app_mem_piV hmem hx
-      exact ih ((WellDenotedV_inst0 hokx).mpr (hokB _ hx)) hstep
+      exact ih ((WellDenoted_inst0 _ hokx).mpr (hokB _ hx)) hstep
         (fun y hy => hoks y (List.mem_cons_of_mem x hy)) hmem' hfit'
 
 /-- The head of a graded spine is graded. -/
 theorem mkAppN_head {ρ : Nat → V} :
     ∀ (as : List AnnotTerm) {f : AnnotTerm},
-      WellDenotedV V ρ (AnnotTerm.mkAppN f as) → WellDenotedV V ρ f
+      WellDenoted V ρ (AnnotTerm.mkAppN f as) → WellDenoted V ρ f
   | [], _, h => h
   | a :: as, f, h => by
-    have h' : WellDenotedV V ρ (.app f a) := mkAppN_head as h
+    have h' : WellDenoted V ρ (.app f a) := mkAppN_head as h
     exact (cast (WellDenoted_app V ρ f a) h').1
 
 /-- **The ι-slot licence, one slot**: a graph member of two function
@@ -430,44 +430,44 @@ theorem hoist_spine {Δa : List AnnotTerm} :
 /-! ## The per-valuation splitters (task #342, L9) -/
 
 
-theorem _root_.ConLeche.Model.WellDenotedV.app_fn {ρ : Nat → V} {f x : AnnotTerm}
-    (h : WellDenotedV V ρ (.app f x)) : WellDenotedV V ρ f :=
+theorem _root_.ConLeche.Semantics.WellDenoted.app_fn {ρ : Nat → V} {f x : AnnotTerm}
+    (h : WellDenoted V ρ (.app f x)) : WellDenoted V ρ f :=
   (cast (WellDenoted_app V ρ f x) h).1
 
-theorem _root_.ConLeche.Model.WellDenotedV.app_arg {ρ : Nat → V} {f x : AnnotTerm}
-    (h : WellDenotedV V ρ (.app f x)) : WellDenotedV V ρ x :=
+theorem _root_.ConLeche.Semantics.WellDenoted.app_arg {ρ : Nat → V} {f x : AnnotTerm}
+    (h : WellDenoted V ρ (.app f x)) : WellDenoted V ρ x :=
   (cast (WellDenoted_app V ρ f x) h).2.1
 
-theorem _root_.ConLeche.Model.WellDenotedV.pi_dom {ρ : Nat → V} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi A B)) : WellDenotedTy V ρ A :=
+theorem _root_.ConLeche.Semantics.WellDenoted.pi_dom {ρ : Nat → V} {A B : AnnotTerm}
+    (h : WellDenoted V ρ (.pi A B)) : WellDenotedTy V ρ A :=
   ⟨(cast (WellDenoted_pi V ρ A B) h).1, (cast (WellDenoted_pi V ρ A B) h).2.1⟩
 
-theorem _root_.ConLeche.Model.WellDenotedV.pi_body {ρ : Nat → V} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi A B)) :
-    ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) B := fun x hx =>
+theorem _root_.ConLeche.Semantics.WellDenoted.pi_body {ρ : Nat → V} {A B : AnnotTerm}
+    (h : WellDenoted V ρ (.pi A B)) :
+    ∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) B := fun x hx =>
   (cast (WellDenoted_pi V ρ A B) h).2.2.1 x hx
 
 /-- A graded Π-type's fibres are types. -/
-theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V}
-    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
+theorem _root_.ConLeche.Semantics.WellDenoted.pi_fib {ρ : Nat → V}
+    {A B : AnnotTerm} (h : WellDenoted V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
   (cast (WellDenoted_pi V ρ A B) h).2.2.2 x hx
 
-theorem _root_.ConLeche.Model.WellDenotedV.lam_dom {ρ : Nat → V} {A b : AnnotTerm}
-    (h : WellDenotedV V ρ (.lam A b)) : WellDenotedTy V ρ A :=
+theorem _root_.ConLeche.Semantics.WellDenoted.lam_dom {ρ : Nat → V} {A b : AnnotTerm}
+    (h : WellDenoted V ρ (.lam A b)) : WellDenotedTy V ρ A :=
   ⟨(cast (WellDenoted_lam V ρ A b) h).1, (cast (WellDenoted_lam V ρ A b) h).2.1⟩
 
-theorem _root_.ConLeche.Model.WellDenotedV.lam_body {ρ : Nat → V} {A b : AnnotTerm}
-    (h : WellDenotedV V ρ (.lam A b)) :
-    ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) b := fun x hx =>
+theorem _root_.ConLeche.Semantics.WellDenoted.lam_body {ρ : Nat → V} {A b : AnnotTerm}
+    (h : WellDenoted V ρ (.lam A b)) :
+    ∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) b := fun x hx =>
   (cast (WellDenoted_lam V ρ A b) h).2.2.1 x hx
 
-theorem _root_.ConLeche.Model.WellDenotedV.fst_arg {ρ : Nat → V} {e : AnnotTerm}
-    (h : WellDenotedV V ρ (.fst e)) : WellDenotedV V ρ e :=
+theorem _root_.ConLeche.Semantics.WellDenoted.fst_arg {ρ : Nat → V} {e : AnnotTerm}
+    (h : WellDenoted V ρ (.fst e)) : WellDenoted V ρ e :=
   (cast (WellDenoted_fst V ρ e) h).1
 
-theorem _root_.ConLeche.Model.WellDenotedV.snd_arg {ρ : Nat → V} {e : AnnotTerm}
-    (h : WellDenotedV V ρ (.snd e)) : WellDenotedV V ρ e :=
+theorem _root_.ConLeche.Semantics.WellDenoted.snd_arg {ρ : Nat → V} {e : AnnotTerm}
+    (h : WellDenoted V ρ (.snd e)) : WellDenoted V ρ e :=
   (cast (WellDenoted_snd V ρ e) h).1
 
 
@@ -479,8 +479,8 @@ theorem _root_.ConLeche.Model.WellDenotedTy.ne_pt {ρ : Nat → V} {e : AnnotTer
 its head, at one valuation. -/
 theorem hoist_spineV {ρ : Nat → V} :
     ∀ (asa : List AnnotTerm) {fa : AnnotTerm},
-      WellDenotedV V ρ (AnnotTerm.mkAppN fa asa) →
-      WellDenotedV V ρ fa ∧ ∀ x ∈ asa, WellDenotedV V ρ x := by
+      WellDenoted V ρ (AnnotTerm.mkAppN fa asa) →
+      WellDenoted V ρ fa ∧ ∀ x ∈ asa, WellDenoted V ρ x := by
   intro asa
   induction asa with
   | nil => intro fa h; exact ⟨h, by simp⟩
@@ -825,16 +825,16 @@ the point (`app_pt`), so a prefix's type is in the graph regime
 puts it in the telescope's domain (`slotTransfer`). -/
 theorem teleFitPA_of_graded_ne_pt {ρ : Nat → V} :
     ∀ (vs : List AnnotTerm) {T f : AnnotTerm},
-      PiChain vs.length T → WellDenotedV V ρ T → interp V ρ f ∈ˢ interp V ρ T →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
+      PiChain vs.length T → WellDenoted V ρ T → interp V ρ f ∈ˢ interp V ρ T →
+      WellDenoted V ρ (AnnotTerm.mkAppN f vs) →
       interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
       ∃ rest, TeleFitPA V ρ T vs rest
   | [], T, _, _, _, _, _, _ => ⟨T, .nil⟩
   | x :: xs, T, f, hpc, hT, hmem, hg, hne => by
     obtain ⟨A, B, rfl, hpcB⟩ := piChain_succ_inv hpc
-    have hg' : WellDenotedV V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
+    have hg' : WellDenoted V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
     have hne' : interp V ρ (AnnotTerm.mkAppN (.app f x) xs) ≠ pt := hne
-    have happ : WellDenotedV V ρ (.app f x) := mkAppN_head xs hg'
+    have happ : WellDenoted V ρ (.app f x) := mkAppN_head xs hg'
     obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ f x) happ).2.2
     have hmem' := hmem
     rw [interp_pi] at hmem'
@@ -844,9 +844,9 @@ theorem teleFitPA_of_graded_ne_pt {ρ : Nat → V} :
     have hgr : interp V ρ f ∈ˢ piR 1 (interp V ρ A) fun y => interp V (cons y ρ) B := by
       rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hmem' hfne
     have hxA : interp V ρ x ∈ˢ interp V ρ A := slotTransfer Nat.one_ne_zero hgr hslot hx
-    have hokx : WellDenotedV V ρ x := happ.app_arg
-    have hBx : WellDenotedV V ρ (B.inst x) :=
-      (WellDenotedV_inst0 hokx).mpr (hT.pi_body _ hxA)
+    have hokx : WellDenoted V ρ x := happ.app_arg
+    have hBx : WellDenoted V ρ (B.inst x) :=
+      (WellDenoted_inst0 _ hokx).mpr (hT.pi_body _ hxA)
     have hmemB : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
       rw [interp_inst0, interp_app]
       exact app_mem_piV hmem' hxA
@@ -857,15 +857,15 @@ theorem teleFitPA_of_graded_ne_pt {ρ : Nat → V} :
 /-- A fit's residual is graded where the telescope and the spine are. -/
 theorem teleFitPA_rest_graded {ρ : Nat → V} :
     ∀ {T : AnnotTerm} {vs : List AnnotTerm} {rest : AnnotTerm},
-      TeleFitPA V ρ T vs rest → WellDenotedV V ρ T →
-      (∀ x ∈ vs, WellDenotedV V ρ x) → WellDenotedV V ρ rest := by
+      TeleFitPA V ρ T vs rest → WellDenoted V ρ T →
+      (∀ x ∈ vs, WellDenoted V ρ x) → WellDenoted V ρ rest := by
   intro T vs rest h
   induction h with
   | nil => intro hT _; exact hT
   | @cons A B rest' a as hmem _ ih =>
     intro hT hvs
-    have hokA : WellDenotedV V ρ a := hvs a List.mem_cons_self
-    exact ih ((WellDenotedV_inst0 hokA).mpr (hT.pi_body _ hmem))
+    have hokA : WellDenoted V ρ a := hvs a List.mem_cons_self
+    exact ih ((WellDenoted_inst0 _ hokA).mpr (hT.pi_body _ hmem))
       (fun x hx => hvs x (List.mem_cons_of_mem a hx))
 
 /-- **A fit's residual is a type** when the fitted Π-type is one: each
@@ -874,14 +874,14 @@ fibre ("not pt" source (1) for a constructor's codomain). -/
 theorem teleFitPA_rest_isTy {ρ : Nat → V} :
     ∀ {T : AnnotTerm} {vs : List AnnotTerm} {rest : AnnotTerm},
       TeleFitPA V ρ T vs rest → WellDenotedTy V ρ T →
-      (∀ x ∈ vs, WellDenotedV V ρ x) → IsTy (interp V ρ rest) := by
+      (∀ x ∈ vs, WellDenoted V ρ x) → IsTy (interp V ρ rest) := by
   intro T vs rest h
   induction h with
   | nil => intro hT _; exact hT.2
   | @cons A B rest' a as hmem _ ih =>
     intro hT hvs
-    have hokA : WellDenotedV V ρ a := hvs a List.mem_cons_self
-    refine ih ⟨(WellDenotedV_inst0 hokA).mpr (hT.1.pi_body _ hmem), ?_⟩
+    have hokA : WellDenoted V ρ a := hvs a List.mem_cons_self
+    refine ih ⟨(WellDenoted_inst0 _ hokA).mpr (hT.1.pi_body _ hmem), ?_⟩
       (fun x hx => hvs x (List.mem_cons_of_mem a hx))
     rw [interp_inst0]
     exact (cast (WellDenoted_pi V ρ A B) hT.1).2.2.2 _ hmem

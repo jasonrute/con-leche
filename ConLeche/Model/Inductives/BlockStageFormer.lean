@@ -85,7 +85,7 @@ theorem blockParamFrame_of_sat {pps : List AnnotTerm} {Ids : List AnnotTerm}
 the block-wide base facts at the parameter frame. -/
 theorem blockLeafWalks {pps : List AnnotTerm} {w : Nat}
     (hlen : pps.length = nP + nIdx)
-    (hokTy : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps (.sort w)))
+    (hokTy : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps (.sort w)))
     {mm : Nat}
     (hIdsm : Idss mm = ((pps.drop nP)))
     (hIdx : ∀ ρp : Nat → V, Sat V ((pps.take nP)).reverse ρp →

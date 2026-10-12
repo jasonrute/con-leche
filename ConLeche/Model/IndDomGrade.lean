@@ -29,41 +29,41 @@ variable {acval : Name → (Name → Nat) → AnnotTerm}
 /-! ## The `.pi` split, in the P currency -/
 
 /-- A `.pi` reading's domain is graded when the reading is. -/
-theorem WellDenotedV_pi_dom {ρ : Nat → V} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi A B)) : WellDenotedV V ρ A :=
+theorem WellDenoted_pi_dom {ρ : Nat → V} {A B : AnnotTerm}
+    (h : WellDenoted V ρ (.pi A B)) : WellDenoted V ρ A :=
   (cast (WellDenoted_pi V ρ A B) h).1
 
 /-- A `.pi` reading's domain is a graded type when the reading is
 graded (task #342, L5: the `.pi` clause carries the domain's `IsTy`). -/
 theorem WellDenotedTy_pi_dom {ρ : Nat → V} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi A B)) : WellDenotedTy V ρ A :=
-  ⟨WellDenotedV_pi_dom h, (cast (WellDenoted_pi V ρ A B) h).2.1⟩
+    (h : WellDenoted V ρ (.pi A B)) : WellDenotedTy V ρ A :=
+  ⟨WellDenoted_pi_dom h, (cast (WellDenoted_pi V ρ A B) h).2.1⟩
 
 /-- A `.pi` reading's body is graded at every extension by an element
 of the domain. -/
-theorem WellDenotedV_pi_body {ρ : Nat → V} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi A B)) {x : V}
-    (hx : x ∈ˢ interp V ρ A) : WellDenotedV V (cons x ρ) B :=
+theorem WellDenoted_pi_body {ρ : Nat → V} {A B : AnnotTerm}
+    (h : WellDenoted V ρ (.pi A B)) {x : V}
+    (hx : x ∈ˢ interp V ρ A) : WellDenoted V (cons x ρ) B :=
   (cast (WellDenoted_pi V ρ A B) h).2.2.1 x hx
 
 /-! ## Application spines, graded backwards -/
 
 /-- An application's argument is graded when the application is. -/
-theorem WellDenotedV_app_arg {ρ : Nat → V} {g a : AnnotTerm}
-    (h : WellDenotedV V ρ (.app g a)) : WellDenotedV V ρ a :=
+theorem WellDenoted_app_arg {ρ : Nat → V} {g a : AnnotTerm}
+    (h : WellDenoted V ρ (.app g a)) : WellDenoted V ρ a :=
   (cast (WellDenoted_app V ρ g a) h).2.1
 
 /-- **Every argument of a graded application spine is graded.** -/
-theorem WellDenotedV_mkAppN_args {ρ : Nat → V} :
+theorem WellDenoted_mkAppN_args {ρ : Nat → V} :
     ∀ (as : List AnnotTerm) {g : AnnotTerm},
-      WellDenotedV V ρ (AnnotTerm.mkAppN g as) → ∀ a ∈ as, WellDenotedV V ρ a := by
+      WellDenoted V ρ (AnnotTerm.mkAppN g as) → ∀ a ∈ as, WellDenoted V ρ a := by
   intro as
   induction as with
   | nil => intro g _ a ha; exact nomatch ha
   | cons x xs ih =>
     intro g h a ha
     rcases List.mem_cons.mp ha with rfl | ha'
-    · exact WellDenotedV_app_arg (Rules.mkAppN_head xs h)
+    · exact WellDenoted_app_arg (Rules.mkAppN_head xs h)
     · exact ih (g := .app g x) h a ha'
 
 end ConLeche.Model

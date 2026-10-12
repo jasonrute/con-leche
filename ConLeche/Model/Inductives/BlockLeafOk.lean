@@ -10,7 +10,7 @@ public section
 A member's former leaf (`blockTyG`: the block operator's tower, the
 index-set tuple and the carrier tuple under the parameter frame) is
 closed (`blockTyAV_below`) and graded at the hereditary premise
-(`blockTyAV_wellDenotedV`).
+(`blockTyAV_wellDenoted`).
 -/
 
 namespace ConLeche.Model
@@ -184,10 +184,10 @@ variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
 
 /-- **The block former leaf's P currency**: graded at the hereditary
 premise. -/
-theorem blockTyAV_wellDenotedV {m : Nat} (hm : m < k)
+theorem blockTyAV_wellDenoted {m : Nat} (hm : m < k)
     {pps : List AnnotTerm} {ρ : Nat → V}
     (hok : ParamsOkG k w ρ uf Idss Chs m pps) :
-    WellDenotedV V ρ (blockTyG k w uf Idss Chs pps m) :=
+    WellDenoted V ρ (blockTyG k w uf Idss Chs pps m) :=
   blockTyG_wellDenoted hm hok
 
 end Currency

@@ -6,10 +6,10 @@ import ConLeche.Semantics.BasisType
 public section
 
 /-!
-# `WellDenotedV` at every built-in type (task #161, ENDGAME E)
+# `WellDenoted` at every built-in type (task #161, ENDGAME E)
 
 Every pinned type's spelled type reading is graded
-(`WellDenotedV_bconst_type`) and a type (`IsTy_bconst_type`).
+(`WellDenoted_bconst_type`) and a type (`IsTy_bconst_type`).
 
 `WellDenoted`'s `.app` clause asks a slot `∃ v A B, f ∈ˢ piR v A B ∧
 a ∈ˢ A ∧ (v = 0 → …) ∧ (v ≠ 0 → IsTy A)`.  At a basis constant's head
@@ -272,12 +272,6 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     | exact IsTy_app_piV_univ V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›)
     | exact slot_of_mem_piV V ‹_› ‹_› (IsTy_quot_app V ‹_› ‹_›)
 
-/-- **Every built-in constant's spelled type is `WellDenotedV`**: the
-grading of the twenty-two basis type readings. -/
-theorem WellDenotedV_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (BConst.typeAV c us) :=
-  WellDenoted_bconst_type V c us ρ
-
 /-- **Every built-in constant's annotated type reads to a type**: a
 product, a universe, `ω` (`Nat.zero : Nat`) or a unit type
 (`PUnit.unit : PUnit`). -/
@@ -292,6 +286,6 @@ theorem IsTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
 /-- **Every built-in constant's annotated type is a graded type.** -/
 theorem WellDenotedTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     WellDenotedTy V ρ (BConst.typeAV c us) :=
-  ⟨WellDenotedV_bconst_type V c us ρ, IsTy_bconst_type V c us ρ⟩
+  ⟨WellDenoted_bconst_type V c us ρ, IsTy_bconst_type V c us ρ⟩
 
 end ConLeche.Model

@@ -346,7 +346,7 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
-        WellDenotedV V σ w := by
+        WellDenoted V σ w := by
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
   obtain ⟨⟨tx, htx⟩, hfr, hCE⟩ := storedMajorSub_ctx rfl mpC h hr ψ hop hmaj hxA hlt
   obtain ⟨wa, hwa⟩ := acceptedReads_of mpC.base2 ψ htx hfr.1 hfr.2.1 hfr.2.2
@@ -369,7 +369,7 @@ theorem storedMajorArg_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
-        WellDenotedV V σ w :=
+        WellDenoted V σ w :=
   storedMajorSub_graded hμ mpC h hr ψ hop hmaj (.inl hxA) hlt
 
 end Pins

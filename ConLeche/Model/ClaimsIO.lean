@@ -15,7 +15,7 @@ The fifth family of the P ladder: the same soundness statement as
 ## The species: premise form, and why it must be
 
 `InferClaim` is an **establishment** statement — the subject's
-truthfulness `WellDenotedV ea` is a *conclusion*, derived from the run.
+truthfulness `WellDenoted ea` is a *conclusion*, derived from the run.
 The io lane cannot establish it at the application clause: with the
 argument's certificate skipped there is nothing connecting `⟦tya⟧` to
 `⟦Aa⟧`, which is exactly the proof-theoretic receipt for keeping the
@@ -23,8 +23,8 @@ front door ungated (the round-D study's refutation item 4).  What the
 io lane *can* do is **consume**: given the subject's truthfulness, it
 returns the type's truthfulness and the membership.  So
 
-* `WellDenotedV ea` moves from the conclusion to the **premises**;
-* the conclusions are `WellDenotedV ta` and `⟦ea⟧ ∈ ⟦ta⟧` — membership in
+* `WellDenoted ea` moves from the conclusion to the **premises**;
+* the conclusions are `WellDenoted ta` and `⟦ea⟧ ∈ ⟦ta⟧` — membership in
   the **io-computed** type, never identity with "the" type (which is
   why the old unique-typing and Π-domain-injectivity refutations do
   not bite: they refute an identity the statement never asserts).
@@ -84,7 +84,7 @@ universe w
 variable {V : Type w} [SetTheory V]
 
 /-- **The io inference family, premise form.**  Compare `InferClaim`:
-the subject's `WellDenotedV` is a *premise* here, the run is the io
+the subject's `WellDenoted` is a *premise* here, the run is the io
 lane's (Lean's `infer_only`), and the claim is the hereditary `IORel`
 (task #346; task #342 L18): an io-inferred type need not hold its
 term. -/
@@ -98,7 +98,7 @@ term. -/
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ea) →
         ∀ ρ : Nat → V, Sat V Δa ρ →
           Rules.IORel m φ d t ρ (interp V ρ ea)
 

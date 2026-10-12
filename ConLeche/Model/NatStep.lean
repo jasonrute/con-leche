@@ -153,9 +153,9 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         (interp V ρ (natLit mp.base2 φ n₂))
         = interp V ρ (natLit mp.base2 φ K)) →
       ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
-        ∀ ρ : Nat → V, WellDenotedV V ρ ((.app (.app (mp.base2.acval c φ)
+        ∀ ρ : Nat → V, WellDenoted V ρ ((.app (.app (mp.base2.acval c φ)
               (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm)) →
-          WellDenotedV V ρ ra ∧
+          WellDenoted V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
               (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm))
             = interp V ρ ra := by
@@ -177,9 +177,9 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         (interp V ρ (natLit mp.base2 φ n₂))
         = interp V ρ (mp.base2.acval bn φ)) →
       ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
-        ∀ ρ : Nat → V, WellDenotedV V ρ ((.app (.app (mp.base2.acval c φ)
+        ∀ ρ : Nat → V, WellDenoted V ρ ((.app (.app (mp.base2.acval c φ)
               (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm)) →
-          WellDenotedV V ρ ra ∧
+          WellDenoted V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
               (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm))
             = interp V ρ ra := by

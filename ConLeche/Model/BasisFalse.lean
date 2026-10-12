@@ -14,7 +14,7 @@ public section
 built-in currency — the leaf `.const .empty [0]` reads to the empty
 set at `Sort 0`, `False.rec`'s leaf is `.const .emptyRec [0, ψ u]` —
 so every move below is the `Empty` module's with the level numeral `1`
-replaced by `0`.  `BConst.typeAV`/`bval_mem_type`/`WellDenotedV_bconst_type`
+replaced by `0`.  `BConst.typeAV`/`bval_mem_type`/`WellDenoted_bconst_type`
 are stated at every level list, so nothing new is proved about the
 built-ins; the type readings are recomputed at the `False` pins
 (`denoteMeta_falseA_type`, `denoteMeta_falseRecA_type`) and are

@@ -298,7 +298,7 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
       (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
       (∀ x ∈ args, LeavesGr m φ d x ρ) →
       DenoteMetaSpine m.acval env φ d args vs →
-      WellDenotedV V ρ (AnnotTerm.mkAppN Ha vs) →
+      WellDenoted V ρ (AnnotTerm.mkAppN Ha vs) →
       interp V ρ (AnnotTerm.mkAppN Ha vs) ≠ pt →
       ConLeche.peelPisW env.find? args.length Ty = some (.sort u0) →
       interp V ρ (AnnotTerm.mkAppN Ha vs) ∈ˢ (univ (u0.eval φ) : V)
@@ -334,9 +334,9 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
         rw [heq, interp_pi] at h2
         exact h2
       -- the spine is not the point, so its head is a graph
-      have hgS' : WellDenotedV V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') := hgS
+      have hgS' : WellDenoted V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') := hgS
       have hne' : interp V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') ≠ pt := hne
-      have happ : WellDenotedV V ρ (.app Ha xa) := mkAppN_head vs' hgS'
+      have happ : WellDenoted V ρ (.app Ha xa) := mkAppN_head vs' hgS'
       obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ Ha xa) happ).2.2
       have hHne : interp V ρ Ha ≠ pt := by
         intro h0
@@ -344,7 +344,7 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
       have hgr : interp V ρ Ha ∈ˢ piR 1 (interp V ρ Aa) fun y => interp V (cons y ρ) Ba := by
         rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hmem' hHne
       have hxA : interp V ρ xa ∈ˢ interp V ρ Aa := slotTransfer Nat.one_ne_zero hgr hslot hx
-      have hokx : WellDenotedV V ρ xa := happ.app_arg
+      have hokx : WellDenoted V ρ xa := happ.app_arg
       obtain ⟨hfx, hCx⟩ := hargs x List.mem_cons_self
       obtain ⟨hfB, hCB, hdB, hLB⟩ := forallE_inst_facts (ρ := ρ) hfTy' hCTy' hBa hfx hCx hxa
       have hwB : WellDenotedTy V ρ (Ba.inst xa) :=
@@ -615,7 +615,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
       ∀ {d : Nat} {Δa : List AnnotTerm} {aa : AnnotTerm} {ρ : Nat → V}
         {pw : ConLeche.PropWhen},
         Frame d a → CtxOkS m φ d Δa a → denoteMeta m.acval env φ d a = some aa →
-        Sat V Δa ρ → LeavesGr m φ d a ρ → WellDenotedV V ρ aa →
+        Sat V Δa ρ → LeavesGr m φ d a ρ → WellDenoted V ρ aa →
         ConLeche.proofPW env.find? a = some pw → pw.isProp = true →
         interp V ρ aa = pt := by
   intro n
@@ -641,10 +641,10 @@ theorem prf_core (hin : RulesInputs V m φ) :
       obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hda
       obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hf hva hba
       obtain ⟨hpw', hdep⟩ := ConLeche.proofPW_instantiate1 env.find? (v := v) b 0 hpw
-      have hgv : WellDenotedV V ρ va := hwa.letE_val
+      have hgv : WellDenoted V ρ va := hwa.letE_val
       rw [interp_zeta]
       exact ih _ (by omega) hfr' (hC.of_subset hsub) hred hρ (hL.of_subset hsub)
-        ((WellDenotedV_zeta hgv).mp hwa) hpw' hprop
+        ((WellDenoted_zeta _ hgv).mp hwa) hpw' hprop
     | .app f x, hn, hf, hC, hda, hL, hpw =>
       simp only [ConLeche.proofPW] at hpw
       simp only [ConLeche.Expr.proofDepth] at hn
@@ -674,7 +674,7 @@ theorem prf_of_isProofFast (hin : RulesInputs V m φ)
     (hCa : CtxOkS m φ d Δa a)
     (hda : denoteMeta m.acval env φ d a = some aa)
     (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ)
-    (hwa : WellDenotedV V ρ aa) :
+    (hwa : WellDenoted V ρ aa) :
     interp V ρ aa = (pt : V) := by
   obtain ⟨pw, hpw, hprop⟩ := ConLeche.isProofFast_inv env.find? h
   exact prf_core hin _ a (Nat.lt_succ_self _) hfa hCa hda hρ hL hwa hpw hprop

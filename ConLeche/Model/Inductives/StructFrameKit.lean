@@ -684,10 +684,10 @@ theorem piTeleAV_graded :
     ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm} {R : AnnotTerm},
       PiTeleAV k T Γ R →
       ∀ {Δ₀ : List AnnotTerm},
-        (∀ ρ : Nat → V, Sat V Δ₀ ρ → WellDenotedV V ρ T) →
+        (∀ ρ : Nat → V, Sat V Δ₀ ρ → WellDenoted V ρ T) →
         (∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i) ++ Δ₀) ρ →
           WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)) ∧
-        (∀ ρ : Nat → V, Sat V (Γ ++ Δ₀) ρ → WellDenotedV V ρ R) := by
+        (∀ ρ : Nat → V, Sat V (Γ ++ Δ₀) ρ → WellDenoted V ρ R) := by
   intro k T Γ R h
   induction h with
   | nil =>
@@ -696,10 +696,10 @@ theorem piTeleAV_graded :
   | @cons k A B R Γ' h ih =>
     intro Δ₀ hT
     have hlen : Γ'.length = k := h.length
-    have hB : ∀ ρ : Nat → V, Sat V (A :: Δ₀) ρ → WellDenotedV V ρ B := by
+    have hB : ∀ ρ : Nat → V, Sat V (A :: Δ₀) ρ → WellDenoted V ρ B := by
       intro ρ hρ
       obtain ⟨h0, htl⟩ := Sat_cons_inv hρ
-      have := WellDenotedV_pi_body (hT _ htl) h0
+      have := WellDenoted_pi_body (hT _ htl) h0
       rwa [cons_eta] at this
     obtain ⟨ih1, ih2⟩ := ih hB
     refine ⟨?_, ?_⟩
@@ -854,8 +854,8 @@ theorem inferRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr}
     (hL : Expr.LeavesBounded e) (hC : CtxOk m φ d Δ e)
     (hea : denoteMeta m.acval env φ d e = some ea) :
     ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
-      (∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedV V ρ ea) ∧
-      (∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, Sat V Δ ρ → WellDenoted V ρ ea) ∧
+      (∀ ρ : Nat → V, Sat V Δ ρ → WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ ea ∈ˢ interp V ρ ta := by
   obtain ⟨ta, hta⟩ := hc.reads hi hws hb hL hC hea
   obtain ⟨h1, h2, h3⟩ := hc.infer hi hws hb hL hC hea hta
@@ -871,7 +871,7 @@ theorem sortRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr} {u : Level}
     (hL : Expr.LeavesBounded e) (hC : CtxOk m φ d Δ e)
     (hea : denoteMeta m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δ ρ →
-      WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) :=
+      WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) :=
   hc.sort hC hws hb hL hi (ConLeche.ensureSortCore_inv hens) hea
 
 /-- A definitional-equality run between two types at a context: the
@@ -915,7 +915,7 @@ structure Opened {env : Env} (m : EnvModel V env) (φ : Name → Nat)
   okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
     WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)
   /-- the core is graded under all of them -/
-  okR : ∀ ρ : Nat → V, Sat V Γ ρ → WellDenotedV V ρ R
+  okR : ∀ ρ : Nat → V, Sat V Γ ρ → WellDenoted V ρ R
   /-- the variables are indexed by position, annotated at their own
   depth by bounded, leaf-bounded terms over the earlier variables -/
   var : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
@@ -941,7 +941,7 @@ theorem opened_of {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     (hop : openPisAtFvars k e 0 = some (fvs, o)) (hcl : e.hasFvar = false)
     (hb : e.looseBVarsBounded 0 = true)
     {T : AnnotTerm} (hT : denoteMeta m.acval env φ 0 e = some T)
-    (hokT : ∀ ρ : Nat → V, WellDenotedV V ρ T) :
+    (hokT : ∀ ρ : Nat → V, WellDenoted V ρ T) :
     ∃ (Γ : List AnnotTerm) (R : AnnotTerm),
       PiTeleAV k T Γ R ∧ Opened m φ k e fvs o Γ R := by
   obtain ⟨Γ, R, htele, hbody, hdoms⟩ := openPisAtFvars_denotePTele k hop hT
@@ -1532,7 +1532,7 @@ structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
     = some (mkPisAV (pps ψ) (.sort (resSort.eval ψ)))
   len : ∀ ψ : Name → Nat, (pps ψ).length = nP
   okTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-    WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (resSort.eval ψ)))
+    WellDenoted V ρ (mkPisAV (pps ψ) (.sort (resSort.eval ψ)))
   below : ∀ ψ : Name → Nat, DomsBelow 0 (pps ψ)
   params : ∀ ψ₁ ψ₂ : Name → Nat, (∀ p ∈ cvT.levelParams, ψ₁ p = ψ₂ p) →
     pps ψ₁ = pps ψ₂ ∧ resSort.eval ψ₁ = resSort.eval ψ₂
@@ -1568,13 +1568,13 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       denoteMeta mp.base2.acval env ψ 0 type'
         = some (mkPisAV pps (.sort (resSort.eval ψ))) ∧
       pps.length = nP ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps (.sort (resSort.eval ψ)))) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps (.sort (resSort.eval ψ)))) ∧
       DomsBelow 0 pps := by
     intro ψ
     have hc := claimsAt_of hμ mp ψ F
     obtain ⟨Ta, hTa⟩ := acceptedReads_of mp.base2 ψ hst hw hbt' hL
     obtain ⟨-, -, hokT, -, -⟩ := hc.inferRow hst hw hbt' hL (CtxOk.nil hnil) hTa
-    have hokT' : ∀ ρ : Nat → V, WellDenotedV V ρ Ta := fun ρ =>
+    have hokT' : ∀ ρ : Nat → V, WellDenoted V ρ Ta := fun ρ =>
       hokT ρ (Sat_nil V ρ)
     obtain ⟨Γ, R, htele, hop'⟩ := opened_of hop htf' hbt' hTa hokT'
     have hR : R = .sort (resSort.eval ψ) := by

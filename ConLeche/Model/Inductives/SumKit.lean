@@ -34,20 +34,6 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env} {φ : Name → 
 
 /-! ## The sum leaves' P packages -/
 
-/-- The type-former leaf's P currency. -/
-theorem sumTyAV_wellDenotedV {w : Nat} {Fss : List (List AnnotTerm)}
-    {pps : List AnnotTerm} {ρ : Nat → V}
-    (hok : ParamsOkS w ρ Fss pps) :
-    WellDenotedV V ρ (sumTyAV w pps Fss) :=
-  sumTyAV_wellDenoted hok
-
-/-- The constructor leaf's P currency. -/
-theorem sumMkAV_wellDenotedV {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List AnnotTerm}
-    (hpre : MkPreS w j ρ (fds) Fss bodyC pds) :
-    WellDenotedV V ρ (sumMkAV w j (pds ++ fds) (fds) Fss) :=
-  sumMkAV_wellDenoted hpre
-
 /-! ## `AnnotTerm` bookkeeping -/
 
 theorem DenoteMetaSpine.unique {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat} :
@@ -387,7 +373,7 @@ theorem CtorDataI.okTyV {m : EnvModel V env} {T : Name} {lps : List Name} {cvC :
     {srcs : List (Option Nat)}
     (h : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ))) :=
+    WellDenoted V ρ (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ))) :=
   (h.okTy ψ ρ).1
 
 /-- The data crosses a cons whose head is neither the former nor
@@ -477,7 +463,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     have hc := claimsAt_of hμ mp ψ F
     obtain ⟨Ta, hTa⟩ := acceptedReads_of mp.base2 ψ hst hw hbt' hL
     obtain ⟨-, -, hokT, -, -⟩ := hc.inferRow hst hw hbt' hL (CtxOk.nil hnil) hTa
-    have hokT' : ∀ ρ : Nat → V, WellDenotedV V ρ Ta := fun ρ =>
+    have hokT' : ∀ ρ : Nat → V, WellDenoted V ρ Ta := fun ρ =>
       hokT ρ (Sat_nil V ρ)
     have hokT'' : ∀ ρ : Nat → V, WellDenotedTy V ρ Ta := fun ρ =>
       ⟨hokT' ρ, IsTy_of_mem_univ ((hc.sort (CtxOk.nil hnil) hw hbt' hL hst
@@ -669,7 +655,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
         (isProp = false →
           FieldsBound (resSort.eval ψ) ρ (((ds ψ).drop nP))) ∧
         (∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
-          (∀ E ∈ Es ψ, WellDenotedV V (consList bs ρ) E) ∧
+          (∀ E ∈ Es ψ, WellDenoted V (consList bs ρ) E) ∧
           SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (Es ψ) bs))) ∧
     -- the fields' sorts, as the stage read them (task #210 Part A: the
     -- projection table's guard levels at a structure-like block): one
@@ -705,7 +691,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
         (isProp = false →
           FieldsBound (resSort.eval ψ) ρ (((ds ψ).drop nP))) ∧
         (∀ bs : List V, SpineFit ρ (((ds ψ).drop nP)) bs →
-          (∀ E ∈ Es ψ, WellDenotedV V (consList bs ρ) E) ∧
+          (∀ E ∈ Es ψ, WellDenoted V (consList bs ρ) E) ∧
           SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (Es ψ) bs))) ∧
       (∀ ρ : Nat → V, Sat V (((ds ψ).take nP)).reverse ρ →
         ∀ j, j < nF → ∀ as : List V,
@@ -1171,7 +1157,7 @@ theorem stageCtorGen {T : Name}
       = sumMkAV _ j (ds ψ₂) (((ds ψ₂).drop nP)) (uChains (Fss ψ₂))
     rw [hw, (hCD.params ψ₁ ψ₂ hφ).1, hFssParams ψ₁ ψ₂ (by rw [← hlpsC]; exact hφ)]
   · intro ψ ρ
-    have := sumMkAV_wellDenotedV (V := V) (hwalks ψ ρ)
+    have := sumMkAV_wellDenoted (V := V) (hwalks ψ ρ)
     rw [List.take_append_drop] at this
     exact this
   · exact fun ψ => ⟨_, hreadC ψ⟩

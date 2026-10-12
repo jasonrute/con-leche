@@ -1,6 +1,7 @@
 module
 
 import ConLeche.Model.Annot.BlockLfpTup
+import ConLeche.Semantics.Hoist
 public import ConLeche.Model.Inductives.BlockStageCtors
 import ConLeche.Model.Rules.Inputs
 public import ConLeche.Verify.Inductives.PositivityInv
@@ -58,9 +59,9 @@ variable {V : Type w} [SetTheory V]
 /-! ## Reading pieces -/
 
 /-- A Π-tower's domains are graded along it. -/
-theorem wellDenotedV_mkPisAV_dom :
+theorem wellDenoted_mkPisAV_dom :
     ∀ {ab : List AnnotTerm} {Δa : List AnnotTerm} {B : AnnotTerm},
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (mkPisAV ab B)) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (mkPisAV ab B)) →
       ∀ (i : Nat) (x : AnnotTerm), ab[i]? = some x →
       ∀ ρ : Nat → V, Sat V ((ab.take i).reverse ++ Δa) ρ →
         WellDenotedTy V ρ x
@@ -68,10 +69,10 @@ theorem wellDenotedV_mkPisAV_dom :
   | y :: ab, Δa, B, h, 0, x, hx, ρ, hρ => by
     simp only [List.getElem?_cons_zero, Option.some.injEq] at hx
     subst hx
-    exact (Rules.WellDenotedV.hoist_piTy (V := V) h).1 ρ (by simpa using hρ)
+    exact (Semantics.WellDenoted.hoist_piTy (V := V) h).1 ρ (by simpa using hρ)
   | y :: ab, Δa, B, h, i + 1, x, hx, ρ, hρ => by
     simp only [List.getElem?_cons_succ] at hx
-    refine wellDenotedV_mkPisAV_dom (Rules.WellDenotedV.hoist_pi (V := V) h).2 i x hx ρ ?_
+    refine wellDenoted_mkPisAV_dom (Semantics.WellDenoted.hoist_pi (V := V) h).2 i x hx ρ ?_
     simpa [List.take_succ_cons, List.reverse_cons, List.append_assoc] using hρ
 
 /-- A spine of values fits a spine of closed types componentwise. -/
@@ -186,15 +187,15 @@ theorem BlockHoleCtxFacts.nestArity {env : Env} {m : EnvModel V env} {d : BlockD
 
 /-- The tail of a Π-tower past its first `n` binders is graded under
 them. -/
-theorem wellDenotedV_mkPisAV_drop :
+theorem wellDenoted_mkPisAV_drop :
     ∀ (n : Nat) {ab : List AnnotTerm} {Δa : List AnnotTerm} {B : AnnotTerm},
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (mkPisAV ab B)) →
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (mkPisAV ab B)) →
       ∀ ρ : Nat → V, Sat V ((ab.take n).reverse ++ Δa) ρ →
-        WellDenotedV V ρ (mkPisAV (ab.drop n) B)
+        WellDenoted V ρ (mkPisAV (ab.drop n) B)
   | 0, _, _, _, h, ρ, hρ => by simpa using h ρ (by simpa using hρ)
   | _ + 1, [], _, _, h, ρ, hρ => by simpa using h ρ (by simpa using hρ)
   | n + 1, y :: ab, Δa, B, h, ρ, hρ =>
-    wellDenotedV_mkPisAV_drop n (Rules.WellDenotedV.hoist_pi (V := V) h).2 ρ
+    wellDenoted_mkPisAV_drop n (Semantics.WellDenoted.hoist_pi (V := V) h).2 ρ
       (by simpa [List.take_succ_cons, List.reverse_cons, List.append_assoc] using hρ)
 
 /-- A spine of values fits a spine of types each lifted past the earlier
@@ -491,7 +492,7 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       rw [htake] at hdrop
       obtain ⟨x, hx⟩ : ∃ x, (d.ppsM 0 ψ)[i]? = some x :=
         ⟨_, List.getElem?_eq_getElem (by rw [hlenP0]; omega)⟩
-      have hgd := wellDenotedV_mkPisAV_dom (Δa := []) (fun ρ _ => hFD0.okTy ψ ρ) i x hx _
+      have hgd := wellDenoted_mkPisAV_dom (Δa := []) (fun ρ _ => hFD0.okTy ψ ρ) i x hx _
         (by rw [List.append_nil]; exact hdrop)
       rw [hLpar i hiP]
       simp only [BlockData.params, List.getD_eq_getElem?_getD,
@@ -516,7 +517,7 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       refine (WellDenotedTy_liftN t _ 0 σ).mpr ?_
       rw [hsh]
       have hsT := hparsT t ht _ hsP
-      have := wellDenotedV_mkPisAV_drop d.nP (Δa := []) (fun ρ _ => hFDt.okTy ψ ρ) _
+      have := wellDenoted_mkPisAV_drop d.nP (Δa := []) (fun ρ _ => hFDt.okTy ψ ρ) _
         (by rw [List.append_nil]; exact hsT)
       exact ⟨this, IsTy_mkPisAV_sort _ _ _⟩
   intro x hx

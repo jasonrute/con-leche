@@ -608,15 +608,15 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
     natSuccRa, natMotiveTy, natStepTy]
 
 /-- The motive binder's domain is graded — no numeral is read. -/
-theorem natMotiveTy_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (natMotiveTy ψ) :=
+theorem natMotiveTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
+    WellDenoted V ρ (natMotiveTy ψ) :=
   ⟨trivial, IsTy_omega, fun _ _ => trivial, fun _ _ => IsTy_univ _⟩
 
 /-- The step binder's domain is graded, under a motive membership: the
 fibre obligations are `natMotive_apply` at `n` and at `n + 1`. -/
-theorem natStepTy_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) (M z : V)
+theorem natStepTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) (M z : V)
     (hM : M ∈ˢ natMotiveSpace V (ψ uN)) :
-    WellDenotedV V (cons z (cons M ρ)) (natStepTy) := by
+    WellDenoted V (cons z (cons M ρ)) (natStepTy) := by
   have hMn : ∀ n : V, n ∈ˢ (omega : V) → app M n ∈ˢ (univ (ψ uN) : V) :=
     fun n hn => natMotive_apply V hM hn
   have hdom : ∀ n : V,
@@ -742,12 +742,12 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
     rw [d4]; exact m4
 
 /-- The `zero` rule's RHS tower is graded. -/
-theorem natZeroRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (natZeroRa ψ) := by
+theorem natZeroRa_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
+    WellDenoted V ρ (natZeroRa ψ) := by
   have hzty : ∀ M : V, interp V (cons M ρ)
       (AnnotTerm.app (.bvar 0) (.const .natZero [])) = app M natzero := by
     intro M; simp [interp_app, interp_bvar, interp_const, cons, bval]
-  rw [WellDenotedV, natZeroRa, WellDenoted_lam, natMotiveTy_interp]
+  rw [natZeroRa, WellDenoted_lam, natMotiveTy_interp]
   have hMz : ∀ M : V, M ∈ˢ natMotiveSpace V (ψ uN) → IsTy (app M natzero) :=
     fun M hM => IsTy_of_mem_univ (natMotive_apply V hM (natzero_mem (V := V)))
   -- the innermost λ, at a motive and a minor
@@ -759,14 +759,14 @@ theorem natZeroRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
     intro M z hM hz
     refine ⟨?_, ?_⟩
     · rw [WellDenoted_lam, natStepTy_interp]
-      exact ⟨natStepTy_wellDenotedV ψ ρ M z hM, IsTy_piV, fun _ _ => trivial,
+      exact ⟨natStepTy_wellDenoted ψ ρ M z hM, IsTy_piV, fun _ _ => trivial,
         fun _ => app M natzero,
         fun _ _ => by simpa [interp_bvar, cons] using hz,
         fun _ _ => hMz M hM⟩
     · rw [interp_lam, natStepTy_interp]
       exact lamV_mem (fun _ _ => by simpa [interp_bvar, cons] using hz)
         fun _ _ => hMz M hM
-  refine ⟨natMotiveTy_wellDenotedV ψ ρ, IsTy_piR _ _ _, fun M hM => ?_, ?_⟩
+  refine ⟨natMotiveTy_wellDenoted ψ ρ, IsTy_piR _ _ _, fun M hM => ?_, ?_⟩
   · have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V) fun _ => univ (ψ uN) := by
       rw [← piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩]
       exact hM
@@ -788,8 +788,8 @@ theorem natZeroRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
 set_option maxHeartbeats 1000000 in
 /-- The `succ` rule's RHS tower is graded — the extra layer over the
 `zero` rule's is the recursive spine, `natRecSpine_wellDenoted`. -/
-theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (natSuccRa ψ) := by
+theorem natSuccRa_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
+    WellDenoted V ρ (natSuccRa ψ) := by
   have hzty : ∀ M : V, interp V (cons M ρ)
       (AnnotTerm.app (.bvar 0) (.const .natZero [])) = app M natzero := by
     intro M; simp [interp_app, interp_bvar, interp_const, cons, bval]
@@ -893,13 +893,13 @@ theorem natSuccRa_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
     intro M z hM hz
     refine ⟨?_, ?_⟩
     · rw [WellDenoted_lam, natStepTy_interp]
-      exact ⟨natStepTy_wellDenotedV ψ ρ M z hM, IsTy_piV,
+      exact ⟨natStepTy_wellDenoted ψ ρ M z hM, IsTy_piV,
         fun s hs => (hlam4 M z s hM hz hs).1, _,
         fun s hs => (hlam4 M z s hM hz hs).2, fun _ _ => IsTy_piV⟩
     · rw [interp_lam, natStepTy_interp]
       exact lamV_mem (fun s hs => (hlam4 M z s hM hz hs).2) fun _ _ => IsTy_piV
-  rw [WellDenotedV, natSuccRa, WellDenoted_lam, natMotiveTy_interp]
-  refine ⟨natMotiveTy_wellDenotedV ψ ρ, IsTy_piR _ _ _, fun M hM => ?_, ?_⟩
+  rw [natSuccRa, WellDenoted_lam, natMotiveTy_interp]
+  refine ⟨natMotiveTy_wellDenoted ψ ρ, IsTy_piR _ _ _, fun M hM => ?_, ?_⟩
   · have hM' : M ∈ˢ piR (ψ uN + 1) (omega : V) fun _ => univ (ψ uN) := by
       rw [← piV_univ_eq_pos (Nat.succ_ne_zero _) (natzero_mem (V := V)) _ fun _ _ => ⟨_, rfl⟩]
       exact hM
@@ -1002,19 +1002,19 @@ theorem natZeroRa_transport (ψ : Name → Nat) (ρ : Nat → V)
     (hM : interp V ρ M ∈ˢ natMotiveSpace V (ψ uN))
     (hz : interp V ρ z ∈ˢ app (interp V ρ M) natzero)
     (hs : interp V ρ s ∈ˢ natStepSpace V (interp V ρ M))
-    (okM : WellDenotedV V ρ M) (okz : WellDenotedV V ρ z)
-    (oks : WellDenotedV V ρ s) :
-    WellDenotedV V ρ (.app (.app (.app (natZeroRa ψ) M) z) s) := by
+    (okM : WellDenoted V ρ M) (okz : WellDenoted V ρ z)
+    (oks : WellDenoted V ρ s) :
+    WellDenoted V ρ (.app (.app (.app (natZeroRa ψ) M) z) s) := by
   have h1 := app_mem_piV (natZeroRa_mem ψ ρ) hM
   have h2 := app_mem_piV h1 hz
   have hMz : IsTy (app (interp V ρ M) natzero) :=
     IsTy_of_mem_univ (natMotive_apply V hM (natzero_mem (V := V)))
-  rw [WellDenotedV, WellDenoted_app]
+  rw [WellDenoted_app]
   refine ⟨?_, oks, slot_of_mem_piV V h2 hs IsTy_piV⟩
   rw [WellDenoted_app]
   refine ⟨?_, okz, slot_of_mem_piV V h1 hz hMz⟩
   rw [WellDenoted_app]
-  exact ⟨natZeroRa_wellDenotedV ψ ρ, okM,
+  exact ⟨natZeroRa_wellDenoted ψ ρ, okM,
     slot_of_mem_piV V (natZeroRa_mem ψ ρ) hM (IsTy_piR _ _ _)⟩
 
 /-- The `succ` rule's transport: four steps. -/
@@ -1024,13 +1024,13 @@ theorem natSuccRa_transport (ψ : Name → Nat) (ρ : Nat → V)
     (hz : interp V ρ z ∈ˢ app (interp V ρ M) natzero)
     (hs : interp V ρ s ∈ˢ natStepSpace V (interp V ρ M))
     (hn : interp V ρ n ∈ˢ (omega : V))
-    (okM : WellDenotedV V ρ M) (okz : WellDenotedV V ρ z)
-    (oks : WellDenotedV V ρ s) (okn : WellDenotedV V ρ n) :
-    WellDenotedV V ρ (.app (.app (.app (.app (natSuccRa ψ) M) z) s) n) := by
+    (okM : WellDenoted V ρ M) (okz : WellDenoted V ρ z)
+    (oks : WellDenoted V ρ s) (okn : WellDenoted V ρ n) :
+    WellDenoted V ρ (.app (.app (.app (.app (natSuccRa ψ) M) z) s) n) := by
   have h1 := app_mem_piV (natSuccRa_mem ψ ρ) hM
   have h2 := app_mem_piV h1 hz
   have h3 := app_mem_piV h2 hs
-  rw [WellDenotedV, WellDenoted_app]
+  rw [WellDenoted_app]
   refine ⟨?_, okn, slot_of_mem_piV V h3 hn IsTy_omega⟩
   rw [WellDenoted_app]
   refine ⟨?_, oks, slot_of_mem_piV V h2 hs IsTy_piV⟩
@@ -1038,7 +1038,7 @@ theorem natSuccRa_transport (ψ : Name → Nat) (ρ : Nat → V)
   refine ⟨?_, okz, slot_of_mem_piV V h1 hz
     (IsTy_of_mem_univ (natMotive_apply V hM (natzero_mem (V := V))))⟩
   rw [WellDenoted_app]
-  exact ⟨natSuccRa_wellDenotedV ψ ρ, okM,
+  exact ⟨natSuccRa_wellDenoted ψ ρ, okM,
     slot_of_mem_piV V (natSuccRa_mem ψ ρ) hM (IsTy_piR _ _ _)⟩
 
 /-- Both rows share this: the recursor's instantiated type reading,
@@ -1158,7 +1158,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
-  refine ⟨natZeroRa ψ, ?_, natZeroRa_wellDenotedV ψ, ?_, ?_⟩
+  refine ⟨natZeroRa ψ, ?_, natZeroRa_wellDenoted ψ, ?_, ?_⟩
   · rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
       denoteMeta_natRec_zeroRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
@@ -1211,7 +1211,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
-  refine ⟨natSuccRa ψ, ?_, natSuccRa_wellDenotedV ψ, ?_, ?_⟩
+  refine ⟨natSuccRa ψ, ?_, natSuccRa_wellDenoted ψ, ?_, ?_⟩
   · rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
       denoteMeta_natRec_succRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h

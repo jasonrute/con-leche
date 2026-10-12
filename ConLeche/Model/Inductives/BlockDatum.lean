@@ -1136,7 +1136,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
           (q.isProp = false →
             FieldsBound (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP))) ∧
           (∀ bs : List V, SpineFit ρ ((((pk m).dsF j ψ).drop q.nP)) bs →
-            (∀ E ∈ (pk m).esF j ψ, WellDenotedV V (consList bs ρ) E) ∧
+            (∀ E ∈ (pk m).esF j ψ, WellDenoted V (consList bs ρ) E) ∧
             SpineFit ρ (((ppsOf m ψ).drop q.nP))
               (idxValsAt ρ ((pk m).esF j ψ) bs))) := by
     intro m hm j cA hj

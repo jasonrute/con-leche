@@ -91,7 +91,7 @@ theorem constChecked_reads {env : Env} (hμ : μ.verifiedChecks = true)
     (h : ConLeche.ConstChecked μ F env cv cvA) :
     ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
       denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
   obtain ⟨stype, u, hrun, hsort⟩ := h.sorted
   refine ⟨u, fun ψ => ?_⟩
@@ -122,7 +122,7 @@ theorem recStage_tyReads {envC : Env} (hμ : μ.verifiedChecks = true)
     {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
     ∀ r ∈ rs, ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
   obtain ⟨R⟩ := id h
   intro r hr

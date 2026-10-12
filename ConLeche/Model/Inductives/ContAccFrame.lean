@@ -929,7 +929,7 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
     (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ hi Δh x) (hLds : ∀ x ∈ ds, Expr.LeavesBounded x)
     (hkey : ∀ ρ, Sat V Δh ρ →
       Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ) ∧
-      ∀ a ∈ dsa, WellDenotedV V ρ a)
+      ∀ a ∈ dsa, WellDenoted V ρ a)
     {ctors : List (ConstantVal × Nat)}
     (hgc : ConLeche.groupCtors ctx ds.length (grp.map (·.1)) = some ctors)
     (hwalk : ∀ {Δ : List AnnotTerm} {R : FrameRel V},

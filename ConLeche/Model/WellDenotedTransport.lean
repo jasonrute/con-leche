@@ -5,11 +5,11 @@ import ConLeche.Semantics.DenoteClosed
 public section
 
 /-!
-# `WellDenotedV`'s substitution metatheory (task #161, P3 batch 2)
+# `WellDenoted`'s substitution metatheory (task #161, P3 batch 2)
 
-`WellDenotedV` (`Model/Currency.lean`) is the P-tier name of the
-semantic invariant `WellDenoted`; these are its transport laws in that
-currency: lifting, outermost substitution, ζ, and the hoisting forms.
+The transport laws of the semantic invariant `WellDenoted` that the
+P tier reads beyond `Semantics/WellDenoted.lean`'s: the graded `let`
+value and the hoisting forms.
 -/
 
 namespace ConLeche.Model
@@ -24,46 +24,19 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-variable (V)
-
-/-- **The currency through lifting** — both halves at the same
-rewrite. -/
-theorem WellDenotedV_liftN (n : Nat) (e : AnnotTerm) (k : Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (e.liftN n k) ↔ WellDenotedV V (shiftE n k ρ) e :=
-  WellDenoted_liftN V n e k ρ
-
-variable {V}
-
-/-- **The currency through outermost substitution** — the β/ζ
-transport form, the shape every reduction clause consumes. -/
-theorem WellDenotedV_inst0 {e a : AnnotTerm} {ρ : Nat → V}
-    (ha : WellDenotedV V ρ a) :
-    WellDenotedV V ρ (e.inst a) ↔
-      WellDenotedV V (cons (interp V ρ a) ρ) e :=
-  WellDenoted_inst0 V ha
-
 /-- A graded `let` has a graded value. -/
-theorem WellDenotedV.letE_val {v b : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenotedV V ρ (.letE v b)) : WellDenotedV V ρ v := by
-  rw [WellDenotedV, WellDenoted_letE] at h
+theorem _root_.ConLeche.Semantics.WellDenoted.letE_val {v b : AnnotTerm} {ρ : Nat → V}
+    (h : WellDenoted V ρ (.letE v b)) : WellDenoted V ρ v := by
+  rw [WellDenoted_letE] at h
   exact h.1
 
-/-- **ζ in the currency**: with its value graded, a `let` is graded
-exactly when its reduct is (`interp_zeta`: it interprets as the
-reduct at every valuation). -/
-theorem WellDenotedV_zeta {v b : AnnotTerm} {ρ : Nat → V}
-    (hv : WellDenotedV V ρ v) :
-    WellDenotedV V ρ (.letE v b) ↔ WellDenotedV V ρ (b.inst v) := by
-  exact WellDenoted_zeta V hv
-
-/-- **Weakening a hoisted fact under one more binder**, in the P
-currency: `WellDenoted.hoist_lift`'s mirror, and what `CtxOk.weakenTop`
-uses to move a leaf's fourth conjunct across the new head. -/
-theorem WellDenotedV.hoist_lift {Δa : List AnnotTerm} {X e : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ e) :
-    ∀ ρ : Nat → V, Sat V (X :: Δa) ρ → WellDenotedV V ρ e.lift := by
+/-- **Weakening a hoisted fact under one more binder**, what
+`CtxOk.weakenTop` uses to move a leaf's fourth conjunct across the new head. -/
+theorem _root_.ConLeche.Semantics.WellDenoted.hoist_lift {Δa : List AnnotTerm} {X e : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ e) :
+    ∀ ρ : Nat → V, Sat V (X :: Δa) ρ → WellDenoted V ρ e.lift := by
   intro ρ hρ
-  refine (WellDenotedV_liftN V 1 e 0 ρ).mpr ?_
+  refine (WellDenoted_liftN V 1 e 0 ρ).mpr ?_
   rw [shiftE_zero]
   exact h _ (Sat_tail hρ)
 
@@ -71,17 +44,17 @@ theorem WellDenotedV.hoist_lift {Δa : List AnnotTerm} {X e : AnnotTerm}
 theorem WellDenotedTy_liftN (n : Nat) (e : AnnotTerm) (k : Nat) (ρ : Nat → V) :
     WellDenotedTy V (ρ) (e.liftN n k) ↔ WellDenotedTy V (shiftE n k ρ) e := by
   unfold WellDenotedTy
-  rw [WellDenotedV_liftN, interp_liftN]
+  rw [WellDenoted_liftN, interp_liftN]
 
 /-- **A graded type through outermost substitution.** -/
 theorem WellDenotedTy_inst0 {e a : AnnotTerm} {ρ : Nat → V}
-    (ha : WellDenotedV V ρ a) :
+    (ha : WellDenoted V ρ a) :
     WellDenotedTy V ρ (e.inst a) ↔
       WellDenotedTy V (cons (interp V ρ a) ρ) e := by
   unfold WellDenotedTy
-  rw [WellDenotedV_inst0 ha, interp_inst0]
+  rw [WellDenoted_inst0 _ ha, interp_inst0]
 
-/-- `WellDenotedV.hoist_lift` for graded types. -/
+/-- `WellDenoted.hoist_lift` for graded types. -/
 theorem WellDenotedTy.hoist_lift {Δa : List AnnotTerm} {X e : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ e) :
     ∀ ρ : Nat → V, Sat V (X :: Δa) ρ → WellDenotedTy V ρ e.lift := by

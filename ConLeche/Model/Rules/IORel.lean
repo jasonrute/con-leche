@@ -173,7 +173,7 @@ theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
     (ha : denoteMeta m.acval env φ p a = some x)
     {e : Expr} {D : Nat} {ρ : Nat → V} {v : V} (hpD : p ≤ D)
     (hfb : Expr.fvarsBelow (D + 1) e)
-    (hwx : WellDenotedV V (shiftE (D - p) 0 ρ) x)
+    (hwx : WellDenoted V (shiftE (D - p) 0 ρ) x)
     (h : IOMem m φ (D + 1) e (instE (D - p) (interp V (shiftE (D - p) 0 ρ) x) ρ) v) :
     IOMem m φ D (Expr.substFvarAt p a e) ρ v := by
   obtain ⟨ta, hta, hwT, hmem⟩ := h
@@ -189,7 +189,7 @@ theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
     (ha : denoteMeta m.acval env φ p a = some x) :
     ∀ (e : Expr) (D : Nat) (ρ : Nat → V) (v : V), p ≤ D →
       Expr.fvarsBelow (D + 1) e →
-      WellDenotedV V (shiftE (D - p) 0 ρ) x →
+      WellDenoted V (shiftE (D - p) 0 ρ) x →
       IORel m φ (D + 1) e (instE (D - p) (interp V (shiftE (D - p) 0 ρ) x) ρ) v →
       IORel m φ D (Expr.substFvarAt p a e) ρ v
   | .forallE ty body, D, ρ, v, hpD, hfb, hwx, h => by
