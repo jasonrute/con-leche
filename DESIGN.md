@@ -101170,3 +101170,167 @@ needs `Acc.rec … (Acc.intro x h)` to reduce).  Lean does the same plain
 
 The cost moves from per-binder `.never` reads to about 2 k certified
 redexes per stream.
+
+## TASK #349 — stage 0 follow-up: the λ check at the innermost level, the ι rule refined, the case-3 counts reconciled (2026-10-12, agent/349-frag, agent/349-s0)
+
+The questions (maintainer, 2026-10-12, after the #342 v2 stage-0
+prototype): (a) make S0-F2's innermost-only λ check the S0-F shape and
+write down why it is sound; (b) refine case 3 of #347's ι rule (K, the
+universe-polymorphic families, `Acc`-like families, the plain-ι major
+slot) and check each step; (c) reconcile stage 0's 1.7 M case-3 major
+certificates with #347's 280 case-3 reductions; (d) re-measure; (e)
+fragment lemmas.  Checker: `agent/349-s0` (S0-F, off S0-F2) and
+`agent/349-s0-m` (S0-M, the io flag flipped), unverified prototypes as
+in stage 0.  Fragment: `agent/349-frag` (off `agent/347-iota`), gate
+green.
+
+**(c) The reconciliation: stage 0 misclassified, #347 was right.**
+Two bugs in the prototype's case test (`ctorTeleLicensed`):
+- `IndCaps.sortZ` (the family's sort zero-ness) was recorded only for
+  single-constructor members (`blockCapsAt`'s `[c]` arm) and not at all
+  for the pinned `Nat`, `Empty` and `Quot`.  Everywhere else it kept the
+  default "zero at every valuation", so every `Nat`/`List`/`Int`/
+  `Option`/`Bool`/`Decidable`/... redex was taken for a possibly-`Prop`
+  family and ran case 3: 1 602 798 of 1 663 572 ι steps on init-full
+  (List 713 k, Int 386 k, Option 152 k, Nat 137 k, Decidable 96 k, Bool
+  87 k, ...), 1 886 678 of 1 966 560 on mathlib-prefix.  `Eq` casts
+  were 266 of them, not "most".  Fix: `sortZ` for every member and for
+  the three pinned families.
+- the motive's level was read as the recursor's FIRST level.
+  `Quot.lift.{u, v}` has it last, so `Quot.lift.{0, v}` (a quotient of a
+  proposition, lifted into data) was taken as "motive into `Prop`" and
+  fired with no certificate: an unsound skip, 11 redexes on init-full
+  and 77 on mathlib-prefix.  Fix: the extra level is found by name, as
+  the ι step's level comparison matches levels.
+After the fix (instrumented throwaway build, never timed): init-full
+1 663 572 ι steps reach the test, 266 are K (`Eq`, 250 fabricated +
+16 literal in #347's split), 14 are case 3 (`Quot.lift` 11, `Acc.rec`
+2, `PUnit.rec` 1, 41 constructor slots), the rest cases 2/4;
+mathlib-prefix 1 966 560, K 1 798, case 3 80 (`Quot.lift` 77, `Acc.rec`
+2, `PUnit.rec` 1, 239 slots).  That is #347's 280 / 1 879 (one K
+reduction fewer on mathlib-prefix, memo contents).  No certificate
+failed, so no attempt ended stuck on a certificate.  The certificate
+left needs no sharing with K's inference: K now runs none.
+
+**(b) The ι rule, step by step.**
+- **K** (`RecRule.k`: one rule, no fields, `Prop` family): no
+  certificate, no index or parameter comparison.  The argument holds,
+  with one premise made explicit.  The reduct is the minor (the rule's
+  right-hand side at the recursor's parameters, motives and minors; a
+  K constructor has no fields), so neither the fabricated nor a literal
+  major occurs in it.  If the redex is not the point, the whole spine
+  fits the recursor's telescope (`teleFit_of_ne_pt`), so the major's
+  value lies in the domain `Eq α a b` at the recursor's own arguments.
+  An inhabited fibre forces `a = b`: that is **inversion of the least
+  fixed point** (the family "inhabited exactly at the constructor's
+  indices" is closed under the constructor, so it contains the least
+  one), a model fact no existing law states; the plain law at the
+  recursor's own parameters then gives the minor.  K keeps the type
+  check `tfab ≡ tmaj`, which decides whether the step is taken, as in
+  Lean.  In the checker the stage-0 path already dropped K's
+  constructor certificate and `proofIrrel` in `majorToCtor`; case 3's
+  major slot, constructor telescope and index comparison are now
+  skipped for K rules too.
+- **Universe-polymorphic families: the per-field level test is not
+  sound, and is not implemented.**  At a valuation where the family is
+  `Prop`, the constructor's type is a truth value, so the constructor is
+  the point and its applications constrain NONE of their arguments
+  (#345 `piV_const_one`; the app slot of a point-headed application is
+  free).  A field is then not in its domain unless certified, whether
+  it is a proof or not.  Witness: at `u := 0`, `Quot.lift.{0, 1} f h
+  (Quot.mk.{0} r n)` with `α := True`, `β := Nat` and the ill-typed but
+  well-denoted field `n : Prop` (opaque, denoting `True`).  The major is
+  the point, the redex is `f pt ∈ Nat`, not the point, and the reduct
+  `f n` is ill-slotted: `f` is a graph over `{pt}` and `⟦n⟧ ≠ pt`.  The
+  §5.3 sentence "a `Prop` field that is not the point would be a member
+  of a truth value" assumed the membership the certificate supplies.
+  So case 3 keeps #347's certificate on every field.  (A weaker,
+  io-grade certificate would do for fields whose io-inferred type is
+  not a `∀`; at 41 / 239 slots it is not worth the code.)
+- **`Acc`-like families**: #347's full certificate, as ruled.
+- **The plain-ι major slot in case 3: not needed, dropped.**  Not for
+  the mutual-block reason: a recursor's rules are its own family's
+  constructors (`sumRules`, `M.ctors`), and a constructor of another
+  member finds no rule.  For the slot itself, the argument covers it:
+  the unreduced major lies in the domain (`teleFit_of_ne_pt`).  At a
+  valuation where the family is not `Prop` the domain is strict, so the
+  major is not the point and its reduction claim gives the reduct's
+  invariant and value.  Where it is `Prop`, the reduced constructor
+  application is the point, as the major is, and its invariant comes
+  from the constructor certificate (every parameter and field
+  certified).  The certificate's content, the major's type against `I
+  ps idx`, is the index comparison again, which case 3 runs.  The
+  fragment's `iota_core` still takes the major certificate: replacing it
+  needs the lemma "a constructor of a family whose sort evaluates to
+  zero is the point", not proved here.
+
+**(a) The λ check at the innermost level.**  S0-F2's rule is the
+checker's: in the two-λ arm, after the bodies compare, the bodies'
+types are inferred (full grade at S0-F) and compared unless BOTH
+opened bodies are syntactically λs.  Two λs meet in `defeq` only
+through `a == b`, the memo (filled by earlier runs of the same arm) or
+the two-λ arm, so the inner comparison of two λs is again this rule.
+Why it is sound (proved in the fragment, below): the type comparison
+is what makes λ-congruence's claim unconditional (two bodies in one
+type are both the point or neither), and an unconditional equality of
+the bodies at every value of the variable is an equality of the λs,
+with no type.  Syntactically the same: the outer bodies' types are
+`∀`s over the domain the next level compares, with the next level's
+bodies' types as codomains.  Unequal depth and reduction: the descent
+continues only through two syntactic λs; where one body is not a λ
+(the comparison ends in η, or reaches a λ only after δ/whnf, as in
+#345's witness `d := fun x => (fun h => h) n`), that level is the
+innermost and its types are compared.  The rule is the same for S0-M
+(certifying io, unconditional claim) and S0-F.
+
+**(d) Measurements** (`instructions:u`, `--verified --jobs=1`, one
+run each, RSS-guarded; binaries in `_tmp/349/bin/`):
+
+| | init-full | Δ base | mathlib-prefix | Δ base | stage 0 (Δ) |
+|---|---|---|---|---|---|
+| base (`master` 3b37939f0) | 482.50 G | — | 679.00 G | — | |
+| S0-M | 416.75 G | **−13.6 %** | 571.31 G | **−15.9 %** | −1.8 % / −5.8 % |
+| S0-F | 412.14 G | **−14.6 %** | 563.16 G | **−17.1 %** | F2: −4.3 % / −8.2 % |
+
+The stage-0 misclassification cost about 57 G (12 % of base) on
+init-full and 70 G on mathlib-prefix.  Verdicts: 57 977 / 131 902
+accepted, exit 0; the verdict gate is identical to stage 0's (arena
+90/92; e2e 468/470 with `uh_let_erase_type`/`_value` rejected, the
+known ζ findings; the three `annot_decline_*` now accept; trusted,
+`--jobs`, pool, DAG-tower and the other gates as expected).  No new
+deviation.
+
+Asymptotics.  Per-declaration heartbeat ratio against base (throwaway
+instrumented builds): S0-F init-full total 0.883, median over records
+≥ 10⁵ heartbeats 0.941, max 1.39 (`List.MergeSort.Internal.mergeSortT`,
+stage 0 1.46); mathlib-prefix total 0.861, max 1.39.  S0-M 0.893 /
+0.874, max 1.45 / 1.56 (`Std.DTreeMap.Internal.Impl.link2.eq_def`).
+The ratio does not grow with DAG size, binder depth or spine length
+(every bucket's aggregate 0.79–0.99).  The synthetic λ-telescope
+stream (`f1 = f2` over n binders, `_tmp/port/s0-proto-logs/syn`) is
+linear for both: S0-F 20.9 / 22.5 / 25.6 / 31.8 / 44.4 / 69.6 M at
+n = 50 … 1600 (stage-0 S0-F: 1 154 M at n = 800), base 22.0 … 86.3 M.
+A new η-telescope stream (`(fun xs => g xs) = g`, `_tmp/349/syn`) is
+quadratic in base already (23.7 M at n = 50, 1 220 M at n = 1600); S0-F
+is 0.94 of base at every n, so T2 adds nothing super-linear.  Counts:
+the two-λ arm 22 585 / 40 838 runs (init-full / mathlib-prefix), of
+which 5 363 / 11 353 skip the type comparison (both bodies λs) and
+17 222 / 29 485 run it; η 1 032 / 2 086.
+
+**(e) The fragment** (`whitepaper/Fragment`, gate green: no `sorry`,
+the three standard axioms, pins added):
+- `DefEqLams` (in the mutual block, `refl` / `inner` / `outer`) and
+  `DefEq.lams`: λ-telescope congruence with the bodies' types compared
+  only at the innermost level; its claim `LamsSem` is unconditional.
+  `DefEqLams.inner_sound`, `DefEqLams.outer_sound`, `DefEq.lams_sound`,
+  `defeqLams_sound` (in the master induction).
+- K: `RecRuleLawK` (the law above: the plain law at the recursor's own
+  parameters plus inversion, stated for any major value in the domain)
+  and `Red.iotaK_core_sem`: given the law, a K redex reduces with no
+  certificate, no comparison and no reduction of the major.  What the
+  fragment lacks for a K *rule*: a K flag on `RecRule`, an `EnvModel`
+  field carrying `RecRuleLawK`, and its proof in the installer
+  (inversion of `IndSem`'s least fixed point, and the constructor's
+  parameter telescope being the recursor's), threaded through
+  `transport`, `InstallDef` and `InstallNest`'s stages, as #347
+  described for case 2.
