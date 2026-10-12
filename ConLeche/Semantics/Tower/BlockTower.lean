@@ -145,19 +145,18 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       ndTowerAV_interp V n (s + 1) 1 (cons x ρ)
         (by rw [shiftE_succ_cons, shiftE_zero_zero]) (fun m hm => hGty m (by omega))
         (fun m hm => hF m (by omega))
+    have hgs : g s ∈ˢ interp V ρ (Gty s) := by rw [hA]; exact hg s (by omega)
     have hBv : interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
         = lamR (r + 1) (interp V ρ (Gty s))
             fun _ => ndTowerSet V r F (s + 1) n := by
       rw [interp_lam, lamV_congr fun x _ => htail x]
-      have hgs : g s ∈ˢ interp V ρ (Gty s) := by rw [hA]; exact hg s (by omega)
       exact lamV_eq_pos (Nat.succ_ne_zero r) hgs
         (IsTy_of_mem_univ (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega))).ne_pt
     have hBmem : interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
         ∈ˢ psigmaFibreSpace V r (interp V ρ (Gty s)) := by
       rw [hBv]
-      show lamR (r + 1) (interp V ρ (Gty s)) (fun _ => ndTowerSet V r F (s + 1) n)
-        ∈ˢ piR (r + 1) (interp V ρ (Gty s)) (fun _ => (univ r : V))
-      exact lamR_mem fun _ _ => ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)
+      exact lamR_mem_psigmaFibreSpace V hgs fun _ _ =>
+        ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)
     have hBok : WellDenoted V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n)) := by
       rw [WellDenoted_lam]
       refine ⟨hGtyok s (by omega), IsTy_of_mem_univ hAu, fun x _ => ?_, fun _ => (univ r : V),
@@ -352,16 +351,14 @@ noncomputable def blockStepG (w : Nat) (ρp : Nat → V) (Chs : Nat → List (Li
   sumSet w (sumFibre w (cons t (cons Y ρp)) (Chs m))
 
 /-- **The block's tuple operator**: componentwise the member's own
-graph over its own index-tuple set, the argument tuple passed to the
-chains as the uniform tupler of its components.  A raw `graph`, not a
-`lamR`: the least fixed point lives in the family space of graphs
-(`famSpace`), whatever the index set; the spelled operator's value
-meets it in `tupleOpV_blockFunVG`, under a premise that the spelled
-family is not the point. -/
+family (`famOf`) over its own index-tuple set, the argument tuple passed
+to the chains as the uniform tupler of its components.  It is the
+spelled operator's value (`tupleOpV_blockFunVG`) at every index set, the
+empty one included, where both are the point. -/
 noncomputable def blockPhiG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
     (Idss : Nat → List AnnotTerm) (Chs : Nat → List (List AnnotTerm)) :
     (Nat → V) → Nat → V :=
-  fun Xs m => graph (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k))
+  fun Xs m => famOf (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k))
     (idxSet (uf m) ρp (Idss m))
 
 /-- **The block's carrier**: the least pre-fixed tuple of its
@@ -408,7 +405,7 @@ theorem univ_uf_mem_blockS {m : Nat} (hm : m < k) :
 
 theorem famSpace_mem_blockR {m : Nat} (hm : m < k) {I : V} (hI : I ∈ˢ (univ (uf m) : V)) :
     lfpFamSpace V w I ∈ˢ (univ (blockR k w uf) : V) := by
-  have h := piR_mem_univ (u := uf m) (v := w + 1) hI (fun _ _ => univ_mem_univ w)
+  have h := piV_mem_univ (u := uf m) (v := w + 1) hI (fun _ _ => univ_mem_univ w)
   rw [ite_eq_right (Nat.succ_ne_zero _)] at h
   refine univ_mono ?_ _ h
   refine Nat.max_le_of_le_of_le (Nat.le_trans (uf_le_levMax hm) (Nat.le_max_left _ _)) ?_
@@ -474,13 +471,12 @@ end Facts
 /-! ## The operator's reading -/
 
 /-- The block operator's value: one λ over the family tuple, the tuple
-of the members' graphs. -/
+of the members' families. -/
 noncomputable def blockFunVG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
     (Idss : Nat → List AnnotTerm) (Chs : Nat → List (List AnnotTerm)) :
     V :=
   lamR (blockR k w uf) (famsSpaceB k w ρp uf Idss) fun Y =>
-    ndMkTowerSet (fun m => lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-      (blockStepG w ρp Chs m Y)) 0 k
+    ndMkTowerSet (fun m => famOf (blockStepG w ρp Chs m Y) (idxSet (uf m) ρp (Idss m))) 0 k
 
 section Operator
 
@@ -500,13 +496,12 @@ theorem blockStepG_strictU (hok : BlockChainsOkG k w ρp uf Idss Chs)
     blockStepG w ρp Chs m Y t ∈ˢ (strictU w : V) :=
   sumSet_strictU_of_okB (hok Y hY m hm t ht)
 
-/-- Member `m`'s graph lives in its own family space. -/
+/-- Member `m`'s family lives in its own family space. -/
 theorem blockArmG_mem (hok : BlockChainsOkG k w ρp uf Idss Chs)
     {Y : V} (hY : Y ∈ˢ famsSpaceB k w ρp uf Idss) {m : Nat} (hm : m < k) :
-    lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-        (blockStepG w ρp Chs m Y)
+    famOf (blockStepG w ρp Chs m Y) (idxSet (uf m) ρp (Idss m))
       ∈ˢ lfpFamSpace V w (idxSet (uf m) ρp (Idss m)) :=
-  lamR_mem fun _ ht => blockStepG_univ hok hY hm ht
+  famOf_mem_lfpFamSpace V fun _ ht => blockStepG_univ hok hY hm ht
 
 /-- The frame under the operator's family-tuple binder. -/
 theorem idxTyAV_lift1B (h : IdxOk (uf m) ρp (Idss m)) (Y : V) :
@@ -521,20 +516,13 @@ theorem blockArmG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
     (hok : BlockChainsOkG k w ρp uf Idss Chs)
     {Y : V} (hY : Y ∈ˢ famsSpaceB k w ρp uf Idss) {m : Nat} (hm : m < k) :
     interp V (cons Y ρp) (blockArmG w uf Idss Chs m)
-        = lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-            (blockStepG w ρp Chs m Y) ∧
+        = famOf (blockStepG w ρp Chs m Y) (idxSet (uf m) ρp (Idss m)) ∧
       WellDenoted V (cons Y ρp) (blockArmG w uf Idss Chs m) := by
   obtain ⟨hiv, hiok⟩ := idxTyAV_lift1B (m := m) (hI m hm) Y
   constructor
   · unfold blockArmG
     rw [interp_lam, hiv, lamV_congr fun t ht => sumBodyAV_interp (hok Y hY m hm t ht)]
-    by_cases hI0 : ¬ ∃ t, t ∈ˢ idxSet (uf m) ρp (Idss m)
-    · -- L16: over an empty index set the spelled arm is the point, the
-      -- operator's component the empty graph
-      sorry
-    obtain ⟨t₀, ht₀⟩ := Classical.not_not.mp hI0
-    exact lamV_eq_pos (Nat.succ_ne_zero w) ht₀
-      (IsTy_of_mem_univ (blockStepG_univ hok hY hm ht₀)).ne_pt
+    exact lamV_eq_famOf V fun t ht => (IsTy_of_mem_univ (blockStepG_univ hok hY hm ht)).ne_pt
   · unfold blockArmG
     rw [WellDenoted_lam]
     refine ⟨hiok, by rw [hiv]; exact IsTy_of_mem_univ (idxTyAV_facts (hI m hm)).2.1,
@@ -556,8 +544,8 @@ theorem blockFunG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
       interp V (cons Y ρp) (ndMkTowerAV (blockR k w uf)
           (fun m => (famTyAV (uf m) w (Idss m)).liftN 1 0)
           (fun m => blockArmG w uf Idss Chs m) 0 k)
-        = ndMkTowerSet (fun m => lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-            (blockStepG w ρp Chs m Y)) 0 k ∧
+        = ndMkTowerSet (fun m => famOf (blockStepG w ρp Chs m Y)
+            (idxSet (uf m) ρp (Idss m))) 0 k ∧
       WellDenoted V (cons Y ρp) (ndMkTowerAV (blockR k w uf)
           (fun m => (famTyAV (uf m) w (Idss m)).liftN 1 0)
           (fun m => blockArmG w uf Idss Chs m) 0 k) := by
@@ -579,10 +567,10 @@ theorem blockFunG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
   · unfold blockFunG blockFunVG
     rw [interp_lam, hfv, lamV_congr fun Y hY => (hbody Y hY).1]
     -- the family-tuple space is inhabited: the tuple of empty families
-    have hY₀ : ndMkTowerSet (fun m => lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-        fun _ => (empty : V)) 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
+    have hY₀ : ndMkTowerSet (fun m => famOf (fun _ => (empty : V))
+        (idxSet (uf m) ρp (Idss m))) 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
       ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun _ _ =>
-        lamR_mem fun _ _ => empty_mem_univ w
+        famOf_mem_lfpFamSpace V fun _ _ => empty_mem_univ w
     refine lamV_eq_pos (blockR_ne_zero k w uf) hY₀ ?_
     have hs := Fib_ndTowerSet V (blockR k w uf)
       (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
@@ -607,15 +595,6 @@ section Body
 
 variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
   {Chs : Nat → List (List AnnotTerm)}
-
-/-- The type `I → Sort w` is the space of families of types. -/
-theorem lfpFamSpace_eq_univ (w : Nat) (I : V) : lfpFamSpace V w I = famSpaceIn (univ w) I :=
-  piR_pos (Nat.succ_ne_zero w)
-
-/-- The family space (strict fibres) is inside the type `I → Sort w`. -/
-theorem famSpace_subset_lfpFamSpace (w : Nat) (I : V) : famSpace w I ⊆ˢ lfpFamSpace V w I := by
-  rw [lfpFamSpace_eq_univ]
-  exact famSpace_subset_univ w I
 
 /-- The spelled index tuple inhabits the constant's first domain. -/
 theorem idxTup_mem (hI : BlockIdxOk (V := V) k uf ρp Idss) :
@@ -646,24 +625,21 @@ theorem blockFunVG_mem (hok : BlockChainsOkG k w ρp uf Idss Chs) :
     ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun m hm => blockArmG_mem hok hY (by omega)
 
 /-- **The induced tuple operator IS the block's**, on the tuple space
-and below `k` — the congruence `lfpTuple_congr` consumes.  The premise
-`hne` (the spelled member family is not the point) is the one place the
-spelled operator is read as the model's graph; the annotated reading
-discharges it by the positive bit (`lamR_ne_pt`), the value reading by
-an inhabited index set. -/
-theorem tupleOpV_blockFunVG {Xs : Nat → V} (hXs : InTupleSpace w k (blockIdx uf ρp Idss) Xs) {m : Nat} (hm : m < k)
-    (hne : lamR (w + 1) (idxSet (uf m) ρp (Idss m))
-      (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k)) ≠ pt) :
+and below `k` — the congruence `lfpTuple_congr` consumes.  The spelled
+member family and the model's agree at every index set, the empty one
+included: both are `famOf` of the member's fibres (`lamV_eq_famOf`). -/
+theorem tupleOpV_blockFunVG {Xs : Nat → V} (hXs : InTupleSpace w k (blockIdx uf ρp Idss) Xs)
+    {m : Nat} (hm : m < k) :
     tupleOpV V k (blockFunVG k w ρp uf Idss Chs) Xs m
       = blockPhiG k w ρp uf Idss Chs Xs m := by
   have hmem : ndMkTowerSet Xs 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
     ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun c hc => by
-      exact famSpace_subset_lfpFamSpace w _ _ (hXs c (by omega))
+      exact famSpace_subset_lfpFamSpace V w _ _ (hXs c (by omega))
   show projS m (SetTheory.app _ (mkTower ((List.range k).map Xs))) = _
   rw [← ndMkTowerSet_zero]
   unfold blockFunVG
   rw [app_lamR_pos (blockR_ne_zero k w uf) hmem, projS_ndMkTowerSet k 0 m hm, Nat.zero_add]
-  exact lamR_eq_graph_of_ne_pt hne
+  rfl
 
 /-- The constant's application at the block's two spelled arguments. -/
 theorem blockBodyG_app (hI : BlockIdxOk (V := V) k uf ρp Idss)
@@ -689,7 +665,7 @@ theorem blockBodyG_app (hI : BlockIdxOk (V := V) k uf ρp Idss)
   have hX' : InTupleSpace w k (blockIdx uf ρp Idss) X := fun c hc => by
     have h : X c ∈ˢ famSpace w (projS c (ndMkTowerSet (blockIdx uf ρp Idss) 0 k)) := hX c hc
     rwa [projS_idxTup hc] at h
-  exact tupleOpV_blockFunVG hX' hc (lamR_ne_pt (Nat.succ_ne_zero w))
+  exact tupleOpV_blockFunVG hX' hc
 
 /-- **The carrier tuple reads to the tuple of the members' carriers.** -/
 theorem blockBodyG_interp (hI : BlockIdxOk (V := V) k uf ρp Idss)
@@ -712,7 +688,7 @@ theorem blockFamG_tuple_mem (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
     ndMkTowerSet (blockFamG k w ρp uf Idss Chs) 0 k
       ∈ˢ famsSpaceB k w ρp uf Idss :=
   ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun m hm => by
-    exact famSpace_subset_lfpFamSpace w _ _
+    exact famSpace_subset_lfpFamSpace V w _ _
       (lfpTuple_mem w k (blockIdx uf ρp Idss) _ m (by omega))
 
 /-- **The carrier tuple is graded.** -/
@@ -842,8 +818,8 @@ theorem blockLeafBodyG_facts {ρ : Nat → V} {m : Nat} (hm : m < k)
     refine ⟨hpok, htok, w + 1, idxSet (uf m) (shiftE (Idss m).length 0 ρ) (Idss m),
       fun _ => (univ w : V), ?_, ?_, fun h0 => absurd h0 (Nat.succ_ne_zero w),
       fun _ => IsTy_of_mem_univ (idxTyAV_facts (hI m hm)).2.1⟩
-    · rw [hpv]
-      exact famSpace_subset_lfpFamSpace w _ _ hfam
+    · rw [hpv, ← lfpFamSpace_eq_pos V w htmem]
+      exact famSpace_subset_lfpFamSpace V w _ _ hfam
     · rw [htv]; exact htmem
 
 /-- **The leaf's body is a fibre of the strict universe** (task #342
@@ -966,7 +942,7 @@ theorem ndMkTowerSet_mem_famsSpaceB {Xs : Nat → V}
     (hXs : InTupleSpace w k (blockIdx uf ρp Idss) Xs) :
     ndMkTowerSet Xs 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
   ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun c hc => by
-    exact famSpace_subset_lfpFamSpace w _ _ (hXs c (by omega))
+    exact famSpace_subset_lfpFamSpace V w _ _ (hXs c (by omega))
 
 theorem projS_ndMkTowerSet_zero {Xs : Nat → V} {c : Nat} (hc : c < k) :
     projS c (ndMkTowerSet Xs 0 k) = Xs c := by
@@ -976,15 +952,15 @@ theorem app_blockPhi {Chs : Nat → List (List AnnotTerm)} {Xs : Nat → V} {m :
     (ht : t ∈ˢ idxSet (uf m) ρp (Idss m)) :
     SetTheory.app (blockPhiG k w ρp uf Idss Chs Xs m) t
       = blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k) t :=
-  app_graph ht
+  app_famOf ht
 
 /-- **The block's operator preserves the tuple space.** -/
 theorem blockPhi_maps_of {Chs : Nat → List (List AnnotTerm)}
     (hok : BlockChainsOkG k w ρp uf Idss Chs) :
     MapsTuple w k (blockIdx uf ρp Idss) (blockPhiG k w ρp uf Idss Chs) := by
   intro X hX m hm
-  show graph _ (idxSet (uf m) ρp (Idss m)) ∈ˢ famSpace w (blockIdx uf ρp Idss m)
-  exact graph_mem_famSpace fun t ht =>
+  show famOf _ (idxSet (uf m) ρp (Idss m)) ∈ˢ famSpace w (blockIdx uf ρp Idss m)
+  exact famOf_mem_famSpace fun t ht =>
     blockStepG_strictU hok (ndMkTowerSet_mem_famsSpaceB hX) hm ht
 
 end Functor
@@ -1460,8 +1436,9 @@ theorem holeTmAV_wellDenoted (hIall : BlockIdxOk (V := V) k uf ρp Idss) {m : Na
       have := Xframe_X ρp is t Y
       rwa [hlenI] at this
     have htv := mkTowerGo_interp hbd his
-    have hXm : projS m Y ∈ˢ piR (w + 1) (idxSet (uf m) ρp (Idss m)) fun _ => (univ w : V) :=
-      projS_mem_famsSpaceB hm hY
+    have hXm : projS m Y ∈ˢ piR (w + 1) (idxSet (uf m) ρp (Idss m)) fun _ => (univ w : V) := by
+      rw [← lfpFamSpace_eq_pos V w (tupW_mem (u := uf m) hisR)]
+      exact projS_mem_famsSpaceB hm hY
     rw [WellDenoted_app]
     refine ⟨?_, ?_, w + 1, idxSet (uf m) ρp (Idss m), fun _ => (univ w : V), ?_, ?_,
       fun h => absurd h (Nat.succ_ne_zero w),
