@@ -35,19 +35,24 @@ why the match is per component and not one defeq of the two majors.
 
 What the model needs is that the FRAMES agree: every parameter pair
 reads alike at every valuation of the prefix.  The defeq ran over the
-holes, so its soundness (`Rules.defeq_sound`) equates the two readings
-at every valuation of the holes that carries values of the formers'
-types — in particular at the members' own values, where the abstraction
-reads as the concrete term (`targetAbs_read`); the holes sit above the
-prefix, so the concrete readings are the prefix-depth ones lifted
-(`denoteMeta_lift`).  A syntactically equal pair needs no defeq: the
-abstraction read at the members' values gives it directly.
+holes, so its soundness (`Rules.defeq_sound`, a conditional claim)
+equates the two readings, where neither is the point, at every valuation
+of the holes that carries values of the formers' types — in particular
+at the members' own values, where the abstraction reads as the concrete
+term (`targetAbs_read`); the holes sit above the prefix, so the concrete
+readings are the prefix-depth ones lifted (`denoteMeta_lift`).  A
+syntactically equal pair needs no defeq: the abstraction read at the
+members' values gives it directly.
+
+Parameters may be proofs, so a pair is equated here only where neither
+reading is the point.  The caller upgrades the pairwise conditional
+equations along the family's parameter telescope, which both spines fit
+(`spineFit_eq_of_cond`; `genNodeFrameTie`, `GenFrameTie.lean`).
 
 * `walkCtx_holes` — the prefix's walk context extended by the holes at
   values of the formers' types;
 * `param_read_eq` — one matched pair (`ParamMatch`) reads alike at the
-  prefix (the port of the parked `TargetDefeqTie.param_read_eq`);
-* `params_read_eq` — a matched parameter spine's readings, mapped;
+  prefix where neither reading is the point;
 * `keyFrame_eq_of_params` — spines reading alike give one key frame
   (whence one fit, one carrier, one index set: the parked `tie_fits`).
 -/
@@ -296,12 +301,13 @@ theorem readAgree_lift
       rw [hval, ← hvl, interp_liftN_consList]
 
 set_option maxHeartbeats 4000000 in
-/-- **One matched parameter pair reads alike at the prefix** (the port of
-the parked `param_read_eq`): at a prefix walk context over the openers
-`pfvs`, with the holes valued at the members' own values `hv` (values of
-the formers' types, `hformer`; the abstraction read back, `hnames`), a
-pair the class match passed (`ParamMatch`) has one reading at the
-prefix's valuation. -/
+/-- **One matched parameter pair reads alike at the prefix, off the
+point**: at a prefix walk context over the openers `pfvs`, with the holes
+valued at the members' own values `hv` (values of the formers' types,
+`hformer`; the abstraction read back, `hnames`), a pair the class match
+passed (`ParamMatch`) has one reading at the prefix's valuation where
+neither reading is the point (the conditional `Rules.defeq_sound`; a
+syntactically equal pair, everywhere). -/
 theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
     (hin : Rules.RulesInputs V mT φ) {F D : Nat} {pfvs : List Expr}
@@ -323,9 +329,11 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     {a b : Expr}
     (hm : ConLeche.ParamMatch (ConLeche.fueledOps μ F) envT (D + formerTys.length)
       (ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys D)) pfvs a b) :
-    (denoteMeta mT.acval envT φ D a).map (interp V σ)
-      = (denoteMeta mT.acval envT φ D b).map (interp V σ) := by
+    ∀ x y : V, (denoteMeta mT.acval envT φ D a).map (interp V σ) = some x →
+      (denoteMeta mT.acval envT φ D b).map (interp V σ) = some y → x ≠ pt → y ≠ pt →
+        x = y := by
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
+  intro x y hx hy hxn hyn
   have hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ :=
     fun n ψ k => hacl n ψ 1 k
   obtain ⟨-, -, haf, hbf, hcase⟩ := hm
@@ -341,7 +349,8 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     (canon_erasedEq hp a haB) D
   have hBe := denoteMeta_erasedEq (acval := mT.acval) (env := envT) (φ := φ)
     (canon_erasedEq hp b hbB) D
-  rw [← hAe, ← hBe]
+  rw [← hAe] at hx
+  rw [← hBe] at hy
   -- the abstraction read at the members' values
   generalize hA : ConLeche.targetCanonParams pfvs a = A at *
   generalize hB : ConLeche.targetCanonParams pfvs b = B at *
@@ -351,9 +360,10 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
   simp only [ConLeche.Expr.instantiateList_nil, Nat.add_zero] at hread
   have hrA := readAgree_lift (φ := φ) hacl1 hAW (hread A) hvl (fun t _ => rfl) σ
   have hrB := readAgree_lift (φ := φ) hacl1 hBW (hread B) hvl (fun t _ => rfl) σ
-  rw [← hrA, ← hrB]
+  rw [← hrA] at hx
+  rw [← hrB] at hy
   rcases hcase with heq | ⟨⟨ta, hta⟩, ⟨tb, htb⟩, hd⟩
-  · rw [heq]
+  · rw [heq] at hx; exact Option.some.inj (hx.symm.trans hy)
   -- the defeq branch: both sides read over the holes, and alike
   obtain ⟨Δ', hL0, hW0⟩ := walkCtx_holes (σ := σ) hacl hL hW hvl hformer
   have habsL : ∀ e : Expr, e.fvarsBelow pfvs.length →
@@ -393,12 +403,13 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     ⟨_, Rules.inferTypeCore_bridge hta⟩
   obtain ⟨hFrB, hCB, hGB⟩ := WalkCtx.subjOkL hacl1 hin hL0 hW0 hBL hBb hba
     ⟨_, Rules.inferTypeCore_bridge htb⟩
-  have heq := Rules.defeq_sound_global hin (Rules.isDefEqCore_bridge hd) hFrA hFrB hCA hCB haa hba
-    hGA hGB _ hW0.2.1
-  rw [hA] at haa
-  rw [hB] at hba
-  rw [haa, hba]
-  simp only [Option.map_some, heq]
+  rw [← hA, haa, Option.map_some, Option.some.injEq] at hx
+  rw [← hB, hba, Option.map_some, Option.some.injEq] at hy
+  subst hx hy
+  -- the conditional claim: equal where neither reading is the point
+  have hS := hW0.2.1
+  exact Rules.defeq_sound hin (Rules.isDefEqCore_bridge hd) hFrA hFrB hCA.toS hCB.toS haa hba _
+    hS (hCA.leavesGr hS) (hCB.leavesGr hS) (hGA _ hS) (hGB _ hS) hxn hyn
 
 end Walk
 
