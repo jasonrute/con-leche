@@ -282,8 +282,8 @@ block's specification `S`), the family applied to any values fitting
 its telescope is a **truth value** where the family's stored sort
 `S.sort`, instantiated at the use's levels, evaluates to zero, and a
 **strict** set — not the point, and without the point as a member —
-where it does not (`Fib`).  #344 put the truth values into every
-`Sort (n+1)` (`typeU`), so the universe no longer says the second; the
+where it does not (`Fib`).  Every `Sort (n+1)` holds truth values as
+well (`typeU`), so the universe does not say the second; the
 inductive model does: above a proposition a fibre is a set of tagged
 values (`IndSem.Fam_mem_typeU`), and a family read through a former's
 graph is admissible (`IndCommon.adm`), so strict

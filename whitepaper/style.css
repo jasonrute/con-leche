@@ -1,6 +1,6 @@
 /* whitepaper/style.css — inlined into the HTML rendering by lib.typ's
    template.  Plain and readable: serif body, sans headings, ~88ch
-   measure, light and dark.  The ONE annotation colour is --ann.
+   measure, light and dark.  The ONE highlight colour (the certification tax) is --tax.
    The page shell (`.page`, `.toc`): a sticky table of contents in a
    left column on wide viewports, a collapsible one under the title on
    narrow ones (toc.js). */
@@ -12,7 +12,7 @@
   --rule: #b8b8b8;
   --link: #2a4d8f;
   --code-bg: #f3f3f3;
-  --ann: #5b3fd6;
+  --tax: #5b3fd6;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -22,7 +22,7 @@
     --rule: #555;
     --link: #8fb0ff;
     --code-bg: #242424;
-    --ann: #a893ff;
+    --tax: #a893ff;
   }
 }
 
@@ -145,7 +145,7 @@ aside.toc nav a.current-parent { color: var(--fg); }
 aside.toc nav a.current {
   color: var(--fg);
   font-weight: 600;
-  border-left-color: var(--ann);
+  border-left-color: var(--tax);
   background: var(--code-bg);
 }
 
@@ -164,8 +164,8 @@ pre {
 }
 pre code { background: none; padding: 0; }
 
-/* The annotation: prose spans and MathML mstyles alike. */
-.ann { color: var(--ann); }
+/* The certification tax: prose spans and MathML mstyles alike. */
+.tax { color: var(--tax); }
 
 /* Math: keep the browser's native MathML, a touch larger. */
 math { font-size: 1.05em; }

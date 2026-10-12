@@ -22,10 +22,12 @@ which reading applies, the thesis first translates every well-typed
 term into a language in which the propositional and the
 non-propositional $forall$ and $lambda$ are separate constructs, using
 the sort of each body, which is well defined given the thesis's
-unique typing theorem. Our proof records that sort in the annotation and the
-checker's inference rules check it (@sec:annotation), so the
-interpretation consults no typing information and our proof does not
-need unique typing. The thesis models a fixed basis of eight inductive
+unique typing theorem. Our interpretation reads the regime off the
+values instead (@sec:interp) — a product is a proposition when all its
+fibres are truth values — so it consults no typing information and our
+proof does not need unique typing. Over an empty domain, where the
+values say nothing, both are read as propositions, and the claims are
+built to say nothing about the point (@sec:claims). The thesis models a fixed basis of eight inductive
 types, the W-type among them, to which it reduces the others (parts of
 the reduction left as future work); here every
 inductive block the checker accepts is interpreted by its own least
@@ -69,8 +71,8 @@ whether the clause for proofs or for propositions applies to a term is
 a matter of its type. It is shown defined and sound on every derivable
 judgement by induction on the derivation, and the case of the
 conversion rule uses subject reduction and confluence of
-reduction. Our interpretation is total and term-directed, takes
-the choice from the annotation, and @thm:sound is an induction over
+reduction. Our interpretation is total and term-directed, reads
+the choice off the values, and @thm:sound is an induction over
 the checker's three relations that uses neither. Werner interprets an
 inductive type of a universe as the least fixed point, in that
 universe, of the monotone operator that strict positivity provides,
@@ -87,21 +89,20 @@ set theory is given by axioms, as ours is (@sec:lib). Products are
 interpreted by one clause: with Aczel's encoding of a function as the
 set of pairs $(x, y)$ with $y$ in its value at $x$, a function into
 propositions collapses to a proposition, so the interpretation, like
-ours, consults no typing information and, unlike ours, needs no
-annotation. In our set
+ours, consults no typing information. In our set
 theory a graph is never the point (@sec:lib), so that a graph
 determines its domain; the two readings of a $forall$ or a $lambda$
-are then different sets, and the annotation chooses between them.
+are then different sets, and the values choose between them
+(@sec:interp).
 Soundness there is stated for semantic judgements $Gamma ⊨ M
 : T$ and $Gamma ⊨ M = M'$ over valuations, close to our
 three claims, and the typing derivations of the calculus, in a
 presentation with judgemental equality, are shown to imply them; our claims are proved of the checker's verdicts instead.
 Barras observes that set-theoretic $beta$ holds only for arguments in
 the function's domain, so his semantic $beta$ rule has a typing
-premise; in our proof the same condition is checked by the checker
-itself, which before a $beta$ step whose function may be a proof
-infers the argument's type and compares it with the domain
-(@sec:red).
+premise; in our proof $beta$ has no premise, because the reduction
+claim is asked only of a redex that is not the point, whose function
+is then a graph that determines its domain (@lem:beta).
 
 *Dybjer, "Inductive families".* Dybjer @dybjer1994 gives a general
 scheme for inductive definitions of families of sets in Martin-Löf's

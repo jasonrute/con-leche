@@ -74,8 +74,8 @@ class SetLib (V : Type u) where
   one : V
   /-- The members of `{pt}`. -/
   mem_one : ∀ {z : V}, Mem z one ↔ z = pt
-  /-- The universe chain: `univ n` sizes `Sort n`, which denotes its
-  restricted part `typeU n`. -/
+  /-- The universe chain: `univ n` sizes `Sort n`, which denotes the
+  types among its members, `typeU n`. -/
   univ : Nat → V
   /-- `univ 0` is the set of subsets of `{pt}` — the truth values. -/
   mem_univ_zero : ∀ {T : V}, Mem T (univ 0) ↔ ∀ z, Mem z T → z = pt
@@ -592,7 +592,7 @@ theorem lamV_eta {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hB : ∀ x, x �
     rw [lamV_eq_graph (lamV_ne_pt_of hx₀ (ne_pt_of_mem_strict hs (app_mem_piSet hf' hx₀)))]
     exact graph_app_eq hf'
 
-/-- **`∀`-formation in the restricted universes**, with no regime
+/-- **`∀`-formation in the sorts' sets `typeU`**, with no regime
 premise: over fibres in `Sort 0` the product is a truth value; over
 fibres in a positive sort it is a truth value or a strict function
 space, a type either way. -/

@@ -1,11 +1,7 @@
 #import "../lib.typ": *
 
 // Notation local to this file, matching §2–§4.
-#let PW = $italic("pw")$
-#let never = $sans("never")$
-#let always = $sans("always")$
 #let Sort = $sans("Sort")$
-#let zn = $sans("zeroness")$
 #let red = sym.arrow.r.squiggly
 #let pt = $sans("pt")$
 #let tv = $op("tv")$
@@ -16,10 +12,9 @@
 
 = What extensionality gives for free <sec:ext>
 
-The official kernel has a few rules of definitional equality that the
-fragment does not have: reduction of a recursor on a proof that is
-not a constructor application (K-like reduction), η for structures,
-and unit-likeness. @sec:left-out lists them among the omissions; this section
+The official kernel has two rules of definitional equality that the
+fragment does not have: η for structures, and unit-likeness.
+@sec:left-out lists them among the omissions; this section
 says what adding them would cost. The answer is one case of the
 induction of @sec:claims each, and no new idea. In the model, each rule is a
 consequence of what the values _are_: a proof is the point, a
@@ -30,98 +25,48 @@ statement of the form "a set is determined by its parts", and each is
 either an extensionality law of the assumed set theory or follows
 directly from one. (η for functions, which the fragment already has, is the
 same law at graphs: a member of a function space is
-#src("whitepaper/Fragment/Lib.lean", 92)[the graph of its
-applications], and §2 proved its case.) Below, each rule is stated in
+#src("whitepaper/Fragment/Lib.lean", 110)[the graph of its
+applications], and §2 proved its case; and the K rule of
+@sec:iota-cases, which the fragment has, rests on a law of the same
+kind, inversion of the least fixed point.) Below, each rule is stated in
 words, then the argument against the assumed laws, then, set off,
 the real proof's case.
 
 Recall what @sec:ind sets up. A constructor application $c thick arrow(p)
 thick arrow(f)$ of a block whose family is type-valued denotes
-a #src("whitepaper/Fragment/IndLib.lean", 49, 63)[tagged tuple]
+a #src("whitepaper/Fragment/IndLib.lean", 50, 64)[tagged tuple]
 $tag(i, lden f_1 rden, ..., lden f_n rden)$ — the
-#src("whitepaper/Fragment/IndCommon.lean", 212, 214)[constructor's number $i$], then its fields — and
+#src("whitepaper/Fragment/IndCommon.lean", 336, 338)[constructor's number $i$], then its fields — and
 the family at parameters and indices denotes
-#src("whitepaper/Fragment/IndSem.lean", 1309, 1312)[the least set closed
+#src("whitepaper/Fragment/IndSem.lean", 1458, 1461)[the least set closed
 under the constructor steps], so that
-#src("whitepaper/Fragment/IndSem.lean", 1329, 1336)[a member of the
+#src("whitepaper/Fragment/IndSem.lean", 1478, 1486)[a member of the
 family is a tagged tuple that one constructor step produces] from
 members of the field domains (this is the fixed-point equation of §4,
 #src("whitepaper/Fragment/LfpSet.lean", 137, 141)[read from left to
-right]). When the family is proposition-valued — the binders of the
-constructors' types, whose bodies are the family, are annotated
-$ann(zn(u))$ for the result sort $Sort u$, and that datum holds at
-$phi$ — the family denotes
-#src("whitepaper/Fragment/IndSem.lean", 585, 588)[a truth value]
+right]). When the family is proposition-valued — its result sort
+$Sort u$ has $u$ evaluating to $0$ at $phi$ — the family denotes
+#src("whitepaper/Fragment/IndSem.lean", 592, 595)[a truth value]
 instead: the constructor step's tuple is not stored, only whether some
-such tuple exists, and #src("whitepaper/Fragment/IndSem.lean", 1390, 1394)[a
+such tuple exists, and #src("whitepaper/Fragment/IndSem.lean", 1539, 1543)[a
 member of the family, like a constructor application, is the point].
 Tagged tuples are injective
-(#src("whitepaper/Fragment/IndLib.lean", 52)[tuples],
-#src("whitepaper/Fragment/IndLib.lean", 59)[tags]) and a tagged
-tuple is #src("whitepaper/Fragment/IndLib.lean", 63)[$!= pt$].
+(#src("whitepaper/Fragment/IndLib.lean", 53)[tuples],
+#src("whitepaper/Fragment/IndLib.lean", 60)[tags]) and a tagged
+tuple is #src("whitepaper/Fragment/IndLib.lean", 64)[$!= pt$].
 
 == Proof irrelevance and propositional extensionality <sec:ext-irrel>
 
 These two are not rules that need adding; they are built into the
 model, and §2 used the first already. A proposition denotes a
-#src("whitepaper/Fragment/Lib.lean", 115, 121)[truth value], a subset of
+#src("whitepaper/Fragment/Lib.lean", 142, 148)[truth value], a subset of
 ${pt}$, so any two proofs of any two propositions denote the same
 set — the proof-irrel case of @thm:sound, which
 #src("ConLeche/Model/Rules/DefEqSound.lean", 309, 316)[never compared the two propositions]. And two
 propositions that imply each other have
-#src("whitepaper/Fragment/Lib.lean", 146, 147)[the same truth value], by extensionality of sets: that is Lean's
+#src("whitepaper/Fragment/Lib.lean", 173, 174)[the same truth value], by extensionality of sets: that is Lean's
 axiom `propext`, which therefore
 #src("ConLeche/Model/AxiomMem.lean", 414, 422)[holds in the model].
-
-== K-like reduction <sec:ext-k>
-
-*The rule.* Take an inductive proposition with one constructor whose
-only arguments are the block's parameters — `Eq` is the example that
-matters: `Eq.refl a : Eq a a` has no field of its own. Its recursor
-normally fires only when the major premise reduces to a constructor
-application. Under Lean's K-like rule it fires on _any_ major $h$ of
-the right type: the checker reads $h$'s type, reduces it to the family
-at some parameters $arrow(p)$ and indices, fabricates the constructor
-application $c thick arrow(p)$, checks that this application's type is
-definitionally equal to $h$'s type — for `Eq` this is the comparison
-of the two endpoints, $a equiv b$ — and then reduces as if $h$ were
-$c thick arrow(p)$. For `Eq.rec` this is what makes a cast along a
-proof of $a = a$ compute even when the proof is a variable.
-
-*In the model.* The family is a proposition, so its fibre at
-$arrow(p)$ and any indices is a truth value, and the rule is best
-read as a reduction step $h red c thick arrow(p)$ on the major, after
-which the ordinary $iota$ rule fires on a constructor application.
-
-#lemma(name: "K")[
-  Let $h$ and $c thick arrow(p)$ be well-denoted, each denoting a
-  member of a truth value. Then
-  $lden h rden = lden c thick arrow(p) rden$, so the step
-  $h red c thick arrow(p)$ preserves the denotation and the semantic
-  invariant.
-] <lem:k>
-
-#proof[
-  A member of a truth value is
-  #src("whitepaper/Fragment/Lib.lean", 129, 130)[the point]; both
-  sides are one. The reduct's semantic invariant is the hypothesis.
-]
-
-The checker's type comparison is not idle. It puts the fabrication
-into the recursor's _own_ fibre — for `Eq`, it is the comparison
-$a equiv b$ — which is what the $iota$ rule's spine check on
-the reduct needs; and the inference of the fabrication's type is what
-makes it well-denoted. Both are premises of @lem:k, not steps of its
-proof.
-
-#real[
-  The rule is stated exactly so, as a reduction of the stuck major
-  to the fabrication
-  (#src("ConLeche/Rules/Rel.lean", 225, 244)[the rescue]), and
-  #src("ConLeche/Model/Rules/IotaSound.lean", 505, 506)[its case]
-  identifies the two values by proof irrelevance; no theorem about
-  the block is consulted.
-]
 
 == η for structures <sec:ext-eta>
 
@@ -166,8 +111,12 @@ fields $a_i$ the constructor was actually applied to, and the lemma
 does the rest. A block declared in `Prop` is never granted the rule;
 where an instance of a `Sort u` structure happens to be a
 proposition, both sides are the point, and the law's proposition case
-covers it.
+covers it. The same law on values, a member is the constructor at its
+projections, is what the step of $iota$ through the projections in
+@sec:iota-cases rests on.
 
+// PORT: the ported checker drops the field certificates of structure η
+// and of the η rescue; re-cite this block after the port.
 #real[
   The checker has the rule as
   #src("ConLeche/Rules/Rel.lean", 431, 434)[a certificate on the fields],

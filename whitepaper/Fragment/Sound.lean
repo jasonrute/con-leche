@@ -1316,9 +1316,9 @@ has a major that is not the point (the major lies in that domain,
 reduced major, a constructor application that is not the point, fits
 the constructor's telescope by the same argument.  No certificate is
 needed for the recursor's spine, the major or the constructor's
-spine.  The strictness is a semantic hypothesis here (in #344's model
-a sort above `Prop` also holds truth values, so the universe does not
-give it); `strict_dom` supplies it from the environment law
+spine.  The strictness is a semantic hypothesis here (a sort above
+`Prop` also holds truth values, so the universe does not give it);
+`strict_dom` supplies it from the environment law
 `EnvModel.ind_fib` and one level test (`Red.iotaStrict`). -/
 theorem iota_core_strict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
     {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}

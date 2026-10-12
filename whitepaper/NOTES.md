@@ -832,3 +832,62 @@ comment block at the top of `lib.typ`.
     the point, the readings of the former's applications ask them not
     to be the point (types are not), and the constructor and class
     checks ask a sort, which the real checker does.  (2026-10-11.)
+
+44. **ι's soundness as three laws of the environment, not a
+    certificate walk.**  In the fragment the recursor's spine needs no
+    certificate at all: a redex that is not the point fits the
+    recursor's telescope by the semantic invariant's application slots
+    and domain uniqueness (`Sound.lean`, `teleFit_of_ne_pt`).  What is
+    left is stated once, as fields of the environment's model, and
+    proved where the constants are created: the fibre law
+    (`EnvModel.ind_fib`, a stored family's fibres are truth values or
+    strict sets as its stored sort says), the slot law
+    (`rec_rules_slot`) and the K law (`rec_rules_k`).  The real proof's
+    ι soundness (`Model/Rules/IotaSound.lean`, `CertsSound.lean`) reads
+    a `Certs` walk over the whole spine; with the three laws in the
+    real carrier invariant (`EnvModelM`) the walk
+    shrinks to the constructor's arguments in one case, and the
+    per-redex case split becomes a level test on the stored sort.
+    (2026-10-12.)
+
+45. **The K law needs neither `Prop` nor the elimination level.**  The
+    installer's proof of the K law (`InstallIota.lean`,
+    `rec_rule_lawK`) is inversion of the least fixed point at the
+    recursor's own parameters, and holds for every block with one
+    constructor and no fields.  The real proof can state K's law for
+    that shape and keep "is `Prop`" as the checker's flag only, for
+    fidelity with Lean; the K rule's soundness then reads no sort.
+    And for a structure without fields the step through the
+    projections and K's step have the same reduct
+    (`EtaIota.lean`, `iotaEta_noFields`, `recRuleLawK_of_eta`), so
+    one law can serve both.  (2026-10-12.)
+
+46. **λ-telescopes as their own relation.**  `DefEqLams`
+    (`Rules.lean`) compares two λ-telescopes level by level and types
+    only the innermost bodies; its claim is unconditional
+    (`LamsSem`), which is why the outer levels need no type
+    (`Sound.lean`, `DefEqLams.outer_sound`).  The real relation's
+    λ rule (`Rules/Rel.lean`) works per λ; a telescope relation of
+    this shape would make the checker's "skip when both bodies are
+    λs" a rule instead of a bridge lemma, and its soundness two cases.
+    (2026-10-12.)
+
+47. **`let` by substitution: the value's checks are verdicts, not
+    proof obligations.**  With the body inferred at the value itself
+    (`Infer.letE`), the soundness of `let` is the substituted body's
+    claim plus `interp_zeta`; the checks of the value against its type
+    are not consumed (`Infer.letE_sound`), and the cheaper grade skips
+    them (`InferIO.letE`).  The real proof's `let` rules can likewise
+    carry the value premises as checker facts the soundness induction
+    ignores, and its contexts need no entries bound to values.
+    (2026-10-12.)
+
+48. **The cheaper grade as a separate relation.**  The fragment states
+    the cheaper grade as its own relation `InferIO` with its own claim
+    (`IOGrade.lean`: the hereditary `IORel`, keyed on the type's
+    syntax), and its consumers as separate theorems.  The real proof
+    carries a grade index on one inference relation, so every
+    soundness case is stated for both grades.  Splitting the grades
+    would let the full grade's claim stay the plain membership of
+    `InferSem` and keep the hereditary claim to the rules that use it.
+    (2026-10-12.)

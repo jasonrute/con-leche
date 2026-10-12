@@ -188,7 +188,7 @@ def lsK (N : NestInfo) : List Nat := N.lsK.map (Level.eval (S.ψ ls))
 /-- **The admissible part of a set**: at a proposition the set itself;
 above it the members that are neither the point nor a member of it —
 a strict set (`adm_mem_typeU`), so a member of the nested parameter's
-domain `Sort u` in the restricted universes, and the set itself on a
+domain `Sort u`, a set of types, and the set itself on a
 set of tagged values (`adm_eq_self`), such as a fibre of the family.
 The class reads the container's set at admissible sets only: there it
 is a graph applied inside its domain. -/

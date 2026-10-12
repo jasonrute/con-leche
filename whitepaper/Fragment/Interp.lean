@@ -135,7 +135,7 @@ end Env
 
 variable {V : Type u} [SetLib V]
 
-/-- **The interpretation**: total, term-directed, annotation-free. -/
+/-- **The interpretation**: total, term-directed, reading no type. -/
 noncomputable def interp (M : Name → List Nat → V) (φ : Name → Nat) : (Nat → V) → Expr → V
   | ρ, .bvar i => ρ i
   | _, .sort u => typeU (u.eval φ)
