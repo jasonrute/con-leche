@@ -105,10 +105,8 @@ theorem wellDenotedV_mkPisAV_append (B : AnnotTerm) :
   | [], _, _, _ :: _, hf, _ => hf.elim
   | _ :: _, _, _, [], hf, _ => hf.elim
   | d :: ab₁, ab₂, ρ, a :: as, hf, h => by
-    obtain ⟨h1, h2⟩ := h
-    simp only [List.cons_append, mkPisAV, WellDenoted_pi, AnnotValid_pi] at h1 h2
-    exact wellDenotedV_mkPisAV_append B ab₁ ab₂ (cons a ρ) as hf.2
-      ⟨h1.2.2.1 a hf.1, h2.2.1 a hf.1⟩
+    simp only [WellDenotedV, List.cons_append, mkPisAV, WellDenoted_pi] at h
+    exact wellDenotedV_mkPisAV_append B ab₁ ab₂ (cons a ρ) as hf.2 (h.2.2.1 a hf.1)
 
 /-- **The frame's group is well formed**: its names distinct, the
 container's WHOLE recorded block (N2-eager: `PosD.frame.hgrp`), each at
@@ -332,16 +330,15 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
         show dsa.getD (ds.length - 1 - j) default ∈ dsa
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
         exact List.getElem_mem _)
-    · exact ⟨by simp [WellDenoted], by simp⟩
+    · simp
   have heq : mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0
         (abF.drop ds.length)) (.sort (D.w ψ))
       = AnnotTerm.substAV (substTau ds.length hi fun i => dsa.getD i default)
           (mkPisAV (abF.drop ds.length) (.sort (D.w ψ))) 0 := by
     rw [AnnotTerm.substAV_mkPisAV]; rfl
   rw [heq]
-  refine ⟨(WellDenoted_substAV _ _ 0 ρ fun j => (hτ j).1).mpr ?_,
-    (AnnotValid_substAV _ _ 0 ρ fun j => (hτ j).2).mpr ?_⟩ <;>
-    rw [← keyFrame_eq_substE hdl] <;>
+  refine (WellDenoted_substAV _ _ 0 ρ fun j => hτ j).mpr ?_
+  rw [← keyFrame_eq_substE hdl]
   · -- the member's closed type, graded at every frame, past the parameters
     have hmem := ConLeche.Semantics.Env.find?_mem hf
     have hwd := (mp.type_wellDenotedTy _ hmem ψ _ hread
@@ -354,8 +351,7 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
       rw [hm1]
       exact spineFit_of_sat_consList (by rw [List.length_map, hdl, hpl]) hsP
     rw [← List.take_append_drop ds.length abF] at hwd
-    have := wellDenotedV_mkPisAV_append _ _ _ _ _ hfit hwd
-    first | exact this.1 | exact this.2
+    exact wellDenotedV_mkPisAV_append _ _ _ _ _ hfit hwd
 
 omit hnN in
 /-- The frame's substituted variables are scoped, bvar-closed and read. -/

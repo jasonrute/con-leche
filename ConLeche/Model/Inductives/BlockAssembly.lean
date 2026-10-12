@@ -51,7 +51,6 @@ theorem FormerData.congr_sort {env : Env} {m : EnvModel V env} {cvT : ConstantVa
     FormerData m cvT nP s' pps where
   read ψ := by rw [← hs ψ]; exact h.read ψ
   len := h.len
-  bits := h.bits
   okTy ψ ρ := by rw [← hs ψ]; exact h.okTy ψ ρ
   below := h.below
   params ψ₁ ψ₂ hφ := ⟨(h.params ψ₁ ψ₂ hφ).1, by rw [← hs ψ₁, ← hs ψ₂]; exact (h.params ψ₁ ψ₂ hφ).2⟩
@@ -639,23 +638,15 @@ theorem blockDummyPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {
   -- the leaf's currency at EVERY position: on the block from the
   -- member's telescope reading, off it at the empty telescope
   have hwalks : ∀ (j : Nat) (ψ : Name → Nat) (ρ : Nat → V),
-      ParamsOkS (q.resSort.eval ψ) ρ [] (ppsOf j ψ) ∧
-        UnderTowerValid ρ (sumBodyAV (q.resSort.eval ψ) []) (ppsOf j ψ) := by
+      ParamsOkS (q.resSort.eval ψ) ρ [] (ppsOf j ψ) := by
     intro j ψ ρ
-    have htriv : ∀ (w : Nat) (σ : Nat → V),
-        SumFieldsOkB (V := V) w σ [] ∧ SumFieldsValid (V := V) σ [] := by
-      intro w σ
-      constructor
-      · intro Fs hFs; exact nomatch hFs
-      · intro Fs hFs; exact nomatch hFs
+    have htriv : ∀ (w : Nat) (σ : Nat → V), SumFieldsOkB (V := V) w σ [] := by
+      intro w σ Fs hFs; exact nomatch hFs
     cases hj : cvTas[j]? with
     | none =>
       rw [hF.ppsNil j hj ψ]
-      refine ⟨?_, ?_⟩
-      · show SumFieldsOkB (q.resSort.eval ψ) ρ []
-        exact (htriv _ ρ).1
-      · show AnnotValid V ρ (sumBodyAV (q.resSort.eval ψ) [])
-        exact sumBodyAV_validV (htriv (q.resSort.eval ψ) ρ).2
+      show SumFieldsOkB (q.resSort.eval ψ) ρ []
+      exact htriv _ ρ
     | some cvTa =>
       exact formerWalksS (hF.fdOf j cvTa hj) (fun ψ' ρ' _ => htriv _ ρ') ψ ρ
   have hbelow : ∀ (j : Nat) (ψ : Name → Nat), DomsBelow 0 (ppsOf j ψ) := by
@@ -670,10 +661,9 @@ theorem blockDummyPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {
       obtain ⟨hp, hw⟩ := (hF.fdOf j cvTa hj).params ψ₁ ψ₂ hφ
       show sumTyAV _ _ [] = sumTyAV _ _ []
       rw [hp, hw])
-    (fun j _ _ ψ ρ => sumTyAV_wellDenoted (hwalks j ψ ρ).1)
-    (fun j _ _ ψ ρ => (sumTyAV_wellDenotedV (hwalks j ψ ρ).1 (hwalks j ψ ρ).2).2)
-    (fun j _ _ ψ ρ => sumTyAV_mem (hwalks j ψ ρ).1)
-    (fun j _ _ ψ ρ _ hsp => sumTyAV_fold_strictU (hwalks j ψ ρ).1 hsp)
+    (fun j _ _ ψ ρ => sumTyAV_wellDenoted (hwalks j ψ ρ))
+    (fun j _ _ ψ ρ => sumTyAV_mem (hwalks j ψ ρ))
+    (fun j _ _ ψ ρ _ hsp => sumTyAV_fold_strictU (hwalks j ψ ρ) hsp)
     hetaNe hetaFresh ?_
   -- the capability laws at the DUMMY leaf: η is vacuous (no
   -- constructor is stored), unit-likeness folds the empty-chain leaf
@@ -719,9 +709,9 @@ theorem zip_getElem? : ∀ {α β : Type} (l₁ : List α) (l₂ : List β) (i :
     simp only [List.getElem?_cons_succ]
     exact zip_getElem? l₁ l₂ i a b h₁ h₂
 
-/-- **Every member's index telescope is graded and valid** at its own
-parameter frame, at the universe its index binders' sorts give
-(`idxOk_of`/`idxValid_of` at `k` members, from conjunct 6). -/
+/-- **Every member's index telescope is graded** at its own parameter
+frame, at the universe its index binders' sorts give (`idxOk_of` at `k`
+members, from conjunct 6). -/
 theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
     (mpI : EnvModelM V μ envI) {q : BlockShape} {cvTas : List ConstantVal}
     {isorts : List (List Level)} {isRec : Bool}
@@ -739,8 +729,7 @@ theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
       (∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
         ∀ (ψ : Name → Nat) (ρp : Nat → V),
         Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
-        IdxOk (uOf j ψ) ρp (((ppsOf j ψ).drop q.nP).map (·.2.2)) ∧
-        FieldsValid ρp (((ppsOf j ψ).drop q.nP).map (·.2.2))) ∧
+        IdxOk (uOf j ψ) ρp (((ppsOf j ψ).drop q.nP).map (·.2.2))) ∧
       ∀ (j : Nat) (ψ₁ ψ₂ : Name → Nat), (∀ n ∈ q.lps, ψ₁ n = ψ₂ n) →
         uOf j ψ₁ = uOf j ψ₂ := by
   obtain ⟨-, hall⟩ := ConLeche.checkBlockIdxSorts_inv hsorts
@@ -762,7 +751,6 @@ theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
     have hppsR : ppsOf j (restrictΨ q.lps ψ) = ppsOf j ψ :=
       (hFDj.params _ _ fun n hn =>
         restrictΨ_agree _ _ n (by rw [← hlps j cvTa hj]; exact hn)).1
-    refine ⟨?_, idxValid_of mpI (hfind j cvTa hj) hop hFDj ψ ρp hρp⟩
     have hok := idxOk_of hμ mpI (hfind j cvTa hj) hop hsortsj hFDj
       (restrictΨ q.lps ψ) ρp (by rw [hppsR]; exact hρp)
     rw [hppsR] at hok
@@ -833,9 +821,9 @@ theorem blockCtorFunsAt (hμ : μ.verifiedChecks = true) {F : Nat}
 
 /-- **The REAL former pass**: the `k` formers consed with the FIXPOINT
 leaves the dummy pass's readings build.  The block operator's premise bundle
-at the LEAF's chains (`hIdxAll`, `hXAll`, `hXVAll`) is what
-`blockLeafWalks` turns into the leaf's two hereditary premises, and
-the `blockTyG` capstones into its five currency facts.  A unit-like
+at the LEAF's chains (`hIdxAll`, `hXAll`) is what `blockLeafWalks`
+turns into the leaf's hereditary premise, and the `blockTyG` capstones
+into its currency facts.  A unit-like
 member's law comes through its leaf's FOLD alone (`hfoldZ`), which is
 a statement about the leaf TERM and therefore crosses every cons. -/
 theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
@@ -869,18 +857,11 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     (hIdxAll : ∀ (j : Nat), j < q.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
       Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
       BlockIdxOk (V := V) q.k (fun c => uOf c ψ) ρp
-        (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) ∧
-      ∀ c, c < q.k → FieldsValid ρp (((ppsOf c ψ).drop q.nP).map (·.2.2)))
+        (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)))
     (hXAll : ∀ (j : Nat), j < q.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
       Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
       BlockChainsOkG q.k (q.resSort.eval ψ) ρp (fun c => uOf c ψ)
         (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ))
-    (hXVAll : ∀ (j : Nat), j < q.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-      Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
-      ∀ Y, Y ∈ˢ famsSpaceB q.k (q.resSort.eval ψ) ρp (fun c => uOf c ψ)
-        (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) →
-      ∀ c, c < q.k → ∀ t, t ∈ˢ idxSet (uOf c ψ) ρp (((ppsOf c ψ).drop q.nP).map (·.2.2)) →
-      SumFieldsValid (cons t (cons Y ρp)) (Chs ψ c))
     -- a unit-like member's leaf folds to the one tagged empty tuple
     (hfoldZ : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       (ConLeche.blockCapsAt q j isRec).unitlike = true →
@@ -911,26 +892,19 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     | some cvTb =>
       exact ((hF.fdOf c cvTb hc).params ψ₁ ψ₂
         (fun n hn => hφ n (by rw [← hF.lpsOf c cvTb hc]; exact hn))).1
-  -- the leaf's two hereditary premises at every member
+  -- the leaf's hereditary premise at every member
   have hwalks : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa → j < q.k →
       ∀ ρ : Nat → V, ∀ ψ : Name → Nat,
       ParamsOkG q.k (q.resSort.eval ψ) ρ (fun c => uOf c ψ)
-          (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) j (ppsOf j ψ) ∧
-        UnderTowerValid ρ
-          (.app (projAV j ((blockBodyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
-              (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ)).liftN
-              ((((ppsOf j ψ).drop q.nP).map (·.2.2)).length) 0))
-            (mkTowerGo (uOf j ψ) (((ppsOf j ψ).drop q.nP).map (·.2.2)))) (ppsOf j ψ) := by
+          (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) j (ppsOf j ψ) := by
     intro j cvTa hj hjk ρ ψ
     exact blockLeafWalks (nIdx := q.nIdxs.getD j 0) ((hF.fdOf j cvTa hj).len ψ)
-      ((hF.fdOf j cvTa hj).bits ψ)
-      (fun ρ' => (hF.fdOf j cvTa hj).okTy ψ ρ') hjk rfl
-      (fun ρp hρp => hIdxAll j hjk ψ ρp hρp) (fun ρp hρp => hXAll j hjk ψ ρp hρp)
-      (fun ρp hρp => hXVAll j hjk ψ ρp hρp) ρ
+      (fun ρ' => (hF.fdOf j cvTa hj).okTy ψ ρ') rfl
+      (fun ρp hρp => hIdxAll j hjk ψ ρp hρp) (fun ρp hρp => hXAll j hjk ψ ρp hρp) ρ
   refine blockFormerPass mp hInd hF hnd hE
     (fun j ψ => blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
       (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) (ppsOf j ψ) j)
-    ?_ ?_ ?_ ?_ ?_ ?_ hetaNe hetaFresh ?_
+    ?_ ?_ ?_ ?_ ?_ hetaNe hetaFresh ?_
   · -- closed
     intro j cvTa hj ψ
     exact blockTyAV_below ((hF.fdOf j cvTa hj).below ψ) ((hF.fdOf j cvTa hj).len ψ)
@@ -953,23 +927,17 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     exact blockTyG_wellDenoted (by
       have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this)
       (hwalks j cvTa hj (by
-        have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this) ρ ψ).1
-  · -- bit-valid
-    intro j cvTa hj ψ ρ
-    have hjk : j < q.k := by
-      have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this
-    exact (blockTyAV_wellDenotedV hjk (hwalks j cvTa hj hjk ρ ψ).1
-      (hwalks j cvTa hj hjk ρ ψ).2).2
+        have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this) ρ ψ)
   · -- the leaf inhabits its type's reading
     intro j cvTa hj ψ ρ
     have hjk : j < q.k := by
       have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this
-    exact blockTyG_mem hjk (hwalks j cvTa hj hjk ρ ψ).1
+    exact blockTyG_mem hjk (hwalks j cvTa hj hjk ρ ψ)
   · -- the leaf's fibres are in the strict universe
     intro j cvTa hj ψ ρ _ hsp
     have hjk : j < q.k := by
       have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this
-    exact blockTyG_fold_strictU hjk (hwalks j cvTa hj hjk ρ ψ).1 hsp
+    exact blockTyG_fold_strictU hjk (hwalks j cvTa hj hjk ρ ψ) hsp
   · -- the capability laws at the FIXPOINT leaf
     intro j cvTa hj env' m' hFD' hfreshT hcb hfreshC m₂ hac
     have hFD₂ : FormerData m₂ cvTa (q.nP + q.nIdxs.getD j 0) q.resSort (ppsOf j) :=

@@ -372,8 +372,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
         (fun ψ ρ => by
           have := (hS.frames i hik 0 cA hcA0).1 ψ ρ
           rwa [List.take_of_length_le (Nat.le_of_eq (hlenP ψ))] at this)
-        (fun ψ ρ hρ => ⟨((hS.frames i hik 0 cA hcA0).2 ψ ρ hρ).1,
-          ((hS.frames i hik 0 cA hcA0).2 ψ ρ hρ).2.1⟩)
+        (fun ψ ρ hρ => ((hS.frames i hik 0 cA hcA0).2 ψ ρ hρ).1)
         (hS.boundF i cA hik hctorsEq) (hS.sortsF i cA hik hctorsEq)
     -- the table's own shape, from the check
     have htblB : tbl.bodies = bodies ∧ tbl.numFields = cA.2 := by
