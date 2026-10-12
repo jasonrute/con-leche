@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.GenClsData
+import ConLeche.Verify.Inductives.TargetAuxFire
 import ConLeche.Model.Inductives.BlockRecLaw
 import ConLeche.Model.Inductives.GenRecRules
 import ConLeche.Model.Inductives.GenClsSem
@@ -1127,7 +1128,7 @@ theorem genOut_pins (hμ : μ.verifiedChecks = true)
     {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
       = .nested lvls pins)
     {φ : Name → Nat} {us usj : List Level}
     (hlv : ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p
@@ -1159,7 +1160,7 @@ theorem genOut_pins (hμ : μ.verifiedChecks = true)
   have hcAM : (tgtMajor out j).ctors[i]? = some cA := by rw [← tgtRs_ctors hr]; exact hcA
   have hrPle : pp.toBlockShape.rulePrefixAt j ≤ pp.toBlockShape.majorIdxAt j :=
     blockRecHrPle (p := pp) h hj
-  obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+  obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
   generalize hψe : Level.substFn φ r.1.levelParams us = ψ at hfitR hlv hpinV
   obtain ⟨hpref, -, hxvl, -⟩ := genRow3_frame hμ h hr ψ hxl hfitR
   obtain ⟨T0, pps, b0, hcons, hlpsI, hT0, hT0E, hplen, hT0wd, hT0cl, -, hTFall⟩ :=
@@ -1709,7 +1710,7 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
     (hcl : TgtOutCls mpC (tgtMajor out j) (Dc j) (mc j) (cvc j))
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
       = .nested lvls pins)
     {rl : ConLeche.RecRule} (hrl : ConLeche.RecRule.fire rl = .nested lvls pins) :
     BlockRuleRows3 (V := V) mpC pp (ConLeche.tgtMajorsOf out j).nPc (tgtRs out)
@@ -1723,7 +1724,7 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
   have hi : i < blockRecNCt (tgtRs out) j :=
     Nat.lt_of_lt_of_le (List.getElem?_eq_some_iff.mp hcA).1 (blockRecNCt_ge hr)
   have hcAM : (tgtMajor out j).ctors[i]? = some cA := by rw [← tgtRs_ctors hr]; exact hcA
-  obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+  obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
   have hMM : (ConLeche.tgtMajorsOf out j).nPc = (tgtMajor out j).nPc := rfl
   rw [hMM] at hyl ⊢
   -- the level assignment of the rule, and the constructor's
@@ -2117,7 +2118,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
     (hcl : TgtOutCls mpC (tgtMajor out j) (Dc j) (mc j) (cvc j))
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
       = .nested lvls pins)
     (hctorCB : ConstsBound envC cA.1.type)
     (hctorRead : ∀ ψ' : Name → Nat, denoteMeta mpC.base2.acval envC ψ' 0 cA.1.type
@@ -2169,7 +2170,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
     exact blockRecDenote_cross h hac _ 0 cA.1.type hctorCB (hctorRead _)
   have hnpd : (tgtMajor out j).nPc = (tgtMajor out j).ds.length := Rd.hnpc
   -- the pins, read at the cons as at the constructors' environment
-  obtain ⟨-, -, hpinsWf, -⟩ := ConLeche.tgtFireOf_nested hf
+  obtain ⟨-, -, hpinsWf, -⟩ := R.fire_nestedRead hr hf
   have hpinCross : ∀ (us : List Level) q (vpa : ITerm),
       denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
         (openRev 0 (pp.toBlockShape.rulePrefixAt j)
@@ -2194,7 +2195,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p
         = tgtClsψ cvc out (Level.substFn φ r.1.levelParams us) j p := by
     intro us usj hψ p hp
-    obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+    obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
     rw [hψ]
     simp only [ConLeche.recFireComparands, hfire]
     rw [hlvls, ConLeche.Level.substFn_map_subst (by rw [Rd.hul, hlpC]) hp, hlpC, Rd.hψ]
@@ -2233,7 +2234,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       exact Or.inl ⟨Rules.interp_mkAppN_pt (hL ρ) _, fun Ra hRa' => hRa Ra hRa' ρ⟩
     · -- above `Prop`: the witness at the pins
       refine Or.inr ?_
-      obtain ⟨hlvls, hpinV⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+      obtain ⟨hlvls, hpinV⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
       obtain ⟨vF, hvF⟩ : ∃ vF : Nat → ITerm, ∀ q, q < (tgtMajor out j).nPc →
           denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
             (openRev 0 (pp.toBlockShape.rulePrefixAt j)
@@ -2308,7 +2309,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       exact genOut_P hcov Rd hcAM hlv hw (hctorRead _) (by rw [hyl, hnp, hnf]) hfitC hWD
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ hWDy _ hcN hpinC hpt
       rw [hnp, hnf] at hyl
-      obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+      obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
       have hlv' : ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p
           = Level.substFn (Level.substFn φ r.1.levelParams us) cvI.levelParams
               (tgtMajor out j).lvls p := fun p hp => by rw [hlv p hp, Rd.hψ]

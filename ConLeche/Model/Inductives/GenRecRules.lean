@@ -1990,10 +1990,9 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
         (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA
         (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
-            fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+            fire := ConLeche.tgtFireOf pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs })) :
-    AtStoredRules mpC (ConLeche.tgtRulesR envC.find? (fun x => Expr.constsResolve envC x)
-        pp.toBlockShape (ConLeche.tgtMajorsOf out)) pp (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
+    AtStoredRules mpC (ConLeche.tgtRulesR envC.find?         pp.toBlockShape (ConLeche.tgtMajorsOf out)) pp (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
@@ -2001,12 +2000,11 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd))
       (fun j => (ConLeche.tgtMajorsOf out j).nPc)
-      (ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
+      (ConLeche.tgtFireOf pp.toBlockShape
         (ConLeche.tgtMajorsOf out))
       fun _ φ j r i cA rhs rl =>
           BlockRuleDataB mpC pp (ConLeche.tgtMajorsOf out j).nPc
-            (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
-              (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
+            (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? pp.toBlockShape (ConLeche.tgtMajorsOf out))
               pp.toBlockShape 0 (tgtRs out) envC)
             (tgtRs out) s (blockRecNCt (tgtRs out))
             (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
@@ -2032,8 +2030,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
-      (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? (fun x => Expr.constsResolve envC x)
-        pp.toBlockShape (ConLeche.tgtMajorsOf out)) pp.toBlockShape 0 (tgtRs out) envC)
+      (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?         pp.toBlockShape (ConLeche.tgtMajorsOf out)) pp.toBlockShape 0 (tgtRs out) envC)
       (Level.substFn φ r.1.levelParams us) 0 rhs
       = some (blockRuleRaOf (blockRecAcv mpC.base2.acval envC (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
@@ -2042,8 +2039,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
-        (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
-          (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
+        (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? pp.toBlockShape (ConLeche.tgtMajorsOf out))
           pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)) := by
     rw [← hac, ← denoteMeta_instLevels (acvalParamsAt_of_core m₃) (ks := r.1.levelParams)
       (us := us) φ]
@@ -2056,8 +2052,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
-      (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
-        (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
+      (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? pp.toBlockShape (ConLeche.tgtMajorsOf out))
         pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)) := by
     intro ρ'; rw [← hac]; exact hokR _ ρ'
   -- lengths
@@ -2076,8 +2071,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
-          (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
-            (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
+          (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? pp.toBlockShape (ConLeche.tgtMajorsOf out))
             pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)
         = mkLamsAV lds A →
       lds.length = pp.toBlockShape.rulePrefixAt j + cA.2 →
@@ -2119,8 +2113,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)))
-      (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
-        (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
+      (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? pp.toBlockShape (ConLeche.tgtMajorsOf out))
         pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)
       = mkLamsAV lds A := hlam
   refine blockRuleHRa_val hlam' (hok ρ) (hfit5 lds A hlam' hlen) ?_

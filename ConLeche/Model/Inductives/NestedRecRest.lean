@@ -3,6 +3,7 @@ module
 import ConLeche.Verify.Cached.PushChain
 import Std.Data.String.ToNat
 public import ConLeche.Model.Inductives.BlockDeclRun
+public import ConLeche.Verify.Inductives.NestedRead
 
 public section
 
@@ -245,17 +246,18 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 
 omit [SetTheory V] in
 /-- **A `.nested` firing's pins mention no empty
-projection slot** — they are subterms of the stored (checked) recursor
-type, lowered. -/
-theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs mem)
-    {resolves : Expr → Bool} {Ms : Nat → TargetMajor} :
+projection slot** — they are the stored (checked) recursor type's
+major-domain arguments (`NestedRead`), lowered. -/
+theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs mem) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      rs[j]? = some r → ∀ lvls pins,
-        ConLeche.tgtFireOf resolves pp.toBlockShape Ms j r = .nested lvls pins →
+      rs[j]? = some r → ∀ {resolves : Expr → Bool} {cnP : Nat} {lvls : List Level}
+        {pins : List Expr},
+        ConLeche.NestedRead resolves r.1.levelParams r.1.type (pp.toBlockShape.majorIdxAt j)
+          (pp.toBlockShape.rulePrefixAt j) cnP lvls pins →
         ∀ pin ∈ pins, ∀ (T : Name) (i : Nat), envC.findProj? T i = none →
           Expr.NoProjAt T i pin := by
-  intro j r hr lvls pins hf pin hpin T i hT
-  obtain ⟨-, -, -, pre, dom, body, D, hs, -, hargs⟩ := ConLeche.tgtFireOf_nested hf
+  intro j r hr resolves cnP lvls pins hread pin hpin T i hT
+  obtain ⟨-, -, -, pre, dom, body, D, hs, -, hargs, -⟩ := hread
   have hty := (ConLeche.recStage_cvFacts h r (List.mem_of_getElem? hr)).2.2.2 T i hT
   have hb := Expr.NoProjAt.stripPis _ hs hty
   have hdom := (Expr.noProjAt_forallE.mp hb).1

@@ -372,8 +372,7 @@ theorem checkBlockTail_inv {env₂ : Env} {block : List ConstantInfo} {q : Block
           q.cvTas = .ok out ∧
       checkBlockTables (m := CheckM) q.p.toBlockShape
         (q.p.members.zip (q.ctorsAs.zip q.sortsss))
-        (consBlockRecsT (consBlockCtors q.p.nP q.ctorsAs q.env₁).find?
-          (·.constsResolve (consBlockCtors q.p.nP q.ctorsAs q.env₁)) q.p.toBlockShape 0 out
+        (consBlockRecsT (consBlockCtors q.p.nP q.ctorsAs q.env₁).find? q.p.toBlockShape 0 out
           (consBlockCtors q.p.nP q.ctorsAs q.env₁)) = .ok env₂ := by
   rw [checkBlockTail] at h
   simp only [bind, Except.bind] at h

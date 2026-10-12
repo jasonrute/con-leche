@@ -148,8 +148,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
   -- ## conjunct ⑨'s two freshness facts, pulled back to the formers'
   -- environment (a name absent above a cons was absent below it)
   have hpull : ∀ n : Name,
-      (ConLeche.consBlockRecsT (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?
-        (·.constsResolve (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)) p₁ 0 outR
+      (ConLeche.consBlockRecsT (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find? p₁ 0 outR
         (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)).find? n = none → env₁.find? n = none :=
     fun n h => find?_none_consBlockCtors (find?_none_consBlockRecsT h)
   have hprojTbl : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < p₁.k →
@@ -732,7 +731,6 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
   -- are stored, every old name keeps its leaf
   obtain ⟨newR, hnewR, hnewRall⟩ := consBlockRecsT_consts
     (find? := (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?)
-    (res := (·.constsResolve (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)))
     (q := (p₀.complete p₁).toBlockShape) 0 outR
     (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)
   obtain ⟨mpR, hbR, -, hcovR⟩ := lfpCover_append (ex := []) (ex' := []) mpC mpR₀ hnewR hfindMono

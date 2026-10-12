@@ -275,16 +275,16 @@ levels are the class's, and the `q`-th pin, instantiated at the rule's
 level arguments and opened at the prefix, reads, and its chain at any
 prefix spine is the `q`-th parameter's reading at that spine's frame —
 the pin is the stored major domain's `q`-th argument closed over the
-prefix (`nestedRuleSyn_open`), erasure-equal to the class's parameter. -/
+prefix (`nestedRead_open`), erasure-equal to the class's parameter. -/
 theorem genOutPinVal (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
     {c : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
-    (hr : (tgtRs out)[c]? = some r) (hMo : (tgtMajor out c).member = none)
+    (hr : (tgtRs out)[c]? = some r)
     {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out c cvI)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) c r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) c r
       = .nested lvls pins)
     (φ : Name → Nat) (us : List Level) :
     lvls = (tgtMajor out c).lvls ∧
@@ -298,20 +298,8 @@ theorem genOutPinVal (hμ : μ.verifiedChecks = true)
               ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out
                 (Level.substFn φ r.1.levelParams us) c).getD q default) := by
   have hc : c < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
-  obtain ⟨-, -, hpinsWf, -⟩ := ConLeche.tgtFireOf_nested hf
-  have hm' : (ConLeche.tgtMajorsOf out c).member = none := hMo
-  unfold ConLeche.tgtFireOf at hf
-  rw [hm'] at hf
-  simp only [ConLeche.auxRuleFireR] at hf
-  cases hsyn : Expr.nestedRuleSyn (·.constsResolve envC) r.1.levelParams r.1.type
-      (pp.toBlockShape.majorIdxAt c) (pp.toBlockShape.rulePrefixAt c)
-      (ConLeche.tgtMajorsOf out c).nPc with
-  | none => rw [hsyn] at hf; exact nomatch hf
-  | some lp =>
-  obtain ⟨lvls', pins'⟩ := lp
-  rw [hsyn] at hf
-  injection hf with hl hp
-  rw [hl, hp] at hsyn
+  have hsyn := R.fire_nestedRead hr hf
+  obtain ⟨-, -, hpinsWf, -⟩ := id hsyn
   -- the stored type's openers
   obtain ⟨_, _, -, ⟨TE⟩⟩ := ConLeche.recStageG_tyGen h hr
   have hopen := TE.hopen
@@ -322,7 +310,7 @@ theorem genOutPinVal (hμ : μ.verifiedChecks = true)
   rw [hRP, hMI] at hsyn
   rw [hRP]
   rw [hMI] at hopen hmaj
-  obtain ⟨⟨D₀, hD₀⟩, hpinsE⟩ := ConLeche.nestedRuleSyn_open hsyn hopen hmaj
+  obtain ⟨⟨D₀, hD₀⟩, hpinsE⟩ := ConLeche.nestedRead_open hsyn hopen hmaj
   -- the stored major's domain is the class applied, up to erasure
   obtain ⟨clsc, tyc, ifsc, bodyc, -, -, -, -, hifl, hRPc, hmIc, -, -, -, fvs0, o0, hop0, hE⟩ :=
     genRun_binders hμ R hg h mpC (fun _ => 0) hc

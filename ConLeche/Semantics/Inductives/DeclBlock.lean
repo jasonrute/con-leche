@@ -83,8 +83,7 @@ def DeclBlockRun (μ : CheckMode) (F : Nat) (env : Env) (block : List ConstantIn
     --    then the tables
     checkBlockTables (m := ConLeche.CheckM) p.toBlockShape
       (p.members.zip (ctorsAs.zip sortsss))
-      (consBlockRecsT (consBlockCtors p.nP ctorsAs env₁).find?
-        (·.constsResolve (consBlockCtors p.nP ctorsAs env₁)) p.toBlockShape 0 out
+      (consBlockRecsT (consBlockCtors p.nP ctorsAs env₁).find? p.toBlockShape 0 out
         (consBlockCtors p.nP ctorsAs env₁)) = .ok env₂
 
 /-- **The uniform install's run**: the pass at official's `is_rec` and

@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Verify.BridgeDecl
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Extend.Inversions
 
 public section

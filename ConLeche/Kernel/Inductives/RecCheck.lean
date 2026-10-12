@@ -257,7 +257,7 @@ def classFeR (p : BlockShape) (Ms : List TargetMajor) (cvGs : List ConstantVal)
   consBlockRecsBareF p 0 ((cvGs.zip recCls).map fun (cv, c) => (cv, (Ms.getD c default).nIdx)) fe
 
 /-- **The operations the shadow runs on**, per index: the checker's
-entry points at an `FEnv` (`opsAt`), their rule-annotation variant
+entry points at an `FEnv` (`opsAt`), their variant for the rules
 (`opsRuleR`: the cached one flushes at the two environment transitions
 a rule makes, `sharedOpsRuleR`), the flush at an environment change,
 the syntactic walkers, and the environment the rule stage infers the
@@ -575,49 +575,42 @@ def targetPiDomsWith : List Expr → Expr → Option (List Expr)
 /-! ## The stored family -/
 
 /-- **The stored family, in the install's recursor-list format**: each
-checked recursor, its annotated rules, its major's index count and its
+checked recursor, its generated rules, its major's index count and its
 major's constructors (`consBlockRecs` conses them). -/
 def tgtRs (out : List (ConstantVal × TargetMajor × List Expr)) :
     List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) :=
   out.map fun t => (t.1, t.2.2, t.2.1.nIdx, t.2.1.ctors)
 
-/-- **The firing mode of a rule at an OUTSIDE major**: the
-syntactic reading of the recursor type's major domain
-(`Expr.nestedRuleSyn`, the major's parameter count `nPc`, constants
-resolving by `resolves`) — `.nested lvls pins`, with `pins` the major's
-parameters lowered into the rule-prefix context, whose guards are
-`EnvWF`'s `.nested` clause (`nestedRuleSyn_inv`).  The install has
-checked that the reading succeeds at every outside major
-(`tgtNestedReads`, `genRecCheck`); the `.plain` arm only makes the
-function total. -/
-def auxRuleFireR (resolves : Expr → Bool) (cv : ConstantVal) (mI rP nPc : Nat) : RecRuleFire :=
-  match Expr.nestedRuleSyn resolves cv.levelParams cv.type mI rP nPc with
-  | some (lvls, pins) => .nested lvls pins
-  | none => .plain
+/-- **The free variables `0 … k-1` closed at cursor `c`**: `fvar i`
+becomes `bvar (c + k - 1 - i)`, as `e.abstractRange 0 k c` does
+(`abstractPrefix_eq`), computed as the fold of `abstract1` passes,
+innermost first, so the walk is memoized and cut off at the term's
+free-variable range. -/
+def Expr.abstractPrefix : Nat → Nat → Expr → Expr
+  | 0, _, e => e
+  | k + 1, c, e => abstractPrefix k (c + 1) (e.abstract1 k c)
 
-/-- **Every auxiliary recursor's major domain reads** (`Expr.nestedRuleSyn`
-at the recursor in position `m`, the major's parameter count): the
-condition under which every rule `tgtStoredRules` stores at an outside
-major is `.nested`.  `genRecCheck` checks it of the checked family. -/
-def tgtNestedReads (resolves : Expr → Bool) (p : BlockShape) :
-    Nat → List (ConstantVal × TargetMajor × List Expr) → Bool
-  | _, [] => true
-  | m, (cv, M, _) :: rest =>
-    (M.member.isSome ||
-      (Expr.nestedRuleSyn resolves cv.levelParams cv.type (p.majorIdxAt m) (p.rulePrefixAt m)
-        M.nPc).isSome) &&
-    tgtNestedReads resolves p (m + 1) rest
+/-- **The firing mode of a rule at an OUTSIDE major** (rule prefix
+`rP`): `.nested` at the class's levels and its parameters closed over
+the rule prefix (`Expr.abstractPrefix`; they mention only the block's
+parameters, `targetMajorOf`).  They are what the generated recursor
+type's major domain applies the container to
+(`genStage_nestedRead`, `Verify/Inductives/TargetAuxFire.lean`). -/
+def auxRuleFire (M : TargetMajor) (rP : Nat) : RecRuleFire :=
+  .nested M.lvls (M.ds.map (Expr.abstractPrefix rP 0))
 
 /-- **One checked recursor's stored rules, at its major**: `sumRules` at the
 MAJOR's parameter count and constructors;
 at an OUTSIDE major (a nested block's auxiliary recursor) every rule
-fires as `auxRuleFireR` reads it (`.nested` at the major's
-instantiation), at a member major as `sumRules` builds it. -/
-def tgtStoredRules (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
-    (cv : ConstantVal) (mI rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
+fires `auxRuleFire` (`.nested` at the major's instantiation), at a
+member major as `sumRules` builds it. -/
+def tgtStoredRules (find? : Name → Option ConstantInfo)
+    (cv : ConstantVal) (rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
   let rules := sumRules find? cv.name M.nPc M.ctors rhss
   match M.member with
-  | none => rules.map fun rl => { rl with fire := auxRuleFireR resolves cv mI rP M.nPc }
+  | none =>
+    let fire := auxRuleFire M rP
+    rules.map fun rl => { rl with fire := fire }
   | some _ => rules
 
 /-- **The block's container bit** (official's `m_nested`):
@@ -632,12 +625,12 @@ def blockNestedBit (p : BlockShape) (kinds : List (List (List NestFieldKind))) :
 each recursor's rules at ITS major (`tgtStoredRules`).  The cached
 install pushes them (`FEnv.pushAll`, `checkBlockTailS`), every record
 built before the first push. -/
-def blockRecInfosTF (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+def blockRecInfosTF (find? : Name → Option ConstantInfo)
     (p : BlockShape) : Nat → List (ConstantVal × TargetMajor × List Expr) → List ConstantInfo
   | _, [] => []
   | m, (cv, M, rhss) :: rest =>
     .recInfo cv (p.majorIdxAt m) (p.rulePrefixAt m)
-        (tgtStoredRules find? resolves cv (p.majorIdxAt m) (p.rulePrefixAt m) M rhss)
-      :: blockRecInfosTF find? resolves p (m + 1) rest
+        (tgtStoredRules find? cv (p.rulePrefixAt m) M rhss)
+      :: blockRecInfosTF find? p (m + 1) rest
 
 end ConLeche
