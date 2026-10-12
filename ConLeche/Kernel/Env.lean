@@ -65,7 +65,7 @@ reference kernel does not do it?  Two kinds of work read it:
   `defeqLams`.  The mode-parametric spec (`ConLeche/Kernel/Core.lean`)
   reads it at the same sites the cached core does.
 * the certificate families, which the spec runs unconditionally: the
-  K and `And` rescues' proof-irrelevance run, ι's plain-rule parameter
+  K and `And` rescues' proof-irrelevance run, ι's case-3 parameter
   comparison and its case-3 telescope and index certificates.  The
   cached core reads them through `certAtI`
   (`ConLeche/Cached/CoreC.lean`); the simulation tower
