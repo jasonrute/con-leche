@@ -66,7 +66,7 @@ theorem pt_mem_dnegSpace_of {A x : V} (hx : x ∈ˢ A) : (pt : V) ∈ˢ dnegSpac
   rw [h1, piR_zero_empty]
   exact pt_mem_unitSet
 
-/-- Elimination at a `Prop`-valued product. -/
+/-- Elimination at a `Prop`-valued function space. -/
 theorem piR_zero_elim {A f x : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) (hx : x ∈ˢ A) :
     ∃ y, y ∈ˢ B x := by
   rw [piR_zero] at hf
@@ -313,7 +313,7 @@ theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}
     (h : ChainOk s ρ Ts Q) : IsTy (sigChainV s ρ Ts Q) :=
   IsTy_of_mem_univ (sigChainV_univ h)
 
-/-- The pair former's product membership at `[u, v]`. -/
+/-- The pair former's function-space membership at `[u, v]`. -/
 theorem psigmaV_uv_mem (u v : Nat) :
     psigmaV V u v ∈ˢ piR (Nat.max u v + 1) (univ u : V)
       (fun A => piR (Nat.max u v + 1) (psigmaFibreSpace V v A)

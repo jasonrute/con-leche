@@ -261,7 +261,7 @@ them back.
 * `natRecAV u M z s k` — the four-application spine of `Nat.rec.{u}`,
   reading to `natrec ⟦z⟧ ⟦s⟧ ⟦k⟧` under the motive/base/step
   memberships (`natRecV_app`), graded from the same memberships
-  (`natRecAV_wellDenoted` — the spine's four slots are `Nat.rec`'s own product
+  (`natRecAV_wellDenoted` — the spine's four slots are `Nat.rec`'s own function-space
   chain, both regimes);
 * `caseAVAt w Ts d k` — **the fibre selector**: the nested `Nat.rec`
   tower with the constant motive `λ _ : Nat, Sort w` that picks the
@@ -322,7 +322,7 @@ theorem numeralAV_erase_below (i k : Nat) : Term.bvarsBelow k (numeralAV i).eras
 
 /-- An application spine whose head reads to the point is graded from
 its arguments' gradings alone, and reads to the point: every slot is
-the trivial product over the argument's singleton. -/
+the trivial function space over the argument's singleton. -/
 theorem mkAppN_wellDenoted_of_pt_head :
     ∀ {args : List ITerm} {f : ITerm} {σ : Nat → V},
       WellDenoted V σ f → interp V σ f = pt → (∀ a ∈ args, WellDenoted V σ a) →
@@ -371,7 +371,7 @@ theorem natRecAV_mem {u : Nat} {M z s k : ITerm} {σ : Nat → V}
   exact natRecV_mem_fibre V hz hs hk
 
 /-- **The spine is graded**, both regimes: the four slots are
-`Nat.rec`'s own product chain, with the squash-side fibre conditions
+`Nat.rec`'s own function-space chain, with the squash-side fibre conditions
 landing on `piR_zero_mem_univZero` and the motive's own fibres. -/
 theorem natRecAV_wellDenoted {u : Nat} {M z s k : ITerm} {σ : Nat → V}
     (hokM : WellDenoted V σ M) (hokz : WellDenoted V σ z) (hoks : WellDenoted V σ s)
@@ -975,7 +975,7 @@ theorem eqChainAV_inhab :
       rw [hlift]
       refine (eqChainAV_inhab r ρ).mpr fun hall => h ⟨of_mem_truthVal hx, hall⟩
 
-/-- The chain reads to a type: `∅`, or a product. -/
+/-- The chain reads to a type: `∅`, or a function space. -/
 theorem IsTy_eqChainAV : ∀ (eqs : List (ITerm × ITerm)) (ρ : Nat → V),
     IsTy (interp V ρ (eqChainAV eqs))
   | [], _ => IsTy_empty
@@ -1932,7 +1932,7 @@ theorem sumMkAV_zero {j : Nat} {ds : List ITerm} {Fs : List ITerm}
 
 
 /-- The application chain `M i₀ … i_{k-1}` is graded: each prefix is a
-member of a product the next index inhabits. -/
+member of a function space the next index inhabits. -/
 def AppChainOk (M : V) (is : List V) : Prop :=
   ∀ l, l < is.length → ∃ (v : Nat) (A : V) (B : V → V),
     (is.take l).foldl SetTheory.app M ∈ˢ piR v A B ∧ is.getD l pt ∈ˢ A ∧

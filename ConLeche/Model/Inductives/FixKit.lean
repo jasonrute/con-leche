@@ -1642,7 +1642,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
 
 A reflexive field's type is a Π-tower over its telescope of the family
 at the calls' tuples; at a `Type`-valued block (`w ≠ 0`) the family's
-slot at such a field is the nested product over the telescope, which
+slot at such a field is the nested function space over the telescope, which
 lives in `univ w` only when every telescope domain
 does.  The install checks each field's sort against the block's
 (`checkStructFieldSortsI`: `imax` of the domains' sorts and the

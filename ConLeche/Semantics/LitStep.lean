@@ -35,7 +35,7 @@ inhabits the stored `Nat`'s interpretation — by induction on the
 numeral, from the zero's membership and the successor's `piR`
 membership.
 
-`Nat → Nat` sits at result sort `1`, so the successor's product is in
+`Nat → Nat` sits at result sort `1`, so the successor's function space is in
 the **graph regime** and `app_mem_piR_pos` applies with no fibre
 premise; the app slot's kind-`0` component is vacuous for the same
 reason. -/

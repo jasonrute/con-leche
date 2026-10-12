@@ -1140,9 +1140,9 @@ theorem denoteMeta_quotSoundA_type (ψ : Name → Nat)
     Expr.instantiate1, quotRelTy, quotApp, quotMkApp, quotSoundTy,
     hQc, hMc, hEc, Level.eval]
 
-/-- **A `Prop`-valued product's grading step**, stated so the five
+/-- **A `Prop`-valued Π-type's grading step**, stated so the five
 binders of `Quot.sound`'s type (and the three of `Quot.lift`'s
-invariance premise) are five applications of one lemma: the product is
+invariance premise) are five applications of one lemma: the Π-type is
 graded and *is itself* a truth value, which is exactly what the next
 binder out needs. -/
 theorem WellDenoted_pi_zero {ρ : Nat → V} {Aa B : ITerm}

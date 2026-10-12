@@ -16,7 +16,7 @@ public import ConLeche.SetTheory.Derive.Pt
 * `sigmaPairs A B = {⟨x, y⟩ : x ∈ A, y ∈ B x}` — the raw dependent
   pair set (also the `w ≠ 0` sigma).
 * `piSet A B ⊆ power (sigmaPairs A B)` — the total single-valued
-  graphs: the `v ≠ 0` dependent product.
+  graphs: the `v ≠ 0` dependent function space.
 
 The level-`0` truncations (`lam 0 = pt`, `pi 0` a truth value) live
 in the numeral-indexed `piR`/`lamR` (`SetModel/Ops.lean`), which
@@ -122,7 +122,7 @@ theorem _root_.ConLeche.IsTGUniverse.sigmaPairs_mem {U A : V} {B : V → V}
       hU.kpair_mem hA (hU.transitive hA hx) (hU.transitive (hB x hx) hy)
 
 /-- The set of total single-valued dependent graphs on `A` with fibres
-`B`: the `v ≠ 0` dependent product. -/
+`B`: the `v ≠ 0` dependent function space. -/
 noncomputable def piSet (A : V) (B : V → V) : V :=
   sep (power (sigmaPairs A B))
     (fun f => ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y)
@@ -236,7 +236,7 @@ theorem app_off_dom_of_mem_piSet {A f a : V} {B : V → V}
     (hf : f ∈ˢ piSet A B) (ha : ¬ a ∈ˢ A) : app f a = empty := by
   rw [← eq_graph_app_of_mem_piSet hf, app_graph_of_not_mem ha]
 
-/-- Function extensionality for members of the raw dependent product:
+/-- Function extensionality for members of the raw dependent function space:
 two total single-valued graphs over the same domain that agree under
 application on every domain member are equal (off the domain both
 apply to canonical junk, so nothing else distinguishes them). -/

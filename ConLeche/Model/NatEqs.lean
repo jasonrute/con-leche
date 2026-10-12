@@ -444,8 +444,8 @@ theorem denoteMeta_pinnedUnTy (m : EnvModel V env) (ψ : Name → Nat)
 /-! ## Head packages from parts -/
 
 /-- **The binary head package, from its parts**: a graded reading, a
-membership in the (two-step, leaf-component) pinned product's reading,
-and the product reading's own grading. -/
+membership in the (two-step, leaf-component) pinned Π-type's reading,
+and the Π-type reading's own grading. -/
 theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     {f : Expr} {fa : ITerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)

@@ -280,7 +280,7 @@ their interpretation equations:
 `towerBodyAV_wellDenoted` grades the body (`WellDenoted`) from the hereditary
 `FieldsOkB` premise (the domains' own `WellDenoted` + `FieldsBound`);
 the app slots are discharged by `psigmaV_rr_mem`, the `[w, w]`
-instance of the pinned pair former's product membership.
+instance of the pinned pair former's function-space membership.
 -/
 
 
@@ -541,7 +541,7 @@ def mkPisAV : List ITerm → ITerm → ITerm
   | [], b => b
   | d :: ds, b => .pi d (mkPisAV ds b)
 
-/-- A Π-tower over a sort reads to a type: a product, or the universe. -/
+/-- A Π-tower over a sort reads to a type: a function space, or the universe. -/
 theorem IsTy_mkPisAV_sort (ds : List ITerm) (w : Nat) (ρ : Nat → V) :
     IsTy (interp V ρ (mkPisAV ds (.sort w))) := by
   cases ds with

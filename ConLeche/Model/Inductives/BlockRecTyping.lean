@@ -242,7 +242,7 @@ it is stated in — the only one with a producer.  It is the whole
 semantic content of the clause: a spine graded against the member's
 FORMER — which is a λ-tower over the member's parameter and index
 telescope — fits that telescope, because every application node's
-product carries the abstraction's own domain
+function space carries the abstraction's own domain
 (`spineFit_of_wellDenoted_lams`, `lamR_mem_piR_dom`).  The major's
 domain is `T_m p⃗ ı⃗` on the nose (`targetRecTy` pins it
 syntactically), so its READING is that spine and the grading is the

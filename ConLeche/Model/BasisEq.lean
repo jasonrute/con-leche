@@ -574,7 +574,7 @@ theorem eqRecRaTower_data (ψ : Name → Nat)
         (fun M => piV (app (app M a) pt) (fun _ => piV Aset
           (fun bb => piV (eqv a bb)
             fun h => app (app M bb) h)))))) ▸ hstep.2
-  -- the type reading's own six products, in the same order
+  -- the type reading's own six function spaces, in the same order
   rw [eqRecTy, interp_pi, interp_sort]
   refine piV_congr fun Aset hAset => ?_
   rw [interp_pi]

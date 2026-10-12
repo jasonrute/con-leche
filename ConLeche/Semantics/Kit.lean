@@ -26,10 +26,10 @@ model needs two semantic ones.)
   computes, with no typing premise at all.
 * `interp_pi_zero_subsingleton`, `interp_proof_irrel` — the squash
   regime is subsingleton-valued.
-* `interp_pi_zero_small` — **impredicativity**: a product landing in
+* `interp_pi_zero_small` — **impredicativity**: a function space landing in
   `Prop` is a truth value, for an arbitrary domain.
 * `interp_not_pt_mem_pi_pos`, `interp_app_off_dom` — junk-freeness:
-  the proof point never inhabits a graph-regime product, and off-domain
+  the proof point never inhabits a graph-regime function space, and off-domain
   application is the canonical `∅`, never a point a consumer must
   dispatch on.
 
