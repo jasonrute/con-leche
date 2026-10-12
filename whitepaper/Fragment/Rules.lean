@@ -501,6 +501,41 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
+  /-- **ι by K** (task #342 F2; #342 v2 §11.4's K row; Lean's
+  `to_cnstr_when_K`): a recursor whose rule is flagged K
+  (`RecRule.k`: one family, always a proposition, one constructor
+  with no fields — `Eq`, `HEq`, `True`) reduces on its major **as it
+  stands**, with no constructor in sight, to the rule's right-hand
+  side at the recursor's parameters, motives and minors.  There is no
+  certificate, no level, parameter or index comparison, and the major
+  is not reduced.  What stays is K's **type check**, as in Lean: the
+  major's inferred type reduces to a family application
+  `I.{lsI} targs`, the constructor fabricated at its parameters
+  `rl.ctor.{lsI} (targs.take numParams)` has a type `tF`, and
+  `tF ≡ I.{lsI} targs`.  That check decides whether the step is taken
+  (a verdict test); no claim consumes it.  Soundness is the
+  environment's K law (`EnvModel.rec_rules_k`, proved in the
+  installer by inversion of the least fixed point) with
+  `Red.iotaK_core_sem`: a redex that is not the point fits the
+  recursor's telescope, the major included, and the law needs nothing
+  more. -/
+  | iotaK {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+      {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+      {args : List Expr} {rl : RecRule} {tM : Expr} {I : Name} {lsI : List Level}
+      {targs : List Expr} {tF : Expr} :
+      env.find? c = some ci →
+      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
+      us.length = ci.lparams.length →
+      args.length = numParams + numMotives + numMinors + numIndices + 1 →
+      ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true →
+      rl ∈ rules → rl.k = true →
+      -- K's type check on the major as it stands (a verdict test, consumed by no claim)
+      Infer env Γ (args.getD (numParams + numMotives + numMinors + numIndices) (bvar 0)) tM →
+      Red env Γ tM (mkAppN (const I lsI) targs) →
+      Infer env Γ (mkAppN (const rl.ctor lsI) (targs.take numParams)) tF →
+      DefEq env Γ tF (mkAppN (const I lsI) targs) →
+      Red env Γ (mkAppN (const c us) args)
+        (mkAppN (rl.rhs.instL ci.lparams us) (args.take (numParams + numMotives + numMinors)))
 
 /-- **Definitional equality**: the verdict `true` of the checker's
 `isDefEq`.

@@ -2043,6 +2043,23 @@ theorem iotaStrict_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Le
     (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
     hfitV hfitV' ((Level.eqList_iff _ _).mp hlv φ) hP' hX' hn
 
+/-- **ι by K** (`Red.iotaK`, task #342 F2): `iotaK_core_sem` with the
+environment's K law (`EnvModel.rec_rules_k`).  K's type check is not
+read. -/
+theorem iotaK_sound {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+    {args : List Expr} {rl : RecRule}
+    (hfind : env.find? c = some ci)
+    (hkind : ci.kind = .recursor numParams numMotives numMinors numIndices rules)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = numParams + numMotives + numMinors + numIndices + 1)
+    (hpis : ci.type.hasPis (numParams + numMotives + numMinors + numIndices + 1) = true)
+    (hrl : rl ∈ rules) (hk : rl.k = true) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take (numParams + numMotives + numMinors))) :=
+  iotaK_core_sem hfind hus hlen hpis
+    (m.rec_rules_k c ci numParams numMotives numMinors numIndices rules hfind hkind rl hrl hk)
+
 /-- **ι, nested, case 2** (task #342 F1): `iota_core_strict` at the
 constructor's own parameter count, with `RecRuleLawN`. -/
 theorem iotaNestedStrict_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level}
@@ -2242,6 +2259,8 @@ theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
     Red.iotaNestedStrict_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor
       hinst hcij hcijk husj hmlen hpis' hresM hdM hI₀ hk₀ hls₀ hd₀ hpis₀ hlvl hres hshape hrps
       (fun p hp => defeq_sound (hX p hp))
+  | _, _, _, .iotaK hfind hkind hus hlen hpis hrl hk _ _ _ _ =>
+    Red.iotaK_sound hfind hkind hus hlen hpis hrl hk
 theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
     DefEq env Γ a b → DefEqSem m φ Γ a b
   | _, _, _, .refl => DefEq.refl_sound

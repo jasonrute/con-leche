@@ -506,3 +506,13 @@ info: 'Fragment.Infer.letE_sat' depends on axioms: [propext, Classical.choice, Q
 info: 'Fragment.InferIO.letE_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.InferIO.letE_sound
+
+/--
+info: 'Fragment.Red.iotaK_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaK_sound
+
+/--
+info: 'Fragment.IndSpec.rec_rule_lawK' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.rec_rule_lawK
