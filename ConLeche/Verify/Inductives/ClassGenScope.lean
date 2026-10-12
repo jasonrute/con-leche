@@ -137,8 +137,8 @@ theorem ScB.binder (g : ClassGen) {d i : Nat} {x ty : Expr} (hx : x = .fvar i ty
     (hty : ScB d ty) : ScB d (g.binder x) := by
   subst hx; exact hty
 
-/-- The binders of an opened telescope, as a `closeTelescope` list (any
-binder datum: `f` keeps the variable's domain). -/
+/-- The binders of an opened telescope, as a `closeTelescope` list (`f`
+reads the variable's domain). -/
 theorem ScB.openPis_binders {n d : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
     {f : Expr → Expr} (hf : ∀ x, f x = x.fvarTypeD)
     (h : openPisAtFvars n e d = some (fvs, body)) (he : ScB d e) :

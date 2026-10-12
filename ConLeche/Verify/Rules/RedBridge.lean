@@ -16,7 +16,7 @@ through the reduction helpers: literal acceleration, the literal
 expansions, the projection certificate, the stuck-major rescues, the
 major's preparation, ι, and the two loops.
 
-Inversions: `whnf_app_inv` (the `.app` clause: β gated/certified, ι,
+Inversions: `whnf_app_inv` (the `.app` clause: β, ι,
 stuck), `whnf_proj_inv` (the `.proj` clause), `whnfCore_letE_inv`, `whnfStep_inv`,
 `whnfLoopFuel_succ`, `reduceNat`'s branches (no inversion lemma:
 split inline), `litMajorToCtorFueled_inv`, `projLitToCtorFueled_inv`,

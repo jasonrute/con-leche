@@ -93,7 +93,7 @@ end RecTyEntry
 
 /-- **A checked constant's facts** — what every consumer of a recursor
 type's check reads, whichever check stored it: `checkConstantVal` (the
-stream's type, annotated: `checkConstantVal_checked`) or `classConstOk`
+stream's type, as declared: `checkConstantVal_checked`) or `classConstOk`
 (the GENERATED type, stored as generated: the generated stage's
 `classConstOk_inv`).  `cv0` is the constant checked, `cv` the stored
 one: the name guards, the stored type closed, its levels declared, its

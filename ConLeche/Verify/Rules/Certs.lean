@@ -19,7 +19,7 @@ the entry-point bridges at `fuel` (the helpers run the record
 `fuel`: `whnf_def`, `defeq_def`, `inferTypeIO_def`).
 
 Each theorem's proof is the site's `Verify` inversion lemma
-(`iotaCerts_step_inv_gate`, `defEqList_step_inv`, `proofIrrel_inv`,
+(`iotaCertsFull_step_inv`, `defEqList_step_inv`, `proofIrrel_inv`,
 `propIrrel_inv`, `structEtaCertWith_inv`, `structEtaCert_inv`,
 `structUnitCert_inv`, `etaCert_inv`,
 `defeqSpine_inv`; `stuckIrrel` and `boolTrueShortcut` have none yet
