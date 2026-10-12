@@ -88,7 +88,7 @@ theorem installConstantVal_of_facts {cv : ConstantVal}
     (htp : cv.type.allLevelParamsDefined cv.levelParams = true)
     (htr : cv.type.constsResolve env = true) :
     installConstantVal (m := CheckM) env cv = .ok cv := by
-  simp only [installConstantVal, Bind.bind, Except.bind,
+  simp only [installConstantVal,
     Pure.pure, Except.pure, hfind, hres, hshape, hnd, hlb, hif, htp, htr,
     Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
 
@@ -122,7 +122,7 @@ theorem installValue_of_facts {cv : ConstantVal} {value : Expr}
     (hvp : value.allLevelParamsDefined cv.levelParams = true)
     (hvr : value.constsResolve env = true) :
     installValue (m := CheckM) env cv value = .ok value := by
-  simp only [installValue, Bind.bind, Except.bind,
+  simp only [installValue,
     Pure.pure, Except.pure, hlb, hif, hvp, hvr, Bool.false_eq_true, ↓reduceIte]
 
 /-! ## The check half -/

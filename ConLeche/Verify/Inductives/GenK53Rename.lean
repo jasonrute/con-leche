@@ -105,7 +105,7 @@ theorem targetPiDomsWith_erasedEq :
       | forallE d b m =>
         cases T' with
         | forallE d' b' m' =>
-          obtain ⟨-, hd, hb⟩ := hT
+          obtain ⟨hd, hb⟩ := hT
           simp only [targetPiDomsWith] at h
           obtain ⟨r, hr, rfl⟩ := Option.map_eq_some_iff.mp h
           obtain ⟨r', hr', hrr⟩ := ih hxs (Expr.ErasedEq.instantiate1 hb hx) hr
@@ -156,7 +156,7 @@ theorem stripPis_erasedEq :
     | forallE ty body m =>
       cases B with
       | forallE ty' body' m' =>
-        obtain ⟨hm, hty, hb⟩ := h
+        obtain ⟨hty, hb⟩ := h
         simp only [Expr.stripPis] at hs
         obtain ⟨⟨t1, l1⟩, h1, h2⟩ := Option.map_eq_some_iff.mp hs
         simp only [Prod.mk.injEq] at h2
@@ -168,7 +168,7 @@ theorem stripPis_erasedEq :
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hq hq'
           subst hq; subst hq'
-          exact ⟨hm, hty⟩
+          exact ⟨rfl, hty⟩
         | succ l => exact hall l q q' (by simpa using hq) (by simpa using hq')
       | _ => simp [Expr.ErasedEq] at h
     | _ => simp [Expr.stripPis] at hs
@@ -284,7 +284,7 @@ private theorem gk_teleMap_eq : ∀ {tA tB : List (Expr × BinderMeta)}, tA.leng
   | q :: tA, q' :: tB, hl, h => by
     obtain ⟨h2, h1⟩ := h 0 q q' rfl rfl
     simp only [List.map_cons, List.cons.injEq, Prod.mk.injEq]
-    exact ⟨⟨Expr.eraseFVarTys_eq_iff.mpr h1, h2⟩, gk_teleMap_eq (by simpa using hl)
+    exact ⟨⟨Expr.eraseFVarTys_eq_iff.mpr h1, trivial⟩, gk_teleMap_eq (by simpa using hl)
       (fun l p p' hp hp' => h (l + 1) p p' (by simpa using hp) (by simpa using hp'))⟩
 
 private theorem gk_substFvars_mkAppN {b D : Nat} {s : Nat → Expr} : ∀ (as : List Expr) (f : Expr),

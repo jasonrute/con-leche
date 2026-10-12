@@ -105,8 +105,7 @@ private theorem whnfCoreStepM_unfold (env : Env) (cheap : Bool) (d : Nat)
       match o with
       | some m' => kM m'
       | none => pure (.proj sn i pe)
-    | .letE _ _ _ =>
-      throw (.internal "whnfCore: `let` in an annotated expression")
+    | .letE _ v b => kM (b.instantiate1 v)
     | .bvar _ =>
       throw (.notImplemented "whnf beyond the supported fragment")) := by
   cases e <;> try rfl
@@ -212,42 +211,8 @@ theorem whnfAppC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
       rw [show (Expr.lam ty body mb)
         = Expr.lam ty body mb from rfl, whnfApp_lam]
       unfold whnfAppLam
-      -- task #161: the β gate reads the *same* `mb` on both sides
-      -- (the cached and pure terms are the same), so one `by_cases`
-      rw [betaSkip_of_verifiedChecks hμ]
-      by_cases hgate : betaGateFires mode mb.pw = true
-      · simp only [hgate, ↓reduceIte]
-        exact betaPeelC_sim hμ ih henv hk hs rfl
-          (RelCL.cons hax RelCL.nil) hwsub hrest hwrest
-      have hgf : betaGateFires mode mb.pw = false := by
-        simpa only [Bool.not_eq_true] using hgate
-      simp only [hgf, Bool.false_eq_true, ↓reduceIte]
-      refine SimC.bind (ih.inferIO hs hax hwxa)
-        (fun s₁ ta tax hs₁ hP => ?_)
-      obtain ⟨htad, hwta⟩ := hP
-      refine SimC.bind (ih.defeq hs₁ htad rfl hwta hwtb.1)
-        (fun s₂ b b' hs₂ hPb => ?_)
-      obtain rfl : b = b' := hPb
-      cases b with
-      | true =>
-        simp only [↓reduceIte]
-        exact betaPeelC_sim hμ ih henv hk hs₂ rfl
-          (RelCL.cons hax RelCL.nil) hwsub hrest hwrest
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        refine SimC.bind_left (pureC_eff hs₂
-          (x := Expr.app (Expr.lam ty body mb) a)) (fun s₃ fa hs₃ hQfa => ?_)
-        have hQfa' : RelC fa
-            (Expr.app (.lam ty body mb) xa) := by
-          show _ = _
-          have hh := hQfa
-          rw [hax] at hh
-          exact hh
-        refine SimC.of_eff (mkAppNM_eff hs₃ hQfa' hrest) _
-          (fun r hQ => ⟨hQ, ?_⟩)
-        refine Expr.WScoped.mkAppN ?_ hwrest
-        simp only [Expr.WScoped]
-        exact ⟨hwtb, hwxa⟩
+      exact betaPeelC_sim hμ ih henv hk hs rfl
+        (RelCL.cons hax RelCL.nil) hwsub hrest hwrest
     | bvar k =>
       have hnl : ∀ ty' body' mb',
           (Expr.bvar k) ≠ Expr.lam ty' body' mb' :=
@@ -409,45 +374,8 @@ theorem betaPeelC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
       have hwsub : Expr.WScoped d ((Expr.instantiateList body (xa :: ws))) := by
         rw [Expr.instantiateList_cons]
         exact Expr.WScoped.instantiate1_gen hwxa 0 hcomp.2
-      -- task #161: the β gate, same datum on both sides
-      rw [betaSkip_of_verifiedChecks hμ]
-      by_cases hgate : betaGateFires mode mb.pw = true
-      · simp only [hgate, ↓reduceIte]
-        exact betaPeelC_sim hμ ih henv hk hs rfl
-          (RelCL.cons hax hacc) hwsub hrest hwrest
-      have hgf : betaGateFires mode mb.pw = false := by
-        simpa only [Bool.not_eq_true] using hgate
-      simp only [hgf, Bool.false_eq_true, ↓reduceIte]
-      refine SimC.bind_left (instListM_eff (d := 0) hs rfl hacc)
-        (fun s₁ ty' hs₁ hQty => ?_)
-      refine SimC.bind (ih.inferIO hs₁ hax hwxa)
-        (fun s₂ ta tax hs₂ hP => ?_)
-      obtain ⟨htad, hwta⟩ := hP
-      refine SimC.bind (ih.defeq hs₂ htad hQty hwta hcomp.1)
-        (fun s₃ b b' hs₃ hPb => ?_)
-      obtain rfl : b = b' := hPb
-      cases b with
-      | true =>
-        simp only [↓reduceIte]
-        exact betaPeelC_sim hμ ih henv hk hs₃ rfl
-          (RelCL.cons hax hacc) hwsub hrest hwrest
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        refine SimC.bind_left (instListM_eff (d := 0) hs₃ htr hacc)
-          (fun s₄ f' hs₄ hQf' => ?_)
-        refine SimC.bind_left (pureC_eff hs₄ (x := Expr.app f' a)) (fun s₅ fa hs₅ hQfa => ?_)
-        have hQfa' : RelC fa
-            (Expr.app ((Expr.lam ty body
-              mb).instantiateList ws) xa) := by
-          show _ = _
-          have hh := hQfa
-          rw [hQf', hax] at hh
-          exact hh
-        refine SimC.of_eff (mkAppNM_eff hs₅ hQfa' hrest) _
-          (fun r hQ => ⟨hQ, ?_⟩)
-        refine Expr.WScoped.mkAppN ?_ hwrest
-        simp only [Expr.WScoped]
-        exact ⟨hwty, hwxa⟩
+      exact betaPeelC_sim hμ ih henv hk hs rfl
+        (RelCL.cons hax hacc) hwsub hrest hwrest
     | bvar k =>
       have hnl : ∀ ty' body' mb',
           (Expr.bvar k) ≠ Expr.lam ty' body' mb' :=
@@ -577,8 +505,13 @@ theorem whnfCoreStepC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
   | lit l => exact SimC.pure hs ⟨hden, hw⟩
   | bvar k => exact SimC.throw
   | letE t v b =>
-    -- task #241: both sides are the same positive `.internal` error
-    exact SimC.throw
+    -- ζ: both sides substitute the value and continue the loop
+    dsimp only
+    have hw' : Expr.WScoped d t ∧ Expr.WScoped d v ∧ Expr.WScoped d b := by
+      simpa only [Expr.WScoped] using hw
+    refine SimC.bind_left (inst1M_eff hs (d := 0) rfl rfl)
+      (fun s₁ e' hs₁ hQ => ?_)
+    exact hk hs₁ hQ (Expr.WScoped.instantiate1_gen hw'.2.1 0 hw'.2.2)
   | app g' a =>
     dsimp only
     -- Bulk beta (task #50): the twin normalizes the spine head once and
@@ -1289,29 +1222,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         rw [Expr.instantiateList_cons]
         exact Expr.WScoped.instantiate1_gen hwxa 0 hcomp.2
       try dsimp only
-      by_cases hg2 : mb.pw.isNever = true
-      · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-        exact inferSpineIOC_sim hμ ih henv hs rfl
-          (by rw [toListRev_push]; exact RelCL.cons hax hacc) hwsub
-          hrest hwrest
-      · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-        refine SimC.bind_left (instListRevM_eff (d := 0) hs rfl hacc)
-          (fun s₁ dom' hs₁ hQdom => ?_)
-        refine SimC.bind (ih.inferIO hs₁ hax hwxa)
-          (fun s₂ ta tax hs₂ hP => ?_)
-        obtain ⟨htad, hwta⟩ := hP
-        refine SimC.bind (ih.defeq hs₂ htad hQdom hwta hcomp.1)
-          (fun s₃ b b' hs₃ hPb => ?_)
-        obtain rfl : b = b' := hPb
-        cases b with
-        | false =>
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          exact SimC.throw_bind
-        | true =>
-          simp only [↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₃ rfl
-            (by rw [toListRev_push]; exact RelCL.cons hax hacc) hwsub
-            hrest hwrest
+      exact inferSpineIOC_sim hμ ih henv hs rfl
+        (by rw [toListRev_push]; exact RelCL.cons hax hacc) hwsub
+        hrest hwrest
     | bvar k =>
       dsimp only
       have hnl : ∀ dom' body' bi',
@@ -1335,27 +1248,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1388,27 +1283,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1441,27 +1318,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1494,27 +1353,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1547,27 +1388,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1600,27 +1423,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1653,27 +1458,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1706,27 +1493,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1759,27 +1528,9 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
         have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
           rw [instList_single]
           exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-        by_cases hg2 : mb.pw.isNever = true
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, ↓reduceIte]
-          exact inferSpineIOC_sim hμ ih henv hs₂ rfl
-            (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-            hwsub hrest hwrest
-        · simp only [ioSkip_of_verifiedChecks hμ, hg2, Bool.false_eq_true, ↓reduceIte]
-          refine SimC.bind (ih.inferIO hs₂ hax hwxa)
-            (fun s₃ ta tax hs₃ hP₃ => ?_)
-          obtain ⟨htad, hwta⟩ := hP₃
-          refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
-            (fun s₄ b b' hs₄ hPb => ?_)
-          obtain rfl : b = b' := hPb
-          cases b with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.throw_bind
-          | true =>
-            simp only [↓reduceIte]
-            exact inferSpineIOC_sim hμ ih henv hs₄ rfl
-              (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
-              hwsub hrest hwrest
+        exact inferSpineIOC_sim hμ ih henv hs₂ rfl
+          (by rw [toListRev_singleton]; exact RelCL.cons hax RelCL.nil)
+          hwsub hrest hwrest
       | bvar k' => exact SimC.throw
       | sort u' => exact SimC.throw
       | const nm' us' => exact SimC.throw
@@ -1818,8 +1569,33 @@ theorem inferBodyC_sim (ih : SSimC mode env f) (henv : EnvWF env)
     try dsimp only
     exact SimC.throw
   | letE t v b =>
-    -- task #241: both sides are the same positive `.internal` error
-    exact SimC.throw
+    -- official `infer_let`: the annotation's sort, the value against
+    -- it, then the body at the value
+    dsimp only
+    have hw' : Expr.WScoped d t ∧ Expr.WScoped d v ∧ Expr.WScoped d b := by
+      simpa only [Expr.WScoped] using hw
+    unfold inferBody
+    dsimp only
+    refine SimC.bind (ih.infer hs rfl hw'.1)
+      (fun s₁ tty ttyx hs₁ hP => ?_)
+    obtain ⟨httyd, hwtty⟩ := hP
+    refine SimC.bind (ensureSortC_sim ih hs₁ httyd hwtty)
+      (fun s₂ _ _ hs₂ _ => ?_)
+    refine SimC.bind (ih.infer hs₂ rfl hw'.2.1)
+      (fun s₃ tv tvx hs₃ hP₃ => ?_)
+    obtain ⟨htvd, hwtv⟩ := hP₃
+    refine SimC.bind (ih.defeq hs₃ htvd rfl hwtv hw'.1)
+      (fun s₄ bb bb' hs₄ hPb => ?_)
+    obtain rfl : bb = bb' := hPb
+    cases bb with
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
+      exact SimC.throw_bind
+    | true =>
+      simp only [↓reduceIte, Bool.not_true]
+      refine SimC.bind_left (inst1M_eff hs₄ (d := 0) rfl rfl)
+        (fun s₅ ob hs₅ hQ => ?_)
+      exact ih.infer hs₅ hQ (Expr.WScoped.instantiate1_gen hw'.2.1 0 hw'.2.2)
   | fvar idx t =>
     simp only [inferBodyI, inferBody]
     have h' : idx < d ∧ Expr.WScoped idx t := by
@@ -2009,26 +1785,39 @@ theorem inferBodyC_sim (ih : SSimC mode env f) (henv : EnvWF env)
         have htargs : RelCL (Expr.getAppArgsC te) ((Expr.getAppArgs te)) :=
           Expr.getAppArgsC_spec te
         rw [htargs.length]
+        -- the cached core's three node guards (task #342: the annotate
+        -- pass's, now in inference) throw where the spec's joint guard
+        -- throws; a cached throw simulates anything
+        by_cases hT : T = sn
+        case neg =>
+          simp only [hT, false_and, ↓reduceIte]
+          exact SimC.throw_bind
+        by_cases hnp : (Expr.getAppArgs te).length = entry.numParams
+        case neg =>
+          simp only [hT, hnp, false_and, and_false, ↓reduceIte]
+          exact SimC.throw_bind
+        by_cases hlp : us.length = entry.levelParams.length
+        case neg =>
+          simp only [hT, hnp, hlp, and_false, ↓reduceIte, pure_bind]
+          exact SimC.throw
+        simp only [hT, hnp, hlp, and_self, ↓reduceIte, pure_bind]
+        -- task #175 S1: the body at the spine and the subject —
+        -- `Expr = Expr` (the identity world), so the two results
+        -- coincide once `RelCL` rewrites the spine
+        rw [htargs]
+        have hres : SimC mode env s₂' (RelEC d)
+            (pure (entry.typeAtI us (Expr.getAppArgs te) pe))
+            (pure (entry.typeAt us (Expr.getAppArgs te) pe) : FueledM Expr) :=
+          SimC.pure hs₂ ⟨ProjEntry.typeAtI_eq entry us _ pe,
+            projEntry_typeAt_WScoped henv hfp us
+            hnp
+            (fun a ha => hwte.getAppArgs a ha) hwpe⟩
+        -- the Prop guard (task #175 W4c) runs no walk of its own
         split
-        · -- task #175 S1: the body at the spine and the subject —
-          -- `Expr = Expr` (the identity world), so the two results
-          -- coincide once `RelCL` rewrites the spine
-          rename_i hcond
-          rw [htargs]
-          have hres : SimC mode env s₂' (RelEC d)
-              (pure (entry.typeAtI us (Expr.getAppArgs te) pe))
-              (pure (entry.typeAt us (Expr.getAppArgs te) pe) : FueledM Expr) :=
-            SimC.pure hs₂ ⟨ProjEntry.typeAtI_eq entry us _ pe,
-              projEntry_typeAt_WScoped henv hfp us
-              hcond.2.1
-              (fun a ha => hwte.getAppArgs a ha) hwpe⟩
-          -- the Prop guard (task #175 W4c) runs no walk of its own
-          split
-          · split
-            · exact hres
-            · exact SimC.throw
+        · split
           · exact hres
-        · exact SimC.throw
+          · exact SimC.throw
+        · exact hres
     | bvar k' => exact SimC.throw
     | sort u' => exact SimC.throw
     | lit l' => exact SimC.throw
@@ -2046,7 +1835,7 @@ and `proj` arms are `inferBodyC_sim`'s with the recursion at the io
 slot; the two binder arms are the io lane's own **chained** clauses;
 the application arm is the gated spine with
 `inferSpineIO_sound_body`. -/
-theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true) (hgb : mode.betaGate = true)
+theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true)
     (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
@@ -2076,8 +1865,15 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true) (hgb : mode.betaGate
     try dsimp only
     exact SimC.throw
   | letE t v b =>
-    -- task #241: both sides are the same positive `.internal` error
-    exact SimC.throw
+    -- official `infer_let` at `infer_only`: the body at the value
+    dsimp only
+    have hw' : Expr.WScoped d t ∧ Expr.WScoped d v ∧ Expr.WScoped d b := by
+      simpa only [Expr.WScoped] using hw
+    unfold inferBodyIO
+    dsimp only
+    refine SimC.bind_left (inst1M_eff hs (d := 0) rfl rfl)
+      (fun s₁ ob hs₁ hQ => ?_)
+    exact ih.inferIO hs₁ hQ (Expr.WScoped.instantiate1_gen hw'.2.1 0 hw'.2.2)
   | fvar idx t =>
     simp only [inferBodyI, inferBodyIO]
     have h' : idx < d ∧ Expr.WScoped idx t := by
@@ -2179,25 +1975,12 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true) (hgb : mode.betaGate
       refine SimC.bind (ensureSortC_sim ih hs₅ hbtd hwbt)
         (fun s₆ v lv hs₆ hPv => ?_)
       obtain rfl := hPv
-      by_cases hv : mode.verifiedChecks = true
-      · simp only [hv, ↓reduceIte]
-        by_cases hc : (Level.zeronessOf v == m.pw) = true
-        · simp only [hc, ↓reduceIte]
-          refine SimC.bind_left (pureEq_eff hs₆ (Level.imax u v))
-            (fun s₇ iu hs₇ hQiu => ?_)
-          subst hQiu
-          exact SimC.of_eff
-            (pureC_eff hs₇ (x := Expr.sort (Level.imax u v))) _
-            (fun r hQ => ⟨hQ, by simp [Expr.WScoped]⟩)
-        · simp only [hc, Bool.false_eq_true, ↓reduceIte]
-          exact SimC.throw_bind
-      · simp only [hv, Bool.false_eq_true, ↓reduceIte]
-        refine SimC.bind_left (pureEq_eff hs₆ (Level.imax u v))
-          (fun s₇ iu hs₇ hQiu => ?_)
-        subst hQiu
-        exact SimC.of_eff
-          (pureC_eff hs₇ (x := Expr.sort (Level.imax u v))) _
-          (fun r hQ => ⟨hQ, by simp [Expr.WScoped]⟩)
+      refine SimC.bind_left (pureEq_eff hs₆ (Level.imax u v))
+        (fun s₇ iu hs₇ hQiu => ?_)
+      subst hQiu
+      exact SimC.of_eff
+        (pureC_eff hs₇ (x := Expr.sort (Level.imax u v))) _
+        (fun r hQ => ⟨hQ, by simp [Expr.WScoped]⟩)
     | bvar k' => exact SimC.throw
     | const nm' us' => exact SimC.throw
     | lit l' => exact SimC.throw
@@ -2247,38 +2030,14 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true) (hgb : mode.betaGate
         (fun r hQ => ⟨hQ, by
           simp only [Expr.WScoped]
           exact ⟨hwtb.1, ConLeche.WScoped.abstract1 0 hwbt⟩⟩)
-    by_cases hv : mode.verifiedChecks = true
-    · simp only [hv, ↓reduceIte]
-      cases hbp : b.lamPw with
-      | some pwI =>
-        dsimp only
-        by_cases hc : (m.pw == pwI) = true
-        · simp only [hc, ↓reduceIte]
-          exact hres hs₅
-        · simp only [hc, Bool.false_eq_true, ↓reduceIte]
-          exact SimC.throw_bind
-      | none =>
-        dsimp only
-        refine SimC.bind (ih.inferIO hs₅ rfl hwbt)
-          (fun s₆ btt bttx hs₆ hP₆ => ?_)
-        obtain ⟨hbttd, hwbtt⟩ := hP₆
-        refine SimC.bind (ensureSortC_sim ih hs₆ hbttd hwbtt)
-          (fun s₇ vb lvb hs₇ hPv => ?_)
-        obtain rfl := hPv
-        by_cases hc : (Level.zeronessOf vb == m.pw) = true
-        · simp only [hc, ↓reduceIte]
-          exact hres hs₇
-        · simp only [hc, Bool.false_eq_true, ↓reduceIte]
-          exact SimC.throw_bind
-    · simp only [hv, Bool.false_eq_true, ↓reduceIte]
-      exact hres hs₅
+    exact hres hs₅
   | app g' a =>
     dsimp only
     -- the gated spine; `inferSpineIO_sound_body` (at the gated mode)
     -- reproduces the loop's verdict in the chained io body over the
     -- io-grade view
     refine SimC.wr ?_
-      (fun v F hF => inferSpineIO_sound_body hgb d g' a v F hF)
+      (fun v F hF => inferSpineIO_sound_body d g' a v F hF)
     refine SimC.pureB ?_
     refine SimC.pureB ?_
     have hhead : RelC (Expr.getAppFn (Expr.app g' a))
@@ -2325,25 +2084,33 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true) (hgb : mode.betaGate
         have htargs : RelCL (Expr.getAppArgsC te) ((Expr.getAppArgs te)) :=
           Expr.getAppArgsC_spec te
         rw [htargs.length]
+        -- the cached node guards, as in `inferBodyC_sim`
+        by_cases hT : T = sn
+        case neg =>
+          simp only [hT, false_and, ↓reduceIte]
+          exact SimC.throw_bind
+        by_cases hnp : (Expr.getAppArgs te).length = entry.numParams
+        case neg =>
+          simp only [hT, hnp, false_and, and_false, ↓reduceIte]
+          exact SimC.throw_bind
+        by_cases hlp : us.length = entry.levelParams.length
+        case neg =>
+          simp only [hT, hnp, hlp, and_false, ↓reduceIte, pure_bind]
+          exact SimC.throw
+        simp only [hT, hnp, hlp, and_self, ↓reduceIte, pure_bind]
+        rw [htargs]
+        have hres : SimC mode env s₂' (RelEC d)
+            (pure (entry.typeAtI us (Expr.getAppArgs te) pe))
+            (pure (entry.typeAt us (Expr.getAppArgs te) pe) : FueledM Expr) :=
+          SimC.pure hs₂ ⟨ProjEntry.typeAtI_eq entry us _ pe,
+            projEntry_typeAt_WScoped henv hfp us
+            hnp
+            (fun a ha => hwte.getAppArgs a ha) hwpe⟩
         split
-        · -- task #175 S1: the body at the spine and the subject, as in
-          -- `inferBodyC_sim`
-          rename_i hcond
-          rw [htargs]
-          have hres : SimC mode env s₂' (RelEC d)
-              (pure (entry.typeAtI us (Expr.getAppArgs te) pe))
-              (pure (entry.typeAt us (Expr.getAppArgs te) pe) : FueledM Expr) :=
-            SimC.pure hs₂ ⟨ProjEntry.typeAtI_eq entry us _ pe,
-              projEntry_typeAt_WScoped henv hfp us
-              hcond.2.1
-              (fun a ha => hwte.getAppArgs a ha) hwpe⟩
-          -- the Prop guard (task #175 W4c) runs no walk of its own
-          split
-          · split
-            · exact hres
-            · exact SimC.throw
+        · split
           · exact hres
-        · exact SimC.throw
+          · exact SimC.throw
+        · exact hres
     | bvar k' => exact SimC.throw
     | sort u' => exact SimC.throw
     | lit l' => exact SimC.throw

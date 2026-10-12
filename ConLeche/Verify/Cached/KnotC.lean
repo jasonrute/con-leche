@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Verify.Cached.DiscC6
+public import ConLeche.Verify.Cached.DiscC5
 
 public section
 
@@ -12,7 +12,7 @@ public section
 (`ConLeche.Cached.coreKnotI mode (mkFEnv env) f`) simulates the
 corresponding fueled family on well-scoped inputs.  This module
 proves the *memo-wrapper step*: from per-body simulation walks at fuel
-`f` (`ConLeche/Verify/Cached/DiscC4-6.lean`), each entry point simulates
+`f` (`ConLeche/Verify/Cached/DiscC4-5.lean`), each entry point simulates
 at `f + 1` — a cache hit consumes the backed `CSOK` clause at the query
 key (an *erasure-function* of the key, so it yields the pure run at the
 query's erasure directly), a miss runs the body walk and re-inserts the
@@ -46,7 +46,7 @@ theorem CSOK.insertWhnfCoreC {s : CState} (hs : CSOK mode env s)
       whnfCore mode env F d i = .ok j) :
     CSOK mode env { s with whnfCoreC := s.whnfCoreC.insert i j } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, ?_, hs.whnfCoreCheapC, hs.whnfC, hs.inferC, hs.inferIOC,
-    hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro k v hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -64,7 +64,7 @@ theorem CSOK.insertWhnfCoreCheapC {s : CState} (hs : CSOK mode env s)
       whnfCore mode env F d i true = .ok j) :
     CSOK mode env { s with whnfCoreCheapC := s.whnfCoreCheapC.insert i j } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, ?_, hs.whnfC, hs.inferC,
-    hs.inferIOC, hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.inferIOC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro k v hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -82,7 +82,7 @@ theorem CSOK.insertWhnfC {s : CState} (hs : CSOK mode env s)
       whnf mode env F d i = .ok j) :
     CSOK mode env { s with whnfC := s.whnfC.insert i j } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, ?_, hs.inferC, hs.inferIOC,
-    hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro k v hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -100,7 +100,7 @@ theorem CSOK.insertInferC {s : CState} (hs : CSOK mode env s)
       inferTypeCore mode env F d i = .ok j) :
     CSOK mode env { s with inferC := s.inferC.insert i j } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC, ?_,
-    hs.inferIOC, hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.inferIOC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro k v hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -120,7 +120,7 @@ theorem CSOK.insertInferIOC {s : CState} (hs : CSOK mode env s)
       inferTypeIO mode env F d i = .ok j) :
     CSOK mode env { s with inferIOC := s.inferIOC.insert i j } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, ?_, hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv,
+    hs.inferC, ?_, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv,
     hs.instC⟩
   intro k v hl
   simp only at hl
@@ -133,25 +133,6 @@ theorem CSOK.insertInferIOC {s : CState} (hs : CSOK mode env s)
   · rw [ite_eq_right hk] at hl
     exact hs.inferIOC k v hl
 
-theorem CSOK.insertAnnotC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      annotateCore mode env F d i = .ok j) :
-    CSOK mode env { s with annotC := s.annotC.insert i j } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, hs.inferIOC, ?_, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv,
-    hs.instC⟩
-  intro k v hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : i == k
-  · rw [ite_eq_left hk] at hl
-    cases hl
-    rw [← beq_sound hk]
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.annotC k v hl
-
 theorem CSOK.insertDefeqC {s : CState} (hs : CSOK mode env s)
     {i j : Expr} {r : Bool}
     (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
@@ -159,7 +140,7 @@ theorem CSOK.insertDefeqC {s : CState} (hs : CSOK mode env s)
       isDefEqCore mode env F d i j = .ok r) :
     CSOK mode env { s with defeqC := s.defeqC.insert (i, j) r } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, hs.inferIOC, hs.annotC, ?_, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.inferC, hs.inferIOC, ?_, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro a b r' hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -412,11 +393,11 @@ theorem memoEI_infer_sim (henv : EnvWF env)
           exact hF⟩
       exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
 
-/-- The io memo-wrapper step (task #172 B4), **at the gated mode**:
-the slot is the io body under its own memo (`CState.inferIOC`); a hit
+/-- The io memo-wrapper step (task #172 B4): the slot is the io body
+under its own memo (`CState.inferIOC`); a hit
 consumes the io clause, a miss runs the io body walk and re-inserts in
 depth-universal form through `inferTypeIO_depth_inv`. -/
-theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
+theorem memoEI_inferIO_sim (henv : EnvWF env)
     (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
       CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
       SimC mode env s₀ (RelEC d)
@@ -436,9 +417,7 @@ theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
         (fun d e => inferBodyIOI
           (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env)
           d e) := by
-    -- `mode.ioGate` is the literal `true` at a variable mode (task
-    -- #185, `CheckMode.ioGate`), so the slot's `if` is its then-arm by
-    -- `rfl`; the knot's previous level is a `Unit` closure (task #179),
+    -- the knot's previous level is a `Unit` closure (task #179),
     -- which beta-reduces to `coreKnotI … f`.
     rfl
   rw [hslot] at hr
@@ -476,65 +455,10 @@ theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
       rw [inferBodyIO_atF] at hF
       rw [show inferBodyIO (CoreFns.ioView (pureFns mode env F)) env d i
           = inferTypeIO mode env (F + 1) d i from by
-        rw [inferTypeIO_succ, hgb]; simp only [↓reduceIte]] at hF
+        rw [inferTypeIO_succ]] at hF
       have hins := hs₁.insertInferIOC
         ⟨F + 1, fun d' hd' => by
           rw [inferTypeIO_depth_inv henv (F + 1) hd' hw.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
-
-theorem memoEI_annotate_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (annotateBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-        (annotateBody (fueledFns mode env) env d e))
-    {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).annotate d i)
-      ((fueledFns mode env).annotate d e) := by
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  intro v' s' hr
-  rw [show (coreKnotI mode (mkFEnv env) (f + 1)).annotate d i =
-    memoEI (·.annotC) (fun st mp => { st with annotC := mp })
-      (fun d e => annotateBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e)
-      d i from rfl] at hr
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.annotC[i]? with
-  | some j =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.annotC i _ hl
-    have hrun := hall d hw.to_wscopedB
-    exact ⟨hs, j,
-      ⟨rfl, annotateCore_WScoped F _ hrun hw⟩, F, hrun⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : annotateBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i s₀
-        with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
-      rw [annotateBody_atF] at hF
-      rw [← annotateCore_succ] at hF
-      have hins := hs₁.insertAnnotC
-        ⟨F + 1, fun d' hd' => by
-          rw [annotateCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]
           exact hF⟩
       exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
 
@@ -629,22 +553,12 @@ theorem ssimC (hμ : mode.verifiedChecks = true) (env : Env) (henv : EnvWF env) 
             defeqBodyC_sim hμ (ssimC hμ env henv f) henv hs' hdena' hdenb'
               hwa' hwb')
           hs hdena hdenb hwa hwb
-      annotate := fun hs hden hw =>
-        memoEI_annotate_sim henv
+      -- the io slot (task #172 B4): the io body at every mode, in both
+      -- knots
+      inferIO := fun hs hden hw =>
+        memoEI_inferIO_sim henv
           (fun hs' hden' hw' =>
-            annotateBodyC_sim (ssimC hμ env henv f) henv hs' hden' hw')
-          hs hden hw
-      inferIO := fun {s₀} {d} {i} {e} hs hden hw => by
-        -- the io slot (task #172 B4): the cached knot's slot is the io
-        -- body at every mode (`CheckMode.ioGate`), the spec's at the
-        -- gated mode — which every verified mode is
-        -- (`betaGate_of_verifiedChecks`, task #185; the gate-off arm
-        -- that used to sit here, with the spec's `inferTypeIO_off`
-        -- collapse, is not an instance of this tower any more)
-        have hgb : mode.betaGate = true := betaGate_of_verifiedChecks hμ
-        exact memoEI_inferIO_sim hgb henv
-          (fun hs' hden' hw' =>
-            inferBodyIOC_sim hμ hgb (ssimC hμ env henv f) henv hs' hden' hw')
+            inferBodyIOC_sim hμ (ssimC hμ env henv f) henv hs' hden' hw')
           hs hden hw }
 
 end ConLeche.Cached
