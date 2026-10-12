@@ -101618,3 +101618,102 @@ and the gate, and the bridge's two β arms become one.
 39 files, +2482 −1401 against `port-342` (the rules tier's five
 soundness files and `Sound.lean` carry most of it: the per-valuation
 reshaping, both inductions).
+
+## TASK #342 — L11: the definitional-equality rules at the conditional motive (2026-10-12, agent/342-l11)
+
+Lane L11, stage S3 (`_tmp/342v2-design.md` §11.5 row S3), under the
+annotated reading.  No checker change; `Denotes.lean`, `MainTheorem`,
+`Challenge`, `Axioms.lean` and the rules tier (`Rules/Rel.lean`) are
+unchanged.
+
+**`defeq_sound` is a member of the conditional induction**
+(`Model/Rules/Sound.lean`), next to `red_sound`, `infer_sound`,
+`certs_sound`.  The conditional lemmas are the last section of
+`Model/Rules/DefEqSound.lean`; the `…_soundU` lemmas stay, because the
+side induction stays (below).
+
+| Rule | Conditional proof; "not pt" sources |
+|---|---|
+| `refl`, `sort`, `fvar`, `const`, `natZero` | unconditional reading facts (`…_soundU.cond`) |
+| `symm` | the motive is symmetric |
+| `redL` | the reduct equals the subject where the subject is not the point (source (2)) |
+| `natSucc` | both arguments in `Nat`, a type (source (3)): the literal by `natLit_factsAV`, the other by its slot — the successor is a member of `piR 1` (`NatHeads`), never the point, so the slot is in the graph regime and its domain is `Nat` (`piR_dom_unique`) |
+| `forallE` | the domains and every fibre are types (source (1)) |
+| `app` | the heads of two non-point applications are not the point (source (2), `app_pt`) and equal; both slots are in the graph regime, so one domain (`piR_dom_unique`), a type: `IsTy.eq_of_ne_pt` (source (3)) |
+| `proj` | a projection of the point is the point (`projS_pt`, `sfst_pt`, `ssnd_pt`; source (2)) |
+| `proofFast`, `proofIrrel` | vacuous: one side is the point (`prf_of_isProofFast`, `prop_side_pt'`) |
+| `structUnit` | the inferred types and their reducts are types (source (1)), so the reductions and the certificate's comparison are equations; the unit law equates any two members |
+| `lam`, `eta`, `structEta` | **interim**: `(defeq_soundU hin h).cond` |
+
+**Finding 1: λ-congruence and η are not provable at the conditional
+motive under the annotated reading.**  The lemma
+
+```
+DefEqSem d ty₁ ty₂ → DefEqSem (d+1) body₁ body₂ → m₁.pw = m₂.pw →
+  DefEqSem d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂)
+```
+
+is false.  Counterexample: `ty₁ = ty₂ = Nat`, both outer binders
+annotated at a positive kind (`v = 1`), `body₂ = y` (the bound
+variable), `body₁ = (λ x : False. x) y` with the inner λ annotated at
+kind `0`.  The inner λ reads as the point, so `body₁` reads as `pt` at
+every value (`app_pt`); it is graded (slot `piR 0 Nat (λ _. True)`,
+which holds `pt`), and the outer λ is graded with fibre `True`.  The
+bodies' premise holds vacuously (one side is always the point), the
+domains agree, the bits agree; both λs are graphs over `Nat`, and
+`graph (λ _. pt) Nat ≠ graph id Nat`.  The binder datum does not help:
+a positive bit allows point-valued bodies (`λ (α : Sort u) (a : α). a`
+at `u = 1`, `α := {pt}`: `Sort 1` holds the truth values).  The same
+pair refutes η's lemma (`b := λ y : Nat. y`).  Nothing at the annotated
+reading types the two bodies alike; the fix is the value reading's
+full-grade body-type check (`DefEqLams`, T1/T2, S4 L-ck + L18), or
+bringing that check forward.  Today the derivation behind the
+counterexample does not exist, because β is certified, which is why
+the side induction is sound.
+
+**Consequence for L13: β's certificate cannot go in S3.**  The side
+induction reads `Red.beta`'s premises, and λ/η stay on it until the
+body-type check exists.  Deleting the certificate (L13) before that
+makes λ-congruence unsound at the conditional motive: with β
+uncertified, `DefEq (λ y:Nat. (λ x:False. x) y) (λ y:Nat. y)` is
+derivable (`redL` with an uncertified β under the binder, then `refl`).
+So L13 moves to S4 after T1/T2, or T1/T2 move into S3 with it.
+
+**Finding 2: structure η needs a telescope-coherence law.**  The rule
+compares the constructor side's parameters with the stuck side's type
+arguments (`hparams`) and its fields with the stuck side's projections
+(`hfields`), both conditionally.  Turning those into equalities
+(`spineFit_eq_of_cond`) needs both spines to fit ONE telescope of
+types; the rules tier has two unrelated ones: the constructor side's
+arguments fit the constructor's type reading (from the side not being
+the point: every prefix application is in the graph regime), the stuck
+side's type arguments fit the family's parameter telescope (`hcerts`),
+and its projections the projections' types (tower law (A)) or nothing.
+No law ties the constructor's telescope to the family's.  Example:
+`structure S {α : Sort u} (a : α) where x : Nat` at `u = 1`,
+`b : S {pt} pt`, `a := S.mk α' a' x'`: the parameter comparison
+`a'` vs `pt` is vacuous; only the constructor's type (`a' : α'`) pins
+`a' = pt`.  The law that would close it: for `x` in the family at a
+fitting parameter spine `ts`, the fabricated spine `ts ++ projs x`
+fits the η constructor's type reading (an `EtaLaw`/`TowerEtaLaw`
+strengthening, proved where `fibreEtaLaw0` and the tower's clause (C)
+are).  With it, `asa` (the constructor side, which fits by not being
+the point) and `ts ++ projs x` fit one graded Π-tower, and
+`spineFit_eq_of_cond` gives `asa = ts ++ projs x`, so `a = b` by the η
+law; `hcerts` is then not read.  Not done here: it is an environment
+law with install-tier proofs.  `structUnit` needs none of this (the
+unit law equates any two members).
+
+**`defeq_sound_global`** (`TargetDefeqTie`) stays: it reads the side
+induction, which stays for λ/η/structure η, and the class match
+compares parameters (which may be proofs); L10 owns that comparison.
+
+**What remains on the side induction after L11:** `Red.iota` and the
+three rescues (L10), `Red.natSucc`/`natOp` (L12), `DefEq.lam`,
+`DefEq.eta` (S4), `DefEq.structEta` (the coherence law); and the
+interim globals `red_sound_global` (L12) and `defeq_sound_global` (L10).
+
+**Gates.**  `lake build`, `lake test`: no warnings.  No `sorry`, no new
+axiom.  Proof-only lane: no verdict change, so no e2e/arena run.
+`overview-links.sh`/`links-gate.sh` deferred (the `Sound.lean` anchors
+moved).

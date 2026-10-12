@@ -5,6 +5,7 @@ import ConLeche.Model.Rules.DefEqSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Semantics.DefEqStep
+import ConLeche.Semantics.LitStep
 import ConLeche.Model.Annot.BitShift
 import ConLeche.Model.Annot.BitClosed
 
@@ -17,11 +18,14 @@ One lemma per constructor of `DefEq`: the structural rules, the
 recursive-structure rule, η, the two proof-irrelevance arms, and the
 capability rules `structEta`, `structUnit`.
 
-These are the **interim unconditional** proofs (task #342, L9): every
-conclusion here is `DefEqSemU` at one valuation (`CtxOkS`/`LeavesGr`,
-no point condition), not the conditional `DefEqSem` the rules tier's
-real motive asks for.  L11 proves the rules at the conditional
-motives and deletes these.
+Two sets of lemmas (task #342, L9, L11).  The `…_soundU` lemmas are the
+**interim unconditional** proofs: their conclusion is `DefEqSemU` at
+one valuation (`CtxOkS`/`LeavesGr`, no point condition), and the side
+induction (`Model/Rules/Sound.lean`) reads them.  The `…_sound` lemmas
+(the last section) prove the rules at the conditional motive
+`DefEqSem`; λ-congruence, η and structure η have none yet (the
+section's note says why), so the conditional induction takes them from
+the side induction.
 -/
 
 namespace ConLeche.Model.Rules
@@ -868,6 +872,349 @@ theorem DefEq.structUnit_soundU (hin : RulesInputs V m φ) {d : Nat}
   have hfitT : TeleFit V ρ TVa (tsa.map (interp V ρ)) (interp V ρ resta) :=
     teleFit_of_teleFitPA (by rw [← hspt.length]; exact hpcT) hfitPA
   -- both members, at the folded family instance
+  have hfold : ∀ (l : List AnnotTerm) (x : V),
+      l.foldl (fun r y => SetTheory.app r (interp V ρ y)) x
+        = (l.map (interp V ρ)).foldl SetTheory.app x := by
+    intro l x; rw [List.foldl_map]
+  have hmx : interp V ρ aa
+      ∈ˢ (tsa.map (interp V ρ)).foldl SetTheory.app
+          (interp V ρ (m.acval T (Level.substFn φ cvT.levelParams us'))) := by
+    have h := hmemAW
+    rwa [interp_mkAppN, hfold] at h
+  have hmy : interp V ρ ba
+      ∈ˢ (tsa.map (interp V ρ)).foldl SetTheory.app
+          (interp V ρ (m.acval T (Level.substFn φ cvT.levelParams us'))) := by
+    have h := hEq ▸ hmemBW
+    rwa [interp_mkAppN, hfold] at h
+  have hlenTs : (tsa.map (interp V ρ)).length = caps.unitParams := by
+    rw [List.length_map, ← hspt.length, htlen]
+  exact hlaw ρ (tsa.map (interp V ρ)) (interp V ρ resta) (interp V ρ aa)
+    (interp V ρ ba) hlenTs hfitT hmx hmy
+
+/-! ## The conditional rules (task #342, L11)
+
+The rules at the conditional motive `DefEqSem`: two graded sides are
+equal at a valuation where neither is the point.  Every step that uses
+"not the point" names its source (`_tmp/port/COMMON.md`'s proof rule):
+(1) the subject is a type; (2) the hypothesis of the conditional claim
+(a head, a projected subject of a non-point is not the point, since the
+point applied or projected is the point); (3) membership in a type
+whose members are all the point or none of them (`IsTy.eq_of_ne_pt`).
+
+λ-congruence, η and structure η are NOT here: they stay on the interim
+side induction (`Model/Rules/Sound.lean`).  λ and η compare the two
+bodies at every value of the bound variable, and a body may be the
+point at one value while the other is not; under the annotated reading
+nothing types the two bodies alike (the body-type check arrives with
+the value reading, task #342 S4).  Structure η compares the
+constructor side's parameters and fields with the stuck side's
+projections, and nothing at the rules tier places both spines in one
+telescope of types (the DESIGN record of task #342 L11). -/
+
+/-- The slot of a graded application whose head is not the point: the
+graph regime, and a domain that is a type. -/
+theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
+    (hw : WellDenotedV V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
+    ∃ (v : Nat) (A : V) (B : V → V), v ≠ 0 ∧
+      interp V ρ f ∈ˢ piR v A B ∧ interp V ρ x ∈ˢ A ∧ IsTy A := by
+  have h := hw.1
+  rw [WellDenoted_app] at h
+  obtain ⟨-, -, v, A, B, hf, hx, -, hT⟩ := h
+  have hv : v ≠ 0 := by
+    rintro rfl; exact hn (eq_pt_of_mem_piR_zero hf)
+  exact ⟨v, A, B, hv, hf, hx, hT hv⟩
+
+/-- A graded Π-type's fibres are types. -/
+theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V} {u v : Nat}
+    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi u v A B)) :
+    ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
+  ((WellDenoted_pi V ρ u v A B) ▸ h.1).2.2.2 x hx
+
+theorem DefEq.refl_sound {d : Nat} {a : Expr} : DefEqSem m φ d a a :=
+  DefEq.refl_soundU.cond
+
+theorem DefEq.symm_sound {d : Nat} {a b : Expr} (h : DefEqSem m φ d a b) :
+    DefEqSem m φ d b a := by
+  intro hfb hfa Δa ba aa hCb hCa hba haa ρ hρ hLb hLa hwb hwa hnb hna
+  exact (h hfa hfb hCa hCb haa hba ρ hρ hLa hLb hwa hwb hna hnb).symm
+
+/-- The recursive-structure rule: the reduct is graded and equal to the
+subject where the subject is not the point ("not pt" source (2)), so it
+is not the point there either and the continuation's claim applies. -/
+theorem DefEq.redL_sound {d : Nat} {a a' b : Expr}
+    (ha : RedSem m φ d a a') (hb : DefEqSem m φ d a' b) :
+    DefEqSem m φ d a b := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb hna hnb
+  obtain ⟨hfa', hsub, aa', haa', hs⟩ := ha hfa hCa haa
+  obtain ⟨hwaa', heq⟩ := hs ρ hρ hLa hwa hna
+  rw [heq] at hna ⊢
+  exact hb hfa' hfb (hCa.of_subset hsub) hCb haa' hba ρ hρ
+    (hLa.of_subset hsub) hLb hwaa' hwb hna hnb
+
+theorem DefEq.sort_sound {d : Nat} {u v : Level}
+    (h : Level.isEquiv u v = some true) :
+    DefEqSem m φ d (.sort u) (.sort v) :=
+  (DefEq.sort_soundU h).cond
+
+theorem DefEq.fvar_sound {d i : Nat} {ty₁ ty₂ : Expr} :
+    DefEqSem m φ d (.fvar i ty₁) (.fvar i ty₂) :=
+  DefEq.fvar_soundU.cond
+
+theorem DefEq.const_sound {d : Nat} {n : Name} {us us' : List Level}
+    (h : Level.isEquivList us us' = some true) :
+    DefEqSem m φ d (.const n us) (.const n us') :=
+  (DefEq.const_soundU h).cond
+
+theorem DefEq.natZero_sound {d : Nat} :
+    DefEqSem m φ d (.lit (.natVal 0)) (.const natZeroName []) :=
+  DefEq.natZero_soundU.cond
+
+/-- The packed successor: the two arguments are members of `Nat`, a
+type ("not pt" source (3)).  The literal's membership is
+`natLit_factsAV`; the other argument's comes from its slot, whose head
+is the successor, a member of a graph-regime Π-type and so never the
+point, so its domain is `Nat` (`piR_dom_unique`). -/
+theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : Expr}
+    (h : DefEqSem m φ d (.lit (.natVal k)) x) :
+    DefEqSem m φ d (.lit (.natVal (k + 1))) (.app (.const natSuccName []) x) := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
+  obtain ⟨hg, rfl⟩ := denoteMeta_natLit_inv haa
+  obtain ⟨fa, xa, hfa', hxa, rfl⟩ := denoteMeta_app_inv hba
+  rw [denoteMetaNatSuccConst hg] at hfa'
+  obtain rfl : fa = m.acval ConLeche.natSuccName (Level.substFn φ [] []) :=
+    (Option.some.inj hfa').symm
+  obtain ⟨hz, hs, hT⟩ := hin.nat_heads hg ρ
+  have hmk := (natLit_factsAV (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ)
+    hz hs hT k).2
+  have hw := hwb.1
+  rw [WellDenoted_app] at hw
+  obtain ⟨-, -, v, A, B, hfm, hxm, -, -⟩ := hw
+  have hv : v ≠ 0 := by
+    rintro rfl
+    exact (mem_piR_pos Nat.one_ne_zero hs).2.2.2 (eq_pt_of_mem_piR_zero hfm)
+  have hA := piR_dom_unique Nat.one_ne_zero hv hs hfm
+  rw [← hA] at hxm
+  have hwk : WellDenotedV V ρ (natLitAV (m.acval natZeroName (Level.substFn φ [] []))
+      (m.acval natSuccName (Level.substFn φ [] [])) k) := by
+    simp only [natLitAV] at hwa
+    exact hwa.app_arg
+  refine deqStep_appCong rfl (hT.eq_of_ne_pt hmk hxm fun hn₁ hn₂ =>
+    h (Frame.of_not_hasFvar rfl rfl) hfb.app_arg
+      (CtxOkS.of_fvarLeaves_nil hCa.length (by simp [Expr.fvarLeaves]))
+      hCb.app_arg (denoteMeta_natLit hg) hxa ρ hρ
+      (LeavesGr.of_fvarLeaves_nil (by simp [Expr.fvarLeaves]))
+      hLb.app_arg hwk hwb.app_arg hn₁ hn₂)
+
+/-- Π-congruence.  Both sides are types: the domains and every fibre are
+types, never the point ("not pt" source (1)), so the premises' claims
+apply with no condition. -/
+theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
+    {m₁ m₂ : BinderMeta}
+    (hty : DefEqSem m φ d ty₁ ty₂)
+    (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
+      (body₂.instantiate1 (.fvar d ty₂)))
+    (hpw : m₁.pw = m₂.pw) :
+    DefEqSem m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
+  obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
+  obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
+  have hdom : interp V ρ ta₁ = interp V ρ ta₂ :=
+    hty hfa.forallE_ty hfb.forallE_ty hCa.forallE_ty hCb.forallE_ty hta₁ hta₂
+      ρ hρ hLa.forallE_ty hLb.forallE_ty hwa.pi_dom.1 hwb.pi_dom.1
+      hwa.pi_dom.ne_pt hwb.pi_dom.ne_pt
+  rw [hpw]
+  refine deqStep_piCong hdom (fun x hx => ?_)
+  have hx₂ : x ∈ˢ interp V ρ ta₂ := hdom ▸ hx
+  exact hbody (hfa.forallE_open hfb.forallE_ty) (hfb.forallE_open hfb.forallE_ty)
+    (CtxOkS.openS hCb.forallE_ty hCa.forallE_body hta₂)
+    (CtxOkS.openS hCb.forallE_ty hCb.forallE_body hta₂)
+    (denoteMeta_open_rename hva₁) hva₂
+    (cons x ρ) (Sat_cons V hρ hx₂)
+    (LeavesGr.open hCb.forallE_ty hCa.forallE_body hLb.forallE_ty hLa.forallE_body
+      hta₂ hwb.pi_dom)
+    (LeavesGr.open hCb.forallE_ty hCb.forallE_body hLb.forallE_ty hLb.forallE_body
+      hta₂ hwb.pi_dom)
+    (hwa.pi_body x hx) (hwb.pi_body x hx₂)
+    (hwa.pi_fib x hx).ne_pt (hwb.pi_fib x hx₂).ne_pt
+
+/-- Application congruence.  The heads of two applications that are not
+the point are not the point ("not pt" source (2)), so they are equal;
+their slots are in the graph regime, so the two domains are the one
+domain of the equal heads (`piR_dom_unique`), a type: the arguments are
+both the point or neither is ("not pt" source (3)). -/
+theorem DefEq.app_sound {d : Nat} {f₁ a₁ f₂ a₂ : Expr}
+    (hf : DefEqSem m φ d f₁ f₂) (ha : DefEqSem m φ d a₁ a₂) :
+    DefEqSem m φ d (.app f₁ a₁) (.app f₂ a₂) := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb hna hnb
+  obtain ⟨fa₁, xa₁, hf₁, hx₁, rfl⟩ := denoteMeta_app_inv haa
+  obtain ⟨fa₂, xa₂, hf₂, hx₂, rfl⟩ := denoteMeta_app_inv hba
+  have hn₁ : interp V ρ fa₁ ≠ pt := by
+    intro h; apply hna; rw [interp_app, h, app_pt]
+  have hn₂ : interp V ρ fa₂ ≠ pt := by
+    intro h; apply hnb; rw [interp_app, h, app_pt]
+  have heF := hf hfa.app_fn hfb.app_fn hCa.app_fn hCb.app_fn hf₁ hf₂ ρ hρ
+    hLa.app_fn hLb.app_fn hwa.app_fn hwb.app_fn hn₁ hn₂
+  obtain ⟨v₁, A₁, B₁, hv₁, hs₁, hm₁, hT₁⟩ := appSlot_of_ne_pt hwa hn₁
+  obtain ⟨v₂, A₂, B₂, hv₂, hs₂, hm₂, -⟩ := appSlot_of_ne_pt hwb hn₂
+  rw [← heF] at hs₂
+  have hA : A₁ = A₂ := piR_dom_unique hv₁ hv₂ hs₁ hs₂
+  rw [← hA] at hm₂
+  exact deqStep_appCong heF (hT₁.eq_of_ne_pt hm₁ hm₂ fun h₁ h₂ =>
+    ha hfa.app_arg hfb.app_arg hCa.app_arg hCb.app_arg hx₁ hx₂ ρ hρ
+      hLa.app_arg hLb.app_arg hwa.app_arg hwb.app_arg h₁ h₂)
+
+/-- Congruence under a projection: a projection of the point is the
+point (`projS_pt`, `sfst_pt`, `ssnd_pt`), so the projected subjects of
+two projections that are not the point are not the point ("not pt"
+source (2)). -/
+theorem DefEq.proj_sound {d : Nat} {s : Name} {i : Nat} {e₁ e₂ : Expr}
+    (h : DefEqSem m φ d e₁ e₂) :
+    DefEqSem m φ d (.proj s i e₁) (.proj s i e₂) := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb hna hnb
+  obtain ⟨ia₁, he₁, hrd₁⟩ := denoteMeta_proj_inv haa
+  obtain ⟨ia₂, he₂, hrd₂⟩ := denoteMeta_proj_inv hba
+  rcases hrd₁ with ⟨entry, hfe, rfl⟩ | ⟨hnt, hdec₁⟩
+  · rcases hrd₂ with ⟨entry', hfe', rfl⟩ | ⟨hnt', -⟩
+    · obtain rfl : entry = entry' := Option.some.inj (hfe.symm.trans hfe')
+      have hn₁ : interp V ρ ia₁ ≠ pt := by
+        intro h; apply hna; rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
+      have hn₂ : interp V ρ ia₂ ≠ pt := by
+        intro h; apply hnb; rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
+      exact ProjAV.interp_congr (h hfa.proj_arg hfb.proj_arg hCa.proj_arg
+        hCb.proj_arg he₁ he₂ ρ hρ hLa.proj_arg hLb.proj_arg
+        (ProjAV.hoistV hwa) (ProjAV.hoistV hwb) hn₁ hn₂)
+    · rw [hnt'] at hfe; exact nomatch hfe
+  · rcases hrd₂ with ⟨entry', hfe', -⟩ | ⟨-, hdec₂⟩
+    · rw [hnt] at hfe'; exact nomatch hfe'
+    · rcases AnnotTerm.projPair?_cases₂ hdec₁ hdec₂ with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      · have hn₁ : interp V ρ ia₁ ≠ pt := by
+          intro h; apply hna; rw [interp_fst, h, sfst_pt]
+        have hn₂ : interp V ρ ia₂ ≠ pt := by
+          intro h; apply hnb; rw [interp_fst, h, sfst_pt]
+        exact deqStep_fstCong (h hfa.proj_arg hfb.proj_arg hCa.proj_arg
+          hCb.proj_arg he₁ he₂ ρ hρ hLa.proj_arg hLb.proj_arg
+          hwa.fst_arg hwb.fst_arg hn₁ hn₂)
+      · have hn₁ : interp V ρ ia₁ ≠ pt := by
+          intro h; apply hna; rw [interp_snd, h, ssnd_pt]
+        have hn₂ : interp V ρ ia₂ ≠ pt := by
+          intro h; apply hnb; rw [interp_snd, h, ssnd_pt]
+        exact deqStep_sndCong (h hfa.proj_arg hfb.proj_arg hCa.proj_arg
+          hCb.proj_arg he₁ he₂ ρ hρ hLa.proj_arg hLb.proj_arg
+          hwa.snd_arg hwb.snd_arg hn₁ hn₂)
+
+/-- Both sides are the point (`prf_of_isProofFast`): vacuous at the
+conditional motive. -/
+theorem DefEq.proofFast_sound (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
+    (ha : ConLeche.isProofFast env.find? a = true)
+    (_hb : ConLeche.isProofFast env.find? b = true) :
+    DefEqSem m φ d a b := by
+  intro _ _ Δa aa ba hCa hCb haa _ ρ hρ hLa _ _ _ hna _
+  exact absurd (prf_of_isProofFast hin.const_ty ha hCa haa ρ hρ hLa) hna
+
+/-- Both sides are the point (`prop_side_pt'`): vacuous at the
+conditional motive. -/
+theorem DefEq.proofIrrel_sound {d : Nat}
+    {a ta tta b tb ttb : Expr} {u v : Level}
+    (hta : InferSemIO m φ d a ta) (htta : InferSemIO m φ d ta tta)
+    (hu : RedSem m φ d tta (.sort u)) (hu0 : Level.isEquiv u .zero = some true)
+    (_htb : InferSemIO m φ d b tb) (_httb : InferSemIO m φ d tb ttb)
+    (_hv : RedSem m φ d ttb (.sort v)) (_hv0 : Level.isEquiv v .zero = some true) :
+    DefEqSem m φ d a b := by
+  intro hfa _ Δa aa ba hCa _ haa _ ρ hρ hLa _ hwa _ hna _
+  exact absurd (prop_side_pt' hta htta hu hu0 hfa hCa haa ρ hρ hLa hwa) hna
+
+/-- Unit-like structure: the two inferred types and their reducts are
+types ("not pt" source (1)), so their reductions and the certificate's
+comparison are equations; the stored unit law then equates any two
+members, the point or not. -/
+theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
+    {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
+    {cvT : ConstantVal} {caps : IndCaps}
+    (hta : InferSemIO m φ d a ta) (hwta : RedSem m φ d ta wta)
+    (hthead : wta.getAppFn = .const T us')
+    (hind : env.find? T = some (.indInfo cvT caps))
+    (hunit : caps.unitlike = true)
+    (hresT : ConLeche.reservedBasisNames.contains T = false)
+    (htlen : wta.getAppArgs.length = caps.unitParams)
+    (hlv : us'.length = cvT.levelParams.length)
+    (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb wtb)
+    (hd : DefEqSem m φ d wta wtb)
+    (hcerts : CertsSem m φ d false
+      (cvT.type.instantiateLevelParams cvT.levelParams us') wta.getAppArgs) :
+    DefEqSem m φ d a b := by
+  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB _ _
+  -- the two sides' inferred types, reduced, with their readings
+  obtain ⟨hfta, hsuba, taa, htaa, hXA⟩ := hta hfa hCa hda
+  obtain ⟨hokTa, hmemA⟩ := hXA ρ hρ hLa hokA
+  have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsuba
+  have hLtaρ : LeavesGr m φ d ta ρ := hLa.of_subset hsuba
+  obtain ⟨hfWA, hsubWA, wtaa, hwtaa, hYA⟩ := hwta hfta hCta htaa
+  obtain ⟨hokWA, heqWA⟩ := hYA ρ hρ hLtaρ hokTa.1 hokTa.ne_pt
+  have hCwa : CtxOkS m φ d Δa wta := hCta.of_subset hsubWA
+  have hLwaρ : LeavesGr m φ d wta ρ := hLtaρ.of_subset hsubWA
+  obtain ⟨hftb, hsubb, tba, htba, hXB⟩ := htb hfb hCb hdb
+  obtain ⟨hokTb, hmemB⟩ := hXB ρ hρ hLb hokB
+  have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubb
+  have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubb
+  obtain ⟨hfWB, hsubWB, wtba, hwtba, hYB⟩ := hwtb hftb hCtb htba
+  obtain ⟨hokWB, heqWB⟩ := hYB ρ hρ hLtbρ hokTb.1 hokTb.ne_pt
+  have hCwb : CtxOkS m φ d Δa wtb := hCtb.of_subset hsubWB
+  have hLwbρ : LeavesGr m φ d wtb ρ := hLtbρ.of_subset hsubWB
+  have hmemAW : interp V ρ aa ∈ˢ interp V ρ wtaa := by rw [← heqWA]; exact hmemA
+  have hmemBW : interp V ρ ba ∈ˢ interp V ρ wtba := by rw [← heqWB]; exact hmemB
+  -- the certificate's defeq identifies the two family instances: types
+  have hEq : interp V ρ wtaa = interp V ρ wtba :=
+    hd hfWA hfWB hCwa hCwb hwtaa hwtba ρ hρ hLwaρ hLwbρ hokWA hokWB
+      (heqWA ▸ hokTa.ne_pt) (heqWB ▸ hokTb.ne_pt)
+  -- side a's reduct is the family applied to its parameters
+  rw [show wta = Expr.mkAppN wta.getAppFn wta.getAppArgs from
+    (ConLeche.Expr.mkAppN_getApp wta).symm, hthead] at hwtaa
+  obtain ⟨vT, tsa, hvT, hspt, rfl⟩ := denoteMeta_mkAppN_inv hwtaa
+  rw [denoteMeta, hind] at hvT
+  dsimp only at hvT
+  split at hvT
+  case isFalse => exact nomatch hvT
+  case isTrue =>
+  obtain rfl : vT = m.acval T (Level.substFn φ cvT.levelParams us') :=
+    (Option.some.inj hvT).symm
+  have hstrip : (cvT.type.stripPis caps.unitParams).isSome = true :=
+    (m.wf.indCaps hind).1 hunit
+  obtain ⟨TVa, hTVa, hokTVa, hlaw⟩ :=
+    hin.caps_ok.2 T cvT caps hind hunit hresT φ us' hlv
+  have hwfT := m.wf _ (ConLeche.Semantics.Env.find?_mem hind)
+  have hnfT : (cvT.type.instantiateLevelParams cvT.levelParams
+      us').hasFvar = false := by
+    rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwfT.1
+  have hbdT : (cvT.type.instantiateLevelParams cvT.levelParams
+      us').looseBVarsBounded 0 = true := by
+    rw [ConLeche.Expr.looseBVarsBounded_instantiateLevelParams]
+    exact hwfT.2.2.2.1
+  have hTVd : denoteMeta m.acval env φ d
+      (cvT.type.instantiateLevelParams cvT.levelParams us')
+      = some TVa :=
+    denoteMeta_depth_of_closed m.acval_closed hnfT
+      (fun k => denoteMeta_closed m.acval_erase m.cval_closed
+        hnfT hbdT hTVa 1 k) hTVa d
+  have hTF : Frame d (cvT.type.instantiateLevelParams cvT.levelParams us') :=
+    ⟨ConLeche.Expr.WScoped.of_not_hasFvar hnfT, hbdT,
+      ConLeche.Expr.LeavesBounded.of_not_hasFvar hnfT⟩
+  have hTC : CtxOkS m φ d Δa
+      (cvT.type.instantiateLevelParams cvT.levelParams us') :=
+    ⟨hCa.1, fun l hl => by
+      rw [ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfT] at hl
+      exact nomatch hl⟩
+  have hpcT : PiChain wta.getAppArgs.length TVa := by
+    rw [htlen]
+    exact piChain_of_stripPis caps.unitParams
+      (ConLeche.Expr.stripPis_instantiateLevelParams_isSome
+        cvT.levelParams us' caps.unitParams hstrip) hTVd
+  obtain ⟨-, hoT⟩ := hoist_spineV tsa hokWA
+  obtain ⟨resta, hXc⟩ := hcerts (fa := TVa) hTF hTC hTVd (frame_spine hfWA hCwa) hspt
+  obtain ⟨hfitPA, -⟩ := hXc ρ hρ
+    (LeavesGr.of_fvarLeaves_nil (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfT))
+    (leavesGr_spine hLwaρ) (hokTVa ρ) hoT (by simp)
+  have hfitT : TeleFit V ρ TVa (tsa.map (interp V ρ)) (interp V ρ resta) :=
+    teleFit_of_teleFitPA (by rw [← hspt.length]; exact hpcT) hfitPA
   have hfold : ∀ (l : List AnnotTerm) (x : V),
       l.foldl (fun r y => SetTheory.app r (interp V ρ y)) x
         = (l.map (interp V ρ)).foldl SetTheory.app x := by

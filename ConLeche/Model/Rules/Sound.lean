@@ -25,18 +25,20 @@ of the codomain validation reads the SHAPE of the body's inferred type
 off the premise derivation (`Infer.lam_shape`), which the per-rule
 lemma cannot see.
 
-**Two inductions (task #342, L9).**  The claims are conditional on the
-point (`Motive.lean`): `red_sound`, `defeq_sound` … conclude the
+**Two inductions (task #342, L9, L11).**  The claims are conditional on
+the point (`Motive.lean`): `red_sound`, `defeq_sound` … conclude the
 conditional motives.  Their ι rules (`Red.iota`, the three rescues), the
-two literal accelerations and every `DefEq` rule are, for now, the
-**interim** unconditional side induction (`red_soundU`, `defeq_soundU`
-…) weakened (`RedSemU.cond`, `DefEqSemU.cond`); every other rule is
-proved at the conditional motive, from the conditional claims of its
-premises.  The side induction reads `Red.beta`'s certificate premises,
-which the conditional one does not.  Task #342 L10 (ι), L11
-(definitional equality) and L12 (the literal rows) move their rules to
-the conditional induction; then the side induction goes, and with it
-β's premises (L13).
+two literal accelerations, and three `DefEq` rules (`lam`, `eta`,
+`structEta`) are, for now, the **interim** unconditional side induction
+(`red_soundU`, `defeq_soundU` …) weakened (`RedSemU.cond`,
+`DefEqSemU.cond`); every other rule is proved at the conditional
+motive, from the conditional claims of its premises.  The side
+induction reads `Red.beta`'s certificate premises, which the conditional
+one does not.  Task #342 L10 (ι) and L12 (the literal rows) move their
+rules to the conditional induction.  λ-congruence and η need the
+body-type check of the value reading (S4); structure η needs its two
+spines in one telescope of types (the DESIGN record of L11).  The side
+induction goes, and with it β's premises, once all of these are moved.
 -/
 
 namespace ConLeche.Model.Rules
@@ -195,12 +197,6 @@ end
 
 /-! ## The conditional induction -/
 
-/-- **Interim** (task #342, L11): every `DefEq` rule through the side
-induction. -/
-theorem defeq_sound (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
-    (h : DefEq env d a b) : DefEqSem m φ d a b :=
-  (defeq_soundU hin h).cond
-
 mutual
 
 theorem red_sound (hin : RulesInputs V m φ) :
@@ -226,6 +222,38 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, h@(.rescueK ..) => (red_soundU hin h).cond
   | _, _, _, h@(.rescueEta ..) => (red_soundU hin h).cond
   | _, _, _, h@(.rescueAnd ..) => (red_soundU hin h).cond
+
+theorem defeq_sound (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
+  | _, _, _, .refl => DefEq.refl_sound
+  | _, _, _, .symm h => DefEq.symm_sound (defeq_sound hin h)
+  | _, _, _, .redL hr h => DefEq.redL_sound (red_sound hin hr) (defeq_sound hin h)
+  | _, _, _, .sort h => DefEq.sort_sound h
+  | _, _, _, .fvar => DefEq.fvar_sound
+  | _, _, _, .const h => DefEq.const_sound h
+  | _, _, _, .natZero => DefEq.natZero_sound
+  | _, _, _, .natSucc h => DefEq.natSucc_sound hin (defeq_sound hin h)
+  | _, _, _, .forallE hty hbody hpw =>
+    DefEq.forallE_sound (defeq_sound hin hty) (defeq_sound hin hbody) hpw
+  | _, _, _, .app hf ha => DefEq.app_sound (defeq_sound hin hf) (defeq_sound hin ha)
+  | _, _, _, .proj h => DefEq.proj_sound (defeq_sound hin h)
+  | _, _, _, .proofFast ha hb => DefEq.proofFast_sound hin ha hb
+  | _, _, _, .proofIrrel hta htta hu hu0 htb httb hv hv0 =>
+    DefEq.proofIrrel_sound (infer_sound hin hta) (infer_sound hin htta)
+      (red_sound hin hu) hu0 (infer_sound hin htb) (infer_sound hin httb)
+      (red_sound hin hv) hv0
+  | _, _, _, .structUnit hta hwta hthead hind hunit hresT htlen hlv htb hwtb hd
+      hcerts =>
+    DefEq.structUnit_sound hin (infer_sound hin hta) (red_sound hin hwta) hthead
+      hind hunit hresT htlen hlv (infer_sound hin htb) (red_sound hin hwtb)
+      (defeq_sound hin hd) (certs_sound hin hcerts)
+  -- **interim** (task #342, L11 → S4): λ-congruence and η compare two
+  -- bodies that nothing types alike under the annotated reading;
+  -- structure η compares spines that nothing places in one telescope
+  -- (`DefEqSound.lean`'s conditional section, the DESIGN record of L11)
+  | _, _, _, h@(.lam ..) => (defeq_soundU hin h).cond
+  | _, _, _, h@(.eta ..) => (defeq_soundU hin h).cond
+  | _, _, _, h@(.structEta ..) => (defeq_soundU hin h).cond
 
 theorem infer_sound (hin : RulesInputs V m φ) :
     ∀ {g : Grade} {d : Nat} {e t : Expr}, Infer env g d e t → InferSem m φ g d e t
