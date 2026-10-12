@@ -299,6 +299,24 @@ theorem InferSemFull.global {d : Nat} {e t : Expr} (h : InferSemFull m φ d e t)
     fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.1,
     fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.2⟩
 
+/-- **A reduction of a type** (task #342, L12): a subject that is a graded
+TYPE at every satisfying valuation reduces to a graded type with the same
+interpretation.  The conditional claim applies at every valuation because
+a type is never the point ("not pt" source (1): `IsTy.ne_pt`).  The
+positivity readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and
+read their whnf steps through it. -/
+theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
+    (h : Red env d e e') (hf : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
+    (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea)
+    (hg : GradedTy V Δa ea) :
+    Frame d e' ∧ LeavesSub e' e ∧
+      ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧ GradedTy V Δa ea' ∧
+        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ea' := by
+  obtain ⟨hf', hsub, ea', hea', hs⟩ := red_sound hin h hf hC.toS hea
+  have hs' := fun ρ hρ => hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ).1 (hg ρ hρ).2.ne_pt
+  exact ⟨hf', hsub, ea', hea', fun ρ hρ => ⟨(hs' ρ hρ).1, (hs' ρ hρ).2 ▸ (hg ρ hρ).2⟩,
+    fun ρ hρ => (hs' ρ hρ).2⟩
+
 /-- **Interim** (task #342, L12): a reduction of a globally graded
 subject, unconditionally, through the side induction.  The positivity
 readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and read their
