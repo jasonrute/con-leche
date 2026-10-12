@@ -85,15 +85,12 @@ inductive InferIO [LevelOracle] (env : Env) : List Expr → Expr → Expr → Pr
   | app {Γ : List Expr} {f a tf A B : Expr} :
       InferIO env Γ f tf → Red env Γ tf (pi A B) →
       InferIO env Γ (app f a) (B.inst a)
-  /-- **`let`, by substitution, the value checked at the full grade**
-  (task #342, F4; ruling R-C): the type's sort and the value against
-  the type at the FULL grade (`Infer`, `DefEq`), as `Infer.letE` —
-  a deviation from `infer_only`, which skips both — then the body with
-  the value substituted at the io grade.  The soundness proof uses
-  neither check (`InferIO.letE_sound`). -/
-  | letE {Γ : List Expr} {T v b s tv B : Expr} {u : Level} :
-      Infer env Γ T s → Red env Γ s (sort u) →
-      Infer env Γ v tv → DefEq env Γ tv T →
+  /-- **`let`, by substitution** (task #342, F4; maintainer's ruling of
+  2026-10-12): as official `infer_only`, the value is not checked
+  against the type — the full grade (`Infer.letE`) checks it — and the
+  body with the value substituted is inferred at the io grade.  The
+  soundness proof needs no check on the value (`InferIO.letE_sound`). -/
+  | letE {Γ : List Expr} {T v b B : Expr} :
       InferIO env Γ (b.inst v) B →
       InferIO env Γ (letE T v b) B
 
@@ -357,8 +354,8 @@ omit [LevelOracle] in
 /-- **`let`, by substitution** (task #342, F4): the `let` denotes what
 the instantiated body denotes (`interp_zeta`), and is well-denoted
 exactly when the body is at the value (`WellDenoted_letE`), so the
-body's claim is the `let`'s.  The full-grade checks on the value are
-not used. -/
+body's claim is the `let`'s.  Nothing about the value is needed, so
+the rule checks nothing about it. -/
 theorem InferIO.letE_sound {Γ : List Expr} {T v b B : Expr}
     (hb : InferIOSem m φ Γ (b.inst v) B) : InferIOSem m φ Γ (.letE T v b) B := by
   intro ρ hs hw
@@ -377,7 +374,7 @@ theorem inferIO_sound : ∀ {Γ : List Expr} {e T : Expr},
     InferIO.pi_sound (inferIO_sound hA) hu (inferIO_sound hB) hv
   | _, _, _, .lam hb => InferIO.lam_sound (inferIO_sound hb)
   | _, _, _, .app hf hr => InferIO.app_sound (inferIO_sound hf) hr
-  | _, _, _, .letE _ _ _ _ hb => InferIO.letE_sound (inferIO_sound hb)
+  | _, _, _, .letE hb => InferIO.letE_sound (inferIO_sound hb)
 
 /-! ## Consumer: proof irrelevance -/
 
