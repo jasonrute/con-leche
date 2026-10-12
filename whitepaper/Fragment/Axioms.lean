@@ -279,3 +279,28 @@ info: 'Fragment.piV_const_one' depends on axioms: [propext, Classical.choice, Qu
 info: 'Fragment.DefEq.etaProp_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.DefEq.etaProp_sound
+
+/--
+info: 'Fragment.DefEqLams.inner_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEqLams.inner_sound
+
+/--
+info: 'Fragment.DefEqLams.outer_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEqLams.outer_sound
+
+/--
+info: 'Fragment.DefEq.lams_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.DefEq.lams_sound
+
+/--
+info: 'Fragment.defeqLams_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.defeqLams_sound
+
+/--
+info: 'Fragment.Red.iotaK_core_sem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaK_core_sem

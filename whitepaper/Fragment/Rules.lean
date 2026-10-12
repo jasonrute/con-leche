@@ -355,6 +355,57 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ b tb → Infer env Γ tb ttb → Red env Γ ttb (sort v) →
       LevelOracle.eq v .zero = true →
       DefEq env Γ a b
+  /-- **λ-telescope congruence** (task #349): a pair of λ-telescopes
+  compared level by level, the bodies' types compared only at the
+  innermost level (`DefEqLams`).  The checker's two-λ arm skips the
+  bodies' types exactly when both opened bodies are syntactically λs. -/
+  | lams {Γ : List Expr} {a b : Expr} : DefEqLams env Γ a b → DefEq env Γ a b
+
+/-- **λ-telescope congruence, typed at the innermost level only**
+(task #349).  Two λ-telescopes are compared level by level: the domains
+at every level, the bodies' types only where the comparison stops
+descending through two λs.
+
+*Why the outer levels need no type comparison.*  Syntactically: the
+type of `fun x : A => fun y : B => c` is `∀ x : A, ∀ y : B, T` where
+`T` is `c`'s type, so for two telescopes compared with equal domains,
+each outer level's bodies' types are `∀`s over the domain the next
+level compares, with the next level's bodies' types as codomains; equal
+innermost bodies' types give equal bodies' types at every level, by
+`∀`-congruence.  Semantically (`Sound.lean`, `DefEqLams.outer_sound`):
+the type comparison is what makes λ-congruence's claim
+**unconditional** — `DefEq`'s claim says nothing where a side is the
+point, and two bodies in one type are both the point or neither — and
+an unconditional equality of the bodies at every value of the variable
+is an equality of the λs, with no type at all.  So the claim of this
+relation, `LamsSem`, is unconditional, and it propagates outward
+through any number of levels.
+
+*Unequal depth, and reduction between levels.*  The descent continues
+only through two **syntactic** λs (`outer`'s premise is this relation
+itself, which has no reduction rule).  Where one body is not a λ — the
+comparison ends in η, or in any other rule, possibly after δ or whnf
+steps — that level is the innermost one (`inner`), and its bodies'
+types are inferred and compared at the full grade.  A δ or whnf step
+between levels therefore resets the accounting: #345's δ-witness `d :=
+fun x => (fun h => h) n` (`Probe.lean`, `lam_congr_sorts_unsound`)
+puts the reduction inside `inner`'s untyped premise `DefEq … b₁ b₂`,
+where the type comparison is still required.  Syntactically equal
+λs (`refl`) are equal outright. -/
+inductive DefEqLams (env : Env) : List Expr → Expr → Expr → Prop where
+  /-- Syntactically equal sides (the checker's `a == b` fast path). -/
+  | refl {Γ : List Expr} {a : Expr} : DefEqLams env Γ a a
+  /-- The innermost level: `DefEq.lam`'s premises — domains, bodies,
+  and the bodies' inferred types. -/
+  | inner {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
+      DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
+      Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
+      DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
+  /-- An outer level: the domains, and the bodies by this relation —
+  no inference, no type comparison. -/
+  | outer {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} :
+      DefEq env Γ A₁ A₂ → DefEqLams env (A₂ :: Γ) b₁ b₂ →
+      DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
 
 /-- **Comparison at a known type** (task #345): `a` and `b` are both
 members of `T` — the caller knows it, the relation does not check it —

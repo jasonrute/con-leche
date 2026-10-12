@@ -637,6 +637,62 @@ theorem eta_sound {Γ : List Expr} {T D E A₁ b₁ b : Expr}
 
 end DefEqIn
 
+/-! ## λ-telescopes typed at the innermost level (task #349) -/
+
+namespace DefEqLams
+
+/-- Syntactically equal sides denote alike. -/
+theorem refl_sound {Γ : List Expr} {a : Expr} : LamsSem m φ Γ a a :=
+  fun _ _ _ _ => rfl
+
+/-- **The innermost level**: `DefEq.lam`'s premises give an
+unconditional equality.  The bodies lie in one type at every value of
+the variable, so they are both the point or neither, and where neither
+is the bodies' claim makes them equal; no side need be off the point. -/
+theorem inner_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr}
+    (hA : DefEqSem m φ Γ A₁ A₂) (hb : DefEqSem m φ (A₂ :: Γ) b₁ b₂)
+    (ht₁ : InferSem m φ (A₂ :: Γ) b₁ t₁) (ht₂ : InferSem m φ (A₂ :: Γ) b₂ t₂)
+    (ht : DefEqSem m φ (A₂ :: Γ) t₁ t₂) :
+    LamsSem m φ Γ (.lam A₁ b₁) (.lam A₂ b₂) := by
+  intro ρ hs h₁ h₂
+  rw [WellDenoted_lam] at h₁ h₂
+  have heA := hA ρ hs h₁.1 h₂.1 h₁.2.1.ne_pt h₂.2.1.ne_pt
+  simp only [interp_lam]
+  rw [heA]
+  apply lamV_congr
+  intro x hx
+  have hs' : Sat m.M φ (A₂ :: Γ) (cons x ρ) := (Sat_cons m.M φ).mpr ⟨hs, h₂.1, h₂.2.1, hx⟩
+  obtain ⟨hw₁, hwt₁, hT₁, hm₁⟩ := ht₁ _ hs'
+  obtain ⟨hw₂, hwt₂, hT₂, hm₂⟩ := ht₂ _ hs'
+  rw [ht _ hs' hwt₁ hwt₂ hT₁.ne_pt hT₂.ne_pt] at hm₁
+  exact hT₂.eq_of_ne_pt hm₁ hm₂ (hb _ hs' hw₁ hw₂)
+
+/-- **An outer level needs no type** (task #349): the bodies are equal
+at every value of the variable, unconditionally, so the λs are; the
+domains are types, never the point, so their conditional claim
+applies.  This is why the type comparison is owed only at the
+innermost level of a λ-telescope pair. -/
+theorem outer_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr}
+    (hA : DefEqSem m φ Γ A₁ A₂) (hb : LamsSem m φ (A₂ :: Γ) b₁ b₂) :
+    LamsSem m φ Γ (.lam A₁ b₁) (.lam A₂ b₂) := by
+  intro ρ hs h₁ h₂
+  rw [WellDenoted_lam] at h₁ h₂
+  have heA := hA ρ hs h₁.1 h₂.1 h₁.2.1.ne_pt h₂.2.1.ne_pt
+  simp only [interp_lam]
+  rw [heA]
+  apply lamV_congr
+  intro x hx
+  have hx₁ : x ∈ˢ interp m.M φ ρ A₁ := by rw [heA]; exact hx
+  exact hb (cons x ρ) ((Sat_cons m.M φ).mpr ⟨hs, h₂.1, h₂.2.1, hx⟩) (h₁.2.2.1 x hx₁)
+    (h₂.2.2.1 x hx)
+
+end DefEqLams
+
+/-- The telescope relation's unconditional claim gives `DefEq`'s. -/
+theorem DefEq.lams_sound {Γ : List Expr} {a b : Expr} (h : LamsSem m φ Γ a b) :
+    DefEqSem m φ Γ a b :=
+  fun ρ hs ha hb _ _ => h ρ hs ha hb
+
 /-! ## ι -/
 
 /-- **Certificates give fit**: arguments typed against the telescope's
@@ -1186,6 +1242,43 @@ theorem iota_core_strict {Γ : List Expr} {c : Name} {us : List Level} {ci : Con
   exact teleFit_of_ne_pt hcjT.1 (by rw [interp_const]; exact hcjT.2.2)
     (by rw [Expr.hasPis_instL]; exact hpis') hwmajor (hmajeq ▸ hmajne)
 
+/-- **ι by K, with no certificate at all** (task #349).  Given the K
+law (`RecRuleLawK`), a K redex reduces to the right-hand side applied
+to the recursor's parameters, motives and minors, with no major-slot
+certificate, no constructor certificate, no parameter or index
+comparison, and no reduction of the major: the redex is not the point,
+so the whole spine — the major included — fits the recursor's
+telescope (`teleFit_of_ne_pt`), which is all the law asks; the reduct
+does not mention the major.  The checker's K type check (the
+fabricated constructor's type against the major's) decides whether the
+step is taken, as in Lean's kernel, and no claim consumes it. -/
+theorem iotaK_core_sem {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {args : List Expr} {rl : RecRule} {numBefore majorIdx : Nat}
+    (hfind : env.find? c = some ci)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hlaw : RecRuleLawK m.M c ci numBefore majorIdx rl) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take numBefore)) := by
+  intro ρ hs hw hn
+  obtain ⟨-, hargs⟩ := WellDenoted_mkAppN m.M φ hw
+  have hT := m.type_ok c ci hfind φ ρ us hus
+  have hp : (ci.type.instL ci.lparams us).hasPis args.length = true := by
+    rw [Expr.hasPis_instL, hlen]; exact hpis
+  have hfit := teleFit_of_ne_pt hT.1 (by rw [interp_const]; exact hT.2.2) hp hw hn
+  have hfitV := teleFitV_of_teleFit m.M φ ρ hp hfit
+  have hv : interp m.M φ ρ (Expr.mkAppN (Expr.const c us) args)
+      = appList (m.M c (us.map (Level.eval φ))) (args.map (interp m.M φ ρ)) := by
+    rw [interp_mkAppN_appList, interp_const]
+  obtain ⟨heq, hwr, hsp⟩ :=
+    hlaw φ ρ us (args.map (interp m.M φ ρ)) hus (by simp [hlen]) hfitV (hv ▸ hn)
+  have hvals : (args.take numBefore).map (interp m.M φ ρ)
+      = (args.map (interp m.M φ ρ)).take numBefore := List.map_take ..
+  refine ⟨WellDenoted_mkAppN_of_spineOk m.M φ ρ hwr
+    (fun a ha => hargs a (List.mem_of_mem_take ha)) (by rw [hvals]; exact hsp), ?_⟩
+  rw [hv, heq, interp_mkAppN_appList, hvals]
+
 /-- **ι**: `iota_core` with the environment's `RecRuleLaw`;
 the parameter comparisons are passed on in their conditional form. -/
 theorem iota_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
@@ -1334,6 +1427,15 @@ theorem defeq_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
       (infer_sound ht₁) (defeq_sound htB)
   | _, _, _, .proofIrrel hta htta hu hu0 _ _ _ _ =>
     DefEq.proofIrrel_sound (infer_sound hta) (infer_sound htta) (red_sound hu) hu0
+  | _, _, _, .lams h => DefEq.lams_sound (defeqLams_sound h)
+
+theorem defeqLams_sound [LevelOracle] : ∀ {Γ : List Expr} {a b : Expr},
+    DefEqLams env Γ a b → LamsSem m φ Γ a b
+  | _, _, _, .refl => DefEqLams.refl_sound
+  | _, _, _, .inner hA hb ht₁ ht₂ ht =>
+    DefEqLams.inner_sound (defeq_sound hA) (defeq_sound hb) (infer_sound ht₁) (infer_sound ht₂)
+      (defeq_sound ht)
+  | _, _, _, .outer hA hb => DefEqLams.outer_sound (defeq_sound hA) (defeqLams_sound hb)
 
 theorem defeqIn_sound [LevelOracle] : ∀ {Γ : List Expr} {T a b : Expr},
     DefEqIn env Γ T a b → DefEqInSem m φ Γ T a b

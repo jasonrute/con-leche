@@ -22,7 +22,10 @@ every environment `ρ` satisfying the context:
   type's;
 * **`DefEqInSem`** (task #345) — two well-denoted members of one
   well-denoted type that the checker compares at that type have equal
-  denotations.
+  denotations;
+* **`LamsSem`** (task #349) — two well-denoted λ-telescopes that the
+  checker compares level by level, typing only the innermost bodies,
+  have equal denotations, unconditionally.
 
 The first two are **conditional on the point**: they say nothing about
 proofs, which is what lets β fire at every binder with no certificate
@@ -51,6 +54,12 @@ proof. -/
 def RedSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (e e' : Expr) : Prop :=
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ e → interp m.M φ ρ e ≠ pt →
     WellDenoted m.M φ ρ e' ∧ interp m.M φ ρ e = interp m.M φ ρ e'
+
+/-- **`DefEqLams`' claim** (task #349): two well-denoted sides have
+equal denotations — unconditionally, the point included. -/
+def LamsSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (a b : Expr) : Prop :=
+  ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
+    interp m.M φ ρ a = interp m.M φ ρ b
 
 /-- **`DefEq`'s claim**: two well-denoted sides that are not the point
 have equal denotations.  (Two proofs are the point.) -/

@@ -170,6 +170,32 @@ def RecRuleLaw (M : Name → List Nat → V) (c : Name) (ci : ConstInfo)
     WellDenoted M φ ρ (rl.rhs.instL ci.lparams us) ∧
     SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop numParams)
 
+/-- **The ι law of a K rule** (task #349; not yet an `EnvModel` field).
+For a recursor `c` whose one rule `rl` fires on a constructor with no
+fields of a family of sort `Prop` (Lean's K: `Eq`, `HEq`, `True`): at
+**any** values `vs` fitting the recursor's whole telescope — the
+major's value included, whatever term produced it — an application
+that is not the point equals the rule's right-hand side applied to the
+parameters, motives and minors alone.  In the inductive model this is
+the plain law at the recursor's own parameters plus **inversion of the
+least fixed point**: the major's value lies in the fibre at the
+recursor's indices, a fibre is inhabited only at the indices of the
+unique constructor applied to those parameters (the family "inhabited
+exactly there" is closed under the constructor, so it contains the
+least one), and the constructor's value there is the point, as the
+major's is.  The constructor application the checker fabricates (or
+finds) is not mentioned: the reduct does not contain it. -/
+def RecRuleLawK (M : Name → List Nat → V) (c : Name) (ci : ConstInfo)
+    (numBefore majorIdx : Nat) (rl : RecRule) : Prop :=
+  ∀ (φ : Name → Nat) (ρ : Nat → V) (us : List Level) (vs : List V),
+    us.length = ci.lparams.length → vs.length = majorIdx + 1 →
+    TeleFitV M φ ρ (ci.type.instL ci.lparams us) vs →
+    appList (M c (us.map (Level.eval φ))) vs ≠ pt →
+    appList (M c (us.map (Level.eval φ))) vs
+        = appList (interp M φ ρ (rl.rhs.instL ci.lparams us)) (vs.take numBefore) ∧
+      WellDenoted M φ ρ (rl.rhs.instL ci.lparams us) ∧
+      SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (vs.take numBefore)
+
 /-- **The ι law of a nested rule** (`Red.iotaNested`): for the
 recursor `c` with `numParams` parameters and a rule `rl` firing on a
 constructor `cij` of the block's container, with `nPc` parameters of
