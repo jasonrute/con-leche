@@ -101796,3 +101796,101 @@ remaining index comparison covers the rest."
 **Gates.**  `whitepaper/fragment-gate.sh` green; pins added for the
 four theorems.  `Red.eq_of_rigid` (F4, `IOGrade.lean`) has an
 `iotaProp` arm.  `links-gate.sh` fails as on the base; not touched.
+
+## TASK #342 — F1: the fibre law of stored families; ι with no certificate on a never-`Prop` family, and with no slot certificate on any family (2026-10-12, agent/342-f1)
+
+The question (#342 v2 §11.4, row F1; coordinator follow-up after F3).
+State #347's case-2 environment law ("a family whose stored sort
+evaluates non-zero has strict fibres"), prove it in the installer,
+thread it, and add the case-2 ι rule with one level premise and no
+certificate.  Then, with F3's `iota_core_prop`, add a rule with no
+major-slot certificate and no level test for families that are `Prop`
+at some valuations only (`Quot.{u}`, `PUnit.{u}`).  Fragment only
+(`whitepaper/Fragment`).
+
+**The law: `IndFibLaw`, field `EnvModel.ind_fib`.**  For a stored former
+`I` (`ci.kind = .induct nP nI cs S`), at levels `ls` and values `vs`
+fitting its telescope (`vs.length = nP + nI`):
+`Fib (eval φ (S.sort.subst ci.lparams ls) == 0) (appList (M I ls) vs)`.
+That is, a truth value where the stored sort evaluates to zero, and
+strict (not the point, without the point) where it does not.  The zero
+half is what the slot-free rule needs (below); the non-zero half is
+#347's law.
+- **No guard.**  #347 expected the law to need a guard (for example the
+  block's constructors being stored), because `mIndF` gives the former an
+  arbitrary family.  That family is admissible (`hFa : adm F = F`), and
+  an admissible set above a proposition is strict
+  (`IndCommon.strict_adm`).  So the law holds at every stage that stores
+  the former, including `mIndF`.  It is a plain `EnvModel` field.
+- Proof: `Reader.app_famSetF` (the former's set applied to fitting
+  values is the family at the split parameters and indices, by β),
+  `Reader.fib_app` (in the universe: a truth value at `z`; admissible:
+  strict above), `indFib_of_readers` (the use's levels evaluate the
+  stored sort as the reader's valuation does).  `mIndF`, `mInd`,
+  `mIndFN` and `mIndN` call it.  `transport`, `install_def`, `mCtors`,
+  `mCtorsN`, `mInstall`, `mInstallN`, `EnvModel.empty`, and the probe
+  models `sortModel`/`ioModel` delegate the law or close it vacuously.
+
+**Case 2 as a rule: `Red.iotaStrict`, `Red.iotaNestedStrict`.**  These
+are `Red.iota`/`iotaNested` with no major-slot certificate and no
+constructor certificate.  The premise is: the major's domain (the
+recursor telescope's residual) is `mkAppN (const I₀ ls₀) dargs`, with
+`I₀` a stored former, `dargs.length = nP₀ + nI₀`, its type having that
+many binders, and one level test
+`LevelOracle.le (succ zero) (S₀.sort.subst ci₀.lparams ls₀)`.
+- `strict_dom` derives the domain's strictness from the law.  Its route
+  is `dom_fib`: the redex is not the point, so the spine before the
+  major fits; the domain is then well-denoted and a type, so not the
+  point; so `dargs` fit `I₀`'s telescope; then the law applies.
+- Soundness is `iota_core_strict`.  Its strictness hypothesis now also
+  receives the redex's invariant and its not being the point.
+- The three comparisons are kept, as in `Red.iota`.
+
+**No slot certificate, no level test: `Red.iotaSlot`,
+`Red.iotaNestedSlot`.**
+- F3's `iota_core_prop` is generalised to `iota_core_slot`, and is now
+  its corollary (same statement).  `iota_core_slot`'s per-valuation
+  premise is `Strict ⟦dM⟧ ∨ ⟦ctor app⟧ = pt`, given the redex's
+  invariant and the constructor's fit.
+- `slot_case` supplies that premise from the law, at each valuation:
+  - where the family's sort is not zero, `dM` is strict (`dom_fib`);
+  - where it is zero, the constructor's residual is a truth value
+    (`app_fib`) that holds the constructor application
+    (`mem_piResidual`), so the application is the point.
+- The rules keep the full-grade constructor-telescope certificate and
+  the three comparisons, and drop the slot.  This is case 3 of §11.4
+  minus its slot.
+- **A link premise is needed**, and this is the one place the rule
+  says more than the checker tests today.  The major's domain must be
+  headed by the residual's family `I`:
+  `dM = mkAppN (const I ls₀) dargs`, with `Level.eqList lsI ls₀`
+  (oracle-equal levels).  Without it, the domain's sort and the
+  constructor's sort are unrelated in the rule's premises: the
+  per-valuation split needs the same sort on both sides.  On generated
+  recursors the link holds by construction: the major's domain is the
+  recursor's family at the recursor's levels, and the residual is the
+  same family at `usj`, oracle-equal to `us.drop` by the level
+  comparison.  The checker can test it for the price of one name test
+  and one level-list comparison per case-3 redex (about 80 per
+  stream).  Alternatively L10 proves it as an installer fact (the rule's
+  constructor's residual head is the recursor's major family) and drops
+  it from the rule.
+- `iotaProp` (F3, level test `u = 0`) stays.  It is subsumed by
+  `iotaSlot` on generated recursors, but needs no link premise.
+
+**Gates.**  `whitepaper/fragment-gate.sh` is green, with pins for the
+new theorems.  `Red.eq_of_rigid` (`IOGrade.lean`) has arms for the four
+new rules.  `links-gate.sh` fails as on the base (stale citations from
+#344 on); not touched.
+
+**For F2 (K as a rule).**  The threading pattern is in place: a new
+`EnvModel` field is delegated by `transport` (constant congruence),
+`install_def` (`.defn` kind mismatch), the constructor and recursor
+stages (kind mismatch, then the previous stage) and the probe models.
+It is proved where the constant is created: here at the former
+(`mIndF`/`mInd`/`mIndFN`/`mIndN`); for K at the recursor
+(`mInstall`/`mInstallN`, next to `rec_rule_law`).  `RecRuleLawK` needs
+the inversion of `IndSem`'s least fixed point and "the constructor's
+parameter telescope is the recursor's"; the fibre law does not give
+either.  For a K family (`Prop`-sorted), `ind_fib` does give that the
+major's domain is a truth value at every valuation.
