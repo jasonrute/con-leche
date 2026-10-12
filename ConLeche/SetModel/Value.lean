@@ -310,6 +310,19 @@ theorem quotLiftV_app {u v : Nat} {A R B f h : V}
       quotLiftR V u A R f := by
   rw [quotLiftV, app_lamV hA, app_lamV hR, app_lamV hB, app_lamV hf, app_lamV hh]
 
+/-- `Quot.lift` inhabits its type. -/
+theorem quotLiftV_mem (u v : Nat) :
+    quotLiftV V u v ∈ˢ piV (univ u : V) fun A =>
+      piV (relSpace V A) fun R =>
+        piV (univ v : V) fun B =>
+          piV (piV A fun _ => B) fun f =>
+            piV (quotInvSpace V A R f) fun _ =>
+              piV (quotSet u A R) fun _ => B :=
+  lamV_mem (fun _ _ => lamV_mem (fun _ _ => lamV_mem (fun _ hB =>
+    lamV_mem (fun _ hf => lamV_mem (fun _ _ => quotLiftR_mem V hf (IsTy_of_mem_univ hB))
+      fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV)
+    fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+
 /-! ## `Classical.choice` -/
 
 /-- `¬¬A`, i.e. `(A → False) → False`: a truth value. -/
