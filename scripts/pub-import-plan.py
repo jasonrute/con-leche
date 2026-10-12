@@ -546,8 +546,8 @@ FALLBACK = {
     # `NodupNames` (EnvBound); the model reads statements, not exposed
     # bodies, and the compiler wants the re-export.
     ('ConLeche.Verify.Cached.PushChain','ConLeche.Verify.EnvBound'),
-    # task #285: `BasisGen` declares the `#annotate_basis` COMMAND, and
-    # `TrustAxioms` invokes it through `BasisA`'s re-export.  A command
+    # task #285: `BasisGen` declares the `#stored_basis` COMMAND (was
+    # `#annotate_basis`, task #342), and `BasisA` invokes it.  A command
     # elaborator is registered, not named, so no census row attributes it —
     # demoting the line makes `TrustAxioms` fail to parse (`unexpected
     # token '#'`), which is task #235's third blind class seen from the

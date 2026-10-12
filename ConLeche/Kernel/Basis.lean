@@ -24,10 +24,10 @@ module per pinned type under `ConLeche/Kernel/Basis/`, hand-written
 against the toolchain's `Init.Prelude` through the small builder in
 `Basis/Builder.lean`.
 
-**Raw only.**  The *annotated* forms — what the installation actually
-stores — are computed from these by the checker's own annotation pass
-in `ConLeche/Kernel/BasisA.lean`, which therefore sits above
-`ConLeche.Kernel.TypeChecker`.  This module sits below it: the kernel
+**Raw only.**  The *stored* forms — what the installation actually
+stores, a recursor's rules carrying the install-computed fields — are
+computed from these in `ConLeche/Kernel/BasisA.lean`, which therefore
+sits above `ConLeche.Kernel.TypeChecker`.  This module sits below it: the kernel
 core needs the raw pins (the fold matches incoming records against
 them) and nothing else.
 -/

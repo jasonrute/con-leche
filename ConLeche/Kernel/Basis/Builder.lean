@@ -26,9 +26,9 @@ one-to-one, non-abbreviating renaming of those constructors at the
 new notion: every one of them is a `def` whose body is a single `Expr`
 constructor application.
 
-The annotated forms are NOT written here: they are computed from these
-raw pins by the checker's own annotation pass at elaboration time
-(`#annotate_basis`, `ConLeche/Kernel/BasisGen.lean`).
+The stored forms are NOT written here: they are computed from these
+raw pins at elaboration time (`#stored_basis`,
+`ConLeche/Kernel/BasisGen.lean`).
 -/
 
 namespace ConLeche
@@ -117,7 +117,7 @@ def ap4 (f a b c d : Expr) : Expr := .app (.app (.app (.app f a) b) c) d
 
 /-- A raw iota rule: the install-computed fields (`ctorParams`,
 `fire`, `k`, `eta`, `paramsBlind`) at their parse placeholders, which
-is what the exporter emits and what `#annotate_basis` recomputes. -/
+is what the exporter emits and what `#stored_basis` recomputes. -/
 def rule (ctor : Name) (nfields : Nat) (rhs : Expr) : RecRule :=
   ⟨ctor, nfields, 0, .inert, rhs, false, false, false⟩
 

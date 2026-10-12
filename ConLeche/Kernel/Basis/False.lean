@@ -26,9 +26,8 @@ the accepted environment alone, exactly as for `Empty`.  The *value*
 is the empty set in both cases; `False`'s lives in `Prop`, where the
 empty set is the false proposition.
 
-The *annotated* forms (`falseA`, `falseRecA`) are computed from these
-by the checker's own annotation pass at elaboration time; see
-`ConLeche/Kernel/BasisA.lean`.
+The *stored* forms (`falseA`, `falseRecA`) are computed from these at
+elaboration time; see `ConLeche/Kernel/BasisA.lean`.
 -/
 
 namespace ConLeche

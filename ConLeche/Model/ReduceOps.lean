@@ -127,10 +127,7 @@ theorem reduceOp_shapeS {c : Name} {type' : Expr}
       = .forallE
           (ConLeche.reduceElemTy c) (ConLeche.reduceElemTy c)
           {} := by
-    rcases hcases with rfl | rfl <;>
-      simp [ConLeche.reduceOpCvA, ConLeche.reduceNatCvA,
-        ConLeche.reduceBoolCvA, ConLeche.reduceElemTy, ConLeche.reduceNatName,
-        ConLeche.reduceBoolName, ConLeche.natName, ConLeche.boolName]
+    rcases hcases with rfl | rfl <;> rfl
   rw [hshape] at h
   exact ⟨_, h⟩
 

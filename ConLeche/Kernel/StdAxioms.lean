@@ -1,8 +1,6 @@
 module
 
 public import ConLeche.Kernel.BasisA
-public meta import ConLeche.Kernel.BasisA
-import ConLeche.Kernel.BasisGen
 
 @[expose] public section
 
@@ -15,11 +13,8 @@ of propositions (derived through the stored `Iff` recursor),
 `Classical.choice` by global choice (through the stored `Nonempty`
 recursor) — so the checker accepts exactly these two axioms, after
 pinning their types and the *shapes of the inductives they quantify
-over* to the toolchain's.  Raw pins below, hand-written through the builder
-in `ConLeche/Kernel/Basis/Builder.lean`; the annotated forms — what the
-checker's own annotation produces for them, in dependency order — are
-computed from them at elaboration time by `#annotate_basis` /
-`#annotate_pins` (`ConLeche/Kernel/BasisGen.lean`).
+over* to the toolchain's.  The pins below are hand-written through the
+builder in `ConLeche/Kernel/Basis/Builder.lean`.
 
 **Binder annotations (tasks #142, #203, #205).**  A pin carries no
 binder name and no binder info — `Expr` has neither field (task #205),
@@ -96,11 +91,11 @@ def ConstantVal.matchesPin (cv pin : ConstantVal) : Bool :=
     cv.type == pin.type
 
 /-- `Iff (a b : Prop) : Prop`. -/
-def iffRaw : ConstantInfo :=
+def iffA : ConstantInfo :=
   .indInfo ⟨iffName, [], pi "a" prop <| pi "b" prop prop⟩ {}
 
 /-- `Iff.intro (a b : Prop) (mp : a → b) (mpr : b → a) : Iff a b`. -/
-def iffIntroRaw : ConstantInfo :=
+def iffIntroA : ConstantInfo :=
   .ctorInfo ⟨iffIntroName, [],
     pi "a" prop <|
     pi "b" prop <|
@@ -119,7 +114,7 @@ def iffRecIntro : Expr :=
 /-- `Iff.rec.{u} (a b : Prop) (motive : Iff a b → Sort u)
 (intro : ∀ mp mpr, motive (Iff.intro a b mp mpr)) (t : Iff a b) :
 motive t`. -/
-def iffRecRaw : ConstantInfo :=
+def iffRecA : ConstantInfo :=
   .recInfo ⟨iffRecName, [uN],
     pi "a" prop <|
     pi "b" prop <|
@@ -130,7 +125,7 @@ def iffRecRaw : ConstantInfo :=
 
 /-- The raw `propext` declaration:
 `propext (a b : Prop) : Iff a b → Eq.{1} Prop a b`. -/
-def propextRaw : ConstantVal :=
+def propextA : ConstantVal :=
   ⟨propextName, [],
     pi "a" prop <|
     pi "b" prop <|
@@ -138,11 +133,11 @@ def propextRaw : ConstantVal :=
     ap3 (cnst eqName [.succ .zero]) prop (bv 2) (bv 1)⟩
 
 /-- `Nonempty.{u} (α : Sort u) : Prop`. -/
-def nonemptyRaw : ConstantInfo :=
+def nonemptyA : ConstantInfo :=
   .indInfo ⟨nonemptyName, [uN], pi "α" (srt u) prop⟩ {}
 
 /-- `Nonempty.intro.{u} (α : Sort u) (val : α) : Nonempty α`. -/
-def nonemptyIntroRaw : ConstantInfo :=
+def nonemptyIntroA : ConstantInfo :=
   .ctorInfo ⟨nonemptyIntroName, [uN],
     pi "α" (srt u) <|
     pi "val" (bv 0) <|
@@ -153,7 +148,7 @@ def nonemptyIntroRaw : ConstantInfo :=
 (intro : ∀ val, motive (Nonempty.intro α val)) (t : Nonempty α) :
 motive t`.  The motive sort is pinned to `Prop` (see the guidance
 above). -/
-def nonemptyRecRaw : ConstantInfo :=
+def nonemptyRecA : ConstantInfo :=
   .recInfo ⟨nonemptyRecName, [uN],
     pi "α" (srt u) <|
     pi "motive" (pi "t" (.app (cnst nonemptyName [u]) (bv 0)) prop) <|
@@ -165,32 +160,10 @@ def nonemptyRecRaw : ConstantInfo :=
 
 /-- The raw `Classical.choice` declaration:
 `Classical.choice.{u} (α : Sort u) : Nonempty α → α`. -/
-def choiceRaw : ConstantVal :=
+def choiceA : ConstantVal :=
   ⟨choiceName, [uN],
     pi "α" (srt u) <|
     piA (.app (cnst nonemptyName [u]) (bv 0)) (bv 1)⟩
-
-/-! ## The annotated pins
-
-Computed from the raw pins above by the checker's own annotation pass
-while this module elaborates (`#annotate_basis`,
-`ConLeche/Kernel/BasisGen.lean`), in the same dependency order the
-prerequisite families would be installed in — over the pinned `Eq`
-basis, which `propext`'s conclusion mentions. -/
-
-#annotate_basis over [eqA]
-  | iffA := iffRaw
-  | iffIntroA := iffIntroRaw
-  | iffRecA := iffRecRaw
-  | nonemptyA := nonemptyRaw
-  | nonemptyIntroA := nonemptyIntroRaw
-  | nonemptyRecA := nonemptyRecRaw
-
-#annotate_pins over
-    [nonemptyRecA, nonemptyIntroA, nonemptyA, iffRecA, iffIntroA, iffA, eqA]
-  | propextA := propextRaw
-  | choiceA := choiceRaw
-
 
 /-- Is this checked axiom one of the two recognized standard axioms,
 over standardly-shaped stored `Iff` / `Nonempty` families (and the
