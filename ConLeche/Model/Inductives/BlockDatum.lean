@@ -1649,7 +1649,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         (hF.nameOf m cvTa hcv).symm]
       exact ConLeche.Expr.noProjAt_of_constsResolve (hF.freshOf m cvTa hcv) _
         (hF.resolveOf c cvTb hc)
-    · -- noProjC: an annotated constructor type carries a projection only
+    · -- noProjC: a stored constructor type carries a projection only
       -- where a table entry typed it, and no member's table is stored yet
       intro m c j cA hm hm1 hm2 hj i
       have hck : c < q.k := hctorLt c j cA hj

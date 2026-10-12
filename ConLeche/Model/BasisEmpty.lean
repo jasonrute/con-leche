@@ -19,8 +19,7 @@ The recipe for a basis constant's type, in three moves:
    `denoteMeta_fvar` and `Expr.instantiate1_eq_self` at every closed
    binder body, with the constant leaves supplied by
    `acval_basis_pinned` (`Model/BasisCons.lean`);
-3. the reading is `BConst.typeAV` on the nose (no binder datum is read,
-   task #342 L14a), so `WellDenotedTy_bconst_type` grades it and
+3. the reading is `BConst.typeAV` on the nose, so `WellDenotedTy_bconst_type` grades it and
    `bval_mem_type` inhabits it.
 -/
 
@@ -41,8 +40,7 @@ variable {μ : CheckMode} {env : Env}
 /-! ## `Empty` -/
 
 /-- The `Empty` former's type reading: `Sort 1`, which is
-`BConst.typeAV .empty [1]` on the nose (no `BitAgree` needed — the
-former has no binder, so there is no numeral to disagree about). -/
+`BConst.typeAV .empty [1]` on the nose. -/
 theorem denoteMeta_emptyA_type
     {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
     denoteMeta acval ⟨emptyA :: env.consts⟩ ψ 0 emptyA.toConstantVal.type

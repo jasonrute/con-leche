@@ -69,7 +69,7 @@ The pin fixes the axiom's type to the stored `True` *on the nose* —
 `ConstantVal.matchesPin` is plain equality — so this is the one pinned axiom
 whose `denoteMeta` reading is computable from the pin alone (see the
 module docstring).  The leaf is the stored `True.intro`'s
-annotated valuation, and the membership is that constant's own
+leaf valuation, and the membership is that constant's own
 `mem_type`, whose type reads to the same `acval trueName ψ` the
 axiom's does. -/
 theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
@@ -121,7 +121,7 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
       decide_eq_true_eq, beq_iff_eq] at hA
     exact hA.2
   have hnameTi : ciTi.name = ConLeche.trueIntroName := Env.find?_name hfTi
-  -- the leaf: the stored `True.intro`'s *annotated* valuation
+  -- the leaf: the stored `True.intro`'s leaf valuation
   refine harvestAxiom (V := V) hμ mp hcv
     (A := fun ψ => mp.base2.acval ConLeche.trueIntroName ψ)
     (fun ψ => mp.base2.cval_closedL _ ψ) ?_ ?_ ?_ ?_

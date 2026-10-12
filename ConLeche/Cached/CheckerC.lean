@@ -95,11 +95,11 @@ transitions, `FEnv.push` maintaining the index, and *every*
 environment lookup routed through the index (task #63). -/
 
 /-- **The rule stage's operations at the rule-less recursors'
-environment**: `sharedOpsC` at `feR`, with a `flushC`
-ENTERING its `annotate` and LEAVING its `inferType`.
+environment**: `sharedOpsC` at `feR`, with a `flushC` ENTERING and
+LEAVING its `inferType`.
 
 One rule runs operations at TWO environments, interleaved: its
-right-hand side is annotated and typed at `feR` (the `k` rule-less
+right-hand side is typed at `feR` (the `k` rule-less
 recursors consed), and everything after — the λ-domains' defeq, the
 residue's inference, the conclusion's defeq — at the constructors'
 index.  The memo caches are keyed by the term alone, and their
@@ -110,15 +110,13 @@ recursor, typed where the recursor is stored) is not a claim at the
 constructors' environment, where the recursor is absent.  The flushes
 are the drivers' own discipline (`flushC` at every environment
 transition), placed where the transitions are: the stage's `feR` half
-is exactly those two operations, the `annotate` first and the
-`inferType` last (`classRuleOk`,
+is exactly one operation, the `inferType` (`classRuleOk`,
 `ConLeche/Kernel/Inductives/GenRec.lean`, infers only).  Every other
 operation is `sharedOpsC`'s. -/
 def sharedOpsRuleR (fe : FEnv) : CheckerOps CheckCM :=
   { sharedOpsC mode fe with
     inferType := fun _ d e => do
-      -- Task #342 S0: the flush entering the `feR` half moved here
-      -- with the annotate pass gone
+      -- the flush entering the `feR` half
       flushC
       let t ← opE mode fe (·.infer) d e
       flushC

@@ -110,11 +110,10 @@ decreasing_by
 
 /-! ## The erasure law
 
-`denoteMeta` erases to `denote` exactly: the annotations are extra,
-the denotation is the same. -/
+`denoteMeta` erases to `denote` exactly: the reading spells the
+denotation in `ITerm`'s nodes. -/
 
-/-- The validated-annotation reading is an annotation of the
-denotation, exactly. -/
+/-- The stored-term reading erases to the denotation, exactly. -/
 theorem denoteMeta_erase {acval : Name → (Name → Nat) → ITerm}
     {cval : TConstVal} {env : Env} {φ : Name → Nat}
     (hlink : ∀ n ψ, (acval n ψ).erase = cval n ψ) :

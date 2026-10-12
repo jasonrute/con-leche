@@ -235,7 +235,7 @@ theorem weakenTop {d : Nat} {Δa : List ITerm} {Ba : ITerm} {e : Expr}
     congr 1
   · exact WellDenotedTy.hoist_lift (X := Ba) hok
 
-/-- **Opening a binder congruence, annotated, in the P currency.**
+/-- **Opening a binder congruence in the P currency.**
 `hdom` is `DefEqClaim`'s conclusion partially applied, and `hok₂` is the
 *opened variable's* grading, at `WellDenotedTy` because that is what
 `CtxOk`'s leaf package carries. -/

@@ -259,9 +259,9 @@ decreasing_by all_goals first
   | (simp [Expr.sizeF]; omega)
   | simp [Expr.sizeF]
 
-/-- Every fvar node's type annotation is `ProjSlotsOk` (the annotation
-pass's input discipline: it threads annotated fvars and copies fvar
-nodes verbatim). -/
+/-- Every fvar node's type annotation is `ProjSlotsOk` (vacuous at a
+closed term; inference opens binders at fvars typed by the binders'
+own domains and copies fvar nodes verbatim). -/
 def FvarTysOk (env : Env) : Expr → Prop
   | .fvar _ ty => ProjSlotsOk env ty
   | .proj _ _ e => FvarTysOk env e
@@ -415,7 +415,7 @@ theorem FvarTysOk.instantiate1 {v : Expr} (hv : FvarTysOk env v) :
     rw [Expr.instantiate1, fvarTysOk_proj]
     exact ihe d h
 
-/-- **The annotation source**: an occupied slot at every `.proj` node
+/-- **The `NoProjAt` source**: an occupied slot at every `.proj` node
 means an *empty* slot's node is absent. -/
 theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     ∀ e : Expr, ProjSlotsOk env e → NoProjAt T i e := by

@@ -218,11 +218,11 @@ theorem denoteMeta_natLit_inv {d n : Nat} {ea : ITerm}
 
 /-! ## The spine kit
 
-Application spines at the validated reading.  Fuel-free, so the
+Application spines at the stored-term reading.  Fuel-free, so the
 inversion is one induction and the reconciliation of two readings is
 `Option.some.inj`. -/
 
-/-- Each expression of a spine reads to the corresponding annotation. -/
+/-- Each expression of a spine reads to the corresponding entry. -/
 inductive DenoteMetaSpine (acval : Name → (Name → Nat) → ITerm)
     (env : Env) (φ : Name → Nat) (d : Nat) :
     List Expr → List ITerm → Prop
@@ -240,7 +240,7 @@ theorem DenoteMetaSpine.length {acval : Name → (Name → Nat) → ITerm}
   | nil => rfl
   | cons _ _ ih => simp [ih]
 
-/-- **The application spine, inverted at the validated reading**: the
+/-- **The application spine, inverted at the stored-term reading**: the
 head and every argument read, and the value is their `ITerm`
 application. -/
 theorem denoteMeta_mkAppN_inv {acval : Name → (Name → Nat) → ITerm}
@@ -380,10 +380,10 @@ theorem DenoteMetaSpine.getD_read {d : Nat} :
       DenoteMetaSpine.getD_read hsp (Nat.lt_of_succ_lt_succ hk)
 
 /-- An application spine splits at any point. -/
-theorem annotMkAppN_append (f : ITerm) :
+theorem iTermMkAppN_append (f : ITerm) :
     ∀ (as bs : List ITerm),
       ITerm.mkAppN f (as ++ bs) = ITerm.mkAppN (ITerm.mkAppN f as) bs
   | [], _ => rfl
-  | _ :: as, bs => annotMkAppN_append _ as bs
+  | _ :: as, bs => iTermMkAppN_append _ as bs
 
 end ConLeche.Model

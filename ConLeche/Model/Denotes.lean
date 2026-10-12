@@ -17,7 +17,7 @@ this module builds one from the graded invariant `EnvModelM`
 (`Model/Env/EnvModelM.lean`) the fold establishes.  Three steps:
 
 * **the leaves become sets**: `cvalOf acval n ψ` is the interpretation
-  of the (closed) annotated leaf `acval n ψ` — under every variable
+  of the (closed) leaf `acval n ψ` — under every variable
   environment the same set (`interp_cvalOf`);
 * **the bridge** `Denotes_of_denoteMeta`: wherever the invariant's
   reading `denoteMeta` reads a term at depth `d`, `interp` of the
@@ -52,7 +52,7 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- The set-valued leaf of an annotated valuation. -/
+/-- The set-valued leaf of a leaf valuation. -/
 noncomputable def cvalOf (acval : Name → (Name → Nat) → ITerm)
     (n : Name) (ψ : Name → Nat) : V :=
   interp V (fun _ => SetTheory.empty) (acval n ψ)
@@ -97,7 +97,7 @@ private theorem Denotes_const_one {cval : Name → (Name → Nat) → V} {env : 
   exact h
 
 /-- Under the `Nat`-literal guard, the constructor form of a literal
-denotes the annotated numeral `denoteMeta` reads. -/
+denotes the numeral spine `denoteMeta` reads. -/
 theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.natLitSupported env = true) (ρ : Nat → V) :
@@ -116,8 +116,7 @@ theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → ITerm}
     exact Denotes.app (Denotes_const_nil hs hs0) (Denotes.natLit ih)
 
 /-- Under the `String`-literal guard, the character-list spine of a
-literal's constructor form denotes the annotated spine `denoteMeta`
-reads. -/
+literal's constructor form denotes the spine `denoteMeta` reads. -/
 private theorem Denotes_charList {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.strLitSupported env = true) (ρ : Nat → V) :

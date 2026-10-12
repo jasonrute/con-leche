@@ -648,7 +648,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     exact this
   have hmemB : xs.getD (R.g.nP + s) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) := by
     rw [← hBE, interp_liftN, hsh]; exact hmem
-  -- the rule frame's field domains are the fields' binder data
+  -- the rule frame's field domains are the fields' domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
@@ -942,7 +942,7 @@ theorem genMinor_pt (hμ : μ.verifiedChecks = true)
       = (res.getAppArgs.drop (R.g.cls.getD cls default).nPc).map
           fun e => (denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF) e).getD default := by
     rw [tgtEsAV, hCB, hMaj, hB]
-  -- the field domains are the tower's first binder data
+  -- the field domains are the tower's first domains
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
   have hbsl : bs.length = x.nF + x.recs.length := by rw [hbl]; simp [hfl, hihl]

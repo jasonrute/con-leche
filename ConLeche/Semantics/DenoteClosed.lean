@@ -6,12 +6,11 @@ public import ConLeche.Verify.Denote.Shift
 @[expose] public section
 
 /-!
-# Lift and substitution invariance of annotated terms, via the erasure
+# Lift and substitution invariance of `ITerm`s, via the erasure
 
 Lifting or instantiating an `ITerm` is the `Term` operation on the
-erasure with the numerals riding along untouched (`erase_liftN`), so an
-annotated term is invariant exactly when its erasure is: a numeral slot
-cannot be the reason a lift moves a term.
+erasure (`erase_liftN`; `ITerm` is `Term` node for node), so an `ITerm`
+is invariant exactly when its erasure is.
 -/
 
 namespace ConLeche.Semantics
@@ -23,7 +22,7 @@ open ConLeche (Env Expr Name CheckMode)
 namespace ITerm
 
 /-- **A lift that does not move the erasure does not move the term.**
-`liftN` never reads or writes a numeral slot, so an annotated term is
+`liftN` is `Term.liftN` clause for clause, so an `ITerm` is
 lift-invariant exactly when its erasure is — and the erasure's
 invariance is `Term.bvarsBelow`. -/
 theorem liftN_eq_self : ∀ (e : ITerm) {k : Nat},
@@ -52,14 +51,14 @@ theorem liftN_eq_self : ∀ (e : ITerm) {k : Nat},
   | snd e ihe =>
     intro k h n; rw [liftN_snd, ihe h n]
 
-/-- **`liftN_eq_self`'s substitution twin.**  `inst` never reads or
-writes a numeral slot either, and it touches a term only at the `bvar`
+/-- **`liftN_eq_self`'s substitution twin.**  `inst` touches a term only
+at the `bvar`
 whose index *is* the cut — so a term with no bound variable at or
 above `k` is `inst`-invariant at `k`, for every substituend.
 
 Stated with the substituend last (and universally quantified) because
 that is the shape the leaf premise of `denoteMeta_substFvarAt` wants: the
-stored annotations are invariant under *any* substitution, which is
+stored constants' readings are invariant under *any* substitution, which is
 what makes the `.const` and `.lit` clauses of the walk close. -/
 theorem inst_eq_self : ∀ (e : ITerm) {k : Nat},
     Term.bvarsBelow k e.erase → ∀ x : ITerm, inst e x k = e := by

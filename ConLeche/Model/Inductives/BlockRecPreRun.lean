@@ -346,10 +346,9 @@ section RunComponents
 
 end RunComponents
 
-/-! ## 21. The family's LEVEL, and `hTy` without pinning any bit
+/-! ## 21. The family's LEVEL, and `hTy`
 
-**The reading's binder numerals are not pinned.**  The
-level a recursor's type lives at is the one the CHECK inferred — its
+The level a recursor's type lives at is the one the CHECK inferred — its
 `ensureSort` names it, and that level already accounts for the
 binders' levels, so the Π-tower's membership needs no per-binder
 hypothesis at all.  `checkConstantVal_reads` (`BlockRecRead.lean`)
@@ -1025,15 +1024,14 @@ end Run
 
 /-! ## 38. A Π-tower's inferred sort follows its CONCLUSION's sort
 
-Facts about the check's ∀ clause (task #342 L14a: the model no longer
-reads binder numerals; these are the checker-side runs the elimination
-level is read from).
+Facts about the check's ∀ clause: the checker-side runs the
+elimination level is read from.
 
 Two steps:
 
 * `inferTypeCore_forallE_peel` — one ∀ binder of a successful
-  inference: the codomain's sort `v`, the datum `mb.pw = zeronessOf v`
-  and the node's own sort `imax u v`;
+  inference: the codomain's sort `v` and the node's own sort
+  `imax u v`;
 * `inferTypeCore_openPis_sortZ` — the tower's inferred sort has the
   CONCLUSION's zero-ness (`zeronessOf (imax u v) = zeronessOf v` is
   the whole content, carried down the openers).
@@ -1694,7 +1692,7 @@ plus D-d's agreement gives it.
 The model step is `SortSemAt` (`Model/Tiers.lean`), the same claim
 `checkConstantVal_reads` uses one level up — at the recursor's OWN
 opened frame instead of the empty one, so the context is the type's
-own binder data reversed (`ctxOk_blockFrame` at a degenerate second
+own domains reversed (`ctxOk_blockFrame` at a degenerate second
 and third opening, since the recursor's type is opened ONCE). -/
 
 section ConclUniv
@@ -1709,9 +1707,9 @@ theorem fvarLeaves_nil_of_wscoped_zero {e : Expr} (hw : Expr.WScoped 0 e) :
       (Nat.not_lt_zero _)
 
 /-- **A checked Π-type's conclusion reads into the universe of its
-inferred sort**, at every frame satisfying the type's own binder data:
+inferred sort**, at every frame satisfying the type's own domains:
 the claims' `SortSemAt` at the type's opened frame (its context is the
-binder data reversed). -/
+domains reversed). -/
 theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {F : Nat} (ψ : Name → Nat) {n : Nat} {T : Expr}
     {ea : ITerm} {rds : List ITerm} {cc : ITerm}
@@ -1742,7 +1740,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
     · rw [hnilTy] at h'; exact nomatch h'
     · exact h'
   have hLC : Expr.LeavesBounded conclE := leavesBounded_of_openers hlbF hleaf
-  -- the frame's semantics: the binder data reads, and is graded
+  -- the frame's semantics: the domains read, and are graded
   have hdoms : ∀ (j : Nat) (x : Expr), fvs[j]? = some x →
       denoteMeta mpC.base2.acval envC ψ j (Expr.fvarTypeD x)
         = some (rds.getD j default) := by
@@ -1760,7 +1758,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
     rw [← hfull] at hys ⊢
     exact prefixDoms_graded_of_tower (cc := cc) (by omega) (fun ρ' => by rw [← hTyE]; exact hwdTy ρ')
       hl hys
-  -- the context IS the type's own binder data, reversed
+  -- the context IS the type's own domains, reversed
   have hlenDoms : rds.length = n := hlenRds
   have hent : ∀ i, i < n →
       (rds.reverse)[n - 1 - i]? = some (rds.getD i default) := by
@@ -1802,7 +1800,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
 
 /-- **THE `univZero` PRODUCER**, in its general form: the recursor's
 conclusion reads into `univ (u.eval ψ)` at every frame satisfying the
-type's own binder data. -/
+type's own domains. -/
 theorem blockRecConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
     {ctorsAs : List (List (ConstantVal × Nat))}

@@ -257,7 +257,7 @@ theorem natBinHead_app (m : EnvModel V env) {ψ : Name → Nat}
   obtain ⟨hfok, hNty, b₁, b₂, hfm, hB1, hB2⟩ := hfg ρ hρ
   obtain ⟨hxok, hxm⟩ := hxg ρ hρ
   obtain ⟨hyok, hym⟩ := hyg ρ hρ
-  -- the inner application's membership, at whatever bit
+  -- the inner application's membership, at whatever regime
   have hinner : SetTheory.app (interp V ρ fa) (interp V ρ xa)
       ∈ˢ piR b₂ (natLeafV m ψ ρ) (fun _ => codS ρ) :=
     app_mem_piR hfm hxm hB1
@@ -305,8 +305,7 @@ theorem natUnHead_app (m : EnvModel V env) {ψ : Name → Nat}
 
 `natOpTyPinned` pins an operation's stored type syntactically; its
 `denoteMeta` reading therefore computes to a two-step (binary) or
-one-step (unary) `.pi` spine over the `Nat` leaf, at whatever regime
-bits the stored annotation carries. -/
+one-step (unary) `.pi` spine over the `Nat` leaf. -/
 
 /-- The pinned binary type's syntactic shape (the `natOpTyPinned`
 else-branch, unpacked). -/
@@ -394,7 +393,7 @@ theorem denoteMeta_levelless_const {acval : Name → (Name → Nat) → ITerm}
   exact h
 
 /-- The pinned binary operation type's reading: a two-step `.pi` over
-the `Nat` leaf and the codomain leaf, at the stored regime bits. -/
+the `Nat` leaf and the codomain leaf. -/
 theorem denoteMeta_pinnedBinTy (m : EnvModel V env) (ψ : Name → Nat)
     {codN : Name}
     {ciN codCi : ConstantInfo}
@@ -512,8 +511,7 @@ theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 
 A stored operation with a pinned type gets its head package from
 `mem_type` (the leaf inhabits its type's reading) and `type_wellDenotedTy` (the
-reading is graded — which is where the fibre facts at the unknown
-regime bits come from). -/
+reading is graded — which is where the fibre facts come from). -/
 
 /-- **A stored pinned binary head.** -/
 theorem natBinHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
@@ -1008,7 +1006,7 @@ theorem natOps_cons_fresh (mp : EnvModelM V μ env) {φ : Name → Nat}
   · exact natOps_entry_cons mp hprev hfresh hntc m₂ hac hcN hne hf₂
 
 /-- **The installing operation's own head packages**, from the
-harvest's facts: the annotated value's reading, grading and membership
+harvest's facts: the stored value's reading, grading and membership
 at the declared type's reading, plus the type's pin.  Splits by the
 operation's arity and codomain, concluding both forms
 `natOps_install` takes. -/

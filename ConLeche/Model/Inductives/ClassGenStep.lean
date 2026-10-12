@@ -102,7 +102,7 @@ theorem IsTy_mkPisAV_of :
     simp only [mkPisAV, interp_pi]
     exact IsTy_piV
 
-/-- **A λ-tower inhabits the Π-tower of the same binder data**, as soon
+/-- **A λ-tower inhabits the Π-tower over the same domains**, as soon
 as its body inhabits the codomain at every fitting spine and the
 codomain is a type there — at two frames that agree below the
 telescope's bound. -/

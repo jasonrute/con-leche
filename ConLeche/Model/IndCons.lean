@@ -99,7 +99,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     (hnotax : ∀ cv, c₀ ≠ .axiomInfo cv)
     -- the head's own obligations (task #161 S7)
     (hh : ConsHead env c₀ A)
-    -- the annotated tower
+    -- the leaf's tower
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →

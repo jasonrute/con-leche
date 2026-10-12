@@ -8,7 +8,7 @@ public import ConLeche.Semantics.Canon
 # The literal clauses: the numeral facts
 
 `natLit_factsAV`, the module's only theorem, mentions no fuel and no
-mode — a pure `interp`/`WellDenoted` statement about the annotated
+mode — a pure `interp`/`WellDenoted` statement about the `ITerm`
 numeral spine (`natLitAV`, `Semantics/Canon.lean`) — and the model's
 numeral clauses consume it.
 
@@ -30,7 +30,7 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- **The numeral facts.**  Every annotated numeral is truthful and
+/-- **The numeral facts.**  Every `ITerm` numeral spine is truthful and
 inhabits the stored `Nat`'s interpretation — by induction on the
 numeral, from the zero's membership and the successor's `piR`
 membership.

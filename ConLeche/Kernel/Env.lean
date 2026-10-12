@@ -253,8 +253,8 @@ spelled as projections of the subject), instantiated at a use by ONE
 (`ProjEntry.typeAt`); reduced by the generic structural rule `proj_i
 (ctor p⃗ x⃗) ↦ x_i`, guarded at possibly-Prop instances by the stored
 `guards[i]`/`structSort` levels.  The bodies are taken from the
-annotated constructor type by substitution alone (`structProjBodies`)
-— no annotate, no infer, no pins: a slot with no legal instantiation
+stored constructor type by substitution alone (`structProjBodies`)
+— no inference, no pins: a slot with no legal instantiation
 simply fails the guard at every use.
 
 **No table kinds** (task #175 tower-flag): every stored table carries

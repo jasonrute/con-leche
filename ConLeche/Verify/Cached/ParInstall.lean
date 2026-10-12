@@ -83,8 +83,8 @@ theorem installHeaderC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
 
 /-- `installValueGuardsC` reads its index through `find?` alone (the knot and
 `constsResolveFC`), so it is congruent in the index: phase B's
-annotation of a theorem's value at the prefix view is the annotation
-at the environment the view names. -/
+guards on a theorem's value at the prefix view are the guards at the
+environment the view names. -/
 theorem installValueGuardsC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
     installValueGuardsC fe₁ = installValueGuardsC fe₂ := by
   funext cvA value

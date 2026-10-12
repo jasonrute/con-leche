@@ -19,7 +19,7 @@ interface lacks is a finding, not a hypothesis to invent.
 
 The assembly architecture rules out re-signing the 44-case mutual
 induction: the soundness is **per-step graded lemmas on `ITerm`**,
-composed along the bridge claims, with annotations following the run
+composed along the bridge claims, with the readings following the run
 rather than crossing a bare `Red`.  So each case here takes the
 subterms' two facts — hereditary truthfulness (`WellDenoted`) and
 membership — and produces the node's, in the shape the run-level claim
@@ -46,7 +46,7 @@ variable (V : Type w) [SetTheory V]
 /-! ## The leaf rows -/
 
 /-- **`sort`.**  Interface facts: none.  The universe tower's own
-membership; the annotated type of `.sort u` is `.sort (u + 1)`. -/
+membership; the spelled type of `.sort u` is `.sort (u + 1)`. -/
 theorem sound_sort (ρ : Nat → V) (u : Nat) :
     WellDenoted V ρ (.sort u) ∧
       interp V ρ (.sort u) ∈ˢ interp V ρ (.sort (u + 1)) := by

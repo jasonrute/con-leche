@@ -28,7 +28,7 @@ section Walks
 variable {env : Env} {f : Nat}
 
 /-- The one-sided-λ (right) stuck arm (the cached representation
-stores `Name`s directly; `lam`/`forallE` carry no other binder datum). -/
+stores `Name`s directly; `lam`/`forallE` carry only domain and body). -/
 private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₂ b₂ : Expr} {a'x ty₂x body₂x : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀)

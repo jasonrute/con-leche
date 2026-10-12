@@ -290,7 +290,7 @@ theorem ProjOkT.towerHead {env : Env} (h : ProjOkT env)
   obtain ⟨tbl, hf', hi, rfl⟩ := Env.findProj?_some hf
   exact h _ _ hf' i hi
 
-/-- The pinned (annotated) declaration of one basis constant. -/
+/-- The pinned (stored) declaration of one basis constant. -/
 @[expose] def pinnedInfo (n : Name) : ConstantInfo :=
   if n = eqName then eqA
   else if n = eqReflName then eqReflA

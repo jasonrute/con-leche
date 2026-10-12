@@ -26,8 +26,8 @@ open ConLeche (Env Expr Name Level PropWhen
 
 /-- **`denoteMeta` is stable under environment extension**, stated.
 
-An **equation**, not an implication: an install must not be able to assume silently that an
-annotation exists on one side and not the other. -/
+An **equation**, not an implication: an install must not be able to assume silently that a
+reading exists on one side and not the other. -/
 @[expose] def DenotePEnvExtend (env₀ env : Env)
     (acval : Name → (Name → Nat) → ITerm) (φ : Name → Nat) : Prop :=
   ∀ (d : Nat) (e : Expr), ConstsBound env₀ e →

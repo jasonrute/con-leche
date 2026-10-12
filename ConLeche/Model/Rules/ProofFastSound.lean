@@ -25,7 +25,7 @@ identity wrappers (`outParam`, …), ends in a sort that is zero at every
 valuation.  `prf_of_isProofFast` is the model licence: such a term is
 the point.
 
-The steps, all at the value reading (no binder datum is read):
+The steps, all at the value reading:
 * **a type former's application lands in its peeled sort**
   (`typeFormer_mem_univ`): the application is a type, so not the point;
   every prefix of its spine is then a graph ("not pt" source (2)), whose

@@ -11,8 +11,8 @@ import Std.Data.HashMap.Lemmas
 # The lean4export dialect: its syntax records and its key alphabet (task #256)
 
 The stream the checker reads is NDJSON in one fixed dialect —
-lean4export 3.x, plus the optional `pw` field (the binder annotation
-datum).  This module is
+lean4export 3.x, plus an optional legacy `pw` field on binders (once
+the checker's own binder datum, scanned and not read).  This module is
 the dialect's *syntax*: one record per line shape, in **stream
 indices**, with nothing resolved and no representation in sight.  The
 byte recogniser (`ConLeche/Frontend/Scan/Fast.lean`) produces these;
@@ -148,8 +148,9 @@ inductive LevelRec where
   | imax (u v : Nat)
   | param (n : Nat)
 
-/-- The `pw` datum a binder may carry (the checker's own annotated
-output; absent in a raw export, which is `never`).  Name indices. -/
+/-- The legacy `pw` field a binder may carry (absent in a raw export,
+which is `never`; scanned for well-formedness and not read).  Name
+indices. -/
 inductive PwRec where
   | never
   | ifAllZero (names : List Nat)

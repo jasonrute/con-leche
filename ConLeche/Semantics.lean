@@ -52,15 +52,15 @@ public import ConLeche.Semantics.Bridge.Sound
 /-!
 # `ConLeche.Semantics` — the Expr-facing semantic tier
 
-What is pure — the two-regime product and abstraction
+What is pure — the two-regime dependent function space and abstraction
 (`piR`/`lamR`), the built-in constants' value towers and the
 unit-terminated tuple tower — is `ConLeche/SetModel/*` and mentions
-neither `Expr` nor the annotated syntax.  Everything that reads a term
-lives here: the annotated syntax `ITerm` and its two-regime
+neither `Expr` nor the interpretation's syntax.  Everything that reads a
+term lives here: the interpreted term language `ITerm` and its
 interpretation `interp`, the membership kit, `WellDenoted`, the
 per-declaration run records and the run bridge (`Bridge/*`), the
 inductive-block facts (`Inductives/*`) and the tower introduction
-machinery that reads annotated field domains (`Tower/*`).
+machinery that reads field domains (`Tower/*`).
 `ConLeche/{Kernel,Cached,Frontend}/*` and `Main.lean` never import this
 tier; `ConLeche/Model/*` stands on it.
 -/

@@ -87,13 +87,11 @@ positively detected unsupported feature and the run DECLINES, at the
 record that uses it.  Every other unresolved name is a malformed
 stream: a REJECT, with the message unchanged.
 
-This is the choke point, because the guard that keeps unresolved
-constants out of stored terms (`Expr.constsResolve`) runs *after* the
-annotation pass, and annotation infers every binder domain's sort —
-so a `sorryAx` in a domain reaches inference first.  Its companion
-`unresolvedConstsError` (`ConLeche/Kernel/CheckerBase.lean`) decides
-the same question at the guard, for the `sorryAx` occurrences
-inference never reaches. -/
+This decides the question wherever inference meets the constant
+first.  Its companion `unresolvedConstsError`
+(`ConLeche/Kernel/CheckerBase.lean`) decides the same question at the
+guard that keeps unresolved constants out of stored terms
+(`Expr.constsResolve`). -/
 def unknownConstError (n : Name) : CheckError :=
   if n = sorryAxName then .notImplemented "use of the sorryAx axiom"
   else .invalid s!"unknown constant {n}"
@@ -292,7 +290,7 @@ def iotaIndexOk (r : CoreFns m) (env : Env) (depth : Nat) (mI rP cnP : Nat)
 /-- Proof irrelevance certification: both sides' types' *sorts* are
 `Prop`.  In the model everything inhabiting a proposition is the proof
 point, so any two such terms are equal — no common-type check is needed: soundness holds
-without it, and the annotation-first discipline (every subterm is
+without it, and the check-first discipline (every subterm is
 checked before definitional equality compares it; congruence compares
 argument pairs only after the earlier arguments matched) makes a
 heterogeneous comparison unreachable, so the official kernel's check is
@@ -324,13 +322,13 @@ arms, **in both modes** (user ruling, 2026-09-06: the fast readers are
 part of the real checker, and the trusted mode is the real checker
 with certification-only work omitted — a reader that replaces
 inference is not certification-only work).  The **"not a proof" arm**:
-a side whose annotation datum says "not a proposition" refuses the
+a side whose head-symbol datum says "not a proposition" refuses the
 shortcut outright (`notProofFast`, `ConLeche/Kernel/PropRead.lean`).
 Refusing is always sound — the P row is stated at `.ok true` — and the
 arm's obligation is *agreement* with the slow path, recorded by the
 landing census (DESIGN.md, task #168: 0 disagreements in 7.5 M calls).
-The **"yes" arm** (`isProofFast` on both sides → `true`) is the
-squash-regime licence, stage 3 of the same design
+The **"yes" arm** (`isProofFast` on both sides → `true`) is
+justified by the squash regime, stage 3 of the same design
 (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`), which the
 verified mode's `DefEq.proofFast` rule consumes; the trusted mode is unverified and
 inherits the arm without a row, as it inherits every other body. -/
@@ -339,9 +337,9 @@ def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
   if notProofFast env.find? a || notProofFast env.find? b then
     pure false
   else if isProofFast env.find? a && isProofFast env.find? b then
-    -- the yes arm (task #168 stage 3): both heads' validated data say
-    -- "a proposition at every valuation" — the squash-regime licence
-    -- (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`)
+    -- the yes arm (task #168 stage 3): both heads' data say
+    -- "a proposition at every valuation" — justified by the squash
+    -- regime (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`)
     pure true
   else
   -- task #172 B4: every inference here is at the io grade
@@ -470,12 +468,6 @@ def etaCert (mode : CheckMode) (r : CoreFns m) (_env : Env) (depth : Nat)
   let tb ← r.inferIO depth b
   match ← r.whnf depth tb with
   | .forallE ty₂ cod₂ =>
-    -- Task #161: the λ's prop-ness annotation must agree with the
-    -- product it η-expands (`lamR_eta`'s regime agreement) — checked
-    -- LAST, like the defeq binder arms, so a mismatch fires only on
-    -- an otherwise-successful η certification.  (This is the
-    -- validated successor of the cod-agreement comparison task #100
-    -- stage 6 deleted.)
     if ← r.defeq depth ty₂ ty₁ then
       unless ← r.defeq (depth + 1)
           (body₁.instantiate1 (.fvar depth ty₁))
@@ -651,7 +643,7 @@ literal one layer (`litToCtorIfNat`); a `String` literal to its
 `strLitToConstructor` (lean4lean `Inductive/Reduce.lean`, nanoda
 `str_lit_to_ctor_reducing`) since `String.ofList` is a definition, not
 a constructor.  An unsupported literal passes through (stuck; sound,
-and unreachable for annotated input). -/
+and unreachable for input inference accepted, which declines it). -/
 def litMajorToCtor (r : CoreFns m) (env : Env) (depth : Nat) :
     Expr → m Expr
   | .lit (.strVal s) =>
@@ -666,8 +658,8 @@ constructor form — the references' proj expansion site (official
 expansion's head `String.ofList` is a definition, so the whnf grinds it
 to the real `String.ofByteArray` constructor form.  Only `String`
 literals — no reference touches other scrutinees here.  An unsupported
-literal passes through (stuck; sound, and unreachable for annotated
-input). -/
+literal passes through (stuck; sound, and unreachable for input
+inference accepted, which declines it). -/
 def projLitToCtor (r : CoreFns m) (env : Env) (depth : Nat) :
     Expr → m Expr
   | .lit (.strVal s) =>
@@ -880,10 +872,8 @@ def reduceProjCore (r : CoreFns m) (env : Env) (depth : Nat) (sn : Name)
           args.length = entry.numParams + entry.numFields ∧
           us.length = entry.levelParams.length ∧
           entry.fireOk us = true then
-        -- Task #100 de-gating: the former nonzero-sort gate is
-        -- unsound-to-model under the domain-relative collapse, so the
-        -- certificate runs unconditionally at the verified mode; the
-        -- trusted mode runs none (`projCertAt`).
+        -- the certificate runs unconditionally at the verified mode;
+        -- the trusted mode runs none (`projCertAt`).
         if projCertAt env mode.verifiedChecks k args then
           pure (some (args.getD (entry.numParams + i) (.bvar 0)))
         else pure none
@@ -1011,9 +1001,11 @@ def ensureSort (r : CoreFns m) (_env : Env) (depth : Nat) (e : Expr) :
   | .sort u => pure u
   | _ => throw (.invalid "expected a sort")
 
-/-- The inference body — **infer-only**: the application rule's
-argument check ran once, in the annotation pass, and is trusted here
-(so speculative inference inside reduction cannot reject). -/
+/-- The inference body at the full grade — official's
+`infer_type_core` with `infer_only = false`: every binder domain is
+checked to be a type, every application argument against its domain,
+and a `let`'s value against its type.  Speculative inference inside
+reduction runs at the io grade instead (`inferBodyIO`). -/
 def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
   fun depth e => do
     match e with
@@ -1072,10 +1064,8 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       let tf ← r.infer depth f
       match ← r.whnf depth tf with
       | .forallE ty body => do
-        -- Per-argument re-check (task #100 de-gating: the former
-        -- possibly-Prop annotation gate of task #49 is unsound-to-model
-        -- under the domain-relative collapse, so the certificate runs
-        -- unconditionally; the soundness proof needs `⟦a⟧ ∈ ⟦ty⟧`).
+        -- The per-argument check, unconditional at this grade (the
+        -- soundness proof needs `⟦a⟧ ∈ ⟦ty⟧`).
         let ta ← r.infer depth a
         unless ← r.defeq depth ta ty do
           throw (.invalid "application type mismatch")
@@ -1126,22 +1116,20 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
     | .bvar _ =>
       throw (.notImplemented "inferType beyond the supported fragment")
 
-/-- **The io inference body** (task #161 stage 2 / task #170): `inferBody`
-with one clause changed — the application rule's per-argument
-certificate is skipped when the ∀'s validated annotation licenses it
-(`ConLeche/Kernel/CoreIO.lean`'s module docstring holds the design
-record).  The gate wraps the *test* only; the computed type
-(`body.instantiate1 a`) and the "function expected" rejection are
-`inferBody`'s, verbatim, so the lane is annotation-blind in its
-results (law 1 (iii)).  Recursion is through `r.infer`: the io knot
-ties this body to an io-grade record (`CoreFns.ioView` at the knot's
-io slot, or `coreKnotIO`'s leaf lane), which is how the grade
-propagates — official's `infer_type_core(e, infer_only)` passing
-`infer_only` to every recursive call.
+/-- **The io inference body** (tasks #161, #170, #346): official's
+`infer_type_core` with `infer_only = true`.  It differs from
+`inferBody` at three clauses: an application's argument is not
+checked against the domain, a λ's domain is not checked to be a type,
+and a `let`'s type and value are not checked (the body is inferred at
+the value).  The computed types and the "function expected" rejection
+are `inferBody`'s.  Recursion is through `r.infer`: the io knot ties
+this body to an io-grade record (`CoreFns.ioView` at the knot's io
+slot, or `coreKnotIO`'s leaf lane), which is how the grade propagates
+— official's `infer_type_core(e, infer_only)` passing `infer_only` to
+every recursive call.
 
 Moved here from `ConLeche/Kernel/CoreIO.lean` (task #172 B4) so the knot
-can tie the io slot; the definition is byte-identical to the io-license
-batch's. -/
+can tie the io slot. -/
 def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
   fun depth e => do
     match e with

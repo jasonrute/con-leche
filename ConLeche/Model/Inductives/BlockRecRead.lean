@@ -79,13 +79,13 @@ result, and `ensureSortCore_inv` turns that into the `whnf`-to-a-sort
 `SortSemAt` asks for — so the same claims (`WhnfClaim` + `InferClaim` +
 `InferReads`) that grade the reading also place it in
 `univ (u.eval ψ)`.  What it reads of the check (`ConstChecked`) is the
-stored type closed and inferred; annotation plays no part, so the
+stored type closed and inferred, so the
 generated stage's `classConstOk` (the type stored as generated) supplies
 it as the stream's `checkConstantVal` does.
 
 **This is the `hlvl` route**: the level a recursor's type lives at is
 the check's INFERRED one, and it already accounts for the binders'
-levels, so nothing has to pin the reading's binder numerals. -/
+levels. -/
 theorem constChecked_reads {env : Env} (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat} {cv cvA : ConstantVal}
     (h : ConLeche.ConstChecked μ F env cv cvA) :
