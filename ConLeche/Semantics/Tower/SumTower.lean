@@ -869,7 +869,7 @@ base. -/
 def ParamsOkS (w : Nat) (ρ : Nat → V) (Fss : List (List AnnotTerm)) :
     List (Nat × Nat × AnnotTerm) → Prop
   | [] => SumFieldsOkB w ρ Fss
-  | d :: pps => d.2.1 ≠ 0 ∧ WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
+  | d :: pps => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
       ∀ a, a ∈ˢ interp V ρ d.2.2 → ParamsOkS w (cons a ρ) Fss pps
 
 /-- **The leaf inhabits its type's reading.** -/
@@ -887,7 +887,7 @@ theorem sumTyAV_mem {w : Nat} {Fss : List (List AnnotTerm)} :
           (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
       ∈ˢ piV (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
-    exact lamV_mem (fun a ha => sumTyAV_mem (h.2.2.2 a ha))
+    exact lamV_mem (fun a ha => sumTyAV_mem (h.2.2 a ha))
       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)
 
 /-- **The leaf is graded.** -/
@@ -899,9 +899,9 @@ theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
     show WellDenoted V ρ (.lam d.2.2
       (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
     rw [WellDenoted_lam]
-    exact ⟨h.2.1, h.2.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2.2 a ha),
+    exact ⟨h.1, h.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
-       fun a ha => sumTyAV_mem (h.2.2.2 a ha),
+       fun a ha => sumTyAV_mem (h.2.2 a ha),
        fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)⟩⟩
 
 /-- **The leaf's application fold**: along a fitting parameter spine
@@ -937,7 +937,7 @@ theorem sumTyAV_fold_strictU {w : Nat} {Fss : List (List AnnotTerm)} :
         = interp V (cons a ρ) (sumTyAV w pps Fss) :=
       app_lamV ha
     rw [List.foldl_cons, happ]
-    exact sumTyAV_fold_strictU (h.2.2.2 a ha) hsp.2
+    exact sumTyAV_fold_strictU (h.2.2 a ha) hsp.2
 
 
 /-!
