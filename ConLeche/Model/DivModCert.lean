@@ -57,18 +57,18 @@ def DmBinV (natS codS f : V) : Prop :=
     f ∈ˢ piR b₁ natS (fun _ => piR b₂ natS (fun _ => codS)) ∧
     (b₁ = 0 → ∀ x, x ∈ˢ natS →
       piR b₂ natS (fun _ => codS) ∈ˢ (univZero : V)) ∧
-    (b₂ = 0 → ∀ x, x ∈ˢ natS → codS ∈ˢ (univZero : V))
+    (b₂ = 0 → ∀ x, x ∈ˢ natS → codS ∈ˢ (univZero : V)) ∧ IsTy natS
 
 /-- A unary head over the frame's `Nat`. -/
 def DmUnV (natS codS f : V) : Prop :=
   ∃ b₁ : Nat, f ∈ˢ piR b₁ natS (fun _ => codS) ∧
-    (b₁ = 0 → ∀ x, x ∈ˢ natS → codS ∈ˢ (univZero : V))
+    (b₁ = 0 → ∀ x, x ∈ˢ natS → codS ∈ˢ (univZero : V)) ∧ IsTy natS
 
 /-- The binary rule, at the value level. -/
 theorem DmBinV.app {natS codS f x y : V} (h : DmBinV natS codS f)
     (hx : x ∈ˢ natS) (hy : y ∈ˢ natS) :
     SetTheory.app (SetTheory.app f x) y ∈ˢ codS := by
-  obtain ⟨b₁, b₂, hm, hB1, hB2⟩ := h
+  obtain ⟨b₁, b₂, hm, hB1, hB2, -⟩ := h
   have hinner : SetTheory.app f x ∈ˢ piR b₂ natS (fun _ => codS) :=
     app_mem_piR hm hx hB1
   exact app_mem_piR hinner hy hB2
@@ -76,7 +76,7 @@ theorem DmBinV.app {natS codS f x y : V} (h : DmBinV natS codS f)
 /-- The unary rule. -/
 theorem DmUnV.app {natS codS f x : V} (h : DmUnV natS codS f)
     (hx : x ∈ˢ natS) : SetTheory.app f x ∈ˢ codS := by
-  obtain ⟨b₁, hm, hB1⟩ := h
+  obtain ⟨b₁, hm, hB1, -⟩ := h
   exact app_mem_piR hm hx hB1
 
 /-- The `WellDenoted` witness a binary head's first application needs. -/
@@ -85,10 +85,10 @@ theorem DmBinV.ok1 {natS codS f x : V} (h : DmBinV natS codS f)
     (hfa : WellDenoted V ρ fa) (hxa : WellDenoted V ρ xa)
     (hf : interp V ρ fa = f) (hxv : interp V ρ xa = x) :
     WellDenoted V ρ (.app fa xa) := by
-  obtain ⟨b₁, b₂, hm, hB1, -⟩ := h
+  obtain ⟨b₁, b₂, hm, hB1, -, hN⟩ := h
   rw [WellDenoted_app]
   exact ⟨hfa, hxa, b₁, natS, fun _ => piR b₂ natS (fun _ => codS),
-    by rw [hf]; exact hm, by rw [hxv]; exact hx, hB1⟩
+    by rw [hf]; exact hm, by rw [hxv]; exact hx, hB1, fun _ => hN⟩
 
 /-- …and its second. -/
 theorem DmBinV.wellDenoted {natS codS f x y : V} (h : DmBinV natS codS f)
@@ -100,10 +100,10 @@ theorem DmBinV.wellDenoted {natS codS f x y : V} (h : DmBinV natS codS f)
     (hyv : interp V ρ ya = y) :
     WellDenoted V ρ (.app (.app fa xa) ya) := by
   have hok1 := DmBinV.ok1 h hx hfa hxa hf hxv
-  obtain ⟨b₁, b₂, hm, hB1, hB2⟩ := h
+  obtain ⟨b₁, b₂, hm, hB1, hB2, hN⟩ := h
   rw [WellDenoted_app]
   refine ⟨hok1, hya, b₂, natS, fun _ => codS, ?_,
-    by rw [hyv]; exact hy, hB2⟩
+    by rw [hyv]; exact hy, hB2, fun _ => hN⟩
   rw [interp_app, hf, hxv]
   have hinner : SetTheory.app f x ∈ˢ piR b₂ natS (fun _ => codS) :=
     app_mem_piR hm hx hB1
@@ -115,10 +115,10 @@ theorem DmUnV.ok1 {natS codS f x : V} (h : DmUnV natS codS f)
     (hfa : WellDenoted V ρ fa) (hxa : WellDenoted V ρ xa)
     (hf : interp V ρ fa = f) (hxv : interp V ρ xa = x) :
     WellDenoted V ρ (.app fa xa) := by
-  obtain ⟨b₁, hm, hB1⟩ := h
+  obtain ⟨b₁, hm, hB1, hN⟩ := h
   rw [WellDenoted_app]
   exact ⟨hfa, hxa, b₁, natS, fun _ => codS, by rw [hf]; exact hm,
-    by rw [hxv]; exact hx, hB1⟩
+    by rw [hxv]; exact hx, hB1, fun _ => hN⟩
 
 /-! ## The head packages, from the environment invariant
 
@@ -153,7 +153,7 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     · exact acval_interp_closed m _ ψ _ ρ
     · funext y
       exact acval_interp_closed m _ ψ _ ρ
-  refine ⟨b₁, b₂, ?_, ?_, ?_⟩
+  refine ⟨b₁, b₂, ?_, ?_, ?_, ((WellDenoted_pi V ρ _ _ _ _) ▸ htok.1).2.1⟩
   · rw [interp_pi] at hmem
     rw [show (fun x => interp V (cons x ρ)
           ((.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
@@ -202,7 +202,7 @@ theorem dmUnV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
         : AnnotTerm)) :
     DmUnV (interp V ρ (m.acval ConLeche.natName ψ))
       (interp V ρ (m.acval codN ψ)) (interp V ρ fa) := by
-  refine ⟨b₁, ?_, ?_⟩
+  refine ⟨b₁, ?_, ?_, ((WellDenoted_pi V ρ _ _ _ _) ▸ htok.1).2.1⟩
   · rw [interp_pi] at hmem
     rw [show (fun x => interp V (cons x ρ) (m.acval codN ψ))
         = fun _ => interp V ρ (m.acval codN ψ) from by
@@ -243,7 +243,7 @@ theorem dmBinV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
     exact denoteMeta_pinnedBinTy mp.base2 ψ hfN hlpN hcodF hcodLp
   have hmem := mp.mem_type _ hmemE ψ _ hta ρ
   rw [hnm] at hmem
-  exact dmBinV_of_parts mp.base2 hmem (mp.type_wellDenotedV _ hmemE ψ _ hta ρ)
+  exact dmBinV_of_parts mp.base2 hmem (mp.type_wellDenotedTy _ hmemE ψ _ hta ρ).1
 
 /-- **A stored pinned unary head, at the value level.** -/
 theorem dmUnV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
@@ -275,7 +275,7 @@ theorem dmUnV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
     rfl
   have hmem := mp.mem_type _ hmemE ψ _ hta ρ
   rw [hnm] at hmem
-  exact dmUnV_of_parts mp.base2 hmem (mp.type_wellDenotedV _ hmemE ψ _ hta ρ)
+  exact dmUnV_of_parts mp.base2 hmem (mp.type_wellDenotedTy _ hmemE ψ _ hta ρ).1
 
 /-! ## The statements' `Nat`-valued fragment, and its graded walk
 
@@ -478,7 +478,7 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
       (ConLeche.inferTypeCore_fvarLeaves mp.base2.wf F hinf hWA)
   -- the defeq run identifies the inferred type with the statement
   have heq := hdeC hde hWtp hBtp hLtp hWE hBE hLE hCtp hCE hta hvE
-    hokT hokE ρ hsat
+    (fun σ hσ => (hokT σ hσ).1) hokE ρ hsat
   exact ⟨interp V ρ ea, by rw [← heq]; exact hmem ρ hsat⟩
 
 /-! ## The frame's leaf discipline
@@ -514,7 +514,7 @@ theorem ctxOk_pinnedLift {m : EnvModel V env} {ψ : Name → Nat}
     (hslot : ∀ l ∈ e.fvarLeaves, l.1 < d ∧ Expr.fvarsBelow l.1 l.2 ∧
       ∃ tya, denoteMeta m.acval env ψ d l.2 = some tya ∧
         tya = (Δa.getD (d - 1 - l.1) default).liftN (d - l.1) 0 ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ tya) :
+        ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ tya) :
     CtxOk m ψ d Δa e := by
   refine ⟨hlen, fun l hl => ?_⟩
   obtain ⟨hlt, hfb, tya, hden, heq, hok⟩ := hslot l hl
@@ -835,12 +835,14 @@ theorem dmCtxOk_natLeaves {mp : EnvModelM V μ env} {c : Name}
   rw [fvarLeaves_substConst0 (n := c) fr.valueNoFvar e] at hl
   rcases dmLeavesOk_mem he hl with rfl | rfl
   · refine ⟨by omega, trivial, _, fr.readNat 4, ?_,
-      fun ρ _ => ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩⟩
+      fun ρ _ => ⟨⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩,
+        IsTy_of_mem_univ (fr.natU ρ)⟩⟩
     show mp.base2.acval ConLeche.natName ψ
       = (Δa.getD 3 default).liftN 4 0
     rw [h3, hself 4]
   · refine ⟨by omega, trivial, _, fr.readNat 4, ?_,
-      fun ρ _ => ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩⟩
+      fun ρ _ => ⟨⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩,
+        IsTy_of_mem_univ (fr.natU ρ)⟩⟩
     show mp.base2.acval ConLeche.natName ψ
       = (Δa.getD 2 default).liftN 3 0
     rw [h2, hself 3]
@@ -1361,11 +1363,11 @@ theorem dmClause1 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
               Sat V [mp.base2.acval ConLeche.natName ψ, H1a,
                 mp.base2.acval ConLeche.natName ψ,
                 mp.base2.acval ConLeche.natName ψ] ρ' →
-              WellDenotedV V ρ' tya := by
+              WellDenotedTy V ρ' tya := by
       intro i k hi
       exact ⟨_, fr.readNat 4, by rw [hi, hself k],
-        fun ρ' _ => ⟨mp.base2.acval_wellDenoted _ _ ρ',
-          mp.acval_validV _ _ ρ'⟩⟩
+        fun ρ' _ => ⟨⟨mp.base2.acval_wellDenoted _ _ ρ',
+          mp.acval_validV _ _ ρ'⟩, IsTy_of_mem_univ (fr.natU ρ')⟩⟩
     refine ctxOk_pinnedLift rfl (fun l hl => ?_)
     rcases divModCertApplied_mem1 hpf hl with rfl | rfl | rfl | hm
     · exact ⟨by omega, trivial, hnatSlot 3 4 rfl⟩
@@ -1373,7 +1375,7 @@ theorem dmClause1 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
     · refine ⟨by omega, Expr.WScoped.fvarsBelow hwH, _, hlift, rfl,
         fun ρ' hρ' => ?_⟩
       obtain ⟨hx', hy'⟩ := dmSat_slots rfl rfl rfl hρ' ρ
-      exact (hG4f ρ' hx' hy').1
+      exact ⟨(hG4f ρ' hx' hy').1, by rw [(hG4f ρ' hx' hy').2]; exact IsTy_eqv _ _⟩
     · rw [fvarLeaves_substConst0 (n := c) fr.valueNoFvar _] at hm
       rcases dmLeavesOk_mem hlH hm with rfl | rfl
       · exact ⟨by omega, trivial, hnatSlot 3 4 rfl⟩
@@ -1635,11 +1637,11 @@ theorem dmClause2 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
           ∧ ∀ ρ' : Nat → V,
             Sat V [H2a, H1a, mp.base2.acval ConLeche.natName ψ,
               mp.base2.acval ConLeche.natName ψ] ρ' →
-            WellDenotedV V ρ' tya := by
+            WellDenotedTy V ρ' tya := by
     intro i k hi
     exact ⟨_, fr.readNat 4, by rw [hi, hself k],
-      fun ρ' _ => ⟨mp.base2.acval_wellDenoted _ _ ρ',
-        mp.acval_validV _ _ ρ'⟩⟩
+      fun ρ' _ => ⟨⟨mp.base2.acval_wellDenoted _ _ ρ',
+        mp.acval_validV _ _ ρ'⟩, IsTy_of_mem_univ (fr.natU ρ')⟩⟩
   have hCA : CtxOk mp.base2 ψ 4
       [H2a, H1a, mp.base2.acval ConLeche.natName ψ,
         mp.base2.acval ConLeche.natName ψ]
@@ -1661,7 +1663,7 @@ theorem dmClause2 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
         Expr.WScoped.fvarsBelow (hwH 2 (by omega) hw1 hw2), _,
         hlift1, rfl, fun ρ' hρ' => ?_⟩
       obtain ⟨hx', hy'⟩ := dmSat_slots rfl rfl rfl hρ' ρ
-      exact (hG4f ρ' hx' hy').1
+      exact ⟨(hG4f ρ' hx' hy').1, by rw [(hG4f ρ' hx' hy').2]; exact IsTy_eqv _ _⟩
     · rw [fvarLeaves_substConst0 (n := c) fr.valueNoFvar _] at hm
       rcases dmLeavesOk_mem (hlH hl1 hl2) hm with rfl | rfl
       · exact ⟨by omega, trivial, hnatSlot 3 4 rfl⟩
@@ -1670,7 +1672,7 @@ theorem dmClause2 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
         Expr.WScoped.fvarsBelow (hwH 3 (by omega) hv1 hv2), _,
         hlift2, rfl, fun ρ' hρ' => ?_⟩
       obtain ⟨hx', hy'⟩ := dmSat_slots rfl rfl rfl hρ' ρ
-      exact (hK4f ρ' hx' hy').1
+      exact ⟨(hK4f ρ' hx' hy').1, by rw [(hK4f ρ' hx' hy').2]; exact IsTy_eqv _ _⟩
     · rw [fvarLeaves_substConst0 (n := c) fr.valueNoFvar _] at hm
       rcases dmLeavesOk_mem (hlH hm1 hm2) hm with rfl | rfl
       · exact ⟨by omega, trivial, hnatSlot 3 4 rfl⟩

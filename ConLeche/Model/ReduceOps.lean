@@ -257,6 +257,13 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
             (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) from by
       rw [denoteMeta_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h
     exact (Option.some.inj h).symm
+  -- the element type is a type: the operation type's domain
+  have helemTy : ∀ (ψ : Name → Nat) (ρ' : Nat → V),
+      IsTy (interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) := by
+    intro ψ ρ'
+    have h := (hTaOk ψ ρ').1
+    rw [hTaShape ψ, WellDenoted_pi] at h
+    exact h.2.1
   -- the certificate variable's syntactic and context packages
   have hvLeaves : valA.fvarLeaves = [] :=
     Expr.fvarLeaves_eq_nil_of_not_hasFvar hvf'
@@ -302,7 +309,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     refine ⟨Nat.zero_lt_one, by rw [hEty]; trivial,
       mp.base2.acval (ConLeche.reduceElemName cv.name) ψ,
       elemA mp.base2 cv.name ψ, hdenE ψ 1, rfl, fun ρ' _ => ?_,
-      fun ρ' _ => ⟨mp.base2.acval_wellDenoted _ ψ ρ', mp.acval_validV _ ψ ρ'⟩⟩
+      fun ρ' _ => ⟨⟨mp.base2.acval_wellDenoted _ ψ ρ', mp.acval_validV _ ψ ρ'⟩,
+        helemTy ψ ρ'⟩⟩
     exact acval_interp_closed mp.base2 _ ψ _ _
   have hctxApp : ∀ ψ : Name → Nat,
       CtxOk mp.base2 ψ 1 (elemCtx mp.base2 cv.name ψ)
@@ -369,7 +377,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
       fun _ => interp V ρ'
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
-      hm, hslot ρ' hsat, fun h0 y hy => ?_⟩
+      hm, hslot ρ' hsat, fun h0 y hy => ?_, fun _ => helemTy ψ ρ'⟩
     have := hv.2.2 h0 y hy
     rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
   -- the run, converted
