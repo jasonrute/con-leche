@@ -130,14 +130,14 @@ theorem iotaCerts_fst (d : Nat) (lic : Bool) :
         iotaCerts r₁ env d lic ty args
   | _, [] => rfl
   | .forallE ty body mb, arg :: rest => by
-    show (if lic then pure true
+    show (if lic then pure (Expr.peelPis rest.length body).isSome
       else (do
-        let ta ← (pairFns r₁ r₂ h).inferIO d arg
+        let ta ← (pairFns r₁ r₂ h).infer d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
           iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
-        else pure false : PairM rel Bool)).val.1 = (if lic then pure true
+        else pure false : PairM rel Bool)).val.1 = (if lic then pure (Expr.peelPis rest.length body).isSome
       else do
-        let ta ← r₁.inferIO d arg
+        let ta ← r₁.infer d arg
         if ← r₁.defeq d ta ty then
           iotaCerts r₁ env d lic (body.instantiate1 arg) rest
         else pure false)
@@ -166,14 +166,14 @@ theorem iotaCerts_snd (d : Nat) (lic : Bool) :
         iotaCerts r₂ env d lic ty args
   | _, [] => rfl
   | .forallE ty body mb, arg :: rest => by
-    show (if lic then pure true
+    show (if lic then pure (Expr.peelPis rest.length body).isSome
       else (do
-        let ta ← (pairFns r₁ r₂ h).inferIO d arg
+        let ta ← (pairFns r₁ r₂ h).infer d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
           iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
-        else pure false : PairM rel Bool)).val.2 = (if lic then pure true
+        else pure false : PairM rel Bool)).val.2 = (if lic then pure (Expr.peelPis rest.length body).isSome
       else do
-        let ta ← r₂.inferIO d arg
+        let ta ← r₂.infer d arg
         if ← r₂.defeq d ta ty then
           iotaCerts r₂ env d lic (body.instantiate1 arg) rest
         else pure false)

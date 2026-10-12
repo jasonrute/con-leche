@@ -21,7 +21,10 @@ the datum *alone*:
 * the readout `holds` and its algebra (`holds_inter`,
   `holds_bindZ_go`);
 * the comparison — which is **equality**: `=`/`==`/`DecidableEq`
-  decide zero-ness agreement at every valuation (`eq_iff_holds`).
+  decide zero-ness agreement at every valuation (`eq_iff_holds`);
+* the `inter`/`bindZ` algebra the substitution laws rest on
+  (`inter_assoc`, `bindZ_inter`, `bindZ_go_append`,
+  `bindZ_congr_names`, `paramsDefined_inter_of`).
 
 **Canonical by construction (task #194).**  Every value of the type is
 the unique representative of its parameter *set*: the parameter list
@@ -713,6 +716,31 @@ theorem isNever_iff {pw : PropWhen} : isNever pw = true ↔ pw = never := by
   rw [Bool.eq_false_iff]
   exact fun h => ifAllZero_ne_never ps (isNever_iff.mp h)
 
+/-- Are all parameters of the datum among `params`?  Folded into
+`Expr.allLevelParamsDefined` (task #161): level instantiation's
+composition law (`Level.substPW_comp`) is *false* for data whose
+parameters escape the declaration's — exactly as for the levels
+themselves. -/
+def paramsDefined (params : List Name) (pw : PropWhen) : Bool :=
+  match pw.repr with
+  | .never => true
+  | .always => true
+  | .one p => params.contains p
+  | .two p q _ => params.contains p && params.contains q
+  | .many ps _ => ps.all params.contains
+
+private theorem paramsDefined_eq_toList (params : List Name) (pw : PropWhen) :
+    paramsDefined params pw = pw.toList.all params.contains := by
+  obtain ⟨x⟩ := pw
+  cases x <;> simp [paramsDefined, toList]
+
+@[simp] theorem paramsDefined_never (params : List Name) :
+    paramsDefined params .never = true := by simp [paramsDefined, never]
+
+@[simp] theorem paramsDefined_ifAllZero (params ps : List Name) :
+    paramsDefined params (ifAllZero ps) = ps.all params.contains := by
+  rw [paramsDefined_eq_toList, toList_ifAllZero, all_canon]
+
 /-! ### Extensionality at the valuations
 
 The canonicity payoff in its semantic form: data that agree at every
@@ -892,6 +920,64 @@ private theorem bindZ_go_canon (f : Name → PropWhen) (ps : List Name) :
 @[simp] theorem bindZ_ifAllZero (f : Name → PropWhen) (ps : List Name) :
     bindZ f (ifAllZero ps) = bindZ.go f ps := by
   rw [bindZ_eq_go f (ifAllZero_ne_never ps), toList_ifAllZero, bindZ_go_canon]
+
+end PropWhen
+
+/-! ## The law battery
+
+Everything below is a fact about the datum alone; it needs no `Level`
+and no `Expr`.  Moved here from `ConLeche/Verify/PropWhen.lean` on
+2026-09-06 (the `Std.HashMap` pattern: the structure carries its
+laws), statements unchanged — and unchanged again at task #194, when
+the representation became canonical: the proofs below go through the
+exported `never`/`ifAllZero` equations only, and those kept their
+statements. -/
+
+namespace PropWhen
+
+/-! ### `paramsDefined` -/
+
+theorem paramsDefined_inter_of {params : List Name} {p q : PropWhen}
+    (hp : p.paramsDefined params = true)
+    (hq : q.paramsDefined params = true) :
+    (p.inter q).paramsDefined params = true := by
+  cases p <;> cases q <;>
+    simp_all [List.all_append]
+
+/-! ### `inter` / `bindZ` algebra -/
+
+/-- `inter` is associative (the datum is a set union). -/
+theorem inter_assoc (a b c : PropWhen) :
+    (a.inter b).inter c = a.inter (b.inter c) := by
+  cases a <;> cases b <;> cases c <;> simp [List.append_assoc]
+
+/-- The `bindZ` fold over an append splits — the list-level half of
+`bindZ_inter`. -/
+theorem bindZ_go_append (g : Name → PropWhen) : ∀ ps qs : List Name,
+    bindZ.go g (ps ++ qs) = (bindZ.go g ps).inter (bindZ.go g qs)
+  | [], qs => (nil_inter (bindZ.go g qs)).symm
+  | n :: rest, qs => by
+    show (g n).inter (bindZ.go g (rest ++ qs))
+      = ((g n).inter (bindZ.go g rest)).inter (bindZ.go g qs)
+    rw [bindZ_go_append g rest qs, inter_assoc]
+
+theorem bindZ_inter (g : Name → PropWhen) (p q : PropWhen) :
+    (p.inter q).bindZ g = (p.bindZ g).inter (q.bindZ g) := by
+  cases p with
+  | never => simp
+  | ifAllZero ps =>
+    cases q with
+    | never => simp
+    | ifAllZero qs => simp [bindZ_go_append]
+
+theorem bindZ_congr_names {f g : Name → PropWhen} :
+    ∀ {ps : List Name}, (∀ n ∈ ps, f n = g n) →
+      bindZ.go f ps = bindZ.go g ps
+  | [], _ => rfl
+  | n :: rest, h => by
+    show (f n).inter _ = (g n).inter _
+    rw [h n (by simp), bindZ_congr_names fun m hm => h m (by simp [hm])]
+
 
 end PropWhen
 

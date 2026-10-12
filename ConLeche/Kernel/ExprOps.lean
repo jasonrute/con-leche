@@ -792,6 +792,16 @@ def looseBVarsBounded (k : Nat) : Expr → Bool
     looseBVarsBounded k ty && looseBVarsBounded k val && looseBVarsBounded (k + 1) body
   | .proj _ _ e => looseBVarsBounded k e
 
+/-- Is the expression a λ? -/
+def isLam : Expr → Bool
+  | .lam .. => true
+  | _ => false
+
+/-- Is the expression a ∀? -/
+def isForallE : Expr → Bool
+  | .forallE .. => true
+  | _ => false
+
 /-- Two λs: their domains and bodies (the descent of the λ-telescope
 comparison, `defeqLams`). -/
 def lamPair? : Expr → Expr → Option (Expr × Expr × Expr × Expr)

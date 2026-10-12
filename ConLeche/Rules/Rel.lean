@@ -242,9 +242,13 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   parameters-only constructor application is fabricated from the
   major's io-inferred, head-normalised type, scope-guarded, certified
   against the constructor's telescope, type-checked against the major's
-  type, and equated to the major by proof irrelevance (the last `DefEq`
-  premise: the bridge builds it from `proofIrrel`'s two arms). -/
-  | rescueK {d : Nat} {major tm tmaj fab tf : Expr} {recName : Name}
+  type, and equated to the major by proof irrelevance.  The last four
+  premises are the major's half of that `proofIrrel` run: its io type's
+  io sort reduces to `Prop`, so the major is a proof — the point at
+  every valuation, about which a reduction claims nothing (task #342
+  L18: the io claim `IORel` makes the fabrication's certificates
+  unusable where the major is not the point, and the major never is). -/
+  | rescueK {d : Nat} {major tm tmaj fab tf tp ttp : Expr} {v : Level} {recName : Name}
       {cv : ConstantVal} {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal}
       {cnP cnF : Nat} {T : Name} {tus ust : List Level} {cvT : ConstantVal}
       {caps : IndCaps} :
@@ -263,7 +267,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
         (tmaj.getAppArgs.take cnP) →
       Infer env .io d fab tf → DefEq env d tmaj tf →
-      DefEq env d fab major →
+      Infer env .io d major tp → Infer env .io d tp ttp →
+      Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
       Red env d major fab
   /-- **The structure-η rescue** (`majorToCtor`'s η branch,
   `Kernel/Core.lean`; official `to_cnstr_when_structure`): at an
@@ -300,8 +305,9 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   /-- **The `And` rescue** (`majorToCtor`'s `And` branch,
   `Kernel/Core.lean`; `And` only, by ruling): `And.intro a b
   (.proj And 0 h) (.proj And 1 h)` is fabricated for a stuck proof
-  `h`, certified the K branch's way. -/
-  | rescueAnd {d : Nat} {major tm tmaj fab tf : Expr} {recName : Name}
+  `h`, certified the K branch's way; the last four premises are the
+  major's half of the `proofIrrel` run, as in the K branch. -/
+  | rescueAnd {d : Nat} {major tm tmaj fab tf tp ttp : Expr} {v : Level} {recName : Name}
       {cv : ConstantVal} {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal}
       {cnP cnF : Nat} {tus ust : List Level} {cvT : ConstantVal}
       {caps : IndCaps} :
@@ -321,7 +327,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
         (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]) →
       Infer env .io d fab tf → DefEq env d tmaj tf →
-      DefEq env d fab major →
+      Infer env .io d major tp → Infer env .io d tp ttp →
+      Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
       Red env d major fab
 
 /-- **Definitional equality**: the verdict `true` of `isDefEq`.
@@ -415,8 +422,13 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
   the λ's opened body's FULL-grade type is definitionally equal to the
   ∀'s opened body, so that the λ's body and `b` applied lie in one type
   (the fragment's `DefEq.eta`).  The checker meets `b` in weak-head
-  normal form and not a λ. -/
+  normal form and not a λ, so its head is no λ and no `let`
+  (`Expr.ioNeutral`, the checker's guard): `b`'s io claim, where `b` is
+  not the point, is then a membership (task #342 L18); against a
+  λ-headed `b` η with an io-inferred type is unsound (the fragment's
+  `eta_lam_io_unsound`). -/
   | eta {d : Nat} {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta} :
+      b.ioNeutral = true →
       Infer env .io d b tb → Red env d tb (.forallE ty₂ B m₂) →
       DefEq env d ty₂ ty₁ →
       DefEq env (d + 1) (body₁.instantiate1 (.fvar d ty₁))
@@ -475,8 +487,10 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
   /-- **Unit-like structure** (`structUnitCert`, `Kernel/Core.lean`):
   both sides inhabit the same stored unit-like family — `a`'s
   io-inferred type head-normalises to it and `b`'s type is
-  definitionally equal.  The type application is not certified (task
-  #342 L11b). -/
+  definitionally equal, and is no ∀ (the checker's guard; a family's
+  application is never definitionally equal to a ∀): so `b`'s io claim,
+  where `b` is not the point, is a membership (task #342 L18).  The type
+  application is not certified (task #342 L11b). -/
   | structUnit {d : Nat} {a ta wta b tb wtb : Expr} {T : Name}
       {us' : List Level} {cvT : ConstantVal} {caps : IndCaps} :
       Infer env .io d a ta → Red env d ta wta →
@@ -486,7 +500,7 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       reservedBasisNames.contains T = false →
       wta.getAppArgs.length = caps.unitParams →
       us'.length = cvT.levelParams.length →
-      Infer env .io d b tb → Red env d tb wtb →
+      Infer env .io d b tb → Red env d tb wtb → wtb.isForallE = false →
       DefEq env d wta wtb →
       DefEq env d a b
 
@@ -623,18 +637,23 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
       Infer env g d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe)
 
 /-- **The telescope certificate** (`iotaCerts`, `Kernel/Core.lean`):
-each argument's io-grade type is definitionally equal to its binder
-domain, the domains instantiated along the spine.  A licensed walk
+each argument's FULL-grade type is definitionally equal to its binder
+domain, the domains instantiated along the spine (task #342 L18: an
+io-inferred type need not hold its term, `IORel`; the unlicensed walks
+certify the rescues' synthetic spines, which are not subterms of the
+subject).  A licensed walk
 (`lic = true`: the spine is the subject's own, the ι and projection
-slots) certifies nothing (`licensed`): a reduction claims nothing of a redex
+slots) certifies nothing (`licensed`) but the telescope's syntactic arity
+(the checker's `peelPis` test): a reduction claims nothing of a redex
 that is the point, and a redex that is not the point fits its head's
 telescope by the application slots of its own invariant. -/
 inductive Certs (env : Env) : Nat → Bool → Expr → List Expr → Prop where
   | nil {d : Nat} {lic : Bool} {T : Expr} : Certs env d lic T []
-  | licensed {d : Nat} {T : Expr} {args : List Expr} : Certs env d true T args
+  | licensed {d : Nat} {T : Expr} {args : List Expr} :
+      (Expr.peelPis args.length T).isSome = true → Certs env d true T args
   | cert {d : Nat} {lic : Bool} {ty body arg ta : Expr} {mb : BinderMeta}
       {rest : List Expr} :
-      Infer env .io d arg ta → DefEq env d ta ty →
+      Infer env .full d arg ta → DefEq env d ta ty →
       Certs env d lic (body.instantiate1 arg) rest →
       Certs env d lic (.forallE ty body mb) (arg :: rest)
 

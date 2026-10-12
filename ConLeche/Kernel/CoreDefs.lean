@@ -37,6 +37,17 @@ their names, docstrings, attributes and relative order.
 
 namespace ConLeche
 
+/-- **Is the spine's head neither a λ nor a `let`** (nor a loose bound
+variable)?  The io grade's claim of such a term, where the term is not
+the point, is a membership of its io-inferred type (task #342 L18,
+`IORel`): a hereditary claim arises only at an abstraction.  A term in
+weak-head normal form that is not a λ has such a head. -/
+def Expr.ioNeutral (e : Expr) : Bool :=
+  match e.getAppFn with
+  | .lam .. | .letE .. | .bvar _ => false
+  | _ => true
+
+
 /-- Is the expression headed by a stored constructor? -/
 def isCtorApp (env : Env) (e : Expr) : Bool :=
   match e.getAppFn with

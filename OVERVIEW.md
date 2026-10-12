@@ -524,7 +524,13 @@ presentation and matter for the proof:
   Beyond the official kernel, the verified mode compares the opened
   bodies' full-grade types at the innermost level of a λ/λ comparison
   ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1427))
-  and at η; the proof consumes them. Binders carry no data the checker
+  and at η; the proof consumes them. Three cheap guards are the proof's
+  too and never change a verdict on well-typed input: η is tried only
+  against a term whose head is no λ and no `let` (a weak-head normal
+  form), a unit-like comparison refuses a Π-type, and a recursor's
+  stored type is checked to have the spine's number of binders. The
+  synthetic constructor spines of the K and `And` rescues are certified
+  at the full grade. Binders carry no data the checker
   reads, and declarations are stored as declared, `let`s included:
   `whnfCore` ζ-reduces and inference runs the official `infer_let`.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
@@ -606,7 +612,20 @@ direction only
 * `isDefEq` answering `true` means the two denotations are equal
   wherever neither is the proof point;
 * `inferType` returns a type that denotes a type, and the term's
-  denotation is a member of it.
+  denotation is a member of it;
+* at the infer-only grade the claim is weaker and hereditary: the term
+  is the point, a member of its inferred type, or — where that type is
+  syntactically a Π-type — a function on the Π-type's domain, not
+  everywhere the point, each of whose applications satisfies the claim
+  at the Π-type's body
+  ([`IORel` in `ConLeche/Model/Rules/IORel.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Rules/IORel.lean)).
+  An argument the grade does not check can make an application the
+  point where its type has no point, and an abstraction whose body is
+  the point at some values is no member of its inferred Π-type; a
+  Π-type reduces only to itself, so where the inferred type reduces to
+  a family's application, or its sort to `Prop`, the claim is a
+  membership or the term is the point, which is all its consumers
+  read.
 
 The first two say nothing about proofs. A type is never the point, so
 a comparison or reduction of types — which is what declarations,

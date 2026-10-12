@@ -110,7 +110,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     (hidx : ConLeche.iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
       DefEqListSem m φ d (residual.getAppArgs.drop rl.ctorParams)
         ((e.getAppArgs.take mI).drop rP)) :
-    RedSemU m φ d e
+    RedSem m φ d e
       (Expr.mkAppN (rl.rhs.instantiateLevelParams cv.levelParams us)
         (e.getAppArgs.take rP ++ major.getAppArgs.drop rl.ctorParams)) := by
   intro hf Δa ea hC hea
@@ -198,7 +198,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   refine ⟨frame_mkAppN ⟨ConLeche.Expr.WScoped.of_not_hasFvar hRnf, hRbd,
       ConLeche.Expr.LeavesBounded.of_not_hasFvar hRnf⟩ (fun y hy => ?_),
     leavesSub_mkAppN (leavesSub_of_not_hasFvar hRnf) (fun y hy => ?_),
-    _, denoteMeta_mkAppN hspOut (hRaD d), fun ρ hρ hL hg => ?_⟩
+    _, denoteMeta_mkAppN hspOut (hRaD d), fun ρ hρ hL hg hne => ?_⟩
   · rcases List.mem_append.mp hy with hy' | hy'
     · exact (hfrE y (List.mem_of_mem_take hy')).1
     · exact (hfrC y (List.mem_of_mem_drop hy')).1
@@ -222,7 +222,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     hfitR ρ hρ
       (LeavesGr.of_fvarLeaves_nil
         (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfR))
-      (leavesGr_spine hL) (hokTVa ρ) hoX (fun _ => ⟨hg, hmemR ρ⟩)
+      (leavesGr_spine hL) (hokTVa ρ) hoX (fun _ => ⟨hg, hmemR ρ, hne⟩)
   have hsplit := take_getD_splitAK hxsLen
   have hfitRVal : TeleFitPA V ρ TVa (xs.take mI ++ [xs.getD mI default]) restR := by
     rw [← hsplit]; exact hfitRVal0
@@ -601,24 +601,19 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   exact ⟨htrans hoX0 hoY, hsubj.trans heqLaw⟩
 
 set_option linter.unusedVariables false in
-/-- The K rescue: the fabrication reads and is
-graded by the certified constructor telescope (`CertsSem`), and its
-type, checked against the major's (`hdt`), is the major's type.  Both
-inhabit that one type, so the conditional proof irrelevance (`hpi`)
-equates them: where neither is the point it says so, and a type
-holding the point holds nothing else (`IsTy.eq_of_ne_pt`).  The
-premises are the conditional claims, the conclusion the unconditional
-one (task #342 L10).
+/-- **The K rescue** (task #342 L18): the major is a proof — its io
+type's io sort reduces to `Prop` (`htp`, `hpt`: the major's half of the
+checker's `proofIrrel` run) — so it is the point at every valuation
+(`PropPt`), and a reduction claims nothing of the point: the
+conditional claim is vacuous.  The fabrication's frame and reading are
+syntactic (the scope guards, the stored constructor's type).
 
-Several of the rule's premises are consumed by the BRIDGE and not by
-the semantics: the recursor's storage, the K flag, the constructor's
-result family (`hres`/`hind`), the parameter count and the two
-type-check certificates `htf`/`hdt` are what makes the checker take
-this branch and build `proofIrrel`'s argument; at the motive the whole
-of that argument is the `DefEq fab major` premise.  Hence the linter
-option. -/
+The rule's certificate on the fabricated spine, the fabrication's type
+check and the K flag are what make the checker take this branch; the
+model reads none of them (the certificate's io claims would not hold
+the spine's values, `IORel`).  Hence the linter option. -/
 theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
-    {major tm tmaj fab tf : Expr} {recName : Name} {cv : ConstantVal}
+    {major tm tmaj fab tp : Expr} {recName : Name} {cv : ConstantVal}
     {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal} {cnP cnF : Nat} {T : Name}
     {tus ust : List Level} {cvT : ConstantVal} {caps : IndCaps}
     (hrec : env.find? recName = some (.recInfo cv mI rP [rl]))
@@ -633,12 +628,8 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
     (hfab : fab = Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP))
     (hws : fab.wscopedB d = true) (hb : fab.looseBVarsBounded 0 = true)
     (hlv' : fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true)
-    (hcerts : CertsSem m φ d false
-      (cvj.type.instantiateLevelParams cvj.levelParams ust)
-      (tmaj.getAppArgs.take cnP))
-    (htf : InferSemIO m φ d fab tf) (hdt : DefEqSem m φ d tmaj tf)
-    (hpi : DefEqSem m φ d fab major) :
-    RedSemU m φ d major fab := by
+    (htp : InferSemIO m φ d major tp) (hpt : PropPt m φ d tp) :
+    RedSem m φ d major fab := by
   intro hfM Δa ea hCM hea
   -- the fabrication's frame comes with the rule's three scope guards
   have hsub : LeavesSub fab major := fun l hl => by
@@ -646,23 +637,12 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
     simpa using this
   have hfF : Frame d fab :=
     ⟨Expr.WScoped.of_wscopedB hws, hb, fun l hl => hfM.2.2 l (hsub l hl)⟩
-  have hCF : CtxOkS m φ d Δa fab := hCM.of_subset hsub
   -- the major's io-inferred type, reduced, is the family at its spine
-  obtain ⟨hfT0, hsubT0, tm0a, htm0a, hInnerTm0⟩ := htm hfM hCM hea
-  obtain ⟨hfTm, hsubTm, tmaja, htmaja, hInnerTmaj⟩ :=
-    htmaj hfT0 (hCM.of_subset hsubT0) htm0a
-  have hCTm : CtxOkS m φ d Δa tmaj :=
-    (hCM.of_subset hsubT0).of_subset hsubTm
-  have htmajaSave := htmaja
+  obtain ⟨hfT0, hsubT0, tm0a, htm0a, -⟩ := htm hfM hCM hea
+  obtain ⟨-, -, tmaja, htmaja, -⟩ := htmaj hfT0 (hCM.of_subset hsubT0) htm0a
   rw [show tmaj = Expr.mkAppN tmaj.getAppFn tmaj.getAppArgs from
     (ConLeche.Expr.mkAppN_getApp tmaj).symm, hthead] at htmaja
-  obtain ⟨vT, tsa, hvT, hspt, rfl⟩ := denoteMeta_mkAppN_inv htmaja
-  have hfrT := frame_spine hfTm hCTm
-  -- the constructor's stored type: read, graded, inhabited, closed
-  obtain ⟨TVja, hTVjaD, hokTVja, hmemCj, hnfJ, hbdJ⟩ :=
-    constTy_pkg hin.const_ty hctor rfl (show ust.length = _ from hlv.symm)
-  dsimp only [ConLeche.ConstantInfo.toConstantVal] at hTVjaD hmemCj hnfJ hbdJ
-  obtain ⟨hfJ, hCJ⟩ := frame_of_not_hasFvar (m := m) (Δa := Δa) hnfJ hbdJ hCM.1
+  obtain ⟨vT, tsa, -, hspt, rfl⟩ := denoteMeta_mkAppN_inv htmaja
   -- the fabrication reads
   have hheadCj : denoteMeta m.acval env φ d (.const rl.ctor ust)
       = some (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) :=
@@ -671,44 +651,11 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
       = some (AnnotTerm.mkAppN
         (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) (tsa.take cnP)) := by
     rw [hfab]; exact denoteMeta_mkAppN (hspt.take cnP) hheadCj
-  have hframesTb : ∀ x ∈ tmaj.getAppArgs.take cnP, Frame d x ∧ CtxOkS m φ d Δa x :=
-    fun x hx => hfrT x (List.mem_of_mem_take hx)
-  obtain ⟨resta, hfit⟩ :=
-    hcerts (fa := m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-      hfJ hCJ (hTVjaD d) hframesTb (hspt.take cnP)
-  obtain ⟨hfTf, hsubTf, tfa, htfa, hInnerTf⟩ := htf hfF hCF hdF
-  have hCTf : CtxOkS m φ d Δa tf := hCF.of_subset hsubTf
-  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg => ?_⟩
-  have hLfab : LeavesGr m φ d fab ρ := hL.of_subset hsub
-  -- per-ρ: the io type grading, transported along the reduction (the
-  -- type is not the point: "not pt" source (1))
-  obtain ⟨hgT0, hmemM0⟩ := hInnerTm0 ρ hρ hL hg
-  obtain ⟨hgTm, heqTm⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1 hgT0.ne_pt
-  obtain ⟨-, hoTs⟩ := hoist_spineV tsa hgTm
-  have hLtmaj : LeavesGr m φ d tmaj ρ := (hL.of_subset hsubT0).of_subset hsubTm
-  have hLTb : ∀ x ∈ tmaj.getAppArgs.take cnP, LeavesGr m φ d x ρ :=
-    fun x hx => leavesGr_spine hLtmaj x (List.mem_of_mem_take hx)
-  obtain ⟨hfitVal, -⟩ :=
-    hfit ρ hρ
-      (LeavesGr.of_fvarLeaves_nil
-        (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfJ))
-      hLTb (hokTVja ρ) (fun x hx => hoTs x (List.mem_of_mem_take hx)) (by simp)
-  -- and is graded: its own telescope certificate is the fit
-  have hgF : WellDenotedV V ρ (AnnotTerm.mkAppN
-      (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) (tsa.take cnP)) :=
-    (mkAppN_of_fitA (tsa.take cnP) (hokTVja ρ)
-      (m.acval_wellDenoted _ _ ρ)
-      (fun x hx => hoTs x (List.mem_of_mem_take hx)) (hmemCj ρ) hfitVal).1
-  -- the fabrication's type is the major's ("not pt" source (1): two types)
-  obtain ⟨hgTf, hmemF⟩ := hInnerTf ρ hρ hLfab hgF
-  have hneTm : interp V ρ (AnnotTerm.mkAppN vT tsa) ≠ pt := heqTm ▸ hgT0.ne_pt
-  have heqT := hdt hfTm hfTf hCTm hCTf htmajaSave htfa ρ hρ hLtmaj
-    (hLfab.of_subset hsubTf) hgTm hgTf.1 hneTm hgTf.ne_pt
-  have hmemM : interp V ρ ea ∈ˢ interp V ρ tfa := by
-    rw [← heqT, ← heqTm]; exact hmemM0
-  -- one type holds both: the conditional proof irrelevance is an equation
-  refine ⟨hgF, (IsTy.eq_of_ne_pt hgTf.2 hmemF hmemM
-    (hpi hfF hfM hCF hCM hdF hea ρ hρ hLfab hL hgF hg)).symm⟩
+  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg hne => ?_⟩
+  -- the major is a proof, the point: nothing is claimed
+  obtain ⟨hftp, hsubtp, tpa, htpa, hrowP⟩ := htp hfM hCM hea
+  exact absurd (hpt hftp (hCM.of_subset hsubtp) htpa ρ _ hρ (hL.of_subset hsubtp)
+    (hrowP ρ hρ hL hg).1) hne
 
 /-- **The structure-η rescue** (task #342 L11b): no certificate.  The
 major's io-inferred type is a type ("not pt" source (1)), so its reduct
@@ -716,7 +663,9 @@ is graded and equal; `etaSide` then gives the η law (the major IS the
 fabrication's value) and the coherence law (the fabricated spine fits
 the η constructor's telescope), so the fabrication is graded
 (`mkAppN_of_fitA`).  The major may be the point: the laws hold at every
-member.  Conditional premises, unconditional conclusion (as ι). -/
+member where the major is not the point: its io type reduces to the
+family's application, no ∀, so its io claim is a membership there
+(`IORel.mem_of_red`).  Conditional (task #342 L18). -/
 theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     {major tm tmaj fab : Expr} {recName : Name} {cv : ConstantVal}
     {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal} {cnP cnF : Nat} {T : Name}
@@ -727,6 +676,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (hres : (cvj.type.piResult).getAppFn = .const T tus)
     (hind : env.find? T = some (.indInfo cvT caps))
     (htm : InferSemIO m φ d major tm) (htmaj : RedSem m φ d tm tmaj)
+    (htmajr : Red env d tm tmaj)
     (hthead : tmaj.getAppFn = .const T ust)
     (hlen : tmaj.getAppArgs.length = caps.etaParams)
     (hlv : ust.length = cvT.levelParams.length)
@@ -738,7 +688,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (hresT : ConLeche.reservedBasisNames.contains T = false)
     (hresC : ConLeche.reservedBasisNames.contains caps.etaCtor = false)
     (htow : ConLeche.towerSlotsAll env T caps.etaFields = true) :
-    RedSemU m φ d major fab := by
+    RedSem m φ d major fab := by
   intro hfM Δa ea hCM hea
   have hsub : LeavesSub fab major := fun l hl => by
     have := List.all_eq_true.mp hlv' l hl
@@ -791,8 +741,9 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     constTy_pkg hin.const_ty hfC rfl (show ust.length = _ from hlpj)
   dsimp only [ConLeche.ConstantInfo.toConstantVal] at htc hmemC
   obtain rfl : TCa = tc := Option.some.inj (hTCa.symm.trans (htc 0))
-  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg => ?_⟩
-  obtain ⟨hgT0, hmemM0⟩ := hInnerTm0 ρ hρ hL hg
+  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg hne => ?_⟩
+  obtain ⟨hgT0, hmemM0⟩ := (IORel.mem_of_red (hInnerTm0 ρ hρ hL hg).1 hne htmajr
+    (not_forallE_of_getAppFn hthead)).of_reading htm0a
   obtain ⟨hgTm, heqTm⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1 hgT0.ne_pt
   have hmemMW : interp V ρ ea ∈ˢ interp V ρ (AnnotTerm.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams ust)) tsa) := heqTm ▸ hmemM0
@@ -823,16 +774,14 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
   rw [hbη, interp_mkAppN, List.foldl_map]
 
 set_option linter.unusedVariables false in
-/-- The `And` rescue: the
-fabricated spine is the reduced type's parameters plus the major's two
-`.proj` nodes, which read to the tower readings and are graded by the
-two stored entries' typing law (`TowerOk`).  As for K, the
-fabrication's type, checked against the major's, is the major's type,
-so the conditional proof irrelevance (`hpi`) is an equation
-(`IsTy.eq_of_ne_pt`); conditional premises, unconditional conclusion
-(task #342 L10). -/
+/-- **The `And` rescue** (task #342 L18): as the K rescue, the major is
+a proof (`htp`, `hpt`), the point at every valuation, and the
+conditional claim is vacuous; the fabrication's frame and reading are
+syntactic.  The certificate, the type check and the two stored slots
+make the checker take the branch; the model reads them only for the
+fabrication's reading. -/
 theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
-    {major tm tmaj fab tf : Expr} {recName : Name} {cv : ConstantVal}
+    {major tm tmaj fab tp : Expr} {recName : Name} {cv : ConstantVal}
     {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal} {cnP cnF : Nat}
     {tus ust : List Level} {cvT : ConstantVal} {caps : IndCaps}
     (hrec : env.find? recName = some (.recInfo cv mI rP [rl]))
@@ -848,54 +797,21 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
       (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]))
     (hws : fab.wscopedB d = true) (hb : fab.looseBVarsBounded 0 = true)
     (hlv' : fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true)
-    (hcerts : CertsSem m φ d false
-      (cvj.type.instantiateLevelParams cvj.levelParams ust)
-      (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]))
-    (htf : InferSemIO m φ d fab tf) (hdt : DefEqSem m φ d tmaj tf)
-    (hpi : DefEqSem m φ d fab major) :
-    RedSemU m φ d major fab := by
+    (htp : InferSemIO m φ d major tp) (hpt : PropPt m φ d tp) :
+    RedSem m φ d major fab := by
   intro hfM Δa ea hCM hea
   have hsub : LeavesSub fab major := fun l hl => by
     have := List.all_eq_true.mp hlv' l hl
     simpa using this
   have hfF : Frame d fab :=
     ⟨Expr.WScoped.of_wscopedB hws, hb, fun l hl => hfM.2.2 l (hsub l hl)⟩
-  have hCF : CtxOkS m φ d Δa fab := hCM.of_subset hsub
   -- the major's io-inferred type, reduced, is `And` at its parameters
-  obtain ⟨hfT0, hsubT0, tm0a, htm0a, hInnerTm0⟩ := htm hfM hCM hea
-  obtain ⟨hfTm, hsubTm, tmaja, htmaja, hInnerTmaj⟩ :=
-    htmaj hfT0 (hCM.of_subset hsubT0) htm0a
-  have hCTm : CtxOkS m φ d Δa tmaj :=
-    (hCM.of_subset hsubT0).of_subset hsubTm
-  have htmajaSave := htmaja
+  obtain ⟨hfT0, hsubT0, tm0a, htm0a, -⟩ := htm hfM hCM hea
+  obtain ⟨-, -, tmaja, htmaja, -⟩ := htmaj hfT0 (hCM.of_subset hsubT0) htm0a
   rw [show tmaj = Expr.mkAppN tmaj.getAppFn tmaj.getAppArgs from
     (ConLeche.Expr.mkAppN_getApp tmaj).symm, hthead] at htmaja
-  obtain ⟨vT, tsa, hvT, hspt, rfl⟩ := denoteMeta_mkAppN_inv htmaja
-  have hfrT := frame_spine hfTm hCTm
-  -- the constructor's stored type: read, graded, inhabited, closed
-  obtain ⟨TVja, hTVjaD, hokTVja, hmemCj, hnfJ, hbdJ⟩ :=
-    constTy_pkg hin.const_ty hctor rfl (show ust.length = _ from hlv.symm)
-  dsimp only [ConLeche.ConstantInfo.toConstantVal] at hTVjaD hmemCj hnfJ hbdJ
-  obtain ⟨hfJ, hCJ⟩ := frame_of_not_hasFvar (m := m) (Δa := Δa) hnfJ hbdJ hCM.1
-  -- the two pinned slots are stored tower entries; their head data
-  -- carries the former's level parameters (`TowerEntryLaw`)
+  obtain ⟨vT, tsa, -, hspt, rfl⟩ := denoteMeta_mkAppN_inv htmaja
   have hslot := ConLeche.andRescueSlots_inv hslots
-  obtain ⟨entry0, hfe0, hctor0, hnP0, -, -⟩ := hslot 0 (by decide)
-  obtain ⟨-, -, -, ⟨cvT0, capsT0, hfT0s, hlpsT0, -⟩, -, cvC0, hfC0, hlpsC0, -, -⟩ :=
-    hin.tower_ok andName 0 entry0 hfe0
-  have hcvT0 : cvT0 = cvT := by
-    rw [hind] at hfT0s
-    exact (ConLeche.ConstantInfo.indInfo.inj (Option.some.inj hfT0s)).1.symm
-  have hcvC0 : cvC0 = cvj := by
-    rw [hctor0, hctor] at hfC0
-    exact (ConLeche.ConstantInfo.ctorInfo.inj (Option.some.inj hfC0)).1.symm
-  have hlenus2 : ust.length = cvT.levelParams.length := by
-    rw [← hcvT0, hlpsT0, ← hlpsC0, hcvC0]; exact hlv.symm
-  have hvT' : vT = m.acval andName (Level.substFn φ cvT.levelParams ust) := by
-    rw [denoteMeta_const hind (show ust.length
-      = (ConLeche.ConstantInfo.indInfo cvT caps).toConstantVal.levelParams.length
-      from hlenus2)] at hvT
-    exact (Option.some.inj hvT).symm
   -- each projection reads to the tower reading
   have hprojR : ∀ j, j < 2 →
       denoteMeta m.acval env φ d (Expr.proj andName j major)
@@ -914,108 +830,16 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
         projAV (1 + env.projOff andName) ea]) :=
     hspt.append (DenoteMetaSpine.cons (hprojR 0 (by decide))
       (DenoteMetaSpine.cons (hprojR 1 (by decide)) DenoteMetaSpine.nil))
-  have hprFr : ∀ j, Frame d (Expr.proj andName j major) ∧
-      CtxOkS m φ d Δa (Expr.proj andName j major) := fun j =>
-    ⟨⟨by simpa [Expr.WScoped] using hfM.1,
-        by simpa [Expr.looseBVarsBounded] using hfM.2.1,
-        fun l hl => hfM.2.2 l (by simpa [Expr.fvarLeaves] using hl)⟩,
-      hCM.of_subset (fun l hl => by simpa [Expr.fvarLeaves] using hl)⟩
-  have hfrF : ∀ x ∈ tmaj.getAppArgs ++
-      [Expr.proj andName 0 major, Expr.proj andName 1 major],
-      Frame d x ∧ CtxOkS m φ d Δa x := by
-    intro x hx
-    rcases List.mem_append.mp hx with hx' | hx'
-    · exact hfrT x hx'
-    · rcases List.mem_cons.mp hx' with rfl | hx''
-      · exact hprFr 0
-      · rcases List.mem_singleton.mp hx'' with rfl
-        exact hprFr 1
   have hdF : denoteMeta m.acval env φ d fab
       = some (AnnotTerm.mkAppN
         (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
         (tsa ++ [projAV (0 + env.projOff andName) ea,
           projAV (1 + env.projOff andName) ea])) := by
     rw [hfab]; exact denoteMeta_mkAppN hspF hheadCj
-  obtain ⟨resta, hfit⟩ :=
-    hcerts (fa := m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-      hfJ hCJ (hTVjaD d) hfrF hspF
-  obtain ⟨hfTf, hsubTf, tfa, htfa, hInnerTf⟩ := htf hfF hCF hdF
-  have hCTf : CtxOkS m φ d Δa tf := hCF.of_subset hsubTf
-  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg => ?_⟩
-  obtain ⟨hgT0, hmemM0⟩ := hInnerTm0 ρ hρ hL hg
-  obtain ⟨hgTm, heqTm⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1 hgT0.ne_pt
-  have hmemMW : interp V ρ ea ∈ˢ interp V ρ (AnnotTerm.mkAppN vT tsa) :=
-      heqTm ▸ hmemM0
-  obtain ⟨-, hoTs⟩ := hoist_spineV tsa hgTm
-  have hLtmaj : LeavesGr m φ d tmaj ρ := (hL.of_subset hsubT0).of_subset hsubTm
-  -- each projection is graded, by the two stored entries' law
-  have hprojG : ∀ j, j < 2 →
-      WellDenotedV V ρ (projAV (j + env.projOff andName) ea) := by
-    intro j hj
-    obtain ⟨entry, hfe, -, hnP, -, hfire⟩ := hslot j hj
-    rw [← ConLeche.Env.findProj?_off hfe]
-    obtain ⟨-, -, -, ⟨cvTj, capsTj, hfTj, hlpsTj, -⟩, hO5j, cvCj, hfCj, hlpsCj,
-      hlawj, -⟩ := hin.tower_ok andName j entry hfe
-    have hcvTj : cvTj = cvT := by
-      rw [hind] at hfTj
-      exact (ConLeche.ConstantInfo.indInfo.inj (Option.some.inj hfTj)).1.symm
-    have hlpe : entry.levelParams = cvT.levelParams := by rw [← hlpsTj, hcvTj]
-    have hgj : TowerGuardAt φ entry ust := towerGuardAt_of_fireOk hO5j hfire
-    obtain ⟨⟨Ta, hTa, hA⟩, -⟩ := hlawj ust (by rw [hlpe]; exact hlenus2)
-    have hTad := (towerEntry_tele_at_depth hfe hTa).1
-    have hlenVs : tsa.length = entry.numParams := by
-      rw [← hspt.length, hlen, hnP]
-    have hpc : PiChain (tsa ++ [ea]).length Ta := by
-      rw [List.length_append, List.length_singleton, hlenVs]
-      exact piChain_of_stripPis _
-        (by rw [ConLeche.projTele_stripPis]; rfl) (hTad d)
-    obtain ⟨restj, hpeel⟩ := peelPis_of_piChain _ hpc
-    rw [hlpe, ← hvT'] at hA
-    exact (hA hgj ρ tsa ea restj hlenVs hgTm
-      (by rw [← heqTm]; exact hgT0.ne_pt) hg hmemMW hpeel).1
-  have hoksF : ∀ x ∈ (tsa ++ [projAV (0 + env.projOff andName) ea,
-      projAV (1 + env.projOff andName) ea]), WellDenotedV V ρ x := by
-    intro x hx
-    rcases List.mem_append.mp hx with hx' | hx'
-    · exact hoTs x hx'
-    · rcases List.mem_cons.mp hx' with rfl | hx''
-      · exact hprojG 0 (by decide)
-      · rcases List.mem_singleton.mp hx'' with rfl
-        exact hprojG 1 (by decide)
-  have hLprojTerm : ∀ j, j < 2 → LeavesGr m φ d (Expr.proj andName j major) ρ :=
-    fun _ _ => LeavesGr.of_subset hL (fun l hl => by simpa [Expr.fvarLeaves] using hl)
-  have hLF : ∀ x ∈ tmaj.getAppArgs ++
-      [Expr.proj andName 0 major, Expr.proj andName 1 major],
-      LeavesGr m φ d x ρ := by
-    intro x hx
-    rcases List.mem_append.mp hx with hx' | hx'
-    · exact leavesGr_spine hLtmaj x hx'
-    · rcases List.mem_cons.mp hx' with rfl | hx''
-      · exact hLprojTerm 0 (by decide)
-      · rcases List.mem_singleton.mp hx'' with rfl
-        exact hLprojTerm 1 (by decide)
-  obtain ⟨hfitVal, -⟩ :=
-    hfit ρ hρ
-      (LeavesGr.of_fvarLeaves_nil
-        (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfJ))
-      hLF (hokTVja ρ) hoksF (by simp)
-  have hgF : WellDenotedV V ρ (AnnotTerm.mkAppN
-      (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
-      (tsa ++ [projAV (0 + env.projOff andName) ea,
-        projAV (1 + env.projOff andName) ea])) :=
-    (mkAppN_of_fitA _ (hokTVja ρ)
-      (m.acval_wellDenoted _ _ ρ)
-      hoksF (hmemCj ρ) hfitVal).1
-  -- the fabrication's type is the major's ("not pt" source (1): two types)
-  have hLfab : LeavesGr m φ d fab ρ := hL.of_subset hsub
-  obtain ⟨hgTf, hmemF⟩ := hInnerTf ρ hρ hLfab hgF
-  have hneTm : interp V ρ (AnnotTerm.mkAppN vT tsa) ≠ pt := heqTm ▸ hgT0.ne_pt
-  have heqT := hdt hfTm hfTf hCTm hCTf htmajaSave htfa ρ hρ hLtmaj
-    (hLfab.of_subset hsubTf) hgTm hgTf.1 hneTm hgTf.ne_pt
-  have hmemM : interp V ρ ea ∈ˢ interp V ρ tfa := by
-    rw [← heqT, ← heqTm]; exact hmemM0
-  -- one type holds both: the conditional proof irrelevance is an equation
-  exact ⟨hgF, (IsTy.eq_of_ne_pt hgTf.2 hmemF hmemM
-    (hpi hfF hfM hCF hCM hdF hea ρ hρ hLfab hL hgF hg)).symm⟩
+  refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg hne => ?_⟩
+  -- the major is a proof, the point: nothing is claimed
+  obtain ⟨hftp, hsubtp, tpa, htpa, hrowP⟩ := htp hfM hCM hea
+  exact absurd (hpt hftp (hCM.of_subset hsubtp) htpa ρ _ hρ (hL.of_subset hsubtp)
+    (hrowP ρ hρ hL hg).1) hne
 
 end ConLeche.Model.Rules

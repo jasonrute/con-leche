@@ -37,6 +37,14 @@ namespace ConLeche
 
 namespace Expr
 
+/-- The residual after peeling `k` *syntactic* ∀ binders, whatever
+their domains (no substitution — the residual may mention the peeled
+binders; the readers only look at its head shape). -/
+def peelPis : Nat → Expr → Option Expr
+  | 0, e => some e
+  | k + 1, .forallE _ b _ => peelPis k b
+  | _ + 1, _ => none
+
 /-- The domain of the `k`-th syntactic ∀ binder (`0` = outermost) of a
 telescope, unsubstituted. -/
 def binderDom : Nat → Expr → Option Expr
@@ -160,13 +168,16 @@ def headProofPW (find? : Name → Option ConstantInfo) : Expr →
   | .fvar _ ty => typeSortPW find? ty
   | .sort _ | .forallE .. | .lit _ => some .never
   | .proj S i _ =>
-    -- the field's stored type, when its datum does not depend on the
-    -- structure's levels
+    -- the field's stored type, when it is never a proposition: a "not a
+    -- proof" answer only.  A projection's reading is graded at any
+    -- nested pair, whatever the scrutinee's type, so the field's type
+    -- does not make it the point (task #342 L18): "a proof" is the slow
+    -- path's, which infers the scrutinee's type
     match find? (projTableName S) with
     | some (.projInfo tbl) =>
       if i < tbl.numFields then
         match typeSortPW find? (tbl.entry i).body with
-        | some pw => if pw.isNever || pw == .ifAllZero [] then some pw else none
+        | some pw => if pw.isNever then some pw else none
         | none => none
       else none
     | _ => none

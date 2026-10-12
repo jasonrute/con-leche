@@ -19,6 +19,7 @@ HERE only. -/
 import all ConLeche.Kernel.PropWhen
 import ConLeche.Semantics.Hoist
 import ConLeche.Model.Annot.BitLevels
+import ConLeche.Rules.Rigid
 
 public section
 
@@ -194,13 +195,9 @@ theorem Graded.projAV {Δa : List AnnotTerm} {i : Nat} {e : AnnotTerm}
     (h : Graded V Δa (ConLeche.Semantics.projAV i e)) : Graded V Δa e :=
   fun ρ hρ => ProjAV.hoistV (h ρ hρ)
 
-/-! ## The proof-irrelevance fast arm
+/-! ## The proof-irrelevance fast arm: the shared facts
 
-The whole squash-regime licence: the `V`-level facts,
-the type former's `.pi` chain, and `prf_of_isProofFast` itself, with
-`ConstType` read as the rules tier's `ConstType`. -/
-
-/-! ## 1. The squash-regime facts, V level -/
+The licence itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
 
 /-- Every application of `pt` is `pt` (`app_pt`, folded along a spine). -/
 theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List AnnotTerm),
@@ -222,134 +219,7 @@ theorem holds_of_isProp {pw : PropWhen}
   rw [eq_of_beq h]
   rfl
 
-/-- A level whose zero-ness datum is always-zero evaluates to `0`. -/
-theorem eval_eq_zero_of_isProp {u : Level}
-    (h : (Level.zeronessOf u).isProp = true) (φ : Name → Nat) :
-    Level.eval φ u = 0 := by
-  have := holds_of_isProp h φ
-  rw [ConLeche.PropWhen.zeronessOf_sound] at this
-  exact beq_iff_eq.mp this
-
-/-- **THE FENCE.**  At a nonzero bit the product reading is a graph set
-with two distinct members: a `prf` verdict read off a datum that is
-not always-zero would equate them.  So the fast "yes" is exactly the
-always-zero datum, model-class-wide. -/
-theorem irrel_fast_fence :
-    ∃ (A : V) (B : V → V) (f g : V),
-      f ∈ˢ piR 1 A B ∧ g ∈ˢ piR 1 A B ∧ f ≠ g := by
-  refine ⟨truthVal True, fun _ => univZero,
-    lamR 1 (truthVal True) (fun _ => truthVal False),
-    lamR 1 (truthVal True) (fun _ => truthVal True), ?_, ?_, ?_⟩
-  · exact lamR_mem fun _ _ => truthVal_mem_univZero False
-  · exact lamR_mem fun _ _ => truthVal_mem_univZero True
-  · intro h
-    have h1 : app (lamR 1 (truthVal True) (fun _ => (truthVal False : V))) (pt : V)
-        = app (lamR 1 (truthVal True) (fun _ => (truthVal True : V))) (pt : V) :=
-      congrArg (fun z => app z (pt : V)) h
-    rw [app_lamR_pos (by decide) (pt_mem_truthVal trivial),
-      app_lamR_pos (by decide) (pt_mem_truthVal trivial)] at h1
-    have : (pt : V) ∈ˢ (truthVal False : V) := h1 ▸ pt_mem_truthVal trivial
-    exact (mem_truthVal.mp this).1
-
-/-! ## 2. The type former's telescope: a `.pi` chain -/
-
-/-- The reading's first `n` heads are `.pi` nodes and the residual is
-`.sort u` — the reading of a type former's stored type `∀ p⃗, Sort u`. -/
-@[expose] def NeverChain : Nat → Nat → AnnotTerm → Prop
-  | 0, u, e => e = .sort u
-  | n + 1, u, e =>
-    match e with
-    | .pi _ B => NeverChain n u B
-    | _ => False
-
-theorem neverChain_succ_inv {n u : Nat} {e : AnnotTerm}
-    (h : NeverChain (n + 1) u e) :
-    ∃ A B, e = .pi A B ∧ NeverChain n u B := by
-  match e with
-  | .pi A B => exact ⟨A, B, rfl, h⟩
-  | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ | .letE _ _
-  | .eqE _ _ | .fst _ | .snd _ | .prf => exact nomatch h
-
-/-- Substitution preserves the chain (`inst` maps `.pi` to `.pi` and
-`.sort` to itself). -/
-theorem NeverChain.inst : ∀ {n u : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : Nat),
-    NeverChain n u e → NeverChain n u (e.inst a k) := by
-  intro n
-  induction n with
-  | zero => intro u e a k h; subst h; rfl
-  | succ n ih =>
-    intro u e a k h
-    obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv h
-    exact ih a (k + 1) hB
-
-/-- **A type former's application lands in its result universe.**  The
-walk along the chain: the application is not the point ("not pt"
-source (1): it is a type, the caller's premise), so neither is its head,
-which is then a graph; the argument's membership in the domain is
-`slotTransfer` from the applied spine's own hereditary app slot — no
-certificate anywhere.  (Without the premise the lemma is false: a head
-over an empty inner domain is the point, and its slot pins no domain.) -/
-theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
-    ∀ (vs : List AnnotTerm) {Ta f : AnnotTerm} {u : Nat},
-      NeverChain vs.length u Ta →
-      WellDenotedV V ρ Ta → WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
-      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
-      interp V ρ f ∈ˢ interp V ρ Ta →
-      interp V ρ (AnnotTerm.mkAppN f vs) ∈ˢ (univ u : V) := by
-  intro vs
-  induction vs with
-  | nil =>
-    intro Ta f u hch _ _ _ hf
-    obtain rfl : Ta = .sort u := hch
-    exact hf
-  | cons a vs ih =>
-    intro Ta f u hch hokT hokS hne hf
-    obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv hch
-    have hokApp : WellDenotedV V ρ (.app f a) := mkAppN_head vs hokS
-    have hoka : WellDenotedV V ρ a :=
-      (cast (WellDenoted_app V ρ f a) hokApp).2.1
-    have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
-      fun y hy =>
-        (cast (WellDenoted_pi V ρ A B) hokT).2.2.1 y hy
-    have hf' : interp V ρ f
-        ∈ˢ piV (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
-    -- the head is not the point: a point head makes the spine the point
-    have hfp : interp V ρ f ≠ pt := fun h0 =>
-      hne (interp_mkAppN_pt (by rw [interp_app, h0, app_pt]) vs)
-    have hgr : interp V ρ f
-        ∈ˢ piR 1 (interp V ρ A) (fun x => interp V (cons x ρ) B) := by
-      rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
-    have hmem : interp V ρ a ∈ˢ interp V ρ A := by
-      obtain ⟨v', A', B', hslot, ha, -⟩ :=
-        (cast (WellDenoted_app V ρ f a) hokApp).2.2
-      exact slotTransfer Nat.one_ne_zero hgr hslot ha
-    have hokB' : WellDenotedV V ρ (B.inst a) :=
-      (WellDenotedV_inst0 hoka).mpr (hokB _ hmem)
-    have hfa : interp V ρ (.app f a) ∈ˢ interp V ρ (B.inst a) := by
-      rw [interp_app, interp_inst0]
-      exact app_mem_piV hf' hmem
-    exact ih (NeverChain.inst a 0 hB) hokB' hokS hne hfa
-
-/-- The reading of a type-former application `T = hd b⃗` lands in
-`univ 0` once the head's type reads to a chain of `b⃗`'s length ending
-in `Sort 0`, the head inhabits it, and both readings are graded. -/
-theorem mem_univ_zero_of_spine {m : EnvModel V env}
-    {ρ : Nat → V} {d : Nat} {T hd : Expr} {Ta fa taH : AnnotTerm}
-    (hfn : T.getAppFn = hd)
-    (hTa : denoteMeta m.acval env φ d T = some Ta)
-    (hfa : denoteMeta m.acval env φ d hd = some fa)
-    (hchain : NeverChain T.getAppArgs.length 0 taH)
-    (hokH : WellDenotedV V ρ taH) (hokT : WellDenotedTy V ρ Ta)
-    (hmem : interp V ρ fa ∈ˢ interp V ρ taH) :
-    interp V ρ Ta ∈ˢ (univ 0 : V) := by
-  rw [← ConLeche.Expr.mkAppN_getApp T, hfn] at hTa
-  obtain ⟨fa', vs, hfa', hsp, rfl⟩ := denoteMeta_mkAppN_inv hTa
-  rw [hfa] at hfa'
-  obtain rfl := Option.some.inj hfa'
-  rw [hsp.length] at hchain
-  exact spine_mem_univ_of_neverChain vs hchain hokH hokT.1 hokT.2.ne_pt hmem
-
-/-! ## 3. The kernel-shaped licence -/
+/-! ## Leaves of a spine's head -/
 
 /-- A leaf of a spine's head is a leaf of the spine. -/
 theorem mem_fvarLeaves_mkAppN : ∀ (as : List Expr) (f : Expr)
@@ -376,23 +246,6 @@ theorem mem_fvarLeaves_of_ty {ty : Expr} {idx : Nat}
     l ∈ (Expr.fvar idx ty).fvarLeaves := by
   simp [Expr.fvarLeaves, h]
 
-/-- **A term whose validated data say "proof" is `pt`.**  The
-head-symbol case split of `isProofFast`, each case closed by the
-squash-regime licence (a ∀-typed head, a λ) or the one graph-regime
-step (a type-former-typed head). -/
-theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
-    {d : Nat} {a : Expr} {Δa : List AnnotTerm} {aa : AnnotTerm}
-    (h : isProofFast env.find? a = true)
-    (hCa : CtxOkS m φ d Δa a)
-    (hda : denoteMeta m.acval env φ d a = some aa)
-    (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ) :
-    interp V ρ aa = (pt : V) := by
-  -- L18 — the fast test's reader is binder-free since task #342 (L-ck,
-  -- S0's `PropRead`: residual sorts read through identity wrappers,
-  -- telescope-`bvar` and projection heads), and the value reading
-  -- gives a ∀-typed or λ subject no datum: the licence is owed whole
-  sorry
-
 /-! ## The η-projection spelling, unfolded locally
 
 `rw [ConLeche.etaProjs]` would reference the function's EQUATION
@@ -415,37 +268,91 @@ theorem etaFabArgsV_eq (val : Name → V) (T : Name) (ts : List V) (b : V)
         (fun j => (ts ++ [b]).foldl SetTheory.app (val (projFnName T j))) := by
   rfl
 
-/-! ## The two proof-irrelevance sides
+/-! ## Proof irrelevance at the io grade (task #342 L18)
 
-Stated at the motives: the premises are the rule's
-`InferSemIO`/`RedSem` derivations, and the inferred type's frames are
-the motives' own conclusions. -/
+The fragment's `eq_pt_of_IORel_prop`: a term whose io-inferred type's
+io-inferred sort reduces to `Prop` is the point.  A member of the type:
+the type is a truth value.  Hereditary: the type is a ∀ whose sort is
+`Prop`, so its body's sort is `Prop` (inversion of `Infer.forallE` at
+the syntax, `Sound.lean`; a sort reduces only to itself), and the
+application at the hereditary clause's witness is the point by the
+body's claim — against the witness.  The recursion over the ∀'s body is
+`Sound.lean`'s `prop_pt_io` (it needs the body's inference claim); the
+steps are here. -/
 
-/-- A term whose type's type reduces to a zero-equivalent sort
-interprets to `pt`. -/
-theorem prop_side_pt' {m : EnvModel V env} {d : Nat} {a ta tta : Expr}
-    {u : Level} {Δa : List AnnotTerm} {aa : AnnotTerm}
-    (hta : InferSemIO m φ d a ta) (htta : InferSemIO m φ d ta tta)
-    (hu : RedSem m φ d tta (.sort u))
-    (hu0 : Level.isEquiv u .zero = some true)
-    (hfa : Frame d a) (hCa : CtxOkS m φ d Δa a)
-    (hda : denoteMeta m.acval env φ d a = some aa)
-    (ρ : Nat → V) (hρ : Sat V Δa ρ) (hLa : LeavesGr m φ d a ρ)
-    (hokA : WellDenotedV V ρ aa) : interp V ρ aa = (pt : V) := by
-  obtain ⟨hfta, hsub1, taa, htaa, hA⟩ := hta hfa hCa hda
-  have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsub1
-  have hLta : LeavesGr m φ d ta ρ := hLa.of_subset hsub1
-  obtain ⟨hoktaa, hmemA⟩ := hA ρ hρ hLa hokA
-  obtain ⟨hftta, hsub2, ttaa, httaa, hT⟩ := htta hfta hCta htaa
-  obtain ⟨hokttaa, hmemT⟩ := hT ρ hρ hLta hoktaa.1
-  have hCtta : CtxOkS m φ d Δa tta := hCta.of_subset hsub2
-  obtain ⟨-, -, sa, hsa, hs⟩ := hu hftta hCtta httaa
-  rw [denoteMeta_sort] at hsa
-  obtain rfl : sa = AnnotTerm.sort (u.eval φ) := (Option.some.inj hsa).symm
-  have h0 : Level.eval φ u = 0 := ConLeche.Level.isEquiv_sound hu0 φ
-  -- "not pt" source (1): the type of a type is a type, never the point
-  obtain ⟨-, heq⟩ := hs ρ hρ (hLta.of_subset hsub2) hokttaa.1 hokttaa.ne_pt
-  rw [heq, interp_sort, h0] at hmemT
-  exact mem_univ_zero hmemT hmemA
+/-- The member half: a member of a type whose type reduces to a sort
+evaluating to zero is the point ("not pt" source (1): the type and its
+type are types). -/
+theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
+    (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
+    (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
+    (hfT : Frame d T) {Δa : List AnnotTerm} {ta : AnnotTerm}
+    (hCT : CtxOkS m φ d Δa T) (hT : denoteMeta m.acval env φ d T = some ta)
+    (ρ : Nat → V) (v : V) (hρ : Sat V Δa ρ) (hLT : LeavesGr m φ d T ρ)
+    (hm : IOMem m φ d T ρ v) : v = pt := by
+  obtain ⟨hwT, hvm⟩ := hm.of_reading hT
+  obtain ⟨hftt, hsub, tta, htta, hrow⟩ := hsem hfT hCT hT
+  rcases (hrow ρ hρ hLT hwT.1).1 with h | h | h
+  · -- "not pt" source (1): the type is a type
+    exact absurd h hwT.ne_pt
+  · obtain ⟨hwtt, hTm⟩ := h.of_reading htta
+    obtain ⟨-, -, sa, hsa, hs⟩ := hrs hftt (hCT.of_subset hsub) htta
+    rw [denoteMeta_sort] at hsa
+    obtain rfl : sa = AnnotTerm.sort (w.eval φ) := (Option.some.inj hsa).symm
+    -- "not pt" source (1): the type's type is a type
+    obtain ⟨-, heq⟩ := hs ρ hρ (hLT.of_subset hsub) hwtt.1 hwtt.ne_pt
+    rw [heq, interp_sort, hw0] at hTm
+    exact mem_univ_zero hTm hvm
+  · obtain ⟨_, _, _, rfl⟩ := h.forallE
+    exact nomatch Red.rigid hr trivial
+
+/-- At a type that is not a ∀ the io claim is the point or a member. -/
+theorem propPt_of_not_forallE {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
+    (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
+    (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
+    (hnf : ∀ ty body mb, T ≠ .forallE ty body mb) : PropPt m φ d T := by
+  intro hfT Δa ta hCT hT ρ v hρ hLT h
+  rcases h.of_not_forallE hnf with h | h
+  · exact h
+  · exact propPt_of_mem hsem hrs hr hw0 hfT hCT hT ρ v hρ hLT h
+
+/-- At a ∀: the member half as above; the hereditary half is the
+point at its witness by the body's claim, a contradiction. -/
+theorem propPt_forallE {m : EnvModel V env} {d : Nat} {ty body tt : Expr}
+    {mb : ConLeche.BinderMeta} {w : Level}
+    (hsem : InferSemIO m φ d (.forallE ty body mb) tt) (hrs : RedSem m φ d tt (.sort w))
+    (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
+    (hbody : PropPt m φ (d + 1) (body.instantiate1 (.fvar d ty))) :
+    PropPt m φ d (.forallE ty body mb) := by
+  intro hfT Δa ta hCT hT ρ v hρ hLT h
+  rcases h with h | h | h
+  · exact h
+  · exact propPt_of_mem hsem hrs hr hw0 hfT hCT hT ρ v hρ hLT h
+  · rw [IOHered_forallE] at h
+    obtain ⟨tya, htya, hwT, -, ⟨x₀, hx₀, hne⟩, hall⟩ := h
+    exact absurd (hbody (hfT.forallE_open hfT.forallE_ty)
+      (CtxOkS.openS hCT.forallE_ty hCT.forallE_body htya)
+      (ta := (denoteMeta m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty))).getD
+        default) (by
+          obtain ⟨_, ba, -, hba, -⟩ := denoteMeta_forallE_inv hT
+          rw [hba]; rfl)
+      (cons x₀ ρ) _ (Sat_cons V hρ hx₀)
+      (LeavesGr.open hCT.forallE_ty hCT.forallE_body hLT.forallE_ty hLT.forallE_body
+        htya hwT)
+      (hall x₀ hx₀)) hne
+
+/-- A ∀'s sort `imax u v` reducing to a sort that evaluates to zero:
+`v` evaluates to zero (a sort reduces only to itself). -/
+theorem eval_zero_of_red_imax {d : Nat} {u v w : Level}
+    (hr : Red env d (.sort (.imax u v)) (.sort w)) (hw0 : w.eval φ = 0) :
+    v.eval φ = 0 := by
+  have h := Red.rigid hr trivial
+  injection h with h
+  subst h
+  revert hw0
+  simp only [Level.eval]
+  split
+  · next h => exact fun _ => h
+  · next h => exact fun h' => absurd (Nat.max_eq_zero_iff.mp h').2 h
 
 end ConLeche.Model.Rules

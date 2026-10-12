@@ -62,7 +62,8 @@ theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
         (∀ x ∈ aa :: vs', WellDenotedV V ρ x) →
         (lic = true →
           WellDenotedV V ρ (AnnotTerm.mkAppN fa (aa :: vs')) ∧
-            interp V ρ fa ∈ˢ interp V ρ (.pi doma bodya)) →
+            interp V ρ fa ∈ˢ interp V ρ (.pi doma bodya) ∧
+            interp V ρ (AnnotTerm.mkAppN fa (aa :: vs')) ≠ pt) →
         interp V ρ aa ∈ˢ interp V ρ doma →
         TeleFitPA V ρ (.pi doma bodya) (aa :: vs') resta ∧
           WellDenotedV V ρ resta := by
@@ -105,10 +106,11 @@ theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
     · exact hLargs arg List.mem_cons_self l hl'
   have hlicP' : lic = true →
       WellDenotedV V ρ (AnnotTerm.mkAppN (.app fa aa) vs') ∧
-        interp V ρ (.app fa aa) ∈ˢ interp V ρ (bodya.inst aa) := by
+        interp V ρ (.app fa aa) ∈ˢ interp V ρ (bodya.inst aa) ∧
+        interp V ρ (AnnotTerm.mkAppN (.app fa aa) vs') ≠ pt := by
     intro hl
-    obtain ⟨hokS, hfaM⟩ := hlicP hl
-    refine ⟨hokS, ?_⟩
+    obtain ⟨hokS, hfaM, hne⟩ := hlicP hl
+    refine ⟨hokS, ?_, hne⟩
     have hoks : ∀ x ∈ [aa], WellDenotedV V ρ x := by
       intro x hx
       rw [List.mem_singleton] at hx
@@ -121,21 +123,87 @@ theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
     (fun x hx => hgvs x (List.mem_cons_of_mem aa hx)) hlicP'
   exact ⟨.cons hmemA hfit', hgresta⟩
 
-/-- **The licensed walk** (`Certs.licensed`): no certificate at all.
+/-- The checker's arity test (`Expr.peelPis`, no substitution) is
+`stripPis`'s. -/
+theorem stripPis_isSome_of_peelPis :
+    ∀ {n : Nat} {T : Expr}, (Expr.peelPis n T).isSome = true →
+      (T.stripPis n).isSome = true
+  | 0, _, _ => by simp [ConLeche.Expr.stripPis]
+  | n + 1, .forallE _ b _, h => by
+    simp only [ConLeche.Expr.stripPis, Option.isSome_map]
+    exact stripPis_isSome_of_peelPis (by simpa [Expr.peelPis] using h)
+  | _ + 1, .bvar _, h | _ + 1, .fvar _ _, h | _ + 1, .sort _, h
+  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _ _, h
+  | _ + 1, .letE _ _ _, h | _ + 1, .lit _, h | _ + 1, .proj _ _ _, h => by
+    simp [Expr.peelPis] at h
 
-**Owed to task #342 L18** (the S4 sorry ledger).  Under the annotated
-reading only a `.never` slot transferred its argument from the head
-prefix's app slot (`slotTransfer`); with no datum, the transfer holds
-where the application is not the point (a graph determines its domain,
-`piR_dom_unique`), so the motive needs the fragment's conditional form
-(`teleFit_of_ne_pt`). -/
-theorem Certs.licensed_sound {d : Nat} {T : Expr} {args : List Expr} :
-    CertsSem m φ d true T args := sorry
+/-- **A graded application that is not the point fits its head's
+telescope** (`teleFitPA_of_graded_ne_pt` at the peel's residual): every
+prefix of the spine is not the point (`app_pt`), so it is a graph, and
+the argument's own application slot puts it in the telescope's domain
+(`slotTransfer`). -/
+theorem teleFitPA_of_peel_ne_pt {ρ : Nat → V} :
+    ∀ (vs : List AnnotTerm) {T f r : AnnotTerm},
+      ConLeche.Model.AnnotTerm.peelPis T vs = some r →
+      WellDenotedV V ρ T → interp V ρ f ∈ˢ interp V ρ T →
+      WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
+      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
+      TeleFitPA V ρ T vs r
+  | [], T, _, r, hp, _, _, _, _ => by
+    obtain rfl : T = r := Option.some.inj hp
+    exact .nil
+  | x :: xs, .pi A B, f, r, hp, hT, hmem, hg, hne => by
+    have hg' : WellDenotedV V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
+    have hne' : interp V ρ (AnnotTerm.mkAppN (.app f x) xs) ≠ pt := hne
+    have happ : WellDenotedV V ρ (.app f x) := mkAppN_head xs hg'
+    obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ f x) happ).2.2
+    have hmem' := hmem
+    rw [interp_pi] at hmem'
+    have hfne : interp V ρ f ≠ pt := by
+      intro h0
+      exact hne' (interp_mkAppN_of_pt (by rw [interp_app, h0, app_pt]) xs)
+    have hgr : interp V ρ f ∈ˢ piR 1 (interp V ρ A) fun y => interp V (cons y ρ) B := by
+      rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hmem' hfne
+    have hxA : interp V ρ x ∈ˢ interp V ρ A := slotTransfer Nat.one_ne_zero hgr hslot hx
+    have hokx : WellDenotedV V ρ x := happ.app_arg
+    have hBx : WellDenotedV V ρ (B.inst x) :=
+      (WellDenotedV_inst0 hokx).mpr (hT.pi_body _ hxA)
+    have hmemB : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
+      rw [interp_inst0, interp_app]
+      exact app_mem_piV hmem' hxA
+    exact .cons hxA (teleFitPA_of_peel_ne_pt xs hp hBx hmemB hg' hne')
+  | _ :: _, .bvar _, _, _, hp, _, _, _, _ | _ :: _, .sort _, _, _, hp, _, _, _, _
+  | _ :: _, .const _ _, _, _, hp, _, _, _, _ | _ :: _, .app _ _, _, _, hp, _, _, _, _
+  | _ :: _, .lam _ _, _, _, hp, _, _, _, _ | _ :: _, .letE _ _, _, _, hp, _, _, _, _
+  | _ :: _, .eqE _ _, _, _, hp, _, _, _, _ | _ :: _, .fst _, _, _, hp, _, _, _, _
+  | _ :: _, .snd _, _, _, hp, _, _, _, _ | _ :: _, .prf, _, _, hp, _, _, _, _ =>
+    nomatch hp
 
-/-- The certified slot: the certificate's run supplies the membership. -/
+/-- **The licensed walk** (`Certs.licensed`): no certificate, the
+telescope's syntactic arity only.  A licensed walk's spine is the
+subject's own; where it is not the point ("not pt" source (2): a
+reduction claims nothing of a redex that is the point) it fits its
+head's telescope (`teleFitPA_of_peel_ne_pt`), the arity making the
+telescope's reading a ∀-chain (`piChain_of_stripPis`). -/
+theorem Certs.licensed_sound {d : Nat} {T : Expr} {args : List Expr}
+    (harity : (Expr.peelPis args.length T).isSome = true) :
+    CertsSem m φ d true T args := by
+  intro _ Δa Ta fa vs _ hTa _ hsp
+  have hstrip : (T.stripPis vs.length).isSome = true := by
+    rw [← hsp.length]
+    exact stripPis_isSome_of_peelPis harity
+  obtain ⟨r, hr⟩ := peelPis_of_piChain vs (piChain_of_stripPis vs.length hstrip hTa)
+  refine ⟨r, fun ρ _ _ _ hgT hgvs hlic => ?_⟩
+  obtain ⟨hgS, hfM, hne⟩ := hlic rfl
+  have hfit := teleFitPA_of_peel_ne_pt vs hr hgT hfM hgS hne
+  exact ⟨hfit, teleFitPA_rest_graded hfit hgT hgvs⟩
+
+/-- The certified slot: the certificate's FULL-grade run supplies the
+membership (the argument's type is a type equal to the binder's domain,
+"not pt" source (1)). -/
 theorem Certs.cert_sound {d : Nat} {lic : Bool}
     {ty body arg ta : Expr} {mb : BinderMeta} {rest : List Expr}
-    (hta : InferSemIO m φ d arg ta) (hd : DefEqSem m φ d ta ty)
+    (hta : InferSemFull m φ d arg ta) (hd : DefEqSem m φ d ta ty)
     (hrest : CertsSem m φ d lic (body.instantiate1 arg) rest) :
     CertsSem m φ d lic (.forallE ty body mb) (arg :: rest) := by
   intro hfT Δa Ta fa vs hCT hTa hargs hsp
@@ -158,7 +226,7 @@ theorem Certs.cert_sound {d : Nat} {lic : Bool}
   refine ⟨resta, fun ρ hρ hLT hLargs hgT hgvs hlicP => hstep ρ hρ hLT hLargs hgT
     hgvs hlicP ?_⟩
   have hLarg : LeavesGr m φ d arg ρ := hLargs arg List.mem_cons_self
-  obtain ⟨hgtaA, hmem⟩ := hA ρ hρ hLarg (hgvs aa List.mem_cons_self)
+  obtain ⟨-, hgtaA, hmem⟩ := hA ρ hρ hLarg
   have hokDom : WellDenotedTy V ρ doma := hgT.pi_dom
   -- "not pt" source (1): both sides of the slot comparison are types —
   -- the argument's inferred type and the binder's domain
