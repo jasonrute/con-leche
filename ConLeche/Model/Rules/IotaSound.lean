@@ -19,11 +19,8 @@ name.  The shared helpers live in `IotaSoundKit.lean`.
 `Red.iota_sound`, `Red.rescueK_sound` and `Red.rescueAnd_sound` take
 their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
 `DefEqListSem`, `CertsSem`, `CertsFSem`) and conclude the UNCONDITIONAL
-`RedSemU`: no step reads that the redex is not the point.  So one lemma
-serves both inductions of `Sound.lean`: the conditional one weakens
-the conclusion (`RedSemU.cond`), the interim side induction (which
-stays while λ-congruence, η and structure η need it, task #342 L11)
-weakens its premises.  The ι step's licence is read through the law's
+`RedSemU`: no step reads that the redex is not the point.  The
+induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's licence is read through the law's
 `RecRuleExtra` (`Model/Annot/Laws.lean`): the recursor's spine fits by
 its licensed certificate; a K rule fires by the law at the recursor's
 own parameters; otherwise the fired constructor application's value is
@@ -34,9 +31,10 @@ regime of a graded application that is not the point,
 `teleFitPA_of_graded_ne_pt`), and the comparisons the step ran become
 equations (`RecRuleExtra`'s (U)).  The two fabricating rescues (K,
 `And`) equate their fabrication with the major through the one type
-both inhabit (`IsTy.eq_of_ne_pt`).  `Red.rescueEta_soundU` stays
-unconditional: its certificate (`DefEq.structEta`'s) is the
-coherence-law lane's (task #342 L11's finding 2).
+both inhabit (`IsTy.eq_of_ne_pt`).  The structure-η rescue
+(`Red.rescueEta_sound`) is owed to the coherence-law lane (task #342
+L11's finding 2, L11b); `Red.rescueEta_soundU` is its former
+unconditional proof.
 
 ## Two rule shapes this file relies on
 
@@ -92,9 +90,8 @@ recursor's licensed telescope certificate over the redex's own spine,
 the major prepared by a reduction, and — at case 3 only — the
 constructor's full-grade certificate and the index comparison.  The
 premises are the CONDITIONAL claims, the conclusion is the
-unconditional one: no step reads that the redex is not the point, so
-one lemma serves the conditional induction (`RedSemU.cond`) and the
-interim side induction.
+unconditional one: no step reads that the redex is not the point; the
+induction weakens it (`RedSemU.cond`).
 
 Per valuation: the recursor's telescope fits the spine (the licensed
 certificate).  At a K rule the law at the recursor's own parameters
@@ -1272,5 +1269,36 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
   -- one type holds both: the conditional proof irrelevance is an equation
   exact ⟨hgF, (IsTy.eq_of_ne_pt hgTf.2 hmemF hmemM
     (hpi hfF hfM hCF hCM hdF hea ρ hρ hLfab hL hgF hg)).symm⟩
+
+/-- The structure-η rescue at the conditional motive: **owed to the
+coherence-law lane, task #342 L11b** (the S4 sorry ledger).  The
+unconditional `Red.rescueEta_soundU` is not applicable: its premises are
+unconditional claims, which no rule concludes any more. -/
+theorem Red.rescueEta_sound (_hin : RulesInputs V m φ) {d : Nat}
+    {major tm tmaj fab : Expr} {recName : Name} {cv : ConstantVal}
+    {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal} {cnP cnF : Nat} {T : Name}
+    {tus ust : List Level} {cvT : ConstantVal} {caps : IndCaps}
+    (_hrec : env.find? recName = some (.recInfo cv mI rP [rl]))
+    (_heta : rl.eta = true)
+    (_hctor : env.find? rl.ctor = some (.ctorInfo cvj cnP cnF))
+    (_hres : (cvj.type.piResult).getAppFn = .const T tus)
+    (_hind : env.find? T = some (.indInfo cvT caps))
+    (_htm : InferSemIO m φ d major tm) (_htmaj : RedSem m φ d tm tmaj)
+    (_hthead : tmaj.getAppFn = .const T ust)
+    (_hlen : tmaj.getAppArgs.length = caps.etaParams)
+    (_hlv : ust.length = cvT.levelParams.length)
+    (_hnz : ConLeche.capsNeverZero cvT.levelParams ust caps = true)
+    (_hfab : fab = Expr.mkAppN (.const caps.etaCtor ust)
+      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields))
+    (_hws : fab.wscopedB d = true) (_hb : fab.looseBVarsBounded 0 = true)
+    (_hlv' : fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true)
+    (_hcerts : CertsSem m φ d false
+      (cvj.type.instantiateLevelParams cvj.levelParams ust)
+      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields))
+    (_hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
+      EtaProjCertsSem m φ d T ust tmaj.getAppArgs major cvT.levelParams
+        (List.range caps.etaFields))
+    (_hpi : DefEqSem m φ d fab major) :
+    RedSem m φ d major fab := sorry
 
 end ConLeche.Model.Rules

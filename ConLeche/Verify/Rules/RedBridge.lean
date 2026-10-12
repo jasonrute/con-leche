@@ -282,13 +282,9 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
   | .app f a, h =>
     obtain ⟨f', hf, hcase⟩ := whnf_app_inv h
     have hRf : Red env d (.app f a) (.app f' a) := .appFn (hwc hf)
-    rcases hcase with ⟨ty, body, mb, rfl, hbody, hcert⟩ | ⟨e'', hiota, hcont⟩ | rfl
+    rcases hcase with ⟨ty, body, mb, rfl, hbody, -⟩ | ⟨e'', hiota, hcont⟩ | rfl
     · refine .trans hRf (.trans ?_ (hwc hbody))
-      rcases hcert with hg | ⟨ta, hta, hde⟩
-      · have hnev : mb.pw.isNever = true := by simpa [betaGateFires] using hg
-        exact .beta (ta := a) (fun h => absurd hnev (by simp [h]))
-          (fun h => absurd hnev (by simp [h]))
-      · exact .beta (fun _ => inferTypeIO_bridge hio hta) (fun _ => hd hde)
+      exact .beta
     · exact .trans hRf (.trans (iotaRec_bridge hw hd hi hio hiota) (hwc hcont))
     · exact hRf
   | .proj sn i pe, h =>
