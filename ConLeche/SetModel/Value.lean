@@ -133,13 +133,26 @@ theorem natRecV_app {u : Nat} {M z s n : V} (hM : M ∈ˢ natMotiveSpace V u)
 
 /-! ## The dependent pair `.psigma` -/
 
-/-- `A → Sort v`, the fibre space. -/
+/-- `A → Sort v`, the fibre space, as the value reading has it: over an
+empty `A` it is `{pt}` (task #342, L16). -/
 noncomputable def psigmaFibreSpace (v : Nat) (A : V) : V :=
-  piR (v + 1) A fun _ => univ v
+  piV A fun _ => univ v
 
 theorem psigmaFibre_apply {v : Nat} {A B a : V} (hB : B ∈ˢ psigmaFibreSpace V v A)
     (ha : a ∈ˢ A) : app B a ∈ˢ (univ v : V) :=
-  app_mem_piR_pos (Nat.succ_ne_zero v) hB ha
+  app_mem_piV hB ha
+
+/-- Over an inhabited `A` the fibre space is the graph space. -/
+theorem lamR_mem_psigmaFibreSpace {v : Nat} {A x : V} {F : V → V} (hx : x ∈ˢ A)
+    (hF : ∀ y, y ∈ˢ A → F y ∈ˢ (univ v : V)) : lamR (v + 1) A F ∈ˢ psigmaFibreSpace V v A := by
+  unfold psigmaFibreSpace
+  rw [piV_univ_eq_pos (Nat.succ_ne_zero v) hx _ fun _ _ => ⟨v, rfl⟩]
+  exact lamR_mem hF
+
+/-- A family of types over `A` is in the fibre space. -/
+theorem lamV_mem_psigmaFibreSpace {v : Nat} {A : V} {F : V → V}
+    (hF : ∀ x, x ∈ˢ A → F x ∈ˢ (univ v : V)) : lamV A F ∈ˢ psigmaFibreSpace V v A :=
+  lamV_mem hF fun _ _ => IsTy_univ v
 
 /-- The dependent pair `.psigma.{u,v}`; result sort `max u v + 1` — a type former, so
 always in the graph regime. -/
@@ -361,15 +374,45 @@ codomain's sort, so a graph at every regime; the functor space is the
 arrow over it at the sort `max u (w + 1)` of `I → Sort w`.  Total: the
 value is a member of the family space for EVERY functor. -/
 
-/-- `I → Sort w`, the family space. -/
-noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piR (w + 1) I fun _ => univ w
+/-- `I → Sort w`, the family space, as the value reading has it. -/
+noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piV I fun _ => univ w
 
-/-- The family space is strict: its members are graphs, never the
-point (task #342, L6). -/
-theorem strict_lfpFamSpace (w : Nat) (I : V) : Strict (lfpFamSpace V w I) := by
-  have h := Fib_piR (w + 1) I fun _ => (univ w : V)
-  simp only [Nat.add_one_ne_zero, decide_false, Fib_false] at h
-  exact h
+/-- **The family space is the families of types** (`famSpaceIn`, whose
+empty-index case is the value reading's `{pt}`; task #342, L16). -/
+theorem lfpFamSpace_eq (w : Nat) (I : V) : lfpFamSpace V w I = famSpaceIn (univ w) I := by
+  unfold lfpFamSpace
+  by_cases hI : ∃ i, i ∈ˢ I
+  · obtain ⟨i, hi⟩ := hI
+    rw [famSpaceIn_of_ne ⟨i, hi⟩, piV_univ_eq_pos (Nat.succ_ne_zero w) hi _
+      (fun _ _ => ⟨w, rfl⟩), piR_pos (Nat.succ_ne_zero w)]
+  · rw [famSpaceIn_of_empty hI, piV_of_empty fun x hx => hI ⟨x, hx⟩]
+
+/-- Over an inhabited index set the family space is the graph space. -/
+theorem lfpFamSpace_eq_pos (w : Nat) {I i : V} (hi : i ∈ˢ I) :
+    lfpFamSpace V w I = piR (w + 1) I fun _ => univ w :=
+  piV_univ_eq_pos (Nat.succ_ne_zero w) hi _ fun _ _ => ⟨w, rfl⟩
+
+/-- **The value reading's abstraction of a family of non-points is the
+family** (`famOf`): the graph over an inhabited domain, the point over an
+empty one. -/
+theorem lamV_eq_famOf {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x ≠ pt) :
+    lamV A F = famOf F A := by
+  by_cases hA : ∃ x, x ∈ˢ A
+  · obtain ⟨x, hx⟩ := hA
+    rw [famOf_of_ne ⟨x, hx⟩]
+    exact lamV_eq_graph (lamV_ne_pt_of hx (h x hx))
+  · rw [famOf_of_empty hA]
+    exact lamV_of_empty fun x hx => hA ⟨x, hx⟩
+
+/-- A family of types is in the type `I → Sort w`. -/
+theorem famOf_mem_lfpFamSpace {w : Nat} {I : V} {G : V → V}
+    (h : ∀ i, i ∈ˢ I → G i ∈ˢ (univ w : V)) : famOf G I ∈ˢ lfpFamSpace V w I := by
+  rw [lfpFamSpace_eq]; exact famOf_mem_famSpaceIn h
+
+/-- The least fixed points' family space is inside the type `I → Sort w`. -/
+theorem famSpace_subset_lfpFamSpace (w : Nat) (I : V) : famSpace w I ⊆ˢ lfpFamSpace V w I := by
+  rw [lfpFamSpace_eq]
+  exact famSpace_subset_univ w I
 
 /-- `(I → Sort w) → (I → Sort w)`, the functor space. -/
 noncomputable def lfpFamFunSpace (u w : Nat) (I : V) : V :=
@@ -385,10 +428,8 @@ theorem max_succ_ne_zero (u w : Nat) : Nat.max u (w + 1) ≠ 0 := by
   rw [Nat.max_def]
   split <;> omega
 
-theorem lfpFamSet_mem_space (w : Nat) (I F : V) : lfpFamSet w I F ∈ˢ lfpFamSpace V w I := by
-  unfold lfpFamSpace
-  rw [piR_pos (Nat.succ_ne_zero w)]
-  exact famSpace_subset_univ w I _ (lfpFamSet_mem w I F)
+theorem lfpFamSet_mem_space (w : Nat) (I F : V) : lfpFamSet w I F ∈ˢ lfpFamSpace V w I :=
+  famSpace_subset_lfpFamSpace V w I _ (lfpFamSet_mem w I F)
 
 theorem lfpFamV_mem (u w : Nat) :
     lfpFamV V u w ∈ˢ piR (Nat.max u (w + 1)) (univ u : V) fun I =>
@@ -543,8 +584,8 @@ theorem lfpTuple_mkTower_mem (k : Nat) (us : List Nat) (Is Φ : V) :
   refine mkTower_map_mem_ndTowerSet V (tupleFamSort_ne_zero k us) _ k 0 fun i hi => ?_
   show lfpTuple (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i
     ∈ˢ lfpFamSpace V (lv us k) (projS (0 + i) Is)
-  rw [lfpFamSpace, piR_pos (Nat.succ_ne_zero _), Nat.zero_add]
-  exact famSpace_subset_univ _ _ _
+  rw [Nat.zero_add]
+  exact famSpace_subset_lfpFamSpace V _ _ _
     (lfpTuple_mem (lv us k) k (fun c => projS c Is) (tupleOpV V k Φ) i hi)
 
 theorem lfpTupleV_app {k : Nat} {us : List Nat} {Is F : V}

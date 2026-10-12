@@ -81,12 +81,9 @@ theorem holeVal_mem (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
   have htN : t < D.N := Nat.lt_of_lt_of_le ht hkN
   unfold holeVal
   rw [← hab]
-  refine holeFam_mem_mkPisAV fun vs _ => ?_
+  refine holeFam_mem_mkPisAV fun vs hvs => ?_
   rw [interp_sort]
-  by_cases hT : tupW (D.u t ψ) vs ∈ˢ D.idx ψ ρp t
-  · exact app_mem_of_mem_piSet (hX t htN) hT
-  · rw [app_off_dom_of_mem_piSet (hX t htN) hT]
-    exact empty_mem_univ _
+  exact famSpaceIn_app (hX t htN) (tupW_mem (hab ▸ hvs))
 
 end LfpDatum
 
