@@ -180,11 +180,11 @@ theorem denoteMeta_instLevels (hp : AcvalParamsAt env acval)
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, h1]
   | case6 d ty body mb ihty ihbody =>
     rw [Expr.instantiateLevelParams, denoteMeta_forallE, denoteMeta_forallE,
-      ihty, pwBit_substPW,
+      ihty,
       ← Expr.instantiateLevelParams_instantiate1, ihbody]
   | case7 d ty body mb ihty ihbody =>
     rw [Expr.instantiateLevelParams, denoteMeta_lam, denoteMeta_lam,
-      ihty, pwBit_substPW,
+      ihty,
       ← Expr.instantiateLevelParams_instantiate1, ihbody]
   | case8 d fe a ihf iha =>
     rw [Expr.instantiateLevelParams, denoteMeta_app, denoteMeta_app, ihf, iha]

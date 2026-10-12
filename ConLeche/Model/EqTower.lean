@@ -6,50 +6,19 @@ public import ConLeche.Semantics.EqTower
 public section
 
 /-!
-# The annotated hand-built basis towers, `Eq` family (task #161)
+# The hand-built basis towers, `Eq` family (task #161)
 
 `pinnedStructT` has no entry for `Eq`, `Eq.refl` or `Eq.rec`, and
 `BConst` has no such constructors, so `acval_basis_pinned` — which
 unlocks the other blocks' leaves — is *empty* on `eqK`.  The leaves are
 built by hand: `Semantics/EqTower.lean`'s `eqValT`/`eqReflValT`/
-`eqRecValT`, and here their **annotated** towers, whose binder
-numerals `interp` dispatches on.
+`eqRecValT`, and here their semantic-syntax towers.
 
-## The bits are NOT chosen — `mem_type` pins every one of them
-
-The DESIGN entry "the chosen bits of the hand-built basis towers"
-licensed a *choice* here (graph-regime bits, model-side data, no
-establishment doctrine touched) and fenced it as the campaign's only
-such site.  **The license is not exercised, because there is nothing
-left to choose.**  Every one of these towers is stored at a constant
-whose type is *also* stored, and `EnvModelM.mem_type` demands
-
-> `interp ρ (acval n ψ) ∈ˢ interp ρ (the type's reading)`
-
-whose right-hand side is a `piR` tower whose numerals are the pinned
-declaration's own `pw` data (`pwBit ψ`).  `lamR`/`piR` disagree
-irreconcilably across the regime split — `bit_forced_pos` and
-`bit_forced_zero` below — so the tower's λ bit at every binder is
-*forced* to agree in zero-ness with the corresponding `pi` bit of the
-pinned type.  Concretely:
-
-| tower | pinned `pw` | forced bits |
-|---|---|---|
-| `eqValAV` | `.never` ×3 | all **nonzero** (the ratified choice, arrived at by force) |
-| `eqReflValAV` | `.ifAllZero []` ×2 | all **zero** |
-| `eqRecValAV` | `.ifAllZero [u_1]` ×6 | zero **iff `ψ u_1 = 0`** |
-
-So the design entry's counterfactual (iii) is right about `Eq` and
-inverted at `Eq.refl`: there bit `0` is not the collapse, it is the only
-legal value, and a nonzero bit is what would break the law.  Nothing is
-free; the doctrine "bits are never taken from a metatheorem" holds here
-in its strongest form — the bits come from the *pin*, exactly as at the
-sixteen `pinnedStructT` blocks, only through `mem_type` rather than
-through `pinnedStructT`.
-
-The scope fence in the DESIGN entry therefore stands unused, and should
-be recorded as such rather than deleted: a future hand-built value at a
-constant whose type is *not* stored would still have a genuine choice.
+The binders carry no regime: `interp` reads it off the values
+(`lamV`).  `Eq`'s innermost body is a truth value, never the point, so
+its tower is a graph wherever its domains are inhabited; `Eq.refl`'s
+body is the proof, so its tower is the point.  Each inhabits its
+pinned type's (value-read) reading by `lamV_mem`.
 -/
 
 namespace ConLeche.Model
@@ -64,69 +33,30 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-! ## The forcing lemmas
+/-! ## The towers -/
 
-Two lines each, and together they are the whole reason this file has no
-freedom.  A λ-tower's numeral and its type's numeral must agree in
-zero-ness, because the two regimes' inhabitants are disjoint: above
-zero a `lamR` is a graph and a `piR` is a set of graphs; at zero a
-`lamR` is `pt` and a `piR` is a truth value, whose only member is
-`pt`. -/
-
-/-- **A graph-regime abstraction never inhabits a squash-regime
-product.**  So a tower whose stored type's binder carries bit `0` may
-not carry a nonzero bit. -/
-theorem bit_forced_pos {v : Nat} {A : V} {F B : V → V} (hv : v ≠ 0)
-    (h : lamR v A F ∈ˢ piR 0 A B) : False :=
-  lamR_ne_pt hv (eq_pt_of_mem_piR_zero h)
-
-/-- **A squash-regime abstraction inhabits a graph-regime product only
-if the product is degenerate.**  The complement of `bit_forced_pos`:
-`pt` is not a graph, so at a nonempty domain with inhabited fibres the
-membership fails.  (Stated as the contrapositive the towers use: from
-the membership and a domain witness, the product's fibre at that
-witness is a truth value.) -/
-theorem bit_forced_zero {v : Nat} {A a : V} {F B : V → V} (hv : v ≠ 0)
-    (h : lamR 0 A F ∈ˢ piR v A B) (ha : a ∈ˢ A) :
-    (pt : V) ∈ˢ B a := by
-  rw [lamR_zero] at h
-  exact app_pt (V := V) a ▸ app_mem_piR_pos hv h ha
-
-/-! ## `Eq` — all three bits nonzero, forced
-
-The pinned `Eq` carries `pw = .never` at all three binders, and it is
-right to: the codomain of the innermost binder is `Prop`, and `Prop`
-*as a type* lives in `Sort 1`.  The `v'`-for-a-`Sort` trap
-(`Semantics/BasisType.lean`) is exactly what makes the `Eq`
-former a graph and not a proof point. -/
-
-/-- `Eq`'s annotated valuation: `eqValT` with all three binders in
-the graph regime (forced — see the module docstring). -/
+/-- `Eq`'s valuation: `eqValT` in the semantic syntax. -/
 @[expose] def eqValAV (ψ : Name → Nat) : AnnotTerm :=
-  .lam 1 (.sort (ψ uN)) (.lam 1 (.bvar 0) (.lam 1 (.bvar 1)
+  .lam (.sort (ψ uN)) (.lam (.bvar 0) (.lam (.bvar 1)
     (.eqE (.bvar 1) (.bvar 0))))
 
-/-- `Eq.refl`'s annotated valuation: `.prf` under two **squash-regime**
-binders (forced: the pinned `pw` is `.ifAllZero []` at both, because
-`Eq α a a` is a proposition). -/
+/-- `Eq.refl`'s valuation: `.prf` under two binders (`Eq α a a` is a
+proposition, so the tower reads as the point). -/
 @[expose] def eqReflValAV (ψ : Name → Nat) : AnnotTerm :=
-  .lam 0 (.sort (ψ uN)) (.lam 0 (.bvar 0) .prf)
+  .lam (.sort (ψ uN)) (.lam (.bvar 0) .prf)
 
-/-- `Eq.rec`'s annotated valuation: the minor premise, returned, under
-six binders whose bit is the motive level's own zero test — the pinned
-`pw` is `.ifAllZero [u_1]` at every one of them. -/
+/-- `Eq.rec`'s valuation: the minor premise, returned, under six
+binders. -/
 @[expose] def eqRecValAV (ψ : Name → Nat) : AnnotTerm :=
-  let m : Nat := pwBit ψ (.ifAllZero [u1N])
-  .lam m (.sort (ψ uN))
-    (.lam m (.bvar 0)
-      (.lam m (.pi 0 1 (.bvar 1)
-          (.pi 0 (ψ u1N + 1)
-            (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
+  .lam (.sort (ψ uN))
+    (.lam (.bvar 0)
+      (.lam (.pi (.bvar 1)
+          (.pi (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
             (.sort (ψ u1N))))
-        (.lam m (.app (.app (.bvar 0) (.bvar 1))
+        (.lam (.app (.app (.bvar 0) (.bvar 1))
             (AnnotTerm.mkAppN (eqReflValAV ψ) [.bvar 2, .bvar 1]))
-          (.lam m (.bvar 3)
-            (.lam m (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 4, .bvar 3, .bvar 0])
+          (.lam (.bvar 3)
+            (.lam (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 4, .bvar 3, .bvar 0])
               (.bvar 2))))))
 
 /-! ### Erasure: the towers project onto the `Term` towers -/
@@ -150,31 +80,30 @@ theorem eqReflValAV_congr {ψ₁ ψ₂ : Name → Nat} (h : ψ₁ uN = ψ₂ uN)
 
 /-! ## `Eq`'s tower, interpreted -/
 
-/-- **`Eq`'s tower, interpreted**: a three-deep graph-regime `lamR` over
-the truth-set former. -/
+/-- **`Eq`'s tower, interpreted**: a three-deep `lamV` over the
+truth-set former. -/
 theorem eqValAV_interp (ψ : Name → Nat) (ρ : Nat → V) :
     interp V ρ (eqValAV ψ)
-      = lamR 1 (univ (ψ uN))
-        (fun a => lamR 1 a (fun x => lamR 1 a (fun y => eqv x y))) := by
+      = lamV (univ (ψ uN))
+        (fun a => lamV a (fun x => lamV a (fun y => eqv x y))) := by
   simp [eqValAV, cons]
 
 /-- **The full spine's value** — `EqLaw`'s first conjunct at the tower:
-three `app_lamR_pos`, one per binder, each on its domain. -/
+three `app_lamV`, one per binder, each on its domain. -/
 theorem eqValAV_app₃ (ψ : Name → Nat) (ρ : Nat → V) (A a b : V)
     (hA : A ∈ˢ (univ (ψ uN) : V)) (ha : a ∈ˢ A) (hb : b ∈ˢ A) :
     SetTheory.app (SetTheory.app (SetTheory.app
         (interp V ρ (eqValAV ψ)) A) a) b = eqv a b := by
-  rw [eqValAV_interp, app_lamR_pos Nat.one_ne_zero hA,
-    app_lamR_pos Nat.one_ne_zero ha, app_lamR_pos Nat.one_ne_zero hb]
+  rw [eqValAV_interp, app_lamV hA, app_lamV ha, app_lamV hb]
 
-/-- The tower inhabits the `Eq` former's product tower, at the pinned
-type's own numerals (all nonzero). -/
+/-- The tower inhabits the `Eq` former's function-space tower. -/
 theorem eqValAV_mem (ψ : Name → Nat) (ρ : Nat → V) :
-    interp V ρ (eqValAV ψ) ∈ˢ piR 1 (univ (ψ uN) : V)
-      (fun a => piR 1 a (fun _ => piR 1 a (fun _ => univZero))) := by
+    interp V ρ (eqValAV ψ) ∈ˢ piV (univ (ψ uN) : V)
+      (fun a => piV a (fun _ => piV a (fun _ => univZero))) := by
   rw [eqValAV_interp]
-  exact lamR_mem (fun _a _ => lamR_mem (fun _x _ =>
-    lamR_mem (fun _y _ => eqv_mem_univZero _ _)))
+  exact lamV_mem (fun _a _ => lamV_mem (fun _x _ =>
+    lamV_mem (fun _y _ => eqv_mem_univZero _ _) (fun _ _ => IsTy_univZero))
+    (fun _ _ => IsTy_piV)) (fun _ _ => IsTy_piV)
 
 /-- The tower is graded (`WellDenoted`), at every environment. -/
 theorem eqValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
@@ -183,57 +112,46 @@ theorem eqValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     fun a _ => ⟨trivial, IsTy_of_mem_univ hA,
     fun b _ => ⟨trivial, trivial⟩, ?_⟩, ?_⟩, ?_⟩
   · exact ⟨fun _ => univZero, fun _ _ => eqv_mem_univZero _ _,
-      fun _ _ => IsTy_univZero, fun h => nomatch h⟩
-  · exact ⟨fun _ => piR 1 A (fun _ => univZero),
-      fun _ _ => lamR_mem fun _ _ => eqv_mem_univZero _ _,
-      fun _ _ => IsTy_piR _ _ _, fun h => nomatch h⟩
-  · exact ⟨fun x => piR 1 x (fun _ => piR 1 x (fun _ => univZero)),
-      fun _ _ => lamR_mem fun _ _ =>
-        lamR_mem fun _ _ => eqv_mem_univZero _ _,
-      fun _ _ => IsTy_piR _ _ _, fun h => nomatch h⟩
+      fun _ _ => IsTy_univZero⟩
+  · exact ⟨fun _ => piV A (fun _ => univZero),
+      fun _ _ => lamV_mem (fun _ _ => eqv_mem_univZero _ _) (fun _ _ => IsTy_univZero),
+      fun _ _ => IsTy_piV⟩
+  · exact ⟨fun x => piV x (fun _ => piV x (fun _ => univZero)),
+      fun _ _ => lamV_mem (fun _ _ =>
+        lamV_mem (fun _ _ => eqv_mem_univZero _ _) (fun _ _ => IsTy_univZero))
+        (fun _ _ => IsTy_piV),
+      fun _ _ => IsTy_piV⟩
 
-/-- The tower is bit-valid (`AnnotValid`) — the `lam` clause is
-bit-free, so this is pure structure. -/
-theorem eqValAV_validV (ψ : Name → Nat) (ρ : Nat → V) :
-    AnnotValid V ρ (eqValAV ψ) := by
-  refine ⟨trivial, fun A _ => ⟨trivial, fun a _ => ⟨trivial,
-    fun b _ => ⟨trivial, trivial⟩⟩⟩⟩
+/-! ## `Eq.refl`'s tower, interpreted: the point -/
 
-/-! ## `Eq.refl`'s tower, interpreted — the squash regime, forced -/
-
-/-- **`Eq.refl`'s tower, interpreted**: `pt`, because its outer binder's
-codomain `(a : α) → Eq α a a` is a proposition. -/
+/-- **`Eq.refl`'s tower, interpreted**: `pt`, because its body is the
+proof at every value. -/
 theorem eqReflValAV_interp (ψ : Name → Nat) (ρ : Nat → V) :
     interp V ρ (eqReflValAV ψ) = (pt : V) := by
-  simp [eqReflValAV, lamR_zero]
+  simp only [eqReflValAV, interp_lam, interp_prf]
+  exact lamV_eq_pt fun A _ => lamV_eq_pt fun _ _ => rfl
 
-/-- The tower inhabits `Eq.refl`'s product tower at the pinned type's
-numerals (both zero) — `pt_mem_piR_zero_of` twice, bottoming at
+/-- The tower inhabits `Eq.refl`'s function-space tower: both fibres
+are truth values, so it is `pt_mem_piR_zero_of` twice, bottoming at
 `pt_mem_eqv_self`. -/
 theorem eqReflValAV_mem (ψ : Name → Nat) (ρ : Nat → V) :
-    interp V ρ (eqReflValAV ψ) ∈ˢ piR 0 (univ (ψ uN) : V)
-      (fun a => piR 0 a (fun x => eqv x x)) := by
-  rw [eqReflValAV_interp]
-  exact pt_mem_piR_zero_of fun _A _ =>
-    pt_mem_piR_zero_of fun x _ => pt_mem_eqv_self x
+    interp V ρ (eqReflValAV ψ) ∈ˢ piV (univ (ψ uN) : V)
+      (fun a => piV a (fun x => eqv x x)) := by
+  rw [eqReflValAV_interp, piV_eq_zero fun A _ => by
+    rw [piV_eq_zero fun x _ => eqv_mem_univZero x x]; exact piR_zero_mem_univZero]
+  exact pt_mem_piR_zero_of fun A _ => by
+    rw [piV_eq_zero fun x _ => eqv_mem_univZero x x]
+    exact pt_mem_piR_zero_of fun x _ => pt_mem_eqv_self x
 
 theorem eqReflValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (eqReflValAV ψ) := by
   refine ⟨trivial, IsTy_univ _, fun A hA => ⟨trivial, IsTy_of_mem_univ hA,
     fun _a _ => trivial, ?_⟩, ?_⟩
   · exact ⟨fun x => eqv x x, fun x _ => pt_mem_eqv_self x,
-      fun x _ => IsTy_eqv x x, fun _ x _ => eqv_mem_univZero x x⟩
-  · exact ⟨fun x => piR 0 x (fun y => eqv y y),
-      fun _ _ => pt_mem_piR_zero_of fun y _ => pt_mem_eqv_self y,
-      fun _ _ => IsTy_piR _ _ _, fun _ _ _ => piR_zero_mem_univZero⟩
-
-theorem eqReflValAV_validV (ψ : Name → Nat) (ρ : Nat → V) :
-    AnnotValid V ρ (eqReflValAV ψ) :=
-  ⟨trivial, fun _ _ => ⟨trivial, fun _ _ => trivial⟩⟩
-
-theorem eqReflValAV_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenotedV V ρ (eqReflValAV ψ) :=
-  ⟨eqReflValAV_wellDenoted ψ ρ, eqReflValAV_validV ψ ρ⟩
+      fun x _ => IsTy_eqv x x⟩
+  · exact ⟨fun x => piV x (fun y => eqv y y),
+      fun _ _ => lamV_mem (fun y _ => pt_mem_eqv_self y) (fun y _ => IsTy_eqv y y),
+      fun _ _ => IsTy_piV⟩
 
 /-! ## `EqLaw`, discharged from the tower
 
@@ -241,12 +159,11 @@ theorem eqReflValAV_wellDenotedV (ψ : Name → Nat) (ρ : Nat → V) :
 (its side condition is `eqName ≠ c₀.name` and the cons *is* `Eq`).
 Both conjuncts come off `eqValAV` directly:
 
-* the **value** clause is `eqValAV_app₃` — three `app_lamR_pos`, one
+* the **value** clause is `eqValAV_app₃` — three `app_lamV`, one
   per binder, each on its own domain (the consumers read the
   three-fold form);
-* the **grading** clause is the
-  `WellDenoted` `.app` chain over `eqValAV_mem`, whose three `v = 0`
-  fibre obligations are all vacuous (the bits are nonzero), plus
+* the **grading** clause is the `WellDenoted` `.app` chain over
+  `eqValAV_mem` (each slot read off the `piV` membership), plus
   `eqv_mem_univZero` for the propositionhood half. -/
 
 /-- **The `Eq` spine over the tower is graded, and is a proposition.**
@@ -264,19 +181,21 @@ theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
         ∈ˢ (univZero : V) := by
   have hmem := eqValAV_mem (V := V) ψ ρ
   have h1 : SetTheory.app (interp V ρ (eqValAV ψ)) (interp V ρ Aa)
-      ∈ˢ piR 1 (interp V ρ Aa)
-        (fun _ => piR 1 (interp V ρ Aa) (fun _ => univZero)) :=
-    app_mem_piR_pos Nat.one_ne_zero hmem hA
+      ∈ˢ piV (interp V ρ Aa)
+        (fun _ => piV (interp V ρ Aa) (fun _ => univZero)) :=
+    app_mem_piV hmem hA
   have h2 : SetTheory.app (SetTheory.app (interp V ρ (eqValAV ψ))
         (interp V ρ Aa)) (interp V ρ la)
-      ∈ˢ piR 1 (interp V ρ Aa) (fun _ => univZero) :=
-    app_mem_piR_pos Nat.one_ne_zero h1 ha
+      ∈ˢ piV (interp V ρ Aa) (fun _ => univZero) :=
+    app_mem_piV h1 ha
   have hAty : IsTy (interp V ρ Aa) := IsTy_of_mem_univ hA
-  refine ⟨⟨⟨⟨⟨eqValAV_wellDenoted ψ ρ, hAa.1, 1, _, _, hmem, hA,
-      (fun h => nomatch h), fun _ => IsTy_univ _⟩, hla.1, 1, _, _, h1, ha,
-      (fun h => nomatch h), fun _ => hAty⟩, hra.1, 1, _, _, h2, hb,
-      (fun h => nomatch h), fun _ => hAty⟩,
-    ⟨⟨eqValAV_validV ψ ρ, hAa.2⟩, hla.2⟩, hra.2⟩, ?_⟩
+  -- the application slot, read off a `piV` membership (`propN`)
+  have slot : ∀ {f a A : V} {B : V → V}, f ∈ˢ piV A B → a ∈ˢ A → IsTy A →
+      ∃ (v : Nat) (A' : V) (B' : V → V), f ∈ˢ piR v A' B' ∧ a ∈ˢ A' ∧
+        (v = 0 → ∀ x, x ∈ˢ A' → B' x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A') :=
+    fun {_ _ A B} hf ha hT => ⟨propN A B, A, B, hf, ha, propN_eq_zero.mp, fun _ => hT⟩
+  refine ⟨⟨⟨⟨eqValAV_wellDenoted ψ ρ, hAa, slot hmem hA (IsTy_univ _)⟩,
+      hla, slot h1 ha hAty⟩, hra, slot h2 hb hAty⟩, ?_⟩
   rw [interp_app, interp_app, interp_app,
     eqValAV_app₃ ψ ρ _ _ _ hA ha hb]
   exact eqv_mem_univZero _ _

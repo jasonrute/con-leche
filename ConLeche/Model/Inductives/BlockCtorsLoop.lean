@@ -77,8 +77,7 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
         Sat V (((dsF j ψ).take nP).map (·.2.2)).reverse ρ)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (resSort.eval ψ) ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)) ∧
-      SumFieldsValid ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
+      SumFieldsOkB (resSort.eval ψ) ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
     (hIdx : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((dsF j ψ).take nP).map (·.2.2)).reverse ρ →
       ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop nP).map (·.2.2)) bs →

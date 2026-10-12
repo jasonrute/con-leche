@@ -145,7 +145,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   have hppsLen : (dR.ppsM 0 ψ).length = dR.nP + dR.nIdxAt 0 := hFD.len ψ
   obtain ⟨ppsT, bT, hstT, -, -, hbindT⟩ :=
     denoteMeta_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hop (hFD.read ψ)
-  have hppsT : ppsT = (dR.ppsM 0 ψ).take pp.nP := by
+  have hppsT : ppsT = ppsNorm ((dR.ppsM 0 ψ).take pp.nP) := by
     have := stripPisAV_mkPisAV_take pp.nP (dR.ppsM 0 ψ)
       (.sort (dR.resSort.eval ψ)) (by rw [hppsLen, hnPq]; omega)
     rw [this] at hstT
@@ -157,7 +157,8 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     intro l x hx
     obtain ⟨pd, hpd, -, hreadD⟩ := hbindT l x hx
     rw [Nat.zero_add] at hreadD
-    rw [hreadD, BlockData.params, hnPq, ← hppsT, List.getD_eq_getElem?_getD, List.getElem?_map, hpd]
+    rw [hreadD, BlockData.params, hnPq, List.map_take, ← List.map_take, ← ppsNorm_map_dom, ← hppsT,
+      List.getD_eq_getElem?_getD, List.getElem?_map, hpd]
     rfl
   have hdoms := blockRuleHdoms_of (acval := mpC.base2.acval) (envT := envC) (ψ := ψ)
     (fdoms := []) (ihdoms := []) (fvsF := []) (fvsIh := []) hpl rfl rfl hlenP rfl rfl hP
@@ -240,9 +241,9 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   -- telescope of types (the stored type's reading is a graded Π-tower)
   obtain ⟨hC, -, hrd, -⟩ := mpC.lfp_ok (Dc c) hcl.hD
   obtain ⟨cvm, capsm, hfm, hab⟩ := hrd (mc c) hcl.hmm
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψc
+  obtain ⟨ab, hta, hmap⟩ := hab ψc
   have hTy : SpineTy ρ ((Dc c).pars (mc c) ψc) := by
-    have hwd := (mpC.type_wellDenotedTy _ (ConLeche.Semantics.Env.find?_mem hfm) ψc _ hta ρ).1.1
+    have hwd := (mpC.type_wellDenotedTy _ (ConLeche.Semantics.Env.find?_mem hfm) ψc _ hta ρ).1
     have := (spineTy_of_wellDenoted_mkPisAV hwd).take ((Dc c).pars (mc c) ψc).length
     rwa [hmap, List.take_left] at this
   have hparsL := hC.parsLen (mc c) hcl.hmm ψc

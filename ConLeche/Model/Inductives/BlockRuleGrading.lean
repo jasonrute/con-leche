@@ -63,7 +63,7 @@ theorem teleFitPA_mkPisAV_of_spineFit {pds : List (Nat × Nat × AnnotTerm)} {b 
       List.length_map, show pds.length - 1 - (pds.length - 1 - n) = n from by omega,
       ← List.getD_eq_getElem?_getD]
   rw [e1, e2] at hm
-  rw [e3, chain, consN_eq_consList]
+  rw [ppsNorm_map_dom, e3, chain, consN_eq_consList]
   exact hm
 
 /-- **A telescope bounded at its own depths fits at every frame alike**:

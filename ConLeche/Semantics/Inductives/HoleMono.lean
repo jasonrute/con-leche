@@ -138,11 +138,15 @@ theorem ConstOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
 
 /-- **`pi`**: a product with a hole-free domain and a positive codomain
 is positive. -/
-theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (u v : Nat) (hA : ConstOn R A)
-    (hB : MonoOn (R.under A) B) : MonoOn R (.pi u v A B) := by
+theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (hA : ConstOn R A)
+    (hB : MonoOn (R.under A) B) : MonoOn R (.pi A B) := by
   intro ρ ρ' hR
   rw [interp_pi, interp_pi, ← hA ρ ρ' hR]
-  exact piR_subset_mono fun x hx => hB _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
+  -- L17: `piV` is monotone in fibres that are types at the larger frame
+  -- (a truth value included in a type is a truth value; a type with a
+  -- non-truth-value fibre is strict there); the frames' fibre types are
+  -- owed by the relation
+  sorry
 
 /-- **The hole order at position `h`**: at related frames the hole's
 values, applied to any `n` arguments, grow (a curried family over its

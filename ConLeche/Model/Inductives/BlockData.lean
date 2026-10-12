@@ -34,8 +34,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
 
 /-! ## The constructor's data -/
 
-/-- The leading Π-entries of a Π-telescope's reading carry the reading's
-bits: domain bit `0`, codomain bit a `pwBit` (so at most `1`). -/
+/-- The leading Π-entries of a Π-telescope's reading carry zero numerals
+(`stripPisAV` records `(0, 0, A)`; the numerals are not read). -/
 theorem stripPisAV_denoteMeta_bits {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {φ : Name → Nat} :
     ∀ (n : Nat) {d : Nat} {e : Expr} {fvs : List Expr} {o : Expr} {ea : AnnotTerm}
@@ -63,9 +63,7 @@ theorem stripPisAV_denoteMeta_bits {acval : Name → (Name → Nat) → AnnotTer
           intro p hp
           simp only [List.mem_cons] at hp
           rcases hp with rfl | hp
-          · refine ⟨rfl, ?_⟩
-            show pwBit φ mb.pw ≤ 1
-            unfold pwBit; split <;> omega
+          · exact ⟨rfl, Nat.zero_le 1⟩
           · exact stripPisAV_denoteMeta_bits n hop' hba hst' p hp
       · exact nomatch hop
     | .bvar _, hop => nomatch hop
@@ -219,7 +217,6 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
       isProp large cvC nF cvTa = .ok (cvCa, sorts))
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hlpsT : cvTa.levelParams = lps)
-    (hsT : ∀ ψ : Name → Nat, sT.eval ψ = resSort.eval ψ)
     (hstripT : cvTa.type.stripPis (nP + nIdx) = some (bs, .sort sT)) :
     ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List (Nat × Nat × AnnotTerm))
       (Es : (Name → Nat) → List AnnotTerm) (srcs : List (Option Nat))
@@ -227,7 +224,7 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
       BlockCtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large
         idxArgs ds Es srcs fvsP xFvs xrest := by
   obtain ⟨idxArgs, ds, Es, srcs, -, ⟨fvsP, crest, xFvs, xrest, hopP, hopX, hidxEq⟩, hCD⟩ :=
-    sumCtorData_of hμ mp hCtor hfT hlpsT hsT hstripT
+    sumCtorData_of hμ mp hCtor hfT hlpsT hstripT
   obtain ⟨hcf, -, -, hcb⟩ := ConLeche.direct_sum_ctor_typeWF hCtor
   obtain ⟨hlenP, hidxP, -⟩ := opening_vars_at hopP
   obtain ⟨hlenX, hidxX, -⟩ := opening_vars_at hopX

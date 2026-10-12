@@ -423,7 +423,7 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hmmk
   rw [hfM] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab0, hta0, -, -⟩ := hab ψ
+  obtain ⟨ab0, hta0, -⟩ := hab ψ
   have hstrip : (cvI.type.stripPis (tgtMajor out c).ds.length).isSome = true := by
     have hok := tailOk_of_read _ cvI.type rfl hta0
     obtain ⟨l1, -, l3⟩ := tail_instantiateLevelParams cvI.levelParams (tgtMajor out c).lvls cvI.type
@@ -442,7 +442,7 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
   have hlenAbR : abR.length = nI := by rw [← hidsLen, ← hmapR, List.length_map]
   obtain ⟨pps, bI, hstI, -, -, hbindI⟩ := denoteMeta_openPis _ hopI hread
   rw [hnI, stripPisAV_mkPisAV_take _ _ _ (by rw [substTele_length]; omega)] at hstI
-  have hppsE : pps = AnnotTerm.substTele τ 0 abR := by
+  have hppsE : pps = ppsNorm (AnnotTerm.substTele τ 0 abR) := by
     obtain ⟨h1, -⟩ := Prod.mk.inj (Option.some.inj hstI)
     rw [← h1, List.take_of_length_le (by rw [substTele_length]; omega)]
   subst hppsE
@@ -457,7 +457,9 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
     have e1 := hidxR k x hx
     rw [hrdq] at e1
     have e2 : ((AnnotTerm.substTele τ 0 abR).map (·.2.2))[k] = q.2.2 := by
-      simp [List.getElem_map, (List.getElem?_eq_some_iff.mp hq).2]
+      have h := congrArg (·[k]?) (ppsNorm_map_dom (AnnotTerm.substTele τ 0 abR))
+      simp only [List.getElem?_map, hq, Option.map_some] at h
+      rw [List.getElem_eq_iff, List.getElem?_map, ← h]
     rw [e2, List.getElem_take, List.getElem_drop]
     have := (Option.some.inj e1)
     rw [this, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]

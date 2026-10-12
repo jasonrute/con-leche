@@ -374,7 +374,7 @@ earlier ones, and `P` of the relation and the reading below them. -/
 @[expose] def PiPosThen (P : FrameRel V → AnnotTerm → Prop) :
     Nat → FrameRel V → AnnotTerm → Prop
   | 0, R, r => P R r
-  | n + 1, R, .pi _ _ A B => MonoOn R A ∧ PiPosThen P n (R.under A) B
+  | n + 1, R, .pi A B => MonoOn R A ∧ PiPosThen P n (R.under A) B
   | _ + 1, _, _ => False
 
 /-- What a telescope walk leaves at its result `res`, at depth `D`: the

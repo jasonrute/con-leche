@@ -52,11 +52,12 @@ instantiated at the earlier variables, exactly as `denoteMeta` reads a
   | _ + 1, _, _ => none
 
 /-- An opened λ-telescope's binders (`openLamsM`, from depth `j`), read:
-each binder's bit (its own datum) and its domain read at its depth. -/
+each binder's domain read at its depth (the numeral component is `0`,
+not read). -/
 @[expose] def readLamBs (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat) :
     Nat → List (Expr × ConLeche.BinderMeta) → List (Nat × AnnotTerm)
   | _, [] => []
-  | j, b :: bs => (pwBit ψ b.2.pw, (denoteMeta acval env ψ j b.1).getD default) ::
+  | j, b :: bs => (0, (denoteMeta acval env ψ j b.1).getD default) ::
       readLamBs acval env ψ (j + 1) bs
 
 /-- The arguments of the STORED rule's body at its frame (`D` binders

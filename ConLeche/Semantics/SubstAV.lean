@@ -36,8 +36,8 @@ def substAV (τ : Nat → AnnotTerm) : AnnotTerm → (k : Nat) → AnnotTerm
   | .sort u, _ => .sort u
   | .const c us, _ => .const c us
   | .app f a, k => .app (substAV τ f k) (substAV τ a k)
-  | .lam u A b, k => .lam u (substAV τ A k) (substAV τ b (k + 1))
-  | .pi u v A B, k => .pi u v (substAV τ A k) (substAV τ B (k + 1))
+  | .lam A b, k => .lam (substAV τ A k) (substAV τ b (k + 1))
+  | .pi A B, k => .pi (substAV τ A k) (substAV τ B (k + 1))
   | .letE v b, k => .letE (substAV τ v k) (substAV τ b (k + 1))
   | .eqE a b, k => .eqE (substAV τ a k) (substAV τ b k)
   | .fst e, k => .fst (substAV τ e k)
@@ -46,10 +46,10 @@ def substAV (τ : Nat → AnnotTerm) : AnnotTerm → (k : Nat) → AnnotTerm
 
 @[simp] theorem substAV_app (τ : Nat → AnnotTerm) (f a : AnnotTerm) (k : Nat) :
     substAV τ (.app f a) k = .app (substAV τ f k) (substAV τ a k) := rfl
-@[simp] theorem substAV_pi (τ : Nat → AnnotTerm) (u v : Nat) (A B : AnnotTerm) (k : Nat) :
-    substAV τ (.pi u v A B) k = .pi u v (substAV τ A k) (substAV τ B (k + 1)) := rfl
-@[simp] theorem substAV_lam (τ : Nat → AnnotTerm) (u : Nat) (A b : AnnotTerm) (k : Nat) :
-    substAV τ (.lam u A b) k = .lam u (substAV τ A k) (substAV τ b (k + 1)) := rfl
+@[simp] theorem substAV_pi (τ : Nat → AnnotTerm) (A B : AnnotTerm) (k : Nat) :
+    substAV τ (.pi A B) k = .pi (substAV τ A k) (substAV τ B (k + 1)) := rfl
+@[simp] theorem substAV_lam (τ : Nat → AnnotTerm) (A b : AnnotTerm) (k : Nat) :
+    substAV τ (.lam A b) k = .lam (substAV τ A k) (substAV τ b (k + 1)) := rfl
 @[simp] theorem substAV_letE (τ : Nat → AnnotTerm) (v b : AnnotTerm) (k : Nat) :
     substAV τ (.letE v b) k = .letE (substAV τ v k) (substAV τ b (k + 1)) := rfl
 @[simp] theorem substAV_fst (τ : Nat → AnnotTerm) (e : AnnotTerm) (k : Nat) :
@@ -78,8 +78,8 @@ theorem substAV_eq_self (τ : Nat → AnnotTerm) : ∀ (e : AnnotTerm) {k : Nat}
   | const c us => intro _ _; rfl
   | prf => intro _ _; rfl
   | app f a ihf iha => intro k h; rw [substAV_app, ihf h.1, iha h.2]
-  | lam u A b ihA ihb => intro k h; rw [substAV_lam, ihA h.1, ihb h.2]
-  | pi u v A B ihA ihB => intro k h; rw [substAV_pi, ihA h.1, ihB h.2]
+  | lam A b ihA ihb => intro k h; rw [substAV_lam, ihA h.1, ihb h.2]
+  | pi A B ihA ihB => intro k h; rw [substAV_pi, ihA h.1, ihB h.2]
   | letE v b ihv ihb => intro k h; rw [substAV_letE, ihv h.1, ihb h.2]
   | eqE a b iha ihb => intro k h; show AnnotTerm.eqE _ _ = _; rw [iha h.1, ihb h.2]
   | fst e ihe => intro k h; rw [substAV_fst, ihe h]
@@ -140,13 +140,13 @@ theorem interp_substAV (τ : Nat → AnnotTerm) :
   | prf => intro k ρ; rfl
   | app f a ihf iha =>
     intro k ρ; rw [AnnotTerm.substAV_app, interp_app, interp_app, ihf, iha]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ
     rw [AnnotTerm.substAV_lam, interp_lam, interp_lam, ihA]
     congr 1
     funext x
     rw [ihb, ← cons_substE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ
     rw [AnnotTerm.substAV_pi, interp_pi, interp_pi, ihA]
     congr 1
@@ -186,7 +186,7 @@ theorem substAV_mkPisAV (τ : Nat → AnnotTerm) (B : AnnotTerm) :
       substAV τ (mkPisAV ab B) k = mkPisAV (substTele τ k ab) (substAV τ B (k + ab.length))
   | [], k => rfl
   | d :: ab, k => by
-    show AnnotTerm.pi _ _ _ (substAV τ (mkPisAV ab B) (k + 1)) = AnnotTerm.pi _ _ _ _
+    show AnnotTerm.pi _ (substAV τ (mkPisAV ab B) (k + 1)) = AnnotTerm.pi _ _
     rw [substAV_mkPisAV τ B ab (k + 1), List.length_cons, show k + 1 + ab.length = k + (ab.length + 1)
       by omega]
 

@@ -25,31 +25,12 @@ subterms' two facts — hereditary truthfulness (`WellDenoted`) and
 membership — and produces the node's, in the shape the run-level claim
 will thread.
 
-Two conventions, both forced:
-
-* **membership is stated at the annotated type**, never at a bare
-  value, because the node's type is what the next case consumes;
-* **the binder cases take their numeral's justification as a
-  hypothesis**, not the numeral alone.  The numeral is in the term;
-  what a case needs is what the numeral is
-  *worth* semantically, and that is the sort fact every binder row's
-  `hcod`/`hdom` premise below states.
-
-## The λ row's freedom, recorded where it is used
-
-`sound_lam` has **no** empty-domain side condition, and needs no
-validity metatheorem: `lamR_mem`'s premise is a `∀ x ∈ˢ ⟦A⟧`, which at
-`⟦A⟧ = ∅` is vacuous, and so is the kind-`0` fibre condition.  The
-numeral still matters — `lamR 0 ∅ F = pt` and `lamR 1 ∅ F = ∅` are
-different values — but it comes from the *term*, and no semantic fact
-about it is required to close the case.
-
-## The app row
-
-`sound_app` closes at **both** kinds, through the app clause's
-kind-`0` fibre component (`Semantics/WellDenoted.lean`): it supplies
-`app_mem_piR`'s `hB0`, where the truth-value route gives only that the
-fibre is inhabited.
+Membership is stated at the spelled type, never at a bare value,
+because the node's type is what the next case consumes.  The binder
+rows read their regime off the values (`piV`/`lamV`), so they need no
+regime premise: the λ row needs its codomain fibres to be types
+(`lamV_mem`), the application row nothing beyond the memberships and
+the domain's type (`app_mem_piV`).
 -/
 
 namespace ConLeche.Semantics
@@ -75,69 +56,57 @@ theorem sound_sort (ρ : Nat → V) (u : Nat) :
 
 /-! ## The binder rows -/
 
-/-- **`pi`.**  Interface facts: the domain's membership at its own
-numeral `u`, the codomain's at `v` under the binder, and the two
-hereditary halves.  The formation law is the `imax` rule *exactly*
-(`piR_mem_univ`), so the annotated type is `.sort (ConLeche.Term.imax u v)`
-on the nose — no "may land lower" slack. -/
+/-- **`pi`.**  Interface facts: the domain's membership in `Sort u`,
+the codomain's in `Sort v` under the binder, and the two hereditary
+halves.  The formation law is the `imax` rule (`piV_mem_univ`). -/
 theorem sound_pi {u v : Nat} {ρ : Nat → V} {Aa Ba : AnnotTerm}
     (hokA : WellDenoted V ρ Aa)
     (hokB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) Ba)
     (hA : interp V ρ Aa ∈ˢ (univ u : V))
     (hB : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) Ba ∈ˢ (univ v : V)) :
-    WellDenoted V ρ (.pi u v Aa Ba) ∧
-      interp V ρ (.pi u v Aa Ba)
+    WellDenoted V ρ (.pi Aa Ba) ∧
+      interp V ρ (.pi Aa Ba)
         ∈ˢ interp V ρ (.sort (ConLeche.Term.imax u v)) := by
   refine ⟨by
     rw [WellDenoted_pi]
     exact ⟨hokA, IsTy_of_mem_univ hA, hokB, fun x hx => IsTy_of_mem_univ (hB x hx)⟩, ?_⟩
   rw [interp_pi, interp_sort]
-  exact piR_mem_univ hA hB
+  exact piV_mem_univ hA hB
 
 /-- **`lam`.**  Interface facts: the body's membership in the codomain
-under the binder, the codomain's kind-`0` fibre condition (the
-numeral's worth, the binder's sort fact), the two hereditary
-halves, and the typing of the domain and the codomain fibres.  **No empty-domain side condition** — see the module
-docstring.  The `Π`'s domain numeral `u` is free: `interp`'s `pi`
-clause discards it (only the codomain sort dispatches), so the row
-holds at every annotation of the domain. -/
-theorem sound_lam {u v : Nat} {ρ : Nat → V} {Aa ba Ba : AnnotTerm}
+under the binder, the two hereditary halves, and the typing of the
+domain and the codomain fibres.  No empty-domain side condition. -/
+theorem sound_lam {ρ : Nat → V} {Aa ba Ba : AnnotTerm}
     (hokA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
     (hokb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) ba)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) ba ∈ˢ interp V (cons x ρ) Ba)
-    (hBt : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba))
-    (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V)) :
-    WellDenoted V ρ (.lam v Aa ba) ∧
-      interp V ρ (.lam v Aa ba)
-        ∈ˢ interp V ρ (.pi u v Aa Ba) := by
+    (hBt : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba)) :
+    WellDenoted V ρ (.lam Aa ba) ∧
+      interp V ρ (.lam Aa ba)
+        ∈ˢ interp V ρ (.pi Aa Ba) := by
   refine ⟨?_, ?_⟩
   · rw [WellDenoted_lam]
-    exact ⟨hokA, hAt, hokb, fun x => interp V (cons x ρ) Ba, hb, hBt, hcod⟩
+    exact ⟨hokA, hAt, hokb, fun x => interp V (cons x ρ) Ba, hb, hBt⟩
   · rw [interp_lam, interp_pi]
-    exact lamR_mem hb
+    exact lamV_mem hb hBt
 
 /-! ## The application row -/
 
-/-- **`app`.**  Interface facts: the function's membership at an
-*annotated* `Π`, the argument's in its domain, the `Π`'s kind-`0`
-fibre condition, and (in the graph regime) the domain's typing.  Closes at **both** kinds — the kind-`0` premise is
-exactly `app_mem_piR`'s, and its supplier is the `Π`'s own numeral. -/
-theorem sound_app {u v : Nat} {ρ : Nat → V} {fa aa Aa Ba : AnnotTerm}
+/-- **`app`.**  Interface facts: the function's membership at a `Π`,
+the argument's in its domain, and the domain's typing. -/
+theorem sound_app {ρ : Nat → V} {fa aa Aa Ba : AnnotTerm}
     (hokf : WellDenoted V ρ fa) (hoka : WellDenoted V ρ aa)
-    (hf : interp V ρ fa ∈ˢ interp V ρ (.pi u v Aa Ba))
+    (hf : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : interp V ρ aa ∈ˢ interp V ρ Aa)
-    (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V))
-    (hdom : v ≠ 0 → IsTy (interp V ρ Aa)) :
+    (hdom : IsTy (interp V ρ Aa)) :
     WellDenoted V ρ (.app fa aa) ∧
       interp V ρ (.app fa aa) ∈ˢ interp V ρ (Ba.inst aa) := by
-  refine ⟨WellDenoted_app_of V hokf hoka hf ha hcod hdom, ?_⟩
+  refine ⟨WellDenoted_app_of V hokf hoka hf ha hdom, ?_⟩
   rw [interp_pi] at hf
   rw [interp_app, interp_inst0]
-  exact app_mem_piR hf ha hcod
+  exact app_mem_piV hf ha
 
 /-! ## The projection rows
 

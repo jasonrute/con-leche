@@ -6,53 +6,37 @@ public import ConLeche.SetModel.Value
 @[expose] public section
 
 /-!
-# `interp` — the collapse-free two-regime interpretation (task #151, tier B)
+# `interp` — the interpretation (task #151, tier B; task #342, L14a)
 
-`interp V ρ e` maps an annotated term to an element of the
-set-theoretic universe `V` under a variable environment `ρ : Nat → V`.
-
-Three properties, each a design constraint rather than an observation:
+`interp V ρ e` maps a semantic term to an element of the set-theoretic
+universe `V` under a variable environment `ρ : Nat → V`.
 
 * **Total.**  A plain function on terms — never derivation-indexed, so
   coherence is not a theorem to prove but the absence of a question.
 * **Environment-free.**  No global environment, no `Option`, no
   auxiliary truthfulness predicate: `interp` is a function of the term
   and the valuation alone.
-* **Term-directed, and the regime is read off the annotation.**  The
-  binder cases dispatch on the binder's codomain-sort *numeral*
-  (`SetModel/Ops.lean`), never on the semantic value.  That inspection —
-  "is this value everywhere the proof point over its domain?" — *is*
-  the domain-relative collapse (task #100), and it is what this layer
-  removes.  Its cost was a countermodel: under the collapse
-  empty-domain abstractions collapse at every
-  level, so `⟦fun (x : ∀ p : Prop, p) => Prop⟧ = pt` and guarded beta
-  produces `app pt univZero = pt ≠ univZero`.  Here
-  `⟦fun (x : A) => e⟧` with a `Type`-sorted body is a graph over `⟦A⟧`
-  whatever `⟦A⟧` is, empty included (`lamR_pos`).
+* **The regime is read off the values.**  A Π-type is a truth value
+  exactly when every fibre over its domain is one (`piV`), an
+  abstraction is the point exactly when every body value over its
+  domain is (`lamV`), `SetModel/Ops.lean`.  Over an empty domain both
+  read "proposition": the function space is `{pt}`, the abstraction the
+  point.
 
-The clauses in one line each:
+| term | value |
+|---|---|
+| `bvar i` | `ρ i` |
+| `sort u` | `univ u` |
+| `const c us` | `bval c us` |
+| `app f a` | `app ⟦f⟧ ⟦a⟧` (`app pt _ = pt`) |
+| `lam A b` | `lamV ⟦A⟧ (fun x => ⟦b⟧ₓ)` |
+| `pi A B` | `piV ⟦A⟧ (fun x => ⟦B⟧ₓ)` |
+| `letE v b` | `⟦b⟧` at `cons ⟦v⟧ ρ` |
+| `eqE a b` | `eqv ⟦a⟧ ⟦b⟧` |
+| `fst e` / `snd e` | `sfst ⟦e⟧` / `ssnd ⟦e⟧` |
+| `prf` | `pt` |
 
-| term | value | regime |
-|---|---|---|
-| `bvar i` | `ρ i` | — |
-| `sort u` | `univ u` | — |
-| `const c us` | `bval c us` | annotation-free (the tower's own) |
-| `app f a` | `app ⟦f⟧ ⟦a⟧` | uniform: graph application above `0`, `app pt _ = pt` at `0` |
-| `lam v A b` | `lamR v ⟦A⟧ (fun x => ⟦b⟧ₓ)` | annotation |
-| `pi u v A B` | `piR v ⟦A⟧ (fun x => ⟦B⟧ₓ)` | annotation |
-| `letE v b` | `⟦b⟧` at `cons ⟦v⟧ ρ` | — (the value, then the body at it) |
-| `eqE a b` | `eqv ⟦a⟧ ⟦b⟧` | truth value |
-| `fst e` / `snd e` | `sfst ⟦e⟧` / `ssnd ⟦e⟧` | — |
-| `prf` | `pt` | the canonical proof |
-
-`app` is *uniform*: it needs no annotation, because
-`SetTheory.app`'s proof-point tag (`app pt a = pt`) is precisely the
-squash regime's β, and its graph clause (`app_graph`) is precisely the
-graph regime's.  So the whole two-regime dispatch lives in the two
-binder cases and nowhere else.
-
-A `letE` reads its value at `ρ` and its body at the value; the type
-is not in the node and is not read.
+β holds on the domain with no other premise (`app_lamV`).
 -/
 
 namespace ConLeche.Semantics
@@ -145,15 +129,15 @@ variable (V : Type w) [SetTheory V]
 
 /-! ## The interpretation -/
 
-/-- The two-regime interpretation: total, term-directed, environment-free.
-Binders read their annotation; nothing reads a value. -/
+/-- The interpretation: total, term-directed, environment-free; the
+binders read their regime off the values. -/
 noncomputable def interp : (Nat → V) → AnnotTerm → V
   | ρ, .bvar i => ρ i
   | _, .sort u => univ u
   | _, .const c us => bval V c us
   | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
-  | ρ, .lam v A b => lamR v (interp ρ A) fun x => interp (cons x ρ) b
-  | ρ, .pi _ v A B => piR v (interp ρ A) fun x => interp (cons x ρ) B
+  | ρ, .lam A b => lamV (interp ρ A) fun x => interp (cons x ρ) b
+  | ρ, .pi A B => piV (interp ρ A) fun x => interp (cons x ρ) B
   | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
   | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
   | ρ, .fst e => sfst (interp ρ e)
@@ -168,12 +152,12 @@ noncomputable def interp : (Nat → V) → AnnotTerm → V
     (us : List Nat) : interp V ρ (.const c us) = bval V c us := rfl
 @[simp] theorem interp_app (ρ : Nat → V) (f a : AnnotTerm) :
     interp V ρ (.app f a) = SetTheory.app (interp V ρ f) (interp V ρ a) := rfl
-@[simp] theorem interp_lam (ρ : Nat → V) (v : Nat) (A b : AnnotTerm) :
-    interp V ρ (.lam v A b) =
-      lamR v (interp V ρ A) fun x => interp V (cons x ρ) b := rfl
-@[simp] theorem interp_pi (ρ : Nat → V) (u v : Nat) (A B : AnnotTerm) :
-    interp V ρ (.pi u v A B) =
-      piR v (interp V ρ A) fun x => interp V (cons x ρ) B := rfl
+@[simp] theorem interp_lam (ρ : Nat → V) (A b : AnnotTerm) :
+    interp V ρ (.lam A b) =
+      lamV (interp V ρ A) fun x => interp V (cons x ρ) b := rfl
+@[simp] theorem interp_pi (ρ : Nat → V) (A B : AnnotTerm) :
+    interp V ρ (.pi A B) =
+      piV (interp V ρ A) fun x => interp V (cons x ρ) B := rfl
 @[simp] theorem interp_letE (ρ : Nat → V) (v b : AnnotTerm) :
     interp V ρ (.letE v b) = interp V (cons (interp V ρ v) ρ) b := rfl
 @[simp] theorem interp_eqE (ρ : Nat → V) (a b : AnnotTerm) :

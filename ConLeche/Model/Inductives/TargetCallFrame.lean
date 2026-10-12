@@ -125,22 +125,6 @@ theorem posD_tele_closed {env : Env} (hwf : ConLeche.EnvWF env) {ctx : NestCtx} 
     (by omega) hxb).1, posD_field_scoped (fun d e w hw he => ConLeche.whnf_WScoped hwf F hw he)
     hfd' htyW⟩
 
-/-- A valid Π-tower's domains are valid at a fitting spine's prefixes. -/
-theorem annotValid_mkPisAV_dom {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V},
-      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
-      ∀ l, l < tl.length → AnnotValid V (consList (bs.take l) ρ) ((tl.map (·.2.2)).getD l default)
-  | [], _, _, _, _, l, hl => absurd hl (Nat.not_lt_zero _)
-  | _ :: _, _, [], _, h, _, _ => h.elim
-  | d :: tl, ρ, b :: bs, hv, h, l, hl => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
-    rw [AnnotValid_pi] at hv'
-    cases l with
-    | zero => simpa using hv'.1
-    | succ l =>
-      simp only [List.map_cons, List.getD_cons_succ, List.take_succ_cons, consList_cons]
-      exact annotValid_mkPisAV_dom (hv'.2.1 b h.1) h.2 l (by simpa using hl)
-
 /-- **The fields of a derived telescope lie in their normal forms'
 readings**: at a frame satisfying the telescope's context, a spine fitting
 the input's domains has its `i`-th value in the reading of the `i`-th
@@ -160,13 +144,15 @@ theorem posD_tele_fieldMem {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     fs.length = nF ∧ nds.length = nF ∧
     ∀ (i : Nat) (nd : Expr), nds[i]?.map (·.1) = some nd →
       ∃ nda, denoteMeta m.acval env φ (hi + i) nd = some nda ∧
-        fs.getD i pt ∈ˢ interp V (consList (fs.take i) σ) nda ∧
-        AnnotValid V (consList (fs.take i) σ) nda := by
+        fs.getD i pt ∈ˢ interp V (consList (fs.take i) σ) nda := by
   have hred := posD_red hin hd (by simpa using hfr) (by simpa using hC) (by simpa using hca) hgr
   simp only [Nat.add_zero] at hred
   obtain ⟨abD', abN, B', hcaE', hNE, hlD', hlN, -, hEq, hgN, -, -⟩ := hred
   rw [hcaE] at hcaE'
-  obtain ⟨rfl, rfl⟩ := mkPisAV_inj (by rw [hlD, hlD']) hcaE'
+  obtain ⟨hpp, rfl⟩ := mkPisAV_inj (by rw [hlD, hlD']) hcaE'
+  have hdom : abD.map (·.2.2) = abD'.map (·.2.2) := by
+    rw [← ppsNorm_map_dom abD, hpp, ppsNorm_map_dom]
+  rw [hdom] at hfit
   have hfitN : SpineFit σ (abN.map (·.2.2)) fs := (hEq.spineFit_iff hσ fs).mp hfit
   have hfl : fs.length = nF := by rw [hfitN.length_eq, List.length_map, hlN]
   have hnl : nds.length = nF := (ConLeche.posD_tele_open hd).2.1
@@ -188,13 +174,14 @@ theorem posD_tele_fieldMem {env : Env} {m : EnvModel V env} {φ : Name → Nat}
   have hxl : xs.length = nds.length := ConLeche.Verify.openPisAtFvars_length _ hop
   obtain ⟨p, hp, -, hpd⟩ := hbind i (xs[i]'(by omega)) (List.getElem?_eq_getElem (by omega))
   have hE := hdoms i (xs[i]'(by omega)) nd (List.getElem?_eq_getElem (by omega)) hnd
-  refine ⟨p.2.2, by rw [← denoteMeta_erasedEq hE]; exact hpd, ?_, ?_⟩
-  · have hmem := FixKI.spineFit_getD_mem' hfitN (l := i) (by rw [List.length_map]; omega)
-    rw [List.getD_eq_getElem?_getD (l := List.map _ abN), List.getElem?_map, hp] at hmem
-    exact hmem
-  · have hval := annotValid_mkPisAV_dom (hgN σ hσ).1.2 hfitN i (by omega)
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, hp] at hval
-    exact hval
+  refine ⟨p.2.2, by rw [← denoteMeta_erasedEq hE]; exact hpd, ?_⟩
+  have hmem := FixKI.spineFit_getD_mem' hfitN (l := i) (by rw [List.length_map]; omega)
+  have hp' : abN[i]?.map (·.2.2) = some p.2.2 := by
+    have h := congrArg (·[i]?) (ppsNorm_map_dom abN)
+    simp only [List.getElem?_map, hp, Option.map_some] at h
+    exact h.symm
+  rw [List.getD_eq_getElem?_getD (l := List.map _ abN), List.getElem?_map, hp'] at hmem
+  exact hmem
 
 /-! ## A derived node's constructor, at an admissible frame -/
 
@@ -243,9 +230,6 @@ theorem dyn_ctorFit {F : Nat} {envI envC : Env} {mk : EnvModelM V μ envI}
           ∃ nda, denoteMeta mk.base2.acval envI ψ (ctx.hiAt u.anc.length + u.grp.length + i) nd
               = some nda ∧
             fs.getD i pt ∈ˢ interp V (consList (fs.take i)
-              (consList (grpVals (lfpSel mpC d.toLfp u.key.cname) (nodeψ envC ψ u) u.grp
-                (keyFrame (nodeDsaI mk ctx ψ u) (ctx.hiAt u.anc.length) σ) Y) σ)) nda ∧
-            AnnotValid V (consList (fs.take i)
               (consList (grpVals (lfpSel mpC d.toLfp u.key.cname) (nodeψ envC ψ u) u.grp
                 (keyFrame (nodeDsaI mk ctx ψ u) (ctx.hiAt u.anc.length) σ) Y) σ)) nda := by
   classical
@@ -383,16 +367,14 @@ theorem blk_ctorFit {env : Env} {μ' : ConLeche.CheckMode} (mk : EnvModelM V μ'
       ∀ (i : Nat) (nd : Expr), nds[i]?.map (·.1) = some nd →
         ∃ nda, denoteMeta mk.base2.acval env ψ ((p.nestCtx fvsP env.find?).hiAt 0 + i) nd
             = some nda ∧
-          fs.getD i pt ∈ˢ interp V (consList (fs.take i) (d.toLfp.frame ψ ρp Y)) nda ∧
-          AnnotValid V (consList (fs.take i) (d.toLfp.frame ψ ρp Y)) nda) ∧
+          fs.getD i pt ∈ˢ interp V (consList (fs.take i) (d.toLfp.frame ψ ρp Y)) nda) ∧
     -- at ANY valuation of the hole context (node `0`'s patched one)
     ∀ σ : Nat → V, Sat V (d.holeCtx ψ).reverse σ → ∀ fs, SpineFit σ (d.toLfp.fields ψ m j) fs →
       fs.length = cA.2 ∧
       ∀ (i : Nat) (nd : Expr), nds[i]?.map (·.1) = some nd →
         ∃ nda, denoteMeta mk.base2.acval env ψ ((p.nestCtx fvsP env.find?).hiAt 0 + i) nd
             = some nda ∧
-          fs.getD i pt ∈ˢ interp V (consList (fs.take i) σ) nda ∧
-          AnnotValid V (consList (fs.take i) σ) nda := by
+          fs.getD i pt ∈ˢ interp V (consList (fs.take i) σ) nda := by
   have hin := Rules.RulesInputs.ofSem mk ψ
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
@@ -423,7 +405,7 @@ theorem blk_ctorFit {env : Env} {μ' : ConLeche.CheckMode} (mk : EnvModelM V μ'
   obtain ⟨abD, -, B, hhi, hcaE, -, hlD, -, -, hfr, hCP, hgr, -, -, -, -, -, -, hsatFrame⟩ :=
     blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames hnP hk hcv0 hop0
       hholes hCf hCb hcrest hinf hsort hd hca
-  obtain ⟨rfl, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
+  obtain ⟨-, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
   obtain ⟨nds, cur, htele, htyN, -⟩ := hd
   have hhi0 : (p.nestCtx fvsP env.find?).hiAt ([] : List NestHole).length ≤
       (p.nestCtx fvsP env.find?).hiAt 0 := Nat.le_refl _

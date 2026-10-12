@@ -78,7 +78,7 @@ theorem foldl_app_pt' : ∀ (ts : List V), ts.foldl SetTheory.app (pt : V) = pt
 
 /-- `I → Sort w`, spelled. -/
 def famTyAV (u w : Nat) (Ids : List AnnotTerm) : AnnotTerm :=
-  .pi u (w + 1) (idxTyAV u Ids) (.sort w)
+  .pi (idxTyAV u Ids) (.sort w)
 
 theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : IdxOk u ρp Ids) :
     interp V ρp (famTyAV u w Ids) = lfpFamSpace V w (idxSet u ρp Ids) ∧
@@ -88,7 +88,12 @@ theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : 
   refine ⟨?_, ?_, ?_⟩
   · unfold famTyAV lfpFamSpace
     rw [interp_pi, hv]
-    rfl
+    by_cases hI : ¬ ∃ x, x ∈ˢ idxSet u ρp Ids
+    · -- L16: over an empty index set the spelled family space is `{pt}`,
+      -- `lfpFamSpace` (`SetModel/Value`) the one-graph space `{∅}`
+      sorry
+    obtain ⟨x₀, hx₀⟩ := Classical.not_not.mp hI
+    exact piV_univ_eq_pos (Nat.succ_ne_zero w) hx₀ _ fun _ _ => ⟨w, rfl⟩
   · unfold lfpFamSpace
     have := piR_mem_univ (u := u) (v := w + 1) hu (fun _ _ => univ_mem_univ w)
     rwa [ite_eq_right (Nat.succ_ne_zero w)] at this

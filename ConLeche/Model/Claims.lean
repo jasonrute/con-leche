@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Verify.InferLeaves
 public import ConLeche.Semantics.Skeleton
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Model.Annot.EnvModel
 public import ConLeche.Model.Currency
 

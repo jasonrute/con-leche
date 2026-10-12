@@ -108,18 +108,18 @@ theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
     (hw : WellDenotedV V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
     ∃ (v : Nat) (A : V) (B : V → V), v ≠ 0 ∧
       interp V ρ f ∈ˢ piR v A B ∧ interp V ρ x ∈ˢ A ∧ IsTy A := by
-  have h := hw.1
-  rw [WellDenoted_app] at h
+  have h := hw
+  rw [WellDenotedV, WellDenoted_app] at h
   obtain ⟨-, -, v, A, B, hf, hx, -, hT⟩ := h
   have hv : v ≠ 0 := by
     rintro rfl; exact hn (eq_pt_of_mem_piR_zero hf)
   exact ⟨v, A, B, hv, hf, hx, hT hv⟩
 
 /-- A graded Π-type's fibres are types. -/
-theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V} {u v : Nat}
-    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi u v A B)) :
+theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V}
+    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
-  ((WellDenoted_pi V ρ u v A B) ▸ h.1).2.2.2 x hx
+  (cast (WellDenoted_pi V ρ A B) h).2.2.2 x hx
 
 theorem DefEq.refl_sound {d : Nat} {a : Expr} : DefEqSem m φ d a a :=
   DefEq.refl_soundU.cond
@@ -177,8 +177,8 @@ theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : 
   obtain ⟨hz, hs, hT⟩ := hin.nat_heads hg ρ
   have hmk := (natLit_factsAV (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ)
     hz hs hT k).2
-  have hw := hwb.1
-  rw [WellDenoted_app] at hw
+  have hw := hwb
+  rw [WellDenotedV, WellDenoted_app] at hw
   obtain ⟨-, -, v, A, B, hfm, hxm, -, -⟩ := hw
   have hv : v ≠ 0 := by
     rintro rfl
@@ -205,10 +205,6 @@ theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
     DefEqSem m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
-  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule compares
-  -- no binder datum; the annotated reading's two bits need it, the value
-  -- reading (`piV`) none
-  have hpw : m₁.pw = m₂.pw := sorry
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
@@ -216,7 +212,6 @@ theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
     hty hfa.forallE_ty hfb.forallE_ty hCa.forallE_ty hCb.forallE_ty hta₁ hta₂
       ρ hρ hLa.forallE_ty hLb.forallE_ty hwa.pi_dom.1 hwb.pi_dom.1
       hwa.pi_dom.ne_pt hwb.pi_dom.ne_pt
-  rw [hpw]
   refine deqStep_piCong hdom (fun x hx => ?_)
   have hx₂ : x ∈ˢ interp V ρ ta₂ := hdom ▸ hx
   exact hbody (hfa.forallE_open hfb.forallE_ty) (hfb.forallE_open hfb.forallE_ty)
@@ -573,7 +568,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     rw [List.length_append, ← hspt.length, htlen] at this
     omega
   have hspine : asa.map (interp V ρ) = (tsa ++ ps).map (interp V ρ) := by
-    refine teleFit_eq_of_cond (hoktc ρ).1 hfitA' hfitC
+    refine teleFit_eq_of_cond (hoktc ρ) hfitA' hfitC
       (by rw [List.length_map, List.length_map, hlenA]) fun p hp => ?_
     rw [← List.take_append_drop caps.etaParams asa, List.map_append, List.map_append,
       List.zip_append htkLen] at hp

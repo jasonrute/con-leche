@@ -139,7 +139,6 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
     (tupX : Nat → List V → V)
     (fit : List V → Nat → V → Nat → List V → Prop)
     (hTyP : ∀ c, c < K → RecTy c = mkPisAV (rds c) (concl c))
-    (hbits : OneElimLevel ℓ K rds)
     (hpl : ∀ c, c < K → (pdoms c).length = rP c)
     (hsplit : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c).map (·.2.2)) ys →
       (prefOf (rP c) ys).length = rP c ∧
@@ -202,7 +201,7 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
       kit := fun xs => graphKitR (Rb0 := Rb0) (ihv := ihv) (call := call) (nCt := nCt)
         Is Cr injX uX nIdxX fit xs (hconclTy xs) (hstep xs) (huniq xs) (hind xs),
       hsplit := hsplit, hconcl := hconcl }
-  refine famCandG_hCand D (fun _ c j fs => (c, j, fs)) hTyP hbits hpl (hrule (famCandG D)) ?_ ?_
+  refine famCandG_hCand D (fun _ c j fs => (c, j, fs)) hTyP hpl (hrule (famCandG D)) ?_ ?_
   · intro c hc j hj xs fs hxl hsp
     have hfit := hrule (famCandG D) c hc j hj xs fs hxl hsp
     have hxr : xs.length = rP c := by rw [hxl, hpl c hc]
@@ -214,7 +213,7 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
     have hlen : (xs ++ fs).length = (pdoms c).length + (fdoms c j).length := by
       rw [hsp.length_eq, List.length_append]
     have hch := hchain (famCandG D) xs (fun v => (D.kit xs).recAt v)
-      (fun c' hc' is x hxl' hsp' => (famCandG_fold D hc' hxl' hsp').symm) c hc j hj fs hxl hsp
+      (fun c' hc' is x hxl' hsp' => (famCandG_fold D hxl' hsp').symm) c hc j hj fs hxl hsp
     show interp V (consList (ihv xs c j fs
         (graph (fun v => (D.kit xs).recAt v) (graphPredG Is Cr K call xs (c, j, fs))))
         (consList (xs ++ fs) ρ)) (Rb0 c j) = _
@@ -311,11 +310,11 @@ theorem interp_ihShape_congr {m : Nat} (args : List AnnotTerm) :
     rw [← List.foldl_map, ← List.foldl_map (f := interp V σ'), hmap]
     exact h0
   | (v, A) :: tele, D, σ, σ', hb, hargs, hag, h => by
-    show lamR v (interp V σ A) (fun x => interp V (cons x σ) _)
-      = lamR v (interp V σ' A) (fun x => interp V (cons x σ') _)
+    show lamV (interp V σ A) (fun x => interp V (cons x σ) _)
+      = lamV (interp V σ' A) (fun x => interp V (cons x σ') _)
     have hA : interp V σ A = interp V σ' A := interp_congr_below V A D σ σ' hb.1 hag
     rw [← hA]
-    refine lamR_congr fun x hx => ?_
+    refine lamV_congr fun x hx => ?_
     have hidx : D + ((v, A) :: tele).length + m = (D + 1) + tele.length + m := by
       simp; omega
     rw [hidx]

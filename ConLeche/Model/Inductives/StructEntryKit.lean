@@ -29,7 +29,7 @@ Semantic and syntactic pieces of a tower entry's install:
 * the syntactic Π-peel of a tower along a spine is the body's
   instantiation sequence (`peelPis_of_piTeleAV`, the fit-free spine of
   `teleFitPA_of_tower`), and a `mkPisAV` tower is a `PiTeleAV`;
-* a graded application of a nonzero-bit λ-tower **fits** the tower
+* a graded application of a λ-tower that is not the point **fits** the tower
   (`spineFit_of_wellDenotedV_mkAppN_lam`): the application clause's package
   pins each argument to the layer's domain (a graph's domain is
   rigid, `graph_dom_of_mem_piSet`) — the converse of
@@ -82,7 +82,7 @@ theorem peelPis_of_piTeleAV :
     rfl
   | succ k ihk =>
     intro T Γ R h ws hlen
-    obtain ⟨u, v, A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
+    obtain ⟨A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
     match ws, hlen with
     | w :: ws', hlen =>
     have hlen' : ws'.length = k := by simpa using hlen
@@ -98,39 +98,42 @@ theorem peelPis_of_piTeleAV :
 /-- The instantiation sequence of a `.pi` is a `.pi` over the
 sequence of its domain. -/
 theorem instSeq_pi_dom :
-    ∀ (ws : List AnnotTerm) (t u v : Nat) (A B : AnnotTerm),
-      ∃ B', ConLeche.Model.AnnotTerm.instSeq ws t (.pi u v A B)
-        = .pi u v (ConLeche.Model.AnnotTerm.instSeq ws t A) B'
-  | [], _, _, _, _, B => ⟨B, rfl⟩
-  | w :: ws, t, u, v, A, B => by
+    ∀ (ws : List AnnotTerm) (t : Nat) (A B : AnnotTerm),
+      ∃ B', ConLeche.Model.AnnotTerm.instSeq ws t (.pi A B)
+        = .pi (ConLeche.Model.AnnotTerm.instSeq ws t A) B'
+  | [], _, _, B => ⟨B, rfl⟩
+  | w :: ws, t, A, B => by
     rw [AnnotTerm.instSeq_cons, AnnotTerm.instSeq_cons, AnnotTerm.inst_pi]
-    exact instSeq_pi_dom ws (t - 1) u v (A.inst w t) (B.inst w (t + 1))
+    exact instSeq_pi_dom ws (t - 1) (A.inst w t) (B.inst w (t + 1))
 
 /-! ## Fits from gradings -/
 
-/-- **A graded application of a nonzero-bit λ-tower fits the tower**:
-each application clause's package puts the argument in a domain the
-layer's graph inhabits as a function, and a graph's domain is rigid
-(`mkAppN_wellDenotedV_of_lam`'s converse). -/
+/-- **A graded application of a λ-tower that is not the point fits the
+tower**: no partial application is the point (`app_pt`), so each layer
+is a graph (`lamV_eq_graph`), the application clause's package puts the
+argument in a domain that graph inhabits as a function, and a graph's
+domain is rigid (`mkAppN_wellDenotedV_of_lam`'s converse). -/
 theorem spineFit_of_wellDenotedV_mkAppN_lam :
     ∀ {lds : List (Nat × AnnotTerm)} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
-      (∀ d ∈ lds, d.1 ≠ 0) →
       WellDenotedV V ρ (AnnotTerm.mkAppN f args) →
+      interp V ρ (AnnotTerm.mkAppN f args) ≠ pt →
       interp V ρ f = interp V σ (mkLamsAV lds b) →
       args.length = lds.length →
       SpineFit σ (lds.map (·.2)) (args.map (interp V ρ))
   | [], _, _, [], _, _, _, _, _, _ => trivial
   | [], _, _, _ :: _, _, _, _, _, _, hlen => by simp at hlen
   | _ :: _, _, _, [], _, _, _, _, _, hlen => by simp at hlen
-  | d :: lds, b, f, a :: args, ρ, σ, hnz, hok, hval, hlen => by
+  | d :: lds, b, f, a :: args, ρ, σ, hok, hne, hval, hlen => by
     simp only [List.map_cons, SpineFit]
-    rw [AnnotTerm.mkAppN_cons] at hok
+    rw [AnnotTerm.mkAppN_cons] at hok hne
     have hokApp := Rules.mkAppN_head args hok
-    obtain ⟨-, -, v, A, B, hf, ha, -⟩ := (WellDenoted_app V ρ f a) ▸ hokApp.1
-    have hd : d.1 ≠ 0 := hnz d List.mem_cons_self
-    rw [hval] at hf
-    simp only [mkLamsAV, interp_lam] at hf
-    rw [lamR_pos hd] at hf
+    obtain ⟨-, -, v, A, B, hf, ha, -⟩ := cast (WellDenoted_app V ρ f a) hokApp
+    have hfne : interp V ρ f ≠ pt := fun h0 =>
+      hne (Rules.interp_mkAppN_of_pt (by rw [interp_app, h0, app_pt]) args)
+    have hlne := hfne
+    rw [hval] at hf hlne
+    simp only [mkLamsAV, interp_lam] at hf hlne
+    rw [lamV_eq_graph hlne] at hf
     -- the package's codomain bit is nonzero: a graph is not the point
     have hv : v ≠ 0 := by
       intro hv0
@@ -139,11 +142,10 @@ theorem spineFit_of_wellDenotedV_mkAppN_lam :
     rw [piR_pos hv] at hf
     have hmem : interp V ρ a ∈ˢ interp V σ d.2 := graph_dom_of_mem_piSet hf _ ha
     refine ⟨hmem, ?_⟩
-    refine spineFit_of_wellDenotedV_mkAppN_lam (b := b) (fun d' hd' => hnz d' (List.mem_cons_of_mem _ hd'))
-      hok ?_ (by simpa using hlen)
+    refine spineFit_of_wellDenotedV_mkAppN_lam (b := b) hok hne ?_ (by simpa using hlen)
     rw [interp_app, hval]
     simp only [mkLamsAV, interp_lam]
-    rw [app_lamR_pos hd hmem]
+    rw [app_lamV hmem]
 
 /-! ## The projection spelling's grading -/
 
@@ -285,22 +287,22 @@ theorem WellDenoted_congr_below :
     intro k ρ ρ' hb hag
     rw [WellDenoted_app, WellDenoted_app, ihf k ρ ρ' hb.1 hag, iha k ρ ρ' hb.2 hag,
       interp_congr_below V f k ρ ρ' hb.1 hag, interp_congr_below V a k ρ ρ' hb.2 hag]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ ρ' hb hag
     rw [WellDenoted_lam, WellDenoted_lam, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
     constructor
-    · rintro ⟨h1, ht, h2, B, hB, hBt, hB0⟩
+    · rintro ⟨h1, ht, h2, B, hB, hBt⟩
       refine ⟨h1, ht, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx),
-        B, fun x hx => ?_, hBt, hB0⟩
+        B, fun x hx => ?_, hBt⟩
       rw [← interp_congr_below V b (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact hB x hx
-    · rintro ⟨h1, ht, h2, B, hB, hBt, hB0⟩
+    · rintro ⟨h1, ht, h2, B, hB, hBt⟩
       refine ⟨h1, ht, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx),
-        B, fun x hx => ?_, hBt, hB0⟩
+        B, fun x hx => ?_, hBt⟩
       rw [interp_congr_below V b (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact hB x hx
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ ρ' hb hag
     rw [WellDenoted_pi, WellDenoted_pi, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
@@ -332,76 +334,12 @@ theorem WellDenoted_congr_below :
     rw [WellDenoted_snd, WellDenoted_snd, ihe k ρ ρ' hb hag,
       interp_congr_below V e k ρ ρ' hb hag]
 
-theorem AnnotValid_congr_below :
-    ∀ (e : AnnotTerm) (k : Nat) (ρ ρ' : Nat → V),
-      Term.bvarsBelow k e.erase → (∀ i, i < k → ρ i = ρ' i) →
-      (AnnotValid V ρ e ↔ AnnotValid V ρ' e) := by
-  intro e
-  induction e with
-  | bvar i => intros; simp [AnnotValid]
-  | sort u => intros; simp [AnnotValid]
-  | const c us => intros; simp [AnnotValid]
-  | prf => intros; simp [AnnotValid]
-  | app f a ihf iha =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_app, AnnotValid_app, ihf k ρ ρ' hb.1 hag, iha k ρ ρ' hb.2 hag]
-  | lam v A b ihA ihb =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_lam, AnnotValid_lam, ihA k ρ ρ' hb.1 hag,
-      interp_congr_below V A k ρ ρ' hb.1 hag]
-    constructor
-    · rintro ⟨h1, h2⟩
-      exact ⟨h1, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx)⟩
-    · rintro ⟨h1, h2⟩
-      exact ⟨h1, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx)⟩
-  | pi u v A B ihA ihB =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_pi, AnnotValid_pi, ihA k ρ ρ' hb.1 hag,
-      interp_congr_below V A k ρ ρ' hb.1 hag]
-    constructor
-    · rintro ⟨h1, h2, h3⟩
-      refine ⟨h1, fun x hx => (ihB (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx),
-        fun h0 x hx => ?_⟩
-      rw [← interp_congr_below V B (k + 1) _ _ hb.2 (cons_agree_below hag x)]
-      exact h3 h0 x hx
-    · rintro ⟨h1, h2, h3⟩
-      refine ⟨h1, fun x hx => (ihB (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx),
-        fun h0 x hx => ?_⟩
-      rw [interp_congr_below V B (k + 1) _ _ hb.2 (cons_agree_below hag x)]
-      exact h3 h0 x hx
-  | letE v b ihv ihb =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_letE, AnnotValid_letE, ihv k ρ ρ' hb.1 hag,
-      interp_congr_below V v k ρ ρ' hb.1 hag,
-      ihb (k + 1) _ _ hb.2 (cons_agree_below hag _)]
-  | eqE a b iha ihb =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_eqE, AnnotValid_eqE, iha k ρ ρ' hb.1 hag, ihb k ρ ρ' hb.2 hag]
-  | fst e ihe =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_fst, AnnotValid_fst, ihe k ρ ρ' hb hag]
-  | snd e ihe =>
-    intro k ρ ρ' hb hag
-    rw [AnnotValid_snd, AnnotValid_snd, ihe k ρ ρ' hb hag]
-
 theorem WellDenotedV_congr_below (e : AnnotTerm) (k : Nat) (ρ ρ' : Nat → V)
     (hb : Term.bvarsBelow k e.erase) (hag : ∀ i, i < k → ρ i = ρ' i) :
     WellDenotedV V ρ e ↔ WellDenotedV V ρ' e := by
-  unfold WellDenotedV
-  rw [WellDenoted_congr_below e k ρ ρ' hb hag, AnnotValid_congr_below e k ρ ρ' hb hag]
+  exact WellDenoted_congr_below e k ρ ρ' hb hag
 
 /-! ## The field chain, indexed -/
-
-theorem fieldsValid_drop :
-    ∀ {Fs₁ : List AnnotTerm} {as : List V} {Fs₂ : List AnnotTerm} {ρ : Nat → V},
-      FieldsValid ρ (Fs₁ ++ Fs₂) → SpineFit ρ Fs₁ as →
-      FieldsValid (consList as ρ) Fs₂
-  | [], [], _, _, h, _ => h
-  | [], _ :: _, _, _, _, hsp => hsp.elim
-  | _ :: _, [], _, _, _, hsp => hsp.elim
-  | F :: Fs₁, a :: as, Fs₂, ρ, h, hsp => by
-    rw [consList_cons]
-    exact fieldsValid_drop (h.2 a hsp.1) hsp.2
 
 /-- Field `j`'s domain is graded at every fitting prefix. -/
 theorem fieldsOkB_getD {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
@@ -411,17 +349,6 @@ theorem fieldsOkB_getD {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
   have hsplit : Fs = Fs.take j ++ Fs.drop j := (List.take_append_drop j Fs).symm
   rw [hsplit] at h
   have h2 := FieldsOkB.drop h hsp
-  rw [List.drop_eq_getElem_cons hj] at h2
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]
-  exact h2.1
-
-theorem fieldsValid_getD {Fs : List AnnotTerm} {ρ : Nat → V}
-    (h : FieldsValid ρ Fs) {j : Nat} (hj : j < Fs.length) {bs : List V}
-    (hsp : SpineFit ρ (Fs.take j) bs) :
-    AnnotValid V (consList bs ρ) (Fs.getD j default) := by
-  have hsplit : Fs = Fs.take j ++ Fs.drop j := (List.take_append_drop j Fs).symm
-  rw [hsplit] at h
-  have h2 := fieldsValid_drop h hsp
   rw [List.drop_eq_getElem_cons hj] at h2
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]
   exact h2.1
@@ -803,7 +730,7 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
         rcases hl' with rfl | hl'
         · exact fun h => by simp at h; omega
         · exact hl l (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl hl')) hba
-    refine ⟨.pi 0 (pwBit φ mb.pw) Xt Xb, ?_⟩
+    refine ⟨.pi Xt Xb, ?_⟩
     rw [AnnotTerm.liftN_pi, show d + 1 - 1 - q = d - 1 - q + 1 from by omega]
   | case7 d ty body mb ihty ihbody =>
     intro hw q hq hl ea h
@@ -819,7 +746,7 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
         rcases hl' with rfl | hl'
         · exact fun h => by simp at h; omega
         · exact hl l (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl hl')) hba
-    refine ⟨.lam (pwBit φ mb.pw) Xt Xb, ?_⟩
+    refine ⟨.lam Xt Xb, ?_⟩
     rw [AnnotTerm.liftN_lam, show d + 1 - 1 - q = d - 1 - q + 1 from by omega]
   | case8 d f a ihf iha =>
     intro hw q hq hl ea h
@@ -914,8 +841,8 @@ theorem interp_congr_lift {e X : AnnotTerm} {k : Nat} (h : e = X.liftN 1 k) {ρ 
 theorem wellDenotedV_congr_lift {e X : AnnotTerm} {k : Nat} (h : e = X.liftN 1 k) {ρ ρ' : Nat → V}
     (hag : ∀ i, i ≠ k → ρ i = ρ' i) : WellDenotedV V ρ e ↔ WellDenotedV V ρ' e := by
   subst h
-  unfold WellDenotedV
-  rw [WellDenoted_liftN, WellDenoted_liftN, AnnotValid_liftN, AnnotValid_liftN, shiftE_congr_off hag]
+  simp only [WellDenotedV]
+  rw [WellDenoted_liftN, WellDenoted_liftN, shiftE_congr_off hag]
 
 /-- **Invariance under the free indices**: two valuations that differ
 only below `N`, and only at indices the term is a lift over, interpret
@@ -1225,7 +1152,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
     (hctyRead0 : denoteMeta m.acval env ψ 0 cty = some (mkPisAV ds bodyA))
     {sorts : List Level}
     (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
-      FieldsOkB w ρ ((ds.drop nP).map (·.2.2)) ∧ FieldsValid ρ ((ds.drop nP).map (·.2.2)))
+      FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
     (hsorts : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       ∀ j, j < nF → ∀ as : List V,
         SpineFit ρ (((ds.drop nP).map (·.2.2)).take j) as →
@@ -1321,11 +1248,10 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
   rw [hdropDs] at hpeel'
   simp only [mkPisAV] at hpeel'
   obtain ⟨B', hB'⟩ := instSeq_pi_dom (entryParamBvars nP ++ entryProjAVs off i) (nP + i - 1)
-    (ds.getD (nP + i) default).1 (ds.getD (nP + i) default).2.1
     (ds.getD (nP + i) default).2.2
     (mkPisAV (ds.drop (nP + i + 1)) bodyA)
   rw [hB'] at hpeel'
-  obtain ⟨-, -, hfdomA, -⟩ := AnnotTerm.pi.inj (Option.some.inj hpeel')
+  obtain ⟨hfdomA, -⟩ := AnnotTerm.pi.inj (Option.some.inj hpeel')
   -- the field's domain, named
   have hFi : ((ds.drop nP).map (·.2.2)).getD i default = (ds.getD (nP + i) default).2.2 := by
     rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_drop,
@@ -1355,22 +1281,20 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
         rw [wellDenotedV_congr_lifts i
           (free_of_diff hlenDs hi (hsorts _ hsat) (hguard hw) hfree hspAs)
           (consList_prefix_agree hlenTake _).2]
-        exact ⟨fieldsOkB_getD (hokB _ hsat).1 (by rw [hlenFs]; exact hi) hpre,
-          fieldsValid_getD (hokB _ hsat).2 (by rw [hlenFs]; exact hi) hpre⟩
+        exact fieldsOkB_getD (hokB _ hsat) (by rw [hlenFs]; exact hi) hpre
       · have hspAll := hgr ρ hx hsat hw
         obtain ⟨hpre, -⟩ := spineFit_prefix_next hspAll (by rw [hlenFs]; exact hi)
         rw [projList_take nF i _ (Nat.le_of_lt hi)] at hpre
-        exact ⟨fieldsOkB_getD (hokB _ hsat).1 (by rw [hlenFs]; exact hi) hpre,
-          fieldsValid_getD (hokB _ hsat).2 (by rw [hlenFs]; exact hi) hpre⟩
+        exact fieldsOkB_getD (hokB _ hsat) (by rw [hlenFs]; exact hi) hpre
     -- the readings' gradings at the frame
     have hokArgs : ∀ w' ∈ entryParamBvars nP ++ entryProjAVs off i, WellDenotedV V ρ w' := by
       intro w' hw'
       rcases List.mem_append.mp hw' with hw' | hw'
       · obtain ⟨k, -, rfl⟩ := List.mem_map.mp hw'
-        exact ⟨trivial, trivial⟩
+        exact trivial
       · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hw'
         have hj' : j < i := List.mem_range.mp hj
-        exact ⟨hokProj ρ hx hsat j (by omega), projAV_validV trivial⟩
+        exact hokProj ρ hx hsat j (by omega)
     rw [hfdomA, ← hlen']
     refine wellDenotedV_instSeq _ hokArgs ?_
     rw [(WellDenotedV_congr_below _ (nP + i) _ _ hFiBelow (chain_entry_agree nP off i ρ))]

@@ -546,7 +546,7 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     {nda : AnnotTerm}
     (hnda : denoteMeta m.acval env ψ (ctx.hiAt prog.length + i) (Expr.mkPisOf teleW leafC)
       = some nda)
-    {σR σW : Nat → V} {f : V} (hf : f ∈ˢ interp V σW nda) (hval : AnnotValid V σW nda)
+    {σR σW : Nat → V} {f : V} (hf : f ∈ˢ interp V σW nda)
     (hag : AgreeOff (holeP (ctx.hiAt prog.length + i) ctx.nP (ctx.hiAt prog.length))
       (substE V (substTau (ctx.hiAt prog.length + i) (rP + fvsF.length) x) 0 σR) σW)
     {bs : List V}
@@ -607,7 +607,7 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     rw [hbsW.length_eq, List.length_map, hlD]
   refine ⟨by rw [hbl, htl], ?_⟩
   -- the value: the field applied along the telescope lands in the leaf
-  have hmem := foldl_app_mem_mkPisAV hval hbsW hf
+  have hmem := foldl_app_mem_mkPisAV hbsW hf
   rw [← hbl, ← Expr.mkAppN_getApp w] at hwX
   obtain ⟨ha, argsA, hha, hsp, rfl⟩ := denoteMeta_mkAppN_inv hwX
   rw [interp_mkAppN_foldl] at hmem

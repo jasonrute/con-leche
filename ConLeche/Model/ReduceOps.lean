@@ -52,15 +52,12 @@ and every part of it is already established at the install:
 * the pin fixes the stored type to `.forallE (.const E []) (.const E [])
   mb₀` **on the nose** below the binder meta — both erasures fix a
   `.const` (the `trustCompiler` branch's lesson, reused) — so the
-  type's reading is `.pi 0 (pwBit ψ mb₀.pw) (acval E ψ) (acval E ψ)`
-  and `interp` of it is a `piR` over the element set;
-* the `piR` membership is the constant's own `mem_type` obligation
+  type's reading is `.pi (acval E ψ) (acval E ψ)`
+  and `interp` of it is a `piV` over the element set;
+* the `piV` membership is the constant's own `mem_type` obligation
   (`hmemA`, which `harvestOpaque` proves anyway);
-* the `v = 0` fibre clause is the type reading's **`AnnotValid` `pi`
-  third component** — `htyOk`'s own content.  So **no bit is needed**:
-  the regime datum `mb₀.pw` stays abstract throughout, exactly as the
-  literal tier found (`Model/NatEqs.lean`), and the doctrine that bits are never taken from a
-  metatheorem is not even approached.
+* the slot's numeral is the value-read `propN`, whose `v = 0` fibre
+  clause is `propN_eq_zero`.  The binder datum `mb₀` is never read.
 
 The preservation half is `reduceOps_cons_fresh` (`DivMod.lean`,
 beside its `eq_law` sibling — the law mentions two stored leaves, so
@@ -167,8 +164,7 @@ theorem reduceCertVar_fvarLeaves (c : Name) :
 recorded identity-certificate run, converted through `DefEqClaim` at
 the pre-insertion environment over the one-entry element context; every
 other stored reduce operation crosses by `reduceOps_entry_cons`.  See
-the module docstring for the route and for why no regime bit is ever
-read. -/
+the module docstring for the route. -/
 theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat}
     {cv : ConstantVal} {value type' value' : Expr}
@@ -181,7 +177,6 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (A ψ))
     (hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
     (hTaOk : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenotedV V ρ (Ta ψ))
@@ -244,16 +239,14 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       = ConLeche.reduceElemTy cv.name :=
     Expr.instantiate1_eq_self (by rw [hEty]; rfl)
   have hTaShape : ∀ ψ : Name → Nat,
-      Ta ψ = .pi 0 (pwBit ψ mb₀.pw)
-        (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
+      Ta ψ = .pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) := by
     intro ψ
     have h := hTa ψ
     rw [show denoteMeta mp.base2.acval env ψ 0
           (Expr.forallE (ConLeche.reduceElemTy cv.name)
             (ConLeche.reduceElemTy cv.name) mb₀)
-        = some (.pi 0 (pwBit ψ mb₀.pw)
-            (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
+        = some (.pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
             (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) from by
       rw [denoteMeta_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h
     exact (Option.some.inj h).symm
@@ -261,8 +254,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have helemTy : ∀ (ψ : Name → Nat) (ρ' : Nat → V),
       IsTy (interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) := by
     intro ψ ρ'
-    have h := (hTaOk ψ ρ').1
-    rw [hTaShape ψ, WellDenoted_pi] at h
+    have h := hTaOk ψ ρ'
+    rw [hTaShape ψ, WellDenotedV, WellDenoted_pi] at h
     exact h.2.1
   -- the certificate variable's syntactic and context packages
   have hvLeaves : valA.fvarLeaves = [] :=
@@ -309,8 +302,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     refine ⟨Nat.zero_lt_one, by rw [hEty]; trivial,
       mp.base2.acval (ConLeche.reduceElemName cv.name) ψ,
       elemA mp.base2 cv.name ψ, hdenE ψ 1, rfl, fun ρ' _ => ?_,
-      fun ρ' _ => ⟨⟨mp.base2.acval_wellDenoted _ ψ ρ', mp.acval_validV _ ψ ρ'⟩,
-        helemTy ψ ρ'⟩⟩
+      fun ρ' _ => ⟨mp.base2.acval_wellDenoted _ ψ ρ', helemTy ψ ρ'⟩⟩
     exact acval_interp_closed mp.base2 _ ψ _ _
   have hctxApp : ∀ ψ : Name → Nat,
       CtxOk mp.base2 ψ 1 (elemCtx mp.base2 cv.name ψ)
@@ -359,7 +351,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have hgradeCert : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.bvar 0) := by
     intro ρ' _
-    exact ⟨by simp, by simp⟩
+    simp
   have hgradeApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.app (A ψ) (.bvar 0)) := by
     intro ρ' hsat
@@ -370,16 +362,12 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    have hv := (hTaOk ψ ρ').2
-    rw [hTaShape ψ, AnnotValid_pi] at hv
-    refine ⟨⟨hAok ψ ρ', by simp, ?_⟩, ⟨hAvalid ψ ρ', by simp⟩⟩
-    refine ⟨pwBit ψ mb₀.pw,
-      interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
+    rw [WellDenotedV, WellDenoted_app]
+    refine ⟨hAok ψ ρ', by simp, ?_⟩
+    exact ⟨_, interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
       fun _ => interp V ρ'
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ),
-      hm, hslot ρ' hsat, fun h0 y hy => ?_, fun _ => helemTy ψ ρ'⟩
-    have := hv.2.2 h0 y hy
-    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+      hm, hslot ρ' hsat, propN_eq_zero.mp, fun _ => helemTy ψ ρ'⟩
   -- both sides are members of the element type
   have hmemApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       interp V ρ' (.app (A ψ) (.bvar 0))
@@ -392,12 +380,8 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
     have hm := hmemA ψ ρ'
     rw [hTaShape ψ, interp_pi, hfib] at hm
-    have hv := (hTaOk ψ ρ').2
-    rw [hTaShape ψ, AnnotValid_pi] at hv
     rw [interp_app, interp_bvar]
-    refine app_mem_piR hm (hslot ρ' hsat) fun h0 y hy => ?_
-    have := hv.2.2 h0 y hy
-    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+    exact app_mem_piV hm (hslot ρ' hsat)
   -- the run, converted: two members of one type, so the point does not
   -- separate them
   have hsatx := sat_elemCtx mp.base2 hx

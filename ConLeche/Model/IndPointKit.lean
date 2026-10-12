@@ -126,7 +126,7 @@ theorem teleFitPA_rest_eq :
     rfl
   | succ k ihk =>
     intro T Γ R h ws ρ rest hlen hfit
-    obtain ⟨u, v, A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
+    obtain ⟨A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
     match ws, hlen with
     | w :: ws', hlen =>
     have hlen' : ws'.length = k := by simpa using hlen

@@ -114,8 +114,6 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     -- the type's reading, its grading, and the tower's membership
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : AnnotTerm,
@@ -144,7 +142,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh
-    hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
+    hAclosed hAparams hAok htyReads htyOk hmemNew
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · -- `hvalReads`: an inductive cons is never a definition
     intro _ψ cv2 value2 hmem
@@ -188,8 +186,6 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : AnnotTerm,
         denoteMeta (acvalWith mp.base2.acval c₀.name A)
@@ -210,7 +206,7 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_ind_cons mp hfresh hnres ?_ ?_ hh
-    hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
+    hAclosed hAparams hAok htyReads htyOk hmemNew
     hcaps ?_ ?_ (hind := hind)
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ _ _ h <;> exact nomatch h
@@ -236,8 +232,6 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : AnnotTerm,
         denoteMeta (acvalWith mp.base2.acval c₀.name A)
@@ -261,6 +255,6 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
   exact declStep_preserves_of_ind_cons mp hfresh hnres
     (fun _ _ _ h => nomatch h)
     (fun _ h => nomatch h) hh hAclosed hAparams hAok
-    hAvalid htyReads htyOk hmemNew hcaps hrec (fun _ h => nomatch h)
+    htyReads htyOk hmemNew hcaps hrec (fun _ h => nomatch h)
 
 end ConLeche.Model

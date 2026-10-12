@@ -72,7 +72,7 @@ theorem nfFieldsRead_eq {acval : Name → (Name → Nat) → AnnotTerm} {env : E
   rw [hr]
   simp only
   rw [← hl, stripPisAV_mkPisAV]
-  rfl
+  exact ppsNorm_map_dom ab
 
 /-- **The fields' readings depend on the level assignment at the normal
 form's footprint only.** -/

@@ -42,7 +42,6 @@ theorem blockCtorFuns_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     {ctorsA : List (ConstantVal × Nat)} {sT : Level}
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hlpsT : cvTa.levelParams = lps)
-    (hsT : ∀ ψ : Name → Nat, sT.eval ψ = resSort.eval ψ)
     (hstripT : cvTa.type.stripPis (nP + nIdx) = some (bs, .sort sT))
     (hrunOf : ∀ (j : Nat) (cA : ConstantVal × Nat), ctorsA[j]? = some cA →
       ∃ (c : ConstantVal × Nat) (sorts : List Level),
@@ -63,7 +62,7 @@ theorem blockCtorFuns_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     | some cA =>
       obtain ⟨c, sorts, hCtor⟩ := hrunOf j cA hj
       obtain ⟨idxArgs, ds, Es, srcs, fvsP, xFvs, xrest, hD⟩ :=
-        blockCtorData_of hμ mp hCtor hfT hlpsT hsT hstripT
+        blockCtorData_of hμ mp hCtor hfT hlpsT hstripT
       refine ⟨⟨idxArgs, ds, Es, srcs, fvsP, xFvs, xrest⟩, fun cA' h => ?_⟩
       obtain rfl := Option.some.inj h
       exact hD
