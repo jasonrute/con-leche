@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.Sound
+import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Verify.InferLemmas
@@ -48,6 +49,42 @@ theorem whnf_ty (hin : RulesInputs V m φ) {F d : Nat} {e w : Expr}
       ∃ wa, denoteMeta m.acval env φ d w = some wa ∧ GradedTy V Δa wa ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ wa :=
   red_sound_ty hin (ConLeche.Rules.whnf_bridge hw) hf hC hea hg
+
+/-- **The `GradedTy` ∀-splitter**: both the domain and the body are graded
+TYPES (`WellDenotedV.hoist_piTy` already gives the domain; the body's
+`IsTy` at `ρ ⊨ A :: Δa` is the fibre `IsTy` at `ρ 0 ∈ ⟦A⟧` of the tail
+valuation, the same move `WellDenotedV.hoist_pi` makes for the body's
+grading). -/
+theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+    (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
+      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedTy V ρ B) := by
+  obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) h
+  refine ⟨hgAT, fun ρ hρ => ⟨hgB ρ hρ, ?_⟩⟩
+  have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
+    funext i; cases i with | zero => rfl | succ i => rfl
+  have := ((WellDenoted_pi V _ u v A B) ▸ (h _ (Sat_tail hρ)).1).2.2.2 (ρ 0) (hρ 0 A rfl)
+  rwa [hcons] at this
+
+/-- A `GradedTy` Π-type from `Graded` parts and their `IsTy` facts, the way
+`graded_pi_intro` (`NestPosRed.lean`) does for `Graded`: the Π's own
+`IsTy` is free (`IsTy_piR`). -/
+theorem gradedTy_pi_intro {Δ : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+    (hA : Graded V Δ A) (hB : Graded V (A :: Δ) B)
+    (hAt : ∀ ρ : Nat → V, Sat V Δ ρ → IsTy (interp V ρ A))
+    (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B))
+    (hbit : v = 0 → ∀ ρ : Nat → V, Sat V Δ ρ → ∀ x, x ∈ˢ interp V ρ A →
+      interp V (cons x ρ) B ∈ˢ (univZero : V)) :
+    GradedTy V Δ (.pi u v A B) := fun ρ hρ => by
+  refine ⟨?_, ?_⟩
+  · refine ⟨?_, ?_⟩
+    · rw [WellDenoted_pi]
+      exact ⟨(hA ρ hρ).1, hAt ρ hρ, fun x hx => (hB _ (Sat_cons V hρ hx)).1,
+        fun x hx => hBt _ (Sat_cons V hρ hx)⟩
+    · rw [AnnotValid_pi]
+      exact ⟨(hA ρ hρ).2, fun x hx => (hB _ (Sat_cons V hρ hx)).2,
+        fun hv x hx => hbit hv ρ hρ x hx⟩
+  · rw [interp_pi]; exact IsTy_piR _ _ _
 
 /-- **A term whose type is a sort reads as a graded type**: the inference
 claim puts its reading in its type's, the type is a type (so the sort
