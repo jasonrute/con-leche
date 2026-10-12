@@ -183,16 +183,25 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
       hacvAt _ (by rw [hfcjE]; rfl)
     obtain ⟨harity, hnk⟩ := hCtor cvj cnP cnF hfcjE
     refine ⟨harity, ?_⟩
-    intro hk usj husj heq TVja hTVja
-    obtain ⟨TVja', hTVja', -, -⟩ :=
-      mpC.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
-    obtain rfl : TVja' = TVja :=
-      Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
-        (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
-    obtain ⟨hS, hP, hU⟩ := hnk hk usj husj heq TVja' hTVja'
-    refine ⟨?_, ?_, ?_⟩
-    · intro hlic ρ xs a restR hxl hfit
-      refine hS ?_ ρ xs a restR hxl hfit
+    intro hk
+    -- a constructor type's reading at the cons is the prefix's
+    have hTVjaOf : ∀ usj : List Level, usj.length = cvj.levelParams.length →
+        ∀ TVja : ITerm, denoteMeta m₃.acval (consBlockRecsR R q 0 rs envC) φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
+        denoteMeta mpC.base2.acval envC φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
+      intro usj husj TVja hTVja
+      obtain ⟨TVja', hTVja', -, -⟩ :=
+        mpC.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
+      obtain rfl : TVja' = TVja :=
+        Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
+          (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
+      exact hTVja'
+    -- (S)/(T)'s `iotaCtorLicensed` guard is the prefix's
+    have hlicE : ∀ lvs : List Level,
+        ConLeche.iotaCtorLicensed (consBlockRecsR R q 0 rs envC).find? cvj lvs
+          = ConLeche.iotaCtorLicensed envC.find? cvj lvs := by
+      intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
         mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
@@ -200,7 +209,25 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
           (envC.find? T).isSome = true :=
         fun T us' heq' =>
           ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
-      rwa [iotaCtorLicensed_consBlockRecsR_of_isSome hfr hTiso] at hlic
+      exact iotaCtorLicensed_consBlockRecsR_of_isSome hfr hTiso
+    obtain ⟨hS, hT, hPU⟩ := hnk hk
+    refine ⟨fun hlic => hS (by rwa [hlicE] at hlic), ?_, ?_⟩
+    · intro hlic usj husj TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
+      rw [hlicE] at hlic
+      have hTVja0 := hTVjaOf usj husj TVja hTVja
+      rw [hacvC] at hfitR hne
+      obtain ⟨usj', ys', TVja', restC', h1, h2, h3, h4, h5, h6, h7, h8⟩ :=
+        hT hlic usj husj TVja hTVja0 ρ xs ys restR restC hxl hyl
+          hfitR hfitC hxwd hywd hne
+      refine ⟨usj', ys', TVja', restC', h1, h2,
+        hmono _ 0 _ (constsBound_instType mpC.base2.wf
+          (ConLeche.Semantics.Env.find?_mem hfcjE) usj') h3, h4, h5, h6, h7, ?_⟩
+      rw [hacvC]
+      exact h8
+    intro usj husj heq TVja hTVja
+    have hTVja' := hTVjaOf usj husj TVja hTVja
+    obtain ⟨hP, hU⟩ := hPU usj husj heq TVja hTVja'
+    refine ⟨?_, ?_⟩
     · intro ρ xs a restR hxl hfit hapt ys restC hfitC
       rw [hacvC]
       exact hP ρ xs a restR hxl hfit hapt ys restC hfitC
@@ -672,7 +699,7 @@ verbatim). -/
               (xs.take rP ++ ys.drop (RecRule.ctorParams rl))))
 
 /-- **`RecRuleExtra` past its K clause, named**: the constructor's
-arity, and for a rule that is not K the (S), (P), (U) clauses
+arity, and for a rule that is not K the (S), (T), (P), (U) clauses
 (`Model/Env/Laws.lean`, verbatim). -/
 @[expose] def RecRuleExtraNK {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
@@ -686,6 +713,44 @@ arity, and for a rule that is not K the (S), (P), (U) clauses
     -- the constructor's arity
     (cvj.type.stripPis (RecRule.ctorParams rl + RecRule.nfields rl)).isSome = true ∧
     (RecRule.k rl = false →
+    -- (S)
+    (ConLeche.iotaCtorLicensed env.find? cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
+      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
+        xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+        interp V ρ a ≠ pt) ∧
+    -- (T)
+    (ConLeche.iotaCtorLicensed env.find? cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
+      ∀ (usj : List Level), usj.length = cvj.levelParams.length →
+      ∀ TVja : ITerm,
+        denoteMeta m.acval env φ 0
+          (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
+      ∀ (ρ : Nat → V) (xs ys : List ITerm) (restR restC : ITerm),
+        xs.length = mI →
+        ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
+        TeleFitPA V ρ TVa
+          (xs ++ [ITerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys]) restR →
+        TeleFitPA V ρ TVja ys restC →
+        (∀ x ∈ xs, WellDenoted V ρ x) → (∀ y ∈ ys, WellDenoted V ρ y) →
+        interp V ρ (ITerm.mkAppN
+          (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) ≠ pt →
+        ∃ (usj' : List Level) (ys' : List ITerm) (TVja' restC' : ITerm),
+          usj'.length = cvj.levelParams.length ∧
+          Level.substFn φ cvj.levelParams usj'
+            = Level.substFn φ cvj.levelParams
+                (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 ∧
+          denoteMeta m.acval env φ 0
+            (cvj.type.instantiateLevelParams cvj.levelParams usj') = some TVja' ∧
+          ys'.length = ys.length ∧
+          ys'.drop (RecRule.ctorParams rl) = ys.drop (RecRule.ctorParams rl) ∧
+          (∀ y ∈ ys', WellDenoted V ρ y) ∧
+          TeleFitPA V ρ TVja' ys' restC' ∧
+          interp V ρ (ITerm.mkAppN
+              (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj')) ys')
+            = interp V ρ (ITerm.mkAppN
+              (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys)) ∧
     ∀ (usj : List Level), usj.length = cvj.levelParams.length →
       Level.substFn φ cvj.levelParams usj
         = Level.substFn φ cvj.levelParams
@@ -693,11 +758,6 @@ arity, and for a rule that is not K the (S), (P), (U) clauses
     ∀ TVja : ITerm,
       denoteMeta m.acval env φ 0
         (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
-    -- (S)
-    (ConLeche.iotaCtorLicensed env.find? cvj usj = true →
-      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
-        xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
-        interp V ρ a ≠ pt) ∧
     -- (P)
     (∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →

@@ -736,14 +736,14 @@ rule (a literal major converts to constructor form — see
 `litMajorToCtor` —, a
 stuck major may be rescued — see `majorToCtor`), and the recursor's
 stored type has the redex's arity.  The constructor side follows **the ι licence** (task #342
-L10): a K rule, and a rule whose constructor's family is never `Prop`
-at the constructor's levels (`iotaCtorLicensed`), fire with no
-constructor certificate and no parameter or index comparison; every
-other rule (case 3, `iotaCase3`) compares the constructor's parameters
-with the rule's comparands, certifies the constructor telescope at the
-full grade (`iotaCertsFull`) and compares the indices (`iotaIndexOk`).
-The constructor's levels are compared with the comparands' at every
-fire.  The result is the rule's rhs applied to the non-index prefix and the
+L10, S5c), decided at the rule's comparand levels (`recFireComparands`):
+a K rule, and a rule whose constructor's family is never `Prop` there
+(`iotaCtorLicensed`), fire with no check of the constructor application
+— official's `inductive_reduce_rec` checks nothing of it either; every
+other rule (case 3, `iotaCase3`) compares the constructor's levels and
+parameters with the rule's comparands, certifies the constructor
+telescope at the full grade (`iotaCertsFull`) and compares the indices
+(`iotaIndexOk`).  The result is the rule's rhs applied to the non-index prefix and the
 constructor's fields; over-application is handled by the outer app
 recursion. -/
 def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
@@ -787,43 +787,35 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
                 -- them; the P lane bound and never used them) — deleted
                 -- per the "invariants over runtime gates" ruling.
                 --
-                -- the constructor's levels and parameters must agree
-                -- with the rule's comparands (plain: the recursor's own
-                -- instantiation and leading arguments; nested: the
-                -- stored major-domain instantiations) — the firing mode
-                -- was computed once at install (`sumRules` /
-                -- `auxRuleFireR`), never re-derived per fire
-                if ← liftFueled "level comparison" (Level.isEquivList usj
-                    (recFireComparands rl cv.levelParams us
-                      cvj.levelParams args rP).1) then
-                 -- the parameter comparison, at a case-3 redex only
-                 -- (task #342 L10, S5b)
-                 if ← (if iotaCase3 env.find? rl cvj usj then
-                    defEqList r env depth (margs.take rl.ctorParams)
-                      (recFireComparands rl cv.levelParams us
-                        cvj.levelParams args rP).2
-                    else pure true) then
-                  -- **the ι licence** (task #342 L10, #349): the
-                  -- recursor's spine is not certified; a K rule, or a
-                  -- family never `Prop` at the constructor's levels
-                  -- (`iotaCtorLicensed`), fires with no constructor
-                  -- certificate and no index comparison; case 3
-                  -- certifies the constructor telescope at the full
-                  -- grade and compares the indices (`iotaIndexOk`)
-                  if ← (if iotaCase3 env.find? rl cvj usj then do
-                      if ← iotaCertsFull r env depth
-                          (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                          margs then
-                        iotaIndexOk r env depth mI rP rl.ctorParams
-                          (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                          margs ((args.take mI).drop rP)
+                -- the rule's comparands (plain: the recursor's own level
+                -- instantiation and leading arguments; nested: the stored
+                -- major-domain instantiations), from the firing mode
+                -- computed once at install (`sumRules` / `auxRuleFireR`)
+                let cmp := recFireComparands rl cv.levelParams us cvj.levelParams args rP
+                -- **the ι licence** (task #342 L10, #349, S5c), decided at
+                -- the comparand levels: a K rule, or a family never `Prop`
+                -- there (`iotaCtorLicensed`), fires with no check, as
+                -- official's `inductive_reduce_rec` (it compares nothing
+                -- of the major's constructor); case 3 compares the
+                -- constructor's levels and parameters with the comparands,
+                -- certifies the constructor telescope at the full grade and
+                -- compares the indices (`iotaIndexOk`)
+                if ← (if iotaCase3 env.find? rl cvj cmp.1 then do
+                    if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
+                      if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
+                        if ← iotaCertsFull r env depth
+                            (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                            margs then
+                          iotaIndexOk r env depth mI rP rl.ctorParams
+                            (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                            margs ((args.take mI).drop rP)
+                        else pure false
                       else pure false
-                    else pure true) then
-                    pure (some (Expr.mkAppN
-                      (rl.rhs.instantiateLevelParams cv.levelParams us)
-                      (args.take rP ++ margs.drop rl.ctorParams)))
-                  else pure none
-                 else pure none
+                    else pure false
+                  else pure true) then
+                  pure (some (Expr.mkAppN
+                    (rl.rhs.instantiateLevelParams cv.levelParams us)
+                    (args.take rP ++ margs.drop rl.ctorParams)))
                 else pure none
               else pure none
             | none => pure none

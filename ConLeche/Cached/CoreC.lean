@@ -628,54 +628,50 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
               if margs.length = rl.ctorParams + rl.nfields then do
                 -- (the ι batch: the two `stripPis` pins are gone — see
                 -- the spec's `iotaRec`)
-                -- the level comparands (plain: the recursor's levels;
-                -- nested: the stored major-domain instantiation)
-                let cmpLvls : List Level ←
-                  match rl.fire with
-                  | .nested lvls _ => substLevelTreesM cv.levelParams us lvls
-                  | .plain =>
-                    substLevelTreesM cv.levelParams us
-                      (cvj.levelParams.map Level.param)
-                if ← liftFueled "level comparison"
-                    (← isEquivListLM usj cmpLvls) then do
-                 -- the parameter comparison, a certificate at a case-3
-                 -- redex only (task #342 L10, S5b; official's
-                 -- `inductive_reduce_rec` compares nothing): the
-                 -- comparands (plain: the recursor's leading arguments;
-                 -- nested: the stored pins at them) are built only there
-                 if ← (if iotaCase3 fe.find? rl cvj usj then
-                    certAtI mode (do
-                      let cmpArgs : List Expr ←
-                        match rl.fire with
-                        | .nested _ pins =>
-                          pinArgsI cv.levelParams us (args.take rP) (rP - 1) pins
-                        | .plain => pure (args.take rl.ctorParams)
-                      defEqListI r fe depth (margs.take rl.ctorParams) cmpArgs)
-                    else pure true) then do
-                  -- ONE certificate family: at a case-3 redex (task #342
-                  -- L10: not K, the constructor's family may be `Prop` at
-                  -- its levels; the recursor's spine is never certified,
-                  -- task #349), the constructor telescope
-                  -- at the FULL grade and the canonical-index comparison
-                  -- (which exists only where indices do — the spec's
-                  -- `iotaRec`).  Nothing here is read outside the family,
-                  -- so the whole block is what `.trusted` omits: the
-                  -- types are looked up only where a certificate consumes
-                  -- them (DESIGN.md, "CORET RETIRED", inversion 22).
-                  if ← certAtI mode (do
-                      if iotaCase3 fe.find? rl cvj usj then do
-                        let tyCtor ← constTyAtM fe cj cjn usj
-                        if ← iotaCertsFullI r fe depth tyCtor margs then
-                          iotaIndexOkI r fe depth mI rP rl.ctorParams tyCtor
-                            margs ((args.take mI).drop rP)
+                --
+                -- ONE certificate family (task #342 L10, S5c; official's
+                -- `inductive_reduce_rec` checks nothing of the major's
+                -- constructor), so the whole block is what `.trusted`
+                -- omits: at a case-3 redex — not K, the constructor's
+                -- family may be `Prop` at the comparand levels (plain: the
+                -- recursor's levels; nested: the stored major-domain
+                -- instantiation) — the constructor's levels and parameters
+                -- against the comparands (the parameter comparands, plain:
+                -- the recursor's leading arguments; nested: the stored
+                -- pins at them), the constructor telescope at the FULL
+                -- grade and the canonical-index comparison (which exists
+                -- only where indices do — the spec's `iotaRec`).  The
+                -- recursor's spine is never certified (task #349); the
+                -- types are looked up only where a certificate consumes
+                -- them (DESIGN.md, "CORET RETIRED", inversion 22).
+                if ← certAtI mode (do
+                    let cmpLvls : List Level ←
+                      match rl.fire with
+                      | .nested lvls _ => substLevelTreesM cv.levelParams us lvls
+                      | .plain =>
+                        substLevelTreesM cv.levelParams us
+                          (cvj.levelParams.map Level.param)
+                    if iotaCase3 fe.find? rl cvj cmpLvls then do
+                      let oL ← isEquivListLM usj cmpLvls
+                      if ← liftFueled "level comparison" oL then do
+                        let cmpArgs : List Expr ←
+                          match rl.fire with
+                          | .nested _ pins =>
+                            pinArgsI cv.levelParams us (args.take rP) (rP - 1) pins
+                          | .plain => pure (args.take rl.ctorParams)
+                        if ← defEqListI r fe depth (margs.take rl.ctorParams) cmpArgs then do
+                          let tyCtor ← constTyAtM fe cj cjn usj
+                          if ← iotaCertsFullI r fe depth tyCtor margs then
+                            iotaIndexOkI r fe depth mI rP rl.ctorParams tyCtor
+                              margs ((args.take mI).drop rP)
+                          else pure false
                         else pure false
-                      else pure true) then do
-                      let rhs ← ruleRhsAtM fe c cj cn cjn us
-                      let red ← mkAppNM rhs
-                        (args.take rP ++ margs.drop rl.ctorParams)
-                      pure (some red)
-                  else pure none
-                 else pure none
+                      else pure false
+                    else pure true) then do
+                  let rhs ← ruleRhsAtM fe c cj cn cjn us
+                  let red ← mkAppNM rhs
+                    (args.take rP ++ margs.drop rl.ctorParams)
+                  pure (some red)
                 else pure none
               else pure none
             | none => pure none

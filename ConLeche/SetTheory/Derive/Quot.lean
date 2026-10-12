@@ -119,6 +119,26 @@ theorem quotClass_of_mem_quotSet {u : Nat} {Aset R A' R' a : V}
     obtain ⟨haA, hrel⟩ := mem_qclass.mp hab
     exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclass_eq_of_rel hrel))⟩
 
+/-- **`quotClass_of_mem_quotSet` across two positive levels**: a class
+formed at one positive level and one pair of parameters that lands in
+the quotient of another positive level and pair is, there, the class of
+the same representative.  Above `Prop` the class reads no level. -/
+theorem quotClass_of_mem_quotSet_pos {u u' : Nat} (hu : u ≠ 0) (hu' : u' ≠ 0)
+    {Aset R A' R' a : V} (ha : a ∈ˢ A')
+    (hmem : quotClass u' A' R' a ∈ˢ quotSet u Aset R) :
+    a ∈ˢ Aset ∧ quotClass u' A' R' a = quotClass u Aset R a := by
+  have hl : quotClass u' A' R' a = quotClass u A' R' a := by
+    unfold quotClass; rw [ite_eq_right hu, ite_eq_right hu']
+  rw [hl] at hmem ⊢
+  obtain ⟨b, hb, hcls⟩ := quotClass_surj hmem
+  unfold quotClass at hcls ⊢
+  rw [ite_eq_right hu, ite_eq_right hu] at hcls
+  rw [ite_eq_right hu, ite_eq_right hu]
+  have hcls' := (kpair_inj hcls).2
+  have hab : a ∈ˢ qclass Aset R b := by rw [← hcls']; exact self_mem_qclass ha
+  obtain ⟨haA, hrel⟩ := mem_qclass.mp hab
+  exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclass_eq_of_rel hrel))⟩
+
 theorem quotSound {u : Nat} {A R a b w : V} (ha : a ∈ˢ A) (hb : b ∈ˢ A)
     (hw : w ∈ˢ app (app R a) b) : quotClass u A R a = quotClass u A R b := by
   unfold quotClass

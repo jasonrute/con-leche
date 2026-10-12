@@ -1066,15 +1066,23 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cvj ∧ d.nP = cnP ∧ cA.2 = cnF := by
       injection hfind with h'; injection h' with a b c; exact ⟨a, b, c⟩
     obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
-    refine ⟨by rw [hnpd, hnf, hres]; rfl, fun _ usj husj hψ TVja hTVja => ?_⟩
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
+    rw [hstored]
+    refine ⟨by rw [hnpd, hnf, hres]; rfl, fun _ => ⟨fun hlic ρ xs a restR hxl hfit => ?_, ?_,
+      fun usj husj hψ TVja hTVja => ?_⟩⟩
+    · -- (S), at the comparand levels
+      have hlv := blockRuleLevelAgree (φ := φ) (lps := cA.1.levelParams)
+        (lpsR := r.1.levelParams) (us := us)
+        (usj := (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
+          (pp.toBlockShape.rulePrefixAt j)).1) (rP := pp.toBlockShape.rulePrefixAt j) hfire rfl
+      exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
+    · -- (T)
+      sorry
     rw [hTVjaOf] at hTVja
     obtain rfl := Option.some.inj hTVja
     have hlv := blockRuleLevelAgree hfire hψ
-    rw [hstored]
-    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_, fun ρ xs a restR hxl hfit hapt ys restC _ _ _ =>
+    refine ⟨fun ρ xs a restR hxl hfit hapt ys restC _ _ _ =>
       genMem_P hμ h R hS G hr hm hlv ρ xs a restR hxl hfit hapt ys, ?_⟩
-    · exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ _ hcP _ hpinC hpt
       rw [hnp] at hpinC hyl ⊢
       rw [hnf] at hyl
@@ -2289,18 +2297,21 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
     rw [hfind3] at hfind
     obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cvj ∧ (tgtMajor out j).ds.length = cnP ∧ cA.2 = cnF := by
       injection hfind with h'; injection h' with a b c; exact ⟨a, b, c⟩
-    refine ⟨by rw [hnp, hnf]; exact genCls_arity hcov Rd hcAM,
-      fun _ usj husj hψ TVja hTVja => ?_⟩
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
+    rw [hstored]
+    refine ⟨by rw [hnp, hnf]; exact genCls_arity hcov Rd hcAM,
+      fun _ => ⟨fun hlic ρ xs a restR hxl hfit => ?_, ?_, fun usj husj hψ TVja hTVja => ?_⟩⟩
+    · -- (S), at the comparand levels
+      have hlv := hlvOf us _ rfl
+      obtain ⟨-, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd _ hxl hfit
+      exact genOut_ne_pt Rd hsat hsp hmaj
+        (genOut_S Rd hcAM (fun caps hc => hkeep _ _ hc) hlv hlic)
+    · -- (T)
+      sorry
     rw [hTVjaOf] at hTVja
     obtain rfl := Option.some.inj hTVja
     have hlv := hlvOf us usj hψ
-    rw [hstored]
-    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_,
-      fun ρ xs a restR hxl hfit hapt ys restC hfitC hyl hWD => ?_, ?_⟩
-    · obtain ⟨-, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd _ hxl hfit
-      exact genOut_ne_pt Rd hsat hsp hmaj
-        (genOut_S Rd hcAM (fun caps hc => hkeep _ _ hc) hlv hlic)
+    refine ⟨fun ρ xs a restR hxl hfit hapt ys restC hfitC hyl hWD => ?_, ?_⟩
     · obtain ⟨-, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd _ hxl hfit
       have hw : (tgtClsD d Dc out j).w
           (tgtClsψ cvc out (Level.substFn φ r.1.levelParams us) j) = 0 :=

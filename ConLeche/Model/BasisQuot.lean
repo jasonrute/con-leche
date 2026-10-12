@@ -790,6 +790,55 @@ theorem quotRuleExtra_of {find? : Name → Option ConstantInfo}
     exact lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ =>
       mem_univ_zero (quotSet_mem_univ ‹_›) (quotClass_mem ‹_›)
 
+/-- **(T) for a `Quot.mk` rule**: a fired `Quot.mk` application at the
+constructor's own level `u'`, not the point, lying in the quotient at
+the recursor's level `u ≠ 0` and parameters `x1 x2`, is the class of
+its representative there; so it is `Quot.mk` at the recursor's level
+applied to the recursor's parameters and the same representative,
+which fits `Quot.mk`'s telescope at `u`. -/
+theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : ITerm}
+    (hJ : acvJ = ITerm.const .quotMk [u']) (hC : acvC = ITerm.const .quotMk [u])
+    {ρ : Nat → V} {x1 x2 y1 y2 y3 : ITerm} {restC : ITerm}
+    (f1 : interp V ρ x1 ∈ˢ (univ u : V))
+    (f2 : interp V ρ x2 ∈ˢ relSpace V (interp V ρ x1))
+    (hfitC : TeleFitPA V ρ (quotMkTy u') [y1, y2, y3] restC)
+    (hmem : interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3])
+      ∈ˢ quotSet u (interp V ρ x1) (interp V ρ x2))
+    (hne : interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3]) ≠ pt) :
+    ∃ restC', TeleFitPA V ρ (quotMkTy u) [x1, x2, y3] restC' ∧
+      interp V ρ (ITerm.mkAppN acvC [x1, x2, y3])
+        = interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3]) := by
+  rw [quotMkTy] at hfitC
+  cases hfitC with | cons g1 hfitC =>
+  cases hfitC with | cons g2 hfitC =>
+  cases hfitC with | cons g3 _ =>
+  rw [interp_sort] at g1
+  rw [interp_inst0, quotRelTy_interp] at g2
+  rw [interp_inst0, interp_inst_cons1] at g3
+  simp only [interp_bvar, cons] at g3
+  have hvJ : interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3])
+      = quotClass u' (interp V ρ y1) (interp V ρ y2) (interp V ρ y3) := by
+    simp only [ITerm.mkAppN_cons, ITerm.mkAppN_nil, interp_app, hJ, interp_const, bval,
+      ConLeche.Term.lv, List.getD_cons_zero]
+    exact quotMkV_app V g1 g2 g3
+  have hu' : u' ≠ 0 := by
+    intro h0
+    apply hne
+    rw [hvJ, h0]
+    unfold quotClass
+    rw [ite_eq_left rfl]
+  rw [hvJ] at hmem ⊢
+  obtain ⟨hy3, hcls⟩ := quotClass_of_mem_quotSet_pos hu hu' g3 hmem
+  have g1' : interp V ρ x1 ∈ˢ interp V ρ (ITerm.sort u) := by rw [interp_sort]; exact f1
+  refine ⟨_, .cons g1' (.cons ?_ (.cons ?_ .nil)), ?_⟩
+  · rw [interp_inst0, quotRelTy_interp]; exact f2
+  · rw [interp_inst0, interp_inst_cons1]
+    simp only [interp_bvar, cons]
+    exact hy3
+  · simp only [ITerm.mkAppN_cons, ITerm.mkAppN_nil, interp_app, hC, interp_const, bval,
+      ConLeche.Term.lv, List.getD_cons_zero]
+    rw [quotMkV_app V f1 f2 hy3, hcls]
+
 /-- **`Quot.ind`'s licence facts**: not K; `Quot.mk`'s arity; (S)
 and (P) from the major's domain (`quotRuleExtra_of`); no indices, a
 `.plain` rule, so (U) is the trivial index pin. -/
@@ -826,46 +875,98 @@ theorem quotIndExtra {m : EnvModel V env}
       cvj = quotMkA.toConstantVal ∧ cnP = 2 ∧ cnF = 1 := by
     injection Option.some.inj hfj with a1 a2 a3
     exact ⟨a1.symm, a2.symm, a3.symm⟩
-  refine ⟨rfl, fun _ usj _ hlev TVja _ => ?_⟩
-  have hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN
-      = ψ uN := by
+  refine ⟨rfl, fun _ => ?_⟩
+  -- the comparand level is the recursor's own `u`
+  have hulevOf : ∀ usj : List Level,
+      Level.substFn φ quotMkA.toConstantVal.levelParams usj
+        = Level.substFn φ quotMkA.toConstantVal.levelParams
+            (ConLeche.recFireComparands quotIndRule quotIndA.toConstantVal.levelParams us
+              quotMkA.toConstantVal.levelParams [] 4).1 →
+      Level.substFn φ quotMkA.toConstantVal.levelParams usj uN = ψ uN := by
+    intro usj hlev
     rw [congrFun hlev uN, hψ]
     show Level.eval φ (Level.subst quotIndA.toConstantVal.levelParams
       us (.param uN)) = _
     rw [Level.subst, Level.eval_subst_go]
-  have hctorL : m₂.acval (RecRule.ctor quotIndRule)
-      (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
-      = ITerm.const .quotMk [ψ uN] := by
+  have hctorOf : ∀ usj : List Level,
+      m₂.acval (RecRule.ctor quotIndRule)
+        (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
+      = ITerm.const .quotMk [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
+    intro usj
     rw [show RecRule.ctor quotIndRule = quotMkName from rfl, hac,
-      acvalWith_ne (by decide), ← hulev]
+      acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
-  obtain ⟨hS, hP⟩ := quotRuleExtra_of (V := V) hQ' hulev hctorL
+  have hCtorRead : ∀ usj : List Level,
+      denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+        (quotMkA.toConstantVal.type.instantiateLevelParams
+          quotMkA.toConstantVal.levelParams usj)
+      = some (quotMkTy
+          (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
+    intro usj
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denoteMeta_quotMkTy (m := m) _ (by decide) hQ]
+  -- the major's domain: the quotient at the recursor's parameters
+  have hpeel : ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm), xs.length = 4 →
+      TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [a]) restR →
+      ∃ x1 x2 : ITerm, x1 ∈ xs ∧ x2 ∈ xs ∧ interp V ρ x1 ∈ˢ (univ (ψ uN) : V) ∧
+        interp V ρ x2 ∈ˢ relSpace V (interp V ρ x1) ∧
+        interp V ρ a ∈ˢ quotSet (ψ uN) (interp V ρ x1) (interp V ρ x2) := by
+    intro ρ xs a restR hxs hfit
+    obtain ⟨x1, x2, x3, x4, rfl⟩ : ∃ p q r s, xs = [p, q, r, s] := by
+      match xs, hxs with
+      | [p, q, r, s], _ => exact ⟨p, q, r, s, rfl⟩
+    rw [quotIndTy] at hfit
+    cases hfit with | cons f1 hfit =>
+    cases hfit with | cons f2 hfit =>
+    cases hfit with | cons f3 hfit =>
+    cases hfit with | cons f4 hfit =>
+    cases hfit with | cons f5 _ =>
+    rw [interp_sort] at f1
+    rw [interp_inst0, quotRelTy_interp] at f2
+    rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+      interp_inst_cons3,
+      (quotApp_data (u := ψ uN) (i := 3) (j := 2)
+        (ρ := cons (interp V ρ x4) (cons (interp V ρ x3)
+          (cons (interp V ρ x2) (cons (interp V ρ x1) ρ))))
+        (by simp [cons]) (by simp [cons]) f1 f2).2] at f5
+    exact ⟨x1, x2, by simp, by simp, f1, f2, f5⟩
+  have hext := fun usj hlev => quotRuleExtra_of (V := V) hQ' (hulevOf usj hlev)
+    ((hctorOf usj).trans (by rw [hulevOf usj hlev]))
     (P := fun ρ a => ∃ (xs : List ITerm) (restR : ITerm),
       xs.length = 4 ∧ TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [a]) restR)
     (fun ρ a ⟨xs, restR, hxs, hfit⟩ => by
-      obtain ⟨x1, x2, x3, x4, rfl⟩ : ∃ p q r s, xs = [p, q, r, s] := by
-        match xs, hxs with
-        | [p, q, r, s], _ => exact ⟨p, q, r, s, rfl⟩
-      rw [quotIndTy] at hfit
-      cases hfit with | cons f1 hfit =>
-      cases hfit with | cons f2 hfit =>
-      cases hfit with | cons f3 hfit =>
-      cases hfit with | cons f4 hfit =>
-      cases hfit with | cons f5 _ =>
-      rw [interp_sort] at f1
-      rw [interp_inst0, quotRelTy_interp] at f2
-      rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
-        interp_inst_cons3,
-        (quotApp_data (u := ψ uN) (i := 3) (j := 2)
-          (ρ := cons (interp V ρ x4) (cons (interp V ρ x3)
-            (cons (interp V ρ x2) (cons (interp V ρ x1) ρ))))
-          (by simp [cons]) (by simp [cons]) f1 f2).2] at f5
-      exact ⟨_, _, f5⟩)
+      obtain ⟨x1, x2, _, _, _, _, hm⟩ := hpeel ρ xs a restR hxs hfit
+      exact ⟨_, _, hm⟩)
   refine ⟨fun hlic ρ xs a restR hxs hfit =>
-      hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
-    fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
-      hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
+      (hext _ rfl).1 hlic ρ a ⟨xs, restR, hxs, hfit⟩, ?_, ?_⟩
+  · -- (T): the fired `Quot.mk` at the recursor's level and parameters
+    intro hlic usj _ TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
+    have hu : ψ uN ≠ 0 := by
+      have := quotMk_licensed_ne_zero hQ' hlic φ
+      rwa [hulevOf _ rfl] at this
+    obtain rfl : TVja = _ := (Option.some.inj ((hCtorRead usj).symm.trans hTVja)).symm
+    obtain ⟨y1, y2, y3, rfl⟩ : ∃ p q r, ys = [p, q, r] := by
+      match ys, hyl with
+      | [p, q, r], _ => exact ⟨p, q, r, rfl⟩
+    obtain ⟨-, hfitMaj⟩ : ∃ restR', TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [ITerm.mkAppN
+        (m₂.acval (RecRule.ctor quotIndRule)
+          (Level.substFn φ quotMkA.toConstantVal.levelParams usj)) [y1, y2, y3]]) restR' :=
+      ⟨_, hfitR⟩
+    obtain ⟨x1, x2, hx1, hx2, f1, f2, hm⟩ := hpeel ρ xs _ restR hxl hfitR
+    obtain ⟨restC', hfitC', hval⟩ := quotRuleT_of hu (hctorOf usj)
+      ((hctorOf _).trans (by rw [hulevOf _ rfl])) f1 f2 hfitC hm hne
+    refine ⟨_, [x1, x2, y3], _, restC', rfl, rfl, by rw [hCtorRead, hulevOf _ rfl], rfl, rfl,
+      ?_, hfitC', hval⟩
+    intro y hy
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hy
+    rcases hy with rfl | rfl | rfl
+    · exact hxwd _ hx1
+    · exact hxwd _ hx2
+    · exact hywd _ (by simp)
+  intro usj _ hlev TVja _
+  refine ⟨fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
+      (hext usj hlev).2 ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
   intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _ _
   exact ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩
 
@@ -2041,51 +2142,101 @@ theorem quotLiftExtra {m : EnvModel V env}
       cvj = quotMkA.toConstantVal ∧ cnP = 2 ∧ cnF = 1 := by
     injection Option.some.inj hfj with a1 a2 a3
     exact ⟨a1.symm, a2.symm, a3.symm⟩
-  refine ⟨rfl, fun _ usj _ hlev TVja _ => ?_⟩
-  have hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN
-      = ψ uN := by
+  refine ⟨rfl, fun _ => ?_⟩
+  -- the comparand level is the recursor's own `u`
+  have hulevOf : ∀ usj : List Level,
+      Level.substFn φ quotMkA.toConstantVal.levelParams usj
+        = Level.substFn φ quotMkA.toConstantVal.levelParams
+            (ConLeche.recFireComparands quotLiftRule quotLiftA.toConstantVal.levelParams us
+              quotMkA.toConstantVal.levelParams [] 5).1 →
+      Level.substFn φ quotMkA.toConstantVal.levelParams usj uN = ψ uN := by
+    intro usj hlev
     rw [congrFun hlev uN, hψ]
     show Level.eval φ (Level.subst quotLiftA.toConstantVal.levelParams
       us (.param uN)) = _
     rw [Level.subst, Level.eval_subst_go]
-  have hctorL : m₂.acval (RecRule.ctor quotLiftRule)
-      (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
-      = ITerm.const .quotMk [ψ uN] := by
+  have hctorOf : ∀ usj : List Level,
+      m₂.acval (RecRule.ctor quotLiftRule)
+        (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
+      = ITerm.const .quotMk [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
+    intro usj
     rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hac,
-      acvalWith_ne (by decide), ← hulev]
+      acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
-  obtain ⟨hS, hP⟩ := quotRuleExtra_of (V := V) hQ' hulev hctorL
+  have hCtorRead : ∀ usj : List Level,
+      denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+        (quotMkA.toConstantVal.type.instantiateLevelParams
+          quotMkA.toConstantVal.levelParams usj)
+      = some (quotMkTy
+          (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
+    intro usj
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denoteMeta_quotMkTy (m := m) _ (by decide) hQ]
+  -- the major's domain: the quotient at the recursor's parameters
+  have hpeel : ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm), xs.length = 5 →
+      TeleFitPA V ρ (quotLiftTy
+          (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
+          (ψ uN) (ψ vN)) (xs ++ [a]) restR →
+      ∃ x1 x2 : ITerm, x1 ∈ xs ∧ x2 ∈ xs ∧ interp V ρ x1 ∈ˢ (univ (ψ uN) : V) ∧
+        interp V ρ x2 ∈ˢ relSpace V (interp V ρ x1) ∧
+        interp V ρ a ∈ˢ quotSet (ψ uN) (interp V ρ x1) (interp V ρ x2) := by
+    intro ρ xs a restR hxs hfit
+    obtain ⟨x1, x2, x3, x4, x5, rfl⟩ :
+        ∃ p q r s t, xs = [p, q, r, s, t] := by
+      match xs, hxs with
+      | [p, q, r, s, t], _ => exact ⟨p, q, r, s, t, rfl⟩
+    rw [quotLiftTy] at hfit
+    cases hfit with | cons f1 hfit =>
+    cases hfit with | cons f2 hfit =>
+    cases hfit with | cons f3 hfit =>
+    cases hfit with | cons f4 hfit =>
+    cases hfit with | cons f5 hfit =>
+    cases hfit with | cons f6 _ =>
+    rw [interp_sort] at f1
+    rw [interp_inst0, quotRelTy_interp] at f2
+    rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
+      interp_inst_cons3, interp_inst_cons4,
+      (quotApp_data (u := ψ uN) (i := 4) (j := 3)
+        (ρ := cons (interp V ρ x5) (cons (interp V ρ x4)
+          (cons (interp V ρ x3) (cons (interp V ρ x2)
+            (cons (interp V ρ x1) ρ)))))
+        (by simp [cons]) (by simp [cons]) f1 f2).2] at f6
+    exact ⟨x1, x2, by simp, by simp, f1, f2, f6⟩
+  have hext := fun usj hlev => quotRuleExtra_of (V := V) hQ' (hulevOf usj hlev)
+    ((hctorOf usj).trans (by rw [hulevOf usj hlev]))
     (P := fun ρ a => ∃ (xs : List ITerm) (restR : ITerm),
       xs.length = 5 ∧ TeleFitPA V ρ (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) (xs ++ [a]) restR)
     (fun ρ a ⟨xs, restR, hxs, hfit⟩ => by
-      obtain ⟨x1, x2, x3, x4, x5, rfl⟩ :
-          ∃ p q r s t, xs = [p, q, r, s, t] := by
-        match xs, hxs with
-        | [p, q, r, s, t], _ => exact ⟨p, q, r, s, t, rfl⟩
-      rw [quotLiftTy] at hfit
-      cases hfit with | cons f1 hfit =>
-      cases hfit with | cons f2 hfit =>
-      cases hfit with | cons f3 hfit =>
-      cases hfit with | cons f4 hfit =>
-      cases hfit with | cons f5 hfit =>
-      cases hfit with | cons f6 _ =>
-      rw [interp_sort] at f1
-      rw [interp_inst0, quotRelTy_interp] at f2
-      rw [interp_inst0, interp_inst_cons1, interp_inst_cons2,
-        interp_inst_cons3, interp_inst_cons4,
-        (quotApp_data (u := ψ uN) (i := 4) (j := 3)
-          (ρ := cons (interp V ρ x5) (cons (interp V ρ x4)
-            (cons (interp V ρ x3) (cons (interp V ρ x2)
-              (cons (interp V ρ x1) ρ)))))
-          (by simp [cons]) (by simp [cons]) f1 f2).2] at f6
-      exact ⟨_, _, f6⟩)
+      obtain ⟨x1, x2, _, _, _, _, hm⟩ := hpeel ρ xs a restR hxs hfit
+      exact ⟨_, _, hm⟩)
   refine ⟨fun hlic ρ xs a restR hxs hfit =>
-      hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
-    fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
-      hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
+      (hext _ rfl).1 hlic ρ a ⟨xs, restR, hxs, hfit⟩, ?_, ?_⟩
+  · -- (T): the fired `Quot.mk` at the recursor's level and parameters
+    intro hlic usj _ TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
+    have hu : ψ uN ≠ 0 := by
+      have := quotMk_licensed_ne_zero hQ' hlic φ
+      rwa [hulevOf _ rfl] at this
+    obtain rfl : TVja = _ := (Option.some.inj ((hCtorRead usj).symm.trans hTVja)).symm
+    obtain ⟨y1, y2, y3, rfl⟩ : ∃ p q r, ys = [p, q, r] := by
+      match ys, hyl with
+      | [p, q, r], _ => exact ⟨p, q, r, rfl⟩
+    obtain ⟨x1, x2, hx1, hx2, f1, f2, hm⟩ := hpeel ρ xs _ restR hxl hfitR
+    obtain ⟨restC', hfitC', hval⟩ := quotRuleT_of hu (hctorOf usj)
+      ((hctorOf _).trans (by rw [hulevOf _ rfl])) f1 f2 hfitC hm hne
+    refine ⟨_, [x1, x2, y3], _, restC', rfl, rfl, by rw [hCtorRead, hulevOf _ rfl], rfl, rfl,
+      ?_, hfitC', hval⟩
+    intro y hy
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hy
+    rcases hy with rfl | rfl | rfl
+    · exact hxwd _ hx1
+    · exact hxwd _ hx2
+    · exact hywd _ (by simp)
+  intro usj _ hlev TVja _
+  refine ⟨fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
+      (hext usj hlev).2 ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
   intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _ _
   exact ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩
 

@@ -1289,12 +1289,9 @@ private theorem iotaRec_shift (henv : EnvWF env)
         simp only [getAppArgs_shiftFrom, List.length_map]
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
         -- the level comparand does not read the argument spine
-        refine bind_rel_eq _
-          (by rw [recFireComparands_fst_congr rl cv.levelParams us
+        rw [recFireComparands_fst_congr rl cv.levelParams us
             cvj.levelParams (e.getAppArgs.map (shiftFrom p))
-            e.getAppArgs rP]) ?_
-        intro okl _
-        refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
+            e.getAppArgs rP]
         -- the stored nested instantiations are fvar-free (`EnvWF`)
         have hpins : ∀ lvls pins, rl.fire = .nested lvls pins →
             ∀ pin ∈ pins, pin.hasFvar = false := by
@@ -1303,7 +1300,6 @@ private theorem iotaRec_shift (henv : EnvWF env)
             (henv _ (find?_mem hfc)).2.2.2.2.2.1 cv mI rP rules rfl rl
               (List.mem_of_find?_eq_some hrule)
           exact ((g5 lvls pins hf').2.2.1 pin hpin).1
-
         have h1 := defEqList_shift henv ih hpd
           (as := major.getAppArgs.take rl.ctorParams)
           (bs := (recFireComparands rl cv.levelParams us
@@ -1315,19 +1311,20 @@ private theorem iotaRec_shift (henv : EnvWF env)
         rw [← recFireComparands_snd_shift rl cv.levelParams us
           cvj.levelParams e.getAppArgs rP hpins,
           List.map_take] at h1
-        refine bind_rel_eq _ ?_ ?_
-        · by_cases hcp : iotaCase3 env.find? rl cvj usj = true
-          · rw [ite_eq_left hcp, ite_eq_left hcp]; exact h1
-          · rw [ite_eq_right hcp, ite_eq_right hcp]
-        intro b₁ _
-        refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
         have htel₂ : (cvj.type.instantiateLevelParams cvj.levelParams
             usj).hasFvar = false := by
           rw [hasFvar_instantiateLevelParams]
           exact (henv _ (find?_mem hfj)).1
         refine bind_rel_eq _ ?_ ?_
-        · by_cases h3 : iotaCase3 env.find? rl cvj usj = true
+        · by_cases h3 : iotaCase3 env.find? rl cvj (recFireComparands rl cv.levelParams us
+              cvj.levelParams e.getAppArgs rP).1 = true
           · rw [ite_eq_left h3, ite_eq_left h3]
+            refine bind_congr_eq rfl ?_
+            intro b₀ _
+            refine ite_congr' (fun _ => ?_) (fun _ => rfl)
+            refine bind_congr_eq h1 ?_
+            intro b₁ _
+            refine ite_congr' (fun _ => ?_) (fun _ => rfl)
             have h3c := iotaCertsFull_shift henv ih hpd
               (ty := cvj.type.instantiateLevelParams cvj.levelParams usj)
               (WScoped.of_not_hasFvar htel₂)

@@ -187,16 +187,17 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   /-- **ι** (`iotaRec`, `Kernel/Core.lean`): a stored recursor
   applied to exactly its telescope, whose prepared major (the `Red`
   premise: `prepareMajor`'s whnf / literal / rescue chain) is a
-  constructor application with a firing rule.  The level comparands,
-  the recursor telescope's syntactic arity over the redex's own spine,
-  and (case 3 only) the parameter comparison, the constructor's
-  full-grade telescope certificate and the index comparison are the
-  checker's, in its order.
+  constructor application with a firing rule.  The recursor
+  telescope's syntactic arity over the redex's own spine, and (case 3
+  only) the level and parameter comparisons with the rule's comparands,
+  the constructor's full-grade telescope certificate and the index
+  comparison are the checker's, in its order.
 
-  **The ι licence** (task #342 L10): `iotaCase3` is the checker's test.
-  A K rule, and a rule whose constructor's family is never `Prop` at the
-  constructor's levels (case 2), carry no constructor certificate and no
-  parameter or index comparison; case 3 carries all three. -/
+  **The ι licence** (task #342 L10, S5c): `iotaCase3` at the comparand
+  levels is the checker's test.  A K rule, and a rule whose
+  constructor's family is never `Prop` at the comparand levels (case 2),
+  carry no premise about the constructor application; case 3 carries
+  all four. -/
   | iota {d : Nat} {e : Expr} {c : Name} {us : List Level} {cv : ConstantVal}
       {mI rP : Nat} {rules : List RecRule} {major : Expr} {cj : Name}
       {usj : List Level} {cvj : ConstantVal} {cnP cnF : Nat} {rl : RecRule}
@@ -210,22 +211,33 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       env.find? cj = some (.ctorInfo cvj cnP cnF) →
       rules.find? (fun r' => r'.ctor == cj) = some rl →
       major.getAppArgs.length = rl.ctorParams + rl.nfields →
-      Level.isEquivList usj
-        (recFireComparands rl cv.levelParams us cvj.levelParams
-          e.getAppArgs rP).1 = some true →
-      (iotaCase3 env.find? rl cvj usj = true →
+      (iotaCase3 env.find? rl cvj
+          (recFireComparands rl cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = true →
+        Level.isEquivList usj
+          (recFireComparands rl cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = some true) →
+      (iotaCase3 env.find? rl cvj
+          (recFireComparands rl cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = true →
         DefEqList env d (major.getAppArgs.take rl.ctorParams)
           (recFireComparands rl cv.levelParams us cvj.levelParams
             e.getAppArgs rP).2) →
       (Expr.peelPis e.getAppArgs.length
         (cv.type.instantiateLevelParams cv.levelParams us)).isSome = true →
-      (iotaCase3 env.find? rl cvj usj = true →
+      (iotaCase3 env.find? rl cvj
+          (recFireComparands rl cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = true →
         CertsF env d (cvj.type.instantiateLevelParams cvj.levelParams usj)
           major.getAppArgs) →
-      (iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
+      (iotaCase3 env.find? rl cvj
+          (recFireComparands rl cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = true → mI ≠ rP →
         piResidual (cvj.type.instantiateLevelParams cvj.levelParams usj)
           major.getAppArgs = some residual) →
-      (iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
+      (iotaCase3 env.find? rl cvj
+          (recFireComparands rl cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = true → mI ≠ rP →
         DefEqList env d (residual.getAppArgs.drop rl.ctorParams)
           ((e.getAppArgs.take mI).drop rP)) →
       Red env d e
