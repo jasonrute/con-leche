@@ -44,6 +44,15 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
+/-- Two types are equal when they are equal away from the point:
+neither is the point.  The consumers of a `DefEqClaim` between two
+types route through it (task #342 L8), so that the claim's
+point-conditional form (S3) changes nothing downstream; between two
+members of one type, `IsTy.eq_of_ne_pt` plays the same part. -/
+theorem eq_of_IsTy_of_ne_pt {x y : V} (hx : IsTy x) (hy : IsTy y)
+    (h : x ≠ pt → y ≠ pt → x = y) : x = y :=
+  h hx.ne_pt hy.ne_pt
+
 /-- Head normalisation, dual success, P currency. -/
 @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=

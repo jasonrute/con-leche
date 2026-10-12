@@ -538,7 +538,10 @@ def natOpResult (c : Name) (a b : Nat) : Option Expr :=
 /-- Stored-constant guards for op `c`: the `Nat` basis, every
 dependency stored as a definition, and (for the `Bool`-valued ops and
 the `ble`-guarded `div`/`mod`, whose semantic clauses mention the
-`Bool` constructor values) the `Bool` constructors stored. -/
+`Bool` constructor values) the `Bool` constructors stored, level-free,
+at the type `Bool` itself (their values must be members of `Bool`'s,
+so that a recurrence `beq 0 0 = true` relates two members of one
+type). -/
 def natOpGuard (env : Env) (c : Name) : Bool :=
   natLitSupported env &&
   (natOpDeps c).all (fun n => match env.find? n with
@@ -546,10 +549,12 @@ def natOpGuard (env : Env) (c : Name) : Bool :=
     | _ => false) &&
   (if c = natBeqName || c = natBleName || natDivModNames.contains c then
     (match env.find? boolTrueName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false) &&
     (match env.find? boolFalseName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false)
    else true)
 
