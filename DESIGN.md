@@ -102624,3 +102624,163 @@ tree.  `tests/challenge.sh` green.  Verdicts (arena, e2e, annot; one run,
 562.94 G → 563.73 G (+0.14 %); 57 977 / 131 902 declarations accepted,
 exit 0, as before.  `overview-links.sh` and `quote-gate`
 deferred (OVERVIEW §3/§4 edited, linked source lines moved).
+
+## TASK #342 — L-DEAD: the code no shipped mode runs (2026-10-12, agent/342-l-dead)
+
+Lane L-dead, stage S4, on `port-342-s4` (the "no dead paths" ruling and
+L-ck's additions).  Verdicts unchanged; `MainTheorem`, `Denotes`,
+`Challenge` untouched; no new `sorry`, no new axiom.
+
+**Deleted, with their rules, motives, soundness lemmas, inversions,
+shift/fuel/pair lemmas, bridges and cached simulation arms.**
+- `structEtaProjCerts` / `EtaProjCerts` / `EtaProjCertsSem` and
+  `recSlotsAll`(`F`): no installed family has projection-function
+  slots with a field (the names are refused at the front door).  The
+  η slot discipline is `towerSlotsAll` alone (a fieldless family passes
+  it trivially); `DefEq.structEta` and `Red.rescueEta` take
+  `towerSlotsAll = true`.
+- The projection-function spelling of the η fabrication: `etaProjs T b nF`
+  is the `.proj` map, `etaFabArgsE` loses its environment and level
+  arguments, the cached `projAppsI`/`projAppsFnI` go (`etaProjsC_eff`
+  replaces the simulation).
+- `CheckMode.ttChecks` (constantly `false`) and the constructor-telescope
+  certificate it gated in `structEtaCertWith`.
+- The η rescue's `structEtaCertWith` run on `(fab, major)`: its
+  comparisons were reflexive.  The rescue tests the η law's keys —
+  `reservedBasisNames` on the family and its constructor, and
+  `towerSlotsAll` — together with `capsNeverZero`, before it
+  fabricates.  With the TT gate gone, `structEtaCertWith`,
+  `structEtaCert`, `stuckIrrel`, `majorToCtor`, `prepareMajor` and
+  `iotaRec` (and the cached `structEtaCertI`/`stuckIrrelI`) no longer
+  read the mode and lose the parameter.
+- `RecRule.paramsBlind`: every stored rule had it `true` (installer,
+  auxiliary rules, basis pins; only the retired projection functions
+  left it `false`).  `RecRule.compareParams` is "the rule is not
+  `.plain`"; the bit's clauses in `RecRuleLaw`, `RecRuleExtra`,
+  `RecRuleExtraNK`, `RecRuleKWit` and `blockRecRuleLaw_gen` go; the
+  cached core's projection-function keep test (`Name.isProjFnShape`) goes.
+- The K and `And` rescues' constructor certificate: no proof reads it
+  since L18 (the major is a proof by the rescue's own `proofIrrel` run)
+  and official has none.  K's fabrication type check (`tfab ≡ tmaj`,
+  official's `to_cnstr_when_K`) stays: it decides whether K fires.
+- With those gone `iotaCerts` ran only licensed, where it is the
+  telescope's syntactic arity: it becomes the pure `teleArityOk`, and
+  `projCert`/`projCertAt` pure functions over the stored
+  (uninstantiated) type; the rules tier's `Certs` (its `cert`
+  constructor dead, its `lic` index constant) is replaced by the arity
+  fact in `Red.proj` and `Red.iota`; the cached twins (`iotaCertsIAux`,
+  `iotaCertsI`, `projCertI`, `projCertAtI`), their fuel/pair/shift/
+  congruence/simulation lemmas, `certs_step`/`Certs.cert_sound` and
+  `CertsSem`'s `lic` index go.
+- `#annotate_pins` and `annotateVal` (the identity): the standard-axiom
+  pins and the `Iff`/`Nonempty` families (no rules) are defined
+  directly under their stored names; the compiler-trust pins are plain
+  definitions.
+- The legacy binder `pw` field is scanned and not decoded (`pwOfF`,
+  `pwOf`, `pwOfF_mono`).
+- `Kernel/PropWhen`: the has-param test, `holds_ext`, `bindZ_unit`,
+  `inter_comm`/`_self`, `canon_canon`, `isEmpty_canon`, `Name.lt_trichotomy`,
+  and `Verify/PropWhen`'s `substPW_self`/`subst_go_self`; `ExprOps` no
+  longer `import all`s the datum.  1081 → 984 lines.  (L18's
+  `PropReadInst` reads `zeronessOf_subst`, `substPW_comp` and
+  `zeronessOf_paramsDefined`, which therefore stay with the algebra
+  under them.)
+- Never-called checker helpers (the dead-code census):
+  `Expr.exprPtrBEq`, `BlockShape.offs`, the cached `bvarBoundM`
+  (`Expr.peelPis` and `Expr.isLam` were dead too, until L18's guards
+  used them).
+- `tests/shake-allowlist.txt`: the seven entries whose import line no
+  longer exists (`DiscC6`, the two `meta import BasisA` lines,
+  `AxiomBits`, `BitAgree`, `Annot.Valid`).
+
+**Not a duplicate: `Kernel/BasisA`.**  The stored basis pins differ
+from the raw ones at the recursors (`Eq.rec`, `Nat.rec`, `Quot.lift`,
+`Quot.ind`): their rules carry the install-computed fields (`ctorParams`,
+`fire`, the K/η bits), and the raw pins must keep the parse placeholders
+because a stream's records are compared against them.  The command
+stays, as `#stored_basis` over `pinRecRuleFields` (the identity type
+and rhs "annotation" and its no-op loop are gone).
+
+**Renames** (pure): `annotConstantValC` → `installHeaderC` (returns the
+header; the identity `let`s are gone), `annotValC` →
+`installValueGuardsC`, `annotValueC` → `installGuardsC` (returns header
+and value), `annotStepC` → `installStepC`, `annotDeclStep` →
+`installDeclStep`; the spec twins `installConstantVal`/`installValue` →
+`installHeader`/`installValueGuards`; lemma families renamed with them.
+
+**`RecRuleFire` (maintainer's item 8).**  Counted with a throwaway
+instrumented build (`--verified --jobs=8`): stored `.inert` rules —
+init-full 0, mathlib-prefix 0.  `.inert` arises as the parse
+placeholder, as `sumRules`' value at an outside major that
+`tgtStoredRules` overwrites at once (3 / 150 auxiliary recursors, all
+read `.nested`), and as `auxRuleFireR`'s value when the major domain
+cannot be read (0 / 0).  `.nested` fires: 25 / 1860, all at case 2
+(`iotaCtorLicensed`, none K, none case 3).  Not done here, both need
+proof work in `Model/Inductives` and the rules tier:
+- (a) removing `.inert`: `auxRuleFireR`'s failure becomes an install
+  decline (`tgtStoredRules` fallible), the member majors' `.plain` needs
+  `recRulePlain` proved of the generated type (or an install decline),
+  and every `fire ≠ .inert →` hypothesis (`RecRules`, `EnvFacts`,
+  `BlockRecData`/`BlockRecLaw`/`GenRec*`, `RecRulesCons`, `IotaSound`)
+  and the `iotaRec` decline arm go;
+- (c) the `.nested` pin comparison at case 2/K only: the plain rules'
+  argument (L10: the major's membership in the family at the
+  recursor's parameters ties the constructor's) would have to be
+  carried to the outside major, whose family instance is the stored
+  pins: `blockRecRuleLaw_gen`'s `.nested` premise becomes conditional
+  on case 3, and `GenRecExtra`'s outside-major branch must produce the
+  pin equations from the major's membership (`genOut_pins` reads them
+  off the comparison today).
+The `RecRuleFire` docstring is rewritten for the current representation.
+
+**Candidates reported, not deleted.**
+- The cached `checkDeclC`'s value arms (`thmDecl`, a non-`Nat`-op
+  `defnDecl`, a non-`reduce*` `opaqueDecl`, with `checkThmValC`,
+  `checkDefnValC`, `checkOpaqueValC` and their `jty = cv.type`
+  parameter): phase A never forwards those records to
+  `checkDeclStepC`.  Removing them restructures the cached step's
+  simulation (`AgreeFloor`, `DeclCRel`).
+- `CheckMode.certs` and `CheckMode.verifiedChecks` agree at both
+  constructors (`certs_eq_verifiedChecks`).
+- The model side of projection-function η families: `CapsOk`'s `EtaLaw`
+  for projection-function slots, `EtaFamilyStored`'s slot clause,
+  `etaFabArgsV`'s projection-function values, `WhnfNamesFree`'s
+  `projFnName T j ∉ names` conjunct, and `NfMemberFree.whnf_nestOcc_zero`
+  (whose `occDeep` premise was needed only by the projection-function
+  fabrication).  The checker no longer reaches them.
+- `Kernel/PropWhen`'s canonical representation (the name order,
+  `merge`/`canon`, the sortedness proofs): nothing outside the module
+  compares data semantically any more (`eq_iff_holds` has no consumer),
+  so the datum could be a plain `never | ifAllZero (List Name)`; the
+  `import all` readers in `Model/Basis*` would follow.
+- The census's other dead entries in `Verify/*` and the rules tier
+  (`Rules.Derived.DefEq.deltaL/R/Both`, `BridgeDecl`'s pair ops, the
+  `Verify/Frontend` helpers, …) predate this lane; the census ran
+  while L17/L18 still had ledgered `sorry`s, so its `Model`/`Verify`
+  entries need re-reading on the final tree before any deletion.
+
+**Merges.**  `port-342-s4` merged twice (L17; L18).  The lane touched
+the then-ledgered `DefEqSound`, `DefEqSoundKit`, `CertsSound` and
+`GenRecExtra` (the deleted premises only).
+
+**Verdicts** (one run, multi-threaded): 626/626 as expected, arena
+90/92 — as before the lane, fixture for fixture.
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342-s4` before the lane (aa217a332) | 411.918G | 562.973G |
+| `port-342-s4` after L18 (35109900d) | 412.498G | 563.742G |
+| L-dead | 410.384G (−0.51 %) | 559.849G (−0.69 %) |
+
+(The percentages are against 35109900d.  Most of the gain is the K and
+`And` rescues' certificate and the projection fire's level
+instantiation, both gone; the lane's earlier part measured −0.01 % /
+−0.03 % against aa217a332.)
+
+57 977 / 131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free; no `sorry` in code
+outside the by-design `Challenge` and fixture sources; `challenge.sh`
+green.  Lines (code, against `port-342-s4`): 90 files, +1189 −3701.

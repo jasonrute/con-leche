@@ -806,7 +806,7 @@ theorem quotRuleExtra_of {find? : Name → Option ConstantInfo}
 
 /-- **`Quot.ind`'s licence facts**: not K; `Quot.mk`'s arity; (S)
 and (P) from the major's domain (`quotRuleExtra_of`); no indices, a
-`paramsBlind` `.plain` rule, so (U) is the trivial index pin. -/
+`.plain` rule, so (U) is the trivial index pin. -/
 theorem quotIndExtra {m : EnvModel V env}
     (m₂ : EnvModel V ⟨quotIndA :: env.consts⟩)
     (hQ : env.find? quotName = some quotA)
@@ -881,7 +881,7 @@ theorem quotIndExtra {m : EnvModel V env}
     fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
       hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
   intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
-  refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),
+  refine ⟨fun lvls pins h => (nomatch h),
     fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
 
 /-- **`Quot.ind`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
@@ -914,7 +914,7 @@ theorem quotIndLaw {m : EnvModel V env}
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev _ hnested hpin hTVa hTVja hfitR hfitC
+    hlev hnested hpin hTVa hTVja hfitR hfitC
   -- the fired constructor is `Quot.mk`, stored in the prefix
   have hM' : (⟨quotIndA :: env.consts⟩ : Env).find? quotMkName
       = some quotMkA := by
@@ -2119,7 +2119,7 @@ theorem quotLiftExtra {m : EnvModel V env}
     fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
       hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
   intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
-  refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),
+  refine ⟨fun lvls pins h => (nomatch h),
     fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
 
 set_option maxHeartbeats 1000000 in
@@ -2162,7 +2162,7 @@ theorem quotLiftLaw {m : EnvModel V env}
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev _ hnested hpin hTVa hTVja hfitR hfitC
+    hlev hnested hpin hTVa hTVja hfitR hfitC
   have hM' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotMkName
       = some quotMkA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hM

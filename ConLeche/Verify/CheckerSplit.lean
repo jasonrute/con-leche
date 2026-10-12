@@ -10,7 +10,7 @@ public section
 /-!
 # The two halves are `checkDecl` (task #253)
 
-`installConstantVal`/`installValue` and `checkValueGroup`
+`installHeader`/`installValueGuards` and `checkValueGroup`
 (`ConLeche/Kernel/CheckerSplit.lean`) are the install and check halves
 of the declaration checker at a separable value kind.  This module
 inverts each half into the facts it establishes (`*_inv`), assembles
@@ -28,8 +28,8 @@ variable {pins : List NatOpPinSet}
 
 /-! ## The install half -/
 
-theorem installConstantVal_inv {cv cvA : ConstantVal}
-    (h : installConstantVal (m := CheckM) env cv = .ok cvA) :
+theorem installHeader_inv {cv cvA : ConstantVal}
+    (h : installHeader (m := CheckM) env cv = .ok cvA) :
     env.find? cv.name = none ∧
     reservedBasisNames.contains cv.name = false ∧
     cv.name.isProjFnShape = false ∧
@@ -39,7 +39,7 @@ theorem installConstantVal_inv {cv cvA : ConstantVal}
     cv.type.allLevelParamsDefined cv.levelParams = true ∧
     cv.type.constsResolve env = true ∧
     cvA = cv := by
-  simp only [installConstantVal, Bind.bind, Except.bind,
+  simp only [installHeader, Bind.bind, Except.bind,
     Pure.pure, Except.pure] at h
   by_cases hfind : (env.find? cv.name).isSome = true
   case pos => simp [hfind] at h
@@ -78,7 +78,7 @@ theorem installConstantVal_inv {cv cvA : ConstantVal}
   exact ⟨hfind0, by simpa using hres, hpshapeF, hnd, hlb,
     by simpa using hif, htp, htr, h.symm⟩
 
-theorem installConstantVal_of_facts {cv : ConstantVal}
+theorem installHeader_of_facts {cv : ConstantVal}
     (hfind : env.find? cv.name = none)
     (hres : reservedBasisNames.contains cv.name = false)
     (hshape : cv.name.isProjFnShape = false)
@@ -87,19 +87,19 @@ theorem installConstantVal_of_facts {cv : ConstantVal}
     (hif : cv.type.hasFvar = false)
     (htp : cv.type.allLevelParamsDefined cv.levelParams = true)
     (htr : cv.type.constsResolve env = true) :
-    installConstantVal (m := CheckM) env cv = .ok cv := by
-  simp only [installConstantVal,
+    installHeader (m := CheckM) env cv = .ok cv := by
+  simp only [installHeader,
     Pure.pure, Except.pure, hfind, hres, hshape, hnd, hlb, hif, htp, htr,
     Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
 
-theorem installValue_inv {cv : ConstantVal} {value jv : Expr}
-    (h : installValue (m := CheckM) env cv value = .ok jv) :
+theorem installValueGuards_inv {cv : ConstantVal} {value jv : Expr}
+    (h : installValueGuards (m := CheckM) env cv value = .ok jv) :
     value.looseBVarsBounded 0 = true ∧
     value.hasFvar = false ∧
     value.allLevelParamsDefined cv.levelParams = true ∧
     value.constsResolve env = true ∧
     jv = value := by
-  simp only [installValue, Bind.bind, Except.bind,
+  simp only [installValueGuards, Bind.bind, Except.bind,
     Pure.pure, Except.pure] at h
   by_cases hlb : value.looseBVarsBounded 0 = true
   case neg => simp [hlb] at h
@@ -116,13 +116,13 @@ theorem installValue_inv {cv : ConstantVal} {value jv : Expr}
   simp only [Bool.false_eq_true, ↓reduceIte, Except.ok.injEq] at h
   exact ⟨hlb, by simpa using hif, hvp, hvr, h.symm⟩
 
-theorem installValue_of_facts {cv : ConstantVal} {value : Expr}
+theorem installValueGuards_of_facts {cv : ConstantVal} {value : Expr}
     (hlb : value.looseBVarsBounded 0 = true)
     (hif : value.hasFvar = false)
     (hvp : value.allLevelParamsDefined cv.levelParams = true)
     (hvr : value.constsResolve env = true) :
-    installValue (m := CheckM) env cv value = .ok value := by
-  simp only [installValue,
+    installValueGuards (m := CheckM) env cv value = .ok value := by
+  simp only [installValueGuards,
     Pure.pure, Except.pure, hlb, hif, hvp, hvr, Bool.false_eq_true, ↓reduceIte]
 
 /-! ## The check half -/
@@ -134,7 +134,7 @@ theorem checkValueGroup_inv {vg : ValueGroup}
       ensureSortCore μ env F 0 stype = .ok u ∧
       (vg.kind = .thm → Level.isEquiv u .zero = some true) ∧
       ∃ jv,
-        (vg.kind = .thm → installValue (m := CheckM) env vg.cvA vg.jv = .ok jv) ∧
+        (vg.kind = .thm → installValueGuards (m := CheckM) env vg.cvA vg.jv = .ok jv) ∧
         (vg.kind ≠ .thm → jv = vg.jv) ∧
         ∃ vtype,
           inferTypeCore μ env F 0 jv = .ok vtype ∧
@@ -164,7 +164,7 @@ theorem checkValueGroup_inv {vg : ValueGroup}
     | false => simp at h
     | true =>
     simp only [↓reduceIte] at h
-    cases hiv : installValue (m := CheckM) env vg.cvA vg.jv with
+    cases hiv : installValueGuards (m := CheckM) env vg.cvA vg.jv with
     | error e => rw [hiv] at h; exact nomatch h
     | ok jv =>
     rw [hiv] at h
@@ -201,7 +201,7 @@ theorem checkValueGroup_of_facts {vg : ValueGroup} {jv stype vtype : Expr} {u : 
     (hst : inferTypeCore μ env F 0 vg.cvA.type = .ok stype)
     (hsort : ensureSortCore μ env F 0 stype = .ok u)
     (hthm : vg.kind = .thm → Level.isEquiv u .zero = some true)
-    (hjv : vg.kind = .thm → installValue (m := CheckM) env vg.cvA vg.jv = .ok jv)
+    (hjv : vg.kind = .thm → installValueGuards (m := CheckM) env vg.cvA vg.jv = .ok jv)
     (hjv' : vg.kind ≠ .thm → jv = vg.jv)
     (hvt : inferTypeCore μ env F 0 jv = .ok vtype)
     (hde : isDefEqCore μ env F 0 vtype vg.cvA.type = .ok true) :
@@ -288,14 +288,14 @@ theorem checkDecl_of_split_defn {cv : ConstantVal} {value : Expr}
     {hint : ReducibilityHint} {vg : ValueGroup}
     (hnat : (natOpNames.contains cv.name || natDivModNames.contains cv.name) = false)
     (hk : vg.kind = .defn)
-    (hI : installConstantVal (m := CheckM) env cv = .ok vg.cvA)
-    (hV : installValue (m := CheckM) env vg.cvA value = .ok vg.jv)
+    (hI : installHeader (m := CheckM) env cv = .ok vg.cvA)
+    (hV : installValueGuards (m := CheckM) env vg.cvA value = .ok vg.jv)
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.defnDecl cv value hint)
       = .ok ⟨.defnInfo vg.cvA vg.jv hint :: env.consts⟩ := by
   obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr, hcvA⟩ :=
-    installConstantVal_inv hI
-  obtain ⟨hlbv, hivf, hvp, hvr, hjvE⟩ := installValue_inv hV
+    installHeader_inv hI
+  obtain ⟨hlbv, hivf, hvp, hvr, hjvE⟩ := installValueGuards_inv hV
   obtain ⟨stype, u, hst, hsort, -, jv, -, hjv', vtype, hvt, hde⟩ := checkValueGroup_inv hC
   obtain rfl : jv = vg.jv := hjv' (by rw [hk]; decide)
   obtain ⟨h1, h2⟩ := Bool.or_eq_false_iff.mp hnat
@@ -312,17 +312,17 @@ half, and the check half holding the RAW value (which it guards
 itself). -/
 theorem checkDecl_of_split_thm {cv : ConstantVal} {value : Expr} {vg : ValueGroup}
     (hk : vg.kind = .thm)
-    (hI : installConstantVal (m := CheckM) env cv = .ok vg.cvA)
+    (hI : installHeader (m := CheckM) env cv = .ok vg.cvA)
     (hjv : vg.jv = value)
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.thmDecl cv value)
       = .ok ⟨.thmInfo vg.cvA :: env.consts⟩ := by
   obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr, hcvA⟩ :=
-    installConstantVal_inv hI
+    installHeader_inv hI
   obtain ⟨stype, u, hst, hsort, hthm, jv, hiv, -, vtype, hvt, hde⟩ := checkValueGroup_inv hC
   have hV := hiv hk
   rw [hjv] at hV
-  obtain ⟨hlbv, hivf, hvp, hvr, hjvE⟩ := installValue_inv hV
+  obtain ⟨hlbv, hivf, hvp, hvr, hjvE⟩ := installValueGuards_inv hV
   rw [hcvA] at hst hvp hde ⊢
   rw [hjvE] at hvt
   have hcc := checkConstantVal_of_facts hfind hres hshape hnd hlb hif htp htr hst hsort
@@ -334,14 +334,14 @@ theorem checkDecl_of_split_thm {cv : ConstantVal} {value : Expr} {vg : ValueGrou
 theorem checkDecl_of_split_opaque {cv : ConstantVal} {value : Expr} {vg : ValueGroup}
     (hred : reduceOpNames.contains cv.name = false)
     (hk : vg.kind = .opaque)
-    (hI : installConstantVal (m := CheckM) env cv = .ok vg.cvA)
-    (hV : installValue (m := CheckM) env vg.cvA value = .ok vg.jv)
+    (hI : installHeader (m := CheckM) env cv = .ok vg.cvA)
+    (hV : installValueGuards (m := CheckM) env vg.cvA value = .ok vg.jv)
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.opaqueDecl cv value)
       = .ok ⟨.axiomInfo vg.cvA :: env.consts⟩ := by
   obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr, hcvA⟩ :=
-    installConstantVal_inv hI
-  obtain ⟨hlbv, hivf, hvp, hvr, hjvE⟩ := installValue_inv hV
+    installHeader_inv hI
+  obtain ⟨hlbv, hivf, hvp, hvr, hjvE⟩ := installValueGuards_inv hV
   obtain ⟨stype, u, hst, hsort, -, jv, -, hjv', vtype, hvt, hde⟩ := checkValueGroup_inv hC
   obtain rfl : jv = vg.jv := hjv' (by rw [hk]; decide)
   rw [hcvA] at hst hvp hde ⊢

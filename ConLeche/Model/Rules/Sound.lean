@@ -61,7 +61,7 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .natLit h => Red.natLit_sound h
   | _, _, _, .strLit h => Red.strLit_sound h
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
-    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (certs_sound hin hcerts)
+    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (Certs.licensed_sound hcerts)
   | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
   | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
     Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
@@ -71,26 +71,26 @@ theorem red_sound (hin : RulesInputs V m φ) :
       hparams hcertR hcertC hres hidx =>
     Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
       hrule hmlen hfire hlv (fun hc => defEqList_sound hin (hparams hc))
-      (certs_sound hin hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
+      (Certs.licensed_sound hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
       (fun h3 hne => defEqList_sound hin (hidx h3 hne))
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
-      hb hlv' _ _ _ htp http hv hv0 =>
+      hb hlv' _ _ htp http hv hv0 =>
     Red.rescueK_sound hin hrec hk hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) hthead hlv hnP hfab hws hb hlv' (infer_sound hin htp)
       (prop_pt_io hin http rfl (infer_sound hin http) hv (red_sound hin hv)
         (ConLeche.Level.isEquiv_sound hv0 φ))
   | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
-      hfab hws hb hlv' _ _ _ htp http hv hv0 =>
+      hfab hws hb hlv' _ _ htp http hv hv0 =>
     Red.rescueAnd_sound hin hrec hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
       (infer_sound hin htp)
       (prop_pt_io hin http rfl (infer_sound hin http) hv (red_sound hin hv)
         (ConLeche.Level.isEquiv_sound hv0 φ))
   | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
-      hfab hws hb hlv' hresT hresC hproj =>
+      hfab hws hb hlv' hresT hresC htow =>
     Red.rescueEta_sound hin hrec heta hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) htmaj hthead hlen hlv hnz hfab hws hb hlv' hresT hresC
-      (fun hno => etaProjCerts_sound hin (hproj hno))
+      htow
 
 theorem defeq_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
@@ -121,10 +121,9 @@ theorem defeq_sound (hin : RulesInputs V m φ) :
       (defeq_sound hin hty) (defeq_sound hin hbody) (infer_sound hin ht₁)
       (defeq_sound hin htB)
   | _, _, _, .structEta htb hwtb hhead hctor hlen hthead hind heta hetaCtor hresT
-      hresc htlen hlv hlps hslots hus hproj hparams hfields =>
+      hresc htlen hlv hlps hslots hus hparams hfields =>
     DefEq.structEta_sound hin (infer_sound hin htb) (red_sound hin hwtb) hwtb hhead
       hctor hlen hthead hind heta hetaCtor hresT hresc htlen hlv hlps hslots hus
-      (fun hno => etaProjCerts_sound hin (hproj hno))
       (defEqList_sound hin hparams) (defEqList_sound hin hfields)
 
 theorem defEqLams_sound (hin : RulesInputs V m φ) :
@@ -190,15 +189,6 @@ theorem prop_pt_io (hin : RulesInputs V m φ) :
   | _, _, _, _, .proj _ _ _ _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
     propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
 
-theorem certs_sound (hin : RulesInputs V m φ) :
-    ∀ {d : Nat} {lic : Bool} {ty : Expr} {args : List Expr},
-      Certs env d lic ty args → CertsSem m φ d lic ty args
-  | _, _, _, _, .nil => Certs.nil_sound
-  | _, _, _, _, .licensed h => Certs.licensed_sound h
-  | _, _, _, _, .cert hta hd hrest =>
-    Certs.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
-      (certs_sound hin hrest)
-
 theorem certsF_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {ty : Expr} {args : List Expr},
       CertsF env d ty args → CertsFSem m φ d ty args
@@ -213,16 +203,6 @@ theorem defEqList_sound (hin : RulesInputs V m φ) :
   | _, _, _, .nil => DefEqList.nil_sound
   | _, _, _, .cons h hs =>
     DefEqList.cons_sound (defeq_sound hin h) (defEqList_sound hin hs)
-
-theorem etaProjCerts_sound (hin : RulesInputs V m φ) :
-    ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
-      {lpsT : List Name} {idxs : List Nat},
-      EtaProjCerts env d T us' targs b lpsT idxs →
-      EtaProjCertsSem m φ d T us' targs b lpsT idxs
-  | _, _, _, _, _, _, _, .nil => EtaProjCerts.nil_sound
-  | _, _, _, _, _, _, _, .cons hf hlps hstrip hcerts hrest =>
-    EtaProjCerts.cons_sound hf hlps hstrip (certs_sound hin hcerts)
-      (etaProjCerts_sound hin hrest)
 
 end
 

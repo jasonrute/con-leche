@@ -110,17 +110,15 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
     (hfC : env.find? caps.etaCtor = some (.ctorInfo cvC nPc nFc))
     (hlv : us'.length = cvT.levelParams.length)
     (htlen : targs.length = caps.etaParams)
-    (hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
-      EtaProjCertsSem m φ d T us' targs b cvT.levelParams
-        (List.range caps.etaFields))
+    (htowS : ConLeche.towerSlotsAll env T caps.etaFields = true)
     (hfb : Frame d b) (hCb : CtxOkS m φ d Δa b)
     (hfT : ∀ x ∈ targs, Frame d x ∧ CtxOkS m φ d Δa x)
     (hdb : denoteMeta m.acval env φ d b = some ba)
     (hspt : DenoteMetaSpine m.acval env φ d targs tsa) :
     ∃ ps : List AnnotTerm,
       DenoteMetaSpine m.acval env φ d
-        (ConLeche.etaProjs env T us' targs b caps.etaFields) ps ∧
-      (∀ x ∈ ConLeche.etaProjs env T us' targs b caps.etaFields,
+        (ConLeche.etaProjs T b caps.etaFields) ps ∧
+      (∀ x ∈ ConLeche.etaProjs T b caps.etaFields,
         Frame d x ∧ CtxOkS m φ d Δa x ∧
           ∀ l ∈ x.fvarLeaves, l ∈ b.fvarLeaves ∨ ∃ y ∈ targs, l ∈ y.fvarLeaves) ∧
       ∃ TCa : AnnotTerm,
@@ -135,7 +133,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
           WellDenotedV V ρ ba →
           interp V ρ ba ∈ˢ interp V ρ (AnnotTerm.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) →
-          (∀ x ∈ ConLeche.etaProjs env T us' targs b caps.etaFields,
+          (∀ x ∈ ConLeche.etaProjs T b caps.etaFields,
             LeavesGr m φ d x ρ) ∧
           (∀ x ∈ ps, WellDenotedV V ρ x) ∧
           interp V ρ ba = ((tsa ++ ps).map (interp V ρ)).foldl SetTheory.app
@@ -170,13 +168,13 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
         env.findProj? T j = some entry := ConLeche.towerSlotsAll_slot htow
     refine ⟨(List.range caps.etaFields).map fun j => projAV (j + e0.off) ba,
       ?_, ?_, TCa, hTCa, fun ρ hρ hLb hLt hokW hneW hokB hmemB => ?_⟩
-    · rw [etaProjs_eq, ite_eq_left htow]
+    · rw [etaProjs_eq]
       refine DenoteMetaSpine.map_list _ fun j hj => ?_
       obtain ⟨entry, hfe⟩ := hslotE j (List.mem_range.mp hj)
       rw [← hoffE j entry hfe]
       exact denoteMeta_proj_tower hfe hdb
     · intro x hx
-      rw [etaProjs_eq, ite_eq_left htow] at hx
+      rw [etaProjs_eq] at hx
       obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
       exact ⟨⟨by simpa [Expr.WScoped] using hfb.1,
           by simpa [Expr.looseBVarsBounded] using hfb.2.1,
@@ -202,7 +200,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
         refine List.map_congr_left fun j _ => ?_
         rw [Function.comp_apply, projAV_interp]
       refine ⟨fun x hx => ?_, fun x hx => ?_, ?_, restC, ?_⟩
-      · rw [etaProjs_eq, ite_eq_left htow] at hx
+      · rw [etaProjs_eq] at hx
         obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
         exact fun l hl => hLb l (by simpa [Expr.fvarLeaves] using hl)
       · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hx
@@ -230,32 +228,21 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
         exact (hA hgj ρ tsa ba restj hlenVs hokW hneW hokB hmemB hpeel).1
       · rw [hb, List.map_append, hps, hctr', hlpsT']
       · rw [List.map_append, hps]; exact hfC'
-  · -- PROJECTION-FUNCTION SLOTS, or no field: `CapsOk`'s law
+  · -- NO FIELD: `CapsOk`'s law
     have hslotR : ∀ j ∈ List.range caps.etaFields, ∃ cvp mIp rPp rulesp,
         env.find? (projFnName T j) = some (.recInfo cvp mIp rPp rulesp) ∧
         cvp.levelParams = cvT.levelParams ∧
-        (cvp.type.stripPis (targs.length + 1)).isSome = true ∧
-        CertsSem m φ d false
-          (cvp.type.instantiateLevelParams cvp.levelParams us')
-          (targs ++ [b]) := by
+        (cvp.type.stripPis (targs.length + 1)).isSome = true := by
       intro j hj
       have hcnF : 0 < caps.etaFields :=
         Nat.lt_of_le_of_lt (Nat.zero_le j) (List.mem_range.mp hj)
-      have htowF : ConLeche.towerSlotsAll env T caps.etaFields = false := by
-        cases h : ConLeche.towerSlotsAll env T caps.etaFields
-        · rfl
-        · exact absurd ⟨h, hcnF⟩ hkind
-      exact hproj htowF j hj
-    have hetaP : ConLeche.etaProjs env T us' targs b caps.etaFields
+      exact absurd ⟨htowS, hcnF⟩ hkind
+    have hetaP : ConLeche.etaProjs T b caps.etaFields
         = (List.range caps.etaFields).map (fun i =>
             Expr.mkAppN (.const (projFnName T i) us') (targs ++ [b])) := by
-      rw [etaProjs_eq]
-      split
-      · next h =>
-        have h0 : caps.etaFields = 0 :=
-          Nat.eq_zero_of_not_pos fun hpos => hkind ⟨h, hpos⟩
-        rw [h0]; simp
-      · rfl
+      have h0 : caps.etaFields = 0 :=
+        Nat.eq_zero_of_not_pos fun hpos => hkind ⟨htowS, hpos⟩
+      rw [etaProjs_eq, h0]; simp
     have hfam : ConLeche.EtaFamilyStored env T caps :=
       ⟨hresC, ⟨cvC, nPc, nFc, hfC⟩, fun j hj => by
         obtain ⟨cvp, mIp, rPp, rulesp, hfp, -⟩ := hslotR j (List.mem_range.mpr hj)
@@ -277,7 +264,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
       ?_, ?_, TCa, hTCa, fun ρ hρ hLb hLt hokW hneW hokB hmemB => ?_⟩
     · rw [hetaP]
       refine DenoteMetaSpine.map_list _ fun j hj => ?_
-      obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlpj, -, -⟩ := hslotR j hj
+      obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlpj, -⟩ := hslotR j hj
       refine denoteMeta_mkAppN hspTb ?_
       have hden := denoteMeta_const (acval := m.acval) (φ := φ) (d := d) hfp
         (show us'.length = _ from by
@@ -339,36 +326,10 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
         exact leavesGr_mkAppN (LeavesGr.of_fvarLeaves_nil (by simp [Expr.fvarLeaves]))
           hLargsTb
       · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hx
-        obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlpj, -, hicj⟩ := hslotR j hj
-        have hlenp : us'.length = cvp.levelParams.length := by
-          rw [hlpj]; exact hlv
-        obtain ⟨tpa, htpa, hoktpa, hmemp⟩ :=
-          hin.const_ty d (projFnName T j) _ us' hfp rfl hlenp
-        have hwfp := m.wf _ (ConLeche.Semantics.Env.find?_mem hfp)
-        have hnfp : (cvp.type.instantiateLevelParams cvp.levelParams
-            us').hasFvar = false := by
-          rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwfp.1
-        have hbdp : (cvp.type.instantiateLevelParams cvp.levelParams
-            us').looseBVarsBounded 0 = true := by
-          rw [ConLeche.Expr.looseBVarsBounded_instantiateLevelParams]
-          exact hwfp.2.2.2.1
-        obtain ⟨restp, hXp⟩ := hicj (fa := tpa)
-          ⟨ConLeche.Expr.WScoped.of_not_hasFvar hnfp, hbdp,
-            ConLeche.Expr.LeavesBounded.of_not_hasFvar hnfp⟩
-          ⟨hCb.1, fun l hl => by
-            rw [ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp] at hl
-            exact nomatch hl⟩
-          htpa hframeTb hspTb
-        obtain ⟨hfitpPA, -⟩ := hXp ρ hρ
-          (LeavesGr.of_fvarLeaves_nil
-            (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp))
-          hLargsTb (hoktpa ρ).1 hokTb' (by simp)
-        refine (mkAppN_of_fitA (tsa ++ [ba]) (hoktpa ρ).1
-          (m.acval_wellDenoted _ _ ρ)
-          hokTb' ?_ hfitpPA).1
-        have := hmemp ρ
-        dsimp only [ConLeche.ConstantInfo.toConstantVal] at this
-        rwa [hlpj] at this
+        have h0 : caps.etaFields = 0 :=
+          Nat.eq_zero_of_not_pos fun hpos => hkind ⟨htowS, hpos⟩
+        rw [h0] at hj
+        exact absurd hj List.not_mem_nil
       · rw [hb, List.map_append, hps]
         rfl
       · rw [List.map_append, hps]; exact hfC'

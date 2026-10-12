@@ -451,7 +451,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
     (hus : us.length = entry.levelParams.length)
     (hfire : entry.fireOk us = true)
     (hctor : env.find? entry.ctor = some (.ctorInfo cvC nP nF))
-    (hcerts : CertsSem m φ d true
+    (hcerts : CertsSem m φ d
       (cvC.type.instantiateLevelParams cvC.levelParams us) e.getAppArgs) :
     RedSem m φ d (.proj sn i e)
       (e.getAppArgs.getD (entry.numParams + i) (.bvar 0)) := by
@@ -547,9 +547,9 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
   have hLeσ : LeavesGr m φ d e σ := hL.of_subset hsube
   obtain ⟨hfitσ, -⟩ := hfitA σ hσ (LeavesGr.of_fvarLeaves_nil
       (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfC))
-    (leavesGr_spine hLeσ) (hokTCa σ).1 hoA (fun _ => ⟨hgvp, hmemC, by
+    (leavesGr_spine hLeσ) (hokTCa σ).1 hoA ⟨hgvp, hmemC, by
       rw [← hveq]; intro h0
-      exact hne (by rw [projAV_interp, h0, ConLeche.SetTheory.Tower.projS_pt])⟩)
+      exact hne (by rw [projAV_interp, h0, ConLeche.SetTheory.Tower.projS_pt])⟩
   refine ⟨hokArg, ?_⟩
   have hfit : TeleFit V σ TCa (vs.map (interp V σ)) (interp V σ resta) :=
     teleFit_of_teleFitPA (by rw [← hspa.length]; exact hpc) hfitσ

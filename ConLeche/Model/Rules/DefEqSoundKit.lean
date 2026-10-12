@@ -254,14 +254,8 @@ definitions are `@[expose]`d, so the clause is available by `rfl`
 here, in this tier's own module, and the proof term names nothing
 outside it. -/
 
-theorem etaProjs_eq (T : Name) (us : List Level) (targs : List Expr)
-    (b : Expr) (nF : Nat) :
-    ConLeche.etaProjs env T us targs b nF =
-      if ConLeche.towerSlotsAll env T nF then
-        (List.range nF).map fun j => Expr.proj T j b
-      else
-        (List.range nF).map fun j =>
-          Expr.mkAppN (.const (projFnName T j) us) (targs ++ [b]) := by
+theorem etaProjs_eq (T : Name) (b : Expr) (nF : Nat) :
+    ConLeche.etaProjs T b nF = (List.range nF).map fun j => Expr.proj T j b := by
   rfl
 
 /-- The fabricated η spine's values, unfolded here for the same reason

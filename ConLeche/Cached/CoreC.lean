@@ -143,55 +143,12 @@ def reduceNatI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
     | _ => pure none
   | _ => pure none
 
-/-- Twin of `iotaCerts`, bulk form (task #50): peel the raw telescope
-while accumulating the certified arguments, substituting only each
-binder's *domain* (small) instead of copying the whole residual
-telescope per argument.  A raw `bvar` body (whose substitution could
-expose further `∀`-binders — the fold semantics) substitutes the
-accumulator and re-enters.
-
-`lic` is the ι-slot licence (the spec's docstring): at a licensed walk
-a `.never` binder's slot is skipped outright — no domain instantiation,
-no inference, no defeq — and the binder's argument joins the
-accumulator as if certified.  The datum read is the level-instantiated
-one (the telescope was instantiated at the recursor's levels by
-`constTyAtM`), which is where `Nat.rec.{u}`'s `.ifAllZero [u]` major
-binder becomes `.never` at `u := succ _`. -/
-def iotaCertsIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool) :
-    Expr → List Expr → List Expr → CheckCM Bool
-  | _, _, [] => pure true
-  | ty, acc, arg :: rest => do
-    match ty with
-    | .forallE dom body _ =>
-      if lic then pure (Expr.peelPis rest.length body).isSome
-      else do
-        let dom' ← instListM dom acc
-        let ta ← r.infer depth arg
-        if ← r.defeq depth ta dom' then
-          iotaCertsIAux r fe depth lic body (arg :: acc) rest
-        else pure false
-    | .bvar _ =>
-      match acc with
-      | [] => pure false
-      | _ :: _ => do
-        let ty' ← instListM ty acc
-        iotaCertsIAux r fe depth lic ty' [] (arg :: rest)
-    | _ => pure false
-termination_by _ acc args => (args.length, acc.length)
-decreasing_by
-  all_goals first
-    | (apply Prod.Lex.left; simp; done)
-    | (apply Prod.Lex.right' <;> simp)
-
-/-- Twin of `iotaCerts` (certify a spine against a recursor telescope);
-the bulk-instantiating accumulator loop at the empty accumulator. -/
-def iotaCertsI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool)
-    (ty : Expr) (args : List Expr) : CheckCM Bool :=
-  iotaCertsIAux r fe depth lic ty [] args
-
-/-- Twin of `iotaCertsFull` (task #342 L10, ι's case 3), bulk form as
-`iotaCertsIAux`: every slot is certified, its argument inferred at the
-FULL grade. -/
+/-- Twin of `iotaCertsFull` (task #342 L10, ι's case 3), in bulk form:
+the consumed arguments are kept in an accumulator and substituted into
+each binder's *domain* (small) instead of instantiating the whole
+residual telescope per argument; a raw `bvar` body substitutes the
+accumulator and re-enters.  Every slot is certified, its argument
+inferred at the FULL grade. -/
 def iotaCertsFullIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
     Expr → List Expr → List Expr → CheckCM Bool
   | _, _, [] => pure true
@@ -286,10 +243,8 @@ itself since task #185).  Every configured body below takes
 at the end of this module (`…PC` at `.verified`, `…TC` at `.trusted`;
 the `…RC` half retired with the R core, 2026-09-05).  Every read below
 is one of the `CheckMode` functions of `ConLeche/Kernel/Env.lean`, each
-a `match` on the enum.  The ι cone (`structEtaCertWithI` →
-`majorToCtorI` → `prepareMajorI` → `iotaRecI`) reads the mode through
-`certAtI`/`certUnlessI` and keeps only the TT-lane residue on
-`mode.ttChecks`, a literal `false` at each mode. -/
+a `match` on the enum.  The ι cone (`majorToCtorI` → `prepareMajorI`
+→ `iotaRecI`) reads the mode through `certAtI`/`certUnlessI`. -/
 variable (mode : CheckMode)
 
 /-! ### The certificate-family switch (the twin's retirement, 2026-09-06)
@@ -364,19 +319,6 @@ def propIrrelI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
     | _ => pure false
   | _ => pure false
 
-/-- The projection-application spine
-`[proj_0 targs b, …]` (structural recursion; the spec side is a pure
-`List.map`). -/
-def projAppsFnI (T : Name) (us' : List Level) (targs : List Expr)
-    (b : Expr) : List Nat → CheckCM (List Expr)
-  | [] => pure []
-  | i :: rest => do
-    let pf ← pure (projFnName T i)
-    let h ← pure (Expr.const pf us')
-    let r ← mkAppNM h (targs ++ [b])
-    let rs ← projAppsFnI T us' targs b rest
-    pure (r :: rs)
-
 /-- The `.proj T i b` spine (the tower spelling, task #175
 W4c). -/
 def projNodesI (T : Name) (b : Expr) : List Nat → CheckCM (List Expr)
@@ -385,35 +327,6 @@ def projNodesI (T : Name) (b : Expr) : List Nat → CheckCM (List Expr)
     let r ← pure (Expr.proj T i b)
     let rs ← projNodesI T b rest
     pure (r :: rs)
-
-/-- Twin of `etaProjs`: the tower spelling at an all-tower slot family
-(`towerSlotsAll` through the index), the projection-function spelling
-otherwise. -/
-def projAppsI (fe : FEnv) (Tn T : Name) (us' : List Level)
-    (targs : List Expr) (b : Expr) (nF : Nat) :
-    CheckCM (List Expr) :=
-  if fe.towerSlotsAllF Tn nF then
-    projNodesI T b (List.range nF)
-  else projAppsFnI T us' targs b (List.range nF)
-
-/-- Twin of `structEtaProjCerts`. -/
-def structEtaProjCertsI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
-    (TI : Name) (T : Name) (us' : List Level) (targs : List Expr)
-    (b : Expr)
-    (lpsT : List Name) : List Nat → CheckCM Bool
-  | [] => pure true
-  | i :: rest => do
-    match fe.find? (projFnName T i) with
-    | some (.recInfo cvp _ _ _) =>
-      if cvp.levelParams = lpsT ∧
-          (cvp.type.stripPis (targs.length + 1)).isSome = true then do
-        let pf ← pure (projFnName TI i)
-        let pty ← constTyAtM fe pf (projFnName T i) us'
-        if ← iotaCertsI r fe depth false pty (targs ++ [b]) then
-          structEtaProjCertsI r fe depth TI T us' targs b lpsT rest
-        else pure false
-      else pure false
-    | _ => pure false
 
 /-- Twin of `structEtaCertWith`. -/
 def structEtaCertWithI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
@@ -437,40 +350,14 @@ def structEtaCertWithI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                 targs.length = caps.etaParams ∧
                 us'.length = cvT.levelParams.length ∧
                 cvc.levelParams = cvT.levelParams ∧
-                (fe.towerSlotsAllF Tn caps.etaFields ||
-                  fe.recSlotsAllF Tn caps.etaFields) = true then do
+                fe.towerSlotsAllF Tn caps.etaFields = true then do
               if ← liftFueled "level comparison"
                   (← isEquivListLM us us') then do
-                -- no type-application certificate (task #342 L11b); the
-                -- per-slot ones are the projection-function kind's (a
-                -- tabled family has none, task #175 S1), a certificate
-                -- family official's `try_eta_struct_core` does not run;
-                -- off at `.trusted`
-                if ← certAtI mode
-                    (if fe.towerSlotsAllF Tn caps.etaFields then pure true
-                    else structEtaProjCertsI r fe depth T Tn us'
-                      targs b cvT.levelParams
-                      (List.range caps.etaFields)) then do
-                  if ← defEqListI r fe depth
-                      (aargs.take caps.etaParams) targs then do
-                    let projs ← projAppsI fe Tn T us' targs b caps.etaFields
-                    -- synthetic-spine certification (task #137): the
-                    -- fabricated constructor application
-                    -- `c targs (proj_i … b)` is certified against the
-                    -- constructor's own telescope, here rather than at
-                    -- the callers, so that BOTH consumers get it —
-                    -- `majorToCtorI`'s eta rescue ran it already
-                    -- (task #71), `defeq`'s `structEtaCertI` did not.
-                    -- TT-lane check (task #147): skipped unless
-                    -- `mode.ttChecks`, a literal `false` at
-                    -- both shipped cores.
-                    if ← (if mode.ttChecks then do
-                        let tyCtor ← constTyAtM fe c cn us
-                        iotaCertsI r fe depth false tyCtor (targs ++ projs)
-                      else pure true) then
-                      defEqListI r fe depth (aargs.drop caps.etaParams) projs
-                    else pure false
-                  else pure false
+                -- no type-application certificate (task #342 L11b)
+                if ← defEqListI r fe depth
+                    (aargs.take caps.etaParams) targs then do
+                  let projs ← projNodesI T b (List.range caps.etaFields)
+                  defEqListI r fe depth (aargs.drop caps.etaParams) projs
                 else pure false
               else pure false
             else pure false
@@ -488,7 +375,7 @@ def structEtaCertI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
   if sh then
     let tb ← r.inferIO depth b
     let wtb ← r.whnf depth tb
-    structEtaCertWithI mode r fe depth a b wtb
+    structEtaCertWithI r fe depth a b wtb
   else pure false
 
 /-- Twin of `structUnitCert`. -/
@@ -544,8 +431,8 @@ def etaCertI (r : CoreFnsI) (_fe : FEnv) (depth : Nat)
 /-- Twin of `stuckIrrel`. -/
 def stuckIrrelI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
     CheckCM Bool := do
-  if ← structEtaCertI mode r fe depth a b then pure true
-  else if ← structEtaCertI mode r fe depth b a then pure true
+  if ← structEtaCertI r fe depth a b then pure true
+  else if ← structEtaCertI r fe depth b a then pure true
   else if ← structUnitCertI r fe depth a b then pure true
   else proofIrrelI r depth a b
 
@@ -576,27 +463,15 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                   if ← pure (Expr.wscopedBC depth fab &&
                       Expr.looseBVarsBounded 0 fab &&
                       Expr.leafGuard fab major) then do
-                    -- synthetic-spine certification (task #71): a
-                    -- fabricated constructor spine keeps the ungated
-                    -- telescope certificate, relocated here from the
-                    -- fire path
-                    let tyCtor ← constTyAtM fe ctorI rl.ctor ust
-                    -- (a certificate family; off at `.trusted`)
-                    if ← certAtI mode (iotaCertsI r fe depth false tyCtor
-                        (margs.take cnP)) then do
-                      -- official `to_cnstr_when_K` fabrication type
-                      -- check (load-bearing with the major-slot
-                      -- certificate gated at nonzero motives, tasks
-                      -- #49/#71; arena bad/098_ruleKbad) — runs in
-                      -- both modes; `proofIrrelI` stays as the
-                      -- soundness certificate, a certificate family
-                      -- (official stops at the type check), off at
-                      -- `.trusted`
-                      let tfab ← r.inferIO depth fab
-                      if ← r.defeq depth tmaj tfab then
-                        if ← certAtI mode (proofIrrelI r depth fab major) then
-                          pure fab
-                        else pure major
+                    -- official `to_cnstr_when_K` fabrication type
+                    -- check (arena bad/098_ruleKbad) — runs in both
+                    -- modes; `proofIrrelI`, a certificate family
+                    -- (official stops at the type check), is off at
+                    -- `.trusted`
+                    let tfab ← r.inferIO depth fab
+                    if ← r.defeq depth tmaj tfab then
+                      if ← certAtI mode (proofIrrelI r depth fab major) then
+                        pure fab
                       else pure major
                     else pure major
                   else pure major
@@ -612,23 +487,23 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
               let ustL ← pure ust
               -- instantiated non-Prop guard, as in the spec body
               -- `majorToCtor` (task #61)
+              -- and the η law's keys, as in the spec body
               if (← pure (T' == T)) ∧ margs.length = caps.etaParams ∧
                   ust.length = cvT.levelParams.length ∧
-                  capsNeverZero cvT.levelParams ustL caps = true then do
+                  capsNeverZero cvT.levelParams ustL caps = true ∧
+                  reservedBasisNames.contains T = false ∧
+                  reservedBasisNames.contains caps.etaCtor = false ∧
+                  fe.towerSlotsAllF T caps.etaFields = true then do
                 let TI ← pure T
-                let projs ← projAppsI fe T TI ust margs major caps.etaFields
+                let projs ← projNodesI TI major (List.range caps.etaFields)
                 let ctorI ← pure caps.etaCtor
                 let h ← pure (Expr.const ctorI ust)
                 let fab ← mkAppNM h (margs ++ projs)
+                -- no certificate on the fabricated spine (task #342 L11b)
                 if ← pure (Expr.wscopedBC depth fab &&
                     Expr.looseBVarsBounded 0 fab &&
-                    Expr.leafGuard fab major) then do
-                  -- no certificate on the fabricated spine (task #342
-                  -- L11b); the η certificate's run is kept for its guards
-                  if ← structEtaCertWithI mode r fe depth fab major
-                      tmaj then
-                    pure fab
-                  else pure major
+                    Expr.leafGuard fab major) then
+                  pure fab
                 else pure major
               else pure major
             | _ => pure major
@@ -650,14 +525,10 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                 if ← pure (Expr.wscopedBC depth fab &&
                     Expr.looseBVarsBounded 0 fab &&
                     Expr.leafGuard fab major) then do
-                  let tyCtor ← constTyAtM fe ctorI rl.ctor ust
-                  if ← certAtI mode (iotaCertsI r fe depth false tyCtor
-                      (margs ++ projs)) then do
-                    let tfab ← r.inferIO depth fab
-                    if ← r.defeq depth tmaj tfab then
-                      if ← certAtI mode (proofIrrelI r depth fab major) then
-                        pure fab
-                      else pure major
+                  let tfab ← r.inferIO depth fab
+                  if ← r.defeq depth tmaj tfab then
+                    if ← certAtI mode (proofIrrelI r depth fab major) then
+                      pure fab
                     else pure major
                   else pure major
                 else pure major
@@ -792,14 +663,11 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
                  -- `inductive_reduce_rec` compares nothing) and at every
                  -- case-3 redex (`iotaCompares`, task #342 L10).  Where
                  -- it is run it is verdict-relevant for a nested rule
-                 -- (the comparands ARE the pins) and for a
-                 -- projection-function rule, and a certificate family
-                 -- for every other plain rule — the retired twin's
-                 -- judgement, kept
+                 -- (the comparands ARE the pins), and a certificate
+                 -- family for a plain rule (case 3)
                  if ← (if iotaCompares fe.find? rl cvj usj then
                     certUnlessI mode
-                      ((match rl.fire with | .nested _ _ => true | _ => false)
-                        || Name.isProjFnShape cn)
+                      (match rl.fire with | .nested _ _ => true | _ => false)
                       (defEqListI r fe depth (margs.take rl.ctorParams)
                         cmpArgs)
                     else pure true) then do
@@ -836,20 +704,16 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
     | _ => pure none
   | _ => pure none
 
-/-- Twin of `projCert`. -/
-def projCertI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : CheckCM Bool := do
-  let cn ← pure c
-  match fe.find? cn with
-  | some (.ctorInfo _ _ _) => do
-    let tyC ← constTyAtM fe c cn us
-    iotaCertsI r fe depth lic tyC args
-  | _ => pure false
+/-- Twin of `projCert`, through the index. -/
+def projCertF (fe : FEnv) (c : Name) (args : List Expr) : Bool :=
+  match fe.find? c with
+  | some (.ctorInfo cvC _ _) => teleArityOk cvC.type args
+  | _ => false
 
 /-- Twin of `projCertAt`. -/
-def projCertAtI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (verified lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : CheckCM Bool :=
-  if verified then projCertI r fe depth lic c us args else pure true
+def projCertAtF (fe : FEnv) (verified : Bool) (c : Name) (args : List Expr) :
+    Bool :=
+  if verified then projCertF fe c args else true
 
 /-- Twin of `reduceProjCore`. -/
 def reduceProjCoreI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (sn : Name)
@@ -869,7 +733,7 @@ def reduceProjCoreI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (sn : Name)
         let arg := args.getD (entry.numParams + i) bvar0
         -- task #100 de-gating / task #175 W6 / `projCertAt`: see the
         -- spec `reduceProjCore`
-        if ← projCertAtI r fe depth mode.verifiedChecks true k us args then
+        if projCertAtF fe mode.verifiedChecks k args then
           pure (some arg)
         else pure none
       else pure none
@@ -1540,25 +1404,25 @@ def defeqStuckI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
       if (← pure (cO == stringOfListName)) ∧ usO = [] ∧ strLitSupportedF fe then do
         let sc ← pure (strLitToConstructor s)
         r.defeq depth sc b
-      else stuckIrrelI mode r fe depth a b
-    | _, _ => stuckIrrelI mode r fe depth a b
+      else stuckIrrelI r fe depth a b
+    | _, _ => stuckIrrelI r fe depth a b
   | .app fO _x, .lit l => do
     match l, fO with
     | .strVal s, .const cO usO =>
       if (← pure (cO == stringOfListName)) ∧ usO = [] ∧ strLitSupportedF fe then do
         let sc ← pure (strLitToConstructor s)
         r.defeq depth a sc
-      else stuckIrrelI mode r fe depth a b
-    | _, _ => stuckIrrelI mode r fe depth a b
+      else stuckIrrelI r fe depth a b
+    | _, _ => stuckIrrelI r fe depth a b
   | .fvar i _, .fvar j _ =>
     if i == j then pure true
-    else stuckIrrelI mode r fe depth a b
+    else stuckIrrelI r fe depth a b
   | .const n us, .const n' us' =>
     if n = n' then do
       if ← liftFueled "level comparison" (← isEquivListLM us us') then
         pure true
-      else stuckIrrelI mode r fe depth a b
-    else stuckIrrelI mode r fe depth a b
+      else stuckIrrelI r fe depth a b
+    else stuckIrrelI r fe depth a b
   | .app _f₁ _a₁, .app _f₂ _a₂ => do
     -- spine-wise congruence, as in the spec (official `is_def_eq_app`)
     let as₁ ← pure (Expr.getAppArgsC a)
@@ -1568,16 +1432,16 @@ def defeqStuckI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
       let h₂ ← pure (Expr.getAppFn b)
       if ← r.defeq depth h₁ h₂ then do
         if ← defEqListI r fe depth as₁ as₂ then pure true
-        else stuckIrrelI mode r fe depth a b
-      else stuckIrrelI mode r fe depth a b
-    else stuckIrrelI mode r fe depth a b
+        else stuckIrrelI r fe depth a b
+      else stuckIrrelI r fe depth a b
+    else stuckIrrelI r fe depth a b
   | .lam ty₁ body₁ _, _ => do
     if ← etaCertI mode r fe depth ty₁ body₁ b then pure true
-    else stuckIrrelI mode r fe depth a b
+    else stuckIrrelI r fe depth a b
   | _, .lam ty₂ body₂ _ => do
     if ← etaCertI mode r fe depth ty₂ body₂ a then pure true
-    else stuckIrrelI mode r fe depth a b
-  | _, _ => stuckIrrelI mode r fe depth a b
+    else stuckIrrelI r fe depth a b
+  | _, _ => stuckIrrelI r fe depth a b
 
 /-- Twin of `defeqBody`. -/
 def defeqBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → Expr → CheckCM Bool :=

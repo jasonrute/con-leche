@@ -49,7 +49,7 @@ installed with its block and is left out with it.
 ## How it is proved
 
 The walk has `installRun_model`'s hypotheses and threads the model
-beside the conclusion; `annotStepC_model`
+beside the conclusion; `installStepC_model`
 (`ConLeche/Model/InstallRun.lean`) is the per-step lemma both walks
 share, and its extra conjunct — the step IS a pure `checkDecl` run — is
 what lets the per-record reasoning happen entirely at the pure checker's
@@ -211,14 +211,14 @@ theorem installRun_declares (hμ : μ.verifiedChecks = true) {ds : List Declarat
   | @cons pd ds p p₁ q hstep rest ih =>
     intro hfe hm hnd hB pd' hmem cv hcv
     obtain ⟨i, fe, pend⟩ := p
-    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := annotDeclStep_ok hstep
+    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := installDeclStep_ok hstep
     simp only at hfe hstepC
     obtain ⟨hpush₁, -⟩ :=
-      annotStepC_push μ i (PushChain.self hfe) pend pd {} (fe₁, pend₁) s₁ hstepC
+      installStepC_push μ i (PushChain.self hfe) pend pd {} (fe₁, pend₁) s₁ hstepC
     have hfe₁ : fe₁ = mkFEnv fe₁.env := hpush₁.canon
     obtain ⟨hchainF, new₁, hpend₁⟩ := installRun_trace μ rest (PushChain.self hfe₁)
     obtain ⟨hm₁, -, F, hF⟩ :=
-      annotStepC_model (V := V) hμ hfe hfe₁ hm CSOKF.empty hstepC hchainF hpend₁ hnd hB
+      installStepC_model (V := V) hμ hfe hfe₁ hm CSOKF.empty hstepC hchainF hpend₁ hnd hB
     rcases List.mem_cons.mp hmem with rfl | hmem'
     · obtain ⟨c, hc, h1, h2, h3⟩ := checkDecl_declares hF hcv
       obtain ⟨new, hnew⟩ := hchainF.2.1

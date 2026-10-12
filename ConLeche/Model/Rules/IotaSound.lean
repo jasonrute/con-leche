@@ -37,30 +37,7 @@ both inhabit (`IsTy.eq_of_ne_pt`).  The structure-η rescue
 is its fabrication by the family's η law, and the fabrication is graded
 by the η constructor's telescope coherence (`etaSide`).
 
-## Two rule shapes this file relies on
-
-**`Rules.Red.rescueEta` carries the per-field certificates.**  At
-`towerSlotsAll env T caps.etaFields = false` the fabricated arguments
-are `Expr.mkAppN (.const (projFnName T j) ust) (tmaj.getAppArgs ++
-[major])` nodes, so the fabrication READS only if `projFnName T j` is
-stored at the family's level arity, and its GRADING needs the slot's
-telescope certificate.  Neither follows from the rule's other
-premises: the checker has them from inverting the η certificate's own
-run (`structEtaCertWith_inv`), which the rule does not record.  The
-rule therefore carries the premise `DefEq.structEta` carries,
-
-    towerSlotsAll env T caps.etaFields = false →
-      EtaProjCerts env d T ust tmaj.getAppArgs major cvT.levelParams
-        (List.range caps.etaFields)
-
-— premise-exact: it is the certificate `structEtaCertWith` runs at a
-projection-function family, which is what the η rescue calls.  Its
-motive `EtaProjCertsSem` (`Model/Rules/Motive.lean`) hands back, per
-slot, the storage, `cvp.levelParams = lpsT`, the `stripPis` conjunct
-and the `CertsSem` that grades the spine — exactly the four facts the
-η arm consumes.  The bridge supplies it from the same inversion
-(`Verify/Rules/Certs.lean`'s `structEtaCertWith_projCerts_bridge`,
-shared with `structEtaCertWith_bridge`).
+## A rule shape this file relies on
 
 **`DefEqListSem` concludes the walk's length.**  `Red.iota_sound`'s
 `.nested` fire needs `pins.length = RecRule.ctorParams rl` before it
@@ -122,7 +99,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       DefEqListSem m φ d (major.getAppArgs.take rl.ctorParams)
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).2)
-    (hcertR : CertsSem m φ d true (cv.type.instantiateLevelParams cv.levelParams us)
+    (hcertR : CertsSem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
       e.getAppArgs)
     (hcertC : ConLeche.iotaCase3 env.find? rl cvj usj = true →
       CertsFSem m φ d (cvj.type.instantiateLevelParams cvj.levelParams usj)
@@ -245,7 +222,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     hfitR ρ hρ
       (LeavesGr.of_fvarLeaves_nil
         (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfR))
-      (leavesGr_spine hL) (hokTVa ρ) hoX (fun _ => ⟨hg, hmemR ρ, hne⟩)
+      (leavesGr_spine hL) (hokTVa ρ) hoX ⟨hg, hmemR ρ, hne⟩
   have hsplit := take_getD_splitAK hxsLen
   have hfitRVal : TeleFitPA V ρ TVa (xs.take mI ++ [xs.getD mI default]) restR := by
     rw [← hsplit]; exact hfitRVal0
@@ -315,18 +292,15 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   -- **the comparisons the step ran, conditional**
   -- the `.plain` parameters
   have hplainC : RecRule.fire rl = .plain →
-      (RecRule.paramsBlind rl = false ∨
-        interp V ρ (AnnotTerm.mkAppN
-          (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt) →
+      interp V ρ (AnnotTerm.mkAppN
+        (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt →
       ∀ i, i < RecRule.ctorParams rl → i < mI →
         interp V ρ (ys.getD i default) ≠ pt →
         interp V ρ ((xs.take mI).getD i default) ≠ pt →
         interp V ρ (ys.getD i default) = interp V ρ ((xs.take mI).getD i default) := by
-    intro hp hor i hi him hy hx
-    have hcmp : ConLeche.iotaCompares env.find? rl cvj usj = true := by
-      rcases hor with hb | hpt
-      · exact ConLeche.iotaCompares_of_compareParams (RecRule.compareParams_plain hp hb)
-      · exact ConLeche.iotaCompares_of_case3 (hcase3_of_ptC hpt)
+    intro hp hpt i hi him hy hx
+    have hcmp : ConLeche.iotaCompares env.find? rl cvj usj = true :=
+      ConLeche.iotaCompares_of_case3 (hcase3_of_ptC hpt)
     have hdefP := hparams hcmp
     rw [show (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
         e.getAppArgs rP).2 = e.getAppArgs.take (RecRule.ctorParams rl) from by
@@ -607,12 +581,12 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     rw [getD_dropAK, getD_dropAK] at hgi
     exact hgi
   -- **(U)**: the comparisons are equations
-  obtain ⟨hplainU, hnestedU, hpinU⟩ :=
+  obtain ⟨hnestedU, hpinU⟩ :=
     hU ρ (xs.take mI) ys restR' restC hxs0len hlenYs hfitR' hfitC hoX0 hoY
       hplainC hnestedC hpinC
   -- **fire the law**
   obtain ⟨heqLaw, htrans⟩ := hlaw cvj cnP cnF hctor usj ρ (xs.take mI) ys
-    TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hplainU hnestedU hpinU
+    TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hnestedU hpinU
     (hTVaD 0) (hTVjaD 0) hfitR' hfitC
   rw [List.take_take, Nat.min_eq_left hrPle] at heqLaw htrans
   have hsubj : interp V ρ (AnnotTerm.mkAppN
@@ -708,14 +682,12 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (hlv : ust.length = cvT.levelParams.length)
     (_hnz : ConLeche.capsNeverZero cvT.levelParams ust caps = true)
     (hfab : fab = Expr.mkAppN (.const caps.etaCtor ust)
-      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields))
+      (ConLeche.etaFabArgsE T tmaj.getAppArgs major caps.etaFields))
     (hws : fab.wscopedB d = true) (hb : fab.looseBVarsBounded 0 = true)
     (hlv' : fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true)
     (hresT : ConLeche.reservedBasisNames.contains T = false)
     (hresC : ConLeche.reservedBasisNames.contains caps.etaCtor = false)
-    (hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
-      EtaProjCertsSem m φ d T ust tmaj.getAppArgs major cvT.levelParams
-        (List.range caps.etaFields)) :
+    (htow : ConLeche.towerSlotsAll env T caps.etaFields = true) :
     RedSem m φ d major fab := by
   intro hfM Δa ea hCM hea
   have hsub : LeavesSub fab major := fun l hl => by
@@ -749,7 +721,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
   subst hvT'
   -- the stuck side's facts
   obtain ⟨ps, hsps, hfps, TCa, hTCa, hside⟩ := etaSide hin hind hcapseta hresT hresC
-    hfC hlv hlen hproj hfM hCM (frame_spine hfTm hCTm) hea hspt
+    hfC hlv hlen htow hfM hCM (frame_spine hfTm hCTm) hea hspt
   -- the fabrication reads
   have hheadC : denoteMeta m.acval env φ d (.const caps.etaCtor ust)
       = some (m.acval caps.etaCtor (Level.substFn φ cvT.levelParams ust)) := by
@@ -758,7 +730,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
     dsimp only [ConLeche.ConstantInfo.toConstantVal] at h
     rw [h, hlpsE]
   have hspF : DenoteMetaSpine m.acval env φ d
-      (ConLeche.etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields)
+      (ConLeche.etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
       (tsa ++ ps) := hspt.append hsps
   have hdF : denoteMeta m.acval env φ d fab
       = some (AnnotTerm.mkAppN

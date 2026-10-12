@@ -38,15 +38,9 @@ checker does):
   argument certificate, the λ rule no domain-sort check, the `let` rule
   no check of the value (the `g = .full →` premises).  Its claim is the
   hereditary `IORel`, keyed on the type's syntax, not membership.
-* `Certs env d lic T args` — `iotaCerts`: the telescope certificate of a
-  spine, licensed (`lic = true`, the ι and projection slots: no
-  certificate at all, `Certs.licensed`) or not (the rescues' synthetic
-  spines).
 * `CertsF env d T args` — `iotaCertsFull`: the full-grade telescope
   certificate of ι's case 3.
 * `DefEqList env d as bs` — `defEqList`, pairwise.
-* `EtaProjCerts …` — `structEtaProjCerts`, the per-field telescope
-  certificates of a projection-function family.
 
 **Premise discipline.**  Each rule's premises are the certificates the
 `.verified` checker runs at the cited site — the sub-runs (`Infer`,
@@ -176,8 +170,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   /-- **The structural projection** `proj_i (ctor p⃗ x⃗) ↦ x_i`
   (`whnfCoreBody`'s `.proj` clause, `Kernel/Core.lean`), driven by
   the projection table, fired under the entry's guard, with the
-  constructor spine's licensed telescope certificate (`projCertAt`),
-  which certifies nothing (`Certs.licensed`) or every slot. -/
+  constructor telescope's syntactic arity (`projCertAt`,
+  `teleArityOk`). -/
   | proj {d : Nat} {sn : Name} {i : Nat} {e : Expr} {entry : ProjEntry}
       {us : List Level} {cvC : ConstantVal} {nP nF : Nat} :
       env.findProj? sn i = some entry →
@@ -187,15 +181,15 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       us.length = entry.levelParams.length →
       entry.fireOk us = true →
       env.find? entry.ctor = some (.ctorInfo cvC nP nF) →
-      Certs env d true (cvC.type.instantiateLevelParams cvC.levelParams us)
-        e.getAppArgs →
+      (Expr.peelPis e.getAppArgs.length
+        (cvC.type.instantiateLevelParams cvC.levelParams us)).isSome = true →
       Red env d (.proj sn i e) (e.getAppArgs.getD (entry.numParams + i) (.bvar 0))
   /-- **ι** (`iotaRec`, `Kernel/Core.lean`): a stored recursor
   applied to exactly its telescope, whose prepared major (the `Red`
   premise: `prepareMajor`'s whnf / literal / rescue chain) is a
   constructor application with a firing rule.  The level comparands,
-  the parameter comparison, the recursor's licensed telescope
-  certificate over the redex's own spine, and (case 3 only) the
+  the parameter comparison, the recursor telescope's syntactic arity
+  over the redex's own spine, and (case 3 only) the
   constructor's full-grade telescope certificate and the index
   comparison are the checker's, in its order.
 
@@ -225,8 +219,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
         DefEqList env d (major.getAppArgs.take rl.ctorParams)
           (recFireComparands rl cv.levelParams us cvj.levelParams
             e.getAppArgs rP).2) →
-      Certs env d true (cv.type.instantiateLevelParams cv.levelParams us)
-        e.getAppArgs →
+      (Expr.peelPis e.getAppArgs.length
+        (cv.type.instantiateLevelParams cv.levelParams us)).isSome = true →
       (iotaCase3 env.find? rl cvj usj = true →
         CertsF env d (cvj.type.instantiateLevelParams cvj.levelParams usj)
           major.getAppArgs) →
@@ -242,14 +236,13 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   /-- **The K rescue** (`majorToCtor`'s K branch, `Kernel/Core.lean`;
   official `to_cnstr_when_K`): at a K-flagged single-rule recursor the
   parameters-only constructor application is fabricated from the
-  major's io-inferred, head-normalised type, scope-guarded, certified
-  against the constructor's telescope, type-checked against the major's
-  type, and equated to the major by proof irrelevance.  The last four
-  premises are the major's half of that `proofIrrel` run: its io type's
-  io sort reduces to `Prop`, so the major is a proof — the point at
-  every valuation, about which a reduction claims nothing (task #342
-  L18: the io claim `IORel` makes the fabrication's certificates
-  unusable where the major is not the point, and the major never is). -/
+  major's io-inferred, head-normalised type, scope-guarded,
+  type-checked against the major's type (official's check; it decides
+  whether the rescue fires), and equated to the major by proof
+  irrelevance.  The last four premises are the major's half of that
+  `proofIrrel` run: its io type's io sort reduces to `Prop`, so the
+  major is a proof — the point at every valuation, about which a
+  reduction claims nothing (task #342 L18). -/
   | rescueK {d : Nat} {major tm tmaj fab tf tp ttp : Expr} {v : Level} {recName : Name}
       {cv : ConstantVal} {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal}
       {cnP cnF : Nat} {T : Name} {tus ust : List Level} {cvT : ConstantVal}
@@ -266,8 +259,6 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       fab = Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
-      Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (tmaj.getAppArgs.take cnP) →
       Infer env .io d fab tf → DefEq env d tmaj tf →
       Infer env .io d major tp → Infer env .io d tp ttp →
       Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
@@ -279,10 +270,9 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   projections is fabricated and scope-guarded.  No certificate: the
   major is the fabrication by the family's η law, and the fabrication
   is graded by the η constructor's telescope coherence (task #342
-  L11b, `EtaCoherent`).  The two name guards and, at a
-  projection-function family, the per-field telescope certificates
-  (the fabrication READS only through those slots' storage) are what
-  the rescue's `structEtaCertWith` run tests (`Kernel/Core.lean`). -/
+  L11b, `EtaCoherent`).  The guards are the ones the η law is keyed
+  on: the two names not reserved, every field slot a projection-table
+  entry. -/
   | rescueEta {d : Nat} {major tm tmaj fab : Expr} {recName : Name}
       {cv : ConstantVal} {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal}
       {cnP cnF : Nat} {T : Name} {tus ust : List Level} {cvT : ConstantVal}
@@ -298,14 +288,12 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       ust.length = cvT.levelParams.length →
       capsNeverZero cvT.levelParams ust caps = true →
       fab = Expr.mkAppN (.const caps.etaCtor ust)
-        (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields) →
+        (etaFabArgsE T tmaj.getAppArgs major caps.etaFields) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
       reservedBasisNames.contains T = false →
       reservedBasisNames.contains caps.etaCtor = false →
-      (towerSlotsAll env T caps.etaFields = false →
-        EtaProjCerts env d T ust tmaj.getAppArgs major cvT.levelParams
-          (List.range caps.etaFields)) →
+      towerSlotsAll env T caps.etaFields = true →
       Red env d major fab
   /-- **The `And` rescue** (`majorToCtor`'s `And` branch,
   `Kernel/Core.lean`; `And` only, by ruling): `And.intro a b
@@ -329,8 +317,6 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
         (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
-      Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]) →
       Infer env .io d fab tf → DefEq env d tmaj tf →
       Infer env .io d major tp → Infer env .io d tp ttp →
       Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
@@ -463,9 +449,9 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
   /-- **Structure η** (`structEtaCert` → `structEtaCertWith`,
   `Kernel/Core.lean`): `a` is a fully applied constructor of an
   η-capable stored structure, `b`'s io-inferred type head-normalises to
-  that structure at agreeing levels, the per-field telescopes of a
-  projection-function family are certified, the parameters agree
-  pairwise, and every field is the corresponding projection of `b`.
+  that structure at agreeing levels, every field slot has a
+  projection-table entry, the parameters agree pairwise, and every
+  field is the corresponding projection of `b`.
   The type application is not certified: the type is a type, so its
   spine fits the former's telescope (task #342 L11b). -/
   | structEta {d : Nat} {a b tb wtb : Expr} {c : Name} {us : List Level}
@@ -483,15 +469,11 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
       wtb.getAppArgs.length = caps.etaParams →
       us'.length = cvT.levelParams.length →
       cvc.levelParams = cvT.levelParams →
-      (towerSlotsAll env T caps.etaFields ||
-        recSlotsAll env T caps.etaFields) = true →
+      towerSlotsAll env T caps.etaFields = true →
       Level.isEquivList us us' = some true →
-      (towerSlotsAll env T caps.etaFields = false →
-        EtaProjCerts env d T us' wtb.getAppArgs b cvT.levelParams
-          (List.range caps.etaFields)) →
       DefEqList env d (a.getAppArgs.take caps.etaParams) wtb.getAppArgs →
       DefEqList env d (a.getAppArgs.drop caps.etaParams)
-        (etaProjs env T us' wtb.getAppArgs b caps.etaFields) →
+        (etaProjs T b caps.etaFields) →
       DefEq env d a b
   /-- **Unit-like structure** (`structUnitCert`, `Kernel/Core.lean`):
   both sides inhabit the same stored unit-like family — `a`'s
@@ -645,27 +627,6 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
           = some true) →
       Infer env g d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe)
 
-/-- **The telescope certificate** (`iotaCerts`, `Kernel/Core.lean`):
-each argument's FULL-grade type is definitionally equal to its binder
-domain, the domains instantiated along the spine (task #342 L18: an
-io-inferred type need not hold its term, `IORel`; the unlicensed walks
-certify the rescues' synthetic spines, which are not subterms of the
-subject).  A licensed walk
-(`lic = true`: the spine is the subject's own, the ι and projection
-slots) certifies nothing (`licensed`) but the telescope's syntactic arity
-(the checker's `peelPis` test): a reduction claims nothing of a redex
-that is the point, and a redex that is not the point fits its head's
-telescope by the application slots of its own invariant. -/
-inductive Certs (env : Env) : Nat → Bool → Expr → List Expr → Prop where
-  | nil {d : Nat} {lic : Bool} {T : Expr} : Certs env d lic T []
-  | licensed {d : Nat} {T : Expr} {args : List Expr} :
-      (Expr.peelPis args.length T).isSome = true → Certs env d true T args
-  | cert {d : Nat} {lic : Bool} {ty body arg ta : Expr} {mb : BinderMeta}
-      {rest : List Expr} :
-      Infer env .full d arg ta → DefEq env d ta ty →
-      Certs env d lic (body.instantiate1 arg) rest →
-      Certs env d lic (.forallE ty body mb) (arg :: rest)
-
 /-- **The full-grade telescope certificate** (`iotaCertsFull`,
 `Kernel/Core.lean`; ι's case 3, task #342 L10): each argument's
 FULL-grade type is definitionally equal to its binder domain, the
@@ -683,26 +644,6 @@ inductive DefEqList (env : Env) : Nat → List Expr → List Expr → Prop where
   | cons {d : Nat} {a b : Expr} {as bs : List Expr} :
       DefEq env d a b → DefEqList env d as bs →
       DefEqList env d (a :: as) (b :: bs)
-
-/-- **The per-field telescope certificates of a structure-η
-certification at a projection-function family**
-(`structEtaProjCerts`, `Kernel/Core.lean`). -/
-inductive EtaProjCerts (env : Env) :
-    Nat → Name → List Level → List Expr → Expr → List Name → List Nat → Prop
-    where
-  | nil {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
-      {lpsT : List Name} :
-      EtaProjCerts env d T us' targs b lpsT []
-  | cons {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
-      {lpsT : List Name} {i : Nat} {rest : List Nat} {cvp : ConstantVal}
-      {mI rP : Nat} {rules : List RecRule} :
-      env.find? (projFnName T i) = some (.recInfo cvp mI rP rules) →
-      cvp.levelParams = lpsT →
-      (cvp.type.stripPis (targs.length + 1)).isSome = true →
-      Certs env d false (cvp.type.instantiateLevelParams cvp.levelParams us')
-        (targs ++ [b]) →
-      EtaProjCerts env d T us' targs b lpsT rest →
-      EtaProjCerts env d T us' targs b lpsT (i :: rest)
 
 end
 

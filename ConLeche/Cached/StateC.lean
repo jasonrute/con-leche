@@ -143,9 +143,6 @@ def peelFuel : Nat := 16777216
 
 @[inline] def peelFuelM : CheckCM Nat := pure peelFuel
 
-/-- The per-node loose-bvar bound — an `O(1)` field read. -/
-@[inline] def bvarBoundM (e : Expr) : CheckCM Nat := pure e.bvarB
-
 /-! ## Syntactic operations (the `*M` wrappers) -/
 
 /-- `Expr.instantiate1`; the identity — the same node, by reference —

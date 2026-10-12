@@ -60,12 +60,12 @@ The hypotheses about the run's final index (`q`) are the ones a
 separable value declaration needs: phase A installs its header and
 records the value group, and the group's own check — run at the FINAL
 environment, from a fresh memo state — is what the model step consumes. -/
-theorem annotStepC_model (hμ : μ.verifiedChecks = true)
+theorem installStepC_model (hμ : μ.verifiedChecks = true)
     {i : Nat} {fe fe₁ : FEnv} {pend pend₁ : Array PendingCheck} {pd : Declaration}
     {s s₁ : CState} {q : Nat × FEnv × Array PendingCheck} {new₁ : List PendingCheck}
     (hfe : fe = mkFEnv fe.env) (hfe₁ : fe₁ = mkFEnv fe₁.env)
     (hm : EnvModelOk V μ fe.env) (hresA : CSOKF s)
-    (hstepC : annotStepC μ pins i fe pend pd s = .ok ((fe₁, pend₁), s₁))
+    (hstepC : installStepC μ pins i fe pend pd s = .ok ((fe₁, pend₁), s₁))
     (hchainF : PushChain fe₁.env q.2.1)
     (hpend₁ : q.2.2.toList = pend₁.toList ++ new₁)
     (hnd : NodupNames q.2.1.env)
@@ -125,18 +125,18 @@ theorem annotStepC_model (hμ : μ.verifiedChecks = true)
       exact ⟨hm₁, hres₁, F', hdrel ▸ hF⟩
     cases pd with
     | defnDecl cv val hint =>
-      unfold annotStepC at hstepC
+      unfold installStepC at hstepC
       simp only [] at hstepC
       split at hstepC
       · exact ordinary _ hstepC
       · rename_i hnat
         obtain ⟨r, s₁', hval, hp⟩ := bindC_ok hstepC
-        obtain ⟨cvA, jty, jv⟩ := r
+        obtain ⟨cvA, jv⟩ := r
         obtain ⟨hv, rfl⟩ := pureC_ok hp
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, rfl, rfl, rfl, hwty, hwv, hI, hV⟩ := annotValueC_run hresA hval
+        obtain ⟨hres₁, rfl, rfl, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
         refine value .defn (fun cvA jv => .defnInfo cvA jv hint)
           (.defnDecl cvA jv hint) cvA jv rfl
           hres₁ rfl rfl hwty (fun _ => hwv) ?_
@@ -147,18 +147,17 @@ theorem annotStepC_model (hμ : μ.verifiedChecks = true)
     | thmDecl cv val =>
       -- phase A installed the header alone: the flush, the header's
       -- install half, the push of the RAW value
-      unfold annotStepC at hstepC
+      unfold installStepC at hstepC
       simp only [] at hstepC
       obtain ⟨u₀, s₁', hflush, h⟩ := bindC_ok hstepC
       rw [flushC_run] at hflush
       injection hflush with hflush
       obtain rfl : s.flushed = s₁' := congrArg Prod.snd hflush
-      obtain ⟨pr, s₂, hcv, h⟩ := bindC_ok h
-      obtain ⟨cvA, jty⟩ := pr
+      obtain ⟨cvA, s₂, hcv, h'⟩ := bindC_ok h
       rw [hfe] at hcv
-      obtain ⟨hs₂, rfl, rfl, hwty, hI⟩ :=
-        annotConstantValC_run (μ := μ) (flushC_csok hresA) hcv
-      obtain ⟨hv, rfl⟩ := pureC_ok h
+      obtain ⟨hs₂, rfl, hwty, hI⟩ :=
+        installHeaderC_run (μ := μ) (flushC_csok hresA) hcv
+      obtain ⟨hv, rfl⟩ := pureC_ok h'
       simp only [Prod.mk.injEq] at hv
       obtain ⟨rfl, rfl⟩ := hv
       refine value .thm (fun cvA _ => .thmInfo cvA) (.thmDecl cvA val) cvA val
@@ -167,28 +166,28 @@ theorem annotStepC_model (hμ : μ.verifiedChecks = true)
       intro F hC
       exact ⟨F, checkDecl_of_split_thm rfl hI rfl hC⟩
     | opaqueDecl cv val =>
-      unfold annotStepC at hstepC
+      unfold installStepC at hstepC
       simp only [] at hstepC
       split at hstepC
       · exact ordinary _ hstepC
       · rename_i hred
         obtain ⟨r, s₁', hval, hp⟩ := bindC_ok hstepC
-        obtain ⟨cvA, jty, jv⟩ := r
+        obtain ⟨cvA, jv⟩ := r
         obtain ⟨hv, rfl⟩ := pureC_ok hp
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, rfl, rfl, rfl, hwty, hwv, hI, hV⟩ := annotValueC_run hresA hval
+        obtain ⟨hres₁, rfl, rfl, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
         refine value .opaque (fun cvA _ => .axiomInfo cvA) (.opaqueDecl cvA jv)
           cvA jv rfl
           hres₁ rfl rfl hwty (fun _ => hwv) ?_
         intro F hC
         have hred' : reduceOpNames.contains cvA.name = false := Bool.not_eq_true _ ▸ hred
         exact ⟨F, checkDecl_of_split_opaque hred' rfl hI hV hC⟩
-    | axiomDecl cv => unfold annotStepC at hstepC; exact ordinary _ hstepC
-    | basisDecl kind => unfold annotStepC at hstepC; exact ordinary _ hstepC
-    | quotDecl k cv => unfold annotStepC at hstepC; exact ordinary _ hstepC
-    | indDecl block nP => unfold annotStepC at hstepC; exact ordinary _ hstepC
+    | axiomDecl cv => unfold installStepC at hstepC; exact ordinary _ hstepC
+    | basisDecl kind => unfold installStepC at hstepC; exact ordinary _ hstepC
+    | quotDecl k cv => unfold installStepC at hstepC; exact ordinary _ hstepC
+    | indDecl block nP => unfold installStepC at hstepC; exact ordinary _ hstepC
 
 /-- **The model along the run**: phase A's accepting run from a
 canonical index whose environment carries the model, with every record
@@ -212,14 +211,14 @@ theorem installRun_model (hμ : μ.verifiedChecks = true) {ds : List Declaration
   | @cons pd ds p p₁ q hstep rest ih =>
     intro hfe hm hnd hB
     obtain ⟨i, fe, pend⟩ := p
-    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := annotDeclStep_ok hstep
+    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := installDeclStep_ok hstep
     simp only at hfe hstepC
     obtain ⟨hpush₁, -⟩ :=
-      annotStepC_push μ i (PushChain.self hfe) pend pd {} (fe₁, pend₁) s₁ hstepC
+      installStepC_push μ i (PushChain.self hfe) pend pd {} (fe₁, pend₁) s₁ hstepC
     have hfe₁ : fe₁ = mkFEnv fe₁.env := hpush₁.canon
     obtain ⟨hchainF, new₁, hpend₁⟩ := installRun_trace μ rest (PushChain.self hfe₁)
     obtain ⟨hm₁, -⟩ :=
-      annotStepC_model hμ hfe hfe₁ hm CSOKF.empty hstepC hchainF hpend₁ hnd hB
+      installStepC_model hμ hfe hfe₁ hm CSOKF.empty hstepC hchainF hpend₁ hnd hB
     exact ih hfe₁ hm₁ hnd hB
 
 /-! ## The letters on the fully checked environment -/

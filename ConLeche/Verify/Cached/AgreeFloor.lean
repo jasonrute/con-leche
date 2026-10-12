@@ -231,22 +231,21 @@ theorem checkConstantValC_name (mode : CheckMode) (fe : FEnv)
   yields
   all_goals (apply Yields.pure; rfl)
 
-theorem annotConstantValC_fresh (fe : FEnv)
+theorem installHeaderC_fresh (fe : FEnv)
     (cv : ConstantVal) :
-    Yields (annotConstantValC fe cv)
-      (fun p => p.1.name = cv.name ∧ fe.find? cv.name = none) := by
-  unfold annotConstantValC
+    Yields (installHeaderC fe cv)
+      (fun p => p.name = cv.name ∧ fe.find? cv.name = none) := by
+  unfold installHeaderC
   yields
   all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
 
-theorem annotValueC_fresh (fe : FEnv) (cv : ConstantVal)
+theorem installGuardsC_fresh (fe : FEnv) (cv : ConstantVal)
     (value : Expr) :
-    Yields (annotValueC fe cv value)
+    Yields (installGuardsC fe cv value)
       (fun r => r.1.name = cv.name ∧ fe.find? cv.name = none) := by
-  unfold annotValueC
+  unfold installGuardsC
   ybind
-  refine Yields.bind' (annotConstantValC_fresh fe cv) fun p hp => ?_
-  obtain ⟨cvA, jty⟩ := p
+  refine Yields.bind' (installHeaderC_fresh fe cv) fun p hp => ?_
   ybind
   exact Yields.pure hp
 
@@ -1083,7 +1082,7 @@ theorem checkDeclStepC_skels (mode : CheckMode) {fe : FEnv}
 
 /-! ## The floor
 
-The fold installs every record by `annotStepC` (`checkDecls`,
+The fold installs every record by `installStepC` (`checkDecls`,
 `ConLeche/Cached/Installed.lean`) — a separable value declaration by
 the install halves, everything else by `checkDeclStepC` — and its
 phase B pushes nothing, so the skeleton spec `declCSkels` computes the
@@ -1109,28 +1108,27 @@ def streamSkels (ds : List Declaration) : List InstallSkel :=
 /-- Phase A's step body installs the declaration's skeletons: the value
 kinds push the one constant the fold's value checkers push, everything
 else runs `checkDeclStepC`. -/
-theorem annotStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
+theorem installStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
     {sk : List InstallSkel} (h : SkelIs fe sk) (pend : Array PendingCheck) (pd : Declaration) :
-    Yields (annotStepC mode pins i fe pend pd) (fun r => SkelIs r.1 (declCSkels pd sk)) := by
+    Yields (installStepC mode pins i fe pend pd) (fun r => SkelIs r.1 (declCSkels pd sk)) := by
   have hord : ∀ pd', Yields (do pure (← checkDeclStepC mode pins fe pd', pend) :
       CheckCM (FEnv × Array PendingCheck)) (fun r => SkelIs r.1 (declCSkels pd' sk)) :=
     fun pd' => Yields.bind' (checkDeclStepC_skels mode h pd') fun fe' h' => Yields.pure h'
-  unfold annotStepC
+  unfold installStepC
   cases pd with
   | defnDecl cv value hint =>
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (annotValueC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jty, jv⟩ := r
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
+      obtain ⟨cvA, jv⟩ := r
       apply Yields.pure
       show SkelIs (fe.push (.defnInfo cvA jv hint)) (.defn cv.name :: sk)
       rw [← hr.1]; exact h.push _
   | thmDecl cv value =>
     simp only []
     ybind
-    refine Yields.bind' (annotConstantValC_fresh fe cv) fun p hr => ?_
-    obtain ⟨cvA, jty⟩ := p
+    refine Yields.bind' (installHeaderC_fresh fe cv) fun cvA hr => ?_
     apply Yields.pure
     show SkelIs (fe.push (.thmInfo cvA)) (.thm cv.name :: sk)
     rw [← hr.1]; exact h.push _
@@ -1138,8 +1136,8 @@ theorem annotStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (annotValueC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jty, jv⟩ := r
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
+      obtain ⟨cvA, jv⟩ := r
       apply Yields.pure
       show SkelIs (fe.push (.axiomInfo cvA)) (.ax cv.name :: sk)
       rw [← hr.1]; exact h.push _
@@ -1158,9 +1156,9 @@ theorem installRun_skels (mode : CheckMode) {ds : List Declaration}
   induction h generalizing sk with
   | nil p => exact hp
   | @cons pd ds p p₁ q hstep rest ih =>
-    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := annotDeclStep_ok hstep
+    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := installDeclStep_ok hstep
     rw [List.foldl_cons]
-    exact ih (annotStepC_skels mode p.1 hp p.2.2 pd {} (fe₁, pend₁) s₁ hstepC)
+    exact ih (installStepC_skels mode p.1 hp p.2.2 pd {} (fe₁, pend₁) s₁ hstepC)
 
 /-- **The skeleton spec, at every mode.**  This is the floor's whole
 content: one fold, one proof. -/

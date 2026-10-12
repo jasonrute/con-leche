@@ -184,7 +184,6 @@ theorem Expr.instantiateLevelParams_self (ks : List Name) :
     | nil => rfl
     | cons x xs ih => simp [Level.subst_param_self, ih]
   induction e <;>
-    simp_all [Expr.instantiateLevelParams, Level.subst_param_self, hmap,
-      Level.substPW_self]
+    simp_all [Expr.instantiateLevelParams, Level.subst_param_self, hmap]
 
 end ConLeche

@@ -14,9 +14,9 @@ synthetic rule each (applying the lift/ind slot to the packed
 element), and `Quot.sound` as a stored axiom (true in the set model).
 
 The raw pins below match the exporter's `quot` records (and
-`Quot.sound`'s `axiom` record) verbatim; the *annotated* forms
-(`quotA`, …) are computed from them by the checker's own annotation
-pass at elaboration time; see `ConLeche/Kernel/BasisA.lean`.
+`Quot.sound`'s `axiom` record) verbatim; the *stored* forms
+(`quotA`, …) are computed from them at elaboration time; see
+`ConLeche/Kernel/BasisA.lean`.
 -/
 
 namespace ConLeche

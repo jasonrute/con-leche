@@ -1108,14 +1108,14 @@ theorem natRecMajor_ne_pt (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
 
 /-- **`Nat.rec`'s licence facts**, either rule: not K; the major's
 domain `ω` holds no point, so (S) and (P) hold outright; no indices,
-`paramsBlind`, `.plain`, so (U) is the trivial index pin. -/
+`.plain`, so (U) is the trivial index pin. -/
 theorem natRecExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (hN : env.find? natName = some natA)
     (hZ : env.find? natZeroName = some natZeroA)
     (hS : env.find? natSuccName = some natSuccA)
     (hac : m₂.acval = acvalWith m.acval natRecA.name A)
     (φ : Name → Nat) (rl : RecRule) (hk : rl.k = false)
-    (hpb : rl.paramsBlind = true) (hfire : rl.fire = .plain)
+    (hfire : rl.fire = .plain)
     (harity : ∀ (cvj : ConstantVal) (cnP cnF : Nat),
       (⟨natRecA :: env.consts⟩ : Env).find? rl.ctor
         = some (.ctorInfo cvj cnP cnF) →
@@ -1130,7 +1130,7 @@ theorem natRecExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     exact absurd ha
       (natRecMajor_ne_pt (m := m) m₂ hN hZ hS hac φ us hTVa ρ hxs hfit)
   · intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
-    refine ⟨fun h => by simp [hpb] at h, fun lvls pins h => ?_,
+    refine ⟨fun lvls pins h => ?_,
       fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
     rw [hfire] at h
     cases h
@@ -1144,7 +1144,7 @@ theorem natRecZeroExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (φ : Name → Nat) :
     RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecZeroRule :=
-  natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl rfl rfl
+  natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl rfl
     (fun _ _ _ _ => rfl)
 
 /-- `Nat.rec`'s `succ` rule's licence facts. -/
@@ -1156,7 +1156,7 @@ theorem natRecSuccExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (φ : Name → Nat) :
     RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecSuccRule := by
-  refine natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl rfl rfl ?_
+  refine natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl rfl ?_
   intro cvj cnP cnF hfj
   have hS' : (⟨natRecA :: env.consts⟩ : Env).find? natSuccName
       = some natSuccA := by
@@ -1189,7 +1189,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
       denoteMeta_natRec_zeroRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev _ hnested hpin hTVa hTVja hfitR hfitC
+    hlev hnested hpin hTVa hTVja hfitR hfitC
   obtain rfl : ys = [] := List.eq_nil_of_length_eq_zero hys
   obtain rfl : TVa = _ := (Option.some.inj
     ((natRecTyRead (m := m) m₂ hN hZ hS hac φ us hψ).symm.trans
@@ -1242,7 +1242,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
       denoteMeta_natRec_succRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev _ hnested hpin hTVa hTVja hfitR hfitC
+    hlev hnested hpin hTVa hTVja hfitR hfitC
   obtain ⟨n, rfl⟩ : ∃ a, ys = [a] := by
     match ys, hys with
     | [a], _ => exact ⟨a, rfl⟩

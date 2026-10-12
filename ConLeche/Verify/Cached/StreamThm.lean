@@ -20,11 +20,11 @@ survives to the end of the run.
 Three ingredients, one per step of the walk:
 
 * **the header is stored as declared.**  Phase A's header install
-  (`annotConstantValC`) runs guards only and returns the declared
-  header: `annotConstantValC_const`.
-* **a theorem record is never dropped.**  `annotStepC`'s `thmDecl` arm
+  (`installHeaderC`) runs guards only and returns the declared
+  header: `installHeaderC_const`.
+* **a theorem record is never dropped.**  `installStepC`'s `thmDecl` arm
   either throws or pushes `.thmInfo ⟨cv.name, cv.levelParams, jty⟩`
-  with the declared type `jty`: `annotStepC_thm_consts`.
+  with the declared type `jty`: `installStepC_thm_consts`.
 * **pushed constants persist.**  An accepting `InstallRun` only ever
   extends the constants list (`installRun_trace`, `PushChain`), so what
   the theorem's step pushed is still there at the end of phase A —
@@ -47,12 +47,12 @@ variable {pins : List NatOpPinSet}
 
 /-- Phase A's header install returns the header with the declared type
 unchanged; at a bare constant type, that constant. -/
-theorem annotConstantValC_const {fe : FEnv}
-    {cv cvA : ConstantVal} {jty : Expr} {n : Name} {ls : List Level}
+theorem installHeaderC_const {fe : FEnv}
+    {cv cvA : ConstantVal} {n : Name} {ls : List Level}
     {s₀ s' : CState} (hty : cv.type = .const n ls)
-    (h : annotConstantValC fe cv s₀ = .ok ((cvA, jty), s')) :
+    (h : installHeaderC fe cv s₀ = .ok (cvA, s')) :
     cvA = ⟨cv.name, cv.levelParams, .const n ls⟩ := by
-  unfold annotConstantValC at h
+  unfold installHeaderC at h
   by_cases h1 : (fe.find? cv.name).isSome = true
   · rw [ite_eq_left h1] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_right h1] at h
@@ -78,32 +78,30 @@ theorem annotConstantValC_const {fe : FEnv}
   by_cases h8 : constsResolveFC fe cv.type = true
   case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h8] at h
-  obtain ⟨hv, _⟩ := pureC_ok h
-  obtain ⟨rfl, _⟩ := Prod.mk.injEq .. ▸ hv
+  obtain ⟨rfl, _⟩ := pureC_ok h
   rw [← hty]
 
 /-! ## A theorem record is installed, with its declared type -/
 
 /-- Phase A's step at a `thmDecl` record with a bare declared type:
 the constant it pushes is a `.thmInfo` of that very type. -/
-theorem annotStepC_thm_consts {mode : CheckMode} {i : Nat} {fe : FEnv}
+theorem installStepC_thm_consts {mode : CheckMode} {i : Nat} {fe : FEnv}
     {pend : Array PendingCheck} {cv : ConstantVal} {value : Expr}
     {n : Name} {ls : List Level} {s₀ s' : CState}
     {fe' : FEnv} {pend' : Array PendingCheck} (hty : cv.type = .const n ls)
-    (h : annotStepC mode pins i fe pend (.thmDecl cv value) s₀ = .ok ((fe', pend'), s')) :
+    (h : installStepC mode pins i fe pend (.thmDecl cv value) s₀ = .ok ((fe', pend'), s')) :
     fe'.env.consts =
       ConstantInfo.thmInfo ⟨cv.name, cv.levelParams, .const n ls⟩ ::
         fe.env.consts := by
-  unfold annotStepC at h
+  unfold installStepC at h
   simp only [] at h
   obtain ⟨_, s₁, hfl, h⟩ := bindC_ok h
   rw [show (flushC : CheckCM Unit) s₀ = .ok ((), s₀.flushed) from rfl] at hfl
   have hs₁ : s₀.flushed = s₁ := congrArg Prod.snd (Except.ok.inj hfl)
   subst hs₁
-  obtain ⟨p, s₂, hcv, h⟩ := bindC_ok h
-  obtain ⟨cvA, jty⟩ := p
-  obtain rfl := annotConstantValC_const hty hcv
-  obtain ⟨hv, _⟩ := pureC_ok h
+  obtain ⟨cvA, s₂, hcv, h'⟩ := bindC_ok h
+  obtain rfl := installHeaderC_const hty hcv
+  obtain ⟨hv, _⟩ := pureC_ok h'
   obtain ⟨rfl, _⟩ := Prod.mk.injEq .. ▸ hv
   rfl
 
@@ -121,13 +119,13 @@ theorem installRun_thmDecl_const {mode : CheckMode} {ds : List Declaration}
   induction h with
   | nil p => exact absurd hmem (List.not_mem_nil)
   | @cons pd ds p p₁ q hstep rest ih =>
-    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := annotDeclStep_ok hstep
+    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := installDeclStep_ok hstep
     have hchain : PushChain p.2.1.env fe₁ :=
-      (annotStepC_push mode p.1 (PushChain.self hcanon) p.2.2 pd {} (fe₁, pend₁) s₁
+      (installStepC_push mode p.1 (PushChain.self hcanon) p.2.2 pd {} (fe₁, pend₁) s₁
         hstepC).1
     rcases List.mem_cons.mp hmem with rfl | hmem'
     · -- the record is this step's: its constant is pushed here
-      have hconsts := annotStepC_thm_consts hty hstepC
+      have hconsts := installStepC_thm_consts hty hstepC
       obtain ⟨⟨_, ⟨new, hnew⟩, _⟩, _⟩ :=
         installRun_trace mode rest (PushChain.self hchain.canon)
       refine ⟨ConstantInfo.thmInfo ⟨cv.name, cv.levelParams, .const n ls⟩, ?_, rfl⟩

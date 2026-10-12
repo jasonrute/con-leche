@@ -26,14 +26,10 @@ proves what the datum alone cannot say, namely how it relates to
 * **The substitution pushforward** — `zeronessOf_subst`:
   `zeronessOf (subst ks vs l) = substPW ks vs (zeronessOf l)`, an
   *equality* of data (`bindZ` distributes over `inter`).
-* **The instantiation laws** — `substPW_self` (identity at a
-  declaration's own parameters, unconditional: the datum is canonical
-  by construction since task #194, so `bindZ` at the unit is the
-  identity as an equality, `PropWhen.bindZ_unit`) and `substPW_comp`
-  (composition, under the same parameter-definedness hypothesis the
-  level side has — `PropWhen.paramsDefined`, folded into
-  `Expr.allLevelParamsDefined`), `substPW_paramsDefined`,
-  `zeronessOf_paramsDefined`, and the semantic reading
+* **The composition law** — `substPW_comp`, under the same
+  parameter-definedness hypothesis the level side has
+  (`PropWhen.paramsDefined`), with `zeronessOf_paramsDefined`, and
+  the semantic reading
   `holds_substPW`.
 
 Nothing here unfolds the datum's representation: every step goes
@@ -93,36 +89,6 @@ theorem zeronessOf_subst (ks : List Name) (vs : List Level) :
   | .imax a b => by
     show zeronessOf (subst ks vs b) = _
     exact zeronessOf_subst ks vs b
-
-/-- `subst.go` at the identity substitution. -/
-theorem subst_go_self (ks : List Name) (n : Name) :
-    subst.go ks (ks.map Level.param) n = .param n := by
-  induction ks with
-  | nil => rfl
-  | cons k ks ih =>
-    show (if k = n then Level.param k else subst.go ks (ks.map .param) n)
-      = _
-    by_cases h : k = n
-    · simp [h]
-    · simp [h, ih]
-
-/-- Instantiating a datum at the declaration's own parameters is the
-identity — unconditionally.  Amendment 2 (task #161 P1) found this
-law false for a *normalizing* `substPW` on a *non-canonical* datum;
-since task #194 every datum is canonical by construction, so there is
-no such datum and the law is an equality again (`PropWhen.bindZ_unit`
-is its datum half). -/
-theorem substPW_self (ks : List Name) (pw : PropWhen) :
-    substPW ks (ks.map Level.param) pw = pw := by
-  show pw.bindZ _ = pw
-  have : pw.bindZ (fun n => zeronessOf (subst.go ks (ks.map .param) n))
-      = pw.bindZ (fun n => .ifAllZero [n]) := by
-    cases pw with
-    | never => rfl
-    | ifAllZero ps =>
-      rw [bindZ_ifAllZero, bindZ_ifAllZero]
-      exact bindZ_congr_names fun n _ => by rw [subst_go_self]; rfl
-  rw [this, bindZ_unit]
 
 /-- `subst.go` under a mapped replacement list: a parameter resolved
 within the pairing factors through the outer substitution. -/

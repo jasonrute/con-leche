@@ -23,7 +23,7 @@ one piece of work, because all three need the same fact:
 > **at the RECURSOR's parameter frame**, not only at the
 > constructor's own.
 
-The iota rule is `paramsBlind`: the kernel fires it on a syntactic
+The iota rule is `.plain`: outside case 3 the kernel fires it on a syntactic
 constructor head and takes the parameters from the RECURSOR's spine
 and the fields from the CONSTRUCTOR's, comparing the two parameter
 spines nowhere (`Model/Annot/Laws.lean`, and `recFireComparands` at a
@@ -151,7 +151,8 @@ theorem blockCtorSpine_split {mm j : Nat} {cA : ConstantVal × Nat}
 constructor's field values fit its STORED field domains AT THE
 RECURSOR's parameter frame, at the index tuple the major names.
 
-Nothing syntactic produces this — the rule is `paramsBlind`.  What
+Nothing syntactic produces this — a `.plain` rule's parameters are
+not compared outside case 3.  What
 produces it is the MAJOR PREMISE, in four moves:
 
 1. the major is the constructor at ITS OWN parameters, so its value is
@@ -443,8 +444,8 @@ at those parameters (`resIdxFit`, `idxOk`) — so the conditional
 equalities are equalities (`spineFit_eq_of_cond`), once the parameters
 are compared.
 
-**The parameters must be compared.**  A `.plain` rule is
-`paramsBlind`: at `d.w ψ ≠ 0` the major ties the two parameter spines
+**The parameters must be compared.**  A `.plain` rule's parameters
+are compared only at case 3: at `d.w ψ ≠ 0` the major ties the two parameter spines
 (§2, injectivity), at `d.w ψ = 0` nothing does, and the two index
 lists then fit the index telescope at two parameter frames — two
 different types, so a point and a non-point index value can be

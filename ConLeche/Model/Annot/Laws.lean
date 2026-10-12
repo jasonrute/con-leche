@@ -557,9 +557,9 @@ at its own levels:
   family is `Prop` there; F3/F2's slot law);
 * **(U) coherence**: at a fired spine, the conditional comparisons the
   step ran are equations — the parameters where they are compared (a
-  `.nested` rule's pins always, a `.plain` rule's where it is not
-  `paramsBlind` or where the major is the point, case 3), the index
-  pin where the major is the point (L7's `blockRule_coherent`). -/
+  `.nested` rule's pins always, a `.plain` rule's where the major is
+  the point, case 3), the index pin where the major is the point (L7's
+  `blockRule_coherent`). -/
 @[expose] def RecRuleExtra {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
     (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
@@ -616,9 +616,8 @@ at its own levels:
         TeleFitPA V ρ TVja ys restC →
         (∀ x ∈ xs, WellDenotedV V ρ x) → (∀ y ∈ ys, WellDenotedV V ρ y) →
         (RecRule.fire rl = .plain →
-          (RecRule.paramsBlind rl = false ∨
-            interp V ρ (AnnotTerm.mkAppN
-              (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt) →
+          interp V ρ (AnnotTerm.mkAppN
+            (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           ∀ i, i < RecRule.ctorParams rl → i < mI →
             interp V ρ (ys.getD i default) ≠ pt → interp V ρ (xs.getD i default) ≠ pt →
             interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) →
@@ -636,9 +635,6 @@ at its own levels:
         (interp V ρ (AnnotTerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           IotaIndexPinC (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
-        (RecRule.paramsBlind rl = false → RecRule.fire rl = .plain →
-          ∀ i, i < RecRule.ctorParams rl → i < mI →
-            interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) ∧
         (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
           ∀ i, i < RecRule.ctorParams rl →
           ∀ vpa : AnnotTerm,
@@ -702,12 +698,6 @@ section note). -/
           = Level.substFn φ cvj.levelParams
               (ConLeche.recFireComparands rl cv.levelParams us
                 cvj.levelParams [] rP).1 →
-        -- the ι step's parameter comparison, supplied only for a rule
-        -- that is not `paramsBlind`
-        (RecRule.paramsBlind rl = false → RecRule.fire rl = .plain →
-          ∀ i, i < RecRule.ctorParams rl → i < mI →
-            interp V ρ (ys.getD i default)
-              = interp V ρ (xs.getD i default)) →
         (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
           ∀ i, i < RecRule.ctorParams rl →
           ∀ vpa : AnnotTerm,
@@ -957,7 +947,7 @@ dummy binders carry the reading only; the law never reads them. -/
       -- where every constructor binder is graph-regime and graph
       -- rigidity pins the memberships), and the certified spine's fit
       -- against the constructor's own type reading (`projCert`'s
-      -- `iotaCerts`) — the squash regime's
+      -- arity check, `Certs.licensed_sound`) — the squash regime's
       -- premise, where the application is the point and the fit pins
       -- the selected field to a proposition's domain (its sort is `0`
       -- there: the O5 bound at a non-`Prop` family, the guard at a

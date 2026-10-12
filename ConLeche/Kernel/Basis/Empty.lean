@@ -9,9 +9,9 @@ public import ConLeche.Kernel.Basis.Builder
 
 The raw pin — the `Empty` block exactly as an export carries it (no
 constructors, hence no iota rules): the toolchain's `Init.Prelude`
-declaration at the parser's raw binder annotations.  The *annotated* forms (`emptyA`, `emptyRecA`) are
-computed from these by the checker's own annotation pass at
-elaboration time; see `ConLeche/Kernel/BasisA.lean`.
+declaration at the parser's raw binder annotations.  The *stored*
+forms (`emptyA`, `emptyRecA`) are computed from these at elaboration
+time; see `ConLeche/Kernel/BasisA.lean`.
 -/
 
 namespace ConLeche

@@ -112,7 +112,7 @@ private theorem whnfCoreStepM_unfold (env : Env) (cheap : Bool) (d : Nat)
   case proj sn i pe => cases cheap <;> rfl
 
 /-- The projection rule simulates its specification. -/
-theorem reduceProjCoreC_sim (ih : SSimC mode env f) (henv : EnvWF env)
+theorem reduceProjCoreC_sim (ih : SSimC mode env f)
     {d : Nat} {sn : Name} {ip : Nat} {i : Expr} {ex : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelOC d)
@@ -151,18 +151,13 @@ theorem reduceProjCoreC_sim (ih : SSimC mode env f) (henv : EnvWF env)
         refine SimC.bind_left
           (pureBvar_eff hs₁ 0)
           (fun s₂ bvar0 hs₂ hQ0 => ?_)
-        refine SimC.bind (projCertAtC_sim ih henv hs₂ hargs
-            (fun x hx => hwe'.getAppArgs x hx))
-          (fun s₃ b b' hs₃ hPb => ?_)
-        obtain rfl : b = b' := hPb
-        cases b with
-        | true =>
-          simp only [↓reduceIte]
-          exact SimC.pure hs₃
-            (show RelEC d _ _ from ⟨RelCL.getD hQ0 (entry.numParams + ip) hargs, hwarg⟩)
-        | false =>
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          exact SimC.pure hs₃ trivial
+        rw [projCertAtF_mkFEnv,
+          show Expr.getAppArgsC e' = Expr.getAppArgs e' from hargs]
+        split
+        · exact SimC.pure hs₂
+            (show RelEC d _ _ from
+              ⟨RelCL.getD hQ0 (entry.numParams + ip) (show RelCL _ _ from rfl), hwarg⟩)
+        · exact SimC.pure hs₂ trivial
       · exact SimC.pure hs₁ trivial
     | _ => exact SimC.pure hs₁ trivial
 
@@ -539,7 +534,7 @@ theorem whnfCoreStepC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
       refine SimC.bind (ih.whnf hs rfl hwpe)
         (fun s₀' e₀ e₀x hs₀' hP₀ => ?_)
       obtain ⟨he₀d, hwe₀⟩ := hP₀
-      refine SimC.bind (reduceProjCoreC_sim ih henv hs₀' he₀d hwe₀)
+      refine SimC.bind (reduceProjCoreC_sim ih hs₀' he₀d hwe₀)
         (fun s₁ o ox hs₁ hPo => ?_)
       cases o with
       | some m =>
@@ -557,7 +552,7 @@ theorem whnfCoreStepC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
       refine SimC.bind (ih.whnfCore hs rfl hwpe)
         (fun s₀' e₀ e₀x hs₀' hP₀ => ?_)
       obtain ⟨he₀d, hwe₀⟩ := hP₀
-      refine SimC.bind (reduceProjCoreC_sim ih henv hs₀' he₀d hwe₀)
+      refine SimC.bind (reduceProjCoreC_sim ih hs₀' he₀d hwe₀)
         (fun s₁ o ox hs₁ hPo => ?_)
       cases o with
       | some m =>

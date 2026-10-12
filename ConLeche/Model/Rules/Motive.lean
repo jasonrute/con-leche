@@ -224,14 +224,14 @@ sort, at the hereditary clause's witness. -/
   | .full, d, e, t => InferSemFull m φ d e t
   | .io, d, e, t => InferSemIO m φ d e t
 
-/-- **`Certs`' motive**: the certified spine fits the telescope's
-reading, substitution-peeling.  At a licensed walk the skipped slots are
-recovered from the spine's own grading and the head's membership
-(`slotTransfer`) where the spine is not the point ("not pt" source (2):
-a reduction claims nothing of a redex that is the point), which are
-therefore premises exactly there. -/
+/-- **The licensed telescope check's motive**: a spine of the subject
+whose head's telescope has the spine's syntactic arity fits the
+telescope's reading, substitution-peeling, where the spine is graded,
+its head a member of the telescope's reading and the application not
+the point ("not pt" source (2): a reduction claims nothing of a redex
+that is the point) — premises exactly there. -/
 @[expose] def CertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (d : Nat) (lic : Bool) (ty : Expr) (args : List Expr) : Prop :=
+    (d : Nat) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
   ∀ {Δa : List AnnotTerm} {Ta fa : AnnotTerm} {vs : List AnnotTerm},
     CtxOkS m φ d Δa ty →
@@ -242,8 +242,7 @@ therefore premises exactly there. -/
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
         (∀ x ∈ args, LeavesGr m φ d x ρ) →
         WellDenotedV V ρ Ta → (∀ x ∈ vs, WellDenotedV V ρ x) →
-        (lic = true →
-          WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
+        (WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
             interp V ρ fa ∈ˢ interp V ρ Ta ∧
             interp V ρ (AnnotTerm.mkAppN fa vs) ≠ pt) →
         TeleFitPA V ρ Ta vs resta ∧ WellDenotedV V ρ resta
@@ -300,19 +299,6 @@ second spine. -/
       (∀ x ∈ as, LeavesGr m φ d x ρ) → (∀ x ∈ bs, LeavesGr m φ d x ρ) →
       (∀ x ∈ asa, WellDenotedV V ρ x) → (∀ x ∈ bsa, WellDenotedV V ρ x) →
       asa.map (interp V ρ) = bsa.map (interp V ρ)
-
-/-- **`EtaProjCerts`' motive**: each certified field slot is a stored
-projection function whose telescope the type's arguments and the
-stuck side fit — `CertsSem` at every listed index. -/
-@[expose] def EtaProjCertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (d : Nat) (T : Name) (us' : List Level) (targs : List Expr) (b : Expr)
-    (lpsT : List Name) (idxs : List Nat) : Prop :=
-  ∀ i ∈ idxs, ∃ (cvp : ConstantVal) (mI rP : Nat) (rules : List RecRule),
-    env.find? (projFnName T i) = some (.recInfo cvp mI rP rules) ∧
-    cvp.levelParams = lpsT ∧
-    (cvp.type.stripPis (targs.length + 1)).isSome = true ∧
-    CertsSem m φ d false (cvp.type.instantiateLevelParams cvp.levelParams us')
-      (targs ++ [b])
 
 /-! ### The unconditional motives weaken to the conditional ones -/
 
