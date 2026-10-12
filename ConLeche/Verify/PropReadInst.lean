@@ -4,7 +4,6 @@ public import ConLeche.Verify.PropRead
 import ConLeche.Verify.InstLevels
 public import ConLeche.Verify.EnvWF
 import ConLeche.Kernel.PropWhen
-import all ConLeche.Kernel.PropWhen
 
 public section
 

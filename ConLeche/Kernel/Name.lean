@@ -16,7 +16,7 @@ import all Init.Util
 a `@[computed_field]`, pointer-and-hash-guarded equality substituted by
 `@[csimp]`).  Split out of `ConLeche/Kernel/Expr.lean` on 2026-09-06 so
 that `ConLeche/Kernel/PropWhen.lean` — which needs names and nothing
-else — can sit *below* the expression type it annotates.
+else — can sit *below* the expression and level types.
 -/
 
 @[expose] public section

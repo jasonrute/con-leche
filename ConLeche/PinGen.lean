@@ -94,10 +94,9 @@ instance : ToExpr ConLeche.Level where
   toTypeExpr := levelT
 
 instance : ToExpr ConLeche.PropWhen where
-  toExpr pw :=
-    match pw.toList? with
-    | none => .const ``ConLeche.PropWhen.never []
-    | some ps => .app (.const ``ConLeche.PropWhen.ifAllZero []) (toExpr ps)
+  toExpr
+    | .never => .const ``ConLeche.PropWhen.never []
+    | .ifAllZero ps => .app (.const ``ConLeche.PropWhen.ifAllZero []) (toExpr ps)
   toTypeExpr := .const ``ConLeche.PropWhen []
 
 instance : ToExpr ConLeche.BinderMeta where

@@ -3,11 +3,6 @@ module
 public import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Verify.Inductives.DirectGen
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 import ConLeche.Model.Rules.InferSoundKit
 
 public section

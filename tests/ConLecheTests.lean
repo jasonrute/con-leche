@@ -171,30 +171,22 @@ private def mkThm (n : String) (type value : Expr) : Declaration :=
 
 /-! ## The `PropWhen` datum (`ConLeche/Kernel/PropWhen.lean`) -/
 
--- (pw-canonical, task #194): the datum is canonical by construction —
--- equal parameter SETS are equal VALUES, so `==`, `DecidableEq` and
--- `Hashable` decide zero-ness agreement; order and duplicates vanish at
--- the smart constructor; `inter` is commutative and idempotent as an
--- equality; instantiating at the declaration's own parameters is the
--- identity (the law amendment 2 had lost).
+-- The datum is a plain list (duplicates and order kept); the checker
+-- reads it only through `isNever` and `isProp`, and `holds` is its
+-- meaning.
 private def nU : Name := .str .anonymous "u"
 private def nV : Name := .str .anonymous "v"
 private def nW : Name := .str .anonymous "w"
-#guard PropWhen.ifAllZero [nU, nV] == PropWhen.ifAllZero [nV, nU]
-#guard PropWhen.ifAllZero [nU, nU] == PropWhen.ifAllZero [nU]
-#guard PropWhen.ifAllZero [nW, nU, nV, nU, nW] == PropWhen.ifAllZero [nU, nV, nW]
-#guard PropWhen.ifAllZero [nU, nV] != PropWhen.ifAllZero [nU]
-#guard hash (PropWhen.ifAllZero [nV, nU]) == hash (PropWhen.ifAllZero [nU, nV, nU])
-#guard (PropWhen.ifAllZero [nW, nV, nU, nV]).toList == [nU, nV, nW]
-#guard PropWhen.ifAllZero [nU, nV] != PropWhen.never
-#guard (PropWhen.ifAllZero [nU, nV]).inter (PropWhen.ifAllZero [nW])
-  == (PropWhen.ifAllZero [nW]).inter (PropWhen.ifAllZero [nV, nU])
-#guard (PropWhen.ifAllZero [nU]).inter (PropWhen.ifAllZero [nU]) == PropWhen.ifAllZero [nU]
-#guard (PropWhen.ifAllZero [nU]).inter (PropWhen.ifAllZero [nV]) == PropWhen.ifAllZero [nV, nU]
-#guard Level.substPW [nU, nV] [.param nU, .param nV] (PropWhen.ifAllZero [nV, nU])
-  == PropWhen.ifAllZero [nU, nV]
-#guard Level.zeronessOf (.max (.param nW) (.max (.param nU) (.param nW)))
-  == PropWhen.ifAllZero [nU, nW]
+private def φU : Name → Nat := fun n => if n == nU then 1 else 0
+#guard (Level.zeronessOf (.max (.param nW) (.max (.param nU) (.param nW)))).holds φU == false
+#guard (Level.zeronessOf (.max (.param nW) (.param nV))).holds φU == true
+#guard (Level.zeronessOf (.imax (.param nU) (.succ (.param nV)))).isNever
+#guard !(Level.zeronessOf (.max (.param nU) (.param nV))).isNever
+#guard (Level.zeronessOf .zero).isProp
+#guard !(Level.zeronessOf (.param nU)).isProp
+#guard (Level.substPW [nU] [.zero] (Level.zeronessOf (.max (.param nU) .zero))).isProp
+#guard (Level.substPW [nU, nV] [.succ .zero, .param nW]
+  (PropWhen.ifAllZero [nV, nU])).isNever
 
 /-! ## Frontend: basis `_model` companions are ordinary declarations
 

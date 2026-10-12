@@ -11,12 +11,6 @@ import ConLeche.Model.Annot.BitRename
 import ConLeche.Verify.PropRead
 import ConLeche.Model.Annot.BitClosed
 import ConLeche.Verify.InstLevels
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but
-not `@[expose]`d, so the `cases`-then-`rfl` steps of the squash-regime
-facts below cannot see the reduct.  `import all` restores that view
-HERE only. -/
-import all ConLeche.Kernel.PropWhen
 import ConLeche.Semantics.Hoist
 import ConLeche.Model.Annot.BitLevels
 import ConLeche.Rules.Rigid
@@ -216,8 +210,8 @@ theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm}
 valuation. -/
 theorem holds_of_isProp {pw : PropWhen}
     (h : pw.isProp = true) (φ : Name → Nat) : pw.holds φ = true := by
-  rw [eq_of_beq h]
-  rfl
+  match pw, h with
+  | .ifAllZero [], _ => rfl
 
 /-! ## Leaves of a spine's head -/
 
