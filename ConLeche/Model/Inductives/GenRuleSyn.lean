@@ -37,7 +37,7 @@ namespace ConLeche.Model
 open ConLeche.Term ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantVal ClassGen ClassCtor CheckMode
   closeLams TargetMajor ClassRead)
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 /-! ## The stored rule, opened and read -/
 
@@ -53,8 +53,8 @@ instantiated at the earlier variables, exactly as `denoteMeta` reads a
 
 /-- An opened λ-telescope's binders (`openLamsM`, from depth `j`), read:
 each binder's domain read at its depth. -/
-@[expose] def readLamBs (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat) :
-    Nat → List Expr → List AnnotTerm
+@[expose] def readLamBs (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat) :
+    Nat → List Expr → List ITerm
   | _, [] => []
   | j, b :: bs => (denoteMeta acval env ψ j b).getD default ::
       readLamBs acval env ψ (j + 1) bs
@@ -73,7 +73,7 @@ the graph's class index), the `ih` λ's telescope (its binders' own bits
 and domains), and its call's index arguments and major argument (the
 call's arguments past the prefix variables).  The recursor constant the
 call names is not read: the chain variable stands for it (`genIhAV`). -/
-@[expose] noncomputable def genIhdR (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
+@[expose] noncomputable def genIhdR (acval : Name → (Name → Nat) → ITerm) (env : Env)
     (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen) (rd : ClassRead)
     (ψ : Name → Nat) (c j : Nat) : List IhDatum :=
   let x := genCtorAt g rd c j
@@ -91,9 +91,9 @@ call names is not read: the chain variable stands for it (`genIhAV`). -/
 
 /-- **The `ih` terms** read off the STORED rule, in chain form (`genIhAV`:
 the callee its chain variable below the frame). -/
-@[expose] noncomputable def genIhsR (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
+@[expose] noncomputable def genIhsR (acval : Name → (Name → Nat) → ITerm) (env : Env)
     (K : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen)
-    (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) : List AnnotTerm :=
+    (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) : List ITerm :=
   (genIhdR acval env out g rd ψ c j).map
     (genIhAV K g.pre.length (g.pre.length + (genCtorAt g rd c j).nF))
 

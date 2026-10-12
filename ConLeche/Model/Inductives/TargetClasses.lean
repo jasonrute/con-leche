@@ -50,7 +50,7 @@ open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts BlockShape
   TargetMajor)
 
@@ -63,7 +63,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 section Data
 
 variable (d : BlockData V) (Dc : Nat → LfpDatum V) (mc : Nat → Nat) (cvc : Nat → ConstantVal)
-  (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env) (p : BlockShape)
+  (acval : Name → (Name → Nat) → ITerm) (envC : Env) (p : BlockShape)
   (out : List (ConstantVal × TargetMajor × List Expr)) (ψ : Name → Nat) (ρ : Nat → V)
 
 /-- Class `c`'s recorded clause: the block's own at a member major, the
@@ -136,7 +136,7 @@ end Data
 section Cases
 
 variable {d : BlockData V} {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
-  {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env} {p : BlockShape}
+  {acval : Name → (Name → Nat) → ITerm} {envC : Env} {p : BlockShape}
   {out : List (ConstantVal × TargetMajor × List Expr)} {ψ : Name → Nat} {ρ : Nat → V}
   {c : Nat}
 

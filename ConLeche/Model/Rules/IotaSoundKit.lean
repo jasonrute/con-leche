@@ -34,7 +34,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -49,7 +49,7 @@ is the residue only the ι rules use. -/
 
 namespace DenoteMetaSpine
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {d : Nat}
 
 /-- Every list of readable expressions has a reading spine. -/
 theorem exists_of_all :
@@ -68,11 +68,11 @@ end DenoteMetaSpine
 
 /-- **The spine congruence at `interp`.** -/
 theorem interp_mkAppN_congrK {ρ : Nat → V} :
-    ∀ (asa bsa : List AnnotTerm) {fa fb : AnnotTerm},
+    ∀ (asa bsa : List ITerm) {fa fb : ITerm},
       interp V ρ fa = interp V ρ fb →
       asa.map (interp V ρ) = bsa.map (interp V ρ) →
-      interp V ρ (AnnotTerm.mkAppN fa asa)
-        = interp V ρ (AnnotTerm.mkAppN fb bsa) := by
+      interp V ρ (ITerm.mkAppN fa asa)
+        = interp V ρ (ITerm.mkAppN fb bsa) := by
   intro asa
   induction asa with
   | nil =>
@@ -124,7 +124,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
     {n : Name} {ci : ConLeche.ConstantInfo} (hf : env.find? n = some ci)
     (hnt : ci.isTowerEntry = false) {us : List Level}
     (hlen : us.length = ci.toConstantVal.levelParams.length) :
-    ∃ ta : AnnotTerm,
+    ∃ ta : ITerm,
       (∀ d : Nat, denoteMeta m.acval env φ d
         (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us) = some ta) ∧
@@ -152,7 +152,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
 
 /-- A closed stored type is framed and in context at every depth. -/
 theorem frame_of_not_hasFvar {m : EnvModel V env} {d : Nat}
-    {Δa : List AnnotTerm} {e : Expr} (hnf : e.hasFvar = false)
+    {Δa : List ITerm} {e : Expr} (hnf : e.hasFvar = false)
     (hbd : e.looseBVarsBounded 0 = true) (hlen : Δa.length = d) :
     Frame d e ∧ CtxOkS m φ d Δa e :=
   ⟨⟨ConLeche.Expr.WScoped.of_not_hasFvar hnf, hbd,
@@ -163,9 +163,9 @@ theorem frame_of_not_hasFvar {m : EnvModel V env} {d : Nat}
 
 /-- A `.const` that reads was applied at the stored arity, and its
 reading is the leaf. -/
-theorem denoteMeta_const_arityK {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_const_arityK {acval : Name → (Name → Nat) → ITerm}
     {d : Nat} {n : Name} {us : List Level} {ci : ConLeche.ConstantInfo}
-    {ea : AnnotTerm} (hf : env.find? n = some ci)
+    {ea : ITerm} (hf : env.find? n = some ci)
     (h : denoteMeta acval env φ d (.const n us) = some ea) :
     us.length = ci.toConstantVal.levelParams.length ∧
       ea = acval n (Level.substFn φ ci.toConstantVal.levelParams us) := by
@@ -178,7 +178,7 @@ theorem denoteMeta_const_arityK {acval : Name → (Name → Nat) → AnnotTerm}
 /-! ## The annotated list algebra -/
 
 /-- Pointwise reading of a map equality at `getD` slots. -/
-theorem map_interp_getD_eqK {ρ : Nat → V} {as bs : List AnnotTerm}
+theorem map_interp_getD_eqK {ρ : Nat → V} {as bs : List ITerm}
     (h : as.map (interp V ρ) = bs.map (interp V ρ))
     {i : Nat} (hi : i < as.length) :
     interp V ρ (as.getD i default) = interp V ρ (bs.getD i default) := by
@@ -193,19 +193,19 @@ theorem map_interp_getD_eqK {ρ : Nat → V} {as bs : List AnnotTerm}
   simpa using h1
 
 /-- `getD` through `take`, below the cut. -/
-theorem getD_takeAK {as : List AnnotTerm} {k i : Nat} (hi : i < k) :
+theorem getD_takeAK {as : List ITerm} {k i : Nat} (hi : i < k) :
     (as.take k).getD i default = as.getD i default := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
     List.getElem?_take, ite_eq_left hi]
 
 /-- `getD` through `drop`. -/
-theorem getD_dropAK (as : List AnnotTerm) (k i : Nat) :
+theorem getD_dropAK (as : List ITerm) (k i : Nat) :
     (as.drop k).getD i default = as.getD (k + i) default := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
     List.getElem?_drop]
 
 /-- A list of length `k + 1` splits as its prefix plus its last element. -/
-theorem take_getD_splitAK {as : List AnnotTerm} {k : Nat}
+theorem take_getD_splitAK {as : List ITerm} {k : Nat}
     (h : as.length = k + 1) :
     as = as.take k ++ [as.getD k default] := by
   have hlen : (as.drop k).length = 1 := by
@@ -231,7 +231,7 @@ along the reduction's own `interp` equation. -/
 
 /-- **An app's argument may be exchanged for an interpretation-equal
 graded one**. -/
-theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
+theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : ITerm}
     (h : WellDenoted V ρ (.app f a)) (ha' : WellDenoted V ρ a')
     (heq : interp V ρ a = interp V ρ a') :
     WellDenoted V ρ (.app f a') := by
@@ -240,11 +240,11 @@ theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
   exact ⟨hf, ha', v, A, B, hslot, heq ▸ hmem, hcod⟩
 
 /-- The same at a spine's last argument. -/
-theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}
-    {as : List AnnotTerm}
-    (h : WellDenoted V ρ (AnnotTerm.mkAppN f (as ++ [a])))
+theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : ITerm}
+    {as : List ITerm}
+    (h : WellDenoted V ρ (ITerm.mkAppN f (as ++ [a])))
     (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
-    WellDenoted V ρ (AnnotTerm.mkAppN f (as ++ [a'])) := by
+    WellDenoted V ρ (ITerm.mkAppN f (as ++ [a'])) := by
   rw [annotMkAppN_append] at h ⊢
   exact wellDenoted_app_congr_argK h ha' heq
 
@@ -254,7 +254,7 @@ theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}
 theorem recRhs_depthK {m : EnvModel V env}
     {n : Name} {cv : ConstantVal} {mI rP : Nat}
     {rules : List RecRule} (hf : env.find? n = some (.recInfo cv mI rP rules))
-    {rl : RecRule} (hmem : rl ∈ rules) {us : List Level} {Ra : AnnotTerm}
+    {rl : RecRule} (hmem : rl ∈ rules) {us : List Level} {Ra : ITerm}
     (hRa0 : denoteMeta m.acval env φ 0
       ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us)
       = some Ra) :
@@ -282,7 +282,7 @@ theorem recRhs_depthK {m : EnvModel V env}
 /-- The frame of a `∀`-telescope's residual (at `Motive.lean`'s
 `Frame`). -/
 theorem piResidual_frameK {m : EnvModel V env} {d : Nat}
-    {Δa : List AnnotTerm} :
+    {Δa : List ITerm} :
     ∀ {T : Expr} {args : List Expr} {rest : Expr},
       ConLeche.piResidual T args = some rest →
       Frame d T → CtxOkS m φ d Δa T →
@@ -355,14 +355,14 @@ theorem piResidual_leavesGrK {m : EnvModel V env} {d : Nat} {ρ : Nat → V} :
 
 /-- **A `TeleFitPA` fit's residual is the reading of the checker's own
 `piResidual`**. -/
-theorem teleFitPA_residualK {acval : Name → (Name → Nat) → AnnotTerm}
+theorem teleFitPA_residualK {acval : Name → (Name → Nat) → ITerm}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : AnnotTerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
       (acval n ψ).inst y k = acval n ψ)
     {ρ : Nat → V} {d : Nat} :
-    ∀ (args : List Expr) {ty rest : Expr} {Ta restA : AnnotTerm}
-      {vs : List AnnotTerm},
+    ∀ (args : List Expr) {ty rest : Expr} {Ta restA : ITerm}
+      {vs : List ITerm},
       ConLeche.piResidual ty args = some rest →
       Expr.WScoped d ty →
       (∀ a ∈ args, Expr.WScoped d a ∧ a.looseBVarsBounded 0 = true) →
@@ -417,9 +417,9 @@ depth. -/
 
 /-- **The base-independence of the opened validated reading**: a
 constant-frame subject's reverse opening reads to the same annotation at every base.  The lift the
-induction has to absorb is killed by `AnnotTerm.liftN_eq_self` at the
+induction has to absorb is killed by `ITerm.liftN_eq_self` at the
 erasure's bvar bound — `denoteMeta_closed`'s route, one depth up. -/
-theorem denoteMeta_openRev_base {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_openRev_base {acval : Name → (Name → Nat) → ITerm}
     {cval : TConstVal}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
@@ -444,7 +444,7 @@ theorem denoteMeta_openRev_base {acval : Name → (Name → Nat) → AnnotTerm}
     | none => rfl
     | some v =>
       simp only [Option.map_some, Option.some.injEq, Nat.sub_zero]
-      refine AnnotTerm.liftN_eq_self v ?_ 1
+      refine ITerm.liftN_eq_self v ?_ 1
       have hws : Expr.WScoped n (openRev 0 n e) := by
         have h2 := openRev_WScoped (d := 0)
           (Expr.WScoped.of_not_hasFvar hnf) n
@@ -456,18 +456,18 @@ theorem denoteMeta_openRev_base {acval : Name → (Name → Nat) → AnnotTerm}
       exact hbv.mono (by omega)
 
 /-- **Real-argument instantiation, read through the reverse opening.** -/
-theorem denoteMeta_openRev {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_openRev {acval : Name → (Name → Nat) → ITerm}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : AnnotTerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
       (acval n ψ).inst y k = acval n ψ) :
     ∀ (as : List Expr) {e : Expr} {d : Nat},
       (∀ a ∈ as, Expr.WScoped d a ∧ a.looseBVarsBounded 0 = true) →
       Expr.fvarsBelow d e → e.looseBVarsBounded as.length = true →
-      ∀ {vs : List AnnotTerm}, DenoteMetaSpine acval env φ d as vs →
+      ∀ {vs : List ITerm}, DenoteMetaSpine acval env φ d as vs →
       denoteMeta acval env φ d (Expr.instSeq as (as.length - 1) e)
         = (denoteMeta acval env φ (d + as.length)
-            (openRev d as.length e)).map (AnnotTerm.instRevChain vs) := by
+            (openRev d as.length e)).map (ITerm.instRevChain vs) := by
   intro as
   induction as with
   | nil =>
@@ -503,8 +503,8 @@ theorem denoteMeta_openRev {acval : Name → (Name → Nat) → AnnotTerm}
       (openRev_fvarsBelow hfb as.length) (hwa.mono (by omega)) hba ha' 0]
     show ((denoteMeta acval env φ (d + as.length + 1)
       (openRev d (as.length + 1) e)).map
-        (AnnotTerm.inst · (va.liftN as.length) 0)).map
-        (AnnotTerm.instRevChain vs') = _
+        (ITerm.inst · (va.liftN as.length) 0)).map
+        (ITerm.instRevChain vs') = _
     rw [Option.map_map,
       show d + as.length + 1 = d + (a :: as).length from by
         simp only [List.length_cons]
@@ -515,9 +515,9 @@ theorem denoteMeta_openRev {acval : Name → (Name → Nat) → AnnotTerm}
     | none => rfl
     | some X =>
       simp only [Option.map_some, Option.some.injEq, Function.comp_apply]
-      show AnnotTerm.instRevChain vs' (X.inst (va.liftN as.length) 0) = _
-      rw [show AnnotTerm.instRevChain (va :: vs') X
-        = AnnotTerm.instRevChain vs' (X.inst (va.liftN vs'.length) 0) from rfl,
+      show ITerm.instRevChain vs' (X.inst (va.liftN as.length) 0) = _
+      rw [show ITerm.instRevChain (va :: vs') X
+        = ITerm.instRevChain vs' (X.inst (va.liftN vs'.length) 0) from rfl,
         hsp'.length]
 
 /-- **Real-argument instantiation, read through the reverse opening**,
@@ -525,15 +525,15 @@ theorem denoteMeta_openRev {acval : Name → (Name → Nat) → AnnotTerm}
 theorem denoteMeta_openRevK {m : EnvModel V env}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (m.acval n ψ).liftN 1 k = m.acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : AnnotTerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
       (m.acval n ψ).inst y k = m.acval n ψ) :
     ∀ (as : List Expr) {e : Expr} {d : Nat},
       (∀ a ∈ as, Expr.WScoped d a ∧ a.looseBVarsBounded 0 = true) →
       Expr.fvarsBelow d e → e.looseBVarsBounded as.length = true →
-      ∀ {vs : List AnnotTerm}, DenoteMetaSpine m.acval env φ d as vs →
+      ∀ {vs : List ITerm}, DenoteMetaSpine m.acval env φ d as vs →
       denoteMeta m.acval env φ d (Expr.instSeq as (as.length - 1) e)
         = (denoteMeta m.acval env φ (d + as.length)
-            (openRev d as.length e)).map (AnnotTerm.instRevChain vs) :=
+            (openRev d as.length e)).map (ITerm.instRevChain vs) :=
   denoteMeta_openRev hacl hainst
 
 /-- A list member is the value at one of its indices (the shape the
@@ -553,7 +553,7 @@ variable {V : Type w} [SetTheory V]
 one: the fit reads the argument only through its interpretation's
 membership, and the residual after it is the next binder's body at it. -/
 theorem teleFitPA_snoc_congr {ρ : Nat → V} :
-    ∀ (xs : List AnnotTerm) {T rest a b : AnnotTerm},
+    ∀ (xs : List ITerm) {T rest a b : ITerm},
       TeleFitPA V ρ T (xs ++ [a]) rest → interp V ρ a = interp V ρ b →
       ∃ rest', TeleFitPA V ρ T (xs ++ [b]) rest'
   | [], T, rest, a, b, h, heq => by
@@ -567,8 +567,8 @@ theorem teleFitPA_snoc_congr {ρ : Nat → V} :
       exact ⟨rest', .cons hmem h'⟩
 
 /-- A conditional pointwise comparison of two mapped spines, by index. -/
-theorem zip_cond_getD {f : AnnotTerm → V} :
-    ∀ {as bs : List AnnotTerm}, as.length = bs.length →
+theorem zip_cond_getD {f : ITerm → V} :
+    ∀ {as bs : List ITerm}, as.length = bs.length →
       (∀ p ∈ (as.map f).zip (bs.map f), p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
       ∀ i, i < as.length → f (as.getD i default) ≠ pt → f (bs.getD i default) ≠ pt →
         f (as.getD i default) = f (bs.getD i default)

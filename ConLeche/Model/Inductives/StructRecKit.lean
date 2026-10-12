@@ -31,7 +31,7 @@ variable {V : Type uv} [SetTheory V]
 
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps)
 
 universe w
@@ -40,8 +40,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env} {φ : Name → 
 
 /-- The parameter-variable spine of the constructor's opened body, in
 the reading's spelling. -/
-@[expose] def paramBvars (nP nF : Nat) : List AnnotTerm :=
-  (List.range nP).map fun k => AnnotTerm.bvar (nP + nF - 1 - k)
+@[expose] def paramBvars (nP nF : Nat) : List ITerm :=
+  (List.range nP).map fun k => ITerm.bvar (nP + nF - 1 - k)
 
 omit [SetTheory V] in
 theorem consList_range_reverse :
@@ -64,7 +64,7 @@ theorem consList_range_reverse :
 
 /-- The prefix and suffix of a peeled binder list, as the reversed
 context's parts. -/
-theorem reverse_map_take_drop (ds : List AnnotTerm) (nP : Nat) :
+theorem reverse_map_take_drop (ds : List ITerm) (nP : Nat) :
     ds.reverse = (ds.drop nP).reverse ++ (ds.take nP).reverse := by
   rw [← List.reverse_append, List.take_append_drop]
 
@@ -81,7 +81,7 @@ the reversed constructor context, and the field chain's universe bound
 /-- An opened type whose reading is a known peel: the opened record
 at the peel's reversed domains. -/
 theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
-    {fvs : List Expr} {o : Expr} {pps : List AnnotTerm} {b : AnnotTerm}
+    {fvs : List Expr} {o : Expr} {pps : List ITerm} {b : ITerm}
     (hop : openPisAtFvars k e 0 = some (fvs, o)) (hcl : e.hasFvar = false)
     (hb : e.looseBVarsBounded 0 = true)
     (hread : denoteMeta m.acval env φ 0 e = some (mkPisAV pps b))
@@ -96,7 +96,7 @@ theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
 
 /-- The field entries of the reversed constructor context are the
 peel's field domains. -/
-theorem fieldsFrom_eq_drop {ds : List AnnotTerm} {nP nF : Nat}
+theorem fieldsFrom_eq_drop {ds : List ITerm} {nP nF : Nat}
     (hlen : ds.length = nP + nF) :
     fieldsFrom ds.reverse (nP + nF) nP nF 0
       = ds.drop nP := by
@@ -110,7 +110,7 @@ theorem fieldsFrom_eq_drop {ds : List AnnotTerm} {nP nF : Nat}
 
 /-- The reversed constructor context above the fields is the reversed
 parameter context. -/
-theorem drop_fields_eq {ds : List AnnotTerm} {nP nF : Nat}
+theorem drop_fields_eq {ds : List ITerm} {nP nF : Nat}
     (hlen : ds.length = nP + nF) (i : Nat) (hi : i ≤ nP) :
     ds.reverse.drop (nP + nF - i)
       = (ds.take nP).reverse.drop (nP - i) := by
@@ -121,7 +121,7 @@ theorem drop_fields_eq {ds : List AnnotTerm} {nP nF : Nat}
     show nP + nF - i - nF = nP - i from by omega]
 
 /-- The field chain's universe bound, walked like its grading. -/
-theorem fieldsBound_of_frame {Γ : List AnnotTerm} {k nP nF w : Nat}
+theorem fieldsBound_of_frame {Γ : List ITerm} {k nP nF w : Nat}
     (hk : k = nP + nF) (hΓ : Γ.length = k)
     (hbnd : ∀ j, j < nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
       interp V ρ (Γ.getD (k - 1 - (nP + j)) default) ∈ˢ (univ w : V)) :
@@ -179,12 +179,12 @@ theorem range_reverse_map_consList :
 
 /-- Two domain lists whose reversed contexts have the same satisfying
 valuations fit the same spines. -/
-theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List AnnotTerm}
+theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List ITerm}
     (hlen : Ds₁.length = Ds₂.length)
     (hiff : ∀ ρ : Nat → V, Sat V Ds₁.reverse ρ ↔ Sat V Ds₂.reverse ρ)
     (ρ : Nat → V) (as : List V) (hl : as.length = Ds₁.length) :
     SpineFit ρ Ds₁ as ↔ SpineFit ρ Ds₂ as := by
-  have key : ∀ (Ds₁ Ds₂ : List AnnotTerm), Ds₁.length = Ds₂.length →
+  have key : ∀ (Ds₁ Ds₂ : List ITerm), Ds₁.length = Ds₂.length →
       (∀ ρ : Nat → V, Sat V Ds₁.reverse ρ → Sat V Ds₂.reverse ρ) →
       ∀ (ρ : Nat → V) (as : List V), as.length = Ds₁.length →
       SpineFit ρ Ds₁ as → SpineFit ρ Ds₂ as := by
@@ -204,7 +204,7 @@ theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List AnnotTerm}
 
 /-- The reversed constructor context's parameter entries are the
 reversed parameter context's. -/
-theorem getD_reverse_take {ds : List AnnotTerm} {nP nF : Nat}
+theorem getD_reverse_take {ds : List ITerm} {nP nF : Nat}
     (hlen : ds.length = nP + nF) {i : Nat} (hi : i < nP) :
     ds.reverse.getD (nP + nF - 1 - i) default
       = (ds.take nP).reverse.getD (nP - 1 - i) default := by
@@ -230,9 +230,9 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
 /-! ## Lifted Π-towers -/
 
 theorem stripPisAV_mkPisAV_take
-    (n : Nat) (ds : List AnnotTerm) (b : AnnotTerm) (h : n ≤ ds.length) :
+    (n : Nat) (ds : List ITerm) (b : ITerm) (h : n ≤ ds.length) :
     stripPisAV n (mkPisAV ds b) = some (ds.take n, mkPisAV (ds.drop n) b) := by
-  have happ : ∀ (l₁ l₂ : List AnnotTerm),
+  have happ : ∀ (l₁ l₂ : List ITerm),
       mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b) := by
     intro l₁ l₂
     induction l₁ with
@@ -247,7 +247,7 @@ theorem stripPisAV_mkPisAV_take
 /-- A fit of bounded domains reads the same at any frame agreeing
 below the cut. -/
 theorem spineFit_congr_below :
-    ∀ {pds : List AnnotTerm} {k : Nat} {ρ ρ' : Nat → V} {as : List V},
+    ∀ {pds : List ITerm} {k : Nat} {ρ ρ' : Nat → V} {as : List V},
       DomsBelow k pds → (∀ i, i < k → ρ i = ρ' i) →
       SpineFit ρ pds as → SpineFit ρ' pds as
   | [], _, _, _, [], _, _, h => h
@@ -264,14 +264,14 @@ theorem spineFit_congr_below :
 /-! ## The family spine above the parameters -/
 
 /-- The parameter variables as seen from depth `D` (`D ≥ nP`). -/
-@[expose] def paramBvarsAt (nP D : Nat) : List AnnotTerm :=
+@[expose] def paramBvarsAt (nP D : Nat) : List ITerm :=
   (List.range nP).map fun k => .bvar (D - 1 - k)
 
 theorem paramBvars_eq_paramBvarsAt (nP nF : Nat) :
     paramBvars nP nF = paramBvarsAt nP (nP + nF) := rfl
 
 /-- A same-index `fvar` spine reads to the parameter variables. -/
-theorem denoteMetaSpine_fvars {acval : Name → (Name → Nat) → AnnotTerm} (D : Nat) :
+theorem denoteMetaSpine_fvars {acval : Name → (Name → Nat) → ITerm} (D : Nat) :
     ∀ (fvs : List Expr) (k₀ : Nat),
       (∀ (k : Nat) (x : Expr), fvs[k]? = some x → ∃ ty, x = Expr.fvar (k₀ + k) ty) →
       DenoteMetaSpine acval env φ D fvs
@@ -285,9 +285,9 @@ theorem denoteMetaSpine_fvars {acval : Name → (Name → Nat) → AnnotTerm} (D
       (fun k y hy => by
         obtain ⟨ty', h⟩ := hidx (k + 1) y (by simpa using hy)
         exact ⟨ty', by rw [h]; congr 1; omega⟩)
-    have hmapeq : (List.map ((fun k => AnnotTerm.bvar (D - 1 - (k₀ + k))) ∘ Nat.succ)
+    have hmapeq : (List.map ((fun k => ITerm.bvar (D - 1 - (k₀ + k))) ∘ Nat.succ)
           (List.range fvs.length))
-        = (List.range fvs.length).map fun k => AnnotTerm.bvar (D - 1 - (k₀ + 1 + k)) := by
+        = (List.range fvs.length).map fun k => ITerm.bvar (D - 1 - (k₀ + 1 + k)) := by
       apply List.map_congr_left
       intro k _
       simp only [Function.comp_def]
@@ -381,7 +381,7 @@ theorem openPisAtFvars_typeWScoped :
 /-! ## List arithmetic -/
 
 theorem mkPisAV_append :
-    ∀ (l₁ l₂ : List AnnotTerm) (b : AnnotTerm),
+    ∀ (l₁ l₂ : List ITerm) (b : ITerm),
       mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b)
   | [], _, _ => rfl
   | d :: l₁, l₂, b => by simp [mkPisAV, mkPisAV_append l₁ l₂ b]
@@ -389,7 +389,7 @@ theorem mkPisAV_append :
 /-! ## Lifted domains, field spines, and frame arithmetic -/
 
 theorem spineFit_append_inv :
-    ∀ {Ds₁ Ds₂ : List AnnotTerm} {ρ : Nat → V} {as : List V},
+    ∀ {Ds₁ Ds₂ : List ITerm} {ρ : Nat → V} {as : List V},
       SpineFit ρ (Ds₁ ++ Ds₂) as →
       ∃ as₁ as₂, as = as₁ ++ as₂ ∧ SpineFit ρ Ds₁ as₁ ∧ SpineFit (consList as₁ ρ) Ds₂ as₂
   | [], _, ρ, as, h => ⟨[], as, rfl, trivial, h⟩
@@ -426,7 +426,7 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
   PropWhen)
 
 
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-! ## Syntactic bookkeeping -/
 
@@ -458,7 +458,7 @@ recursor's elimination level.
 /-- A graded λ-tower whose value is the point has body value the point
 along any fitting spine. -/
 theorem mkLamsAV_pt_body :
-    ∀ {lds : List AnnotTerm} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
+    ∀ {lds : List ITerm} {b : ITerm} {ρ : Nat → V} {as : List V},
       WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ lds as →
       interp V ρ (mkLamsAV lds b) = (pt : V) →
       interp V (consList as ρ) b = (pt : V)
@@ -479,7 +479,7 @@ theorem mkLamsAV_pt_body :
 
 /-- **A graded λ-tower folds to its body** along any fitting spine. -/
 theorem mkLamsAV_fold_graded :
-    ∀ {lds : List AnnotTerm} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
+    ∀ {lds : List ITerm} {b : ITerm} {ρ : Nat → V} {as : List V},
       WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ lds as →
       as.foldl SetTheory.app (interp V ρ (mkLamsAV lds b))
         = interp V (consList as ρ) b
@@ -500,12 +500,12 @@ step's Π-package is the layer's own (`lamV_mem` over the grading's
 fibre family), or — once a layer has collapsed the value to the
 point — the trivial one. -/
 theorem mkAppN_wellDenoted_of_lam :
-    ∀ {lds : List AnnotTerm} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
+    ∀ {lds : List ITerm} {b f : ITerm} {args : List ITerm} {ρ σ : Nat → V},
       WellDenoted V ρ f → (∀ a ∈ args, WellDenoted V ρ a) →
       WellDenoted V σ (mkLamsAV lds b) →
       (interp V ρ f = (pt : V) ∨ interp V ρ f = interp V σ (mkLamsAV lds b)) →
       SpineFit σ lds (args.map (interp V ρ)) →
-      WellDenoted V ρ (AnnotTerm.mkAppN f args)
+      WellDenoted V ρ (ITerm.mkAppN f args)
   | [], _, _, [], _, _, hf, _, _, _, _ => hf
   | [], _, _, _ :: _, _, _, _, _, _, _, hsp => hsp.elim
   | _ :: _, _, _, [], _, _, hf, _, _, _, _ => hf
@@ -515,7 +515,7 @@ theorem mkAppN_wellDenoted_of_lam :
     simp only [mkLamsAV, WellDenoted_lam] at hok'
     obtain ⟨-, hAty, hrest, B, hB, hBty⟩ := hok'
     have ha := hargs a List.mem_cons_self
-    rw [AnnotTerm.mkAppN_cons]
+    rw [ITerm.mkAppN_cons]
     -- the application's package
     have hokApp : WellDenoted V ρ (.app f a) := by
       rw [WellDenoted_app]
@@ -553,7 +553,7 @@ agreeing with the recursor's on the block's parameters.
 /-- A fit's chain memberships are a `SpineFit` (the values read at the
 fit's own frame `ρ`, the domains walked from `σ`). -/
 theorem spineFit_of_chain' :
-    ∀ {Ds : List AnnotTerm} {ws : List AnnotTerm} {σ ρ : Nat → V},
+    ∀ {Ds : List ITerm} {ws : List ITerm} {σ ρ : Nat → V},
       ws.length = Ds.length →
       (∀ n, n < Ds.length →
         interp V ρ (ws.getD n default)
@@ -582,7 +582,7 @@ theorem spineFit_of_chain' :
       ← List.getD_eq_getElem?_getD] at this
     exact this
 
-theorem spineFit_of_chain {Ds : List AnnotTerm} {ws : List AnnotTerm} {ρ : Nat → V}
+theorem spineFit_of_chain {Ds : List ITerm} {ws : List ITerm} {ρ : Nat → V}
     (hlen : ws.length = Ds.length)
     (hmem : ∀ n, n < Ds.length →
       interp V ρ (ws.getD n default)

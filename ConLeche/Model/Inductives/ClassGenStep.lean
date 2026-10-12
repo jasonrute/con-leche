@@ -38,7 +38,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -49,16 +49,16 @@ variable {V : Type w} [SetTheory V]
 /-- **The generated residue**: at the rule's frame extended by the `ih`
 values (depth `nPre + nF + nIh`), the minor premise of prefix position
 `minPos` applied to the fields and the `ih` values. -/
-@[expose] def genRb0 (nPre minPos nF nIh : Nat) : AnnotTerm :=
-  AnnotTerm.mkAppN (.bvar (nIh + nF + (nPre - 1 - minPos)))
+@[expose] def genRb0 (nPre minPos nF nIh : Nat) : ITerm :=
+  ITerm.mkAppN (.bvar (nIh + nF + (nPre - 1 - minPos)))
     (prefVarsAV nF nIh ++ prefVarsAV nIh 0)
 
 /-- **A generated `ih` binder's type**, at the rule's depth `D`: the
 `ih`'s telescope over the callee's motive (prefix position `mt`) applied
 to the `ih`'s index and major arguments. -/
-@[expose] def genIhDomAV (D mt : Nat) (q : IhDatum) : AnnotTerm :=
+@[expose] def genIhDomAV (D mt : Nat) (q : IhDatum) : ITerm :=
   mkPisAV q.2.1
-    (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - mt)) (q.2.2.1 ++ [q.2.2.2]))
+    (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - mt)) (q.2.2.1 ++ [q.2.2.2]))
 
 /-- A prefix variable at a frame extended by `n` values. -/
 theorem consList_prefix_getD {xs bs : List V} {ρ : Nat → V} {k : Nat} (hk : k < xs.length) :
@@ -94,7 +94,7 @@ theorem interp_genRb0 {ρ : Nat → V} {xs fs hs : List V} {minPos : Nat}
 /-- A Π-tower over a codomain that is a type at every fitting spine reads
 as a type. -/
 theorem IsTy_mkPisAV_of :
-    ∀ (tl : List AnnotTerm) {σ : Nat → V} {C : AnnotTerm},
+    ∀ (tl : List ITerm) {σ : Nat → V} {C : ITerm},
       (∀ bs, SpineFit σ tl bs → IsTy (interp V (consList bs σ) C)) →
       IsTy (interp V σ (mkPisAV tl C))
   | [], _, _, h => by simpa [mkPisAV] using h [] trivial
@@ -107,7 +107,7 @@ as its body inhabits the codomain at every fitting spine and the
 codomain is a type there — at two frames that agree below the
 telescope's bound. -/
 theorem lamTower_mem_piTower :
-    ∀ (tl : List AnnotTerm) {D : Nat} {σ σ' : Nat → V} {b C : AnnotTerm},
+    ∀ (tl : List ITerm) {D : Nat} {σ σ' : Nat → V} {b C : ITerm},
       DomsBelow D tl → (∀ i, i < D → σ i = σ' i) →
       (∀ bs, SpineFit σ' tl bs →
         interp V (consList bs σ) b ∈ˢ interp V (consList bs σ') C) →
@@ -136,9 +136,9 @@ theorem lamTower_mem_piTower :
 section Step
 
 variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat}
-  {pre idxB : Nat → List AnnotTerm} {majB : Nat → Nat × Nat × AnnotTerm}
-  {uX : Nat → Nat} {concl : Nat → AnnotTerm}
-  {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
+  {pre idxB : Nat → List ITerm} {majB : Nat → Nat × Nat × ITerm}
+  {uX : Nat → Nat} {concl : Nat → ITerm}
+  {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
   {injX : Nat → Nat → List V → V} {ihd : Nat → Nat → List IhDatum}
 
 omit [SetTheory V] in

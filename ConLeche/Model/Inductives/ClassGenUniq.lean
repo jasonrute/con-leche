@@ -32,7 +32,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Name)
 
 universe w
@@ -43,7 +43,7 @@ variable {V : Type w} [SetTheory V]
 
 section Uniq
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {K : Nat} {nCt : Nat → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {K : Nat} {nCt : Nat → Nat}
   {Is Cr : List V → Nat → V} {injX : Nat → Nat → List V → V}
   {fit : List V → Nat → V → Nat → List V → Prop} {xs : List V}
 
@@ -61,7 +61,7 @@ theorem genUniq (D : Nat → LfpDatum V) (ψ : Nat → Name → Nat) (fr : Nat �
     (hinj : ∀ c, c < K → ∀ t, t ∈ˢ Is xs c → ∀ j fs, injX c j fs = (D c).inj (ψ c) (m c) j fs)
     (hfit : ∀ c, c < K → ∀ t j fs, t ∈ˢ Is xs c → fit xs c t j fs →
       (D c).HFits (ψ c) (fr c) ((D c).carrier (ψ c) (fr c)) t (m c) j fs)
-    {ℓ : Nat} {concl : Nat → AnnotTerm} {uX nIdxX : Nat → Nat} {ρ : Nat → V}
+    {ℓ : Nat} {concl : Nat → ITerm} {uX nIdxX : Nat → Nat} {ρ : Nat → V}
     (hconclTy : ∀ c, c < K → ∀ i, i ∈ˢ Is xs c → ∀ x, x ∈ˢ app (Cr xs c) i →
       interp V (consList (xs ++ (isOfW (uX c) (nIdxX c) i ++ [x])) ρ) (concl c)
         ∈ˢ (univ ℓ : V))

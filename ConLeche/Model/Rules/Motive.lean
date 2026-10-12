@@ -43,7 +43,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -57,18 +57,18 @@ claim carries. -/
   Expr.WScoped d e ∧ e.looseBVarsBounded 0 = true ∧ Expr.LeavesBounded e
 
 /-- A reading is graded under every satisfying valuation. -/
-@[expose] def Graded (V : Type w) [SetTheory V] (Δa : List AnnotTerm)
-    (ea : AnnotTerm) : Prop :=
+@[expose] def Graded (V : Type w) [SetTheory V] (Δa : List ITerm)
+    (ea : ITerm) : Prop :=
   ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ea
 
 /-- A reading is a graded type under every satisfying valuation — the
 inferred type's currency (task #342, L5: `IsTy ⟦T⟧`). -/
-@[expose] def GradedTy (V : Type w) [SetTheory V] (Δa : List AnnotTerm)
-    (ta : AnnotTerm) : Prop :=
+@[expose] def GradedTy (V : Type w) [SetTheory V] (Δa : List ITerm)
+    (ta : ITerm) : Prop :=
   ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta
 
 /-- A graded type is graded. -/
-theorem GradedTy.graded {Δa : List AnnotTerm} {ta : AnnotTerm}
+theorem GradedTy.graded {Δa : List ITerm} {ta : ITerm}
     (h : GradedTy V Δa ta) : Graded V Δa ta := fun ρ hρ => (h ρ hρ).1
 
 /-- No new free-variable leaf. -/
@@ -102,7 +102,7 @@ interpretation. -/
 @[expose] def RedSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e e' : Expr) : Prop :=
   Frame d e →
-  ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+  ∀ {Δa : List ITerm} {ea : ITerm},
     CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
     Frame d e' ∧ LeavesSub e' e ∧
@@ -115,7 +115,7 @@ interpretation. -/
 @[expose] def RedSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e e' : Expr) : Prop :=
   Frame d e →
-  ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+  ∀ {Δa : List ITerm} {ea : ITerm},
     CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
     Frame d e' ∧ LeavesSub e' e ∧
@@ -129,7 +129,7 @@ neither is the point, they are equal. -/
 @[expose] def DefEqSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (a b : Expr) : Prop :=
   Frame d a → Frame d b →
-  ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
+  ∀ {Δa : List ITerm} {aa ba : ITerm},
     CtxOkS m φ d Δa a → CtxOkS m φ d Δa b →
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
@@ -142,7 +142,7 @@ neither is the point, they are equal. -/
 @[expose] def DefEqSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (a b : Expr) : Prop :=
   Frame d a → Frame d b →
-  ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
+  ∀ {Δa : List ITerm} {aa ba : ITerm},
     CtxOkS m φ d Δa a → CtxOkS m φ d Δa b →
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
@@ -160,7 +160,7 @@ no further type comparison (the fragment's `LamsSem`). -/
 @[expose] def DefEqLamsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (a b : Expr) : Prop :=
   Frame d a → Frame d b →
-  ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
+  ∀ {Δa : List ITerm} {aa ba : ITerm},
     CtxOkS m φ d Δa a → CtxOkS m φ d Δa b →
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
@@ -174,7 +174,7 @@ subject's grading is a conclusion; the type is a graded type
 @[expose] def InferSemFull {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
-  ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+  ∀ {Δa : List ITerm} {ea : ITerm},
     CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
     Frame d t ∧ LeavesSub t e ∧
@@ -193,7 +193,7 @@ no λ and no `let` (`Expr.ioNeutral`) the claim is not hereditary
 @[expose] def InferSemIO {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
-  ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+  ∀ {Δa : List ITerm} {ea : ITerm},
     CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
     Frame d t ∧ LeavesSub t e ∧
@@ -210,7 +210,7 @@ sort, at the hereditary clause's witness. -/
 @[expose] def PropPt {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (T : Expr) : Prop :=
   Frame d T →
-  ∀ {Δa : List AnnotTerm} {ta : AnnotTerm},
+  ∀ {Δa : List ITerm} {ta : ITerm},
     CtxOkS m φ d Δa T →
     denoteMeta m.acval env φ d T = some ta →
     ∀ (ρ : Nat → V) (v : V), Sat V Δa ρ → LeavesGr m φ d T ρ →
@@ -231,18 +231,18 @@ that is the point) — premises exactly there. -/
 @[expose] def CertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
-  ∀ {Δa : List AnnotTerm} {Ta fa : AnnotTerm} {vs : List AnnotTerm},
+  ∀ {Δa : List ITerm} {Ta fa : ITerm} {vs : List ITerm},
     CtxOkS m φ d Δa ty →
     denoteMeta m.acval env φ d ty = some Ta →
     (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
     DenoteMetaSpine m.acval env φ d args vs →
-    ∃ resta : AnnotTerm,
+    ∃ resta : ITerm,
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
         (∀ x ∈ args, LeavesGr m φ d x ρ) →
         WellDenoted V ρ Ta → (∀ x ∈ vs, WellDenoted V ρ x) →
-        (WellDenoted V ρ (AnnotTerm.mkAppN fa vs) ∧
+        (WellDenoted V ρ (ITerm.mkAppN fa vs) ∧
             interp V ρ fa ∈ˢ interp V ρ Ta ∧
-            interp V ρ (AnnotTerm.mkAppN fa vs) ≠ pt) →
+            interp V ρ (ITerm.mkAppN fa vs) ≠ pt) →
         TeleFitPA V ρ Ta vs resta ∧ WellDenoted V ρ resta
 
 /-- **`CertsF`' motive** (task #342 L10): the full-grade certificate
@@ -252,12 +252,12 @@ with the fit and the residual's grading. -/
 @[expose] def CertsFSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
-  ∀ {Δa : List AnnotTerm} {Ta : AnnotTerm} {vs : List AnnotTerm},
+  ∀ {Δa : List ITerm} {Ta : ITerm} {vs : List ITerm},
     CtxOkS m φ d Δa ty →
     denoteMeta m.acval env φ d ty = some Ta →
     (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
     DenoteMetaSpine m.acval env φ d args vs →
-    ∃ resta : AnnotTerm,
+    ∃ resta : ITerm,
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
         (∀ x ∈ args, LeavesGr m φ d x ρ) →
         WellDenoted V ρ Ta →
@@ -273,7 +273,7 @@ second spine. -/
 @[expose] def DefEqListSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (as bs : List Expr) : Prop :=
   as.length = bs.length ∧
-  ∀ {Δa : List AnnotTerm} {asa bsa : List AnnotTerm},
+  ∀ {Δa : List ITerm} {asa bsa : List ITerm},
     (∀ x ∈ as, Frame d x ∧ CtxOkS m φ d Δa x) →
     (∀ x ∈ bs, Frame d x ∧ CtxOkS m φ d Δa x) →
     DenoteMetaSpine m.acval env φ d as asa →
@@ -288,7 +288,7 @@ second spine. -/
 @[expose] def DefEqListSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (as bs : List Expr) : Prop :=
   as.length = bs.length ∧
-  ∀ {Δa : List AnnotTerm} {asa bsa : List AnnotTerm},
+  ∀ {Δa : List ITerm} {asa bsa : List ITerm},
     (∀ x ∈ as, Frame d x ∧ CtxOkS m φ d Δa x) →
     (∀ x ∈ bs, Frame d x ∧ CtxOkS m φ d Δa x) →
     DenoteMetaSpine m.acval env φ d as asa →

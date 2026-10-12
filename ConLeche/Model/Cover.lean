@@ -594,7 +594,7 @@ theorem CoverTo.of_eq {env env' : Env} {mp : EnvModelM V μ env} {ex : List Name
 /-- **A funnel carrier, rebuilt with the input's recorded list** (the
 same `base2`): the recorded clauses re-proved as the funnel does. -/
 theorem EnvModelM.keepLfpOf {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} (hfresh : env.find? c₀.name = none)
+    {A : (Name → Nat) → ITerm} (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀) (mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩)
     (hac : mp'.base2.acval = acvalWith mp.base2.acval c₀.name A) :
     ∃ mk : EnvModelM V μ ⟨c₀ :: env.consts⟩,
@@ -626,7 +626,7 @@ clauses exactly as the funnel does (`lfp_ok_transport` at a fresh cons
 whose head is no projection table, or a table whose slots no stored
 piece mentions). -/
 theorem EnvModelM.keepLfp {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} (hfresh : env.find? c₀.name = none)
+    {A : (Name → Nat) → ITerm} (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A) :
@@ -640,7 +640,7 @@ theorem EnvModelM.keepLfp {env : Env} {mp : EnvModelM V μ env} {c₀ : Constant
 /-- **A fresh cons, through the funnel, carrying coverage** and keeping
 the funnel's leaf (the chains that read it downstream: `Eq`'s). -/
 theorem coverA_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex ex' : List Name}
+    {A : (Name → Nat) → ITerm} {ex ex' : List Name}
     (hfresh : env.find? c₀.name = none)
     (hex : ∀ n ∈ ex, n ∈ ex')
     (hni : ∀ cv caps, c₀ = .indInfo cv caps → c₀.name = ConLeche.quotName ∨ c₀.name ∈ ex')
@@ -660,7 +660,7 @@ theorem coverA_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 /-- **A fresh non-inductive cons** (or `Quot`'s), through the funnel:
 coverage at the same exemption list. -/
 theorem coverTo_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex : List Name}
+    {A : (Name → Nat) → ITerm} {ex : List Name}
     (hfresh : env.find? c₀.name = none)
     (hni : ∀ cv caps, c₀ = .indInfo cv caps → c₀.name = ConLeche.quotName)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
@@ -677,7 +677,7 @@ theorem coverTo_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 /-- **A former's cons**, through the funnel: its name joins the
 exemption list. -/
 theorem coverA_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex : List Name}
+    {A : (Name → Nat) → ITerm} {ex : List Name}
     (hfresh : env.find? c₀.name = none)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A)
@@ -693,7 +693,7 @@ theorem coverA_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 
 /-- **A former's cons**, through the funnel, as a `CoverTo`. -/
 theorem coverTo_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex : List Name}
+    {A : (Name → Nat) → ITerm} {ex : List Name}
     (hfresh : env.find? c₀.name = none)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A)
@@ -705,7 +705,7 @@ theorem coverTo_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 /-- **A block's record** on a carrier whose leaf is `acval`: the block's
 names leave the exemption list (`hex` names the result). -/
 theorem coverTo_addLfp {env env' : Env} {mp : EnvModelM V μ env} {ex ex' ex'' : List Name}
-    {acval : Name → (Name → Nat) → AnnotTerm}
+    {acval : Name → (Name → Nat) → ITerm}
     (h : ∃ mp' : EnvModelM V μ env', mp'.base2.acval = acval ∧
       (LfpCover mp ex → LfpCover mp' ex'))
     (D : LfpDatum V) (hL : LfpClause acval D) (hst : LfpStored env' D)

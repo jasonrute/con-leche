@@ -22,7 +22,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported natOpResult reduceNatFueled)
 
@@ -60,7 +60,7 @@ theorem denoteMeta_rawNatLit (m : EnvModel V env)
 
 /-- A stored level-monomorphic head's reading, inverted. -/
 theorem denoteMeta_head {m : EnvModel V env} {d : Nat} {c : Name}
-    {ci : ConstantInfo} {fa : AnnotTerm}
+    {ci : ConstantInfo} {fa : ITerm}
     (hf : env.find? c = some ci)
     (hlp : ci.toConstantVal.levelParams = [])
     (h : denoteMeta m.acval env φ d (.const c []) = some fa) :
@@ -154,10 +154,10 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         = interp V ρ (natLit mp.base2 φ K)) →
       ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
         ∀ ρ : Nat → V, WellDenoted V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm)) →
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm)) →
           WellDenoted V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm))
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm))
             = interp V ρ ra := by
     intro K hr hop
     subst hr
@@ -178,10 +178,10 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         = interp V ρ (mp.base2.acval bn φ)) →
       ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
         ∀ ρ : Nat → V, WellDenoted V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm)) →
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm)) →
           WellDenoted V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : AnnotTerm))
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm))
             = interp V ρ ra := by
     intro hcb bn hbn hr hop
     subst hr
@@ -315,7 +315,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   rw [substFn_nil]
   have hfib : (fun x => interp V (cons x ρ)
         ((.pi (mp.base2.acval ConLeche.natName φ)
-          (mp.base2.acval codN φ)) : AnnotTerm))
+          (mp.base2.acval codN φ)) : ITerm))
       = fun _ => piV (interp V ρ (mp.base2.acval ConLeche.natName φ))
           (fun _ => interp V ρ (mp.base2.acval codN φ)) := by
     funext x

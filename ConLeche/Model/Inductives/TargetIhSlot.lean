@@ -38,7 +38,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal CheckMode)
 
 universe uv
@@ -61,13 +61,13 @@ opens a slot at depth `B + n` whose domain is that reading lifted past the
 `n` earlier slots, and a value of the frame-level reading fills it. -/
 theorem walkCtx_consLifted {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
-    {B n : Nat} {Li L : List Expr} (hL : FvarList B L) {Δi Δ : List AnnotTerm} {vs : List V}
+    {B n : Nat} {Li L : List Expr} (hL : FvarList B L) {Δi Δ : List ITerm} {vs : List V}
     {ρ : Nat → V}
     (hW : WalkCtx V mT φ (B + n) (consList vs ρ) (Δi ++ Δ) (Li ++ L))
     (hn : Δi.length = n) (hvs : vs.length = n)
     {ty : Expr} (hlT : ∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ L)
     (hbT : ty.looseBVarsBounded 0 = true) (hcbT : ConstsBound envT ty)
-    {T : AnnotTerm} (hT : denoteMeta mT.acval envT φ B ty = some T)
+    {T : ITerm} (hT : denoteMeta mT.acval envT φ B ty = some T)
     (hGT : ∀ σ : Nat → V, Sat V Δ σ → WellDenotedTy V σ T)
     {v : V} (hv : v ∈ˢ interp V ρ T) :
     WalkCtx V mT φ (B + n + 1) (cons v (consList vs ρ)) (T.liftN n 0 :: (Δi ++ Δ))
@@ -89,7 +89,7 @@ theorem walkCtx_consLifted {envT : Env} {mT : EnvModel V envT} {φ : Name → Na
 
 /-- The `ih` slots' domains: entry `r`'s frame-level reading, lifted past
 the `r` slots before it. -/
-@[expose] def ihDomsLifted (Ts : List AnnotTerm) : List AnnotTerm :=
+@[expose] def ihDomsLifted (Ts : List ITerm) : List ITerm :=
   (List.range Ts.length).map fun r => (Ts.getD r default).liftN r 0
 
 /-- The `ih` variables: entry `r` at `B + r`. -/
@@ -101,9 +101,9 @@ with every `ih` slot on top — each `ih` type read at the frame, graded
 there, and filled by its value. -/
 theorem walkCtx_ihs {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
-    {B : Nat} {L : List Expr} (hL : FvarList B L) {Δ : List AnnotTerm} {ρ : Nat → V}
+    {B : Nat} {L : List Expr} (hL : FvarList B L) {Δ : List ITerm} {ρ : Nat → V}
     (hW : WalkCtx V mT φ B ρ Δ L)
-    (tys : List Expr) (Ts : List AnnotTerm) (vals : List V)
+    (tys : List Expr) (Ts : List ITerm) (vals : List V)
     (hlen1 : tys.length = Ts.length) (hlen2 : vals.length = Ts.length)
     (hslot : ∀ r, r < Ts.length →
       (∀ l ∈ (tys.getD r default).fvarLeaves, Expr.fvar l.1 l.2 ∈ L) ∧

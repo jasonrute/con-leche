@@ -30,7 +30,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal CheckM NestCtx NestHole BlockParts
   BlockShape instPisWith nestHoles openPisAtFvars fueledOps PosTree PosNodeOk)
 
@@ -263,11 +263,11 @@ OCCURRENCE of a node knows its parent occurrence (`PosTree.annF`). -/
 /-! ## Readings across the constructors' conses -/
 
 /-- A spine read at one model is read at another that reads every term alike. -/
-theorem DenoteMetaSpine.transport {acval₁ acval₂ : Name → (Name → Nat) → AnnotTerm}
+theorem DenoteMetaSpine.transport {acval₁ acval₂ : Name → (Name → Nat) → ITerm}
     {env₁ env₂ : Env} {φ : Name → Nat} {d : Nat}
-    (h : ∀ (e : Expr) {ea : AnnotTerm}, denoteMeta acval₁ env₁ φ d e = some ea →
+    (h : ∀ (e : Expr) {ea : ITerm}, denoteMeta acval₁ env₁ φ d e = some ea →
       denoteMeta acval₂ env₂ φ d e = some ea) :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval₁ env₁ φ d as vs →
+    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval₁ env₁ φ d as vs →
       DenoteMetaSpine acval₂ env₂ φ d as vs
   | _, _, .nil => .nil
   | _, _, .cons ha hs => .cons (h _ ha) (DenoteMetaSpine.transport h hs)
@@ -275,7 +275,7 @@ theorem DenoteMetaSpine.transport {acval₁ acval₂ : Name → (Name → Nat) �
 /-- **A node's key read at its occurrence**: its parameters read where its
 frame is derived (`NodeSemAt`), lifted to its occurrence's depth. -/
 theorem nodeSem_spOcc {env : Env} {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx}
-    {Δ0 : List AnnotTerm} {ops : ConLeche.CheckerOps CheckM} {t : PosTree}
+    {Δ0 : List ITerm} {ops : ConLeche.CheckerOps CheckM} {t : PosTree}
     (hok : PosNodeOk ops env ctx t) (hsem : NodeSemAt m φ ctx Δ0 t) :
     ∃ dsa, DenoteMetaSpine m.acval env φ (ctx.hiAt t.occ.length) t.key.ds dsa := by
   obtain ⟨⟨dsa, hdsa⟩, -, -⟩ := hsem

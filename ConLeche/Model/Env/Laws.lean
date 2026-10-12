@@ -24,7 +24,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint IndCaps RecRule)
 
@@ -108,7 +108,7 @@ record. -/
           (interp V ρ (m.acval eqName ψ)) A) a) b = eqv a b) ∧
     -- the spine's **grading**, and that it is a proposition (the
     -- certificate frame reads exactly these)
-    ∀ (ρ : Nat → V) (Aa la ra : AnnotTerm),
+    ∀ (ρ : Nat → V) (Aa la ra : ITerm),
       WellDenoted V ρ Aa → WellDenoted V ρ la → WellDenoted V ρ ra →
       interp V ρ Aa ∈ˢ (univ (ψ uN) : V) →
       interp V ρ la ∈ˢ interp V ρ Aa →
@@ -186,9 +186,9 @@ peeled body read under the extended environment.  No positivity — the
 squash-regime products fit too, and consumers recover memberships
 through `app_mem_piR` with the validity fibre facts. -/
 inductive TeleFit (V : Type w) [SetTheory V] :
-    (Nat → V) → AnnotTerm → List V → V → Prop where
-  | nil {ρ : Nat → V} {T : AnnotTerm} : TeleFit V ρ T [] (interp V ρ T)
-  | cons {ρ : Nat → V} {A B : AnnotTerm} {a : V}
+    (Nat → V) → ITerm → List V → V → Prop where
+  | nil {ρ : Nat → V} {T : ITerm} : TeleFit V ρ T [] (interp V ρ T)
+  | cons {ρ : Nat → V} {A B : ITerm} {a : V}
       {as : List V} {rest : V} :
       a ∈ˢ interp V ρ A →
       TeleFit V (cons a ρ) B as rest →
@@ -199,7 +199,7 @@ variable {V : Type w} [SetTheory V]
 
 /-- The empty fit pins its residual (the inversion `cases` cannot do
 in place, because the fit's type index is not a variable there). -/
-theorem teleFit_nil_inv {ρ : Nat → V} {T : AnnotTerm} {rest : V}
+theorem teleFit_nil_inv {ρ : Nat → V} {T : ITerm} {rest : V}
     (h : TeleFit V ρ T [] rest) : rest = interp V ρ T := by
   cases h; rfl
 
@@ -217,11 +217,11 @@ pins (L11's finding 2).  Keyed on the constructor's lookup, so a stage
 that has not stored it yet owes nothing. -/
 @[expose] def EtaCoherent {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat) (T C : Name) (lps : List Name)
-    (us : List Level) (TVa : AnnotTerm) (nP : Nat)
+    (us : List Level) (TVa : ITerm) (nP : Nat)
     (fab : (Nat → V) → List V → V → List V) : Prop :=
   ∀ (cvC : ConstantVal) (nPc nFc : Nat),
     env.find? C = some (.ctorInfo cvC nPc nFc) →
-    ∃ TCa : AnnotTerm,
+    ∃ TCa : ITerm,
       denoteMeta m.acval env φ 0
         (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa ∧
       ∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
@@ -236,12 +236,12 @@ constructor's lookup (backwards), its type's reading (forwards), the
 family's leaf and the fabricated spine. -/
 theorem EtaCoherent.transport {env env₂ : Env} {m : EnvModel V env}
     {m₂ : EnvModel V env₂} {φ : Name → Nat} {T C : Name} {lps : List Name}
-    {us : List Level} {TVa : AnnotTerm} {nP : Nat}
+    {us : List Level} {TVa : ITerm} {nP : Nat}
     {fab fab₂ : (Nat → V) → List V → V → List V}
     (h : EtaCoherent m φ T C lps us TVa nP fab)
     (hfind : ∀ cvC nPc nFc, env₂.find? C = some (.ctorInfo cvC nPc nFc) →
       env.find? C = some (.ctorInfo cvC nPc nFc))
-    (hread : ∀ (cvC : ConstantVal) (nPc nFc : Nat) (TCa : AnnotTerm),
+    (hread : ∀ (cvC : ConstantVal) (nPc nFc : Nat) (TCa : ITerm),
       env.find? C = some (.ctorInfo cvC nPc nFc) →
       denoteMeta m.acval env φ 0
         (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa →
@@ -265,7 +265,7 @@ telescope coherence (`EtaCoherent`). -/
     (m : EnvModel V env) (φ' : Name → Nat) (T : Name)
     (cvT : ConstantVal) (caps : IndCaps) : Prop :=
   ∀ us : List Level, us.length = cvT.levelParams.length →
-  ∃ TVa : AnnotTerm,
+  ∃ TVa : ITerm,
     denoteMeta m.acval env φ' 0
       (cvT.type.instantiateLevelParams cvT.levelParams us)
       = some TVa ∧
@@ -287,7 +287,7 @@ telescope coherence (`EtaCoherent`). -/
     (m : EnvModel V env) (φ' : Name → Nat) (T : Name)
     (cvT : ConstantVal) (caps : IndCaps) : Prop :=
   ∀ us : List Level, us.length = cvT.levelParams.length →
-  ∃ TVa : AnnotTerm,
+  ∃ TVa : ITerm,
     denoteMeta m.acval env φ' 0
       (cvT.type.instantiateLevelParams cvT.levelParams us)
       = some TVa ∧
@@ -346,16 +346,16 @@ assignment where its type reads as a Π-tower ending in `.sort n` with
 `n ≠ 0`, the former applied to values fitting the tower's domains is
 strict (task #342 L7). -/
 @[expose] def IndStrictAt {V : Type w} [SetTheory V]
-    (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (I : Name)
+    (acval : Name → (Name → Nat) → ITerm) (env : Env) (I : Name)
     (cv : ConstantVal) : Prop :=
-  ∀ (ψ : Name → Nat) (ab : List AnnotTerm) (n : Nat),
+  ∀ (ψ : Name → Nat) (ab : List ITerm) (n : Nat),
     denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort n)) → n ≠ 0 →
     ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ab vs →
       Strict (vs.foldl SetTheory.app (interp V ρ (acval I ψ)))
 
 /-- `IndStrictAt` at a cons's head, if it is a former. -/
 @[expose] def IndStrictHead {V : Type w} [SetTheory V]
-    (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (c₀ : ConstantInfo) : Prop :=
+    (acval : Name → (Name → Nat) → ITerm) (env : Env) (c₀ : ConstantInfo) : Prop :=
   ∀ (cv : ConstantVal) (caps : IndCaps), c₀ = .indInfo cv caps →
     IndStrictAt (V := V) acval env c₀.name cv
 
@@ -376,7 +376,7 @@ depth `d`: the type is closed. -/
     (m : EnvModel V env) (φ : Name → Nat) : Prop :=
   ∀ (d : Nat) (I : Name) (cv : ConstantVal) (caps : IndCaps) (us : List Level),
     env.find? I = some (.indInfo cv caps) → us.length = cv.levelParams.length →
-    ∀ (ab : List AnnotTerm) (n : Nat),
+    ∀ (ab : List ITerm) (n : Nat),
       denoteMeta m.acval env φ d (cv.type.instantiateLevelParams cv.levelParams us)
         = some (mkPisAV ab (.sort n)) →
       ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ab vs →
@@ -386,14 +386,14 @@ depth `d`: the type is closed. -/
 
 /-- A Π-tower over a sort determines its domains and its sort. -/
 theorem mkPisAV_sort_inj :
-    ∀ {ab ab' : List AnnotTerm} {n n' : Nat},
+    ∀ {ab ab' : List ITerm} {n n' : Nat},
       mkPisAV ab (.sort n) = mkPisAV ab' (.sort n') →
         ab = ab' ∧ n = n'
-  | [], [], _, _, h => ⟨rfl, AnnotTerm.sort.inj h⟩
+  | [], [], _, _, h => ⟨rfl, ITerm.sort.inj h⟩
   | [], _ :: _, _, _, h => nomatch h
   | _ :: _, [], _, _, h => nomatch h
   | d :: ab, d' :: ab', _, _, h => by
-    simp only [mkPisAV, AnnotTerm.pi.injEq] at h
+    simp only [mkPisAV, ITerm.pi.injEq] at h
     obtain ⟨h1, h⟩ := h
     obtain ⟨h2, rfl⟩ := mkPisAV_sort_inj h
     exact ⟨by simp [h1, h2], rfl⟩
@@ -402,9 +402,9 @@ theorem mkPisAV_sort_inj :
 reading: at every assignment the stored type reads as `mkPisAV (ab ψ)
 (.sort (s ψ))`, and where `s ψ ≠ 0` the leaf applied along a fitting
 spine is strict. -/
-theorem indStrictHead_of {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem indStrictHead_of {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {cv : ConstantVal} {caps : IndCaps}
-    {ab : (Name → Nat) → List AnnotTerm} {s : (Name → Nat) → Nat}
+    {ab : (Name → Nat) → List ITerm} {s : (Name → Nat) → Nat}
     (hread : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some (mkPisAV (ab ψ) (.sort (s ψ))))
     (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab ψ) vs →
       Strict (vs.foldl SetTheory.app (interp V ρ (acval cv.name ψ)))) :
@@ -419,10 +419,10 @@ theorem indStrictHead_of {acval : Name → (Name → Nat) → AnnotTerm} {env : 
 The stored recursors' fired rules at the validated-annotation
 currency:
 
-* **The law is `AnnotTerm`-indexed**: the truthfulness transport is
+* **The law is `ITerm`-indexed**: the truthfulness transport is
   inherently about the applied reduct's *reading* (the ι step must
   hand the whnf loop a graded reading), and `WellDenoted` is
-  `AnnotTerm`-indexed.  A value-level law, as for the caps, would not
+  `ITerm`-indexed.  A value-level law, as for the caps, would not
   carry that conjunct.
 * **`TeleFitPA` is substitution-peeling** — `B.inst a` at the
   argument's *reading*, one ambient environment — so its residual
@@ -439,7 +439,7 @@ currency:
   from the step's case-3 comparisons).  The `.nested` pins' grading
   clause quantifies the pin's own open reading (`denoteMeta` at depth
   `rP`), at the reading substituted along the argument prefix —
-  `AnnotTerm.instRevChain`.
+  `ITerm.instRevChain`.
 * **The fired equality is present**, and the transport clause grades
   the applied reduct.
 * The law **carries the RHS reading** (`∃ Ra`), with the bare-`R`
@@ -456,19 +456,19 @@ regime).  **Consumer**: the ι rule's soundness (`Red.iota_sound`,
 
 /-- **The annotated telescope fit** (substitution-peeling): each argument reading inhabits its
 progressively-substituted domain, one ambient environment, the
-residual an `AnnotTerm` at that environment. -/
+residual an `ITerm` at that environment. -/
 inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
-    AnnotTerm → List AnnotTerm → AnnotTerm → Prop where
-  | nil {T : AnnotTerm} : TeleFitPA V ρ T [] T
-  | cons {A B rest : AnnotTerm} {a : AnnotTerm}
-      {as : List AnnotTerm} :
+    ITerm → List ITerm → ITerm → Prop where
+  | nil {T : ITerm} : TeleFitPA V ρ T [] T
+  | cons {A B rest : ITerm} {a : ITerm}
+      {as : List ITerm} :
       interp V ρ a ∈ˢ interp V ρ A →
       TeleFitPA V ρ (B.inst a) as rest →
       TeleFitPA V ρ (.pi A B) (a :: as) rest
 
 /-- A fit's prefix fits, to some intermediate residual. -/
 theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
-    ∀ {T rest : AnnotTerm} {as : List AnnotTerm}, TeleFitPA V ρ T as rest →
+    ∀ {T rest : ITerm} {as : List ITerm}, TeleFitPA V ρ T as rest →
       ∀ n : Nat, ∃ mid, TeleFitPA V ρ T (as.take n) mid := by
   intro T rest as h
   induction h with
@@ -488,19 +488,19 @@ theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
 /-- The annotated reverse-opening substitution chain (outermost
 argument consumed first, each at cut `0`, lifted past the arguments
 still to come). -/
-@[expose] def _root_.ConLeche.Model.AnnotTerm.instRevChain :
-    List AnnotTerm → AnnotTerm → AnnotTerm
+@[expose] def _root_.ConLeche.Model.ITerm.instRevChain :
+    List ITerm → ITerm → ITerm
   | [], X => X
   | v :: vs, X =>
-    ConLeche.Model.AnnotTerm.instRevChain vs (X.inst (v.liftN vs.length) 0)
+    ConLeche.Model.ITerm.instRevChain vs (X.inst (v.liftN vs.length) 0)
 
 /-- **The constructor residual's index pin**: the residual decomposes as a spine
 whose trailing arguments agree with the recursor's index arguments,
 all at the ambient environment. -/
 @[expose] def IotaIndexPin {V : Type w} [SetTheory V] (ρ : Nat → V)
-    (restC : AnnotTerm) (cnP mI rP : Nat) (xs : List AnnotTerm) : Prop :=
-  ∃ (Ha : AnnotTerm) (cargsa : List AnnotTerm),
-    restC = AnnotTerm.mkAppN Ha cargsa ∧
+    (restC : ITerm) (cnP mI rP : Nat) (xs : List ITerm) : Prop :=
+  ∃ (Ha : ITerm) (cargsa : List ITerm),
+    restC = ITerm.mkAppN Ha cargsa ∧
     (mI = rP ∨ cargsa.length = cnP + (mI - rP)) ∧
     ∀ i, i < mI - rP →
       interp V ρ (cargsa.getD (cnP + i) default)
@@ -510,9 +510,9 @@ all at the ambient environment. -/
 #342 L10): what the ι step's index comparison gives under the
 conditional claims. -/
 @[expose] def IotaIndexPinC {V : Type w} [SetTheory V] (ρ : Nat → V)
-    (restC : AnnotTerm) (cnP mI rP : Nat) (xs : List AnnotTerm) : Prop :=
-  ∃ (Ha : AnnotTerm) (cargsa : List AnnotTerm),
-    restC = AnnotTerm.mkAppN Ha cargsa ∧
+    (restC : ITerm) (cnP mI rP : Nat) (xs : List ITerm) : Prop :=
+  ∃ (Ha : ITerm) (cargsa : List ITerm),
+    restC = ITerm.mkAppN Ha cargsa ∧
     (mI = rP ∨ cargsa.length = cnP + (mI - rP)) ∧
     ∀ i, i < mI - rP →
       interp V ρ (cargsa.getD (cnP + i) default) ≠ pt →
@@ -550,23 +550,23 @@ at its own levels:
     (m : EnvModel V env) (φ : Name → Nat)
     (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
   ∀ us : List Level, us.length = cv.levelParams.length →
-    ∀ TVa : AnnotTerm,
+    ∀ TVa : ITerm,
       denoteMeta m.acval env φ 0
         (cv.type.instantiateLevelParams cv.levelParams us) = some TVa →
     -- K
     (RecRule.k rl = true → RecRule.nfields rl = 0 ∧
-      ∀ Ra : AnnotTerm,
+      ∀ Ra : ITerm,
         denoteMeta m.acval env φ 0
           ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us) = some Ra →
-      ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
+      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
         xs.length = mI →
         TeleFitPA V ρ TVa (xs ++ [a]) restR →
         (∀ x ∈ xs, WellDenoted V ρ x) →
-        interp V ρ (AnnotTerm.mkAppN
+        interp V ρ (ITerm.mkAppN
             (m.acval n (Level.substFn φ cv.levelParams us)) (xs ++ [a]))
-          = interp V ρ (AnnotTerm.mkAppN Ra (xs.take rP)) ∧
+          = interp V ρ (ITerm.mkAppN Ra (xs.take rP)) ∧
         ((∀ x ∈ xs, WellDenoted V ρ x) →
-          WellDenoted V ρ (AnnotTerm.mkAppN Ra (xs.take rP)))) ∧
+          WellDenoted V ρ (ITerm.mkAppN Ra (xs.take rP)))) ∧
     ∀ (cvj : ConstantVal) (cnP cnF : Nat),
       env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) →
     -- the constructor's arity
@@ -576,55 +576,55 @@ at its own levels:
       Level.substFn φ cvj.levelParams usj
         = Level.substFn φ cvj.levelParams
             (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 →
-    ∀ TVja : AnnotTerm,
+    ∀ TVja : ITerm,
       denoteMeta m.acval env φ 0
         (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
     -- (S)
     (ConLeche.iotaCtorLicensed env.find? cvj usj = true →
-      ∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
+      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
         interp V ρ a ≠ pt) ∧
     -- (P)
-    (∀ (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm),
+    (∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
         interp V ρ a = pt →
-      ∀ (ys : List AnnotTerm) (restC : AnnotTerm), TeleFitPA V ρ TVja ys restC →
+      ∀ (ys : List ITerm) (restC : ITerm), TeleFitPA V ρ TVja ys restC →
         ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
         (∀ y ∈ ys, WellDenoted V ρ y) →
-        interp V ρ (AnnotTerm.mkAppN
+        interp V ρ (ITerm.mkAppN
           (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt) ∧
     -- (U)
-    (∀ (ρ : Nat → V) (xs ys : List AnnotTerm) (restR restC : AnnotTerm),
+    (∀ (ρ : Nat → V) (xs ys : List ITerm) (restR restC : ITerm),
         xs.length = mI →
         ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
         TeleFitPA V ρ TVa
-          (xs ++ [AnnotTerm.mkAppN
+          (xs ++ [ITerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys]) restR →
         TeleFitPA V ρ TVja ys restC →
         (∀ x ∈ xs, WellDenoted V ρ x) → (∀ y ∈ ys, WellDenoted V ρ y) →
         (RecRule.fire rl = .plain →
-          interp V ρ (AnnotTerm.mkAppN
+          interp V ρ (ITerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           ∀ i, i < RecRule.ctorParams rl → i < mI →
             interp V ρ (ys.getD i default) ≠ pt → interp V ρ (xs.getD i default) ≠ pt →
             interp V ρ (ys.getD i default) = interp V ρ (xs.getD i default)) →
         (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
-          interp V ρ (AnnotTerm.mkAppN
+          interp V ρ (ITerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           ∀ i, i < RecRule.ctorParams rl →
-          ∀ vpa : AnnotTerm,
+          ∀ vpa : ITerm,
             denoteMeta m.acval env φ rP
               (ConLeche.Verify.openRev 0 rP
                 ((pins.getD i default).instantiateLevelParams
                   cv.levelParams us)) = some vpa →
             interp V ρ (ys.getD i default) ≠ pt →
-            interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
+            interp V ρ (ConLeche.Model.ITerm.instRevChain (xs.take rP) vpa) ≠ pt →
             interp V ρ (ys.getD i default)
-              = interp V ρ (ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) vpa)) →
-        (interp V ρ (AnnotTerm.mkAppN
+              = interp V ρ (ConLeche.Model.ITerm.instRevChain (xs.take rP) vpa)) →
+        (interp V ρ (ITerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           IotaIndexPinC (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
-        interp V ρ (AnnotTerm.mkAppN
+        interp V ρ (ITerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs))
 
@@ -636,7 +636,7 @@ section note). -/
     Prop :=
   rP ≤ mI ∧
   (∀ us : List Level, us.length = cv.levelParams.length →
-    ∃ Ra : AnnotTerm,
+    ∃ Ra : ITerm,
       denoteMeta m.acval env φ 0
         ((RecRule.rhs rl).instantiateLevelParams cv.levelParams us)
         = some Ra ∧
@@ -651,12 +651,12 @@ section note). -/
       -- run the case-3 pin comparison's claim (`RecRuleExtra`'s (U)).
       (∀ lvls pins, RecRule.fire rl = .nested lvls pins →
         ∀ i, i < RecRule.ctorParams rl →
-        ∃ vpa : AnnotTerm,
+        ∃ vpa : ITerm,
           denoteMeta m.acval env φ rP
             (ConLeche.Verify.openRev 0 rP
               ((pins.getD i default).instantiateLevelParams
                 cv.levelParams us)) = some vpa ∧
-          ∀ (ρ : Nat → V) (zs : List AnnotTerm) (TVa restR : AnnotTerm),
+          ∀ (ρ : Nat → V) (zs : List ITerm) (TVa restR : ITerm),
             zs.length = rP →
             (∀ z ∈ zs, WellDenoted V ρ z) →
             denoteMeta m.acval env φ 0
@@ -664,11 +664,11 @@ section note). -/
               = some TVa →
             TeleFitPA V ρ TVa zs restR →
             WellDenoted V ρ
-              (ConLeche.Model.AnnotTerm.instRevChain zs vpa)) ∧
+              (ConLeche.Model.ITerm.instRevChain zs vpa)) ∧
       ∀ (cvj : ConstantVal) (cnP cnF : Nat),
         env.find? (RecRule.ctor rl) = some (.ctorInfo cvj cnP cnF) →
-      ∀ (usj : List Level) (ρ : Nat → V) (xs ys : List AnnotTerm)
-        (TVa TVja restR restC : AnnotTerm),
+      ∀ (usj : List Level) (ρ : Nat → V) (xs ys : List ITerm)
+        (TVa TVja restR restC : ITerm),
         xs.length = mI →
         ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
         usj.length = cvj.levelParams.length →
@@ -684,7 +684,7 @@ section note). -/
         -- is the point (task #342 L10: a family never `Prop` at the
         -- instance fires with no index comparison; the law reads the pin
         -- only at a `Prop` valuation)
-        (interp V ρ (AnnotTerm.mkAppN
+        (interp V ρ (ITerm.mkAppN
             (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           IotaIndexPin (V := V) ρ restC (RecRule.ctorParams rl) mI rP xs) →
         denoteMeta m.acval env φ 0
@@ -694,22 +694,22 @@ section note). -/
           (cvj.type.instantiateLevelParams cvj.levelParams usj)
           = some TVja →
         TeleFitPA V ρ TVa
-          (xs ++ [AnnotTerm.mkAppN
+          (xs ++ [ITerm.mkAppN
             (m.acval (RecRule.ctor rl)
               (Level.substFn φ cvj.levelParams usj)) ys]) restR →
         TeleFitPA V ρ TVja ys restC →
         interp V ρ
-            (AnnotTerm.mkAppN
+            (ITerm.mkAppN
               (m.acval n (Level.substFn φ cv.levelParams us))
-              (xs ++ [AnnotTerm.mkAppN
+              (xs ++ [ITerm.mkAppN
                 (m.acval (RecRule.ctor rl)
                   (Level.substFn φ cvj.levelParams usj)) ys]))
           = interp V ρ
-              (AnnotTerm.mkAppN Ra
+              (ITerm.mkAppN Ra
                 (xs.take rP ++ ys.drop (RecRule.ctorParams rl))) ∧
         ((∀ a ∈ xs, WellDenoted V ρ a) → (∀ b ∈ ys, WellDenoted V ρ b) →
           WellDenoted V ρ
-            (AnnotTerm.mkAppN Ra
+            (ITerm.mkAppN Ra
               (xs.take rP ++ ys.drop (RecRule.ctorParams rl)))))
   ∧ RecRuleExtra m φ n cv mI rP rl
 
@@ -758,15 +758,15 @@ its clause). -/
 
 /-- The syntactic Π-peel along a list of readings: the fit's residual
 without the memberships (`TeleFitPA`'s spine, data only). -/
-@[expose] def _root_.ConLeche.Model.AnnotTerm.peelPis : AnnotTerm → List AnnotTerm → Option AnnotTerm
+@[expose] def _root_.ConLeche.Model.ITerm.peelPis : ITerm → List ITerm → Option ITerm
   | T, [] => some T
-  | .pi _ B, a :: as => ConLeche.Model.AnnotTerm.peelPis (B.inst a) as
+  | .pi _ B, a :: as => ConLeche.Model.ITerm.peelPis (B.inst a) as
   | _, _ :: _ => none
 
 /-- A fit's residual is the peel's. -/
 theorem TeleFitPA.peelPis {V : Type w} [SetTheory V] {ρ : Nat → V} :
-    ∀ {T rest : AnnotTerm} {as : List AnnotTerm}, TeleFitPA V ρ T as rest →
-      ConLeche.Model.AnnotTerm.peelPis T as = some rest := by
+    ∀ {T rest : ITerm} {as : List ITerm}, TeleFitPA V ρ T as rest →
+      ConLeche.Model.ITerm.peelPis T as = some rest := by
   intro T rest as h
   induction h with
   | nil => rfl
@@ -785,7 +785,7 @@ an all-tower family. -/
   ∀ (cvT : ConstantVal) (capsT : IndCaps),
     env.find? T = some (.indInfo cvT capsT) →
     ∀ us : List Level, us.length = entry.levelParams.length →
-    ∃ TVa : AnnotTerm,
+    ∃ TVa : ITerm,
       denoteMeta m.acval env φ 0
         (cvT.type.instantiateLevelParams cvT.levelParams us) = some TVa ∧
       (∀ ρ : Nat → V, WellDenoted V ρ TVa) ∧
@@ -892,22 +892,22 @@ dummy binders carry the reading only; the law never reads them. -/
     cvC.levelParams = entry.levelParams ∧
     (∀ us : List Level, us.length = entry.levelParams.length →
       -- (A) the typing law
-      (∃ Ta : AnnotTerm,
+      (∃ Ta : ITerm,
         denoteMeta m.acval env φ 0
           (ConLeche.projTele (entry.numParams + 1)
             (entry.body.instantiateLevelParams entry.levelParams us)) = some Ta ∧
         (TowerGuardAt φ entry us →
-        ∀ (ρ : Nat → V) (vs : List AnnotTerm) (x rest : AnnotTerm),
+        ∀ (ρ : Nat → V) (vs : List ITerm) (x rest : ITerm),
           vs.length = entry.numParams →
-          WellDenoted V ρ (AnnotTerm.mkAppN
+          WellDenoted V ρ (ITerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →
           -- the subject's type is not the point (a type, at the caller)
-          interp V ρ (AnnotTerm.mkAppN
+          interp V ρ (ITerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) ≠ pt →
           WellDenoted V ρ x →
-          interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN
+          interp V ρ x ∈ˢ interp V ρ (ITerm.mkAppN
             (m.acval T (Level.substFn φ entry.levelParams us)) vs) →
-          ConLeche.Model.AnnotTerm.peelPis Ta (vs ++ [x]) = some rest →
+          ConLeche.Model.ITerm.peelPis Ta (vs ++ [x]) = some rest →
           WellDenoted V ρ (projAV (i + entry.off) x) ∧ WellDenotedTy V ρ rest ∧
             interp V ρ (projAV (i + entry.off) x) ∈ˢ interp V ρ rest)) ∧
       -- (B) the iota law: the projection of a *graded* constructor
@@ -922,16 +922,16 @@ dummy binders carry the reading only; the law never reads them. -/
       -- the selected field to a proposition's domain (its sort is `0`
       -- there: the O5 bound at a non-`Prop` family, the guard at a
       -- `Prop`-declared one).
-      (∃ TCa : AnnotTerm,
+      (∃ TCa : ITerm,
         denoteMeta m.acval env φ 0
           (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa ∧
         (TowerGuardAt φ entry us →
-        ∀ (ρ : Nat → V) (ys : List AnnotTerm) (rest : V),
+        ∀ (ρ : Nat → V) (ys : List ITerm) (rest : V),
         ys.length = entry.numParams + entry.numFields →
-        WellDenoted V ρ (AnnotTerm.mkAppN
+        WellDenoted V ρ (ITerm.mkAppN
           (m.acval entry.ctor (Level.substFn φ entry.levelParams us)) ys) →
         TeleFit V ρ TCa (ys.map (interp V ρ)) rest →
-        interp V ρ (projAV (i + entry.off) (AnnotTerm.mkAppN
+        interp V ρ (projAV (i + entry.off) (ITerm.mkAppN
             (m.acval entry.ctor (Level.substFn φ entry.levelParams us)) ys))
           = interp V ρ (ys.getD (entry.numParams + i) default)))) ∧
     -- (C) the structural-η law (task #175 W4c)

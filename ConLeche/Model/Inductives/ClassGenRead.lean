@@ -43,7 +43,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal openPisAtFvars closeTelescope
   ClassGen ClassGenScoped ScB SameDoms EndsInSort classGenRecTy classBinder)
 
@@ -208,9 +208,9 @@ theorem consList_prefix_getD' {xs bs : List V} {ρ : Nat → V} {k : Nat} (hk : 
 
 /-- **A variable applied to variables, read and interpreted** at a frame
 of the reading's depth: the head's value applied to the arguments'. -/
-theorem interp_denoteMeta_fvarSpine {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem interp_denoteMeta_fvarSpine {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} {ρ : Nat → V} {vs : List V} {d : Nat} (hvl : vs.length = d) :
-    ∀ (as : List Expr) (f : Expr) (fa : AnnotTerm),
+    ∀ (as : List Expr) (f : Expr) (fa : ITerm),
       denoteMeta acval env φ d f = some fa →
       (∀ a ∈ as, ∃ i T, a = .fvar i T ∧ i < d) →
       ∃ ra, denoteMeta acval env φ d (Expr.mkAppN f as) = some ra ∧
@@ -236,13 +236,13 @@ set_option maxHeartbeats 800000 in
 prefix, an index spine and a major, the motive's value applied to the
 index spine and the major. -/
 theorem classGenRecTy_concl
-    {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat} {g : ClassGen}
+    {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat} {g : ClassGen}
     (hg : ClassGenScoped g) {c s : Nat}
     (hm : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ c = some s)
-    {gty : Expr} {ea : AnnotTerm}
+    {gty : Expr} {ea : ITerm}
     (hgty : classGenRecTy g c = some gty)
-    (hread : denoteMeta acval env φ 0 gty = some ea) {pps : List AnnotTerm}
-    {b : AnnotTerm}
+    (hread : denoteMeta acval env φ 0 gty = some ea) {pps : List ITerm}
+    {b : ITerm}
     (hst : stripPisAV (g.pre.length + (g.cls.getD c default).nIdx + 1) ea = some (pps, b)) :
     ∀ (ρ : Nat → V) (xs zs : List V) (x : V), xs.length = g.pre.length →
       zs.length = (g.cls.getD c default).nIdx →
@@ -320,12 +320,12 @@ section Rows
 variable {V : Type w} [SetTheory V] {env : Env}
 
 /-- `a` is the model's reading, at depth `D`, of a term scoped at `D`. -/
-@[expose] def IsReadingAt (m : EnvModel V env) (φ : Name → Nat) (D : Nat) (a : AnnotTerm) :
+@[expose] def IsReadingAt (m : EnvModel V env) (φ : Name → Nat) (D : Nat) (a : ITerm) :
     Prop :=
   ∃ e : Expr, ScB D e ∧ denoteMeta m.acval env φ D e = some a
 
 /-- A reading of a scoped term names no variable at or above its depth. -/
-theorem IsReadingAt.below {m : EnvModel V env} {φ : Name → Nat} {D : Nat} {a : AnnotTerm}
+theorem IsReadingAt.below {m : EnvModel V env} {φ : Name → Nat} {D : Nat} {a : ITerm}
     (h : IsReadingAt m φ D a) : Term.bvarsBelow D a.erase := by
   obtain ⟨e, ⟨hw, hb⟩, hd⟩ := h
   exact ConLeche.Verify.denote_bvarsBelow m.cval_closedL D e hw hb

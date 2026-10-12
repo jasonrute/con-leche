@@ -28,7 +28,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 universe w
@@ -42,8 +42,8 @@ section TowerFits
 /-- **A `SpineFit` of a Π-tower's domains at the readings of a spine is
 a `TeleFitPA` of the tower at the spine** — `spineFit_of_teleFitPA`'s
 converse. -/
-theorem teleFitPA_mkPisAV_of_spineFit {pds : List AnnotTerm} {b : AnnotTerm}
-    {ρ : Nat → V} {ws : List AnnotTerm} (hlen : ws.length = pds.length)
+theorem teleFitPA_mkPisAV_of_spineFit {pds : List ITerm} {b : ITerm}
+    {ρ : Nat → V} {ws : List ITerm} (hlen : ws.length = pds.length)
     (hsp : SpineFit ρ pds (ws.map (interp V ρ))) :
     ∃ rest, TeleFitPA V ρ (mkPisAV pds b) ws rest := by
   have htele := piTeleAV_of_stripPisAV (stripPisAV_mkPisAV pds b)
@@ -67,7 +67,7 @@ theorem teleFitPA_mkPisAV_of_spineFit {pds : List AnnotTerm} {b : AnnotTerm}
 
 /-- **A telescope bounded at its own depths fits at every frame alike**:
 entry `l` reads only the `l` values before it. -/
-theorem spineFit_frame_of_bounded {Ds : List AnnotTerm}
+theorem spineFit_frame_of_bounded {Ds : List ITerm}
     (hb : ∀ l, l < Ds.length → Term.bvarsBelow l ((Ds.getD l default).erase))
     {σ σ' : Nat → V} {vs : List V} (h : SpineFit σ Ds vs) : SpineFit σ' Ds vs := by
   have hlen : vs.length = Ds.length := h.length_eq

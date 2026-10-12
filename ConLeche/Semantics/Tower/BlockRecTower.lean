@@ -75,15 +75,15 @@ theorem piR_zero_elim {A f x : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) (hx : x
 /-! ## Conjunction of propositions -/
 
 /-- `Σ' (_ : P), Q` at `Prop` (`Q` at the same depth as `P`). -/
-def andAV (P Q : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [0, 0]) [P, .lam P (Q.liftN 1 0)]
+def andAV (P Q : ITerm) : ITerm :=
+  ITerm.mkAppN (.const .psigma [0, 0]) [P, .lam P (Q.liftN 1 0)]
 
 /-- The conjunction of a list of propositions (`PUnit` at `[]`). -/
-def andChainAV : List AnnotTerm → AnnotTerm
+def andChainAV : List ITerm → ITerm
   | [] => .const .punit [0]
   | e :: es => andAV e (andChainAV es)
 
-theorem interp_andAV {P Q : AnnotTerm} {ρ : Nat → V}
+theorem interp_andAV {P Q : ITerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
     interp V ρ (andAV P Q) = sigmaSet 0 (interp V ρ P) fun _ => interp V ρ Q := by
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hP
@@ -96,13 +96,13 @@ theorem interp_andAV {P Q : AnnotTerm} {ρ : Nat → V}
   rw [hlam, psigmaV_app V hP' hfib]
   exact sigma_congr fun x hx => app_lamV hx
 
-theorem andAV_univZero {P Q : AnnotTerm} {ρ : Nat → V}
+theorem andAV_univZero {P Q : ITerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
     interp V ρ (andAV P Q) ∈ˢ (univZero : V) := by
   rw [interp_andAV hP hQ, sigmaSet_zero]
   exact truthVal_mem_univZero _
 
-theorem pt_mem_andAV_iff {P Q : AnnotTerm} {ρ : Nat → V}
+theorem pt_mem_andAV_iff {P Q : ITerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
     (pt : V) ∈ˢ interp V ρ (andAV P Q) ↔
       (pt : V) ∈ˢ interp V ρ P ∧ (pt : V) ∈ˢ interp V ρ Q := by
@@ -115,7 +115,7 @@ theorem pt_mem_andAV_iff {P Q : AnnotTerm} {ρ : Nat → V}
     exact pt_mem_sigma hp hq
 
 /-- The `Prop`-level pair is graded. -/
-theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (hQ : WellDenoted V ρ Q)
+theorem wd_andAV {P Q : ITerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (hQ : WellDenoted V ρ Q)
     (hPu : interp V ρ P ∈ˢ (univZero : V)) (hQu : interp V ρ Q ∈ˢ (univZero : V)) :
     WellDenoted V ρ (andAV P Q) := by
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hPu
@@ -142,7 +142,7 @@ theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (h
 
 /-- The conjunction's formation and grading, from its conjuncts'. -/
 theorem andChainAV_facts {ρ : Nat → V} :
-    ∀ {es : List AnnotTerm},
+    ∀ {es : List ITerm},
       (∀ e ∈ es, interp V ρ e ∈ˢ (univZero : V) ∧ WellDenoted V ρ e) →
       interp V ρ (andChainAV es) ∈ˢ (univZero : V) ∧ WellDenoted V ρ (andChainAV es)
   | [], _ => ⟨by show (unitSet : V) ∈ˢ _; rw [← univ_zero]; exact unitSet_mem_univ 0, trivial⟩
@@ -153,7 +153,7 @@ theorem andChainAV_facts {ρ : Nat → V} :
 
 /-- `pt` inhabits the conjunction iff it inhabits every conjunct. -/
 theorem pt_mem_andChainAV_iff {ρ : Nat → V} :
-    ∀ {es : List AnnotTerm},
+    ∀ {es : List ITerm},
       (∀ e ∈ es, interp V ρ e ∈ˢ (univZero : V) ∧ WellDenoted V ρ e) →
       ((pt : V) ∈ˢ interp V ρ (andChainAV es) ↔ ∀ e ∈ es, (pt : V) ∈ˢ interp V ρ e)
   | [], _ => by
@@ -177,7 +177,7 @@ theorem pt_mem_andChainAV_iff {ρ : Nat → V} :
 /-- A Π-tower over an equation reads to a truth value: its fibres are
 truth values all the way down (`piV_eq_zero`). -/
 theorem mkPisAV_eqE_univZero :
-    ∀ {ds : List AnnotTerm} {l r : AnnotTerm} {ρ : Nat → V},
+    ∀ {ds : List ITerm} {l r : ITerm} {ρ : Nat → V},
       interp V ρ (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V)
   | [], _, _, _ => eqv_mem_univZero _ _
   | _ :: ds, l, r, ρ => by
@@ -188,7 +188,7 @@ theorem mkPisAV_eqE_univZero :
 /-- A Π-tower over an equation is inhabited by `pt` iff the equation
 holds at every fitting spine. -/
 theorem pt_mem_mkPisAV_eqE_iff :
-    ∀ {ds : List AnnotTerm} {l r : AnnotTerm} {ρ : Nat → V},
+    ∀ {ds : List ITerm} {l r : ITerm} {ρ : Nat → V},
       ((pt : V) ∈ˢ interp V ρ (mkPisAV ds (.eqE l r)) ↔
         ∀ xs : List V, SpineFit ρ ds xs →
           interp V (consList xs ρ) l = interp V (consList xs ρ) r)
@@ -224,39 +224,39 @@ theorem pt_mem_mkPisAV_eqE_iff :
 /-! ## The Σ'-chain -/
 
 /-- `Σ' (r : T), rest` with `T` at sort `s` and the rest at sort `v`. -/
-def sigAV (s v : Nat) (T rest : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [s, v]) [T, .lam T rest]
+def sigAV (s v : Nat) (T rest : ITerm) : ITerm :=
+  ITerm.mkAppN (.const .psigma [s, v]) [T, .lam T rest]
 
 /-- The sort of a chain's tail: the proposition `Q` (`0`) at the last
 link, the remaining chain (`s`) before it.  Spelling the last link's
 fibre at `Prop` rather than at `s` keeps the truth value `Q` out of
 `Sort s` (task #342: no cumulative use of a proposition as a type). -/
-def tailLv (s : Nat) : List AnnotTerm → Nat
+def tailLv (s : Nat) : List ITerm → Nat
   | [] => 0
   | _ :: _ => s
 
-theorem max_tailLv (s : Nat) (Ts : List AnnotTerm) : Nat.max s (tailLv s Ts) = s := by
+theorem max_tailLv (s : Nat) (Ts : List ITerm) : Nat.max s (tailLv s Ts) = s := by
   cases Ts with
   | nil => exact Nat.max_zero s
   | cons _ _ => exact Nat.max_self s
 
 /-- **The chain** `Σ' (r₀ : T₀) … (r_{k-1} : T_{k-1}), Q`; `Ts[i]` sits
 under the `i` earlier binders. -/
-def sigChainAV (s : Nat) : List AnnotTerm → AnnotTerm → AnnotTerm
+def sigChainAV (s : Nat) : List ITerm → ITerm → ITerm
   | [], Q => Q
   | T :: Ts, Q => sigAV s (tailLv s Ts) T (sigChainAV s Ts Q)
 
 /-- The `i`-th component of a chain element: `fst (snd^i e)`. -/
-def projChainAV : Nat → AnnotTerm → AnnotTerm
+def projChainAV : Nat → ITerm → ITerm
   | 0, e => .fst e
   | i + 1, e => projChainAV i (.snd e)
 
 /-- **The chosen chain element** `choice (sigChainAV s Ts Q) prf`. -/
-def selChainAV (s : Nat) (Ts : List AnnotTerm) (Q : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .choice [s]) [sigChainAV s Ts Q, .prf]
+def selChainAV (s : Nat) (Ts : List ITerm) (Q : ITerm) : ITerm :=
+  ITerm.mkAppN (.const .choice [s]) [sigChainAV s Ts Q, .prf]
 
 /-- The semantic chain: the nested pair set. -/
-noncomputable def sigChainV (s : Nat) : (Nat → V) → List AnnotTerm → AnnotTerm → V
+noncomputable def sigChainV (s : Nat) : (Nat → V) → List ITerm → ITerm → V
   | ρ, [], Q => interp V ρ Q
   | ρ, T :: Ts, Q => sigmaSet s (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q
 
@@ -268,13 +268,13 @@ noncomputable def ssndN : Nat → V → V
 /-- **The chain's formation premise**: each component's reading is in
 `univ s` and graded at every fit of the earlier ones; the proposition
 is a truth value and graded at every full fit. -/
-def ChainOk (s : Nat) : (Nat → V) → List AnnotTerm → AnnotTerm → Prop
+def ChainOk (s : Nat) : (Nat → V) → List ITerm → ITerm → Prop
   | ρ, [], Q => interp V ρ Q ∈ˢ (univZero : V) ∧ WellDenoted V ρ Q
   | ρ, T :: Ts, Q => interp V ρ T ∈ˢ (univ s : V) ∧ WellDenoted V ρ T ∧
       ∀ r, r ∈ˢ interp V ρ T → ChainOk s (cons r ρ) Ts Q
 
 theorem interp_projChainAV (ρ : Nat → V) :
-    ∀ (i : Nat) (e : AnnotTerm), interp V ρ (projChainAV i e) = sfst (ssndN i (interp V ρ e))
+    ∀ (i : Nat) (e : ITerm), interp V ρ (projChainAV i e) = sfst (ssndN i (interp V ρ e))
   | 0, _ => rfl
   | i + 1, e => by
     show interp V ρ (projChainAV i (.snd e)) = _
@@ -288,7 +288,7 @@ variable {s : Nat}
 /-- The chain's tail lives at its own sort `tailLv`: a nonempty chain
 at `s`, the bare proposition at `0` — no level is raised. -/
 theorem sigChainV_tail_univ :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}, ChainOk s ρ Ts Q →
       sigChainV s ρ Ts Q ∈ˢ (univ (tailLv s Ts) : V)
   | _, [], _, h => by
     show interp V _ _ ∈ˢ _
@@ -301,7 +301,7 @@ theorem sigChainV_tail_univ :
 /-- The chain lives in `univ s`.  Only an EMPTY chain (no recursor,
 the bare proposition `Q`) is raised from `Prop` by cumulativity. -/
 theorem sigChainV_univ :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}, ChainOk s ρ Ts Q →
       sigChainV s ρ Ts Q ∈ˢ (univ s : V)
   | _, [], _, h => by
     show interp V _ _ ∈ˢ _
@@ -309,7 +309,7 @@ theorem sigChainV_univ :
   | _, _ :: _, _, h => sigChainV_tail_univ h
 
 /-- The chain is a type (task #342, L6). -/
-theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
+theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}
     (h : ChainOk s ρ Ts Q) : IsTy (sigChainV s ρ Ts Q) :=
   IsTy_of_mem_univ (sigChainV_univ h)
 
@@ -323,7 +323,7 @@ theorem psigmaV_uv_mem (u v : Nat) :
     sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
 
 /-- The chain's fibre λ. -/
-theorem sigChain_lam_mem {ρ : Nat → V} {T : AnnotTerm} {Ts : List AnnotTerm} {Q : AnnotTerm}
+theorem sigChain_lam_mem {ρ : Nat → V} {T : ITerm} {Ts : List ITerm} {Q : ITerm}
     (h : ChainOk s ρ (T :: Ts) Q) :
     (lamV (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
       ∈ˢ psigmaFibreSpace V (tailLv s Ts) (interp V ρ T) :=
@@ -331,7 +331,7 @@ theorem sigChain_lam_mem {ρ : Nat → V} {T : AnnotTerm} {Ts : List AnnotTerm} 
 
 /-- **The chain reads as the nested pair set.** -/
 theorem interp_sigChainAV :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}, ChainOk s ρ Ts Q →
       interp V ρ (sigChainAV s Ts Q) = sigChainV s ρ Ts Q
   | _, [], _, _ => rfl
   | ρ, T :: Ts, Q, h => by
@@ -345,7 +345,7 @@ theorem interp_sigChainAV :
 
 /-- **The chain is graded.** -/
 theorem wd_sigChainAV :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}, ChainOk s ρ Ts Q →
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}, ChainOk s ρ Ts Q →
       WellDenoted V ρ (sigChainAV s Ts Q)
   | _, [], _, h => h.2
   | ρ, T :: Ts, Q, h => by
@@ -371,7 +371,7 @@ theorem wd_sigChainAV :
 
 /-- A fitting spine satisfying `Q` inhabits the chain. -/
 theorem sigChainV_inhabited :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm} {rs : List V}, ChainOk s ρ Ts Q →
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm} {rs : List V}, ChainOk s ρ Ts Q →
       SpineFit ρ Ts rs → (pt : V) ∈ˢ interp V (consList rs ρ) Q →
       ∃ x, x ∈ˢ sigChainV s ρ Ts Q
   | _, [], _, [], _, _, hq => ⟨pt, hq⟩
@@ -391,7 +391,7 @@ theorem sigChainV_inhabited :
 its `i`-th component the `i`-th projection, the `i`-th tail in the
 chain of the remaining types. -/
 theorem mem_sigChainV :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm} {x : V}, ChainOk s ρ Ts Q →
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm} {x : V}, ChainOk s ρ Ts Q →
       x ∈ˢ sigChainV s ρ Ts Q →
       ∃ rs : List V, SpineFit ρ Ts rs ∧ (pt : V) ∈ˢ interp V (consList rs ρ) Q ∧
         ∀ i, i < Ts.length → sfst (ssndN i x) = rs.getD i pt ∧
@@ -430,7 +430,7 @@ theorem mem_sigChainV :
 
 /-- **The projections are graded**, at a graded chain element. -/
 theorem wd_projChainAV :
-    ∀ (i : Nat) {e : AnnotTerm} {ρ ρ' : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm},
+    ∀ (i : Nat) {e : ITerm} {ρ ρ' : Nat → V} {Ts : List ITerm} {Q : ITerm},
       ChainOk s ρ' Ts Q → interp V ρ e ∈ˢ sigChainV s ρ' Ts Q → WellDenoted V ρ e →
       i < Ts.length → WellDenoted V ρ (projChainAV i e)
   | _, _, _, _, [], _, _, _, _, hi => absurd hi (Nat.not_lt_zero _)
@@ -459,7 +459,7 @@ theorem wd_projChainAV :
       rw [max_tailLv]; exact hx
 
 /-- **The chosen element**: its value and grading, at an inhabited chain. -/
-theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
+theorem selChainAV_facts {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}
     (h : ChainOk s ρ Ts Q) (hne : ∃ x, x ∈ˢ sigChainV s ρ Ts Q) :
     interp V ρ (selChainAV s Ts Q) = schoice (sigChainV s ρ Ts Q) ∧
       WellDenoted V ρ (selChainAV s Ts Q) := by
@@ -486,7 +486,7 @@ theorem selChainAV_facts {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
 /-- **THE KIT'S THEOREM**: at a formed, inhabited chain, the chosen
 element's projections are a fitting spine whose components satisfy
 `Q`, each projection graded. -/
-theorem sigChain_choice {ρ : Nat → V} {Ts : List AnnotTerm} {Q : AnnotTerm}
+theorem sigChain_choice {ρ : Nat → V} {Ts : List ITerm} {Q : ITerm}
     (h : ChainOk s ρ Ts Q) (hne : ∃ x, x ∈ˢ sigChainV s ρ Ts Q) :
     ∃ rs : List V, SpineFit ρ Ts rs ∧ (pt : V) ∈ˢ interp V (consList rs ρ) Q ∧
       ∀ i, i < Ts.length →
@@ -505,35 +505,35 @@ end Chain
 /-! ## The block shape: `k` closed types, the equations' conjunction -/
 
 /-- The `k` component types, each lifted under the earlier binders. -/
-def blockTsAV (k : Nat) (T : Nat → AnnotTerm) : List AnnotTerm :=
+def blockTsAV (k : Nat) (T : Nat → ITerm) : List ITerm :=
   (List.range k).map fun mm => (T mm).liftN mm 0
 
 /-- **The block's recursor leaf** of member `mm`: the `mm`-th
 projection of the chosen tuple of the `k` types with the equations. -/
-def blockRecAVI (s k : Nat) (T : Nat → AnnotTerm) (eqs : List AnnotTerm) (mm : Nat) : AnnotTerm :=
+def blockRecAVI (s k : Nat) (T : Nat → ITerm) (eqs : List ITerm) (mm : Nat) : ITerm :=
   projChainAV mm (selChainAV s (blockTsAV k T) (andChainAV eqs))
 
 omit [SetTheory V] in
-theorem blockTsAV_length (k : Nat) (T : Nat → AnnotTerm) : (blockTsAV k T).length = k := by
+theorem blockTsAV_length (k : Nat) (T : Nat → ITerm) : (blockTsAV k T).length = k := by
   simp [blockTsAV]
 
 /-- A lifted closed type reads at the base frame. -/
-theorem interp_liftN_consList (e : AnnotTerm) (rs : List V) (ρ : Nat → V) :
+theorem interp_liftN_consList (e : ITerm) (rs : List V) (ρ : Nat → V) :
     interp V (consList rs ρ) (e.liftN rs.length 0) = interp V ρ e := by
   rw [interp_liftN, shiftE_consList]
 
-theorem wd_liftN_consList (e : AnnotTerm) (rs : List V) (ρ : Nat → V) :
+theorem wd_liftN_consList (e : ITerm) (rs : List V) (ρ : Nat → V) :
     WellDenoted V (consList rs ρ) (e.liftN rs.length 0) ↔ WellDenoted V ρ e := by
   rw [WellDenoted_liftN, shiftE_consList]
 
 /-- The lifted types' list, at a prefix's length. -/
-theorem blockTs_drop_cons {k : Nat} (T : Nat → AnnotTerm) {p : Nat} (hpl : p < k) :
+theorem blockTs_drop_cons {k : Nat} (T : Nat → ITerm) {p : Nat} (hpl : p < k) :
     ((List.range k).drop p).map (fun mm => (T mm).liftN mm 0)
       = (T p).liftN p 0 :: ((List.range k).drop (p + 1)).map (fun mm => (T mm).liftN mm 0) := by
   rw [List.drop_eq_getElem_cons (by rw [List.length_range]; exact hpl), List.getElem_range,
     List.map_cons]
 
-theorem blockTs_drop_nil {k : Nat} (T : Nat → AnnotTerm) {p : Nat} (hpl : k ≤ p) :
+theorem blockTs_drop_nil {k : Nat} (T : Nat → ITerm) {p : Nat} (hpl : k ≤ p) :
     ((List.range k).drop p).map (fun mm => (T mm).liftN mm 0) = [] := by
   rw [List.drop_eq_nil_of_le (by rw [List.length_range]; exact hpl)]
   rfl
@@ -548,7 +548,7 @@ theorem getD_snoc_lt (pre : List V) (r : V) {i : Nat} (hi : i < pre.length) :
   simp only [List.getD_eq_getElem?_getD, List.getElem?_append_left hi]
 
 /-- A fit of the lifted types, from the components' memberships. -/
-theorem spineFit_blockTs_go {ρ : Nat → V} {k : Nat} (T : Nat → AnnotTerm) :
+theorem spineFit_blockTs_go {ρ : Nat → V} {k : Nat} (T : Nat → ITerm) :
     ∀ (n : Nat) (pre rs : List V), pre.length + n = k → rs.length = n →
       (∀ i, i < n → rs.getD i pt ∈ˢ interp V ρ (T (pre.length + i))) →
       SpineFit (consList pre ρ)
@@ -572,7 +572,7 @@ theorem spineFit_blockTs_go {ρ : Nat → V} {k : Nat} (T : Nat → AnnotTerm) :
       rw [consList_append] at ih
       simpa using ih
 
-theorem spineFit_blockTs {ρ : Nat → V} {k : Nat} {T : Nat → AnnotTerm} {rs : List V}
+theorem spineFit_blockTs {ρ : Nat → V} {k : Nat} {T : Nat → ITerm} {rs : List V}
     (hlen : rs.length = k) (hmem : ∀ mm, mm < k → rs.getD mm pt ∈ˢ interp V ρ (T mm)) :
     SpineFit ρ (blockTsAV k T) rs := by
   have := spineFit_blockTs_go (ρ := ρ) (k := k) T k [] rs (by simp) hlen
@@ -580,7 +580,7 @@ theorem spineFit_blockTs {ρ : Nat → V} {k : Nat} {T : Nat → AnnotTerm} {rs 
   simpa [blockTsAV] using this
 
 /-- The components of a fit of the lifted types. -/
-theorem spineFit_blockTs_inv_go {ρ : Nat → V} {k : Nat} (T : Nat → AnnotTerm) :
+theorem spineFit_blockTs_inv_go {ρ : Nat → V} {k : Nat} (T : Nat → ITerm) :
     ∀ (n : Nat) (pre rs : List V), pre.length + n = k →
       SpineFit (consList pre ρ)
         (((List.range k).drop pre.length).map fun mm => (T mm).liftN mm 0) rs →
@@ -610,7 +610,7 @@ theorem spineFit_blockTs_inv_go {ρ : Nat → V} {k : Nat} (T : Nat → AnnotTer
         rw [show pre.length + (i + 1) = pre.length + 1 + i from by omega]
         exact this
 
-theorem spineFit_blockTs_inv {ρ : Nat → V} {k : Nat} {T : Nat → AnnotTerm} {rs : List V}
+theorem spineFit_blockTs_inv {ρ : Nat → V} {k : Nat} {T : Nat → ITerm} {rs : List V}
     (hsp : SpineFit ρ (blockTsAV k T) rs) :
     rs.length = k ∧ ∀ mm, mm < k → rs.getD mm pt ∈ˢ interp V ρ (T mm) := by
   have := spineFit_blockTs_inv_go (ρ := ρ) (k := k) T k [] rs (by simp)
@@ -619,8 +619,8 @@ theorem spineFit_blockTs_inv {ρ : Nat → V} {k : Nat} {T : Nat → AnnotTerm} 
 
 /-- The block chain's formation premise from the types' and the
 equations'. -/
-theorem chainOk_block_go {s : Nat} {ρ : Nat → V} {k : Nat} (T : Nat → AnnotTerm)
-    (eqs : List AnnotTerm)
+theorem chainOk_block_go {s : Nat} {ρ : Nat → V} {k : Nat} (T : Nat → ITerm)
+    (eqs : List ITerm)
     (hT : ∀ mm, mm < k → interp V ρ (T mm) ∈ˢ (univ s : V) ∧ WellDenoted V ρ (T mm))
     (heq : ∀ rs : List V, rs.length = k → (∀ mm, mm < k → rs.getD mm pt ∈ˢ interp V ρ (T mm)) →
       ∀ e ∈ eqs, interp V (consList rs ρ) e ∈ˢ (univZero : V) ∧ WellDenoted V (consList rs ρ) e) :
@@ -648,7 +648,7 @@ theorem chainOk_block_go {s : Nat} {ρ : Nat → V} {k : Nat} (T : Nat → Annot
     rw [consList_append] at ih
     simpa using ih
 
-theorem chainOk_block {s k : Nat} {ρ : Nat → V} {T : Nat → AnnotTerm} {eqs : List AnnotTerm}
+theorem chainOk_block {s k : Nat} {ρ : Nat → V} {T : Nat → ITerm} {eqs : List ITerm}
     (hT : ∀ mm, mm < k → interp V ρ (T mm) ∈ˢ (univ s : V) ∧ WellDenoted V ρ (T mm))
     (heq : ∀ rs : List V, rs.length = k → (∀ mm, mm < k → rs.getD mm pt ∈ˢ interp V ρ (T mm)) →
       ∀ e ∈ eqs, interp V (consList rs ρ) e ∈ˢ (univZero : V) ∧ WellDenoted V (consList rs ρ) e) :
@@ -669,7 +669,7 @@ theorem range_map_getD {rs : List V} {k : Nat} (hlen : rs.length = k) :
 recursor types, satisfy every equation, and ARE the members' leaves,
 each graded — given the types' formation, the equations' grading at
 every fitting tuple, and a candidate tuple. -/
-theorem blockRecAVI_facts (s k : Nat) (T : Nat → AnnotTerm) (eqs : List AnnotTerm) (ρ : Nat → V)
+theorem blockRecAVI_facts (s k : Nat) (T : Nat → ITerm) (eqs : List ITerm) (ρ : Nat → V)
     (hT : ∀ mm, mm < k → interp V ρ (T mm) ∈ˢ (univ s : V) ∧ WellDenoted V ρ (T mm))
     (heq : ∀ rs : List V, rs.length = k → (∀ mm, mm < k → rs.getD mm pt ∈ˢ interp V ρ (T mm)) →
       ∀ e ∈ eqs, interp V (consList rs ρ) e ∈ˢ (univZero : V) ∧ WellDenoted V (consList rs ρ) e)
@@ -752,14 +752,14 @@ at the frame BELOW the block (so `vs[t]` is lifted past the `t`
 binders still standing when its turn comes).  This is the ih
 substitution `[ih_i ↦ ihFun_i]` of the design. -/
 
-def instsAV : Nat → List AnnotTerm → AnnotTerm → AnnotTerm
+def instsAV : Nat → List ITerm → ITerm → ITerm
   | _, [], e => e
   | d, v :: vs, e => (instsAV (d + 1) vs e).inst (v.liftN d 0)
 
 omit [SetTheory V] in
-@[simp] theorem instsAV_nil (d : Nat) (e : AnnotTerm) : instsAV d [] e = e := rfl
+@[simp] theorem instsAV_nil (d : Nat) (e : ITerm) : instsAV d [] e = e := rfl
 
-theorem interp_instsAV_go : ∀ (vs : List AnnotTerm) (pre : List V) (e : AnnotTerm) (ρ : Nat → V),
+theorem interp_instsAV_go : ∀ (vs : List ITerm) (pre : List V) (e : ITerm) (ρ : Nat → V),
     interp V (consList pre ρ) (instsAV pre.length vs e)
       = interp V (consList (pre ++ vs.map (interp V ρ)) ρ) e
   | [], pre, e, ρ => by simp
@@ -776,12 +776,12 @@ theorem interp_instsAV_go : ∀ (vs : List AnnotTerm) (pre : List V) (e : AnnotT
 body with the ih openers substituted, read at a frame, is the RESIDUE
 read at that frame extended by the ih VALUES.  The recursion through
 the right-hand side's syntax is the check's, not the model's. -/
-theorem interp_instsAV (vs : List AnnotTerm) (e : AnnotTerm) (ρ : Nat → V) :
+theorem interp_instsAV (vs : List ITerm) (e : ITerm) (ρ : Nat → V) :
     interp V ρ (instsAV 0 vs e) = interp V (consList (vs.map (interp V ρ)) ρ) e := by
   have h := interp_instsAV_go (V := V) vs [] e ρ
   simpa using h
 
-theorem wd_instsAV_go : ∀ (vs : List AnnotTerm) (pre : List V) (e : AnnotTerm) (ρ : Nat → V),
+theorem wd_instsAV_go : ∀ (vs : List ITerm) (pre : List V) (e : ITerm) (ρ : Nat → V),
     (∀ v ∈ vs, WellDenoted V ρ v) →
     (WellDenoted V (consList pre ρ) (instsAV pre.length vs e)
       ↔ WellDenoted V (consList (pre ++ vs.map (interp V ρ)) ρ) e)
@@ -796,14 +796,14 @@ theorem wd_instsAV_go : ∀ (vs : List AnnotTerm) (pre : List V) (e : AnnotTerm)
     rw [h]
     simp
 
-theorem wd_instsAV {vs : List AnnotTerm} {e : AnnotTerm} {ρ : Nat → V}
+theorem wd_instsAV {vs : List ITerm} {e : ITerm} {ρ : Nat → V}
     (hv : ∀ v ∈ vs, WellDenoted V ρ v) :
     WellDenoted V ρ (instsAV 0 vs e) ↔ WellDenoted V (consList (vs.map (interp V ρ)) ρ) e := by
   have h := wd_instsAV_go (V := V) vs [] e ρ hv
   simpa using h
 
-theorem foldl_app_map (f : AnnotTerm → V) (b : V) :
-    ∀ as : List AnnotTerm,
+theorem foldl_app_map (f : ITerm → V) (b : V) :
+    ∀ as : List ITerm,
       as.foldl (fun r a => SetTheory.app r (f a)) b = (as.map f).foldl SetTheory.app b
   | [] => rfl
   | a :: as => by
@@ -820,7 +820,7 @@ requires `rP_{c'} = rP`), and so is the ι equation's left-hand side's prefix. -
 
 /-- The `rP` prefix variables as bvars, at the frame
 `prefix ++ (nF further binders)`. -/
-def prefVarsAV (rP nF : Nat) : List AnnotTerm :=
+def prefVarsAV (rP nF : Nat) : List ITerm :=
   (List.range rP).map fun l => .bvar (nF + rP - 1 - l)
 
 /-- **The prefix variables read back the prefix spine.** -/
@@ -850,28 +850,28 @@ rule's prefix `x⃗` (domains `pdoms`) and the constructor's fields `f⃗`
 (domains `fdoms`); the left-hand side is the class's component applied
 along `(x⃗, e⃗_j, mk_j)`, the right-hand side the residue `Rb` with its
 ih openers substituted by `ihs`. -/
-def iotaEqAV (K c : Nat) (pdoms fdoms es : List AnnotTerm) (mk : AnnotTerm)
-    (ihs : List AnnotTerm) (Rb : AnnotTerm) : AnnotTerm :=
+def iotaEqAV (K c : Nat) (pdoms fdoms es : List ITerm) (mk : ITerm)
+    (ihs : List ITerm) (Rb : ITerm) : ITerm :=
   mkPisAV (pdoms ++ fdoms)
     (.eqE
-      (AnnotTerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
+      (ITerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
         (prefVarsAV pdoms.length fdoms.length ++ es ++ [mk]))
       (instsAV 0 ihs Rb))
 
 /-- The ι equation is a truth value. -/
-theorem iotaEqAV_univZero {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTerm}
-    {ihs : List AnnotTerm} {Rb : AnnotTerm} {σ : Nat → V} :
+theorem iotaEqAV_univZero {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm}
+    {ihs : List ITerm} {Rb : ITerm} {σ : Nat → V} :
     interp V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) ∈ˢ (univZero : V) :=
   mkPisAV_eqE_univZero
 
 /-- **The ι equation is graded** when the domains are graded along the
 telescope and both sides are graded at every fitting spine. -/
-theorem wd_iotaEqAV {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTerm}
-    {ihs : List AnnotTerm} {Rb : AnnotTerm} {σ : Nat → V}
+theorem wd_iotaEqAV {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm}
+    {ihs : List ITerm} {Rb : ITerm} {σ : Nat → V}
     (hdoms : FieldsOkB 0 σ (pdoms ++ fdoms))
     (hbody : ∀ ys, SpineFit σ (pdoms ++ fdoms) ys →
       WellDenoted V (consList ys σ)
-          (AnnotTerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
+          (ITerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
             (prefVarsAV pdoms.length fdoms.length ++ es ++ [mk])) ∧
         WellDenoted V (consList ys σ) (instsAV 0 ihs Rb)) :
     WellDenoted V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) := by
@@ -884,12 +884,12 @@ theorem wd_iotaEqAV {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTer
 spine `xs ++ fs` of the rule's prefix and the constructor's fields:
 the left is the class's component folded along `(x⃗, e⃗_j, mk_j)`, the
 right is the RESIDUE at the ih values. -/
-theorem iotaEqAV_sides {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTerm}
-    {ihs : List AnnotTerm} {Rb : AnnotTerm} {σ : Nat → V} {R : V}
+theorem iotaEqAV_sides {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm}
+    {ihs : List ITerm} {Rb : ITerm} {σ : Nat → V} {R : V}
     (hR : σ (K - 1 - c) = R) {xs fs : List V}
     (hxl : xs.length = pdoms.length) (hfl : fs.length = fdoms.length) :
     interp V (consList (xs ++ fs) σ)
-        (AnnotTerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
+        (ITerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
           (prefVarsAV pdoms.length fdoms.length ++ es ++ [mk]))
         = (xs ++ (es ++ [mk]).map (interp V (consList (xs ++ fs) σ))).foldl SetTheory.app R ∧
       interp V (consList (xs ++ fs) σ) (instsAV 0 ihs Rb)
@@ -915,7 +915,7 @@ theorem iotaEqAV_sides {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : Annot
   rw [interp_mkAppN, foldl_app_map, hhead, hargs]
 
 /-- The length of a fit of the rule's binder data. -/
-theorem iotaEqAV_fs_length {pdoms fdoms : List AnnotTerm} {σ : Nat → V} {xs fs : List V}
+theorem iotaEqAV_fs_length {pdoms fdoms : List ITerm} {σ : Nat → V} {xs fs : List V}
     (hxl : xs.length = pdoms.length) (hsp : SpineFit σ (pdoms ++ fdoms) (xs ++ fs)) :
     fs.length = fdoms.length := by
   have h := hsp.length_eq
@@ -928,8 +928,8 @@ applied along the rule's left-hand side equals the residue read at the
 frame extended by the ih values.  `hR` names the component: the
 consumer instantiates `σ` with the chain frame `consList rs ρ`, where
 `σ (K-1-c) = rs.getD c pt` is the class's leaf. -/
-theorem iotaEqAV_law {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTerm}
-    {ihs : List AnnotTerm} {Rb : AnnotTerm} {σ : Nat → V} {R : V}
+theorem iotaEqAV_law {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm}
+    {ihs : List ITerm} {Rb : ITerm} {σ : Nat → V} {R : V}
     (hR : σ (K - 1 - c) = R)
     (h : (pt : V) ∈ˢ interp V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb))
     {xs fs : List V} (hxl : xs.length = pdoms.length)
@@ -946,8 +946,8 @@ theorem iotaEqAV_law {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTe
 /-- **The ι equation is INHABITED** by the laws at every fitting spine —
 the direction the graph kit's candidate (`famCandG_hCand`) is fed
 through. -/
-theorem pt_mem_iotaEqAV_of {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTerm}
-    {ihs : List AnnotTerm} {Rb : AnnotTerm} {σ : Nat → V} {R : V}
+theorem pt_mem_iotaEqAV_of {K c : Nat} {pdoms fdoms es : List ITerm} {mk : ITerm}
+    {ihs : List ITerm} {Rb : ITerm} {σ : Nat → V} {R : V}
     (hR : σ (K - 1 - c) = R)
     (h : ∀ xs fs : List V, xs.length = pdoms.length →
       SpineFit σ (pdoms ++ fdoms) (xs ++ fs) →
@@ -979,29 +979,29 @@ that accumulator. -/
 /-- The semantic λ-tower over binder data, with the body a function of
 the ACCUMULATED spine and the leaf frame. -/
 noncomputable def lamTowerA :
-    (Nat → V) → List V → List AnnotTerm → (List V → (Nat → V) → V) → V
+    (Nat → V) → List V → List ITerm → (List V → (Nat → V) → V) → V
   | ρ, acc, [], g => g acc ρ
   | ρ, acc, d :: ds, g => lamV (interp V ρ d) fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g
 
 /-- `lamTowerA`'s walk premise: at every leaf frame reached the body is
 in the conclusion's reading, which is a type.  The type fact is what
 `lamV_mem` asks of the innermost fibre (task #342, L6). -/
-def TowerWalkA (C : AnnotTerm) (g : List V → (Nat → V) → V) :
-    (Nat → V) → List V → List AnnotTerm → Prop
+def TowerWalkA (C : ITerm) (g : List V → (Nat → V) → V) :
+    (Nat → V) → List V → List ITerm → Prop
   | ρ, acc, [] => g acc ρ ∈ˢ interp V ρ C ∧ IsTy (interp V ρ C)
   | ρ, acc, d :: ds => ∀ a, a ∈ˢ interp V ρ d → TowerWalkA C g (cons a ρ) (acc ++ [a]) ds
 
 /-- The residual Π-tower's reading along a walk is a type. -/
-theorem towerWalkA_IsTy {C : AnnotTerm} {g : List V → (Nat → V) → V} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc : List V},
+theorem towerWalkA_IsTy {C : ITerm} {g : List V → (Nat → V) → V} :
+    ∀ {ds : List ITerm} {ρ : Nat → V} {acc : List V},
       TowerWalkA C g ρ acc ds → IsTy (interp V ρ (mkPisAV ds C))
   | [], _, _, h => h.2
   | _ :: _, _, _, _ => IsTy_piV
 
 /-- **The tower inhabits the Π-tower's reading** — `mem_type` of the
 candidate. -/
-theorem lamTowerA_mem {C : AnnotTerm} {g : List V → (Nat → V) → V} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc : List V},
+theorem lamTowerA_mem {C : ITerm} {g : List V → (Nat → V) → V} :
+    ∀ {ds : List ITerm} {ρ : Nat → V} {acc : List V},
       TowerWalkA C g ρ acc ds →
       lamTowerA ρ acc ds g ∈ˢ interp V ρ (mkPisAV ds C)
   | [], _, _, h => h.1
@@ -1013,7 +1013,7 @@ theorem lamTowerA_mem {C : AnnotTerm} {g : List V → (Nat → V) → V} :
 /-- **The tower's fold along a fitting spine** — the ι law's left-hand
 side. -/
 theorem lamTowerA_fold {g : List V → (Nat → V) → V} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc bs : List V},
+    ∀ {ds : List ITerm} {ρ : Nat → V} {acc bs : List V},
       SpineFit ρ ds bs →
       bs.foldl SetTheory.app (lamTowerA ρ acc ds g) = g (acc ++ bs) (consList bs ρ)
   | [], _, acc, [], _ => by simp [lamTowerA]
@@ -1029,17 +1029,17 @@ theorem lamTowerA_fold {g : List V → (Nat → V) → V} :
 
 /-- The family's ι equations: one per class `c < K` and constructor
 `j < nCt c`, in class-major order.  `IotaAll` of the design. -/
-def iotaEqsAV (K : Nat) (nCt : Nat → Nat) (pdoms : Nat → List AnnotTerm)
-    (fdoms es : Nat → Nat → List AnnotTerm) (mk : Nat → Nat → AnnotTerm)
-    (ihs : Nat → Nat → List AnnotTerm) (Rb : Nat → Nat → AnnotTerm) : List AnnotTerm :=
+def iotaEqsAV (K : Nat) (nCt : Nat → Nat) (pdoms : Nat → List ITerm)
+    (fdoms es : Nat → Nat → List ITerm) (mk : Nat → Nat → ITerm)
+    (ihs : Nat → Nat → List ITerm) (Rb : Nat → Nat → ITerm) : List ITerm :=
   (List.range K).flatMap fun c =>
     (List.range (nCt c)).map fun j =>
       iotaEqAV K c (pdoms c) (fdoms c j) (es c j) (mk c j) (ihs c j) (Rb c j)
 
 omit [SetTheory V] in
-theorem mem_iotaEqsAV {K : Nat} {nCt : Nat → Nat} {pdoms : Nat → List AnnotTerm}
-    {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
-    {ihs : Nat → Nat → List AnnotTerm} {Rb : Nat → Nat → AnnotTerm} {c j : Nat}
+theorem mem_iotaEqsAV {K : Nat} {nCt : Nat → Nat} {pdoms : Nat → List ITerm}
+    {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
+    {ihs : Nat → Nat → List ITerm} {Rb : Nat → Nat → ITerm} {c j : Nat}
     (hc : c < K) (hj : j < nCt c) :
     iotaEqAV K c (pdoms c) (fdoms c j) (es c j) (mk c j) (ihs c j) (Rb c j)
       ∈ iotaEqsAV K nCt pdoms fdoms es mk ihs Rb :=
@@ -1049,9 +1049,9 @@ theorem mem_iotaEqsAV {K : Nat} {nCt : Nat → Nat} {pdoms : Nat → List AnnotT
 omit [SetTheory V] in
 /-- Every member of the family's equation list IS one rule's equation —
 the form every per-equation premise is discharged in. -/
-theorem forall_iotaEqsAV {K : Nat} {nCt : Nat → Nat} {pdoms : Nat → List AnnotTerm}
-    {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
-    {ihs : Nat → Nat → List AnnotTerm} {Rb : Nat → Nat → AnnotTerm} {P : AnnotTerm → Prop}
+theorem forall_iotaEqsAV {K : Nat} {nCt : Nat → Nat} {pdoms : Nat → List ITerm}
+    {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
+    {ihs : Nat → Nat → List ITerm} {Rb : Nat → Nat → ITerm} {P : ITerm → Prop}
     (h : ∀ c, c < K → ∀ j, j < nCt c →
       P (iotaEqAV K c (pdoms c) (fdoms c j) (es c j) (mk c j) (ihs c j) (Rb c j))) :
     ∀ e ∈ iotaEqsAV K nCt pdoms fdoms es mk ihs Rb, P e := by
@@ -1063,8 +1063,8 @@ theorem forall_iotaEqsAV {K : Nat} {nCt : Nat → Nat} {pdoms : Nat → List Ann
 /-- **THE LEAF**: the recursor of class `c` is the `c`-th projection of
 the ONE chosen tuple of the `K` recursor types pinned by every rule's ι
 equation. -/
-def blockRecAV (s K : Nat) (RecTy : Nat → AnnotTerm) (eqs : List AnnotTerm) (c : Nat) :
-    AnnotTerm :=
+def blockRecAV (s K : Nat) (RecTy : Nat → ITerm) (eqs : List ITerm) (c : Nat) :
+    ITerm :=
   blockRecAVI s K RecTy eqs c
 
 /-- The chain frame of a tuple: the base frame under the `K` Σ'
@@ -1086,8 +1086,8 @@ truth values and graded at every fitting tuple, and a CANDIDATE tuple
 satisfies them.  The candidate is what the recursor model supplies
 (the graph kit, `famCandG_hCand`);
 everything else is read off the check's certificates. -/
-structure BlockRecPre (V : Type uv) [SetTheory V] (s K : Nat) (RecTy : Nat → AnnotTerm)
-    (eqs : List AnnotTerm) (ρ : Nat → V) : Prop where
+structure BlockRecPre (V : Type uv) [SetTheory V] (s K : Nat) (RecTy : Nat → ITerm)
+    (eqs : List ITerm) (ρ : Nat → V) : Prop where
   /-- The recursor types are sets of the chain's level, and graded. -/
   hTy : ∀ c, c < K → interp V ρ (RecTy c) ∈ˢ (univ s : V) ∧ WellDenoted V ρ (RecTy c)
   /-- The ι equations are truth values and graded at every tuple typed
@@ -1103,7 +1103,7 @@ structure BlockRecPre (V : Type uv) [SetTheory V] (s K : Nat) (RecTy : Nat → A
 /-- **The leaf's facts**: there is ONE tuple `a` whose components are
 the classes' leaves — typed at the recursor types (`mem_type`) and
 graded — and which satisfies every ι equation. -/
-theorem blockRecAV_facts {s K : Nat} {RecTy : Nat → AnnotTerm} {eqs : List AnnotTerm}
+theorem blockRecAV_facts {s K : Nat} {RecTy : Nat → ITerm} {eqs : List ITerm}
     {ρ : Nat → V} (h : BlockRecPre V s K RecTy eqs ρ) :
     ∃ a : Nat → V,
       (∀ c, c < K → a c ∈ˢ interp V ρ (RecTy c) ∧
@@ -1118,10 +1118,10 @@ its components the classes' leaves, and for every class `c` and
 constructor `j` the equation
 `rec_c x⃗ e⃗_j (C_j p⃗ f⃗) = Rb_{c,j}` at the ih values — the
 `RecRuleLaw`-shaped statement the Model tier converts. -/
-theorem blockRecAV_iota {s K : Nat} {RecTy : Nat → AnnotTerm} {nCt : Nat → Nat}
-    {pdoms : Nat → List AnnotTerm} {fdoms es : Nat → Nat → List AnnotTerm}
-    {mk : Nat → Nat → AnnotTerm} {ihs : Nat → Nat → List AnnotTerm}
-    {Rb : Nat → Nat → AnnotTerm} {ρ : Nat → V}
+theorem blockRecAV_iota {s K : Nat} {RecTy : Nat → ITerm} {nCt : Nat → Nat}
+    {pdoms : Nat → List ITerm} {fdoms es : Nat → Nat → List ITerm}
+    {mk : Nat → Nat → ITerm} {ihs : Nat → Nat → List ITerm}
+    {Rb : Nat → Nat → ITerm} {ρ : Nat → V}
     (h : BlockRecPre V s K RecTy (iotaEqsAV K nCt pdoms fdoms es mk ihs Rb) ρ) :
     ∃ a : Nat → V,
       (∀ c, c < K → a c ∈ˢ interp V ρ (RecTy c) ∧
@@ -1157,16 +1157,16 @@ level.  The leaf is a Σ'-chain at a single `s` and the candidate is a
 λ-tower at a single bit, so every class's binder data must carry the
 SAME zeroness — which is what a common elimination level gives (the
 kernel's elimination-level pin, `checkBlockRecElimPin`). -/
-def OneElimLevel (ℓ K : Nat) (rds : Nat → List (Nat × Nat × AnnotTerm)) : Prop :=
+def OneElimLevel (ℓ K : Nat) (rds : Nat → List (Nat × Nat × ITerm)) : Prop :=
   ∀ c, c < K → ∀ d ∈ rds c, (ℓ = 0 ↔ d.2.1 = 0)
 
 /-! ## The premise's two halves, in the form their owners prove them -/
 
 section Assemble
 
-variable {s K : Nat} {RecTy : Nat → AnnotTerm} {nCt : Nat → Nat} {pdoms : Nat → List AnnotTerm}
-  {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
-  {ihs : Nat → Nat → List AnnotTerm} {Rb : Nat → Nat → AnnotTerm} {ρ : Nat → V}
+variable {s K : Nat} {RecTy : Nat → ITerm} {nCt : Nat → Nat} {pdoms : Nat → List ITerm}
+  {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
+  {ihs : Nat → Nat → List ITerm} {Rb : Nat → Nat → ITerm} {ρ : Nat → V}
 
 /-- **The ι equations are graded** when every rule's binder data is
 graded along the telescope and both its sides are graded at every
@@ -1179,7 +1179,7 @@ theorem hEq_iotaEqsAV_of
         FieldsOkB 0 (consList rs ρ) (pdoms c ++ fdoms c j) ∧
         ∀ ys, SpineFit (consList rs ρ) (pdoms c ++ fdoms c j) ys →
           WellDenoted V (consList ys (consList rs ρ))
-              (AnnotTerm.mkAppN (.bvar ((pdoms c).length + (fdoms c j).length + (K - 1 - c)))
+              (ITerm.mkAppN (.bvar ((pdoms c).length + (fdoms c j).length + (K - 1 - c)))
                 (prefVarsAV (pdoms c).length (fdoms c j).length ++ es c j ++ [mk c j])) ∧
             WellDenoted V (consList ys (consList rs ρ)) (instsAV 0 (ihs c j) (Rb c j))) :
     ∀ rs : List V, rs.length = K →
@@ -1214,8 +1214,8 @@ theorem hCand_iotaEqsAV_of (cand : Nat → V)
 end Assemble
 
 /-- `TowerWalkA` from the facts at every fitting spine. -/
-theorem towerWalkA_of_spines_body {C : AnnotTerm} {g : List V → (Nat → V) → V} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc : List V},
+theorem towerWalkA_of_spines_body {C : ITerm} {g : List V → (Nat → V) → V} :
+    ∀ {ds : List ITerm} {ρ : Nat → V} {acc : List V},
       (∀ ys, SpineFit ρ ds ys →
         g (acc ++ ys) (consList ys ρ) ∈ˢ interp V (consList ys ρ) C ∧
           IsTy (interp V (consList ys ρ) C)) →
@@ -1300,7 +1300,7 @@ the base frame `ρ`: per PREFIX SPINE a `GraphRecKit` over the tagged
 union of the classes' ORDINARY carriers, with decodings in `R`, and the
 two readings the recursors' TYPES fix. -/
 structure GraphFamData (V : Type uv) [SetTheory V] (ℓ K : Nat) (rP : Nat → Nat)
-    (rds : Nat → List AnnotTerm) (concl : Nat → AnnotTerm) (ρ : Nat → V)
+    (rds : Nat → List ITerm) (concl : Nat → ITerm) (ρ : Nat → V)
     (R : Type uv) where
   /-- The classes' index sets, at a prefix frame. -/
   Is : List V → Nat → V
@@ -1324,8 +1324,8 @@ structure GraphFamData (V : Type uv) [SetTheory V] (ℓ K : Nat) (rP : Nat → N
 
 section Cand
 
-variable {ℓ K : Nat} {rP : Nat → Nat} {rds : Nat → List AnnotTerm}
-  {concl : Nat → AnnotTerm} {ρ : Nat → V} {R : Type uv}
+variable {ℓ K : Nat} {rP : Nat → Nat} {rds : Nat → List ITerm}
+  {concl : Nat → ITerm} {ρ : Nat → V} {R : Type uv}
 
 /-- **The candidate at class `c`**: the λ-tower over the recursor
 type's binder data whose body is the kit's recursor at the tagged
@@ -1366,9 +1366,9 @@ theorem famCandG_fold (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat}
   simp only [List.nil_append]
   rw [prefOf_split hx, idxOf_split hx, majOf_split]
 
-variable {RecTy : Nat → AnnotTerm} {nCt : Nat → Nat} {pdoms : Nat → List AnnotTerm}
-  {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
-  {ihs : Nat → Nat → List AnnotTerm} {Rb : Nat → Nat → AnnotTerm}
+variable {RecTy : Nat → ITerm} {nCt : Nat → Nat} {pdoms : Nat → List ITerm}
+  {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
+  {ihs : Nat → Nat → List ITerm} {Rb : Nat → Nat → ITerm}
 
 /-- **THE CANDIDATE, from the graph kit** — the ONE producer of
 `BlockRecPre.hCand`, at every level.

@@ -23,7 +23,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo FEnv BlockShape TargetMajor)
 
 section Defs
@@ -59,7 +59,7 @@ expressions are `getAppArgs.drop nPc`, the major's parameter count). -/
 @[expose] def tgtCbody (j i : Nat) : Expr :=
   ((ConLeche.openPisAtFvars (tgtCtorOf out j i).2 (tgtCrest out j i) (tgtRP p j)).map (·.2)).getD
     default
-variable (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
+variable (acval : Name → (Name → Nat) → ITerm) (env : Env)
 
 end Defs
 

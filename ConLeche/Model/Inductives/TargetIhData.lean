@@ -34,7 +34,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo FEnv BlockShape TargetMajor)
 
 universe w
@@ -45,23 +45,23 @@ variable (mode : ConLeche.CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   (formerTys : List Expr)
   (out : List (ConstantVal × TargetMajor × List Expr))
 
-variable (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
+variable (acval : Name → (Name → Nat) → ITerm) (env : Env)
 
 /-- **`fdoms0` at the MAJOR**: the rule's field
 openers' domains (the constructor at the major's instantiation), read at
 the rule's frame. -/
-@[expose] def tgtFdomsAV (ψ : Name → Nat) (j i : Nat) : List AnnotTerm :=
+@[expose] def tgtFdomsAV (ψ : Name → Nat) (j i : Nat) : List ITerm :=
   readOpenedDoms acval env ψ (tgtRP p j) (tgtFieldFvs p out j i)
 
 /-- **`es0` at the MAJOR**: the constructor's index expressions (past the
 major's parameter count), read at the rule's frame. -/
-@[expose] def tgtEsAV (ψ : Name → Nat) (j i : Nat) : List AnnotTerm :=
+@[expose] def tgtEsAV (ψ : Name → Nat) (j i : Nat) : List ITerm :=
   ((tgtCbody p out j i).getAppArgs.drop (tgtMajor out j).nPc).map fun e =>
     (denoteMeta acval env ψ (tgtB p out j i) e).getD default
 
 /-- **`mk0` at the MAJOR**: the fired spine `C.{M.lvls} M.ds f⃗` (the
 target check's), read at the rule's frame. -/
-@[expose] def tgtMkAV (ψ : Name → Nat) (j i : Nat) : AnnotTerm :=
+@[expose] def tgtMkAV (ψ : Name → Nat) (j i : Nat) : ITerm :=
   (denoteMeta acval env ψ (tgtB p out j i)
     (ConLeche.Expr.mkAppN (.const (tgtCtorOf out j i).1.name (tgtMajor out j).lvls)
       ((tgtMajor out j).ds ++ tgtFieldFvs p out j i))).getD default

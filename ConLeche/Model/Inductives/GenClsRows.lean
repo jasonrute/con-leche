@@ -35,7 +35,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -46,8 +46,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **A graded Π-tower grades its binder domains** along any spine
 fitting the domains before them. -/
-theorem wellDenoted_piDom_at {B : AnnotTerm} :
-    ∀ {tl : List AnnotTerm} {ρ : Nat → V},
+theorem wellDenoted_piDom_at {B : ITerm} :
+    ∀ {tl : List ITerm} {ρ : Nat → V},
       WellDenoted V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
       SpineFit ρ (tl.take l) zs →
         WellDenotedTy V (consList zs ρ) (tl.getD l default)
@@ -87,7 +87,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) :
-    ∃ (bs : List AnnotTerm) (b : AnnotTerm),
+    ∃ (bs : List ITerm) (b : ITerm),
       (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length ≤ bs.length ∧
       bs.take (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length
         = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ∧

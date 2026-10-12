@@ -36,7 +36,7 @@ def shiftP (P : Nat → Prop) : Nat → Prop
   | i + 1 => P i
 
 /-- No variable whose index satisfies `P` occurs in the term. -/
-def NoBVar (P : Nat → Prop) : AnnotTerm → Prop
+def NoBVar (P : Nat → Prop) : ITerm → Prop
   | .bvar i => ¬ P i
   | .sort _ => True
   | .const _ _ => True
@@ -63,7 +63,7 @@ theorem agreeOff_cons {P : Nat → Prop} {σ σ' : Nat → V} (h : AgreeOff P σ
 /-- **The interpretation of a term ignores the variables it does not
 mention.** -/
 theorem interp_congr_noBVar :
-    ∀ (e : AnnotTerm) {P : Nat → Prop} {σ σ' : Nat → V},
+    ∀ (e : ITerm) {P : Nat → Prop} {σ σ' : Nat → V},
       NoBVar P e → AgreeOff P σ σ' → interp V σ e = interp V σ' e := by
   intro e
   induction e with
@@ -108,7 +108,7 @@ theorem shiftP_mono {P Q : Nat → Prop} (h : ∀ i, Q i → P i) : ∀ i, shift
 
 omit [SetTheory V] in
 theorem NoBVar.mono :
-    ∀ {e : AnnotTerm} {P Q : Nat → Prop}, (∀ i, Q i → P i) → NoBVar P e → NoBVar Q e := by
+    ∀ {e : ITerm} {P Q : Nat → Prop}, (∀ i, Q i → P i) → NoBVar P e → NoBVar Q e := by
   intro e
   induction e with
   | bvar i => intro P Q h h'; exact fun hq => h' (h i hq)
@@ -126,7 +126,7 @@ theorem NoBVar.mono :
 omit [SetTheory V] in
 /-- A term bounded below `k` mentions no variable at or above `k`. -/
 theorem NoBVar_of_bvarsBelow :
-    ∀ {e : AnnotTerm} {k : Nat} {P : Nat → Prop}, Term.bvarsBelow k e.erase →
+    ∀ {e : ITerm} {k : Nat} {P : Nat → Prop}, Term.bvarsBelow k e.erase →
       (∀ i, P i → k ≤ i) → NoBVar P e := by
   intro e
   induction e with

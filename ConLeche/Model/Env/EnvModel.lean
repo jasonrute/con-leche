@@ -21,7 +21,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo)
 
 universe w
@@ -38,7 +38,7 @@ structure EnvModel (env : Env) where
   /-- the shared, model-free environment well-formedness -/
   wf : EnvWF env
   /-- the annotated valuation -/
-  acval : Name → (Name → Nat) → AnnotTerm
+  acval : Name → (Name → Nat) → ITerm
   /-- every erased leaf is closed; consumers read the `cvalE`-spelled `cval_closed` below -/
   cval_closedL : ∀ (n : Name) (ψ : Name → Nat),
     Term.Closed ((acval n ψ).erase)
@@ -67,7 +67,7 @@ structure EnvModel (env : Env) where
 
 variable {V}
 
-/-- **The erased valuation, recovered**: `AnnotTerm.erase` is a total
+/-- **The erased valuation, recovered**: `ITerm.erase` is a total
 syntactic function the carrier already owns. -/
 @[expose] def EnvModel.cvalE {env : Env} (m : EnvModel V env) : TConstVal :=
   fun n ψ => (m.acval n ψ).erase

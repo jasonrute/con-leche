@@ -27,7 +27,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole)
 
 universe w
@@ -41,7 +41,7 @@ fitting spine is not the point**: no level along the spine is the point
 (each has a fitting continuation and leaves never the point at a fit),
 so off the fit a graph is applied off its domain, giving `∅`. -/
 theorem holeFam_foldl_ne_pt :
-    ∀ {ρ : Nat → V} {Fs : List AnnotTerm} {vs : List V} {g : List V → V},
+    ∀ {ρ : Nat → V} {Fs : List ITerm} {vs : List V} {g : List V → V},
       (∀ ws, SpineFit ρ Fs ws → g ws ≠ pt) → vs.length = Fs.length →
       (∀ k, SpineFit ρ (Fs.take k) (vs.take k) →
         ∃ ws, SpineFit ρ Fs ws ∧ ws.take k = vs.take k) →
@@ -77,7 +77,7 @@ theorem holeFam_foldl_ne_pt :
 
 /-- A bounded telescope's prefixes are bounded. -/
 theorem fieldsBound_take {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsBound w ρ Fs → ∀ k, FieldsBound w ρ (Fs.take k)
+    ∀ {Fs : List ITerm} {ρ : Nat → V}, FieldsBound w ρ Fs → ∀ k, FieldsBound w ρ (Fs.take k)
   | [], _, _, k => by rw [List.take_nil]; trivial
   | _ :: _, _, _, 0 => trivial
   | _ :: _, _, h, k + 1 => ⟨h.1, fun a ha => fieldsBound_take (h.2 a ha) k⟩
@@ -86,7 +86,7 @@ theorem fieldsBound_take {w : Nat} :
 prefix**: above `0` the tuple is the spine's (`mkTower_inj`), so the
 spine fits; at `0` every fitting spine is the points' (the index types
 are truth values), and so is every fitting prefix. -/
-theorem idx_ext_of_tupW_mem {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {is : List V}
+theorem idx_ext_of_tupW_mem {u : Nat} {ρp : Nat → V} {Ids : List ITerm} {is : List V}
     (hI : IdxOk u ρp Ids) (hlen : is.length = Ids.length)
     (ht : tupW u is ∈ˢ idxSet u ρp Ids) :
     ∀ k, SpineFit ρp (Ids.take k) (is.take k) →
@@ -148,7 +148,7 @@ theorem former_foldl_mem {env : Env} {μ : ConLeche.CheckMode} (mp : EnvModelM V
 
 /-- **The substituted rule valuation agrees off the holes with the walk's**
 (see the module docstring). -/
-theorem wStar_agree {nP hiP i rP B : Nat} {x : Nat → AnnotTerm} {xs fs : List V}
+theorem wStar_agree {nP hiP i rP B : Nat} {x : Nat → ITerm} {xs fs : List V}
     (hB : B = rP + fs.length) (hxl : xs.length = rP) (hnP : nP ≤ rP) (hi : i ≤ fs.length)
     (hnh : nP ≤ hiP)
     (hxP : ∀ v, v < nP → x v = .bvar (B - 1 - v))

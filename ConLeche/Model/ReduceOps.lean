@@ -68,7 +68,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -82,12 +82,12 @@ variable {μ : CheckMode} {env : Env}
 element inductives — `Nat`, `Bool` — are stored level-free, so the
 spelling is the plain assignment). -/
 def elemA {env : Env} (m : EnvModel V env) (c : Name)
-    (ψ : Name → Nat) : AnnotTerm :=
+    (ψ : Name → Nat) : ITerm :=
   m.acval (ConLeche.reduceElemName c) ψ
 
 /-- The certificate's context: one slot, the element type. -/
 def elemCtx {env : Env} (m : EnvModel V env) (c : Name)
-    (ψ : Name → Nat) : List AnnotTerm :=
+    (ψ : Name → Nat) : List ITerm :=
   [elemA m c ψ]
 
 /-- One element member satisfies the one-variable context (the leaf
@@ -156,7 +156,7 @@ the module docstring for the route. -/
 theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat}
     {cv : ConstantVal} {value type' value' : Expr}
-    {A Ta : (Name → Nat) → AnnotTerm}
+    {A Ta : (Name → Nat) → ITerm}
     (hfresh : env.find? cv.name = none)
     (hvf' : value'.hasFvar = false)
     (hbv' : value'.looseBVarsBounded 0 = true)

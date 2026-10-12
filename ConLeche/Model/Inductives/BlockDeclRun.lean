@@ -32,7 +32,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -55,10 +55,10 @@ section MembersRun
 
 variable {envC envI : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC} {F : Nat}
-  {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+  {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
  
   {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
+  {ppsOf : Nat → (Name → Nat) → List ITerm}
 
 /-- **`BlockMembersRun` from the constructors' three records**, at the
 run's own block data. -/
@@ -127,16 +127,16 @@ theorem blockModelAt_seam
 /-- **The seam's canonical constructor-type reading**: the stored type
 of recursor `j`'s `i`-th constructor, read at the constructors'
 environment. -/
-@[expose] noncomputable def blockRecCtorTy (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+@[expose] noncomputable def blockRecCtorTy (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))) (j i : Nat)
-    (ψ : Name → Nat) : AnnotTerm :=
+    (ψ : Name → Nat) : ITerm :=
   (denoteMeta acval envC ψ 0 ((rs.getD j default).2.2.2.getD i default).1.type).getD default
 
 
 omit [SetTheory V] in
 /-- A field chain whose entries are bounded one by one is bounded. -/
 theorem domsBelow_of_getD :
-    ∀ {m : Nat} {Fs : List AnnotTerm},
+    ∀ {m : Nat} {Fs : List ITerm},
       (∀ q, q < Fs.length → Term.bvarsBelow (m + q) (Fs.getD q default).erase) →
       DomsBelow m Fs
   | _, [], _ => trivial
@@ -152,8 +152,8 @@ prefix is the recursor type's (`blockRulePdomsAV_bounded`). -/
 theorem blockRecEqs_below_rows (hμ : μ.verifiedChecks = true)
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
     {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
-    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List AnnotTerm}
-    {mk0 Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm}
+    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List ITerm}
+    {mk0 Rb0 : (Name → Nat) → Nat → Nat → ITerm}
     (hrow : ∀ (ψ : Name → Nat) (c : Nat)
       (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
@@ -209,8 +209,8 @@ five components do; the prefix is the recursor type's
 theorem blockRecEqs_params_rows (hμ : μ.verifiedChecks = true)
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
     {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
-    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List AnnotTerm}
-    {mk0 Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm}
+    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List ITerm}
+    {mk0 Rb0 : (Name → Nat) → Nat → Nat → ITerm}
     (hrow : ∀ (c : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs → ∀ ψ₁ ψ₂ : Name → Nat,

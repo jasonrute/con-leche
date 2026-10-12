@@ -53,52 +53,52 @@ variable (V : Type w) [SetTheory V]
 /-! ## The substitution stack -/
 
 theorem interp_liftN (n : Nat) :
-    ∀ (e : AnnotTerm) (k : Nat) (ρ : Nat → V),
+    ∀ (e : ITerm) (k : Nat) (ρ : Nat → V),
       interp V ρ (e.liftN n k) = interp V (shiftE n k ρ) e := by
   intro e
   induction e with
   | bvar i =>
     intro k ρ
-    simp only [AnnotTerm.liftN_bvar, interp_bvar, shiftE]
+    simp only [ITerm.liftN_bvar, interp_bvar, shiftE]
     split <;> rfl
   | sort u => intro k ρ; rfl
   | const c us => intro k ρ; rfl
   | app f a ihf iha =>
-    intro k ρ; simp only [AnnotTerm.liftN_app, interp_app, ihf, iha]
+    intro k ρ; simp only [ITerm.liftN_app, interp_app, ihf, iha]
   | lam A b ihA ihb =>
     intro k ρ
-    simp only [AnnotTerm.liftN_lam, interp_lam, ihA]
+    simp only [ITerm.liftN_lam, interp_lam, ihA]
     congr 1
     funext x
     rw [ihb, cons_shiftE]
   | pi A B ihA ihB =>
     intro k ρ
-    simp only [AnnotTerm.liftN_pi, interp_pi, ihA]
+    simp only [ITerm.liftN_pi, interp_pi, ihA]
     congr 1
     funext x
     rw [ihB, cons_shiftE]
   | letE v b ihv ihb =>
     intro k ρ
-    simp only [AnnotTerm.liftN_letE, interp_letE, ihv]
+    simp only [ITerm.liftN_letE, interp_letE, ihv]
     rw [ihb, cons_shiftE]
   | eqE a b iha ihb =>
-    intro k ρ; simp only [AnnotTerm.liftN_eqE, interp_eqE, iha, ihb]
+    intro k ρ; simp only [ITerm.liftN_eqE, interp_eqE, iha, ihb]
   | fst e ihe =>
-    intro k ρ; simp only [AnnotTerm.liftN_fst, interp_fst, ihe]
+    intro k ρ; simp only [ITerm.liftN_fst, interp_fst, ihe]
   | snd e ihe =>
-    intro k ρ; simp only [AnnotTerm.liftN_snd, interp_snd, ihe]
+    intro k ρ; simp only [ITerm.liftN_snd, interp_snd, ihe]
   | prf => intro k ρ; rfl
 
-theorem interp_lift (e : AnnotTerm) (ρ : Nat → V) :
+theorem interp_lift (e : ITerm) (ρ : Nat → V) :
     interp V ρ e.lift = interp V (fun i => ρ (i + 1)) e := by
-  rw [AnnotTerm.lift, interp_liftN, shiftE_zero]
+  rw [ITerm.lift, interp_liftN, shiftE_zero]
 
-theorem interp_lift_cons (e : AnnotTerm) (x : V) (ρ : Nat → V) :
+theorem interp_lift_cons (e : ITerm) (x : V) (ρ : Nat → V) :
     interp V (cons x ρ) e.lift = interp V ρ e := by
   rw [interp_lift]; rfl
 
 theorem interp_inst :
-    ∀ (e a : AnnotTerm) (k : Nat) (ρ : Nat → V),
+    ∀ (e a : ITerm) (k : Nat) (ρ : Nat → V),
       interp V ρ (e.inst a k) =
         interp V (instE k (interp V (shiftE k 0 ρ) a) ρ) e := by
   intro e
@@ -107,7 +107,7 @@ theorem interp_inst :
     intro a k ρ
     show interp V ρ
         (if i < k then .bvar i
-         else if i = k then AnnotTerm.liftN k a else .bvar (i - 1)) =
+         else if i = k then ITerm.liftN k a else .bvar (i - 1)) =
       instE k (interp V (shiftE k 0 ρ) a) ρ i
     by_cases h : i < k
     · simp only [ite_eq_left h, instE]; rfl
@@ -118,35 +118,35 @@ theorem interp_inst :
   | sort u => intro a k ρ; rfl
   | const c us => intro a k ρ; rfl
   | app f b ihf ihb =>
-    intro a k ρ; simp only [AnnotTerm.inst_app, interp_app, ihf, ihb]
+    intro a k ρ; simp only [ITerm.inst_app, interp_app, ihf, ihb]
   | lam A b ihA ihb =>
     intro a k ρ
-    simp only [AnnotTerm.inst_lam, interp_lam, ihA]
+    simp only [ITerm.inst_lam, interp_lam, ihA]
     congr 1
     funext x
     rw [ihb, shiftE_succ_cons, cons_instE]
   | pi A B ihA ihB =>
     intro a k ρ
-    simp only [AnnotTerm.inst_pi, interp_pi, ihA]
+    simp only [ITerm.inst_pi, interp_pi, ihA]
     congr 1
     funext x
     rw [ihB, shiftE_succ_cons, cons_instE]
   | letE v b ihv ihb =>
     intro a k ρ
-    simp only [AnnotTerm.inst_letE, interp_letE, ihv]
+    simp only [ITerm.inst_letE, interp_letE, ihv]
     rw [ihb, shiftE_succ_cons, cons_instE]
   | eqE b c ihb ihc =>
-    intro a k ρ; simp only [AnnotTerm.inst_eqE, interp_eqE, ihb, ihc]
+    intro a k ρ; simp only [ITerm.inst_eqE, interp_eqE, ihb, ihc]
   | fst e ihe =>
-    intro a k ρ; simp only [AnnotTerm.inst_fst, interp_fst, ihe]
+    intro a k ρ; simp only [ITerm.inst_fst, interp_fst, ihe]
   | snd e ihe =>
-    intro a k ρ; simp only [AnnotTerm.inst_snd, interp_snd, ihe]
+    intro a k ρ; simp only [ITerm.inst_snd, interp_snd, ihe]
   | prf => intro a k ρ; rfl
 
 /-! ### Interpretation invariance below a bound
 
 A closed term's interpretation does not read the environment.  Stated through the **erasure's** bound rather
-than a fresh `AnnotTerm.bvarsBelow`: `erase` maps `bvar i` to `bvar i` and
+than a fresh `ITerm.bvarsBelow`: `erase` maps `bvar i` to `bvar i` and
 preserves every former's shape, so `Term.bvarsBelow k e.erase` says
 exactly "`e`'s indices are below `k`", and no new predicate is needed.
 
@@ -155,7 +155,7 @@ interpretation only through `interp_app`, `interp_bvar`, `interp_sort`,
 `interp_pi` and `interp_closed`. -/
 
 theorem interp_congr_below :
-    ∀ (e : AnnotTerm) (k : Nat) (ρ ρ' : Nat → V),
+    ∀ (e : ITerm) (k : Nat) (ρ ρ' : Nat → V),
       ConLeche.Term.Term.bvarsBelow k e.erase →
       (∀ i, i < k → ρ i = ρ' i) →
       interp V ρ e = interp V ρ' e := by
@@ -204,24 +204,24 @@ theorem interp_congr_below :
     simp only [interp_snd, ihe k ρ ρ' hb hag]
 
 /-- A closed term interprets the same under every environment. -/
-theorem interp_closed {e : AnnotTerm}
+theorem interp_closed {e : ITerm}
     (he : ConLeche.Term.Term.bvarsBelow 0 e.erase) (ρ ρ' : Nat → V) :
     interp V ρ e = interp V ρ' e :=
   interp_congr_below V e 0 ρ ρ' he
     (fun i hi => absurd hi (Nat.not_lt_zero i))
 
 /-- Substitution at the outermost binder — the form every rule uses. -/
-theorem interp_inst0 (e a : AnnotTerm) (ρ : Nat → V) :
+theorem interp_inst0 (e a : ITerm) (ρ : Nat → V) :
     interp V ρ (e.inst a) = interp V (cons (interp V ρ a) ρ) e := by
   rw [interp_inst, shiftE_zero_zero, instE_zero]
 
 theorem interp_mkAppN (ρ : Nat → V) :
-    ∀ (as : List AnnotTerm) (f : AnnotTerm),
-      interp V ρ (AnnotTerm.mkAppN f as) =
+    ∀ (as : List ITerm) (f : ITerm),
+      interp V ρ (ITerm.mkAppN f as) =
         as.foldl (fun r a => SetTheory.app r (interp V ρ a)) (interp V ρ f)
   | [], _ => rfl
   | a :: as, f => by
-    simp only [AnnotTerm.mkAppN_cons, List.foldl_cons]
+    simp only [ITerm.mkAppN_cons, List.foldl_cons]
     rw [interp_mkAppN ρ as (.app f a)]
     rfl
 
@@ -231,7 +231,7 @@ theorem interp_mkAppN (ρ : Nat → V) :
 is not the point is a function graph: the graph of its own application
 over `⟦A⟧`, its applications in the fibres, canonical junk `∅` off the
 domain. -/
-theorem interp_mem_pi_ne_pt {ρ : Nat → V} {A B : AnnotTerm} {f : V}
+theorem interp_mem_pi_ne_pt {ρ : Nat → V} {A B : ITerm} {f : V}
     (hf : f ∈ˢ interp V ρ (.pi A B)) (hn : f ≠ pt) :
     graph (fun x => SetTheory.app f x) (interp V ρ A) = f ∧
     (∀ x, x ∈ˢ interp V ρ A →
@@ -243,13 +243,13 @@ theorem interp_mem_pi_ne_pt {ρ : Nat → V} {A B : AnnotTerm} {f : V}
     fun a ha => app_off_dom_of_mem_piSet hs ha⟩
 
 /-- **β**, with no premise beyond the argument inhabiting the domain. -/
-theorem interp_beta (ρ : Nat → V) (A b a : AnnotTerm)
+theorem interp_beta (ρ : Nat → V) (A b a : ITerm)
     (ha : interp V ρ a ∈ˢ interp V ρ A) :
     interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) := by
   rw [interp_app, interp_lam, interp_inst0, app_lamV ha]
 
 /-- Elimination at a Π-type's reading. -/
-theorem interp_app_mem_pi {ρ : Nat → V} {A B : AnnotTerm} {f a : V}
+theorem interp_app_mem_pi {ρ : Nat → V} {A B : ITerm} {f a : V}
     (hf : f ∈ˢ interp V ρ (.pi A B)) (ha : a ∈ˢ interp V ρ A) :
     SetTheory.app f a ∈ˢ interp V (cons a ρ) B := by
   rw [interp_pi] at hf; exact app_mem_piV hf ha
@@ -257,7 +257,7 @@ theorem interp_app_mem_pi {ρ : Nat → V} {A B : AnnotTerm} {f a : V}
 /-- Proof irrelevance, in the form consumers use it: members of a
 proposition — anything the interpretation places in `univ 0` — are all
 equal, and all equal to the canonical proof `⟦prf⟧`. -/
-theorem interp_proof_irrel {ρ : Nat → V} {T : AnnotTerm} {x y : V}
+theorem interp_proof_irrel {ρ : Nat → V} {T : ITerm} {x y : V}
     (hT : interp V ρ T ∈ˢ (univ 0 : V)) (hx : x ∈ˢ interp V ρ T)
     (hy : y ∈ˢ interp V ρ T) : x = y :=
   subsingleton_of_mem_univZero (univ_zero (V := V) ▸ hT) hx hy

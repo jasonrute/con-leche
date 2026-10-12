@@ -39,7 +39,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestKey NestHole)
 
 universe w
@@ -90,11 +90,11 @@ theorem nestOcc_instantiate1_fvar {names : List Name} {lo hi d : Nat}
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, ih]
 
 /-- A reading whose erasure is closed mentions no position at all. -/
-theorem noBVar_of_closed {ea : AnnotTerm} (h : Term.bvarsBelow 0 ea.erase) (P : Nat → Prop) :
+theorem noBVar_of_closed {ea : ITerm} (h : Term.bvarsBelow 0 ea.erase) (P : Nat → Prop) :
     NoBVar P ea :=
   NoBVar_of_bvarsBelow h fun _ _ => Nat.zero_le _
 
-theorem noBVar_projAV {P : Nat → Prop} : ∀ (k : Nat) {e : AnnotTerm}, NoBVar P e →
+theorem noBVar_projAV {P : Nat → Prop} : ∀ (k : Nat) {e : ITerm}, NoBVar P e →
     NoBVar P (projAV k e)
   | 0, _, h => h
   | k + 1, _, h => noBVar_projAV (P := P) k (e := .snd _) h
@@ -102,7 +102,7 @@ theorem noBVar_projAV {P : Nat → Prop} : ∀ (k : Nat) {e : AnnotTerm}, NoBVar
 /-- **A term mentioning no hole reads without the holes' positions**, at
 `fvarsBelow` scoping. -/
 theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
-    ∀ (d : Nat) (e : Expr) {ea : AnnotTerm}, Expr.fvarsBelow d e → hi ≤ d →
+    ∀ (d : Nat) (e : Expr) {ea : ITerm}, Expr.fvarsBelow d e → hi ≤ d →
       e.nestOcc names lo hi = false →
       denoteMeta m.acval env φ d e = some ea → NoBVar (holeP d lo hi) ea := by
   intro d e
@@ -201,7 +201,7 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     have hsub := ihe hws hd hocc hea
     replace h : (match env.findProj? sn i with
         | some entry => some (projAV (i + entry.off) ea')
-        | none => AnnotTerm.projPair? i ea') = some ea := h
+        | none => ITerm.projPair? i ea') = some ea := h
     cases hfp : env.findProj? sn i with
     | some entry =>
       rw [hfp] at h
@@ -252,7 +252,7 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
 
 /-- `denoteMeta_noBVar_of_nestOcc'` at `WScoped` scoping. -/
 theorem denoteMeta_noBVar_of_nestOcc {names : List Name} {lo hi : Nat} (d : Nat) (e : Expr)
-    {ea : AnnotTerm} (hws : Expr.WScoped d e) (hd : hi ≤ d) (hocc : e.nestOcc names lo hi = false)
+    {ea : ITerm} (hws : Expr.WScoped d e) (hd : hi ≤ d) (hocc : e.nestOcc names lo hi = false)
     (h : denoteMeta m.acval env φ d e = some ea) : NoBVar (holeP d lo hi) ea :=
   denoteMeta_noBVar_of_nestOcc' d e (Expr.WScoped.fvarsBelow hws) hd hocc h
 
@@ -270,14 +270,14 @@ theorem wScoped_mkAppN {d : Nat} :
     · exact hfa.2
     · exact has x hx
 
-theorem DenoteMetaSpine.length_eq {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env φ d as vs →
+theorem DenoteMetaSpine.length_eq {acval : Name → (Name → Nat) → ITerm} {d : Nat} :
+    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval env φ d as vs →
       as.length = vs.length
   | _, _, .nil => rfl
   | _, _, .cons _ h => by simp [DenoteMetaSpine.length_eq h]
 
-theorem DenoteMetaSpine.split {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat} :
-    ∀ (as : List Expr) {bs : List Expr} {vs : List AnnotTerm},
+theorem DenoteMetaSpine.split {acval : Name → (Name → Nat) → ITerm} {d : Nat} :
+    ∀ (as : List Expr) {bs : List Expr} {vs : List ITerm},
       DenoteMetaSpine acval env φ d (as ++ bs) vs →
       ∃ vs₁ vs₂, vs = vs₁ ++ vs₂ ∧ DenoteMetaSpine acval env φ d as vs₁ ∧
         DenoteMetaSpine acval env φ d bs vs₂
@@ -289,7 +289,7 @@ theorem DenoteMetaSpine.split {acval : Name → (Name → Nat) → AnnotTerm} {d
 /-- Hole-free arguments read hole-free. -/
 theorem constOn_spine {names : List Name} {lo hi d : Nat} {R : FrameRel V}
     (hR : R.AgreesOff (holeP d lo hi)) (hd : hi ≤ d) :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine m.acval env φ d as vs →
+    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine m.acval env φ d as vs →
       (∀ a ∈ as, Expr.WScoped d a ∧ a.nestOcc names lo hi = false) →
       ∀ v ∈ vs, ConstOn R v
   | _, _, .nil, _ => fun _ hv => nomatch hv
@@ -304,9 +304,9 @@ theorem constOn_spine {names : List Name} {lo hi d : Nat} {R : FrameRel V}
 /-- A spine of `d`-scoped terms read one level deeper is its depth-`d`
 reading, lifted. -/
 theorem DenoteMetaSpine.weaken_top {d : Nat} :
-    ∀ {as : List Expr} {vs' : List AnnotTerm}, (∀ x ∈ as, Expr.WScoped d x) →
+    ∀ {as : List Expr} {vs' : List ITerm}, (∀ x ∈ as, Expr.WScoped d x) →
       DenoteMetaSpine m.acval env φ (d + 1) as vs' →
-      ∃ vs, DenoteMetaSpine m.acval env φ d as vs ∧ vs' = vs.map (AnnotTerm.liftN 1 · 0)
+      ∃ vs, DenoteMetaSpine m.acval env φ d as vs ∧ vs' = vs.map (ITerm.liftN 1 · 0)
   | _, _, _, .nil => ⟨[], .nil, rfl⟩
   | a :: as, _ :: _, hws, .cons ha h => by
     obtain ⟨vs, hvs, rfl⟩ :=
@@ -324,7 +324,7 @@ grows at its full arity (the container member's indices: the kernel's
 its container's carrier grows only at full arity, a partial application
 being a graph). -/
 structure HoleRel (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx) (prog : List NestHole)
-    (d : Nat) (Δa : List AnnotTerm) (R : FrameRel V) : Prop where
+    (d : Nat) (Δa : List ITerm) (R : FrameRel V) : Prop where
   dom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ'
   agree : R.AgreesOff (holeP d ctx.nP (ctx.hiAt prog.length))
   member : ∀ t, t < ctx.names.length →
@@ -339,9 +339,9 @@ structure HoleRel (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx) (prog
 
 /-- **Under a positive binder** (a hole-free domain, or an earlier field)
 the relation is the same one level deeper. -/
-theorem HoleRel.under {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+theorem HoleRel.under {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List ITerm}
     {R : FrameRel V} (h : HoleRel m φ ctx prog d Δa R) (hd : ctx.hiAt prog.length ≤ d)
-    {ta : AnnotTerm} (hA : MonoOn R ta) :
+    {ta : ITerm} (hA : MonoOn R ta) :
     HoleRel m φ ctx prog (d + 1) (ta :: Δa) (R.under ta) where
   dom := by
     rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
@@ -371,8 +371,8 @@ theorem HoleRel.under {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : Li
 
 /-- **The first `n` Π-domains of a reading positive**, each under the
 earlier ones, and `P` of the relation and the reading below them. -/
-@[expose] def PiPosThen (P : FrameRel V → AnnotTerm → Prop) :
-    Nat → FrameRel V → AnnotTerm → Prop
+@[expose] def PiPosThen (P : FrameRel V → ITerm → Prop) :
+    Nat → FrameRel V → ITerm → Prop
   | 0, R, r => P R r
   | n + 1, R, .pi A B => MonoOn R A ∧ PiPosThen P n (R.under A) B
   | _ + 1, _, _ => False
@@ -380,13 +380,13 @@ earlier ones, and `P` of the relation and the reading below them. -/
 /-- What a telescope walk leaves at its result `res`, at depth `D`: the
 relation still agrees off the hole positions, and the result reads. -/
 @[expose] def ResultAt (m : EnvModel V env) (φ : Name → Nat) (lo hi D : Nat) (res : Expr)
-    (R : FrameRel V) (r : AnnotTerm) : Prop :=
+    (R : FrameRel V) (r : ITerm) : Prop :=
   R.AgreesOff (holeP D lo hi) ∧ denoteMeta m.acval env φ D res = some r ∧ Expr.WScoped D res
 
 /-- A Π-tower positive along a relation is positive field by field, and
 its body satisfies the predicate under the fields. -/
-theorem piPosThen_mkPisAV {P : FrameRel V → AnnotTerm → Prop} :
-    ∀ (ab : List AnnotTerm) (R : FrameRel V) (b : AnnotTerm),
+theorem piPosThen_mkPisAV {P : FrameRel V → ITerm → Prop} :
+    ∀ (ab : List ITerm) (R : FrameRel V) (b : ITerm),
       PiPosThen P ab.length R (mkPisAV ab b) →
       TeleMonoOn R ab ∧ P (R.underTele ab) b
   | [], _, _, h => ⟨trivial, h⟩
@@ -396,31 +396,31 @@ theorem piPosThen_mkPisAV {P : FrameRel V → AnnotTerm → Prop} :
     exact ⟨⟨h1, ht⟩, hp⟩
 
 /-- The number of applications on a spine. -/
-def spineLenAV : AnnotTerm → Nat
+def spineLenAV : ITerm → Nat
   | .app f _ => spineLenAV f + 1
   | _ => 0
 
-theorem spineLenAV_mkAppN : ∀ (as : List AnnotTerm) (f : AnnotTerm),
-    spineLenAV (AnnotTerm.mkAppN f as) = spineLenAV f + as.length
+theorem spineLenAV_mkAppN : ∀ (as : List ITerm) (f : ITerm),
+    spineLenAV (ITerm.mkAppN f as) = spineLenAV f + as.length
   | [], _ => rfl
   | a :: as, f => by
-    rw [ConLeche.Semantics.AnnotTerm.mkAppN_cons, spineLenAV_mkAppN as]
+    rw [ConLeche.Semantics.ITerm.mkAppN_cons, spineLenAV_mkAppN as]
     simp [spineLenAV]; omega
 
 /-- Spines headed by a variable are equal only at equal variables and
 arguments. -/
-theorem mkAppN_bvar_inj {i j : Nat} {as bs : List AnnotTerm}
-    (h : AnnotTerm.mkAppN (.bvar i) as = AnnotTerm.mkAppN (.bvar j) bs) : i = j ∧ as = bs := by
+theorem mkAppN_bvar_inj {i j : Nat} {as bs : List ITerm}
+    (h : ITerm.mkAppN (.bvar i) as = ITerm.mkAppN (.bvar j) bs) : i = j ∧ as = bs := by
   have hl := congrArg spineLenAV h
   rw [spineLenAV_mkAppN, spineLenAV_mkAppN] at hl
   simp only [spineLenAV, Nat.zero_add] at hl
-  obtain ⟨h1, h2⟩ := AnnotTerm.mkAppN_inj h hl
+  obtain ⟨h1, h2⟩ := ITerm.mkAppN_inj h hl
   injection h1 with h1
   exact ⟨h1, h2⟩
 
 /-- **A member constructor's result**: its reading is a hole applied to
 hole-free arguments (the result's indices). -/
-@[expose] def ResultIdxConst (R : FrameRel V) (r : AnnotTerm) : Prop :=
-  ∃ i vs, r = AnnotTerm.mkAppN (.bvar i) vs ∧ ∀ v ∈ vs, ConstOn R v
+@[expose] def ResultIdxConst (R : FrameRel V) (r : ITerm) : Prop :=
+  ∃ i vs, r = ITerm.mkAppN (.bvar i) vs ∧ ∀ v ∈ vs, ConstOn R v
 
 end ConLeche.Model

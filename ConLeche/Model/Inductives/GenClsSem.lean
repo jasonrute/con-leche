@@ -57,7 +57,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState)
 
@@ -76,8 +76,8 @@ theorem mkAppN_append' : ∀ (as bs : List Expr) (f : Expr),
 omit [SetTheory V] in
 /-- Lifting an application spine lifts its head and arguments. -/
 theorem annotLiftN_mkAppN (n k : Nat) :
-    ∀ (as : List AnnotTerm) (f : AnnotTerm),
-      (AnnotTerm.mkAppN f as).liftN n k = AnnotTerm.mkAppN (f.liftN n k) (as.map (·.liftN n k))
+    ∀ (as : List ITerm) (f : ITerm),
+      (ITerm.mkAppN f as).liftN n k = ITerm.mkAppN (f.liftN n k) (as.map (·.liftN n k))
   | [], _ => rfl
   | a :: as, f => annotLiftN_mkAppN n k as (.app f a)
 
@@ -281,9 +281,9 @@ theorem genCls_inst_graded (hμ : μ.verifiedChecks = true)
   exact ⟨w, hw, hgr⟩
 
 /-- A spine's reading is its erasure-equal spine's. -/
-theorem DenoteMetaSpine.of_erasedEqL {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem DenoteMetaSpine.of_erasedEqL {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} {d : Nat} :
-    ∀ {as bs : List Expr} {vs : List AnnotTerm}, Expr.ErasedEqL as bs →
+    ∀ {as bs : List Expr} {vs : List ITerm}, Expr.ErasedEqL as bs →
       DenoteMetaSpine acval env φ d as vs → DenoteMetaSpine acval env φ d bs vs
   | [], [], _, _, .nil => .nil
   | _ :: _, _ :: _, _ :: _, ⟨hab, hl⟩, .cons ha h =>
@@ -506,21 +506,21 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
   have hlenAbR : abR.length = nI := by rw [hmapR]; exact hidsLen
   obtain ⟨pps, bI, hstI, -, -, hbindI⟩ := denoteMeta_openPis _ hopI hread
   rw [hnI, stripPisAV_mkPisAV_take _ _ _ (by rw [substTele_length]; omega)] at hstI
-  have hppsE : pps = AnnotTerm.substTele τ 0 abR := by
+  have hppsE : pps = ITerm.substTele τ 0 abR := by
     obtain ⟨h1, -⟩ := Prod.mk.inj (Option.some.inj hstI)
     rw [← h1, List.take_of_length_le (by rw [substTele_length]; omega)]
   subst hppsE
   generalize hRds : blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
     = dR at hidxR hmajR hlenR ⊢
   -- the stored index entries ARE the opened former's
-  have hIdxE : (dR.drop rP).take nI = AnnotTerm.substTele τ 0 abR := by
+  have hIdxE : (dR.drop rP).take nI = ITerm.substTele τ 0 abR := by
     refine List.ext_getElem (by simp [hlenR, substTele_length, hlenAbR]; omega) fun k h1 h2 => ?_
     have hk : k < nI := by simp [hlenR] at h1; omega
     obtain ⟨x, hx⟩ : ∃ x, ifs[k]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     obtain ⟨q, hq, hrdq⟩ := hbindI k x hx
     have e1 := hidxR k x hx
     rw [hrdq] at e1
-    have e2 : (AnnotTerm.substTele τ 0 abR)[k] = q := by
+    have e2 : (ITerm.substTele τ 0 abR)[k] = q := by
       rw [List.getElem_eq_iff, hq]
     rw [e2, List.getElem_take, List.getElem_drop]
     have := (Option.some.inj e1)
@@ -559,7 +559,7 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
   obtain ⟨-, isa, hisa, hleaf⟩ := keyLeaf mpC hDin hmmk hfM (b := rP) (Nat.le_add_right _ _)
     hmajR' hlenP'.symm (by rw [hifl, hidsLen]) (fun x hx => (hds' x hx).1) hdsa
   have hidxI := ConLeche.openPisAtFvars_index _ _ _ hopI
-  have hisaE : isa = (List.range nI).map fun k => AnnotTerm.bvar (rP + nI - 1 - (rP + k)) := by
+  have hisaE : isa = (List.range nI).map fun k => ITerm.bvar (rP + nI - 1 - (rP + k)) := by
     have hF := denoteMetaSpine_fvars (acval := mpC.base2.acval) (env := envC) (φ := ψ) (rP + nI)
       ifs rP (fun k x hx => hidxI k x hx)
     rw [hifl] at hF
@@ -726,7 +726,7 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
     {c j : Nat} (hc : c < (tgtRs out).length) (hj : j < blockRecNCt (tgtRs out) c)
     {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out c cvI)
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt c) (ψ : Name → Nat) :
-    ∃ (cA : ConstantVal × Nat) (ab : List AnnotTerm) (Tys : List AnnotTerm),
+    ∃ (cA : ConstantVal × Nat) (ab : List ITerm) (Tys : List ITerm),
       (tgtMajor out c).ctors[j]? = some cA ∧ tgtCtorOf out c j = cA ∧
       j < (tgtClsD d Dc out c).nctors (tgtClsM mc pp.toBlockShape out c) ∧
       Tys.length = (tgtClsD d Dc out c).k ∧
@@ -740,7 +740,7 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
         ((tgtClsD d Dc out c).fields (tgtClsψ cvc out ψ c) (tgtClsM mc pp.toBlockShape out c) j) ∧
       ab.length = cA.2 ∧
       tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
-        = AnnotTerm.substTele (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+        = ITerm.substTele (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
             (tgtRP pp.toBlockShape c) (tgtMajor out c).ds) 0 ab ∧
       tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
         = tgtOutEs mpC (tgtClsD d Dc out c) (tgtClsM mc pp.toBlockShape out c) cvI.levelParams
@@ -772,7 +772,7 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
   have hB : tgtB pp.toBlockShape out c j = tgtRP pp.toBlockShape c + cA.2 := by
     rw [tgtB, hctO]
   have hfdoms : tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
-      = AnnotTerm.substTele (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+      = ITerm.substTele (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
           (tgtRP pp.toBlockShape c) (tgtMajor out c).ds) 0 ab := by
     rw [tgtFdomsAV, hFF, hrdF]
   have hcbE : tgtCbody pp.toBlockShape out c j = cb := hCB
@@ -803,13 +803,13 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
       ((tgtMajor out c).ds.length + tgtClsM mc pp.toBlockShape out c) (by omega)).2.2
     rw [ite_eq_right (by omega), show (tgtMajor out c).ds.length + tgtClsM mc pp.toBlockShape out c
       - (tgtMajor out c).ds.length = tgtClsM mc pp.toBlockShape out c by omega, Rd.hmem] at hr
-    have hhead : AnnotTerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+    have hhead : ITerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
           (tgtRP pp.toBlockShape c) (tgtMajor out c).ds)
           (.bvar (cA.2 + ((tgtClsD d Dc out c).k - 1 - tgtClsM mc pp.toBlockShape out c))) cA.2
-        = AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out c).ind
+        = ITerm.mkAppN (mpC.base2.acval (tgtMajor out c).ind
             (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls))
             ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ c).map (·.liftN cA.2 0)) := by
-      rw [AnnotTerm.substAV_bvar_ge _ (by omega),
+      rw [ITerm.substAV_bvar_ge _ (by omega),
         show cA.2 + ((tgtClsD d Dc out c).k - 1 - tgtClsM mc pp.toBlockShape out c) - cA.2
           = (tgtClsD d Dc out c).k - 1 - tgtClsM mc pp.toBlockShape out c by omega,
         instTau, substTau, ite_eq_left (by omega),
@@ -818,8 +818,8 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
           = (tgtMajor out c).ds.length + tgtClsM mc pp.toBlockShape out c by omega,
         hr, Option.getD_some, annotLiftN_mkAppN,
         liftN_eq_self_of_closed (mpC.base2.cval_closedL _ _) 0 _]
-    rw [AnnotTerm.substAV_mkAppN, hhead, ← annotMkAppN_append] at heq
-    have hvsE := AnnotTerm.mkAppN_inj_head heq.symm
+    rw [ITerm.substAV_mkAppN, hhead, ← annotMkAppN_append] at heq
+    have hvsE := ITerm.mkAppN_inj_head heq.symm
     have hvsM := denoteMetaSpine_eq_map hvs
     rw [tgtEsAV, hcbE, hcE, Expr.getAppArgs_mkAppN, hB]
     rw [show ∀ (n : Name) (us : List Level), (Expr.const n us).getAppArgs = [] from
@@ -895,7 +895,7 @@ theorem genCls_dec (hμ : μ.verifiedChecks = true)
       = ((tgtClsD d Dc out c).resIdx (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls)
           (tgtClsM mc pp.toBlockShape out c) j).map fun e =>
           interp V (consList as₂ (consList as₁ ρ))
-            (AnnotTerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+            (ITerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
               (tgtRP pp.toBlockShape c) (tgtMajor out c).ds) e cA.2) := by
     rw [hes, tgtOutEs, List.map_map, consList_append, List.getD_eq_getElem?_getD, hcA,
       Option.getD_some]
@@ -912,7 +912,7 @@ theorem genCls_dec (hμ : μ.verifiedChecks = true)
       (by show _ = cA.1.levelParams.length; rw [hlpC]; exact Rd.hul)
   have hdsaL : DenoteMetaSpine mpC.base2.acval envC ψ (tgtRP pp.toBlockShape c + cA.2)
       (tgtMajor out c).ds
-      ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ c).map (AnnotTerm.liftN cA.2 · 0)) :=
+      ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ c).map (ITerm.liftN cA.2 · 0)) :=
     denoteMetaSpine_liftD mpC.base2.acval_closed (Rd.hdsa ψ) (fun x hx => (hds' x hx).1) cA.2
   have hspF := denoteMetaSpine_fvars (acval := mpC.base2.acval) (env := envC) (φ := ψ)
     (tgtRP pp.toBlockShape c + cA.2) (tgtFieldFvs pp.toBlockShape out c j)
@@ -926,7 +926,7 @@ theorem genCls_dec (hμ : μ.verifiedChecks = true)
       Option.getD_some, interp_mkAppN, foldl_app_map, List.map_append,
       map_fieldBvars hxlR hfl, List.map_map]
     have hmapD : (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ c).map
-          (interp V (consList (as₁ ++ as₂) ρ) ∘ fun x => AnnotTerm.liftN cA.2 x 0)
+          (interp V (consList (as₁ ++ as₂) ρ) ∘ fun x => ITerm.liftN cA.2 x 0)
         = (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ c).map
           (interp V (consList as₁ ρ)) := by
       refine List.map_congr_left fun x _ => ?_
@@ -954,7 +954,7 @@ theorem genCls_dec (hμ : μ.verifiedChecks = true)
           (((tgtClsD d Dc out c).resIdx (tgtClsψ cvc out ψ c)
             (tgtClsM mc pp.toBlockShape out c) j).map fun e =>
             interp V (consList as₂ (consList as₁ ρ))
-              (AnnotTerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+              (ITerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
                 (tgtRP pp.toBlockShape c) (tgtMajor out c).ds) e cA.2)) := by
     rw [hES]; rfl
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
@@ -1009,7 +1009,7 @@ theorem genCls_decInv (hμ : μ.verifiedChecks = true)
     hlenP' Rd.hmm hjD hlT hTys hEq hlab hsat'
   rw [← hψc] at hF hI
   have hfit : SpineFit (consList xs ρ)
-      (AnnotTerm.substTele (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+      (ITerm.substTele (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
         (tgtRP pp.toBlockShape c) (tgtMajor out c).ds) 0 ab) fs :=
     (hF fs).mpr hf.2.1
   refine ⟨by rw [hfdoms]; exact hfit, ?_⟩
@@ -1024,7 +1024,7 @@ theorem genCls_decInv (hμ : μ.verifiedChecks = true)
       = ((tgtClsD d Dc out c).resIdx (tgtClsψ cvc out ψ c)
           (tgtClsM mc pp.toBlockShape out c) j).map fun e =>
           interp V (consList fs (consList xs ρ))
-            (AnnotTerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
+            (ITerm.substAV (instTau mpC ψ (tgtClsD d Dc out c) (tgtMajor out c).lvls
               (tgtRP pp.toBlockShape c) (tgtMajor out c).ds) e cA.2) := by
     rw [hes, tgtOutEs, List.map_map, consList_append, List.getD_eq_getElem?_getD, hcA,
       Option.getD_some, hψc]
@@ -1228,8 +1228,8 @@ theorem genClsRd_mem (hμ : μ.verifiedChecks = true)
       block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) (fun _ => False))
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI' : Env}
+    {ppsOf : Nat → (Name → Nat) → List ITerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm} {envI' : Env}
     (hN : BlockNamesOk (V := V) (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf) cvTas)
     (hS : BlockCtorsStage (V := V) μ F (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
       pp.lps cvTas pp.toBlockShape isRec A envI' pp.ctorNamesAt)
@@ -1455,8 +1455,8 @@ variable (hμ : μ.verifiedChecks = true)
       block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) (fun _ => False))
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI' : Env}
+    {ppsOf : Nat → (Name → Nat) → List ITerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm} {envI' : Env}
     (hN : BlockNamesOk (V := V) (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf) cvTas)
     (hS : BlockCtorsStage (V := V) μ F (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
       pp.lps cvTas pp.toBlockShape isRec A envI' pp.ctorNamesAt)

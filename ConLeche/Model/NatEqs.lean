@@ -43,7 +43,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported)
 
@@ -65,7 +65,7 @@ theorem substFn_nil (ψ : Name → Nat) : Level.substFn ψ [] [] = ψ :=
 stored level-monomorphically, so the spelling is the plain
 assignment). -/
 def natLeafAV {env : Env} (m : EnvModel V env) (ψ : Name → Nat) :
-    AnnotTerm :=
+    ITerm :=
   m.acval ConLeche.natName ψ
 
 /-- The stored `Nat`'s interpretation. -/
@@ -88,7 +88,7 @@ theorem natLeafAV_interp_closed (m : EnvModel V env) (ψ : Name → Nat)
 
 /-- The two-variable context: both slots are the `Nat` leaf. -/
 def natCtx2 {env : Env} (m : EnvModel V env) (ψ : Name → Nat) :
-    List AnnotTerm :=
+    List ITerm :=
   [natLeafAV m ψ, natLeafAV m ψ]
 
 /-- Two `Nat` members satisfy the two-variable context (the slot
@@ -211,7 +211,7 @@ theorem natArg_succ (m : EnvModel V env) {ψ : Name → Nat}
 /-! ## The head packages
 
 What a fragment application rule needs of its head: the head reads to
-a graded `AnnotTerm` whose interpretation sits in a (one- or two-step)
+a graded `ITerm` whose interpretation sits in a (one- or two-step)
 `piR` over the stored `Nat`, with the fibre facts at each step — at
 *whatever* regime numerals the values give.  `app_mem_piR` consumes
 exactly this, so no regime positivity appears. -/
@@ -382,7 +382,7 @@ theorem natOpTyPinned_shape_un {env' : Env} {c : Name} {ty : Expr}
 
 /-- A stored level-monomorphic constant reads to its leaf at the plain
 assignment. -/
-theorem denoteMeta_levelless_const {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_levelless_const {acval : Name → (Name → Nat) → ITerm}
     {ψ : Name → Nat} {d : Nat} {n : Name} {ci : ConstantInfo}
     (hf : env.find? n = some ci)
     (hlp : ci.toConstantVal.levelParams = []) :
@@ -448,7 +448,7 @@ theorem denoteMeta_pinnedUnTy (m : EnvModel V env) (ψ : Name → Nat)
 membership in the (two-step, leaf-component) pinned product's reading,
 and the product reading's own grading. -/
 theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {f : Expr} {fa : AnnotTerm} {codN : Name}
+    {f : Expr} {fa : ITerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
     (hok : ∀ ρ : Nat → V, WellDenoted V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
@@ -457,10 +457,10 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     (htok : ∀ ρ : Nat → V, WellDenoted V ρ
       ((.pi (m.acval ConLeche.natName ψ)
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
-        : AnnotTerm)) :
+        : ITerm)) :
     NatBinHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
   have hfibEq : ∀ ρ : Nat → V, (fun x => interp V (cons x ρ)
-        ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : AnnotTerm))
+        ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : ITerm))
       = fun _ => piV (natLeafV m ψ ρ) (fun _ => interp V ρ (m.acval codN ψ)) := by
     intro ρ
     funext x
@@ -485,14 +485,14 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 
 /-- **The unary head package, from its parts.** -/
 theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {f : Expr} {fa : AnnotTerm} {codN : Name}
+    {f : Expr} {fa : ITerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
     (hok : ∀ ρ : Nat → V, WellDenoted V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
       (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
     (htok : ∀ ρ : Nat → V, WellDenoted V ρ
       ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
-        : AnnotTerm)) :
+        : ITerm)) :
     NatUnHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
   refine ⟨fa, hfa, fun ρ _ => ⟨hok ρ,
     (cast (WellDenoted_pi V ρ _ _) (htok ρ)).2.1,
@@ -619,7 +619,7 @@ theorem natEqLaw_of_run (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = [])
     (hNty : ∀ ρ : Nat → V, IsTy (natLeafV mp.base2 ψ ρ))
-    {lhs rhs : Expr} {la ra : AnnotTerm}
+    {lhs rhs : Expr} {la ra : ITerm}
     (hrun : ConLeche.isDefEqCore μ env F 2 lhs rhs = .ok true)
     (hwl : Expr.WScoped 2 lhs) (hbl : lhs.looseBVarsBounded 0 = true)
     (hLl : Expr.LeavesBounded lhs)
@@ -660,9 +660,9 @@ readings at the extension -/
 the shallow fragment, reading in the extended environment under the
 extended valuation is reading the substituted expression in the old
 one. -/
-theorem denoteMeta_substConst0 {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_substConst0 {acval : Name → (Name → Nat) → ITerm}
     {ψ : Name → Nat} {c₀ : ConstantInfo} {c : Name} {v : Expr}
-    {A : (Name → Nat) → AnnotTerm}
+    {A : (Name → Nat) → ITerm}
     (hname : c₀.name = c) (hfresh : env.find? c = none)
     (hlp : c₀.toConstantVal.levelParams = [])
     (hacl : ∀ (n : Name) (ψ' : Name → Nat) (k : Nat),
@@ -929,7 +929,7 @@ theorem consCrossAt_of_natFragOk {c : Name} {c₀ : ConstantInfo} :
 stored in the prefix keeps its `NatOps` entry at the extension. -/
 theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
     (hprev : NatOps mp.base2 φ)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -990,7 +990,7 @@ here.  The disjunctive premise: either the cons is not a definition at
 all, or its name is not an operation name. -/
 theorem natOps_cons_fresh (mp : EnvModelM V μ env) {φ : Name → Nat}
     (hprev : NatOps mp.base2 φ)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (hnothead : (∀ cv v hint, c₀ ≠ .defnInfo cv v hint) ∨
@@ -1020,10 +1020,10 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       (⟨.defnInfo ⟨c, lps, type'⟩ value' hint :: env.consts⟩ : Env)
       c type' = true)
     (hs : natLitSupported env = true)
-    {Ta : (Name → Nat) → AnnotTerm}
+    {Ta : (Name → Nat) → ITerm}
     (hTa : ∀ ψ, denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
     (hTok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (Ta ψ))
-    {A : (Name → Nat) → AnnotTerm}
+    {A : (Name → Nat) → ITerm}
     (hA2 : ∀ ψ, denoteMeta mp.base2.acval env ψ 2 value' = some (A ψ))
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -1131,7 +1131,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       ((ConLeche.natOpEquations 0 c).map fun eq =>
         (Expr.substConst0 c value' eq.1,
          Expr.substConst0 c value' eq.2)))
-    {A : (Name → Nat) → AnnotTerm}
+    {A : (Name → Nat) → ITerm}
     (hA : ∀ ψ, denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAcl : ∀ ψ k, (A ψ).liftN 1 k = A ψ)
     (hvf' : value'.hasFvar = false)
@@ -1210,7 +1210,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       = [] := hlpN0
   -- the crossing and the membership conversion, shared
   have hcross : ∀ (e : Expr), shallowE e = true →
-      ∀ {ea : AnnotTerm},
+      ∀ {ea : ITerm},
       denoteMeta mp.base2.acval env φ 2 (Expr.substConst0 cq value' e)
         = some ea →
       denoteMeta m₂.acval
@@ -1262,7 +1262,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       IsTy (interp V ρ (mp.base2.acval ConLeche.natName φ)) := fun ρ _ => by
     have := (mp.nat_heads φ hs ρ).2.2; rwa [substFn_nil] at this
   -- one equation, packaged: the shared closing move
-  have close : ∀ {S : (Nat → V) → V} {la ra : AnnotTerm},
+  have close : ∀ {S : (Nat → V) → V} {la ra : ITerm},
       (∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 φ) ρ → IsTy (S ρ)) →
       denoteMeta mp.base2.acval env φ 2
         (Expr.substConst0 cq value' e1) = some la →

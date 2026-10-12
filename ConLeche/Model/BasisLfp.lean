@@ -41,7 +41,7 @@ open ConLeche.SetTheory
 open ConLeche.SetModel
 open ConLeche.SetTheory.Tower (towerSet_nil projS mkTower)
 
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Name Level)
 
 universe w
@@ -60,7 +60,7 @@ its operator's only fibre (at the point) is `F` of the family's own
 fibre. -/
 @[expose] noncomputable def lfp0 (nm : Name) (w : (Name → Nat) → Nat) (F : V → V)
     (inj : Nat → List V → V) (n : Nat) (cn : Nat → Name)
-    (flds : Nat → List AnnotTerm) : LfpDatum V where
+    (flds : Nat → List ITerm) : LfpDatum V where
   names := [nm]
   k := 1
   N := 1
@@ -79,7 +79,7 @@ fibre. -/
 section Lfp0
 
 variable {nm : Name} {w : (Name → Nat) → Nat} {F : V → V} {fits : V → Nat → List V → Prop}
-  {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name} {flds : Nat → List AnnotTerm}
+  {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name} {flds : Nat → List ITerm}
 
 theorem lfp0_idx (ψ : Name → Nat) (ρp : Nat → V) (c : Nat) :
     (lfp0 nm w F inj n cn flds).idx ψ ρp c = (unitSet : V) := idxSet_nil ρp
@@ -130,7 +130,7 @@ theorem lfp0_carrier {ψ : Name → Nat} {ρp : Nat → V} {C : V}
 block**, from its fibre function's level, fibre description, and the
 leaf's value as the least `F`-closed set (monotonicity is the clause's
 accessibility's, `hFacc`). -/
-theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name → Nat) → V}
+theorem lfp0_clause {acval : Name → (Name → Nat) → ITerm} {C : (Name → Nat) → V}
     (hmaps : ∀ (ψ : Name → Nat) S, S ∈ˢ (strictU (w ψ) : V) → F S ∈ˢ (strictU (w ψ) : V))
     (hfib : ∀ S x, x ∈ˢ F S ↔ ∃ j fs, fits S j fs ∧ x = inj j fs)
     (hCu : ∀ ψ, C ψ ∈ˢ (strictU (w ψ) : V)) (hC : ∀ ψ, F (C ψ) ⊆ˢ C ψ)
@@ -224,7 +224,7 @@ end Lfp0
 /-- **The clause of a zero-constructor type** whose pinned leaf is the
 empty set — `Empty` at `w = 1`, `False` at `w = 0` (both pinned to
 `bval .empty`). -/
-theorem emptyLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm : Name} (w : Nat)
+theorem emptyLfp_clause {acval : Name → (Name → Nat) → ITerm} {nm : Name} (w : Nat)
     (hleaf : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval nm ψ) = empty) :
     LfpClause acval (emptyLfp (V := V) nm w) :=
   lfp0_clause (C := fun _ => empty) (fits := fun _ _ _ => False)
@@ -263,7 +263,7 @@ field in the family. -/
   if j = 0 then empty else vsucc (fs.headD empty)
 
 /-- `Nat`'s constructors' fields with holes: `zero` none, `succ` the hole. -/
-@[expose] def natFlds (j : Nat) : List AnnotTerm := if j = 0 then [] else [.bvar 0]
+@[expose] def natFlds (j : Nat) : List ITerm := if j = 0 then [] else [.bvar 0]
 
 /-- The pinned `Nat`'s datum (sort `Type`, level `1`), its constructors
 `zn` and `sn`. -/
@@ -306,7 +306,7 @@ theorem vsucc_ne_pt (m : V) : vsucc m ≠ pt := fun h => by
 
 /-- **The pinned `Nat`'s clause**: `ω` is the least fixed point of the
 zero/successor operator, its constructors `∅` and `natSuccV`. -/
-theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn : Name}
+theorem natLfp_clause {acval : Name → (Name → Nat) → ITerm} {nm zn sn : Name}
     (hleaf : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval nm ψ) = omega)
     (hzero : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval zn ψ) = empty)
     (hsucc : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval sn ψ) = natSuccV V) :
@@ -491,7 +491,7 @@ theorem eqFib_tupW {ψ : Name → Nat} {ρ : Nat → V} {A a b : V}
 
 /-- **`Eq`'s clause**, from its former's value at a fitting spine (the
 truth value of the equation) and its constructor's (the point). -/
-theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
+theorem eqLfp_clause {acval : Name → (Name → Nat) → ITerm}
     (hleaf : ∀ (ψ : Name → Nat) (ρ : Nat → V) (A a b : V), A ∈ˢ (univ (lv ψ) : V) →
       a ∈ˢ A → b ∈ˢ A → [A, a, b].foldl app (interp V ρ (acval nm ψ)) = eqv a b)
     (hctor : ∀ (ψ : Name → Nat) (ρ : Nat → V), interp V ρ (acval cn ψ) = pt) :
@@ -532,7 +532,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
         (eqLfp (V := V) nm cn lv).HFits ψ ρp X t c j fs := by
       intro j fs
       show (j = 0 ∧ fs = [] ∧ ρp 0 = projS 0 t) ↔ (j < 1 ∧ SpineFit _ [] fs ∧
-        ∀ l, l < 1 → ∃ e, ([AnnotTerm.bvar 1] : List AnnotTerm)[l]? = some e ∧
+        ∀ l, l < 1 → ∃ e, ([ITerm.bvar 1] : List ITerm)[l]? = some e ∧
           interp V (consList fs ((eqLfp (V := V) nm cn lv).frame ψ ρp X)) e = projS l t)
       rw [spineFit_nil_iff]
       constructor
@@ -562,7 +562,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
       show ([A, a] ++ [b]).foldl app (interp V ρ (acval nm ψ))
         = app ((eqLfp (V := V) nm cn lv).carrier ψ (consList [A, a] ρ) 0) (tupW (lv ψ) [b])
       rw [app_eqLfp_carrier (tupW_mem (u := lv ψ) (show SpineFit (consList [A, a] ρ)
-        [AnnotTerm.bvar 1] [b] from ⟨hb, trivial⟩)), eqFib_tupW hA' ha' hb']
+        [ITerm.bvar 1] [b] from ⟨hb, trivial⟩)), eqFib_tupW hA' ha' hb']
       exact hleaf ψ ρ A a b hA' ha' hb'
   mkZero := fun _ _ _ _ _ => rfl
   mkInj := fun _ hw => absurd rfl hw
@@ -580,7 +580,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
     have hfs : fs = [] := spineFit_nil_iff.mp hsp
     subst hfs
     have ha : ρp 0 ∈ˢ ρp 1 := by simpa using hs 0 (.bvar 0) rfl
-    show SpineFit ρp [AnnotTerm.bvar 1]
+    show SpineFit ρp [ITerm.bvar 1]
       [interp V (consList [] ((eqLfp (V := V) nm cn lv).frame ψ ρp
         ((eqLfp (V := V) nm cn lv).carrier ψ ρp))) (.bvar 1)]
     refine ⟨?_, trivial⟩
@@ -592,7 +592,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
     exact ha
 
 /-- `Eq`'s former reads as its hole telescope (M4). -/
-theorem eqLfp_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLeche.Env}
+theorem eqLfp_reads {acval : Name → (Name → Nat) → ITerm} {env : ConLeche.Env}
     {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps}
     (hf : env.find? nm = some (.indInfo cv caps))
     (hty : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some
@@ -635,10 +635,10 @@ end EqLfp
 
 /-- **A one-member unparameterized unindexed block's former reads as its
 sort** (M4: the hole telescope is empty). -/
-theorem lfp0_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLeche.Env}
+theorem lfp0_reads {acval : Name → (Name → Nat) → ITerm} {env : ConLeche.Env}
     {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps} {nm : Name} {w : (Name → Nat) → Nat}
     {F : V → V} {inj : Nat → List V → V} {n : Nat}
-    {cn : Nat → Name} {flds : Nat → List AnnotTerm}
+    {cn : Nat → Name} {flds : Nat → List ITerm}
     (hf : env.find? nm = some (.indInfo cv caps))
     (hty : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some (.sort (w ψ))) :
     LfpReads acval env (lfp0 nm w F inj n cn flds) := fun mm hmm => by
@@ -648,10 +648,10 @@ theorem lfp0_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLec
 /-- **A one-member unparameterized unindexed block's constructors read as
 their hole telescopes** (M2): the canonical abstraction has no parameter,
 and the member's hole is the variable `0`. -/
-theorem lfp0_ctorReads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLeche.Env}
+theorem lfp0_ctorReads {acval : Name → (Name → Nat) → ITerm} {env : ConLeche.Env}
     {nm : Name} {w : (Name → Nat) → Nat}
     {F : V → V} {inj : Nat → List V → V} {n : Nat}
-    {cn : Nat → Name} {flds : Nat → List AnnotTerm}
+    {cn : Nat → Name} {flds : Nat → List ITerm}
     {cvT : ConLeche.ConstantVal} {capsT : ConLeche.IndCaps}
     (hfT : env.find? nm = some (.indInfo cvT capsT))
     (htyT : ∀ ψ, ∃ Ty, denoteMeta acval env ψ 0 cvT.type = some Ty)
@@ -660,7 +660,7 @@ theorem lfp0_ctorReads {acval : Name → (Name → Nat) → AnnotTerm} {env : Co
       (∃ cvm caps, env.find? nm = some (.indInfo cvm caps) ∧ cvm.levelParams = cv.levelParams) ∧
       ∃ A, ConLeche.nestCanonCrest [nm] (cv.levelParams.map .param) 0 cv.type = some A ∧
       A.nestOcc [nm] 0 0 = false ∧
-      ∀ ψ : Name → Nat, (flds j).length = nF ∧ ∃ ab : List AnnotTerm,
+      ∀ ψ : Name → Nat, (flds j).length = nF ∧ ∃ ab : List ITerm,
         denoteMeta acval env ψ 1 A = some (mkPisAV ab (.bvar nF)) ∧ ab = flds j) :
     LfpCtorReads acval env (lfp0 nm w F inj n cn flds) := by
   refine ⟨rfl, fun c hc j hj => ?_⟩
@@ -688,7 +688,7 @@ its stored capabilities are sound for the datum, and its constructors
 conclude in it. -/
 theorem lfp0_caps {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps}
     {nm : Name} {w : (Name → Nat) → Nat} {F : V → V}
-    {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name} {flds : Nat → List AnnotTerm}
+    {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name} {flds : Nat → List ITerm}
     (hf : env.find? nm = some (.indInfo cv caps))
     (hz : ∀ ψ : Name → Nat, w ψ = 0 → caps.sortZ.holds ψ = true)
     (hk : caps.ruleK = true → n = 1)
@@ -708,7 +708,7 @@ theorem lfp0_caps {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : ConLe
 the head of the cons. -/
 theorem lfp0_stored {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps}
     {w : (Name → Nat) → Nat} {F : V → V}
-    {inj : Nat → List V → V} {cn : Nat → Name} {flds : Nat → List AnnotTerm} :
+    {inj : Nat → List V → V} {cn : Nat → Name} {flds : Nat → List ITerm} :
     LfpStored (⟨.indInfo cv caps :: env.consts⟩ : ConLeche.Env)
       (lfp0 cv.name w F inj 0 cn flds) := by
   refine ⟨fun mm hmm => ?_, fun _ _ j hj => absurd hj (Nat.not_lt_zero j)⟩
@@ -721,7 +721,7 @@ theorem lfp0_stored {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : Con
 its constructors. -/
 theorem lfp0_stored_of {env : ConLeche.Env} {nm : Name} {w : (Name → Nat) → Nat} {F : V → V}
     {inj : Nat → List V → V} {n : Nat} {cn : Nat → Name}
-    {flds : Nat → List AnnotTerm}
+    {flds : Nat → List ITerm}
     (hT : ∃ cv caps, env.find? nm = some (.indInfo cv caps))
     (hC : ∀ j, j < n → ∃ cv nP nF, env.find? (cn j) = some (.ctorInfo cv nP nF)) :
     LfpStored env (lfp0 nm w F inj n cn flds) := by

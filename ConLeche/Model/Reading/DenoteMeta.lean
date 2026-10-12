@@ -8,7 +8,7 @@ public section
 # `denoteMeta` — the stored-term reading (task #161, P3; task #342, L14a)
 
 `denoteMeta` is `denote`'s recursion into the semantic syntax
-`AnnotTerm`: no checker run, no fuel, no mode.  The binders carry no
+`ITerm`: no checker run, no fuel, no mode.  The binders carry no
 datum to read (the regime is read off the values by `interp`,
 `piV`/`lamV`), so the level crossing is plain algebra
 (`Reading/Levels.lean`, `denotePInstLevels`) and two readings of one
@@ -27,17 +27,17 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level PropWhen
   natLitSupported strLitSupported)
 
 /-! ## The reading -/
 
-/-- The stored-term reading: `denote`'s recursion into `AnnotTerm`, no
+/-- The stored-term reading: `denote`'s recursion into `ITerm`, no
 checker runs, no fuel, no mode. -/
-@[expose] def denoteMeta (acval : Name → (Name → Nat) → AnnotTerm)
+@[expose] def denoteMeta (acval : Name → (Name → Nat) → ITerm)
     (env : Env) (φ : Name → Nat) :
-    (d : Nat) → Expr → Option AnnotTerm
+    (d : Nat) → Expr → Option ITerm
   | _, .sort u => some (.sort (u.eval φ))
   | d, .fvar idx _ => some (.bvar (d - 1 - idx))
   | _, .const n us =>
@@ -79,7 +79,7 @@ checker runs, no fuel, no mode. -/
     -- clause
     match env.findProj? sn i with
     | some entry => some (projAV (i + entry.off) ea)
-    | none => AnnotTerm.projPair? i ea
+    | none => ITerm.projPair? i ea
   | _, .lit (.natVal n) =>
     if natLitSupported env then
       some (natLitAV (acval natZeroName (Level.substFn φ [] []))
@@ -115,10 +115,10 @@ the denotation is the same. -/
 
 /-- The validated-annotation reading is an annotation of the
 denotation, exactly. -/
-theorem denoteMeta_erase {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_erase {acval : Name → (Name → Nat) → ITerm}
     {cval : TConstVal} {env : Env} {φ : Name → Nat}
     (hlink : ∀ n ψ, (acval n ψ).erase = cval n ψ) :
-    ∀ (d : Nat) (e : Expr) {ea : AnnotTerm},
+    ∀ (d : Nat) (e : Expr) {ea : ITerm},
       denoteMeta acval env φ d e = some ea →
       denote cval env φ d e = some ea.erase := by
   intro d e
@@ -216,7 +216,7 @@ theorem denoteMeta_erase {acval : Name → (Name → Nat) → AnnotTerm}
     rw [hea] at h
     replace h : (match env.findProj? sn i with
         | some entry => some (projAV (i + entry.off) ea')
-        | none => AnnotTerm.projPair? i ea')
+        | none => ITerm.projPair? i ea')
           = some ea := h
     rw [denote_proj, ihe hea]
     dsimp only

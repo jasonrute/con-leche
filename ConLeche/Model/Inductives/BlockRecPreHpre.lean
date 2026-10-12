@@ -44,7 +44,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -72,9 +72,9 @@ theorem flatMap_congr_mem {α β : Type} {l : List α} {f g : α → List β}
 omit [SetTheory V] in
 /-- **The equation list depends on `pdoms` and the residue only BELOW
 `K`** — the congruence the `pdoms` collapse is paid through. -/
-theorem iotaEqsAV_congr {K : Nat} {nCt : Nat → Nat} {pdoms pdoms' : Nat → List AnnotTerm}
-    {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
-    {ihs : Nat → Nat → List AnnotTerm} {Rb Rb' : Nat → Nat → AnnotTerm}
+theorem iotaEqsAV_congr {K : Nat} {nCt : Nat → Nat} {pdoms pdoms' : Nat → List ITerm}
+    {fdoms es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
+    {ihs : Nat → Nat → List ITerm} {Rb Rb' : Nat → Nat → ITerm}
     (hp : ∀ c, c < K → pdoms c = pdoms' c)
     (hRb : ∀ c, c < K → ∀ j, j < nCt c → Rb c j = Rb' c j) :
     iotaEqsAV K nCt pdoms fdoms es mk ihs Rb
@@ -89,8 +89,8 @@ variable {envC : Env} {mpC : EnvModelM V μ envC} {p : ConLeche.BlockParts}
   {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
   {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
   {d : BlockData V} {s : (Name → Nat) → Nat} {us : List Level}
-  {ihs ihdoms : (Name → Nat) → Nat → Nat → List AnnotTerm}
-  {Rb0 Ca : (Name → Nat) → Nat → Nat → AnnotTerm} {uOf : Nat → Level}
+  {ihs ihdoms : (Name → Nat) → Nat → Nat → List ITerm}
+  {Rb0 Ca : (Name → Nat) → Nat → Nat → ITerm} {uOf : Nat → Level}
 
 
 end BaseEqs

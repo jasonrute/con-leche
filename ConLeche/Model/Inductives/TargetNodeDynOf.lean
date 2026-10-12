@@ -43,7 +43,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree PosNodeOk PosD)
 
@@ -102,7 +102,7 @@ structure DynCtx (F : Nat) {envI envC : Env} (mk : EnvModelM V μ envI) (mpC : E
   hsub : ∀ D ∈ mk.lfpBlocks, D ∈ mpC.lfpBlocks
   hag : ∀ n, (envI.find? n).isSome = true → mpC.base2.acval n = mk.base2.acval n
   hsubC : ∀ D ∈ mpC.lfpBlocks, D = d.toLfp ∨ D ∈ mk.lfpBlocks
-  htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
+  htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : ITerm},
     denoteMeta mk.base2.acval envI ψ dd e = some ea → denoteMeta mpC.base2.acval envC ψ dd e = some ea
   henvC : ∃ (nP : Nat) (ctorsAs : List (List (ConstantVal × Nat))),
     envC = ConLeche.consBlockCtors nP ctorsAs envI
@@ -771,7 +771,7 @@ theorem dyn_ownerFrame (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : 
     (hk_mem : hk ∈ ConLeche.grpNews (ns.getD (o - 1) default).key.lvls
       (ns.getD (o - 1) default).key.ds (ctx.hiAt (ns.getD (o - 1) default).anc.length)
       (ns.getD (o - 1) default).grp)
-    {dsa : List AnnotTerm}
+    {dsa : List ITerm}
     (hdsa : DenoteMetaSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa) :
     keyFrame dsa (ctx.hiAt prog.length) (trueVal mpC ctx ψ ρ xs prog)
       = nlFr mpC ctx d ns ψ ρ xs o := by
@@ -1105,7 +1105,7 @@ node context). -/
 theorem dynCtx_of {F : Nat}
     {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC}
-    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → ITerm}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -1113,7 +1113,7 @@ theorem dynCtx_of {F : Nat}
     (hmk : ∀ D ∈ mk.lfpBlocks, D ∈ mpC.lfpBlocks)
     (hag : ∀ n, (envI.find? n).isSome = true → mpC.base2.acval n = mk.base2.acval n)
     (hsubC : ∀ D ∈ mpC.lfpBlocks, D = dR.toLfp ∨ D ∈ mk.lfpBlocks)
-    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
+    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : ITerm},
       denoteMeta mk.base2.acval envI ψ dd e = some ea →
         denoteMeta mpC.base2.acval envC ψ dd e = some ea)
     (hcoreK : BlockHoleCtxFacts mk.base2 dR pp.lps cvTasR pp.toBlockShape isRecR)

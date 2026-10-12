@@ -21,26 +21,26 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level PropWhen ProjEntry)
 
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-! ## Clause equations -/
 
-theorem denoteMeta_sort (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_sort (acval : Name → (Name → Nat) → ITerm)
     (d : Nat) (u : Level) :
     denoteMeta acval env φ d (.sort u) = some (.sort (u.eval φ)) := by
   rw [denoteMeta]
 
-theorem denoteMeta_fvar (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_fvar (acval : Name → (Name → Nat) → ITerm)
     (d idx : Nat) (ty : Expr) :
     denoteMeta acval env φ d (.fvar idx ty)
       = some (.bvar (d - 1 - idx)) := by
   rw [denoteMeta]
 
-theorem denoteMeta_const {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_const {acval : Name → (Name → Nat) → ITerm}
     {d : Nat} {n : Name} {us : List Level} {ci : ConLeche.ConstantInfo}
     (hf : env.find? n = some ci)
     (hlen : us.length = ci.toConstantVal.levelParams.length) :
@@ -50,7 +50,7 @@ theorem denoteMeta_const {acval : Name → (Name → Nat) → AnnotTerm}
   rw [denoteMeta, hf]
   simp [hlen]
 
-theorem denoteMeta_app (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_app (acval : Name → (Name → Nat) → ITerm)
     (d : Nat) (f a : Expr) :
     denoteMeta acval env φ d (.app f a)
       = (do
@@ -59,18 +59,18 @@ theorem denoteMeta_app (acval : Name → (Name → Nat) → AnnotTerm)
         some (.app fa aa)) := by
   rw [denoteMeta]
 
-theorem denoteMeta_proj (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_proj (acval : Name → (Name → Nat) → ITerm)
     (d : Nat) (s : Name) (i : Nat) (e : Expr) :
     denoteMeta acval env φ d (.proj s i e)
       = (do
         let ea ← denoteMeta acval env φ d e
         match env.findProj? s i with
         | some entry => some (projAV (i + entry.off) ea)
-        | none => AnnotTerm.projPair? i ea) := by
+        | none => ITerm.projPair? i ea) := by
   rw [denoteMeta]
   rfl
 
-theorem denoteMeta_forallE (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_forallE (acval : Name → (Name → Nat) → ITerm)
     (d : Nat) (ty body : Expr) :
     denoteMeta acval env φ d (.forallE ty body)
       = (do
@@ -80,7 +80,7 @@ theorem denoteMeta_forallE (acval : Name → (Name → Nat) → AnnotTerm)
         some (.pi ta ba)) := by
   rw [denoteMeta]
 
-theorem denoteMeta_lam (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_lam (acval : Name → (Name → Nat) → ITerm)
     (d : Nat) (ty body : Expr) :
     denoteMeta acval env φ d (.lam ty body)
       = (do
@@ -90,7 +90,7 @@ theorem denoteMeta_lam (acval : Name → (Name → Nat) → AnnotTerm)
         some (.lam ta ba)) := by
   rw [denoteMeta]
 
-theorem denoteMeta_letE (acval : Name → (Name → Nat) → AnnotTerm)
+theorem denoteMeta_letE (acval : Name → (Name → Nat) → ITerm)
     (d : Nat) (ty v body : Expr) :
     denoteMeta acval env φ d (.letE ty v body)
       = (do
@@ -101,7 +101,7 @@ theorem denoteMeta_letE (acval : Name → (Name → Nat) → AnnotTerm)
         some (.letE va ba)) := by
   rw [denoteMeta]
 
-theorem denoteMeta_natLit {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_natLit {acval : Name → (Name → Nat) → ITerm}
     {d n : Nat} (hg : natLitSupported env = true) :
     denoteMeta acval env φ d (.lit (.natVal n))
       = some (natLitAV (acval natZeroName (Level.substFn φ [] []))
@@ -110,7 +110,7 @@ theorem denoteMeta_natLit {acval : Name → (Name → Nat) → AnnotTerm}
 
 /-! ## Inversions -/
 
-theorem denoteMeta_app_inv {d : Nat} {f a : Expr} {ea : AnnotTerm}
+theorem denoteMeta_app_inv {d : Nat} {f a : Expr} {ea : ITerm}
     (h : denoteMeta acval env φ d (.app f a) = some ea) :
     ∃ fa aa, denoteMeta acval env φ d f = some fa ∧
       denoteMeta acval env φ d a = some aa ∧ ea = .app fa aa := by
@@ -125,11 +125,11 @@ theorem denoteMeta_app_inv {d : Nat} {f a : Expr} {ea : AnnotTerm}
       exact ⟨fa, aa, rfl, rfl, (Option.some.inj h).symm⟩
 
 theorem denoteMeta_proj_inv {d : Nat} {s : Name} {i : Nat} {e : Expr}
-    {ea : AnnotTerm}
+    {ea : ITerm}
     (h : denoteMeta acval env φ d (.proj s i e) = some ea) :
     ∃ ia, denoteMeta acval env φ d e = some ia ∧
       ((∃ entry, env.findProj? s i = some entry ∧ ea = projAV (i + entry.off) ia) ∨
-       (env.findProj? s i = none ∧ AnnotTerm.projPair? i ia = some ea)) := by
+       (env.findProj? s i = none ∧ ITerm.projPair? i ia = some ea)) := by
   rw [denoteMeta] at h
   cases he : denoteMeta acval env φ d e with
   | none => rw [he] at h; exact nomatch h
@@ -137,7 +137,7 @@ theorem denoteMeta_proj_inv {d : Nat} {s : Name} {i : Nat} {e : Expr}
     rw [he] at h
     replace h : (match env.findProj? s i with
         | some entry => some (projAV (i + entry.off) ia)
-        | none => AnnotTerm.projPair? i ia)
+        | none => ITerm.projPair? i ia)
           = some ea := h
     cases hfp : env.findProj? s i with
     | some entry =>
@@ -150,7 +150,7 @@ theorem denoteMeta_proj_inv {d : Nat} {s : Name} {i : Nat} {e : Expr}
       exact ⟨ia, rfl, Or.inr ⟨rfl, h⟩⟩
 
 theorem denoteMeta_forallE_inv {d : Nat} {ty bd : Expr}
-    {ea : AnnotTerm}
+    {ea : ITerm}
     (h : denoteMeta acval env φ d (.forallE ty bd) = some ea) :
     ∃ ta ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ (d + 1)
@@ -168,7 +168,7 @@ theorem denoteMeta_forallE_inv {d : Nat} {ty bd : Expr}
       exact ⟨ta, ba, rfl, rfl, (Option.some.inj h).symm⟩
 
 theorem denoteMeta_lam_inv {d : Nat} {ty bd : Expr}
-    {ea : AnnotTerm}
+    {ea : ITerm}
     (h : denoteMeta acval env φ d (.lam ty bd) = some ea) :
     ∃ ta ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ (d + 1)
@@ -185,7 +185,7 @@ theorem denoteMeta_lam_inv {d : Nat} {ty bd : Expr}
       rw [ht, hb] at h
       exact ⟨ta, ba, rfl, rfl, (Option.some.inj h).symm⟩
 
-theorem denoteMeta_letE_inv {d : Nat} {ty v bd : Expr} {ea : AnnotTerm}
+theorem denoteMeta_letE_inv {d : Nat} {ty v bd : Expr} {ea : ITerm}
     (h : denoteMeta acval env φ d (.letE ty v bd) = some ea) :
     ∃ ta va ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ d v = some va ∧
@@ -206,7 +206,7 @@ theorem denoteMeta_letE_inv {d : Nat} {ty v bd : Expr} {ea : AnnotTerm}
       rw [ht, hv, hb] at h
       exact ⟨ta, va, ba, rfl, rfl, rfl, (Option.some.inj h).symm⟩
 
-theorem denoteMeta_natLit_inv {d n : Nat} {ea : AnnotTerm}
+theorem denoteMeta_natLit_inv {d n : Nat} {ea : ITerm}
     (h : denoteMeta acval env φ d (.lit (.natVal n)) = some ea) :
     natLitSupported env = true ∧
       ea = natLitAV (acval natZeroName (Level.substFn φ [] []))
@@ -223,31 +223,31 @@ inversion is one induction and the reconciliation of two readings is
 `Option.some.inj`. -/
 
 /-- Each expression of a spine reads to the corresponding annotation. -/
-inductive DenoteMetaSpine (acval : Name → (Name → Nat) → AnnotTerm)
+inductive DenoteMetaSpine (acval : Name → (Name → Nat) → ITerm)
     (env : Env) (φ : Name → Nat) (d : Nat) :
-    List Expr → List AnnotTerm → Prop
+    List Expr → List ITerm → Prop
   | nil : DenoteMetaSpine acval env φ d [] []
-  | cons {a : Expr} {v : AnnotTerm} {as : List Expr} {vs : List AnnotTerm} :
+  | cons {a : Expr} {v : ITerm} {as : List Expr} {vs : List ITerm} :
       denoteMeta acval env φ d a = some v →
       DenoteMetaSpine acval env φ d as vs →
       DenoteMetaSpine acval env φ d (a :: as) (v :: vs)
 
 /-- A read spine has the length of its source. -/
-theorem DenoteMetaSpine.length {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} {as : List Expr} {vs : List AnnotTerm}
+theorem DenoteMetaSpine.length {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} {as : List Expr} {vs : List ITerm}
     (h : DenoteMetaSpine acval env φ d as vs) : as.length = vs.length := by
   induction h with
   | nil => rfl
   | cons _ _ ih => simp [ih]
 
 /-- **The application spine, inverted at the validated reading**: the
-head and every argument read, and the value is their `AnnotTerm`
+head and every argument read, and the value is their `ITerm`
 application. -/
-theorem denoteMeta_mkAppN_inv {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} : ∀ {as : List Expr} {f : Expr} {ea : AnnotTerm},
+theorem denoteMeta_mkAppN_inv {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} : ∀ {as : List Expr} {f : Expr} {ea : ITerm},
     denoteMeta acval env φ d (Expr.mkAppN f as) = some ea →
     ∃ fa vs, denoteMeta acval env φ d f = some fa ∧
-      DenoteMetaSpine acval env φ d as vs ∧ ea = AnnotTerm.mkAppN fa vs := by
+      DenoteMetaSpine acval env φ d as vs ∧ ea = ITerm.mkAppN fa vs := by
   intro as
   induction as with
   | nil => intro f ea h; exact ⟨ea, [], h, .nil, rfl⟩
@@ -257,8 +257,8 @@ theorem denoteMeta_mkAppN_inv {acval : Name → (Name → Nat) → AnnotTerm}
     obtain ⟨ff, aa, hff, haa, rfl⟩ := denoteMeta_app_inv hfa
     exact ⟨ff, aa :: vs, hff, .cons haa hsp, rfl⟩
 
-theorem DenoteMetaSpine.take {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} {as : List Expr} {vs : List AnnotTerm}
+theorem DenoteMetaSpine.take {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} {as : List Expr} {vs : List ITerm}
     (h : DenoteMetaSpine acval env φ d as vs) :
     ∀ n, DenoteMetaSpine acval env φ d (as.take n) (vs.take n) := by
   induction h with
@@ -269,8 +269,8 @@ theorem DenoteMetaSpine.take {acval : Name → (Name → Nat) → AnnotTerm}
     | zero => exact DenoteMetaSpine.nil
     | succ n => exact DenoteMetaSpine.cons ha (ih n)
 
-theorem DenoteMetaSpine.drop {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} {as : List Expr} {vs : List AnnotTerm}
+theorem DenoteMetaSpine.drop {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} {as : List Expr} {vs : List ITerm}
     (h : DenoteMetaSpine acval env φ d as vs) :
     ∀ n, DenoteMetaSpine acval env φ d (as.drop n) (vs.drop n) := by
   induction h with
@@ -281,8 +281,8 @@ theorem DenoteMetaSpine.drop {acval : Name → (Name → Nat) → AnnotTerm}
     | zero => exact DenoteMetaSpine.cons ha htl
     | succ n => exact ih n
 
-theorem DenoteMetaSpine.append {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} {as bs : List Expr} {vs ws : List AnnotTerm}
+theorem DenoteMetaSpine.append {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} {as bs : List Expr} {vs ws : List ITerm}
     (h : DenoteMetaSpine acval env φ d as vs)
     (h2 : DenoteMetaSpine acval env φ d bs ws) :
     DenoteMetaSpine acval env φ d (as ++ bs) (vs ++ ws) := by
@@ -291,8 +291,8 @@ theorem DenoteMetaSpine.append {acval : Name → (Name → Nat) → AnnotTerm}
   | cons ha _ ih => exact DenoteMetaSpine.cons ha ih
 
 /-- A mapped spine reads pointwise. -/
-theorem DenoteMetaSpine.map_list {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} {β : Type _} {g : β → Expr} {G : β → AnnotTerm} :
+theorem DenoteMetaSpine.map_list {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} {β : Type _} {g : β → Expr} {G : β → ITerm} :
     ∀ l : List β, (∀ j ∈ l, denoteMeta acval env φ d (g j) = some (G j)) →
       DenoteMetaSpine acval env φ d (l.map g) (l.map G) := by
   intro l
@@ -306,11 +306,11 @@ theorem DenoteMetaSpine.map_list {acval : Name → (Name → Nat) → AnnotTerm}
 /-- **The application spine reads, constructing direction** —
 `denoteMeta_mkAppN_inv`'s converse, the one the fabricated projection
 spine needs. -/
-theorem denoteMeta_mkAppN {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat}
-    {as : List Expr} {vs : List AnnotTerm}
+theorem denoteMeta_mkAppN {acval : Name → (Name → Nat) → ITerm} {d : Nat}
+    {as : List Expr} {vs : List ITerm}
     (h : DenoteMetaSpine acval env φ d as vs) :
-    ∀ {f : Expr} {fa : AnnotTerm}, denoteMeta acval env φ d f = some fa →
-      denoteMeta acval env φ d (Expr.mkAppN f as) = some (AnnotTerm.mkAppN fa vs) := by
+    ∀ {f : Expr} {fa : ITerm}, denoteMeta acval env φ d f = some fa →
+      denoteMeta acval env φ d (Expr.mkAppN f as) = some (ITerm.mkAppN fa vs) := by
   induction h with
   | nil => intro f fa hf; exact hf
   | cons ha _ ih =>
@@ -318,8 +318,8 @@ theorem denoteMeta_mkAppN {acval : Name → (Name → Nat) → AnnotTerm} {d : N
     exact ih (by rw [denoteMeta_app, hf, ha]; rfl)
 
 /-- A read spine reads at every slot. -/
-theorem DenoteMetaSpine.getD {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat}
-    {as : List Expr} {vs : List AnnotTerm}
+theorem DenoteMetaSpine.getD {acval : Name → (Name → Nat) → ITerm} {d : Nat}
+    {as : List Expr} {vs : List ITerm}
     (h : DenoteMetaSpine acval env φ d as vs) :
     ∀ (dflt : Expr) (i : Nat), i < as.length →
       denoteMeta acval env φ d (as.getD i dflt) = some (vs.getD i default) := by
@@ -334,20 +334,20 @@ theorem DenoteMetaSpine.getD {acval : Name → (Name → Nat) → AnnotTerm} {d 
 /-- The clause at a stored entry: the uniform iterated projection of
 the subject's reading. -/
 theorem denoteMeta_proj_tower {d : Nat} {s : Name} {i : Nat} {e : Expr}
-    {entry : ProjEntry} {ia : AnnotTerm}
+    {entry : ProjEntry} {ia : ITerm}
     (hfe : env.findProj? s i = some entry)
     (he : denoteMeta acval env φ d e = some ia) :
     denoteMeta acval env φ d (.proj s i e) = some (projAV (i + entry.off) ia) := by
   rw [denoteMeta_proj, he]
   show (match env.findProj? s i with
     | some entry => some (projAV (i + entry.off) ia)
-    | none => AnnotTerm.projPair? i ia)
+    | none => ITerm.projPair? i ia)
       = some (projAV (i + entry.off) ia)
   rw [hfe]
 
 /-- The inversion at a stored entry. -/
 theorem denoteMeta_proj_inv_tower {d : Nat} {s : Name} {i : Nat} {e : Expr}
-    {entry : ProjEntry} {ea : AnnotTerm}
+    {entry : ProjEntry} {ea : ITerm}
     (hfe : env.findProj? s i = some entry)
     (h : denoteMeta acval env φ d (.proj s i e) = some ea) :
     ∃ ia, denoteMeta acval env φ d e = some ia ∧ ea = projAV (i + entry.off) ia := by
@@ -358,8 +358,8 @@ theorem denoteMeta_proj_inv_tower {d : Nat} {s : Name} {i : Nat} {e : Expr}
   · rw [hnt] at hfe; exact nomatch hfe
 
 /-- A read spine extended by one read argument. -/
-theorem DenoteMetaSpine.snoc {d : Nat} {as : List Expr} {vs : List AnnotTerm}
-    {a : Expr} {v : AnnotTerm}
+theorem DenoteMetaSpine.snoc {d : Nat} {as : List Expr} {vs : List ITerm}
+    {a : Expr} {v : ITerm}
     (h : DenoteMetaSpine acval env φ d as vs)
     (ha : denoteMeta acval env φ d a = some v) :
     DenoteMetaSpine acval env φ d (as ++ [a]) (vs ++ [v]) := by
@@ -369,7 +369,7 @@ theorem DenoteMetaSpine.snoc {d : Nat} {as : List Expr} {vs : List AnnotTerm}
 
 /-- The `k`-th argument of a read spine reads to the `k`-th reading. -/
 theorem DenoteMetaSpine.getD_read {d : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env φ d as vs →
+    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval env φ d as vs →
       ∀ {k : Nat}, k < as.length →
         denoteMeta acval env φ d (as.getD k (.bvar 0))
           = some (vs.getD k default)
@@ -380,9 +380,9 @@ theorem DenoteMetaSpine.getD_read {d : Nat} :
       DenoteMetaSpine.getD_read hsp (Nat.lt_of_succ_lt_succ hk)
 
 /-- An application spine splits at any point. -/
-theorem annotMkAppN_append (f : AnnotTerm) :
-    ∀ (as bs : List AnnotTerm),
-      AnnotTerm.mkAppN f (as ++ bs) = AnnotTerm.mkAppN (AnnotTerm.mkAppN f as) bs
+theorem annotMkAppN_append (f : ITerm) :
+    ∀ (as bs : List ITerm),
+      ITerm.mkAppN f (as ++ bs) = ITerm.mkAppN (ITerm.mkAppN f as) bs
   | [], _ => rfl
   | _ :: as, bs => annotMkAppN_append _ as bs
 

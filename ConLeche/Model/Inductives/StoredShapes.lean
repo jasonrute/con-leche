@@ -51,15 +51,15 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal NestCtx nestHoles
   instPisWith openPisAtFvars fueledOps structUsedLater)
 
 universe w
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- A term closed in the lifting sense is fixed by every lift. -/
-theorem liftN_closed {x : AnnotTerm} (hx : ∀ k, x.liftN 1 k = x) :
+theorem liftN_closed {x : ITerm} (hx : ∀ k, x.liftN 1 k = x) :
     ∀ (n k : Nat), x.liftN n k = x
   | 0, k => liftN_zero x k
   | n + 1, k => by
@@ -86,7 +86,7 @@ is stated at (the fields with holes are the walk's NORMAL FORM, which
 reads like the declared type only at frames satisfying the walk's
 context). -/
 structure StoredFieldShapes (V : Type w) [SetTheory V] (k nP w : Nat) (nIdxOf : Nat → Nat)
-    (leaf : Nat → AnnotTerm) (Δp : List AnnotTerm) (F S : List AnnotTerm) : Prop where
+    (leaf : Nat → ITerm) (Δp : List ITerm) (F S : List ITerm) : Prop where
   len : F.length = S.length
   override : ∀ (ρ : Nat → V), Sat V Δp ρ → ∀ hs : List V, hs.length = k →
     (∀ t, t < k → hs.getD t pt = (frameIdx nP ρ).foldl app (interp V ρ (leaf t))) →
@@ -97,7 +97,7 @@ structure StoredFieldShapes (V : Type w) [SetTheory V] (k nP w : Nat) (nIdxOf : 
 
 /-- The facts read the members' leaves below `k` only. -/
 theorem StoredFieldShapes.congr_leaf {V : Type w} [SetTheory V] {k nP w : Nat}
-    {nIdxOf : Nat → Nat} {leaf leaf' : Nat → AnnotTerm} {Δp F S : List AnnotTerm}
+    {nIdxOf : Nat → Nat} {leaf leaf' : Nat → ITerm} {Δp F S : List ITerm}
     (h : StoredFieldShapes V k nP w nIdxOf leaf Δp F S) (hl : ∀ t, t < k → leaf t = leaf' t) :
     StoredFieldShapes V k nP w nIdxOf leaf' Δp F S :=
   ⟨h.len, fun ρ hρ hs hhs hv => h.override ρ hρ hs hhs fun t ht => by rw [hl t ht]; exact hv t ht⟩
@@ -298,8 +298,8 @@ section Read
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
 
 /-- The readings of a spine come from its terms. -/
-theorem DenoteMetaSpine.mem_vals {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env ψ d as vs →
+theorem DenoteMetaSpine.mem_vals {acval : Name → (Name → Nat) → ITerm} {d : Nat} :
+    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval env ψ d as vs →
       ∀ v ∈ vs, ∃ a ∈ as, denoteMeta acval env ψ d a = some v
   | _, _, .nil, _, hv => nomatch hv
   | a :: _, _ :: _, .cons ha h, v, hv => by
@@ -310,7 +310,7 @@ theorem DenoteMetaSpine.mem_vals {acval : Name → (Name → Nat) → AnnotTerm}
 
 /-- The hole positions of the walk read, at depth `hiAt 0 + l`, as the
 hole slots `l ..< l + k`. -/
-theorem noBVar_holeSlots_of_holeP {ctx : NestCtx} {l : Nat} {e : AnnotTerm}
+theorem noBVar_holeSlots_of_holeP {ctx : NestCtx} {l : Nat} {e : ITerm}
     (h : NoBVar (holeP (ctx.hiAt 0 + l) ctx.nP (ctx.hiAt 0)) e) :
     NoBVar (LfpDatum.holeSlots ctx.names.length l) e := by
   refine NoBVar.mono (fun i hi => ?_) h
@@ -319,7 +319,7 @@ theorem noBVar_holeSlots_of_holeP {ctx : NestCtx} {l : Nat} {e : AnnotTerm}
   omega
 
 /-- A hole-free term reads without the hole slots. -/
-theorem noBVar_holeSlots_of_nestOcc {ctx : NestCtx} {l : Nat} {e : Expr} {ea : AnnotTerm}
+theorem noBVar_holeSlots_of_nestOcc {ctx : NestCtx} {l : Nat} {e : Expr} {ea : ITerm}
     (hw : Expr.WScoped (ctx.hiAt 0 + l) e)
     (hocc : e.nestOcc ctx.names ctx.nP (ctx.hiAt 0) = false)
     (h : denoteMeta m.acval env ψ (ctx.hiAt 0 + l) e = some ea) :
@@ -328,12 +328,12 @@ theorem noBVar_holeSlots_of_nestOcc {ctx : NestCtx} {l : Nat} {e : Expr} {ea : A
 
 /-- **A member hole applied to hole-free arguments** reads as the hole's
 slot applied to hole-free readings. -/
-theorem denoteMeta_holeHead {ctx : NestCtx} {t l : Nat} {e : Expr} {ea : AnnotTerm}
+theorem denoteMeta_holeHead {ctx : NestCtx} {t l : Nat} {e : Expr} {ea : ITerm}
     (hfn : ∃ ty, e.getAppFn = .fvar (ctx.nP + t) ty) (ht : t < ctx.names.length)
     (hfree : ∀ x ∈ e.getAppArgs, x.nestOcc ctx.names ctx.nP (ctx.hiAt 0) = false)
     (hw : Expr.WScoped (ctx.hiAt 0 + l) e)
     (hea : denoteMeta m.acval env ψ (ctx.hiAt 0 + l) e = some ea) :
-    ∃ es, ea = AnnotTerm.mkAppN (.bvar (l + (ctx.names.length - 1 - t))) es ∧
+    ∃ es, ea = ITerm.mkAppN (.bvar (l + (ctx.names.length - 1 - t))) es ∧
       (∀ x ∈ es, NoBVar (LfpDatum.holeSlots ctx.names.length l) x) ∧
       es.length = e.getAppArgs.length ∧
       DenoteMetaSpine m.acval env ψ (ctx.hiAt 0 + l) e.getAppArgs es := by
@@ -356,9 +356,9 @@ theorem denoteMeta_holeHead {ctx : NestCtx} {t l : Nat} {e : Expr} {ea : AnnotTe
     exact noBVar_holeSlots_of_nestOcc (hwArgs a ha) (hfree a ha) hr
 
 /-- An application spine grows at the right. -/
-theorem AnnotTerm.mkAppN_snoc' :
-    ∀ (as : List AnnotTerm) (f a : AnnotTerm),
-      AnnotTerm.mkAppN f (as ++ [a]) = .app (AnnotTerm.mkAppN f as) a := by
+theorem ITerm.mkAppN_snoc' :
+    ∀ (as : List ITerm) (f a : ITerm),
+      ITerm.mkAppN f (as ++ [a]) = .app (ITerm.mkAppN f as) a := by
   intro as
   induction as with
   | nil => intro f a; rfl
@@ -417,7 +417,7 @@ theorem stripPis_of_openPis :
     | _ => simp [openPisAtFvars] at h
 
 /-- A lift by one never reads its cut. -/
-theorem noBVar_liftN_one : ∀ (X : AnnotTerm) (c : Nat), NoBVar (fun i => i = c) (X.liftN 1 c) := by
+theorem noBVar_liftN_one : ∀ (X : ITerm) (c : Nat), NoBVar (fun i => i = c) (X.liftN 1 c) := by
   intro X
   induction X with
   | bvar i =>
@@ -546,7 +546,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {ψ : Name 
 uses is read by no later field — at any base depth (a container frame's
 telescope). -/
 theorem u4_fieldSlotAt {b nF l l' : Nat} {crest rest : Expr} {xs : List Expr}
-    {x : Expr} {ea : AnnotTerm}
+    {x : Expr} {ea : ITerm}
     (hop : openPisAtFvars nF crest (b) = some (xs, rest))
     (hW : Expr.WScoped (b) crest) (hU : structUsedLater crest 0 l = false)
     (hl : l < nF) (hll : l < l') (hx : xs[l']? = some x)
@@ -575,7 +575,7 @@ theorem u4_fieldSlotAt {b nF l l' : Nat} {crest rest : Expr} {xs : List Expr}
 /-- **U4, read**: a field whose variable no later binder and not the result
 uses is read by no later field. -/
 theorem u4_fieldSlot {ctx : NestCtx} {nF l l' : Nat} {crest rest : Expr} {xs : List Expr}
-    {x : Expr} {ea : AnnotTerm}
+    {x : Expr} {ea : ITerm}
     (hop : openPisAtFvars nF crest (ctx.hiAt 0) = some (xs, rest))
     (hW : Expr.WScoped (ctx.hiAt 0) crest) (hU : structUsedLater crest 0 l = false)
     (hl : l < nF) (hll : l < l') (hx : xs[l']? = some x)
@@ -596,8 +596,8 @@ facts and `BlockCtorDataI`'s opening facts, without any field kind
 (`BlockCtorDataI.storedCtorFacts`). -/
 structure StoredCtorFacts {V : Type w} [SetTheory V] {env : Env} (m : EnvModel V env) (T : Name)
     (lps : List Name) (cvC : ConstantVal) (nP nF : Nat) (fvsP xFvs : List Expr) (xrest : Expr)
-    (idxArgs : List Expr) (ds : (Name → Nat) → List AnnotTerm)
-    (Es : (Name → Nat) → List AnnotTerm) : Prop where
+    (idxArgs : List Expr) (ds : (Name → Nat) → List ITerm)
+    (Es : (Name → Nat) → List ITerm) : Prop where
   read : ∀ ψ : Name → Nat, denoteMeta m.acval env ψ 0 cvC.type
     = some (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ)))
   len : ∀ ψ : Name → Nat, (ds ψ).length = nP + nF
@@ -614,7 +614,7 @@ structure StoredCtorFacts {V : Type w} [SetTheory V] {env : Env} (m : EnvModel V
 theorem BlockCtorDataI.storedCtorFacts {V : Type w} [SetTheory V] {env : Env}
     {m : EnvModel V env} {T : Name} {lps : List Name} {cvC : ConstantVal} {nP nF nIdx : Nat}
     {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
-    {ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
+    {ds : (Name → Nat) → List ITerm} {Es : (Name → Nat) → List ITerm}
     {srcs : List (Option Nat)} {fvsP xFvs : List Expr} {xrest : Expr}
     (h : BlockCtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs fvsP xFvs
       xrest)
@@ -656,8 +656,8 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
       cv.levelParams = ctx.lps ∧
       cv.type.stripPis (ctx.nP + ctx.nIdxs.getD t 0) = some (bs, .sort s) ∧ s.eval ψ = w)
     {c nF : Nat} (hc : c < ctx.names.length) {cvC : ConstantVal} {fvsP xFvs : List Expr}
-    {xrest : Expr} {idxArgs : List Expr} {ds : (Name → Nat) → List AnnotTerm}
-    {Es : (Name → Nat) → List AnnotTerm}
+    {xrest : Expr} {idxArgs : List Expr} {ds : (Name → Nat) → List ITerm}
+    {Es : (Name → Nat) → List ITerm}
     (hD : StoredCtorFacts m (ctx.names.getD c .anonymous) ctx.lps cvC ctx.nP nF fvsP xFvs xrest
       idxArgs ds Es)
     {crest : Expr}
@@ -665,9 +665,9 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
       = some crest)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List ConLeche.PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env ctx nF crest ksD tyN ts)
-    {Δp Δh : List AnnotTerm}
-    (hlink : ∀ ca : AnnotTerm, denoteMeta m.acval env ψ (ctx.hiAt 0) crest = some ca →
-      ∃ (abD abN : List AnnotTerm) (B : AnnotTerm),
+    {Δp Δh : List ITerm}
+    (hlink : ∀ ca : ITerm, denoteMeta m.acval env ψ (ctx.hiAt 0) crest = some ca →
+      ∃ (abD abN : List ITerm) (B : ITerm),
       ca = mkPisAV abD B ∧
       denoteMeta m.acval env ψ (ctx.hiAt 0) tyN = some (mkPisAV abN B) ∧
       abD.length = nF ∧ abN.length = nF ∧
@@ -678,11 +678,11 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
         hs.getD t pt = (frameIdx ctx.nP ρ).foldl app
           (interp V ρ (m.acval (ctx.names.getD t .anonymous) ψ))) →
       Sat V Δh (consList hs ρ)) :
-    ∃ (abD abN : List AnnotTerm) (E : List AnnotTerm),
+    ∃ (abD abN : List ITerm) (E : List ITerm),
       denoteMeta m.acval env ψ (ctx.hiAt 0) crest
-        = some (mkPisAV abD (AnnotTerm.mkAppN (.bvar (nF + (ctx.names.length - 1 - c))) E)) ∧
+        = some (mkPisAV abD (ITerm.mkAppN (.bvar (nF + (ctx.names.length - 1 - c))) E)) ∧
       denoteMeta m.acval env ψ (ctx.hiAt 0) tyN
-        = some (mkPisAV abN (AnnotTerm.mkAppN (.bvar (nF + (ctx.names.length - 1 - c))) E)) ∧
+        = some (mkPisAV abN (ITerm.mkAppN (.bvar (nF + (ctx.names.length - 1 - c))) E)) ∧
       abD.length = nF ∧ abN.length = nF ∧ E = (Es ψ).map (·.liftN ctx.names.length nF) ∧
       StoredFieldShapes V ctx.names.length ctx.nP w (fun t => ctx.nIdxs.getD t 0)
         (fun t => m.acval (ctx.names.getD t .anonymous) ψ) Δp (abN)
@@ -791,8 +791,8 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     exact ⟨ty, by rw [h, Nat.zero_add]⟩
   let s : Nat → Expr := fun i => if i < ctx.nP then .fvar i (.sort .zero)
     else Expr.mkAppN (.const (ctx.names.getD (i - ctx.nP) .anonymous) (ctx.lps.map .param)) fvsP
-  let x : Nat → AnnotTerm := fun i => if i < ctx.nP then .bvar (ctx.nP - 1 - i)
-    else AnnotTerm.mkAppN (m.acval (ctx.names.getD (i - ctx.nP) .anonymous) ψ)
+  let x : Nat → ITerm := fun i => if i < ctx.nP then .bvar (ctx.nP - 1 - i)
+    else ITerm.mkAppN (m.acval (ctx.names.getD (i - ctx.nP) .anonymous) ψ)
       (paramBvarsAt ctx.nP ctx.nP)
   have herase2 : Expr.ErasedEq
       (Expr.substFvars (ctx.nP + ctx.names.length) ctx.nP s (holeAbs ctx crestc)) crestc := by
@@ -863,14 +863,14 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     rw [denoteMeta_erasedEq herased, hhi]; exact hR
   obtain ⟨pps, Bb, hst, hBb, hppl, -⟩ := denoteMeta_openPis nF hop hRc
   obtain ⟨rfl, -⟩ := stripPisAV_eq_mkPis hst
-  rw [AnnotTerm.substAV_mkPisAV] at hRi
-  have hsubTeleL : ∀ (c : Nat) (ab : List AnnotTerm),
-      (AnnotTerm.substTele (substTau (ctx.nP + ctx.names.length) ctx.nP x) c ab).length
+  rw [ITerm.substAV_mkPisAV] at hRi
+  have hsubTeleL : ∀ (c : Nat) (ab : List ITerm),
+      (ITerm.substTele (substTau (ctx.nP + ctx.names.length) ctx.nP x) c ab).length
         = ab.length := by
     intro c ab
     induction ab generalizing c with
     | nil => rfl
-    | cons d ab ih => simp [AnnotTerm.substTele, ih]
+    | cons d ab ih => simp [ITerm.substTele, ih]
   obtain ⟨hTele, hBody⟩ := mkPisAV_inj
     (by rw [hsubTeleL, hppl, List.length_drop, hlenD]; omega) hRi
   rw [Nat.zero_add, hppl] at hBody
@@ -897,22 +897,22 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
   have hEl : E.length = (Es ψ).length := by
     rw [hElen, hlenE, Expr.getAppArgs_mkAppN, hD.lenE ψ]
     simp [Expr.getAppArgs]
-  have happ : ∀ (as bs : List AnnotTerm) (f : AnnotTerm),
-      AnnotTerm.mkAppN (AnnotTerm.mkAppN f as) bs = AnnotTerm.mkAppN f (as ++ bs) := by
+  have happ : ∀ (as bs : List ITerm) (f : ITerm),
+      ITerm.mkAppN (ITerm.mkAppN f as) bs = ITerm.mkAppN f (as ++ bs) := by
     intro as
     induction as with
     | nil => intro bs f; rfl
     | cons a as ih => intro bs f; exact ih bs (.app f a)
-  have hliftApp : ∀ (as : List AnnotTerm) (f : AnnotTerm) (n c' : Nat),
-      (AnnotTerm.mkAppN f as).liftN n c' = AnnotTerm.mkAppN (f.liftN n c') (as.map (·.liftN n c')) := by
+  have hliftApp : ∀ (as : List ITerm) (f : ITerm) (n c' : Nat),
+      (ITerm.mkAppN f as).liftN n c' = ITerm.mkAppN (f.liftN n c') (as.map (·.liftN n c')) := by
     intro as
     induction as with
     | nil => intro f n c'; rfl
-    | cons a as ih => intro f n c'; simp only [AnnotTerm.mkAppN_cons, ih, List.map_cons]; rfl
-  have hhead : AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x)
+    | cons a as ih => intro f n c'; simp only [ITerm.mkAppN_cons, ih, List.map_cons]; rfl
+  have hhead : ITerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x)
       (.bvar (nF + (ctx.names.length - 1 - c))) nF
-      = AnnotTerm.mkAppN (m.acval (ctx.names.getD c .anonymous) ψ) (paramBvars ctx.nP nF) := by
-    rw [AnnotTerm.substAV_bvar_ge _ (by omega),
+      = ITerm.mkAppN (m.acval (ctx.names.getD c .anonymous) ψ) (paramBvars ctx.nP nF) := by
+    rw [ITerm.substAV_bvar_ge _ (by omega),
       show nF + (ctx.names.length - 1 - c) - nF = ctx.names.length - 1 - c by omega]
     unfold substTau
     rw [ite_eq_left (by omega)]
@@ -925,14 +925,14 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     rw [List.map_map]
     refine List.map_congr_left fun p hp => ?_
     have := List.mem_range.mp hp
-    simp only [Function.comp_apply, AnnotTerm.liftN_bvar, ite_false, Nat.not_lt_zero]
+    simp only [Function.comp_apply, ITerm.liftN_bvar, ite_false, Nat.not_lt_zero]
     congr 1; omega
-  have hmap : E.map (AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) · nF)
+  have hmap : E.map (ITerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) · nF)
       = Es ψ := by
     have h2 := hBody
-    rw [hBbE, AnnotTerm.substAV_mkAppN, hhead, happ] at h2
+    rw [hBbE, ITerm.substAV_mkAppN, hhead, happ] at h2
     unfold ctorBodyAVI at h2
-    obtain ⟨-, h3⟩ := AnnotTerm.mkAppN_inj h2 (by simp [hEl])
+    obtain ⟨-, h3⟩ := ITerm.mkAppN_inj h2 (by simp [hEl])
     exact List.append_cancel_left h3
   have hxP : ∀ i, i < ctx.nP → x i = .bvar (ctx.nP - 1 - i) := fun i hi => by
     dsimp only [x]; rw [ite_eq_left hi]
@@ -947,11 +947,11 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
   -- the stored field readings are the crest's, the holes filled back
   have hSget : ∀ l p, pps[l]? = some p →
       (((ds ψ).drop ctx.nP)).getD l default
-        = AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) p l := by
-    have hTget : ∀ (c : Nat) (ab : List AnnotTerm) (l : Nat),
-        (AnnotTerm.substTele (substTau (ctx.nP + ctx.names.length) ctx.nP x) c ab)[l]?
+        = ITerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) p l := by
+    have hTget : ∀ (c : Nat) (ab : List ITerm) (l : Nat),
+        (ITerm.substTele (substTau (ctx.nP + ctx.names.length) ctx.nP x) c ab)[l]?
           = (ab[l]?).map fun d =>
-              AnnotTerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) d (c + l) := by
+              ITerm.substAV (substTau (ctx.nP + ctx.names.length) ctx.nP x) d (c + l) := by
       intro c ab
       induction ab generalizing c with
       | nil => intro l; rfl
@@ -960,7 +960,7 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
         cases l with
         | zero => rfl
         | succ l =>
-          simp only [AnnotTerm.substTele, List.getElem?_cons_succ, ih (c + 1) l]
+          simp only [ITerm.substTele, List.getElem?_cons_succ, ih (c + 1) l]
           rw [show c + 1 + l = c + (l + 1) by omega]
     intro l p hp
     rw [← hTele, List.getD_eq_getElem?_getD, hTget, hp]

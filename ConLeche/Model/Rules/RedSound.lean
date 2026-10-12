@@ -32,7 +32,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -84,7 +84,7 @@ theorem appFn_syntax {d : Nat} {f f' a : Expr}
     · exact Or.inr hl
 
 /-- The app slot rides an equal-valued, graded head. -/
-theorem wellDenoted_app_fn_congr {ρ : Nat → V} {fa fa' aa : AnnotTerm}
+theorem wellDenoted_app_fn_congr {ρ : Nat → V} {fa fa' aa : ITerm}
     (heq : interp V ρ fa = interp V ρ fa') (hgf' : WellDenoted V ρ fa')
     (hg : WellDenoted V ρ (.app fa aa)) : WellDenoted V ρ (.app fa' aa) := by
   have hx1 := hg
@@ -145,10 +145,10 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
     obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) (ProjAV.hoistV hg) hnv
     exact ⟨ProjAV.congrV heq hg' hg, ProjAV.interp_congr heq⟩
   · obtain ⟨x', hx'⟩ :=
-      AnnotTerm.projPair?_exists_of_lt (AnnotTerm.lt_of_projPair? hdec) vp'
+      ITerm.projPair?_exists_of_lt (ITerm.lt_of_projPair? hdec) vp'
     have hred : denoteMeta m.acval env φ d (.proj sn i e') = some x' := by
       rw [denoteMeta, hvp', hnt]; exact hx'
-    rcases AnnotTerm.projPair?_cases₂ hdec hx' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    rcases ITerm.projPair?_cases₂ hdec hx' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · refine ⟨.fst vp', hred, fun σ hσ hL hg hne => ?_⟩
       have hnv : interp V σ vp ≠ pt := by
         intro h; apply hne; rw [interp_fst, h, sfst_pt]
@@ -173,7 +173,7 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
 /-- The β redex's syntactic side: the reduct's frame, its leaf inclusion
 and its reading. -/
 theorem beta_syntax {d : Nat} {ty body a : Expr}
-    {ba aa : AnnotTerm}
+    {ba aa : ITerm}
     (hws : Expr.WScoped d (.app (.lam ty body) a))
     (hb : (Expr.app (.lam ty body) a).looseBVarsBounded 0 = true)
     (hLb : Expr.LeavesBounded (.app (.lam ty body) a))
@@ -295,7 +295,7 @@ where the argument is the point (`IsTy.eq_of_ne_pt`). -/
 head's domain**: the head is not the point (`app_pt`), so it is read at a
 positive kind (`eq_pt_of_mem_piR_zero`), where its graph fixes its domain
 (`piR_dom_unique`). -/
-theorem arg_mem_of_head {σ : Nat → V} {f a : AnnotTerm} {b : Nat} {N : V}
+theorem arg_mem_of_head {σ : Nat → V} {f a : ITerm} {b : Nat} {N : V}
     {Y : V → V} (hg : WellDenoted V σ (.app f a))
     (hne : interp V σ (.app f a) ≠ pt) (hf : interp V σ f ∈ˢ piR b N Y) :
     interp V σ a ∈ˢ N := by
@@ -312,7 +312,7 @@ theorem arg_mem_of_head {σ : Nat → V} {f a : AnnotTerm} {b : Nat} {N : V}
 the `Nat` leaf, at every valuation (`NatHeads`). -/
 theorem rawNatLit_facts (hin : RulesInputs V m φ)
     (hsup : ConLeche.natLitSupported env = true) {d : Nat} {w : Expr} {n : Nat}
-    (hn : ConLeche.rawNatLit? w = some n) {wa : AnnotTerm}
+    (hn : ConLeche.rawNatLit? w = some n) {wa : ITerm}
     (hwa : denoteMeta m.acval env φ d w = some wa) (σ : Nat → V) :
     WellDenoted V σ wa ∧
       interp V σ wa ∈ˢ interp V σ (m.acval natName (Level.substFn φ [] [])) := by
@@ -533,7 +533,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
       hTC hTCd (frame_spine ⟨hws, hb, hLe⟩ hCe) hspa
   refine ⟨hfF, fun l hl => hsube l (ConLeche.fvarLeaves_getAppArgs hmemArg l hl),
     vs.getD (entry.numParams + i) default, hfvd, fun σ hσ hL hg hne => ?_⟩
-  have hgvp : WellDenoted V σ (AnnotTerm.mkAppN
+  have hgvp : WellDenoted V σ (ITerm.mkAppN
       (m.acval entry.ctor (Level.substFn φ entry.levelParams us)) vs) := by
     rw [← hveq]
     exact ProjAV.hoistV hg

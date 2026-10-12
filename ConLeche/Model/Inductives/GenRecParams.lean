@@ -137,7 +137,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars closeTelescope
   ClassGen ClassGenScoped SameDoms classGenRecTy classBinder GenRecRun ClassRecTyRun
   FEnv mkFEnv NestState TargetMajor RecShape BlockShape BlockParts instPisWith)
@@ -535,7 +535,7 @@ variable {envT : Env} (hμ : μ.verifiedChecks = true)
   {tyA : Expr} {fvsA : List Expr} {oA : Expr}
   (hopA : openPisAtFvars rP tyA 0 = some (fvsA, oA))
   (hwA : Expr.WScoped 0 tyA) (hbA : tyA.looseBVarsBounded 0 = true)
-  {domsA domsB : List AnnotTerm}
+  {domsA domsB : List ITerm}
   (hlenA : domsA.length = rP) (hlenB : domsB.length = rP)
   (hdA : ∀ (i : Nat) (x : Expr), fvsA[i]? = some x →
     denoteMeta mp.base2.acval envT ψ i (Expr.fvarTypeD x) = some (domsA.getD i default))

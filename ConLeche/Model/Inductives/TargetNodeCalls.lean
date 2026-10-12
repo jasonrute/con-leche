@@ -38,7 +38,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx
   NestHole NestCtorNf BlockParts BlockShape TargetMajor fueledOps PosD PosTree
   NestFieldKind PosNodeOk closeTelescope targetPiDomsWith targetMajorNfs
@@ -136,7 +136,7 @@ end ParTail
 
 /-- A class's index set is empty off its guard. -/
 theorem tgtClsG_of_mem {d : BlockData V} {Dc : Nat → LfpDatum V} {mc : Nat → Nat}
-    {cvc : Nat → ConstantVal} {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
+    {cvc : Nat → ConstantVal} {acval : Name → (Name → Nat) → ITerm} {envC : Env}
     {p : BlockShape} {out : List (ConstantVal × TargetMajor × List Expr)} {ψ : Name → Nat}
     {ρ : Nat → V} {xs : List V} {c : Nat} {t : V}
     (ht : t ∈ˢ tgtClsIs d Dc mc cvc acval envC p out ψ ρ xs c) :
@@ -151,12 +151,12 @@ theorem tgtClsG_of_mem {d : BlockData V} {Dc : Nat → LfpDatum V} {mc : Nat →
 /-- **An argument spine opening with variables, read** (`argsA_split` at
 parameter variables, whose types need no scoping). -/
 theorem argsA_split_fvars {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {D0 D' : Nat}
-    {args : List Expr} {argsA : List AnnotTerm}
+    {args : List Expr} {argsA : List ITerm}
     (hsp : DenoteMetaSpine m.acval env ψ D' args argsA) {n : Nat} (hn : n ≤ args.length)
     (hpre : ∀ q, q < n → ∃ ty, args[q]? = some (.fvar q ty)) (hnD : n ≤ D0)
     {L : List V} (hL : D' = D0 + L.length) (σ : Nat → V)
     {isR : List V} (hlen : isR.length = args.length - n)
-    (htail : ∀ (l : Nat) (xa : AnnotTerm), argsA[n + l]? = some xa →
+    (htail : ∀ (l : Nat) (xa : ITerm), argsA[n + l]? = some xa →
       isR[l]? = some (interp V (consList L σ) xa)) :
     argsA.map (interp V (consList L σ)) = (List.range n).map (fun q => σ (D0 - 1 - q)) ++ isR := by
   have hl := hsp.length

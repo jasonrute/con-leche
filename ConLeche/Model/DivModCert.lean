@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported)
 
@@ -81,7 +81,7 @@ theorem DmUnV.app {natS codS f x : V} (h : DmUnV natS codS f)
 
 /-- The `WellDenoted` witness a binary head's first application needs. -/
 theorem DmBinV.ok1 {natS codS f x : V} (h : DmBinV natS codS f)
-    (hx : x ∈ˢ natS) {ρ : Nat → V} {fa xa : AnnotTerm}
+    (hx : x ∈ˢ natS) {ρ : Nat → V} {fa xa : ITerm}
     (hfa : WellDenoted V ρ fa) (hxa : WellDenoted V ρ xa)
     (hf : interp V ρ fa = f) (hxv : interp V ρ xa = x) :
     WellDenoted V ρ (.app fa xa) := by
@@ -93,7 +93,7 @@ theorem DmBinV.ok1 {natS codS f x : V} (h : DmBinV natS codS f)
 /-- …and its second. -/
 theorem DmBinV.wellDenoted {natS codS f x y : V} (h : DmBinV natS codS f)
     (hx : x ∈ˢ natS) (hy : y ∈ˢ natS) {ρ : Nat → V}
-    {fa xa ya : AnnotTerm}
+    {fa xa ya : ITerm}
     (hfa : WellDenoted V ρ fa) (hxa : WellDenoted V ρ xa)
     (hya : WellDenoted V ρ ya)
     (hf : interp V ρ fa = f) (hxv : interp V ρ xa = x)
@@ -111,7 +111,7 @@ theorem DmBinV.wellDenoted {natS codS f x y : V} (h : DmBinV natS codS f)
 
 /-- The unary head's `WellDenoted` witness. -/
 theorem DmUnV.ok1 {natS codS f x : V} (h : DmUnV natS codS f)
-    (hx : x ∈ˢ natS) {ρ : Nat → V} {fa xa : AnnotTerm}
+    (hx : x ∈ˢ natS) {ρ : Nat → V} {fa xa : ITerm}
     (hfa : WellDenoted V ρ fa) (hxa : WellDenoted V ρ xa)
     (hf : interp V ρ fa = f) (hxv : interp V ρ xa = x) :
     WellDenoted V ρ (.app fa xa) := by
@@ -133,19 +133,19 @@ different context, and the packages never read one.) -/
 pinned product's reading, and that reading's own grading (which is
 where the fibre facts at the unknown regime bits come from). -/
 theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
+    {codN : Name} {fa : ITerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
       ((.pi (m.acval ConLeche.natName ψ)
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
-        : AnnotTerm))
+        : ITerm))
     (htok : WellDenoted V ρ
       ((.pi (m.acval ConLeche.natName ψ)
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
-        : AnnotTerm)) :
+        : ITerm)) :
     DmBinV (interp V ρ (m.acval ConLeche.natName ψ))
       (interp V ρ (m.acval codN ψ)) (interp V ρ fa) := by
   have hin : ∀ x, interp V (cons x ρ)
-        ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : AnnotTerm)
+        ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : ITerm)
       = piV (interp V ρ (m.acval ConLeche.natName ψ))
           (fun _ => interp V ρ (m.acval codN ψ)) := fun x => by
     rw [interp_pi]
@@ -158,7 +158,7 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
         (fun _ => interp V ρ (m.acval codN ψ))) := by
     rw [interp_pi] at hmem
     rwa [show (fun x => interp V (cons x ρ)
-          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : AnnotTerm))
+          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : ITerm))
         = fun _ => piV (interp V ρ (m.acval ConLeche.natName ψ))
             (fun _ => interp V ρ (m.acval codN ψ)) from funext hin] at hmem
   exact ⟨_, _, hm, fun h => propN_eq_zero.mp h, fun h => propN_eq_zero.mp h,
@@ -166,13 +166,13 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 
 /-- **A unary head, from its parts.** -/
 theorem dmUnV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
+    {codN : Name} {fa : ITerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
       ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
-        : AnnotTerm))
+        : ITerm))
     (htok : WellDenoted V ρ
       ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
-        : AnnotTerm)) :
+        : ITerm)) :
     DmUnV (interp V ρ (m.acval ConLeche.natName ψ))
       (interp V ρ (m.acval codN ψ)) (interp V ρ fa) := by
   have hm : interp V ρ fa ∈ˢ piV (interp V ρ (m.acval ConLeche.natName ψ))
@@ -275,7 +275,7 @@ the `dmEvalV` chain `DivModClausesV` is written in.
 The valuation is quantified *inside* the reading, because the P claims
 grade at every valuation satisfying the telescope, not at one. -/
 theorem dmNatFrag_graded {m : EnvModel V env} {ψ : Name → Nat}
-    {c : Name} {A : (Name → Nat) → AnnotTerm} {value' : Expr}
+    {c : Name} {A : (Name → Nat) → ITerm} {value' : Expr}
     {bins uns : List Name} {d : Nat} {natS : V}
     (hread : ∀ n ∈ ConLeche.natZeroName :: (bins ++ uns), ∀ d' : Nat,
       denoteMeta m.acval env ψ d' (Expr.substConst0 c value' (.const n []))
@@ -392,7 +392,7 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
     (hdeC : DefEqClaim μ mp.base2 ψ F)
     {c : Name} {annVal : Expr} {st : List Expr × Expr} {proof : Expr}
     (hfacts : CertRunFacts μ env F c annVal st proof)
-    {Δa : List AnnotTerm}
+    {Δa : List ITerm}
     (hW : Expr.WScoped 4 (divModCertApplied
       (Expr.substConstAll c annVal proof)
       (st.1.map (Expr.substConst0 c annVal))))
@@ -409,7 +409,7 @@ theorem certValue {F : Nat} (mp : EnvModelM V μ env) (ψ : Name → Nat)
     (hBE : (Expr.substConst0 c annVal st.2).looseBVarsBounded 0 = true)
     (hLE : Expr.LeavesBounded (Expr.substConst0 c annVal st.2))
     (hCE : CtxOk mp.base2 ψ 4 Δa (Expr.substConst0 c annVal st.2))
-    {vE : AnnotTerm}
+    {vE : ITerm}
     (hvE : denoteMeta mp.base2.acval env ψ 4
       (Expr.substConst0 c annVal st.2) = some vE)
     (hokE : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ vE)
@@ -454,25 +454,25 @@ conjunct, which is supplied at the depth-4 reading and
 transported by the same equation. -/
 
 /-- Two weakenings, composed. -/
-theorem denotePLift {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denotePLift {acval : Name → (Name → Nat) → ITerm}
     {ψ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ' : Name → Nat) (k : Nat),
       (acval n ψ').liftN 1 k = acval n ψ')
-    {d n : Nat} {e : Expr} {W : AnnotTerm} (hw : Expr.WScoped d e)
+    {d n : Nat} {e : Expr} {W : ITerm} (hw : Expr.WScoped d e)
     (h : denoteMeta acval env ψ d e = some W) :
     denoteMeta acval env ψ (d + n) e = some (W.liftN n 0) := by
   induction n with
-  | zero => rw [Nat.add_zero, h, AnnotTerm.liftN_zero]
+  | zero => rw [Nat.add_zero, h, ITerm.liftN_zero]
   | succ n ih =>
     rw [show d + (n + 1) = (d + n) + 1 from rfl,
       denoteMeta_weaken_top hacl (hw.mono (by omega)), ih]
     simp only [Option.map_some]
-    rw [AnnotTerm.liftN_liftN, Nat.add_comm 1 n]
+    rw [ITerm.liftN_liftN, Nat.add_comm 1 n]
 
 /-- **The certificate frame's leaf discipline, in the lift-carrying
 form.** -/
 theorem ctxOk_pinnedLift {m : EnvModel V env} {ψ : Name → Nat}
-    {d : Nat} {Δa : List AnnotTerm} {e : Expr}
+    {d : Nat} {Δa : List ITerm} {e : Expr}
     (hlen : Δa.length = d)
     (hslot : ∀ l ∈ e.fvarLeaves, l.1 < d ∧ Expr.fvarsBelow l.1 l.2 ∧
       ∃ tya, denoteMeta m.acval env ψ d l.2 = some tya ∧
@@ -500,10 +500,10 @@ theorem ctxOk_pinnedLift {m : EnvModel V env} {ψ : Name → Nat}
 /-- The pinned `Eq` spine's reading: the
 head carries `Eq.{1}`, whose level argument is not `[]`, so the
 operation substitution leaves it alone. -/
-theorem denoteMeta_eqSpine {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_eqSpine {acval : Name → (Name → Nat) → ITerm}
     {ψ : Name → Nat} {c : Name} {value' : Expr}
     (hEq : env.find? eqName = some eqA) {A a b : Expr}
-    {Aa aa ba : AnnotTerm} {d : Nat}
+    {Aa aa ba : ITerm} {d : Nat}
     (hA : denoteMeta acval env ψ d (Expr.substConst0 c value' A)
       = some Aa)
     (ha : denoteMeta acval env ψ d (Expr.substConst0 c value' a)
@@ -543,7 +543,7 @@ theorem eqSubst_uN (ψ : Name → Nat) :
 (through the annotated stored value), every dependency at its
 storage. -/
 def dmLeaf {env : Env} (m : EnvModel V env) (c : Name)
-    (A : (Name → Nat) → AnnotTerm) (ψ : Name → Nat) (n : Name) : AnnotTerm :=
+    (A : (Name → Nat) → ITerm) (ψ : Name → Nat) (n : Name) : ITerm :=
   acvalWith m.acval c A n ψ
 
 /-- The binary heads the statements apply: the recurrence dependencies
@@ -667,7 +667,7 @@ the extension's valuation with its closedness and grading, the frame's
 
 /-- **The div/mod certificate frame at `interp`.** -/
 structure DmFrame {env : Env} (mp : EnvModelM V μ env) (c : Name)
-    (A : (Name → Nat) → AnnotTerm) (value' : Expr) (ψ : Name → Nat) :
+    (A : (Name → Nat) → ITerm) (value' : Expr) (ψ : Name → Nat) :
     Prop where
   /-- the pinned `Eq` is stored -/
   eqStored : env.find? eqName = some eqA
@@ -720,7 +720,7 @@ structure DmFrame {env : Env} (mp : EnvModelM V μ env) (c : Name)
 
 namespace DmFrame
 
-variable {mp : EnvModelM V μ env} {c : Name} {A : (Name → Nat) → AnnotTerm}
+variable {mp : EnvModelM V μ env} {c : Name} {A : (Name → Nat) → ITerm}
 variable {value' : Expr} {ψ : Name → Nat}
 
 /-- **A head reads to its leaf**, at every depth: the operation itself
@@ -769,7 +769,7 @@ satisfying valuation. -/
 
 /-- The frame's `Nat` leaf reads. -/
 theorem DmFrame.readNat {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
     (fr : DmFrame mp c A value' ψ) (d : Nat) :
     denoteMeta mp.base2.acval env ψ d (Expr.const ConLeche.natName [])
       = some (mp.base2.acval ConLeche.natName ψ) := by
@@ -781,8 +781,8 @@ theorem DmFrame.readNat {mp : EnvModelM V μ env} {c : Name}
 /-- A `dmLeavesOk` term's leaves are the two `Nat` slots, so the frame
 discipline is free for it. -/
 theorem dmCtxOk_natLeaves {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
-    (fr : DmFrame mp c A value' ψ) {Δa : List AnnotTerm}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
+    (fr : DmFrame mp c A value' ψ) {Δa : List ITerm}
     (hlen : Δa.length = 4)
     (h3 : Δa.getD 3 default = mp.base2.acval ConLeche.natName ψ)
     (h2 : Δa.getD 2 default = mp.base2.acval ConLeche.natName ψ)
@@ -791,7 +791,7 @@ theorem dmCtxOk_natLeaves {mp : EnvModelM V μ env} {c : Name}
   have hself : ∀ k : Nat,
       (mp.base2.acval ConLeche.natName ψ).liftN k 0
         = mp.base2.acval ConLeche.natName ψ := fun k =>
-    AnnotTerm.liftN_eq_self _
+    ITerm.liftN_eq_self _
       (by rw [mp.base2.acval_erase]
           exact mp.base2.cval_closed ConLeche.natName ψ) k
   refine ctxOk_pinnedLift hlen (fun l hl => ?_)
@@ -812,7 +812,7 @@ theorem dmCtxOk_natLeaves {mp : EnvModelM V μ env} {c : Name}
 
 /-- The frame's two `Nat` slots, read off satisfaction. -/
 theorem dmSat_slots {mp : EnvModelM V μ env} {ψ : Name → Nat}
-    {Δa : List AnnotTerm} (hlen : Δa.length = 4)
+    {Δa : List ITerm} (hlen : Δa.length = 4)
     (h3 : Δa.getD 3 default = mp.base2.acval ConLeche.natName ψ)
     (h2 : Δa.getD 2 default = mp.base2.acval ConLeche.natName ψ)
     {ρ : Nat → V} (hsat : Sat V Δa ρ) (ρ₀ : Nat → V) :
@@ -832,7 +832,7 @@ theorem dmSat_slots {mp : EnvModelM V μ env} {ψ : Name → Nat}
 statement's two sides are `Nat`-valued fragments; how the frame's
 hypothesis slots came to be satisfied is the caller's business. -/
 theorem dmStmtEq {F : Nat} {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
     (fr : DmFrame mp c A value' ψ) (heqlaw : EqLaw mp.base2)
     (hacc : ∀ {d : Nat} {e t : Expr},
       ConLeche.inferTypeCore μ env F d e = .ok t →
@@ -848,7 +848,7 @@ theorem dmStmtEq {F : Nat} {mp : EnvModelM V μ env} {c : Name}
         (.const ConLeche.natName [])) lhs) rhs) proof)
     (hlhs : dmNatFrag (dmBinNames c) (dmUnNames c) lhs = true)
     (hrhs : dmNatFrag (dmBinNames c) (dmUnNames c) rhs = true)
-    {Δa : List AnnotTerm} (hlen : Δa.length = 4)
+    {Δa : List ITerm} (hlen : Δa.length = 4)
     (h3 : Δa.getD 3 default = mp.base2.acval ConLeche.natName ψ)
     (h2 : Δa.getD 2 default = mp.base2.acval ConLeche.natName ψ)
     (hWA : Expr.WScoped 4 (divModCertApplied
@@ -921,7 +921,7 @@ theorem dmStmtEq {F : Nat} {mp : EnvModelM V μ env} {c : Name}
       WellDenotedTy V ρ ((.app (.app (.app (mp.base2.acval eqName
         (Level.substFn ψ eqA.toConstantVal.levelParams
           [Level.zero.succ])) (mp.base2.acval ConLeche.natName ψ)) lhsa)
-        rhsa : AnnotTerm)) := by
+        rhsa : ITerm)) := by
     intro ρ hρ
     obtain ⟨hx, hy⟩ := hslots ρ hρ
     obtain ⟨hokl, hml, -⟩ := hfl ρ hx hy
@@ -974,7 +974,7 @@ theorem dmStmtEq {F : Nat} {mp : EnvModelM V μ env} {c : Name}
   rw [show interp V ρ4 ((.app (.app (.app (mp.base2.acval eqName
         (Level.substFn ψ eqA.toConstantVal.levelParams
           [Level.zero.succ])) (mp.base2.acval ConLeche.natName ψ)) lhsa)
-        rhsa : AnnotTerm))
+        rhsa : ITerm))
       = eqv (interp V ρ4 lhsa) (interp V ρ4 rhsa) from by
     rw [interp_app, interp_app, interp_app]
     exact (heqlaw fr.eqStored _).1 ρ4 _ _ _
@@ -999,7 +999,7 @@ reads. -/
 
 /-- The walk's inputs, packaged from the frame. -/
 theorem dmWalkInputs {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
     (fr : DmFrame mp c A value' ψ) (ρ₀ : Nat → V) :
     (∀ n ∈ ConLeche.natZeroName :: (dmBinNames c ++ dmUnNames c),
       ∀ d' : Nat, denoteMeta mp.base2.acval env ψ d'
@@ -1033,7 +1033,7 @@ theorem dmWalkInputs {mp : EnvModelM V μ env} {c : Name}
 
 /-- **The guard spine, read and graded.** -/
 theorem dmGuardSpine {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
     (fr : DmFrame mp c A value' ψ) (heqlaw : EqLaw mp.base2)
     {t1 t2 : Expr} {bn : Name}
     (hbn : bn = ConLeche.boolTrueName ∨ bn = ConLeche.boolFalseName)
@@ -1103,11 +1103,11 @@ theorem dmGuardSpine {mp : EnvModelM V μ env} {c : Name}
   rw [hmoveN] at hbleV
   have hbleOk : WellDenoted V ρ
       ((.app (.app (dmLeaf mp.base2 c A ψ ConLeche.natBleName) t1a) t2a
-        : AnnotTerm)) :=
+        : ITerm)) :=
     DmBinV.wellDenoted hbleV hm1 hm2 (fr.leafOk _ ρ) hok1 hok2 rfl rfl rfl
   have hbleMem : interp V ρ
       ((.app (.app (dmLeaf mp.base2 c A ψ ConLeche.natBleName) t1a) t2a
-        : AnnotTerm))
+        : ITerm))
       ∈ˢ interp V ρ (mp.base2.acval ConLeche.boolName ψ) := by
     rw [interp_app, interp_app]
     exact DmBinV.app hbleV hm1 hm2
@@ -1136,7 +1136,7 @@ hand the statement to `dmStmtEq`. -/
 
 /-- **A guarded div/mod clause, discharged at `interp`.** -/
 theorem dmClause1 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
     (fr : DmFrame mp c A value' ψ) (heqlaw : EqLaw mp.base2)
     (hacc : ∀ {d : Nat} {e t : Expr},
       ConLeche.inferTypeCore μ env F d e = .ok t →
@@ -1308,7 +1308,7 @@ theorem dmClause1 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
     have hself : ∀ k : Nat,
         (mp.base2.acval ConLeche.natName ψ).liftN k 0
           = mp.base2.acval ConLeche.natName ψ := fun k =>
-      AnnotTerm.liftN_eq_self _
+      ITerm.liftN_eq_self _
         (by rw [mp.base2.acval_erase]
             exact mp.base2.cval_closed ConLeche.natName ψ) k
     have hnatSlot : ∀ i k : Nat,
@@ -1356,7 +1356,7 @@ theorem dmClause1 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
 type is stated one binder deeper, so its telescope entry is its
 *depth-3* reading. -/
 theorem dmClause2 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
-    {A : (Name → Nat) → AnnotTerm} {value' : Expr} {ψ : Name → Nat}
+    {A : (Name → Nat) → ITerm} {value' : Expr} {ψ : Name → Nat}
     (fr : DmFrame mp c A value' ψ) (heqlaw : EqLaw mp.base2)
     (hacc : ∀ {d : Nat} {e t : Expr},
       ConLeche.inferTypeCore μ env F d e = .ok t →
@@ -1584,7 +1584,7 @@ theorem dmClause2 {F : Nat} {mp : EnvModelM V μ env} {c : Name}
   have hself : ∀ k : Nat,
       (mp.base2.acval ConLeche.natName ψ).liftN k 0
         = mp.base2.acval ConLeche.natName ψ := fun k =>
-    AnnotTerm.liftN_eq_self _
+    ITerm.liftN_eq_self _
       (by rw [mp.base2.acval_erase]
           exact mp.base2.cval_closed ConLeche.natName ψ) k
   have hnatSlot : ∀ i k : Nat,
@@ -1662,7 +1662,7 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
     (hgenv : ConLeche.divModEnvGuard
       (⟨.defnInfo ⟨c, lps, type'⟩ value' hint :: env.consts⟩ : Env) c
       = true)
-    {A Ta : (Name → Nat) → AnnotTerm}
+    {A Ta : (Name → Nat) → ITerm}
     (hA : ∀ ψ, denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hvf' : value'.hasFvar = false)
@@ -1996,7 +1996,7 @@ theorem divMod_install {F : Nat} (mp : EnvModelM V μ env)
       (ConLeche.fueledOps μ F) env c value'
       (ConLeche.divModCertStmts c) (ConLeche.divModCertProofs ps c)
       = .ok true)
-    {A Ta : (Name → Nat) → AnnotTerm}
+    {A Ta : (Name → Nat) → ITerm}
     (hA : ∀ ψ, denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hvf' : value'.hasFvar = false)

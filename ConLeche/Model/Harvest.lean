@@ -95,7 +95,7 @@ freshness makes each of them distinct from the new name and the fresh
 leaf is invisible to all three — `mp.nat_heads` transports unchanged.
 No bespoke premise; `harvestThm` and `harvestAxiom` call it. -/
 theorem natHeads_cons_fresh (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hknd : (∀ cv mI, c₀ ≠ .indInfo cv mI) ∧
       ∀ cv a b, c₀ ≠ .ctorInfo cv a b)
@@ -165,14 +165,14 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     exact absurd hl (List.not_mem_nil)
   have hnlt : type'.fvarLeaves = [] :=
     Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
-  have hCv : CtxOk mp.base2 (fun _ => 0) 0 ([] : List AnnotTerm) value' :=
+  have hCv : CtxOk mp.base2 (fun _ => 0) 0 ([] : List ITerm) value' :=
     CtxOk.nil hnlv
   -- the leaf: the value's reading, per assignment
   have hAex : ∀ ψ : Name → Nat,
       ∃ va, denoteMeta mp.base2.acval env ψ 0 value' = some va := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hvrun hwv hbv' hLv
-  let A : (Name → Nat) → AnnotTerm :=
+  let A : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 value').getD default
   have hA : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ) := by
@@ -186,7 +186,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
+  let Ta : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
@@ -285,7 +285,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcbV : ConstsBound env value' := constsBound_of_constsResolve _ hvr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
+      ∀ {ea : ITerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
       denoteMeta (acvalWith mp.base2.acval cv.name A)
           ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
             env.consts⟩ ψ 0 e = some ea :=
@@ -549,7 +549,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       ∃ va, denoteMeta mp.base2.acval env ψ 0 value' = some va := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hvrun hwv hbv' hLv
-  let A : (Name → Nat) → AnnotTerm :=
+  let A : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 value').getD default
   have hA : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ) := by
@@ -563,7 +563,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
+  let Ta : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
@@ -662,7 +662,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcbV : ConstsBound env value' := constsBound_of_constsResolve _ hvr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
+      ∀ {ea : ITerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
       denoteMeta (acvalWith mp.base2.acval cv.name A)
           ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts⟩ ψ 0 e = some ea :=
@@ -784,14 +784,14 @@ the wrapper crosses it.
 (`env₂ = env`), so its P invariant is `mp` itself. -/
 theorem harvestAxiom (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env)
-    {cv : ConstantVal} {type' : Expr} {A : (Name → Nat) → AnnotTerm}
+    {cv : ConstantVal} {type' : Expr} {A : (Name → Nat) → ITerm}
     (hcv : ConstantValRun μ F env cv type')
     (hAvclosed : ∀ ψ : Name → Nat, Term.Closed ((A ψ).erase))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hmemA : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (hmemA : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta mp.base2.acval env ψ 0 type' = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     -- an axiom cons *is* an `axiomInfo`, so `reduce_ops`' preservation
@@ -820,7 +820,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
+  let Ta : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
@@ -850,7 +850,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
   -- the transfer to the extension
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
+      ∀ {ea : ITerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
       denoteMeta (acvalWith mp.base2.acval cv.name A)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts⟩ ψ 0 e = some ea :=
@@ -990,7 +990,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       ∃ va, denoteMeta mp.base2.acval env ψ 0 value' = some va := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hvrun hwv hbv' hLv
-  let A : (Name → Nat) → AnnotTerm :=
+  let A : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 value').getD default
   have hA : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ) := by
@@ -1004,7 +1004,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
+  let Ta : (Name → Nat) → ITerm :=
     fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
       denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
@@ -1103,7 +1103,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcbV : ConstsBound env value' := constsBound_of_constsResolve _ hvr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
+      ∀ {ea : ITerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
       denoteMeta (acvalWith mp.base2.acval cv.name A)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts⟩ ψ 0 e = some ea :=

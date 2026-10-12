@@ -39,7 +39,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree PosNodeOk PosD NestFieldKind closeTelescope
   openPisAtFvars instPisWith grpNews grpHoles)
@@ -136,9 +136,9 @@ theorem posD_tele_fieldMem {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     (hd : PosD (fueledOps .verified F) env ctx (.tele prog hi nF 0 cur ks nds res) ts)
     (hndC : ∀ (i : Nat) (p : Expr), nds[i]? = some p → p.looseBVarsBounded 0 = true)
     (hresC : res.looseBVarsBounded 0 = true)
-    (hfr : Rules.Frame hi cur) {Δa : List AnnotTerm} {ca : AnnotTerm}
+    (hfr : Rules.Frame hi cur) {Δa : List ITerm} {ca : ITerm}
     (hC : CtxOkP m φ hi Δa cur) (hca : denoteMeta m.acval env φ hi cur = some ca)
-    (hgr : Rules.GradedTy V Δa ca) {abD : List AnnotTerm} {B : AnnotTerm}
+    (hgr : Rules.GradedTy V Δa ca) {abD : List ITerm} {B : ITerm}
     (hcaE : ca = mkPisAV abD B) (hlD : abD.length = nF) {σ : Nat → V} (hσ : Sat V Δa σ)
     {fs : List V} (hfit : SpineFit σ abD fs) :
     fs.length = nF ∧ nds.length = nF ∧
@@ -394,7 +394,7 @@ theorem blk_ctorFit {env : Env} {μ' : ConLeche.CheckMode} (mk : EnvModelM V μ'
   rw [hcN, hcL, hcP, hA] at hA'
   obtain rfl := Option.some.inj hA'
   have hca : denoteMeta mk.base2.acval env ψ (d.nP + d.k) crest
-      = some (mkPisAV ab (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - m)))
+      = some (mkPisAV ab (ITerm.mkAppN (.bvar (cA.2 + (d.k - 1 - m)))
           (d.absE ψ m j))) := by
     rw [denoteMeta_erasedEq herased]; exact hAr
   obtain ⟨abD, -, B, hhi, hcaE, -, hlD, -, hfr, hCP, hgr, -, -, -, -, -, -, hsatFrame⟩ :=

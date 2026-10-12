@@ -76,7 +76,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name inferTypeCoreIO)
 
 universe w
@@ -90,11 +90,11 @@ lane's (Lean's `infer_only`), and the claim is the hereditary `IORel`
 term. -/
 @[expose] def InferClaimIO (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
+  ∀ {d : Nat} {e t : Expr} {Δa : List ITerm},
     inferTypeCoreIO μ env fuel d e = .ok t →
     Expr.WScoped d e → e.looseBVarsBounded 0 = true →
     Expr.LeavesBounded e →
-    ∀ {ea ta : AnnotTerm},
+    ∀ {ea ta : ITerm},
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →

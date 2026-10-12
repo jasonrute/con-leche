@@ -56,7 +56,7 @@ What is pure — the two-regime product and abstraction
 (`piR`/`lamR`), the built-in constants' value towers and the
 unit-terminated tuple tower — is `ConLeche/SetModel/*` and mentions
 neither `Expr` nor the annotated syntax.  Everything that reads a term
-lives here: the annotated syntax `AnnotTerm` and its two-regime
+lives here: the annotated syntax `ITerm` and its two-regime
 interpretation `interp`, the membership kit, `WellDenoted`, the
 per-declaration run records and the run bridge (`Bridge/*`), the
 inductive-block facts (`Inductives/*`) and the tower introduction

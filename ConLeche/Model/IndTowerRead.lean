@@ -13,7 +13,7 @@ is blind to an opener** (`denoteMeta_erasedEq`'s `fvar` clause compares
 indices only), so an `openPisAtFvars`/`instLamsAt` run at any
 same-index opener spine produces the same tower.
 
-The λ tower is a `LamTele` relation: `AnnotTerm`'s `.lam` carries
+The λ tower is a `LamTele` relation: `ITerm`'s `.lam` carries
 *bit*, and `LamTele` quantifies the bits existentially exactly as
 `PiTeleAV` does; the consumers read neither.  `PiTeleAV.length` bounds
 an index into the tail context.
@@ -24,13 +24,13 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 
 universe w
 
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-! ## The opened `∀` telescope -/
 
@@ -40,10 +40,10 @@ opened body's reading, and each opener's annotation read *at its own
 depth* to its tower entry. -/
 theorem openPisAtFvars_denotePTele :
     ∀ (k : Nat) {e : Expr} {j : Nat} {fvs : List Expr} {body : Expr}
-      {T : AnnotTerm},
+      {T : ITerm},
       openPisAtFvars k e j = some (fvs, body) →
       denoteMeta acval env φ j e = some T →
-      ∃ (Γ : List AnnotTerm) (R : AnnotTerm),
+      ∃ (Γ : List ITerm) (R : ITerm),
         PiTeleAV k T Γ R ∧
         denoteMeta acval env φ (j + k) body = some R ∧
         ∀ (i : Nat) (x : Expr), fvs[i]? = some x →

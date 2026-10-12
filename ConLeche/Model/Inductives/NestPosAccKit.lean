@@ -30,7 +30,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestKey NestHole)
 
 universe w
@@ -61,7 +61,7 @@ theorem holds_drop {ρ : Nat → V} {n : Nat} {o : Occ V} :
 
 /-- **The accessibility hole relation, truncated** at a depth `h` at or
 above every hole: the frame's walk sees the context below `h`. -/
-theorem HoleRelA.drop {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+theorem HoleRelA.drop {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List ITerm}
     {R : FrameRel V} (hR : HoleRelA m φ w ctx prog d Δa R) {h : Nat}
     (_hhi : ctx.hiAt prog.length ≤ h) (hle : h ≤ d) :
     HoleRelA m φ w ctx prog h (Δa.drop (d - h)) (R.drop (d - h)) where
@@ -90,7 +90,7 @@ theorem HoleRelA.drop {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : Li
 
 /-- **The accessibility hole relation seen at the block's own depth**, the
 frames forgotten. -/
-theorem HoleRelA.dropBase {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+theorem HoleRelA.dropBase {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List ITerm}
     {R : FrameRel V} (hR : HoleRelA m φ w ctx prog d Δa R) (hle : ctx.hiAt prog.length ≤ d) :
     HoleRelA m φ w ctx [] (ctx.hiAt 0) (Δa.drop (d - ctx.hiAt 0)) (R.drop (d - ctx.hiAt 0)) where
   dom := by
@@ -131,7 +131,7 @@ theorem consList_replicate_lt (n : Nat) (a : V) (σ : Nat → V) {i : Nat} (hi :
 /-- **Empty enclosing frames**: a frameless relation at the block's own
 depth, extended by the enclosing frames of `prog` holding `∅` on both
 sides (a `Sort 0` entry each). -/
-theorem HoleRelA.extendEmpty {ctx : NestCtx} {Δ0 : List AnnotTerm} {R00 : FrameRel V}
+theorem HoleRelA.extendEmpty {ctx : NestCtx} {Δ0 : List ITerm} {R00 : FrameRel V}
     (hR : HoleRelA m φ w ctx [] (ctx.hiAt 0) Δ0 R00) (prog : List NestHole)
     (hsc : ∀ (i : Nat) (hk : NestHole), prog.reverse[i]? = some hk → ∀ x ∈ hk.key.ds,
       Expr.WScoped (ctx.hiAt prog.length) x) :

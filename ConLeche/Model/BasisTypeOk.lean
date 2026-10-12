@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -105,7 +105,7 @@ theorem slot_app_piV {R a b A : V} {A2 : V → V} {B2 : V → V → V}
 function space is `typeAV`'s own outer binder's reading, the membership
 is `bval_mem_type` at that binder. -/
 theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A B : AnnotTerm} (h : BConst.typeAV c us = .pi A B)
+    {A B : ITerm} (h : BConst.typeAV c us = .pi A B)
     {a : V} (ha : a ∈ˢ interp V ρ A) (hS : IsTy (interp V ρ A)) :
     ∃ (w : Nat) (S : V) (F : V → V), bval V c us ∈ˢ piR w S F ∧
       a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
@@ -116,7 +116,7 @@ theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
 /-- The same one binder in: a basis constant applied to its first
 argument (`app_mem_piV`, no fibre premise). -/
 theorem bconst_app_dataAV (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A A2 B2 : AnnotTerm}
+    {A A2 B2 : ITerm}
     (h : BConst.typeAV c us = .pi A (.pi A2 B2))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a : V} (ha : a ∈ˢ interp V (cons a1 ρ) A2) (hS : IsTy (interp V (cons a1 ρ) A2)) :
@@ -136,7 +136,7 @@ theorem mem_univZero_of_zero {u : Nat} {X : V} (hu : u = 0)
 
 /-- Two binders in: the constant applied to its first two arguments. -/
 theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A A2 A3 B3 : AnnotTerm}
+    {A A2 A3 B3 : ITerm}
     (h : BConst.typeAV c us = .pi A (.pi A2 (.pi A3 B3)))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a2 : V} (ha2 : a2 ∈ˢ interp V (cons a1 ρ) A2)
@@ -157,7 +157,7 @@ theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
 arguments.  The basis *recursors*' RHS towers apply their
 head four and five deep (`Nat.rec`'s successor rule, `Quot.lift`). -/
 theorem bconst_app_data4 (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A A2 A3 A4 B4 : AnnotTerm}
+    {A A2 A3 A4 B4 : ITerm}
     (h : BConst.typeAV c us
       = .pi A (.pi A2 (.pi A3 (.pi A4 B4))))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
@@ -205,8 +205,8 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
   all_goals
     simp +contextual +decide only [BConst.typeAV, arrowA, relAV, negTyAV,
       natTyAV, natZeroAV, natSuccAV, punitAV, emptyAV,
-      psigmaAV, quotAV, quotMkAV, AnnotTerm.mkAppN, AnnotTerm.lift,
-      AnnotTerm.liftN, WellDenoted_pi, WellDenoted_app, WellDenoted_eqE,
+      psigmaAV, quotAV, quotMkAV, ITerm.mkAppN, ITerm.lift,
+      ITerm.liftN, WellDenoted_pi, WellDenoted_app, WellDenoted_eqE,
       WellDenoted_bvar, WellDenoted_sort, WellDenoted_const,
       interp_pi, interp_app, interp_eqE, interp_sort,
       interp_const, interp_bvar, cons_zero, cons_succ,

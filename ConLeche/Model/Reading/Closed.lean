@@ -10,7 +10,7 @@ public section
 
 **Closedness is not an induction**: it is `denoteMeta_erase`
 (`Reading/DenoteMeta.lean`) composed with `denote_closed` and
-`AnnotTerm.liftN_eq_self`.
+`ITerm.liftN_eq_self`.
 
 **The depth statement drops `EnvWF`**, following the shift it is built
 on (see `Reading/Shift.lean`).
@@ -21,31 +21,31 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level PropWhen)
 
 /-- **`denoteMeta`'s closedness law.**  A closed subject's validated
 annotation is closed, in the lifting form `EnvModel.acval_closed`
 states it. -/
-theorem denoteMeta_closed {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_closed {acval : Name → (Name → Nat) → ITerm}
     {cval : TConstVal} {env : Env} {φ : Name → Nat}
     (hlink : ∀ n ψ, (acval n ψ).erase = cval n ψ)
     (hcl : ∀ n ψ, Term.Closed (cval n ψ))
-    {e : Expr} {ea : AnnotTerm} (hnf : e.hasFvar = false)
+    {e : Expr} {ea : ITerm} (hnf : e.hasFvar = false)
     (hb : e.looseBVarsBounded 0 = true)
     (h : denoteMeta acval env φ 0 e = some ea) (n k : Nat) :
     ea.liftN n k = ea :=
-  AnnotTerm.liftN_eq_self ea
+  ITerm.liftN_eq_self ea
     (Term.bvarsBelow.mono (Nat.zero_le k)
       (denote_closed hcl hnf hb (denoteMeta_erase hlink 0 e h))) n
 
 /-- **A closed term's validated annotation does not depend on the
 depth**, provided the annotation itself is lift-invariant. -/
 theorem denoteMeta_depth_of_closed {env : Env} {φ : Name → Nat}
-    {acval : Name → (Name → Nat) → AnnotTerm}
+    {acval : Name → (Name → Nat) → ITerm}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    {e : Expr} {ea : AnnotTerm} (hfv : e.hasFvar = false)
+    {e : Expr} {ea : ITerm} (hfv : e.hasFvar = false)
     (hcl : ∀ k : Nat, ea.liftN 1 k = ea)
     (h : denoteMeta acval env φ 0 e = some ea) :
     ∀ d : Nat, denoteMeta acval env φ d e = some ea := by

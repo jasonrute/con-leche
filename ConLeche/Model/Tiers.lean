@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level whnf inferTypeCore)
 
 universe w
@@ -61,7 +61,7 @@ rules tier readability is the motive's existence form, whose premise
 IS the context. -/
 @[expose] def InferReads {env : Env} (m : EnvModel V env) (μ : CheckMode)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm} {ea : AnnotTerm},
+  ∀ {d : Nat} {e t : Expr} {Δa : List ITerm} {ea : ITerm},
     inferTypeCore μ env fuel d e = .ok t →
     Expr.WScoped d e → e.looseBVarsBounded 0 = true →
     Expr.LeavesBounded e →
@@ -91,8 +91,8 @@ the induction-bounded checker fuel, and `sortSemAt_of_claims`
 scoping package is carried so the claims can be applied. -/
 @[expose] def SortSemAt {env : Env} (m : EnvModel V env) (μ : CheckMode)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {e t : Expr} {u : Level} {Δa : List AnnotTerm}
-    {ea : AnnotTerm},
+  ∀ {d : Nat} {e t : Expr} {u : Level} {Δa : List ITerm}
+    {ea : ITerm},
     CtxOk m φ d Δa e →
     Expr.WScoped d e → e.looseBVarsBounded 0 = true →
     Expr.LeavesBounded e →
@@ -145,7 +145,7 @@ at each of them the front door has already checked the same condition.
 | a loose `.bvar` | outside the fragment (`.notImplemented`); also excluded by the subject's own `looseBVarsBounded 0` |
 | `.const` unfindable / mis-arity | `env.find?` + `us.length = cv.levelParams.length`, the two `throw`s of the `.const` clause |
 | a literal without its basis | `natLitSupported` / `strLitSupported`, the literal clauses' guards |
-| `.proj i` with `2 ≤ i` and no table entry (the decoder `AnnotTerm.projPair?`'s `none`) | the `.proj` clause throws without an `env.findProj?` entry, and at an entry the reading is the tower (`denoteMeta_proj_tower`) |
+| `.proj i` with `2 ≤ i` and no table entry (the decoder `ITerm.projPair?`'s `none`) | the `.proj` clause throws without an `env.findProj?` entry, and at an entry the reading is the tower (`denoteMeta_proj_tower`) |
 
 The `.fvar` clause reads **unconditionally** — `denoteMeta` never looks
 at the leaf's stored annotation; that asymmetry is what made

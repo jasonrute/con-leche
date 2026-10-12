@@ -26,7 +26,7 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -37,18 +37,18 @@ variable {V : Type w} [SetTheory V]
 The binder cases descend under `Sat_cons`, which is the only
 structural fact about `Sat` the quarter consumes. -/
 
-theorem deqStep_appCong {ρ : Nat → V} {fa fb aa ab : AnnotTerm}
+theorem deqStep_appCong {ρ : Nat → V} {fa fb aa ab : ITerm}
     (hf : interp V ρ fa = interp V ρ fb)
     (ha : interp V ρ aa = interp V ρ ab) :
     interp V ρ (.app fa aa) = interp V ρ (.app fb ab) := by
   simp only [interp_app, hf, ha]
 
-theorem deqStep_fstCong {ρ : Nat → V} {ea eb : AnnotTerm}
+theorem deqStep_fstCong {ρ : Nat → V} {ea eb : ITerm}
     (h : interp V ρ ea = interp V ρ eb) :
     interp V ρ (.fst ea) = interp V ρ (.fst eb) := by
   simp only [interp_fst, h]
 
-theorem deqStep_sndCong {ρ : Nat → V} {ea eb : AnnotTerm}
+theorem deqStep_sndCong {ρ : Nat → V} {ea eb : ITerm}
     (h : interp V ρ ea = interp V ρ eb) :
     interp V ρ (.snd ea) = interp V ρ (.snd eb) := by
   simp only [interp_snd, h]
@@ -56,7 +56,7 @@ theorem deqStep_sndCong {ρ : Nat → V} {ea eb : AnnotTerm}
 /-- **∀-congruence.**  The codomain descends at the *domain's* own
 value set, which is where `Sat_cons` enters. -/
 theorem deqStep_piCong {ρ : Nat → V}
-    {Aa Ab Ba Bb : AnnotTerm}
+    {Aa Ab Ba Bb : ITerm}
     (hA : interp V ρ Aa = interp V ρ Ab)
     (hB : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) Ba = interp V (cons x ρ) Bb) :
@@ -66,7 +66,7 @@ theorem deqStep_piCong {ρ : Nat → V}
 
 /-- **λ-congruence**: the regime is read off the values, so equal
 domains and bodies equal on the domain give equal abstractions. -/
-theorem deqStep_lamCong {ρ : Nat → V} {Aa Ab ba bb : AnnotTerm}
+theorem deqStep_lamCong {ρ : Nat → V} {Aa Ab ba bb : ITerm}
     (hA : interp V ρ Aa = interp V ρ Ab)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) ba = interp V (cons x ρ) bb) :

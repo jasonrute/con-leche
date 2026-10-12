@@ -32,7 +32,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole NestKey PosTree TargetMajor ConstantVal
   BlockShape CheckMode)
 
@@ -49,18 +49,18 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-- **The true valuation at a frame stack**: the prefix spine's first `nP`
 values (the parameters), then every hole at its read-back's value at the
 prefix. -/
-@[expose] noncomputable def nodeTrueVal (nP : Nat) (hv : List AnnotTerm) (xs : List V)
+@[expose] noncomputable def nodeTrueVal (nP : Nat) (hv : List ITerm) (xs : List V)
     (ρ : Nat → V) : Nat → V :=
   consList (xs.take nP ++ hv.map (interp V (consList xs ρ))) ρ
 
 section Node
 
-variable (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env) (ctx : NestCtx)
+variable (acval : Name → (Name → Nat) → ITerm) (envC : Env) (ctx : NestCtx)
   (ψ : Name → Nat) (ρ : Nat → V) (xs : List V)
 
 /-- **The holes' read-backs at a frame stack**, read at the depth `d`
 (every hole's whole application, over the block's parameters). -/
-@[expose] def nodeHv (occ : List NestHole) (d : Nat) : List AnnotTerm :=
+@[expose] def nodeHv (occ : List NestHole) (d : Nat) : List ITerm :=
   (List.range (ctx.hiAt occ.length - ctx.nP)).map fun i =>
     (denoteMeta acval envC ψ d (nodeImg ctx occ (ctx.nP + i))).getD .prf
 
@@ -81,7 +81,7 @@ end Node
 
 /-- **The holes' read-backs are read** at a stack, at every depth above the
 parameters. -/
-@[expose] def NodeHolesRead (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+@[expose] def NodeHolesRead (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (ctx : NestCtx) (occ : List NestHole) : Prop :=
   (∀ x ∈ ctx.params, ConLeche.ScB ctx.nP x) ∧ ConLeche.ProgScB ctx occ ∧
   ∀ (ψ : Name → Nat) (d : Nat), ctx.nP ≤ d → ∀ i, i < ctx.hiAt occ.length →
@@ -105,7 +105,7 @@ theorem progScB_suffix {ctx : NestCtx} :
 
 omit [SetTheory V] in
 /-- A read stack's suffix is read. -/
-theorem NodeHolesRead.suffix {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
+theorem NodeHolesRead.suffix {acval : Name → (Name → Nat) → ITerm} {envC : Env}
     {ctx : NestCtx} {X anc : List NestHole} (h : NodeHolesRead acval envC ctx (X ++ anc)) :
     NodeHolesRead acval envC ctx anc :=
   ⟨h.1, progScB_suffix X anc h.2.1, fun ψ d hd i hi => by
@@ -130,7 +130,7 @@ theorem readback_spine {env : Env} (m : EnvModel V env) {φ : Name → Nat} {ctx
       (nodeImg ctx occ i).looseBVarsBounded 0 = true ∧
       denoteMeta m.acval env φ rP (nodeImg ctx occ i) = some (nodeImgX m φ ctx occ rP i))
     (σ : Nat → V) :
-    ∀ {ds : List Expr} {dsa : List AnnotTerm}, (∀ x ∈ ds, Expr.WScoped (ctx.hiAt occ.length) x) →
+    ∀ {ds : List Expr} {dsa : List ITerm}, (∀ x ∈ ds, Expr.WScoped (ctx.hiAt occ.length) x) →
       DenoteMetaSpine m.acval env φ (ctx.hiAt occ.length) ds dsa →
       ∃ ebs, DenoteMetaSpine m.acval env φ rP (ds.map (nodeRb ctx occ)) ebs ∧
         ebs.map (interp V σ) = dsa.map (interp V
@@ -144,7 +144,7 @@ theorem readback_spine {env : Env} (m : EnvModel V env) {φ : Name → Nat} {ctx
 
 /-- **The substituted valuation of the read-back IS the true valuation** at
 a prefix spine of the substitution's depth. -/
-theorem substE_trueVal {n rP nP : Nat} (x : Nat → AnnotTerm) {xs : List V} (ρ : Nat → V)
+theorem substE_trueVal {n rP nP : Nat} (x : Nat → ITerm) {xs : List V} (ρ : Nat → V)
     (hxs : xs.length = rP) (hnP : nP ≤ n) (hnPr : nP ≤ rP)
     (hpar : ∀ v, v < nP → x v = .bvar (rP - 1 - v)) :
     substE V (substTau n rP x) 0 (consList xs ρ)
@@ -206,7 +206,7 @@ theorem tgtNodeTie {envC : Env} {mpC : EnvModelM V μ envC} {ex : List Name}
     (hlps : lpsOf envC t.key.cname = lpsOf envC (tgtMajor out c).ind)
     (hread : NodeHolesRead mpC.base2.acval envC ctx t.occ)
     (hws : ∀ x ∈ t.key.ds, Expr.WScoped (ctx.hiAt t.occ.length) x)
-    {dsa : List AnnotTerm}
+    {dsa : List ITerm}
     (hsp : DenoteMetaSpine mpC.base2.acval envC ψ (ctx.hiAt t.occ.length) t.key.ds dsa)
     -- the prefix
     (hnP : ctx.nP ≤ tgtRP p c) (hxs : xs.length = tgtRP p c) :

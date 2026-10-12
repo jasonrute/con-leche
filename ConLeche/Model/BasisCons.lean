@@ -56,7 +56,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   IndCaps RecRule)
 
@@ -70,9 +70,9 @@ variable {μ : CheckMode} {env : Env}
 
 The P tier needs no "basis constants are valued by their direct pins"
 field of its own beside `EnvModel.basis_pinnedL`, and the reason is one
-line of `AnnotTerm.erase`'s definition: the erasure is structural and
+line of `ITerm.erase`'s definition: the erasure is structural and
 maps `.const` to `.const` and *nothing else* to `.const`.  So the
-erased equation `(acval n ψ).erase = .const c us` is the `AnnotTerm`
+erased equation `(acval n ψ).erase = .const c us` is the `ITerm`
 equation `acval n ψ = .const c us` outright.
 
 Every downstream basis obligation reads the leaf through this — the
@@ -98,7 +98,7 @@ theorem acval_basis_pinned {m : EnvModel V env}
   cases hh : m.acval n ψ with
   | const c' us' =>
     rw [hh] at h2
-    simp only [ConLeche.Semantics.AnnotTerm.erase, Term.const.injEq] at h2
+    simp only [ConLeche.Semantics.ITerm.erase, Term.const.injEq] at h2
     rw [h2.1, h2.2]
   | _ => rw [hh] at h2; exact nomatch h2
 
@@ -110,7 +110,7 @@ their obligation here, and so would any inductive-kind cons.  (The
 `Nat` block itself is where the guard *becomes* true; it supplies
 `nat_heads` bespoke, and no back-transfer exists.) -/
 theorem natHeads_cons_offNat (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hnN : c₀.name ≠ natName) (hnZ : c₀.name ≠ natZeroName)
     (hnS : c₀.name ≠ natSuccName)
     (m2 : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -179,7 +179,7 @@ stored family can be completed here and the law's leaves are all
 prefix leaves. -/
 theorem capsOk_cons_basis (mp : EnvModelM V μ env)
     (hprev : CapsOk mp.base2)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (hres₀ : ConLeche.reservedBasisNames.contains c₀.name = true)

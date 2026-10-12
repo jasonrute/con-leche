@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
  )
 
@@ -43,7 +43,7 @@ variable {μ : CheckMode} {env : Env}
 /-! ## Elimination at a reading -/
 
 /-- Elimination at a `pi` reading: no side condition. -/
-theorem app_mem_pi {ρ : Nat → V} {Aa Ba : AnnotTerm}
+theorem app_mem_pi {ρ : Nat → V} {Aa Ba : ITerm}
     {f a : V} (hf : f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : a ∈ˢ interp V ρ Aa) :
     SetTheory.app f a ∈ˢ interp V (cons a ρ) Ba := by
@@ -223,10 +223,10 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
         = interp V ρ (mp.base2.acval iffName ψ) :=
     fun ρ' => acval_interp_closed mp.base2 _ ψ ρ' ρ
   -- ARG 1 and 2: the two propositions
-  have hAd : A ∈ˢ interp V ρ (AnnotTerm.sort 0) := by
+  have hAd : A ∈ˢ interp V ρ (ITerm.sort 0) := by
     rw [interp_sort]; exact hA
   have h1 := app_mem_pi hmem hAd
-  have hBd : B ∈ˢ interp V (cons A ρ) (AnnotTerm.sort 0) := by
+  have hBd : B ∈ˢ interp V (cons A ρ) (ITerm.sort 0) := by
     rw [interp_sort]; exact hB
   have h2 := app_mem_pi h1 hBd
   -- ARG 3: the constantly-`eqv A B` motive
@@ -298,7 +298,7 @@ value is `eq_law`'s (the field, at the pin's own level instantiation
 theorem propext_mem (mp : EnvModelM V μ env)
     {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
     (hn : cvA.name = propextName)
-    (ψ : Name → Nat) (ta : AnnotTerm)
+    (ψ : Name → Nat) (ta : ITerm)
     (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
     (ρ : Nat → V) :
     interp V ρ (.const .propext []) ∈ˢ interp V ρ ta := by
@@ -414,7 +414,7 @@ theorem nonemptyRec_shapeS {ty : Expr}
 
 /-- A member of the `Nonempty` family, referenced at its own level
 parameter, reads to its leaf at the plain assignment. -/
-theorem denoteMeta_selfParam_constS {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_selfParam_constS {acval : Name → (Name → Nat) → ITerm}
     {ψ : Name → Nat} {d : Nat} {n : Name} {ci : ConstantInfo}
     (hf : env.find? n = some ci)
     (hlp : ci.toConstantVal.levelParams = [uN]) :
@@ -481,10 +481,10 @@ theorem nonemptyIntroVal_app₂_memP (mp : EnvModelM V μ env)
       interp V ρ' (mp.base2.acval nonemptyName ψ)
         = interp V ρ (mp.base2.acval nonemptyName ψ) :=
     fun ρ' => acval_interp_closed mp.base2 _ ψ ρ' ρ
-  have hAd : A ∈ˢ interp V ρ (AnnotTerm.sort (ψ uN)) := by
+  have hAd : A ∈ˢ interp V ρ (ITerm.sort (ψ uN)) := by
     rw [interp_sort]; exact hA
   have h1 := app_mem_pi hmem hAd
-  have had : a ∈ˢ interp V (cons A ρ) (AnnotTerm.bvar 0) := ha
+  have had : a ∈ˢ interp V (cons A ρ) (ITerm.bvar 0) := ha
   have h2 := app_mem_pi h1 had
   simpa only [interp_app, interp_bvar, cons_zero, cons_succ, hNc]
     using h2
@@ -544,7 +544,7 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
         = interp V ρ (mp.base2.acval nonemptyName ψ) :=
     fun ρ' => acval_interp_closed mp.base2 _ ψ ρ' ρ
   -- ARG 1: the type
-  have hAd : A ∈ˢ interp V ρ (AnnotTerm.sort (ψ uN)) := by
+  have hAd : A ∈ˢ interp V ρ (ITerm.sort (ψ uN)) := by
     rw [interp_sort]; exact hA
   have h1 := app_mem_pi hmem hAd
   -- ARG 2: the constantly-`∅` motive
@@ -635,7 +635,7 @@ stored `Nonempty`. -/
 theorem choice_mem (mp : EnvModelM V μ env)
     {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
     (hn : cvA.name = choiceName)
-    (ψ : Name → Nat) (ta : AnnotTerm)
+    (ψ : Name → Nat) (ta : ITerm)
     (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
     (ρ : Nat → V) :
     interp V ρ (.const .choice [ψ uN]) ∈ˢ interp V ρ ta := by

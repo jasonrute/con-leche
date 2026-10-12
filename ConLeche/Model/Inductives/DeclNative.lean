@@ -14,7 +14,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps InductiveShape
   RecRule)
 
@@ -25,7 +25,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-! ## Kit -/
 
 /-- A fitting spine's prefix fits the fields' prefix. -/
-theorem spineFit_take {Fs : List AnnotTerm} {ρ : Nat → V} {as : List V}
+theorem spineFit_take {Fs : List ITerm} {ρ : Nat → V} {as : List V}
     (h : SpineFit ρ Fs as) {i : Nat} (hi : i ≤ Fs.length) :
     SpineFit ρ (Fs.take i) (as.take i) := by
   have h' : SpineFit ρ (Fs.take i ++ Fs.drop i) as := by rw [List.take_append_drop]; exact h

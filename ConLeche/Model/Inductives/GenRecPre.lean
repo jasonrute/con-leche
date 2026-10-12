@@ -36,7 +36,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun)
 
@@ -53,14 +53,14 @@ recursor `t` is the graph-regime λ-tower over its binder data reading
 `g` at the tagged major (`genF` over any binder data and tuple
 function). -/
 @[expose] noncomputable def genFT (ρ : Nat → V) (rP : Nat → Nat)
-    (rds : Nat → List AnnotTerm) (tup : Nat → List V → V) (g : V) (t : Nat) : V :=
+    (rds : Nat → List ITerm) (tup : Nat → List V → V) (g : V) (t : Nat) : V :=
   lamTowerA ρ [] (rds t) fun sp _ => app g (tagged t (tup t (idxOf (rP t) sp)) (majOf sp))
 
 /-- **The graph's `ih` values**: the `ih` terms read at the chain
 valuation of the graph. -/
 @[expose] noncomputable def genIhvT (K : Nat) (ρ : Nat → V) (rP : Nat → Nat)
-    (rds : Nat → List AnnotTerm) (tup : Nat → List V → V)
-    (ihs : Nat → Nat → List AnnotTerm) (xs : List V) (c j : Nat) (fs : List V) (g : V) :
+    (rds : Nat → List ITerm) (tup : Nat → List V → V)
+    (ihs : Nat → Nat → List ITerm) (xs : List V) (c j : Nat) (fs : List V) (g : V) :
     List V :=
   (ihs c j).map (interp V (consList (xs ++ fs) (chainFrame K (genFT ρ rP rds tup g) ρ)))
 
@@ -80,8 +80,8 @@ at any `ih` terms and residue): the prefix domains are closed
 lengths. -/
 theorem genClsEqs_eq (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
-    (ihs : (Name → Nat) → Nat → Nat → List AnnotTerm)
-    (Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm) (ψ : Name → Nat) :
+    (ihs : (Name → Nat) → Nat → Nat → List ITerm)
+    (Rb0 : (Name → Nat) → Nat → Nat → ITerm) (ψ : Name → Nat) :
     iotaEqsAV (tgtRs out).length (blockRecNCt (tgtRs out))
         (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
         (tgtFdomsK (tgtRs out).length mpC.base2.acval envC pp.toBlockShape out ψ)
@@ -111,9 +111,9 @@ theorem genClsEqs_eq (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 /-- Every member of the family's equation list is a truth value. -/
 theorem blockRecEqs_univZero (nCt : Nat → Nat)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (pdoms0 : (Name → Nat) → Nat → List AnnotTerm)
-    (fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List AnnotTerm)
-    (mk0 Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm) (ψ : Name → Nat) (σ : Nat → V) :
+    (pdoms0 : (Name → Nat) → Nat → List ITerm)
+    (fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List ITerm)
+    (mk0 Rb0 : (Name → Nat) → Nat → Nat → ITerm) (ψ : Name → Nat) (σ : Nat → V) :
     ∀ e ∈ blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0 ψ,
       interp V σ e ∈ˢ (univZero : V) :=
   forall_iotaEqsAV fun _ _ _ _ => iotaEqAV_univZero
@@ -326,9 +326,9 @@ data's fits (`hsplitI`), at the generated calls `genCallT` and the graph's
 
 section Generic
 
-variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat} {rds : Nat → List AnnotTerm}
-  {Is Cr : List V → Nat → V} {tup : Nat → List V → V} {pdoms : Nat → List AnnotTerm}
-  {fdoms : Nat → Nat → List AnnotTerm} {ihd : Nat → Nat → List IhDatum}
+variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat} {rds : Nat → List ITerm}
+  {Is Cr : List V → Nat → V} {tup : Nat → List V → V} {pdoms : Nat → List ITerm}
+  {fdoms : Nat → Nat → List ITerm} {ihd : Nat → Nat → List IhDatum}
 
 /-- The generated calls are the calls `genIhCallAt` names, tagged. -/
 theorem genCallT_iff {xs : List V} {c j : Nat} {fs : List V} {v : V} :
@@ -404,9 +404,9 @@ predecessor, where the graph lands in the motive, which is the stored
 conclusion, the callee's motive variable applied); the minor premise's
 typing (`hminor`) lands the residue in `motive_c e⃗ mk`, which is the
 kit's motive at the constructed element (`hdecInv`). -/
-theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
+theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → ITerm}
     {fit : List V → Nat → V → Nat → List V → Prop} {injX : Nat → Nat → List V → V}
-    {es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
+    {es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
     (motPos : Nat → Nat) (minPos : Nat → Nat → Nat)
     (hpdl : ∀ c, c < K → (pdoms c).length = rP c)
     (hlenR : ∀ c, c < K → (rds c).length = rP c + nIdxX c + 1)
@@ -483,7 +483,7 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
     -- spine, a type (`hconclTy`: the recursor type's innermost fibre)
     have hCty : ∀ bs, SpineFit (consList (xs ++ fs) ρ) (q.2.1) bs →
         IsTy (interp V (consList bs (consList (xs ++ fs) ρ))
-          (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
+          (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
             (q.2.2.1 ++ [q.2.2.2]))) := by
       intro bs hbs
       have hbl : bs.length = q.2.1.length := hbs.length_eq
@@ -525,7 +525,7 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
     -- the body: the chain's recursor at the call's spine, i.e. the graph at the call
     have hbody : interp V (consList bs (consList (xs ++ fs)
           (chainFrame K (genFT ρ rP rds tup g) ρ)))
-        (AnnotTerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+        (ITerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
           (prefVarsAV (pdoms c).length (D - (pdoms c).length + q.2.1.length)
             ++ (q.2.2.1 ++ [q.2.2.2])))
         = app g (tagged q.1 (tup q.1 is) x) := by
@@ -565,12 +565,12 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
         hxlT] at this
       omega
     rw [blockRecMot_tagged ht, hretT, hconclMot q.1 ht xs is x hxlT hisl] at hgv
-    show interp V _ (AnnotTerm.mkAppN
+    show interp V _ (ITerm.mkAppN
         (.bvar (D + q.2.1.length + (K - 1 - q.1)))
           (prefVarsAV (pdoms c).length (D - (pdoms c).length + q.2.1.length)
             ++ (q.2.2.1 ++ [q.2.2.2])))
       ∈ˢ interp V (consList bs (consList (xs ++ fs) ρ))
-      (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
+      (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
         (q.2.2.1 ++ [q.2.2.2]))
     rw [hbody, interp_mkAppN, ← List.foldl_map]
     have hmt := hmot q.1 ht

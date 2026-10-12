@@ -20,7 +20,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level PropWhen
   natLitSupported strLitSupported)
 
@@ -29,14 +29,14 @@ open ConLeche (Env Expr Name Level PropWhen
 An **equation**, not an implication: an install must not be able to assume silently that an
 annotation exists on one side and not the other. -/
 @[expose] def DenotePEnvExtend (env₀ env : Env)
-    (acval : Name → (Name → Nat) → AnnotTerm) (φ : Name → Nat) : Prop :=
+    (acval : Name → (Name → Nat) → ITerm) (φ : Name → Nat) : Prop :=
   ∀ (d : Nat) (e : Expr), ConstsBound env₀ e →
     denoteMeta acval env₀ φ d e = denoteMeta acval env φ d e
 
 /-- **`DenotePEnvExtend`, discharged** — from `FindPreserved` and
 `LitGuardsAgree` alone. -/
 theorem denoteMeta_envExtend {env₀ env : Env}
-    {acval : Name → (Name → Nat) → AnnotTerm} {φ : Name → Nat}
+    {acval : Name → (Name → Nat) → ITerm} {φ : Name → Nat}
     (hF : FindPreserved env₀ env) (hG : LitGuardsAgree env₀ env)
     (hproj : ∀ (sn : Name) (i : Nat),
       env₀.findProj? sn i = none → env.findProj? sn i = none) :
@@ -96,10 +96,10 @@ theorem denoteMeta_envExtend {env₀ env : Env}
     | some ea =>
       show (match env₀.findProj? sn i with
           | some entry => some (projAV (i + entry.off) ea)
-          | none => AnnotTerm.projPair? i ea)
+          | none => ITerm.projPair? i ea)
         = (match env.findProj? sn i with
           | some entry => some (projAV (i + entry.off) ea)
-          | none => AnnotTerm.projPair? i ea)
+          | none => ITerm.projPair? i ea)
       cases hfp0 : env₀.findProj? sn i with
       | some entry => rw [hmono sn i entry hfp0]
       | none => rw [hproj sn i hfp0]
@@ -161,12 +161,12 @@ theorem litGuardsMono_cons {env : Env} {c₀ : ConLeche.ConstantInfo}
 /-- **The monotone crossing**: a successful prefix reading is
 reproduced verbatim at the extension. -/
 theorem denoteMeta_envExtend_mono {env₀ env : Env}
-    {acval : Name → (Name → Nat) → AnnotTerm} {φ : Name → Nat}
+    {acval : Name → (Name → Nat) → ITerm} {φ : Name → Nat}
     (hF : FindPreserved env₀ env) (hG : LitGuardsMono env₀ env)
     (hproj : ∀ (sn : Name) (i : Nat),
       env₀.findProj? sn i = none → env.findProj? sn i = none) :
     ∀ (d : Nat) (e : Expr), ConstsBound env₀ e →
-      ∀ {ea : AnnotTerm}, denoteMeta acval env₀ φ d e = some ea →
+      ∀ {ea : ITerm}, denoteMeta acval env₀ φ d e = some ea →
         denoteMeta acval env φ d e = some ea := by
   have hmono : ∀ (sn : Name) (i : Nat) (entry : ConLeche.ProjEntry),
       env₀.findProj? sn i = some entry →
@@ -280,12 +280,12 @@ without the `ConstsBound` premise — a successful reading resolved every
 constant it met (the key parameters of a positivity node, whose `fvar`
 annotations are the walk's). -/
 theorem denoteMeta_envExtend_mono_ok {env₀ env : Env}
-    {acval : Name → (Name → Nat) → AnnotTerm} {φ : Name → Nat}
+    {acval : Name → (Name → Nat) → ITerm} {φ : Name → Nat}
     (hF : FindPreserved env₀ env) (hG : LitGuardsMono env₀ env)
     (hproj : ∀ (sn : Name) (i : Nat),
       env₀.findProj? sn i = none → env.findProj? sn i = none) :
     ∀ (d : Nat) (e : Expr),
-      ∀ {ea : AnnotTerm}, denoteMeta acval env₀ φ d e = some ea →
+      ∀ {ea : ITerm}, denoteMeta acval env₀ φ d e = some ea →
         denoteMeta acval env φ d e = some ea := by
   have hmono : ∀ (sn : Name) (i : Nat) (entry : ConLeche.ProjEntry),
       env₀.findProj? sn i = some entry →

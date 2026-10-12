@@ -44,7 +44,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   RecRule)
 
@@ -100,7 +100,7 @@ only at the constructor's result family — a name the constructor's
 (resolving) stored type names, hence itself stored, hence not the
 fresh one (`iotaCtorLicensed_cons_of_isSome`). -/
 theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -190,17 +190,17 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
       exact hP ρ xs a restR hxl hfit hapt ys restC hfitC
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested0 hpin0
       have hnested' : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
-          interp V ρ (AnnotTerm.mkAppN
+          interp V ρ (ITerm.mkAppN
             (mp.base2.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt →
           ∀ i, i < RecRule.ctorParams rl →
-          ∀ vpa : AnnotTerm,
+          ∀ vpa : ITerm,
             denoteMeta mp.base2.acval env φ rP
               (ConLeche.Verify.openRev 0 rP ((pins.getD i default).instantiateLevelParams
                 cv.levelParams us)) = some vpa →
             interp V ρ (ys.getD i default) ≠ pt →
-            interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) ≠ pt →
+            interp V ρ (ITerm.instRevChain (xs.take rP) vpa) ≠ pt →
             interp V ρ (ys.getD i default)
-              = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
+              = interp V ρ (ITerm.instRevChain (xs.take rP) vpa) := by
         intro lvls pins hfr' hpt i hi vpa hvpa hney hnex
         refine hnested0 lvls pins hfr' (by rw [hac, acvalWith_ne hnC]; exact hpt) i hi vpa ?_
           hney hnex
@@ -228,7 +228,7 @@ that is the firing-law work, not a transport.  A recursor cons with
 **no** rules (`Empty.rec`) transports here unchanged, which is why the
 premise is `rules = []` rather than "not a recursor". -/
 theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -332,7 +332,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
 not itself a recursor** — `recRuleLaw_cons_prefix` at every stored
 row, the freshness supplying the disequality. -/
 theorem recRules_cons_fresh (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (hnotrec : ∀ cv mI rP rules, c₀ = .recInfo cv mI rP rules →
@@ -363,7 +363,7 @@ a premise.  ENDGAME F's §3 established that all six basis recursors
 owe theirs (`Empty.rec` alone has no rules and goes through
 `recRules_cons_fresh`). -/
 theorem recRules_cons_rec (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     {cv₀ : ConstantVal} {mI₀ rP₀ : Nat} {rules₀ : List RecRule}
     (hfresh : env.find? c₀.name = none)
     (hkind : c₀ = .recInfo cv₀ mI₀ rP₀ rules₀)
@@ -405,7 +405,7 @@ former and its constructor are prefix lookups, their type readings
 cross (the head's slot mentions none of them), and the two leaves the
 laws read are the prefix's. -/
 theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -486,7 +486,7 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
 /-- **`TowerOk` at a fresh non-table cons**: every stored entry is a
 prefix entry, and its law crosses. -/
 theorem towerOk_cons_fresh (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
     (hntc : ∀ tbl, c₀ ≠ .projInfo tbl)
@@ -507,7 +507,7 @@ theorem towerOk_cons_fresh (mp : EnvModelM V μ env)
 S1: one table per structure): the prefix entries' laws cross, and the
 head's laws — one per field — are the install's own. -/
 theorem towerOk_cons_tower (mp : EnvModelM V μ env)
-    {tbl₀ : ProjTable} {A : (Name → Nat) → AnnotTerm}
+    {tbl₀ : ProjTable} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? (ConstantInfo.projInfo tbl₀).name = none)
     (hcross : ConsCrossEnv env (.projInfo tbl₀))
     (m₂ : EnvModel V ⟨.projInfo tbl₀ :: env.consts⟩)

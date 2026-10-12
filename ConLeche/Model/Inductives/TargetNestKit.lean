@@ -33,7 +33,7 @@ classes read (`NestNodeInd.ind_recNodesOn`, `SetModel/NestRecCls.lean`).
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Name)
 
 universe w
@@ -53,7 +53,7 @@ parameter frames, its index sets pinned at `Is`. -/
   Fits := fun ρp X t c j fs => D.HFits ψ ρp X t c j fs
   inj := D.inj ψ
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {D : LfpDatum V} {ψ : Name → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {D : LfpDatum V} {ψ : Name → Nat}
   {Is : Nat → V} {ρp : Nat → V}
 
 /-- The class's carrier at a frame whose index sets are `Is` is the

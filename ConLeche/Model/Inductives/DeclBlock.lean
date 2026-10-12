@@ -22,7 +22,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
   BlockShape BlockParts MemberShape RecRule)
 
@@ -99,7 +99,7 @@ It is four cons-monotonicities and mentions no `BlockData`. -/
 four facts of `BlockRecStagedAt` and nothing else. -/
 theorem BlockTablesCore.consRecs {envC envR : Env} {mC : EnvModel V envC} {mR : EnvModel V envR}
     {d : BlockData V} {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : ConLeche.BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
     (h : BlockTablesCore mC d lps cvTasAll p₁ isRec A 0)
     (hag : ∀ n : Name, (envC.find? n).isSome = true → mR.acval n = mC.acval n)
     (hfind : ∀ (n : Name) (c : ConstantInfo), envC.find? n = some c → envR.find? n = some c)
@@ -171,7 +171,7 @@ from `mpC.lfpBlocks`). -/
     -- node-semantics induction's root)
     BlockHoleCtxFacts mk.base2 d lps cvTas p isRec ∧
     -- a reading at the formers' environment is one at the constructors'
-    ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
+    ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : ITerm},
       denoteMeta mk.base2.acval envI ψ dd e = some ea → denoteMeta mpC.base2.acval envC ψ dd e = some ea
 
 /-- **The recursors' stage's context, without the stage's own run**: what
@@ -183,7 +183,7 @@ this (`nodeListFacts_of`, `dynCtx_of`). -/
     (envC envI : Env) (pp : BlockParts)
     (cvTasR : List ConstantVal) (ctorsAsR : List (List (ConstantVal × Nat)))
     (mpC : EnvModelM V μ envC) (dR : BlockData V) (isRecR : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm)
+    (A : Nat → (Name → Nat) → ITerm)
     (kindsR : List (List (List ConLeche.NestFieldKind))) (nfsR : List (List Expr))
     (posR : ConLeche.NestState) : Prop :=
   ConLeche.checkBlockPositivity (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) envI
@@ -197,7 +197,7 @@ this (`nodeListFacts_of`, `dynCtx_of`). -/
   BlockCtorsCore mpC.base2 dR pp.lps cvTasR pp.toBlockShape isRecR A dR.k ∧
   (∀ c, c < ctorsAsR.length → ctorsAsR[c]? = some (dR.ctorsM c)) ∧
   (∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
+      (ppsOf : Nat → (Name → Nat) → List ITerm),
     dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf) ∧
   dR.toLfp ∈ mpC.lfpBlocks ∧
   LfpCover mpC [] ∧

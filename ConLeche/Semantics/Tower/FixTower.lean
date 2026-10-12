@@ -33,34 +33,34 @@ theorem tupW_zero (is : List V) : tupW 0 is = (pt : V) := ite_eq_left rfl
 theorem tupW_pos {u : Nat} (hu : u ≠ 0) (is : List V) : tupW u is = mkTower is := ite_eq_right hu
 
 /-- The index-tuple set at a parameter frame. -/
-noncomputable def idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : V :=
+noncomputable def idxSet (u : Nat) (ρp : Nat → V) (Ids : List ITerm) : V :=
   towerSet u (teleOfFields ρp Ids)
 
 /-- The index-tuple set is in the regime of its level: a truth value at
 `0`, strict above, whatever the telescope (task #342, L6). -/
-theorem Fib_idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) :
+theorem Fib_idxSet (u : Nat) (ρp : Nat → V) (Ids : List ITerm) :
     Fib (decide (u = 0)) (idxSet u ρp Ids) := Fib_towerSet u _
 
-theorem IsTy_idxSet (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : IsTy (idxSet u ρp Ids) :=
+theorem IsTy_idxSet (u : Nat) (ρp : Nat → V) (Ids : List ITerm) : IsTy (idxSet u ρp Ids) :=
   IsTy_of_Fib (Fib_idxSet u ρp Ids)
 
 /-- The index tuple type, spelled at the parameter frame. -/
-def idxTyAV (u : Nat) (Ids : List AnnotTerm) : AnnotTerm := towerBodyAV u Ids
+def idxTyAV (u : Nat) (Ids : List ITerm) : ITerm := towerBodyAV u Ids
 
 
 /-- The index telescope's grading, with the bound in both regimes (the
 index domains' sorts are at most `u`, so the tuple type is a graph-regime
 tower even at `u = 0` where `FieldsOkB` alone asks for no bound). -/
-def IdxOk (u : Nat) (ρp : Nat → V) (Ids : List AnnotTerm) : Prop :=
+def IdxOk (u : Nat) (ρp : Nat → V) (Ids : List ITerm) : Prop :=
   FieldsOkB u ρp Ids ∧ FieldsBound u ρp Ids
 
-theorem idxTyAV_facts {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : IdxOk u ρp Ids) :
+theorem idxTyAV_facts {u : Nat} {ρp : Nat → V} {Ids : List ITerm} (h : IdxOk u ρp Ids) :
     interp V ρp (idxTyAV u Ids) = idxSet u ρp Ids ∧
       idxSet u ρp Ids ∈ˢ (univ u : V) ∧ WellDenoted V ρp (idxTyAV u Ids) :=
   ⟨towerBodyAV_interp (fun _ => h.2), towerSet_univ_of_okB (fun _ => h.2), towerBodyAV_wellDenoted h.1⟩
 
 /-- A fitting index spine's tuple is in the tuple set. -/
-theorem tupW_mem {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {is : List V}
+theorem tupW_mem {u : Nat} {ρp : Nat → V} {Ids : List ITerm} {is : List V}
     (hsp : SpineFit ρp Ids is) : tupW u is ∈ˢ idxSet u ρp Ids := by
   unfold tupW idxSet
   split
@@ -76,10 +76,10 @@ theorem foldl_app_pt' : ∀ (ts : List V), ts.foldl SetTheory.app (pt : V) = pt
 /-! ## The family type -/
 
 /-- `I → Sort w`, spelled. -/
-def famTyAV (u w : Nat) (Ids : List AnnotTerm) : AnnotTerm :=
+def famTyAV (u w : Nat) (Ids : List ITerm) : ITerm :=
   .pi (idxTyAV u Ids) (.sort w)
 
-theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : IdxOk u ρp Ids) :
+theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List ITerm} (h : IdxOk u ρp Ids) :
     interp V ρp (famTyAV u w Ids) = lfpFamSpace V w (idxSet u ρp Ids) ∧
       lfpFamSpace V w (idxSet u ρp Ids) ∈ˢ (univ (Nat.max u (w + 1)) : V) ∧
       WellDenoted V ρp (famTyAV u w Ids) := by
@@ -160,14 +160,14 @@ theorem Xframe_t (ρp : Nat → V) (as : List V) (t X : V) :
 
 section Slot
 
-variable {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm}
+variable {u w : Nat} {ρp : Nat → V} {Ids : List ITerm}
 
 
 /-! ## The index tuple's retraction -/
 
 /-- At index level `0` every index value is the point. -/
 theorem spineFit_pt_of_bound0 {ρ : Nat → V} :
-    ∀ {Fs : List AnnotTerm} {as : List V}, FieldsBound 0 ρ Fs → SpineFit ρ Fs as →
+    ∀ {Fs : List ITerm} {as : List V}, FieldsBound 0 ρ Fs → SpineFit ρ Fs as →
       ∀ l, l < as.length → as.getD l pt = pt
   | [], [], _, _, _, hl => absurd hl (Nat.not_lt_zero _)
   | [], _ :: _, _, hsp, _, _ => hsp.elim
@@ -199,8 +199,8 @@ end Slot
 
 section Fam
 
-variable {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {rss : List (List Bool)}
-  {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))} {Fss Ess : List (List AnnotTerm)}
+variable {u w : Nat} {ρp : Nat → V} {Ids : List ITerm} {rss : List (List Bool)}
+  {tlss : List (List (List ITerm))} {Eiss : List (List (List ITerm))} {Fss Ess : List (List ITerm)}
 
 omit [SetTheory V] in
 theorem consList_snoc' (a : V) (as : List V) (ρ : Nat → V) :
@@ -213,8 +213,8 @@ theorem consList_snoc' (a : V) (as : List V) (ρ : Nat → V) :
 
 /-- **A Π-tower is graded** when its domains are along the telescope
 and its body is at every fitting spine. -/
-theorem WellDenoted_mkPisAV_of {w : Nat} {R : AnnotTerm} :
-    ∀ {gds : List AnnotTerm} {σ : Nat → V},
+theorem WellDenoted_mkPisAV_of {w : Nat} {R : ITerm} :
+    ∀ {gds : List ITerm} {σ : Nat → V},
       FieldsOkB w σ gds →
       (∀ as, SpineFit σ gds as → WellDenoted V (consList as σ) R) →
       (∀ as, SpineFit σ gds as → IsTy (interp V (consList as σ) R)) →
@@ -260,27 +260,27 @@ variable {V : Type uv} [SetTheory V]
 the first index position whose expression is the field's variable
 (`none` when the field is not an index — a `Prop` field under the
 subsingleton criterion). -/
-def srcOfEs (Es : List AnnotTerm) (nF j : Nat) : Option Nat :=
+def srcOfEs (Es : List ITerm) (nF j : Nat) : Option Nat :=
   (List.range Es.length).find? fun l =>
     match Es.getD l default with
     | .bvar k => k = nF - 1 - j
     | _ => false
 
 /-- The sources of all `nF` fields. -/
-def srcList (Es : List AnnotTerm) (nF : Nat) : List (Option Nat) :=
+def srcList (Es : List ITerm) (nF : Nat) : List (Option Nat) :=
   (List.range nF).map (srcOfEs Es nF)
 
 open ConLeche.Term (Term)
 
 namespace FixKI
 
-variable {ℓ w u nP : Nat} {ρ₀ : Nat → V} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm}
-  {rss : List (List Bool)} {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))} {rds : List AnnotTerm}
+variable {ℓ w u nP : Nat} {ρ₀ : Nat → V} {Fss Ess Fss₀ : List (List ITerm)} {Ids : List ITerm}
+  {rss : List (List Bool)} {tlss : List (List (List ITerm))} {Eiss : List (List (List ITerm))} {rds : List ITerm}
 
 /-- The `l`-th value of a fitting spine is in the `l`-th domain at the
 prefix. -/
 theorem spineFit_getD_mem' {ρ : Nat → V} :
-    ∀ {Fs : List AnnotTerm} {as : List V} {l : Nat}, SpineFit ρ Fs as → l < Fs.length →
+    ∀ {Fs : List ITerm} {as : List V} {l : Nat}, SpineFit ρ Fs as → l < Fs.length →
       as.getD l pt ∈ˢ interp V (consList (as.take l) ρ) (Fs.getD l default)
   | [], _, _, _, hl => absurd hl (Nat.not_lt_zero _)
   | _ :: _, [], _, h, _ => h.elim
@@ -293,8 +293,8 @@ end FixKI
 
 section WalkFrames
 
-variable {u w : Nat} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm} {rss : List (List Bool)}
-  {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))}
+variable {u w : Nat} {Fss Ess Fss₀ : List (List ITerm)} {Ids : List ITerm} {rss : List (List Bool)}
+  {tlss : List (List (List ITerm))} {Eiss : List (List (List ITerm))}
 
 omit [SetTheory V] in
 /-- The index tuple of a K-frame over a bottom. -/
@@ -307,11 +307,11 @@ end WalkFrames
 
 section Rec
 
-variable {ℓ w u nP s : Nat} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm}
-  {rss : List (List Bool)} {tlss : List (List (List AnnotTerm))} {Eiss : List (List (List AnnotTerm))} {rds : List AnnotTerm}
+variable {ℓ w u nP s : Nat} {Fss Ess Fss₀ : List (List ITerm)} {Ids : List ITerm}
+  {rss : List (List Bool)} {tlss : List (List (List ITerm))} {Eiss : List (List (List ITerm))} {rds : List ITerm}
 
 /-- A spine fitting a chain fits a prefix of it. -/
-theorem spineFit_prefix {ρ : Nat → V} {Ds : List AnnotTerm} {as bs : List V}
+theorem spineFit_prefix {ρ : Nat → V} {Ds : List ITerm} {as bs : List V}
     (h : SpineFit ρ Ds (as ++ bs)) : SpineFit ρ (Ds.take as.length) as := by
   have hlen : (as ++ bs).length = Ds.length := h.length_eq
   have hsplit : Ds = Ds.take as.length ++ Ds.drop as.length := (List.take_append_drop _ _).symm
@@ -348,7 +348,7 @@ variable {V : Type w'} [SetTheory V]
 /-! ## The sources -/
 
 omit [SetTheory V] in
-theorem srcList_length (Es : List AnnotTerm) (nF : Nat) : (srcList Es nF).length = nF := by
+theorem srcList_length (Es : List ITerm) (nF : Nat) : (srcList Es nF).length = nF := by
   simp [srcList]
 
 theorem srcVals_length (is : List V) (src : List (Option Nat)) : (srcVals is src).length = src.length := by
@@ -356,7 +356,7 @@ theorem srcVals_length (is : List V) (src : List (Option Nat)) : (srcVals is src
 
 omit [SetTheory V] in
 /-- A source position's expression is the field's variable. -/
-theorem srcOfEs_some {Es : List AnnotTerm} {nF j l : Nat} (h : srcOfEs Es nF j = some l) :
+theorem srcOfEs_some {Es : List ITerm} {nF j l : Nat} (h : srcOfEs Es nF j = some l) :
     l < Es.length ∧ Es.getD l default = .bvar (nF - 1 - j) := by
   unfold srcOfEs at h
   refine ⟨List.mem_range.mp (List.mem_of_find?_eq_some h), ?_⟩
@@ -366,7 +366,7 @@ theorem srcOfEs_some {Es : List AnnotTerm} {nF j l : Nat} (h : srcOfEs Es nF j =
 
 omit [SetTheory V] in
 /-- At an unsourced field no index expression is the field's variable. -/
-theorem srcOfEs_none {Es : List AnnotTerm} {nF j l : Nat} (h : srcOfEs Es nF j = none)
+theorem srcOfEs_none {Es : List ITerm} {nF j l : Nat} (h : srcOfEs Es nF j = none)
     (hl : Es[l]? = some (.bvar (nF - 1 - j))) : False := by
   unfold srcOfEs at h
   have hlt : l < Es.length := (List.getElem?_eq_some_iff.mp hl).1
@@ -377,7 +377,7 @@ theorem srcOfEs_none {Es : List AnnotTerm} {nF j l : Nat} (h : srcOfEs Es nF j =
 /-- **The subsingleton criterion**: a spine fitting the fields whose
 index values are the tuple is the source spine (an index-sourced field
 is the index's value, the other fields are `Prop`s — points). -/
-theorem srcVals_of_fit {ρp : Nat → V} {Fs Es : List AnnotTerm}
+theorem srcVals_of_fit {ρp : Nat → V} {Fs Es : List ITerm}
     (hprop : ∀ j, j < Fs.length → srcOfEs Es Fs.length j = none →
       ∀ fs : List V, SpineFit ρp (Fs.take j) fs →
         interp V (consList fs ρp) (Fs.getD j default) ∈ˢ (univZero : V))
@@ -399,7 +399,7 @@ theorem srcVals_of_fit {ρp : Nat → V} {Fs Es : List AnnotTerm}
     show fs.getD j pt = (Es.map (interp V (consList fs ρp))).getD l pt
     have hr : (Es.map (interp V (consList fs ρp))).getD l pt = interp V (consList fs ρp) Es[l] := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hl]; rfl
-    have hEl : Es[l] = AnnotTerm.bvar (Fs.length - 1 - j) := by
+    have hEl : Es[l] = ITerm.bvar (Fs.length - 1 - j) := by
       rw [← hE, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl]; rfl
     rw [hr, hEl, interp_bvar, consList_getD_of_lt fs ρp _ (by omega),
       show fs.length - 1 - (Fs.length - 1 - j) = j from by omega]
@@ -419,7 +419,7 @@ noncomputable def isOfW (u nIdx : Nat) (t : V) : List V :=
 
 /-- A fitting spine over `Prop`-regime domains is the points. -/
 theorem spineFit_zero_replicate :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} {is : List V}, FieldsBound 0 ρ Fs → SpineFit ρ Fs is →
+    ∀ {Fs : List ITerm} {ρ : Nat → V} {is : List V}, FieldsBound 0 ρ Fs → SpineFit ρ Fs is →
       is = List.replicate Fs.length pt
   | [], _, [], _, _ => rfl
   | [], _, _ :: _, _, h => h.elim
@@ -434,7 +434,7 @@ theorem spineFit_zero_replicate :
     rw [List.length_cons, List.replicate_succ]
     exact congrArg _ (spineFit_zero_replicate (hb.2 pt ha) hsp')
 
-theorem isOfW_tupW {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (hI : IdxOk u ρp Ids)
+theorem isOfW_tupW {u : Nat} {ρp : Nat → V} {Ids : List ITerm} (hI : IdxOk u ρp Ids)
     {is : List V} (hsp : SpineFit ρp Ids is) : isOfW u Ids.length (tupW u is) = is := by
   by_cases hu : u = 0
   · rw [isOfW, ite_eq_left hu]
@@ -445,12 +445,12 @@ theorem isOfW_tupW {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (hI : IdxO
 
 section Body
 
-variable {ℓ u nP : Nat} {Fss Ess Fss₀ : List (List AnnotTerm)} {Ids : List AnnotTerm}
-  {rss : List (List Bool)} {tlss : List (List (List AnnotTerm))}
-  {Eiss : List (List (List AnnotTerm))} {rds : List AnnotTerm}
+variable {ℓ u nP : Nat} {Fss Ess Fss₀ : List (List ITerm)} {Ids : List ITerm}
+  {rss : List (List Bool)} {tlss : List (List (List ITerm))}
+  {Eiss : List (List (List ITerm))} {rds : List ITerm}
 
 /-- A tuple of the index set is the tuple of a fitting spine. -/
-theorem mem_idxSet_elim {u : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} {t : V}
+theorem mem_idxSet_elim {u : Nat} {ρp : Nat → V} {Ids : List ITerm} {t : V}
     (ht : t ∈ˢ idxSet u ρp Ids) : ∃ is : List V, SpineFit ρp Ids is ∧ t = tupW u is := by
   by_cases hu : u = 0
   · subst hu
@@ -467,8 +467,8 @@ open ConLeche.Term ConLeche.Verify
 
 /-- A Π-tower over bounded binder data with a bounded conclusion is
 bounded. -/
-theorem mkPisAV_below_of {C : AnnotTerm} :
-    ∀ {ds : List AnnotTerm} {k : Nat}, DomsBelow k ds →
+theorem mkPisAV_below_of {C : ITerm} :
+    ∀ {ds : List ITerm} {k : Nat}, DomsBelow k ds →
       Term.bvarsBelow (k + ds.length) C.erase → Term.bvarsBelow k (mkPisAV ds C).erase
   | [], _, _, hC => hC
   | d :: ds, k, hd, hC => by

@@ -28,7 +28,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal CheckM NestCtx NestHole NestFieldKind BlockParts
   BlockShape instPisWith nestHoles openPisAtFvars fueledOps MemberCtorD NestFieldKind PosTree)
 
@@ -78,7 +78,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     ∃ (ord : Nat → Bool) (Af : Nat → (Nat → V) → V),
       TeleAccP (d.w ψ) Af 0 (d.toLfp.MemberQ ψ) (d.toLfp.accRel ψ ρp) (d.absF ψ c j) ∧
       (∀ l τ τ', TAgr d.k ord l τ τ' → Af l τ = Af l τ') ∧
-      (∀ (i : Nat) (G : AnnotTerm), (d.absF ψ c j)[i]? = some G → ord i = true →
+      (∀ (i : Nat) (G : ITerm), (d.absF ψ c j)[i]? = some G → ord i = true →
         ∀ τ τ', TAgr d.k ord i τ τ' → interp V τ G = interp V τ' G) ∧
       (∀ X X', InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
         InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X' →
@@ -275,7 +275,7 @@ theorem blockAccTuple_of_run {env : Env} (mp : EnvModelM V .verified env) {F : N
       c < d.toLfp.N → j < d.toLfp.nctors c →
         TeleAccP (d.w ψ) oa.2 0 (d.toLfp.MemberQ ψ) (d.toLfp.accRel ψ ρp) (d.absF ψ c j) ∧
         (∀ l τ τ', TAgr d.k oa.1 l τ τ' → oa.2 l τ = oa.2 l τ') ∧
-        (∀ (i : Nat) (G : AnnotTerm), (d.absF ψ c j)[i]? = some G → oa.1 i = true →
+        (∀ (i : Nat) (G : ITerm), (d.absF ψ c j)[i]? = some G → oa.1 i = true →
           ∀ τ τ', TAgr d.k oa.1 i τ τ' → interp V τ G = interp V τ' G) ∧
         (∀ X X', InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
           InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X' →

@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps grpNews)
 
@@ -43,7 +43,7 @@ variable {V : Type w} [SetTheory V]
 
 section Trans
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {D : LfpDatum V} {ψ : Name → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {D : LfpDatum V} {ψ : Name → Nat}
 
 /-- **`trans` at a derived node from `FrameMono`'s conclusion**: the frame's
 group covers every member (`hall`) and the operator is as wide as its

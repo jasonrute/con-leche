@@ -44,7 +44,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -201,7 +201,7 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
         (fun _ => trivial)
         (fun _ _ => rfl)
         (fun ψ₁ ψ₂ hp => by
-          show AnnotTerm.const .choice [ψ₁ uN] = AnnotTerm.const .choice [ψ₂ uN]
+          show ITerm.const .choice [ψ₁ uN] = ITerm.const .choice [ψ₂ uN]
           rw [huN ψ₁ ψ₂ hp])
         (fun _ _ => by simp) ?_
         (by rw [hn2]; decide)

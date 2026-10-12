@@ -36,12 +36,12 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
 universe uv
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
 
 /-! ## A telescope's domains, read -/
 
@@ -49,8 +49,8 @@ variable {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name 
 binders opened so far — each binder opened by its own opened domain,
 exactly as `denoteMeta`'s binder clauses open it, so the `∀`-tower and
 the λ-tower over one telescope read one list. -/
-@[expose] def teleDoms (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (φ : Name → Nat)
-    (D : Nat) : List Expr → List Expr → Option (List AnnotTerm)
+@[expose] def teleDoms (acval : Name → (Name → Nat) → ITerm) (env : Env) (φ : Name → Nat)
+    (D : Nat) : List Expr → List Expr → Option (List ITerm)
   | _, [] => some []
   | os, ty :: tys => do
     let a ← denoteMeta acval env φ (D + os.length) (ty.instantiateList os 0)
@@ -59,7 +59,7 @@ the λ-tower over one telescope read one list. -/
 
 /-- `teleDoms`'s read list is the telescope's own length. -/
 theorem teleDoms_length {D : Nat} :
-    ∀ {os tys : List Expr} {ds : List AnnotTerm},
+    ∀ {os tys : List Expr} {ds : List ITerm},
       teleDoms acval env φ D os tys = some ds → ds.length = tys.length
   | _, [], _, h => by
     simp only [teleDoms, Option.some.injEq] at h
@@ -77,10 +77,10 @@ telescope's domains (`teleDoms`), and its body is read with the
 binders opened. -/
 theorem denoteMeta_mkPisOf {D : Nat} :
     ∀ (tele : List Expr) (X : Expr) (q : Nat) (os : List Expr)
-      (P : AnnotTerm),
+      (P : ITerm),
       LocList D q os →
       denoteMeta acval env φ (D + q) ((Expr.mkPisOf tele X).instantiateList os 0) = some P →
-      ∃ (ds : List AnnotTerm) (Xr : AnnotTerm) (os' : List Expr),
+      ∃ (ds : List ITerm) (Xr : ITerm) (os' : List Expr),
         P = mkPisAV ds Xr ∧
         teleDoms acval env φ D os tele = some ds ∧
         LocList D (q + tele.length) os' ∧

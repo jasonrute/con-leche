@@ -16,7 +16,7 @@ public section
 The reading of `Expr.substFvars b D s e` at depth `D + t` is the reading
 of `e` at depth `b + t` with its variables `0 ..< b` — the bound
 positions `t + (b - 1 - i)` there — replaced by the readings of the
-`s i` (`AnnotTerm.substAV`).  With `interp_substAV` it reads at the
+`s i` (`ITerm.substAV`).  With `interp_substAV` it reads at the
 valuation holding their values: a container frame's constructor type
 (the recorded member-abstracted type, its parameters replaced by the
 key's, its member holes by the frame's holes or the members' formers)
@@ -27,7 +27,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level)
 
 universe w
@@ -37,25 +37,25 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 /-- The substitution the reading of `Expr.substFvars b D s` applies:
 position `j < b` (the variable `b - 1 - j`) is `x (b - 1 - j)`, the
 rest move to `D`. -/
-@[expose] def substTau (b D : Nat) (x : Nat → AnnotTerm) : Nat → AnnotTerm :=
+@[expose] def substTau (b D : Nat) (x : Nat → ITerm) : Nat → ITerm :=
   fun j => if j < b then x (b - 1 - j) else .bvar (j - b + D)
 
-theorem projPair?_substAV (τ : Nat → AnnotTerm) (k : Nat) :
-    ∀ (i : Nat) (e : AnnotTerm),
-      (AnnotTerm.projPair? i e).map (AnnotTerm.substAV τ · k)
-        = AnnotTerm.projPair? i (AnnotTerm.substAV τ e k)
+theorem projPair?_substAV (τ : Nat → ITerm) (k : Nat) :
+    ∀ (i : Nat) (e : ITerm),
+      (ITerm.projPair? i e).map (ITerm.substAV τ · k)
+        = ITerm.projPair? i (ITerm.substAV τ e k)
   | 0, _ => rfl
   | 1, _ => rfl
   | _ + 2, _ => rfl
 
 /-- **The reading crosses a parallel substitution of free variables.** -/
 theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr}
-    {x : Nat → AnnotTerm}
+    {x : Nat → ITerm}
     (hs : ∀ i, i < b → Expr.WScoped D (s i) ∧ (s i).looseBVarsBounded 0 = true ∧
       denoteMeta m.acval env φ D (s i) = some (x i)) :
     ∀ (e : Expr) (t : Nat), Expr.fvarsBelow (b + t) e →
       denoteMeta m.acval env φ (D + t) (Expr.substFvars b D s e)
-        = (denoteMeta m.acval env φ (b + t) e).map (AnnotTerm.substAV (substTau b D x) · t)
+        = (denoteMeta m.acval env φ (b + t) e).map (ITerm.substAV (substTau b D x) · t)
   | .bvar i, t, _ => by
     have h1 : denoteMeta m.acval env φ (D + t) (.bvar i) = none := by rw [denoteMeta.eq_def]
     have h2 : denoteMeta m.acval env φ (b + t) (.bvar i) = none := by rw [denoteMeta.eq_def]
@@ -71,7 +71,7 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
       dsimp only
       split
       · simp only [Option.map_some]
-        exact congrArg some (AnnotTerm.substAV_eq_self _ _
+        exact congrArg some (ITerm.substAV_eq_self _ _
           (Term.bvarsBelow.mono (Nat.zero_le _) (m.cval_closedL _ _))).symm
       · rfl
   | .fvar i ty, t, hfb => by
@@ -81,12 +81,12 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
       rw [Expr.substFvars_fvar_lt hib, denoteMeta_lift m.acval_closed hw (D + t) (by omega), hx,
         denoteMeta]
       simp only [Option.map_some, Nat.add_sub_cancel_left]
-      rw [AnnotTerm.substAV_bvar_ge _ (by omega)]
+      rw [ITerm.substAV_bvar_ge _ (by omega)]
       simp only [substTau, show b + t - 1 - i - t < b by omega, ite_true,
         show b - 1 - (b + t - 1 - i - t) = i by omega]
     · rw [Expr.substFvars_fvar_ge (by omega), denoteMeta, denoteMeta]
       simp only [Option.map_some]
-      rw [AnnotTerm.substAV_bvar_lt _ (by omega)]
+      rw [ITerm.substAV_bvar_lt _ (by omega)]
       congr 2
       omega
   | .app fe a, t, hfb => by
@@ -162,7 +162,7 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
     | some ea =>
       simp only [Option.map_some]
       split
-      · exact congrArg some (AnnotTerm.substAV_projAV _ t _ ea).symm
+      · exact congrArg some (ITerm.substAV_projAV _ t _ ea).symm
       · exact (projPair?_substAV _ t i ea).symm
   | .lit l, t, _ => by
     have hd : ∀ d, denoteMeta m.acval env φ d (.lit l) = denoteMeta m.acval env φ 0 (.lit l) := by
@@ -176,7 +176,7 @@ theorem denoteMeta_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr
       have hcl : Term.bvarsBelow 0 X.erase :=
         denote_bvarsBelow m.cval_closedL 0 _ (by simp [Expr.WScoped]) rfl
           (denoteMeta_erase m.acval_erase 0 _ h0)
-      exact congrArg some (AnnotTerm.substAV_eq_self _ _
+      exact congrArg some (ITerm.substAV_eq_self _ _
         (Term.bvarsBelow.mono (Nat.zero_le _) hcl)).symm
 termination_by e => e.sizeB
 decreasing_by

@@ -24,7 +24,7 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -39,7 +39,7 @@ membership.
 the **graph regime** and `app_mem_piR_pos` applies with no fibre
 premise; the app slot's kind-`0` component is vacuous for the same
 reason. -/
-theorem natLit_factsAV {ρ : Nat → V} {za sa natA : AnnotTerm}
+theorem natLit_factsAV {ρ : Nat → V} {za sa natA : ITerm}
     (hokz : WellDenoted V ρ za) (hoks : WellDenoted V ρ sa)
     (hz : interp V ρ za ∈ˢ interp V ρ natA)
     (hsucc : interp V ρ sa

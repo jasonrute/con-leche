@@ -8,7 +8,7 @@ public import ConLeche.Verify.Denote.Shift
 /-!
 # Lift and substitution invariance of annotated terms, via the erasure
 
-Lifting or instantiating an `AnnotTerm` is the `Term` operation on the
+Lifting or instantiating an `ITerm` is the `Term` operation on the
 erasure with the numerals riding along untouched (`erase_liftN`), so an
 annotated term is invariant exactly when its erasure is: a numeral slot
 cannot be the reason a lift moves a term.
@@ -20,13 +20,13 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify
 open ConLeche (Env Expr Name CheckMode)
 
-namespace AnnotTerm
+namespace ITerm
 
 /-- **A lift that does not move the erasure does not move the term.**
 `liftN` never reads or writes a numeral slot, so an annotated term is
 lift-invariant exactly when its erasure is — and the erasure's
 invariance is `Term.bvarsBelow`. -/
-theorem liftN_eq_self : ∀ (e : AnnotTerm) {k : Nat},
+theorem liftN_eq_self : ∀ (e : ITerm) {k : Nat},
     Term.bvarsBelow k e.erase → ∀ n : Nat, liftN n e k = e := by
   intro e
   induction e with
@@ -61,8 +61,8 @@ Stated with the substituend last (and universally quantified) because
 that is the shape the leaf premise of `denoteMeta_substFvarAt` wants: the
 stored annotations are invariant under *any* substitution, which is
 what makes the `.const` and `.lit` clauses of the walk close. -/
-theorem inst_eq_self : ∀ (e : AnnotTerm) {k : Nat},
-    Term.bvarsBelow k e.erase → ∀ x : AnnotTerm, inst e x k = e := by
+theorem inst_eq_self : ∀ (e : ITerm) {k : Nat},
+    Term.bvarsBelow k e.erase → ∀ x : ITerm, inst e x k = e := by
   intro e
   induction e with
   | bvar i =>
@@ -87,7 +87,7 @@ theorem inst_eq_self : ∀ (e : AnnotTerm) {k : Nat},
   | snd e ihe =>
     intro k h x; rw [inst_snd, ihe h x]
 
-end AnnotTerm
+end ITerm
 
 
 end ConLeche.Semantics

@@ -86,7 +86,7 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
   subst henv
   have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
   have hden : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ d e = some ea →
+      ∀ {ea : ITerm}, denoteMeta mp.base2.acval env ψ d e = some ea →
         denoteMeta mpX.base2.acval ⟨new ++ env.consts⟩ ψ d e = some ea := by
     intro ψ d e hcb ea h
     refine denoteMeta_envExtend_mono (fun hf => hfwd _ _ hf)

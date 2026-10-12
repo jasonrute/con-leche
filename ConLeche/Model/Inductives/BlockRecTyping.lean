@@ -34,7 +34,7 @@ prefix, the constructor's index expressions and the major `C_J p⃗ f⃗`.
 regimes consume of those two runs:
 
 ```lean
-def ResidueOk (V) (Rb : AnnotTerm) (ihvals : List V) (ρ' : Nat → V) (B : V) : Prop :=
+def ResidueOk (V) (Rb : ITerm) (ihvals : List V) (ρ' : Nat → V) (B : V) : Prop :=
   WellDenoted V (consList ihvals ρ') Rb ∧ interp V (consList ihvals ρ') Rb ∈ˢ B
 ```
 
@@ -79,7 +79,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name openPisAtFvars)
 
 universe w
@@ -100,7 +100,7 @@ the call target (`gGraph_mem_B`).
 
 The context's orientation is `Sat`'s own: innermost first, so the
 `ih` block comes first and each telescope is reversed. -/
-theorem sat_blockFrame {ρ₀ : Nat → V} {pdoms fdoms ihdoms : List AnnotTerm}
+theorem sat_blockFrame {ρ₀ : Nat → V} {pdoms fdoms ihdoms : List ITerm}
     {xs fs ihvals : List V}
     (hsp : SpineFit ρ₀ (pdoms ++ fdoms) (xs ++ fs))
     (hih : SpineFit (consList (xs ++ fs) ρ₀) ihdoms ihvals) :
@@ -110,7 +110,7 @@ theorem sat_blockFrame {ρ₀ : Nat → V} {pdoms fdoms ihdoms : List AnnotTerm}
 
 /-- The frame's context has the frame's own length — the `Δa.length = d`
 half of `CtxOk`, read off the two telescopes. -/
-theorem sat_blockFrame_length {pdoms fdoms ihdoms : List AnnotTerm}
+theorem sat_blockFrame_length {pdoms fdoms ihdoms : List ITerm}
     {rP nF nR : Nat} (hp : pdoms.length = rP) (hf : fdoms.length = nF)
     (hi : ihdoms.length = nR) :
     (ihdoms.reverse ++ (pdoms ++ fdoms).reverse).length = rP + nF + nR := by
@@ -212,7 +212,7 @@ theorem list_drop_last {α : Type u} [Inhabited α] {l : List α} {n : Nat}
 
 /-- **A fit of `rp + nI + 1` binders, decomposed** — the prefix, the
 index stretch and the ONE last value, each at its own frame. -/
-theorem spineFit_split_three {Ds : List AnnotTerm} {ρ : Nat → V} {ys : List V}
+theorem spineFit_split_three {Ds : List ITerm} {ρ : Nat → V} {ys : List V}
     {rp nI : Nat} (hlen : Ds.length = rp + nI + 1) (hfit : SpineFit ρ Ds ys) :
     ∃ (xs is : List V) (mj : V), ys = xs ++ (is ++ [mj]) ∧
       xs.length = rp ∧ is.length = nI ∧

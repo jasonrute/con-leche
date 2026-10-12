@@ -30,7 +30,7 @@ checked one.
 -/
 
 namespace ConLeche.Model
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche.Semantics SetTheory
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
@@ -48,7 +48,7 @@ operations collapse onto ones the model owns
 `Verify/Inductives/BlockRecInv.lean`), so the readings are corollaries,
 not new inductions. -/
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
 
 /-! ## The stored types READ, and their readings are GRADED
 
@@ -89,7 +89,7 @@ levels, so nothing has to pin the reading's binder numerals. -/
 theorem constChecked_reads {env : Env} (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat} {cv cvA : ConstantVal}
     (h : ConLeche.ConstChecked μ F env cv cvA) :
-    ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
+    ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : ITerm,
       denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta ∧
       (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
@@ -120,7 +120,7 @@ theorem recStage_tyReads {envC : Env} (hμ : μ.verifiedChecks = true)
     {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
-    ∀ r ∈ rs, ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
+    ∀ r ∈ rs, ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : ITerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
       (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
@@ -138,12 +138,12 @@ theorem hrd_of_mem {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
     {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {acv : Name → (Name → Nat) → AnnotTerm}
+    {acv : Name → (Name → Nat) → ITerm}
     {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
-    (hmem : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (hmem : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) :
-    ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
+    ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : ITerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
       (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) := by

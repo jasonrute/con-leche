@@ -30,7 +30,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported)
 
@@ -44,7 +44,7 @@ variable {env : Env} {φ : Name → Nat}
 /-- The numeral spine at an environment's `Nat` heads — exactly
 `denoteMeta`'s `.lit (.natVal n)` clause. -/
 @[expose] def natLit {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (n : Nat) : AnnotTerm :=
+    (n : Nat) : ITerm :=
   natLitAV (m.acval ConLeche.natZeroName φ)
     (m.acval ConLeche.natSuccName φ) n
 
@@ -98,7 +98,7 @@ theorem natEq_value (m : EnvModel V env) (hops : NatOps m φ)
     {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? c = some (.defnInfo cv v hint))
     {eq : Expr × Expr} (heq : eq ∈ ConLeche.natOpEquations 0 c)
-    {L R : AnnotTerm}
+    {L R : ITerm}
     (hdL : denoteMeta m.acval env φ 2 eq.1 = some L)
     (hdR : denoteMeta m.acval env φ 2 eq.2 = some R)
     {ρ : Nat → V} {x y : V}

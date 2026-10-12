@@ -64,7 +64,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx
   NestHole NestCtorNf BlockParts BlockShape TargetMajor fueledOps PosD PosTree
   NestFieldKind PosNodeOk closeTelescope targetPiDomsWith targetMajorNfs
@@ -109,7 +109,7 @@ theorem genNCt {μ : CheckMode} {F : Nat} {envI envC : Env} {pp : BlockParts} {n
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nested posR cvTasR
       block ctorsAsR out) (hg : ConLeche.ClassGenScoped R.g)
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-        (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
+        (ppsOf : Nat → (Name → Nat) → List ITerm),
       dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf)
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (hcls : ∀ c, c < (tgtRs out).length → (tgtMajor out c).member = none →
@@ -231,7 +231,7 @@ closed type). -/
 theorem canonPars_of_forests {μ : CheckMode} {F : Nat} {envC envI : Env} {pp : BlockParts}
     {cvTasR : List ConstantVal} {ctorsAsR : List (List (ConstantVal × Nat))}
     {mpC : EnvModelM V μ envC} {dR : BlockData V} {isRecR : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm}
+    {A : Nat → (Name → Nat) → ITerm}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -255,7 +255,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)}
     {mpC : EnvModelM V μ envC} {dR : BlockData V} {isRecR : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm}
+    {A : Nat → (Name → Nat) → ITerm}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState} {nested : Bool}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -268,7 +268,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     (hmk : ∀ D ∈ mk.lfpBlocks, D ∈ mpC.lfpBlocks)
     (hag : ∀ n, (envI.find? n).isSome = true → mpC.base2.acval n = mk.base2.acval n)
     (hsubC : ∀ D ∈ mpC.lfpBlocks, D = dR.toLfp ∨ D ∈ mk.lfpBlocks)
-    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
+    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : ITerm},
       denoteMeta mk.base2.acval envI ψ dd e = some ea →
         denoteMeta mpC.base2.acval envC ψ dd e = some ea)
     (hcoreK : BlockHoleCtxFacts mk.base2 dR pp.lps cvTasR pp.toBlockShape isRecR)
@@ -928,7 +928,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             (nlFr mpC (pp.nestCtx fvsP envI.find?) dR ns ψ ρ xs b)) Y) prog σN ∧
         (∀ v, v < (pp.nestCtx fvsP envI.find?).nP →
           σN ((pp.nestCtx fvsP envI.find?).hiAt prog.length - 1 - v) = xs.getD v pt) ∧
-        ∃ (ha : AnnotTerm) (argsA : List AnnotTerm),
+        ∃ (ha : ITerm) (argsA : List ITerm),
           denoteMeta mpC.base2.acval envC ψ
             ((pp.nestCtx fvsP envI.find?).hiAt prog.length + iF + bs.length)
             w.getAppFn = some ha ∧
@@ -938,7 +938,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
           bs.foldl app (fs.getD iF pt) ∈ˢ
             (argsA.map (interp V (consList (fs.take iF ++ bs) σN))).foldl app
               (interp V (consList (fs.take iF ++ bs) σN) ha) ∧
-          ∀ (l : Nat) (xa : AnnotTerm), argsA[off + l]? = some xa →
+          ∀ (l : Nat) (xa : ITerm), argsA[off + l]? = some xa →
             (∀ xW, w.getAppArgs[off + l]? = some xW →
               xW.nestOcc (pp.nestCtx fvsP envI.find?).names
                 (pp.nestCtx fvsP envI.find?).nP
@@ -962,8 +962,8 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     obtain ⟨xR, hxR⟩ : ∃ xR, idxR[l]? = some xR := hoffL l xW hxW
     rw [List.getElem?_map, hxR, Option.map_some, hidxA l xR xW xa hxR hxW hxa (hhf xW hxW)]
   -- a spine read entrywise
-  have hmapI : ∀ (argsA : List AnnotTerm) (f : AnnotTerm → V) (L : List V),
-      argsA.length = L.length → (∀ (l : Nat) (xa : AnnotTerm), argsA[l]? = some xa →
+  have hmapI : ∀ (argsA : List ITerm) (f : ITerm → V) (L : List V),
+      argsA.length = L.length → (∀ (l : Nat) (xa : ITerm), argsA[l]? = some xa →
         L[l]? = some (f xa)) →
       argsA.map f = L := by
     intro argsA f L hlen h

@@ -10,7 +10,7 @@ public import ConLeche.Semantics.BasisOk
 /-!
 # The second soundness's per-former skeleton (task #151, arc step 4)
 
-The case statements of the `interp` soundness, one per `AnnotTerm`
+The case statements of the `interp` soundness, one per `ITerm`
 former, each stated over `WellDenoted`/`interp`/`Sat` and nothing else,
 so they carry no environment.  A case that needs a fact the claim
 interface lacks is a finding, not a hypothesis to invent.
@@ -18,7 +18,7 @@ interface lacks is a finding, not a hypothesis to invent.
 ## What a case is
 
 The assembly architecture rules out re-signing the 44-case mutual
-induction: the soundness is **per-step graded lemmas on `AnnotTerm`**,
+induction: the soundness is **per-step graded lemmas on `ITerm`**,
 composed along the bridge claims, with annotations following the run
 rather than crossing a bare `Red`.  So each case here takes the
 subterms' two facts — hereditary truthfulness (`WellDenoted`) and
@@ -37,7 +37,7 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -59,7 +59,7 @@ theorem sound_sort (ρ : Nat → V) (u : Nat) :
 /-- **`pi`.**  Interface facts: the domain's membership in `Sort u`,
 the codomain's in `Sort v` under the binder, and the two hereditary
 halves.  The formation law is the `imax` rule (`piV_mem_univ`). -/
-theorem sound_pi {u v : Nat} {ρ : Nat → V} {Aa Ba : AnnotTerm}
+theorem sound_pi {u v : Nat} {ρ : Nat → V} {Aa Ba : ITerm}
     (hokA : WellDenoted V ρ Aa)
     (hokB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) Ba)
     (hA : interp V ρ Aa ∈ˢ (univ u : V))
@@ -77,7 +77,7 @@ theorem sound_pi {u v : Nat} {ρ : Nat → V} {Aa Ba : AnnotTerm}
 /-- **`lam`.**  Interface facts: the body's membership in the codomain
 under the binder, the two hereditary halves, and the typing of the
 domain and the codomain fibres.  No empty-domain side condition. -/
-theorem sound_lam {ρ : Nat → V} {Aa ba Ba : AnnotTerm}
+theorem sound_lam {ρ : Nat → V} {Aa ba Ba : ITerm}
     (hokA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
     (hokb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) ba)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa →
@@ -96,7 +96,7 @@ theorem sound_lam {ρ : Nat → V} {Aa ba Ba : AnnotTerm}
 
 /-- **`app`.**  Interface facts: the function's membership at a `Π`,
 the argument's in its domain, and the domain's typing. -/
-theorem sound_app {ρ : Nat → V} {fa aa Aa Ba : AnnotTerm}
+theorem sound_app {ρ : Nat → V} {fa aa Aa Ba : ITerm}
     (hokf : WellDenoted V ρ fa) (hoka : WellDenoted V ρ aa)
     (hf : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : interp V ρ aa ∈ˢ interp V ρ Aa)

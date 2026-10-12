@@ -20,14 +20,14 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo)
 
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-- **Erasure-equal expressions read equally**. -/
-theorem denoteMeta_erasedEq {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_erasedEq {acval : Name → (Name → Nat) → ITerm}
     {env : Env} {φ : Name → Nat} :
     ∀ {e₁ e₂ : Expr}, Expr.ErasedEq e₁ e₂ →
       ∀ d : Nat, denoteMeta acval env φ d e₁ = denoteMeta acval env φ d e₂

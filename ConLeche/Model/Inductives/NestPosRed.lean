@@ -53,7 +53,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole closeTelescope fueledOps PosD PosJ
   NestFieldKind PosTree MemberCtorD)
 
@@ -62,7 +62,7 @@ universe w
 variable {V : Type w} [SetTheory V]
 
 /-- A grading under a binder moves to a binder reading alike. -/
-theorem gradedTy_cons_congr {Δ : List AnnotTerm} {A B e : AnnotTerm}
+theorem gradedTy_cons_congr {Δ : List ITerm} {A B e : ITerm}
     (h : ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B)
     (hg : GradedTy V (A :: Δ) e) : GradedTy V (B :: Δ) e :=
   fun ρ hρ => hg ρ (sat_cons_congr (fun σ hσ => (h σ hσ).symm) hρ)
@@ -72,9 +72,9 @@ theorem gradedTy_cons_congr {Δ : List AnnotTerm} {A B e : AnnotTerm}
 omit [SetTheory V] in
 /-- **A term that reads names only stored constants**, once its free
 variables' annotations do (`denoteMeta` looks every constant up). -/
-theorem constsBound_of_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem constsBound_of_read {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} :
-    ∀ (d : Nat) (e : Expr) {ea : AnnotTerm}, denoteMeta acval env φ d e = some ea →
+    ∀ (d : Nat) (e : Expr) {ea : ITerm}, denoteMeta acval env φ d e = some ea →
       (∀ l ∈ e.fvarLeaves, ConstsBound env l.2) → ConstsBound env e := by
   intro d e
   induction d, e using denoteMeta.induct (env := env) with
@@ -162,15 +162,15 @@ walked things are the constructor FIELDS' types, never the point,
 like the input's field by field. -/
 @[expose] def RedJ : PosJ → Prop
   | .field _ dep _ e _ nd =>
-    Frame dep e → ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+    Frame dep e → ∀ {Δa : List ITerm} {ea : ITerm},
       CtxOkP m φ dep Δa e → denoteMeta m.acval env φ dep e = some ea → GradedTy V Δa ea →
       Frame dep nd ∧ LeavesSub nd e ∧ ∃ nda, denoteMeta m.acval env φ dep nd = some nda ∧
         GradedTy V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda
   | .tele _ base n j cur _ nds res =>
-    Frame (base + j) cur → ∀ {Δa : List AnnotTerm} {ca : AnnotTerm},
+    Frame (base + j) cur → ∀ {Δa : List ITerm} {ca : ITerm},
       CtxOkP m φ (base + j) Δa cur → denoteMeta m.acval env φ (base + j) cur = some ca →
       GradedTy V Δa ca →
-      ∃ (abD abN : List AnnotTerm) (B : AnnotTerm),
+      ∃ (abD abN : List ITerm) (B : ITerm),
         ca = mkPisAV abD B ∧
         denoteMeta m.acval env φ (base + j) (closeTelescope nds (base + j) res)
           = some (mkPisAV abN B) ∧
@@ -188,7 +188,7 @@ walked here is always a TYPE (a constructor field), never the point
 ("not pt" source (1)). -/
 theorem red_whnf (hin : RulesInputs V m φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
-    {Δa : List AnnotTerm} {ea : AnnotTerm} (hC : CtxOkP m φ dep Δa e)
+    {Δa : List ITerm} {ea : ITerm} (hC : CtxOkP m φ dep Δa e)
     (hea : denoteMeta m.acval env φ dep e = some ea) (hgr : GradedTy V Δa ea) :
     Frame dep w ∧ LeavesSub w e ∧ ∃ nda, denoteMeta m.acval env φ dep w = some nda ∧
       GradedTy V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda := by
@@ -338,10 +338,10 @@ closing of the outputs). -/
 theorem memberCtorD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat}
     {nF : Nat} {crest : Expr} {ks : List NestFieldKind} {tyN : Expr} {ts : List PosTree}
     (hd : MemberCtorD (fueledOps .verified F) env ctx nF crest ks tyN ts)
-    (hfr : Frame (ctx.hiAt 0) crest) {Δa : List AnnotTerm} {ca : AnnotTerm}
+    (hfr : Frame (ctx.hiAt 0) crest) {Δa : List ITerm} {ca : ITerm}
     (hC : CtxOkP m φ (ctx.hiAt 0) Δa crest)
     (hca : denoteMeta m.acval env φ (ctx.hiAt 0) crest = some ca) (hgr : GradedTy V Δa ca) :
-    ∃ (abD abN : List AnnotTerm) (B : AnnotTerm),
+    ∃ (abD abN : List ITerm) (B : ITerm),
       ca = mkPisAV abD B ∧ denoteMeta m.acval env φ (ctx.hiAt 0) tyN = some (mkPisAV abN B) ∧
       abD.length = nF ∧ abN.length = nF ∧
       FieldsEqOn V Δa abD abN ∧

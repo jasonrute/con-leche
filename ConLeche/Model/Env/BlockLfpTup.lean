@@ -23,7 +23,7 @@ open ConLeche.SetTheory
 open SetTheory
 open ConLeche.SetTheory.Tower (projS)
 
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Name Level)
 
 universe w
@@ -37,7 +37,7 @@ inhabit the codomain at every fitting spine and the codomain is a type
 there (`lamV_mem`: the fibres are types — inner Π-types, or the
 codomain). -/
 theorem holeFam_mem_mkPisAV :
-    ∀ {ab : List AnnotTerm} {ρ : Nat → V} {B : AnnotTerm} {g : List V → V},
+    ∀ {ab : List ITerm} {ρ : Nat → V} {B : ITerm} {g : List V → V},
       (∀ vs, SpineFit ρ ab vs → g vs ∈ˢ interp V (consList vs ρ) B) →
       (∀ vs, SpineFit ρ ab vs → IsTy (interp V (consList vs ρ) B)) →
       holeFam ρ ab g ∈ˢ interp V ρ (mkPisAV ab B)
@@ -80,7 +80,7 @@ parameter frame as the Π-tower over the member's indices ending in the
 block's sort. -/
 theorem holeVal_mem (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
     (hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) X) {t : Nat} (ht : t < D.k)
-    {ab : List AnnotTerm} (hab : ab = D.ids t ψ) :
+    {ab : List ITerm} (hab : ab = D.ids t ψ) :
     D.holeVal ψ ρp X t ∈ˢ interp V ρp (mkPisAV ab (.sort (D.w ψ))) := by
   have htN : t < D.N := Nat.lt_of_lt_of_le ht hkN
   unfold holeVal

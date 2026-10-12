@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   inferTypeCore)
 
@@ -103,10 +103,10 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
     {cvA : ConstantVal} (hok : ConLeche.ofReduceAxOk env cvA = true)
     (hor : cvA.name = ConLeche.ofReduceNatName ∨
       cvA.name = ConLeche.ofReduceBoolName)
-    (ψ : Name → Nat) (ta : AnnotTerm)
+    (ψ : Name → Nat) (ta : ITerm)
     (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
     (ρ : Nat → V) :
-    interp V ρ (AnnotTerm.prf) ∈ˢ interp V ρ ta := by
+    interp V ρ (ITerm.prf) ∈ˢ interp V ρ ta := by
   obtain ⟨hEq, helem, ⟨cvR, hfR, hmpR⟩, hApinT⟩ := ofReduce_gatesS hok
   obtain ⟨ciE, hfE, hlpE, htyE⟩ := ConLeche.Verify.reduceElem_sort helem
   obtain ⟨-, hlpR⟩ := ConLeche.Verify.matchesPin_invT hmpR
@@ -272,7 +272,7 @@ theorem axiomOfReduce (hμ : μ.verifiedChecks = true)
     · intro tbl heq; exact nomatch heq
     · intro cv2 caps heq; exact nomatch heq
   refine harvestAxiom (V := V) hμ mp hcv
-    (A := fun _ => AnnotTerm.prf) (fun _ => trivial)
+    (A := fun _ => ITerm.prf) (fun _ => trivial)
     (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by simp) ?_
     (by rcases hor with h | h <;> rw [h] <;> decide)
   intro ψ ta hta ρ

@@ -32,7 +32,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
   BlockShape BlockParts MemberShape RecRule)
 
@@ -46,7 +46,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 record mentions the sort only through `resSort.eval`, which is what
 official's `Level.isEquiv` agreement between the members pins. -/
 theorem FormerData.congr_sort {env : Env} {m : EnvModel V env} {cvT : ConstantVal}
-    {nP : Nat} {s s' : Level} {pps : (Name → Nat) → List AnnotTerm}
+    {nP : Nat} {s s' : Level} {pps : (Name → Nat) → List ITerm}
     (h : FormerData m cvT nP s pps) (hs : ∀ ψ : Name → Nat, s.eval ψ = s'.eval ψ) :
     FormerData m cvT nP s' pps where
   read ψ := by rw [← hs ψ]; exact h.read ψ
@@ -64,7 +64,7 @@ freshness and syntactic guards, its telescope stripped at its OWN
 result sort (`sOf`), its reading (`FormerData`, at the BLOCK's sort by
 `sEval`), and official's parameter agreement read semantically. -/
 structure BlockFormerFacts {env : Env} (mp : EnvModelM V μ env) (q : BlockShape)
-    (cvTas : List ConstantVal) (ppsOf : Nat → (Name → Nat) → List AnnotTerm)
+    (cvTas : List ConstantVal) (ppsOf : Nat → (Name → Nat) → List ITerm)
     (sOf : Nat → Level) : Prop where
   /-- one former per member -/
   lenCv : cvTas.length = q.k
@@ -117,7 +117,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     (h : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hlps : ∀ ms ∈ p₀.members, ms.cvT.levelParams = p₀.lps) :
-    ∃ (ppsOf : Nat → (Name → Nat) → List AnnotTerm) (sOf : Nat → Level),
+    ∃ (ppsOf : Nat → (Name → Nat) → List ITerm) (sOf : Nat → Level),
       BlockFormerFacts mp q cvTas ppsOf sOf := by
   obtain ⟨ms0, rest, cvTa0, s0, cvs, hmem0, hcvTas, rfl, -, htele0, hteles, hagree⟩ :=
     ConLeche.checkBlockInds_shape h
@@ -221,7 +221,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         cvTa.type.allLevelParamsDefined cvTa.levelParams = true ∧
         cvTa.type.looseBVarsBounded 0 = true ∧
         cvTa.type.stripPis (p₀.nP + ms.nIdx) = some (bs, .sort (sOf m)) ∧
-        ∃ pps : (Name → Nat) → List AnnotTerm,
+        ∃ pps : (Name → Nat) → List ITerm,
           FormerData mp.base2 cvTa (p₀.nP + ms.nIdx) (sOf m) pps := by
     intro m cvTa hm
     obtain ⟨ms, hms, hrun⟩ := hpair m cvTa hm
@@ -233,7 +233,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     exact ⟨ms, bs, hms, hn, hl, hfind, hnres, hpsh,
       htr, htf', hlpd, hbt', hst, pps, hFD⟩
   -- the members' telescope readings, chosen positionally
-  have hfdEx : ∀ m : Nat, ∃ pps : (Name → Nat) → List AnnotTerm,
+  have hfdEx : ∀ m : Nat, ∃ pps : (Name → Nat) → List ITerm,
       (∀ cvTa : ConstantVal, cvTas[m]? = some cvTa →
         FormerData mp.base2 cvTa
           ((p₀.toBlockShape.withSort s0).nP
@@ -333,13 +333,13 @@ over the whole member list, because all `k` formers are stored before
 any constructor is. -/
 theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {q : BlockShape} {envI : Env}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {sOf : Nat → Level}
+    {ppsOf : Nat → (Name → Nat) → List ITerm} {sOf : Nat → Level}
     (hInd : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hF : BlockFormerFacts mp q cvTas ppsOf sOf)
     (hnd : q.memberNames.Nodup)
     (hE : ConLeche.EtaFamiliesClosed env)
-    (A : Nat → (Name → Nat) → AnnotTerm)
+    (A : Nat → (Name → Nat) → ITerm)
     (hAbelowOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       ∀ ψ : Name → Nat, Term.bvarsBelow 0 (A j ψ).erase)
     (hAparamsOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
@@ -531,7 +531,7 @@ every member's leaf must exist before any real one is built, because a
 member's fixpoint leaf mentions every member's chains. -/
 theorem blockDummyPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {q : BlockShape} {envI : Env}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {sOf : Nat → Level}
+    {ppsOf : Nat → (Name → Nat) → List ITerm} {sOf : Nat → Level}
     (hInd : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hF : BlockFormerFacts mp q cvTas ppsOf sOf)
@@ -633,7 +633,7 @@ members, from conjunct 6). -/
 theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
     (mpI : EnvModelM V μ envI) {q : BlockShape} {cvTas : List ConstantVal}
     {isorts : List (List Level)} {isRec : Bool}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
+    {ppsOf : Nat → (Name → Nat) → List ITerm}
     (hsorts : ConLeche.checkBlockIdxSorts (ConLeche.fueledOps μ F) envI q
       (q.members.zip cvTas) = .ok isorts)
     (hlenCv : cvTas.length = q.k)
@@ -685,8 +685,8 @@ theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
 the choice. -/
 structure BlockMemberPick where
   idxF : Nat → List Expr
-  dsF : Nat → (Name → Nat) → List AnnotTerm
-  esF : Nat → (Name → Nat) → List AnnotTerm
+  dsF : Nat → (Name → Nat) → List ITerm
+  esF : Nat → (Name → Nat) → List ITerm
   srcsF : Nat → List (Option Nat)
   fvsPF : Nat → List Expr
   xFvsF : Nat → List Expr
@@ -694,7 +694,7 @@ structure BlockMemberPick where
   /-- the fields with holes (`BlockData.absFF`): not a reading of this
   member's run — the block's datum chooses them once, at the dummy
   carrier, and every pick of the block carries the same -/
-  absF : Nat → (Name → Nat) → List AnnotTerm
+  absF : Nat → (Name → Nat) → List ITerm
   /-- the positivity walk's normal forms (`BlockData.nfFF`), shared like `absF` -/
   nf : Nat → Expr
 
@@ -746,8 +746,8 @@ member's law comes through its leaf's FOLD alone (`hfoldZ`), which is
 a statement about the leaf TERM and therefore crosses every cons. -/
 theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {q : BlockShape} {envI : Env}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {sOf : Nat → Level}
-    {uOf : Nat → (Name → Nat) → Nat} {Chs : (Name → Nat) → Nat → List (List AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List ITerm} {sOf : Nat → Level}
+    {uOf : Nat → (Name → Nat) → Nat} {Chs : (Name → Nat) → Nat → List (List ITerm)}
     (hInd : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hF : BlockFormerFacts mp q cvTas ppsOf sOf)

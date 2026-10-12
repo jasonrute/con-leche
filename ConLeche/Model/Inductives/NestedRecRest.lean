@@ -181,7 +181,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts TargetMajor)
 
 universe w
@@ -201,8 +201,8 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {nested : Bool}
   {block : List ConstantInfo} {out : List (ConstantVal × TargetMajor × List Expr)}
   {mpC : EnvModelM V μ envC} {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {isRec : Bool}
-  {A : Nat → (Name → Nat) → AnnotTerm}
+  {ppsOf : Nat → (Name → Nat) → List ITerm} {isRec : Bool}
+  {A : Nat → (Name → Nat) → ITerm}
 
 /-- **`ctor` from the constructors' storage**: carried constructors
 stored at the major's parameter count have their types bound (the

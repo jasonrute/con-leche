@@ -31,7 +31,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -52,8 +52,8 @@ theorem DefEq.sort_soundU {d : Nat} {u v : Level}
     DefEqSemU m φ d (.sort u) (.sort v) := by
   intro _ _ Δa aa ba _ _ haa hba _ _ _ _ _ _
   rw [denoteMeta_sort] at haa hba
-  obtain rfl : aa = AnnotTerm.sort (u.eval φ) := (Option.some.inj haa).symm
-  obtain rfl : ba = AnnotTerm.sort (v.eval φ) := (Option.some.inj hba).symm
+  obtain rfl : aa = ITerm.sort (u.eval φ) := (Option.some.inj haa).symm
+  obtain rfl : ba = ITerm.sort (v.eval φ) := (Option.some.inj hba).symm
   rw [Level.isEquiv_sound h φ]
 
 /-- The `fvar` arm: the reading ignores the annotation. -/
@@ -61,8 +61,8 @@ theorem DefEq.fvar_soundU {d i : Nat} {ty₁ ty₂ : Expr} :
     DefEqSemU m φ d (.fvar i ty₁) (.fvar i ty₂) := by
   intro _ _ Δa aa ba _ _ haa hba _ _ _ _ _ _
   rw [denoteMeta_fvar] at haa hba
-  obtain rfl : aa = AnnotTerm.bvar (d - 1 - i) := (Option.some.inj haa).symm
-  obtain rfl : ba = AnnotTerm.bvar (d - 1 - i) := (Option.some.inj hba).symm
+  obtain rfl : aa = ITerm.bvar (d - 1 - i) := (Option.some.inj haa).symm
+  obtain rfl : ba = ITerm.bvar (d - 1 - i) := (Option.some.inj hba).symm
   rfl
 
 /-- `acval_const_congr'` with `AcvalParams`
@@ -104,7 +104,7 @@ places both spines in one telescope of types (the DESIGN record of task
 
 /-- The slot of a graded application whose head is not the point: the
 graph regime, and a domain that is a type. -/
-theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
+theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : ITerm}
     (hw : WellDenoted V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
     ∃ (v : Nat) (A : V) (B : V → V), v ≠ 0 ∧
       interp V ρ f ∈ˢ piR v A B ∧ interp V ρ x ∈ˢ A ∧ IsTy A := by
@@ -269,7 +269,7 @@ theorem DefEq.proj_sound {d : Nat} {s : Name} {i : Nat} {e₁ e₂ : Expr}
     · rw [hnt'] at hfe; exact nomatch hfe
   · rcases hrd₂ with ⟨entry', hfe', -⟩ | ⟨-, hdec₂⟩
     · rw [hnt] at hfe'; exact nomatch hfe'
-    · rcases AnnotTerm.projPair?_cases₂ hdec₁ hdec₂ with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    · rcases ITerm.projPair?_cases₂ hdec₁ hdec₂ with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · have hn₁ : interp V ρ ia₁ ≠ pt := by
           intro h; apply hna; rw [interp_fst, h, sfst_pt]
         have hn₂ : interp V ρ ia₂ ≠ pt := by
@@ -373,7 +373,7 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   -- type, not the point ("not pt" source (1))
   obtain ⟨resta, hfitT⟩ := formerFit hin hind hlv hstrip htlen hspt hTVa ρ hokWA
     (by rw [← heqWA]; exact hokTa.2.ne_pt)
-  have hfold : ∀ (l : List AnnotTerm) (x : V),
+  have hfold : ∀ (l : List ITerm) (x : V),
       l.foldl (fun r y => SetTheory.app r (interp V ρ y)) x
         = (l.map (interp V ρ)).foldl SetTheory.app x := by
     intro l x; rw [List.foldl_map]
@@ -502,7 +502,7 @@ claim of `b`'s type: where `b` is not the point it is a member of it,
 which the type's io claim gives for an atom-headed `b`. -/
 theorem DefEq.eta_core {d : Nat}
     {ty₁ body₁ b tb ty₂ B t₁ : Expr}
-    (htb : Frame d b → ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+    (htb : Frame d b → ∀ {Δa : List ITerm} {ea : ITerm},
       CtxOkS m φ d Δa b → denoteMeta m.acval env φ d b = some ea →
       Frame d tb ∧ LeavesSub tb b ∧
         ∃ ta, denoteMeta m.acval env φ d tb = some ta ∧
@@ -795,7 +795,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     rcases List.mem_append.mp hp with hp' | hp'
     · exact htk p hp'
     · exact hdr p hp'
-  have hfold : ∀ (l : List AnnotTerm) (x : V),
+  have hfold : ∀ (l : List ITerm) (x : V),
       l.foldl (fun r y => SetTheory.app r (interp V ρ y)) x
         = (l.map (interp V ρ)).foldl SetTheory.app x := by
     intro l x; rw [List.foldl_map]

@@ -55,7 +55,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -86,7 +86,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
     (ψ : Name → Nat) (ρ : Nat → V) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) {xs : List V}
     (hxs : SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs) :
-    ∃ (bs : List AnnotTerm) (b : AnnotTerm),
+    ∃ (bs : List ITerm) (b : ITerm),
       xs.getD (R.g.nP + genMinorSlot R.g R.rd c j) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) ∧
       WellDenoted V (consList xs ρ) (mkPisAV bs b) ∧
       ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
@@ -282,8 +282,8 @@ section Ih
 /-- `UnderTowerOk` from its spine form: the domains graded along their
 fitting spines, and at every full spine the body graded, in the result,
 the result a type. -/
-theorem underTowerOk_of_spines {b T : AnnotTerm} :
-    ∀ {ds : List AnnotTerm} {σ : Nat → V},
+theorem underTowerOk_of_spines {b T : ITerm} :
+    ∀ {ds : List ITerm} {σ : Nat → V},
       (∀ k, k < ds.length → ∀ zs : List V, SpineFit σ (ds.take k) zs →
         WellDenoted V (consList zs σ) (ds.getD k default) ∧
           IsTy (interp V (consList zs σ) (ds.getD k default))) →
@@ -310,7 +310,7 @@ theorem genIhDomAV_below {D mt : Nat} {q : IhDatum} (hq : IhDatumBelow D q) (hmt
     Term.bvarsBelow D (genIhDomAV D mt q).erase := by
   unfold genIhDomAV
   refine mkPisAV_below_of (hq.1) ?_
-  rw [AnnotTerm.erase_mkAppN]
+  rw [ITerm.erase_mkAppN]
   refine VExprAux.bvarsBelow_mkAppN (by show _ < _; omega) fun a ha => ?_
   obtain ⟨e, he, rfl⟩ := List.mem_map.mp ha
   exact hq.2 e he
@@ -344,11 +344,11 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys)
     {q : IhDatum} (hq : q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j) :
     UnderTowerOk (consList ys (consList rs ρ))
-      (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+      (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
           + ((tgtRs out).length - 1 - q.1)))
         (prefVarsAV R.g.pre.length ((genCtorAt R.g R.rd c j).nF + q.2.1.length)
           ++ (q.2.2.1 ++ [q.2.2.2])))
-      (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+      (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
           - 1 - classMotPos R.g (genClsOf R.rd q.1)))
         (q.2.2.1 ++ [q.2.2.2]))
       q.2.1 := by
@@ -460,7 +460,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       (interp V (consList zs (consList (xs ++ fs) ρ)) q.2.2.2) (by rw [hxl, hRPT])
       (by rw [List.length_map, hcnt, hMT, ← hgcT, hcls])
     have hT0 : interp V (consList zs (consList (xs ++ fs) (consList rs ρ)))
-        (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - classMotPos R.g (genClsOf R.rd q.1)))
+        (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - classMotPos R.g (genClsOf R.rd q.1)))
           (q.2.2.1 ++ [q.2.2.2]))
         = interp V (consList (xs ++ (q.2.2.1.map (interp V (consList zs (consList (xs ++ fs) ρ)))
             ++ [interp V (consList zs (consList (xs ++ fs) ρ)) q.2.2.2])) ρ)
@@ -478,7 +478,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
 /-- `genIhAV` IS a λ-tower over the `ih` datum's telescope. -/
 theorem genIhAV_eq_mkLamsAV {K rP D : Nat} {q : IhDatum} :
     genIhAV K rP D q = mkLamsAV q.2.1
-      (AnnotTerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+      (ITerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
         (prefVarsAV rP (D - rP + q.2.1.length) ++ (q.2.2.1 ++ [q.2.2.2]))) :=
   rfl
 

@@ -43,7 +43,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole nestHoleImg extendF CheckM
   PosD NestFieldKind PosTree nestArity nestContainer closeTelescope targetPiDomsWith)
 
@@ -538,12 +538,12 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hargs : ∀ (l : Nat) (xR xW : Expr), idxR[l]? = some xR → w.getAppArgs[off + l]? = some xW →
       Expr.ErasedEq xR (Expr.substFvars (ctx.hiAt prog.length + i) (rP + fvsF.length)
         (callSubst ctx prog fvsF) xW))
-    {x : Nat → AnnotTerm}
+    {x : Nat → ITerm}
     (hs : ∀ v, v < ctx.hiAt prog.length + i →
       Expr.WScoped (rP + fvsF.length) (callSubst ctx prog fvsF v) ∧
       (callSubst ctx prog fvsF v).looseBVarsBounded 0 = true ∧
       denoteMeta m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v) = some (x v))
-    {nda : AnnotTerm}
+    {nda : ITerm}
     (hnda : denoteMeta m.acval env ψ (ctx.hiAt prog.length + i) (Expr.mkPisOf teleW leafC)
       = some nda)
     {σR σW : Nat → V} {f : V} (hf : f ∈ˢ interp V σW nda)
@@ -553,12 +553,12 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hbs : SpineFit σR ((teleDoms m.acval env ψ (rP + fvsF.length) [] tele).getD [])
       bs) :
     bs.length = tele.length ∧
-    ∃ (ha : AnnotTerm) (argsA : List AnnotTerm),
+    ∃ (ha : ITerm) (argsA : List ITerm),
       denoteMeta m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppFn = some ha ∧
       DenoteMetaSpine m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppArgs argsA ∧
       bs.foldl app f ∈ˢ (argsA.map (interp V (consList bs σW))).foldl app
         (interp V (consList bs σW) ha) ∧
-      (∀ (l : Nat) (xR xW : Expr) (xa : AnnotTerm), idxR[l]? = some xR →
+      (∀ (l : Nat) (xR xW : Expr) (xa : ITerm), idxR[l]? = some xR →
         w.getAppArgs[off + l]? = some xW → argsA[off + l]? = some xa →
         xW.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false →
         interp V (consList bs σR) ((denoteMeta m.acval env ψ (rP + fvsF.length + bs.length)
@@ -607,7 +607,7 @@ theorem callWalkSem {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
   obtain rfl := Option.some.inj hxa'
   have hxWF := hargsF xW (List.mem_of_getElem? hxW)
   have hRd : denoteMeta m.acval env ψ (B + bs.length) xR
-      = some (AnnotTerm.substAV (substTau (ctx.hiAt prog.length + i) B x) xa bs.length) := by
+      = some (ITerm.substAV (substTau (ctx.hiAt prog.length + i) B x) xa bs.length) := by
     rw [denoteMeta_erasedEq hE, denoteMeta_substFvars m hs xW bs.length hxWF, hread]
     rfl
   rw [hRd, Option.getD_some, interp_substAV, show bs.length = bs.length + 0 from rfl,

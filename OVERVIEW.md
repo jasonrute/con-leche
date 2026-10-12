@@ -561,7 +561,7 @@ is stated semantically.
 de Bruijn indices, sorts at concrete levels, built-in constants at
 concrete level instantiations, no names, no binder infos. The
 interpretation reads the same syntax with projections spelled
-([type `AnnotTerm` in `ConLeche/Semantics/Syntax.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Syntax.lean#L42-L67)).
+([type `ITerm` in `ConLeche/Semantics/Syntax.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Syntax.lean#L42-L67)).
 
 **Interpretation.** The interpretation maps a term to a set, totally
 and term-directed
@@ -1252,7 +1252,7 @@ listed here carries meaning**.
 | `I` | the variant that also handles an inductive family's index arguments (`checkStructFieldSortsI`) |
 | `F` | stated over `FEnv`, the environment together with its lookup index (`natLitSupportedF`) |
 | `D` | the direct parse and the functions over its output (`parseExportD`, `trusted_agrees_skels_D`) |
-| `AV`, `Annot` | the interpretation's syntax: `AnnotTerm`, and `*AV` names are its spellings (`sumTyAV`, `natLitAV`) |
+| `AV`, `Annot` | the interpretation's syntax: `ITerm`, and `*AV` names are its spellings (`sumTyAV`, `natLitAV`) |
 | `WF` | well-formedness (`EnvWF`, `BlockWF`) |
 | `_pure` / `_cached` / `_checked` | the final theorems over the pure fueled fold, over the cached fold `checkDecls`, and over the driver's fully checked environment (`no_proof_of_False_pure`, `no_proof_of_False_cached`, `no_proof_of_False_checked`) |
 

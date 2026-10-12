@@ -54,7 +54,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -112,7 +112,7 @@ spine fitting the frame**: the openers' types read as the frame's
 domains, which are graded along their fitting spines. -/
 theorem graded_of_infer_openers (hμ : μ.verifiedChecks = true) {envC : Env}
     (mpC : EnvModelM V μ envC) (ψ : Name → Nat) {F D : Nat} {fr : List Expr}
-    {doms : List AnnotTerm} (hdl : doms.length = D)
+    {doms : List ITerm} (hdl : doms.length = D)
     (hshape : ∀ (i : Nat) (x : Expr), fr[i]? = some x → ∃ ty, x = Expr.fvar i ty)
     (hws : ∀ x ∈ fr, Expr.WScoped D x)
     (hlb : ∀ x ∈ fr, (Expr.fvarTypeD x).looseBVarsBounded 0 = true)
@@ -158,7 +158,7 @@ theorem graded_of_infer_openers (hμ : μ.verifiedChecks = true) {envC : Env}
       ⟨hwsE, hbE, hLX⟩ hCE hwa
   have hsat : ∀ (σ : Nat → V) (ys : List V), SpineFit σ doms ys →
       Sat V doms.reverse (consList ys σ) := fun σ ys hys => by
-    have := sat_of_spineFit (Δ₀ := ([] : List AnnotTerm)) (Sat_nil V σ) hys
+    have := sat_of_spineFit (Δ₀ := ([] : List ITerm)) (Sat_nil V σ) hys
     simpa using this
   refine ⟨wa, hwa, fun σ ys hys => hgr _ (hsat σ ys hys), fun u hwu σ ys hys => ?_⟩
   obtain ⟨-, ihw, -, ihi⟩ := checkSoundAt (V := V) hμ (Rules.RulesInputs.ofSem mpC ψ) F
@@ -275,7 +275,7 @@ theorem inferTypeCore_mkAppN_endsInSort_len {envK : Env} {F d : Nat} {s : Level}
 scoped and bounded, their types reading as the frame's domains, which are
 graded along their fitting spines. -/
 structure GradedFrame {envC : Env} (mpC : EnvModelM V μ envC) (ψ : Name → Nat) (D : Nat)
-    (fr : List Expr) (doms : List AnnotTerm) : Prop where
+    (fr : List Expr) (doms : List ITerm) : Prop where
   len : doms.length = D
   frLen : fr.length = D
   shape : ∀ (i : Nat) (x : Expr), fr[i]? = some x → ∃ ty, x = Expr.fvar i ty
@@ -289,7 +289,7 @@ structure GradedFrame {envC : Env} (mpC : EnvModelM V μ envC) (ψ : Name → Na
 /-- `graded_of_infer_openers` at a graded frame. -/
 theorem GradedFrame.graded (hμ : μ.verifiedChecks = true) {envC : Env}
     {mpC : EnvModelM V μ envC} {ψ : Name → Nat} {D : Nat} {fr : List Expr}
-    {doms : List AnnotTerm} (G : GradedFrame mpC ψ D fr doms) {F : Nat}
+    {doms : List ITerm} (G : GradedFrame mpC ψ D fr doms) {F : Nat}
     {e t : Expr} (hinf : ConLeche.inferTypeCore μ envC F D e = .ok t)
     (hwsE : Expr.WScoped D e) (hbE : e.looseBVarsBounded 0 = true)
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fr) :
@@ -303,7 +303,7 @@ theorem GradedFrame.graded (hμ : μ.verifiedChecks = true) {envC : Env}
 a type. -/
 theorem GradedFrame.gradedTy (hμ : μ.verifiedChecks = true) {envC : Env}
     {mpC : EnvModelM V μ envC} {ψ : Name → Nat} {D : Nat} {fr : List Expr}
-    {doms : List AnnotTerm} (G : GradedFrame mpC ψ D fr doms) {F : Nat}
+    {doms : List ITerm} (G : GradedFrame mpC ψ D fr doms) {F : Nat}
     {e t : Expr} {u : Level} (hinf : ConLeche.inferTypeCore μ envC F D e = .ok t)
     (hwu : ConLeche.whnf μ envC F D t = .ok (.sort u))
     (hwsE : Expr.WScoped D e) (hbE : e.looseBVarsBounded 0 = true)
@@ -320,7 +320,7 @@ it**: their types read (they are inferred), and each is graded along the
 spines fitting the frame and the openers before it. -/
 theorem GradedFrame.extend (hμ : μ.verifiedChecks = true) {envC : Env}
     {mpC : EnvModelM V μ envC} {ψ : Name → Nat} {D : Nat} {fr : List Expr}
-    {doms : List AnnotTerm} (G : GradedFrame mpC ψ D fr doms) {F n : Nat}
+    {doms : List ITerm} (G : GradedFrame mpC ψ D fr doms) {F n : Nat}
     {T body t : Expr} {zs : List Expr} (hop : ConLeche.openPisAtFvars n T D = some (zs, body))
     (hinf : ConLeche.inferTypeCore μ envC F D T = .ok t)
     (hwsT : Expr.WScoped D T) (hbT : T.looseBVarsBounded 0 = true)
@@ -1020,7 +1020,7 @@ theorem genArgs_graded (hμ : μ.verifiedChecks = true)
     rw [tgtMkAV, hB, show (tgtCtorOf out c j).1.name = x.cv.name by rw [hcv], hMaj, hw]
     exact hg'
 
-theorem readOpenedDoms_congr_erasedEq {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem readOpenedDoms_congr_erasedEq {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {ψ : Name → Nat} :
     ∀ (d : Nat) (zs xs : List Expr), zs.length = xs.length →
       (∀ (k : Nat) (z x : Expr), zs[k]? = some z → xs[k]? = some x →
@@ -1035,7 +1035,7 @@ theorem readOpenedDoms_congr_erasedEq {acval : Name → (Name → Nat) → Annot
   | _, [], _ :: _, hl, _ => by simp at hl
   | _, _ :: _, [], hl, _ => by simp at hl
 
-theorem denoteMetaSpine_of_some {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem denoteMetaSpine_of_some {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} {d : Nat} :
     ∀ (as : List Expr), (∀ a ∈ as, ∃ v, denoteMeta acval env φ d a = some v) →
       DenoteMetaSpine acval env φ d as (as.map fun a => (denoteMeta acval env φ d a).getD default)
@@ -1045,7 +1045,7 @@ theorem denoteMetaSpine_of_some {acval : Name → (Name → Nat) → AnnotTerm} 
     refine .cons (by simp only [hv, Option.getD_some]) (denoteMetaSpine_of_some as fun b hb =>
       h b (List.mem_cons_of_mem _ hb))
 
-theorem genIhdAV_length' {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {g : ClassGen}
+theorem genIhdAV_length' {acval : Name → (Name → Nat) → ITerm} {env : Env} {g : ClassGen}
     {rd : ClassRead} {ψ : Name → Nat} {c j : Nat} :
     (genIhdAV acval env g rd ψ c j).length = (genCtorAt g rd c j).recs.length := by
   simp [genIhdAV]
@@ -1097,7 +1097,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
         SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1) ys →
         WellDenotedTy V (consList ys σ)
-          (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+          (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
               - 1 - (R.g.nP + st)))
             (q.2.2.1 ++ [q.2.2.2]))) := by
   obtain ⟨cls, s, x, res, ws, ihs, fvs1, o1, xs', rest, hgc, hgx, hms, hxmem, hMaj, hrP, hmp,
@@ -1552,11 +1552,11 @@ theorem genRuleRaZ (hμ : μ.verifiedChecks = true)
       SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
       (tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = (tgtMajor out c).nIdx)
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
-    {sf : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
+    {sf : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) {i : Nat} {cA : ConstantVal × Nat}
     (hcA : r.2.2.2[i]? = some cA) {rhs : Expr} (hrhs : r.2.1[i]? = some rhs)
-    {ψ : Name → Nat} {Ra : AnnotTerm}
+    {ψ : Name → Nat} {Ra : ITerm}
     (hRa : denoteMeta (blockRecAcv mpC.base2.acval envC (tgtRs out) sf eqs)
       (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC) ψ 0 rhs = some Ra)
     (hℓ : Level.eval ψ (ConLeche.structElimLevel pp.toBlockShape.elim pp.toBlockShape.large) = 0)

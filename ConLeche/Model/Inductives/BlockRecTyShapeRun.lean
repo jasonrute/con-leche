@@ -59,7 +59,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars)
 
 universe w
@@ -191,7 +191,7 @@ theorem walkCtx_blockFrame {envT : Env} {mT : EnvModel V envT} {ψ : Name → Na
     (h₁ : openPisAtFvars rP recTy 0 = some (fvsPref, o₁))
     (h₂ : openPisAtFvars nF crest rP = some (fvsF, o₂))
     (h₃ : openPisAtFvars nR ihTele (rP + nF) = some (fvsIh, o₃))
-    {pdoms fdoms ihdoms : List AnnotTerm}
+    {pdoms fdoms ihdoms : List ITerm}
     (hp : pdoms.length = rP) (hf : fdoms.length = nF) (hidx : ihdoms.length = nR)
     (hdoms : ∀ (i : Nat) (x : Expr), (fvsPref ++ fvsF ++ fvsIh)[i]? = some x →
       denoteMeta mT.acval envT ψ i (Expr.fvarTypeD x)

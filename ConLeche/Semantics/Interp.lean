@@ -67,11 +67,11 @@ def cons (x : V) (ρ : Nat → V) : Nat → V
 @[simp] theorem cons_succ (x : V) (ρ : Nat → V) (i : Nat) :
     cons x ρ (i + 1) = ρ i := rfl
 
-/-- The environment transformation matching `AnnotTerm.liftN n · k`. -/
+/-- The environment transformation matching `ITerm.liftN n · k`. -/
 def shiftE (n k : Nat) (ρ : Nat → V) : Nat → V :=
   fun i => if i < k then ρ i else ρ (i + n)
 
-/-- The environment transformation matching `AnnotTerm.inst · a k`. -/
+/-- The environment transformation matching `ITerm.inst · a k`. -/
 def instE (k : Nat) (x : V) (ρ : Nat → V) : Nat → V :=
   fun i => if i < k then ρ i else if i = k then x else ρ (i - 1)
 
@@ -131,7 +131,7 @@ variable (V : Type w) [SetTheory V]
 
 /-- The interpretation: total, term-directed, environment-free; the
 binders read their regime off the values. -/
-noncomputable def interp : (Nat → V) → AnnotTerm → V
+noncomputable def interp : (Nat → V) → ITerm → V
   | ρ, .bvar i => ρ i
   | _, .sort u => univ u
   | _, .const c us => bval V c us
@@ -150,32 +150,32 @@ noncomputable def interp : (Nat → V) → AnnotTerm → V
     interp V ρ (.sort u) = univ u := rfl
 @[simp] theorem interp_const (ρ : Nat → V) (c : ConLeche.Term.BConst)
     (us : List Nat) : interp V ρ (.const c us) = bval V c us := rfl
-@[simp] theorem interp_app (ρ : Nat → V) (f a : AnnotTerm) :
+@[simp] theorem interp_app (ρ : Nat → V) (f a : ITerm) :
     interp V ρ (.app f a) = SetTheory.app (interp V ρ f) (interp V ρ a) := rfl
-@[simp] theorem interp_lam (ρ : Nat → V) (A b : AnnotTerm) :
+@[simp] theorem interp_lam (ρ : Nat → V) (A b : ITerm) :
     interp V ρ (.lam A b) =
       lamV (interp V ρ A) fun x => interp V (cons x ρ) b := rfl
-@[simp] theorem interp_pi (ρ : Nat → V) (A B : AnnotTerm) :
+@[simp] theorem interp_pi (ρ : Nat → V) (A B : ITerm) :
     interp V ρ (.pi A B) =
       piV (interp V ρ A) fun x => interp V (cons x ρ) B := rfl
-@[simp] theorem interp_letE (ρ : Nat → V) (v b : AnnotTerm) :
+@[simp] theorem interp_letE (ρ : Nat → V) (v b : ITerm) :
     interp V ρ (.letE v b) = interp V (cons (interp V ρ v) ρ) b := rfl
-@[simp] theorem interp_eqE (ρ : Nat → V) (a b : AnnotTerm) :
+@[simp] theorem interp_eqE (ρ : Nat → V) (a b : ITerm) :
     interp V ρ (.eqE a b) = eqv (interp V ρ a) (interp V ρ b) := rfl
-@[simp] theorem interp_fst (ρ : Nat → V) (e : AnnotTerm) :
+@[simp] theorem interp_fst (ρ : Nat → V) (e : ITerm) :
     interp V ρ (.fst e) = sfst (interp V ρ e) := rfl
-@[simp] theorem interp_snd (ρ : Nat → V) (e : AnnotTerm) :
+@[simp] theorem interp_snd (ρ : Nat → V) (e : ITerm) :
     interp V ρ (.snd e) = ssnd (interp V ρ e) := rfl
 @[simp] theorem interp_prf (ρ : Nat → V) : interp V ρ .prf = pt := rfl
 
 variable {V} in
 /-- `interp` of an application spine, as a `map`-then-`foldl`. -/
 theorem interp_mkAppN_foldl (ρ : Nat → V) :
-    ∀ (f : AnnotTerm) (es : List AnnotTerm),
-      interp V ρ (AnnotTerm.mkAppN f es) = (es.map (interp V ρ)).foldl SetTheory.app (interp V ρ f)
+    ∀ (f : ITerm) (es : List ITerm),
+      interp V ρ (ITerm.mkAppN f es) = (es.map (interp V ρ)).foldl SetTheory.app (interp V ρ f)
   | _, [] => rfl
   | f, e :: es => by
-    rw [AnnotTerm.mkAppN_cons, interp_mkAppN_foldl ρ (.app f e) es]
+    rw [ITerm.mkAppN_cons, interp_mkAppN_foldl ρ (.app f e) es]
     rfl
 
 end ConLeche.Semantics

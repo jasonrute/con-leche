@@ -41,27 +41,27 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-! ## The reading's telescope -/
 
 /-- **A reading's ∀-telescope.** -/
-inductive PiTeleAV : Nat → AnnotTerm → List AnnotTerm → AnnotTerm → Prop
-  | nil {T : AnnotTerm} : PiTeleAV 0 T [] T
-  | cons {k : Nat} {A B R : AnnotTerm} {Γ : List AnnotTerm} :
+inductive PiTeleAV : Nat → ITerm → List ITerm → ITerm → Prop
+  | nil {T : ITerm} : PiTeleAV 0 T [] T
+  | cons {k : Nat} {A B R : ITerm} {Γ : List ITerm} :
       PiTeleAV k B Γ R → PiTeleAV (k + 1) (.pi A B) (Γ ++ [A]) R
 
-theorem PiTeleAV.length : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
-    {R : AnnotTerm}, PiTeleAV k T Γ R → Γ.length = k := by
+theorem PiTeleAV.length : ∀ {k : Nat} {T : ITerm} {Γ : List ITerm}
+    {R : ITerm}, PiTeleAV k T Γ R → Γ.length = k := by
   intro k T Γ R h
   induction h with
   | nil => rfl
   | cons _ ih => simp [ih]
 
 /-- A telescope of positive length exposes its head `.pi`. -/
-theorem PiTeleAV.succ_inv {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
-    {R : AnnotTerm} (h : PiTeleAV (k + 1) T Γ R) :
-    ∃ (A B : AnnotTerm) (Γ' : List AnnotTerm),
+theorem PiTeleAV.succ_inv {k : Nat} {T : ITerm} {Γ : List ITerm}
+    {R : ITerm} (h : PiTeleAV (k + 1) T Γ R) :
+    ∃ (A B : ITerm) (Γ' : List ITerm),
       T = .pi A B ∧ Γ = Γ' ++ [A] ∧ PiTeleAV k B Γ' R := by
   cases h with
   | cons h' => exact ⟨_, _, _, rfl, rfl, h'⟩

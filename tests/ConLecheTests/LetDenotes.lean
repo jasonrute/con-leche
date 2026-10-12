@@ -42,7 +42,7 @@ example {X : V}
   Denotes_functional h (.letE .sort .bvar)
 
 /-- ζ in the reading, at every valuation. -/
-example (v b : AnnotTerm) (σ : Nat → V) :
+example (v b : ITerm) (σ : Nat → V) :
     interp V σ (.letE v b) = interp V σ (b.inst v) :=
   interp_zeta V v b σ
 

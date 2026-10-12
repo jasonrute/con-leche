@@ -33,7 +33,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 universe w
@@ -52,7 +52,7 @@ theorem interp_bvarAt {L : List V} {ρ : Nat → V} {k : Nat} (hk : k < L.length
 
 /-- **A term lifted over variables inserted below a spine** reads at the
 frame with them as the term at the frame without. -/
-theorem interp_liftN_consList2 (e : AnnotTerm) (bs hs : List V) (ρ : Nat → V) :
+theorem interp_liftN_consList2 (e : ITerm) (bs hs : List V) (ρ : Nat → V) :
     interp V (consList bs (consList hs ρ)) (e.liftN hs.length bs.length)
       = interp V (consList bs ρ) e := by
   rw [interp_liftN, ConLeche.Semantics.shiftE_consList_len, shiftE_consList]

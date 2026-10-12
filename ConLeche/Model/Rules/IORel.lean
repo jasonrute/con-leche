@@ -37,7 +37,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 
 universe w
@@ -106,7 +106,7 @@ theorem IOHered.forallE {d : Nat} {T : Expr} {ρ : Nat → V} {v : V}
   | _ => simp [IOHered] at h
 
 /-- The member half at a known reading. -/
-theorem IOMem.of_reading {d : Nat} {T : Expr} {ta : AnnotTerm} {ρ : Nat → V} {v : V}
+theorem IOMem.of_reading {d : Nat} {T : Expr} {ta : ITerm} {ρ : Nat → V} {v : V}
     (hT : denoteMeta m.acval env φ d T = some ta) (h : IOMem m φ d T ρ v) :
     WellDenotedTy V ρ ta ∧ v ∈ˢ interp V ρ ta := by
   obtain ⟨ta', hta', hw, hmem⟩ := h
@@ -114,7 +114,7 @@ theorem IOMem.of_reading {d : Nat} {T : Expr} {ta : AnnotTerm} {ρ : Nat → V} 
   exact ⟨hw, hmem⟩
 
 /-- A membership is the io claim, neutral clause included. -/
-theorem IORelN.of_mem {d : Nat} {e T : Expr} {ta : AnnotTerm} {ρ : Nat → V} {v : V}
+theorem IORelN.of_mem {d : Nat} {e T : Expr} {ta : ITerm} {ρ : Nat → V} {v : V}
     (hT : denoteMeta m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
     (hmem : v ∈ˢ interp V ρ ta) : IORelN m φ d e T ρ v :=
   ⟨Or.inr (Or.inl ⟨ta, hT, hw, hmem⟩), fun _ => Or.inr ⟨ta, hT, hw, hmem⟩⟩
@@ -125,7 +125,7 @@ theorem IORelN.pt {d : Nat} {e T : Expr} {ρ : Nat → V} :
   ⟨Or.inl rfl, fun _ => Or.inl rfl⟩
 
 /-- A membership is the io claim. -/
-theorem IORel.of_mem {d : Nat} {T : Expr} {ta : AnnotTerm} {ρ : Nat → V} {v : V}
+theorem IORel.of_mem {d : Nat} {T : Expr} {ta : ITerm} {ρ : Nat → V} {v : V}
     (hT : denoteMeta m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
     (hmem : v ∈ˢ interp V ρ ta) : IORel m φ d T ρ v :=
   Or.inr (Or.inl ⟨ta, hT, hw, hmem⟩)
@@ -168,7 +168,7 @@ is the claim at the body instantiated with the argument.  One direction
 suffices: a type that is not a ∀ may become one (a variable
 instantiated with a ∀), and a member of the variable's value is then a
 member of the ∀'s. -/
-theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
+theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : ITerm}
     (hwa : Expr.WScoped p a) (hba : a.looseBVarsBounded 0 = true)
     (ha : denoteMeta m.acval env φ p a = some x)
     {e : Expr} {D : Nat} {ρ : Nat → V} {v : V} (hpD : p ≤ D)
@@ -184,7 +184,7 @@ theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
     rw [interp_inst]; exact hwT.2
   · rw [interp_inst]; exact hmem
 
-theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
+theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : ITerm}
     (hwa : Expr.WScoped p a) (hba : a.looseBVarsBounded 0 = true)
     (ha : denoteMeta m.acval env φ p a = some x) :
     ∀ (e : Expr) (D : Nat) (ρ : Nat → V) (v : V), p ≤ D →

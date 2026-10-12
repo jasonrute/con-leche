@@ -33,7 +33,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal NestCtx instPisWith nestCanonSub)
 
 universe w
@@ -392,9 +392,9 @@ theorem holeAbs_memberApp {ctx : NestCtx} (hnd : ctx.names.Nodup) {t : Nat}
 
 /-- **A read telescope, peeled along its opening**: the body reads as
 the reading's body, every opened variable's annotation as its domain. -/
-theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat} :
+theorem denoteMeta_peel {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat} :
     ∀ (n : Nat) {e : Expr} {D : Nat} {xs : List Expr} {rest : Expr}
-      {gds : List AnnotTerm} {B : AnnotTerm},
+      {gds : List ITerm} {B : ITerm},
       openPisAtFvars n e D = some (xs, rest) → gds.length = n →
       denoteMeta acval env φ D e = some (mkPisAV gds B) →
       denoteMeta acval env φ (D + n) rest = some B ∧
@@ -413,7 +413,7 @@ theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : E
         simp only [Option.some.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
         obtain ⟨ta, ba, hta, hba, heq⟩ := denoteMeta_forallE_inv hr
-        simp only [mkPisAV, AnnotTerm.pi.injEq] at heq
+        simp only [mkPisAV, ITerm.pi.injEq] at heq
         obtain ⟨hg, rfl⟩ := heq
         obtain ⟨hB, hdoms⟩ := denoteMeta_peel n hop (by simpa using hl) hba
         refine ⟨by rwa [show D + 1 + n = D + (n + 1) by omega] at hB, fun l x hx => ?_⟩
