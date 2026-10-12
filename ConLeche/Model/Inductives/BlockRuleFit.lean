@@ -657,25 +657,27 @@ syntax discharged: `instLamsAt_index_WScoped`, `instLamsAt_leaves` and
 section TwoStage
 
 omit [SetTheory V] μ in
-/-- A λ-tower at a fixed height determines its data: `mkLamsAV` is
-injective on lists of equal length, so the `∀ lds A` binders the
+/-- A λ-tower at a fixed height determines its domains and body:
+`mkLamsAV` is injective on lists of equal length up to the unread
+numeral components, so the `∀ lds A` binders the
 contract's residue and tower statements carry are TIED and not free.
 (Two spellings, two names: this is about `mkLamsAV`; `lamTele_mkLamsAV`
 is the one about `LamTele`.) -/
 theorem mkLamsAV_length_inj :
     ∀ {lds lds' : List (Nat × AnnotTerm)} {A A' : AnnotTerm},
-      lds.length = lds'.length → mkLamsAV lds A = mkLamsAV lds' A' → lds = lds' ∧ A = A'
+      lds.length = lds'.length → mkLamsAV lds A = mkLamsAV lds' A' →
+        lds.map (·.2) = lds'.map (·.2) ∧ A = A'
   | [], [], _, _, _, h => ⟨rfl, h⟩
   | [], _ :: _, _, _, hl, _ => nomatch hl
   | _ :: _, [], _, _, hl, _ => nomatch hl
   | ld :: lds, ld' :: lds', A, A', hl, h => by
-    have h' : AnnotTerm.lam ld.1 ld.2 (mkLamsAV lds A)
-        = AnnotTerm.lam ld'.1 ld'.2 (mkLamsAV lds' A') := h
-    obtain ⟨h1, h2, h3⟩ : ld.1 = ld'.1 ∧ ld.2 = ld'.2 ∧ mkLamsAV lds A = mkLamsAV lds' A' := by
-      injection h' with a b c
-      exact ⟨a, b, c⟩
-    obtain ⟨rfl, rfl⟩ := mkLamsAV_length_inj (by simpa using hl) h3
-    exact ⟨by rw [show ld = ld' from Prod.ext h1 h2], rfl⟩
+    have h' : AnnotTerm.lam ld.2 (mkLamsAV lds A)
+        = AnnotTerm.lam ld'.2 (mkLamsAV lds' A') := h
+    obtain ⟨h2, h3⟩ : ld.2 = ld'.2 ∧ mkLamsAV lds A = mkLamsAV lds' A' := by
+      injection h' with b c
+      exact ⟨b, c⟩
+    obtain ⟨h4, rfl⟩ := mkLamsAV_length_inj (by simpa using hl) h3
+    exact ⟨by simp [h2, h4], rfl⟩
 
 end TwoStage
 
