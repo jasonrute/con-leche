@@ -100820,3 +100820,49 @@ imports `Univ` (what its statements need) and `Lfp` privately, so the
 allowlisted `public import …Derive.Lfp` line is gone; `GraphRec`'s
 `Derive.Pt` and `LfpFam`'s `Derive.Graphs` imports were clean removals
 by the task #223 criterion. No `sorry`, no new axiom.
+
+## TASK #342 — L2B-REVERT: the per-field sorts reverted (2026-10-12, agent/342-l2b-revert)
+
+The v2 re-plan (`_tmp/342v2-design.md` §2, L2b row) found L2b
+unnecessary once `univ` is re-targeted to #344's cumulative `tyU`:
+`{pt} ∈ tyU w` at every positive level, so `psigma.{w,w}` with a
+`Prop` field already typechecks semantically and the per-field sorts
+(`FieldsSorts`, `absCtorSortsRun`, the restricted-`Psi` sorts) buy
+nothing a uniform `w` did not already have. Ruling Q4 (§10):
+revert, recommended because the machinery existed only for #340's
+strict universe that this port is replacing.
+
+`git revert -m 1 ad35cc057` (the L2b merge commit, parent 1 being the
+pre-L2b tree) applied with no conflicts: nothing landed on `port-342`
+between the L2b merge and this revert, and no later lane had built on
+L2b's per-field data. +1078 −2066 over 31 files, undoing L2b's
++1951 −1078 net plus its own DESIGN record (−115) and the whitepaper
+anchor repoints it made; the `ConLeche/Model/Inductives/*`,
+`ConLeche/Model/Annot/*`, `ConLeche/Semantics/Tower/*` and
+`ConLeche/Model/BasisLfp.lean` files are back to their pre-L2b
+bodies. No proof elsewhere depended on the per-field sorts, so no
+repair was needed anywhere outside the reverted files themselves —
+`lake build` and `lake test` are warning-free with zero edits beyond
+the revert.
+
+`port-342` had not moved since the L2b merge (still at `ad35cc057`
+when this lane started), so no intervening merge was needed before
+landing.
+
+**Gates:** `lake build`, `lake test` (warning-free, no proof
+breakage). `tests/arena.sh`'s full battery passed (layering, shake,
+trust-surface, overview-links, quote-gate, no-local-paths, challenge,
+the arena/e2e/annot suites, the mode/IO/worker/install/DAG-tower
+gates, the trusted and `--jobs=1`/`--jobs=4` sweeps), except one
+sub-check of `tests/pindump.sh`: the `leanprover-lean4-v4.33.0`
+pinner's `natop-pins-export` exe failed to link because
+`/nix/store/cbzk9mphdh7wvsl0nkdxx9jp1xwdfxjs-elan-4.2.3`'s
+`nix-support/ld-wrapper.sh` is gone from this machine's Nix store (the
+path no longer exists at all, confirmed with `find /nix/store`). That
+pinner reproduced byte-for-byte on this same tree's ancestor
+(`l2b-field-sorts-logs/arena.log`, 2026-10-11 19:20) and this revert
+touches no file under `pins/`, `pinners/` or `tests/pindump.sh`
+(`git diff --stat ad35cc057 HEAD -- pins/ pinners/ tests/pindump.sh`
+is empty): a host Nix-store regression between the two runs, not a
+property of this lane's content or of #342. No `sorry`, no new axiom,
+no statement change.
