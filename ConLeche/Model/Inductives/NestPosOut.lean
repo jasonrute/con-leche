@@ -173,7 +173,7 @@ theorem open_of_erasedEq_closeTelescope :
     cases e with
     | forallE a b bm' =>
       simp only [closeTelescope] at he
-      obtain ⟨-, ha, hbE⟩ := he
+      obtain ⟨ha, hbE⟩ := he
       have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeTelescope_bounded nds (d + 1) body hcl' hb

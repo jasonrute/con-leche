@@ -187,23 +187,19 @@ theorem ClassMajorRun.transport {fe₁ fe : FEnv} {p : BlockShape} (hag : ClassE
 /-! ## The class keys and the classes, in the pass -/
 
 /-- **`classKeyOf`, inverted**: the key moved to the canonical
-parameters, every parameter closed below them, and annotated at depth
-`nP`. -/
-theorem classKeyOf_run {env : Env} {nP : Nat} {params : List Expr} {k k' : ClassKey}
-    {F : Nat} (h : classKeyOf (fueledOps mode F) env nP params k = .ok k') :
-    k'.ind = k.ind ∧ k'.lvls = k.lvls ∧
-    (∀ x ∈ (classKeyCanon params k).ds, x.bvarB = 0 ∧ x.fvarB ≤ nP) ∧
-    (classKeyCanon params k).ds.mapM ((fueledOps mode F).annotate env nP) = .ok k'.ds := by
+parameters, every parameter closed below them. -/
+theorem classKeyOf_run {nP : Nat} {params : List Expr} {k k' : ClassKey}
+    (h : classKeyOf (m := CheckM) nP params k = .ok k') :
+    k' = classKeyCanon params k ∧
+    (∀ x ∈ (classKeyCanon params k).ds, x.bvarB = 0 ∧ x.fvarB ≤ nP) := by
   unfold classKeyOf at h
   simp only at h
   by_cases hg : ((classKeyCanon params k).ds.all fun x => x.bvarB == 0 && x.fvarB ≤ nP) = true
   case neg => rw [ite_eq_right hg] at h; close_throw h
   rw [ite_eq_left hg] at h
-  try simp only [bind, Except.bind] at h
-  obtain ⟨ds, hds, h⟩ := exceptBind_ok h
   simp only [pure, Except.pure, Except.ok.injEq] at h
   subst h
-  refine ⟨rfl, rfl, fun x hx => ?_, hds⟩
+  refine ⟨rfl, fun x hx => ?_⟩
   have := List.all_eq_true.mp hg x hx
   simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at this
   exact this
@@ -212,20 +208,20 @@ theorem classKeyOf_run {env : Env} {nP : Nat} {params : List Expr} {k k' : Class
 the pre-pass's reading `rd` of the stream's raw recursor types, the keys
 made checkable `keys`, the classes `Ms` checked as majors at `fe₁`, one
 per member. -/
-structure ClassesRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (p : BlockShape)
+structure ClassesRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (p : BlockShape)
     (params : List Expr) (ctorsAs : List (List (ConstantVal × Nat))) (rd : ClassRead)
     (Ms : List TargetMajor) : Type where
   keys : List ClassKey
   hrd : classRead p.nP (classNPcOf p fe₁) p.recs = some rd
-  hkeys : rd.classes.mapM (classKeyOf (fueledOps mode F) env₁ p.nP params) = .ok keys
+  hkeys : rd.classes.mapM (classKeyOf (m := CheckM) p.nP params) = .ok keys
   hMs : classMajors (fueledOps mode F) fe₁ p ctorsAs params keys = .ok Ms
   hone : ∀ t, t < p.k → (Ms.filter (·.member == some t)).length = 1
 
-theorem checkBlockClasses_run {fe₁ : FEnv} {env₁ : Env} {p : BlockShape} {params : List Expr}
+theorem checkBlockClasses_run {fe₁ : FEnv} {p : BlockShape} {params : List Expr}
     {ctorsAs : List (List (ConstantVal × Nat))} {rd : ClassRead} {Ms : List TargetMajor}
     {F : Nat}
     (h : checkBlockClasses (fueledOps mode F) fe₁ p params ctorsAs = .ok (rd, Ms)) :
-    Nonempty (ClassesRun mode F fe₁ env₁ p params ctorsAs rd Ms) := by
+    Nonempty (ClassesRun mode F fe₁ p params ctorsAs rd Ms) := by
   unfold checkBlockClasses at h
   obtain ⟨rd', hrd, h⟩ := exceptBind_ok h
   obtain ⟨keys, hkeys, h⟩ := exceptBind_ok h
@@ -714,7 +710,7 @@ structure GenStageRun (mode : CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   /-- the generated rules -/
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
-    (Level.zeronessOf (structElimLevel p.elim p.large)) cvGs rd.recCls = .ok out
+    cvGs rd.recCls = .ok out
 
 /-- The generator of a stage run. -/
 @[expose] def GenStageRun.g {F : Nat} {fe : FEnv} {p : BlockShape} {nestedBit : Bool}
@@ -809,7 +805,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   /-- the block's canonical parameters and holes (the positivity check's context) -/
   hctx : blockNestCtx (m := CheckM) p cvTas fe₁.find? = .ok (ctx, holes)
   /-- the class keys, moved to the canonical parameters and annotated -/
-  hkeys : rd.classes.mapM (classKeyOf (fueledOps mode F) env₁ p.nP ctx.params) = .ok keys
+  hkeys : rd.classes.mapM (classKeyOf (m := CheckM) p.nP ctx.params) = .ok keys
   /-- the classes, each a checked major over the canonical parameters -/
   hMs₀ : classMajors (fueledOps mode F) fe₁ p ctorsAs ctx.params keys = .ok Ms₀
   /-- each class, a checked major at the constructors' environment too -/
@@ -838,7 +834,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   /-- the generated rules -/
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p ctx.params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
-    (Level.zeronessOf (structElimLevel p.elim p.large)) cvGs rd.recCls = .ok out
+    cvGs rd.recCls = .ok out
 
 /-- The generator of a run. -/
 @[expose] def GenRecRun.g {F : Nat} {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}

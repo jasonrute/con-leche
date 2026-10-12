@@ -36,12 +36,11 @@ Scoping, per cached operation:
 * the classes' parameters are the pre-pass's reading of the stream's
   RAW recursor types, moved to the canonical parameters and kept below
   them by `classKeyOf`'s guard (every free variable left is a canonical
-  parameter, `replaceFVars_WScoped_of_below`), then annotated
-  (`classKeyOfS_sim`) — so every class is scoped by the parameter openers
+  parameter, `replaceFVars_WScoped_of_below`, `classKeyOfS_sim`) — so
+  every class is scoped by the parameter openers
   (`TargetMajScoped`), which is all the class match (`targetMajorNfs`,
   `targetK53`) and the pin typing need;
-* each generated RULE is closed by `classRuleOk`'s own guard before it
-  is annotated.
+* each generated RULE is closed by `classRuleOk`'s own guard.
 -/
 
 set_option linter.unusedSimpArgs false
@@ -263,37 +262,15 @@ theorem classMajorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {
       · rw [hMpf, hpl]; exact hds
     · exact hMs N hN
 
-/-- The class keys' parameters annotated, one after another: each
-annotated term scoped as its input. -/
-theorem annotateLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
-    ∀ (l bs : List Expr) {s₀ : CState}, CSOK mode env s₀ → (∀ x ∈ l, WScoped d x) →
-      (∀ x ∈ bs, WScoped d x) →
-      SimC mode env s₀ (fun v w => v = w ∧ ∀ x ∈ v, WScoped d x)
-        (List.mapM.loop ((sharedOpsC mode (mkFEnv env)).annotate env d) l bs)
-        (List.mapM.loop ((fueledOpsM mode).annotate env d) l bs)
-  | [], bs, _, hs, _, hbs => by
-    simp only [List.mapM.loop]
-    exact SimC.pure hs ⟨rfl, fun x hx => hbs x (List.mem_reverse.mp hx)⟩
-  | a :: l, bs, _, hs, hl, hbs => by
-    simp only [List.mapM.loop]
-    refine SimC.bind (opE_annotate_sim hμ henv hs (hl a List.mem_cons_self))
-      (fun s₁ b b' hs₁ hB => ?_)
-    obtain ⟨rfl, hwb⟩ := hB
-    exact annotateLoopS_sim hμ henv l (b :: bs) hs₁ (fun x hx => hl x (List.mem_cons_of_mem _ hx))
-      (fun x hx => by
-        rcases List.mem_cons.mp hx with rfl | hx
-        · exact hwb
-        · exact hbs x hx)
-
-/-- **One class key made checkable**: its annotated parameters scoped at
+/-- **One class key made checkable**: its parameters scoped at
 the parameter count (the guard keeps every free variable a canonical
 parameter). -/
 theorem classKeyOfS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
     {params : List Expr} (hpl : params.length = nP) (hp : ∀ x ∈ params, WScoped nP x)
     (k : ClassKey) {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun v w => v = w ∧ ∀ x ∈ v.ds, WScoped nP x)
-      (classKeyOf (sharedOpsC mode (mkFEnv env)) env nP params k)
-      (classKeyOf (fueledOpsM mode) env nP params k) := by
+      (classKeyOf (m := CheckCM) nP params k)
+      (classKeyOf (m := FueledM) nP params k) := by
   unfold classKeyOf
   dsimp only
   by_cases hg : ((classKeyCanon params k).ds.all fun x => x.bvarB == 0 && decide (x.fvarB ≤ nP))
@@ -310,10 +287,7 @@ theorem classKeyOfS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {n
       (fun i r hr => hp r (List.mem_of_getElem? hr))
       (fun i hi => by simp [hpl, hi]) y (Expr.fvarB_le hx'.2)
   simp only [ite_true]
-  refine SimC.bind (annotateLoopS_sim hμ henv _ [] hs hw (fun _ h => nomatch h))
-    (fun s₁ ds ds' hs₁ hD => ?_)
-  obtain ⟨rfl, hwd⟩ := hD
-  exact SimC.pure hs₁ ⟨rfl, hwd⟩
+  exact SimC.pure hs ⟨rfl, hw⟩
 
 /-- The class keys made checkable, one after another. -/
 theorem classKeysLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
@@ -321,8 +295,8 @@ theorem classKeysLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     ∀ (l bs : List ClassKey) {s₀ : CState}, CSOK mode env s₀ →
       (∀ k ∈ bs, ∀ x ∈ k.ds, WScoped nP x) →
       SimC mode env s₀ (fun v w => v = w ∧ ∀ k ∈ v, ∀ x ∈ k.ds, WScoped nP x)
-        (List.mapM.loop (classKeyOf (sharedOpsC mode (mkFEnv env)) env nP params) l bs)
-        (List.mapM.loop (classKeyOf (fueledOpsM mode) env nP params) l bs)
+        (List.mapM.loop (classKeyOf (m := CheckCM) nP params) l bs)
+        (List.mapM.loop (classKeyOf (m := FueledM) nP params) l bs)
   | [], bs, _, hs, hbs => by
     simp only [List.mapM.loop]
     exact SimC.pure hs ⟨rfl, fun k hk => hbs k (List.mem_reverse.mp hk)⟩
