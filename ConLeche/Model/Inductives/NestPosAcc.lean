@@ -27,7 +27,7 @@ never on the run; this file holds what that induction states:
   does not read an earlier recursive, reflexive or nested field (U4 on
   the normal-form telescope), what makes a constructor's bound UNIFORM
   across the tuples of the space; and the output's facts (`OutOk`);
-* **a telescope's** (`PiAccThen`, `OutTele`, `TeleSmall`).
+* **a telescope's** (`PiAccThen`, `OutTele`).
 -/
 
 namespace ConLeche.Model
@@ -367,15 +367,6 @@ depths from `d`), and `Q` of the relation and the reading below them. -/
   | k :: ks, nd :: nds, d, Δ, .pi A B =>
     OutOk m φ ctx prog d Δ k nd A ∧ OutTele m φ ctx prog ks nds (d + 1) (A :: Δ) B
   | _, _, _, _, _ => False
-
-/-- **The first `n` Π-domains' values are small** at every frame of the
-relation, each under the earlier ones. -/
-@[expose] def TeleSmall (w : Nat) : Nat → FrameRel V → AnnotTerm → Prop
-  | 0, _, _ => True
-  | n + 1, R, .pi A B =>
-    (∀ ρ ρ₀, R ρ ρ₀ → ∀ x, x ∈ˢ interp V ρ A → SmallAt w x) ∧
-      TeleSmall w n (R.underBoth A) B
-  | _ + 1, _, _ => True
 
 theorem PiAccThen.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole}
     {Q Q' : FrameRel V → AnnotTerm → Prop}

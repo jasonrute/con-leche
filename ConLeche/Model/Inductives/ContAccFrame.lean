@@ -667,41 +667,6 @@ theorem frame_item_bwd {ρ' Y' : Nat → V} {o : Occ V} (hlt : o.1 < grp.length)
   rw [frameVal_lt ρ' Y' hlt, h2]
   exact hin.2.2
 
-/-- **The walked fields of a frame constructor are small** at every frame
-of the frame relation: they read like the recorded fields at the
-substituted valuation (`crest_read`), which IS the hole frame of a tuple,
-where the clause's `fieldsOk` bounds them. -/
-theorem frame_fieldsBound {w : Nat} (hwD : D.w (Level.substFn φ lps us) = w) (hw : w ≠ 0)
-    {R₀ : FrameRel V}
-    (hfit : ∀ ρ ρ', R₀ ρ ρ' →
-      Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ) ∧
-      Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ'))
-    {g j : Nat} (hG : InGrp D grp g) (hj : j < D.nctors g)
-    {ab : List (Nat × Nat × AnnotTerm)} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
-    (hTys : ∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
-      instPisWith (canonParams ds.length) cvm.type = some ty ∧
-      denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
-        = some (Tys.getD mm default))
-    (hEqF : FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
-      (D.fields (Level.substFn φ lps us) g j)) :
-    ∀ σ σ₀, frameRelA R₀ D (Level.substFn φ lps us) grp dsa hi σ σ₀ →
-      FieldsBound w σ ((AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)
-        (grpX mp.base2 φ D hi grp ds (hi + grp.length))) 0 ab).map (·.2.2)) := by
-  obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
-  have hkNN := h.kN
-  have hw' : D.w (Level.substFn φ lps us) ≠ 0 := by rw [hwD]; exact hw
-  rintro _ _ ⟨ρ, ρ', Y, Y', hR, hY, -, rfl, -⟩
-  have hs := (hfit ρ ρ' hR).1
-  have hS := substE_grp mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg Y ρ
-  have hsat := frameVals_sat mp hD hs hlenP hlT hTys Y hY
-  have hok := h.fieldsOk (Level.substFn φ lps us) (keyFrame dsa hi ρ) hs hw'
-    Y hY g (Nat.lt_of_lt_of_le hG.1 hkNN) j hj
-  have hb := hok.toBound hw'
-  rw [hwD] at hb
-  refine fieldsBound_substTele _ ab 0 _ ?_
-  rw [hS]
-  exact FieldsBound.of_eqOn' hEqF hsat hb
-
 set_option maxHeartbeats 1600000 in
 /-- **The frame's accessibility from its constructors'** (`FrameAccOut`):
 the group operator mixed into the carrier (`mixT`) is jointly accessible
@@ -911,8 +876,7 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
         (∃ ty u, ConLeche.inferTypeCore .verified env F (hi + grp.length) crest = .ok ty ∧
           ConLeche.ensureSortCore .verified env F (hi + grp.length) ty = .ok u) →
         ∃ ca, Frame (hi + grp.length) crest ∧ CtxOkP mp.base2 φ (hi + grp.length) Δ crest ∧
-          denoteMeta mp.base2.acval env φ (hi + grp.length) crest = some ca ∧ GradedTy V Δ ca ∧
-          TeleSmall w x.2 R ca) →
+          denoteMeta mp.base2.acval env φ (hi + grp.length) crest = some ca ∧ GradedTy V Δ ca) →
       (∀ x ∈ ctors, Q x) →
       ∀ x ∈ ctors, CtorWalkedA mp.base2 φ w ctx ((grpNews us ds hi grp).reverse ++ prog)
         (hi + grp.length) us ds (grp.map (·.1)) (grpHoles hi grp) Δ R x) :
@@ -941,16 +905,7 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
       rw [hcr] at hcr'
       obtain rfl := Option.some.inj hcr'
       obtain ⟨ty, u, hty, hsort⟩ := hinf
-      refine ⟨_, hfr, hC, hrd, gradedTy_of_sort hin hty hsort hfr hC.toCtxOk hrd, ?_⟩
-      have hlW : (AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)
-          (grpX mp.base2 φ D hi grp ds (hi + grp.length))) 0 ab).length = x.2 := by
-        rw [substTele_length, hlen]
-      rw [← hlW]
-      by_cases hw : w = 0
-      · subst hw; exact teleSmall_zero _ _ _
-      exact teleSmall_mkPisAV hw _ _ _ _ _ (FieldsEqOn.refl _ _) hR'.dom
-        (frame_fieldsBound mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hwD hw hfit hGc hj
-          hlT hTys hEqF))
+      exact ⟨_, hfr, hC, hrd, gradedTy_of_sort hin hty hsort hfr hC.toCtxOk hrd⟩)
     hQ
   refine frameAccOut_of mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hR₀ hfit
     fun g j hG hj => ?_
