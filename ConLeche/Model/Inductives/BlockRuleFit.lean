@@ -433,6 +433,57 @@ theorem blockRuleIdxPin_run {mm j : Nat} {cA : ConstantVal × Nat}
   unfold chain
   rw [consN_eq_consList]
 
+/-! ### 2b′. Telescope coherence (task #342 L7)
+
+Under conditional claims a comparison the ι step runs gives equality
+only where neither side is the point.  At a block rule the comparands
+are fits of ONE telescope of types — the parameters of the block's
+parameter telescope, the indices of the component's index telescope
+at those parameters (`resIdxFit`, `idxOk`) — so the conditional
+equalities are equalities (`spineFit_eq_of_cond`), once the parameters
+are compared.
+
+**The parameters must be compared.**  A `.plain` rule is
+`paramsBlind`: at `d.w ψ ≠ 0` the major ties the two parameter spines
+(§2, injectivity), at `d.w ψ = 0` nothing does, and the two index
+lists then fit the index telescope at two parameter frames — two
+different types, so a point and a non-point index value can be
+"conditionally equal".  At such a valuation the squash arm's
+conclusion fails (DESIGN, task #342 L7): the conditional index pin
+does not determine the source spine. -/
+
+/-- **Telescope coherence at a block rule**: the recursor's
+parameters `ps` and indices `is`, and the constructor's parameters
+`qs`, fields `fs` and result index readings, compared where neither
+side is the point, are equal — the parameters as fits of the block's
+parameter telescope (a telescope of types, `hT`), then the indices as
+fits of the component's index telescope at the now-equal parameters. -/
+theorem blockRule_coherent (hM : BlockModelAt mpC.base2 names d)
+    {mm j : Nat} (hmN : mm < d.N) (hjl : j < (d.ctorsM mm).length)
+    {ψ : Name → Nat} {ρ : Nat → V} {ps qs is fs : List V}
+    (hT : SpineTy ρ (d.params ψ))
+    (hps : SpineFit ρ (d.params ψ) ps) (hqs : SpineFit ρ (d.params ψ) qs)
+    (hidx : SpineFit (consList ps ρ) (d.IdsM mm ψ) is)
+    (hfs : SpineFit (consList qs ρ) ((d.Fss mm ψ).getD j []) fs)
+    (hpar : ∀ p ∈ qs.zip ps, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2)
+    (hpin : ∀ p ∈ (((d.Ess mm ψ).getD j []).map (interp V (consList fs (consList qs ρ)))).zip is,
+      p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) :
+    qs = ps ∧
+      ((d.Ess mm ψ).getD j []).map (interp V (consList fs (consList qs ρ))) = is := by
+  obtain rfl := spineFit_eq_of_cond hT hqs hps hpar
+  have hsat := d.satOfSpine hqs
+  have hres := hM.resIdxFit ψ _ hsat mm hmN j hjl fs hfs
+  have hTI : SpineTy (consList qs ρ) (d.IdsM mm ψ) := (hM.idxOk ψ _ hsat mm hmN).1.spineTy
+  exact ⟨rfl, spineFit_eq_of_cond hTI hres hidx hpin⟩
+
+/-- **The block's parameter telescope is a telescope of types**, read
+off member `0`'s stored type: a graded Π-tower over the parameters and
+indices, ending in a sort. -/
+theorem blockParams_spineTy {ψ : Name → Nat} {B : AnnotTerm} {ρ : Nat → V}
+    (hok : WellDenoted V ρ (mkPisAV (d.ppsM 0 ψ) B)) : SpineTy ρ (d.params ψ) := by
+  have h := (spineTy_of_wellDenoted_mkPisAV hok).take d.nP
+  rwa [← List.map_take] at h
+
 /-! ### 2c. THE LIFT — the criterion as a STANDALONE producer
 
 §2b's arm identifies the field spine with the SOURCE spine inside its

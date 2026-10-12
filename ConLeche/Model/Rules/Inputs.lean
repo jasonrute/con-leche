@@ -12,9 +12,9 @@ stored data's readings, gradings and laws — and nothing about the
 implementation.  One structure, `RulesInputs`, sorted by the tier that
 discharges each field.
 
-Seven fields are the laws `EnvModelM` already carries: `ConstType`,
-`AcvalValid`, `NatHeads`, `AcvalDefnInst`, `TowerOk`, `RecRules` and
-`CapsOk`, all of them `Model/Annot/Laws.lean`'s (re-exported by
+Eight fields are the laws `EnvModelM` already carries: `ConstType`,
+`AcvalValid`, `NatHeads`, `AcvalDefnInst`, `TowerOk`, `RecRules`,
+`CapsOk` and `IndFibLaw`, all of them `Model/Annot/Laws.lean`'s (re-exported by
 `Model/Annot/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
 each of them off the fold's invariant.
 
@@ -94,6 +94,10 @@ structure RulesInputs (V : Type w) [SetTheory V] {env : Env}
   rec_rules : RecRules m φ
   /-- caps tier: the stored families' capability laws -/
   caps_ok : CapsOk m
+  /-- iota tier: the stored families' fibres — truth values where the
+  stored sort is `0`, strict elsewhere (task #342 L7; the case-2 ι
+  licence's input) -/
+  ind_fib : IndFibLaw m φ
   /-- literal tier: successor packing -/
   nat_succ : NatSuccRow m φ
   /-- literal tier: the binary operations -/
@@ -115,6 +119,7 @@ theorem RulesInputs.ofEnvModelM {env : Env} {φ : Name → Nat}
   tower_ok := mp.tower_ok φ
   rec_rules := mp.rec_rules φ
   caps_ok := mp.caps_ok
+  ind_fib := mp.indFibLaw φ
   nat_succ := hsucc
   nat_op := hop
 

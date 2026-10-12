@@ -11,6 +11,7 @@ import ConLecheTests.NestedTests
 import ConLecheTests.RecCheckTests
 import ConLecheTests.AccessTests
 import ConLecheTests.LfpTypes
+import ConLecheTests.CondCompare
 import ConLecheTests.LetDenotes
 import ConLecheTests.StreamTests
 import ConLecheTests.RoundsTests

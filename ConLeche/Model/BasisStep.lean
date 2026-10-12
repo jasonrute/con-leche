@@ -115,11 +115,14 @@ theorem declStep_preserves_of_basis_cons (mp : EnvModelM V μ env)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     (hntc : ∀ entry, c₀ ≠ .projInfo entry := by
-      intro _ h; exact nomatch h) :
+      intro _ h; exact nomatch h)
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · -- `hvalReads`: a basis cons is never a definition
     intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
@@ -189,11 +192,14 @@ theorem declStep_preserves_of_basis_rec_cons (mp : EnvModelM V μ env)
       m₂.acval = acvalWith mp.base2.acval c₀.name A →
       ∀ φ : Name → Nat, RecRules m₂ φ)
     (hntc : ∀ entry, c₀ ≠ .projInfo entry := by
-      intro _ h; exact nomatch h) :
+      intro _ h; exact nomatch h)
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
     exact absurd hdt.symm (hnotdefn cv2 value2 hint2)
@@ -249,11 +255,14 @@ theorem declStep_preserves_of_basis_cons_eqrow (mp : EnvModelM V μ env)
     (heq : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A → EqLaw m₂)
     (hntc : ∀ entry, c₀ ≠ .projInfo entry := by
-      intro _ h; exact nomatch h) :
+      intro _ h; exact nomatch h)
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
     exact absurd hdt.symm (hnotdefn cv2 value2 hint2)
@@ -309,11 +318,14 @@ theorem declStep_preserves_of_basis_cons_gen (mp : EnvModelM V μ env)
       m₂.acval = acvalWith mp.base2.acval c₀.name A →
       ∀ φ : Name → Nat, RecRules m₂ φ)
     (hntc : ∀ entry, c₀ ≠ .projInfo entry := by
-      intro _ h; exact nomatch h) :
+      intro _ h; exact nomatch h)
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
     exact absurd hdt.symm (hnotdefn cv2 value2 hint2)

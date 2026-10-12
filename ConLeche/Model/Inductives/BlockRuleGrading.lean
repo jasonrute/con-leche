@@ -95,26 +95,6 @@ theorem spineFit_frame_of_bounded {Ds : List AnnotTerm}
       rw [consList_getD_of_lt _ _ _ (by omega), consList_getD_of_lt _ _ _ (by omega)]]
   exact hm
 
-/-- **An application along a Π-tower lands in its body** — at a
-VALID tower, whose `Prop` binders carry the truth-value fibres
-`app_mem_piR` asks for. -/
-theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V} {f : V},
-      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
-      f ∈ˢ interp V ρ (mkPisAV tl B) →
-      bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
-  | [], ρ, [], f, _, _, hf => hf
-  | [], _, _ :: _, _, _, h, _ => h.elim
-  | _ :: _, _, [], _, _, h, _ => h.elim
-  | d :: tl, ρ, b :: bs, f, hv, h, hf => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
-    have hf' : f ∈ˢ interp V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hf
-    rw [AnnotValid_pi] at hv'
-    rw [interp_pi] at hf'
-    have happ := app_mem_piR hf' h.1 hv'.2.2
-    rw [List.foldl_cons, consList_cons]
-    exact foldl_app_mem_mkPisAV (hv'.2.1 b h.1) h.2 happ
-
 end TowerFits
 
 end ConLeche.Model

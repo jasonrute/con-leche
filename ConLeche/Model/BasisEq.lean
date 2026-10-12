@@ -241,6 +241,9 @@ theorem extendEq (mp : EnvModelM V μ env)
       (hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)))
     (fun ψ ρ => eqValAV_wellDenoted ψ ρ) (fun ψ ρ => eqValAV_validV ψ ρ)
     (fun ψ => ⟨_, denoteMeta_eqA_type ψ⟩) ?_ ?_ ?_
+    (hind := indStrictHead_cons_prop
+      (ab := fun ψ => [(0, 1, .sort (ψ uN)), (0, 1, .bvar 0), (0, 1, .bvar 1)])
+      fun ψ => denoteMeta_eqA_type ψ)
   · intro ψ ta h ρ
     rw [denoteMeta_eqA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm

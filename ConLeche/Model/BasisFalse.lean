@@ -91,7 +91,8 @@ theorem extendFalse (mp : EnvModelM V μ env)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) (fun _ _ _ => rfl)
     (fun _ _ => trivial) (fun _ _ => trivial)
-    (fun ψ => ⟨_, denoteMeta_falseA_type ψ⟩) ?_ ?_)
+    (fun ψ => ⟨_, denoteMeta_falseA_type ψ⟩) ?_ ?_
+    (hind := indStrictHead_cons_prop (ab := fun _ => []) fun ψ => denoteMeta_falseA_type ψ))
   · intro ψ ta h ρ
     rw [denoteMeta_falseA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm

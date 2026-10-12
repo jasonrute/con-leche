@@ -101355,3 +101355,126 @@ sentence each.
   Lets inside field domains already reach the readers (`nestOcc`,
   `ReadsAt`, `targetAbs`), which now read all three parts.
 - `StreamConsts`' "up to ζ" disjunct goes with the annotate pass.
+
+## TASK #342 — L7-INDUCTIVES: the stored families' fibre law, `FitsVals_eq_of_cond`, telescope coherence (2026-10-12, agent/342-l7-inductives)
+
+Lane L7, stage S2 of the revised port (`_tmp/342v2-design.md` §2,
+§3.3, §11.4 F1, §11.5 row S2), under the annotated reading.  The
+checker, `Denotes.lean`, `MainTheorem`, `Challenge` and `Axioms.lean`
+are unchanged.
+
+**The law: the real counterpart of F1's `IndFibLaw`.**  F1 states it on
+the stored specification's sort; the real environment has no such
+datum at the model level, so the law reads the sort off the type's
+reading.  A stored former's type reads as `mkPisAV ab (.sort n)` (a
+block member: `FormerData.read`, `n = resSort.eval ψ`).
+- `IndStrictAt acval env I cv` (`Model/Annot/Laws.lean`): where the
+  type reads `mkPisAV ab (.sort n)` with `n ≠ 0`, the former's leaf
+  applied along a spine fitting `ab`'s domains (`SpineFit`) is
+  `Strict`.  `IndStrictOk m`: every stored `indInfo` satisfies it.
+  This is the new `EnvModelM` field **`ind_strict`**.
+- `IndFibLaw m φ` (the law the rules tier reads, `RulesInputs.ind_fib`):
+  at a use's levels `us` and any depth `d`, the instantiated type's
+  reading `mkPisAV ab (.sort n)`, and a fitting spine `vs`,
+  `Fib (decide (n = 0)) (vs.foldl app ⟦I⟧)` — a truth value at `n = 0`,
+  strict above.  Derived, not a field: `EnvModelM.indFibLaw` crosses
+  the instantiation as `constType` does; the zero half is the former's
+  membership in its graded type (`foldl_app_mem_mkPisAV`, moved from
+  `BlockRuleGrading` to `EnvModelM.lean`), the strict half the field.
+- **No guard**, as in F1.  Every former cons proves `IndStrictHead` of
+  its own leaf (a new defaulted premise of `declStep_preserves_of_cons`
+  and its wrappers; at a non-former head it is discharged by the
+  default tactic); the cons step transports the prefix formers (leaf
+  and reading unchanged), the rule-list swap keeps every former.
+- Where it is proved:
+  - the uniform block install, BOTH former passes: the fixpoint leaf
+    (`blockTyG_fold_strictU`: the leaf applied is in `strictU w`, the
+    least tuple's fibre space) and the dummy leaf (`sumTyAV_fold_strictU`:
+    a tagged sum, `sumSet_strictU_of_okB`); `stageBlockFormers` and
+    `blockFormerPass` carry the new per-member input `hAstrictOf`;
+  - `Empty` and `Nat` (`Sort 1`, no binders: `strict_empty`,
+    `strict_omega`); `Quot` (`Sort u`: `quotV_app`, `strict_quotSet`);
+    `False` and `Eq` (`Prop` at every assignment, vacuous:
+    `indStrictHead_cons_prop`).
+  - These are all the former conses (`Fold.declStep_preserves`: the
+    five pinned kinds and `declBlock`); a missed one would not compile,
+    because the default discharge only refutes non-`indInfo` heads.
+
+**The strict-fibre facts.**  `blockLeafBodyG_strictU`,
+`blockTyG_fold_strictU` (`Semantics/Tower/BlockTower`) and
+`sumTyAV_fold_strictU` (`SumTower`).  L5's `IsTy` slots in `FieldsOkB`,
+`UnderTowerOk` and `ParamsOkG` were already discharged by L5, so
+nothing changed there.
+
+**`FitsVals_eq_of_cond`** (`Semantics/Tower/TowerKit`).  `SpineTy ρ Fs`:
+the domains are types under every fitting prefix.
+`spineFit_eq_of_cond`: two spines fitting one `SpineTy` telescope,
+equal wherever neither value is the point, are equal
+(`IsTy.eq_of_ne_pt` position by position); `_getD` is the positional
+form.  Sources of `SpineTy`: `spineTy_of_wellDenoted_mkPisAV` (a graded
+Π-tower's domains), `FieldsOkB.spineTy`, `SpineTy.take`.
+
+**Telescope coherence** (§3 item 5 of the v1 design: the three
+comparison sites of `RecRuleLaw`).
+- (c) the `.plain` parameter comparison: **vacuous**.  Every installed
+  `.plain` rule is `paramsBlind` (block rules, `SumInstall`,
+  `BasisGen`), and the law takes the comparison only at
+  `paramsBlind = false`.
+- (b) the index pin, read by the squash arm (`d.w ψ = 0`,
+  `blockRuleStoredFit_sq`): `blockRule_coherent` (`BlockRuleFit` §2b′)
+  upgrades conditional parameter and index comparisons to equalities —
+  the parameters as fits of the block's parameter telescope
+  (`blockParams_spineTy`, from member 0's graded type), then the
+  indices as fits of the component's index telescope at the equal
+  parameters (`resIdxFit`, `idxOk`).
+- **Obstruction at (b): it needs the parameters compared, and a
+  `paramsBlind` rule does not compare them.**  At `d.w ψ ≠ 0` the major
+  ties the two parameter spines (§2, `mkInj`, the major not the point
+  by the fibre law); at `d.w ψ = 0` nothing does.  The recursor's
+  indices then fit the index telescope at the recursor's parameters,
+  the constructor's at its own: two types, so a conditional index
+  comparison says nothing when one side is the point.
+  Counterexample to `RecRuleLaw` with a conditional `IotaIndexPin`:
+  `inductive T {α : Sort u} : α → Prop | mk (a : α) : T a` (large
+  elimination: the field is the index), the rule
+  `T.rec α M F a (T.mk α' a') ↦ F a'`, at `u = 1`, `α := {pt}` (a type
+  of `Sort 1`: `univ` is cumulative), `a := pt`, `α' := ω`, `a' := ∅`,
+  `M := λ _ _. ω`, `F := λ a. 5` (a graph over `{pt}`).  Every premise
+  holds: both telescope fits; the major `pt ∈ ⟦T {pt} pt⟧ = {pt}`; the
+  levels; the index pin "where neither is the point" (vacuous: `pt`).
+  The left side depends on the major only through its value `pt`, so
+  it is the left side at `T.mk {pt} pt`, where the law holds with the
+  pin unconditional: `F pt = 5`.  The right side is `F ∅ = ∅` (off the
+  graph's domain).  The fragment has no such gap: its rules compare
+  the parameters (F1: "the three comparisons are kept").  Fix for L10:
+  compare the parameters of a `.plain` rule whose family may be `Prop`
+  (case 3 of §11.4: `Quot.lift`, `Acc.rec`, `PUnit.rec`; 14 / 80
+  redexes on init-full / mathlib-prefix), then `blockRule_coherent` applies.  The
+  `tests/ConLecheTests/CondCompare.lean` examples show the set-level
+  half (two types of `Sort 1`, a point and `∅`, conditionally equal).
+- (a) the `.nested` pins: not done here.  The route is the same: the
+  constructor's parameters fit the container constructor's parameter
+  telescope (its `TeleFitPA`), the pins' values fit the container
+  former's parameter domains (the recursor's major domain is a graded
+  application of the container former, whose binders are in the graph
+  regime), the two telescopes are `Sat`-equivalent (the constructor
+  check, as `hparamsC`/`LfpCtorReads` for a block's own constructors),
+  and the pins compare every parameter, so `spineFit_eq_of_cond`
+  applies position by position.
+
+**For L10.**
+- The case-2 licence's input is `RulesInputs.ind_fib`.  The checker
+  tests `capsNeverZero cvT.levelParams usj caps` on the constructor's
+  family; the law speaks of the reading's `.sort n`.  The link:
+  `FormerData.read` gives `.sort (resSort.eval ψ)` at a block member,
+  and S0-F's `blockCapsAt` records `sortZ := zeronessOf p.resSort` for
+  every member (today only for single-constructor members, the default
+  `ifAllZero []` elsewhere, which licenses nothing).  The basis formers'
+  readings: `Empty`/`Nat` `Sort 1`, `False`/`Eq` `Prop`, `Quot` `Sort u`.
+- The domain of a recursor's major is the member's former applied, so
+  `IndFibLaw` at `n ≠ 0` makes it strict and the major not the point.
+- The squash-arm obstruction above is L10's to settle.
+
+**Gates.**  `lake build` and `lake test` warning-free; `Axioms.lean`
+unchanged; arena tutorial and e2e as the base (one run; no checker
+change).  No `sorry`, no new axiom.

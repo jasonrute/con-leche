@@ -352,6 +352,10 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
     (hAmemOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A j ψ) ∈ˢ interp V ρ (mkPisAV (ppsOf j ψ) (.sort (q.resSort.eval ψ))))
+    (hAstrictOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
+      ∀ (ψ : Name → Nat) (ρ : Nat → V) (vs : List V),
+      SpineFit ρ ((ppsOf j ψ).map (·.2.2)) vs →
+      vs.foldl SetTheory.app (interp V ρ (A j ψ)) ∈ˢ (strictU (q.resSort.eval ψ) : V))
     (hetaNe : ∀ (j j' : Nat) (cvTa cvTb : ConstantVal), cvTas[j]? = some cvTa →
       cvTas[j']? = some cvTb → (ConLeche.blockCapsAt q j isRec).eta = true →
       cvTb.name ≠ (ConLeche.blockCapsAt q j isRec).etaCtor)
@@ -408,7 +412,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
       obtain ⟨bs, hst⟩ := hF.stripOf j cvTa hj
       exact ⟨htf, hlpd, hbt,
         ConLeche.stripPis_isSome_of_le (Nat.le_add_right _ _) (by rw [hst]; rfl)⟩)
-    hAbelowOf hAparamsOf hAokOf hAvalidOf hAmemOf hetaNe hTlawsOf
+    hAbelowOf hAparamsOf hAokOf hAvalidOf hAmemOf hAstrictOf hetaNe hTlawsOf
     cvTas 0 env mp (fun j => by rw [Nat.zero_add]) (Nat.zero_add _)
     (hE.exceptL q.memberNames) hF.resolveOf (fun j cvTa _ hj => hF.freshOf j cvTa hj)
     hetaFresh hF.fdOf
@@ -671,6 +675,7 @@ theorem blockDummyPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {
     (fun j _ _ ψ ρ => sumTyAV_wellDenoted (hwalks j ψ ρ).1)
     (fun j _ _ ψ ρ => (sumTyAV_wellDenotedV (hwalks j ψ ρ).1 (hwalks j ψ ρ).2).2)
     (fun j _ _ ψ ρ => sumTyAV_mem (hwalks j ψ ρ).1)
+    (fun j _ _ ψ ρ _ hsp => sumTyAV_fold_strictU (hwalks j ψ ρ).1 hsp)
     hetaNe hetaFresh ?_
   -- the capability laws at the DUMMY leaf: η is vacuous (no
   -- constructor is stored), unit-likeness folds the empty-chain leaf
@@ -928,7 +933,7 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
   refine blockFormerPass mp hInd hF hnd hE
     (fun j ψ => blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
       (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) (ppsOf j ψ) j)
-    ?_ ?_ ?_ ?_ ?_ hetaNe hetaFresh ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ hetaNe hetaFresh ?_
   · -- closed
     intro j cvTa hj ψ
     exact blockTyAV_below ((hF.fdOf j cvTa hj).below ψ) ((hF.fdOf j cvTa hj).len ψ)
@@ -963,6 +968,11 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     have hjk : j < q.k := by
       have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this
     exact blockTyG_mem hjk (hwalks j cvTa hj hjk ρ ψ).1
+  · -- the leaf's fibres are in the strict universe
+    intro j cvTa hj ψ ρ _ hsp
+    have hjk : j < q.k := by
+      have := (List.getElem?_eq_some_iff.mp hj).1; rwa [hF.lenCv] at this
+    exact blockTyG_fold_strictU hjk (hwalks j cvTa hj hjk ρ ψ).1 hsp
   · -- the capability laws at the FIXPOINT leaf
     intro j cvTa hj env' m' hFD' hfreshT hcb hfreshC m₂ hac
     have hFD₂ : FormerData m₂ cvTa (q.nP + q.nIdxs.getD j 0) q.resSort (ppsOf j) :=
