@@ -131,12 +131,12 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
       · exact ordinary _ hstepC
       · rename_i hnat
         obtain ⟨r, s₁', hval, hp⟩ := bindC_ok hstepC
-        obtain ⟨cvA, jty, jv⟩ := r
+        obtain ⟨cvA, jv⟩ := r
         obtain ⟨hv, rfl⟩ := pureC_ok hp
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, rfl, rfl, rfl, hwty, hwv, hI, hV⟩ := guardValueDeclC_run hresA hval
+        obtain ⟨hres₁, rfl, rfl, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
         refine value .defn (fun cvA jv => .defnInfo cvA jv hint)
           (.defnDecl cvA jv hint) cvA jv rfl
           hres₁ rfl rfl hwty (fun _ => hwv) ?_
@@ -153,12 +153,11 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
       rw [flushC_run] at hflush
       injection hflush with hflush
       obtain rfl : s.flushed = s₁' := congrArg Prod.snd hflush
-      obtain ⟨pr, s₂, hcv, h⟩ := bindC_ok h
-      obtain ⟨cvA, jty⟩ := pr
+      obtain ⟨cvA, s₂, hcv, h'⟩ := bindC_ok h
       rw [hfe] at hcv
-      obtain ⟨hs₂, rfl, rfl, hwty, hI⟩ :=
-        guardHeaderC_run (μ := μ) (flushC_csok hresA) hcv
-      obtain ⟨hv, rfl⟩ := pureC_ok h
+      obtain ⟨hs₂, rfl, hwty, hI⟩ :=
+        installHeaderC_run (μ := μ) (flushC_csok hresA) hcv
+      obtain ⟨hv, rfl⟩ := pureC_ok h'
       simp only [Prod.mk.injEq] at hv
       obtain ⟨rfl, rfl⟩ := hv
       refine value .thm (fun cvA _ => .thmInfo cvA) (.thmDecl cvA val) cvA val
@@ -173,12 +172,12 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
       · exact ordinary _ hstepC
       · rename_i hred
         obtain ⟨r, s₁', hval, hp⟩ := bindC_ok hstepC
-        obtain ⟨cvA, jty, jv⟩ := r
+        obtain ⟨cvA, jv⟩ := r
         obtain ⟨hv, rfl⟩ := pureC_ok hp
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, rfl, rfl, rfl, hwty, hwv, hI, hV⟩ := guardValueDeclC_run hresA hval
+        obtain ⟨hres₁, rfl, rfl, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
         refine value .opaque (fun cvA _ => .axiomInfo cvA) (.opaqueDecl cvA jv)
           cvA jv rfl
           hres₁ rfl rfl hwty (fun _ => hwv) ?_

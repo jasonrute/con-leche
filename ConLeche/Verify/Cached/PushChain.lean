@@ -551,16 +551,15 @@ theorem installStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (guardValueDeclC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jty, jv⟩ := r
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
+      obtain ⟨cvA, jv⟩ := r
       obtain ⟨hp, hfr⟩ := hr
       exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
         Array.toList_push⟩
   | thmDecl cv value =>
     simp only []
     ybind
-    refine Yields.bind' (guardHeaderC_fresh fe cv) fun p hr => ?_
-    obtain ⟨cvA, jty⟩ := p
+    refine Yields.bind' (installHeaderC_fresh fe cv) fun cvA hr => ?_
     obtain ⟨hp, hfr⟩ := hr
     exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
       Array.toList_push⟩
@@ -568,8 +567,8 @@ theorem installStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (guardValueDeclC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jty, jv⟩ := r
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
+      obtain ⟨cvA, jv⟩ := r
       obtain ⟨hp, hfr⟩ := hr
       exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
         Array.toList_push⟩

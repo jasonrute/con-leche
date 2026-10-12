@@ -92,10 +92,10 @@ structure PendingCheck where
   vis : Nat
 
 /-- `checkConstantValC` minus its inference: the header's syntactic
-guards — `installConstantVal`'s cached twin.  Returns the header and
-its type, as stored. -/
-def guardHeaderC (fe : FEnv) (cv : ConstantVal) :
-    CheckCM (ConstantVal × Expr) := do
+guards — `installHeader`'s cached twin.  Returns the header, as
+stored. -/
+def installHeaderC (fe : FEnv) (cv : ConstantVal) :
+    CheckCM ConstantVal := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -108,37 +108,35 @@ def guardHeaderC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if Expr.hasFvar cv.type then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let jty := cv.type
-  unless Expr.allLevelParamsDefinedC cv.levelParams jty do
+  unless Expr.allLevelParamsDefinedC cv.levelParams cv.type do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless constsResolveFC fe jty do
-    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" jty)
-  pure (cv, jty)
+  unless constsResolveFC fe cv.type do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
+  pure cv
 
 /-- The value half of `checkDefnValC`/`checkThmValC`/`checkOpaqueValC`
 minus its inference: the value's syntactic guards —
-`installValue`'s cached twin.  Returns the value, as stored. -/
-def guardValueC (fe : FEnv) (cvA : ConstantVal) (value : Expr) : CheckCM Expr := do
+`installValueGuards`'s cached twin.  Returns the value, as stored. -/
+def installValueGuardsC (fe : FEnv) (cvA : ConstantVal) (value : Expr) : CheckCM Expr := do
   unless Expr.looseBVarsBounded 0 value do
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv := value
-  unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
+  unless Expr.allLevelParamsDefinedC cvA.levelParams value do
     throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
-  unless constsResolveFC fe jv do
-    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
-  pure jv
+  unless constsResolveFC fe value do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" value)
+  pure value
 
 /-- Phase A's guards of a separable value declaration: the
 per-declaration flush, then the header's and the value's guards;
-returns the header, its type, and the value, as stored. -/
-def guardValueDeclC (fe : FEnv) (cv : ConstantVal) (value : Expr) :
-    CheckCM (ConstantVal × Expr × Expr) := do
+returns the header and the value, as stored. -/
+def installGuardsC (fe : FEnv) (cv : ConstantVal) (value : Expr) :
+    CheckCM (ConstantVal × Expr) := do
   flushC
-  let (cvA, jty) ← guardHeaderC fe cv
-  let jv ← guardValueC fe cvA value
-  pure (cvA, jty, jv)
+  let cvA ← installHeaderC fe cv
+  let jv ← installValueGuardsC fe cvA value
+  pure (cvA, jv)
 
 /-- Phase A's step body: guard-and-install for the three value
 kinds, the ordinary step `checkDeclStepC` for everything else.  `i` is
@@ -152,31 +150,31 @@ def installStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then do
       pure (← checkDeclStepC mode pins fe (.defnDecl cv value hint), pend)
     else do
-      let r ← guardValueDeclC fe cv value
+      let r ← installGuardsC fe cv value
       -- RC linearity: the counter is read BEFORE the push, so that
       -- `fe` reaches `push` unshared (read after it, the push copies
       -- the whole index at every install)
       let vis := fe.visibleBelow
-      pure (fe.push (.defnInfo r.1 r.2.2 hint),
-        pend.push ⟨⟨.defn, r.1, r.2.2⟩, i, vis⟩)
+      pure (fe.push (.defnInfo r.1 r.2 hint),
+        pend.push ⟨⟨.defn, r.1, r.2⟩, i, vis⟩)
   | .thmDecl cv value => do
     -- a theorem installs BY STATEMENT: the header's install half
     -- only; the value is recorded raw and never touched here (phase B
     -- guards it, `checkPending`), so phase A never enters a
     -- theorem's body
     flushC
-    let r ← guardHeaderC fe cv
+    let r ← installHeaderC fe cv
     let vis := fe.visibleBelow
-    pure (fe.push (.thmInfo r.1),
-      pend.push ⟨⟨.thm, r.1, value⟩, i, vis⟩)
+    pure (fe.push (.thmInfo r),
+      pend.push ⟨⟨.thm, r, value⟩, i, vis⟩)
   | .opaqueDecl cv value =>
     if reduceOpNames.contains cv.name then do
       pure (← checkDeclStepC mode pins fe (.opaqueDecl cv value), pend)
     else do
-      let r ← guardValueDeclC fe cv value
+      let r ← installGuardsC fe cv value
       let vis := fe.visibleBelow
       pure (fe.push (.axiomInfo r.1),
-        pend.push ⟨⟨.opaque, r.1, r.2.2⟩, i, vis⟩)
+        pend.push ⟨⟨.opaque, r.1, r.2⟩, i, vis⟩)
   | pd => do
     pure (← checkDeclStepC mode pins fe pd, pend)
 
@@ -273,8 +271,8 @@ def checkPending (fe : FEnv) (pc : PendingCheck) : CheckCM Unit := do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
         throw (.invalid s!"type of theorem {pc.vg.cvA.name} is not a proposition")
       -- a theorem's value arrives raw: its guards run
-      -- here, at the view (`guardValueC` — `installValue`'s twin)
-      guardValueC fe pc.vg.cvA pc.vg.jv
+      -- here, at the view (`installValueGuardsC` — `installValueGuards`'s twin)
+      installValueGuardsC fe pc.vg.cvA pc.vg.jv
     else pure pc.vg.jv
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
   unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt pc.vg.cvA.type do

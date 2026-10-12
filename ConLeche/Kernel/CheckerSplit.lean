@@ -23,9 +23,9 @@ other kind (axioms, inductive and basis blocks, and the pinned
 as they are installed) is not separable and its install half IS
 `checkDecl`.
 
-`installConstantVal`, `installValue` and `checkValueGroup` are the two
+`installHeader`, `installValueGuards` and `checkValueGroup` are the two
 halves as pure functions over `CheckerOps`, the specification the
-fold's cached twins (`guardValueDeclC`, `checkPending`,
+fold's cached twins (`installGuardsC`, `checkPending`,
 `ConLeche/Cached/Installed.lean`) simulate; `checkDecl_of_split_*`
 (`ConLeche/Verify/CheckerSplit.lean`) say the two halves are `checkDecl`.
 `ValueGroup` is the datum that crosses the seam.
@@ -61,7 +61,7 @@ variable (mode : CheckMode)
 variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- `checkConstantVal` minus its inference: the syntactic guards. -/
-def installConstantVal (env : Env) (cv : ConstantVal) :
+def installHeader (env : Env) (cv : ConstantVal) :
     m ConstantVal := do
   if (env.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
@@ -83,7 +83,7 @@ def installConstantVal (env : Env) (cv : ConstantVal) :
 
 /-- The value half of `check{Defn,Thm,Opaque}Val` minus its inference:
 the guards. -/
-def installValue (env : Env) (cv : ConstantVal)
+def installValueGuards (env : Env) (cv : ConstantVal)
     (value : Expr) : m Expr := do
   unless value.looseBVarsBounded 0 do
     throw (.invalid s!"loose bound variable in value of {cv.name}")
@@ -98,7 +98,7 @@ def installValue (env : Env) (cv : ConstantVal)
 /-- **The check half of a value declaration**, at the environment the
 constant was installed at: the type's sort, the theorem's
 is-a-proposition test, for a theorem the value's guards
-(`installValue`: a theorem's value reaches the check half raw), and
+(`installValueGuards`: a theorem's value reaches the check half raw), and
 the value's type against the declared one — the inference and
 conversion calls of `checkConstantVal` and `check{Defn,Thm,Opaque}Val`,
 in their order, with their messages. -/
@@ -108,7 +108,7 @@ def checkValueGroup (ops : CheckerOps m) (env : Env) (g : ValueGroup) : m Unit :
   let jv ← if g.kind = .thm then do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
         throw (.invalid s!"type of theorem {g.cvA.name} is not a proposition")
-      installValue env g.cvA g.jv
+      installValueGuards env g.cvA g.jv
     else pure g.jv
   let vtype ← ops.inferType env 0 jv
   unless ← ops.isDefEq env 0 vtype g.cvA.type do

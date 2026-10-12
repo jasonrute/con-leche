@@ -20,9 +20,9 @@ its datum, and every record was checked against the prefix view
 `fe.restrictTo vis` from a fresh memo state (`GroupChecked`).  This
 module holds the model-free half of the walk over that run:
 
-* `guardHeaderC_run` / `guardValueC_run` / `guardValueDeclC_run` — phase
+* `installHeaderC_run` / `installValueGuardsC_run` / `installGuardsC_run` — phase
   A's install is the pure install halves
-  (`installConstantVal`, `installValue`, `ConLeche/Kernel/CheckerSplit.lean`).
+  (`installHeader`, `installValueGuards`, `ConLeche/Kernel/CheckerSplit.lean`).
 * `checkPending_run` — the check at the prefix view simulates the pure
   check half `checkValueGroup` at the truncated environment.  The view
   and `mkFEnv` of the truncated environment have the same `find?`
@@ -48,14 +48,14 @@ variable {pins : List NatOpPinSet}
 
 /-- Phase A's header install is the pure install half: from an
 invariant state at `mkFEnv env`, a successful run returns the header
-as declared, its type well scoped, and `installConstantVal` succeeds on
+as declared, its type well scoped, and `installHeader` succeeds on
 it. -/
-theorem guardHeaderC_run {env : Env}
-    {cv cvA : ConstantVal} {jty : Expr} {s₀ s' : CState} (hs : CSOK μ env s₀)
-    (h : guardHeaderC (mkFEnv env) cv s₀ = .ok ((cvA, jty), s')) :
-    CSOK μ env s' ∧ cvA = cv ∧ jty = cv.type ∧ Expr.WScoped 0 cv.type ∧
-    installConstantVal (m := CheckM) env cv = .ok cv := by
-  unfold guardHeaderC at h
+theorem installHeaderC_run {env : Env}
+    {cv cvA : ConstantVal} {s₀ s' : CState} (hs : CSOK μ env s₀)
+    (h : installHeaderC (mkFEnv env) cv s₀ = .ok (cvA, s')) :
+    CSOK μ env s' ∧ cvA = cv ∧ Expr.WScoped 0 cv.type ∧
+    installHeader (m := CheckM) env cv = .ok cv := by
+  unfold installHeaderC at h
   simp only [mkFEnv_find?] at h
   by_cases h1 : (env.find? cv.name).isSome = true
   · rw [ite_eq_left h1] at h; exact absurd h throwC_bind_ok
@@ -85,20 +85,19 @@ theorem guardHeaderC_run {env : Env}
   by_cases h8 : Expr.constsResolve env cv.type = true
   case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h8] at h
-  obtain ⟨hv, rfl⟩ := pureC_ok h
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hv
-  refine ⟨hs, rfl, rfl, Expr.WScoped.of_not_hasFvar (by simpa using h6), ?_⟩
-  exact installConstantVal_of_facts (Option.not_isSome_iff_eq_none.mp h1)
+  obtain ⟨rfl, rfl⟩ := pureC_ok h
+  refine ⟨hs, rfl, Expr.WScoped.of_not_hasFvar (by simpa using h6), ?_⟩
+  exact installHeader_of_facts (Option.not_isSome_iff_eq_none.mp h1)
     (by simpa using h2) (by simpa using h3) h4 h5 (by simpa using h6) h7 h8
 
 /-- Phase A's value install is the pure install half. -/
-theorem guardValueC_run {env : Env}
+theorem installValueGuardsC_run {env : Env}
     {cvA : ConstantVal} {value jv : Expr} {s₀ s' : CState}
     (hs : CSOK μ env s₀)
-    (h : guardValueC (mkFEnv env) cvA value s₀ = .ok (jv, s')) :
+    (h : installValueGuardsC (mkFEnv env) cvA value s₀ = .ok (jv, s')) :
     CSOK μ env s' ∧ jv = value ∧ Expr.WScoped 0 value ∧
-    installValue (m := CheckM) env cvA value = .ok value := by
-  unfold guardValueC at h
+    installValueGuards (m := CheckM) env cvA value = .ok value := by
+  unfold installValueGuardsC at h
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
   case neg => rw [ite_eq_right h1] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h1] at h
@@ -117,7 +116,7 @@ theorem guardValueC_run {env : Env}
   rw [ite_eq_left h4] at h
   obtain ⟨rfl, rfl⟩ := pureC_ok h
   exact ⟨hs, rfl, Expr.WScoped.of_not_hasFvar (by simpa using h2),
-    installValue_of_facts h1 (by simpa using h2) h3 h4⟩
+    installValueGuards_of_facts h1 (by simpa using h2) h3 h4⟩
 
 /-! ## The two-phase driver: phase B's check at the prefix view -/
 
@@ -125,7 +124,7 @@ theorem guardValueC_run {env : Env}
 the environment the view names: the view and `mkFEnv env` have the same
 `find?`, so by `coreKnotI_congr` the check runs the core the
 simulation is stated about.  A theorem's value arrives unchecked and
-its guards run here (`guardValueC` at the view, `guardValueC_congr`), so
+its guards run here (`installValueGuardsC` at the view, `installValueGuardsC_congr`), so
 the well-scopedness premise on the value is asked only of the other two
 kinds. -/
 theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
@@ -139,7 +138,7 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
   have hfe : (feFinal.restrictTo pc.vis).find? = (mkFEnv env).find? :=
     funext fun n => (hfind n).trans (mkFEnv_find? env n).symm
   unfold checkPending at h
-  simp only [coreKnotI_congr hfe, opSIxC_congr hfe, guardValueC_congr hfe] at h
+  simp only [coreKnotI_congr hfe, opSIxC_congr hfe, installValueGuardsC_congr hfe] at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
@@ -194,7 +193,7 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
     | true =>
     simp only [↓reduceIte] at h
     obtain ⟨jv, s₅, hval, h⟩ := bindC_ok h
-    obtain ⟨hs₅, rfl, hwjv, hV⟩ := guardValueC_run hs₄ hval
+    obtain ⟨hs₅, rfl, hwjv, hV⟩ := installValueGuardsC_run hs₄ hval
     obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail _ hs₅ hwjv h
     refine ⟨hres', max (max F₁ F₂) F₅, ?_⟩
     exact checkValueGroup_of_facts (jv := pc.vg.jv)
@@ -216,30 +215,28 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
 
 /-- Phase A's value install, run: the two install halves, the header
 and the value as declared and well scoped, the residue kept. -/
-theorem guardValueDeclC_run {env : Env}
-    {cv cvA : ConstantVal} {value jty jv : Expr} {s₀ s' : CState}
+theorem installGuardsC_run {env : Env}
+    {cv cvA : ConstantVal} {value jv : Expr} {s₀ s' : CState}
     (hres : CSOKF s₀)
-    (h : guardValueDeclC (mkFEnv env) cv value s₀ = .ok ((cvA, jty, jv), s')) :
-    CSOKF s' ∧ cvA = cv ∧ jty = cv.type ∧ jv = value ∧
+    (h : installGuardsC (mkFEnv env) cv value s₀ = .ok ((cvA, jv), s')) :
+    CSOKF s' ∧ cvA = cv ∧ jv = value ∧
     Expr.WScoped 0 cv.type ∧ Expr.WScoped 0 value ∧
-    installConstantVal (m := CheckM) env cv = .ok cv ∧
-    installValue (m := CheckM) env cv value = .ok value := by
-  unfold guardValueDeclC at h
+    installHeader (m := CheckM) env cv = .ok cv ∧
+    installValueGuards (m := CheckM) env cv value = .ok value := by
+  unfold installGuardsC at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
   obtain rfl : s₀.flushed = s₁ := congrArg Prod.snd hflush
-  obtain ⟨pr, s₂, hcv, h₂⟩ := bindC_ok h
-  obtain ⟨cvA', jty'⟩ := pr
-  obtain ⟨hs₂, rfl, rfl, hwty, hI⟩ :=
-    guardHeaderC_run (μ := .verified) (env := env) (flushC_csok hres) hcv
-  dsimp only at h₂
+  obtain ⟨cvA', s₂, hcv, h₂⟩ := bindC_ok h
+  obtain ⟨hs₂, rfl, hwty, hI⟩ :=
+    installHeaderC_run (μ := .verified) (env := env) (flushC_csok hres) hcv
   obtain ⟨jv', s₃, hv, h₃⟩ := bindC_ok h₂
-  obtain ⟨hs₃, rfl, hwv, hV⟩ := guardValueC_run (μ := .verified) hs₂ hv
+  obtain ⟨hs₃, rfl, hwv, hV⟩ := installValueGuardsC_run (μ := .verified) hs₂ hv
   obtain ⟨hv', rfl⟩ := pureC_ok h₃
   simp only [Prod.mk.injEq] at hv'
-  obtain ⟨rfl, rfl, rfl⟩ := hv'
-  exact ⟨hs₃.residue, rfl, rfl, rfl, hwty, hwv, hI, hV⟩
+  obtain ⟨rfl, rfl⟩ := hv'
+  exact ⟨hs₃.residue, rfl, rfl, hwty, hwv, hI, hV⟩
 
 /-- The lookup at the prefix view of a canonical, name-unique index whose
 environment extends `env` by exactly the constants above `env`'s
