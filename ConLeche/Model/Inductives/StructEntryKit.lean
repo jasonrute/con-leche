@@ -126,7 +126,7 @@ theorem spineFit_of_wellDenotedV_mkAppN_lam :
     simp only [List.map_cons, SpineFit]
     rw [AnnotTerm.mkAppN_cons] at hok
     have hokApp := Rules.mkAppN_head args hok
-    obtain ⟨-, -, v, A, B, hf, ha, -⟩ := (WellDenoted_app V ρ f a) ▸ hokApp.1
+    obtain ⟨-, -, v, A, B, hf, ha, -⟩ := cast (WellDenoted_app V ρ f a) hokApp.1
     have hd : d.1 ≠ 0 := hnz d List.mem_cons_self
     rw [hval] at hf
     simp only [mkLamsAV, interp_lam] at hf

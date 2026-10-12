@@ -43,7 +43,7 @@ theorem WellDenoted_mkAppN_head {ρ : Nat → V} :
   | [], _, h => h
   | a :: as, g, h => by
     have h1 := WellDenoted_mkAppN_head as (g := .app g a) h
-    exact ((WellDenoted_app V ρ g a) ▸ h1).1
+    exact (cast (WellDenoted_app V ρ g a) h1).1
 
 /-- **A graded application spine of a value of a nonzero-bit Π-tower fits
 the tower**: each application node's package puts its argument in a
@@ -63,7 +63,7 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
     simp only [List.map_cons, SpineFit]
     rw [AnnotTerm.mkAppN_cons] at hwd
     have hwdA := WellDenoted_mkAppN_head args hwd
-    obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := (WellDenoted_app V τ h a) ▸ hwdA
+    obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := cast (WellDenoted_app V τ h a) hwdA
     have hd : d.2.1 ≠ 0 := hnz d List.mem_cons_self
     have hmem' : interp V τ h ∈ˢ piSet (interp V σ d.2.2)
         (fun x => interp V (cons x σ) (mkPisAV pds R)) := by
