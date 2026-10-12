@@ -100969,7 +100969,8 @@ producers were also fixed:
 
 **Merges.** This lane merged `agent/342-l2b-revert` 7c5f7a1a8, the L2b
 revert, before touching `Semantics/Tower`. Q4 rules that revert, and it
-touches the same files.
+touches the same files. Once L2b-revert landed, `port-342` was merged in.
+It added only that lane's DESIGN record, so nothing needed re-gating.
 
 **For S2.**
 - `InTupleSpaceU` is the space a hole frame ranges over. L5's typed
