@@ -100987,3 +100987,86 @@ It added only that lane's DESIGN record, so nothing needed re-gating.
 - The `shake` allowlist line for `Univ.lean`'s `TypeU` import was
   dropped: the import is now used.
 - No `sorry`, no new axiom.
+
+## TASK #342 — L5-TYPED: typed `WellDenoted`, `CtxOk` and `InferSem` (2026-10-12, agent/342-l5-typed)
+
+Lane L5, stage S2 of the revised port (`_tmp/342v2-design.md` §3.2,
+§11.5); it blocks L6/L7/L8. It reads under the annotated model (L4′'s
+`univ := tyU`). The checker, `Denotes.lean`, `MainTheorem`, `Challenge`
+and `Axioms.lean` are unchanged.
+
+**The invariant** (`Semantics/WellDenoted.lean`).
+- Π: `IsTy ⟦A⟧`, and `IsTy` of every fibre `⟦B⟧[x]`, `x ∈ ⟦A⟧`.
+- λ: `IsTy ⟦A⟧`; the body's family `B` is a family of types
+  (`∀ x ∈ ⟦A⟧, IsTy (B x)`), next to the kind-`0` truth-value component.
+- app slot: `(v = 0 → fibres are truth values) ∧ (v ≠ 0 → IsTy A)`.
+  At kind `0` the slot asks no `IsTy`: the design's `¬p → IsTy A`, read
+  at the numeral.
+- `liftN`/`inst`/`beta` transport re-proved. `appSlot_of_pi` and
+  `WellDenoted_app_of` take the domain's `IsTy` (`hdom`).
+
+**The claim currency.**
+- `WellDenotedTy V ρ e := WellDenotedV V ρ e ∧ IsTy ⟦e⟧`
+  (`Model/Currency.lean`), with `liftN`/`inst0`/`hoist_lift` transport
+  (`Model/WellDenotedTransport.lean`).
+- `CtxOk`'s entries are `WellDenotedTy` (so is `CtxOkKit`/`CtxOkP`).
+- `GradedTy` (`Model/Rules/Motive.lean`): `InferSemFull` **and**
+  `InferSemIO` grade the inferred type as a type. `InferClaim` and
+  `InferClaimIO` (`Model/Claims*.lean`) give `WellDenotedTy` for `⟦T⟧`.
+- Every rule establishes its type's `IsTy` from one of four sources:
+  `IsTy_univ` (sort), `IsTy_piR` (forallE, and any Π-shaped reading),
+  `IsTy_of_mem_univ` (anything inhabiting a universe, including the λ
+  domain and the app's fibres), or a checker sort fact
+  (`sortSemAt_of_claims`, `hc.sort`, the recursor stage's sort row).
+
+**New lemmas.** `IsTy_univ`/`univZero`/`omega`/`empty`/`eqv` (`Univ`),
+`exists_IsTy_mem` (`TypeU`), `IsTy_sumSet`, `IsTy_famsSpaceB`,
+`IsTy_tupleSortsSpace`/`IsTy_tupleFamsSpace`, `IsTy_mkPisAV_sort`,
+`IsTy_sqBody`, `IsTy_eqChainAV`, the basis `IsTy_*_app`/`*_type` facts,
+`WellDenotedV.hoist_piTy` (`InferSoundKit`), `WellDenotedTy_pi_dom`,
+`bitAgree_wellDenotedTy`, `GradedFrame.gradedTy` (`GenClsFrame`: an
+opener inferred to a sort reads as a type).
+
+**Deviations from the design.**
+- `InferSemIO` also carries `IsTy` (the design left it open, §5): every
+  io rule establishes it from the same four sources as the full grade.
+- `Fib_piR`/`IsTy_piR` moved from `Semantics/Univ.lean` to
+  `SetModel/Ops.lean`, below `WellDenoted`. `IsTy_eqv` lives in
+  `Derive/Univ.lean` for `BasisTypeOk`.
+- The type facts reached premises the design did not list: the
+  `EnvModelM` field is now `type_wellDenotedTy`; `ConstType`,
+  `NatHeads` (a third conjunct, `IsTy` of the `Nat` reading) and
+  `TowerEntryLaw` (A) carry `IsTy`; so do `FieldsOkB`, `UnderTowerOk`,
+  `ParamsOkS`/`MkPreS`/`AppChainOk`, `ParamsOkG`, the recursor
+  stage's premises, `CtorDataI.okTy`, `WalkCtx`, `hereditaryWalk`,
+  `GradedFrame.ok` and every spine-indexed "frame grading" (`hokA`,
+  `hokB`, `hokΔ`, `hframe`) in `Model/Inductives`. These are the
+  contexts `CtxOk` is built from, so each had to become `WellDenotedTy`.
+- Hole contexts: their facts were already over L4′'s `InTupleSpaceU`;
+  the hole types' `IsTy` comes from `IsTy_mkPisAV_sort` (a former's
+  type is a Π-tower into a sort), so no strict-space premise was added.
+
+**Observation for review.** At a positive kind the λ clause's "family of
+types" adds nothing: every set inhabits a type (`exists_IsTy_mem`:
+`{y}`, `{pt}`, `{ptTag, ∅}`), and `mkLamsAV_one_wellDenoted` picks one.
+The λ's content is in its domain's `IsTy` and the kind-`0` component.
+
+**For L6/L7/L8 and L-let.**
+- A new producer of a context entry or an inferred type owes `IsTy`.
+  Look for it in a universe membership first (`IsTy_of_mem_univ`), then
+  in the reading's shape (`IsTy_piR`, `IsTy_mkPisAV_sort`), then in a
+  checker sort fact (`sortSemAt_of_claims`, `GradedFrame.gradedTy`).
+- L6 (spelled leaves): each spelled carrier's type needs its `IsTy`
+  next to its `WellDenoted` fact; `IsTy_sumSet`, `IsTy_famsSpaceB` and
+  the `tupleSpace` facts are the ones the current carriers use.
+- L7: `FieldsOkB`/`UnderTowerOk`/`ParamsOkG` already carry `IsTy`
+  slots; a strict-fibre fact lands there (`IsTy_of_strict`).
+- L8: `NatHeads`' new conjunct and `DmBinV`/`DmUnV`'s `IsTy natS` are
+  the Nat-side hooks; `Quot`'s `quotRelTy_wellDenotedV` takes
+  `IsTy (ρ 0)`.
+- L-let: a let-bound entry in a context is a `CtxOk` entry, so its type
+  owes `WellDenotedTy` like any binder.
+
+**Gates.** `lake build`, `lake test` (warning-free; `Axioms.lean`
+unchanged), `tests/arena.sh`, `tests/challenge.sh`,
+`whitepaper/links-gate.sh`. No `sorry`, no new axiom.
