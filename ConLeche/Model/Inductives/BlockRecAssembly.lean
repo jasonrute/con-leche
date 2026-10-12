@@ -189,7 +189,7 @@ at `univ (s ψ)`. -/
 
 /-- **The recursor family's leaf facts** at the equation list `eqs`:
 the leaf is closed, invariant under lifting, level-parametric in each
-recursor's own parameters, graded and bit-valid, and the family premise
+recursor's own parameters, graded, and the family premise
 `hpre` that grades it. -/
 structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
@@ -205,8 +205,6 @@ structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
         = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ₂ i
   wd : ∀ (ψ : Name → Nat) (i : Nat), i < rs.length → ∀ ρ : Nat → V,
     WellDenoted V ρ (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
-  valid : ∀ (ψ : Name → Nat) (i : Nat) (ρ : Nat → V),
-    AnnotValid V ρ (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
   pre : ∀ (ψ : Name → Nat) (ρ : Nat → V),
     ConLeche.Semantics.BlockRecPre V (s ψ) rs.length
       (blockRecTyAV mpC.base2.acval envC rs ψ) (eqs ψ) ρ
@@ -247,13 +245,12 @@ theorem BlockRecLeafOk.stored {envC : Env} {mpC : EnvModelM V μ envC}
     (∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
       blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ₁
         = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ₂) ∧
-    (∀ ψ (ρ : Nat → V), WellDenoted V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) ∧
-    (∀ ψ (ρ : Nat → V), AnnotValid V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) := by
+    (∀ ψ (ρ : Nat → V), WellDenoted V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) := by
   obtain ⟨i, hi⟩ := List.getElem?_of_mem hr
   simp only [blockRecAcv_at hnd hi]
   exact ⟨fun ψ => hleaf.closed ψ i, fun ψ k => hleaf.liftN ψ i k,
     fun ψ₁ ψ₂ hq => hleaf.par i r hi ψ₁ ψ₂ hq,
-    fun ψ ρ => hleaf.wd ψ i (List.getElem?_eq_some_iff.mp hi).1 ρ, fun ψ ρ => hleaf.valid ψ i ρ⟩
+    fun ψ ρ => hleaf.wd ψ i (List.getElem?_eq_some_iff.mp hi).1 ρ⟩
 
 /-- The `.nested` firings' pins facts: at every stored recursor `j`
 whose rules fire `.nested lvls pins`, the rule prefix sits below the
@@ -347,7 +344,7 @@ theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (fun r hr => ⟨(hfacts r hr).1, (hfacts r hr).2.1, (hfacts r hr).2.2.1,
       (hfacts r hr).2.2.2.1⟩)
     hag (fun r hr => (hL r hr).1) (fun r hr => (hL r hr).2.1) (fun r hr => (hL r hr).2.2.1)
-    (fun r hr => (hL r hr).2.2.2.1) (fun r hr => (hL r hr).2.2.2.2)
+    (fun r hr => (hL r hr).2.2.2)
     (hrd_of_pre hμ mpC h rfl
       (fun i r hr ψ => by obtain ⟨-, -, -, hread, -⟩ := recStage_tyPis hμ mpC h hr ψ; exact hread)
       (fun i r hr ψ => blockRecAcv_at hnd hr ψ) hleaf.pre)
