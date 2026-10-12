@@ -102620,5 +102620,7 @@ fragment's proofs at the real reading (`IsTy.eq_of_ne_pt`, `lamV_eta`).
 tree.  `tests/challenge.sh` green.  Verdicts (arena, e2e, annot; one run,
 8 jobs): 626/626 as expected, arena 90/92.  `instructions:u`
 (`--verified --jobs=1`, one run each) against L-ck's final binary
-(lck3): see the landing message.  `overview-links.sh` and `quote-gate`
+(lck3): init-full 411.93 G → 412.53 G (+0.15 %), mathlib-prefix
+562.94 G → 563.73 G (+0.14 %); 57 977 / 131 902 declarations accepted,
+exit 0, as before.  `overview-links.sh` and `quote-gate`
 deferred (OVERVIEW §3/§4 edited, linked source lines moved).
