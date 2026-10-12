@@ -380,13 +380,37 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       hm, hslot ρ' hsat, fun h0 y hy => ?_, fun _ => helemTy ψ ρ'⟩
     have := hv.2.2 h0 y hy
     rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
-  -- the run, converted
-  have heq := ihd (d := 1)
-    (a := Expr.app valA (ConLeche.reduceCertVar cv.name))
-    (b := ConLeche.reduceCertVar cv.name) (Δa := elemCtx mp.base2 cv.name ψ)
-    hrun hwsApp hbApp hLApp hwsCert hbCert hLCert
-    (hctxApp ψ) (hctxCert ψ) (hdenApp ψ) (hdenCert ψ)
-    hgradeApp hgradeCert (cons x ρ) (sat_elemCtx mp.base2 hx)
+  -- both sides are members of the element type
+  have hmemApp : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
+      interp V ρ' (.app (A ψ) (.bvar 0))
+        ∈ˢ interp V ρ' (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) := by
+    intro ρ' hsat
+    have hfib : (fun y => interp V (cons y ρ')
+          (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ))
+        = fun _ : V => interp V ρ'
+            (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) :=
+      funext fun y => acval_interp_closed mp.base2 _ ψ _ ρ'
+    have hm := hmemA ψ ρ'
+    rw [hTaShape ψ, interp_pi, hfib] at hm
+    have hv := (hTaOk ψ ρ').2
+    rw [hTaShape ψ, AnnotValid_pi] at hv
+    rw [interp_app, interp_bvar]
+    refine app_mem_piR hm (hslot ρ' hsat) fun h0 y hy => ?_
+    have := hv.2.2 h0 y hy
+    rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at this
+  -- the run, converted: two members of one type, so the point does not
+  -- separate them
+  have hsatx := sat_elemCtx mp.base2 hx
+  have heq : interp V (cons x ρ) (.app (A ψ) (.bvar 0))
+      = interp V (cons x ρ) (.bvar 0) :=
+    (helemTy ψ (cons x ρ)).eq_of_ne_pt (hmemApp _ hsatx)
+      (by rw [interp_bvar]; exact hslot _ hsatx) fun _ _ =>
+    ihd (d := 1)
+      (a := Expr.app valA (ConLeche.reduceCertVar cv.name))
+      (b := ConLeche.reduceCertVar cv.name) (Δa := elemCtx mp.base2 cv.name ψ)
+      hrun hwsApp hbApp hLApp hwsCert hbCert hLCert
+      (hctxApp ψ) (hctxCert ψ) (hdenApp ψ) (hdenCert ψ)
+      hgradeApp hgradeCert (cons x ρ) hsatx
   rw [interp_app, interp_bvar] at heq
   show SetTheory.app (interp V ρ (A ψ)) x = x
   rw [hclA ρ (cons x ρ) ψ]
