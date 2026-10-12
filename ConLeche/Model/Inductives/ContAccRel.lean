@@ -427,7 +427,7 @@ theorem grp_arity {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDa
     rw [← hfind, ← hpm]; exact hfC
   rw [hf] at hfC'
   obtain ⟨rfl, rfl⟩ : cv = cvC ∧ caps' = caps := by simpa using hfC'
-  obtain ⟨ab, hread, hmap, -⟩ := hab ψ
+  obtain ⟨ab, hread, hmap⟩ := hab ψ
   have hok := tailOk_of_read _ cv.type rfl hread
   obtain ⟨-, l2, l3⟩ := tail_instantiateLevelParams cv.levelParams us cv.type
   obtain ⟨-, k2⟩ := tail_instPisWith ds (l3.mpr hok) hty
