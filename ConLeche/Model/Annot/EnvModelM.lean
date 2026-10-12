@@ -193,6 +193,20 @@ theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
     rw [List.foldl_cons, consList_cons]
     exact foldl_app_mem_mkPisAV h.2 happ
 
+/-- **A Π-tower whose body is a truth value at every fitting spine is a
+truth value**: each binder's fibres are (by induction), so each
+function space is the truth-value regime's (`piV_eq_zero`). -/
+theorem mkPisAV_mem_univZero {B : AnnotTerm} :
+    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+      (∀ bs, SpineFit ρ (tl.map (·.2.2)) bs → interp V (consList bs ρ) B ∈ˢ (univZero : V)) →
+      interp V ρ (mkPisAV tl B) ∈ˢ (univZero : V)
+  | [], _, h => h [] trivial
+  | d :: tl, ρ, h => by
+    show interp V ρ (.pi d.2.2 (mkPisAV tl B)) ∈ˢ _
+    rw [interp_pi, piV_eq_zero fun x hx =>
+      mkPisAV_mem_univZero fun bs hbs => h (x :: bs) ⟨hx, hbs⟩]
+    exact piR_zero_mem_univZero
+
 end
 
 /-- **The P-tier environment invariant, at one mode** (see the module
