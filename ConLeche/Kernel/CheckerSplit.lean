@@ -9,13 +9,13 @@ public import ConLeche.Kernel.Checker
 
 `checkDecl` (`ConLeche/Kernel/Checker.lean`) installs a declaration and
 checks it in one run.  For a `defn`, `thm` or `opaque` the two halves
-are separable: the **install half** runs the syntactic guards and the
-annotation of the type — and, for a definition or an opaque, of the
-value — and pushes the constant; the **check half** runs the
-inferences and the conversion — the type's sort, the theorem's
-is-a-proposition test, for a theorem the value's guards and annotation
-(a theorem is installed by its statement; its value reaches the check
-half raw), the value's type against the declared one — and reads only
+are separable: the **install half** runs the syntactic guards of the
+type — and, for a definition or an opaque, of the value — and pushes
+the constant as declared; the **check half** runs the inferences and
+the conversion — the type's sort, the theorem's is-a-proposition test,
+for a theorem the value's guards (a theorem is installed by its
+statement; its value reaches the check half unchecked), the value's
+type against the declared one — and reads only
 the environment the constant was installed at and the data the
 install half produced.  Every
 other kind (axioms, inductive and basis blocks, and the pinned
@@ -48,11 +48,10 @@ def ValueKind.word : ValueKind → String
   | .opaque => "opaque"
 
 /-- What the install half hands the check half: the kind, the header
-with its type annotated, and the value — ANNOTATED for a definition or
-an opaque (the install half annotated it and stored it), RAW for a
-theorem (the install half never looked at it: a theorem is stored by
-its statement, and the check half annotates the value itself,
-`checkValueGroup`). -/
+and the value — guarded for a definition or an opaque (the install
+half stored it), unguarded for a theorem (the install half never
+looked at it: a theorem is stored by its statement, and the check half
+runs the value's guards itself, `checkValueGroup`). -/
 structure ValueGroup where
   kind : ValueKind
   cvA : ConstantVal
