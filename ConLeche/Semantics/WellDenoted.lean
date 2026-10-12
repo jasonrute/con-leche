@@ -21,6 +21,14 @@ each an interface a consumer forced:
   truth values)` — the semantic content of the λ's cached codomain
   sort, and what `WellDenoted_beta_pos` consumes.
 
+**Binder domains are types** (task #342, `IsTy X := X ∈ univZero ∨
+Strict X`): the λ and Π clauses carry `IsTy ⟦A⟧`, the Π clause carries
+`IsTy` of every fibre, the λ clause bounds its body by a family of
+types, and the application slot carries `v ≠ 0 → IsTy A` (at kind `0`
+it asks only the truth-value component).  Every such fact is the
+semantic content of a `Sort` the checker inferred for the binder type;
+`IsTy_univ`, `IsTy_piR` and `IsTy_of_mem_univ` produce them.
+
 Being a **semantic** predicate on the annotated term, `WellDenoted`
 transports across reduction; the constraint that annotations do not
 cross `Red` binds derivation-backed relations, not this invariant.
