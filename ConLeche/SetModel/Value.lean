@@ -156,6 +156,11 @@ theorem psigmaV_mem (u v : Nat) :
       sigma_mem_univ hA fun _ hx => psigmaFibre_apply V hB hx)
     fun _ _ => IsTy_univ _) fun _ _ => IsTy_piV
 
+/-- Over an inhabited domain the fibre space is the graph space. -/
+theorem psigmaFibreSpace_eq_of_mem {v : Nat} {A x : V} (hx : x ∈ˢ A) :
+    psigmaFibreSpace V v A = piR (v + 1) A fun _ => univ v :=
+  piV_univ_eq_pos (Nat.succ_ne_zero v) hx _ fun _ _ => ⟨v, rfl⟩
+
 /-- The pair former is the graph regime's at both binders: its domains
 are inhabited and its values are types. -/
 theorem psigmaV_eq_lamR (u v : Nat) :
@@ -187,6 +192,11 @@ theorem psigmaMkV_app {u v : Nat} {A B a b : V} (hA : A ∈ˢ (univ u : V))
     app (app (app (app (psigmaMkV V u v) A) B) a) b =
       if Nat.max u v = 0 then pt else spair a b := by
   rw [psigmaMkV, app_lamV hA, app_lamV hB, app_lamV ha, app_lamV hb]
+
+/-- Where the pair type is a truth value the constructor is the point. -/
+theorem psigmaMkV_eq_pt {u v : Nat} (hw : Nat.max u v = 0) : psigmaMkV V u v = pt :=
+  lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ => lamV_eq_pt fun _ _ =>
+    if_pos hw
 
 /-- The pair constructor inhabits its type. -/
 theorem psigmaMkV_mem (u v : Nat) :
