@@ -63,7 +63,7 @@ theorem blockCtorFuns_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     | some cA =>
       obtain ⟨c, sorts, hCtor⟩ := hrunOf j cA hj
       obtain ⟨idxArgs, ds, Es, srcs, fvsP, xFvs, xrest, hD⟩ :=
-        blockCtorData_of hμ mp hCtor hfT hlpsT hsT hstripT
+        blockCtorData_of hμ mp hCtor hfT hlpsT hstripT
       refine ⟨⟨idxArgs, ds, Es, srcs, fvsP, xFvs, xrest⟩, fun cA' h => ?_⟩
       obtain rfl := Option.some.inj h
       exact hD
