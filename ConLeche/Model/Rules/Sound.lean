@@ -344,28 +344,16 @@ theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
   exact ⟨hf', hsub, ea', hea', fun ρ hρ => ⟨(hs' ρ hρ).1, (hs' ρ hρ).2 ▸ (hg ρ hρ).2⟩,
     fun ρ hρ => (hs' ρ hρ).2⟩
 
-/-- **Interim** (task #342, L12): a reduction of a globally graded
-subject, unconditionally, through the side induction.  The positivity
-readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and read their
-whnf steps through it; once they carry the walked types' `IsTy`, the
-conditional `red_sound` serves them ("not pt" source (1)). -/
-theorem red_sound_global (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
-    (h : Red env d e e') (hf : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
-    (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea)
-    (hg : Graded V Δa ea) :
-    Frame d e' ∧ LeavesSub e' e ∧
-      ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧ Graded V Δa ea' ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ea' := by
-  obtain ⟨hf', hsub, ea', hea', hs⟩ := red_soundU hin h hf hC.toS hea
-  exact ⟨hf', hsub, ea', hea', fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ)).1,
-    fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ)).2⟩
-
-/-- **Interim** (task #342, L10/L12): a comparison of two globally
-graded sides, unconditionally, through the side induction.  The
-recursor-class match (`Model/Inductives/TargetDefeqTie.lean`) compares
-PARAMETERS, which may be proofs; under the conditional claims it needs
-the parameters' telescope (`spineFit_eq_of_cond`, as `blockRule_coherent`
-does for the block rules). -/
+/-- **Interim** (task #342; the last consumer of the side induction outside
+the rules tier): a comparison of two globally graded sides,
+unconditionally, through the side induction.  The recursor-class match
+(`Model/Inductives/TargetDefeqTie.lean`) compares the PARAMETERS of two
+instances of one container, which may be proofs; under the conditional
+claims it needs the two parameter spines placed in one telescope of
+types (both instances graded at one valuation, the container's graph
+fixing each parameter's domain from the equal prefix), as
+`spineFit_eq_of_cond` does for the block rules (the DESIGN record of
+L12). -/
 theorem defeq_sound_global (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
     (h : DefEq env d a b) (hfa : Frame d a) (hfb : Frame d b)
     {Δa : List AnnotTerm} {aa ba : AnnotTerm}
