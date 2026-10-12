@@ -450,4 +450,20 @@ theorem WellDenotedV_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     WellDenotedV V ρ (BConst.typeAV c us) :=
   ⟨WellDenoted_bconst_type V c us ρ, AnnotValid_bconst_type V c us ρ⟩
 
+/-- **Every built-in constant's annotated type reads to a type**: a
+product, a universe, `ω` (`Nat.zero : Nat`) or a unit type
+(`PUnit.unit : PUnit`). -/
+theorem IsTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
+    IsTy (interp V ρ (BConst.typeAV c us)) := by
+  cases c <;> first
+    | exact IsTy_piR _ _ _
+    | exact IsTy_univ _
+    | exact IsTy_omega
+    | exact IsTy_of_mem_univ (unitSetAt_mem_univ _)
+
+/-- **Every built-in constant's annotated type is a graded type.** -/
+theorem WellDenotedTy_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
+    WellDenotedTy V ρ (BConst.typeAV c us) :=
+  ⟨WellDenotedV_bconst_type V c us ρ, IsTy_bconst_type V c us ρ⟩
+
 end ConLeche.Model

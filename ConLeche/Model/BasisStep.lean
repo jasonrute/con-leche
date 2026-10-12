@@ -63,6 +63,12 @@ theorem bitAgree_wellDenotedV {e e' : AnnotTerm} (h : e.BitAgree e')
     (ρ : Nat → V) : WellDenotedV V ρ e ↔ WellDenotedV V ρ e' :=
   and_congr (h.wellDenoted V ρ) (h.validV V ρ)
 
+/-- `bitAgree_wellDenotedV` for graded types. -/
+theorem bitAgree_wellDenotedTy {e e' : AnnotTerm} (h : e.BitAgree e')
+    (ρ : Nat → V) : WellDenotedTy V ρ e ↔ WellDenotedTy V ρ e' := by
+  unfold WellDenotedTy
+  rw [bitAgree_wellDenotedV h ρ, h.interp_eq V ρ]
+
 /-- **The P step at a basis cons.**  Seven of `declStep_preserves_of_cons`'s
 eleven premises are discharged here; what remains is the tower and its
 type's reading. -/

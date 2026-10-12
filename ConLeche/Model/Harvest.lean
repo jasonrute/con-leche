@@ -203,7 +203,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
       denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ vta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
     intro ψ
@@ -217,7 +217,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -273,7 +273,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       exact absurd hl (List.not_mem_nil)
     have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
       (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      hrT htE ρ (Sat_nil V ρ)
+      (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -323,7 +323,10 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -354,6 +357,8 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         ∈ˢ piR 1 (interp V ρ (acvalWith mp.base2.acval cv.name A
             natName (Level.substFn φ [] [])))
           (fun _ => interp V ρ (acvalWith mp.base2.acval cv.name A
+            natName (Level.substFn φ [] []))) ∧
+      IsTy (interp V ρ (acvalWith mp.base2.acval cv.name A
             natName (Level.substFn φ [] [])))
     have hgold : ConLeche.natLitSupported env = true :=
       natLitSupported_cons_back
@@ -574,7 +579,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
       denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ vta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
     intro ψ
@@ -588,7 +593,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -644,7 +649,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       exact absurd hl (List.not_mem_nil)
     have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
       (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      hrT htE ρ (Sat_nil V ρ)
+      (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -692,7 +697,10 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -829,7 +837,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -882,7 +890,10 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2⟩
   · -- `hmemNew`: the pin tier's membership, crossed
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
@@ -1011,7 +1022,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
       denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ vta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
     intro ψ
@@ -1025,7 +1036,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
       denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
       ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -1081,7 +1092,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       exact absurd hl (List.not_mem_nil)
     have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
       (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      hrT htE ρ (Sat_nil V ρ)
+      (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -1130,7 +1141,10 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
     replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
