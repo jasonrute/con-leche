@@ -15,6 +15,7 @@ import ConLeche.Model.Inductives.BlockData
 import ConLeche.Model.Inductives.BlockCaps
 import ConLeche.Model.Inductives.BlockCover
 import ConLeche.Model.Inductives.TargetClasses
+import ConLeche.Model.Inductives.TargetCallKit
 import ConLeche.Model.Inductives.StructEntryKit
 import ConLeche.Model.Annot.BlockLfp
 import ConLeche.Model.Rules.IotaSoundKit
@@ -1378,6 +1379,101 @@ theorem genOut_residual (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   rw [hPB]
   have := Rd.hnpc
   omega
+
+set_option maxHeartbeats 4000000 in
+/-- **A fitting graded constructor application lies in the container's
+fibre at the residual's arguments**, which fit the container former's
+telescope (its parameters, then its indices), and that fibre lies in the
+container's universe. -/
+theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
+    (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
+    {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
+    {ψj : Name → Nat} {TVja : AnnotTerm}
+    (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
+    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    (hys : ys.length = (tgtMajor out j).nPc + cA.2)
+    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenotedV V ρ y) :
+    ∃ args : List AnnotTerm,
+      args.length = (tgtMajor out j).nPc
+        + ((tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψj).length ∧
+      (∀ q, q < (tgtMajor out j).nPc →
+        interp V ρ (args.getD q default) = interp V ρ (ys.getD q default)) ∧
+      restC = AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj) args ∧
+      interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+        ∈ˢ (args.map (interp V ρ)).foldl SetTheory.app
+            (interp V ρ (mpC.base2.acval (tgtMajor out j).ind ψj)) ∧
+      SpineFit ρ ((tgtClsD d Dc out j).pars (tgtClsM mc pp.toBlockShape out j) ψj
+          ++ (tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψj)
+        (args.map (interp V ρ)) ∧
+      (args.map (interp V ρ)).foldl SetTheory.app
+          (interp V ρ (mpC.base2.acval (tgtMajor out j).ind ψj))
+        ∈ˢ (univ ((tgtClsD d Dc out j).w ψj) : V) := by
+  obtain ⟨hiD, hfc0, hlpC, -⟩ := Rd.hctor i cA hcAM
+  obtain ⟨Es, hrest, hlenA⟩ := genOut_residual hcov Rd hcAM hread hys hfitC
+  -- the constructor application lies in the residual
+  have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
+    ConLeche.Semantics.Env.find?_name hfc0
+  have hcons := List.mem_of_find?_eq_some hfc0
+  have hTV : WellDenotedV V ρ TVja := (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ).1
+  have hf : WellDenotedV V ρ (mpC.base2.acval cA.1.name ψj) :=
+    ⟨mpC.base2.acval_wellDenoted _ ψj ρ, mpC.acval_validV _ ψj ρ⟩
+  have hmem : interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ interp V ρ TVja := by
+    exact mpC.mem_type _ hcons ψj TVja hread ρ
+  obtain ⟨-, hin⟩ := Rules.mkAppN_of_fitA ys hTV hf hWD hmem hfitC
+  have hokR := Rules.teleFitPA_rest_graded hfitC hTV hWD
+  rw [hrest] at hin hokR
+  rw [interp_mkAppN_foldl ρ _ (mpC.base2.acval (tgtMajor out j).ind ψj)] at hin
+  -- the container former's telescope
+  obtain ⟨-, -, hrd, ⟨-, hrdC⟩, -⟩ := mpC.lfp_ok _ Rd.hD
+  obtain ⟨cv, caps, hfm, hab⟩ := hrd _ Rd.hmm
+  rw [Rd.hmem] at hfm
+  obtain ⟨caps₀, hf₀⟩ := Rd.hfind
+  rw [hf₀] at hfm
+  obtain ⟨rfl, rfl⟩ : cvI = cv ∧ caps₀ = caps := by
+    injection hfm with h'; injection h' with a b; exact ⟨a, b⟩
+  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψj
+  have hconsI := List.mem_of_find?_eq_some hf₀
+  have hmemI : interp V ρ (mpC.base2.acval (tgtMajor out j).ind ψj)
+      ∈ˢ interp V ρ (mkPisAV ab (.sort ((tgtClsD d Dc out j).w ψj))) := by
+    have := mpC.mem_type _ hconsI ψj _ hta ρ
+    have hn : (ConstantInfo.indInfo cvI caps₀).name = (tgtMajor out j).ind :=
+      ConLeche.Semantics.Env.find?_name hf₀
+    rw [hn] at this
+    exact this
+  have hvalidI := (mpC.type_wellDenotedTy _ hconsI ψj _ hta ρ).1.2
+  -- the parameter count
+  obtain ⟨cv', nPc, nF, hf', -, -, -, A0, -, -, hrdA⟩ := hrdC _ Rd.hmm i hiD
+  rw [hfc0] at hf'
+  have hnPc : (tgtMajor out j).ds.length = nPc := by
+    injection hf' with h; injection h
+  have hPl := (hrdA ψj).1
+  rw [← hnPc] at hPl
+  have hparsL := (mpC.lfp_ok _ Rd.hD).1.parsLen _ Rd.hmm ψj
+  have hlab : ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
+      (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))).length
+      = ab.length := by
+    rw [List.length_map, hlenA ψj, ← List.length_map (f := fun p : Nat × Nat × AnnotTerm => p.2.2),
+      hmap, List.length_append, hparsL, hPl, Rd.hnpc]
+  have hfit := spineFit_of_wellDenoted_mkAppN_pi hbits hokR.1 hmemI hlab
+  rw [hmap] at hfit
+  refine ⟨_, by rw [List.length_map, hlenA], fun q hq => ?_, hrest, hin, hfit, ?_⟩
+  · have hPB : (paramBvars (tgtMajor out j).nPc cA.2).length = (tgtMajor out j).nPc := by
+      simp [paramBvars]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_map,
+      List.getElem?_append_left (by rw [hPB]; exact hq)]
+    have hel : (paramBvars (tgtMajor out j).nPc cA.2)[q]?
+        = some (.bvar ((tgtMajor out j).nPc + cA.2 - 1 - q)) := by
+      simp [paramBvars, List.getElem?_range hq]
+    rw [hel, Option.map_some, Option.getD_some,
+      show (tgtMajor out j).nPc + cA.2 - 1 = ys.length - 1 from by rw [hys], interp_instSeq]
+    unfold chain
+    rw [consN_eq_consList, interp_bvar,
+      consList_getD_of_lt _ _ _ (by rw [List.length_map, hys]; omega), List.length_map, hys,
+      show (tgtMajor out j).nPc + cA.2 - 1 - ((tgtMajor out j).nPc + cA.2 - 1 - q) = q from by
+        omega, getD_map_pt (by rw [hys]; omega)]
+  · have := foldl_app_mem_mkPisAV hvalidI (by rw [← hmap] at hfit; exact hfit) hmemI
+    rw [interp_sort] at this
+    exact this
 
 end Outside
 
