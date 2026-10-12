@@ -408,6 +408,16 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
             rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl⟩))
     (hrd := lfp0_reads (by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN)
       (fun ψ => by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]; rfl))
+    (hcaps := lfp0_caps (by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN)
+      (fun _ h => absurd h Nat.one_ne_zero) (fun h => absurd h (by decide))
+      (fun j hj => by
+        rcases (show j = 0 ∨ j = 1 by omega) with rfl | rfl
+        · exact ⟨_, _, _, by
+            show (⟨natSuccA :: env.consts⟩ : ConLeche.Env).find? natZeroName = _
+            rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hZ, _, [], rfl⟩
+        · exact ⟨_, _, _, by
+            show (⟨natSuccA :: env.consts⟩ : ConLeche.Env).find? natSuccA.name = _
+            rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl, _, [], rfl⟩))
     (hrdC := lfp0_ctorReads (by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN)
       (fun ψ => ⟨_, by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]⟩) fun j hj => by
       rcases (show j = 0 ∨ j = 1 by omega) with rfl | rfl

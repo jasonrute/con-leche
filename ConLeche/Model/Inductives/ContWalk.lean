@@ -470,7 +470,7 @@ theorem crest_readT {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Const
               (grpX mp.base2 φ D hi grp ds (hi + grp.length)))
               (AnnotTerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx (Level.substFn φ lps us) c j)) ab.length)) := by
-  obtain ⟨-, -, -, -, hrd⟩ := mp.lfp_ok D hD
+  obtain ⟨-, -, -, ⟨-, hrd⟩, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv', nPc', nF', hf', hcl, hlpsC, -, A, hA, hocc, hread⟩ := hrd c hc j hj
   rw [hfc] at hf'
   obtain ⟨rfl, rfl, rfl⟩ : cv = cv' ∧ ds.length = nPc' ∧ nF = nF' := by
@@ -988,7 +988,7 @@ theorem ctor_lps {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDat
       cv.levelParams = lps)
     {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : ConstantVal} {nPc nF : Nat}
     (hfc : env.find? (D.ctorName c j) = some (.ctorInfo cv nPc nF)) : cv.levelParams = lps := by
-  obtain ⟨-, -, -, -, hrd⟩ := mp.lfp_ok D hD
+  obtain ⟨-, -, -, ⟨-, hrd⟩, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv', nPc', nF', hf', -, hlpsC, -⟩ := hrd c hc j hj
   rw [hfc] at hf'
   obtain rfl : cv = cv' := by

@@ -287,7 +287,7 @@ theorem genMemAt_of
     show _ = (pp.members.getD t default).ctors.length
     rw [List.getD_eq_getElem?_getD, hms, Option.getD_some]
   -- the member's former carries the constructor's level parameters (`LfpCtorReads`)
-  obtain ⟨-, -, -, hrdC⟩ := mpC.lfp_ok _ hlfp
+  obtain ⟨-, -, -, hrdC, -⟩ := mpC.lfp_ok _ hlfp
   obtain ⟨cv, nPc, nF, hfc, -, hall, -⟩ := hrdC.2 t htd i hjl
   have hname : d.toLfp.ctorName t i = cA.1.name := by
     show ((d.ctorsM t).getD i default).1.name = _

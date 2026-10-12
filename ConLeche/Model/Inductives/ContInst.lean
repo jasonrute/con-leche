@@ -210,7 +210,7 @@ theorem instCtor_read {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
             (AnnotTerm.substAV (instTau mp φ D us hi ds)
               (AnnotTerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx (Level.substFn φ lps us) c j)) ab.length)) := by
-  obtain ⟨-, -, -, hk, hrd⟩ := mp.lfp_ok D hD
+  obtain ⟨-, -, -, ⟨hk, hrd⟩, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv', nPc', nF', hf', hcl, hlpsC, -, A, hA, hocc, hread⟩ := hrd c hc j hj
   rw [hfc] at hf'
   obtain ⟨rfl, rfl, rfl⟩ : cv = cv' ∧ ds.length = nPc' ∧ nF = nF' := by

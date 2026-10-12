@@ -212,7 +212,7 @@ theorem genOutCtorFit (hμ : μ.verifiedChecks = true)
   have hsatK := Rd.hsat ψ ρ xs hpref
   rw [Rd.hψ] at hsatK
   obtain ⟨hjD, hfc0, hlpC, -⟩ := Rd.hctor j cA hcA
-  obtain ⟨-, -, -, hcrd⟩ := mpC.lfp_ok _ Rd.hD
+  obtain ⟨-, -, -, hcrd, -⟩ := mpC.lfp_ok _ Rd.hD
   obtain ⟨cv', nPc', nF', hf', -, -, hpars, -⟩ := hcrd.2 _ Rd.hmm j hjD
   rw [hfc0] at hf'
   obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cv' ∧ (tgtMajor out c).ds.length = nPc' ∧ cA.2 = nF' := by

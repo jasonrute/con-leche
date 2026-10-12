@@ -504,16 +504,16 @@ its constructors' environment): the block's members leave the
 exemption list, given its names distinct, one per member, listed as
 their formers' `all`, and its constructors owned. -/
 theorem LfpCover.addLfp {env : Env} {mp : EnvModelM V μ env} {ex : List Name}
-    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC)
+    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC) (hcaps)
     (hnd : D.names.Nodup) (hlen : D.names.length = D.k)
     (hall : ∀ mm, mm < D.k → ∀ cv caps,
       env.find? (D.member mm) = some (.indInfo cv caps) → caps.all = D.names)
     (hown : LfpOwn env D) (hwid : D.N = D.k := by rfl) :
-    LfpCover (mp.addLfp D hL hst hrd hrdC) (ex.filter (· ∉ D.names)) where
+    LfpCover (mp.addLfp D hL hst hrd hrdC hcaps) (ex.filter (· ∉ D.names)) where
   cover := fun n cv caps hf hn hq => by
     by_cases hD : n ∈ D.names
     · obtain ⟨mm, hmm, rfl⟩ := List.getElem_of_mem hD
-      refine ⟨D, EnvModelM.mem_addLfp mp D hL hst hrd hrdC, mm, hlen ▸ hmm, ?_⟩
+      refine ⟨D, EnvModelM.mem_addLfp mp D hL hst hrd hrdC hcaps, mm, hlen ▸ hmm, ?_⟩
       simp [LfpDatum.member, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hmm]
     · have hn0 : n ∉ ex := fun h' => hn (List.mem_filter.mpr ⟨h', by simpa using hD⟩)
       obtain ⟨D', hD', rest⟩ := h.cover n cv caps hf hn0 hq
@@ -549,14 +549,14 @@ theorem LfpCover.addLfp {env : Env} {mp : EnvModelM V μ env} {ex : List Name}
 
 /-- `LfpCover.addLfp` at a named result list. -/
 theorem LfpCover.addLfp_to {env : Env} {mp : EnvModelM V μ env} {ex ex'' : List Name}
-    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC)
+    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC) (hcaps)
     (hnd : D.names.Nodup) (hlen : D.names.length = D.k)
     (hall : ∀ mm, mm < D.k → ∀ cv caps,
       env.find? (D.member mm) = some (.indInfo cv caps) → caps.all = D.names)
     (hown : LfpOwn env D)
     (hex : ex.filter (· ∉ D.names) = ex'') (hwid : D.N = D.k := by rfl) :
-    LfpCover (mp.addLfp D hL hst hrd hrdC) ex'' :=
-  hex ▸ h.addLfp D hL hst hrd hrdC hnd hlen hall hown hwid
+    LfpCover (mp.addLfp D hL hst hrd hrdC hcaps) ex'' :=
+  hex ▸ h.addLfp D hL hst hrd hrdC hcaps hnd hlen hall hown hwid
 
 /-- A one-member block's record empties the exemption list its former's
 cons opened. -/
@@ -709,7 +709,7 @@ theorem coverTo_addLfp {env env' : Env} {mp : EnvModelM V μ env} {ex ex' ex'' :
     (h : ∃ mp' : EnvModelM V μ env', mp'.base2.acval = acval ∧
       (LfpCover mp ex → LfpCover mp' ex'))
     (D : LfpDatum V) (hL : LfpClause acval D) (hst : LfpStored env' D)
-    (hrd : LfpReads acval env' D) (hrdC : LfpCtorReads acval env' D)
+    (hrd : LfpReads acval env' D) (hrdC : LfpCtorReads acval env' D) (hcaps : LfpCaps env' D)
     (hnd : D.names.Nodup) (hlen : D.names.length = D.k)
     (hall : ∀ mm, mm < D.k → ∀ cv caps,
       env'.find? (D.member mm) = some (.indInfo cv caps) → caps.all = D.names)
@@ -718,7 +718,8 @@ theorem coverTo_addLfp {env env' : Env} {mp : EnvModelM V μ env} {ex ex' ex'' :
     CoverTo mp ex env' ex'' := by
   obtain ⟨mp', hac, hc⟩ := h
   subst hac hex
-  exact ⟨mp'.addLfp D hL hst hrd hrdC, fun h0 => (hc h0).addLfp D _ _ _ _ hnd hlen hall hown hwid⟩
+  exact ⟨mp'.addLfp D hL hst hrd hrdC hcaps,
+    fun h0 => (hc h0).addLfp D _ _ _ _ _ hnd hlen hall hown hwid⟩
 
 /-- A one-member block's names are distinct. -/
 theorem nodup_one (n : Name) : [n].Nodup := by simp

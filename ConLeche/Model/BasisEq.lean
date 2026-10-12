@@ -1494,6 +1494,11 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
             simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_fvar, Expr.instantiate1, Level.eval],
           trivial⟩⟩
       simp [denoteMeta_app, denoteMeta_fvar, mkPisAV, eqLfp]⟩
+    (eqLfp_caps hE2
+      (fun ψ => by
+        show ConLeche.PropWhen.holds ψ (ConLeche.PropWhen.ifAllZero []) = true
+        rw [ConLeche.PropWhen.holds_ifAllZero]; rfl)
+      ⟨_, _, _, hR2, _, [.bvar 0], rfl⟩)
   have hf3 : (⟨eqReflA :: eqA :: env.consts⟩ : Env).find?
       eqRecA.name = none := Option.isNone_iff_eq_none.mp h3
   have hwf3 : EnvWF ⟨eqRecA :: eqReflA :: eqA :: env.consts⟩ := by
@@ -1551,7 +1556,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
   obtain ⟨mp3, -, hc3⟩ := extendEqRec mp2' hE2 hR2 hEv2 hRv2 hf3 hwf3 (ex := [])
   -- coverage: `Eq`'s former opened the exemption list, its record
   -- closes it
-  exact ⟨mp3, fun h0 => hc3 ((hc2 (hc1 h0)).addLfp_to _ _ _ _ _ (nodup_one _) rfl
+  exact ⟨mp3, fun h0 => hc3 ((hc2 (hc1 h0)).addLfp_to _ _ _ _ _ _ (nodup_one _) rfl
     (lfpAll_one (n := eqName) (c := eqA) rfl rfl hE2
       (fun _ _ h => by injection h with _ h; subst h; rfl))
     (lfpOwn_one (T := eqName) (cs := [(eqReflA.toConstantVal, 2, 0)]) rfl rfl hE2
