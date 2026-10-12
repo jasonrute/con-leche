@@ -242,15 +242,6 @@ theorem nodeRb_erasedEq_prog {ctx : NestCtx} {occ a X : List NestHole} (hocc : a
       rwa [List.append_nil] at this
   rwa [substFvars_congr_s hs] at h1
 
-theorem erasedEqL_of_getElem : ∀ {as bs : List Expr}, as.length = bs.length →
-    (∀ (q : Nat) (a b : Expr), as[q]? = some a → bs[q]? = some b → Expr.ErasedEq a b) →
-    Expr.ErasedEqL as bs
-  | [], [], _, _ => trivial
-  | [], _ :: _, h, _ => by simp at h
-  | _ :: _, [], h, _ => by simp at h
-  | a :: as, b :: bs, h, he =>
-    ⟨he 0 a b rfl rfl, erasedEqL_of_getElem (by simpa using h)
-      fun q a' b' h1 h2 => he (q + 1) a' b' h1 h2⟩
 
 theorem Expr.ErasedEqL.toErasedEqs : ∀ {as bs : List Expr}, Expr.ErasedEqL as bs →
     ConLeche.ErasedEqs as bs

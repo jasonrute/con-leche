@@ -16,10 +16,9 @@ a ∈ˢ A ∧ (v = 0 → …) ∧ (v ≠ 0 → IsTy A)`.  At a basis constant's 
 the slot is read off `bval_mem_type` at `BConst.typeAV`'s own binder:
 the function space is `piV`, whose regime numeral `propN` comes with
 its fibre fact (`propN_eq_zero`), so nothing is chosen
-(`bconst_app_data`/`_dataAV`/`_data3`/`_data4`).  The two bespoke
-suppliers are `rel_app_data` (a relation applied once is still a graph,
-numeral `1`, because `Prop` as a type is `Sort 1`) and
-`quotMk_mem_quot`.
+(`bconst_app_data`/`_dataAV`/`_data3`/`_data4`, `slot_of_mem_piV`).
+The one bespoke supplier is `quotMk_mem_quot` (`Quot.ind`'s motive at a
+`Quot.mk` spine).
 -/
 
 namespace ConLeche.Model
@@ -182,21 +181,10 @@ theorem bconst_app_data4 (c : BConst) (us : List Nat) (ρ : Nat → V)
 /-- `Quot.mk`'s spine inhabits its quotient — the argument membership
 `quotInd`'s and `quotSound`'s motive rows want. -/
 theorem quotMk_mem_quot {u : Nat} {A R a : V} (hA : A ∈ˢ (univ u : V))
-    (hR : R ∈ˢ relSpace V u A) (ha : a ∈ˢ A) :
+    (hR : R ∈ˢ relSpace V A) (ha : a ∈ˢ A) :
     app (app (app (quotMkV V u) A) R) a ∈ˢ app (app (quotV V u) A) R := by
   rw [quotMkV_app V hA hR ha, quotV_app V hA hR]
   exact quotClass_mem ha
-
-/-- A relation applied to one argument is still a graph: the `.app`
-clause's data at `relAV`'s inner binder, whose numeral is `1` because
-`Prop` as a type is `Sort 1`. -/
-theorem rel_app_data {u : Nat} {A R a b : V}
-    (hR : R ∈ˢ piR (Nat.max u 1) A fun _ => piR 1 A fun _ => (univ 0 : V))
-    (ha : a ∈ˢ A) (hb : b ∈ˢ A) (hA : A ∈ˢ (univ u : V)) :
-    ∃ (w : Nat) (S : V) (F : V → V), app R a ∈ˢ piR w S F ∧ b ∈ˢ S ∧
-      (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) :=
-  ⟨1, A, fun _ => univ 0, app_mem_piR_pos (maxOne_ne_zero u) hR ha, hb,
-    fun h => absurd h Nat.one_ne_zero, fun _ => IsTy_of_mem_univ hA⟩
 
 /-- A dependent pair type is a type. -/
 theorem IsTy_psigma_app {u v : Nat} {A B : V} (hA : A ∈ˢ (univ u : V))
@@ -204,16 +192,9 @@ theorem IsTy_psigma_app {u v : Nat} {A B : V} (hA : A ∈ˢ (univ u : V))
   rw [psigmaV_app V hA hB]
   exact IsTy_of_mem_univ (sigma_mem_univ hA fun x hx => psigmaFibre_apply V hB hx)
 
-/-- A relation's value is a type (a truth value). -/
-theorem IsTy_rel_app {u : Nat} {A R a b : V}
-    (hR : R ∈ˢ piR (Nat.max u 1) A fun _ => piR 1 A fun _ => (univ 0 : V))
-    (ha : a ∈ˢ A) (hb : b ∈ˢ A) : IsTy (app (app R a) b) := by
-  have h1 := app_mem_piR_pos (maxOne_ne_zero u) hR ha
-  exact IsTy_of_mem_univ (app_mem_piR_pos Nat.one_ne_zero h1 hb)
-
 /-- A quotient is a type. -/
 theorem IsTy_quot_app {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V))
-    (hR : R ∈ˢ relSpace V u A) : IsTy (app (app (quotV V u) A) R) := by
+    (hR : R ∈ˢ relSpace V A) : IsTy (app (app (quotV V u) A) R) := by
   rw [quotV_app V hA hR]; exact IsTy_of_mem_univ (quotSet_mem_univ hA)
 
 set_option maxHeartbeats 4000000 in
@@ -249,7 +230,6 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
           (app_mem_piR_pos Nat.one_ne_zero (natSuccV_mem V) ‹_›))
       | exact IsTy_of_mem_univ (app_mem_piR_pos Nat.one_ne_zero ‹_›
           (quotMk_mem_quot V ‹_› ‹_› ‹_›))
-      | exact IsTy_rel_app V ‹_› ‹_› ‹_›
       | (apply IsTy_app_piV_univ V <;> first
           | assumption | exact natzero_mem
           | exact app_mem_piR_pos Nat.one_ne_zero (natSuccV_mem V) (by assumption))
@@ -265,7 +245,6 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
           fun _ => IsTy_of_mem_univ ‹_›⟩
       | refine ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (Nat.succ_ne_zero _), fun _ => ?_⟩
       | refine ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h Nat.one_ne_zero, fun _ => ?_⟩
-      | refine ⟨_, _, _, ‹_›, ‹_›, fun h => absurd h (maxOne_ne_zero _), fun _ => ?_⟩
       | refine ⟨_, _, _, ‹_›, natzero_mem, fun h => absurd h (Nat.succ_ne_zero _),
           fun _ => ?_⟩
       | refine ⟨_, _, _, ‹_›, pt_mem_unitSet, fun h => absurd h (Nat.succ_ne_zero _),
@@ -275,7 +254,6 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
           fun h => absurd h (Nat.succ_ne_zero _), fun _ => ?_⟩
       | refine ⟨_, _, _, ‹_›, ‹_›,
           fun hz _ _ => mem_univZero_of_zero V hz ‹_›, fun _ => ?_⟩
-      | (apply rel_app_data V <;> assumption)
       | (refine bconst_app_data V _ _ ρ rfl ?_ ?_ <;>
           (first | assumption | exact IsTy_univ _ | exact IsTy_piV | exact IsTy_omega |
             exact IsTy_of_mem_univ ‹_›))
@@ -285,17 +263,14 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
       | (refine bconst_app_data3 V _ _ ρ rfl ?_ ?_ ?_ ?_ <;>
           (first | assumption | exact IsTy_univ _ | exact IsTy_piV | exact IsTy_omega |
             exact IsTy_of_mem_univ ‹_›))
-      | (refine ⟨_, _, _, ‹_›, quotMk_mem_quot V ?_ ?_ ?_,
-            fun h => absurd h Nat.one_ne_zero, fun _ => ?_⟩ <;>
-          (first | assumption | exact IsTy_quot_app V ‹_› ‹_›))
       | apply And.intro
       | intro _
       | trivial)
-  -- L15: the remaining goals apply `psigmaV`/`quotV`/`quotMkV` (built
-  -- with `lamR` numerals over `psigmaFibreSpace`/`relSpace`) to a family
-  -- or relation of the value-read type (`piV`, the point over an empty
-  -- domain); the constants restated with `lamV` close them
-  all_goals sorry
+  -- `Quot.ind`'s motive applied at a `Quot.mk` spine, and at a class
+  all_goals first
+    | exact slot_of_mem_piV V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›) (IsTy_quot_app V ‹_› ‹_›)
+    | exact IsTy_app_piV_univ V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›)
+    | exact slot_of_mem_piV V ‹_› ‹_› (IsTy_quot_app V ‹_› ‹_›)
 
 /-- **Every built-in constant's spelled type is `WellDenotedV`**: the
 grading of the twenty-two basis type readings. -/

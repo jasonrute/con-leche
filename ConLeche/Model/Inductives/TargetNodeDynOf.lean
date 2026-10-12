@@ -461,7 +461,7 @@ theorem dyn_hAdm (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : Nat �
     rw [hψ]
     have hws := posNodeOk_dsAnc (H.hok t ht)
     have hdsa := dyn_dsaI H ht ψ
-    refine ⟨nodeKeyFit mk (H.hΔ0 ψ) (H.hok t ht) (H.hsem t ht ψ) hD hmm hmmH hfc (hlenP _).symm
+    refine ⟨nodeKeyFit mk (H.hΔ0 ψ) (H.hok t ht) (H.hsem t ht ψ) H.hcov.find hD hmm hmmH hfc (hlenP _).symm
       hdsa σ hσ.sat, fun c hc => ?_⟩
     rw [hwid] at hc
     exact grp_idx_eq mk hD hnN hkN H.hcov.find hlps hndl hul hws hdsa (hlenP _) hg (hall c hc)
@@ -546,7 +546,7 @@ theorem trueVal_frameVal (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ 
   have hI : nodeDsaI mk ctx ψ o = dsa := by rw [nodeDsaI, DenoteMetaSpine.getD_eq hdsa]
   rw [hI]
   -- the recorded former at its block's parameters is the hole value
-  have hkey := nodeKeyFit mk (H.hΔ0 ψ) (H.hok o ho) (H.hsem o ho ψ) hD hmm hmmH hfc
+  have hkey := nodeKeyFit mk (H.hΔ0 ψ) (H.hok o ho) (H.hsem o ho ψ) H.hcov.find hD hmm hmmH hfc
     (hlenP _).symm hdsa _ hsat
   have hfe := former_app_eq mpC (H.hsub D hD) hmm' hkey (consList xs ρ)
   have hdl : (D.params (Level.substFn ψ cv.levelParams o.key.lvls)).length

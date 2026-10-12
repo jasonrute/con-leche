@@ -118,6 +118,17 @@ theorem Expr.ErasedEq.replaceConsts {f g : Name → List Level → Option Expr}
   | a :: as, b :: bs => Expr.ErasedEq a b ∧ Expr.ErasedEqL as bs
   | _, _ => False
 
+/-- Pointwise erasure-equal lists of one length are erasure-equal. -/
+theorem erasedEqL_of_getElem : ∀ {as bs : List Expr}, as.length = bs.length →
+    (∀ (q : Nat) (a b : Expr), as[q]? = some a → bs[q]? = some b → Expr.ErasedEq a b) →
+    Expr.ErasedEqL as bs
+  | [], [], _, _ => trivial
+  | [], _ :: _, h, _ => by simp at h
+  | _ :: _, [], h, _ => by simp at h
+  | a :: as, b :: bs, h, he =>
+    ⟨he 0 a b rfl rfl, erasedEqL_of_getElem (by simpa using h)
+      fun q a' b' h1 h2 => he (q + 1) a' b' h1 h2⟩
+
 /-- Two lists of variables at the same consecutive indices are
 erasure-equal. -/
 theorem erasedEqL_of_fvarIdx :

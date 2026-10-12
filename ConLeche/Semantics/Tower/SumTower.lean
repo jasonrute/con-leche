@@ -385,7 +385,7 @@ theorem interp_natRecAV_raw (u : Nat) (M z s k : AnnotTerm) (σ : Nat → V) :
 theorem interp_natRecAV {u : Nat} {M z s k : AnnotTerm} {σ : Nat → V}
     (hM : interp V σ M ∈ˢ natMotiveSpace V u)
     (hz : interp V σ z ∈ˢ SetTheory.app (interp V σ M) natzero)
-    (hs : interp V σ s ∈ˢ natStepSpace V u (interp V σ M))
+    (hs : interp V σ s ∈ˢ natStepSpace V (interp V σ M))
     (hk : interp V σ k ∈ˢ (omega : V)) :
     interp V σ (natRecAV u M z s k) = natrec (interp V σ z) (interp V σ s) (interp V σ k) := by
   rw [interp_natRecAV_raw]
@@ -395,11 +395,11 @@ theorem interp_natRecAV {u : Nat} {M z s k : AnnotTerm} {σ : Nat → V}
 theorem natRecAV_mem {u : Nat} {M z s k : AnnotTerm} {σ : Nat → V}
     (hM : interp V σ M ∈ˢ natMotiveSpace V u)
     (hz : interp V σ z ∈ˢ SetTheory.app (interp V σ M) natzero)
-    (hs : interp V σ s ∈ˢ natStepSpace V u (interp V σ M))
+    (hs : interp V σ s ∈ˢ natStepSpace V (interp V σ M))
     (hk : interp V σ k ∈ˢ (omega : V)) :
     interp V σ (natRecAV u M z s k) ∈ˢ SetTheory.app (interp V σ M) (interp V σ k) := by
   rw [interp_natRecAV hM hz hs hk]
-  exact natRecV_mem_fibre V hM hz hs hk
+  exact natRecV_mem_fibre V hz hs hk
 
 /-- **The spine is graded**, both regimes: the four slots are
 `Nat.rec`'s own product chain, with the squash-side fibre conditions
@@ -409,58 +409,37 @@ theorem natRecAV_wellDenoted {u : Nat} {M z s k : AnnotTerm} {σ : Nat → V}
     (hokk : WellDenoted V σ k)
     (hM : interp V σ M ∈ˢ natMotiveSpace V u)
     (hz : interp V σ z ∈ˢ SetTheory.app (interp V σ M) natzero)
-    (hs : interp V σ s ∈ˢ natStepSpace V u (interp V σ M))
+    (hs : interp V σ s ∈ˢ natStepSpace V (interp V σ M))
     (hk : interp V σ k ∈ˢ (omega : V)) :
     WellDenoted V σ (natRecAV u M z s k) := by
   have hbv : interp V σ (.const .natRec [u]) = natRecV V u := rfl
-  have h0 : natRecV V u ∈ˢ piR u (natMotiveSpace V u) fun M =>
-      piR u (SetTheory.app M natzero) fun _ =>
-        piR u (natStepSpace V u M) fun _ => piR u omega fun n => SetTheory.app M n := by
-    unfold natRecV
-    exact lamR_mem fun M hM => lamR_mem fun z hz => lamR_mem fun s hs =>
-      lamR_mem fun n hn => natRecV_mem_fibre V hM hz hs hn
-  have hz1 : u = 0 → ∀ M', M' ∈ˢ natMotiveSpace V u →
-      (piR u (SetTheory.app M' natzero) fun _ =>
-        piR u (natStepSpace V u M') fun _ => piR u omega fun n => SetTheory.app M' n)
-        ∈ˢ (univZero : V) := by
-    intro h0 _ _; subst h0; exact piR_zero_mem_univZero
-  have h1 := app_mem_piR h0 hM hz1
-  have hz2 : u = 0 → ∀ z', z' ∈ˢ SetTheory.app (interp V σ M) natzero →
-      (piR u (natStepSpace V u (interp V σ M)) fun _ =>
-        piR u omega fun n => SetTheory.app (interp V σ M) n) ∈ˢ (univZero : V) := by
-    intro h0 _ _; subst h0; exact piR_zero_mem_univZero
-  have h2 := app_mem_piR h1 hz hz2
-  have hz3 : u = 0 → ∀ s', s' ∈ˢ natStepSpace V u (interp V σ M) →
-      (piR u omega fun n => SetTheory.app (interp V σ M) n) ∈ˢ (univZero : V) := by
-    intro h0 _ _; subst h0; exact piR_zero_mem_univZero
-  have h3 := app_mem_piR h2 hs hz3
-  have hz4 : u = 0 → ∀ n, n ∈ˢ (omega : V) →
-      SetTheory.app (interp V σ M) n ∈ˢ (univZero : V) := by
-    intro h0 n hn
-    have := natMotive_apply V hM hn
-    rw [h0, univ_zero] at this
-    exact this
+  have h0 := natRecV_mem V u
+  have h1 : SetTheory.app (natRecV V u) (interp V σ M) ∈ˢ
+      piV (SetTheory.app (interp V σ M) natzero) fun _ =>
+        piV (natStepSpace V (interp V σ M)) fun _ =>
+          piV omega fun n => SetTheory.app (interp V σ M) n := app_mem_piV h0 hM
+  have h2 := app_mem_piV h1 hz
+  have h3 := app_mem_piV h2 hs
   show WellDenoted V σ (.app (.app (.app (.app (.const .natRec [u]) M) z) s) k)
   rw [WellDenoted_app]
-  refine ⟨?_, hokk, u, omega, fun n => SetTheory.app (interp V σ M) n, ?_, hk, hz4,
-    fun _ => IsTy_omega⟩
+  refine ⟨?_, hokk, ?_⟩
   · rw [WellDenoted_app]
-    refine ⟨?_, hoks, u, natStepSpace V u (interp V σ M), _, ?_, hs, hz3,
-      fun _ => IsTy_piR _ _ _⟩
+    refine ⟨?_, hoks, ?_⟩
     · rw [WellDenoted_app]
-      refine ⟨?_, hokz, u, SetTheory.app (interp V σ M) natzero, _, ?_, hz, hz2,
-        fun _ => IsTy_of_mem_univ (natMotive_apply V hM natzero_mem)⟩
+      refine ⟨?_, hokz, ?_⟩
       · rw [WellDenoted_app]
-        exact ⟨trivial, hokM, u, natMotiveSpace V u, _, hbv ▸ h0, hM, hz1,
-          fun _ => IsTy_piR _ _ _⟩
-      · show SetTheory.app (interp V σ (.const .natRec [u])) (interp V σ M) ∈ˢ _
-        rw [hbv]; exact h1
-    · show SetTheory.app (SetTheory.app (interp V σ (.const .natRec [u])) (interp V σ M))
-        (interp V σ z) ∈ˢ _
-      rw [hbv]; exact h2
-  · show SetTheory.app (SetTheory.app (SetTheory.app (interp V σ (.const .natRec [u]))
-      (interp V σ M)) (interp V σ z)) (interp V σ s) ∈ˢ _
-    rw [hbv]; exact h3
+        exact ⟨trivial, hokM, by rw [hbv]; exact piV_slot h0 hM IsTy_piV⟩
+      · show ∃ v A B, SetTheory.app (interp V σ (.const .natRec [u])) (interp V σ M)
+          ∈ˢ piR v A B ∧ _
+        rw [hbv]
+        exact piV_slot h1 hz (IsTy_of_mem_univ (natMotive_apply V hM natzero_mem))
+    · show ∃ v A B, SetTheory.app (SetTheory.app (interp V σ (.const .natRec [u]))
+        (interp V σ M)) (interp V σ z) ∈ˢ piR v A B ∧ _
+      rw [hbv]; exact piV_slot h2 hs IsTy_piV
+  · show ∃ v A B, SetTheory.app (SetTheory.app (SetTheory.app
+      (interp V σ (.const .natRec [u])) (interp V σ M)) (interp V σ z)) (interp V σ s)
+      ∈ˢ piR v A B ∧ _
+    rw [hbv]; exact piV_slot h3 hk IsTy_omega
 
 /-! ## The fibre selector -/
 
@@ -474,10 +453,8 @@ theorem interp_natSortMotiveAV (w : Nat) (σ : Nat → V) :
 
 theorem natSortMotiveAV_mem (w : Nat) (σ : Nat → V) :
     interp V σ (natSortMotiveAV w) ∈ˢ natMotiveSpace V (w + 1) := by
-  rw [interp_natSortMotiveAV]
-  exact lamR_mem_zero_agree
-    ⟨fun h => absurd h (Nat.succ_ne_zero _), fun h => absurd h (Nat.succ_ne_zero _)⟩
-    fun _ _ => univ_mem_univ w
+  rw [natSortMotiveAV, interp_lam]
+  exact lamV_mem (fun _ _ => univ_mem_univ w) fun _ _ => IsTy_univ _
 
 theorem natSortMotiveAV_app (w : Nat) (σ : Nat → V) {n : V} (hn : n ∈ˢ (omega : V)) :
     SetTheory.app (interp V σ (natSortMotiveAV w)) n = univ w := by
@@ -562,12 +539,12 @@ theorem caseAVAt_facts {w : Nat} :
       (lamV_congr hin).trans
         (lamV_eq_pos (Nat.succ_ne_zero w) natzero_mem (lamR_ne_pt (Nat.succ_ne_zero w)))
     have hs : interp V σ (.lam natAV (.lam (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1))))
-        ∈ˢ natStepSpace V (w + 1) (interp V σ (natSortMotiveAV w)) := by
-      rw [hsv]
-      unfold natStepSpace
-      refine lamR_mem fun b hb => ?_
+        ∈ˢ natStepSpace V (interp V σ (natSortMotiveAV w)) := by
+      rw [interp_lam]
+      refine lamV_mem (fun b hb => ?_) fun _ _ => IsTy_piV
+      simp only [interp_lam, interp_sort]
       rw [natSortMotiveAV_app w σ hb, natSortMotiveAV_app w σ (natsucc_mem hb)]
-      exact lamR_mem fun a _ => (hinner a b hb).1
+      exact lamV_mem (fun a _ => (hinner a b hb).1) fun _ _ => IsTy_univ w
     refine ⟨?_, ?_, ?_⟩
     · -- the bound
       have h := natRecAV_mem hM hz hs hk
@@ -581,7 +558,7 @@ theorem caseAVAt_facts {w : Nat} :
           (interp V σ (.lam natAV (.lam (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1)))))
           j ∈ˢ (univ w : V) := by
         intro j
-        have h := natRecV_mem_fibre V hM hz hs (vnat_mem_omega j)
+        have h := natRecV_mem_fibre V hz hs (vnat_mem_omega j)
         rwa [natrec_vnat, natSortMotiveAV_app w σ (vnat_mem_omega j)] at h
       cases i with
       | zero => exact hTv
@@ -1444,7 +1421,7 @@ theorem sumInjAtAV_interp {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE
   by_cases hw : w = 0
   · subst hw
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (psigmaMkV V 0 0) _) _) _) _ = _
-    rw [psigmaMkV, show Nat.max 0 0 = 0 from rfl, lamR_zero, app_pt, app_pt, app_pt, app_pt,
+    rw [psigmaMkV_eq_pt V (show Nat.max 0 0 = 0 from rfl), app_pt, app_pt, app_pt, app_pt,
       injW_zero]
   · have hpay' : interp V σ payload
         ∈ˢ SetTheory.app (lamR (w + 1) omega (natFibre (sumFibre w ρp Fss))) (vnat i) := by
@@ -1468,8 +1445,7 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
   by_cases hw : w = 0
   · subst hw
     refine (mkAppN_wellDenoted_of_pt_head (f := .const .psigmaMk [0, 0]) (σ := σ) trivial ?_ ?_).1
-    · show psigmaMkV V 0 0 = pt
-      rw [psigmaMkV, show Nat.max 0 0 = 0 from rfl, lamR_zero]
+    · exact psigmaMkV_eq_pt V (show Nat.max 0 0 = 0 from rfl)
     · intro a ha
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl | rfl | rfl
@@ -1479,28 +1455,10 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
       · exact hokpay
   · have hbv : interp V σ (.const .psigmaMk [w, w]) = psigmaMkV V w w := rfl
     have hA : (omega : V) ∈ˢ univ w := omega_mem_univ_pos hw
-    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
-        piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
-          piR w (SetTheory.app B a) fun _ => sigmaSet w A
-            fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz2 : w = 0 → ∀ B, B ∈ˢ psigmaFibreSpace V w omega →
-        piR w omega (fun a => piR w (SetTheory.app B a)
-          fun _ => sigmaSet w omega fun x => SetTheory.app B x) ∈ˢ (univZero : V) :=
-      fun h => absurd h hw
-    have hz3 : w = 0 → ∀ a, a ∈ˢ (omega : V) →
-        piR w (SetTheory.app (lamR (w + 1) omega (natFibre (sumFibre w ρp Fss))) a)
-          (fun _ => sigmaSet w omega
-            fun x => SetTheory.app (lamR (w + 1) omega (natFibre (sumFibre w ρp Fss))) x)
-          ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz4 : w = 0 → ∀ x,
-        x ∈ˢ SetTheory.app (lamR (w + 1) omega (natFibre (sumFibre w ρp Fss))) (vnat i) →
-        sigmaSet w omega
-          (fun y => SetTheory.app (lamR (w + 1) omega (natFibre (sumFibre w ρp Fss))) y)
-          ∈ˢ (univZero : V) := fun h => absurd h hw
     have hm0 := psigmaMkV_ww_mem (V := V) w
-    have hm1 := app_mem_piR hm0 hA hz1
-    have hm2 := app_mem_piR hm1 hBm hz2
-    have hm3 := app_mem_piR hm2 (vnat_mem_omega i) hz3
+    have hm1 := app_mem_piV hm0 hA
+    have hm2 := app_mem_piV hm1 hBm
+    have hm3 := app_mem_piV hm2 (vnat_mem_omega i)
     have hpay' : interp V σ payload
         ∈ˢ SetTheory.app (lamR (w + 1) omega (natFibre (sumFibre w ρp Fss))) (vnat i) := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) (vnat_mem_omega i), natFibre_vnat]
@@ -1508,26 +1466,26 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
     show WellDenoted V σ (.app (.app (.app (.app (.const .psigmaMk [w, w]) natAV)
       (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
     rw [WellDenoted_app]
-    refine ⟨?_, hokpay, w, _, _, ?_, hpay', hz4,
-      fun _ => IsTy_of_mem_univ (psigmaFibre_apply V hBm (vnat_mem_omega i))⟩
+    refine ⟨?_, hokpay, ?_⟩
     · rw [WellDenoted_app]
-      refine ⟨?_, hoktag, w, omega, _, ?_, by rw [htag]; exact vnat_mem_omega i, hz3,
-        fun _ => IsTy_omega⟩
+      refine ⟨?_, hoktag, ?_⟩
       · rw [WellDenoted_app]
-        refine ⟨?_, hBok, w, psigmaFibreSpace V w omega, _, ?_, by rw [hBv]; exact hBm, hz2,
-          fun _ => IsTy_piR _ _ _⟩
+        refine ⟨?_, hBok, ?_⟩
         · rw [WellDenoted_app]
-          exact ⟨trivial, trivial, w, univ w, _, hbv ▸ hm0, hA, hz1, fun _ => IsTy_univ w⟩
-        · show SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega ∈ˢ _
-          rw [hbv]; exact hm1
-      · show SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
+          exact ⟨trivial, trivial, by rw [hbv]; exact piV_slot hm0 hA (IsTy_univ w)⟩
+        · show ∃ v A B, SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega
+            ∈ˢ piR v A B ∧ _
+          rw [hbv, hBv]; exact piV_slot hm1 hBm IsTy_piV
+      · show ∃ v A B, SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
           (interp V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))))
-          ∈ˢ _
-        rw [hbv, hBv]; exact hm2
-    · show SetTheory.app (SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
+          ∈ˢ piR v A B ∧ _
+        rw [hbv, hBv, htag]; exact piV_slot hm2 (vnat_mem_omega i) IsTy_omega
+    · show ∃ v A B, SetTheory.app (SetTheory.app (SetTheory.app
+        (interp V σ (.const .psigmaMk [w, w])) omega)
         (interp V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
-        (interp V σ tag) ∈ˢ _
-      rw [hbv, hBv, htag]; exact hm3
+        (interp V σ tag) ∈ˢ piR v A B ∧ _
+      rw [hbv, hBv, htag]
+      exact piV_slot hm3 hpay' (IsTy_of_mem_univ (psigmaFibre_apply V hBm (vnat_mem_omega i)))
 
 /-! ## The tupler with the proof-field terminator
 
@@ -1681,28 +1639,10 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
         ∈ˢ psigmaFibreSpace V w (interp V ρp E) :=
       lamR_mem_psigmaFibreSpace V hpt' fun _ _ => unitSetAt_mem_univ w
     have hbv : interp V ρp (.const .psigmaMk [w, w]) = psigmaMkV V w w := rfl
-    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
-        piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
-          piR w (SetTheory.app B a) fun _ => sigmaSet w A
-            fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz2 : w = 0 → ∀ B, B ∈ˢ psigmaFibreSpace V w (interp V ρp E) →
-        piR w (interp V ρp E) (fun a => piR w (SetTheory.app B a)
-          fun _ => sigmaSet w (interp V ρp E) fun x => SetTheory.app B x) ∈ˢ (univZero : V) :=
-      fun h => absurd h hw
-    have hz3 : w = 0 → ∀ a, a ∈ˢ interp V ρp E →
-        piR w (SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) a)
-          (fun _ => sigmaSet w (interp V ρp E)
-            fun x => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) x)
-          ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz4 : w = 0 → ∀ x,
-        x ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt →
-        sigmaSet w (interp V ρp E)
-          (fun y => SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) y)
-          ∈ˢ (univZero : V) := fun h => absurd h hw
     have hm0 := psigmaMkV_ww_mem (V := V) w
-    have hm1 := app_mem_piR hm0 hA hz1
-    have hm2 := app_mem_piR hm1 hBm hz2
-    have hm3 := app_mem_piR hm2 hpt' hz3
+    have hm1 := app_mem_piV hm0 hA
+    have hm2 := app_mem_piV hm1 hBm
+    have hm3 := app_mem_piV hm2 hpt'
     have hlam : interp V ρp (.lam E (.const .punit [w]))
         = lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V) :=
       lamV_eq_pos (Nat.succ_ne_zero w) hpt' (IsTy_of_mem_univ (unitSetAt_mem_univ w)).ne_pt
@@ -1712,29 +1652,30 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     show WellDenoted V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
       (.lam E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     rw [WellDenoted_app]
-    refine ⟨?_, trivial, w, _, _, ?_, hb', hz4, fun _ => by
-      rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
-      exact IsTy_of_mem_univ (unitSetAt_mem_univ w)⟩
+    refine ⟨?_, trivial, ?_⟩
     · rw [WellDenoted_app]
-      refine ⟨?_, trivial, w, interp V ρp E, _, ?_, hpt', hz3, fun _ => IsTy_of_mem_univ hA⟩
+      refine ⟨?_, trivial, ?_⟩
       · rw [WellDenoted_app]
-        refine ⟨?_, ?_, w, psigmaFibreSpace V w (interp V ρp E), _, ?_, ?_, hz2,
-          fun _ => IsTy_piR _ _ _⟩
+        refine ⟨?_, ?_, ?_⟩
         · rw [WellDenoted_app]
-          exact ⟨trivial, hokE, w, univ w, _, hbv ▸ hm0, hA, hz1, fun _ => IsTy_univ w⟩
+          exact ⟨trivial, hokE, by rw [hbv]; exact piV_slot hm0 hA (IsTy_univ w)⟩
         · rw [WellDenoted_lam]
           exact ⟨hokE, IsTy_of_mem_univ hA, fun _ _ => trivial, fun _ => (univ w : V),
             fun _ _ => unitSetAt_mem_univ w, fun _ _ => IsTy_univ w⟩
-        · show SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E) ∈ˢ _
-          rw [hbv]; exact hm1
-        · rw [hlam]; exact hBm
-      · show SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E))
-          (interp V ρp (.lam E (.const .punit [w]))) ∈ˢ _
-        rw [hbv, hlam]; exact hm2
-    · show SetTheory.app (SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w]))
+        · show ∃ v A B, SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E)
+            ∈ˢ piR v A B ∧ _
+          rw [hbv, hlam]; exact piV_slot hm1 hBm IsTy_piV
+      · show ∃ v A B, SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w]))
+          (interp V ρp E)) (interp V ρp (.lam E (.const .punit [w]))) ∈ˢ piR v A B ∧ _
+        rw [hbv, hlam, interp_prf]; exact piV_slot hm2 hpt' (IsTy_of_mem_univ hA)
+    · show ∃ v A B, SetTheory.app (SetTheory.app (SetTheory.app
+        (interp V ρp (.const .psigmaMk [w, w]))
         (interp V ρp E)) (interp V ρp (.lam E (.const .punit [w]))))
-        (interp V ρp .prf) ∈ˢ _
-      rw [hbv, hlam, interp_prf]; exact hm3
+        (interp V ρp .prf) ∈ˢ piR v A B ∧ _
+      rw [hbv, hlam, interp_prf]
+      exact piV_slot hm3 hb' (by
+        rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
+        exact IsTy_of_mem_univ (unitSetAt_mem_univ w))
   | [], _, _ :: _, _, hsp, _ => hsp.elim
   | _ :: _, _, [], _, hsp, _ => hsp.elim
   | F :: Fs, ρp, b :: bs, hok, hsp, hpt => by
@@ -1776,38 +1717,10 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       lamR_mem_psigmaFibreSpace V hsp.1 fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
-    have hz1 : w = 0 → ∀ A, A ∈ˢ (univ w : V) →
-        piR w (psigmaFibreSpace V w A) (fun B => piR w A fun a =>
-          piR w (SetTheory.app B a) fun _ => sigmaSet w A
-            fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz2 : w = 0 → ∀ B,
-        B ∈ˢ psigmaFibreSpace V w (interp V ρp F) →
-        piR w (interp V ρp F) (fun a => piR w (SetTheory.app B a)
-          fun _ => sigmaSet w (interp V ρp F)
-            fun x => SetTheory.app B x) ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz3 : w = 0 → ∀ a, a ∈ˢ interp V ρp F →
-        piR w (SetTheory.app (lamR (w + 1) (interp V ρp F)
-            fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) a)
-          (fun _ => sigmaSet w (interp V ρp F)
-            fun x => SetTheory.app (lamR (w + 1) (interp V ρp F)
-              fun y => interp V (cons y ρp) (towerBodyAV w (Fs ++ [E]))) x)
-          ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hz4 : w = 0 → ∀ x,
-        x ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun y => interp V (cons y ρp) (towerBodyAV w (Fs ++ [E]))) b →
-        sigmaSet w (interp V ρp F)
-          (fun y => SetTheory.app (lamR (w + 1) (interp V ρp F)
-            fun z => interp V (cons z ρp) (towerBodyAV w (Fs ++ [E]))) y)
-          ∈ˢ (univZero : V) := fun h => absurd h hw
-    have hm0 : psigmaMkV V w w ∈ˢ piR w (univ w : V) (fun A =>
-        piR w (psigmaFibreSpace V w A) (fun B =>
-          piR w A (fun a =>
-            piR w (SetTheory.app B a) (fun _ =>
-              sigmaSet w A fun x => SetTheory.app B x)))) :=
-      psigmaMkV_ww_mem w
-    have hm1 := app_mem_piR hm0 hAm hz1
-    have hm2 := app_mem_piR hm1 hBm hz2
-    have hm3 := app_mem_piR hm2 hsp.1 hz3
+    have hm0 := psigmaMkV_ww_mem (V := V) w
+    have hm1 := app_mem_piV hm0 hAm
+    have hm2 := app_mem_piV hm1 hBm
+    have hm3 := app_mem_piV hm2 hsp.1
     have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b
         = towerSet w (teleOfFields (cons b ρp) (Fs ++ [E])) := by
@@ -1827,16 +1740,17 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
         (mkTowerGoUPos w E Fs))
     rw [WellDenoted_app]
     refine ⟨?_, mkTowerGoUPos_wellDenoted hw (hok.2.2.2 b hsp.1) hsp.2 hpt, ?_⟩
-    · rw [WellDenoted_app]
+    · -- the triple-application head
+      rw [WellDenoted_app]
       refine ⟨?_, trivial, ?_⟩
-      · rw [WellDenoted_app]
+      · -- the double-application head
+        rw [WellDenoted_app]
         refine ⟨?_, ?_, ?_⟩
         · rw [WellDenoted_app]
           refine ⟨trivial, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
             exact hok.1
-          · exact ⟨w, univ w, _, hm0, by rw [interp_liftN, hshift]; exact hAm, hz1,
-              fun _ => IsTy_univ w⟩
+          · exact piV_slot hm0 (by rw [interp_liftN, hshift]; exact hAm) (IsTy_univ w)
         · rw [WellDenoted_lam]
           refine ⟨?_, ?_, ?_, ?_⟩
           · rw [WellDenoted_liftN, hshift]
@@ -1850,35 +1764,23 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
             rw [hA] at hx
             rw [hBfun x, towerBodyAV_interp (fun _ => hb.2 x hx)]
             exact towerSet_univ_teleOfFields (hb.2 x hx)
-        · refine ⟨w, psigmaFibreSpace V w (interp V ρp F), _, ?_, ?_, hz2,
-            fun _ => IsTy_piR _ _ _⟩
-          · show SetTheory.app (interp V (consList bs (cons b ρp))
+        · show ∃ v A B, SetTheory.app (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
               (interp V (consList bs (cons b ρp))
-                (F.liftN (Fs.length + 1))) ∈ˢ _
-            rw [hA]
-            exact hm1
-          · rw [hBv]
-            exact hBm
-      · refine ⟨w, interp V ρp F, _, ?_, ?_, hz3, fun _ => hok.2.1⟩
-        · show SetTheory.app (SetTheory.app
+                (F.liftN (Fs.length + 1))) ∈ˢ piR v A B ∧ _
+          rw [hA, hBv]
+          exact piV_slot hm1 hBm IsTy_piV
+      · show ∃ v A B, SetTheory.app (SetTheory.app
               (interp V (consList bs (cons b ρp))
                 (.const .psigmaMk [w, w]))
               (interp V (consList bs (cons b ρp))
                 (F.liftN (Fs.length + 1))))
             (interp V (consList bs (cons b ρp))
               (.lam (F.liftN (Fs.length + 1))
-                ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))) ∈ˢ _
-          rw [hA, hBv]
-          exact hm2
-        · show consList bs (cons b ρp) (Fs.length) ∈ˢ interp V ρp F
-          rw [hval]
-          exact hsp.1
-    · refine ⟨w, SetTheory.app (lamR (w + 1) (interp V ρp F)
-          fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b, _,
-        ?_, hrm, hz4, fun _ => by
-          rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1))⟩
-      show SetTheory.app (SetTheory.app (SetTheory.app
+                ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))) ∈ˢ piR v A B ∧ _
+        rw [hA, hBv, interp_bvar, hval]
+        exact piV_slot hm2 hsp.1 hok.2.1
+    · show ∃ v A B, SetTheory.app (SetTheory.app (SetTheory.app
           (interp V (consList bs (cons b ρp))
             (.const .psigmaMk [w, w]))
           (interp V (consList bs (cons b ρp))
@@ -1886,9 +1788,10 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           (interp V (consList bs (cons b ρp))
             (.lam (F.liftN (Fs.length + 1))
               ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))))
-        (interp V (consList bs (cons b ρp)) (.bvar Fs.length)) ∈ˢ _
+        (interp V (consList bs (cons b ρp)) (.bvar Fs.length)) ∈ˢ piR v A B ∧ _
       rw [hA, hBv, interp_bvar, hval]
-      exact hm3
+      exact piV_slot hm3 hrm (by
+        rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1)))
 
 /-- **The tupler is graded**, both regimes. -/
 theorem mkTowerGoU_wellDenoted {w : Nat} {E : AnnotTerm} {Fs : List AnnotTerm} {ρp : Nat → V}
@@ -2066,7 +1969,7 @@ theorem sumMkAV_zero {j : Nat} {ds : List (Nat × Nat × AnnotTerm)} {Fs : List 
   | [] =>
     show interp V ρ (sumInjAtAV 0 Fss Fs.length (numeralAV j) (mkTowerGoU 0 Fs (idxEqAV []))) = pt
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (psigmaMkV V 0 0) _) _) _) _ = _
-    rw [psigmaMkV, show Nat.max 0 0 = 0 from rfl, lamR_zero, app_pt, app_pt, app_pt, app_pt]
+    rw [psigmaMkV_eq_pt V (show Nat.max 0 0 = 0 from rfl), app_pt, app_pt, app_pt, app_pt]
   | d :: ds =>
     show lamV _ (fun x => interp V (cons x ρ) (sumMkAV 0 j ds Fs Fss)) = pt
     exact lamV_eq_pt fun _ _ => sumMkAV_zero

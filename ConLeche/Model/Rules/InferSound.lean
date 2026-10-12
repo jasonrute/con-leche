@@ -926,7 +926,7 @@ theorem Infer.proj_soundFull (hin : RulesInputs V m φ) {d : Nat}
   -- the tower law's typing clause
   exact hA (towerGuardAt_of hO5 (fun hp => by
       simp only [beq_iff_eq] at hp ⊢
-      exact hprop hp)) σ vs vp restA hlenVs hokTe hokPe
+      exact hprop hp)) σ vs vp restA hlenVs hokTe (heqTe ▸ hokTpe.ne_pt) hokPe
     (heqTe ▸ hmemPe) hpeel
 
 /-- **A projection at the io grade** (the io claim's projection
@@ -1030,7 +1030,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
       hredT σ hσ (hLpe'.of_subset htpesub) hokTpe.1 hokTpe.ne_pt
     have hrow := hA (towerGuardAt_of hO5 (fun hp => by
         simp only [beq_iff_eq] at hp ⊢
-        exact hprop hp)) σ vs vp restA hlenVs hokTe hokPe
+        exact hprop hp)) σ vs vp restA hlenVs hokTe (heqTe ▸ hokTpe.ne_pt) hokPe
       (heqTe ▸ hmemPe) hpeel
     exact IORelN.of_mem hrest hrow.2.1 hrow.2.2
   · obtain ⟨_, _, _, rfl⟩ := h.forallE

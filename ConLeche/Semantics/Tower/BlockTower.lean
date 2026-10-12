@@ -107,17 +107,15 @@ theorem projS_ndMkTowerSet {g : Nat → V} :
 
 /-! ## The pinned pair constructor's four-step product -/
 
-/-- The four-step product `psigmaMk.{r,r}` inhabits, at the joint level
-`max r r = r`. -/
-theorem psigmaMkV_rr_mem {r : Nat} (hr : r ≠ 0) :
-    psigmaMkV V r r ∈ˢ piR r (univ r : V) fun A =>
-      piR r (psigmaFibreSpace V r A) fun B =>
-        piR r A fun a => piR r (SetTheory.app B a) fun _ =>
+/-- The pair constructor `psigmaMk.{r,r}` inhabits its function space,
+at the joint level `max r r = r`. -/
+theorem psigmaMkV_rr_mem (r : Nat) :
+    psigmaMkV V r r ∈ˢ piV (univ r : V) fun A =>
+      piV (psigmaFibreSpace V r A) fun B =>
+        piV A fun a => piV (SetTheory.app B a) fun _ =>
           sigmaSet r A fun x => SetTheory.app B x := by
-  have hmax : Nat.max r r = r := Nat.max_self r
-  rw [psigmaMkV, hmax]
-  exact lamR_mem fun A _ => lamR_mem fun B _ => lamR_mem fun a ha =>
-    lamR_mem fun b hb => spair_mem hr ha hb
+  have h := psigmaMkV_mem V r r
+  rwa [show Nat.max r r = r from Nat.max_self r] at h
 
 /-! ## The tuple value's two laws -/
 
@@ -186,21 +184,18 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
         (([Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
            G s, ndMkTowerAV r Gty G (s + 1) n] : List AnnotTerm).map (interp V ρ)) := by
       rw [hmk]
-      have hstep := psigmaMkV_rr_mem (V := V) hr
-      have h1 := app_mem_piR_pos hr hstep hAu
-      have h2 := app_mem_piR_pos hr h1 hBmem
-      have h3 := app_mem_piR_pos hr h2 hamem
+      have hstep := psigmaMkV_rr_mem (V := V) r
+      have h1 := app_mem_piV hstep hAu
+      have h2 := app_mem_piV h1 hBmem
+      have h3 := app_mem_piV h2 hamem
       intro l hl
       match l, hl with
-      | 0, _ => exact ⟨r, univ r, _, hstep, hAu, fun h0 => absurd h0 hr, fun _ => IsTy_univ r⟩
-      | 1, _ =>
-        exact ⟨r, psigmaFibreSpace V r (interp V ρ (Gty s)), _, h1, hBmem,
-          fun h0 => absurd h0 hr, fun _ => IsTy_piR _ _ _⟩
-      | 2, _ => exact ⟨r, interp V ρ (Gty s), _, h2, hamem, fun h0 => absurd h0 hr,
-          fun _ => IsTy_of_mem_univ hAu⟩
-      | 3, _ => exact ⟨r, _, _, h3, hbmem, fun h0 => absurd h0 hr, fun _ => by
+      | 0, _ => exact piV_slot hstep hAu (IsTy_univ r)
+      | 1, _ => exact piV_slot h1 hBmem IsTy_piV
+      | 2, _ => exact piV_slot h2 hamem (IsTy_of_mem_univ hAu)
+      | 3, _ => exact piV_slot h3 hbmem (by
           rw [hBapp]; exact IsTy_of_mem_univ
-            (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega))⟩
+            (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)))
     have hcl := mkAppN_wellDenoted_of_chain (f := (.const .psigmaMk [r, r] : AnnotTerm))
       (args := [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
         G s, ndMkTowerAV r Gty G (s + 1) n]) (σ := ρ) trivial
@@ -619,9 +614,18 @@ theorem tupleFamsSpace_eq (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
 /-- The block's operator inhabits the constant's second domain. -/
 theorem blockFunVG_mem (hok : BlockChainsOkG k w ρp uf Idss Chs) :
     blockFunVG k w ρp uf Idss Chs
-      ∈ˢ piR (blockR k w uf) (famsSpaceB k w ρp uf Idss)
-        fun _ => famsSpaceB k w ρp uf Idss :=
-  lamR_mem fun Y hY =>
+      ∈ˢ piV (famsSpaceB k w ρp uf Idss) fun _ => famsSpaceB k w ρp uf Idss := by
+  -- the family-tuple space is inhabited (the tuple of empty families) and strict
+  have hY₀ : ndMkTowerSet (fun m => famOf (fun _ => (empty : V))
+      (idxSet (uf m) ρp (Idss m))) 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
+    ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun _ _ =>
+      famOf_mem_lfpFamSpace V fun _ _ => empty_mem_univ w
+  have hs := Fib_ndTowerSet V (blockR k w uf)
+    (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
+  simp only [blockR_ne_zero k w uf, decide_false, Fib_false] at hs
+  rw [piV_eq_pos (blockR_ne_zero k w uf) hY₀ fun h =>
+    ne_pt_of_mem_strict hs hY₀ (eq_pt_of_mem_univZero h hY₀)]
+  exact lamR_mem fun Y hY =>
     ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun m hm => blockArmG_mem hok hY (by omega)
 
 /-- **The induced tuple operator IS the block's**, on the tuple space
@@ -650,8 +654,7 @@ theorem blockBodyG_app (hI : BlockIdxOk (V := V) k uf ρp Idss)
       = ndMkTowerSet (blockFamG k w ρp uf Idss Chs) 0 k := by
   have hIs := idxTup_mem (w := w) hI
   have hF : blockFunVG k w ρp uf Idss Chs
-      ∈ˢ piR (tupleFamSort k (blockUs k w uf))
-        (tupleFamsSpace V k (blockUs k w uf) (ndMkTowerSet (blockIdx uf ρp Idss) 0 k))
+      ∈ˢ piV (tupleFamsSpace V k (blockUs k w uf) (ndMkTowerSet (blockIdx uf ρp Idss) 0 k))
         fun _ => tupleFamsSpace V k (blockUs k w uf)
           (ndMkTowerSet (blockIdx uf ρp Idss) 0 k) := by
     rw [tupleFamsSpace_eq k w ρp uf Idss]; exact blockFunVG_mem hok
@@ -701,33 +704,28 @@ theorem blockBodyG_wellDenoted (hI : BlockIdxOk (V := V) k uf ρp Idss)
   have hc : interp V ρp (.const (.lfpTuple k) (blockUs k w uf))
       = lfpTupleV V k (blockUs k w uf) := rfl
   have hF : blockFunVG k w ρp uf Idss Chs
-      ∈ˢ piR (tupleFamSort k (blockUs k w uf))
-        (tupleFamsSpace V k (blockUs k w uf) (ndMkTowerSet (blockIdx uf ρp Idss) 0 k))
+      ∈ˢ piV (tupleFamsSpace V k (blockUs k w uf) (ndMkTowerSet (blockIdx uf ρp Idss) 0 k))
         fun _ => tupleFamsSpace V k (blockUs k w uf)
           (ndMkTowerSet (blockIdx uf ρp Idss) 0 k) := by
     rw [tupleFamsSpace_eq k w ρp uf Idss]; exact blockFunVG_mem hok
   have hhead : SetTheory.app (interp V ρp (.const (.lfpTuple k) (blockUs k w uf)))
       (interp V ρp (idxTupAV k w uf Idss))
-      ∈ˢ piR (tupleFamSort k (blockUs k w uf))
-        (piR (tupleFamSort k (blockUs k w uf))
+      ∈ˢ piV (piV
           (tupleFamsSpace V k (blockUs k w uf) (ndMkTowerSet (blockIdx uf ρp Idss) 0 k))
           fun _ => tupleFamsSpace V k (blockUs k w uf)
             (ndMkTowerSet (blockIdx uf ρp Idss) 0 k))
         fun _ => tupleFamsSpace V k (blockUs k w uf)
           (ndMkTowerSet (blockIdx uf ρp Idss) 0 k) := by
     rw [hc, hiv]
-    exact app_mem_piR_pos (blockR_ne_zero k w uf) (lfpTupleV_mem V k (blockUs k w uf)) hIs
+    exact app_mem_piV (lfpTupleV_mem V k (blockUs k w uf)) hIs
   show WellDenoted V ρp (.app (.app (.const (.lfpTuple k) (blockUs k w uf)) _) _)
   rw [WellDenoted_app]
-  refine ⟨?_, hfok, tupleFamSort k (blockUs k w uf), _, _, hhead, ?_,
-    fun h0 => absurd h0 (blockR_ne_zero k w uf), fun _ => IsTy_piR _ _ _⟩
+  refine ⟨?_, hfok, ?_⟩
   · rw [WellDenoted_app]
-    exact ⟨trivial, hiok, tupleFamSort k (blockUs k w uf),
-      tupleSortsSpace V k (blockUs k w uf), _,
-      hc ▸ lfpTupleV_mem V k (blockUs k w uf), hiv ▸ hIs,
-      fun h0 => absurd h0 (blockR_ne_zero k w uf),
-      fun _ => IsTy_tupleSortsSpace V k _⟩
-  · rw [hfv]; exact hF
+    refine ⟨trivial, hiok, ?_⟩
+    rw [hc, hiv]
+    exact piV_slot (lfpTupleV_mem V k (blockUs k w uf)) hIs (IsTy_tupleSortsSpace V k _)
+  · rw [hfv]; exact piV_slot hhead hF IsTy_piV
 
 end Body
 

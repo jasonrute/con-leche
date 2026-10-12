@@ -21,9 +21,6 @@ This file holds the pieces between the derivation's accessibility
 fields with holes (`d.absF`, the normal form's reading); the block
 theorems are in `BlockAccRunCont.lean`:
 
-* `teleSmall_mkPisAV`: the walked fields' values are small, from the
-  datum's hereditary grading (`FieldsOkB`) through the link
-  (`FieldsEqOn`);
 * `teleAccP_of_piAccThen`: the walked fields' accessibility moves onto
   the datum's fields (they read alike at every satisfying frame, so the
   relations under them coincide), one bound per field;
@@ -40,45 +37,6 @@ open ConLeche (Env Expr Name Level NestCtx NestHole ConstantVal BlockShape Block
 universe w
 
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name → Nat}
-
-/-! ## The walked fields' values are small -/
-
-/-- **The walked fields' values are small** at every frame of the
-relation: they read like the datum's fields, whose hereditary grading
-bounds them. -/
-theorem teleSmall_mkPisAV {w : Nat} (hw : w ≠ 0) :
-    ∀ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm) (Δ : List AnnotTerm)
-      (R : FrameRel V),
-      FieldsEqOn V Δ (abD.map (·.2.2)) (abN.map (·.2.2)) →
-      (∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀) →
-      (∀ ρ ρ₀, R ρ ρ₀ → FieldsBound w ρ (abN.map (·.2.2))) →
-      TeleSmall w abD.length R (mkPisAV abD B)
-  | [], [], _, _, _, _, _, _ => trivial
-  | x :: abD, y :: abN, B, Δ, R, hE, hdom, hok => by
-    have hE' := hE
-    simp only [List.map_cons] at hE'
-    obtain ⟨h0, hrest⟩ := hE'
-    refine ⟨fun ρ ρ₀ hR a ha => ?_, ?_⟩
-    · have hok0 := hok ρ ρ₀ hR
-      simp only [List.map_cons] at hok0
-      rw [h0 ρ (hdom ρ ρ₀ hR).1] at ha
-      exact fun _ => (tg_isTGUniverse hw).transitive (mem_tg_of_mem_univ hok0.1) ha
-    · refine teleSmall_mkPisAV hw abD abN B (x.2.2 :: Δ) (R.underBoth x.2.2) hrest
-        (underBoth_dom hdom) ?_
-      rintro _ _ ⟨a, ρ, ρ₀, rfl, rfl, hR, ha, -⟩
-      have hok0 := hok ρ ρ₀ hR
-      simp only [List.map_cons] at hok0
-      exact hok0.2 a (h0 ρ (hdom ρ ρ₀ hR).1 ▸ ha)
-  | [], _ :: _, _, _, _, hE, _, _ => hE.elim
-  | _ :: _, [], _, _, _, hE, _, _ => hE.elim
-
-/-- **At `w = 0` every value is small** (`SmallAt 0`): nothing is asked. -/
-theorem teleSmall_zero : ∀ (n : Nat) (R : FrameRel V) (r : AnnotTerm), TeleSmall 0 n R r
-  | 0, _, _ => trivial
-  | n + 1, R, .pi A B => ⟨fun _ _ _ x _ => SmallAt.zero x, teleSmall_zero n (R.underBoth A) B⟩
-  | _ + 1, _, .bvar _ | _ + 1, _, .sort _ | _ + 1, _, .const _ _ | _ + 1, _, .app _ _
-  | _ + 1, _, .lam _ _ | _ + 1, _, .letE _ _ | _ + 1, _, .eqE _ _ | _ + 1, _, .fst _
-  | _ + 1, _, .snd _ | _ + 1, _, .prf => trivial
 
 /-! ## The walked accessibility onto the datum's fields -/
 
@@ -232,8 +190,8 @@ theorem holeRelA_accRel {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V} 
     omega
   dsScoped := fun _ _ h => by simp at h
   symm := LfpDatum.accRel_symm
-  rich hw := RichOn.congrQ (fun i n => (holeQ_top_iff hhi hcN hcP har i n).symm)
-    (LfpDatum.accRel_rich (Nat.le_add_right _ _) hw)
+  ptFree hw := PtFreeOn.congrQ (fun i n => (holeQ_top_iff hhi hcN hcP har i n).symm)
+    (LfpDatum.accRel_ptFree (Nat.le_add_right _ _) hw)
   lrefl := by
     rintro _ _ ⟨X, Y, hX, -, rfl, -⟩
     exact LfpDatum.accRel_refl hX

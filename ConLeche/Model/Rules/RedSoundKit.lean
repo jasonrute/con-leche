@@ -868,4 +868,22 @@ theorem teleFitPA_rest_graded {ρ : Nat → V} :
     exact ih ((WellDenotedV_inst0 hokA).mpr (hT.pi_body _ hmem))
       (fun x hx => hvs x (List.mem_cons_of_mem a hx))
 
+/-- **A fit's residual is a type** when the fitted Π-type is one: each
+step's fibre is a type (the Π's grading), and the residual is the last
+fibre ("not pt" source (1) for a constructor's codomain). -/
+theorem teleFitPA_rest_isTy {ρ : Nat → V} :
+    ∀ {T : AnnotTerm} {vs : List AnnotTerm} {rest : AnnotTerm},
+      TeleFitPA V ρ T vs rest → WellDenotedTy V ρ T →
+      (∀ x ∈ vs, WellDenotedV V ρ x) → IsTy (interp V ρ rest) := by
+  intro T vs rest h
+  induction h with
+  | nil => intro hT _; exact hT.2
+  | @cons A B rest' a as hmem _ ih =>
+    intro hT hvs
+    have hokA : WellDenotedV V ρ a := hvs a List.mem_cons_self
+    refine ih ⟨(WellDenotedV_inst0 hokA).mpr (hT.1.pi_body _ hmem), ?_⟩
+      (fun x hx => hvs x (List.mem_cons_of_mem a hx))
+    rw [interp_inst0]
+    exact (cast (WellDenoted_pi V ρ A B) hT.1).2.2.2 _ hmem
+
 end ConLeche.Model.Rules

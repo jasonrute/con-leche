@@ -284,23 +284,27 @@ theorem NeverChain.inst : ∀ {n u : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : N
     exact ih a (k + 1) hB
 
 /-- **A type former's application lands in its result universe.**  The
-walk along the chain: where the head is a graph, the argument's
-membership in the domain is `slotTransfer` from the applied spine's own
-hereditary app slot — no certificate anywhere. -/
+walk along the chain: the application is not the point ("not pt"
+source (1): it is a type, the caller's premise), so neither is its head,
+which is then a graph; the argument's membership in the domain is
+`slotTransfer` from the applied spine's own hereditary app slot — no
+certificate anywhere.  (Without the premise the lemma is false: a head
+over an empty inner domain is the point, and its slot pins no domain.) -/
 theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
     ∀ (vs : List AnnotTerm) {Ta f : AnnotTerm} {u : Nat},
       NeverChain vs.length u Ta →
       WellDenotedV V ρ Ta → WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
+      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
       interp V ρ f ∈ˢ interp V ρ Ta →
       interp V ρ (AnnotTerm.mkAppN f vs) ∈ˢ (univ u : V) := by
   intro vs
   induction vs with
   | nil =>
-    intro Ta f u hch _ _ hf
+    intro Ta f u hch _ _ _ hf
     obtain rfl : Ta = .sort u := hch
     exact hf
   | cons a vs ih =>
-    intro Ta f u hch hokT hokS hf
+    intro Ta f u hch hokT hokS hne hf
     obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv hch
     have hokApp : WellDenotedV V ρ (.app f a) := mkAppN_head vs hokS
     have hoka : WellDenotedV V ρ a :=
@@ -310,11 +314,9 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
         (cast (WellDenoted_pi V ρ A B) hokT).2.2.1 y hy
     have hf' : interp V ρ f
         ∈ˢ piV (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
-    -- L17: a value-read Π-tower over a sort is truth-valued where an inner
-    -- domain is empty, so the head may be the point and the slot then pins
-    -- no domain; the former readings' non-point head is owed
-    by_cases hfp : interp V ρ f = pt
-    · sorry
+    -- the head is not the point: a point head makes the spine the point
+    have hfp : interp V ρ f ≠ pt := fun h0 =>
+      hne (interp_mkAppN_pt (by rw [interp_app, h0, app_pt]) vs)
     have hgr : interp V ρ f
         ∈ˢ piR 1 (interp V ρ A) (fun x => interp V (cons x ρ) B) := by
       rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
@@ -327,7 +329,7 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
     have hfa : interp V ρ (.app f a) ∈ˢ interp V ρ (B.inst a) := by
       rw [interp_app, interp_inst0]
       exact app_mem_piV hf' hmem
-    exact ih (NeverChain.inst a 0 hB) hokB' hokS hfa
+    exact ih (NeverChain.inst a 0 hB) hokB' hokS hne hfa
 
 /-- The reading of a type-former application `T = hd b⃗` lands in
 `univ 0` once the head's type reads to a chain of `b⃗`'s length ending
@@ -338,7 +340,7 @@ theorem mem_univ_zero_of_spine {m : EnvModel V env}
     (hTa : denoteMeta m.acval env φ d T = some Ta)
     (hfa : denoteMeta m.acval env φ d hd = some fa)
     (hchain : NeverChain T.getAppArgs.length 0 taH)
-    (hokH : WellDenotedV V ρ taH) (hokT : WellDenotedV V ρ Ta)
+    (hokH : WellDenotedV V ρ taH) (hokT : WellDenotedTy V ρ Ta)
     (hmem : interp V ρ fa ∈ˢ interp V ρ taH) :
     interp V ρ Ta ∈ˢ (univ 0 : V) := by
   rw [← ConLeche.Expr.mkAppN_getApp T, hfn] at hTa
@@ -346,7 +348,7 @@ theorem mem_univ_zero_of_spine {m : EnvModel V env}
   rw [hfa] at hfa'
   obtain rfl := Option.some.inj hfa'
   rw [hsp.length] at hchain
-  exact spine_mem_univ_of_neverChain vs hchain hokH hokT hmem
+  exact spine_mem_univ_of_neverChain vs hchain hokH hokT.1 hokT.2.ne_pt hmem
 
 /-! ## 3. The kernel-shaped licence -/
 
