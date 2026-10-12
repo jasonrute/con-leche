@@ -102784,3 +102784,75 @@ instantiation, both gone; the lane's earlier part measured −0.01 % /
 **Gates.**  `lake build`, `lake test` warning-free; no `sorry` in code
 outside the by-design `Challenge` and fixture sources; `challenge.sh`
 green.  Lines (code, against `port-342-s4`): 90 files, +1189 −3701.
+
+## TASK #342 — S4-LAND: the switch lands on `port-342` with the deferred battery (2026-10-12, agent/342-s4-land)
+
+Lane S4-LAND (`_tmp/342v2-design.md` §11.6): `port-342-s4` (e831cdfeb,
+empty ledger, no `sorry` outside `Challenge` and the fixture sources)
+brought to the full battery and landed on `port-342` (1ca89bf14, whose
+L11b was already merged into S4; the merge of `port-342` was empty).
+
+**The deferred gates, repaired.**
+- `overview-links`: the port moved or rewrote 67 cited ranges.  59 moved
+  with their text intact and were repointed mechanically; the rest were
+  re-read against their paragraphs and repointed to the current
+  definition (`Model`, `checkDecls_consts` — now stating the stored type
+  IS the declared one, which is what the paragraph already says —,
+  `Declaration.Declares`, `no_False_theorem_accepted`, `coreKnotI_congr`,
+  the fuel base case, `indParamsOk`, `Term`, `AnnotTerm`, `interp`,
+  `WellDenoted` and its preservation section, `Denotes_of_denoteMeta`,
+  the claims, `DefEq`'s docstring, `lfpFamSpace`, `checkBlockClasses`,
+  `classKeyOf`, `inferBodyIO`, `defeqLams`).  No OVERVIEW prose
+  changed.  README: links repointed only (7), its prose untouched.
+- `shake`: 17 imports deleted as clean under the #223 criterion (plus
+  two more that a demotion exposed in `Model/Rules/Motive.lean`), 33
+  allowlist lines added (26 compensated, 7 not reproducible alone), one
+  stale line removed; 10 of the 17 demotable `public import`s demoted,
+  9 kept with `FALLBACK` entries in `scripts/pub-import-plan.py` (their
+  own public statements name the re-exported identifiers).
+- `Main.lean`'s `--help` text still described the annotation-gated β/io
+  licences and "annotation validations"; rewritten to the current
+  modes (OVERVIEW cites only its first line).
+- `layering`, `trust-surface`, `pindump` (no regeneration needed: the
+  pins carry no `pw`), `no-local-paths`, `quote-gate`, `challenge`,
+  `fragment-gate`: green without change.
+
+**Left red: `whitepaper/links-gate.sh`.**  The whitepaper on this
+branch is master's; of its 450 citations 308 are intact, 84 moved with
+their text, 58 cite text the port changed or deleted (4 of them past
+the end of the file: `Denotes.lean#L270-L290`, `Env.lean#L674`,
+`AxiomMem.lean#L809-L813`, `Core.lean#L2003-L2032`).  The 58 are cited
+by prose that describes the annotations; `--update` would bless stale
+prose, and repointing the 84 would only conflict with W2's merge of the
+rewritten whitepaper from `frag-342`.  The list is in
+`_tmp/port/s4-land-logs/wp-changed-links.txt`; W2 owns the gate.
+
+**Verdicts** (full battery, not under ulimit): arena 90/92, e2e
+473/473, annot 15/15, mode flags, IO-exception, prelude counts,
+progress, worker pool, statistics, install pool, DAG tower all as
+expected; trusted sweep 0 recorded divergences; `--jobs=1` and
+`--jobs=4` sweeps identical to the default.  Against `master`: new
+fixtures `let_former_spine` (0) and `let_ctor_spine_bad` (1);
+`uh_let_erase_{type,value}` 0 → 1 (official v4.33.1+ 1);
+`natop_booltrue_alias` 2 (L8's guard); `annot_decline_*` 2 → 0 (the
+legacy field is dropped at parse).
+
+**Numbers** (`--verified`, one run each):
+
+| | init-full `instructions:u` | mathlib-prefix `instructions:u` |
+|---|---|---|
+| `master` 3b37939f0 | 482.54 G | 679.02 G |
+| S0-F | 412.19 G | 563.13 G |
+| S4 landed | 410.38 G (−14.95 %) | 559.88 G (−17.55 %) |
+
+mathlib-full, `--jobs=32`, flock'd, RSS guard at 40 GB: accepted
+691 203; parse 9.1 s, install 2.4 s, check 27.9 s; peak RSS 5.45 GiB
+(guard 5.40 GiB = 5 662 536 KB).  The same night's `master` run: parse
+4.3 s, install 3.7 s, check 33.3 s, 7.41 GiB; S0-M: 4.3 / 2.3 / 35.3 s,
+5.50 GiB.  The parse's 9.1 s is one run on a shared machine (master's
+parse has ranged 4.1–23 s across records); the check and the memory
+are the port's: −16 % check wall, −26 % peak RSS against master.
+
+**For the next stage.**  README passages that are now wrong are
+reported to the maintainer, not edited (lines 5, 31, 81, 91–97, 101,
+103, 117, 133).  W2: the whitepaper gate above.
