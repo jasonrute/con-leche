@@ -43,9 +43,9 @@ not its reduct.**
   the minor at the point, which is the recursor's value there.
 * `Red.projCtor_core_sem`: the projection of a constructor literal
   (`S.pᵢ qs maj ⟶ fᵢ` where `maj` reduces to `S.mk … fs`) is sound with
-  no certificate — the step #347 already licensed (`projCertAt`
-  dropped).  Where the structure is a proposition the redex is the
-  point (the same `projPt_of_fieldSort`) and nothing is claimed; where
+  no certificate — the step #347 already freed of `projCertAt`.
+  Where the structure is a proposition the redex is the point (the
+  same `projPt_of_fieldSort`) and nothing is claimed; where
   it is not, the major is not the point, so its reduction is claimed,
   and the literal fits the constructor's telescope.
 * **The chain** (`Red.trans`, `Red.appFn`, the `DefEq` consumers).  The

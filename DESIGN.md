@@ -101398,7 +101398,7 @@ That reduct is never consumed at such a valuation:
   an application that is not the point, which is therefore not the
   point either.
 - The projection of a constructor literal (`Red.projCtor_core_sem`,
-  the step #347 licensed by dropping `projCertAt`) is claimed only when
+  the step #347 freed of `projCertAt`) is claimed only when
   it is not the point.  That forces its argument not to be the point
   (the point half of `ProjLaw`, `projPt_of_fieldSort`), hence the
   structure is a type there, the argument's own reduction is claimed,
@@ -101477,7 +101477,7 @@ check and its `proofIrrel` (subsumed by the eta path at every
 instance).  The struct-η major rescue loses its non-`Prop` guard
 (`capsNeverZero`) and its certificates (`iotaCertsI` on the fabricated
 spine, `structEtaCertWith`).  The whole ι family then certifies
-nothing: case 2 is licensed by one level test, case 3 by K or eta,
+nothing: case 2 is justified by one level test, case 3 by K or eta,
 case 4 by the motive.  Until the renovation ships, `Acc` and `Quot`
 keep case 3's certificate; `PUnit` could take the eta path now.
 
