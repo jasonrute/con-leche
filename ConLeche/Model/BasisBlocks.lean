@@ -178,12 +178,10 @@ theorem denoteMeta_natSuccA_type (ψ : Name → Nat)
           (.const .nat [])) :=
   denoteMeta_natSuccTy (m := m) (A := A) ψ (by decide) hN
 
-theorem bitAgree_natSuccA (ψ : Name → Nat) :
-    AnnotTerm.BitAgree
-      (.pi (.const .nat []) (.const .nat []))
-      (BConst.typeAV .natSucc []) := by
-  refine .pi ?_ (.const _ _) (.const _ _)
-  rw [pwBit_never]
+/-- The reading of `Nat.succ`'s type is its spelled type. -/
+theorem natSuccA_reading_eq :
+    (AnnotTerm.pi (.const .nat []) (.const .nat []))
+      = BConst.typeAV .natSucc [] := rfl
 
 /-- The three pinned `Nat` leaves at the `Nat.rec` extension. -/
 theorem denoteMeta_natRec_leaves (ψ : Name → Nat)
@@ -249,28 +247,17 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hNc, hZc, hSc, Level.eval]
 
-theorem bitAgree_natRecA (ψ : Name → Nat) :
-    AnnotTerm.BitAgree
-      (.pi (.pi (.const .nat []) (.sort (ψ uN)))
-        (.pi (.app (.bvar 0) (.const .natZero []))
-          (.pi (.pi (.const .nat [])
-              (.pi (.app (.bvar 2) (.bvar 0))
-                (.app (.bvar 3)
-                  (.app (.const .natSucc []) (.bvar 1)))))
-            (.pi (.const .nat [])
-              (.app (.bvar 3) (.bvar 0))))))
-      (BConst.typeAV .natRec [ψ uN]) := by
-  have hz : pwBit ψ (ConLeche.PropWhen.ifAllZero [uN]) = 0 ↔ ψ uN = 0 :=
-    pwBit_ifAllZero_single ψ uN
-  refine .pi hz (.pi ?_ (.const _ _) (.sort _))
-    (.pi hz (.app (.bvar 0) (.const _ _))
-      (.pi hz
-        (.pi hz (.const _ _)
-          (.pi hz (.app (.bvar 2) (.bvar 0))
-            (.app (.bvar 3) (.app (.const _ _) (.bvar 1)))))
-        (.pi hz (.const _ _) (.app (.bvar 3) (.bvar 0)))))
-  rw [pwBit_never]
-  simp
+/-- The reading of `Nat.rec`'s type is its spelled type. -/
+theorem natRecA_reading_eq (ψ : Name → Nat) :
+    (AnnotTerm.pi (.pi (.const .nat []) (.sort (ψ uN)))
+      (.pi (.app (.bvar 0) (.const .natZero []))
+        (.pi (.pi (.const .nat [])
+            (.pi (.app (.bvar 2) (.bvar 0))
+              (.app (.bvar 3)
+                (.app (.const .natSucc []) (.bvar 1)))))
+          (.pi (.const .nat [])
+            (.app (.bvar 3) (.bvar 0))))))
+      = BConst.typeAV .natRec [ψ uN] := rfl
 
 /-! ### The installs
 
@@ -425,7 +412,7 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
           ⟨natA.toConstantVal, _, by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN,
             rfl⟩,
           .forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero)) { pw := .never }, by decide,
-          by decide, fun ψ => ⟨rfl, [(0, pwBit ψ .never, .bvar 0)], ?_, rfl⟩⟩
+          by decide, fun ψ => ⟨rfl, [(0, 0, .bvar 0)], ?_, rfl⟩⟩
         · show (⟨natSuccA :: env.consts⟩ : ConLeche.Env).find? natSuccA.name = _
           rw [ConLeche.Env.find?_cons, ite_eq_left rfl]; rfl
         · show denoteMeta _ _ _ 1 (.forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero))
@@ -480,12 +467,12 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedTy (bitAgree_natSuccA ψ) ρ).mpr
-      (WellDenotedTy_bconst_type V .natSucc [] ρ)
+    rw [natSuccA_reading_eq]
+    exact WellDenotedTy_bconst_type V .natSucc [] ρ
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    rw [AnnotTerm.BitAgree.interp_eq V (bitAgree_natSuccA ψ) ρ]
+    rw [natSuccA_reading_eq]
     exact bval_mem_type V .natSucc [] ρ
   · -- `nat_heads`, bespoke: the three leaves are the two prefix pins
     -- and the fresh one

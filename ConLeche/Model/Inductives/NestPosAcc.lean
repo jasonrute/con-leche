@@ -363,12 +363,7 @@ theorem interp_pi_congr_body {A B B' : AnnotTerm} {ρ : Nat → V}
     (h : ∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) B = interp V (cons x ρ) B') :
     interp V ρ (.pi A B) = interp V ρ (.pi A B') := by
   rw [interp_pi, interp_pi]
-  unfold piR
-  split
-  · refine truthVal_congr (forall_congr' fun d => imp_congr_right fun hd => ?_)
-    show (∃ y, y ∈ˢ interp V (cons d ρ) B) ↔ ∃ y, y ∈ˢ interp V (cons d ρ) B'
-    rw [h d hd]
-  · exact piSet_congr fun d hd => h d hd
+  exact piV_congr h
 
 /-! ## A constructor's field telescope -/
 
@@ -415,7 +410,7 @@ theorem PiAccThen.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole}
   | _ + 1, _, [], _, _, h => h.elim
   | _ + 1, _, _ :: _, _, .bvar _, h | _ + 1, _, _ :: _, _, .sort _, h
   | _ + 1, _, _ :: _, _, .const _ _, h | _ + 1, _, _ :: _, _, .app _ _, h
-  | _ + 1, _, _ :: _, _, .lam _ _ _, h | _ + 1, _, _ :: _, _, .eqE _ _, h
+  | _ + 1, _, _ :: _, _, .lam _ _, h | _ + 1, _, _ :: _, _, .eqE _ _, h
   | _ + 1, _, _ :: _, _, .fst _, h | _ + 1, _, _ :: _, _, .snd _, h
   | _ + 1, _, _ :: _, _, .prf, h => h.elim
 
