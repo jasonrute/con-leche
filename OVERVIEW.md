@@ -147,8 +147,9 @@ What a term denotes, and what a model is, are one short module a
 reader can take in at one sitting: the relation
 [`Denotes` in `ConLeche/Denotes.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Denotes.lean#L134-L135),
 one rule per syntax form on the checker's own terms — a bound variable
-reads its environment, `Sort u` the universe chain, a constant its
-set, an application the function's graph, a binder the dependent
+reads its environment, `Sort u` the types of a level of the universe
+chain, a constant its set, an application the function's graph, a
+binder the dependent
 product, or the truth value of its body when the checker annotated the
 binder as proposition-valued — an annotation it may make only if the
 body really denotes a truth value there — and the structure
@@ -566,8 +567,10 @@ binder
 set, totally and term-directed
 ([function `interp` in `ConLeche/Semantics/Interp.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Interp.lean#L153-L164)):
 a Π whose body sort is `0` is a predicate space with a single proof
-point, otherwise a dependent function space; a λ likewise; a sort is a
-universe of the chain; nothing needs to be well-typed to be
+point, otherwise a dependent function space; a λ likewise; a sort is
+the set of *types* in a universe of the chain (truth values, and sets
+that neither are the proof point nor contain it), cumulative in the
+level; nothing needs to be well-typed to be
 interpreted. Propositions are sets with at most one element, so proof
 irrelevance and propositional extensionality are built in, and a
 propositionally proven equation is a set equality.
