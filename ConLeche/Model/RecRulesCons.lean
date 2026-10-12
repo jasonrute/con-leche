@@ -27,7 +27,7 @@ sit in *premise* position, so the transfer they need is contravariant:
   extension reading down, the proof produces the **prefix** reading
   from `EnvModelM.constType`, moves *that* forward
   (`denoteMeta_cons_fresh_mono`), and identifies the two by determinism —
-  the `type_reads`/`type_wellDenotedV` idiom `declStep_preserves_of_cons` already uses
+  the `type_reads`/`type_wellDenotedTy` idiom `declStep_preserves_of_cons` already uses
   three times;
 * the `.nested` clause is itself a premise, so proving the prefix form
   of it *consumes* the extension form: a prefix pin reading is moved

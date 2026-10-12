@@ -26,7 +26,7 @@ what they compare, so the statements' fragment gets a graded walk
 (`dmNatFrag_graded`), built the way `Model/NatEqs.lean`'s `NatArg`
 walk is: argument memberships from the frame, head
 memberships from `mem_type` at the pinned types, and the fibre facts
-at *unknown* regime bits from `type_wellDenotedV`'s `AnnotValid` — so no bit
+at *unknown* regime bits from `type_wellDenotedTy`'s `AnnotValid` — so no bit
 positivity is taken anywhere.
 -/
 
@@ -123,7 +123,7 @@ theorem DmUnV.ok1 {natS codS f x : V} (h : DmUnV natS codS f)
 /-! ## The head packages, from the environment invariant
 
 `mem_type` at a pinned operation type gives the membership;
-`type_wellDenotedV`'s `AnnotValid` gives the fibre facts.  (These are
+`type_wellDenotedTy`'s `AnnotValid` gives the fibre facts.  (These are
 `Model/NatEqs.lean`'s `natBinHead_of_stored`/`natUnHead_of_stored` with
 the two-variable context stripped off — the certificate frame is a
 different context, and the packages never read one.) -/

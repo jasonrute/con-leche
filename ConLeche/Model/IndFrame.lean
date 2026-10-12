@@ -367,7 +367,7 @@ theorem ctxOk_of_openers {env : Env} {m : EnvModel V env}
     (hltE : ∀ l ∈ e.fvarLeaves, l.1 < n)
     (hent : ∀ i, i < n → Δa[k - 1 - i]? = some (Aa i))
     (hokA : ∀ i, i < n → ∀ ρ : Nat → V, Sat V Δa ρ →
-      WellDenotedV V (fun j => ρ (j + (k - 1 - i) + 1)) (Aa i)) :
+      WellDenotedTy V (fun j => ρ (j + (k - 1 - i) + 1)) (Aa i)) :
     CtxOk m φ k Δa e := by
   refine ⟨hΔlen, ?_⟩
   intro l hl
@@ -401,7 +401,7 @@ theorem ctxOk_of_openers {env : Env} {m : EnvModel V env}
     omega
   · -- the grading: the entry's, transported across the same lift
     intro ρ hρ
-    refine (WellDenotedV_liftN V (k - l.1) (Aa l.1) 0 ρ).mpr ?_
+    refine (WellDenotedTy_liftN (k - l.1) (Aa l.1) 0 ρ).mpr ?_
     have h := hokA l.1 hlt ρ hρ
     have henv : shiftE (k - l.1) 0 ρ = fun j => ρ (j + (k - 1 - l.1) + 1) := by
       funext j

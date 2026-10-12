@@ -194,7 +194,7 @@ theorem iffRec_shapeS {ty : Expr}
 
 Each is `mem_type` at the stored constant, its reading computed off
 the shape, and `app_mem_pi_validV` once per argument — the side
-conditions read off `type_wellDenotedV`, never off a bit. -/
+conditions read off `type_wellDenotedTy`, never off a bit. -/
 
 /-- The stored `Iff`, applied to two propositions, is a proposition. -/
 theorem iffVal_app₂_memP (mp : EnvModelM V μ env)
@@ -216,7 +216,7 @@ theorem iffVal_app₂_memP (mp : EnvModelM V μ env)
     rw [hsh]
     simp [denoteMeta_forallE, denoteMeta_sort, Expr.instantiate1, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfI) ψ _ hden ρ
-  have hval := (mp.type_wellDenotedV _ (Env.find?_mem hfI) ψ _ hden ρ).2
+  have hval := (mp.type_wellDenotedTy _ (Env.find?_mem hfI) ψ _ hden ρ).1.2
   rw [Env.find?_name hfI] at hmem
   have h1 := app_mem_pi_validV hmem (by rw [interp_sort]; exact hA) hval
   rw [AnnotValid_pi] at hval
@@ -324,7 +324,7 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
     simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
       Expr.instantiate1, hI, hIi, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfIr) _ _ hden ρ
-  have hval := (mp.type_wellDenotedV _ (Env.find?_mem hfIr) _ _ hden ρ).2
+  have hval := (mp.type_wellDenotedTy _ (Env.find?_mem hfIr) _ _ hden ρ).1.2
   rw [Env.find?_name hfIr] at hmem
   rw [hIval] at hmem hval
   -- the family leaf's interpretation does not read the environment
@@ -600,7 +600,7 @@ theorem nonemptyVal_app_mem (mp : EnvModelM V μ env)
     rw [hsh]
     simp [denoteMeta_forallE, denoteMeta_sort, Expr.instantiate1, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfN) ψ _ hden ρ
-  have hval := (mp.type_wellDenotedV _ (Env.find?_mem hfN) ψ _ hden ρ).2
+  have hval := (mp.type_wellDenotedTy _ (Env.find?_mem hfN) ψ _ hden ρ).1.2
   rw [Env.find?_name hfN] at hmem
   have h1 := app_mem_pi_validV hmem (by rw [interp_sort]; exact hA) hval
   rwa [interp_sort] at h1
@@ -634,7 +634,7 @@ theorem nonemptyIntroVal_app₂_memP (mp : EnvModelM V μ env)
     simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
       Expr.instantiate1, hN, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfNi) ψ _ hden ρ
-  have hval := (mp.type_wellDenotedV _ (Env.find?_mem hfNi) ψ _ hden ρ).2
+  have hval := (mp.type_wellDenotedTy _ (Env.find?_mem hfNi) ψ _ hden ρ).1.2
   rw [Env.find?_name hfNi] at hmem
   have hNc : ∀ ρ' : Nat → V,
       interp V ρ' (mp.base2.acval nonemptyName ψ)
@@ -706,7 +706,7 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
     simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
       Expr.instantiate1, hN, hNi, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfNr) ψ _ hden ρ
-  have hval := (mp.type_wellDenotedV _ (Env.find?_mem hfNr) ψ _ hden ρ).2
+  have hval := (mp.type_wellDenotedTy _ (Env.find?_mem hfNr) ψ _ hden ρ).1.2
   rw [Env.find?_name hfNr] at hmem
   have hNc : ∀ ρ' : Nat → V,
       interp V ρ' (mp.base2.acval nonemptyName ψ)

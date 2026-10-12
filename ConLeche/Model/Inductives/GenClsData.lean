@@ -226,7 +226,7 @@ theorem genOutCtorFit (hμ : μ.verifiedChecks = true)
     (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls)
   change denoteMeta mpC.base2.acval envC (Level.substFn ψ cvI.levelParams (tgtMajor out c).lvls)
     0 cA.1.type = some T0 at hT0
-  have hT0wd := mpC.type_wellDenotedV _ hcons _ T0 hT0
+  have hT0wd := fun ρ => (mpC.type_wellDenotedTy _ hcons _ T0 hT0 ρ).1
   have hT0cl : Term.bvarsBelow 0 T0.erase :=
     bvarsBelow_of_reading (m := mpC.base2) (Expr.WScoped.of_not_hasFvar hCf) hCb hT0
   -- its outer parameter binders

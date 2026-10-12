@@ -195,8 +195,8 @@ theorem extendQuot (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [denoteMeta_quotA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedV (bitAgree_quotA ψ) ρ).mpr
-      (WellDenotedV_bconst_type V .quot [ψ uN] ρ)
+    exact (bitAgree_wellDenotedTy (bitAgree_quotA ψ) ρ).mpr
+      (WellDenotedTy_bconst_type V .quot [ψ uN] ρ)
   · intro ψ ta h ρ
     rw [denoteMeta_quotA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
@@ -235,8 +235,8 @@ theorem extendQuotMk (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedV (bitAgree_quotMkA ψ) ρ).mpr
-      (WellDenotedV_bconst_type V .quotMk [ψ uN] ρ)
+    exact (bitAgree_wellDenotedTy (bitAgree_quotMkA ψ) ρ).mpr
+      (WellDenotedTy_bconst_type V .quotMk [ψ uN] ρ)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
@@ -795,8 +795,8 @@ theorem extendQuotInd (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedV (bitAgree_quotIndA ψ) ρ).mpr
-      (WellDenotedV_bconst_type V .quotInd [ψ uN] ρ)
+    exact (bitAgree_wellDenotedTy (bitAgree_quotIndA ψ) ρ).mpr
+      (WellDenotedTy_bconst_type V .quotInd [ψ uN] ρ)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm

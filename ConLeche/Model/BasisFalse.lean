@@ -95,7 +95,7 @@ theorem extendFalse (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [denoteMeta_falseA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact WellDenotedV_bconst_type V .empty [0] ρ
+    exact WellDenotedTy_bconst_type V .empty [0] ρ
   · intro ψ ta h ρ
     rw [denoteMeta_falseA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
@@ -198,8 +198,8 @@ theorem extendFalseRec (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedV (bitAgree_falseRecA ψ) ρ).mpr
-      (WellDenotedV_bconst_type V .emptyRec [0, ψ uN] ρ)
+    exact (bitAgree_wellDenotedTy (bitAgree_falseRecA ψ) ρ).mpr
+      (WellDenotedTy_bconst_type V .emptyRec [0, ψ uN] ρ)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm

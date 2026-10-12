@@ -26,7 +26,7 @@ here from the environment invariant alone:
 * head memberships from `mem_type` at the **pinned** operation types
   (`natOpTyPinned`), whose `denoteMeta` readings compute to two-step
   `.pi` spines over the `Nat` leaf;
-* fibre facts at *unknown* regime bits from `type_wellDenotedV`'s
+* fibre facts at *unknown* regime bits from `type_wellDenotedTy`'s
   `AnnotValid` — `app_mem_piR`'s `hB0` premise is exactly the
   validity `pi` clause, so **no bit positivity is ever needed**
   (the doctrine holds: bits are never taken from a metatheorem, and
@@ -542,7 +542,7 @@ theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 /-! ## Head packages from the environment invariant
 
 A stored operation with a pinned type gets its head package from
-`mem_type` (the leaf inhabits its type's reading) and `type_wellDenotedV` (the
+`mem_type` (the leaf inhabits its type's reading) and `type_wellDenotedTy` (the
 reading is graded — which is where the fibre facts at the unknown
 regime bits come from). -/
 

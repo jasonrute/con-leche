@@ -206,7 +206,7 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
                 acval_wellDenoted := mp.base2.acval_wellDenoted }
             acval_validV := mp.acval_validV
             type_reads := ?_
-            type_wellDenotedV := ?_
+            type_wellDenotedTy := ?_
             mem_type := ?_
             defn_reads := ?_
             nat_heads := ?_
@@ -232,11 +232,11 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     obtain ⟨c₀, hc₀, hcv, -⟩ := hmemcorr c hc
     obtain ⟨ta, hta⟩ := mp.type_reads c₀ hc₀ ψ
     exact ⟨ta, by rw [← hde, ← hcv]; exact hta⟩
-  · -- `type_wellDenotedV`
+  · -- `type_wellDenotedTy`
     intro c hc ψ ta hta ρ
     obtain ⟨c₀, hc₀, hcv, -⟩ := hmemcorr c hc
     rw [← hde, ← hcv] at hta
-    exact mp.type_wellDenotedV c₀ hc₀ ψ ta hta ρ
+    exact mp.type_wellDenotedTy c₀ hc₀ ψ ta hta ρ
   · -- `mem_type`: the swap touches recursors only, so the tower
     -- exclusion carries over
     intro c hc ψ ta hta ρ

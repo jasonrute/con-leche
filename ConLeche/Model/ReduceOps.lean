@@ -355,7 +355,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       hsat 0 (elemA mp.base2 cv.name ψ) rfl
     rwa [acval_interp_closed mp.base2 _ ψ _ ρ'] at h
   -- the gradings: the bare variable is free, the applied side is the
-  -- constant's own `mem_type`/`type_wellDenotedV` content
+  -- constant's own `mem_type`/`type_wellDenotedTy` content
   have hgradeCert : ∀ ρ' : Nat → V, Sat V (elemCtx mp.base2 cv.name ψ) ρ' →
       WellDenotedV V ρ' (.bvar 0) := by
     intro ρ' _

@@ -120,7 +120,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [denoteMeta_emptyA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact WellDenotedV_bconst_type V .empty [1] ρ
+    exact WellDenotedTy_bconst_type V .empty [1] ρ
   · intro ψ ta h ρ
     rw [denoteMeta_emptyA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
@@ -251,8 +251,8 @@ theorem extendEmptyRec (mp : EnvModelM V μ env)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm
-    exact (bitAgree_wellDenotedV (bitAgree_emptyRecA ψ) ρ).mpr
-      (WellDenotedV_bconst_type V .emptyRec [1, ψ uN] ρ)
+    exact (bitAgree_wellDenotedTy (bitAgree_emptyRecA ψ) ρ).mpr
+      (WellDenotedTy_bconst_type V .emptyRec [1, ψ uN] ρ)
   · intro ψ ta h ρ
     rw [hty ψ] at h
     obtain rfl := (Option.some.inj h).symm

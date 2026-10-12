@@ -346,8 +346,8 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
     rw [← keyFrame_eq_substE hdl] <;>
   · -- the member's closed type, graded at every frame, past the parameters
     have hmem := ConLeche.Semantics.Env.find?_mem hf
-    have hwd := mp.type_wellDenotedV _ hmem ψ _ hread
-      (fun j => ρ (j + hi))
+    have hwd := (mp.type_wellDenotedTy _ hmem ψ _ hread
+      (fun j => ρ (j + hi))).1
     have hsP := h.parsSat mm hmm ψ _ hs
     have hfit : SpineFit (fun j => ρ (j + hi)) ((abF.take ds.length).map (·.2.2))
         (dsa.map (interp V ρ)) := by
