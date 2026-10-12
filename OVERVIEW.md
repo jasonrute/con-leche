@@ -664,13 +664,17 @@ the same way: two arguments of equal heads lie in one domain, a type,
 so they are both the point or neither is. ι reads the point the same
 way. A redex's spine is certified against the recursor's type, so the
 major lies in the major's domain, an instance of the family. Where the
-family is never `Prop` at the constructor's levels, that instance holds
+family is never `Prop` at the recursor's levels, that instance holds
 no point, so the major is not the point; its reduction is then an
 equation, and the constructor application, which is not the point
-either, fits its own type. A K-like recursor's value is the minor
-premise for any major in the domain, which the environment's law states.
-Where the family may be `Prop`, the checker certifies the constructor's
-spine and compares its parameters and indices; where the major is the
+either, fits its own type. Above `Prop` an injection reads neither the
+family's levels nor its parameters, so the major's membership in the
+domain makes the application one of the constructor at the recursor's
+levels and parameters, with the same fields; nothing is compared, as in
+Lean's kernel. A K-like recursor's value is the minor premise for any
+major in the domain, which the environment's law states. Where the
+family may be `Prop`, the checker certifies the constructor's spine and
+compares its levels, parameters and indices; where the major is the
 point, the constructor application is the point too. The comparisons the
 ι step ran become equations because both sides fit one telescope of
 types. All of this is stated as environment laws the installer proves
@@ -1252,7 +1256,7 @@ listed here carries meaning**.
 | `I` | the variant that also handles an inductive family's index arguments (`checkStructFieldSortsI`) |
 | `F` | stated over `FEnv`, the environment together with its lookup index (`natLitSupportedF`) |
 | `D` | the direct parse and the functions over its output (`parseExportD`, `trusted_agrees_skels_D`) |
-| `AV`, `Annot` | the interpretation's syntax: `ITerm`, and `*AV` names are its spellings (`sumTyAV`, `natLitAV`) |
+| `AV` | the interpretation's syntax, `ITerm`: `*AV` names are its spellings (`sumTyAV`, `natLitAV`) |
 | `WF` | well-formedness (`EnvWF`, `BlockWF`) |
 | `_pure` / `_cached` / `_checked` | the final theorems over the pure fueled fold, over the cached fold `checkDecls`, and over the driver's fully checked environment (`no_proof_of_False_pure`, `no_proof_of_False_cached`, `no_proof_of_False_checked`) |
 
@@ -1357,7 +1361,7 @@ types.
 | `recInfo` | `majorIdx`, `rulePrefix` | sums of `RecursorVal.numParams`, `numMotives`, `numMinors`, `numIndices` |
 | `RecRule` | `ctorParams` | the constructor's `numParams` |
 | `RecRule` | `k`, `eta` | the recursor's K flag and its family's structure η, per rule |
-| `RecRule` | `fire` | `.plain` for a recursor whose major premise is a member of its own block; for an auxiliary recursor of a nested block, `.nested lvls pins`, the container's level and parameter instantiation read off the recursor type's major-premise domain |
+| `RecRule` | `fire` | `.plain` for a recursor whose major premise is a member of its own block; for an auxiliary recursor of a nested block, `.nested lvls pins`, the container's level and parameter instantiation that the installer generated the recursor's major premise at, its parameters closed over the rule prefix |
 
 **Synthetic constants.** For each structure `T` the installer stores one
 projection table (`projInfo`, a `ProjTable`) under the reserved name
