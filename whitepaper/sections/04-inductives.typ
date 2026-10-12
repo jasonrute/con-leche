@@ -744,6 +744,9 @@ read by its values: there is nothing to construct.
 
 === The $iota$ rule <sec:iota>
 
+// PORT: `Rel.lean`'s ι rule and `IotaSound.lean` on master certify the
+// recursor's spine; the ported rules follow @sec:iota-cases. Re-cite.
+
 The
 #src("whitepaper/Fragment/Rules.lean", 95, 174)[rule fires] on $r.\{arrow(ell)\} thick arrow(a) thick t$ where $r$ is a stored
 recursor, $arrow(a)$ are its parameters, motive, minors and indices,

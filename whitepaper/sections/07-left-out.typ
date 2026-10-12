@@ -81,6 +81,8 @@ and #src("ConLeche/Kernel/Inductives/BlockInstall.lean", 67, 80)[recorded
 with it], the two laws are established there, and @sec:ext-eta and @sec:ext-unit derive
 them from extensionality.]
 
+// PORT: master certifies the fabricated `And.intro`; the ported checker
+// does not (case-3 analysis); re-read after the port.
 #left-out[The `And` rescue][A concession to the fact that this checker
 never unfolds a theorem, unlike the official kernel, which still does: at a
 stuck proof `h` of `A ∧ B` — which older elaborators emit for a case

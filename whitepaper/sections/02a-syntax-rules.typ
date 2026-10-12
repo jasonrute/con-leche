@@ -72,6 +72,10 @@ $u eq.dot v$ for "the oracle says $u = v$".
 
 == The three relations <sec:rules>
 
+// PORT: the `ConLeche/Rules/Rel.lean` citations of this section point at
+// master's relation, whose β, λ, ∀ and η rules change with the port;
+// repoint them (and re-read the citing sentences) once it lands.
+
 The checker is described by three relations over terms, defined
 together by inference rules: _reduction_ $Gamma tack e red e'$,
 _definitional equality_ $Gamma tack a equiv b$, and _inference_
