@@ -109,7 +109,7 @@ variable (D : LfpDatum V)
 /-- **Member `m`'s hole term** (`holeTmAV` at the member's index
 telescope). -/
 @[expose] def holeTm (ψ : Name → Nat) (m : Nat) : AnnotTerm :=
-  holeTmAV (D.u m ψ) (D.isorts m ψ) m (D.ids m ψ)
+  holeTmAV (D.u m ψ) m (D.ids m ψ)
 
 /-- **The hole chains**: every constructor's fields with holes and result
 index readings, substituted by the hole terms. -/
@@ -133,7 +133,7 @@ variable {D}
 components: the λ-tower over the member's index telescope of `Y`'s
 component at the index tuple. -/
 theorem interp_holeTm {ψ : Name → Nat} {ρp : Nat → V} {m : Nat}
-    (hbd : D.u m ψ ≠ 0 → FieldsSorts (D.u m ψ) (D.isorts m ψ) ρp (D.ids m ψ)) (t Y : V) :
+    (hbd : D.u m ψ ≠ 0 → FieldsBound (D.u m ψ) ρp (D.ids m ψ)) (t Y : V) :
     interp V (cons t (cons Y ρp)) (D.holeTm ψ m)
       = holeFam ρp (D.ids m ψ) fun is => app (projS m Y) (tupW (D.u m ψ) is) := by
   have hsh : shiftE 2 0 (cons t (cons Y ρp)) = ρp := by
@@ -147,9 +147,9 @@ theorem interp_holeTm {ψ : Name → Nat} {ρp : Nat → V} {m : Nat}
     rwa [hlenI] at this
   have his' : SpineFit (cons t (cons Y ρp)) (liftFields 2 0 (D.ids m ψ)) is := by
     rw [spineFit_liftFields, hsh]; exact his
-  have hbd' : D.u m ψ ≠ 0 → FieldsSorts (D.u m ψ) (D.isorts m ψ) (cons t (cons Y ρp))
+  have hbd' : D.u m ψ ≠ 0 → FieldsBound (D.u m ψ) (cons t (cons Y ρp))
       (liftFields 2 0 (D.ids m ψ)) := fun hu => by
-    rw [FieldsSorts_liftFields, hsh]; exact hbd hu
+    rw [fieldsBound_liftFields, hsh]; exact hbd hu
   have htv := mkTowerGo_interp hbd' his'
   rw [interp_app, projAV_interp, interp_bvar, hY', htv]
   rfl
@@ -165,7 +165,7 @@ theorem holeTmFrame_eq {ψ : Name → Nat} {ρp : Nat → V} (t Y : V) :
 `Y`'s components. -/
 theorem holeTmFrame_frame {ψ : Name → Nat} {ρp : Nat → V} {X : Nat → V} {t Y : V}
     (hXY : ∀ m, m < D.k → X m = projS m Y)
-    (hbd : ∀ m, m < D.k → D.u m ψ ≠ 0 → FieldsSorts (D.u m ψ) (D.isorts m ψ) ρp (D.ids m ψ)) :
+    (hbd : ∀ m, m < D.k → D.u m ψ ≠ 0 → FieldsBound (D.u m ψ) ρp (D.ids m ψ)) :
     D.holeTmFrame ψ ρp t Y = D.frame ψ ρp X := by
   rw [holeTmFrame_eq]
   unfold frame
@@ -178,9 +178,9 @@ theorem holeTmFrame_frame {ψ : Name → Nat} {ρp : Nat → V} {X : Nat → V} 
   rw [hXY m hm']
 
 /-- The per-member facts the hole terms need at a parameter frame: each
-member's index telescope is sorted. -/
+member's index telescope is bounded. -/
 @[expose] def HoleTmOk (D : LfpDatum V) (ψ : Name → Nat) (ρp : Nat → V) : Prop :=
-  ∀ m, m < D.k → D.u m ψ ≠ 0 → FieldsSorts (D.u m ψ) (D.isorts m ψ) ρp (D.ids m ψ)
+  ∀ m, m < D.k → D.u m ψ ≠ 0 → FieldsBound (D.u m ψ) ρp (D.ids m ψ)
 
 /-- **The hole operator's fibre is the hole fit** (see the module
 docstring): at an index tuple of the component, the injections of the
@@ -233,8 +233,7 @@ theorem holeOp_fibre {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ 
 readings are graded at the model's hole frame of every tuple of the
 tuple space. -/
 theorem holeChains_ok {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ ρp) (hkN : D.k ≤ D.N)
-    (hIall : BlockIdxOk (V := V) D.N (fun c => D.u c ψ) (fun c => D.isorts c ψ) ρp
-      (fun c => D.ids c ψ))
+    (hIall : BlockIdxOk (V := V) D.N (fun c => D.u c ψ) ρp (fun c => D.ids c ψ))
     (hres : ∀ c, c < D.N → ∀ j, j < D.nctors c → (D.resIdx ψ c j).length = (D.ids c ψ).length)
     (hF : ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
       FieldsOkB (D.w ψ) (D.frame ψ ρp X) (D.fields ψ c j) ∧
@@ -281,51 +280,6 @@ theorem holeChains_ok {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ
     have hlen : bs.length = (D.fields ψ m j).length := hbs'.length_eq
     exact holeEqsAV_ok (hIall m hm) ht hH hlen
       (fun e he => by rw [hag]; exact hEok bs hbs' e he) (hres m hm j hj')
-
-/-- **The hole chains' sorts**, at the fields' own sorts `fs` (per
-component and constructor): each chain's entries at theirs, its index
-equation — a truth value — at `0` (task #342 L2b). -/
-@[expose] def holeChainSorts (D : LfpDatum V) (fs : Nat → Nat → List Nat) :
-    Nat → List (List Nat) :=
-  fun c => (List.range (D.nctors c)).map fun j => fs c j ++ [0]
-
-/-- **The hole chains are sorted** at every tuple of the family space,
-when the fields with holes are sorted at the model's hole frame of every
-tuple of the tuple space. -/
-theorem holeChains_sorts {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ ρp)
-    {fs : Nat → Nat → List Nat}
-    (hF : ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
-      D.w ψ ≠ 0 → FieldsSorts (D.w ψ) (fs c j) (D.frame ψ ρp X) (D.fields ψ c j)) :
-    BlockChainsSortsG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ)
-      (D.holeChainSorts fs) (D.holeChains ψ) := by
-  intro Y hY m hm t _ hw i Fs hFs
-  have hX : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) (fun c => projS c Y) := fun c hc => by
-    rw [← lfpFamSpace_eq']; exact projS_mem_famsSpaceB hc hY
-  have hag : substE V (holeTau D.k (D.holeTm ψ)) 0 (cons t (cons Y ρp))
-      = D.frame ψ ρp fun c => projS c Y :=
-    holeTmFrame_frame (fun _ _ => rfl) hok
-  unfold holeChains holeChs termChs at hFs
-  simp only [List.length_map, List.length_range] at hFs
-  rw [List.getElem?_map] at hFs
-  obtain ⟨j, hj, rfl⟩ := Option.map_eq_some_iff.mp hFs
-  have hi : i < D.nctors m := by
-    have := (List.getElem?_eq_some_iff.mp hj).1; simpa using this
-  rw [List.getElem?_range hi] at hj
-  obtain rfl := Option.some.inj hj
-  have hgF : (((List.range (D.nctors m)).map (D.fields ψ m)).map
-      (holeEntsAV D.k (D.holeTm ψ) 0)).getD i [] = holeEntsAV D.k (D.holeTm ψ) 0 (D.fields ψ m i) := by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_map, List.getElem?_range hi]
-    rfl
-  have hgS : (D.holeChainSorts fs m).getD i [] = fs m i ++ [0] := by
-    unfold holeChainSorts
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hi]
-    rfl
-  rw [hgF, hgS]
-  refine FieldsSorts_append_idxEq ?_
-  have := (FieldsSorts_holeEntsAV (w := D.w ψ) (k := D.k) (H := D.holeTm ψ)
-    (σ := cons t (cons Y ρp)) (fs m i) (D.fields ψ m i) []).mpr
-    (by simp only [consList_nil]; rw [hag]; exact hF _ hX m hm i hi hw)
-  simpa using this
 
 end LfpDatum
 

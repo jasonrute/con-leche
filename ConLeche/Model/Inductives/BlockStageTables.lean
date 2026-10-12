@@ -131,9 +131,8 @@ not an arbitrary term's. -/
       (∀ ψ, denoteMeta m'.acval env ψ 0 cA.1.type
         = some (mkPisAV (d.dsF c j ψ)
             (AnnotTerm.mkAppN (A c ψ) (paramBvars d.nP cA.2 ++ d.esF c j ψ)))) ∧
-      (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) j (d.dsF c j ψ) ((d.ussM c ψ).getD j [])
-        (((d.dsF c j ψ).drop d.nP).map (·.2.2)) (uSorts (d.ussM c ψ) (d.Fss c ψ))
-        (uChains (d.Fss c ψ)))) ∧
+      (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) j (d.dsF c j ψ)
+        (((d.dsF c j ψ).drop d.nP).map (·.2.2)) (uChains (d.Fss c ψ)))) ∧
   -- the members the tables' loop will still treat: their projection
   -- slots are free (a member with no table of its own is never asked)
   ∀ c, nc ≤ c → c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
@@ -343,9 +342,8 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
       rw [← hTn']; exact hcore.2.2 i (Nat.le_refl _) hik ⟨cA, hctorsEq⟩ hnIdx0
     obtain ⟨tbl, mp', henv, hstructN, hfreshT, hac⟩ :=
       stageFixTable (pps := d.ppsM i) (ds := d.dsF i 0) (Es := d.esF i 0)
-        (L := fun ψ => blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.isM c ψ)
-          (fun c => d.IdsM c ψ) (d.holeSorts ψ) (d.toLfp.holeChains ψ) (d.ppsM i ψ) i)
-        (usF := fun ψ => (d.ussM i ψ).getD 0 [])
+        (L := fun ψ => blockTyG d.k (d.w ψ) (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
+          (d.toLfp.holeChains ψ) (d.ppsM i ψ) i)
         mp hT hfT
         (hS.etaData i cA hik hctorsEq) (hS.lpsT i cvTb hik hcvTb) hfC hlpsC
         (hS.stripC i cA hik hctorsEq) hS.propFlag
@@ -366,7 +364,6 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
         (hS.leqF i cA hik hctorsEq)
         (fun ψ => by rw [hleafT ψ, hS.leaf i ψ])
         (fun ψ => by rw [hleafC ψ, hFss1 ψ]; rfl)
-        (fun ψ ρ hρ hw => hS.fieldSorts i hik 0 cA hcA0 ψ ρ hρ hw)
         (fun _ => ⟨_, rfl⟩)
         (fun ψ ρ ts hsp => by
           have hf := hS.foldT i cA hik hctorsEq hnIdx0 ψ ρ ts hsp

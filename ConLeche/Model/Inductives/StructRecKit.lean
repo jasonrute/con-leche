@@ -49,12 +49,12 @@ variable {V : Type uv} [SetTheory V]
 /-- The carrier body (graph regime) is bit-valid (no `pi` nodes;
 hereditary). -/
 theorem towerBodyAVPos_validV {w : Nat} :
-    ∀ {us : List Nat} {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsValid ρ Fs →
-      AnnotValid V ρ (towerBodyAVPos w us Fs)
-  | _, [], _, _ => trivial
-  | us, F :: Fs, ρ, hv => by
-    show AnnotValid V ρ (.app (.app (.const .psigma [us.headD w, w]) F)
-      (.lam (w + 1) F (towerBodyAVPos w us.tail Fs)))
+    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsValid ρ Fs →
+      AnnotValid V ρ (towerBodyAVPos w Fs)
+  | [], _, _ => trivial
+  | F :: Fs, ρ, hv => by
+    show AnnotValid V ρ (.app (.app (.const .psigma [w, w]) F)
+      (.lam (w + 1) F (towerBodyAVPos w Fs)))
     rw [AnnotValid_app]
     refine ⟨?_, ?_⟩
     · rw [AnnotValid_app]
@@ -82,8 +82,8 @@ theorem sqBodyAV_validV :
     · rw [← univ_zero]; exact empty_mem_univ 0
 
 /-- The carrier body is bit-valid, both regimes. -/
-theorem towerBodyAV_validV {w : Nat} {us : List Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
-    (hv : FieldsValid ρ Fs) : AnnotValid V ρ (towerBodyAV w us Fs) := by
+theorem towerBodyAV_validV {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
+    (hv : FieldsValid ρ Fs) : AnnotValid V ρ (towerBodyAV w Fs) := by
   by_cases hw : w = 0
   · subst hw; rw [towerBodyAV_zero]; exact sqBodyAV_validV hv
   · rw [towerBodyAV_pos hw]; exact towerBodyAVPos_validV hv
@@ -104,13 +104,13 @@ theorem mkAppN_validV :
 walk that crosses the λ-frame lifts (`AnnotValid_liftN` +
 `shiftE_consList`). -/
 theorem mkTowerGoPos_validV {w : Nat} (hw : w ≠ 0) :
-    ∀ {us : List Nat} {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
-      FieldsValid ρp Fs → SpineFit ρp Fs bs →
-      AnnotValid V (consList bs ρp) (mkTowerGoPos w us Fs)
-  | _, [], _, [], _, _ => trivial
-  | _, [], _, _ :: _, _, hsp => hsp.elim
-  | _, _ :: _, _, [], _, hsp => hsp.elim
-  | us, F :: Fs, ρp, b :: bs, hv, hsp => by
+    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
+      FieldsValid ρp Fs → FieldsBound w ρp Fs → SpineFit ρp Fs bs →
+      AnnotValid V (consList bs ρp) (mkTowerGoPos w Fs)
+  | [], _, [], _, _, _ => trivial
+  | [], _, _ :: _, _, _, hsp => hsp.elim
+  | _ :: _, _, [], _, _, hsp => hsp.elim
+  | F :: Fs, ρp, b :: bs, hv, hb, hsp => by
     have hlen : bs.length = Fs.length := hsp.2.length_eq
     have hshift : shiftE (Fs.length + 1) 0 (consList bs (cons b ρp)) = ρp := by
       rw [← hlen,
@@ -121,14 +121,14 @@ theorem mkTowerGoPos_validV {w : Nat} (hw : w ≠ 0) :
         = interp V ρp F := by
       rw [interp_liftN, hshift]
     show AnnotValid V (consList bs (cons b ρp))
-      (.app (.app (.app (.app (.const .psigmaMk [us.headD w, w])
+      (.app (.app (.app (.app (.const .psigmaMk [w, w])
           (F.liftN (Fs.length + 1)))
           (.lam (w + 1) (F.liftN (Fs.length + 1))
-            ((towerBodyAV w us.tail Fs).liftN (Fs.length + 1) 1)))
+            ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
-        (mkTowerGoPos w us.tail Fs))
+        (mkTowerGoPos w Fs))
     rw [AnnotValid_app]
-    refine ⟨?_, mkTowerGoPos_validV hw (hv.2 b hsp.1) hsp.2⟩
+    refine ⟨?_, mkTowerGoPos_validV hw (hv.2 b hsp.1) (hb.2 b hsp.1) hsp.2⟩
     rw [AnnotValid_app]
     refine ⟨?_, by rw [AnnotValid_bvar]; trivial⟩
     rw [AnnotValid_app]
@@ -146,12 +146,13 @@ theorem mkTowerGoPos_validV {w : Nat} (hw : w ≠ 0) :
 
 /-- The constructor tupler is bit-valid at a fitting frame, both
 regimes. -/
-theorem mkTowerGo_validV {w : Nat} {us : List Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
-    {bs : List V} (hv : FieldsValid ρp Fs) (hsp : SpineFit ρp Fs bs) :
-    AnnotValid V (consList bs ρp) (mkTowerGo w us Fs) := by
+theorem mkTowerGo_validV {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
+    {bs : List V} (hv : FieldsValid ρp Fs)
+    (hb : w ≠ 0 → FieldsBound w ρp Fs) (hsp : SpineFit ρp Fs bs) :
+    AnnotValid V (consList bs ρp) (mkTowerGo w Fs) := by
   by_cases hw : w = 0
   · subst hw; rw [mkTowerGo_zero]; trivial
-  · rw [mkTowerGo_pos hw]; exact mkTowerGoPos_validV hw hv hsp
+  · rw [mkTowerGo_pos hw]; exact mkTowerGoPos_validV hw hv (hb hw) hsp
 
 /-- The single hereditary validity premise of a `mkLamsC` leaf. -/
 @[expose] def UnderTowerValid (ρ : Nat → V) (b : AnnotTerm) :
@@ -335,47 +336,6 @@ theorem fieldsBound_of_frame {Γ : List AnnotTerm} {k nP nF w : Nat}
     rw [hG, show k - (nP + j) - 1 + 1 = k - (nP + j) from by omega]
     exact Sat_cons V hρ ha
 
-
-/-- The field chain's own sorts (task #342 L2b), walked like its grading:
-the sorts `us` (one per field), each at most `w` and holding its field's
-reading. -/
-theorem fieldsSorts_of_frame {Γ : List AnnotTerm} {k nP nF w : Nat} {us : List Nat}
-    (hk : k = nP + nF) (hΓ : Γ.length = k) (hus : us.length = nF)
-    (hbnd : ∀ j, j < nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
-      us.getD j 0 ≤ w ∧
-      interp V ρ (Γ.getD (k - 1 - (nP + j)) default) ∈ˢ (univ (us.getD j 0) : V)) :
-    ∀ (j : Nat), j ≤ nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
-      FieldsSorts w (us.drop j) ρ (fieldsFrom Γ k nP nF j) := by
-  suffices ∀ (m j : Nat), nF - j = m → j ≤ nF → ∀ ρ : Nat → V,
-      Sat V (Γ.drop (k - (nP + j))) ρ →
-      FieldsSorts w (us.drop j) ρ (fieldsFrom Γ k nP nF j) from
-    fun j => this (nF - j) j rfl
-  intro m
-  induction m with
-  | zero =>
-    intro j hm hj ρ hρ
-    have hjn : j = nF := by omega
-    subst hjn
-    simp only [fieldsFrom, Nat.sub_self, List.range_zero, List.map_nil]
-    rw [List.drop_eq_nil_of_le (by omega)]
-    trivial
-  | succ m ih =>
-    intro j hm hj ρ hρ
-    have hlt : j < nF := by omega
-    rw [fieldsFrom_succ hlt, List.drop_eq_getElem_cons (by omega)]
-    have hgu : us[j]'(by omega) = us.getD j 0 := by
-      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-    rw [hgu]
-    refine ⟨(hbnd j hlt ρ hρ).1, (hbnd j hlt ρ hρ).2, fun a ha => ?_⟩
-    refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
-    rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
-      List.drop_eq_getElem_cons (l := Γ) (i := k - (nP + j) - 1) (by omega)]
-    have hG : Γ[k - (nP + j) - 1]'(by omega) = Γ.getD (k - 1 - (nP + j)) default := by
-      rw [List.getD, List.getElem?_eq_getElem (by omega)]
-      simp only [Option.getD_some]
-      congr 1; omega
-    rw [hG, show k - (nP + j) - 1 + 1 = k - (nP + j) from by omega]
-    exact Sat_cons V hρ ha
 
 /-! ## Spines under a consed frame, and fits across equivalent contexts -/
 

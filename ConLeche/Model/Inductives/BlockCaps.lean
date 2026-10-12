@@ -110,7 +110,7 @@ vacuous. -/
 theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
     {p₁ : BlockShape} {mi : Nat} {isRec : Bool} {T : Name} {cvTa : ConstantVal}
     {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
-    {L : (Name → Nat) → AnnotTerm} {usC : (Name → Nat) → List Nat}
+    {L : (Name → Nat) → AnnotTerm}
     (hfr : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = false →
       (ConLeche.blockCapsAt p₁ mi isRec).eta = true →
       env'.find? (projFnName T 0) = none)
@@ -127,14 +127,13 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
           = sumSet (w ψ) (sumFibre (w ψ) (consList ts ρ) [[] ++ [idxEqAV []]]))
     (hleafC : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true →
       ∀ ψ, m'.acval (ConLeche.blockCapsAt p₁ mi isRec).etaCtor ψ
-        = sumMkAV (w ψ) 0 (ds ψ) (usC ψ) [] [usC ψ ++ [0]] (uChains [[]]))
-    (hus : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true → ∀ ψ, usC ψ = [])
+        = sumMkAV (w ψ) 0 (ds ψ) [] (uChains [[]]))
     (hfit : ∀ (ψ : Name → Nat) (ρ : Nat → V) (as : List V),
       SpineFit ρ ((pps ψ).map (·.2.2)) as → SpineFit ρ ((ds ψ).map (·.2.2)) as) :
     CapsLawsAt m' T cvTa (ConLeche.blockCapsAt p₁ mi isRec) := by
   by_cases hu : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true
   · obtain ⟨hz, hpE, hpU⟩ := blockCapsAt_unitlike hu
-    exact ⟨fun _ _ _ => fibreEtaLaw0 hz hleaf (hfoldZ hu) (hleafC hu) (hus hu) hread hokTy hfit
+    exact ⟨fun _ _ _ => fibreEtaLaw0 hz hleaf (hfoldZ hu) (hleafC hu) hread hokTy hfit
         (fun ψ => by rw [hpE]; exact hpar ψ),
       fun _ _ => fibreUnitLaw hleaf (hfoldZ hu) hread hokTy
         (fun ψ => by rw [hpU]; exact hpar ψ)⟩

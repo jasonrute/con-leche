@@ -541,12 +541,12 @@ which holds in both regimes, is used there only for monotonicity.
   (the recursive field). Assembled along the fields, that is
   #src("ConLeche/Model/Inductives/BlockAccRunCont.lean", 316, 321)[the fit's accessibility, in both regimes, with a bound in the universe in the type-valued one]
   (#src("ConLeche/SetModel/Access.lean", 56, 63)[the notion above]), and
-  #src("ConLeche/Model/Annot/BlockLfp.lean", 457, 461)[the operator's monotonicity] follows from it, as in the fragment.
+  #src("ConLeche/Model/Annot/BlockLfp.lean", 454, 458)[the operator's monotonicity] follows from it, as in the fragment.
   The fragment's simplification is to take the field kinds from the
   specification instead of the run. The universe bound on the fields the real proof records
   from a check made for the proof alone, the constructor type-checked
   with the holes in context
-  (#src("ConLeche/Model/Annot/BlockLfp.lean", 397, 403)[the recorded bound]);
+  (#src("ConLeche/Model/Annot/BlockLfp.lean", 394, 400)[the recorded bound]);
   the fragment reads it off the constructor's ordinary typing.
 ]
 
@@ -642,16 +642,16 @@ every constructor denotes the point.
   graph over an index set. What the model records of an installed
   block is one clause: the operator maps the universe to itself and
   its fit is accessible, in both regimes
-  (#src("ConLeche/Model/Annot/BlockLfp.lean", 341, 348)[the operator]),
+  (#src("ConLeche/Model/Annot/BlockLfp.lean", 338, 345)[the operator]),
   so it has a closed family
   (#src("ConLeche/SetModel/Access.lean", 298, 303)[the constant family at a proposition, and from accessibility in the type-valued regime])
   and is
-  #src("ConLeche/Model/Annot/BlockLfp.lean", 457, 461)[monotone];
+  #src("ConLeche/Model/Annot/BlockLfp.lean", 454, 458)[monotone];
   its fibres are the tagged tuples of fitting fields
-  (#src("ConLeche/Model/Annot/BlockLfp.lean", 349, 354)[the fibres]),
+  (#src("ConLeche/Model/Annot/BlockLfp.lean", 346, 351)[the fibres]),
   and the type former denotes
-  #src("ConLeche/Model/Annot/BlockLfp.lean", 182, 184)[the least fixed point]
-  (#src("ConLeche/Model/Annot/BlockLfp.lean", 463, 466)[the fixed-point equation]).
+  #src("ConLeche/Model/Annot/BlockLfp.lean", 179, 181)[the least fixed point]
+  (#src("ConLeche/Model/Annot/BlockLfp.lean", 460, 463)[the fixed-point equation]).
   Its constructors are
   #src("ConLeche/SetModel/TaggedSum.lean", 65)[tagged pairs] of
   #src("ConLeche/SetModel/TupleTower.lean", 93)[nested pairs], the

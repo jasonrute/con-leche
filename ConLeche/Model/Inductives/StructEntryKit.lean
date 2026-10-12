@@ -173,52 +173,44 @@ theorem wellDenoted_projAV_pt :
     · rw [interp_snd, hpt, ssnd_pt]
 
 /-- At a tower member in the graph regime the projection spelling is
-graded: each pair step's Σ package is the tower's own level, its first
-component read at the field's own sort `uᵢ` (task #342 L2b), with the
+graded: each pair step's Σ package is the tower's own level, with the
 tail in the fibre (`ssnd_mem_gen`). -/
 theorem wellDenoted_projAV_tower {w : Nat} :
-    ∀ {i : Nat} {us : List Nat} {Fs : List AnnotTerm} {ρ' : Nat → V} {x : V} {e : AnnotTerm}
-      {ρ : Nat → V},
-      FieldsSorts w us ρ' Fs → x ∈ˢ towerSet w (teleOfFields ρ' Fs) →
+    ∀ {i : Nat} {Fs : List AnnotTerm} {ρ' : Nat → V} {x : V} {e : AnnotTerm} {ρ : Nat → V},
+      FieldsBound w ρ' Fs → x ∈ˢ towerSet w (teleOfFields ρ' Fs) →
       WellDenoted V ρ e → interp V ρ e = x → i < Fs.length →
       WellDenoted V ρ (projAV i e) := by
   intro i
   induction i with
   | zero =>
-    intro us Fs ρ' x e ρ hs hx hok hval hi
-    match us, Fs, hs, hx, hi with
-    | _, [], _, _, hi => exact absurd hi (Nat.not_lt_zero _)
-    | [], _ :: _, hs, _, _ => exact hs.elim
-    | u :: us', F :: Fs', hs, hx, _ =>
-      have hb : FieldsBound w ρ' (F :: Fs') := hs.toBound
+    intro Fs ρ' x e ρ hb hx hok hval hi
+    match Fs, hb, hx, hi with
+    | F :: Fs', hb, hx, _ =>
       show WellDenoted V ρ (.fst e)
       rw [WellDenoted_fst]
-      refine ⟨hok, u, w, interp V ρ' F,
-        fun a => towerSet w (teleOfFields (cons a ρ') Fs'), ?_, hs.2.1,
+      refine ⟨hok, w, w, interp V ρ' F,
+        fun a => towerSet w (teleOfFields (cons a ρ') Fs'), ?_, hb.1,
         fun a ha => towerSet_univ_teleOfFields (hb.2 a ha)⟩
-      rw [hval, natMax_eq_right hs.1]
+      rw [hval, nat_max_self]
       exact hx
   | succ i ih =>
-    intro us Fs ρ' x e ρ hs hx hok hval hi
-    match us, Fs, hs, hx, hi with
-    | _, [], _, _, hi => exact absurd hi (Nat.not_lt_zero _)
-    | [], _ :: _, hs, _, _ => exact hs.elim
-    | u :: us', F :: Fs', hs, hx, hi =>
-      have hb : FieldsBound w ρ' (F :: Fs') := hs.toBound
+    intro Fs ρ' x e ρ hb hx hok hval hi
+    match Fs, hb, hx, hi with
+    | F :: Fs', hb, hx, hi =>
       show WellDenoted V ρ (projAV i (.snd e))
-      have hx' : x ∈ˢ sigmaSet (Nat.max u w) (interp V ρ' F)
+      have hx' : x ∈ˢ sigmaSet (Nat.max w w) (interp V ρ' F)
           (fun a => towerSet w (teleOfFields (cons a ρ') Fs')) := by
-        rw [natMax_eq_right hs.1]; exact hx
-      have hA : interp V ρ' F ∈ˢ (univ u : V) := hs.2.1
+        rw [nat_max_self]; exact hx
+      have hA : interp V ρ' F ∈ˢ (univ w : V) := hb.1
       have hB : ∀ a, a ∈ˢ interp V ρ' F →
           towerSet w (teleOfFields (cons a ρ') Fs') ∈ˢ (univ w : V) :=
         fun a ha => towerSet_univ_teleOfFields (hb.2 a ha)
       have hfst := sfst_mem_gen V hA hx'
       have hsnd := ssnd_mem_gen V hA hB hx'
-      refine ih (us := us') (Fs := Fs') (ρ' := cons (sfst x) ρ') (x := ssnd x) (hs.2.2 _ hfst)
-        hsnd ?_ ?_ (by simpa using hi)
+      refine ih (Fs := Fs') (ρ' := cons (sfst x) ρ') (x := ssnd x) (hb.2 _ hfst) hsnd ?_ ?_
+        (by simpa using hi)
       · rw [WellDenoted_snd]
-        refine ⟨hok, u, w, interp V ρ' F,
+        refine ⟨hok, w, w, interp V ρ' F,
           fun a => towerSet w (teleOfFields (cons a ρ') Fs'), ?_, hA, hB⟩
         rw [hval]; exact hx'
       · rw [interp_snd, hval]
