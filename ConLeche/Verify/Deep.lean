@@ -1996,8 +1996,7 @@ private theorem inferIOCore_step (henv : EnvWF env)
         (.lam (shiftFrom p ty) (shiftFrom p body) mb) =
       (inferBodyIO (pureFnsIO mode env fuel) env d (.lam ty body mb)).map
         (shiftFrom p)
-    simp only [inferBodyIO, inferIO_def,
-      ensureSortIO_def]
+    simp only [inferBodyIO, inferIO_def]
     -- task #168 stage 2: no domain-sort run at the io λ clause
     have hwo : WScoped (d + 1) (body.instantiate1 (.fvar d ty)) :=
       WScoped.instantiate1 hw.1 0 hw.2
@@ -2013,7 +2012,7 @@ private theorem inferIOCore_step (henv : EnvWF env)
     simp only [WScoped] at hw
     rw [shiftFrom_app]
     simp only [inferBodyIO, inferIO_def,
-      pureFnsIO_whnf, pureFnsIO_defeq]
+      pureFnsIO_whnf]
     refine bind_rel _ _ (ihio hpd hw.1) ?_
     intro tf htf
     refine bind_rel _ _
