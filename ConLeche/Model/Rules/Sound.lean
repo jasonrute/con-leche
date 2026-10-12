@@ -74,13 +74,13 @@ theorem red_sound (hin : RulesInputs V m φ) :
       (certs_sound hin hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
       (fun h3 hne => defEqList_sound hin (hidx h3 hne))
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
-      hb hlv' _ _ _ htp http hv hv0 =>
+      hb hlv' _ _ htp http hv hv0 =>
     Red.rescueK_sound hin hrec hk hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) hthead hlv hnP hfab hws hb hlv' (infer_sound hin htp)
       (prop_pt_io hin http rfl (infer_sound hin http) hv (red_sound hin hv)
         (ConLeche.Level.isEquiv_sound hv0 φ))
   | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
-      hfab hws hb hlv' _ _ _ htp http hv hv0 =>
+      hfab hws hb hlv' _ _ htp http hv hv0 =>
     Red.rescueAnd_sound hin hrec hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
       (infer_sound hin htp)

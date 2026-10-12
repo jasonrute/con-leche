@@ -1011,21 +1011,6 @@ private theorem majorToCtor_shift (henv : EnvWF env)
             rw [wscopedB_shiftFrom _ hpd, looseBVarsBounded_shiftFrom,
               fvarLeaves_all_contains_shiftFrom hpd hwfab hwmaj]
             refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-            -- the relocated synthetic-spine certificate (task #71)
-            have htelC : (cvj.type.instantiateLevelParams cvj.levelParams
-                ust).hasFvar = false := by
-              rw [hasFvar_instantiateLevelParams]
-              exact (henv _ (find?_mem hfr)).1
-            have hcert := iotaCerts_shift henv ih hpd false
-              (ty := cvj.type.instantiateLevelParams cvj.levelParams ust)
-              (WScoped.of_not_hasFvar htelC)
-              (args := tmaj.getAppArgs.take cnP)
-              (fun x hx => hwtmaj.getAppArgs x (List.mem_of_mem_take hx))
-            rw [shiftFrom_eq_self_of_not_hasFvar htelC, List.map_take]
-              at hcert
-            refine bind_rel_eq _ hcert ?_
-            intro bc _
-            refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
             refine bind_rel _ _ (ih.inferIO hpd hwfab) ?_
             intro tfab htfab
             have hwtfab : WScoped d tfab :=
@@ -1130,21 +1115,6 @@ private theorem majorToCtor_shift (henv : EnvWF env)
                 Expr.WScoped.mkAppN (by simp [WScoped]) hwfabArgs
               rw [wscopedB_shiftFrom _ hpd, looseBVarsBounded_shiftFrom,
                 fvarLeaves_all_contains_shiftFrom hpd hwfab hwmaj]
-              refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-              -- the relocated synthetic-spine certificate (task #71)
-              have htelC : (cvj.type.instantiateLevelParams cvj.levelParams
-                  ust).hasFvar = false := by
-                rw [hasFvar_instantiateLevelParams]
-                exact (henv _ (find?_mem hfr)).1
-              have hcert := iotaCerts_shift henv ih hpd false
-                (ty := cvj.type.instantiateLevelParams cvj.levelParams ust)
-                (WScoped.of_not_hasFvar htelC)
-                (args := tmaj.getAppArgs ++
-                  [Expr.proj T 0 major, Expr.proj T 1 major])
-                hwfabArgs
-              rw [shiftFrom_eq_self_of_not_hasFvar htelC] at hcert
-              refine bind_rel_eq _ hcert ?_
-              intro bc _
               refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
               refine bind_rel _ _ (ih.inferIO hpd hwfab) ?_
               intro tfab htfab

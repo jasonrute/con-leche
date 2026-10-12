@@ -569,8 +569,7 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
             match tmaj.getAppFn with
             | .const T' ust =>
               if T' = T ∧ cvj.levelParams.length = ust.length then
-                -- no constructor-telescope arity pin: the fabrication
-                -- is typed by `iotaCerts` below, and the model proof
+                -- no constructor-telescope arity pin: the model proof
                 -- consumes no such fact
                 if cnP ≤ tmaj.getAppArgs.length then
                   let fab := Expr.mkAppN (.const rl.ctor ust)
@@ -581,33 +580,17 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                   if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    -- Synthetic-spine certification (task #71): a
-                    -- fabricated constructor spine has no annotated
-                    -- application chain for the gated fire-path
-                    -- certificates to recover memberships from, so
-                    -- the *ungated* telescope certificate runs here,
-                    -- relocated from the fire path.
-                    if ← iotaCerts r env depth false
-                        (cvj.type.instantiateLevelParams
-                          cvj.levelParams ust)
-                        (tmaj.getAppArgs.take cnP) then
-                      -- The official `to_cnstr_when_K` type check on
-                      -- the fabrication: the constructor
-                      -- application's type must be defeq to the
-                      -- major's (for `Eq` this is the endpoint
-                      -- condition — `Eq.refl a : Eq a a` against the
-                      -- major's `Eq a b` forces `a ≡ b`).  A
-                      -- reference-kernel check, kept independently of
-                      -- the per-fire iota certificates (during the
-                      -- gated era of tasks #49/#71 it was load-bearing
-                      -- on its own — arena bad/098_ruleKbad fires at
-                      -- `Eq.rec.{3,3}`).  `proofIrrel` stays as the
-                      -- soundness certificate (in the model both
-                      -- sides are the proof point).
-                      if ← r.defeq depth tmaj (← r.inferIO depth fab) then
-                        if ← proofIrrel r depth fab major then
-                          pure fab
-                        else pure major
+                    -- The official `to_cnstr_when_K` type check on the
+                    -- fabrication: the constructor application's type
+                    -- must be defeq to the major's (for `Eq` this is
+                    -- the endpoint condition — `Eq.refl a : Eq a a`
+                    -- against the major's `Eq a b` forces `a ≡ b`;
+                    -- arena bad/098_ruleKbad fires at `Eq.rec.{3,3}`
+                    -- without it).  `proofIrrel` makes the major a
+                    -- proof (in the model both sides are the point).
+                    if ← r.defeq depth tmaj (← r.inferIO depth fab) then
+                      if ← proofIrrel r depth fab major then
+                        pure fab
                       else pure major
                     else pure major
                   else pure major
@@ -660,12 +643,9 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
             -- limited").  `And.rec F h` at a stuck PROOF `h` (a theorem
             -- is opaque to reduction) fires through the fabrication
             -- `And.intro a b (.proj And 0 h) (.proj And 1 h)`,
-            -- certified the K branch's way: the synthetic spine against
-            -- the constructor's telescope (which types the two `.proj`
-            -- nodes through `And`'s projection table), the
-            -- fabrication's type against the major's, and proof
-            -- irrelevance — sound because in the model every proof is
-            -- the point.  Official does not η-rescue a proposition
+            -- certified the K branch's way: the fabrication's type
+            -- against the major's, and proof irrelevance — sound
+            -- because in the model every proof is the point.  Official does not η-rescue a proposition
             -- (`to_cnstr_when_structure` requires a never-zero sort),
             -- so this is an accept-superset there, reported per the
             -- `proofIrrel` ruling; it WORKS AROUND the absence of
@@ -686,17 +666,11 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                 if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                     fab.fvarLeaves.all
                       (fun l => major.fvarLeaves.contains l) then
-                  -- synthetic-spine certification, as in the K branch
-                  if ← iotaCerts r env depth false
-                      (cvj.type.instantiateLevelParams
-                        cvj.levelParams ust)
-                      (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]) then
-                    -- the fabrication's type against the major's, then
-                    -- proof irrelevance as the soundness certificate
-                    if ← r.defeq depth tmaj (← r.inferIO depth fab) then
-                      if ← proofIrrel r depth fab major then
-                        pure fab
-                      else pure major
+                  -- the fabrication's type against the major's, then
+                  -- proof irrelevance, as in the K branch
+                  if ← r.defeq depth tmaj (← r.inferIO depth fab) then
+                    if ← proofIrrel r depth fab major then
+                      pure fab
                     else pure major
                   else pure major
                 else pure major

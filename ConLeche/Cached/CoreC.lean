@@ -506,27 +506,15 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                   if ← pure (Expr.wscopedBC depth fab &&
                       Expr.looseBVarsBounded 0 fab &&
                       Expr.leafGuard fab major) then do
-                    -- synthetic-spine certification (task #71): a
-                    -- fabricated constructor spine keeps the ungated
-                    -- telescope certificate, relocated here from the
-                    -- fire path
-                    let tyCtor ← constTyAtM fe ctorI rl.ctor ust
-                    -- (a certificate family; off at `.trusted`)
-                    if ← certAtI mode (iotaCertsI r fe depth false tyCtor
-                        (margs.take cnP)) then do
-                      -- official `to_cnstr_when_K` fabrication type
-                      -- check (load-bearing with the major-slot
-                      -- certificate gated at nonzero motives, tasks
-                      -- #49/#71; arena bad/098_ruleKbad) — runs in
-                      -- both modes; `proofIrrelI` stays as the
-                      -- soundness certificate, a certificate family
-                      -- (official stops at the type check), off at
-                      -- `.trusted`
-                      let tfab ← r.inferIO depth fab
-                      if ← r.defeq depth tmaj tfab then
-                        if ← certAtI mode (proofIrrelI r depth fab major) then
-                          pure fab
-                        else pure major
+                    -- official `to_cnstr_when_K` fabrication type
+                    -- check (arena bad/098_ruleKbad) — runs in both
+                    -- modes; `proofIrrelI`, a certificate family
+                    -- (official stops at the type check), is off at
+                    -- `.trusted`
+                    let tfab ← r.inferIO depth fab
+                    if ← r.defeq depth tmaj tfab then
+                      if ← certAtI mode (proofIrrelI r depth fab major) then
+                        pure fab
                       else pure major
                     else pure major
                   else pure major
@@ -580,14 +568,10 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                 if ← pure (Expr.wscopedBC depth fab &&
                     Expr.looseBVarsBounded 0 fab &&
                     Expr.leafGuard fab major) then do
-                  let tyCtor ← constTyAtM fe ctorI rl.ctor ust
-                  if ← certAtI mode (iotaCertsI r fe depth false tyCtor
-                      (margs ++ projs)) then do
-                    let tfab ← r.inferIO depth fab
-                    if ← r.defeq depth tmaj tfab then
-                      if ← certAtI mode (proofIrrelI r depth fab major) then
-                        pure fab
-                      else pure major
+                  let tfab ← r.inferIO depth fab
+                  if ← r.defeq depth tmaj tfab then
+                    if ← certAtI mode (proofIrrelI r depth fab major) then
+                      pure fab
                     else pure major
                   else pure major
                 else pure major

@@ -177,7 +177,7 @@ reads them from.  `majorToCtor` itself ignores its `_recName` argument
 caller must: `iotaRec_inv` hands it over at the one site that runs the
 chain (through `prepareMajor_bridge`, which passes it through). -/
 theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
-    (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) (hio : InferIOBridge env fuel)
+    (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {recName : Name} {rules : List RecRule} {major major' : Expr}
     (hrec : ∃ cv mI rP, env.find? recName = some (.recInfo cv mI rP rules))
     (h : majorToCtorFueled .verified env fuel d recName rules major = .ok major') :
@@ -186,14 +186,14 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
   rcases majorToCtor_inv h with rfl | ⟨hsc1, hsc2, hsc3, rl, cvj, cnP, cnF,
     tmaj₀, tmaj, T, us₀, ust, cvT, caps, rfl, hfj, hpi, hfT, hinf, hwh, hfn, harm⟩
   · exact .refl
-  rcases harm with ⟨hk, hlps, hle, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩ |
+  rcases harm with ⟨hk, hlps, hle, rfl, ⟨tf, htf, hdq⟩, hpirr⟩ |
     ⟨heta, hnz, hlen, hlps, rfl, hguards⟩ |
-    ⟨rfl, hlen, hlps, hslots, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩
+    ⟨rfl, hlen, hlps, hslots, rfl, ⟨tf, htf, hdq⟩, hpirr⟩
   · -- the major's half of the `proofIrrel (fab, major)` run: a proof
     obtain ⟨-, -, -, tb, stb, vT, -, -, -, -, htb, hstb, hwstb, hvT⟩ :=
       proofIrrel_inv hpirr
     exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
-      hlps hle rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hi hcerts)
+      hlps hle rfl hsc1 hsc2 hsc3
       (inferTypeIO_bridge hio htf) (hd hdq) (inferTypeIO_bridge hio htb)
       (inferTypeIO_bridge hio hstb) (hw hwstb) hvT
   · obtain ⟨hresT, hresc, htow⟩ := hguards
@@ -202,7 +202,7 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
   · obtain ⟨-, -, -, tb, stb, vT, -, -, -, -, htb, hstb, hwstb, hvT⟩ :=
       proofIrrel_inv hpirr
     exact .rescueAnd hfr hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
-      hlen hlps hslots rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hi hcerts)
+      hlen hlps hslots rfl hsc1 hsc2 hsc3
       (inferTypeIO_bridge hio htf) (hd hdq) (inferTypeIO_bridge hio htb)
       (inferTypeIO_bridge hio hstb) (hw hwstb) hvT
 
@@ -210,7 +210,7 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
 motive `Red env d a ·`: each of the three steps is a `Red.trans`).
 `hrec` is `majorToCtor_bridge`'s, passed through. -/
 theorem prepareMajor_bridge (hw : WhnfBridge env fuel)
-    (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) (hio : InferIOBridge env fuel)
+    (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {recName : Name} {rules : List RecRule} {a m : Expr}
     (hrec : ∃ cv mI rP, env.find? recName = some (.recInfo cv mI rP rules))
     (h : prepareMajorFueled .verified env fuel d recName rules a = .ok m) :
@@ -218,7 +218,7 @@ theorem prepareMajor_bridge (hw : WhnfBridge env fuel)
   prepareMajorFueled_ind h (Red env d a)
     (fun hwh hp => .trans hp (hw hwh))
     (fun hl hp => .trans hp (litMajorToCtor_bridge hw hl))
-    (fun hm hp => .trans hp (majorToCtor_bridge hw hd hi hio hrec hm))
+    (fun hm hp => .trans hp (majorToCtor_bridge hw hd hio hrec hm))
     .refl
 
 /-- Level instantiation keeps a telescope's syntactic arity. -/
@@ -247,7 +247,7 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, hplain, hlev, hpeq,
     h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
-    prepareMajor_bridge hw hd hi hio ⟨cv, mI, rP, hfc⟩ hprep
+    prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
   -- the licensed recursor spine's arity: the checker's test on the
   -- stored type (task #342 L18)
   have harity : (Expr.peelPis e.getAppArgs.length

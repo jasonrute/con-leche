@@ -917,9 +917,6 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
          cnP ≤ tmaj.getAppArgs.length ∧
          major' = Expr.mkAppN (.const rl.ctor ust)
            (tmaj.getAppArgs.take cnP) ∧
-         iotaCertsFueled mode env fuel d false
-           (cvj.type.instantiateLevelParams cvj.levelParams ust)
-           (tmaj.getAppArgs.take cnP) = .ok true ∧
          (∃ tfab, inferTypeIO mode env fuel d major' = .ok tfab ∧
            isDefEqCore mode env fuel d tmaj tfab = .ok true) ∧
          proofIrrelFueled mode env fuel d major' major = .ok true) ∨
@@ -938,9 +935,6 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
          andRescueSlots env rl.ctor cnP ust = true ∧
          major' = Expr.mkAppN (.const rl.ctor ust)
            (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]) ∧
-         iotaCertsFueled mode env fuel d false
-           (cvj.type.instantiateLevelParams cvj.levelParams ust)
-           (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]) = .ok true ∧
          (∃ tfab, inferTypeIO mode env fuel d major' = .ok tfab ∧
            isDefEqCore mode env fuel d tmaj tfab = .ok true) ∧
          proofIrrelFueled mode env fuel d major' major = .ok true))) := by
@@ -1091,21 +1085,6 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
     rw [hguard] at h
     simp only [↓reduceIte] at h
     try simp only [Bind.bind, Except.bind] at h
-    cases hcertK : iotaCertsFueled mode env fuel d false
-        (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (tmaj.getAppArgs.take cnP) with
-    | error err => rw [hcertK] at h; exact nomatch h
-    | ok bck =>
-    rw [hcertK] at h
-    dsimp only at h
-    cases bck with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte, pure, Except.pure,
-        Except.ok.injEq] at h
-      exact Or.inl h.symm
-    | true =>
-    simp only [↓reduceIte] at h
-    try simp only [Bind.bind, Except.bind] at h
     cases htf : inferTypeIO mode env fuel d
         (Expr.mkAppN (.const rl.ctor ust)
           (tmaj.getAppArgs.take cnP)) with
@@ -1145,7 +1124,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
     exact Or.inr ⟨hguard.1.1, hguard.1.2, hguard.2,
       rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
       rfl, hfj, hpr, hfT, rfl, htw, hth,
-      Or.inl ⟨hK, hlvl, harK1, rfl, hcertK,
+      Or.inl ⟨hK, hlvl, harK1, rfl,
         ⟨tfab, htf, hdeq⟩, hpi⟩⟩
   · rw [ite_eq_right hK] at h
     by_cases hE : rl.eta = true
@@ -1234,21 +1213,6 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       rw [hguard] at h
       simp only [↓reduceIte] at h
       try simp only [Bind.bind, Except.bind] at h
-      cases hcertA : iotaCertsFueled mode env fuel d false
-          (cvj.type.instantiateLevelParams cvj.levelParams ust)
-          (tmaj.getAppArgs ++ [.proj T' 0 major, .proj T' 1 major]) with
-      | error err => rw [hcertA] at h; exact nomatch h
-      | ok bca =>
-      rw [hcertA] at h
-      dsimp only at h
-      cases bca with
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte, pure, Except.pure,
-          Except.ok.injEq] at h
-        exact Or.inl h.symm
-      | true =>
-      simp only [↓reduceIte] at h
-      try simp only [Bind.bind, Except.bind] at h
       cases htf : inferTypeIO mode env fuel d (Expr.mkAppN (.const rl.ctor ust)
             (tmaj.getAppArgs ++ [.proj T' 0 major, .proj T' 1 major])) with
       | error err => rw [htf] at h; exact nomatch h
@@ -1286,7 +1250,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       exact Or.inr ⟨hguard.1.1, hguard.1.2, hguard.2,
         rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
         rfl, hfj, hpr, hfT, rfl, htw, hth,
-        Or.inr (Or.inr ⟨hA, hplen, hlvl, hslots, rfl, hcertA,
+        Or.inr (Or.inr ⟨hA, hplen, hlvl, hslots, rfl,
           ⟨tfab, htf, hdeq⟩, hpi⟩)⟩
     rw [ite_eq_left hE] at h
     try simp only [Bind.bind, Except.bind] at h

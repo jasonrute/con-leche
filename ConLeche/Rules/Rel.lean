@@ -240,14 +240,13 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   /-- **The K rescue** (`majorToCtor`'s K branch, `Kernel/Core.lean`;
   official `to_cnstr_when_K`): at a K-flagged single-rule recursor the
   parameters-only constructor application is fabricated from the
-  major's io-inferred, head-normalised type, scope-guarded, certified
-  against the constructor's telescope, type-checked against the major's
-  type, and equated to the major by proof irrelevance.  The last four
-  premises are the major's half of that `proofIrrel` run: its io type's
-  io sort reduces to `Prop`, so the major is a proof — the point at
-  every valuation, about which a reduction claims nothing (task #342
-  L18: the io claim `IORel` makes the fabrication's certificates
-  unusable where the major is not the point, and the major never is). -/
+  major's io-inferred, head-normalised type, scope-guarded,
+  type-checked against the major's type (official's check; it decides
+  whether the rescue fires), and equated to the major by proof
+  irrelevance.  The last four premises are the major's half of that
+  `proofIrrel` run: its io type's io sort reduces to `Prop`, so the
+  major is a proof — the point at every valuation, about which a
+  reduction claims nothing (task #342 L18). -/
   | rescueK {d : Nat} {major tm tmaj fab tf tp ttp : Expr} {v : Level} {recName : Name}
       {cv : ConstantVal} {mI rP : Nat} {rl : RecRule} {cvj : ConstantVal}
       {cnP cnF : Nat} {T : Name} {tus ust : List Level} {cvT : ConstantVal}
@@ -264,8 +263,6 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       fab = Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
-      Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (tmaj.getAppArgs.take cnP) →
       Infer env .io d fab tf → DefEq env d tmaj tf →
       Infer env .io d major tp → Infer env .io d tp ttp →
       Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
@@ -324,8 +321,6 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
         (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]) →
       fab.wscopedB d = true → fab.looseBVarsBounded 0 = true →
       fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l) = true →
-      Certs env d false (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (tmaj.getAppArgs ++ [.proj andName 0 major, .proj andName 1 major]) →
       Infer env .io d fab tf → DefEq env d tmaj tf →
       Infer env .io d major tp → Infer env .io d tp ttp →
       Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
