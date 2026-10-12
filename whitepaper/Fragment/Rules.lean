@@ -69,13 +69,13 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ f f' → Red env Γ (app f a) (app f' a)
   /-- **β, uniform**: at every binder, with **no certificate** — no
   inference of the argument, no comparison with the binder's domain.
-  Con-leche's checker still runs the certified step where the body may
-  be a proposition (`Red.beta`, `Rel.lean:126`) and the free one only
-  at a `never` gate (`Red.betaGate`, `Rel.lean:121`); the fragment's
-  model needs neither (`Sound.lean`, `Red.beta_sound`): a reduction
-  claims nothing of a redex that denotes the point, and a redex that
-  does not has a λ that does not, so a graph, which determines its
-  domain. -/
+  This is Lean's own β (`whnf_core`).  The model needs no premise
+  (`Sound.lean`, `Red.beta_sound`): a reduction claims nothing of a
+  redex that denotes the point, and a redex that does not has a λ that
+  does not, so a graph, which determines its domain: the argument lies
+  in the λ's domain because it lies in the domain of the slot the
+  semantic invariant gives the application.
+  -/
   | beta {Γ : List Expr} {A b a : Expr} :
       Red env Γ (app (lam A b) a) (b.inst a)
   /-- **ζ** (task #342, F4): a `let` reduces to its body with the value
@@ -539,11 +539,11 @@ premise is a subterm of the conclusion or is produced by a `Red` or
 always has the premise's terms — and their invariant — in hand.  A
 `trans` rule is the unique rule that would break it: its middle term
 comes from nowhere, so nothing supplies its invariant, and the
-induction has nothing to apply the hypothesis to.  In the real checker
-the rule is not merely unprovable but unsound (`fvar`s carry
-annotations `DefEq.fvar` does not compare while `DefEq.proofFast`
-reads; `trans` lets the two meet).  The one sound chaining is "reduce,
-then continue": `redL`. -/
+induction has nothing to apply the hypothesis to.  Nor does the
+checker chain through an arbitrary middle term: every comparison it
+makes is one of the rules below, and its one way to chain is
+"reduce, then continue": `redL`.
+-/
 inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   /-- The syntactic fast path (`DefEq.refl`, `Rel.lean:338`). -/
   | refl {Γ : List Expr} {a : Expr} : DefEq env Γ a a
@@ -762,9 +762,9 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
   /-- **λ** (`Infer.lam`, `Rel.lean:530`): the domain's type reduces to
   a sort, the body is inferred under the domain, and the result is the
   `∀` of the body's type — Lean's own rule.  The body's type's sort is
-  not computed (con-leche computes it to check the binder's datum, of
-  which there is none here): an inferred type is a type
-  (`InferSem`), which is all the `∀`'s invariant asks of it. -/
+  not computed: an inferred type is a type (`InferSem`), which is all
+  the `∀`'s invariant asks of it, and the body's value is read by the
+  interpretation, not by its sort. -/
   | lam {Γ : List Expr} {A b s bt : Expr} {u : Level} :
       Infer env Γ A s → Red env Γ s (sort u) →
       Infer env (A :: Γ) b bt →

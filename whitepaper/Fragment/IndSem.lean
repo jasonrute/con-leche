@@ -1558,7 +1558,7 @@ theorem mem_Fam_false {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls 
   unfold Inst Mem ctorVal
   simp only [hz, Bool.false_eq_true, ite_false]
 
-/-- **The fibre is a type of the restricted universe**: at a
+/-- **The fibre is a type of the result sort** (`typeU`): at a
 proposition a truth value; above it a set of tagged values, which is
 strict (no tagged value is the point or a member of it). -/
 theorem Fam_mem_typeU {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps)
