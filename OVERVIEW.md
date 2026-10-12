@@ -622,10 +622,11 @@ members of one type, the point does not separate them either, because
 a type's members are all the point or none.
 
 They are proved through a *relational description* of the checker.
-Seven mutually inductive relations over the checker's own terms say what
+Eight mutually inductive relations over the checker's own terms say what
 moves the core makes — a reduction step, a definitional-equality
-decision, a type inference (checking, or infer-only as in the official
-kernel's `infer_only` mode), and four certificate checks — with the fuel, the unfolding heuristics and the dispatch order
+decision, a λ-telescope comparison, a type inference (checking, or
+infer-only as in the official kernel's `infer_only` mode), and four
+certificate checks — with the fuel, the unfolding heuristics and the dispatch order
 out of sight; a rule's premises are exactly the certificates the
 checker ran at that site, and the symmetric and derived variants are
 theorems, not constructors
@@ -641,11 +642,11 @@ kernel entry point, at any fuel, yields a derivation — one induction
 on fuel, mechanical, each checker site landing on one rule
 ([theorem `bridge` in `ConLeche/Verify/Rules/Bridge.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Rules/Bridge.lean#L22-L27)).
 The *soundness*: a derivation implies the claim's conclusion — one
-structural induction over the seven relations, every case one lemma
+structural induction over the eight relations, every case one lemma
 about one rule, stated over the environment's laws and never over the
 implementation, at one valuation at a time. β's lemma reads no premise:
 a redex that is not the point has a λ that is not the point, which is
-a function on its own domain, and the argument's typing puts the
+a function on its own domain, and the application's own slot puts the
 argument there. The other definitional-equality rules read the point
 the same way: two arguments of equal heads lie in one domain, a type,
 so they are both the point or neither is. ι reads the point the same
@@ -664,9 +665,10 @@ types. All of this is stated as environment laws the installer proves
 (`RecRuleLaw` in `ConLeche/Model/Annot/Laws.lean`). The literal
 accelerations read the argument's domain off the operation's graph,
 `Nat`, and equate the argument with its literal inside that type.
-λ-congruence, η, structure η and the structure-η major rescue are
-proved by a second, unconditional induction, which reads β's
-certificate; they reach the conditional claims by weakening
+λ-congruence compares the bodies' types at the innermost level of two
+λ-telescopes, and η the λ's body's type with the Π-type's body: two
+bodies in one type are both the point or neither, so the bodies' claim
+is an equation at every value of the variable, an equation of the λs
 ([the master induction in `ConLeche/Model/Rules/Sound.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Rules/Sound.lean#L41-L44)).
 And the *recomposition*, which is a few lines per claim: bridge the
 run, apply the soundness

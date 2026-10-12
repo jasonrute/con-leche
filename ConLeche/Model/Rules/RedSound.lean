@@ -19,13 +19,10 @@ motive of its conclusion.  The master induction (`Sound.lean`) is the
 only place that mentions derivations; these lemmas are pure semantics.
 `iota` and the three rescues are in `IotaSound.lean`.
 
-Each rule is proved twice (task #342, L9): at the conditional motive
-`RedSem` (`…_sound`) and at the interim unconditional `RedSemU`
-(`…_soundU`, for the side induction of `Sound.lean`).  Where a rule
-reads no reduction or comparison claim, the conditional lemma is the
-unconditional one weakened.  β at the conditional motive reads no
-premise (`Red.beta_sound`); at the unconditional one it reads the
-certificate where the gate does not fire (`Red.beta_soundU`).  The
+Each rule is proved at the conditional motive `RedSem` (task #342, L9).
+Where a rule reads no reduction or comparison claim, the conditional
+lemma is an unconditional one (`…_soundU`, `RedSemU`) weakened.  β reads
+no premise (`Red.beta_sound`).  The
 two literal accelerations at the conditional motive (task #342, L12)
 recover the argument's membership in `Nat` from the head's graph
 (`arg_mem_of_head`) and equate it with its literal inside the type `Nat`
@@ -64,18 +61,6 @@ theorem Red.trans_sound {d : Nat} {e₁ e₂ e₃ : Expr}
     fun ρ hρ hL hg hne => ?_⟩
   obtain ⟨hg₂, heq₂⟩ := hs₂ ρ hρ hL hg hne
   obtain ⟨hg₃, heq₃⟩ := hs₃ ρ hρ (hL.of_subset hsub₂) hg₂ (heq₂ ▸ hne)
-  exact ⟨hg₃, heq₂.trans heq₃⟩
-
-theorem Red.trans_soundU {d : Nat} {e₁ e₂ e₃ : Expr}
-    (h₁ : RedSemU m φ d e₁ e₂) (h₂ : RedSemU m φ d e₂ e₃) :
-    RedSemU m φ d e₁ e₃ := by
-  intro hf Δa ea hC hea
-  obtain ⟨hf₂, hsub₂, ea₂, hea₂, hs₂⟩ := h₁ hf hC hea
-  obtain ⟨hf₃, hsub₃, ea₃, hea₃, hs₃⟩ := h₂ hf₂ (hC.of_subset hsub₂) hea₂
-  refine ⟨hf₃, fun l hl => hsub₂ l (hsub₃ l hl), ea₃, hea₃,
-    fun ρ hρ hL hg => ?_⟩
-  obtain ⟨hg₂, heq₂⟩ := hs₂ ρ hρ hL hg
-  obtain ⟨hg₃, heq₃⟩ := hs₃ ρ hρ (hL.of_subset hsub₂) hg₂
   exact ⟨hg₃, heq₂.trans heq₃⟩
 
 /-- The syntactic side of head reduction under an application. -/
@@ -136,25 +121,6 @@ theorem Red.appFn_sound {d : Nat} {f f' a : Expr}
   exact ⟨wellDenotedV_app_fn_congr heqf hgf' hg,
     by rw [interp_app, interp_app, heqf]⟩
 
-theorem Red.appFn_soundU {d : Nat} {f f' a : Expr}
-    (hf : RedSemU m φ d f f') : RedSemU m φ d (.app f a) (.app f' a) := by
-  intro hfr Δa ea hC hea
-  obtain ⟨hws, hb, hLb⟩ := hfr
-  have hws' := hws
-  have hb' := hb
-  simp only [Expr.WScoped] at hws'
-  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb'
-  have hLf : Expr.LeavesBounded f := fun l hl =>
-    hLb l (by simp [Expr.fvarLeaves, hl])
-  obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv hea
-  obtain ⟨hff', hsubf, fa', hfa', hsf⟩ := hf ⟨hws'.1, hb'.1, hLf⟩ hC.app_fn hfa
-  obtain ⟨hfr', hsub'⟩ := appFn_syntax hws hb hLb hff' hsubf
-  refine ⟨hfr', hsub', .app fa' aa, by rw [denoteMeta_app, hfa', haa]; rfl,
-    fun ρ hρ hL hg => ?_⟩
-  obtain ⟨hgf', heqf⟩ := hsf ρ hρ hL.app_fn hg.app_fn
-  exact ⟨wellDenotedV_app_fn_congr heqf hgf' hg,
-    by rw [interp_app, interp_app, heqf]⟩
-
 /-- The `.proj` clause's scrutinee reduction (`ProjAV.congrV`).
 "Not pt" source (2): a projection of the point is the point
 (`projS_pt`, `sfst_pt`, `ssnd_pt`), so a projection that is not the
@@ -209,50 +175,6 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
       obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
       exact ⟨hg'.1, u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
 
-theorem Red.projArg_soundU {d : Nat} {sn : Name}
-    {i : Nat} {e e' : Expr} (he : RedSemU m φ d e e') :
-    RedSemU m φ d (.proj sn i e) (.proj sn i e') := by
-  intro hf Δa ea hC hea
-  obtain ⟨hws, hb, hLb⟩ := hf
-  simp only [Expr.WScoped] at hws
-  simp only [Expr.looseBVarsBounded] at hb
-  have hsube : ∀ l ∈ e.fvarLeaves, l ∈ (Expr.proj sn i e).fvarLeaves :=
-    fun l hl => by simpa [Expr.fvarLeaves] using hl
-  have hLe : Expr.LeavesBounded e := fun l hl => hLb l (hsube l hl)
-  have hCe : CtxOkS m φ d Δa e := hC.of_subset hsube
-  obtain ⟨vp, hvp, hrd⟩ := denoteMeta_proj_inv hea
-  obtain ⟨⟨hw', hb', hL'⟩, hsub, vp', hvp', hs⟩ := he ⟨hws, hb, hLe⟩ hCe hvp
-  refine ⟨⟨by simp only [Expr.WScoped]; exact hw',
-      by simp only [Expr.looseBVarsBounded]; exact hb',
-      fun l hl => hL' l (by simpa [Expr.fvarLeaves] using hl)⟩,
-    fun l hl => hsube l (hsub l (by simpa [Expr.fvarLeaves] using hl)), ?_⟩
-  rcases hrd with ⟨entry, hfe, rfl⟩ | ⟨hnt, hdec⟩
-  · refine ⟨projAV (i + entry.off) vp', ?_, fun σ hσ hL hg => ?_⟩
-    · rw [denoteMeta, hvp', hfe]; rfl
-    obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) (ProjAV.hoistV hg)
-    exact ⟨ProjAV.congrV heq hg' hg, ProjAV.interp_congr heq⟩
-  · obtain ⟨x', hx'⟩ :=
-      AnnotTerm.projPair?_exists_of_lt (AnnotTerm.lt_of_projPair? hdec) vp'
-    have hred : denoteMeta m.acval env φ d (.proj sn i e') = some x' := by
-      rw [denoteMeta, hvp', hnt]; exact hx'
-    rcases AnnotTerm.projPair?_cases₂ hdec hx' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-    · refine ⟨.fst vp', hred, fun σ hσ hL hg => ?_⟩
-      obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.fst_arg
-      refine ⟨⟨?_, by rw [AnnotValid_fst]; exact hg'.2⟩,
-        by rw [interp_fst, interp_fst, heq]⟩
-      have h1 := hg.1
-      rw [WellDenoted_fst] at h1 ⊢
-      obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
-      exact ⟨hg'.1, u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
-    · refine ⟨.snd vp', hred, fun σ hσ hL hg => ?_⟩
-      obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.snd_arg
-      refine ⟨⟨?_, by rw [AnnotValid_snd]; exact hg'.2⟩,
-        by rw [interp_snd, interp_snd, heq]⟩
-      have h1 := hg.1
-      rw [WellDenoted_snd] at h1 ⊢
-      obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
-      exact ⟨hg'.1, u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
-
 /-! ## β -/
 
 /-- The β redex's syntactic side: the reduct's frame, its leaf inclusion
@@ -299,46 +221,6 @@ theorem Red.beta_sound {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
   · exfalso
     apply hne
     rw [interp_app, interp_lam, hz, lamR_zero, app_pt]
-  · obtain ⟨h1, h2⟩ := betaPosV hz hg
-    exact ⟨h2, h1⟩
-
-/-- β at the interim unconditional motive: at a positive kind the
-graph's application (`betaPosV`); at kind `0` the binder's datum is not
-`.never`, so the certificate's membership is there (`betaZeroV`). -/
-theorem Red.beta_soundU {d : Nat}
-    {ty body a ta : Expr} {mb : BinderMeta}
-    (hta : mb.pw.isNever = false → InferSemIO m φ d a ta)
-    (hd : mb.pw.isNever = false → DefEqSemU m φ d ta ty) :
-    RedSemU m φ d (.app (.lam ty body mb) a) (body.instantiate1 a) := by
-  intro hf Δa ea hC hea
-  obtain ⟨hws, hb, hLb⟩ := hf
-  obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv hea
-  obtain ⟨tya, ba, htya, hbb, rfl⟩ := denoteMeta_lam_inv hfa
-  obtain ⟨hfr, hsub, hred⟩ := beta_syntax hws hb hLb hbb haa
-  refine ⟨hfr, hsub, ba.inst aa, hred, fun ρ hρ hL hg => ?_⟩
-  by_cases hz : pwBit φ mb.pw = 0
-  · have hnev : mb.pw.isNever = false := by
-      cases h : mb.pw.isNever
-      · rfl
-      · exact absurd hz (pwBit_ne_zero_of_isNever h φ)
-    have hwsA := hws
-    have hbA := hb
-    simp only [Expr.WScoped] at hwsA
-    simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbA
-    have hLty : Expr.LeavesBounded ty := fun l hl =>
-      hLb l (by simp [Expr.fvarLeaves, hl])
-    have hLa : Expr.LeavesBounded a := fun l hl =>
-      hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hfta, hsubta, taA, htaA, hA⟩ :=
-      hta hnev ⟨hwsA.2, hbA.2, hLa⟩ hC.app_arg haa
-    obtain ⟨hgtaA, hmemA⟩ := hA ρ hρ hL.app_arg hg.app_arg
-    have hdom : WellDenotedTy V ρ tya := hg.app_fn.lam_dom
-    have heq := hd hnev hfta ⟨hwsA.1.1, hbA.1.1, hLty⟩ (hC.app_arg.of_subset hsubta)
-      hC.app_fn.lam_ty htaA htya ρ hρ (hL.app_arg.of_subset hsubta)
-      hL.app_fn.lam_ty hgtaA.1 hdom.1
-    rw [hz] at hg ⊢
-    obtain ⟨h1, h2⟩ := betaZeroV hg (heq ▸ hmemA)
-    exact ⟨h2, h1⟩
   · obtain ⟨h1, h2⟩ := betaPosV hz hg
     exact ⟨h2, h1⟩
 
@@ -409,78 +291,6 @@ theorem Red.strLit_sound {d : Nat} {s : String}
     (h : ConLeche.strLitSupported env = true) :
     RedSem m φ d (.lit (.strVal s)) (strLitToConstructor s) :=
   (Red.strLit_soundU h).cond
-
-/-! ## The literal accelerations, unconditional (the interim side induction) -/
-
-/-- The successor row at the reduced argument (`NatSuccRow`). -/
-theorem Red.natSucc_soundU (hin : RulesInputs V m φ) {d : Nat} {a w : Expr}
-    {n : Nat} (hsup : ConLeche.natLitSupported env = true)
-    (hw : RedSemU m φ d a w) (hn : ConLeche.rawNatLit? w = some n) :
-    RedSemU m φ d (.app (.const natSuccName []) a) (.lit (.natVal (n + 1))) := by
-  intro hf Δa ea hC hea
-  obtain ⟨hws, hb, hLb⟩ := hf
-  simp only [Expr.WScoped] at hws
-  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-  have hLa : Expr.LeavesBounded a := fun l hl =>
-    hLb l (by simp [Expr.fvarLeaves, hl])
-  obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv hea
-  obtain ⟨-, -, wa, hwa, hsw'⟩ := hw ⟨hws.2, hb.2, hLa⟩ hC.app_arg haa
-  have hsw : denoteMeta m.acval env φ d (.app (.const ConLeche.natSuccName []) w)
-      = some (.app fa wa) := by rw [denoteMeta_app, hfa, hwa]; rfl
-  obtain ⟨ra, hra, hrow⟩ := hin.nat_succ hsup hn hsw
-  obtain ⟨hfr, hsubr⟩ := frame_atom (d := d) (e := .lit (.natVal (n + 1)))
-    (by simp [Expr.fvarLeaves]) (by simp [Expr.WScoped])
-    (by simp [Expr.looseBVarsBounded])
-  refine ⟨hfr, hsubr _, ra, hra, fun σ hσ hL hg => ?_⟩
-  obtain ⟨hgw, heqw⟩ := hsw' σ hσ hL.app_arg hg.app_arg
-  obtain ⟨hgra, heqra⟩ := hrow σ (appCongrV rfl heqw hg.app_fn hgw hg)
-  refine ⟨hgra, ?_⟩
-  rw [interp_app, heqw, ← interp_app]
-  exact heqra
-
-/-- The binary row at the reduced arguments (`NatOpRow`). -/
-theorem Red.natOp_soundU (hin : RulesInputs V m φ) {d : Nat} {c : Name}
-    {a wa b wb r : Expr} {n₁ n₂ : Nat}
-    (hc : c ∈ natBinOpNames) (hst : ConLeche.natOpStored env c = true)
-    (hwa : RedSemU m φ d a wa) (hn₁ : ConLeche.rawNatLit? wa = some n₁)
-    (hwb : RedSemU m φ d b wb) (hn₂ : ConLeche.rawNatLit? wb = some n₂)
-    (hr : ConLeche.natOpResult c n₁ n₂ = some r) :
-    RedSemU m φ d (.app (.app (.const c []) a) b) r := by
-  intro hf Δa ea hC hea
-  obtain ⟨hws, hb, hLb⟩ := hf
-  simp only [Expr.WScoped] at hws
-  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-  have hLa : Expr.LeavesBounded a := fun l hl =>
-    hLb l (by simp [Expr.fvarLeaves, hl])
-  have hLbb : Expr.LeavesBounded b := fun l hl =>
-    hLb l (by simp [Expr.fvarLeaves, hl])
-  obtain ⟨ga, ba, hga, hba, rfl⟩ := denoteMeta_app_inv hea
-  obtain ⟨ca, aa, hca, haa, rfl⟩ := denoteMeta_app_inv hga
-  obtain ⟨-, -, waA, hwaA, hsa⟩ :=
-    hwa ⟨hws.1.2, hb.1.2, hLa⟩ hC.app_fn.app_arg haa
-  obtain ⟨-, -, wbA, hwbA, hsb⟩ :=
-    hwb ⟨hws.2, hb.2, hLbb⟩ hC.app_arg hba
-  have hsw : denoteMeta m.acval env φ d (.app (.app (.const c []) wa) wb)
-      = some (.app (.app ca waA) wbA) := by
-    rw [denoteMeta_app, denoteMeta_app, hca, hwaA, hwbA]; rfl
-  obtain ⟨ra, hra, hrow⟩ := hin.nat_op hc hst hn₁ hn₂ hr hsw
-  obtain ⟨hfr, hsubr⟩ : Frame d r ∧ ∀ (x : Expr), LeavesSub r x := by
-    rcases ConLeche.natOpResult_shape hr with ⟨k, rfl⟩ | ⟨bn, rfl⟩
-    · exact frame_atom (by simp [Expr.fvarLeaves]) (by simp [Expr.WScoped])
-        (by simp [Expr.looseBVarsBounded])
-    · exact frame_atom (by simp [Expr.fvarLeaves]) (by simp [Expr.WScoped])
-        (by simp [Expr.looseBVarsBounded])
-  refine ⟨hfr, hsubr _, ra, hra, fun σ hσ hL hg => ?_⟩
-  obtain ⟨hgwaA, heqa⟩ := hsa σ hσ hL.app_fn.app_arg hg.app_fn.app_arg
-  obtain ⟨hgwbA, heqb⟩ := hsb σ hσ hL.app_arg hg.app_arg
-  have hgsw : WellDenotedV V σ (.app (.app ca waA) wbA) :=
-    appCongrV (by rw [interp_app, interp_app, heqa]) heqb
-      (appCongrV rfl heqa hg.app_fn.app_fn hgwaA hg.app_fn)
-      hgwbA hg
-  obtain ⟨hgra, heqra⟩ := hrow σ hgsw
-  refine ⟨hgra, ?_⟩
-  rw [interp_app, interp_app, heqa, heqb, ← interp_app, ← interp_app]
-  exact heqra
 
 /-! ## The literal accelerations at the conditional motive (task #342, L12)
 

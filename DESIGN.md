@@ -101886,3 +101886,91 @@ Arena 90/92, e2e 471/471 as before.
 **For L13.** β's premises are read by `red_soundU`, which stays for
 λ/η/structure η and the η rescue; nothing in the ι path reads them
 any more.
+
+## TASK #342 — L14B: the annotation-free rules tier (2026-10-12, agent/342-l14b)
+
+Lane L14b, stage S4 (`_tmp/342v2-design.md` §11.5 row S4), on
+`port-342-s4`.  `Rules/Rel.lean` is the fragment's rules tier
+(`frag-342`: `Fragment/Rules.lean`, `IOGrade.lean`) at the real
+checker's shape (S0-F, `agent/349-s0`).  No checker change;
+`Denotes.lean`, `MainTheorem`, `Challenge` unchanged
+(`tests/challenge.sh` green).
+
+**The rules.**  No rule reads a binder annotation; `BinderMeta` is
+carried by the λ/∀ nodes and never read.
+- `Red.beta`: no premise (the certificate premises are gone; L13's
+  checker deletion is L-ck's).
+- `DefEq.forallE`: domains and bodies, no datum agreement.
+- `DefEq.lam` is replaced by `DefEq.lams : DefEqLams → DefEq`, a new
+  mutual relation `DefEqLams` (`refl`, `inner`, `outer`): domains at every
+  level, the opened bodies' FULL-grade types compared only at the
+  innermost level (S0-F2's `!(b₁.isLam && b₂.isLam)`).  Its motive
+  `DefEqLamsSem` (`Motive.lean`) is unconditional (`.cond` weakens it).
+- `DefEq.eta`: `b`'s type io-inferred (as `etaCert` does), plus the λ's
+  opened body's FULL-grade type `DefEq` the ∀'s opened body.
+- `Infer.forallE` loses `zeronessOf v = mb.pw`; `Infer.lam` loses the
+  chain/codomain premises (Lean's rule: domain sort at the full grade,
+  body at the grade); `Infer.app` guards the argument check with
+  `g = .full →`; `Infer.appSkip` is gone.  So `Infer env .io` is Lean's
+  `infer_only` (the fragment's `InferIO`); `letE` was already right (R-C).
+- `Certs.skip` (a `.never` slot) is replaced by `Certs.licensed : Certs
+  env d true T args`: a licensed walk certifies nothing (S0-F's
+  `iotaCerts` returns `true` at `lic`).  `Red.proj`/`Red.iota` keep their
+  licensed `Certs` premise, now trivial.
+- ι, `CertsF`, the rescues, structure η and unit-like: unchanged (L10;
+  L11b had not landed, so struct-η is as L10 left it).
+- `proofIrrel` (io type and sort) and `proofFast` unchanged; the latter's
+  `isProofFast` loses its `pw` read with L-ck's `PropRead` rewrite.
+
+**Deviation: one grade-indexed `Infer`, not a separate `InferIO`
+inductive.**  The io grade is `Infer env .io` with the `g = .full →`
+guards, which is the same relation as the fragment's `InferIO`; keeping
+the index keeps the bridge's `ioView` plumbing and every `Infer env .io`
+consumer unchanged.  The io motive stays `InferSemIO` (membership) until
+L18 replaces it by `IORel`.
+
+**The side induction is gone** (`red_soundU`, `defeq_soundU`, …), with
+β's premises, its last reason.  `Sound.lean` is one conditional
+induction over eight relations, sorry-free; the per-rule `…_soundU`
+lemmas only it used are deleted (the leaf ones the conditional lemmas
+weaken stay, as do `DefEq.structEta_soundU`/`Red.rescueEta_soundU`, the
+material L11b turns conditional).  `Infer.lam_shape` (Derived) is gone.
+
+**The S4 ledger** (`_tmp/port/s4-sorry-ledger.txt`), by owner:
+- **L14a** (the annotated reading's binder-datum facts, which the value
+  reading does not need): `Infer.forallE_sound` (`hz`), `Infer.lam_sound`
+  (the former chain premises, one `obtain … := sorry`),
+  `DefEq.forallE_sound` (`hpw`).  Each is a `have … := sorry` in front of
+  the old proof; L14a's reading change deletes the `have`.
+- **L18**: `DefEqLams.inner_sound`, `DefEqLams.outer_sound`,
+  `DefEq.eta_sound` (the fragment's proofs at the value reading),
+  `Infer.app_soundIO` (the io application; its body is the former
+  `appSkip_sound` with `hnev := sorry`; the claim becomes `IORel`),
+  `Certs.licensed_sound` (needs the fragment's conditional fit,
+  `teleFit_of_ne_pt`).
+- **L11b**: `DefEq.structEta_sound`, `Red.rescueEta_sound` (conditional
+  statements, sorry bodies).
+- **L-ck**: the bridge's `QuickExit.lam` arm (`DefEqBridge.lean`: needs
+  T1 and the outer descent as `DefEqLams`) and `etaCert_bridge`
+  (`Certs.lean`: T2).  Every other bridge arm is repaired (β, ∀, λ and
+  app inference at both grades, the licensed walk).
+- `tests/ConLecheTests/Axioms.lean`: 13 pins carry `sorryAx`; revert them
+  with the last sorry.
+
+**For L14a.**  The model files I touched are `Model/Rules/*` only
+(signatures above, new lemmas at the ends of `DefEqSound`/`IotaSound`,
+`DefEqLamsSem` in `Motive`).  `InferSemIO`'s docstring names `IORel` as
+L18's.
+
+**For L-ck.**  Bridge targets: `DefEqLams.inner` takes the full-grade
+inferences of both bodies opened at the RIGHT domain (`.fvar d ty₂`);
+`outer` takes `DefEqLams` of the opened bodies (the checker's recursive
+`defeq` on two λs must be inverted to the λ/λ arm of `quickDefEq`);
+`eta` takes `Infer .full` of the λ's body opened at `ty₁` and `DefEq` with
+`B.instantiate1 (.fvar d ty₁)`.
+
+**Gates.**  `lake build`, `lake test`: no warnings but the ledgered
+`sorry`s.  `tests/challenge.sh` green.  No checker change, so no e2e/arena
+run.  OVERVIEW §4's relations paragraph updated (eight relations, β's
+slot, λ/η); `overview-links.sh` deferred.  17 files, +488 −1102 against
+`port-342-s4`.

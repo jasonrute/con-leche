@@ -18,14 +18,12 @@ One lemma per constructor of `DefEq`: the structural rules, the
 recursive-structure rule, η, the two proof-irrelevance arms, and the
 capability rules `structEta`, `structUnit`.
 
-Two sets of lemmas (task #342, L9, L11).  The `…_soundU` lemmas are the
-**interim unconditional** proofs: their conclusion is `DefEqSemU` at
-one valuation (`CtxOkS`/`LeavesGr`, no point condition), and the side
-induction (`Model/Rules/Sound.lean`) reads them.  The `…_sound` lemmas
-(the last section) prove the rules at the conditional motive
-`DefEqSem`; λ-congruence, η and structure η have none yet (the
-section's note says why), so the conditional induction takes them from
-the side induction.
+The rules are proved at the conditional motive `DefEqSem` (task #342,
+L9, L11).  A few leaf rules read no claim and are proved unconditionally
+(`…_soundU`, `DefEqSemU`) and weakened; `DefEq.structEta_soundU` is the
+unconditional proof the coherence-law lane (task #342 L11b) turns
+conditional.  λ-congruence (`DefEqLams`) and η are the last section
+(task #342 S4).
 -/
 
 namespace ConLeche.Model.Rules
@@ -73,24 +71,6 @@ theorem DefEq.refl_soundU {d : Nat} {a : Expr} : DefEqSemU m φ d a a := by
   cases hba
   rfl
 
-theorem DefEq.symm_soundU {d : Nat} {a b : Expr} (h : DefEqSemU m φ d a b) :
-    DefEqSemU m φ d b a := by
-  intro hfb hfa Δa ba aa hCb hCa hba haa ρ hρ hLb hLa hwb hwa
-  exact (h hfa hfb hCa hCb haa hba ρ hρ hLa hLb hwa hwb).symm
-
-/-- **The recursive-structure rule is sound**: the reduct reads, is
-graded and framed (`RedSemU`), so the continuation's motive applies at
-it. -/
-theorem DefEq.redL_soundU {d : Nat} {a a' b : Expr}
-    (ha : RedSemU m φ d a a') (hb : DefEqSemU m φ d a' b) :
-    DefEqSemU m φ d a b := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  obtain ⟨hfa', hsub, aa', haa', hs⟩ := ha hfa hCa haa
-  obtain ⟨hwaa', heq⟩ := hs ρ hρ hLa hwa
-  rw [heq]
-  exact hb hfa' hfb (hCa.of_subset hsub) hCb haa' hba ρ hρ
-    (hLa.of_subset hsub) hLb hwaa' hwb
-
 /-- Equivalent levels, equal sorts. -/
 theorem DefEq.sort_soundU {d : Nat} {u v : Level}
     (h : Level.isEquiv u v = some true) :
@@ -128,256 +108,6 @@ theorem DefEq.natZero_soundU {d : Nat} :
   obtain rfl : ba = m.acval ConLeche.natZeroName (Level.substFn φ [] []) :=
     (Option.some.inj hba).symm
   rfl
-
-/-- `denoteMetaNatSuccConst`: the packed
-successor reads as `succ` applied to the packed predecessor. -/
-theorem DefEq.natSucc_soundU {d : Nat} {k : Nat} {x : Expr}
-    (h : DefEqSemU m φ d (.lit (.natVal k)) x) :
-    DefEqSemU m φ d (.lit (.natVal (k + 1))) (.app (.const natSuccName []) x) := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  obtain ⟨hg, rfl⟩ := denoteMeta_natLit_inv haa
-  obtain ⟨fa, xa, hfa', hxa, rfl⟩ := denoteMeta_app_inv hba
-  rw [denoteMetaNatSuccConst hg] at hfa'
-  obtain rfl : fa = m.acval ConLeche.natSuccName (Level.substFn φ [] []) :=
-    (Option.some.inj hfa').symm
-  refine deqStep_appCong rfl (h (Frame.of_not_hasFvar rfl rfl) hfb.app_arg
-    (CtxOkS.of_fvarLeaves_nil hCa.length (by simp [Expr.fvarLeaves]))
-    hCb.app_arg (denoteMeta_natLit hg) hxa ρ hρ
-    (LeavesGr.of_fvarLeaves_nil (by simp [Expr.fvarLeaves]))
-    hLb.app_arg ?_ hwb.app_arg)
-  simp only [natLitAV] at hwa
-  exact hwa.app_arg
-
-/-- Binder congruence: equal domains, equal
-bodies opened at the right domain, equal bits (`piR_zero_agree`). -/
-theorem DefEq.forallE_soundU {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
-    {m₁ m₂ : BinderMeta}
-    (hty : DefEqSemU m φ d ty₁ ty₂)
-    (hbody : DefEqSemU m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
-      (body₂.instantiate1 (.fvar d ty₂)))
-    (hpw : m₁.pw = m₂.pw) :
-    DefEqSemU m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
-  obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
-  have hdom : interp V ρ ta₁ = interp V ρ ta₂ :=
-    hty hfa.forallE_ty hfb.forallE_ty hCa.forallE_ty hCb.forallE_ty hta₁ hta₂
-      ρ hρ hLa.forallE_ty hLb.forallE_ty hwa.pi_dom.1 hwb.pi_dom.1
-  rw [hpw]
-  refine deqStep_piCong hdom (fun x hx => ?_)
-  exact hbody (hfa.forallE_open hfb.forallE_ty) (hfb.forallE_open hfb.forallE_ty)
-    (CtxOkS.openS hCb.forallE_ty hCa.forallE_body hta₂)
-    (CtxOkS.openS hCb.forallE_ty hCb.forallE_body hta₂)
-    (denoteMeta_open_rename hva₁) hva₂
-    (cons x ρ) (Sat_cons V hρ (hdom ▸ hx))
-    (LeavesGr.open hCb.forallE_ty hCa.forallE_body hLb.forallE_ty hLa.forallE_body
-      hta₂ hwb.pi_dom)
-    (LeavesGr.open hCb.forallE_ty hCb.forallE_body hLb.forallE_ty hLb.forallE_body
-      hta₂ hwb.pi_dom)
-    (hwa.pi_body x hx) (hwb.pi_body x (hdom ▸ hx))
-
-/-- Binder congruence, the λ half. -/
-theorem DefEq.lam_soundU {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
-    {m₁ m₂ : BinderMeta}
-    (hty : DefEqSemU m φ d ty₁ ty₂)
-    (hbody : DefEqSemU m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
-      (body₂.instantiate1 (.fvar d ty₂)))
-    (hpw : m₁.pw = m₂.pw) :
-    DefEqSemU m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
-  obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
-  have hdom : interp V ρ ta₁ = interp V ρ ta₂ :=
-    hty hfa.lam_ty hfb.lam_ty hCa.lam_ty hCb.lam_ty hta₁ hta₂
-      ρ hρ hLa.lam_ty hLb.lam_ty hwa.lam_dom.1 hwb.lam_dom.1
-  rw [hpw]
-  refine deqStep_lamCong hdom (fun x hx => ?_)
-  exact hbody (hfa.lam_open hfb.lam_ty) (hfb.lam_open hfb.lam_ty)
-    (CtxOkS.openS hCb.lam_ty hCa.lam_body hta₂)
-    (CtxOkS.openS hCb.lam_ty hCb.lam_body hta₂)
-    (denoteMeta_open_rename hva₁) hva₂
-    (cons x ρ) (Sat_cons V hρ (hdom ▸ hx))
-    (LeavesGr.open hCb.lam_ty hCa.lam_body hLb.lam_ty hLa.lam_body
-      hta₂ hwb.lam_dom)
-    (LeavesGr.open hCb.lam_ty hCb.lam_body hLb.lam_ty hLb.lam_body
-      hta₂ hwb.lam_dom)
-    (hwa.lam_body x hx) (hwb.lam_body x (hdom ▸ hx))
-
-/-- Per-node congruence of an application. -/
-theorem DefEq.app_soundU {d : Nat} {f₁ a₁ f₂ a₂ : Expr}
-    (hf : DefEqSemU m φ d f₁ f₂) (ha : DefEqSemU m φ d a₁ a₂) :
-    DefEqSemU m φ d (.app f₁ a₁) (.app f₂ a₂) := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  obtain ⟨fa₁, xa₁, hf₁, hx₁, rfl⟩ := denoteMeta_app_inv haa
-  obtain ⟨fa₂, xa₂, hf₂, hx₂, rfl⟩ := denoteMeta_app_inv hba
-  exact deqStep_appCong
-    (hf hfa.app_fn hfb.app_fn hCa.app_fn hCb.app_fn hf₁ hf₂ ρ hρ
-      hLa.app_fn hLb.app_fn hwa.app_fn hwb.app_fn)
-    (ha hfa.app_arg hfb.app_arg hCa.app_arg hCb.app_arg hx₁ hx₂ ρ hρ
-      hLa.app_arg hLb.app_arg hwa.app_arg hwb.app_arg)
-
-/-- Congruence under a projection. -/
-theorem DefEq.proj_soundU {d : Nat} {s : Name} {i : Nat} {e₁ e₂ : Expr}
-    (h : DefEqSemU m φ d e₁ e₂) :
-    DefEqSemU m φ d (.proj s i e₁) (.proj s i e₂) := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  obtain ⟨ia₁, he₁, hrd₁⟩ := denoteMeta_proj_inv haa
-  obtain ⟨ia₂, he₂, hrd₂⟩ := denoteMeta_proj_inv hba
-  rcases hrd₁ with ⟨entry, hfe, rfl⟩ | ⟨hnt, hdec₁⟩
-  · rcases hrd₂ with ⟨entry', hfe', rfl⟩ | ⟨hnt', -⟩
-    · obtain rfl : entry = entry' := Option.some.inj (hfe.symm.trans hfe')
-      exact ProjAV.interp_congr (h hfa.proj_arg hfb.proj_arg hCa.proj_arg
-        hCb.proj_arg he₁ he₂ ρ hρ hLa.proj_arg hLb.proj_arg
-        (ProjAV.hoistV hwa) (ProjAV.hoistV hwb))
-    · rw [hnt'] at hfe; exact nomatch hfe
-  · rcases hrd₂ with ⟨entry', hfe', -⟩ | ⟨-, hdec₂⟩
-    · rw [hnt] at hfe'; exact nomatch hfe'
-    · rcases AnnotTerm.projPair?_cases₂ hdec₁ hdec₂ with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-      · exact deqStep_fstCong (h hfa.proj_arg hfb.proj_arg hCa.proj_arg
-          hCb.proj_arg he₁ he₂ ρ hρ hLa.proj_arg hLb.proj_arg
-          hwa.fst_arg hwb.fst_arg)
-      · exact deqStep_sndCong (h hfa.proj_arg hfb.proj_arg hCa.proj_arg
-          hCb.proj_arg he₁ he₂ ρ hρ hLa.proj_arg hLb.proj_arg
-          hwa.snd_arg hwb.snd_arg)
-
-/-- η (`lamR_eta`, regime-uniform). -/
-theorem DefEq.eta_soundU {d : Nat}
-    {ty₁ body₁ b tb ty₂ B : Expr} {m₁ m₂ : BinderMeta}
-    (htb : InferSemIO m φ d b tb) (hwtb : RedSemU m φ d tb (.forallE ty₂ B m₂))
-    (hty : DefEqSemU m φ d ty₂ ty₁)
-    (hbody : DefEqSemU m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
-      (.app b (.fvar d ty₁)))
-    (hpw : m₁.pw = m₂.pw) :
-    DefEqSemU m φ d (.lam ty₁ body₁ m₁) b := by
-  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB
-  obtain ⟨hwF1, hbF1, hLF1⟩ := hfa
-  obtain ⟨hwF2, hbF2, hLF2⟩ := hfb
-  simp only [Expr.WScoped] at hwF1
-  simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbF1
-  have hLty : Expr.LeavesBounded ty₁ := fun l hl =>
-    hLF1 l (by simp [Expr.fvarLeaves, hl])
-  have hLbd : Expr.LeavesBounded body₁ := fun l hl =>
-    hLF1 l (by simp [Expr.fvarLeaves, hl])
-  have hfty : Frame d ty₁ := ⟨hwF1.1, hbF1.1, hLty⟩
-  have hCty : CtxOkS m φ d Δa ty₁ := hCa.lam_ty
-  have hCbd : CtxOkS m φ d Δa body₁ := hCa.lam_body
-  have hLtyρ : LeavesGr m φ d ty₁ ρ := hLa.lam_ty
-  have hLbdρ : LeavesGr m φ d body₁ ρ := hLa.lam_body
-  -- the λ's own reading, and its grading at ρ
-  obtain ⟨ta, bda, hta, hbda, rfl⟩ := denoteMeta_lam_inv hda
-  have hokTa : WellDenotedTy V ρ ta := hokA.lam_dom
-  -- `b`'s inferred type, its reduct, and both readings
-  obtain ⟨hftb, hsubtb, tba, htba, hX⟩ := htb ⟨hwF2, hbF2, hLF2⟩ hCb hdb
-  obtain ⟨hokTb, hmemB⟩ := hX ρ hρ hLb hokB
-  have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubtb
-  have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubtb
-  obtain ⟨hfW, hsubW, wtba, hwtba, hY⟩ := hwtb hftb hCtb htba
-  obtain ⟨hokW, heqW⟩ := hY ρ hρ hLtbρ hokTb.1
-  have hCwr : CtxOkS m φ d Δa (Expr.forallE ty₂ B m₂) := hCtb.of_subset hsubW
-  have hLwρ : LeavesGr m φ d (Expr.forallE ty₂ B m₂) ρ := hLtbρ.of_subset hsubW
-  obtain ⟨ta₂, ba₂, hta₂, -, rfl⟩ := denoteMeta_forallE_inv hwtba
-  have hokTa₂ : WellDenotedTy V ρ ta₂ := hokW.pi_dom
-  -- premise one: the two domains agree
-  have hdom : interp V ρ ta₂ = interp V ρ ta :=
-    hty hfW.forallE_ty hfty hCwr.forallE_ty hCty hta₂ hta ρ hρ
-      hLwρ.forallE_ty hLtyρ hokTa₂.1 hokTa.1
-  -- premise two: `b` inhabits the product the ∀-type names
-  have hmem : interp V ρ ba ∈ˢ piR (pwBit φ m₂.pw) (interp V ρ ta₂)
-      (fun x => interp V (cons x ρ) ba₂) := by
-    have h := hmemB
-    rw [heqW, interp_pi] at h
-    exact h
-  -- premise three: the two bits are equal (the rule's own `pw` premise)
-  have hbit : pwBit φ m₁.pw = pwBit φ m₂.pw := by rw [hpw]
-  -- premise four: the λ's fibre is `app ⟦b⟧`
-  have hdbUp : denoteMeta m.acval env φ (d + 1) b = some ba.lift := by
-    rw [denoteMeta_weaken_top m.acval_closed hwF2, hdb]; rfl
-  have hdapp : denoteMeta m.acval env φ (d + 1) (.app b (.fvar d ty₁))
-      = some (.app ba.lift (.bvar 0)) := by
-    rw [denoteMeta, hdbUp, denoteMeta_fvar]
-    simp
-  have hCfvar : CtxOkS m φ (d + 1) (ta :: Δa) (.fvar d ty₁) := by
-    have := CtxOkS.openS (body := Expr.bvar 0) hCty
-      (CtxOkS.of_fvarLeaves_nil hCa.length (by simp [Expr.fvarLeaves])) hta
-    simpa [Expr.instantiate1] using this
-  have hCapp : CtxOkS m φ (d + 1) (ta :: Δa) (.app b (.fvar d ty₁)) :=
-    CtxOkS.app (CtxOkS.weakenTop hCb) hCfvar
-  have hokApp : ∀ x, x ∈ˢ interp V ρ ta →
-      WellDenotedV V (cons x ρ) (.app ba.lift (.bvar 0)) := by
-    intro x hx
-    have hok0 : WellDenotedV V (cons x ρ) ba.lift :=
-      (WellDenotedV_liftN V 1 ba 0 (cons x ρ)).mpr (by rw [shiftE_zero]; exact hokB)
-    refine ⟨?_, ?_⟩
-    · rw [WellDenoted_app]
-      refine ⟨hok0.1, by simp, pwBit φ m₂.pw,
-        interp V ρ ta₂, (fun y => interp V (cons y ρ) ba₂), ?_, ?_, ?_⟩
-      · rw [interp_lift]; exact hmem
-      · show x ∈ˢ _
-        rw [hdom]; exact hx
-      · exact ⟨((AnnotValid_pi V ρ 0 (pwBit φ m₂.pw) ta₂ ba₂) ▸ hokW.2).2.2,
-          fun _ => hokTa₂.2⟩
-    · rw [AnnotValid_app]
-      exact ⟨hok0.2, by simp⟩
-  have hfopen : Frame (d + 1) (body₁.instantiate1 (.fvar d ty₁)) :=
-    Frame.open_body hfty hwF1.2 hbF1.2 hLbd
-  have hfapp : Frame (d + 1) (.app b (.fvar d ty₁)) := by
-    refine ⟨?_, by simp [Expr.looseBVarsBounded, hbF2], fun l hl => ?_⟩
-    · simp only [Expr.WScoped]
-      exact ⟨Expr.WScoped.mono (by omega) hwF2, by omega,
-        Expr.WScoped.mono (by omega) hwF1.1⟩
-    · rw [ConLeche.Expr.fvarLeaves] at hl
-      rcases List.mem_append.mp hl with h2 | h2
-      · exact hLF2 l h2
-      · rw [ConLeche.Expr.fvarLeaves] at h2
-        rcases List.mem_cons.mp h2 with rfl | h3
-        · exact hbF1.1
-        · exact hLty l h3
-  have hLopenBody : ∀ x : V, LeavesGr m φ (d + 1)
-      (body₁.instantiate1 (.fvar d ty₁)) (cons x ρ) := fun _ =>
-    LeavesGr.open hCty hCbd hLtyρ hLbdρ hta hokTa
-  have hLfvar : ∀ x : V, LeavesGr m φ (d + 1) (.fvar d ty₁) (cons x ρ) := by
-    intro x
-    have := LeavesGr.open (body := Expr.bvar 0) (x := x) hCty
-      (CtxOkS.of_fvarLeaves_nil hCa.length (by simp [Expr.fvarLeaves]))
-      hLtyρ (LeavesGr.of_fvarLeaves_nil (by simp [Expr.fvarLeaves])) hta hokTa
-    simpa [Expr.instantiate1] using this
-  have hLapp : ∀ x : V, LeavesGr m φ (d + 1) (.app b (.fvar d ty₁)) (cons x ρ) :=
-    fun x => LeavesGr.app (LeavesGr.weakenTop (ρ := cons x ρ) hCb hLb) (hLfvar x)
-  have hbodyEqAt : ∀ x, x ∈ˢ interp V ρ ta →
-      interp V (cons x ρ) bda = interp V (cons x ρ) (.app ba.lift (.bvar 0)) :=
-    fun x hx => hbody hfopen hfapp (CtxOkS.openS hCty hCbd hta) hCapp
-      hbda hdapp (cons x ρ) (Sat_cons V hρ hx)
-      (hLopenBody x) (hLapp x) (hokA.lam_body x hx) (hokApp x hx)
-  -- η: `lamR_eta`, regime-uniform
-  have hpt : ∀ x, x ∈ˢ interp V ρ ta →
-      interp V (cons x ρ) bda = SetTheory.app (interp V ρ ba) x := by
-    intro x hx
-    rw [hbodyEqAt x hx, interp_app, interp_lift_cons, interp_bvar]
-    rfl
-  rw [interp_lam, lamR_congr hpt, hbit]
-  exact lamR_eta (by rw [← hdom]; exact hmem)
-
-/-- `prf_of_isProofFast` twice. -/
-theorem DefEq.proofFast_soundU (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
-    (ha : ConLeche.isProofFast env.find? a = true)
-    (hb : ConLeche.isProofFast env.find? b = true) :
-    DefEqSemU m φ d a b := by
-  intro _ _ Δa aa ba hCa hCb haa hba ρ hρ hLa hLb _ _
-  rw [prf_of_isProofFast hin.const_ty ha hCa haa ρ hρ hLa,
-    prf_of_isProofFast hin.const_ty hb hCb hba ρ hρ hLb]
-
-/-- `prop_side_pt'` twice: a term whose type's
-sort is zero-equivalent interprets to the point. -/
-theorem DefEq.proofIrrel_soundU {d : Nat}
-    {a ta tta b tb ttb : Expr} {u v : Level}
-    (hta : InferSemIO m φ d a ta) (htta : InferSemIO m φ d ta tta)
-    (hu : RedSemU m φ d tta (.sort u)) (hu0 : Level.isEquiv u .zero = some true)
-    (htb : InferSemIO m φ d b tb) (httb : InferSemIO m φ d tb ttb)
-    (hv : RedSemU m φ d ttb (.sort v)) (hv0 : Level.isEquiv v .zero = some true) :
-    DefEqSemU m φ d a b := by
-  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-  rw [prop_side_pt' hta htta hu.cond hu0 hfa hCa haa ρ hρ hLa hwa,
-    prop_side_pt' htb httb hv.cond hv0 hfb hCb hba ρ hρ hLb hwb]
 
 /-- Structure η: the stored η law at the certified type application. -/
 theorem DefEq.structEta_soundU (hin : RulesInputs V m φ) {d : Nat}
@@ -780,117 +510,6 @@ theorem DefEq.structEta_soundU (hin : RulesInputs V m φ) {d : Nat}
       rfl
     rw [hb, interp_mkAppN, hfold, hfab, hψc, hetaCtor]
 
-/-- Unit-like structure: the stored unit-like law. -/
-theorem DefEq.structUnit_soundU (hin : RulesInputs V m φ) {d : Nat}
-    {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
-    {cvT : ConstantVal} {caps : IndCaps}
-    (hta : InferSemIO m φ d a ta) (hwta : RedSemU m φ d ta wta)
-    (hthead : wta.getAppFn = .const T us')
-    (hind : env.find? T = some (.indInfo cvT caps))
-    (hunit : caps.unitlike = true)
-    (hresT : ConLeche.reservedBasisNames.contains T = false)
-    (htlen : wta.getAppArgs.length = caps.unitParams)
-    (hlv : us'.length = cvT.levelParams.length)
-    (htb : InferSemIO m φ d b tb) (hwtb : RedSemU m φ d tb wtb)
-    (hd : DefEqSemU m φ d wta wtb)
-    (hcerts : CertsSem m φ d false
-      (cvT.type.instantiateLevelParams cvT.levelParams us') wta.getAppArgs) :
-    DefEqSemU m φ d a b := by
-  intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB
-  -- the two sides' inferred types, reduced, with their readings
-  obtain ⟨hfta, hsuba, taa, htaa, hXA⟩ := hta hfa hCa hda
-  obtain ⟨hokTa, hmemA⟩ := hXA ρ hρ hLa hokA
-  have hCta : CtxOkS m φ d Δa ta := hCa.of_subset hsuba
-  have hLtaρ : LeavesGr m φ d ta ρ := hLa.of_subset hsuba
-  obtain ⟨hfWA, hsubWA, wtaa, hwtaa, hYA⟩ := hwta hfta hCta htaa
-  obtain ⟨hokWA, heqWA⟩ := hYA ρ hρ hLtaρ hokTa.1
-  have hCwa : CtxOkS m φ d Δa wta := hCta.of_subset hsubWA
-  have hLwaρ : LeavesGr m φ d wta ρ := hLtaρ.of_subset hsubWA
-  obtain ⟨hftb, hsubb, tba, htba, hXB⟩ := htb hfb hCb hdb
-  obtain ⟨hokTb, hmemB⟩ := hXB ρ hρ hLb hokB
-  have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubb
-  have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubb
-  obtain ⟨hfWB, hsubWB, wtba, hwtba, hYB⟩ := hwtb hftb hCtb htba
-  obtain ⟨hokWB, heqWB⟩ := hYB ρ hρ hLtbρ hokTb.1
-  have hCwb : CtxOkS m φ d Δa wtb := hCtb.of_subset hsubWB
-  have hLwbρ : LeavesGr m φ d wtb ρ := hLtbρ.of_subset hsubWB
-  have hmemAW : interp V ρ aa ∈ˢ interp V ρ wtaa := by rw [← heqWA]; exact hmemA
-  have hmemBW : interp V ρ ba ∈ˢ interp V ρ wtba := by rw [← heqWB]; exact hmemB
-  -- the certificate's defeq identifies the two family instances
-  have hEq : interp V ρ wtaa = interp V ρ wtba :=
-    hd hfWA hfWB hCwa hCwb hwtaa hwtba ρ hρ hLwaρ hLwbρ hokWA hokWB
-  -- side a's reduct is the family applied to its parameters
-  rw [show wta = Expr.mkAppN wta.getAppFn wta.getAppArgs from
-    (ConLeche.Expr.mkAppN_getApp wta).symm, hthead] at hwtaa
-  obtain ⟨vT, tsa, hvT, hspt, rfl⟩ := denoteMeta_mkAppN_inv hwtaa
-  rw [denoteMeta, hind] at hvT
-  dsimp only at hvT
-  split at hvT
-  case isFalse => exact nomatch hvT
-  case isTrue =>
-  obtain rfl : vT = m.acval T (Level.substFn φ cvT.levelParams us') :=
-    (Option.some.inj hvT).symm
-  -- the former's telescope arity, from the environment invariant
-  have hstrip : (cvT.type.stripPis caps.unitParams).isSome = true :=
-    (m.wf.indCaps hind).1 hunit
-  -- the (repaired) unit law, and its carried reading at depth `d`
-  obtain ⟨TVa, hTVa, hokTVa, hlaw⟩ :=
-    hin.caps_ok.2 T cvT caps hind hunit hresT φ us' hlv
-  have hwfT := m.wf _ (ConLeche.Semantics.Env.find?_mem hind)
-  have hnfT : (cvT.type.instantiateLevelParams cvT.levelParams
-      us').hasFvar = false := by
-    rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwfT.1
-  have hbdT : (cvT.type.instantiateLevelParams cvT.levelParams
-      us').looseBVarsBounded 0 = true := by
-    rw [ConLeche.Expr.looseBVarsBounded_instantiateLevelParams]
-    exact hwfT.2.2.2.1
-  have hTVd : denoteMeta m.acval env φ d
-      (cvT.type.instantiateLevelParams cvT.levelParams us')
-      = some TVa :=
-    denoteMeta_depth_of_closed m.acval_closed hnfT
-      (fun k => denoteMeta_closed m.acval_erase m.cval_closed
-        hnfT hbdT hTVa 1 k) hTVa d
-  have hTF : Frame d (cvT.type.instantiateLevelParams cvT.levelParams us') :=
-    ⟨ConLeche.Expr.WScoped.of_not_hasFvar hnfT, hbdT,
-      ConLeche.Expr.LeavesBounded.of_not_hasFvar hnfT⟩
-  have hTC : CtxOkS m φ d Δa
-      (cvT.type.instantiateLevelParams cvT.levelParams us') :=
-    ⟨hCa.1, fun l hl => by
-      rw [ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfT] at hl
-      exact nomatch hl⟩
-  have hpcT : PiChain wta.getAppArgs.length TVa := by
-    rw [htlen]
-    exact piChain_of_stripPis caps.unitParams
-      (ConLeche.Expr.stripPis_instantiateLevelParams_isSome
-        cvT.levelParams us' caps.unitParams hstrip) hTVd
-  obtain ⟨-, hoT⟩ := hoist_spineV tsa hokWA
-  -- the certified parameter spine fits the former's telescope
-  obtain ⟨resta, hXc⟩ := hcerts (fa := TVa) hTF hTC hTVd (frame_spine hfWA hCwa) hspt
-  obtain ⟨hfitPA, -⟩ := hXc ρ hρ
-    (LeavesGr.of_fvarLeaves_nil (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfT))
-    (leavesGr_spine hLwaρ) (hokTVa ρ) hoT (by simp)
-  have hfitT : TeleFit V ρ TVa (tsa.map (interp V ρ)) (interp V ρ resta) :=
-    teleFit_of_teleFitPA (by rw [← hspt.length]; exact hpcT) hfitPA
-  -- both members, at the folded family instance
-  have hfold : ∀ (l : List AnnotTerm) (x : V),
-      l.foldl (fun r y => SetTheory.app r (interp V ρ y)) x
-        = (l.map (interp V ρ)).foldl SetTheory.app x := by
-    intro l x; rw [List.foldl_map]
-  have hmx : interp V ρ aa
-      ∈ˢ (tsa.map (interp V ρ)).foldl SetTheory.app
-          (interp V ρ (m.acval T (Level.substFn φ cvT.levelParams us'))) := by
-    have h := hmemAW
-    rwa [interp_mkAppN, hfold] at h
-  have hmy : interp V ρ ba
-      ∈ˢ (tsa.map (interp V ρ)).foldl SetTheory.app
-          (interp V ρ (m.acval T (Level.substFn φ cvT.levelParams us'))) := by
-    have h := hEq ▸ hmemBW
-    rwa [interp_mkAppN, hfold] at h
-  have hlenTs : (tsa.map (interp V ρ)).length = caps.unitParams := by
-    rw [List.length_map, ← hspt.length, htlen]
-  exact hlaw ρ (tsa.map (interp V ρ)) (interp V ρ resta) (interp V ρ aa)
-    (interp V ρ ba) hlenTs hfitT hmx hmy
-
 /-! ## The conditional rules (task #342, L11)
 
 The rules at the conditional motive `DefEqSem`: two graded sides are
@@ -901,15 +520,13 @@ equal at a valuation where neither is the point.  Every step that uses
 point applied or projected is the point); (3) membership in a type
 whose members are all the point or none of them (`IsTy.eq_of_ne_pt`).
 
-λ-congruence, η and structure η are NOT here: they stay on the interim
-side induction (`Model/Rules/Sound.lean`).  λ and η compare the two
-bodies at every value of the bound variable, and a body may be the
-point at one value while the other is not; under the annotated reading
-nothing types the two bodies alike (the body-type check arrives with
-the value reading, task #342 S4).  Structure η compares the
-constructor side's parameters and fields with the stuck side's
-projections, and nothing at the rules tier places both spines in one
-telescope of types (the DESIGN record of task #342 L11). -/
+λ-congruence and η compare the two bodies at every value of the bound
+variable, and a body may be the point at one value while the other is
+not; their rules carry the body-type check (task #342 S4, the last
+section).  Structure η compares the constructor side's parameters and
+fields with the stuck side's projections, and nothing at the rules tier
+places both spines in one telescope of types (the DESIGN record of task
+#342 L11): owed to L11b. -/
 
 /-- The slot of a graded application whose head is not the point: the
 graph regime, and a domain that is a type. -/
@@ -1012,9 +629,12 @@ theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
     {m₁ m₂ : BinderMeta}
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
-      (body₂.instantiate1 (.fvar d ty₂)))
-    (hpw : m₁.pw = m₂.pw) :
+      (body₂.instantiate1 (.fvar d ty₂))) :
     DefEqSem m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
+  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule compares
+  -- no binder datum; the annotated reading's two bits need it, the value
+  -- reading (`piV`) none
+  have hpw : m₁.pw = m₂.pw := sorry
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
@@ -1233,5 +853,93 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
     rw [List.length_map, ← hspt.length, htlen]
   exact hlaw ρ (tsa.map (interp V ρ)) (interp V ρ resta) (interp V ρ aa)
     (interp V ρ ba) hlenTs hfitT hmx hmy
+
+/-! ## λ-congruence and η at the value reading (task #342 S4)
+
+`DefEqLams` (task #349) concludes the UNCONDITIONAL `DefEqLamsSem`: the
+innermost level's full-grade body types put the two bodies in one type,
+whose members are all the point or none, so the bodies' conditional claim
+is an equation there; an equation of the bodies at every value of the
+variable is an equation of the λs, so `outer` needs no type.  η's typed
+premise does the same for the λ's body and `b` applied.  The proofs are
+the fragment's (`whitepaper/Fragment/Sound.lean`: `DefEqLams.inner_sound`,
+`outer_sound`, `DefEq.eta_sound`) at the value reading; **owed to task
+#342 L18** (the S4 sorry ledger).  Structure η is owed to the
+coherence-law lane L11b. -/
+
+/-- Syntactically equal λs are equal outright. -/
+theorem DefEqLams.refl_sound {d : Nat} {a : Expr} : DefEqLamsSem m φ d a a :=
+  DefEq.refl_soundU
+
+/-- The innermost level: **owed to task #342 L18**. -/
+theorem DefEqLams.inner_sound {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ : Expr}
+    {m₁ m₂ : BinderMeta}
+    (_hty : DefEqSem m φ d ty₁ ty₂)
+    (_hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
+      (body₂.instantiate1 (.fvar d ty₂)))
+    (_ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂)) t₁)
+    (_ht₂ : InferSemFull m φ (d + 1) (body₂.instantiate1 (.fvar d ty₂)) t₂)
+    (_ht : DefEqSem m φ (d + 1) t₁ t₂) :
+    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := sorry
+
+/-- An outer level: **owed to task #342 L18**. -/
+theorem DefEqLams.outer_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
+    {m₁ m₂ : BinderMeta}
+    (_hty : DefEqSem m φ d ty₁ ty₂)
+    (_hbody : DefEqLamsSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
+      (body₂.instantiate1 (.fvar d ty₂))) :
+    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := sorry
+
+/-- λ-congruence: the telescopes' unconditional claim, weakened. -/
+theorem DefEq.lams_sound {d : Nat} {a b : Expr} (h : DefEqLamsSem m φ d a b) :
+    DefEqSem m φ d a b :=
+  h.cond
+
+/-- η, typed: **owed to task #342 L18** (with the io claim of `b`'s type,
+the hereditary `IORel`; the fragment's `etaIO_sound` for atom heads). -/
+theorem DefEq.eta_sound {d : Nat}
+    {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    (_htb : InferSemIO m φ d b tb) (_hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (_hty : DefEqSem m φ d ty₂ ty₁)
+    (_hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
+      (.app b (.fvar d ty₁)))
+    (_ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
+    (_htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
+    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := sorry
+
+/-- Structure η at the conditional motive: **owed to the coherence-law
+lane, task #342 L11b** (the S4 sorry ledger; the DESIGN record of L11,
+finding 2).  The unconditional `DefEq.structEta_soundU` is not
+applicable: its premises are unconditional claims, which no rule
+concludes any more. -/
+theorem DefEq.structEta_sound (_hin : RulesInputs V m φ) {d : Nat}
+    {a b tb wtb : Expr} {c : Name} {us : List Level} {cvc : ConstantVal}
+    {cnP cnF : Nat} {T : Name} {us' : List Level} {cvT : ConstantVal}
+    {caps : IndCaps}
+    (_htb : InferSemIO m φ d b tb) (_hwtb : RedSem m φ d tb wtb)
+    (_hhead : a.getAppFn = .const c us)
+    (_hctor : env.find? c = some (.ctorInfo cvc cnP cnF))
+    (_hlen : a.getAppArgs.length = cnP + cnF)
+    (_hthead : wtb.getAppFn = .const T us')
+    (_hind : env.find? T = some (.indInfo cvT caps))
+    (_heta : caps.eta = true) (_hetaCtor : caps.etaCtor = c)
+    (_hresT : ConLeche.reservedBasisNames.contains T = false)
+    (_hresc : ConLeche.reservedBasisNames.contains c = false)
+    (_htlen : wtb.getAppArgs.length = caps.etaParams)
+    (_hlv : us'.length = cvT.levelParams.length)
+    (_hlps : cvc.levelParams = cvT.levelParams)
+    (_hslots : (ConLeche.towerSlotsAll env T caps.etaFields ||
+      ConLeche.recSlotsAll env T caps.etaFields) = true)
+    (_hus : Level.isEquivList us us' = some true)
+    (_hcerts : CertsSem m φ d false
+      (cvT.type.instantiateLevelParams cvT.levelParams us') wtb.getAppArgs)
+    (_hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
+      EtaProjCertsSem m φ d T us' wtb.getAppArgs b cvT.levelParams
+        (List.range caps.etaFields))
+    (_hparams : DefEqListSem m φ d (a.getAppArgs.take caps.etaParams)
+      wtb.getAppArgs)
+    (_hfields : DefEqListSem m φ d (a.getAppArgs.drop caps.etaParams)
+      (ConLeche.etaProjs env T us' wtb.getAppArgs b caps.etaFields)) :
+    DefEqSem m φ d a b := sorry
 
 end ConLeche.Model.Rules
