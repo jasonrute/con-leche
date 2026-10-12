@@ -55,7 +55,7 @@ recursor `t` is the graph-regime λ-tower over its binder data reading
 function). -/
 @[expose] noncomputable def genFT (ρ : Nat → V) (rP : Nat → Nat)
     (rds : Nat → List (Nat × Nat × AnnotTerm)) (tup : Nat → List V → V) (g : V) (t : Nat) : V :=
-  lamTowerA 1 ρ [] (rds t) fun sp _ => app g (tagged t (tup t (idxOf (rP t) sp)) (majOf sp))
+  lamTowerA ρ [] (rds t) fun sp _ => app g (tagged t (tup t (idxOf (rP t) sp)) (majOf sp))
 
 /-- **The graph's `ih` values**: the `ih` terms read at the chain
 valuation of the graph. -/
@@ -125,8 +125,7 @@ end Eqs
 
 `graphRecPre_coreR` at the old class data, the generated calls and the
 graph's `ih` values `genIhvT`.  The type half of the producer
-(`hTyP`), the family's one elimination level (`hbits`) and the prefix
-lengths (`hpl`) are the stage record's; every other row is a premise,
+(`hTyP`) and the prefix lengths (`hpl`) are the stage record's; every other row is a premise,
 stated exactly as the producer consumes it (§4 discharges them). -/
 
 section Cand
@@ -281,7 +280,7 @@ theorem genRecPre_hCand (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
           (fun ψ' => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ')
           (fun _ => genRbAV g rd) ψ,
         (pt : V) ∈ˢ interp V (chainFrame (tgtRs out).length a ρ) e := by
-  obtain ⟨uOf, hbitsE, hruns⟩ := blockRecElimLevel_run (V := V) hμ mpC h
+  obtain ⟨uOf, hruns⟩ := blockRecElimLevel_run h
   have H := graphRecPre_coreR (ℓ := Level.eval ψ (ConLeche.structElimLevel pp.toBlockShape.elim
       pp.toBlockShape.large)) (K := (tgtRs out).length) (ρ := ρ)
     (nCt := blockRecNCt (tgtRs out)) (rP := pp.toBlockShape.rulePrefixAt)
@@ -312,7 +311,6 @@ theorem genRecPre_hCand (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (fun c hc =>
       (recStage_tyPis (V := V) hμ mpC h (List.getElem?_eq_getElem hc)
         ψ).choose_spec.choose_spec.2.2.1)
-    (blockRecOneElimLevel ψ (fun c hc => blockRecElimPin_run h hruns ψ hc) (hbitsE ψ))
     (fun c hc => blockRulePdomsAV_length hμ mpC h (List.getElem?_eq_getElem hc) ψ)
     hsplit hconcl hconclTy hstep huniq hind hrule hdec hchain
   obtain ⟨a, ha, hb⟩ := H
@@ -390,7 +388,7 @@ theorem genHchainG
   intro a xs r hr c hc j hj fs hxl hsp
   refine (hihRead c hc j hj xs fs a _ hxl hsp fun t is x hcall => ?_).symm
   obtain ⟨ht, hxlT, hfitT⟩ := hcallTy c hc j hj xs fs a hxl hsp t is x hcall
-  have hfold := lamTowerA_fold (m := 1) Nat.one_ne_zero
+  have hfold := lamTowerA_fold
     (g := fun sp _ => app (graph r (graphPredG Is Cr K (genCallT tup ρ ihd) xs (c, j, fs)))
       (tagged t (tup t (idxOf (rP t) sp)) (majOf sp)))
     (acc := []) hfitT
@@ -483,7 +481,10 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
     intro q hq
     obtain ⟨hbT, hbA⟩ := hbelow c hc j hj q hq
     rw [hDd] at hbT hbA
-    refine lamTower_mem_piTower q.2.1 hbT hagree fun bs hbs => ?_
+    -- L17: the ih binder's codomain (the callee's motive applied at the
+    -- call's indices and major) is a type; no premise here says the motive
+    -- lands in a universe
+    refine lamTower_mem_piTower q.2.1 hbT hagree (fun bs hbs => ?_) (fun _ _ => by sorry)
     have hbl : bs.length = q.2.1.length := by rw [hbs.length_eq, List.length_map]
     have hargR : ∀ e ∈ q.2.2.1 ++ [q.2.2.2],
         interp V (consList bs (consList (xs ++ fs) (chainFrame K (genFT ρ rP rds tup g) ρ))) e
@@ -524,7 +525,7 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
       rw [List.map_append, hpv, List.map_congr_left hargR]
       simp only [List.map_append, List.map_cons, List.map_nil]
       rw [← his_def, ← hx_def]
-      have hfold := lamTowerA_fold (m := 1) Nat.one_ne_zero
+      have hfold := lamTowerA_fold
         (g := fun sp _ => app g (tagged q.1 (tup q.1 (idxOf (rP q.1) sp)) (majOf sp)))
         (acc := []) hfitT
       rw [List.nil_append, idxOf_split hxlT, majOf_split] at hfold
@@ -792,7 +793,7 @@ theorem genRec_conclTy (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
         ∈ˢ (univ (Level.eval ψ (ConLeche.structElimLevel pp.toBlockShape.elim
           pp.toBlockShape.large)) : V) := by
   intro c hc ys hfit
-  obtain ⟨uOf, -, hruns⟩ := blockRecElimLevel_run (V := V) hμ mpC h
+  obtain ⟨uOf, hruns⟩ := blockRecElimLevel_run h
   have hr : (tgtRs out)[c]? = some (tgtRs out)[c] := List.getElem?_eq_getElem hc
   obtain ⟨fvs, conclE, sty, hop, hinf, hens⟩ := hruns c hc
   have hrd : (tgtRs out).getD c default = (tgtRs out)[c] := by
@@ -1377,12 +1378,12 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     refine (Rules.wellDenotedV_mkAppN_of_fit _
       (f := .bvar ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
           + (tgtFdomsK (tgtRs out).length mpC.base2.acval envC pp.toBlockShape out ψ c j).length
-          + ((tgtRs out).length - 1 - c))) (hwdTy ρ) ⟨trivial, trivial⟩ (fun x hx => ?_)
-      hmem' hTF).1.1
+          + ((tgtRs out).length - 1 - c))) (hwdTy ρ) trivial (fun x hx => ?_)
+      hmem' hTF).1
     rcases List.mem_append.mp hx with hx | hx
     · rcases List.mem_append.mp hx with hx | hx
       · obtain ⟨k, -, rfl⟩ := List.mem_map.mp hx
-        exact ⟨trivial, trivial⟩
+        trivial
       · obtain ⟨e, he, rfl⟩ := List.mem_map.mp hx
         rw [hch, ← hwl, wellDenotedV_liftN_chainFrame]
         exact hE e he
@@ -1391,7 +1392,7 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       exact hMk
   · -- the residue, at the `ih` values
     obtain ⟨hIv, hRv⟩ := hrhs as hl ht c hc j hj (xs ++ fs) hbase
-    rw [wd_instsAV (fun v hv => (hIv v hv).1)]
+    rw [wd_instsAV (fun v hv => hIv v hv)]
     have key := (wellDenotedV_liftN_chainFrame (K := (tgtRs out).length)
       (a := fun c => as.getD c pt) (ρ := ρ)
       ((xs ++ fs) ++ (genIhsAV mpC.base2.acval envC (tgtRs out).length g rd (genBit pp ψ) ψ c
@@ -1400,7 +1401,7 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     rw [← hch] at key
     simp only [consList_append, List.length_append, List.length_map] at key ⊢
     rw [← hxl, ← hfs.length_eq]
-    exact key.1
+    exact key
 
 end Rows
 

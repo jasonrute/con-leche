@@ -452,8 +452,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
           ∀ (i : Nat) (nd : Expr), nds[i]?.map (·.1) = some nd →
             ∃ nda, denoteMeta mpC.base2.acval envC ψ
                 ((pp.nestCtx fvsP envI.find?).hiAt prog.length + i) nd = some nda ∧
-              fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda ∧
-              AnnotValid V (consList (fs.take i) σN) nda) ∧
+              fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda) ∧
       (prog = [] ∨ ∃ u, 0 < b ∧ ns.getD (b - 1) default = u ∧
         (ConLeche.grpNews u.key.lvls u.key.ds
           ((pp.nestCtx fvsP envI.find?).hiAt u.anc.length) u.grp).reverse ++ u.anc
@@ -552,8 +551,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
               ∃ nda, denoteMeta mpC.base2.acval envC ψ
                   ((pp.nestCtx fvsP envI.find?).hiAt ([] : List NestHole).length + i) nd
                     = some nda ∧
-                fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda ∧
-                AnnotValid V (consList (fs.take i) σN) nda := by
+                fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda := by
         intro G ρ' hA Y hY hH
         have hA' := hA
         unfold nodeAdm at hA'
@@ -566,8 +564,8 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
           fun own => admVal_frame0 H ψ ρ xs hparams hids0 hY' own G, ?_, fun i nd hnd => ?_⟩
         · exact (hsemB _ (frame0_sat H ψ hsP hY') fs hH.2.1).1
         obtain ⟨-, hmemB⟩ := hsemB _ (frame0_sat H ψ hsP hY') fs hH.2.1
-        obtain ⟨nda, hnda, hmemI, hval⟩ := hmemB i nd hnd
-        exact ⟨nda, H.htr ψ _ nd hnda, hmemI, hval⟩
+        obtain ⟨nda, hnda, hmemI⟩ := hmemB i nd hnd
+        exact ⟨nda, H.htr ψ _ nd hnda, hmemI⟩
       have hread : NodeHolesRead mpC.base2.acval envC (pp.nestCtx fvsP envI.find?) [] := by
         refine nodeHolesRead_nil H.hparF H.hparS fun n hn => ?_
         change n ∈ pp.toBlockShape.memberNames at hn
@@ -676,8 +674,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             ∀ (i : Nat) (nd : Expr), nds[i]?.map (·.1) = some nd →
               ∃ nda, denoteMeta mpC.base2.acval envC ψ
                   ((pp.nestCtx fvsP envI.find?).hiAt prog.length + i) nd = some nda ∧
-                fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda ∧
-                AnnotValid V (consList (fs.take i) σN) nda := by
+                fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda := by
         intro G ρ' hA Y hY hH
         have hA' := hA
         unfold nodeAdm at hA'
@@ -697,9 +694,9 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
         obtain ⟨hsatN, hfl, hmem⟩ := hsemU σ hσ.sat Y hY' t fs hH
         refine ⟨_, admVal_kid H hbpos hbl hub hσ hsatN (fun i => rfl)
           (u' := .node [] prog default [] []) hprog.symm, hfl, fun i nd hnd => ?_⟩
-        obtain ⟨nda, hnda, hmemI, hval⟩ := hmem i nd hnd
+        obtain ⟨nda, hnda, hmemI⟩ := hmem i nd hnd
         rw [← hhiP] at hnda
-        exact ⟨nda, H.htr ψ _ nd hnda, hmemI, hval⟩
+        exact ⟨nda, H.htr ψ _ nd hnda, hmemI⟩
       have hread : NodeHolesRead mpC.base2.acval envC (pp.nestCtx fvsP envI.find?) prog := by
         rw [← hprog]
         have hrdA : NodeHolesRead mpC.base2.acval envC (pp.nestCtx fvsP envI.find?) u.anc := by
@@ -793,7 +790,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     simpa only [Option.some.injEq, Prod.mk.injEq] using hstO
   have hteleL : teleR.length = tele := ConLeche.Expr.stripPis_length _ hstR
   obtain ⟨hparT, htailT⟩ := parTail_of_agree mpC _ ψ ρ xs hxsC hAT.agree
-  obtain ⟨ndaT, hndaT, hfT, hvalT⟩ := hmemT iF nd hnd
+  obtain ⟨ndaT, hndaT, hfT⟩ := hmemT iF nd hnd
   rw [hndEq] at hndaT
   have hbsF : SpineFit (consList (xs ++ fs) ρ)
       ((teleDoms mpC.base2.acval envC ψ (R.pre.length + fvsR.length) []
@@ -809,7 +806,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       exfalso
       have h0 := (fieldCall_core mpC.base2 ψ htl htel hteleHF hopen hwF (off := 0) (idxR := [])
         (fun _ _ _ h _ => by simp at h) hnPr hfvF' hfvWF
-        hread hiF hndaT hxl hflF hparT htailT hfT hvalT (bs := [])
+        hread hiF hndaT hxl hflF hparT htailT hfT (bs := [])
         (by rw [hTD]; trivial)).1
       have hte : teleR = [] := List.length_eq_zero_iff.mp h0.symm
       rw [hte] at hTD
@@ -817,7 +814,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
   have hbsl : bs.length = teleR.length :=
     (fieldCall_core mpC.base2 ψ htl htel hteleHF hopen hwF (off := 0) (idxR := [])
       (fun _ _ _ h _ => by simp at h) hnPr hfvF' hfvWF hread hiF
-      hndaT hxl hflF hparT htailT hfT hvalT hbsF).1
+      hndaT hxl hflF hparT htailT hfT hbsF).1
   -- the call's target: the `ih`'s callee, index readings and applied field
   obtain ⟨hcr', ht'r, hyr⟩ := tagged_inj hv
   subst c' t' y
@@ -952,10 +949,10 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     intro off hargsO hoffL G ρ' hA Y hY hH
     obtain ⟨σN, hAdmN, -, hmemN⟩ := hvisit G ρ' hA Y hY hH
     obtain ⟨hparN, htailN⟩ := parTail_of_agree mpC _ ψ ρ xs hxsC hAdmN.agree
-    obtain ⟨nda, hnda, hfN, hvalN⟩ := hmemN iF nd hnd
+    obtain ⟨nda, hnda, hfN⟩ := hmemN iF nd hnd
     rw [hndEq] at hnda
     obtain ⟨-, ha, argsA, hha, hspA, hyA, hidxA⟩ := fieldCall_core mpC.base2 ψ htl htel hteleHF
-      hopen hwF hargsO hnPr hfvF' hfvWF hread hiF hnda hxl hflF hparN htailN hfN hvalN hbsF
+      hopen hwF hargsO hnPr hfvF' hfvWF hread hiF hnda hxl hflF hparN htailN hfN hbsF
     rw [← consList_append (fs.take iF) bs σN] at hyA hidxA
     refine ⟨σN, hAdmN, hparN, ha, argsA, hha, hspA, hyA, fun l xa hxa hhf => ?_⟩
     have hl : off + l < argsA.length := (List.getElem?_eq_some_iff.mp hxa).1
