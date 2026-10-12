@@ -106,7 +106,7 @@ comparing two types or two members of one type closes with
         interp V ρ aa = interp V ρ ba
 
 /-- Inference, dual success, P currency: the subject's and the
-type's truthfulness — bit validity included — are *conclusions*, and
+type's truthfulness are *conclusions*, and
 the type denotes a type. -/
 @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=

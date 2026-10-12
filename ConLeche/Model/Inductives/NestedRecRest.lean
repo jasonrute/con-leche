@@ -103,8 +103,8 @@ theorem recStageG_nodup {mode : CheckMode} {F : Nat} {env : Env} {p : BlockParts
 /-! ## A `.nested` firing's pins mention no empty slot
 
 The pins are the major domain's parameter arguments (lowered), read off
-the STORED recursor type, which is annotated and so mentions no empty
-projection slot (`recStage_cvFacts`). -/
+the STORED recursor type, which its check inferred and so mentions no
+empty projection slot (`recStage_cvFacts`). -/
 
 namespace Expr
 
@@ -245,7 +245,7 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 
 omit [SetTheory V] in
 /-- **A `.nested` firing's pins mention no empty
-projection slot** — they are subterms of the stored (annotated) recursor
+projection slot** — they are subterms of the stored (checked) recursor
 type, lowered. -/
 theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs mem)
     {resolves : Expr → Bool} {Ms : Nat → TargetMajor} :

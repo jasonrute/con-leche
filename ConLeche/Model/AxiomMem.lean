@@ -16,8 +16,8 @@ The standard axioms' forcing arguments at the graded currency.
 
 `matchesPin` is plain equality, so a pinned axiom's stored type, and
 its stored companions' (`Iff`, `Iff.rec`, …), are the pins' on the
-nose.  Nothing reads the metas: the reading takes each binder's regime off the
-values (`piV`/`lamV`), so elimination is `app_mem_piV` with no side
+nose.  The reading takes each binder's regime off the values
+(`piV`/`lamV`), so elimination is `app_mem_piV` with no side
 condition and the motive's β is `app_lamV`.
 
 ## The minor is not built positively

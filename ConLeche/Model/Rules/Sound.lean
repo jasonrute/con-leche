@@ -25,9 +25,8 @@ file is fixed, and it is what the recomposition consumes.
 a definitional equality nothing where a side is.  ι and the K and `And`
 rescues (L10) conclude the unconditional `RedSemU` from conditional
 premises, and the λ-telescope congruence the unconditional
-`DefEqLamsSem` (task #349), both weakened here (`.cond`).  No rule reads a
-binder annotation (task #342 S4), so β has no premise and no side
-induction is needed.
+`DefEqLamsSem` (task #349), both weakened here (`.cond`).  Binders carry no
+datum, so β has no premise and no side induction is needed.
 -/
 
 namespace ConLeche.Model.Rules

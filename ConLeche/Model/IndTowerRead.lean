@@ -6,17 +6,12 @@ public import ConLeche.Model.BasisEq
 public section
 
 /-!
-# The two opened towers, read (task #161, IND TIER part 5)
+# The opened ∀-tower, read (task #161, IND TIER part 5)
 
-`openPisAtFvars_denotePTele` and `instLamsAt_denotePTele`: **the reading
-is blind to an opener** (`denoteMeta_erasedEq`'s `fvar` clause compares
-indices only), so an `openPisAtFvars`/`instLamsAt` run at any
-same-index opener spine produces the same tower.
-
-The λ tower is a `LamTele` relation: `ITerm`'s `.lam` carries
-*bit*, and `LamTele` quantifies the bits existentially exactly as
-`PiTeleAV` does; the consumers read neither.  `PiTeleAV.length` bounds
-an index into the tail context.
+`openPisAtFvars_denotePTele`: **the reading is blind to an opener**
+(`denoteMeta_erasedEq`'s `fvar` clause compares indices only), so an
+`openPisAtFvars` run at any same-index opener spine produces the same
+tower.
 -/
 
 namespace ConLeche.Model

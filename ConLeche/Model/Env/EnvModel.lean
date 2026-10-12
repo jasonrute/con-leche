@@ -37,7 +37,7 @@ model-free base — `EnvWF` (`Verify/EnvWF`), `BasisPinnedTT`
 structure EnvModel (env : Env) where
   /-- the shared, model-free environment well-formedness -/
   wf : EnvWF env
-  /-- the annotated valuation -/
+  /-- the leaf valuation: each constant's reading at a level assignment -/
   acval : Name → (Name → Nat) → ITerm
   /-- every erased leaf is closed; consumers read the `cvalE`-spelled `cval_closed` below -/
   cval_closedL : ∀ (n : Name) (ψ : Name → Nat),
@@ -118,7 +118,7 @@ theorem EnvModel.cvalE_pinned {env : Env} (m : EnvModel V env)
 
 /-! ### Level-insensitivity of the leaf valuation -/
 
-/-- **Residue 8**: the annotated valuation is level-insensitive. -/
+/-- **Residue 8**: the leaf valuation is level-insensitive. -/
 @[expose] def AcvalParams {env : Env} (m : EnvModel V env) : Prop :=
   ∀ n ci, env.find? n = some ci →
     ∀ ψ₁ ψ₂ : Name → Nat,

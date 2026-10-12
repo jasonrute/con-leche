@@ -24,8 +24,8 @@ open ConLeche.Term ConLeche.Verify
 open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level PropWhen)
 
-/-- **`denoteMeta`'s closedness law.**  A closed subject's validated
-annotation is closed, in the lifting form `EnvModel.acval_closed`
+/-- **`denoteMeta`'s closedness law.**  A closed subject's reading
+is closed, in the lifting form `EnvModel.acval_closed`
 states it. -/
 theorem denoteMeta_closed {acval : Name → (Name → Nat) → ITerm}
     {cval : TConstVal} {env : Env} {φ : Name → Nat}
@@ -39,8 +39,8 @@ theorem denoteMeta_closed {acval : Name → (Name → Nat) → ITerm}
     (Term.bvarsBelow.mono (Nat.zero_le k)
       (denote_closed hcl hnf hb (denoteMeta_erase hlink 0 e h))) n
 
-/-- **A closed term's validated annotation does not depend on the
-depth**, provided the annotation itself is lift-invariant. -/
+/-- **A closed term's reading does not depend on the depth**,
+provided the reading itself is lift-invariant. -/
 theorem denoteMeta_depth_of_closed {env : Env} {φ : Name → Nat}
     {acval : Name → (Name → Nat) → ITerm}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),

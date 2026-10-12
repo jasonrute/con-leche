@@ -1053,7 +1053,7 @@ theorem blockRuleRhsOk_of
 
 `pdoms0` — the rule's prefix domains at the base frame — needs no new
 reading: it is the `rP` first entries of the recursor type's own
-binder data (`blockRecRdsAV`), which `recStage_tyPis`
+domains (`blockRecRdsAV`), which `recStage_tyPis`
 identifies.  Its length conjunct (the first of `BlockRuleDataAt`'s
 five) is then the stage's two pins together: `rds.length = mI + 1` and
 `mI = rP + nIdx`. -/
@@ -1269,7 +1269,7 @@ The move is not to compare two openings but to read ONE instantiated
 telescope (`crest`, whose free variables are the `nP` parameter
 openers) at the DEEPER depth: that is `ctorResidual_read_lift`
 (`StructRecKit.lean`), `denoteMeta_lift` through `liftN_mkPisAV`.
-`denoteMeta_openPis` then hands the shifted tower's binder data back as
+`denoteMeta_openPis` then hands the shifted tower's domains back as
 the opened fvars' readings, and the two frames' `crest`s are `ErasedEq`
 because the reading is blind to an opener's annotation. -/
 
@@ -1278,7 +1278,7 @@ section Shift
 variable {acval : Name → (Name → Nat) → ITerm} {envC : Env} {ψ : Name → Nat}
 
 omit [SetTheory V] in
-/-- `readOpenedDoms` is the binder data, whenever every opener reads to
+/-- `readOpenedDoms` is the list of domains, whenever every opener reads to
 its own entry. -/
 theorem readOpenedDoms_eq :
     ∀ (fvs : List Expr) (pps : List ITerm) (dpt : Nat),
@@ -1417,8 +1417,8 @@ end Callee
 
 /-! ## A.17c The BARE-`k` model, and the rule's own reading
 
-The rule stage ANNOTATES the right-hand side at the environment
-holding the `k` RULE-LESS recursors and TYPES it there too, so the
+The rule stage TYPES the right-hand side at the environment
+holding the `k` RULE-LESS recursors, so the
 accepted-reads recipe applies at that environment and nowhere below it
 (the rule mentions the recursors).  What is needed to run the recipe
 is a MODEL of that environment, and it is `envModelM_consBlockRecsBare`

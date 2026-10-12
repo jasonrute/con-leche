@@ -7,7 +7,7 @@ public section
 /-!
 # The P-tier frame kit (task #161, IND TIER part 3, step 1)
 
-The environment vocabulary of the validated readings: the chain of a
+The environment vocabulary of the stored-term readings: the chain of a
 spine's **readings** (`consN (ws.map (interp V ρ)) ρ`) and its lookups,
 the `instSeq` pivot between chain-reading and substituted-reading, the
 substituted telescope, the tower producers, and `CtxOk` at an opened
@@ -338,7 +338,7 @@ theorem teleFitPA_of_tower :
 `CtxOk`'s per-leaf obligation is a **semantic equation plus a
 grading**.  The equation is free (it is `interp_liftN` against a
 `shiftE` that computes); the grading is not — nothing about an
-opener's index says its annotation reads to a graded annotation — so
+opener's index says its annotation reads to a graded type — so
 the openers' grading is the premise `hokA`.
 
 The equation half needs no
@@ -349,7 +349,7 @@ at `fun j => ρ (j + (k - 1 - i) + 1)` — the same function whenever
 hypothesis is consulted, and `ctxOk_of_openers` never inspects `ρ`. -/
 
 /-- **`CtxOk` at the opened frame**: a context whose entries at the touched indices are the
-frame's own-depth read annotations correlates with a kit expression;
+frame's own-depth annotation readings correlates with a kit expression;
 padding slots are never consulted. -/
 theorem ctxOk_of_openers {env : Env} {m : EnvModel V env}
     {φ : Name → Nat}

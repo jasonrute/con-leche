@@ -15,7 +15,7 @@ data and pins them: at a `targetRecCheck` run, the `(j, i)`-th rule's run
 record (`TargetRuleRun`) has exactly these witnesses.
 
 The stored family, in the model's format, is `tgtRs out`: the checked
-recursor, its annotated rules, the major's index count and its
+recursor, its stored rules, the major's index count and its
 constructors — the stage record's `rs`.
 -/
 

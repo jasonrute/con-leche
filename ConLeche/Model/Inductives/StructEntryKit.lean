@@ -129,7 +129,7 @@ theorem spineFit_of_wellDenoted_mkAppN_lam :
     rw [hval] at hf hlne
     simp only [mkLamsAV, interp_lam] at hf hlne
     rw [lamV_eq_graph hlne] at hf
-    -- the package's codomain bit is nonzero: a graph is not the point
+    -- the package's regime `v` is nonzero: a graph is not the point
     have hv : v ≠ 0 := by
       intro hv0
       rw [hv0, piR_zero] at hf
@@ -1045,7 +1045,7 @@ law needs:
   projections' fit, the squash regime by the point spine's agreement
   with a fitting prefix at every used slot, `free_of_diff`).
 
-No annotation, inference or definitional-equality run is consumed:
+No inference or definitional-equality run is consumed:
 the body is a substitution instance of the stored constructor type,
 and the reading is a homomorphism for substitution.
 -/

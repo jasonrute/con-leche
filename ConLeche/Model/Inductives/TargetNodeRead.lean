@@ -72,7 +72,7 @@ theorem teleDoms_length {D : Nat} :
     rw [← h]
     simp [teleDoms_length hr]
 
-/-- **The `∀`-tower over a telescope, read**: its binder data are the
+/-- **The `∀`-tower over a telescope, read**: its domains are the
 telescope's domains (`teleDoms`), and its body is read with the
 binders opened. -/
 theorem denoteMeta_mkPisOf {D : Nat} :
