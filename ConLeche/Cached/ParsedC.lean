@@ -72,8 +72,7 @@ def checkConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" jty)
   let jsty ← (coreKnotI mode fe checkFuel).infer 0 jty
   let _u ← opSIxC mode fe 0 jsty
-  let tyE := jty
-  pure (⟨cv.name, cv.levelParams, tyE⟩, jty)
+  pure (cv, jty)
 
 /-- `checkShapeless` (`ConLeche/Kernel/CheckDecl.lean`) through the index:
 a block the recogniser does not read has its type formers checked as

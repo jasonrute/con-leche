@@ -60,8 +60,8 @@ theorem whnfBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
   rwa [whnfBody_fst_proj, whnfBody_snd_proj] at this
 
 theorem inferBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
-    MRefines (inferBody mode r₁ env d e) (inferBody mode r₂ env d e) := by
-  have := (inferBody mode (pairFns r₁ r₂ h) env d e).property
+    MRefines (inferBody r₁ env d e) (inferBody r₂ env d e) := by
+  have := (inferBody (pairFns r₁ r₂ h) env d e).property
   rwa [inferBody_fst_proj, inferBody_snd_proj] at this
 
 theorem defeqBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (a b : Expr) :
@@ -75,8 +75,8 @@ theorem annotateBody_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
   rwa [annotateBody_fst_proj, annotateBody_snd_proj] at this
 
 theorem inferBodyIO_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
-    MRefines (inferBodyIO mode r₁ env d e) (inferBodyIO mode r₂ env d e) := by
-  have := (inferBodyIO mode (pairFns r₁ r₂ h) env d e).property
+    MRefines (inferBodyIO r₁ env d e) (inferBodyIO r₂ env d e) := by
+  have := (inferBodyIO (pairFns r₁ r₂ h) env d e).property
   rwa [inferBodyIO_fst_proj, inferBodyIO_snd_proj] at this
 
 theorem ensureSort_mono (h : FnsRefines r₁ r₂) (d : Nat) (e : Expr) :
@@ -127,11 +127,11 @@ theorem pureFns_mono (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
     -- the io slot (task #172 B4): both fuels select the same branch
     show MRefines
       (if mode.betaGate then
-        inferBodyIO mode (CoreFns.ioView (pureFns mode env f)) env d e
-       else inferBody mode (pureFns mode env f) env d e)
+        inferBodyIO (CoreFns.ioView (pureFns mode env f)) env d e
+       else inferBody (pureFns mode env f) env d e)
       (if mode.betaGate then
-        inferBodyIO mode (CoreFns.ioView (pureFns mode env f')) env d e
-       else inferBody mode (pureFns mode env f') env d e)
+        inferBodyIO (CoreFns.ioView (pureFns mode env f')) env d e
+       else inferBody (pureFns mode env f') env d e)
     cases hg : mode.betaGate
     · simp only [Bool.false_eq_true, ite_false]
       exact inferBody_mono ih d e

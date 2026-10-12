@@ -112,7 +112,7 @@ def annotConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
   unless constsResolveFC fe jty do
     throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" jty)
-  pure (⟨cv.name, cv.levelParams, jty⟩, jty)
+  pure (cv, jty)
 
 /-- The value half of `checkDefnValC`/`checkThmValC`/`checkOpaqueValC`
 minus its inference: the guards and the annotation —

@@ -6,7 +6,7 @@ import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 import ConLeche.Verify.InferLemmas
 import ConLeche.Verify.InferLeaves
 import ConLeche.Semantics.Frame

@@ -1829,14 +1829,14 @@ private theorem infer_step (henv : EnvWF env)
     rfl
   | .sort u => rfl
   | .lit (.natVal n) =>
-    show inferBody mode (pureFns mode env fuel) env (d + 1) (.lit (.natVal n)) =
-      (inferBody mode (pureFns mode env fuel) env d (.lit (.natVal n))).map
+    show inferBody (pureFns mode env fuel) env (d + 1) (.lit (.natVal n)) =
+      (inferBody (pureFns mode env fuel) env d (.lit (.natVal n))).map
         (shiftFrom p)
     simp only [inferBody]
     exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
   | .lit (.strVal str) =>
-    show inferBody mode (pureFns mode env fuel) env (d + 1) (.lit (.strVal str)) =
-      (inferBody mode (pureFns mode env fuel) env d (.lit (.strVal str))).map
+    show inferBody (pureFns mode env fuel) env (d + 1) (.lit (.strVal str)) =
+      (inferBody (pureFns mode env fuel) env d (.lit (.strVal str))).map
         (shiftFrom p)
     simp only [inferBody]
     exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
@@ -1852,8 +1852,8 @@ private theorem infer_step (henv : EnvWF env)
     · simp only [shiftTy, ite_eq_right hp, pure, Except.pure, map_ok]
       rw [shiftFrom_eq_self (fvarsBelow_mono (by omega) hw.2.fvarsBelow)]
   | .const n us =>
-    show inferBody mode (pureFns mode env fuel) env (d + 1) (.const n us) =
-      (inferBody mode (pureFns mode env fuel) env d (.const n us)).map (shiftFrom p)
+    show inferBody (pureFns mode env fuel) env (d + 1) (.const n us) =
+      (inferBody (pureFns mode env fuel) env d (.const n us)).map (shiftFrom p)
     simp only [inferBody]
     cases hf : env.find? n with
     | none => rfl
@@ -1869,9 +1869,9 @@ private theorem infer_step (henv : EnvWF env)
         shiftFrom_eq_self_of_not_hasFvar hty]
   | .forallE ty body mb =>
     simp only [WScoped] at hw
-    show inferBody mode (pureFns mode env fuel) env (d + 1)
+    show inferBody (pureFns mode env fuel) env (d + 1)
         (.forallE (shiftFrom p ty) (shiftFrom p body) mb) =
-      (inferBody mode (pureFns mode env fuel) env d (.forallE ty body mb)).map
+      (inferBody (pureFns mode env fuel) env d (.forallE ty body mb)).map
         (shiftFrom p)
     simp only [inferBody]
     refine bind_rel _ _ (ih.infer hpd hw.1) ?_
@@ -1900,9 +1900,9 @@ private theorem infer_step (henv : EnvWF env)
     exact ite_congr' (fun _ => rfl) (fun _ => rfl)
   | .lam ty body mb =>
     simp only [WScoped] at hw
-    show inferBody mode (pureFns mode env fuel) env (d + 1)
+    show inferBody (pureFns mode env fuel) env (d + 1)
         (.lam (shiftFrom p ty) (shiftFrom p body) mb) =
-      (inferBody mode (pureFns mode env fuel) env d (.lam ty body mb)).map
+      (inferBody (pureFns mode env fuel) env d (.lam ty body mb)).map
         (shiftFrom p)
     simp only [inferBody]
     refine bind_rel _ _ (ih.infer hpd hw.1) ?_
@@ -1972,9 +1972,9 @@ private theorem infer_step (henv : EnvWF env)
     rfl
   | .proj sn i pe =>
     simp only [WScoped] at hw
-    show inferBody mode (pureFns mode env fuel) env (d + 1)
+    show inferBody (pureFns mode env fuel) env (d + 1)
         (.proj sn i (shiftFrom p pe)) =
-      (inferBody mode (pureFns mode env fuel) env d (.proj sn i pe)).map
+      (inferBody (pureFns mode env fuel) env d (.proj sn i pe)).map
         (shiftFrom p)
     simp only [inferBody]
     refine bind_rel _ _ (ih.infer hpd hw) ?_
@@ -2033,14 +2033,14 @@ private theorem inferIOCore_step (henv : EnvWF env)
     rfl
   | .sort u => rfl
   | .lit (.natVal n) =>
-    show inferBodyIO mode (pureFnsIO mode env fuel) env (d + 1) (.lit (.natVal n)) =
-      (inferBodyIO mode (pureFnsIO mode env fuel) env d (.lit (.natVal n))).map
+    show inferBodyIO (pureFnsIO mode env fuel) env (d + 1) (.lit (.natVal n)) =
+      (inferBodyIO (pureFnsIO mode env fuel) env d (.lit (.natVal n))).map
         (shiftFrom p)
     simp only [inferBodyIO]
     exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
   | .lit (.strVal str) =>
-    show inferBodyIO mode (pureFnsIO mode env fuel) env (d + 1) (.lit (.strVal str)) =
-      (inferBodyIO mode (pureFnsIO mode env fuel) env d (.lit (.strVal str))).map
+    show inferBodyIO (pureFnsIO mode env fuel) env (d + 1) (.lit (.strVal str)) =
+      (inferBodyIO (pureFnsIO mode env fuel) env d (.lit (.strVal str))).map
         (shiftFrom p)
     simp only [inferBodyIO]
     exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
@@ -2056,8 +2056,8 @@ private theorem inferIOCore_step (henv : EnvWF env)
     · simp only [shiftTy, ite_eq_right hp, pure, Except.pure, map_ok]
       rw [shiftFrom_eq_self (fvarsBelow_mono (by omega) hw.2.fvarsBelow)]
   | .const n us =>
-    show inferBodyIO mode (pureFnsIO mode env fuel) env (d + 1) (.const n us) =
-      (inferBodyIO mode (pureFnsIO mode env fuel) env d (.const n us)).map (shiftFrom p)
+    show inferBodyIO (pureFnsIO mode env fuel) env (d + 1) (.const n us) =
+      (inferBodyIO (pureFnsIO mode env fuel) env d (.const n us)).map (shiftFrom p)
     simp only [inferBodyIO]
     cases hf : env.find? n with
     | none => rfl
@@ -2073,9 +2073,9 @@ private theorem inferIOCore_step (henv : EnvWF env)
         shiftFrom_eq_self_of_not_hasFvar hty]
   | .forallE ty body mb =>
     simp only [WScoped] at hw
-    show inferBodyIO mode (pureFnsIO mode env fuel) env (d + 1)
+    show inferBodyIO (pureFnsIO mode env fuel) env (d + 1)
         (.forallE (shiftFrom p ty) (shiftFrom p body) mb) =
-      (inferBodyIO mode (pureFnsIO mode env fuel) env d (.forallE ty body mb)).map
+      (inferBodyIO (pureFnsIO mode env fuel) env d (.forallE ty body mb)).map
         (shiftFrom p)
     simp only [inferBodyIO, inferIO_def,
       pureFnsIO_whnf, ensureSortIO_def]
@@ -2105,9 +2105,9 @@ private theorem inferIOCore_step (henv : EnvWF env)
     exact ite_congr' (fun _ => rfl) (fun _ => rfl)
   | .lam ty body mb =>
     simp only [WScoped] at hw
-    show inferBodyIO mode (pureFnsIO mode env fuel) env (d + 1)
+    show inferBodyIO (pureFnsIO mode env fuel) env (d + 1)
         (.lam (shiftFrom p ty) (shiftFrom p body) mb) =
-      (inferBodyIO mode (pureFnsIO mode env fuel) env d (.lam ty body mb)).map
+      (inferBodyIO (pureFnsIO mode env fuel) env d (.lam ty body mb)).map
         (shiftFrom p)
     simp only [inferBodyIO, inferIO_def,
       ensureSortIO_def]
@@ -2181,9 +2181,9 @@ private theorem inferIOCore_step (henv : EnvWF env)
       rw [← shiftFrom_instantiate1_gen]
   | .proj sn i pe =>
     simp only [WScoped] at hw
-    show inferBodyIO mode (pureFnsIO mode env fuel) env (d + 1)
+    show inferBodyIO (pureFnsIO mode env fuel) env (d + 1)
         (.proj sn i (shiftFrom p pe)) =
-      (inferBodyIO mode (pureFnsIO mode env fuel) env d (.proj sn i pe)).map
+      (inferBodyIO (pureFnsIO mode env fuel) env d (.proj sn i pe)).map
         (shiftFrom p)
     simp only [inferBodyIO, inferIO_def,
       pureFnsIO_whnf]

@@ -362,8 +362,8 @@ theorem memoEI_infer_sim (henv : EnvWF env)
     (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
       CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
       SimC mode env s₀ (RelEC d)
-        (inferBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-        (inferBody mode (fueledFns mode env) env d e))
+        (inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
+        (inferBody (fueledFns mode env) env d e))
     {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
     (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).infer d i)
@@ -373,7 +373,7 @@ theorem memoEI_infer_sim (henv : EnvWF env)
   intro v' s' hr
   rw [show (coreKnotI mode (mkFEnv env) (f + 1)).infer d i =
     memoEI (·.inferC) (fun st mp => { st with inferC := mp })
-      (fun d e => inferBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e)
+      (fun d e => inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e)
       d i from rfl] at hr
   simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
     MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
@@ -391,7 +391,7 @@ theorem memoEI_infer_sim (henv : EnvWF env)
     rw [hl] at hr
     try dsimp only at hr
     try simp only [StateT.bind] at hr
-    cases hb : inferBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i s₀ with
+    cases hb : inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i s₀ with
     | error err =>
       rw [hb] at hr
       simp only [Bind.bind, Except.bind] at hr
@@ -420,9 +420,9 @@ theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
     (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
       CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
       SimC mode env s₀ (RelEC d)
-        (inferBodyIOI mode
+        (inferBodyIOI
           (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env) d i)
-        (inferBodyIO mode (CoreFns.ioView (fueledFns mode env)) env d e))
+        (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d e))
     {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
     (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ (RelEC d)
@@ -433,7 +433,7 @@ theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
   intro v' s' hr
   have hslot : (coreKnotI mode (mkFEnv env) (f + 1)).inferIO =
       memoEI (·.inferIOC) (fun st mp => { st with inferIOC := mp })
-        (fun d e => inferBodyIOI mode
+        (fun d e => inferBodyIOI
           (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env)
           d e) := by
     -- `mode.ioGate` is the literal `true` at a variable mode (task
@@ -458,7 +458,7 @@ theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
     rw [hl] at hr
     try dsimp only at hr
     try simp only [StateT.bind] at hr
-    cases hb : inferBodyIOI mode
+    cases hb : inferBodyIOI
         (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env) d i
         s₀ with
     | error err =>
@@ -474,7 +474,7 @@ theorem memoEI_inferIO_sim (hgb : mode.betaGate = true) (henv : EnvWF env)
       obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
       obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
       rw [inferBodyIO_atF] at hF
-      rw [show inferBodyIO mode (CoreFns.ioView (pureFns mode env F)) env d i
+      rw [show inferBodyIO (CoreFns.ioView (pureFns mode env F)) env d i
           = inferTypeIO mode env (F + 1) d i from by
         rw [inferTypeIO_succ, hgb]; simp only [↓reduceIte]] at hF
       have hins := hs₁.insertInferIOC

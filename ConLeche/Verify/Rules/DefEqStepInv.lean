@@ -44,39 +44,29 @@ inductive QuickExit (env : Env) (fuel d : Nat) : Expr → Expr → Prop where
       QuickExit env fuel d (.sort u) (.sort v)
   /-- Two equal literals. -/
   | lit {l : Literal} : QuickExit env fuel d (.lit l) (.lit l)
-  /-- ∀-congruence, the bodies opened at the RIGHT domain, the
-  annotations equal (the `.verified` validation). -/
+  /-- ∀-congruence, the bodies opened at the RIGHT domain. -/
   | forallE {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂ : BinderMeta} :
       isDefEqCore .verified env fuel d ty₁ ty₂ = .ok true →
       isDefEqCore .verified env fuel (d + 1) (bd₁.instantiate1 (.fvar d ty₂))
         (bd₂.instantiate1 (.fvar d ty₂)) = .ok true →
-      m₁.pw = m₂.pw →
       QuickExit env fuel d (.forallE ty₁ bd₁ m₁) (.forallE ty₂ bd₂ m₂)
-  /-- λ-congruence, likewise. -/
+  /-- λ-congruence: the λ-telescope comparison (`defeqLams`). -/
   | lam {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂ : BinderMeta} :
-      isDefEqCore .verified env fuel d ty₁ ty₂ = .ok true →
-      isDefEqCore .verified env fuel (d + 1) (bd₁.instantiate1 (.fvar d ty₂))
-        (bd₂.instantiate1 (.fvar d ty₂)) = .ok true →
-      m₁.pw = m₂.pw →
+      defeqLamsFueled .verified env fuel lamsFuel d ty₁ bd₁ ty₂ bd₂ = .ok true →
       QuickExit env fuel d (.lam ty₁ bd₁ m₁) (.lam ty₂ bd₂ m₂)
 
-/-- The binder arms of `quickDefEq` (shared by ∀ and λ): a `some true`
-run compared the domains, then the opened bodies, then passed the
-annotation check. -/
-private theorem binder_inv {d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂ : BinderMeta}
-    {msg : String}
+/-- The ∀ arm of `quickDefEq`: a `some true` run compared the domains,
+then the opened bodies. -/
+private theorem binder_inv {d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr}
     (h : (do
       unless ← isDefEqCore .verified env fuel d ty₁ ty₂ do return some false
       unless ← isDefEqCore .verified env fuel (d + 1)
           (bd₁.instantiate1 (.fvar d ty₂))
           (bd₂.instantiate1 (.fvar d ty₂)) do return some false
-      if CheckMode.verified.verifiedChecks && !(m₁.pw == m₂.pw) then
-        throw (.notImplemented msg)
       pure (some true) : CheckM (Option Bool)) = .ok (some true)) :
     isDefEqCore .verified env fuel d ty₁ ty₂ = .ok true ∧
     isDefEqCore .verified env fuel (d + 1) (bd₁.instantiate1 (.fvar d ty₂))
-      (bd₂.instantiate1 (.fvar d ty₂)) = .ok true ∧
-    m₁.pw = m₂.pw := by
+      (bd₂.instantiate1 (.fvar d ty₂)) = .ok true := by
   cases hdt : isDefEqCore .verified env fuel d ty₁ ty₂ with
   | error err => rw [hdt] at h; exact nomatch h
   | ok r =>
@@ -91,14 +81,69 @@ private theorem binder_inv {d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂
   rw [hbd] at h
   cases rb with
   | false => simp [pure, Except.pure, Bind.bind, Except.bind] at h
+  | true => exact ⟨rfl, rfl⟩
+
+/-- **The innermost level of the λ-telescope comparison, inverted**: the
+opened bodies compared, their full-grade types inferred and compared. -/
+theorem defeqLamsInner_inv {d : Nat} {b₁ b₂ : Expr}
+    (h : defeqLamsInnerFueled .verified env fuel d b₁ b₂ = .ok true) :
+    isDefEqCore .verified env fuel (d + 1) b₁ b₂ = .ok true ∧
+    ∃ t₁ t₂, inferTypeCore .verified env fuel (d + 1) b₁ = .ok t₁ ∧
+      inferTypeCore .verified env fuel (d + 1) b₂ = .ok t₂ ∧
+      isDefEqCore .verified env fuel (d + 1) t₁ t₂ = .ok true := by
+  simp only [defeqLamsInnerFueled, defeqLamsInner, defeq_def, infer_def,
+    CheckMode.verifiedChecks] at h
+  cases hb : isDefEqCore .verified env fuel (d + 1) b₁ b₂ with
+  | error err => simp [hb, Bind.bind, Except.bind] at h
+  | ok r =>
+  cases r with
+  | false => simp [hb, pure, Except.pure, Bind.bind, Except.bind] at h
   | true =>
-  refine ⟨rfl, rfl, ?_⟩
-  by_cases hq : (m₁.pw == m₂.pw) = true
-  · exact eq_of_beq hq
-  · exfalso
-    have hq1 : (m₁.pw == m₂.pw) = false := by simpa using hq
-    simp [hq1, CheckMode.verifiedChecks, throw, throwThe, MonadExceptOf.throw,
-      Bind.bind, Except.bind] at h
+  refine ⟨rfl, ?_⟩
+  cases h₁ : inferTypeCore .verified env fuel (d + 1) b₁ with
+  | error err => simp [hb, h₁, Bind.bind, Except.bind] at h
+  | ok t₁ =>
+  cases h₂ : inferTypeCore .verified env fuel (d + 1) b₂ with
+  | error err => simp [hb, h₁, h₂, Bind.bind, Except.bind] at h
+  | ok t₂ =>
+  cases ht : isDefEqCore .verified env fuel (d + 1) t₁ t₂ with
+  | error err => simp [hb, h₁, h₂, ht, Bind.bind, Except.bind] at h
+  | ok rt =>
+  cases rt with
+  | false => simp [hb, h₁, h₂, ht, pure, Except.pure, Bind.bind, Except.bind] at h
+  | true => exact ⟨t₁, t₂, rfl, rfl, ht⟩
+
+/-- **The λ-telescope comparison, inverted** (`defeqLams`): the domains
+compared, then either a descent into two λ bodies (equal, or compared
+by the next level), or the innermost level. -/
+theorem defeqLams_inv {k d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr}
+    (h : defeqLamsFueled .verified env fuel k d ty₁ bd₁ ty₂ bd₂ = .ok true) :
+    isDefEqCore .verified env fuel d ty₁ ty₂ = .ok true ∧
+    ((∃ k' ty₁' bd₁' m₁ ty₂' bd₂' m₂, k = k' + 1 ∧
+        bd₁.instantiate1 (.fvar d ty₂) = .lam ty₁' bd₁' m₁ ∧
+        bd₂.instantiate1 (.fvar d ty₂) = .lam ty₂' bd₂' m₂ ∧
+        (Expr.lam ty₁' bd₁' m₁ = .lam ty₂' bd₂' m₂ ∨
+          defeqLamsFueled .verified env fuel k' (d + 1) ty₁' bd₁' ty₂' bd₂' = .ok true)) ∨
+      defeqLamsInnerFueled .verified env fuel d (bd₁.instantiate1 (.fvar d ty₂))
+        (bd₂.instantiate1 (.fvar d ty₂)) = .ok true) := by
+  simp only [defeqLamsFueled] at h
+  rw [defeqLams.eq_def] at h
+  simp only [defeq_def] at h
+  cases hdt : isDefEqCore .verified env fuel d ty₁ ty₂ with
+  | error err => rw [hdt] at h; exact nomatch h
+  | ok r =>
+  rw [hdt] at h
+  cases r with
+  | false => simp [pure, Except.pure, Bind.bind, Except.bind] at h
+  | true =>
+  refine ⟨rfl, ?_⟩
+  simp only [Bind.bind, Except.bind, ↓reduceIte] at h
+  split at h
+  · refine Or.inl ⟨_, _, _, _, _, _, _, rfl, ‹_›, ‹_›, ?_⟩
+    split at h
+    · next heq => exact Or.inl (eq_of_beq heq)
+    · exact Or.inr h
+  · exact Or.inr h
 
 /-- **The inversion of `quickDefEq`'s `some true`.** -/
 theorem quickDefEq_inv {d : Nat} {a b : Expr}
@@ -123,10 +168,16 @@ theorem quickDefEq_inv {d : Nat} {a b : Expr}
     simp only [pure, Except.pure, Except.ok.injEq, Option.some.injEq] at h
     obtain rfl : l₁ = l₂ := eq_of_beq h
     exact .lit
-  · obtain ⟨h₁, h₂, h₃⟩ := binder_inv h
-    exact .forallE h₁ h₂ h₃
-  · obtain ⟨h₁, h₂, h₃⟩ := binder_inv h
-    exact .lam h₁ h₂ h₃
+  · obtain ⟨h₁, h₂⟩ := binder_inv h
+    exact .forallE h₁ h₂
+  · simp only [Bind.bind, Except.bind] at h
+    cases hl : defeqLams .verified (pureFns .verified env fuel) lamsFuel d _ _ _ _ with
+    | error err => rw [hl] at h; exact nomatch h
+    | ok r =>
+      rw [hl] at h
+      simp only [pure, Except.pure, Except.ok.injEq, Option.some.injEq] at h
+      subst h
+      exact .lam hl
   · simp [pure, Except.pure] at h
 
 /-- **The stuck comparison's exits** (`defeqStuck`, `Kernel/Core.lean`).
@@ -168,11 +219,11 @@ inductive DefeqStuckExit (env : Env) (fuel d : Nat) : Expr → Expr → Prop whe
       DefeqStuckExit env fuel d a b
   /-- A one-sided λ on the left — η. -/
   | etaL {ty bd : Expr} {mb : BinderMeta} {b : Expr} :
-      etaCertFueled .verified env fuel d ty bd mb b = .ok true →
+      etaCertFueled .verified env fuel d ty bd b = .ok true →
       DefeqStuckExit env fuel d (.lam ty bd mb) b
   /-- A one-sided λ on the right. -/
   | etaR {ty bd : Expr} {mb : BinderMeta} {a : Expr} :
-      etaCertFueled .verified env fuel d ty bd mb a = .ok true →
+      etaCertFueled .verified env fuel d ty bd a = .ok true →
       DefeqStuckExit env fuel d a (.lam ty bd mb)
 
 /-- **The inversion of `defeqStuck`.** -/

@@ -1217,7 +1217,7 @@ def inferStep (r : CoreFns m) (depth : Nat) (tf a : Expr) : m Expr := do
 /-- `inferBody`'s app case at the pure knot is one inference followed
 by `inferStep` (stated at `CheckM`, where the do-notation reduces). -/
 theorem inferBody_app_pure (env : Env) (F depth : Nat) (f a : Expr) :
-    inferBody mode (pureFns mode env F) env depth (.app f a)
+    inferBody (pureFns mode env F) env depth (.app f a)
       = (pureFns mode env F).infer depth f >>= fun tf =>
           inferStep (pureFns mode env F) depth tf a := by rfl
 
@@ -1556,7 +1556,7 @@ theorem inferSpine_sound_body (d : Nat) (fx ax : Expr) (vres : Expr)
     (H : ((fueledFns mode env).infer d (Expr.app fx ax).getAppFn >>=
         fun tf => inferSpine (fueledFns mode env) d tf []
           (Expr.app fx ax).getAppArgs).val F = .ok vres) :
-    ∃ F', (inferBody mode (fueledFns mode env) env d (.app fx ax)).val F'
+    ∃ F', (inferBody (fueledFns mode env) env d (.app fx ax)).val F'
       = .ok vres := by
   rw [FueledM.atF_bind] at H
   obtain ⟨th, hth, H⟩ := bind_ok H
@@ -1773,7 +1773,7 @@ theorem inferStepIO_mono {d : Nat} {tf a : Expr} {F F' : Nat}
 /-- The io inference body's app case over the io-grade view is one
 io-slot inference followed by `inferStepIO` (stated at `CheckM`). -/
 theorem inferBodyIO_app_pure (env : Env) (F depth : Nat) (f a : Expr) :
-    inferBodyIO mode (CoreFns.ioView (pureFns mode env F)) env depth
+    inferBodyIO (CoreFns.ioView (pureFns mode env F)) env depth
         (.app f a)
       = (pureFns mode env F).inferIO depth f >>= fun tf =>
           inferStepIO (CoreFns.ioView (pureFns mode env F)) depth
@@ -2032,7 +2032,7 @@ theorem inferSpineIO_sound_body (hgb : mode.betaGate = true) (d : Nat)
     (H : ((fueledFns mode env).inferIO d (Expr.app fx ax).getAppFn >>=
         fun tf => inferSpineIO (fueledFns mode env) d tf []
           (Expr.app fx ax).getAppArgs).val F = .ok vres) :
-    ∃ F', (inferBodyIO mode (CoreFns.ioView (fueledFns mode env)) env d
+    ∃ F', (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d
       (.app fx ax)).val F' = .ok vres := by
   rw [FueledM.atF_bind] at H
   obtain ⟨th, hth, H⟩ := bind_ok H

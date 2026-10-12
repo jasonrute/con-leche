@@ -76,12 +76,11 @@ def installConstantVal (env : Env) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if cv.type.hasFvar then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let type := cv.type
-  unless type.allLevelParamsDefined cv.levelParams do
+  unless cv.type.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless type.constsResolve env do
-    throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" type)
-  pure { cv with type := type }
+  unless cv.type.constsResolve env do
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
+  pure cv
 
 /-- The value half of `check{Defn,Thm,Opaque}Val` minus its inference:
 the guards. -/

@@ -124,8 +124,7 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- Checks common to all declarations: fresh name, well-formed universe
 parameters, and a type that is a type and mentions only declared
-parameters.  Returns the constant with its type **annotated**
-(`annotate`); the guards run on the annotated type. -/
+parameters.  Returns the constant. -/
 def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m ConstantVal := do
   if (env.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
@@ -139,14 +138,13 @@ def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Con
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if cv.type.hasFvar then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let type := cv.type
-  unless type.allLevelParamsDefined cv.levelParams do
+  unless cv.type.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless type.constsResolve env do
-    throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" type)
-  let stype ← ops.inferType env 0 type
+  unless cv.type.constsResolve env do
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
+  let stype ← ops.inferType env 0 cv.type
   let _u ← ops.ensureSort env 0 stype
-  pure { cv with type := type }
+  pure cv
 
 /-- Open the first `n` `∀`-binders at fresh free variables `0..n-1`
 (each fvar's type is the binder domain, instantiated with the earlier

@@ -1396,6 +1396,15 @@ def boolTrueShortcutI (r : CoreFnsI) (depth : Nat) (a : Expr) : CheckCM Bool := 
   let w ← r.whnf depth a
   pure (Expr.isBoolTrue w)
 
+/-- Twin of `defeqLamsInner`. -/
+def defeqLamsInnerI (r : CoreFnsI) (depth : Nat) (b₁ b₂ : Expr) : CheckCM Bool := do
+  unless ← r.defeq (depth + 1) b₁ b₂ do return false
+  if mode.verifiedChecks then do
+    let t₁ ← r.infer (depth + 1) b₁
+    let t₂ ← r.infer (depth + 1) b₂
+    unless ← r.defeq (depth + 1) t₁ t₂ do return false
+  pure true
+
 /-- Twin of `defeqLams`. -/
 def defeqLamsI (r : CoreFnsI) :
     Nat → Nat → Expr → Expr → Expr → Expr → CheckCM Bool
@@ -1408,13 +1417,7 @@ def defeqLamsI (r : CoreFnsI) :
     | fuel + 1, .lam ty₁' body₁' _, .lam ty₂' body₂' _ =>
       if b₁ == b₂ then pure true
       else defeqLamsI r fuel (depth + 1) ty₁' body₁' ty₂' body₂'
-    | _, _, _ => do
-      unless ← r.defeq (depth + 1) b₁ b₂ do return false
-      if mode.verifiedChecks then do
-        let t₁ ← r.infer (depth + 1) b₁
-        let t₂ ← r.infer (depth + 1) b₂
-        unless ← r.defeq (depth + 1) t₁ t₂ do return false
-      pure true
+    | _, _, _ => defeqLamsInnerI mode r depth b₁ b₂
 
 /-- Twin of `quickDefEq`. -/
 def quickDefEqI (r : CoreFnsI) (depth : Nat) (a b : Expr) :

@@ -1411,6 +1411,15 @@ Exhaustion is not an error: the level reached is compared as the
 innermost one, which is always sound. -/
 @[irreducible, noinline] def lamsFuel : Nat := 4611686018427387904  -- 2^62
 
+/-- The innermost level of `defeqLams`: the opened bodies, and at the
+verified mode their FULL-grade types. -/
+def defeqLamsInner (r : CoreFns m) (depth : Nat) (b₁ b₂ : Expr) : m Bool := do
+  unless ← r.defeq (depth + 1) b₁ b₂ do return false
+  if mode.verifiedChecks then
+    unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
+        (← r.infer (depth + 1) b₂) do return false
+  pure true
+
 /-- **λ-telescope congruence** (task #342, #349; the rules tier's
 `DefEqLams`): two λs compare their domains; while both opened bodies
 are λs (and not syntactically equal) the comparison descends into them
@@ -1429,12 +1438,7 @@ def defeqLams (r : CoreFns m) :
     | fuel + 1, b₁@(.lam ty₁' body₁' _), b₂@(.lam ty₂' body₂' _) =>
       if b₁ == b₂ then pure true
       else defeqLams r fuel (depth + 1) ty₁' body₁' ty₂' body₂'
-    | _, b₁, b₂ => do
-      unless ← r.defeq (depth + 1) b₁ b₂ do return false
-      if mode.verifiedChecks then
-        unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
-            (← r.infer (depth + 1) b₂) do return false
-      pure true
+    | _, b₁, b₂ => defeqLamsInner mode r depth b₁ b₂
 
 /-- **The easy cases** (the official kernel's `quick_is_def_eq`): the
 syntactic fast path, and the pairs whose verdict is decided on the spot

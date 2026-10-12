@@ -1251,7 +1251,7 @@ theorem inferSpineIOC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
       Expr.WScoped d (tx.instantiateList ws) →
       RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
       SimC mode env s₀ (RelEC d)
-        (inferSpineIOI mode
+        (inferSpineIOI
           (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env)
           d ty acc args)
         (inferSpineIO (fueledFns mode env) d tx ws xs)
@@ -1794,8 +1794,8 @@ theorem inferBodyC_sim (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelEC d)
-      (inferBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (inferBody mode (fueledFns mode env) env d ex) := by
+      (inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
+      (inferBody (fueledFns mode env) env d ex) := by
   unfold inferBodyI
   obtain rfl := hden
   have hden : RelC i i := rfl
@@ -2051,9 +2051,9 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true) (hgb : mode.betaGate
     {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelEC d)
-      (inferBodyIOI mode
+      (inferBodyIOI
         (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env) d i)
-      (inferBodyIO mode (CoreFns.ioView (fueledFns mode env)) env d ex) := by
+      (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d ex) := by
   unfold inferBodyIOI
   obtain rfl := hden
   have hden : RelC i i := rfl

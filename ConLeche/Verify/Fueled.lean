@@ -639,16 +639,16 @@ theorem whnfBody_atF (d : Nat) (e : Expr) (F : Nat) :
   whnfLoop_atF d F whnfLoopFuel e
 
 theorem inferBody_atF (d : Nat) (e : Expr) (F : Nat) :
-    (inferBody mode (fueledFns mode env) env d e).val F =
-      inferBody mode (pureFns mode env F) env d e := by
+    (inferBody (fueledFns mode env) env d e).val F =
+      inferBody (pureFns mode env F) env d e := by
   unfold inferBody
   atF_tac4
 
 /-- The io inference body over the io-grade views (task #172 B4): the
 same walk, the slot's family in the recursion sites. -/
 theorem inferBodyIO_atF (d : Nat) (e : Expr) (F : Nat) :
-    (inferBodyIO mode (CoreFns.ioView (fueledFns mode env)) env d e).val F =
-      inferBodyIO mode (CoreFns.ioView (pureFns mode env F)) env d e := by
+    (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d e).val F =
+      inferBodyIO (CoreFns.ioView (pureFns mode env F)) env d e := by
   unfold inferBodyIO CoreFns.ioView
   atF_tac4
   -- the residual `ensureSort` goals: the view leaves `whnf` (the only

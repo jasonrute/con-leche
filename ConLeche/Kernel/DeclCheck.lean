@@ -364,14 +364,13 @@ def checkConstantValF (ops : CheckerOps m) (fe : FEnv)
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if cv.type.hasFvar then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let type := cv.type
-  unless type.allLevelParamsDefined cv.levelParams do
+  unless cv.type.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless type.constsResolveF fe do
-    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" type)
-  let stype ← ops.inferType fe.env 0 type
+  unless cv.type.constsResolveF fe do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
+  let stype ← ops.inferType fe.env 0 cv.type
   let _u ← ops.ensureSort fe.env 0 stype
-  pure { cv with type := type }
+  pure cv
 
 /-- `installBasisDecl` through the index, returning the pushed index. -/
 def installBasisDeclF (fe : FEnv) (ci : ConstantInfo) : m FEnv := do

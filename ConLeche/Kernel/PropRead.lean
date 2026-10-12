@@ -11,27 +11,22 @@ public import ConLeche.Kernel.ExprOps
 Two pure readers that answer "is this type a proposition?" / "is this
 term a proof?" from the **head symbol, the arity and the residual sorts of stored
 types** — no inference, no reduction, no memo, no binder data (task
-#342 S0).
+#342).
 
 Prop-ness is invariant under application: `zeronessOf (imax u v) =
 zeronessOf v`, so the zero-ness of the sort of the type of `c a⃗` is
 that of `c`'s *stored* type at every arity, over-application included.
 The datum a head-symbol reader needs is therefore **one `PropWhen` per
 constant** — the zero-ness of the sort of its type, read off the
-stored (annotated, validated) type and instantiated at the use's
-levels by `substPW`.
+residual sort of its stored type and instantiated at the use's levels
+by `substPW`.
 
 Both readers are three-valued (`some pw` = the datum, `none` = unknown,
 fall back to inference).  The kernel's verdict on a datum is exactly the
 slow path's `Level.isEquiv u .zero`: `pw == (.ifAllZero [])` ⟺ the
 sort is zero at every valuation.
 
-Trust: the readers consume annotations the checker validates
-(`(forall-cod)`, `(lam-cod-leaf)`/`(lam-cod-chain)` in `inferBody`;
-the stored types were validated at install), so they may only be
-*consulted* at the verified modes (`mode.verifiedChecks`) — the trusted core
-writes no data and the parser default stays.  The **"definitely not a
-proof" arm** (`notProofFast`) needs no model theorem: refusing the
+The **"definitely not a proof" arm** (`notProofFast`) needs no model theorem: refusing the
 proof-irrelevance shortcut is always sound; its obligation is
 kernel-level agreement with the slow path, which the landing census
 records (DESIGN.md, task #168).  The **"definitely a proof" arm** is a
@@ -44,10 +39,7 @@ namespace Expr
 
 /-- The residual after peeling `k` *syntactic* ∀ binders, whatever
 their domains (no substitution — the residual may mention the peeled
-binders; the readers only look at its head shape).  Task #342 S0: no
-binder datum is read, so no `.never` requirement either (in #344's
-model a type that is a member of a satisfying context is not the
-point, so its head is a graph, which fixes the domains). -/
+binders; the readers only look at its head shape). -/
 def peelPis : Nat → Expr → Option Expr
   | 0, e => some e
   | k + 1, .forallE _ b _ => peelPis k b
@@ -83,7 +75,7 @@ def lamProj? : Nat → Expr → Option (Nat × Nat)
   | k, .bvar j => if j < k then some (k, j) else none
   | _, _ => none
 
-/-- Task #342 S0: unfold an identity-like wrapper (a definition whose
+/-- Unfold an identity-like wrapper (a definition whose
 value is `fun x₁ … x_k => x_i`, e.g. `outParam`) at the head of a
 residual type, `fuel` times at most; definitional (δ then β). -/
 def unwrapIdDefs (find? : Name → Option ConstantInfo) : Nat → Expr → Expr
@@ -176,8 +168,8 @@ def headProofPW (find? : Name → Option ConstantInfo) : Expr →
   | .fvar _ ty => typeSortPW find? ty
   | .sort _ | .forallE .. | .lit _ => some .never
   | .proj S i _ =>
-    -- Task #342 S0: the field's stored type, when its datum does not
-    -- depend on the structure's levels
+    -- the field's stored type, when its datum does not depend on the
+    -- structure's levels
     match find? (projTableName S) with
     | some (.projInfo tbl) =>
       if i < tbl.numFields then
@@ -190,19 +182,16 @@ def headProofPW (find? : Name → Option ConstantInfo) : Expr →
 
 /-- The zero-ness datum of the sort of the *type* of `a` ("is `a` a
 proof?"), read off `a`'s head symbol at any arity: a constant or fvar
-head answers from its stored/declared type; an unapplied λ answers from
-its body (a λ's type is a ∀ whose prop-ness is its codomain's, the
-body's type); sorts, ∀s and literals are never proofs.  `none` =
-unknown. -/
-partial def proofPW (find? : Name → Option ConstantInfo) : Expr → Option PropWhen
+head answers from its stored/declared type; a λ answers from its body
+(a λ's type is a ∀ whose prop-ness is its codomain's, the body's type),
+a `let` from its body, and an application from its function (prop-ness
+is invariant under application, so a β-redex's is its λ's); sorts, ∀s
+and literals are never proofs.  `none` = unknown. -/
+def proofPW (find? : Name → Option ConstantInfo) : Expr → Option PropWhen
   | .lam _ b _ => proofPW find? b
   | .letE _ _ b => proofPW find? b
-  | a =>
-    match a.getAppFn with
-    -- a β-redex's prop-ness is its λ's (invariant under application)
-    | .lam _ b _ => proofPW find? b
-    | .letE _ _ b => proofPW find? b
-    | h => headProofPW find? h
+  | .app f _ => proofPW find? f
+  | h => headProofPW find? h
 
 /-- Is the datum "always zero" — the sort is `Prop` at every
 valuation? -/
