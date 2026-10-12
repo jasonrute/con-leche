@@ -416,7 +416,7 @@ each is a member of its field's set at the earlier values: the set of
 an ordinary field is its domain's denotation, read without $W$; the
 set of a reflexive field
 $f : forall arrow(z) : arrow(A). thin I thick arrow(x) thick arrow(e)$
-is the product, read as in §2, over its telescope into fibres of $W$
+is the function space, read as in §2, over its telescope into fibres of $W$
 at the field's own index expressions $arrow(e)$,
 $ PiV(arrow(z) in arrow(A), thick adm(W(arrow(e)(arrow(z))))), $
 the fibre $W(arrow(e))$ itself when the telescope is empty
@@ -428,9 +428,9 @@ proposition, the members of $X$ that are neither the point nor contain
 it. On the family the construction ends with it changes nothing,
 since there a fibre above a proposition is a set of tagged tuples. It
 is there for the arbitrary families the operator is also applied to:
-a fibre ${pt}$ would make the field's product a truth value, and the
+a fibre ${pt}$ would make the field's function space a truth value, and the
 field's set would no longer grow with the family
-(#src("whitepaper/Fragment/IndCommon.lean", 278, 286)[the product's body]).
+(#src("whitepaper/Fragment/IndCommon.lean", 278, 286)[the function space's body]).
 The fibre is a set, built by replacement, union and separation from
 the fields' sets
 (#src("whitepaper/Fragment/IndSem.lean", 501, 550)[the construction],
@@ -478,7 +478,7 @@ naturals into a fibre of $W$. Three things have to be shown.
 + _A family holding the support produces $x$._ If every child lies
   in the matching fibre of $W'$, then $f$, a function whose
   applications all lie in fibres of $W'$,
-  #src("whitepaper/Fragment/IndSem.lean", 1237, 1250)[is a member of the product]
+  #src("whitepaper/Fragment/IndSem.lean", 1237, 1250)[is a member of the function space]
   into those fibres (by η), and ordinary fields do not mention the
   family; so $x in Phi(W')$.
 + _One bound for every family._ The names of the occurrences — field
@@ -537,7 +537,7 @@ which holds in both regimes, is used there only for monotonicity.
   and monotonicity and accessibility are read off the positivity
   check's run, case by case: a reading that mentions no hole is
   #src("ConLeche/Semantics/Inductives/HoleMono.lean", 70, 72)[constant]
-  (the ordinary field); a product over a hole-free domain is
+  (the ordinary field); a function space over a hole-free domain is
   #src("ConLeche/Semantics/Inductives/HoleMono.lean", 139, 141)[positive when its body is]
   and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 251, 257)[accessible with its body's bound glued over the domain]
   (the reflexive field); a hole applied to hole-free arguments is

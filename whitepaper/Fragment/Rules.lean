@@ -567,7 +567,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:373`): domains, then
   bodies under the RIGHT domain, and nothing else (task #344).  A
   `∀`'s value is a function of its domain's and its fibres' values
-  (`SetLib.piV`: the propositional product exactly when every fibre is
+  (`SetLib.piV`: the propositional function space exactly when every fibre is
   a truth value), and both are types, never the point, so the
   premises' claims apply everywhere (`Sound.lean`, `DefEq.pi_sound`). -/
   | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} :
@@ -643,7 +643,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   **typed** as λ-congruence is (task #344), the λ's body's inferred
   type is definitionally equal to the `∀`'s body, so that the λ's body
   and `b` applied lie in one type.  Sound because a member of a
-  product is the abstraction of its applications
+  function space is the abstraction of its applications
   (`SetLib.lamV_eta`). -/
   | eta {Γ : List Expr} {A₁ b₁ b tb A₂ B t₁ : Expr} :
       Infer env Γ b tb → Red env Γ tb (pi A₂ B) →

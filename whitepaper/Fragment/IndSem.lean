@@ -282,7 +282,7 @@ variable (S : IndSpec) (M : Name → List Nat → V) (ls : List Nat)
 /-- **The set a field ranges over**, relative to a family `W` (index
 values to sets), at parameters `ps` and the earlier field values `fs`
 (innermost first): an ordinary field's domain; for a reflexive field
-the product over its telescope into the fibres of `W` at the field's
+the function space over its telescope into the fibres of `W` at the field's
 index expressions read under the telescope's values — the fibre
 itself when the telescope is empty; for a container field the class
 at the fibre of `W` at the nested occurrence's index expressions

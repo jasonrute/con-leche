@@ -158,11 +158,11 @@ $
 $
 
 Here $Pi_0(A, B)$ is
-#src("whitepaper/Fragment/Lib.lean", 185, 191)[the _propositional product_],
+#src("whitepaper/Fragment/Lib.lean", 185, 191)[the _propositional function space_],
 $tv(forall v in A. thin B(v) = {pt})$: when the fibres $B(v)$ are
 truth values it is their intersection $inter.big_(v in A) B(v)$ (the
 empty intersection being ${pt}$), which is ${pt}$ exactly when every
-fibre is and $emptyset$ otherwise — the product of subsets of a
+fibre is and $emptyset$ otherwise — the function space of subsets of a
 singleton.
 A `let` reads its body at the value's value, and its type is not read,
 as no type is read anywhere.
@@ -178,17 +178,17 @@ the sort of $B$, and does not compute it.
 
 *The empty domain.* Over a non-empty domain the values decide as the
 sort of the body would. Over an _empty_ domain there are no values,
-and both clauses take their first case: a product over an empty domain
+and both clauses take their first case: a function space over an empty domain
 #src("whitepaper/Fragment/Lib.lean", 625, 631)[is ${pt}$], and an abstraction over one
 #src("whitepaper/Fragment/Lib.lean", 633, 635)[is the point] — whatever the sort of
 the body. So `False → Nat`, a type of sort `Type`, denotes ${pt}$,
-and its inhabitant `fun h => h.elim` denotes the point. A product
+and its inhabitant `fun h => h.elim` denotes the point. A function space
 over an inhabited domain can do the same: `Nat → False → Nat` has
 ${pt}$ as every fibre and is
 #src("whitepaper/Fragment/Probe.lean", 52, 54)[itself ${pt}$], and `fun n h => h.elim`
 is the point. No other reading over the empty domain does better:
 whether the codomain is a proposition there is a fact about the
-syntax, not about any value, and reading an empty product as a
+syntax, not about any value, and reading an empty Π-type as a
 function space instead would make the proposition `False → False`
 denote a one-element set of graphs, which no truth value is.
 
@@ -258,8 +258,8 @@ always well-denoted, and
     $rho models forall x : A. thin B$),
 )
 
-In app, $P$ is some product with domain $A'$: a function space
-$Pi(A', B')$ whose domain $A'$ is a type, or a propositional product
+In app, $P$ is either a function space
+$Pi(A', B')$ whose domain $A'$ is a type, or a propositional function space
 $Pi_0(A', B')$ whose fibres are truth values. In lam, $B$ is some
 family of types bounding the body's values, its _codomain_. In words:
 an application applies a function, or a proof of a propositional
@@ -267,7 +267,7 @@ $forall$, to a member of its domain; a binder's domain is a type; a
 $lambda$'s values lie in a bounded family of types, and a $forall$'s
 fibres are types. The invariant records which sets are types, and that
 is what makes the value reading coherent: an abstraction is
-#src("whitepaper/Fragment/Lib.lean", 552, 558)[a member of the product] of a family of types bounding its values
+#src("whitepaper/Fragment/Lib.lean", 552, 558)[a member of the function space] of a family of types bounding its values
 — if every fibre is a truth value, every value is the point and so is
 the abstraction; if one fibre is not, it is strict, the body's value
 there is not the point, and the abstraction is the graph.
@@ -288,7 +288,7 @@ it is the only thing the claims below assume about the context.
 Now the first interesting point of the whole development: what a β step
 needs. Take a redex $(lambda x : A. thin b) thick a$ that is
 well-denoted. From the application rule we know the $lambda$'s value
-lies in some product whose domain $A'$ contains $lden a rden_rho$; from the
+lies in some $P$ whose domain $A'$ contains $lden a rden_rho$; from the
 $lambda$ rule we know the body is bounded over $lden A rden_rho$. To make
 the β law fire we need $lden a rden_rho in lden A rden_rho$ — the argument
 in _the λ's own_ domain — and the semantic invariant has given us $A'$, not $A$.
@@ -304,8 +304,8 @@ in _the λ's own_ domain — and the semantic invariant has given us $A'$, not $
   The application is not the point, so neither is the $lambda$, since
   $pt dot.op a = pt$. An abstraction that is not the point is
   a graph, $graph(v |-> lden b rden_(rho, x |-> v), lden A rden_rho)$.
-  A graph is never the point, so the application's product $P$ is a
-  function space $Pi(A', B')$, not a propositional product. The
+  A graph is never the point, so the application's $P$ is a
+  function space $Pi(A', B')$, not a propositional function space. The
   $lambda$'s own rule puts the same graph into
   $Pi(lden A rden_rho, B)$ by introduction, and domain
   uniqueness gives $A' = lden A rden_rho$; so $lden a rden_rho in lden A rden_rho$,
@@ -487,8 +487,8 @@ where the argument lives.
   *#src("whitepaper/Fragment/Sound.lean", 233, 254)[Rule app]* — $f_1 thick a_1 equiv f_2 thick a_2$: \
   Both applications are off the point, so both heads are, and the
   claim on the heads makes them one graph. Each application's rule
-  puts its argument in a product holding its head; a graph is in no
-  propositional product, so both products are function spaces, and
+  puts its head in some $P$, with its argument in $P$'s domain; a graph
+  is in no propositional function space, so each $P$ is a function space, and
   domain uniqueness gives both arguments in one domain — a type. They
   are both the point, or neither is and the claim on the arguments
   makes them equal.
@@ -505,7 +505,7 @@ where the argument lives.
   $b thick x$ lies there by elimination. One type: both the point or
   neither, and in the second case the claim on the bodies makes them
   equal. So the $lambda$ denotes the abstraction of $v |-> lden b
-  rden_rho dot.op v$, and a #src("whitepaper/Fragment/Lib.lean", 574, 577)[member of a product of types is the
+  rden_rho dot.op v$, and a #src("whitepaper/Fragment/Lib.lean", 574, 577)[member of a function space of types is the
   abstraction of its applications].
 
   *#src("whitepaper/Fragment/Sound.lean", 579, 589)[Rule proof-irrel]* — $a equiv b$ when $Gamma tack a => T_a => S_a red Sort u$
@@ -524,13 +524,13 @@ where the argument lives.
   $TyU_(phi(u))$, so it is a type, and for every $v' in lden A rden_rho$
   the environment $rho, x |-> v'$ satisfies $Gamma, x : A$; the same
   claims for $B$ put every fibre in $TyU_(phi(v))$. That is the
-  $forall$ rule of the semantic invariant, and the product
+  $forall$ rule of the semantic invariant, and $PiV(A, B)$
   #src("whitepaper/Fragment/Lib.lean", 595, 601)[lies in $TyU_(phi(imax(u, v)))$]:
-  if $phi(v) = 0$ every fibre is a truth value, the product is a
-  truth value, and $phi(imax(u, v)) = 0$; otherwise the product is a
+  if $phi(v) = 0$ every fibre is a truth value, so is $PiV(A, B)$,
+  and $phi(imax(u, v)) = 0$; otherwise $PiV(A, B)$ is a
   truth value or a function space in $cal(U)_(max(phi(u), phi(v)))$
-  by cumulativity and closure, a type either way. Note that the
-  product need not be a function space when $phi(v) != 0$: over an
+  by cumulativity and closure, a type either way. Note that
+  $PiV(A, B)$ need not be a function space when $phi(v) != 0$: over an
   empty domain it is ${pt}$, and $TyU$ admits it.
 
   *#src("whitepaper/Fragment/Sound.lean", 308, 329)[Rule lam, inference]* — $Gamma tack lambda x : A. thin b => forall x : A
@@ -542,7 +542,7 @@ where the argument lives.
   So the family of the $lden B rden$ is a bounded codomain of types,
   which is the $lambda$ rule, and the $forall$ rule of the inferred
   type is met too; and the introduction law for values puts the
-  abstraction into the product. Nothing about the sort of $B$ is
+  abstraction into $PiV(A, B)$. Nothing about the sort of $B$ is
   needed, so the rule computes none.
 
   *#src("whitepaper/Fragment/Sound.lean", 331, 349)[Rule app, inference]* — $Gamma tack f thick a => B[x := a]$ when
@@ -555,8 +555,8 @@ where the argument lives.
   a type and $lden a rden_rho in lden T_a rden_rho$; $A$ is a type by
   the $forall$ rule, so the second claim gives $lden T_a rden_rho =
   lden A rden_rho$ and $lden a rden_rho in lden A rden_rho$. Now $f thick a$ is well-denoted by the
-  application rule of @sec:inv, with the $forall$'s denotation as the
-  product; $B[x := a]$ is well-denoted by the
+  application rule of @sec:inv, with the $forall$'s denotation as
+  $PiV(A, B)$; $B[x := a]$ is well-denoted by the
   substitution transport; and the elimination law puts
   $lden f rden_rho dot.op lden a rden_rho$ into the fibre at $lden a rden_rho$, which
   is $lden B[x := a] rden_rho$ by the substitution lemma.
@@ -565,7 +565,7 @@ where the argument lives.
   learn the domain and the codomain — the injectivity of $forall$
   that @sec:rules discussed. Nothing is inverted here: the checker
   itself reduced $T$ to a syntactic $forall$, the first claim says
-  the reduction did not change the set, and that set _is_ a product
+  the reduction did not change the set, and that set _is_ $PiV(A, B)$
   by the interpretation's rule.
 
   *#src("whitepaper/Fragment/Sound.lean", 351, 367)[Rule let, inference]* — $Gamma tack elet x : T := v; thin b => B$

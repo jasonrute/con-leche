@@ -55,7 +55,7 @@ variable {V : Type w} [SetLib V]
 
 /-! ## The positive sorts hold `{pt}` -/
 
-/-- A product over an empty domain is `{pt}`, which is no strict set:
+/-- A function space over an empty domain is `{pt}`, which is no strict set:
 a positive sort holding only strict sets could not hold `False → Nat`
 under the value-driven reading. -/
 theorem piV_empty_not_strict {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) :

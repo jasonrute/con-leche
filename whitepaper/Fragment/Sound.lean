@@ -391,7 +391,7 @@ namespace DefEq
 /-- **η, typed** (task #344): at every value of the variable the λ's
 body and `b` applied lie in one type — the body's inferred type is the
 `∀`'s fibre — so they are both the point or neither is, and where
-neither is the body's claim makes them equal; a member of a product is
+neither is the body's claim makes them equal; a member of a function space is
 the abstraction of its applications (`SetLib.lamV_eta`). -/
 theorem eta_sound {Γ : List Expr} {A₁ b₁ b tb A₂ B t₁ : Expr}
     (htb : ∀ ρ, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ b → interp m.M φ ρ b ≠ pt →
@@ -822,7 +822,7 @@ theorem Expr.hasPis_of_succ : ∀ (e : Expr) (n : Nat), e.hasPis (n + 1) = true 
 certificate** (task #347, the §5.2 argument iterated).  At each step
 the application is not the point, so neither is its head
 (`app_pt`); the invariant's slot then puts the head in a function space
-(`piR false`), and the head's membership in its type — a product, not
+(`piR false`), and the head's membership in its type — a function space, not
 the point — makes it a graph of that type's domain, so the slot's
 domain is the binder's (`piR_dom_unique`) and the argument lies in it.
 This is what replaces the recursor's telescope certificate of
