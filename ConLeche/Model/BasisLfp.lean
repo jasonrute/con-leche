@@ -69,7 +69,7 @@ fibre. -/
   pars := fun _ _ => []
   ids := fun _ _ => []
   u := fun _ _ => 0
-  Φ := fun _ _ X _ => graph (fun _ => F (app (X 0) pt)) unitSet
+  Φ := fun _ _ X _ => famOf (fun _ => F (app (X 0) pt)) unitSet
   inj := fun _ _ j fs => inj j fs
   nctors := fun _ => n
   ctorName := fun _ j => cn j
@@ -86,7 +86,7 @@ theorem lfp0_idx (ψ : Name → Nat) (ρp : Nat → V) (c : Nat) :
 
 theorem app_lfp0_Φ (ψ : Name → Nat) (ρp X : Nat → V) (c : Nat) :
     app ((lfp0 nm w F inj n cn flds).Φ ψ ρp X c) pt = F (app (X 0) pt) :=
-  app_graph pt_mem_unitSet
+  app_famOf pt_mem_unitSet
 
 /-- **The hole frame of a one-member unparameterized unindexed block**:
 the family's only fibre at the one hole. -/
@@ -107,16 +107,16 @@ theorem lfp0_carrier {ψ : Name → Nat} {ρp : Nat → V} {C : V}
   have hI : D.idx ψ ρp = fun _ => (unitSet : V) := funext (lfp0_idx ψ ρp)
   -- the constant tuple at `C` is closed
   have hclC : IsClosedTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)
-      (fun _ => graph (fun _ => C) unitSet) := by
+      (fun _ => famOf (fun _ => C) unitSet) := by
     rw [hI]
-    refine ⟨fun _ _ => graph_mem_famSpace fun _ _ => hCu, fun m _ i hi x hx => ?_⟩
+    refine ⟨fun _ _ => famOf_mem_famSpace fun _ _ => hCu, fun m _ i hi x hx => ?_⟩
     obtain rfl := mem_unitSet_iff.mp hi
-    rw [app_lfp0_Φ, app_graph pt_mem_unitSet] at hx
-    rw [app_graph pt_mem_unitSet]
+    rw [app_lfp0_Φ, app_famOf pt_mem_unitSet] at hx
+    rw [app_famOf pt_mem_unitSet]
     exact hC x hx
   refine Subset.antisymm ?_ ?_
   · have h := lfpTuple_le hclC 0 Nat.one_pos pt (by rw [hI]; exact pt_mem_unitSet)
-    rwa [app_graph pt_mem_unitSet] at h
+    rwa [app_famOf pt_mem_unitSet] at h
   · have hpt : pt ∈ˢ D.idx ψ ρp 0 := by rw [hI]; exact pt_mem_unitSet
     -- `C` lies below every closed tuple's fibre (`hleast`), so below the least one's
     refine subset_app_lfpTuple ⟨_, hclC⟩ Nat.one_pos hpt hCu fun X hX => ?_
@@ -159,7 +159,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → AnnotTerm} {C : (Name �
       funext (lfp0_idx ψ ρp)
     rw [hI]
     intro X hX m _
-    exact graph_mem_famSpace fun _ _ =>
+    exact famOf_mem_famSpace fun _ _ =>
       hmaps ψ _ (famSpace_app (hX 0 Nat.one_pos) pt_mem_unitSet)
   fitAcc := fun ψ ρp _ => by
     obtain ⟨A, hA, hF⟩ := hFacc ψ
@@ -442,7 +442,7 @@ collapses to the point, where `a` and `b` are the point too. -/
   pars := fun _ ψ => [.sort (lv ψ), .bvar 0]
   ids := fun _ _ => [.bvar 1]
   u := fun _ ψ => lv ψ
-  Φ := fun ψ ρp _ _ => graph (eqFib ρp) (idxSet (lv ψ) ρp [.bvar 1])
+  Φ := fun ψ ρp _ _ => famOf (eqFib ρp) (idxSet (lv ψ) ρp [.bvar 1])
   inj := fun _ _ _ _ => pt
   nctors := fun _ => 1
   ctorName := fun _ _ => cn
@@ -458,9 +458,9 @@ theorem app_eqLfp_carrier {ψ : Name → Nat} {ρp : Nat → V} {t : V}
     (ht : t ∈ˢ idxSet (lv ψ) ρp [.bvar 1]) :
     app ((eqLfp (V := V) nm cn lv).carrier ψ ρp 0) t = eqFib ρp t := by
   let D := eqLfp (V := V) nm cn lv
-  let K : Nat → V := fun _ => graph (eqFib ρp) (idxSet (lv ψ) ρp [.bvar 1])
+  let K : Nat → V := fun _ => famOf (eqFib ρp) (idxSet (lv ψ) ρp [.bvar 1])
   have hK : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) K := fun _ _ =>
-    graph_mem_famSpace fun _ _ => by
+    famOf_mem_famSpace fun _ _ => by
       show _ ∈ˢ (strictU 0 : V); rw [strictU_zero]; exact truthVal_mem_univZero _
   have hcl : IsClosedTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) K :=
     ⟨hK, TupleLe.refl _ _ _⟩
@@ -468,7 +468,7 @@ theorem app_eqLfp_carrier {ψ : Name → Nat} {ρp : Nat → V} {t : V}
     fun _ _ _ _ _ => TupleLe.refl _ _ _
   have h1 := lfpTuple_le hcl 0 Nat.one_pos t ht
   have h2 := lfpTuple_closed ⟨K, hcl⟩ hmono (fun _ _ => hK) 0 Nat.one_pos t ht
-  have hKt : app (K 0) t = eqFib ρp t := app_graph ht
+  have hKt : app (K 0) t = eqFib ρp t := app_famOf ht
   rw [← hKt]
   exact Subset.antisymm h1 h2
 
@@ -504,7 +504,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
     exact ⟨⟨by simp, IsTy_of_mem_univ hA, fun _ => hA, fun _ _ => trivial⟩,
       ⟨hA, fun _ _ => trivial⟩⟩
   maps := fun ψ ρp _ X _ _ _ =>
-    graph_mem_famSpace fun _ _ => by
+    famOf_mem_famSpace fun _ _ => by
       show _ ∈ˢ (strictU 0 : V); rw [strictU_zero]; exact truthVal_mem_univZero _
   fitAcc := fun ψ ρp _ => ⟨empty, fun hw => absurd rfl hw, fun X _ c _ t j fs hf =>
     ⟨empty, fun _ => (0, pt, pt), empty_subset _, fun b hb => absurd hb (not_mem_empty b),
@@ -546,8 +546,8 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
         obtain rfl := Option.some.inj he.symm
         rw [consList_nil, interp_bvar, hfr] at hv
         exact ⟨Nat.lt_one_iff.mp hj, rfl, hv⟩
-    show x ∈ˢ app (graph (eqFib ρp) _) t ↔ _
-    rw [app_graph (show t ∈ˢ idxSet (lv ψ) ρp [.bvar 1] from ht)]
+    show x ∈ˢ app (famOf (eqFib ρp) _) t ↔ _
+    rw [app_famOf (show t ∈ˢ idxSet (lv ψ) ρp [.bvar 1] from ht)]
     unfold eqFib
     rw [mem_truthVal]
     exact ⟨fun ⟨h, hx⟩ => ⟨0, [], (hfits 0 []).mp ⟨rfl, rfl, h⟩, hx⟩,
