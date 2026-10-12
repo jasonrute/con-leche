@@ -763,7 +763,7 @@ theorem piTeleAV_graded :
       ∀ {Δ₀ : List AnnotTerm},
         (∀ ρ : Nat → V, Sat V Δ₀ ρ → WellDenotedV V ρ T) →
         (∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i) ++ Δ₀) ρ →
-          WellDenotedV V ρ (Γ.getD (k - 1 - i) default)) ∧
+          WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)) ∧
         (∀ ρ : Nat → V, Sat V (Γ ++ Δ₀) ρ → WellDenotedV V ρ R) := by
   intro k T Γ R h
   induction h with
@@ -789,7 +789,7 @@ theorem piTeleAV_graded :
           simp only [Nat.sub_zero, Nat.add_sub_cancel, List.getD]
           rw [List.getElem?_append_right (by omega), hlen, Nat.sub_self]
           rfl]
-        exact WellDenotedV_pi_dom (hT ρ hρ)
+        exact WellDenotedTy_pi_dom (hT ρ hρ)
       | succ i =>
         rw [show k + 1 - (i + 1) = k - i from by omega,
           List.drop_append_of_le_length (by omega), List.append_assoc,
@@ -818,7 +818,7 @@ theorem ctxOk_opened {env : Env} {m : EnvModel V env} {φ : Name → Nat}
       denoteMeta m.acval env φ i (Expr.fvarTypeD x)
         = some (Γ.getD (k - 1 - i) default))
     (hokΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-      WellDenotedV V ρ (Γ.getD (k - 1 - i) default))
+      WellDenotedTy V ρ (Γ.getD (k - 1 - i) default))
     {i : Nat} (hik : i ≤ k) {x : Expr} (hwx : Expr.WScoped i x)
     (hleaf : ∀ l ∈ x.fvarLeaves, Expr.fvar l.1 l.2 ∈ fvs) :
     CtxOk m φ i (Γ.drop (k - i)) x := by
@@ -936,7 +936,7 @@ theorem inferRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr}
       ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ ea ∈ˢ interp V ρ ta := by
   obtain ⟨ta, hta⟩ := hc.reads hi hws hb hL hC hea
   obtain ⟨h1, h2, h3⟩ := hc.infer hi hws hb hL hC hea hta
-  exact ⟨ta, hta, h1, h2, h3⟩
+  exact ⟨ta, hta, h1, fun ρ hρ => (h2 ρ hρ).1, h3⟩
 
 /-- An inference run whose type is a sort: the subject is graded and
 lands in that universe. -/
@@ -985,9 +985,9 @@ structure Opened {env : Env} (m : EnvModel V env) (φ : Name → Nat)
   doms : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
     denoteMeta m.acval env φ i (Expr.fvarTypeD x)
       = some (Γ.getD (k - 1 - i) default)
-  /-- the entries are graded under the earlier ones -/
+  /-- the entries are graded types under the earlier ones -/
   okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-    WellDenotedV V ρ (Γ.getD (k - 1 - i) default)
+    WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)
   /-- the core is graded under all of them -/
   okR : ∀ ρ : Nat → V, Sat V Γ ρ → WellDenotedV V ρ R
   /-- the variables are indexed by position, annotated at their own
@@ -1233,7 +1233,7 @@ the earlier fields. -/
 theorem fieldsOkB_of_frame {w : Nat} {Γ : List AnnotTerm} {k nP nF : Nat}
     (hk : k = nP + nF) (hΓ : Γ.length = k)
     (okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-      WellDenotedV V ρ (Γ.getD (k - 1 - i) default))
+      WellDenotedTy V ρ (Γ.getD (k - 1 - i) default))
     (hbnd : ∀ j, j < nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
       w ≠ 0 → interp V ρ (Γ.getD (k - 1 - (nP + j)) default) ∈ˢ (univ w : V)) :
     ∀ (j : Nat), j ≤ nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
@@ -1254,7 +1254,8 @@ theorem fieldsOkB_of_frame {w : Nat} {Γ : List AnnotTerm} {k nP nF : Nat}
     intro j hm hj ρ hρ
     have hlt : j < nF := by omega
     rw [fieldsFrom_succ hlt]
-    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1, hbnd j hlt ρ hρ, fun a ha => ?_⟩
+    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1.1, (okΓ (nP + j) (by omega) ρ hρ).2,
+      hbnd j hlt ρ hρ, fun a ha => ?_⟩
     refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
     rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
       List.drop_eq_getElem_cons (l := Γ) (i := k - (nP + j) - 1) (by omega)]
@@ -1399,11 +1400,11 @@ theorem paramFrames {m : EnvModel V env} {F : Nat}
         (fun ρ hρ => by
           have := hC.okΓ 0 (by omega) ρ
           rw [Nat.sub_zero, List.drop_eq_nil_of_le (by have := hC.len; omega)] at this
-          exact this hρ)
+          exact (this hρ).1)
         (fun ρ hρ => by
           have := hT.okΓ 0 (by omega) ρ
           rw [Nat.sub_zero, List.drop_eq_nil_of_le (by have := hT.len; omega)] at this
-          exact this hρ) ρ hρ
+          exact (this hρ).1) ρ hρ
   | succ i ih =>
     intro j hj hjn
     rcases Nat.lt_or_ge j (i + 1) with hjl | hjg
@@ -1497,8 +1498,8 @@ theorem paramFrames {m : EnvModel V env} {F : Nat}
     have hda := hC.doms (i + 1) a ha
     have hdb := hT.doms (i + 1) b hb
     exact hc.defEqRow hdeq hwa hba hLa hwb hbb hLb hCa hCb hda hdb
-      (fun ρ hρ => hC.okΓ (i + 1) (by omega) ρ hρ)
-      (fun ρ hρ => hT.okΓ (i + 1) (by omega) ρ ((hsat ρ).mp hρ)) ρ hρ
+      (fun ρ hρ => (hC.okΓ (i + 1) (by omega) ρ hρ).1)
+      (fun ρ hρ => (hT.okΓ (i + 1) (by omega) ρ ((hsat ρ).mp hρ)).1) ρ hρ
 
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower

@@ -34,6 +34,12 @@ theorem WellDenotedV_pi_dom {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
   ⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).1,
     ((AnnotValid_pi V ρ u v A B) ▸ h.2).1⟩
 
+/-- A `.pi` reading's domain is a graded type when the reading is
+graded (task #342, L5: the `.pi` clause carries the domain's `IsTy`). -/
+theorem WellDenotedTy_pi_dom {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
+    (h : WellDenotedV V ρ (.pi u v A B)) : WellDenotedTy V ρ A :=
+  ⟨WellDenotedV_pi_dom h, ((WellDenoted_pi V ρ u v A B) ▸ h.1).2.1⟩
+
 /-- A `.pi` reading's body is graded at every extension by an element
 of the domain. -/
 theorem WellDenotedV_pi_body {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
