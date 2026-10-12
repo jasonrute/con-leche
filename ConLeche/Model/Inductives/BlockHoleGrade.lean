@@ -3,7 +3,6 @@ module
 public import ConLeche.Model.Inductives.BlockPosRun
 import ConLeche.Model.Annot.LfpHoleOp
 public import ConLeche.Model.Inductives.BlockLfpHoles
-import ConLeche.Model.Inductives.BlockHoleValid
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Model.IndDomGrade
 import ConLeche.Model.Rules.InferSoundKit

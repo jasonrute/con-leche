@@ -16,7 +16,6 @@ public import ConLeche.Model.Inductives.BlockModelRecords
 public import ConLeche.Model.Inductives.BlockHoleRead
 public import ConLeche.Model.Inductives.StoredShapes
 public import ConLeche.Model.Inductives.BlockAbsRead
-public import ConLeche.Model.Inductives.BlockHoleValid
 public import ConLeche.Model.Inductives.BlockCaps
 public import ConLeche.Model.Inductives.BlockStageCtors
 public import ConLeche.Model.Inductives.BlockStageTables

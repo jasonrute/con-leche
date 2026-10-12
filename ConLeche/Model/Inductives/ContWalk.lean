@@ -13,7 +13,6 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.SumKit
 import ConLeche.Verify.Inductives.NestContInv
 public import ConLeche.Verify.Inductives.PosDerivInv
-import ConLeche.Model.Inductives.BlockHoleValid
 import ConLeche.Semantics.Tower.BlockTower
 import ConLeche.Verify.Inductives.NestNfScope
 import ConLeche.Model.WellDenotedTransport
