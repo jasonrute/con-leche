@@ -241,7 +241,7 @@ theorem classGenRecTy_concl
     (hm : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ c = some s)
     {gty : Expr} {ea : AnnotTerm}
     (hgty : classGenRecTy g c = some gty)
-    (hread : denoteMeta acval env φ 0 gty = some ea) {pps : List (Nat × Nat × AnnotTerm)}
+    (hread : denoteMeta acval env φ 0 gty = some ea) {pps : List AnnotTerm}
     {b : AnnotTerm}
     (hst : stripPisAV (g.pre.length + (g.cls.getD c default).nIdx + 1) ea = some (pps, b)) :
     ∀ (ρ : Nat → V) (xs zs : List V) (x : V), xs.length = g.pre.length →

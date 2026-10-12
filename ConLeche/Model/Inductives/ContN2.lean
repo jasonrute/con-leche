@@ -119,8 +119,8 @@ theorem noBVarTele_of_piDomsFree {names : List Name} {lo hi : Nat} :
     ∀ (n : Nat) (e : Expr) {d : Nat} {ea : AnnotTerm}, piCount e = n →
       PiDomsFree names lo hi e → Expr.WScoped d e → hi ≤ d →
       denoteMeta m.acval env φ d e = some ea →
-      ∃ (ab : List (Nat × Nat × AnnotTerm)) (u : Nat), ea = mkPisAV ab (.sort u) ∧
-        NoBVarTele (holeP d lo hi) (ab.map (·.2.2)) ∧ ab.length = n := by
+      ∃ (ab : List AnnotTerm) (u : Nat), ea = mkPisAV ab (.sort u) ∧
+        NoBVarTele (holeP d lo hi) ab ∧ ab.length = n := by
   intro n
   induction n with
   | zero =>
@@ -143,7 +143,7 @@ theorem noBVarTele_of_piDomsFree {names : List Name} {lo hi : Nat} :
         (by rw [piCount_instantiate1_fvar]; exact hn)
         (PiDomsFree.instantiate1 hnot ty b 0 hb)
         (Expr.WScoped.instantiate1 hws.1 0 hws.2) (by omega) hba
-      exact ⟨(0, 0, ta) :: ab, u, rfl, ⟨hA, NoBVarTele.mono holeP_succ hab⟩, by simp [hlen]⟩
+      exact ⟨ta :: ab, u, rfl, ⟨hA, NoBVarTele.mono holeP_succ hab⟩, by simp [hlen]⟩
 
 /-! ## Telescopes read the same at two frames -/
 
@@ -195,9 +195,9 @@ theorem teleEq_of_noBVarTele : ∀ {Fs : List AnnotTerm} {P : Nat → Prop} {ρ 
 
 /-- A substituted telescope reads the same exactly where the telescope
 does at the substituted frames. -/
-theorem teleEq_substTele (τ : Nat → AnnotTerm) : ∀ (ab : List (Nat × Nat × AnnotTerm)) (k : Nat)
-    {ρ ρ' : Nat → V}, TeleEq ρ ρ' ((AnnotTerm.substTele τ k ab).map (·.2.2)) →
-    TeleEq (substE V τ k ρ) (substE V τ k ρ') (ab.map (·.2.2))
+theorem teleEq_substTele (τ : Nat → AnnotTerm) : ∀ (ab : List AnnotTerm) (k : Nat)
+    {ρ ρ' : Nat → V}, TeleEq ρ ρ' (AnnotTerm.substTele τ k ab) →
+    TeleEq (substE V τ k ρ) (substE V τ k ρ') ab
   | [], _, _, _, _ => trivial
   | d :: ab, k, ρ, ρ', ⟨h1, h2⟩ => by
     refine ⟨?_, fun a => ?_⟩
@@ -217,9 +217,9 @@ theorem piCount_eq_length : ∀ e : Expr, piCount e = e.piBinders.1.length := by
 
 /-- A Π-tower over a sort determines its domains (the binder data's
 numeral components are not read) and its sort. -/
-theorem mkPisAV_sort_eq : ∀ {ab ab' : List (Nat × Nat × AnnotTerm)} {u u' : Nat},
+theorem mkPisAV_sort_eq : ∀ {ab ab' : List AnnotTerm} {u u' : Nat},
     mkPisAV ab (.sort u) = mkPisAV ab' (.sort u') →
-      ab.map (·.2.2) = ab'.map (·.2.2) ∧ u = u'
+      ab = ab' ∧ u = u'
   | [], [], _, _, h => ⟨rfl, by simpa [mkPisAV] using h⟩
   | [], _ :: _, _, _, h => by simp [mkPisAV] at h
   | _ :: _, [], _, _, h => by simp [mkPisAV] at h
@@ -227,7 +227,7 @@ theorem mkPisAV_sort_eq : ∀ {ab ab' : List (Nat × Nat × AnnotTerm)} {u u' : 
     simp only [mkPisAV, AnnotTerm.pi.injEq] at h
     obtain ⟨h1, h4⟩ := h
     obtain ⟨h2, rfl⟩ := mkPisAV_sort_eq h4
-    exact ⟨by simp [h1, h2], rfl⟩
+    exact ⟨by rw [h1, h2], rfl⟩
 
 /-- The parameter frame of a key: its parameters' values over the frame
 seen from the walk's hole bound. -/
@@ -254,7 +254,7 @@ theorem consList_map_apply (vs : List V) (τ : Nat → V) (q : Nat) :
     rw [consList_apply_add, Nat.add_sub_cancel]
 
 theorem substTele_length (τ : Nat → AnnotTerm) :
-    ∀ (k : Nat) (ab : List (Nat × Nat × AnnotTerm)), (AnnotTerm.substTele τ k ab).length = ab.length
+    ∀ (k : Nat) (ab : List AnnotTerm), (AnnotTerm.substTele τ k ab).length = ab.length
   | _, [] => rfl
   | k, _ :: ab => by simp [AnnotTerm.substTele, substTele_length τ (k + 1) ab]
 
@@ -313,10 +313,10 @@ theorem canonHoleTy_read {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
     (hf : env.find? (D.member mm) = some (.indInfo cvm caps)) {ψ : Name → Nat} {n : Nat}
     (hn : (D.pars mm ψ).length = n) {ty : Expr}
     (hty : ConLeche.instPisWith (canonParams n) cvm.type = some ty) :
-    ∃ abF : List (Nat × Nat × AnnotTerm),
+    ∃ abF : List AnnotTerm,
       denoteMeta mp.base2.acval env ψ 0 cvm.type = some (mkPisAV abF (.sort (D.w ψ))) ∧
-      abF.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ ∧
-      (abF.drop n).map (·.2.2) = D.ids mm ψ ∧ Expr.WScoped n ty ∧
+      abF = D.pars mm ψ ++ D.ids mm ψ ∧
+      abF.drop n = D.ids mm ψ ∧ Expr.WScoped n ty ∧
       denoteMeta mp.base2.acval env ψ n ty = some (mkPisAV (abF.drop n) (.sort (D.w ψ))) := by
   obtain ⟨-, -, hrd, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hmm
@@ -353,7 +353,7 @@ theorem canonHoleTy_read {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
     rw [canonParams_getElem? hi']
     simp [Expr.WScoped, hlt]
   refine ⟨ab, hta, hmap, ?_, hAw, ?_⟩
-  · rw [List.map_drop, hmap, ← hn, List.drop_left' rfl]
+  · rw [hmap, ← hn, List.drop_left' rfl]
   · rw [← denoteMeta_erasedEq hoA]; simpa using hb
 
 /-- **An instantiated container FORMER, read** (the canonical opening
@@ -372,12 +372,12 @@ theorem instFormer_readB {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
     {dsa : List AnnotTerm} (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
     (hstrip : (cvC.type.stripPis ds.length).isSome = true) {ty : Expr}
     (hty : ConLeche.instPisWith ds (cvC.type.instantiateLevelParams cvC.levelParams us) = some ty) :
-    ∃ abF : List (Nat × Nat × AnnotTerm),
+    ∃ abF : List AnnotTerm,
       denoteMeta mp.base2.acval env (Level.substFn φ cvC.levelParams us) 0 cvC.type
         = some (mkPisAV abF (.sort (D.w (Level.substFn φ cvC.levelParams us)))) ∧
-      abF.map (·.2.2) = D.pars mm (Level.substFn φ cvC.levelParams us)
+      abF = D.pars mm (Level.substFn φ cvC.levelParams us)
         ++ D.ids mm (Level.substFn φ cvC.levelParams us) ∧
-      (abF.drop ds.length).map (·.2.2) = D.ids mm (Level.substFn φ cvC.levelParams us) ∧
+      abF.drop ds.length = D.ids mm (Level.substFn φ cvC.levelParams us) ∧
       denoteMeta mp.base2.acval env φ hi ty
         = some (mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0
             (abF.drop ds.length)) (.sort (D.w (Level.substFn φ cvC.levelParams us)))) := by
@@ -452,7 +452,7 @@ theorem instFormer_readB {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
   rw [Nat.add_zero, Nat.add_zero, denotePInstLevels mp.base2 φ cvC.levelParams us, hψ,
     show ds.length = ds.length + ([] : List Name).length by simp, hAr] at h
   refine ⟨ab, hta, hmap, ?_, ?_⟩
-  · rw [List.map_drop, hmap, ← hpl, List.drop_left' rfl]
+  · rw [hmap, ← hpl, List.drop_left' rfl]
   · simp only [List.length_nil, Nat.add_zero] at h
     rw [h, Option.map_some, AnnotTerm.substAV_mkPisAV, Nat.zero_add]
     rfl
@@ -469,8 +469,8 @@ theorem instFormer_read {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D :
     {dsa : List AnnotTerm} (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
     (hstrip : (cvC.type.stripPis ds.length).isSome = true) {ty : Expr}
     (hty : ConLeche.instPisWith ds (cvC.type.instantiateLevelParams cvC.levelParams us) = some ty) :
-    ∃ ab : List (Nat × Nat × AnnotTerm),
-      ab.map (·.2.2) = D.ids mm (Level.substFn φ cvC.levelParams us) ∧
+    ∃ ab : List AnnotTerm,
+      ab = D.ids mm (Level.substFn φ cvC.levelParams us) ∧
       denoteMeta mp.base2.acval env φ hi ty
         = some (mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0 ab)
             (.sort (D.w (Level.substFn φ cvC.levelParams us)))) := by
@@ -525,8 +525,8 @@ theorem n2_link {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatu
   rw [← hdoms] at hnob
   refine ⟨?_, fun ρ ρ' hag => ?_⟩
   · have hl := congrArg List.length hdoms
-    simp only [List.length_map, substTele_length] at hl
-    rw [hnI, ← piCount_eq_length, ← hlen'', ← hl, ← hmap, List.length_map]
+    simp only [substTele_length] at hl
+    rw [hnI, ← piCount_eq_length, ← hlen'', ← hl, ← hmap]
   · have hte := teleEq_substTele _ _ 0 (teleEq_of_noBVarTele hnob hag)
     rw [← keyFrame_eq_substE hdl, ← keyFrame_eq_substE hdl] at hte
     rwa [hmap] at hte
@@ -566,7 +566,7 @@ theorem PiEndsSort.instantiate1 {s : Level} (v : Expr) :
 theorem denoteMeta_piEndsSort {s : Level} :
     ∀ (n : Nat) (e : Expr) {d : Nat} {ea : AnnotTerm}, piCount e = n → PiEndsSort s e →
       denoteMeta m.acval env φ d e = some ea →
-      ∃ ab : List (Nat × Nat × AnnotTerm), ea = mkPisAV ab (.sort (s.eval φ)) := by
+      ∃ ab : List AnnotTerm, ea = mkPisAV ab (.sort (s.eval φ)) := by
   intro n
   induction n with
   | zero =>
@@ -584,7 +584,7 @@ theorem denoteMeta_piEndsSort {s : Level} :
       obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
       obtain ⟨ab, rfl⟩ := ih (b.instantiate1 (.fvar d ty))
         (by rw [piCount_instantiate1_fvar]; exact hn) (PiEndsSort.instantiate1 _ b 0 hf) hba
-      exact ⟨(0, 0, ta) :: ab, rfl⟩
+      exact ⟨ta :: ab, rfl⟩
 
 /-- **The level link** (the kernel's N3): a
 container instance checked by `nestInstType` lives at the block's sort —

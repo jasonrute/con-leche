@@ -233,10 +233,10 @@ theorem bvarsBelow_prefVarsAV {rP nF n : Nat} (h : rP + nF ≤ n) :
   exact show nF + rP - 1 - l < n by omega
 
 omit [SetTheory V] in
-theorem domsBelow_propBinders : ∀ {Ds : List AnnotTerm} {k : Nat},
-    FieldsBelow k Ds → DomsBelow k (propBinders Ds)
+theorem domsBelow_of_fieldsBelow : ∀ {Ds : List AnnotTerm} {k : Nat},
+    FieldsBelow k Ds → DomsBelow k Ds
   | [], _, _ => trivial
-  | _ :: _, _, h => ⟨h.1, domsBelow_propBinders h.2⟩
+  | _ :: _, _, h => ⟨h.1, domsBelow_of_fieldsBelow h.2⟩
 
 omit [SetTheory V] in
 /-- A lifted form's bound, at any slack. -/
@@ -257,11 +257,11 @@ theorem bvarsBelow_iotaEqAV {K c rP nF : Nat} {pdoms fdoms es ihs : List AnnotTe
     (hih : ∀ v ∈ ihs, Term.bvarsBelow (K + rP + nF) v.erase)
     (hRb : Term.bvarsBelow (K + rP + nF + ihs.length) Rb.erase) :
     Term.bvarsBelow K (iotaEqAV K c pdoms fdoms es mk ihs Rb).erase := by
-  have hdoms : DomsBelow K (propBinders (pdoms ++ fdoms)) :=
-    domsBelow_propBinders (fieldsBelow_append hp (by rw [hpl]; exact hf))
+  have hdoms : DomsBelow K (pdoms ++ fdoms) :=
+    domsBelow_of_fieldsBelow (fieldsBelow_append hp (by rw [hpl]; exact hf))
   refine mkPisAV_below_of hdoms ?_
-  have hlen : (propBinders (pdoms ++ fdoms)).length = rP + nF := by
-    simp [propBinders]; omega
+  have hlen : (pdoms ++ fdoms).length = rP + nF := by
+    simp; omega
   rw [hlen]
   refine ⟨?_, ?_⟩
   · rw [AnnotTerm.erase_mkAppN]
@@ -583,10 +583,10 @@ are that split: the β-reduction is generic, and the composition is one
 rewrite. -/
 
 /-- **A λ-tower applied along a fitting spine reads as its body.** -/
-theorem interp_mkAppN_mkLamsAV {lds : List (Nat × AnnotTerm)} {b Ra : AnnotTerm}
+theorem interp_mkAppN_mkLamsAV {lds : List AnnotTerm} {b Ra : AnnotTerm}
     {ρ : Nat → V} {args : List AnnotTerm}
     (hlam : Ra = mkLamsAV lds b) (hok : WellDenoted V ρ Ra)
-    (hsp : SpineFit ρ (lds.map (·.2)) (args.map (interp V ρ))) :
+    (hsp : SpineFit ρ (lds) (args.map (interp V ρ))) :
     interp V ρ (AnnotTerm.mkAppN Ra args)
       = interp V (consList (args.map (interp V ρ)) ρ) b := by
   subst hlam
@@ -599,10 +599,10 @@ theorem interp_mkAppN_mkLamsAV {lds : List (Nat × AnnotTerm)} {b Ra : AnnotTerm
 at the rule's own, so the two spellings meet at the VALUES and not at
 a list of terms. -/
 theorem blockRuleHRa_val {ρ : Nat → V} {Ra Rb0 A : AnnotTerm}
-    {lds : List (Nat × AnnotTerm)} {xs ys : List AnnotTerm} {rP nP : Nat}
+    {lds : List AnnotTerm} {xs ys : List AnnotTerm} {rP nP : Nat}
     {ihvals : List V}
     (hlam : Ra = mkLamsAV lds A) (hok : WellDenoted V ρ Ra)
-    (hsp : SpineFit ρ (lds.map (·.2))
+    (hsp : SpineFit ρ (lds)
       ((xs.take rP).map (interp V ρ) ++ (ys.drop nP).map (interp V ρ)))
     (hres : interp V (consList ((xs.take rP).map (interp V ρ)
           ++ (ys.drop nP).map (interp V ρ)) ρ) A
@@ -1082,7 +1082,7 @@ five) is then the stage's two pins together: `rds.length = mI + 1` and
     (p : ConLeche.BlockShape)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
     (ψ : Name → Nat) (c : Nat) : List AnnotTerm :=
-  ((blockRecRdsAV acval envC p rs ψ c).take (p.rulePrefixAt c)).map (·.2.2)
+  (blockRecRdsAV acval envC p rs ψ c).take (p.rulePrefixAt c)
 
 /-- **`BlockRuleDataAt`'s first conjunct, at the run.** -/
 theorem blockRulePdomsAV_length {envC : Env} (hμ : μ.verifiedChecks = true)
@@ -1096,7 +1096,7 @@ theorem blockRulePdomsAV_length {envC : Env} (hμ : μ.verifiedChecks = true)
       = p.toBlockShape.rulePrefixAt c := by
   obtain ⟨-, -, -, -, -, hlen, -⟩ := recStage_tyPis hμ mpC h hr ψ
   have hle := blockRecHrPle (p := p) h (List.getElem?_eq_some_iff.mp hr).1
-  rw [blockRulePdomsAV, List.length_map, List.length_take, hlen]
+  rw [blockRulePdomsAV, List.length_take, hlen]
   omega
 
 end Hnew
@@ -1246,8 +1246,8 @@ theorem spineFit_blockRulePdomsAV (hμ : μ.verifiedChecks = true) (mpC : EnvMod
   obtain ⟨-, -, -, -, -, hrdsLen, -⟩ := recStage_tyPis hμ mpC h hr ψ
   have hle := blockRecHrPle (p := p) h (List.getElem?_eq_some_iff.mp hr).1
   have hpre := spineFit_take hsp (i := p.toBlockShape.rulePrefixAt c)
-    (by rw [List.length_map, hrdsLen]; omega)
-  rw [blockRulePdomsAV, List.map_take, List.map_take]
+    (by rw [hrdsLen]; omega)
+  rw [blockRulePdomsAV, List.map_take]
   exact hpre
 
 /-- **A-2's prefix half at the contract's own spine**: the fit
@@ -1300,11 +1300,11 @@ omit [SetTheory V] in
 /-- `readOpenedDoms` is the binder data, whenever every opener reads to
 its own entry. -/
 theorem readOpenedDoms_eq :
-    ∀ (fvs : List Expr) (pps : List (Nat × Nat × AnnotTerm)) (dpt : Nat),
+    ∀ (fvs : List Expr) (pps : List AnnotTerm) (dpt : Nat),
       fvs.length = pps.length →
       (∀ (i : Nat) (x : Expr), fvs[i]? = some x →
-        ∃ pd, pps[i]? = some pd ∧ denoteMeta acval envC ψ (dpt + i) x.fvarTypeD = some pd.2.2) →
-      readOpenedDoms acval envC ψ dpt fvs = pps.map (·.2.2)
+        ∃ pd, pps[i]? = some pd ∧ denoteMeta acval envC ψ (dpt + i) x.fvarTypeD = some pd) →
+      readOpenedDoms acval envC ψ dpt fvs = pps
   | [], [], _, _, _ => rfl
   | [], _ :: _, _, hl, _ => nomatch hl
   | _ :: _, [], _, hl, _ => nomatch hl
@@ -1319,7 +1319,6 @@ theorem readOpenedDoms_eq :
         (fun i y hy => by
           obtain ⟨q, hq, hd⟩ := hb (i + 1) y (by simpa using hy)
           exact ⟨q, by simpa using hq, by rw [show dpt + 1 + i = dpt + (i + 1) from by omega]; exact hd⟩)]
-    rfl
 
 end Shift
 
@@ -1339,7 +1338,7 @@ variable {envC : Env} {mpC : EnvModelM V μ envC}
   {rhs : Expr} (hrhs : r.2.1[i]? = some rhs)
   {T : Name} {lps : List Name}
   {nIdx : Nat} {resSort : Level} {isProp large : Bool} {idxArgs : List Expr}
-  {ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {Es : (Name → Nat) → List AnnotTerm}
+  {ds : (Name → Nat) → List AnnotTerm} {Es : (Name → Nat) → List AnnotTerm}
   {srcs : List (Option Nat)}
   {fvsP xFvs : List Expr} {xrest : Expr}
   (hcd : BlockCtorDataI mpC.base2 T lps cA.1 p.nP cA.2 nIdx resSort
@@ -1718,12 +1717,12 @@ for anyway.
 fixed length pins `lds` and `A`, so the quantifier is TIED, not
 free. -/
 theorem blockRuleHapp_run {c : Nat} {cA : ConstantVal × Nat} {Ra : AnnotTerm}
-    (htw : ∃ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
+    (htw : ∃ (lds : List AnnotTerm) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
       lds.length = p.toBlockShape.rulePrefixAt c + cA.2)
     {ρ : Nat → V} (hok : WellDenotedV V ρ Ra) {xs ys : List AnnotTerm} {nP : Nat}
-    (htow : ∀ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm), Ra = mkLamsAV lds A →
+    (htow : ∀ (lds : List AnnotTerm) (A : AnnotTerm), Ra = mkLamsAV lds A →
       lds.length = p.toBlockShape.rulePrefixAt c + cA.2 →
-      SpineFit ρ (lds.map (·.2))
+      SpineFit ρ (lds)
         ((xs.take (p.toBlockShape.rulePrefixAt c)).map (interp V ρ)
           ++ (ys.drop nP).map (interp V ρ)))
     (hxs : ∀ a ∈ xs, WellDenotedV V ρ a) (hys : ∀ b ∈ ys, WellDenotedV V ρ b) :
@@ -1841,13 +1840,13 @@ body must unfold outside this module. -/
               (consList ((xs.take (p.toBlockShape.rulePrefixAt j)).map (interp V ρ)
                 ++ (ys.drop nP).map (interp V ρ)) ρ))
             (Rb0 (Level.substFn φ r.1.levelParams us) j i)) ∧
-      (∀ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm),
+      (∀ (lds : List AnnotTerm) (A : AnnotTerm),
         blockRuleRaOf (blockRecAcv mpC.base2.acval envC rs s
             (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0))
             env₃ rhs
             (Level.substFn φ r.1.levelParams us) = mkLamsAV lds A →
         lds.length = p.toBlockShape.rulePrefixAt j + cA.2 →
-        SpineFit ρ (lds.map (·.2))
+        SpineFit ρ (lds)
           ((xs.take (p.toBlockShape.rulePrefixAt j)).map (interp V ρ)
             ++ (ys.drop nP).map (interp V ρ)))
 
@@ -1903,7 +1902,7 @@ theorem blockRuleRhsOk_base {envC : Env} (hμ : μ.verifiedChecks = true)
     -- the stored rule reads as a λ-tower over the prefix and the fields
     (htower : ∀ (acv : Name → (Name → Nat) → AnnotTerm) (ψ : Name → Nat) (Ra : AnnotTerm),
       denoteMeta acv (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) ψ 0 rhs = some Ra →
-      ∃ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
+      ∃ (lds : List AnnotTerm) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
         lds.length = p.toBlockShape.rulePrefixAt j + cA.2)
     (hdataB : BlockRuleDataB (V := V) mpC p nP (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) rs s nCt pdoms0 fdoms0 es0 ihs mk0 Rb0
       ctorTy φ j i r cA rl rhs)
@@ -2073,7 +2072,7 @@ theorem blockRecStaged_dataR {envC : Env} (hμ : μ.verifiedChecks = true)
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs → fireOf j r ≠ .inert →
       ∀ (acv : Name → (Name → Nat) → AnnotTerm) (ψ : Name → Nat) (Ra : AnnotTerm),
         denoteMeta acv (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) ψ 0 rhs = some Ra →
-        ∃ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
+        ∃ (lds : List AnnotTerm) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
           lds.length = p.toBlockShape.rulePrefixAt j + cA.2)
     -- the `.nested` pins' law (vacuous at `.plain`)
     (hpins : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc

@@ -58,11 +58,11 @@ variable {V : Type w} [SetTheory V]
 
 /-- A `mkPisAV` tower is a `PiTeleAV` over its reversed domains. -/
 theorem piTeleAV_mkPisAV :
-    ∀ (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm),
-      PiTeleAV ds.length (mkPisAV ds b) ((ds.map (·.2.2)).reverse) b
+    ∀ (ds : List AnnotTerm) (b : AnnotTerm),
+      PiTeleAV ds.length (mkPisAV ds b) ((ds).reverse) b
   | [], _ => PiTeleAV.nil
   | d :: ds, b => by
-    simp only [List.length_cons, mkPisAV, List.map_cons, List.reverse_cons]
+    simp only [List.length_cons, mkPisAV, List.reverse_cons]
     exact PiTeleAV.cons (piTeleAV_mkPisAV ds b)
 
 /-- **The fit-free peel**: the syntactic Π-peel of a tower along a
@@ -114,12 +114,12 @@ is a graph (`lamV_eq_graph`), the application clause's package puts the
 argument in a domain that graph inhabits as a function, and a graph's
 domain is rigid (`mkAppN_wellDenotedV_of_lam`'s converse). -/
 theorem spineFit_of_wellDenotedV_mkAppN_lam :
-    ∀ {lds : List (Nat × AnnotTerm)} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
+    ∀ {lds : List AnnotTerm} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
       WellDenotedV V ρ (AnnotTerm.mkAppN f args) →
       interp V ρ (AnnotTerm.mkAppN f args) ≠ pt →
       interp V ρ f = interp V σ (mkLamsAV lds b) →
       args.length = lds.length →
-      SpineFit σ (lds.map (·.2)) (args.map (interp V ρ))
+      SpineFit σ (lds) (args.map (interp V ρ))
   | [], _, _, [], _, _, _, _, _, _ => trivial
   | [], _, _, _ :: _, _, _, _, _, _, hlen => by simp at hlen
   | _ :: _, _, _, [], _, _, _, _, _, hlen => by simp at hlen
@@ -140,7 +140,7 @@ theorem spineFit_of_wellDenotedV_mkAppN_lam :
       rw [hv0, piR_zero] at hf
       exact graph_ne_pt (eq_pt_of_mem_truthVal hf)
     rw [piR_pos hv] at hf
-    have hmem : interp V ρ a ∈ˢ interp V σ d.2 := graph_dom_of_mem_piSet hf _ ha
+    have hmem : interp V ρ a ∈ˢ interp V σ d := graph_dom_of_mem_piSet hf _ ha
     refine ⟨hmem, ?_⟩
     refine spineFit_of_wellDenotedV_mkAppN_lam (b := b) hok hne ?_ (by simpa using hlen)
     rw [interp_app, hval]
@@ -970,20 +970,20 @@ theorem consList_prefix_agree {i : Nat} {as : List V} (hlen : as.length = i) (ρ
 prefix differ, the fitting value is not the point, so that field is
 not a proposition there, so (under the guard) no later field uses it,
 so the projected field is a lift over that slot. -/
-theorem free_of_diff {nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm)} {sorts : List Level}
+theorem free_of_diff {nP nF i : Nat} {ds : List AnnotTerm} {sorts : List Level}
     {ψ : Name → Nat} {ρ' : Nat → V} {used : Nat → Bool}
     (hlenDs : ds.length = nP + nF) (hi : i < nF)
     (hsorts : ∀ j, j < nF → ∀ as : List V,
-      SpineFit ρ' (((ds.drop nP).map (·.2.2)).take j) as →
-      interp V (consList as ρ') (((ds.drop nP).map (·.2.2)).getD j default)
+      SpineFit ρ' (((ds.drop nP)).take j) as →
+      interp V (consList as ρ') (((ds.drop nP)).getD j default)
         ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V))
     (hguard : ∀ j, j < i → used j = true → (sorts.getD j .zero).eval ψ = 0)
     (hfree : ∀ j, j < i → used j = false →
-      ∃ X : AnnotTerm, ((ds.drop nP).map (·.2.2)).getD i default = X.liftN 1 (i - 1 - j))
-    {as' : List V} (hspAs : SpineFit ρ' ((ds.drop nP).map (·.2.2)) as') :
+      ∃ X : AnnotTerm, ((ds.drop nP)).getD i default = X.liftN 1 (i - 1 - j))
+    {as' : List V} (hspAs : SpineFit ρ' ((ds.drop nP)) as') :
     ∀ k, k < i → consList (List.replicate i pt) ρ' k ≠ consList (as'.take i) ρ' k →
-      ∃ X : AnnotTerm, ((ds.drop nP).map (·.2.2)).getD i default = X.liftN 1 k := by
-  have hlenFs : (((ds.drop nP).map (·.2.2))).length = nF := by simp [hlenDs]
+      ∃ X : AnnotTerm, ((ds.drop nP)).getD i default = X.liftN 1 k := by
+  have hlenFs : (((ds.drop nP))).length = nF := by simp [hlenDs]
   have hlenTake : (as'.take i).length = i := by
     rw [List.length_take, hspAs.length_eq, hlenFs]; omega
   intro k hk hne
@@ -1074,7 +1074,7 @@ theorem denoteMeta_projTele {acval : Name → (Name → Nat) → AnnotTerm} {env
         (Expr.instSeq ((List.range k).map fun j =>
           Expr.fvar (d + j) (.sort .zero)) (k - 1) body) = some RA →
       denoteMeta acval env φ d (ConLeche.projTele k body)
-        = some (mkPisAV (List.replicate k (0, 1, .sort 0)) RA)
+        = some (mkPisAV (List.replicate k (.sort 0)) RA)
   | 0, d, body, RA, h => by
     simpa [ConLeche.projTele, Expr.instSeq, mkPisAV] using h
   | k + 1, d, body, RA, h => by
@@ -1105,7 +1105,7 @@ theorem denoteMeta_projTele_zero {acval : Name → (Name → Nat) → AnnotTerm}
     (h : denoteMeta acval env φ (nP + 1)
       (Expr.instSpine (ConLeche.fvsD nP ++ [ConLeche.tfvD nP]) nP body) = some RA) :
     denoteMeta acval env φ 0 (ConLeche.projTele (nP + 1) body)
-      = some (mkPisAV (List.replicate (nP + 1) (0, 1, .sort 0)) RA) := by
+      = some (mkPisAV (List.replicate (nP + 1) (.sort 0)) RA) := by
   refine denoteMeta_projTele (nP + 1) 0 body ?_
   rw [Nat.zero_add, Nat.add_sub_cancel]
   rw [Expr.instSpine_eq_instSeq] at h
@@ -1120,8 +1120,8 @@ theorem denoteMeta_projTele_zero {acval : Name → (Name → Nat) → AnnotTerm}
 
 omit [SetTheory V] in
 theorem DomsBelow.getD_below {k : Nat} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} (j : Nat), DomsBelow k ds → j < ds.length →
-      Term.bvarsBelow (k + j) (ds.getD j default).2.2.erase
+    ∀ {ds : List AnnotTerm} (j : Nat), DomsBelow k ds → j < ds.length →
+      Term.bvarsBelow (k + j) (ds.getD j default).erase
   | [], _, _, hj => absurd hj (Nat.not_lt_zero _)
   | d :: ds, 0, h, _ => by simpa using h.1
   | d :: ds, j + 1, h, hj => by
@@ -1147,20 +1147,20 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
     -- its fields at offset `1`)
     (hprev : ∀ j, j < i → ∃ entry, env.findProj? T j = some entry ∧ entry.off = off)
     (hi : i < nF)
-    {ds : List (Nat × Nat × AnnotTerm)} {bodyA : AnnotTerm} {ψ : Name → Nat} {w : Nat}
+    {ds : List AnnotTerm} {bodyA : AnnotTerm} {ψ : Name → Nat} {w : Nat}
     (hlenDs : ds.length = nP + nF) (hbelow : DomsBelow 0 ds)
     (hctyRead0 : denoteMeta m.acval env ψ 0 cty = some (mkPisAV ds bodyA))
     {sorts : List Level}
-    (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
-      FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
-    (hsorts : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
+    (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP)).reverse ρ →
+      FieldsOkB w ρ ((ds.drop nP)))
+    (hsorts : ∀ ρ : Nat → V, Sat V ((ds.take nP)).reverse ρ →
       ∀ j, j < nF → ∀ as : List V,
-        SpineFit ρ (((ds.drop nP).map (·.2.2)).take j) as →
-        interp V (consList as ρ) (((ds.drop nP).map (·.2.2)).getD j default)
+        SpineFit ρ (((ds.drop nP)).take j) as →
+        interp V (consList as ρ) (((ds.drop nP)).getD j default)
           ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V))
     {used : Nat → Bool}
     (hfree : ∀ j, j < i → used j = false →
-      ∃ X : AnnotTerm, ((ds.drop nP).map (·.2.2)).getD i default = X.liftN 1 (i - 1 - j))
+      ∃ X : AnnotTerm, ((ds.drop nP)).getD i default = X.liftN 1 (i - 1 - j))
     -- THE SUBJECT'S FRAME, abstractly (task #210 Part A): whatever
     -- carrier the subject `ρ 0` lives in, at a squash instance it is
     -- the point and the fields admit a fitting spine; in the graph
@@ -1168,26 +1168,26 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
     -- the fields; and the subject's projection readings are graded
     (Frame : (Nat → V) → Prop)
     (hsq : ∀ ρ : Nat → V, Frame ρ →
-      Sat V ((ds.take nP).map (·.2.2)).reverse (fun j => ρ (j + 1)) → w = 0 →
-      ρ 0 = pt ∧ ∃ as' : List V, SpineFit (fun j => ρ (j + 1)) ((ds.drop nP).map (·.2.2)) as')
+      Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) → w = 0 →
+      ρ 0 = pt ∧ ∃ as' : List V, SpineFit (fun j => ρ (j + 1)) ((ds.drop nP)) as')
     (hgr : ∀ ρ : Nat → V, Frame ρ →
-      Sat V ((ds.take nP).map (·.2.2)).reverse (fun j => ρ (j + 1)) → w ≠ 0 →
-      SpineFit (fun j => ρ (j + 1)) ((ds.drop nP).map (·.2.2)) (projList nF (dropS off (ρ 0))))
+      Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) → w ≠ 0 →
+      SpineFit (fun j => ρ (j + 1)) ((ds.drop nP)) (projList nF (dropS off (ρ 0))))
     (hokProj : ∀ ρ : Nat → V, Frame ρ →
-      Sat V ((ds.take nP).map (·.2.2)).reverse (fun j => ρ (j + 1)) →
+      Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) →
       ∀ j, j < nF → WellDenoted V ρ (projAV (j + off) (.bvar 0))) :
     ∃ fdomA : AnnotTerm,
       denoteMeta m.acval env ψ (nP + 1)
         (Expr.instSpine (ConLeche.fvsD nP ++ [ConLeche.tfvD nP]) nP body) = some fdomA ∧
       ((w = 0 → ∀ j, j < i → used j = true → (sorts.getD j .zero).eval ψ = 0) →
         ∀ ρ : Nat → V, Frame ρ →
-          Sat V ((ds.take nP).map (·.2.2)).reverse (fun j => ρ (j + 1)) →
+          Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) →
           WellDenotedV V ρ fdomA) ∧
       (∀ ρ : Nat → V, Frame ρ →
-        Sat V ((ds.take nP).map (·.2.2)).reverse (fun j => ρ (j + 1)) →
+        Sat V ((ds.take nP)).reverse (fun j => ρ (j + 1)) →
         interp V ρ fdomA
           = interp V (consList (projList i (dropS off (ρ 0))) (fun j => ρ (j + 1)))
-              (((ds.drop nP).map (·.2.2)).getD i default)) := by
+              (((ds.drop nP)).getD i default)) := by
   -- the constructor type's reading at the body's depth
   have hctyRead : denoteMeta m.acval env ψ (nP + 1) cty = some (mkPisAV ds bodyA) :=
     denoteMeta_depth_of_closed m.acval_closed hCf
@@ -1233,7 +1233,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
   have hsplitDs : ds = ds.take (nP + i) ++ ds.drop (nP + i) :=
     (List.take_append_drop _ _).symm
   have htele : PiTeleAV (nP + i) (mkPisAV ds bodyA)
-      (((ds.take (nP + i)).map (·.2.2)).reverse)
+      (((ds.take (nP + i))).reverse)
       (mkPisAV (ds.drop (nP + i)) bodyA) := by
     have h := piTeleAV_mkPisAV (ds.take (nP + i)) (mkPisAV (ds.drop (nP + i)) bodyA)
     rw [← mkPisAV_append, ← hsplitDs, List.length_take, hlenDs,
@@ -1248,19 +1248,18 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
   rw [hdropDs] at hpeel'
   simp only [mkPisAV] at hpeel'
   obtain ⟨B', hB'⟩ := instSeq_pi_dom (entryParamBvars nP ++ entryProjAVs off i) (nP + i - 1)
-    (ds.getD (nP + i) default).2.2
+    (ds.getD (nP + i) default)
     (mkPisAV (ds.drop (nP + i + 1)) bodyA)
   rw [hB'] at hpeel'
   obtain ⟨hfdomA, -⟩ := AnnotTerm.pi.inj (Option.some.inj hpeel')
   -- the field's domain, named
-  have hFi : ((ds.drop nP).map (·.2.2)).getD i default = (ds.getD (nP + i) default).2.2 := by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_drop,
+  have hFi : ((ds.drop nP)).getD i default = (ds.getD (nP + i) default) := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_drop,
       List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
-    rfl
-  have hFiBelow : Term.bvarsBelow (nP + i) (ds.getD (nP + i) default).2.2.erase := by
+  have hFiBelow : Term.bvarsBelow (nP + i) (ds.getD (nP + i) default).erase := by
     have := DomsBelow.getD_below (nP + i) hbelow (by omega)
     rwa [Nat.zero_add] at this
-  have hlenFs : ((ds.drop nP).map (·.2.2)).length = nF := by simp [hlenDs]
+  have hlenFs : ((ds.drop nP)).length = nF := by simp [hlenDs]
   have hlen' : (entryParamBvars nP ++ entryProjAVs off i).length - 1 = nP + i - 1 := by
     rw [hlenVs]
   refine ⟨fdomA, hfdA, ?_, ?_⟩
@@ -1271,7 +1270,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
     -- the point spine, which differs from a fitting prefix only at
     -- unused slots, where the field is a lift
     have hokPre : WellDenotedV V (consList (projList i (dropS off (ρ 0))) (fun j => ρ (j + 1)))
-        (((ds.drop nP).map (·.2.2)).getD i default) := by
+        (((ds.drop nP)).getD i default) := by
       by_cases hw : w = 0
       · obtain ⟨hpt, as', hspAs⟩ := hsq ρ hx hsat hw
         obtain ⟨hpre, -⟩ := spineFit_prefix_next hspAs (by rw [hlenFs]; exact hi)

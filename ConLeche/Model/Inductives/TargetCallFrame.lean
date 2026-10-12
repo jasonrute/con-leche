@@ -138,23 +138,21 @@ theorem posD_tele_fieldMem {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     (hresC : res.looseBVarsBounded 0 = true)
     (hfr : Rules.Frame hi cur) {Δa : List AnnotTerm} {ca : AnnotTerm}
     (hC : CtxOkP m φ hi Δa cur) (hca : denoteMeta m.acval env φ hi cur = some ca)
-    (hgr : Rules.GradedTy V Δa ca) {abD : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm}
+    (hgr : Rules.GradedTy V Δa ca) {abD : List AnnotTerm} {B : AnnotTerm}
     (hcaE : ca = mkPisAV abD B) (hlD : abD.length = nF) {σ : Nat → V} (hσ : Sat V Δa σ)
-    {fs : List V} (hfit : SpineFit σ (abD.map (·.2.2)) fs) :
+    {fs : List V} (hfit : SpineFit σ abD fs) :
     fs.length = nF ∧ nds.length = nF ∧
     ∀ (i : Nat) (nd : Expr), nds[i]?.map (·.1) = some nd →
       ∃ nda, denoteMeta m.acval env φ (hi + i) nd = some nda ∧
         fs.getD i pt ∈ˢ interp V (consList (fs.take i) σ) nda := by
   have hred := posD_red hin hd (by simpa using hfr) (by simpa using hC) (by simpa using hca) hgr
   simp only [Nat.add_zero] at hred
-  obtain ⟨abD', abN, B', hcaE', hNE, hlD', hlN, -, hEq, hgN, -, -⟩ := hred
+  obtain ⟨abD', abN, B', hcaE', hNE, hlD', hlN, hEq, hgN, -, -⟩ := hred
   rw [hcaE] at hcaE'
   obtain ⟨hpp, rfl⟩ := mkPisAV_inj (by rw [hlD, hlD']) hcaE'
-  have hdom : abD.map (·.2.2) = abD'.map (·.2.2) := by
-    rw [← ppsNorm_map_dom abD, hpp, ppsNorm_map_dom]
-  rw [hdom] at hfit
-  have hfitN : SpineFit σ (abN.map (·.2.2)) fs := (hEq.spineFit_iff hσ fs).mp hfit
-  have hfl : fs.length = nF := by rw [hfitN.length_eq, List.length_map, hlN]
+  rw [hpp] at hfit
+  have hfitN : SpineFit σ abN fs := (hEq.spineFit_iff hσ fs).mp hfit
+  have hfl : fs.length = nF := by rw [hfitN.length_eq, hlN]
   have hnl : nds.length = nF := (ConLeche.posD_tele_open hd).2.1
   refine ⟨hfl, hnl, fun i nd hnd => ?_⟩
   have hil : i < nds.length := by
@@ -172,15 +170,11 @@ theorem posD_tele_fieldMem {env : Env} {m : EnvModel V env} {φ : Name → Nat}
   rw [hnl, ← hlN, stripPisAV_mkPisAV] at hst
   obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hst)
   have hxl : xs.length = nds.length := ConLeche.Verify.openPisAtFvars_length _ hop
-  obtain ⟨p, hp, -, hpd⟩ := hbind i (xs[i]'(by omega)) (List.getElem?_eq_getElem (by omega))
+  obtain ⟨p, hp, hpd⟩ := hbind i (xs[i]'(by omega)) (List.getElem?_eq_getElem (by omega))
   have hE := hdoms i (xs[i]'(by omega)) nd (List.getElem?_eq_getElem (by omega)) hnd
-  refine ⟨p.2.2, by rw [← denoteMeta_erasedEq hE]; exact hpd, ?_⟩
-  have hmem := FixKI.spineFit_getD_mem' hfitN (l := i) (by rw [List.length_map]; omega)
-  have hp' : abN[i]?.map (·.2.2) = some p.2.2 := by
-    have h := congrArg (·[i]?) (ppsNorm_map_dom abN)
-    simp only [List.getElem?_map, hp, Option.map_some] at h
-    exact h.symm
-  rw [List.getD_eq_getElem?_getD (l := List.map _ abN), List.getElem?_map, hp'] at hmem
+  refine ⟨p, by rw [← denoteMeta_erasedEq hE]; exact hpd, ?_⟩
+  have hmem := FixKI.spineFit_getD_mem' hfitN (l := i) (by omega)
+  rw [List.getD_eq_getElem?_getD (l := abN), hp] at hmem
   exact hmem
 
 /-! ## A derived node's constructor, at an admissible frame -/
@@ -386,7 +380,7 @@ theorem blk_ctorFit {env : Env} {μ' : ConLeche.CheckMode} (mk : EnvModelM V μ'
   have hidxF := ConLeche.openPisAtFvars_index _ _ _ hop0
   -- the recorded reading, at the canonical crest the walk's is up to erasure
   obtain ⟨-, A, hA, hR⟩ := (hcore.2.1 m j cA hcj).2
-  obtain ⟨ab, -, hAr, -, hlab, -, -, -, hEqA⟩ := hR ψ
+  obtain ⟨ab, -, hAr, -, hlab, -, -, hEqA⟩ := hR ψ
   obtain ⟨A', hA', herased⟩ := canonCrest_of_walk (ctx := p.nestCtx fvsP env.find?)
     (fun i x hx => by rw [hcPar] at hx; simpa using hidxF i x hx)
     (by rw [hcPar, hlenF, hcP])
@@ -403,7 +397,7 @@ theorem blk_ctorFit {env : Env} {μ' : ConLeche.CheckMode} (mk : EnvModelM V μ'
       = some (mkPisAV ab (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - m)))
           (d.absE ψ m j))) := by
     rw [denoteMeta_erasedEq herased]; exact hAr
-  obtain ⟨abD, -, B, hhi, hcaE, -, hlD, -, -, hfr, hCP, hgr, -, -, -, -, -, -, hsatFrame⟩ :=
+  obtain ⟨abD, -, B, hhi, hcaE, -, hlD, -, hfr, hCP, hgr, -, -, -, -, -, -, hsatFrame⟩ :=
     blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames hnP hk hcv0 hop0
       hholes hCf hCb hcrest hinf hsort hd hca
   obtain ⟨-, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE

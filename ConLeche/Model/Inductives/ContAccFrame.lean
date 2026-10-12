@@ -68,10 +68,10 @@ reading like the walked input fields, each entry the reading of its
 field's output. -/
 theorem outTele_list {ctx : NestCtx} {prog : List NestHole} :
     ∀ (ks : List ConLeche.NestFieldKind) (nds : List Expr) (d : Nat) (Δ : List AnnotTerm)
-      (abD : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
+      (abD : List AnnotTerm) (B : AnnotTerm),
       abD.length = nds.length →
       OutTele m φ ctx prog ks nds d Δ (mkPisAV abD B) →
-      ∃ N : List AnnotTerm, N.length = nds.length ∧ FieldsEqOn V Δ (abD.map (·.2.2)) N ∧
+      ∃ N : List AnnotTerm, N.length = nds.length ∧ FieldsEqOn V Δ (abD) N ∧
         ∀ (i : Nat) (nd : Expr), nds[i]? = some nd → ∃ na, N[i]? = some na ∧
           denoteMeta m.acval env φ (d + i) nd = some na ∧ nd.looseBVarsBounded 0 = true ∧
           Expr.WScoped (d + i) nd ∧
@@ -80,7 +80,7 @@ theorem outTele_list {ctx : NestCtx} {prog : List NestHole} :
   | [], [], _, _, [], _, _, _ => ⟨[], rfl, trivial, fun _ _ h => by simp at h⟩
   | k :: ks, nd :: nds, d, Δ, x :: abD, B, hl, hO => by
     obtain ⟨⟨hcl, hws, hord, na, hna, hr⟩, hrest⟩ := hO
-    obtain ⟨N, hNl, hE, hN⟩ := outTele_list ks nds (d + 1) (x.2.2 :: Δ) abD B
+    obtain ⟨N, hNl, hE, hN⟩ := outTele_list ks nds (d + 1) (x :: Δ) abD B
       (by simpa using hl) hrest
     refine ⟨na :: N, by simp [hNl], ⟨fun ρ hρ => (hr ρ hρ).symm, hE⟩, fun i nd' hi => ?_⟩
     cases i with
@@ -111,15 +111,15 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
     (hnl : nds.length = nF) (hrescl : res.looseBVarsBounded 0 = true)
     (hU4 : ∀ i, i < nF → ks.getD i .ordinary ≠ .ordinary →
       ConLeche.structUsedLater (ConLeche.closeTelescope nds b res) 0 i = false)
-    {Δ : List AnnotTerm} {R : FrameRel V} {abD : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm}
+    {Δ : List AnnotTerm} {R : FrameRel V} {abD : List AnnotTerm} {B : AnnotTerm}
     (hlen : abD.length = nF)
     (hdom : ∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀)
-    (hbd : ∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abD.map (·.2.2)))
+    (hbd : ∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abD))
     (hP : PiAccThen w ctx prog (ResultAt m φ ctx.nP b (b + nF) res) nF b (nds.map (·.1)) R
       (mkPisAV abD B))
     (hO : OutTele m φ ctx prog ks (nds.map (·.1)) b Δ (mkPisAV abD B)) :
     ∃ (Af : Nat → (Nat → V) → V) (N : List AnnotTerm),
-      FieldsEqOn V Δ (abD.map (·.2.2)) N ∧
+      FieldsEqOn V Δ (abD) N ∧
       TeleAccP w Af 0 (HoleQ ctx prog b) R N ∧
       (∀ l τ τ', TAgrM 0 (ParamPos b ctx.nP) (fun l => ks.getD l .ordinary == .ordinary) l τ τ' →
         Af l τ = Af l τ') ∧
@@ -137,8 +137,8 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
     obtain ⟨na, -, -, h3, -⟩ := hN i nds[i].1 (by simp [List.getElem?_eq_getElem hi])
     exact h3
   obtain ⟨xs, rest, hop, hxs⟩ := fields_open hrescl hnl hndcl
-  let abN : List (Nat × Nat × AnnotTerm) := N.map fun a => (0, 0, a)
-  have habN : abN.map (·.2.2) = N := by simp only [abN, List.map_map]; exact List.map_id N
+  let abN : List AnnotTerm := N
+  have habN : abN = N := rfl
   rw [← hlen] at hP
   obtain ⟨Af, htele, hinv, hQf⟩ := teleAccP_of_piAccThen abD abN B b 0 (nds.map (·.1)) Δ R
     (HoleQ ctx prog b) (by rw [habN]; exact hE) hdom
@@ -281,15 +281,15 @@ theorem FieldsBound.of_eqOn' {w : Nat} :
 
 /-- Hereditary sizes through a substitution. -/
 theorem fieldsBound_substTele {w : Nat} (τ : Nat → AnnotTerm) :
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (k : Nat) (ρ : Nat → V),
-      FieldsBound w (substE V τ k ρ) (ab.map (·.2.2)) →
-      FieldsBound w ρ ((AnnotTerm.substTele τ k ab).map (·.2.2))
+    ∀ (ab : List AnnotTerm) (k : Nat) (ρ : Nat → V),
+      FieldsBound w (substE V τ k ρ) (ab) →
+      FieldsBound w ρ ((AnnotTerm.substTele τ k ab))
   | [], _, _, _ => trivial
   | d :: ab, k, ρ, ⟨h1, h2⟩ => by
     refine ⟨?_, fun a ha => ?_⟩
-    · show interp V ρ (AnnotTerm.substAV τ d.2.2 k) ∈ˢ _
+    · show interp V ρ (AnnotTerm.substAV τ d k) ∈ˢ _
       rw [interp_substAV]; exact h1
-    · have ha' : a ∈ˢ interp V (substE V τ k ρ) d.2.2 := by
+    · have ha' : a ∈ˢ interp V (substE V τ k ρ) d := by
         have := ha
         simp only [interp_substAV] at this
         exact this
@@ -302,9 +302,9 @@ theorem fieldsBound_substTele {w : Nat} (τ : Nat → AnnotTerm) :
 /-- **A hole fit of a recorded constructor is a fit of the walked normal
 form** at a frame whose substituted valuation IS the hole frame. -/
 theorem spineFitN_of_hfits {D : LfpDatum V} {ψ : Name → Nat} {c j : Nat}
-    {ab : List (Nat × Nat × AnnotTerm)} {Δ Δ' : List AnnotTerm} {N : List AnnotTerm}
-    (hEq : FieldsEqOn V Δ (ab.map (·.2.2)) (D.fields ψ c j)) {τ : Nat → AnnotTerm}
-    (hEN : FieldsEqOn V Δ' ((AnnotTerm.substTele τ 0 ab).map (·.2.2)) N)
+    {ab : List AnnotTerm} {Δ Δ' : List AnnotTerm} {N : List AnnotTerm}
+    (hEq : FieldsEqOn V Δ (ab) (D.fields ψ c j)) {τ : Nat → AnnotTerm}
+    (hEN : FieldsEqOn V Δ' ((AnnotTerm.substTele τ 0 ab)) N)
     {σ ρp X : Nat → V} (hv : substE V τ 0 σ = D.frame ψ ρp X)
     (hsat : Sat V Δ (D.frame ψ ρp X)) (hsat' : Sat V Δ' σ) {t : V} {fs : List V}
     (hf : D.HFits ψ ρp X t c j fs) : SpineFit σ N fs := by
@@ -317,11 +317,11 @@ fits at the target (the result's indices are hole-free along the relation
 under the normal form). -/
 theorem hfits_of_spineFitN {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     {ctx : NestCtx} {hi' : Nat} {cur : Expr}
-    {ab : List (Nat × Nat × AnnotTerm)} {Δ Δ' : List AnnotTerm} {N : List AnnotTerm}
-    (hEq : FieldsEqOn V Δ (ab.map (·.2.2)) (D.fields ψ c j))
+    {ab : List AnnotTerm} {Δ Δ' : List AnnotTerm} {N : List AnnotTerm}
+    (hEq : FieldsEqOn V Δ (ab) (D.fields ψ c j))
     (hlen : ab.length = nF)
     {τ : Nat → AnnotTerm} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
-    (hEN : FieldsEqOn V Δ' ((AnnotTerm.substTele τ 0 ab).map (·.2.2)) N)
+    (hEN : FieldsEqOn V Δ' ((AnnotTerm.substTele τ 0 ab)) N)
     {R' : FrameRel V}
     (hresAt : ResultAt m φ ctx.nP hi' (hi' + nF) cur (R'.underBothTele N)
       (AnnotTerm.substAV τ (AnnotTerm.mkAppN (.bvar (nF + (D.k - 1 - c))) (D.resIdx ψ c j))
@@ -347,7 +347,7 @@ theorem hfits_of_spineFitN {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
   refine ⟨e, he, ?_⟩
   rw [← heq]
   have hfl : fs.length = nF := by
-    rw [hS.length_eq, ← hEN.length_eq, List.length_map, hlenS]
+    rw [hS.length_eq, ← hEN.length_eq, hlenS]
   rw [hlen] at hresAt
   have hce := resIdx_constOn hhead hresAt hres hidx e (List.mem_of_getElem? he)
     _ _ (FrameRel.underBothTele_consList _ fs hR hS hL)
@@ -529,7 +529,7 @@ theorem frameCtor_acc {w : Nat} (hwD : D.w (Level.substFn φ lps us) = w)
   -- the walked fields are small at every related frame
   have hbd : ∀ σ σ₀, frameRelA R₀ D (Level.substFn φ lps us) grp dsa hi σ σ₀ → w ≠ 0 →
       FieldsBound w σ ((AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)
-        (grpX mp.base2 φ D hi grp ds (hi + grp.length))) 0 ab).map (·.2.2)) := by
+        (grpX mp.base2 φ D hi grp ds (hi + grp.length))) 0 ab)) := by
     rintro _ _ ⟨ρ, ρ', Y, Y', hR, hY, -, rfl, -⟩ hw
     have hw' : D.w (Level.substFn φ lps us) ≠ 0 := by rw [hwD]; exact hw
     obtain ⟨hS, hsat⟩ := hvals ρ Y (hfit ρ ρ' hR).1 hY

@@ -77,9 +77,9 @@ with its hole value applied to the frame's parameters. -/
 @[expose] def LfpReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → AnnotTerm)
     (env : Env) (D : LfpDatum V) : Prop :=
   ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
-    ∀ ψ : Name → Nat, ∃ ab : List (Nat × Nat × AnnotTerm),
+    ∀ ψ : Name → Nat, ∃ ab : List AnnotTerm,
       denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort (D.w ψ))) ∧
-      ab.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ
+      ab = D.pars mm ψ ++ D.ids mm ψ
 
 /-! ### The recorded constructor readings (M2)
 
@@ -134,14 +134,14 @@ parameter binders. -/
     cv.type.hasFvar = false ∧
     (∀ mm, mm < D.k → ∃ cvm caps, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       cvm.levelParams = cv.levelParams) ∧
-    (∀ (ψ : Name → Nat) (dsC : List (Nat × Nat × AnnotTerm)) (bodyC : AnnotTerm),
+    (∀ (ψ : Name → Nat) (dsC : List AnnotTerm) (bodyC : AnnotTerm),
       denoteMeta acval env ψ 0 cv.type = some (mkPisAV dsC bodyC) → nPc ≤ dsC.length →
       ∀ ρ : Nat → V, Sat V (D.params ψ).reverse ρ →
-        Sat V ((dsC.take nPc).map (·.2.2)).reverse ρ) ∧
+        Sat V (dsC.take nPc).reverse ρ) ∧
     ∃ A, ConLeche.nestCanonCrest D.names (cv.levelParams.map .param) nPc cv.type = some A ∧
       A.nestOcc D.names 0 0 = false ∧
       ∀ ψ : Name → Nat, (D.params ψ).length = nPc ∧ (D.fields ψ c j).length = nF ∧
-        ∃ (ab : List (Nat × Nat × AnnotTerm)) (Tys : List AnnotTerm),
+        ∃ (ab : List AnnotTerm) (Tys : List AnnotTerm),
           denoteMeta acval env ψ (nPc + D.k) A
             = some (mkPisAV ab (AnnotTerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx ψ c j))) ∧
@@ -149,7 +149,7 @@ parameter binders. -/
           (∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
             ConLeche.instPisWith (canonParams nPc) cvm.type = some ty ∧
             denoteMeta acval env ψ (nPc + mm) ty = some (Tys.getD mm default)) ∧
-          FieldsEqOn V (D.params ψ ++ Tys).reverse (ab.map (·.2.2)) (D.fields ψ c j)
+          FieldsEqOn V (D.params ψ ++ Tys).reverse ab (D.fields ψ c j)
 
 /-- **A recorded block's capability records and constructor shapes**
 (task #342 L10): each member's stored capabilities are sound for the
@@ -179,15 +179,15 @@ variable {V}
 /-- **An application along a Π-tower lands in its body**
 (`app_mem_piV` per binder). -/
 theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V} {f : V},
-      SpineFit ρ (tl.map (·.2.2)) bs →
+    ∀ {tl : List AnnotTerm} {ρ : Nat → V} {bs : List V} {f : V},
+      SpineFit ρ tl bs →
       f ∈ˢ interp V ρ (mkPisAV tl B) →
       bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
   | [], ρ, [], f, _, hf => hf
   | [], _, _ :: _, _, h, _ => h.elim
   | _ :: _, _, [], _, h, _ => h.elim
   | d :: tl, ρ, b :: bs, f, h, hf => by
-    have hf' : f ∈ˢ interp V ρ (.pi d.2.2 (mkPisAV tl B)) := hf
+    have hf' : f ∈ˢ interp V ρ (.pi d (mkPisAV tl B)) := hf
     rw [interp_pi] at hf'
     have happ := app_mem_piV hf' h.1
     rw [List.foldl_cons, consList_cons]
@@ -197,12 +197,12 @@ theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
 truth value**: each binder's fibres are (by induction), so each
 function space is the truth-value regime's (`piV_eq_zero`). -/
 theorem mkPisAV_mem_univZero {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      (∀ bs, SpineFit ρ (tl.map (·.2.2)) bs → interp V (consList bs ρ) B ∈ˢ (univZero : V)) →
+    ∀ {tl : List AnnotTerm} {ρ : Nat → V},
+      (∀ bs, SpineFit ρ tl bs → interp V (consList bs ρ) B ∈ˢ (univZero : V)) →
       interp V ρ (mkPisAV tl B) ∈ˢ (univZero : V)
   | [], _, h => h [] trivial
   | d :: tl, ρ, h => by
-    show interp V ρ (.pi d.2.2 (mkPisAV tl B)) ∈ˢ _
+    show interp V ρ (.pi d (mkPisAV tl B)) ∈ˢ _
     rw [interp_pi, piV_eq_zero fun x hx =>
       mkPisAV_mem_univZero fun bs hbs => h (x :: bs) ⟨hx, hbs⟩]
     exact piR_zero_mem_univZero
@@ -210,17 +210,17 @@ theorem mkPisAV_mem_univZero {B : AnnotTerm} :
 /-- **The body of a graded Π-tower is a type at every fitting spine**:
 it is the innermost binder's fibre, which the grading makes a type. -/
 theorem isTy_of_wd_mkPisAV {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
-      WellDenoted V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
+    ∀ {tl : List AnnotTerm} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
+      WellDenoted V ρ (mkPisAV tl B) → SpineFit ρ tl bs →
       IsTy (interp V (consList bs ρ) B)
   | [], _, _, h, _, _ => absurd rfl h
   | [_], _, [], _, _, hsp => hsp.elim
-  | [d], ρ, [b], _, hwd, hsp => (cast (WellDenoted_pi V ρ d.2.2 B) hwd).2.2.2 b hsp.1
+  | [d], ρ, [b], _, hwd, hsp => (cast (WellDenoted_pi V ρ d B) hwd).2.2.2 b hsp.1
   | [_], _, _ :: _ :: _, _, _, hsp => hsp.2.elim
   | _ :: _ :: _, _, [], _, _, hsp => hsp.elim
   | d :: d' :: tl, ρ, b :: _, _, hwd, hsp =>
     isTy_of_wd_mkPisAV (tl := d' :: tl) (ρ := cons b ρ) (List.cons_ne_nil _ _)
-      ((cast (WellDenoted_pi V ρ d.2.2 (mkPisAV (d' :: tl) B)) hwd).2.2.1 b hsp.1) hsp.2
+      ((cast (WellDenoted_pi V ρ d (mkPisAV (d' :: tl) B)) hwd).2.2.1 b hsp.1) hsp.2
 
 end
 

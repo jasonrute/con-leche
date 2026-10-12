@@ -35,7 +35,7 @@ variable {V : Type w} [SetTheory V]
 /-! ## Π-towers in the graph regime -/
 
 theorem mkPisAV_append' (B : AnnotTerm) :
-    ∀ (ab₁ ab₂ : List (Nat × Nat × AnnotTerm)),
+    ∀ (ab₁ ab₂ : List AnnotTerm),
       mkPisAV (ab₁ ++ ab₂) B = mkPisAV ab₁ (mkPisAV ab₂ B)
   | [], _ => rfl
   | d :: ab₁, ab₂ => by
@@ -43,21 +43,21 @@ theorem mkPisAV_append' (B : AnnotTerm) :
     rw [mkPisAV_append' B ab₁ ab₂]
 
 /-- An application along a Π-tower lands in its body. -/
-theorem foldl_app_mem_mkPisAV_pos {B : AnnotTerm} {ab : List (Nat × Nat × AnnotTerm)}
-    {ρ : Nat → V} {bs : List V} {f : V} (h : SpineFit ρ (ab.map (·.2.2)) bs)
+theorem foldl_app_mem_mkPisAV_pos {B : AnnotTerm} {ab : List AnnotTerm}
+    {ρ : Nat → V} {bs : List V} {f : V} (h : SpineFit ρ ab bs)
     (hf : f ∈ˢ interp V ρ (mkPisAV ab B)) : bs.foldl app f ∈ˢ interp V (consList bs ρ) B :=
   foldl_app_mem_mkPisAV h hf
 
 /-- **Extensionality along a graph-regime Π-tower**: two inhabitants
 agreeing on every fitting spine are equal. -/
 theorem eq_of_mem_mkPisAV_pos {B : AnnotTerm} :
-    ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {f g : V},
+    ∀ {ab : List AnnotTerm} {ρ : Nat → V} {f g : V},
       f ∈ˢ interp V ρ (mkPisAV ab B) → g ∈ˢ interp V ρ (mkPisAV ab B) →
-      (∀ bs, SpineFit ρ (ab.map (·.2.2)) bs → bs.foldl app f = bs.foldl app g) → f = g
+      (∀ bs, SpineFit ρ ab bs → bs.foldl app f = bs.foldl app g) → f = g
   | [], _, _, _, _, _, h => h [] trivial
   | d :: ab, ρ, f, g, hf, hg, h => by
-    have hf' : f ∈ˢ piV (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hf
-    have hg' : g ∈ˢ piV (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hg
+    have hf' : f ∈ˢ piV (interp V ρ d) fun x => interp V (cons x ρ) (mkPisAV ab B) := hf
+    have hg' : g ∈ˢ piV (interp V ρ d) fun x => interp V (cons x ρ) (mkPisAV ab B) := hg
     unfold piV at hf' hg'
     rw [← lamR_eta hf', ← lamR_eta hg']
     refine lamR_congr fun a ha => ?_
@@ -97,12 +97,12 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
   -- split the tower at the parameters
   have hsplit : ab = ab.take (D.pars mm ψ).length ++ ab.drop (D.pars mm ψ).length :=
     (List.take_append_drop _ _).symm
-  have hmap₁ : (ab.take (D.pars mm ψ).length).map (·.2.2) = D.pars mm ψ := by
-    rw [List.map_take, hmap, List.take_left' rfl]
-  have hmap₂ : (ab.drop (D.pars mm ψ).length).map (·.2.2) = D.ids mm ψ := by
-    rw [List.map_drop, hmap, List.drop_left' rfl]
+  have hmap₁ : ab.take (D.pars mm ψ).length = D.pars mm ψ := by
+    rw [hmap, List.take_left' rfl]
+  have hmap₂ : ab.drop (D.pars mm ψ).length = D.ids mm ψ := by
+    rw [hmap, List.drop_left' rfl]
   rw [hsplit, mkPisAV_append'] at hfm
-  have hfit : SpineFit ρ₀ ((ab.take (D.pars mm ψ).length).map (·.2.2))
+  have hfit : SpineFit ρ₀ (ab.take (D.pars mm ψ).length)
       (frameIdx (D.pars mm ψ).length ρp) := by
     rw [hmap₁, ← hρ₀]; exact spineFit_frameIdx_of_sat hsP
   have hfr : consList (frameIdx (D.pars mm ψ).length ρp) ρ₀ = ρp := by

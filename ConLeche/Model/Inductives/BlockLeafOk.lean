@@ -153,7 +153,7 @@ theorem blockBodyAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
 
 omit [SetTheory V] in
 /-- **A member's former leaf is closed.** -/
-theorem blockTyAV_below {m : Nat} {pps : List (Nat × Nat × AnnotTerm)}
+theorem blockTyAV_below {m : Nat} {pps : List AnnotTerm}
     (hp : DomsBelow 0 pps) (hlen : pps.length = nP + nIdx)
     (hIdsLen : (Idss m).length = nIdx)
     (hIds : ∀ c, FieldsBelow nP (Idss c))
@@ -161,7 +161,7 @@ theorem blockTyAV_below {m : Nat} {pps : List (Nat × Nat × AnnotTerm)}
     Term.bvarsBelow 0
       (blockTyG k w uf Idss Chs pps m).erase := by
   refine mkLamsAV_below hp.mapC ?_
-  rw [List.length_map, hlen, Nat.zero_add, ← hIdsLen]
+  rw [hlen, Nat.zero_add, ← hIdsLen]
   simp only [AnnotTerm.erase_app, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
   · refine projAV_below ?_
@@ -185,7 +185,7 @@ variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
 /-- **The block former leaf's P currency**: graded at the hereditary
 premise. -/
 theorem blockTyAV_wellDenotedV {m : Nat} (hm : m < k)
-    {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
+    {pps : List AnnotTerm} {ρ : Nat → V}
     (hok : ParamsOkG k w ρ uf Idss Chs m pps) :
     WellDenotedV V ρ (blockTyG k w uf Idss Chs pps m) :=
   blockTyG_wellDenoted hm hok

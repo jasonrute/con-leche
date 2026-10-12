@@ -733,7 +733,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
     ConLeche.SameDoms.mono (by rw [← hnPq']; omega) (ConLeche.SameDoms.of_stripPis _ hstrip)
   obtain ⟨xs0, o0, F', hop0, hdeqs⟩ := hall cvTP caps hfindT hlpsT hfvT hsdT
   -- recursor `c`'s parameter openers are the same
-  obtain ⟨fvsL, conclL, hopL, -, -, hlenRds, -, hbind, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
+  obtain ⟨fvsL, conclL, hopL, -, -, hlenRds, hbind, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
   have hle := blockRecHrPle (p := pp) h (List.getElem?_eq_some_iff.mp hr).1
   obtain ⟨hrP, -⟩ := genRecTy_shape R hg T
   obtain ⟨-, -, hRc⟩ := ConLeche.recShape_at (q := pp.toBlockShape) hrc
@@ -760,9 +760,9 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
       rw [← hxs, List.length_take] at this; omega
     have hx' : fvsL[i]? = some x := by
       rw [← hxs, List.getElem?_take, ite_eq_left hi] at hx; exact hx
-    obtain ⟨pd, hpd, -, hreadD⟩ := hbind i x hx'
+    obtain ⟨pd, hpd, hreadD⟩ := hbind i x hx'
     rw [hreadD, getD_take_of_lt hi, ← hPd, blockRulePdomsAV, List.getD_eq_getElem?_getD,
-      List.getElem?_map, List.getElem?_take, ite_eq_left (by omega), hpd]
+      List.getElem?_take, ite_eq_left (by omega), hpd]
     rfl
   have hgrA := blockRulePdomsAV_graded hμ mpC h hr ψ
   rw [hPd] at hgrA
@@ -778,25 +778,24 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
   obtain ⟨tfvs, trest, hopT⟩ := ConLeche.SameDoms.open_isSome pp.nP (d := 0) hsdT
   obtain ⟨ppsT, bT, hstT, -, -, hbindT⟩ :=
     denoteMeta_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hopT (hFD.read ψ)
-  have hppsT : ppsT.map (·.2.2) = ((dR.ppsM rc0.tgt ψ).take pp.nP).map (·.2.2) := by
+  have hppsT : ppsT = (dR.ppsM rc0.tgt ψ).take pp.nP := by
     have := stripPisAV_mkPisAV_take pp.nP (dR.ppsM rc0.tgt ψ)
       (.sort (dR.resSort.eval ψ)) (by rw [hppsLen, hnPq']; omega)
     rw [this] at hstT
-    obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hstT)
-    exact ppsNorm_map_dom _
+    exact congrArg Prod.fst (Option.some.inj hstT.symm)
   have hdBT : ∀ (i : Nat) (x : Expr), tfvs[i]? = some x →
       denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD x)
-        = some ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).getD i default) := by
+        = some (((dR.ppsM rc0.tgt ψ).take dR.nP).getD i default) := by
     intro i x hx
-    obtain ⟨pd, hpd, -, hreadD⟩ := hbindT i x hx
+    obtain ⟨pd, hpd, hreadD⟩ := hbindT i x hx
     rw [Nat.zero_add] at hreadD
-    rw [hreadD, hnPq', ← hppsT, List.getD_eq_getElem?_getD, List.getElem?_map, hpd]
+    rw [hreadD, hnPq', ← hppsT, List.getD_eq_getElem?_getD, hpd]
     rfl
-  have hlenB : (((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).length = pp.nP := by
-    rw [List.length_map, List.length_take, hppsLen]; omega
+  have hlenB : ((dR.ppsM rc0.tgt ψ).take dR.nP).length = pp.nP := by
+    rw [List.length_take, hppsLen]; omega
   have hokB : ∀ i, i < pp.nP → ∀ (ρ' : Nat → V) (ys : List V),
-      SpineFit ρ' ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).take i) ys →
-      WellDenotedTy V (consList ys ρ') ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).getD i
+      SpineFit ρ' (((dR.ppsM rc0.tgt ψ).take dR.nP).take i) ys →
+      WellDenotedTy V (consList ys ρ') (((dR.ppsM rc0.tgt ψ).take dR.nP).getD i
         default) := by
     intro i hi ρ' ys hys
     exact prefixDoms_graded_of_tower (V := V) (cc := .sort (dR.resSort.eval ψ))
@@ -844,8 +843,8 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
     obtain ⟨cvT0, hcvT0⟩ : ∃ cvT0, cvTas[0]? = some cvT0 :=
       ⟨_, List.getElem?_eq_getElem (by omega)⟩
     obtain ⟨-, -, -, -, -, hFD0⟩ := hcvF _ _ hcvT0
-    rw [BlockData.params, List.length_map, List.length_take, hFD0.len ψ]; omega
-  have hsat : Sat V ((((dR.ppsM rc0.tgt ψ).take dR.nP).map (·.2.2)).reverse)
+    rw [BlockData.params, List.length_take, hFD0.len ψ]; omega
+  have hsat : Sat V (((dR.ppsM rc0.tgt ψ).take dR.nP).reverse)
       (consList (xs.take pp.nP) ρ) := by
     simpa using sat_of_spineFit (Sat_nil V ρ) hfitB
   rw [hnPq']

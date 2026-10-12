@@ -56,41 +56,41 @@ variable {k nP nIdx : Nat} {resSort : Level}
 satisfying its whole parameter-and-index telescope: the frame below the
 index binders satisfies the parameters, and the index variables fit the
 index telescope there. -/
-theorem blockParamFrame_of_sat {pps : List (Nat × Nat × AnnotTerm)} {Ids : List AnnotTerm}
-    (hIds : Ids = (pps.drop nP).map (·.2.2)) {ρ : Nat → V}
-    (hρ : Sat V ((pps.map (·.2.2)).reverse) ρ) :
-    Sat V ((pps.take nP).map (·.2.2)).reverse (shiftE Ids.length 0 ρ) ∧
+theorem blockParamFrame_of_sat {pps : List AnnotTerm} {Ids : List AnnotTerm}
+    (hIds : Ids = (pps.drop nP)) {ρ : Nat → V}
+    (hρ : Sat V ((pps).reverse) ρ) :
+    Sat V ((pps.take nP)).reverse (shiftE Ids.length 0 ρ) ∧
       SpineFit (shiftE Ids.length 0 ρ) Ids (frameIdx Ids.length ρ) := by
   rw [reverse_map_take_drop pps nP] at hρ
   -- the parameter frame (at the MEMBER's index count: `hIds` is what
   -- makes the block-wide facts land at the member's own frame)
-  have hle : Ids.length ≤ (((pps.drop nP).map (·.2.2)).reverse).length := by
+  have hle : Ids.length ≤ (((pps.drop nP)).reverse).length := by
     rw [List.length_reverse, ← hIds]; exact Nat.le_refl _
-  have hle2 : (((pps.drop nP).map (·.2.2)).reverse).length ≤ Ids.length := by
+  have hle2 : (((pps.drop nP)).reverse).length ≤ Ids.length := by
     rw [List.length_reverse, ← hIds]; exact Nat.le_refl _
   have hsh : shiftE Ids.length 0 ρ = fun j => ρ (j + Ids.length) := by
     rw [shiftE_zero]
-  have hρp : Sat V ((pps.take nP).map (·.2.2)).reverse (fun j => ρ (j + Ids.length)) := by
+  have hρp : Sat V ((pps.take nP)).reverse (fun j => ρ (j + Ids.length)) := by
     have := Sat_drop hρ Ids.length
     rwa [List.drop_append_of_le_length hle, List.drop_eq_nil_of_le hle2,
       List.nil_append] at this
   -- the index spine
-  have hspI := spineFit_of_sat (Δ₀ := ((pps.take nP).map (·.2.2)).reverse)
-    (Ds := (pps.drop nP).map (·.2.2)) hρ
+  have hspI := spineFit_of_sat (Δ₀ := ((pps.take nP)).reverse)
+    (Ds := (pps.drop nP)) hρ
   rw [← hIds, ← frameIdx_eq_reverse_map] at hspI
   rw [hsh]
   exact ⟨hρp, hspI⟩
 
 /-- **The block leaf's hereditary premise**, from the former's data and
 the block-wide base facts at the parameter frame. -/
-theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
+theorem blockLeafWalks {pps : List AnnotTerm} {w : Nat}
     (hlen : pps.length = nP + nIdx)
     (hokTy : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps (.sort w)))
     {mm : Nat}
-    (hIdsm : Idss mm = ((pps.drop nP).map (·.2.2)))
-    (hIdx : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
+    (hIdsm : Idss mm = ((pps.drop nP)))
+    (hIdx : ∀ ρp : Nat → V, Sat V ((pps.take nP)).reverse ρp →
       BlockIdxOk (V := V) k uf ρp Idss)
-    (hX : ∀ ρp : Nat → V, Sat V ((pps.take nP).map (·.2.2)).reverse ρp →
+    (hX : ∀ ρp : Nat → V, Sat V ((pps.take nP)).reverse ρp →
       BlockChainsOkG k w ρp uf Idss Chs)
     (ρ : Nat → V) :
     ParamsOkG k w ρ uf Idss Chs mm pps := by
@@ -98,18 +98,18 @@ theorem blockLeafWalks {pps : List (Nat × Nat × AnnotTerm)} {w : Nat}
   rw [hlen] at hst
   have htele := piTeleAV_of_stripPisAV hst
   obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ _ => hokTy ρ)
-  simp only [List.append_nil, ppsNorm_map_dom] at okΓ
-  have hlenΓ : ((pps.map (·.2.2)).reverse).length = nP + nIdx := by simp [hlen]
+  simp only [List.append_nil] at okΓ
+  have hlenΓ : ((pps).reverse).length = nP + nIdx := by simp [hlen]
   have hent : ∀ i, i < nP + nIdx → ∃ p, pps[i]? = some p ∧
-      p.2.2 = ((pps.map (·.2.2)).reverse).getD (nP + nIdx - 1 - i) default := by
+      p = ((pps).reverse).getD (nP + nIdx - 1 - i) default := by
     intro i hi
     have hil : i < pps.length := by rw [hlen]; exact hi
     refine ⟨pps[i], List.getElem?_eq_getElem hil, ?_⟩
     rw [getD_reverse_of_peel hlen hi (List.getElem?_eq_getElem hil)]
-  have hΓnil : ((pps.map (·.2.2)).reverse).drop (nP + nIdx - 0) = [] := by
+  have hΓnil : ((pps).reverse).drop (nP + nIdx - 0) = [] := by
     rw [Nat.sub_zero, List.drop_eq_nil_of_le (by rw [hlenΓ]; exact Nat.le_refl _)]
   -- the base facts at a frame satisfying the whole telescope
-  have hbase : ∀ ρ : Nat → V, Sat V ((pps.map (·.2.2)).reverse) ρ →
+  have hbase : ∀ ρ : Nat → V, Sat V ((pps).reverse) ρ →
       BlockBaseG k w ρ uf Idss Chs mm := by
     intro ρ hρ
     obtain ⟨hρp, hspI⟩ := blockParamFrame_of_sat hIdsm hρ
@@ -137,14 +137,14 @@ block's parameter count, with the context the former's data read
 opening — a member's type has its own indices after the parameters). -/
 private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
     {cvT cvTa : ConstantVal} {nP nFull : Nat} {resSort : Level}
-    {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {pps : (Name → Nat) → List AnnotTerm}
     (hccv : ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok cvTa)
     (hFD : FormerData mp.base2 cvTa nFull resSort pps) (hle : nP ≤ nFull)
     {tfvs : List Expr} {trest : Expr}
     (hop : ConLeche.openPisAtFvars nP cvTa.type 0 = some (tfvs, trest))
     (ψ : Name → Nat) :
     ∃ R, Opened mp.base2 ψ nP cvTa.type tfvs trest
-      ((((pps ψ).take nP).map (·.2.2)).reverse) R := by
+      ((((pps ψ).take nP)).reverse) R := by
   obtain ⟨-, -, -, -, hlbt, hitf, type', -, -, hann', -, -, -, -, rfl⟩ :=
     ConLeche.checkConstantVal_inv_stored hccv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
@@ -154,7 +154,7 @@ private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
   have hst'' := stripPisAV_mkPisAV_take nP (pps ψ) (AnnotTerm.sort (resSort.eval ψ))
     (by rw [hFD.len ψ]; exact hle)
   obtain ⟨rfl, -⟩ := Prod.mk.injEq _ _ _ _ ▸ Option.some.inj (hst'.symm.trans hst'')
-  exact ⟨R, by rw [← ppsNorm_map_dom ((pps ψ).take nP), hΓ]; exact hO⟩
+  exact ⟨R, by rw [hΓ]; exact hO⟩
 
 /-- **The `k` members' PARAMETER telescopes are interchangeable at a
 frame.**  This is official's `check_inductive_types` agreement —
@@ -171,13 +171,13 @@ theorem blockParamsIff (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     (h : ConLeche.checkBlockInds (ConLeche.fueledOps μ F) env p isRec
       = .ok (envI, cvTas, p₁))
     {nPOf : Nat → Nat} {resSort : Level}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hle : ∀ j, p.nP ≤ nPOf j)
     (hFD : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       FormerData mp.base2 cvTa (nPOf j) resSort (ppsOf j)) :
     ∀ m₁ m₂, m₁ < cvTas.length → m₂ < cvTas.length → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsOf m₁ ψ).take p.nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ppsOf m₂ ψ).take p.nP).map (·.2.2)).reverse ρ := by
+      Sat V (((ppsOf m₁ ψ).take p.nP)).reverse ρ ↔
+        Sat V (((ppsOf m₂ ψ).take p.nP)).reverse ρ := by
   obtain ⟨ms0, rest, cvTa0, s0, cvs, -, rfl, -, -, htele0, hteles, hagree⟩ :=
     ConLeche.checkBlockInds_shape h
   obtain ⟨cvT0, -, -, hccv0, -⟩ := ConLeche.checkBlockTele_shape htele0
@@ -185,8 +185,8 @@ theorem blockParamsIff (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
   -- every member's frame is member 0's
   have hkey : ∀ m, m < (cvTa0 :: cvs.map (·.1)).length →
       ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsOf m ψ).take p.nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((ppsOf 0 ψ).take p.nP).map (·.2.2)).reverse ρ := by
+      Sat V (((ppsOf m ψ).take p.nP)).reverse ρ ↔
+        Sat V (((ppsOf 0 ψ).take p.nP)).reverse ρ := by
     intro m hm ψ ρ
     match m with
     | 0 => exact Iff.rfl
@@ -230,7 +230,7 @@ over the block's whole member list. -/
 theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     (hE : ConLeche.EtaFamiliesClosedExceptL env names)
     {cvTa : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
-    {nP : Nat} {resSort : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {nP : Nat} {resSort : Level} {pps : (Name → Nat) → List AnnotTerm}
     (hfresh : env.find? cvTa.name = none)
     (hnres : ConLeche.reservedBasisNames.contains cvTa.name = false)
     (hpshape : cvTa.name.isProjFnShape = false)
@@ -243,7 +243,7 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     (hAmem : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (mkPisAV (pps ψ) (.sort (resSort.eval ψ))))
     (hAstrict : ∀ (ψ : Name → Nat) (ρ : Nat → V) (vs : List V),
-      SpineFit ρ ((pps ψ).map (·.2.2)) vs →
+      SpineFit ρ ((pps ψ)) vs →
       vs.foldl SetTheory.app (interp V ρ (A ψ)) ∈ˢ (strictU (resSort.eval ψ) : V))
     (hTlaws : ∀ m₂ : EnvModel V ⟨.indInfo cvTa caps :: env.consts⟩,
       m₂.acval = acvalWith mp.base2.acval cvTa.name A →
@@ -305,7 +305,7 @@ member list, because all `k` formers are stored before any constructor. -/
 theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
     {cvTasAll : List ConstantVal} {A : Nat → (Name → Nat) → AnnotTerm}
     {nPOf : Nat → Nat} {resSort : Level}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hnames : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
       cvTa.name ∈ names)
     (hndN : ∀ (j j' : Nat) (c c' : ConstantVal), cvTasAll[j]? = some c →
@@ -330,7 +330,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
       interp V ρ (A j ψ) ∈ˢ interp V ρ (mkPisAV (ppsOf j ψ) (.sort (resSort.eval ψ))))
     (hAstrictOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (vs : List V),
-      SpineFit ρ ((ppsOf j ψ).map (·.2.2)) vs →
+      SpineFit ρ ((ppsOf j ψ)) vs →
       vs.foldl SetTheory.app (interp V ρ (A j ψ)) ∈ˢ (strictU (resSort.eval ψ) : V))
     -- no member's former is named by any member's η constructor (the
     -- constructors are checked at the environment holding ALL the

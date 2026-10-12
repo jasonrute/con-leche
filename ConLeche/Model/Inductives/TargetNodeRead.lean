@@ -57,22 +57,36 @@ the λ-tower over one telescope read one list. -/
     let r ← teleDoms acval env φ D (.fvar (D + os.length) (ty.instantiateList os 0) :: os) tys
     pure (a :: r)
 
+/-- `teleDoms`'s read list is the telescope's own length. -/
+theorem teleDoms_length {D : Nat} :
+    ∀ {os tys : List Expr} {ds : List AnnotTerm},
+      teleDoms acval env φ D os tys = some ds → ds.length = tys.length
+  | _, [], _, h => by
+    simp only [teleDoms, Option.some.injEq] at h
+    simp [← h]
+  | os, _ :: tys, ds, h => by
+    simp only [teleDoms] at h
+    obtain ⟨a, -, h⟩ := Option.bind_eq_some_iff.mp h
+    obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+    simp only [pure, Option.some.injEq] at h
+    rw [← h]
+    simp [teleDoms_length hr]
+
 /-- **The `∀`-tower over a telescope, read**: its binder data are the
-telescope's domains (`teleDoms`) with zero numerals (the reading records
-none), and its body is read with the binders opened. -/
+telescope's domains (`teleDoms`), and its body is read with the
+binders opened. -/
 theorem denoteMeta_mkPisOf {D : Nat} :
     ∀ (tele : List (Expr × ConLeche.BinderMeta)) (X : Expr) (q : Nat) (os : List Expr)
       (P : AnnotTerm),
       LocList D q os →
       denoteMeta acval env φ (D + q) ((Expr.mkPisOf tele X).instantiateList os 0) = some P →
-      ∃ (ds : List (Nat × Nat × AnnotTerm)) (Xr : AnnotTerm) (os' : List Expr),
+      ∃ (ds : List AnnotTerm) (Xr : AnnotTerm) (os' : List Expr),
         P = mkPisAV ds Xr ∧
-        teleDoms acval env φ D os (tele.map (·.1)) = some (ds.map (·.2.2)) ∧
-        ds.map (·.2.1) = tele.map (fun _ => 0) ∧
+        teleDoms acval env φ D os (tele.map (·.1)) = some ds ∧
         LocList D (q + tele.length) os' ∧
         denoteMeta acval env φ (D + (q + tele.length)) (X.instantiateList os' 0) = some Xr
   | [], X, q, os, P, hos, hP => by
-    refine ⟨[], P, os, rfl, ?_, rfl, by simpa using hos, by simpa [Expr.mkPisOf] using hP⟩
+    refine ⟨[], P, os, rfl, ?_, by simpa using hos, by simpa [Expr.mkPisOf] using hP⟩
     simp [teleDoms]
   | (ty, bm) :: bs, X, q, os, P, hos, hP => by
     have hq : os.length = q := hos.1
@@ -82,15 +96,14 @@ theorem denoteMeta_mkPisOf {D : Nat} :
     obtain ⟨ba, hba, hP⟩ := Option.bind_eq_some_iff.mp hP
     obtain rfl : P = .pi ta ba := (Option.some.inj hP).symm
     rw [← Expr.instantiateList_cons, show D + q + 1 = D + (q + 1) from by omega] at hba
-    obtain ⟨ds, Xr, os', rfl, hdoms, hbits, hos', hX⟩ :=
+    obtain ⟨ds, Xr, os', rfl, hdoms, hos', hX⟩ :=
       denoteMeta_mkPisOf bs X (q + 1) _ ba (hos.cons _) hba
-    refine ⟨(0, 0, ta) :: ds, Xr, os', rfl, ?_, ?_,
+    refine ⟨ta :: ds, Xr, os', rfl, ?_,
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hos',
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hX⟩
-    · show teleDoms acval env φ D os (ty :: bs.map (·.1)) = some (ta :: ds.map (·.2.2))
-      rw [teleDoms, hq, hta, hdoms]
-      rfl
-    · simp [hbits]
+    show teleDoms acval env φ D os (ty :: bs.map (·.1)) = some (ta :: ds)
+    rw [teleDoms, hq, hta, hdoms]
+    rfl
 
 /-! ## A frame-bounded term's value does not see where it is opened -/
 

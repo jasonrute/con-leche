@@ -35,16 +35,16 @@ open ConLeche.Term
 /-! ## Bound-variable bounds, at the erasure -/
 
 /-- The domains of a λ-frame, each bounded at its own depth
-(`(u, dom)` pairs — `mkLamsAV`'s data). -/
-def LamDomsBelow (k : Nat) : List (Nat × AnnotTerm) → Prop
+(`mkLamsAV`'s data). -/
+def LamDomsBelow (k : Nat) : List AnnotTerm → Prop
   | [] => True
-  | d :: ds => Term.bvarsBelow k d.2.erase ∧ LamDomsBelow (k + 1) ds
+  | d :: ds => Term.bvarsBelow k d.erase ∧ LamDomsBelow (k + 1) ds
 
-/-- The binder triples of a Π-frame, each domain bounded at its own
-depth (`(u, v, dom)` triples — `mkPisAV`/`mkLamsC`'s data). -/
-def DomsBelow (k : Nat) : List (Nat × Nat × AnnotTerm) → Prop
+/-- The domains of a Π-frame, each bounded at its own depth
+(`mkPisAV`/`mkLamsC`'s data). -/
+def DomsBelow (k : Nat) : List AnnotTerm → Prop
   | [] => True
-  | d :: ds => Term.bvarsBelow k d.2.2.erase ∧ DomsBelow (k + 1) ds
+  | d :: ds => Term.bvarsBelow k d.erase ∧ DomsBelow (k + 1) ds
 
 /-- A field-domain chain, each domain bounded at its own depth. -/
 def FieldsBelow (k : Nat) : List AnnotTerm → Prop
@@ -62,8 +62,8 @@ theorem fieldsBelow_append : ∀ {Ds Es : List AnnotTerm} {k : Nat},
 
 /-- The domains' closedness, entry by entry. -/
 theorem DomsBelow.getD_below {K : Nat} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)}, DomsBelow K ds → ∀ k, k < ds.length →
-      Term.bvarsBelow (K + k) (ds.getD k default).2.2.erase
+    ∀ {ds : List AnnotTerm}, DomsBelow K ds → ∀ k, k < ds.length →
+      Term.bvarsBelow (K + k) (ds.getD k default).erase
   | [], _, _, hk => absurd hk (Nat.not_lt_zero _)
   | d :: ds, h, 0, _ => by simpa using h.1
   | d :: ds, h, k + 1, hk => by
@@ -72,15 +72,13 @@ theorem DomsBelow.getD_below {K : Nat} :
     rwa [show K + 1 + k = K + (k + 1) from by omega] at this
 
 
-theorem DomsBelow.mapC {m k : Nat} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)}, DomsBelow k ds →
-      LamDomsBelow k (ds.map fun d => (m, d.2.2))
+theorem DomsBelow.mapC {k : Nat} :
+    ∀ {ds : List AnnotTerm}, DomsBelow k ds → LamDomsBelow k ds
   | [], _ => trivial
   | _ :: _, h => ⟨h.1, DomsBelow.mapC h.2⟩
 
 theorem DomsBelow.fields {k : Nat} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)}, DomsBelow k ds →
-      FieldsBelow k (ds.map (·.2.2))
+    ∀ {ds : List AnnotTerm}, DomsBelow k ds → FieldsBelow k ds
   | [], _ => trivial
   | _ :: _, h => ⟨h.1, DomsBelow.fields h.2⟩
 
@@ -225,7 +223,7 @@ theorem mkTowerGo_below {w : Nat} {Fs : List AnnotTerm} {k : Nat}
 /-- The λ-tower former: bounded from the frame's own bounds and the
 body's at the full depth. -/
 theorem mkLamsAV_below :
-    ∀ {ds : List (Nat × AnnotTerm)} {b : AnnotTerm} {k : Nat},
+    ∀ {ds : List AnnotTerm} {b : AnnotTerm} {k : Nat},
       LamDomsBelow k ds →
       Term.bvarsBelow (k + ds.length) b.erase →
       Term.bvarsBelow k (mkLamsAV ds b).erase
@@ -236,19 +234,18 @@ theorem mkLamsAV_below :
       exact hb)⟩
 
 /-- The constant-bit tower, over Π-frame data. -/
-theorem mkLamsC_below {m : Nat} {ds : List (Nat × Nat × AnnotTerm)}
+theorem mkLamsC_below {m : Nat} {ds : List AnnotTerm}
     {b : AnnotTerm} {k : Nat} (h : DomsBelow k ds)
     (hb : Term.bvarsBelow (k + ds.length) b.erase) :
     Term.bvarsBelow k (mkLamsC m ds b).erase :=
-  mkLamsAV_below h.mapC (by
-    rw [List.length_map]; exact hb)
+  mkLamsAV_below h.mapC hb
 
 /-! ## The peel: bounds off a bounded reading -/
 
 /-- A successful `stripPisAV` of a bounded reading bounds every binder
 domain at its own depth and the residual at the full depth. -/
 theorem stripPisAV_below :
-    ∀ {n : Nat} {e : AnnotTerm} {ps : List (Nat × Nat × AnnotTerm)}
+    ∀ {n : Nat} {e : AnnotTerm} {ps : List AnnotTerm}
       {b : AnnotTerm} {k : Nat},
       stripPisAV n e = some (ps, b) →
       Term.bvarsBelow k e.erase →
@@ -260,7 +257,7 @@ theorem stripPisAV_below :
   | n + 1, .pi A B, ps, b, k, h, he => by
     simp only [stripPisAV, Option.map_eq_some_iff] at h
     obtain ⟨⟨ps', b'⟩, hstrip, heq⟩ := h
-    obtain ⟨rfl, rfl⟩ : (0, 0, A) :: ps' = ps ∧ b' = b := by
+    obtain ⟨rfl, rfl⟩ : A :: ps' = ps ∧ b' = b := by
       simpa using heq
     obtain ⟨hds, hb⟩ := stripPisAV_below hstrip he.2
     exact ⟨⟨he.1, hds⟩, by
@@ -836,22 +833,22 @@ theorem sumBodyAV_wellDenoted {w : Nat} {ρ : Nat → V} {Fss : List (List Annot
 
 /-- The type-former leaf of a direct sum: the λ-tower over the
 parameter domains (bits `w + 1`) with the sum carrier body. -/
-def sumTyAV (w : Nat) (pps : List (Nat × Nat × AnnotTerm)) (Fss : List (List AnnotTerm)) :
+def sumTyAV (w : Nat) (pps : List AnnotTerm) (Fss : List (List AnnotTerm)) :
     AnnotTerm :=
-  mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)
+  mkLamsAV pps (sumBodyAV w Fss)
 
 /-- `ParamsOkS`: the leaf's one hereditary premise — the parameter
 domains graded types, with the per-constructor chain grading at the
 base. -/
 def ParamsOkS (w : Nat) (ρ : Nat → V) (Fss : List (List AnnotTerm)) :
-    List (Nat × Nat × AnnotTerm) → Prop
+    List AnnotTerm → Prop
   | [] => SumFieldsOkB w ρ Fss
-  | d :: pps => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → ParamsOkS w (cons a ρ) Fss pps
+  | d :: pps => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
+      ∀ a, a ∈ˢ interp V ρ d → ParamsOkS w (cons a ρ) Fss pps
 
 /-- **The leaf inhabits its type's reading.** -/
 theorem sumTyAV_mem {w : Nat} {Fss : List (List AnnotTerm)} :
-    ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+    ∀ {pps : List AnnotTerm} {ρ : Nat → V},
       ParamsOkS w ρ Fss pps →
       interp V ρ (sumTyAV w pps Fss) ∈ˢ interp V ρ (mkPisAV pps (.sort w))
   | [], ρ, h => by
@@ -859,22 +856,20 @@ theorem sumTyAV_mem {w : Nat} {Fss : List (List AnnotTerm)} :
     rw [sumBodyAV_interp h]
     exact sumSet_univ_of_okB h
   | d :: pps, ρ, h => by
-    show (lamV (interp V ρ d.2.2)
-        fun a => interp V (cons a ρ)
-          (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
-      ∈ˢ piV (interp V ρ d.2.2)
+    show (lamV (interp V ρ d)
+        fun a => interp V (cons a ρ) (mkLamsAV pps (sumBodyAV w Fss)))
+      ∈ˢ piV (interp V ρ d)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
     exact lamV_mem (fun a ha => sumTyAV_mem (h.2.2 a ha))
       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)
 
 /-- **The leaf is graded.** -/
 theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
-    ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+    ∀ {pps : List AnnotTerm} {ρ : Nat → V},
       ParamsOkS w ρ Fss pps → WellDenoted V ρ (sumTyAV w pps Fss)
   | [], _, h => sumBodyAV_wellDenoted h
   | d :: pps, ρ, h => by
-    show WellDenoted V ρ (.lam d.2.2
-      (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
+    show WellDenoted V ρ (.lam d (mkLamsAV pps (sumBodyAV w Fss)))
     rw [WellDenoted_lam]
     exact ⟨h.1, h.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
@@ -884,23 +879,20 @@ theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
 /-- **The leaf's application fold**: along a fitting parameter spine
 the leaf computes the instantiated carrier. -/
 theorem sumTyAV_fold {w : Nat} {Fss : List (List AnnotTerm)}
-    {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {as : List V}
-    (hsp : SpineFit ρ (pps.map (·.2.2)) as)
+    {pps : List AnnotTerm} {ρ : Nat → V} {as : List V}
+    (hsp : SpineFit ρ pps as)
     (hok : SumFieldsOkB w (consList as ρ) Fss) :
     as.foldl SetTheory.app (interp V ρ (sumTyAV w pps Fss))
       = sumSet w (sumFibre w (consList as ρ) Fss) := by
-  have hsp' : SpineFit ρ ((pps.map fun d => (w + 1, d.2.2)).map (·.2)) as := by
-    rwa [List.map_map]
-  rw [sumTyAV, mkLamsAV_fold hsp',
-    sumBodyAV_interp hok]
+  rw [sumTyAV, mkLamsAV_fold hsp, sumBodyAV_interp hok]
 
 /-- **The leaf's fibres follow its sort** (task #342 L7): along a
 spine fitting the parameter telescope, the leaf applied is a member of
 `strictU w` — a truth value at `w = 0`, and above a tagged sum, strict
 (`strict_sumSet`). -/
 theorem sumTyAV_fold_strictU {w : Nat} {Fss : List (List AnnotTerm)} :
-    ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {as : List V},
-      ParamsOkS w ρ Fss pps → SpineFit ρ (pps.map (·.2.2)) as →
+    ∀ {pps : List AnnotTerm} {ρ : Nat → V} {as : List V},
+      ParamsOkS w ρ Fss pps → SpineFit ρ pps as →
       as.foldl SetTheory.app (interp V ρ (sumTyAV w pps Fss)) ∈ˢ (strictU w : V)
   | [], ρ, [], h, _ => by
     show interp V ρ (sumBodyAV w Fss) ∈ˢ (strictU w : V)
@@ -909,7 +901,7 @@ theorem sumTyAV_fold_strictU {w : Nat} {Fss : List (List AnnotTerm)} :
   | [], _, _ :: _, _, hsp => hsp.elim
   | _ :: _, _, [], _, hsp => hsp.elim
   | d :: pps, ρ, a :: as, h, hsp => by
-    have ha : a ∈ˢ interp V ρ d.2.2 := hsp.1
+    have ha : a ∈ˢ interp V ρ d := hsp.1
     have happ : SetTheory.app (interp V ρ (sumTyAV w (d :: pps) Fss)) a
         = interp V (cons a ρ) (sumTyAV w pps Fss) :=
       app_lamV ha
@@ -1830,7 +1822,7 @@ theorem pt_mem_idxEqAV_nil (ρ : Nat → V) : (pt : V) ∈ˢ interp V ρ (idxEqA
 /-- **Constructor `j`'s leaf**: the constant-bit λ-tower (bit `w`)
 over the constructor type reading's binder data with the injection
 of the point-terminated tupler at the numeral `j`. -/
-def sumMkAV (w j : Nat) (ds : List (Nat × Nat × AnnotTerm)) (Fs : List AnnotTerm)
+def sumMkAV (w j : Nat) (ds : List AnnotTerm) (Fs : List AnnotTerm)
     (Fss : List (List AnnotTerm)) : AnnotTerm :=
   mkLamsC w ds (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV [])))
 
@@ -1840,12 +1832,12 @@ constructor's chain is graded, this constructor's chain is the `j`-th,
 and the type reading's body reads back as SOME tagged union whose
 `j`-th fibre holds the point-terminated tuple. -/
 def MkPreS (w j : Nat) (ρ : Nat → V) (Fs : List AnnotTerm) (Fss : List (List AnnotTerm))
-    (bodyC : AnnotTerm) : List (Nat × Nat × AnnotTerm) → Prop
+    (bodyC : AnnotTerm) : List AnnotTerm → Prop
   | [] => SumFieldsOkB w ρ Fss ∧ Fss[j]? = some (Fs ++ [idxEqAV []]) ∧ ∀ bs, SpineFit ρ Fs bs →
       ∃ f : Nat → V, interp V (consList bs ρ) bodyC = sumSet w f ∧
         (if w = 0 then (pt : V) else mkTower (bs ++ [pt])) ∈ˢ f j
-  | d :: pds => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → MkPreS w j (cons a ρ) Fs Fss bodyC pds
+  | d :: pds => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
+      ∀ a, a ∈ˢ interp V ρ d → MkPreS w j (cons a ρ) Fs Fss bodyC pds
 
 /-- The injection body at a fitting field frame: its value and its
 grading. -/
@@ -1881,13 +1873,13 @@ theorem underTowerOkS_fields {w j : Nat} {bodyC : AnnotTerm} {ρp : Nat → V}
     (hbody : ∀ bs : List V, SpineFit ρp Fs bs →
       ∃ f : Nat → V, interp V (consList bs ρp) bodyC = sumSet w f ∧
         (if w = 0 then (pt : V) else mkTower (bs ++ [pt])) ∈ˢ f j) :
-    ∀ {rest : List (Nat × Nat × AnnotTerm)} {pre : List AnnotTerm} {bs : List V},
-      Fs = pre ++ rest.map (·.2.2) → SpineFit ρp pre bs →
+    ∀ {rest : List AnnotTerm} {pre : List AnnotTerm} {bs : List V},
+      Fs = pre ++ rest → SpineFit ρp pre bs →
       UnderTowerOk w (consList bs ρp)
         (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) bodyC rest
   | [], pre, bs, hsplit, hsp => by
     have hspF : SpineFit ρp Fs bs := by
-      rw [hsplit, List.map_nil, List.append_nil]; exact hsp
+      rw [hsplit, List.append_nil]; exact hsp
     obtain ⟨hv, hok2⟩ := sumInj_at_fields hok hj hspF
     obtain ⟨f, hf, hmem⟩ := hbody bs hspF
     refine ⟨hok2, ?_, ?_, ?_⟩
@@ -1898,23 +1890,23 @@ theorem underTowerOkS_fields {w j : Nat} {bodyC : AnnotTerm} {ρp : Nat → V}
     · rw [hf]; exact IsTy_sumSet w f
   | d :: rest, pre, bs, hsplit, hsp => by
     have hokF : FieldsOkB w ρp (Fs ++ [idxEqAV []]) := hok _ (List.mem_of_getElem? hj)
-    have hd : FieldsOkB w (consList bs ρp) (d.2.2 :: (rest.map (·.2.2) ++ [idxEqAV []])) := by
-      have := FieldsOkB.drop (Fs₁ := pre) (Fs₂ := d.2.2 :: (rest.map (·.2.2) ++ [idxEqAV []]))
+    have hd : FieldsOkB w (consList bs ρp) (d :: (rest ++ [idxEqAV []])) := by
+      have := FieldsOkB.drop (Fs₁ := pre) (Fs₂ := d :: (rest ++ [idxEqAV []]))
         (by rw [hsplit, List.append_assoc] at hokF; simpa using hokF) hsp
       exact this
     refine ⟨hd.1, hd.2.1, fun a ha => ?_⟩
     have hstep : UnderTowerOk w (consList (bs ++ [a]) ρp)
         (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV []))) bodyC rest :=
-      underTowerOkS_fields hok hj hbody (pre := pre ++ [d.2.2])
-        (by rw [hsplit, List.map_cons, List.append_assoc, List.singleton_append])
+      underTowerOkS_fields hok hj hbody (pre := pre ++ [d])
+        (by rw [hsplit, List.append_assoc, List.singleton_append])
         (hsp.append ⟨ha, trivial⟩)
     rwa [consList_append, consList_cons, consList_nil] at hstep
 
 /-- The parameter phase: `MkPreS` walks down to the field phase. -/
 theorem underTowerOk_of_mkPreS {w j : Nat} {bodyC : AnnotTerm}
-    {Fs : List AnnotTerm} {Fss : List (List AnnotTerm)} {fds : List (Nat × Nat × AnnotTerm)} :
-    ∀ {pds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      MkPreS w j ρ Fs Fss bodyC pds → Fs = fds.map (·.2.2) →
+    {Fs : List AnnotTerm} {Fss : List (List AnnotTerm)} {fds : List AnnotTerm} :
+    ∀ {pds : List AnnotTerm} {ρ : Nat → V},
+      MkPreS w j ρ Fs Fss bodyC pds → Fs = fds →
       UnderTowerOk w ρ (sumInjAtAV w Fss Fs.length (numeralAV j) (mkTowerGoU w Fs (idxEqAV [])))
         bodyC (pds ++ fds)
   | [], ρ, h, hFs =>
@@ -1924,45 +1916,39 @@ theorem underTowerOk_of_mkPreS {w j : Nat} {bodyC : AnnotTerm}
 
 /-- **The constructor leaf inhabits its type's reading.** -/
 theorem sumMkAV_mem {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
-    (hpre : MkPreS w j ρ (fds.map (·.2.2)) Fss bodyC pds) :
-    interp V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss)
+    {Fss : List (List AnnotTerm)} {pds fds : List AnnotTerm}
+    (hpre : MkPreS w j ρ fds Fss bodyC pds) :
+    interp V ρ (sumMkAV w j (pds ++ fds) fds Fss)
       ∈ˢ interp V ρ (mkPisAV (pds ++ fds) bodyC) :=
   mkLamsC_mem (underTowerOk_of_mkPreS hpre rfl)
 
 /-- **The constructor leaf is graded.** -/
 theorem sumMkAV_wellDenoted {w j : Nat} {bodyC : AnnotTerm} {ρ : Nat → V}
-    {Fss : List (List AnnotTerm)} {pds fds : List (Nat × Nat × AnnotTerm)}
-    (hpre : MkPreS w j ρ (fds.map (·.2.2)) Fss bodyC pds) :
-    WellDenoted V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss) :=
+    {Fss : List (List AnnotTerm)} {pds fds : List AnnotTerm}
+    (hpre : MkPreS w j ρ fds Fss bodyC pds) :
+    WellDenoted V ρ (sumMkAV w j (pds ++ fds) fds Fss) :=
   mkLamsC_wellDenoted (underTowerOk_of_mkPreS hpre rfl)
 
 /-- **The constructor leaf's application fold** (graph regime): along
 a fitting parameter + field spine the leaf computes the injection of
 the point-terminated tupler. -/
 theorem sumMkAV_fold {w j : Nat} (hw : w ≠ 0)
-    {pds fds : List (Nat × Nat × AnnotTerm)} {Fss : List (List AnnotTerm)} {ρ : Nat → V}
+    {pds fds : List AnnotTerm} {Fss : List (List AnnotTerm)} {ρ : Nat → V}
     {as bs : List V}
-    (hsp₁ : SpineFit ρ (pds.map (·.2.2)) as)
-    (hsp₂ : SpineFit (consList as ρ) (fds.map (·.2.2)) bs)
+    (hsp₁ : SpineFit ρ pds as)
+    (hsp₂ : SpineFit (consList as ρ) fds bs)
     (hok : SumFieldsOkB w (consList as ρ) Fss)
-    (hj : Fss[j]? = some (fds.map (·.2.2) ++ [idxEqAV []])) :
+    (hj : Fss[j]? = some (fds ++ [idxEqAV []])) :
     (as ++ bs).foldl SetTheory.app
-        (interp V ρ (sumMkAV w j (pds ++ fds) (fds.map (·.2.2)) Fss))
+        (interp V ρ (sumMkAV w j (pds ++ fds) fds Fss))
       = inj j (mkTower (bs ++ [pt])) := by
-  have hsp : SpineFit ρ
-      (((pds ++ fds).map fun d => (w, d.2.2)).map (·.2)) (as ++ bs) := by
-    have h2 : (((pds ++ fds).map fun d => (w, d.2.2)).map (·.2))
-        = pds.map (·.2.2) ++ fds.map (·.2.2) := by
-      simp [List.map_map, Function.comp_def]
-    rw [h2]
-    exact hsp₁.append hsp₂
+  have hsp : SpineFit ρ (pds ++ fds) (as ++ bs) := hsp₁.append hsp₂
   rw [sumMkAV, mkLamsC,
     mkLamsAV_fold hsp,
     consList_append, (sumInj_at_fields hok hj hsp₂).1, ite_eq_right hw, injW_pos hw]
 
 /-- **The constructor leaf at a squash instantiation is the point.** -/
-theorem sumMkAV_zero {j : Nat} {ds : List (Nat × Nat × AnnotTerm)} {Fs : List AnnotTerm}
+theorem sumMkAV_zero {j : Nat} {ds : List AnnotTerm} {Fs : List AnnotTerm}
     {Fss : List (List AnnotTerm)} {ρ : Nat → V} :
     interp V ρ (sumMkAV 0 j ds Fs Fss) = (pt : V) := by
   match ds with
@@ -2099,13 +2085,11 @@ theorem sumBodyAV_below {w K : Nat} {Fss : List (List AnnotTerm)}
   · rw [sumBodyAV_pos hw]; exact sumBodyAVPos_below h
 
 /-- **The type-former leaf is bounded.** -/
-theorem sumTyAV_below {w : Nat} {pps : List (Nat × Nat × AnnotTerm)}
+theorem sumTyAV_below {w : Nat} {pps : List AnnotTerm}
     {Fss : List (List AnnotTerm)} {k : Nat} (hp : DomsBelow k pps)
     (hF : ∀ Fs ∈ Fss, FieldsBelow (k + pps.length) Fs) :
     Term.bvarsBelow k (sumTyAV w pps Fss).erase :=
-  mkLamsAV_below hp.mapC (by
-    rw [List.length_map]
-    exact sumBodyAV_below hF)
+  mkLamsAV_below hp.mapC (sumBodyAV_below hF)
 
 /-! ## The constructor -/
 
@@ -2166,7 +2150,7 @@ theorem uChains_below {K : Nat} {Fss : List (List AnnotTerm)} (h : ∀ Fs ∈ Fs
 
 /-- **The constructor leaf is bounded** (`hlen` is the frame
 accounting: the field frame ends at the binder tower's). -/
-theorem sumMkAV_below {w j : Nat} {ds : List (Nat × Nat × AnnotTerm)}
+theorem sumMkAV_below {w j : Nat} {ds : List AnnotTerm}
     {Fs : List AnnotTerm} {Fss : List (List AnnotTerm)} {k nP : Nat} (hd : DomsBelow k ds)
     (hF : FieldsBelow (k + nP) Fs) (hFss : ∀ Fs' ∈ Fss, FieldsBelow (k + nP) Fs')
     (hlen : nP + Fs.length = ds.length) :

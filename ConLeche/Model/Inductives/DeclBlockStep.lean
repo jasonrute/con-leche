@@ -214,8 +214,8 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
   -- every member's own parameter telescope holds where the block's does
   have hparsT : ∀ t, t < (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k → ∀ (ψ : Name → Nat)
       (ρ : Nat → V), Sat V ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).params ψ).reverse ρ →
-      Sat V ((((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM t ψ).take
-        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP).map (·.2.2)).reverse ρ :=
+      Sat V (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM t ψ).take
+        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP).reverse ρ :=
     fun t ht ψ ρ h => hS.toBlockCtorsStage.paramsOf 0 (by omega) ψ ρ h t ht
   -- ## the constructors, consed
   have hctorsAs : ∀ c, c < ctorsAs.length →
@@ -260,8 +260,8 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
     · have hlen := (hcoreC'.1 m cvTa hcv).2.2.2.len ψ
       have hIds : ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).IdsM m ψ).length
           = (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nIdxAt m := by
-        show (((ppsOf m ψ).drop p₁.nP).map (·.2.2)).length = _
-        rw [List.length_map, List.length_drop]
+        show ((ppsOf m ψ).drop p₁.nP).length = _
+        rw [List.length_drop]
         have : (ppsOf m ψ).length
             = p₁.nP + (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nIdxAt m := hlen
         omega
@@ -392,11 +392,11 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
       show (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?
         ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).memberName mm) = _
       rw [hname]; exact hfind, fun ψ => ⟨_, hFD.read ψ, ?_⟩⟩
-    show _ = (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM mm ψ).take
-        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP).map (·.2.2) ++
-      (((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM mm ψ).drop
-        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP).map (·.2.2)
-    rw [← List.map_append, List.take_append_drop]
+    show _ = ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM mm ψ).take
+        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP ++
+      ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ppsM mm ψ).drop
+        (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP
+    rw [List.take_append_drop]
   -- each constructor reads as its hole telescope, canonically
   have hkLen : (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k
       = (blockDataOf V p₁ ctorsAs pk uOf ppsOf).memberNames.length := by
@@ -495,8 +495,8 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
         (fun ψ => by
           obtain ⟨cvTb, hcv⟩ := hcvOfK 0 hk0
           have hlen := (hcoreC.1 0 cvTb hcv).2.2.2.len ψ
-          show (((ppsOf 0 ψ).take p₁.nP).map (·.2.2)).length = p₁.nP
-          rw [List.length_map, List.length_take]
+          show ((ppsOf 0 ψ).take p₁.nP).length = p₁.nP
+          rw [List.length_take]
           have : (ppsOf 0 ψ).length
               = p₁.nP + (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nIdxAt 0 := hlen
           omega)

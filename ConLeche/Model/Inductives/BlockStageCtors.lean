@@ -74,7 +74,7 @@ stored with their leaves. -/
   (∀ c, c < nc → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       env.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2) ∧ cA.1.levelParams = lps ∧
       ∀ ψ, m'.acval cA.1.name ψ
-        = sumMkAV (d.w ψ) j (d.dsF c j ψ) (((d.dsF c j ψ).drop d.nP).map (·.2.2))
+        = sumMkAV (d.w ψ) j (d.dsF c j ψ) (((d.dsF c j ψ).drop d.nP))
             (uChains (d.Fss c ψ)))
 
 /-- **The block's names, statically**: a member's name is its former's,
@@ -193,22 +193,22 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
   ndBlock : ∀ m, m < d.k → ∀ (c : Nat), c ≠ m → ∀ (j : Nat) (cB : ConstantVal × Nat),
     (d.ctorsM c)[j]? = some cB → cB.1.name ∉ (d.ctorsM m).map (·.1.name)
   paramsOf : ∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-    Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρp →
-    ∀ c, c < d.k → Sat V (((d.ppsM c ψ).take d.nP).map (·.2.2)).reverse ρp
+    Sat V (((d.ppsM m ψ).take d.nP)).reverse ρp →
+    ∀ c, c < d.k → Sat V (((d.ppsM c ψ).take d.nP)).reverse ρp
   lenPps : ∀ (c : Nat) (ψ : Name → Nat), c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length
   lenIds : ∀ m, m < d.k → ∀ ψ : Name → Nat, (d.IdsM m ψ).length = d.nIdxAt m
   /-- the members' index telescopes are graded at every parameter frame -/
   idxOk : ∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-    Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρp →
+    Sat V (((d.ppsM m ψ).take d.nP)).reverse ρp →
     BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ)
   frames : ∀ m, m < d.k → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM m)[j]? = some cA →
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((d.dsF m j ψ).take d.nP).map (·.2.2)).reverse ρ) ∧
+      Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ ↔
+        Sat V (((d.dsF m j ψ).take d.nP)).reverse ρ) ∧
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.dsF m j ψ).take d.nP).map (·.2.2)).reverse ρ →
-        FieldsOkB (d.w ψ) ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) ∧
-        (∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) bs →
+      Sat V (((d.dsF m j ψ).take d.nP)).reverse ρ →
+        FieldsOkB (d.w ψ) ρ (((d.dsF m j ψ).drop d.nP)) ∧
+        (∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP)) bs →
           SpineFit ρ (d.IdsM m ψ) (idxValsAt ρ (d.esF m j ψ) bs)))
   capsU : ∀ m, m < d.k → ∀ (cvTa : ConstantVal), cvTasAll[m]? = some cvTa →
     ∀ {env' : Env} (m' : EnvModel V env') (kk : Nat) (cA : ConstantVal × Nat),
@@ -224,7 +224,7 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
     FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
     (∀ ψ, m'.acval cvTa.name ψ = A m ψ) →
     (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
-      (((d.dsF m kk ψ).drop d.nP).map (·.2.2)) (uChains (d.Fss m ψ))) →
+      (((d.dsF m kk ψ).drop d.nP)) (uChains (d.Fss m ψ))) →
     CapsLawsAt m' cvTa.name cvTa (ConLeche.blockCapsAt p₁ m isRec)
 
 /-! ## The stage at one member -/
@@ -249,11 +249,11 @@ theorem blockHoleFacts_of_stage {F : Nat} {envC envI : Env} {mo : EnvModel V env
       ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact ht)⟩
     rw [hN.1 t cvTb hcvTb]
     exact ((hcore.1 t cvTb hcvTb).2.2.1 ψ).symm
-  · show (((d.ppsM 0 ψ).take d.nP).map (·.2.2)).length = d.nP
-    rw [List.length_map, List.length_take, hS.lenPps 0 ψ hk0]
+  · show (((d.ppsM 0 ψ).take d.nP)).length = d.nP
+    rw [List.length_take, hS.lenPps 0 ψ hk0]
     omega
-  · show (((d.ppsM mm ψ).take d.nP).map (·.2.2)).length = d.nP
-    rw [List.length_map, List.length_take, hS.lenPps mm ψ hmm]
+  · show (((d.ppsM mm ψ).take d.nP)).length = d.nP
+    rw [List.length_take, hS.lenPps mm ψ hmm]
     omega
   · have hck : c < d.k := by rw [← hNk]; exact hc
     have hcj : (d.ctorsM c)[j]? = some (d.ctorsM c)[j] := List.getElem?_eq_getElem hj
@@ -319,8 +319,8 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
   -- ## the fibre law at the member's own index readings: the override law
   have hfold : ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM m)[j]? = some cA →
       ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) bs →
+      Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP)) bs →
         interp V (consList bs ρ)
             (AnnotTerm.mkAppN (A m ψ) (paramBvars d.nP cA.2 ++ d.esF m j ψ))
           = sumSet (d.w ψ) (sumFibre (d.w ψ)
@@ -353,7 +353,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
       (∀ ψ, m'.acval (d.memberName m) ψ = A m ψ) →
       (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
-        (((d.dsF m kk ψ).drop d.nP).map (·.2.2))
+        (((d.dsF m kk ψ).drop d.nP))
         (uChains (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)))) →
       CapsLawsAt m' (d.memberName m) cvTa (ConLeche.blockCapsAt p₁ m isRec) := by
     intro env' m' kk cA hkk hinv' hcvC hFD' hleaf' hleafC'
@@ -396,7 +396,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     have := (DomsBelow.drop d.nP ((hdata m i cA hiA).2.2.1.below ψ)).fields
     rwa [Nat.zero_add] at this
   have hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ →
+      Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ →
       SumFieldsOkB (d.w ψ) ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) := by
     intro ψ ρ hρ Fs hFs
     obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs

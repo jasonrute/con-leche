@@ -366,9 +366,9 @@ strict (task #342 L7). -/
 @[expose] def IndStrictAt {V : Type w} [SetTheory V]
     (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (I : Name)
     (cv : ConstantVal) : Prop :=
-  ∀ (ψ : Name → Nat) (ab : List (Nat × Nat × AnnotTerm)) (n : Nat),
+  ∀ (ψ : Name → Nat) (ab : List AnnotTerm) (n : Nat),
     denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort n)) → n ≠ 0 →
-    ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab.map (·.2.2)) vs →
+    ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ab vs →
       Strict (vs.foldl SetTheory.app (interp V ρ (acval I ψ)))
 
 /-- `IndStrictAt` at a cons's head, if it is a former. -/
@@ -394,19 +394,19 @@ depth `d`: the type is closed. -/
     (m : EnvModel V env) (φ : Name → Nat) : Prop :=
   ∀ (d : Nat) (I : Name) (cv : ConstantVal) (caps : IndCaps) (us : List Level),
     env.find? I = some (.indInfo cv caps) → us.length = cv.levelParams.length →
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (n : Nat),
+    ∀ (ab : List AnnotTerm) (n : Nat),
       denoteMeta m.acval env φ d (cv.type.instantiateLevelParams cv.levelParams us)
         = some (mkPisAV ab (.sort n)) →
-      ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab.map (·.2.2)) vs →
+      ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ab vs →
         Fib (decide (n = 0))
           (vs.foldl SetTheory.app
             (interp V ρ (m.acval I (Level.substFn φ cv.levelParams us))))
 
 /-- A Π-tower over a sort determines its domains and its sort. -/
 theorem mkPisAV_sort_inj :
-    ∀ {ab ab' : List (Nat × Nat × AnnotTerm)} {n n' : Nat},
+    ∀ {ab ab' : List AnnotTerm} {n n' : Nat},
       mkPisAV ab (.sort n) = mkPisAV ab' (.sort n') →
-        ab.map (·.2.2) = ab'.map (·.2.2) ∧ n = n'
+        ab = ab' ∧ n = n'
   | [], [], _, _, h => ⟨rfl, AnnotTerm.sort.inj h⟩
   | [], _ :: _, _, _, h => nomatch h
   | _ :: _, [], _, _, h => nomatch h
@@ -422,9 +422,9 @@ reading: at every assignment the stored type reads as `mkPisAV (ab ψ)
 spine is strict. -/
 theorem indStrictHead_of {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {cv : ConstantVal} {caps : IndCaps}
-    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {s : (Name → Nat) → Nat}
+    {ab : (Name → Nat) → List AnnotTerm} {s : (Name → Nat) → Nat}
     (hread : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some (mkPisAV (ab ψ) (.sort (s ψ))))
-    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ((ab ψ).map (·.2.2)) vs →
+    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab ψ) vs →
       Strict (vs.foldl SetTheory.app (interp V ρ (acval cv.name ψ)))) :
     IndStrictHead (V := V) acval env (.indInfo cv caps) := by
   intro cv' caps' hc ψ ab' n hr hn ρ vs hsp

@@ -381,11 +381,11 @@ the stream's type is stored as is, so its reading is identified by the
 run's own Π-peel). -/
 
 /-- **A fit of a Π-tower reading is a `SpineFit` of its domains.** -/
-theorem spineFit_of_teleFitPA {pds : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm}
+theorem spineFit_of_teleFitPA {pds : List AnnotTerm} {b : AnnotTerm}
     {ρ : Nat → V} {ws : List AnnotTerm} {rest : AnnotTerm}
     (hlen : ws.length = pds.length)
     (hfit : TeleFitPA V ρ (mkPisAV pds b) ws rest) :
-    SpineFit ρ (pds.map (·.2.2)) (ws.map (interp V ρ)) := by
+    SpineFit ρ (pds) (ws.map (interp V ρ)) := by
   have htele := piTeleAV_of_stripPisAV (stripPisAV_mkPisAV pds b)
   refine spineFit_of_chain (by simpa using hlen) ?_
   intro n hn
@@ -404,9 +404,9 @@ theorem spineFit_blockRecTy {envC : Env} (hμ : μ.verifiedChecks = true)
     (hTVa : denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some TVa)
     (hlen : ws.length = p.toBlockShape.majorIdxAt i + 1)
     (hfit : TeleFitPA V ρ TVa ws rest) :
-    SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).map (·.2.2))
+    SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i))
       (ws.map (interp V ρ)) := by
-  obtain ⟨-, -, -, hread, hpis, hrdsLen, -, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
+  obtain ⟨-, -, -, hread, hpis, hrdsLen, -, -⟩ := recStage_tyPis hμ mpC h hr ψ
   obtain rfl : TVa = blockRecTyAV mpC.base2.acval envC rs ψ i :=
     Option.some.inj (hTVa.symm.trans hread)
   rw [hpis] at hfit

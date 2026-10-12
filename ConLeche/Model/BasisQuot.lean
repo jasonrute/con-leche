@@ -184,7 +184,7 @@ theorem extendQuot (mp : EnvModelM V μ env)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denoteMeta_quotA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons
-      (ab := fun ψ => [(0, 1, .sort (ψ uN)), (0, 1, quotRelTy)])
+      (ab := fun ψ => [.sort (ψ uN), quotRelTy])
       (s := fun ψ => ψ uN) (fun ψ => denoteMeta_quotA_type ψ) fun ψ hu ρ vs hsp => by
         match vs, hsp with
         | [Aset, R], ⟨hA, hR, _⟩ =>

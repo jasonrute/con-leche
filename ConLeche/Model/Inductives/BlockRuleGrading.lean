@@ -42,14 +42,13 @@ section TowerFits
 /-- **A `SpineFit` of a Π-tower's domains at the readings of a spine is
 a `TeleFitPA` of the tower at the spine** — `spineFit_of_teleFitPA`'s
 converse. -/
-theorem teleFitPA_mkPisAV_of_spineFit {pds : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm}
+theorem teleFitPA_mkPisAV_of_spineFit {pds : List AnnotTerm} {b : AnnotTerm}
     {ρ : Nat → V} {ws : List AnnotTerm} (hlen : ws.length = pds.length)
-    (hsp : SpineFit ρ (pds.map (·.2.2)) (ws.map (interp V ρ))) :
+    (hsp : SpineFit ρ pds (ws.map (interp V ρ))) :
     ∃ rest, TeleFitPA V ρ (mkPisAV pds b) ws rest := by
   have htele := piTeleAV_of_stripPisAV (stripPisAV_mkPisAV pds b)
   refine ⟨_, teleFitPA_of_tower pds.length htele hlen fun n hn => ?_⟩
-  have hn' : n < (pds.map (·.2.2)).length := by rw [List.length_map]; exact hn
-  have hm := FixKI.spineFit_getD_mem' hsp hn'
+  have hm := FixKI.spineFit_getD_mem' hsp hn
   have hwn : n < ws.length := by omega
   have e1 : (ws.map (interp V ρ)).getD n pt = interp V ρ (ws.getD n default) := by
     rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hwn,
@@ -57,13 +56,13 @@ theorem teleFitPA_mkPisAV_of_spineFit {pds : List (Nat × Nat × AnnotTerm)} {b 
     rfl
   have e2 : (ws.map (interp V ρ)).take n = (ws.take n).map (interp V ρ) := by
     rw [List.map_take]
-  have e3 : (pds.map (·.2.2)).reverse.getD (pds.length - 1 - n) default
-      = (pds.map (·.2.2)).getD n default := by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_reverse (by rw [List.length_map]; omega),
-      List.length_map, show pds.length - 1 - (pds.length - 1 - n) = n from by omega,
+  have e3 : pds.reverse.getD (pds.length - 1 - n) default
+      = pds.getD n default := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_reverse (by omega),
+      show pds.length - 1 - (pds.length - 1 - n) = n from by omega,
       ← List.getD_eq_getElem?_getD]
   rw [e1, e2] at hm
-  rw [ppsNorm_map_dom, e3, chain, consN_eq_consList]
+  rw [e3, chain, consN_eq_consList]
   exact hm
 
 /-- **A telescope bounded at its own depths fits at every frame alike**:

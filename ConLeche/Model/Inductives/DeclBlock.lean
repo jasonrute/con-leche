@@ -197,7 +197,7 @@ this (`nodeListFacts_of`, `dynCtx_of`). -/
   BlockCtorsCore mpC.base2 dR pp.lps cvTasR pp.toBlockShape isRecR A dR.k ∧
   (∀ c, c < ctorsAsR.length → ctorsAsR[c]? = some (dR.ctorsM c)) ∧
   (∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+      (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
     dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf) ∧
   dR.toLfp ∈ mpC.lfpBlocks ∧
   LfpCover mpC [] ∧

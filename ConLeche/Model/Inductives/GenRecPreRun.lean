@@ -255,7 +255,7 @@ theorem genRun_nIdx
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hd : d = blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf) :
     ∀ c, c < (tgtRs out).length →
       tgtClsNIdx d p.toBlockShape out c = (tgtMajor out c).nIdx := by
@@ -277,7 +277,7 @@ theorem genRun_mN (mpC : EnvModelM V μ envC)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hd : d = blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcls : ∀ c, c < (tgtRs out).length → (tgtMajor out c).member = none →
       TgtOutCls mpC (tgtMajor out c) (Dc c) (mc c) (cvc c)) :
@@ -487,11 +487,10 @@ theorem genRun_below (hμ : μ.verifiedChecks = true)
     simp only [Option.getD_some]
     obtain ⟨hxl, hxs, hidx⟩ := ConLeche.ClassGen.ihParts_scoped hw (Nat.le_refl _) hip
     refine ⟨?_, fun e he => ?_⟩
-    · simp only [List.map_map, Function.comp_def, List.map_id']
-      exact readOpenedDoms_below mpC.base2 hD0 fun k y hy => by
+    · exact readOpenedDoms_below mpC.base2 hD0 fun k y hy => by
         obtain ⟨ty, rfl, hty⟩ := hxs k y hy
         simpa [Expr.fvarTypeD] using hty
-    · simp only [List.length_map, readOpenedDoms_length_eq, hxl] at he ⊢
+    · simp only [readOpenedDoms_length_eq, hxl] at he ⊢
       rcases List.mem_append.mp he with he | he
       · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
         exact readD_below mpC.base2 (by omega) (hidx a ha)
@@ -559,7 +558,7 @@ theorem genRun_storedTy (hμ : μ.verifiedChecks = true)
     have := congrArg ConstantVal.type hcvEq
     simpa using this
   dsimp only at hinf
-  obtain ⟨-, -, -, hta, hTyE, hlenRds, -, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
+  obtain ⟨-, -, -, hta, hTyE, hlenRds, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
   replace hta : denoteMeta mpC.base2.acval envC ψ 0 T.gty
       = some (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c) := by rw [← htype]; exact hta
   have hrP := (genRecTy_shape R hg T).1
@@ -570,7 +569,7 @@ theorem genRun_storedTy (hμ : μ.verifiedChecks = true)
       = R.g.pre.length + (R.g.cls.getD cls default).nIdx + 1 := by
     rw [genRec_mI h hr, hRP]; rfl
   refine ⟨cls, T.gty, S, hgc, hM, T.hgty, hinf, hta, hmI, hRP, ?_⟩
-  rw [← hmI, hTyE, ← hlenRds, stripPisAV_mkPisAV, blockRecRdsAV_norm]
+  rw [← hmI, hTyE, ← hlenRds, stripPisAV_mkPisAV]
 
 /-- **`GenPreHyps.conclMot`**: the stored conclusion of recursor `c`, at a
 spine of the prefix, an index spine and a major, is the class's motive
@@ -700,7 +699,7 @@ theorem genRun_lic (mpC : EnvModelM V μ envC)
     (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs (tgtRs out) memR)
     {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI : Env}
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hN : BlockNamesOk (V := V) (blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf) cvTas)
     (hS : BlockCtorsStage (V := V) μ F (blockDataOf V p.toBlockShape ctorsAs pk uOfD ppsOf)
       p.lps cvTas p.toBlockShape isRec A envI p.ctorNamesAt)
@@ -854,10 +853,9 @@ structure GenPreSem (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (ρ : Na
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
     ∀ q ∈ genIhdAV mpC.base2.acval envC g rd 0 ψ c j,
-    ∀ bs, SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs →
+    ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
       q.1 < (tgtRs out).length ∧ xs.length = pp.toBlockShape.rulePrefixAt q.1 ∧
-      SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1).map
-          (·.2.2))
+      SpineFit ρ (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1)
         (xs ++ (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))
           ++ [interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2]))
   minor : ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ xs,
@@ -889,7 +887,7 @@ theorem genPreHyps_of_run (hμ : μ.verifiedChecks = true)
       block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hd : d = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf) (hlfp : d.toLfp ∈ mpC.lfpBlocks)
     {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI' : Env}
     (hN : BlockNamesOk (V := V) d cvTas)
@@ -941,7 +939,7 @@ theorem genRecPre_run (hμ : μ.verifiedChecks = true)
       interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c) ∈ˢ univ (s ψ) ∧
         WellDenoted V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c))
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hd : d = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf) (hlfp : d.toLfp ∈ mpC.lfpBlocks)
     {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI' : Env}
     (hN : BlockNamesOk (V := V) d cvTas)

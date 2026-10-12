@@ -609,7 +609,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
   -- the stored type's openers
   obtain ⟨cls', ty', ifs', body', -, -, -, -, -, -, -, -, -, -, fvs0, o0, hop0, hE⟩ :=
     genRun_binders hμ R hg h mpC ψ hc
-  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, -, hdomsR, -, hwdTy⟩ :=
+  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
     recStage_tyPis (V := V) hμ mpC h hr ψ
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hop1.symm.trans hop0))
   have hle := blockRecHrPle (p := pp) h hc
@@ -628,8 +628,8 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
         = some ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD i
             default) := by
     intro i y hi hy
-    obtain ⟨pd, hpd, -, hrd⟩ := hdomsR i y hy
-    rw [hrd, blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take,
+    obtain ⟨pd, hpd, hrd⟩ := hdomsR i y hy
+    rw [hrd, blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left (by rw [hrP]; exact hi), hpd]
     rfl
   -- the minor's entry: erasure-equal to the generator's, inferred at its slot
@@ -1088,14 +1088,14 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
       genClsOf R.rd q.1 = t ∧
       GradedFrame mpC ψ (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length) fr
         (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
-          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1.map (·.2)) ∧
+          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1) ∧
       (∀ e ∈ q.2.2.1 ++ [q.2.2.2], ∀ (σ : Nat → V) (ys : List V),
         SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
-          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1.map (·.2)) ys →
+          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1) ys →
         WellDenotedV V (consList ys σ) e) ∧
       (∀ (σ : Nat → V) (ys : List V),
         SpineFit σ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
-          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1.map (·.2)) ys →
+          ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ++ q.2.1) ys →
         WellDenotedTy V (consList ys σ)
           (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
               - 1 - (R.g.nP + st)))
@@ -1214,11 +1214,10 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
       have := hdz k z x.fvarTypeD hz (by rw [List.getElem?_map, hx]; rfl)
       exact this
   -- the conclusion's arguments and the conclusion, graded
-  have hq2l : ((readOpenedDoms mpC.base2.acval envC ψ D xs).map fun b => (bit, b)).length
+  have hq2l : (readOpenedDoms mpC.base2.acval envC ψ D xs).length
       = (xs.map R.g.binder).length := by simp
-  have hmap : ((readOpenedDoms mpC.base2.acval envC ψ D xs).map fun b => (bit, b)).map (·.2)
-      = readOpenedDoms mpC.base2.acval envC ψ D zs := by
-    rw [hrdE, List.map_map]; exact List.map_id _
+  have hmap : readOpenedDoms mpC.base2.acval envC ψ D xs
+      = readOpenedDoms mpC.base2.acval envC ψ D zs := hrdE.symm
   rw [hq2l, hmap]
   have hrest2' := hrest2
   obtain ⟨f2, as2, hr2E, hf2E, has2l⟩ := erasedEq_mkAppN_inv _ hrest2'
@@ -1475,7 +1474,7 @@ theorem genRecTyZ (hμ : μ.verifiedChecks = true)
   obtain ⟨cls, gty, S, hgc, hM, -, -, -, hmI, hRP, -⟩ := genRun_storedTy hμ R hg h mpC ψ hc
   obtain ⟨cls', ty', ifs', body', -, -, -, -, -, -, -, -, -, -, fvs0, o0, hop0, hE⟩ :=
     genRun_binders hμ R hg h mpC ψ hc
-  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, -, hdomsR, -, hwdTy⟩ :=
+  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
     recStage_tyPis (V := V) hμ mpC h hr ψ
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hop1.symm.trans hop0))
   have hlenF : fvs1.length = pp.toBlockShape.majorIdxAt c + 1 :=
@@ -1495,13 +1494,13 @@ theorem genRecTyZ (hμ : μ.verifiedChecks = true)
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hymE := hE _ ym Tm hym (by
     rw [List.append_assoc, List.getElem?_append_left (by omega), hpreTm]; rfl)
-  obtain ⟨pdm, hpdm, -, hrdm⟩ := hdomsR _ ym hym
+  obtain ⟨pdm, hpdm, hrdm⟩ := hdomsR _ ym hym
   rw [denoteMeta_erasedEq hymE] at hrdm
   -- the tower
   rw [hTyE]
   refine mkPisAV_mem_univZero fun bs hbs => ?_
   have hbl : bs.length = R.g.pre.length + (tgtMajor out c).nIdx + 1 := by
-    rw [hbs.length_eq, List.length_map, hlenRds, hmI, hM]
+    rw [hbs.length_eq, hlenRds, hmI, hM]
   obtain ⟨xs, rest, rfl, hxl⟩ : ∃ xs rest, bs = xs ++ rest ∧ xs.length = R.g.pre.length :=
     ⟨bs.take R.g.pre.length, bs.drop R.g.pre.length, (List.take_append_drop _ _).symm,
       by rw [List.length_take, hbl]; omega⟩
@@ -1520,10 +1519,10 @@ theorem genRecTyZ (hμ : μ.verifiedChecks = true)
   rw [hmp] at hty ⊢
   -- the motive inhabits its domain
   have hmem := FixKI.spineFit_getD_mem' hbs (l := R.g.nP + sm) (by
-    rw [List.length_map, hlenRds]; omega)
-  have hget : ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).map
-      (·.2.2)).getD (R.g.nP + sm) default = pdm.2.2 := by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map, hpdm]; rfl
+    rw [hlenRds]; omega)
+  have hget : (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
+      (R.g.nP + sm) default = pdm := by
+    rw [List.getD_eq_getElem?_getD, hpdm]; rfl
   have hgx : (xs ++ (zs ++ [x])).getD (R.g.nP + sm) pt = xs.getD (R.g.nP + sm) pt := by
     rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
       ← List.getD_eq_getElem?_getD]
@@ -1599,7 +1598,7 @@ theorem genRuleRaZ (hμ : μ.verifiedChecks = true)
   have hfld := genRuleFieldRead R hg mpC.base2.acval j r hr i cA rhs hcA hrhs ψ bs body hopn
   refine mkLamsAV_eq_pt fun zs hzs => ?_
   rw [← hlds, ← List.take_append_drop (pp.toBlockShape.rulePrefixAt j)
-    ((readLamBs mpC.base2.acval envC ψ 0 bs).map (·.2)), hpre, hfld] at hzs
+    (readLamBs mpC.base2.acval envC ψ 0 bs), hpre, hfld] at hzs
   obtain ⟨pref, fields, rfl, hpref, hfields⟩ := spineFit_append_inv hzs
   have hpl : pref.length = R.g.pre.length := by
     rw [hpref.length_eq, blockRulePdomsAV_length hμ mpC h hr ψ, hrP]

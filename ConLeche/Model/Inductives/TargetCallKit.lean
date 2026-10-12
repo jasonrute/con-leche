@@ -9,8 +9,8 @@ public section
 
 Generic facts the call's typing (`TargetCallCore.lean`) is read with:
 
-* `interp_mkPisAV_congr` — a Π-tower's value reads only the bits and
-  the domains of its binder data.
+* `interp_mkPisAV_congr` — a Π-tower's value reads only the domains of
+  its binder data.
 -/
 
 namespace ConLeche.Model
@@ -24,7 +24,7 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-! ## A Π-tower reads only its bits and domains -/
+/-! ## A Π-tower reads only its domains -/
 
 /-! ## Syntax helpers -/
 
@@ -59,13 +59,13 @@ theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm} (hf : interp V ρ f = 
 argument in a domain the head inhabits as a graph, and a graph's domain
 is rigid. -/
 theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
-    ∀ {pds : List (Nat × Nat × AnnotTerm)} {h : AnnotTerm} {args : List AnnotTerm}
+    ∀ {pds : List AnnotTerm} {h : AnnotTerm} {args : List AnnotTerm}
       {τ σ : Nat → V},
       interp V τ (AnnotTerm.mkAppN h args) ≠ pt →
       WellDenoted V τ (AnnotTerm.mkAppN h args) →
       interp V τ h ∈ˢ interp V σ (mkPisAV pds R) →
       args.length = pds.length →
-      SpineFit σ (pds.map (·.2.2)) (args.map (interp V τ))
+      SpineFit σ (pds) (args.map (interp V τ))
   | [], _, [], _, _, _, _, _, _ => trivial
   | [], _, _ :: _, _, _, _, _, _, hlen => by simp at hlen
   | _ :: _, _, [], _, _, _, _, _, hlen => by simp at hlen
@@ -76,7 +76,7 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
     obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := cast (WellDenoted_app V τ h a) hwdA
     have hhne : interp V τ h ≠ pt := fun h0 =>
       hne (interp_mkAppN_pt (by rw [interp_app, h0, app_pt]) args)
-    have hmem' : interp V τ h ∈ˢ piSet (interp V σ d.2.2)
+    have hmem' : interp V τ h ∈ˢ piSet (interp V σ d)
         (fun x => interp V (cons x σ) (mkPisAV pds R)) := by
       have := hmem
       simp only [mkPisAV, interp_pi] at this
@@ -86,7 +86,7 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
       rw [hv0, piR_zero] at hf
       exact SetTheory.ne_pt_of_mem_piSet hmem' (eq_pt_of_mem_truthVal hf)
     rw [piR_pos hv] at hf
-    have hx : interp V τ a ∈ˢ interp V σ d.2.2 := mem_dom_of_mem_piSet_two hmem' hf ha
+    have hx : interp V τ a ∈ˢ interp V σ d := mem_dom_of_mem_piSet_two hmem' hf ha
     refine ⟨hx, ?_⟩
     refine spineFit_of_wellDenoted_mkAppN_pi (R := R) (h := .app h a) hne hwd ?_
       (by simpa using hlen)

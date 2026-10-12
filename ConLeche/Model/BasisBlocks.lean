@@ -412,7 +412,7 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
           ⟨natA.toConstantVal, _, by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN,
             rfl⟩,
           .forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero)) {}, by decide,
-          by decide, fun ψ => ⟨rfl, [(0, 0, .bvar 0)], ?_, rfl⟩⟩
+          by decide, fun ψ => ⟨rfl, [.bvar 0], ?_, rfl⟩⟩
         · show (⟨natSuccA :: env.consts⟩ : ConLeche.Env).find? natSuccA.name = _
           rw [ConLeche.Env.find?_cons, ite_eq_left rfl]; rfl
         · show denoteMeta _ _ _ 1 (.forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero))

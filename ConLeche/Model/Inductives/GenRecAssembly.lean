@@ -62,10 +62,11 @@ first recursor at that class (the kernel's `classRecOf`, as a position). -/
 /-- **The `ih` data of the generated rule**, read at the rule's frame
 (depth `rP + nF`): per recursive field `(i, t, tele)` (`ClassCtor.recs`),
 the callee RECURSOR (`genRecIdx rd t`, the graph's class index), the
-walked field's telescope (read, at the family's elimination bit `bit`),
-its index arguments and the applied field. -/
+walked field's telescope (read), its index arguments and the applied
+field.  `_bit` is unread (task #342 L14a): the data it used to tag no
+longer carries a regime numeral. -/
 @[expose] noncomputable def genIhdAV (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
-    (g : ClassGen) (rd : ClassRead) (bit : Nat) (ψ : Name → Nat) (c j : Nat) :
+    (g : ClassGen) (rd : ClassRead) (_bit : Nat) (ψ : Name → Nat) (c j : Nat) :
     List IhDatum :=
   let x := genCtorAt g rd c j
   let rP := g.pre.length
@@ -75,7 +76,7 @@ its index arguments and the applied field. -/
   x.recs.map fun q =>
     let (xs, idx) := (g.ihParts q.2.1 q.2.2 (ws.getD q.1 default) D).getD ([], [])
     (genRecIdx rd q.2.1,
-     (readOpenedDoms acval env ψ D xs).map fun a => (bit, a),
+     readOpenedDoms acval env ψ D xs,
      idx.map fun e => (denoteMeta acval env ψ (D + xs.length) e).getD default,
      (denoteMeta acval env ψ (D + xs.length)
         (Expr.mkAppN (fvs.getD q.1 default) xs)).getD default)
@@ -102,7 +103,7 @@ field. -/
 @[expose] def genCallT (tup : Nat → List V → V) (ρ : Nat → V)
     (ihd : Nat → Nat → List IhDatum) (xs : List V) (c j : Nat) (fs : List V) (v : V) : Prop :=
   ∃ q ∈ ihd c j, ∃ bs : List V,
-    SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs ∧
+    SpineFit (consList (xs ++ fs) ρ) q.2.1 bs ∧
     v = tagged q.1 (tup q.1 (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))))
       (interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2)
 
@@ -132,7 +133,7 @@ check's. -/
   BlockCtorsCore mpC.base2 dR pp.lps cvTasR pp.toBlockShape isRecR A dR.k ∧
   (∀ c, c < ctorsAsR.length → ctorsAsR[c]? = some (dR.ctorsM c)) ∧
   (∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+      (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
     dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf) ∧
   dR.toLfp ∈ mpC.lfpBlocks ∧
   LfpCover mpC [] ∧

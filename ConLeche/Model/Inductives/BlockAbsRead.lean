@@ -60,19 +60,19 @@ is missing). -/
 @[expose] noncomputable def nfFieldsRead (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
     (D nF : Nat) (N : Expr) (ψ : Name → Nat) : List AnnotTerm :=
   match denoteMeta acval env ψ D N with
-  | some t => ((stripPisAV nF t).map fun p => p.1.map (·.2.2)).getD []
+  | some t => ((stripPisAV nF t).map fun p => p.1).getD []
   | none => []
 
 /-- The fields' readings at a reading of the normal form. -/
 theorem nfFieldsRead_eq {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {D nF : Nat}
-    {N : Expr} {ψ : Name → Nat} {ab : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm}
+    {N : Expr} {ψ : Name → Nat} {ab : List AnnotTerm} {B : AnnotTerm}
     (hr : denoteMeta acval env ψ D N = some (mkPisAV ab B)) (hl : ab.length = nF) :
-    nfFieldsRead acval env D nF N ψ = ab.map (·.2.2) := by
+    nfFieldsRead acval env D nF N ψ = ab := by
   unfold nfFieldsRead
   rw [hr]
   simp only
   rw [← hl, stripPisAV_mkPisAV]
-  exact ppsNorm_map_dom ab
+  rfl
 
 /-- **The fields' readings depend on the level assignment at the normal
 form's footprint only.** -/
@@ -223,15 +223,14 @@ satisfying the hole context: component `c`'s constructor `j` (`cA`). -/
     (c j : Nat) (cA : ConstantVal × Nat) : Prop :=
   ConstsBound env (d.nfFF c j) ∧
   ∃ A, ConLeche.nestCanonCrest d.memberNames (lps.map .param) d.nP cA.1.type = some A ∧
-    ∀ ψ : Name → Nat, ∃ abD abN : List (Nat × Nat × AnnotTerm),
+    ∀ ψ : Name → Nat, ∃ abD abN : List AnnotTerm,
       denoteMeta m.acval env ψ (d.nP + d.k) A
         = some (mkPisAV abD (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       denoteMeta m.acval env ψ (d.nP + d.k) (d.nfFF c j)
         = some (mkPisAV abN (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       abD.length = cA.2 ∧ abN.length = cA.2 ∧
-      abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) ∧
-      abN.map (·.2.2) = d.absF ψ c j ∧
-      FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (d.absF ψ c j)
+      abN = d.absF ψ c j ∧
+      FieldsEqOn V (d.holeCtx ψ).reverse abD (d.absF ψ c j)
 
 /-- **The reading fact crosses a cons** the stored type crosses. -/
 theorem BlockAbsRead.cross {env : Env} {m : EnvModel V env} {d : BlockData V} {lps : List Name}
@@ -243,8 +242,8 @@ theorem BlockAbsRead.cross {env : Env} {m : EnvModel V env} {d : BlockData V} {l
     BlockAbsRead m₂ d lps c j cA := by
   obtain ⟨hnb, A, hA, hr⟩ := h
   refine ⟨ConstsBound.mono_cons hnb, A, hA, fun ψ => ?_⟩
-  obtain ⟨abD, abN, hab, habN, hl, hlN, hbits, habF, hEq⟩ := hr ψ
-  refine ⟨abD, abN, ?_, ?_, hl, hlN, hbits, habF, hEq⟩
+  obtain ⟨abD, abN, hab, habN, hl, hlN, habF, hEq⟩ := hr ψ
+  refine ⟨abD, abN, ?_, ?_, hl, hlN, habF, hEq⟩
   · rw [hac]
     exact denoteMeta_cons_mono hfresh (hat A) ψ _ (canonOf_constsBound hcb (.inl ⟨_, _, _, hA⟩)) hab
   · rw [hac]

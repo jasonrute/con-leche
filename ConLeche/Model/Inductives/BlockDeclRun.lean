@@ -58,7 +58,7 @@ variable {envC envI : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
   {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
  
   {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+  {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
 
 /-- **`BlockMembersRun` from the constructors' three records**, at the
 run's own block data. -/

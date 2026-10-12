@@ -246,7 +246,7 @@ theorem genRuleTower (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block 
     (hcA : r.2.2.2[i]? = some cA) {rhs : Expr} (hrhs : r.2.1[i]? = some rhs)
     {acv : Name → (Name → Nat) → AnnotTerm} {env₃ : Env} {ψ : Name → Nat} {Ra : AnnotTerm}
     (hRa : denoteMeta acv env₃ ψ 0 rhs = some Ra) :
-    ∃ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
+    ∃ (lds : List AnnotTerm) (A : AnnotTerm), Ra = mkLamsAV lds A ∧
       lds.length = p.rulePrefixAt j + cA.2 := by
   obtain ⟨rc, c, x, gen, hrc, -, -, -, -, -, -, -, ⟨TR⟩, hnF, -, -, ⟨RR⟩⟩ :=
     genRuleAt R hr hcA hrhs
@@ -338,7 +338,7 @@ theorem readLamBs_below (m : EnvModel V env) {φ : Name → Nat} :
     have := h (k + 1) b' (by simpa using hk)
     rwa [show j + (k + 1) = j + 1 + k by omega] at this
 
-theorem LamDomsBelow.mono : ∀ {ds : List (Nat × AnnotTerm)} {k k' : Nat}, k ≤ k' →
+theorem LamDomsBelow.mono : ∀ {ds : List AnnotTerm} {k k' : Nat}, k ≤ k' →
     LamDomsBelow k ds → LamDomsBelow k' ds
   | [], _, _, _, _ => trivial
   | _ :: _, _, _, hk, h => ⟨Term.bvarsBelow.mono hk h.1, LamDomsBelow.mono (by omega) h.2⟩
@@ -768,7 +768,7 @@ theorem denoteMetaSpine_map {acval : Name → (Name → Nat) → AnnotTerm} {env
 of the same value along every spine of the telescope's length, read
 alike at frames agreeing below the telescope's base. -/
 theorem interp_lamsApp_congr {h1 h2 : AnnotTerm} {args : List AnnotTerm} :
-    ∀ (tele : List (Nat × AnnotTerm)) {D : Nat} {σ σ' : Nat → V},
+    ∀ (tele : List AnnotTerm) {D : Nat} {σ σ' : Nat → V},
       LamDomsBelow D tele → (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
       (∀ i, i < D → σ i = σ' i) →
       (∀ bs : List V, bs.length = tele.length →
@@ -784,7 +784,7 @@ theorem interp_lamsApp_congr {h1 h2 : AnnotTerm} {args : List AnnotTerm} :
       List.map_congr_left fun e he =>
         interp_congr_below V e D σ σ' (by simpa using hargs e he) hag
     rw [← List.foldl_map, ← List.foldl_map (f := interp V σ'), hmap]
-  | (v, A) :: tele, D, σ, σ', hT, hargs, hag, hh => by
+  | A :: tele, D, σ, σ', hT, hargs, hag, hh => by
     show lamV (interp V σ A) (fun x => interp V (cons x σ) _)
       = lamV (interp V σ' A) (fun x => interp V (cons x σ') _)
     rw [← interp_congr_below V A D σ σ' hT.1 hag]
@@ -981,7 +981,7 @@ theorem genRule_residue {envC : Env} (m : EnvModel V envC)
       genRecIdx R.rd t < K ∧ ∃ L0, denoteMeta acv env₃ ψ 0 (.const rn (r.1.levelParams.map .param))
         = some L0 ∧ ∀ ρ' : Nat → V, interp V ρ' L0 = a (genRecIdx R.rd t))
     {Ra : AnnotTerm} (hRa : denoteMeta acv env₃ ψ 0 rhs = some Ra)
-    {lds : List (Nat × AnnotTerm)} {A : AnnotTerm} (hlam : Ra = mkLamsAV lds A)
+    {lds : List AnnotTerm} {A : AnnotTerm} (hlam : Ra = mkLamsAV lds A)
     (hlen : lds.length = p.rulePrefixAt j + cA.2)
     {ρ : Nat → V} {pref fields : List V} (hpl : pref.length = p.rulePrefixAt j)
     (hfl : fields.length = cA.2) :
@@ -1269,7 +1269,7 @@ same generated prefix. -/
     r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
     ∀ (ψ : Name → Nat) (bs : List (Expr × ConLeche.BinderMeta)) (body : Expr),
       openLamsM (p.rulePrefixAt j + cA.2) rhs 0 = some (bs, body) →
-      ((readLamBs acval envC ψ 0 bs).map (·.2)).take (p.rulePrefixAt j)
+      (readLamBs acval envC ψ 0 bs).take (p.rulePrefixAt j)
         = blockRulePdomsAV acval envC p (tgtRs out) ψ j
 
 /-- **Bridge, field half**: at every stored rule and valuation, the
@@ -1283,7 +1283,7 @@ fields at the class's instantiation, annotated as generated. -/
     r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
     ∀ (ψ : Name → Nat) (bs : List (Expr × ConLeche.BinderMeta)) (body : Expr),
       openLamsM (p.rulePrefixAt j + cA.2) rhs 0 = some (bs, body) →
-      ((readLamBs acval envC ψ 0 bs).map (·.2)).drop (p.rulePrefixAt j)
+      (readLamBs acval envC ψ 0 bs).drop (p.rulePrefixAt j)
         = tgtFdomsAV p out acval envC ψ j i
 
 /-- **`BlockRuleDataB`'s three DATA conjuncts** (the class side's rows:
@@ -1359,11 +1359,11 @@ theorem readLamBs_eq_readOpened {acval : Name → (Name → Nat) → AnnotTerm} 
       bl.length = xs.length →
       (∀ (k : Nat) (b : Expr × ConLeche.BinderMeta) (y : Expr), bl[k]? = some b → xs[k]? = some y →
         Expr.ErasedEq b.1 y.fvarTypeD) →
-      readLamBs acval env ψ j bl = (readOpenedDoms acval env ψ j xs).map fun a => (0, a)
+      readLamBs acval env ψ j bl = readOpenedDoms acval env ψ j xs
   | _, [], [], _, _ => rfl
   | j, b :: bl, y :: xs, hl, h => by
     have h1 := h 0 b y rfl rfl
-    simp only [readLamBs, readOpenedDoms, List.map_cons, denoteMeta_erasedEq h1]
+    simp only [readLamBs, readOpenedDoms, denoteMeta_erasedEq h1]
     rw [readLamBs_eq_readOpened (j + 1) bl xs (by simpa using hl) (fun k b' y' hb hy =>
       h (k + 1) b' y' (by simpa using hb) (by simpa using hy))]
   | _, [], _ :: _, hl, _ => nomatch hl
@@ -1462,14 +1462,14 @@ theorem closeTelescope_append' :
 theorem readLamBs_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {ψ : Name → Nat} :
     ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)) (k : Nat) (hk : k < bs.length),
-      ((readLamBs acval env ψ j bs).map (·.2))[k]'(by simp [readLamBs_length]; exact hk)
+      (readLamBs acval env ψ j bs)[k]'(by simp [readLamBs_length]; exact hk)
         = (denoteMeta acval env ψ (j + k) bs[k].1).getD default
   | _, [], _, hk => absurd hk (Nat.not_lt_zero _)
   | j, b :: bs, 0, _ => by simp [readLamBs]
   | j, b :: bs, k + 1, hk => by
     have := readLamBs_getElem (acval := acval) (env := env) (ψ := ψ) (j + 1) bs k
       (by simpa using hk)
-    simp only [readLamBs, List.map_cons, List.getElem_cons_succ, List.getElem_cons_succ] at this ⊢
+    simp only [readLamBs, List.getElem_cons_succ, List.getElem_cons_succ] at this ⊢
     rw [this, show j + 1 + k = j + (k + 1) by omega]
 
 theorem readOpenedDoms_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
@@ -1573,7 +1573,7 @@ theorem genRulePrefRead (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
   have hbl : bs.length = R.g.pre.length + x.nF := openLamsM_length _ hop'
   rw [hrP']
   refine List.ext_getElem (by
-    rw [List.length_take, List.length_map, readLamBs_length, blockRulePdomsAV_length hμ mpC h hr,
+    rw [List.length_take, readLamBs_length, blockRulePdomsAV_length hμ mpC h hr,
       hrP', hbl]; omega) fun k hk hk' => ?_
   have hkP : k < R.g.pre.length := by simp at hk; omega
   rw [List.getElem_take, readLamBs_getElem 0 bs k (by omega), Nat.zero_add]
@@ -2082,7 +2082,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
   have hfl : ((ys.drop (ConLeche.tgtMajorsOf out j).nPc).map (interp V ρ)).length = cA.2 := by
     simp [hyl]
   -- the λ-tower's fit (the bridges)
-  have hfit5 : ∀ (lds : List (Nat × AnnotTerm)) (A : AnnotTerm),
+  have hfit5 : ∀ (lds : List AnnotTerm) (A : AnnotTerm),
       blockRuleRaOf (blockRecAcv mpC.base2.acval envC (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
@@ -2095,7 +2095,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
             pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)
         = mkLamsAV lds A →
       lds.length = pp.toBlockShape.rulePrefixAt j + cA.2 →
-      SpineFit ρ (lds.map (·.2))
+      SpineFit ρ lds
         ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)
           ++ (ys.drop (ConLeche.tgtMajorsOf out j).nPc).map (interp V ρ)) := by
     intro lds A hlam hlen
@@ -2121,7 +2121,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
         exact constsBound_of_constsResolve _ hres) hop
     rw [← readLamBs_cross (fun d e hcbe => blockRecDenote_cross_eq h _ d e hcbe) 0 bs hcb,
       ← List.take_append_drop (pp.toBlockShape.rulePrefixAt j)
-        ((readLamBs mpC.base2.acval envC (Level.substFn φ r.1.levelParams us) 0 bs).map (·.2)),
+        (readLamBs mpC.base2.acval envC (Level.substFn φ r.1.levelParams us) 0 bs),
       hpref j r hr i cA rhs hcA hrhs _ bs body hop, hfield j r hr i cA rhs hcA hrhs _ bs body hop]
     exact h1
   refine ⟨h1, h2, h3, fun a hleafA => ?_, hfit5⟩

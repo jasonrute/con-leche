@@ -39,17 +39,17 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## λ-towers of graphs, as terms and under lifts -/
 
-/-- A spelled λ-tower term reads as the λ-tower of its body's readings
-(both value-read; the binder data's numerals are not read). -/
-theorem interp_mkLamsAV_holeFam {b : AnnotTerm} (v : Nat) :
+/-- A spelled λ-tower term reads as the λ-tower of its body's
+readings (both value-read). -/
+theorem interp_mkLamsAV_holeFam {b : AnnotTerm} :
     ∀ (Ts : List AnnotTerm) (ρ : Nat → V),
-      interp V ρ (mkLamsAV (Ts.map (v, ·)) b) = holeFam ρ Ts fun vs => interp V (consList vs ρ) b
+      interp V ρ (mkLamsAV Ts b) = holeFam ρ Ts fun vs => interp V (consList vs ρ) b
   | [], _ => rfl
   | T :: Ts, ρ => by
     show lamV _ _ = lamV _ _
     congr 1
     funext a
-    exact interp_mkLamsAV_holeFam v Ts (cons a ρ)
+    exact interp_mkLamsAV_holeFam Ts (cons a ρ)
 
 theorem holeFam_liftFields (n : Nat) :
     ∀ (Ts : List AnnotTerm) (k : Nat) (σ : Nat → V) (g : List V → V),

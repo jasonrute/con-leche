@@ -110,10 +110,9 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
       ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j,
-      ∀ bs, SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs →
+      ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
         q.1 < (tgtRs out).length ∧ xs.length = pp.toBlockShape.rulePrefixAt q.1 ∧
-        SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1).map
-            (·.2.2))
+        SpineFit ρ (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1)
           (xs ++ (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))
             ++ [interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2])) :=
     fun ψ ρ => genCallTy hμ R hg h mpC hfind 0 ψ ρ

@@ -63,44 +63,40 @@ output's non-hole positions, and the walk's result fact at the relation
 under the datum's fields. -/
 theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
     {Qf : FrameRel V → AnnotTerm → Prop} :
-    ∀ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm) (d l : Nat) (nds : List Expr)
+    ∀ (abD abN : List AnnotTerm) (B : AnnotTerm) (d l : Nat) (nds : List Expr)
       (Δ : List AnnotTerm) (R : FrameRel V) (Q : Nat → Nat → Prop),
-      FieldsEqOn V Δ (abD.map (·.2.2)) (abN.map (·.2.2)) →
+      FieldsEqOn V Δ (abD) (abN) →
       (∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀) →
-      (∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abN.map (·.2.2))) →
+      (∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abN)) →
       (∀ i n, HoleQ ctx prog d i n ↔ Q i n) → ctx.hiAt prog.length ≤ d →
       PiAccThen w ctx prog Qf abD.length d nds R (mkPisAV abD B) →
-      ∃ Af : Nat → (Nat → V) → V, TeleAccP w Af l Q R (abN.map (·.2.2)) ∧
+      ∃ Af : Nat → (Nat → V) → V, TeleAccP w Af l Q R (abN) ∧
         (∀ (i : Nat) (nd : Expr), i < abD.length → nds[i]? = some nd →
           InvOn (MentP ctx.nP (ctx.hiAt prog.length) (d + i) nd) (Af (l + i))) ∧
-        Qf (R.underBothTele (abN.map (·.2.2))) B
+        Qf (R.underBothTele (abN)) B
   | [], [], B, _, _, _, _, R, _, _, _, _, _, _, hP =>
     ⟨fun _ _ => empty, trivial, fun _ _ h => absurd h (Nat.not_lt_zero _), hP⟩
   | x :: abD, y :: abN, B, d, l, nds, Δ, R, Q, hE, hdom, hok, hQ, hd, hP => by
-    have hE' := hE
-    simp only [List.map_cons] at hE'
-    obtain ⟨h0, hrest⟩ := hE'
+    obtain ⟨h0, hrest⟩ := hE
     match nds, hP with
     | [], hP => exact hP.elim
     | nd :: nds', ⟨⟨Af0, hacc0, hsz0, hinv0⟩, hP'⟩ =>
-      have hUE : R.underBoth x.2.2 = R.underBoth y.2.2 := underBoth_eq_of_eqOn h0 hdom
-      have hok' : ∀ σ σ₀, R.underBoth x.2.2 σ σ₀ → w ≠ 0 →
-          FieldsBound w σ (abN.map (·.2.2)) := by
+      have hUE : R.underBoth x = R.underBoth y := underBoth_eq_of_eqOn h0 hdom
+      have hok' : ∀ σ σ₀, R.underBoth x σ σ₀ → w ≠ 0 →
+          FieldsBound w σ (abN) := by
         rintro _ _ ⟨a, ρ, ρ₀, rfl, rfl, hR, ha, -⟩ hw
         have hok0 := hok ρ ρ₀ hR hw
-        simp only [List.map_cons] at hok0
         exact hok0.2 a (h0 ρ (hdom ρ ρ₀ hR).1 ▸ ha)
       have hQ' : ∀ i n, HoleQ ctx prog (d + 1) i n ↔ shiftQ Q i n := by
         intro i n
         rw [← shiftQ_holeQ hd i n]
         exact shiftQ_congr hQ i n
       obtain ⟨Af', htele', hinv', hQf⟩ :=
-        teleAccP_of_piAccThen abD abN B (d + 1) (l + 1) nds' (x.2.2 :: Δ) (R.underBoth x.2.2)
+        teleAccP_of_piAccThen abD abN B (d + 1) (l + 1) nds' (x :: Δ) (R.underBoth x)
           (shiftQ Q) hrest (underBoth_dom hdom) hok' hQ' (by omega) hP'
       classical
       refine ⟨fun l' => if l' = l then Af0 else Af' l', ?_, ?_, ?_⟩
-      · simp only [List.map_cons]
-        refine ⟨?_, ?_, fun ρ ρ₀ hR => ?_, ?_⟩
+      · refine ⟨?_, ?_, fun ρ ρ₀ hR => ?_, ?_⟩
         · simp only
           exact AccOn.of_eqOn (P := Sat V Δ) hdom (fun ρ hρ => (h0 ρ hρ).symm)
             (AccOn.congrQ hQ hacc0)
@@ -108,7 +104,6 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
           exact hsz0
         · intro hw
           have hok0 := hok ρ ρ₀ hR hw
-          simp only [List.map_cons] at hok0
           exact mem_tg_of_mem_univ hok0.1
         · rw [← hUE]
           exact TeleAccP.congr _ (l + 1) (shiftQ Q) _
@@ -126,7 +121,7 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
           have := hinv' i nd' (by simpa using hi) hnd
           rwa [show d + 1 + i = d + (i + 1) by omega, show l + 1 + i = l + (i + 1) by omega]
             at this
-      · show Qf ((R.underBoth y.2.2).underBothTele (abN.map (·.2.2))) B
+      · show Qf ((R.underBoth y).underBothTele (abN)) B
         rw [← hUE]
         exact hQf
   | [], _ :: _, _, _, _, _, _, _, _, hE, _, _, _, _, _ => hE.elim

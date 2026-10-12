@@ -394,11 +394,11 @@ theorem holeAbs_memberApp {ctx : NestCtx} (hnd : ctx.names.Nodup) {t : Nat}
 the reading's body, every opened variable's annotation as its domain. -/
 theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat} :
     ∀ (n : Nat) {e : Expr} {D : Nat} {xs : List Expr} {rest : Expr}
-      {gds : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm},
+      {gds : List AnnotTerm} {B : AnnotTerm},
       openPisAtFvars n e D = some (xs, rest) → gds.length = n →
       denoteMeta acval env φ D e = some (mkPisAV gds B) →
       denoteMeta acval env φ (D + n) rest = some B ∧
-      ∀ l x, xs[l]? = some x → denoteMeta acval env φ (D + l) x.fvarTypeD = some (gds.getD l default).2.2
+      ∀ l x, xs[l]? = some x → denoteMeta acval env φ (D + l) x.fvarTypeD = some (gds.getD l default)
   | 0, e, D, xs, rest, gds, B, h, hl, hr => by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
