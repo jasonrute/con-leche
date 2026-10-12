@@ -103,7 +103,7 @@ theorem TgtOutCls.tailOk {envC : Env} {mpC : EnvModelM V μ envC}
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hcl.hmm
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab, hta, -, -⟩ := hab (fun _ => 0)
+  obtain ⟨ab, hta, -⟩ := hab (fun _ => 0)
   exact tailOk_of_read _ _ rfl hta
 
 /-- **The walk's index count of a container instance is the class
