@@ -407,24 +407,82 @@ the fragment's (`whitepaper/Fragment/Sound.lean`: `DefEqLams.inner_sound`,
 theorem DefEqLams.refl_sound {d : Nat} {a : Expr} : DefEqLamsSem m φ d a a :=
   DefEq.refl_soundU
 
-/-- The innermost level: **owed to task #342 L18**. -/
+/-- **The innermost level** (the fragment's `DefEqLams.inner_sound`): the
+two opened bodies lie in one type at every value of the variable — their
+full-grade types are types ("not pt" source (1)), compared equal — so
+they are both the point or neither, and where neither is the bodies'
+conditional claim makes them equal (`IsTy.eq_of_ne_pt`).  The claim is
+unconditional: no side need be off the point. -/
 theorem DefEqLams.inner_sound {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ : Expr}
     {m₁ m₂ : BinderMeta}
-    (_hty : DefEqSem m φ d ty₁ ty₂)
-    (_hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
+    (hty : DefEqSem m φ d ty₁ ty₂)
+    (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂)))
-    (_ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂)) t₁)
-    (_ht₂ : InferSemFull m φ (d + 1) (body₂.instantiate1 (.fvar d ty₂)) t₂)
-    (_ht : DefEqSem m φ (d + 1) t₁ t₂) :
-    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := sorry
+    (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂)) t₁)
+    (ht₂ : InferSemFull m φ (d + 1) (body₂.instantiate1 (.fvar d ty₂)) t₂)
+    (ht : DefEqSem m φ (d + 1) t₁ t₂) :
+    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
+  obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
+  obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
+  -- "not pt" source (1): the two domains are types
+  have hdom : interp V ρ ta₁ = interp V ρ ta₂ :=
+    hty hfa.lam_ty hfb.lam_ty hCa.lam_ty hCb.lam_ty hta₁ hta₂
+      ρ hρ hLa.lam_ty hLb.lam_ty hwa.lam_dom.1 hwb.lam_dom.1
+      hwa.lam_dom.ne_pt hwb.lam_dom.ne_pt
+  simp only [interp_lam]
+  rw [hdom]
+  refine lamV_congr fun x hx => ?_
+  have hx₁ : x ∈ˢ interp V ρ ta₁ := hdom ▸ hx
+  have hf₁ := hfa.lam_open hfb.lam_ty
+  have hf₂ := hfb.lam_open hfb.lam_ty
+  have hC₁ := CtxOkS.openS hCb.lam_ty hCa.lam_body hta₂
+  have hC₂ := CtxOkS.openS hCb.lam_ty hCb.lam_body hta₂
+  have hv₁ := denoteMeta_open_rename (ty' := ty₂) hva₁
+  have hρ' := Sat_cons V hρ hx
+  have hL₁ := LeavesGr.open (x := x) hCb.lam_ty hCa.lam_body hLb.lam_ty
+    hLa.lam_body hta₂ hwb.lam_dom
+  have hL₂ := LeavesGr.open (x := x) hCb.lam_ty hCb.lam_body hLb.lam_ty
+    hLb.lam_body hta₂ hwb.lam_dom
+  obtain ⟨hft₁, hsub₁, t₁a, ht₁a, hrow₁⟩ := ht₁ hf₁ hC₁ hv₁
+  obtain ⟨hft₂, hsub₂, t₂a, ht₂a, hrow₂⟩ := ht₂ hf₂ hC₂ hva₂
+  obtain ⟨hw₁, hT₁, hm₁⟩ := hrow₁ _ hρ' hL₁
+  obtain ⟨hw₂, hT₂, hm₂⟩ := hrow₂ _ hρ' hL₂
+  -- "not pt" source (1): the two bodies' inferred types are types
+  have heT := ht hft₁ hft₂ (hC₁.of_subset hsub₁) (hC₂.of_subset hsub₂) ht₁a ht₂a
+    _ hρ' (hL₁.of_subset hsub₁) (hL₂.of_subset hsub₂) hT₁.1 hT₂.1 hT₁.ne_pt hT₂.ne_pt
+  rw [heT] at hm₁
+  exact IsTy.eq_of_ne_pt hT₂.2 hm₁ hm₂ fun hn₁ hn₂ =>
+    hbody hf₁ hf₂ hC₁ hC₂ hv₁ hva₂ _ hρ' hL₁ hL₂ hw₁ hw₂ hn₁ hn₂
 
-/-- An outer level: **owed to task #342 L18**. -/
+/-- **An outer level needs no type** (the fragment's
+`DefEqLams.outer_sound`): the bodies are equal at every value of the
+variable, unconditionally, so the λs are; the domains are types ("not
+pt" source (1)), so their conditional claim applies. -/
 theorem DefEqLams.outer_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
     {m₁ m₂ : BinderMeta}
-    (_hty : DefEqSem m φ d ty₁ ty₂)
-    (_hbody : DefEqLamsSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
+    (hty : DefEqSem m φ d ty₁ ty₂)
+    (hbody : DefEqLamsSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
-    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := sorry
+    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
+  intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
+  obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
+  obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
+  have hdom : interp V ρ ta₁ = interp V ρ ta₂ :=
+    hty hfa.lam_ty hfb.lam_ty hCa.lam_ty hCb.lam_ty hta₁ hta₂
+      ρ hρ hLa.lam_ty hLb.lam_ty hwa.lam_dom.1 hwb.lam_dom.1
+      hwa.lam_dom.ne_pt hwb.lam_dom.ne_pt
+  simp only [interp_lam]
+  rw [hdom]
+  refine lamV_congr fun x hx => ?_
+  have hx₁ : x ∈ˢ interp V ρ ta₁ := hdom ▸ hx
+  exact hbody (hfa.lam_open hfb.lam_ty) (hfb.lam_open hfb.lam_ty)
+    (CtxOkS.openS hCb.lam_ty hCa.lam_body hta₂)
+    (CtxOkS.openS hCb.lam_ty hCb.lam_body hta₂)
+    (denoteMeta_open_rename hva₁) hva₂ _ (Sat_cons V hρ hx)
+    (LeavesGr.open hCb.lam_ty hCa.lam_body hLb.lam_ty hLa.lam_body hta₂ hwb.lam_dom)
+    (LeavesGr.open hCb.lam_ty hCb.lam_body hLb.lam_ty hLb.lam_body hta₂ hwb.lam_dom)
+    (hwa.lam_body x hx₁) (hwb.lam_body x hx)
 
 /-- λ-congruence: the telescopes' unconditional claim, weakened. -/
 theorem DefEq.lams_sound {d : Nat} {a b : Expr} (h : DefEqLamsSem m φ d a b) :
