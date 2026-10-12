@@ -4,7 +4,6 @@ import ConLeche.Verify.OfReducePin
 import ConLeche.Semantics.DeclRun
 public import ConLeche.Model.NatEqs
 import ConLeche.Model.Capstone
-public import ConLeche.Model.ErasePwInv
 import ConLeche.Model.DivMod
 public section
 

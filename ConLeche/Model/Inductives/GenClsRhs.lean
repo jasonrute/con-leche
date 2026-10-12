@@ -26,7 +26,7 @@ import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.Annot.Bit
 import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Verify.Inductives.ClassGenMinorSyn

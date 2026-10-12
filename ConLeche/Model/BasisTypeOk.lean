@@ -2,7 +2,6 @@ module
 
 public import ConLeche.Model.Claims
 import ConLeche.Semantics.BasisType
-public import ConLeche.Model.BitAgree
 
 public section
 

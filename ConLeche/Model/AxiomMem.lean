@@ -1,6 +1,5 @@
 module
 
-public import ConLeche.Model.AxiomBits
 public import ConLeche.Verify.StdAxiomPin
 
 public section

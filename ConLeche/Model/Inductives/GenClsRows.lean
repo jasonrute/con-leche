@@ -9,7 +9,7 @@ import ConLeche.Model.Inductives.GenRuleFree
 import ConLeche.Model.Annot.BitRename
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun

@@ -46,9 +46,9 @@ def substAV (τ : Nat → AnnotTerm) : AnnotTerm → (k : Nat) → AnnotTerm
 
 @[simp] theorem substAV_app (τ : Nat → AnnotTerm) (f a : AnnotTerm) (k : Nat) :
     substAV τ (.app f a) k = .app (substAV τ f k) (substAV τ a k) := rfl
-@[simp] theorem substAV_pi (τ : Nat → AnnotTerm) (u v : Nat) (A B : AnnotTerm) (k : Nat) :
+@[simp] theorem substAV_pi (τ : Nat → AnnotTerm) (A B : AnnotTerm) (k : Nat) :
     substAV τ (.pi A B) k = .pi (substAV τ A k) (substAV τ B (k + 1)) := rfl
-@[simp] theorem substAV_lam (τ : Nat → AnnotTerm) (u : Nat) (A b : AnnotTerm) (k : Nat) :
+@[simp] theorem substAV_lam (τ : Nat → AnnotTerm) (A b : AnnotTerm) (k : Nat) :
     substAV τ (.lam A b) k = .lam (substAV τ A k) (substAV τ b (k + 1)) := rfl
 @[simp] theorem substAV_letE (τ : Nat → AnnotTerm) (v b : AnnotTerm) (k : Nat) :
     substAV τ (.letE v b) k = .letE (substAV τ v k) (substAV τ b (k + 1)) := rfl
@@ -186,7 +186,8 @@ theorem substAV_mkPisAV (τ : Nat → AnnotTerm) (B : AnnotTerm) :
       substAV τ (mkPisAV ab B) k = mkPisAV (substTele τ k ab) (substAV τ B (k + ab.length))
   | [], k => rfl
   | d :: ab, k => by
-    show AnnotTerm.pi _ (substAV τ (mkPisAV ab B) (k + 1)) = AnnotTerm.pi rw [substAV_mkPisAV τ B ab (k + 1), List.length_cons, show k + 1 + ab.length = k + (ab.length + 1)
+    show AnnotTerm.pi _ (substAV τ (mkPisAV ab B) (k + 1)) = AnnotTerm.pi _ _
+    rw [substAV_mkPisAV τ B ab (k + 1), List.length_cons, show k + 1 + ab.length = k + (ab.length + 1)
       by omega]
 
 

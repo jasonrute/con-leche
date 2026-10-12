@@ -5,7 +5,6 @@ import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.Annot.BitClosed
-import ConLeche.Model.Annot.ValidSpine
 import ConLeche.Semantics.LitStep
 
 public section

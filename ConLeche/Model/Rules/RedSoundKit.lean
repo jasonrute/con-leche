@@ -10,7 +10,6 @@ import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Denote.StrLit
 import ConLeche.Model.WellDenotedTransport
-import ConLeche.Model.IOLicense
 import ConLeche.Model.Annot.BitInst
 
 public section

@@ -153,12 +153,10 @@ theorem denotePInstLevels (m : EnvModel V env)
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta,
       ← Expr.instantiateLevelParams_instantiate1 ks us body 0,
       ihty, ihbody]
-    simp only [pwBit_substPW]
   | case7 d ty body mb ihty ihbody =>
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta,
       ← Expr.instantiateLevelParams_instantiate1 ks us body 0,
       ihty, ihbody]
-    simp only [pwBit_substPW]
   | case8 d fe a ihf iha =>
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ihf, iha]
   | case9 d ty val body ihty ihv ihbody =>
@@ -275,23 +273,15 @@ theorem denoteMeta_params_ext (m : EnvModel V env)
   | case6 d ty body mb ihty ihbody =>
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd
-    have hpw : pwBit φ₁ mb.pw = pwBit φ₂ mb.pw := by
-      unfold pwBit
-      rw [ConLeche.PropWhen.holds_ext hd.2 hφ]
     rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
       ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1.1 0
         hd.1.2)]
-    simp only [hpw]
   | case7 d ty body mb ihty ihbody =>
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd
-    have hpw : pwBit φ₁ mb.pw = pwBit φ₂ mb.pw := by
-      unfold pwBit
-      rw [ConLeche.PropWhen.holds_ext hd.2 hφ]
     rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
       ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1.1 0
         hd.1.2)]
-    simp only [hpw]
   | case8 d fe a ihf iha =>
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd

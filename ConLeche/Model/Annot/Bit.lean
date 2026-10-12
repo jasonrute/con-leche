@@ -1,49 +1,22 @@
 module
 
 public import ConLeche.Semantics.Canon
-import ConLeche.Verify.PropWhen
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 
 public section
 
 /-!
-# `denoteMeta` — the validated-annotation reading (task #161, P3)
+# `denoteMeta` — the stored-term reading (task #161, P3; task #342, L14a)
 
-`denoteMeta` is `denote`'s recursion with every binder numeral read
-off the term's **own validated annotation** — `pwBit φ m.pw`, the
-datum's zero bit at the ground valuation — instead of a checker run.
+`denoteMeta` is `denote`'s recursion into the semantic syntax
+`AnnotTerm`: no checker run, no fuel, no mode.  The binders read
+nothing of their `BinderMeta` (the regime is read off the values by
+`interp`, `piV`/`lamV`), so the level crossing is plain algebra
+(`Annot/BitLevels.lean`, `denotePInstLevels`) and two readings of one
+term at one valuation are equal.
 
-The consequences:
-
-* **No fuel, no mode.**  `denoteMeta` runs no checker function, and
-  every lemma about it is fuel-slack-free.
-* **The level crossing is algebra.**  `denoteMeta`'s crossing is
-  `PropWhen.holds_substPW` at each binder: **proved outright**
-  (`Annot/BitLevels.lean`, `denotePInstLevels`).
-* **The bit is canonical.**  `pwBit` lands in `{0, 1}`, so two data
-  that agree on zero-ness produce *equal* numerals — the
-  `piR_zero_agree`/`lamR_zero_agree` step is `rfl`-shaped: the
-  checker's own validation sites (`(defeq-forall)`/`(defeq-lam)`/`(eta)`)
-  compare the data with `==` (equality of canonical data) exactly where
-  the run lemmas open two annotations at one index.
-
-**The `pi` `u`-slot.**  `AnnotTerm.pi` carries a domain-sort numeral `u`
-that `interp` and `WellDenoted` never read (`interp_pi` matches `.pi A B`; `DefEq`'s congruence rows hold at `u ≠ u'`).  Amendment 1
-deliberately dropped the domain datum from the input language, so
-`denoteMeta` fills the slot with `0`.  If any consumer downstream turns
-out to *read* `u`, that is a named finding against the prop-only
-amendment, not a plumbing gap.
-
-API discipline (task #161 ruling): `PropWhen` is consumed only through
-`holds` and the named battery laws — `pwBit` is `holds` composed with
-a two-point test, and every lemma below factors through
-`zeronessOf_sound` / `holds_substPW`; a validated or compared datum
-is *equal* to its counterpart (task #197), so no transport lemma is
-needed.
+History: until task #342 (L14a) the binders read the checker's
+annotation `pwBit φ m.pw` into a regime numeral, and `AnnotValid`
+(deleted) held that numeral to account.
 -/
 
 namespace ConLeche.Model
@@ -55,91 +28,10 @@ open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level PropWhen
   natLitSupported strLitSupported)
 
-/-! ## The regime bit -/
-
-/-- The regime numeral a validated datum contributes at a ground
-valuation: `0` (the squash regime) exactly when the datum holds —
-"the codomain is a proposition here" — and `1` otherwise.  The value
-`1` is arbitrary; `interp` reads binder numerals only through the
-`v = 0` test (`piR_zero_agree`/`lamR_zero_agree`). -/
-@[expose] def pwBit (φ : Name → Nat) (pw : PropWhen) : Nat :=
-  if pw.holds φ then 0 else 1
-
-@[simp] theorem pwBit_eq_zero_iff {φ : Name → Nat} {pw : PropWhen} :
-    pwBit φ pw = 0 ↔ pw.holds φ = true := by
-  unfold pwBit; split <;> simp_all
-
-theorem pwBit_ne_zero_iff {φ : Name → Nat} {pw : PropWhen} :
-    pwBit φ pw ≠ 0 ↔ pw.holds φ = false := by
-  rw [Ne, pwBit_eq_zero_iff]
-  simp
-
-/-! ### The io gate's exactness (task #161 bucket 2)
-
-The kernel's licensed check-skips test `PropWhen.isNever` — the one
-thing about a datum a kernel can decide without a valuation.  The
-sealed claims split on `pwBit φ pw = 0` at the *ambient* valuation.
-The two lemmas below are the receipt that the gate's condition is the
-**∀-`φ` uniform version of the claims' positive branch, exactly** —
-sound (a gated site is positive at every valuation, so the claim's
-cert-free arm applies) and complete (no other datum is positive at
-every valuation, so the gate cannot be widened without leaving the
-licensed branch).
-
-Landed at stage 1 on `agent/bucket2-s1` (commit `0c865695`) and
-re-landed here verbatim: the exactness is a fact about the datum, not
-about which site reads it, so it serves the io lane's application
-clause (`inferBodyIO`) and any future β-cert gate alike. -/
-
-/-- **Soundness of the gate's condition**: a `never` datum is positive
-at every valuation. -/
-theorem pwBit_ne_zero_of_isNever {pw : PropWhen}
-    (h : ConLeche.PropWhen.isNever pw = true) (φ : Name → Nat) :
-    pwBit φ pw ≠ 0 := by
-  cases pw with
-  | never => rw [pwBit_ne_zero_iff]; rfl
-  | ifAllZero ps => simp at h
-
-/-- **Exactness of the gate's condition**: `never` is *the* datum that
-is positive at every valuation — an `ifAllZero` datum lands in the
-squash regime at the all-zero valuation, where the certificate is
-consumed and the skip would be unlicensed. -/
-theorem isNever_iff_forall_pwBit_ne_zero {pw : PropWhen} :
-    ConLeche.PropWhen.isNever pw = true ↔ ∀ φ : Name → Nat, pwBit φ pw ≠ 0 := by
-  constructor
-  · exact pwBit_ne_zero_of_isNever
-  · intro h
-    cases pw with
-    | never => rfl
-    | ifAllZero ps =>
-      exact absurd (pwBit_eq_zero_iff.mpr
-        (by simp)) (h (fun _ => 0))
-
-/-- **The establishment reading**: the datum the checker validated
-against a computed codomain sort is `zeronessOf v` itself (the run
-inversions' conjunct `Level.zeronessOf v = m.pw` — an equality, since
-the datum is canonical, task #194/#197), and its bit is the sort's
-true zero bit. -/
-theorem pwBit_zeronessOf (φ : Name → Nat) (v : Level) :
-    (pwBit φ (Level.zeronessOf v) = 0 ↔ Level.eval φ v = 0) := by
-  rw [pwBit_eq_zero_iff, ConLeche.PropWhen.zeronessOf_sound]
-  simp
-
-/-- **The crossing reading**: the instantiated datum's bit at `φ` is
-the datum's bit at the composed valuation — `denotePInstLevels`'
-binder step. -/
-theorem pwBit_substPW (φ : Name → Nat) (ks : List Name)
-    (vs : List Level) (pw : PropWhen) :
-    pwBit φ (Level.substPW ks vs pw) = pwBit (Level.substFn φ ks vs) pw := by
-  unfold pwBit
-  rw [ConLeche.Level.holds_substPW]
-
 /-! ## The reading -/
 
-/-- The validated-annotation reading: `denote`'s recursion with every
-binder numeral read off the term's own meta (`pwBit φ m.pw`) — no
-checker runs, no fuel, no mode.  See the module docstring for the
-`pi` `u`-slot convention. -/
+/-- The stored-term reading: `denote`'s recursion into `AnnotTerm`, no
+checker runs, no fuel, no mode. -/
 @[expose] def denoteMeta (acval : Name → (Name → Nat) → AnnotTerm)
     (env : Env) (φ : Name → Nat) :
     (d : Nat) → Expr → Option AnnotTerm

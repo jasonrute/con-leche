@@ -9,7 +9,6 @@ import ConLeche.Model.CtxOkKit
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.BitRename
 import ConLeche.Verify.PropRead
-import ConLeche.Model.IOLicense
 import ConLeche.Model.Annot.BitClosed
 import ConLeche.Verify.InstLevels
 /- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the

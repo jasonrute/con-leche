@@ -131,21 +131,13 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
   | case6 d ty body mb ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    have hpw : pwBit φ₁ mb.pw = pwBit φ₂ mb.pw := by
-      unfold pwBit
-      rw [ConLeche.PropWhen.holds_ext hd.2 hφ]
     rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
       ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.1.2)]
-    simp only [hpw]
   | case7 d ty body mb ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    have hpw : pwBit φ₁ mb.pw = pwBit φ₂ mb.pw := by
-      unfold pwBit
-      rw [ConLeche.PropWhen.holds_ext hd.2 hφ]
     rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
       ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.1.2)]
-    simp only [hpw]
   | case8 d fe a ihf iha =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd

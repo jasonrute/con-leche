@@ -9,7 +9,6 @@ import ConLeche.Semantics.Hoist
 import ConLeche.Semantics.LitStep
 import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.WellDenotedTransport
-import ConLeche.Model.Annot.ValidSpine
 
 public section
 

@@ -52,7 +52,6 @@ public import ConLeche.Model.Inductives.BlockRecGraph
 public import ConLeche.Model.Inductives.BlockDeclRun
 public import ConLeche.Model.Inductives.BlockRecAssembly
 public import ConLeche.Model.ClaimsIO
-public import ConLeche.Model.IOLicense
 public import ConLeche.Model.WellDenotedTransport
 public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Currency
@@ -113,9 +112,7 @@ public import ConLeche.Model.NatWf
 public import ConLeche.Model.NatStep
 public import ConLeche.Model.DivModCert
 public import ConLeche.Model.Capstone
-public import ConLeche.Model.AxiomBits
 public import ConLeche.Model.BasisCons
-public import ConLeche.Model.BitAgree
 public import ConLeche.Model.BasisTypeOk
 public import ConLeche.Model.EqTower
 public import ConLeche.Model.BasisStep
@@ -148,15 +145,13 @@ public import ConLeche.Model.Annot.BitInst
 public import ConLeche.Model.Annot.BitClosed
 public import ConLeche.Model.Annot.BitInstall
 public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.Valid
-public import ConLeche.Model.Annot.ValidSpine
+public import ConLeche.Model.Annot.Bit
 public import ConLeche.Model.Annot.BitLevels
 public import ConLeche.Model.Annot.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
 public import ConLeche.Model.Annot.BitRename
 public import ConLeche.Model.AxiomMem
 public import ConLeche.Model.AxiomReduce
-public import ConLeche.Model.ErasePwInv
 public import ConLeche.Model.RecRulesCons
 public import ConLeche.Model.ReduceOps
 

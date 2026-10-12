@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Semantics.Tower.SumTower
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Model.Annot.LfpFormer

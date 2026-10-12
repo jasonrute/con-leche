@@ -15,7 +15,7 @@ import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Verify.Subst
 import ConLeche.Verify.Inductives.NestCallSyn
 import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Semantics.Tower.FixTower

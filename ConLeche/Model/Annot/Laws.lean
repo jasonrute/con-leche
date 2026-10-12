@@ -347,17 +347,16 @@ depth `d`: the type is closed. -/
 /-- A Π-tower over a sort determines its domains and its sort. -/
 theorem mkPisAV_sort_inj :
     ∀ {ab ab' : List (Nat × Nat × AnnotTerm)} {n n' : Nat},
-      mkPisAV ab (.sort n) = mkPisAV ab' (.sort n') → ab = ab' ∧ n = n'
+      mkPisAV ab (.sort n) = mkPisAV ab' (.sort n') →
+        ab.map (·.2.2) = ab'.map (·.2.2) ∧ n = n'
   | [], [], _, _, h => ⟨rfl, AnnotTerm.sort.inj h⟩
   | [], _ :: _, _, _, h => nomatch h
   | _ :: _, [], _, _, h => nomatch h
   | d :: ab, d' :: ab', _, _, h => by
-    obtain ⟨d1, d2, d3⟩ := d
-    obtain ⟨d1', d2', d3'⟩ := d'
     simp only [mkPisAV, AnnotTerm.pi.injEq] at h
-    obtain ⟨rfl, rfl, rfl, h⟩ := h
-    obtain ⟨rfl, rfl⟩ := mkPisAV_sort_inj h
-    exact ⟨rfl, rfl⟩
+    obtain ⟨h1, h⟩ := h
+    obtain ⟨h2, rfl⟩ := mkPisAV_sort_inj h
+    exact ⟨by simp [h1, h2], rfl⟩
 
 /-- **The strict fibres of a former, at its cons** — from its one type
 reading: at every assignment the stored type reads as `mkPisAV (ab ψ)
@@ -372,8 +371,8 @@ theorem indStrictHead_of {acval : Name → (Name → Nat) → AnnotTerm} {env : 
     IndStrictHead (V := V) acval env (.indInfo cv caps) := by
   intro cv' caps' hc ψ ab' n hr hn ρ vs hsp
   obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj hc
-  obtain ⟨rfl, rfl⟩ := mkPisAV_sort_inj (Option.some.inj ((hread ψ).symm.trans hr))
-  exact h ψ hn ρ vs hsp
+  obtain ⟨hab, rfl⟩ := mkPisAV_sort_inj (Option.some.inj ((hread ψ).symm.trans hr))
+  exact h ψ hn ρ vs (hab ▸ hsp)
 
 /-! ## The fired modeled-iota contract (task #161, iota tier)
 
@@ -417,7 +416,7 @@ residual an `AnnotTerm` at that environment. -/
 inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
     AnnotTerm → List AnnotTerm → AnnotTerm → Prop where
   | nil {T : AnnotTerm} : TeleFitPA V ρ T [] T
-  | cons {u v : Nat} {A B rest : AnnotTerm} {a : AnnotTerm}
+  | cons {A B rest : AnnotTerm} {a : AnnotTerm}
       {as : List AnnotTerm} :
       interp V ρ a ∈ˢ interp V ρ A →
       TeleFitPA V ρ (B.inst a) as rest →
@@ -434,7 +433,7 @@ theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
     refine ⟨T', ?_⟩
     rw [List.take_nil]
     exact TeleFitPA.nil
-  | @cons u v A B rest' a as' hmem htail ih =>
+  | @cons A B rest' a as' hmem htail ih =>
     intro n
     cases n with
     | zero => exact ⟨_, TeleFitPA.nil⟩
@@ -923,16 +922,6 @@ a real one, so the law is uniform — no flag premise. -/
     TowerEntryLaw m φ T i entry
 
 /-! ## The install-tier residues -/
-
-/-- **The leaf-validity residue** (the P tier's one new routed
-obligation): every stored leaf of the annotated valuation is
-bit-valid.  The `WellDenoted` half is already an `EnvModel` field
-(`acval_wellDenoted`); this is its `AnnotValid` companion, discharged
-at the install tier — a stored type's annotations went through the
-checker's own front door, which is establishment. -/
-@[expose] def AcvalValid {env : Env} (m : EnvModel V env) : Prop :=
-  ∀ (n : Name) (ψ : Name → Nat) (ρ : Nat → V),
-    AnnotValid V ρ (m.acval n ψ)
 
 /-- **The `const` clause's residue, P currency**: a stored constant's
 leaf inhabits its type's reading, a graded type. -/
