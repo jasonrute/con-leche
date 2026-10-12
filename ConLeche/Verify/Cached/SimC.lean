@@ -259,9 +259,6 @@ structure CSOK (mode : CheckMode) (env : Env) (s : CState) : Prop where
   inferIOC : ∀ k v, s.inferIOC[k]? = some v →
     ∃ F, ∀ d, (Expr.wscopedB d k) = true →
       inferTypeIO mode env F d k = .ok v
-  annotC : ∀ k v, s.annotC[k]? = some v →
-    ∃ F, ∀ d, (Expr.wscopedB d k) = true →
-      annotateCore mode env F d k = .ok v
   defeqC : ∀ a b r, s.defeqC[(a, b)]? = some r →
     ∃ F, ∀ d, (Expr.wscopedB d a) = true → (Expr.wscopedB d b) = true →
       isDefEqCore mode env F d a b = .ok r
@@ -300,7 +297,7 @@ surviving components are the residue and the dropped caches' clauses
 are vacuous. -/
 theorem flushC_csok {env' : Env} {s : CState} (hs : CSOKF s) :
     CSOK mode env' s.flushed := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hs.lsimp, hs.lnz, hs.eqv,
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hs.lsimp, hs.lnz, hs.eqv,
     ?_⟩ <;> (intros; simp_all [CState.flushed])
 
 /-- Flushing preserves the residue (it touches none of its

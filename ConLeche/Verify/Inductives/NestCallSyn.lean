@@ -283,7 +283,7 @@ theorem ErasedEq.mkPisOf_inv :
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hp hp'
       subst hp; subst hp'
-      exact ⟨rfl, ht⟩
+      exact ⟨Eq.refl _, ht⟩
     | succ l => exact hall l p p' (by simpa using hp) (by simpa using hp')
 
 /-- **Opening commutes with the substitution**, at variables above `b`
