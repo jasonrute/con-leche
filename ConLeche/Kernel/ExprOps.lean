@@ -1,12 +1,6 @@
 module
 
 public import ConLeche.Kernel.Level
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern): its constructors are `public` but the module is
-not `@[expose]`d, so a `cases`-then-`rfl` proof about a datum cannot
-see the reduct.  `import all` gives that view HERE only; nothing this
-module exports depends on it. -/
-import all ConLeche.Kernel.PropWhen
 
 @[expose] public section
 
@@ -797,11 +791,6 @@ def looseBVarsBounded (k : Nat) : Expr → Bool
   | .letE ty val body =>
     looseBVarsBounded k ty && looseBVarsBounded k val && looseBVarsBounded (k + 1) body
   | .proj _ _ e => looseBVarsBounded k e
-
-/-- Is the expression a λ? -/
-def isLam : Expr → Bool
-  | .lam .. => true
-  | _ => false
 
 /-- Two λs: their domains and bodies (the descent of the λ-telescope
 comparison, `defeqLams`). -/
@@ -2492,14 +2481,6 @@ def instPisAtLift : List Expr → Expr → Option Expr
 
 /-! ## Pointer-equality shortcut -/
 
-/-- Structural expression equality with a physical-equality shortcut
-(definitionally `a == b`).  Used to validate interned-environment
-entries against the stored constant they cache: the entry was created
-from the very object stored in the environment, so the pointer test
-succeeds without walking either expression. -/
-@[inline] def exprPtrBEq (a b : Expr) : Bool :=
-  withPtrEq a b (fun _ => a == b) (fun h => by subst h; simp)
-
 /-! ## Level-parameter occurrence, and the substitution shortcuts
 
 `Level.hasParam` / `Expr.hasLevelParam` are the spec functions of the
@@ -2544,30 +2525,6 @@ def _root_.ConLeche.Expr.hasLevelParam : Expr → Bool
   | .letE ty val body =>
     ty.hasLevelParam || val.hasLevelParam || body.hasLevelParam
   | .proj _ _ e => e.hasLevelParam
-
-/-- `substPW` is the identity on parameter-free data (`never` and
-`ifAllZero []`) — the meta half of the has-param shortcut's
-soundness. -/
-theorem _root_.ConLeche.Level.substPW_eq_self {ks : List Name}
-    {us : List Level} {pw : PropWhen} (h : pw.hasParams = false) :
-    Level.substPW ks us pw = pw := by
-  cases pw with
-  | never => rfl
-  | ifAllZero ps =>
-    cases ps with
-    | nil => rfl
-    | cons p ps => simp at h
-
-/-- Parameter-free data are defined under any parameter list. -/
-theorem _root_.ConLeche.PropWhen.paramsDefined_of_not_hasParams
-    {params : List Name} {pw : PropWhen} (h : pw.hasParams = false) :
-    pw.paramsDefined params = true := by
-  cases pw with
-  | never => rfl
-  | ifAllZero ps =>
-    cases ps with
-    | nil => rfl
-    | cons p ps => simp at h
 
 /-- Level-parameter instantiation is the identity on level-param-free
 expressions. -/

@@ -174,13 +174,6 @@ theorem abstractRangeM_eff (hs : CSOK mode env s₀) {e : Expr} {d k : Nat}
   show _ = _
   rw [abstractRangeC_spec (d := d) (k := k) (c := 0), he.erase]
 
-/-- The `O(1)` loose-bvar bound field is exact on the invariant, so the
-value it returns bounds the term. -/
-theorem bvarBoundM_eff (hs : CSOK mode env s₀) {e : Expr} :
-    CEff mode env s₀ (fun b => (Expr.looseBVarsBounded b e) = true)
-      (bvarBoundM e) :=
-  CEff.pure hs (bvarB_le (Nat.le_refl _))
-
 theorem mkAppNM_eff (hs : CSOK mode env s₀) {f : Expr} {args : List Expr}
     {x : Expr} {xs : List Expr}
     (hf : RelC f x) (hargs : RelCL args xs) :

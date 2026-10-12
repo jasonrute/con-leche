@@ -37,14 +37,6 @@ namespace ConLeche
 
 namespace Expr
 
-/-- The residual after peeling `k` *syntactic* ∀ binders, whatever
-their domains (no substitution — the residual may mention the peeled
-binders; the readers only look at its head shape). -/
-def peelPis : Nat → Expr → Option Expr
-  | 0, e => some e
-  | k + 1, .forallE _ b _ => peelPis k b
-  | _ + 1, _ => none
-
 /-- The domain of the `k`-th syntactic ∀ binder (`0` = outermost) of a
 telescope, unsubstituted. -/
 def binderDom : Nat → Expr → Option Expr
