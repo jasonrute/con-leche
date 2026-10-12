@@ -39,8 +39,8 @@ IGNORED (an `fvar` reads as its de Bruijn slot). -/
   | .sort u => u.allParamsDefined ps
   | .const _ us => us.all (Level.allParamsDefined ps)
   | .app f a => lpDefF ps f && lpDefF ps a
-  | .lam t b m => lpDefF ps t && lpDefF ps b
-  | .forallE t b m => lpDefF ps t && lpDefF ps b
+  | .lam t b _ => lpDefF ps t && lpDefF ps b
+  | .forallE t b _ => lpDefF ps t && lpDefF ps b
   | .letE t v b => lpDefF ps t && lpDefF ps v && lpDefF ps b
   | .lit _ => true
   | .proj _ _ e => lpDefF ps e

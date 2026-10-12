@@ -1069,7 +1069,7 @@ theorem inferTypeCore_pos {envK : Env} {d : Nat} {e r : Expr} {F : Nat}
 /-- **One ∀ binder of a successful inference, peeled.**  The ∀ clause's
 own witnesses: the codomain's sort `v` and
 the node's own sort. -/
-theorem inferTypeCore_forallE_peel (hμ : μ.verifiedChecks = true) {envK : Env}
+theorem inferTypeCore_forallE_peel {envK : Env}
     {d F : Nat} {ty bd s : Expr} {mb : ConLeche.BinderMeta}
     (h : ConLeche.inferTypeCore μ envK F d (.forallE ty bd mb) = .ok s) :
     ∃ (F₀ : Nat) (udom v : Level) (bt₁ : Expr),
@@ -1120,7 +1120,7 @@ theorem inferTypeCore_openPis_sortZ (hμ : μ.verifiedChecks = true) {envK : Env
         simp only [Option.some.injEq, Prod.mk.injEq] at hop
         obtain ⟨-, rfl⟩ := hop
         obtain ⟨F₀, udom, v, bt₁, rfl, hF₀, hbt₁, hv, rfl⟩ :=
-          inferTypeCore_forallE_peel hμ hinf
+          inferTypeCore_forallE_peel hinf
         have hcon' : ConLeche.inferTypeCore μ envK G (d + 1 + n) o' = .ok bt := by
           rw [show d + 1 + n = d + (n + 1) from by omega]; exact hcon
         have hsort' : ConLeche.ensureSortCore μ envK G (d + 1 + n) bt = .ok u := by
