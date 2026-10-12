@@ -18,9 +18,9 @@ public import ConLeche.SetModel.Access
 # `ConLeche.SetModel` — the pure set constructions
 
 Set constructions over an abstract `SetTheory V` that mention neither
-`Expr` nor the annotated syntax `ITerm`.
+`Expr` nor the interpreted term language `ITerm`.
 
-* `Ops` — `piR`/`lamR`/`app`, the two-regime dependent product and
+* `Ops` — `piR`/`lamR`/`app`, the two-regime dependent function space and
   abstraction (the `R` is *regime*);
 * `Value` — the built-in constants' value towers (`natRecV`,
   `quotLiftV`, `psigmaV`, …) over `piR`/`lamR`;

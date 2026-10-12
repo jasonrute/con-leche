@@ -55,8 +55,7 @@ inductive ITerm where
   /-- `let _ := val; body`: the body under one binder, read at the
   value; no type slot, as in `Term` -/
   | letE (val body : ITerm)
-  /-- `@Eq _ lhs rhs`; no annotation, and no type slot either, as in
-  `Term` (task #237) -/
+  /-- `@Eq _ lhs rhs`; no type slot, as in `Term` (task #237) -/
   | eqE (lhs rhs : ITerm)
   /-- first field of a pair -/
   | fst (e : ITerm)
@@ -103,7 +102,7 @@ def erase : ITerm → Term
 @[simp] theorem erase_prf : erase .prf = .prf := rfl
 
 /-- Weakening: insert `n` fresh binders at depth `k`.  Clause for
-clause `Term.liftN`; the numerals ride along untouched. -/
+clause `Term.liftN`. -/
 def liftN (n : Nat) : ITerm → (k : Nat := 0) → ITerm
   | .bvar i, k => .bvar (if i < k then i else i + n)
   | .sort u, _ => .sort u
@@ -240,12 +239,10 @@ theorem projPair?_cases₂ {i : Nat} {e x e' x' : ITerm}
 
 /-! ### The erase-commutations
 
-**Annotations are inert data under substitution.**  Both operations
-project onto `Term`'s on the nose: nothing in `liftN`/`inst` reads or
-writes a numeral slot, so `erase` is a homomorphism for them.  These
-two equations are the whole point of the structural kit — tier B and
-tier C move annotated terms through β, ζ and telescope steps by
-rewriting with them, never by re-deriving a sort fact. -/
+Both operations project onto `Term`'s on the nose, so `erase` is a
+homomorphism for them.  These two equations are the whole point of the
+structural kit — tier B and tier C move `ITerm`s through β, ζ and
+telescope steps by rewriting with them. -/
 
 /-- `erase` commutes with lifting. -/
 @[simp] theorem erase_liftN : ∀ (e : ITerm) (n k : Nat),
@@ -320,8 +317,7 @@ open ConLeche.Term (BConst)
 /-- **`erase` is injective at the constant clause.**  Every other
 `ITerm` constructor erases to a different `Term` constructor, so a
 constant erasure has a constant source — with the *same* name and the
-*same* level numerals, since the constant clause carries no
-annotation to forget. -/
+*same* level numerals. -/
 theorem erase_eq_const {ea : ITerm} {c : BConst} {us : List Nat}
     (h : ea.erase = .const c us) : ea = .const c us := by
   cases ea with
