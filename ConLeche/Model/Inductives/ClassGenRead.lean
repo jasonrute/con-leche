@@ -89,7 +89,7 @@ theorem inferTypeCore_openPis_body (hμ : μ.verifiedChecks = true) {envK : Env}
       · next fvs' o' hop' =>
         simp only [Option.some.injEq, Prod.mk.injEq] at hop
         obtain ⟨-, rfl⟩ := hop
-        obtain ⟨F₀, udom, v, bt₁, rfl, -, hbt₁, hv, -, -⟩ := inferTypeCore_forallE_peel hμ hinf
+        obtain ⟨F₀, udom, v, bt₁, rfl, -, hbt₁, hv, -⟩ := inferTypeCore_forallE_peel hμ hinf
         cases n with
         | zero =>
           simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hop'

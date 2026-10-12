@@ -168,7 +168,7 @@ theorem genRuleAt (R : GenRecRun mode F fe₁ env₁ fe p nb pos cvTas block cto
       ConLeche.classGenRule R.g (ConLeche.classRecOf R.rd.recCls R.cvGs)
         (r.1.levelParams.map .param) c x = some gen ∧
       Nonempty (ClassRuleRun mode F .plain fe (ConLeche.classFeR p R.Ms R.cvGs R.rd.recCls fe)
-        r.1 (Level.zeronessOf (ConLeche.structElimLevel p.elim p.large))
+        r.1
         (R.g.nP + R.g.slots.length + x.nF) gen rhs) := by
   obtain ⟨t, ho, rfl⟩ : ∃ t, out[j]? = some t ∧ r = (t.1, t.2.2, t.2.1.nIdx, t.2.1.ctors) := by
     simp only [tgtRs, List.getElem?_map] at hr
@@ -665,7 +665,7 @@ data and its body. -/
 theorem openLamsM_lp {ps : List Name} :
     ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {r : Expr},
       openLamsM n e j = some (bs, r) → lpDefF ps e = true →
-      (∀ b ∈ bs, lpDefF ps b.1 = true ∧ b.2.pw.paramsDefined ps = true) ∧ lpDefF ps r = true
+      (∀ b ∈ bs, lpDefF ps b.1 = true) ∧ lpDefF ps r = true
   | 0, e, j, bs, r, h, he => by
     simp only [openLamsM, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
@@ -680,10 +680,10 @@ theorem openLamsM_lp {ps : List Name} :
       obtain ⟨rfl, rfl⟩ := h
       simp only [lpDefF, Bool.and_eq_true] at he
       obtain ⟨hbs, hr⟩ := openLamsM_lp n (bs := o.1) (r := o.2) (by rw [hi])
-        (lpDefF_instantiate1 rfl _ 0 he.1.2)
+        (lpDefF_instantiate1 rfl _ 0 he.2)
       refine ⟨fun b hb => ?_, hr⟩
       rcases List.mem_cons.mp hb with rfl | hb
-      · exact ⟨he.1.1, he.2⟩
+      · exact he.1
       · exact hbs b hb
   | _ + 1, .bvar _, _, _, _, h, _ | _ + 1, .fvar _ _, _, _, _, h, _
   | _ + 1, .sort _, _, _, _, h, _ | _ + 1, .const _ _, _, _, _, h, _
@@ -694,11 +694,11 @@ theorem openLamsM_lp {ps : List Name} :
 theorem readLamBs_params (m : EnvModel V env) {ps : List Name} {ψ₁ ψ₂ : Name → Nat}
     (hq : ∀ q ∈ ps, ψ₁ q = ψ₂ q) :
     ∀ (j : Nat) (bs : List (Expr × ConLeche.BinderMeta)),
-      (∀ b ∈ bs, lpDefF ps b.1 = true ∧ b.2.pw.paramsDefined ps = true) →
+      (∀ b ∈ bs, lpDefF ps b.1 = true) →
       readLamBs m.acval env ψ₁ j bs = readLamBs m.acval env ψ₂ j bs
   | _, [], _ => rfl
   | j, b :: bs, h => by
-    obtain ⟨h1, -⟩ := h b List.mem_cons_self
+    have h1 := h b List.mem_cons_self
     simp only [readLamBs]
     rw [denoteMeta_params_extF m hq _ _ h1,
       readLamBs_params m hq (j + 1) bs (fun b' hb' => h b' (List.mem_cons_of_mem _ hb'))]
@@ -734,7 +734,7 @@ theorem genIhsAV_params (m : EnvModel V env) {out : List (ConstantVal × TargetM
   obtain ⟨bs, call, hbc, hbs, hcall⟩ : ∃ (bs : List (Expr × ConLeche.BinderMeta)) (call : Expr),
       (openLamsM tele A (g.pre.length + (genCtorAt g rd c j).nF)).getD ([], default)
         = (bs, call) ∧
-      (∀ b ∈ bs, lpDefF ps b.1 = true ∧ b.2.pw.paramsDefined ps = true) ∧
+      (∀ b ∈ bs, lpDefF ps b.1 = true) ∧
       lpDefF ps call = true := by
     cases ho : openLamsM tele A (g.pre.length + (genCtorAt g rd c j).nF) with
     | none => exact ⟨[], default, rfl, (fun b hb => nomatch hb), rfl⟩

@@ -1362,14 +1362,14 @@ theorem lpDefF_of_erasedEq {ps : List Name} :
     | .lam t' bd' m', h =>
       obtain ⟨h1, h2⟩ := h
       simp only [lpDefF, Bool.and_eq_true] at hb ⊢
-      exact ⟨⟨iht h1 hb.1.1, ihb h2 hb.1.2⟩, hb.2⟩
+      exact ⟨iht h1 hb.1, ihb h2 hb.2⟩
   | forallE t bd m iht ihb =>
     intro b h hb
     match b, h with
     | .forallE t' bd' m', h =>
       obtain ⟨h1, h2⟩ := h
       simp only [lpDefF, Bool.and_eq_true] at hb ⊢
-      exact ⟨⟨iht h1 hb.1.1, ihb h2 hb.1.2⟩, hb.2⟩
+      exact ⟨iht h1 hb.1, ihb h2 hb.2⟩
   | letE t v bd iht ihv ihb =>
     intro b h hb
     match b, h with

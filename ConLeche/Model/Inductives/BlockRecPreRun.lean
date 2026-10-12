@@ -1067,7 +1067,7 @@ theorem inferTypeCore_pos {envK : Env} {d : Nat} {e r : Expr} {F : Nat}
   | succ _ => omega
 
 /-- **One ∀ binder of a successful inference, peeled.**  The ∀ clause's
-own witnesses: the codomain's sort `v`, the node's validated datum and
+own witnesses: the codomain's sort `v` and
 the node's own sort. -/
 theorem inferTypeCore_forallE_peel (hμ : μ.verifiedChecks = true) {envK : Env}
     {d F : Nat} {ty bd s : Expr} {mb : ConLeche.BinderMeta}
@@ -1076,7 +1076,7 @@ theorem inferTypeCore_forallE_peel (hμ : μ.verifiedChecks = true) {envK : Env}
       F = F₀ + 1 ∧ 1 ≤ F₀ ∧
       ConLeche.inferTypeCore μ envK F₀ (d + 1) (bd.instantiate1 (.fvar d ty)) = .ok bt₁ ∧
       ConLeche.ensureSortCore μ envK F₀ (d + 1) bt₁ = .ok v ∧
-      Level.zeronessOf v = mb.pw ∧ s = .sort (.imax udom v) := by
+      s = .sort (.imax udom v) := by
   cases F with
   | zero =>
     rw [ConLeche.inferTypeCore_zero] at h
@@ -1090,14 +1090,8 @@ theorem inferTypeCore_forallE_peel (hμ : μ.verifiedChecks = true) {envK : Env}
     | sort udom =>
       obtain ⟨bt₁, hbt₁, h⟩ := ConLeche.exceptBind_ok h
       obtain ⟨v, hv, h⟩ := ConLeche.exceptBind_ok h
-      simp only [hμ, ite_true, bind, Except.bind] at h
-      by_cases hz : (Level.zeronessOf v == mb.pw) = true
-      · rw [hz] at h
-        refine ⟨F₀, udom, v, bt₁, rfl, inferTypeCore_pos hbt₁, hbt₁, hv,
-          by simpa using hz, ?_⟩
-        simpa [pure, Except.pure] using h.symm
-      · simp only [hz] at h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
+      refine ⟨F₀, udom, v, bt₁, rfl, inferTypeCore_pos hbt₁, hbt₁, hv, ?_⟩
+      simpa [pure, Except.pure] using h.symm
     | _ => simp [throw, throwThe, MonadExceptOf.throw] at h
 
 /-- **A Π-tower's inferred sort has its CONCLUSION's zero-ness.** -/
@@ -1125,7 +1119,7 @@ theorem inferTypeCore_openPis_sortZ (hμ : μ.verifiedChecks = true) {envK : Env
       · next fvs' o' hop' =>
         simp only [Option.some.injEq, Prod.mk.injEq] at hop
         obtain ⟨-, rfl⟩ := hop
-        obtain ⟨F₀, udom, v, bt₁, rfl, hF₀, hbt₁, hv, hpw, rfl⟩ :=
+        obtain ⟨F₀, udom, v, bt₁, rfl, hF₀, hbt₁, hv, rfl⟩ :=
           inferTypeCore_forallE_peel hμ hinf
         have hcon' : ConLeche.inferTypeCore μ envK G (d + 1 + n) o' = .ok bt := by
           rw [show d + 1 + n = d + (n + 1) from by omega]; exact hcon
