@@ -102659,22 +102659,36 @@ shift/fuel/pair lemmas, bridges and cached simulation arms.**
   `.plain`"; the bit's clauses in `RecRuleLaw`, `RecRuleExtra`,
   `RecRuleExtraNK`, `RecRuleKWit` and `blockRecRuleLaw_gen` go; the
   cached core's projection-function keep test (`Name.isProjFnShape`) goes.
+- The K and `And` rescues' constructor certificate: no proof reads it
+  since L18 (the major is a proof by the rescue's own `proofIrrel` run)
+  and official has none.  K's fabrication type check (`tfab ≡ tmaj`,
+  official's `to_cnstr_when_K`) stays: it decides whether K fires.
+- With those gone `iotaCerts` ran only licensed, where it is the
+  telescope's syntactic arity: it becomes the pure `teleArityOk`, and
+  `projCert`/`projCertAt` pure functions over the stored
+  (uninstantiated) type; the rules tier's `Certs` (its `cert`
+  constructor dead, its `lic` index constant) is replaced by the arity
+  fact in `Red.proj` and `Red.iota`; the cached twins (`iotaCertsIAux`,
+  `iotaCertsI`, `projCertI`, `projCertAtI`), their fuel/pair/shift/
+  congruence/simulation lemmas, `certs_step`/`Certs.cert_sound` and
+  `CertsSem`'s `lic` index go.
 - `#annotate_pins` and `annotateVal` (the identity): the standard-axiom
   pins and the `Iff`/`Nonempty` families (no rules) are defined
   directly under their stored names; the compiler-trust pins are plain
   definitions.
 - The legacy binder `pw` field is scanned and not decoded (`pwOfF`,
   `pwOf`, `pwOfF_mono`).
-- `Kernel/PropWhen`: the has-param and parameter-definedness tests and
-  the `inter`/`bindZ` algebra the annotation's substitution laws used
-  (`inter_assoc`/`_comm`/`_self`, `bindZ_inter`/`_unit`/`_go_append`/
-  `_congr_names`, `holds_ext`, `canon_canon`, …), and
-  `Verify/PropWhen`'s `substPW_comp`/`substPW_self`/`zeronessOf_subst`/
-  `zeronessOf_paramsDefined`/`subst_go_*`; `ExprOps` no longer
-  `import all`s the datum.  1081 → 898 lines.
-- Never-called checker helpers (the dead-code census): `Expr.peelPis`
-  (PropRead), `Expr.isLam`, `Expr.exprPtrBEq`, `BlockShape.offs`, the
-  cached `bvarBoundM`.
+- `Kernel/PropWhen`: the has-param test, `holds_ext`, `bindZ_unit`,
+  `inter_comm`/`_self`, `canon_canon`, `isEmpty_canon`, `Name.lt_trichotomy`,
+  and `Verify/PropWhen`'s `substPW_self`/`subst_go_self`; `ExprOps` no
+  longer `import all`s the datum.  1081 → 984 lines.  (L18's
+  `PropReadInst` reads `zeronessOf_subst`, `substPW_comp` and
+  `zeronessOf_paramsDefined`, which therefore stay with the algebra
+  under them.)
+- Never-called checker helpers (the dead-code census):
+  `Expr.exprPtrBEq`, `BlockShape.offs`, the cached `bvarBoundM`
+  (`Expr.peelPis` and `Expr.isLam` were dead too, until L18's guards
+  used them).
 - `tests/shake-allowlist.txt`: the seven entries whose import line no
   longer exists (`DiscC6`, the two `meta import BasisA` lines,
   `AxiomBits`, `BitAgree`, `Annot.Valid`).
@@ -102741,28 +102755,32 @@ The `RecRuleFire` docstring is rewritten for the current representation.
   `import all` readers in `Model/Basis*` would follow.
 - The census's other dead entries in `Verify/*` and the rules tier
   (`Rules.Derived.DefEq.deltaL/R/Both`, `BridgeDecl`'s pair ops, the
-  `Verify/Frontend` helpers, …) predate this lane; several `Verify`
-  lemmas read dead only because their consumer is a ledgered `sorry`
-  (`isProofFast_inv` for L18's `prf_of_isProofFast`) and are kept.
+  `Verify/Frontend` helpers, …) predate this lane; the census ran
+  while L17/L18 still had ledgered `sorry`s, so its `Model`/`Verify`
+  entries need re-reading on the final tree before any deletion.
 
-**Ledgered files touched** (small edits, the deleted premises):
-`Model/Rules/DefEqSound.lean` (`structEta_sound`'s slot premise),
-`DefEqSoundKit.lean` (`etaProjs_eq`), `CertsSound.lean` (the
-`EtaProjCerts` lemmas deleted), `GenRecExtra.lean` (`paramsBlind`).
+**Merges.**  `port-342-s4` merged twice (L17; L18).  The lane touched
+the then-ledgered `DefEqSound`, `DefEqSoundKit`, `CertsSound` and
+`GenRecExtra` (the deleted premises only).
 
-**Verdicts** (one run, multi-threaded): arena 90/92, e2e and annot as
-before — identical to `port-342-s4`'s binary, fixture for fixture.
+**Verdicts** (one run, multi-threaded): 626/626 as expected, arena
+90/92 — as before the lane, fixture for fixture.
 
 **instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
 
 | | init-full | mathlib-prefix |
 |---|---|---|
-| `port-342-s4` (aa217a332) | 411.918G | 562.973G |
-| L-dead | 411.861G (−0.01 %) | 562.830G (−0.03 %) |
+| `port-342-s4` before the lane (aa217a332) | 411.918G | 562.973G |
+| `port-342-s4` after L18 (35109900d) | 412.498G | 563.742G |
+| L-dead | 410.384G (−0.51 %) | 559.849G (−0.69 %) |
+
+(The percentages are against 35109900d.  Most of the gain is the K and
+`And` rescues' certificate and the projection fire's level
+instantiation, both gone; the lane's earlier part measured −0.01 % /
+−0.03 % against aa217a332.)
 
 57 977 / 131 902 declarations accepted, exit 0, as before.
 
-**Gates.**  `lake build`, `lake test` warning-free but for `sorry` in
-ledgered files; code `sorry` only in ledgered files (and the by-design
-`Challenge`/fixtures).  `challenge.sh` green.  Lines: 87 files,
-+920 −2533.
+**Gates.**  `lake build`, `lake test` warning-free; no `sorry` in code
+outside the by-design `Challenge` and fixture sources; `challenge.sh`
+green.  Lines (code, against `port-342-s4`): 90 files, +1189 −3701.
