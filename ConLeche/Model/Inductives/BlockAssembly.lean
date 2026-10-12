@@ -804,7 +804,6 @@ theorem blockCtorFunsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       cvTb.name = q.memberNames.getD j .anonymous)
     (hlpsOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
       cvTb.levelParams = q.lps)
-    (hsEval : ∀ (j : Nat) (ψ : Name → Nat), (sOf j).eval ψ = q.resSort.eval ψ)
     (hstripOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
       ∃ bs : List (Expr × BinderMeta),
         cvTb.type.stripPis (q.nP + q.nIdxs.getD j 0) = some (bs, .sort (sOf j)))
@@ -825,7 +824,7 @@ theorem blockCtorFunsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     blockCtorFuns_of (V := V) hμ mpI (T := cvTa.name) (lps := q.lps) (nP := q.nP)
       (nIdx := q.nIdxs.getD m 0) (resSort := q.resSort) (isProp := q.isProp) (large := q.large)
       (cvTa := cvTa) (env₁ := envI) (sT := sOf m)
-      (hfindOf m cvTa hm) (hlpsOf m cvTa hm) (hsEval m) hst hrunOf
+      (hfindOf m cvTa hm) (hlpsOf m cvTa hm) hst hrunOf
   refine ⟨⟨idxF, dsF, esF, srcsF, fvsPF, xFvsF, xrestF, fun _ _ => [], fun _ => .bvar 0⟩, fun j cA hj => ?_⟩
   rw [← hnameOf m cvTa hm]
   exact hall j cA hj

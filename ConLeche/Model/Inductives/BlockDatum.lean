@@ -551,7 +551,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     by_cases hm : m < q.k
     · obtain ⟨cvTa, hcv⟩ : ∃ cvTa, cvTas[m]? = some cvTa :=
         ⟨_, List.getElem?_eq_getElem (by rw [hF.lenCv]; exact hm)⟩
-      obtain ⟨pk, hpk⟩ := blockCtorFunsAt hμ mp' hcv hF.nameOf hF.lpsOf hF.sEval
+      obtain ⟨pk, hpk⟩ := blockCtorFunsAt hμ mp' hcv hF.nameOf hF.lpsOf
         hF.stripOf hfind
         (fun j cA hj => by
           obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, -, hCtor⟩ :=
