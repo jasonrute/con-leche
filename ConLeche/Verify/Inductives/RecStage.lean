@@ -318,8 +318,9 @@ theorem recStageG_tyGen {mem : Nat → Prop} (h : RecStageG mode F env p cvTas c
   exact ⟨rc, u, hrc, E⟩
 
 /-- **The CHECK's own well-formedness contract**: every stored
-recursor type is a CHECKED constant's, and every stored rule is the
-ANNOTATED stream right-hand side, scoped at the BARE-`k` environment. -/
+recursor type is a CHECKED constant's, and every stored rule's
+right-hand side is closed, at the recursor's level parameters, and
+resolves at the BARE-`k` environment. -/
 theorem recStage_facts {mem : Nat → Prop} (h : RecStageG mode F env p cvTas ctorsAs rs mem) :
     ∀ r ∈ rs, r.1.type.hasFvar = false ∧
       r.1.type.allLevelParamsDefined r.1.levelParams = true ∧

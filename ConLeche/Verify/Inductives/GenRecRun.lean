@@ -369,9 +369,9 @@ theorem classesCtors_run {env : Env} {p : BlockShape} {formerTys : List Expr} {r
 
 /-! ## The generated types -/
 
-/-- **`classConstOk`, inverted** (at `mkFEnv env`) — `checkConstantVal_inv`
-without the annotation step: the guards, and the inference of the type
-AS STORED (the returned constant is the input). -/
+/-- **`classConstOk`, inverted** (at `mkFEnv env`) — `checkConstantVal_inv`'s
+facts: the guards, and the inference of the type AS STORED (the returned
+constant is the input). -/
 theorem classConstOk_inv {env : Env} {cv cv' : ConstantVal} {F : Nat}
     (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok cv') :
     env.find? cv.name = none ∧
@@ -434,7 +434,7 @@ theorem classConstOk_typeWF {env : Env} {cv cvA : ConstantVal} {F : Nat}
 inference are the run's; the stored type is the checked one, and its
 empty-slot freshness is the full inference's (`inferTypeCore_noProjAt`:
 a successful inference of a closed subject names only occupied slots —
-the generated type is stored without an annotation pass). -/
+the stored type is the one inferred). -/
 theorem classConstOk_checked {env : Env} {cv0 cv : ConstantVal} {F : Nat}
     (h : classConstOk (fueledOps mode F) (mkFEnv env) cv0 = .ok cv) :
     ConstChecked mode F env cv0 cv := by
@@ -449,8 +449,8 @@ theorem classConstOk_checked {env : Env} {cv0 cv : ConstantVal} {F : Nat}
 /-- **One recursor's generated type, as `classRecTyOk` ran**: the record's
 member, rule prefix and major index are the generated ones; the
 generated type `gty` checked as a constant under the record's name and
-level parameters (`classConstOk`: no annotation — the stored type IS the
-generated one, `classConstOk_inv`) is the STORED constant `cvG`.  (The comparison with the
+level parameters (`classConstOk`: the stored type IS the generated one,
+`classConstOk_inv`) is the STORED constant `cvG`.  (The comparison with the
 stream's type is reject-only: nothing is read from it.) -/
 structure ClassRecTyRun (mode : CheckMode) (F : Nat) (fe : FEnv) (g : ClassGen) (k : Nat)
     (rc : RecShape) (c : Nat) (cvG : ConstantVal) : Type where
@@ -765,7 +765,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   hrd : classRead p.nP (classNPcOf p fe₁) p.recs = some rd
   /-- the block's canonical parameters and holes (the positivity check's context) -/
   hctx : blockNestCtx (m := CheckM) p cvTas fe₁.find? = .ok (ctx, holes)
-  /-- the class keys, moved to the canonical parameters and annotated -/
+  /-- the class keys, moved to the canonical parameters -/
   hkeys : rd.classes.mapM (classKeyOf (m := CheckM) p.nP ctx.params) = .ok keys
   /-- the classes, each a checked major over the canonical parameters -/
   hMs₀ : classMajors (fueledOps mode F) fe₁ p ctorsAs ctx.params keys = .ok Ms₀

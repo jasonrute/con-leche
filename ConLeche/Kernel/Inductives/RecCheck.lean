@@ -257,7 +257,7 @@ def classFeR (p : BlockShape) (Ms : List TargetMajor) (cvGs : List ConstantVal)
   consBlockRecsBareF p 0 ((cvGs.zip recCls).map fun (cv, c) => (cv, (Ms.getD c default).nIdx)) fe
 
 /-- **The operations the shadow runs on**, per index: the checker's
-entry points at an `FEnv` (`opsAt`), their rule-annotation variant
+entry points at an `FEnv` (`opsAt`), their variant for the rules
 (`opsRuleR`: the cached one flushes at the two environment transitions
 a rule makes, `sharedOpsRuleR`), the flush at an environment change,
 the syntactic walkers, and the environment the rule stage infers the
@@ -575,7 +575,7 @@ def targetPiDomsWith : List Expr → Expr → Option (List Expr)
 /-! ## The stored family -/
 
 /-- **The stored family, in the install's recursor-list format**: each
-checked recursor, its annotated rules, its major's index count and its
+checked recursor, its generated rules, its major's index count and its
 major's constructors (`consBlockRecs` conses them). -/
 def tgtRs (out : List (ConstantVal × TargetMajor × List Expr)) :
     List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) :=
@@ -595,7 +595,7 @@ def Expr.abstractPrefix : Nat → Nat → Expr → Expr
 the rule prefix (`Expr.abstractPrefix`; they mention only the block's
 parameters, `targetMajorOf`).  They are what the generated recursor
 type's major domain applies the container to
-(`genStage_nestedRead`, `Verify/Inductives/GenNestedRead.lean`). -/
+(`genStage_nestedRead`, `Verify/Inductives/TargetAuxFire.lean`). -/
 def auxRuleFire (M : TargetMajor) (rP : Nat) : RecRuleFire :=
   .nested M.lvls (M.ds.map (Expr.abstractPrefix rP 0))
 
