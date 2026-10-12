@@ -42,7 +42,7 @@ other than what the record declares:
   the declared type is not already a syntactic Π-telescope ending in a
   sort (`checkSumTele`, `ConLeche/Kernel/Inductives/SumInstall.lean`).
 
-Both are definitional equalities, not equalities, so the claim would be
+Both are definitional equalities, not syntactic ones, so the claim would be
 false of them; a **constructor** is stored as declared, but it is
 installed with its block and is left out with it.
 
