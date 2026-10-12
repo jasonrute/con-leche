@@ -30,11 +30,11 @@ on both sides, and every constant is a member of its type by
 Each constant's application law is `app_lamV` down its binders: no
 premise beyond domain membership, at every level.
 
-`Empty.rec` is the point (`emptyRecV_eq_pt`: its inner abstraction is
-over `∅`).  `quotLiftR` is the quotient lift as an abstraction over the
-quotient set.  The other `SetTheory` operators used here (`natrec`,
-`schoice`, `quotSet`, `quotClass`, `qrep`, `sigmaSet`, `sfst`/`ssnd`,
-`lfpFamSet`, `lfpTuple`) need no replacement: their families are
+`Empty.rec` is the point: its inner abstraction is over `∅`.
+`quotLiftR` is the quotient lift as an abstraction over the quotient
+set.  The other `SetTheory` operators used here (`natrec`, `schoice`,
+`quotSet`, `quotClass`, `qrep`, `sigmaSet`, `sfst`/`ssnd`, `lfpFamSet`,
+`lfpTuple`) need no replacement; the least fixed points' families are
 members of the value-read family space `lfpFamSpace` (`famOf`).
 -/
 
@@ -380,9 +380,6 @@ noncomputable def emptyMotiveSpace (v : Nat) : V :=
 the point. -/
 noncomputable def emptyRecV (v : Nat) : V :=
   lamV (emptyMotiveSpace V v) fun _ => lamV empty fun _ => empty
-
-theorem emptyRecV_eq_pt (v : Nat) : emptyRecV V v = pt :=
-  lamV_eq_pt fun _ _ => lamV_of_empty fun x => not_mem_empty x
 
 /-! ## `lfpFam` (task #188, indexed)
 
