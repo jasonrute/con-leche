@@ -146,6 +146,30 @@ theorem lparams_map_substVal (hok : S.Ok env) (φ : Name → Nat) {ls : List Lev
     S.lparams.map (Level.substVal φ S.lparams ls) = ls.map (Level.eval φ) :=
   map_substVal_eq φ hok.scoped.2.2.2.2.2.1 hls
 
+omit [LevelOracle] in
+/-- **The strict-fibre law of a former read by readers** (task #342
+F1): an assignment that reads the block at every valuation, with any
+family (`Reader.adm` makes it admissible), satisfies `IndStrictLaw` at
+the former — at the use's levels the reader's valuation evaluates the
+stored sort as the use does (`Level.eval_subst`), and the family
+applied is strict there (`Reader.strict_app`).  Every installation
+stage that stores the former reads it so (`mIndF`, `mInd`, and the
+nested stages). -/
+theorem indStrict_of_readers {M M' : Name → List Nat → V} {F : List Nat → List V → List V → V}
+    (hS : S.Scoped env) (hR : ∀ φ, S.Reader (env := env) M φ F M' φ) :
+    IndStrictLaw M' S.name S.indInfo S.nP S.nI S := by
+  intro φ ρ ls vs hls hvs hl hfit
+  simp only [indInfo] at hls hfit ⊢
+  have R := hR (Level.substVal φ S.lparams ls)
+  rw [TeleFitV_instL] at hfit
+  rw [R.fam, ← map_substVal_eq φ hS.2.2.2.2.2.1 hls]
+  refine R.strict_app hS hvs hfit ?_
+  cases hz : S.z (S.lparams.map (Level.substVal φ S.lparams ls)) with
+  | false => rfl
+  | true =>
+    rw [S.z_iff, R.u₀_eq hS.2.2.1, ← Level.eval_subst] at hz
+    exact absurd hz hl
+
 /-! ## The model of the environment with the former -/
 
 variable (hpl : S.nest = none) (hs : Env.Scoped env) (m : EnvModel V env) (hok : S.Ok env)
@@ -258,6 +282,17 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
         simp at this
       · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).rec_rules_nested c ci nP nM nMin
           nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf hcij hcijk
+  ind_strict := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · rename_i h
+      subst h
+      cases hfind
+      simp only [indInfo, ConstKind.induct.injEq] at hkind
+      obtain ⟨rfl, rfl, -, rfl⟩ := hkind
+      exact indStrict_of_readers hok.scoped fun φ => readerF hok m.M F hFa φ
+    · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).ind_strict I ci nP nI cs S'
+        hfind hkind
 
 omit hpl in
 theorem mIndF_M (F : List Nat → List V → List V → V)
@@ -560,6 +595,16 @@ noncomputable def mInd : EnvModel V (S.envInd env) where
         simp at this
       · exact (m₃ hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
           hinst cij I nPc nf hcij hcijk
+  ind_strict := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · rename_i h
+      subst h
+      cases hfind
+      simp only [indInfo, ConstKind.induct.injEq] at hkind
+      obtain ⟨rfl, rfl, -, rfl⟩ := hkind
+      exact indStrict_of_readers hok.scoped fun φ => (reader₃ hpl hok m.M φ).R
+    · exact (m₃ hs m hok).ind_strict I ci nP nI cs S' hfind hkind
 
 theorem mInd_M : (mInd hpl hs m hok).M = S.M₃ m.M := rfl
 
@@ -778,6 +823,11 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
       rw [hnone] at hcij
       exact (mInd hpl hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
         hinst cij I nPc nf hcij hcijk
+  ind_strict := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+    split at hfind
+    · cases hfind; simp [ctorInfo] at hkind
+    · exact (mInd hpl hs m hok).ind_strict I ci nP nI cs S' hfind hkind
 
 theorem mCtors_M : (mCtors hpl hs m hok).M = S.M₃ m.M := rfl
 

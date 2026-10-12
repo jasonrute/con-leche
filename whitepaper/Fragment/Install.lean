@@ -116,6 +116,11 @@ noncomputable def mInstall : EnvModel V (S.install env) where
       rw [S.install_find? hpl, ite_eq_right hne] at hcij
       exact (mCtors hpl hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
         hinst cij I nPc nf hcij hcijk
+  ind_strict := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.install_find? hpl] at hfind
+    split at hfind
+    · cases hfind; simp [recInfo] at hkind
+    · exact (mCtors hpl hs m hok).ind_strict I ci nP nI cs S' hfind hkind
 
 theorem mInstall_M : (mInstall hpl hs m hok).M = S.M₃ m.M := rfl
 

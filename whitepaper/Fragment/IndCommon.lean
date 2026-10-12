@@ -260,6 +260,16 @@ theorem IsTy_adm {X : V} (hX : S.z ls = true → X ∈ˢ (univ 0 : V)) : IsTy (S
       exact (this.2 hz).2 hz'
     · exact ((S.mem_adm ls).mp hp).2 hz |>.1 rfl
 
+/-- **Above a proposition the admissible part is strict** (task #342
+F1): its members are neither the point nor a member of it, so it is
+not the point (which has a member) and does not hold it. -/
+theorem strict_adm (hz : S.z ls = false) (X : V) : Strict (S.adm ls X) := by
+  refine ⟨fun he => ?_, fun hp => ((S.mem_adm ls).mp hp).2 hz |>.1 rfl⟩
+  obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+  have := hz'
+  rw [← he, mem_adm] at this
+  exact (this.2 hz).2 hz'
+
 /-- A member of an admissible part that is a member of another set is
 a member of that set's admissible part. -/
 theorem mem_adm_of {X X' x : V} (hx : x ∈ˢ S.adm ls X) (hx' : x ∈ˢ X') : x ∈ˢ S.adm ls X' :=

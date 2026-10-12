@@ -230,6 +230,26 @@ def RecRuleLawN (M : Name → List Nat → V) (c : Name) (ci : ConstInfo)
     WellDenoted M φ ρ (rl.rhs.instL ci.lparams us) ∧
     SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop nPc)
 
+/-- **Strict fibres above `Prop`** (task #342 F1, the case-2 ι
+licence of #347): for a stored inductive type former `I` (stored as
+`ci`, with `nP` parameters and `nI` indices and its block's
+specification `S`), at every valuation where the family's stored sort
+`S.sort`, instantiated at the use's levels, is not zero, the family
+applied to any values fitting its telescope is a **strict** set — not
+the point, and without the point as a member.  `#344` put the truth
+values into every `Sort (n+1)` (`typeU`), so the universe no longer
+says this; the inductive model does: above a proposition a fibre is a
+set of tagged values (`IndSem.Fam_mem_typeU`), and a family read
+through a former's graph is admissible (`IndCommon.adm`), so strict
+(`IndCommon.strict_adm`).  Stated on values, like `RecRuleLaw`. -/
+def IndStrictLaw (M : Name → List Nat → V) (I : Name) (ci : ConstInfo) (nP nI : Nat) (S : IndSpec) :
+    Prop :=
+  ∀ (φ : Name → Nat) (ρ : Nat → V) (ls : List Level) (vs : List V),
+    ls.length = ci.lparams.length → vs.length = nP + nI →
+    Level.eval φ (S.sort.subst ci.lparams ls) ≠ 0 →
+    TeleFitV M φ ρ (ci.type.instL ci.lparams ls) vs →
+    Strict (appList (M I (ls.map (Level.eval φ))) vs)
+
 /-- **A model of an environment**: the assignment and the laws. -/
 structure EnvModel (V : Type u) [SetLib V] (env : Env) where
   /-- The set of every constant at every list of concrete levels. -/
@@ -269,6 +289,12 @@ structure EnvModel (V : Type u) [SetLib V] (env : Env) where
         cij.kind = .ctor I nPc nf →
         RecRuleLawN M c ci nPc (numParams + numMotives + numMinors)
           (numParams + numMotives + numMinors + numIndices) rl cij
+  /-- Every stored inductive family has strict fibres where its stored
+  sort is not zero (task #342 F1).  No guard is needed: the stage of
+  an installation that gives the former an arbitrary family (`mIndF`)
+  takes it admissible, which is strict above a proposition. -/
+  ind_strict : ∀ (I : Name) (ci : ConstInfo) (nP nI : Nat) (ctors : List Name) (S : IndSpec),
+    env.find? I = some ci → ci.kind = .induct nP nI ctors S → IndStrictLaw M I ci nP nI S
 
 /-- The empty environment has a model: any assignment, vacuous laws. -/
 def EnvModel.empty (M : Name → List Nat → V) : EnvModel V Env.empty where
@@ -277,5 +303,6 @@ def EnvModel.empty (M : Name → List Nat → V) : EnvModel V Env.empty where
   unfold := fun _ _ _ h => by simp at h
   rec_rules := fun _ _ _ _ _ _ _ h => by simp at h
   rec_rules_nested := fun _ _ _ _ _ _ _ h => by simp at h
+  ind_strict := fun _ _ _ _ _ _ h => by simp at h
 
 end Fragment

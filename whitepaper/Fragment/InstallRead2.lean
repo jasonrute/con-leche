@@ -51,6 +51,36 @@ theorem Reader.u₀_eq {M' : Name → List Nat → V} {φ' : Name → Nat}
   unfold u₀
   exact Level.eval_congr (fun n hn => R.val_ψ n hn) hs
 
+/-- **Above a proposition the former's family is strict**, read in
+any reader (task #342 F1): at values fitting the former's telescope the
+former's set applied is the family's fibre (β), which the reader takes
+admissible, and an admissible set above a proposition is strict
+(`strict_adm`). -/
+theorem Reader.strict_app (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
+    (R : S.Reader (env := env) M φ F M' φ') {ρ : Nat → V} {vs : List V}
+    (hlen : vs.length = S.nP + S.nI) (hfit : TeleFitV M' φ' ρ S.indType vs)
+    (hz : S.z (S.lparams.map φ) = false) :
+    Strict (appList (S.famSetF M (S.lparams.map φ) F) vs) := by
+  unfold indType at hfit
+  rw [TeleFitV_mkPis M' φ' (by simp [hlen, nP, nI]; omega)] at hfit
+  obtain ⟨isv, ps, hsplit, hl₁⟩ : ∃ isv ps : List V, vs.reverse = isv ++ ps ∧ isv.length = S.nI :=
+    ⟨vs.reverse.take S.nI, vs.reverse.drop S.nI, (List.take_append_drop _ _).symm,
+      by simp [hlen]⟩
+  rw [hsplit] at hfit
+  obtain ⟨hp, hi⟩ := (FitsVals_append M' φ' (by simpa [nI] using hl₁)).mp hfit
+  have hps : ps.length = S.nP := by have := FitsVals_length M' φ' hp; simpa [nP] using this
+  have hpM := (R.fits_params hS).mp hp
+  have hiM := (R.fits_indices hS hps).mp hi
+  have hfitB : FitsVals M' φ' base (S.indices ++ S.params) (isv ++ ps) :=
+    (FitsVals_append M' φ' (by simpa [nI] using hl₁)).mpr
+      ⟨(R.fits_params hS).mpr hpM, (R.fits_indices hS (ρ := base) hps).mpr hiM⟩
+  have hvs : vs = (isv ++ ps).reverse := by rw [← hsplit, List.reverse_reverse]
+  rw [R.famSet_eq hS, hvs, appList_lamCtx M' φ' hfitB, consList_append,
+    show shiftE S.nI 0 (consList isv (consList ps base)) = consList ps base by
+      rw [← hl₁]; exact shiftE_consList isv _,
+    readEnv_consList hps, readEnv_consList hl₁, ← R.adm ps isv hpM hiM]
+  exact S.strict_adm _ hz _
+
 /-- A context of the specification, read in one reader under two base
 environments, agrees. -/
 theorem Reader.agree_base {M' : Name → List Nat → V} {φ' : Name → Nat}
