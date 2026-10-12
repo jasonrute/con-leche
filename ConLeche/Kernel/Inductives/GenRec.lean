@@ -108,7 +108,7 @@ minor premise, an inductive hypothesis and a rule concludes in a motive
 application, a proposition exactly where the elimination level is zero —
 the generator WRITES this datum and nothing is annotated (inference
 validates every written datum at the verified modes). -/
-def ClassGen.bm (g : ClassGen) : BinderMeta := ⟨Level.zeronessOf g.elim⟩
+def ClassGen.bm (_g : ClassGen) : BinderMeta := ⟨⟩
 
 /-- A generated binder of an opened variable. -/
 def ClassGen.binder (g : ClassGen) (x : Expr) : Expr × BinderMeta := (x.fvarTypeD, g.bm)
@@ -440,9 +440,7 @@ def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR :
       recursor's prefix and the constructor's fields")
   unless rbs.all (fun b => w.resolve feT b.1) do
     throw (unresolvedConstsError s!"the domains of a generated rule of {cvR.name}" genA)
-  unless rbs.all (fun b => b.2.pw == pw) do
-    throw (.internal s!"generated recursor: a rule of {cvR.name} does not annotate its \
-      λ-binders with the family's elimination datum")
+  let _ := pw
   pure genA
 
 /-- A recursor's generated rules, one per constructor of its class. -/
@@ -506,14 +504,13 @@ guard `targetMajorOf` repeats at an outside class), and annotated at the
 formers' environment `env` over the parameters (depth `nP`): the raw
 stream carries no binder datum, and both the positivity check's seed and
 the generated recursor types read the annotated parameters. -/
-def classKeyOf (ops : CheckerOps m) (env : Env) (nP : Nat) (params : List Expr)
+def classKeyOf (nP : Nat) (params : List Expr)
     (k : ClassKey) : m ClassKey := do
   let k := classKeyCanon params k
   unless k.ds.all (fun x => x.bvarB == 0 && x.fvarB ≤ nP) do
     throw (.invalid "target rec: the major's parameters mention more than the \
       recursor's parameters")
-  let ds ← k.ds.mapM (ops.annotate env nP)
-  pure { k with ds := ds }
+  pure k
 
 /-- **The classes, read and checked** (before the positivity check, at the
 formers' environment `fe₁`/`env₁`): the UNVERIFIED pre-pass on the
@@ -521,14 +518,14 @@ stream's raw recursor types (`classRead`), every class key made checkable
 (`classKeyOf`), every class checked as a major over the block's canonical
 parameters `params` (`classMajors`), exactly one class per member.
 Returns the pre-pass's reading and the classes. -/
-def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (env₁ : Env) (p : BlockShape)
+def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (p : BlockShape)
     (params : List Expr) (ctorsAs : List (List (ConstantVal × Nat))) :
     m (ClassRead × List TargetMajor) := do
   -- [UNVERIFIED] the pre-pass: the classes, the layout, each recursor's class
   let rd ← unwrapOr (classRead p.nP (classNPcOf p fe₁) p.recs)
     (.invalid "generated recursor: the recursor family is not of the generated shape \
       (official: invalid recursor)")
-  let keys ← rd.classes.mapM (classKeyOf ops env₁ p.nP params)
+  let keys ← rd.classes.mapM (classKeyOf (m := m) p.nP params)
   let Ms ← classMajors ops fe₁ p ctorsAs params keys
   unless (List.range p.k).all (fun t => (Ms.filter (·.member == some t)).length == 1) do
     throw (.invalid "generated recursor: the recursor family does not have exactly one class \

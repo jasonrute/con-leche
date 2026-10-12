@@ -224,7 +224,7 @@ structure ClassesRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) 
 theorem checkBlockClasses_run {fe₁ : FEnv} {env₁ : Env} {p : BlockShape} {params : List Expr}
     {ctorsAs : List (List (ConstantVal × Nat))} {rd : ClassRead} {Ms : List TargetMajor}
     {F : Nat}
-    (h : checkBlockClasses (fueledOps mode F) fe₁ env₁ p params ctorsAs = .ok (rd, Ms)) :
+    (h : checkBlockClasses (fueledOps mode F) fe₁ p params ctorsAs = .ok (rd, Ms)) :
     Nonempty (ClassesRun mode F fe₁ env₁ p params ctorsAs rd Ms) := by
   unfold checkBlockClasses at h
   obtain ⟨rd', hrd, h⟩ := exceptBind_ok h
@@ -865,7 +865,7 @@ theorem genRecRun_of {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
     {ctx : NestCtx} {holes : List Expr} {rd : ClassRead} {Ms₀ : List TargetMajor}
     {st : NestState}
     (hctx : blockNestCtx (m := CheckM) p cvTas fe₁.find? = .ok (ctx, holes))
-    (hcls : checkBlockClasses (fueledOps mode F) fe₁ env₁ p ctx.params ctorsAs = .ok (rd, Ms₀))
+    (hcls : checkBlockClasses (fueledOps mode F) fe₁ p ctx.params ctorsAs = .ok (rd, Ms₀))
     (hst : nestSeeds (fueledOps mode F) env₁ ctx (classSeeds ctx holes Ms₀) pos = .ok st)
     (h : genRecCheck (ShadowOps.fueled mode F) fe p nestedBit ctx.params st.ctorNfs.toList rd
       Ms₀ cvTas block = .ok out) :

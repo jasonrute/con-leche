@@ -106,8 +106,8 @@ def Expr.erasePw : Expr → Expr
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app f.erasePw a.erasePw
-  | .lam ty b _ => .lam ty.erasePw b.erasePw ⟨.never⟩
-  | .forallE ty b _ => .forallE ty.erasePw b.erasePw ⟨.never⟩
+  | .lam ty b _ => .lam ty.erasePw b.erasePw ⟨⟩
+  | .forallE ty b _ => .forallE ty.erasePw b.erasePw ⟨⟩
   | .letE ty v b => .letE ty.erasePw v.erasePw b.erasePw
   | .lit l => .lit l
   | .proj s i e => .proj s i e.erasePw

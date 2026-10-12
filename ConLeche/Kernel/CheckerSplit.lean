@@ -61,9 +61,8 @@ structure ValueGroup where
 variable (mode : CheckMode)
 variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
-/-- `checkConstantVal` minus its inference: the syntactic guards and
-the annotation of the type. -/
-def installConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) :
+/-- `checkConstantVal` minus its inference: the syntactic guards. -/
+def installConstantVal (env : Env) (cv : ConstantVal) :
     m ConstantVal := do
   if (env.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
@@ -77,31 +76,30 @@ def installConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if cv.type.hasFvar then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let type ← ops.annotate env 0 cv.type
+  let type := cv.type
   unless type.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
   unless type.constsResolve env do
-    throw (unresolvedConstsError s!"type of {cv.name}" type)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" type)
   pure { cv with type := type }
 
 /-- The value half of `check{Defn,Thm,Opaque}Val` minus its inference:
-the guards and the annotation of the value. -/
-def installValue (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
+the guards. -/
+def installValue (env : Env) (cv : ConstantVal)
     (value : Expr) : m Expr := do
   unless value.looseBVarsBounded 0 do
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let value ← ops.annotate env 0 value
   unless value.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless value.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" value)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" value)
   pure value
 
 /-- **The check half of a value declaration**, at the environment the
 constant was installed at: the type's sort, the theorem's
-is-a-proposition test, for a theorem the value's guards and annotation
+is-a-proposition test, for a theorem the value's guards
 (`installValue`: a theorem's value reaches the check half raw), and
 the value's type against the declared one — the inference and
 conversion calls of `checkConstantVal` and `check{Defn,Thm,Opaque}Val`,
@@ -112,7 +110,7 @@ def checkValueGroup (ops : CheckerOps m) (env : Env) (g : ValueGroup) : m Unit :
   let jv ← if g.kind = .thm then do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
         throw (.invalid s!"type of theorem {g.cvA.name} is not a proposition")
-      installValue ops env g.cvA g.jv
+      installValue env g.cvA g.jv
     else pure g.jv
   let vtype ← ops.inferType env 0 jv
   unless ← ops.isDefEq env 0 vtype g.cvA.type do

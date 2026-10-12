@@ -101,7 +101,7 @@ instance : ToExpr ConLeche.PropWhen where
   toTypeExpr := .const ``ConLeche.PropWhen []
 
 instance : ToExpr ConLeche.BinderMeta where
-  toExpr m := .app (.const ``ConLeche.BinderMeta.mk []) (toExpr m.pw)
+  toExpr _ := .const ``ConLeche.BinderMeta.mk []
   toTypeExpr := .const ``ConLeche.BinderMeta []
 
 instance : ToExpr ConLeche.Literal where

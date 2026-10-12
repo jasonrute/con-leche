@@ -37,11 +37,10 @@ def checkDefnVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let value ← ops.annotate env 0 value
   unless value.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless value.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" value)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" value)
   let vtype ← ops.inferType env 0 value
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in definition {cv.name}")
@@ -69,11 +68,11 @@ def checkThmVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let jv ← ops.annotate env 0 value
+  let jv := value
   unless jv.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless jv.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" jv)
   let vtype ← ops.inferType env 0 jv
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in theorem {cv.name}")
@@ -94,11 +93,10 @@ def checkOpaqueVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cv.name}")
-  let value ← ops.annotate env 0 value
   unless value.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless value.constsResolve env do
-    throw (unresolvedConstsError s!"value of {cv.name}" value)
+    throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" value)
   let vtype ← ops.inferType env 0 value
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in opaque {cv.name}")
@@ -262,7 +260,7 @@ def checkDivModCerts (ops : CheckerOps m) (env : Env) (c : Name)
   | [], [] => pure true
   | (hyps, eqE) :: srest, proof :: prest => do
     if divModCertGuard env c annVal hyps eqE proof then
-      let appliedA ← ops.annotate env 4
+      let appliedA :=
         (divModCertApplied (Expr.substConstAll c annVal proof)
           (hyps.map (Expr.substConst0 c annVal)))
       let tp ← ops.inferType env 4 appliedA
@@ -318,7 +316,7 @@ match" — the only place a thrown error is recovered from, and it is
 scoped to exactly this attempt. -/
 def checkDivModPinAt (ops : CheckerOps m) (env : Env) (c : Name)
     (value' : Expr) (ps : NatOpPinSet) : m Bool := do
-  let pinA ← ops.annotate env 0 (divModDeclPin ps c)
+  let pinA := (divModDeclPin ps c)
   let okPin ← ops.isDefEq env 0 value' pinA
   if okPin then
     checkDivModCerts ops env c value' (divModCertStmts c)
@@ -406,8 +404,8 @@ def checkReducePin (ops : CheckerOps m) (env env2 : Env) (c : Name)
     (value : Expr) : m Unit := do
   if reduceStoredOk env2 c && reduceElemOk env c then
     if reducePinGuard env c then do
-      let valA ← ops.annotate env 0 value
-      let pinA ← ops.annotate env 0 (reduceDeclPin c)
+      let valA := value
+      let pinA := (reduceDeclPin c)
       let okPin ← ops.isDefEq env 0 valA pinA
       if okPin then do
         let x := reduceCertVar c

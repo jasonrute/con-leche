@@ -20,10 +20,9 @@ the literal shapes and their guards (`natLitToConstructor`,
 reducts and pins (`natOpNames`, `natDivModNames`, `natOpEquations`,
 `natOpResult`, `natOpStoredOk`, …), the structure-η fabrications
 (`etaProjs`, `etaFabArgsE`, `andRescueSlots`), the install-time rule
-bits (`recRuleBits`, `recRuleK`, `recFireComparands`),
-the tower entry's readers (`ProjEntry.fireOk`, `ProjEntry.typeAt`), the
-β gate (`betaGateFires`) and the annotation datum's writer
-(`annotBinderMeta`).
+bits (`recRuleBits`, `recRuleK`, `recFireComparands`), the ι licence
+(`iotaCtorLicensed`, `iotaCase3`) and the tower entry's readers
+(`ProjEntry.fireOk`, `ProjEntry.typeAt`).
 
 Split out of `ConLeche/Kernel/Core.lean` at task #305 (prep): a
 relational description of the core's moves — a relation over `Expr`
@@ -940,50 +939,5 @@ def ProjEntry.typeAt (entry : ProjEntry) (us : List Level) (targs : List Expr)
     (pe : Expr) : Expr :=
   (entry.body.instantiateLevelParams entry.levelParams us).instantiateList
     (pe :: targs.reverse)
-
-/-- **THE β SITE'S GATE** (task #161): does the mode's β gate fire at
-this binder?
-
-At `mode.betaGate` (i.e. at `.verified`, and nowhere else) a λ-binder
-whose *validated* annotation datum is `.never` — "the codomain sort is
-nonzero at every valuation" — licenses skipping the certificate: the
-`Red.betaGate` rule's soundness (`Red.betaGate_sound`,
-`ConLeche/Model/Rules/RedSound.lean`) derives the domain membership from the
-redex's own `WellDenoted` slot and consumes no certificate at all.
-
-At a possibly-zero datum, and at every non-gated mode, the certificate
-runs unconditionally — the establishment/consumption asymmetry fence,
-and task #100's de-gating ruling, both untouched: *that* gate read a
-**computed** nonzero sort (unsound-to-model under the domain-relative
-collapse); this one reads a **validated annotation**.
-
-Both arms hand back the same reduct, so reducts stay
-annotation-blind; the dead-branch collapse is `betaGateFires_off`
-(`Verify/BetaGate.lean`).
-
-The gate is a **pure early return**, not a wrapper around the test's
-`Bool`, and that shape is load-bearing: the `else` arm is then the
-pre-gate clause *byte-for-byte*, so every existing proof of every
-non-gated mode continues verbatim after one `simp only` on the
-condition.  (A wrapper around the test would have re-associated the
-certificate's binds and cost every site a `bind_assoc` as well.)
-
-`betaGateFires` is deliberately mode-and-datum only — it reads no
-expression and runs no computation, so it is decidable *before* the
-certificate would have started, which is the whole performance
-point. -/
-@[inline] def betaGateFires (mode : CheckMode) (pw : PropWhen) : Bool :=
-  mode.betaGate && pw.isNever
-
-/-- Is this datum a real (non-placeholder) input annotation? -/
-@[inline] def pwWritten (pw : PropWhen) : Bool := !pw.isNever
-
-/-- The datum a rebuilt binder ends up with: the one threaded in from
-the node below (the chain rule), unless it carries a real input
-annotation — those are judged by validation, never overwritten. -/
-def annotBinderMeta (pw? : Option PropWhen) (mb : BinderMeta) : BinderMeta :=
-  match pw? with
-  | some pw => if pwWritten mb.pw then mb else ⟨pw⟩
-  | none => mb
 
 end ConLeche

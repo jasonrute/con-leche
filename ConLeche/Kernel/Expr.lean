@@ -98,10 +98,9 @@ definite, validatable claim.  There is no display `BinderInfo`
 (task #205): the official kernel's equality and hash ignore it — the
 frontend validates a stream's spelling and drops it (`scanBinderInfo`). -/
 structure BinderMeta where
-  pw : PropWhen
   deriving DecidableEq, Repr, Hashable
 
-instance : Inhabited BinderMeta := ⟨⟨.never⟩⟩
+instance : Inhabited BinderMeta := ⟨⟨⟩⟩
 
 /-- Literals. -/
 inductive Literal where
@@ -357,20 +356,20 @@ with
         (max (bvarOfData f.data) (bvarOfData a.data))
         (max (fvarOfData f.data) (fvarOfData a.data))
         (lpOfData f.data || lpOfData a.data)
-    | .lam ty b m =>
+    | .lam ty b _ =>
       packData (hash32 (mixHash 19
           (mixHash (hashOfData ty.data)
-            (mixHash (hashOfData b.data) (Hashable.hash m.pw)))))
+            (hashOfData b.data))))
         (max (bvarOfData ty.data) (satPred (bvarOfData b.data)))
         (max (fvarOfData ty.data) (fvarOfData b.data))
-        (lpOfData ty.data || lpOfData b.data || m.pw.hasParams)
-    | .forallE ty b m =>
+        (lpOfData ty.data || lpOfData b.data)
+    | .forallE ty b _ =>
       packData (hash32 (mixHash 23
           (mixHash (hashOfData ty.data)
-            (mixHash (hashOfData b.data) (Hashable.hash m.pw)))))
+            (hashOfData b.data))))
         (max (bvarOfData ty.data) (satPred (bvarOfData b.data)))
         (max (fvarOfData ty.data) (fvarOfData b.data))
-        (lpOfData ty.data || lpOfData b.data || m.pw.hasParams)
+        (lpOfData ty.data || lpOfData b.data)
     | .letE ty v b =>
       packData (hash32 (mixHash 29
           (mixHash (hashOfData ty.data)
@@ -623,7 +622,7 @@ private theorem toNat_satPred {x : UInt64} (_hx : x.toNat < 32768) :
   rfl
 
 @[simp] theorem hasLP_lam (ty b : Expr) (m : BinderMeta) :
-    (Expr.lam ty b m).hasLP = (ty.hasLP || b.hasLP || m.pw.hasParams) := by
+    (Expr.lam ty b m).hasLP = (ty.hasLP || b.hasLP) := by
   show lpOfData (packData _ (max _ (satPred _)) (max _ _) _) = _
   rw [lpOfData_pack _ _ _ _
     (max_lt_32768 (bvarOfData_lt _) (satPred_lt (bvarOfData_lt _)))
@@ -632,7 +631,7 @@ private theorem toNat_satPred {x : UInt64} (_hx : x.toNat < 32768) :
 
 @[simp] theorem hasLP_forallE (ty b : Expr) (m : BinderMeta) :
     (Expr.forallE ty b m).hasLP =
-      (ty.hasLP || b.hasLP || m.pw.hasParams) := by
+      (ty.hasLP || b.hasLP) := by
   show lpOfData (packData _ (max _ (satPred _)) (max _ _) _) = _
   rw [lpOfData_pack _ _ _ _
     (max_lt_32768 (bvarOfData_lt _) (satPred_lt (bvarOfData_lt _)))

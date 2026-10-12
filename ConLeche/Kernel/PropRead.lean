@@ -9,8 +9,9 @@ public import ConLeche.Kernel.ExprOps
 # Fast prop-ness off the head symbol (task #168)
 
 Two pure readers that answer "is this type a proposition?" / "is this
-term a proof?" from the **head symbol, the arity and the validated
-`pw` annotations** — no inference, no reduction, no memo.
+term a proof?" from the **head symbol, the arity and the residual sorts of stored
+types** — no inference, no reduction, no memo, no binder data (task
+#342 S0).
 
 Prop-ness is invariant under application: `zeronessOf (imax u v) =
 zeronessOf v`, so the zero-ness of the sort of the type of `c a⃗` is
@@ -41,19 +42,23 @@ namespace ConLeche
 
 namespace Expr
 
-/-- The residual after peeling `k` *syntactic* ∀ binders whose data
-are all `.never` (no substitution — the residual may mention the
-peeled binders; the readers only look at its head shape).  The
-`.never` requirement costs no coverage on validated types — the
-binders of a type former `∀ p⃗, Sort u` all carry the datum of a
-`succ` codomain sort — and it is what licenses the "yes" arm's
-telescope walk without a certificate (`neverChain_of_peel`,
-`ConLeche/Model/Rules/DefEqSoundKit.lean`: every slot is in the graph
-regime, `io_domain_transfer`). -/
-def peelNeverPis : Nat → Expr → Option Expr
+/-- The residual after peeling `k` *syntactic* ∀ binders, whatever
+their domains (no substitution — the residual may mention the peeled
+binders; the readers only look at its head shape).  Task #342 S0: no
+binder datum is read, so no `.never` requirement either (in #344's
+model a type that is a member of a satisfying context is not the
+point, so its head is a graph, which fixes the domains). -/
+def peelPis : Nat → Expr → Option Expr
   | 0, e => some e
-  | k + 1, .forallE _ b m => if m.pw.isNever then peelNeverPis k b else none
+  | k + 1, .forallE _ b _ => peelPis k b
   | _ + 1, _ => none
+
+/-- The domain of the `k`-th syntactic ∀ binder (`0` = outermost) of a
+telescope, unsubstituted. -/
+def binderDom : Nat → Expr → Option Expr
+  | 0, .forallE A _ _ => some A
+  | k + 1, .forallE _ b _ => binderDom k b
+  | _, _ => none
 
 /-- The number of arguments of an application spine. -/
 def numArgs : Expr → Nat
@@ -70,37 +75,88 @@ def residualPW : Option Expr → Option PropWhen
   | some (.sort u) => some (Level.zeronessOf u)
   | _ => none
 
+/-- The body of a λ-telescope that is a single bound variable: `some
+(k, j)` for `fun x₁ … x_k => x_{k-j}` (the shape of `outParam`,
+`semiOutParam`, `optParam`, `autoParam`). -/
+def lamProj? : Nat → Expr → Option (Nat × Nat)
+  | k, .lam _ b _ => lamProj? (k + 1) b
+  | k, .bvar j => if j < k then some (k, j) else none
+  | _, _ => none
+
+/-- Task #342 S0: unfold an identity-like wrapper (a definition whose
+value is `fun x₁ … x_k => x_i`, e.g. `outParam`) at the head of a
+residual type, `fuel` times at most; definitional (δ then β). -/
+def unwrapIdDefs (find? : Name → Option ConstantInfo) : Nat → Expr → Expr
+  | 0, e => e
+  | fuel + 1, e =>
+    match e.getAppFn with
+    | .const c _ =>
+      match find? c with
+      | some (.defnInfo _ v _) =>
+        match lamProj? 0 v with
+        | some (k, j) =>
+          let args := e.getAppArgs
+          if k ≤ args.length && args.length == k then
+            unwrapIdDefs find? fuel (args.getD (k - 1 - j) e)
+          else e
+        | none => e
+      | _ => e
+    | _ => e
+
+/-- `Expr.peelPis` through identity-like wrappers (`outParam (α → Sort u)`). -/
+def peelPisW (find? : Name → Option ConstantInfo) : Nat → Expr → Option Expr
+  | 0, e => some (unwrapIdDefs find? 4 e)
+  | k + 1, .forallE _ b _ => peelPisW find? k b
+  | k + 1, e =>
+    match unwrapIdDefs find? 4 e with
+    | .forallE _ b _ => peelPisW find? k b
+    | _ => none
+
 /-- The datum of a type-former application's *head* at `n` arguments:
 a constant head reads its stored type (level-instantiated), an fvar
-head its declared type; the residual after `n` syntactic binders is
-read by `residualPW`. -/
-def headTypePW (find? : Name → Option ConstantInfo) : Expr → Nat →
-    Option PropWhen
+head its declared type, a `bvar` head (inside the ∀ telescope `root`,
+`d` binders deep) its binder's domain; the residual after `n`
+syntactic binders is read by `residualPW`. -/
+def headTypePW (find? : Name → Option ConstantInfo) (root : Expr) (d : Nat) :
+    Expr → Nat → Option PropWhen
   | .const I us, n =>
     match find? I with
     | some ci =>
       if ci.isTowerEntry then none else
       let cv := ci.toConstantVal
       if us.length = cv.levelParams.length then
-        (residualPW (cv.type.peelNeverPis n)).map
+        (residualPW (peelPisW find? n cv.type)).map
           (Level.substPW cv.levelParams us)
       else none
     | none => none
-  | .fvar _ ty, n => residualPW (ty.peelNeverPis n)
+  | .fvar _ ty, n => residualPW (peelPisW find? n ty)
+  | .bvar i, n =>
+    if i < d then
+      match root.binderDom (d - 1 - i) with
+      | some D => residualPW (peelPisW find? n D)
+      | none => none
+    else none
   | _, _ => none
 
+/-- The walk of `typeSortPW`: peel the ∀ telescope (a ∀'s prop-ness is
+its codomain's: `zeronessOf (imax u v) = zeronessOf v`), counting the
+binders, then read the residual's head. -/
+def typeSortPWGo (find? : Name → Option ConstantInfo) (root : Expr) :
+    Expr → Nat → Option PropWhen
+  | .forallE _ b _, d => typeSortPWGo find? root b (d + 1)
+  | .sort _, _ => some .never
+  | R, d => headTypePW find? root d R.getAppFn R.numArgs
+
 /-- The zero-ness datum of the sort of the *type* `T` ("is `T` a
-proposition?"), read off `T`'s head symbol and the annotations: a ∀
-carries it on its binder (`(forall-cod)`); a sort's sort is never zero;
-a constant- or fvar-headed type-former application reads the head's
-stored/declared type, peels the arity syntactically and reads the
-residual, level-instantiated for a constant.  `none` = unknown. -/
+proposition?"), read off `T`'s shape without binder data (task #342
+S0): a ∀ telescope's is its codomain's; a sort's sort is never zero;
+a constant-, fvar- or telescope-bvar-headed type-former application
+reads the head's stored/declared type, peels the arity syntactically
+and reads the residual, level-instantiated for a constant.  `none` =
+unknown. -/
 def typeSortPW (find? : Name → Option ConstantInfo) (T : Expr) :
     Option PropWhen :=
-  match T with
-  | .forallE _ _ m => some m.pw
-  | .sort _ => some .never
-  | T => headTypePW find? T.getAppFn T.numArgs
+  typeSortPWGo find? T T 0
 
 /-- The datum of a term's *head* (any arity): a constant head answers
 from its stored type (prop-ness is invariant under application), an
@@ -119,19 +175,34 @@ def headProofPW (find? : Name → Option ConstantInfo) : Expr →
     | none => none
   | .fvar _ ty => typeSortPW find? ty
   | .sort _ | .forallE .. | .lit _ => some .never
+  | .proj S i _ =>
+    -- Task #342 S0: the field's stored type, when its datum does not
+    -- depend on the structure's levels
+    match find? (projTableName S) with
+    | some (.projInfo tbl) =>
+      if i < tbl.numFields then
+        match typeSortPW find? (tbl.entry i).body with
+        | some pw => if pw.isNever || pw == .ifAllZero [] then some pw else none
+        | none => none
+      else none
+    | _ => none
   | _ => none
 
 /-- The zero-ness datum of the sort of the *type* of `a` ("is `a` a
 proof?"), read off `a`'s head symbol at any arity: a constant or fvar
 head answers from its stored/declared type; an unapplied λ answers from
-its own datum (the zero-ness of the sort of the body's type,
-`(lam-cod-leaf)`); sorts, ∀s and literals are never proofs.  `none` =
+its body (a λ's type is a ∀ whose prop-ness is its codomain's, the
+body's type); sorts, ∀s and literals are never proofs.  `none` =
 unknown. -/
-def proofPW (find? : Name → Option ConstantInfo) (a : Expr) :
-    Option PropWhen :=
-  match a with
-  | .lam _ _ m => some m.pw
-  | a => headProofPW find? a.getAppFn
+partial def proofPW (find? : Name → Option ConstantInfo) : Expr → Option PropWhen
+  | .lam _ b _ => proofPW find? b
+  | .letE _ _ b => proofPW find? b
+  | a =>
+    match a.getAppFn with
+    -- a β-redex's prop-ness is its λ's (invariant under application)
+    | .lam _ b _ => proofPW find? b
+    | .letE _ _ b => proofPW find? b
+    | h => headProofPW find? h
 
 /-- Is the datum "always zero" — the sort is `Prop` at every
 valuation? -/

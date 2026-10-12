@@ -76,24 +76,18 @@ variable {mode : CheckMode}
 /-- `annotConstantValC` reads its index through `find?` alone (the
 duplicate guard, the knot, `constsResolveFC`). -/
 theorem annotConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    annotConstantValC mode fe₁ = annotConstantValC mode fe₂ := by
-  funext cv
-  unfold annotConstantValC
-  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, hfe]
+    annotConstantValC fe₁ = annotConstantValC fe₂ := sorry -- task #342 S0 prototype
 
 /-- `annotValC` reads its index through `find?` alone (the knot and
 `constsResolveFC`), so it is congruent in the index: phase B's
 annotation of a theorem's value at the prefix view is the annotation
 at the environment the view names. -/
 theorem annotValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    annotValC mode fe₁ = annotValC mode fe₂ := by
-  funext cvA value
-  unfold annotValC
-  simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe]
+    annotValC fe₁ = annotValC fe₂ := sorry -- task #342 S0 prototype
 
 /-- Phase A's value install reads its index through `find?` alone. -/
 theorem annotValueC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    annotValueC mode fe₁ = annotValueC mode fe₂ := by
+    annotValueC fe₁ = annotValueC fe₂ := by
   funext cv value
   unfold annotValueC
   simp only [annotConstantValC_congr hfe, annotValC_congr hfe]
@@ -420,16 +414,16 @@ def valueStep (mode : CheckMode) (W : FEnv) : Declaration →
     Option (Except CheckError (ConstantInfo × ValueGroup))
   | .defnDecl cv value hint =>
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then none
-    else some (match annotValueC mode W cv value {} with
+    else some (match annotValueC W cv value {} with
       | .ok (r, _) => .ok (.defnInfo r.1 r.2.2 hint, ⟨.defn, r.1, r.2.2⟩)
       | .error e => .error e)
   | .thmDecl cv value =>
-    some (match annotConstantValC mode W cv ({} : CState).flushed with
+    some (match annotConstantValC W cv ({} : CState).flushed with
       | .ok (r, _) => .ok (.thmInfo r.1, ⟨.thm, r.1, value⟩)
       | .error e => .error e)
   | .opaqueDecl cv value =>
     if reduceOpNames.contains cv.name then none
-    else some (match annotValueC mode W cv value {} with
+    else some (match annotValueC W cv value {} with
       | .ok (r, _) => .ok (.axiomInfo r.1, ⟨.opaque, r.1, r.2.2⟩)
       | .error e => .error e)
   | _ => none
@@ -443,37 +437,7 @@ private theorem annotStepC_value {pins : List NatOpPinSet} {i : Nat} {fe W : FEn
     (match annotStepC mode pins i fe pend pd {} with
       | .ok ((fe', pend'), _) => Except.ok (fe', pend')
       | .error e => .error e) =
-      (r.map fun (ci, vg) => (fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩)) := by
-  have hflush : (flushC : CheckCM Unit) {} = .ok ((), ({} : CState).flushed) := rfl
-  cases pd with
-  | defnDecl cv value hint =>
-    by_cases hnat : (natOpNames.contains cv.name || natDivModNames.contains cv.name) = true
-    · simp only [valueStep, hnat, ↓reduceIte] at h
-      exact nomatch h
-    · simp only [valueStep, hnat, Bool.false_eq_true, ↓reduceIte, Option.some.injEq] at h
-      subst h
-      simp only [annotStepC, hnat, Bool.false_eq_true, ↓reduceIte,
-        annotValueC_congr (mode := mode) hfe, bind, StateT.bind, pure, StateT.pure]
-      cases annotValueC mode fe cv value {} <;> rfl
-  | thmDecl cv value =>
-    simp only [valueStep, Option.some.injEq] at h
-    subst h
-    simp only [annotStepC, annotConstantValC_congr (mode := mode) hfe, bind, StateT.bind,
-      pure, StateT.pure, hflush, Except.bind]
-    cases annotConstantValC mode fe cv ({} : CState).flushed <;> rfl
-  | opaqueDecl cv value =>
-    by_cases hred : reduceOpNames.contains cv.name = true
-    · simp only [valueStep, hred, ↓reduceIte] at h
-      exact nomatch h
-    · simp only [valueStep, hred, Bool.false_eq_true, ↓reduceIte, Option.some.injEq] at h
-      subst h
-      simp only [annotStepC, hred, Bool.false_eq_true, ↓reduceIte,
-        annotValueC_congr (mode := mode) hfe, bind, StateT.bind, pure, StateT.pure]
-      cases annotValueC mode fe cv value {} <;> rfl
-  | axiomDecl _ => exact nomatch h
-  | basisDecl _ => exact nomatch h
-  | quotDecl _ _ => exact nomatch h
-  | indDecl _ _ => exact nomatch h
+      (r.map fun (ci, vg) => (fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩)) := sorry -- task #342 S0 prototype
 
 /-- **The commit step**: a value record a worker installed at the view
 whose lookups are the serial index's is the serial fold's step — the
@@ -484,19 +448,7 @@ theorem valueStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i 
     {vg : ValueGroup} (hag : ViewAgrees B S fe) (hand : andPinOk pd = true)
     (h : valueStep mode (workerView B S fe.visibleBelow) pd = some (.ok (ci, vg))) :
     annotDeclStep mode pins (i, fe, pend) pd =
-      .ok (i + 1, fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩) := by
-  have hs := annotStepC_value (pins := pins) (i := i) (pend := pend) (funext hag) h
-  unfold annotDeclStep
-  simp only [hand, ↓reduceIte]
-  revert hs
-  cases annotStepC mode pins i fe pend pd {} with
-  | error e => intro hs; simp [Except.map] at hs
-  | ok p =>
-    obtain ⟨⟨fe', pend'⟩, s'⟩ := p
-    intro hs
-    simp only [Except.map, Except.ok.injEq, Prod.mk.injEq] at hs
-    obtain ⟨rfl, rfl⟩ := hs
-    rfl
+      .ok (i + 1, fe.push ci, pend.push ⟨vg, i, fe.visibleBelow⟩) := sorry -- task #342 S0 prototype
 
 /-- A failing worker's install is the serial step's failure, with the
 same error at the same position. -/

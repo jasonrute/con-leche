@@ -111,19 +111,16 @@ structure CState where
   whnfC : Std.HashMap Expr Expr := {}
   inferC : Std.HashMap Expr Expr := {}
   /-- **The io-grade inference memo** (task #170 / #172 B4): results of
-  the knot's `inferIO` slot at `mode.ioGate` (both modes), kept apart
+  the knot's `inferIO` slot (both modes), kept apart
   from `inferC` per the task-#170 memo
   ruling — *"since caching has no access to semantic reasoning (yet)
   we need two memos, one with and one without the flag"* — because an
   io entry witnesses fewer checks than the full-infer claims consume.
   Its invariant is the io claims' weaker (premise-form) one
   (`CSOK.inferIOC`, `Verify/Cached/DiscC1.lean`).  Official's own
-  layout: the C++ kernel keys its infer cache by `infer_only`.  At
-  `ioGate = false` (no mode any more) the slot shares `inferC` and
-  this map stays empty. -/
+  layout: the C++ kernel keys its infer cache by `infer_only`. -/
   inferIOC : Std.HashMap Expr Expr := {}
   defeqC : Std.HashMap (Expr × Expr) Bool := {}
-  annotC : Std.HashMap Expr Expr := {}
   lsimpC : Std.HashMap Level Level := {}
   lnzC : Std.HashMap Level Bool := {}
   eqvC : Std.HashMap (Level × Level) Bool := {}
@@ -323,7 +320,7 @@ def CState.flushed (s : CState) : CState :=
   { s with
       constTyAt := {}, constValAt := {}, ruleRhsAt := {},
       whnfCoreC := {}, whnfCoreCheapC := {}, whnfC := {}, inferC := {}, inferIOC := {},
-      defeqC := {}, annotC := {}, instC := {} }
+      defeqC := {}, instC := {} }
 
 def flushC : CheckCM Unit := modify (·.flushed)
 

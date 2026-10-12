@@ -618,7 +618,7 @@ def liftLooseBVarsFast (amount c : Nat) (e : Expr) : Expr :=
 
 /-! ### `resetMeta` (task #210 Part D)
 
-Every binder's datum reset to the parse placeholder `⟨.never⟩`: the
+Every binder's datum reset to the parse placeholder `⟨⟩`: the
 stream's recursor rules are compared syntactically against the
 generated ones (official's replay compares an exported recursor
 structurally with the one it generates), and the generated body is
@@ -629,8 +629,8 @@ memoized by `@[csimp]` (the `mentionsConst` arrangement). -/
 
 def resetMeta : Expr → Expr
   | .app f a => .app (resetMeta f) (resetMeta a)
-  | .lam ty b _ => .lam (resetMeta ty) (resetMeta b) ⟨.never⟩
-  | .forallE ty b _ => .forallE (resetMeta ty) (resetMeta b) ⟨.never⟩
+  | .lam ty b _ => .lam (resetMeta ty) (resetMeta b) ⟨⟩
+  | .forallE ty b _ => .forallE (resetMeta ty) (resetMeta b) ⟨⟩
   | .letE ty v b => .letE (resetMeta ty) (resetMeta v) (resetMeta b)
   | .proj s i e => .proj s i (resetMeta e)
   | .fvar i ty => .fvar i (resetMeta ty)
@@ -676,11 +676,11 @@ def resetMetaGo (memo : Std.HashMap Expr Expr) : Expr → Expr × Std.HashMap Ex
         | .lam ty body _ =>
           let (t, memo) := resetMetaGo memo ty
           let (b, memo) := resetMetaGo memo body
-          (.lam t b ⟨.never⟩, memo)
+          (.lam t b ⟨⟩, memo)
         | .forallE ty body _ =>
           let (t, memo) := resetMetaGo memo ty
           let (b, memo) := resetMetaGo memo body
-          (.forallE t b ⟨.never⟩, memo)
+          (.forallE t b ⟨⟩, memo)
         | .letE ty val body =>
           let (t, memo) := resetMetaGo memo ty
           let (w, memo) := resetMetaGo memo val
@@ -958,15 +958,6 @@ binder-telescope loop (task #72) can reproduce. -/
 def isLam : Expr → Bool
   | .lam .. => true
   | _ => false
-
-/-- The prop-ness annotation of a λ node's meta, `none` off λs — the
-head reading the task-#161 chain rule consumes (an outer λ's codomain
-prop-ness is its body-λ's own annotation).  Total, so the walks
-commute with it structurally (`lamPw_instantiateList_fvars`,
-`lamPw_shiftFrom` in `ConLeche/Verify`). -/
-def lamPw : Expr → Option PropWhen
-  | .lam _ _ mbI => some mbI.pw
-  | _ => none
 
 /-- Does the expression contain any free variable (`fvar`)?  Input
 declarations must be `fvar`-free; the checker introduces `fvar`s only
@@ -2698,8 +2689,8 @@ def _root_.ConLeche.Expr.hasLevelParam : Expr → Bool
   | .const _ us => us.any Level.hasParam
   | .fvar _ ty => ty.hasLevelParam
   | .app f a => f.hasLevelParam || a.hasLevelParam
-  | .lam ty body m | .forallE ty body m =>
-    ty.hasLevelParam || body.hasLevelParam || m.pw.hasParams
+  | .lam ty body _ | .forallE ty body _ =>
+    ty.hasLevelParam || body.hasLevelParam
   | .letE ty val body =>
     ty.hasLevelParam || val.hasLevelParam || body.hasLevelParam
   | .proj _ _ e => e.hasLevelParam
@@ -2758,14 +2749,12 @@ theorem _root_.ConLeche.Expr.instantiateLevelParams_eq_self
     simp [Expr.instantiateLevelParams, ihf h.1, iha h.2]
   | lam ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.instantiateLevelParams, iht ht, ihb hb,
-      Level.substPW_eq_self hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.instantiateLevelParams, iht ht, ihb hb]
   | forallE ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.instantiateLevelParams, iht ht, ihb hb,
-      Level.substPW_eq_self hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.instantiateLevelParams, iht ht, ihb hb]
   | letE ty val body iht ihv ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
     simp [Expr.instantiateLevelParams, iht h.1.1, ihv h.1.2, ihb h.2]
@@ -2853,11 +2842,11 @@ def Expr.instLPGo (ks : List Name) (us : List Level)
         | .lam ty body m =>
           let (t, memo) := instLPGo ks us memo ty
           let (b, memo) := instLPGo ks us memo body
-          (.lam t b ⟨Level.substPW ks us m.pw⟩, memo)
+          (.lam t b m, memo)
         | .forallE ty body m =>
           let (t, memo) := instLPGo ks us memo ty
           let (b, memo) := instLPGo ks us memo body
-          (.forallE t b ⟨Level.substPW ks us m.pw⟩, memo)
+          (.forallE t b m, memo)
         | .letE ty val body =>
           let (t, memo) := instLPGo ks us memo ty
           let (w, memo) := instLPGo ks us memo val
@@ -2999,14 +2988,12 @@ theorem _root_.ConLeche.Expr.allLevelParamsDefined_of_not_hasLevelParam
   induction x with
   | lam ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.allLevelParamsDefined, iht ht, ihb hb,
-      PropWhen.paramsDefined_of_not_hasParams hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.allLevelParamsDefined, iht ht, ihb hb]
   | forallE ty body m iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.allLevelParamsDefined, iht ht, ihb hb,
-      PropWhen.paramsDefined_of_not_hasParams hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.allLevelParamsDefined, iht ht, ihb hb]
   | const nm vs =>
     simp only [Expr.hasLevelParam, List.any_eq_false] at h
     simp only [Expr.allLevelParamsDefined, List.all_eq_true]

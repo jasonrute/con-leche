@@ -917,8 +917,8 @@ theorem classKeyOf_datF (env : Env) (nP : Nat) (params : List Expr) (k : ClassKe
 
 theorem checkBlockClasses_datF (fe₁ : FEnv) (env₁ : Env) (p : BlockShape) (params : List Expr)
     (ctorsAs : List (List (ConstantVal × Nat))) (F : Nat) :
-    (checkBlockClasses (fueledOpsM mode) fe₁ env₁ p params ctorsAs).val F =
-      checkBlockClasses (fueledOps mode F) fe₁ env₁ p params ctorsAs := by
+    (checkBlockClasses (fueledOpsM mode) fe₁ p params ctorsAs).val F =
+      checkBlockClasses (fueledOps mode F) fe₁ p params ctorsAs := by
   unfold checkBlockClasses
   simp only [FueledM.atF_bind, FueledM.atF_pure, FueledM.atF_throw, FueledM.atF_ite,
     unwrapOr_atF, mapM_atF, classKeyOf_datF, classMajors_datF]

@@ -10,8 +10,7 @@ public import ConLeche.Kernel.TypeChecker
 **Status (task #172 B4): the io lane is LIVE in the executable's gated
 mode.**  `inferBodyIO` lives in `ConLeche/Kernel/Core.lean` (moved
 byte-identical, so the knot can tie it); the executable knot's
-`inferIO` slot runs it at `mode.betaGate` and the full body everywhere
-else (task #170: R ignores the flag).  The leaf lane below
+`inferIO` slot runs it at every mode (task #346).  The leaf lane below
 (`coreKnotIO` / `inferTypeCoreIO`) remains the *statement subject* the
 `InferClaimIO` family and the io-gate kernel fixtures are phrased
 at; `Verify/Knot.lean`'s `inferTypeIO_on` identifies the executable
@@ -107,15 +106,13 @@ def coreKnotIO (env : Env) : Nat → CoreFns m
       whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
       infer := fun _ _ => throw (.internal "fuel exhausted: infer")
       defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
-      annotate := fun _ _ => throw (.internal "fuel exhausted: annotate")
       inferIO := fun _ _ => throw (.internal "fuel exhausted: infer") }
   | fuel + 1 =>
     { whnfCore := (coreKnot mode env id (fuel + 1)).whnfCore
       whnf := (coreKnot mode env id (fuel + 1)).whnf
       defeq := (coreKnot mode env id (fuel + 1)).defeq
-      annotate := (coreKnot mode env id (fuel + 1)).annotate
-      infer := fun d e => inferBodyIO mode (coreKnotIO env fuel) env d e
-      inferIO := fun d e => inferBodyIO mode (coreKnotIO env fuel) env d e }
+      infer := fun d e => inferBodyIO (coreKnotIO env fuel) env d e
+      inferIO := fun d e => inferBodyIO (coreKnotIO env fuel) env d e }
 
 /-- The io core, tied at `CheckM`: the specification the
 `InferClaimIO` family is stated at. -/

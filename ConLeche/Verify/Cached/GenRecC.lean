@@ -342,8 +342,8 @@ theorem checkBlockClassesS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF 
     (hp : ∀ x ∈ params, WScoped p.nP x) {ctorsAs : List (List (ConstantVal × Nat))}
     {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun v w => v = w ∧ ∀ M ∈ v.2, ClassMajScoped p.nP M)
-      (checkBlockClasses (sharedOpsC mode (mkFEnv env)) (mkFEnv env) env p params ctorsAs)
-      (checkBlockClasses (fueledOpsM mode) (mkFEnv env) env p params ctorsAs) := by
+      (checkBlockClasses (sharedOpsC mode (mkFEnv env)) (mkFEnv env) p params ctorsAs)
+      (checkBlockClasses (fueledOpsM mode) (mkFEnv env) p params ctorsAs) := by
   unfold checkBlockClasses
   refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ rd rd' hs₁ hR => ?_)
   obtain ⟨rfl, -⟩ := hR
@@ -1024,7 +1024,7 @@ theorem checkBlockPassS_run (hμ : mode.verifiedChecks = true) {env : Env} (henv
   have gX : blockNestCtx (m := CheckM) (p₀.complete p₁).toBlockShape cvTas env₁.find?
       = .ok (ctx, holes) := by
     rw [← blockNestCtx_datF (F := G)]; exact FueledM.up hleX hFX
-  have gL : checkBlockClasses (fueledOps mode G) (mkFEnv env₁) env₁
+  have gL : checkBlockClasses (fueledOps mode G) (mkFEnv env₁)
       (p₀.complete p₁).toBlockShape ctx.params ctorsAs = .ok (rd, Ms) := by
     rw [← checkBlockClasses_datF]; exact FueledM.up hleL hFL
   have gK : checkBlockPositivity (fueledOps mode G) env₁ env₁.find?
