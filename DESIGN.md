@@ -101894,3 +101894,104 @@ the inversion of `IndSem`'s least fixed point and "the constructor's
 parameter telescope is the recursor's"; the fibre law does not give
 either.  For a K family (`Prop`-sorted), `ind_fib` does give that the
 major's domain is a truth value at every valuation.
+
+## TASK #342 — F2: K as a rule; the slot rules without the link premise (2026-10-12, agent/342-f2)
+
+The task (#342 v2 §11.4, row F2): a K flag on recursor rules, an
+`EnvModel` field carrying #349's `RecRuleLawK`, its proof in the
+installer, and `Red.iotaK` built from `Red.iotaK_core_sem`, threaded as
+F1 threaded `ind_fib`.  And a decision: prove the premise F1's slot-free
+ι rules carry but the checker does not test (the major's domain is
+headed by the constructor's family at oracle-equal levels) as an
+installer fact, if that fits.  Fragment only (`whitepaper/Fragment`).
+
+**K.**
+- `RecRule.k` (default `false`), set by `IndSpec.isK`: not nested, sort
+  syntactically `Prop`, exactly one constructor, which has no fields
+  (Lean's `init_K_target`; a nested block is mutual to Lean, so not K).
+  Only the plain recursor's rules (`IndSpec.rules`) carry it.
+- `EnvModel.rec_rules_k`: every rule flagged K satisfies `RecRuleLawK`.
+- `IndSpec.rec_rule_lawK` (`InstallIota.lean`) proves it.  The inversion
+  is `IndSpec.mem_Fam` (the fixed-point equation: a member of a fibre is
+  a constructor instance over the family at that fibre's indices),
+  applied to the major's fit, which `fits_recCtx_iff` reads off the
+  recursor's telescope at the recursor's own parameters and indices.
+  With one constructor and no fields the instance is that constructor,
+  its index values are the indices, and the major's value is its value.
+  Then the second half of the plain law applies, factored out of
+  `rec_rule_law` as `rec_rule_core` (the law's statement is unchanged).
+  So "the constructor's parameter telescope is the recursor's" (#349's
+  second ingredient) is not needed: the inversion happens in the block's
+  own parameter context, and no constructor spine is ever fitted.
+- **Finding**: the law uses neither the family's sort nor the
+  elimination level.  It holds for every one-constructor, fieldless
+  block (`Unit`-like types too).  The `Prop` condition is Lean's, and
+  the flag keeps it, for fidelity, not for soundness.
+- `Red.iotaK` (`Rules.lean`): the recursor's shape, `rl ∈ rules`,
+  `rl.k = true`, and K's type check on the major as it stands (its
+  inferred type reduces to `I.{lsI} targs`; the constructor fabricated
+  at `targs`' parameters has a type `tF`; `tF ≡ I.{lsI} targs`).  The
+  reduct is the right-hand side at the recursor's parameters, motives
+  and minors.  No certificate, no level/parameter/index comparison, no
+  reduction of the major.  `Red.iotaK_sound` is `iotaK_core_sem` with
+  the field.  No claim consumes the type check.  The rule does not
+  compare `I` with the recursor's family, which Lean does: the
+  fragment's recursor kind does not record its family.  Leaving out a
+  verdict test only lets the rule fire more often, so the soundness
+  proof is unaffected.  `Red.eq_of_rigid` has the arm.
+- Threading as F1 described.  `transport` uses constant congruence.
+  `install_def`, `mIndF`/`mInd`/`mCtors` and their nested counterparts
+  delegate by kind mismatch.  `mInstall` proves the field for the new
+  recursor; `mInstallN` closes it for `T.rec`/`T.rec_1`, whose rules
+  are never flagged.  `sortModel`/`ioModel` and `EnvModel.empty` close
+  it vacuously.
+- **#350.**  `recRuleLawK_of_eta` still holds and is now a second route
+  to a law the installer proves directly.  `True` after the renovation
+  has both flags; the two paths give the same reduct
+  (`iotaEta_noFields`).  `EtaIota.lean`'s notes are updated.  A hint for
+  the post-port eta lane: `StructEtaLaw` is the same kind of fact (a
+  member of a non-indexed one-constructor family is that constructor at
+  its fields), so `mem_Fam` is the starting point there too.
+
+**The link premise: proved, and dropped from the rules.**
+- `RecRuleSlotLaw` / `EnvModel.rec_rules_slot`: for every rule of every
+  stored recursor, where the recursor's telescope holds the point as
+  the major, either the recursor's application there is the point or
+  the rule's constructor (applied to anything) is.  For a plain rule
+  (`inst = none`) this is given the semantic level comparison
+  (constructor levels = the recursor's last ones), which ι runs anyway.
+- Installer proofs:
+  - `IndSpec.rec_rule_slot` (plain).  The major's fibre holds the
+    point, so the family's sort is zero at the recursor's valuation:
+    above `Prop` a fibre holds only tagged values (`mem_Fam_false`).
+    The constructor at levels that evaluate the same is then the point
+    (`ctorSet` at a proposition, via `block_valuation_eq`).
+  - `rec_rule_slotN` (`T.rec`) and `rec_rule_slot1N` (`T.rec_1`).
+    Where a nested block is `Prop` its eliminator is `Prop` too
+    (`qv_of_z`, from `z_false_of_large`), so the recursor's application
+    is the point.  Above `Prop`, the fibre or the class holds no point
+    (`mem_Fam_false`, `ClassLaws.inv`).
+- Threaded like `rec_rules`, by the same constructor-lookup rewrites.
+- `iota_core_slot`'s case hypothesis is now "where the unreduced major
+  (which lies in `dM`) is the point, the constructor application is the
+  point".  `Red.slot_of_law` derives it from the field, with no premise
+  about `dM`.  F1's `slot_case`, which needed the link, is removed (its
+  pin replaced).  `iota_core_prop` adapts in two lines.
+- `Red.iotaSlot` and `Red.iotaNestedSlot` lose their eight link
+  premises.  They now test exactly what `Red.iota`/`Red.iotaNested` test
+  minus the slot certificate.  For L10, case 3 needs no name test and no
+  level-list comparison beyond ι's own.
+- `Red.iotaProp` (F3, level test `u = 0`) is now subsumed by
+  `Red.iotaSlot` with no extra premise.  Kept; L10 may drop it.
+
+**Theorem names.** `IndSpec.isK_spec`, `IndSpec.split_recSpine`,
+`IndSpec.rec_rule_core`, `IndSpec.rec_rule_lawK`, `IndSpec.rec_rule_slot`
+(`InstallIota.lean`); `IndSpec.qv_of_z`, `IndSpec.rec_rule_slotN`,
+`IndSpec.rec_rule_slot1N` (`NestIota.lean`); `Red.iotaK_sound`,
+`Red.slot_of_law` (`Sound.lean`).  New pins: `Red.iotaK_sound`,
+`IndSpec.rec_rule_lawK`, `Red.slot_of_law`, `IndSpec.rec_rule_slot`,
+`IndSpec.rec_rule_slotN`, `IndSpec.rec_rule_slot1N`.
+
+**Gates.**  `whitepaper/fragment-gate.sh` is green (warning-free, the
+three standard axioms).  `links-gate.sh` fails as on the base, with the
+same cited files (#340's stale anchors); not touched.
