@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Model.Claims
+public import ConLeche.Model.Rules.IORel
 import ConLeche.Kernel.CoreIO
 public section
 
@@ -82,9 +83,11 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- **The io inference family, premise form** (the frozen shape).
-Compare `InferClaim`: the subject's `WellDenotedV` is a *premise* here,
-and the run is the io lane's. -/
+/-- **The io inference family, premise form.**  Compare `InferClaim`:
+the subject's `WellDenotedV` is a *premise* here, the run is the io
+lane's (Lean's `infer_only`), and the claim is the hereditary `IORel`
+(task #346; task #342 L18): an io-inferred type need not hold its
+term. -/
 @[expose] def InferClaimIO (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
   ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
@@ -96,8 +99,7 @@ and the run is the io lane's. -/
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) ∧
         ∀ ρ : Nat → V, Sat V Δa ρ →
-          interp V ρ ea ∈ˢ interp V ρ ta
+          Rules.IORel m φ d t ρ (interp V ρ ea)
 
 end ConLeche.Model

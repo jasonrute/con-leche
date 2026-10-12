@@ -44,15 +44,13 @@ theorem iotaCerts_bridge (hd : DefEqBridge env fuel) (hio : InferIOBridge env fu
     match ty with
     | .forallE ty₀ body mb =>
       intro h
-      rcases iotaCerts_step_inv_gate h with rfl | ⟨ta, hta, hde, hrest⟩
-      · exact .licensed
+      rcases iotaCerts_step_inv_gate h with ⟨rfl, harity⟩ | ⟨ta, hta, hde, hrest⟩
+      · exact .licensed harity
       · exact .cert (inferTypeIO_bridge hio hta) (hd hde) (ih hrest)
     | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
     | .letE _ _ _ | .lit _ | .proj _ _ _ =>
       intro h
-      cases lic with
-      | true => exact .licensed
-      | false => simp [iotaCertsFueled, iotaCerts, pure, Except.pure] at h
+      simp [iotaCertsFueled, iotaCerts, pure, Except.pure] at h
 
 /-- `iotaCertsFull` ⇒ `CertsF` (`iotaCertsFull_step_inv`; every slot
 through `hi` and `hd`; task #342 L10). -/
@@ -208,10 +206,10 @@ theorem structUnitCert_bridge (hw : WhnfBridge env fuel)
     (h : structUnitCertFueled .verified env fuel d a b = .ok true) :
     DefEq env d a b := by
   obtain ⟨ta, wta, T, us', cvT, caps, tb, wtb,
-    hta, hwta, hwfn, hfT, hunit, hres, hplen, hulen, htb, hwtb, hde⟩ :=
+    hta, hwta, hwfn, hfT, hunit, hres, hplen, hulen, htb, hwtb, hF, hde⟩ :=
     structUnitCert_inv h
   exact .structUnit (inferTypeIO_bridge hio hta) (hw hwta) hwfn hfT hunit
-    hres hplen hulen (inferTypeIO_bridge hio htb) (hw hwtb) (hd hde)
+    hres hplen hulen (inferTypeIO_bridge hio htb) (hw hwtb) hF (hd hde)
 
 /-- `etaCert` ⇒ `DefEq.eta` (`etaCert_inv`): the λ's opened body's
 full-grade type against the ∀'s body is the checker's η check. -/
@@ -220,9 +218,9 @@ theorem etaCert_bridge (hw : WhnfBridge env fuel)
     {d : Nat} {ty body b : Expr} {mb : BinderMeta}
     (h : etaCertFueled .verified env fuel d ty body b = .ok true) :
     DefEq env d (.lam ty body mb) b := by
-  obtain ⟨tb, ty₂, fb, m₂, htb, hwtb, hdty, hdbody, hT2⟩ := etaCert_inv h
+  obtain ⟨hneu, tb, ty₂, fb, m₂, htb, hwtb, hdty, hdbody, hT2⟩ := etaCert_inv h
   obtain ⟨t₁, ht₁, hdt⟩ := hT2 rfl
-  exact .eta (inferTypeIO_bridge hio htb) (hw hwtb) (hd hdty) (hd hdbody)
+  exact .eta hneu (inferTypeIO_bridge hio htb) (hw hwtb) (hd hdty) (hd hdbody)
     (hi ht₁) (hd hdt)
 
 /-- `stuckIrrel` ⇒ one of its four arms (`structEtaCert_bridge` twice —

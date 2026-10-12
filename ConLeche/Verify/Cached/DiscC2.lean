@@ -289,6 +289,12 @@ theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
   have hty : RelC ty₁ (ty₁) := rfl
   have hbody : RelC body₁ (body₁) := rfl
   have hb : RelC b b := rfl
+  cases hneu : b.ioNeutral with
+  | false =>
+    simp only [Bool.not_false, ↓reduceIte]
+    exact SimC.pure hs rfl
+  | true =>
+  simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]
   refine SimC.bind (ih.inferIO hs hb hwb) (fun s₁ tb tbx hs₁ hP => ?_)
   obtain ⟨htbd, hwtb⟩ := hP
   refine SimC.bind (ih.whnf hs₁ htbd hwtb) (fun s₂ wtb wtbx hs₂ hP₂ => ?_)
@@ -455,6 +461,7 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
               us'.length = cvT.levelParams.length then
             (coreKnotI .verified (mkFEnv env) f).inferIO d j >>= fun tb =>
             (coreKnotI .verified (mkFEnv env) f).whnf d tb >>= fun wtb =>
+            if wtb.isForallE then pure false else
             (coreKnotI .verified (mkFEnv env) f).defeq d wta wtb
           else pure false
         | _ => pure false
@@ -471,6 +478,7 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
               us'.length = cvT.levelParams.length then
             (fueledFns .verified env).inferIO d b >>= fun tb =>
             (fueledFns .verified env).whnf d tb >>= fun wtb =>
+            if wtb.isForallE then pure false else
             (fueledFns .verified env).defeq d wta wtb
           else pure false
         | _ => pure false
@@ -507,7 +515,10 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
           refine SimC.bind (ih.whnf hs₃ htbd hwtb)
             (fun s₄ wtb wtbx hs₄ hP₄ => ?_)
           obtain ⟨hwtbd, hwwtb⟩ := hP₄
-          exact ih.defeq hs₄ rfl hwtbd hwwta hwwtb
+          obtain rfl := hwtbd
+          split
+          · exact SimC.pure hs₄ rfl
+          · exact ih.defeq hs₄ rfl rfl hwwta hwwtb
         · exact SimC.pure hs₂ rfl
       | axiomInfo cv => exact SimC.pure hs₂ rfl
       | defnInfo cv v h => exact SimC.pure hs₂ rfl

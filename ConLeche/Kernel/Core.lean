@@ -267,14 +267,17 @@ def iotaCerts (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool) :
     Expr → List Expr → m Bool
   | _, [] => pure true
   | .forallE ty body _, arg :: rest =>
-    if lic then pure true
+    -- a licensed walk tests the telescope's arity only (task #342 L18:
+    -- the model reads the spine's own slots where the redex is not the
+    -- point, against the telescope's ∀-chain)
+    if lic then pure (Expr.peelPis rest.length body).isSome
     else do
       -- task #172 B4: the spine certificate's inference at the io grade
       let ta ← r.inferIO depth arg
       if ← r.defeq depth ta ty then
         iotaCerts r env depth lic (body.instantiate1 arg) rest
       else pure false
-  | _, _ :: _ => pure lic
+  | _, _ :: _ => pure false
 
 /-- **The full-grade telescope certificate** (task #342 L10, ι's case
 3): every argument is inferred at the FULL grade, which establishes
@@ -534,7 +537,10 @@ def structUnitCert (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
           us'.length = cvT.levelParams.length then
         let tb ← r.inferIO depth b
         let wtb ← r.whnf depth tb
-        -- no certificate on the type application (task #342 L11b)
+        -- no certificate on the type application (task #342 L11b); a ∀
+        -- is never a family's application (task #342 L18: `b`'s io
+        -- claim is then a membership)
+        if wtb.isForallE then pure false else
         r.defeq depth wta wtb
       else pure false
     | _ => pure false
@@ -547,6 +553,9 @@ is pointwise the application of `b`.  The λ is then `b`'s eta-expansion
 def etaCert (mode : CheckMode) (r : CoreFns m) (_env : Env) (depth : Nat)
     (ty₁ body₁ : Expr) (b : Expr) :
     m Bool := do
+  -- `b`'s head is no λ and no `let` (task #342 L18: its io claim is then
+  -- a membership; `b` is in weak-head normal form and not a λ here)
+  if !b.ioNeutral then pure false else
   -- task #172 B4: io grade
   let tb ← r.inferIO depth b
   match ← r.whnf depth tb with
@@ -872,7 +881,10 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
       -- `rl.rhs.instantiateLevelParams cv.levelParams us` can leak a
       -- level parameter the subject never had.  Ungated: the reference has it
       -- unconditionally, so a mode gate would break parity.
-      if args.length = mI + 1 ∧ us.length = cv.levelParams.length then
+      -- task #342 L18: the stored type's syntactic arity, which the
+      -- uncertified (licensed) recursor spine is read against
+      if args.length = mI + 1 ∧ us.length = cv.levelParams.length ∧
+          (Expr.peelPis (mI + 1) cv.type).isSome = true then
         -- the major's preparation (K rescue / whnf / literal / eta) in
         -- the official order — `prepareMajor`'s docstring
         let major ← prepareMajor mode r env depth c rules
