@@ -188,6 +188,23 @@ theorem psigmaMkV_app {u v : Nat} {A B a b : V} (hA : A ∈ˢ (univ u : V))
       if Nat.max u v = 0 then pt else spair a b := by
   rw [psigmaMkV, app_lamV hA, app_lamV hB, app_lamV ha, app_lamV hb]
 
+/-- The pair constructor inhabits its type. -/
+theorem psigmaMkV_mem (u v : Nat) :
+    psigmaMkV V u v ∈ˢ piV (univ u : V) fun A =>
+      piV (psigmaFibreSpace V v A) fun B =>
+        piV A fun a => piV (app B a) fun _ =>
+          sigmaSet (Nat.max u v) A fun x => app B x := by
+  refine lamV_mem (fun A hA => lamV_mem (fun B hB => lamV_mem (fun a ha =>
+    lamV_mem (fun b hb => ?_) fun _ _ =>
+      IsTy_of_mem_univ (sigma_mem_univ hA fun _ hx => psigmaFibre_apply V hB hx))
+    fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
+  split
+  · rename_i hw
+    rw [hw]
+    exact pt_mem_sigma ha hb
+  · rename_i hw
+    exact spair_mem hw ha hb
+
 /-! ## `Quot` -/
 
 theorem maxOne_ne_zero (u : Nat) : Nat.max u 1 ≠ 0 := by
