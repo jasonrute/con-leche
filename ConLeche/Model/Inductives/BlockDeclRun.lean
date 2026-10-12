@@ -61,23 +61,13 @@ theorem blockRecTyZ_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
     ∀ j, j < rs.length → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Level.eval ψ (ConLeche.structElimLevel p.toBlockShape.elim p.toBlockShape.large) = 0 →
       interp V ρ (blockRecTyAV mpC.base2.acval envC rs ψ j) ∈ˢ (univZero : V) := by
-  intro j hj ψ ρ hℓ
-  obtain ⟨uOf, hbits, hruns⟩ := blockRecElimLevel_run (V := V) hμ mpC h
-  have hu : (uOf j).eval ψ = 0 := by
-    have := blockRecElimPin_run h hruns ψ hj
-    rw [hℓ] at this
-    exact this
-  obtain ⟨-, -, -, -, heq, hlen, -⟩ :=
-    recStage_tyPis (V := V) hμ mpC h (List.getElem?_eq_getElem hj) ψ
-  rw [heq]
-  cases hrds : blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ j with
-  | nil => rw [hrds] at hlen; exact absurd hlen (by simp)
-  | cons d rest =>
-    have hd : d.2.1 = 0 :=
-      (hbits ψ j hj d (by rw [hrds]; exact List.mem_cons_self)).mpr hu
-    show interp V ρ (.pi d.2.2 _) ∈ˢ _
-    rw [interp_pi, hd]
-    exact piR_zero_mem_univZero
+  -- L17: the recursor into `Prop`.  The annotated reading took the
+  -- truth-value regime off the outermost binder's bit; the value reading
+  -- needs every fibre of the recursor type's Π-tower to be a truth value
+  -- at `ℓ = 0`, a sort fact about the tower's conclusion (the motive's
+  -- codomain `Sort ℓ`) that the stage run carries but this lemma does not
+  -- yet read
+  sorry
 
 end TyZero
 
