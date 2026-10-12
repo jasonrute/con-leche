@@ -170,7 +170,7 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     -- records and nothing else — and it is recognised HERE: a block
     -- whose members are named as one of the five pins' and which
     -- matches it up to `ConstantInfo.canon` installs the PIN (the
-    -- annotated, model-proved literals `installBasisDecl` puts in the
+    -- model-proved literals `installBasisDecl` puts in the
     -- environment verbatim).  A block under a pinned name that does not
     -- match falls through to the ordinary route, where
     -- `checkConstantVal`'s reserved-name check REJECTS it: a basis

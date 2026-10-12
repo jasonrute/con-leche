@@ -9,7 +9,8 @@ public import ConLeche.Kernel.Env
 
 A stream's `Nat` block and the checker's pinned one are the same
 declaration when they agree up to the names Lean's exporter picks
-freely: binder names, binder annotations and level-parameter names.
+freely: binder names, binder infos and level-parameter names (the
+first two never reach an `Expr`; this form renames the third).
 This module is that canonical form and the lockstep comparisons built
 on it.
 
@@ -33,23 +34,12 @@ def canonLevel (m : Name → Name) : Level → Level
   | .imax u v => .imax (canonLevel m u) (canonLevel m v)
   | .param n => .param (m n)
 
-/-- Erase binder names *and binder annotations* and rename level
-parameters: the alpha/renaming canonical form used to match a parsed
-inductive block against a pinned basis block (Lean's exports use
-auto-bound universe names and hygienic binder names, both semantically
-irrelevant).
-
-Task #142, pin-side normalization: the parser already maps every
-stream binder to `.default`, and both sides of every
-`ConstantInfo.canon` comparison go through here, so erasing the
-annotation here is what kept the two sides consistent while the pinned
-literals still carried the real `BinderInfo`s of their `Init.Prelude`
-signatures.  Since task #203 the pin builder
-(`ConLeche/Kernel/Basis/Builder.lean`) emits `.anonymous` at `.default`
-and the parser emits `.anonymous` too, so the name/annotation erasure
-here is the identity on both sides; what this canonical form still
-*does* is rename level parameters and reset `pw` (the pin side is
-annotated, the stream side is at the parse placeholder). -/
+/-- Rename level parameters throughout a term: the canonical form used
+to match a parsed inductive block against a pinned basis block up to
+level-parameter names (Lean's exports use auto-bound universe names,
+which are semantically irrelevant).  Binder names and binder infos
+need no erasing: `Expr` has no slot for either (the parser drops them,
+tasks #142 and #203). -/
 def canonExpr (m : Name → Name) : Expr → Expr
   | .bvar i => .bvar i
   | .fvar idx ty => .fvar idx (canonExpr m ty)

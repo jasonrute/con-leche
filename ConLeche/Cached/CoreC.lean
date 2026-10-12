@@ -849,10 +849,8 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
   | ty, acc, a :: rest => do
     match ty with
     | .forallE dom body => do
-      -- per-argument re-check (task #100 de-gating: the former
-      -- possibly-Prop gate of task #49 is unsound-to-model under the
-      -- domain-relative collapse; the certificate runs
-      -- unconditionally, as in the spec body `inferBody`)
+      -- the per-argument check, unconditional at the full grade, as
+      -- in the spec body `inferBody`
       let dom' ← instListRevM dom acc
       let ta ← r.infer depth a
       unless ← r.defeq depth ta dom' do
@@ -923,8 +921,8 @@ def ensureSortI (r : CoreFnsI) (depth : Nat) (e : Expr) : CheckCM Level := do
 The official-kernel discipline (lean4lean's `inferLambda`/`inferForall`
 loops): peel a whole binder telescope accumulating opened free
 variables, substituting only each binder's *domain* on the way in
-(domains are small; `instListM` against the accumulator), infer or
-annotate the leaf once on the bulk-opened body, then rebuild with one
+(domains are small; `instListM` against the accumulator), infer the
+leaf once on the bulk-opened body, then rebuild with one
 `abstractRange` per domain and one over the leaf.  Each loop replays
 exactly the per-binder checks of the chained recursion, in order; the
 value-level identification with the chained spec bodies is
@@ -935,16 +933,14 @@ The peel fuel is semantically transparent: on exhaustion the leaf phase hands
 the residual binder chain back to the knot, which is exactly the
 chained spec's next step. -/
 
-/-- Stack entry of `inferLamsI`: binder name, opened domain and binder
-meta. -/
+/-- Stack entry of `inferLamsI`: the opened domain. -/
 abbrev InferLamEntry := Expr
 
 /-- Rebuild loop of `inferLamsI`: fold the stack (innermost binder
 first, `j` its binder level relative to the ambient depth `d`).  The
 intermediate `∀`-node inferences of the chained body are
 value-determined by the peel phase's domain sorts and the leaf phase's
-body-type sort and cannot fail (task #100 stage 6: the per-level
-λ-annotation re-check is gone with the stored annotations). -/
+body-type sort and cannot fail. -/
 def inferLamsOutI (d : Nat) :
     List InferLamEntry → Nat → Expr → CheckCM Expr
   | [], _j, cur => pure cur
@@ -965,8 +961,6 @@ def inferLamsLeafI (r : CoreFnsI) (d : Nat) (t : Expr) (k : Nat)
     (fvs : Array Expr) (stk : List InferLamEntry) : CheckCM Expr := do
   let ob ← instListRevM t fvs
   let bt ← r.infer (d + k) ob
-  -- Task #342 S0: the honesty checks (`(lam-cod-leaf)`/`(lam-cod-chain)`)
-  -- and the leaf's extra body-sort inference (task #152) are gone
   let cur ← abstractRangeM bt d k
   inferLamsOutI d stk (k - 1) cur
 
@@ -1019,7 +1013,7 @@ def inferPisLeafI (r : CoreFnsI) (d : Nat) (t : Expr) (k : Nat)
   | _ => throw (.invalid "expected a sort")
 
 /-- ∀-telescope inference loop (task #100 stage 6: the `∀`-rule infers
-its codomain sort — the stored annotation is not read): peel the raw
+its codomain sort): peel the raw
 ∀-chain, checking each opened domain to be a type on the way in and
 accumulating its sort, infer the bulk-opened leaf's sort once, and
 fold `imax` outward. -/
@@ -1111,7 +1105,8 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
         match fe.findProj? Tn i with
         | some entry => do
           let targs ← pure (Expr.getAppArgsC te)
-          -- Task #342 S0: the annotate pass's `.proj` guards, here
+          -- the node names the subject type's head, at its arity
+          -- (official `infer_proj`)
           unless T = sn do
             throw (.invalid "invalid projection: the node names another structure")
           unless targs.length = entry.numParams do
@@ -1138,9 +1133,9 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
             (Expr.getAppArgsC te).length)
       | _ => throw (.invalid "invalid projection: not a structure-like type, or no such field")
     | .letE ty v b => do
-      -- Task #342 S0: official `infer_let` (the annotation is a type,
-      -- the value's type matches it, then the body with the value
-      -- substituted — the ζ reduct, as Lean's kernel infers it)
+      -- official `infer_let`: the `let`'s type is a type, the value's
+      -- type matches it, then the body with the value substituted —
+      -- the ζ reduct, as Lean's kernel infers it
       let tty ← r.infer depth ty
       let _ ← ensureSortI r depth tty
       let tv ← r.infer depth v
@@ -1152,10 +1147,11 @@ def inferBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → CheckCM Expr :=
       throw (.notImplemented "inferType beyond the supported fragment")
 
 /-- **The io-grade inference body** (task #172 B4): `inferBodyI` with
-exactly the application clause changed — the spine walk is the gated
-`inferSpineIOI` (the ONE io-graded check).  Every non-application
-view dispatches to `inferBodyI`'s own clause, so there is no textual
-clone to drift: the two bodies differ in one clause by construction.
+the application, ∀, λ and `let` clauses changed — the spine walk is
+`inferSpineIOI` (no argument check), the binder clauses are chained
+(the λ's runs no domain-sort check) and the `let` clause checks
+neither the type nor the value, as `inferBodyIO` does.  Every other
+view dispatches to `inferBodyI`'s own clause.
 Recursion grade is the record's: the knot ties this body to
 `CoreFnsI.ioView`, so `r.infer` here is the io slot one level down —
 the grade propagates exactly as official's `infer_only` does. -/

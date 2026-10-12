@@ -420,7 +420,7 @@ def checkReducePin (ops : CheckerOps m) (env env2 : Env) (c : Name)
   else throw (.notImplemented
     s!"unsupported compiler-trust opaque declaration ({c})")
 
-/-- **Install the pinned (pre-annotated) basis block.**  The three
+/-- **Install the pinned basis block.**  The three
 records that install one — the fold's own `basisDecl` kind, a stream
 block `basisPinHit` recognises and a quotient record `quotPinHit`
 recognises — share this body, so what is proved of one is proved of

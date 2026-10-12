@@ -149,7 +149,7 @@ partial def toConLecheLevel : Lean.Level → Except String ConLeche.Level
 /-- Conversion; `letE` is zeta-expanded (pins are compared by
 definitional equality, and let-free pins keep the pin machinery
 independent of the kernel's letE rules), `mdata` stripped, binder
-metadata carries only the display info (task #100: annotation-free). -/
+names and infos dropped (`Expr` has no slot for them). -/
 partial def toConLeche : Lean.Expr → Except String ConLeche.Expr
   | .bvar i => .ok (.bvar i)
   | .sort u => (ConLeche.Expr.sort ·) <$> toConLecheLevel u
@@ -157,11 +157,8 @@ partial def toConLeche : Lean.Expr → Except String ConLeche.Expr
     .ok (.const (toConLecheName c) (← us.mapM toConLecheLevel))
   | .app f a => ConLeche.Expr.app <$> toConLeche f <*> toConLeche a
   | .lam _ ty b _ => do
-    -- pw: parse-default placeholder at P1; the P2 generator computes
-    -- the codomain prop-ness from the host elaborator (task #161);
-    -- name and binder info: the checker's single normal form
-    -- (`.anonymous`, `.default` — task #203, as the frontend strips
-    -- a stream and the pin builder emits the hand-written pins)
+    -- name and binder info dropped, as the frontend drops them from a
+    -- stream (task #203)
     .ok (.lam (← toConLeche ty) (← toConLeche b))
   | .forallE _ ty b _ => do
     .ok (.forallE (← toConLeche ty) (← toConLeche b))

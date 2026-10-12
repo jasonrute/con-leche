@@ -17,7 +17,7 @@ parameter; `lean_is_exclusive` in `lean.h`).  A multi-threaded object
 environment after the driver's `Runtime.markPersistent`) answer
 `false`, which is the safe side.
 
-**What licenses the substitution** is the obligation
+**What justifies the substitution** is the obligation
 
 ```
 h : k true = k false

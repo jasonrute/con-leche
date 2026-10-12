@@ -80,7 +80,7 @@ every path that reaches a shared node.
 field is the fvar range of a node's *own* spine and stops at an
 `fvar` leaf (`fvarRange (.fvar idx _) = idx + 1`), while `fvarLeaves`
 descends hereditarily into the leaf's TYPE ANNOTATION, so
-`e.fvarB ≤ q` does not license "`q` does not occur in `e`" — the
+`e.fvarB ≤ q` does not justify "`q` does not occur in `e`" — the
 range field cannot answer this question at all, and the memo is the
 whole remedy.
 

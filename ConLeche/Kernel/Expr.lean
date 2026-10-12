@@ -661,7 +661,7 @@ rests on — an address names one immutable object, so pointer-equal
 means equal — enter only through `Init.Util`'s `withPtrEq` and
 `withPtrAddr`, whose *pure* definitions (`k ()`, `k 0`) are what the
 theorem is about; the compiler's substitution of the real address is
-its own contract, licensed by the side conditions those functions
+its own contract, justified by the side conditions those functions
 demand and this file discharges.
 
 The descent is **memoised** on the DAG so that it is `O(DAG)` rather
