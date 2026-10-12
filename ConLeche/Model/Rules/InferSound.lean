@@ -157,7 +157,7 @@ theorem Infer.sort_sound {g : Grade} {d : Nat} {u : Level} :
   refine ⟨⟨by simp [Expr.WScoped], by simp [Expr.looseBVarsBounded],
       fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
     fun l hl => by simp [Expr.fvarLeaves] at hl,
-    _, hty, fun ρ _ _ => ⟨⟨by simp, by simp⟩, ⟨⟨by simp, by simp⟩, IsTy_univ _⟩,
+    _, hty, fun ρ _ _ => ⟨by simp, ⟨by simp, IsTy_univ _⟩,
       (sound_sort V ρ (u.eval φ)).2⟩⟩
 
 /-- A free variable: `CtxOkS`'s leaf package, the type's grading from
@@ -187,7 +187,7 @@ theorem Infer.fvar_sound {g : Grade} {d idx : Nat} {ty : Expr} (h : idx < d) :
     exact List.mem_cons_of_mem _ hl
   refine ⟨⟨hws.2.mono (by omega), hLb (idx, ty) (by simp [Expr.fvarLeaves]),
       fun l hl => hLb l (hmem l hl)⟩,
-    hmem, tya, hden, fun ρ hρ hL => ⟨⟨by simp, by simp⟩, hL _ hleaf tya hden, ?_⟩⟩
+    hmem, tya, hden, fun ρ hρ hL => ⟨by simp, hL _ hleaf tya hden, ?_⟩⟩
   rw [interp_bvar, hlink ρ hρ]
   exact hρ (d - 1 - idx) Aa hi
 
@@ -521,15 +521,8 @@ theorem Infer.app_soundCert {g : Grade} {d : Nat}
   have hAty : WellDenotedTy V ρ Aa := hokpa.pi_dom
   have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
     hokpa.pi_body
-  have hcod0 : pwBit φ mt.pw = 0 →
-      ∀ x, x ∈ˢ interp V ρ Aa →
-        interp V (cons x ρ) Ba ∈ˢ (univZero : V) := by
-    intro h0 x hx
-    have h2 := hokpa.2
-    rw [AnnotValid_pi] at h2
-    exact h2.2.2 h0 x hx
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
-    ((WellDenoted_pi V ρ _ _ Aa Ba) ▸ hokpa.1).2.2.2
+    (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
   -- the argument at `ρ`, and the domain agreement
   obtain ⟨hgaa, hgtyaA, hrowaM⟩ :=
     hrowA ρ hρ hL.app_arg (fun hg => (hgr hg).app_arg)
@@ -546,11 +539,9 @@ theorem Infer.app_soundCert {g : Grade} {d : Nat}
   have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
     rw [← hredfρ]
     exact hrowfM
-  refine ⟨⟨(sound_app V hgfa.1 hgaa.1 hf2 ha2 hcod0 (fun _ => hAty.2)).1, ?_⟩,
+  exact ⟨(sound_app V hgfa hgaa hf2 ha2 hAty.2).1,
     (WellDenotedTy_inst0 hgaa).mpr ⟨hokBa _ ha2, hBty _ ha2⟩,
-    (sound_app V hgfa.1 hgaa.1 hf2 ha2 hcod0 (fun _ => hAty.2)).2⟩
-  rw [AnnotValid_app]
-  exact ⟨hgfa.2, hgaa.2⟩
+    (sound_app V hgfa hgaa hf2 ha2 hAty.2).2⟩
 
 /-- **`let`, by substitution**: the body's claim at its value is the
 `let`'s (`interp_zeta`).  The value's grading — part of the `let`'s —
@@ -584,19 +575,18 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
   exact hmem
 
 /-- **The io grade's application, uncertified** (Lean's `infer_only`):
-the skipped membership from the subject's own hereditary app slot,
-`io_domain_transfer` + `piR_dom_unique` at a bit pinned positive.
+the skipped membership from the subject's own hereditary app slot.  A
+head that is not the point is a graph, which fixes its domain
+(`piR_dom_unique`, through `slotTransfer`).
 
-**Owed to task #342 L18** (the S4 sorry ledger): no rule reads the
-binder's datum any more.  Under the value reading the head's graph
-regime is read off its value (a head that is not the point is a graph),
-and the claim is the hereditary `IORel` of task #346 (the fragment's
-`InferIO.app_sound`): membership fails at an io-inferred λ. -/
+**Owed to task #342 L18** (the S4 sorry ledger): at a head that is the
+point the slot's domain says nothing about the Π's; the claim is the
+hereditary `IORel` of task #346 (the fragment's `InferIO.app_sound`):
+membership fails at an io-inferred λ. -/
 theorem Infer.app_soundIO {d : Nat}
     {f a tf ty body : Expr} {mt : BinderMeta}
     (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt)) :
     InferSemIO m φ d (.app f a) (body.instantiate1 a) := by
-  have hnev : mt.pw.isNever = true := sorry
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
   simp only [Expr.WScoped] at hws
@@ -643,7 +633,7 @@ theorem Infer.app_soundIO {d : Nat}
   -- **the premise, spent**: the parts' grading and the hereditary slot
   have hokf : WellDenotedV V ρ fa := hge.app_fn
   have hoka : WellDenotedV V ρ aa := hge.app_arg
-  have hslot := ((WellDenoted_app V ρ fa aa) ▸ hge.1).2.2
+  have hslot := (cast (WellDenoted_app V ρ fa aa) hge).2.2
   obtain ⟨hgtfa, hrowfM⟩ := hrowF ρ hρ hL.app_fn hokf
   -- "not pt" source (1): the head's inferred type `tfa` is a type
   obtain ⟨hokpa, hredfρ⟩ :=
@@ -651,28 +641,25 @@ theorem Infer.app_soundIO {d : Nat}
   have hAty : IsTy (interp V ρ Aa) := hokpa.pi_dom.2
   have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
     hokpa.pi_body
-  have hcod0 : pwBit φ mt.pw = 0 →
-      ∀ x, x ∈ˢ interp V ρ Aa →
-        interp V (cons x ρ) Ba ∈ˢ (univZero : V) := by
-    intro h0 x hx
-    have h2 := hokpa.2
-    rw [AnnotValid_pi] at h2
-    exact h2.2.2 h0 x hx
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
-    ((WellDenoted_pi V ρ _ _ Aa Ba) ▸ hokpa.1).2.2.2
+    (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
   have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
     rw [← hredfρ]
     exact hrowfM
   -- **THE LICENCE**: the skipped membership, from the subject's own
   -- hereditary app slot at a bit pinned positive by the datum
   have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa := by
-    have hw0 : pwBit φ mt.pw ≠ 0 := pwBit_ne_zero_of_isNever hnev φ
     obtain ⟨v, A, B, hfslot, haslot, -⟩ := hslot
     have hf' := hf2
     rw [interp_pi] at hf'
-    exact io_domain_transfer hw0 hfslot haslot hf'
+    by_cases hfp : interp V ρ fa = pt
+    · -- L18: the io application at a head that is the point (`IORel`)
+      sorry
+    have hgr : interp V ρ fa ∈ˢ piR 1 (interp V ρ Aa) fun x => interp V (cons x ρ) Ba := by
+      rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
+    exact Rules.slotTransfer Nat.one_ne_zero hgr hfslot haslot
   exact ⟨(WellDenotedTy_inst0 hoka).mpr ⟨hokBa _ ha2, hBty _ ha2⟩,
-    (sound_app V hokf.1 hoka.1 hf2 ha2 hcod0 (fun _ => hAty)).2⟩
+    (sound_app V hokf hoka hf2 ha2 hAty).2⟩
 
 /-- **An application** (`Infer.app`): the full grade's certificate, or
 the io grade's none. -/

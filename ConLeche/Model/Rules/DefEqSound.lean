@@ -464,7 +464,7 @@ theorem DefEq.structEta_soundU (hin : RulesInputs V m φ) {d : Nat}
         (LeavesGr.of_fvarLeaves_nil (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp))
         hLargsTb (hoktpa ρ).1 hokTb' (by simp)
       refine (mkAppN_of_fitA (tsa ++ [ba]) (hoktpa ρ).1
-        m.acval_wellDenoted _ _ ρ
+        (m.acval_wellDenoted _ _ ρ)
         hokTb' ?_ hfitpPA).1
       have := hmemp ρ
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at this

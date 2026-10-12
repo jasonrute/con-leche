@@ -147,13 +147,11 @@ def BConst.typeAV : BConst → List Nat → AnnotTerm
   | .punitUnit, us => punitAV (lv us 0)
   | .psigma, us =>
     let u := lv us 0; let v := lv us 1
-    let r := Nat.max u v + 1
     .pi (.sort u) <|
     .pi (arrowA (.bvar 0) (.sort v)) <|
     .sort (Nat.max u v)
   | .psigmaMk, us =>
     let u := lv us 0; let v := lv us 1
-    let r := Nat.max u v
     .pi (.sort u) <|
     .pi (arrowA (.bvar 0) (.sort v)) <|
     .pi (.bvar 1) <|
@@ -221,17 +219,13 @@ def BConst.typeAV : BConst → List Nat → AnnotTerm
     .bvar 1
   | .lfpFam, us =>
     let u := lv us 0; let w := lv us 1
-    let m := Nat.max u (w + 1)
     -- `Π (I : Sort u), ((I → Sort w) → (I → Sort w)) → I → Sort w` (task
-    -- #188, indexed): `I → Sort w` has sort `max u (w + 1)`, and so do the
-    -- functor space and the tail
+    -- #188, indexed)
     .pi (.sort u) <|
     .pi (arrowA (arrowA (.bvar 0) (.sort w)) (arrowA (.bvar 0) (.sort w))) <|
     .pi (.bvar 1) (.sort w)
   | .lfpTuple k, us =>
-    let R := tupleFamSort k us
-    -- `Π (Is : ⟨Sort u_0, …, Sort u_{k-1}⟩) (F : Fams Is → Fams Is), Fams Is`,
-    -- every binder's result slot the family tuple's own sort `R`
+    -- `Π (Is : ⟨Sort u_0, …, Sort u_{k-1}⟩) (F : Fams Is → Fams Is), Fams Is`
     .pi (tupleSortsAV k us) <|
     .pi (.pi (tupleFamsAV k us 0) (tupleFamsAV k us 1)) <|
     tupleFamsAV k us 1

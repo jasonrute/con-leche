@@ -724,7 +724,7 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
   have hgF : WellDenotedV V ρ (AnnotTerm.mkAppN
       (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) (tsa.take cnP)) :=
     (mkAppN_of_fitA (tsa.take cnP) (hokTVja ρ)
-      m.acval_wellDenoted _ _ ρ
+      (m.acval_wellDenoted _ _ ρ)
       (fun x hx => hoTs x (List.mem_of_mem_take hx)) (hmemCj ρ) hfitVal).1
   -- the fabrication's type is the major's ("not pt" source (1): two types)
   obtain ⟨hgTf, hmemF⟩ := hInnerTf ρ hρ hLfab hgF
@@ -916,7 +916,7 @@ theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
         (tsa ++ (List.range caps.etaFields).map fun j =>
           projAV (j + env.projOff T) ea)) :=
       (mkAppN_of_fitA _ (hokTVja ρ)
-        m.acval_wellDenoted _ _ ρ
+        (m.acval_wellDenoted _ _ ρ)
         hoksF (hmemCj ρ) hfitVal).1
     exact ⟨hgF, (hpi hfF hfM hCF hCM hdF hea ρ hρ (hL.of_subset hsub) hL hgF hg).symm⟩
   · -- PROJECTION-FUNCTION SLOTS: the fabricated projections are
@@ -1032,7 +1032,7 @@ theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
             (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp))
           hLTb (hoktpa ρ) hoksTb (by simp)
       refine (mkAppN_of_fitA (tsa ++ [ea]) (hoktpa ρ)
-        m.acval_wellDenoted _ _ ρ
+        (m.acval_wellDenoted _ _ ρ)
         hoksTb ?_ hfitpVal).1
       have hmm := hmemp ρ
       rwa [hlpj2] at hmm
@@ -1071,7 +1071,7 @@ theorem Red.rescueEta_soundU (hin : RulesInputs V m φ) {d : Nat}
           AnnotTerm.mkAppN (m.acval (projFnName T j)
             (Level.substFn φ cvT.levelParams ust)) (tsa ++ [ea]))) :=
       (mkAppN_of_fitA _ (hokTVja ρ)
-        m.acval_wellDenoted _ _ ρ
+        (m.acval_wellDenoted _ _ ρ)
         hoksF (hmemCj ρ) hfitVal).1
     exact ⟨hgF, (hpi hfF hfM hCF hCM hdF hea ρ hρ (hL.of_subset hsub) hL hgF hg).symm⟩
 
@@ -1256,7 +1256,7 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
       (tsa ++ [projAV (0 + env.projOff andName) ea,
         projAV (1 + env.projOff andName) ea])) :=
     (mkAppN_of_fitA _ (hokTVja ρ)
-      m.acval_wellDenoted _ _ ρ
+      (m.acval_wellDenoted _ _ ρ)
       hoksF (hmemCj ρ) hfitVal).1
   -- the fabrication's type is the major's ("not pt" source (1): two types)
   have hLfab : LeavesGr m φ d fab ρ := hL.of_subset hsub

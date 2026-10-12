@@ -5,42 +5,29 @@ public import ConLeche.SetTheory.Basic
 @[expose] public section
 
 /-!
-# The two-regime product and abstraction (task #151, tier B)
+# The two-regime function space and abstraction (task #151, tier B; task #342, L14a)
 
-`piR`/`lamR` are the **annotation-driven** dependent product and
-abstraction: they read a numeral — the codomain sort of the binder,
-supplied by the annotation pass — and dispatch on it, rather than
-inspecting the semantic value.
+`piR v`/`lamR v` are the function space and abstraction at an explicit
+regime numeral; `piV`/`lamV` (the last section) read the numeral off
+the values, and are what the interpretation and `Denotes` use.
 
-* **`v = 0` — the truth-value (squash) regime.**  `piR 0 A B` is the
-  truth value `[∀ x ∈ A, B x inhabited]`, `lamR 0 A F` is the canonical
-  proof.  Propositions are subsets of the canonical one-element set
+* **`v = 0` — the truth-value regime.**  `piR 0 A B` is the truth value
+  `[∀ x ∈ A, B x inhabited]`, `lamR 0 A F` is the canonical proof.
+  Propositions are subsets of the canonical one-element set
   `unitSet = {pt}`, so proof irrelevance and impredicativity are both
-  immediate: *a product landing in `Prop` is small whatever its domain
-  is* (`piR_zero_mem_univZero`), with no size or universe side
-  condition anywhere.
+  immediate: a Π-type landing in `Prop` is small whatever its domain is
+  (`piR_zero_mem_univZero`).
 * **`v ≠ 0` — the graph regime.**  `piR v A B` is `piSet A B`, the set
   of total single-valued function graphs over `A`; `lamR v A F` is the
-  literal graph.  **No collapse, no proof point**: a member of a
-  positive-regime product is a graph, is never `pt`
-  (`not_pt_mem_piR_pos`), determines its own domain
-  (`piR_dom_unique`, with *no* `≠ pt` side condition), and applies to
-  the canonical junk `∅` off that domain (`app_off_dom_piR_pos`).
+  literal graph.  A member is a graph, never `pt`
+  (`not_pt_mem_piR_pos`), determines its own domain (`piR_dom_unique`),
+  and applies to the canonical junk `∅` off that domain
+  (`app_off_dom_piR_pos`).
 
-Beyond the usual law battery, the *inversion* laws hold that only the
-annotation-driven definition can have (`mem_piR_pos`,
-`piR_dom_unique`, `not_pt_mem_piR_pos`).
-
-**On `pt`.**  The proof point appears in exactly one place: the `v = 0`
-branch of `lamR`, as the canonical inhabitant of a true proposition.
-That is forced — `SetTheory`'s `univ 0 = power unitSet` fixes the
-canonical one-element set, so the unique element of a true truth value
-*is* `pt` — and it is not a collapse: no clause here tests a value, and
-the graph regime never produces, contains, or consults it.  So `pt` is
-*demoted, not deleted*: deleting it is not achievable — it would mean
-re-deriving `univZero` over a different singleton, and renaming the
-canonical point changes nothing — and not needed, because nothing here
-tests for it.
+`piV A B` is the truth-value regime exactly when every fibre over `A`
+is a truth value; `lamV A F` exactly when every body value over `A` is
+the point.  Over a nonempty domain this is the regime the binder's
+codomain sort gives; over an empty domain both read "proposition".
 -/
 
 namespace ConLeche.SetModel

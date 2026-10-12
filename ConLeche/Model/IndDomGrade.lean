@@ -31,30 +31,27 @@ variable {acval : Name → (Name → Nat) → AnnotTerm}
 /-- A `.pi` reading's domain is graded when the reading is. -/
 theorem WellDenotedV_pi_dom {ρ : Nat → V} {A B : AnnotTerm}
     (h : WellDenotedV V ρ (.pi A B)) : WellDenotedV V ρ A :=
-  ⟨((WellDenoted_pi V ρ A B) ▸ h.1).1,
-    ((AnnotValid_pi V ρ u v A B) ▸ h.2).1⟩
+  (cast (WellDenoted_pi V ρ A B) h).1
 
 /-- A `.pi` reading's domain is a graded type when the reading is
 graded (task #342, L5: the `.pi` clause carries the domain's `IsTy`). -/
 theorem WellDenotedTy_pi_dom {ρ : Nat → V} {A B : AnnotTerm}
     (h : WellDenotedV V ρ (.pi A B)) : WellDenotedTy V ρ A :=
-  ⟨WellDenotedV_pi_dom h, ((WellDenoted_pi V ρ A B) ▸ h.1).2.1⟩
+  ⟨WellDenotedV_pi_dom h, (cast (WellDenoted_pi V ρ A B) h).2.1⟩
 
 /-- A `.pi` reading's body is graded at every extension by an element
 of the domain. -/
 theorem WellDenotedV_pi_body {ρ : Nat → V} {A B : AnnotTerm}
     (h : WellDenotedV V ρ (.pi A B)) {x : V}
     (hx : x ∈ˢ interp V ρ A) : WellDenotedV V (cons x ρ) B :=
-  ⟨((WellDenoted_pi V ρ A B) ▸ h.1).2.2.1 x hx,
-    ((AnnotValid_pi V ρ u v A B) ▸ h.2).2.1 x hx⟩
+  (cast (WellDenoted_pi V ρ A B) h).2.2.1 x hx
 
 /-! ## Application spines, graded backwards -/
 
 /-- An application's argument is graded when the application is. -/
 theorem WellDenotedV_app_arg {ρ : Nat → V} {g a : AnnotTerm}
     (h : WellDenotedV V ρ (.app g a)) : WellDenotedV V ρ a :=
-  ⟨((WellDenoted_app V ρ g a) ▸ h.1).2.1,
-    ((AnnotValid_app V ρ g a) ▸ h.2).2⟩
+  (cast (WellDenoted_app V ρ g a) h).2.1
 
 /-- **Every argument of a graded application spine is graded.** -/
 theorem WellDenotedV_mkAppN_args {ρ : Nat → V} :
