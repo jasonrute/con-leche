@@ -303,7 +303,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     · -- case 3 at a `Prop` valuation: the slot law (P)
       obtain ⟨hoY, restC, hfitC⟩ := hC3 (hcase3_of_pt hapt)
       refine ⟨?_, hoY, restC, hfitC⟩
-      rw [hapt, hP ρ (xs.take mI) _ restR hxs0len hfitRVal hapt ys restC hfitC]
+      rw [hapt, hP ρ (xs.take mI) _ restR hxs0len hfitRVal hapt ys restC hfitC hlenYs hoY]
     · -- the major is not the point: its reduction is an equation
       obtain ⟨hokMj, heqAll⟩ := hInnerMaj ρ hρ hLmajSlot hokMajArg hapt
       obtain ⟨-, hoY⟩ := hoist_spineV ys hokMj

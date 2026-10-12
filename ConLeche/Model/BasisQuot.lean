@@ -894,7 +894,7 @@ theorem quotIndExtra {m : EnvModel V env}
       exact ⟨_, _, f5⟩)
   refine ⟨fun hlic ρ xs a restR hxs hfit =>
       hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
-    fun ρ xs a restR hxs hfit ha ys _ _ =>
+    fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
       hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
   intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
   refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),
@@ -2292,7 +2292,7 @@ theorem quotLiftExtra {m : EnvModel V env}
       exact ⟨_, _, f6⟩)
   refine ⟨fun hlic ρ xs a restR hxs hfit =>
       hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
-    fun ρ xs a restR hxs hfit ha ys _ _ =>
+    fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
       hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
   intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
   refine ⟨fun h => (nomatch h), fun lvls pins h => (nomatch h),

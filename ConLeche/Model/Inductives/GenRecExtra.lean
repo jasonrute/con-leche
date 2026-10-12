@@ -903,7 +903,7 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     obtain rfl := Option.some.inj hTVja
     have hlv := blockRuleLevelAgree hfire hψ
     rw [hstored]
-    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_, fun ρ xs a restR hxl hfit hapt ys restC _ =>
+    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_, fun ρ xs a restR hxl hfit hapt ys restC _ _ _ =>
       genMem_P hμ h R hS G hr hm hlv ρ xs a restR hxl hfit hapt ys, ?_⟩
     · exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ _ hcP _ hpinC

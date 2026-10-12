@@ -739,6 +739,8 @@ arity, and for a rule that is not K the (S), (P), (U) clauses
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
         interp V ρ a = pt →
       ∀ (ys : List AnnotTerm) (restC : AnnotTerm), TeleFitPA V ρ TVja ys restC →
+        ys.length = RecRule.ctorParams rl + RecRule.nfields rl →
+        (∀ y ∈ ys, WellDenotedV V ρ y) →
         interp V ρ (AnnotTerm.mkAppN
           (m.acval (RecRule.ctor rl) (Level.substFn φ cvj.levelParams usj)) ys) = pt) ∧
     -- (U)
