@@ -377,21 +377,4 @@ theorem red_sound_global (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
   exact ⟨hf', hsub, ea', hea', fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ)).1,
     fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ)).2⟩
 
-/-- **Interim** (task #342, L10/L12): a comparison of two globally
-graded sides, unconditionally, through the side induction.  The
-recursor-class match (`Model/Inductives/TargetDefeqTie.lean`) compares
-PARAMETERS, which may be proofs; under the conditional claims it needs
-the parameters' telescope (`spineFit_eq_of_cond`, as `blockRule_coherent`
-does for the block rules). -/
-theorem defeq_sound_global (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
-    (h : DefEq env d a b) (hfa : Frame d a) (hfb : Frame d b)
-    {Δa : List AnnotTerm} {aa ba : AnnotTerm}
-    (hCa : CtxOk m φ d Δa a) (hCb : CtxOk m φ d Δa b)
-    (haa : denoteMeta m.acval env φ d a = some aa)
-    (hba : denoteMeta m.acval env φ d b = some ba)
-    (hga : Graded V Δa aa) (hgb : Graded V Δa ba) :
-    ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ aa = interp V ρ ba := fun ρ hρ =>
-  defeq_soundU hin h hfa hfb hCa.toS hCb.toS haa hba ρ hρ (hCa.leavesGr hρ)
-    (hCb.leavesGr hρ) (hga ρ hρ) (hgb ρ hρ)
-
 end ConLeche.Model.Rules
