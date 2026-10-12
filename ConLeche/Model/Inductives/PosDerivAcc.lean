@@ -375,17 +375,6 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
           rcases hl' with rfl | hl'
           · simp at hlq; omega
           · exact ⟨l, hwa' l hl', hlq⟩
-    -- at a `Prop` codomain the body is truth-valued (the grading)
-    have hB0 : pwBit φ bm.pw = 0 → ∀ σ σ', R.underBoth ta σ σ' →
-        interp V σ ba ∈ˢ (univZero : V) ∧ interp V σ' ba ∈ˢ (univZero : V) := by
-      rintro hv0 _ _ ⟨x, ρ, ρ', rfl, rfl, hRr, hx, hx'⟩
-      have hval : ∀ σ, Sat V Δa σ → x ∈ˢ interp V σ ta →
-          interp V (cons x σ) ba ∈ˢ (univZero : V) := by
-        intro σ hσ hxσ
-        have := (hgw σ hσ).1.2
-        rw [AnnotValid_pi] at this
-        exact this.2.2 hv0 x hxσ
-      exact ⟨hval ρ (hR.dom ρ ρ' hRr).1 hx, hval ρ' (hR.dom ρ ρ' hRr).2 hx'⟩
     have hokP : OutOk mp.base2 φ ctx prog dep Δa k (.forallE a (nb.abstract1 dep 0) bm)
         (.pi ta ba) := by
       obtain ⟨hnbB, hnbW, hnbO, nba, hnba, hnbr⟩ := hokb
@@ -402,24 +391,21 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
         rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hnbB) (dep + 1), hnba]
         rfl
       · exact interp_pi_congr_body fun x hx => hnbr (cons x ρ) (Sat_cons V hρ hx)
-    refine ⟨⟨fun hw => TypeReg.pi 0 _ hA (hTRb hw) hB0, ?_, hout⟩, hokP⟩
+    -- the regime is the values' (`piV`); `TypeReg.pi`'s truth-valued case
+    -- at a positive sort is L17's (`HoleAcc`)
+    refine ⟨⟨fun hw => TypeReg.pi 1 hA (hTRb hw) (fun h => absurd h Nat.one_ne_zero), ?_, hout⟩,
+      hokP⟩
     have hinvP : InvOn (MentP ctx.nP (ctx.hiAt prog.length) dep
         (.forallE a (nb.abstract1 dep 0) bm)) (piBound w ta Ab) := InvOn.pi (NoBVar.mono (fun i hi hn => hi (Or.inl hn))
         (noBVar_not_mentNH hws.1 hbb.1 hholes (fun s _ hs => by
           simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hs
           exact hs.1) hta)) (InvOn.mono hinvb fun i hi => mentP_body i hi)
     have hAb' := AccOn.congrQ (fun i n => (shiftQ_holeQ hhi i n).symm) hAb
-    by_cases hv0 : pwBit φ bm.pw = 0
-    · by_cases hw : w = 0
-      · -- at `w = 0`: the truth-valued product glues one witness's support per domain value
-        subst hw
-        rw [hv0]
-        exact ⟨_, AccOn.pi0 0 hA hAb', fun _ _ _ => SmallAt.zero _, hinvP⟩
-      · -- hole-free: the body is (the type regime)
-        have hco : ConstOn R (.pi ta ba) :=
-          ConstOn.pi 0 _ hA (hTRb hw (hB0 hv0))
-        exact ⟨_, hco.accOn, SizeOn.const (empty_mem_tg w), InvOn.const _ _⟩
-    · exact ⟨_, AccOn.pi 0 hv0 hA hAb', SizeOn.pi hA hszb, hinvP⟩
+    by_cases hw : w = 0
+    · -- at `w = 0`: a truth-valued Π glues one witness's support per domain value
+      subst hw
+      exact ⟨_, AccOn.pi0 hA hAb', fun _ _ _ => SmallAt.zero _, hinvP⟩
+    · exact ⟨_, AccOn.pi hA hAb', SizeOn.pi hA hszb, hinvP⟩
   | @hole prog dep kb e wt i ty hw' hocc hfn hlo hhi' hlen hfree =>
     intro _ hhi hfr Δa ea R hC hea hgr hR
     refine acc_of_whnf hin hw' hfr hC hea hgr hR.dom fun hfrw _ hlw wa hwa _ _ => ?_
