@@ -102945,3 +102945,168 @@ The `tgtNestedReads` failure is not reachable from a stream either.
 
 **Gates.**  `lake build`, `lake test` warning-free.  Lines (code,
 against a2907eca2): 49 files, +765 −947 (before this record).
+
+## TASK #342 — S5A: cleanup after the port (2026-10-12, agent/342-s5a)
+
+Lane S5a, stage S5 (`_tmp/342v2-design.md` §11.5 row S5, the L-dead
+record's list), on `port-342`, in parallel with S5b.  Sub-lanes `bm`,
+`num`, `pwd` ran in their own worktrees and were merged into the lane
+branch.  Verdicts unchanged; `MainTheorem`, `Denotes`, `Challenge`
+untouched; no `sorry`, no new axiom, no new `unsafe`.
+
+**`BinderMeta` off `Expr`.**  `Expr.lam`/`Expr.forallE` are
+`(type body : Expr)`; the empty structure, its field and every pattern,
+construction and lemma argument for it are gone (about 1500 sites
+across every tier), as are the `m₁ = m₂` conjuncts of injectivity and
+inversion lemmas and the helpers that threaded a binder datum.
+`Kernel/BasisGen`, `PinGen*` and `PinGen/Dump` no longer emit it; the
+pin dumps under `pins/` are regenerated (each `lam`/`fa` share-table
+entry loses its trailing `null`; all three pinners reproduce
+byte-for-byte).  `ExportC` still scans the legacy `pw` field and drops
+it.  The node hash never read the datum, so hashes are unchanged; the
+node is one word smaller.  `tests/annot/` and
+`tests/annot-expected.txt` are deleted with their suite in
+`tests/arena.sh` and the CI; the three fixtures the mode-flag and
+`--jobs` tests borrowed moved to `tests/mode/split_{good,bad,bad2}`.
+`GenK53Rename`'s `gk_teleSubst_erase` became a copy of
+`gk_argsSubst_erase` and went.
+
+**The binder data's numerals.**  `mkPisAV`/`mkLamsAV`/`stripPisAV`
+take `List AnnotTerm`; `readLamBs`, `readOpenedDoms`, the `ih` data,
+`BlockData`'s parameter lists and the "the normal form reads like the
+declared type" existentials carry domains only (96 files).  `ppsNorm`
+and its lemmas are gone; `stripPisAV_mkPisAV(_take)` return the data,
+`mkPisAV_inj` concludes list equality.  With them: `mkLamsC` (it was
+`mkLamsAV` with an ignored numeral; its laws are `mkLamsAV_mem`/
+`_wellDenoted`), `UnderTowerOk`'s numeral and zero-bit conjunct
+(nothing read it), `genIhdAV`/`genIhsAV`'s `bit` and the lemmas that
+only threaded it, `genBit`, `stripPisAV_denoteMeta_bits`,
+`underTowerOk_res_univZero`.  `LamDomsBelow`/`DomsBelow`/`FieldsBelow`
+had become one definition: `DomsBelow` stays, the conversions
+(`DomsBelow.mapC/.fields`, `domsBelow_of_fieldsBelow`,
+`lamDomsBelow_map`) go.  Kept: `OneElimLevel`/`blockRecOneElimLevel`
+(D-d's parked elimination-level reading, which reads a level, not a
+binder numeral).
+
+**`WellDenoted`.**  The `WellDenotedV` abbrev is gone and every use
+reads `WellDenoted`.  Its wrapper lemmas (`sumTyAV_/sumMkAV_wellDenotedV`,
+`WellDenotedV_bconst_type`, `_congr_below`, `_liftN`, `_inst0`,
+`_zeta`, the `Rules` `hoist_pi`/`hoist_lam`) are deleted for the
+originals; `BasisQuot`'s two lemmas with their own statements are
+`WellDenoted_app_fibre` and `WellDenoted_lam_piV`.  The field lemmas
+(`app_fn`, `pi_body`, `letE_val`, `hoist_lift`, `hoist_piTy`, …) live in
+the `Semantics.WellDenoted` namespace so dot notation on a
+`WellDenoted` hypothesis still finds them.
+
+**`Model/Annot/` is split.**  The directory held two things, and its
+name described neither any more: the environment invariant and its laws
+(`EnvModel`, `EnvModelM`, `Laws`, the lfp clause `BlockLfp*` and its
+datum `Lfp*`, `CanonCrest`) are `Model/Env/` — the name OVERVIEW's
+module map already gave the directory's role; the stored-term reading
+and its metatheory are `Model/Reading/`, each file named for what it
+holds: `Bit` → `DenoteMeta`, `BitLemmas` → `Lemmas`, `BitClosed` →
+`Closed`, `BitShift` → `Shift`, `BitInst` → `Inst`, `BitSubstFvars` →
+`SubstFvars`, `BitLevels` → `Levels`, `BitRename` → `ErasedEq`,
+`BitExtend` → `EnvExtend`, `BitExtendTower` → `TowerExtend`,
+`BitInstall` → `Install`, `BitConsCross` → `ConsCross`, and `LpDefF`
+(the reading's level footprint) joins them.  Their module docstrings no
+longer describe binder numerals.  `Verify/Inductives/ClassGenAnnot` is
+`ClassGenSyntax`.
+
+**`Kernel/PropWhen`: 984 → 141 lines.**  The checker asks two things
+of a datum, `isNever` (`capsNeverZero`, the ι licence) and `isProp`, and
+no pin, memo key or comparison reads one at run time, so the canonical
+representation had no consumer: the datum is a plain
+`inductive PropWhen | never | ifAllZero (ps : List Name)`, exposed,
+self-contained, with `holds`, `isNever`, `paramsDefined`, `inter`,
+`bindZ` and the laws the substitution proofs read.  `isProp` is a match
+instead of `== ifAllZero []`.  The name order, sorted lists,
+`merge`/`canon`, the private representation, `toList`/`casesZ`,
+`eq_iff_holds` and every `import all ConLeche.Kernel.PropWhen` are gone.
+
+**`CheckMode.certs` is `verifiedChecks`.**  The two agreed at both
+constructors; `certs` and its bridging lemmas go, `certAtI` reads
+`verifiedChecks`.
+
+**The model's projection-function η laws.**  `EtaFamilyStored`'s slot
+clause is `caps.etaFields = 0`, `EtaLaw` is `x = ts.foldl app ctor`
+and `EtaCoherent`'s spine the parameters alone; `projSpines`,
+`etaFabArgsV(_eq)`, `projFnName` and its lemmas, `blockTablesFamFree`
+and `BlockCtorsCore`'s family-free conjunct, `WhnfNamesFree`'s
+projection-name conjunct and `whnf_nestOcc_zero` are deleted.
+`CapsOk`'s η half is still read (fieldless η families, `EtaSoundKit`)
+and stays, narrowed.  The installer's "projection-name family taken"
+test in `checkStructProjTable` (and its `F` twin) always passed — the
+front door refuses the names — and went with its inversion and
+simulation.
+
+**The cached `checkDeclC`'s value arms.**  The driver forwards to
+`checkDeclStepC` only axioms, inductive/basis/quotient blocks, the
+pinned `Nat`-operation definitions and the `reduce*` opaques; every
+theorem and every other definition or opaque goes through phase A's
+install half and phase B's `checkPending`, in both modes.  The three
+arms throw an internal error; `checkThmValC`, `checkDefnValC`,
+`checkOpaqueValC` go with their simulation, push-chain, skeleton and
+twin lemmas.  The step theorems keep their statements (vacuous at those
+arms); the capstone chain is untouched.
+
+**Smaller.**  `recRuleEtaOf`'s `!Name.isProjFnShape recName` held at
+every stored recursor; it goes, with the recursor-name argument of
+`recRuleEtaOf`/`recRuleBits`.  `PinGen/Dump`'s `quotePropWhen`/
+`quoteNameList` were dead.
+
+**The census** (`scripts/dead-census.py` on this tree, after the
+above): 126 owners in `Verify`/the rules tier.  Kept as stated results:
+`AgreeFloor`'s `trusted_agrees_*`, `BridgeDecl`'s `checkDeclsPure_datF`
+and its machinery, `MainC`'s `checkDecls_cover`, `ProjVerdict` (its
+docstring now names inference's `.proj` clause), the rules tier's
+derived δ rules (the maintainer's ruling-1 example).  Of the other 107,
+71 are deleted and 36 restored because a proof names them in a
+`rw`/`simp` list (mostly `Knot`'s `*_fold` rfl lemmas).  The
+`boolTrueShortcut` alternatives of the `Fueled`/`PairM` rewrite macros
+went with their lemmas.
+
+**Imports.**  `shake`: 6 imports removed under the #223 criterion,
+7 compensated removals allowlisted (two of them S5b's `GenClsData`
+imports); one `public import` demoted.
+
+**Verdicts** (one run, multi-threaded): e2e and arena fixture for
+fixture as before the lane; arena 90/92.
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342` before the lane (a2907eca2) | 410.404G | 559.868G |
+| S5a | 409.191G (−0.30 %) | 558.475G (−0.25 %) |
+
+57 977 / 131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free; `tests/arena.sh`
+green but `whitepaper/links-gate.sh` (W2's: 22 bad links, the master whitepaper's); pindump, layering, trust surface, quote gate, challenge, shake, the trusted and `--jobs` sweeps green; `overview-links` repointed
+(31 moved ranges; the cited text changed only by the `WellDenoted`
+rename and `PropWhen`'s definition); OVERVIEW's module-system
+paragraph and module map follow the datum and the directories.
+Lines: `ConLeche/` +6672 −10209 (371 files), `tests/` +454 −737,
+`pins/` regenerated.
+
+**Reported, not done.**
+- `checkConstantVal`/`checkConstantValC`/`installHeader(C)` return the
+  constant (and the cached one its type, `jty = cv.type`) unchanged;
+  they could return `Unit`, with the `jty` parameter of
+  `checkDefnValCI`/`checkOpaqueValCI` and their spec twins gone (about
+  150 sites, mostly `Verify/Cached`).
+- `etaSide`'s fvar-leaves clause still carries the disjunct the
+  projection-function fabrication produced; `capsOk_cons_recFresh`
+  could be `capsOk_cons_fresh`.
+- `Name.isProjFnShape`'s `.proj` arm (the front door's refusal of
+  `T.proj.i` names) is verdict-relevant and stays.
+- Prose that still describes the annotations: the `AnnotTerm` name
+  and many `Model`/`Semantics` docstrings ("validated-annotation
+  reading", "numeral slots"), `Semantics.lean`/`SetModel.lean`'s
+  module docs, `Cached/CheckerC.lean`'s `annotate` comments, the
+  `MainTheorem` text (which never changes).
+- `CLAUDE.md` lines 144 and 161 name the sealed `Kernel/PropWhen` and
+  its `import all` readers, which no longer exist (the maintainer's
+  file).  README line 95's paragraph describes the annotations (its
+  rotted link is repointed to the datum's definition).
