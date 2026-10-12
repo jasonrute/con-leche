@@ -56,6 +56,25 @@ theorem WellDenotedV_inst0 {e a : AnnotTerm} {ρ : Nat → V}
       WellDenotedV V (cons (interp V ρ a) ρ) e :=
   and_congr (WellDenoted_inst0 V ha.1) (AnnotValid_inst0 V ha.2)
 
+/-- A graded `let` has a graded value. -/
+theorem WellDenotedV.letE_val {v b : AnnotTerm} {ρ : Nat → V}
+    (h : WellDenotedV V ρ (.letE v b)) : WellDenotedV V ρ v := by
+  obtain ⟨h1, h2⟩ := h
+  rw [WellDenoted_letE] at h1
+  rw [AnnotValid_letE] at h2
+  exact ⟨h1.1, h2.1⟩
+
+/-- **ζ in the currency**: with its value graded, a `let` is graded
+exactly when its reduct is (`interp_zeta`: it interprets as the
+reduct at every valuation). -/
+theorem WellDenotedV_zeta {v b : AnnotTerm} {ρ : Nat → V}
+    (hv : WellDenotedV V ρ v) :
+    WellDenotedV V ρ (.letE v b) ↔ WellDenotedV V ρ (b.inst v) := by
+  rw [WellDenotedV_inst0 hv]
+  unfold WellDenotedV
+  rw [WellDenoted_letE, AnnotValid_letE]
+  exact ⟨fun h => ⟨h.1.2, h.2.2⟩, fun h => ⟨⟨hv.1, h.1⟩, ⟨hv.2, h.2⟩⟩⟩
+
 /-- **Weakening a hoisted fact under one more binder**, in the P
 currency: `WellDenoted.hoist_lift`'s mirror, and what `CtxOk.weakenTop`
 uses to move a leaf's fourth conjunct across the new head. -/

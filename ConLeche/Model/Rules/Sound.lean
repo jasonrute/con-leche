@@ -50,6 +50,7 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .betaGate hnev => Red.betaGate_sound hnev
   | _, _, _, .beta hta hd =>
     Red.beta_sound (infer_sound hin hta) (defeq_sound hin hd)
+  | _, _, _, .zeta => Red.zeta_sound
   | _, _, _, .delta h => Red.delta_sound hin h
   | _, _, _, .natLit h => Red.natLit_sound h
   | _, _, _, .strLit h => Red.strLit_sound h
@@ -136,6 +137,8 @@ theorem infer_sound (hin : RulesInputs V m φ) :
       (fun _ _ _ hbody => by subst hbody; exact Infer.lam_shape hbt)
       hchain (fun hn => infer_sound hin (hbtt hn))
       (fun hn => red_sound hin (hv hn)) hz
+  | _, _, _, _, .letE _ _ htv _ hb =>
+    Infer.letE_sound (fun hg => infer_sound hin (htv hg)) (infer_sound hin hb)
   | _, _, _, _, .app htf hw hta hd =>
     Infer.app_sound (infer_sound hin htf) (red_sound hin hw)
       (infer_sound hin hta) (defeq_sound hin hd)

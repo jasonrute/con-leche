@@ -630,6 +630,37 @@ theorem Infer.app_sound {g : Grade} {d : Nat}
     exact (sound_app V (hgfa ρ hρ).1 (hgaa ρ hρ).1 (hf2 ρ hρ)
       (ha2 ρ hρ) (hcod0 ρ hρ) (fun _ => hAty ρ hρ)).2
 
+/-- **`let`, by substitution**: the body's claim at its value is the
+`let`'s (`interp_zeta`).  The value's grading — part of the `let`'s —
+is the subject's at the io grade and the value's own full-grade
+inference at the full grade (the establishment motive concludes it).
+The type's sort and the value/type comparison are not consumed: no
+claim reads a `let`'s type, and the body is typed at the value itself. -/
+theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
+    (htv : g = .full → InferSemFull m φ d v tv)
+    (hb : InferSem m φ g d (body.instantiate1 v) t) :
+    InferSem m φ g d (.letE ty v body) t := by
+  refine InferSem.of_uniform ?_
+  intro Δa ea hfr hC hea hgr
+  obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
+  obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hfr hva hba
+  have hgv : Graded V Δa va := by
+    cases g with
+    | io => exact fun ρ hρ => (hgr rfl ρ hρ).letE_val
+    | full =>
+      obtain ⟨hfv, hsubv⟩ := letE_val_frame hfr
+      obtain ⟨-, -, -, -, hge, -, -⟩ := htv rfl hfv (hC.of_subset hsubv) hva
+      exact hge
+  have hgr' : g = .io → Graded V Δa (ba.inst va) := fun hg ρ hρ =>
+    (WellDenotedV_zeta (hgv ρ hρ)).mp (hgr hg ρ hρ)
+  obtain ⟨hft, htsub, hge, ta, hta, hgt, hmem⟩ :=
+    hb.apply hfr' (hC.of_subset hsub) hred hgr'
+  refine ⟨hft, fun l hl => hsub l (htsub l hl),
+    fun ρ hρ => (WellDenotedV_zeta (hgv ρ hρ)).mpr (hge ρ hρ), ta, hta, hgt,
+    fun ρ hρ => ?_⟩
+  rw [interp_zeta]
+  exact hmem ρ hρ
+
 /-- **The io licence** (the application's gated arm): the skipped
 membership from the subject's own hereditary app slot,
 `io_domain_transfer` + `piR_dom_unique` at a bit pinned positive by

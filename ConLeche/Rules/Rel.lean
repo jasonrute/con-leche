@@ -14,7 +14,7 @@ list; a binder opens with `.fvar d ty` at depth `d + 1`, exactly as the
 checker does):
 
 * `Red env d e e'` — one relation for `whnfCore` and the `whnf` loop: β
-  (gated and certified), ι with the stuck-major rescues, the projection
+  (gated and certified), ζ, ι with the stuck-major rescues, the projection
   rule, literal acceleration, δ, the two literal expansions, and the
   congruences the bodies recurse through (`appFn`, `projArg`).  `refl`
   and `trans` are constructors: a reduction is a denotation identity,
@@ -126,6 +126,14 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   | beta {d : Nat} {ty body a ta : Expr} {mb : BinderMeta} :
       Infer env .io d a ta → DefEq env d ta ty →
       Red env d (.app (.lam ty body mb) a) (body.instantiate1 a)
+  /-- **ζ** (official `whnf_core`'s `let` case): a `let` reduces to its
+  body at its value, by substitution, with no certificate — the
+  substitution is an identity at every valuation (`Red.zeta_sound`,
+  `Model/Rules/RedSound.lean`).  The checker's `whnfCore` takes this
+  step from task #342's switch (S4) on; until then its `letE` arm is a
+  positive error, the annotate pass having ζ-reduced every stored term. -/
+  | zeta {d : Nat} {ty v body : Expr} :
+      Red env d (.letE ty v body) (body.instantiate1 v)
   /-- **δ** (`whnfStep`, `Kernel/Core.lean`; also every unfolding of
   `lazyDeltaStep`): one definition unfolded
   at the head.  A theorem never unfolds (`unfoldDefinition`). -/
@@ -530,6 +538,21 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
       (body.lamPw = none → Red env (d + 1) btt (.sort v)) →
       (body.lamPw = none → Level.zeronessOf v = mb.pw) →
       Infer env g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb)
+  /-- **`let`** (official `infer_let`, by substitution as nanoda's: no
+  let-variable).  At the full grade the type's type reduces to a sort
+  and the value's full-grade type is definitionally equal to the type;
+  the io grade runs neither check (`g = .full →`), as official's
+  `infer_only`.  The body is inferred at its value.  The checker's
+  `letE` arms take this rule from task #342's switch (S4) on; until
+  then they are positive errors.  The witnesses `s u tv` are junk where
+  their premise is vacuous. -/
+  | letE {g : Grade} {d : Nat} {ty v body s tv t : Expr} {u : Level} :
+      (g = .full → Infer env .full d ty s) →
+      (g = .full → Red env d s (.sort u)) →
+      (g = .full → Infer env .full d v tv) →
+      (g = .full → DefEq env d tv ty) →
+      Infer env g d (body.instantiate1 v) t →
+      Infer env g d (.letE ty v body) t
   /-- **Application, certified** (`Kernel/Core.lean`; the io body at
   a possibly-zero datum, `:1367-1370`): the head's type reduces to a
   ∀, and the argument's type at the grade is definitionally equal to
