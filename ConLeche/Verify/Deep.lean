@@ -677,51 +677,12 @@ private theorem proofIrrel_shift (henv : EnvWF env)
   cases w' <;> try rfl
   case fvar => rw [shiftFrom_fvar]
 
-private theorem structEtaProjCerts_shift (henv : EnvWF env)
-    (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (T : Name)
-    (us' : List Level) {targs : List Expr} {b : Expr} (lpsT : List Name) :
-    ∀ (idxs : List Nat), (∀ x ∈ targs, WScoped d x) → WScoped d b →
-      structEtaProjCerts (pureFns mode env fuel) env (d + 1) T us'
-          (targs.map (shiftFrom p)) (shiftFrom p b) lpsT idxs =
-        structEtaProjCerts (pureFns mode env fuel) env d T us' targs b lpsT
-          idxs := by
-  intro idxs
-  induction idxs with
-  | nil => intro _ _; rfl
-  | cons i rest ihrest =>
-    intro hwtargs hwb
-    simp only [structEtaProjCerts]
-    cases hf : env.find? (projFnName T i) with
-    | none => rfl
-    | some ci =>
-      cases ci <;> try rfl
-      -- a tower-backed slot (task #175 S1) runs no certificate
-      case recInfo cvp mI rP rules =>
-      rw [List.length_map]
-      refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-      have htel : (cvp.type.instantiateLevelParams cvp.levelParams
-          us').hasFvar = false := by
-        rw [hasFvar_instantiateLevelParams]
-        exact (henv _ (find?_mem hf)).1
-      have h := iotaCerts_shift henv ih hpd false
-        (ty := cvp.type.instantiateLevelParams cvp.levelParams us')
-        (WScoped.of_not_hasFvar htel) (args := targs ++ [b]) (fun x hx => by
-          rcases List.mem_append.mp hx with hx | hx
-          · exact hwtargs x hx
-          · rw [List.mem_singleton.mp hx]; exact hwb)
-      rw [shiftFrom_eq_self_of_not_hasFvar htel, List.map_append] at h
-      simp only [List.map] at h
-      refine bind_congr_eq h ?_
-      intro bb _
-      refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-      exact ihrest hwtargs hwb
-
 private theorem structEtaCertWith_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {a b wtb : Expr}
     (hwa : WScoped d a) (hwb : WScoped d b) (hwwtb : WScoped d wtb) :
-    structEtaCertWith mode (pureFns mode env fuel) env (d + 1) (shiftFrom p a)
+    structEtaCertWith (pureFns mode env fuel) env (d + 1) (shiftFrom p a)
         (shiftFrom p b) (shiftFrom p wtb) =
-      structEtaCertWith mode (pureFns mode env fuel) env d a b wtb := by
+      structEtaCertWith (pureFns mode env fuel) env d a b wtb := by
   simp only [structEtaCertWith]
   rw [getAppFn_shiftFrom]
   cases hfa : a.getAppFn <;> try rfl
@@ -749,13 +710,6 @@ private theorem structEtaCertWith_shift (henv : EnvWF env)
       refine bind_congr_eq rfl ?_
       intro okl _
       refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-      refine bind_congr_eq
-        (ite_congr' (fun _ => rfl) (fun _ =>
-          structEtaProjCerts_shift henv ih hpd T us' cvT.levelParams
-            (List.range caps.etaFields)
-            (fun x hx => hwwtb.getAppArgs x hx) hwb)) ?_
-      intro b₂ _
-      refine ite_congr' (fun _ => ?_) (fun _ => rfl)
       have h2 := defEqList_shift henv ih hpd (as := a.getAppArgs.take caps.etaParams)
         (bs := wtb.getAppArgs)
         (fun x hx => hwa.getAppArgs x (List.mem_of_mem_take hx))
@@ -778,29 +732,6 @@ private theorem structEtaCertWith_shift (henv : EnvWF env)
           rcases List.mem_append.mp hy with hy | hy
           · exact hwwtb.getAppArgs y hy
           · rw [List.mem_singleton.mp hy]; exact hwb
-      -- task #137: the constructor-telescope certificate
-      have htelc : (cvc.type.instantiateLevelParams cvc.levelParams
-          us).hasFvar = false := by
-        rw [hasFvar_instantiateLevelParams]
-        exact (henv _ (find?_mem hfc)).1
-      have h4 := iotaCerts_shift henv ih hpd false
-        (ty := cvc.type.instantiateLevelParams cvc.levelParams us)
-        (WScoped.of_not_hasFvar htelc)
-        (args := wtb.getAppArgs ++ etaProjs env T us' wtb.getAppArgs b caps.etaFields)
-        (fun x hx => by
-          rcases List.mem_append.mp hx with hx | hx
-          · exact hwwtb.getAppArgs x hx
-          · exact hwprojs x hx)
-      rw [shiftFrom_eq_self_of_not_hasFvar htelc, List.map_append,
-        ← hlist] at h4
-      -- task #147: the certificate is mode-gated; the gate is the same
-      -- on both sides
-      refine bind_congr_eq ?_ ?_
-      · cases htt : mode.ttChecks
-        · rfl
-        · simpa using h4
-      intro b₄ _
-      refine ite_congr' (fun _ => ?_) (fun _ => rfl)
       have h3 := defEqList_shift henv ih hpd (as := a.getAppArgs.drop caps.etaParams)
         (bs := etaProjs env T us' wtb.getAppArgs b caps.etaFields)
         (fun x hx => hwa.getAppArgs x (List.mem_of_mem_drop hx))
@@ -821,9 +752,9 @@ private theorem etaCtorShape_shiftFrom {env : Env} (p : Nat) (e : Expr) :
 private theorem structEtaCert_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {a b : Expr}
     (hwa : WScoped d a) (hwb : WScoped d b) :
-    structEtaCert mode (pureFns mode env fuel) env (d + 1) (shiftFrom p a)
+    structEtaCert (pureFns mode env fuel) env (d + 1) (shiftFrom p a)
         (shiftFrom p b) =
-      structEtaCert mode (pureFns mode env fuel) env d a b := by
+      structEtaCert (pureFns mode env fuel) env d a b := by
   simp only [structEtaCert]
   rw [etaCtorShape_shiftFrom]
   refine ite_congr' (fun _ => ?_) (fun _ => rfl)
@@ -921,9 +852,9 @@ private theorem etaCert_shift (henv : EnvWF env)
 private theorem stuckIrrel_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {a b : Expr}
     (hwa : WScoped d a) (hwb : WScoped d b) :
-    stuckIrrel mode (pureFns mode env fuel) env (d + 1) (shiftFrom p a)
+    stuckIrrel (pureFns mode env fuel) env (d + 1) (shiftFrom p a)
         (shiftFrom p b) =
-      stuckIrrel mode (pureFns mode env fuel) env d a b := by
+      stuckIrrel (pureFns mode env fuel) env d a b := by
   simp only [stuckIrrel]
   refine bind_congr_eq (structEtaCert_shift henv ih hpd hwa hwb) ?_
   intro b₃ _
@@ -999,9 +930,9 @@ private theorem projCertAt_shift (henv : EnvWF env) (ih : ShiftClaims mode env f
 private theorem majorToCtor_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (recName : Name)
     (rules : List RecRule) {major : Expr} (hwmaj : WScoped d major) :
-    majorToCtor mode (pureFns mode env fuel) env (d + 1) recName rules
+    majorToCtor (pureFns mode env fuel) env (d + 1) recName rules
         (shiftFrom p major) =
-      (majorToCtor mode (pureFns mode env fuel) env d recName rules major).map
+      (majorToCtor (pureFns mode env fuel) env d recName rules major).map
         (shiftFrom p) := by
   simp only [majorToCtor]
   rw [isCtorApp_shiftFrom]
@@ -1138,9 +1069,6 @@ private theorem majorToCtor_shift (henv : EnvWF env)
               rw [wscopedB_shiftFrom _ hpd, looseBVarsBounded_shiftFrom,
                 fvarLeaves_all_contains_shiftFrom hpd hwfab hwmaj]
               refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-              refine bind_rel_eq _
-                (structEtaCertWith_shift henv ih hpd hwfab hwmaj hwtmaj) ?_
-              intro bb _
               exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
             · -- the `And`-only rescue (or no rescue)
               refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
@@ -1222,7 +1150,7 @@ private theorem majorToCtor_shift (henv : EnvWF env)
 `whnfPres_WScoped` proof, factored for the bisimulation). -/
 theorem iotaRec_WScoped (henv : EnvWF env)
     {d : Nat} {e e'' : Expr}
-    (h : iotaRec mode (pureFns mode env fuel) env d e = .ok (some e''))
+    (h : iotaRec (pureFns mode env fuel) env d e = .ok (some e''))
     (hw : WScoped d e) : WScoped d e'' := by
   obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj,
     cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
@@ -1405,9 +1333,9 @@ private theorem iotaIndexOk_shift (henv : EnvWF env)
 private theorem prepareMajor_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (recName : Name)
     (rules : List RecRule) {major : Expr} (hwmaj : WScoped d major) :
-    prepareMajor mode (pureFns mode env fuel) env (d + 1) recName rules
+    prepareMajor (pureFns mode env fuel) env (d + 1) recName rules
         (shiftFrom p major) =
-      (prepareMajor mode (pureFns mode env fuel) env d recName rules major).map
+      (prepareMajor (pureFns mode env fuel) env d recName rules major).map
         (shiftFrom p) := by
   simp only [prepareMajor]
   by_cases hk : recRuleK rules = true
@@ -1435,8 +1363,8 @@ private theorem prepareMajor_shift (henv : EnvWF env)
 private theorem iotaRec_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {e : Expr}
     (hwe : WScoped d e) :
-    iotaRec mode (pureFns mode env fuel) env (d + 1) (shiftFrom p e) =
-      (iotaRec mode (pureFns mode env fuel) env d e).map
+    iotaRec (pureFns mode env fuel) env (d + 1) (shiftFrom p e) =
+      (iotaRec (pureFns mode env fuel) env d e).map
         (Option.map (shiftFrom p)) := by
   simp only [iotaRec]
   rw [getAppFn_shiftFrom]
@@ -1595,12 +1523,12 @@ private theorem whnfCore_step (henv : EnvWF env)
     intro f' hf'
     have hwf' : WScoped d f' := whnfCore_WScoped henv fuel hf' hw.1
     have hiota : ∀ (f'' : Expr), WScoped d f'' →
-        (iotaRec mode (pureFns mode env fuel) env (d + 1)
+        (iotaRec (pureFns mode env fuel) env (d + 1)
             (.app (shiftFrom p f'') (shiftFrom p a)) >>= fun o =>
           match o with
           | some e'' => (pureFns mode env fuel).whnfCore c (d + 1) e''
           | none => pure (.app (shiftFrom p f'') (shiftFrom p a))) =
-        ((iotaRec mode (pureFns mode env fuel) env d (.app f'' a) >>= fun o =>
+        ((iotaRec (pureFns mode env fuel) env d (.app f'' a) >>= fun o =>
           match o with
           | some e'' => (pureFns mode env fuel).whnfCore c d e''
           | none => pure (.app f'' a)).map (shiftFrom p)) := by
@@ -2583,8 +2511,8 @@ private theorem defeqStuck_shift (henv : EnvWF env)
         (shiftFrom p wb) =
       defeqStuck mode (pureFns mode env fuel) env d wa wb := by
   unfold defeqStuck
-  have hstuck : stuckIrrel mode (pureFns mode env fuel) env (d + 1) (shiftFrom p wa)
-      (shiftFrom p wb) = stuckIrrel mode (pureFns mode env fuel) env d wa wb :=
+  have hstuck : stuckIrrel (pureFns mode env fuel) env (d + 1) (shiftFrom p wa)
+      (shiftFrom p wb) = stuckIrrel (pureFns mode env fuel) env d wa wb :=
     stuckIrrel_shift henv ih hpd hwwa hwwb
   cases wa <;> cases wb <;>
     try (first

@@ -281,19 +281,6 @@ second spine. -/
       (∀ x ∈ asa, WellDenotedV V ρ x) → (∀ x ∈ bsa, WellDenotedV V ρ x) →
       asa.map (interp V ρ) = bsa.map (interp V ρ)
 
-/-- **`EtaProjCerts`' motive**: each certified field slot is a stored
-projection function whose telescope the type's arguments and the
-stuck side fit — `CertsSem` at every listed index. -/
-@[expose] def EtaProjCertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (d : Nat) (T : Name) (us' : List Level) (targs : List Expr) (b : Expr)
-    (lpsT : List Name) (idxs : List Nat) : Prop :=
-  ∀ i ∈ idxs, ∃ (cvp : ConstantVal) (mI rP : Nat) (rules : List RecRule),
-    env.find? (projFnName T i) = some (.recInfo cvp mI rP rules) ∧
-    cvp.levelParams = lpsT ∧
-    (cvp.type.stripPis (targs.length + 1)).isSome = true ∧
-    CertsSem m φ d false (cvp.type.instantiateLevelParams cvp.levelParams us')
-      (targs ++ [b])
-
 /-! ### The unconditional motives weaken to the conditional ones -/
 
 theorem RedSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}

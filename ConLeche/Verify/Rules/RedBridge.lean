@@ -165,9 +165,9 @@ theorem projCertAt_bridge (hd : DefEqBridge env fuel) (hio : InferIOBridge env f
   exact ⟨cvC, nP, nF, hc, iotaCerts_bridge hd hio hcerts⟩
 
 /-- `majorToCtor` ⇒ `Red.refl` or one of the three rescues
-(`majorToCtor_inv`; the rescue's proof-irrelevance / structure-η
+(`majorToCtor_inv`; the K and `And` rescues' proof-irrelevance
 certificate becomes the `DefEq fab major` premise through
-`proofIrrel_bridge` / `structEtaCertWith_bridge`).
+`proofIrrel_bridge`).
 
 **`hrec`**: the three `Red.rescue*` rules open with `env.find? recName
 = some (.recInfo cv mI rP [rl])` — the rule bits `rl.k`/`rl.eta` are
@@ -187,26 +187,14 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
     tmaj₀, tmaj, T, us₀, ust, cvT, caps, rfl, hfj, hpi, hfT, hinf, hwh, hfn, harm⟩
   · exact .refl
   rcases harm with ⟨hk, hlps, hle, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩ |
-    ⟨heta, hnz, hlen, hlps, rfl, hcert⟩ |
+    ⟨heta, hnz, hlen, hlps, rfl, hguards⟩ |
     ⟨rfl, hlen, hlps, hslots, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩
   · exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlps hle rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
       (inferTypeIO_bridge hio htf) (hd hdq) (proofIrrel_bridge hw hio hpirr)
-  · -- the η certificate's run at `(fab, major, tmaj)`: its two name
-    -- guards and, at a projection-function family, its per-field
-    -- telescope certificates (`structEtaCertWith_projCerts_bridge`)
-    obtain ⟨c₂, us₂, -, -, -, T₂, us₂', cvT₂, caps₂, hfn₂, -, -, hwfn₂, hfT₂, -,
-      hctor₂, hresT₂, hresc₂, -⟩ := structEtaCertWith_inv hcert
-    rw [hfn] at hwfn₂
-    obtain ⟨rfl, rfl⟩ := Expr.const.inj hwfn₂
-    rw [hfT] at hfT₂
-    obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj hfT₂)
-    have hcf : c₂ = caps.etaCtor := by
-      rw [ConLeche.Expr.getAppFn_mkAppN] at hfn₂
-      exact (Expr.const.inj hfn₂).1.symm
-    refine .rescueEta hfr heta hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh)
-      hfn hlen hlps hnz rfl hsc1 hsc2 hsc3 hresT₂ (by rw [← hcf]; exact hresc₂) ?_
-    exact structEtaCertWith_projCerts_bridge hd hio hfn hfT hcert
+  · obtain ⟨hresT, hresc, htow⟩ := hguards
+    exact .rescueEta hfr heta hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh)
+      hfn hlen hlps hnz rfl hsc1 hsc2 hsc3 hresT hresc htow
   · exact .rescueAnd hfr hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlen hlps hslots rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)
       (inferTypeIO_bridge hio htf) (hd hdq) (proofIrrel_bridge hw hio hpirr)

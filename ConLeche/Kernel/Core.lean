@@ -13,7 +13,7 @@ Every core function is written **once**, as a non-recursive *body*
 parameterized over a record of the mutually recursive entry points
 (`CoreFns`) and polymorphic in the monad.  All recursion is routed
 through the record — bodies never call themselves, and the few helpers
-that do recurse (`iotaCerts`, `defEqList`, `structEtaProjCerts`) do so
+that do recurse (`iotaCerts`, `defEqList`) do so
 structurally on a list.  Fuel lives only in the *knots* that tie the
 record: the pure knot (`ConLeche.Kernel.TypeChecker`) instantiates the
 bodies at `CheckM` and is the verification's subject; the cached knot
@@ -390,35 +390,8 @@ def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | _ => pure false
   | _ => pure false
 
-/-- The per-projection telescope certificates of a structural eta
-certification at a **projection-function** slot family: for every field
-index, the installed projection function's
-telescope is certified against the type's arguments and the stuck
-side.  A tower-backed family (the direct install's table, task #175
-S1) has no per-field telescope and needs no certificate: its η law
-(`TowerEtaLaw`) is keyed on the family's typing of the stuck side,
-which the caller already holds. -/
-def structEtaProjCerts (r : CoreFns m) (env : Env) (depth : Nat)
-    (T : Name) (us' : List Level) (targs : List Expr) (b : Expr)
-    (lpsT : List Name) : List Nat → m Bool
-  | [] => pure true
-  | i :: rest => do
-    match env.find? (projFnName T i) with
-    | some (.recInfo cvp _ _ _) =>
-      if cvp.levelParams = lpsT ∧
-          (cvp.type.stripPis (targs.length + 1)).isSome = true then
-        if ← iotaCerts r env depth false
-            (cvp.type.instantiateLevelParams cvp.levelParams us')
-            (targs ++ [b]) then
-          structEtaProjCerts r env depth T us' targs b lpsT rest
-        else pure false
-      else pure false
-    | _ => pure false
-
-/-- The structure-eta certificate against a *given* weak-head-normal
-type of the stuck side (callers that already reduced it — the
-stuck-major rescue — pass their own copy, so the certificate's facts
-are in terms of that expression). -/
+/-- The structure-eta certificate against the weak-head-normal type
+`wtb` of the stuck side `b` (`structEtaCert` below reduces it). -/
 def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
     (a b wtb : Expr) : m Bool := do
   match a.getAppFn with
@@ -441,44 +414,19 @@ def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
                 -- `EnvWF`'s `IndCapsWF` clause: established at the
                 -- block's install, read by the η row from the
                 -- invariant
-                -- the slot discipline (task #175 W4c): one entry kind
-                (towerSlotsAll env T caps.etaFields ||
-                  recSlotsAll env T caps.etaFields) = true then
+                -- the slot discipline: every field slot has a
+                -- projection-table entry (a fieldless family trivially)
+                towerSlotsAll env T caps.etaFields = true then
               if ← liftFueled "level comparison"
                   (Level.isEquivList us us') then
                 -- no certificate on the type application: `wtb` is the
                 -- reduced type of `b`, a type, so its spine fits the
                 -- former's telescope (task #342 L11b)
-                -- the per-slot certificates are the projection-function
-                -- kind's; a tabled family has none (task #175 S1)
-                if ← (if towerSlotsAll env T caps.etaFields then pure true
-                    else structEtaProjCerts r env depth T us'
-                      wtb.getAppArgs b cvT.levelParams
-                      (List.range caps.etaFields)) then
-                  if ← defEqList r env depth
-                      (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
-                    -- synthetic-spine certification (task #137): the
-                    -- fabricated constructor application is certified
-                    -- against the constructor's own telescope, here
-                    -- rather than at the callers, so that both
-                    -- consumers get it (`majorToCtor`'s eta rescue ran
-                    -- it already, task #71; `defeq`'s `structEtaCert`
-                    -- did not).  TT-lane check (task #147): skipped
-                    -- unless `mode.ttChecks`.
-                    if ← (if mode.ttChecks then
-                        iotaCerts r env depth false
-                          (cvc.type.instantiateLevelParams
-                            cvc.levelParams us)
-                          (wtb.getAppArgs ++
-                            etaProjs env T us' wtb.getAppArgs b
-                              caps.etaFields)
-                      else pure true) then
-                      defEqList r env depth
-                        (a.getAppArgs.drop caps.etaParams)
-                        (etaProjs env T us' wtb.getAppArgs b
-                          caps.etaFields)
-                    else pure false
-                  else pure false
+                if ← defEqList r env depth
+                    (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
+                  defEqList r env depth
+                    (a.getAppArgs.drop caps.etaParams)
+                    (etaProjs env T us' wtb.getAppArgs b caps.etaFields)
                 else pure false
               else pure false
             else pure false
@@ -492,9 +440,7 @@ def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
 `a` is a fully applied constructor of a structure whose recorded
 capabilities include eta, `b` inhabits that structure type, the
 constructor's parameters are the type's arguments, and every field is
-the corresponding installed projection function applied to `b`.  The
-type application is additionally certified against the type former's
-telescope (the memberships the stored eta law consumes).  The
+the corresponding projection (`.proj T j b`) of `b`.  The
 parameter and field counts the certificate works at are the
 capability RECORD's, which is what the stored law speaks; the
 constructor's own counts gate the redex's shape and nothing else
@@ -510,7 +456,7 @@ def structEtaCert (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     -- task #172 B4: io grade
     let tb ← r.inferIO depth b
     let wtb ← r.whnf depth tb
-    structEtaCertWith mode r env depth a b wtb
+    structEtaCertWith r env depth a b wtb
   else pure false
 
 /-- Unit-likeness certification: `a` and `b` inhabit the same stored
@@ -575,8 +521,8 @@ def etaCert (mode : CheckMode) (r : CoreFns m) (_env : Env) (depth : Nat)
 in either direction, unit-likeness, else proof irrelevance. -/
 def stuckIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     m Bool := do
-  if ← structEtaCert mode r env depth a b then pure true
-  else if ← structEtaCert mode r env depth b a then pure true
+  if ← structEtaCert r env depth a b then pure true
+  else if ← structEtaCert r env depth b a then pure true
   else if ← structUnitCert r env depth a b then pure true
   else proofIrrel r depth a b
 
@@ -688,13 +634,13 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                   -- no certificate on the fabricated spine: the major
                   -- is the fabrication by the family's η law, and the
                   -- fabrication fits the η constructor's telescope by
-                  -- the coherence law (task #342 L11b).  The η
-                  -- certificate's run is kept for its guards (the
-                  -- reserved names, and a projection-function family's
-                  -- per-field certificates); its comparisons are
-                  -- reflexive here.
-                  if ← structEtaCertWith mode r env depth fab major
-                      tmaj then
+                  -- the coherence law (task #342 L11b).  The guards
+                  -- are the ones the η law is keyed on: neither the
+                  -- family nor its constructor a reserved basis name,
+                  -- every field slot a projection-table entry.
+                  if reservedBasisNames.contains T = false ∧
+                      reservedBasisNames.contains caps.etaCtor = false ∧
+                      towerSlotsAll env T caps.etaFields = true then
                     pure fab
                   else pure major
                 else pure major
@@ -828,7 +774,7 @@ official order fabricates `Eq.refl` from the type (`a ≡ b` by the
 def prepareMajor (r : CoreFns m) (env : Env) (depth : Nat)
     (recName : Name) (rules : List RecRule) (major : Expr) : m Expr := do
   if recRuleK rules then
-    let majorK ← majorToCtor mode r env depth recName rules major
+    let majorK ← majorToCtor r env depth recName rules major
     if isCtorApp env majorK then
       litMajorToCtor r env depth majorK
     else
@@ -836,7 +782,7 @@ def prepareMajor (r : CoreFns m) (env : Env) (depth : Nat)
   else
     let major₀ ← r.whnf depth major
     let major₁ ← litMajorToCtor r env depth major₀
-    majorToCtor mode r env depth recName rules major₁
+    majorToCtor r env depth recName rules major₁
 
 /-- One iota step: the expression is a stored recursor applied to
 exactly its telescope (params, motives, minors, indices, major), the
@@ -875,7 +821,7 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
       if args.length = mI + 1 ∧ us.length = cv.levelParams.length then
         -- the major's preparation (K rescue / whnf / literal / eta) in
         -- the official order — `prepareMajor`'s docstring
-        let major ← prepareMajor mode r env depth c rules
+        let major ← prepareMajor r env depth c rules
           (args.getD mI (.bvar 0))
         match major.getAppFn with
         | .const cj usj =>
@@ -1059,7 +1005,7 @@ def whnfCoreBody (r : CoreFns m) (env : Env) : Bool → Nat → Expr → m Expr 
         -- Task #342 S0: uniform β, no certificate
         r.whnfCore cheap depth (body.instantiate1 a)
       | f' => do
-        match ← iotaRec mode r env depth (.app f' a) with
+        match ← iotaRec r env depth (.app f' a) with
         | some e'' => r.whnfCore cheap depth e''
         | none => pure (.app f' a)
     | .proj sn i pe => do
@@ -1696,24 +1642,24 @@ def defeqStuck (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | .strVal st, .const cO usO =>
       if cO = stringOfListName ∧ usO = [] ∧ strLitSupported env then
         r.defeq depth (strLitToConstructor st) (.app (.const cO usO) x)
-      else stuckIrrel mode r env depth (.lit (.strVal st)) (.app (.const cO usO) x)
-    | _, _ => stuckIrrel mode r env depth (.lit l) (.app f x)
+      else stuckIrrel r env depth (.lit (.strVal st)) (.app (.const cO usO) x)
+    | _, _ => stuckIrrel r env depth (.lit l) (.app f x)
   | .app f x, .lit l =>
     match l, f with
     | .strVal st, .const cO usO =>
       if cO = stringOfListName ∧ usO = [] ∧ strLitSupported env then
         r.defeq depth (.app (.const cO usO) x) (strLitToConstructor st)
-      else stuckIrrel mode r env depth (.app (.const cO usO) x) (.lit (.strVal st))
-    | _, _ => stuckIrrel mode r env depth (.app f x) (.lit l)
+      else stuckIrrel r env depth (.app (.const cO usO) x) (.lit (.strVal st))
+    | _, _ => stuckIrrel r env depth (.app f x) (.lit l)
   | .fvar i ty₁, .fvar j ty₂ =>
     if i == j then pure true
-    else stuckIrrel mode r env depth (.fvar i ty₁) (.fvar j ty₂)
+    else stuckIrrel r env depth (.fvar i ty₁) (.fvar j ty₂)
   | .const n us, .const n' us' =>
     if n = n' then do
       if ← liftFueled "level comparison" (Level.isEquivList us us') then
         pure true
-      else stuckIrrel mode r env depth (.const n us) (.const n' us')
-    else stuckIrrel mode r env depth (.const n us) (.const n' us')
+      else stuckIrrel r env depth (.const n us) (.const n' us')
+    else stuckIrrel r env depth (.const n us) (.const n' us')
   | .app f₁ a₁, .app f₂ a₂ => do
     -- Stuck applications: **spine-wise** congruence (the official
     -- kernel's `is_def_eq_app`, lean4lean's `isDefEqApp`, nanoda's
@@ -1726,20 +1672,20 @@ def defeqStuck (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
           (Expr.app f₂ a₂).getAppFn then
         if ← defEqList r env depth (Expr.app f₁ a₁).getAppArgs
             (Expr.app f₂ a₂).getAppArgs then pure true
-        else stuckIrrel mode r env depth (.app f₁ a₁) (.app f₂ a₂)
-      else stuckIrrel mode r env depth (.app f₁ a₁) (.app f₂ a₂)
-    else stuckIrrel mode r env depth (.app f₁ a₁) (.app f₂ a₂)
+        else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
+      else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
+    else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
   -- One-sided λ: eta, else the stuck fallbacks.  (Two λs never get
   -- here: `quickDefEq` decides them.)
   | .lam ty₁ body₁ m₁, b₂ => do
     if ← etaCert mode r env depth ty₁ body₁ b₂ then pure true
-    else stuckIrrel mode r env depth (.lam ty₁ body₁ m₁) b₂
+    else stuckIrrel r env depth (.lam ty₁ body₁ m₁) b₂
   | a₁, .lam ty₂ body₂ m₂ => do
     if ← etaCert mode r env depth ty₂ body₂ a₁ then pure true
-    else stuckIrrel mode r env depth a₁ (.lam ty₂ body₂ m₂)
+    else stuckIrrel r env depth a₁ (.lam ty₂ body₂ m₂)
   -- Distinct whnf-stuck head symbols: only the stuck fallbacks can
   -- equate them; `false` is always sound.
-  | e₁, e₂ => stuckIrrel mode r env depth e₁ e₂
+  | e₁, e₂ => stuckIrrel r env depth e₁ e₂
 
 /-- **The definitional-equality body** (the official kernel's
 `is_def_eq_core`, clause for clause except one deliberate reordering):

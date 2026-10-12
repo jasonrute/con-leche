@@ -85,10 +85,10 @@ theorem red_sound (hin : RulesInputs V m φ) :
       (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
       (defeq_sound hin hpi)).cond
   | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
-      hfab hws hb hlv' hresT hresC hproj =>
+      hfab hws hb hlv' hresT hresC htow =>
     (Red.rescueEta_sound hin hrec heta hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) hthead hlen hlv hnz hfab hws hb hlv' hresT hresC
-      (fun hno => etaProjCerts_sound hin (hproj hno))).cond
+      htow).cond
 
 theorem defeq_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
@@ -119,10 +119,9 @@ theorem defeq_sound (hin : RulesInputs V m φ) :
       (defeq_sound hin hty) (defeq_sound hin hbody) (infer_sound hin ht₁)
       (defeq_sound hin htB)
   | _, _, _, .structEta htb hwtb hhead hctor hlen hthead hind heta hetaCtor hresT
-      hresc htlen hlv hlps hslots hus hproj hparams hfields =>
+      hresc htlen hlv hlps hslots hus hparams hfields =>
     DefEq.structEta_sound hin (infer_sound hin htb) (red_sound hin hwtb) hhead
       hctor hlen hthead hind heta hetaCtor hresT hresc htlen hlv hlps hslots hus
-      (fun hno => etaProjCerts_sound hin (hproj hno))
       (defEqList_sound hin hparams) (defEqList_sound hin hfields)
 
 theorem defEqLams_sound (hin : RulesInputs V m φ) :
@@ -179,16 +178,6 @@ theorem defEqList_sound (hin : RulesInputs V m φ) :
   | _, _, _, .nil => DefEqList.nil_sound
   | _, _, _, .cons h hs =>
     DefEqList.cons_sound (defeq_sound hin h) (defEqList_sound hin hs)
-
-theorem etaProjCerts_sound (hin : RulesInputs V m φ) :
-    ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
-      {lpsT : List Name} {idxs : List Nat},
-      EtaProjCerts env d T us' targs b lpsT idxs →
-      EtaProjCertsSem m φ d T us' targs b lpsT idxs
-  | _, _, _, _, _, _, _, .nil => EtaProjCerts.nil_sound
-  | _, _, _, _, _, _, _, .cons hf hlps hstrip hcerts hrest =>
-    EtaProjCerts.cons_sound hf hlps hstrip (certs_sound hin hcerts)
-      (etaProjCerts_sound hin hrest)
 
 end
 

@@ -42,8 +42,8 @@ startup and threaded as configuration, never re-read at runtime.
 **The mode is the cores' only parameter** (task #185, 2026-09-06).
 The configuration record that stood between the mode and the
 shipped cores from task #172 B2 to task #185 is gone: every field it
-carried is a function on `CheckMode` below (`ttChecks`,
-`verifiedChecks`, `certs`), each a `match` on
+carried is a function on `CheckMode` below (`verifiedChecks`,
+`certs`), each a `match` on
 the two constructors, so each read reduces by `rfl` at either mode —
 the record's `rfl`-eliminability argument, at the enum itself.
 
@@ -55,24 +55,15 @@ inductive CheckMode where
   | trusted
   deriving DecidableEq, Repr, Inhabited
 
-/-- Are the seven TT-lane checks enabled?  **Constantly `false`**: the
-declarative verification lane they served is retired (task #148).
-The gated call sites are kept, statically unreachable, so
-that the checks themselves survive as reviewed code and the accessor
-stays the single place a future lane would turn them back on. -/
-def CheckMode.ttChecks : CheckMode → Bool
-  | _ => false
-
 /-- Are the *verified* mode's extra checks enabled — the checks the
 model lane wants and the trusted lane must not run, because they are
 needed for the soundness *proof* rather than for soundness?  The
 second accessor the kernel branches on
 (task #152: the λ-rule's codomain-sort check, `inferBody`'s `.lam`
 clause; since task #342 also the η body-type comparison and the λ/λ
-body-type comparison of `defeqLams`).  This is deliberately **not**
-`ttChecks`: these are premises of the rules tier (`ConLeche/Rules`), so
-they must run at `.verified`; and they are checks the reference
-kernel does not run, so they must not run at `.trusted`. -/
+body-type comparison of `defeqLams`).  These are premises of the
+rules tier (`ConLeche/Rules`), so they must run at `.verified`; and
+they are checks the reference kernel does not run, so they must not run at `.trusted`. -/
 def CheckMode.verifiedChecks : CheckMode → Bool
   | .trusted => false
   | _ => true
@@ -82,9 +73,8 @@ retirement, 2026-09-06): the work the checker does *only* so the
 soundness proof can consume it, and that the reference kernel does not
 do — the telescope certificates and the canonical-index comparison of
 ι where the ι licence does not hold (`iotaRecI`), the plain-rule
-parameter re-comparison, the per-projection certificates of structure
-η (`structEtaCertWithI`), and the K/η rescue's proof-irrelevance
-certificate (`majorToCtorI`).  Read through
+parameter re-comparison, and the K rescue's telescope and
+proof-irrelevance certificates (`majorToCtorI`).  Read through
 `ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI`; `true` runs
 them, `false` (the trusted mode) skips them outright.
 

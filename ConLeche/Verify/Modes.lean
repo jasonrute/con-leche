@@ -9,7 +9,7 @@ public section
 
 `CheckMode`'s functions (`ConLeche/Kernel/Env.lean`) are the cores'
 whole configuration: every read a shipped core makes is one of
-`verifiedChecks`, `certs`, `ttChecks`, each a `match` on the enum.
+`verifiedChecks` and `certs`, each a `match` on the enum.
 These are their values at the two constructors — all `rfl` — plus the
 conditional forms the mode-parametric simulation tower
 (`ConLeche/Verify/Cached/*`) consumes under its

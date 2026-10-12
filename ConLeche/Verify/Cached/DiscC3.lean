@@ -24,7 +24,7 @@ variable {env : Env} {f : Nat}
 
 private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
     (rules : List RecRule) (major : Expr) :
-    majorToCtor mode (fueledFns mode env) env d recName rules major =
+    majorToCtor (fueledFns mode env) env d recName rules major =
     (if isCtorApp env major then pure major else
     match rules with
     | [rl] =>
@@ -78,9 +78,10 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
                   if fab.wscopedB d && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    structEtaCertWith mode (fueledFns mode env) env d fab major
-                        tmaj >>= fun r =>
-                    if r then pure fab
+                    if reservedBasisNames.contains T = false ∧
+                        reservedBasisNames.contains caps.etaCtor = false ∧
+                        towerSlotsAll env T caps.etaFields = true then
+                      pure fab
                     else pure major
                   else pure major
                 else pure major
@@ -130,7 +131,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
     SimC mode env s₀ (RelEC d)
       (majorToCtorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
-      (majorToCtor mode (fueledFns mode env) env d recName rules major) := by
+      (majorToCtor (fueledFns mode env) env d recName rules major) := by
   obtain rfl := CheckMode.eq_verified hμ
   show SimC .verified env s₀ (RelEC d)
     (pure (isCtorAppC (mkFEnv env) i) >>=
@@ -206,9 +207,10 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       Expr.leafGuard fab i) >>=
                       fun g =>
                     if g then
-                      structEtaCertWithI .verified (coreKnotI .verified (mkFEnv env) f)
-                          (mkFEnv env) d fab i tmaj >>= fun r =>
-                      if r then pure fab
+                      if reservedBasisNames.contains T = false ∧
+                          reservedBasisNames.contains caps.etaCtor = false ∧
+                          (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
+                        pure fab
                       else pure i
                     else pure i
                   else pure i
@@ -258,7 +260,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
           | _ => pure i
         | _ => pure i
       | _ => pure i)
-    (majorToCtor .verified (fueledFns .verified env) env d recName rules major)
+    (majorToCtor (fueledFns .verified env) env d recName rules major)
   rw [majorToCtor_unfold]
   refine SimC.pureB ?_
   obtain rfl := hden
@@ -462,18 +464,10 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           have hwfab := Expr.WScoped.of_wscopedB
                             (by simp only [Bool.and_eq_true] at hguard
                                 exact hguard.1.1)
-                          refine SimC.bind (structEtaCertWithC_sim hμ ih
-                            henv hs₅ hQfab' hden rfl
-                            hwfab hmaj hwtmaj)
-                            (fun s₆ r r' hs₆ hPr => ?_)
-                          obtain rfl : r = r' := hPr
-                          cases r with
-                          | true =>
-                            simp only [↓reduceIte]
-                            exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
-                          | false =>
-                            simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₆ ⟨hden, hmaj⟩
+                          rw [towerSlotsAllF_mkFEnv]
+                          split
+                          · exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
+                          · exact SimC.pure hs₅ ⟨hden, hmaj⟩
                         · exact SimC.pure hs₅ ⟨hden, hmaj⟩
                       · exact SimC.pure hs₂r ⟨hden, hmaj⟩
                     | bvar k =>
@@ -873,7 +867,7 @@ theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
     SimC mode env s₀ (RelEC d)
       (prepareMajorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
-      (prepareMajor mode (fueledFns mode env) env d recName rules major) := by
+      (prepareMajor (fueledFns mode env) env d recName rules major) := by
   unfold prepareMajorI prepareMajor
   by_cases hk : recRuleK rules = true
   · rw [ite_eq_left hk, ite_eq_left hk]
@@ -894,16 +888,16 @@ theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
     obtain ⟨hd₂, hw₂⟩ := hP₂
     exact majorToCtorC_sim hμ ih henv hs₂ hd₂ hw₂
 
-private theorem iotaRec_unfold (mi : CheckMode) (env : Env) (d : Nat)
+private theorem iotaRec_unfold (env : Env) (d : Nat)
     (e : Expr) :
-    iotaRec mi (fueledFns mode env) env d e =
+    iotaRec (fueledFns mode env) env d e =
     (match e.getAppFn with
     | .const c us =>
       match env.find? c with
       | some (.recInfo cv mI rP rules) =>
         if e.getAppArgs.length = mI + 1 ∧
             us.length = cv.levelParams.length then
-          prepareMajor mi (fueledFns mode env) env d c rules
+          prepareMajor (fueledFns mode env) env d c rules
               (e.getAppArgs.getD mI (.bvar 0)) >>=
             fun major =>
           match major.getAppFn with
@@ -973,11 +967,11 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelOC d)
       (iotaRecI mi (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (iotaRec mi (fueledFns mode env) env d ex) := by
+      (iotaRec (fueledFns mode env) env d ex) := by
   obtain rfl := CheckMode.eq_verified hμ
   obtain rfl := CheckMode.eq_verified hmi
   unfold iotaRecI
-  rw [iotaRec_unfold .verified]
+  rw [iotaRec_unfold]
   refine SimC.pureB ?_
   obtain rfl := hden
   have hden : RelC i i := rfl

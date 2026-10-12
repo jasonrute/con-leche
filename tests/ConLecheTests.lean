@@ -48,13 +48,6 @@ each naming the theorem family that depends on it. -/
 -- `Inhabited` default and `Main.lean`'s `Args.mode`.
 #guard (default : CheckMode) == .verified
 
--- The seven-check gate is OFF at every mode (task #148 T7b).  The
--- gated call sites are kept, statically unreachable; these guards are
--- what would notice a mode being added back without the lane that
--- justifies it.
-#guard CheckMode.ttChecks .verified == false
-#guard CheckMode.ttChecks .trusted == false
-
 -- The verified mode's extra checks (the λ-codomain sort, the η and
 -- λ/λ body-type comparisons): ON in the verified lane — the bridges
 -- read them off the inversions' `mode.verifiedChecks = true → …`

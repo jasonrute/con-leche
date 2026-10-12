@@ -110,9 +110,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
     (hfC : env.find? caps.etaCtor = some (.ctorInfo cvC nPc nFc))
     (hlv : us'.length = cvT.levelParams.length)
     (htlen : targs.length = caps.etaParams)
-    (hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
-      EtaProjCertsSem m φ d T us' targs b cvT.levelParams
-        (List.range caps.etaFields))
+    (htowS : ConLeche.towerSlotsAll env T caps.etaFields = true)
     (hfb : Frame d b) (hCb : CtxOkS m φ d Δa b)
     (hfT : ∀ x ∈ targs, Frame d x ∧ CtxOkS m φ d Δa x)
     (hdb : denoteMeta m.acval env φ d b = some ba)
@@ -230,7 +228,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
         exact (hA hgj ρ tsa ba restj hlenVs hokW hokB hmemB hpeel).1
       · rw [hb, List.map_append, hps, hctr', hlpsT']
       · rw [List.map_append, hps]; exact hfC'
-  · -- PROJECTION-FUNCTION SLOTS, or no field: `CapsOk`'s law
+  · -- NO FIELD: `CapsOk`'s law
     have hslotR : ∀ j ∈ List.range caps.etaFields, ∃ cvp mIp rPp rulesp,
         env.find? (projFnName T j) = some (.recInfo cvp mIp rPp rulesp) ∧
         cvp.levelParams = cvT.levelParams ∧
@@ -241,11 +239,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
       intro j hj
       have hcnF : 0 < caps.etaFields :=
         Nat.lt_of_le_of_lt (Nat.zero_le j) (List.mem_range.mp hj)
-      have htowF : ConLeche.towerSlotsAll env T caps.etaFields = false := by
-        cases h : ConLeche.towerSlotsAll env T caps.etaFields
-        · rfl
-        · exact absurd ⟨h, hcnF⟩ hkind
-      exact hproj htowF j hj
+      exact absurd ⟨htowS, hcnF⟩ hkind
     have hetaP : ConLeche.etaProjs env T us' targs b caps.etaFields
         = (List.range caps.etaFields).map (fun i =>
             Expr.mkAppN (.const (projFnName T i) us') (targs ++ [b])) := by
@@ -255,7 +249,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
         have h0 : caps.etaFields = 0 :=
           Nat.eq_zero_of_not_pos fun hpos => hkind ⟨h, hpos⟩
         rw [h0]; simp
-      · rfl
+      · next h => exact absurd htowS h
     have hfam : ConLeche.EtaFamilyStored env T caps :=
       ⟨hresC, ⟨cvC, nPc, nFc, hfC⟩, fun j hj => by
         obtain ⟨cvp, mIp, rPp, rulesp, hfp, -⟩ := hslotR j (List.mem_range.mpr hj)

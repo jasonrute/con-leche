@@ -21,7 +21,7 @@ the entry-point bridges at `fuel` (the helpers run the record
 Each theorem's proof is the site's `Verify` inversion lemma
 (`iotaCerts_step_inv_gate`, `defEqList_step_inv`, `proofIrrel_inv`,
 `propIrrel_inv`, `structEtaCertWith_inv`, `structEtaCert_inv`,
-`structUnitCert_inv`, `etaCert_inv`, `structEtaProjCerts_inv`,
+`structUnitCert_inv`, `etaCert_inv`,
 `defeqSpine_inv`; `stuckIrrel` and `boolTrueShortcut` have none yet
 and are inverted by hand) followed by the one rule.
 -/
@@ -96,26 +96,6 @@ theorem defEqList_bridge (hd : DefEqBridge env fuel) :
       obtain ⟨hab, hrest⟩ := defEqList_step_inv h
       exact .cons (hd hab) (ih hrest)
 
-/-- `structEtaProjCerts` ⇒ `EtaProjCerts` (`structEtaProjCerts_inv`,
-one `iotaCerts_bridge` per field). -/
-theorem structEtaProjCerts_bridge (hd : DefEqBridge env fuel)
-    (hio : InferIOBridge env fuel) :
-    ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
-      {lpsT : List Name} {idxs : List Nat},
-      structEtaProjCertsFueled .verified env fuel d T us' targs b lpsT idxs
-        = .ok true →
-      EtaProjCerts env d T us' targs b lpsT idxs := by
-  intro d T us' targs b lpsT idxs h
-  have hall := structEtaProjCerts_inv (mode := .verified) idxs h
-  clear h
-  induction idxs with
-  | nil => exact .nil
-  | cons i rest ih =>
-    obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlps, hstrp, hic⟩ :=
-      hall i (List.mem_cons_self ..)
-    exact .cons hfp hlps hstrp (iotaCerts_bridge hd hio hic)
-      (ih (fun j hj => hall j (List.mem_cons_of_mem _ hj)))
-
 /-- `proofIrrel` ⇒ `DefEq.proofIrrel` (`proofIrrel_inv`). -/
 theorem proofIrrel_bridge (hw : WhnfBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {a b : Expr}
@@ -142,39 +122,9 @@ theorem propIrrel_bridge (hw : WhnfBridge env fuel) (hio : InferIOBridge env fue
       (inferTypeIO_bridge hio htb) (inferTypeIO_bridge hio hstb)
       (hw hwstb) hvT
 
-/-- **The η certificate's per-field telescope certificates**, at a
-projection-function family: the `towerSlotsAll = false →` conjunct of
-`structEtaCertWith_inv`, bridged one field at a time.  Both consumers
-of `structEtaCertWith` need it as a premise — `DefEq.structEta` here,
-`Red.rescueEta` at the η rescue (`majorToCtor`'s η branch runs the
-same certificate at `a := fab`, `b := major`, `wtb := tmaj`) — so it
-is a lemma of its own rather than a step inside the next one.  The
-family's identity is the caller's (`hwfn`, `hfT`); the inversion's own
-is reconciled against it. -/
-theorem structEtaCertWith_projCerts_bridge (hd : DefEqBridge env fuel)
-    (hio : InferIOBridge env fuel)
-    {d : Nat} {a b wtb : Expr} {T : Name} {us' : List Level}
-    {cvT : ConstantVal} {caps : IndCaps}
-    (hwfn : wtb.getAppFn = .const T us')
-    (hfT : env.find? T = some (.indInfo cvT caps))
-    (h : structEtaCertWithFueled .verified env fuel d a b wtb = .ok true) :
-    towerSlotsAll env T caps.etaFields = false →
-      EtaProjCerts env d T us' wtb.getAppArgs b cvT.levelParams
-        (List.range caps.etaFields) := by
-  obtain ⟨-, -, -, -, -, T₂, us₂, cvT₂, caps₂,
-    -, -, -, hwfn₂, hfT₂, -, -, -, -, -, -, -, -, -, hproj, -⟩ :=
-    structEtaCertWith_inv h
-  rw [hwfn] at hwfn₂
-  obtain ⟨rfl, rfl⟩ := Expr.const.inj hwfn₂
-  rw [hfT] at hfT₂
-  obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj hfT₂)
-  exact fun htw => structEtaProjCerts_bridge hd hio (hproj htw)
-
 /-- `structEtaCertWith` at a given head-normal type ⇒ `DefEq.structEta`
-(`structEtaCertWith_inv`, with `structEtaCertWith_projCerts_bridge`
-for the per-field premise).  The two runs that produced `wtb` are the
-caller's (`structEtaCert`'s own, or the η rescue's `tm`/`tmaj`), so
-they are hypotheses here. -/
+(`structEtaCertWith_inv`).  The two runs that produced `wtb` are
+`structEtaCert`'s, so they are hypotheses here. -/
 theorem structEtaCertWith_bridge (hw : WhnfBridge env fuel)
     (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel)
     {d : Nat} {a b tb wtb : Expr}
@@ -184,11 +134,10 @@ theorem structEtaCertWith_bridge (hw : WhnfBridge env fuel)
     DefEq env d a b := by
   obtain ⟨c, us, cvc, cnP, cnF, T, us', cvT, caps,
     hfn, hfc, hlen, hwfn, hfT, heta, hctor, hresT, hresc, hplen, hulen,
-    hlps, hslots, hus, -, hpar, -, hfields⟩ :=
+    hlps, hslots, hus, hpar, hfields⟩ :=
     structEtaCertWith_inv h
   exact .structEta (inferTypeIO_bridge hio htb) (hw hwtb) hfn hfc hlen hwfn hfT
     heta hctor hresT hresc hplen hulen hlps hslots hus
-    (structEtaCertWith_projCerts_bridge hd hio hwfn hfT h)
     (defEqList_bridge hd hpar) (defEqList_bridge hd hfields)
 
 /-- `structEtaCert` ⇒ `DefEq.structEta` (`structEtaCert_inv`, then

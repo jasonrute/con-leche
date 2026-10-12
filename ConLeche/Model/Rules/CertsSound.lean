@@ -8,10 +8,10 @@ import ConLeche.Model.Annot.BitInst
 public section
 
 /-!
-# The soundness of the three list walks (task #305)
+# The soundness of the two list walks (task #305)
 
-`Certs` (one step per constructor), `DefEqList` and `EtaProjCerts`
-(pointwise), at one valuation (task #342, L9).  The certificate's slot
+`Certs` (one step per constructor) and `DefEqList` (pointwise), at one
+valuation (task #342, L9).  The certificate's slot
 comparison is between two types (the argument's inferred type and the
 binder's domain), so the conditional `DefEqSem` decides it outright.
 -/
@@ -273,26 +273,5 @@ theorem DefEqList.cons_sound {d : Nat} {a b : Expr} {as bs : List Expr}
       (fun x hx => hLb x (List.mem_cons_of_mem b hx))
       (fun x hx => hga x (List.mem_cons_of_mem va hx))
       (fun x hx => hgb x (List.mem_cons_of_mem vb hx)) p hp
-
-theorem EtaProjCerts.nil_sound {d : Nat} {T : Name} {us' : List Level}
-    {targs : List Expr} {b : Expr} {lpsT : List Name} :
-    EtaProjCertsSem m φ d T us' targs b lpsT [] := by
-  intro i hi
-  exact nomatch hi
-
-theorem EtaProjCerts.cons_sound {d : Nat} {T : Name} {us' : List Level}
-    {targs : List Expr} {b : Expr} {lpsT : List Name} {i : Nat}
-    {rest : List Nat} {cvp : ConstantVal} {mI rP : Nat} {rules : List RecRule}
-    (hf : env.find? (projFnName T i) = some (.recInfo cvp mI rP rules))
-    (hlps : cvp.levelParams = lpsT)
-    (hstrip : (cvp.type.stripPis (targs.length + 1)).isSome = true)
-    (hcerts : CertsSem m φ d false
-      (cvp.type.instantiateLevelParams cvp.levelParams us') (targs ++ [b]))
-    (hrest : EtaProjCertsSem m φ d T us' targs b lpsT rest) :
-    EtaProjCertsSem m φ d T us' targs b lpsT (i :: rest) := by
-  intro j hj
-  rcases List.mem_cons.mp hj with rfl | hj'
-  · exact ⟨cvp, mI, rP, rules, hf, hlps, hstrip, hcerts⟩
-  · exact hrest j hj'
 
 end ConLeche.Model.Rules

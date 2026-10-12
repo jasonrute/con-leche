@@ -717,16 +717,6 @@ whole test.) -/
 def towerSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
   (List.range nF).all fun j => (env.findProj? T j).isSome
 
-/-- Are all `nF` projection slots of `T` recursor-backed projection
-functions?  With `towerSlotsAll` the eta
-certificate's slot discipline: a family's slots are all of one kind,
-so the fabricated spine and the per-slot certificates agree. -/
-def recSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
-  (List.range nF).all fun j =>
-    match env.find? (projFnName T j) with
-    | some (.recInfo _ _ _ _) => true
-    | _ => false
-
 /-- The fabricated projections of a structure-eta spine (task #175
 W4c): `.proj T j b` nodes when every slot has a table entry (the
 direct install's structures — the node is what the table types and

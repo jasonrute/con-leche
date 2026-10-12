@@ -406,116 +406,6 @@ theorem defeqSpine_snd (d : Nat) (a b : Expr) :
     | (dsimp only [])
     | split)
 
-theorem structEtaProjCerts_fst (d : Nat) (T : Name) (us' : List Level)
-    (targs : List Expr) (b : Expr) (lpsT : List Name) :
-    ∀ (idxs : List Nat),
-      (structEtaProjCerts (pairFns r₁ r₂ h) env d T us' targs b lpsT
-        idxs).val.1 =
-      structEtaProjCerts r₁ env d T us' targs b lpsT idxs
-  | [] => rfl
-  | i :: rest => by
-    show ((do
-        match env.find? (projFnName T i) with
-        | some (.recInfo cvp _ _ _) =>
-          if cvp.levelParams = lpsT ∧
-              (cvp.type.stripPis (targs.length + 1)).isSome = true then
-            if ← iotaCerts (pairFns r₁ r₂ h) env d false
-                (cvp.type.instantiateLevelParams cvp.levelParams us')
-                (targs ++ [b]) then
-              structEtaProjCerts (pairFns r₁ r₂ h) env d T us' targs b
-                lpsT rest
-            else pure false
-          else pure false
-        | _ => pure false : PairM rel Bool)).val.1 = (do
-        match env.find? (projFnName T i) with
-        | some (.recInfo cvp _ _ _) =>
-          if cvp.levelParams = lpsT ∧
-              (cvp.type.stripPis (targs.length + 1)).isSome = true then
-            if ← iotaCerts r₁ env d false
-                (cvp.type.instantiateLevelParams cvp.levelParams us')
-                (targs ++ [b]) then
-              structEtaProjCerts r₁ env d T us' targs b lpsT rest
-            else pure false
-          else pure false
-        | _ => pure false)
-    cases hf : env.find? (projFnName T i) with
-    | none => rfl
-    | some ci =>
-      cases ci with
-      | recInfo cvp mI rP rules =>
-        dsimp only
-        split
-        · rw [PairM.fst_bind, iotaCerts_fst]
-          congr 1
-          funext r
-          cases r with
-          | true =>
-            simp only [↓reduceIte]
-            exact structEtaProjCerts_fst d T us' targs b lpsT rest
-          | false => rfl
-        · rfl
-      | axiomInfo cv => rfl
-      | projInfo entry => rfl
-      | defnInfo cv value => rfl
-      | thmInfo cv => rfl
-      | indInfo cv caps => rfl
-      | ctorInfo cv nP nF => rfl
-
-theorem structEtaProjCerts_snd (d : Nat) (T : Name) (us' : List Level)
-    (targs : List Expr) (b : Expr) (lpsT : List Name) :
-    ∀ (idxs : List Nat),
-      (structEtaProjCerts (pairFns r₁ r₂ h) env d T us' targs b lpsT
-        idxs).val.2 =
-      structEtaProjCerts r₂ env d T us' targs b lpsT idxs
-  | [] => rfl
-  | i :: rest => by
-    show ((do
-        match env.find? (projFnName T i) with
-        | some (.recInfo cvp _ _ _) =>
-          if cvp.levelParams = lpsT ∧
-              (cvp.type.stripPis (targs.length + 1)).isSome = true then
-            if ← iotaCerts (pairFns r₁ r₂ h) env d false
-                (cvp.type.instantiateLevelParams cvp.levelParams us')
-                (targs ++ [b]) then
-              structEtaProjCerts (pairFns r₁ r₂ h) env d T us' targs b
-                lpsT rest
-            else pure false
-          else pure false
-        | _ => pure false : PairM rel Bool)).val.2 = (do
-        match env.find? (projFnName T i) with
-        | some (.recInfo cvp _ _ _) =>
-          if cvp.levelParams = lpsT ∧
-              (cvp.type.stripPis (targs.length + 1)).isSome = true then
-            if ← iotaCerts r₂ env d false
-                (cvp.type.instantiateLevelParams cvp.levelParams us')
-                (targs ++ [b]) then
-              structEtaProjCerts r₂ env d T us' targs b lpsT rest
-            else pure false
-          else pure false
-        | _ => pure false)
-    cases hf : env.find? (projFnName T i) with
-    | none => rfl
-    | some ci =>
-      cases ci with
-      | recInfo cvp mI rP rules =>
-        dsimp only
-        split
-        · rw [PairM.snd_bind, iotaCerts_snd]
-          congr 1
-          funext r
-          cases r with
-          | true =>
-            simp only [↓reduceIte]
-            exact structEtaProjCerts_snd d T us' targs b lpsT rest
-          | false => rfl
-        · rfl
-      | axiomInfo cv => rfl
-      | projInfo entry => rfl
-      | defnInfo cv value => rfl
-      | thmInfo cv => rfl
-      | indInfo cv caps => rfl
-      | ctorInfo cv nP nF => rfl
-
 theorem liftFueled_fst_proj {α : Type} (what : String) (o : Option α) :
     (liftFueled what o : PairM rel α).val.1 = liftFueled what o := by
   cases o <;> rfl
@@ -533,7 +423,6 @@ macro "fst_step" : tactic =>
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
-    | (rw [structEtaProjCerts_fst])
     | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
     | (dsimp only [])
     | split))
@@ -553,7 +442,6 @@ macro "snd_step" : tactic =>
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
-    | (rw [structEtaProjCerts_snd])
     | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
     | (dsimp only [])
     | split))
@@ -625,14 +513,14 @@ theorem propIrrel_snd_proj (d : Nat) (a b : Expr) :
   snd_tac
 
 theorem structEtaCertWith_fst_proj (d : Nat) (a b wtb : Expr) :
-    (structEtaCertWith mode (pairFns r₁ r₂ h) env d a b wtb).val.1 =
-      structEtaCertWith mode r₁ env d a b wtb := by
+    (structEtaCertWith (pairFns r₁ r₂ h) env d a b wtb).val.1 =
+      structEtaCertWith r₁ env d a b wtb := by
   unfold structEtaCertWith
   fst_tac
 
 theorem structEtaCertWith_snd_proj (d : Nat) (a b wtb : Expr) :
-    (structEtaCertWith mode (pairFns r₁ r₂ h) env d a b wtb).val.2 =
-      structEtaCertWith mode r₂ env d a b wtb := by
+    (structEtaCertWith (pairFns r₁ r₂ h) env d a b wtb).val.2 =
+      structEtaCertWith r₂ env d a b wtb := by
   unfold structEtaCertWith
   snd_tac
 
@@ -705,7 +593,6 @@ macro "fst_step2" : tactic =>
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
-    | (rw [structEtaProjCerts_fst])
     | (rw [reduceNat_fst_proj])
     | (rw [boolTrueShortcut_fst_proj])
     | (rw [ensureSort_fst_proj])
@@ -735,7 +622,6 @@ macro "snd_step2" : tactic =>
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
-    | (rw [structEtaProjCerts_snd])
     | (rw [reduceNat_snd_proj])
     | (rw [boolTrueShortcut_snd_proj])
     | (rw [ensureSort_snd_proj])
@@ -757,14 +643,14 @@ macro "snd_tac2" : tactic =>
     snd_step2 <;> snd_step2 <;> snd_step2)
 
 theorem structEtaCert_fst_proj (d : Nat) (a b : Expr) :
-    (structEtaCert mode (pairFns r₁ r₂ h) env d a b).val.1 =
-      structEtaCert mode r₁ env d a b := by
+    (structEtaCert (pairFns r₁ r₂ h) env d a b).val.1 =
+      structEtaCert r₁ env d a b := by
   unfold structEtaCert
   fst_tac2
 
 theorem structEtaCert_snd_proj (d : Nat) (a b : Expr) :
-    (structEtaCert mode (pairFns r₁ r₂ h) env d a b).val.2 =
-      structEtaCert mode r₂ env d a b := by
+    (structEtaCert (pairFns r₁ r₂ h) env d a b).val.2 =
+      structEtaCert r₂ env d a b := by
   unfold structEtaCert
   snd_tac2
 
@@ -774,8 +660,8 @@ theorem structEtaCert_snd_proj (d : Nat) (a b : Expr) :
 -- each rescue branch separately.
 set_option maxHeartbeats 800000 in
 theorem majorToCtor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (majorToCtor mode (pairFns r₁ r₂ h) env d c rules e).val.1 =
-      majorToCtor mode r₁ env d c rules e := by
+    (majorToCtor (pairFns r₁ r₂ h) env d c rules e).val.1 =
+      majorToCtor r₁ env d c rules e := by
   unfold majorToCtor
   by_cases hca : isCtorApp env e = true
   · rw [ite_eq_left hca, ite_eq_left hca]; rfl
@@ -814,8 +700,8 @@ theorem majorToCtor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Ex
 
 set_option maxHeartbeats 800000 in
 theorem majorToCtor_snd_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (majorToCtor mode (pairFns r₁ r₂ h) env d c rules e).val.2 =
-      majorToCtor mode r₂ env d c rules e := by
+    (majorToCtor (pairFns r₁ r₂ h) env d c rules e).val.2 =
+      majorToCtor r₂ env d c rules e := by
   unfold majorToCtor
   by_cases hca : isCtorApp env e = true
   · rw [ite_eq_left hca, ite_eq_left hca]; rfl
@@ -865,8 +751,8 @@ theorem litMajorToCtor_snd_proj (d : Nat) (e : Expr) :
   snd_tac2
 
 theorem prepareMajor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (prepareMajor mode (pairFns r₁ r₂ h) env d c rules e).val.1 =
-      prepareMajor mode r₁ env d c rules e := by
+    (prepareMajor (pairFns r₁ r₂ h) env d c rules e).val.1 =
+      prepareMajor r₁ env d c rules e := by
   unfold prepareMajor
   split <;> (repeat (first
     | rfl
@@ -877,8 +763,8 @@ theorem prepareMajor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : E
     | (dsimp only [])))
 
 theorem prepareMajor_snd_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (prepareMajor mode (pairFns r₁ r₂ h) env d c rules e).val.2 =
-      prepareMajor mode r₂ env d c rules e := by
+    (prepareMajor (pairFns r₁ r₂ h) env d c rules e).val.2 =
+      prepareMajor r₂ env d c rules e := by
   unfold prepareMajor
   split <;> (repeat (first
     | rfl
@@ -910,7 +796,6 @@ macro "fst_core3" x:tactic : tactic =>
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
-    | (rw [structEtaProjCerts_fst])
     | (rw [reduceNat_fst_proj])
     | (rw [boolTrueShortcut_fst_proj])
     | (rw [ensureSort_fst_proj])
@@ -947,7 +832,6 @@ macro "snd_core3" x:tactic : tactic =>
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
-    | (rw [structEtaProjCerts_snd])
     | (rw [reduceNat_snd_proj])
     | (rw [boolTrueShortcut_snd_proj])
     | (rw [ensureSort_snd_proj])
@@ -975,26 +859,26 @@ macro "snd_tac3" : tactic =>
     snd_step3 <;> snd_step3 <;> snd_step3)
 
 theorem stuckIrrel_fst_proj (d : Nat) (a b : Expr) :
-    (stuckIrrel mode (pairFns r₁ r₂ h) env d a b).val.1 =
-      stuckIrrel mode r₁ env d a b := by
+    (stuckIrrel (pairFns r₁ r₂ h) env d a b).val.1 =
+      stuckIrrel r₁ env d a b := by
   unfold stuckIrrel
   fst_tac3
 
 theorem stuckIrrel_snd_proj (d : Nat) (a b : Expr) :
-    (stuckIrrel mode (pairFns r₁ r₂ h) env d a b).val.2 =
-      stuckIrrel mode r₂ env d a b := by
+    (stuckIrrel (pairFns r₁ r₂ h) env d a b).val.2 =
+      stuckIrrel r₂ env d a b := by
   unfold stuckIrrel
   snd_tac3
 
 theorem iotaRec_fst_proj (d : Nat) (e : Expr) :
-    (iotaRec mode (pairFns r₁ r₂ h) env d e).val.1 =
-      iotaRec mode r₁ env d e := by
+    (iotaRec (pairFns r₁ r₂ h) env d e).val.1 =
+      iotaRec r₁ env d e := by
   unfold iotaRec
   fst_tac3
 
 theorem iotaRec_snd_proj (d : Nat) (e : Expr) :
-    (iotaRec mode (pairFns r₁ r₂ h) env d e).val.2 =
-      iotaRec mode r₂ env d e := by
+    (iotaRec (pairFns r₁ r₂ h) env d e).val.2 =
+      iotaRec r₂ env d e := by
   unfold iotaRec
   snd_tac3
 
@@ -1135,7 +1019,6 @@ macro "fst_core4" x:tactic : tactic =>
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
-    | (rw [structEtaProjCerts_fst])
     | (rw [reduceNat_fst_proj])
     | (rw [boolTrueShortcut_fst_proj])
     | (rw [ensureSort_fst_proj])
@@ -1195,7 +1078,6 @@ macro "snd_core4" x:tactic : tactic =>
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
-    | (rw [structEtaProjCerts_snd])
     | (rw [reduceNat_snd_proj])
     | (rw [boolTrueShortcut_snd_proj])
     | (rw [ensureSort_snd_proj])

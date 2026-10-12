@@ -469,12 +469,8 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     (htlen : wtb.getAppArgs.length = caps.etaParams)
     (hlv : us'.length = cvT.levelParams.length)
     (hlps : cvc.levelParams = cvT.levelParams)
-    (_hslots : (ConLeche.towerSlotsAll env T caps.etaFields ||
-      ConLeche.recSlotsAll env T caps.etaFields) = true)
+    (htow : ConLeche.towerSlotsAll env T caps.etaFields = true)
     (hus : Level.isEquivList us us' = some true)
-    (hproj : ConLeche.towerSlotsAll env T caps.etaFields = false →
-      EtaProjCertsSem m φ d T us' wtb.getAppArgs b cvT.levelParams
-        (List.range caps.etaFields))
     (hparams : DefEqListSem m φ d (a.getAppArgs.take caps.etaParams)
       wtb.getAppArgs)
     (hfields : DefEqListSem m φ d (a.getAppArgs.drop caps.etaParams)
@@ -521,7 +517,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
       (ConLeche.Level.isEquivList_sound hus φ)
   -- the stuck side: the η law and the coherence law
   obtain ⟨ps, hsps, hfps, TCa, hTCa, hside⟩ := etaSide hin hind heta hresT
-    (by rw [hetaCtor]; exact hresc) (by rw [hetaCtor]; exact hctor) hlv htlen hproj
+    (by rw [hetaCtor]; exact hresc) (by rw [hetaCtor]; exact hctor) hlv htlen htow
     hfb hCb (frame_spine hfW hCr) hdb hspt
   obtain ⟨hLps, hokps, hb, restC, hfitC⟩ :=
     hside ρ hρ hLb (leavesGr_spine hLrρ) hokW hneW hokB hmemB

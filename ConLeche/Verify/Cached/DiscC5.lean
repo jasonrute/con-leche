@@ -50,11 +50,11 @@ private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
           t₂ b₂ a' >>= fun r =>
         if r then pure true
-        else stuckIrrelI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
+        else stuckIrrelI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
       (etaCert mode (fueledFns mode env) env d ty₂x body₂x
           a'x >>= fun r =>
         if r then pure true
-        else stuckIrrel mode (fueledFns mode env) env d a'x
+        else stuckIrrel (fueledFns mode env) env d a'x
           (.lam ty₂x body₂x bm₂)) := by
   have h2 : Expr.WScoped d ty₂x ∧ Expr.WScoped d body₂x := by
     simpa only [Expr.WScoped] using hwb'
@@ -83,11 +83,11 @@ private theorem defeqC_etaL_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
           t₁ b₁ b' >>= fun r =>
         if r then pure true
-        else stuckIrrelI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
+        else stuckIrrelI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
       (etaCert mode (fueledFns mode env) env d ty₁x body₁x
           b'x >>= fun r =>
         if r then pure true
-        else stuckIrrel mode (fueledFns mode env) env d
+        else stuckIrrel (fueledFns mode env) env d
           (.lam ty₁x body₁x bm₁) b'x) := by
   have h1 : Expr.WScoped d ty₁x ∧ Expr.WScoped d body₁x := by
     simpa only [Expr.WScoped] using hwa'
