@@ -464,7 +464,7 @@ theorem DefEq.structEta_soundU (hin : RulesInputs V m φ) {d : Nat}
         (LeavesGr.of_fvarLeaves_nil (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfp))
         hLargsTb (hoktpa ρ).1 hokTb' (by simp)
       refine (mkAppN_of_fitA (tsa ++ [ba]) (hoktpa ρ).1
-        ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩
+        m.acval_wellDenoted _ _ ρ
         hokTb' ?_ hfitpPA).1
       have := hmemp ρ
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at this
@@ -542,7 +542,7 @@ theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
   exact ⟨v, A, B, hv, hf, hx, hT hv⟩
 
 /-- A graded Π-type's fibres are types. -/
-theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V} {u v : Nat}
+theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V}
     {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
   ((WellDenoted_pi V ρ A B) ▸ h.1).2.2.2 x hx
@@ -631,10 +631,6 @@ theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
     DefEqSem m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
-  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule compares
-  -- no binder datum; the annotated reading's two bits need it, the value
-  -- reading (`piV`) none
-  have hpw : m₁.pw = m₂.pw := sorry
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
@@ -642,7 +638,6 @@ theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
     hty hfa.forallE_ty hfb.forallE_ty hCa.forallE_ty hCb.forallE_ty hta₁ hta₂
       ρ hρ hLa.forallE_ty hLb.forallE_ty hwa.pi_dom.1 hwb.pi_dom.1
       hwa.pi_dom.ne_pt hwb.pi_dom.ne_pt
-  rw [hpw]
   refine deqStep_piCong hdom (fun x hx => ?_)
   have hx₂ : x ∈ˢ interp V ρ ta₂ := hdom ▸ hx
   exact hbody (hfa.forallE_open hfb.forallE_ty) (hfb.forallE_open hfb.forallE_ty)

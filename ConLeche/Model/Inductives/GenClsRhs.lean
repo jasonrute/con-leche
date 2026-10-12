@@ -317,7 +317,7 @@ theorem underTowerOk_of_spines {m : Nat} {b T : AnnotTerm} :
     · have := hb (a :: zs) ⟨ha, hzs⟩
       simpa [consList_cons] using this
 
-theorem domsBelow_of_fieldsBelow {bit : Nat} :
+theorem domsBelow_of_fieldsBelow :
     ∀ {tl : List (Nat × AnnotTerm)} {k : Nat}, FieldsBelow k (tl.map (·.2)) →
       DomsBelow k (tl.map fun p => (0, p.1, p.2))
   | [], _, _ => trivial

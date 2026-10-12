@@ -569,4 +569,18 @@ theorem lamV_eq_zero {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x = pt) :
     lamV A F = lamR 0 A F := by
   rw [lamV_eq_pt h, lamR_zero]
 
+/-- A universe is not a truth value: it holds `∅`, which is not the
+point. -/
+theorem univ_not_mem_univZero (w : Nat) : ¬ (univ w : V) ∈ˢ (univZero : V) := fun h =>
+  pt_ne_empty (eq_pt_of_mem_univZero h (empty_mem_univ w)).symm
+
+/-- A function space into a universe over an inhabited domain is the
+graph regime's. -/
+theorem piV_univ_eq_pos {v : Nat} (hv : v ≠ 0) {A : V} {x : V} (hx : x ∈ˢ A)
+    (B : V → V) (hB : ∀ y, y ∈ˢ A → ∃ w, B y = univ w) : piV A B = piR v A B :=
+  piV_eq_pos hv hx fun h => by
+    obtain ⟨w, hw⟩ := hB x hx
+    rw [hw] at h
+    exact univ_not_mem_univZero w h
+
 end ConLeche.SetModel

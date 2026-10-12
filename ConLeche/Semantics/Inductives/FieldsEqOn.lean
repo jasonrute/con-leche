@@ -149,11 +149,11 @@ theorem interp_mkPisAV_congr :
       ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ (mkPisAV abD B) = interp V ρ (mkPisAV abN B)
   | _, [], [], _, _, _, _, _ => rfl
   | Δ, d :: abD, e :: abN, B, hb, h, ρ, hρ => by
-    simp only [List.map_cons, List.cons.injEq, Prod.mk.injEq] at hb
-    obtain ⟨⟨h1, h2⟩, hb⟩ := hb
-    simp only [mkPisAV, interp_pi, h2]
+    simp only [List.map_cons, List.cons.injEq] at hb
+    obtain ⟨-, hb⟩ := hb
+    simp only [mkPisAV, interp_pi]
     rw [h.1 ρ hρ]
-    refine piR_congr fun x hx => ?_
+    refine piV_congr fun x hx => ?_
     have hx' : x ∈ˢ interp V ρ d.2.2 := (h.1 ρ hρ).symm ▸ hx
     exact interp_mkPisAV_congr abD abN B hb h.2 _ (Sat_cons V hρ hx')
   | _, [], _ :: _, _, hb, _, _, _ => by simp at hb

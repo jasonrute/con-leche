@@ -55,7 +55,7 @@ theorem deqStep_sndCong {ρ : Nat → V} {ea eb : AnnotTerm}
 
 /-- **∀-congruence.**  The codomain descends at the *domain's* own
 value set, which is where `Sat_cons` enters. -/
-theorem deqStep_piCong {ρ : Nat → V} {u u' v : Nat}
+theorem deqStep_piCong {ρ : Nat → V}
     {Aa Ab Ba Bb : AnnotTerm}
     (hA : interp V ρ Aa = interp V ρ Ab)
     (hB : ∀ x, x ∈ˢ interp V ρ Aa →
@@ -66,7 +66,7 @@ theorem deqStep_piCong {ρ : Nat → V} {u u' v : Nat}
 
 /-- **λ-congruence**: the regime is read off the values, so equal
 domains and bodies equal on the domain give equal abstractions. -/
-theorem deqStep_lamCong {ρ : Nat → V} {v : Nat} {Aa Ab ba bb : AnnotTerm}
+theorem deqStep_lamCong {ρ : Nat → V} {Aa Ab ba bb : AnnotTerm}
     (hA : interp V ρ Aa = interp V ρ Ab)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) ba = interp V (cons x ρ) bb) :

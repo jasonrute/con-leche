@@ -187,7 +187,7 @@ through `app_mem_piR` with the validity fibre facts. -/
 inductive TeleFit (V : Type w) [SetTheory V] :
     (Nat → V) → AnnotTerm → List V → V → Prop where
   | nil {ρ : Nat → V} {T : AnnotTerm} : TeleFit V ρ T [] (interp V ρ T)
-  | cons {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm} {a : V}
+  | cons {ρ : Nat → V} {A B : AnnotTerm} {a : V}
       {as : List V} {rest : V} :
       a ∈ˢ interp V ρ A →
       TeleFit V (cons a ρ) B as rest →

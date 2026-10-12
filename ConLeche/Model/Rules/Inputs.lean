@@ -13,7 +13,7 @@ implementation.  One structure, `RulesInputs`, sorted by the tier that
 discharges each field.
 
 Eight fields are the laws `EnvModelM` already carries: `ConstType`,
-`AcvalValid`, `NatHeads`, `AcvalDefnInst`, `TowerOk`, `RecRules`,
+`NatHeads`, `AcvalDefnInst`, `TowerOk`, `RecRules`,
 `CapsOk` and `IndFibLaw`, all of them `Model/Annot/Laws.lean`'s (re-exported by
 `Model/Annot/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
 each of them off the fold's invariant.
@@ -99,8 +99,6 @@ structure RulesInputs (V : Type w) [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat) : Prop where
   /-- install tier: a stored constant's type row -/
   const_ty : ConstType m φ
-  /-- install tier: leaf bit-validity -/
-  leaf_valid : AcvalValid m
   /-- install tier: the numeral heads -/
   nat_heads : NatHeads m φ
   /-- install tier: a stored definition's value reads to its leaf -/
@@ -133,7 +131,6 @@ theorem RulesInputs.ofEnvModelM {env : Env} {φ : Name → Nat}
     (hhead : NatOpHead mp.base2 φ) :
     RulesInputs V mp.base2 φ where
   const_ty := mp.constType
-  leaf_valid := mp.acvalValid
   nat_heads := mp.nat_heads φ
   defn := mp.defn_reads
   tower_ok := mp.tower_ok φ

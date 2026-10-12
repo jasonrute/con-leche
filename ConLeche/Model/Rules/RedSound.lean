@@ -344,7 +344,7 @@ theorem rawNatLit_facts (hin : RulesInputs V m φ)
   obtain rfl := (Option.some.inj hlit).symm
   have hf := natLit_factsAV (m.acval_wellDenoted _ _ σ) (m.acval_wellDenoted _ _ σ)
     (hin.nat_heads hsup σ).1 (hin.nat_heads hsup σ).2.1 (hin.nat_heads hsup σ).2.2 n
-  exact ⟨⟨hf.1, AnnotValid_natLitAV (hin.leaf_valid _ _ σ) (hin.leaf_valid _ _ σ) n⟩, hf.2⟩
+  exact ⟨hf.1, hf.2⟩
 
 /-- The successor row at the reduced argument, at the conditional motive. -/
 theorem Red.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {a w : Expr}

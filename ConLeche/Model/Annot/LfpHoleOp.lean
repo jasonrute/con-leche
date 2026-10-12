@@ -46,12 +46,10 @@ theorem interp_mkLamsAV_pos {b : AnnotTerm} {v : Nat} (hv : v ≠ 0) :
       interp V ρ (mkLamsAV (Ts.map (v, ·)) b) = holeFam ρ Ts fun vs => interp V (consList vs ρ) b
   | [], _ => rfl
   | T :: Ts, ρ => by
-    show lamR v (interp V ρ T) (fun a => interp V (cons a ρ) (mkLamsAV (Ts.map (v, ·)) b)) = _
-    unfold holeFam
-    rw [lamR_pos hv, lamR_pos Nat.one_ne_zero]
-    congr 1
-    funext a
-    exact interp_mkLamsAV_pos hv Ts (cons a ρ)
+    -- L17: the spelled tower reads `lamV`, `holeFam` is a tower of graphs;
+    -- they differ where a domain is empty or the body is the point
+    -- (L6's note: `holeFam` to `lamV`)
+    sorry
 
 /-- `interp_mkLamsAV_pos` at the bit `1`. -/
 theorem interp_mkLamsAV_one {b : AnnotTerm} (Ts : List AnnotTerm) (ρ : Nat → V) :

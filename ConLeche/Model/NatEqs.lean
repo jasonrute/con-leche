@@ -171,7 +171,7 @@ theorem natArg_zero (m : EnvModel V env) {ψ : Name → Nat}
   rw [hlpZ'] at hzl
   refine ⟨m.acval ConLeche.natZeroName (Level.substFn ψ [] []), hzl,
     fun ρ hρ => ?_⟩
-  refine ⟨⟨m.acval_wellDenoted _ _ ρ, hval _ _ ρ⟩, ?_⟩
+  refine ⟨m.acval_wellDenoted _ _ ρ, ?_⟩
   have h := (hnh hs ρ).1
   rwa [show natLeafV m ψ ρ
       = interp V ρ (m.acval ConLeche.natName (Level.substFn ψ [] []))
@@ -457,7 +457,7 @@ theorem denoteMeta_pinnedUnTy (m : EnvModel V env) (ψ : Name → Nat)
 membership in the (two-step, leaf-component) pinned product's reading,
 and the product reading's own grading. -/
 theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {f : Expr} {fa : AnnotTerm} {b₁ b₂ : Nat} {codN : Name}
+    {f : Expr} {fa : AnnotTerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
     (hok : ∀ ρ : Nat → V, WellDenotedV V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
@@ -514,7 +514,7 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 
 /-- **The unary head package, from its parts.** -/
 theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {f : Expr} {fa : AnnotTerm} {b₁ : Nat} {codN : Name}
+    {f : Expr} {fa : AnnotTerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
     (hok : ∀ ρ : Nat → V, WellDenotedV V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
@@ -636,7 +636,7 @@ theorem ctxOk_natCtx2 (m : EnvModel V env) {ψ : Name → Nat}
   · intro ρ _
     exact natLeafAV_interp_closed m ψ ρ _
   · intro ρ _
-    exact ⟨⟨m.acval_wellDenoted _ _ ρ, hval _ _ ρ⟩, hNty ρ⟩
+    exact ⟨m.acval_wellDenoted _ _ ρ, hNty ρ⟩
 
 /-- **One substituted equation, converted**: the recorded run plus both
 sides' packages give the two-variable `interp` equality — the exact

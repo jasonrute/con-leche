@@ -148,8 +148,10 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
     have hBv : interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
         = lamR (r + 1) (interp V ρ (Gty s))
             fun _ => ndTowerSet V r F (s + 1) n := by
-      rw [interp_lam]
-      exact lamR_congr fun x _ => htail x
+      rw [interp_lam, lamV_congr fun x _ => htail x]
+      have hgs : g s ∈ˢ interp V ρ (Gty s) := by rw [hA]; exact hg s (by omega)
+      exact lamV_eq_pos (Nat.succ_ne_zero r) hgs
+        (IsTy_of_mem_univ (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega))).ne_pt
     have hBmem : interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
         ∈ˢ psigmaFibreSpace V r (interp V ρ (Gty s)) := by
       rw [hBv]
@@ -159,7 +161,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
     have hBok : WellDenoted V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n)) := by
       rw [WellDenoted_lam]
       refine ⟨hGtyok s (by omega), IsTy_of_mem_univ hAu, fun x _ => ?_, fun _ => (univ r : V),
-        fun x _ => ?_, fun _ _ => IsTy_univ r, fun h0 => absurd h0 hvac⟩
+        fun x _ => ?_, fun _ _ => IsTy_univ r⟩
       · exact ndTowerAV_wellDenoted V n (s + 1) 1 (cons x ρ)
           (by rw [shiftE_succ_cons, shiftE_zero_zero]) (fun m hm => hGty m (by omega))
           (fun m hm => hGtyok m (by omega)) (fun m hm => hF m (by omega))
@@ -525,14 +527,18 @@ theorem blockArmG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
   obtain ⟨hiv, hiok⟩ := idxTyAV_lift1B (m := m) (hI m hm) Y
   constructor
   · unfold blockArmG
-    rw [interp_lam, hiv]
-    refine lamR_congr fun t ht => ?_
-    exact sumBodyAV_interp (hok Y hY m hm t ht)
+    rw [interp_lam, hiv, lamV_congr fun t ht => sumBodyAV_interp (hok Y hY m hm t ht)]
+    by_cases hI0 : ¬ ∃ t, t ∈ˢ idxSet (uf m) ρp (Idss m)
+    · -- L16: over an empty index set the spelled arm is the point, the
+      -- operator's component the empty graph
+      sorry
+    obtain ⟨t₀, ht₀⟩ := Classical.not_not.mp hI0
+    exact lamV_eq_pos (Nat.succ_ne_zero w) ht₀
+      (IsTy_of_mem_univ (blockStepG_univ hok hY hm ht₀)).ne_pt
   · unfold blockArmG
     rw [WellDenoted_lam]
     refine ⟨hiok, by rw [hiv]; exact IsTy_of_mem_univ (idxTyAV_facts (hI m hm)).2.1,
-      fun t ht => ?_, fun _ => (univ w : V), fun t ht => ?_, fun _ _ => IsTy_univ w,
-      fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩
+      fun t ht => ?_, fun _ => (univ w : V), fun t ht => ?_, fun _ _ => IsTy_univ w⟩
     · rw [hiv] at ht
       exact sumBodyAV_wellDenoted (hok Y hY m hm t ht)
     · rw [hiv] at ht
@@ -571,13 +577,22 @@ theorem blockFunG_facts (hI : BlockIdxOk (V := V) k uf ρp Idss)
     exact (famTyAV_facts (w := w) (hI m (by omega))).2.2
   refine ⟨?_, ?_⟩
   · unfold blockFunG blockFunVG
-    rw [interp_lam, hfv]
-    exact lamR_congr fun Y hY => (hbody Y hY).1
+    rw [interp_lam, hfv, lamV_congr fun Y hY => (hbody Y hY).1]
+    -- the family-tuple space is inhabited: the tuple of empty families
+    have hY₀ : ndMkTowerSet (fun m => lamR (w + 1) (idxSet (uf m) ρp (Idss m))
+        fun _ => (empty : V)) 0 k ∈ˢ famsSpaceB k w ρp uf Idss :=
+      ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun _ _ =>
+        lamR_mem fun _ _ => empty_mem_univ w
+    refine lamV_eq_pos (blockR_ne_zero k w uf) hY₀ ?_
+    have hs := Fib_ndTowerSet V (blockR k w uf)
+      (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
+    simp only [blockR_ne_zero k w uf, decide_false, Fib_false] at hs
+    exact ne_pt_of_mem_strict hs (ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0
+      fun m hm => blockArmG_mem hok hY₀ (by omega))
   · unfold blockFunG
     rw [WellDenoted_lam]
     refine ⟨hfok, by rw [hfv]; exact IsTy_famsSpaceB hI, fun Y hY => ?_,
-      fun _ => famsSpaceB k w ρp uf Idss, fun Y hY => ?_, fun _ _ => IsTy_famsSpaceB hI,
-      fun h0 => absurd h0 (blockR_ne_zero k w uf)⟩
+      fun _ => famsSpaceB k w ρp uf Idss, fun Y hY => ?_, fun _ _ => IsTy_famsSpaceB hI⟩
     · rw [hfv] at hY; exact (hbody Y hY).2
     · rw [hfv] at hY
       rw [(hbody Y hY).1]
@@ -858,7 +873,7 @@ theorem blockTyG_fold_strictU {m : Nat} (hm : m < k) :
     have ha : a ∈ˢ interp V ρ d.2.2 := hsp.1
     have happ : SetTheory.app (interp V ρ (blockTyG k w uf Idss Chs (d :: pps) m)) a
         = interp V (cons a ρ) (blockTyG k w uf Idss Chs pps m) :=
-      app_lamR_pos (Nat.succ_ne_zero w) ha
+      app_lamV ha
     rw [List.foldl_cons, happ]
     exact blockTyG_fold_strictU hm (h.2.2.2 a ha) hsp.2
 
@@ -870,12 +885,12 @@ theorem blockTyG_mem {m : Nat} (hm : m < k) :
         ∈ˢ interp V ρ (mkPisAV pps (.sort w))
   | [], _, h => (blockLeafBodyG_facts hm h).2.1
   | d :: pps, ρ, h => by
-    show (lamR (w + 1) (interp V ρ d.2.2)
+    show (lamV (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
-      ∈ˢ piR d.2.1 (interp V ρ d.2.2)
+      ∈ˢ piV (interp V ρ d.2.2)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
-    exact lamR_mem_zero_agree (iff_of_false (Nat.succ_ne_zero w) h.1)
-      (fun a ha => blockTyG_mem hm (h.2.2.2 a ha))
+    exact lamV_mem (fun a ha => blockTyG_mem hm (h.2.2.2 a ha))
+      fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)
 
 /-- **The leaf is graded.** -/
 theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
@@ -889,8 +904,7 @@ theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
     exact ⟨h.2.1, h.2.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
        fun a ha => blockTyG_mem hm (h.2.2.2 a ha),
-       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ),
-       fun h0 => absurd h0 (Nat.succ_ne_zero w)⟩⟩
+       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)⟩⟩
 
 /-- **The leaf's application fold**: along a fitting parameter-and-index
 spine the leaf computes member `m`'s carrier at the spine's tuple. -/
@@ -905,10 +919,7 @@ theorem blockTyG_fold {m : Nat} (hm : m < k)
           (tupW (uf m) (frameIdx (Idss m).length (consList as ρ))) := by
   have hsp' : SpineFit ρ ((pps.map fun d => (w + 1, d.2.2)).map (·.2)) as := by
     rwa [List.map_map]
-  rw [blockTyG,
-    mkLamsAV_fold (fun d hd => by
-      obtain ⟨d', -, rfl⟩ := List.mem_map.mp hd
-      exact Nat.succ_ne_zero w) hsp']
+  rw [blockTyG, mkLamsAV_fold hsp']
   exact (blockLeafBodyG_facts hm hbase).1
 
 end Leaf
@@ -1394,7 +1405,7 @@ theorem mkLamsAV_one_wellDenoted {b : AnnotTerm} :
       (fun vs hvs => hb (x :: vs) ⟨hx, hvs⟩),
       fun x => Classical.choose (hT' x),
       fun x _ => (Classical.choose_spec (hT' x)).2,
-      fun x _ => (Classical.choose_spec (hT' x)).1, fun h => absurd h (by decide)⟩
+      fun x _ => (Classical.choose_spec (hT' x)).1⟩
 
 theorem FieldsOkB_zero_of {w : Nat} :
     ∀ {Ts : List AnnotTerm} {ρ : Nat → V}, FieldsOkB w ρ Ts → FieldsOkB 0 ρ Ts

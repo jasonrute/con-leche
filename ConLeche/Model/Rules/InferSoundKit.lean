@@ -46,7 +46,7 @@ an application into the **hereditary app slot** the io licence reads.
 -/
 
 /-- The `WellDenotedV` ∀-splitter. -/
-theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {A B : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) := by
@@ -60,7 +60,7 @@ theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTer
     rwa [hcons] at this
 
 /-- The `WellDenotedV` ∀-splitter, the domain a graded type. -/
-theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {A B : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) :=
@@ -69,7 +69,7 @@ theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotT
     (WellDenotedV.hoist_pi (V := V) h).2⟩
 
 /-- The `WellDenotedV` λ-splitter. -/
-theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
+theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {A b : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam A b)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ b) := by
@@ -153,7 +153,7 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
 by induction on the list from the `nil`/`cons`/`Char.ofNat` head
 packages and the two numeral heads. -/
 theorem charList_facts {ρ : Nat → V}
-    {KL KH KN KC KF Kz Ks KNat : AnnotTerm} {bN b1 b2 b3 bF : Nat}
+    {KL KH KN KC KF Kz Ks KNat : AnnotTerm}
     (hclL : ∀ σ : Nat → V, interp V σ KL = interp V ρ KL)
     (hclH : ∀ σ : Nat → V, interp V σ KH = interp V ρ KH)
     (hokKH : WellDenotedV V ρ KH) (hokKN : WellDenotedV V ρ KN)
@@ -259,7 +259,7 @@ the only environment facts consumed are the four memberships and
 /-- **The string chain, at the environment**, at the
 validated-annotation currency. -/
 theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
-    (hval : AcvalValid m) (hnh : NatHeads m φ)
+    (hnh : NatHeads m φ)
     (hg : ConLeche.strLitSupported env = true) {d : Nat} {s : String}
     {ea : AnnotTerm}
     (hea : denoteMeta m.acval env φ d (.lit (.strVal s)) = some ea)
@@ -289,7 +289,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     interp_closed V (by rw [m.acval_erase]; exact m.cval_closed n ψ) σ ρ
   have hleafOk : ∀ (n : Name) (ψ : Name → Nat) (σ : Nat → V),
       WellDenotedV V σ (m.acval n ψ) := fun n ψ σ =>
-    ⟨m.acval_wellDenoted _ _ σ, hval _ _ σ⟩
+    m.acval_wellDenoted _ _ σ
   -- the stored types' rows, from the `const` residue
   have head : ∀ (n : Name) (ci : ConstantInfo) (us : List Level)
       (ta : AnnotTerm), env.find? n = some ci → ci.isTowerEntry = false →

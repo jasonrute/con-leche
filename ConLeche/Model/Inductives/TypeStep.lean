@@ -55,7 +55,7 @@ TYPES (`WellDenotedV.hoist_piTy` already gives the domain; the body's
 `IsTy` at `ρ ⊨ A :: Δa` is the fibre `IsTy` at `ρ 0 ∈ ⟦A⟧` of the tail
 valuation, the same move `WellDenotedV.hoist_pi` makes for the body's
 grading). -/
-theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {A B : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedTy V ρ B) := by
@@ -69,7 +69,7 @@ theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {u v : Nat} {A B : Annot
 /-- A `GradedTy` Π-type from `Graded` parts and their `IsTy` facts, the way
 `graded_pi_intro` (`NestPosRed.lean`) does for `Graded`: the Π's own
 `IsTy` is free (`IsTy_piR`). -/
-theorem gradedTy_pi_intro {Δ : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+theorem gradedTy_pi_intro {Δ : List AnnotTerm} {v : Nat} {A B : AnnotTerm}
     (hA : Graded V Δ A) (hB : Graded V (A :: Δ) B)
     (hAt : ∀ ρ : Nat → V, Sat V Δ ρ → IsTy (interp V ρ A))
     (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B))

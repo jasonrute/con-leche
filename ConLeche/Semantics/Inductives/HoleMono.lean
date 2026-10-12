@@ -138,7 +138,7 @@ theorem ConstOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
 
 /-- **`pi`**: a product with a hole-free domain and a positive codomain
 is positive. -/
-theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (u v : Nat) (hA : ConstOn R A)
+theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (hA : ConstOn R A)
     (hB : MonoOn (R.under A) B) : MonoOn R (.pi A B) := by
   intro ρ ρ' hR
   rw [interp_pi, interp_pi, ← hA ρ ρ' hR]

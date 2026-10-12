@@ -253,11 +253,17 @@ support of a small function is the glued supports of its values, the
 body's items one binder down (the bound variable is no admissible
 position). -/
 theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm}
-    (u : Nat) {v : Nat} (hv : v ≠ 0) (hD : ConstOn R D)
+    (hD : ConstOn R D)
     {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B) :
     AccOn w Q R (piBound w D Bb) (.pi D B) := by
   intro ρ ρ₀ hR f hfw hf
-  rw [interp_pi, piR_pos hv] at hf
+  rw [interp_pi] at hf
+  -- L17: the value reading puts a Π with truth-valued fibres in the
+  -- truth-value regime whatever its codomain sort; its point member and
+  -- the frame transport of a graph member are owed
+  by_cases hfp : f = pt
+  · sorry
+  replace hf := mem_piSet_of_mem_piV hf hfp
   have hDw : SmallAt w (interp V ρ D) := fun hw => (small_of_mem_piSet hw hf (hfw hw)).1
   have happw : ∀ d, d ∈ˢ interp V ρ D → SmallAt w (app f d) := fun d hd hw =>
     (small_of_mem_piSet hw hf (hfw hw)).2 d hd
@@ -294,7 +300,11 @@ theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : An
     | zero => exact absurd rfl h0
     | succ i => exact hQ
   · intro ρ' hR' h'
-    rw [interp_pi, ← hD ρ ρ' hR', piR_pos hv]
+    rw [interp_pi, ← hD ρ ρ' hR']
+    -- L17 (as above): the graph is a member of the value-read Π at `ρ'`
+    -- only where some fibre there is not a truth value
+    suffices hgs : f ∈ˢ piSet (interp V ρ D) fun x => interp V (cons x ρ') B by
+      sorry
     rw [← eq_graph_app_of_mem_piSet hf]
     refine graph_mem_piSet fun d hd => ?_
     refine (hsk d hd).2.2 (cons d ρ') ⟨d, ρ, ρ', rfl, rfl, hR', hd, hD ρ ρ' hR' ▸ hd⟩
@@ -318,11 +328,17 @@ theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : AnnotTerm} (hD : ConstOn R D)
 #327): the product is a truth value, and its support glues the supports of
 one witness per domain value.  The domain need not be small: at `w = 0` no
 bound is sized.  (At `w ≠ 0` the type regime makes such a Π hole-free.) -/
-theorem AccOn.pi0 {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm} (u : Nat)
+theorem AccOn.pi0 {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm}
     (hD : ConstOn R D) {Bb : (Nat → V) → V} (hB : AccOn 0 (shiftQ Q) (R.underBoth D) Bb B) :
     AccOn 0 Q R (piBound 0 D Bb) (.pi D B) := by
   intro ρ ρ₀ hR x _ hx
-  rw [interp_pi, piR_zero] at hx
+  rw [interp_pi] at hx
+  -- L17: the value reading puts this Π in the truth-value regime only
+  -- where its fibres are truth values (the numeral `0` no longer says so)
+  have hx0 : x ∈ˢ piR 0 (interp V ρ D) fun x => interp V (cons x ρ) B := by
+    sorry
+  replace hx := hx0
+  rw [piR_zero] at hx
   have hall := of_mem_truthVal hx
   classical
   let wit : V → V := fun d => if h : ∃ y, y ∈ˢ interp V (cons d ρ) B then Classical.choose h
@@ -364,7 +380,11 @@ theorem AccOn.pi0 {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm} 
     | zero => exact absurd rfl h0
     | succ i => exact hQ
   · intro ρ' hR' h'
-    rw [interp_pi, ← hD ρ ρ' hR', piR_zero, eq_pt_of_mem_truthVal hx]
+    rw [interp_pi, ← hD ρ ρ' hR', eq_pt_of_mem_truthVal hx]
+    suffices hpt : (pt : V) ∈ˢ piR 0 (interp V ρ D) fun x => interp V (cons x ρ') B by
+      -- L17 (as above)
+      sorry
+    rw [piR_zero]
     refine pt_mem_truthVal fun d hd => ⟨wit d, ?_⟩
     refine (hsk d hd).2.2 (cons d ρ') ⟨d, ρ, ρ', rfl, rfl, hR', hd, hD ρ ρ' hR' ▸ hd⟩
       fun b hb => ?_
@@ -400,16 +420,11 @@ theorem TypeReg.of_eqOn {R : FrameRel V} {P : (Nat → V) → Prop}
   exact htv ρ ρ' hR
 
 /-- **A Π over a hole-free domain and a hole-free body** is hole-free. -/
-theorem ConstOn.pi {R : FrameRel V} {D B : AnnotTerm} (u v : Nat) (hD : ConstOn R D)
+theorem ConstOn.pi {R : FrameRel V} {D B : AnnotTerm} (hD : ConstOn R D)
     (hB : ConstOn (R.underBoth D) B) : ConstOn R (.pi D B) := by
   intro ρ ρ' hR
   rw [interp_pi, interp_pi, ← hD ρ ρ' hR]
-  unfold piR
-  split
-  · refine truthVal_congr (forall_congr' fun d => imp_congr_right fun hd => ?_)
-    show (∃ y, y ∈ˢ interp V (cons d ρ) B) ↔ ∃ y, y ∈ˢ interp V (cons d ρ') B
-    rw [hB _ _ ⟨d, ρ, ρ', rfl, rfl, hR, hd, hD ρ ρ' hR ▸ hd⟩]
-  · exact piSet_congr fun d hd => hB _ _ ⟨d, ρ, ρ', rfl, rfl, hR, hd, hD ρ ρ' hR ▸ hd⟩
+  exact piV_congr fun d hd => hB _ _ ⟨d, ρ, ρ', rfl, rfl, hR, hd, hD ρ ρ' hR ▸ hd⟩
 
 /-- A truth-valued product at a positive codomain sort is its domain's
 emptiness: `{∅}` over the empty domain, `∅` otherwise. -/
@@ -439,19 +454,18 @@ theorem piSet_of_mem_univZero {D : V} {F : V → V} (h : piSet D F ∈ˢ (univZe
 codomain sort a truth-valued product only depends on its (hole-free)
 domain; at `v = 0` the body is truth-valued (the grading) and in the type
 regime, so it is hole-free, and so is the product. -/
-theorem TypeReg.pi {R : FrameRel V} {D B : AnnotTerm} (u v : Nat) (hD : ConstOn R D)
+theorem TypeReg.pi {R : FrameRel V} {D B : AnnotTerm} (v : Nat) (hD : ConstOn R D)
     (hB : TypeReg (R.underBoth D) B)
     (hB0 : v = 0 → ∀ σ σ', R.underBoth D σ σ' →
       interp V σ B ∈ˢ (univZero : V) ∧ interp V σ' B ∈ˢ (univZero : V)) :
     TypeReg R (.pi D B) := by
   intro htv
   by_cases hv : v = 0
-  · exact ConstOn.pi u v hD (hB (hB0 hv))
-  · intro ρ ρ' hR
-    have h1 := (htv ρ ρ' hR).1
-    have h2 := (htv ρ ρ' hR).2
-    simp only [interp_pi, piR_pos hv] at h1 h2 ⊢
-    rw [piSet_of_mem_univZero h1, piSet_of_mem_univZero h2, hD ρ ρ' hR]
+  · exact ConstOn.pi hD (hB (hB0 hv))
+  · -- L17: a truth-valued Π at a positive codomain sort is no longer
+    -- `piSet` (the value reading takes the fibres' regime), so it need
+    -- not depend on its domain alone
+    sorry
 
 /-- **A hole at its full arity is never truth-valued at every related
 frame unless it is empty at all of them** (richness), so a member hole

@@ -359,7 +359,7 @@ theorem OutOk.congr_read {m : EnvModel V env} {ctx : NestCtx} {prog : List NestH
   exact ⟨h1, h2, h3, na, hna, fun ρ hρ => (hr ρ hρ).trans (heq ρ hρ)⟩
 
 /-- A Π reads alike when its bodies read alike over its domain. -/
-theorem interp_pi_congr_body {u v : Nat} {A B B' : AnnotTerm} {ρ : Nat → V}
+theorem interp_pi_congr_body {A B B' : AnnotTerm} {ρ : Nat → V}
     (h : ∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) B = interp V (cons x ρ) B') :
     interp V ρ (.pi A B) = interp V ρ (.pi A B') := by
   rw [interp_pi, interp_pi]

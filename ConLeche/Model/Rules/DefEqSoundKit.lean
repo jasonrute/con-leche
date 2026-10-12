@@ -133,7 +133,7 @@ theorem Graded.snd {Δa : List AnnotTerm} {e : AnnotTerm}
     (AnnotValid_snd V ρ e) ▸ (h ρ hρ).2⟩
 
 /-- `WellDenoted.hoist_pi` at `Graded`. -/
-theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+theorem Graded.pi {Δa : List AnnotTerm} {A B : AnnotTerm}
     (h : Graded V Δa (.pi A B)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
@@ -147,7 +147,7 @@ theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
     rwa [hcons] at this
 
 /-- `WellDenoted.hoist_lam` at `Graded`. -/
-theorem Graded.lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
+theorem Graded.lam {Δa : List AnnotTerm} {A b : AnnotTerm}
     (h : Graded V Δa (.lam A b)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)

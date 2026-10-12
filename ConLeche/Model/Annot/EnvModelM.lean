@@ -179,25 +179,22 @@ constructor's residual is the former at the constructor's parameters. -/
 section
 variable {V}
 
-/-- **An application along a Π-tower lands in its body** — at a
-VALID tower, whose `Prop` binders carry the truth-value fibres
-`app_mem_piR` asks for. -/
+/-- **An application along a Π-tower lands in its body**
+(`app_mem_piV` per binder). -/
 theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
     ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V} {f : V},
-      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
+      SpineFit ρ (tl.map (·.2.2)) bs →
       f ∈ˢ interp V ρ (mkPisAV tl B) →
       bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
-  | [], ρ, [], f, _, _, hf => hf
-  | [], _, _ :: _, _, _, h, _ => h.elim
-  | _ :: _, _, [], _, _, h, _ => h.elim
-  | d :: tl, ρ, b :: bs, f, hv, h, hf => by
-    have hv' : AnnotValid V ρ (.pi d.2.2 (mkPisAV tl B)) := hv
+  | [], ρ, [], f, _, hf => hf
+  | [], _, _ :: _, _, h, _ => h.elim
+  | _ :: _, _, [], _, h, _ => h.elim
+  | d :: tl, ρ, b :: bs, f, h, hf => by
     have hf' : f ∈ˢ interp V ρ (.pi d.2.2 (mkPisAV tl B)) := hf
-    rw [AnnotValid_pi] at hv'
     rw [interp_pi] at hf'
-    have happ := app_mem_piR hf' h.1 hv'.2.2
+    have happ := app_mem_piV hf' h.1
     rw [List.foldl_cons, consList_cons]
-    exact foldl_app_mem_mkPisAV (hv'.2.1 b h.1) h.2 happ
+    exact foldl_app_mem_mkPisAV h.2 happ
 
 end
 
@@ -206,9 +203,6 @@ docstring). -/
 structure EnvModelM (μ : CheckMode) (env : Env) where
   /-- the environment carrier, contained -/
   base2 : EnvModel V env
-  /-- every leaf is bit-valid (`acval_wellDenoted`'s `AnnotValid` half) -/
-  acval_validV : ∀ (n : Name) (ψ : Name → Nat) (ρ : Nat → V),
-    AnnotValid V ρ (base2.acval n ψ)
   /-- every stored type reads, at every ground assignment -/
   type_reads : ∀ c ∈ env.consts, ∀ ψ : Name → Nat,
     ∃ ta : AnnotTerm,
@@ -297,10 +291,6 @@ namespace EnvModelM
 variable {V}
 variable {μ : CheckMode} {env : Env} {φ : Name → Nat}
 
-/-- The leaf bit-validity residue, read off the field. -/
-theorem acvalValid (m : EnvModelM V μ env) : AcvalValid m.base2 :=
-  m.acval_validV
-
 /-- **The `const` residue, derived — the worked example of the
 bundle-supplying layer.**  The three type fields at the composed
 assignment `Level.substFn φ ks us`, carried to the instantiated form
@@ -364,9 +354,8 @@ theorem indFibLaw (m : EnvModelM V μ env) (φ : Name → Nat) : IndFibLaw m.bas
   subst hnm
   by_cases hn : n = 0
   · subst hn
-    have hty := (m.type_wellDenotedTy _ hmem _ _ hta ρ).1.2
     have hin := m.mem_type _ hmem _ _ hta ρ
-    have h0 := foldl_app_mem_mkPisAV hty hsp hin
+    have h0 := foldl_app_mem_mkPisAV hsp hin
     rw [interp_sort, univ_zero] at h0
     exact h0
   · simp only [hn, decide_false, Fib_false]
@@ -415,15 +404,10 @@ end EnvModelM
 
 /-- The empty environment carries the P invariant (the fold's base
 case): the core is the mode-indexed empty's projection, and every P
-field is vacuous — no constants, guards false, and the empty leaf
-`.const .empty [0]` is bit-valid because a constant leaf carries no
-binder. -/
+field is vacuous — no constants, guards false. -/
 @[expose] noncomputable def EnvModelM.empty (V : Type w) [SetTheory V]
     (μ : CheckMode) : EnvModelM V μ Env.empty where
   base2 := EnvModel.empty
-  acval_validV := fun _ _ _ => by
-    show AnnotValid V _ (.const .empty [0])
-    simp
   type_reads := fun c hc => nomatch hc
   type_wellDenotedTy := fun c hc => nomatch hc
   mem_type := fun c hc => nomatch hc

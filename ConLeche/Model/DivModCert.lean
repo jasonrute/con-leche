@@ -132,7 +132,7 @@ different context, and the packages never read one.) -/
 pinned product's reading, and that reading's own grading (which is
 where the fibre facts at the unknown regime bits come from). -/
 theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {b₁ b₂ : Nat} {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
+    {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
       ((.pi (m.acval ConLeche.natName ψ)
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
@@ -193,7 +193,7 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 
 /-- **A unary head, from its parts.** -/
 theorem dmUnV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
-    {b₁ : Nat} {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
+    {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
       ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
         : AnnotTerm))

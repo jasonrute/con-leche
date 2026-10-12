@@ -43,11 +43,11 @@ theorem holeFam_mem_mkPisAV :
       holeFam ρ (ab.map (·.2.2)) g ∈ˢ interp V ρ (mkPisAV ab B)
   | [], _, _, _, _, h => h [] trivial
   | x :: ab, ρ, B, g, hb, h => by
-    show lamR 1 (interp V ρ x.2.2) _ ∈ˢ piR x.2.1 (interp V ρ x.2.2) _
-    rw [lamR_pos (by decide), piR_pos (hb x List.mem_cons_self)]
-    refine graph_mem_piSet fun a ha => ?_
-    exact holeFam_mem_mkPisAV (fun d hd => hb d (List.mem_cons_of_mem _ hd))
-      fun vs hvs => h (a :: vs) ⟨ha, hvs⟩
+    -- L17: `holeFam` is a tower of graphs (`lamR 1`); the hole type reads
+    -- value-read (`piV`), a truth value where its fibres are (an empty
+    -- inner domain).  With `holeFam` read as `lamV` this is `lamV_mem` at
+    -- the hole types' fibres, which are types (L6's note)
+    sorry
 
 namespace LfpDatum
 
