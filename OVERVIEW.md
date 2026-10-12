@@ -622,10 +622,10 @@ members of one type, the point does not separate them either, because
 a type's members are all the point or none.
 
 They are proved through a *relational description* of the checker.
-Six mutually inductive relations over the checker's own terms say what
+Seven mutually inductive relations over the checker's own terms say what
 moves the core makes — a reduction step, a definitional-equality
 decision, a type inference (checking, or infer-only as in the official
-kernel's `infer_only` mode), and three certificate checks — with the fuel, the unfolding heuristics and the dispatch order
+kernel's `infer_only` mode), and four certificate checks — with the fuel, the unfolding heuristics and the dispatch order
 out of sight; a rule's premises are exactly the certificates the
 checker ran at that site, and the symmetric and derived variants are
 theorems, not constructors
@@ -641,17 +641,30 @@ kernel entry point, at any fuel, yields a derivation — one induction
 on fuel, mechanical, each checker site landing on one rule
 ([theorem `bridge` in `ConLeche/Verify/Rules/Bridge.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Rules/Bridge.lean#L22-L27)).
 The *soundness*: a derivation implies the claim's conclusion — one
-structural induction over the six relations, every case one lemma
+structural induction over the seven relations, every case one lemma
 about one rule, stated over the environment's laws and never over the
 implementation, at one valuation at a time. β's lemma reads no premise:
 a redex that is not the point has a λ that is not the point, which is
 a function on its own domain, and the argument's typing puts the
 argument there. The other definitional-equality rules read the point
 the same way: two arguments of equal heads lie in one domain, a type,
-so they are both the point or neither is. The ι rules, the literal
-accelerations, λ-congruence, η and structure η are proved by a second,
-unconditional induction, which reads β's certificate; they reach the
-conditional claims by weakening
+so they are both the point or neither is. ι reads the point the same
+way. A redex's spine is certified against the recursor's type, so the
+major lies in the major's domain, an instance of the family. Where the
+family is never `Prop` at the constructor's levels, that instance holds
+no point, so the major is not the point; its reduction is then an
+equation, and the constructor application, which is not the point
+either, fits its own type. A K-like recursor's value is the minor
+premise for any major in the domain, which the environment's law states.
+Where the family may be `Prop`, the checker certifies the constructor's
+spine and compares its parameters and indices; where the major is the
+point, the constructor application is the point too. The comparisons the
+ι step ran become equations because both sides fit one telescope of
+types. All of this is stated as environment laws the installer proves
+(`RecRuleLaw` in `ConLeche/Model/Annot/Laws.lean`). The literal
+accelerations, λ-congruence, η, structure η and the structure-η major
+rescue are proved by a second, unconditional induction, which reads β's
+certificate; they reach the conditional claims by weakening
 ([the master induction in `ConLeche/Model/Rules/Sound.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Rules/Sound.lean#L41-L44)).
 And the *recomposition*, which is a few lines per claim: bridge the
 run, apply the soundness
@@ -1260,7 +1273,7 @@ ConLeche.Kernel.PropWhen`, and every such line carries its reason.
 | `ConLeche/SetTheory/` | The `SetTheory` class and the derived set operations. |
 | `ConLeche/SetModel/` | Pure set constructions with no expressions in sight: tuples and nested tuples, tagged sums, the fixpoint iteration, the recursor's graph, member containers. |
 | `ConLeche/Semantics/` | The annotated term language, the interpretation, the semantic invariant, the semantics of inductive blocks, the declaration-level facts. |
-| `ConLeche/Rules/` | The relational description of the core checker: six mutually inductive relations over the checker's own `Expr` — reduction, definitional equality, type inference (checking and infer-only), and three certificate checks — with fuel, unfolding heuristics and dispatch order out of sight (`Rel.lean`), and the derived rules (`Derived.lean`). Imports the fuel-free helpers of the kernel and nothing else of it. |
+| `ConLeche/Rules/` | The relational description of the core checker: seven mutually inductive relations over the checker's own `Expr` — reduction, definitional equality, type inference (checking and infer-only), and four certificate checks — with fuel, unfolding heuristics and dispatch order out of sight (`Rel.lean`), and the derived rules (`Derived.lean`). Imports the fuel-free helpers of the kernel and nothing else of it. |
 | `ConLeche/Verify/Rules/` | The bridge: an accepting run of a kernel function, at any fuel, yields a derivation (`Bridge.lean`, from one step theorem per entry point and the certificate bridges). |
 | `ConLeche/Model/` | The graded set model of the checker: the environment invariant and its laws (`Annot/`), the claims, the soundness of the rules tier's derivations (`Rules/`: the motives, the environment inputs, one lemma per rule over shared kits, the master induction, and the recomposition of the claims from the bridge), the run-stated remainder the declaration fold reads (`Tiers.lean`), the declaration step, the inductive installs (`Inductives/`, `Ind*`), the Nat-op certification, the final theorems (`Capstone.lean`), and the model read through the statement's relation (`Denotes.lean`). |
 | `ConLeche/Verify/` | Proofs about kernel functions that need no model: well-formedness, scoping, the cached-to-pure simulation (`Cached/`: the core's congruence in the lookup (`KnotCongr.lean`), the block tail's in-place pushes (`BlockOverlay.lean`), every install stage's and the parallel install's commit step (`ViewCongr.lean`, `ParInstall.lean`), which `ConLeche/Driver/ParInstall.lean` imports), the inductive installer's kernel-side invariants (`Inductives/`), and the parser's (`Frontend/`: line locality, the parse as a line fold, chunk independence, what a line does to the parse state, the template's lines, the characterisation of the serial fold over a stream that binds in increasing order, good entries and the tables they make (`Good.lean`), and that the rounds keep good entries and a window is one more stretch of the serial parse (`RoundsWork.lean`, `Rounds.lean`)). |
