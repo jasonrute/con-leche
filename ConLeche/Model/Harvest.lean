@@ -242,12 +242,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       WellDenoted V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).1
-  have : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ) := by
-    intro ψ ρ
-    obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).2
+    exact hrE ρ (Sat_nil V ρ)
   -- the membership at the declared type, across the defeq run
   -- the declared type is a type: its sort run
   have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
@@ -446,7 +441,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
           (hAclosed ψ) (hA ψ) 2
       obtain ⟨hSelfBin, hSelfUn, hBoolS⟩ := natSelfHead_install (φ := φ) mp
         hcmem hfresh hpin hsE hTa hTok hA2
-        (fun ψ ρ => ⟨hAok ψ ρ, ψ ρ⟩) hmemA
+        hAok hmemA
       exact natOps_install mp ((hclaims φ).2.2.1) (mp.nat_ops φ)
         hcmem hfresh hlpcv hsE hg2 hdeps₂ hruns hA hAclosed hvf' hbv'
         hSelfBin hSelfUn hBoolS _ rfl
@@ -469,7 +464,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         hTa (fun ψ ρ => by
           obtain ⟨sta, hsta, hT1, -, -⟩ := hrowsT ψ
           exact hT1 ρ (Sat_nil V ρ))
-        (fun ψ ρ => ⟨hAok ψ ρ, ψ ρ⟩) hmemA _ rfl
+        hAok hmemA _ rfl
     · exact divMod_cons_fresh (mp.div_mod φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh
@@ -625,12 +620,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       WellDenoted V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).1
-  have : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ) := by
-    intro ψ ρ
-    obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).2
+    exact hrE ρ (Sat_nil V ρ)
   -- the membership at the declared type, across the defeq run
   -- the declared type is a type: its sort run
   have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
@@ -780,7 +770,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
 
 **An axiom has no value**, so the leaf is not a reading of anything the
 harvest can see: the leaf and its facts (`hAclosed`, `hAparams`,
-`hAok`, `hAvalid`, the interp membership `hmemA`) arrive as
+`hAok`, the interp membership `hmemA`) arrive as
 **premises**, discharged by the pin tier (`Model/AxiomPin.lean`,
 `Model/AxiomReduce.lean`).
 
@@ -1073,12 +1063,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       WellDenoted V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).1
-  have : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ) := by
-    intro ψ ρ
-    obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).2
+    exact hrE ρ (Sat_nil V ρ)
   -- the membership at the declared type, across the defeq run
   -- the declared type is a type: its sort run
   have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by

@@ -772,7 +772,7 @@ theorem piTeleAV_graded :
   | nil =>
     intro Δ₀ hT
     exact ⟨fun i hi => absurd hi (Nat.not_lt_zero _), fun ρ hρ => hT ρ hρ⟩
-  | @cons k u v A B R Γ' h ih =>
+  | @cons k A B R Γ' h ih =>
     intro Δ₀ hT
     have hlen : Γ'.length = k := h.length
     have hB : ∀ ρ : Nat → V, Sat V (A :: Δ₀) ρ → WellDenotedV V ρ B := by
@@ -1110,7 +1110,7 @@ theorem PiTeleAV.unique :
   intro k T Γ Γ' R R' h
   induction h generalizing Γ' R' with
   | nil => intro h'; cases h'; exact ⟨rfl, rfl⟩
-  | @cons k u v A B R Γ₁ h ih =>
+  | @cons k A B R Γ₁ h ih =>
     intro h'
     obtain ⟨A', B', Γ₂, hT, hΓ, h₂⟩ := h'.succ_inv
     obtain ⟨rfl, rfl, rfl, rfl⟩ : u = u' ∧ v = v' ∧ A = A' ∧ B = B' := by
@@ -1570,7 +1570,7 @@ theorem stripPisAV_of_piTeleAV :
   intro k T Γ R h
   induction h with
   | nil => exact ⟨[], rfl, rfl⟩
-  | @cons k u v A B R Γ' _ ih =>
+  | @cons k A B R Γ' _ ih =>
     obtain ⟨pps, hst, hΓ⟩ := ih
     refine ⟨(u, v, A) :: pps, ?_, ?_⟩
     · simp only [stripPisAV, hst, Option.map_some]

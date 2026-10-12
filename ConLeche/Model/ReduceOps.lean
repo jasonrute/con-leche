@@ -53,14 +53,11 @@ and every part of it is already established at the install:
   mb₀` **on the nose** below the binder meta — both erasures fix a
   `.const` (the `trustCompiler` branch's lesson, reused) — so the
   type's reading is `.pi (acval E ψ) (acval E ψ)`
-  and `interp` of it is a `piR` over the element set;
-* the `piR` membership is the constant's own `mem_type` obligation
+  and `interp` of it is a `piV` over the element set;
+* the `piV` membership is the constant's own `mem_type` obligation
   (`hmemA`, which `harvestOpaque` proves anyway);
-* the `v = 0` fibre clause is the type reading's **`AnnotValid` `pi`
-  third component** — `htyOk`'s own content.  So **no bit is needed**:
-  the regime datum `mb₀.pw` stays abstract throughout, exactly as the
-  literal tier found (`Model/NatEqs.lean`), and the doctrine that bits are never taken from a
-  metatheorem is not even approached.
+* the slot's numeral is the value-read `propN`, whose `v = 0` fibre
+  clause is `propN_eq_zero`.  The binder datum `mb₀` is never read.
 
 The preservation half is `reduceOps_cons_fresh` (`DivMod.lean`,
 beside its `eq_law` sibling — the law mentions two stored leaves, so
@@ -167,8 +164,7 @@ theorem reduceCertVar_fvarLeaves (c : Name) :
 recorded identity-certificate run, converted through `DefEqClaim` at
 the pre-insertion environment over the one-entry element context; every
 other stored reduce operation crosses by `reduceOps_entry_cons`.  See
-the module docstring for the route and for why no regime bit is ever
-read. -/
+the module docstring for the route. -/
 theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat}
     {cv : ConstantVal} {value type' value' : Expr}

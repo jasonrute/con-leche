@@ -347,8 +347,6 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
       ∀ ψ₁ ψ₂ : Name → Nat, (∀ n ∈ cvTa.levelParams, ψ₁ n = ψ₂ n) → A j ψ₁ = A j ψ₂)
     (hAokOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A j ψ))
-    (hAvalidOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
-      ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (A j ψ))
     (hAmemOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A j ψ) ∈ˢ interp V ρ (mkPisAV (ppsOf j ψ) (.sort (q.resSort.eval ψ))))

@@ -221,7 +221,7 @@ theorem PiTeleAV.inst : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
   intro k T Γ R h
   induction h with
   | nil => intro v j; simpa using PiTeleAV.nil
-  | @cons k u v' A B R Γ _ ih =>
+  | @cons k A B R Γ _ ih =>
     intro v j
     rw [AnnotTerm.inst_pi, ctxInstAtAV_snoc]
     have h1 := ih v (j + 1)
