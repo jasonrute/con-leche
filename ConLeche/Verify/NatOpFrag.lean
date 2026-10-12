@@ -263,7 +263,18 @@ theorem natOpGuard_stored {env : Env} {c : Name}
   · intro hc
     rw [ite_eq_left hc] at hbool
     simp only [Bool.and_eq_true] at hbool
-    exact ⟨hbool.1, hbool.2⟩
+    obtain ⟨hT, hF⟩ := hbool
+    constructor
+    · unfold storedNoLevels
+      revert hT; split
+      · next ci heq =>
+        intro h; simp only [Bool.and_eq_true] at h; rw [heq]; exact h.1
+      · intro h; exact nomatch h
+    · unfold storedNoLevels
+      revert hF; split
+      · next ci heq =>
+        intro h; simp only [Bool.and_eq_true] at h; rw [heq]; exact h.1
+      · intro h; exact nomatch h
 
 
 end ConLeche.Verify
