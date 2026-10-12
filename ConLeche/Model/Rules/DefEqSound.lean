@@ -8,7 +8,7 @@ import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Semantics.DefEqStep
 import ConLeche.Semantics.LitStep
-import ConLeche.Model.Annot.BitShift
+import ConLeche.Model.Reading.Shift
 
 public section
 
@@ -66,7 +66,7 @@ theorem DefEq.fvar_soundU {d i : Nat} {ty₁ ty₂ : Expr} :
   rfl
 
 /-- `acval_const_congr'` with `AcvalParams`
-(`Model/Annot/EnvModel.lean`, `acvalParams m`). -/
+(`Model/Env/EnvModel.lean`, `acvalParams m`). -/
 theorem DefEq.const_soundU {d : Nat} {n : Name} {us us' : List Level}
     (h : Level.isEquivList us us' = some true) :
     DefEqSemU m φ d (.const n us) (.const n us') := by
@@ -105,11 +105,11 @@ places both spines in one telescope of types (the DESIGN record of task
 /-- The slot of a graded application whose head is not the point: the
 graph regime, and a domain that is a type. -/
 theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
-    (hw : WellDenotedV V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
+    (hw : WellDenoted V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
     ∃ (v : Nat) (A : V) (B : V → V), v ≠ 0 ∧
       interp V ρ f ∈ˢ piR v A B ∧ interp V ρ x ∈ˢ A ∧ IsTy A := by
   have h := hw
-  rw [WellDenotedV, WellDenoted_app] at h
+  rw [WellDenoted_app] at h
   obtain ⟨-, -, v, A, B, hf, hx, -, hT⟩ := h
   have hv : v ≠ 0 := by
     rintro rfl; exact hn (eq_pt_of_mem_piR_zero hf)
@@ -172,14 +172,14 @@ theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : 
   have hmk := (natLit_factsAV (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ)
     hz hs hT k).2
   have hw := hwb
-  rw [WellDenotedV, WellDenoted_app] at hw
+  rw [WellDenoted_app] at hw
   obtain ⟨-, -, v, A, B, hfm, hxm, -, -⟩ := hw
   have hv : v ≠ 0 := by
     rintro rfl
     exact (mem_piR_pos Nat.one_ne_zero hs).2.2.2 (eq_pt_of_mem_piR_zero hfm)
   have hA := piR_dom_unique Nat.one_ne_zero hv hs hfm
   rw [← hA] at hxm
-  have hwk : WellDenotedV V ρ (natLitAV (m.acval natZeroName (Level.substFn φ [] []))
+  have hwk : WellDenoted V ρ (natLitAV (m.acval natZeroName (Level.substFn φ [] []))
       (m.acval natSuccName (Level.substFn φ [] [])) k) := by
     simp only [natLitAV] at hwa
     exact hwa.app_arg
@@ -194,11 +194,11 @@ theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : 
 types, never the point ("not pt" source (1)), so the premises' claims
 apply with no condition. -/
 theorem DefEq.forallE_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
-    {m₁ m₂ : BinderMeta}
+   
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
-    DefEqSem m φ d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂) := by
+    DefEqSem m φ d (.forallE ty₁ body₁) (.forallE ty₂ body₂) := by
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_forallE_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_forallE_inv hba
@@ -341,7 +341,7 @@ theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
   have hLwaρ : LeavesGr m φ d wta ρ := hLtaρ.of_subset hsubWA
   obtain ⟨hftb, hsubb, tba, htba, hXB⟩ := htb hfb hCb hdb
   obtain ⟨hokTb, hmemB⟩ := (IORel.mem_of_red (hXB ρ hρ hLb hokB).1 hnb hwtbr
-    (fun ty body mb h => by rw [h] at hwtbF; exact nomatch hwtbF)).of_reading htba
+    (fun ty body h => by rw [h] at hwtbF; exact nomatch hwtbF)).of_reading htba
   have hCtb : CtxOkS m φ d Δa tb := hCb.of_subset hsubb
   have hLtbρ : LeavesGr m φ d tb ρ := hLb.of_subset hsubb
   obtain ⟨hfWB, hsubWB, wtba, hwtba, hYB⟩ := hwtb hftb hCtb htba
@@ -416,14 +416,14 @@ they are both the point or neither, and where neither is the bodies'
 conditional claim makes them equal (`IsTy.eq_of_ne_pt`).  The claim is
 unconditional: no side need be off the point. -/
 theorem DefEqLams.inner_sound {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ : Expr}
-    {m₁ m₂ : BinderMeta}
+   
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂)))
     (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂)) t₁)
     (ht₂ : InferSemFull m φ (d + 1) (body₂.instantiate1 (.fvar d ty₂)) t₂)
     (ht : DefEqSem m φ (d + 1) t₁ t₂) :
-    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
+    DefEqLamsSem m φ d (.lam ty₁ body₁) (.lam ty₂ body₂) := by
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
@@ -462,11 +462,11 @@ theorem DefEqLams.inner_sound {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ :
 variable, unconditionally, so the λs are; the domains are types ("not
 pt" source (1)), so their conditional claim applies. -/
 theorem DefEqLams.outer_sound {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr}
-    {m₁ m₂ : BinderMeta}
+   
     (hty : DefEqSem m φ d ty₁ ty₂)
     (hbody : DefEqLamsSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₂))
       (body₂.instantiate1 (.fvar d ty₂))) :
-    DefEqLamsSem m φ d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂) := by
+    DefEqLamsSem m φ d (.lam ty₁ body₁) (.lam ty₂ body₂) := by
   intro hfa hfb Δa aa ba hCa hCb haa hba ρ hρ hLa hLb hwa hwb
   obtain ⟨ta₁, ba₁, hta₁, hva₁, rfl⟩ := denoteMeta_lam_inv haa
   obtain ⟨ta₂, ba₂, hta₂, hva₂, rfl⟩ := denoteMeta_lam_inv hba
@@ -501,21 +501,21 @@ is the abstraction of its applications (`lamV_eta`).  `hmb` is the
 claim of `b`'s type: where `b` is not the point it is a member of it,
 which the type's io claim gives for an atom-headed `b`. -/
 theorem DefEq.eta_core {d : Nat}
-    {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    {ty₁ body₁ b tb ty₂ B t₁ : Expr}
     (htb : Frame d b → ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
       CtxOkS m φ d Δa b → denoteMeta m.acval env φ d b = some ea →
       Frame d tb ∧ LeavesSub tb b ∧
         ∃ ta, denoteMeta m.acval env φ d tb = some ta ∧
           ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d b ρ →
-            WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
+            WellDenoted V ρ ea → interp V ρ ea ≠ pt →
             WellDenotedTy V ρ ta ∧ interp V ρ ea ∈ˢ interp V ρ ta)
-    (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (hwtb : RedSem m φ d tb (.forallE ty₂ B))
     (hty : DefEqSem m φ d ty₂ ty₁)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
       (.app b (.fvar d ty₁)))
     (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
     (htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
-    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
+    DefEqSem m φ d (.lam ty₁ body₁) b := by
   intro hfa hfb Δa aa ba hCa hCb hda hdb ρ hρ hLa hLb hokA hokB _ hnb
   obtain ⟨hwF1, hbF1, hLF1⟩ := hfa
   obtain ⟨hwF2, hbF2, hLF2⟩ := hfb
@@ -542,8 +542,8 @@ theorem DefEq.eta_core {d : Nat}
   obtain ⟨hfW, hsubW, wtba, hwtba, hY⟩ := hwtb hftb hCtb htba
   -- "not pt" source (1): `b`'s type is a type
   obtain ⟨hokW, heqW⟩ := hY ρ hρ hLtbρ hokTb.1 hokTb.ne_pt
-  have hCwr : CtxOkS m φ d Δa (Expr.forallE ty₂ B m₂) := hCtb.of_subset hsubW
-  have hLwρ : LeavesGr m φ d (Expr.forallE ty₂ B m₂) ρ := hLtbρ.of_subset hsubW
+  have hCwr : CtxOkS m φ d Δa (Expr.forallE ty₂ B) := hCtb.of_subset hsubW
+  have hLwρ : LeavesGr m φ d (Expr.forallE ty₂ B) ρ := hLtbρ.of_subset hsubW
   obtain ⟨ta₂, ba₂, hta₂, hba₂, rfl⟩ := denoteMeta_forallE_inv hwtba
   have hokTa₂ : WellDenotedTy V ρ ta₂ := hokW.pi_dom
   -- the two domains agree ("not pt" source (1): two types)
@@ -571,11 +571,11 @@ theorem DefEq.eta_core {d : Nat}
   have hlift : ∀ x, interp V (cons x ρ) ba.lift = interp V ρ ba := fun x =>
     interp_lift_cons V ba x ρ
   have hokApp : ∀ x, x ∈ˢ interp V ρ ta →
-      WellDenotedV V (cons x ρ) (.app ba.lift (.bvar 0)) := by
+      WellDenoted V (cons x ρ) (.app ba.lift (.bvar 0)) := by
     intro x hx
-    have hok0 : WellDenotedV V (cons x ρ) ba.lift :=
-      (WellDenotedV_liftN V 1 ba 0 (cons x ρ)).mpr (by rw [shiftE_zero]; exact hokB)
-    rw [WellDenotedV, WellDenoted_app]
+    have hok0 : WellDenoted V (cons x ρ) ba.lift :=
+      (WellDenoted_liftN V 1 ba 0 (cons x ρ)).mpr (by rw [shiftE_zero]; exact hokB)
+    rw [WellDenoted_app]
     refine ⟨hok0, by simp, _, interp V ρ ta₂, (fun y => interp V (cons y ρ) ba₂),
       ?_, ?_, propN_eq_zero.mp, fun _ => hokTa₂.2⟩
     · rw [hlift]; exact hmem
@@ -624,7 +624,7 @@ theorem DefEq.eta_core {d : Nat}
     have hρ' := Sat_cons V hρ hx
     obtain ⟨hft₁, hsub₁, t₁a, ht₁a, hrow₁⟩ := ht₁ hfopen hCopen hbda
     obtain ⟨hw₁, hT₁, hm₁⟩ := hrow₁ _ hρ' (hLopenBody x)
-    have hokB₂ : WellDenotedV V (cons x ρ) ba₂ := hokW.pi_body x hx₂
+    have hokB₂ : WellDenoted V (cons x ρ) ba₂ := hokW.pi_body x hx₂
     have hTB₂ : IsTy (interp V (cons x ρ) ba₂) := hokW.pi_fib x hx₂
     -- "not pt" source (1): the body's type and the fibre are types
     have heT := htB hft₁ hfB (hCopen.of_subset hsub₁) hCB ht₁a hdB _ hρ'
@@ -646,15 +646,15 @@ theorem DefEq.eta_core {d : Nat}
 its io claim is a membership — for an atom-headed `b` (the fragment's
 `etaIO_sound`). -/
 theorem DefEq.eta_sound {d : Nat}
-    {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta}
+    {ty₁ body₁ b tb ty₂ B t₁ : Expr}
     (hneu : b.ioNeutral = true)
-    (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B m₂))
+    (htb : InferSemIO m φ d b tb) (hwtb : RedSem m φ d tb (.forallE ty₂ B))
     (hty : DefEqSem m φ d ty₂ ty₁)
     (hbody : DefEqSem m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁))
       (.app b (.fvar d ty₁)))
     (ht₁ : InferSemFull m φ (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁)
     (htB : DefEqSem m φ (d + 1) t₁ (B.instantiate1 (.fvar d ty₁))) :
-    DefEqSem m φ d (.lam ty₁ body₁ m₁) b := by
+    DefEqSem m φ d (.lam ty₁ body₁) b := by
   refine DefEq.eta_core (fun hf Δa ea hC hea => ?_) hwtb hty hbody ht₁ htB
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := htb hf hC hea
   refine ⟨hft, hsub, ta, hta, fun ρ hρ hL hw hn => ?_⟩
@@ -742,7 +742,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
   -- the stuck side: the η law and the coherence law
   obtain ⟨ps, hsps, hfps, TCa, hTCa, hside⟩ := etaSide hin hind heta hresT
     (by rw [hetaCtor]; exact hresc) (by rw [hetaCtor]; exact hctor) hlv htlen htow
-    hfb hCb (frame_spine hfW hCr) hdb hspt
+    hfb hCb hdb hspt
   obtain ⟨hLps, hokps, hb, restC, hfitC⟩ :=
     hside ρ hρ hLb (leavesGr_spine hLrρ) hokW hneW hokB hmemB
   obtain ⟨-, hoA⟩ := hoist_spineV asa hokA

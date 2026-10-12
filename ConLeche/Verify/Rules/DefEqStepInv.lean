@@ -45,15 +45,15 @@ inductive QuickExit (env : Env) (fuel d : Nat) : Expr → Expr → Prop where
   /-- Two equal literals. -/
   | lit {l : Literal} : QuickExit env fuel d (.lit l) (.lit l)
   /-- ∀-congruence, the bodies opened at the RIGHT domain. -/
-  | forallE {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂ : BinderMeta} :
+  | forallE {ty₁ bd₁ ty₂ bd₂ : Expr} :
       isDefEqCore .verified env fuel d ty₁ ty₂ = .ok true →
       isDefEqCore .verified env fuel (d + 1) (bd₁.instantiate1 (.fvar d ty₂))
         (bd₂.instantiate1 (.fvar d ty₂)) = .ok true →
-      QuickExit env fuel d (.forallE ty₁ bd₁ m₁) (.forallE ty₂ bd₂ m₂)
+      QuickExit env fuel d (.forallE ty₁ bd₁) (.forallE ty₂ bd₂)
   /-- λ-congruence: the λ-telescope comparison (`defeqLams`). -/
-  | lam {ty₁ bd₁ ty₂ bd₂ : Expr} {m₁ m₂ : BinderMeta} :
+  | lam {ty₁ bd₁ ty₂ bd₂ : Expr} :
       defeqLamsFueled .verified env fuel lamsFuel d ty₁ bd₁ ty₂ bd₂ = .ok true →
-      QuickExit env fuel d (.lam ty₁ bd₁ m₁) (.lam ty₂ bd₂ m₂)
+      QuickExit env fuel d (.lam ty₁ bd₁) (.lam ty₂ bd₂)
 
 /-- The ∀ arm of `quickDefEq`: a `some true` run compared the domains,
 then the opened bodies. -/
@@ -119,10 +119,10 @@ by the next level), or the innermost level. -/
 theorem defeqLams_inv {k d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr}
     (h : defeqLamsFueled .verified env fuel k d ty₁ bd₁ ty₂ bd₂ = .ok true) :
     isDefEqCore .verified env fuel d ty₁ ty₂ = .ok true ∧
-    ((∃ k' ty₁' bd₁' m₁ ty₂' bd₂' m₂, k = k' + 1 ∧
-        bd₁.instantiate1 (.fvar d ty₂) = .lam ty₁' bd₁' m₁ ∧
-        bd₂.instantiate1 (.fvar d ty₂) = .lam ty₂' bd₂' m₂ ∧
-        (Expr.lam ty₁' bd₁' m₁ = .lam ty₂' bd₂' m₂ ∨
+    ((∃ k' ty₁' bd₁' ty₂' bd₂', k = k' + 1 ∧
+        bd₁.instantiate1 (.fvar d ty₂) = .lam ty₁' bd₁' ∧
+        bd₂.instantiate1 (.fvar d ty₂) = .lam ty₂' bd₂' ∧
+        (Expr.lam ty₁' bd₁' = .lam ty₂' bd₂' ∨
           defeqLamsFueled .verified env fuel k' (d + 1) ty₁' bd₁' ty₂' bd₂' = .ok true)) ∨
       defeqLamsInnerFueled .verified env fuel d (bd₁.instantiate1 (.fvar d ty₂))
         (bd₂.instantiate1 (.fvar d ty₂)) = .ok true) := by
@@ -139,8 +139,8 @@ theorem defeqLams_inv {k d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr}
   refine ⟨rfl, ?_⟩
   simp only [Bind.bind, Except.bind, ↓reduceIte] at h
   split at h
-  · obtain ⟨m₁, m₂, h₁, h₂⟩ := Expr.lamPair?_some ‹_›
-    refine Or.inl ⟨_, _, _, _, _, _, _, rfl, h₁, h₂, ?_⟩
+  · obtain ⟨h₁, h₂⟩ := Expr.lamPair?_some ‹_›
+    refine Or.inl ⟨_, _, _, _, _, rfl, h₁, h₂, ?_⟩
     rw [h₁, h₂] at h
     split at h
     · next heq => exact Or.inl (eq_of_beq heq)
@@ -220,13 +220,13 @@ inductive DefeqStuckExit (env : Env) (fuel d : Nat) : Expr → Expr → Prop whe
       defEqListFueled .verified env fuel d a.getAppArgs b.getAppArgs = .ok true →
       DefeqStuckExit env fuel d a b
   /-- A one-sided λ on the left — η. -/
-  | etaL {ty bd : Expr} {mb : BinderMeta} {b : Expr} :
+  | etaL {ty bd : Expr} {b : Expr} :
       etaCertFueled .verified env fuel d ty bd b = .ok true →
-      DefeqStuckExit env fuel d (.lam ty bd mb) b
+      DefeqStuckExit env fuel d (.lam ty bd) b
   /-- A one-sided λ on the right. -/
-  | etaR {ty bd : Expr} {mb : BinderMeta} {a : Expr} :
+  | etaR {ty bd : Expr} {a : Expr} :
       etaCertFueled .verified env fuel d ty bd a = .ok true →
-      DefeqStuckExit env fuel d a (.lam ty bd mb)
+      DefeqStuckExit env fuel d a (.lam ty bd)
 
 /-- **The inversion of `defeqStuck`.** -/
 theorem defeqStuck_inv {d : Nat} {a b : Expr}

@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Env.EnvModelM
+public import ConLeche.Model.Reading.ConsCross
 public import ConLeche.Semantics.IndBlockFacts
 import ConLeche.Model.Swap
 import ConLeche.Model.Inductives.StructFrameKit
@@ -74,10 +74,9 @@ theorem mem_bareOf {rs : List RecDatum} {x : ConstantVal × Nat} (h : x ∈ bare
 
 /-! ## `CapsOk` at a rule-less recursor cons
 
-A block recursor is `isProjFnShape`-free (`checkConstantVal`'s own
-rejection), so it can complete no η family's projection slot, and it
-is not an `indInfo`, so it is no family's former either; the whole
-capability row therefore crosses with nothing supplied.  It is
+A block recursor is not an `indInfo`, so it is no family's former, and
+not a `ctorInfo`, so it is no family's capability constructor; the
+whole capability row therefore crosses with nothing supplied.  It is
 `capsOk_cons_native` at `T := c₀.name`, whose two branches are then
 both refuted by the head's KIND. -/
 theorem capsOk_cons_recFresh {env : Env} (mp : EnvModelM V μ env)
@@ -85,13 +84,12 @@ theorem capsOk_cons_recFresh {env : Env} (mp : EnvModelM V μ env)
     {cvR : ConstantVal} {mI rP : Nat} {rules : List RecRule}
     (hfresh : env.find? c₀.name = none)
     (hkind : c₀ = .recInfo cvR mI rP rules)
-    (hpshape : c₀.name.isProjFnShape = false)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A) :
     CapsOk m₂ := by
   refine capsOk_cons_native (T := c₀.name) mp hfresh
     (ConsCrossEnv.ofNtc (fun tbl h => by rw [hkind] at h; exact nomatch h))
-    hpshape (Or.inr (fun cv caps h => by rw [hkind] at h; exact nomatch h))
+    (Or.inr (fun cv caps h => by rw [hkind] at h; exact nomatch h))
     ?_ m₂ hac ?_
   · -- no stored family's capability constructor is this recursor
     intro T' cvT' caps' hf hne hres hcape hfam hh
@@ -123,7 +121,6 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
       (ls.map (·.1.name)).Nodup →
       (∀ r ∈ ls, env.find? r.1.name = none) →
       (∀ r ∈ ls, ConLeche.reservedBasisNames.contains r.1.name = false) →
-      (∀ r ∈ ls, r.1.name.isProjFnShape = false) →
       (∀ r ∈ ls,
         r.1.type.hasFvar = false ∧
         r.1.type.allLevelParamsDefined r.1.levelParams = true ∧
@@ -141,9 +138,9 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
         (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
         (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta)) →
       ∃ mp' : EnvModelM V μ (consBlockRecsBare q m ls env), mp'.base2.acval = acv
-  | _, [], env, mp, _, _, _, _, _, hag, _, _, _, _, _ =>
+  | _, [], env, mp, _, _, _, _, hag, _, _, _, _, _ =>
     ⟨mp, by funext n; exact (hag n (fun _ h => nomatch h)).symm⟩
-  | m, r0 :: rest, env, mp, hnd, hfr, hnres, hpsh, hty, hag, hcl, hlift, hpar, hok, hrd => by
+  | m, r0 :: rest, env, mp, hnd, hfr, hnres, hty, hag, hcl, hlift, hpar, hok, hrd => by
     -- the head
     have hmem0 : r0 ∈ r0 :: rest := List.mem_cons_self
     have hfresh : env.find? r0.1.name = none := hfr r0 hmem0
@@ -196,7 +193,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
           exact hmemta ρ)
         (fun m₂ hac =>
           capsOk_cons_recFresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
-            mp hfresh rfl (hpsh r0 hmem0) m₂ hac)
+            mp hfresh rfl m₂ hac)
         (fun m₂ hac φ =>
           recRules_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
             mp hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))
@@ -205,13 +202,12 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
     show ∃ mp' : EnvModelM V μ (consBlockRecsBare q (m + 1) rest
         ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts⟩),
       mp'.base2.acval = acv
-    refine envModelM_consBlockRecsBare mp₁ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    refine envModelM_consBlockRecsBare mp₁ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
     · exact hnd.2
     · intro r hr
       rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnrr r hr hh.symm)]
       exact hfr r (List.mem_cons_of_mem _ hr)
     · exact fun r hr => hnres r (List.mem_cons_of_mem _ hr)
-    · exact fun r hr => hpsh r (List.mem_cons_of_mem _ hr)
     · intro r hr
       obtain ⟨g1, g2, g3, g4⟩ := hty r (List.mem_cons_of_mem _ hr)
       exact ⟨g1, g2, Expr.constsResolve_mono g3, g4⟩
@@ -274,7 +270,7 @@ theorem recSwapFacts3 {envSelf env₃ : Env} {cval : TConstVal}
         (∃ cvj cnP cnF,
           envSelf.find? (RecRule.ctor r) = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf envSelf.find? r.ctor = true) ∧
-        (r.eta = true → ConLeche.recRuleEtaOf envSelf.find? n r.ctor = true)) :
+        (r.eta = true → ConLeche.recRuleEtaOf envSelf.find? r.ctor = true)) :
     ConLeche.RecCtorsStored env₃ ∧ BasisPinnedTT env₃ cval ∧ ProjOkT env₃ := by
   have hcg : ConLeche.SwapCongr envSelf env₃ := ConLeche.SwapShList.congr hswR
   have hcorr := ConLeche.swapSh_find?_corr hswR
@@ -484,7 +480,7 @@ theorem recCtorsHead_consBlockRecsR {R : Nat → RecDatum → List RecRule} {q :
         (r.k = true →
           ConLeche.recRuleKOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? n r.ctor
+          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor
             = true) := by
   have hkeepB := find?_consBlockRecsBare_keep (q := q) hfr
   have hkeepB' : ∀ (n : Name) (ci : ConstantInfo),
@@ -546,6 +542,7 @@ variable {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List Rec
 
 include mpC hnd hfr hnres hpsh hty hag hcl hlift hpar hok hrd
 
+omit hpsh in
 /-- **The `k` recursors' cons with their rules, P tier.**  The two
 phases composed: the rule-less chain, then the rule-list swap.  The
 `rec_rules` row (`hrecP`) is the ι content the caller supplies; every
@@ -563,7 +560,7 @@ theorem envModelM_consBlockRecsR
         (r.k = true →
           ConLeche.recRuleKOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? n r.ctor = true))
+          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true))
     (hrecP : ∀ m₃ : EnvModel V (consBlockRecsR R q 0 rs envC),
       m₃.acval = acv → ∀ φ : Name → Nat, RecRules m₃ φ) :
     ∃ mp' : EnvModelM V μ (consBlockRecsR R q 0 rs envC),
@@ -575,7 +572,6 @@ theorem envModelM_consBlockRecsR
       (by rw [bareOf_map_name]; exact hnd)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hfr r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hnres r hr)
-      (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hpsh r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hty r hr)
       (fun n hn => hag n (fun r hr => hn (r.1, r.2.2.1) (List.mem_map_of_mem hr)))
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hcl r hr)
@@ -653,8 +649,8 @@ theorem blockRecStaged_of
           pin.constsResolve envC = true ∧
           pin.looseBVarsBounded (q.rulePrefixAt j) = true ∧
           ∀ (T : Name) (i : Nat), envC.findProj? T i = none → Expr.NoProjAt T i pin) ∧
-        ∃ pre dom body bm D,
-          r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+        ∃ pre dom body D,
+          r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
           dom.getAppFn = .const D lvls ∧
           dom.getAppArgs =
             pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++
@@ -684,7 +680,7 @@ theorem blockRecStaged_of
     rw [hh, hfr r hr] at hn
     exact nomatch hn
   obtain ⟨mp', hac'⟩ :=
-    envModelM_consBlockRecsR mpC hnd hfr hnres hpsh hty hag hcl hlift hpar hok hrd
+    envModelM_consBlockRecsR mpC hnd hfr hnres hty hag hcl hlift hpar hok hrd
       (ConLeche.envWF_consBlockRecsR mpC.base2.wf
         (fun r hr => ⟨(hty r hr).1, (hty r hr).2.1, (hty r hr).2.2.1, (hty r hr).2.2.2,
           fun rhs hrhs' => hrhs r hr rhs hrhs'⟩)

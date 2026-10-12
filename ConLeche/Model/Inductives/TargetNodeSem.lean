@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.PosDerivNodes
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Inductives.PosDerivTie
@@ -78,7 +78,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     rw [← hnP]; exact ConLeche.Verify.openPisAtFvars_length _ hop0
   have hidxF := ConLeche.openPisAtFvars_index _ _ _ hop0
   obtain ⟨-, A, hA, hR⟩ := (hcore.2.1 c j cA hcj).2
-  obtain ⟨ab, -, hAr, -, -, -, -, -, -⟩ := hR ψ
+  obtain ⟨ab, -, hAr, -, -, -, -, -⟩ := hR ψ
   obtain ⟨A', hA', herased⟩ := canonCrest_of_walk (ctx := p.nestCtx fvsP env.find?)
     (fun i x hx => by rw [hcPar] at hx; simpa using hidxF i x hx)
     (by rw [hcPar, hlenF, hcP])
@@ -93,7 +93,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   obtain rfl := Option.some.inj hA'
   have hca := hAr
   rw [← denoteMeta_erasedEq herased] at hca
-  obtain ⟨-, -, -, hhi, -, -, -, -, -, hfr, hCP, hgr, -⟩ :=
+  obtain ⟨-, -, -, hhi, -, -, -, -, hfr, hCP, hgr, -, -, -, -⟩ :=
     blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames hnP hk hcv0 hop0
       hholes hCf hCb hcrest hinf hsort hd hca
   exact ⟨_, hhi, hfr, hCP, hca, hgr⟩

@@ -129,7 +129,7 @@ theorem iotaCertsFull_fst (d : Nat) :
       (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.1 =
         iotaCertsFull r₁ env d ty args
   | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
+  | .forallE ty body, arg :: rest => by
     show ((do
         let ta ← (pairFns r₁ r₂ h).infer d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
@@ -151,7 +151,7 @@ theorem iotaCertsFull_fst (d : Nat) :
       exact iotaCertsFull_fst d (body.instantiate1 arg) rest
     | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
 theorem iotaCertsFull_snd (d : Nat) :
@@ -159,7 +159,7 @@ theorem iotaCertsFull_snd (d : Nat) :
       (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.2 =
         iotaCertsFull r₂ env d ty args
   | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
+  | .forallE ty body, arg :: rest => by
     show ((do
         let ta ← (pairFns r₁ r₂ h).infer d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
@@ -181,7 +181,7 @@ theorem iotaCertsFull_snd (d : Nat) :
       exact iotaCertsFull_snd d (body.instantiate1 arg) rest
     | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
 theorem defEqList_fst (d : Nat) :
@@ -390,18 +390,6 @@ theorem reduceNat_snd_proj (d : Nat) (e : Expr) :
   unfold reduceNat
   snd_tac
 
-theorem boolTrueShortcut_fst_proj (d : Nat) (e : Expr) :
-    (boolTrueShortcut (pairFns r₁ r₂ h) d e).val.1 =
-      boolTrueShortcut r₁ d e := by
-  unfold boolTrueShortcut
-  fst_tac
-
-theorem boolTrueShortcut_snd_proj (d : Nat) (e : Expr) :
-    (boolTrueShortcut (pairFns r₁ r₂ h) d e).val.2 =
-      boolTrueShortcut r₂ d e := by
-  unfold boolTrueShortcut
-  snd_tac
-
 theorem ensureSort_fst_proj (d : Nat) (e : Expr) :
     (ensureSort (pairFns r₁ r₂ h) env d e).val.1 =
       ensureSort r₁ env d e := by
@@ -483,7 +471,6 @@ macro "fst_step2" : tactic =>
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [reduceNat_fst_proj])
-    | (rw [boolTrueShortcut_fst_proj])
     | (rw [ensureSort_fst_proj])
     | (rw [proofIrrel_fst_proj])
     | (rw [propIrrel_fst_proj])
@@ -509,7 +496,6 @@ macro "snd_step2" : tactic =>
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [reduceNat_snd_proj])
-    | (rw [boolTrueShortcut_snd_proj])
     | (rw [ensureSort_snd_proj])
     | (rw [proofIrrel_snd_proj])
     | (rw [propIrrel_snd_proj])
@@ -680,7 +666,6 @@ macro "fst_core3" x:tactic : tactic =>
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [reduceNat_fst_proj])
-    | (rw [boolTrueShortcut_fst_proj])
     | (rw [ensureSort_fst_proj])
     | (rw [proofIrrel_fst_proj])
     | (rw [structEtaCertWith_fst_proj])
@@ -713,7 +698,6 @@ macro "snd_core3" x:tactic : tactic =>
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [reduceNat_snd_proj])
-    | (rw [boolTrueShortcut_snd_proj])
     | (rw [ensureSort_snd_proj])
     | (rw [proofIrrel_snd_proj])
     | (rw [structEtaCertWith_snd_proj])
@@ -897,7 +881,6 @@ macro "fst_core4" x:tactic : tactic =>
     | (rw [iotaIndexOk_fst])
     | (rw [defEqList_fst])
     | (rw [reduceNat_fst_proj])
-    | (rw [boolTrueShortcut_fst_proj])
     | (rw [ensureSort_fst_proj])
     | (rw [proofIrrel_fst_proj])
     | (rw [propIrrel_fst_proj])
@@ -953,7 +936,6 @@ macro "snd_core4" x:tactic : tactic =>
     | (rw [iotaIndexOk_snd])
     | (rw [defEqList_snd])
     | (rw [reduceNat_snd_proj])
-    | (rw [boolTrueShortcut_snd_proj])
     | (rw [ensureSort_snd_proj])
     | (rw [proofIrrel_snd_proj])
     | (rw [propIrrel_snd_proj])

@@ -80,8 +80,8 @@ theorem ScB.getAppArgs {d : Nat} {e : Expr} (he : ScB d e) : ∀ x ∈ e.getAppA
 /-! ## Closing -/
 
 /-- `closeTelescope` over scoped pieces is scoped. -/
-theorem ScB.of_closeTelescope {i : Nat} {nds : List (Expr × BinderMeta)} {body : Expr}
-    (hn : ∀ (k : Nat) (nd : Expr × BinderMeta), nds[k]? = some nd → ScB (i + k) nd.1)
+theorem ScB.of_closeTelescope {i : Nat} {nds : List Expr} {body : Expr}
+    (hn : ∀ (k : Nat) (nd : Expr), nds[k]? = some nd → ScB (i + k) nd)
     (hb : ScB (i + nds.length) body) : ScB i (ConLeche.closeTelescope nds i body) :=
   ⟨Cached.closeTelescope_wscoped nds i body (fun k nd h => (hn k nd h).1) hb.1,
     closeTelescope_bounded nds i body (fun nd hnd => by
@@ -90,17 +90,17 @@ theorem ScB.of_closeTelescope {i : Nat} {nds : List (Expr × BinderMeta)} {body 
 
 /-- `closeLams` over scoped pieces is scoped. -/
 theorem ScB.of_closeLams :
-    ∀ {i : Nat} {nds : List (Expr × BinderMeta)} {body : Expr},
-      (∀ (k : Nat) (nd : Expr × BinderMeta), nds[k]? = some nd → ScB (i + k) nd.1) →
+    ∀ {i : Nat} {nds : List Expr} {body : Expr},
+      (∀ (k : Nat) (nd : Expr), nds[k]? = some nd → ScB (i + k) nd) →
       ScB (i + nds.length) body → ScB i (ConLeche.closeLams nds i body)
   | i, [], body, _, hb => by simpa [ConLeche.closeLams] using hb
-  | i, (dom, bm) :: bs, body, hn, hb => by
+  | i, dom :: bs, body, hn, hb => by
     have hrest : ScB (i + 1) (ConLeche.closeLams bs (i + 1) body) :=
       ScB.of_closeLams (fun k nd hk => by
           have := hn (k + 1) nd (by simpa using hk)
           rwa [show i + (k + 1) = i + 1 + k by omega] at this)
-        (by rw [show i + 1 + bs.length = i + ((dom, bm) :: bs).length by simp; omega]; exact hb)
-    have hd := hn 0 (dom, bm) rfl
+        (by rw [show i + 1 + bs.length = i + (dom :: bs).length by simp; omega]; exact hb)
+    have hd := hn 0 dom rfl
     simp only [Nat.add_zero] at hd
     refine ⟨?_, ?_⟩
     · simp only [ConLeche.closeLams, WScoped]
@@ -110,7 +110,7 @@ theorem ScB.of_closeLams :
 
 /-- The domain of an opened variable, as a binder. -/
 theorem ScB.classBinder {d i : Nat} {x ty : Expr} (hx : x = .fvar i ty) (hty : ScB d ty) :
-    ScB d (ConLeche.classBinder x).1 := by
+    ScB d (ConLeche.classBinder x) := by
   subst hx; exact hty
 
 /-! ## Opening -/
@@ -134,16 +134,16 @@ theorem ScB.openPis {n d : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
 
 /-- The domain of an opened variable, as a generated binder. -/
 theorem ScB.binder (g : ClassGen) {d i : Nat} {x ty : Expr} (hx : x = .fvar i ty)
-    (hty : ScB d ty) : ScB d (g.binder x).1 := by
+    (hty : ScB d ty) : ScB d (g.binder x) := by
   subst hx; exact hty
 
 /-- The binders of an opened telescope, as a `closeTelescope` list (any
 binder datum: `f` keeps the variable's domain). -/
 theorem ScB.openPis_binders {n d : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
-    {f : Expr → Expr × BinderMeta} (hf : ∀ x, (f x).1 = x.fvarTypeD)
+    {f : Expr → Expr} (hf : ∀ x, f x = x.fvarTypeD)
     (h : openPisAtFvars n e d = some (fvs, body)) (he : ScB d e) :
-    ∀ (k : Nat) (nd : Expr × BinderMeta), (fvs.map f)[k]? = some nd →
-      ScB (d + k) nd.1 := by
+    ∀ (k : Nat) (nd : Expr), (fvs.map f)[k]? = some nd →
+      ScB (d + k) nd := by
   intro k nd hk
   obtain ⟨-, hfvs, -⟩ := ScB.openPis h he
   rw [List.getElem?_map] at hk
@@ -163,7 +163,7 @@ theorem ScB.of_instPisWith {d : Nat} :
     exact h ▸ ht
   | a :: as, t, r, h, ht, ha => by
     match t, ht, h with
-    | .forallE dom body mb, ht, h =>
+    | .forallE dom body, ht, h =>
       have h' : instPisWith as (body.instantiate1 a) = some r := h
       have ha0 := ha a List.mem_cons_self
       obtain ⟨htw, htb⟩ := ht
@@ -184,7 +184,7 @@ theorem ScB.targetPiDomsWith {d : Nat} :
     subst h; intro w hw; exact nomatch hw
   | a :: as, t, ws, h, ht, ha => by
     match t, ht, h with
-    | .forallE dom body mb, ht, h =>
+    | .forallE dom body, ht, h =>
       simp only [ConLeche.targetPiDomsWith] at h
       obtain ⟨r, hr, rfl⟩ := Option.map_eq_some_iff.mp h
       have ha0 := ha a List.mem_cons_self
@@ -414,8 +414,8 @@ theorem ClassGen.minorTy_scoped {g : ClassGen} (hg : ClassGenScoped g) {s c : Na
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi', Option.getD_some]
     exact hxe
   -- the inductive hypotheses
-  have hih : ∀ (l : Nat) (b : Expr × BinderMeta), ihs[l]? = some b →
-      ScB (g.nP + s + x.nF + l) b.1 := by
+  have hih : ∀ (l : Nat) (b : Expr), ihs[l]? = some b →
+      ScB (g.nP + s + x.nF + l) b := by
     intro l b hb
     have hl : l < ihs.length := (List.getElem?_eq_some_iff.mp hb).1
     obtain ⟨y, hy, hyb⟩ := option_mapM_getElem? hihs l l (List.getElem?_range (by omega))
@@ -490,9 +490,9 @@ theorem ClassGen.minorTy_scoped {g : ClassGen} (hg : ClassGenScoped g) {s c : Na
 /-- **The prefix binders** (parameters, then every slot) are scoped at
 their positions. -/
 theorem ClassGen.prefixBinders_scoped {g : ClassGen} (hg : ClassGenScoped g)
-    {pre : List (Expr × BinderMeta)} (h : g.prefixBinders = some pre) :
+    {pre : List Expr} (h : g.prefixBinders = some pre) :
     pre.length = g.nP + g.slots.length ∧
-      ∀ (k : Nat) (b : Expr × BinderMeta), pre[k]? = some b → ScB k b.1 := by
+      ∀ (k : Nat) (b : Expr), pre[k]? = some b → ScB k b := by
   unfold ClassGen.prefixBinders at h
   obtain ⟨slotBs, hsl, h⟩ := Option.bind_eq_some_iff.mp h
   simp only [Option.pure_def, Option.some.injEq] at h
@@ -528,20 +528,14 @@ theorem ClassGen.prefixBinders_scoped {g : ClassGen} (hg : ClassGenScoped g)
     cases sl with
     | motive key =>
       simp only at hy
-      obtain ⟨T, hT, hy⟩ := Option.bind_eq_some_iff.mp hy
-      simp only [Option.pure_def, Option.some.injEq] at hy
-      subst hy
-      have := ClassGen.motiveTy_scoped hg (by omega) hT
+      have := ClassGen.motiveTy_scoped hg (by omega) hy
       rwa [hkk] at this
     | minor c C ihs0 =>
       simp only at hy
       obtain ⟨x, hxf, hy⟩ := Option.bind_eq_some_iff.mp hy
-      obtain ⟨T, hT, hy⟩ := Option.bind_eq_some_iff.mp hy
-      simp only [Option.pure_def, Option.some.injEq] at hy
-      subst hy
       have hxm := List.mem_of_find?_eq_some hxf
       have hxC : x.cv.name = C := by simpa using List.find?_some hxf
-      have := ClassGen.minorTy_scoped hg hsget hxm hxC hT
+      have := ClassGen.minorTy_scoped hg hsget hxm hxC hy
       rwa [hkk] at this
 
 /-! ## The generated terms are closed -/
@@ -555,9 +549,9 @@ theorem classGenRecTy_spec {g : ClassGen} (hg : ClassGenScoped g) {c : Nat} {ty 
     (h : classGenRecTy g c = some ty) :
     ∃ ifs maj, g.major c g.pre.length = some (ifs, maj) ∧
       ifs.length = (g.cls.getD c default).nIdx ∧
-      ty = closeTelescope (g.pre ++ ifs.map g.binder ++ [(maj, g.bm)]) 0
+      ty = closeTelescope (g.pre ++ ifs.map g.binder ++ [maj]) 0
         (Expr.mkAppN (g.motVar c) (ifs ++ [.fvar (g.pre.length + ifs.length) maj])) ∧
-      (∀ p ∈ g.pre ++ ifs.map g.binder ++ [(maj, g.bm)], p.1.looseBVarsBounded 0 = true) ∧
+      (∀ p ∈ g.pre ++ ifs.map g.binder ++ [maj], p.looseBVarsBounded 0 = true) ∧
       (Expr.mkAppN (g.motVar c) (ifs ++ [.fvar (g.pre.length + ifs.length) maj])).looseBVarsBounded
         0 = true := by
   obtain ⟨hpl, hpre⟩ := ClassGen.prefixBinders_scoped hg hg.pre
@@ -597,7 +591,7 @@ class whose motive it is (the motives before it counted). -/
 theorem ClassGen.prefixBinders_motive {g : ClassGen} (hg : ClassGenScoped g) {s : Nat}
     {key : ClassKey} (hs : g.slots[s]? = some (.motive key)) :
     ∃ T, g.motiveTy (ClassGen.motiveCount g.slots s) (g.nP + s) = some T ∧
-      g.pre[g.nP + s]? = some (T, g.bm) := by
+      g.pre[g.nP + s]? = some T := by
   have hpre := hg.pre
   unfold ClassGen.prefixBinders at hpre
   obtain ⟨slotBs, hsl, hpre⟩ := Option.bind_eq_some_iff.mp hpre
@@ -609,10 +603,7 @@ theorem ClassGen.prefixBinders_motive {g : ClassGen} (hg : ClassGenScoped g) {s 
   simp only at hy
   rw [hslot] at hy
   simp only at hy
-  obtain ⟨T, hT, hy⟩ := Option.bind_eq_some_iff.mp hy
-  simp only [Option.pure_def, Option.some.injEq] at hy
-  subst hy
-  refine ⟨T, by exact hT, ?_⟩
+  refine ⟨y, hy, ?_⟩
   rw [← hpre, List.getElem?_append_right (by simp [hg.params_len])]
   simpa [hg.params_len] using hyb
 

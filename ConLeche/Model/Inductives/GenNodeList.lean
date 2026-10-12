@@ -6,7 +6,7 @@ public import ConLeche.Model.Inductives.TargetNodeSem
 import ConLeche.Model.Inductives.PosDerivTie
 import ConLeche.Verify.EnvBound
 public import ConLeche.Model.Inductives.PosDerivNodes
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Inductives.LfpCover
@@ -506,7 +506,7 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     rw [hctorsAs c hc] at hcs
     obtain rfl := Option.some.inj hcs
     have hck : c < dR.k := hN.2.2 ▸ hN.2.1 c j cA hcA
-    obtain ⟨hf, -⟩ := hcore.2.2.2 c hck j cA hcA
+    obtain ⟨hf, -⟩ := hcore.2.2 c hck j cA hcA
     have hw := mpC.base2.wf _ (List.mem_of_find?_eq_some hf)
     exact ⟨hcA, hw.1, hw.2.2.2.1⟩
   have hcl : ∀ (c : Nat) (cs : List (ConstantVal × Nat)), ctorsAsR[c]? = some cs →

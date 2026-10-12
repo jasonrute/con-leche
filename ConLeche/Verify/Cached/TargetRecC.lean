@@ -31,23 +31,6 @@ variable {mode : CheckMode}
 
 /-! ## 1. Scoping -/
 
-theorem piBinders_WScoped {d : Nat} : ∀ {e : Expr}, WScoped d e →
-    (∀ b ∈ e.piBinders.1, WScoped d b.1) ∧ WScoped d e.piBinders.2
-  | .forallE ty b m, h => by
-    simp only [WScoped] at h
-    obtain ⟨h1, h2⟩ := piBinders_WScoped h.2
-    simp only [Expr.piBinders]
-    refine ⟨?_, h2⟩
-    intro x hx
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact h.1
-    · exact h1 x hx
-  | .bvar _, h | .fvar .., h | .sort _, h | .const .., h | .app .., h | .lam .., h
-  | .letE .., h | .lit _, h | .proj .., h => by
-    constructor
-    · intro b hb; simp [Expr.piBinders] at hb
-    · simpa [Expr.piBinders] using h
-
 theorem WScoped.default_expr {d : Nat} : WScoped d (default : Expr) :=
   WScoped.of_not_hasFvar (by rfl)
 
@@ -308,7 +291,7 @@ theorem TargetMajScoped.getD {l : List TargetMajor}
 
 theorem targetK53S_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockShape}
     {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t) {Mc : TargetMajor}
-    (hMc : TargetMajScoped Mc) {tele : List (Expr × BinderMeta)} {majDom f : Expr}
+    (hMc : TargetMajScoped Mc) {tele : List Expr} {majDom f : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ RelVC
       (targetK53 (sharedOpsC mode (mkFEnv env)) env p formerTys Mc tele majDom f)
@@ -355,15 +338,6 @@ theorem flushC_simG : SimG CSOKF CSOKF RelVC flushC (Pure.pure () : FueledM Unit
   injection hr with hr
   obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
   exact ⟨hs.flushed, (), rfl, 0, rfl⟩
-
-/-- A flush into any environment's invariant. -/
-theorem flushC_simG_to {A : CState → Prop} (hA : ∀ s, A s → CSOKF s) (env' : Env) :
-    SimG A (CSOK mode env') RelVC flushC (Pure.pure () : FueledM Unit) := by
-  intro s₀ hs v' s' hr
-  rw [flushC_run] at hr
-  injection hr with hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨flushC_csok (hA s₀ hs), (), rfl, 0, rfl⟩
 
 /-- The shared operations read the index only through `find?`
 (`coreKnotI_congr`). -/
@@ -497,8 +471,8 @@ theorem envWF_consBlockRecsT {find? : Name → Option ConstantInfo} {q : BlockSh
         refine ⟨k1, k2, fun pin hpin => ?_, ?_⟩
         · obtain ⟨p1, p2, p3, p4⟩ := k3 pin hpin
           exact ⟨p1, p2, Expr.constsResolve_of_find hdomEnv p3, p4⟩
-        · obtain ⟨pre, dom, body, bm, D, e1, e2, e3, -⟩ := k4
-          exact ⟨pre, dom, body, bm, D, e1, e2, e3⟩
+        · obtain ⟨pre, dom, body, D, e1, e2, e3, -⟩ := k4
+          exact ⟨pre, dom, body, D, e1, e2, e3⟩
       · exact nomatch hf
 
 end ConLeche.Cached

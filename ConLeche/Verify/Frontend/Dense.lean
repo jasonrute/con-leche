@@ -20,8 +20,7 @@ counters `c` when its lookups answer `T` below `c` and nothing above
   at or above its table's counter passes the rebinding test, and the
   state after it holds `T` cut one past that index — as long as `T`
   binds nothing in between (the gap the line skips).
-* **The characterisation** (`applyList_of_allOK`, and the converse
-  `allOK_of_applyList`): over a list of lines
+* **The characterisation** (`applyList_of_allOK`): over a list of lines
   each of which, at the final tables cut at the counters before it,
   binds its index above the counter with nothing in the gap, and whose
   builder yields the final table's entry (`AllOK`), the serial fold
@@ -172,29 +171,11 @@ theorem applyList_of_allOK (T : Tabs) :
     · simp only [applyList, h1, List.length_cons]; rw [h2]; congr 2; omega
     · rw [hd', hd₁]; rfl
 
-/-- `AllOK` over a concatenation. -/
-theorem AllOK.append {T : Tabs} :
-    ∀ {c : Ctr} {l₁ l₂ : List LineRec}, AllOK T c l₁ → AllOK T (c.stepAll l₁) l₂ →
-    AllOK T c (l₁ ++ l₂) := by
-  intro c l₁ l₂ h₁ h₂
-  induction l₁ generalizing c with
-  | nil => exact h₂
-  | cons r l ih => exact ⟨h₁.1, ih h₁.2 h₂⟩
-
 theorem Ctr.stepAll_append (c : Ctr) (l₁ l₂ : List LineRec) :
     c.stepAll (l₁ ++ l₂) = (c.stepAll l₁).stepAll l₂ := by
   induction l₁ generalizing c with
   | nil => rfl
   | cons r l ih => exact ih (c.step r)
-
-theorem declsAlong_append (T : Tabs) :
-    ∀ (c : Ctr) (l₁ l₂ : List LineRec) (acc : Array Declaration),
-    declsAlong T c (l₁ ++ l₂) acc = declsAlong T (c.stepAll l₁) l₂ (declsAlong T c l₁ acc) := by
-  intro c l₁ l₂ acc
-  induction l₁ generalizing c acc with
-  | nil => rfl
-  | cons r l ih => exact ih _ _
-
 
 /-! ## The characterisation, the other way -/
 
@@ -203,165 +184,5 @@ counter. -/
 @[expose] def IncAll : Ctr → List LineRec → Prop
   | _, [] => True
   | c, r :: rs => c.fits r = true ∧ IncAll (c.step r) rs
-
-/-- A state's own tables, as partial maps. -/
-@[expose] def Tabs.ofState (st : StateD) : Tabs := ⟨st.names.get?, st.levels.get?, st.exprs.get?⟩
-
-/-- A state binds nothing at or above counters `c`. -/
-structure Above (st : StateD) (c : Ctr) : Prop where
-  n : ∀ j, c.n ≤ j → st.names.get? j = none
-  l : ∀ j, c.l ≤ j → st.levels.get? j = none
-  e : ∀ j, c.e ≤ j → st.exprs.get? j = none
-
-theorem Above.holds {st : StateD} {c : Ctr} (h : Above st c) : Holds st (Tabs.ofState st) c := by
-  refine ⟨fun j => ?_, fun j => ?_, fun j => ?_⟩ <;> simp only [Tabs.ofState] <;> split
-  · rfl
-  · exact h.n j (by omega)
-  · rfl
-  · exact h.l j (by omega)
-  · rfl
-  · exact h.e j (by omega)
-
-/-- A one-index change of a table, seen below a counter it lies at or
-above. -/
-theorem get?_insert_below {t : IdTable α} {i k j : Nat} {x : α} (hki : k ≤ i) (hj : j < k) :
-    (t.insert i x).get? j = t.get? j := by
-  rw [IdTable.get?_insert]; simp [show j ≠ i by omega]
-
-/-- **The characterisation, the other way**: a serial fold over an
-increasing list, from a state binding nothing at or above the
-counters, that succeeds has every line right at its final tables, and
-holds them. -/
-theorem allOK_of_applyList :
-    ∀ (c : Ctr) (rs : List LineRec) (st : StateD) (k : Nat) (st' : StateD) (k' : Nat),
-    IncAll c rs → Above st c → applyList st rs k = .ok (st', k') →
-    AllOK (Tabs.ofState st') c rs ∧ Holds st (Tabs.ofState st') c ∧
-      Above st' (c.stepAll rs) ∧ st'.decls = declsAlong (Tabs.ofState st') c rs st.decls := by
-  intro c rs
-  induction rs generalizing c with
-  | nil =>
-    intro st k st' k' _ ha h
-    simp only [applyList, Except.ok.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    exact ⟨trivial, ha.holds, ha, rfl⟩
-  | cons r rs ih =>
-    intro st k st' k' hinc ha h
-    obtain ⟨hfit, hrs⟩ := hinc
-    simp only [applyList] at h
-    cases r with
-    | name i x =>
-      simp only [Ctr.fits, decide_eq_true_eq] at hfit
-      have hb : st.names.bound i = false := by rw [IdTable.bound_eq, ha.n i hfit]; rfl
-      cases hx : nameOf st.lk x with
-      | error m =>
-        simp [applyLine, parseNameEntryD, hx, bind, Except.bind] at h
-      | ok v =>
-        simp only [applyLine, parseNameEntryD, hx, StateD.freshName, hb, bind, Except.bind,
-          pure, Except.pure, Bool.false_eq_true, ↓reduceIte] at h
-        have ha1 : Above { st with names := st.names.insert i v } (c.step (.name i x)) :=
-          ⟨fun j hj => by
-            simp only [Ctr.step] at hj
-            rw [IdTable.get?_insert]; simp [show j ≠ i by omega, ha.n j (by omega)],
-           ha.l, ha.e⟩
-        obtain ⟨hok, hh1, ha', hd⟩ := ih _ _ _ _ _ hrs ha1 h
-        have hT : ∀ j, j < i + 1 → (Tabs.ofState st').n j =
-            (st.names.insert i v).get? j := fun j hj => by
-          have := hh1.n j; simp only [Ctr.step, hj, ↓reduceIte] at this; exact this.symm
-        have hst : Holds st (Tabs.ofState st') c :=
-          ⟨fun j => by
-            split
-            · rw [hT j (by omega), get?_insert_below hfit (by omega)]
-            · exact ha.n j (by omega),
-           hh1.l,
-           hh1.e⟩
-        refine ⟨⟨⟨hfit, fun j h1 h2 => ?_, v, ?_, ?_⟩, hok⟩, hst, ha', ?_⟩
-        · rw [hT j (by omega), get?_insert_below (k := i) (Nat.le_refl _) h2]; exact ha.n j h1
-        · rw [hT i (by omega), IdTable.get?_insert]; simp
-        · rw [← hst.lk]; exact hx
-        · rw [hd]; rfl
-    | level i x =>
-      simp only [Ctr.fits, decide_eq_true_eq] at hfit
-      have hb : st.levels.bound i = false := by rw [IdTable.bound_eq, ha.l i hfit]; rfl
-      cases hx : levelOf st.lk x with
-      | error m =>
-        simp [applyLine, parseLevelEntryD, hx, StateD.freshLevel, hb, bind, Except.bind, pure, Except.pure] at h
-      | ok v =>
-        simp only [applyLine, parseLevelEntryD, hx, StateD.freshLevel, hb, bind, Except.bind,
-          pure, Except.pure, Bool.false_eq_true, ↓reduceIte] at h
-        have ha1 : Above { st with levels := st.levels.insert i v } (c.step (.level i x)) :=
-          ⟨ha.n, fun j hj => by
-            simp only [Ctr.step] at hj
-            rw [IdTable.get?_insert]; simp [show j ≠ i by omega, ha.l j (by omega)],
-           ha.e⟩
-        obtain ⟨hok, hh1, ha', hd⟩ := ih _ _ _ _ _ hrs ha1 h
-        have hT : ∀ j, j < i + 1 → (Tabs.ofState st').l j =
-            (st.levels.insert i v).get? j := fun j hj => by
-          have := hh1.l j; simp only [Ctr.step, hj, ↓reduceIte] at this; exact this.symm
-        have hst : Holds st (Tabs.ofState st') c :=
-          ⟨hh1.n,
-           fun j => by
-            split
-            · rw [hT j (by omega), get?_insert_below hfit (by omega)]
-            · exact ha.l j (by omega),
-           hh1.e⟩
-        refine ⟨⟨⟨hfit, fun j h1 h2 => ?_, v, ?_, ?_⟩, hok⟩, hst, ha', ?_⟩
-        · rw [hT j (by omega), get?_insert_below (k := i) (Nat.le_refl _) h2]; exact ha.l j h1
-        · rw [hT i (by omega), IdTable.get?_insert]; simp
-        · rw [← hst.lk]; exact hx
-        · rw [hd]; rfl
-    | expr i x =>
-      simp only [Ctr.fits, decide_eq_true_eq] at hfit
-      have hb : st.exprs.bound i = false := by rw [IdTable.bound_eq, ha.e i hfit]; rfl
-      cases hx : exprOf st.lk x with
-      | error m =>
-        simp [applyLine, parseExprEntryD, hx, StateD.freshExpr, hb, bind, Except.bind, pure, Except.pure] at h
-      | ok v =>
-        simp only [applyLine, parseExprEntryD, hx, StateD.freshExpr, hb, bind, Except.bind,
-          pure, Except.pure, Bool.false_eq_true, ↓reduceIte] at h
-        have ha1 : Above { st with exprs := st.exprs.insert i v } (c.step (.expr i x)) :=
-          ⟨ha.n, ha.l, fun j hj => by
-            simp only [Ctr.step] at hj
-            rw [IdTable.get?_insert]; simp [show j ≠ i by omega, ha.e j (by omega)]⟩
-        obtain ⟨hok, hh1, ha', hd⟩ := ih _ _ _ _ _ hrs ha1 h
-        have hT : ∀ j, j < i + 1 → (Tabs.ofState st').e j =
-            (st.exprs.insert i v).get? j := fun j hj => by
-          have := hh1.e j; simp only [Ctr.step, hj, ↓reduceIte] at this; exact this.symm
-        have hst : Holds st (Tabs.ofState st') c :=
-          ⟨hh1.n,
-           hh1.l,
-           fun j => by
-            split
-            · rw [hT j (by omega), get?_insert_below hfit (by omega)]
-            · exact ha.e j (by omega)⟩
-        refine ⟨⟨⟨hfit, fun j h1 h2 => ?_, v, ?_, ?_⟩, hok⟩, hst, ha', ?_⟩
-        · rw [hT j (by omega), get?_insert_below (k := i) (Nat.le_refl _) h2]; exact ha.e j h1
-        · rw [hT i (by omega), IdTable.get?_insert]; simp
-        · rw [← hst.lk]; exact hx
-        · rw [hd]; rfl
-    | decl d =>
-      cases hx : declOf st.lk d with
-      | error m => simp [applyLine, applyDeclD, processLineCoreD, hx, bind, Except.bind] at h
-      | ok y =>
-        cases y with
-        | inr w => simp [applyLine, applyDeclD, processLineCoreD, hx, bind, Except.bind, pure,
-            Except.pure] at h
-        | inl x =>
-          simp only [applyLine, applyDeclD, processLineCoreD, hx, bind, Except.bind, pure,
-            Except.pure] at h
-          have ha1 : Above (pushDecl st x) c := ⟨ha.n, ha.l, ha.e⟩
-          obtain ⟨hok, hh1, ha', hd⟩ := ih _ _ _ _ _ hrs ha1 h
-          have hst : Holds st (Tabs.ofState st') c := ⟨hh1.n, hh1.l, hh1.e⟩
-          have hx' : declOf (cutLk (Tabs.ofState st') c) d = .ok (.inl x) := by
-            rw [← hst.lk]; exact hx
-          refine ⟨⟨⟨x, hx'⟩, hok⟩, hst, ha', ?_⟩
-          rw [hd]; simp only [declsAlong, lineDecl, hx', Ctr.step, pushDecl]
-    | header =>
-      simp only [applyLine, pure, Except.pure] at h
-      obtain ⟨hok, hh1, ha', hd⟩ := ih _ _ _ _ _ hrs ha h
-      exact ⟨⟨trivial, hok⟩, hh1, ha', hd⟩
-    | blank =>
-      simp only [applyLine, pure, Except.pure] at h
-      obtain ⟨hok, hh1, ha', hd⟩ := ih _ _ _ _ _ hrs ha h
-      exact ⟨⟨trivial, hok⟩, hh1, ha', hd⟩
 
 end ConLeche.Frontend

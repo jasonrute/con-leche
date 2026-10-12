@@ -29,8 +29,7 @@ This file supplies the two replacements.
 never a reserved name, and its docstring says why it is there: "which
 keeps the basis installs' head obligations vacuous by computation".
 `CapsOk`'s two halves both carry `reservedBasisNames.contains T =
-false`, and `projFnName_ne_reserved` closes the projection slot.  So
-at a cons whose name *is* reserved, all four disequalities
+false`.  So at a cons whose name *is* reserved, the disequalities
 `capsOk_cons_fresh` derives from the cons's kind come instead from
 the name, and the body transposes unchanged — `capsOk_cons_basis`.
 
@@ -59,7 +58,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  IndCaps projFnName RecRule)
+  IndCaps RecRule)
 
 
 universe w
@@ -146,12 +145,11 @@ theorem natHeads_cons_offNat (mp : EnvModelM V μ env)
   simpa only [e1, e2, e3] using this
 
 /-- **The stored family descends past a *reserved-named* cons.**
-`etaFamilyStored_descend`'s twin, with all four disequalities taken
+`etaFamilyStored_descend`'s twin, with both disequalities taken
 from the name rather than from the kind: the law's own
 `reservedBasisNames.contains T = false` premise separates the former,
-`EtaFamilyStored`'s name-only conjunct separates the capability
-constructor, and `projFnName_ne_reserved` separates every projection
-slot. -/
+and `EtaFamilyStored`'s name-only conjunct separates the capability
+constructor. -/
 theorem etaFamilyStored_descend_reserved {c₀ : ConstantInfo} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps}
     (hres₀ : ConLeche.reservedBasisNames.contains c₀.name = true)
@@ -160,26 +158,18 @@ theorem etaFamilyStored_descend_reserved {c₀ : ConstantInfo} {T : Name}
     (hfam : ConLeche.EtaFamilyStored ⟨c₀ :: env.consts⟩ T caps) :
     env.find? T = some (.indInfo cvT caps) ∧
       ConLeche.EtaFamilyStored env T caps ∧
-      T ≠ c₀.name ∧ caps.etaCtor ≠ c₀.name ∧
-      ∀ j, j < caps.etaFields → projFnName T j ≠ c₀.name := by
+      T ≠ c₀.name ∧ caps.etaCtor ≠ c₀.name := by
   obtain ⟨hCres, ⟨cvC, hfC⟩, hfP⟩ := hfam
   have hnT : T ≠ c₀.name := fun hh => by rw [hh, hres₀] at hresT
                                          exact nomatch hresT
   have hnC : caps.etaCtor ≠ c₀.name := fun hh => by
     rw [hh, hres₀] at hCres; exact nomatch hCres
-  have hnP : ∀ j, j < caps.etaFields → projFnName T j ≠ c₀.name :=
-    fun _ _ => projFnName_ne_reserved hres₀
   have hdown : ∀ n : Name, n ≠ c₀.name →
       (⟨c₀ :: env.consts⟩ : Env).find? n = env.find? n := by
     intro n hn
     rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hn hh.symm)]
-  refine ⟨by rwa [hdown _ hnT] at hf, ⟨hCres, ⟨cvC, ?_⟩, ?_⟩,
-    hnT, hnC, hnP⟩
-  · rwa [hdown _ hnC] at hfC
-  · intro j hj
-    obtain ⟨cv2, mI2, rP2, rules2, hf2⟩ := hfP j hj
-    rw [hdown _ (hnP j hj)] at hf2
-    exact ⟨cv2, mI2, rP2, rules2, hf2⟩
+  exact ⟨by rwa [hdown _ hnT] at hf, ⟨hCres, ⟨cvC, by rwa [hdown _ hnC] at hfC⟩, hfP⟩,
+    hnT, hnC⟩
 
 /-- **`CapsOk` at a fresh cons whose name is reserved** —
 `capsOk_cons_fresh`'s basis twin.  Every basis block's constant is a
@@ -199,23 +189,10 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
   constructor
   · -- the η half
     intro T cvT caps hf hcape hres hfam φ' us hlen
-    obtain ⟨hfE, hfam₀, hnT, hnC, hnP⟩ :=
+    obtain ⟨hfE, hfam₀, hnT, hnC⟩ :=
       etaFamilyStored_descend_reserved hres₀ hres hf hfam
     obtain ⟨TVa, hTVa, hokTVa, hlaw, hcoh⟩ :=
       hprev.1 T cvT caps hfE hcape hres hfam₀ φ' us hlen
-    have hfab : ∀ ρ ts x, etaFabArgsV
-          (fun n => interp V ρ
-            (m₂.acval n (Level.substFn φ' cvT.levelParams us)))
-          T ts x caps.etaFields
-        = etaFabArgsV
-          (fun n => interp V ρ
-            (mp.base2.acval n (Level.substFn φ' cvT.levelParams us)))
-          T ts x caps.etaFields := by
-      intro ρ ts x
-      unfold etaFabArgsV projSpines
-      refine congrArg _ (List.map_congr_left fun j hj => ?_)
-      dsimp only
-      rw [hac, acvalWith_ne (hnP j (List.mem_range.mp hj))]
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
       exact denoteMeta_cons_mono hfresh
@@ -224,10 +201,11 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT] at hmem
-      rw [hfab, hac, acvalWith_ne hnC]
+      rw [hac, acvalWith_ne hnC]
       exact hlaw ρ ts rest x hlents hfit hmem
     · refine hcoh.transport (fun cvC nPc nFc hf₂ => ?_)
-        (fun cvC nPc nFc TCa hf hTCa => ?_) (by rw [hac, acvalWith_ne hnT]) hfab
+        (fun cvC nPc nFc TCa hf hTCa => ?_) (by rw [hac, acvalWith_ne hnT])
+        (fun _ _ _ => rfl)
       · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
       · rw [hac]
         exact denoteMeta_cons_mono hfresh

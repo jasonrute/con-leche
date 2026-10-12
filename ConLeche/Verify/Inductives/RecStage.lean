@@ -62,7 +62,7 @@ structure RuleTower (mode : CheckMode) (F : Nat) (envR envT : Env) (p : BlockSha
     (rhs out : Expr) : Type where
   recTy : Expr
   tyR : Expr
-  rbs : List (Expr × BinderMeta)
+  rbs : List Expr
   body : Expr
   fvsPref : List Expr
   oPref : Expr
@@ -501,8 +501,8 @@ theorem tgtFireOf_nested {resolves : Expr → Bool} {q : BlockShape} {Ms : Nat �
       pin.allLevelParamsDefined r.1.levelParams = true ∧
       resolves pin = true ∧
       pin.looseBVarsBounded (q.rulePrefixAt j) = true) ∧
-    ∃ pre dom body bm D,
-      r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+    ∃ pre dom body D,
+      r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
       dom.getAppFn = .const D lvls ∧
       dom.getAppArgs =
         pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++
@@ -515,8 +515,8 @@ theorem tgtFireOf_nested {resolves : Expr → Bool} {q : BlockShape} {Ms : Nat �
     · rename_i lvls' pins' hsyn
       injection h with h1 h2
       subst h1 h2
-      obtain ⟨h1, h2, h3, pre, dom, body, bm, D, hs, hfn, hargs, -⟩ := nestedRuleSyn_inv hsyn
-      exact ⟨h1, h2, h3, pre, dom, body, bm, D, hs, hfn, hargs⟩
+      obtain ⟨h1, h2, h3, pre, dom, body, D, hs, hfn, hargs, -⟩ := nestedRuleSyn_inv hsyn
+      exact ⟨h1, h2, h3, pre, dom, body, D, hs, hfn, hargs⟩
     · exact nomatch h
   · exact nomatch h
 

@@ -40,7 +40,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx
-  NestHole NestCtorNf BinderMeta BlockParts BlockShape TargetMajor fueledOps PosD PosTree
+  NestHole NestCtorNf BlockParts BlockShape TargetMajor fueledOps PosD PosTree
   NestFieldKind PosNodeOk closeTelescope targetPiDomsWith targetMajorNfs
   openPisAtFvars)
 
@@ -197,8 +197,8 @@ theorem substFvars_congr_s {b D : Nat} {s s' : Nat → Expr} (hs : ∀ v, v < b 
   | sort _ => rfl
   | const _ _ => rfl
   | app f a ihf iha => simp only [Expr.substFvars, ihf, iha]
-  | lam t b' m iht ihb => simp only [Expr.substFvars, iht, ihb]
-  | forallE t b' m iht ihb => simp only [Expr.substFvars, iht, ihb]
+  | lam t b' iht ihb => simp only [Expr.substFvars, iht, ihb]
+  | forallE t b' iht ihb => simp only [Expr.substFvars, iht, ihb]
   | letE t v b' iht ihv ihb => simp only [Expr.substFvars, iht, ihv, ihb]
   | lit _ => rfl
   | proj _ _ e ih => simp only [Expr.substFvars, ih]

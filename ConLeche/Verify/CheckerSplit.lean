@@ -3,7 +3,6 @@ module
 public import ConLeche.Kernel.CheckerSplit
 public import ConLeche.Kernel.CheckDecl
 import ConLeche.Verify.Extend.Inversions
-import ConLeche.Verify.Mono
 
 public section
 
@@ -215,14 +214,6 @@ theorem checkValueGroup_of_facts {vg : ValueGroup} {jv stype vtype : Expr} {u : 
     simp only [ite_eq_right hk, hvt, hde, ↓reduceIte]
 
 /-! ## Fuel -/
-
-theorem checkValueGroup_mono {F' : Nat} (hle : F ≤ F') {vg : ValueGroup}
-    (h : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
-    checkValueGroup (fueledOps μ F') env vg = .ok () := by
-  obtain ⟨stype, u, hst, hsort, hthm, jv, hiv, hjv', vtype, hvt, hde⟩ := checkValueGroup_inv h
-  exact checkValueGroup_of_facts (inferTypeCore_mono hle hst) (ensureSortCore_mono hle hsort)
-    hthm hiv hjv' (inferTypeCore_mono hle hvt)
-    (isDefEqCore_mono hle hde)
 
 /-! ## `checkDecl` from the two halves -/
 

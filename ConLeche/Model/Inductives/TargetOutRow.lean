@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.ContInst
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 public import ConLeche.Model.Inductives.TargetClass
 public import ConLeche.Model.Inductives.TargetIhData
 import ConLeche.Model.Inductives.ContInstRule

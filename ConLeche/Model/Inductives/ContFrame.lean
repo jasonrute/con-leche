@@ -1,11 +1,11 @@
 module
 
 public import ConLeche.Model.Inductives.NestPosMono
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.SetTheory.Derive.Univ
 import ConLeche.SetTheory.Derive.Graphs
 import ConLeche.Model.Inductives.StructFrameKit
-import ConLeche.Model.Annot.LfpAcc
+import ConLeche.Model.Env.LfpAcc
 
 public section
 

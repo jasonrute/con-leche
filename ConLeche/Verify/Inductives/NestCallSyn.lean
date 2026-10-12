@@ -70,11 +70,11 @@ theorem replaceFVars_abstract1_instantiate1 {f : Nat → Option Expr} {v : Nat}
     intro k hb
     simp only [looseBVarsBounded, Bool.and_eq_true] at hb
     simp only [abstract1, replaceFVars, instantiate1, iha k hb.1, ihb k hb.2]
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro k hb
     simp only [looseBVarsBounded, Bool.and_eq_true] at hb
     simp only [abstract1, replaceFVars, instantiate1, iht k hb.1, ihb (k + 1) hb.2]
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro k hb
     simp only [looseBVarsBounded, Bool.and_eq_true] at hb
     simp only [abstract1, replaceFVars, instantiate1, iht k hb.1, ihb (k + 1) hb.2]
@@ -93,11 +93,11 @@ end Expr
 /-- A closed telescope has no loose bound variable, when its domains and
 body have none. -/
 theorem closeTelescope_bounded :
-    ∀ (nds : List (Expr × BinderMeta)) (hi : Nat) (cur : Expr),
-      (∀ nd ∈ nds, nd.1.looseBVarsBounded 0 = true) → cur.looseBVarsBounded 0 = true →
+    ∀ (nds : List Expr) (hi : Nat) (cur : Expr),
+      (∀ nd ∈ nds, nd.looseBVarsBounded 0 = true) → cur.looseBVarsBounded 0 = true →
       (closeTelescope nds hi cur).looseBVarsBounded 0 = true
   | [], _, _, _, hc => hc
-  | (nd, bm) :: rest, hi, cur, hn, hc => by
+  | nd :: rest, hi, cur, hn, hc => by
     simp only [closeTelescope, Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hn _ List.mem_cons_self, looseBVarsBounded_abstract1 _ 0
       (closeTelescope_bounded rest (hi + 1) cur (fun x hx => hn x (List.mem_cons_of_mem _ hx)) hc)⟩
@@ -114,7 +114,7 @@ theorem targetPiDomsWith_length :
   | [], _, doms, h => by simp only [targetPiDomsWith, Option.some.injEq] at h; subst h; rfl
   | x :: xs, e, doms, h => by
     match e, h with
-    | .forallE d b _, h =>
+    | .forallE d b, h =>
       simp only [targetPiDomsWith] at h
       obtain ⟨r, hr, rfl⟩ := Option.map_eq_some_iff.mp h
       simp [targetPiDomsWith_length xs _ r hr]
@@ -124,20 +124,20 @@ theorem targetPiDomsWith_length :
 walk's `l`-th normal form with the read-back `f` and the first `l` fields
 moved to the rule's. -/
 theorem targetPiDomsWith_close :
-    ∀ (nds : List (Expr × BinderMeta)) (hi : Nat) (cur : Expr) (f : Nat → Option Expr)
+    ∀ (nds : List Expr) (hi : Nat) (cur : Expr) (f : Nat → Option Expr)
       (fvs doms : List Expr),
       (∀ i, hi ≤ i → f i = none) → (∀ i y, f i = some y → y.looseBVarsBounded 0 = true) →
       (∀ x ∈ fvs, x.looseBVarsBounded 0 = true) →
-      (∀ nd ∈ nds, nd.1.looseBVarsBounded 0 = true) → cur.looseBVarsBounded 0 = true →
+      (∀ nd ∈ nds, nd.looseBVarsBounded 0 = true) → cur.looseBVarsBounded 0 = true →
       fvs.length ≤ nds.length →
       targetPiDomsWith fvs ((closeTelescope nds hi cur).replaceFVars f) = some doms →
-      ∀ l d, doms[l]? = some d → ∃ nd : Expr × BinderMeta, nds[l]? = some nd ∧
-        d = nd.1.replaceFVars (extendF f hi (fvs.take l))
+      ∀ l d, doms[l]? = some d → ∃ nd : Expr, nds[l]? = some nd ∧
+        d = nd.replaceFVars (extendF f hi (fvs.take l))
   | _, _, _, _, [], doms, _, _, _, _, _, _, h, l, d, hd => by
     simp only [targetPiDomsWith, Option.some.injEq] at h
     subst h; exact nomatch hd
   | [], _, _, _, _ :: _, _, _, _, _, _, _, hlen, _, _, _, _ => by simp at hlen
-  | (nd, bm) :: rest, hi, cur, f, x :: xs, doms, hf, hfc, hx, hn, hc, hlen, h, l, d, hd => by
+  | nd :: rest, hi, cur, f, x :: xs, doms, hf, hfc, hx, hn, hc, hlen, h, l, d, hd => by
     have hT : (closeTelescope rest (hi + 1) cur).looseBVarsBounded 0 = true :=
       closeTelescope_bounded rest (hi + 1) cur (fun y hy => hn y (List.mem_cons_of_mem _ hy)) hc
     simp only [closeTelescope, Expr.replaceFVars, targetPiDomsWith] at h
@@ -209,9 +209,9 @@ theorem replaceFVars_erasedEq_substFvars {g : Nat → Option Expr} {b D : Nat} {
   | lit l => intro _; exact ErasedEq.rfl _
   | app f a ihf iha =>
     intro h; exact ⟨ihf h.1, iha h.2⟩
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro h; exact ⟨iht h.1, ihb h.2⟩
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro h; exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb =>
     intro h; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
@@ -238,11 +238,11 @@ theorem ErasedEq.substFvars {b D : Nat} {s : Nat → Expr} :
     intro y h
     cases y <;> simp only [ErasedEq] at h
     exact ⟨ihf h.1, iha h.2⟩
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro y h
     cases y <;> simp only [ErasedEq] at h
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro y h
     cases y <;> simp only [ErasedEq] at h
     exact ⟨iht h.1, ihb h.2⟩
@@ -257,24 +257,24 @@ theorem ErasedEq.substFvars {b D : Nat} {s : Nat → Expr} :
 
 /-- `substFvars` passes a Π-tower. -/
 theorem substFvars_mkPisOf {b D : Nat} {s : Nat → Expr} :
-    ∀ (tele : List (Expr × BinderMeta)) (X : Expr),
+    ∀ (tele : List Expr) (X : Expr),
       Expr.substFvars b D s (Expr.mkPisOf tele X)
-        = Expr.mkPisOf (tele.map fun p => (Expr.substFvars b D s p.1, p.2)) (Expr.substFvars b D s X)
+        = Expr.mkPisOf (tele.map (Expr.substFvars b D s)) (Expr.substFvars b D s X)
   | [], _ => rfl
-  | (t, bm) :: r, X => by
+  | t :: r, X => by
     simp only [Expr.mkPisOf, Expr.substFvars, List.map_cons, substFvars_mkPisOf r X]
 
 /-- **Two erasure-equal towers of one length** are erasure-equal binder by
 binder and in their bodies. -/
 theorem ErasedEq.mkPisOf_inv :
-    ∀ {tele tele' : List (Expr × BinderMeta)} {X X' : Expr}, tele.length = tele'.length →
+    ∀ {tele tele' : List Expr} {X X' : Expr}, tele.length = tele'.length →
       ErasedEq (Expr.mkPisOf tele X) (Expr.mkPisOf tele' X') →
-      (∀ (l : Nat) (p p' : Expr × BinderMeta), tele[l]? = some p → tele'[l]? = some p' →
-        p.2 = p'.2 ∧ ErasedEq p.1 p'.1) ∧ ErasedEq X X'
+      (∀ (l : Nat) (p p' : Expr), tele[l]? = some p → tele'[l]? = some p' →
+        ErasedEq p p') ∧ ErasedEq X X'
   | [], [], _, _, _, h => ⟨fun l p p' hp _ => by simp at hp, h⟩
   | [], _ :: _, _, _, hl, _ => by simp at hl
   | _ :: _, [], _, _, hl, _ => by simp at hl
-  | (t, bm) :: r, (t', bm') :: r', X, X', hl, h => by
+  | t :: r, t' :: r', X, X', hl, h => by
     simp only [Expr.mkPisOf, ErasedEq] at h
     obtain ⟨ht, hr⟩ := h
     obtain ⟨hall, hX⟩ := ErasedEq.mkPisOf_inv (by simpa using hl) hr
@@ -283,7 +283,7 @@ theorem ErasedEq.mkPisOf_inv :
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hp hp'
       subst hp; subst hp'
-      exact ⟨Eq.refl _, ht⟩
+      exact ht
     | succ l => exact hall l p p' (by simpa using hp) (by simpa using hp')
 
 /-- **Opening commutes with the substitution**, at variables above `b`

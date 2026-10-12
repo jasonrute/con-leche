@@ -188,10 +188,6 @@ theorem Ctr.fits_iff {c : Ctr} {r : LineRec} :
     | expr i _ => simpa [Ctr.fits, Ctr.at] using h .e i rfl
     | _ => rfl
 
-theorem LineRec.idAt_unique {r : LineRec} {t t' : Tb} {i i' : Nat} (h : r.idAt t = some i)
-    (h' : r.idAt t' = some i') : t = t' ∧ i = i' := by
-  cases r <;> cases t <;> cases t' <;> simp_all [LineRec.idAt]
-
 /-! ## Increasing streams: where an index is bound -/
 
 /-- The counters before line `p` of a list. -/
@@ -393,8 +389,6 @@ theorem Tb.exSel (t : Tb) : ∃ (α : Type) (S : Sel α), S.tb = t := by
   · exact ⟨_, .l, rfl⟩
   · exact ⟨_, .e, rfl⟩
 
-theorem Sel.inj_tb (S : Sel α) (x : α) : (S.inj x).tb = S.tb := by cases S <;> rfl
-
 theorem Sel.inj_inj (S : Sel α) {x y : α} (h : S.inj x = S.inj y) : x = y := by
   cases S <;> cases h <;> rfl
 
@@ -418,12 +412,6 @@ theorem Sel.inj_inj_opt (S : Sel α) {T T' : Tabs} {j : Nat} (h : T.at S.tb j = 
 
 theorem Sel.prior_tab (S : Sel α) (P : Prior) : S.tab P.tabs = (S.pages P).get := by
   cases S <;> rfl
-
-/-- An entry of table `t` is some table's entry. -/
-theorem TV.sel {t : Tb} {v : TV} (h : v.tb = t) :
-    (t = .n ∧ ∃ x, v = Sel.n.inj x) ∨ (t = .l ∧ ∃ x, v = Sel.l.inj x) ∨
-      (t = .e ∧ ∃ x, v = Sel.e.inj x) := by
-  cases v <;> subst h <;> simp [Sel.inj, TV.tb]
 
 /-- The table, in a parse state. -/
 @[expose] def Sel.st : Sel α → StateD → Nat → Option α
@@ -694,13 +682,6 @@ theorem gap_none {p : Nat} (hp : p < Γ.rs.length) {t : Tb} {i : Nat}
     obtain ⟨hql, hr'⟩ := getElem?_eq_some_iff'.mp hq
     rw [lineVal_tb hr hx] at hv; subst hv
     exact hT.inc.gap hp hql hb (by rw [hr']; exact hr) h1 h2
-
-/-- Every line binding `j` lies before `p + 1`, if line `p` binds it. -/
-theorem boundBefore_self {p : Nat} (hp : p < Γ.rs.length) {t : Tb} {j : Nat}
-    (hb : Γ.rs[p].idAt t = some j) : BoundBefore Γ t j (p + 1) := by
-  intro q hq hbq
-  have := hT.inc.unique hq hp hbq hb
-  omega
 
 end
 

@@ -1,10 +1,10 @@
 module
 
 import ConLeche.Verify.Denote.EnvExt
-import ConLeche.Model.Annot.Bit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitLevels
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.Levels
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Tiers
 import ConLeche.Verify.BridgeWfImp
@@ -102,9 +102,9 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     cases hf₂ : env₂.find? n with
     | none => rw [denoteMeta, hf, denoteMeta, hf₂]
     | some ci₂ => rw [hf₂] at h; exact nomatch h
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     rw [denoteMeta, denoteMeta, ihty, ihbody]
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     rw [denoteMeta, denoteMeta, ihty, ihbody]
   | case8 d f a ihf iha => rw [denoteMeta, denoteMeta, ihf, iha]
   | case9 d ty val body ihty ihv ihbody =>
@@ -129,8 +129,8 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -303,14 +303,8 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
         ConLeche.EtaFamilyStored env₀ T caps := by
       intro T caps hst
       obtain ⟨h1, ⟨cvC, cnP, cnF, hC⟩, h3⟩ := hst
-      refine ⟨h1, ⟨cvC, cnP, cnF, (hsame _ _
-        (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hC⟩, ?_⟩
-      intro j hj
-      obtain ⟨cv, mI, rP, rules, hfj⟩ := h3 j hj
-      rcases hcorr (ConLeche.projFnName T j) with heq |
-        ⟨cv2, mI2, rP2, rules2, h₀, h₃, -⟩
-      · exact ⟨cv, mI, rP, rules, by rw [← heq]; exact hfj⟩
-      · exact ⟨cv2, mI2, rP2, [], h₀⟩
+      exact ⟨h1, ⟨cvC, cnP, cnF, (hsame _ _
+        (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hC⟩, h3⟩
     refine ⟨?_, ?_⟩
     · intro T cvT caps hf hcap hres hfamS φ' us hus
       obtain ⟨TVa, hTVa, hokT, hlaw, hcoh⟩ :=

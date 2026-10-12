@@ -102,13 +102,13 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     obtain ⟨cvTb, hcvb⟩ : ∃ cvTb, cvTas[t]? = some cvTb :=
       ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact ht)⟩
     have hFDt := (hcore.1 t cvTb hcvb).2
-    show (((d.ppsM t ψ).drop d.nP).map (·.2.2)).length = _
-    simp only [List.length_map, List.length_drop, hFDt.len ψ, hcI]
+    show (((d.ppsM t ψ).drop d.nP)).length = _
+    simp only [List.length_drop, hFDt.len ψ, hcI]
     show _ = d.nIdxAt t
     omega
   -- the relation
   have hR := holeRelA_accRel (m := mp.base2) hhi hcNl hcP har (fun X hX => hsatFrame ρp hs X hX.toU)
-  have hG' : ∀ ρ ρ₀, d.toLfp.accRel ψ ρp ρ ρ₀ → FieldsOkB (d.w ψ) ρ (abN.map (·.2.2)) := by
+  have hG' : ∀ ρ ρ₀, d.toLfp.accRel ψ ρp ρ ρ₀ → FieldsOkB (d.w ψ) ρ (abN) := by
     rintro _ _ ⟨X, Y, hX, -, rfl, -⟩
     rw [hab]
     exact hG X hX
@@ -117,7 +117,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
   have hPi := memberCtorD_acc mp hin hteleD hhead hok hcovk hfr hCP hca hgr hR
   rw [← habLen] at hPi
   obtain ⟨Af, htele, hinv, hQf⟩ := teleAccP_of_piAccThen ab abN _ (ctx.hiAt 0) 0
-    (nds.map (·.1)) L.reverse _ (d.toLfp.MemberQ ψ) hEq hR.dom
+    nds L.reverse _ (d.toLfp.MemberQ ψ) hEq hR.dom
     (fun ρ ρ₀ h hw => (hG' ρ ρ₀ h).toBound hw)
     (holeQ_top_iff hhi hcNl hcP har) (Nat.le_refl _) hPi
   -- the syntax: the opened normal form, U4
@@ -147,9 +147,7 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     · simp only [ite_eq_left hl]
       obtain ⟨x, hx⟩ : ∃ x, xs[l]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
       obtain ⟨k, nd, hkk, hnd, hE, -, -⟩ := hxs l x hx
-      have hnd' : (nds.map (·.1))[l]? = some nd := by
-        rw [List.getElem?_map]; exact hnd
-      have hinvl := hinv l nd (by omega) hnd'
+      have hinvl := hinv l nd (by omega) hnd
       rw [Nat.zero_add] at hinvl
       refine hinvl τ τ' fun i hi => ?_
       rcases hi with hi | ⟨hlt, hpar⟩
@@ -183,12 +181,8 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
       simpa [hlabN] using this
     obtain ⟨x, hx⟩ : ∃ x, xs[i]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     obtain ⟨k, nd, hkk, -, hE, hord, hnip⟩ := hxs i x hx
-    obtain ⟨p', hp', -, hread⟩ := hdoms i x hx
-    have hp'' : abN[i]?.map (·.2.2) = some p'.2.2 := by
-      have h := congrArg (·[i]?) (ppsNorm_map_dom abN)
-      simp only [List.getElem?_map, hp', Option.map_some] at h
-      exact h.symm
-    rw [List.getElem?_map, hp'', Option.some.injEq] at hGi
+    obtain ⟨p', hp', hread⟩ := hdoms i x hx
+    rw [hp', Option.some.injEq] at hGi
     subst hGi
     have hkD : ksD.getD i .ordinary = k := by rw [List.getD_eq_getElem?_getD, hkk]; rfl
     have hkord : k = .ordinary := by
@@ -196,13 +190,13 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
       rw [hkD] at h'
       simpa using h'
     have hwx := openPisAtFvars_typeWScoped cA.2 hopN hfrN.1 i x hx
-    have hholes' : NoBVar (holeP (ctx.hiAt 0 + i) ctx.nP (ctx.hiAt 0)) p'.2.2 := by
+    have hholes' : NoBVar (holeP (ctx.hiAt 0 + i) ctx.nP (ctx.hiAt 0)) p' := by
       refine denoteMeta_noBVar_of_nestOcc (m := mp.base2) (names := ctx.names) _ _ hwx
         (by simp [NestCtx.hiAt]) ?_ hread
       rw [erasedEq_nestOcc _ _ hE]
       exact hord hkord
     have hslots : NoBVar (fun q => ∃ jj, jj < i ∧ ord jj = false ∧ LfpDatum.fieldSlot jj i q)
-        p'.2.2 := by
+        p' := by
       refine noBVar_exists' (P := fun jj q => jj < i ∧ ord jj = false ∧ LfpDatum.fieldSlot jj i q)
         fun jj => ?_
       by_cases hjj : jj < i ∧ ord jj = false

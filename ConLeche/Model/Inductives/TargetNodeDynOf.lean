@@ -15,7 +15,7 @@ import ConLeche.Model.Inductives.SumKit
 import ConLeche.Model.Inductives.LfpCover
 import ConLeche.Verify.Inductives.PositivityInv
 import ConLeche.Verify.Inductives.PosAnn
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.Inductives.TargetCallEntry
 
 public section
@@ -1140,7 +1140,7 @@ theorem dynCtx_of {F : Nat}
     have h0' : cvTasR[0]? = some cvTa0 := by rw [List.head?_eq_getElem?] at h0; exact h0
     obtain ⟨-, hFD0⟩ := hcoreK.1 0 cvTa0 h0'
     rw [List.length_reverse, BlockData.holeCtx, List.length_append, List.length_map,
-      List.length_range, BlockData.params, List.length_map, List.length_take, hFD0.len ψ]
+      List.length_range, BlockData.params, List.length_take, hFD0.len ψ]
     show min _ _ + _ = pp.nP + pp.memberNames.length + 0
     have : (blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf).k = pp.memberNames.length := by
       simp [blockDataOf, blockDataPre, BlockData.withPhi, ConLeche.BlockShape.k,

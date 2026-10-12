@@ -40,7 +40,7 @@ does), so the returned binder domains and the sort are scoped at the
 free variables `0 ..< n`.  A residual that does not reduce to a Π, or
 finally to a sort, is INVALID input — official fails there too. -/
 def whnfTelescope (ops : CheckerOps m) (env : Env) :
-    Nat → Nat → Expr → m (List (Expr × BinderMeta) × Level)
+    Nat → Nat → Expr → m (List Expr × Level)
   | i, 0, e => do
     let e' ← ops.whnf env i e
     match e' with
@@ -50,9 +50,9 @@ def whnfTelescope (ops : CheckerOps m) (env : Env) :
   | i, n + 1, e => do
     let e' ← ops.whnf env i e
     match e' with
-    | .forallE dom body bm =>
+    | .forallE dom body =>
       let (bs, s) ← whnfTelescope ops env (i + 1) n (body.instantiate1 (.fvar i dom))
-      pure ((dom, bm) :: bs, s)
+      pure (dom :: bs, s)
     | _ => throw (.invalid "direct sum: type former does not reduce to a telescope \
         of its parameters and indices")
 
@@ -173,7 +173,7 @@ constructors are installed before the recursor. -/
 def sumRules (find? : Name → Option ConstantInfo) (recName : Name) (nP : Nat) :
     List (ConstantVal × Nat) → List Expr → List RecRule
   | c :: cs, rhs :: rhss =>
-    recRuleBits find? recName
+    recRuleBits find?
       { ctor := c.1.name, nfields := c.2, ctorParams := nP, fire := .plain, rhs := rhs }
       :: sumRules find? recName nP cs rhss
   | _, _ => []

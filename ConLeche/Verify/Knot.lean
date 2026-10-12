@@ -31,14 +31,13 @@ these positivity witnesses instead. -/
 theorem whnfLoopFuel_succ : ∃ n, whnfLoopFuel = n + 1 :=
   ⟨4611686018427387903, by unfold whnfLoopFuel; rfl⟩
 
-
 /-- `Expr.lamPair?`, read back: two λs. -/
 theorem Expr.lamPair?_some {B₁ B₂ t₁ b₁ t₂ b₂ : Expr}
     (h : Expr.lamPair? B₁ B₂ = some (t₁, b₁, t₂, b₂)) :
-    ∃ m₁ m₂, B₁ = .lam t₁ b₁ m₁ ∧ B₂ = .lam t₂ b₂ m₂ := by
+    B₁ = .lam t₁ b₁ ∧ B₂ = .lam t₂ b₂ := by
   cases B₁ <;> cases B₂ <;> simp only [Expr.lamPair?, reduceCtorEq] at h
   obtain ⟨rfl, rfl, rfl, rfl⟩ := by simpa using h
-  exact ⟨_, _, rfl, rfl⟩
+  exact ⟨rfl, rfl⟩
 
 @[simp] theorem pureFns_whnfCore (env : Env) (f d : Nat) (e : Expr) (c : Bool) :
     (pureFns mode env (f + 1)).whnfCore c d e =
@@ -325,10 +324,6 @@ theorem reduceProjCore_fold (env : Env) (fuel : Nat) :
     reduceProjCore mode (pureFns mode env fuel) env = reduceProjCoreFueled mode env fuel := rfl
 theorem quickDefEq_fold (env : Env) (fuel : Nat) :
     quickDefEq mode (pureFns mode env fuel) = quickDefEqFueled mode env fuel := rfl
-theorem defeqLams_fold (env : Env) (fuel : Nat) :
-    defeqLams mode (pureFns mode env fuel) = defeqLamsFueled mode env fuel := rfl
-theorem defeqLamsInner_fold (env : Env) (fuel : Nat) :
-    defeqLamsInner mode (pureFns mode env fuel) = defeqLamsInnerFueled mode env fuel := rfl
 theorem defeqOffset_fold (env : Env) (fuel : Nat) :
     defeqOffset (pureFns mode env fuel) = defeqOffsetFueled mode env fuel := rfl
 theorem tryUnfoldProjApp_fold (env : Env) (fuel : Nat) :

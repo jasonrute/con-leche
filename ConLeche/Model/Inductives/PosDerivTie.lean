@@ -141,14 +141,14 @@ theorem seed_readback_gen {nP k : Nat} {f : Name → List Level → Option Expr}
     · obtain ⟨h1, h2⟩ := iha hb.1
       obtain ⟨h3, h4⟩ := ihb hb.2
       exact ⟨⟨h1, h3⟩, h2, h4⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro hb
     simp only [Expr.fvarsBelow] at hb
     obtain ⟨h1, h2⟩ := iht hb.1
     obtain ⟨h3, h4⟩ := ihb hb.2
     simp only [Expr.replaceApps, Expr.replaceFVars, Expr.fvarsBelow]
     exact ⟨⟨h1, h3⟩, h2, h4⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro hb
     simp only [Expr.fvarsBelow] at hb
     obtain ⟨h1, h2⟩ := iht hb.1

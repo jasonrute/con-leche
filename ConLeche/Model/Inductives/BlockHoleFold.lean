@@ -68,19 +68,17 @@ theorem blockTyG_holeVal {c : Nat} (hc : c < d.k)
           (blockFamG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ)
             (d.toLfp.holeChains ψ)) c := by
   have hlenP : (d.toLfp.pars c ψ).length = d.nP := by
-    show (((d.ppsM c ψ).take d.nP).map (·.2.2)).length = d.nP
-    rw [List.length_map, List.length_take, hlenPps]; omega
-  have hsplit : (d.ppsM c ψ).map (·.2.2) = d.toLfp.pars c ψ ++ d.IdsM c ψ := by
-    show _ = ((d.ppsM c ψ).take d.nP).map (·.2.2) ++ ((d.ppsM c ψ).drop d.nP).map (·.2.2)
-    rw [← List.map_append, List.take_append_drop]
+    show ((d.ppsM c ψ).take d.nP).length = d.nP
+    rw [List.length_take, hlenPps]; omega
+  have hsplit : d.ppsM c ψ = d.toLfp.pars c ψ ++ d.IdsM c ψ := by
+    show _ = (d.ppsM c ψ).take d.nP ++ (d.ppsM c ψ).drop d.nP
+    rw [List.take_append_drop]
   have hsp : SpineFit (shiftE d.nP 0 ρp) (d.toLfp.pars c ψ) (frameIdx d.nP ρp) := by
     have := spineFit_frameIdx_of_sat hs
     rwa [hlenP] at this
   have hfr : consList (frameIdx d.nP ρp) (shiftE d.nP 0 ρp) = ρp := consList_frameIdx _ ρp
   unfold blockTyG
-  rw [show ((d.ppsM c ψ).map fun dd => (d.w ψ + 1, dd.2.2))
-      = ((d.ppsM c ψ).map (·.2.2)).map (d.w ψ + 1, ·) by rw [List.map_map]; rfl,
-    interp_mkLamsAV_holeFam, hsplit,
+  rw [interp_mkLamsAV_holeFam, hsplit,
     holeFam_foldl_prefix _ _ hsp, hfr]
   unfold LfpDatum.holeVal
   refine holeFam_congr fun is' his' => ?_
@@ -523,14 +521,14 @@ theorem blockHoleFold_params (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0
           (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))) ρp))
           ((d.absF ψ m j).getD i default)
         = interp V (consList as ρp) (((d.Fss m ψ).getD j []).getD i default))
-    {ρ : Nat → V} {ts : List V} (hsp : SpineFit ρ ((d.ppsM m ψ).map (·.2.2)) ts) :
+    {ρ : Nat → V} {ts : List V} (hsp : SpineFit ρ (d.ppsM m ψ) ts) :
     ts.foldl app (interp V ρ (A m ψ))
       = sumSet (d.w ψ) (sumFibre (d.w ψ) (consList ts ρ)
           (rChains 0 0 (d.Fss m ψ) (d.Ess m ψ))) := by
   have hlenP : (d.ppsM m ψ).length = d.nP := by rw [hlenPps m hm, hIds0]; rfl
-  have hlenT : ts.length = d.nP := by rw [hsp.length_eq, List.length_map, hlenP]
-  have hpars : d.toLfp.pars m ψ = (d.ppsM m ψ).map (·.2.2) := by
-    show ((d.ppsM m ψ).take d.nP).map (·.2.2) = _
+  have hlenT : ts.length = d.nP := by rw [hsp.length_eq, hlenP]
+  have hpars : d.toLfp.pars m ψ = d.ppsM m ψ := by
+    show (d.ppsM m ψ).take d.nP = _
     rw [List.take_of_length_le (Nat.le_of_eq hlenP)]
   have hsP : Sat V (d.toLfp.pars m ψ).reverse (consList ts ρ) := by
     rw [hpars]; simpa using sat_of_spineFit (Sat_nil V ρ) hsp

@@ -42,14 +42,14 @@ their domains (no substitution — the residual may mention the peeled
 binders; the readers only look at its head shape). -/
 def peelPis : Nat → Expr → Option Expr
   | 0, e => some e
-  | k + 1, .forallE _ b _ => peelPis k b
+  | k + 1, .forallE _ b => peelPis k b
   | _ + 1, _ => none
 
 /-- The domain of the `k`-th syntactic ∀ binder (`0` = outermost) of a
 telescope, unsubstituted. -/
 def binderDom : Nat → Expr → Option Expr
-  | 0, .forallE A _ _ => some A
-  | k + 1, .forallE _ b _ => binderDom k b
+  | 0, .forallE A _ => some A
+  | k + 1, .forallE _ b => binderDom k b
   | _, _ => none
 
 /-- The number of arguments of an application spine. -/
@@ -71,7 +71,7 @@ def residualPW : Option Expr → Option PropWhen
 (k, j)` for `fun x₁ … x_k => x_{k-j}` (the shape of `outParam`,
 `semiOutParam`, `optParam`, `autoParam`). -/
 def lamProj? : Nat → Expr → Option (Nat × Nat)
-  | k, .lam _ b _ => lamProj? (k + 1) b
+  | k, .lam _ b => lamProj? (k + 1) b
   | k, .bvar j => if j < k then some (k, j) else none
   | _, _ => none
 
@@ -98,10 +98,10 @@ def unwrapIdDefs (find? : Name → Option ConstantInfo) : Nat → Expr → Expr
 /-- `Expr.peelPis` through identity-like wrappers (`outParam (α → Sort u)`). -/
 def peelPisW (find? : Name → Option ConstantInfo) : Nat → Expr → Option Expr
   | 0, e => some (unwrapIdDefs find? 4 e)
-  | k + 1, .forallE _ b _ => peelPisW find? k b
+  | k + 1, .forallE _ b => peelPisW find? k b
   | k + 1, e =>
     match unwrapIdDefs find? 4 e with
-    | .forallE _ b _ => peelPisW find? k b
+    | .forallE _ b => peelPisW find? k b
     | _ => none
 
 /-- The datum of a type-former application's *head* at `n` arguments:
@@ -135,7 +135,7 @@ its codomain's: `zeronessOf (imax u v) = zeronessOf v`), counting the
 binders, then read the residual's head. -/
 def typeSortPWGo (find? : Name → Option ConstantInfo) (root : Expr) :
     Expr → Nat → Option PropWhen
-  | .forallE _ b _, d => typeSortPWGo find? root b (d + 1)
+  | .forallE _ b, d => typeSortPWGo find? root b (d + 1)
   | .sort _, _ => some .never
   | R, d => headTypePW find? root d R.getAppFn R.numArgs
 
@@ -191,15 +191,16 @@ a `let` from its body, and an application from its function (prop-ness
 is invariant under application, so a β-redex's is its λ's); sorts, ∀s
 and literals are never proofs.  `none` = unknown. -/
 def proofPW (find? : Name → Option ConstantInfo) : Expr → Option PropWhen
-  | .lam _ b _ => proofPW find? b
+  | .lam _ b => proofPW find? b
   | .letE _ _ b => proofPW find? b
   | .app f _ => proofPW find? f
   | h => headProofPW find? h
 
 /-- Is the datum "always zero" — the sort is `Prop` at every
 valuation? -/
-@[inline] def PropWhen.isProp (pw : PropWhen) : Bool :=
-  pw == (.ifAllZero [])
+@[inline] def PropWhen.isProp : PropWhen → Bool
+  | .ifAllZero [] => true
+  | _ => false
 
 /-- **Definitely not a proof** (the no arm): the datum is known and is
 not always-zero. -/

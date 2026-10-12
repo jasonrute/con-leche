@@ -163,7 +163,7 @@ theorem instantiate1P_spec {v : Expr} : ∀ (e : Expr) (d : Nat),
     · dsimp only
       rw [mkApp_eq, ihf d, iha d]
       rfl
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro d
     rw [Expr.instantiate1P.eq_def]
     split
@@ -172,7 +172,7 @@ theorem instantiate1P_spec {v : Expr} : ∀ (e : Expr) (d : Nat),
     · dsimp only
       rw [mkLam_eq, iht d, ihb (d + 1)]
       rfl
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro d
     rw [Expr.instantiate1P.eq_def]
     split
@@ -219,17 +219,17 @@ private theorem instList_app (f a : Expr) (ws : List Expr) (d : Nat) :
       = .app (f.instantiateList ws d) (a.instantiateList ws d) := by
   rw [Expr.instantiateList]
 
-private theorem instList_lam (ty b : Expr) (m : BinderMeta)
+private theorem instList_lam (ty b : Expr)
     (ws : List Expr) (d : Nat) :
-    (Expr.lam ty b m).instantiateList ws d
-      = .lam (ty.instantiateList ws d) (b.instantiateList ws (d + 1)) m := by
+    (Expr.lam ty b).instantiateList ws d
+      = .lam (ty.instantiateList ws d) (b.instantiateList ws (d + 1)) := by
   rw [Expr.instantiateList]
 
-private theorem instList_forallE (ty b : Expr) (m : BinderMeta)
+private theorem instList_forallE (ty b : Expr)
     (ws : List Expr) (d : Nat) :
-    (Expr.forallE ty b m).instantiateList ws d
+    (Expr.forallE ty b).instantiateList ws d
       = .forallE (ty.instantiateList ws d)
-          (b.instantiateList ws (d + 1)) m := by
+          (b.instantiateList ws (d + 1)) := by
   rw [Expr.instantiateList]
 
 private theorem instList_letE (ty v b : Expr) (ws : List Expr)
@@ -380,7 +380,7 @@ theorem instantiateListP_spec {vs : Array Expr} :
         exact (Expr.instantiateList_eq_self (bvarB_le hcut)).symm
       · dsimp only
         rw [instList_app, mkApp_eq, ihf (d := d) hk, iha (d := d) hk]
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro d hk
     rw [Expr.instantiateListP.eq_def]
     split
@@ -392,7 +392,7 @@ theorem instantiateListP_spec {vs : Array Expr} :
         exact (Expr.instantiateList_eq_self (bvarB_le hcut)).symm
       · dsimp only
         rw [instList_lam, mkLam_eq, iht (d := d) hk, ihb (d := d + 1) hk]
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro d hk
     rw [Expr.instantiateListP.eq_def]
     split
@@ -540,24 +540,24 @@ theorem instantiateRevP_eq {vs : Array Expr} :
     rw [ite_eq_right hcut, ite_eq_right hcut]
     dsimp only
     rw [ihf d, iha d]
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro d
     rw [Expr.instantiateRevP.eq_def, Expr.instantiateListP.eq_def]
     by_cases hk0 : k = 0
     · simp only [ite_eq_left hk0]
     rw [ite_eq_right hk0, ite_eq_right hk0]
-    by_cases hcut : (Expr.lam ty bd m).bvarB ≤ d
+    by_cases hcut : (Expr.lam ty bd).bvarB ≤ d
     · rw [ite_eq_left hcut, ite_eq_left hcut]
     rw [ite_eq_right hcut, ite_eq_right hcut]
     dsimp only
     rw [iht d, ihb (d + 1)]
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro d
     rw [Expr.instantiateRevP.eq_def, Expr.instantiateListP.eq_def]
     by_cases hk0 : k = 0
     · simp only [ite_eq_left hk0]
     rw [ite_eq_right hk0, ite_eq_right hk0]
-    by_cases hcut : (Expr.forallE ty bd m).bvarB ≤ d
+    by_cases hcut : (Expr.forallE ty bd).bvarB ≤ d
     · rw [ite_eq_left hcut, ite_eq_left hcut]
     rw [ite_eq_right hcut, ite_eq_right hcut]
     dsimp only
@@ -685,7 +685,7 @@ theorem abstract1P_spec {d : Nat} : ∀ (e : Expr) (k : Nat),
     · dsimp only
       rw [mkApp_eq, ihf k, iha k]
       rfl
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro k
     rw [Expr.abstract1P.eq_def]
     split
@@ -694,7 +694,7 @@ theorem abstract1P_spec {d : Nat} : ∀ (e : Expr) (k : Nat),
     · dsimp only
       rw [mkLam_eq, iht k, ihb (k + 1)]
       rfl
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro k
     rw [Expr.abstract1P.eq_def]
     split
@@ -784,7 +784,7 @@ theorem abstractRangeP_spec {d k : Nat} : ∀ (e : Expr) (c : Nat),
     · dsimp only
       rw [mkApp_eq, ihf c, iha c]
       rfl
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro c
     rw [Expr.abstractRangeP.eq_def]
     split
@@ -793,7 +793,7 @@ theorem abstractRangeP_spec {d k : Nat} : ∀ (e : Expr) (c : Nat),
     · dsimp only
       rw [mkLam_eq, iht c, ihb (c + 1)]
       rfl
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro c
     rw [Expr.abstractRangeP.eq_def]
     split
@@ -879,7 +879,7 @@ theorem instLevelParamsP_spec {ks : List Name} {us : List Level} : ∀ (e : Expr
     · dsimp only
       rw [mkApp_eq, ihf, iha]
       rfl
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     rw [Expr.instLevelParamsP.eq_def]
     split
     · rename_i hcut
@@ -887,7 +887,7 @@ theorem instLevelParamsP_spec {ks : List Name} {us : List Level} : ∀ (e : Expr
     · dsimp only
       rw [mkLam_eq, iht, ihb]
       rfl
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     rw [Expr.instLevelParamsP.eq_def]
     split
     · rename_i hcut
@@ -956,14 +956,14 @@ private theorem wscopedB_app (f a : Expr) (d : Nat) :
     (Expr.app f a).wscopedB d = (f.wscopedB d && a.wscopedB d) := by
   rw [Expr.wscopedB]
 
-private theorem wscopedB_lam (ty b : Expr) (m : BinderMeta)
+private theorem wscopedB_lam (ty b : Expr)
     (d : Nat) :
-    (Expr.lam ty b m).wscopedB d = (ty.wscopedB d && b.wscopedB d) := by
+    (Expr.lam ty b).wscopedB d = (ty.wscopedB d && b.wscopedB d) := by
   rw [Expr.wscopedB]
 
-private theorem wscopedB_forallE (ty b : Expr) (m : BinderMeta)
+private theorem wscopedB_forallE (ty b : Expr)
     (d : Nat) :
-    (Expr.forallE ty b m).wscopedB d = (ty.wscopedB d && b.wscopedB d) := by
+    (Expr.forallE ty b).wscopedB d = (ty.wscopedB d && b.wscopedB d) := by
   rw [Expr.wscopedB]
 
 private theorem wscopedB_letE (ty v b : Expr) (d : Nat) :
@@ -1014,13 +1014,13 @@ theorem wscopedBP_spec : ∀ (e : Expr) (d : Nat),
     split
     · next h => exact wscopedBP_cut_spec h
     · simp only [wscopedB_app, ihf, iha]
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro d
     rw [Expr.wscopedBP.eq_def]
     split
     · next h => exact wscopedBP_cut_spec h
     · simp only [wscopedB_lam, iht, ihb]
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro d
     rw [Expr.wscopedBP.eq_def]
     split
@@ -1063,13 +1063,13 @@ theorem piResidualAcc_spec :
     exact instantiateListC_spec (d := 0)
   | a :: as, acc, e => by
     cases e with
-    | forallE ty b m =>
+    | forallE ty b =>
       rw [piResidualAcc.eq_def]
       dsimp only
       rw [instList_forallE,
         show _root_.ConLeche.piResidual
             (Expr.forallE ((Expr.instantiateList ty acc 0))
-              ((Expr.instantiateList b acc 1)) m)
+              ((Expr.instantiateList b acc 1)))
             (a :: as)
           = _root_.ConLeche.piResidual
               (((Expr.instantiateList b acc 1)).instantiate1
@@ -1121,7 +1121,7 @@ theorem piResidualAcc_spec :
       dsimp only
       rw [instList_app]
       exact trivial
-    | lam ty b m =>
+    | lam ty b =>
       rw [piResidualAcc.eq_def]
       dsimp only
       rw [instList_lam]
@@ -1206,7 +1206,7 @@ theorem instantiate1LiftP_spec {v : Expr} : ∀ (e : Expr) (d : Nat),
     · dsimp only
       rw [mkApp_eq, ihf d, iha d]
       rfl
-  | lam ty bd m iht ihb =>
+  | lam ty bd iht ihb =>
     intro d
     rw [Expr.instantiate1LiftP.eq_def]
     split
@@ -1215,7 +1215,7 @@ theorem instantiate1LiftP_spec {v : Expr} : ∀ (e : Expr) (d : Nat),
     · dsimp only
       rw [mkLam_eq, iht d, ihb (d + 1)]
       rfl
-  | forallE ty bd m iht ihb =>
+  | forallE ty bd iht ihb =>
     intro d
     rw [Expr.instantiate1LiftP.eq_def]
     split

@@ -174,12 +174,12 @@ is a telescope, up to the free variables' annotations the call's, over a
 leaf headed by the callee major's constant, its indices the major's up to
 the annotations, its class matching the callee's (`targetClassMatch`). -/
 theorem targetK53_true {ops : CheckerOps CheckM} {env : Env} {p : BlockShape}
-    {formerTys : List Expr} {Mc : TargetMajor} {tele : List (Expr × BinderMeta)}
+    {formerTys : List Expr} {Mc : TargetMajor} {tele : List Expr}
     {majDom f : Expr}
     (h : targetK53 ops env p formerTys Mc tele majDom f = .ok true) :
-    ∃ (teleW : List (Expr × BinderMeta)) (leafW : Expr) (I : Name) (us' us : List Level),
+    ∃ (teleW : List Expr) (leafW : Expr) (I : Name) (us' us : List Level),
       f.stripPis tele.length = some (teleW, leafW) ∧
-      teleW.map (fun b => (b.1.eraseFVarTys, b.2)) = tele.map (fun b => (b.1.eraseFVarTys, b.2)) ∧
+      teleW.map Expr.eraseFVarTys = tele.map Expr.eraseFVarTys ∧
       leafW.getAppFn = .const I us' ∧ majDom.getAppFn = .const I us ∧
       leafW.getAppArgs.length = majDom.getAppArgs.length ∧
       (leafW.getAppArgs.drop Mc.nPc).map Expr.eraseFVarTys
@@ -220,7 +220,7 @@ theorem instPisWith_eq_instPisAt :
   | [], e => by simp [instPisWith, Expr.instPisAt]
   | a :: as, e => by
     cases e with
-    | forallE dom body bm =>
+    | forallE dom body =>
       simp only [instPisWith, Expr.instPisAt, Option.map_map]
       rw [instPisWith_eq_instPisAt as]
       cases Expr.instPisAt as (body.instantiate1 a) <;> rfl
@@ -235,7 +235,7 @@ theorem openPisAtFvars_prefix :
   | k + 1, 0, _, _, _, _, hk, _ => absurd hk (by omega)
   | k + 1, n + 1, e, d, fvs, o, hk, h => by
     cases e with
-    | forallE dom body bm =>
+    | forallE dom body =>
       simp only [openPisAtFvars] at h ⊢
       split at h
       · next fvs' e' h' =>

@@ -182,7 +182,7 @@ def natSuccOk : Option ConstantInfo → Bool
   | some (.ctorInfo cv _ _) =>
     cv.levelParams.isEmpty &&
     (match cv.type with
-     | .forallE (.const c1 []) (.const c2 []) _mb =>
+     | .forallE (.const c1 []) (.const c2 []) =>
        c1 == natName && c2 == natName
      | _ => false)
   | _ => false
@@ -218,7 +218,7 @@ def Expr.constsResolve (env : Env) : Expr → Bool
   | .const n _ => (env.find? n).isSome
   | .fvar _ ty => ty.constsResolve env
   | .app f a => f.constsResolve env && a.constsResolve env
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     ty.constsResolve env && body.constsResolve env
   | .letE ty val body =>
     ty.constsResolve env && val.constsResolve env && body.constsResolve env
@@ -286,7 +286,7 @@ def listTyOk : Option ConstantInfo → Bool
     match ci.toConstantVal.levelParams with
     | [p] =>
       (match ci.toConstantVal.type with
-       | .forallE (.sort u1) (.sort u2) _mb =>
+       | .forallE (.sort u1) (.sort u2) =>
          u1 == .succ (.param p) && u2 == .succ (.param p)
        | _ => false)
     | _ => false
@@ -299,7 +299,7 @@ def listNilTyOk : Option ConstantInfo → Bool
     match ci.toConstantVal.levelParams with
     | [p] =>
       (match ci.toConstantVal.type with
-       | .forallE (.sort u1) (.app (.const l1 us1) (.bvar 0)) _mb =>
+       | .forallE (.sort u1) (.app (.const l1 us1) (.bvar 0)) =>
          u1 == .succ (.param p) && l1 == listName && us1 == [.param p]
        | _ => false)
     | _ => false
@@ -317,7 +317,7 @@ def listConsTyOk : Option ConstantInfo → Bool
        | .forallE (.sort u1)
            (.forallE (.bvar 0)
              (.forallE (.app (.const l1 us1) (.bvar 1))
-               (.app (.const l2 us2) (.bvar 2)) _mb3) _mb2) _mb1 =>
+               (.app (.const l2 us2) (.bvar 2)))) =>
          u1 == .succ (.param p) && l1 == listName && l2 == listName &&
            us1 == [.param p] && us2 == [.param p]
        | _ => false)
@@ -330,7 +330,7 @@ def charOfNatTyOk : Option ConstantInfo → Bool
   | some ci =>
     ci.toConstantVal.levelParams.isEmpty &&
       (match ci.toConstantVal.type with
-       | .forallE (.const c1 []) (.const c2 []) _mb =>
+       | .forallE (.const c1 []) (.const c2 []) =>
          c1 == natName && c2 == charName
        | _ => false)
   | none => false
@@ -341,7 +341,7 @@ def stringOfListTyOk : Option ConstantInfo → Bool
   | some ci =>
     ci.toConstantVal.levelParams.isEmpty &&
       (match ci.toConstantVal.type with
-       | .forallE (.app (.const l1 us1) (.const c1 [])) (.const c2 []) _mb =>
+       | .forallE (.app (.const l1 us1) (.const c1 [])) (.const c2 []) =>
          l1 == listName && us1 == [.zero] && c1 == charName &&
            c2 == stringName
        | _ => false)
@@ -625,10 +625,10 @@ the substitution runs on closed input terms only. -/
 def Expr.substConstAll (n : Name) (r : Expr) : Expr → Expr
   | .const c us => if c = n ∧ us = [] then r else .const c us
   | .app f a => .app (Expr.substConstAll n r f) (Expr.substConstAll n r a)
-  | .lam ty b mb =>
-    .lam (Expr.substConstAll n r ty) (Expr.substConstAll n r b) mb
-  | .forallE ty b mb =>
-    .forallE (Expr.substConstAll n r ty) (Expr.substConstAll n r b) mb
+  | .lam ty b =>
+    .lam (Expr.substConstAll n r ty) (Expr.substConstAll n r b)
+  | .forallE ty b =>
+    .forallE (Expr.substConstAll n r ty) (Expr.substConstAll n r b)
   | .letE ty v b =>
     .letE (Expr.substConstAll n r ty) (Expr.substConstAll n r v)
       (Expr.substConstAll n r b)
@@ -654,12 +654,12 @@ the operations' function-space memberships off this shape. -/
 def natOpTyPinned (env : Env) (c : Name) (ty : Expr) : Bool :=
   if c = natPredName then
     match ty with
-    | .forallE dom body _mb =>
+    | .forallE dom body =>
       dom == .const natName [] && natOpCod env c body
     | _ => false
   else
     match ty with
-    | .forallE dom (.forallE dom2 body _mb2) _mb =>
+    | .forallE dom (.forallE dom2 body) =>
       dom == .const natName [] && dom2 == .const natName [] &&
       natOpCod env c body
     | _ => false
@@ -701,7 +701,7 @@ def natOpStored (env : Env) (c : Name) : Bool :=
 a fully applied telescope). -/
 def piResidual : Expr → List Expr → Option Expr
   | e, [] => some e
-  | .forallE _ b _, a :: as => piResidual (b.instantiate1 a) as
+  | .forallE _ b, a :: as => piResidual (b.instantiate1 a) as
   | _, _ :: _ => none
 
 /-- Are all `nF` projection slots of `T` table entries — i.e. does
@@ -766,7 +766,7 @@ family every field's sort is bounded by the structure's (the O5 bound
 `checkStructFieldSortsI` checks), so at a zero instantiation every
 field is a proposition; for a `Prop`-declared family the guard says
 so of the projected field directly (`TowerEntryLaw`'s iota clause,
-`ConLeche/Model/Annot/EnvModelM.lean`).  Ungated rules on a data field of a
+`ConLeche/Model/Env/EnvModelM.lean`).  Ungated rules on a data field of a
 `Prop`-declared structure stay out: such a node is not even typed
 (`inferBody`'s guard). -/
 def ProjEntry.fireOk (entry : ProjEntry) (us : List Level) : Bool :=
@@ -811,10 +811,8 @@ def recRuleKOf (find? : Name → Option ConstantInfo) (ctor : Name) : Bool :=
   | _ => false
 
 /-- **The η-rescue bit at install** (`RecRule.eta`): the rule's
-constructor is the η constructor of a stored η-capable inductive,
-carries that inductive's own level parameters, and the recursor is not
-itself a projection function (whose rescue would reduce to its own
-reduct and loop).  Together with the singleton rule list this is the
+constructor is the η constructor of a stored η-capable inductive and
+carries that inductive's own level parameters.  Together with the singleton rule list this is the
 standing condition of `majorToCtor`'s structure-η rescue.
 
 The level-parameter conjunct is what lets the rescue fabricate the
@@ -823,7 +821,7 @@ the two lists per call: the installer grants η only at a
 constructor stored with the former's level parameters (the
 recogniser pins `c.1.levelParams == lps`), so the conjunct holds
 wherever the rest does. -/
-def recRuleEtaOf (find? : Name → Option ConstantInfo) (recName ctor : Name) :
+def recRuleEtaOf (find? : Name → Option ConstantInfo) (ctor : Name) :
     Bool :=
   match find? ctor with
   | some (.ctorInfo cvj _ _) =>
@@ -831,7 +829,7 @@ def recRuleEtaOf (find? : Name → Option ConstantInfo) (recName ctor : Name) :
     | .const T _ =>
       match find? T with
       | some (.indInfo cvT caps) =>
-        caps.eta && caps.etaCtor == ctor && !Name.isProjFnShape recName &&
+        caps.eta && caps.etaCtor == ctor &&
           cvj.levelParams == cvT.levelParams
       | _ => false
     | _ => false
@@ -844,42 +842,42 @@ rules, the projection functions):
 the reduction then reads `RecRule.k`/`RecRule.eta` and re-derives
 nothing, and the environment invariant `RecCtorsStored` records that a
 set bit is the lookup's own verdict. -/
-def recRuleBits (find? : Name → Option ConstantInfo) (recName : Name)
+def recRuleBits (find? : Name → Option ConstantInfo)
     (rl : RecRule) : RecRule :=
   { rl with k := recRuleKOf find? rl.ctor,
-            eta := recRuleEtaOf find? recName rl.ctor }
+            eta := recRuleEtaOf find? rl.ctor }
 
 @[simp] theorem recRuleBits_ctor (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).ctor
+    (rl : RecRule) : (recRuleBits find? rl).ctor
       = rl.ctor := rfl
 
 @[simp] theorem recRuleBits_rhs (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).rhs
+    (rl : RecRule) : (recRuleBits find? rl).rhs
       = rl.rhs := rfl
 
 @[simp] theorem recRuleBits_nfields (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).nfields
+    (rl : RecRule) : (recRuleBits find? rl).nfields
       = rl.nfields := rfl
 
 @[simp] theorem recRuleBits_ctorParams (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) :
-    (recRuleBits find? recName rl).ctorParams = rl.ctorParams := rfl
+    (rl : RecRule) :
+    (recRuleBits find? rl).ctorParams = rl.ctorParams := rfl
 
 @[simp] theorem recRuleBits_fire (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).fire
+    (rl : RecRule) : (recRuleBits find? rl).fire
       = rl.fire := rfl
 
 @[simp] theorem recRuleBits_k (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).k
+    (rl : RecRule) : (recRuleBits find? rl).k
       = recRuleKOf find? rl.ctor := rfl
 
 @[simp] theorem recRuleBits_eta (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).eta
-      = recRuleEtaOf find? recName rl.ctor := rfl
+    (rl : RecRule) : (recRuleBits find? rl).eta
+      = recRuleEtaOf find? rl.ctor := rfl
 
 @[simp] theorem map_ctor_recRuleBits (find? : Name → Option ConstantInfo)
-    (recName : Name) (rs : List RecRule) :
-    (rs.map (recRuleBits find? recName)).map (·.ctor) = rs.map (·.ctor) := by
+    (rs : List RecRule) :
+    (rs.map (recRuleBits find?)).map (·.ctor) = rs.map (·.ctor) := by
   simp [List.map_map, Function.comp_def]
 
 /-- Is a recursor K-flagged?  The stored bit of its single rule

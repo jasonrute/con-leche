@@ -87,16 +87,10 @@ private def qLevel : ConLeche.Level → Lean.Expr
 private def qLevels (us : List ConLeche.Level) : Lean.Expr :=
   qList levelTy (us.map qLevel)
 
-/-- The zero-ness datum through its public API (the representation is
-`private` to `ConLeche/Kernel/PropWhen.lean`): `never`, or `ifAllZero`
-of its parameter list. -/
-private def qPropWhen (pw : ConLeche.PropWhen) : Lean.Expr :=
-  match pw.toList? with
-  | none => mkConst ``ConLeche.PropWhen.never
-  | some ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
-
-private def qBinderMeta (_m : ConLeche.BinderMeta) : Lean.Expr :=
-  mkConst ``ConLeche.BinderMeta.mk
+/-- The zero-ness datum. -/
+private def qPropWhen : ConLeche.PropWhen → Lean.Expr
+  | .never => mkConst ``ConLeche.PropWhen.never
+  | .ifAllZero ps => mkApp (mkConst ``ConLeche.PropWhen.ifAllZero) (qNames ps)
 
 private def qLiteral : ConLeche.Literal → Lean.Expr
   | .natVal n => mkApp (mkConst ``ConLeche.Literal.natVal) (mkRawNatLit n)
@@ -108,10 +102,10 @@ private def qExpr : ConLeche.Expr → Lean.Expr
   | .sort u => mkApp (mkConst ``ConLeche.Expr.sort) (qLevel u)
   | .const n us => mkApp2 (mkConst ``ConLeche.Expr.const) (qName n) (qLevels us)
   | .app f a => mkApp2 (mkConst ``ConLeche.Expr.app) (qExpr f) (qExpr a)
-  | .lam ty b m =>
-    mkApp3 (mkConst ``ConLeche.Expr.lam) (qExpr ty) (qExpr b) (qBinderMeta m)
-  | .forallE ty b m =>
-    mkApp3 (mkConst ``ConLeche.Expr.forallE) (qExpr ty) (qExpr b) (qBinderMeta m)
+  | .lam ty b =>
+    mkApp2 (mkConst ``ConLeche.Expr.lam) (qExpr ty) (qExpr b)
+  | .forallE ty b =>
+    mkApp2 (mkConst ``ConLeche.Expr.forallE) (qExpr ty) (qExpr b)
   | .letE ty v b =>
     mkApp3 (mkConst ``ConLeche.Expr.letE) (qExpr ty) (qExpr v) (qExpr b)
   | .lit l => mkApp (mkConst ``ConLeche.Expr.lit) (qLiteral l)
@@ -177,7 +171,7 @@ def pinRecRuleFields (env : ConLeche.Env) : ConLeche.ConstantInfo → ConLeche.C
       let cnP := match env.find? r.ctor with
         | some (.ctorInfo _ nP _) => nP
         | _ => 0
-      ConLeche.recRuleBits env.find? cv.name
+      ConLeche.recRuleBits env.find?
         { r with ctorParams := cnP })
   | ci => ci
 

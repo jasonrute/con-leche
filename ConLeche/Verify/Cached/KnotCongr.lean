@@ -119,8 +119,8 @@ theorem constsResolveFP_congr (hfe : fe₁.find? = fe₂.find?) : ∀ e : Expr,
   | const n us => simp only [constsResolveFP, hfe]
   | fvar idx ty iht => simp only [constsResolveFP, iht]
   | app f a ihf iha => simp only [constsResolveFP, ihf, iha]
-  | lam ty body m iht ihb => simp only [constsResolveFP, iht, ihb]
-  | forallE ty body m iht ihb => simp only [constsResolveFP, iht, ihb]
+  | lam ty body iht ihb => simp only [constsResolveFP, iht, ihb]
+  | forallE ty body iht ihb => simp only [constsResolveFP, iht, ihb]
   | letE ty val body iht ihv ihb => simp only [constsResolveFP, iht, ihv, ihb]
   | proj sn i sub ih => simp only [constsResolveFP, hfe, ih]
 
@@ -163,7 +163,7 @@ theorem iotaCertsFullIAux_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI
   funext depth ty acc args
   induction ty, acc, args using iotaCertsFullIAux.induct with
   | case1 ty acc => rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]
-  | case2 acc arg rest dom body mb ih =>
+  | case2 acc arg rest dom body ih =>
     rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]; simp only [ih]
   | case3 arg rest i => rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]
   | case4 arg rest i head tail ih =>
@@ -171,7 +171,7 @@ theorem iotaCertsFullIAux_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI
   | case5 ty acc arg rest h₁ h₂ =>
     rw [iotaCertsFullIAux.eq_def, iotaCertsFullIAux.eq_def]
     cases ty with
-    | forallE d b m => exact (h₁ _ _ _ rfl).elim
+    | forallE d b => exact (h₁ _ _ rfl).elim
     | bvar i => exact (h₂ _ rfl).elim
     | _ => rfl
 
@@ -294,20 +294,20 @@ theorem whnfAppI_betaPeelI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI
       = betaPeelI mode r fe₂ depth k t acc args)
     ?_ ?_ ?_ ?_ ?_ ?_
   · intro v; rw [whnfAppI.eq_def, whnfAppI.eq_def]
-  · intro a rest ty body mb ih
+  · intro a rest ty body ih
     rw [whnfAppI.eq_def, whnfAppI.eq_def]; simp only [ih]
   · intro v a rest hnl ih
     rw [whnfAppI.eq_def, whnfAppI.eq_def]
     cases v with
-    | lam ty body mb => exact (hnl _ _ _ rfl).elim
+    | lam ty body => exact (hnl _ _ rfl).elim
     | _ => simp only [iotaArityOk_congr hfe, iotaRecI_congr hfe, ih]
   · intro t acc; rw [betaPeelI.eq_def, betaPeelI.eq_def]
-  · intro acc arg rest ty body mb ih
+  · intro acc arg rest ty body ih
     rw [betaPeelI.eq_def, betaPeelI.eq_def]; simp only [ih]
   · intro ty acc arg rest hnl ih
     rw [betaPeelI.eq_def, betaPeelI.eq_def]
     cases ty with
-    | lam ty body mb => exact (hnl _ _ _ rfl).elim
+    | lam ty body => exact (hnl _ _ rfl).elim
     | _ => simp only [ih]
 
 /-- `whnfAppI` reads `fe` only through `find?`. -/

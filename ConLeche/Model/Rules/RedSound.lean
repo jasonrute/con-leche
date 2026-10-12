@@ -3,8 +3,8 @@ module
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitClosed
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.Closed
 import ConLeche.Semantics.LitStep
 
 public section
@@ -84,11 +84,11 @@ theorem appFn_syntax {d : Nat} {f f' a : Expr}
     · exact Or.inr hl
 
 /-- The app slot rides an equal-valued, graded head. -/
-theorem wellDenotedV_app_fn_congr {ρ : Nat → V} {fa fa' aa : AnnotTerm}
-    (heq : interp V ρ fa = interp V ρ fa') (hgf' : WellDenotedV V ρ fa')
-    (hg : WellDenotedV V ρ (.app fa aa)) : WellDenotedV V ρ (.app fa' aa) := by
+theorem wellDenoted_app_fn_congr {ρ : Nat → V} {fa fa' aa : AnnotTerm}
+    (heq : interp V ρ fa = interp V ρ fa') (hgf' : WellDenoted V ρ fa')
+    (hg : WellDenoted V ρ (.app fa aa)) : WellDenoted V ρ (.app fa' aa) := by
   have hx1 := hg
-  rw [WellDenotedV, WellDenoted_app] at hx1 ⊢
+  rw [WellDenoted_app] at hx1 ⊢
   obtain ⟨-, hoka1, v', A, B, h1, h2, h3⟩ := hx1
   exact ⟨hgf', hoka1, v', A, B, heq ▸ h1, h2, h3⟩
 
@@ -113,7 +113,7 @@ theorem Red.appFn_sound {d : Nat} {f f' a : Expr}
   have hnf : interp V ρ fa ≠ pt := by
     intro h; apply hne; rw [interp_app, h, app_pt]
   obtain ⟨hgf', heqf⟩ := hsf ρ hρ hL.app_fn hg.app_fn hnf
-  exact ⟨wellDenotedV_app_fn_congr heqf hgf' hg,
+  exact ⟨wellDenoted_app_fn_congr heqf hgf' hg,
     by rw [interp_app, interp_app, heqf]⟩
 
 /-- The `.proj` clause's scrutinee reduction (`ProjAV.congrV`).
@@ -155,7 +155,7 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
       obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.fst_arg hnv
       refine ⟨?_, by rw [interp_fst, interp_fst, heq]⟩
       have h1 := hg
-      rw [WellDenotedV, WellDenoted_fst] at h1 ⊢
+      rw [WellDenoted_fst] at h1 ⊢
       obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
       exact ⟨hg', u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
     · refine ⟨.snd vp', hred, fun σ hσ hL hg hne => ?_⟩
@@ -164,7 +164,7 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
       obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.snd_arg hnv
       refine ⟨?_, by rw [interp_snd, interp_snd, heq]⟩
       have h1 := hg
-      rw [WellDenotedV, WellDenoted_snd] at h1 ⊢
+      rw [WellDenoted_snd] at h1 ⊢
       obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
       exact ⟨hg', u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
 
@@ -172,20 +172,20 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
 
 /-- The β redex's syntactic side: the reduct's frame, its leaf inclusion
 and its reading. -/
-theorem beta_syntax {d : Nat} {ty body a : Expr} {mb : ConLeche.BinderMeta}
+theorem beta_syntax {d : Nat} {ty body a : Expr}
     {ba aa : AnnotTerm}
-    (hws : Expr.WScoped d (.app (.lam ty body mb) a))
-    (hb : (Expr.app (.lam ty body mb) a).looseBVarsBounded 0 = true)
-    (hLb : Expr.LeavesBounded (.app (.lam ty body mb) a))
+    (hws : Expr.WScoped d (.app (.lam ty body) a))
+    (hb : (Expr.app (.lam ty body) a).looseBVarsBounded 0 = true)
+    (hLb : Expr.LeavesBounded (.app (.lam ty body) a))
     (hbb : denoteMeta m.acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty)) = some ba)
     (haa : denoteMeta m.acval env φ d a = some aa) :
     Frame d (body.instantiate1 a) ∧
-      LeavesSub (body.instantiate1 a) (.app (.lam ty body mb) a) ∧
+      LeavesSub (body.instantiate1 a) (.app (.lam ty body) a) ∧
       denoteMeta m.acval env φ d (body.instantiate1 a) = some (ba.inst aa) := by
   simp only [Expr.WScoped] at hws
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-  have hsubred : LeavesSub (body.instantiate1 a) (.app (.lam ty body mb) a) := by
+  have hsubred : LeavesSub (body.instantiate1 a) (.app (.lam ty body) a) := by
     intro l hl
     rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
     · simp [Expr.fvarLeaves, h2]
@@ -202,8 +202,8 @@ not the point has a λ that is not the point ("not pt" source (2): the
 point applied is the point), so the λ is a graph whose domain the
 application slot fixes, and β is `app_lamV` at a graded argument
 (`betaV`). -/
-theorem Red.beta_sound {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
-    RedSem m φ d (.app (.lam ty body mb) a) (body.instantiate1 a) := by
+theorem Red.beta_sound {d : Nat} {ty body a : Expr} :
+    RedSem m φ d (.app (.lam ty body) a) (body.instantiate1 a) := by
   intro hf Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hf
   obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv hea
@@ -217,14 +217,14 @@ theorem Red.beta_sound {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
 
 /-- **ζ**: a `let` and its reduct interpret alike at every valuation
 (`interp_zeta`), and with the value graded (a part of the `let`'s
-grading) the reduct is graded (`WellDenotedV_zeta`). -/
+grading) the reduct is graded (`WellDenoted_zeta _`). -/
 theorem Red.zeta_soundU {d : Nat} {ty v body : Expr} :
     RedSemU m φ d (.letE ty v body) (body.instantiate1 v) := by
   intro hf Δa ea hC hea
   obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
   obtain ⟨hfr, hsub, hred⟩ := zeta_syntax hf hva hba
   exact ⟨hfr, hsub, ba.inst va, hred,
-    fun ρ _ _ hg => ⟨(WellDenotedV_zeta hg.letE_val).mp hg, interp_zeta V va ba ρ⟩⟩
+    fun ρ _ _ hg => ⟨(WellDenoted_zeta _ hg.letE_val).mp hg, interp_zeta V va ba ρ⟩⟩
 
 theorem Red.zeta_sound {d : Nat} {ty v body : Expr} :
     RedSem m φ d (.letE ty v body) (body.instantiate1 v) :=
@@ -296,11 +296,11 @@ head's domain**: the head is not the point (`app_pt`), so it is read at a
 positive kind (`eq_pt_of_mem_piR_zero`), where its graph fixes its domain
 (`piR_dom_unique`). -/
 theorem arg_mem_of_head {σ : Nat → V} {f a : AnnotTerm} {b : Nat} {N : V}
-    {Y : V → V} (hg : WellDenotedV V σ (.app f a))
+    {Y : V → V} (hg : WellDenoted V σ (.app f a))
     (hne : interp V σ (.app f a) ≠ pt) (hf : interp V σ f ∈ˢ piR b N Y) :
     interp V σ a ∈ˢ N := by
   have hw := hg
-  rw [WellDenotedV, WellDenoted_app] at hw
+  rw [WellDenoted_app] at hw
   obtain ⟨-, -, v, A, B, hfv, ha, -, -⟩ := hw
   have hfne : interp V σ f ≠ pt := fun h => hne (by rw [interp_app, h, app_pt])
   have hv : v ≠ 0 := fun h => hfne (eq_pt_of_mem_piR_zero (h ▸ hfv))
@@ -314,7 +314,7 @@ theorem rawNatLit_facts (hin : RulesInputs V m φ)
     (hsup : ConLeche.natLitSupported env = true) {d : Nat} {w : Expr} {n : Nat}
     (hn : ConLeche.rawNatLit? w = some n) {wa : AnnotTerm}
     (hwa : denoteMeta m.acval env φ d w = some wa) (σ : Nat → V) :
-    WellDenotedV V σ wa ∧
+    WellDenoted V σ wa ∧
       interp V σ wa ∈ˢ interp V σ (m.acval natName (Level.substFn φ [] [])) := by
   have hlit : denoteMeta m.acval env φ d (.lit (.natVal n)) = some wa := by
     match w, hn with
@@ -428,7 +428,7 @@ theorem Red.natOp_sound (hin : RulesInputs V m φ) {d : Nat} {c : Name}
   have heqb : interp V σ ba = interp V σ wbA :=
     hNty.eq_of_ne_pt hbN hwbN fun hbne _ =>
       (hsb σ hσ hL.app_arg hg.app_arg hbne).2
-  have hgsw : WellDenotedV V σ (.app (.app ca waA) wbA) :=
+  have hgsw : WellDenoted V σ (.app (.app ca waA) wbA) :=
     appCongrV (by rw [interp_app, interp_app, heqa]) heqb
       (appCongrV rfl heqa hg.app_fn.app_fn hgwaA hg.app_fn)
       hgwbA hg
@@ -533,12 +533,12 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
       hTC hTCd (frame_spine ⟨hws, hb, hLe⟩ hCe) hspa
   refine ⟨hfF, fun l hl => hsube l (ConLeche.fvarLeaves_getAppArgs hmemArg l hl),
     vs.getD (entry.numParams + i) default, hfvd, fun σ hσ hL hg hne => ?_⟩
-  have hgvp : WellDenotedV V σ (AnnotTerm.mkAppN
+  have hgvp : WellDenoted V σ (AnnotTerm.mkAppN
       (m.acval entry.ctor (Level.substFn φ entry.levelParams us)) vs) := by
     rw [← hveq]
     exact ProjAV.hoistV hg
   obtain ⟨-, hoA⟩ := hoist_spineV vs hgvp
-  have hokArg : WellDenotedV V σ (vs.getD (entry.numParams + i) default) :=
+  have hokArg : WellDenoted V σ (vs.getD (entry.numParams + i) default) :=
     hoA _ (ConLeche.getD_mem (by rw [hlenVs]; omega))
   have hmemC : interp V σ (m.acval entry.ctor (Level.substFn φ entry.levelParams us))
         ∈ˢ interp V σ TCa := by

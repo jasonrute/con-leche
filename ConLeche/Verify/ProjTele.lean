@@ -3,11 +3,6 @@ module
 import ConLeche.Verify.InstSpine
 public import ConLeche.Verify.InferLemmas
 public import ConLeche.Verify.ProjSlots
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 
 public section
 
@@ -25,7 +20,7 @@ variables exactly as a stored telescope's did, and the checker's
 `instantiateList` is that telescope's `instPisAt` peel along the
 arguments and the subject (`instPisAt_projTele`,
 `instPisAt_typeAt`) — so the tower law's typing clause keeps its
-`peelPis` shape (`TowerEntryLaw`, `ConLeche/Model/Annot/EnvModelM.lean`)
+`peelPis` shape (`TowerEntryLaw`, `ConLeche/Model/Env/EnvModelM.lean`)
 with the stored type replaced by the telescope over the stored body.
 The binder domains are never consumed by the peel or by the law;
 they are a syntactic carrier for the reading only.
@@ -39,7 +34,7 @@ open Expr
 @[expose] def projTele : Nat → Expr → Expr
   | 0, body => body
   | k + 1, body =>
-    .forallE (.sort .zero) (projTele k body) ⟨⟩
+    .forallE (.sort .zero) (projTele k body)
 
 theorem projTele_instantiate1 :
     ∀ (k : Nat) (body a : Expr) (c : Nat),
@@ -105,7 +100,7 @@ theorem Expr.NoProjAt.projTele (T : Name) (i : Nat) :
 
 theorem projTele_stripPis : ∀ (k : Nat) (body : Expr),
     (projTele k body).stripPis k
-      = some (List.replicate k ((.sort .zero : Expr), (⟨⟩ : BinderMeta)), body)
+      = some (List.replicate k (.sort .zero : Expr), body)
   | 0, _ => rfl
   | k + 1, body => by
     simp [projTele, Expr.stripPis, projTele_stripPis k body, List.replicate_succ]

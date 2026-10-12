@@ -89,7 +89,7 @@ def blockCapsAt (p : BlockShape) (mi : Nat) (isRec : Bool) : IndCaps :=
 mention one of `names`?  No reduction: the walk stops at the first
 non-`∀`, as official's `while (is_pi(t))` loop does. -/
 def Expr.piDomsMentionAny (names : List Name) : Expr → Bool
-  | .forallE ty b _ => ty.mentionsAnyConst names || b.piDomsMentionAny names
+  | .forallE ty b => ty.mentionsAnyConst names || b.piDomsMentionAny names
   | _ => false
 
 /-- **Official's `is_rec`** (`inductive.cpp:308`, v4.34.0, stored by

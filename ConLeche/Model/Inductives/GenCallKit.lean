@@ -60,13 +60,13 @@ private theorem gc_openPis_gen {D : Nat} :
     ∀ (n : Nat) (e : Expr) (os : List Expr) {xsO : List Expr} {leafO : Expr},
       LocList D os.length os →
       openPisAtFvars n (e.instantiateList os 0) (D + os.length) = some (xsO, leafO) →
-      ∃ (tele : List (Expr × ConLeche.BinderMeta)) (leaf : Expr),
+      ∃ (tele : List Expr) (leaf : Expr),
         e.stripPis n = some (tele, leaf) ∧ xsO.length = n ∧
         (∀ l, l < n → ∃ ty, xsO[l]? = some (.fvar (D + os.length + l) ty)) ∧
         Expr.ErasedEq leafO (leaf.instantiateList (locOpen D (os.length + n)) 0) ∧
         ∀ (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat)
           (doms : List AnnotTerm),
-          teleDoms acval env ψ D os (tele.map (·.1)) = some doms →
+          teleDoms acval env ψ D os tele = some doms →
           readOpenedDoms acval env ψ (D + os.length) xsO = doms
   | 0, e, os, xsO, leafO, hos, h => by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
@@ -74,11 +74,11 @@ private theorem gc_openPis_gen {D : Nat} :
     refine ⟨[], e, rfl, rfl, fun l hl => absurd hl (Nat.not_lt_zero _), ?_, ?_⟩
     · rw [Nat.add_zero]; exact gc_locList_erased hos e 0
     · intro acval env ψ doms hd
-      simp only [List.map_nil, teleDoms, Option.some.injEq] at hd
+      simp only [teleDoms, Option.some.injEq] at hd
       subst hd; rfl
   | n + 1, e, os, xsO, leafO, hos, h => by
     cases e with
-    | forallE ty b m =>
+    | forallE ty b =>
       rw [Expr.instantiateList] at h
       simp only [openPisAtFvars] at h
       split at h
@@ -101,7 +101,7 @@ private theorem gc_openPis_gen {D : Nat} :
         rw [show D + os.length + 1 = D + (Expr.fvar (D + os.length) (ty.instantiateList os 0)
           :: os).length by simp; omega] at hop
         obtain ⟨tele, leaf, hst, hl, hidx, her, hrd⟩ := gc_openPis_gen n b _ hos' hop
-        refine ⟨(ty, m) :: tele, leaf, by simp [Expr.stripPis, hst], by simp [hl], ?_, ?_, ?_⟩
+        refine ⟨ty :: tele, leaf, by simp [Expr.stripPis, hst], by simp [hl], ?_, ?_, ?_⟩
         · intro l hl'
           cases l with
           | zero => exact ⟨ty.instantiateList os 0, by simp⟩
@@ -116,7 +116,7 @@ private theorem gc_openPis_gen {D : Nat} :
           rw [show os.length + (n + 1) = os.length + 1 + n by omega]
           exact her
         · intro acval env ψ doms hd
-          simp only [List.map_cons, teleDoms] at hd
+          simp only [teleDoms] at hd
           obtain ⟨a, ha, hd⟩ := Option.bind_eq_some_iff.mp hd
           obtain ⟨r, hr, hd⟩ := Option.bind_eq_some_iff.mp hd
           simp only [Option.pure_def, Option.some.injEq] at hd
@@ -144,13 +144,13 @@ private theorem gc_openPis_gen {D : Nat} :
 /-- **An `ih`'s telescope, opened**: see the module docstring. -/
 theorem openPis_stripPis_locOpen {n D : Nat} {w : Expr} {xsO : List Expr} {leafO : Expr}
     (h : openPisAtFvars n w D = some (xsO, leafO)) :
-    ∃ (tele : List (Expr × ConLeche.BinderMeta)) (leaf : Expr),
+    ∃ (tele : List Expr) (leaf : Expr),
       w.stripPis n = some (tele, leaf) ∧ xsO.length = n ∧
       (∀ l, l < n → ∃ ty, xsO[l]? = some (.fvar (D + l) ty)) ∧
       Expr.ErasedEq leafO (leaf.instantiateList (locOpen D n) 0) ∧
       ∀ (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat)
         (doms : List AnnotTerm),
-        teleDoms acval env ψ D [] (tele.map (·.1)) = some doms →
+        teleDoms acval env ψ D [] tele = some doms →
         readOpenedDoms acval env ψ D xsO = doms := by
   rw [← Expr.instantiateList_nil w 0, show D = D + ([] : List Expr).length from rfl] at h
   obtain ⟨tele, leaf, hst, hl, hidx, her, hrd⟩ := gc_openPis_gen n w [] (LocList.nil D) h

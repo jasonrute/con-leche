@@ -531,21 +531,19 @@ theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
 data; `stripPisAV` is the peel whose inversion hands the wiring the
 `(binder data, body)` decomposition of a stored type's reading. -/
 
-/-- The λ-tower former over `(_, domain)` data.  The first component is
-not read (task #342 L14a: it was the binder's regime numeral). -/
-def mkLamsAV : List (Nat × AnnotTerm) → AnnotTerm → AnnotTerm
+/-- The λ-tower former over a list of domains. -/
+def mkLamsAV : List AnnotTerm → AnnotTerm → AnnotTerm
   | [], b => b
-  | d :: ds, b => .lam d.2 (mkLamsAV ds b)
+  | d :: ds, b => .lam d (mkLamsAV ds b)
 
-/-- The Π-tower former over `(_, _, domain)` data — the shape of a
-stored Π-type's reading.  The two numerals are not read (task #342
-L14a: they were the binder's sort numerals). -/
-def mkPisAV : List (Nat × Nat × AnnotTerm) → AnnotTerm → AnnotTerm
+/-- The Π-tower former over a list of domains — the shape of a stored
+Π-type's reading. -/
+def mkPisAV : List AnnotTerm → AnnotTerm → AnnotTerm
   | [], b => b
-  | d :: ds, b => .pi d.2.2 (mkPisAV ds b)
+  | d :: ds, b => .pi d (mkPisAV ds b)
 
 /-- A Π-tower over a sort reads to a type: a product, or the universe. -/
-theorem IsTy_mkPisAV_sort (ds : List (Nat × Nat × AnnotTerm)) (w : Nat) (ρ : Nat → V) :
+theorem IsTy_mkPisAV_sort (ds : List AnnotTerm) (w : Nat) (ρ : Nat → V) :
     IsTy (interp V ρ (mkPisAV ds (.sort w))) := by
   cases ds with
   | nil => exact IsTy_univ w
@@ -568,11 +566,11 @@ def SpineTy (ρ : Nat → V) : List AnnotTerm → Prop
 
 /-- A graded Π-tower's domains are types (`WellDenoted`'s Π clause). -/
 theorem spineTy_of_wellDenoted_mkPisAV {B : AnnotTerm} :
-    ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      WellDenoted V ρ (mkPisAV ab B) → SpineTy ρ (ab.map (·.2.2))
+    ∀ {ab : List AnnotTerm} {ρ : Nat → V},
+      WellDenoted V ρ (mkPisAV ab B) → SpineTy ρ ab
   | [], _, _ => trivial
   | d :: ab, ρ, h => by
-    have h' : WellDenoted V ρ (.pi d.2.2 (mkPisAV ab B)) := h
+    have h' : WellDenoted V ρ (.pi d (mkPisAV ab B)) := h
     rw [WellDenoted_pi] at h'
     exact ⟨h'.2.1, fun a ha => spineTy_of_wellDenoted_mkPisAV (h'.2.2.1 a ha)⟩
 
@@ -628,16 +626,16 @@ theorem spineFit_eq_of_cond_getD {Fs : List AnnotTerm} {ρ : Nat → V} {as bs :
   exact this
 
 /-- Peel `n` Π-binders off a reading. -/
-def stripPisAV : Nat → AnnotTerm → Option (List (Nat × Nat × AnnotTerm) × AnnotTerm)
+def stripPisAV : Nat → AnnotTerm → Option (List AnnotTerm × AnnotTerm)
   | 0, e => some ([], e)
   | n + 1, .pi A B =>
-    (stripPisAV n B).map fun p => ((0, 0, A) :: p.1, p.2)
+    (stripPisAV n B).map fun p => (A :: p.1, p.2)
   | _ + 1, _ => none
 
 /-- The peel's inversion: a successful strip exhibits the reading as
 the Π-tower of its parts (the wiring's hook). -/
 theorem stripPisAV_eq_mkPis :
-    ∀ {n : Nat} {e : AnnotTerm} {ps : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm},
+    ∀ {n : Nat} {e : AnnotTerm} {ps : List AnnotTerm} {b : AnnotTerm},
       stripPisAV n e = some (ps, b) → e = mkPisAV ps b ∧ ps.length = n
   | 0, e, ps, b, h => by
     obtain ⟨rfl, rfl⟩ : ps = [] ∧ b = e := by
@@ -646,7 +644,7 @@ theorem stripPisAV_eq_mkPis :
   | n + 1, .pi A B, ps, b, h => by
     simp only [stripPisAV, Option.map_eq_some_iff] at h
     obtain ⟨⟨ps', b'⟩, hstrip, heq⟩ := h
-    obtain ⟨rfl, rfl⟩ : (0, 0, A) :: ps' = ps ∧ b' = b := by
+    obtain ⟨rfl, rfl⟩ : A :: ps' = ps ∧ b' = b := by
       simpa using heq
     obtain ⟨hB, hlen⟩ := stripPisAV_eq_mkPis hstrip
     exact ⟨by rw [mkPisAV, ← hB], by simp [hlen]⟩
@@ -655,8 +653,8 @@ theorem stripPisAV_eq_mkPis :
 spine computes the body at the spine's environment (`app_lamV`
 iterated). -/
 theorem mkLamsAV_fold :
-    ∀ {ds : List (Nat × AnnotTerm)} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
-      SpineFit ρ (ds.map (·.2)) as →
+    ∀ {ds : List AnnotTerm} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
+      SpineFit ρ ds as →
       as.foldl SetTheory.app (interp V ρ (mkLamsAV ds b))
         = interp V (consList as ρ) b
   | [], _, _, [], _ => rfl
@@ -664,86 +662,65 @@ theorem mkLamsAV_fold :
   | _ :: _, _, _, [], hsp => hsp.elim
   | d :: ds, b, ρ, a :: as, hsp => by
     show (as.foldl SetTheory.app
-      (SetTheory.app (lamV (interp V ρ d.2)
+      (SetTheory.app (lamV (interp V ρ d)
         fun x => interp V (cons x ρ) (mkLamsAV ds b)) a)) = _
     rw [app_lamV hsp.1]
     exact mkLamsAV_fold hsp.2
 
-/-! ### The constant-bit λ-tower, generically
+/-! ### The λ-tower over a Π-tower's binder data, generically
 
-The constructor and recursor leaves are λ-towers whose bits are ONE
-numeral (`w`, resp. the elimination level) zero-agreeing with every
-codomain annotation of their Π-type's reading.  `mkLamsC` is that
-shape; `UnderTowerOk` is its single hereditary premise; `mkLamsC_mem`
-and `mkLamsC_wellDenoted` are the once-for-all membership and grading. -/
+The constructor and recursor leaves are λ-towers over their Π-type's
+own domains.  `UnderTowerOk` is the single hereditary premise;
+`mkLamsAV_mem` and `mkLamsAV_wellDenoted` are the once-for-all
+membership and grading. -/
 
-/-- The constant-bit λ-tower over a Π-tower's own binder data. -/
-def mkLamsC (m : Nat) (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm) :
-    AnnotTerm :=
-  mkLamsAV (ds.map fun d => (m, d.2.2)) b
-
-/-- The hereditary premise of the constant-bit tower's laws: each
-domain graded and a type, and at every fitting spine the body is
-graded, a member of the result type's reading, which is a type, and —
-when the bit is zero — that reading is a truth value. -/
-def UnderTowerOk (m : Nat) (ρ : Nat → V) (b T : AnnotTerm) :
-    List (Nat × Nat × AnnotTerm) → Prop
-  | [] => WellDenoted V ρ b ∧ interp V ρ b ∈ˢ interp V ρ T ∧
-      (m = 0 → interp V ρ T ∈ˢ (univZero : V)) ∧ IsTy (interp V ρ T)
-  | d :: ds => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → UnderTowerOk m (cons a ρ) b T ds
-
-/-- The residual Π-tower is a truth value at a zero bit (either the
-first codomain annotation is zero, or the base's own condition). -/
-theorem underTowerOk_res_univZero {m : Nat} {b T : AnnotTerm} (h0 : m = 0) :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      (∀ d ∈ ds, (m = 0 ↔ d.2.1 = 0)) → UnderTowerOk m ρ b T ds →
-      interp V ρ (mkPisAV ds T) ∈ˢ (univZero : V)
-  | [], _, _, h => h.2.2.1 h0
-  | d :: ds, ρ, hz, h => by
-    show piV _ _ ∈ˢ _
-    rw [piV_eq_zero fun a ha => underTowerOk_res_univZero h0
-      (fun d' hd' => hz d' (.tail _ hd')) (h.2.2 a ha)]
-    exact piR_zero_mem_univZero
+/-- The hereditary premise of the tower's laws: each domain graded and
+a type, and at every fitting spine the body is graded and a member of
+the result type's reading, which is a type. -/
+def UnderTowerOk (ρ : Nat → V) (b T : AnnotTerm) :
+    List AnnotTerm → Prop
+  | [] => WellDenoted V ρ b ∧ interp V ρ b ∈ˢ interp V ρ T ∧ IsTy (interp V ρ T)
+  | d :: ds => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
+      ∀ a, a ∈ˢ interp V ρ d → UnderTowerOk (cons a ρ) b T ds
 
 /-- The residual Π-tower's reading is a type: a function space, or the
 base's type. -/
-theorem underTowerOk_res_IsTy {m : Nat} {b T : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      UnderTowerOk m ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
-  | [], _, h => h.2.2.2
+theorem underTowerOk_res_IsTy {b T : AnnotTerm} :
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V},
+      UnderTowerOk ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
+  | [], _, h => h.2.2
   | _ :: _, _, _ => IsTy_piV
 
-/-- **The constant-bit tower inhabits its Π-tower's reading**
-(`lamV_mem` per binder, the residual towers' types as the fibres, the
-base's membership at the bottom). -/
-theorem mkLamsC_mem {m : Nat} {b T : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      UnderTowerOk m ρ b T ds →
-      interp V ρ (mkLamsC m ds b) ∈ˢ interp V ρ (mkPisAV ds T)
+/-- **The tower's membership**: the λ-tower lies in the Π-tower over
+the same domains (`lamV_mem` per binder, the residual towers' types as
+the fibres, the base's membership at the bottom). -/
+theorem mkLamsAV_mem {b T : AnnotTerm} :
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V},
+      UnderTowerOk ρ b T ds →
+      interp V ρ (mkLamsAV ds b) ∈ˢ interp V ρ (mkPisAV ds T)
   | [], _, h => h.2.1
   | d :: ds, ρ, h => by
-    show (lamV (interp V ρ d.2.2)
-        fun a => interp V (cons a ρ) (mkLamsC m ds b))
-      ∈ˢ piV (interp V ρ d.2.2)
+    show (lamV (interp V ρ d)
+        fun a => interp V (cons a ρ) (mkLamsAV ds b))
+      ∈ˢ piV (interp V ρ d)
         fun a => interp V (cons a ρ) (mkPisAV ds T)
-    exact lamV_mem (fun a ha => mkLamsC_mem (h.2.2 a ha))
+    exact lamV_mem (fun a ha => mkLamsAV_mem (h.2.2 a ha))
       fun a ha => underTowerOk_res_IsTy (h.2.2 a ha)
 
-/-- **The constant-bit tower is graded** (`WellDenoted`): the fibre
+/-- **The tower's grading**: the λ-tower is graded; its fibre
 packages are the interpreted residual Π-towers, membership from
-`mkLamsC_mem` at each suffix. -/
-theorem mkLamsC_wellDenoted {m : Nat} {b T : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      UnderTowerOk m ρ b T ds →
-      WellDenoted V ρ (mkLamsC m ds b)
+`mkLamsAV_mem` at each suffix. -/
+theorem mkLamsAV_wellDenoted {b T : AnnotTerm} :
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V},
+      UnderTowerOk ρ b T ds →
+      WellDenoted V ρ (mkLamsAV ds b)
   | [], _, h => h.1
   | d :: ds, ρ, h => by
-    show WellDenoted V ρ (.lam d.2.2 (mkLamsC m ds b))
+    show WellDenoted V ρ (.lam d (mkLamsAV ds b))
     rw [WellDenoted_lam]
-    refine ⟨h.1, h.2.1, fun a ha => mkLamsC_wellDenoted (h.2.2 a ha),
+    refine ⟨h.1, h.2.1, fun a ha => mkLamsAV_wellDenoted (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV ds T),
-       fun a ha => mkLamsC_mem (h.2.2 a ha),
+       fun a ha => mkLamsAV_mem (h.2.2 a ha),
        fun a ha => underTowerOk_res_IsTy (h.2.2 a ha)⟩⟩
 
 

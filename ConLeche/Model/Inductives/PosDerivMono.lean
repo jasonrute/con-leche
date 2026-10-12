@@ -304,7 +304,7 @@ theorem frameKey_of_infer {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hpi : ∃ r, ConLeche.instPisWith ds (cv.type.instantiateLevelParams cv.levelParams us) = some r) :
     ∀ ρ, Sat V Δh ρ →
       Sat V (D.params (Level.substFn φ cv.levelParams us)).reverse (keyFrame dsa hi ρ) ∧
-      ∀ a ∈ dsa, WellDenotedV V ρ a := by
+      ∀ a ∈ dsa, WellDenoted V ρ a := by
   obtain ⟨ty, hty⟩ := hkty
   have hc := denoteMeta_const (acval := mp.base2.acval) (φ := φ) (d := hi) hf hul
   have hwa := denoteMeta_mkAppN hdsa hc
@@ -325,7 +325,7 @@ theorem frameKey_of_infer {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hwa
   intro ρ hρ
   have hwd := hgr ρ hρ
-  refine ⟨?_, WellDenotedV_mkAppN_args _ hwd⟩
+  refine ⟨?_, WellDenoted_mkAppN_args _ hwd⟩
   obtain ⟨r, hr⟩ := hpi
   exact keyParamsFit mp hin hD hmm hf hul hty hr hlenP.symm hΔ
     (fun x hx => ⟨⟨(hds x hx).1, (hds x hx).2, hLds x hx⟩, CtxOk.toS (hCds x hx).toCtxOk⟩) hdsa ρ hρ
@@ -703,7 +703,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     intro _ hhi hfr Δa ea R hC hea hgr hR
     exact mono_of_whnf hin hw hfr hC hea hgr hR.dom fun hfrw _ wa hwa _ =>
       (ConstOn.of_noBVar hR.agree (denoteMeta_noBVar_of_nestOcc dep w hfrw.1 hhi hocc hwa)).monoOn
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hcov hhi hfr Δa ea R hC hea hgr hR
     refine mono_of_whnf hin hw hfr hC hea hgr hR.dom fun hfrw hCw wa hwa hgw => ?_
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
@@ -714,7 +714,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hA : ConstOn R ta := ConstOn.of_noBVar hR.agree
       (denoteMeta_noBVar_of_nestOcc dep a hws.1 hhi ha hta)
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
+    obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy' (V := V) hgw.graded
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     -- the body's fibres are types at both frames ("not pt" source (1):
     -- the walked field is a graded type)
@@ -845,7 +845,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   | teleNil =>
     intro _ _ hfr Δa ca R _ hca _ hR
     exact ⟨hR.agree, hca, hfr.1⟩
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha hb iha ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro hcovk hhi hfr Δa ca R hC hca hgr hR
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
     obtain ⟨hws, hbb, hLb⟩ := hfr
@@ -853,7 +853,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgr.graded
+    obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy' (V := V) hgr.graded
     have hA := iha (fun hk => hcovk ⟨k, List.mem_cons_self, hk⟩) hhi ⟨hws.1, hbb.1, hLa⟩
       hC.forallE_ty hta hgAT hR
     have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT

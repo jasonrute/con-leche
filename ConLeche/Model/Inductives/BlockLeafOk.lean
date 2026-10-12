@@ -10,7 +10,7 @@ public section
 A member's former leaf (`blockTyG`: the block operator's tower, the
 index-set tuple and the carrier tuple under the parameter frame) is
 closed (`blockTyAV_below`) and graded at the hereditary premise
-(`blockTyAV_wellDenotedV`).
+(`blockTyAV_wellDenoted`).
 -/
 
 namespace ConLeche.Model
@@ -19,7 +19,7 @@ open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps BinderMeta)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
 
@@ -87,7 +87,7 @@ variable {k w nP nIdx : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
   {Chs : Nat → List (List AnnotTerm)}
 
 omit [SetTheory V] in
-theorem famTyAV_below {u w : Nat} {Ids : List AnnotTerm} (h : FieldsBelow nP Ids) :
+theorem famTyAV_below {u w : Nat} {Ids : List AnnotTerm} (h : DomsBelow nP Ids) :
     Term.bvarsBelow nP (famTyAV u w Ids).erase := by
   unfold famTyAV
   simp only [AnnotTerm.erase_pi, AnnotTerm.erase_sort, Term.bvarsBelow]
@@ -95,8 +95,8 @@ theorem famTyAV_below {u w : Nat} {Ids : List AnnotTerm} (h : FieldsBelow nP Ids
 
 omit [SetTheory V] in
 /-- Member `m`'s arm of the operator, below the operator's λ. -/
-theorem blockArmAV_below {m : Nat} (hIds : ∀ c, FieldsBelow nP (Idss c))
-    (hchains : ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
+theorem blockArmAV_below {m : Nat} (hIds : ∀ c, DomsBelow nP (Idss c))
+    (hchains : ∀ chain ∈ Chs m, DomsBelow (nP + 2) chain) :
     Term.bvarsBelow (nP + 1)
       (blockArmG w uf Idss Chs m).erase := by
   unfold blockArmG
@@ -109,8 +109,8 @@ theorem blockArmAV_below {m : Nat} (hIds : ∀ c, FieldsBelow nP (Idss c))
 
 omit [SetTheory V] in
 /-- The block's operator, below the parameter frame. -/
-theorem blockFunAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
-    (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
+theorem blockFunAV_below (hIds : ∀ c, DomsBelow nP (Idss c))
+    (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, DomsBelow (nP + 2) chain) :
     Term.bvarsBelow nP (blockFunG k w uf Idss Chs).erase := by
   unfold blockFunG
   simp only [AnnotTerm.erase_lam, Term.bvarsBelow]
@@ -129,7 +129,7 @@ theorem blockFunAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
 
 omit [SetTheory V] in
 /-- The index-set tuple, below the parameter frame. -/
-theorem idxTupAV_below (hIds : ∀ c, FieldsBelow nP (Idss c)) :
+theorem idxTupAV_below (hIds : ∀ c, DomsBelow nP (Idss c)) :
     Term.bvarsBelow nP (idxTupAV k w uf Idss).erase := by
   unfold idxTupAV
   exact ndMkTowerAV_below (r := blockS k w uf) (b := nP) k 0
@@ -138,8 +138,8 @@ theorem idxTupAV_below (hIds : ∀ c, FieldsBelow nP (Idss c)) :
 
 omit [SetTheory V] in
 /-- The block's carrier tuple, below the parameter frame. -/
-theorem blockBodyAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
-    (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
+theorem blockBodyAV_below (hIds : ∀ c, DomsBelow nP (Idss c))
+    (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, DomsBelow (nP + 2) chain) :
     Term.bvarsBelow nP (blockBodyG k w uf Idss Chs).erase := by
   unfold blockBodyG
   rw [AnnotTerm.erase_mkAppN]
@@ -153,15 +153,15 @@ theorem blockBodyAV_below (hIds : ∀ c, FieldsBelow nP (Idss c))
 
 omit [SetTheory V] in
 /-- **A member's former leaf is closed.** -/
-theorem blockTyAV_below {m : Nat} {pps : List (Nat × Nat × AnnotTerm)}
+theorem blockTyAV_below {m : Nat} {pps : List AnnotTerm}
     (hp : DomsBelow 0 pps) (hlen : pps.length = nP + nIdx)
     (hIdsLen : (Idss m).length = nIdx)
-    (hIds : ∀ c, FieldsBelow nP (Idss c))
-    (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, FieldsBelow (nP + 2) chain) :
+    (hIds : ∀ c, DomsBelow nP (Idss c))
+    (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, DomsBelow (nP + 2) chain) :
     Term.bvarsBelow 0
       (blockTyG k w uf Idss Chs pps m).erase := by
-  refine mkLamsAV_below hp.mapC ?_
-  rw [List.length_map, hlen, Nat.zero_add, ← hIdsLen]
+  refine mkLamsAV_below hp ?_
+  rw [hlen, Nat.zero_add, ← hIdsLen]
   simp only [AnnotTerm.erase_app, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
   · refine projAV_below ?_
@@ -184,10 +184,10 @@ variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
 
 /-- **The block former leaf's P currency**: graded at the hereditary
 premise. -/
-theorem blockTyAV_wellDenotedV {m : Nat} (hm : m < k)
-    {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V}
+theorem blockTyAV_wellDenoted {m : Nat} (hm : m < k)
+    {pps : List AnnotTerm} {ρ : Nat → V}
     (hok : ParamsOkG k w ρ uf Idss Chs m pps) :
-    WellDenotedV V ρ (blockTyG k w uf Idss Chs pps m) :=
+    WellDenoted V ρ (blockTyG k w uf Idss Chs pps m) :=
   blockTyG_wellDenoted hm hok
 
 end Currency

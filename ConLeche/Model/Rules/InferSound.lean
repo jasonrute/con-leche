@@ -4,7 +4,7 @@ public import ConLeche.Model.Rules.Inputs
 import ConLeche.Semantics.LitParams
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Semantics.Frame
 import ConLeche.Semantics.LitStep
@@ -81,8 +81,8 @@ theorem InferSem.apply {d : Nat} {e t : Expr}
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          (Grade.full = .io → WellDenotedV V ρ ea) →
-          WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
+          (Grade.full = .io → WellDenoted V ρ ea) →
+          WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
             interp V ρ ea ∈ˢ interp V ρ ta := by
   obtain ⟨hft, hsub, ta, hta, hrow⟩ := h hfe hC hea
   exact ⟨hft, hsub, ta, hta, fun ρ hρ hL _ => hrow ρ hρ hL⟩
@@ -95,8 +95,8 @@ theorem InferSem.of_uniform {g : Grade} {d : Nat} {e t : Expr}
       Frame d t ∧ LeavesSub t e ∧
         ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
           ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-            (g = .io → WellDenotedV V ρ ea) →
-            WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
+            (g = .io → WellDenoted V ρ ea) →
+            WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
               interp V ρ ea ∈ˢ interp V ρ ta) :
     InferSem m φ g d e t := by
   cases g with
@@ -128,7 +128,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
     (hea : denoteMeta m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
       (g = .io → WellDenotedTy V ρ ea) →
-      WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) := by
+      WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) := by
   cases g with
   | full =>
     obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs.apply hfe hC hea
@@ -157,7 +157,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
       have heq := (hred ρ hρ (hL.of_subset hsub) hgs.1 hgs.ne_pt).2
       rw [heq, interp_sort] at hm
       exact ⟨hty.1, hm⟩
-    · obtain ⟨_, _, _, rfl⟩ := h.forallE
+    · obtain ⟨_, _, rfl⟩ := h.forallE
       exact nomatch Red.rigid (hur rfl) trivial
 
 /-- A sort has the successor sort. -/
@@ -304,13 +304,13 @@ theorem Infer.strLit_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
 
 /-- A Π-type: the two sort facts (`sortSemAt_of_claims`'s content). -/
 theorem Infer.forallE_sound {g : Grade} {d : Nat}
-    {ty body s bs : Expr} {u v : Level} {mb : BinderMeta}
+    {ty body s bs : Expr} {u v : Level}
     (hs : InferSem m φ g d ty s) (hu : RedSem m φ d s (.sort u))
     (hur : g = .io → Red env d s (.sort u))
     (hbs : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bs)
     (hv : RedSem m φ (d + 1) bs (.sort v))
     (hvr : g = .io → Red env (d + 1) bs (.sort v)) :
-    InferSem m φ g d (.forallE ty body mb) (.sort (.imax u v)) := by
+    InferSem m φ g d (.forallE ty body) (.sort (.imax u v)) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -338,7 +338,7 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
   have hdomTy : WellDenotedTy V ρ tyA := ⟨hdom.1, IsTy_of_mem_univ hdom.2⟩
   -- the codomain, at every point of the domain
   have hcod : ∀ x, x ∈ˢ interp V ρ tyA →
-      WellDenotedV V (cons x ρ) baA ∧
+      WellDenoted V (cons x ρ) baA ∧
         interp V (cons x ρ) baA ∈ˢ (univ (v.eval φ) : V) :=
     fun x hx => hcodU (cons x ρ) (Sat_cons V hρ hx)
       (LeavesGr.open hC.forallE_ty hC.forallE_body hL.forallE_ty
@@ -353,11 +353,11 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
 /-- A λ: the body's inferred types are types, so the abstraction is a
 member of their function space (`lamV_mem`). -/
 theorem Infer.lam_soundFull {d : Nat}
-    {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
+    {ty body s bt : Expr} {u : Level}
     (hs : InferSemFull m φ d ty s)
     (hu : RedSem m φ d s (.sort u))
     (hbt : InferSem m φ .full (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSem m φ .full d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    InferSem m φ .full d (.lam ty body) (.forallE ty (bt.abstract1 d)) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -404,14 +404,14 @@ theorem Infer.lam_soundFull {d : Nat}
     Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
-  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
+  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d))
       = some (.pi tyA btA) := by
     rw [denoteMeta, htyA, hround, hbtA]
     rfl
   have hCbt : CtxOkS m φ (d + 1) (tyA :: Δa) bt := hCop.of_subset hbtsub
   -- the conclusion's frame and leaves
-  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d) mb).fvarLeaves,
-      l ∈ (Expr.lam ty body mb).fvarLeaves := by
+  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d)).fvarLeaves,
+      l ∈ (Expr.lam ty body).fvarLeaves := by
     intro l hl
     simp only [Expr.fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with h2 | h2
@@ -423,10 +423,10 @@ theorem Infer.lam_soundFull {d : Nat}
         rcases List.mem_cons.mp h3 with rfl | h4
         · exact absurd rfl hlne
         · exact Or.inl h4
-  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d) mb) := by
+  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d)) := by
     simp only [Expr.WScoped]
     exact ⟨hws.1, ConLeche.WScoped.abstract1 0 hwbt⟩
-  have hbT : (Expr.forallE ty (bt.abstract1 d) mb).looseBVarsBounded 0
+  have hbT : (Expr.forallE ty (bt.abstract1 d)).looseBVarsBounded 0
       = true := by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hb.1, ConLeche.looseBVarsBounded_abstract1 bt 0 hbtb⟩
@@ -444,20 +444,20 @@ theorem Infer.lam_soundFull {d : Nat}
       (cons x ρ) := fun _ =>
     LeavesGr.open hC.lam_ty hC.lam_body hL.lam_ty hL.lam_body htyA hokty
   have hrow : ∀ x, x ∈ˢ interp V ρ tyA →
-      WellDenotedV V (cons x ρ) ba ∧ WellDenotedTy V (cons x ρ) btA ∧
+      WellDenoted V (cons x ρ) ba ∧ WellDenotedTy V (cons x ρ) btA ∧
         interp V (cons x ρ) ba ∈ˢ interp V (cons x ρ) btA := fun x hx =>
     hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x)
       (fun hg => nomatch hg)
   refine ⟨?_, ?_, ?_⟩
   · -- the λ's own grading
-    rw [WellDenotedV, WellDenoted_lam]
+    rw [WellDenoted_lam]
     exact ⟨hokty.1, hokty.2, fun x hx => (hrow x hx).1,
       fun x => interp V (cons x ρ) btA,
       fun x hx => (hrow x hx).2.2,
       fun x hx => (hrow x hx).2.1.2⟩
   · -- the copied ∀-type's grading
     refine ⟨?_, IsTy_piV⟩
-    rw [WellDenotedV, WellDenoted_pi]
+    rw [WellDenoted_pi]
     exact ⟨hokty.1, hokty.2, fun x hx => (hrow x hx).2.1.1,
       fun x hx => (hrow x hx).2.1.2⟩
   · -- the membership row
@@ -472,9 +472,9 @@ abstraction; otherwise it is the graph of its body values over its own
 domain, a graded type off the subject's grading (`lam_dom`), and its
 every application is a body value, which satisfies the body's claim:
 the hereditary claim at the ∀ of the body's type. -/
-theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
+theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr}
     (hbt : InferSemIO m φ (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSemIO m φ d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    InferSemIO m φ d (.lam ty body) (.forallE ty (bt.abstract1 d)) := by
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
   simp only [Expr.WScoped] at hws
@@ -510,12 +510,12 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
     Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
-  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
+  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d))
       = some (.pi tyA btA) := by
     rw [denoteMeta, htyA, hround, hbtA]
     rfl
-  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d) mb).fvarLeaves,
-      l ∈ (Expr.lam ty body mb).fvarLeaves := by
+  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d)).fvarLeaves,
+      l ∈ (Expr.lam ty body).fvarLeaves := by
     intro l hl
     simp only [Expr.fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with h2 | h2
@@ -527,10 +527,10 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
         rcases List.mem_cons.mp h3 with rfl | h4
         · exact absurd rfl hlne
         · exact Or.inl h4
-  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d) mb) := by
+  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d)) := by
     simp only [Expr.WScoped]
     exact ⟨hws.1, ConLeche.WScoped.abstract1 0 hwbt⟩
-  have hbT : (Expr.forallE ty (bt.abstract1 d) mb).looseBVarsBounded 0
+  have hbT : (Expr.forallE ty (bt.abstract1 d)).looseBVarsBounded 0
       = true := by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hb.1, ConLeche.looseBVarsBounded_abstract1 bt 0 hbtb⟩
@@ -564,19 +564,19 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
 
 /-- A λ, at either grade. -/
 theorem Infer.lam_sound {g : Grade} {d : Nat}
-    {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
+    {ty body s bt : Expr} {u : Level}
     (hs : g = .full → InferSemFull m φ d ty s)
     (hu : g = .full → RedSem m φ d s (.sort u))
     (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSem m φ g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    InferSem m φ g d (.lam ty body) (.forallE ty (bt.abstract1 d)) := by
   cases g with
   | full => exact Infer.lam_soundFull (hs rfl) (hu rfl) hbt
   | io => exact Infer.lam_soundIO hbt
 
 /-- An application, certified (the full grade's arm). -/
 theorem Infer.app_soundCert {d : Nat}
-    {f a tf ty body ta : Expr} {mt : BinderMeta}
-    (htf : InferSem m φ .full d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
+    {f a tf ty body ta : Expr}
+    (htf : InferSem m φ .full d f tf) (hw : RedSem m φ d tf (.forallE ty body))
     (hta : InferSem m φ .full d a ta) (hd : DefEqSem m φ d ta ty) :
     InferSem m φ .full d (.app f a) (body.instantiate1 a) := by
   refine InferSem.of_uniform ?_
@@ -607,7 +607,7 @@ theorem Infer.app_soundCert {d : Nat}
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbfe
   have hLty' : Expr.LeavesBounded ty := fun l hl =>
     hLfe l (by simp [Expr.fvarLeaves, hl])
-  have hCpi : CtxOkS m φ d Δa (.forallE ty body mt) :=
+  have hCpi : CtxOkS m φ d Δa (.forallE ty body) :=
     (hC.app_fn.of_subset htfsub).of_subset hpisub
   obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denoteMeta_forallE_inv hpa
   -- the argument's type (reading)
@@ -640,7 +640,7 @@ theorem Infer.app_soundCert {d : Nat}
   obtain ⟨hokpa, hredfρ⟩ := hredf ρ hρ hLtf hgtfa.1 hgtfa.ne_pt
   -- the ∀'s reading, split
   have hAty : WellDenotedTy V ρ Aa := hokpa.pi_dom
-  have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
+  have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) Ba :=
     hokpa.pi_body
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
     (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
@@ -685,11 +685,11 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
       hb.apply hfr' (hC.of_subset hsub) hred
     refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
     intro ρ hρ hL _
-    have hgv : WellDenotedV V ρ va := by
+    have hgv : WellDenoted V ρ va := by
       obtain ⟨-, -, _, -, hrowv⟩ := htv rfl hfv (hC.of_subset hsubv) hva
       exact (hrowv ρ hρ (hL.of_subset hsubv)).1
     obtain ⟨hge, hgt, hmem⟩ := hrow ρ hρ (hL.of_subset hsub) (fun hg => nomatch hg)
-    refine ⟨(WellDenotedV_zeta hgv).mpr hge, hgt, ?_⟩
+    refine ⟨(WellDenoted_zeta _ hgv).mpr hge, hgt, ?_⟩
     rw [interp_zeta]
     exact hmem
   | io =>
@@ -699,8 +699,8 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
     obtain ⟨hft, htsub, ta, hta, hrow⟩ := hb hfr' (hC.of_subset hsub) hred
     refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
     intro ρ hρ hL hgr
-    have hgv : WellDenotedV V ρ va := hgr.letE_val
-    have h := hrow ρ hρ (hL.of_subset hsub) ((WellDenotedV_zeta hgv).mp hgr)
+    have hgv : WellDenoted V ρ va := hgr.letE_val
+    have h := hrow ρ hρ (hL.of_subset hsub) ((WellDenoted_zeta _ hgv).mp hgr)
     rw [interp_zeta]
     -- a `let` is not neutral
     exact ⟨h.1, fun h' => by simp [ConLeche.Expr.ioNeutral, ConLeche.Expr.getAppFn] at h'⟩
@@ -718,9 +718,9 @@ domain is its domain, and the claim at the opened body, at the
 argument's value, is the claim at the body instantiated with the
 argument (`IORel_substFvarAt`). -/
 theorem Infer.app_soundIO {d : Nat}
-    {f a tf ty body : Expr} {mt : BinderMeta}
-    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
-    (hwr : Red env d tf (.forallE ty body mt)) :
+    {f a tf ty body : Expr}
+    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body))
+    (hwr : Red env d tf (.forallE ty body)) :
     InferSemIO m φ d (.app f a) (body.instantiate1 a) := by
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -765,8 +765,8 @@ theorem Infer.app_soundIO {d : Nat}
     · rw [Expr.fvarLeaves]
       exact List.mem_append_right _ h2
   intro ρ hρ hL hge
-  have hokf : WellDenotedV V ρ fa := hge.app_fn
-  have hoka : WellDenotedV V ρ aa := hge.app_arg
+  have hokf : WellDenoted V ρ fa := hge.app_fn
+  have hoka : WellDenoted V ρ aa := hge.app_arg
   obtain ⟨v, A, B, hfslot, haslot, -⟩ := (cast (WellDenoted_app V ρ fa aa) hge).2.2
   rw [interp_app]
   by_cases hfp : interp V ρ fa = pt
@@ -802,7 +802,7 @@ theorem Infer.app_soundIO {d : Nat}
       rcases hneuF hfneu with h' | h'
       · exact absurd h' hfp
       · exact absurd h' hm
-    obtain ⟨ty', body', mb', rfl⟩ := h.forallE
+    obtain ⟨ty', body', rfl⟩ := h.forallE
     have heq := Red.rigid hwr trivial
     injection heq with hty hbody
     subst hty hbody
@@ -822,9 +822,9 @@ theorem Infer.app_soundIO {d : Nat}
 /-- **An application** (`Infer.app`): the full grade's certificate, or
 the io grade's none. -/
 theorem Infer.app_sound {g : Grade} {d : Nat}
-    {f a tf ty body ta : Expr} {mt : BinderMeta}
-    (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
-    (hwr : g = .io → Red env d tf (.forallE ty body mt))
+    {f a tf ty body ta : Expr}
+    (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body))
+    (hwr : g = .io → Red env d tf (.forallE ty body))
     (hta : g = .full → InferSemFull m φ d a ta)
     (hd : g = .full → DefEqSem m φ d ta ty) :
     InferSem m φ g d (.app f a) (body.instantiate1 a) := by
@@ -1020,7 +1020,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
       exact hlx
   intro σ hσ hL hgr
   have hLpe' : LeavesGr m φ d pe σ := hL.proj_arg
-  have hokPe : WellDenotedV V σ vp := ProjAV.hoistV hgr
+  have hokPe : WellDenoted V σ vp := ProjAV.hoistV hgr
   rcases (hrowP σ hσ hLpe' hokPe).1 with h | h | h
   · -- the scrutinee is the point, and so is its projection
     rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
@@ -1034,8 +1034,8 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
         exact hprop hp)) σ vs vp restA hlenVs hokTe (heqTe ▸ hokTpe.ne_pt) hokPe
       (heqTe ▸ hmemPe) hpeel
     exact IORelN.of_mem hrest hrow.2.1 hrow.2.2
-  · obtain ⟨_, _, _, rfl⟩ := h.forallE
-    exact absurd (Red.rigid hter trivial ▸ hhead) (IsRigid.not_const (e := .forallE _ _ _) trivial)
+  · obtain ⟨_, _, rfl⟩ := h.forallE
+    exact absurd (Red.rigid hter trivial ▸ hhead) (IsRigid.not_const (e := .forallE _ _) trivial)
 
 /-- A projection, at either grade. -/
 theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}

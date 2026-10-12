@@ -6,7 +6,7 @@ import ConLeche.Model.Inductives.TargetDefeqTie
 import ConLeche.Verify.Inductives.ClassMatchRun
 import ConLeche.Verify.Level
 import ConLeche.Model.Inductives.ContSubst
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.Lemmas
 
 public section
 

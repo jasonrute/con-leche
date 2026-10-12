@@ -6,11 +6,11 @@ module
 -- entry's reading live there, not here.
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitShift
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.Shift
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Verify.Denote.OpenVars
-import ConLeche.Model.Annot.BitClosed
+import ConLeche.Model.Reading.Closed
 import ConLeche.Semantics.DenoteClosed
 
 public section
@@ -19,13 +19,13 @@ public section
 # The ι kit (task #305)
 
 The spine, frame and fit lemmas the ι rule and the three stuck-major
-rescues need, stated over `Model/Annot/BitLemmas.lean`'s
+rescues need, stated over `Model/Reading/Lemmas.lean`'s
 `DenoteMetaSpine` and the `Frame`/`Graded`/`LeavesSub` abbreviations
 of `Motive.lean`:
 
 * the `DenoteMetaSpine` residue only the ι rules use
   (`exists_of_all`); the rest of the spine API is
-  `Model/Annot/BitLemmas.lean`'s, shared;
+  `Model/Reading/Lemmas.lean`'s, shared;
 * `interp_mkAppN_congrK`, `constTy_pkg`, `denoteMeta_const_arityK`;
 * the annotated `take`/`drop`/`getD` list algebra.
 -/
@@ -44,7 +44,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 
 /-! ## The `DenoteMetaSpine` API
 
-`mem` and `getD` are `Model/Annot/BitLemmas.lean`'s; what is left here
+`mem` and `getD` are `Model/Reading/Lemmas.lean`'s; what is left here
 is the residue only the ι rules use. -/
 
 namespace DenoteMetaSpine
@@ -128,7 +128,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
       (∀ d : Nat, denoteMeta m.acval env φ d
         (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us) = some ta) ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       (∀ ρ : Nat → V,
         interp V ρ (m.acval n
           (Level.substFn φ ci.toConstantVal.levelParams us)) ∈ˢ interp V ρ ta) ∧
@@ -224,29 +224,29 @@ theorem take_getD_splitAK {as : List AnnotTerm} {k : Nat}
 
 /-! ## The redex's own slots
 
-`wellDenotedV_app_congr_argK` and `wellDenotedV_mkAppN_snoc_congrK`:
+`wellDenoted_app_congr_argK` and `wellDenoted_mkAppN_snoc_congrK`:
 the subject's grading is about the ORIGINAL major slot and the licensed
 walk is handed the prepared one, so the last argument is exchanged
 along the reduction's own `interp` equation. -/
 
 /-- **An app's argument may be exchanged for an interpretation-equal
 graded one**. -/
-theorem wellDenotedV_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
-    (h : WellDenotedV V ρ (.app f a)) (ha' : WellDenotedV V ρ a')
+theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : AnnotTerm}
+    (h : WellDenoted V ρ (.app f a)) (ha' : WellDenoted V ρ a')
     (heq : interp V ρ a = interp V ρ a') :
-    WellDenotedV V ρ (.app f a') := by
-  rw [WellDenotedV, WellDenoted_app] at h ⊢
+    WellDenoted V ρ (.app f a') := by
+  rw [WellDenoted_app] at h ⊢
   obtain ⟨hf, -, v, A, B, hslot, hmem, hcod⟩ := h
   exact ⟨hf, ha', v, A, B, hslot, heq ▸ hmem, hcod⟩
 
 /-- The same at a spine's last argument. -/
-theorem wellDenotedV_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}
+theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : AnnotTerm}
     {as : List AnnotTerm}
-    (h : WellDenotedV V ρ (AnnotTerm.mkAppN f (as ++ [a])))
-    (ha' : WellDenotedV V ρ a') (heq : interp V ρ a = interp V ρ a') :
-    WellDenotedV V ρ (AnnotTerm.mkAppN f (as ++ [a'])) := by
+    (h : WellDenoted V ρ (AnnotTerm.mkAppN f (as ++ [a])))
+    (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
+    WellDenoted V ρ (AnnotTerm.mkAppN f (as ++ [a'])) := by
   rw [annotMkAppN_append] at h ⊢
-  exact wellDenotedV_app_congr_argK h ha' heq
+  exact wellDenoted_app_congr_argK h ha' heq
 
 /-! ## The fired rule's right-hand side and the telescope residual -/
 
@@ -303,11 +303,11 @@ theorem piResidual_frameK {m : EnvModel V env} {d : Nat}
     | .sort _, h => exact nomatch h
     | .const _ _, h => exact nomatch h
     | .app _ _, h => exact nomatch h
-    | .lam _ _ _, h => exact nomatch h
+    | .lam _ _, h => exact nomatch h
     | .letE _ _ _, h => exact nomatch h
     | .lit _, h => exact nomatch h
     | .proj _ _ _, h => exact nomatch h
-    | .forallE ty body mb, h =>
+    | .forallE ty body, h =>
     obtain ⟨⟨hwa, hba, hLa⟩, hCa⟩ := hfrA a (by simp)
     simp only [Expr.WScoped] at hw
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
@@ -343,11 +343,11 @@ theorem piResidual_leavesGrK {m : EnvModel V env} {d : Nat} {ρ : Nat → V} :
     | .sort _, h => exact nomatch h
     | .const _ _, h => exact nomatch h
     | .app _ _, h => exact nomatch h
-    | .lam _ _ _, h => exact nomatch h
+    | .lam _ _, h => exact nomatch h
     | .letE _ _ _, h => exact nomatch h
     | .lit _, h => exact nomatch h
     | .proj _ _ _, h => exact nomatch h
-    | .forallE ty body mb, h =>
+    | .forallE ty body, h =>
     refine ih h (fun l hl => ?_) (fun x hx => hA x (by simp [hx]))
     rcases Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
     · exact hT l (by simp [Expr.fvarLeaves, h2])
@@ -386,11 +386,11 @@ theorem teleFitPA_residualK {acval : Name → (Name → Nat) → AnnotTerm}
     | .sort _, hpr, _, _ => exact nomatch hpr
     | .const _ _, hpr, _, _ => exact nomatch hpr
     | .app _ _, hpr, _, _ => exact nomatch hpr
-    | .lam _ _ _, hpr, _, _ => exact nomatch hpr
+    | .lam _ _, hpr, _, _ => exact nomatch hpr
     | .letE _ _ _, hpr, _, _ => exact nomatch hpr
     | .lit _, hpr, _, _ => exact nomatch hpr
     | .proj _ _ _, hpr, _, _ => exact nomatch hpr
-    | .forallE dom body mb, hpr, hwty, hty => ?_
+    | .forallE dom body, hpr, hwty, hty => ?_
     cases hsp with | @cons _ va _ vs' ha hsp' => ?_
     obtain ⟨hwa, hba⟩ := hargs a List.mem_cons_self
     obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d dom ∧ Expr.WScoped d body := by

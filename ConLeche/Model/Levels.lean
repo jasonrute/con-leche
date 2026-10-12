@@ -178,11 +178,11 @@ theorem denoteMeta_instLevels (hp : AcvalParamsAt env acval)
     rw [ite_eq_right h2, ite_eq_right (by simpa using h2)]
   | case5 d n ws h1 =>
     rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, h1]
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     rw [Expr.instantiateLevelParams, denoteMeta_forallE, denoteMeta_forallE,
       ihty,
       ← Expr.instantiateLevelParams_instantiate1, ihbody]
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     rw [Expr.instantiateLevelParams, denoteMeta_lam, denoteMeta_lam,
       ihty,
       ← Expr.instantiateLevelParams_instantiate1, ihbody]
@@ -254,8 +254,8 @@ theorem denoteMeta_instLevels (hp : AcvalParamsAt env acval)
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

@@ -388,7 +388,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   intro j ts h
   induction h with
   | const => intro _ _ _ _ _ _ _ _; exact NodesSem.nil
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hhi hfr Δa ea hC hea hgr hΔ
     obtain ⟨hfrw, hCw, wa, hwa, hgw⟩ := whnf_facts hin hw hfr hC hea hgr
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
@@ -397,7 +397,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
+    obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy' (V := V) hgw.graded
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     refine ihb (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd) hCop hba hgB ?_
     rw [show dep + 1 - ctx.hiAt prog.length = (dep - ctx.hiAt prog.length) + 1 by omega,
@@ -474,7 +474,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     subst hhi
     exact ihtele (by omega) hfr hC hca hgr (by simp)
   | teleNil => intro _ _ _ _ _ _ _ _; exact NodesSem.nil
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha hb iha ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro hhi hfr Δa ca hC hca hgr hΔ
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
     obtain ⟨hws, hbb, hLb⟩ := hfr
@@ -482,7 +482,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgr.graded
+    obtain ⟨hgAT, hgB⟩ := WellDenoted.hoist_piTy' (V := V) hgr.graded
     have hA := iha hhi ⟨hws.1, hbb.1, hLa⟩ hC.forallE_ty hta hgAT hΔ
     have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd

@@ -6,7 +6,7 @@ import ConLeche.Model.Inductives.BlockStageRec
 import ConLeche.Verify.Extend.Inversions
 import ConLeche.Verify.ExceptBind
 import ConLeche.Verify.InferLemmas
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 
 public section
 

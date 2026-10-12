@@ -1,11 +1,11 @@
 module
 
 public import ConLeche.Denotes
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Verify.Close
 import ConLeche.Verify.Denote.VClosed
 import ConLeche.SetModel.TupleTower
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.Lemmas
 
 public section
 
@@ -14,7 +14,7 @@ public section
 
 `ConLeche/Denotes.lean` states what a model of an environment is;
 this module builds one from the graded invariant `EnvModelM`
-(`Model/Annot/EnvModelM.lean`) the fold establishes.  Three steps:
+(`Model/Env/EnvModelM.lean`) the fold establishes.  Three steps:
 
 * **the leaves become sets**: `cvalOf acval n ψ` is the interpretation
   of the (closed) annotated leaf `acval n ψ` — under every variable
@@ -228,26 +228,26 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     intro ta h
     rw [denoteMeta, hf] at h
     exact nomatch h
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro ta h hfb hlb ρ
     obtain ⟨tA, bA, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && body.looseBVarsBounded 1) = true := hlb
     rw [Bool.and_eq_true] at hlb'
-    show Denotes _ _ _ _ (Expr.forallE (closeN d ty 0) (closeN d body 1) mb) _
+    show Denotes _ _ _ _ (Expr.forallE (closeN d ty 0) (closeN d body 1)) _
     rw [interp_pi]
     refine Denotes.pi (ihty hta hfb'.1 hlb'.1 ρ) (fun x _ => ?_)
     rw [push_eq_cons]
     have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2)
       (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2) (cons x ρ)
     rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro ta h hfb hlb ρ
     obtain ⟨tA, bA, hta, hba, rfl⟩ := denoteMeta_lam_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && body.looseBVarsBounded 1) = true := hlb
     rw [Bool.and_eq_true] at hlb'
-    show Denotes _ _ _ _ (Expr.lam (closeN d ty 0) (closeN d body 1) mb) _
+    show Denotes _ _ _ _ (Expr.lam (closeN d ty 0) (closeN d body 1)) _
     rw [interp_lam]
     refine Denotes.lam (ihty hta hfb'.1 hlb'.1 ρ) (fun x _ => ?_)
     rw [push_eq_cons]
@@ -327,8 +327,8 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

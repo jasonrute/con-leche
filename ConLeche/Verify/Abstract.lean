@@ -32,7 +32,7 @@ open Expr
 @[expose] def Expr.fvarConsistent (d : Nat) (ty : Expr) : Expr → Prop
   | .fvar idx ty' => idx = d → ty' = ty
   | .app f a => fvarConsistent d ty f ∧ fvarConsistent d ty a
-  | .lam t b _ | .forallE t b _ => fvarConsistent d ty t ∧ fvarConsistent d ty b
+  | .lam t b | .forallE t b => fvarConsistent d ty t ∧ fvarConsistent d ty b
   | .letE t v b => fvarConsistent d ty t ∧ fvarConsistent d ty v ∧ fvarConsistent d ty b
   | .proj _ _ e => fvarConsistent d ty e
   | _ => True

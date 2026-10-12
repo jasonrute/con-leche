@@ -42,8 +42,8 @@ spot; a `.proj` node's structure name is not an occurrence.) -/
   | .fvar _ ty => occDeep names ty
   | .const n _ => names.contains n
   | .app f a => occDeep names f || occDeep names a
-  | .lam ty body _ => occDeep names ty || occDeep names body
-  | .forallE ty body _ => occDeep names ty || occDeep names body
+  | .lam ty body => occDeep names ty || occDeep names body
+  | .forallE ty body => occDeep names ty || occDeep names body
   | .letE ty val body => occDeep names ty || occDeep names val || occDeep names body
   | .proj _ _ sub => occDeep names sub
 
@@ -57,10 +57,10 @@ theorem Expr.nestOcc_zero_of_occDeep {names : List Name} :
   | app f a ihf iha =>
     intro h; simp only [Expr.occDeep, Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨ihf h.1, iha h.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro h; simp only [Expr.occDeep, Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro h; simp only [Expr.occDeep, Expr.nestOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
@@ -85,10 +85,10 @@ theorem Expr.occDeep_instantiate1 {names : List Name} {v : Expr}
   | app f a ihf iha =>
     intro k h; simp only [Expr.occDeep, Expr.instantiate1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨ihf k h.1, iha k h.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k h; simp only [Expr.occDeep, Expr.instantiate1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht k h.1, ihb _ h.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k h; simp only [Expr.occDeep, Expr.instantiate1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht k h.1, ihb _ h.2⟩
   | letE t val b iht ihv ihb =>
@@ -111,10 +111,10 @@ theorem Expr.occDeep_abstract1 {names : List Name} (d : Nat) :
   | app f a ihf iha =>
     intro k h; simp only [Expr.occDeep, Expr.abstract1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨ihf k h.1, iha k h.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k h; simp only [Expr.occDeep, Expr.abstract1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht k h.1, ihb _ h.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k h; simp only [Expr.occDeep, Expr.abstract1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht k h.1, ihb _ h.2⟩
   | letE t val b iht ihv ihb =>
@@ -130,8 +130,8 @@ theorem Expr.occDeep_instantiateLevelParams {names : List Name} (ks : List Name)
   induction e with
   | fvar i ty ih => simp only [Expr.instantiateLevelParams, Expr.occDeep, ih]
   | app f a ihf iha => simp only [Expr.instantiateLevelParams, Expr.occDeep, ihf, iha]
-  | lam t b mm iht ihb => simp only [Expr.instantiateLevelParams, Expr.occDeep, iht, ihb]
-  | forallE t b mm iht ihb => simp only [Expr.instantiateLevelParams, Expr.occDeep, iht, ihb]
+  | lam t b iht ihb => simp only [Expr.instantiateLevelParams, Expr.occDeep, iht, ihb]
+  | forallE t b iht ihb => simp only [Expr.instantiateLevelParams, Expr.occDeep, iht, ihb]
   | letE t val b iht ihv ihb =>
     simp only [Expr.instantiateLevelParams, Expr.occDeep, iht, ihv, ihb]
   | proj s j e ih => simp only [Expr.instantiateLevelParams, Expr.occDeep, ih]
@@ -190,7 +190,6 @@ theorem Expr.occDeep_const {names : List Name} {n : Name} {us : List Level}
     (h : n ∉ names) : (Expr.const n us).occDeep names = false := by
   simpa [Expr.occDeep] using h
 
-
 /-! ## The environment hypothesis -/
 
 /-- **What reduction and inference can copy out of the environment names
@@ -206,8 +205,6 @@ about a name the kernel fabricates:
 * the body of every projection-table entry (a `.proj` node's type);
 * constructors are no members (the K / `And` rescues and the `Nat`
   literal's constructor form fabricate constructor heads);
-* no member is named like a projection function (the structure-η
-  rescue fabricates them);
 * the literal-support names (`Nat`, `String` and its constructor form's
   constants) are no members when the literal support is on;
 * the `Bool` constructors are no members when `Nat.beq`/`Nat.ble` are
@@ -219,10 +216,9 @@ about a name the kernel fabricates:
     v.occDeep names = false) ∧
   (∀ n cv mI rP rules, env.find? n = some (.recInfo cv mI rP rules) → n ∉ names →
     ∀ r ∈ rules, r.rhs.occDeep names = false ∧
-      (r.eta = true → recRuleEtaOf env.find? n r.ctor = true)) ∧
+      (r.eta = true → recRuleEtaOf env.find? r.ctor = true)) ∧
   (∀ T i entry, env.findProj? T i = some entry → entry.body.occDeep names = false) ∧
   (∀ c cv nP nF, env.find? c = some (.ctorInfo cv nP nF) → c ∉ names) ∧
-  (∀ T j, projFnName T j ∉ names) ∧
   (natLitSupported env = true → natName ∉ names) ∧
   (strLitSupported env = true →
     stringName ∉ names ∧ stringOfListName ∉ names ∧ listNilName ∉ names ∧
@@ -242,7 +238,7 @@ theorem strLitList_occDeep {names : List Name} (hc : charName ∉ names)
 theorem strLitToConstructor_occDeep {env : Env} {names : List Name}
     (hN : WhnfNamesFree env names) (hs : strLitSupported env = true) (s : String) :
     (strLitToConstructor s).occDeep names = false := by
-  obtain ⟨-, hso, hn, hk, hc, ho⟩ := hN.2.2.2.2.2.2.2.1 hs
+  obtain ⟨-, hso, hn, hk, hc, ho⟩ := hN.2.2.2.2.2.2.1 hs
   rw [strLitToConstructor_eq]
   simp only [Expr.occDeep, strLitList_occDeep hc hn hk ho, Bool.or_false]
   simpa using hso
@@ -262,7 +258,7 @@ theorem litToCtorIfNat_occDeep {env : Env} {names : List Name}
     · exact he
   | .lit (.strVal _) => exact he
   | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _
-  | .lam _ _ _ | .forallE _ _ _ | .letE _ _ _ | .proj _ _ _ => exact he
+  | .lam _ _ | .forallE _ _ | .letE _ _ _ | .proj _ _ _ => exact he
 
 /-- The fast-path reducts: a literal, or a `Bool` constructor from
 `Nat.beq`/`Nat.ble`. -/
@@ -323,7 +319,6 @@ theorem natOpResult_const {c : Name} {a b : Nat} {bn : Name}
   rw [ite_eq_right hl] at h
   exact nomatch h
 
-
 /-- Literal acceleration's reducts, precisely: a literal, or a `Bool`
 constructor produced while `Nat.beq` or `Nat.ble` is stored. -/
 theorem reduceNat_inv_bool {env : Env} {fuel d : Nat} {e e₂ : Expr}
@@ -336,18 +331,18 @@ theorem reduceNat_inv_bool {env : Env} {fuel d : Nat} {e e₂ : Expr}
   match e with
   | .app (.const c []) a => ?_
   | .app (.app (.const c []) a) b => ?_
-  | .bvar _ | .fvar _ _ | .sort _ | .lam _ _ _ | .forallE _ _ _
+  | .bvar _ | .fvar _ _ | .sort _ | .lam _ _ | .forallE _ _
   | .letE _ _ _ | .lit _ | .proj _ _ _ | .const _ _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
   | .app (.bvar _) _ | .app (.fvar _ _) _ | .app (.sort _) _
-  | .app (.lam _ _ _) _ | .app (.forallE _ _ _) _
+  | .app (.lam _ _) _ | .app (.forallE _ _) _
   | .app (.letE _ _ _) _ | .app (.lit _) _ | .app (.proj _ _ _) _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
   | .app (.const c (_ :: _)) _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
   | .app (.app (.bvar _) _) _ | .app (.app (.fvar _ _) _) _
   | .app (.app (.sort _) _) _ | .app (.app (.app _ _) _) _
-  | .app (.app (.lam _ _ _) _) _ | .app (.app (.forallE _ _ _) _) _
+  | .app (.app (.lam _ _) _) _ | .app (.app (.forallE _ _) _) _
   | .app (.app (.letE _ _ _) _) _ | .app (.app (.lit _) _) _
   | .app (.app (.proj _ _ _) _) _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
@@ -440,18 +435,7 @@ theorem reduceNat_inv_bool {env : Env} {fuel d : Nat} {e e₂ : Expr}
           | none => intro h; simp [pure, Except.pure] at h
       · intro h; simp [pure, Except.pure] at h
 
-
 /-! ## The reduction steps -/
-
-theorem Expr.occDeep_piResult {names : List Name} :
-    ∀ {e : Expr}, e.occDeep names = false → e.piResult.occDeep names = false := by
-  intro e
-  induction e with
-  | forallE t b mm _ ihb =>
-    intro h
-    simp only [Expr.occDeep, Bool.or_eq_false_iff] at h
-    exact ihb h.2
-  | _ => intro h; exact h
 
 /-- Unfolding a (non-member) definition at the head. -/
 theorem unfoldDefinition_occDeep {env : Env} {names : List Name}
@@ -461,8 +445,8 @@ theorem unfoldDefinition_occDeep {env : Env} {names : List Name}
   revert h
   match hfn : e.getAppFn with
   | .const n us => ?_
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; exact nomatch h
   intro h
   dsimp only at h
@@ -548,7 +532,6 @@ theorem majorToCtor_occDeep {env : Env} {names : List Name}
     · simpa [Expr.occDeep] using hm
     · simpa [Expr.occDeep] using hm
 
-
 /-- The body of a projection-table entry at member-free arguments. -/
 theorem projEntry_typeAt_occDeep {env : Env} {names : List Name}
     (hN : WhnfNamesFree env names) {T : Name} {i : Nat} {entry : ProjEntry}
@@ -608,11 +591,11 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
         rw [whnfCore_succ] at h
         simp only [whnfCoreBody, pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ he
-      | forallE ty body bi =>
+      | forallE ty body =>
         rw [whnfCore_succ] at h
         simp only [whnfCoreBody, pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ he
-      | lam ty body bi =>
+      | lam ty body =>
         rw [whnfCore_succ] at h
         simp only [whnfCoreBody, pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ he
@@ -636,7 +619,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
         have hf' := ihCore hwf he.1
         have happ : (Expr.app f' a).occDeep names = false := by
           simp [Expr.occDeep, hf', he.2]
-        rcases hcase with ⟨ty, body, mm, rfl, hbeta⟩ | ⟨e'', hio, hwe''⟩ | rfl
+        rcases hcase with ⟨ty, body, rfl, hbeta⟩ | ⟨e'', hio, hwe''⟩ | rfl
         · simp only [Expr.occDeep, Bool.or_eq_false_iff] at hf'
           exact ihCore hbeta (Expr.occDeep_instantiate1 he.2 body 0 hf'.2)
         · obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj,
@@ -689,7 +672,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           · refine ihN hcont ?_
             rcases reduceNat_inv_bool hrn with ⟨k, rfl⟩ | ⟨bn, rfl, hbn, hst⟩
             · rfl
-            · obtain ⟨ht, hf⟩ := hN.2.2.2.2.2.2.2.2 hst
+            · obtain ⟨ht, hf⟩ := hN.2.2.2.2.2.2.2 hst
               rcases hbn with rfl | rfl
               · exact Expr.occDeep_const ht
               · exact Expr.occDeep_const hf
@@ -752,7 +735,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.2.1 hs).1
+          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs).1
       case natCase =>
         dsimp only [inferBody, Bind.bind, Except.bind, pure, Except.pure] at h
         revert h
@@ -764,18 +747,18 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs)
-    | forallE ty body m =>
+          exact Expr.occDeep_const (hN.2.2.2.2.2.1 hs)
+    | forallE ty body =>
       obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ := inferTypeCore_forall_inv h
       rfl
-    | lam ty body m =>
+    | lam ty body =>
       obtain ⟨tty, u, bt, -, -, hbt, -, -, rfl⟩ := inferTypeCore_lam_inv h
       simp only [Expr.occDeep, Bool.or_eq_false_iff] at he ⊢
       have hbo := Expr.occDeep_instantiate1 (v := .fvar d ty) (by simpa [Expr.occDeep] using he.1)
         body 0 he.2
       exact ⟨he.1, Expr.occDeep_abstract1 d bt 0 (ihInf hbt hbo)⟩
     | app f a =>
-      obtain ⟨tf, ty', body', m', htf, hwh, rfl, -⟩ := inferTypeCore_app_inv h
+      obtain ⟨tf, ty', body', htf, hwh, rfl, -⟩ := inferTypeCore_app_inv h
       simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
       have hPi := ihLoop hwh (ihInf htf he.1)
       simp only [Expr.occDeep, Bool.or_eq_false_iff] at hPi
@@ -848,7 +831,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.2.1 hs).1
+          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs).1
       case natCase =>
         dsimp only [inferBodyIO, Bind.bind, Except.bind, pure, Except.pure] at h
         revert h
@@ -860,18 +843,18 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
           intro h
           simp only [Except.ok.injEq] at h
           subst h
-          exact Expr.occDeep_const (hN.2.2.2.2.2.2.1 hs)
-    | forallE ty body m =>
+          exact Expr.occDeep_const (hN.2.2.2.2.2.1 hs)
+    | forallE ty body =>
       obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ := inferTypeCoreIO_forall_inv h
       rfl
-    | lam ty body m =>
+    | lam ty body =>
       obtain ⟨bt, hbt, -, -, rfl⟩ := inferTypeCoreIO_lam_inv h
       simp only [Expr.occDeep, Bool.or_eq_false_iff] at he ⊢
       have hbo := Expr.occDeep_instantiate1 (v := .fvar d ty) (by simpa [Expr.occDeep] using he.1)
         body 0 he.2
       exact ⟨he.1, Expr.occDeep_abstract1 d bt 0 (ihIO hbt hbo)⟩
     | app f a =>
-      obtain ⟨tf, ty', body', m', htf, hwh, rfl, -⟩ := inferTypeCoreIO_app_inv h
+      obtain ⟨tf, ty', body', htf, hwh, rfl, -⟩ := inferTypeCoreIO_app_inv h
       simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
       have hPi := ihLoop hwh (ihIO htf he.1)
       simp only [Expr.occDeep, Bool.or_eq_false_iff] at hPi
@@ -897,20 +880,6 @@ theorem whnf_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env nam
     (he : e.occDeep names = false) : w.occDeep names = false :=
   (whnfPres_occDeep hN fuel).2.1 h he
 
-/-- Part 1 at the walk's occurrence test.  The input premise must see the
-annotations (`occDeep`): with `e.nestOcc names 0 0 = false` alone the
-claim is FALSE — the structure-η rescue at a projection-FUNCTION
-structure (`etaProjs`' non-table branch) copies the parameters of the
-stuck major's INFERRED type, i.e. of a free variable's annotation, into
-the reduct (`S.proj.j.{us} p⃗ x`), and those parameters need only be
-defeq (e.g. proof-irrelevantly) to the member-free ones the recursor
-application carries. -/
-theorem whnf_nestOcc_zero {env : Env} {names : List Name} (hN : WhnfNamesFree env names)
-    (fuel : Nat) {d : Nat} {e w : Expr} (h : whnf mode env fuel d e = .ok w)
-    (he : e.occDeep names = false) : w.nestOcc names 0 0 = false :=
-  Expr.nestOcc_zero_of_occDeep _ (whnf_occDeep hN fuel h he)
-
-
 /-! ## Part 2: the walk's normal form -/
 
 /-- What the walk's judgments say about member constants: a field's
@@ -920,7 +889,7 @@ frame, constructor-list and seed judgments contribute no output. -/
 @[expose] def PosJ.NfFree (names : List Name) : PosJ → Prop
   | .field _ _ _ e _ nf => e.occDeep names = false → nf.occDeep names = false
   | .tele _ _ _ _ cur _ nds res => cur.occDeep names = false →
-      (∀ p ∈ nds, p.1.occDeep names = false) ∧ res.occDeep names = false
+      (∀ p ∈ nds, p.occDeep names = false) ∧ res.occDeep names = false
   | _ => True
 
 /-- **Every judgment of the positivity derivation keeps member constants
@@ -962,11 +931,11 @@ theorem posD_nfFree {env : Env} {ctx : NestCtx} {F : Nat}
 
 /-- Closing a telescope of member-free domains over a member-free body. -/
 theorem closeTelescope_occDeep {names : List Name} :
-    ∀ (nds : List (Expr × BinderMeta)) (i : Nat) {body : Expr},
-      (∀ p ∈ nds, p.1.occDeep names = false) → body.occDeep names = false →
+    ∀ (nds : List Expr) (i : Nat) {body : Expr},
+      (∀ p ∈ nds, p.occDeep names = false) → body.occDeep names = false →
       (closeTelescope nds i body).occDeep names = false
   | [], _, _, _, hb => hb
-  | (dom, bm) :: bs, i, body, hn, hb => by
+  | dom :: bs, i, body, hn, hb => by
     simp only [closeTelescope, Expr.occDeep, Bool.or_eq_false_iff]
     exact ⟨hn _ List.mem_cons_self, Expr.occDeep_abstract1 i _ 0
       (closeTelescope_occDeep bs (i + 1) (fun p hp => hn p (List.mem_cons_of_mem _ hp)) hb)⟩
@@ -992,7 +961,6 @@ theorem memberCtorD_nestOcc_zero {env : Env} {ctx : NestCtx} {F nF : Nat} {crest
     tyN.nestOcc ctx.names 0 0 = false :=
   Expr.nestOcc_zero_of_occDeep _ (memberCtorD_occDeep hN hd hcrest)
 
-
 /-! ### The crest's premise, from the kernel's data
 
 The walk's crest is the stored constructor type (free-variable-free)
@@ -1006,8 +974,8 @@ outright, and the replacement brings in only the parameters and holes. -/
 @[expose] def Expr.annOcc (names : List Name) : Expr → Bool
   | .fvar _ ty => ty.occDeep names
   | .app f a => annOcc names f || annOcc names a
-  | .lam ty body _ => annOcc names ty || annOcc names body
-  | .forallE ty body _ => annOcc names ty || annOcc names body
+  | .lam ty body => annOcc names ty || annOcc names body
+  | .forallE ty body => annOcc names ty || annOcc names body
   | .letE ty val body => annOcc names ty || annOcc names val || annOcc names body
   | .proj _ _ sub => annOcc names sub
   | _ => false
@@ -1023,11 +991,11 @@ theorem Expr.occDeep_of_nestOcc_annOcc {names : List Name} :
     intro h ha
     simp only [Expr.nestOcc, Expr.annOcc, Expr.occDeep, Bool.or_eq_false_iff] at h ha ⊢
     exact ⟨ihf h.1 ha.1, iha h.2 ha.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro h ha
     simp only [Expr.nestOcc, Expr.annOcc, Expr.occDeep, Bool.or_eq_false_iff] at h ha ⊢
     exact ⟨iht h.1 ha.1, ihb h.2 ha.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro h ha
     simp only [Expr.nestOcc, Expr.annOcc, Expr.occDeep, Bool.or_eq_false_iff] at h ha ⊢
     exact ⟨iht h.1 ha.1, ihb h.2 ha.2⟩
@@ -1049,10 +1017,10 @@ theorem Expr.annOcc_of_hasFvar {names : List Name} :
   | app f a ihf iha =>
     intro h; simp only [Expr.hasFvar, Expr.annOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨ihf h.1, iha h.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro h; simp only [Expr.hasFvar, Expr.annOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro h; simp only [Expr.hasFvar, Expr.annOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
@@ -1076,10 +1044,10 @@ theorem Expr.annOcc_instantiate1 {names : List Name} {v : Expr}
   | app f a ihf iha =>
     intro k h; simp only [Expr.annOcc, Expr.instantiate1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨ihf k h.1, iha k h.2⟩
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k h; simp only [Expr.annOcc, Expr.instantiate1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht k h.1, ihb _ h.2⟩
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k h; simp only [Expr.annOcc, Expr.instantiate1, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht k h.1, ihb _ h.2⟩
   | letE t val b iht ihv ihb =>
@@ -1094,7 +1062,7 @@ theorem annOcc_instPisWith {names : List Name} :
   | [], e, r, _, he, h => by
     simp only [instPisWith, Option.some.injEq] at h
     exact h ▸ he
-  | a :: as, .forallE d b bm, r, ha, he, h => by
+  | a :: as, .forallE d b, r, ha, he, h => by
     simp only [instPisWith] at h
     simp only [Expr.annOcc, Bool.or_eq_false_iff] at he
     exact annOcc_instPisWith as _ r (fun x hx => ha x (List.mem_cons_of_mem _ hx))
@@ -1129,10 +1097,10 @@ theorem Expr.annOcc_replaceApps {names : List Name} {f : Name → List Level →
     cases hh : (Expr.const c us).appHole? f b n with
     | some y => exact himg _ _ hh
     | none => rfl
-  | lam t body mm iht ihb =>
+  | lam t body iht ihb =>
     intro h; simp only [Expr.replaceApps, Expr.annOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t body mm iht ihb =>
+  | forallE t body iht ihb =>
     intro h; simp only [Expr.replaceApps, Expr.annOcc, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb =>
@@ -1177,10 +1145,10 @@ theorem Expr.occDeep_replaceFVars {names : List Name} {f : Nat → Option Expr}
   | app a x iha ihx =>
     intro h; simp only [Expr.replaceFVars, Expr.occDeep, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iha h.1, ihx h.2⟩
-  | lam t body mm iht ihb =>
+  | lam t body iht ihb =>
     intro h; simp only [Expr.replaceFVars, Expr.occDeep, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t body mm iht ihb =>
+  | forallE t body iht ihb =>
     intro h; simp only [Expr.replaceFVars, Expr.occDeep, Bool.or_eq_false_iff] at h ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb =>
@@ -1211,42 +1179,24 @@ theorem nestCrest_occDeep {names : List Name} {us : List Level} {ds holes : List
   · exact hds x (List.mem_of_getElem? hx)
   · exact hholes x (List.mem_of_getElem? hx)
 
-
-/-- The crest premise at the ROOT frame: a stored constructor that passed
-the uniform check (`nestUniformOk`), at member-free canonical parameters
-and holes. -/
-theorem rootCrest_occDeep {ctx : NestCtx} {cv : ConstantVal} {holes : List Expr}
-    {crest : Expr} (hu : nestUniformOk ctx cv = true) (hcty : cv.type.hasFvar = false)
-    (hlen : ctx.params.length = ctx.nP)
-    (hc : nestCrest ctx.names (ctx.lps.map .param) ctx.params holes
-      (cv.type.instantiateLevelParams cv.levelParams (ctx.lps.map .param)) = some crest)
-    (hds : ∀ x ∈ ctx.params, x.occDeep ctx.names = false)
-    (hholes : ∀ x ∈ holes, x.occDeep ctx.names = false) :
-    crest.occDeep ctx.names = false := by
-  obtain ⟨A, hA, hAocc⟩ := nestRootCanon_nestOcc_zero hu
-  unfold nestRootCanon at hA
-  rw [← hlen] at hA
-  exact nestCrest_occDeep hc (by rw [hasFvar_instantiateLevelParams]; exact hcty) hA hAocc
-    hds hholes
-
 /-! ## Part 3: the formers' environment -/
 
 theorem piResult_of_stripPis_sort' :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × BinderMeta)} {s : Level},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
       e.stripPis n = some (bs, .sort s) → e.piResult = .sort s
   | 0, e, bs, s, h => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
     rw [h.2]; rfl
   | n + 1, e, bs, s, h => by
     match e with
-    | .forallE ty b m =>
+    | .forallE ty b =>
       simp only [Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', r⟩, hr, heq⟩ := h
       simp only [Prod.mk.injEq] at heq
       obtain ⟨-, rfl⟩ := heq
       show b.piResult = _
       exact piResult_of_stripPis_sort' n hr
-    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _ _
+    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
     | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [Expr.stripPis])
 
 /-- A term whose constants all resolve before the block names no member. -/
@@ -1269,10 +1219,10 @@ theorem Expr.occDeep_of_constsResolve {env : Env} {names : List Name}
   | app f a ihf iha =>
     intro h; simp only [Expr.constsResolve, Bool.and_eq_true] at h
     simp only [Expr.occDeep, ihf h.1, iha h.2, Bool.or_self]
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro h; simp only [Expr.constsResolve, Bool.and_eq_true] at h
     simp only [Expr.occDeep, iht h.1, ihb h.2, Bool.or_self]
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro h; simp only [Expr.constsResolve, Bool.and_eq_true] at h
     simp only [Expr.occDeep, iht h.1, ihb h.2, Bool.or_self]
   | letE t v b iht ihv ihb =>
@@ -1283,30 +1233,29 @@ theorem Expr.occDeep_of_constsResolve {env : Env} {names : List Name}
     exact ih h.2
   | _ => intro _; rfl
 
-
 /-! ### The string-support declarations' result types are no sorts -/
 
 theorem stringOfListTyOk_inv {ci : ConstantInfo} (h : stringOfListTyOk (some ci) = true) :
-    ∃ l1 us1 mb, ci.toConstantVal.type =
-      .forallE (.app (.const l1 us1) (.const charName [])) (.const stringName []) mb := by
+    ∃ l1 us1, ci.toConstantVal.type =
+      .forallE (.app (.const l1 us1) (.const charName [])) (.const stringName []) := by
   simp only [stringOfListTyOk, Bool.and_eq_true] at h
   obtain ⟨-, h⟩ := h
   split at h
-  · rename_i l1 us1 c1 c2 mb heq
+  · rename_i l1 us1 c1 c2 heq
     simp only [Bool.and_eq_true, beq_iff_eq] at h
     obtain ⟨⟨⟨-, -⟩, rfl⟩, rfl⟩ := h
-    exact ⟨l1, us1, mb, heq⟩
+    exact ⟨l1, us1, heq⟩
   · exact nomatch h
 
 theorem charOfNatTyOk_inv {ci : ConstantInfo} (h : charOfNatTyOk (some ci) = true) :
-    ∃ mb, ci.toConstantVal.type = .forallE (.const natName []) (.const charName []) mb := by
+    ci.toConstantVal.type = .forallE (.const natName []) (.const charName []) := by
   simp only [charOfNatTyOk, Bool.and_eq_true] at h
   obtain ⟨-, h⟩ := h
   split at h
-  · rename_i c1 c2 mb heq
+  · rename_i c1 c2 heq
     simp only [Bool.and_eq_true, beq_iff_eq] at h
     obtain ⟨rfl, rfl⟩ := h
-    exact ⟨mb, heq⟩
+    exact heq
   · exact nomatch h
 
 theorem listNilTyOk_piResult {ci : ConstantInfo} (h : listNilTyOk (some ci) = true) :
@@ -1336,12 +1285,10 @@ theorem listConsTyOk_piResult {ci : ConstantInfo} (h : listConsTyOk (some ci) = 
 /-- **Part 3: `WhnfNamesFree` at the formers' environment.**  `envI` is
 the block's formers (members `names`, stored as `indInfo`s whose types
 are syntactic telescopes ending in a sort) consed onto a pre-block
-`env`: fresh there, and `envI` agrees with `env` off the members.  Three
+`env`: fresh there, and `envI` agrees with `env` off the members.  Two
 facts about the pre-block environment are needed beyond `EnvWF`, each
 an install-time invariant of the checker's environments:
 
-* `hproj`: no member is named like a projection function
-  (`checkConstantVal` rejects `Name.isProjFnShape`);
 * `hRecEta`: a set η-rescue bit is the store's verdict (the η part of
   `RecCtorsStored`, `ConLeche/Verify/EnvPreds.lean`);
 * `hBool`: `Nat.beq`/`Nat.ble` are stored only with the `Bool`
@@ -1353,9 +1300,8 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
       ∃ k bs s, cvTb.type.stripPis k = some (bs, .sort s))
     (hfresh : ∀ cvTb ∈ cvTas, env.find? cvTb.name = none)
     (hI : ∀ n, (∀ cvTb ∈ cvTas, cvTb.name ≠ n) → envI.find? n = env.find? n)
-    (hproj : ∀ n ∈ names, n.isProjFnShape = false)
     (hRecEta : ∀ n cv mI rP rules, env.find? n = some (.recInfo cv mI rP rules) →
-      ∀ r ∈ rules, r.eta = true → recRuleEtaOf env.find? n r.ctor = true)
+      ∀ r ∈ rules, r.eta = true → recRuleEtaOf env.find? r.ctor = true)
     (hBool : natOpStored env natBeqName = true ∨ natOpStored env natBleName = true →
       (env.find? boolTrueName).isSome = true ∧ (env.find? boolFalseName).isSome = true) :
     WhnfNamesFree envI names := by
@@ -1392,7 +1338,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     exact hs _ _ (Option.some.inj hf')
   have hres : ∀ e : Expr, e.constsResolve env = true → e.occDeep names = false :=
     Expr.occDeep_of_constsResolve hmemE
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- stored types
     intro n ci hf hn
     rw [hnon n hn] at hf
@@ -1406,9 +1352,9 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     rw [hnon n hn] at hf
     refine ⟨hres _ ((hwf _ (find?_mem hf)).2.2.2.2.2.1 cv mI rP rules rfl r hr).2.2.1, ?_⟩
     intro heta
-    obtain ⟨cvj, cnP, cnF, T, us, cvT, caps, h1, h2, h3, h4, h5, h6, h7⟩ :=
+    obtain ⟨cvj, cnP, cnF, T, us, cvT, caps, h1, h2, h3, h4, h5, h7⟩ :=
       recRuleEtaOf_inv (hRecEta n cv mI rP rules hf r hr heta)
-    refine recRuleEtaOf_of (f := envI.find?) (cnP := cnP) (cnF := cnF) ?_ h2 ?_ h4 h5 h6 h7
+    refine recRuleEtaOf_of (f := envI.find?) (cnP := cnP) (cnF := cnF) ?_ h2 ?_ h4 h5 h7
     · rw [hnon _ (hold _ (by rw [h1]; rfl))]; exact h1
     · rw [hnon _ (hold _ (by rw [h3]; rfl))]; exact h3
   · -- projection-table bodies
@@ -1427,10 +1373,6 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
   · -- constructors
     intro c cv nP nF hf
     exact hnotInd c _ hf (fun cv' caps h => nomatch h)
-  · -- projection-function names
-    intro T j hn
-    have := hproj _ hn
-    simp [projFnName, Name.isProjFnShape] at this
   · -- `Nat`
     intro hs
     obtain ⟨-, -, cv0, i0, j0, -, -, -, -, h0, -, -, -, -, -, hty0, -⟩ := natLitSupported_inv hs
@@ -1449,7 +1391,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
       | none => rw [h] at hO; exact nomatch hO
       | some ci => exact ⟨ci, rfl⟩
     rw [hfO] at hO
-    obtain ⟨l1, us1, mb, htyO⟩ := stringOfListTyOk_inv hO
+    obtain ⟨l1, us1, htyO⟩ := stringOfListTyOk_inv hO
     have hO' : stringOfListName ∉ names :=
       hnotSort _ _ hfO (fun s => by rw [htyO]; simp [Expr.piResult])
     obtain ⟨ciC, hfC⟩ : ∃ ci, envI.find? charOfNatName = some ci := by
@@ -1457,7 +1399,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
       | none => rw [h] at hCO; exact nomatch hCO
       | some ci => exact ⟨ci, rfl⟩
     rw [hfC] at hCO
-    obtain ⟨mbC, htyC⟩ := charOfNatTyOk_inv hCO
+    have htyC := charOfNatTyOk_inv hCO
     have hCO' : charOfNatName ∉ names :=
       hnotSort _ _ hfC (fun s => by rw [htyC]; simp [Expr.piResult])
     have hNil' : listNilName ∉ names := by

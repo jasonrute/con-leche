@@ -1,7 +1,7 @@
 module
 
-import ConLeche.Model.Annot.Bit
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Semantics.Tower.BlockRecTower
 import ConLeche.Semantics.Kit
 import ConLeche.Model.Inductives.StructRecKit
@@ -9,9 +9,9 @@ import ConLeche.Model.IndFrame
 import ConLeche.Model.Inductives.BlockRecRead
 import ConLeche.Semantics.BasisOk
 import ConLeche.Model.Rules.Sound
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 public import ConLeche.Model.Inductives.FixKit
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 
 public section
 
@@ -73,7 +73,7 @@ theorem FvarList.cons {E : Nat} {xs : List Expr} (h : FvarList E xs) (ty : Expr)
 
 /-! ## The literal readings are lift-invariant
 
-`BitShift.lean` has these at `liftN 1`; the abstraction inserts `nR`
+`Reading/Shift.lean` has these at `liftN 1`; the abstraction inserts `nR`
 binders at once, and the leaves' closedness gives every `n`. -/
 
 theorem natLitAV_liftN_gen {za sa : AnnotTerm} {n k : Nat}

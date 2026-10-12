@@ -77,7 +77,7 @@ theorem genClassNodes {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat
     (ψ : Name → Nat) (ρ : Nat → V) (xs : List V) :
     ∃ P : TgtNodePres envC mpC.base2.acval pp.toBlockShape out dR Dc mc cvc ψ ρ xs
       (genCallT (tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ) ρ
-        (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j)),
+        (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd ψ c j)),
       TgtNodeHex P := by
   have hbase := hctx.base
   have hbase' := hbase
@@ -141,7 +141,7 @@ theorem genClassNodes {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat
   have Dy : TgtNodeDyn μ F mpC (pp.nestCtx fvsP envI.find?) dR pp.toBlockShape
       (cvTasR.map (·.type)) out Dc mc cvc ns ψ ρ xs
       (genCallT (tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ) ρ
-        (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j)) := {
+        (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd ψ c j)) := {
     Adm := nodeAdm mk mpC (pp.nestCtx fvsP envI.find?) dR ns ψ ρ xs par
     hAdm := dyn_hAdm H ψ ρ xs hparams par
     top := dyn_top H ψ ρ xs hparams hxs hPP
@@ -197,7 +197,7 @@ theorem genClassInd {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     (hsel : ∀ c, c < (tgtRs out).length → (tgtMajor out c).member = none →
       Dc c = lfpSel mpC dR.toLfp (tgtMajor out c).ind) :
     ∀ ψ ρ, GenClassInd mpC.base2.acval envC pp.toBlockShape out dR Dc mc cvc
-      (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j) ψ ρ := by
+      (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd ψ c j) ψ ρ := by
   intro ψ ρ
   exact tgtClassInd_of_pres fun xs =>
     genClassNodes hμ hctx R hg hTbl hcls hsel ψ ρ xs

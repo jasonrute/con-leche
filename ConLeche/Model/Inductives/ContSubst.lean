@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.BitSubstFvars
-import ConLeche.Model.Annot.BitLevels
+public import ConLeche.Model.Reading.SubstFvars
+import ConLeche.Model.Reading.Levels
 import ConLeche.Semantics.Tower.TowerKit
 
 public section
@@ -29,7 +29,7 @@ valuation holding those values (`spineFit_substTele`): the parameter
 frame `⟦ds⟧`, and at each member slot the frame's hole value or the
 member's former.  The Expr half is `Expr.frameCrest_eq`
 (`Verify/SubstFvars.lean`), the reading half `denoteMeta_substFvars`
-(`Model/Annot/BitSubstFvars.lean`), the levels `denotePInstLevels`.
+(`Model/Reading/SubstFvars.lean`), the levels `denotePInstLevels`.
 -/
 
 namespace ConLeche.Model
@@ -87,7 +87,7 @@ theorem frameCrest_read (m : EnvModel V env) {φ : Name → Nat} {names gnames l
       (s i).looseBVarsBounded 0 = true ∧ denoteMeta m.acval env φ D' (s i) = some (x i))
     {e A : Expr} (he : e.hasFvar = false) (hocc : A.nestOcc names 0 0 = false)
     (hA : nestCanonCrest names (lps.map .param) n e = some A)
-    {ab : List (Nat × Nat × AnnotTerm)} {res : AnnotTerm}
+    {ab : List AnnotTerm} {res : AnnotTerm}
     (hread : denoteMeta m.acval env (Level.substFn φ lps us) (n + names.length) A
       = some (mkPisAV ab res)) :
     ∃ crest, nestCrest gnames us ds holes (e.instantiateLevelParams lps us) = some crest ∧

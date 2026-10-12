@@ -58,7 +58,7 @@ inductive PosJR where
   | field (act : List NestKey) (prog : List NestHole) (dep kb : Nat) (e : Expr) (k : NestFieldKind)
       (nf : Expr)
   | tele (act : List NestKey) (prog : List NestHole) (base nF j : Nat) (cur : Expr)
-      (ks : List NestFieldKind) (nds : List (Expr × BinderMeta)) (res : Expr)
+      (ks : List NestFieldKind) (nds : List Expr) (res : Expr)
   | ctors (act : List NestKey) (prog : List NestHole) (hi : Nat) (us : List Level) (ds : List Expr)
       (names : List Name) (holes : List Expr) (cs : List (ConstantVal × Nat))
   | frame (act : List NestKey) (prog : List NestHole) (us : List Level) (ds : List Expr)
@@ -74,14 +74,14 @@ inductive PosDR (ops : CheckerOps CheckM) (env : Env) (ctx : NestCtx) : Nat → 
         (.field act prog dep kb e .ordinary
           (if e.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) then w else e))
   | pi {n m : Nat} {act : List NestKey} {prog : List NestHole} {dep kb : Nat} {e a b : Expr}
-      {bm : BinderMeta} {k : NestFieldKind} {nb : Expr}
-      (hw : ops.whnf env dep e = .ok (.forallE a b bm))
-      (hocc : (Expr.forallE a b bm).nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true)
+      {k : NestFieldKind} {nb : Expr}
+      (hw : ops.whnf env dep e = .ok (.forallE a b))
+      (hocc : (Expr.forallE a b).nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true)
       (ha : a.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false)
       (hm : m < n)
       (hb : PosDR ops env ctx m
         (.field act prog (dep + 1) (kb + 1) (b.instantiate1 (.fvar dep a)) k nb)) :
-      PosDR ops env ctx n (.field act prog dep kb e k (.forallE a (nb.abstract1 dep) bm))
+      PosDR ops env ctx n (.field act prog dep kb e k (.forallE a (nb.abstract1 dep)))
   | hole {n : Nat} {act : List NestKey} {prog : List NestHole} {dep kb : Nat} {e w : Expr} {i : Nat}
       {ty : Expr}
       (hw : ops.whnf env dep e = .ok w)
@@ -155,7 +155,7 @@ inductive PosDR (ops : CheckerOps CheckM) (env : Env) (ctx : NestCtx) : Nat → 
   | ctorsCons {n m₁ m₂ : Nat} {act : List NestKey} {prog : List NestHole} {hi : Nat}
       {us : List Level} {ds : List Expr} {names : List Name} {holes : List Expr} {cv : ConstantVal}
       {nF : Nat} {cs : List (ConstantVal × Nat)} {crest ty : Expr} {sv : Level}
-      {ks : List NestFieldKind} {nds : List (Expr × BinderMeta)} {cur : Expr}
+      {ks : List NestFieldKind} {nds : List Expr} {cur : Expr}
       (hnd : Name.nodup cv.levelParams = true)
       (hcrest : nestCrest names us ds holes (cv.type.instantiateLevelParams cv.levelParams us)
         = some crest)
@@ -173,15 +173,15 @@ inductive PosDR (ops : CheckerOps CheckM) (env : Env) (ctx : NestCtx) : Nat → 
       PosDR ops env ctx n (.tele act prog base 0 j cur [] [] cur)
   /-- one field: its walk, then the rest -/
   | teleCons {n m₁ m₃ : Nat} {act : List NestKey} {prog : List NestHole} {base nF j : Nat}
-      {a b : Expr} {bm : BinderMeta} {k : NestFieldKind} {nd : Expr} {ks : List NestFieldKind}
-      {nds : List (Expr × BinderMeta)} {res : Expr}
+      {a b : Expr} {k : NestFieldKind} {nd : Expr} {ks : List NestFieldKind}
+      {nds : List Expr} {res : Expr}
       (hm₁ : m₁ ≤ n)
       (ha : PosDR ops env ctx m₁ (.field act prog (base + j) 0 a k nd))
       (hm₃ : m₃ ≤ n)
       (hb : PosDR ops env ctx m₃
         (.tele act prog base nF (j + 1) (b.instantiate1 (.fvar (base + j) a)) ks nds res)) :
       PosDR ops env ctx n
-        (.tele act prog base (nF + 1) j (.forallE a b bm) (k :: ks) ((nd, bm) :: nds) res)
+        (.tele act prog base (nF + 1) j (.forallE a b) (k :: ks) (nd :: nds) res)
 
 /-! ## Fuel monotonicity (one step: every premise is at a bounded index) -/
 
@@ -564,7 +564,7 @@ theorem posDR_run (hroot : NestRootOk ctx) {n : Nat} {J : PosJR} (h : PosDR ops 
   | teleNil =>
     intro fuel _ st hI
     exact ⟨[], st, fun _ => rfl, rfl, hI⟩
-  | @teleCons n m₁ m₃ act prog base nF j a b bm k nd ks nds res hm₁ ha hm₃ hb iha ihb =>
+  | @teleCons n m₁ m₃ act prog base nF j a b k nd ks nds res hm₁ ha hm₃ hb iha ihb =>
     intro fuel hf st hI
     obtain ⟨k₁, st₁, h₁, hk₁, hI₁⟩ := iha fuel (by omega) st hI
     obtain ⟨ks₂, st₃, h₃, hks₂, hI₃⟩ := ihb fuel (by omega) st₁ hI₁

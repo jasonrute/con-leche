@@ -21,9 +21,7 @@ pushed by `FEnv.pushAll`).  The facts the proofs about that code need:
 * `classRecsRulesOk_classFeROvl` — the rule stage at the cached
   operations, which read the rule environment only through `find?` and
   `env` (`ConLeche/Verify/Cached/KnotCongr.lean`), answers at the overlay
-  as at the pushed `classFeR`;
-* `pushAll_mkFEnv` — pushing a list onto a canonical index is the
-  canonical index of the extended environment.
+  as at the pushed `classFeR`.
 
 The parallel install's congruence in the index
 (`ConLeche/Verify/Cached/ViewCongr.lean`) uses them too.  It imports
@@ -200,15 +198,5 @@ theorem classRecsRulesOk_classFeROvl {fe : FEnv} (h : fe.ovl = []) (p : BlockSha
     (classFeROvl_env h p Ms cvGs recCls) g recOf cvGs recCls
 
 /-! ## The stored recursors' pushes -/
-
-/-- Pushing a list onto a canonical index is the canonical index of the
-environment with the list consed on, newest (last pushed) first. -/
-theorem pushAll_mkFEnv : ∀ (cis : List ConstantInfo) (env : Env),
-    FEnv.pushAll cis (mkFEnv env) = mkFEnv ⟨cis.reverse ++ env.consts⟩
-  | [], env => rfl
-  | ci :: rest, env => by
-    show FEnv.pushAll rest (mkFEnv ⟨ci :: env.consts⟩) = _
-    rw [pushAll_mkFEnv rest]
-    simp
 
 end ConLeche.Cached

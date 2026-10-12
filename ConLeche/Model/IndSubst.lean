@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.IndFrame
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 
 public section
 
@@ -13,7 +13,7 @@ corollaries (`instSeqAV_*`).
 
 **Why these are not free, and why they are cheap.**  `AnnotTerm.liftN`
 and `AnnotTerm.inst` are `Term`'s clause for clause with the numeral
-slots carried inert (`Annot/Syntax.lean`), so `erase` is a
+slots carried inert (`Semantics/Syntax.lean`), so `erase` is a
 homomorphism for both — but an equation between *readings* is strictly
 stronger than an equation between their erasures, so no erasure
 argument transports.  So each law is re-proved by the

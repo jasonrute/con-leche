@@ -2,12 +2,6 @@ module
 
 public import ConLeche.Kernel.PropRead
 public import ConLeche.Verify.Shift
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import ConLeche.Kernel.PropWhen
-import all ConLeche.Kernel.PropWhen
 
 public section
 
@@ -31,12 +25,6 @@ theorem Expr.numArgs_shiftFrom {p : Nat} :
   intro e
   induction e <;> simp_all [shiftFrom, numArgs]
   case fvar => split <;> rfl
-
-theorem lamProj?_shiftFrom {p : Nat} :
-    ∀ (k : Nat) (e : Expr), lamProj? k (shiftFrom p e) = lamProj? k e := by
-  intro k e
-  induction e generalizing k <;> simp_all [shiftFrom, lamProj?]
-  split <;> rfl
 
 /-- `getD` through a mapped list, the default mapped too. -/
 theorem List.getD_map_shiftFrom {p : Nat} (l : List Expr) (i : Nat) (d : Expr) :
@@ -90,20 +78,13 @@ theorem unwrapIdDefs_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} 
 theorem peelPisW_succ_eq (find? : Name → Option ConstantInfo) (n : Nat) (e : Expr) :
     peelPisW find? (n + 1) e =
       match unwrapIdDefs find? 4 e with
-      | .forallE _ b _ => peelPisW find? n b
+      | .forallE _ b => peelPisW find? n b
       | _ => none := by
   cases e with
-  | forallE ty b m =>
+  | forallE ty b =>
     rw [unwrapIdDefs_succ_of_not_const find? (by intro c us h; exact nomatch h)]
     rfl
   | _ => rfl
-
-theorem shiftFrom_not_forallE {p : Nat} {e : Expr} (h : ∀ ty b m, e ≠ .forallE ty b m) :
-    ∀ ty b m, shiftFrom p e ≠ .forallE ty b m := by
-  intro ty b m he
-  cases e <;> simp only [shiftFrom, reduceCtorEq] at he
-  case fvar => split at he <;> exact nomatch he
-  case forallE ty₀ b₀ m₀ => exact h ty₀ b₀ m₀ rfl
 
 theorem peelPisW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
     ∀ (n : Nat) (e : Expr),
@@ -115,7 +96,7 @@ theorem peelPisW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
     intro e
     rw [peelPisW_succ_eq, peelPisW_succ_eq, unwrapIdDefs_shiftFrom]
     cases unwrapIdDefs find? 4 e with
-    | forallE ty b m => simp only [shiftFrom, ih]
+    | forallE ty b => simp only [shiftFrom, ih]
     | fvar idx ty => by_cases hp : idx ≥ p <;> simp [shiftFrom, hp]
     | _ => rfl
 
@@ -154,7 +135,7 @@ theorem typeSortPWGo_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
         typeSortPWGo find? root R d := by
   intro R
   induction R with
-  | forallE ty b m _ ihb => intro d; simp only [shiftFrom, typeSortPWGo, ihb]
+  | forallE ty b _ ihb => intro d; simp only [shiftFrom, typeSortPWGo, ihb]
   | sort u => intro d; rfl
   | fvar idx ty =>
     intro d
@@ -164,7 +145,7 @@ theorem typeSortPWGo_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
     split <;> intro h <;> exact h
   | bvar i => intro d; exact headTypePW_shiftFrom find? root d (.bvar i) 0
   | const n us => intro d; exact headTypePW_shiftFrom find? root d (.const n us) 0
-  | lam ty b m => intro d; exact headTypePW_shiftFrom find? root d (.lam ty b m) 0
+  | lam ty b => intro d; exact headTypePW_shiftFrom find? root d (.lam ty b) 0
   | letE ty v b => intro d; exact headTypePW_shiftFrom find? root d (.letE ty v b) 0
   | lit l => intro d; exact headTypePW_shiftFrom find? root d (.lit l) 0
   | proj sn i e => intro d; exact headTypePW_shiftFrom find? root d (.proj sn i e) 0
@@ -192,7 +173,7 @@ theorem proofPW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
     ∀ (a : Expr), proofPW find? (shiftFrom p a) = proofPW find? a := by
   intro a
   induction a with
-  | lam ty b m _ ihb => simp only [shiftFrom, proofPW, ihb]
+  | lam ty b _ ihb => simp only [shiftFrom, proofPW, ihb]
   | letE ty v b _ _ ihb => simp only [shiftFrom, proofPW, ihb]
   | app f x ihf _ => simp only [shiftFrom, proofPW, ihf]
   | fvar idx ty =>
@@ -229,7 +210,7 @@ theorem residualPW_some_inv {o : Option Expr} {pw : PropWhen}
   | some (.sort u), h => exact ⟨u, rfl, (Option.some.inj h).symm⟩
   | none, h => exact nomatch h
   | some (.bvar _), h | some (.fvar _ _), h | some (.const _ _), h
-  | some (.app _ _), h | some (.lam _ _ _), h | some (.forallE _ _ _), h
+  | some (.app _ _), h | some (.lam _ _), h | some (.forallE _ _), h
   | some (.letE _ _ _), h | some (.lit _), h | some (.proj _ _ _), h =>
     exact nomatch h
 

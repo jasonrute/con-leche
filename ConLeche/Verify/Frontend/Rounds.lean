@@ -239,12 +239,6 @@ theorem incAll_of_ids {s : Ctr} {l : List LineRec}
           simp only []
           omega
 
-theorem IncAll.append' {c : Ctr} {l₁ l₂ : List LineRec} (h₁ : IncAll c l₁)
-    (h₂ : IncAll (c.stepAll l₁) l₂) : IncAll c (l₁ ++ l₂) := by
-  induction l₁ generalizing c with
-  | nil => exact h₂
-  | cons r l ih => exact ⟨h₁.1, ih h₁.2 h₂⟩
-
 theorem IncAll.of_get {c : Ctr} {rs : List LineRec}
     (h : ∀ p (hp : p < rs.length), (ctrAt c rs p).fits rs[p] = true) : IncAll c rs := by
   induction rs generalizing c with
@@ -534,9 +528,6 @@ theorem WinInv.setLate {P : Prior} {bs : List ByteArray} {W : Win} (hW : WinInv 
   · simp only [hgetD]; rw [v1, d1]; exact hR.n
   · simp only [hgetD]; rw [v2, d2]; exact hR.l
   · simp only [hgetD]; rw [v3, d3]; exact hR.e
-
-theorem Win.setLate_c0 (W : Win) (rrs : Array RR) : (W.setLate rrs).c0 = W.c0 := rfl
-theorem Win.setLate_nc (W : Win) (rrs : Array RR) : (W.setLate rrs).nc = W.nc := rfl
 
 /-! ## The finished tables -/
 

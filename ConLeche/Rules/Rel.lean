@@ -54,10 +54,10 @@ every rule is sound on its own.  No mode index: the relation describes
 the `.verified` checker.
 
 **No rule reads a binder's annotation** (task #342 S4, the value
-reading of task #344).  `BinderMeta` is carried by the λ/∀ nodes the
-rules mention and never read: λ/∀ congruence and inference compare and
-compute no binder datum, β has no premise, and a licensed telescope
-walk certifies nothing.
+reading of task #344).  The λ/∀ nodes the rules mention carry no
+binder datum at all (task #342 drops the field from `Expr`): λ/∀
+congruence and inference compare and compute no binder datum, β has
+no premise, and a licensed telescope walk certifies nothing.
 
 Scoping (`WScoped`, `looseBVarsBounded`, `LeavesBounded`, `CtxOk`) and
 readability (`denoteMeta … = some _`) are NOT part of the inductive;
@@ -127,8 +127,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   premise: a reduction claims nothing of a redex that is the point, and
   a redex that is not the point has a λ that is not the point, a graph,
   which determines its domain, so the argument lies in it. -/
-  | beta {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
-      Red env d (.app (.lam ty body mb) a) (body.instantiate1 a)
+  | beta {d : Nat} {ty body a : Expr} :
+      Red env d (.app (.lam ty body) a) (body.instantiate1 a)
   /-- **ζ** (official `whnf_core`'s `let` case): a `let` reduces to its
   body at its value, by substitution, with no certificate — the
   substitution is an identity at every valuation (`Red.zeta_sound`,
@@ -385,11 +385,11 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
   bodies opened with the RIGHT domain, and nothing else.  A ∀'s value
   is a function of its domain's and its fibres' values, and both are
   types, never the point, so the premises' claims apply everywhere. -/
-  | forallE {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr} {m₁ m₂ : BinderMeta} :
+  | forallE {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr} :
       DefEq env d ty₁ ty₂ →
       DefEq env (d + 1) (body₁.instantiate1 (.fvar d ty₂))
         (body₂.instantiate1 (.fvar d ty₂)) →
-      DefEq env d (.forallE ty₁ body₁ m₁) (.forallE ty₂ body₂ m₂)
+      DefEq env d (.forallE ty₁ body₁) (.forallE ty₂ body₂)
   /-- **λ-congruence** (`quickDefEq`'s two-λ arm, `Kernel/Core.lean`):
   the two λ-telescopes compared level by level, the bodies' types at
   the innermost level only (`DefEqLams`). -/
@@ -416,15 +416,15 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
   not the point, is then a membership (task #342 L18); against a
   λ-headed `b` η with an io-inferred type is unsound (the fragment's
   `eta_lam_io_unsound`). -/
-  | eta {d : Nat} {ty₁ body₁ b tb ty₂ B t₁ : Expr} {m₁ m₂ : BinderMeta} :
+  | eta {d : Nat} {ty₁ body₁ b tb ty₂ B t₁ : Expr} :
       b.ioNeutral = true →
-      Infer env .io d b tb → Red env d tb (.forallE ty₂ B m₂) →
+      Infer env .io d b tb → Red env d tb (.forallE ty₂ B) →
       DefEq env d ty₂ ty₁ →
       DefEq env (d + 1) (body₁.instantiate1 (.fvar d ty₁))
         (.app b (.fvar d ty₁)) →
       Infer env .full (d + 1) (body₁.instantiate1 (.fvar d ty₁)) t₁ →
       DefEq env (d + 1) t₁ (B.instantiate1 (.fvar d ty₁)) →
-      DefEq env d (.lam ty₁ body₁ m₁) b
+      DefEq env d (.lam ty₁ body₁) b
   /-- **The `isProofFast` yes-arm** (`propIrrel`, `Kernel/Core.lean`):
   both heads' stored data say "a proposition at every valuation"
   (`prf_of_isProofFast`). -/
@@ -518,21 +518,21 @@ inductive DefEqLams (env : Env) : Nat → Expr → Expr → Prop where
   | refl {d : Nat} {a : Expr} : DefEqLams env d a a
   /-- The innermost level: domains, bodies opened with the RIGHT
   domain, and the opened bodies' full-grade types. -/
-  | inner {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ : Expr} {m₁ m₂ : BinderMeta} :
+  | inner {d : Nat} {ty₁ body₁ ty₂ body₂ t₁ t₂ : Expr} :
       DefEq env d ty₁ ty₂ →
       DefEq env (d + 1) (body₁.instantiate1 (.fvar d ty₂))
         (body₂.instantiate1 (.fvar d ty₂)) →
       Infer env .full (d + 1) (body₁.instantiate1 (.fvar d ty₂)) t₁ →
       Infer env .full (d + 1) (body₂.instantiate1 (.fvar d ty₂)) t₂ →
       DefEq env (d + 1) t₁ t₂ →
-      DefEqLams env d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂)
+      DefEqLams env d (.lam ty₁ body₁) (.lam ty₂ body₂)
   /-- An outer level: the domains, and the opened bodies by this
   relation — no inference, no type comparison. -/
-  | outer {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr} {m₁ m₂ : BinderMeta} :
+  | outer {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr} :
       DefEq env d ty₁ ty₂ →
       DefEqLams env (d + 1) (body₁.instantiate1 (.fvar d ty₂))
         (body₂.instantiate1 (.fvar d ty₂)) →
-      DefEqLams env d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂)
+      DefEqLams env d (.lam ty₁ body₁) (.lam ty₂ body₂)
 
 /-- **Type inference** at a grade. -/
 inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
@@ -563,11 +563,11 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
   /-- **∀-formation** (`Kernel/Core.lean`): the domain's type reduces to
   a sort, the opened body's type reduces to a sort; Lean's own rule. -/
   | forallE {g : Grade} {d : Nat} {ty body s bs : Expr} {u v : Level}
-      {mb : BinderMeta} :
+      :
       Infer env g d ty s → Red env d s (.sort u) →
       Infer env g (d + 1) (body.instantiate1 (.fvar d ty)) bs →
       Red env (d + 1) bs (.sort v) →
-      Infer env g d (.forallE ty body mb) (.sort (.imax u v))
+      Infer env g d (.forallE ty body) (.sort (.imax u v))
   /-- **λ** (`Kernel/Core.lean`): at the full grade the domain's type
   reduces to a sort (`g = .full →`: official's `infer_lambda` skips it
   at `infer_only`); the opened body is inferred at the grade, and the
@@ -576,11 +576,11 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
   read off its body's values, not off a sort.  The `s u` witnesses are
   junk where their premise is vacuous. -/
   | lam {g : Grade} {d : Nat} {ty body s bt : Expr} {u : Level}
-      {mb : BinderMeta} :
+      :
       (g = .full → Infer env .full d ty s) →
       (g = .full → Red env d s (.sort u)) →
       Infer env g (d + 1) (body.instantiate1 (.fvar d ty)) bt →
-      Infer env g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb)
+      Infer env g d (.lam ty body) (.forallE ty (bt.abstract1 d))
   /-- **`let`** (official `infer_let`, by substitution as nanoda's: no
   let-variable).  At the full grade the type's type reduces to a sort
   and the value's full-grade type is definitionally equal to the type;
@@ -603,8 +603,8 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
   graph, and a graph determines its domain, which is therefore the
   application slot's (the hereditary claim `IORel`, task #346).  The
   witness `ta` is junk where its premise is vacuous. -/
-  | app {g : Grade} {d : Nat} {f a tf ty body ta : Expr} {mt : BinderMeta} :
-      Infer env g d f tf → Red env d tf (.forallE ty body mt) →
+  | app {g : Grade} {d : Nat} {f a tf ty body ta : Expr} :
+      Infer env g d f tf → Red env d tf (.forallE ty body) →
       (g = .full → Infer env .full d a ta) →
       (g = .full → DefEq env d ta ty) →
       Infer env g d (.app f a) (body.instantiate1 a)
@@ -631,10 +631,10 @@ FULL-grade type is definitionally equal to its binder domain, the
 domains instantiated along the spine; no slot is skipped. -/
 inductive CertsF (env : Env) : Nat → Expr → List Expr → Prop where
   | nil {d : Nat} {T : Expr} : CertsF env d T []
-  | cert {d : Nat} {ty body arg ta : Expr} {mb : BinderMeta} {rest : List Expr} :
+  | cert {d : Nat} {ty body arg ta : Expr} {rest : List Expr} :
       Infer env .full d arg ta → DefEq env d ta ty →
       CertsF env d (body.instantiate1 arg) rest →
-      CertsF env d (.forallE ty body mb) (arg :: rest)
+      CertsF env d (.forallE ty body) (arg :: rest)
 
 /-- **Pairwise definitional equality** (`defEqList`, `Kernel/Core.lean`). -/
 inductive DefEqList (env : Env) : Nat → List Expr → List Expr → Prop where

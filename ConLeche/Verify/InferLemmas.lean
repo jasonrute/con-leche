@@ -43,7 +43,7 @@ machinery), or the application is stuck. -/
 theorem whnf_app_inv {env : Env} {fuel d : Nat} {f a e' : Expr} {c : Bool}
     (h : whnfCore mode env (fuel + 1) d (.app f a) c = .ok e') :
     ∃ f', whnfCore mode env fuel d f c = .ok f' ∧
-      ((∃ ty body m, f' = .lam ty body m ∧
+      ((∃ ty body, f' = .lam ty body ∧
           whnfCore mode env fuel d (body.instantiate1 a) c = .ok e') ∨
         (∃ e'', iotaRecFueled mode env fuel d (.app f' a) = .ok (some e'') ∧
           whnfCore mode env fuel d e'' c = .ok e') ∨
@@ -58,11 +58,11 @@ theorem whnf_app_inv {env : Env} {fuel d : Nat} {f a e' : Expr} {c : Bool}
   dsimp only at h
   refine ⟨f', rfl, ?_⟩
   match f', h with
-  | .lam ty body m, h => exact Or.inl ⟨ty, body, m, rfl, h⟩
+  | .lam ty body, h => exact Or.inl ⟨ty, body, rfl, h⟩
   | .sort u, h => ?_
   | .fvar i t', h => ?_
   | .const n' us, h => ?_
-  | .forallE t' b' m', h => ?_
+  | .forallE t' b', h => ?_
   | .bvar i, h => ?_
   | .app f'' a'', h => ?_
   | .letE t' v' b', h => ?_
@@ -133,14 +133,14 @@ sort** (task #152), delivered at the verified modes only, in the
 shape the checker computes it (infer, then whnf to a sort).  At
 `.trusted`, which does not run the check, it is vacuous. -/
 theorem inferTypeCore_lam_inv {env : Env} {fuel d : Nat}
-    {ty body t : Expr} {m : BinderMeta}
-    (h : inferTypeCore mode env (fuel + 1) d (.lam ty body m) = .ok t) :
+    {ty body t : Expr}
+    (h : inferTypeCore mode env (fuel + 1) d (.lam ty body) = .ok t) :
     ∃ tty u bt,
       inferTypeCore mode env fuel d ty = .ok tty ∧
       whnf mode env fuel d tty = .ok (.sort u) ∧
       inferTypeCore mode env fuel (d + 1)
         (body.instantiate1 (.fvar d ty)) = .ok bt ∧
-      t = .forallE ty (bt.abstract1 d) m := by
+      t = .forallE ty (bt.abstract1 d) := by
   rw [inferTypeCore_succ] at h
   simp only [inferBody, pure, Except.pure, Bind.bind, Except.bind] at h
   simp only [infer_def, whnf_def] at h
@@ -157,8 +157,8 @@ theorem inferTypeCore_lam_inv {env : Env} {fuel d : Nat}
   revert h
   match wtty with
   | .sort u => ?_
-  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; simp [throw, throwThe, MonadExceptOf.throw] at h
   intro h
   dsimp only at h
@@ -176,8 +176,8 @@ possibly-Prop gate of task #49 is unsound-to-model under the
 domain-relative collapse). -/
 theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
     (h : inferTypeCore mode env (fuel + 1) d (.app f a) = .ok t) :
-    ∃ tf ty' body' m', inferTypeCore mode env fuel d f = .ok tf ∧
-      whnf mode env fuel d tf = .ok (.forallE ty' body' m') ∧
+    ∃ tf ty' body', inferTypeCore mode env fuel d f = .ok tf ∧
+      whnf mode env fuel d tf = .ok (.forallE ty' body') ∧
       t = body'.instantiate1 a ∧
       ∃ ta, inferTypeCore mode env fuel d a = .ok ta ∧
         isDefEqCore mode env fuel d ta ty' = .ok true := by
@@ -195,11 +195,11 @@ theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
   rw [hw] at h
   dsimp only at h
   match w, h with
-  | .forallE ty' body' m', h => ?_
+  | .forallE ty' body', h => ?_
   | .sort u, h => exact nomatch h
   | .fvar i t2, h => exact nomatch h
   | .const n2 us, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
   | .bvar i, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
@@ -219,14 +219,14 @@ theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
   | false => simp [throw, throwThe, MonadExceptOf.throw] at h
   | true =>
     simp only [ite_true, pure, Except.pure, Except.ok.injEq] at h
-    exact ⟨tf, ty', body', m', rfl, hw, h.symm, ta, rfl, hde⟩
+    exact ⟨tf, ty', body', rfl, hw, h.symm, ta, rfl, hde⟩
 
 /-- Inversion for the ∀-rule of `inferTypeCore` (task #100 stage 6:
 the codomain sort is inferred from the opened body — the stored
 annotation is not read). -/
 theorem inferTypeCore_forall_inv {env : Env} {fuel d : Nat}
-    {ty body t : Expr} {m : BinderMeta}
-    (h : inferTypeCore mode env (fuel + 1) d (.forallE ty body m) = .ok t) :
+    {ty body t : Expr}
+    (h : inferTypeCore mode env (fuel + 1) d (.forallE ty body) = .ok t) :
     ∃ tty u bt v, inferTypeCore mode env fuel d ty = .ok tty ∧
       whnf mode env fuel d tty = .ok (.sort u) ∧
       inferTypeCore mode env fuel (d + 1)
@@ -250,8 +250,8 @@ theorem inferTypeCore_forall_inv {env : Env} {fuel d : Nat}
   revert h
   match w with
   | .sort u => ?_
-  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; simp [throw, throwThe, MonadExceptOf.throw] at h
   intro h
   dsimp only at h
@@ -281,8 +281,8 @@ theorem ensureSortCore_inv {env : Env} {fuel d : Nat} {t : Expr} {u : Level}
   revert h
   match w with
   | .sort u' => ?_
-  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; simp [throw, throwThe, MonadExceptOf.throw] at h
   intro h
   simp only [pure, Except.pure, Except.ok.injEq] at h
@@ -351,12 +351,12 @@ is what this module is for, and the model tier's projection case
 consumes them from here. -/
 
 theorem whnf_forallE_eq {env : Env} {fuel d : Nat}
-    {t b e' : Expr} {mb : BinderMeta}
-    (h : whnf mode env fuel d (.forallE t b mb) = .ok e') :
-    e' = .forallE t b mb := by
+    {t b e' : Expr}
+    (h : whnf mode env fuel d (.forallE t b) = .ok e') :
+    e' = .forallE t b := by
   have h1 := whnf_mono (Nat.le_add_right fuel 2) h
-  have h2 : whnf mode env (fuel + 2) d (.forallE t b mb) =
-      .ok (.forallE t b mb) := by
+  have h2 : whnf mode env (fuel + 2) d (.forallE t b) =
+      .ok (.forallE t b) := by
     -- one iteration of the reduction loop suffices (task #106: the
     -- budget is `irreducible`, so peel it with its positivity witness)
     obtain ⟨k, hk⟩ := whnfLoopFuel_succ
@@ -369,17 +369,17 @@ theorem whnf_forallE_eq {env : Env} {fuel d : Nat}
 
 theorem inferTypeCore_app_inv' {env : Env} {fuel d : Nat}
     {f a t : Expr} (h : inferTypeCore mode env fuel d (.app f a) = .ok t) :
-    ∃ tf ty' body' m', inferTypeCore mode env fuel d f = .ok tf ∧
-      whnf mode env fuel d tf = .ok (.forallE ty' body' m') ∧
+    ∃ tf ty' body', inferTypeCore mode env fuel d f = .ok tf ∧
+      whnf mode env fuel d tf = .ok (.forallE ty' body') ∧
       t = body'.instantiate1 a ∧
       ∃ ta, inferTypeCore mode env fuel d a = .ok ta ∧
         isDefEqCore mode env fuel d ta ty' = .ok true := by
   match fuel, h with
   | 0, h => rw [inferTypeCore_zero] at h; exact nomatch h
   | fuel + 1, h =>
-    obtain ⟨tf, ty', body', m', h1, h2, h3, ta, h4, h5⟩ :=
+    obtain ⟨tf, ty', body', h1, h2, h3, ta, h4, h5⟩ :=
       inferTypeCore_app_inv h
-    exact ⟨tf, ty', body', m', inferTypeCore_mono (Nat.le_succ _) h1,
+    exact ⟨tf, ty', body', inferTypeCore_mono (Nat.le_succ _) h1,
       whnf_mono (Nat.le_succ _) h2, h3, ta,
       inferTypeCore_mono (Nat.le_succ _) h4,
       isDefEqCore_mono (Nat.le_succ _) h5⟩
@@ -721,8 +721,8 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   | fvar i ty => intro h; exact nomatch h
   | sort u => intro h; exact nomatch h
   | app f a => intro h; exact nomatch h
-  | lam ty body m => intro h; exact nomatch h
-  | forallE ty body m => intro h; exact nomatch h
+  | lam ty body => intro h; exact nomatch h
+  | forallE ty body => intro h; exact nomatch h
   | letE ty v body => intro h; exact nomatch h
   | lit l => intro h; exact nomatch h
   | proj sn i pe => intro h; exact nomatch h
@@ -758,8 +758,8 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   | fvar i ty => intro h; exact nomatch h
   | sort u => intro h; exact nomatch h
   | app f a => intro h; exact nomatch h
-  | lam ty body m => intro h; exact nomatch h
-  | forallE ty body m => intro h; exact nomatch h
+  | lam ty body => intro h; exact nomatch h
+  | forallE ty body => intro h; exact nomatch h
   | letE ty v body => intro h; exact nomatch h
   | lit l => intro h; exact nomatch h
   | proj sn i pe => intro h; exact nomatch h
@@ -955,8 +955,8 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
   dsimp only at h
   revert h
   match hpr : (cvj.type.piResult).getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; dsimp only at h
     simp only [pure, Except.pure, Except.ok.injEq] at h
     exact Or.inl h.symm
@@ -1009,11 +1009,11 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       intro h; dsimp only at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
-    | lam ty body m =>
+    | lam ty body =>
       intro h; dsimp only at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
-    | forallE ty body m =>
+    | forallE ty body =>
       intro h; dsimp only at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
@@ -1141,11 +1141,11 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
         intro h; dsimp only at h
         simp only [pure, Except.pure, Except.ok.injEq] at h
         exact Or.inl h.symm
-      | lam ty body m =>
+      | lam ty body =>
         intro h; dsimp only at h
         simp only [pure, Except.pure, Except.ok.injEq] at h
         exact Or.inl h.symm
-      | forallE ty body m =>
+      | forallE ty body =>
         intro h; dsimp only at h
         simp only [pure, Except.pure, Except.ok.injEq] at h
         exact Or.inl h.symm
@@ -1258,11 +1258,11 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       intro h; dsimp only at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
-    | lam ty body m =>
+    | lam ty body =>
       intro h; dsimp only at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
-    | forallE ty body m =>
+    | forallE ty body =>
       intro h; dsimp only at h
       simp only [pure, Except.pure, Except.ok.injEq] at h
       exact Or.inl h.symm
@@ -1351,16 +1351,16 @@ theorem defeqSpine_inv {env : Env} {fuel d : Nat} {a b : Expr}
   simp only [defeqSpine, defEqList_fold] at h
   revert h
   match hfa : a.getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; simp [pure, Except.pure] at h
   | .const n us => ?_
   intro h
   dsimp only at h
   revert h
   match hfb : b.getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; simp [pure, Except.pure] at h
   | .const n' us' => ?_
   intro h
@@ -1382,8 +1382,8 @@ theorem defeqSpine_inv {env : Env} {fuel d : Nat} {a b : Expr}
 L10): the argument's FULL-grade type is defeq to the domain, and the
 rest certifies. -/
 theorem iotaCertsFull_step_inv {env : Env} {fuel d : Nat}
-    {ty body : Expr} {m : BinderMeta} {arg : Expr} {rest : List Expr}
-    (h : iotaCertsFullFueled mode env fuel d (.forallE ty body m) (arg :: rest) =
+    {ty body : Expr} {arg : Expr} {rest : List Expr}
+    (h : iotaCertsFullFueled mode env fuel d (.forallE ty body) (arg :: rest) =
       .ok true) :
     ∃ ta, inferTypeCore mode env fuel d arg = .ok ta ∧
       isDefEqCore mode env fuel d ta ty = .ok true ∧
@@ -1455,8 +1455,8 @@ theorem propIrrel_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | .fvar i2 t2, h => exact nomatch h
   | .const n2 us2, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
-  | .forallE t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
+  | .forallE t2 b2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
   | .lit l2, h => exact nomatch h
   | .proj s2 i2 e3, h => exact nomatch h
@@ -1488,8 +1488,8 @@ theorem propIrrel_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | .fvar i2 t2, h => exact nomatch h
   | .const n2 us2, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
-  | .forallE t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
+  | .forallE t2 b2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
   | .lit l2, h => exact nomatch h
   | .proj s2 i2 e3, h => exact nomatch h
@@ -1541,8 +1541,8 @@ theorem proofIrrel_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | .fvar i2 t2, h => exact nomatch h
   | .const n2 us2, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
-  | .forallE t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
+  | .forallE t2 b2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
   | .lit l2, h => exact nomatch h
   | .proj s2 i2 e3, h => exact nomatch h
@@ -1574,8 +1574,8 @@ theorem proofIrrel_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | .fvar i2 t2, h => exact nomatch h
   | .const n2 us2, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
-  | .forallE t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
+  | .forallE t2 b2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
   | .lit l2, h => exact nomatch h
   | .proj s2 i2 e3, h => exact nomatch h
@@ -1652,8 +1652,8 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
   | .fvar _ _ => intro h; exact nomatch h
   | .sort _ => intro h; exact nomatch h
   | .app _ _ => intro h; exact nomatch h
-  | .lam _ _ _ => intro h; exact nomatch h
-  | .forallE _ _ _ => intro h; exact nomatch h
+  | .lam _ _ => intro h; exact nomatch h
+  | .forallE _ _ => intro h; exact nomatch h
   | .letE _ _ _ => intro h; exact nomatch h
   | .lit _ => intro h; exact nomatch h
   | .proj _ _ _ => intro h; exact nomatch h
@@ -1681,8 +1681,8 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
   | .fvar _ _ => intro h; exact nomatch h
   | .sort _ => intro h; exact nomatch h
   | .app _ _ => intro h; exact nomatch h
-  | .lam _ _ _ => intro h; exact nomatch h
-  | .forallE _ _ _ => intro h; exact nomatch h
+  | .lam _ _ => intro h; exact nomatch h
+  | .forallE _ _ => intro h; exact nomatch h
   | .letE _ _ _ => intro h; exact nomatch h
   | .lit _ => intro h; exact nomatch h
   | .proj _ _ _ => intro h; exact nomatch h
@@ -1798,8 +1798,8 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | .fvar _ _ => intro h; exact nomatch h
   | .sort _ => intro h; exact nomatch h
   | .app _ _ => intro h; exact nomatch h
-  | .lam _ _ _ => intro h; exact nomatch h
-  | .forallE _ _ _ => intro h; exact nomatch h
+  | .lam _ _ => intro h; exact nomatch h
+  | .forallE _ _ => intro h; exact nomatch h
   | .letE _ _ _ => intro h; exact nomatch h
   | .lit _ => intro h; exact nomatch h
   | .proj _ _ _ => intro h; exact nomatch h
@@ -1846,9 +1846,9 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
 /-- Inversion of a successful eta certification. -/
 theorem etaCert_inv {env : Env} {fuel d : Nat} {ty₁ body₁ b : Expr}
     (h : etaCertFueled mode env fuel d ty₁ body₁ b = .ok true) :
-    b.ioNeutral = true ∧ ∃ tb ty₂ fb m₂,
+    b.ioNeutral = true ∧ ∃ tb ty₂ fb,
       inferTypeIO mode env fuel d b = .ok tb ∧
-      whnf mode env fuel d tb = .ok (.forallE ty₂ fb m₂) ∧
+      whnf mode env fuel d tb = .ok (.forallE ty₂ fb) ∧
       isDefEqCore mode env fuel d ty₂ ty₁ = .ok true ∧
       isDefEqCore mode env fuel (d + 1) (body₁.instantiate1 (.fvar d ty₁))
         (.app b (.fvar d ty₁)) = .ok true ∧
@@ -1873,13 +1873,13 @@ theorem etaCert_inv {env : Env} {fuel d : Nat} {ty₁ body₁ b : Expr}
   | ok wtb =>
   rw [hwtb] at h
   match wtb, h with
-  | .forallE ty₂ fb m₂, h => ?_
+  | .forallE ty₂ fb, h => ?_
   | .bvar i2, h => exact nomatch h
   | .fvar i2 t2, h => exact nomatch h
   | .sort u2, h => exact nomatch h
   | .const n2 us2, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
   | .lit l2, h => exact nomatch h
   | .proj s2 i2 e3, h => exact nomatch h
@@ -1903,7 +1903,7 @@ theorem etaCert_inv {env : Env} {fuel d : Nat} {ty₁ body₁ b : Expr}
   | false => simp [pure, Except.pure] at h
   | true =>
   simp only [↓reduceIte] at h
-  refine ⟨tb, ty₂, fb, m₂, rfl, hwtb, hd1, rfl, ?_⟩
+  refine ⟨tb, ty₂, fb, rfl, hwtb, hd1, rfl, ?_⟩
   intro hv
   rw [hv] at h
   simp only [↓reduceIte] at h
@@ -1962,8 +1962,8 @@ theorem inferTypeCore_proj_inv {env : Env} {fuel d : Nat} {sn : Name} {i : Nat}
   | sort u => intro h; exact nomatch h
   | fvar i2 t2 => intro h; exact nomatch h
   | app f2 a2 => intro h; exact nomatch h
-  | lam t2 b2 m2 => intro h; exact nomatch h
-  | forallE t2 b2 m2 => intro h; exact nomatch h
+  | lam t2 b2 => intro h; exact nomatch h
+  | forallE t2 b2 => intro h; exact nomatch h
   | letE t2 v2 b2 => intro h; exact nomatch h
   | lit l2 => intro h; exact nomatch h
   | proj s2 i2 e2 => intro h; exact nomatch h
@@ -2009,16 +2009,6 @@ Shared by the inversion's consumers: the stored entry type is a stored
 constant's closed type, and `instPisAt` preserves scoping.
 (`instPisAt_WScoped` moved here from `BridgeWfImp` so the leaf modules
 can reach it.) -/
-
-/-- A stored constant's type has no fvars (`ConstWF`), after any level
-instantiation — the projection certificate's telescope (task #175 W6). -/
-theorem const_ty_hasFvar {env : Env} (henv : EnvWF env) {n : Name}
-    {ci : ConstantInfo} (hf : env.find? n = some ci) (us : List Level) :
-    (ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams
-      us).hasFvar = false := by
-  have hwf := henv _ (List.mem_of_find?_eq_some hf)
-  rw [Expr.hasFvar_instantiateLevelParams]
-  exact hwf.1
 
 /-- A stored projection entry's body is well-formed (`EnvWF`'s table
 clause at the view, task #175 S1): fvar-free, level-defined,
@@ -2130,7 +2120,7 @@ theorem instPisAt_WScoped {d : Nat} :
     exact ⟨(fun x hx => nomatch hx), hty⟩
   | a :: as, ty, doms, res, h, hty, hargs => by
     cases ty with
-    | forallE dom body mb =>
+    | forallE dom body =>
       simp only [Expr.instPisAt] at h
       revert h
       cases hrec : Expr.instPisAt as (body.instantiate1 a) with
@@ -2151,7 +2141,7 @@ theorem instPisAt_WScoped {d : Nat} :
           rcases List.mem_cons.mp hx with rfl | hx
           · exact hdom
           · exact hds x hx, hres⟩
-    | bvar _ | fvar _ _ | sort _ | const _ _ | app _ _ | lam _ _ _
+    | bvar _ | fvar _ _ | sort _ | const _ _ | app _ _ | lam _ _
     | letE _ _ _ | lit _ | proj _ _ _ => exact nomatch h
 
 /-! ## Well-scopedness preservation through reduction -/
@@ -2185,7 +2175,7 @@ theorem litMajorToCtorFueled_inv {env : Env} {fuel d : Nat} {e e₁ : Expr}
       Except.ok.injEq] at h
     exact Or.inl h.symm
   | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _
-  | .lam _ _ _ | .forallE _ _ _ | .letE _ _ _ | .proj _ _ _ =>
+  | .lam _ _ | .forallE _ _ | .letE _ _ _ | .proj _ _ _ =>
     simp only [litMajorToCtorFueled, litMajorToCtor, pure, Except.pure,
       Except.ok.injEq] at h
     exact Or.inl h.symm
@@ -2214,11 +2204,10 @@ theorem projLitToCtorFueled_inv {env : Env} {fuel d : Nat} {e e₁ : Expr}
       Except.ok.injEq] at h
     exact Or.inl h.symm
   | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _
-  | .lam _ _ _ | .forallE _ _ _ | .letE _ _ _ | .proj _ _ _ =>
+  | .lam _ _ | .forallE _ _ | .letE _ _ _ | .proj _ _ _ =>
     simp only [projLitToCtorFueled, projLitToCtor, pure, Except.pure,
       Except.ok.injEq] at h
     exact Or.inl h.symm
-
 
 /-- A predicate passes through a firing projection rule
 (`reduceProjCore`) when it passes to an application's arguments,
@@ -2247,7 +2236,7 @@ theorem litToCtorIfNat_WScoped {env : Env} {d : Nat} {e : Expr}
     · exact hw
   | .lit (.strVal _) => exact hw
   | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _
-  | .lam _ _ _ | .forallE _ _ _ | .letE _ _ _ | .proj _ _ _ =>
+  | .lam _ _ | .forallE _ _ | .letE _ _ _ | .proj _ _ _ =>
     exact hw
 
 /-- The fast-path reducts are closed atoms. -/
@@ -2329,18 +2318,18 @@ theorem reduceNat_inv {env : Env} {fuel d : Nat} {e e₂ : Expr}
   match e with
   | .app (.const c []) a => ?_
   | .app (.app (.const c []) a) b => ?_
-  | .bvar _ | .fvar _ _ | .sort _ | .lam _ _ _ | .forallE _ _ _
+  | .bvar _ | .fvar _ _ | .sort _ | .lam _ _ | .forallE _ _
   | .letE _ _ _ | .lit _ | .proj _ _ _ | .const _ _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
   | .app (.bvar _) _ | .app (.fvar _ _) _ | .app (.sort _) _
-  | .app (.lam _ _ _) _ | .app (.forallE _ _ _) _
+  | .app (.lam _ _) _ | .app (.forallE _ _) _
   | .app (.letE _ _ _) _ | .app (.lit _) _ | .app (.proj _ _ _) _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
   | .app (.const c (_ :: _)) _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
   | .app (.app (.bvar _) _) _ | .app (.app (.fvar _ _) _) _
   | .app (.app (.sort _) _) _ | .app (.app (.app _ _) _) _
-  | .app (.app (.lam _ _ _) _) _ | .app (.app (.forallE _ _ _) _) _
+  | .app (.app (.lam _ _) _) _ | .app (.app (.forallE _ _) _) _
   | .app (.app (.letE _ _ _) _) _ | .app (.app (.lit _) _) _
   | .app (.app (.proj _ _ _) _) _ =>
     intro h; simp [reduceNat, pure, Except.pure] at h
@@ -2439,8 +2428,8 @@ theorem unfoldDefinition_WScoped {env : Env} (henv : EnvWF env)
   revert h
   match hfn : e.getAppFn with
   | .const n us => ?_
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; exact nomatch h
   intro h
   dsimp only at h
@@ -2495,11 +2484,11 @@ theorem whnfPres_WScoped {env : Env} (henv : EnvWF env) :
         rw [whnfCore_succ] at h
         simp only [whnfCoreBody, pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ hw
-      | forallE ty body bi =>
+      | forallE ty body =>
         rw [whnfCore_succ] at h
         simp only [whnfCoreBody, pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ hw
-      | lam ty body bi =>
+      | lam ty body =>
         rw [whnfCore_succ] at h
         simp only [whnfCoreBody, pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ hw
@@ -2522,7 +2511,7 @@ theorem whnfPres_WScoped {env : Env} (henv : EnvWF env) :
         simp only [WScoped] at hw
         obtain ⟨f', hwf, hcase⟩ := whnf_app_inv h
         have hwf' : WScoped d f' := ihCore hwf hw.1
-        rcases hcase with ⟨ty, body, mm, rfl, hbeta⟩ |
+        rcases hcase with ⟨ty, body, rfl, hbeta⟩ |
           ⟨e'', hio, hwe''⟩ | rfl
         · simp only [WScoped] at hwf'
           exact ihCore hbeta (WScoped.instantiate1_gen hw.2 0 hwf'.2)
@@ -2646,7 +2635,6 @@ theorem natPred?_WScoped {d : Nat} {e x : Expr} (h : e.natPred? = some x)
       simp only [WScoped] at hw
       exact hw.2
     · exact nomatch h
-
 
 /-! ## The lazy-delta loops' pairs (lane CHEAPPROJ)
 

@@ -171,12 +171,12 @@ Both conjuncts come off `eqValAV` directly:
 type readings both mention the spine directly, not through the
 field. -/
 theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
-    {Aa la ra : AnnotTerm} (hAa : WellDenotedV V ρ Aa) (hla : WellDenotedV V ρ la)
-    (hra : WellDenotedV V ρ ra)
+    {Aa la ra : AnnotTerm} (hAa : WellDenoted V ρ Aa) (hla : WellDenoted V ρ la)
+    (hra : WellDenoted V ρ ra)
     (hA : interp V ρ Aa ∈ˢ (univ (ψ uN) : V))
     (ha : interp V ρ la ∈ˢ interp V ρ Aa)
     (hb : interp V ρ ra ∈ˢ interp V ρ Aa) :
-    WellDenotedV V ρ (.app (.app (.app (eqValAV ψ) Aa) la) ra) ∧
+    WellDenoted V ρ (.app (.app (.app (eqValAV ψ) Aa) la) ra) ∧
       interp V ρ (.app (.app (.app (eqValAV ψ) Aa) la) ra)
         ∈ˢ (univZero : V) := by
   have hmem := eqValAV_mem (V := V) ψ ρ

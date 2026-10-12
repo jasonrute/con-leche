@@ -4,7 +4,7 @@ public import ConLeche.Model.Inductives.NestPosMono
 public import ConLeche.Semantics.SubstAV
 import ConLeche.Semantics.Inductives.FieldsEqOn
 import ConLeche.Model.Inductives.ContN2
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Reading.Lemmas
 import ConLeche.Verify.InferLemmas
 
 public section
@@ -92,8 +92,8 @@ fit of the recorded constructor from the hole frame the substituted
 smaller walk valuation IS to the one the substituted larger one is. -/
 theorem ctor_transfer {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     {ctx : NestCtx} {hi' : Nat} {cur : Expr}
-    {ab : List (Nat × Nat × AnnotTerm)} {Δ : List AnnotTerm}
-    (hEq : FieldsEqOn V Δ (ab.map (·.2.2)) (D.fields ψ c j))
+    {ab : List AnnotTerm} {Δ : List AnnotTerm}
+    (hEq : FieldsEqOn V Δ ab (D.fields ψ c j))
     (hlen : ab.length = nF)
     {τ : Nat → AnnotTerm} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
     {R' : FrameRel V}
@@ -114,7 +114,7 @@ theorem ctor_transfer {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
   rw [← hlenS] at hwalk
   obtain ⟨htele, hresAt⟩ := piPosThen_mkPisAV _ R' _ hwalk
   -- the fields: through the substitution, the walk, and back
-  have h1 : SpineFit σS ((AnnotTerm.substTele τ 0 ab).map (·.2.2)) fs :=
+  have h1 : SpineFit σS (AnnotTerm.substTele τ 0 ab) fs :=
     (spineFit_substTele V τ ab 0 σS fs).mpr
       (by rw [hvS]; exact (hEq.spineFit_iff hsatS fs).mpr hspS)
   have h2 := spineFit_mono _ htele hR h1
@@ -126,7 +126,7 @@ theorem ctor_transfer {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
   refine ⟨e, he, ?_⟩
   rw [← heq]
   -- the result: the hole applied, its indices hole-free
-  have hfl : fs.length = nF := by rw [h1.length_eq, List.length_map, hlenS]
+  have hfl : fs.length = nF := by rw [h1.length_eq, hlenS]
   rw [hlenS, hlen] at hresAt
   have hce := resIdx_constOn hhead hresAt hres hidx e (List.mem_of_getElem? he)
     _ _ (FrameRel.underTele_consList _ fs hR h1)

@@ -1,11 +1,11 @@
 module
 
 public import ConLeche.Model.Tiers
-public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Reading.EnvExtend
+public import ConLeche.Model.Reading.ConsCross
 public import ConLeche.Semantics.ConstsBound
 public import ConLeche.Verify.Extend.Sibs
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 
 public section
 
@@ -166,7 +166,7 @@ structure ConsHead (env : Env) (c₀ : ConstantInfo)
           = some (.ctorInfo cvj cnP cnF)) ∧
       (r.k = true → ConLeche.recRuleKOf env.find? r.ctor = true) ∧
       (r.eta = true →
-        ConLeche.recRuleEtaOf env.find? c₀.name r.ctor = true)
+        ConLeche.recRuleEtaOf env.find? r.ctor = true)
 
 /-- **The head obligations of a basis cons**: the head is the pinned
 declaration, its leaf is the direct pin, it is not a projection-table
@@ -186,7 +186,7 @@ theorem ConsHead.ofBasis {c₀ : ConstantInfo}
             = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf env.find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf env.find? c₀.name r.ctor = true)) :
+          ConLeche.recRuleEtaOf env.find? r.ctor = true)) :
     ConsHead env c₀ A :=
   ⟨hwf, hvclosed, fun _ => ⟨hpinned, hleaf⟩,
     fun tbl heq => absurd heq (hnotproj tbl),
@@ -207,7 +207,7 @@ theorem ConsHead.ofFresh {c₀ : ConstantInfo}
             = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf env.find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf env.find? c₀.name r.ctor = true)) :
+          ConLeche.recRuleEtaOf env.find? r.ctor = true)) :
     ConsHead env c₀ A :=
   ⟨hwf, hvclosed,
     fun hres => absurd hres (by rw [hnres]; exact fun h => nomatch h),
@@ -255,10 +255,10 @@ head's obligation; nothing of the collapsed model is consulted. -/
 /-- `indStrictHead_of` at a cons's own leaf. -/
 theorem indStrictHead_cons {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {cv : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
-    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {s : (Name → Nat) → Nat}
+    {ab : (Name → Nat) → List AnnotTerm} {s : (Name → Nat) → Nat}
     (hread : ∀ ψ, denoteMeta (acvalWith acval cv.name A) env ψ 0 cv.type
       = some (mkPisAV (ab ψ) (.sort (s ψ))))
-    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ((ab ψ).map (·.2.2)) vs →
+    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab ψ) vs →
       Strict (vs.foldl SetTheory.app (interp V ρ (A ψ)))) :
     IndStrictHead (V := V) (acvalWith acval cv.name A) env (.indInfo cv caps) :=
   indStrictHead_of hread fun ψ hn ρ vs hsp => by
@@ -269,7 +269,7 @@ theorem indStrictHead_cons {acval : Name → (Name → Nat) → AnnotTerm} {env 
 assignment: nothing to prove. -/
 theorem indStrictHead_cons_prop {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {cv : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
-    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ab : (Name → Nat) → List AnnotTerm}
     (hread : ∀ ψ, denoteMeta (acvalWith acval cv.name A) env ψ 0 cv.type
       = some (mkPisAV (ab ψ) (.sort 0))) :
     IndStrictHead (V := V) (acvalWith acval cv.name A) env (.indInfo cv caps) :=

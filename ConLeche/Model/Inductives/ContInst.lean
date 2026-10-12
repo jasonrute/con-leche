@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Inductives.ContWalk
 import ConLeche.Model.Inductives.ContN2
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.Inductives.ContCtor
 import ConLeche.Model.NatEqs
 import ConLeche.Semantics.Tower.FixTower
@@ -10,8 +10,8 @@ import ConLeche.Verify.Inductives.HoleBack
 import ConLeche.Verify.Inductives.ReplaceApps
 import ConLeche.Verify.SubstFvars
 import ConLeche.Model.Inductives.ContSubst
-import ConLeche.Model.Annot.BitSubstFvars
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.SubstFvars
+import ConLeche.Model.Reading.Levels
 import ConLeche.Verify.Inductives.ClassGenScope
 
 public section
@@ -103,10 +103,10 @@ theorem replaceApps_canon_fill {names : List Name} {us : List Level} {n : Nat}
     split
     · rename_i h hh; exact hhit _ _ hh
     · simp only [replaceFVars, iha hb.1, ihx hb.2]
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [replaceApps, replaceFVars, iht hb.1, ihb hb.2]
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [replaceApps, replaceFVars, iht hb.1, ihb hb.2]
   | letE t v body iht ihv ihb =>
@@ -203,7 +203,7 @@ theorem instCtor_read {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
           ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
           denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
             = some (Tys.getD mm default)) ∧
-        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
+        FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab)
           (D.fields (Level.substFn φ lps us) c j)) ∧ ab.length = nF ∧
       denoteMeta mp.base2.acval env φ hi crest
         = some (mkPisAV (AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)
@@ -352,21 +352,21 @@ parameter telescope, a spine fits the instantiated constructor's fields
 as read exactly when it fits the recorded fields at the carrier's hole
 frame; and the recorded result indices read alike at the two. -/
 theorem instCtor_fit {c j : Nat} (_hc : c < D.k) (_hj : j < D.nctors c) {nF : Nat}
-    {ab : List (Nat × Nat × AnnotTerm)} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
+    {ab : List AnnotTerm} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
     (hTys : ∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
       denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
         = some (Tys.getD mm default))
-    (hEq : FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
+    (hEq : FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab)
       (D.fields (Level.substFn φ lps us) c j)) (hlen : ab.length = nF)
     {ρ : Nat → V} (hs : Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ)) :
     (∀ fs : List V,
-      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).map (·.2.2)) fs ↔
+      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs ↔
         SpineFit (D.frame (Level.substFn φ lps us) (keyFrame dsa hi ρ)
             (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))
           (D.fields (Level.substFn φ lps us) c j) fs) ∧
     ∀ fs : List V,
-      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).map (·.2.2)) fs →
+      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs →
       ∀ e ∈ D.resIdx (Level.substFn φ lps us) c j,
         interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF)
           = interp V (consList fs (D.frame (Level.substFn φ lps us) (keyFrame dsa hi ρ)
@@ -375,7 +375,7 @@ theorem instCtor_fit {c j : Nat} (_hc : c < D.k) (_hj : j < D.nctors c) {nF : Na
   have hsat := frameVals_sat mp hD hs hlenP hlT hTys
     (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) (lfpTuple_mem _ _ _ _)
   have hfit : ∀ fs : List V,
-      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).map (·.2.2)) fs ↔
+      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs ↔
         SpineFit (D.frame (Level.substFn φ lps us) (keyFrame dsa hi ρ)
             (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))
           (D.fields (Level.substFn φ lps us) c j) fs := by
@@ -384,7 +384,7 @@ theorem instCtor_fit {c j : Nat} (_hc : c < D.k) (_hj : j < D.nctors c) {nF : Na
     exact hEq.spineFit_iff hsat fs
   refine ⟨hfit, fun fs hsp e he => ?_⟩
   have hfl : fs.length = nF := by
-    rw [hsp.length_eq, List.length_map, substTele_length, hlen]
+    rw [hsp.length_eq, substTele_length, hlen]
   rw [interp_substAV, ← hfl, ← Nat.zero_add fs.length, substE_consList, hS]
 
 omit hnN hkN hnd in
@@ -398,16 +398,16 @@ the carrier at that tuple, and the constructor's leaf applied to the
 parameters and the spine is the clause's injection. -/
 theorem instCtor_decode {c j : Nat} (hc : c < D.k)
     (hj : j < D.nctors c) {nF : Nat}
-    {ab : List (Nat × Nat × AnnotTerm)} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
+    {ab : List AnnotTerm} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
     (hTys : ∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
       denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
         = some (Tys.getD mm default))
-    (hEq : FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab.map (·.2.2))
+    (hEq : FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab)
       (D.fields (Level.substFn φ lps us) c j)) (hlen : ab.length = nF)
     {ρ : Nat → V} (hs : Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ))
     {fs : List V}
-    (hfit : SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab).map (·.2.2)) fs) :
+    (hfit : SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs) :
     SpineFit (keyFrame dsa hi ρ) (D.ids c (Level.substFn φ lps us))
         ((D.resIdx (Level.substFn φ lps us) c j).map fun e =>
           interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF)) ∧

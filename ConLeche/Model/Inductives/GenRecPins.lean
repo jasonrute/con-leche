@@ -68,13 +68,13 @@ theorem inferTypeCore_mkAppN_args {env : Env} {F d : Nat} :
   | b :: as, f, t, h, a, ha => by
     rcases List.mem_cons.mp ha with rfl | ha
     · obtain ⟨tfa, hfa⟩ := Model.inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
-      obtain ⟨-, -, -, -, -, -, -, ta, hta, -⟩ := inferTypeCore_app_inv' hfa
+      obtain ⟨-, -, -, -, -, -, ta, hta, -⟩ := inferTypeCore_app_inv' hfa
       exact ⟨ta, hta⟩
     · exact inferTypeCore_mkAppN_args as (f := .app f b) h a ha
 
 /-- **An inferred `∀` infers its domain.** -/
-theorem inferTypeCore_forallE_dom' {env : Env} {F d : Nat} {ty bd s : Expr} {mb : BinderMeta}
-    (h : inferTypeCore mode env F d (.forallE ty bd mb) = .ok s) :
+theorem inferTypeCore_forallE_dom' {env : Env} {F d : Nat} {ty bd s : Expr}
+    (h : inferTypeCore mode env F d (.forallE ty bd) = .ok s) :
     ∃ t, inferTypeCore mode env F d ty = .ok t := by
   cases F with
   | zero => rw [inferTypeCore_zero] at h; exact nomatch h
@@ -108,12 +108,12 @@ theorem WScoped.of_abstractRange_noFvar {n : Nat} :
     simp only [Expr.WScoped] at hw ⊢
     simp only [Expr.abstractRange, Expr.hasFvar, Bool.or_eq_false_iff] at hf
     exact ⟨ihf hw.1 hf.1, iha hw.2 hf.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro D c hw hf
     simp only [Expr.WScoped] at hw ⊢
     simp only [Expr.abstractRange, Expr.hasFvar, Bool.or_eq_false_iff] at hf
     exact ⟨iht hw.1 hf.1, ihb hw.2 hf.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro D c hw hf
     simp only [Expr.WScoped] at hw ⊢
     simp only [Expr.abstractRange, Expr.hasFvar, Bool.or_eq_false_iff] at hf
@@ -205,9 +205,9 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
   obtain ⟨hw0, hb0⟩ := recStage_tyClosed h hr
   -- the major's domain, inferred at `mI`
   obtain ⟨fvsA, fvsB, o₀, hA, hB, hfe⟩ := openPisAtFvars_split mI (m := 1) hop
-  obtain ⟨dom, bd, mb, rfl⟩ : ∃ dom bd mb, o₀ = .forallE dom bd mb := by
+  obtain ⟨dom, bd, rfl⟩ : ∃ dom bd, o₀ = .forallE dom bd := by
     match o₀, hB with
-    | .forallE dom bd mb, _ => exact ⟨dom, bd, mb, rfl⟩
+    | .forallE dom bd, _ => exact ⟨dom, bd, rfl⟩
   have hAlen : fvsA.length = mI := ConLeche.Verify.openPisAtFvars_length _ hA
   have hmajE : maj = .fvar mI dom := by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hB
@@ -270,22 +270,22 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
   have hLX : Expr.LeavesBounded x :=
     leavesBounded_of_openers (fun y hy => hbFvs y (List.mem_of_mem_take hy)) hleafP
   -- the recursor type's reading: its prefix domains
-  obtain ⟨fvs', concl', hop', -, hTyE, hlenRds, -, hdomsR, -, hwdTy⟩ :=
+  obtain ⟨fvs', concl', hop', -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
     recStage_tyPis (V := V) rfl mpC h hr ψ
   rw [hmIdef] at hop' hlenRds
   obtain ⟨hff, -⟩ := Prod.mk.inj (Option.some.inj (hop'.symm.trans hop))
   rw [hff] at hdomsR
   generalize hPd : blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j = pdoms
-  have hPdE : pdoms = ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).take
-      rP).map (·.2.2) := by
+  have hPdE : pdoms = (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).take
+      rP := by
     rw [← hPd, blockRulePdomsAV, hrPdef]
   have hlenPd : pdoms.length = rP := by
-    rw [hPdE, List.length_map, List.length_take, hlenRds]; omega
+    rw [hPdE, List.length_take, hlenRds]; omega
   have hAa : ∀ i, i < rP → ∀ y, fvs[i]? = some y →
       denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD y) = some (pdoms.getD i default) := by
     intro i hi y hy
-    obtain ⟨pd, hpd, -, hrd⟩ := hdomsR i y hy
-    rw [hrd, hPdE, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take,
+    obtain ⟨pd, hpd, hrd⟩ := hdomsR i y hy
+    rw [hrd, hPdE, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left hi, hpd]
     rfl
   have hokTower : ∀ l, l < rP → ∀ (σ : Nat → V) (ys : List V),
@@ -346,7 +346,7 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
-        WellDenotedV V σ w := by
+        WellDenoted V σ w := by
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
   obtain ⟨⟨tx, htx⟩, hfr, hCE⟩ := storedMajorSub_ctx rfl mpC h hr ψ hop hmaj hxA hlt
   obtain ⟨wa, hwa⟩ := acceptedReads_of mpC.base2 ψ htx hfr.1 hfr.2.1 hfr.2.2
@@ -369,7 +369,7 @@ theorem storedMajorArg_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
-        WellDenotedV V σ w :=
+        WellDenoted V σ w :=
   storedMajorSub_graded hμ mpC h hr ψ hop hmaj (.inl hxA) hlt
 
 end Pins
@@ -399,7 +399,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     (φ : Name → Nat) (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat))
     (hr : (tgtRs out)[j]? = some r) (cA : ConstantVal × Nat) (rhs : Expr) :
     RecRulePinsOk m₃ φ r.1 (pp.toBlockShape.rulePrefixAt j)
-      (ConLeche.recRuleBits envC.find? r.1.name
+      (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := (ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape
               (ConLeche.tgtMajorsOf out)) j r, rhs := rhs }) := by
@@ -442,7 +442,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
   rw [hRP] at hgradeAt hle0 ⊢
   rw [hMI] at hopen hmaj hle0
   obtain ⟨-, hpinsE⟩ := ConLeche.nestedRuleSyn_open hsyn hopen hmaj
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, hplen⟩ := ConLeche.nestedRuleSyn_inv hsyn
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, hplen⟩ := ConLeche.nestedRuleSyn_inv hsyn
   -- the `q`-th pin is the `q`-th parameter, closed
   generalize hds : TE.maj.fvarTypeD.getAppArgs.take (ConLeche.tgtMajorsOf out j).nPc = ds
     at hpinsE
@@ -545,11 +545,11 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
     rw [← hψ] at hfit
     -- the recursor type's prefix telescope
-    obtain ⟨-, -, -, -, hTyE, hlenRds, -, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
+    obtain ⟨-, -, -, -, hTyE, hlenRds, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
     rw [hMI] at hlenRds
     have hPdE : blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j
-        = ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j).take
-            rP).map (·.2.2) := by
+        = (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j).take
+            rP := by
       rw [blockRulePdomsAV, hRP]
     have htake : ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j).take
         rP).length = rP := by

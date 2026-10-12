@@ -48,10 +48,10 @@ theorem constsResolveF_eq (env : Env) :
   | .app f a => by
     simp only [Expr.constsResolveF, Expr.constsResolve,
       constsResolveF_eq env f, constsResolveF_eq env a]
-  | .lam ty body _ => by
+  | .lam ty body => by
     simp only [Expr.constsResolveF, Expr.constsResolve,
       constsResolveF_eq env ty, constsResolveF_eq env body]
-  | .forallE ty body _ => by
+  | .forallE ty body => by
     simp only [Expr.constsResolveF, Expr.constsResolve,
       constsResolveF_eq env ty, constsResolveF_eq env body]
   | .letE ty val body => by

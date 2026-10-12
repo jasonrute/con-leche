@@ -81,14 +81,14 @@ namespace ConLeche
     if !w.nestOcc ctx.names ctx.nP hi then
       return (.ordinary, (if e.nestOcc ctx.names ctx.nP hi then w else e), st)
     match w with
-    | .forallE a b bm =>
+    | .forallE a b =>
       -- `pi`: the domain hole-free, the codomain positive
       if a.nestOcc ctx.names ctx.nP hi then
         throw (.invalid "nested positivity: non positive occurrence of the datatypes \
           being declared")
       let (k, nb, st) ←
         nestPosP ops env ctx fuel prog (dep + 1) (kb + 1) (b.instantiate1 (.fvar dep a)) st
-      pure (k, .forallE a (nb.abstract1 dep) bm, st)
+      pure (k, .forallE a (nb.abstract1 dep), st)
     | _ =>
       let args := w.getAppArgs
       match w.getAppFn with

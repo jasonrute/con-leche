@@ -311,7 +311,7 @@ the `i`-th right-hand side, with the constructor's parameter count
   ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)), rs[j]? = some r →
     ∀ rl ∈ R j r, ∃ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA ∧ r.2.1[i]? = some rhs ∧
-      rl = recRuleBits find? r.1.name
+      rl = recRuleBits find?
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
           fire := fireOf j r, rhs := rhs }
 
@@ -412,8 +412,8 @@ theorem envWF_consBlockRecsR
             pin.allLevelParamsDefined r.1.levelParams = true ∧
             pin.constsResolve env = true ∧
             pin.looseBVarsBounded (q.rulePrefixAt j) = true) ∧
-          ∃ pre dom body bm D,
-            r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+          ∃ pre dom body D,
+            r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
             dom.getAppFn = .const D lvls ∧
             dom.getAppArgs =
               pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++

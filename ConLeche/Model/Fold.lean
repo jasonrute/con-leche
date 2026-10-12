@@ -9,8 +9,8 @@ import ConLeche.Model.Cover
 public import ConLeche.Model.Inductives.DeclBlockStep
 import ConLeche.Kernel.Checker
 import ConLeche.Kernel.CheckerBase
-import ConLeche.Model.Annot.BitLevels
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.Levels
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Capstone
 import ConLeche.Model.IndCons
 import ConLeche.Model.BasisEq

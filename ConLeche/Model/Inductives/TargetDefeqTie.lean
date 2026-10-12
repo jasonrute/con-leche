@@ -7,9 +7,9 @@ import ConLeche.Model.Inductives.TargetFrame
 import ConLeche.Model.Inductives.TargetIhSlot
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Inductives.StructFrameKit
-import ConLeche.Model.Annot.BitClosed
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.Closed
+import ConLeche.Model.Reading.Inst
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Rules.Sound
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Semantics.Tower.SumTower
@@ -108,7 +108,7 @@ theorem canon_erasedEq {pfvs : List Expr}
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
     exact ⟨h1, h2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
     have h1 := iht h.1
@@ -116,7 +116,7 @@ theorem canon_erasedEq {pfvs : List Expr}
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
     exact ⟨h1, h2⟩
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
     have h1 := iht h.1
@@ -169,7 +169,7 @@ theorem canon_leaves {pfvs : List Expr} :
     rcases hl with hl | hl
     · exact ihf h.1 l hl
     · exact iha h.2 l hl
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h l hl
     simp only [Expr.fvarsBelow] at h
     simp only [ConLeche.targetCanonParams, ConLeche.Expr.replaceFVars, ConLeche.Expr.fvarLeaves,
@@ -177,7 +177,7 @@ theorem canon_leaves {pfvs : List Expr} :
     rcases hl with hl | hl
     · exact iht h.1 l hl
     · exact ihb h.2 l hl
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h l hl
     simp only [Expr.fvarsBelow] at h
     simp only [ConLeche.targetCanonParams, ConLeche.Expr.replaceFVars, ConLeche.Expr.fvarLeaves,

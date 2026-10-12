@@ -55,7 +55,7 @@ theorem stripPis_instantiateLevelParams_isSome (ks : List Name)
   | succ k ih =>
     intro e h
     match e, h with
-    | .forallE ty body m, h =>
+    | .forallE ty body, h =>
       simp only [Expr.instantiateLevelParams, Expr.stripPis,
         Option.isSome_map] at h ⊢
       exact ih h
@@ -84,31 +84,6 @@ theorem getAppFn_instantiateLevelParams (ks : List Name)
       using ihf
   | _ => simp [Expr.instantiateLevelParams, Expr.getAppFn]
 
-/-- A stripped telescope's body keeps its level parameters defined. -/
-theorem allLevelParamsDefined_stripPis_body {ps : List Name} :
-    ∀ (k : Nat) {e : Expr} {bs : List (Expr × BinderMeta)}
-      {body : Expr},
-      e.stripPis k = some (bs, body) →
-      e.allLevelParamsDefined ps = true →
-      body.allLevelParamsDefined ps = true := by
-  intro k
-  induction k with
-  | zero =>
-    intro e bs body h hp
-    simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
-    rw [← h.2]
-    exact hp
-  | succ k ih =>
-    intro e bs body h hp
-    match e, h with
-    | .forallE ty b m, h =>
-      simp only [Expr.stripPis, Option.map_eq_some_iff] at h
-      obtain ⟨⟨bs', body'⟩, hb, heq⟩ := h
-      obtain ⟨-, rfl⟩ : (ty, m) :: bs' = bs ∧ body' = body := by
-        simpa using heq
-      simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hp
-      exact ih hb hp.2
-
 /-- Level instantiation commutes with binder opening. -/
 theorem instantiateLevelParams_instantiate1 (ks : List Name) (us : List Level)
     {d : Nat} {ty : Expr} :
@@ -135,9 +110,7 @@ theorem allLevelParamsDefined_instantiate1 {ps : List Name} {d : Nat} {ty : Expr
     · simpa [allLevelParamsDefined] using hty
     · split <;> simp [allLevelParamsDefined]
 
-
 end Expr
-
 
 /-- Level instantiation distributes over an application spine. -/
 theorem instantiateLevelParams_mkAppN (ks : List Name) (us : List Level) :

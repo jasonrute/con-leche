@@ -1,13 +1,13 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 import ConLeche.SetTheory.Derive.Universe
 public section
 
 /-!
 # The pinned basis types' LFP CLAUSES, by hand
 
-The environment invariant's lfp clause (`Model/Annot/BlockLfp.lean`)
+The environment invariant's lfp clause (`Model/Env/BlockLfp.lean`)
 is PRODUCED by the uniform install for every block it checks.  The
 pinned basis types are not installed by it: their denotations are
 hand-written (`bval`, `SetModel/Value.lean`).  This file proves the
@@ -599,7 +599,7 @@ theorem eqLfp_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLe
       (.pi (.sort (lv ψ)) (.pi (.bvar 0) (.pi (.bvar 1) (.sort 0))))) :
     LfpReads acval env (eqLfp (V := V) nm cn lv) := fun mm hmm => by
   obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
-  exact ⟨cv, caps, hf, fun ψ => ⟨[(0, 0, .sort (lv ψ)), (0, 0, .bvar 0), (0, 0, .bvar 1)],
+  exact ⟨cv, caps, hf, fun ψ => ⟨[.sort (lv ψ), .bvar 0, .bvar 1],
     hty ψ, rfl⟩⟩
 
 /-- **`Eq`'s capability records** (`LfpCaps`): its sort is zero everywhere,
@@ -609,7 +609,7 @@ theorem eqLfp_caps {env : ConLeche.Env}
     (hf : env.find? nm = some (.indInfo cv caps))
     (hz : ∀ ψ : Name → Nat, caps.sortZ.holds ψ = true)
     (hC : ∃ cv' nPc nF, env.find? cn = some (.ctorInfo cv' nPc nF) ∧
-      ∃ (bs : List (ConLeche.Expr × ConLeche.BinderMeta)) (es : List ConLeche.Expr),
+      ∃ (bs : List ConLeche.Expr) (es : List ConLeche.Expr),
         cv'.type.stripPis (nPc + nF)
           = some (bs, ConLeche.Expr.mkAppN (.const nm (cv'.levelParams.map .param))
               (ConLeche.structPsAt nF nPc ++ es))) :
@@ -660,8 +660,8 @@ theorem lfp0_ctorReads {acval : Name → (Name → Nat) → AnnotTerm} {env : Co
       (∃ cvm caps, env.find? nm = some (.indInfo cvm caps) ∧ cvm.levelParams = cv.levelParams) ∧
       ∃ A, ConLeche.nestCanonCrest [nm] (cv.levelParams.map .param) 0 cv.type = some A ∧
       A.nestOcc [nm] 0 0 = false ∧
-      ∀ ψ : Name → Nat, (flds j).length = nF ∧ ∃ ab : List (Nat × Nat × AnnotTerm),
-        denoteMeta acval env ψ 1 A = some (mkPisAV ab (.bvar nF)) ∧ ab.map (·.2.2) = flds j) :
+      ∀ ψ : Name → Nat, (flds j).length = nF ∧ ∃ ab : List AnnotTerm,
+        denoteMeta acval env ψ 1 A = some (mkPisAV ab (.bvar nF)) ∧ ab = flds j) :
     LfpCtorReads acval env (lfp0 nm w F inj n cn flds) := by
   refine ⟨rfl, fun c hc j hj => ?_⟩
   obtain rfl : c = 0 := Nat.lt_one_iff.mp hc
@@ -672,14 +672,14 @@ theorem lfp0_ctorReads {acval : Name → (Name → Nat) → AnnotTerm} {env : Co
     exact ⟨cvm, caps, hfm, hl⟩
   · obtain ⟨hlen, ab, hab, hmap⟩ := hrd ψ
     obtain ⟨Ty, hTy⟩ := htyT ψ
-    refine ⟨rfl, hlen, ab, [Ty], ?_, by rw [← hlen, ← hmap, List.length_map], rfl,
+    refine ⟨rfl, hlen, ab, [Ty], ?_, by rw [← hlen, ← hmap], rfl,
       fun mm hmm => ?_, ?_⟩
     · show denoteMeta acval env ψ 1 A = _
       rw [hab]
       simp [lfp0]
     · obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
       exact ⟨cvT, capsT, cvT.type, hfT, rfl, hTy⟩
-    · show FieldsEqOn V _ (ab.map (·.2.2)) (flds j)
+    · show FieldsEqOn V _ ab (flds j)
       rw [hmap]
       exact FieldsEqOn.refl _ _
 
@@ -693,7 +693,7 @@ theorem lfp0_caps {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : ConLe
     (hz : ∀ ψ : Name → Nat, w ψ = 0 → caps.sortZ.holds ψ = true)
     (hk : caps.ruleK = true → n = 1)
     (hC : ∀ j, j < n → ∃ cv' nPc nF, env.find? (cn j) = some (.ctorInfo cv' nPc nF) ∧
-      ∃ (bs : List (ConLeche.Expr × ConLeche.BinderMeta)) (es : List ConLeche.Expr),
+      ∃ (bs : List ConLeche.Expr) (es : List ConLeche.Expr),
         cv'.type.stripPis (nPc + nF)
           = some (bs, ConLeche.Expr.mkAppN (.const nm (cv'.levelParams.map .param))
               (ConLeche.structPsAt nF nPc ++ es))) :

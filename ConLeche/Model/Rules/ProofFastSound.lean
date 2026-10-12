@@ -6,7 +6,7 @@ import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Rules.DefEqSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.WellDenotedTransport
 public import ConLeche.Verify.PropReadInst
 import ConLeche.Verify.PropWhen
@@ -76,11 +76,11 @@ theorem instantiate1_of_bounded {v : Expr} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.instantiate1]
     rw [instantiate1_of_bounded f h.1 hkj, instantiate1_of_bounded a h.2 hkj]
-  | .lam t b m, k, j, h, hkj => by
+  | .lam t b, k, j, h, hkj => by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.instantiate1]
     rw [instantiate1_of_bounded t h.1 hkj, instantiate1_of_bounded b h.2 (by omega)]
-  | .forallE t b m, k, j, h, hkj => by
+  | .forallE t b, k, j, h, hkj => by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.instantiate1]
     rw [instantiate1_of_bounded t h.1 hkj, instantiate1_of_bounded b h.2 (by omega)]
@@ -97,13 +97,13 @@ theorem instantiate1_of_bounded {v : Expr} :
 /-- `m` nested λs around a body. -/
 inductive IsLams : Nat → Expr → Expr → Prop where
   | zero {e : Expr} : IsLams 0 e e
-  | succ {m : Nat} {t b body : Expr} {bi : ConLeche.BinderMeta} :
-      IsLams m b body → IsLams (m + 1) (.lam t b bi) body
+  | succ {m : Nat} {t b body : Expr} :
+      IsLams m b body → IsLams (m + 1) (.lam t b) body
 
 theorem isLams_of_lamProj? :
     ∀ {k₀ : Nat} {e : Expr} {k j : Nat}, ConLeche.lamProj? k₀ e = some (k, j) →
       ∃ n, k = k₀ + n ∧ IsLams n e (.bvar j) ∧ j < k
-  | k₀, .lam t b bi, k, j, h => by
+  | k₀, .lam t b, k, j, h => by
     obtain ⟨n, hk, hl, hj⟩ := isLams_of_lamProj? (k₀ := k₀ + 1) (e := b) h
     exact ⟨n + 1, by omega, .succ hl, hj⟩
   | k₀, .bvar i, k, j, h => by
@@ -113,7 +113,7 @@ theorem isLams_of_lamProj? :
       exact ⟨0, rfl, .zero, by assumption⟩
     · exact nomatch h
   | _, .fvar _ _, _, _, h | _, .sort _, _, _, h | _, .const _ _, _, _, h
-  | _, .app _ _, _, _, h | _, .forallE _ _ _, _, _, h | _, .letE _ _ _, _, _, h
+  | _, .app _ _, _, _, h | _, .forallE _ _, _, _, h | _, .letE _ _ _, _, _, h
   | _, .lit _, _, _, h | _, .proj _ _ _, _, _, h => nomatch h
 
 theorem IsLams.instantiate1 {v : Expr} :
@@ -142,8 +142,8 @@ theorem redSem_lams_bvar {d : Nat} :
   | a :: rest, n, j, e, hl, hlen, hj, hcl => by
     cases hl with
     | zero => simp at hlen
-    | @succ n' t b _ bi hl' =>
-      have hβ : RedSem m φ d (Expr.mkAppN (.lam t b bi) (a :: rest))
+    | @succ n' t b _ hl' =>
+      have hβ : RedSem m φ d (Expr.mkAppN (.lam t b) (a :: rest))
           (Expr.mkAppN (b.instantiate1 a) rest) :=
         redSem_mkAppN_congr rest Red.beta_sound
       have hla : a.looseBVarsBounded 0 = true := hcl a List.mem_cons_self
@@ -166,7 +166,7 @@ theorem redSem_lams_bvar {d : Nat} :
         rw [show n' + 1 - 1 - j = (n' - 1 - j) + 1 by omega]
         simp only [List.getD_cons_succ]
         have hi : n' - 1 - j < rest.length := by omega
-        rw [show rest.getD (n' - 1 - j) (Expr.lam t b bi) = rest.getD (n' - 1 - j)
+        rw [show rest.getD (n' - 1 - j) (Expr.lam t b) = rest.getD (n' - 1 - j)
             (b.instantiate1 a) by
           simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]]
         exact this
@@ -182,8 +182,8 @@ where
     | a :: rest, n, e, c, hl, hlen, hc, hcl => by
       cases hl with
       | zero => simp at hlen
-      | @succ n' t b _ bi hl' =>
-        have hβ : RedSem m φ d (Expr.mkAppN (.lam t b bi) (a :: rest))
+      | @succ n' t b _ hl' =>
+        have hβ : RedSem m φ d (Expr.mkAppN (.lam t b) (a :: rest))
             (Expr.mkAppN (b.instantiate1 a) rest) :=
           redSem_mkAppN_congr rest Red.beta_sound
         have hl2 := IsLams.instantiate1 (v := a) 0 hl'
@@ -246,14 +246,14 @@ theorem redSem_unwrapIdDefs (hin : RulesInputs V m φ) {d : Nat} :
 /-- An instantiated ∀-body's frame, context discipline, reading and
 leaves, from the ∀'s and the argument's. -/
 theorem forallE_inst_facts {d : Nat} {Δa : List AnnotTerm} {A B x : Expr}
-    {bm : ConLeche.BinderMeta} {Ba xa : AnnotTerm} {ρ : Nat → V}
-    (hf : Frame d (.forallE A B bm)) (hC : CtxOkS m φ d Δa (.forallE A B bm))
+    {Ba xa : AnnotTerm} {ρ : Nat → V}
+    (hf : Frame d (.forallE A B)) (hC : CtxOkS m φ d Δa (.forallE A B))
     (hBa : denoteMeta m.acval env φ (d + 1) (B.instantiate1 (.fvar d A)) = some Ba)
     (hfx : Frame d x) (hCx : CtxOkS m φ d Δa x)
     (hxa : denoteMeta m.acval env φ d x = some xa) :
     Frame d (B.instantiate1 x) ∧ CtxOkS m φ d Δa (B.instantiate1 x) ∧
       denoteMeta m.acval env φ d (B.instantiate1 x) = some (Ba.inst xa) ∧
-      (LeavesGr m φ d (.forallE A B bm) ρ → LeavesGr m φ d x ρ →
+      (LeavesGr m φ d (.forallE A B) ρ → LeavesGr m φ d x ρ →
         LeavesGr m φ d (B.instantiate1 x) ρ) := by
   obtain ⟨hwty, hbty, hLbty⟩ := hf
   obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d A ∧ Expr.WScoped d B := by
@@ -263,7 +263,7 @@ theorem forallE_inst_facts {d : Nat} {Δa : List AnnotTerm} {A B x : Expr}
     simpa [Expr.looseBVarsBounded, Bool.and_eq_true] using hbty
   obtain ⟨hwa, hba, hLa⟩ := hfx
   have hsubBody : ∀ l ∈ (B.instantiate1 x).fvarLeaves,
-      l ∈ (Expr.forallE A B bm).fvarLeaves ∨ l ∈ x.fvarLeaves := by
+      l ∈ (Expr.forallE A B).fvarLeaves ∨ l ∈ x.fvarLeaves := by
     intro l hl
     rcases ConLeche.Expr.fvarLeaves_instantiate1 B 0 hl with hl' | hl'
     · exact Or.inl (by simp [Expr.fvarLeaves, hl'])
@@ -298,7 +298,7 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
       (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
       (∀ x ∈ args, LeavesGr m φ d x ρ) →
       DenoteMetaSpine m.acval env φ d args vs →
-      WellDenotedV V ρ (AnnotTerm.mkAppN Ha vs) →
+      WellDenoted V ρ (AnnotTerm.mkAppN Ha vs) →
       interp V ρ (AnnotTerm.mkAppN Ha vs) ≠ pt →
       ConLeche.peelPisW env.find? args.length Ty = some (.sort u0) →
       interp V ρ (AnnotTerm.mkAppN Ha vs) ∈ˢ (univ (u0.eval φ) : V)
@@ -321,22 +321,22 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
     have hW := redSem_unwrapIdDefs (m := m) (φ := φ) (d := d) hin 4 Ty hf hC hTy
     revert hpeel hW
     cases hu : ConLeche.unwrapIdDefs env.find? 4 Ty with
-    | forallE A B bm =>
+    | forallE A B =>
       intro hpeel hW
       obtain ⟨hfTy', hsubTy', TyA', hTyA', hrow⟩ := hW
       obtain ⟨hwT', heq⟩ := hrow ρ hρ hL hwT.1 hwT.ne_pt
       obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denoteMeta_forallE_inv hTyA'
-      have hCTy' : CtxOkS m φ d Δa (.forallE A B bm) := hC.of_subset hsubTy'
-      have hLTy' : LeavesGr m φ d (.forallE A B bm) ρ := hL.of_subset hsubTy'
+      have hCTy' : CtxOkS m φ d Δa (.forallE A B) := hC.of_subset hsubTy'
+      have hLTy' : LeavesGr m φ d (.forallE A B) ρ := hL.of_subset hsubTy'
       have hmem' : interp V ρ Ha ∈ˢ piV (interp V ρ Aa)
           (fun y => interp V (cons y ρ) Ba) := by
         have h2 := hmem
         rw [heq, interp_pi] at h2
         exact h2
       -- the spine is not the point, so its head is a graph
-      have hgS' : WellDenotedV V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') := hgS
+      have hgS' : WellDenoted V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') := hgS
       have hne' : interp V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') ≠ pt := hne
-      have happ : WellDenotedV V ρ (.app Ha xa) := mkAppN_head vs' hgS'
+      have happ : WellDenoted V ρ (.app Ha xa) := mkAppN_head vs' hgS'
       obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ Ha xa) happ).2.2
       have hHne : interp V ρ Ha ≠ pt := by
         intro h0
@@ -344,7 +344,7 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
       have hgr : interp V ρ Ha ∈ˢ piR 1 (interp V ρ Aa) fun y => interp V (cons y ρ) Ba := by
         rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hmem' hHne
       have hxA : interp V ρ xa ∈ˢ interp V ρ Aa := slotTransfer Nat.one_ne_zero hgr hslot hx
-      have hokx : WellDenotedV V ρ xa := happ.app_arg
+      have hokx : WellDenoted V ρ xa := happ.app_arg
       obtain ⟨hfx, hCx⟩ := hargs x List.mem_cons_self
       obtain ⟨hfB, hCB, hdB, hLB⟩ := forallE_inst_facts (ρ := ρ) hfTy' hCTy' hBa hfx hCx hxa
       have hwB : WellDenotedTy V ρ (Ba.inst xa) :=
@@ -385,7 +385,7 @@ type former's application, whose type's peeled sort is zero at the
 valuation (`typeFormer_mem_univ`). -/
 theorem typeSort_head (hin : RulesInputs V m φ) {T : Expr} {d : Nat}
     {Δa : List AnnotTerm} {TA : AnnotTerm} {ρ : Nat → V} {pw : ConLeche.PropWhen}
-    (h1 : ∀ ty b m, T ≠ .forallE ty b m) (h2 : ∀ u, T ≠ .sort u)
+    (h1 : ∀ ty b, T ≠ .forallE ty b) (h2 : ∀ u, T ≠ .sort u)
     (hf : Frame d T) (hC : CtxOkS m φ d Δa T)
     (hTA : denoteMeta m.acval env φ d T = some TA) (hρ : Sat V Δa ρ)
     (hL : LeavesGr m φ d T ρ) (hwT : WellDenotedTy V ρ TA)
@@ -461,7 +461,7 @@ theorem typeSort_head (hin : RulesInputs V m φ) {T : Expr} {d : Nat}
       exact beq_iff_eq.mp hholds
     rw [h0] at hmem
     exact hmem
-  | sort _ | app _ _ | lam _ _ _ | forallE _ _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
+  | sort _ | app _ _ | lam _ _ | forallE _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
     intro hpw; simp [ConLeche.headTypePW] at hpw
 
 /-- **A ∀ whose residual's sort is zero at the valuation is a truth
@@ -482,7 +482,7 @@ theorem typeSort_mem_univZero (hin : RulesInputs V m φ) :
   | succ n ih =>
     intro T hT d Δa TA ρ pw hf hC hTA hρ hL hwT hpw hholds
     match T, hT, hf, hC, hTA, hL, hpw with
-    | .forallE A B bm, hT, hf, hC, hTA, hL, hpw =>
+    | .forallE A B, hT, hf, hC, hTA, hL, hpw =>
       obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denoteMeta_forallE_inv hTA
       have hpw' := ConLeche.typeSortPW_forallE_open env.find? d hpw
       have hsz : (B.instantiate1 (.fvar d A)).sizeB < n := by
@@ -505,28 +505,28 @@ theorem typeSort_mem_univZero (hin : RulesInputs V m φ) :
       rw [ConLeche.PropWhen.holds_never] at hholds
       exact nomatch hholds
     | .bvar _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
     | .fvar _ _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
     | .const _ _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
     | .app _ _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
-    | .lam _ _ _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+    | .lam _ _, hT, hf, hC, hTA, hL, hpw =>
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
     | .letE _ _ _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
     | .lit _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
     | .proj _ _ _, hT, hf, hC, hTA, hL, hpw =>
-      exact typeSort_head hin (by intro _ _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
+      exact typeSort_head hin (by intro _ _ h; cases h) (by intro _ h; cases h) hf hC hTA
         hρ hL hwT hpw hholds
 
 /-- A head the proof reader answers for: a constant or a free variable
@@ -583,7 +583,7 @@ theorem prf_head (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm} {a 
     rw [denoteMeta_fvar] at hda
     obtain rfl := Option.some.inj hda
     exact mem_univ_zero huniv hmemv
-  | sort _ | forallE _ _ _ | lit _ =>
+  | sort _ | forallE _ _ | lit _ =>
     simp only [ConLeche.headProofPW] at hpw
     obtain rfl := Option.some.inj hpw
     simp at hprop
@@ -604,7 +604,7 @@ theorem prf_head (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm} {a 
         · intro hpw; exact nomatch hpw
       · intro hpw; exact nomatch hpw
     · intro hpw; exact nomatch hpw
-  | bvar _ | app _ _ | lam _ _ _ | letE _ _ _ =>
+  | bvar _ | app _ _ | lam _ _ | letE _ _ _ =>
     simp [ConLeche.headProofPW] at hpw
 
 /-- **A term whose stored data say "proof" is the point**, by recursion
@@ -615,7 +615,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
       ∀ {d : Nat} {Δa : List AnnotTerm} {aa : AnnotTerm} {ρ : Nat → V}
         {pw : ConLeche.PropWhen},
         Frame d a → CtxOkS m φ d Δa a → denoteMeta m.acval env φ d a = some aa →
-        Sat V Δa ρ → LeavesGr m φ d a ρ → WellDenotedV V ρ aa →
+        Sat V Δa ρ → LeavesGr m φ d a ρ → WellDenoted V ρ aa →
         ConLeche.proofPW env.find? a = some pw → pw.isProp = true →
         interp V ρ aa = pt := by
   intro n
@@ -624,7 +624,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
   | succ n ih =>
     intro a hn d Δa aa ρ pw hf hC hda hρ hL hwa hpw hprop
     match a, hn, hf, hC, hda, hL, hpw with
-    | .lam ty b bi, hn, hf, hC, hda, hL, hpw =>
+    | .lam ty b, hn, hf, hC, hda, hL, hpw =>
       simp only [ConLeche.proofPW] at hpw
       simp only [ConLeche.Expr.proofDepth] at hn
       obtain ⟨tya, ba, htya, hba, rfl⟩ := denoteMeta_lam_inv hda
@@ -641,10 +641,10 @@ theorem prf_core (hin : RulesInputs V m φ) :
       obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hda
       obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hf hva hba
       obtain ⟨hpw', hdep⟩ := ConLeche.proofPW_instantiate1 env.find? (v := v) b 0 hpw
-      have hgv : WellDenotedV V ρ va := hwa.letE_val
+      have hgv : WellDenoted V ρ va := hwa.letE_val
       rw [interp_zeta]
       exact ih _ (by omega) hfr' (hC.of_subset hsub) hred hρ (hL.of_subset hsub)
-        ((WellDenotedV_zeta hgv).mp hwa) hpw' hprop
+        ((WellDenoted_zeta _ hgv).mp hwa) hpw' hprop
     | .app f x, hn, hf, hC, hda, hL, hpw =>
       simp only [ConLeche.proofPW] at hpw
       simp only [ConLeche.Expr.proofDepth] at hn
@@ -657,7 +657,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
       exact prf_head hin hf hC hda hρ hL hpw hprop
     | .sort u, _, hf, hC, hda, hL, hpw =>
       exact prf_head hin hf hC hda hρ hL hpw hprop
-    | .forallE t b bi, _, hf, hC, hda, hL, hpw =>
+    | .forallE t b, _, hf, hC, hda, hL, hpw =>
       exact prf_head hin hf hC hda hρ hL hpw hprop
     | .lit l, _, hf, hC, hda, hL, hpw =>
       exact prf_head hin hf hC hda hρ hL hpw hprop
@@ -674,7 +674,7 @@ theorem prf_of_isProofFast (hin : RulesInputs V m φ)
     (hCa : CtxOkS m φ d Δa a)
     (hda : denoteMeta m.acval env φ d a = some aa)
     (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ)
-    (hwa : WellDenotedV V ρ aa) :
+    (hwa : WellDenoted V ρ aa) :
     interp V ρ aa = (pt : V) := by
   obtain ⟨pw, hpw, hprop⟩ := ConLeche.isProofFast_inv env.find? h
   exact prf_core hin _ a (Nat.lt_succ_self _) hfa hCa hda hρ hL hwa hpw hprop

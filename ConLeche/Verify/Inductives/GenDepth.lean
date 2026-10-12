@@ -51,7 +51,7 @@ theorem openPisAtFvars_shiftFrom {p : Nat} :
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     rfl
-  | n + 1, .forallE dom body mb, d, fvs, o, hpd, h => by
+  | n + 1, .forallE dom body, d, fvs, o, hpd, h => by
     simp only [openPisAtFvars] at h
     split at h
     · next fvs' o' hrec =>
@@ -65,7 +65,7 @@ theorem openPisAtFvars_shiftFrom {p : Nat} :
     · exact nomatch h
   | _ + 1, .bvar _, _, _, _, _, h | _ + 1, .fvar _ _, _, _, _, _, h
   | _ + 1, .sort _, _, _, _, _, h | _ + 1, .const _ _, _, _, _, _, h
-  | _ + 1, .app _ _, _, _, _, _, h | _ + 1, .lam _ _ _, _, _, _, _, h
+  | _ + 1, .app _ _, _, _, _, _, h | _ + 1, .lam _ _, _, _, _, _, h
   | _ + 1, .letE _ _ _, _, _, _, _, h | _ + 1, .lit _, _, _, _, _, h
   | _ + 1, .proj _ _ _, _, _, _, _, h => by simp [openPisAtFvars] at h
 
@@ -76,7 +76,7 @@ theorem targetPiDomsWith_shiftFrom {p : Nat} :
   | [], T, ws, h => by
     simp only [targetPiDomsWith, Option.some.injEq] at h
     subst h; rfl
-  | x :: xs, .forallE d b mb, ws, h => by
+  | x :: xs, .forallE d b, ws, h => by
     simp only [targetPiDomsWith, Option.map_eq_map, Option.map_eq_some_iff] at h
     obtain ⟨rest, hr, rfl⟩ := h
     have ih := targetPiDomsWith_shiftFrom (p := p) xs hr
@@ -84,17 +84,17 @@ theorem targetPiDomsWith_shiftFrom {p : Nat} :
     simp only [List.map_cons, shiftFrom, targetPiDomsWith, ih]
     rfl
   | _ :: _, .bvar _, _, h | _ :: _, .fvar _ _, _, h | _ :: _, .sort _, _, h
-  | _ :: _, .const _ _, _, h | _ :: _, .app _ _, _, h | _ :: _, .lam _ _ _, _, h
+  | _ :: _, .const _ _, _, h | _ :: _, .app _ _, _, h | _ :: _, .lam _ _, _, h
   | _ :: _, .letE _ _ _, _, h | _ :: _, .lit _, _, h | _ :: _, .proj _ _ _, _, h => by
     simp [targetPiDomsWith] at h
 
 /-- **Closing a telescope commutes with a shift below its depth.** -/
 theorem closeTelescope_shiftFrom {p : Nat} :
-    ∀ (bs : List (Expr × BinderMeta)) (d : Nat) (body : Expr), p ≤ d →
+    ∀ (bs : List Expr) (d : Nat) (body : Expr), p ≤ d →
       shiftFrom p (closeTelescope bs d body)
-        = closeTelescope (bs.map fun b => (shiftFrom p b.1, b.2)) (d + 1) (shiftFrom p body)
+        = closeTelescope (bs.map (shiftFrom p)) (d + 1) (shiftFrom p body)
   | [], _, _, _ => rfl
-  | (dom, bm) :: bs, d, body, hpd => by
+  | dom :: bs, d, body, hpd => by
     simp only [closeTelescope, shiftFrom, List.map_cons]
     rw [shiftFrom_abstract1 hpd, closeTelescope_shiftFrom bs (d + 1) body (by omega)]
 
@@ -125,7 +125,7 @@ theorem ClassGen.ihParts_shiftFrom {g : ClassGen} {p t tele d : Nat} {w : Expr}
 
 /-- The binder datum of a shifted variable is the shifted datum. -/
 theorem ClassGen.binder_shiftFrom (g : ClassGen) {p : Nat} (x : Expr) (hx : ∀ i ty, x = .fvar i ty →
-    p ≤ i) : g.binder (shiftFrom p x) = ((shiftFrom p (g.binder x).1), (g.binder x).2) := by
+    p ≤ i) : g.binder (shiftFrom p x) = shiftFrom p (g.binder x) := by
   cases x with
   | fvar i ty =>
     rw [shiftFrom_fvar_ge (hx i ty rfl)]
@@ -184,7 +184,7 @@ theorem ClassGen.minorTy_shiftFrom {g : ClassGen} {c : Nat} {x : ClassCtor} {p d
   have hfvs := ConLeche.openPisAtFvars_index x.nF _ _ hop
   refine Option.bind_eq_some_iff.mpr ⟨(fvs.map (shiftFrom p), shiftFrom p res), hop', ?_⟩
   refine Option.bind_eq_some_iff.mpr ⟨ws.map (shiftFrom p), hws', ?_⟩
-  refine Option.bind_eq_some_iff.mpr ⟨ihs.map fun b => (shiftFrom p b.1, b.2),
+  refine Option.bind_eq_some_iff.mpr ⟨ihs.map (shiftFrom p),
     option_mapM_rel _ hihs fun l hl b hb => ?_, ?_⟩
   · have hl' : l < x.recs.length := by
       have := List.mem_range.mp hl; exact this
@@ -213,7 +213,7 @@ theorem ClassGen.minorTy_shiftFrom {g : ClassGen} {c : Nat} {x : ClassCtor} {p d
     obtain ⟨leaf, hop2⟩ := hop2
     have hxsF := ConLeche.openPisAtFvars_index _ _ _ hop2
     have hX : List.map g.binder (xs.map (shiftFrom p))
-        = (xs.map g.binder).map fun b => (shiftFrom p b.1, b.2) := by
+        = (xs.map g.binder).map (shiftFrom p) := by
       rw [List.map_map, List.map_map]
       refine List.map_congr_left fun y hy => ?_
       obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hy
@@ -221,7 +221,7 @@ theorem ClassGen.minorTy_shiftFrom {g : ClassGen} {c : Nat} {x : ClassCtor} {p d
       simp only [Function.comp]
       rw [ClassGen.binder_shiftFrom g _ (fun i' ty' h' => by
         rw [hxe] at h'; injection h' with h1; omega)]
-    simp only [Option.pure_def, Option.some.injEq, Prod.mk.injEq, and_true]
+    simp only [Option.pure_def, Option.some.injEq]
     rw [hX, closeTelescope_shiftFrom _ _ _ (by omega), shiftFrom_mkAppN,
       hmv t (.inr ⟨i, tele, hmem⟩), List.map_append, List.map_cons, List.map_nil,
       shiftFrom_mkAppN, shiftFrom_getD]
@@ -229,7 +229,7 @@ theorem ClassGen.minorTy_shiftFrom {g : ClassGen} {c : Nat} {x : ClassCtor} {p d
     show some _ = some _
     congr 1
     have hF : List.map g.binder (fvs.map (shiftFrom p))
-        = (fvs.map g.binder).map fun b => (shiftFrom p b.1, b.2) := by
+        = (fvs.map g.binder).map (shiftFrom p) := by
       rw [List.map_map, List.map_map]
       refine List.map_congr_left fun y hy => ?_
       obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hy
@@ -303,7 +303,7 @@ theorem ClassGen.ihTy_depth {g : ClassGen} {t tele : Nat} {w f : Expr} {e₀ : N
     obtain ⟨leaf, hop2⟩ := hop2
     have hxsF := ConLeche.openPisAtFvars_index _ _ _ hop2
     have hX : List.map g.binder (xs.map (shiftFrom (e₀ + k)))
-        = (xs.map g.binder).map fun b => (shiftFrom (e₀ + k) b.1, b.2) := by
+        = (xs.map g.binder).map (shiftFrom (e₀ + k)) := by
       rw [List.map_map, List.map_map]
       refine List.map_congr_left fun y hy => ?_
       obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hy
@@ -332,13 +332,13 @@ field, the conclusion the class's motive at the declared result's
 indices and the constructor applied. -/
 theorem ClassGen.minorTy_unfold {g : ClassGen} {c : Nat} {x : ClassCtor} {d : Nat} {T : Expr}
     (h : g.minorTy c x d = some T) :
-    ∃ (fvs : List Expr) (res : Expr) (ws : List Expr) (ihs : List (Expr × BinderMeta)),
+    ∃ (fvs : List Expr) (res : Expr) (ws : List Expr) (ihs : List Expr),
       openPisAtFvars x.nF x.tyD d = some (fvs, res) ∧
       targetPiDomsWith fvs x.tyN = some ws ∧
       ihs.length = x.recs.length ∧
       (∀ (l i t tele : Nat), x.recs[l]? = some (i, t, tele) → ∃ ty,
         g.ihTy t tele (ws.getD i default) (fvs.getD i default) (d + x.nF + l) = some ty ∧
-        ihs[l]? = some (ty, g.bm)) ∧
+        ihs[l]? = some ty) ∧
       T = closeTelescope (fvs.map g.binder ++ ihs) d
         (Expr.mkAppN (g.motVar c) (res.getAppArgs.drop (g.cls.getD c default).nPc ++
           [Expr.mkAppN (.const x.cv.name (g.cls.getD c default).lvls)

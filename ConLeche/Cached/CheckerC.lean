@@ -27,13 +27,13 @@ open ConLeche
 /-- `Expr.instPisAtLift` at the memoised substitution. -/
 def instPisAtLiftC : List Expr → Expr → Option Expr
   | [], e => some e
-  | a :: as, .forallE _ body _ => instPisAtLiftC as (Expr.instantiate1LiftC body a)
+  | a :: as, .forallE _ body => instPisAtLiftC as (Expr.instantiate1LiftC body a)
   | _ :: _, _ => none
 
 /-- `structProjBodiesGo` at the memoised substitution. -/
 def structProjBodiesGoC (T : Name) : Nat → Nat → Expr → Option (List Expr)
   | 0, _, _ => some []
-  | k + 1, i, .forallE fdom body _ =>
+  | k + 1, i, .forallE fdom body =>
     (structProjBodiesGoC T k (i + 1) (Expr.instantiate1LiftC body (structProjArgP T i))).map
       (fdom :: ·)
   | _ + 1, _, _ => none

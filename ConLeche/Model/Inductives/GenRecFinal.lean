@@ -93,7 +93,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     have hj' : (dR.ctorsM c)[j]? = some cA := by
       rw [← Option.some.inj ((hctorsAs c hcl).symm.trans hc)] at hj; exact hj
     have hck : c < dR.k := by rw [← hN.2.2]; exact hN.2.1 c j cA hj'
-    have hf := (hcore.2.2.2 c hck j cA hj').1
+    have hf := (hcore.2.2 c hck j cA hj').1
     have hw := hwfC _ (List.mem_of_find?_eq_some hf)
     exact ConLeche.ScB.of_closed hw.1 hw.2.2.2.1 0
   have hpos := ConLeche.checkBlockPositivity_nfScoped hwfI hT hct hPos
@@ -116,21 +116,20 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       xs.length = (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length →
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
-      ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j,
-      ∀ bs, SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs →
+      ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j,
+      ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
         q.1 < (tgtRs out).length ∧ xs.length = pp.toBlockShape.rulePrefixAt q.1 ∧
-        SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1).map
-            (·.2.2))
+        SpineFit ρ (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1)
           (xs ++ (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))
             ++ [interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2])) :=
-    fun ψ ρ => genCallTy hμ R hg h mpC hfind 0 ψ ρ
+    fun ψ ρ => genCallTy hμ R hg h mpC hfind ψ ρ
   have hargs : ∀ (ψ : Name → Nat) (ρ : Nat → V), ∀ c, c < (tgtRs out).length →
       ∀ j, j < blockRecNCt (tgtRs out) c → ∀ ys : List V,
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
       (∀ e ∈ tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j,
-        WellDenotedV V (consList ys ρ) e) ∧
-      WellDenotedV V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j) :=
+        WellDenoted V (consList ys ρ) e) ∧
+      WellDenoted V (consList ys ρ) (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j) :=
     fun ψ ρ c hc j hj ys hys => genArgs_graded hμ R hg h mpC hfind ψ ρ hc hj ys hys
   have hrhs : ∀ (ψ : Name → Nat) (ρ : Nat → V) (rs : List V), rs.length = (tgtRs out).length →
       (∀ c, c < (tgtRs out).length →
@@ -138,10 +137,9 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ ys : List V,
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
-      (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ c j,
-        WellDenotedV V (consList ys (consList rs ρ)) v) ∧
-      WellDenotedV V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd
-          0 ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
+      (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ c j,
+        WellDenoted V (consList ys (consList rs ρ)) v) ∧
+      WellDenoted V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
         (genRbAV R.g R.rd c j) :=
     fun ψ ρ rs hrl hty => genRhs hμ R hg h mpC hfind ψ ρ rs hrl hty
   have hrowP : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
@@ -191,7 +189,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
         (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
         (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
@@ -250,7 +248,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd)) →
       ∀ (φ : Name → Nat) (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
@@ -258,13 +256,13 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
       RecRuleKWit m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) ∧
       RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
         (pp.toBlockShape.rulePrefixAt j)
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
@@ -314,7 +312,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     (pdoms0 := fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
     (fdoms0 := fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
     (es0 := fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-    (ihs := fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
+    (ihs := fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
     (mk0 := fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
     (Rb0 := fun _ => genRbAV R.g R.rd) (s := s) (nCt := blockRecNCt (tgtRs out))
     heqB heqP hpre

@@ -37,7 +37,7 @@ theorem checkStructProjTable_shape {T C : Name}
       resSort guards off cvCa env = .ok env') :
     ∃ tbl : ConLeche.ProjTable, env.find? (projTableName T) = none ∧
       tbl.structName = T ∧ env' = ⟨.projInfo tbl :: env.consts⟩ := by
-  obtain ⟨bodies, -, -, -, hfresh, rfl⟩ := ConLeche.checkStructProjTable_inv h
+  obtain ⟨bodies, -, -, hfresh, rfl⟩ := ConLeche.checkStructProjTable_inv h
   exact ⟨_, hfresh, rfl, rfl⟩
 
 /-! ## The table stage -/

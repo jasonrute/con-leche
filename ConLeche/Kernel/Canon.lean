@@ -56,9 +56,9 @@ def canonExpr (m : Name → Name) : Expr → Expr
   | .sort u => .sort (canonLevel m u)
   | .const n us => .const n (us.map (canonLevel m))
   | .app f a => .app (canonExpr m f) (canonExpr m a)
-  | .lam ty b _ => .lam (canonExpr m ty) (canonExpr m b) ⟨⟩
-  | .forallE ty b _ =>
-      .forallE (canonExpr m ty) (canonExpr m b) ⟨⟩
+  | .lam ty b => .lam (canonExpr m ty) (canonExpr m b)
+  | .forallE ty b =>
+      .forallE (canonExpr m ty) (canonExpr m b)
   | .letE ty v b => .letE (canonExpr m ty) (canonExpr m v)
       (canonExpr m b)
   | .lit l => .lit l
@@ -133,9 +133,9 @@ def canonExprEqFast (m m' : Name → Name) : Expr → Expr → Bool
       n == n' && us.map (canonLevel m) == us'.map (canonLevel m')
   | .app f a, .app f' a' =>
       canonExprEqFast m m' f f' && canonExprEqFast m m' a a'
-  | .lam t b _, .lam t' b' _ =>
+  | .lam t b, .lam t' b' =>
       canonExprEqFast m m' t t' && canonExprEqFast m m' b b'
-  | .forallE t b _, .forallE t' b' _ =>
+  | .forallE t b, .forallE t' b' =>
       canonExprEqFast m m' t t' && canonExprEqFast m m' b b'
   | .letE t v b, .letE t' v' b' =>
       canonExprEqFast m m' t t' && canonExprEqFast m m' v v' &&
@@ -162,10 +162,10 @@ theorem canonExprEqFast_iff (m m' : Name → Name) :
   | app f a ihf iha =>
     intro b; cases b <;>
       simp [canonExprEqFast, canonExpr, Bool.and_eq_true, ihf, iha]
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro c; cases c <;>
       simp [canonExprEqFast, canonExpr, Bool.and_eq_true, iht, ihb]
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro c; cases c <;>
       simp [canonExprEqFast, canonExpr, Bool.and_eq_true, iht, ihb]
   | letE t v b iht ihv ihb =>

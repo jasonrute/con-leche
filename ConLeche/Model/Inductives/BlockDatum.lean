@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Inductives.BlockAssembly
 public import ConLeche.Model.Inductives.BlockStageTables
-import ConLeche.Model.Annot.LfpHoleOp
+import ConLeche.Model.Env.LfpHoleOp
 import ConLeche.Model.Inductives.BlockCaps
 import ConLeche.Model.Inductives.BlockHoleGrade
 import ConLeche.Verify.Inductives.NfMemberFree
@@ -52,7 +52,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BlockShape BlockParts MemberShape BinderMeta RecRule)
+  BlockShape BlockParts MemberShape RecRule)
 
 universe w
 
@@ -65,7 +65,7 @@ injections**, at a chosen per-member constructor pick. -/
 @[expose] noncomputable def blockDataPre (V : Type w) [SetTheory V] (q : BlockShape)
     (ctorsAs : List (List (ConstantVal × Nat))) (pk : Nat → BlockMemberPick)
     (uOf : Nat → (Name → Nat) → Nat)
-    (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)) : BlockData V where
+    (ppsOf : Nat → (Name → Nat) → List AnnotTerm) : BlockData V where
   nP := q.nP
   k := q.k
   nInst := 0
@@ -103,7 +103,7 @@ derived fields**: the hole operator of the record's fields with holes
 @[expose] noncomputable def blockDataOf (V : Type w) [SetTheory V] (q : BlockShape)
     (ctorsAs : List (List (ConstantVal × Nat))) (pk : Nat → BlockMemberPick)
     (uOf : Nat → (Name → Nat) → Nat)
-    (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)) : BlockData V :=
+    (ppsOf : Nat → (Name → Nat) → List AnnotTerm) : BlockData V :=
   (blockDataPre V q ctorsAs pk uOf ppsOf).withPhi
 
 /-- **A member's former leaf on the HOLE chains** (charter item 2): the block operator at the constructors' fields with
@@ -423,10 +423,6 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       envI.find? pP cvTas ctorsAs = .ok posKs)
     (hpN : pP.memberNames = q.memberNames) (hpL : pP.lps = q.lps) (hpP : pP.nP = q.nP)
     (hpI : pP.nIdxs = q.nIdxs) (hpR : pP.resSort = q.resSort)
-    (hfamFree : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < q.k →
-      ctorsAs.getD m [] = [cA] → sortsss.getD m [] = [sorts] →
-      (q.members.getD m default).nIdx = 0 → 0 < cA.2 →
-      envI.find? (projFnName (q.memberNames.getD m .anonymous) 0) = none)
     (hprojTbl : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < q.k →
       ctorsAs.getD m [] = [cA] → sortsss.getD m [] = [sorts] →
       (q.members.getD m default).nIdx = 0 →
@@ -434,7 +430,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     -- the input's coverage (the walk's container case reads the containers' clauses)
     (hcovIn : LfpCover mp []) :
     ∃ (pk : Nat → BlockMemberPick) (uOf : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+      (ppsOf : Nat → (Name → Nat) → List AnnotTerm)
       (mpI : EnvModelM V μ envI),
       BlockNamesOk (V := V) (blockDataOf V q ctorsAs pk uOf ppsOf) cvTas ∧
       BlockTablesStage (V := V) μ F (blockDataOf V q ctorsAs pk uOf ppsOf) q.lps cvTas
@@ -594,12 +590,12 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨cvTb, hcv⟩ := hcvOf t ht
     exact (hF.fdOf t cvTb hcv).len ψ
   have hρpOf : ∀ (ψ : Name → Nat) (ρp : Nat → V) (m : Nat), m < q.k →
-      Sat V (((ppsOf m ψ).take q.nP).map (·.2.2)).reverse ρp →
-      ∀ c, c < q.k → Sat V (((ppsOf c ψ).take q.nP).map (·.2.2)).reverse ρp :=
+      Sat V (((ppsOf m ψ).take q.nP)).reverse ρp →
+      ∀ c, c < q.k → Sat V (((ppsOf c ψ).take q.nP)).reverse ρp :=
     fun ψ ρp m hm hρ c hc => (hF.paramsIff m c hm hc ψ ρp).mp hρ
   have hleafOfD : ∀ (t : Nat), t < q.k → ∀ ψ : Name → Nat, ∃ B,
       mpD.base2.acval (q.memberNames.getD t .anonymous) ψ
-        = mkLamsC (q.resSort.eval ψ + 1) (ppsOf t ψ) B := by
+        = mkLamsAV (ppsOf t ψ) B := by
     intro t ht ψ
     obtain ⟨cvTb, hcv⟩ := hcvOf t ht
     rw [← hF.nameOf t cvTb hcv, (hfindD t cvTb hcv).2 ψ]
@@ -620,7 +616,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     exact fixCtorDataList_length _ _ _ _ _ _ _ _
   have hFssZD : ∀ (m j : Nat) (cA : ConstantVal × Nat) (ψ : Name → Nat),
       (ctorsAs.getD m [])[j]? = some cA →
-      (dZ.Fss m ψ).getD j [] = (((pk₀ m).dsF j ψ).drop q.nP).map (·.2.2) :=
+      (dZ.Fss m ψ).getD j [] = (((pk₀ m).dsF j ψ).drop q.nP) :=
     fun _ _ _ _ hj => fssOfR_fixCtorDataList_getD hj
   have hEssZD : ∀ (m j : Nat) (cA : ConstantVal × Nat) (ψ : Name → Nat),
       (ctorsAs.getD m [])[j]? = some cA → (dZ.Ess m ψ).getD j [] = (pk₀ m).esF j ψ :=
@@ -642,20 +638,20 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     refine hF.ppsNil c ?_ ψ
     rw [List.getElem?_eq_none (by rw [hF.lenCv]; omega)]
   have hIdsLen : ∀ (c : Nat) (ψ : Name → Nat),
-      ((((ppsOf c ψ).drop q.nP).map (·.2.2))).length = q.nIdxs.getD c 0 := by
+      ((((ppsOf c ψ).drop q.nP))).length = q.nIdxs.getD c 0 := by
     intro c ψ
     by_cases hc : c < q.k
     · simp [hlenPpsOf c hc ψ]
     · rw [hppsNil c hc ψ, hnIdxsNil c hc]; simp
   have hIdsBelow : ∀ (c : Nat) (ψ : Name → Nat),
-      FieldsBelow q.nP (((ppsOf c ψ).drop q.nP).map (·.2.2)) := by
+      DomsBelow q.nP (((ppsOf c ψ).drop q.nP)) := by
     intro c ψ
     by_cases hc : c < q.k
     · obtain ⟨cvTb, hcv⟩ := hcvOf c hc
-      have h := (DomsBelow.drop q.nP ((hF.fdOf c cvTb hcv).below ψ)).fields
+      have h := (DomsBelow.drop q.nP ((hF.fdOf c cvTb hcv).below ψ))
       rwa [Nat.zero_add] at h
     · rw [hppsNil c hc ψ]
-      simp only [List.drop_nil, List.map_nil]
+      simp only [List.drop_nil]
       trivial
   have hcdsParams : ∀ (c : Nat) (ψ₁ ψ₂ : Name → Nat), (∀ n ∈ q.lps, ψ₁ n = ψ₂ n) →
       dZ.cds c ψ₁ = dZ.cds c ψ₂ := by
@@ -715,9 +711,9 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨c', sorts, -, -, -, hl, -⟩ := (hfacts c cvTa hck hcv).2 j cA hj
     exact hl
   have hlenP0 : ∀ (ψ : Name → Nat) (mm : Nat), mm < q.k →
-      (((ppsOf mm ψ).take q.nP).map (·.2.2)).length = q.nP := by
+      (((ppsOf mm ψ).take q.nP)).length = q.nP := by
     intro ψ mm hmm
-    rw [List.length_map, List.length_take, hlenPpsOf mm hmm ψ]
+    rw [List.length_take, hlenPpsOf mm hmm ψ]
     omega
   -- the members' formers, as the stored field shape facts' producer reads them
   have hformersI : ∀ (ψ : Name → Nat) (t : Nat), t < q.k → ∃ cv caps bs s,
@@ -751,7 +747,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     fun c cvTb hc => ⟨(hfindD c cvTb hc).1, hFDD c cvTb hc⟩
   -- every member's parameter telescope is satisfied where the block's is
   have hparsTZ : ∀ t, t < dZ.k → ∀ (ψ : Name → Nat) (ρ : Nat → V), Sat V (dZ.params ψ).reverse ρ →
-      Sat V (((dZ.ppsM t ψ).take dZ.nP).map (·.2.2)).reverse ρ :=
+      Sat V (((dZ.ppsM t ψ).take dZ.nP)).reverse ρ :=
     fun t ht ψ ρ h => (hF.paramsIff 0 t hk0 ht ψ ρ).mp h
   -- the fields with holes ARE the normal form's reading, at the dummy carrier
   have hAbsZ : ∀ (c j : Nat) (cA : ConstantVal × Nat), (dZ.ctorsM c)[j]? = some cA →
@@ -793,12 +789,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   have hII : ∀ n, (∀ cvTb ∈ cvTas, cvTb.name ≠ n) → envI.find? n = env.find? n :=
     fun n hn => by rw [hcons]; exact consBlockInds_find?_of_ne hn
   have hWI : ConLeche.WhnfNamesFree envI q.memberNames := by
-    refine ConLeche.whnfNamesFree_formers mp.base2.wf hnamesIff hfindMI hfreshI hII ?_ ?_ ?_
-    · -- `checkConstantVal` rejects projection-function-shaped former names
-      intro n hn
-      obtain ⟨cvTb, hcv, rfl⟩ := (hnamesIff n).mp hn
-      obtain ⟨t, ht⟩ := List.getElem?_of_mem hcv
-      exact hF.pshapeOf t cvTb ht
+    refine ConLeche.whnfNamesFree_formers mp.base2.wf hnamesIff hfindMI hfreshI hII ?_ ?_
     · -- the η part of `RecCtorsStored`
       intro n cv mI rP rules hf r hr
       exact (mp.base2.rec_ctors n cv mI rP rules hf r hr).2.2
@@ -847,7 +838,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨cA, hjA⟩ : ∃ cA, (ctorsAs.getD c [])[j]? = some cA :=
       ⟨_, List.getElem?_eq_getElem hj⟩
     rw [hEssZD c j cA ψ hjA]
-    show ((pk₀ c).esF j ψ).length = (((ppsOf c ψ).drop q.nP).map (·.2.2)).length
+    show ((pk₀ c).esF j ψ).length = (((ppsOf c ψ).drop q.nP)).length
     rw [hIdsLen c ψ]
     exact (hpk₀ c (hctorLt c j cA hjA) j cA hjA).lenE ψ
   -- U2's grading, per constructor
@@ -881,7 +872,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨hu, hfz, hes⟩ := hZparams ψ₁ ψ₂ hφ
     refine LfpDatum.holeChains_congr rfl (fun m => hu m)
       (fun c => by
-        show ((ppsOf c ψ₁).drop q.nP).map (·.2.2) = ((ppsOf c ψ₂).drop q.nP).map (·.2.2)
+        show ((ppsOf c ψ₁).drop q.nP) = ((ppsOf c ψ₂).drop q.nP)
         rw [hpp ψ₁ ψ₂ hφ c])
       (fun _ => rfl) (fun c j => ?_) (fun c j => ?_)
     · show (pk₀ c).absF j ψ₁ = (pk₀ c).absF j ψ₂
@@ -926,10 +917,10 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   have hfoldZH : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       (ConLeche.blockCapsAt q j isRec).unitlike = true →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
-        SpineFit ρ ((ppsOf j ψ).map (·.2.2)) ts →
+        SpineFit ρ ((ppsOf j ψ)) ts →
         ts.foldl SetTheory.app (interp V ρ
             (blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
-              (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (dZ.toLfp.holeChains ψ)
+              (fun c => ((ppsOf c ψ).drop q.nP)) (dZ.toLfp.holeChains ψ)
               (ppsOf j ψ) j))
           = sumSet (q.resSort.eval ψ) (sumFibre (q.resSort.eval ψ) (consList ts ρ)
               [[] ++ [idxEqAV []]]) := by
@@ -958,7 +949,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         rw [hcaps₂] at this
         exact this.1
       · rw [hcaps₂] at hu; exact nomatch hu
-    have hIds0 : ((ppsOf j ψ).drop q.nP).map (·.2.2) = [] := by
+    have hIds0 : ((ppsOf j ψ).drop q.nP) = [] := by
       refine List.length_eq_zero_iff.mp ?_
       rw [hIdsLen j ψ, hnIdx0]
     have hFss0 : dZ.Fss j ψ = [[]] := by
@@ -980,7 +971,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       rw [hEs, hE0, List.length_eq_zero_iff.mp hlen]
     have h := blockHoleFold_params (d := dZ) (A := blockLeafH dZ) hHZ rfl (fun _ _ => rfl)
       (fun c hc => by
-        show (ppsOf c ψ).length = q.nP + (((ppsOf c ψ).drop q.nP).map (·.2.2)).length
+        show (ppsOf c ψ).length = q.nP + (((ppsOf c ψ).drop q.nP)).length
         rw [hIdsLen c ψ]; exact hlenPpsOf c hc ψ)
       hjk hIds0
       (fun ρp hs => fun c hc => hIdxOf c (hcvOf c hc).choose (hcvOf c hc).choose_spec ψ ρp
@@ -1091,7 +1082,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   -- ## the REAL record's own readings, and the chain facts at them
   have hleafOfR : ∀ (t : Nat), t < q.k → ∀ ψ : Name → Nat, ∃ B,
       mpR.base2.acval (q.memberNames.getD t .anonymous) ψ
-        = mkLamsC (q.resSort.eval ψ + 1) (ppsOf t ψ) B := by
+        = mkLamsAV (ppsOf t ψ) B := by
     intro t ht ψ
     obtain ⟨cvTb, hcv⟩ := hcvOf t ht
     rw [← hF.nameOf t cvTb hcv, (hfindR t cvTb hcv).2 ψ]
@@ -1099,7 +1090,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   have hFssRD : ∀ (m j : Nat) (cA : ConstantVal × Nat) (ψ : Name → Nat),
       (ctorsAs.getD m [])[j]? = some cA →
       ((blockDataOf V q ctorsAs pk uOf ppsOf).Fss m ψ).getD j []
-        = (((pk m).dsF j ψ).drop q.nP).map (·.2.2) :=
+        = (((pk m).dsF j ψ).drop q.nP) :=
     fun _ _ _ _ hj => fssOfR_fixCtorDataList_getD hj
   -- ## the REAL record's fields with holes are the dummy one's:
   -- the two readings agree off the recursive fields
@@ -1137,16 +1128,16 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   have hframes : ∀ (m : Nat), m < q.k → ∀ (j : Nat) (cA : ConstantVal × Nat),
       (ctorsAs.getD m [])[j]? = some cA →
       (∀ (ψ : Name → Nat) (ρ : Nat → V),
-        Sat V (((ppsOf m ψ).take q.nP).map (·.2.2)).reverse ρ ↔
-          Sat V ((((pk m).dsF j ψ).take q.nP).map (·.2.2)).reverse ρ) ∧
+        Sat V (((ppsOf m ψ).take q.nP)).reverse ρ ↔
+          Sat V ((((pk m).dsF j ψ).take q.nP)).reverse ρ) ∧
       (∀ (ψ : Name → Nat) (ρ : Nat → V),
-        Sat V ((((pk m).dsF j ψ).take q.nP).map (·.2.2)).reverse ρ →
-          FieldsOkB (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2)) ∧
+        Sat V ((((pk m).dsF j ψ).take q.nP)).reverse ρ →
+          FieldsOkB (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP)) ∧
           (q.isProp = false →
-            FieldsBound (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2))) ∧
-          (∀ bs : List V, SpineFit ρ ((((pk m).dsF j ψ).drop q.nP).map (·.2.2)) bs →
-            (∀ E ∈ (pk m).esF j ψ, WellDenotedV V (consList bs ρ) E) ∧
-            SpineFit ρ (((ppsOf m ψ).drop q.nP).map (·.2.2))
+            FieldsBound (q.resSort.eval ψ) ρ ((((pk m).dsF j ψ).drop q.nP))) ∧
+          (∀ bs : List V, SpineFit ρ ((((pk m).dsF j ψ).drop q.nP)) bs →
+            (∀ E ∈ (pk m).esF j ψ, WellDenoted V (consList bs ρ) E) ∧
+            SpineFit ρ (((ppsOf m ψ).drop q.nP))
               (idxValsAt ρ ((pk m).esF j ψ) bs))) := by
     intro m hm j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf m hm
@@ -1212,9 +1203,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     intro m hm
     show _ ∈ q.members.map _
     exact List.mem_map.mpr ⟨_, getD_mem default hm, rfl⟩
-  -- ## the table stage's two freshness facts, at the capability record
-  -- and at the guarded members (the run supplies them in the CHECKED
-  -- lists' form; the capability reading is this proof's)
+  -- ## the table stage's freshness fact at the guarded members (the run
+  -- supplies it in the CHECKED lists' form)
   have hsingle : ∀ (m : Nat) (cA : ConstantVal × Nat), m < q.k → ctorsAs.getD m [] = [cA] →
       ∃ sorts : List Level, sortsss.getD m [] = [sorts] := by
     intro m cA hm hcs
@@ -1222,40 +1212,6 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨⟨hlenA, hlenS⟩, -⟩ := hfacts m cvTa hm hcv
     rw [hcs] at hlenA
     exact List.length_eq_one_iff.mp (by rw [hlenS, ← hlenA]; rfl)
-  have hfamFree' : ∀ (c : Nat) (cvTb : ConstantVal), cvTas[c]? = some cvTb →
-      (ConLeche.blockCapsAt q c isRec).unitlike = false →
-      (ConLeche.blockCapsAt q c isRec).eta = true →
-      envI.find? (projFnName cvTb.name 0) = none := by
-    intro c cvTb hcv hU hEta
-    have hck : c < q.k := by
-      have := (List.getElem?_eq_some_iff.mp hcv).1; rwa [hF.lenCv] at this
-    obtain ⟨cc, hccs, hcaps⟩ | hcaps := blockCapsAt_cases q c isRec
-    case inr => rw [hcaps] at hEta; exact nomatch hEta
-    rw [hcaps] at hEta hU
-    have hnIdx0 : (q.members.getD c default).nIdx = 0 := by
-      have h := hEta
-      simp only [Bool.and_eq_true, beq_iff_eq] at h
-      exact h.1.1
-    obtain ⟨cvTa, hcvTa⟩ := hcvOf c hck
-    have hlenA : (ctorsAs.getD c []).length = 1 := by
-      rw [(hfacts c cvTa hck hcvTa).1.1, hccs]; rfl
-    obtain ⟨cA, hcA⟩ := List.length_eq_one_iff.mp hlenA
-    obtain ⟨sorts, hsorts'⟩ := hsingle c cA hck hcA
-    have hnF : cA.2 = cc.2 := by
-      obtain ⟨c', -, hc', -, hnF', -⟩ := (hfacts c cvTa hck hcvTa).2 0 cA (by rw [hcA]; rfl)
-      rw [hccs] at hc'
-      obtain rfl : cc = c' := by simpa using hc'
-      exact hnF'
-    have hpos : 0 < cA.2 := by
-      rcases Nat.eq_zero_or_pos cA.2 with h0 | h0
-      · exfalso
-        rw [hnF] at h0
-        rw [hnIdx0, h0] at hU
-        simp at hU
-        simp [hU] at hEta
-      · exact h0
-    rw [hF.nameOf c cvTb hcv]
-    exact hfamFree c cA sorts hck hcA hsorts' hnIdx0 hpos
   have hprojTbl' : ∀ m, m < q.k → (∃ cAm, ctorsAs.getD m [] = [cAm]) → q.nIdxs.getD m 0 = 0 →
       envI.find? (projTableName (q.memberNames.getD m .anonymous)) = none := by
     rintro m hm ⟨cA, hcA⟩ hn0
@@ -1269,7 +1225,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     refine ⟨fun c cvTb hc => ⟨(hfindR c cvTb hc).1, hresIm _ (hF.resolveOf c cvTb hc),
         fun ψ => by rw [(hfindR c cvTb hc).2 ψ]; unfold blockLeafH; rw [hholeEq ψ]; rfl,
         hFDR c cvTb hc⟩,
-      hfamFree', fun c j cA hj => ?_, fun c hc => absurd hc (Nat.not_lt_zero _)⟩
+      fun c j cA hj => ?_, fun c hc => absurd hc (Nat.not_lt_zero _)⟩
     have hck : c < q.k := hctorLt c j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf c hck
     obtain ⟨-, -, -, -, -, -, -, hres, -⟩ := (hfacts c cvTa hck hcv).2 j cA hj
@@ -1398,7 +1354,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       exact ConLeche.BlockShape.mem_ctorNamesAt (getD_mem default hm) hcB'
     · -- lenPps
       intro c ψ hc
-      show (ppsOf c ψ).length = q.nP + (((ppsOf c ψ).drop q.nP).map (·.2.2)).length
+      show (ppsOf c ψ).length = q.nP + (((ppsOf c ψ).drop q.nP)).length
       rw [hIdsLen c ψ]
       exact hlenPpsOf c hc ψ
     · -- idxOk
@@ -1452,14 +1408,13 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         rw [hFs] at h0 ⊢
         simp only [List.getD_cons_zero] at h0
         rw [h0]
-        have : (((pk m).dsF 0 ψ).drop q.nP).map (·.2.2) = [] := by
+        have : (((pk m).dsF 0 ψ).drop q.nP) = [] := by
           refine List.length_eq_zero_iff.mp ?_
           simp [hlenD ψ]
         rw [this]
       refine blockCapsLawsAt m' (T := cvTa.name) (w := fun ψ => q.resSort.eval ψ)
         (pps := ppsOf m) (ds := (pk m).dsF 0) (L := fun ψ =>
           blockLeafH (blockDataOf V q ctorsAs pk uOf ppsOf) m ψ)
-        (fun hU _ => absurd hu (by rw [hU]; simp))
         (fun ψ => (hlenP ψ).symm) hleaf' hFD'.read hFD'.okTy ?_ ?_ ?_ ?_
       · -- the fold at the fieldless shape
         intro _ ψ ρ ts hsp
@@ -1470,10 +1425,10 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         intro _ ψ
         have hleafCraw : m'.acval cA.1.name ψ
             = sumMkAV (q.resSort.eval ψ) 0 ((pk m).dsF 0 ψ)
-                ((((pk m).dsF 0 ψ).drop q.nP).map (·.2.2))
+                ((((pk m).dsF 0 ψ).drop q.nP))
                 (uChains ((blockDataOf V q ctorsAs pk uOf ppsOf).Fss m ψ)) :=
           hleafC' ψ
-        have hnil : (((pk m).dsF 0 ψ).drop q.nP).map (·.2.2) = [] := by
+        have hnil : (((pk m).dsF 0 ψ).drop q.nP) = [] := by
           refine List.length_eq_zero_iff.mp ?_
           simp [hlenD ψ]
         rw [hnil, hFss1 ψ] at hleafCraw
@@ -1483,8 +1438,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         exact hleafCraw
       · -- the parameter spine fits the constructor's parameters
         intro ψ ρ as hsp
-        refine (spineFit_iff_of_sat_iff (by rw [List.length_map, List.length_map,
-          hlenP ψ, hlenD ψ]) (fun ρ' => ?_) ρ as (by rw [hsp.length_eq, List.length_map])).mp hsp
+        refine (spineFit_iff_of_sat_iff (by rw [hlenP ψ, hlenD ψ])
+          (fun ρ' => ?_) ρ as (by rw [hsp.length_eq])).mp hsp
         have hiff := (hframes m hm 0 cA hkk).1 ψ ρ'
         rwa [List.take_of_length_le (Nat.le_of_eq (hlenP ψ)),
           List.take_of_length_le (Nat.le_of_eq (hlenD ψ))] at hiff
@@ -1513,11 +1468,11 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         (∀ i, i < cA.2 → q.isProp = false →
           Level.leq (sorts.getD i .zero) q.resSort = some true) ∧
         ∀ (ψ : Name → Nat) (ρ : Nat → V),
-          Sat V ((((pk m).dsF j ψ).take q.nP).map (·.2.2)).reverse ρ →
+          Sat V ((((pk m).dsF j ψ).take q.nP)).reverse ρ →
           ∀ i, i < cA.2 → ∀ as : List V,
-            SpineFit ρ (((((pk m).dsF j ψ).drop q.nP).map (·.2.2)).take i) as →
+            SpineFit ρ (((((pk m).dsF j ψ).drop q.nP)).take i) as →
             interp V (consList as ρ)
-                (((((pk m).dsF j ψ).drop q.nP).map (·.2.2)).getD i default)
+                (((((pk m).dsF j ψ).drop q.nP)).getD i default)
               ∈ˢ (univ ((sorts.getD i .zero).eval ψ) : V) := by
     intro m hm j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf m hm
@@ -1541,22 +1496,22 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨cA, hjA⟩ : ∃ cA, (ctorsAs.getD c [])[j]? = some cA :=
       ⟨_, List.getElem?_eq_getElem hj⟩
     rw [hEssRD c j cA ψ hjA]
-    show ((pk c).esF j ψ).length = (((ppsOf c ψ).drop q.nP).map (·.2.2)).length
+    show ((pk c).esF j ψ).length = (((ppsOf c ψ).drop q.nP)).length
     rw [hIdsLen c ψ]
     exact (hpk c (hctorLt c j cA hjA) j cA hjA).lenE ψ
   -- ## a structure-like member's leaf folds to its one constructor's fibre
   have hfoldT : ∀ (m : Nat) (cA : ConstantVal × Nat), m < q.k → ctorsAs.getD m [] = [cA] →
       q.nIdxs.getD m 0 = 0 →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
-        SpineFit ρ ((ppsOf m ψ).map (·.2.2)) ts →
+        SpineFit ρ ((ppsOf m ψ)) ts →
         ts.foldl SetTheory.app (interp V ρ
             (blockLeafH (blockDataOf V q ctorsAs pk uOf ppsOf) m ψ))
           = sumSet (q.resSort.eval ψ) (sumFibre (q.resSort.eval ψ) (consList ts ρ)
-              [((((pk m).dsF 0 ψ).drop q.nP).map (·.2.2)) ++ [idxEqAV []]]) := by
+              [((((pk m).dsF 0 ψ).drop q.nP)) ++ [idxEqAV []]]) := by
     intro m cA hm hcs hnIdx0 ψ ρ ts hsp
     have hcA : (ctorsAs.getD m [])[0]? = some cA := by rw [hcs]; rfl
     have hlenA : (ctorsAs.getD m []).length = 1 := by rw [hcs]; rfl
-    have hIds0 : ((ppsOf m ψ).drop q.nP).map (·.2.2) = [] := by
+    have hIds0 : ((ppsOf m ψ).drop q.nP) = [] := by
       refine List.length_eq_zero_iff.mp ?_
       rw [hIdsLen m ψ, hnIdx0]
     have hEss0 : (blockDataOf V q ctorsAs pk uOf ppsOf).Ess m ψ = [[]] := by
@@ -1573,7 +1528,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         rwa [hnIdx0] at h
       rw [hEs, hE0, List.length_eq_zero_iff.mp hlen0]
     have hFss1 : (blockDataOf V q ctorsAs pk uOf ppsOf).Fss m ψ
-        = [((((pk m).dsF 0 ψ).drop q.nP).map (·.2.2))] := by
+        = [((((pk m).dsF 0 ψ).drop q.nP))] := by
       obtain ⟨Fs, hFs⟩ := List.length_eq_one_iff.mp (by
         show (fssOfR _ _).length = 1
         rw [fssOfR_length]

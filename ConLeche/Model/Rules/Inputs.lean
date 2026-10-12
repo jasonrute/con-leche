@@ -14,8 +14,8 @@ discharges each field.
 
 Eight fields are the laws `EnvModelM` already carries: `ConstType`,
 `NatHeads`, `AcvalDefnInst`, `TowerOk`, `RecRules`,
-`CapsOk` and `IndFibLaw`, all of them `Model/Annot/Laws.lean`'s (re-exported by
-`Model/Annot/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
+`CapsOk` and `IndFibLaw`, all of them `Model/Env/Laws.lean`'s (re-exported by
+`Model/Env/EnvModelM.lean`).  `RulesInputs.ofEnvModelM` below reads
 each of them off the fold's invariant.
 
 Three fields are NEW SHAPES:
@@ -59,8 +59,8 @@ graded. -/
     ConLeche.rawNatLit? w = some n →
     denoteMeta m.acval env φ d (.app (.const natSuccName []) w) = some ea →
     ∃ ra, denoteMeta m.acval env φ d (.lit (.natVal (n + 1))) = some ra ∧
-      ∀ ρ : Nat → V, WellDenotedV V ρ ea →
-        WellDenotedV V ρ ra ∧ interp V ρ ea = interp V ρ ra
+      ∀ ρ : Nat → V, WellDenoted V ρ ea →
+        WellDenoted V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
 /-- **The binary acceleration's semantic row**: a stored operation on
 two literal readings interprets as `natOpResult`, which reads and is
@@ -73,8 +73,8 @@ graded. -/
     ConLeche.natOpResult c n₁ n₂ = some r →
     denoteMeta m.acval env φ d (.app (.app (.const c []) wa) wb) = some ea →
     ∃ ra, denoteMeta m.acval env φ d r = some ra ∧
-      ∀ ρ : Nat → V, WellDenotedV V ρ ea →
-        WellDenotedV V ρ ra ∧ interp V ρ ea = interp V ρ ra
+      ∀ ρ : Nat → V, WellDenoted V ρ ea →
+        WellDenoted V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
 /-- **The binary acceleration's head**: a stored operation the rule fires
 on is read over the `Nat` leaf, a function on `Nat` of a function on `Nat`

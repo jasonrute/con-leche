@@ -6,15 +6,15 @@ import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.IndStageKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 import ConLeche.Model.Inductives.BlockData
 import ConLeche.Model.Inductives.TargetCallKit
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Model.NatEqs
-import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Env.LfpFormer
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.Inst
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Semantics.Tower.TowerKit
 
@@ -92,7 +92,7 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   rw [interp_closed V hcl ρ σ] at hin
   -- "not pt" source (1): the family instance is a type
   have hsp' := spineFit_of_wellDenoted_mkAppN_pi hwd.2.ne_pt hwd.1 hin
-    (by rw [← DenoteMetaSpine.length_eq hsp, hlen, ← List.length_append, ← hmap, List.length_map])
+    (by rw [← DenoteMetaSpine.length_eq hsp, hlen, ← List.length_append, ← hmap])
   rwa [hmap] at hsp'
 
 /-- The valuation `n` positions down. -/
@@ -291,7 +291,7 @@ theorem certsF_of_infer_spine {env : Env} {d : Nat} :
   | [], _, _, _, _, _, _ => .nil
   | a :: as, f, T0, r, hf, hpi, ⟨T, hT⟩ => by
     match T0, hpi with
-    | .forallE A B m, hpi =>
+    | .forallE A B, hpi =>
       have hpi' : ConLeche.instPisWith as (B.instantiate1 a) = some r := hpi
       obtain ⟨_, h1⟩ := infer_mkAppN_head as (f := .app f a) hT
       cases h1 with
@@ -367,7 +367,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   have hlab : (ab.take ds.length).length = ds.length := by
     rw [List.length_take]
     have := congrArg List.length hmap
-    simp only [List.length_map, List.length_append] at this
+    simp only [List.length_append] at this
     omega
   have hsplit : mkPisAV ab (.sort (D.w ψ))
       = mkPisAV (ab.take ds.length) (mkPisAV (ab.drop ds.length) (.sort (D.w ψ))) := by
@@ -376,7 +376,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   rw [hsplit] at hTF
   have hdl := DenoteMetaSpine.length_eq hdsa
   -- a fit of a Π-tower prefix is a `SpineFit` of its domains
-  have hsp : SpineFit ρ ((ab.take ds.length).map (·.2.2)) (dsa.map (interp V ρ)) := by
+  have hsp : SpineFit ρ (ab.take ds.length) (dsa.map (interp V ρ)) := by
     have hle : dsa.length = (ab.take ds.length).length := by rw [hlab, hdl]
     have htele := piTeleAV_of_stripPisAV (stripPisAV_mkPisAV (ab.take ds.length)
       (mkPisAV (ab.drop ds.length) (.sort (D.w ψ))))
@@ -393,8 +393,8 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   rw [hsplit] at hcl
   have hsp := spineFit_congr_below (ρ' := fun j => ρ (j + d))
     (bvarsBelow_mkPisAV_inv hcl).1 (fun i hi => absurd hi (Nat.not_lt_zero i)) hsp
-  have hmap₁ : (ab.take ds.length).map (·.2.2) = D.pars mm ψ := by
-    rw [List.map_take, hmap, hlenP, ← hpl, List.take_left' rfl]
+  have hmap₁ : (ab.take ds.length) = D.pars mm ψ := by
+    rw [hmap, hlenP, ← hpl, List.take_left' rfl]
   rw [hmap₁] at hsp
   have hsatP : Sat V (D.pars mm ψ).reverse (keyFrame dsa d ρ) := by
     have := sat_of_spineFit (Sat_nil V (fun j => ρ (j + d))) hsp

@@ -153,7 +153,7 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
     (fun ψ => ⟨_, hreads ψ⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)
-      exact ⟨by rw [WellDenotedV, WellDenoted_sort]; trivial, IsTy_univ _⟩)
+      exact ⟨by rw [WellDenoted_sort]; trivial, IsTy_univ _⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)
       exact interp_sort_mem V ρ 0)
@@ -174,8 +174,7 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
   · exact eqLaw_cons_fresh mp.eq_law
       (fun h => ne_of_notReserved hnres reserved_eqName h.symm) _ rfl
   · exact capsOk_cons_fresh mp mp.caps_ok hfresh hh.projTower
-      (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h)
-      (fun _ _ _ _ h => nomatch h) _ rfl
+      (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h) _ rfl
   · exact fun φ => recRules_cons_fresh mp hfresh hh.projTower
       (fun _ _ _ _ h => nomatch h) _ rfl φ
   · exact reduceOps_cons_fresh mp.reduce_ops hfresh

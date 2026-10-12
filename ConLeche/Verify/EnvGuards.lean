@@ -25,40 +25,25 @@ set_option linter.defProp false
 
 namespace ConLeche
 
-/-- The eta family of an eta-capable stored structure is complete: the
-capability record's constructor is stored as a constructor, and every
-documented projection function is stored as a (degenerate) recursor.
-This is the *premise* under which `CapsOk` owes the eta law:
-mid-block — the former is installed first, its constructor and
-projection functions after it — the premise fails and the law is not
-yet owed; the family-completing member's install discharges it.  The
-premises are deliberately **kind-pinned**: an installation of a
-non-constructor under the constructor's name (or a non-recursor under
-a projection name) never completes the family, which is what keeps
-the `CapsOk.cons` head obligations dischargeable at every install
-site.  The constructor's own parameter and field counts are NOT
-pinned to the record's: the law is stated at the record's counts, and
-the η certificate works at them too, so the two never have to be
-compared at a use. -/
+/-- The eta family whose η law `CapsOk` owes: a FIELDLESS η-capable
+family whose capability constructor is stored as a constructor.  This
+is the *premise* under which `CapsOk` owes the eta law: mid-block — the
+former is installed first, its constructor after it — the premise fails
+and the law is not yet owed; the constructor's install discharges it.
+The constructor premise is deliberately **kind-pinned**: an
+installation of a non-constructor under the constructor's name never
+completes the family, which is what keeps the `CapsOk.cons` head
+obligations dischargeable at every install site.  A family with fields
+owes nothing here: its η law is its projection table's (`TowerEtaLaw`).
+The constructor's own parameter and field counts are NOT pinned to the
+record's: the law is stated at the record's counts. -/
 @[expose] def EtaFamilyStored (env : Env) (T : Name) (caps : IndCaps) : Prop :=
   -- name-only conjunct (static in `caps`): a reserved-named capability
   -- constructor never completes a family, which keeps the basis
   -- installs' head obligations vacuous by computation
   reservedBasisNames.contains caps.etaCtor = false ∧
   (∃ cvC cnP cnF, env.find? caps.etaCtor = some (.ctorInfo cvC cnP cnF)) ∧
-  ∀ j, j < caps.etaFields → ∃ cv mI rP rules,
-    env.find? (projFnName T j) = some (.recInfo cv mI rP rules)
-
-/-- A projection function is never a reserved basis name: `projFnName`
-builds a `Name.num` node, and every reserved name is a `Name.str`. -/
-theorem projFnName_ne_reserved {T n : Name} {j : Nat}
-    (h : reservedBasisNames.contains n = true) : projFnName T j ≠ n := by
-  intro hh
-  subst hh
-  simp only [reservedBasisNames, List.contains_cons, List.contains_nil,
-    Bool.or_eq_true, beq_iff_eq, projFnName] at h
-  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h |
-    h | h | h | h | h | h <;> exact nomatch h
+  caps.etaFields = 0
 
 /-- Everything `natLitSupported` checked, as separate facts. -/
 theorem natLitSupported_inv {env : Env} (hs : natLitSupported env = true) :
@@ -68,7 +53,7 @@ theorem natLitSupported_inv {env : Env} (hs : natLitSupported env = true) :
       env.find? natSuccName = some (.ctorInfo cv1 i1 j1) ∧
       cv.levelParams = [] ∧ cv0.levelParams = [] ∧ cv1.levelParams = [] ∧
       cv.type = .sort (.succ .zero) ∧ cv0.type = .const natName [] ∧
-      ∃ mb, cv1.type = .forallE (.const natName []) (.const natName []) mb := by
+      cv1.type = .forallE (.const natName []) (.const natName []) := by
   unfold natLitSupported at hs
   simp only [Bool.and_eq_true] at hs
   obtain ⟨⟨hi, hz⟩, hsc⟩ := hs
@@ -91,10 +76,10 @@ theorem natLitSupported_inv {env : Env} (hs : natLitSupported env = true) :
         revert h6
         split
         case h_2 => intro h; simp at h
-        next c1 c2 mb heq =>
+        next c1 c2 heq =>
           intro h
           simp only [Bool.and_eq_true, beq_iff_eq] at h
-          exact ⟨mb, by rw [heq, h.1, h.2]⟩
+          rw [heq, h.1, h.2]
 
 /-- Everything `strLitSupported` checked beyond `natLitSupported`, as
 separate facts (level-parameter lists and exact annotated types of the
@@ -118,21 +103,21 @@ theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
       ciF.toConstantVal.levelParams = [] ∧
       ciS.toConstantVal.type = .sort (.succ .zero) ∧
       ciH.toConstantVal.type = .sort (.succ .zero) ∧
-      (∃ mb, ciO.toConstantVal.type =
+      ciO.toConstantVal.type =
         .forallE (.app (.const listName [.zero]) (.const charName []))
-          (.const stringName []) mb) ∧
-      (∃ mb, ciL.toConstantVal.type =
-        .forallE (.sort (.succ (.param pL))) (.sort (.succ (.param pL))) mb) ∧
-      (∃ mb, ciN.toConstantVal.type =
+          (.const stringName []) ∧
+      ciL.toConstantVal.type =
+        .forallE (.sort (.succ (.param pL))) (.sort (.succ (.param pL))) ∧
+      ciN.toConstantVal.type =
         .forallE (.sort (.succ (.param pN)))
-          (.app (.const listName [.param pN]) (.bvar 0)) mb) ∧
-      (∃ mb1 mb2 mb3, ciC.toConstantVal.type =
+          (.app (.const listName [.param pN]) (.bvar 0)) ∧
+      ciC.toConstantVal.type =
         .forallE (.sort (.succ (.param pC)))
           (.forallE (.bvar 0)
             (.forallE (.app (.const listName [.param pC]) (.bvar 1))
-              (.app (.const listName [.param pC]) (.bvar 2)) mb3) mb2) mb1) ∧
-      (∃ mb, ciF.toConstantVal.type =
-        .forallE (.const natName []) (.const charName []) mb) := by
+              (.app (.const listName [.param pC]) (.bvar 2)))) ∧
+      ciF.toConstantVal.type =
+        .forallE (.const natName []) (.const charName []) := by
   unfold strLitSupported at hs
   simp only [Bool.and_eq_true] at hs
   obtain ⟨⟨⟨⟨⟨⟨⟨hnat, hS⟩, hO⟩, hL⟩, hN⟩, hC⟩, hH⟩, hF⟩ := hs
@@ -165,7 +150,7 @@ theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
   next pL heqPL =>
   split
   case h_2 => intro h; simp at h
-  next nmL u1L u2L mbL heqTL =>
+  next nmL u1L u2L heqTL =>
   intro hL
   simp only [Bool.and_eq_true, beq_iff_eq] at hL
   -- List.nil
@@ -174,7 +159,7 @@ theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
   next pN heqPN =>
   split
   case h_2 => intro h; simp at h
-  next nmN u1N l1N us1N mbN heqTN =>
+  next nmN u1N l1N us1N heqTN =>
   intro hN
   simp only [Bool.and_eq_true, beq_iff_eq] at hN
   -- List.cons
@@ -183,7 +168,7 @@ theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
   next pC heqPC =>
   split
   case h_2 => intro h; simp at h
-  next nmC1 u1C nmC2 nmC3 l1C us1C l2C us2C mb3C mb2C mb1C heqTC =>
+  next nmC1 u1C nmC2 nmC3 l1C us1C l2C us2C heqTC =>
   intro hC
   simp only [Bool.and_eq_true, beq_iff_eq] at hC
   -- Char.ofNat
@@ -193,7 +178,7 @@ theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
   revert hF2
   split
   case h_2 => intro h; simp at h
-  next c1F c2F mbF heqTF =>
+  next c1F c2F heqTF =>
   intro hF2
   simp only [Bool.and_eq_true, beq_iff_eq] at hF2
   -- String.ofList
@@ -202,19 +187,17 @@ theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
   revert hO2
   split
   case h_2 => intro h; simp at h
-  next l1O us1O c1O c2O mbO heqTO =>
+  next l1O us1O c1O c2O heqTO =>
   intro hO2
   simp only [Bool.and_eq_true, beq_iff_eq] at hO2
   refine ⟨ciS, ciO, ciL, ciN, ciC, ciH, ciF, pL, pN, pC,
     heqS, heqO, heqL, heqN, heqC, heqH, heqF,
     hS.1, hO1, heqPL, heqPN, heqPC, hH.1, hF1, hS.2, hH.2, ?_, ?_, ?_, ?_, ?_⟩
-  · exact ⟨mbO, by
-      rw [heqTO, hO2.1.1.1, hO2.1.1.2, hO2.1.2, hO2.2]⟩
-  · exact ⟨mbL, by rw [heqTL, hL.1, hL.2]⟩
-  · exact ⟨mbN, by rw [heqTN, hN.1.1, hN.1.2, hN.2]⟩
-  · exact ⟨mb1C, mb2C, mb3C, by
-      rw [heqTC, hC.1.1.1.1, hC.1.1.1.2, hC.1.1.2, hC.1.2, hC.2]⟩
-  · exact ⟨mbF, by rw [heqTF, hF2.1, hF2.2]⟩
+  · rw [heqTO, hO2.1.1.1, hO2.1.1.2, hO2.1.2, hO2.2]
+  · rw [heqTL, hL.1, hL.2]
+  · rw [heqTN, hN.1.1, hN.1.2, hN.2]
+  · rw [heqTC, hC.1.1.1.1, hC.1.1.1.2, hC.1.1.2, hC.1.2, hC.2]
+  · rw [heqTF, hF2.1, hF2.2]
 
 /-- Every stored non-reserved eta-capable type former's constructor is
 stored, at exactly the capability record's arities.  **Not** an

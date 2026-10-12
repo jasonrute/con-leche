@@ -181,7 +181,7 @@ theorem genRecCtor_find
     (hcore : BlockCtorsCore mpC.base2 dR pp.lps cvTas pp.toBlockShape isRec A dR.k)
     (hctorsAs : ∀ c, c < ctorsAs.length → ctorsAs[c]? = some (dR.ctorsM c))
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+      (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
       dR = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcov : LfpCover mpC []) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
@@ -205,7 +205,7 @@ theorem genRecCtor_find
     rw [heq] at hcA
     have hck : t' < (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf).k := by
       rw [← hN.2.2]; exact hN.2.1 _ i cA hcA
-    obtain ⟨hfind, -, -⟩ := hcore.2.2.2 _ hck i cA hcA
+    obtain ⟨hfind, -, -⟩ := hcore.2.2 _ hck i cA hcA
     rw [hnPc]
     exact hfind
   | none =>
@@ -228,7 +228,7 @@ theorem genRecCtor_in
     (hcore : BlockCtorsCore mpC.base2 dR pp.lps cvTas pp.toBlockShape isRec A dR.k)
     (hctorsAs : ∀ c, c < ctorsAs.length → ctorsAs[c]? = some (dR.ctorsM c))
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+      (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
       dR = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcov : LfpCover mpC []) :
     ∀ r ∈ tgtRs out, ∀ cA ∈ r.2.2.2,
@@ -247,7 +247,7 @@ theorem genRecCtor_seam
     (hcore : BlockCtorsCore mpC.base2 dR pp.lps cvTas pp.toBlockShape isRec A dR.k)
     (hctorsAs : ∀ c, c < ctorsAs.length → ctorsAs[c]? = some (dR.ctorsM c))
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+      (ppsOf : Nat → (Name → Nat) → List AnnotTerm),
       dR = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcov : LfpCover mpC []) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),

@@ -49,14 +49,14 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 /-! ## The pure mirrors -/
 
 /-- Mirror stack entry of `inferLamsI`: opened domain, binder meta. -/
-abbrev InferLamEntryX := Expr × BinderMeta
+abbrev InferLamEntryX := Expr
 
 /-- Pure mirror of `inferLamsOutI` (a pure rebuild fold). -/
 @[expose] def inferLamsOut (d : Nat) :
     List InferLamEntryX → Nat → Expr → m Expr
   | [], _j, cur => pure cur
-  | (tyo, mb) :: rest, j, cur =>
-    inferLamsOut d rest (j - 1) (Expr.forallE (tyo.abstractRange d j) cur mb)
+  | tyo :: rest, j, cur =>
+    inferLamsOut d rest (j - 1) (Expr.forallE (tyo.abstractRange d j) cur)
 
 /-- Pure mirror of `inferLamsLeafI`: the bulk-opened residual's type,
 then the rebuild. -/
@@ -71,13 +71,13 @@ then the rebuild. -/
     Nat → Expr → Nat → List Expr → List InferLamEntryX → m Expr
   | fuel + 1, t, k, fvs, stk =>
     match t with
-    | .lam ty body mb => do
+    | .lam ty body => do
       let tyo := ty.instantiateList fvs
       let tty ← r.infer (d + k) tyo
       match ← r.whnf (d + k) tty with
       | .sort _ =>
         inferLams r d fuel body (k + 1)
-          (Expr.fvar (d + k) tyo :: fvs) ((tyo, mb) :: stk)
+          (Expr.fvar (d + k) tyo :: fvs) (tyo :: stk)
       | _ => throw (.invalid "expected a sort")
     | t => inferLamsLeaf r d t k fvs stk
   | 0, t, k, fvs, stk => inferLamsLeaf r d t k fvs stk
@@ -103,7 +103,7 @@ then the rebuild. -/
     Nat → Expr → Nat → List Expr → List Level → m Expr
   | fuel + 1, t, k, fvs, stk =>
     match t with
-    | .forallE ty body _ => do
+    | .forallE ty body => do
       let tyo := ty.instantiateList fvs
       let tty ← r.infer (d + k) tyo
       match ← r.whnf (d + k) tty with
@@ -122,8 +122,8 @@ pure. -/
 @[expose] def inferLamsWrap (d : Nat) :
     List InferLamEntryX → Nat → Expr → m Expr
   | [], _j, bt => pure bt
-  | (tyo, mb) :: rest, j, bt =>
-    inferLamsWrap d rest (j - 1) (.forallE tyo (bt.abstract1 (d + j)) mb)
+  | tyo :: rest, j, bt =>
+    inferLamsWrap d rest (j - 1) (.forallE tyo (bt.abstract1 (d + j)))
 
 /-- The chained `inferBody` ∀-tail folded over the peeled binders: per
 level, the chained rule's `ensureSort` of the freshly built inner sort
@@ -148,26 +148,26 @@ theorem inferLams_zero (t : Expr) (k : Nat) (fvs : List Expr)
       = inferLamsLeaf r d t k fvs stk := by rfl
 
 theorem inferLams_succ_lam (fuel : Nat) (ty body : Expr)
-    (mb : BinderMeta) (k : Nat) (fvs : List Expr)
+    (k : Nat) (fvs : List Expr)
     (stk : List InferLamEntryX) :
-    inferLams r d (fuel + 1) (.lam ty body mb) k fvs stk
+    inferLams r d (fuel + 1) (.lam ty body) k fvs stk
       = (do
         let tty ← r.infer (d + k) (ty.instantiateList fvs)
         match ← r.whnf (d + k) tty with
         | .sort _ =>
           inferLams r d fuel body (k + 1)
             (Expr.fvar (d + k) (ty.instantiateList fvs) :: fvs)
-            ((ty.instantiateList fvs, mb) :: stk)
+            (ty.instantiateList fvs :: stk)
         | _ => throw (.invalid "expected a sort")) := by rfl
 
 theorem inferLams_succ_ne_lam (fuel : Nat) {t : Expr}
-    (ht : ∀ ty body mb, t ≠ .lam ty body mb) (k : Nat)
+    (ht : ∀ ty body, t ≠ .lam ty body) (k : Nat)
     (fvs : List Expr) (stk : List InferLamEntryX) :
     inferLams r d (fuel + 1) t k fvs stk
       = inferLamsLeaf r d t k fvs stk := by
   cases t with
-  | lam ty body mb => exact absurd rfl (ht ty body mb)
-  | _ => rw [inferLams] <;> exact fun _ _ _ h => nomatch h
+  | lam ty body => exact absurd rfl (ht ty body)
+  | _ => rw [inferLams] <;> exact fun _ _ h => nomatch h
 
 theorem inferPis_zero (t : Expr) (k : Nat) (fvs : List Expr)
     (stk : List Level) :
@@ -175,9 +175,9 @@ theorem inferPis_zero (t : Expr) (k : Nat) (fvs : List Expr)
       = inferPisLeaf r d t k fvs stk := by rfl
 
 theorem inferPis_succ_pi (fuel : Nat) (ty body : Expr)
-    (mb : BinderMeta) (k : Nat) (fvs : List Expr)
+    (k : Nat) (fvs : List Expr)
     (stk : List Level) :
-    inferPis r d (fuel + 1) (.forallE ty body mb) k fvs stk
+    inferPis r d (fuel + 1) (.forallE ty body) k fvs stk
       = (do
         let tty ← r.infer (d + k) (ty.instantiateList fvs)
         match ← r.whnf (d + k) tty with
@@ -188,20 +188,20 @@ theorem inferPis_succ_pi (fuel : Nat) (ty body : Expr)
         | _ => throw (.invalid "expected a sort")) := by rfl
 
 theorem inferPis_succ_ne_pi (fuel : Nat) {t : Expr}
-    (ht : ∀ ty body mb, t ≠ .forallE ty body mb) (k : Nat)
+    (ht : ∀ ty body, t ≠ .forallE ty body) (k : Nat)
     (fvs : List Expr) (stk : List Level) :
     inferPis r d (fuel + 1) t k fvs stk
       = inferPisLeaf r d t k fvs stk := by
   cases t with
-  | forallE ty body mb => exact absurd rfl (ht ty body mb)
-  | _ => rw [inferPis] <;> exact fun _ _ _ h => nomatch h
+  | forallE ty body => exact absurd rfl (ht ty body)
+  | _ => rw [inferPis] <;> exact fun _ _ h => nomatch h
 
 /-! Shape equations of the fueled bodies on binder nodes (definitional;
 the fuel steps once). -/
 
 theorem inferTypeCore_forallE_eq (env : Env) (F d : Nat)
-    (ty body : Expr) (mb : BinderMeta) :
-    inferTypeCore mode env (F + 1) d (.forallE ty body mb)
+    (ty body : Expr) :
+    inferTypeCore mode env (F + 1) d (.forallE ty body)
       = (inferTypeCore mode env F d ty >>= fun tty =>
          whnf mode env F d tty >>= fun w =>
          match w with
@@ -213,15 +213,15 @@ theorem inferTypeCore_forallE_eq (env : Env) (F d : Nat)
          | _ => throw (.invalid "expected a sort")) := rfl
 
 theorem inferTypeCore_lam_eq (env : Env) (F d : Nat)
-    (ty body : Expr) (mb : BinderMeta) :
-    inferTypeCore mode env (F + 1) d (.lam ty body mb)
+    (ty body : Expr) :
+    inferTypeCore mode env (F + 1) d (.lam ty body)
       = (inferTypeCore mode env F d ty >>= fun tty =>
          whnf mode env F d tty >>= fun w =>
          match w with
          | .sort _ =>
            inferTypeCore mode env F (d + 1)
                (body.instantiate1 (.fvar d ty)) >>= fun bt =>
-             pure (Expr.forallE ty (bt.abstract1 d) mb)
+             pure (Expr.forallE ty (bt.abstract1 d))
          | _ => throw (.invalid "expected a sort")) := rfl
 
 theorem ensureSortCore_eq (env : Env) (F d : Nat) (e : Expr) :
@@ -266,7 +266,7 @@ theorem inferLamsOut_atF (d : Nat) :
       (inferLamsOut (m := FueledM) d stk j cur).val F
         = inferLamsOut (m := CheckM) d stk j cur
   | [], _, _, _ => rfl
-  | (_tyo, _mb) :: rest, j, _cur, F => inferLamsOut_atF d rest (j - 1) _ F
+  | _tyo :: rest, j, _cur, F => inferLamsOut_atF d rest (j - 1) _ F
 
 theorem inferLamsLeaf_atF (d : Nat) (t : Expr) (k : Nat)
     (fvs : List Expr) (stk : List InferLamEntryX) (F : Nat) :
@@ -285,8 +285,8 @@ theorem inferLams_atF (d : Nat) :
         = inferLams (pureFns mode env F) d fuel t k fvs stk
   | 0, t, k, fvs, stk, F => inferLamsLeaf_atF d t k fvs stk F
   | fuel + 1, t, k, fvs, stk, F => by
-    by_cases hlam : ∃ ty body mb, t = Expr.lam ty body mb
-    · obtain ⟨ty, body, mb, rfl⟩ := hlam
+    by_cases hlam : ∃ ty body, t = Expr.lam ty body
+    · obtain ⟨ty, body, rfl⟩ := hlam
       rw [inferLams_succ_lam, inferLams_succ_lam]
       rw [FueledM.atF_bind]
       congr 1
@@ -297,8 +297,8 @@ theorem inferLams_atF (d : Nat) :
       cases w <;> first
         | rfl
         | exact inferLams_atF d fuel body (k + 1) _ _ F
-    · have ht : ∀ ty body mb, t ≠ Expr.lam ty body mb :=
-        fun ty b mb hh => hlam ⟨ty, b, mb, hh⟩
+    · have ht : ∀ ty body, t ≠ Expr.lam ty body :=
+        fun ty b hh => hlam ⟨ty, b, hh⟩
       rw [inferLams_succ_ne_lam _ ht, inferLams_succ_ne_lam _ ht]
       exact inferLamsLeaf_atF d t k fvs stk F
 
@@ -334,8 +334,8 @@ theorem inferPis_atF (d : Nat) :
         = inferPis (pureFns mode env F) d fuel t k fvs stk
   | 0, t, k, fvs, stk, F => inferPisLeaf_atF d t k fvs stk F
   | fuel + 1, t, k, fvs, stk, F => by
-    by_cases hpi : ∃ ty body mb, t = Expr.forallE ty body mb
-    · obtain ⟨ty, body, mb, rfl⟩ := hpi
+    by_cases hpi : ∃ ty body, t = Expr.forallE ty body
+    · obtain ⟨ty, body, rfl⟩ := hpi
       rw [inferPis_succ_pi, inferPis_succ_pi]
       rw [FueledM.atF_bind]
       congr 1
@@ -346,8 +346,8 @@ theorem inferPis_atF (d : Nat) :
       cases w <;> first
         | rfl
         | exact inferPis_atF d fuel body (k + 1) _ _ F
-    · have ht : ∀ ty body mb, t ≠ Expr.forallE ty body mb :=
-        fun ty b mb hh => hpi ⟨ty, b, mb, hh⟩
+    · have ht : ∀ ty body, t ≠ Expr.forallE ty body :=
+        fun ty b hh => hpi ⟨ty, b, hh⟩
       rw [inferPis_succ_ne_pi _ ht, inferPis_succ_ne_pi _ ht]
       exact inferPisLeaf_atF d t k fvs stk F
 
@@ -370,14 +370,13 @@ theorem inferLamsOut_wrap {d : Nat} :
   intro stk
   induction stk with
   | nil => intro j bt hlen; exact nomatch hlen
-  | cons e rest ih =>
-    obtain ⟨tyo, mb⟩ := e
+  | cons tyo rest ih =>
     intro j bt hlen
     show inferLamsOut (m := CheckM) d rest (j - 1)
         (Expr.forallE (tyo.abstractRange d j)
-          (bt.abstractRange d (j + 1)) mb)
+          (bt.abstractRange d (j + 1)))
       = inferLamsWrap (m := CheckM) d rest (j - 1)
-          (Expr.forallE tyo (bt.abstract1 (d + j)) mb)
+          (Expr.forallE tyo (bt.abstract1 (d + j)))
     cases rest with
     | nil =>
       obtain rfl : j = 0 := by simpa using hlen
@@ -387,15 +386,15 @@ theorem inferLamsOut_wrap {d : Nat} :
       · rw [abstractRange_succ, abstractRange_zero]
     | cons e' rest' =>
       have hnode : Expr.forallE (tyo.abstractRange d j)
-          (bt.abstractRange d (j + 1)) mb
-          = (Expr.forallE tyo (bt.abstract1 (d + j)) mb).abstractRange
+          (bt.abstractRange d (j + 1))
+          = (Expr.forallE tyo (bt.abstract1 (d + j))).abstractRange
               d ((j - 1) + 1) := by
         have hj : (j - 1) + 1 = j := by
           simp only [List.length_cons] at hlen
           omega
         rw [hj]
         show _ = Expr.forallE (tyo.abstractRange d j 0)
-          ((bt.abstract1 (d + j) 0).abstractRange d j 1) mb
+          ((bt.abstract1 (d + j) 0).abstractRange d j 1)
         rw [abstractRange_succ]
       rw [hnode]
       exact ih (j - 1) _ (by
@@ -446,8 +445,8 @@ theorem inferLams_sound {d : Nat} :
     exact inferLamsLeaf_sound hlen hrun
   | succ fuel ihf =>
     intro t k fvs stk F res hlen hrun
-    by_cases hlam : ∃ ty body mb, t = Expr.lam ty body mb
-    · obtain ⟨ty, body, mb, rfl⟩ := hlam
+    by_cases hlam : ∃ ty body, t = Expr.lam ty body
+    · obtain ⟨ty, body, rfl⟩ := hlam
       rw [inferLams_succ_lam] at hrun
       obtain ⟨tty, htty, hrun⟩ := bind_okB hrun
       rw [infer_def] at htty
@@ -460,8 +459,8 @@ theorem inferLams_sound {d : Nat} :
         | fvar idx tt => exact nomatch hrun
         | const nm us => exact nomatch hrun
         | app f a => exact nomatch hrun
-        | lam tt b mm => exact nomatch hrun
-        | forallE tt b mm => exact nomatch hrun
+        | lam tt b => exact nomatch hrun
+        | forallE tt b => exact nomatch hrun
         | letE tt vv b => exact nomatch hrun
         | lit l => exact nomatch hrun
         | proj sp i e => exact nomatch hrun
@@ -469,9 +468,9 @@ theorem inferLams_sound {d : Nat} :
       obtain ⟨F', hchain⟩ := ihf body (k + 1) _ _ F res
         (by simpa using hlen) hrun
       obtain ⟨bt, hbt, htail⟩ := bind_okB hchain
-      have hlamL : (Expr.lam ty body mb).instantiateList fvs
+      have hlamL : (Expr.lam ty body).instantiateList fvs
           = Expr.lam (ty.instantiateList fvs)
-            (body.instantiateList fvs 1) mb := by
+            (body.instantiateList fvs 1) := by
         simp [Expr.instantiateList]
       refine ⟨(max F F') + 1, ?_⟩
       rw [hlamL, inferTypeCore_lam_eq]
@@ -488,8 +487,8 @@ theorem inferLams_sound {d : Nat} :
       rw [pure_bind]
       rw [show (k + 1 : Nat) - 1 = k from rfl] at htail
       exact htail
-    · have ht : ∀ ty body mb, t ≠ Expr.lam ty body mb :=
-        fun ty b mb hh => hlam ⟨ty, b, mb, hh⟩
+    · have ht : ∀ ty body, t ≠ Expr.lam ty body :=
+        fun ty b hh => hlam ⟨ty, b, hh⟩
       rw [inferLams_succ_ne_lam _ ht] at hrun
       exact inferLamsLeaf_sound hlen hrun
 
@@ -556,8 +555,8 @@ theorem inferPisLeaf_sound {d : Nat} {t : Expr}
     | fvar idx tt => exact nomatch hrun
     | const nm us => exact nomatch hrun
     | app f a => exact nomatch hrun
-    | lam tt b mm => exact nomatch hrun
-    | forallE tt b mm => exact nomatch hrun
+    | lam tt b => exact nomatch hrun
+    | forallE tt b => exact nomatch hrun
     | letE tt vv b => exact nomatch hrun
     | lit l => exact nomatch hrun
     | proj sp i e => exact nomatch hrun
@@ -602,8 +601,8 @@ theorem inferPis_sound {d : Nat} :
     exact inferPisLeaf_sound hlen hk hrun
   | succ fuel ihf =>
     intro t k fvs stk F res hlen hk hrun
-    by_cases hpi : ∃ ty body mb, t = Expr.forallE ty body mb
-    · obtain ⟨ty, body, mb, rfl⟩ := hpi
+    by_cases hpi : ∃ ty body, t = Expr.forallE ty body
+    · obtain ⟨ty, body, rfl⟩ := hpi
       rw [inferPis_succ_pi] at hrun
       obtain ⟨tty, htty, hrun⟩ := bind_okB hrun
       rw [infer_def] at htty
@@ -616,8 +615,8 @@ theorem inferPis_sound {d : Nat} :
         | fvar idx tt => exact nomatch hrun
         | const nm us => exact nomatch hrun
         | app f a => exact nomatch hrun
-        | lam tt b mm => exact nomatch hrun
-        | forallE tt b mm => exact nomatch hrun
+        | lam tt b => exact nomatch hrun
+        | forallE tt b => exact nomatch hrun
         | letE tt vv b => exact nomatch hrun
         | lit l => exact nomatch hrun
         | proj sp i e => exact nomatch hrun
@@ -625,9 +624,9 @@ theorem inferPis_sound {d : Nat} :
       obtain ⟨F', hchain⟩ := ihf body (k + 1) _ _ F res
         (by simpa using hlen) (by omega) hrun
       obtain ⟨bt, hbt, hwrap⟩ := bind_okB hchain
-      have hpiL : (Expr.forallE ty body mb).instantiateList fvs
+      have hpiL : (Expr.forallE ty body).instantiateList fvs
           = Expr.forallE (ty.instantiateList fvs)
-            (body.instantiateList fvs 1) mb := by
+            (body.instantiateList fvs 1) := by
         simp [Expr.instantiateList]
       refine ⟨(max F F') + 1, ?_⟩
       rw [hpiL, inferTypeCore_forallE_eq]
@@ -653,8 +652,8 @@ theorem inferPis_sound {d : Nat} :
       try rw [pure_bind]
       exact inferPisWrap_mono (Nat.le_trans (Nat.le_max_right F F')
         (Nat.le_succ _)) hwrap
-    · have ht : ∀ ty body mb, t ≠ Expr.forallE ty body mb :=
-        fun ty b mb hh => hpi ⟨ty, b, mb, hh⟩
+    · have ht : ∀ ty body, t ≠ Expr.forallE ty body :=
+        fun ty b hh => hpi ⟨ty, b, hh⟩
       rw [inferPis_succ_ne_pi _ ht] at hrun
       exact inferPisLeaf_sound hlen hk hrun
 

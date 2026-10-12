@@ -270,8 +270,8 @@ abbrev NestedFiresOk (envC : Env) (p : BlockParts)
         pin.constsResolve envC = true ∧
         pin.looseBVarsBounded (p.toBlockShape.rulePrefixAt j) = true ∧
         ∀ (T : Name) (i : Nat), envC.findProj? T i = none → Expr.NoProjAt T i pin) ∧
-      ∃ pre dom body bm D,
-        r.1.type.stripPis (p.toBlockShape.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+      ∃ pre dom body D,
+        r.1.type.stripPis (p.toBlockShape.majorIdxAt j) = some (pre, .forallE dom body) ∧
         dom.getAppFn = .const D lvls ∧
         dom.getAppArgs =
           pins.map (Expr.liftLooseBVars
@@ -300,7 +300,7 @@ abbrev AtStoredRules {envC : Env} (mpC : EnvModelM V μ envC)
       List (ConstantVal × Nat)), rs[j]? = some r →
     ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-      P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find? r.1.name
+      P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find?
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
           fire := fireOf j r, rhs := rhs })
 

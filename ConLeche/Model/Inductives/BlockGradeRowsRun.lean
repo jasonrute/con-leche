@@ -12,7 +12,7 @@ public section
 /-!
 # Grading the ι rule's constructor readings
 
-Transports of `WellDenotedV` across the rule's lifts (the rule prefix's
+Transports of `WellDenoted` across the rule's lifts (the rule prefix's
 non-parameter binders, the `K` chain binders of `chainFrame K a ρ`), and
 the gradedness of the constructor's index readings (`blockCtorEs_wdV`)
 and of the fired constructor application (`blockRuleMkAV_wdV`), both off
@@ -43,11 +43,11 @@ section CtorReadings
 /-- **The chain lift, graded**: a form lifted past the `K` chain binders
 at the frame's own depth is graded at the chain frame exactly when it
 is at the base frame. -/
-theorem wellDenotedV_liftN_chainFrame {K : Nat} {a ρ : Nat → V} (ws : List V)
+theorem wellDenoted_liftN_chainFrame {K : Nat} {a ρ : Nat → V} (ws : List V)
     (e : AnnotTerm) :
-    WellDenotedV V (consList ws (chainFrame K a ρ)) (e.liftN K ws.length)
-      ↔ WellDenotedV V (consList ws ρ) e := by
-  rw [WellDenotedV_liftN, chainFrame,
+    WellDenoted V (consList ws (chainFrame K a ρ)) (e.liftN K ws.length)
+      ↔ WellDenoted V (consList ws ρ) e := by
+  rw [WellDenoted_liftN, chainFrame,
     shiftE_consList_ih (locals := ws) (ihvals := (List.range K).map a) rfl (by simp)]
 
 end CtorReadings

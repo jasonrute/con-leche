@@ -26,7 +26,7 @@ open ConLeche
 
 @[expose] def nm (s : String) : Name := .str .anonymous s
 @[expose] def ty1 : Expr := .sort (.succ .zero)
-@[expose] def pi (d b : Expr) : Expr := .forallE d b default
+@[expose] def pi (d b : Expr) : Expr := .forallE d b
 @[expose] def cL : Expr := .const (nm "L") []
 @[expose] def cN : Expr := .const (nm "N") []
 @[expose] def cT : Expr := .const (nm "T") []
@@ -100,9 +100,9 @@ reduces with the kernel's whnf (`(fun _ => T) Nat ⇝ T`). -/
   nestedBlockPositivity (pureOps .verified) envF ctxF [[(⟨nm "T.mk", [], pi dom cT⟩, 1)]]
 
 -- `LF (fun _ => T)`: the λ-pin is an ordinary instantiation
-#guard kindsOf (runF (.app cLF (.lam ty1 cT default))) == some [.nested false]
+#guard kindsOf (runF (.app cLF (.lam ty1 cT))) == some [.nested false]
 -- `LF (fun _ => T → Nat)`: negative AT this instantiation
-#guard runF (.app cLF (.lam ty1 (pi cT cNat) default)) matches .error (.invalid _)
+#guard runF (.app cLF (.lam ty1 (pi cT cNat))) matches .error (.invalid _)
 
 /-! ### The holes are variables
 
@@ -114,7 +114,7 @@ block (N2-eager), so a cycle through a mutual container group is met at
 the frame's holes. -/
 
 -- `(fun (_ : Type) => T) Nat`: a hole only after β
-#guard kindsOf (runT (.app (.lam ty1 cT default) cNat)) == some [.recursive 0]
+#guard kindsOf (runT (.app (.lam ty1 cT) cNat)) == some [.recursive 0]
 
 /-- Mutual containers `A α | mk : B α → A α` and `B α | mk : A α → B α`. -/
 @[expose] def cA : Expr := .const (nm "A") []
@@ -229,7 +229,7 @@ is unreached from the first and negative in its parameter. -/
     ⟨[nm "T"], [], 0, [0], [], .succ .zero, envS.find?⟩
     [[(⟨nm "T.mk", [], pi dom cT⟩, 1)]]
 /-- `(fun _ => Nat) x`: a redex whnf reduces to `Nat`, erasing `x`. -/
-@[expose] def erase (x : Expr) : Expr := .app (.lam ty1 cNat default) x
+@[expose] def erase (x : Expr) : Expr := .app (.lam ty1 cNat) x
 
 -- `A2 T`: the unreached group-mate `B2` is walked too, and is negative:
 -- REJECTED, as official (it copies `B2` at `T`)
@@ -253,13 +253,13 @@ drops: the abstracted constructor type still names `T`. -/
   .indInfo ⟨nm "T", [nm "u"], ty1⟩ {}] ++ envT.consts⟩
 #guard (nestedBlockPositivity (pureOps .verified) envLv
     ⟨[nm "T"], [nm "u"], 0, [0], [], .succ .zero, envLv.find?⟩
-    [[(⟨nm "T.mk", [nm "u"], pi (.app (.lam ty1 cNat default)
+    [[(⟨nm "T.mk", [nm "u"], pi (.app (.lam ty1 cNat)
         (.app cL (.const (nm "T") [.zero]))) (.const (nm "T") [.param (nm "u")])⟩, 1)]])
   matches .error (.invalid _)
 -- the same at the block's own levels is a hole-free field
 #guard (nestedBlockPositivity (pureOps .verified) envLv
     ⟨[nm "T"], [nm "u"], 0, [0], [], .succ .zero, envLv.find?⟩
-    [[(⟨nm "T.mk", [nm "u"], pi (.app (.lam ty1 cNat default)
+    [[(⟨nm "T.mk", [nm "u"], pi (.app (.lam ty1 cNat)
         (.app cL (.const (nm "T") [.param (nm "u")]))) (.const (nm "T") [.param (nm "u")])⟩,
       1)]]) matches .ok _
 
@@ -316,7 +316,7 @@ the one function's product. -/
 @[expose] def cId : Expr := .const (nm "Id'") []
 @[expose] def envU : Env := ⟨[
   .axiomInfo ⟨nm "F4", [], pi cT ty1⟩,
-  .defnInfo ⟨nm "Id'", [], pi ty1 ty1⟩ (.lam ty1 (.bvar 0) default) .abbrev] ++ envT.consts⟩
+  .defnInfo ⟨nm "Id'", [], pi ty1 ty1⟩ (.lam ty1 (.bvar 0)) .abbrev] ++ envT.consts⟩
 @[expose] def ctxU : NestCtx :=
   ⟨[nm "T"], [], 0, [0], [], .succ .zero, envU.find?⟩
 

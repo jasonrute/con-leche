@@ -1,10 +1,10 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Env.EnvModelM
+import ConLeche.Model.Reading.Lemmas
 import ConLeche.Model.Currency
 public import ConLeche.Rules.Rel
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Rules.Rigid
 
@@ -58,7 +58,7 @@ hereditarily in the ∀'s body opened at the domain.  Nothing at any
 other type. -/
 @[expose] def IOHered (m : EnvModel V env) (φ : Name → Nat) :
     Nat → Expr → (Nat → V) → V → Prop
-  | d, .forallE ty body _, ρ, v =>
+  | d, .forallE ty body, ρ, v =>
     ∃ tya, denoteMeta m.acval env φ d ty = some tya ∧ WellDenotedTy V ρ tya ∧
       (∃ B' : V → V, v ∈ˢ piSet (interp V ρ tya) B') ∧
       (∃ x, x ∈ˢ interp V ρ tya ∧ SetTheory.app v x ≠ pt) ∧
@@ -86,9 +86,9 @@ head is no λ and no `let` (`Expr.ioNeutral`), not hereditary. -/
 
 variable {m : EnvModel V env} {φ : Name → Nat}
 
-theorem IOHered_forallE {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
+theorem IOHered_forallE {d : Nat} {ty body : Expr}
     {ρ : Nat → V} {v : V} :
-    IOHered m φ d (.forallE ty body mb) ρ v ↔
+    IOHered m φ d (.forallE ty body) ρ v ↔
       ∃ tya, denoteMeta m.acval env φ d ty = some tya ∧ WellDenotedTy V ρ tya ∧
         (∃ B' : V → V, v ∈ˢ piSet (interp V ρ tya) B') ∧
         (∃ x, x ∈ˢ interp V ρ tya ∧ SetTheory.app v x ≠ pt) ∧
@@ -100,9 +100,9 @@ theorem IOHered_forallE {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
 /-- The hereditary half lives at a ∀ only. -/
 theorem IOHered.forallE {d : Nat} {T : Expr} {ρ : Nat → V} {v : V}
     (h : IOHered m φ d T ρ v) :
-    ∃ ty body mb, T = .forallE ty body mb := by
+    ∃ ty body, T = .forallE ty body := by
   cases T with
-  | forallE ty body mb => exact ⟨ty, body, mb, rfl⟩
+  | forallE ty body => exact ⟨ty, body, rfl⟩
   | _ => simp [IOHered] at h
 
 /-- The member half at a known reading. -/
@@ -132,13 +132,13 @@ theorem IORel.of_mem {d : Nat} {T : Expr} {ta : AnnotTerm} {ρ : Nat → V} {v :
 
 /-- **Where the type is not a ∀, the claim is the point or a member.** -/
 theorem IORel.of_not_forallE {d : Nat} {T : Expr} {ρ : Nat → V} {v : V}
-    (h : IORel m φ d T ρ v) (hT : ∀ ty body mb, T ≠ .forallE ty body mb) :
+    (h : IORel m φ d T ρ v) (hT : ∀ ty body, T ≠ .forallE ty body) :
     v = pt ∨ IOMem m φ d T ρ v := by
   rcases h with h | h | h
   · exact Or.inl h
   · exact Or.inr h
-  · obtain ⟨ty, body, mb, rfl⟩ := h.forallE
-    exact absurd rfl (hT ty body mb)
+  · obtain ⟨ty, body, rfl⟩ := h.forallE
+    exact absurd rfl (hT ty body)
 
 /-- **The claim at a type that reduces to a non-∀** is the point or a
 member: a hereditary claim's type is a ∀, which reduces only to itself
@@ -148,17 +148,17 @@ rescues' and structure η's major discovery, unit-like structures,
 projections). -/
 theorem IORel.mem_of_red {d : Nat} {T T' : Expr} {ρ : Nat → V} {v : V}
     (h : IORel m φ d T ρ v) (hv : v ≠ pt) (hr : ConLeche.Rules.Red env d T T')
-    (hT' : ∀ ty body mb, T' ≠ .forallE ty body mb) : IOMem m φ d T ρ v := by
+    (hT' : ∀ ty body, T' ≠ .forallE ty body) : IOMem m φ d T ρ v := by
   rcases h with h | h | h
   · exact absurd h hv
   · exact h
-  · obtain ⟨ty, body, mb, rfl⟩ := h.forallE
-    exact absurd (ConLeche.Rules.Red.rigid hr trivial) (hT' ty body mb)
+  · obtain ⟨ty, body, rfl⟩ := h.forallE
+    exact absurd (ConLeche.Rules.Red.rigid hr trivial) (hT' ty body)
 
 /-- A constant-headed application is no ∀. -/
 theorem not_forallE_of_getAppFn {T : Expr} {c : Name} {us : List ConLeche.Level}
-    (h : T.getAppFn = .const c us) : ∀ ty body mb, T ≠ .forallE ty body mb := by
-  rintro ty body mb rfl; exact nomatch h
+    (h : T.getAppFn = .const c us) : ∀ ty body, T ≠ .forallE ty body := by
+  rintro ty body rfl; exact nomatch h
 
 /-! ## Through the substitution of a free variable -/
 
@@ -173,7 +173,7 @@ theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
     (ha : denoteMeta m.acval env φ p a = some x)
     {e : Expr} {D : Nat} {ρ : Nat → V} {v : V} (hpD : p ≤ D)
     (hfb : Expr.fvarsBelow (D + 1) e)
-    (hwx : WellDenotedV V (shiftE (D - p) 0 ρ) x)
+    (hwx : WellDenoted V (shiftE (D - p) 0 ρ) x)
     (h : IOMem m φ (D + 1) e (instE (D - p) (interp V (shiftE (D - p) 0 ρ) x) ρ) v) :
     IOMem m φ D (Expr.substFvarAt p a e) ρ v := by
   obtain ⟨ta, hta, hwT, hmem⟩ := h
@@ -189,10 +189,10 @@ theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
     (ha : denoteMeta m.acval env φ p a = some x) :
     ∀ (e : Expr) (D : Nat) (ρ : Nat → V) (v : V), p ≤ D →
       Expr.fvarsBelow (D + 1) e →
-      WellDenotedV V (shiftE (D - p) 0 ρ) x →
+      WellDenoted V (shiftE (D - p) 0 ρ) x →
       IORel m φ (D + 1) e (instE (D - p) (interp V (shiftE (D - p) 0 ρ) x) ρ) v →
       IORel m φ D (Expr.substFvarAt p a e) ρ v
-  | .forallE ty body mb, D, ρ, v, hpD, hfb, hwx, h => by
+  | .forallE ty body, D, ρ, v, hpD, hfb, hwx, h => by
     rcases h with h | h | h
     · exact Or.inl h
     · exact Or.inr (Or.inl (IOMem_substFvarAt hwa hba ha hpD hfb hwx h))
@@ -201,7 +201,7 @@ theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
       have hfb' : Expr.fvarsBelow (D + 1) ty ∧ Expr.fvarsBelow (D + 1) body := hfb
       refine Or.inr (Or.inr ?_)
       show IOHered m φ D
-        (.forallE (Expr.substFvarAt p a ty) (Expr.substFvarAt p a body) mb) ρ v
+        (.forallE (Expr.substFvarAt p a ty) (Expr.substFvarAt p a body)) ρ v
       rw [IOHered_forallE]
       have hint : interp V ρ (tya.inst x (D - p))
           = interp V (instE (D - p) (interp V (shiftE (D - p) 0 ρ) x) ρ) tya :=
@@ -222,13 +222,13 @@ theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : AnnotTerm}
       rwa [ConLeche.Expr.substFvarAt_instantiate1 hpD hba body 0] at hrec
   | .bvar _, _, _, _, hpD, hfb, hwx, h | .fvar _ _, _, _, _, hpD, hfb, hwx, h
   | .sort _, _, _, _, hpD, hfb, hwx, h | .const _ _, _, _, _, hpD, hfb, hwx, h
-  | .app _ _, _, _, _, hpD, hfb, hwx, h | .lam _ _ _, _, _, _, hpD, hfb, hwx, h
+  | .app _ _, _, _, _, hpD, hfb, hwx, h | .lam _ _, _, _, _, hpD, hfb, hwx, h
   | .letE _ _ _, _, _, _, hpD, hfb, hwx, h | .lit _, _, _, _, hpD, hfb, hwx, h
   | .proj _ _ _, _, _, _, hpD, hfb, hwx, h => by
     rcases h with h | h | h
     · exact Or.inl h
     · exact Or.inr (Or.inl (IOMem_substFvarAt hwa hba ha hpD hfb hwx h))
-    · obtain ⟨_, _, _, he⟩ := h.forallE; exact nomatch he
+    · obtain ⟨_, _, he⟩ := h.forallE; exact nomatch he
 termination_by e => e.sizeB
 decreasing_by
   rw [ConLeche.Expr.sizeB_instantiate1 _ rfl]; simp [ConLeche.Expr.sizeB]; omega

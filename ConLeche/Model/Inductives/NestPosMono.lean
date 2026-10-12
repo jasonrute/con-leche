@@ -7,8 +7,8 @@ import ConLeche.Model.Rules.Sound
 public import ConLeche.Model.CtxOkP
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitShift
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.Shift
 import ConLeche.Semantics.Frame
 import ConLeche.Verify.Denote.Shift
 import ConLeche.Verify.InferLemmas
@@ -80,9 +80,9 @@ theorem nestOcc_instantiate1_fvar {names : List Name} {lo hi d : Nat}
   | lit l => intro k; rfl
   | app f a ihf iha =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, ihf, iha]
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihb]
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihb]
   | letE t v b iht ihv ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihv, ihb]
@@ -137,7 +137,7 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     intro ea _ _ _ h
     rw [denoteMeta, hf] at h
     exact nomatch h
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro ea hws hd hocc h
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     simp only [Expr.fvarsBelow] at hws
@@ -148,7 +148,7 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     have hocc' : (body.instantiate1 (.fvar d ty)).nestOcc names lo hi = false := by
       rw [nestOcc_instantiate1_fvar (by omega) ty body 0]; exact hocc.2
     exact NoBVar.mono holeP_succ (ihbody hws' (by omega) hocc' hba)
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro ea hws hd hocc h
     rw [denoteMeta] at h
     rcases hta : denoteMeta m.acval env φ d ty with _ | ta
@@ -240,8 +240,8 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -386,9 +386,9 @@ relation still agrees off the hole positions, and the result reads. -/
 /-- A Π-tower positive along a relation is positive field by field, and
 its body satisfies the predicate under the fields. -/
 theorem piPosThen_mkPisAV {P : FrameRel V → AnnotTerm → Prop} :
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (R : FrameRel V) (b : AnnotTerm),
+    ∀ (ab : List AnnotTerm) (R : FrameRel V) (b : AnnotTerm),
       PiPosThen P ab.length R (mkPisAV ab b) →
-      TeleMonoOn R (ab.map (·.2.2)) ∧ P (R.underTele (ab.map (·.2.2))) b
+      TeleMonoOn R ab ∧ P (R.underTele ab) b
   | [], _, _, h => ⟨trivial, h⟩
   | _ :: ab, R, b, h => by
     obtain ⟨h1, h2⟩ := h

@@ -110,21 +110,21 @@ theorem reduceNat_bridge (hw : WhnfBridge env fuel)
           rw [hrb] at h
           simp [throw, throwThe, MonadExceptOf.throw] at h
       · simp [pure, Except.pure] at h
-  | .bvar _, h | .fvar _ _, h | .sort _, h | .lam _ _ _, h
-  | .forallE _ _ _, h | .letE _ _ _, h | .lit _, h
+  | .bvar _, h | .fvar _ _, h | .sort _, h | .lam _ _, h
+  | .forallE _ _, h | .letE _ _ _, h | .lit _, h
   | .proj _ _ _, h | .const _ _, h =>
     simp [reduceNatFueled, reduceNat, pure, Except.pure] at h
   | .app (.bvar _) _, h | .app (.fvar _ _) _, h
-  | .app (.sort _) _, h | .app (.lam _ _ _) _, h
-  | .app (.forallE _ _ _) _, h | .app (.letE _ _ _) _, h
+  | .app (.sort _) _, h | .app (.lam _ _) _, h
+  | .app (.forallE _ _) _, h | .app (.letE _ _ _) _, h
   | .app (.lit _) _, h | .app (.proj _ _ _) _, h =>
     simp [reduceNatFueled, reduceNat, pure, Except.pure] at h
   | .app (.const c (_ :: _)) _, h =>
     simp [reduceNatFueled, reduceNat, pure, Except.pure] at h
   | .app (.app (.bvar _) _) _, h | .app (.app (.fvar _ _) _) _, h
   | .app (.app (.sort _) _) _, h | .app (.app (.app _ _) _) _, h
-  | .app (.app (.lam _ _ _) _) _, h
-  | .app (.app (.forallE _ _ _) _) _, h
+  | .app (.app (.lam _ _) _) _, h
+  | .app (.app (.forallE _ _) _) _, h
   | .app (.app (.letE _ _ _) _) _, h
   | .app (.app (.lit _) _) _, h
   | .app (.app (.proj _ _ _) _) _, h =>
@@ -214,11 +214,11 @@ theorem peelPis_isSome_instantiateLevelParams (ks : List Name) (us : List Level)
     ∀ (k : Nat) {e : Expr}, (Expr.peelPis k e).isSome = true →
       (Expr.peelPis k (e.instantiateLevelParams ks us)).isSome = true
   | 0, _, _ => rfl
-  | k + 1, .forallE _ b _, h => by
+  | k + 1, .forallE _ b, h => by
     simp only [Expr.instantiateLevelParams, Expr.peelPis] at h ⊢
     exact peelPis_isSome_instantiateLevelParams ks us k h
   | _ + 1, .bvar _, h | _ + 1, .fvar _ _, h | _ + 1, .sort _, h
-  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _ _, h
+  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _, h
   | _ + 1, .letE _ _ _, h | _ + 1, .lit _, h | _ + 1, .proj _ _ _, h => by
     simp [Expr.peelPis] at h
 
@@ -283,7 +283,7 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
     WhnfCoreBridge env (fuel + 1) := by
   intro c d e e' h
   match e, h with
-  | .sort _, h | .fvar _ _, h | .forallE _ _ _, h | .lam _ _ _, h
+  | .sort _, h | .fvar _ _, h | .forallE _ _, h | .lam _ _, h
   | .const _ _, h | .lit _, h =>
     cases Except.ok.inj h; exact .refl
   | .bvar _, h =>
@@ -293,7 +293,7 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
   | .app f a, h =>
     obtain ⟨f', hf, hcase⟩ := whnf_app_inv h
     have hRf : Red env d (.app f a) (.app f' a) := .appFn (hwc hf)
-    rcases hcase with ⟨ty, body, mb, rfl, hbody⟩ | ⟨e'', hiota, hcont⟩ | rfl
+    rcases hcase with ⟨ty, body, rfl, hbody⟩ | ⟨e'', hiota, hcont⟩ | rfl
     · refine .trans hRf (.trans ?_ (hwc hbody))
       exact .beta
     · exact .trans hRf (.trans (iotaRec_bridge hw hd hi hio hiota) (hwc hcont))

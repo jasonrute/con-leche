@@ -58,8 +58,8 @@
 #                        (tests/arena/lean-arena-tests.tar.gz — pinned
 #                        and committed, so CI never depends on the live
 #                        arena's progression)
-#                      * the e2e, annot and mode suites
-#                      * the `--trusted` sweep of all three suites
+#                      * the e2e and mode suites
+#                      * the `--trusted` sweep of both suites
 #
 # WHAT IT DELIBERATELY DOES **NOT** COVER — and why the local battery is
 # still the real one:
@@ -193,7 +193,7 @@ jobs:
       # The standard battery.  It rebuilds nothing of consequence (the
       # step above already did) and runs every gate and suite listed at
       # the top of this file, including the `--trusted` sweep.
-      - name: tests/arena.sh (gates + arena/e2e/annot suites + trusted sweep)
+      - name: tests/arena.sh (gates + arena/e2e suites + trusted sweep)
         run: |
           set -euo pipefail
           bash tests/arena.sh 2>&1 | tee arena.log

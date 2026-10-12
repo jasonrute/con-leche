@@ -41,8 +41,8 @@ theorem fvarLeaves_substConst0 {n : Name} {r : Expr}
   | .app f a => by
     simp only [Expr.substConst0, Expr.fvarLeaves,
       fvarLeaves_substConst0 hr f, fvarLeaves_substConst0 hr a]
-  | .bvar _ | .fvar _ _ | .sort _ | .lit _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .proj _ _ _ => rfl
+  | .bvar _ | .fvar _ _ | .sort _ | .lit _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .proj _ _ _ => rfl
 
 /-- A closed (`looseBVarsBounded 0`) replacement keeps the bound. -/
 theorem looseBVarsBounded_substConst0 {n : Name} {r : Expr}
@@ -60,31 +60,31 @@ theorem looseBVarsBounded_substConst0 {n : Name} {r : Expr}
     exact ⟨looseBVarsBounded_substConst0 hr f he.1,
       looseBVarsBounded_substConst0 hr a he.2⟩
   | .bvar _, _, he | .fvar _ _, _, he | .sort _, _, he
-  | .lit _, _, he | .lam _ _ _, _, he | .forallE _ _ _, _, he
+  | .lit _, _, he | .lam _ _, _, he | .forallE _ _, _, he
   | .letE _ _ _, _, he | .proj _ _ _, _, he => he
 
 /-- The binary pinned type, inverted. -/
 theorem natOpTyPinned_binaryE {env : Env} {n : Name} {ty : Expr}
     (hn : ¬(n = natPredName))
     (h : natOpTyPinned env n ty = true) :
-    ∃ mb mb2 cod, ty = .forallE (.const natName [])
-      (.forallE (.const natName []) cod mb2) mb ∧
+    ∃ cod, ty = .forallE (.const natName [])
+      (.forallE (.const natName []) cod) ∧
       natOpCod env n cod = true := by
   unfold natOpTyPinned at h
   rw [ite_eq_right hn] at h
   revert h
   match ty with
-  | .forallE dom (.forallE dom2 cod mb2) mb =>
+  | .forallE dom (.forallE dom2 cod) =>
     intro h
     simp only [Bool.and_eq_true, beq_iff_eq] at h
-    exact ⟨mb, mb2, cod, by rw [h.1.1, h.1.2], h.2⟩
+    exact ⟨cod, by rw [h.1.1, h.1.2], h.2⟩
   | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _
-  | .lam _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _
-  | .forallE _ (.bvar _) _ | .forallE _ (.fvar _ _) _
-  | .forallE _ (.sort _) _ | .forallE _ (.const _ _) _
-  | .forallE _ (.app _ _) _ | .forallE _ (.lam _ _ _) _
-  | .forallE _ (.letE _ _ _) _ | .forallE _ (.lit _) _
-  | .forallE _ (.proj _ _ _) _ => intro h; exact nomatch h
+  | .lam _ _ | .letE _ _ _ | .lit _ | .proj _ _ _
+  | .forallE _ (.bvar _) | .forallE _ (.fvar _ _)
+  | .forallE _ (.sort _) | .forallE _ (.const _ _)
+  | .forallE _ (.app _ _) | .forallE _ (.lam _ _)
+  | .forallE _ (.letE _ _ _) | .forallE _ (.lit _)
+  | .forallE _ (.proj _ _ _) => intro h; exact nomatch h
 
 /-- `Nat.ble`'s codomain is the stored `Bool`. -/
 theorem natOpCod_ble {env : Env} {cod : Expr}

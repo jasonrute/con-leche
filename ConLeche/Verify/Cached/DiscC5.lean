@@ -11,7 +11,7 @@ The simulation walks for the definitional-equality pieces
 (`quickDefEqI`, `defeqOffsetI`, `tryUnfoldProjAppI`, `lazyDeltaStepI`,
 the two lazy-delta loops, `defeqProjPairI`, `defeqStuckI`) and
 `defeqBodyI` (`ConLeche/Cached/CoreC.lean`).  A decided `Expr` comparison on the
-cached side is the spec's structural comparison (`beq_transferC`): the
+cached side is the spec's structural comparison: the
 two sides are the same terms, with no store in sight.
 -/
 
@@ -27,25 +27,17 @@ section Walks
 
 variable {env : Env} {f : Nat}
 
-/-- Decided `Expr` equality decides expression equality on the field
-invariant. -/
-private theorem beq_transferC {i j : Expr} {a b : Expr}
-    (ha : RelC i a) (hb : RelC j b) : (i == j) = (a == b) := by
-  obtain rfl := ha
-  obtain rfl := hb
-  rfl
-
 /-- The one-sided-λ (right) stuck arm (the cached representation
-stores `Name`s and `BinderMeta`s directly). -/
+stores `Name`s directly; `lam`/`forallE` carry no other binder datum). -/
 private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₂ b₂ : Expr} {a'x ty₂x body₂x : Expr}
-    {bm₂ : BinderMeta} {s₀ : CState} (hs : CSOK mode env s₀)
+    {s₀ : CState} (hs : CSOK mode env s₀)
     (haS : RelC a' a'x)
     (hty₂ : RelC t₂ ty₂x)
     (hbody₂ : RelC b₂ body₂x)
-    (hbS : RelC b' (.lam ty₂x body₂x bm₂))
+    (hbS : RelC b' (.lam ty₂x body₂x))
     (hwa' : Expr.WScoped d a'x)
-    (hwb' : Expr.WScoped d (Expr.lam ty₂x body₂x bm₂)) :
+    (hwb' : Expr.WScoped d (Expr.lam ty₂x body₂x)) :
     SimC mode env s₀ RelVC
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
           t₂ b₂ a' >>= fun r =>
@@ -55,7 +47,7 @@ private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
           a'x >>= fun r =>
         if r then pure true
         else stuckIrrel (fueledFns mode env) env d a'x
-          (.lam ty₂x body₂x bm₂)) := by
+          (.lam ty₂x body₂x)) := by
   have h2 : Expr.WScoped d ty₂x ∧ Expr.WScoped d body₂x := by
     simpa only [Expr.WScoped] using hwb'
   refine SimC.bind (etaCertC_sim ih hs hty₂ hbody₂ haS h2.1 h2.2 hwa')
@@ -72,12 +64,12 @@ private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
 /-- The one-sided-λ (left) stuck arm. -/
 private theorem defeqC_etaL_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₁ b₁ : Expr} {b'x ty₁x body₁x : Expr}
-    {bm₁ : BinderMeta} {s₀ : CState} (hs : CSOK mode env s₀)
-    (haS : RelC a' (.lam ty₁x body₁x bm₁))
+    {s₀ : CState} (hs : CSOK mode env s₀)
+    (haS : RelC a' (.lam ty₁x body₁x))
     (hty₁ : RelC t₁ ty₁x)
     (hbody₁ : RelC b₁ body₁x)
     (hbS : RelC b' b'x)
-    (hwa' : Expr.WScoped d (Expr.lam ty₁x body₁x bm₁))
+    (hwa' : Expr.WScoped d (Expr.lam ty₁x body₁x))
     (hwb' : Expr.WScoped d b'x) :
     SimC mode env s₀ RelVC
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
@@ -88,7 +80,7 @@ private theorem defeqC_etaL_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
           b'x >>= fun r =>
         if r then pure true
         else stuckIrrel (fueledFns mode env) env d
-          (.lam ty₁x body₁x bm₁) b'x) := by
+          (.lam ty₁x body₁x) b'x) := by
   have h1 : Expr.WScoped d ty₁x ∧ Expr.WScoped d body₁x := by
     simpa only [Expr.WScoped] using hwa'
   refine SimC.bind (etaCertC_sim ih hs hty₁ hbody₁ hbS h1.1 h1.2 hwb')
@@ -299,7 +291,7 @@ theorem defeqLamsC_sim (ih : SSimC mode env f) :
       | some q =>
         obtain ⟨ty₁', body₁', ty₂', body₂'⟩ := q
         simp only [hp]
-        obtain ⟨m₁, m₂, he₁, he₂⟩ := Expr.lamPair?_some hp
+        obtain ⟨he₁, he₂⟩ := Expr.lamPair?_some hp
         by_cases heq : (body₁.instantiate1 (Expr.fvar d ty₂)
             == body₂.instantiate1 (Expr.fvar d ty₂)) = true
         · simp only [heq, ↓reduceIte]
@@ -334,10 +326,10 @@ theorem quickDefEqC_sim (_hμ : mode.verifiedChecks = true) (ih : SSimC mode env
       (fun s₁ ok ok' hs₁ hP => ?_)
     obtain rfl : ok = ok' := hP
     exact SimC.pure hs₁ rfl
-  case forallE.forallE t₁ b₁ m₁ t₂ b₂ m₂ =>
+  case forallE.forallE t₁ b₁ t₂ b₂ =>
     exact quickForallC ih hs (by simpa only [Expr.WScoped] using hwa)
       (by simpa only [Expr.WScoped] using hwb)
-  case lam.lam t₁ b₁ m₁ t₂ b₂ m₂ =>
+  case lam.lam t₁ b₁ t₂ b₂ =>
     have h1 : Expr.WScoped d t₁ ∧ Expr.WScoped d b₁ := by
       simpa only [Expr.WScoped] using hwa
     have h2 : Expr.WScoped d t₂ ∧ Expr.WScoped d b₂ := by

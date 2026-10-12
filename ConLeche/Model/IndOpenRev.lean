@@ -5,7 +5,7 @@ public import ConLeche.Model.IndSubst
 import ConLeche.Verify.Subst
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Verify.Denote.IndFrame
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.Reading.Inst
 public section
 
 /-!
@@ -24,7 +24,7 @@ frame's variables, and the `openRev` pair identifies them:
   and `nestedChain` — the reverse chain rides the fired spine, padded
   generically in the padding element: the padding must inhabit its
   `.sort 0` context slot **and** be graded, since the producer's
-  `wellDenotedV_instSeq` charges every spine element a grading.  The
+  `wellDenoted_instSeq` charges every spine element a grading.  The
   producer's choice is `.eqE (.sort 0) (.sort 0)` — `eqv_mem_univ` and
   a `True` grading.  (`.prf` fails the first: `pt_not_mem_univZero`.)
 * `pinCross` — the composite.

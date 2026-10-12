@@ -13,7 +13,7 @@ components ψ-congruent there.  This file has the recursors' pinned
 level parameters, the congruence of `pdoms`, and the equation list's
 congruence in its components.  The opened residue `Rb0` carries `fvar`
 openers, whose type annotations `denoteMeta` never reads; its
-congruence goes through `lpDefF` (`Model/Annot/LpDefF.lean`), the
+congruence goes through `lpDefF` (`Model/Reading/LpDefF.lean`), the
 `allLevelParamsDefined` footprint with `fvar` types ignored. -/
 
 namespace ConLeche.Model
@@ -56,11 +56,10 @@ theorem blockRulePdomsAV_params (hμ : μ.verifiedChecks = true) (mpC : EnvModel
   have hs₂ := stripPisAV_mkPisAV (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ₂ c)
     (blockRecConclAV mpC.base2.acval envC p.toBlockShape rs ψ₂ c)
   rw [← hM₁, hT, hM₂, hN₁, ← hN₂, hs₂] at hs₁
-  have hR : (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ₂ c).map (·.2.2)
-      = (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ₁ c).map (·.2.2) := by
-    have h := congrArg (fun x => (Prod.fst x).map (·.2.2)) (Option.some.inj hs₁)
-    simpa only [ppsNorm_map_dom] using h
-  simp only [blockRulePdomsAV, List.map_take, hR]
+  have hR : blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ₂ c
+      = blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ₁ c :=
+    congrArg Prod.fst (Option.some.inj hs₁)
+  simp only [blockRulePdomsAV, hR]
 
 
 /-- **The equation list is congruent in its six components** below

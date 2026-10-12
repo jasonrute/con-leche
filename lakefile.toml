@@ -21,7 +21,7 @@ testDriver = "ConLecheTests"
 #   denotation and claims; the two halves of the former SetBase/*)
 #                               ↑
 #                           ConLecheModel
-#                   de-based EnvModel · Annot
+#                   de-based EnvModel · Env · Reading
 #                   carriers · Interp rows ·
 #                   self-standing fold · P capstone
 #                               ↑

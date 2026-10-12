@@ -16,7 +16,7 @@ from run certificates**: the definition's run records one
 `DefEqClaim` at the pre-insertion environment converts each run into
 an `interp` equality at the two-variable `Nat` context.
 
-`DefEqClaim` demands the compared readings **graded** (`WellDenotedV`
+`DefEqClaim` demands the compared readings **graded** (`WellDenoted`
 under `Sat`).  The grading of an equation
 side — an application spine over stored `Nat`-operation heads,
 `Nat.zero`/`Nat.succ`, and two `Nat` free variables — is assembled
@@ -134,7 +134,7 @@ def NatArg (m : EnvModel V env) (ψ : Name → Nat) (e : Expr) :
     Prop :=
   ∃ ea, denoteMeta m.acval env ψ 2 e = some ea ∧
     ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-      WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ natLeafV m ψ ρ
+      WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ natLeafV m ψ ρ
 
 /-- The first equation variable (`fvar 0`). -/
 theorem natArg_var0 (m : EnvModel V env) (ψ : Name → Nat) :
@@ -201,7 +201,7 @@ theorem natArg_succ (m : EnvModel V env) {ψ : Name → Nat}
       = natLeafV m ψ ρ := by rw [substFn_nil]; rfl
   rw [hnatEq] at hsucc hNty
   refine ⟨?_, ?_⟩
-  · rw [WellDenotedV, WellDenoted_app]
+  · rw [WellDenoted_app]
     exact ⟨m.acval_wellDenoted _ _ ρ, htok,
       1, natLeafV m ψ ρ, fun _ => natLeafV m ψ ρ, hsucc, htm,
       fun h => absurd h Nat.one_ne_zero, fun _ => hNty⟩
@@ -221,7 +221,7 @@ def NatBinHead (m : EnvModel V env) (ψ : Name → Nat) (f : Expr)
     (codS : (Nat → V) → V) : Prop :=
   ∃ fa, denoteMeta m.acval env ψ 2 f = some fa ∧
     ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-      WellDenotedV V ρ fa ∧ IsTy (natLeafV m ψ ρ) ∧
+      WellDenoted V ρ fa ∧ IsTy (natLeafV m ψ ρ) ∧
       ∃ b₁ b₂ : Nat,
         interp V ρ fa ∈ˢ piR b₁ (natLeafV m ψ ρ)
           (fun _ => piR b₂ (natLeafV m ψ ρ) (fun _ => codS ρ)) ∧
@@ -234,7 +234,7 @@ def NatUnHead (m : EnvModel V env) (ψ : Name → Nat) (f : Expr)
     (codS : (Nat → V) → V) : Prop :=
   ∃ fa, denoteMeta m.acval env ψ 2 f = some fa ∧
     ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-      WellDenotedV V ρ fa ∧ IsTy (natLeafV m ψ ρ) ∧
+      WellDenoted V ρ fa ∧ IsTy (natLeafV m ψ ρ) ∧
       ∃ b₁ : Nat,
         interp V ρ fa ∈ˢ piR b₁ (natLeafV m ψ ρ) (fun _ => codS ρ) ∧
         (b₁ = 0 → ∀ x, x ∈ˢ natLeafV m ψ ρ → codS ρ ∈ˢ (univZero : V))
@@ -247,7 +247,7 @@ theorem natBinHead_app (m : EnvModel V env) {ψ : Name → Nat}
     (hy : NatArg m ψ y) :
     ∃ ea, denoteMeta m.acval env ψ 2 (.app (.app f x) y) = some ea ∧
       ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-        WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ := by
+        WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ := by
   obtain ⟨fa, hfa, hfg⟩ := hh
   obtain ⟨xa, hxa, hxg⟩ := hx
   obtain ⟨ya, hya, hyg⟩ := hy
@@ -266,7 +266,7 @@ theorem natBinHead_app (m : EnvModel V env) {ψ : Name → Nat}
       (interp V ρ ya) ∈ˢ codS ρ :=
     app_mem_piR hinner hym hB2
   refine ⟨?_, ?_⟩
-  · rw [WellDenotedV, WellDenoted_app]
+  · rw [WellDenoted_app]
     refine ⟨?_, hyok, b₂, natLeafV m ψ ρ, fun _ => codS ρ, ?_, hym, ?_, fun _ => hNty⟩
     · rw [WellDenoted_app]
       exact ⟨hfok, hxok, b₁, natLeafV m ψ ρ,
@@ -285,7 +285,7 @@ theorem natUnHead_app (m : EnvModel V env) {ψ : Name → Nat}
     (hh : NatUnHead m ψ f codS) (hx : NatArg m ψ x) :
     ∃ ea, denoteMeta m.acval env ψ 2 (.app f x) = some ea ∧
       ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-        WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ := by
+        WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ := by
   obtain ⟨fa, hfa, hfg⟩ := hh
   obtain ⟨xa, hxa, hxg⟩ := hx
   refine ⟨.app fa xa, by rw [denoteMeta_app, hfa, hxa]; rfl,
@@ -295,7 +295,7 @@ theorem natUnHead_app (m : EnvModel V env) {ψ : Name → Nat}
   have happ : SetTheory.app (interp V ρ fa) (interp V ρ xa)
       ∈ˢ codS ρ := app_mem_piR hfm hxm hB1
   refine ⟨?_, ?_⟩
-  · rw [WellDenotedV, WellDenoted_app]
+  · rw [WellDenoted_app]
     exact ⟨hfok, hxok, b₁, natLeafV m ψ ρ, fun _ => codS ρ, hfm, hxm,
       fun hz => hB1 hz, fun _ => hNty⟩
   · rw [interp_app]
@@ -313,9 +313,9 @@ else-branch, unpacked). -/
 theorem natOpTyPinned_shape_bin {env' : Env} {c : Name} {ty : Expr}
     (hnu : ¬(c = ConLeche.natPredName))
     (h : ConLeche.natOpTyPinned env' c ty = true) :
-    ∃ mb₁ mb₂ cod,
+    ∃ cod,
       ty = .forallE (.const ConLeche.natName [])
-        (.forallE (.const ConLeche.natName []) cod mb₂) mb₁ ∧
+        (.forallE (.const ConLeche.natName []) cod) ∧
       ((c = ConLeche.natBeqName ∨ c = ConLeche.natBleName) →
         cod = .const ConLeche.boolName [] ∧
         ∃ ci, env'.find? ConLeche.boolName = some ci ∧
@@ -326,11 +326,11 @@ theorem natOpTyPinned_shape_bin {env' : Env} {c : Name} {ty : Expr}
   split at h
   · next hc => exact absurd hc hnu
   · split at h
-    · next a dom b dom2 body mb2 mb =>
+    · next a dom b dom2 body =>
       simp only [Bool.and_eq_true, beq_iff_eq] at h
       obtain ⟨⟨rfl, rfl⟩, hcod⟩ := h
       unfold ConLeche.natOpCod at hcod
-      refine ⟨mb, mb2, body, rfl, ?_, ?_⟩
+      refine ⟨body, rfl, ?_, ?_⟩
       all_goals split at hcod
       · intro _
         simp only [Bool.and_eq_true, beq_iff_eq] at hcod
@@ -361,12 +361,12 @@ theorem natOpTyPinned_shape_bin {env' : Env} {c : Name} {ty : Expr}
 theorem natOpTyPinned_shape_un {env' : Env} {c : Name} {ty : Expr}
     (hu : c = ConLeche.natPredName)
     (h : ConLeche.natOpTyPinned env' c ty = true) :
-    ∃ mb₁, ty = .forallE (.const ConLeche.natName [])
-      (.const ConLeche.natName []) mb₁ := by
+    ty = .forallE (.const ConLeche.natName [])
+      (.const ConLeche.natName []) := by
   unfold ConLeche.natOpTyPinned at h
   split at h
   · split at h
-    · next a dom body mb =>
+    · next a dom body =>
       simp only [Bool.and_eq_true, beq_iff_eq] at h
       obtain ⟨rfl, hcod⟩ := h
       unfold ConLeche.natOpCod at hcod
@@ -374,7 +374,7 @@ theorem natOpTyPinned_shape_un {env' : Env} {c : Name} {ty : Expr}
       · next hcb =>
         exfalso
         subst hu; exact absurd hcb (by decide)
-      · exact ⟨mb, by rw [beq_iff_eq.mp hcod]⟩
+      · exact by rw [beq_iff_eq.mp hcod]
     · exact nomatch h
   · next hc => exact absurd hu hc
 
@@ -396,7 +396,7 @@ theorem denoteMeta_levelless_const {acval : Name → (Name → Nat) → AnnotTer
 /-- The pinned binary operation type's reading: a two-step `.pi` over
 the `Nat` leaf and the codomain leaf, at the stored regime bits. -/
 theorem denoteMeta_pinnedBinTy (m : EnvModel V env) (ψ : Name → Nat)
-    {mb₁ mb₂ : ConLeche.BinderMeta} {codN : Name}
+    {codN : Name}
     {ciN codCi : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = [])
@@ -404,16 +404,15 @@ theorem denoteMeta_pinnedBinTy (m : EnvModel V env) (ψ : Name → Nat)
     (hcodLp : codCi.toConstantVal.levelParams = []) :
     denoteMeta m.acval env ψ 0
         (.forallE (.const ConLeche.natName [])
-          (.forallE (.const ConLeche.natName []) (.const codN []) mb₂)
-          mb₁)
+          (.forallE (.const ConLeche.natName []) (.const codN [])))
       = some (.pi (m.acval ConLeche.natName ψ)
           (.pi (m.acval ConLeche.natName ψ)
             (m.acval codN ψ))) := by
   rw [denoteMeta_forallE, denoteMeta_levelless_const hfN hlpN]
   rw [show (Expr.forallE (.const ConLeche.natName [])
-        (.const codN []) mb₂).instantiate1
+        (.const codN [])).instantiate1
         (.fvar 0 (.const ConLeche.natName []))
-      = Expr.forallE (.const ConLeche.natName []) (.const codN []) mb₂
+      = Expr.forallE (.const ConLeche.natName []) (.const codN [])
     from ConLeche.Expr.instantiate1_eq_self
       (by simp [ConLeche.Expr.looseBVarsBounded])]
   rw [denoteMeta_forallE, denoteMeta_levelless_const hfN hlpN]
@@ -426,13 +425,13 @@ theorem denoteMeta_pinnedBinTy (m : EnvModel V env) (ψ : Name → Nat)
 
 /-- The pinned unary operation type's reading. -/
 theorem denoteMeta_pinnedUnTy (m : EnvModel V env) (ψ : Name → Nat)
-    {mb₁ : ConLeche.BinderMeta}
+   
     {ciN : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = []) :
     denoteMeta m.acval env ψ 0
         (.forallE (.const ConLeche.natName [])
-          (.const ConLeche.natName []) mb₁)
+          (.const ConLeche.natName []))
       = some (.pi (m.acval ConLeche.natName ψ)
           (m.acval ConLeche.natName ψ)) := by
   rw [denoteMeta_forallE, denoteMeta_levelless_const hfN hlpN]
@@ -451,11 +450,11 @@ and the product reading's own grading. -/
 theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     {f : Expr} {fa : AnnotTerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
-    (hok : ∀ ρ : Nat → V, WellDenotedV V ρ fa)
+    (hok : ∀ ρ : Nat → V, WellDenoted V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
       (.pi (m.acval ConLeche.natName ψ)
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))))
-    (htok : ∀ ρ : Nat → V, WellDenotedV V ρ
+    (htok : ∀ ρ : Nat → V, WellDenoted V ρ
       ((.pi (m.acval ConLeche.natName ψ)
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
         : AnnotTerm)) :
@@ -488,10 +487,10 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     {f : Expr} {fa : AnnotTerm} {codN : Name}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
-    (hok : ∀ ρ : Nat → V, WellDenotedV V ρ fa)
+    (hok : ∀ ρ : Nat → V, WellDenoted V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
       (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
-    (htok : ∀ ρ : Nat → V, WellDenotedV V ρ
+    (htok : ∀ ρ : Nat → V, WellDenoted V ρ
       ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
         : AnnotTerm)) :
     NatUnHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
@@ -522,10 +521,9 @@ theorem natBinHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
     {ho : ReducibilityHint}
     (hf : env.find? o = some (.defnInfo cvo vo ho))
     (hlp : cvo.levelParams = [])
-    {mb₁ mb₂ : ConLeche.BinderMeta} {codN : Name}
+    {codN : Name}
     (hty : cvo.type = .forallE (.const ConLeche.natName [])
-      (.forallE (.const ConLeche.natName []) (.const codN []) mb₂)
-      mb₁)
+      (.forallE (.const ConLeche.natName []) (.const codN [])))
     {ciN codCi : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = [])
@@ -557,9 +555,9 @@ theorem natUnHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
     {ho : ReducibilityHint}
     (hf : env.find? o = some (.defnInfo cvo vo ho))
     (hlp : cvo.levelParams = [])
-    {mb₁ : ConLeche.BinderMeta}
+   
     (hty : cvo.type = .forallE (.const ConLeche.natName [])
-      (.const ConLeche.natName []) mb₁)
+      (.const ConLeche.natName []))
     {ciN : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = []) :
@@ -635,10 +633,10 @@ theorem natEqLaw_of_run (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hS : ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 ψ) ρ → IsTy (S ρ))
     (hla : denoteMeta mp.base2.acval env ψ 2 lhs = some la)
     (hga : ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 ψ) ρ →
-      WellDenotedV V ρ la ∧ interp V ρ la ∈ˢ S ρ)
+      WellDenoted V ρ la ∧ interp V ρ la ∈ˢ S ρ)
     (hra : denoteMeta mp.base2.acval env ψ 2 rhs = some ra)
     (hgr : ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 ψ) ρ →
-      WellDenotedV V ρ ra ∧ interp V ρ ra ∈ˢ S ρ) :
+      WellDenoted V ρ ra ∧ interp V ρ ra ∈ˢ S ρ) :
     ∀ (ρ : Nat → V) (x y : V),
       x ∈ˢ interp V ρ (mp.base2.acval ConLeche.natName ψ) →
       y ∈ˢ interp V ρ (mp.base2.acval ConLeche.natName ψ) →
@@ -729,7 +727,7 @@ theorem denoteMeta_substConst0 {acval : Name → (Name → Nat) → AnnotTerm}
     rw [denoteMeta_app, denoteMeta_app, ihf hfr.1, iha hfr.2]
   | bvar _ => intro hfr; simp [shallowE] at hfr
   | lam _ _ => intro hfr; simp [shallowE] at hfr
-  | forallE _ _ _ => intro hfr; simp [shallowE] at hfr
+  | forallE _ _ => intro hfr; simp [shallowE] at hfr
   | letE _ _ _ => intro hfr; simp [shallowE] at hfr
   | proj _ _ _ => intro hfr; simp [shallowE] at hfr
   | lit _ => intro hfr; simp [shallowE] at hfr
@@ -762,7 +760,7 @@ theorem NatArg.package (m : EnvModel V env) {ψ : Name → Nat}
     {e : Expr} (h : NatArg m ψ e) :
     ∃ ea, denoteMeta m.acval env ψ 2 e = some ea ∧
       ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-        WellDenotedV V ρ ea ∧
+        WellDenoted V ρ ea ∧
           interp V ρ ea ∈ˢ interp V ρ (m.acval ConLeche.natName ψ) :=
   h
 
@@ -774,7 +772,7 @@ theorem natBinHead_app_package (m : EnvModel V env) {ψ : Name → Nat}
     (hy : NatArg m ψ y) :
     ∃ ea, denoteMeta m.acval env ψ 2 (.app (.app f x) y) = some ea ∧
       ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-        WellDenotedV V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ :=
+        WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ :=
   natBinHead_app m hh hx hy
 
 /-- A stored `Bool` constructor's package (the comparison right-hand
@@ -790,7 +788,7 @@ theorem natBoolConst_package (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hlpB : ciB.toConstantVal.levelParams = []) :
     ∃ ea, denoteMeta mp.base2.acval env ψ 2 (.const n []) = some ea ∧
       ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 ψ) ρ →
-        WellDenotedV V ρ ea ∧
+        WellDenoted V ρ ea ∧
           interp V ρ ea ∈ˢ interp V ρ (mp.base2.acval ConLeche.boolName ψ) := by
   have hmemE := ConLeche.Semantics.Env.find?_mem hf
   have hta : denoteMeta mp.base2.acval env ψ 0 ci.toConstantVal.type
@@ -888,7 +886,7 @@ theorem constsBound_of_natFragOk {c : Name}
     exact ⟨ihf h.1, iha h.2⟩
   | bvar _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | lam _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
-  | forallE _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
+  | forallE _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | letE _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | proj _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | lit _ => intro h; simp [ConLeche.Verify.natFragOk] at h
@@ -924,7 +922,7 @@ theorem consCrossAt_of_natFragOk {c : Name} {c₀ : ConstantInfo} :
     simp only [ConLeche.Verify.natFragOk, Bool.and_eq_true] at h
     simp only [Expr.NoProjAt]
     exact ⟨ihf h.1 entry heq j, iha h.2 entry heq j⟩
-  | bvar _ | lam _ _ _ | forallE _ _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
+  | bvar _ | lam _ _ | forallE _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
     intro h; simp [ConLeche.Verify.natFragOk] at h
 
 /-- **The per-operation crossing at a fresh cons**: an operation
@@ -1024,10 +1022,10 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     (hs : natLitSupported env = true)
     {Ta : (Name → Nat) → AnnotTerm}
     (hTa : ∀ ψ, denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
-    (hTok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenotedV V ρ (Ta ψ))
+    (hTok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (Ta ψ))
     {A : (Name → Nat) → AnnotTerm}
     (hA2 : ∀ ψ, denoteMeta mp.base2.acval env ψ 2 value' = some (A ψ))
-    (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenotedV V ρ (A ψ))
+    (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ)) :
     (c ≠ ConLeche.natPredName →
@@ -1049,7 +1047,7 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     have hnu : ¬(c = ConLeche.natPredName) := by
       rintro rfl
       exact hcp rfl
-    obtain ⟨mb₁, mb₂, cod, hty, hcmp, hncmp⟩ :=
+    obtain ⟨cod, hty, hcmp, hncmp⟩ :=
       natOpTyPinned_shape_bin hnu hpin
     by_cases hccmp : c = ConLeche.natBeqName ∨ c = ConLeche.natBleName
     · -- `Bool` codomain
@@ -1064,7 +1062,6 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
             ⟨c, lps, type'⟩ value' hint).name = c from rfl)) hBne
         · exact hfB₂
       have hTshape := denoteMeta_pinnedBinTy (codN := ConLeche.boolName)
-        (mb₁ := mb₁) (mb₂ := mb₂)
         mp.base2 φ hfN hlpN hfB hlpB₂
       rw [← hty] at hTshape
       obtain heq : Ta φ = _ :=
@@ -1077,7 +1074,6 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     · -- `Nat` codomain
       obtain rfl := hncmp hccmp
       have hTshape := denoteMeta_pinnedBinTy (codN := ConLeche.natName)
-        (mb₁ := mb₁) (mb₂ := mb₂)
         mp.base2 φ hfN hlpN hfN hlpN
       rw [← hty] at hTshape
       obtain heq : Ta φ = _ :=
@@ -1089,10 +1085,9 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
         unfold natOpCodN; rw [ite_eq_right hccmp]]
   · -- the unary head (`pred`)
     intro hcp
-    obtain ⟨mb₁, hty⟩ :=
+    obtain hty :=
       natOpTyPinned_shape_un hcp hpin
     have hTshape := denoteMeta_pinnedUnTy mp.base2 φ hfN hlpN
-      (mb₁ := mb₁)
     rw [← hty] at hTshape
     obtain heq : Ta φ = _ :=
       Option.some.inj ((hTa φ).symm.trans hTshape)
@@ -1102,7 +1097,7 @@ theorem natSelfHead_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     intro hccmp
     have hnu : ¬(c = ConLeche.natPredName) := by
       rcases hccmp with rfl | rfl <;> decide
-    obtain ⟨mb₁, mb₂, cod, hty, hcmp, -⟩ :=
+    obtain ⟨cod, hty, hcmp, -⟩ :=
       natOpTyPinned_shape_bin hnu hpin
     obtain ⟨-, ci₂, hfB₂, hlpB₂⟩ := hcmp hccmp
     have hBne : ConLeche.boolName ≠ c :=
@@ -1248,7 +1243,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     obtain ⟨cvo, vo, hino, hfo, hlpo, hpino⟩ :=
       natOpStoredOk_descend (c₀ := .defnInfo ⟨cq, lps, type'⟩ value'
         hint) hone (List.all_eq_true.mp hdepsOk o (by simpa using ho))
-    obtain ⟨mb₁, mb₂, cod, hty, -, hcodN⟩ :=
+    obtain ⟨cod, hty, -, hcodN⟩ :=
       natOpTyPinned_shape_bin honun hpino
     exact natBinHead_of_stored (ψ := φ) mp hfo hlpo
       (by rw [hty, hcodN honcmp]) hfN hlpN hfN hlpN
@@ -1260,7 +1255,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     obtain ⟨cvo, vo, hino, hfo, hlpo, hpino⟩ :=
       natOpStoredOk_descend (c₀ := .defnInfo ⟨cq, lps, type'⟩ value'
         hint) hone (List.all_eq_true.mp hdepsOk o (by simpa using ho))
-    obtain ⟨mb₁, hty⟩ := natOpTyPinned_shape_un houn hpino
+    obtain hty := natOpTyPinned_shape_un houn hpino
     exact natUnHead_of_stored (ψ := φ) mp hfo hlpo hty hfN hlpN
   -- the stored `Nat` is a type
   have hSN : ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 φ) ρ →
@@ -1272,11 +1267,11 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       denoteMeta mp.base2.acval env φ 2
         (Expr.substConst0 cq value' e1) = some la →
       (∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 φ) ρ →
-        WellDenotedV V ρ la ∧ interp V ρ la ∈ˢ S ρ) →
+        WellDenoted V ρ la ∧ interp V ρ la ∈ˢ S ρ) →
       denoteMeta mp.base2.acval env φ 2
         (Expr.substConst0 cq value' e2) = some ra →
       (∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 φ) ρ →
-        WellDenotedV V ρ ra ∧ interp V ρ ra ∈ˢ S ρ) →
+        WellDenoted V ρ ra ∧ interp V ρ ra ∈ˢ S ρ) →
       ∃ L R, denoteMeta m₂.acval
           ⟨.defnInfo ⟨cq, lps, type'⟩ value' hint :: env.consts⟩ φ 2
           e1 = some L ∧

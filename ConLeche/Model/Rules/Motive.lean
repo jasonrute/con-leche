@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Annot.BitLemmas
+public import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Model.Rules.IORel
 
 public section
@@ -9,7 +9,7 @@ public section
 # The soundness motives: derivation ⇒ P currency (task #305)
 
 One motive per relation of the rules tier, in the currency of
-`Model/Claims.lean` (`interp` equality, `WellDenotedV` grading,
+`Model/Claims.lean` (`interp` equality, `WellDenoted` grading,
 membership), with the claims' own premises — the subject's frame
 (`WScoped`, `looseBVarsBounded`, `LeavesBounded`), its context
 discipline, its reading, its grading where the claim takes it — stated
@@ -59,7 +59,7 @@ claim carries. -/
 /-- A reading is graded under every satisfying valuation. -/
 @[expose] def Graded (V : Type w) [SetTheory V] (Δa : List AnnotTerm)
     (ea : AnnotTerm) : Prop :=
-  ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea
+  ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ ea
 
 /-- A reading is a graded type under every satisfying valuation — the
 inferred type's currency (task #342, L5: `IsTy ⟦T⟧`). -/
@@ -108,8 +108,8 @@ interpretation. -/
     Frame d e' ∧ LeavesSub e' e ∧
       ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
-          WellDenotedV V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
+          WellDenoted V ρ ea → interp V ρ ea ≠ pt →
+          WellDenoted V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
 
 /-- `RedSem` without the point condition (a strengthening some rules conclude). -/
 @[expose] def RedSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
@@ -121,8 +121,8 @@ interpretation. -/
     Frame d e' ∧ LeavesSub e' e ∧
       ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          WellDenotedV V ρ ea →
-          WellDenotedV V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
+          WellDenoted V ρ ea →
+          WellDenoted V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
 
 /-- **`DefEq`'s motive**: at a valuation where both sides are graded and
 neither is the point, they are equal. -/
@@ -134,7 +134,7 @@ neither is the point, they are equal. -/
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d a ρ → LeavesGr m φ d b ρ →
-      WellDenotedV V ρ aa → WellDenotedV V ρ ba →
+      WellDenoted V ρ aa → WellDenoted V ρ ba →
       interp V ρ aa ≠ pt → interp V ρ ba ≠ pt →
       interp V ρ aa = interp V ρ ba
 
@@ -147,7 +147,7 @@ neither is the point, they are equal. -/
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d a ρ → LeavesGr m φ d b ρ →
-      WellDenotedV V ρ aa → WellDenotedV V ρ ba →
+      WellDenoted V ρ aa → WellDenoted V ρ ba →
       interp V ρ aa = interp V ρ ba
 
 /-- **`DefEqLams`' motive** (task #349): UNCONDITIONAL — at a valuation
@@ -165,7 +165,7 @@ no further type comparison (the fragment's `LamsSem`). -/
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d a ρ → LeavesGr m φ d b ρ →
-      WellDenotedV V ρ aa → WellDenotedV V ρ ba →
+      WellDenoted V ρ aa → WellDenoted V ρ ba →
       interp V ρ aa = interp V ρ ba
 
 /-- **`Infer`'s motive at the full grade** — establishment: the
@@ -180,7 +180,7 @@ subject's grading is a conclusion; the type is a graded type
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
+          WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
             interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- **`Infer`'s motive at the io grade** — consumption: the subject's
@@ -199,7 +199,7 @@ no λ and no `let` (`Expr.ioNeutral`) the claim is not hereditary
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
-          WellDenotedV V ρ ea → IORelN m φ d e t ρ (interp V ρ ea)
+          WellDenoted V ρ ea → IORelN m φ d e t ρ (interp V ρ ea)
 
 /-- **A proposition's io claim is the point** (proof irrelevance at the
 io grade): at every satisfying valuation, a value satisfying the io
@@ -239,11 +239,11 @@ that is the point) — premises exactly there. -/
     ∃ resta : AnnotTerm,
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
         (∀ x ∈ args, LeavesGr m φ d x ρ) →
-        WellDenotedV V ρ Ta → (∀ x ∈ vs, WellDenotedV V ρ x) →
-        (WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
+        WellDenoted V ρ Ta → (∀ x ∈ vs, WellDenoted V ρ x) →
+        (WellDenoted V ρ (AnnotTerm.mkAppN fa vs) ∧
             interp V ρ fa ∈ˢ interp V ρ Ta ∧
             interp V ρ (AnnotTerm.mkAppN fa vs) ≠ pt) →
-        TeleFitPA V ρ Ta vs resta ∧ WellDenotedV V ρ resta
+        TeleFitPA V ρ Ta vs resta ∧ WellDenoted V ρ resta
 
 /-- **`CertsF`' motive** (task #342 L10): the full-grade certificate
 ESTABLISHES its arguments' grading (each slot ran `Infer .full`), so,
@@ -260,9 +260,9 @@ with the fit and the residual's grading. -/
     ∃ resta : AnnotTerm,
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
         (∀ x ∈ args, LeavesGr m φ d x ρ) →
-        WellDenotedV V ρ Ta →
-        (∀ x ∈ vs, WellDenotedV V ρ x) ∧ TeleFitPA V ρ Ta vs resta ∧
-          WellDenotedV V ρ resta
+        WellDenoted V ρ Ta →
+        (∀ x ∈ vs, WellDenoted V ρ x) ∧ TeleFitPA V ρ Ta vs resta ∧
+          WellDenoted V ρ resta
 
 /-- **`DefEqList`'s motive**: the walk's LENGTH, and pointwise `interp`
 equality where neither side is the point.  The length is a conclusion
@@ -280,7 +280,7 @@ second spine. -/
     DenoteMetaSpine m.acval env φ d bs bsa →
     ∀ ρ : Nat → V, Sat V Δa ρ →
       (∀ x ∈ as, LeavesGr m φ d x ρ) → (∀ x ∈ bs, LeavesGr m φ d x ρ) →
-      (∀ x ∈ asa, WellDenotedV V ρ x) → (∀ x ∈ bsa, WellDenotedV V ρ x) →
+      (∀ x ∈ asa, WellDenoted V ρ x) → (∀ x ∈ bsa, WellDenoted V ρ x) →
       ∀ p ∈ (asa.map (interp V ρ)).zip (bsa.map (interp V ρ)),
         p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2
 
@@ -295,7 +295,7 @@ second spine. -/
     DenoteMetaSpine m.acval env φ d bs bsa →
     ∀ ρ : Nat → V, Sat V Δa ρ →
       (∀ x ∈ as, LeavesGr m φ d x ρ) → (∀ x ∈ bs, LeavesGr m φ d x ρ) →
-      (∀ x ∈ asa, WellDenotedV V ρ x) → (∀ x ∈ bsa, WellDenotedV V ρ x) →
+      (∀ x ∈ asa, WellDenoted V ρ x) → (∀ x ∈ bsa, WellDenoted V ρ x) →
       asa.map (interp V ρ) = bsa.map (interp V ρ)
 
 /-! ### The unconditional motives weaken to the conditional ones -/

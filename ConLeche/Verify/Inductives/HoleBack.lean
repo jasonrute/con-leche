@@ -87,10 +87,10 @@ theorem substFvars_replaceApps_erasedEq {names : List Name} {us : List Level} {n
     split
     · rename_i h hh; exact hhit _ _ hh
     · exact ⟨iha hb.1, ihx hb.2⟩
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     exact ⟨iht hb.1, ihb hb.2⟩
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     exact ⟨iht hb.1, ihb hb.2⟩
   | letE t v body iht ihv ihb =>

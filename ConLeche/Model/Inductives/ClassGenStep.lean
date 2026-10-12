@@ -57,7 +57,7 @@ values (depth `nPre + nF + nIh`), the minor premise of prefix position
 `ih`'s telescope over the callee's motive (prefix position `mt`) applied
 to the `ih`'s index and major arguments. -/
 @[expose] def genIhDomAV (D mt : Nat) (q : IhDatum) : AnnotTerm :=
-  mkPisAV (q.2.1.map fun p => (0, p.1, p.2))
+  mkPisAV q.2.1
     (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - mt)) (q.2.2.1 ++ [q.2.2.2]))
 
 /-- A prefix variable at a frame extended by `n` values. -/
@@ -94,12 +94,12 @@ theorem interp_genRb0 {ρ : Nat → V} {xs fs hs : List V} {minPos : Nat}
 /-- A Π-tower over a codomain that is a type at every fitting spine reads
 as a type. -/
 theorem IsTy_mkPisAV_of :
-    ∀ (tl : List (Nat × AnnotTerm)) {σ : Nat → V} {C : AnnotTerm},
-      (∀ bs, SpineFit σ (tl.map (·.2)) bs → IsTy (interp V (consList bs σ) C)) →
-      IsTy (interp V σ (mkPisAV (tl.map fun p => (0, p.1, p.2)) C))
+    ∀ (tl : List AnnotTerm) {σ : Nat → V} {C : AnnotTerm},
+      (∀ bs, SpineFit σ tl bs → IsTy (interp V (consList bs σ) C)) →
+      IsTy (interp V σ (mkPisAV tl C))
   | [], _, _, h => by simpa [mkPisAV] using h [] trivial
   | _ :: _, _, _, _ => by
-    simp only [List.map_cons, mkPisAV, interp_pi]
+    simp only [mkPisAV, interp_pi]
     exact IsTy_piV
 
 /-- **A λ-tower inhabits the Π-tower of the same binder data**, as soon
@@ -107,14 +107,14 @@ as its body inhabits the codomain at every fitting spine and the
 codomain is a type there — at two frames that agree below the
 telescope's bound. -/
 theorem lamTower_mem_piTower :
-    ∀ (tl : List (Nat × AnnotTerm)) {D : Nat} {σ σ' : Nat → V} {b C : AnnotTerm},
-      FieldsBelow D (tl.map (·.2)) → (∀ i, i < D → σ i = σ' i) →
-      (∀ bs, SpineFit σ' (tl.map (·.2)) bs →
+    ∀ (tl : List AnnotTerm) {D : Nat} {σ σ' : Nat → V} {b C : AnnotTerm},
+      DomsBelow D tl → (∀ i, i < D → σ i = σ' i) →
+      (∀ bs, SpineFit σ' tl bs →
         interp V (consList bs σ) b ∈ˢ interp V (consList bs σ') C) →
-      (∀ bs, SpineFit σ' (tl.map (·.2)) bs → IsTy (interp V (consList bs σ') C)) →
-      interp V σ (mkLamsAV tl b) ∈ˢ interp V σ' (mkPisAV (tl.map fun p => (0, p.1, p.2)) C)
+      (∀ bs, SpineFit σ' tl bs → IsTy (interp V (consList bs σ') C)) →
+      interp V σ (mkLamsAV tl b) ∈ˢ interp V σ' (mkPisAV tl C)
   | [], D, σ, σ', b, C, _, _, h, _ => by simpa [mkLamsAV, mkPisAV] using h [] trivial
-  | (v, A) :: tl, D, σ, σ', b, C, hb, hag, h, hC => by
+  | A :: tl, D, σ, σ', b, C, hb, hag, h, hC => by
     show lamV (interp V σ A) (fun x => interp V (cons x σ) (mkLamsAV tl b))
       ∈ˢ piV (interp V σ' A) (fun x => interp V (cons x σ') (mkPisAV _ C))
     have hA : interp V σ A = interp V σ' A := interp_congr_below V A D σ σ' hb.1 hag
@@ -136,7 +136,7 @@ theorem lamTower_mem_piTower :
 section Step
 
 variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat}
-  {pre idxB : Nat → List (Nat × Nat × AnnotTerm)} {majB : Nat → Nat × Nat × AnnotTerm}
+  {pre idxB : Nat → List AnnotTerm} {majB : Nat → Nat × Nat × AnnotTerm}
   {uX : Nat → Nat} {concl : Nat → AnnotTerm}
   {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
   {injX : Nat → Nat → List V → V} {ihd : Nat → Nat → List IhDatum}

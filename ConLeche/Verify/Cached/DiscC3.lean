@@ -348,9 +348,9 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                     exact SimC.pure hs₂ ⟨hden, hmaj⟩
                   | app f' a' =>
                     exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | lam t b' m =>
+                  | lam t b' =>
                     exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | forallE t b' m =>
+                  | forallE t b' =>
                     exact SimC.pure hs₂ ⟨hden, hmaj⟩
                   | letE t v b' =>
                     exact SimC.pure hs₂ ⟨hden, hmaj⟩
@@ -425,9 +425,9 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
                     | app f' a' =>
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | lam t b' m =>
+                    | lam t b' =>
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | forallE t b' m =>
+                    | forallE t b' =>
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
                     | letE t v b' =>
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
@@ -524,9 +524,9 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
                       | app f' a' =>
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | lam t b' m =>
+                      | lam t b' =>
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | forallE t b' m =>
+                      | forallE t b' =>
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
                       | letE t v b' =>
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
@@ -544,8 +544,8 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
           | fvar ix t => exact SimC.pure hs ⟨hden, hmaj⟩
           | sort u => exact SimC.pure hs ⟨hden, hmaj⟩
           | app f' a' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | lam t b' m => exact SimC.pure hs ⟨hden, hmaj⟩
-          | forallE t b' m => exact SimC.pure hs ⟨hden, hmaj⟩
+          | lam t b' => exact SimC.pure hs ⟨hden, hmaj⟩
+          | forallE t b' => exact SimC.pure hs ⟨hden, hmaj⟩
           | letE t v b' => exact SimC.pure hs ⟨hden, hmaj⟩
           | lit l => exact SimC.pure hs ⟨hden, hmaj⟩
           | proj s'ᵢ j' e' => exact SimC.pure hs ⟨hden, hmaj⟩
@@ -629,51 +629,6 @@ theorem iotaIndexOkC_sim (ih : SSimC mode env f) {d : Nat} {mI rP cnP : Nat}
           Expr.getAppArgsC_spec res
         exact defEqListC_sim ih hs₁ (hres.drop cnP) hidx
           (fun x hx => hresW.getAppArgs x (List.mem_of_mem_drop hx)) hwis
-
-/-- A `Bool`-valued block that chains two lookups and three checks and
-is then branched on, is the nested chain that branches after each
-check: a failed check leaves the later lookups undone on both sides,
-and a passed one reaches the same continuation.  The ι step's
-certificate family is written in the first shape (one `certAtI`, so
-`.trusted` omits the lookups with the checks that read them), its pure
-comparand in the second. -/
-private theorem certBlock_reshape {α β γ : Type}
-    (A : CheckCM α) (B : α → CheckCM Bool) (C : CheckCM β)
-    (D E : β → CheckCM Bool) (F : CheckCM (Option γ)) :
-    ((A >>= fun a =>
-        B a >>= fun r₂ =>
-        if r₂ then
-          C >>= fun b =>
-          D b >>= fun r₃ =>
-          if r₃ then E b else pure false
-        else pure false) >>= fun ok =>
-      if ok then F else pure none)
-      = (A >>= fun a =>
-          B a >>= fun r₂ =>
-          if r₂ then
-            C >>= fun b =>
-            D b >>= fun r₃ =>
-            if r₃ then
-              E b >>= fun r₄ =>
-              if r₄ then F else pure none
-            else pure none
-          else pure none) := by
-  simp only [bind_assoc]
-  congr 1
-  funext a
-  congr 1
-  funext r₂
-  cases r₂ with
-  | false => simp
-  | true =>
-    simp only [ite_true, bind_assoc]
-    congr 1
-    funext b
-    congr 1
-    funext r₃
-    cases r₃ with
-    | false => simp
-    | true => simp only [ite_true]
 
 /-- The shared certificate tail of the iota step (after the firing-mode
 comparands): at a case-3 redex (task #342 L10), the constructor's
@@ -1073,9 +1028,9 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
             exact SimC.pure hs₄ trivial
           | app f' a' =>
             exact SimC.pure hs₄ trivial
-          | lam t b' m =>
+          | lam t b' =>
             exact SimC.pure hs₄ trivial
-          | forallE t b' m =>
+          | forallE t b' =>
             exact SimC.pure hs₄ trivial
           | letE t v b' =>
             exact SimC.pure hs₄ trivial
@@ -1099,9 +1054,9 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
     exact SimC.pure hs trivial
   | app f' a' =>
     exact SimC.pure hs trivial
-  | lam t b' m =>
+  | lam t b' =>
     exact SimC.pure hs trivial
-  | forallE t b' m =>
+  | forallE t b' =>
     exact SimC.pure hs trivial
   | letE t v b' =>
     exact SimC.pure hs trivial

@@ -109,37 +109,6 @@ theorem checkConstantValC_fresh (mode : CheckMode) (fe : FEnv)
   yields
   all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
 
-/-! ## The value kinds -/
-
-theorem checkDefnValC_push (mode : CheckMode) {env : Env} {fe : FEnv}
-    (h : PushChain env fe) {cvA : ConstantVal} (hfr : fe.find? cvA.name = none)
-    (jty value : Expr) (hint : ReducibilityHint) :
-    Yields (checkDefnValC mode fe cvA jty value hint)
-      (fun fe' => PushChain env fe') := by
-  unfold checkDefnValC
-  refine Yields.bind' (checkDefnValCI_shape mode fe cvA jty value hint) fun ci hci => ?_
-  obtain ⟨v, rfl⟩ := hci
-  exact Yields.pure (h.push hfr)
-
-theorem checkThmValC_push (mode : CheckMode) {env : Env} {fe : FEnv}
-    (h : PushChain env fe) {cvA : ConstantVal} (hfr : fe.find? cvA.name = none)
-    (jty value : Expr) :
-    Yields (checkThmValC mode fe cvA jty value)
-      (fun fe' => PushChain env fe') := by
-  unfold checkThmValC
-  yields
-  all_goals (apply Yields.pure; exact h.push hfr)
-
-theorem checkOpaqueValC_push (mode : CheckMode) {env : Env} {fe : FEnv}
-    (h : PushChain env fe) {cvA : ConstantVal} (hfr : fe.find? cvA.name = none)
-    (jty value : Expr) :
-    Yields (checkOpaqueValC mode fe cvA jty value)
-      (fun fe' => PushChain env fe') := by
-  unfold checkOpaqueValC
-  refine Yields.bind' (checkOpaqueValCI_shape mode fe cvA jty value) fun ci hci => ?_
-  subst hci
-  exact Yields.pure (h.push hfr)
-
 /-! ## The constructors' conses -/
 
 /-- The constructors' conses: a fresh chain from the former's index. -/
@@ -459,14 +428,8 @@ theorem checkDeclC_push (mode : CheckMode) {env : Env} {fe : FEnv}
       obtain ⟨v, rfl⟩ := hci
       yields
       all_goals (apply Yields.pure; exact h.push hfrA)
-    · exact checkDefnValC_push mode h hfrA jty value hint
-  | thmDecl cv value =>
-    simp only []
-    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    obtain ⟨hp, hfr⟩ := hp
-    exact checkThmValC_push mode h
-      (by show fe.find? cvA.name = none; rw [hp]; exact hfr) jty value
+    · exact Yields.ofThrow
+  | thmDecl cv value => exact Yields.ofThrow
   | opaqueDecl cv value =>
     simp only []
     refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun p hp => ?_
@@ -480,7 +443,7 @@ theorem checkDeclC_push (mode : CheckMode) {env : Env} {fe : FEnv}
       subst hci
       yields
       all_goals (apply Yields.pure; exact h.push hfrA)
-    · exact checkOpaqueValC_push mode h hfrA jty value
+    · exact Yields.ofThrow
   | axiomDecl cv =>
     simp only []
     -- task #293: `Quot.sound` is compared with the pin and pushes

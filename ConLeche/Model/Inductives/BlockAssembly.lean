@@ -34,7 +34,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  BlockShape BlockParts MemberShape BinderMeta RecRule)
+  BlockShape BlockParts MemberShape RecRule)
 
 universe w
 
@@ -46,7 +46,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 record mentions the sort only through `resSort.eval`, which is what
 official's `Level.isEquiv` agreement between the members pins. -/
 theorem FormerData.congr_sort {env : Env} {m : EnvModel V env} {cvT : ConstantVal}
-    {nP : Nat} {s s' : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {nP : Nat} {s s' : Level} {pps : (Name → Nat) → List AnnotTerm}
     (h : FormerData m cvT nP s pps) (hs : ∀ ψ : Name → Nat, s.eval ψ = s'.eval ψ) :
     FormerData m cvT nP s' pps where
   read ψ := by rw [← hs ψ]; exact h.read ψ
@@ -64,7 +64,7 @@ freshness and syntactic guards, its telescope stripped at its OWN
 result sort (`sOf`), its reading (`FormerData`, at the BLOCK's sort by
 `sEval`), and official's parameter agreement read semantically. -/
 structure BlockFormerFacts {env : Env} (mp : EnvModelM V μ env) (q : BlockShape)
-    (cvTas : List ConstantVal) (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm))
+    (cvTas : List ConstantVal) (ppsOf : Nat → (Name → Nat) → List AnnotTerm)
     (sOf : Nat → Level) : Prop where
   /-- one former per member -/
   lenCv : cvTas.length = q.k
@@ -87,7 +87,7 @@ structure BlockFormerFacts {env : Env} (mp : EnvModelM V μ env) (q : BlockShape
     cvTa.type.looseBVarsBounded 0 = true
   /-- the member's telescope, stripped at its OWN result sort -/
   stripOf : ∀ (m : Nat) (cvTa : ConstantVal), cvTas[m]? = some cvTa →
-    ∃ bs : List (Expr × BinderMeta),
+    ∃ bs : List Expr,
       cvTa.type.stripPis (q.nP + q.nIdxs.getD m 0) = some (bs, .sort (sOf m))
   /-- and that sort's VALUE is the block's (official's `Level.isEquiv`) -/
   sEval : ∀ (m : Nat) (ψ : Name → Nat), (sOf m).eval ψ = q.resSort.eval ψ
@@ -101,8 +101,8 @@ structure BlockFormerFacts {env : Env} (mp : EnvModelM V μ env) (q : BlockShape
   /-- **official's parameter agreement, semantically**: the members'
   parameter telescopes are interchangeable at a frame -/
   paramsIff : ∀ m₁ m₂, m₁ < q.k → m₂ < q.k → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-    Sat V (((ppsOf m₁ ψ).take q.nP).map (·.2.2)).reverse ρ ↔
-      Sat V (((ppsOf m₂ ψ).take q.nP).map (·.2.2)).reverse ρ
+    Sat V (((ppsOf m₁ ψ).take q.nP)).reverse ρ ↔
+      Sat V (((ppsOf m₂ ψ).take q.nP)).reverse ρ
 
 
 
@@ -117,7 +117,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     (h : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hlps : ∀ ms ∈ p₀.members, ms.cvT.levelParams = p₀.lps) :
-    ∃ (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)) (sOf : Nat → Level),
+    ∃ (ppsOf : Nat → (Name → Nat) → List AnnotTerm) (sOf : Nat → Level),
       BlockFormerFacts mp q cvTas ppsOf sOf := by
   obtain ⟨ms0, rest, cvTa0, s0, cvs, hmem0, hcvTas, rfl, -, htele0, hteles, hagree⟩ :=
     ConLeche.checkBlockInds_shape h
@@ -210,7 +210,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     exact hrun
   -- the syntactic facts of one member's former
   have hsyn : ∀ (m : Nat) (cvTa : ConstantVal), cvTas[m]? = some cvTa →
-      ∃ (ms : MemberShape) (bs : List (Expr × BinderMeta)),
+      ∃ (ms : MemberShape) (bs : List Expr),
         (p₀.toBlockShape.withSort s0).members[m]? = some ms ∧
         cvTa.name = ms.cvT.name ∧ cvTa.levelParams = ms.cvT.levelParams ∧
         env.find? cvTa.name = none ∧
@@ -221,7 +221,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         cvTa.type.allLevelParamsDefined cvTa.levelParams = true ∧
         cvTa.type.looseBVarsBounded 0 = true ∧
         cvTa.type.stripPis (p₀.nP + ms.nIdx) = some (bs, .sort (sOf m)) ∧
-        ∃ pps : (Name → Nat) → List (Nat × Nat × AnnotTerm),
+        ∃ pps : (Name → Nat) → List AnnotTerm,
           FormerData mp.base2 cvTa (p₀.nP + ms.nIdx) (sOf m) pps := by
     intro m cvTa hm
     obtain ⟨ms, hms, hrun⟩ := hpair m cvTa hm
@@ -233,7 +233,7 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     exact ⟨ms, bs, hms, hn, hl, hfind, hnres, hpsh,
       htr, htf', hlpd, hbt', hst, pps, hFD⟩
   -- the members' telescope readings, chosen positionally
-  have hfdEx : ∀ m : Nat, ∃ pps : (Name → Nat) → List (Nat × Nat × AnnotTerm),
+  have hfdEx : ∀ m : Nat, ∃ pps : (Name → Nat) → List AnnotTerm,
       (∀ cvTa : ConstantVal, cvTas[m]? = some cvTa →
         FormerData mp.base2 cvTa
           ((p₀.toBlockShape.withSort s0).nP
@@ -333,7 +333,7 @@ over the whole member list, because all `k` formers are stored before
 any constructor is. -/
 theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {q : BlockShape} {envI : Env}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)} {sOf : Nat → Level}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {sOf : Nat → Level}
     (hInd : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hF : BlockFormerFacts mp q cvTas ppsOf sOf)
@@ -351,7 +351,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
       interp V ρ (A j ψ) ∈ˢ interp V ρ (mkPisAV (ppsOf j ψ) (.sort (q.resSort.eval ψ))))
     (hAstrictOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (vs : List V),
-      SpineFit ρ ((ppsOf j ψ).map (·.2.2)) vs →
+      SpineFit ρ ((ppsOf j ψ)) vs →
       vs.foldl SetTheory.app (interp V ρ (A j ψ)) ∈ˢ (strictU (q.resSort.eval ψ) : V))
     (hetaNe : ∀ (j j' : Nat) (cvTa cvTb : ConstantVal), cvTas[j]? = some cvTa →
       cvTas[j']? = some cvTb → (ConLeche.blockCapsAt q j isRec).eta = true →
@@ -403,7 +403,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
         rw [hlenNames]; exact (List.getElem?_eq_some_iff.mp hj').1
       rw [hnameG j c hjl hj, hnameG j' c' hjl' hj']
       exact nodup_getElem_ne hnd hjl hjl' hjj)
-    hF.nresOf hF.pshapeOf
+    hF.nresOf
     (fun j cvTa hj => by
       obtain ⟨htf, hlpd, hbt⟩ := hF.tyWFOf j cvTa hj
       obtain ⟨bs, hst⟩ := hF.stripOf j cvTa hj
@@ -425,92 +425,10 @@ theorem find?_none_of_consB {c : ConstantInfo} {env : Env} {n : Name}
   · exact nomatch h
   · exact h
 
-/-- **A structure-like member's projection-FUNCTION family is free at
-the pre-table environment.**  The member's own table check requires
-its `nF` projection names fresh where it runs, and every environment
-the tables' loop threads is a cons over the previous one — so the
-family is free already where the loop started, and (by the install's
-other conses) below it. -/
-theorem blockTablesFamFree {q : BlockShape} :
-    ∀ (l : List (MemberShape × List (ConstantVal × Nat) × List (List Level)))
-      (env env₂ : Env),
-      ConLeche.checkBlockTables (m := ConLeche.CheckM) q l env = .ok env₂ →
-      ∀ (i : Nat) (e : MemberShape × List (ConstantVal × Nat) × List (List Level)),
-        l[i]? = some e → ∀ (cA : ConstantVal × Nat) (sorts : List Level),
-        e.2.1 = [cA] → e.2.2 = [sorts] → e.1.nIdx = 0 → 0 < cA.2 →
-        env.find? (projFnName e.1.cvT.name 0) = none
-  | [], _, _, _, _, _, hi, _, _, _, _, _, _ => by simp at hi
-  | (ms, ctorsA, sortss) :: rest, env, env₂, h, i, e, hi, cA, sorts, hc, hs, hidx, hpos => by
-    have hkey : ∃ env' : Env,
-        ConLeche.checkBlockTables (m := ConLeche.CheckM) q rest env' = .ok env₂ ∧
-        (∀ n : Name, env'.find? n = none → env.find? n = none) ∧
-        (∀ (cB : ConstantVal × Nat) (sortsB : List Level),
-          ctorsA = [cB] → sortss = [sortsB] → ms.nIdx = 0 → 0 < cB.2 →
-          env.find? (projFnName ms.cvT.name 0) = none) := by
-      cases ctorsA with
-      | nil =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ hcc _ _ _ => by simp at hcc⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | cons cA0 ctl =>
-      cases ctl with
-      | cons c2 ctl2 =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ hcc _ _ _ => by simp at hcc⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | nil =>
-      cases sortss with
-      | nil =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ _ hss _ _ => by simp at hss⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | cons s0 stl =>
-      cases stl with
-      | cons s2 stl2 =>
-        refine ⟨env, ?_, fun _ hh => hh, fun _ _ _ hss _ _ => by simp at hss⟩
-        rw [ConLeche.checkBlockTables] at h
-        · exact h
-        · simp
-      | nil =>
-      rw [ConLeche.checkBlockTables] at h
-      by_cases hidx0 : (ms.nIdx == 0) = true
-      case neg =>
-        rw [ite_eq_right hidx0] at h
-        exact ⟨env, h, fun _ hh => hh, fun _ _ _ _ hii _ =>
-          absurd (by rw [hii]; rfl) hidx0⟩
-      rw [ite_eq_left hidx0] at h
-      cases hT : ConLeche.checkStructProjTable (m := ConLeche.CheckM) ms.cvT.name cA0.1.name
-          q.lps q.nP cA0.2 q.resSort (ConLeche.structProjGuards cA0.1.type q.nP cA0.2 s0)
-          1 cA0.1 env with
-      | error er => rw [hT] at h; exact nomatch h
-      | ok env' =>
-        rw [hT] at h
-        have hinv := ConLeche.checkStructProjTable_inv hT
-        obtain ⟨_bodies, _hb1, _hb2, hfree, _hb4, henvOut⟩ := hinv
-        refine ⟨env', h, fun n hn => ?_, fun cB sortsB hcc _ _ hposB => ?_⟩
-        · rw [henvOut] at hn
-          exact find?_none_of_consB hn
-        · obtain rfl : cB = cA0 := by simpa using hcc.symm
-          exact Option.isNone_iff_eq_none.mp
-            (List.all_eq_true.mp hfree 0 (List.mem_range.mpr hposB))
-    obtain ⟨env', hrest, hmono, hhere⟩ := hkey
-    cases i with
-    | zero =>
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
-      subst hi
-      exact hhere cA sorts hc hs hidx hpos
-    | succ j =>
-      simp only [List.getElem?_cons_succ] at hi
-      exact hmono _ (blockTablesFamFree rest env' env₂ hrest j e hi cA sorts hc hs hidx hpos)
-
 /-- **A structure-like member's projection TABLE name is free at the
-pre-table environment** — the `projTableName` twin of
-`blockTablesFamFree`, and by the same argument: the member's own table
-check requires the name fresh where it runs, and every environment the
-tables' loop threads is a cons over the previous one.
+pre-table environment**: the member's own table check requires the
+name fresh where it runs, and every environment the tables' loop
+threads is a cons over the previous one.
 
 It is what carries `annotateCore`'s projection-slot guarantee to the
 block's OWN members: a constructor type annotated at the formers'
@@ -572,7 +490,7 @@ theorem blockTablesTblFree {q : BlockShape} :
       | error er => rw [hT] at h; exact nomatch h
       | ok env' =>
         rw [hT] at h
-        obtain ⟨_bodies, _hb1, _hb2, _hb3, hfreshT, henvOut⟩ :=
+        obtain ⟨_bodies, _hb1, _hb2, hfreshT, henvOut⟩ :=
           ConLeche.checkStructProjTable_inv hT
         refine ⟨env', h, fun n hn => ?_, fun _ _ _ _ _ => hfreshT⟩
         rw [henvOut] at hn
@@ -613,7 +531,7 @@ every member's leaf must exist before any real one is built, because a
 member's fixpoint leaf mentions every member's chains. -/
 theorem blockDummyPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {q : BlockShape} {envI : Env}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)} {sOf : Nat → Level}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {sOf : Nat → Level}
     (hInd : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
     (hF : BlockFormerFacts mp q cvTas ppsOf sOf)
@@ -715,7 +633,7 @@ members, from conjunct 6). -/
 theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
     (mpI : EnvModelM V μ envI) {q : BlockShape} {cvTas : List ConstantVal}
     {isorts : List (List Level)} {isRec : Bool}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
     (hsorts : ConLeche.checkBlockIdxSorts (ConLeche.fueledOps μ F) envI q
       (q.members.zip cvTas) = .ok isorts)
     (hlenCv : cvTas.length = q.k)
@@ -728,8 +646,8 @@ theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
     ∃ uOf : Nat → (Name → Nat) → Nat,
       (∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
         ∀ (ψ : Name → Nat) (ρp : Nat → V),
-        Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
-        IdxOk (uOf j ψ) ρp (((ppsOf j ψ).drop q.nP).map (·.2.2))) ∧
+        Sat V (((ppsOf j ψ).take q.nP)).reverse ρp →
+        IdxOk (uOf j ψ) ρp (((ppsOf j ψ).drop q.nP))) ∧
       ∀ (j : Nat) (ψ₁ ψ₂ : Name → Nat), (∀ n ∈ q.lps, ψ₁ n = ψ₂ n) →
         uOf j ψ₁ = uOf j ψ₂ := by
   obtain ⟨-, hall⟩ := ConLeche.checkBlockIdxSorts_inv hsorts
@@ -767,7 +685,7 @@ theorem blockIdxFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {envI : Env}
 the choice. -/
 structure BlockMemberPick where
   idxF : Nat → List Expr
-  dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)
+  dsF : Nat → (Name → Nat) → List AnnotTerm
   esF : Nat → (Name → Nat) → List AnnotTerm
   srcsF : Nat → List (Option Nat)
   fvsPF : Nat → List Expr
@@ -793,7 +711,7 @@ theorem blockCtorFunsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     (hlpsOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
       cvTb.levelParams = q.lps)
     (hstripOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
-      ∃ bs : List (Expr × BinderMeta),
+      ∃ bs : List Expr,
         cvTb.type.stripPis (q.nP + q.nIdxs.getD j 0) = some (bs, .sort (sOf j)))
     (hfindOf : ∀ (j : Nat) (cvTb : ConstantVal), cvTas[j]? = some cvTb →
       envI.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt q j isRec)))
@@ -828,7 +746,7 @@ member's law comes through its leaf's FOLD alone (`hfoldZ`), which is
 a statement about the leaf TERM and therefore crosses every cons. -/
 theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {q : BlockShape} {envI : Env}
-    {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)} {sOf : Nat → Level}
+    {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {sOf : Nat → Level}
     {uOf : Nat → (Name → Nat) → Nat} {Chs : (Name → Nat) → Nat → List (List AnnotTerm)}
     (hInd : ConLeche.checkBlockInds (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) env p₀ isRec
       = .ok (envI, cvTas, q))
@@ -843,11 +761,11 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
       env.find? (ConLeche.blockCapsAt q j isRec).etaCtor = none)
     -- the index telescopes' lengths, bounds and the chains' bounds
     (hIdsLen : ∀ (j : Nat) (ψ : Name → Nat),
-      (((ppsOf j ψ).drop q.nP).map (·.2.2)).length = q.nIdxs.getD j 0)
+      (((ppsOf j ψ).drop q.nP)).length = q.nIdxs.getD j 0)
     (hIdsBelow : ∀ (c : Nat) (ψ : Name → Nat),
-      FieldsBelow q.nP (((ppsOf c ψ).drop q.nP).map (·.2.2)))
+      DomsBelow q.nP (((ppsOf c ψ).drop q.nP)))
     (hchainsBelow : ∀ (ψ : Name → Nat) (c : Nat), c < q.k →
-      ∀ chain ∈ Chs ψ c, FieldsBelow (q.nP + 2) chain)
+      ∀ chain ∈ Chs ψ c, DomsBelow (q.nP + 2) chain)
     -- the leaf's data depends on the block's level parameters only
     (hZparams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ n ∈ q.lps, ψ₁ n = ψ₂ n) →
       (∀ c, uOf c ψ₁ = uOf c ψ₂) ∧ Chs ψ₁ = Chs ψ₂)
@@ -855,21 +773,21 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     -- (D-M41: off the block a position has no parameter telescope, so
     -- its `Sat` says nothing and the bundle is not a fact there)
     (hIdxAll : ∀ (j : Nat), j < q.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-      Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
+      Sat V (((ppsOf j ψ).take q.nP)).reverse ρp →
       BlockIdxOk (V := V) q.k (fun c => uOf c ψ) ρp
-        (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)))
+        (fun c => ((ppsOf c ψ).drop q.nP)))
     (hXAll : ∀ (j : Nat), j < q.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-      Sat V (((ppsOf j ψ).take q.nP).map (·.2.2)).reverse ρp →
+      Sat V (((ppsOf j ψ).take q.nP)).reverse ρp →
       BlockChainsOkG q.k (q.resSort.eval ψ) ρp (fun c => uOf c ψ)
-        (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ))
+        (fun c => ((ppsOf c ψ).drop q.nP)) (Chs ψ))
     -- a unit-like member's leaf folds to the one tagged empty tuple
     (hfoldZ : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       (ConLeche.blockCapsAt q j isRec).unitlike = true →
       ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
-        SpineFit ρ ((ppsOf j ψ).map (·.2.2)) ts →
+        SpineFit ρ ((ppsOf j ψ)) ts →
         ts.foldl SetTheory.app (interp V ρ
             (blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
-              (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) (ppsOf j ψ) j))
+              (fun c => ((ppsOf c ψ).drop q.nP)) (Chs ψ) (ppsOf j ψ) j))
           = sumSet (q.resSort.eval ψ) (sumFibre (q.resSort.eval ψ) (consList ts ρ)
               [[] ++ [idxEqAV []]])) :
     ∃ mp' : EnvModelM V μ envI,
@@ -880,7 +798,7 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
         envI.find? cvTa.name = some (.indInfo cvTa (ConLeche.blockCapsAt q j isRec)) ∧
         ∀ ψ, mp'.base2.acval cvTa.name ψ
           = blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
-              (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) (ppsOf j ψ) j) ∧
+              (fun c => ((ppsOf c ψ).drop q.nP)) (Chs ψ) (ppsOf j ψ) j) ∧
       (∀ n : Name, (∀ cvTb ∈ cvTas, n ≠ cvTb.name) →
         mp'.base2.acval n = mp.base2.acval n) := by
   -- the members' telescope readings depend on the block's level parameters only
@@ -896,14 +814,14 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
   have hwalks : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa → j < q.k →
       ∀ ρ : Nat → V, ∀ ψ : Name → Nat,
       ParamsOkG q.k (q.resSort.eval ψ) ρ (fun c => uOf c ψ)
-          (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) j (ppsOf j ψ) := by
+          (fun c => ((ppsOf c ψ).drop q.nP)) (Chs ψ) j (ppsOf j ψ) := by
     intro j cvTa hj hjk ρ ψ
     exact blockLeafWalks (nIdx := q.nIdxs.getD j 0) ((hF.fdOf j cvTa hj).len ψ)
       (fun ρ' => (hF.fdOf j cvTa hj).okTy ψ ρ') rfl
       (fun ρp hρp => hIdxAll j hjk ψ ρp hρp) (fun ρp hρp => hXAll j hjk ψ ρp hρp) ρ
   refine blockFormerPass mp hInd hF hnd hE
     (fun j ψ => blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
-      (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) (ppsOf j ψ) j)
+      (fun c => ((ppsOf c ψ).drop q.nP)) (Chs ψ) (ppsOf j ψ) j)
     ?_ ?_ ?_ ?_ ?_ hetaNe hetaFresh ?_
   · -- closed
     intro j cvTa hj ψ
@@ -919,8 +837,8 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     show blockTyG _ _ _ _ _ _ _ = blockTyG _ _ _ _ _ _ _
     rw [hw, hch, hppsParams j ψ₁ ψ₂ hφ',
       show (fun c => uOf c ψ₁) = (fun c => uOf c ψ₂) from funext hu',
-      show (fun c => ((ppsOf c ψ₁).drop q.nP).map (·.2.2))
-        = (fun c => ((ppsOf c ψ₂).drop q.nP).map (·.2.2))
+      show (fun c => ((ppsOf c ψ₁).drop q.nP))
+        = (fun c => ((ppsOf c ψ₂).drop q.nP))
         from funext fun c => by rw [hppsParams c ψ₁ ψ₂ hφ']]
   · -- graded
     intro j cvTa hj ψ ρ
@@ -945,7 +863,7 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
         (ConsCrossAt.ofNtc fun _ hh => nomatch hh) hcb m₂ hac
     have hleaf : ∀ ψ, m₂.acval cvTa.name ψ
         = blockTyG q.k (q.resSort.eval ψ) (fun c => uOf c ψ)
-            (fun c => ((ppsOf c ψ).drop q.nP).map (·.2.2)) (Chs ψ) (ppsOf j ψ) j := by
+            (fun c => ((ppsOf c ψ).drop q.nP)) (Chs ψ) (ppsOf j ψ) j := by
       intro ψ
       rw [hac]
       exact congrFun acvalWith_self ψ

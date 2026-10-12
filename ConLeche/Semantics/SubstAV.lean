@@ -16,7 +16,7 @@ recorded member-abstracted constructor type with its parameter and hole
 variables replaced ALL AT ONCE — by the key's parameters and by the
 frame's holes or the other members' formers — and its reading is the
 recorded reading so substituted (`denoteMeta_substFvars`,
-`Model/Annot/BitSubstFvars.lean`).  The one semantic lemma
+`Model/Reading/SubstFvars.lean`).  The one semantic lemma
 (`interp_substAV`) reads it at the valuation holding `τ`'s values; for
 `τ` of length one it is `interp_inst`'s content.
 -/
@@ -177,12 +177,12 @@ theorem substE_consList (τ : Nat → AnnotTerm) :
 namespace AnnotTerm
 
 /-- A Π-tower's binder data, substituted at increasing cuts. -/
-def substTele (τ : Nat → AnnotTerm) : Nat → List (Nat × Nat × AnnotTerm) → List (Nat × Nat × AnnotTerm)
+def substTele (τ : Nat → AnnotTerm) : Nat → List AnnotTerm → List AnnotTerm
   | _, [] => []
-  | k, d :: ds => (d.1, d.2.1, substAV τ d.2.2 k) :: substTele τ (k + 1) ds
+  | k, d :: ds => substAV τ d k :: substTele τ (k + 1) ds
 
 theorem substAV_mkPisAV (τ : Nat → AnnotTerm) (B : AnnotTerm) :
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (k : Nat),
+    ∀ (ab : List AnnotTerm) (k : Nat),
       substAV τ (mkPisAV ab B) k = mkPisAV (substTele τ k ab) (substAV τ B (k + ab.length))
   | [], k => rfl
   | d :: ab, k => by
@@ -196,14 +196,14 @@ end AnnotTerm
 /-- **A spine fits a substituted telescope exactly when it fits the
 telescope at the substituted valuation.** -/
 theorem spineFit_substTele (τ : Nat → AnnotTerm) :
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (k : Nat) (ρ : Nat → V) (fs : List V),
-      SpineFit ρ ((AnnotTerm.substTele τ k ab).map (·.2.2)) fs ↔
-        SpineFit (substE V τ k ρ) (ab.map (·.2.2)) fs
+    ∀ (ab : List AnnotTerm) (k : Nat) (ρ : Nat → V) (fs : List V),
+      SpineFit ρ (AnnotTerm.substTele τ k ab) fs ↔
+        SpineFit (substE V τ k ρ) ab fs
   | [], _, _, [] => Iff.rfl
   | [], _, _, _ :: _ => Iff.rfl
   | _ :: _, _, _, [] => Iff.rfl
   | d :: ab, k, ρ, f :: fs => by
-    show (f ∈ˢ interp V ρ (AnnotTerm.substAV τ d.2.2 k) ∧ _) ↔ (f ∈ˢ interp V _ d.2.2 ∧ _)
+    show (f ∈ˢ interp V ρ (AnnotTerm.substAV τ d k) ∧ _) ↔ (f ∈ˢ interp V _ d ∧ _)
     rw [interp_substAV, spineFit_substTele τ ab (k + 1) (cons f ρ) fs, ← cons_substE]
 
 end ConLeche.Semantics

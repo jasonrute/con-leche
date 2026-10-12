@@ -10,7 +10,7 @@ tier)
 
 `recRules_cons_fresh`, the obligation every value-kind harvest
 discharges for the new `EnvModelM` field `rec_rules`.  The statements
-live in `Annot/EnvModelM.lean` beside `CapsOk` (the field must mention
+live in `Env/EnvModelM.lean` beside `CapsOk` (the field must mention
 them); this is the preservation half, `capsOk_cons_fresh`'s sibling.
 
 ## Every crossing is FORWARD; no equality-form transfer
@@ -78,8 +78,8 @@ theorem iotaCtorLicensed_cons_of_isSome {c₀ : ConstantInfo} {env : Env}
       = ConLeche.iotaCtorLicensed env.find? cvj usj := by
   unfold ConLeche.iotaCtorLicensed
   match hh : cvj.type.piResult.getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
   | .const T us =>
     dsimp only
     rw [ConLeche.Env.find?_cons_of_isSome hfresh (hT T us hh)]
@@ -390,7 +390,7 @@ theorem recRules_cons_rec (mp : EnvModelM V μ env)
 
 /-! ## The tower projection law across a fresh cons (task #175 wiring, W5)
 
-`TowerOk` (`Annot/EnvModelM.lean`) is keyed on the stored tower-backed
+`TowerOk` (`Env/EnvModelM.lean`) is keyed on the stored tower-backed
 entries; a cons that is not itself a tower entry adds none, and every
 stored row transports exactly as `recRuleLaw_cons_prefix`'s: the
 lookups the law reads (the entry, the former, the constructor) are

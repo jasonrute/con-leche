@@ -1,11 +1,6 @@
 module
 
 public import ConLeche.Model.BasisEmpty
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 
 import ConLeche.Model.BasisLfp
 import ConLeche.Model.Cover
@@ -19,7 +14,7 @@ public section
 built-in currency — the leaf `.const .empty [0]` reads to the empty
 set at `Sort 0`, `False.rec`'s leaf is `.const .emptyRec [0, ψ u]` —
 so every move below is the `Empty` module's with the level numeral `1`
-replaced by `0`.  `BConst.typeAV`/`bval_mem_type`/`WellDenotedV_bconst_type`
+replaced by `0`.  `BConst.typeAV`/`bval_mem_type`/`WellDenoted_bconst_type`
 are stated at every level list, so nothing new is proved about the
 built-ins; the type readings are recomputed at the `False` pins
 (`denoteMeta_falseA_type`, `denoteMeta_falseRecA_type`) and are
@@ -138,11 +133,9 @@ theorem denoteMeta_falseRecA_type {m : EnvModel V env}
   rw [show falseRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const falseName [])
-            (.sort (.param uN)) {})
+            (.sort (.param uN)))
           (Expr.forallE (.const falseName [])
-            (.app (.bvar 1) (.bvar 0))
-            {})
-          {} from rfl]
+            (.app (.bvar 1) (.bvar 0))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
@@ -240,11 +233,9 @@ theorem declBasisPB_falseK {env₂ : Env} (mp : EnvModelM V μ env)
     simp only [show falseRecA.toConstantVal.type
         = Expr.forallE
             (Expr.forallE (.const falseName [])
-              (.sort (.param uN)) {})
+              (.sort (.param uN)))
             (Expr.forallE (.const falseName [])
-              (.app (.bvar 1) (.bvar 0))
-              {})
-            {} from rfl,
+              (.app (.bvar 1) (.bvar 0))) from rfl,
       Expr.constsResolve, Bool.and_eq_true, Option.isSome_iff_exists]
     have hf : (⟨falseRecA :: falseA :: env.consts⟩ : Env).find?
         falseName = some falseA := by

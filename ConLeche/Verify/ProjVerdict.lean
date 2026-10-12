@@ -7,7 +7,7 @@ public section
 /-!
 # The verdict at a projection without a table
 
-`annotateBody`'s `.proj` clause (`ConLeche/Kernel/Core.lean`, and its
+Inference's `.proj` clause (`ConLeche/Kernel/Core.lean`, and its
 cached twin in `ConLeche/Cached/CoreC.lean`) throws
 `projMissError find? hasTable T sn i nArgs` when the subject type's
 head `T` has no table entry at field `i`, and `.invalid` outright when

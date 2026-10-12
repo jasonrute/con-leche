@@ -76,9 +76,9 @@ def targetAbs (names : List Name) (lvls : List Level) (holes : List Expr) : Expr
       | none => e
     else e
   | .app a b => .app (targetAbs names lvls holes a) (targetAbs names lvls holes b)
-  | .lam ty body bm => .lam (targetAbs names lvls holes ty) (targetAbs names lvls holes body) bm
-  | .forallE ty body bm =>
-    .forallE (targetAbs names lvls holes ty) (targetAbs names lvls holes body) bm
+  | .lam ty body => .lam (targetAbs names lvls holes ty) (targetAbs names lvls holes body)
+  | .forallE ty body =>
+    .forallE (targetAbs names lvls holes ty) (targetAbs names lvls holes body)
   | .letE ty v body =>
     .letE (targetAbs names lvls holes ty) (targetAbs names lvls holes v)
       (targetAbs names lvls holes body)
@@ -126,14 +126,14 @@ def targetAbsGo (names : List Name) (lvls : List Level) (holes : List Expr)
           let (a', memo) := targetAbsGo names lvls holes memo a
           let (b', memo) := targetAbsGo names lvls holes memo b
           (.app a' b', memo)
-        | .lam ty body bm =>
+        | .lam ty body =>
           let (t, memo) := targetAbsGo names lvls holes memo ty
           let (b, memo) := targetAbsGo names lvls holes memo body
-          (.lam t b bm, memo)
-        | .forallE ty body bm =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := targetAbsGo names lvls holes memo ty
           let (b, memo) := targetAbsGo names lvls holes memo body
-          (.forallE t b bm, memo)
+          (.forallE t b, memo)
         | .letE ty v body =>
           let (t, memo) := targetAbsGo names lvls holes memo ty
           let (v', memo) := targetAbsGo names lvls holes memo v
@@ -172,7 +172,7 @@ theorem targetAbsGo_spec {names : List Name} {lvls : List Level} {holes : List E
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [targetAbs, h1, h3], ?_⟩
       exact h4.insert (by simp [targetAbs, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [targetAbsGo]
     split
@@ -182,7 +182,7 @@ theorem targetAbsGo_spec {names : List Name} {lvls : List Level} {holes : List E
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [targetAbs, h1, h3], ?_⟩
       exact h4.insert (by simp [targetAbs, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [targetAbsGo]
     split
@@ -546,11 +546,11 @@ class `Mc`: levels up to equivalence, parameters defeq with the members
 abstracted), and the leaf names a member (official's `is_nested`: the
 callee's class does, and so does official's auxiliary type). -/
 def targetK53 (ops : CheckerOps m) (env : Env) (p : BlockShape) (formerTys : List Expr)
-    (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (majDom f : Expr) : m Bool :=
+    (Mc : TargetMajor) (tele : List Expr) (majDom f : Expr) : m Bool :=
   match f.stripPis tele.length with
   | none => pure false
   | some (teleW, leafW) =>
-    if teleW.map (fun b => (b.1.eraseFVarTys, b.2)) != tele.map (fun b => (b.1.eraseFVarTys, b.2))
+    if teleW.map Expr.eraseFVarTys != tele.map Expr.eraseFVarTys
     then pure false
     else
       match leafW.getAppFn, majDom.getAppFn with
@@ -569,7 +569,7 @@ def targetK53 (ops : CheckerOps m) (env : Env) (p : BlockShape) (formerTys : Lis
 earlier `xs` (a telescope's field types at given field variables). -/
 def targetPiDomsWith : List Expr → Expr → Option (List Expr)
   | [], _ => some []
-  | x :: xs, .forallE d b _ => (d :: ·) <$> targetPiDomsWith xs (b.instantiate1 x)
+  | x :: xs, .forallE d b => (d :: ·) <$> targetPiDomsWith xs (b.instantiate1 x)
   | _ :: _, _ => none
 
 /-! ## The stored family -/

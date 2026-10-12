@@ -5,7 +5,7 @@ import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Model.Inductives.StructFrameKit
 public import ConLeche.Model.IndPinGrade
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Reading.ErasedEq
 
 public section
 
@@ -64,10 +64,9 @@ theorem consList_range_reverse :
 
 /-- The prefix and suffix of a peeled binder list, as the reversed
 context's parts. -/
-theorem reverse_map_take_drop (ds : List (Nat × Nat × AnnotTerm)) (nP : Nat) :
-    ((ds.map (·.2.2)).reverse)
-      = (((ds.drop nP).map (·.2.2)).reverse) ++ (((ds.take nP).map (·.2.2)).reverse) := by
-  rw [← List.reverse_append, ← List.map_append, List.take_append_drop]
+theorem reverse_map_take_drop (ds : List AnnotTerm) (nP : Nat) :
+    ds.reverse = (ds.drop nP).reverse ++ (ds.take nP).reverse := by
+  rw [← List.reverse_append, List.take_append_drop]
 
 
 /-!
@@ -82,25 +81,25 @@ the reversed constructor context, and the field chain's universe bound
 /-- An opened type whose reading is a known peel: the opened record
 at the peel's reversed domains. -/
 theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
-    {fvs : List Expr} {o : Expr} {pps : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm}
+    {fvs : List Expr} {o : Expr} {pps : List AnnotTerm} {b : AnnotTerm}
     (hop : openPisAtFvars k e 0 = some (fvs, o)) (hcl : e.hasFvar = false)
     (hb : e.looseBVarsBounded 0 = true)
     (hread : denoteMeta m.acval env φ 0 e = some (mkPisAV pps b))
     (hlen : pps.length = k)
-    (hok : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps b)) :
-    Opened m φ k e fvs o ((pps.map (·.2.2)).reverse) b := by
+    (hok : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps b)) :
+    Opened m φ k e fvs o pps.reverse b := by
   obtain ⟨Γ, R, htele, hO⟩ := opened_of hop hcl hb hread hok
   have hst := stripPisAV_mkPisAV pps b
   rw [hlen] at hst
   obtain ⟨rfl, rfl⟩ := PiTeleAV.unique htele (piTeleAV_of_stripPisAV hst)
-  rwa [ppsNorm_map_dom] at hO
+  exact hO
 
 /-- The field entries of the reversed constructor context are the
 peel's field domains. -/
-theorem fieldsFrom_eq_drop {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
+theorem fieldsFrom_eq_drop {ds : List AnnotTerm} {nP nF : Nat}
     (hlen : ds.length = nP + nF) :
-    fieldsFrom ((ds.map (·.2.2)).reverse) (nP + nF) nP nF 0
-      = (ds.drop nP).map (·.2.2) := by
+    fieldsFrom ds.reverse (nP + nF) nP nF 0
+      = ds.drop nP := by
   apply List.ext_getElem
   · simp [fieldsFrom, hlen]
   · intro t h1 h2
@@ -111,12 +110,12 @@ theorem fieldsFrom_eq_drop {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
 
 /-- The reversed constructor context above the fields is the reversed
 parameter context. -/
-theorem drop_fields_eq {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
+theorem drop_fields_eq {ds : List AnnotTerm} {nP nF : Nat}
     (hlen : ds.length = nP + nF) (i : Nat) (hi : i ≤ nP) :
-    ((ds.map (·.2.2)).reverse).drop (nP + nF - i)
-      = (((ds.take nP).map (·.2.2)).reverse).drop (nP - i) := by
+    ds.reverse.drop (nP + nF - i)
+      = (ds.take nP).reverse.drop (nP - i) := by
   rw [reverse_map_take_drop ds nP, List.drop_append]
-  have hl : (((ds.drop nP).map (·.2.2)).reverse).length = nF := by
+  have hl : (ds.drop nP).reverse.length = nF := by
     simp [hlen]
   rw [List.drop_eq_nil_of_le (by rw [hl]; omega), List.nil_append, hl,
     show nP + nF - i - nF = nP - i from by omega]
@@ -205,10 +204,10 @@ theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List AnnotTerm}
 
 /-- The reversed constructor context's parameter entries are the
 reversed parameter context's. -/
-theorem getD_reverse_take {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
+theorem getD_reverse_take {ds : List AnnotTerm} {nP nF : Nat}
     (hlen : ds.length = nP + nF) {i : Nat} (hi : i < nP) :
-    ((ds.map (·.2.2)).reverse).getD (nP + nF - 1 - i) default
-      = (((ds.take nP).map (·.2.2)).reverse).getD (nP - 1 - i) default := by
+    ds.reverse.getD (nP + nF - 1 - i) default
+      = (ds.take nP).reverse.getD (nP - 1 - i) default := by
   have hil : i < ds.length := by omega
   rw [getD_reverse_of_peel hlen (by omega) (List.getElem?_eq_getElem hil),
     getD_reverse_of_peel (List.length_take_of_le (by omega)) hi
@@ -225,15 +224,15 @@ any depth above the parameters (`paramBvarsAt`).
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta)
+ )
 
 
 /-! ## Lifted Π-towers -/
 
 theorem stripPisAV_mkPisAV_take
-    (n : Nat) (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm) (h : n ≤ ds.length) :
-    stripPisAV n (mkPisAV ds b) = some (ppsNorm (ds.take n), mkPisAV (ds.drop n) b) := by
-  have happ : ∀ (l₁ l₂ : List (Nat × Nat × AnnotTerm)),
+    (n : Nat) (ds : List AnnotTerm) (b : AnnotTerm) (h : n ≤ ds.length) :
+    stripPisAV n (mkPisAV ds b) = some (ds.take n, mkPisAV (ds.drop n) b) := by
+  have happ : ∀ (l₁ l₂ : List AnnotTerm),
       mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b) := by
     intro l₁ l₂
     induction l₁ with
@@ -248,16 +247,16 @@ theorem stripPisAV_mkPisAV_take
 /-- A fit of bounded domains reads the same at any frame agreeing
 below the cut. -/
 theorem spineFit_congr_below :
-    ∀ {pds : List (Nat × Nat × AnnotTerm)} {k : Nat} {ρ ρ' : Nat → V} {as : List V},
+    ∀ {pds : List AnnotTerm} {k : Nat} {ρ ρ' : Nat → V} {as : List V},
       DomsBelow k pds → (∀ i, i < k → ρ i = ρ' i) →
-      SpineFit ρ (pds.map (·.2.2)) as → SpineFit ρ' (pds.map (·.2.2)) as
+      SpineFit ρ pds as → SpineFit ρ' pds as
   | [], _, _, _, [], _, _, h => h
   | [], _, _, _, _ :: _, _, _, h => h.elim
   | _ :: _, _, _, _, [], _, _, h => h.elim
   | d :: pds, k, ρ, ρ', a :: as, hb, hρ, h => by
-    simp only [List.map_cons, SpineFit] at h ⊢
+    simp only [SpineFit] at h ⊢
     refine ⟨?_, spineFit_congr_below hb.2 (fun i hi => ?_) h.2⟩
-    · rw [← interp_congr_below V d.2.2 k ρ ρ' hb.1 hρ]; exact h.1
+    · rw [← interp_congr_below V d k ρ ρ' hb.1 hρ]; exact h.1
     · cases i with
       | zero => rfl
       | succ i => exact hρ i (by omega)
@@ -328,13 +327,13 @@ theorem openPisAtFvars_of_stripPis_isSome :
   | 0, e, _, _ => ⟨[], e, rfl⟩
   | n + 1, e, d, h => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [Expr.stripPis, Option.isSome_map] at h
       obtain ⟨fvs, o, ho⟩ := openPisAtFvars_of_stripPis_isSome n (d + 1)
         (Expr.stripPis_instantiate1_isSome (v := .fvar d dom) n 0 h)
       exact ⟨.fvar d dom :: fvs, o, by simp only [openPisAtFvars, ho]⟩
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       simp [Expr.stripPis] at h
 
 /-! ## Per-index scoping -/
@@ -350,7 +349,7 @@ theorem openPisAtFvars_typeWScoped :
     exact nomatch hx
   | n + 1, e, d, fvs, o, hop, hw, i, x, hx => by
     match e, hop with
-    | .forallE dom body mb, hop =>
+    | .forallE dom body, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -374,7 +373,7 @@ theorem openPisAtFvars_typeWScoped :
           exact this
       · exact nomatch hop
     | .bvar _, hop | .fvar _ _, hop | .sort _, hop | .const _ _, hop | .app _ _, hop
-    | .lam _ _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
+    | .lam _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
       simp [openPisAtFvars] at hop
 
 /-! ## Frame shifts under a consed spine -/
@@ -382,7 +381,7 @@ theorem openPisAtFvars_typeWScoped :
 /-! ## List arithmetic -/
 
 theorem mkPisAV_append :
-    ∀ (l₁ l₂ : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm),
+    ∀ (l₁ l₂ : List AnnotTerm) (b : AnnotTerm),
       mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b)
   | [], _, _ => rfl
   | d :: l₁, l₂, b => by simp [mkPisAV, mkPisAV_append l₁ l₂ b]
@@ -424,7 +423,7 @@ theorem consList_apply_lt :
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta PropWhen)
+  PropWhen)
 
 
 variable {acval : Name → (Name → Nat) → AnnotTerm}
@@ -459,21 +458,20 @@ recursor's elimination level.
 /-- A graded λ-tower whose value is the point has body value the point
 along any fitting spine. -/
 theorem mkLamsAV_pt_body :
-    ∀ {lds : List (Nat × AnnotTerm)} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
-      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ (lds.map (·.2)) as →
+    ∀ {lds : List AnnotTerm} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
+      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ lds as →
       interp V ρ (mkLamsAV lds b) = (pt : V) →
       interp V (consList as ρ) b = (pt : V)
   | [], _, _, [], _, _, h => h
   | [], _, _, _ :: _, _, hsp, _ => hsp.elim
   | _ :: _, _, _, [], _, hsp, _ => hsp.elim
   | d :: lds, b, ρ, a :: as, hok, hsp, hpt => by
-    simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
     obtain ⟨-, -, hrest, -⟩ := hok'
     rw [consList_cons]
     refine mkLamsAV_pt_body (hrest a hsp.1) hsp.2 ?_
-    have := app_lamV (A := interp V ρ d.2)
+    have := app_lamV (A := interp V ρ d)
       (F := fun x => interp V (cons x ρ) (mkLamsAV lds b)) hsp.1
     simp only [mkLamsAV, interp_lam] at hpt
     rw [hpt, app_pt] at this
@@ -481,15 +479,14 @@ theorem mkLamsAV_pt_body :
 
 /-- **A graded λ-tower folds to its body** along any fitting spine. -/
 theorem mkLamsAV_fold_graded :
-    ∀ {lds : List (Nat × AnnotTerm)} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
-      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ (lds.map (·.2)) as →
+    ∀ {lds : List AnnotTerm} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
+      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ lds as →
       as.foldl SetTheory.app (interp V ρ (mkLamsAV lds b))
         = interp V (consList as ρ) b
   | [], _, _, [], _, _ => rfl
   | [], _, _, _ :: _, _, hsp => hsp.elim
   | _ :: _, _, _, [], _, hsp => hsp.elim
   | d :: lds, b, ρ, a :: as, hok, hsp => by
-    simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
     obtain ⟨-, -, hrest, -⟩ := hok'
@@ -502,13 +499,13 @@ theorem mkLamsAV_fold_graded :
 step's Π-package is the layer's own (`lamV_mem` over the grading's
 fibre family), or — once a layer has collapsed the value to the
 point — the trivial one. -/
-theorem mkAppN_wellDenotedV_of_lam :
-    ∀ {lds : List (Nat × AnnotTerm)} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
-      WellDenotedV V ρ f → (∀ a ∈ args, WellDenotedV V ρ a) →
+theorem mkAppN_wellDenoted_of_lam :
+    ∀ {lds : List AnnotTerm} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
+      WellDenoted V ρ f → (∀ a ∈ args, WellDenoted V ρ a) →
       WellDenoted V σ (mkLamsAV lds b) →
       (interp V ρ f = (pt : V) ∨ interp V ρ f = interp V σ (mkLamsAV lds b)) →
-      SpineFit σ (lds.map (·.2)) (args.map (interp V ρ)) →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f args)
+      SpineFit σ lds (args.map (interp V ρ)) →
+      WellDenoted V ρ (AnnotTerm.mkAppN f args)
   | [], _, _, [], _, _, hf, _, _, _, _ => hf
   | [], _, _, _ :: _, _, _, _, _, _, _, hsp => hsp.elim
   | _ :: _, _, _, [], _, _, hf, _, _, _, _ => hf
@@ -520,18 +517,18 @@ theorem mkAppN_wellDenotedV_of_lam :
     have ha := hargs a List.mem_cons_self
     rw [AnnotTerm.mkAppN_cons]
     -- the application's package
-    have hokApp : WellDenotedV V ρ (.app f a) := by
-      rw [WellDenotedV, WellDenoted_app]
+    have hokApp : WellDenoted V ρ (.app f a) := by
+      rw [WellDenoted_app]
       rcases hval with hpt | heq
-      · exact ⟨hf, ha, 0, interp V σ d.2, fun _ => unitSet,
+      · exact ⟨hf, ha, 0, interp V σ d, fun _ => unitSet,
           by rw [hpt, piR_zero]; exact pt_mem_truthVal fun x _ => ⟨pt, pt_mem_unitSet⟩,
           hsp.1, fun _ _ _ => mem_univZero.mpr (Subset.refl _), fun h => absurd rfl h⟩
-      · refine ⟨hf, ha, propN (interp V σ d.2) B, interp V σ d.2, B, ?_, hsp.1,
+      · refine ⟨hf, ha, propN (interp V σ d) B, interp V σ d, B, ?_, hsp.1,
           propN_eq_zero.mp, fun _ => hAty⟩
         rw [heq]
         simp only [mkLamsAV, interp_lam]
         exact lamV_mem hB hBty
-    refine mkAppN_wellDenotedV_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
+    refine mkAppN_wellDenoted_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
       (hrest _ hsp.1) ?_ hsp.2
     -- the continuation's value
     rw [interp_app]

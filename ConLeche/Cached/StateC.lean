@@ -359,7 +359,7 @@ def constsResolveFP (fe : FEnv) (e : Expr) : Bool :=
   | .const nm _ .. => (fe.find? nm).isSome
   | .fvar _ ty .. => constsResolveFP fe ty
   | .app f a .. => constsResolveFP fe f && constsResolveFP fe a
-  | .lam ty body _ .. | .forallE ty body _ .. =>
+  | .lam ty body .. | .forallE ty body .. =>
     constsResolveFP fe ty && constsResolveFP fe body
   | .letE ty val body .. =>
     constsResolveFP fe ty && constsResolveFP fe val && constsResolveFP fe body
@@ -402,7 +402,7 @@ def constsResolveFXP (fe : @& FEnv) (memo : Expr.MemoB0 (constsResolveFP fe))
       Squash.mk (⟨ra, by rw [constsResolveFP, ← hf, ← ha, Bool.true_and]⟩, memo)
     | false, hf =>
       Squash.mk (⟨false, by rw [constsResolveFP, ← hf, Bool.false_and]⟩, memo)
-  | .lam ty body _ .. | .forallE ty body _ .. =>
+  | .lam ty body .. | .forallE ty body .. =>
     enterCRF fe ty memo (fun _ => constsResolveFXP fe memo ty) |>.lift fun (⟨rt, ht⟩, memo) =>
     match rt, ht with
     | true, ht =>

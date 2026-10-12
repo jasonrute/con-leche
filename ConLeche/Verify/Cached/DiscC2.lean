@@ -117,8 +117,8 @@ theorem propIrrelC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
       | lit l => exact SimC.pure hs₈ rfl
       | fvar idx t => exact SimC.pure hs₈ rfl
       | app f' a' => exact SimC.pure hs₈ rfl
-      | lam t b' m => exact SimC.pure hs₈ rfl
-      | forallE t b' m => exact SimC.pure hs₈ rfl
+      | lam t b' => exact SimC.pure hs₈ rfl
+      | forallE t b' => exact SimC.pure hs₈ rfl
       | letE t v b' => exact SimC.pure hs₈ rfl
       | proj s i e => exact SimC.pure hs₈ rfl
     | bvar k => exact SimC.pure hs₄ rfl
@@ -126,8 +126,8 @@ theorem propIrrelC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
     | lit l => exact SimC.pure hs₄ rfl
     | fvar idx t => exact SimC.pure hs₄ rfl
     | app f' a' => exact SimC.pure hs₄ rfl
-    | lam t b' m => exact SimC.pure hs₄ rfl
-    | forallE t b' m => exact SimC.pure hs₄ rfl
+    | lam t b' => exact SimC.pure hs₄ rfl
+    | forallE t b' => exact SimC.pure hs₄ rfl
     | letE t v b' => exact SimC.pure hs₄ rfl
     | proj s i e => exact SimC.pure hs₄ rfl
 
@@ -161,21 +161,6 @@ theorem boolTrueShortcutIfC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
   cases g
   · exact SimC.pure hs rfl
   · exact boolTrueShortcutC_sim ih hs hden hw
-
-/-- `propIrrelC_sim` under the once-per-entry gate (the audit's D3):
-the pruned branch is `pure false` twinned. -/
-theorem propIrrelIfC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
-    {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hdena : RelC i a) (hdenb : RelC j b)
-    (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) (g : Bool) :
-    SimC mode env s₀ RelVC
-      (if g then propIrrelI (coreKnotI mode (mkFEnv env) f)
-        (mkFEnv env) d i j else pure false)
-      (if g then propIrrel (fueledFns mode env) env d a b
-        else pure false) := by
-  cases g
-  · exact SimC.pure hs rfl
-  · exact propIrrelC_sim ih hs hdena hdenb hwa hwb
 
 /-- `proofIrrelI` simulates its fueled original. -/
 theorem proofIrrelC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
@@ -251,8 +236,8 @@ theorem proofIrrelC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
     | lit l => exact SimC.pure hs₈ rfl
     | fvar idx t => exact SimC.pure hs₈ rfl
     | app f' a' => exact SimC.pure hs₈ rfl
-    | lam t b' m => exact SimC.pure hs₈ rfl
-    | forallE t b' m => exact SimC.pure hs₈ rfl
+    | lam t b' => exact SimC.pure hs₈ rfl
+    | forallE t b' => exact SimC.pure hs₈ rfl
     | letE t v b' => exact SimC.pure hs₈ rfl
     | proj sn j' e' => exact SimC.pure hs₈ rfl
   | bvar k => exact SimC.pure hs₄ rfl
@@ -260,8 +245,8 @@ theorem proofIrrelC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
   | lit l => exact SimC.pure hs₄ rfl
   | fvar idx t => exact SimC.pure hs₄ rfl
   | app f' a' => exact SimC.pure hs₄ rfl
-  | lam t b' m => exact SimC.pure hs₄ rfl
-  | forallE t b' m => exact SimC.pure hs₄ rfl
+  | lam t b' => exact SimC.pure hs₄ rfl
+  | forallE t b' => exact SimC.pure hs₄ rfl
   | letE t v b' => exact SimC.pure hs₄ rfl
   | proj sn j' e' => exact SimC.pure hs₄ rfl
 
@@ -301,7 +286,7 @@ theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
   obtain ⟨hwtbd, hwwtb⟩ := hP₂
   obtain rfl := hwtbd
   cases wtb with
-  | forallE ty₂ b₂ m₂ =>
+  | forallE ty₂ b₂ =>
     simp only [Expr.WScoped] at hwwtb
     refine SimC.bind (ih.defeq hs₂ rfl hty hwwtb.1 hwty)
       (fun s₄ r r' hs₄ hPr => ?_)
@@ -364,7 +349,7 @@ theorem etaCertC_sim (ih : SSimC mode env f) {d : Nat}
   | lit l => exact SimC.pure hs₂ rfl
   | fvar idx t => exact SimC.pure hs₂ rfl
   | app f' a' => exact SimC.pure hs₂ rfl
-  | lam t b' m => exact SimC.pure hs₂ rfl
+  | lam t b' => exact SimC.pure hs₂ rfl
   | letE t v b' => exact SimC.pure hs₂ rfl
   | proj sn j' e' => exact SimC.pure hs₂ rfl
 
@@ -488,9 +473,9 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
     exact SimC.pure hs₂ rfl
   | app f' a' =>
     exact SimC.pure hs₂ rfl
-  | lam t b' m =>
+  | lam t b' =>
     exact SimC.pure hs₂ rfl
-  | forallE t b' m =>
+  | forallE t b' =>
     exact SimC.pure hs₂ rfl
   | letE t v b' =>
     exact SimC.pure hs₂ rfl
@@ -748,9 +733,9 @@ theorem structEtaCertWithC_sim (ih : SSimC mode env f)
             exact SimC.pure hs rfl
           | app f' a' =>
             exact SimC.pure hs rfl
-          | lam t b' m =>
+          | lam t b' =>
             exact SimC.pure hs rfl
-          | forallE t b' m =>
+          | forallE t b' =>
             exact SimC.pure hs rfl
           | letE t v b' =>
             exact SimC.pure hs rfl
@@ -773,9 +758,9 @@ theorem structEtaCertWithC_sim (ih : SSimC mode env f)
     exact SimC.pure hs rfl
   | app f' a' =>
     exact SimC.pure hs rfl
-  | lam t b' m =>
+  | lam t b' =>
     exact SimC.pure hs rfl
-  | forallE t b' m =>
+  | forallE t b' =>
     exact SimC.pure hs rfl
   | letE t v b' =>
     exact SimC.pure hs rfl

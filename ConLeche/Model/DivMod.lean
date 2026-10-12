@@ -8,7 +8,7 @@ public section
 # The WF-recursive `Nat` operations' guarded clauses at `interp`
 (task #161, literal tier — the divmod leg, part 1)
 
-`DivMod` (`Annot/Laws.lean`) states `DivModClausesV`, stated over a
+`DivMod` (`Env/Laws.lean`) states `DivModClausesV`, stated over a
 bare valuation `Name → V`, at `fun n => interp V ρ (m.acval n φ)`.
 
 This file carries the two currency-independent halves of the field:

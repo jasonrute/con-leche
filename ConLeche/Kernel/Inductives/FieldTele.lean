@@ -45,10 +45,10 @@ inductive RecFieldKind where
 /-- All leading `∀` binders of an expression (outermost first) and
 the body — a recursive field's own telescope (`[]` at a finitary
 field, the `a⃗ : A⃗` of a reflexive one, task #202). -/
-def Expr.piBinders : Expr → List (Expr × BinderMeta) × Expr
-  | .forallE ty b m =>
+def Expr.piBinders : Expr → List Expr × Expr
+  | .forallE ty b =>
     let (bs, e) := piBinders b
-    ((ty, m) :: bs, e)
+    (ty :: bs, e)
   | e => ([], e)
 
 /-- The positions of the recursive fields (finitary or reflexive: the
@@ -58,9 +58,9 @@ def recIdxOf (ks : List RecFieldKind) : List Nat :=
     ks.getD i .ordinary == .recursive || ks.getD i .ordinary == .reflexive
 
 /-- `∀ tele, body` over a binder list (outermost first). -/
-def Expr.mkPisOf : List (Expr × BinderMeta) → Expr → Expr
+def Expr.mkPisOf : List Expr → Expr → Expr
   | [], body => body
-  | (ty, mt) :: bs, body => .forallE ty (mkPisOf bs body) mt
+  | ty :: bs, body => .forallE ty (mkPisOf bs body)
 
 /-- Does the variable `q` occur as a leaf of `e` (annotations
 included, as `fvarLeaves` walks them)? -/
@@ -98,12 +98,12 @@ theorem Expr.mentionsFvar_app (q : Nat) (f a : Expr) :
     (Expr.app f a).mentionsFvar q = (f.mentionsFvar q || a.mentionsFvar q) := by
   simp [Expr.mentionsFvar, Expr.fvarLeaves]
 
-theorem Expr.mentionsFvar_lam (q : Nat) (ty b : Expr) (m : BinderMeta) :
-    (Expr.lam ty b m).mentionsFvar q = (ty.mentionsFvar q || b.mentionsFvar q) := by
+theorem Expr.mentionsFvar_lam (q : Nat) (ty b : Expr) :
+    (Expr.lam ty b).mentionsFvar q = (ty.mentionsFvar q || b.mentionsFvar q) := by
   simp [Expr.mentionsFvar, Expr.fvarLeaves]
 
-theorem Expr.mentionsFvar_forallE (q : Nat) (ty b : Expr) (m : BinderMeta) :
-    (Expr.forallE ty b m).mentionsFvar q
+theorem Expr.mentionsFvar_forallE (q : Nat) (ty b : Expr) :
+    (Expr.forallE ty b).mentionsFvar q
       = (ty.mentionsFvar q || b.mentionsFvar q) := by
   simp [Expr.mentionsFvar, Expr.fvarLeaves]
 
@@ -163,11 +163,11 @@ def Expr.mentionsFvarGo (q : Nat) (memo : Std.HashMap Expr Bool) (e : Expr) :
           match mentionsFvarGo q memo f with
           | (true, memo) => (true, memo)
           | (false, memo) => mentionsFvarGo q memo a
-        | .lam ty b _ =>
+        | .lam ty b =>
           match mentionsFvarGo q memo ty with
           | (true, memo) => (true, memo)
           | (false, memo) => mentionsFvarGo q memo b
-        | .forallE ty b _ =>
+        | .forallE ty b =>
           match mentionsFvarGo q memo ty with
           | (true, memo) => (true, memo)
           | (false, memo) => mentionsFvarGo q memo b
@@ -230,7 +230,7 @@ theorem Expr.mentionsFvarGo_spec (q : Nat) :
         obtain ⟨h3, h4⟩ := iha memo₁ h2
         exact ⟨by simp [mentionsFvar_app, ← h1, h3],
           h4.insert (by simp [mentionsFvar_app, ← h1, h3])⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro memo hm
     rw [mentionsFvarGo]
     split
@@ -247,7 +247,7 @@ theorem Expr.mentionsFvarGo_spec (q : Nat) :
         obtain ⟨h3, h4⟩ := ihb memo₁ h2
         exact ⟨by simp [mentionsFvar_lam, ← h1, h3],
           h4.insert (by simp [mentionsFvar_lam, ← h1, h3])⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro memo hm
     rw [mentionsFvarGo]
     split

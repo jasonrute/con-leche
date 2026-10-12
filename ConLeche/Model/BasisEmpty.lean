@@ -1,11 +1,6 @@
 module
 
 public import ConLeche.Model.BasisStep
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 
 import ConLeche.Model.BasisLfp
 public import ConLeche.Model.Cover
@@ -138,11 +133,9 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
   rw [show emptyRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const emptyName [])
-            (.sort (.param uN)) {})
+            (.sort (.param uN)))
           (Expr.forallE (.const emptyName [])
-            (.app (.bvar 1) (.bvar 0))
-            {})
-          {} from rfl]
+            (.app (.bvar 1) (.bvar 0))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
@@ -239,11 +232,9 @@ theorem declBasisPB_emptyK {env₂ : Env} (mp : EnvModelM V μ env)
     simp only [show emptyRecA.toConstantVal.type
         = Expr.forallE
             (Expr.forallE (.const emptyName [])
-              (.sort (.param uN)) {})
+              (.sort (.param uN)))
             (Expr.forallE (.const emptyName [])
-              (.app (.bvar 1) (.bvar 0))
-              {})
-            {} from rfl,
+              (.app (.bvar 1) (.bvar 0))) from rfl,
       Expr.constsResolve, Bool.and_eq_true, Option.isSome_iff_exists]
     have hf : (⟨emptyRecA :: emptyA :: env.consts⟩ : Env).find?
         emptyName = some emptyA := by

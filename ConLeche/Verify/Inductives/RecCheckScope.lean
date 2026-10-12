@@ -48,7 +48,7 @@ theorem targetCanonParams_WScoped {pfvs : List Expr} {D : Nat} (hp : ∀ x ∈ p
     simp only [targetCanonParams] at h1 h2 ⊢
     simp only [Expr.replaceFVars, WScoped]
     exact ⟨h1, h2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
     have h1 := iht h.1
@@ -56,7 +56,7 @@ theorem targetCanonParams_WScoped {pfvs : List Expr} {D : Nat} (hp : ∀ x ∈ p
     simp only [targetCanonParams] at h1 h2 ⊢
     simp only [Expr.replaceFVars, WScoped]
     exact ⟨h1, h2⟩
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
     have h1 := iht h.1
@@ -120,7 +120,7 @@ theorem targetAbs_fvarLeaves {names : List Name} {lvls : List Level} {holes : Li
     · rcases ihb l hl with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro l hl
     simp only [targetAbs, fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
@@ -130,7 +130,7 @@ theorem targetAbs_fvarLeaves {names : List Name} {lvls : List Level} {holes : Li
     · rcases ihb l hl with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro l hl
     simp only [targetAbs, fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
@@ -179,9 +179,9 @@ theorem targetAbs_WScoped {names : List Name} {lvls : List Level} {holes : List 
     · unfold WScoped; trivial
   | app a b iha ihb =>
     intro hw; unfold WScoped at hw ⊢; exact ⟨iha hw.1, ihb hw.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro hw; unfold WScoped at hw ⊢; exact ⟨iht hw.1, ihb hw.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro hw; unfold WScoped at hw ⊢; exact ⟨iht hw.1, ihb hw.2⟩
   | letE ty v b iht ihv ihb =>
     intro hw; unfold WScoped at hw ⊢; exact ⟨iht hw.1, ihv hw.2.1, ihb hw.2.2⟩
@@ -190,34 +190,6 @@ theorem targetAbs_WScoped {names : List Name} {lvls : List Level} {holes : List 
   | _ => intro hw; simpa [targetAbs] using hw
 
 /-! ## The abstract frame (`targetMoveF`, `targetAbsFields`) -/
-
-/-- Replacing free variables by scoped terms keeps the scope. -/
-theorem replaceFVars_WScoped {g : Nat → Option Expr} {d : Nat}
-    (hg : ∀ i r, g i = some r → WScoped d r) :
-    ∀ (e : Expr), WScoped d e → WScoped d (e.replaceFVars g) := by
-  intro e
-  induction e with
-  | fvar i ty _ =>
-    intro hw
-    simp only [Expr.replaceFVars]
-    cases hgi : g i with
-    | none => exact hw
-    | some r => exact hg i r hgi
-  | app a b iha ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iha hw.1, ihb hw.2⟩
-  | lam ty b m iht ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iht hw.1, ihb hw.2⟩
-  | forallE ty b m iht ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iht hw.1, ihb hw.2⟩
-  | letE ty v b iht ihv ihb =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
-    exact ⟨iht hw.1, ihv hw.2.1, ihb hw.2.2⟩
-  | proj s i sub ih =>
-    intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped; exact ih hw
-  | _ => intro hw; simpa [Expr.replaceFVars] using hw
 
 /-- **Replacing every free variable below `d` by a term scoped at `d`**
 scopes the result at `d` whenever its free variables are below `d`
@@ -242,10 +214,10 @@ theorem replaceFVars_WScoped_of_below {g : Nat → Option Expr} {d : Nat}
   | app a b iha ihb =>
     intro hb; simp only [Expr.replaceFVars, Expr.fvarsBelow] at hb ⊢; unfold WScoped
     exact ⟨iha hb.1, ihb hb.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro hb; simp only [Expr.replaceFVars, Expr.fvarsBelow] at hb ⊢; unfold WScoped
     exact ⟨iht hb.1, ihb hb.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro hb; simp only [Expr.replaceFVars, Expr.fvarsBelow] at hb ⊢; unfold WScoped
     exact ⟨iht hb.1, ihb hb.2⟩
   | letE ty v b iht ihv ihb =>

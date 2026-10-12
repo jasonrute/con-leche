@@ -95,8 +95,8 @@ def structProjPs (nP : Nat) : List Expr :=
 /-- The `j`-th earlier-field substitute in a **tower entry's**
 generated type (task #175 wiring): the first-class node `t.j`
 (`.proj T j` of the subject), at the frame of the subject
-`t = bvar 0`.  No `projFnName` chain — each field's entry stands
-alone, which is what makes O4's per-field entry branch real. -/
+`t = bvar 0`.  Each field's entry stands alone, which is what makes
+O4's per-field entry branch real. -/
 def structProjArgP (T : Name) (j : Nat) : Expr :=
   Expr.proj T j (Expr.bvar 0)
 
@@ -117,8 +117,8 @@ def Expr.hasLooseBVar : Nat → Expr → Bool
   | _, .const .. => false
   | _, .lit _ => false
   | i, .app f a => hasLooseBVar i f || hasLooseBVar i a
-  | i, .lam ty b _ => hasLooseBVar i ty || hasLooseBVar (i + 1) b
-  | i, .forallE ty b _ => hasLooseBVar i ty || hasLooseBVar (i + 1) b
+  | i, .lam ty b => hasLooseBVar i ty || hasLooseBVar (i + 1) b
+  | i, .forallE ty b => hasLooseBVar i ty || hasLooseBVar (i + 1) b
   | i, .letE t v b =>
     hasLooseBVar i t || hasLooseBVar i v || hasLooseBVar (i + 1) b
   | i, .proj _ _ e => hasLooseBVar i e
@@ -138,8 +138,8 @@ def Expr.hasLooseBVarB (i : Nat) (e : Expr) : Bool :=
   | .const .. => false
   | .lit _ => false
   | .app f a => hasLooseBVarB i f || hasLooseBVarB i a
-  | .lam ty b _ => hasLooseBVarB i ty || hasLooseBVarB (i + 1) b
-  | .forallE ty b _ => hasLooseBVarB i ty || hasLooseBVarB (i + 1) b
+  | .lam ty b => hasLooseBVarB i ty || hasLooseBVarB (i + 1) b
+  | .forallE ty b => hasLooseBVarB i ty || hasLooseBVarB (i + 1) b
   | .letE t v b =>
     hasLooseBVarB i t || hasLooseBVarB i v || hasLooseBVarB (i + 1) b
   | .proj _ _ e => hasLooseBVarB i e
@@ -214,11 +214,11 @@ def Expr.hasLooseBVarBGo (memo : Std.HashMap (Expr × Nat) Bool) (i : Nat) (e : 
           match hasLooseBVarBGo memo i f with
           | (true, memo) => (true, memo)
           | (false, memo) => hasLooseBVarBGo memo i a
-        | .lam ty b _ =>
+        | .lam ty b =>
           match hasLooseBVarBGo memo i ty with
           | (true, memo) => (true, memo)
           | (false, memo) => hasLooseBVarBGo memo (i + 1) b
-        | .forallE ty b _ =>
+        | .forallE ty b =>
           match hasLooseBVarBGo memo i ty with
           | (true, memo) => (true, memo)
           | (false, memo) => hasLooseBVarBGo memo (i + 1) b
@@ -282,14 +282,14 @@ theorem Expr.hasLooseBVarBGo_spec :
           rw [heq] at h1 h2
           obtain ⟨h3, h4⟩ := iha i memo₁ h2
           exact ⟨by simp [hspec, ← h1, h3], h4.insert (by simp [hspec, ← h1, h3])⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro i memo hm
     rw [hasLooseBVarBGo]
     split
     · rename_i hcut
       exact ⟨by rw [Expr.hasLooseBVarB, ite_eq_left hcut], hm⟩
     · rename_i hcut
-      have hspec : Expr.hasLooseBVarB i (.lam ty b m)
+      have hspec : Expr.hasLooseBVarB i (.lam ty b)
           = (Expr.hasLooseBVarB i ty || Expr.hasLooseBVarB (i + 1) b) := by
         rw [Expr.hasLooseBVarB, ite_eq_right hcut]
       split
@@ -305,14 +305,14 @@ theorem Expr.hasLooseBVarBGo_spec :
           rw [heq] at h1 h2
           obtain ⟨h3, h4⟩ := ihb (i + 1) memo₁ h2
           exact ⟨by simp [hspec, ← h1, h3], h4.insert (by simp [hspec, ← h1, h3])⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro i memo hm
     rw [hasLooseBVarBGo]
     split
     · rename_i hcut
       exact ⟨by rw [Expr.hasLooseBVarB, ite_eq_left hcut], hm⟩
     · rename_i hcut
-      have hspec : Expr.hasLooseBVarB i (.forallE ty b m)
+      have hspec : Expr.hasLooseBVarB i (.forallE ty b)
           = (Expr.hasLooseBVarB i ty || Expr.hasLooseBVarB (i + 1) b) := by
         rw [Expr.hasLooseBVarB, ite_eq_right hcut]
       split
@@ -515,7 +515,7 @@ table holds every field (the official `infer_proj` restriction at a
 `structProjGuards`); no entry is annotated, inferred or pinned. -/
 def structProjBodiesGo (T : Name) : Nat → Nat → Expr → Option (List Expr)
   | 0, _, _ => some []
-  | k + 1, i, .forallE fdom body _ =>
+  | k + 1, i, .forallE fdom body =>
     (structProjBodiesGo T k (i + 1) (body.instantiate1Lift (structProjArgP T i))).map
       (fdom :: ·)
   | _ + 1, _, _ => none
@@ -532,7 +532,7 @@ def Expr.mentionsConst (T : Name) : Expr → Bool
   | .const n _ => n == T
   | .fvar _ ty => ty.mentionsConst T
   | .app f a => f.mentionsConst T || a.mentionsConst T
-  | .lam ty b _ | .forallE ty b _ => ty.mentionsConst T || b.mentionsConst T
+  | .lam ty b | .forallE ty b => ty.mentionsConst T || b.mentionsConst T
   | .letE ty v b => ty.mentionsConst T || v.mentionsConst T || b.mentionsConst T
   | .proj s _ e => s == T || e.mentionsConst T
 
@@ -584,11 +584,11 @@ def Expr.mentionsConstGo (T : Name) (memo : Std.HashMap Expr Bool) :
           let (b₁, memo) := mentionsConstGo T memo f
           let (b₂, memo) := mentionsConstGo T memo a
           (b₁ || b₂, memo)
-        | .lam ty body _ =>
+        | .lam ty body =>
           let (b₁, memo) := mentionsConstGo T memo ty
           let (b₂, memo) := mentionsConstGo T memo body
           (b₁ || b₂, memo)
-        | .forallE ty body _ =>
+        | .forallE ty body =>
           let (b₁, memo) := mentionsConstGo T memo ty
           let (b₂, memo) := mentionsConstGo T memo body
           (b₁ || b₂, memo)
@@ -633,7 +633,7 @@ theorem Expr.mentionsConstGo_spec {T : Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [mentionsConst, h1, h3], ?_⟩
       exact h4.insert (by simp [mentionsConst, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [mentionsConstGo]
     split
@@ -643,7 +643,7 @@ theorem Expr.mentionsConstGo_spec {T : Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [mentionsConst, h1, h3], ?_⟩
       exact h4.insert (by simp [mentionsConst, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [mentionsConstGo]
     split

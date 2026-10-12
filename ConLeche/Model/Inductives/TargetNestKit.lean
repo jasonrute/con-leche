@@ -13,7 +13,7 @@ The recursor model at a nested block (`graphRecPre_core`,
 block, or a container at an instantiation (an outside major).  Charter
 item 5: "the model uses nothing from an inductive but its lfp clause" —
 so every class is presented by ONE recorded clause (`LfpClause`,
-`Model/Annot/BlockLfp.lean`) at a level assignment and a parameter
+`Model/Env/BlockLfp.lean`) at a level assignment and a parameter
 frame, and this module turns clauses into the set-level kit
 `NestKit` (`SetModel/NestRec.lean`) whose induction the recursor's
 classes read (`NestNodeInd.ind_recNodesOn`, `SetModel/NestRecCls.lean`).

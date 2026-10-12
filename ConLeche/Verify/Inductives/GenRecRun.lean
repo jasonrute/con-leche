@@ -20,7 +20,6 @@ records and never unfolds a stage.
 
 | stage | kernel function | record / inversion |
 |---|---|---|
-| the stream's recursor types | `classStreamRecs` | `classStreamRecs_run` |
 | the classes as majors | `classMajors` | `classMajors_run` |
 | the classes' table entries | `classesNfs` | `classesNfs_run` |
 | one constructor's datum, `ih`s, node agreement | `classCtorOf` | `ClassCtorRun` / `classCtorOf_run` |
@@ -57,32 +56,6 @@ local macro_rules
 /-! ## Guards -/
 
 /-! ## The stream's recursor types -/
-
-/-- **`classStreamRecs`, inverted**: every stream recursor constant,
-checked. -/
-theorem classStreamRecs_run {fe : FEnv} {F : Nat} :
-    ∀ {recs : List RecShape} {cvs : List ConstantVal},
-      classStreamRecs (fueledOps mode F) fe recs = .ok cvs →
-      cvs.length = recs.length ∧
-      ∀ (i : Nat) (rc : RecShape), recs[i]? = some rc →
-        ∃ cv, cvs[i]? = some cv ∧ checkConstantValF (fueledOps mode F) fe rc.cvR = .ok cv
-  | [], cvs, h => by
-    simp only [classStreamRecs, pure, Except.pure, Except.ok.injEq] at h
-    subst h
-    exact ⟨rfl, fun i rc hi => nomatch hi⟩
-  | rc :: rcs, cvs, h => by
-    unfold classStreamRecs at h
-    obtain ⟨cv, hcv, h⟩ := exceptBind_ok h
-    obtain ⟨cvs', hcvs, h⟩ := exceptBind_ok h
-    simp only [pure, Except.pure, Except.ok.injEq] at h
-    subst h
-    obtain ⟨hlen, hall⟩ := classStreamRecs_run hcvs
-    refine ⟨by simp [hlen], fun i rc' hi => ?_⟩
-    cases i with
-    | zero =>
-      obtain rfl : rc = rc' := by simpa using hi
-      exact ⟨cv, rfl, hcv⟩
-    | succ i => simpa using hall i rc' (by simpa using hi)
 
 /-! ## The classes -/
 
@@ -555,7 +528,7 @@ recursors' environment; its λ-telescope `n` long, the λ-domains
 resolving at the constructors' environment. -/
 structure ClassRuleRun (mode : CheckMode) (F : Nat) (w : StructWalkers) (feT feR : FEnv)
     (cvR : ConstantVal) (n : Nat) (gen out : Expr) : Type where
-  rbs : List (Expr × BinderMeta)
+  rbs : List Expr
   body : Expr
   tyR : Expr
   hbv : gen.looseBVarsBounded 0 = true
@@ -565,7 +538,7 @@ structure ClassRuleRun (mode : CheckMode) (F : Nat) (w : StructWalkers) (feT feR
   hres : w.resolve feR out = true
   htyR : (fueledOps mode F).inferType feR.env 0 out = .ok tyR
   hstrip : out.stripLams n = some (rbs, body)
-  hdoms : ∀ b ∈ rbs, w.resolve feT b.1 = true
+  hdoms : ∀ b ∈ rbs, w.resolve feT b = true
 
 /-- **`classRuleOk`, inverted.** -/
 theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal} 
@@ -586,7 +559,7 @@ theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal}
   obtain ⟨tyR, htyR, h⟩ := exceptBind_ok h
   obtain ⟨⟨rbs, body⟩, hstrip, h⟩ := exceptBind_ok h
   simp only at h
-  by_cases hdoms : (rbs.all fun b => w.resolve feT b.1) = true
+  by_cases hdoms : (rbs.all fun b => w.resolve feT b) = true
   case neg => rw [ite_eq_right hdoms] at h; close_throw h
   rw [ite_eq_left hdoms] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
@@ -669,7 +642,7 @@ theorem classRecsRulesOk_run {w : StructWalkers} {feT feR : FEnv} {g : ClassGen}
 by the caller). -/
 @[expose] def genRecGen (p : BlockShape) (params : List Expr) (Ms : List TargetMajor)
     (formerTysC : List Expr) (rd : ClassRead) (ctors : List (List ClassCtor))
-    (pre : List (Expr × BinderMeta)) : ClassGen :=
+    (pre : List Expr) : ClassGen :=
   ⟨p.nP, params, Ms, formerTysC, rd.slots, ctors, structElimLevel p.elim p.large, pre⟩
 
 /-- **The generated recursor stage, as run** — every bind of
@@ -685,7 +658,7 @@ structure GenStageRun (mode : CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   Ms : List TargetMajor
   ctors : List (List ClassCtor)
   formerTysC : List Expr
-  pre : List (Expr × BinderMeta)
+  pre : List Expr
   cvGs : List ConstantVal
   /-- the records' pins -/
   pins : targetRecPins (m := CheckM) p block = .ok ()
@@ -766,18 +739,6 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
     hminors := by simpa using hminors, hformer := hformer,
     hpre := unwrapOr_ok hpre, hcvGs := hcvGs, hrules := hout, hreads := hreads }⟩
 
-/-- **The install's recursor stage, inverted**: `checkBlockRec` at the
-fueled operations IS the generated stage at `ShadowOps.fueled`. -/
-theorem checkBlockRec_run {env : Env} {p : BlockParts} {nested : Bool} {params : List Expr}
-    {tbl : List NestCtorNf} {rd : ClassRead} {Ms₀ : List TargetMajor}
-    {block : List ConstantInfo} {cvTas : List ConstantVal}
-    {out : List (ConstantVal × TargetMajor × List Expr)} {F : Nat}
-    (h : checkBlockRec (fueledOps mode F) env p nested params tbl rd Ms₀ block cvTas
-      = .ok out) :
-    Nonempty (GenStageRun mode F (mkFEnv env) p.toBlockShape nested params tbl rd Ms₀ cvTas
-      block out) :=
-  genRecCheck_run h
-
 /-- **The generated recursor stage with the pass's classes and walk** —
 the record every proof about the family reads: the pass's context
 (`blockNestCtx`), its classes (`checkBlockClasses`, at the formers'
@@ -799,7 +760,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   Ms : List TargetMajor
   ctors : List (List ClassCtor)
   formerTysC : List Expr
-  pre : List (Expr × BinderMeta)
+  pre : List Expr
   cvGs : List ConstantVal
   /-- the records' pins -/
   pins : targetRecPins (m := CheckM) p block = .ok ()

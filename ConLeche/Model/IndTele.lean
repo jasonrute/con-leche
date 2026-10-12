@@ -1,8 +1,8 @@
 module
 
-import ConLeche.Model.Annot.Laws
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Model.Env.Laws
+import ConLeche.Model.Reading.Lemmas
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Verify.Inductives.NestedRuleSyn
 import ConLeche.Verify.Shift
 import ConLeche.Kernel.Checker
@@ -23,7 +23,7 @@ public section
 # The reading's ∀-telescope (task #161, IND TIER part 2)
 
 `PiTeleAV`: a reading's ∀-telescope (`denoteMeta` reads a `∀` to
-`.pi`); its consumers are `TeleFitPA` and `wellDenotedV_mkAppN_of_fit`.
+`.pi`); its consumers are `TeleFitPA` and `wellDenoted_mkAppN_of_fit`.
 
 `consN` names the environment a fit ends in.
 -/
@@ -35,7 +35,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics ConLeche.SetModel
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  BinderMeta)
+ )
 
 universe w
 

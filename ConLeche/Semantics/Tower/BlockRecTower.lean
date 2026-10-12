@@ -177,7 +177,7 @@ theorem pt_mem_andChainAV_iff {ρ : Nat → V} :
 /-- A Π-tower over an equation reads to a truth value: its fibres are
 truth values all the way down (`piV_eq_zero`). -/
 theorem mkPisAV_eqE_univZero :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {l r : AnnotTerm} {ρ : Nat → V},
+    ∀ {ds : List AnnotTerm} {l r : AnnotTerm} {ρ : Nat → V},
       interp V ρ (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V)
   | [], _, _, _ => eqv_mem_univZero _ _
   | _ :: ds, l, r, ρ => by
@@ -188,9 +188,9 @@ theorem mkPisAV_eqE_univZero :
 /-- A Π-tower over an equation is inhabited by `pt` iff the equation
 holds at every fitting spine. -/
 theorem pt_mem_mkPisAV_eqE_iff :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {l r : AnnotTerm} {ρ : Nat → V},
+    ∀ {ds : List AnnotTerm} {l r : AnnotTerm} {ρ : Nat → V},
       ((pt : V) ∈ˢ interp V ρ (mkPisAV ds (.eqE l r)) ↔
-        ∀ xs : List V, SpineFit ρ (ds.map (·.2.2)) xs →
+        ∀ xs : List V, SpineFit ρ ds xs →
           interp V (consList xs ρ) l = interp V (consList xs ρ) r)
   | [], l, r, ρ => by
     show (pt : V) ∈ˢ eqv _ _ ↔ _
@@ -206,7 +206,7 @@ theorem pt_mem_mkPisAV_eqE_iff :
   | d :: ds, l, r, ρ => by
     have hrest : ∀ x, interp V (cons x ρ) (mkPisAV ds (.eqE l r)) ∈ˢ (univZero : V) :=
       fun _ => mkPisAV_eqE_univZero
-    show (pt : V) ∈ˢ piV (interp V ρ d.2.2) (fun x => interp V (cons x ρ) (mkPisAV ds (.eqE l r))) ↔ _
+    show (pt : V) ∈ˢ piV (interp V ρ d) (fun x => interp V (cons x ρ) (mkPisAV ds (.eqE l r))) ↔ _
     rw [piV_eq_zero fun x _ => hrest x]
     constructor
     · intro h xs hsp
@@ -844,22 +844,6 @@ theorem interp_prefVarsAV {rP : Nat} {xs bs : List V} {ρ : Nat → V} (hx : xs.
 
 /-! ## The ι equation of one rule -/
 
-/-- The binder data of a `Prop`-valued Π-tower over the given domains
-(both numerals `0`: the tower is a proposition and so is its body). -/
-def propBinders (doms : List AnnotTerm) : List (Nat × Nat × AnnotTerm) :=
-  doms.map fun D => (0, 0, D)
-
-omit [SetTheory V] in
-@[simp] theorem propBinders_doms (doms : List AnnotTerm) :
-    (propBinders doms).map (·.2.2) = doms := by
-  simp [propBinders, Function.comp_def]
-
-omit [SetTheory V] in
-theorem propBinders_cod {doms : List AnnotTerm} : ∀ d ∈ propBinders doms, d.2.1 = 0 := by
-  intro d hd
-  obtain ⟨D, -, rfl⟩ := List.mem_map.mp hd
-  rfl
-
 /-- **One rule's ι equation**, at the CHAIN frame (under the `K` Σ'
 binders, class `c`'s component `bvar (K-1-c)`).  Quantified over the
 rule's prefix `x⃗` (domains `pdoms`) and the constructor's fields `f⃗`
@@ -868,7 +852,7 @@ along `(x⃗, e⃗_j, mk_j)`, the right-hand side the residue `Rb` with its
 ih openers substituted by `ihs`. -/
 def iotaEqAV (K c : Nat) (pdoms fdoms es : List AnnotTerm) (mk : AnnotTerm)
     (ihs : List AnnotTerm) (Rb : AnnotTerm) : AnnotTerm :=
-  mkPisAV (propBinders (pdoms ++ fdoms))
+  mkPisAV (pdoms ++ fdoms)
     (.eqE
       (AnnotTerm.mkAppN (.bvar (pdoms.length + fdoms.length + (K - 1 - c)))
         (prefVarsAV pdoms.length fdoms.length ++ es ++ [mk]))
@@ -893,7 +877,6 @@ theorem wd_iotaEqAV {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTer
     WellDenoted V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) := by
   refine WellDenoted_mkPisAV_of (by simpa using hdoms) (fun ys hsp => ?_)
     (fun _ _ => IsTy_eqv _ _)
-  rw [propBinders_doms] at hsp
   rw [WellDenoted_eqE]
   exact hbody ys hsp
 
@@ -955,7 +938,7 @@ theorem iotaEqAV_law {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : AnnotTe
       = interp V (consList ((ihs.map (interp V (consList (xs ++ fs) σ)))) (consList (xs ++ fs) σ))
           Rb := by
   have heq := (pt_mem_mkPisAV_eqE_iff (V := V)).mp h
-    (xs ++ fs) (by rw [propBinders_doms]; exact hsp)
+    (xs ++ fs) hsp
   obtain ⟨hl, hr⟩ := iotaEqAV_sides hR hxl (iotaEqAV_fs_length hxl hsp)
   rw [hl, hr] at heq
   exact heq
@@ -974,7 +957,6 @@ theorem pt_mem_iotaEqAV_of {K c : Nat} {pdoms fdoms es : List AnnotTerm} {mk : A
     (pt : V) ∈ˢ interp V σ (iotaEqAV K c pdoms fdoms es mk ihs Rb) := by
   refine (pt_mem_mkPisAV_eqE_iff (V := V)).mpr
     fun ys hsp => ?_
-  rw [propBinders_doms] at hsp
   have hlen : ys.length = pdoms.length + fdoms.length := by
     rw [hsp.length_eq, List.length_append]
   have hys : ys = ys.take pdoms.length ++ ys.drop pdoms.length := (List.take_append_drop _ _).symm
@@ -997,21 +979,21 @@ that accumulator. -/
 /-- The semantic λ-tower over binder data, with the body a function of
 the ACCUMULATED spine and the leaf frame. -/
 noncomputable def lamTowerA :
-    (Nat → V) → List V → List (Nat × Nat × AnnotTerm) → (List V → (Nat → V) → V) → V
+    (Nat → V) → List V → List AnnotTerm → (List V → (Nat → V) → V) → V
   | ρ, acc, [], g => g acc ρ
-  | ρ, acc, d :: ds, g => lamV (interp V ρ d.2.2) fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g
+  | ρ, acc, d :: ds, g => lamV (interp V ρ d) fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g
 
 /-- `lamTowerA`'s walk premise: at every leaf frame reached the body is
 in the conclusion's reading, which is a type.  The type fact is what
 `lamV_mem` asks of the innermost fibre (task #342, L6). -/
 def TowerWalkA (C : AnnotTerm) (g : List V → (Nat → V) → V) :
-    (Nat → V) → List V → List (Nat × Nat × AnnotTerm) → Prop
+    (Nat → V) → List V → List AnnotTerm → Prop
   | ρ, acc, [] => g acc ρ ∈ˢ interp V ρ C ∧ IsTy (interp V ρ C)
-  | ρ, acc, d :: ds => ∀ a, a ∈ˢ interp V ρ d.2.2 → TowerWalkA C g (cons a ρ) (acc ++ [a]) ds
+  | ρ, acc, d :: ds => ∀ a, a ∈ˢ interp V ρ d → TowerWalkA C g (cons a ρ) (acc ++ [a]) ds
 
 /-- The residual Π-tower's reading along a walk is a type. -/
 theorem towerWalkA_IsTy {C : AnnotTerm} {g : List V → (Nat → V) → V} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc : List V},
       TowerWalkA C g ρ acc ds → IsTy (interp V ρ (mkPisAV ds C))
   | [], _, _, h => h.2
   | _ :: _, _, _, _ => IsTy_piV
@@ -1019,26 +1001,26 @@ theorem towerWalkA_IsTy {C : AnnotTerm} {g : List V → (Nat → V) → V} :
 /-- **The tower inhabits the Π-tower's reading** — `mem_type` of the
 candidate. -/
 theorem lamTowerA_mem {C : AnnotTerm} {g : List V → (Nat → V) → V} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc : List V},
       TowerWalkA C g ρ acc ds →
       lamTowerA ρ acc ds g ∈ˢ interp V ρ (mkPisAV ds C)
   | [], _, _, h => h.1
   | d :: ds, ρ, acc, h => by
-    show lamV (interp V ρ d.2.2) (fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g)
-      ∈ˢ piV (interp V ρ d.2.2) fun a => interp V (cons a ρ) (mkPisAV ds C)
+    show lamV (interp V ρ d) (fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g)
+      ∈ˢ piV (interp V ρ d) fun a => interp V (cons a ρ) (mkPisAV ds C)
     exact lamV_mem (fun a ha => lamTowerA_mem (h a ha)) fun a ha => towerWalkA_IsTy (h a ha)
 
 /-- **The tower's fold along a fitting spine** — the ι law's left-hand
 side. -/
 theorem lamTowerA_fold {g : List V → (Nat → V) → V} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc bs : List V},
-      SpineFit ρ (ds.map (·.2.2)) bs →
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc bs : List V},
+      SpineFit ρ ds bs →
       bs.foldl SetTheory.app (lamTowerA ρ acc ds g) = g (acc ++ bs) (consList bs ρ)
   | [], _, acc, [], _ => by simp [lamTowerA]
   | [], _, _, _ :: _, hsp => hsp.elim
   | _ :: _, _, _, [], hsp => hsp.elim
   | d :: ds, ρ, acc, b :: bs, hsp => by
-    show bs.foldl SetTheory.app (SetTheory.app (lamV (interp V ρ d.2.2)
+    show bs.foldl SetTheory.app (SetTheory.app (lamV (interp V ρ d)
       fun a => lamTowerA (cons a ρ) (acc ++ [a]) ds g) b) = _
     rw [app_lamV hsp.1, consList_cons, lamTowerA_fold hsp.2]
     simp
@@ -1188,7 +1170,7 @@ variable {s K : Nat} {RecTy : Nat → AnnotTerm} {nCt : Nat → Nat} {pdoms : Na
 
 /-- **The ι equations are graded** when every rule's binder data is
 graded along the telescope and both its sides are graded at every
-fitting spine — the Model tier's half (G1's `WellDenotedV` under
+fitting spine — the Model tier's half (G1's `WellDenoted` under
 `CtxOk`, and the leaf's own grading for the left-hand side). -/
 theorem hEq_iotaEqsAV_of
     (hwd : ∀ rs : List V, rs.length = K →
@@ -1233,8 +1215,8 @@ end Assemble
 
 /-- `TowerWalkA` from the facts at every fitting spine. -/
 theorem towerWalkA_of_spines_body {C : AnnotTerm} {g : List V → (Nat → V) → V} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {acc : List V},
-      (∀ ys, SpineFit ρ (ds.map (·.2.2)) ys →
+    ∀ {ds : List AnnotTerm} {ρ : Nat → V} {acc : List V},
+      (∀ ys, SpineFit ρ ds ys →
         g (acc ++ ys) (consList ys ρ) ∈ˢ interp V (consList ys ρ) C ∧
           IsTy (interp V (consList ys ρ) C)) →
       TowerWalkA C g ρ acc ds
@@ -1318,7 +1300,7 @@ the base frame `ρ`: per PREFIX SPINE a `GraphRecKit` over the tagged
 union of the classes' ORDINARY carriers, with decodings in `R`, and the
 two readings the recursors' TYPES fix. -/
 structure GraphFamData (V : Type uv) [SetTheory V] (ℓ K : Nat) (rP : Nat → Nat)
-    (rds : Nat → List (Nat × Nat × AnnotTerm)) (concl : Nat → AnnotTerm) (ρ : Nat → V)
+    (rds : Nat → List AnnotTerm) (concl : Nat → AnnotTerm) (ρ : Nat → V)
     (R : Type uv) where
   /-- The classes' index sets, at a prefix frame. -/
   Is : List V → Nat → V
@@ -1330,19 +1312,19 @@ structure GraphFamData (V : Type uv) [SetTheory V] (ℓ K : Nat) (rP : Nat → N
   kit : ∀ xs : List V, GraphRecKit ℓ (unionSet K (Is xs) (Cr xs)) R
   /-- A fitting spine of `rec_c`'s type is `x⃗ ++ ı⃗ ++ [t]`, a major of
   class `c`. -/
-  hsplit : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c).map (·.2.2)) ys →
+  hsplit : ∀ c, c < K → ∀ ys, SpineFit ρ (rds c) ys →
     (prefOf (rP c) ys).length = rP c ∧
     ys = prefOf (rP c) ys ++ (idxOf (rP c) ys ++ [majOf ys]) ∧
     tupOf c (idxOf (rP c) ys) ∈ˢ Is (prefOf (rP c) ys) c ∧
     majOf ys ∈ˢ app (Cr (prefOf (rP c) ys) c) (tupOf c (idxOf (rP c) ys))
   /-- The conclusion reads to the kit's bound at the tagged major. -/
-  hconcl : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c).map (·.2.2)) ys →
+  hconcl : ∀ c, c < K → ∀ ys, SpineFit ρ (rds c) ys →
     (kit (prefOf (rP c) ys)).B (tagged c (tupOf c (idxOf (rP c) ys)) (majOf ys))
       = interp V (consList ys ρ) (concl c)
 
 section Cand
 
-variable {ℓ K : Nat} {rP : Nat → Nat} {rds : Nat → List (Nat × Nat × AnnotTerm)}
+variable {ℓ K : Nat} {rP : Nat → Nat} {rds : Nat → List AnnotTerm}
   {concl : Nat → AnnotTerm} {ρ : Nat → V} {R : Type uv}
 
 /-- **The candidate at class `c`**: the λ-tower over the recursor
@@ -1354,7 +1336,7 @@ noncomputable def famCandG (D : GraphFamData V ℓ K rP rds concl ρ R) (c : Nat
 
 /-- A fitting spine's tagged major is a major of the kit. -/
 theorem GraphFamData.mem_union (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat}
-    (hc : c < K) {ys : List V} (hsp : SpineFit ρ ((rds c).map (·.2.2)) ys) :
+    (hc : c < K) {ys : List V} (hsp : SpineFit ρ (rds c) ys) :
     tagged c (D.tupOf c (idxOf (rP c) ys)) (majOf ys)
       ∈ˢ unionSet K (D.Is (prefOf (rP c) ys)) (D.Cr (prefOf (rP c) ys)) := by
   obtain ⟨-, -, hi, hx⟩ := D.hsplit c hc ys hsp
@@ -1377,7 +1359,7 @@ theorem famCandG_mem (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat} (hc 
 `x⃗ ++ ı⃗ ++ [t]` — at EVERY level: the tower's fold (`app_lamV`). -/
 theorem famCandG_fold (D : GraphFamData V ℓ K rP rds concl ρ R) {c : Nat}
     {xs is : List V} {t : V} (hx : xs.length = rP c)
-    (hsp : SpineFit ρ ((rds c).map (·.2.2)) (xs ++ (is ++ [t]))) :
+    (hsp : SpineFit ρ (rds c) (xs ++ (is ++ [t]))) :
     (xs ++ (is ++ [t])).foldl SetTheory.app (famCandG D c)
       = (D.kit xs).recAt (tagged c (D.tupOf c is) t) := by
   rw [famCandG, lamTowerA_fold hsp]
@@ -1407,7 +1389,7 @@ theorem famCandG_hCand (D : GraphFamData V ℓ K rP rds concl ρ R)
     (hrule : ∀ c, c < K → ∀ j, j < nCt c → ∀ xs fs : List V,
       xs.length = (pdoms c).length →
       SpineFit (chainFrame K (famCandG D) ρ) (pdoms c ++ fdoms c j) (xs ++ fs) →
-      SpineFit ρ ((rds c).map (·.2.2))
+      SpineFit ρ (rds c)
         (xs ++ ((es c j).map (interp V (consList (xs ++ fs) (chainFrame K (famCandG D) ρ)))
           ++ [interp V (consList (xs ++ fs) (chainFrame K (famCandG D) ρ)) (mk c j)])))
     (hdec : ∀ c, c < K → ∀ j, j < nCt c → ∀ xs fs : List V,

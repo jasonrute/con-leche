@@ -325,8 +325,8 @@ and index domains, the carrier tuple's `m`-th component at the tuple of
 the index variables. -/
 def blockTyG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List AnnotTerm)
     (Chs : Nat → List (List AnnotTerm))
-    (pps : List (Nat × Nat × AnnotTerm)) (m : Nat) : AnnotTerm :=
-  mkLamsAV (pps.map fun d => (w + 1, d.2.2))
+    (pps : List AnnotTerm) (m : Nat) : AnnotTerm :=
+  mkLamsAV pps
     (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
         (Idss m).length 0))
       (mkTowerGo (uf m) (Idss m)))
@@ -745,10 +745,10 @@ def BlockBaseG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → L
 parameter and index telescope graded, `BlockBaseG` at the base. -/
 def ParamsOkG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → List AnnotTerm)
     (Chs : Nat → List (List AnnotTerm))
-    (m : Nat) : List (Nat × Nat × AnnotTerm) → Prop
+    (m : Nat) : List AnnotTerm → Prop
   | [] => BlockBaseG k w ρ uf Idss Chs m
-  | d :: pps => WellDenoted V ρ d.2.2 ∧ IsTy (interp V ρ d.2.2) ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 →
+  | d :: pps => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
+      ∀ a, a ∈ˢ interp V ρ d →
         ParamsOkG k w (cons a ρ) uf Idss Chs m pps
 
 section Leaf
@@ -835,15 +835,15 @@ spine fitting the parameter and index telescope, the leaf applied is
 a member of `strictU w` — so a truth value at `w = 0` and strict above
 (`Fib_of_mem_strictU`). -/
 theorem blockTyG_fold_strictU {m : Nat} (hm : m < k) :
-    ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {as : List V},
-      ParamsOkG k w ρ uf Idss Chs m pps → SpineFit ρ (pps.map (·.2.2)) as →
+    ∀ {pps : List AnnotTerm} {ρ : Nat → V} {as : List V},
+      ParamsOkG k w ρ uf Idss Chs m pps → SpineFit ρ pps as →
       as.foldl SetTheory.app (interp V ρ (blockTyG k w uf Idss Chs pps m))
         ∈ˢ (strictU w : V)
   | [], _, [], h, _ => blockLeafBodyG_strictU hm h
   | [], _, _ :: _, _, hsp => hsp.elim
   | _ :: _, _, [], _, hsp => hsp.elim
   | d :: pps, ρ, a :: as, h, hsp => by
-    have ha : a ∈ˢ interp V ρ d.2.2 := hsp.1
+    have ha : a ∈ˢ interp V ρ d := hsp.1
     have happ : SetTheory.app (interp V ρ (blockTyG k w uf Idss Chs (d :: pps) m)) a
         = interp V (cons a ρ) (blockTyG k w uf Idss Chs pps m) :=
       app_lamV ha
@@ -852,27 +852,27 @@ theorem blockTyG_fold_strictU {m : Nat} (hm : m < k) :
 
 /-- **The leaf inhabits its type's reading.** -/
 theorem blockTyG_mem {m : Nat} (hm : m < k) :
-    ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+    ∀ {pps : List AnnotTerm} {ρ : Nat → V},
       ParamsOkG k w ρ uf Idss Chs m pps →
       interp V ρ (blockTyG k w uf Idss Chs pps m)
         ∈ˢ interp V ρ (mkPisAV pps (.sort w))
   | [], _, h => (blockLeafBodyG_facts hm h).2.1
   | d :: pps, ρ, h => by
-    show (lamV (interp V ρ d.2.2)
-        fun a => interp V (cons a ρ) (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
-      ∈ˢ piV (interp V ρ d.2.2)
+    show (lamV (interp V ρ d)
+        fun a => interp V (cons a ρ) (mkLamsAV pps _))
+      ∈ˢ piV (interp V ρ d)
         fun a => interp V (cons a ρ) (mkPisAV pps (.sort w))
     exact lamV_mem (fun a ha => blockTyG_mem hm (h.2.2 a ha))
       fun a _ => IsTy_mkPisAV_sort pps w (cons a ρ)
 
 /-- **The leaf is graded.** -/
 theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
-    ∀ {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+    ∀ {pps : List AnnotTerm} {ρ : Nat → V},
       ParamsOkG k w ρ uf Idss Chs m pps →
       WellDenoted V ρ (blockTyG k w uf Idss Chs pps m)
   | [], _, h => (blockLeafBodyG_facts hm h).2.2
   | d :: pps, ρ, h => by
-    show WellDenoted V ρ (.lam d.2.2 (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
+    show WellDenoted V ρ (.lam d (mkLamsAV pps _))
     rw [WellDenoted_lam]
     exact ⟨h.1, h.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
@@ -882,17 +882,15 @@ theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
 /-- **The leaf's application fold**: along a fitting parameter-and-index
 spine the leaf computes member `m`'s carrier at the spine's tuple. -/
 theorem blockTyG_fold {m : Nat} (hm : m < k)
-    {pps : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {as : List V}
-    (hsp : SpineFit ρ (pps.map (·.2.2)) as)
+    {pps : List AnnotTerm} {ρ : Nat → V} {as : List V}
+    (hsp : SpineFit ρ pps as)
     (hbase : BlockBaseG k w (consList as ρ) uf Idss Chs m) :
     as.foldl SetTheory.app
         (interp V ρ (blockTyG k w uf Idss Chs pps m))
       = SetTheory.app
           (blockFamG k w (shiftE (Idss m).length 0 (consList as ρ)) uf Idss Chs m)
           (tupW (uf m) (frameIdx (Idss m).length (consList as ρ))) := by
-  have hsp' : SpineFit ρ ((pps.map fun d => (w + 1, d.2.2)).map (·.2)) as := by
-    rwa [List.map_map]
-  rw [blockTyG, mkLamsAV_fold hsp']
+  rw [blockTyG, mkLamsAV_fold hsp]
   exact (blockLeafBodyG_facts hm hbase).1
 
 end Leaf
@@ -931,7 +929,7 @@ section Functor
 
 variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
   {rsss : Nat → List (List Bool)} {tgtsss : Nat → List (List Nat)}
-  {tlsss : Nat → List (List (List (Nat × Nat × AnnotTerm)))}
+  {tlsss : Nat → List (List (List AnnotTerm))}
   {Eisss : Nat → List (List (List AnnotTerm))} {Fsss Esss : Nat → List (List AnnotTerm)}
 
 /-- A tuple of the tuple space, tupled up, is in the family space. -/
@@ -967,7 +965,7 @@ end Functor
 
 Charter item 2: a block's operator is the interpretation of its
 constructor types with HOLES at the members.  A constructor's fields
-with holes (`LfpDatum.fields`, `Model/Annot/BlockLfp.lean`) are read at
+with holes (`LfpDatum.fields`, `Model/Env/BlockLfp.lean`) are read at
 the parameters, then one variable per member (the holes), then the
 earlier fields.  The block's operator term (`blockPhiG`/`blockTyG`,
 above) is generic in its chains; this section builds the
@@ -1055,7 +1053,7 @@ theorem WellDenoted_substAV (τ : Nat → AnnotTerm) :
 (read at the parameter frame), of `Y`'s component `m` at the tuple of the
 index variables. -/
 def holeTmAV (u m : Nat) (Is : List AnnotTerm) : AnnotTerm :=
-  mkLamsAV ((liftFields 2 0 Is).map (1, ·))
+  mkLamsAV (liftFields 2 0 Is)
     (.app (projAV m (.bvar (Is.length + 1))) (mkTowerGo u (liftFields 2 0 Is)))
 
 /-- **The hole substitution**: variable `j < k` (member `k - 1 - j`'s
@@ -1368,12 +1366,12 @@ body graded at every fitting spine is graded. -/
 theorem mkLamsAV_one_wellDenoted {b : AnnotTerm} :
     ∀ {Ts : List AnnotTerm} {ρ : Nat → V}, FieldsOkB 0 ρ Ts →
       (∀ vs, SpineFit ρ Ts vs → WellDenoted V (consList vs ρ) b) →
-      WellDenoted V ρ (mkLamsAV (Ts.map (1, ·)) b)
+      WellDenoted V ρ (mkLamsAV Ts b)
   | [], _, _, hb => hb [] trivial
   | T :: Ts, ρ, hT, hb => by
-    show WellDenoted V ρ (.lam T (mkLamsAV (Ts.map (1, ·)) b))
+    show WellDenoted V ρ (.lam T (mkLamsAV Ts b))
     rw [WellDenoted_lam]
-    have hT' := fun x => exists_IsTy_mem (interp V (cons x ρ) (mkLamsAV (Ts.map (1, ·)) b))
+    have hT' := fun x => exists_IsTy_mem (interp V (cons x ρ) (mkLamsAV Ts b))
     refine ⟨hT.1, hT.2.1, fun x hx => mkLamsAV_one_wellDenoted (hT.2.2.2 x hx)
       (fun vs hvs => hb (x :: vs) ⟨hx, hvs⟩),
       fun x => Classical.choose (hT' x),
