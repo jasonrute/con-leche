@@ -28,28 +28,31 @@ frame by that value's own support.
 **Sizes.**  The bound must be a set of the level (`SizeOn`), uniformly:
 only small elements need a support (the element guard), so a Π's bound
 glues its values' supports over its domain only where that domain is
-small — which it is as soon as one small function inhabits it.  A Π at a
-`Prop` codomain may have a big domain; there the body is truth-valued
-(the grading), and a truth-valued reading of an accepted walk reads no
-hole (`TypeReg`): a hole at its full arity is RICH (`RichOn`, a fact of
-the relation: a frame holding `pt` at the hole has a related, larger
-frame holding a non-`pt` element there), so it is never truth-valued at
-every related frame.  The Π is then hole-free, its bound `∅`.
+small — which it is as soon as one small graph inhabits the Π.  The one
+member that does not make the domain small is the point (a Π whose
+fibres all hold it, over a domain of any size).  Its support is empty:
+at a `Type`-valued block a reading holding the point at one frame holds
+it at every related frame (`PtOn`), since the holes at their full arity
+never hold the point there (`PtFreeOn`: their values are strict sets),
+and a Π holds it exactly when every fibre does (`pt_mem_piV_iff`, the
+fibres being types — the grading).
 
 **At `w = 0`** (a `Prop`-valued block, task #327) nothing is sized: the
-guard `SmallAt 0` is vacuous, every element has a support, and a Π at a
-`Prop` codomain glues one witness's support per domain value over a
-domain of any size (`AccOn.pi0`).  Holes are not rich there (every fibre
-is a subset of `{pt}`), and the type regime is asked only at `w ≠ 0`.
+guard `SmallAt 0` is vacuous, every element has a support, and a Π glues
+one support per domain value over a domain of any size.
 
-| case | accessibility | bound | type regime |
+**The value reading.**  A Π reads `piV`: its regime is its fibres'.  A
+member transported to another frame lies in the Π there as soon as its
+applications land in the fibres there and the fibres at both frames are
+types (`mem_piV_of_app`); the caller supplies that from the grading of
+the walked field (`FibTyOn`).
+
+| case | accessibility | bound | the point |
 |---|---|---|---|
-| a hole-free reading | `ConstOn.accOn` | `∅` | `ConstOn.typeReg` |
-| the `whnf` step | `AccOn.of_eqOn` | the reduct's | `TypeReg.of_eqOn` |
-| Π, hole-free domain, `v ≠ 0` | `AccOn.pi` | `piBound` | `TypeReg.pi` |
-| Π, hole-free domain, `v = 0`, `w ≠ 0` | `ConstOn.pi` (via the body's `TypeReg`) | `∅` | `TypeReg.pi` |
-| Π, hole-free domain, `v = 0`, `w = 0` | `AccOn.pi0` | `piBound` | — |
-| a hole at hole-free arguments | `AccOn.holeApp` | `{pt}` | `TypeReg.holeApp` |
+| a hole-free reading | `ConstOn.accOn` | `∅` | `ConstOn.ptOn` |
+| the `whnf` step | `AccOn.of_eqOn` | the reduct's | `PtOn.of_eqOn` |
+| Π, hole-free domain | `AccOn.pi` | `piBound` | `PtOn.pi` |
+| a hole at hole-free arguments | `AccOn.holeApp` | `{pt}` | `PtOn.holeApp` |
 
 The bound is a FUNCTION of the frame: a Π's domain may read earlier
 fields and binders.  Its uniformity across the tuples of the space is a
@@ -105,22 +108,21 @@ def SizeOn (w : Nat) (R : FrameRel V) (A : (Nat → V) → V) : Prop :=
 def InvOn (M : Nat → Prop) (A : (Nat → V) → V) : Prop :=
   ∀ ρ ρ' : Nat → V, (∀ i, M i → ρ i = ρ' i) → A ρ = A ρ'
 
-/-- **The type regime**: a reading truth-valued at every frame of the
-relation reads no hole (see the module docstring). -/
-def TypeReg (R : FrameRel V) (a : AnnotTerm) : Prop :=
-  (∀ ρ ρ', R ρ ρ' → interp V ρ a ∈ˢ (univZero : V) ∧ interp V ρ' a ∈ˢ (univZero : V)) →
-    ConstOn R a
+/-- **The point is stable**: a reading holding the point at a frame holds
+it at every related frame. -/
+def PtOn (R : FrameRel V) (a : AnnotTerm) : Prop :=
+  ∀ ρ ρ', R ρ ρ' → (pt : V) ∈ˢ interp V ρ a → (pt : V) ∈ˢ interp V ρ' a
 
-/-- The larger frame holds every admissible item the smaller one does. -/
-def HoldsLe (Q : Nat → Nat → Prop) (ρ ρ' : Nat → V) : Prop :=
-  ∀ o, Adm Q o → Holds ρ o → Holds ρ' o
+/-- **Point-free holes**: an admissible position, applied at its arity,
+never holds the point at a frame of the relation. -/
+def PtFreeOn (Q : Nat → Nat → Prop) (R : FrameRel V) : Prop :=
+  ∀ ρ ρ₀, R ρ ρ₀ → ∀ (i : Nat) (vs : List V), Q i vs.length → ¬ (pt : V) ∈ˢ vs.foldl app (ρ i)
 
-/-- **Rich holes**: an admissible position holding `pt` at a frame of the
-relation has a related frame, holding every admissible item the first
-one does, where it holds a non-`pt` element. -/
-def RichOn (Q : Nat → Nat → Prop) (R : FrameRel V) : Prop :=
-  ∀ ρ ρ₀, R ρ ρ₀ → ∀ (i : Nat) (vs : List V), Q i vs.length → (pt : V) ∈ˢ vs.foldl app (ρ i) →
-    ∃ ρ'', R ρ ρ'' ∧ HoldsLe Q ρ ρ'' ∧ ∃ z, z ∈ˢ vs.foldl app (ρ'' i) ∧ z ≠ pt
+/-- **The fibres are types** at both frames of every related pair (the
+grading of a walked Π's body, at satisfying frames). -/
+def FibTyOn (R : FrameRel V) (D B : AnnotTerm) : Prop :=
+  ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ D → IsTy (interp V (cons x ρ) B)) ∧
+    (∀ x, x ∈ˢ interp V ρ' D → IsTy (interp V (cons x ρ') B))
 
 /-- The admissible items one binder down: never the bound variable. -/
 def shiftQ (Q : Nat → Nat → Prop) : Nat → Nat → Prop
@@ -153,34 +155,13 @@ end FrameRel
 /-! ## Generic facts -/
 
 
-/-- **The domain transfer**: a small value of an accessible domain at a
-frame stays in it at every related frame holding the frame's admissible
-items. -/
-theorem AccOn.transfer {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {A : (Nat → V) → V}
-    {a : AnnotTerm} (h : AccOn w Q R A a) {ρ ρ₀ ρ'' : Nat → V} (hR₀ : R ρ ρ₀) (hR'' : R ρ ρ'')
-    (hle : HoldsLe Q ρ ρ'') {x : V} (hxw : SmallAt w x) (hx : x ∈ˢ interp V ρ a) :
-    x ∈ˢ interp V ρ'' a := by
-  obtain ⟨B, g, -, hg, hs⟩ := h ρ ρ₀ hR₀ x hxw hx
-  exact hs ρ'' hR'' fun b hb => hle _ (hg b hb).1 (hg b hb).2
-
-/-- **Richness survives a binder** whose domain carries its values to
-every larger related frame (a hole-free domain, or an accessible one at
-small values). -/
-theorem RichOn.underBoth {Q : Nat → Nat → Prop} {R : FrameRel V} (h : RichOn Q R) {A : AnnotTerm}
-    (htr : ∀ ρ ρ₀ ρ'', R ρ ρ₀ → R ρ ρ'' → HoldsLe Q ρ ρ'' → ∀ x, x ∈ˢ interp V ρ A →
-      x ∈ˢ interp V ρ₀ A → x ∈ˢ interp V ρ'' A) :
-    RichOn (shiftQ Q) (R.underBoth A) := by
-  rintro _ _ ⟨x, ρ, ρ₀, rfl, rfl, hR, hx, hx₀⟩ i vs hQ hpt
+/-- **Point-freeness survives a binder.** -/
+theorem PtFreeOn.underBoth {Q : Nat → Nat → Prop} {R : FrameRel V} (h : PtFreeOn Q R)
+    (A : AnnotTerm) : PtFreeOn (shiftQ Q) (R.underBoth A) := by
+  rintro _ _ ⟨x, ρ, ρ₀, rfl, rfl, hR, -, -⟩ i vs hQ
   cases i with
   | zero => exact hQ.elim
-  | succ i =>
-    obtain ⟨ρ'', hR'', hle, z, hz, hzp⟩ := h ρ ρ₀ hR i vs hQ hpt
-    refine ⟨cons x ρ'', ⟨x, ρ, ρ'', rfl, rfl, hR'', hx, htr ρ ρ₀ ρ'' hR hR'' hle x hx hx₀⟩,
-      ?_, z, hz, hzp⟩
-    rintro ⟨j, us, y⟩ hQ' hy
-    cases j with
-    | zero => exact hQ'.elim
-    | succ j => exact hle (j, us, y) hQ' hy
+  | succ i => exact h ρ ρ₀ hR i vs hQ
 
 /-! ## The cases: accessibility -/
 
@@ -248,32 +229,53 @@ noncomputable def piBound (w : Nat) (D : AnnotTerm) (Bb : (Nat → V) → V) (ρ
   open Classical in
   if SmallAt w (interp V ρ D) then sigmaPairs (interp V ρ D) fun d => Bb (cons d ρ) else empty
 
-/-- **Π over a hole-free domain at a positive codomain sort**: the
-support of a small function is the glued supports of its values, the
-body's items one binder down (the bound variable is no admissible
-position). -/
+/-- The point is small. -/
+theorem SmallAt.pt (w : Nat) : SmallAt w (pt : V) := fun hw =>
+  (tg_isTGUniverse hw).transitive (unitSet_mem_tg w) pt_mem_unitSet
+
+/-- **Π over a hole-free domain**: the support of a member over a small
+domain is the glued supports of its values, the body's items one binder
+down (the bound variable is no admissible position); a member over a
+domain that is not small (`w ≠ 0`) is the point, whose membership needs
+no item (`PtOn`).  At the target frame the member lies in the Π by
+`mem_piV_of_app`, the fibres at both frames being types (`hT`, the
+grading: "not pt" source (1)). -/
 theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm}
     (hD : ConstOn R D)
-    {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B) :
+    {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B)
+    (hT : FibTyOn R D B) (hP : w ≠ 0 → PtOn (R.underBoth D) B) :
     AccOn w Q R (piBound w D Bb) (.pi D B) := by
   intro ρ ρ₀ hR f hfw hf
   rw [interp_pi] at hf
-  -- L17: the value reading puts a Π with truth-valued fibres in the
-  -- truth-value regime whatever its codomain sort; its point member and
-  -- the frame transport of a graph member are owed
-  by_cases hfp : f = pt
-  · sorry
-  replace hf := mem_piSet_of_mem_piV hf hfp
-  have hDw : SmallAt w (interp V ρ D) := fun hw => (small_of_mem_piSet hw hf (hfw hw)).1
-  have happw : ∀ d, d ∈ˢ interp V ρ D → SmallAt w (app f d) := fun d hd hw =>
-    (small_of_mem_piSet hw hf (hfw hw)).2 d hd
+  have hTy0 : ∀ x, x ∈ˢ interp V ρ D → IsTy (interp V (cons x ρ) B) := (hT ρ ρ₀ hR).1
+  have hTy : ∀ ρ', R ρ ρ' → ∀ x, x ∈ˢ interp V ρ D → IsTy (interp V (cons x ρ') B) :=
+    fun ρ' hR' x hx => (hT ρ ρ' hR').2 x (hD ρ ρ' hR' ▸ hx)
+  by_cases hDw' : ¬ SmallAt w (interp V ρ D)
+  · -- a domain that is not small: `w ≠ 0`, and the member is the point (a
+    -- graph of the level has a small domain)
+    have hw : w ≠ 0 := fun h0 => hDw' (h0 ▸ SmallAt.zero _)
+    have hfp : f = pt := Classical.byContradiction fun hfp =>
+      hDw' fun hw' => (small_of_mem_piSet hw' (mem_piSet_of_mem_piV hf hfp) (hfw hw')).1
+    subst hfp
+    refine ⟨empty, fun _ => (0, [], empty), fun b hb => absurd hb (not_mem_empty b),
+      fun b hb => absurd hb (not_mem_empty b), fun ρ' hR' _ => ?_⟩
+    rw [interp_pi, ← hD ρ ρ' hR']
+    refine (pt_mem_piV_iff (hTy ρ' hR')).mpr fun d hd => ?_
+    exact hP hw (cons d ρ) (cons d ρ') ⟨d, ρ, ρ', rfl, rfl, hR', hd, hD ρ ρ' hR' ▸ hd⟩
+      ((pt_mem_piV_iff hTy0).mp hf d hd)
+  have hDw : SmallAt w (interp V ρ D) := Classical.not_not.mp hDw'
+  have happw : ∀ d, d ∈ˢ interp V ρ D → SmallAt w (app f d) := by
+    intro d hd hw
+    by_cases hfp : f = pt
+    · rw [hfp, app_pt]; exact SmallAt.pt w hw
+    · exact (small_of_mem_piSet hw (mem_piSet_of_mem_piV hf hfp) (hfw hw)).2 d hd
   obtain ⟨Bf, gf, hsk⟩ := skolem_occ (S := interp V ρ D)
     (Q := fun d B' g => B' ⊆ˢ Bb (cons d ρ) ∧
       (∀ b, b ∈ˢ B' → Adm (shiftQ Q) (g b) ∧ Holds (cons d ρ) (g b)) ∧
       ∀ σ', R.underBoth D (cons d ρ) σ' → (∀ b, b ∈ˢ B' → Holds σ' (g b)) →
         app f d ∈ˢ interp V σ' B)
     fun d hd => hB (cons d ρ) (cons d ρ₀) ⟨d, ρ, ρ₀, rfl, rfl, hR, hd, hD ρ ρ₀ hR ▸ hd⟩ _
-      (happw d hd) (app_mem_of_mem_piSet hf hd)
+      (happw d hd) (app_mem_piV hf hd)
   -- an admissible item of the body is never the bound variable
   have hne : ∀ d, d ∈ˢ interp V ρ D → ∀ b, b ∈ˢ Bf d → (gf d b).1 ≠ 0 := by
     intro d hd b hb h0
@@ -301,12 +303,7 @@ theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : An
     | succ i => exact hQ
   · intro ρ' hR' h'
     rw [interp_pi, ← hD ρ ρ' hR']
-    -- L17 (as above): the graph is a member of the value-read Π at `ρ'`
-    -- only where some fibre there is not a truth value
-    suffices hgs : f ∈ˢ piSet (interp V ρ D) fun x => interp V (cons x ρ') B by
-      sorry
-    rw [← eq_graph_app_of_mem_piSet hf]
-    refine graph_mem_piSet fun d hd => ?_
+    refine mem_piV_of_app hf hTy0 (hTy ρ' hR') fun d hd => ?_
     refine (hsk d hd).2.2 (cons d ρ') ⟨d, ρ, ρ', rfl, rfl, hR', hd, hD ρ ρ' hR' ▸ hd⟩
       fun b hb => ?_
     have := h' (kpair d b) (mem_sigmaPairs.mpr ⟨d, hd, b, hb, rfl⟩)
@@ -324,74 +321,6 @@ theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : AnnotTerm} (hD : ConstOn R D)
       hB (cons d ρ) (cons d ρ₀) ⟨d, ρ, ρ₀, rfl, rfl, hR, hd, hD ρ ρ₀ hR ▸ hd⟩ hw
   · exact empty_mem_tg w
 
-/-- **Π over a hole-free domain at a `Prop` codomain, at `w = 0`** (task
-#327): the product is a truth value, and its support glues the supports of
-one witness per domain value.  The domain need not be small: at `w = 0` no
-bound is sized.  (At `w ≠ 0` the type regime makes such a Π hole-free.) -/
-theorem AccOn.pi0 {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm}
-    (hD : ConstOn R D) {Bb : (Nat → V) → V} (hB : AccOn 0 (shiftQ Q) (R.underBoth D) Bb B) :
-    AccOn 0 Q R (piBound 0 D Bb) (.pi D B) := by
-  intro ρ ρ₀ hR x _ hx
-  rw [interp_pi] at hx
-  -- L17: the value reading puts this Π in the truth-value regime only
-  -- where its fibres are truth values (the numeral `0` no longer says so)
-  have hx0 : x ∈ˢ piR 0 (interp V ρ D) fun x => interp V (cons x ρ) B := by
-    sorry
-  replace hx := hx0
-  rw [piR_zero] at hx
-  have hall := of_mem_truthVal hx
-  classical
-  let wit : V → V := fun d => if h : ∃ y, y ∈ˢ interp V (cons d ρ) B then Classical.choose h
-    else empty
-  have hwit : ∀ d, d ∈ˢ interp V ρ D → wit d ∈ˢ interp V (cons d ρ) B := by
-    intro d hd
-    have h := hall d hd
-    simp only [wit, dite_eq_left h]
-    exact Classical.choose_spec h
-  obtain ⟨Bf, gf, hsk⟩ := skolem_occ (S := interp V ρ D)
-    (Q := fun d B' g => B' ⊆ˢ Bb (cons d ρ) ∧
-      (∀ b, b ∈ˢ B' → Adm (shiftQ Q) (g b) ∧ Holds (cons d ρ) (g b)) ∧
-      ∀ σ', R.underBoth D (cons d ρ) σ' → (∀ b, b ∈ˢ B' → Holds σ' (g b)) →
-        wit d ∈ˢ interp V σ' B)
-    fun d hd => hB (cons d ρ) (cons d ρ₀) ⟨d, ρ, ρ₀, rfl, rfl, hR, hd, hD ρ ρ₀ hR ▸ hd⟩ _
-      (SmallAt.zero _) (hwit d hd)
-  have hne : ∀ d, d ∈ˢ interp V ρ D → ∀ b, b ∈ˢ Bf d → (gf d b).1 ≠ 0 := by
-    intro d hd b hb h0
-    have := ((hsk d hd).2.1 b hb).1
-    unfold Adm at this
-    rw [h0] at this
-    exact this
-  refine ⟨sigmaPairs (interp V ρ D) Bf, fun p => (gf (sfst p) (ssnd p)).down, ?_, ?_, ?_⟩
-  · intro p hp
-    obtain ⟨d, hd, b, hb, rfl⟩ := mem_sigmaPairs.mp hp
-    unfold piBound
-    rw [ite_eq_left (SmallAt.zero _)]
-    exact mem_sigmaPairs.mpr ⟨d, hd, b, (hsk d hd).1 b hb, rfl⟩
-  · intro p hp
-    obtain ⟨d, hd, b, hb, rfl⟩ := mem_sigmaPairs.mp hp
-    simp only [sfst_kpair, ssnd_kpair]
-    obtain ⟨hQ, hH⟩ := (hsk d hd).2.1 b hb
-    refine ⟨?_, (holds_cons_down (hne d hd b hb)).mp hH⟩
-    have h0 := hne d hd b hb
-    unfold Adm at hQ ⊢
-    generalize gf d b = o at hQ h0
-    obtain ⟨i, vs, y⟩ := o
-    cases i with
-    | zero => exact absurd rfl h0
-    | succ i => exact hQ
-  · intro ρ' hR' h'
-    rw [interp_pi, ← hD ρ ρ' hR', eq_pt_of_mem_truthVal hx]
-    suffices hpt : (pt : V) ∈ˢ piR 0 (interp V ρ D) fun x => interp V (cons x ρ') B by
-      -- L17 (as above)
-      sorry
-    rw [piR_zero]
-    refine pt_mem_truthVal fun d hd => ⟨wit d, ?_⟩
-    refine (hsk d hd).2.2 (cons d ρ') ⟨d, ρ, ρ', rfl, rfl, hR', hd, hD ρ ρ' hR' ▸ hd⟩
-      fun b hb => ?_
-    have := h' (kpair d b) (mem_sigmaPairs.mpr ⟨d, hd, b, hb, rfl⟩)
-    simp only [sfst_kpair, ssnd_kpair] at this
-    exact (holds_cons_down (hne d hd b hb)).mpr this
-
 /-- **A member hole at its full arity, at hole-free arguments.** -/
 theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h : Nat}
     {es : List AnnotTerm} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
@@ -406,92 +335,38 @@ theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h :
   rw [← hmap]
   exact h' pt pt_mem_unitSet
 
-/-! ## The cases: the type regime -/
+/-! ## The cases: the point -/
 
-theorem ConstOn.typeReg {R : FrameRel V} {a : AnnotTerm} (h : ConstOn R a) : TypeReg R a :=
-  fun _ => h
+theorem ConstOn.ptOn {R : FrameRel V} {a : AnnotTerm} (h : ConstOn R a) : PtOn R a :=
+  fun ρ ρ' hR hp => h ρ ρ' hR ▸ hp
 
-theorem TypeReg.of_eqOn {R : FrameRel V} {P : (Nat → V) → Prop}
+theorem PtOn.of_eqOn {R : FrameRel V} {P : (Nat → V) → Prop}
     (hdom : ∀ ρ ρ', R ρ ρ' → P ρ ∧ P ρ') {a b : AnnotTerm}
-    (heq : ∀ ρ, P ρ → interp V ρ a = interp V ρ b) (hb : TypeReg R b) : TypeReg R a := by
-  intro htv
-  refine ConstOn.of_eqOn hdom heq (hb fun ρ ρ' hR => ?_)
-  rw [← heq ρ (hdom ρ ρ' hR).1, ← heq ρ' (hdom ρ ρ' hR).2]
-  exact htv ρ ρ' hR
+    (heq : ∀ ρ, P ρ → interp V ρ a = interp V ρ b) (hb : PtOn R b) : PtOn R a := by
+  intro ρ ρ' hR hp
+  rw [heq ρ' (hdom ρ ρ' hR).2]
+  rw [heq ρ (hdom ρ ρ' hR).1] at hp
+  exact hb ρ ρ' hR hp
 
-/-- **A Π over a hole-free domain and a hole-free body** is hole-free. -/
-theorem ConstOn.pi {R : FrameRel V} {D B : AnnotTerm} (hD : ConstOn R D)
-    (hB : ConstOn (R.underBoth D) B) : ConstOn R (.pi D B) := by
-  intro ρ ρ' hR
-  rw [interp_pi, interp_pi, ← hD ρ ρ' hR]
-  exact piV_congr fun d hd => hB _ _ ⟨d, ρ, ρ', rfl, rfl, hR, hd, hD ρ ρ' hR ▸ hd⟩
+/-- **A Π over a hole-free domain** holds the point exactly when every
+fibre does (its fibres being types, `hT`), so it carries the point along
+the relation as its body does. -/
+theorem PtOn.pi {R : FrameRel V} {D B : AnnotTerm} (hD : ConstOn R D)
+    (hT : FibTyOn R D B) (hB : PtOn (R.underBoth D) B) : PtOn R (.pi D B) := by
+  intro ρ ρ' hR hp
+  rw [interp_pi] at hp ⊢
+  rw [← hD ρ ρ' hR]
+  refine (pt_mem_piV_iff fun x hx => (hT ρ ρ' hR).2 x (hD ρ ρ' hR ▸ hx)).mpr fun d hd => ?_
+  exact hB (cons d ρ) (cons d ρ') ⟨d, ρ, ρ', rfl, rfl, hR, hd, hD ρ ρ' hR ▸ hd⟩
+    ((pt_mem_piV_iff (hT ρ ρ' hR).1).mp hp d hd)
 
-/-- A truth-valued product at a positive codomain sort is its domain's
-emptiness: `{∅}` over the empty domain, `∅` otherwise. -/
-theorem piSet_of_mem_univZero {D : V} {F : V → V} (h : piSet D F ∈ˢ (univZero : V)) :
-    piSet D F = (open Classical in if ∃ d, d ∈ˢ D then empty else unitSet) := by
-  classical
-  split
-  · rename_i hne
-    obtain ⟨d, hd⟩ := hne
-    refine ext fun f => ⟨fun hf => ?_, fun hf => absurd hf (not_mem_empty f)⟩
-    have hf' := eq_pt_of_mem_univZero h hf
-    exact absurd hf' (ne_pt_of_mem_piSet hf)
-  · rename_i hne
-    have hD : D = empty := ext fun d => ⟨fun hd => absurd ⟨d, hd⟩ hne,
-      fun hd => absurd hd (not_mem_empty d)⟩
-    subst hD
-    refine ext fun f => ⟨fun hf => ?_, fun hf => ?_⟩
-    · exact mem_unitSet_iff.mpr (eq_pt_of_mem_univZero h hf)
-    · -- the empty graph
-      have hg : graph (fun _ => (empty : V)) empty ∈ˢ piSet empty F :=
-        graph_mem_piSet fun d hd => absurd hd (not_mem_empty d)
-      have := eq_pt_of_mem_univZero h hg
-      rw [mem_unitSet_iff.mp hf, ← this]
-      exact hg
-
-/-- **The type regime of a Π over a hole-free domain**: at a positive
-codomain sort a truth-valued product only depends on its (hole-free)
-domain; at `v = 0` the body is truth-valued (the grading) and in the type
-regime, so it is hole-free, and so is the product. -/
-theorem TypeReg.pi {R : FrameRel V} {D B : AnnotTerm} (v : Nat) (hD : ConstOn R D)
-    (hB : TypeReg (R.underBoth D) B)
-    (hB0 : v = 0 → ∀ σ σ', R.underBoth D σ σ' →
-      interp V σ B ∈ˢ (univZero : V) ∧ interp V σ' B ∈ˢ (univZero : V)) :
-    TypeReg R (.pi D B) := by
-  intro htv
-  by_cases hv : v = 0
-  · exact ConstOn.pi hD (hB (hB0 hv))
-  · -- L17: a truth-valued Π at a positive codomain sort is no longer
-    -- `piSet` (the value reading takes the fibres' regime), so it need
-    -- not depend on its domain alone
-    sorry
-
-/-- **A hole at its full arity is never truth-valued at every related
-frame unless it is empty at all of them** (richness), so a member hole
-applied to hole-free arguments is in the type regime. -/
-theorem TypeReg.holeApp {Q : Nat → Nat → Prop} {R : FrameRel V} (hrich : RichOn Q R)
-    (hsymm : R.Symm) {h : Nat} {es : List AnnotTerm} (hQ : Q h es.length)
-    (hes : ∀ e ∈ es, ConstOn R e) : TypeReg R (AnnotTerm.mkAppN (.bvar h) es) := by
-  intro htv
-  -- at every frame of the relation the value is empty
-  have hemp : ∀ ρ ρ', R ρ ρ' → interp V ρ (AnnotTerm.mkAppN (.bvar h) es) = empty := by
-    intro ρ ρ' hR
-    have hsub := mem_univZero.mp (htv ρ ρ' hR).1
-    refine ext fun y => ⟨fun hy => ?_, fun hy => absurd hy (not_mem_empty y)⟩
-    exfalso
-    have hy' := hy
-    rw [mem_unitSet_iff.mp (hsub y hy)] at hy'
-    rw [interp_mkAppN_foldl, interp_bvar] at hy'
-    obtain ⟨ρ'', hR'', -, z, hz, hzp⟩ := hrich ρ ρ' hR h (es.map (interp V ρ)) (by simpa using hQ) hy'
-    have hsub'' := mem_univZero.mp (htv ρ ρ'' hR'').2
-    have hmap : es.map (interp V ρ) = es.map (interp V ρ'') :=
-      List.map_congr_left fun e he => hes e he ρ ρ'' hR''
-    rw [hmap] at hz
-    rw [interp_mkAppN_foldl, interp_bvar] at hsub''
-    exact hzp (mem_unitSet_iff.mp (hsub'' z hz))
-  intro ρ ρ' hR
-  rw [hemp ρ ρ' hR, hemp ρ' ρ (hsymm ρ ρ' hR)]
+/-- **A hole at its full arity** never holds the point (`PtFreeOn`), so
+it carries it vacuously. -/
+theorem PtOn.holeApp {Q : Nat → Nat → Prop} {R : FrameRel V} (hfree : PtFreeOn Q R) {h : Nat}
+    {es : List AnnotTerm} (hQ : Q h es.length) : PtOn R (AnnotTerm.mkAppN (.bvar h) es) := by
+  intro ρ ρ' hR hp
+  rw [interp_mkAppN_foldl, interp_bvar] at hp
+  exact absurd hp (hfree ρ ρ' hR h (es.map (interp V ρ)) (by simpa using hQ))
 
 /-! ## Bounds reading given positions -/
 

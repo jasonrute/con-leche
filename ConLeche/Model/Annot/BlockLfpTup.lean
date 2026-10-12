@@ -12,9 +12,8 @@ What the walks need of the hole frame, at the level of sets:
 * it reads the member holes and the parameters (`frame_hole`,
   `frame_param`);
 * a hole value inhabits its member's type (`holeFam_mem_mkPisAV`,
-  `LfpDatum.holeVal_mem`): a λ-tower of graphs lies in the Π-tower over
-  the same domains when its leaves do — the typing the frame's context
-  needs.
+  `LfpDatum.holeVal_mem`): a λ-tower lies in the Π-tower over the same
+  domains when its leaves do — the typing the frame's context needs.
 -/
 
 namespace ConLeche.Model
@@ -31,21 +30,26 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-! ## λ-towers of graphs -/
+/-! ## λ-towers -/
 
 /-- **A λ-tower inhabits the Π-tower over its domains** when its leaves
-inhabit the codomain at every fitting spine. -/
+inhabit the codomain at every fitting spine and the codomain is a type
+there (`lamV_mem`: the fibres are types — inner Π-types, or the
+codomain). -/
 theorem holeFam_mem_mkPisAV :
     ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {B : AnnotTerm} {g : List V → V},
       (∀ vs, SpineFit ρ (ab.map (·.2.2)) vs → g vs ∈ˢ interp V (consList vs ρ) B) →
+      (∀ vs, SpineFit ρ (ab.map (·.2.2)) vs → IsTy (interp V (consList vs ρ) B)) →
       holeFam ρ (ab.map (·.2.2)) g ∈ˢ interp V ρ (mkPisAV ab B)
-  | [], _, _, _, h => h [] trivial
-  | _ :: _, _, _, _, _ => by
-    -- L17: `holeFam` is a tower of graphs (`lamR 1`); the hole type reads
-    -- value-read (`piV`), a truth value where its fibres are (an empty
-    -- inner domain).  With `holeFam` read as `lamV` this is `lamV_mem` at
-    -- the hole types' fibres, which are types (L6's note)
-    sorry
+  | [], _, _, _, h, _ => h [] trivial
+  | d :: ab, ρ, B, g, h, hT => by
+    show lamV _ _ ∈ˢ interp V ρ (.pi d.2.2 (mkPisAV ab B))
+    rw [interp_pi]
+    refine lamV_mem (fun x hx => holeFam_mem_mkPisAV (fun vs hvs => h (x :: vs) ⟨hx, hvs⟩)
+      (fun vs hvs => hT (x :: vs) ⟨hx, hvs⟩)) fun x hx => ?_
+    cases ab with
+    | nil => exact hT [x] ⟨hx, trivial⟩
+    | cons d' ab => show IsTy (interp V (cons x ρ) (.pi d'.2.2 (mkPisAV ab B))); rw [interp_pi]; exact IsTy_piV
 
 namespace LfpDatum
 
@@ -81,7 +85,7 @@ theorem holeVal_mem (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
   have htN : t < D.N := Nat.lt_of_lt_of_le ht hkN
   unfold holeVal
   rw [← hab]
-  refine holeFam_mem_mkPisAV fun vs hvs => ?_
+  refine holeFam_mem_mkPisAV (fun vs hvs => ?_) fun vs _ => by rw [interp_sort]; exact IsTy_univ _
   rw [interp_sort]
   exact famSpaceIn_app (hX t htN) (tupW_mem (hab ▸ hvs))
 

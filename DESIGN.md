@@ -102453,3 +102453,81 @@ used; `selChainAV_facts`' slots).
 uses sorry` in ledger files (none in L15's).  `tests/challenge.sh`
 green.  No checker change: no e2e/arena run.  11 files, +772 −885
 against `port-342-s4` before the landing merge.
+
+## TASK #342 — L17: the inductive environment side at the value reading (2026-10-12, agent/342-l17)
+
+Lane L17, stage S4 (`_tmp/342v2-design.md` §2, §11.5), on
+`port-342-s4`.  No checker, `Denotes`, `MainTheorem` or `Challenge`
+change.  Every L17 ledger line is discharged; every step that uses "not
+pt" names its source in a comment.
+
+**The hole relations (`HoleMono`, `HoleAcc`).**  A value-read Π takes
+its regime from its fibres, so the hole lemmas read the fibres' types,
+supplied by the walked field's grading (source (1)):
+- `piV_subset_mono`, `mem_piV_of_app`, `pt_mem_piV_iff`
+  (`SetModel/Ops`): a member transported along fibres that are types at
+  both frames stays a member.  `MonoOn.pi` takes the fibres' `IsTy`.
+- The type regime (`TypeReg`) and richness (`RichOn`, `accRel_rich`,
+  `tuple_enlarge`) are replaced by **the point's stability** (`PtOn`: a
+  reading holding `pt` at one frame holds it at every related frame) and
+  **point-free holes** (`PtFreeOn`, `HoleRelA.ptFree`, `accRel_ptFree`:
+  a hole at full arity holds a strict fibre, `∅` or the point, never
+  `pt` as a member).  `AccConcl`'s first conjunct is `PtOn`; `AccOn.pi`
+  (one lemma, `pi0` merged) glues supports over a small domain and gives
+  the point, over a domain that is not small, the empty support.
+- Dead with richness: `HoldsLe`, `AccOn.transfer`, the
+  `HoleRelA.underBoth` transfer premise, `transfer_of_*`, `TeleSmall`,
+  `teleSmall_*`, `frame_fieldsBound`.
+
+**`holeFam` is `lamV`** (`BlockLfp`): the model's hole frame IS the
+spelled hole terms' reading (`interp_mkLamsAV_holeFam`, no premise;
+`holeFam_mem_mkPisAV` is `lamV_mem` with the codomain a type).  Off a
+fitting spine a level all of whose continuations are empty is the
+point, so a full application is the fibre, `∅`, or the point
+(`holeFam_foldl_full`), and off the fit it does not read the leaves
+(`holeFam_foldl_nofit`, leaves never the point at a fit).  Consumers:
+- the accessibility assemblies (`fitAcc_holeOp`, `frameAccOut_of`) drop
+  the support items off their fit — held alike at every tuple's frame
+  (`holds_of_nofit`, `frame_item_nofit`);
+- the admissible valuations (`admVal_frame0`, `admVal_kid`) prove their
+  off-fit clause by the same independence;
+- `holeVal_foldl_mem` takes the applied value not the point; the
+  landing lemmas get it from the call target's tuple lying in the
+  class's index set (`former_foldl_mem` takes the tuple's membership,
+  `admVal_memberLand`/`frameLand` that every fitting prefix extends):
+  then no level along the spine is the point (`holeFam_foldl_ne_pt`,
+  `idx_ext_of_tupW_mem`), and off the fit the value is `∅`.
+
+**The non-point facts where numerals were read.**
+- `spine_mem_univ_of_neverChain`: the spine is not the point (the
+  caller's type); `typeFormer_mem_univ_zero` takes a graded type.
+- `TowerEntryLaw` (A) takes the subject's type not the point (the
+  consumers' `hokTpe.ne_pt`, `hneW`); (B) reads the certified fit.
+- `ContLeaf`: a full container instance is a graded type
+  (`keyFit_of_wd`, `keyLeaf`, `monoOn_of_famLe`,
+  `accConcl_of_frameAccOut`); a key's parameter prefix is no type and
+  may read the point over an empty index set, so `keyParamsFit` takes
+  the key's inference: `certsF_of_infer_spine` (an inferred spine over a
+  literal Π-telescope is a `CertsF` certificate; `Red.eq_of_redVal`),
+  `certsF_sound`, and the former's closed telescope.
+- `genOut_typed` (`teleFitPA_rest_isTy`), `genIhMot` (`genIhFrame`
+  grades the ih codomain, `GradedFrame.gradedTy`), `genHstepG` (the
+  recursor type's innermost fibre, `isTy_of_wd_mkPisAV`).
+- `genMemCtor_pt`'s binder case: the constructor type is a truth value
+  at a `Prop` valuation (`mkPisAV_mem_univZero`: every fitting spine's
+  body is the member's fibre, whose elements are injections, the
+  point).
+- The recursor into `Prop`: `genRecTyZ` (the recursor type is a truth
+  value: its conclusion is the motive applied, a type in `Sort 0`,
+  `mem_univZero_of_endsInSort`) replaces `blockRecTyZ_run`;
+  `genRuleRaZ` is stated at the true reading (at an arbitrary reading
+  the rule's domains are arbitrary and the claim fails) — the minor
+  premise is the point (`genMinor_pt`), so the rule's λ-tower is.
+
+**Deviations.**  `genRuleRaZ` at the true reading, not at any reading.
+The landing lemmas carry a non-point premise.  `mem_univ_zero_of_spine`
+and `spine_mem_univ_of_neverChain` are unused after L-ck's
+`prf_of_isProofFast` (L18's); kept for it.
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration uses
+sorry` in ledger files.  No checker change.

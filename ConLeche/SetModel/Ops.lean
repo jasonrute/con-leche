@@ -564,6 +564,50 @@ theorem lamV_eq_zero {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x = pt) :
     lamV A F = lamR 0 A F := by
   rw [lamV_eq_pt h, lamR_zero]
 
+/-- **Transport of a member along fibres that are types**: a member of
+one function space over `A` whose applications land in the fibres of
+another, both families of types, is a member of the other.  The point
+member: its applications are the point, so the new fibres hold the
+point and are truth values.  A graph member: it has a value that is not
+the point (its old fibre there is strict), so the new fibre there is no
+truth value and the new space holds graphs. -/
+theorem mem_piV_of_app {A f : V} {B₀ B : V → V} (hf : f ∈ˢ piV A B₀)
+    (hB₀ : ∀ x, x ∈ˢ A → IsTy (B₀ x)) (hB : ∀ x, x ∈ˢ A → IsTy (B x))
+    (happ : ∀ x, x ∈ˢ A → app f x ∈ˢ B x) : f ∈ˢ piV A B := by
+  by_cases hfp : f = pt
+  · subst hfp
+    have h0 : ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V) := fun x hx =>
+      (hB x hx).resolve_right fun hs => hs.2 (by simpa [app_pt] using happ x hx)
+    rw [piV_eq_zero h0]
+    exact pt_mem_piR_zero fun x hx => ⟨_, happ x hx⟩
+  · have hf' := mem_piSet_of_mem_piV hf hfp
+    have hp : propN A B₀ ≠ 0 := fun h => hfp (eq_pt_of_mem_piV (propN_eq_zero.mp h) hf)
+    obtain ⟨x₀, hx₀, hB₀x⟩ : ∃ x, x ∈ˢ A ∧ ¬ B₀ x ∈ˢ (univZero : V) :=
+      Classical.byContradiction fun hne => hp (propN_eq_zero.mpr fun x hx =>
+        Classical.byContradiction fun h => hne ⟨x, hx, h⟩)
+    have hs : Strict (B₀ x₀) := (hB₀ x₀ hx₀).resolve_left hB₀x
+    have hne : app f x₀ ≠ pt := ne_pt_of_mem_strict hs (app_mem_of_mem_piSet hf' hx₀)
+    have hBx : ¬ B x₀ ∈ˢ (univZero : V) := fun h => hne (eq_pt_of_mem_univZero h (happ x₀ hx₀))
+    rw [piV_eq_pos Nat.one_ne_zero hx₀ hBx, piR_pos Nat.one_ne_zero,
+      ← eq_graph_app_of_mem_piSet hf']
+    exact graph_mem_piSet happ
+
+/-- **The point inhabits a function space of types** exactly when it
+inhabits every fibre. -/
+theorem pt_mem_piV_iff {A : V} {B : V → V} (hB : ∀ x, x ∈ˢ A → IsTy (B x)) :
+    (pt : V) ∈ˢ piV A B ↔ ∀ x, x ∈ˢ A → (pt : V) ∈ˢ B x := by
+  refine ⟨fun h x hx => by simpa [app_pt] using app_mem_piV h hx, fun h => ?_⟩
+  have h0 : ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V) := fun x hx =>
+    (hB x hx).resolve_right fun hs => hs.2 (h x hx)
+  rw [piV_eq_zero h0]
+  exact pt_mem_piR_zero fun x hx => ⟨_, h x hx⟩
+
+/-- **`piV` is monotone in fibres that are types.** -/
+theorem piV_subset_mono {A : V} {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x ⊆ˢ B' x)
+    (hB : ∀ x, x ∈ˢ A → IsTy (B x)) (hB' : ∀ x, x ∈ˢ A → IsTy (B' x)) :
+    piV A B ⊆ˢ piV A B' := fun _ hf =>
+  mem_piV_of_app hf hB hB' fun x hx => h x hx _ (app_mem_piV hf hx)
+
 /-- A universe is not a truth value: it holds `∅`, which is not the
 point. -/
 theorem univ_not_mem_univZero (w : Nat) : ¬ (univ w : V) ∈ˢ (univZero : V) := fun h =>

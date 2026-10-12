@@ -768,7 +768,7 @@ theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
   -- the tower law's typing clause
   exact hA (towerGuardAt_of hO5 (fun hp => by
       simp only [beq_iff_eq] at hp ⊢
-      exact hprop hp)) σ vs vp restA hlenVs hokTe hokPe
+      exact hprop hp)) σ vs vp restA hlenVs hokTe (heqTe ▸ hokTpe.ne_pt) hokPe
     (heqTe ▸ hmemPe) hpeel
 
 end ConLeche.Model.Rules

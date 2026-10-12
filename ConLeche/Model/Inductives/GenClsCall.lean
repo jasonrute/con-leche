@@ -411,14 +411,9 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
     have := congrArg List.length hdrop
     rw [List.length_drop, hlenRdsT, hRPT, liftDomsK_length, List.length_map, hMT] at this
     rw [List.length_append, hcnt, ← hcls, hgcT, List.length_singleton]; omega
-  -- L17: the motive's application is a type (it lands in a universe), so
-  -- not the point; the membership needs the very fit this establishes,
-  -- and is owed with the motive's grading at its prefix slot
-  have hne : interp V (consList (xs ++ fs ++ bs) ρ)
-      (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length - 1
-        - (R.g.nP + st))) (q.2.2.1 ++ [q.2.2.2])) ≠ pt := by
-    sorry
-  have hfit := spineFit_of_wellDenoted_mkAppN_pi (R := R0) hne hW
+  -- "not pt" source (1): the motive's application is the ih binder's
+  -- codomain, a type (`genIhFrame`)
+  have hfit := spineFit_of_wellDenoted_mkAppN_pi (R := R0) hW.2.ne_pt hW.1
     (by rw [hhead]; exact hmem) hpdsl.symm
   have e1 : consList (xs ++ fs ++ bs) ρ = consList bs (consList (xs ++ fs) ρ) :=
     consList_append _ _ _

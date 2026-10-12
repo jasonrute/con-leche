@@ -892,22 +892,22 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List (Nat × Nat × A
     ∀ (ρ : Nat → V) (vs : List AnnotTerm) (x rest : AnnotTerm),
       vs.length = nP →
       WellDenotedV V ρ (AnnotTerm.mkAppN L vs) →
+      interp V ρ (AnnotTerm.mkAppN L vs) ≠ pt →
       WellDenotedV V ρ x →
       interp V ρ x ∈ˢ interp V ρ (AnnotTerm.mkAppN L vs) →
       ConLeche.Model.AnnotTerm.peelPis (mkPisAV eds R) (vs ++ [x]) = some rest →
       WellDenotedV V ρ (projAV (i + 1) x) ∧ WellDenotedTy V ρ rest ∧
         interp V ρ (projAV (i + 1) x) ∈ˢ interp V ρ rest := by
-  intro ρ vs x rest hlenVs hokApp hokx hmem hpeel
+  intro ρ vs x rest hlenVs hokApp hneApp hokx hmem hpeel
   have hlenFs : (((ds.drop nP).map (·.2.2))).length = nF := by simp [hlenDs]
   -- the parameter fit
   have hsp : SpineFit ρ (pps.map (·.2.2)) (vs.map (interp V ρ)) := by
     obtain ⟨B, hB⟩ := hlam
-    -- L17: the family applied to the parameters is not the point (it is
-    -- the type of `x`); the law's statement does not carry that it is a type
-    have hne : interp V ρ (AnnotTerm.mkAppN L vs) ≠ pt := by sorry
+    -- the family applied to the parameters is not the point (the law's
+    -- premise: it is the type of `x`, "not pt" source (1) at the caller)
     have h := spineFit_of_wellDenotedV_mkAppN_lam (lds := pps.map fun d => (w + 1, d.2.2))
       (b := B) (σ := ρ)
-      hokApp hne (by rw [hB]) (by simp [hlenVs, hlenPps])
+      hokApp hneApp (by rw [hB]) (by simp [hlenVs, hlenPps])
     simpa [List.map_map, Function.comp_def] using h
   have hlenAs : (vs.map (interp V ρ)).length = nP := by simp [hlenVs]
   -- the member of the fibre
@@ -1010,23 +1010,10 @@ theorem fixEntryIotaCore {w nP nF i : Nat} {ds : List (Nat × Nat × AnnotTerm)}
     (hokB : ∀ ρ : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ →
       FieldsOkB w ρ ((ds.drop nP).map (·.2.2)))
     (ys : List AnnotTerm) (hlen : ys.length = nP + nF)
-    (hok : WellDenotedV V ρ (AnnotTerm.mkAppN
-      (sumMkAV w 0 ds ((ds.drop nP).map (·.2.2)) (uChains [(ds.drop nP).map (·.2.2)])) ys)) :
+    (hsp : SpineFit ρ (ds.map (·.2.2)) (ys.map (interp V ρ))) :
     interp V ρ (projAV (i + 1) (AnnotTerm.mkAppN
         (sumMkAV w 0 ds ((ds.drop nP).map (·.2.2)) (uChains [(ds.drop nP).map (·.2.2)])) ys))
       = interp V ρ (ys.getD (nP + i) default) := by
-  -- L17: the ι law's subject is not the point (the conditional laws are
-  -- owed only away from the point; this core statement does not carry it)
-  have hne : interp V ρ (AnnotTerm.mkAppN
-      (sumMkAV w 0 ds ((ds.drop nP).map (·.2.2)) (uChains [(ds.drop nP).map (·.2.2)])) ys) ≠ pt := by
-    sorry
-  have hsp : SpineFit ρ (ds.map (·.2.2)) (ys.map (interp V ρ)) := by
-    have h := spineFit_of_wellDenotedV_mkAppN_lam (lds := ds.map fun d => (w, d.2.2))
-      (b := sumInjAtAV w (uChains [(ds.drop nP).map (·.2.2)]) ((ds.drop nP).map (·.2.2)).length
-        (numeralAV 0) (mkTowerGoU w ((ds.drop nP).map (·.2.2)) (idxEqAV [])))
-      (σ := ρ)
-      hok hne rfl (by simp [hlen, hlenDs])
-    simpa [List.map_map, Function.comp_def] using h
   rw [show ds.map (·.2.2) = (ds.take nP).map (·.2.2) ++ (ds.drop nP).map (·.2.2) from by
     rw [← List.map_append, List.take_append_drop]] at hsp
   obtain ⟨as, bs, heq, hsp₁, hsp₂⟩ := spineFit_append_inv hsp
@@ -1558,7 +1545,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
       exact denoteMeta_projTele_zero hfdA
     refine ⟨⟨_, hread, ?_⟩, ?_⟩
     · -- (A)
-      intro hguardAt ρ vs x rest hlenVs hokApp hokx hmem hpeel
+      intro hguardAt ρ vs x rest hlenVs hokApp hneApp hokx hmem hpeel
       have hguard' : resSort.eval (Level.substFn φ lps us) = 0 →
           (sorts.getD i .zero).eval (Level.substFn φ lps us) = 0 ∧
           ∀ j, j < i → ConLeche.structUsedLater cvCa.type nP j = true →
@@ -1568,10 +1555,10 @@ theorem stageFixTable (mp : EnvModelM V μ env)
           = L (Level.substFn φ lps us) := by
         show m₂.acval T (Level.substFn φ lps us) = _
         rw [hacT, hleafT]
-      rw [hacT'] at hokApp hmem
+      rw [hacT'] at hokApp hneApp hmem
       exact fixEntryTypingCore (hCDlen _) (hFD.len _) (by simp) (hiff _) (hokB _)
         (hsortsF _) (used := ConLeche.structUsedLater cvCa.type nP) hguard' (hfree _ i hi) hi
-        (hlam _) (hfold _) hresFd (hokFd (fun h0 => (hguard' h0).2)) ρ vs x rest hlenVs hokApp
+        (hlam _) (hfold _) hresFd (hokFd (fun h0 => (hguard' h0).2)) ρ vs x rest hlenVs hokApp hneApp
         hokx hmem hpeel
     · -- (B): the constructor type's reading at the instantiation,
       -- then the two regimes
@@ -1590,17 +1577,17 @@ theorem stageFixTable (mp : EnvModelM V μ env)
           rw [hacC, hleafC]
         rw [hacC'] at hok ⊢
         show interp V ρ (projAV (i + 1) _) = _
+        have hsp : SpineFit ρ ((ds (Level.substFn φ lps us)).map (·.2.2))
+            (ys.map (interp V ρ)) :=
+          spineFit_of_teleFit (by simp only [List.length_map, hlen, hCDlen]; rfl) hfit
         by_cases hw : resSort.eval (Level.substFn φ lps us) = 0
         · -- squash: the certified fit pins the selected field to a
           -- proposition's domain
-          have hsp : SpineFit ρ ((ds (Level.substFn φ lps us)).map (·.2.2))
-              (ys.map (interp V ρ)) :=
-            spineFit_of_teleFit (by simp only [List.length_map, hlen, hCDlen]; rfl) hfit
           rw [hw]
           exact fixEntryIotaCoreZero (hCDlen _) hi (hsortsF _)
             (hguardSem i hi _ (hguardAt hw)).1 ys hlen hsp
-        · -- graph: the grading's slot chain
-          exact fixEntryIotaCore hw (hCDlen _) hi (hokB _) ys hlen hok
+        · -- graph: the certified fit pins the spine (no "not pt" step)
+          exact fixEntryIotaCore hw (hCDlen _) hi (hokB _) ys hlen hsp
   · -- (C)
     intro cvT capsT hf us _
     obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj (hfT₂.symm.trans hf))

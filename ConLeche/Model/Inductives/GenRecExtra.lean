@@ -558,11 +558,51 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
   change interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ _ at hmem
   cases hds : d.dsF t i ψj with
   | cons dd ds =>
-    -- L17: the constructor's type is a truth value at a `Prop` valuation
-    -- because its innermost fibre (the member's, `IndFibLaw` at `0`) is one
-    -- at every fitting spine; the annotated reading read it off the binder
-    -- datum (`CtorDataI.bits`)
-    sorry
+    -- the constructor's type is a truth value: at every fitting spine its
+    -- body is the member's fibre at the index tuple, whose elements are
+    -- injections, all the point at a `Prop` valuation (`IndFibLaw` at `0`)
+    have hlenD := hcd.len ψj
+    have htyZ : interp V ρ (mkPisAV (d.dsF t i ψj)
+        (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj)))
+          ∈ˢ (univZero : V) := by
+      refine mkPisAV_mem_univZero fun vs hvs => ?_
+      rw [← List.take_append_drop d.nP (d.dsF t i ψj), List.map_append] at hvs
+      obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_inv hvs
+      have hxl : xs.length = d.nP := by
+        rw [hxs.length_eq, List.length_map, List.length_take, hlenD]; omega
+      have hfl : fs.length = cA.2 := by
+        rw [hfs.length_eq, List.length_map, List.length_drop, hlenD]; omega
+      have hsatD : Sat V (((d.dsF t i ψj).take d.nP).map (·.2.2)).reverse (consList xs ρ) := by
+        have := sat_of_spineFit (Δ₀ := []) (Sat_nil V ρ) hxs
+        rwa [List.append_nil] at this
+      have hsat : Sat V (d.params ψj).reverse (consList xs ρ) := (G.hparamsC ψj _).mpr hsatD
+      have hxsP : SpineFit ρ (d.params ψj) xs :=
+        spineFit_of_sat_consList (by rw [hxl, G.hlenP]) hsat
+      have hFssD : (d.Fss t ψj).getD i [] = ((d.dsF t i ψj).drop d.nP).map (·.2.2) :=
+        fssOfR_fixCtorDataList_getD G.hcj
+      have hEssD : (d.Ess t ψj).getD i [] = d.esF t i ψj := essOfR_fixCtorDataList_getD G.hcj
+      have hfsF : SpineFit (consList xs ρ) ((d.Fss t ψj).getD i []) fs := by
+        rw [hFssD]; exact hfs
+      have hres := G.hM.resIdxFit ψj (consList xs ρ) hsat t G.hmN i G.hjl fs hfsF
+      rw [hEssD] at hres
+      have hleaf := G.hM.leaf t G.htd ψj ρ xs _ hxsP hres
+      have hpv : (paramBvars d.nP cA.2).map (interp V (consList (xs ++ fs) ρ)) = xs := by
+        have heqP : paramBvars d.nP cA.2 = prefVarsAV d.nP cA.2 := by
+          unfold paramBvars prefVarsAV; rw [Nat.add_comm d.nP cA.2]
+        rw [heqP, ← hfl]
+        exact interp_prefVarsAV hxl
+      have hbody : interp V (consList (xs ++ fs) ρ)
+          (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj))
+          = (xs ++ (d.esF t i ψj).map (interp V (consList fs (consList xs ρ)))).foldl
+              SetTheory.app (interp V ρ (mpC.base2.acval (d.memberName t) ψj)) := by
+        rw [ctorBodyAVI, interp_mkAppN_foldl, List.map_append, hpv, ← consList_append,
+          acval_interp_closed mpC.base2 (d.memberName t) ψj (consList (xs ++ fs) ρ) ρ]
+      rw [hbody, hleaf]
+      refine mem_univZero.mpr fun y hy => mem_unitSet_iff.mpr ?_
+      obtain ⟨j', fs', -, heq⟩ := blockCarrier_case G.hM hsat G.hmN (tupW_mem hres) hy
+      rw [heq]
+      exact G.hM.mkZero ψj hw t j' fs'
+    exact eq_pt_of_mem_univZero htyZ hmem
   | nil =>
     rw [hds] at hmem
     have hlen := hcd.len ψj
@@ -1470,12 +1510,15 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       = ab.length := by
     rw [List.length_map, hlenA ψj, ← List.length_map (f := fun p : Nat × Nat × AnnotTerm => p.2.2),
       hmap, List.length_append, hparsL, hPl, Rd.hnpc]
-  -- L17: the residual is the family applied to its arguments, a type (the
-  -- constructor's codomain), hence not the point
+  -- "not pt" source (1): the residual is the constructor type's codomain,
+  -- a type
   have hne : interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
       ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
         (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1)))) ≠ pt := by
-    sorry
+    have hty := Rules.teleFitPA_rest_isTy hfitC
+      (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ) hWD
+    rw [hrest] at hty
+    exact hty.ne_pt
   have hfit := spineFit_of_wellDenoted_mkAppN_pi hne hokR hmemI hlab
   rw [hmap] at hfit
   refine ⟨_, by rw [List.length_map, hlenA], fun q hq => ?_, hrest, hin, hfit, ?_⟩

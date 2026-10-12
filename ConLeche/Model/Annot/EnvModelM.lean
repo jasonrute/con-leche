@@ -193,6 +193,35 @@ theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
     rw [List.foldl_cons, consList_cons]
     exact foldl_app_mem_mkPisAV h.2 happ
 
+/-- **A Π-tower whose body is a truth value at every fitting spine is a
+truth value**: each binder's fibres are (by induction), so each
+function space is the truth-value regime's (`piV_eq_zero`). -/
+theorem mkPisAV_mem_univZero {B : AnnotTerm} :
+    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
+      (∀ bs, SpineFit ρ (tl.map (·.2.2)) bs → interp V (consList bs ρ) B ∈ˢ (univZero : V)) →
+      interp V ρ (mkPisAV tl B) ∈ˢ (univZero : V)
+  | [], _, h => h [] trivial
+  | d :: tl, ρ, h => by
+    show interp V ρ (.pi d.2.2 (mkPisAV tl B)) ∈ˢ _
+    rw [interp_pi, piV_eq_zero fun x hx =>
+      mkPisAV_mem_univZero fun bs hbs => h (x :: bs) ⟨hx, hbs⟩]
+    exact piR_zero_mem_univZero
+
+/-- **The body of a graded Π-tower is a type at every fitting spine**:
+it is the innermost binder's fibre, which the grading makes a type. -/
+theorem isTy_of_wd_mkPisAV {B : AnnotTerm} :
+    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
+      WellDenoted V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
+      IsTy (interp V (consList bs ρ) B)
+  | [], _, _, h, _, _ => absurd rfl h
+  | [_], _, [], _, _, hsp => hsp.elim
+  | [d], ρ, [b], _, hwd, hsp => (cast (WellDenoted_pi V ρ d.2.2 B) hwd).2.2.2 b hsp.1
+  | [_], _, _ :: _ :: _, _, _, hsp => hsp.2.elim
+  | _ :: _ :: _, _, [], _, _, hsp => hsp.elim
+  | d :: d' :: tl, ρ, b :: _, _, hwd, hsp =>
+    isTy_of_wd_mkPisAV (tl := d' :: tl) (ρ := cons b ρ) (List.cons_ne_nil _ _)
+      ((cast (WellDenoted_pi V ρ d.2.2 (mkPisAV (d' :: tl) B)) hwd).2.2.1 b hsp.1) hsp.2
+
 end
 
 /-- **The P-tier environment invariant, at one mode** (see the module
