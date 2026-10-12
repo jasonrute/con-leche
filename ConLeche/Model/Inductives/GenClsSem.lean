@@ -280,18 +280,6 @@ theorem genCls_inst_graded (hμ : μ.verifiedChecks = true)
   rw [denoteMeta_erasedEq hxE] at hw
   exact ⟨w, hw, hgr⟩
 
-/-- Pointwise erasure-equal lists of one length are erasure-equal. -/
-theorem erasedEqL_of_getElem :
-    ∀ (as bs : List Expr), as.length = bs.length →
-      (∀ (j : Nat) (x y : Expr), as[j]? = some x → bs[j]? = some y → Expr.ErasedEq x y) →
-      Expr.ErasedEqL as bs
-  | [], [], _, _ => trivial
-  | [], _ :: _, h, _ => by simp at h
-  | _ :: _, [], h, _ => by simp at h
-  | a :: as, b :: bs, h, hp =>
-    ⟨hp 0 a b rfl rfl, erasedEqL_of_getElem as bs (by simpa using h)
-      fun j x y hx hy => hp (j + 1) x y hx hy⟩
-
 /-- A spine's reading is its erasure-equal spine's. -/
 theorem DenoteMetaSpine.of_erasedEqL {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {φ : Name → Nat} {d : Nat} :
@@ -1184,7 +1172,7 @@ theorem genClsRd_out (hμ : μ.verifiedChecks = true)
     obtain ⟨ds', hl', hxE', ⟨tx, htx⟩, hfrK, hCK⟩ := genCls_inst_ctx hμ R hg h mpC ψ hc hdsS hnP
     have hEL : Expr.ErasedEqL (tgtMajor out c).ds ds' := by
       have := (erasedEq_mkAppN_args (tgtMajor out c).ds hl' hxE').2
-      exact erasedEqL_of_getElem _ _ hl'.symm fun j x y hx hy => (this j x y hx hy).symm
+      exact erasedEqL_of_getElem hl'.symm fun j x y hx hy => (this j x y hx hy).symm
     obtain ⟨cvI', caps', ty0, -, hfI', hpi0, -⟩ := targetOutsideInst_inv hinst'
     rw [ConLeche.mkFEnv_find?, hfI] at hfI'
     obtain ⟨rfl, rfl⟩ : cvc c = cvI' ∧ caps = caps' := by simpa using hfI'
