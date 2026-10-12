@@ -271,7 +271,7 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     · rw [push_eq_cons]
       have hb := ihbody hba (Expr.fvarsBelow_instantiate1 0 hfb'.2)
         (ConLeche.looseBVarsBounded_instantiate1 body 0 hlb'.2) (cons x ρ)
-        ⟨hw1.2 x hx, hw2.2.1 x hx⟩
+        ⟨hw1.2.2.1 x hx, hw2.2.1 x hx⟩
       rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
     · intro h0 x hx
       rw [regime_eq_pwBit] at h0
@@ -286,7 +286,7 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
     obtain ⟨hw1, hw2⟩ := hw
     rw [WellDenoted_lam] at hw1
     rw [AnnotValid_lam] at hw2
-    obtain ⟨hwA, hwb, B, hfib, hzero⟩ := hw1
+    obtain ⟨hwA, -, hwb, B, hfib, -, hzero⟩ := hw1
     show Denotes _ _ _ _ (Expr.lam (closeN d ty 0) (closeN d body 1) mb) _
     rw [interp_lam, ← regime_eq_pwBit]
     refine Denotes.lam (ihty hta hfb'.1 hlb'.1 ρ ⟨hwA, hw2.1⟩) (fun x hx => ?_) ?_
@@ -387,7 +387,7 @@ noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
     have hlb : c.toConstantVal.type.looseBVarsBounded 0 = true := hwf.2.2.2.1
     have hbr := Denotes_of_denoteMeta (V := V) m.base2.cval_closedL 0
       c.toConstantVal.type hta (fvarsBelow_zero_of_not_hasFvar hnf) hlb ρ
-      (m.type_wellDenotedV c hc φ ta hta ρ)
+      (m.type_wellDenotedTy c hc φ ta hta ρ).1
     rw [Expr.closeN_of_hasFvar _ 0 0 hnf] at hbr
     refine ⟨interp V ρ ta, hbr, ?_⟩
     rw [← interp_cvalOf m.base2.cval_closedL]

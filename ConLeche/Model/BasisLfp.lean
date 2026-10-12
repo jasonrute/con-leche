@@ -405,7 +405,8 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → AnnotTerm} {nm zn sn 
       unfold natFlds
       split
       · trivial
-      · exact ⟨by simp, fun _ => by simpa using hS, fun _ _ => trivial⟩)
+      · exact ⟨by simp, IsTy_of_mem_univ (n := 1) (by simpa using hS),
+          fun _ => by simpa using hS, fun _ _ => trivial⟩)
     -- the successor's support is its predecessor
     (fun _ => by
       refine ⟨unitSet, fun _ => unitSet_mem_tg 1, fun S j fs h => ?_⟩
@@ -500,7 +501,8 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → AnnotTerm}
     have hA : ρp 1 ∈ˢ (univ (lv ψ) : V) := by
       have := hs 1 (.sort (lv ψ)) rfl
       simpa using this
-    exact ⟨⟨by simp, fun _ => hA, fun _ _ => trivial⟩, ⟨hA, fun _ _ => trivial⟩⟩
+    exact ⟨⟨by simp, IsTy_of_mem_univ hA, fun _ => hA, fun _ _ => trivial⟩,
+      ⟨hA, fun _ _ => trivial⟩⟩
   maps := fun ψ ρp _ X _ _ _ =>
     graph_mem_famSpace fun _ _ => by
       show _ ∈ˢ (strictU 0 : V); rw [strictU_zero]; exact truthVal_mem_univZero _
