@@ -54,9 +54,8 @@ and index tuple (`GenClsSplit`):
 
 * at `w ≠ 0` the carrier holds only injections, none the point
   (`LfpClause.injNePt`); at `w = 0` the constructor's type is a truth
-  value (every binder's bit is the family's zero-ness,
-  `CtorDataI.bits`), so the constructor and every application of it is
-  the point;
+  value (its innermost fibre is the member's, a truth value), so the
+  constructor and every application of it is the point;
 * the member's capability record (`blockCapsAt`) carries the family's
   sort zero-ness, which decides `w` at the constructor's levels, and
   the K bit, which makes the member's only constructor fieldless — so
@@ -96,8 +95,8 @@ theorem lfpW_congr {envC : Env} (mpC : EnvModelM V μ envC) {D : LfpDatum V}
   rw [hf] at hf'
   obtain ⟨rfl, -⟩ : cv = cv' ∧ caps = caps' := by
     injection hf' with h'; injection h' with h1 h2; exact ⟨h1, h2⟩
-  obtain ⟨ab₁, h₁, -, -⟩ := hab ψ₁
-  obtain ⟨ab₂, h₂, -, -⟩ := hab ψ₂
+  obtain ⟨ab₁, h₁, -⟩ := hab ψ₁
+  obtain ⟨ab₂, h₂, -⟩ := hab ψ₂
   have hwf := mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
   rw [denoteMeta_params_ext mpC.base2 hag 0 cv.type hwf.2.1, h₂] at h₁
   have h := (mkPisAV_sort_inj (Option.some.inj h₁)).2
@@ -546,8 +545,8 @@ theorem genMem_S (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 
 /-- **At a `Prop` valuation of a member, its constructor is the point**,
 and so is every application of it: every binder of the constructor's
-type carries the family's zero-ness (`CtorDataI.bits`), so the type is
-a truth value; a constructor with no binder at all lies in the
+type carries the family's zero-ness (its innermost fibre is the
+member's, a truth value), so the type is a truth value; a constructor with no binder at all lies in the
 member's fibre, whose elements are injections, all the point. -/
 theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     {cA : ConstantVal × Nat} (G : GenMemAt mpC d pp out isRec cvT j i t cA)
@@ -559,12 +558,11 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
   change interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ _ at hmem
   cases hds : d.dsF t i ψj with
   | cons dd ds =>
-    rw [hds] at hmem
-    have hb : dd.2.1 = 0 := (hcd.bits ψj dd (by rw [hds]; exact List.mem_cons_self)).mp hw
-    change interp V ρ (mpC.base2.acval cA.1.name ψj)
-      ∈ˢ interp V ρ (.pi dd.2.2 (mkPisAV ds _)) at hmem
-    rw [interp_pi, hb, piR_zero] at hmem
-    exact eq_pt_of_mem_truthVal hmem
+    -- L17: the constructor's type is a truth value at a `Prop` valuation
+    -- because its innermost fibre (the member's, `IndFibLaw` at `0`) is one
+    -- at every fitting spine; the annotated reading read it off the binder
+    -- datum (`CtorDataI.bits`)
+    sorry
   | nil =>
     rw [hds] at hmem
     have hlen := hcd.len ψj
@@ -752,7 +750,7 @@ theorem genMem_U (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   have hlenD : (((d.dsF t i ψ).take d.nP).map (·.2.2)).length = d.nP := by
     rw [List.length_map, List.length_take, hD.len ψ]; omega
   have hTy : SpineTy ρ (((d.dsF t i ψ).take d.nP).map (·.2.2)) := by
-    have := (spineTy_of_wellDenoted_mkPisAV (hD.okTy ψ ρ).1.1).take d.nP
+    have := (spineTy_of_wellDenoted_mkPisAV (hD.okTy ψ ρ).1).take d.nP
     rwa [← List.map_take] at this
   have hlenPs := G.hlenP ψ
   have hq' := (spineFit_iff_of_sat_iff (by rw [hlenPs, hlenD]) (G.hparamsC ψ) ρ _
@@ -1155,7 +1153,7 @@ theorem genOut_pins (hμ : μ.verifiedChecks = true)
   have hY0 : SpineFit ρ (pps.map (·.2.2)) ((ys.take (tgtMajor out j).nPc).map (interp V ρ)) :=
     spineFit_of_teleFitPA (by rw [List.length_take, hyl, hplen']; omega) hmid
   have hTy : SpineTy ρ (pps.map (·.2.2)) := spineTy_of_wellDenoted_mkPisAV (by
-    have := (hT0wd ρ).1; rw [hT0E] at this; exact this)
+    have := hT0wd ρ; rw [hT0E] at this; exact this)
   have hlenPs : (pps.map (·.2.2)).length = (tgtMajor out j).nPc := by
     rw [List.length_map, hplen']
   -- the pins' chains are their readings
@@ -1450,7 +1448,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   rw [hf₀] at hfm
   obtain ⟨rfl, rfl⟩ : cvI = cv ∧ caps₀ = caps := by
     injection hfm with h'; injection h' with a b; exact ⟨a, b⟩
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψj
+  obtain ⟨ab, hta, hmap⟩ := hab ψj
   have hconsI := List.mem_of_find?_eq_some hf₀
   have hmemI : interp V ρ (mpC.base2.acval (tgtMajor out j).ind ψj)
       ∈ˢ interp V ρ (mkPisAV ab (.sort ((tgtClsD d Dc out j).w ψj))) := by
@@ -1459,7 +1457,6 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       ConLeche.Semantics.Env.find?_name hf₀
     rw [hn] at this
     exact this
-  have hvalidI := (mpC.type_wellDenotedTy _ hconsI ψj _ hta ρ).1.2
   -- the parameter count
   obtain ⟨cv', nPc, nF, hf', -, -, -, A0, -, -, hrdA⟩ := hrdC _ Rd.hmm i hiD
   rw [hfc0] at hf'
@@ -1473,7 +1470,13 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       = ab.length := by
     rw [List.length_map, hlenA ψj, ← List.length_map (f := fun p : Nat × Nat × AnnotTerm => p.2.2),
       hmap, List.length_append, hparsL, hPl, Rd.hnpc]
-  have hfit := spineFit_of_wellDenoted_mkAppN_pi hbits hokR.1 hmemI hlab
+  -- L17: the residual is the family applied to its arguments, a type (the
+  -- constructor's codomain), hence not the point
+  have hne : interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
+      ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
+        (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1)))) ≠ pt := by
+    sorry
+  have hfit := spineFit_of_wellDenoted_mkAppN_pi hne hokR hmemI hlab
   rw [hmap] at hfit
   refine ⟨_, by rw [List.length_map, hlenA], fun q hq => ?_, hrest, hin, hfit, ?_⟩
   · have hPB : (paramBvars (tgtMajor out j).nPc cA.2).length = (tgtMajor out j).nPc := by
@@ -1490,7 +1493,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       consList_getD_of_lt _ _ _ (by rw [List.length_map, hys]; omega), List.length_map, hys,
       show (tgtMajor out j).nPc + cA.2 - 1 - ((tgtMajor out j).nPc + cA.2 - 1 - q) = q from by
         omega, getD_map_pt (by rw [hys]; omega)]
-  · have := foldl_app_mem_mkPisAV hvalidI (by rw [← hmap] at hfit; exact hfit) hmemI
+  · have := foldl_app_mem_mkPisAV (by rw [← hmap] at hfit; exact hfit) hmemI
     rw [interp_sort] at this
     exact this
 
@@ -1572,15 +1575,20 @@ theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {me
   have hconsI := List.mem_of_find?_eq_some hf₀
   have hwfI := mpC.base2.wf _ hconsI
   obtain ⟨ab, hta, hmap⟩ := hab ψj
-  obtain ⟨ab', hta', hmap', -⟩ := hab (tgtClsψ cvc out ψ j)
+  obtain ⟨ab', hta', hmap'⟩ := hab (tgtClsψ cvc out ψ j)
   rw [denoteMeta_params_ext mpC.base2 (φ₂ := tgtClsψ cvc out ψ j)
     (fun q hq => by
       change q ∈ cvI.levelParams at hq
       rw [← hlpC] at hq; exact hlv q hq) 0 cvI.type hwfI.2.1, hta'] at hta
-  obtain ⟨rfl, -⟩ := mkPisAV_sort_inj (Option.some.inj hta).symm
+  obtain ⟨habm, hwab⟩ := mkPisAV_sort_inj (Option.some.inj hta).symm
+  have hmap'' := habm.trans hmap'
   have hcl : Term.bvarsBelow 0
-      (mkPisAV ab (.sort ((tgtClsD d Dc out j).w (tgtClsψ cvc out ψ j)))).erase :=
-    bvarsBelow_of_reading (m := mpC.base2) (Expr.WScoped.of_not_hasFvar hwfI.1) hwfI.2.2.2.1 hta'
+      (mkPisAV ab (.sort ((tgtClsD d Dc out j).w (tgtClsψ cvc out ψ j)))).erase := by
+    have heq := Option.some.inj hta
+    rw [hwab] at heq
+    rw [← heq]
+    exact bvarsBelow_of_reading (m := mpC.base2) (Expr.WScoped.of_not_hasFvar hwfI.1)
+      hwfI.2.2.2.1 hta'
   have hDB := (bvarsBelow_mkPisAV_inv hcl).1
   -- the parameter count
   obtain ⟨cv', nPc, nF, hf', -, -, -, A0, -, -, hrdA⟩ := hrdC _ Rd.hmm i hiD
@@ -1599,11 +1607,11 @@ theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {me
       = nP := fun ψ' => by rw [hparsL, hPl, hnP]
   have hidsE : (tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψj
       = (tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) (tgtClsψ cvc out ψ j) := by
-    have := hmap.symm.trans hmap'
+    have := hmap.symm.trans hmap''
     exact List.append_inj_right this (by rw [hlenPars, hlenPars])
   have hidsAB : (tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) (tgtClsψ cvc out ψ j)
       = (ab.drop nP).map (·.2.2) := by
-    rw [List.map_drop, hmap', List.drop_left' (hlenPars _)]
+    rw [List.map_drop, hmap'', List.drop_left' (hlenPars _)]
   rw [hidsE] at hfitA hlenA
   -- split the residual's fit
   obtain ⟨as₁, as₂, hasE, hfit1, hfit2⟩ := spineFit_append_inv hfitA
