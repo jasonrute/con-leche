@@ -102081,3 +102081,26 @@ rulings of 2026-10-12 recorded.
 **Gates.** `whitepaper/fragment-gate.sh` green; `whitepaper/links-gate.sh`
 OK; `whitepaper/build.sh` (via `nix develop ./whitepaper`) builds PDF
 and HTML with no warning. OVERVIEW/README untouched.
+
+## TASK #342 — WTERM: "product" renamed to Π-type/function space throughout the whitepaper (2026-10-12, agent/342-wterm)
+
+The maintainer finds "product" confusing for a ∀-type or its
+set-theoretic denotation (it suggests `Prod`/`PProd`). Renamed every
+such use in `main.typ`, `sections/*.typ`, `NOTES.md`, `PLAN.md`, and
+the doc comments in `Fragment/*.lean` the paper cites and shows as
+hover tips (9 files: `Consistency.lean`, `IndCommon.lean`,
+`IndSem.lean`, `Lib.lean`, `Probe.lean`, `Rules.lean`, `Sound.lean`,
+`Syntax.lean`, `Unannot.lean`): "Π-type" for the syntax (a
+`∀`/`(x : A) → B`), "function space" — "propositional function space"
+for the `Pi_0` case — for the set (`piV`, `piSet`, `Pi(A, B)`). A
+handful of sentences used "product" generically to cover both of
+`PiV`'s two cases in one word (the application rule's `$P$`, the
+`∀`-formation rule's `PiV(A, B)`); those are reworded with the paper's
+own `$P$`/`$PiV(A, B)$` notation instead of forcing "function space" to
+mean two different things in the same sentence. ~50 sites changed, no
+Fragment line counts (so no `links-gate.sh --update` needed); genuine
+`Prod`/`PProd`/tuple/coproduct uses untouched.
+
+**Gates.** `whitepaper/fragment-gate.sh` green; `whitepaper/build.sh`
+(via `nix develop ./whitepaper`) builds PDF and HTML with no warning,
+synced to `_out/whitepaper/`. OVERVIEW/README untouched.
