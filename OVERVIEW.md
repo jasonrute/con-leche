@@ -149,6 +149,7 @@ reader can take in at one sitting: the relation
 one rule per syntax form on the checker's own terms — a bound variable
 reads its environment, `Sort u` the types of a level of the universe
 chain, a constant its set, an application the function's graph, a
+`let` its body at its value (its type is not read), a
 binder the dependent
 product, or the truth value of its body when the checker annotated the
 binder as proposition-valued — an annotation it may make only if the
@@ -530,8 +531,10 @@ presentation and matter for the proof:
   the proof consumes them. This is the price of not having a syntactic
   type theory (see §4). The annotation pass also ζ-expands `let`, so
   stored terms are let-free: the reduction and inference arms raise an
-  internal error on a `let` node, and the term language the denotation
-  targets has no `let` former.
+  internal error on a `let` node. The proof side reads a `let` all the
+  same — the denotation's term language has a type-free `let` former,
+  read as its body at its value, and the rules tier's ζ and `let`
+  inference rules are proved sound — so stored `let`s need no ζ pass.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
   not, but its memos are proved to agree with the pure functions at
   every fuel large enough to succeed
