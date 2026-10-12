@@ -59,20 +59,6 @@ theorem findPreserved_cons {c₀ : ConstantInfo}
   rw [List.find?_cons_of_neg (by simpa using hne)]
   exact hf
 
-/-- The bit-validity combinator for a fresh leaf (`acvalWith_wellDenoted`'s
-`AnnotValid` twin). -/
-theorem acvalWith_validV {acval : Name → (Name → Nat) → AnnotTerm}
-    {n : Name} {A : (Name → Nat) → AnnotTerm}
-    (h : ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (acval m ψ))
-    (hA : ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (A ψ)) :
-    ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (acvalWith acval n A m ψ) := by
-  intro m ψ ρ
-  by_cases hm : m = n
-  · subst hm; rw [acvalWith_self]; exact hA ψ ρ
-  · rw [acvalWith_ne hm]; exact h m ψ ρ
-
 /-- **The fresh-cons forward transfer** (the monotone form; the
 equality form is refutable at support-completing installs — see
 `denoteMeta_envExtend_mono`): a successful prefix reading survives the
@@ -300,8 +286,6 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : AnnotTerm,
         denoteMeta (acvalWith mp.base2.acval c₀.name A)
@@ -448,8 +432,6 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       exact mp.ind_strict I cv caps hfE ψ ab n hta hn ρ vs hsp
   exact ⟨{
     base2 := coreCons mp.base2 A hfresh hh hAclosed hAparams hAok
-    acval_validV := acvalWith_validV (n := c₀.name)
-      mp.acval_validV hAvalid
     type_reads := htr
     type_wellDenotedTy := hto
     mem_type := hmt

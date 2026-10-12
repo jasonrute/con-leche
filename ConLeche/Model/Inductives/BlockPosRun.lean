@@ -270,7 +270,7 @@ theorem formerApp_mem {μ : ConLeche.CheckMode} {env : Env} (mp : EnvModelM V μ
     have := spineFit_frameIdx_of_sat hs
     rw [hlenT] at this
     rw [← hρ₀]; exact this
-  have hf₂ := foldl_app_mem_mkPisAV_pos (fun d hd => hFD.bits ψ d (List.mem_of_mem_take hd))
+  have hf₂ := foldl_app_mem_mkPisAV_pos
     hfit hfm
   rw [show consList (frameIdx nP ρ) ρ₀ = ρ by rw [← hρ₀]; exact consList_frameIdx nP ρ] at hf₂
   rw [acval_interp_closed mp.base2 _ ψ ρ ρ₀]

@@ -63,28 +63,22 @@ theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {A B : AnnotTerm}
   refine ⟨hgAT, fun ρ hρ => ⟨hgB ρ hρ, ?_⟩⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
-  have := ((WellDenoted_pi V _ A B) ▸ (h _ (Sat_tail hρ)).1).2.2.2 (ρ 0) (hρ 0 A rfl)
+  have := (cast (WellDenoted_pi V _ A B) (h _ (Sat_tail hρ))).2.2.2 (ρ 0) (hρ 0 A rfl)
   rwa [hcons] at this
 
 /-- A `GradedTy` Π-type from `Graded` parts and their `IsTy` facts, the way
 `graded_pi_intro` (`NestPosRed.lean`) does for `Graded`: the Π's own
-`IsTy` is free (`IsTy_piR`). -/
-theorem gradedTy_pi_intro {Δ : List AnnotTerm} {v : Nat} {A B : AnnotTerm}
+`IsTy` is free (`IsTy_piV`). -/
+theorem gradedTy_pi_intro {Δ : List AnnotTerm} {A B : AnnotTerm}
     (hA : Graded V Δ A) (hB : Graded V (A :: Δ) B)
     (hAt : ∀ ρ : Nat → V, Sat V Δ ρ → IsTy (interp V ρ A))
-    (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B))
-    (hbit : v = 0 → ∀ ρ : Nat → V, Sat V Δ ρ → ∀ x, x ∈ˢ interp V ρ A →
-      interp V (cons x ρ) B ∈ˢ (univZero : V)) :
+    (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B)) :
     GradedTy V Δ (.pi A B) := fun ρ hρ => by
   refine ⟨?_, ?_⟩
-  · refine ⟨?_, ?_⟩
-    · rw [WellDenoted_pi]
-      exact ⟨(hA ρ hρ).1, hAt ρ hρ, fun x hx => (hB _ (Sat_cons V hρ hx)).1,
-        fun x hx => hBt _ (Sat_cons V hρ hx)⟩
-    · rw [AnnotValid_pi]
-      exact ⟨(hA ρ hρ).2, fun x hx => (hB _ (Sat_cons V hρ hx)).2,
-        fun hv x hx => hbit hv ρ hρ x hx⟩
-  · rw [interp_pi]; exact IsTy_piR _ _ _
+  · rw [WellDenotedV, WellDenoted_pi]
+    exact ⟨hA ρ hρ, hAt ρ hρ, fun x hx => hB _ (Sat_cons V hρ hx),
+      fun x hx => hBt _ (Sat_cons V hρ hx)⟩
+  · rw [interp_pi]; exact IsTy_piV
 
 /-- **A term whose type is a sort reads as a graded type**: the inference
 claim puts its reading in its type's, the type is a type (so the sort

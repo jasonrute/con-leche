@@ -1,6 +1,7 @@
 module
 
-import ConLeche.Semantics.DeclRun
+public import ConLeche.Semantics.DeclRun
+public import ConLeche.Model.Harvest
 public import ConLeche.Model.AxiomMem
 
 public section

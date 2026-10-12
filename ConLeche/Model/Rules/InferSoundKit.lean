@@ -22,7 +22,7 @@ The pieces the inference rules' soundness needs:
   entry-kind inversion come from `RedSoundKit.lean`);
 * `charList_facts` and `strLitFacts` — the `String`-literal clause's
   whole content, stated over `RulesInputs`' fields
-  (`ConstType`/`AcvalValid`/`NatHeads`).
+  (`ConstType`/`NatHeads`).
 -/
 
 namespace ConLeche.Model.Rules

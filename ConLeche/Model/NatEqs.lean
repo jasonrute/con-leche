@@ -26,11 +26,9 @@ here from the environment invariant alone:
 * head memberships from `mem_type` at the **pinned** operation types
   (`natOpTyPinned`), whose `denoteMeta` readings compute to two-step
   `.pi` spines over the `Nat` leaf;
-* fibre facts at *unknown* regime bits from `type_wellDenotedTy`'s
-  `AnnotValid` — `app_mem_piR`'s `hB0` premise is exactly the
-  validity `pi` clause, so **no bit positivity is ever needed**
-  (the doctrine holds: bits are never taken from a metatheorem, and
-  here they are not taken at all).
+* the regime of each step is read off the values (`piV`'s numeral
+  `propN`, whose zero case is `propN_eq_zero`), so **no regime
+  positivity is ever needed**.
 
 The layers: the two-variable context kit; the graded-argument walk
 (`NatArg`); the head packages (`NatBinHead`/`NatUnHead`) and their
@@ -142,7 +140,7 @@ def NatArg (m : EnvModel V env) (ψ : Name → Nat) (e : Expr) :
 theorem natArg_var0 (m : EnvModel V env) (ψ : Name → Nat) :
     NatArg m ψ (.fvar 0 (.const ConLeche.natName [])) := by
   refine ⟨.bvar 1, denoteMeta_fvar _ 2 0 _, fun ρ hρ => ?_⟩
-  refine ⟨⟨by simp, by simp⟩, ?_⟩
+  refine ⟨by simp, ?_⟩
   rw [interp_bvar]
   exact (sat_natCtx2_inv m hρ).2
 
@@ -150,13 +148,13 @@ theorem natArg_var0 (m : EnvModel V env) (ψ : Name → Nat) :
 theorem natArg_var1 (m : EnvModel V env) (ψ : Name → Nat) :
     NatArg m ψ (.fvar 1 (.const ConLeche.natName [])) := by
   refine ⟨.bvar 0, denoteMeta_fvar _ 2 1 _, fun ρ hρ => ?_⟩
-  refine ⟨⟨by simp, by simp⟩, ?_⟩
+  refine ⟨by simp, ?_⟩
   rw [interp_bvar]
   exact (sat_natCtx2_inv m hρ).1
 
 /-- `Nat.zero`. -/
 theorem natArg_zero (m : EnvModel V env) {ψ : Name → Nat}
-    (hnh : NatHeads m ψ) (hval : AcvalValid m)
+    (hnh : NatHeads m ψ)
     (hs : natLitSupported env = true) :
     NatArg m ψ (.const ConLeche.natZeroName []) := by
   obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, hfZ, hfS, hlpN,
@@ -179,7 +177,7 @@ theorem natArg_zero (m : EnvModel V env) {ψ : Name → Nat}
 
 /-- `Nat.succ` applied to a graded argument. -/
 theorem natArg_succ (m : EnvModel V env) {ψ : Name → Nat}
-    (hnh : NatHeads m ψ) (hval : AcvalValid m)
+    (hnh : NatHeads m ψ)
     (hs : natLitSupported env = true) {t : Expr}
     (ht : NatArg m ψ t) :
     NatArg m ψ (.app (.const ConLeche.natSuccName []) t) := by
@@ -196,19 +194,17 @@ theorem natArg_succ (m : EnvModel V env) {ψ : Name → Nat}
   rw [hlpS'] at hsl
   refine ⟨.app (m.acval ConLeche.natSuccName (Level.substFn ψ [] [])) ta,
     by rw [denoteMeta_app, hsl, hta]; rfl, fun ρ hρ => ?_⟩
-  obtain ⟨⟨htok, htv⟩, htm⟩ := htg ρ hρ
+  obtain ⟨htok, htm⟩ := htg ρ hρ
   have hsucc := (hnh hs ρ).2.1
   have hNty := (hnh hs ρ).2.2
   have hnatEq : interp V ρ (m.acval ConLeche.natName (Level.substFn ψ [] []))
       = natLeafV m ψ ρ := by rw [substFn_nil]; rfl
   rw [hnatEq] at hsucc hNty
-  refine ⟨⟨?_, ?_⟩, ?_⟩
-  · rw [WellDenoted_app]
+  refine ⟨?_, ?_⟩
+  · rw [WellDenotedV, WellDenoted_app]
     exact ⟨m.acval_wellDenoted _ _ ρ, htok,
       1, natLeafV m ψ ρ, fun _ => natLeafV m ψ ρ, hsucc, htm,
       fun h => absurd h Nat.one_ne_zero, fun _ => hNty⟩
-  · rw [AnnotValid_app]
-    exact ⟨hval _ _ ρ, htv⟩
   · rw [interp_app]
     exact app_mem_piR_pos Nat.one_ne_zero hsucc htm
 
@@ -216,9 +212,9 @@ theorem natArg_succ (m : EnvModel V env) {ψ : Name → Nat}
 
 What a fragment application rule needs of its head: the head reads to
 a graded `AnnotTerm` whose interpretation sits in a (one- or two-step)
-`piR` over the stored `Nat`, with the validity fibre facts at each
-step — at *whatever* regime bits the stored annotation carries.
-`app_mem_piR` consumes exactly this, so no bit positivity appears. -/
+`piR` over the stored `Nat`, with the fibre facts at each step — at
+*whatever* regime numerals the values give.  `app_mem_piR` consumes
+exactly this, so no regime positivity appears. -/
 
 /-- A binary head over the pinned `Nat`, with codomain set `codS`. -/
 def NatBinHead (m : EnvModel V env) (ψ : Name → Nat) (f : Expr)
@@ -258,9 +254,9 @@ theorem natBinHead_app (m : EnvModel V env) {ψ : Name → Nat}
   refine ⟨.app (.app fa xa) ya,
     by rw [denoteMeta_app, denoteMeta_app, hfa, hxa, hya]; rfl,
     fun ρ hρ => ?_⟩
-  obtain ⟨⟨hfok, hfv⟩, hNty, b₁, b₂, hfm, hB1, hB2⟩ := hfg ρ hρ
-  obtain ⟨⟨hxok, hxv⟩, hxm⟩ := hxg ρ hρ
-  obtain ⟨⟨hyok, hyv⟩, hym⟩ := hyg ρ hρ
+  obtain ⟨hfok, hNty, b₁, b₂, hfm, hB1, hB2⟩ := hfg ρ hρ
+  obtain ⟨hxok, hxm⟩ := hxg ρ hρ
+  obtain ⟨hyok, hym⟩ := hyg ρ hρ
   -- the inner application's membership, at whatever bit
   have hinner : SetTheory.app (interp V ρ fa) (interp V ρ xa)
       ∈ˢ piR b₂ (natLeafV m ψ ρ) (fun _ => codS ρ) :=
@@ -269,8 +265,8 @@ theorem natBinHead_app (m : EnvModel V env) {ψ : Name → Nat}
       (SetTheory.app (interp V ρ fa) (interp V ρ xa))
       (interp V ρ ya) ∈ˢ codS ρ :=
     app_mem_piR hinner hym hB2
-  refine ⟨⟨?_, ?_⟩, ?_⟩
-  · rw [WellDenoted_app]
+  refine ⟨?_, ?_⟩
+  · rw [WellDenotedV, WellDenoted_app]
     refine ⟨?_, hyok, b₂, natLeafV m ψ ρ, fun _ => codS ρ, ?_, hym, ?_, fun _ => hNty⟩
     · rw [WellDenoted_app]
       exact ⟨hfok, hxok, b₁, natLeafV m ψ ρ,
@@ -280,8 +276,6 @@ theorem natBinHead_app (m : EnvModel V env) {ψ : Name → Nat}
       exact hinner
     · intro hz z hz'
       exact hB2 hz z hz'
-  · rw [AnnotValid_app, AnnotValid_app]
-    exact ⟨⟨hfv, hxv⟩, hyv⟩
   · rw [interp_app, interp_app]
     exact houter
 
@@ -296,16 +290,14 @@ theorem natUnHead_app (m : EnvModel V env) {ψ : Name → Nat}
   obtain ⟨xa, hxa, hxg⟩ := hx
   refine ⟨.app fa xa, by rw [denoteMeta_app, hfa, hxa]; rfl,
     fun ρ hρ => ?_⟩
-  obtain ⟨⟨hfok, hfv⟩, hNty, b₁, hfm, hB1⟩ := hfg ρ hρ
-  obtain ⟨⟨hxok, hxv⟩, hxm⟩ := hxg ρ hρ
+  obtain ⟨hfok, hNty, b₁, hfm, hB1⟩ := hfg ρ hρ
+  obtain ⟨hxok, hxm⟩ := hxg ρ hρ
   have happ : SetTheory.app (interp V ρ fa) (interp V ρ xa)
       ∈ˢ codS ρ := app_mem_piR hfm hxm hB1
-  refine ⟨⟨?_, ?_⟩, ?_⟩
-  · rw [WellDenoted_app]
+  refine ⟨?_, ?_⟩
+  · rw [WellDenotedV, WellDenoted_app]
     exact ⟨hfok, hxok, b₁, natLeafV m ψ ρ, fun _ => codS ρ, hfm, hxm,
       fun hz => hB1 hz, fun _ => hNty⟩
-  · rw [AnnotValid_app]
-    exact ⟨hfv, hxv⟩
   · rw [interp_app]
     exact happ
 
@@ -468,49 +460,29 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
         (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
         : AnnotTerm)) :
     NatBinHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
+  have hfibEq : ∀ ρ : Nat → V, (fun x => interp V (cons x ρ)
+        ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)) : AnnotTerm))
+      = fun _ => piV (natLeafV m ψ ρ) (fun _ => interp V ρ (m.acval codN ψ)) := by
+    intro ρ
+    funext x
+    rw [interp_pi]
+    congr 1
+    · exact acval_interp_closed m _ ψ _ ρ
+    · funext y
+      exact acval_interp_closed m _ ψ _ ρ
   refine ⟨fa, hfa, fun ρ _ => ⟨hok ρ,
-    ((WellDenoted_pi V ρ _ _ _ _) ▸ (htok ρ).1).2.1, b₁, b₂, ?_, ?_, ?_⟩⟩
+    (cast (WellDenoted_pi V ρ _ _) (htok ρ)).2.1,
+    propN (natLeafV m ψ ρ)
+      (fun _ => piV (natLeafV m ψ ρ) (fun _ => interp V ρ (m.acval codN ψ))),
+    propN (natLeafV m ψ ρ) (fun _ => interp V ρ (m.acval codN ψ)), ?_, ?_, ?_⟩⟩
   · -- the membership, with the fibres closed off
     have h := hmem ρ
-    rw [interp_pi] at h
-    have hfib : (fun x => interp V (cons x ρ)
-          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
-            : AnnotTerm))
-        = fun _ => piR b₂ (natLeafV m ψ ρ)
-            (fun _ => interp V ρ (m.acval codN ψ)) := by
-      funext x
-      rw [interp_pi]
-      congr 1
-      · exact acval_interp_closed m _ ψ _ ρ
-      · funext y
-        exact acval_interp_closed m _ ψ _ ρ
-    rw [hfib] at h
+    rw [interp_pi, hfibEq ρ] at h
     exact h
-  · -- the outer fibre fact, from validity
-    intro hz x hx
-    have hv := (htok ρ).2
-    rw [AnnotValid_pi] at hv
-    have h := hv.2.2 hz x hx
-    rw [show interp V (cons x ρ)
-          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
-            : AnnotTerm)
-        = piR b₂ (natLeafV m ψ ρ)
-            (fun _ => interp V ρ (m.acval codN ψ)) from by
-      rw [interp_pi]
-      congr 1
-      · exact acval_interp_closed m _ ψ _ ρ
-      · funext y
-        exact acval_interp_closed m _ ψ _ ρ] at h
-    exact h
-  · -- the inner fibre fact, from validity one binder in
-    intro hz x hx
-    have hv := (htok ρ).2
-    rw [AnnotValid_pi] at hv
-    have hinner := hv.2.1 x hx
-    rw [AnnotValid_pi] at hinner
-    have h := hinner.2.2 hz x
-      (by rw [acval_interp_closed m _ ψ (cons x ρ) ρ]; exact hx)
-    rwa [acval_interp_closed m _ ψ _ ρ] at h
+  · intro hz x hx
+    exact propN_eq_zero.mp hz x hx
+  · intro hz x hx
+    exact propN_eq_zero.mp hz x hx
 
 /-- **The unary head package, from its parts.** -/
 theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
@@ -524,7 +496,8 @@ theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
         : AnnotTerm)) :
     NatUnHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
   refine ⟨fa, hfa, fun ρ _ => ⟨hok ρ,
-    ((WellDenoted_pi V ρ _ _ _ _) ▸ (htok ρ).1).2.1, b₁, ?_, ?_⟩⟩
+    (cast (WellDenoted_pi V ρ _ _) (htok ρ)).2.1,
+    propN (natLeafV m ψ ρ) (fun _ => interp V ρ (m.acval codN ψ)), ?_, ?_⟩⟩
   · have h := hmem ρ
     rw [interp_pi] at h
     have hfib : (fun x => interp V (cons x ρ) (m.acval codN ψ))
@@ -534,10 +507,7 @@ theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     rw [hfib] at h
     exact h
   · intro hz x hx
-    have hv := (htok ρ).2
-    rw [AnnotValid_pi] at hv
-    have h := hv.2.2 hz x hx
-    rwa [acval_interp_closed m _ ψ _ ρ] at h
+    exact propN_eq_zero.mp hz x hx
 
 /-! ## Head packages from the environment invariant
 
@@ -576,7 +546,7 @@ theorem natBinHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
   refine natBinHead_of_parts mp.base2
     (denoteMeta_levelless_const hf (show (ConstantInfo.defnInfo cvo vo
       ho).toConstantVal.levelParams = [] from hlp))
-    (fun ρ => ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩)
+    (fun ρ => mp.base2.acval_wellDenoted _ _ ρ)
     (fun ρ => ?_) (fun ρ => (mp.type_wellDenotedTy _ hmemE ψ _ hta ρ).1)
   have h := mp.mem_type _ hmemE ψ _ hta ρ
   rwa [show (ConstantInfo.defnInfo cvo vo ho).name = o from hnm] at h
@@ -607,7 +577,7 @@ theorem natUnHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
   refine natUnHead_of_parts mp.base2
     (denoteMeta_levelless_const hf (show (ConstantInfo.defnInfo cvo vo
       ho).toConstantVal.levelParams = [] from hlp))
-    (fun ρ => ⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩)
+    (fun ρ => mp.base2.acval_wellDenoted _ _ ρ)
     (fun ρ => ?_) (fun ρ => (mp.type_wellDenotedTy _ hmemE ψ _ hta ρ).1)
   have h := mp.mem_type _ hmemE ψ _ hta ρ
   rwa [show (ConstantInfo.defnInfo cvo vo ho).name = o from hnm] at h
@@ -617,7 +587,7 @@ theorem natUnHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
 /-- The `Nat`-leaved sides satisfy `CtxOk` at the two-variable
 context. -/
 theorem ctxOk_natCtx2 (m : EnvModel V env) {ψ : Name → Nat}
-    (hval : AcvalValid m) {ciN : ConstantInfo}
+    {ciN : ConstantInfo}
     (hfN : env.find? ConLeche.natName = some ciN)
     (hlpN : ciN.toConstantVal.levelParams = [])
     (hNty : ∀ ρ : Nat → V, IsTy (natLeafV m ψ ρ))
@@ -636,7 +606,7 @@ theorem ctxOk_natCtx2 (m : EnvModel V env) {ψ : Name → Nat}
   · intro ρ _
     exact natLeafAV_interp_closed m ψ ρ _
   · intro ρ _
-    exact ⟨m.acval_wellDenoted _ _ ρ, hNty ρ⟩
+    exact ⟨(m.acval_wellDenoted _ _ ρ), hNty ρ⟩
 
 /-- **One substituted equation, converted**: the recorded run plus both
 sides' packages give the two-variable `interp` equality — the exact
@@ -680,8 +650,8 @@ theorem natEqLaw_of_run (mp : EnvModelM V μ env) {ψ : Name → Nat}
   -- two members of one type: the point does not separate them
   exact (hS _ hρ).eq_of_ne_pt (hga _ hρ).2 (hgr _ hρ).2
     (hde hrun hwl hbl hLl hwr hbr hLr
-      (ctxOk_natCtx2 mp.base2 mp.acvalValid hfN hlpN hNty hll)
-      (ctxOk_natCtx2 mp.base2 mp.acvalValid hfN hlpN hNty hlr)
+      (ctxOk_natCtx2 mp.base2 hfN hlpN hNty hll)
+      (ctxOk_natCtx2 mp.base2 hfN hlpN hNty hlr)
       hla hra (fun σ hσ => (hga σ hσ).1) (fun σ hσ => (hgr σ hσ).1)
       (cons y (cons x ρ)) hρ)
 
@@ -827,7 +797,7 @@ theorem natBoolConst_package (mp : EnvModelM V μ env) {ψ : Name → Nat}
       = some (mp.base2.acval ConLeche.boolName ψ) := by
     rw [hty]; exact denoteMeta_levelless_const hfB hlpB
   refine ⟨mp.base2.acval n ψ, denoteMeta_levelless_const hf hlp,
-    fun ρ _ => ⟨⟨mp.base2.acval_wellDenoted _ _ ρ, mp.acval_validV _ _ ρ⟩, ?_⟩⟩
+    fun ρ _ => ⟨mp.base2.acval_wellDenoted _ _ ρ, ?_⟩⟩
   have h := mp.mem_type _ hmemE ψ _ hta ρ
   rwa [ConLeche.Semantics.Env.find?_name hf] at h
 
@@ -1206,7 +1176,6 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
   obtain ⟨e1, e2⟩ := eq
   -- the shared preamble: storedness at the prefix, fragments, frames
   have hnh : NatHeads mp.base2 φ := mp.nat_heads φ
-  have hvalV : AcvalValid mp.base2 := mp.acvalValid
   obtain ⟨hN₂, hz₂, hs₂, hdeps₂, hbool₂⟩ :=
     ConLeche.Verify.natOpGuard_stored hg2
   have tr : ∀ {n : Name}, n ≠ cq →
@@ -1342,7 +1311,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
         (fun ρ => interp V ρ (mp.base2.acval ConLeche.natName φ)) :=
       hSelfUn rfl
     have hvx := natArg_var0 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- pred 0 = 0
@@ -1355,7 +1324,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     · -- pred (succ x) = x
       obtain ⟨la, hla, hga⟩ := NatArg.package mp.base2
         (natArg_of_un mp.base2 hun
-          (natArg_succ mp.base2 hnh hvalV hs hvx))
+          (natArg_succ mp.base2 hnh hs hvx))
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2 hvx
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
@@ -1368,7 +1337,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
         from by unfold natOpCodN; rw [ite_eq_right (by decide)]] using h
     have hvx := natArg_var0 mp.base2 φ
     have hvy := natArg_var1 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- add x 0 = x
@@ -1380,9 +1349,9 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- add x (succ y) = succ (add x y)
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        hvx (natArg_succ mp.base2 hnh hvalV hs hvy)
+        hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
-        (natArg_succ mp.base2 hnh hvalV hs
+        (natArg_succ mp.base2 hnh hs
           (natArg_of_bin mp.base2 hbin hvx hvy))
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
@@ -1396,7 +1365,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     have hpred := hdepUn ConLeche.natPredName (by decide) (by decide) rfl
     have hvx := natArg_var0 mp.base2 φ
     have hvy := natArg_var1 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- sub x 0 = x
@@ -1408,7 +1377,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- sub x (succ y) = pred (sub x y)
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        hvx (natArg_succ mp.base2 hnh hvalV hs hvy)
+        hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_of_un mp.base2 hpred
           (natArg_of_bin mp.base2 hbin hvx hvy))
@@ -1425,7 +1394,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       (by decide) (by decide)
     have hvx := natArg_var0 mp.base2 φ
     have hvy := natArg_var1 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- mul x 0 = 0
@@ -1437,7 +1406,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- mul x (succ y) = add (mul x y) x
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        hvx (natArg_succ mp.base2 hnh hvalV hs hvy)
+        hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_of_bin mp.base2 hadd
           (natArg_of_bin mp.base2 hbin hvx hvy) hvx)
@@ -1454,20 +1423,20 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       (by decide) (by decide)
     have hvx := natArg_var0 mp.base2 φ
     have hvy := natArg_var1 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- pow x 0 = 1
       obtain ⟨la, hla, hga⟩ :=
         natBinHead_app_package mp.base2 hbin hvx hz
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
-        (natArg_succ mp.base2 hnh hvalV hs hz)
+        (natArg_succ mp.base2 hnh hs hz)
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- pow x (succ y) = mul (pow x y) x
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        hvx (natArg_succ mp.base2 hnh hvalV hs hvy)
+        hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_of_bin mp.base2 hmul
           (natArg_of_bin mp.base2 hbin hvx hvy) hvx)
@@ -1500,7 +1469,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
         from by unfold natOpCodN; rw [ite_eq_left (by decide)]] using h
     have hvx := natArg_var0 mp.base2 φ
     have hvy := natArg_var1 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- beq 0 0 = true
@@ -1513,7 +1482,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- beq 0 (succ y) = false
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        hz (natArg_succ mp.base2 hnh hvalV hs hvy)
+        hz (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfF hlpF htyF2 hfB hlpB
       refine close hSB ?_ hga ?_ hgr
@@ -1521,7 +1490,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- beq (succ x) 0 = false
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        (natArg_succ mp.base2 hnh hvalV hs hvx) hz
+        (natArg_succ mp.base2 hnh hs hvx) hz
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfF hlpF htyF2 hfB hlpB
       refine close hSB ?_ hga ?_ hgr
@@ -1529,8 +1498,8 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- beq (succ x) (succ y) = beq x y
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        (natArg_succ mp.base2 hnh hvalV hs hvx)
-        (natArg_succ mp.base2 hnh hvalV hs hvy)
+        (natArg_succ mp.base2 hnh hs hvx)
+        (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ :=
         natBinHead_app_package mp.base2 hbin hvx hvy
       refine close hSB ?_ hga ?_ hgr
@@ -1562,7 +1531,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
         from by unfold natOpCodN; rw [ite_eq_left (by decide)]] using h
     have hvx := natArg_var0 mp.base2 φ
     have hvy := natArg_var1 mp.base2 φ
-    have hz := natArg_zero mp.base2 hnh hvalV hs
+    have hz := natArg_zero mp.base2 hnh hs
     simp +decide [ConLeche.natOpEquations] at hq
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- ble 0 y = true
@@ -1575,7 +1544,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- ble (succ x) 0 = false
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        (natArg_succ mp.base2 hnh hvalV hs hvx) hz
+        (natArg_succ mp.base2 hnh hs hvx) hz
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfF hlpF htyF2 hfB hlpB
       refine close hSB ?_ hga ?_ hgr
@@ -1583,8 +1552,8 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hra
     · -- ble (succ x) (succ y) = ble x y
       obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
-        (natArg_succ mp.base2 hnh hvalV hs hvx)
-        (natArg_succ mp.base2 hnh hvalV hs hvy)
+        (natArg_succ mp.base2 hnh hs hvx)
+        (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ :=
         natBinHead_app_package mp.base2 hbin hvx hvy
       refine close hSB ?_ hga ?_ hgr

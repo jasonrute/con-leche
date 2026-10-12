@@ -534,8 +534,8 @@ theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
     (hw : WellDenotedV V ρ (.app f x)) (hn : interp V ρ f ≠ pt) :
     ∃ (v : Nat) (A : V) (B : V → V), v ≠ 0 ∧
       interp V ρ f ∈ˢ piR v A B ∧ interp V ρ x ∈ˢ A ∧ IsTy A := by
-  have h := hw.1
-  rw [WellDenoted_app] at h
+  have h := hw
+  rw [WellDenotedV, WellDenoted_app] at h
   obtain ⟨-, -, v, A, B, hf, hx, -, hT⟩ := h
   have hv : v ≠ 0 := by
     rintro rfl; exact hn (eq_pt_of_mem_piR_zero hf)
@@ -545,7 +545,7 @@ theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
 theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V}
     {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
-  ((WellDenoted_pi V ρ A B) ▸ h.1).2.2.2 x hx
+  (cast (WellDenoted_pi V ρ A B) h).2.2.2 x hx
 
 theorem DefEq.refl_sound {d : Nat} {a : Expr} : DefEqSem m φ d a a :=
   DefEq.refl_soundU.cond
@@ -603,8 +603,8 @@ theorem DefEq.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {k : Nat} {x : 
   obtain ⟨hz, hs, hT⟩ := hin.nat_heads hg ρ
   have hmk := (natLit_factsAV (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ)
     hz hs hT k).2
-  have hw := hwb.1
-  rw [WellDenoted_app] at hw
+  have hw := hwb
+  rw [WellDenotedV, WellDenoted_app] at hw
   obtain ⟨-, -, v, A, B, hfm, hxm, -, -⟩ := hw
   have hv : v ≠ 0 := by
     rintro rfl

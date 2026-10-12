@@ -68,7 +68,7 @@ theorem natLit_zero (m : EnvModel V env) :
 /-- Numerals inhabit the stored `Nat` and are graded
 (`natLit_factsAV` at the environment's heads). -/
 theorem natLit_facts (m : EnvModel V env) (hnh : NatHeads m φ)
-    (hval : AcvalValid m) (hs : natLitSupported env = true)
+    (hs : natLitSupported env = true)
     (ρ : Nat → V) (n : Nat) :
     WellDenotedV V ρ (natLit m φ n) ∧
       interp V ρ (natLit m φ n)
@@ -80,15 +80,15 @@ theorem natLit_facts (m : EnvModel V env) (hnh : NatHeads m φ)
     (sa := m.acval ConLeche.natSuccName φ)
     (natA := m.acval ConLeche.natName φ)
     (m.acval_wellDenoted _ _ ρ) (m.acval_wellDenoted _ _ ρ) hz hsucc hNty n
-  exact ⟨⟨h.1, AnnotValid_natLitAV (hval _ _ ρ) (hval _ _ ρ) n⟩, h.2⟩
+  exact ⟨h.1, h.2⟩
 
 /-- Numeral membership alone (the induction's staple). -/
 theorem natLit_mem (m : EnvModel V env) (hnh : NatHeads m φ)
-    (hval : AcvalValid m) (hs : natLitSupported env = true)
+    (hs : natLitSupported env = true)
     (ρ : Nat → V) (n : Nat) :
     interp V ρ (natLit m φ n)
       ∈ˢ interp V ρ (m.acval ConLeche.natName φ) :=
-  (natLit_facts m hnh hval hs ρ n).2
+  (natLit_facts m hnh hs ρ n).2
 
 /-! ## Reading one recurrence at values -/
 
@@ -151,7 +151,7 @@ theorem natOpV_bin_of_clauses (m : EnvModel V env)
 
 /-- `Nat.add` on literal values. -/
 theorem natOpV_add (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natAddName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -185,7 +185,7 @@ theorem natOpV_add (m : EnvModel V env) (hops : NatOps m φ)
     fun d => denoteMeta_levelless_const hfS
       (show (ConstantInfo.ctorInfo cv1 i1 j1).toConstantVal.levelParams
         = [] from hlpS)
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   -- base clause, read at values
   have h0 : ∀ x : V,
       x ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →
@@ -258,11 +258,11 @@ theorem natOpV_add (m : EnvModel V env) (hops : NatOps m φ)
   refine natOpV_bin_of_clauses m (fun a b => a + b) (fun a => ?_)
     (fun a b ih => ?_)
   · exact h0 (interp V ρ (natLit m φ a))
-      (natLit_mem m hnh hval hs ρ a)
+      (natLit_mem m hnh hs ρ a)
   · rw [hS (interp V ρ (natLit m φ a))
         (interp V ρ (natLit m φ b))
-        (natLit_mem m hnh hval hs ρ a)
-        (natLit_mem m hnh hval hs ρ b), ih]
+        (natLit_mem m hnh hs ρ a)
+        (natLit_mem m hnh hs ρ b), ih]
     rw [Nat.add_succ, natLit_succ, interp_app]
 
 /-! ## The remaining structural operations
@@ -273,7 +273,7 @@ form, `mul` reads `add`'s, `pow` reads `mul`'s — each dependency's
 
 /-- `Nat.pred` on literal values. -/
 theorem natOpV_pred (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natPredName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -304,7 +304,7 @@ theorem natOpV_pred (m : EnvModel V env) (hops : NatOps m φ)
     fun d => denoteMeta_levelless_const hfS
       (show (ConstantInfo.ctorInfo cv1 i1 j1).toConstantVal.levelParams
         = [] from hlpS)
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   -- base clause, read at values
   have h0 : SetTheory.app
       (interp V ρ (m.acval ConLeche.natPredName φ))
@@ -354,12 +354,12 @@ theorem natOpV_pred (m : EnvModel V env) (hops : NatOps m φ)
   | 0 => exact h0
   | a + 1 =>
     rw [natLit_succ, interp_app,
-      hS _ (natLit_mem m hnh hval hs ρ a)]
+      hS _ (natLit_mem m hnh hs ρ a)]
     rfl
 
 /-- `Nat.sub` on literal values. -/
 theorem natOpV_sub (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natSubName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -401,7 +401,7 @@ theorem natOpV_sub (m : EnvModel V env) (hops : NatOps m φ)
     fun d => denoteMeta_levelless_const hfS
       (show (ConstantInfo.ctorInfo cv1 i1 j1).toConstantVal.levelParams
         = [] from hlpS)
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   have h0 : ∀ x : V,
       x ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →
       SetTheory.app (SetTheory.app
@@ -472,15 +472,15 @@ theorem natOpV_sub (m : EnvModel V env) (hops : NatOps m φ)
     exact h
   refine natOpV_bin_of_clauses m (fun a b => a - b) (fun a => ?_)
     (fun a b ih => ?_)
-  · exact h0 _ (natLit_mem m hnh hval hs ρ a)
-  · rw [hS _ _ (natLit_mem m hnh hval hs ρ a)
-        (natLit_mem m hnh hval hs ρ b), ih,
-      natOpV_pred m hops hnh hval hfp ρ (a - b)]
+  · exact h0 _ (natLit_mem m hnh hs ρ a)
+  · rw [hS _ _ (natLit_mem m hnh hs ρ a)
+        (natLit_mem m hnh hs ρ b), ih,
+      natOpV_pred m hops hnh hfp ρ (a - b)]
     rfl
 
 /-- `Nat.mul` on literal values. -/
 theorem natOpV_mul (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natMulName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -522,7 +522,7 @@ theorem natOpV_mul (m : EnvModel V env) (hops : NatOps m φ)
     fun d => denoteMeta_levelless_const hfS
       (show (ConstantInfo.ctorInfo cv1 i1 j1).toConstantVal.levelParams
         = [] from hlpS)
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   have h0 : ∀ x : V,
       x ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →
       SetTheory.app (SetTheory.app
@@ -593,15 +593,15 @@ theorem natOpV_mul (m : EnvModel V env) (hops : NatOps m φ)
     exact h
   refine natOpV_bin_of_clauses m (fun a b => a * b) (fun a => ?_)
     (fun a b ih => ?_)
-  · exact h0 _ (natLit_mem m hnh hval hs ρ a)
-  · rw [hS _ _ (natLit_mem m hnh hval hs ρ a)
-        (natLit_mem m hnh hval hs ρ b), ih,
-      natOpV_add m hops hnh hval hfa ρ (a * b) a]
+  · exact h0 _ (natLit_mem m hnh hs ρ a)
+  · rw [hS _ _ (natLit_mem m hnh hs ρ a)
+        (natLit_mem m hnh hs ρ b), ih,
+      natOpV_add m hops hnh hfa ρ (a * b) a]
     rfl
 
 /-- `Nat.pow` on literal values. -/
 theorem natOpV_pow (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natPowName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -643,7 +643,7 @@ theorem natOpV_pow (m : EnvModel V env) (hops : NatOps m φ)
     fun d => denoteMeta_levelless_const hfS
       (show (ConstantInfo.ctorInfo cv1 i1 j1).toConstantVal.levelParams
         = [] from hlpS)
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   have h0 : ∀ x : V,
       x ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →
       SetTheory.app (SetTheory.app
@@ -719,15 +719,15 @@ theorem natOpV_pow (m : EnvModel V env) (hops : NatOps m φ)
     exact h
   refine natOpV_bin_of_clauses m (fun a b => a ^ b) (fun a => ?_)
     (fun a b ih => ?_)
-  · exact h0 _ (natLit_mem m hnh hval hs ρ a)
-  · rw [hS _ _ (natLit_mem m hnh hval hs ρ a)
-        (natLit_mem m hnh hval hs ρ b), ih,
-      natOpV_mul m hops hnh hval hfm ρ (a ^ b) a]
+  · exact h0 _ (natLit_mem m hnh hs ρ a)
+  · rw [hS _ _ (natLit_mem m hnh hs ρ a)
+        (natLit_mem m hnh hs ρ b), ih,
+      natOpV_mul m hops hnh hfm ρ (a ^ b) a]
     rfl
 
 /-- `Nat.beq` on literal values. -/
 theorem natOpV_beq (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natBeqName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -772,7 +772,7 @@ theorem natOpV_beq (m : EnvModel V env) (hops : NatOps m φ)
       (.const ConLeche.boolFalseName [])
       = some (m.acval ConLeche.boolFalseName φ) :=
     fun d => denoteMeta_levelless_const hfF hlpF
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   -- the four clauses at values
   have h00 : SetTheory.app (SetTheory.app
       (interp V ρ (m.acval ConLeche.natBeqName φ))
@@ -904,24 +904,24 @@ theorem natOpV_beq (m : EnvModel V env) (hops : NatOps m φ)
     | 0 => rw [natLit_zero]; exact h00
     | b + 1 =>
       rw [natLit_zero, natLit_succ, interp_app,
-        h0S _ (natLit_mem m hnh hval hs ρ b), ite_eq_right (by omega)]
+        h0S _ (natLit_mem m hnh hs ρ b), ite_eq_right (by omega)]
   | succ a ih =>
     intro b
     match b with
     | 0 =>
       rw [natLit_zero, natLit_succ, interp_app,
-        hS0 _ (natLit_mem m hnh hval hs ρ a), ite_eq_right (by omega)]
+        hS0 _ (natLit_mem m hnh hs ρ a), ite_eq_right (by omega)]
     | b + 1 =>
       rw [natLit_succ, natLit_succ, interp_app, interp_app,
-        hSS _ _ (natLit_mem m hnh hval hs ρ a)
-          (natLit_mem m hnh hval hs ρ b), ih b]
+        hSS _ _ (natLit_mem m hnh hs ρ a)
+          (natLit_mem m hnh hs ρ b), ih b]
       by_cases hab : a = b
       · rw [ite_eq_left hab, ite_eq_left (by omega)]
       · rw [ite_eq_right hab, ite_eq_right (by omega)]
 
 /-- `Nat.ble` on literal values. -/
 theorem natOpV_ble (m : EnvModel V env) (hops : NatOps m φ)
-    (hnh : NatHeads m φ) (hval : AcvalValid m)
+    (hnh : NatHeads m φ)
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hf : env.find? ConLeche.natBleName = some (.defnInfo cv v hint))
     (ρ : Nat → V) :
@@ -967,7 +967,7 @@ theorem natOpV_ble (m : EnvModel V env) (hops : NatOps m φ)
       (.const ConLeche.boolFalseName [])
       = some (m.acval ConLeche.boolFalseName φ) :=
     fun d => denoteMeta_levelless_const hfF hlpF
-  have hzm := natLit_mem m hnh hval hs ρ 0
+  have hzm := natLit_mem m hnh hs ρ 0
   have h0y : ∀ y : V,
       y ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →
       SetTheory.app (SetTheory.app
@@ -1066,18 +1066,18 @@ theorem natOpV_ble (m : EnvModel V env) (hops : NatOps m φ)
   induction a with
   | zero =>
     intro b
-    rw [natLit_zero, h0y _ (natLit_mem m hnh hval hs ρ b),
+    rw [natLit_zero, h0y _ (natLit_mem m hnh hs ρ b),
       ite_eq_left (Nat.zero_le b)]
   | succ a ih =>
     intro b
     match b with
     | 0 =>
       rw [natLit_zero, natLit_succ, interp_app,
-        hS0 _ (natLit_mem m hnh hval hs ρ a), ite_eq_right (by omega)]
+        hS0 _ (natLit_mem m hnh hs ρ a), ite_eq_right (by omega)]
     | b + 1 =>
       rw [natLit_succ, natLit_succ, interp_app, interp_app,
-        hSS _ _ (natLit_mem m hnh hval hs ρ a)
-          (natLit_mem m hnh hval hs ρ b), ih b]
+        hSS _ _ (natLit_mem m hnh hs ρ a)
+          (natLit_mem m hnh hs ρ b), ih b]
       by_cases hab : a ≤ b
       · rw [ite_eq_left hab, ite_eq_left (by omega)]
       · rw [ite_eq_right hab, ite_eq_right (by omega)]
