@@ -154,7 +154,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
 theorem frame_of_not_hasFvar {m : EnvModel V env} {d : Nat}
     {Δa : List AnnotTerm} {e : Expr} (hnf : e.hasFvar = false)
     (hbd : e.looseBVarsBounded 0 = true) (hlen : Δa.length = d) :
-    Frame d e ∧ CtxOk m φ d Δa e :=
+    Frame d e ∧ CtxOkS m φ d Δa e :=
   ⟨⟨ConLeche.Expr.WScoped.of_not_hasFvar hnf, hbd,
       ConLeche.Expr.LeavesBounded.of_not_hasFvar hnf⟩,
     ⟨hlen, fun l hl => by
@@ -291,9 +291,9 @@ theorem piResidual_frameK {m : EnvModel V env} {d : Nat}
     {Δa : List AnnotTerm} :
     ∀ {T : Expr} {args : List Expr} {rest : Expr},
       ConLeche.piResidual T args = some rest →
-      Frame d T → CtxOk m φ d Δa T →
-      (∀ x ∈ args, Frame d x ∧ CtxOk m φ d Δa x) →
-      Frame d rest ∧ CtxOk m φ d Δa rest := by
+      Frame d T → CtxOkS m φ d Δa T →
+      (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
+      Frame d rest ∧ CtxOkS m φ d Δa rest := by
   intro T args
   induction args generalizing T with
   | nil =>
@@ -327,6 +327,37 @@ theorem piResidual_frameK {m : EnvModel V env} {d : Nat}
       · first
         | exact hLa l h2
         | exact hCa.2 l h2
+
+/-- The leaves of a `∀`-telescope's residual are the telescope's and the
+arguments'; graded where those are. -/
+theorem piResidual_leavesGrK {m : EnvModel V env} {d : Nat} {ρ : Nat → V} :
+    ∀ {T : Expr} {args : List Expr} {rest : Expr},
+      ConLeche.piResidual T args = some rest →
+      LeavesGr m φ d T ρ → (∀ x ∈ args, LeavesGr m φ d x ρ) →
+      LeavesGr m φ d rest ρ := by
+  intro T args
+  induction args generalizing T with
+  | nil =>
+    intro rest h hT _
+    obtain rfl : rest = T := (Option.some.inj h).symm
+    exact hT
+  | cons a as ih =>
+    intro rest h hT hA
+    match T, h with
+    | .bvar _, h => exact nomatch h
+    | .fvar _ _, h => exact nomatch h
+    | .sort _, h => exact nomatch h
+    | .const _ _, h => exact nomatch h
+    | .app _ _, h => exact nomatch h
+    | .lam _ _ _, h => exact nomatch h
+    | .letE _ _ _, h => exact nomatch h
+    | .lit _, h => exact nomatch h
+    | .proj _ _ _, h => exact nomatch h
+    | .forallE ty body mb, h =>
+    refine ih h (fun l hl => ?_) (fun x hx => hA x (by simp [hx]))
+    rcases Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
+    · exact hT l (by simp [Expr.fvarLeaves, h2])
+    · exact hA a (by simp) l h2
 
 /-- **A `TeleFitPA` fit's residual is the reading of the checker's own
 `piResidual`**. -/

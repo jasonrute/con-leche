@@ -74,45 +74,98 @@ theorem GradedTy.graded {Δa : List AnnotTerm} {ta : AnnotTerm}
 @[expose] def LeavesSub (e' e : Expr) : Prop :=
   ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves
 
-/-- **`Red`'s motive**: a reduction of a framed, graded, readable
-subject preserves the frame, reads, is graded, and has the same
+/-! ## The per-valuation motives (task #342, L9)
+
+Every motive speaks about ONE valuation at a time, as the fragment's
+claims do (`whitepaper/Fragment/Motive.lean`): the subject's grading, its
+leaves' grading (`LeavesGr`) and the context's satisfaction are premises at
+`ρ`, and so are the conclusions.  The context discipline outside `ρ` is the
+structural `CtxOkS`.
+
+`RedSem`, `DefEqSem` and `DefEqListSem` are **conditional on the point**:
+they equate two readings only at a valuation where neither is the point
+(a reduction: where the subject is not).  They say nothing about proofs,
+which is what lets β fire with no certificate (`Red.beta_sound`).  The
+inference motives are not conditional: an inferred type is a type, never
+the point.
+
+The `…U` motives are the same statements without the point condition.
+They are the **interim** side induction (`Model/Rules/Sound.lean`,
+`red_soundU` …): the ι rules (task #342 L10) and the definitional-equality
+rules (L11) are still proved unconditionally and reach the conditional
+motives through `RedSemU.cond`/`DefEqSemU.cond`.  The side induction needs
+β certified (`Red.beta`'s guarded premises); it goes, with those premises,
+once L10/L11 have proved their rules at the conditional motives. -/
+
+/-- **`Red`'s motive**: a reduction of a framed, readable subject
+preserves the frame and reads; at a valuation where the subject is
+graded and not the point, the reduct is graded and has the same
 interpretation. -/
 @[expose] def RedSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e e' : Expr) : Prop :=
   Frame d e →
   ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
-    CtxOk m φ d Δa e →
+    CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
-    Graded V Δa ea →
     Frame d e' ∧ LeavesSub e' e ∧
       ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧
-        Graded V Δa ea' ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ea'
+        ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
+          WellDenotedV V ρ ea → interp V ρ ea ≠ pt →
+          WellDenotedV V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
 
-/-- **`DefEq`'s motive**: `DefEqClaim`'s conclusion under its premises. -/
+/-- `RedSem` without the point condition (the interim side motive). -/
+@[expose] def RedSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (d : Nat) (e e' : Expr) : Prop :=
+  Frame d e →
+  ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
+    CtxOkS m φ d Δa e →
+    denoteMeta m.acval env φ d e = some ea →
+    Frame d e' ∧ LeavesSub e' e ∧
+      ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧
+        ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
+          WellDenotedV V ρ ea →
+          WellDenotedV V ρ ea' ∧ interp V ρ ea = interp V ρ ea'
+
+/-- **`DefEq`'s motive**: at a valuation where both sides are graded and
+neither is the point, they are equal. -/
 @[expose] def DefEqSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (a b : Expr) : Prop :=
   Frame d a → Frame d b →
   ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
-    CtxOk m φ d Δa a → CtxOk m φ d Δa b →
+    CtxOkS m φ d Δa a → CtxOkS m φ d Δa b →
     denoteMeta m.acval env φ d a = some aa →
     denoteMeta m.acval env φ d b = some ba →
-    Graded V Δa aa → Graded V Δa ba →
-    ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ aa = interp V ρ ba
+    ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d a ρ → LeavesGr m φ d b ρ →
+      WellDenotedV V ρ aa → WellDenotedV V ρ ba →
+      interp V ρ aa ≠ pt → interp V ρ ba ≠ pt →
+      interp V ρ aa = interp V ρ ba
+
+/-- `DefEqSem` without the point condition (the interim side motive). -/
+@[expose] def DefEqSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (d : Nat) (a b : Expr) : Prop :=
+  Frame d a → Frame d b →
+  ∀ {Δa : List AnnotTerm} {aa ba : AnnotTerm},
+    CtxOkS m φ d Δa a → CtxOkS m φ d Δa b →
+    denoteMeta m.acval env φ d a = some aa →
+    denoteMeta m.acval env φ d b = some ba →
+    ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d a ρ → LeavesGr m φ d b ρ →
+      WellDenotedV V ρ aa → WellDenotedV V ρ ba →
+      interp V ρ aa = interp V ρ ba
 
 /-- **`Infer`'s motive at the full grade** — establishment: the
 subject's grading is a conclusion; the type is a graded type
-(`GradedTy`: its denotation is a type). -/
+(`WellDenotedTy`: its denotation is a type). -/
 @[expose] def InferSemFull {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
   ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
-    CtxOk m φ d Δa e →
+    CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
-        Graded V Δa ea ∧ GradedTy V Δa ta ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ∈ˢ interp V ρ ta
+        ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
+          WellDenotedV V ρ ea ∧ WellDenotedTy V ρ ta ∧
+            interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- **`Infer`'s motive at the io grade** — consumption: the subject's
 grading is a premise (`InferClaimIO`'s premise form). -/
@@ -120,13 +173,13 @@ grading is a premise (`InferClaimIO`'s premise form). -/
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
   ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
-    CtxOk m φ d Δa e →
+    CtxOkS m φ d Δa e →
     denoteMeta m.acval env φ d e = some ea →
-    Graded V Δa ea →
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
-        GradedTy V Δa ta ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ∈ˢ interp V ρ ta
+        ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
+          WellDenotedV V ρ ea →
+          WellDenotedTy V ρ ta ∧ interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- The grade-dispatched inference motive. -/
 @[expose] def InferSem {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
@@ -135,43 +188,58 @@ grading is a premise (`InferClaimIO`'s premise form). -/
   | .io, d, e, t => InferSemIO m φ d e t
 
 /-- **`Certs`' motive**: the certified spine fits the telescope's
-reading, substitution-peeling.  At a licensed
-walk the skipped slots are recovered from the spine's own grading and
-the head's membership (`slotTransfer`), which are therefore
-premises exactly there. -/
+reading, substitution-peeling.  At a licensed walk the skipped slots are
+recovered from the spine's own grading and the head's membership
+(`slotTransfer`), which are therefore premises exactly there. -/
 @[expose] def CertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (lic : Bool) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
   ∀ {Δa : List AnnotTerm} {Ta fa : AnnotTerm} {vs : List AnnotTerm},
-    CtxOk m φ d Δa ty →
+    CtxOkS m φ d Δa ty →
     denoteMeta m.acval env φ d ty = some Ta →
-    Graded V Δa Ta →
-    (∀ x ∈ args, Frame d x ∧ CtxOk m φ d Δa x) →
+    (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
     DenoteMetaSpine m.acval env φ d args vs →
-    (∀ x ∈ vs, Graded V Δa x) →
-    (lic = true →
-      Graded V Δa (AnnotTerm.mkAppN fa vs) ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ fa ∈ˢ interp V ρ Ta) →
     ∃ resta : AnnotTerm,
-      (∀ ρ : Nat → V, Sat V Δa ρ → TeleFitPA V ρ Ta vs resta) ∧
-        Graded V Δa resta
+      ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
+        (∀ x ∈ args, LeavesGr m φ d x ρ) →
+        WellDenotedV V ρ Ta → (∀ x ∈ vs, WellDenotedV V ρ x) →
+        (lic = true →
+          WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
+            interp V ρ fa ∈ˢ interp V ρ Ta) →
+        TeleFitPA V ρ Ta vs resta ∧ WellDenotedV V ρ resta
 
 /-- **`DefEqList`'s motive**: the walk's LENGTH, and pointwise `interp`
-equality.  The length is a conclusion of its own
-because the pointwise equality is only available once both lists have
-been handed over as read spines — and a consumer (`Red.iota_sound`'s
-`.nested` pin block) needs the length to BUILD the second spine. -/
+equality where neither side is the point.  The length is a conclusion
+of its own because the pointwise equality is only available once both
+lists have been handed over as read spines — and a consumer
+(`Red.iota_sound`'s `.nested` pin block) needs the length to BUILD the
+second spine. -/
 @[expose] def DefEqListSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (as bs : List Expr) : Prop :=
   as.length = bs.length ∧
   ∀ {Δa : List AnnotTerm} {asa bsa : List AnnotTerm},
-    (∀ x ∈ as, Frame d x ∧ CtxOk m φ d Δa x) →
-    (∀ x ∈ bs, Frame d x ∧ CtxOk m φ d Δa x) →
+    (∀ x ∈ as, Frame d x ∧ CtxOkS m φ d Δa x) →
+    (∀ x ∈ bs, Frame d x ∧ CtxOkS m φ d Δa x) →
     DenoteMetaSpine m.acval env φ d as asa →
     DenoteMetaSpine m.acval env φ d bs bsa →
-    (∀ x ∈ asa, Graded V Δa x) →
-    (∀ x ∈ bsa, Graded V Δa x) →
     ∀ ρ : Nat → V, Sat V Δa ρ →
+      (∀ x ∈ as, LeavesGr m φ d x ρ) → (∀ x ∈ bs, LeavesGr m φ d x ρ) →
+      (∀ x ∈ asa, WellDenotedV V ρ x) → (∀ x ∈ bsa, WellDenotedV V ρ x) →
+      ∀ p ∈ (asa.map (interp V ρ)).zip (bsa.map (interp V ρ)),
+        p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2
+
+/-- `DefEqListSem` without the point condition (the interim side motive). -/
+@[expose] def DefEqListSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+    (d : Nat) (as bs : List Expr) : Prop :=
+  as.length = bs.length ∧
+  ∀ {Δa : List AnnotTerm} {asa bsa : List AnnotTerm},
+    (∀ x ∈ as, Frame d x ∧ CtxOkS m φ d Δa x) →
+    (∀ x ∈ bs, Frame d x ∧ CtxOkS m φ d Δa x) →
+    DenoteMetaSpine m.acval env φ d as asa →
+    DenoteMetaSpine m.acval env φ d bs bsa →
+    ∀ ρ : Nat → V, Sat V Δa ρ →
+      (∀ x ∈ as, LeavesGr m φ d x ρ) → (∀ x ∈ bs, LeavesGr m φ d x ρ) →
+      (∀ x ∈ asa, WellDenotedV V ρ x) → (∀ x ∈ bsa, WellDenotedV V ρ x) →
       asa.map (interp V ρ) = bsa.map (interp V ρ)
 
 /-- **`EtaProjCerts`' motive**: each certified field slot is a stored
@@ -186,5 +254,26 @@ stuck side fit — `CertsSem` at every listed index. -/
     (cvp.type.stripPis (targs.length + 1)).isSome = true ∧
     CertsSem m φ d false (cvp.type.instantiateLevelParams cvp.levelParams us')
       (targs ++ [b])
+
+/-! ### The interim side motives weaken to the conditional ones -/
+
+theorem RedSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
+    {d : Nat} {e e' : Expr} (h : RedSemU m φ d e e') : RedSem m φ d e e' := by
+  intro hf Δa ea hC hea
+  obtain ⟨hf', hsub, ea', hea', hs⟩ := h hf hC hea
+  exact ⟨hf', hsub, ea', hea', fun ρ hρ hL hw _ => hs ρ hρ hL hw⟩
+
+theorem DefEqSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
+    {d : Nat} {a b : Expr} (h : DefEqSemU m φ d a b) : DefEqSem m φ d a b :=
+  fun hfa hfb _ _ _ hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _ =>
+    h hfa hfb hCa hCb haa hba ρ hρ hLa hLb hwa hwb
+
+theorem DefEqListSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
+    {d : Nat} {as bs : List Expr} (h : DefEqListSemU m φ d as bs) :
+    DefEqListSem m φ d as bs := by
+  refine ⟨h.1, fun hfa hfb hsa hsb ρ hρ hLa hLb hga hgb p hp _ _ => ?_⟩
+  rw [h.2 hfa hfb hsa hsb ρ hρ hLa hLb hga hgb] at hp
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hp
+  simp
 
 end ConLeche.Model.Rules

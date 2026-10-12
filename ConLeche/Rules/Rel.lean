@@ -13,8 +13,8 @@ the opening depth `d` (an `fvar` carries its type, so there is no context
 list; a binder opens with `.fvar d ty` at depth `d + 1`, exactly as the
 checker does):
 
-* `Red env d e e'` — one relation for `whnfCore` and the `whnf` loop: β
-  (gated and certified), ζ, ι with the stuck-major rescues, the projection
+* `Red env d e e'` — one relation for `whnfCore` and the `whnf` loop: β,
+  ζ, ι with the stuck-major rescues, the projection
   rule, literal acceleration, δ, the two literal expansions, and the
   congruences the bodies recurse through (`appFn`, `projArg`).  `refl`
   and `trans` are constructors: a reduction is a denotation identity,
@@ -114,17 +114,20 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   clause, `Kernel/Core.lean`: `whnf pe`). -/
   | projArg {d : Nat} {sn : Name} {i : Nat} {e e' : Expr} :
       Red env d e e' → Red env d (.proj sn i e) (.proj sn i e')
-  /-- **β at a fired gate** (`Kernel/Core.lean`, `betaGateFires` at
-  `.verified`): a λ whose validated annotation datum is `.never`
-  reduces with no certificate — the graph-regime licence
-  (`Red.betaGate_sound`, `Model/Rules/RedSound.lean`). -/
-  | betaGate {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
-      mb.pw.isNever = true →
-      Red env d (.app (.lam ty body mb) a) (body.instantiate1 a)
-  /-- **β, certified** (`Kernel/Core.lean`): the argument's io-grade
-  type is definitionally equal to the domain. -/
+  /-- **β** (`whnfCoreBody`'s `.app` clause, `Kernel/Core.lean`): a λ
+  applied reduces to its body at the argument.  The one β rule (task
+  #342, L9).  Its conditional soundness (`Red.beta_sound`,
+  `Model/Rules/RedSound.lean`) reads no premise: a redex that is not the
+  point has a λ that is not the point, so the argument lies in the λ's
+  own domain.  The two premises, guarded by the binder's validated
+  annotation datum, are the checker's certificate where its gate does not
+  fire (the argument's io-grade type is definitionally equal to the
+  domain); only the interim unconditional side induction reads them
+  (`Red.beta_soundU`), and they go with it and with the certificate
+  (task #342, L13). -/
   | beta {d : Nat} {ty body a ta : Expr} {mb : BinderMeta} :
-      Infer env .io d a ta → DefEq env d ta ty →
+      (mb.pw.isNever = false → Infer env .io d a ta) →
+      (mb.pw.isNever = false → DefEq env d ta ty) →
       Red env d (.app (.lam ty body mb) a) (body.instantiate1 a)
   /-- **ζ** (official `whnf_core`'s `let` case): a `let` reduces to its
   body at its value, by substitution, with no certificate — the

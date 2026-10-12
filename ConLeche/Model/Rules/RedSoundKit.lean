@@ -490,10 +490,81 @@ theorem hoist_spine {Δa : List AnnotTerm} :
             ((AnnotValid_app V ρ fa x) ▸ (happ ρ hρ).2).2⟩
       · exact hrest x hx'
 
+/-! ## The per-valuation splitters (task #342, L9) -/
+
+
+theorem _root_.ConLeche.Model.WellDenotedV.app_fn {ρ : Nat → V} {f x : AnnotTerm}
+    (h : WellDenotedV V ρ (.app f x)) : WellDenotedV V ρ f :=
+  ⟨((WellDenoted_app V ρ f x) ▸ h.1).1, ((AnnotValid_app V ρ f x) ▸ h.2).1⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.app_arg {ρ : Nat → V} {f x : AnnotTerm}
+    (h : WellDenotedV V ρ (.app f x)) : WellDenotedV V ρ x :=
+  ⟨((WellDenoted_app V ρ f x) ▸ h.1).2.1, ((AnnotValid_app V ρ f x) ▸ h.2).2⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.pi_dom {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
+    (h : WellDenotedV V ρ (.pi u v A B)) : WellDenotedTy V ρ A :=
+  ⟨⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).1, ((AnnotValid_pi V ρ u v A B) ▸ h.2).1⟩,
+    ((WellDenoted_pi V ρ u v A B) ▸ h.1).2.1⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.pi_body {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
+    (h : WellDenotedV V ρ (.pi u v A B)) :
+    ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) B := fun x hx =>
+  ⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).2.2.1 x hx,
+    ((AnnotValid_pi V ρ u v A B) ▸ h.2).2.1 x hx⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.lam_dom {ρ : Nat → V} {v : Nat} {A b : AnnotTerm}
+    (h : WellDenotedV V ρ (.lam v A b)) : WellDenotedTy V ρ A :=
+  ⟨⟨((WellDenoted_lam V ρ v A b) ▸ h.1).1, ((AnnotValid_lam V ρ v A b) ▸ h.2).1⟩,
+    ((WellDenoted_lam V ρ v A b) ▸ h.1).2.1⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.lam_body {ρ : Nat → V} {v : Nat} {A b : AnnotTerm}
+    (h : WellDenotedV V ρ (.lam v A b)) :
+    ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) b := fun x hx =>
+  ⟨((WellDenoted_lam V ρ v A b) ▸ h.1).2.2.1 x hx,
+    ((AnnotValid_lam V ρ v A b) ▸ h.2).2 x hx⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.fst_arg {ρ : Nat → V} {e : AnnotTerm}
+    (h : WellDenotedV V ρ (.fst e)) : WellDenotedV V ρ e :=
+  ⟨((WellDenoted_fst V ρ e) ▸ h.1).1, (AnnotValid_fst V ρ e) ▸ h.2⟩
+
+theorem _root_.ConLeche.Model.WellDenotedV.snd_arg {ρ : Nat → V} {e : AnnotTerm}
+    (h : WellDenotedV V ρ (.snd e)) : WellDenotedV V ρ e :=
+  ⟨((WellDenoted_snd V ρ e) ▸ h.1).1, (AnnotValid_snd V ρ e) ▸ h.2⟩
+
+
+/-- "Not pt" source (1): a graded type is not the point. -/
+theorem _root_.ConLeche.Model.WellDenotedTy.ne_pt {ρ : Nat → V} {e : AnnotTerm}
+    (h : WellDenotedTy V ρ e) : interp V ρ e ≠ pt := h.2.ne_pt
+
+/-- Every argument of a graded application spine is graded, and so is
+its head, at one valuation. -/
+theorem hoist_spineV {ρ : Nat → V} :
+    ∀ (asa : List AnnotTerm) {fa : AnnotTerm},
+      WellDenotedV V ρ (AnnotTerm.mkAppN fa asa) →
+      WellDenotedV V ρ fa ∧ ∀ x ∈ asa, WellDenotedV V ρ x := by
+  intro asa
+  induction asa with
+  | nil => intro fa h; exact ⟨h, by simp⟩
+  | cons a as ih =>
+    intro fa h
+    obtain ⟨happ, hrest⟩ := ih (fa := .app fa a) h
+    refine ⟨happ.app_fn, ?_⟩
+    intro x hx
+    rcases List.mem_cons.mp hx with rfl | hx'
+    · exact happ.app_arg
+    · exact hrest x hx'
+
+/-- The leaves of every argument of a spine are graded where the
+spine's are. -/
+theorem leavesGr_spine {d : Nat} {a : Expr} {ρ : Nat → V}
+    (hL : LeavesGr m φ d a ρ) :
+    ∀ x ∈ a.getAppArgs, LeavesGr m φ d x ρ := fun _ hx =>
+  hL.of_subset (fun l hl => ConLeche.fvarLeaves_getAppArgs hx l hl)
+
 /-- The frame conditions of every argument of a spine (`frame_spine`). -/
 theorem frame_spine {d : Nat} {Δa : List AnnotTerm} {a : Expr}
-    (hf : Frame d a) (hC : CtxOk m φ d Δa a) :
-    ∀ x ∈ a.getAppArgs, Frame d x ∧ CtxOk m φ d Δa x := fun x hx =>
+    (hf : Frame d a) (hC : CtxOkS m φ d Δa a) :
+    ∀ x ∈ a.getAppArgs, Frame d x ∧ CtxOkS m φ d Δa x := fun x hx =>
   ⟨⟨hf.1.getAppArgs x hx, ConLeche.looseBVarsBounded_getAppArgs hf.2.1 x hx,
       fun l hl => hf.2.2 l (ConLeche.fvarLeaves_getAppArgs hx l hl)⟩,
     hC.of_subset (fun l hl => ConLeche.fvarLeaves_getAppArgs hx l hl)⟩
