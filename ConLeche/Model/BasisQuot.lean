@@ -840,8 +840,9 @@ theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : ITerm}
     rw [quotMkV_app V f1 f2 hy3, hcls]
 
 /-- **`Quot.ind`'s licence facts**: not K; `Quot.mk`'s arity; (S)
-and (P) from the major's domain (`quotRuleExtra_of`); no indices, a
-`.plain` rule, so (U) is the trivial index pin. -/
+and (P) from the major's domain (`quotRuleExtra_of`); (T) from the
+class's representative (`quotRuleT_of`); no indices, a `.plain` rule,
+so (U) is the trivial index pin. -/
 theorem quotIndExtra {m : EnvModel V env}
     (m₂ : EnvModel V ⟨quotIndA :: env.consts⟩)
     (hQ : env.find? quotName = some quotA)

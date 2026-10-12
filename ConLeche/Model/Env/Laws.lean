@@ -416,8 +416,7 @@ theorem indStrictHead_of {acval : Name → (Name → Nat) → ITerm} {env : Env}
 
 /-! ## The fired modeled-iota contract (task #161, iota tier)
 
-The stored recursors' fired rules at the validated-annotation
-currency:
+The stored recursors' fired rules, at the stored terms' reading:
 
 * **The law is `ITerm`-indexed**: the truthfulness transport is
   inherently about the applied reduct's *reading* (the ι step must
@@ -456,7 +455,7 @@ mathematics lives (a `Prop`-valued motive's minors at the squash
 regime).  **Consumer**: the ι rule's soundness (`Red.iota_sound`,
 `Model/Rules/IotaSound.lean`). -/
 
-/-- **The annotated telescope fit** (substitution-peeling): each argument reading inhabits its
+/-- **The telescope fit of readings** (substitution-peeling): each argument reading inhabits its
 progressively-substituted domain, one ambient environment, the
 residual an `ITerm` at that environment. -/
 inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
@@ -487,7 +486,7 @@ theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
       obtain ⟨mid, hm⟩ := ih n
       exact ⟨mid, TeleFitPA.cons hmem hm⟩
 
-/-- The annotated reverse-opening substitution chain (outermost
+/-- The reverse-opening substitution chain of readings (outermost
 argument consumed first, each at cut `0`, lifted past the arguments
 still to come). -/
 @[expose] def _root_.ConLeche.Model.ITerm.instRevChain :
