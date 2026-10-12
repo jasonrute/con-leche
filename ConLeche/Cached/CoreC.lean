@@ -743,14 +743,11 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
                  -- `inductive_reduce_rec` compares nothing) and at every
                  -- case-3 redex (`iotaCompares`, task #342 L10).  Where
                  -- it is run it is verdict-relevant for a nested rule
-                 -- (the comparands ARE the pins) and for a
-                 -- projection-function rule, and a certificate family
-                 -- for every other plain rule — the retired twin's
-                 -- judgement, kept
+                 -- (the comparands ARE the pins), and a certificate
+                 -- family for a plain rule (case 3)
                  if ← (if iotaCompares fe.find? rl cvj usj then
                     certUnlessI mode
-                      ((match rl.fire with | .nested _ _ => true | _ => false)
-                        || Name.isProjFnShape cn)
+                      (match rl.fire with | .nested _ _ => true | _ => false)
                       (defEqListI r fe depth (margs.take rl.ctorParams)
                         cmpArgs)
                     else pure true) then do

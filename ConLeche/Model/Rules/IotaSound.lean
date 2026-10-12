@@ -292,18 +292,15 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   -- **the comparisons the step ran, conditional**
   -- the `.plain` parameters
   have hplainC : RecRule.fire rl = .plain →
-      (RecRule.paramsBlind rl = false ∨
-        interp V ρ (AnnotTerm.mkAppN
-          (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt) →
+      interp V ρ (AnnotTerm.mkAppN
+        (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt →
       ∀ i, i < RecRule.ctorParams rl → i < mI →
         interp V ρ (ys.getD i default) ≠ pt →
         interp V ρ ((xs.take mI).getD i default) ≠ pt →
         interp V ρ (ys.getD i default) = interp V ρ ((xs.take mI).getD i default) := by
-    intro hp hor i hi him hy hx
-    have hcmp : ConLeche.iotaCompares env.find? rl cvj usj = true := by
-      rcases hor with hb | hpt
-      · exact ConLeche.iotaCompares_of_compareParams (RecRule.compareParams_plain hp hb)
-      · exact ConLeche.iotaCompares_of_case3 (hcase3_of_ptC hpt)
+    intro hp hpt i hi him hy hx
+    have hcmp : ConLeche.iotaCompares env.find? rl cvj usj = true :=
+      ConLeche.iotaCompares_of_case3 (hcase3_of_ptC hpt)
     have hdefP := hparams hcmp
     rw [show (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
         e.getAppArgs rP).2 = e.getAppArgs.take (RecRule.ctorParams rl) from by
@@ -584,12 +581,12 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     rw [getD_dropAK, getD_dropAK] at hgi
     exact hgi
   -- **(U)**: the comparisons are equations
-  obtain ⟨hplainU, hnestedU, hpinU⟩ :=
+  obtain ⟨hnestedU, hpinU⟩ :=
     hU ρ (xs.take mI) ys restR' restC hxs0len hlenYs hfitR' hfitC hoX0 hoY
       hplainC hnestedC hpinC
   -- **fire the law**
   obtain ⟨heqLaw, htrans⟩ := hlaw cvj cnP cnF hctor usj ρ (xs.take mI) ys
-    TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hplainU hnestedU hpinU
+    TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hnestedU hpinU
     (hTVaD 0) (hTVjaD 0) hfitR' hfitC
   rw [List.take_take, Nat.min_eq_left hrPle] at heqLaw htrans
   have hsubj : interp V ρ (AnnotTerm.mkAppN

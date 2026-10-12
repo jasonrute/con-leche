@@ -169,9 +169,7 @@ def consSumCtors (nP : Nat) : List (ConstantVal × Nat) → Env → Env
 side `j`, plain when the generated type's major is the family at the
 parameters (always, by construction), carrying the two rescue bits
 `recRuleBits` reads off the block's own store — the family and its
-constructors are installed before the recursor — and `paramsBlind`,
-because the route's rule law holds at any pair of fitting parameter
-spines. -/
+constructors are installed before the recursor. -/
 def sumRules (find? : Name → Option ConstantInfo) (recName : Name)
     (nP mI rP : Nat) (recTy : Expr) :
     List (ConstantVal × Nat) → List Expr → List RecRule
@@ -179,7 +177,7 @@ def sumRules (find? : Name → Option ConstantInfo) (recName : Name)
     recRuleBits find? recName
       { ctor := c.1.name, nfields := c.2, ctorParams := nP,
         fire := if Expr.recRulePlain recTy mI rP nP then .plain else .inert,
-        rhs := rhs, paramsBlind := true }
+        rhs := rhs }
       :: sumRules find? recName nP mI rP recTy cs rhss
   | _, _ => []
 

@@ -960,9 +960,7 @@ theorem blockRecRuleLaw_run {mpC : EnvModelM V μ envC} {cvTas : List ConstantVa
   blockRecRuleLaw_gen (blockRecHrPle h hj) hj
     (blockRecHleaf hac hnd hr) (blockRecHiota hpre hj hi) hpins hK hNK fun us hus => by
       obtain ⟨Ra, hRa, hok, hsp⟩ := hrhs us hus
-      exact ⟨Ra, hRa, hok, fun cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl
-        hψ _ hN hidx hTVa hTVja hfitR hfitC => hsp cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR
-          restC hxl hyl hujl hψ hN hidx hTVa hTVja hfitR hfitC⟩
+      exact ⟨Ra, hRa, hok, hsp⟩
 
 /-- **A-5: `hnew`, in `blockRecStaged_runR`'s exact spelling.**
 
@@ -1198,8 +1196,9 @@ at `rP`:
   fdoms0 ((ys.drop nP).map ⟦·⟧)` — is NOT a truncation of the
   contract's `hfitC`.  `hfitC` fits the constructor's fields at the
   CONSTRUCTOR's own parameters (`ys.take nP`); the conjunct asks them
-  to fit at the RECURSOR's (`xs.take nP`), and the rule is
-  `paramsBlind`, so no run fact compares the two spines.  What
+  to fit at the RECURSOR's (`xs.take nP`), and a `.plain` rule's
+  parameters are compared only at case 3, so no run fact compares the
+  two spines.  What
   supplies it is the block's REPRESENTATION: the major premise's
   membership (`hfitR`'s last step, at the member's carrier at `xs`'
   parameters and indices) inverts through `BlockModelAt.fibre` into

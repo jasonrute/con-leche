@@ -302,7 +302,7 @@ abbrev AtStoredRules {envC : Env} (mpC : EnvModelM V μ envC)
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
       P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find? r.1.name
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
-          fire := fireOf j r, rhs := rhs, paramsBlind := true })
+          fire := fireOf j r, rhs := rhs })
 
 /-- **The recursor stage, at the run, at any rules of the shape**: the
 cons at a rules function `R` whose stored

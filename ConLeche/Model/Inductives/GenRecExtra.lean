@@ -959,7 +959,6 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (hnf : ConLeche.RecRule.nfields rl = cA.2)
     (hnp : ConLeche.RecRule.ctorParams rl = pp.nP)
     (hfire : ConLeche.RecRule.fire rl = .plain)
-    (hpb : ConLeche.RecRule.paramsBlind rl = true)
     (hk : ConLeche.RecRule.k rl = ConLeche.recRuleKOf envC.find? cA.1.name) :
     RecRuleKWit m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j) rl ∧
     RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
@@ -1013,7 +1012,7 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     refine Or.inr ⟨cA.1, d.nP, cA.2,
       (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
         (pp.toBlockShape.rulePrefixAt j)).1, xs.take pp.nP, _, restR', restC,
-      hfind3, ?_, ?_, rfl, fun hb => absurd hb (by rw [hpb]; decide),
+      hfind3, ?_, ?_, rfl,
       fun lvls pins hn => absurd hn (by rw [hfire]; exact fun h => nomatch h),
       fun _ => by rw [hnp]; exact hpin, hTVjaOf _, by rw [hstored]; exact hfitR',
       hfitC, by rw [hstored]; exact hval, fun hxs y hy => hxs y (List.mem_of_mem_take hy)⟩
@@ -1035,12 +1034,12 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       genMem_P hμ h R hS G hr hm hlv ρ xs a restR hxl hfit hapt ys, ?_⟩
     · exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ _ hcP _ hpinC
-      refine ⟨fun hb => absurd hb (by rw [hpb]; decide),
-        fun lvls pins hn => absurd hn (by rw [hfire]; exact fun h => nomatch h), fun hpt => ?_⟩
+      refine ⟨fun lvls pins hn => absurd hn (by rw [hfire]; exact fun h => nomatch h),
+        fun hpt => ?_⟩
       rw [hnp] at hpinC hyl ⊢
       rw [hnf] at hyl
       refine genMem_U hμ h R hS G hr hm hnP hlv hxl hyl hfitR hfitC
-        (fun q hq h1 h2 => hcP hfire (Or.inr hpt) q (by rw [hnp]; exact hq)
+        (fun q hq h1 h2 => hcP hfire hpt q (by rw [hnp]; exact hq)
           (by have := G.hdnP; omega) h1 h2) (hpinC hpt)
 
 end Member
@@ -1962,8 +1961,8 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
             rw [hysq q hq]
             exact (hvF q hq).2 ρ _ (by rw [List.length_take]; omega))
       refine ⟨cA.1, (tgtMajor out j).ds.length, cA.2, usj, ys, _, restR', restC, hfind3,
-        by rw [hyl, hnp, hnf, hnf0]; rfl, ?_, rfl, fun _ hpl => absurd hpl (by rw [hfire]; exact
-          fun h => nomatch h), fun lvls' pins' hn q hq vpa hvpa => ?_, ?_, hTVjaOf _,
+        by rw [hyl, hnp, hnf, hnf0]; rfl, ?_, rfl,
+        fun lvls' pins' hn q hq vpa hvpa => ?_, ?_, hTVjaOf _,
         by rw [hstored]; exact hfitR', hfitC, by rw [hstored]; exact heq, fun hxs y hy => ?_⟩
       · simp only [usj, ConLeche.recFireComparands, hfire, List.length_map]
         rw [hlvls, Rd.hul, hlpC]
@@ -2021,8 +2020,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       have hpins := genOut_pins hμ R hg hcov h hr hMo hcA Rd hnP hf hlv' hxl hfitR hfitC hyl
         (fun q hq vpa hvpa => hcN lvls pins hfire q (by rw [hnp]; exact hq) vpa
           (hpinCross us q vpa hvpa))
-      refine ⟨fun _ hpl => absurd hpl (by rw [hfire]; exact fun h => nomatch h),
-        fun lvls' pins' hn q hq vpa hvpa => ?_, fun hpt => ?_⟩
+      refine ⟨fun lvls' pins' hn q hq vpa hvpa => ?_, fun hpt => ?_⟩
       · rw [hfire] at hn
         injection hn with _ hp
         subst hp

@@ -116,10 +116,10 @@ def ap3 (f a b c : Expr) : Expr := .app (.app (.app f a) b) c
 def ap4 (f a b c d : Expr) : Expr := .app (.app (.app (.app f a) b) c) d
 
 /-- A raw iota rule: the install-computed fields (`ctorParams`,
-`fire`, `k`, `eta`, `paramsBlind`) at their parse placeholders, which
+`fire`, `k`, `eta`) at their parse placeholders, which
 is what the exporter emits and what `#stored_basis` recomputes. -/
 def rule (ctor : Name) (nfields : Nat) (rhs : Expr) : RecRule :=
-  ⟨ctor, nfields, 0, .inert, rhs, false, false, false⟩
+  ⟨ctor, nfields, 0, .inert, rhs, false, false⟩
 
 end BasisDSL
 

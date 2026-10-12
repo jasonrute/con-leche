@@ -18,7 +18,6 @@ open ConLeche
 /-- `Nat.rec`'s two stored rules. -/
 def natRecZeroRule : RecRule :=
   { ctor := natZeroName, nfields := 0, ctorParams := 0, fire := .plain,
-    paramsBlind := true,
     rhs := Expr.lam
       (Expr.forallE (.const natName [])
         (.sort (.param uN)) {})
@@ -37,7 +36,6 @@ def natRecZeroRule : RecRule :=
 
 def natRecSuccRule : RecRule :=
   { ctor := natSuccName, nfields := 1, ctorParams := 0, fire := .plain,
-    paramsBlind := true,
     rhs := Expr.lam
       (Expr.forallE (.const natName [])
         (.sort (.param uN)) {})
@@ -69,7 +67,6 @@ theorem natRecA_eq :
 /-- `Quot.ind`'s single stored rule. -/
 def quotIndRule : RecRule :=
   { ctor := quotMkName, nfields := 1, ctorParams := 2, fire := .plain,
-    paramsBlind := true,
     rhs := Expr.lam (.sort (.param uN))
       (Expr.lam
         (Expr.forallE (.bvar 0)
@@ -97,7 +94,6 @@ def quotIndRule : RecRule :=
 /-- `Quot.lift`'s single stored rule. -/
 def quotLiftRule : RecRule :=
   { ctor := quotMkName, nfields := 1, ctorParams := 2, fire := .plain,
-    paramsBlind := true,
     rhs := Expr.lam (.sort (.param uN))
       (Expr.lam
         (Expr.forallE (.bvar 0)
@@ -129,7 +125,6 @@ def quotLiftRule : RecRule :=
 /-- `Eq.rec`'s single stored rule. -/
 def eqRecRule : RecRule :=
   { ctor := eqReflName, nfields := 0, ctorParams := 2, fire := .plain,
-    paramsBlind := true,
     k := true,
     rhs := Expr.lam (.sort (.param uN))
       (Expr.lam (.bvar 0)

@@ -875,10 +875,6 @@ def recRuleBits (find? : Name → Option ConstantInfo) (recName : Name)
     (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).k
       = recRuleKOf find? rl.ctor := rfl
 
-@[simp] theorem recRuleBits_paramsBlind (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) :
-    (recRuleBits find? recName rl).paramsBlind = rl.paramsBlind := rfl
-
 @[simp] theorem recRuleBits_eta (find? : Name → Option ConstantInfo)
     (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).eta
       = recRuleEtaOf find? recName rl.ctor := rfl

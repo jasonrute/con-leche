@@ -416,7 +416,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
       (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := (ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape
-              (ConLeche.tgtMajorsOf out)) j r, rhs := rhs, paramsBlind := true }) := by
+              (ConLeche.tgtMajorsOf out)) j r, rhs := rhs }) := by
   intro us hus lvls pins hf q hq
   simp only [ConLeche.recRuleBits_fire] at hf
   simp only [ConLeche.recRuleBits_ctorParams] at hq

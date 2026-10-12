@@ -980,7 +980,7 @@ theorem eqRecLaw {m : EnvModel V env}
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev _ hnested hpin hTVa hTVja hfitR hfitC
+    hlev hnested hpin hTVa hTVja hfitR hfitC
   have hR' : (⟨eqRecA :: env.consts⟩ : Env).find? eqReflName
       = some eqReflA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hR

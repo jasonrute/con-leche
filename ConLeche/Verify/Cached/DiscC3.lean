@@ -1075,7 +1075,7 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
                           refine SimC.bind (P := RelVC) ?_
                             (fun s₇ r₁ r₁' hs₇ hPr₁ => ?_)
                           · -- the parameter comparison, absent from both
-                            -- sides at a `paramsBlind` rule
+                            -- sides outside `iotaCompares`
                             by_cases hcp : iotaCompares env.find? rl cvj usj = true
                             · rw [ite_eq_left hcp, ite_eq_left hcp]
                               exact defEqListC_sim ih hs₆

@@ -176,7 +176,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-              (ConLeche.tgtMajorsOf out) j r, rhs := rhs, paramsBlind := true }) := by
+              (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
     intro φ j r hr i cA rhs hcA _ hne
     have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
     obtain ⟨hnP, cvI, Rd⟩ := hrdAll j hj
@@ -261,13 +261,13 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-              (ConLeche.tgtMajorsOf out) j r, rhs := rhs, paramsBlind := true }) ∧
+              (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) ∧
       RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
         (pp.toBlockShape.rulePrefixAt j)
         (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-              (ConLeche.tgtMajorsOf out) j r, rhs := rhs, paramsBlind := true }) := by
+              (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
     intro Rr m₃ hac φ j r hr i cA rhs hcA hrhs hne
     have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
     obtain ⟨hnP, -⟩ := hrdAll j hj
@@ -314,7 +314,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         split <;> simp
       obtain ⟨cvT, G⟩ := genMemAt_of R h hdRe hN hS hcore hlfp hnames hr hmb hcA
       exact genMemExtra hμ h R (fun ψ ρ => (hcsem ψ ρ).1) G hr hmb hnP hctorCB hac φ rfl rfl
-        G.hnPc (by rw [ConLeche.recRuleBits_fire]; exact hplain) rfl rfl
+        G.hnPc (by rw [ConLeche.recRuleBits_fire]; exact hplain) rfl
   unfold BlockRecStagedT
   rw [ConLeche.consBlockRecsT_eq_R]
   exact blockRecStaged_dataR (ctorTy := fun j i ψ =>

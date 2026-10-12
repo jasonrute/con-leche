@@ -210,7 +210,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           (hpinCB lvls pins hfr' i) hvpa
       rw [hac, acvalWith_ne hnC] at hfitR hplain0 hpin0
       have hUout := hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
-      refine ⟨hUout.1, ?_, ?_⟩
+      refine ⟨?_, ?_⟩
       · -- the OUTPUT's own `.nested` equation is re-read at the
         -- EXTENDED environment: a fresh prefix reading (`hpinsOk`'s
         -- own witness, independent of the one given) is moved forward
@@ -227,9 +227,9 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
               i).instantiateLevelParams _ _).openRev 0 rP) _ rP
             (hpinCB lvls pins hfr' i) hvpa0
         obtain rfl : vpa₀ = vpa := Option.some.inj (hvpa0E.symm.trans hvpa2)
-        exact hUout.2.1 lvls pins hfr' i hi vpa₀ hvpa0
+        exact hUout.1 lvls pins hfr' i hi vpa₀ hvpa0
       · rw [hac, acvalWith_ne hnC]
-        exact hUout.2.2
+        exact hUout.2
 
 /-- **The fired iota contract survives a fresh cons that is
 not itself a recursor.**
@@ -309,7 +309,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
             (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm
       exact hok ρ zs TVa' restR hzl hzok hTVa' hfit
   · intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl
-      hψ hplain hnested hpin hTVa hTVja hfitR hfitC
+      hψ hnested hpin hTVa hTVja hfitR hfitC
     -- **the environment invariant, not the cons's kind**: the rule's
     -- constructor is stored, and the cons is fresh
     have hnC : RecRule.ctor rl ≠ c₀.name := by
@@ -373,7 +373,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     rw [hac, acvalWith_ne hnC] at hfitR hpin
     rw [hac, acvalWith_ne hnN, acvalWith_ne hnC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
-      hujl hψ hplain hnested' hpin hTVa' hTVja' hfitR hfitC
+      hujl hψ hnested' hpin hTVa' hTVja' hfitR hfitC
 
 /-- **The fired iota contract survives a fresh cons that is
 not itself a recursor** — `recRuleLaw_cons_prefix` at every stored

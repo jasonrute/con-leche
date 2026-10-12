@@ -2033,7 +2033,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
         (ConLeche.recRuleBits envC.find? r.1.name
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-              (ConLeche.tgtMajorsOf out) j r, rhs := rhs, paramsBlind := true })) :
+              (ConLeche.tgtMajorsOf out) j r, rhs := rhs })) :
     AtStoredRules mpC (ConLeche.tgtRulesR envC.find? (fun x => Expr.constsResolve envC x)
         pp.toBlockShape (ConLeche.tgtMajorsOf out)) pp (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)

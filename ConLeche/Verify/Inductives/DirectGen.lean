@@ -705,7 +705,7 @@ theorem sumRules_getElem? {find? : Name → Option ConstantInfo}
           { ctor := cA.1.name, nfields := cA.2, ctorParams := nP,
             fire := if Expr.recRulePlain recTy mI rP nP then .plain
               else .inert,
-            rhs := rhs, paramsBlind := true }
+            rhs := rhs }
   | [], _, r, h => by simp [sumRules] at h
   | _ :: _, [], r, h => by simp [sumRules] at h
   | c :: cs, rhs :: rhss, r, h => by
