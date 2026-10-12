@@ -191,7 +191,7 @@ inductive TeleFit (V : Type w) [SetTheory V] :
       {as : List V} {rest : V} :
       a ∈ˢ interp V ρ A →
       TeleFit V (cons a ρ) B as rest →
-      TeleFit V ρ (.pi u v A B) (a :: as) rest
+      TeleFit V ρ (.pi A B) (a :: as) rest
 
 section
 variable {V : Type w} [SetTheory V]
@@ -421,7 +421,7 @@ inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
       {as : List AnnotTerm} :
       interp V ρ a ∈ˢ interp V ρ A →
       TeleFitPA V ρ (B.inst a) as rest →
-      TeleFitPA V ρ (.pi u v A B) (a :: as) rest
+      TeleFitPA V ρ (.pi A B) (a :: as) rest
 
 /-- A fit's prefix fits, to some intermediate residual. -/
 theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
@@ -743,7 +743,7 @@ its clause). -/
 without the memberships (`TeleFitPA`'s spine, data only). -/
 @[expose] def _root_.ConLeche.Model.AnnotTerm.peelPis : AnnotTerm → List AnnotTerm → Option AnnotTerm
   | T, [] => some T
-  | .pi _ _ _ B, a :: as => ConLeche.Model.AnnotTerm.peelPis (B.inst a) as
+  | .pi _ B, a :: as => ConLeche.Model.AnnotTerm.peelPis (B.inst a) as
   | _, _ :: _ => none
 
 /-- A fit's residual is the peel's. -/

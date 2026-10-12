@@ -108,7 +108,7 @@ theorem ndTowerAV_annotValid {r : Nat} {G : Nat → AnnotTerm} {ρ : Nat → V} 
     have hCok : AnnotValid V σ ((G s).liftN d 0) := by
       rw [AnnotValid_liftN, hσ]; exact hok s (by omega)
     show AnnotValid V σ (.app (.app (.const .psigma [r, r]) ((G s).liftN d 0))
-      (.lam (r + 1) ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n)))
+      (.lam ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n)))
     rw [AnnotValid_app, AnnotValid_app, AnnotValid_lam]
     exact ⟨⟨trivial, hCok⟩, hCok, fun x _ =>
       ndTowerAV_annotValid n (s + 1) (d + 1) (cons x σ)
@@ -129,8 +129,8 @@ theorem tupleFamsAV_annotValid (k : Nat) (us : List Nat) (j : Nat) (ρ : Nat →
 the family tuple's own sort, which is never `0`. -/
 theorem AnnotValid_lfpTuple (k : Nat) (us : List Nat) (ρ : Nat → V) :
     AnnotValid V ρ (BConst.typeAV (.lfpTuple k) us) := by
-  show AnnotValid V ρ (.pi _ _ (tupleSortsAV k us)
-    (.pi _ _ (.pi _ _ (tupleFamsAV k us 0) (tupleFamsAV k us 1)) (tupleFamsAV k us 1)))
+  show AnnotValid V ρ (.pi (tupleSortsAV k us)
+    (.pi (.pi (tupleFamsAV k us 0) (tupleFamsAV k us 1)) (tupleFamsAV k us 1)))
   have hR : ConLeche.Term.tupleFamSort k us ≠ 0 := tupleFamSort_ne_zero k us
   rw [AnnotValid_pi]
   refine ⟨tupleSortsAV_annotValid V k us ρ, fun Is _ => ?_, fun h0 => absurd h0 hR⟩
@@ -145,8 +145,8 @@ are graded because the outer `Π`'s clause hands them an index-set
 tuple. -/
 theorem WellDenoted_lfpTuple (k : Nat) (us : List Nat) (ρ : Nat → V) :
     WellDenoted V ρ (BConst.typeAV (.lfpTuple k) us) := by
-  show WellDenoted V ρ (.pi _ _ (tupleSortsAV k us)
-    (.pi _ _ (.pi _ _ (tupleFamsAV k us 0) (tupleFamsAV k us 1)) (tupleFamsAV k us 1)))
+  show WellDenoted V ρ (.pi (tupleSortsAV k us)
+    (.pi (.pi (tupleFamsAV k us 0) (tupleFamsAV k us 1)) (tupleFamsAV k us 1)))
   rw [WellDenoted_pi]
   refine ⟨(tupleSortsAV_facts V k us ρ).2,
     by rw [(tupleSortsAV_facts V k us ρ).1]; exact IsTy_tupleSortsSpace V k us,
@@ -238,7 +238,7 @@ numeral is not chosen: it is the codomain slot of `typeAV`'s own outer
 binder, the `piR` fact is `bval_mem_type` at that binder, and the
 fibre obligation is `AnnotValid_bconst_type`'s `pi` clause verbatim. -/
 theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {u v : Nat} {A B : AnnotTerm} (h : BConst.typeAV c us = .pi u v A B)
+    {u v : Nat} {A B : AnnotTerm} (h : BConst.typeAV c us = .pi A B)
     {a : V} (ha : a ∈ˢ interp V ρ A) (hS : IsTy (interp V ρ A)) :
     ∃ (w : Nat) (S : V) (F : V → V), bval V c us ∈ˢ piR w S F ∧
       a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
@@ -253,7 +253,7 @@ argument.  `app_mem_piR`'s fibre premise is again the outer binder's
 own `AnnotValid` clause, so nothing is chosen here either. -/
 theorem bconst_app_dataAV (c : BConst) (us : List Nat) (ρ : Nat → V)
     {u v u2 v2 : Nat} {A A2 B2 : AnnotTerm}
-    (h : BConst.typeAV c us = .pi u v A (.pi u2 v2 A2 B2))
+    (h : BConst.typeAV c us = .pi A (.pi A2 B2))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a : V} (ha : a ∈ˢ interp V (cons a1 ρ) A2) (hS : IsTy (interp V (cons a1 ρ) A2)) :
     ∃ (w : Nat) (S : V) (F : V → V),
@@ -279,7 +279,7 @@ theorem mem_univZero_of_zero {u : Nat} {X : V} (hu : u = 0)
 /-- Two binders in: the constant applied to its first two arguments. -/
 theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
     {u v u2 v2 u3 v3 : Nat} {A A2 A3 B3 : AnnotTerm}
-    (h : BConst.typeAV c us = .pi u v A (.pi u2 v2 A2 (.pi u3 v3 A3 B3)))
+    (h : BConst.typeAV c us = .pi A (.pi A2 (.pi A3 B3)))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a2 : V} (ha2 : a2 ∈ˢ interp V (cons a1 ρ) A2)
     {a : V} (ha : a ∈ˢ interp V (cons a2 (cons a1 ρ)) A3)
@@ -311,7 +311,7 @@ at `_data`/`_dataAV`/`_data3`. -/
 theorem bconst_app_data4 (c : BConst) (us : List Nat) (ρ : Nat → V)
     {u v u2 v2 u3 v3 u4 v4 : Nat} {A A2 A3 A4 B4 : AnnotTerm}
     (h : BConst.typeAV c us
-      = .pi u v A (.pi u2 v2 A2 (.pi u3 v3 A3 (.pi u4 v4 A4 B4))))
+      = .pi A (.pi A2 (.pi A3 (.pi A4 B4))))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a2 : V} (ha2 : a2 ∈ˢ interp V (cons a1 ρ) A2)
     {a3 : V} (ha3 : a3 ∈ˢ interp V (cons a2 (cons a1 ρ)) A3)

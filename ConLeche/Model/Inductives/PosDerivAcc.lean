@@ -387,9 +387,9 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
         exact this.2.2 hv0 x hxσ
       exact ⟨hval ρ (hR.dom ρ ρ' hRr).1 hx, hval ρ' (hR.dom ρ ρ' hRr).2 hx'⟩
     have hokP : OutOk mp.base2 φ ctx prog dep Δa k (.forallE a (nb.abstract1 dep 0) bm)
-        (.pi 0 (pwBit φ bm.pw) ta ba) := by
+        (.pi ta ba) := by
       obtain ⟨hnbB, hnbW, hnbO, nba, hnba, hnbr⟩ := hokb
-      refine ⟨?_, ?_, fun hk => ?_, .pi 0 (pwBit φ bm.pw) ta nba, ?_, fun ρ hρ => ?_⟩
+      refine ⟨?_, ?_, fun hk => ?_, .pi ta nba, ?_, fun ρ hρ => ?_⟩
       · simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
         exact ⟨hbb.1, ConLeche.looseBVarsBounded_abstract1 nb 0 hnbB⟩
       · simp only [Expr.WScoped]
@@ -416,7 +416,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
         rw [hv0]
         exact ⟨_, AccOn.pi0 0 hA hAb', fun _ _ _ => SmallAt.zero _, hinvP⟩
       · -- hole-free: the body is (the type regime)
-        have hco : ConstOn R (.pi 0 (pwBit φ bm.pw) ta ba) :=
+        have hco : ConstOn R (.pi ta ba) :=
           ConstOn.pi 0 _ hA (hTRb hw (hB0 hv0))
         exact ⟨_, hco.accOn, SizeOn.const (empty_mem_tg w), InvOn.const _ _⟩
     · exact ⟨_, AccOn.pi 0 hv0 hA hAb', SizeOn.pi hA hszb, hinvP⟩

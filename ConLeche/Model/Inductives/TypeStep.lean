@@ -56,14 +56,14 @@ TYPES (`WellDenotedV.hoist_piTy` already gives the domain; the body's
 valuation, the same move `WellDenotedV.hoist_pi` makes for the body's
 grading). -/
 theorem WellDenotedV.hoist_piTy' {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedTy V ρ B) := by
   obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) h
   refine ⟨hgAT, fun ρ hρ => ⟨hgB ρ hρ, ?_⟩⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
-  have := ((WellDenoted_pi V _ u v A B) ▸ (h _ (Sat_tail hρ)).1).2.2.2 (ρ 0) (hρ 0 A rfl)
+  have := ((WellDenoted_pi V _ A B) ▸ (h _ (Sat_tail hρ)).1).2.2.2 (ρ 0) (hρ 0 A rfl)
   rwa [hcons] at this
 
 /-- A `GradedTy` Π-type from `Graded` parts and their `IsTy` facts, the way
@@ -75,7 +75,7 @@ theorem gradedTy_pi_intro {Δ : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
     (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B))
     (hbit : v = 0 → ∀ ρ : Nat → V, Sat V Δ ρ → ∀ x, x ∈ˢ interp V ρ A →
       interp V (cons x ρ) B ∈ˢ (univZero : V)) :
-    GradedTy V Δ (.pi u v A B) := fun ρ hρ => by
+    GradedTy V Δ (.pi A B) := fun ρ hρ => by
   refine ⟨?_, ?_⟩
   · refine ⟨?_, ?_⟩
     · rw [WellDenoted_pi]

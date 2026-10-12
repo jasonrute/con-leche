@@ -596,7 +596,7 @@ theorem eqLfp_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLe
     {cv : ConLeche.ConstantVal} {caps : ConLeche.IndCaps}
     (hf : env.find? nm = some (.indInfo cv caps))
     (hty : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some
-      (.pi 0 1 (.sort (lv ψ)) (.pi 0 1 (.bvar 0) (.pi 0 1 (.bvar 1) (.sort 0))))) :
+      (.pi (.sort (lv ψ)) (.pi (.bvar 0) (.pi (.bvar 1) (.sort 0))))) :
     LfpReads acval env (eqLfp (V := V) nm cn lv) := fun mm hmm => by
   obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
   exact ⟨cv, caps, hf, fun ψ => ⟨[(0, 1, .sort (lv ψ)), (0, 1, .bvar 0), (0, 1, .bvar 1)],

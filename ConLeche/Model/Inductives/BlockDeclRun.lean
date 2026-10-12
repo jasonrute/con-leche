@@ -75,7 +75,7 @@ theorem blockRecTyZ_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
   | cons d rest =>
     have hd : d.2.1 = 0 :=
       (hbits ψ j hj d (by rw [hrds]; exact List.mem_cons_self)).mpr hu
-    show interp V ρ (.pi d.1 d.2.1 d.2.2 _) ∈ˢ _
+    show interp V ρ (.pi d.2.2 _) ∈ˢ _
     rw [interp_pi, hd]
     exact piR_zero_mem_univZero
 

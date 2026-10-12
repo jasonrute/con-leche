@@ -671,12 +671,12 @@ theorem bvarsBelow_substAV (τ : Nat → AnnotTerm) {n b : Nat}
   | app f a ihf iha =>
     intro k h
     exact ⟨ihf k h.1, iha k h.2⟩
-  | lam u A b' ihA ihb =>
+  | lam A b' ihA ihb =>
     intro k h
     refine ⟨ihA k h.1, ?_⟩
     have := ihb (k + 1) (by rw [show k + 1 + n = k + n + 1 by omega]; exact h.2)
     rwa [show k + 1 + b = k + b + 1 by omega] at this
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k h
     refine ⟨ihA k h.1, ?_⟩
     have := ihB (k + 1) (by rw [show k + 1 + n = k + n + 1 by omega]; exact h.2)

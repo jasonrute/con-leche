@@ -32,8 +32,7 @@ The consequences:
   the run lemmas open two annotations at one index.
 
 **The `pi` `u`-slot.**  `AnnotTerm.pi` carries a domain-sort numeral `u`
-that `interp` and `WellDenoted` never read (`interp_pi` matches `.pi _
-v A B`; `DefEq`'s congruence rows hold at `u ≠ u'`).  Amendment 1
+that `interp` and `WellDenoted` never read (`interp_pi` matches `.pi A B`; `DefEq`'s congruence rows hold at `u ≠ u'`).  Amendment 1
 deliberately dropped the domain datum from the input language, so
 `denoteMeta` fills the slot with `0`.  If any consumer downstream turns
 out to *read* `u`, that is a named finding against the prop-only
@@ -157,12 +156,12 @@ checker runs, no fuel, no mode.  See the module docstring for the
     let ta ← denoteMeta acval env φ d ty
     let ba ← denoteMeta acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty))
-    some (.pi 0 (pwBit φ m.pw) ta ba)
+    some (.pi ta ba)
   | d, .lam ty body m => do
     let ta ← denoteMeta acval env φ d ty
     let ba ← denoteMeta acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty))
-    some (.lam (pwBit φ m.pw) ta ba)
+    some (.lam ta ba)
   | d, .app f a => do
     let fa ← denoteMeta acval env φ d f
     let aa ← denoteMeta acval env φ d a

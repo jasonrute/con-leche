@@ -414,8 +414,8 @@ theorem denoteMeta_pinnedBinTy (m : EnvModel V env) (ψ : Name → Nat)
         (.forallE (.const ConLeche.natName [])
           (.forallE (.const ConLeche.natName []) (.const codN []) mb₂)
           mb₁)
-      = some (.pi 0 (pwBit ψ mb₁.pw) (m.acval ConLeche.natName ψ)
-          (.pi 0 (pwBit ψ mb₂.pw) (m.acval ConLeche.natName ψ)
+      = some (.pi (m.acval ConLeche.natName ψ)
+          (.pi (m.acval ConLeche.natName ψ)
             (m.acval codN ψ))) := by
   rw [denoteMeta_forallE, denoteMeta_levelless_const hfN hlpN]
   rw [show (Expr.forallE (.const ConLeche.natName [])
@@ -441,7 +441,7 @@ theorem denoteMeta_pinnedUnTy (m : EnvModel V env) (ψ : Name → Nat)
     denoteMeta m.acval env ψ 0
         (.forallE (.const ConLeche.natName [])
           (.const ConLeche.natName []) mb₁)
-      = some (.pi 0 (pwBit ψ mb₁.pw) (m.acval ConLeche.natName ψ)
+      = some (.pi (m.acval ConLeche.natName ψ)
           (m.acval ConLeche.natName ψ)) := by
   rw [denoteMeta_forallE, denoteMeta_levelless_const hfN hlpN]
   rw [show (Expr.const ConLeche.natName ([] : List ConLeche.Level)).instantiate1
@@ -461,11 +461,11 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
     (hok : ∀ ρ : Nat → V, WellDenotedV V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
-      (.pi 0 b₁ (m.acval ConLeche.natName ψ)
-        (.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))))
+      (.pi (m.acval ConLeche.natName ψ)
+        (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))))
     (htok : ∀ ρ : Nat → V, WellDenotedV V ρ
-      ((.pi 0 b₁ (m.acval ConLeche.natName ψ)
-        (.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
+      ((.pi (m.acval ConLeche.natName ψ)
+        (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
         : AnnotTerm)) :
     NatBinHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
   refine ⟨fa, hfa, fun ρ _ => ⟨hok ρ,
@@ -474,7 +474,7 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     have h := hmem ρ
     rw [interp_pi] at h
     have hfib : (fun x => interp V (cons x ρ)
-          ((.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
             : AnnotTerm))
         = fun _ => piR b₂ (natLeafV m ψ ρ)
             (fun _ => interp V ρ (m.acval codN ψ)) := by
@@ -492,7 +492,7 @@ theorem natBinHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     rw [AnnotValid_pi] at hv
     have h := hv.2.2 hz x hx
     rw [show interp V (cons x ρ)
-          ((.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
             : AnnotTerm)
         = piR b₂ (natLeafV m ψ ρ)
             (fun _ => interp V ρ (m.acval codN ψ)) from by
@@ -518,9 +518,9 @@ theorem natUnHead_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     (hfa : denoteMeta m.acval env ψ 2 f = some fa)
     (hok : ∀ ρ : Nat → V, WellDenotedV V ρ fa)
     (hmem : ∀ ρ : Nat → V, interp V ρ fa ∈ˢ interp V ρ
-      (.pi 0 b₁ (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
+      (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
     (htok : ∀ ρ : Nat → V, WellDenotedV V ρ
-      ((.pi 0 b₁ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+      ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
         : AnnotTerm)) :
     NatUnHead m ψ f (fun ρ => interp V ρ (m.acval codN ψ)) := by
   refine ⟨fa, hfa, fun ρ _ => ⟨hok ρ,
@@ -567,8 +567,8 @@ theorem natBinHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
   have hnm : cvo.name = o := ConLeche.Semantics.Env.find?_name hf
   have hta : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.defnInfo cvo vo ho).toConstantVal.type
-      = some (.pi 0 (pwBit ψ mb₁.pw) (mp.base2.acval ConLeche.natName ψ)
-          (.pi 0 (pwBit ψ mb₂.pw) (mp.base2.acval ConLeche.natName ψ)
+      = some (.pi (mp.base2.acval ConLeche.natName ψ)
+          (.pi (mp.base2.acval ConLeche.natName ψ)
             (mp.base2.acval codN ψ))) := by
     show denoteMeta mp.base2.acval env ψ 0 cvo.type = _
     rw [hty]
@@ -599,7 +599,7 @@ theorem natUnHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
   have hnm : cvo.name = o := ConLeche.Semantics.Env.find?_name hf
   have hta : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.defnInfo cvo vo ho).toConstantVal.type
-      = some (.pi 0 (pwBit ψ mb₁.pw) (mp.base2.acval ConLeche.natName ψ)
+      = some (.pi (mp.base2.acval ConLeche.natName ψ)
           (mp.base2.acval ConLeche.natName ψ)) := by
     show denoteMeta mp.base2.acval env ψ 0 cvo.type = _
     rw [hty]
@@ -758,7 +758,7 @@ theorem denoteMeta_substConst0 {acval : Name → (Name → Nat) → AnnotTerm}
       rfl]
     rw [denoteMeta_app, denoteMeta_app, ihf hfr.1, iha hfr.2]
   | bvar _ => intro hfr; simp [shallowE] at hfr
-  | lam _ _ _ => intro hfr; simp [shallowE] at hfr
+  | lam _ _ => intro hfr; simp [shallowE] at hfr
   | forallE _ _ _ => intro hfr; simp [shallowE] at hfr
   | letE _ _ _ => intro hfr; simp [shallowE] at hfr
   | proj _ _ _ => intro hfr; simp [shallowE] at hfr
@@ -917,7 +917,7 @@ theorem constsBound_of_natFragOk {c : Name}
     unfold ConstsBound
     exact ⟨ihf h.1, iha h.2⟩
   | bvar _ => intro h; simp [ConLeche.Verify.natFragOk] at h
-  | lam _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
+  | lam _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | forallE _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | letE _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h
   | proj _ _ _ => intro h; simp [ConLeche.Verify.natFragOk] at h

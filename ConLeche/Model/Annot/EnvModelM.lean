@@ -191,8 +191,8 @@ theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
   | [], _, _ :: _, _, _, h, _ => h.elim
   | _ :: _, _, [], _, _, h, _ => h.elim
   | d :: tl, ρ, b :: bs, f, hv, h, hf => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
-    have hf' : f ∈ˢ interp V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hf
+    have hv' : AnnotValid V ρ (.pi d.2.2 (mkPisAV tl B)) := hv
+    have hf' : f ∈ˢ interp V ρ (.pi d.2.2 (mkPisAV tl B)) := hf
     rw [AnnotValid_pi] at hv'
     rw [interp_pi] at hf'
     have happ := app_mem_piR hf' h.1 hv'.2.2

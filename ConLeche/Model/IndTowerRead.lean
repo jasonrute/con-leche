@@ -78,7 +78,7 @@ theorem openPisAtFvars_denotePTele :
         | none => rw [hB] at hT; exact nomatch hT
         | some B => ?_
         rw [hB] at hT
-        obtain rfl : T = .pi 0 (pwBit φ mb.pw) A B := by
+        obtain rfl : T = .pi A B := by
           simpa using hT.symm
         obtain ⟨Γ', R, htele, hbody, hdoms⟩ := ih hop hB
         have hΓlen : Γ'.length = k := htele.length

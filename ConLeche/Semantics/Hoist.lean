@@ -32,29 +32,29 @@ hoisted `WellDenoted` of the node gives the domain's hoisted form and the
 codomain's *in the extended context*, which is exactly the pair the
 recursive call needs.  So paying the repair at the congruence costs
 nothing beyond restating it. -/
-theorem WellDenoted.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi u v A B)) :
+theorem WellDenoted.hoist_pi {Δa : List AnnotTerm} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ B) := by
-  refine ⟨fun ρ hρ => ((WellDenoted_pi V ρ u v A B) ▸ h ρ hρ).1,
+  refine ⟨fun ρ hρ => ((WellDenoted_pi V ρ A B) ▸ h ρ hρ).1,
     fun ρ hρ => ?_⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
-  have := ((WellDenoted_pi V _ u v A B) ▸ h _ (Sat_tail hρ)).2.2.1
+  have := ((WellDenoted_pi V _ A B) ▸ h _ (Sat_tail hρ)).2.2.1
     (ρ 0) (hρ 0 A rfl)
   rwa [hcons] at this
 
 /-- The same at a `λ`, where the node's second component has the same
 shape.  Together these cover all five congruence sites. -/
-theorem WellDenoted.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.lam v A b)) :
+theorem WellDenoted.hoist_lam {Δa : List AnnotTerm} {A b : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.lam A b)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ b) := by
-  refine ⟨fun ρ hρ => ((WellDenoted_lam V ρ v A b) ▸ h ρ hρ).1,
+  refine ⟨fun ρ hρ => ((WellDenoted_lam V ρ A b) ▸ h ρ hρ).1,
     fun ρ hρ => ?_⟩
   have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
     funext i; cases i with | zero => rfl | succ i => rfl
-  have := ((WellDenoted_lam V _ v A b) ▸ h _ (Sat_tail hρ)).2.2.1
+  have := ((WellDenoted_lam V _ A b) ▸ h _ (Sat_tail hρ)).2.2.1
     (ρ 0) (hρ 0 A rfl)
   rwa [hcons] at this
 
@@ -62,12 +62,12 @@ theorem WellDenoted.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
 
 /-- **The converse at a `Π`.**  `Sat_cons` is the whole content: an
 inhabitant of the domain extends the valuation into `A :: Δa`. -/
-theorem WellDenoted.of_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
+theorem WellDenoted.of_pi {Δa : List AnnotTerm} {A B : AnnotTerm}
     (hA : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A)
     (hB : ∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ B)
     (hAt : ∀ ρ : Nat → V, Sat V Δa ρ → IsTy (interp V ρ A))
     (hBt : ∀ ρ : Nat → V, Sat V (A :: Δa) ρ → IsTy (interp V ρ B)) :
-    ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi u v A B) := by
+    ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi A B) := by
   intro ρ hρ
   rw [WellDenoted_pi]
   exact ⟨hA ρ hρ, hAt ρ hρ, fun x hx => hB _ (Sat_cons (V := V) hρ hx),
@@ -122,11 +122,11 @@ takes it back apart, so neither direction of the kit is a vacuous
 implication. -/
 example :
     WellDenoted V (fun _ => (empty : V))
-      (.pi 1 2 (.sort 0) (.sort 1)) ∧
+      (.pi (.sort 0) (.sort 1)) ∧
     (∀ ρ : Nat → V, Sat V [AnnotTerm.sort 0] ρ →
       WellDenoted V ρ (AnnotTerm.sort 0)) := by
   have hpi : ∀ ρ : Nat → V, Sat V [AnnotTerm.sort 0] ρ →
-      WellDenoted V ρ (.pi 1 2 (.sort 0) (.sort 1)) :=
+      WellDenoted V ρ (.pi (.sort 0) (.sort 1)) :=
     WellDenoted.of_pi (fun _ _ => by simp) (fun _ _ => by simp)
       (fun _ _ => IsTy_univ 0) (fun _ _ => IsTy_univ 1)
   exact ⟨hpi _ sat_sort0_empty, (WellDenoted.hoist_pi hpi).1⟩

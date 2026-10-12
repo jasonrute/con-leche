@@ -926,9 +926,9 @@ theorem appSlot_of_ne_pt {ρ : Nat → V} {f x : AnnotTerm}
 
 /-- A graded Π-type's fibres are types. -/
 theorem _root_.ConLeche.Model.WellDenotedV.pi_fib {ρ : Nat → V} {u v : Nat}
-    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi u v A B)) :
+    {A B : AnnotTerm} (h : WellDenotedV V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
-  ((WellDenoted_pi V ρ u v A B) ▸ h.1).2.2.2 x hx
+  ((WellDenoted_pi V ρ A B) ▸ h.1).2.2.2 x hx
 
 theorem DefEq.refl_sound {d : Nat} {a : Expr} : DefEqSem m φ d a a :=
   DefEq.refl_soundU.cond

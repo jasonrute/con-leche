@@ -161,7 +161,7 @@ theorem denoteMeta_natSuccTy {c₀ : ConstantInfo} (ψ : Name → Nat)
     (hN : env.find? natName = some natA) :
     denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ 0
         natSuccA.toConstantVal.type
-      = some (.pi 0 (pwBit ψ .never) (.const .nat [])
+      = some (.pi (.const .nat [])
           (.const .nat [])) := by
   have hNc := fun d => denoteMeta_natLeaf (m := m) (A := A) (c₀ := c₀)
     ψ hne hN d
@@ -174,13 +174,13 @@ theorem denoteMeta_natSuccA_type (ψ : Name → Nat)
     (hN : env.find? natName = some natA) :
     denoteMeta (acvalWith m.acval natSuccA.name A)
         ⟨natSuccA :: env.consts⟩ ψ 0 natSuccA.toConstantVal.type
-      = some (.pi 0 (pwBit ψ .never) (.const .nat [])
+      = some (.pi (.const .nat [])
           (.const .nat [])) :=
   denoteMeta_natSuccTy (m := m) (A := A) ψ (by decide) hN
 
 theorem bitAgree_natSuccA (ψ : Name → Nat) :
     AnnotTerm.BitAgree
-      (.pi 0 (pwBit ψ .never) (.const .nat []) (.const .nat []))
+      (.pi (.const .nat []) (.const .nat []))
       (BConst.typeAV .natSucc []) := by
   refine .pi ?_ (.const _ _) (.const _ _)
   rw [pwBit_never]
@@ -216,17 +216,13 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
     (hS : env.find? natSuccName = some natSuccA) :
     denoteMeta (acvalWith m.acval natRecA.name A)
         ⟨natRecA :: env.consts⟩ ψ 0 natRecA.toConstantVal.type
-      = some (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-          (.pi 0 (pwBit ψ .never) (.const .nat []) (.sort (ψ uN)))
-          (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-            (.app (.bvar 0) (.const .natZero []))
-            (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-              (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
-                (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-                  (.app (.bvar 2) (.bvar 0))
+      = some (.pi (.pi (.const .nat []) (.sort (ψ uN)))
+          (.pi (.app (.bvar 0) (.const .natZero []))
+            (.pi (.pi (.const .nat [])
+                (.pi (.app (.bvar 2) (.bvar 0))
                   (.app (.bvar 3)
                     (.app (.const .natSucc []) (.bvar 1)))))
-              (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
+              (.pi (.const .nat [])
                 (.app (.bvar 3) (.bvar 0)))))) := by
   obtain ⟨hNc, hZc, hSc⟩ :=
     denoteMeta_natRec_leaves (m := m) (A := A) ψ hN hZ hS
@@ -255,17 +251,13 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
 
 theorem bitAgree_natRecA (ψ : Name → Nat) :
     AnnotTerm.BitAgree
-      (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-        (.pi 0 (pwBit ψ .never) (.const .nat []) (.sort (ψ uN)))
-        (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-          (.app (.bvar 0) (.const .natZero []))
-          (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-            (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
-              (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-                (.app (.bvar 2) (.bvar 0))
+      (.pi (.pi (.const .nat []) (.sort (ψ uN)))
+        (.pi (.app (.bvar 0) (.const .natZero []))
+          (.pi (.pi (.const .nat [])
+              (.pi (.app (.bvar 2) (.bvar 0))
                 (.app (.bvar 3)
                   (.app (.const .natSucc []) (.bvar 1)))))
-            (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
+            (.pi (.const .nat [])
               (.app (.bvar 3) (.bvar 0))))))
       (BConst.typeAV .natRec [ψ uN]) := by
   have hz : pwBit ψ (ConLeche.PropWhen.ifAllZero [uN]) = 0 ↔ ψ uN = 0 :=
@@ -529,12 +521,12 @@ content of "the reading's numerals are the pin's". -/
 
 /-- The motive binder's domain reading. -/
 def natMotiveTy (ψ : Name → Nat) : AnnotTerm :=
-  .pi 0 (pwBit ψ .never) (.const .nat []) (.sort (ψ uN))
+  .pi (.const .nat []) (.sort (ψ uN))
 
 /-- The step binder's domain reading. -/
 def natStepTy (ψ : Name → Nat) : AnnotTerm :=
-  .pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
-    (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.app (.bvar 2) (.bvar 0))
+  .pi (.const .nat [])
+    (.pi (.app (.bvar 2) (.bvar 0))
       (.app (.bvar 3) (.app (.const .natSucc []) (.bvar 1))))
 
 theorem natMotiveTy_interp (ψ : Name → Nat) (ρ : Nat → V) :
@@ -555,19 +547,17 @@ theorem natStepTy_interp (ψ : Name → Nat) (ρ : Nat → V) (M z : V) :
 
 /-- The `zero` rule's RHS reading. -/
 def natZeroRa (ψ : Name → Nat) : AnnotTerm :=
-  .lam (pwBit ψ (.ifAllZero [uN])) (natMotiveTy ψ)
-    (.lam (pwBit ψ (.ifAllZero [uN]))
-      (.app (.bvar 0) (.const .natZero []))
-      (.lam (pwBit ψ (.ifAllZero [uN])) (natStepTy ψ) (.bvar 1)))
+  .lam (natMotiveTy ψ)
+    (.lam (.app (.bvar 0) (.const .natZero []))
+      (.lam (natStepTy ψ) (.bvar 1)))
 
 /-- The `succ` rule's RHS reading — the recursive occurrence is the
 *fresh* leaf, so it reads to `.const .natRec [ψ u]`. -/
 def natSuccRa (ψ : Name → Nat) : AnnotTerm :=
-  .lam (pwBit ψ (.ifAllZero [uN])) (natMotiveTy ψ)
-    (.lam (pwBit ψ (.ifAllZero [uN]))
-      (.app (.bvar 0) (.const .natZero []))
-      (.lam (pwBit ψ (.ifAllZero [uN])) (natStepTy ψ)
-        (.lam (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
+  .lam (natMotiveTy ψ)
+    (.lam (.app (.bvar 0) (.const .natZero []))
+      (.lam (natStepTy ψ)
+        (.lam (.const .nat [])
           (.app (.app (.bvar 1) (.bvar 0))
             (.app (.app (.app (.app (.const .natRec [ψ uN]) (.bvar 3))
               (.bvar 2)) (.bvar 1)) (.bvar 0))))))
@@ -762,7 +752,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
     WellDenoted V ρ
       (.app (.app (.app (.app (.const .natRec [u]) e1) e2) e3) e4) := by
   have hlv : ConLeche.Term.lv [u] 0 = u := rfl
-  have d1 : interp V ρ (arrowA 1 (u + 1) natTyAV (.sort u))
+  have d1 : interp V ρ (arrowA natTyAV (.sort u))
       = natMotiveSpace V u := by
     simp [arrowA, natTyAV, AnnotTerm.lift, AnnotTerm.liftN, interp_pi,
       interp_const, interp_sort, bval, natMotiveSpace]
@@ -772,7 +762,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
     simp [natZeroAV, interp_app, interp_bvar, interp_const, cons,
       bval]
   have d3 : ∀ a1 a2 : V, interp V (cons a2 (cons a1 ρ))
-      (AnnotTerm.pi 1 u natTyAV (.pi u u (.app (.bvar 2) (.bvar 0))
+      (AnnotTerm.pi natTyAV (.pi (.app (.bvar 2) (.bvar 0))
         (.app (.bvar 3) (natSuccAV (.bvar 1)))))
       = natStepSpace V u a1 := by
     intro a1 a2
@@ -1033,11 +1023,10 @@ itself, read through the **fresh** leaf. -/
 theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
     {xs : List AnnotTerm} (hxs : xs.length = 3) (tl rest : AnnotTerm)
     (hfit : TeleFitPA V ρ
-      (.pi 0 (pwBit ψ (.ifAllZero [uN])) (natMotiveTy ψ)
-        (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-          (.app (.bvar 0) (.const .natZero []))
-          (.pi 0 (pwBit ψ (.ifAllZero [uN])) (natStepTy ψ)
-            (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
+      (.pi (natMotiveTy ψ)
+        (.pi (.app (.bvar 0) (.const .natZero []))
+          (.pi (natStepTy ψ)
+            (.pi (.const .nat [])
               (.app (.bvar 3) (.bvar 0))))))
       (xs ++ [tl]) rest) :
     ∃ M z s : AnnotTerm, xs = [M, z, s] ∧
@@ -1205,11 +1194,10 @@ theorem natRecTyRead (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     denoteMeta m₂.acval ⟨natRecA :: env.consts⟩ φ 0
         (natRecA.toConstantVal.type.instantiateLevelParams
           natRecA.toConstantVal.levelParams us)
-      = some (.pi 0 (pwBit ψ (.ifAllZero [uN])) (natMotiveTy ψ)
-          (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-            (.app (.bvar 0) (.const .natZero []))
-            (.pi 0 (pwBit ψ (.ifAllZero [uN])) (natStepTy ψ)
-              (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .nat [])
+      = some (.pi (natMotiveTy ψ)
+          (.pi (.app (.bvar 0) (.const .natZero []))
+            (.pi (natStepTy ψ)
+              (.pi (.const .nat [])
                 (.app (.bvar 3) (.bvar 0)))))) := by
   rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
     denoteMeta_natRecA_type (m := m) _ hN hZ hS, ← hψ]
@@ -1412,9 +1400,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
     injection Option.some.inj hfj with a1 _ _
     exact a1.symm
   subst hcvj
-  have hTVja' : TVja = .pi 0 (pwBit
-      (Level.substFn φ natSuccA.toConstantVal.levelParams usj) .never)
-      (.const .nat []) (.const .nat []) := by
+  have hTVja' : TVja = .pi (.const .nat []) (.const .nat []) := by
     rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
       denoteMeta_natSuccTy (m := m) _ (by decide) hN] at hTVja
     exact (Option.some.inj hTVja).symm

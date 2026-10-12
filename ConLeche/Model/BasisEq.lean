@@ -108,12 +108,12 @@ theorem eqReflSpine_data {ψ : Name → Nat} {i j : Nat} {ρ : Nat → V}
 
 /-- `Eq`'s type reading: three graph-regime binders. -/
 @[expose] def eqTy (ψ : Name → Nat) : AnnotTerm :=
-  .pi 0 1 (.sort (ψ uN)) (.pi 0 1 (.bvar 0) (.pi 0 1 (.bvar 1) (.sort 0)))
+  .pi (.sort (ψ uN)) (.pi (.bvar 0) (.pi (.bvar 1) (.sort 0)))
 
 /-- `Eq.refl`'s type reading: two squash-regime binders over the
 spine. -/
 def eqReflTy (ψ : Name → Nat) : AnnotTerm :=
-  .pi 0 0 (.sort (ψ uN)) (.pi 0 0 (.bvar 0) (eqSpine ψ 1 0 0))
+  .pi (.sort (ψ uN)) (.pi (.bvar 0) (eqSpine ψ 1 0 0))
 
 /-- **`Eq`'s type reading.** -/
 theorem denoteMeta_eqA_type {env' : Env}
@@ -315,7 +315,7 @@ the inhabitant is the canonical proof by `mem_univ_zero`. -/
 
 /-- `Eq.rec`'s motive binder domain reading. -/
 def eqRecMotiveTy (ψ : Name → Nat) : AnnotTerm :=
-  .pi 0 1 (.bvar 1) (.pi 0 1 (eqSpine ψ 2 1 0) (.sort (ψ u1N)))
+  .pi (.bvar 1) (.pi (eqSpine ψ 2 1 0) (.sort (ψ u1N)))
 
 /-- `Eq.rec`'s minor binder domain reading. -/
 def eqRecMinorTy (ψ : Name → Nat) : AnnotTerm :=
@@ -323,12 +323,12 @@ def eqRecMinorTy (ψ : Name → Nat) : AnnotTerm :=
 
 /-- `Eq.rec`'s type reading. -/
 def eqRecTy (b : Nat) (ψ : Name → Nat) : AnnotTerm :=
-  .pi 0 b (.sort (ψ uN))
-    (.pi 0 b (.bvar 0)
-      (.pi 0 b (eqRecMotiveTy ψ)
-        (.pi 0 b (eqRecMinorTy ψ)
-          (.pi 0 b (.bvar 3)
-            (.pi 0 b (eqSpine ψ 4 3 0)
+  .pi (.sort (ψ uN))
+    (.pi (.bvar 0)
+      (.pi (eqRecMotiveTy ψ)
+        (.pi (eqRecMinorTy ψ)
+          (.pi (.bvar 3)
+            (.pi (eqSpine ψ 4 3 0)
               (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0)))))))
 
 /-- `Eq.rec`'s rule's RHS reading: the same four domains, over the
@@ -1190,7 +1190,7 @@ theorem eqRecTy_wellDenotedV {b : Nat} (ψ : Name → Nat)
       a ∈ˢ Aset → M ∈ˢ eqRecMotiveSpace V (ψ u1N) Aset a →
       bb ∈ˢ Aset →
       WellDenotedV V (cons bb (cons mn (cons M (cons a (cons Aset ρ)))))
-        (.pi 0 b (eqSpine ψ 4 3 0)
+        (.pi (eqSpine ψ 4 3 0)
           (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))) := by
     intro Aset a M mn bb hA ha hM hbb
     obtain ⟨hsint, hsok, -⟩ := eqSpine_interp
@@ -1257,7 +1257,7 @@ theorem eqRecTy_wellDenotedV {b : Nat} (ψ : Name → Nat)
   have h5 : ∀ Aset a M mn : V, Aset ∈ˢ (univ (ψ uN) : V) →
       a ∈ˢ Aset → M ∈ˢ eqRecMotiveSpace V (ψ u1N) Aset a →
       WellDenotedV V (cons mn (cons M (cons a (cons Aset ρ))))
-        (.pi 0 b (.bvar 3) (.pi 0 b (eqSpine ψ 4 3 0)
+        (.pi (.bvar 3) (.pi (eqSpine ψ 4 3 0)
           (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0)))) := by
     intro Aset a M mn hA ha hM
     have hdom : interp V (cons mn (cons M (cons a (cons Aset ρ))))
@@ -1270,8 +1270,8 @@ theorem eqRecTy_wellDenotedV {b : Nat} (ψ : Name → Nat)
   have h4 : ∀ Aset a M : V, Aset ∈ˢ (univ (ψ uN) : V) → a ∈ˢ Aset →
       M ∈ˢ eqRecMotiveSpace V (ψ u1N) Aset a →
       WellDenotedV V (cons M (cons a (cons Aset ρ)))
-        (.pi 0 b (eqRecMinorTy ψ)
-          (.pi 0 b (.bvar 3) (.pi 0 b (eqSpine ψ 4 3 0)
+        (.pi (eqRecMinorTy ψ)
+          (.pi (.bvar 3) (.pi (eqSpine ψ 4 3 0)
             (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))))) := by
     intro Aset a M hA ha hM
     obtain ⟨-, hmok, -⟩ := eqRecMinorTy_data ρ hA ha hM
@@ -1280,8 +1280,8 @@ theorem eqRecTy_wellDenotedV {b : Nat} (ψ : Name → Nat)
       (fun hb _ _ => by rw [interp_pi, hb]; exact piR_zero_mem_univZero)
   have h3 : ∀ Aset a : V, Aset ∈ˢ (univ (ψ uN) : V) → a ∈ˢ Aset →
       WellDenotedV V (cons a (cons Aset ρ))
-        (.pi 0 b (eqRecMotiveTy ψ) (.pi 0 b (eqRecMinorTy ψ)
-          (.pi 0 b (.bvar 3) (.pi 0 b (eqSpine ψ 4 3 0)
+        (.pi (eqRecMotiveTy ψ) (.pi (eqRecMinorTy ψ)
+          (.pi (.bvar 3) (.pi (eqSpine ψ 4 3 0)
             (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0)))))) := by
     intro Aset a hA ha
     obtain ⟨hmint, hmok⟩ := eqRecMotiveTy_data ρ hA ha
@@ -1291,9 +1291,9 @@ theorem eqRecTy_wellDenotedV {b : Nat} (ψ : Name → Nat)
       (fun hb _ _ => by rw [interp_pi, hb]; exact piR_zero_mem_univZero)
   have h2 : ∀ Aset : V, Aset ∈ˢ (univ (ψ uN) : V) →
       WellDenotedV V (cons Aset ρ)
-        (.pi 0 b (.bvar 0) (.pi 0 b (eqRecMotiveTy ψ)
-          (.pi 0 b (eqRecMinorTy ψ)
-            (.pi 0 b (.bvar 3) (.pi 0 b (eqSpine ψ 4 3 0)
+        (.pi (.bvar 0) (.pi (eqRecMotiveTy ψ)
+          (.pi (eqRecMinorTy ψ)
+            (.pi (.bvar 3) (.pi (eqSpine ψ 4 3 0)
               (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))))))) := by
     intro Aset hA
     have hdom : interp V (cons Aset ρ) (AnnotTerm.bvar 0) = Aset := by
@@ -1486,7 +1486,7 @@ theorem declBasisPB_eqK {env₁ : Env} (mp : EnvModelM V μ env)
           = some (.app (.fvar 2 (.sort .zero)) (.fvar 1 (.sort .zero)))),
         (by decide : Expr.nestOcc [eqName] 0 0 (.app (.fvar 2 (.sort .zero)) (.fvar 1 (.sort .zero)))
           = false),
-        fun ψ => ⟨rfl, rfl, [], [.pi 0 (pwBit ψ .never) (.bvar 1) (.sort 0)], ?_, rfl, rfl,
+        fun ψ => ⟨rfl, rfl, [], [.pi (.bvar 1) (.sort 0)], ?_, rfl, rfl,
           fun mm hmm => by
             obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
             refine ⟨eqA.toConstantVal, _, .forallE (.fvar 0 (.sort .zero)) (.sort .zero)

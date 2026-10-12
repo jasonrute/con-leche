@@ -133,7 +133,7 @@ theorem annotValid_mkPisAV_dom {B : AnnotTerm} :
   | [], _, _, _, _, l, hl => absurd hl (Nat.not_lt_zero _)
   | _ :: _, _, [], _, h, _, _ => h.elim
   | d :: tl, ρ, b :: bs, hv, h, l, hl => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
+    have hv' : AnnotValid V ρ (.pi d.2.2 (mkPisAV tl B)) := hv
     rw [AnnotValid_pi] at hv'
     cases l with
     | zero => simpa using hv'.1

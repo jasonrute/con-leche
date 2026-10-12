@@ -50,13 +50,13 @@ theorem AnnotValid_substAV (τ : Nat → AnnotTerm) :
   | app f a ihf iha =>
     intro k ρ hτ
     rw [AnnotTerm.substAV_app, AnnotValid_app, AnnotValid_app, ihf k ρ hτ, iha k ρ hτ]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, AnnotValid V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
     rw [AnnotTerm.substAV_lam, AnnotValid_lam, AnnotValid_lam, ihA k ρ hτ, interp_substAV]
     simp only [ihb (k + 1) _ (hτ' _), cons_substE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, AnnotValid V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
@@ -124,7 +124,7 @@ theorem mkLamsAV_one_validV {b : AnnotTerm} :
       AnnotValid V ρ (mkLamsAV (Ts.map (1, ·)) b)
   | [], _, _, hb => hb [] trivial
   | T :: Ts, ρ, hT, hb => by
-    show AnnotValid V ρ (.lam 1 T (mkLamsAV (Ts.map (1, ·)) b))
+    show AnnotValid V ρ (.lam T (mkLamsAV (Ts.map (1, ·)) b))
     rw [AnnotValid_lam]
     exact ⟨hT.1, fun x hx => mkLamsAV_one_validV (hT.2 x hx)
       (fun vs hvs => hb (x :: vs) ⟨hx, hvs⟩)⟩

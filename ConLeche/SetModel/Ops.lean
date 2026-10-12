@@ -352,4 +352,221 @@ theorem piR_zero_subsingleton {A x y : V} {B : V → V}
     (hx : x ∈ˢ piR 0 A B) (hy : y ∈ˢ piR 0 A B) : x = y :=
   (eq_pt_of_mem_piR_zero hx).trans (eq_pt_of_mem_piR_zero hy).symm
 
+/-! ## The value-read regimes (task #342, L14a)
+
+The interpretation's binder clauses (`Semantics/Interp.lean`) and
+`Denotes`' (`ConLeche/Denotes.lean`).  The regime is not a datum but a
+property of the values: a function space is a truth value exactly when
+every fibre over the domain is one (`propN`), an abstraction is the
+point exactly when every body value over the domain is (`ptN`).  Over a
+nonempty domain this is the regime the binder's codomain sort gives;
+over an empty domain both read "proposition": the function space is
+`{pt}`, the abstraction the point. -/
+
+open Classical in
+/-- The function space's regime numeral: `0` when every fibre over the
+domain is a truth value, `1` otherwise. -/
+noncomputable def propN (A : V) (B : V → V) : Nat :=
+  if ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V) then 0 else 1
+
+open Classical in
+/-- The abstraction's regime numeral: `0` when every body value over
+the domain is the point, `1` otherwise. -/
+noncomputable def ptN (A : V) (F : V → V) : Nat :=
+  if ∀ x, x ∈ˢ A → F x = pt then 0 else 1
+
+/-- **The dependent function space, its regime read off the fibres.** -/
+noncomputable def piV (A : V) (B : V → V) : V := piR (propN A B) A B
+
+/-- **The abstraction, its regime read off the body values.** -/
+noncomputable def lamV (A : V) (F : V → V) : V := lamR (ptN A F) A F
+
+open Classical in
+theorem propN_eq_zero {A : V} {B : V → V} :
+    propN A B = 0 ↔ ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V) := by
+  unfold propN; split <;> simp_all
+
+open Classical in
+theorem ptN_eq_zero {A : V} {F : V → V} :
+    ptN A F = 0 ↔ ∀ x, x ∈ˢ A → F x = pt := by
+  unfold ptN; split <;> simp_all
+
+theorem propN_congr {A : V} {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x = B' x) :
+    propN A B = propN A B' := by
+  unfold propN
+  rw [show (∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ↔ (∀ x, x ∈ˢ A → B' x ∈ˢ (univZero : V)) from
+    ⟨fun hi x hx => h x hx ▸ hi x hx, fun hi x hx => (h x hx).symm ▸ hi x hx⟩]
+
+theorem ptN_congr {A : V} {F F' : V → V} (h : ∀ x, x ∈ˢ A → F x = F' x) :
+    ptN A F = ptN A F' := by
+  unfold ptN
+  rw [show (∀ x, x ∈ˢ A → F x = pt) ↔ (∀ x, x ∈ˢ A → F' x = pt) from
+    ⟨fun hi x hx => h x hx ▸ hi x hx, fun hi x hx => (h x hx).symm ▸ hi x hx⟩]
+
+theorem piV_congr {A : V} {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x = B' x) :
+    piV A B = piV A B' := by
+  unfold piV; rw [propN_congr h]; exact piR_congr h
+
+theorem lamV_congr {A : V} {F F' : V → V} (h : ∀ x, x ∈ˢ A → F x = F' x) :
+    lamV A F = lamV A F' := by
+  unfold lamV; rw [ptN_congr h]; exact lamR_congr h
+
+/-- **β, on the domain, with no other premise.** -/
+theorem app_lamV {A a : V} {F : V → V} (ha : a ∈ˢ A) : app (lamV A F) a = F a := by
+  unfold lamV
+  by_cases h : ptN A F = 0
+  · rw [h, lamR_zero, app_pt]; exact ((ptN_eq_zero.mp h) a ha).symm
+  · exact app_lamR_pos h ha
+
+/-- An abstraction all of whose body values are the point is the point. -/
+theorem lamV_eq_pt {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x = pt) : lamV A F = pt := by
+  unfold lamV; rw [ptN_eq_zero.mpr h, lamR_zero]
+
+/-- An abstraction that is not the point is the graph. -/
+theorem lamV_eq_graph {A : V} {F : V → V} (h : lamV A F ≠ pt) : lamV A F = graph F A :=
+  lamR_eq_graph_of_ne_pt h
+
+/-- An abstraction with a body value that is not the point is a graph,
+never the point. -/
+theorem lamV_ne_pt_of {A : V} {F : V → V} {x : V} (hx : x ∈ˢ A) (h : F x ≠ pt) :
+    lamV A F ≠ pt := by
+  unfold lamV
+  by_cases hb : ptN A F = 0
+  · exact absurd ((ptN_eq_zero.mp hb) x hx) h
+  · exact lamR_ne_pt hb
+
+/-- A function space is a type. -/
+theorem IsTy_piV {A : V} {B : V → V} : IsTy (piV A B) := IsTy_piR _ _ _
+
+/-- A member of a function space that is not the point is a member of
+the graph space. -/
+theorem mem_piSet_of_mem_piV {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hn : f ≠ pt) :
+    f ∈ˢ piSet A B := by
+  unfold piV at hf
+  by_cases hb : propN A B = 0
+  · rw [hb] at hf; exact absurd (eq_pt_of_mem_piR_zero hf) hn
+  · rwa [piR_pos hb] at hf
+
+/-- **Elimination**, with no fibre premise: where the fibres are truth
+values the function is the point and so is its value, which inhabits
+the (inhabited) fibre. -/
+theorem app_mem_piV {A f a : V} {B : V → V} (hf : f ∈ˢ piV A B) (ha : a ∈ˢ A) :
+    app f a ∈ˢ B a := by
+  unfold piV at hf
+  by_cases hb : propN A B = 0
+  · rw [hb] at hf
+    exact app_mem_piR hf ha fun _ => propN_eq_zero.mp hb
+  · exact app_mem_piR_pos hb hf ha
+
+/-- **Introduction**: body values in fibres that are types abstract into
+the function space.  Where every fibre is a truth value every body value
+is the point, and so is the abstraction; where one fibre is not, it is
+strict, its body value is not the point, and the abstraction is the
+graph. -/
+theorem lamV_mem {A : V} {F B : V → V} (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x)
+    (hB : ∀ x, x ∈ˢ A → IsTy (B x)) : lamV A F ∈ˢ piV A B := by
+  unfold piV
+  by_cases hp : propN A B = 0
+  · have h0 := propN_eq_zero.mp hp
+    rw [hp, lamV_eq_pt fun x hx => eq_pt_of_mem_univZero (h0 x hx) (hF x hx)]
+    exact pt_mem_piR_zero fun x hx => ⟨F x, hF x hx⟩
+  · have : ¬ ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V) := fun h => hp (propN_eq_zero.mpr h)
+    obtain ⟨x₀, hx₀, hB₀⟩ : ∃ x, x ∈ˢ A ∧ ¬ B x ∈ˢ (univZero : V) :=
+      Classical.byContradiction fun hne => this fun x hx =>
+        Classical.byContradiction fun h => hne ⟨x, hx, h⟩
+    have hs : Strict (B x₀) := (hB x₀ hx₀).resolve_left hB₀
+    rw [lamV_eq_graph (lamV_ne_pt_of hx₀ (ne_pt_of_mem_strict hs (hF x₀ hx₀))), piR_pos hp]
+    exact graph_mem_piSet hF
+
+/-- **η**: a member of a function space whose fibres are types is the
+abstraction of its applications. -/
+theorem lamV_eta {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hB : ∀ x, x ∈ˢ A → IsTy (B x)) :
+    lamV A (fun x => app f x) = f := by
+  by_cases hn : f = pt
+  · subst hn
+    exact lamV_eq_pt fun x _ => app_pt x
+  · have hf' := mem_piSet_of_mem_piV hf hn
+    have hp : propN A B ≠ 0 := fun h => by
+      unfold piV at hf; rw [h] at hf; exact hn (eq_pt_of_mem_piR_zero hf)
+    have : ¬ ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V) := fun h => hp (propN_eq_zero.mpr h)
+    obtain ⟨x₀, hx₀, hB₀⟩ : ∃ x, x ∈ˢ A ∧ ¬ B x ∈ˢ (univZero : V) :=
+      Classical.byContradiction fun hne => this fun x hx =>
+        Classical.byContradiction fun h => hne ⟨x, hx, h⟩
+    have hs : Strict (B x₀) := (hB x₀ hx₀).resolve_left hB₀
+    rw [lamV_eq_graph (lamV_ne_pt_of hx₀
+      (ne_pt_of_mem_strict hs (app_mem_of_mem_piSet hf' hx₀)))]
+    exact eq_graph_app_of_mem_piSet hf'
+
+/-- A member of a function space whose fibres hold only the point is
+the point. -/
+theorem eq_pt_of_mem_piV {A f : V} {B : V → V}
+    (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) (hf : f ∈ˢ piV A B) : f = pt := by
+  unfold piV at hf; rw [propN_eq_zero.mpr hB] at hf
+  exact eq_pt_of_mem_piR_zero hf
+
+/-- Over an empty domain the function space is `{pt}`. -/
+theorem piV_of_empty {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) : piV A B = unitSet := by
+  unfold piV
+  rw [propN_eq_zero.mpr fun x hx => absurd hx (h x), piR_zero]
+  exact ext fun z => by
+    rw [mem_truthVal, mem_unitSet_iff]
+    exact ⟨fun h' => h'.2, fun h' => ⟨fun x hx => absurd hx (h x), h'⟩⟩
+
+/-- Over an empty domain the abstraction is the point. -/
+theorem lamV_of_empty {A : V} {F : V → V} (h : ∀ x, ¬ x ∈ˢ A) : lamV A F = pt :=
+  lamV_eq_pt fun x hx => absurd hx (h x)
+
+/-- **`∀`-formation in the universes**, with no regime premise: over
+fibres in `Sort 0` the function space is a truth value; over fibres in
+a positive sort it is a truth value or a strict function space, a type
+either way. -/
+theorem piV_mem_univ {u v : Nat} {A : V} {B : V → V}
+    (hA : A ∈ˢ (univ u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (univ v : V)) :
+    piV A B ∈ˢ (univ (if v = 0 then 0 else Nat.max u v) : V) := by
+  by_cases hv : v = 0
+  · subst hv
+    have hp : propN A B = 0 :=
+      propN_eq_zero.mpr fun x hx => univ_zero (V := V) ▸ hB x hx
+    rw [ite_eq_left rfl, univ_zero]
+    unfold piV; rw [hp]; exact piR_zero_mem_univZero
+  · have hw : (Nat.max u v : Nat) ≠ 0 :=
+      fun h => hv (Nat.le_zero.mp (h ▸ Nat.le_max_right u v))
+    rw [ite_eq_right hv]
+    unfold piV
+    by_cases hp : propN A B = 0
+    · rw [hp]
+      have h0 : piR 0 A B ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact piR_zero_mem_univZero
+      exact univ_mono (Nat.zero_le _) _ h0
+    · rw [piR_pos hp]
+      exact mem_univ_of_tg_strict ((tg_isTGUniverse hw).piSet_mem
+        (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
+        (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hB x hx))))
+        strict_piSet
+
+/-- Where every fibre is a truth value the function space is the
+truth-value regime's. -/
+theorem piV_eq_zero {A : V} {B : V → V} (h : ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) :
+    piV A B = piR 0 A B := by
+  unfold piV; rw [propN_eq_zero.mpr h]
+
+/-- Where some fibre is not a truth value the function space is the
+graph regime's. -/
+theorem piV_eq_pos {v : Nat} (hv : v ≠ 0) {A : V} {B : V → V} {x : V} (hx : x ∈ˢ A)
+    (h : ¬ B x ∈ˢ (univZero : V)) : piV A B = piR v A B := by
+  unfold piV
+  have hp : propN A B ≠ 0 := fun h0 => h (propN_eq_zero.mp h0 x hx)
+  rw [piR_pos hp, piR_pos hv]
+
+/-- An abstraction with a body value that is not the point is the graph
+regime's. -/
+theorem lamV_eq_pos {v : Nat} (hv : v ≠ 0) {A : V} {F : V → V} {x : V} (hx : x ∈ˢ A)
+    (h : F x ≠ pt) : lamV A F = lamR v A F := by
+  rw [lamV_eq_graph (lamV_ne_pt_of hx h), lamR_pos hv]
+
+/-- An abstraction all of whose body values are the point is the
+truth-value regime's. -/
+theorem lamV_eq_zero {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x = pt) :
+    lamV A F = lamR 0 A F := by
+  rw [lamV_eq_pt h, lamR_zero]
+
 end ConLeche.SetModel

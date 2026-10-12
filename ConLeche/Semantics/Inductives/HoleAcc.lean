@@ -255,7 +255,7 @@ position). -/
 theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm}
     (u : Nat) {v : Nat} (hv : v ≠ 0) (hD : ConstOn R D)
     {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B) :
-    AccOn w Q R (piBound w D Bb) (.pi u v D B) := by
+    AccOn w Q R (piBound w D Bb) (.pi D B) := by
   intro ρ ρ₀ hR f hfw hf
   rw [interp_pi, piR_pos hv] at hf
   have hDw : SmallAt w (interp V ρ D) := fun hw => (small_of_mem_piSet hw hf (hfw hw)).1
@@ -320,7 +320,7 @@ one witness per domain value.  The domain need not be small: at `w = 0` no
 bound is sized.  (At `w ≠ 0` the type regime makes such a Π hole-free.) -/
 theorem AccOn.pi0 {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : AnnotTerm} (u : Nat)
     (hD : ConstOn R D) {Bb : (Nat → V) → V} (hB : AccOn 0 (shiftQ Q) (R.underBoth D) Bb B) :
-    AccOn 0 Q R (piBound 0 D Bb) (.pi u 0 D B) := by
+    AccOn 0 Q R (piBound 0 D Bb) (.pi D B) := by
   intro ρ ρ₀ hR x _ hx
   rw [interp_pi, piR_zero] at hx
   have hall := of_mem_truthVal hx
@@ -401,7 +401,7 @@ theorem TypeReg.of_eqOn {R : FrameRel V} {P : (Nat → V) → Prop}
 
 /-- **A Π over a hole-free domain and a hole-free body** is hole-free. -/
 theorem ConstOn.pi {R : FrameRel V} {D B : AnnotTerm} (u v : Nat) (hD : ConstOn R D)
-    (hB : ConstOn (R.underBoth D) B) : ConstOn R (.pi u v D B) := by
+    (hB : ConstOn (R.underBoth D) B) : ConstOn R (.pi D B) := by
   intro ρ ρ' hR
   rw [interp_pi, interp_pi, ← hD ρ ρ' hR]
   unfold piR
@@ -443,7 +443,7 @@ theorem TypeReg.pi {R : FrameRel V} {D B : AnnotTerm} (u v : Nat) (hD : ConstOn 
     (hB : TypeReg (R.underBoth D) B)
     (hB0 : v = 0 → ∀ σ σ', R.underBoth D σ σ' →
       interp V σ B ∈ˢ (univZero : V) ∧ interp V σ' B ∈ˢ (univZero : V)) :
-    TypeReg R (.pi u v D B) := by
+    TypeReg R (.pi D B) := by
   intro htv
   by_cases hv : v = 0
   · exact ConstOn.pi u v hD (hB (hB0 hv))

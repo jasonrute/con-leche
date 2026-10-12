@@ -41,7 +41,7 @@ theorem ndTowerAV_below {r b : Nat} {G : Nat → AnnotTerm} :
   | n + 1, s, d, hG => by
     show Term.bvarsBelow (b + d) (AnnotTerm.erase
       (.app (.app (.const .psigma [r, r]) ((G s).liftN d 0))
-        (.lam (r + 1) ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n))))
+        (.lam ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n))))
     have hC : Term.bvarsBelow (b + d) ((G s).liftN d 0).erase := by
       rw [AnnotTerm.erase_liftN]
       exact VExprAux.bvarsBelow_liftN d (G s).erase b 0 (hG s (by omega))
@@ -61,7 +61,7 @@ theorem ndMkTowerAV_below {r b : Nat} {Gty G : Nat → AnnotTerm} :
   | 0, _, _, _ => by simp [ndMkTowerAV, Term.bvarsBelow]
   | n + 1, s, hGty, hG => by
     show Term.bvarsBelow b (AnnotTerm.erase (AnnotTerm.mkAppN (.const .psigmaMk [r, r])
-      [Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
+      [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n]))
     rw [AnnotTerm.erase_mkAppN]
     refine VExprAux.bvarsBelow_mkAppN (by simp [Term.bvarsBelow]) ?_
@@ -193,7 +193,7 @@ theorem ndMkTowerAV_validV {r : Nat} {Gty G : Nat → AnnotTerm} {ρ : Nat → V
   | 0, _, _, _ => by simp [ndMkTowerAV]
   | n + 1, s, hGty, hG => by
     show AnnotValid V ρ (AnnotTerm.mkAppN (.const .psigmaMk [r, r])
-      [Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
+      [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n])
     refine mkAppN_validV (by simp) ?_
     intro a ha

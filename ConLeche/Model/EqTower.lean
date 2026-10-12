@@ -103,14 +103,14 @@ former a graph and not a proof point. -/
 /-- `Eq`'s annotated valuation: `eqValT` with all three binders in
 the graph regime (forced — see the module docstring). -/
 @[expose] def eqValAV (ψ : Name → Nat) : AnnotTerm :=
-  .lam 1 (.sort (ψ uN)) (.lam 1 (.bvar 0) (.lam 1 (.bvar 1)
+  .lam (.sort (ψ uN)) (.lam (.bvar 0) (.lam (.bvar 1)
     (.eqE (.bvar 1) (.bvar 0))))
 
 /-- `Eq.refl`'s annotated valuation: `.prf` under two **squash-regime**
 binders (forced: the pinned `pw` is `.ifAllZero []` at both, because
 `Eq α a a` is a proposition). -/
 @[expose] def eqReflValAV (ψ : Name → Nat) : AnnotTerm :=
-  .lam 0 (.sort (ψ uN)) (.lam 0 (.bvar 0) .prf)
+  .lam (.sort (ψ uN)) (.lam (.bvar 0) .prf)
 
 /-- `Eq.rec`'s annotated valuation: the minor premise, returned, under
 six binders whose bit is the motive level's own zero test — the pinned
@@ -119,9 +119,8 @@ six binders whose bit is the motive level's own zero test — the pinned
   let m : Nat := pwBit ψ (.ifAllZero [u1N])
   .lam m (.sort (ψ uN))
     (.lam m (.bvar 0)
-      (.lam m (.pi 0 1 (.bvar 1)
-          (.pi 0 (ψ u1N + 1)
-            (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
+      (.lam m (.pi (.bvar 1)
+          (.pi (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
             (.sort (ψ u1N))))
         (.lam m (.app (.app (.bvar 0) (.bvar 1))
             (AnnotTerm.mkAppN (eqReflValAV ψ) [.bvar 2, .bvar 1]))

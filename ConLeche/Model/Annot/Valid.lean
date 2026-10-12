@@ -55,7 +55,7 @@ environment (see the module docstring): the one new fact is the `pi`
 clause's `v = 0` component; everything else is the hereditary
 environment discipline of `WellDenoted`. -/
 @[expose] def AnnotValid : (Nat → V) → AnnotTerm → Prop
-  | ρ, .pi _u v A B =>
+  | ρ, .pi A B =>
     AnnotValid ρ A ∧
     (∀ x, x ∈ˢ interp V ρ A → AnnotValid (cons x ρ) B) ∧
     (v = 0 → ∀ x, x ∈ˢ interp V ρ A →
@@ -85,14 +85,14 @@ environment discipline of `WellDenoted`. -/
 @[simp] theorem AnnotValid_prf (ρ : Nat → V) :
     AnnotValid V ρ .prf = True := by rw [AnnotValid]
 theorem AnnotValid_pi (ρ : Nat → V) (u v : Nat) (A B : AnnotTerm) :
-    AnnotValid V ρ (.pi u v A B) =
+    AnnotValid V ρ (.pi A B) =
       (AnnotValid V ρ A ∧
         (∀ x, x ∈ˢ interp V ρ A → AnnotValid V (cons x ρ) B) ∧
         (v = 0 → ∀ x, x ∈ˢ interp V ρ A →
           interp V (cons x ρ) B ∈ˢ (univZero : V))) := by
   rw [AnnotValid]
 theorem AnnotValid_lam (ρ : Nat → V) (v : Nat) (A b : AnnotTerm) :
-    AnnotValid V ρ (.lam v A b) =
+    AnnotValid V ρ (.lam A b) =
       (AnnotValid V ρ A ∧
         ∀ x, x ∈ˢ interp V ρ A → AnnotValid V (cons x ρ) b) := by
   rw [AnnotValid]
@@ -175,14 +175,14 @@ theorem AnnotValid_liftN (n : Nat) :
   | app f a ihf iha =>
     intro k ρ
     rw [AnnotTerm.liftN_app, AnnotValid_app, AnnotValid_app, ihf, iha]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ
     rw [AnnotTerm.liftN_lam, AnnotValid_lam, AnnotValid_lam, ihA,
       interp_liftN]
     refine and_congr Iff.rfl
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
     rw [ihb, cons_shiftE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ
     rw [AnnotTerm.liftN_pi, AnnotValid_pi, AnnotValid_pi, ihA,
       interp_liftN]
@@ -251,7 +251,7 @@ theorem AnnotValid_inst :
     intro a k ρ ha
     rw [AnnotTerm.inst_app, AnnotValid_app, AnnotValid_app, ihf a k ρ ha,
       ihb a k ρ ha]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro a k ρ ha
     rw [AnnotTerm.inst_lam, AnnotValid_lam, AnnotValid_lam, ihA a k ρ ha,
       interp_inst]
@@ -259,7 +259,7 @@ theorem AnnotValid_inst :
     have ha' : AnnotValid V (shiftE (k + 1) 0 (cons x ρ)) a := by
       rw [shiftE_succ_cons]; exact ha
     rw [ihb a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro a k ρ ha
     rw [AnnotTerm.inst_pi, AnnotValid_pi, AnnotValid_pi, ihA a k ρ ha,
       interp_inst]

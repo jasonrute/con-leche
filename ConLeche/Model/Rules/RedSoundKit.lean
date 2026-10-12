@@ -346,7 +346,7 @@ end ProjAV
 /-- **The argument is in the λ's domain**, at a positive kind, from the
 application's `WellDenoted` alone. -/
 theorem betaDomPos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
-    {ρ : Nat → V} (h : WellDenoted V ρ (.app (.lam v A b) a)) :
+    {ρ : Nat → V} (h : WellDenoted V ρ (.app (.lam A b) a)) :
     interp V ρ a ∈ˢ interp V ρ A := by
   rw [WellDenoted_app] at h
   obtain ⟨hlam, -, v', A', B', hslot, hmem, -, -⟩ := h
@@ -358,7 +358,7 @@ theorem betaDomPos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
     have h1 := eq_pt_of_mem_piR_zero hslot
     rw [interp_lam] at h1
     exact lamR_ne_pt hv h1
-  have hown : interp V ρ (.lam v A b) ∈ˢ piR v (interp V ρ A) B := by
+  have hown : interp V ρ (.lam A b) ∈ˢ piR v (interp V ρ A) B := by
     rw [interp_lam]
     exact lamR_mem hfib
   rw [piR_dom_unique hv hv' hown hslot]
@@ -366,14 +366,14 @@ theorem betaDomPos {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm}
 
 /-- A λ's domain annotation is graded when the λ is. -/
 theorem lamDomV {v : Nat} {A b : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenotedV V ρ (.lam v A b)) : WellDenotedV V ρ A :=
+    (h : WellDenotedV V ρ (.lam A b)) : WellDenotedV V ρ A :=
   ⟨by have h1 := h.1; rw [WellDenoted_lam] at h1; exact h1.1,
    by have h2 := h.2; rw [AnnotValid_lam] at h2; exact h2.1⟩
 
 /-- **The graded β step at a positive kind.** -/
 theorem betaPosV {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenotedV V ρ (.app (.lam v A b) a)) :
-    interp V ρ (.app (.lam v A b) a) = interp V ρ (b.inst a) ∧
+    (h : WellDenotedV V ρ (.app (.lam A b) a)) :
+    interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
       WellDenotedV V ρ (b.inst a) := by
   obtain ⟨heq, hok2⟩ := WellDenoted_beta_pos V hv h.1
   refine ⟨heq, hok2, ?_⟩
@@ -384,9 +384,9 @@ theorem betaPosV {v : Nat} (hv : v ≠ 0) {A b a : AnnotTerm} {ρ : Nat → V}
 /-- **The graded β step at kind `0`**: the
 domain membership is the β certificate's. -/
 theorem betaZeroV {A b a : AnnotTerm} {ρ : Nat → V}
-    (h : WellDenotedV V ρ (.app (.lam 0 A b) a))
+    (h : WellDenotedV V ρ (.app (.lam A b) a))
     (hmem : interp V ρ a ∈ˢ interp V ρ A) :
-    interp V ρ (.app (.lam 0 A b) a) = interp V ρ (b.inst a) ∧
+    interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
       WellDenotedV V ρ (b.inst a) := by
   obtain ⟨heq, hok2⟩ := WellDenoted_beta_zero V h.1 hmem
   refine ⟨heq, hok2, ?_⟩
@@ -418,11 +418,11 @@ theorem mkAppN_of_fitA {ρ : Nat → V} :
     cases hfit with
     | @cons u v A B _ _ _ hx hfit' =>
       have hokA : WellDenotedV V ρ A :=
-        ⟨((WellDenoted_pi V ρ u v A B) ▸ hokT.1).1,
+        ⟨((WellDenoted_pi V ρ A B) ▸ hokT.1).1,
           ((AnnotValid_pi V ρ u v A B) ▸ hokT.2).1⟩
       have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
         fun y hy =>
-          ⟨((WellDenoted_pi V ρ u v A B) ▸ hokT.1).2.2.1 y hy,
+          ⟨((WellDenoted_pi V ρ A B) ▸ hokT.1).2.2.1 y hy,
             ((AnnotValid_pi V ρ u v A B) ▸ hokT.2).2.1 y hy⟩
       have hfib : v = 0 → ∀ y, y ∈ˢ interp V ρ A →
           interp V (cons y ρ) B ∈ˢ (univZero : V) :=
@@ -434,7 +434,7 @@ theorem mkAppN_of_fitA {ρ : Nat → V} :
         · rw [WellDenoted_app]
           exact ⟨hf.1, hokx.1, v, interp V ρ A,
             (fun y => interp V (cons y ρ) B), hmem, hx, hfib,
-            fun _ => ((WellDenoted_pi V ρ u v A B) ▸ hokT.1).2.1⟩
+            fun _ => ((WellDenoted_pi V ρ A B) ▸ hokT.1).2.1⟩
         · rw [AnnotValid_app]; exact ⟨hf.2, hokx.2⟩
       have hmem' : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
         rw [interp_inst0, interp_app]
@@ -502,25 +502,25 @@ theorem _root_.ConLeche.Model.WellDenotedV.app_arg {ρ : Nat → V} {f x : Annot
   ⟨((WellDenoted_app V ρ f x) ▸ h.1).2.1, ((AnnotValid_app V ρ f x) ▸ h.2).2⟩
 
 theorem _root_.ConLeche.Model.WellDenotedV.pi_dom {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi u v A B)) : WellDenotedTy V ρ A :=
-  ⟨⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).1, ((AnnotValid_pi V ρ u v A B) ▸ h.2).1⟩,
-    ((WellDenoted_pi V ρ u v A B) ▸ h.1).2.1⟩
+    (h : WellDenotedV V ρ (.pi A B)) : WellDenotedTy V ρ A :=
+  ⟨⟨((WellDenoted_pi V ρ A B) ▸ h.1).1, ((AnnotValid_pi V ρ u v A B) ▸ h.2).1⟩,
+    ((WellDenoted_pi V ρ A B) ▸ h.1).2.1⟩
 
 theorem _root_.ConLeche.Model.WellDenotedV.pi_body {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
-    (h : WellDenotedV V ρ (.pi u v A B)) :
+    (h : WellDenotedV V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) B := fun x hx =>
-  ⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).2.2.1 x hx,
+  ⟨((WellDenoted_pi V ρ A B) ▸ h.1).2.2.1 x hx,
     ((AnnotValid_pi V ρ u v A B) ▸ h.2).2.1 x hx⟩
 
 theorem _root_.ConLeche.Model.WellDenotedV.lam_dom {ρ : Nat → V} {v : Nat} {A b : AnnotTerm}
-    (h : WellDenotedV V ρ (.lam v A b)) : WellDenotedTy V ρ A :=
-  ⟨⟨((WellDenoted_lam V ρ v A b) ▸ h.1).1, ((AnnotValid_lam V ρ v A b) ▸ h.2).1⟩,
-    ((WellDenoted_lam V ρ v A b) ▸ h.1).2.1⟩
+    (h : WellDenotedV V ρ (.lam A b)) : WellDenotedTy V ρ A :=
+  ⟨⟨((WellDenoted_lam V ρ A b) ▸ h.1).1, ((AnnotValid_lam V ρ v A b) ▸ h.2).1⟩,
+    ((WellDenoted_lam V ρ A b) ▸ h.1).2.1⟩
 
 theorem _root_.ConLeche.Model.WellDenotedV.lam_body {ρ : Nat → V} {v : Nat} {A b : AnnotTerm}
-    (h : WellDenotedV V ρ (.lam v A b)) :
+    (h : WellDenotedV V ρ (.lam A b)) :
     ∀ x, x ∈ˢ interp V ρ A → WellDenotedV V (cons x ρ) b := fun x hx =>
-  ⟨((WellDenoted_lam V ρ v A b) ▸ h.1).2.2.1 x hx,
+  ⟨((WellDenoted_lam V ρ A b) ▸ h.1).2.2.1 x hx,
     ((AnnotValid_lam V ρ v A b) ▸ h.2).2 x hx⟩
 
 theorem _root_.ConLeche.Model.WellDenotedV.fst_arg {ρ : Nat → V} {e : AnnotTerm}
@@ -609,13 +609,13 @@ theorem towerEntry_tele_at_depth {m : EnvModel V env} {T : Name} {i : Nat}
   | 0, _ => True
   | n + 1, e =>
     match e with
-    | .pi _ _ _ B => PiChain n B
+    | .pi _ B => PiChain n B
     | _ => False
 
 theorem piChain_succ_inv {n : Nat} {e : AnnotTerm} (h : PiChain (n + 1) e) :
-    ∃ u v A B, e = .pi u v A B ∧ PiChain n B := by
+    ∃ u v A B, e = .pi A B ∧ PiChain n B := by
   match e with
-  | .pi u v A B => exact ⟨u, v, A, B, rfl, h⟩
+  | .pi A B => exact ⟨u, v, A, B, rfl, h⟩
   | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
   | .eqE _ _ | .fst _ | .snd _ | .prf => exact nomatch h
 

@@ -39,8 +39,7 @@ theorem mkPisAV_append' (B : AnnotTerm) :
       mkPisAV (ab₁ ++ ab₂) B = mkPisAV ab₁ (mkPisAV ab₂ B)
   | [], _ => rfl
   | d :: ab₁, ab₂ => by
-    show AnnotTerm.pi _ _ _ (mkPisAV (ab₁ ++ ab₂) B) = AnnotTerm.pi _ _ _ _
-    rw [mkPisAV_append' B ab₁ ab₂]
+    show AnnotTerm.pi _ (mkPisAV (ab₁ ++ ab₂) B) = AnnotTerm.pi rw [mkPisAV_append' B ab₁ ab₂]
 
 /-- An application along a graph-regime Π-tower lands in its body. -/
 theorem foldl_app_mem_mkPisAV_pos {B : AnnotTerm} :

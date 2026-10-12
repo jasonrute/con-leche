@@ -63,14 +63,14 @@ theorem noBVar_exists' {α : Type} :
   | eqE a b iha ihb => intro P h; exact ⟨iha fun a => (h a).1, ihb fun a => (h a).2⟩
   | fst e ihe => intro P h; exact ihe fun a => h a
   | snd e ihe => intro P h; exact ihe fun a => h a
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro P h
     refine ⟨ihA fun a => (h a).1, NoBVar.mono (fun i hi => ?_)
       (ihb (P := fun a => shiftP (P a)) fun a => (h a).2)⟩
     cases i with
     | zero => exact hi.elim
     | succ i => exact hi
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro P h
     refine ⟨ihA fun a => (h a).1, NoBVar.mono (fun i hi => ?_)
       (ihB (P := fun a => shiftP (P a)) fun a => (h a).2)⟩
@@ -361,7 +361,7 @@ theorem OutOk.congr_read {m : EnvModel V env} {ctx : NestCtx} {prog : List NestH
 /-- A Π reads alike when its bodies read alike over its domain. -/
 theorem interp_pi_congr_body {u v : Nat} {A B B' : AnnotTerm} {ρ : Nat → V}
     (h : ∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) B = interp V (cons x ρ) B') :
-    interp V ρ (.pi u v A B) = interp V ρ (.pi u v A B') := by
+    interp V ρ (.pi A B) = interp V ρ (.pi A B') := by
   rw [interp_pi, interp_pi]
   unfold piR
   split
@@ -380,7 +380,7 @@ depths from `d`), and `Q` of the relation and the reading below them. -/
     (Q : FrameRel V → AnnotTerm → Prop) :
     Nat → Nat → List Expr → FrameRel V → AnnotTerm → Prop
   | 0, _, _, R, r => Q R r
-  | n + 1, d, nd :: nds, R, .pi _ _ A B =>
+  | n + 1, d, nd :: nds, R, .pi A B =>
     (∃ Af, AccOn w (HoleQ ctx prog d) R Af A ∧ SizeOn w R Af ∧
       InvOn (MentP ctx.nP (ctx.hiAt prog.length) d nd) Af) ∧
       PiAccThen w ctx prog Q n (d + 1) nds (R.underBoth A) B
@@ -392,7 +392,7 @@ depths from `d`), and `Q` of the relation and the reading below them. -/
     (prog : List NestHole) :
     List ConLeche.NestFieldKind → List Expr → Nat → List AnnotTerm → AnnotTerm → Prop
   | [], [], _, _, _ => True
-  | k :: ks, nd :: nds, d, Δ, .pi _ _ A B =>
+  | k :: ks, nd :: nds, d, Δ, .pi A B =>
     OutOk m φ ctx prog d Δ k nd A ∧ OutTele m φ ctx prog ks nds (d + 1) (A :: Δ) B
   | _, _, _, _, _ => False
 
@@ -400,7 +400,7 @@ depths from `d`), and `Q` of the relation and the reading below them. -/
 relation, each under the earlier ones. -/
 @[expose] def TeleSmall (w : Nat) : Nat → FrameRel V → AnnotTerm → Prop
   | 0, _, _ => True
-  | n + 1, R, .pi _ _ A B =>
+  | n + 1, R, .pi A B =>
     (∀ ρ ρ₀, R ρ ρ₀ → ∀ x, x ∈ˢ interp V ρ A → SmallAt w x) ∧
       TeleSmall w n (R.underBoth A) B
   | _ + 1, _, _ => True
@@ -411,7 +411,7 @@ theorem PiAccThen.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole}
     ∀ (n d : Nat) (nds : List Expr) (R : FrameRel V) (r : AnnotTerm),
       PiAccThen w ctx prog Q n d nds R r → PiAccThen w ctx prog Q' n d nds R r
   | 0, _, _, R, r, h => hQ R r h
-  | n + 1, d, _ :: nds, _, .pi _ _ _ B, h => ⟨h.1, PiAccThen.mono hQ n (d + 1) nds _ B h.2⟩
+  | n + 1, d, _ :: nds, _, .pi _ B, h => ⟨h.1, PiAccThen.mono hQ n (d + 1) nds _ B h.2⟩
   | _ + 1, _, [], _, _, h => h.elim
   | _ + 1, _, _ :: _, _, .bvar _, h | _ + 1, _, _ :: _, _, .sort _, h
   | _ + 1, _, _ :: _, _, .const _ _, h | _ + 1, _, _ :: _, _, .app _ _, h

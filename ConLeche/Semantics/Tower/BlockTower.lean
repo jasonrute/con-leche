@@ -53,7 +53,7 @@ def ndMkTowerAV (r : Nat) (Gty G : Nat → AnnotTerm) : Nat → Nat → AnnotTer
   | _, 0 => .const .punitUnit [r]
   | s, n + 1 =>
     AnnotTerm.mkAppN (.const .psigmaMk [r, r])
-      [Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
+      [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n]
 
 /-- The tuple value's set: the uniform tupler over the components. -/
@@ -145,18 +145,18 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       ndTowerAV_interp V n (s + 1) 1 (cons x ρ)
         (by rw [shiftE_succ_cons, shiftE_zero_zero]) (fun m hm => hGty m (by omega))
         (fun m hm => hF m (by omega))
-    have hBv : interp V ρ (.lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
+    have hBv : interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
         = lamR (r + 1) (interp V ρ (Gty s))
             fun _ => ndTowerSet V r F (s + 1) n := by
       rw [interp_lam]
       exact lamR_congr fun x _ => htail x
-    have hBmem : interp V ρ (.lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
+    have hBmem : interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n))
         ∈ˢ psigmaFibreSpace V r (interp V ρ (Gty s)) := by
       rw [hBv]
       show lamR (r + 1) (interp V ρ (Gty s)) (fun _ => ndTowerSet V r F (s + 1) n)
         ∈ˢ piR (r + 1) (interp V ρ (Gty s)) (fun _ => (univ r : V))
       exact lamR_mem fun _ _ => ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)
-    have hBok : WellDenoted V ρ (.lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n)) := by
+    have hBok : WellDenoted V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n)) := by
       rw [WellDenoted_lam]
       refine ⟨hGtyok s (by omega), IsTy_of_mem_univ hAu, fun x _ => ?_, fun _ => (univ r : V),
         fun x _ => ?_, fun _ _ => IsTy_univ r, fun h0 => absurd h0 hvac⟩
@@ -171,18 +171,18 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       (fun m hm => hGtyok m (by omega)) (fun m hm => hF m (by omega))
       (fun m hm => hG m (by omega)) (fun m hm => hGok m (by omega))
       (fun m hm => hg m (by omega))
-    have hBapp : SetTheory.app (interp V ρ (.lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n)))
+    have hBapp : SetTheory.app (interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n)))
         (interp V ρ (G s)) = ndTowerSet V r F (s + 1) n := by
       rw [hBv, app_lamR_pos hvac hamem]
     have hbmem : interp V ρ (ndMkTowerAV r Gty G (s + 1) n)
-        ∈ˢ SetTheory.app (interp V ρ (.lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n)))
+        ∈ˢ SetTheory.app (interp V ρ (.lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n)))
             (interp V ρ (G s)) := by
       rw [hBapp, hbv]
       exact ndMkTowerSet_mem hr n (s + 1) fun m hm => hg m (by omega)
     -- the four-step application chain
     have hmk : interp V ρ (.const .psigmaMk [r, r]) = psigmaMkV V r r := rfl
     have hchain : AppChainOk (interp V ρ (.const .psigmaMk [r, r]))
-        (([Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
+        (([Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
            G s, ndMkTowerAV r Gty G (s + 1) n] : List AnnotTerm).map (interp V ρ)) := by
       rw [hmk]
       have hstep := psigmaMkV_rr_mem (V := V) hr
@@ -201,7 +201,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
           rw [hBapp]; exact IsTy_of_mem_univ
             (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega))⟩
     have hcl := mkAppN_wellDenoted_of_chain (f := (.const .psigmaMk [r, r] : AnnotTerm))
-      (args := [Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
+      (args := [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
         G s, ndMkTowerAV r Gty G (s + 1) n]) (σ := ρ) trivial
       (fun a ha => by
         simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
@@ -213,7 +213,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → AnnotTerm} {
       hchain
     refine ⟨?_, hcl.1⟩
     show interp V ρ (AnnotTerm.mkAppN (.const .psigmaMk [r, r])
-      [Gty s, .lam (r + 1) (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
+      [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n]) = _
     rw [hcl.2, hmk]
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (psigmaMkV V r r)
@@ -296,7 +296,7 @@ binder: `λ (t : I_m). Σ_j tower_{m,j}(Xs, t)`. -/
 def blockArmG (w : Nat) (uf : Nat → Nat) (Idss : Nat → List AnnotTerm)
     (Chs : Nat → List (List AnnotTerm))
     (m : Nat) : AnnotTerm :=
-  .lam (w + 1) ((idxTyAV (uf m) (Idss m)).liftN 1 0)
+  .lam ((idxTyAV (uf m) (Idss m)).liftN 1 0)
     (sumBodyAV w (Chs m))
 
 /-- The family tuple's type, spelled at the block's own index sets
@@ -313,7 +313,7 @@ the members' arms. -/
 def blockFunG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List AnnotTerm)
     (Chs : Nat → List (List AnnotTerm)) :
     AnnotTerm :=
-  .lam (blockR k w uf) (famsTyBAV k w uf Idss)
+  .lam (famsTyBAV k w uf Idss)
     (ndMkTowerAV (blockR k w uf) (fun m => (famTyAV (uf m) w (Idss m)).liftN 1 0)
       (fun m => blockArmG w uf Idss Chs m) 0 k)
 
@@ -884,7 +884,7 @@ theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
       WellDenoted V ρ (blockTyG k w uf Idss Chs pps m)
   | [], _, h => (blockLeafBodyG_facts hm h).2.2
   | d :: pps, ρ, h => by
-    show WellDenoted V ρ (.lam (w + 1) d.2.2 (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
+    show WellDenoted V ρ (.lam d.2.2 (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) _))
     rw [WellDenoted_lam]
     exact ⟨h.2.1, h.2.2.1, fun a ha => blockTyG_wellDenoted hm (h.2.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV pps (.sort w)),
@@ -1035,13 +1035,13 @@ theorem WellDenoted_substAV (τ : Nat → AnnotTerm) :
     intro k ρ hτ
     rw [AnnotTerm.substAV_app, WellDenoted_app, WellDenoted_app, ihf k ρ hτ, iha k ρ hτ,
       interp_substAV, interp_substAV]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
     rw [AnnotTerm.substAV_lam, WellDenoted_lam, WellDenoted_lam, ihA k ρ hτ, interp_substAV]
     simp only [ihb (k + 1) _ (hτ' _), interp_substAV, cons_substE]
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
@@ -1387,7 +1387,7 @@ theorem mkLamsAV_one_wellDenoted {b : AnnotTerm} :
       WellDenoted V ρ (mkLamsAV (Ts.map (1, ·)) b)
   | [], _, _, hb => hb [] trivial
   | T :: Ts, ρ, hT, hb => by
-    show WellDenoted V ρ (.lam 1 T (mkLamsAV (Ts.map (1, ·)) b))
+    show WellDenoted V ρ (.lam T (mkLamsAV (Ts.map (1, ·)) b))
     rw [WellDenoted_lam]
     have hT' := fun x => exists_IsTy_mem (interp V (cons x ρ) (mkLamsAV (Ts.map (1, ·)) b))
     refine ⟨hT.1, hT.2.1, fun x hx => mkLamsAV_one_wellDenoted (hT.2.2.2 x hx)

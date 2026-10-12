@@ -178,9 +178,8 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
     (hE : env.find? emptyName = some emptyA) :
     denoteMeta (acvalWith m.acval emptyRecA.name A)
         ⟨emptyRecA :: env.consts⟩ ψ 0 emptyRecA.toConstantVal.type
-      = some (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-          (.pi 0 (pwBit ψ .never) (.const .empty [1]) (.sort (ψ uN)))
-          (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .empty [1])
+      = some (.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
+          (.pi (.const .empty [1])
             (.app (.bvar 1) (.bvar 0)))) := by
   have hpd : ConLeche.Verify.pinnedStructT emptyName ψ
       = some (Term.const .empty [1]) := by
@@ -215,9 +214,8 @@ iffs are `pwBit_never` and `pwBit_ifAllZero_single` — nothing here is
 chosen. -/
 theorem bitAgree_emptyRecA (ψ : Name → Nat) :
     AnnotTerm.BitAgree
-      (.pi 0 (pwBit ψ (.ifAllZero [uN]))
-        (.pi 0 (pwBit ψ .never) (.const .empty [1]) (.sort (ψ uN)))
-        (.pi 0 (pwBit ψ (.ifAllZero [uN])) (.const .empty [1])
+      (.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
+        (.pi (.const .empty [1])
           (.app (.bvar 1) (.bvar 0))))
       (BConst.typeAV .emptyRec [1, ψ uN]) := by
   have hz : pwBit ψ (ConLeche.PropWhen.ifAllZero [uN]) = 0 ↔ ψ uN = 0 :=

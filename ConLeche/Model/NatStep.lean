@@ -309,8 +309,8 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   -- the leaf inhabits the pinned type's reading
   have hta : denoteMeta mp.base2.acval env φ 0
       (ConstantInfo.defnInfo cv v hh).toConstantVal.type
-      = some (.pi 0 (pwBit φ mb₁.pw) (mp.base2.acval ConLeche.natName φ)
-          (.pi 0 (pwBit φ mb₂.pw) (mp.base2.acval ConLeche.natName φ)
+      = some (.pi (mp.base2.acval ConLeche.natName φ)
+          (.pi (mp.base2.acval ConLeche.natName φ)
             (mp.base2.acval codN φ))) := by
     show denoteMeta mp.base2.acval env φ 0 cv.type = _
     rw [hty]
@@ -323,7 +323,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   refine ⟨pwBit φ mb₁.pw, pwBit φ mb₂.pw, interp V ρ (mp.base2.acval codN φ), ?_⟩
   rw [substFn_nil]
   have hfib : (fun x => interp V (cons x ρ)
-        ((.pi 0 (pwBit φ mb₂.pw) (mp.base2.acval ConLeche.natName φ)
+        ((.pi (mp.base2.acval ConLeche.natName φ)
           (mp.base2.acval codN φ)) : AnnotTerm))
       = fun _ => piR (pwBit φ mb₂.pw) (interp V ρ (mp.base2.acval ConLeche.natName φ))
           (fun _ => interp V ρ (mp.base2.acval codN φ)) := by

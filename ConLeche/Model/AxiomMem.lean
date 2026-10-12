@@ -79,7 +79,7 @@ docstring): `AnnotValid`'s `pi` clause cannot *establish* a bit, but
 at a sort codomain it *refutes* zero, and the refutation needs only an
 inhabitant of the domain — which every elimination has in hand. -/
 theorem pi_sort_bit_ne_zero {ρ : Nat → V} {u v n : Nat} {Aa : AnnotTerm}
-    (hv : AnnotValid V ρ (.pi u v Aa (.sort n)))
+    (hv : AnnotValid V ρ (.pi Aa (.sort n)))
     {x : V} (hx : x ∈ˢ interp V ρ Aa) : v ≠ 0 := by
   intro h0
   rw [AnnotValid_pi] at hv
@@ -89,9 +89,9 @@ theorem pi_sort_bit_ne_zero {ρ : Nat → V} {u v n : Nat} {Aa : AnnotTerm}
 node's own validity.  **No knowledge of `v` is needed**: this is why the stored
 companions' unpinned bits never have to be established. -/
 theorem app_mem_pi_validV {ρ : Nat → V} {u v : Nat} {Aa Ba : AnnotTerm}
-    {f a : V} (hf : f ∈ˢ interp V ρ (.pi u v Aa Ba))
+    {f a : V} (hf : f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : a ∈ˢ interp V ρ Aa)
-    (hv : AnnotValid V ρ (.pi u v Aa Ba)) :
+    (hv : AnnotValid V ρ (.pi Aa Ba)) :
     SetTheory.app f a ∈ˢ interp V (cons a ρ) Ba := by
   rw [interp_pi] at hf
   rw [AnnotValid_pi] at hv
@@ -210,8 +210,8 @@ theorem iffVal_app₂_memP (mp : EnvModelM V μ env)
   obtain ⟨m₁, m₂, hsh⟩ := iff_shapeS htyI
   have hden : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.indInfo cvI caps).toConstantVal.type
-      = some (.pi 0 (pwBit ψ m₁.pw) (.sort 0)
-          (.pi 0 (pwBit ψ m₂.pw) (.sort 0) (.sort 0))) := by
+      = some (.pi (.sort 0)
+          (.pi (.sort 0) (.sort 0))) := by
     show denoteMeta mp.base2.acval env ψ 0 cvI.type = _
     rw [hsh]
     simp [denoteMeta_forallE, denoteMeta_sort, Expr.instantiate1, Level.eval]
@@ -300,23 +300,17 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
   -- the recursor's stored type, read at the zero assignment
   have hden : denoteMeta mp.base2.acval env (fun _ => 0) 0
       (ConstantInfo.recInfo cvIr mI rP rules).toConstantVal.type
-      = some (.pi 0 (pwBit (fun _ => 0) m₁.pw) (.sort 0)
-        (.pi 0 (pwBit (fun _ => 0) m₂.pw) (.sort 0)
-          (.pi 0 (pwBit (fun _ => 0) m₃.pw)
-            (.pi 0 (pwBit (fun _ => 0) mt.pw)
-              (.app (.app (mp.base2.acval iffName (fun _ => 0))
+      = some (.pi (.sort 0)
+        (.pi (.sort 0)
+          (.pi (.pi (.app (.app (mp.base2.acval iffName (fun _ => 0))
                 (.bvar 1)) (.bvar 0)) (.sort 0))
-            (.pi 0 (pwBit (fun _ => 0) m₄.pw)
-              (.pi 0 (pwBit (fun _ => 0) mmp.pw)
-                (.pi 0 (pwBit (fun _ => 0) mr.pw) (.bvar 2) (.bvar 2))
-                (.pi 0 (pwBit (fun _ => 0) mmpr.pw)
-                  (.pi 0 (pwBit (fun _ => 0) ma.pw) (.bvar 2) (.bvar 4))
+            (.pi (.pi (.pi (.bvar 2) (.bvar 2))
+                (.pi (.pi (.bvar 2) (.bvar 4))
                   (.app (.bvar 2)
                     (.app (.app (.app (.app
                       (mp.base2.acval iffIntroName (fun _ => 0))
                       (.bvar 4)) (.bvar 3)) (.bvar 1)) (.bvar 0)))))
-              (.pi 0 (pwBit (fun _ => 0) m₅.pw)
-                (.app (.app (mp.base2.acval iffName (fun _ => 0))
+              (.pi (.app (.app (mp.base2.acval iffName (fun _ => 0))
                   (.bvar 3)) (.bvar 2))
                 (.app (.bvar 2) (.bvar 0))))))) := by
     show denoteMeta mp.base2.acval env (fun _ => 0) 0 cvIr.type = _
@@ -359,8 +353,7 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
         (interp V ρ (mp.base2.acval iffName ψ)) A) B)
       (fun _ => eqv A B) := ⟨_, rfl⟩
   have hMd : M ∈ˢ interp V (cons B (cons A ρ))
-      (.pi 0 (pwBit (fun _ => 0) mt.pw)
-        (.app (.app (mp.base2.acval iffName ψ) (.bvar 1)) (.bvar 0))
+      (.pi (.app (.app (mp.base2.acval iffName ψ) (.bvar 1)) (.bvar 0))
         (.sort 0)) := by
     rw [hME, interp_pi]
     simp only [interp_app, interp_bvar, cons_zero, cons_succ,
@@ -378,10 +371,8 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
         (piR (pwBit (fun _ => 0) ma.pw) B fun _ => A) fun _ => pt) :=
     ⟨_, rfl⟩
   have hMind : Min ∈ˢ interp V (cons M (cons B (cons A ρ)))
-      (.pi 0 (pwBit (fun _ => 0) mmp.pw)
-        (.pi 0 (pwBit (fun _ => 0) mr.pw) (.bvar 2) (.bvar 2))
-        (.pi 0 (pwBit (fun _ => 0) mmpr.pw)
-          (.pi 0 (pwBit (fun _ => 0) ma.pw) (.bvar 2) (.bvar 4))
+      (.pi (.pi (.bvar 2) (.bvar 2))
+        (.pi (.pi (.bvar 2) (.bvar 4))
           (.app (.bvar 2)
             (.app (.app (.app (.app
               (mp.base2.acval iffIntroName (fun _ => 0))
@@ -452,9 +443,8 @@ theorem propext_mem (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
             (.app (.app (.const iffName []) (.bvar 1)) (.bvar 0))
             (.app (.app (.app (.const eqName [.succ .zero])
                 (.sort .zero)) (.bvar 2)) (.bvar 1)) m₃) m₂) m₁)
-      = some (.pi 0 0 (.sort 0) (.pi 0 0 (.sort 0)
-          (.pi 0 0
-            (.app (.app (mp.base2.acval iffName ψ) (.bvar 1)) (.bvar 0))
+      = some (.pi (.sort 0) (.pi (.sort 0)
+          (.pi (.app (.app (mp.base2.acval iffName ψ) (.bvar 1)) (.bvar 0))
             (.app (.app (.app (mp.base2.acval eqName
                 (Level.substFn ψ eqA.toConstantVal.levelParams
                   [Level.zero.succ])) (.sort 0)) (.bvar 2))
@@ -595,7 +585,7 @@ theorem nonemptyVal_app_mem (mp : EnvModelM V μ env)
   obtain ⟨m₁, hsh⟩ := nonempty_shapeS htyN
   have hden : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.indInfo cvN capsN).toConstantVal.type
-      = some (.pi 0 (pwBit ψ m₁.pw) (.sort (ψ uN)) (.sort 0)) := by
+      = some (.pi (.sort (ψ uN)) (.sort 0)) := by
     show denoteMeta mp.base2.acval env ψ 0 cvN.type = _
     rw [hsh]
     simp [denoteMeta_forallE, denoteMeta_sort, Expr.instantiate1, Level.eval]
@@ -626,8 +616,8 @@ theorem nonemptyIntroVal_app₂_memP (mp : EnvModelM V μ env)
       show cvN.levelParams = [uN]; rw [hlpN]; rfl)
   have hden : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.ctorInfo cvNi 1 1).toConstantVal.type
-      = some (.pi 0 (pwBit ψ m₁.pw) (.sort (ψ uN))
-          (.pi 0 (pwBit ψ m₂.pw) (.bvar 0)
+      = some (.pi (.sort (ψ uN))
+          (.pi (.bvar 0)
             (.app (mp.base2.acval nonemptyName ψ) (.bvar 1)))) := by
     show denoteMeta mp.base2.acval env ψ 0 cvNi.type = _
     rw [hsh]
@@ -689,17 +679,13 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
       show cvNi.levelParams = [uN]; rw [hlpNi]; rfl)
   have hden : denoteMeta mp.base2.acval env ψ 0
       (ConstantInfo.recInfo cvNr mI rP rulesN).toConstantVal.type
-      = some (.pi 0 (pwBit ψ m₁.pw) (.sort (ψ uN))
-        (.pi 0 (pwBit ψ m₂.pw)
-          (.pi 0 (pwBit ψ mt.pw)
-            (.app (mp.base2.acval nonemptyName ψ) (.bvar 0)) (.sort 0))
-          (.pi 0 (pwBit ψ m₃.pw)
-            (.pi 0 (pwBit ψ mv.pw) (.bvar 1)
+      = some (.pi (.sort (ψ uN))
+        (.pi (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 0)) (.sort 0))
+          (.pi (.pi (.bvar 1)
               (.app (.bvar 1)
                 (.app (.app (mp.base2.acval nonemptyIntroName ψ)
                   (.bvar 2)) (.bvar 0))))
-            (.pi 0 (pwBit ψ m₄.pw)
-              (.app (mp.base2.acval nonemptyName ψ) (.bvar 2))
+            (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 2))
               (.app (.bvar 2) (.bvar 0)))))) := by
     show denoteMeta mp.base2.acval env ψ 0 cvNr.type = _
     rw [hsh]
@@ -730,8 +716,7 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
       (SetTheory.app (interp V ρ (mp.base2.acval nonemptyName ψ)) A)
       (fun _ => (empty : V)) := ⟨_, rfl⟩
   have hMd : M ∈ˢ interp V (cons A ρ)
-      (.pi 0 (pwBit ψ mt.pw)
-        (.app (mp.base2.acval nonemptyName ψ) (.bvar 0)) (.sort 0)) := by
+      (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 0)) (.sort 0)) := by
     rw [hME, interp_pi]
     simp only [interp_app, interp_bvar, cons_zero, interp_sort, hNc]
     exact lamR_mem fun _ _ => empty_mem_univ 0
@@ -743,7 +728,7 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
   obtain ⟨Min, hMinE⟩ : ∃ Min : V,
       Min = lamR (pwBit ψ mv.pw) A (fun _ => (empty : V)) := ⟨_, rfl⟩
   have hMind : Min ∈ˢ interp V (cons M (cons A ρ))
-      (.pi 0 (pwBit ψ mv.pw) (.bvar 1)
+      (.pi (.bvar 1)
         (.app (.bvar 1)
           (.app (.app (mp.base2.acval nonemptyIntroName ψ)
             (.bvar 2)) (.bvar 0)))) := by
@@ -835,9 +820,8 @@ theorem choice_mem (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
         (.forallE
           (.app (.const nonemptyName [.param uN]) (.bvar 0))
           (.bvar 1) m₂) m₁)
-      = some (.pi 0 (pwBit ψ m₁.pw) (.sort (ψ uN))
-          (.pi 0 (pwBit ψ m₂.pw)
-            (.app (mp.base2.acval nonemptyName ψ) (.bvar 0))
+      = some (.pi (.sort (ψ uN))
+          (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 0))
             (.bvar 1))) := by
     simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
       Expr.instantiate1, hN, Level.eval]

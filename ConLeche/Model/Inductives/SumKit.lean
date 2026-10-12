@@ -73,7 +73,7 @@ theorem natRecAV_validV {u : Nat} {M z s kx : AnnotTerm} {σ : Nat → V}
 
 theorem natSortMotiveAV_validV (w : Nat) (σ : Nat → V) :
     AnnotValid V σ (natSortMotiveAV w) := by
-  show AnnotValid V σ (.lam (w + 1) natAV (.sort w))
+  show AnnotValid V σ (.lam natAV (.sort w))
   rw [AnnotValid_lam]
   exact ⟨trivial, fun _ _ => trivial⟩
 
@@ -113,7 +113,7 @@ theorem eqChainAV_validV :
       AnnotValid V ρ (eqChainAV eqs)
   | [], _, _ => trivial
   | (a, b) :: r, ρ, h => by
-    show AnnotValid V ρ (.pi 0 0 (.eqE a b) ((eqChainAV r).liftN 1 0))
+    show AnnotValid V ρ (.pi (.eqE a b) ((eqChainAV r).liftN 1 0))
     rw [AnnotValid_pi, AnnotValid_eqE]
     refine ⟨h (a, b) List.mem_cons_self, fun x _ => ?_, fun _ x _ => ?_⟩
     · rw [AnnotValid_liftN, show (1 : Nat) = 0 + 1 from rfl, shiftE_succ_cons, shiftE_zero_zero]
@@ -125,7 +125,7 @@ theorem eqChainAV_validV :
 theorem idxEqAV_validV {eqs : List (AnnotTerm × AnnotTerm)} {ρ : Nat → V}
     (h : ∀ e ∈ eqs, AnnotValid V ρ e.1 ∧ AnnotValid V ρ e.2) :
     AnnotValid V ρ (idxEqAV eqs) := by
-  show AnnotValid V ρ (.pi 0 0 (eqChainAV eqs) (.const .empty [0]))
+  show AnnotValid V ρ (.pi (eqChainAV eqs) (.const .empty [0]))
   rw [AnnotValid_pi]
   exact ⟨eqChainAV_validV h, fun _ _ => trivial,
     fun _ _ _ => by rw [← univ_zero]; exact empty_mem_univ 0⟩
@@ -209,7 +209,7 @@ theorem sumInjAtAV_validV {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE
     (ht : AnnotValid V σ tag) (hp : AnnotValid V σ payload) :
     AnnotValid V σ (sumInjAtAV w Fss d tag payload) := by
   show AnnotValid V σ (.app (.app (.app (.app (.const .psigmaMk [w, w]) natAV)
-    (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
+    (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
   simp only [AnnotValid_app, AnnotValid_const, AnnotValid_lam]
   exact ⟨⟨⟨⟨trivial, trivial⟩, trivial, fun k _ => case_validV_at hsh hv k⟩, ht⟩, hp⟩
 
@@ -221,7 +221,7 @@ theorem mkTowerGoUPos_validV {w : Nat} {E : AnnotTerm} :
       AnnotValid V (consList bs ρp) (mkTowerGoUPos w E Fs)
   | [], ρp, [], hv, _ => by
     show AnnotValid V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
-        (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
+        (.lam E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     simp only [AnnotValid_app, AnnotValid_const, AnnotValid_lam, AnnotValid_prf]
     exact ⟨⟨⟨⟨trivial, hv.1⟩, hv.1, fun _ _ => trivial⟩, trivial⟩, trivial⟩
   | [], _, _ :: _, _, hsp => hsp.elim
@@ -240,7 +240,7 @@ theorem mkTowerGoUPos_validV {w : Nat} {E : AnnotTerm} :
     show AnnotValid V (consList bs (cons b ρp))
       (.app (.app (.app (.app (.const .psigmaMk [w, w])
           (F.liftN (Fs.length + 1)))
-          (.lam (w + 1) (F.liftN (Fs.length + 1))
+          (.lam (F.liftN (Fs.length + 1))
             ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
         (mkTowerGoUPos w E Fs))

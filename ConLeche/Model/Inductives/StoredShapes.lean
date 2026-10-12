@@ -431,13 +431,13 @@ theorem noBVar_liftN_one : ∀ (X : AnnotTerm) (c : Nat), NoBVar (fun i => i = c
   | eqE a b iha ihb => intro c; exact ⟨iha c, ihb c⟩
   | fst e ih => intro c; exact ih c
   | snd e ih => intro c; exact ih c
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro c
     refine ⟨ihA c, NoBVar.mono (fun i hi => ?_) (ihb (c + 1))⟩
     cases i with
     | zero => exact absurd hi (by simp [shiftP])
     | succ i => show i + 1 = c + 1; simp only [shiftP] at hi; omega
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro c
     refine ⟨ihA c, NoBVar.mono (fun i hi => ?_) (ihB (c + 1))⟩
     cases i with

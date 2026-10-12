@@ -80,7 +80,7 @@ theorem denoteMeta_mkPisOf {D : Nat} :
     rw [denoteMeta_forallE] at hP
     obtain ⟨ta, hta, hP⟩ := Option.bind_eq_some_iff.mp hP
     obtain ⟨ba, hba, hP⟩ := Option.bind_eq_some_iff.mp hP
-    obtain rfl : P = .pi 0 (pwBit φ bm.pw) ta ba := (Option.some.inj hP).symm
+    obtain rfl : P = .pi ta ba := (Option.some.inj hP).symm
     rw [← Expr.instantiateList_cons, show D + q + 1 = D + (q + 1) from by omega] at hba
     obtain ⟨ds, Xr, os', rfl, hdoms, hbits, hos', hX⟩ :=
       denoteMeta_mkPisOf bs X (q + 1) _ ba (hos.cons _) hba

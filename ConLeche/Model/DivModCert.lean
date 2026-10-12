@@ -134,17 +134,17 @@ where the fibre facts at the unknown regime bits come from). -/
 theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     {b₁ b₂ : Nat} {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
-      ((.pi 0 b₁ (m.acval ConLeche.natName ψ)
-        (.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
+      ((.pi (m.acval ConLeche.natName ψ)
+        (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
         : AnnotTerm))
     (htok : WellDenotedV V ρ
-      ((.pi 0 b₁ (m.acval ConLeche.natName ψ)
-        (.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
+      ((.pi (m.acval ConLeche.natName ψ)
+        (.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ)))
         : AnnotTerm)) :
     DmBinV (interp V ρ (m.acval ConLeche.natName ψ))
       (interp V ρ (m.acval codN ψ)) (interp V ρ fa) := by
   have hfib : interp V (cons (interp V ρ fa) ρ)
-        ((.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+        ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
           : AnnotTerm)
       = piR b₂ (interp V ρ (m.acval ConLeche.natName ψ))
           (fun _ => interp V ρ (m.acval codN ψ)) := by
@@ -156,7 +156,7 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
   refine ⟨b₁, b₂, ?_, ?_, ?_, ((WellDenoted_pi V ρ _ _ _ _) ▸ htok.1).2.1⟩
   · rw [interp_pi] at hmem
     rw [show (fun x => interp V (cons x ρ)
-          ((.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
             : AnnotTerm))
         = fun _ => piR b₂ (interp V ρ (m.acval ConLeche.natName ψ))
             (fun _ => interp V ρ (m.acval codN ψ)) from by
@@ -172,7 +172,7 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     rw [AnnotValid_pi] at hv
     have h := hv.2.2 hz x hx
     rw [show interp V (cons x ρ)
-          ((.pi 0 b₂ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+          ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
             : AnnotTerm)
         = piR b₂ (interp V ρ (m.acval ConLeche.natName ψ))
             (fun _ => interp V ρ (m.acval codN ψ)) from by
@@ -195,10 +195,10 @@ theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
 theorem dmUnV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     {b₁ : Nat} {codN : Name} {fa : AnnotTerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
-      ((.pi 0 b₁ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+      ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
         : AnnotTerm))
     (htok : WellDenotedV V ρ
-      ((.pi 0 b₁ (m.acval ConLeche.natName ψ) (m.acval codN ψ))
+      ((.pi (m.acval ConLeche.natName ψ) (m.acval codN ψ))
         : AnnotTerm)) :
     DmUnV (interp V ρ (m.acval ConLeche.natName ψ))
       (interp V ρ (m.acval codN ψ)) (interp V ρ fa) := by
@@ -236,8 +236,8 @@ theorem dmBinV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
   have hmemE := ConLeche.Semantics.Env.find?_mem hf
   have hnm : cio.name = o := ConLeche.Semantics.Env.find?_name hf
   have hta : denoteMeta mp.base2.acval env ψ 0 cio.toConstantVal.type
-      = some (.pi 0 (pwBit ψ mb₁.pw) (mp.base2.acval ConLeche.natName ψ)
-          (.pi 0 (pwBit ψ mb₂.pw) (mp.base2.acval ConLeche.natName ψ)
+      = some (.pi (mp.base2.acval ConLeche.natName ψ)
+          (.pi (mp.base2.acval ConLeche.natName ψ)
             (mp.base2.acval codN ψ))) := by
     rw [hty]
     exact denoteMeta_pinnedBinTy mp.base2 ψ hfN hlpN hcodF hcodLp
@@ -264,7 +264,7 @@ theorem dmUnV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
   have hmemE := ConLeche.Semantics.Env.find?_mem hf
   have hnm : cio.name = o := ConLeche.Semantics.Env.find?_name hf
   have hta : denoteMeta mp.base2.acval env ψ 0 cio.toConstantVal.type
-      = some (.pi 0 (pwBit ψ mb₁.pw) (mp.base2.acval ConLeche.natName ψ)
+      = some (.pi (mp.base2.acval ConLeche.natName ψ)
           (mp.base2.acval codN ψ)) := by
     rw [hty, denoteMeta_forallE, denoteMeta_levelless_const hfN hlpN]
     rw [show (Expr.const codN ([] : List ConLeche.Level)).instantiate1

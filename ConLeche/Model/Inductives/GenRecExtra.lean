@@ -562,7 +562,7 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     rw [hds] at hmem
     have hb : dd.2.1 = 0 := (hcd.bits ψj dd (by rw [hds]; exact List.mem_cons_self)).mp hw
     change interp V ρ (mpC.base2.acval cA.1.name ψj)
-      ∈ˢ interp V ρ (.pi dd.1 dd.2.1 dd.2.2 (mkPisAV ds _)) at hmem
+      ∈ˢ interp V ρ (.pi dd.2.2 (mkPisAV ds _)) at hmem
     rw [interp_pi, hb, piR_zero] at hmem
     exact eq_pt_of_mem_truthVal hmem
   | nil =>

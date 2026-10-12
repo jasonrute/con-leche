@@ -225,7 +225,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
       ihb (frame_open2 hws.1 hb.1 hws.2 hb.2 hLa hLbd) hCop hba hgB
     obtain ⟨hwsn, hbn, hLn⟩ := hfrn
     have hbnd : nb.looseBVarsBounded 0 = true := hbn
-    refine ⟨⟨?_, ?_, ?_⟩, ?_, .pi 0 (pwBit φ mb.pw) ta nba, ?_, ?_, ?_⟩
+    refine ⟨⟨?_, ?_, ?_⟩, ?_, .pi ta nba, ?_, ?_, ?_⟩
     · simp only [Expr.WScoped]
       exact ⟨hws.1, WScoped.abstract1 0 hwsn⟩
     · simp only [Expr.looseBVarsBounded, Bool.and_eq_true]

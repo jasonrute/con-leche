@@ -240,14 +240,11 @@ theorem ofReduce_mem (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
                 (.const (ConLeche.reduceElemName
                   (ConLeche.ofReduceOp cvA.name)) []))
               (.bvar 2)) (.bvar 1)) m₃) m₂) m₁)
-      = some (.pi 0 0
-          (mp.base2.acval (ConLeche.reduceElemName
+      = some (.pi (mp.base2.acval (ConLeche.reduceElemName
             (ConLeche.ofReduceOp cvA.name)) ψ)
-          (.pi 0 0
-            (mp.base2.acval (ConLeche.reduceElemName
+          (.pi (mp.base2.acval (ConLeche.reduceElemName
               (ConLeche.ofReduceOp cvA.name)) ψ)
-            (.pi 0 0
-              (.app (.app (.app (mp.base2.acval eqName
+            (.pi (.app (.app (.app (mp.base2.acval eqName
                     (Level.substFn ψ eqA.toConstantVal.levelParams
                       [Level.zero.succ]))
                   (mp.base2.acval (ConLeche.reduceElemName

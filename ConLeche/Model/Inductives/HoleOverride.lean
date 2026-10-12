@@ -67,14 +67,14 @@ theorem substAV_holeBack_liftN {nP k : Nat} {x : Nat → AnnotTerm}
     simp only [AnnotTerm.liftN, iha c h.1, ihb c h.2]
   | fst e ih => intro c h; rw [AnnotTerm.substAV_fst, AnnotTerm.liftN_fst, ih c h]
   | snd e ih => intro c h; rw [AnnotTerm.substAV_snd, AnnotTerm.liftN_snd, ih c h]
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro c h
     rw [AnnotTerm.substAV_lam, AnnotTerm.liftN_lam, ihA c h.1, ihb (c + 1) (NoBVar.mono ?_ h.2)]
     intro i hi
     cases i with
     | zero => omega
     | succ i => show c ≤ i ∧ i < c + k; omega
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro c h
     rw [AnnotTerm.substAV_pi, AnnotTerm.liftN_pi, ihA c h.1, ihB (c + 1) (NoBVar.mono ?_ h.2)]
     intro i hi

@@ -54,7 +54,7 @@ no consumer of this file reads either component. -/
 inductive PiTeleAV : Nat → AnnotTerm → List AnnotTerm → AnnotTerm → Prop
   | nil {T : AnnotTerm} : PiTeleAV 0 T [] T
   | cons {k u v : Nat} {A B R : AnnotTerm} {Γ : List AnnotTerm} :
-      PiTeleAV k B Γ R → PiTeleAV (k + 1) (.pi u v A B) (Γ ++ [A]) R
+      PiTeleAV k B Γ R → PiTeleAV (k + 1) (.pi A B) (Γ ++ [A]) R
 
 theorem PiTeleAV.length : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
     {R : AnnotTerm}, PiTeleAV k T Γ R → Γ.length = k := by
@@ -67,7 +67,7 @@ theorem PiTeleAV.length : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
 theorem PiTeleAV.succ_inv {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
     {R : AnnotTerm} (h : PiTeleAV (k + 1) T Γ R) :
     ∃ (u v : Nat) (A B : AnnotTerm) (Γ' : List AnnotTerm),
-      T = .pi u v A B ∧ Γ = Γ' ++ [A] ∧ PiTeleAV k B Γ' R := by
+      T = .pi A B ∧ Γ = Γ' ++ [A] ∧ PiTeleAV k B Γ' R := by
   cases h with
   | cons h' => exact ⟨_, _, _, _, _, rfl, rfl, h'⟩
 

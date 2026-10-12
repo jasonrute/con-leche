@@ -1128,7 +1128,7 @@ theorem piTeleAV_of_stripPisAV :
     simp only [stripPisAV, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact .nil
-  | k + 1, .pi u v A B, pps, b, h => by
+  | k + 1, .pi A B, pps, b, h => by
     simp only [stripPisAV, Option.map_eq_some_iff] at h
     obtain ⟨⟨pps', b'⟩, hst, heq⟩ := h
     simp only [Prod.mk.injEq] at heq

@@ -6,7 +6,7 @@ public import ConLeche.Term.Const
 @[expose] public section
 
 /-!
-# `BConst.typeAV` — the annotated basis-constant types (#151)
+# `BConst.typeAV` — the spelled basis-constant types (#151)
 
 The first of the two suppliers the skeleton's `const` row waits on
 (`Semantics/Skeleton.lean`): the annotated mirror of
@@ -14,26 +14,10 @@ The first of the two suppliers the skeleton's `const` row waits on
 type can be *written* as an `AnnotTerm` at all (`BConst.type` yields a
 `Term`, not an `AnnotTerm`).
 
-## The annotation convention, inherited not invented
-
-`SetModel/Value.lean` fixed it for the value side, and this file mirrors
-it exactly, because the two must agree for the capstone
-(`bval_mem_type`) to typecheck at all:
-
-* **every binder's codomain slot carries the tower's result sort `r`**,
-  not the exact `imax` fold.  Sound because `piR`/`lamR` read the
-  numeral only through `v = 0`, and `imax x y = 0 ↔ y = 0`
-  (`imax_eq_zero_iff`);
-* **every binder's domain slot carries the domain's exact sort**,
-  because those are what the consumers' membership hypotheses are
-  stated with — `WellDenoted`'s binder clauses and `Skeleton.sound_pi`
-  both read the domain numeral.
-
-So `.pi u' r A B` throughout, with `u'` exact.  The `v'`-for-a-`Sort`
-trap is worth naming once: a codomain slot holds the sort of `B` **as
-a type**, so a codomain `.sort k` gets `k + 1`, never `k`.  That is why
-`A → Prop` annotates as `.pi u 1 A (.sort 0)` and is a *type*
-(`Sort (max u 1)`), not a proposition.
+The spelling carries no regime: `interp` reads each binder's regime off
+the values (`piV`/`lamV`).  A codomain `Sort k` makes a function space
+into a universe a *type*, never a proposition: `A → Prop` reads as
+`piV ⟦A⟧ (fun _ => univ 0)`, whose fibre `univ 0` is not a truth value.
 
 ## The result sorts, read off the towers
 
@@ -83,18 +67,17 @@ def quotAV (u : Nat) (A r : AnnotTerm) : AnnotTerm :=
 def quotMkAV (u : Nat) (A r a : AnnotTerm) : AnnotTerm :=
   AnnotTerm.mkAppN (.const .quotMk [u]) [A, r, a]
 
-/-- `A → B`, at the domain's sort `u` and the codomain's sort `v`. -/
-def arrowA (u v : Nat) (A B : AnnotTerm) : AnnotTerm := .pi u v A B.lift
+/-- `A → B`. -/
+def arrowA (A B : AnnotTerm) : AnnotTerm := .pi A B.lift
 
 /-- `A → A → Prop`, the relation type at `A : Sort u`.  Its own sort is
 `max u 1` — a *type*, because `Prop` lives in `Sort 1`.  Matches
 `relSpace`. -/
-def relAV (u : Nat) (A : AnnotTerm) : AnnotTerm :=
-  .pi u (Nat.max u 1) A (.pi u 1 A.lift (.sort 0))
+def relAV (A : AnnotTerm) : AnnotTerm :=
+  .pi A (.pi A.lift (.sort 0))
 
-/-- `¬ A`, i.e. `A → False`: a proposition, so the codomain slot is
-`0`. -/
-def negTyAV (u : Nat) (A : AnnotTerm) : AnnotTerm := arrowA u 0 A (emptyAV 0)
+/-- `¬ A`, i.e. `A → False`. -/
+def negTyAV (A : AnnotTerm) : AnnotTerm := arrowA A (emptyAV 0)
 
 /-! ## The block carrier's tuple spelling (#315)
 
@@ -131,7 +114,7 @@ def ndTowerAV (r : Nat) (G : Nat → AnnotTerm) : Nat → Nat → Nat → AnnotT
   | _, _, 0 => .const .punit [r]
   | s, d, n + 1 =>
     .app (.app (.const .psigma [r, r]) ((G s).liftN d 0))
-      (.lam (r + 1) ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n))
+      (.lam ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n))
 
 /-- `⟨Sort u_0, …, Sort u_{k-1}⟩`, the index-set tuple's type. -/
 def tupleSortsAV (k : Nat) (us : List Nat) : AnnotTerm :=
@@ -141,7 +124,7 @@ def tupleSortsAV (k : Nat) (us : List Nat) : AnnotTerm :=
 tuple's type, with `Is` at de Bruijn index `j` of the base frame. -/
 def tupleFamsAV (k : Nat) (us : List Nat) (j : Nat) : AnnotTerm :=
   ndTowerAV (tupleFamSort k us)
-    (fun m => .pi (lv us m) (lv us k + 1) (projAV m (.bvar j)) (.sort (lv us k))) 0 0 k
+    (fun m => .pi (projAV m (.bvar j)) (.sort (lv us k))) 0 0 k
 
 /-! ## The annotated type assignment -/
 
@@ -150,95 +133,91 @@ every binder's two numerals supplied (see the module docstring). -/
 def BConst.typeAV : BConst → List Nat → AnnotTerm
   | .nat, _ => .sort 1
   | .natZero, _ => natTyAV
-  | .natSucc, _ => arrowA 1 1 natTyAV natTyAV
+  | .natSucc, _ => arrowA natTyAV natTyAV
   | .natRec, us =>
     let u := lv us 0
     -- `∀ (M : Nat → Sort u), M 0 → (∀ n, M n → M (n+1)) → ∀ t, M t`
-    .pi (u + 1) u (arrowA 1 (u + 1) natTyAV (.sort u)) <|
-    .pi u u (.app (.bvar 0) natZeroAV) <|
-    .pi u u (.pi 1 u natTyAV (.pi u u (.app (.bvar 2) (.bvar 0))
+    .pi (arrowA natTyAV (.sort u)) <|
+    .pi (.app (.bvar 0) natZeroAV) <|
+    .pi (.pi natTyAV (.pi (.app (.bvar 2) (.bvar 0))
           (.app (.bvar 3) (natSuccAV (.bvar 1))))) <|
-    .pi 1 u natTyAV <|
+    .pi natTyAV <|
     .app (.bvar 3) (.bvar 0)
   | .punit, us => .sort (lv us 0)
   | .punitUnit, us => punitAV (lv us 0)
   | .psigma, us =>
     let u := lv us 0; let v := lv us 1
     let r := Nat.max u v + 1
-    .pi (u + 1) r (.sort u) <|
-    .pi (Nat.max u (v + 1)) r
-      (arrowA u (v + 1) (.bvar 0) (.sort v)) <|
+    .pi (.sort u) <|
+    .pi (arrowA (.bvar 0) (.sort v)) <|
     .sort (Nat.max u v)
   | .psigmaMk, us =>
     let u := lv us 0; let v := lv us 1
     let r := Nat.max u v
-    .pi (u + 1) r (.sort u) <|
-    .pi (Nat.max u (v + 1)) r
-      (arrowA u (v + 1) (.bvar 0) (.sort v)) <|
-    .pi u r (.bvar 1) <|
-    .pi v r (.app (.bvar 1) (.bvar 0)) <|
+    .pi (.sort u) <|
+    .pi (arrowA (.bvar 0) (.sort v)) <|
+    .pi (.bvar 1) <|
+    .pi (.app (.bvar 1) (.bvar 0)) <|
     psigmaAV u v (.bvar 3) (.bvar 2)
   | .empty, us => .sort (lv us 0)
   | .emptyRec, us =>
     let u := lv us 0; let v := lv us 1
-    .pi (Nat.max u (v + 1)) v
-      (arrowA u (v + 1) (emptyAV u) (.sort v)) <|
-    .pi u v (emptyAV u) <|
+    .pi (arrowA (emptyAV u) (.sort v)) <|
+    .pi (emptyAV u) <|
     .app (.bvar 1) (.bvar 0)
   | .quot, us =>
     let u := lv us 0
-    .pi (u + 1) (u + 1) (.sort u) <|
-    .pi (Nat.max u 1) (u + 1) (relAV u (.bvar 0)) <|
+    .pi (.sort u) <|
+    .pi (relAV (.bvar 0)) <|
     .sort u
   | .quotMk, us =>
     let u := lv us 0
-    .pi (u + 1) u (.sort u) <|
-    .pi (Nat.max u 1) u (relAV u (.bvar 0)) <|
-    .pi u u (.bvar 1) <|
+    .pi (.sort u) <|
+    .pi (relAV (.bvar 0)) <|
+    .pi (.bvar 1) <|
     quotAV u (.bvar 2) (.bvar 1)
   | .quotLift, us =>
     let u := lv us 0; let v := lv us 1
     -- `∀ A r B (f : A → B), (∀ a b, r a b → f a = f b) → Quot A r → B`
-    .pi (u + 1) v (.sort u) <|
-    .pi (Nat.max u 1) v (relAV u (.bvar 0)) <|
-    .pi (v + 1) v (.sort v) <|
-    .pi (ConLeche.Term.imax u v) v (.pi u v (.bvar 2) (.bvar 1)) <|
-    .pi 0 v (.pi u 0 (.bvar 3) (.pi u 0 (.bvar 4)
-          (.pi 0 0 (AnnotTerm.mkAppN (.bvar 4) [.bvar 1, .bvar 0])
+    .pi (.sort u) <|
+    .pi (relAV (.bvar 0)) <|
+    .pi (.sort v) <|
+    .pi (.pi (.bvar 2) (.bvar 1)) <|
+    .pi (.pi (.bvar 3) (.pi (.bvar 4)
+          (.pi (AnnotTerm.mkAppN (.bvar 4) [.bvar 1, .bvar 0])
             (.eqE (.app (.bvar 3) (.bvar 2))
               (.app (.bvar 3) (.bvar 1)))))) <|
-    .pi u v (quotAV u (.bvar 4) (.bvar 3)) <|
+    .pi (quotAV u (.bvar 4) (.bvar 3)) <|
     .bvar 3
   | .quotInd, us =>
     let u := lv us 0
-    .pi (u + 1) 0 (.sort u) <|
-    .pi (Nat.max u 1) 0 (relAV u (.bvar 0)) <|
-    .pi (Nat.max u 1) 0
-      (.pi u 1 (quotAV u (.bvar 1) (.bvar 0)) (.sort 0)) <|
-    .pi 0 0 (.pi u 0 (.bvar 2)
+    .pi (.sort u) <|
+    .pi (relAV (.bvar 0)) <|
+    .pi (.pi (quotAV u (.bvar 1) (.bvar 0)) (.sort 0)) <|
+    .pi (.pi (.bvar 2)
       (.app (.bvar 1) (quotMkAV u (.bvar 3) (.bvar 2) (.bvar 0)))) <|
-    .pi u 0 (quotAV u (.bvar 3) (.bvar 2)) <|
+    .pi (quotAV u (.bvar 3) (.bvar 2)) <|
     .app (.bvar 2) (.bvar 0)
   | .quotSound, us =>
     let u := lv us 0
-    .pi (u + 1) 0 (.sort u) <|
-    .pi (Nat.max u 1) 0 (relAV u (.bvar 0)) <|
-    .pi u 0 (.bvar 1) <|
-    .pi u 0 (.bvar 2) <|
-    .pi 0 0 (AnnotTerm.mkAppN (.bvar 2) [.bvar 1, .bvar 0]) <|
+    .pi (.sort u) <|
+    .pi (relAV (.bvar 0)) <|
+    .pi (.bvar 1) <|
+    .pi (.bvar 2) <|
+    .pi (AnnotTerm.mkAppN (.bvar 2) [.bvar 1, .bvar 0]) <|
     .eqE (quotMkAV u (.bvar 4) (.bvar 3) (.bvar 2))
       (quotMkAV u (.bvar 4) (.bvar 3) (.bvar 1))
   | .propext, _ =>
     -- `∀ (A B : Prop), (A → B) → (B → A) → A = B`
-    .pi 1 0 (.sort 0) <| .pi 1 0 (.sort 0) <|
-    .pi 0 0 (.pi 0 0 (.bvar 1) (.bvar 1)) <|
-    .pi 0 0 (.pi 0 0 (.bvar 1) (.bvar 3)) <|
+    .pi (.sort 0) <| .pi (.sort 0) <|
+    .pi (.pi (.bvar 1) (.bvar 1)) <|
+    .pi (.pi (.bvar 1) (.bvar 3)) <|
     .eqE (.bvar 3) (.bvar 2)
   | .choice, us =>
     let u := lv us 0
     -- `∀ (A : Sort u), ¬¬A → A`
-    .pi (u + 1) u (.sort u) <|
-    .pi 0 u (negTyAV 0 (negTyAV u (.bvar 0))) <|
+    .pi (.sort u) <|
+    .pi (negTyAV (negTyAV (.bvar 0))) <|
     .bvar 1
   | .lfpFam, us =>
     let u := lv us 0; let w := lv us 1
@@ -246,15 +225,15 @@ def BConst.typeAV : BConst → List Nat → AnnotTerm
     -- `Π (I : Sort u), ((I → Sort w) → (I → Sort w)) → I → Sort w` (task
     -- #188, indexed): `I → Sort w` has sort `max u (w + 1)`, and so do the
     -- functor space and the tail
-    .pi (u + 1) m (.sort u) <|
-    .pi m m (arrowA m m (arrowA u (w + 1) (.bvar 0) (.sort w)) (arrowA u (w + 1) (.bvar 0) (.sort w))) <|
-    .pi u (w + 1) (.bvar 1) (.sort w)
+    .pi (.sort u) <|
+    .pi (arrowA (arrowA (.bvar 0) (.sort w)) (arrowA (.bvar 0) (.sort w))) <|
+    .pi (.bvar 1) (.sort w)
   | .lfpTuple k, us =>
     let R := tupleFamSort k us
     -- `Π (Is : ⟨Sort u_0, …, Sort u_{k-1}⟩) (F : Fams Is → Fams Is), Fams Is`,
     -- every binder's result slot the family tuple's own sort `R`
-    .pi (tupleIdxSort us) R (tupleSortsAV k us) <|
-    .pi R R (.pi R R (tupleFamsAV k us 0) (tupleFamsAV k us 1)) <|
+    .pi (tupleSortsAV k us) <|
+    .pi (.pi (tupleFamsAV k us 0) (tupleFamsAV k us 1)) <|
     tupleFamsAV k us 1
 
 end ConLeche.Semantics

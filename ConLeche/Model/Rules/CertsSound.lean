@@ -61,13 +61,13 @@ theorem certs_step {d : Nat} {lic : Bool} {ty body arg : Expr}
     ∃ resta : AnnotTerm,
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d (.forallE ty body mb) ρ →
         (∀ x ∈ arg :: rest, LeavesGr m φ d x ρ) →
-        WellDenotedV V ρ (.pi 0 (pwBit φ mb.pw) doma bodya) →
+        WellDenotedV V ρ (.pi doma bodya) →
         (∀ x ∈ aa :: vs', WellDenotedV V ρ x) →
         (lic = true →
           WellDenotedV V ρ (AnnotTerm.mkAppN fa (aa :: vs')) ∧
-            interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mb.pw) doma bodya)) →
+            interp V ρ fa ∈ˢ interp V ρ (.pi doma bodya)) →
         interp V ρ aa ∈ˢ interp V ρ doma →
-        TeleFitPA V ρ (.pi 0 (pwBit φ mb.pw) doma bodya) (aa :: vs') resta ∧
+        TeleFitPA V ρ (.pi doma bodya) (aa :: vs') resta ∧
           WellDenotedV V ρ resta := by
   obtain ⟨hwa, hba, hLa⟩ := hfarg
   have hbody' : denoteMeta m.acval env φ d (body.instantiate1 arg)

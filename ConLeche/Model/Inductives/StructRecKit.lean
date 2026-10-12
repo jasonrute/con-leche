@@ -54,7 +54,7 @@ theorem towerBodyAVPos_validV {w : Nat} :
   | [], _, _ => trivial
   | F :: Fs, ρ, hv => by
     show AnnotValid V ρ (.app (.app (.const .psigma [w, w]) F)
-      (.lam (w + 1) F (towerBodyAVPos w Fs)))
+      (.lam F (towerBodyAVPos w Fs)))
     rw [AnnotValid_app]
     refine ⟨?_, ?_⟩
     · rw [AnnotValid_app]
@@ -69,7 +69,7 @@ theorem sqBodyAV_validV :
       AnnotValid V ρ (sqBodyAV Fs)
   | [], _, _ => trivial
   | F :: Fs, ρ, hv => by
-    show AnnotValid V ρ (negAV (.pi 0 0 F (negAV (sqBodyAV Fs))))
+    show AnnotValid V ρ (negAV (.pi F (negAV (sqBodyAV Fs))))
     unfold negAV
     rw [AnnotValid_pi]
     refine ⟨?_, fun _ _ => by simp, fun _ _ _ => ?_⟩
@@ -123,7 +123,7 @@ theorem mkTowerGoPos_validV {w : Nat} (hw : w ≠ 0) :
     show AnnotValid V (consList bs (cons b ρp))
       (.app (.app (.app (.app (.const .psigmaMk [w, w])
           (F.liftN (Fs.length + 1)))
-          (.lam (w + 1) (F.liftN (Fs.length + 1))
+          (.lam (F.liftN (Fs.length + 1))
             ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
         (mkTowerGoPos w Fs))

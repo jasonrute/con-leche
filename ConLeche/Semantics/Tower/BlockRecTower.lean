@@ -81,7 +81,7 @@ theorem piR_zero_elim {A f x : V} {B : V → V} (hf : f ∈ˢ piR 0 A B) (hx : x
 
 /-- `Σ' (_ : P), Q` at `Prop` (`Q` at the same depth as `P`). -/
 def andAV (P Q : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [0, 0]) [P, .lam 1 P (Q.liftN 1 0)]
+  AnnotTerm.mkAppN (.const .psigma [0, 0]) [P, .lam P (Q.liftN 1 0)]
 
 /-- The conjunction of a list of propositions (`PUnit` at `[]`). -/
 def andChainAV : List AnnotTerm → AnnotTerm
@@ -92,13 +92,13 @@ theorem interp_andAV {P Q : AnnotTerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
     interp V ρ (andAV P Q) = sigmaSet 0 (interp V ρ P) fun _ => interp V ρ Q := by
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hP
-  have hlam : interp V ρ (.lam 1 P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
+  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
     rw [interp_lam]
     exact lamR_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]
   have hfib : (lamR 1 (interp V ρ P) fun _ => interp V ρ Q) ∈ˢ psigmaFibreSpace V 0 (interp V ρ P) :=
     lamR_mem fun _ _ => by rw [univ_zero]; exact hQ
   show SetTheory.app (SetTheory.app (psigmaV V 0 0) (interp V ρ P))
-    (interp V ρ (.lam 1 P (Q.liftN 1 0))) = _
+    (interp V ρ (.lam P (Q.liftN 1 0))) = _
   rw [hlam, psigmaV_app V hP' hfib]
   exact sigma_congr fun x hx => app_lamR_pos Nat.one_ne_zero hx
 
@@ -127,10 +127,10 @@ theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (h
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hPu
   have hQ' : interp V ρ Q ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hQu
   have hps := psigmaV_rr_mem (V := V) 0
-  have hlam : interp V ρ (.lam 1 P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
+  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
     rw [interp_lam]
     exact lamR_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]
-  show WellDenoted V ρ (.app (.app (.const .psigma [0, 0]) P) (.lam 1 P (Q.liftN 1 0)))
+  show WellDenoted V ρ (.app (.app (.const .psigma [0, 0]) P) (.lam P (Q.liftN 1 0)))
   rw [WellDenoted_app]
   refine ⟨?_, ?_, 1, psigmaFibreSpace V 0 (interp V ρ P), fun _ => (univ 0 : V), ?_, ?_,
     fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_piR _ _ _⟩
@@ -230,7 +230,7 @@ theorem pt_mem_mkPisAV_eqE_iff :
 
 /-- `Σ' (r : T), rest` with `T` at sort `s` and the rest at sort `v`. -/
 def sigAV (s v : Nat) (T rest : AnnotTerm) : AnnotTerm :=
-  AnnotTerm.mkAppN (.const .psigma [s, v]) [T, .lam (v + 1) T rest]
+  AnnotTerm.mkAppN (.const .psigma [s, v]) [T, .lam T rest]
 
 /-- The sort of a chain's tail: the proposition `Q` (`0`) at the last
 link, the remaining chain (`s`) before it.  Spelling the last link's
@@ -339,12 +339,12 @@ theorem interp_sigChainAV :
       interp V ρ (sigChainAV s Ts Q) = sigChainV s ρ Ts Q
   | _, [], _, _ => rfl
   | ρ, T :: Ts, Q, h => by
-    have hlam : interp V ρ (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q))
+    have hlam : interp V ρ (.lam T (sigChainAV s Ts Q))
         = lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
       rw [interp_lam]
       exact lamR_congr fun r hr => interp_sigChainAV (h.2.2 r hr)
     show SetTheory.app (SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T))
-      (interp V ρ (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q))) = _
+      (interp V ρ (.lam T (sigChainAV s Ts Q))) = _
     rw [hlam, psigmaV_app V h.1 (sigChain_lam_mem h), max_tailLv]
     exact sigma_congr fun r hr => app_lamR_pos (Nat.succ_ne_zero _) hr
 
@@ -356,7 +356,7 @@ theorem wd_sigChainAV :
   | ρ, T :: Ts, Q, h => by
     have hps := psigmaV_uv_mem (V := V) s (tailLv s Ts)
     show WellDenoted V ρ (.app (.app (.const .psigma [s, tailLv s Ts]) T)
-      (.lam (tailLv s Ts + 1) T (sigChainAV s Ts Q)))
+      (.lam T (sigChainAV s Ts Q)))
     rw [WellDenoted_app]
     refine ⟨?_, ?_, Nat.max s (tailLv s Ts) + 1, psigmaFibreSpace V (tailLv s Ts) (interp V ρ T),
       fun _ => (univ (Nat.max s (tailLv s Ts)) : V), ?_, ?_,

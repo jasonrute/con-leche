@@ -78,7 +78,7 @@ theorem foldl_app_pt' : ∀ (ts : List V), ts.foldl SetTheory.app (pt : V) = pt
 
 /-- `I → Sort w`, spelled. -/
 def famTyAV (u w : Nat) (Ids : List AnnotTerm) : AnnotTerm :=
-  .pi u (w + 1) (idxTyAV u Ids) (.sort w)
+  .pi (idxTyAV u Ids) (.sort w)
 
 theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : IdxOk u ρp Ids) :
     interp V ρp (famTyAV u w Ids) = lfpFamSpace V w (idxSet u ρp Ids) ∧

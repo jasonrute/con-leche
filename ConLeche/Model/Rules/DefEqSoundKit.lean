@@ -135,12 +135,12 @@ theorem Graded.snd {Δa : List AnnotTerm} {e : AnnotTerm}
 
 /-- `WellDenoted.hoist_pi` at `Graded`. -/
 theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : Graded V Δa (.pi u v A B)) :
+    (h : Graded V Δa (.pi A B)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
   refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
   · exact ((AnnotValid_pi V ρ u v A B) ▸ (h ρ hρ).2).1
-  · exact ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1
+  · exact ((WellDenoted_pi V ρ A B) ▸ (h ρ hρ).1).2.1
   · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
       funext i; cases i with | zero => rfl | succ i => rfl
     have := ((AnnotValid_pi V _ u v A B) ▸
@@ -149,12 +149,12 @@ theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
 
 /-- `WellDenoted.hoist_lam` at `Graded`. -/
 theorem Graded.lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
-    (h : Graded V Δa (.lam v A b)) :
+    (h : Graded V Δa (.lam A b)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)
   refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
   · exact ((AnnotValid_lam V ρ v A b) ▸ (h ρ hρ).2).1
-  · exact ((WellDenoted_lam V ρ v A b) ▸ (h ρ hρ).1).2.1
+  · exact ((WellDenoted_lam V ρ A b) ▸ (h ρ hρ).1).2.1
   · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
       funext i; cases i with | zero => rfl | succ i => rfl
     have := ((AnnotValid_lam V _ v A b) ▸
@@ -277,14 +277,14 @@ stored type `∀ p⃗, Sort u` whose binders the reader checked to be
   | 0, u, e => e = .sort u
   | n + 1, u, e =>
     match e with
-    | .pi _ v _ B => v ≠ 0 ∧ NeverChain n u B
+    | .pi _ B => v ≠ 0 ∧ NeverChain n u B
     | _ => False
 
 theorem neverChain_succ_inv {n u : Nat} {e : AnnotTerm}
     (h : NeverChain (n + 1) u e) :
-    ∃ w v A B, e = .pi w v A B ∧ v ≠ 0 ∧ NeverChain n u B := by
+    ∃ w v A B, e = .pi A B ∧ v ≠ 0 ∧ NeverChain n u B := by
   match e with
-  | .pi w v A B => exact ⟨w, v, A, B, rfl, h.1, h.2⟩
+  | .pi A B => exact ⟨w, v, A, B, rfl, h.1, h.2⟩
   | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
   | .eqE _ _ | .fst _ | .snd _ | .prf => exact nomatch h
 
@@ -346,7 +346,7 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
         ((AnnotValid_app V ρ f a) ▸ hokApp.2).2⟩
     have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
       fun y hy =>
-        ⟨((WellDenoted_pi V ρ w v A B) ▸ hokT.1).2.2.1 y hy,
+        ⟨((WellDenoted_pi V ρ A B) ▸ hokT.1).2.2.1 y hy,
           ((AnnotValid_pi V ρ w v A B) ▸ hokT.2).2.1 y hy⟩
     have hf' : interp V ρ f
         ∈ˢ piR v (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf

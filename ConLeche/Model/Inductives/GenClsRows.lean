@@ -53,8 +53,8 @@ theorem wellDenotedV_piDom_at {B : AnnotTerm} :
         WellDenotedTy V (consList zs ρ) ((tl.map (·.2.2)).getD l default)
   | [], _, _, l, hl, _, _ => absurd hl (Nat.not_lt_zero _)
   | d :: tl, ρ, hv, l, hl, zs, hz => by
-    have hw : WellDenoted V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv.1
-    have hva : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv.2
+    have hw : WellDenoted V ρ (.pi d.2.2 (mkPisAV tl B)) := hv.1
+    have hva : AnnotValid V ρ (.pi d.2.2 (mkPisAV tl B)) := hv.2
     rw [AnnotValid_pi] at hva
     cases l with
     | zero =>

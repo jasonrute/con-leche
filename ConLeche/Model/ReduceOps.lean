@@ -52,7 +52,7 @@ and every part of it is already established at the install:
 * the pin fixes the stored type to `.forallE (.const E []) (.const E [])
   mb₀` **on the nose** below the binder meta — both erasures fix a
   `.const` (the `trustCompiler` branch's lesson, reused) — so the
-  type's reading is `.pi 0 (pwBit ψ mb₀.pw) (acval E ψ) (acval E ψ)`
+  type's reading is `.pi (acval E ψ) (acval E ψ)`
   and `interp` of it is a `piR` over the element set;
 * the `piR` membership is the constant's own `mem_type` obligation
   (`hmemA`, which `harvestOpaque` proves anyway);
@@ -244,16 +244,14 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
       = ConLeche.reduceElemTy cv.name :=
     Expr.instantiate1_eq_self (by rw [hEty]; rfl)
   have hTaShape : ∀ ψ : Name → Nat,
-      Ta ψ = .pi 0 (pwBit ψ mb₀.pw)
-        (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
+      Ta ψ = .pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) := by
     intro ψ
     have h := hTa ψ
     rw [show denoteMeta mp.base2.acval env ψ 0
           (Expr.forallE (ConLeche.reduceElemTy cv.name)
             (ConLeche.reduceElemTy cv.name) mb₀)
-        = some (.pi 0 (pwBit ψ mb₀.pw)
-            (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
+        = some (.pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
             (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) from by
       rw [denoteMeta_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h
     exact (Option.some.inj h).symm

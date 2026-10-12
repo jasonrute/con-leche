@@ -167,7 +167,7 @@ theorem annotValid_liftN_consList (e : AnnotTerm) (rs : List V) (ρ : Nat → V)
 theorem annotValid_andAV {P Q : AnnotTerm} {ρ : Nat → V}
     (hP : AnnotValid V ρ P) (hQ : AnnotValid V ρ Q) :
     AnnotValid V ρ (andAV P Q) := by
-  show AnnotValid V ρ (AnnotTerm.app (.app (.const .psigma [0, 0]) P) (.lam 1 P (Q.liftN 1 0)))
+  show AnnotValid V ρ (AnnotTerm.app (.app (.const .psigma [0, 0]) P) (.lam P (Q.liftN 1 0)))
   rw [AnnotValid_app, AnnotValid_app, AnnotValid_lam]
   refine ⟨⟨trivial, hP⟩, hP, fun x _ => ?_⟩
   have h := annotValid_liftN_consList (V := V) Q [x] ρ

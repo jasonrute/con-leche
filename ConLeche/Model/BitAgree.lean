@@ -15,7 +15,7 @@ and the ENDGAME D resume-here's item 2 understated it.  Its claim was
 and that equation is **false as stated**, for two independent reasons,
 neither of which is a defect:
 
-* `denoteMeta`'s `forallE` clause emits `.pi 0 (pwBit φ m.pw) ta ba` — the
+* `denoteMeta`'s `forallE` clause emits `.pi ta ba` — the
   domain slot is always the literal `0`, because the reading has no
   sort run to take a domain sort from.  `BConst.typeAV` carries the
   *exact* domain sort at every binder, because its consumers
@@ -69,10 +69,10 @@ inductive AnnotTerm.BitAgree : AnnotTerm → AnnotTerm → Prop where
       BitAgree f f' → BitAgree a a' → BitAgree (.app f a) (.app f' a')
   | lam {v v' : Nat} {A A' b b' : AnnotTerm} :
       (v = 0 ↔ v' = 0) → BitAgree A A' → BitAgree b b' →
-      BitAgree (.lam v A b) (.lam v' A' b')
+      BitAgree (.lam A b) (.lam A' b')
   | pi {u u' v v' : Nat} {A A' B B' : AnnotTerm} :
       (v = 0 ↔ v' = 0) → BitAgree A A' → BitAgree B B' →
-      BitAgree (.pi u v A B) (.pi u' v' A' B')
+      BitAgree (.pi A B) (.pi A' B')
   | letE {v v' b b' : AnnotTerm} :
       BitAgree v v' → BitAgree b b' → BitAgree (.letE v b) (.letE v' b')
   | eqE {a a' b b' : AnnotTerm} :
@@ -92,8 +92,8 @@ theorem refl : ∀ e : AnnotTerm, BitAgree e e
   | .const c us => .const c us
   | .prf => .prf
   | .app f a => .app (refl f) (refl a)
-  | .lam _ A b => .lam Iff.rfl (refl A) (refl b)
-  | .pi _ _ A B => .pi Iff.rfl (refl A) (refl B)
+  | .lam A b => .lam Iff.rfl (refl A) (refl b)
+  | .pi A B => .pi Iff.rfl (refl A) (refl B)
   | .letE v b => .letE (refl v) (refl b)
   | .eqE a b => .eqE (refl a) (refl b)
   | .fst e => .fst (refl e)
@@ -184,7 +184,7 @@ theorem validV : ∀ {e e' : AnnotTerm}, BitAgree e e' →
   | prf => intro ρ; simp
   | app _ _ ihf iha =>
     intro ρ; rw [AnnotValid_app, AnnotValid_app, ihf ρ, iha ρ]
-  | lam _ hA hb ihA ihb =>
+  | lam hA hb ihA ihb =>
     intro ρ
     rw [AnnotValid_lam, AnnotValid_lam, ihA ρ, interp_eq V hA ρ]
     exact and_congr Iff.rfl

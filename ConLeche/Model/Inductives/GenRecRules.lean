@@ -1402,7 +1402,7 @@ theorem annotValid_lamsApp {h : AnnotTerm} (hh : ∀ ρ' : Nat → V, AnnotValid
     exact (AnnotValid_congr_below e D σ σc (by simpa using hargs e he) hag).mp
       (by simpa using hv [] trivial e he)
   | (v, A) :: tele, D, σ, σc, hT, hargs, hag, hF, hv => by
-    show AnnotValid V σc (.lam v A _)
+    show AnnotValid V σc (.lam A _)
     rw [AnnotValid_lam]
     have hA := (AnnotValid_congr_below A D σ σc hT.1 hag).mp hF.1
     refine ⟨hA, fun x hx => ?_⟩

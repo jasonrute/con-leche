@@ -257,7 +257,7 @@ theorem stripPisAV_below :
     obtain ⟨rfl, rfl⟩ : ps = [] ∧ b = e := by
       simpa [stripPisAV] using h.symm
     exact ⟨trivial, he⟩
-  | n + 1, .pi u v A B, ps, b, k, h, he => by
+  | n + 1, .pi A B, ps, b, k, h, he => by
     simp only [stripPisAV, Option.map_eq_some_iff] at h
     obtain ⟨⟨ps', b'⟩, hstrip, heq⟩ := h
     obtain ⟨rfl, rfl⟩ : (u, v, A) :: ps' = ps ∧ b' = b := by
@@ -466,7 +466,7 @@ theorem natRecAV_wellDenoted {u : Nat} {M z s k : AnnotTerm} {σ : Nat → V}
 
 /-- The constant motive `λ _ : Nat, Sort w` (its body's type is
 `Sort (w + 1)`, hence the bit). -/
-def natSortMotiveAV (w : Nat) : AnnotTerm := .lam (w + 1) natAV (.sort w)
+def natSortMotiveAV (w : Nat) : AnnotTerm := .lam natAV (.sort w)
 
 theorem interp_natSortMotiveAV (w : Nat) (σ : Nat → V) :
     interp V σ (natSortMotiveAV w) = lamR (w + 1) omega fun _ => univ w := by rfl
@@ -484,7 +484,7 @@ theorem natSortMotiveAV_app (w : Nat) (σ : Nat → V) {n : V} (hn : n ∈ˢ (om
   exact app_lamR_pos (Nat.succ_ne_zero w) hn
 
 theorem natSortMotiveAV_wellDenoted (w : Nat) (σ : Nat → V) : WellDenoted V σ (natSortMotiveAV w) := by
-  show WellDenoted V σ (.lam (w + 1) natAV (.sort w))
+  show WellDenoted V σ (.lam natAV (.sort w))
   rw [WellDenoted_lam]
   exact ⟨trivial, IsTy_omega, fun _ _ => trivial, fun _ => univ (w + 1),
     fun _ _ => univ_mem_univ w, fun _ _ => IsTy_univ _,
@@ -497,7 +497,7 @@ def caseAVAt (w : Nat) : List AnnotTerm → Nat → AnnotTerm → AnnotTerm
   | [], _, _ => .const .empty [w]
   | T :: Ts, d, k =>
     natRecAV (w + 1) (natSortMotiveAV w) (T.liftN d 0)
-      (.lam (w + 1) natAV (.lam (w + 1) (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1)))) k
+      (.lam natAV (.lam (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1)))) k
 
 omit [SetTheory V] in
 /-- The environment retraction across the step's two binders. -/
@@ -550,10 +550,10 @@ theorem caseAVAt_facts {w : Nat} :
         trivial (by rw [interp_bvar]; exact hb)
       rw [shiftE_step] at h
       exact ⟨h.1, fun i hi => h.2.1 i (by rw [interp_bvar]; exact hi), h.2.2⟩
-    have hsv : interp V σ (.lam (w + 1) natAV (.lam (w + 1) (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1))))
+    have hsv : interp V σ (.lam natAV (.lam (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1))))
         = lamR (w + 1) omega fun b => lamR (w + 1) (univ w) fun a =>
             interp V (cons a (cons b σ)) (caseAVAt w Ts (d + 2) (.bvar 1)) := rfl
-    have hs : interp V σ (.lam (w + 1) natAV (.lam (w + 1) (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1))))
+    have hs : interp V σ (.lam natAV (.lam (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1))))
         ∈ˢ natStepSpace V (w + 1) (interp V σ (natSortMotiveAV w)) := by
       rw [hsv]
       unfold natStepSpace
@@ -570,7 +570,7 @@ theorem caseAVAt_facts {w : Nat} :
       rw [interp_natRecAV hM hz hs hk, hi, natrec_vnat]
       -- unroll the iteration
       have hiter : ∀ j, natIter (interp V σ (T.liftN d 0))
-          (interp V σ (.lam (w + 1) natAV (.lam (w + 1) (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1)))))
+          (interp V σ (.lam natAV (.lam (.sort w) (caseAVAt w Ts (d + 2) (.bvar 1)))))
           j ∈ˢ (univ w : V) := by
         intro j
         have h := natRecV_mem_fibre V hM hz hs (vnat_mem_omega j)
@@ -706,11 +706,11 @@ theorem case_fibre {w : Nat} {ρ : Nat → V} {Fss : List (List AnnotTerm)}
 /-- The carrier body, graph regime. -/
 def sumBodyAVPos (w : Nat) (Fss : List (List AnnotTerm)) : AnnotTerm :=
   .app (.app (.const .psigma [w, w]) natAV)
-    (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)))
+    (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) 1 (.bvar 0)))
 
 /-- The carrier body, squash regime: `¬ ∀ k : Nat, ¬ (case k)`. -/
 def sqSumBodyAV (Fss : List (List AnnotTerm)) : AnnotTerm :=
-  negAV (.pi 1 0 natAV (negAV (caseAVAt 0 (Fss.map (towerBodyAV 0)) 1 (.bvar 0))))
+  negAV (.pi natAV (negAV (caseAVAt 0 (Fss.map (towerBodyAV 0)) 1 (.bvar 0))))
 
 /-- The carrier body, both regimes. -/
 def sumBodyAV (w : Nat) (Fss : List (List AnnotTerm)) : AnnotTerm :=
@@ -877,7 +877,7 @@ theorem sumTyAV_wellDenoted {w : Nat} {Fss : List (List AnnotTerm)} :
       ParamsOkS w ρ Fss pps → WellDenoted V ρ (sumTyAV w pps Fss)
   | [], _, h => sumBodyAV_wellDenoted h
   | d :: pps, ρ, h => by
-    show WellDenoted V ρ (.lam (w + 1) d.2.2
+    show WellDenoted V ρ (.lam d.2.2
       (mkLamsAV (pps.map fun d => (w + 1, d.2.2)) (sumBodyAV w Fss)))
     rw [WellDenoted_lam]
     exact ⟨h.2.1, h.2.2.1, fun a ha => sumTyAV_wellDenoted (h.2.2.2 a ha),
@@ -956,7 +956,7 @@ holding at the fields.
 the earlier binders (the equations are scoped at the chain's head). -/
 def eqChainAV : List (AnnotTerm × AnnotTerm) → AnnotTerm
   | [] => .const .empty [0]
-  | (a, b) :: r => .pi 0 0 (.eqE a b) ((eqChainAV r).liftN 1 0)
+  | (a, b) :: r => .pi (.eqE a b) ((eqChainAV r).liftN 1 0)
 
 /-- **The index equation**: the truth value of every equation holding. -/
 def idxEqAV (eqs : List (AnnotTerm × AnnotTerm)) : AnnotTerm := negAV (eqChainAV eqs)
@@ -1050,7 +1050,7 @@ theorem eqChainAV_wellDenoted :
       WellDenoted V ρ (eqChainAV eqs)
   | [], _, _ => trivial
   | (a, b) :: r, ρ, hok => by
-    show WellDenoted V ρ (.pi 0 0 (.eqE a b) ((eqChainAV r).liftN 1 0))
+    show WellDenoted V ρ (.pi (.eqE a b) ((eqChainAV r).liftN 1 0))
     rw [WellDenoted_pi, WellDenoted_eqE]
     refine ⟨hok (a, b) List.mem_cons_self, IsTy_eqv _ _, fun x _ => ?_, fun x _ => ?_⟩
     · rw [WellDenoted_liftN, show (1 : Nat) = 0 + 1 from rfl, shiftE_succ_cons,
@@ -1361,7 +1361,7 @@ tower at the constructor's own index tuple).
 the parameter frame (the tower bodies are scoped there). -/
 def sumInjAtAV (w : Nat) (Fss : List (List AnnotTerm)) (d : Nat) (tag payload : AnnotTerm) : AnnotTerm :=
   AnnotTerm.mkAppN (.const .psigmaMk [w, w])
-    [natAV, .lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)),
+    [natAV, .lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)),
       tag, payload]
 
 /-- The semantic injection, both regimes: the point at squash. -/
@@ -1380,10 +1380,10 @@ theorem injW_mem {w : Nat} {f : Nat → V} {i : Nat} {a : V} (ha : a ∈ˢ f i) 
 /-- The case-split fibre λ at a frame. -/
 theorem sumFibreLam_facts {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE d 0 σ = ρp)
     {Fss : List (List AnnotTerm)} (hok : SumFieldsOkB w ρp Fss) :
-    interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))
+    interp V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))
         = lamR (w + 1) omega (natFibre (sumFibre w ρp Fss)) ∧
       lamR (w + 1) (omega : V) (natFibre (sumFibre w ρp Fss)) ∈ˢ psigmaFibreSpace V w omega ∧
-      WellDenoted V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))) := by
+      WellDenoted V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))) := by
   refine ⟨?_, ?_, ?_⟩
   · rw [interp_lam]
     exact lamR_congr fun k hk => (case_fibre_at hsh hok hk).1
@@ -1404,7 +1404,7 @@ theorem sumInjAtAV_interp {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : shiftE
     interp V σ (sumInjAtAV w Fss d tag payload) = injW w i (interp V σ payload) := by
   obtain ⟨hBv, hBm, -⟩ := sumFibreLam_facts hsh hok
   show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app (bval V .psigmaMk [w, w])
-    omega) (interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
+    omega) (interp V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
     (interp V σ tag)) (interp V σ payload) = _
   rw [hBv, htag]
   by_cases hw : w = 0
@@ -1472,7 +1472,7 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
       rw [app_lamR_pos (Nat.succ_ne_zero w) (vnat_mem_omega i), natFibre_vnat]
       exact hpay hw
     show WellDenoted V σ (.app (.app (.app (.app (.const .psigmaMk [w, w]) natAV)
-      (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
+      (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))) tag) payload)
     rw [WellDenoted_app]
     refine ⟨?_, hokpay, w, _, _, ?_, hpay', hz4,
       fun _ => IsTy_of_mem_univ (psigmaFibre_apply V hBm (vnat_mem_omega i))⟩
@@ -1487,11 +1487,11 @@ theorem sumInjAtAV_wellDenoted {w : Nat} {ρp σ : Nat → V} {d : Nat} (hsh : s
         · show SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega ∈ˢ _
           rw [hbv]; exact hm1
       · show SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
-          (interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))))
+          (interp V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0))))
           ∈ˢ _
         rw [hbv, hBv]; exact hm2
     · show SetTheory.app (SetTheory.app (SetTheory.app (interp V σ (.const .psigmaMk [w, w])) omega)
-        (interp V σ (.lam (w + 1) natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
+        (interp V σ (.lam natAV (caseAVAt w (Fss.map (towerBodyAV w)) (d + 1) (.bvar 0)))))
         (interp V σ tag) ∈ˢ _
       rw [hbv, hBv, htag]; exact hm3
 
@@ -1507,12 +1507,12 @@ valued by `.prf` rather than by a binder.  Its facts are
 def mkTowerGoUPos (w : Nat) (E : AnnotTerm) : List AnnotTerm → AnnotTerm
   | [] =>
     .app (.app (.app (.app (.const .psigmaMk [w, w]) E)
-        (.lam (w + 1) E (.const .punit [w]))) .prf)
+        (.lam E (.const .punit [w]))) .prf)
       (.const .punitUnit [w])
   | F :: Fs =>
     .app (.app (.app (.app (.const .psigmaMk [w, w])
         (F.liftN (Fs.length + 1)))
-        (.lam (w + 1) (F.liftN (Fs.length + 1))
+        (.lam (F.liftN (Fs.length + 1))
           ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
         (.bvar Fs.length))
       (mkTowerGoUPos w E Fs)
@@ -1663,13 +1663,13 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     have hm1 := app_mem_piR hm0 hA hz1
     have hm2 := app_mem_piR hm1 hBm hz2
     have hm3 := app_mem_piR hm2 hpt' hz3
-    have hlam : interp V ρp (.lam (w + 1) E (.const .punit [w]))
+    have hlam : interp V ρp (.lam E (.const .punit [w]))
         = lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V) := rfl
     have hb' : (unitAt w : V) ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp E) fun _ => (unitSetAt w : V)) pt := by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
       exact unitAt_mem_unitSetAt w
     show WellDenoted V ρp (.app (.app (.app (.app (.const .psigmaMk [w, w]) E)
-      (.lam (w + 1) E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
+      (.lam E (.const .punit [w]))) .prf) (.const .punitUnit [w]))
     rw [WellDenoted_app]
     refine ⟨?_, trivial, w, _, _, ?_, hb', hz4, fun _ => by
       rw [app_lamR_pos (Nat.succ_ne_zero w) hpt']
@@ -1689,10 +1689,10 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           rw [hbv]; exact hm1
         · rw [hlam]; exact hBm
       · show SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w])) (interp V ρp E))
-          (interp V ρp (.lam (w + 1) E (.const .punit [w]))) ∈ˢ _
+          (interp V ρp (.lam E (.const .punit [w]))) ∈ˢ _
         rw [hbv, hlam]; exact hm2
     · show SetTheory.app (SetTheory.app (SetTheory.app (interp V ρp (.const .psigmaMk [w, w]))
-        (interp V ρp E)) (interp V ρp (.lam (w + 1) E (.const .punit [w]))))
+        (interp V ρp E)) (interp V ρp (.lam E (.const .punit [w]))))
         (interp V ρp .prf) ∈ˢ _
       rw [hbv, hlam, interp_prf]; exact hm3
   | [], _, _ :: _, _, hsp, _ => hsp.elim
@@ -1722,7 +1722,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
       mkTowerGoUPos_interp hw (hb.2 b hsp.1) hsp.2 hpt
     have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
     have hBv : interp V (consList bs (cons b ρp))
-        (AnnotTerm.lam (w + 1) (F.liftN (Fs.length + 1))
+        (AnnotTerm.lam (F.liftN (Fs.length + 1))
           ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))
         = lamR (w + 1) (interp V ρp F)
             (fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) := by
@@ -1779,7 +1779,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
     show WellDenoted V (consList bs (cons b ρp))
       (.app (.app (.app (.app (.const .psigmaMk [w, w])
           (F.liftN (Fs.length + 1)))
-          (.lam (w + 1) (F.liftN (Fs.length + 1))
+          (.lam (F.liftN (Fs.length + 1))
             ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1)))
           (.bvar Fs.length))
         (mkTowerGoUPos w E Fs))
@@ -1826,7 +1826,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
               (interp V (consList bs (cons b ρp))
                 (F.liftN (Fs.length + 1))))
             (interp V (consList bs (cons b ρp))
-              (.lam (w + 1) (F.liftN (Fs.length + 1))
+              (.lam (F.liftN (Fs.length + 1))
                 ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))) ∈ˢ _
           rw [hA, hBv]
           exact hm2
@@ -1843,7 +1843,7 @@ theorem mkTowerGoUPos_wellDenoted {w : Nat} (hw : w ≠ 0) {E : AnnotTerm} :
           (interp V (consList bs (cons b ρp))
             (F.liftN (Fs.length + 1))))
           (interp V (consList bs (cons b ρp))
-            (.lam (w + 1) (F.liftN (Fs.length + 1))
+            (.lam (F.liftN (Fs.length + 1))
               ((towerBodyAV w (Fs ++ [E])).liftN (Fs.length + 1) 1))))
         (interp V (consList bs (cons b ρp)) (.bvar Fs.length)) ∈ˢ _
       rw [hA, hBv, interp_bvar, hval]

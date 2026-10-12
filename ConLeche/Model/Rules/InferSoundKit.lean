@@ -48,7 +48,7 @@ an application into the **hereditary app slot** the io licence reads.
 
 /-- The `WellDenotedV` ∀-splitter. -/
 theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
@@ -62,16 +62,16 @@ theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTer
 
 /-- The `WellDenotedV` ∀-splitter, the domain a graded type. -/
 theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) :=
   ⟨fun ρ hρ => ⟨(WellDenotedV.hoist_pi (V := V) h).1 ρ hρ,
-      ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1⟩,
+      ((WellDenoted_pi V ρ A B) ▸ (h ρ hρ).1).2.1⟩,
     (WellDenotedV.hoist_pi (V := V) h).2⟩
 
 /-- The `WellDenotedV` λ-splitter. -/
 theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam v A b)) :
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam A b)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ b) := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)
@@ -121,11 +121,11 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
     cases hfit with
     | @cons _ u v A B _ _ _ hx hfit' =>
       have hokA : WellDenotedV V σ A :=
-        ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).1,
+        ⟨((WellDenoted_pi V σ A B) ▸ hokT.1).1,
           ((AnnotValid_pi V σ u v A B) ▸ hokT.2).1⟩
       have hokB : ∀ y, y ∈ˢ interp V σ A → WellDenotedV V (cons y σ) B :=
         fun y hy =>
-          ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.2.1 y hy,
+          ⟨((WellDenoted_pi V σ A B) ▸ hokT.1).2.2.1 y hy,
             ((AnnotValid_pi V σ u v A B) ▸ hokT.2).2.1 y hy⟩
       have hfib : v = 0 → ∀ y, y ∈ˢ interp V σ A →
           interp V (cons y σ) B ∈ˢ (univZero : V) :=
@@ -137,7 +137,7 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
         · rw [WellDenoted_app]
           exact ⟨hf.1, hokx.1, v, interp V σ A,
             (fun y => interp V (cons y σ) B), hmem, hx, hfib,
-            fun _ => ((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.1⟩
+            fun _ => ((WellDenoted_pi V σ A B) ▸ hokT.1).2.1⟩
         · rw [AnnotValid_app]; exact ⟨hf.2, hokx.2⟩
       have hmem' : interp V ρ (.app f x)
           ∈ˢ interp V (cons (interp V ρ x) σ) B := by
@@ -162,18 +162,18 @@ theorem charList_facts {ρ : Nat → V}
     (hokKz : WellDenotedV V ρ Kz) (hokKs : WellDenotedV V ρ Ks)
     (hCharU : interp V ρ KH ∈ˢ (univ 1 : V))
     (hokTN : WellDenotedV V ρ
-      ((.pi 0 bN (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
+      ((.pi (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
     (hmemN : interp V ρ KN ∈ˢ interp V ρ
-      ((.pi 0 bN (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
+      ((.pi (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
     (hokTC : WellDenotedV V ρ
-      ((.pi 0 b1 (.sort 1) (.pi 0 b2 (.bvar 0)
-        (.pi 0 b3 (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
+      ((.pi (.sort 1) (.pi (.bvar 0)
+        (.pi (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
     (hmemC : interp V ρ KC ∈ˢ interp V ρ
-      ((.pi 0 b1 (.sort 1) (.pi 0 b2 (.bvar 0)
-        (.pi 0 b3 (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
-    (hokTF : WellDenotedV V ρ ((.pi 0 bF KNat KH) : AnnotTerm))
+      ((.pi (.sort 1) (.pi (.bvar 0)
+        (.pi (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
+    (hokTF : WellDenotedV V ρ ((.pi KNat KH) : AnnotTerm))
     (hmemF : interp V ρ KF ∈ˢ interp V ρ
-      ((.pi 0 bF KNat KH) : AnnotTerm))
+      ((.pi KNat KH) : AnnotTerm))
     (hz : interp V ρ Kz ∈ˢ interp V ρ KNat)
     (hsucc : interp V ρ Ks
       ∈ˢ piR 1 (interp V ρ KNat) fun _ => interp V ρ KNat) :
@@ -190,7 +190,7 @@ theorem charList_facts {ρ : Nat → V}
         interp V ρ ((.app KF (natLitAV Kz Ks c.toNat)) : AnnotTerm)
           ∈ˢ interp V ρ KH := by
     intro c
-    have hNatTy : IsTy (interp V ρ KNat) := ((WellDenoted_pi V ρ 0 bF KNat KH) ▸ hokTF.1).2.1
+    have hNatTy : IsTy (interp V ρ KNat) := ((WellDenoted_pi V ρ KNat KH) ▸ hokTF.1).2.1
     have hnat := natLit_factsAV hokKz.1 hokKs.1 hz hsucc hNatTy c.toNat
     have hokNum : WellDenotedV V ρ (natLitAV Kz Ks c.toNat) :=
       ⟨hnat.1, AnnotValid_natLitAV hokKz.2 hokKs.2 c.toNat⟩
@@ -375,8 +375,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRN : denoteMeta m.acval env φ 0
       (ciN.toConstantVal.type.instantiateLevelParams
         ciN.toConstantVal.levelParams [Level.zero])
-      = some ((.pi 0 (pwBit φ (Level.substPW [pN] [Level.zero] mbN.pw))
-          (.sort 1)
+      = some ((.pi (.sort 1)
           (.app (m.acval ConLeche.listName
             (Level.substFn φ ciL.toConstantVal.levelParams [Level.zero]))
             (.bvar 0))) : AnnotTerm) := by
@@ -403,11 +402,9 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRC : denoteMeta m.acval env φ 0
       (ciC.toConstantVal.type.instantiateLevelParams
         ciC.toConstantVal.levelParams [Level.zero])
-      = some ((.pi 0 (pwBit φ (Level.substPW [pC] [Level.zero] mb1.pw))
-          (.sort 1)
-          (.pi 0 (pwBit φ (Level.substPW [pC] [Level.zero] mb2.pw)) (.bvar 0)
-            (.pi 0 (pwBit φ (Level.substPW [pC] [Level.zero] mb3.pw))
-              (.app (m.acval ConLeche.listName
+      = some ((.pi (.sort 1)
+          (.pi (.bvar 0)
+            (.pi (.app (m.acval ConLeche.listName
                 (Level.substFn φ ciL.toConstantVal.levelParams [Level.zero]))
                 (.bvar 1))
               (.app (m.acval ConLeche.listName
@@ -463,8 +460,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRF : denoteMeta m.acval env φ 0
       (ciF.toConstantVal.type.instantiateLevelParams
         ciF.toConstantVal.levelParams [])
-      = some ((.pi 0 (pwBit φ (Level.substPW [] [] mbF.pw))
-          (m.acval ConLeche.natName (Level.substFn φ [] []))
+      = some ((.pi (m.acval ConLeche.natName (Level.substFn φ [] []))
           (m.acval ConLeche.charName (Level.substFn φ [] []))) : AnnotTerm) := by
     rw [hIF, denoteMeta_forallE, hKNat,
       show (Expr.const ConLeche.charName ([] : List Level)).instantiate1
@@ -485,8 +481,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRO : denoteMeta m.acval env φ 0
       (ciO.toConstantVal.type.instantiateLevelParams
         ciO.toConstantVal.levelParams [])
-      = some ((.pi 0 (pwBit φ (Level.substPW [] [] mbO.pw))
-          (.app (m.acval ConLeche.listName
+      = some ((.pi (.app (m.acval ConLeche.listName
             (Level.substFn φ ciL.toConstantVal.levelParams [Level.zero]))
             (m.acval ConLeche.charName (Level.substFn φ [] [])))
           (m.acval ConLeche.stringName

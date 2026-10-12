@@ -99,8 +99,8 @@ theorem peelPis_of_piTeleAV :
 sequence of its domain. -/
 theorem instSeq_pi_dom :
     ∀ (ws : List AnnotTerm) (t u v : Nat) (A B : AnnotTerm),
-      ∃ B', ConLeche.Model.AnnotTerm.instSeq ws t (.pi u v A B)
-        = .pi u v (ConLeche.Model.AnnotTerm.instSeq ws t A) B'
+      ∃ B', ConLeche.Model.AnnotTerm.instSeq ws t (.pi A B)
+        = .pi (ConLeche.Model.AnnotTerm.instSeq ws t A) B'
   | [], _, _, _, _, B => ⟨B, rfl⟩
   | w :: ws, t, u, v, A, B => by
     rw [AnnotTerm.instSeq_cons, AnnotTerm.instSeq_cons, AnnotTerm.inst_pi]
@@ -285,7 +285,7 @@ theorem WellDenoted_congr_below :
     intro k ρ ρ' hb hag
     rw [WellDenoted_app, WellDenoted_app, ihf k ρ ρ' hb.1 hag, iha k ρ ρ' hb.2 hag,
       interp_congr_below V f k ρ ρ' hb.1 hag, interp_congr_below V a k ρ ρ' hb.2 hag]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ ρ' hb hag
     rw [WellDenoted_lam, WellDenoted_lam, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
@@ -300,7 +300,7 @@ theorem WellDenoted_congr_below :
         B, fun x hx => ?_, hBt, hB0⟩
       rw [interp_congr_below V b (k + 1) _ _ hb.2 (cons_agree_below hag x)]
       exact hB x hx
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ ρ' hb hag
     rw [WellDenoted_pi, WellDenoted_pi, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
@@ -345,7 +345,7 @@ theorem AnnotValid_congr_below :
   | app f a ihf iha =>
     intro k ρ ρ' hb hag
     rw [AnnotValid_app, AnnotValid_app, ihf k ρ ρ' hb.1 hag, iha k ρ ρ' hb.2 hag]
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro k ρ ρ' hb hag
     rw [AnnotValid_lam, AnnotValid_lam, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
@@ -354,7 +354,7 @@ theorem AnnotValid_congr_below :
       exact ⟨h1, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mp (h2 x hx)⟩
     · rintro ⟨h1, h2⟩
       exact ⟨h1, fun x hx => (ihb (k + 1) _ _ hb.2 (cons_agree_below hag x)).mpr (h2 x hx)⟩
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro k ρ ρ' hb hag
     rw [AnnotValid_pi, AnnotValid_pi, ihA k ρ ρ' hb.1 hag,
       interp_congr_below V A k ρ ρ' hb.1 hag]
@@ -803,7 +803,7 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
         rcases hl' with rfl | hl'
         · exact fun h => by simp at h; omega
         · exact hl l (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl hl')) hba
-    refine ⟨.pi 0 (pwBit φ mb.pw) Xt Xb, ?_⟩
+    refine ⟨.pi Xt Xb, ?_⟩
     rw [AnnotTerm.liftN_pi, show d + 1 - 1 - q = d - 1 - q + 1 from by omega]
   | case7 d ty body mb ihty ihbody =>
     intro hw q hq hl ea h
@@ -819,7 +819,7 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
         rcases hl' with rfl | hl'
         · exact fun h => by simp at h; omega
         · exact hl l (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl hl')) hba
-    refine ⟨.lam (pwBit φ mb.pw) Xt Xb, ?_⟩
+    refine ⟨.lam Xt Xb, ?_⟩
     rw [AnnotTerm.liftN_lam, show d + 1 - 1 - q = d - 1 - q + 1 from by omega]
   | case8 d f a ihf iha =>
     intro hw q hq hl ea h

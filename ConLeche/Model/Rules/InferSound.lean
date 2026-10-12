@@ -336,7 +336,7 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
       (LeavesGr.open hC.forallE_ty hC.forallE_body hL.forallE_ty
         hL.forallE_body htyA hdomTy)
       (fun hg => (hgr hg).pi_body x hx)
-  have hgea : WellDenotedV V ρ (.pi 0 (pwBit φ mb.pw) tyA baA) := by
+  have hgea : WellDenotedV V ρ (.pi tyA baA) := by
     refine ⟨?_, ?_⟩
     · rw [WellDenoted_pi]
       exact ⟨hdom.1.1, IsTy_of_mem_univ hdom.2, fun x hx => (hcod x hx).1.1,
@@ -352,8 +352,8 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
   have hzag : pwBit φ mb.pw = 0 ↔ v.eval φ = 0 := by
     rw [← hz]; exact pwBit_zeronessOf φ v
   have hbridge :
-      interp V ρ (.pi 0 (pwBit φ mb.pw) tyA baA)
-        = interp V ρ (.pi (u.eval φ) (v.eval φ) tyA baA) := by
+      interp V ρ (.pi tyA baA)
+        = interp V ρ (.pi tyA baA) := by
     rw [interp_pi, interp_pi]
     exact piR_zero_agree hzag fun x _ => rfl
   rw [hbridge]
@@ -391,7 +391,7 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
       (body.instantiate1 (.fvar d ty)) with _ | ba
   · rw [hba] at hea; exact nomatch hea
   rw [hba] at hea
-  obtain rfl : ea = .lam (pwBit φ mb.pw) tyA ba :=
+  obtain rfl : ea = .lam tyA ba :=
     (Option.some.inj hea).symm
   obtain ⟨hwopen, hbopen, hLopen⟩ :=
     frame_open2 hws.1 hb.1 hws.2 hb.2 hLty hLbody
@@ -420,7 +420,7 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
   have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
-      = some (.pi 0 (pwBit φ mb.pw) tyA btA) := by
+      = some (.pi tyA btA) := by
     rw [denoteMeta, htyA, hround, hbtA]
     rfl
   have hCbt : CtxOkS m φ (d + 1) (tyA :: Δa) bt := hCop.of_subset hbtsub
@@ -613,7 +613,7 @@ theorem Infer.app_sound {g : Grade} {d : Nat}
   have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa := by
     rw [← hdom]
     exact hrowaM
-  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mt.pw) Aa Ba) := by
+  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
     rw [← hredfρ]
     exact hrowfM
   refine ⟨⟨(sound_app V hgfa.1 hgaa.1 hf2 ha2 hcod0 (fun _ => hAty.2)).1, ?_⟩,
@@ -725,7 +725,7 @@ theorem Infer.appSkip_sound {d : Nat}
     exact h2.2.2 h0 x hx
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
     ((WellDenoted_pi V ρ _ _ Aa Ba) ▸ hokpa.1).2.2.2
-  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mt.pw) Aa Ba) := by
+  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
     rw [← hredfρ]
     exact hrowfM
   -- **THE LICENCE**: the skipped membership, from the subject's own
