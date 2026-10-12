@@ -68,6 +68,10 @@ theorem admVal_kid (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ : Nat 
     (hub : ns.getD (b - 1) default = u)
     {G : Nat → Nat → V → V → Prop} {σ : Nat → V}
     (hσ : AdmVal mk mpC ctx d ns ψ ρ xs (holeOwner ns par b) G u.anc σ) {Y : Nat → V}
+    (hparams : SpineFit ρ (d.params ψ) (xs.take d.nP)) (hxs : d.nP ≤ xs.length)
+    (hY : InTupleSpace ((lfpSel mpC d.toLfp u.key.cname).w (nodeψ envC ψ u))
+      (lfpSel mpC d.toLfp u.key.cname).N ((lfpSel mpC d.toLfp u.key.cname).idx (nodeψ envC ψ u)
+        (keyFrame (nodeDsaI mk ctx ψ u) (ctx.hiAt u.anc.length) σ)) Y)
     (hsatN : Sat V ((grpTys mk.base2 ψ (ctx.hiAt u.anc.length) u.grp).reverse
         ++ stackCtx mk.base2 ψ ctx u.anc (d.holeCtx ψ).reverse)
       (consList (grpVals (lfpSel mpC d.toLfp u.key.cname) (nodeψ envC ψ u) u.grp
@@ -101,10 +105,12 @@ theorem admVal_kid (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ : Nat 
     rw [dyn_nlFr H hb00 (hub ▸ getD_mem_of_lt hb0 hbl) ψ ρ xs, hub]
   rw [hnlDb, hnlψ, hnlFr]
   have hGl := grpNews_length u.key.lvls u.key.ds (ctx.hiAt u.anc.length) u.grp
-  generalize hdsaE : nodeDsaI mk ctx ψ u = dsaU at hdsa hsatN ⊢
-  generalize hρ' : keyFrame dsaU (ctx.hiAt u.anc.length) σ = ρ' at hsatN ⊢
+  have hxs' : ctx.nP ≤ xs.length := by rw [H.hnP]; exact hxs
+  have hsatU := dyn_trueVal_sat H ψ ρ xs hparams hxs _ u hu (Nat.le_refl _)
+  generalize hdsaE : nodeDsaI mk ctx ψ u = dsaU at hdsa hsatN hY ⊢
+  generalize hρ' : keyFrame dsaU (ctx.hiAt u.anc.length) σ = ρ' at hsatN hY ⊢
   generalize hDdef : lfpSel mpC d.toLfp u.key.cname = D at *
-  rw [hψ] at hsatN ⊢
+  rw [hψ] at hsatN hY ⊢
   generalize hψu : Level.substFn ψ cv0.levelParams u.key.lvls = ψu at *
   have hVl := grpVals_length D ψu u.grp ρ' Y
   generalize hGV : grpVals D ψu u.grp ρ' Y = GV at hsatN hVl ⊢
@@ -151,6 +157,7 @@ theorem admVal_kid (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ : Nat 
     rw [hidx, htvq]; exact h2 hn
   · -- a frame hole
     intro i hk hi
+    have hi0 := hi
     rw [hanc, List.reverse_append, List.reverse_reverse] at hi
     rw [hown i]
     by_cases hin : i < u.anc.length
@@ -236,17 +243,46 @@ theorem admVal_kid (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ : Nat 
       rw [hidx] at harity
       have hisl : is.length = (D.ids mm' ψu).length := by
         rw [hkeq] at his; simp only at his; omega
-      obtain ⟨hfitA, hyY⟩ := holeVal_foldl_mem hisl hy
-      -- the fit at the TRUE frame (the index telescope sees no hole)
-      have hfitT : SpineFit (keyFrame dsaU (ctx.hiAt u.anc.length)
-          (trueVal mpC ctx ψ ρ xs u.anc)) (D.ids mm' ψu) is := by
-        rw [← (hte σ (trueVal mpC ctx ψ ρ xs u.anc) hσ.agree).spineFit is, hρ']
-        exact hfitA
+      have hT := hte σ (trueVal mpC ctx ψ ρ xs u.anc) hσ.agree
+      rw [hρ'] at hT
       have hcomp : nlComp mpC d ns b hk.key.cname = mm' := by
         unfold nlComp; rw [hnlDb, hkeq]; exact hidx
+      have hmmN : mm' < D.N := Nat.lt_of_lt_of_le hmm' (mk.lfpClause_of_mem hD).kN
+      by_cases hfitA : SpineFit ρ' (D.ids mm' ψu) is
+      · rw [LfpDatum.holeVal_app hfitA] at hy
+        -- the fit at the TRUE frame (the index telescope sees no hole)
+        have hfitT : SpineFit (keyFrame dsaU (ctx.hiAt u.anc.length)
+            (trueVal mpC ctx ψ ρ xs u.anc)) (D.ids mm' ψu) is := (hT.spineFit is).mp hfitA
+        rw [hcomp, hnlDb, hnlψ, hψ]
+        exact ⟨fun _ => Or.inr ⟨rfl, hmmN, tupW_mem hfitT, hy⟩, fun hnf => absurd hfitT hnf⟩
+      -- off the fit: the true value, the owner's hole value at its true carrier
+      -- (the tower off a fitting spine reads neither the frame off the holes nor
+      -- the tuple: `TeleEq.holeFam`, `holeFam_foldl_nofit`)
+      have hnT : ¬ SpineFit (keyFrame dsaU (ctx.hiAt u.anc.length)
+          (trueVal mpC ctx ψ ρ xs u.anc)) (D.ids mm' ψu) is := fun h =>
+        hfitA ((hT.spineFit is).mpr h)
       rw [hcomp, hnlDb, hnlψ, hψ]
-      refine ⟨fun _ => Or.inr ⟨rfl, Nat.lt_of_lt_of_le hmm' (mk.lfpClause_of_mem hD).kN,
-        tupW_mem hfitT, hyY⟩, fun hnf => absurd hfitT hnf⟩
+      refine ⟨fun h => absurd h hnT, fun _ => ?_⟩
+      have hkm' : hk ∈ ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length) u.grp :=
+        hkmem
+      rw [trueVal_frameVal H ψ ρ xs hxs' hu hsatU hi0 hsuf hkm', hDdef, hdsaE, hψ, hkeq]
+      simp only
+      rw [hidx]
+      have hC : InTupleSpace (D.w ψu) D.N
+          (D.idx ψu (keyFrame dsaU (ctx.hiAt u.anc.length) (trueVal mpC ctx ψ ρ xs u.anc)))
+          (D.carrier ψu (keyFrame dsaU (ctx.hiAt u.anc.length) (trueVal mpC ctx ψ ρ xs u.anc))) :=
+        lfpTuple_mem _ _ _ _
+      have hneC : ∀ ws, SpineFit ρ' (D.ids mm' ψu) ws →
+          app (D.carrier ψu (keyFrame dsaU (ctx.hiAt u.anc.length) (trueVal mpC ctx ψ ρ xs u.anc))
+            mm') (tupW (D.u mm' ψu) ws) ≠ pt := fun ws hws =>
+        (IsTy_of_mem_strictU (famSpace_app (hC mm' hmmN)
+          (tupW_mem ((hT.spineFit ws).mp hws)))).ne_pt
+      have hneY : ∀ ws, SpineFit ρ' (D.ids mm' ψu) ws →
+          app (Y mm') (tupW (D.u mm' ψu) ws) ≠ pt := fun ws hws =>
+        (IsTy_of_mem_strictU (famSpace_app (hY mm' hmmN) (tupW_mem hws))).ne_pt
+      unfold LfpDatum.holeVal at hy ⊢
+      rw [← hT.holeFam, holeFam_foldl_nofit hneC hneY hisl hfitA]
+      exact hy
 
 /-- **Below the frames**: an admissible valuation of a stack, its frame
 holes dropped, is admissible for the empty stack (a cache hit's). -/

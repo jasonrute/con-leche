@@ -16,8 +16,9 @@ A call whose walk leaf is a hole of the node's own frame stack lands in
 the hole's value at the admissible valuation `σ` (`AdmVal`).  That value
 at full arity either holds an element the visit's hypotheses `G` hold of
 — where the index spine fits the owner's telescope — or lies below the
-TRUE valuation's constant, whose former, applied, forces the fit
-(`former_foldl_mem`).  So the spine fits and `G` holds:
+TRUE valuation's constant, whose former, applied — where it is not the
+point (the caller's: a type) — forces the fit (`former_foldl_mem`).  So
+the spine fits and `G` holds:
 
 * `admVal_memberLand` — a member hole, owned by node `0`;
 * `admVal_frameLand` — a frame hole, owned by its listed owner.
@@ -50,7 +51,9 @@ theorem admVal_memberLand (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ
     {own : Nat → Nat} {G : Nat → Nat → V → V → Prop} {prog : List NestHole} {σ : Nat → V}
     (hσ : AdmVal mk mpC ctx d ns ψ ρ xs own G prog σ) {t : Nat} (ht : t < ctx.names.length)
     {is : List V} (his : is.length = ctx.nIdxs.getD t 0)
-    (hids : (d.toLfp.ids t ψ).length = ctx.nIdxs.getD t 0) {y : V}
+    (hids : (d.toLfp.ids t ψ).length = ctx.nIdxs.getD t 0)
+    (hne : is.foldl app (trueVal mpC ctx ψ ρ xs prog (ctx.hiAt prog.length - 1 - (ctx.nP + t)))
+      ≠ pt) {y : V}
     (hy : y ∈ˢ is.foldl app (σ (ctx.hiAt prog.length - 1 - (ctx.nP + t)))) :
     SpineFit (consList (xs.take ctx.nP) ρ) (d.toLfp.ids t ψ) is ∧
       G 0 t (tupW (d.toLfp.u t ψ) is) y := by
@@ -72,11 +75,11 @@ theorem admVal_memberLand (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ
         (d := xs.length) hf hlen)
       rw [h1, show (ConstantInfo.indInfo cv caps).toConstantVal = cv from rfl, hlps,
         ConLeche.Level.substFn_param_self, H.hag _ (by rw [hf]; rfl)]
-    rw [trueVal_member mpC ctx ψ ρ xs H.hparF hxs' prog ht hc] at hy'
+    rw [trueVal_member mpC ctx ψ ρ xs H.hparF hxs' prog ht hc] at hy' hne
     have hmem : d.toLfp.member t = ctx.names[t] := by
       unfold LfpDatum.member
       rw [List.getD_eq_getElem?_getD, ← H.hnames, List.getElem?_eq_getElem ht, Option.getD_some]
-    rw [← hmem] at hy'
+    rw [← hmem] at hy' hne
     have hsat : Sat V (d.params ψ).reverse (consList (xs.take d.nP) ρ) := by
       have := sat_of_spineFit (Δ₀ := []) (Sat_nil V ρ) hparams
       rwa [List.append_nil] at this
@@ -85,8 +88,8 @@ theorem admVal_memberLand (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ
     have hfe := former_app_eq mpC H.hd0 htk' hsat ρ
     have hpl' : (xs.take ctx.nP).length = (d.toLfp.params ψ).length := hpl
     rw [frameIdx_consList hpl' ρ] at hfe
-    rw [hfe] at hy'
-    exact hfit (holeVal_foldl_mem (by rw [hids]; exact his) hy').1
+    rw [hfe] at hy' hne
+    exact hfit (holeVal_foldl_mem (by rw [hids]; exact his) hne hy').1
 
 /-- **A call landing in a frame hole of an admissible valuation**: the
 index spine fits the owner's telescope at its true frame and the target
@@ -99,6 +102,8 @@ theorem admVal_frameLand (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ 
     (hσ : AdmVal mk mpC ctx d ns ψ ρ xs own G prog σ) {i : Nat} {hk : NestHole}
     (hi : prog.reverse[i]? = some hk)
     {is : List V} (his : is.length + hk.key.ds.length = ConLeche.nestArity ctx hk.key.cname)
+    (hne : is.foldl app (trueVal mpC ctx ψ ρ xs prog (ctx.hiAt prog.length - 1 - (ctx.hiAt 0 + i)))
+      ≠ pt)
     {y : V}
     (hy : y ∈ˢ is.foldl app (σ (ctx.hiAt prog.length - 1 - (ctx.hiAt 0 + i)))) :
     SpineFit (nlFr mpC ctx d ns ψ ρ xs (own i))
@@ -126,7 +131,7 @@ theorem admVal_frameLand (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ 
         unfold nlψ; rw [ite_eq_right ho], hfrU] at hfit
     generalize ns.getD (own i - 1) default = u at hu hkm hfit hfrU hsuf
     have hsat := dyn_trueVal_sat H ψ ρ xs hparams hxs _ u hu (Nat.le_refl _)
-    rw [trueVal_frameVal H ψ ρ xs hxs' hu hsat hi hsuf hkm] at hy'
+    rw [trueVal_frameVal H ψ ρ xs hxs' hu hsat hi hsuf hkm] at hy' hne
     -- the arity: the index count is the member's telescope's
     obtain ⟨hD, -, hnN, hkN, -, -, -, -, cv, -, -, -, hlpsOf, -, -, hlenP, -, hg⟩ :=
       dyn_nodeBlock H hu
@@ -138,12 +143,12 @@ theorem admVal_frameLand (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ 
     have harity := grp_arity mk hD hnN hkN H.hcov.find hg (nodeψ envC ψ u) _ hp
     have hpl := (mk.lfpClause_of_mem hD).parsLen mm' hmm' (nodeψ envC ψ u)
     have hlenP' := hlenP (nodeψ envC ψ u)
-    simp only at his hfit hy' ⊢
-    rw [hpm, idxOf_member hnN hkN hmm'] at harity hy' hfit
+    simp only at his hfit hy' hne ⊢
+    rw [hpm, idxOf_member hnN hkN hmm'] at harity hy' hfit hne
     have hisl : is.length = ((lfpSel mpC d.toLfp u.key.cname).ids mm' (nodeψ envC ψ u)).length := by
       rw [hpm] at his
       omega
-    exact hfit (holeVal_foldl_mem hisl hy').1
+    exact hfit (holeVal_foldl_mem hisl hne hy').1
 
 end Land
 

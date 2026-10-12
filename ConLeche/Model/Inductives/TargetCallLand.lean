@@ -36,20 +36,23 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## Hole values and formers, applied -/
 
-/-- **An element of a hole value applied to an index spine**: the spine
-fits the component's index telescope and the element is in the tuple's
-component there. -/
+/-- **An element of a hole value applied to an index spine that is not
+the point**: the spine fits the component's index telescope and the
+element is in the tuple's component there (off the fit the value is `∅`,
+or the point where a level of the tower is). -/
 theorem holeVal_foldl_mem {D : LfpDatum V} {mm : Nat} {ψ : Name → Nat} {ρp Y : Nat → V}
     {is : List V} (his : is.length = (D.ids mm ψ).length)
+    (hne : is.foldl app (D.holeVal ψ ρp Y mm) ≠ pt)
     {y : V} (hy : y ∈ˢ is.foldl app (D.holeVal ψ ρp Y mm)) :
     SpineFit ρp (D.ids mm ψ) is ∧ y ∈ˢ app (Y mm) (tupW (D.u mm ψ) is) := by
-  unfold LfpDatum.holeVal at hy
+  unfold LfpDatum.holeVal at hy hne
   rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids mm ψ) (vs := is)
-      (fun vs => app (Y mm) (tupW (D.u mm ψ) vs)) his with ⟨hfit, heq⟩ | he
+      (fun vs => app (Y mm) (tupW (D.u mm ψ) vs)) his with ⟨hfit, heq⟩ | ⟨-, he | he⟩
   · rw [heq] at hy
     exact ⟨hfit, hy⟩
   · rw [he] at hy
     exact absurd hy (not_mem_empty y)
+  · exact absurd he hne
 
 /-- **An element of a recorded member's former applied at the block's
 parameters**: the index spine fits and the element is in the carrier's
@@ -57,12 +60,14 @@ component there. -/
 theorem former_foldl_mem {env : Env} {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     {D : LfpDatum V} (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {ψ : Name → Nat}
     {ρp : Nat → V} (hs : Sat V (D.params ψ).reverse ρp) (ρ : Nat → V) {is : List V}
-    (his : is.length = (D.ids mm ψ).length) {y : V}
+    (his : is.length = (D.ids mm ψ).length)
+    (hne : (frameIdx (D.params ψ).length ρp ++ is).foldl app
+      (interp V ρ (mp.base2.acval (D.member mm) ψ)) ≠ pt) {y : V}
     (hy : y ∈ˢ (frameIdx (D.params ψ).length ρp ++ is).foldl app
       (interp V ρ (mp.base2.acval (D.member mm) ψ))) :
     SpineFit ρp (D.ids mm ψ) is ∧ y ∈ˢ app (D.carrier ψ ρp mm) (tupW (D.u mm ψ) is) := by
-  rw [List.foldl_append, former_app_eq mp hD hmm hs ρ] at hy
-  exact holeVal_foldl_mem his hy
+  rw [List.foldl_append, former_app_eq mp hD hmm hs ρ] at hy hne
+  exact holeVal_foldl_mem his hne hy
 
 /-! ## The rule's valuation through the walk's substitution -/
 

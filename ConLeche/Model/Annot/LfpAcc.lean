@@ -54,28 +54,43 @@ theorem foldlApp_empty : ∀ (vs : List V), vs.foldl app (empty : V) = empty
     rw [app_empty]
     exact foldlApp_empty vs
 
+theorem foldlApp_pt : ∀ (vs : List V), vs.foldl app (pt : V) = pt
+  | [] => rfl
+  | v :: vs => by
+    show vs.foldl app (app pt v) = pt
+    rw [app_pt]
+    exact foldlApp_pt vs
+
 /-- **A λ-tower applied to a spine of its full length** computes at a
-fitting spine and is junk (`∅`) otherwise. -/
+fitting spine and is junk otherwise: `∅` where a graph is applied off its
+domain, the point where a level is (no spine fits its telescope). -/
 theorem holeFam_foldl_full :
     ∀ {ρ : Nat → V} {Fs : List AnnotTerm} {vs : List V} (g : List V → V),
       vs.length = Fs.length →
       (SpineFit ρ Fs vs ∧ vs.foldl app (holeFam ρ Fs g) = g vs) ∨
-        vs.foldl app (holeFam ρ Fs g) = empty
+        (¬ SpineFit ρ Fs vs ∧
+          (vs.foldl app (holeFam ρ Fs g) = empty ∨ vs.foldl app (holeFam ρ Fs g) = pt))
   | _, [], [], _, _ => Or.inl ⟨trivial, rfl⟩
   | _, [], _ :: _, _, h => by simp at h
   | _, _ :: _, [], _, h => by simp at h
   | ρ, F :: Fs, a :: vs, g, h => by
     show (SpineFit ρ (F :: Fs) (a :: vs) ∧
-        vs.foldl app (app (lamR 1 (interp V ρ F) _) a) = g (a :: vs)) ∨
-      vs.foldl app (app (lamR 1 (interp V ρ F) _) a) = empty
+        vs.foldl app (app (lamV (interp V ρ F) _) a) = g (a :: vs)) ∨
+      (¬ SpineFit ρ (F :: Fs) (a :: vs) ∧ (vs.foldl app (app (lamV (interp V ρ F) _) a) = empty ∨
+        vs.foldl app (app (lamV (interp V ρ F) _) a) = pt))
     by_cases ha : a ∈ˢ interp V ρ F
-    · rw [app_lamR_pos (by decide) ha]
+    · rw [app_lamV ha]
       rcases holeFam_foldl_full (ρ := cons a ρ) (Fs := Fs) (vs := vs) (fun as => g (a :: as))
-          (by simpa using h) with ⟨hf, he⟩ | he
+          (by simpa using h) with ⟨hf, he⟩ | ⟨hn, he⟩
       · exact Or.inl ⟨⟨ha, hf⟩, he⟩
-      · exact Or.inr he
-    · rw [app_lamR_of_not_mem (by decide) ha]
-      exact Or.inr (foldlApp_empty vs)
+      · exact Or.inr ⟨fun hf => hn hf.2, he⟩
+    · refine Or.inr ⟨fun hf => ha hf.1, ?_⟩
+      by_cases hp : lamV (interp V ρ F)
+          (fun x => holeFam (cons x ρ) Fs fun as => g (x :: as)) = pt
+      · rw [hp, app_pt]
+        exact Or.inr (foldlApp_pt vs)
+      · rw [lamV_eq_graph hp, app_graph_of_not_mem ha]
+        exact Or.inl (foldlApp_empty vs)
 
 namespace LfpDatum
 
@@ -121,61 +136,72 @@ of the spine's indices, the value. -/
 @[expose] noncomputable def occOf (ψ : Name → Nat) (o : Occ V) : Nat × V × V :=
   (D.k - 1 - o.1, tupW (D.u (D.k - 1 - o.1) ψ) o.2.1, o.2.2)
 
-/-- **A held item is an occurrence.** -/
+/-- **A held item at a fitting spine is an occurrence.** -/
 theorem inTup_occOf (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
     {o : Occ V} (hQ : Adm (D.MemberQ ψ) o)
+    (hfit : SpineFit ρp (D.ids (D.k - 1 - o.1) ψ) o.2.1)
     (hH : Holds (D.frame ψ ρp X) o) : InTup D.N (D.idx ψ ρp) X (D.occOf ψ o) := by
   obtain ⟨i, vs, y⟩ := o
   obtain ⟨t, ht, rfl, hlen⟩ := hQ
   unfold Holds at hH
-  simp only at hH hlen
+  simp only at hH hlen hfit
   rw [frame_hole ht] at hH
   unfold holeVal at hH
   have ht' : D.k - 1 - (D.k - 1 - t) = t := by omega
+  rw [ht'] at hfit
   unfold occOf
   simp only [ht']
-  rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
-      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨hf, he⟩ | he
-  · rw [he] at hH
-    exact ⟨by omega, tupW_mem hf, hH⟩
-  · rw [he] at hH
-    exact absurd hH (not_mem_empty _)
+  rw [holeFam_app _ hfit] at hH
+  exact ⟨by omega, tupW_mem hfit, hH⟩
 
-/-- **An occurrence held by another tuple holds the item at its frame.** -/
-theorem holds_of_inTup {ψ : Name → Nat} {ρp X X' : Nat → V} {o : Occ V}
-    (hQ : Adm (D.MemberQ ψ) o) (hH : Holds (D.frame ψ ρp X) o)
+/-- **An occurrence held by another tuple holds the item at its frame**
+(at a fitting spine). -/
+theorem holds_of_inTup {ψ : Name → Nat} {ρp X' : Nat → V} {o : Occ V}
+    (hQ : Adm (D.MemberQ ψ) o) (hfit : SpineFit ρp (D.ids (D.k - 1 - o.1) ψ) o.2.1)
     (hin : InTup D.N (D.idx ψ ρp) X' (D.occOf ψ o)) : Holds (D.frame ψ ρp X') o := by
   obtain ⟨i, vs, y⟩ := o
   obtain ⟨t, ht, rfl, hlen⟩ := hQ
-  unfold Holds at hH ⊢
-  simp only at hH hlen ⊢
-  rw [frame_hole ht] at hH ⊢
-  unfold holeVal at hH ⊢
+  unfold Holds
+  simp only at hlen hfit ⊢
+  rw [frame_hole ht]
+  unfold holeVal
   have ht' : D.k - 1 - (D.k - 1 - t) = t := by omega
+  rw [ht'] at hfit
   obtain ⟨-, -, hy⟩ := hin
   unfold occOf at hy
   simp only [ht'] at hy
-  rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
-      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with
-    ⟨hf, -⟩ | he
-  · rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
-        (fun vs => app (X' t) (tupW (D.u t ψ) vs)) hlen with
-      ⟨-, he'⟩ | he'
-    · rw [he']; exact hy
-    · -- the fit does not depend on the tuple
-      exfalso
-      have := holeFam_app (ρ := ρp) (fun vs => app (X' t) (tupW (D.u t ψ) vs)) hf
-      rw [this] at he'
-      rw [he'] at hy
-      exact not_mem_empty _ hy
-  · rw [he] at hH
-    exact absurd hH (not_mem_empty _)
+  rw [holeFam_app _ hfit]
+  exact hy
+
+/-- **Off a fitting spine an item is held alike at every tuple's frame**:
+the hole's value there does not read the tuple (`holeFam_foldl_nofit`;
+the tuple's fibres are strict sets or truth values, never the point). -/
+theorem holds_of_nofit {ψ : Name → Nat} {ρp X X' : Nat → V}
+    (hX : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X) (hX' : InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X')
+    (hkN : D.k ≤ D.N) {o : Occ V} (hQ : Adm (D.MemberQ ψ) o)
+    (hn : ¬ SpineFit ρp (D.ids (D.k - 1 - o.1) ψ) o.2.1)
+    (hH : Holds (D.frame ψ ρp X) o) : Holds (D.frame ψ ρp X') o := by
+  obtain ⟨i, vs, y⟩ := o
+  obtain ⟨t, ht, rfl, hlen⟩ := hQ
+  unfold Holds at hH ⊢
+  simp only at hlen hn hH ⊢
+  rw [frame_hole ht] at hH ⊢
+  unfold holeVal at hH ⊢
+  have ht' : D.k - 1 - (D.k - 1 - t) = t := by omega
+  rw [ht'] at hn
+  have htN : t < D.N := by omega
+  have hne : ∀ (Y : Nat → V), InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) Y →
+      ∀ ws, SpineFit ρp (D.ids t ψ) ws → app (Y t) (tupW (D.u t ψ) ws) ≠ pt :=
+    fun Y hY ws hws => (IsTy_of_mem_strictU (famSpace_app (hY t htN) (tupW_mem hws))).ne_pt
+  rw [holeFam_foldl_nofit (hne X' hX') (hne X hX) hlen hn]
+  exact hH
 
 /-! ## Point-free holes -/
 
 /-- **The member holes never hold the point** along the accessibility
 relation (at a positive level): at a fitting spine a hole's value is a
-fibre of the tuple, a strict set; elsewhere it is `∅`. -/
+fibre of the tuple, a strict set; elsewhere it is `∅` or the point,
+which is not its own member. -/
 theorem accRel_ptFree (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} (hw : D.w ψ ≠ 0) :
     PtFreeOn (D.MemberQ ψ) (D.accRel ψ ρp) := by
   rintro _ _ ⟨X, Y, hX, -, rfl, -⟩ i vs hQ hpt
@@ -184,12 +210,14 @@ theorem accRel_ptFree (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp : Nat → V} 
   rw [frame_hole ht] at hpt
   unfold holeVal at hpt
   rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids t ψ) (vs := vs)
-      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨hf, he⟩ | he
+      (fun vs => app (X t) (tupW (D.u t ψ) vs)) hlen with ⟨hf, he⟩ | ⟨-, he | he⟩
   · rw [he] at hpt
     have hs := famSpace_app (hX t htN) (tupW_mem hf)
     exact (((mem_strictU_pos hw).mp hs).2).2 hpt
   · rw [he] at hpt
     exact not_mem_empty _ hpt
+  · rw [he] at hpt
+    exact not_mem_self _ hpt
 
 /-! ## The assembly -/
 
@@ -259,15 +287,23 @@ theorem fitAcc_holeOp {ψ : Name → Nat} {ρp : Nat → V} (hkN : D.k ≤ D.N)
     rw [frame_param, frame_param]
   have hTB : teleBound (D.w ψ) (ord m j) (Af m j) 0 (D.fields ψ m j) (D.frame ψ ρp X) = TB m j :=
     teleBound_agr (hAf m hm j hj) (D.fields ψ m j) 0 hF0 _ _ hagr
-  refine ⟨B, fun b => D.occOf ψ (g b), fun b hb => ?_, fun b hb => ?_, fun X' hX' hheld => ?_⟩
-  · have := hB b hb
+  -- the support's items at a fitting spine; the others are held alike at
+  -- every tuple's frame (`holds_of_nofit`)
+  classical
+  let P : V → Prop := fun b => SpineFit ρp (D.ids (D.k - 1 - (g b).1) ψ) (g b).2.1
+  refine ⟨sep B P, fun b => D.occOf ψ (g b), fun b hb => ?_, fun b hb => ?_,
+    fun X' hX' hheld => ?_⟩
+  · have := hB b (sep_subset b hb)
     rw [hTB] at this
     exact subset_finUnion (f := fun c => finUnion (TB c) (D.nctors c)) hm _
       (subset_finUnion hj _ this)
-  · exact inTup_occOf hkN (hg b hb).1 (hg b hb).2
+  · obtain ⟨hbB, hP⟩ := mem_sep.mp hb
+    exact inTup_occOf hkN (hg b hbB).1 hP (hg b hbB).2
   · have hsp' : SpineFit (D.frame ψ ρp X') (D.fields ψ m j) fs :=
-      hs (D.frame ψ ρp X') ⟨X, X', hX, hX', rfl, rfl⟩ fun b hb =>
-        holds_of_inTup (hg b hb).1 (hg b hb).2 (hheld b hb)
+      hs (D.frame ψ ρp X') ⟨X, X', hX, hX', rfl, rfl⟩ fun b hb => by
+        by_cases hP : P b
+        · exact holds_of_inTup (hg b hb).1 hP (hheld b (mem_sep.mpr ⟨hb, hP⟩))
+        · exact holds_of_nofit hX hX' hkN (hg b hb).1 hP (hg b hb).2
     refine ⟨hj, hsp', fun l hl => ?_⟩
     obtain ⟨e, he, hev⟩ := hidx l hl
     refine ⟨e, he, ?_⟩

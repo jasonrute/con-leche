@@ -561,7 +561,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
         have hY' := hY
         rw [hnl0, hnψ0, hnF0] at hY'
         refine ⟨dR.toLfp.frame ψ (consList (xs.take dR.nP) ρ) Y,
-          fun own => admVal_frame0 H ψ ρ xs hparams hids0 hY' own G, ?_, fun i nd hnd => ?_⟩
+          fun own => admVal_frame0 H ψ ρ xs hparams hxs hids0 hY' own G, ?_, fun i nd hnd => ?_⟩
         · exact (hsemB _ (frame0_sat H ψ hsP hY') fs hH.2.1).1
         obtain ⟨-, hmemB⟩ := hsemB _ (frame0_sat H ψ hsP hY') fs hH.2.1
         obtain ⟨nda, hnda, hmemI⟩ := hmemB i nd hnd
@@ -692,7 +692,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
           have := hY m' (by rw [hnlDb]; exact hm')
           rwa [hnlDb, hnlψ] at this
         obtain ⟨hsatN, hfl, hmem⟩ := hsemU σ hσ.sat Y hY' t fs hH
-        refine ⟨_, admVal_kid H hbpos hbl hub hσ hsatN (fun i => rfl)
+        refine ⟨_, admVal_kid H hbpos hbl hub hσ hparams hxs hY' hsatN (fun i => rfl)
           (u' := .node [] prog default [] []) hprog.symm, hfl, fun i nd hnd => ?_⟩
         obtain ⟨nda, hnda, hmemI⟩ := hmem i nd hnd
         rw [← hhiP] at hnda
@@ -1060,7 +1060,10 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
           simpa using this)
     rw [hmA] at hyA
     obtain ⟨-, hG⟩ := admVal_memberLand H hparams hxs hAdmN htm
-      (by rw [List.length_map]; exact hisl) hids hyA
+      (by rw [List.length_map]; exact hisl) hids (by
+        -- L17: the true leaf (the recursive field's codomain at the true
+        -- valuation) is a type, so not the point
+        sorry) hyA
     have hM1 : tgtClsM mc pp.toBlockShape out r = tm := by
       simp [tgtClsM, hmemC, hrt]
     have hT1 : tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ r
@@ -1121,7 +1124,9 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
           simpa using this)
     rw [hmA] at hyA
     obtain ⟨-, hG⟩ := admVal_frameLand H hparams hxs hAdmN hvk
-      (by rw [List.length_map, ← hwl]; exact har) hyA
+      (by rw [List.length_map, ← hwl]; exact har) (by
+        -- L17: as above, the true leaf is a type
+        sorry) hyA
     simp only at hG
     rw [← hI, hIM, hog] at hG
     rcases hG with hG | ⟨hob, -, -, hyY⟩
@@ -1295,7 +1300,9 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       rw [hTO'.hmem, hψc, ConLeche.Level.substFn_congr (ConLeche.Level.isEquivList_sound hlvW ψ)]
     simp only [ConLeche.ConstantInfo.toConstantVal] at hyA
     rw [hhead] at hyA
-    exact (former_foldl_mem mpC hTO'.hD hTO'.hmm hsat'' _ his hyA).2
+    exact (former_foldl_mem mpC hTO'.hD hTO'.hmm hsat'' _ his (by
+      -- L17: the container instance at the true valuation is a type
+      sorry) hyA).2
 
 
 

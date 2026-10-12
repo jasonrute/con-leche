@@ -151,15 +151,20 @@ theorem grp_idx_lt {p : Name × Expr} (hp : p ∈ grp) : D.names.idxOf p.1 < D.k
 
 omit hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg in
 /-- **The frame hole's value at full arity** is an occurrence of the tuple
-at its member, or `∅`. -/
+at its member, or `∅`, or the point. -/
 theorem grp_hole_full {mm : Nat} (ρp Y : Nat → V) {vs : List V}
     (hlen : vs.length = (D.ids mm (Level.substFn φ lps us)).length) :
     (SpineFit ρp (D.ids mm (Level.substFn φ lps us)) vs ∧
       vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm)
         = app (Y mm) (tupW (D.u mm (Level.substFn φ lps us)) vs)) ∨
-      vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm) = empty := by
+      (¬ SpineFit ρp (D.ids mm (Level.substFn φ lps us)) vs ∧
+        (vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm) = empty ∨
+          vs.foldl app (D.holeVal (Level.substFn φ lps us) ρp Y mm) = pt)) := by
   unfold LfpDatum.holeVal
-  exact holeFam_foldl_full _ hlen
+  rcases holeFam_foldl_full (ρ := ρp) (Fs := D.ids mm (Level.substFn φ lps us)) (vs := vs)
+      (fun vs => app (Y mm) (tupW (D.u mm (Level.substFn φ lps us)) vs)) hlen with h | h
+  · exact Or.inl h
+  · exact Or.inr h
 
 /-- A group member's index is in the group. -/
 theorem grp_inGrp {p : Name × Expr} (hp : p ∈ grp) : InGrp D grp (D.names.idxOf p.1) := by
@@ -278,8 +283,11 @@ theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = 
       · rw [he] at hpt
         have hmmN : mm < D.N := Nat.lt_of_lt_of_le hmm (mp.lfp_ok D hD).1.kN
         exact ((mem_strictU_pos hw').mp (famSpace_app (hY mm hmmN) (tupW_mem hfv))).2.2 hpt
-      · rw [he] at hpt
-        exact not_mem_empty _ hpt
+      · rcases he.2 with he | he
+        · rw [he] at hpt
+          exact not_mem_empty _ hpt
+        · rw [he] at hpt
+          exact not_mem_self _ hpt
     · rw [hposE _ _ _ _ hle] at hpt
       exact hR₀.ptFree hw ρ ρ₀ hr (i - grp.length) vs hQ' hpt
   · -- left-reflexive
