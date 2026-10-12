@@ -4,7 +4,6 @@ import ConLeche.Verify.OfReducePin
 import ConLeche.Semantics.DeclRun
 public import ConLeche.Model.NatEqs
 import ConLeche.Model.Capstone
-public import ConLeche.Model.ErasePwInv
 import ConLeche.Model.DivMod
 public section
 
@@ -113,34 +112,27 @@ theorem reduceElemTy_constS (c : Name) :
   unfold ConLeche.reduceElemTy ConLeche.reduceElemName
   split <;> simp [ConLeche.natName, ConLeche.boolName]
 
-/-- **The reduce operation's pinned type, inverted through both
-erasures.**  The domain and the codomain are the *same* bare constant,
-and both erasures fix a `.const`, so the pin leaves exactly the binder
-name and the binder meta free — and neither is ever read below. -/
+/-- **The reduce operation's pinned type**: the domain and the codomain
+are the *same* bare constant (the pin comparison is plain
+equality). -/
 theorem reduceOp_shapeS {c : Name} {type' : Expr}
     (hc : c ∈ ConLeche.reduceOpNames)
-    (h : type'.erasePw
-      = (ConLeche.reduceOpCvA c).type.erasePw) :
+    (h : type'
+      = (ConLeche.reduceOpCvA c).type) :
     ∃ mb₀, type' = .forallE (ConLeche.reduceElemTy c)
       (ConLeche.reduceElemTy c) mb₀ := by
   have hcases : c = ConLeche.reduceNatName ∨ c = ConLeche.reduceBoolName := by
     simpa [ConLeche.reduceOpNames] using hc
-  have hshape : (ConLeche.reduceOpCvA c).type.erasePw
+  have hshape : (ConLeche.reduceOpCvA c).type
       = .forallE
           (ConLeche.reduceElemTy c) (ConLeche.reduceElemTy c)
           {} := by
     rcases hcases with rfl | rfl <;>
       simp [ConLeche.reduceOpCvA, ConLeche.reduceNatCvA,
         ConLeche.reduceBoolCvA, ConLeche.reduceElemTy, ConLeche.reduceNatName,
-        ConLeche.reduceBoolName, ConLeche.natName, ConLeche.boolName,
-        Expr.erasePw]
+        ConLeche.reduceBoolName, ConLeche.natName, ConLeche.boolName]
   rw [hshape] at h
-  obtain ⟨ty', b', m', rfl, hty', hb'⟩ := erasePwNames_forallE_invS h
-  have hE := reduceElemTy_constS c
-  rw [hE] at hty' hb'
-  obtain rfl := erasePw_const_invS hty'
-  obtain rfl := erasePw_const_invS hb'
-  exact ⟨m', by rw [hE]⟩
+  exact ⟨_, h⟩
 
 -- (`reduceElem_sort` in `Verify/OfReducePin.lean` already says the
 -- element inductive is stored level-free at `Sort 1`; the earlier

@@ -138,7 +138,6 @@ public import ConLeche.Model.Fold
 public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
 public import ConLeche.Model.Annot.Bit
-public import ConLeche.Model.ErasePwInv
 public import ConLeche.Model.Annot.BitLemmas
 public import ConLeche.Model.Annot.BitShift
 public import ConLeche.Model.Annot.BitInst

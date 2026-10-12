@@ -37,16 +37,12 @@ variable {μ : CheckMode} {env : Env} {F : Nat}
 
 /-! ## The pinned telescope, inverted -/
 
-/-- **The `ofReduce*` pinned telescope, inverted through both
-erasures.**  Every domain, the hypothesis spine and the conclusion
-spine are binder-free, so the pin fixes the whole shape and leaves
-exactly the three binder names and the three binder metas free, which
-the reading does not read (`propext_shapeS`'s pattern at a longer
-spine). -/
+/-- **The `ofReduce*` pinned telescope**, read off the pin (the pin
+comparison is plain equality). -/
 theorem ofReduce_shapeS {n : Name} {type' : Expr}
     (hn : n = ConLeche.ofReduceNatName ∨ n = ConLeche.ofReduceBoolName)
-    (h : type'.erasePw
-      = (ConLeche.ofReducePinA n).type.erasePw) :
+    (h : type'
+      = (ConLeche.ofReducePinA n).type) :
     ∃ m₁ m₂ m₃,
       type' = .forallE
         (.const (ConLeche.reduceElemName (ConLeche.ofReduceOp n)) [])
@@ -63,31 +59,9 @@ theorem ofReduce_shapeS {n : Name} {type' : Expr}
                   (ConLeche.ofReduceOp n)) []))
               (.bvar 2)) (.bvar 1)) m₃) m₂) m₁ := by
   rw [ConLeche.Verify.ofReducePin_type hn] at h
-  simp only [Expr.mkAppN, Expr.erasePw] at h
-  obtain ⟨ty₁, b₁, m₁, rfl, hty₁, hb₁⟩ := erasePwNames_forallE_invS h
-  obtain rfl := erasePw_const_invS hty₁
-  obtain ⟨ty₂, b₂, m₂, rfl, hty₂, hb₂⟩ := erasePwNames_forallE_invS hb₁
-  obtain rfl := erasePw_const_invS hty₂
-  obtain ⟨ty₃, b₃, m₃, rfl, hty₃, hb₃⟩ := erasePwNames_forallE_invS hb₂
-  -- the hypothesis spine
-  obtain ⟨f, a, rfl, hf, ha⟩ := erasePwNames_app_invS hty₃
-  obtain ⟨f', a', rfl, hf', ha'⟩ := erasePwNames_app_invS hf
-  obtain ⟨f'', a'', rfl, hf'', ha''⟩ := erasePwNames_app_invS hf'
-  obtain rfl := erasePw_const_invS hf''
-  obtain rfl := erasePw_const_invS ha''
-  obtain ⟨g, gb, rfl, hg, hgb⟩ := erasePwNames_app_invS ha'
-  obtain rfl := erasePw_const_invS hg
-  obtain rfl := erasePwNames_bvar_invS hgb
-  obtain rfl := erasePwNames_bvar_invS ha
-  -- the conclusion spine
-  obtain ⟨p, q, rfl, hp, hq⟩ := erasePwNames_app_invS hb₃
-  obtain ⟨p', q', rfl, hp', hq'⟩ := erasePwNames_app_invS hp
-  obtain ⟨p'', q'', rfl, hp'', hq''⟩ := erasePwNames_app_invS hp'
-  obtain rfl := erasePw_const_invS hp''
-  obtain rfl := erasePw_const_invS hq''
-  obtain rfl := erasePwNames_bvar_invS hq'
-  obtain rfl := erasePwNames_bvar_invS hq
-  exact ⟨m₁, m₂, m₃, rfl⟩
+  simp only [Expr.mkAppN] at h
+  subst h
+  exact ⟨_, _, _, rfl⟩
 
 /-! ## The gates, unpacked -/
 
@@ -101,8 +75,8 @@ theorem ofReduce_gatesS {cvA : ConstantVal}
         = some (.axiomInfo cvR) ∧
       ConstantVal.matchesPin cvR
         (ConLeche.reduceOpCvA (ConLeche.ofReduceOp cvA.name)) = true) ∧
-    cvA.type.erasePw
-      = (ConLeche.ofReducePinA cvA.name).type.erasePw := by
+    cvA.type
+      = (ConLeche.ofReducePinA cvA.name).type := by
   simp only [ConLeche.ofReduceAxOk, Bool.and_eq_true,
     decide_eq_true_eq] at hok
   obtain ⟨⟨⟨hEq, helem⟩, hstored⟩, hpin⟩ := hok
