@@ -504,7 +504,7 @@ theorem genCls_core (hμ : μ.verifiedChecks = true)
     exact DenoteMetaSpine.unique hisa hF
   have hvals : isa.map (interp V (consList (xs ++ is) ρ)) = is := by
     rw [hisaE]; exact map_fieldBvars hxl hisl
-  obtain ⟨-, -, hmemE⟩ := hleaf _ hwd.1
+  obtain ⟨-, -, hmemE⟩ := hleaf _ hwd
   have hdrop : dropV (rP + nI - rP) (consList (xs ++ is) ρ) = consList xs ρ := by
     funext k
     rw [dropV, consList_append, show rP + nI - rP = is.length by rw [hisl]; omega,

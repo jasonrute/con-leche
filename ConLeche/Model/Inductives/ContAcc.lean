@@ -144,7 +144,7 @@ theorem accConcl_of_frameAccOut {μ : ConLeche.CheckMode} (mp : EnvModelM V μ e
     (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa)
     {w : Nat} {ctx : NestCtx} {prog : List NestHole} {Δa : List AnnotTerm} {R : FrameRel V}
-    (hR : HoleRelA mp.base2 φ w ctx prog dep Δa R) (hgr : Graded V Δa wa)
+    (hR : HoleRelA mp.base2 φ w ctx prog dep Δa R) (hgr : GradedTy V Δa wa)
     (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hwD : D.w (Level.substFn φ cv.levelParams us) = w) {G : Nat → Prop}
     (hacc : FrameAccOut w ctx prog b (FrameRel.drop R (dep - b)) D (Level.substFn φ cv.levelParams us)
@@ -237,7 +237,7 @@ theorem contHit_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {w : Nat
     (hwa : denoteMeta mp.base2.acval env φ dep (Expr.mkAppN (.const n us) (ds ++ is)) = some wa)
     {Δa : List AnnotTerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa (Expr.mkAppN (.const n us) (ds ++ is)))
-    (hgr : Graded V Δa wa) (hR : HoleRelA mp.base2 φ w ctx prog dep Δa R)
+    (hgr : GradedTy V Δa wa) (hR : HoleRelA mp.base2 φ w ctx prog dep Δa R)
     (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hdsw : ∀ x ∈ ds, Expr.WScoped (ctx.hiAt prog.length) x ∧ x.looseBVarsBounded 0 = true)
     (hfree : ∀ x ∈ ds, x.fvarB ≤ ctx.hiAt 0) {nI : Nat} {cty : Expr}

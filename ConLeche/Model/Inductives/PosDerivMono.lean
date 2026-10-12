@@ -479,7 +479,7 @@ theorem contNew_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
   obtain ⟨-, hids, -⟩ := n2_link mp hD hmm hcov.find hnI hf (by rw [hcvl]; exact hnd)
     (by rw [hcvl]; exact hul) (by rw [hcvl, hlenP]) hdsw hdsa
   refine monoOn_of_famLe mp hD hmm hf hhid hwa (by rw [hcvl, hlenP]) (by rw [hids, hisl])
-    (fun x hx => (hdsw x hx).1) hdsa hR.dom hgr.graded hisC fun ρ ρ' hr => ?_
+    (fun x hx => (hdsw x hx).1) hdsa hR.dom hgr hisC fun ρ ρ' hr => ?_
   have := hle _ _ ⟨ρ, ρ', hr, rfl, rfl⟩ mm ⟨hmm, by
     rw [List.contains_iff_mem, List.mem_map]; exact ⟨_, hheadmem, rfl⟩⟩
   rw [hcvl]
@@ -667,7 +667,7 @@ theorem contHit_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
       ⟨leaves_mkAppN_arg (List.mem_append_left _ hx) hl,
         ConLeche.Expr.fvarLeaves_lt_of_wscoped (hds0 x hx) l hl⟩
   refine monoOn_of_famLe mp hD hmm hf hle0d hwa hlenP.symm (by rw [hids, hisl]) hds0 hdsa0
-    hR.dom hgr.graded hisC fun ρ ρ' hr => ?_
+    hR.dom hgr hisC fun ρ ρ' hr => ?_
   exact (hpos _ _ hR00 (by rw [List.length_drop, hC.1]; omega) hC0 dsa0 hdsa0 _ _
     ⟨ρ, ρ', hr, rfl, rfl⟩).1
 

@@ -62,7 +62,7 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
       + (D.ids mm (Level.substFn φ cv.levelParams us)).length) :
     us.length = cv.levelParams.length ∧ ∃ vs, DenoteMetaSpine mp.base2.acval env φ dep args vs ∧
       wa = AnnotTerm.mkAppN (mp.base2.acval (D.member mm) (Level.substFn φ cv.levelParams us)) vs ∧
-      ∀ ρ : Nat → V, WellDenoted V ρ wa → ∀ σ : Nat → V,
+      ∀ ρ : Nat → V, WellDenotedTy V ρ wa → ∀ σ : Nat → V,
         SpineFit σ (D.pars mm (Level.substFn φ cv.levelParams us)
           ++ D.ids mm (Level.substFn φ cv.levelParams us)) (vs.map (interp V ρ)) := by
   obtain ⟨fa, vs, hfa, hsp, rfl⟩ := denoteMeta_mkAppN_inv hwa
@@ -85,14 +85,8 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
       (ConLeche.Expr.WScoped.of_not_hasFvar hwf.1) hwf.2.2.2.1
       (denoteMeta_erase mp.base2.acval_erase 0 _ hta)
   rw [interp_closed V hcl ρ σ] at hin
-  -- L17: a family instance that is the point (a prefix over an empty
-  -- index domain reads the point, `piV_of_empty`) fixes no domain; the
-  -- former's reading over empty index domains is the inductive
-  -- environment side's
-  have hne : interp V ρ (AnnotTerm.mkAppN
-      (mp.base2.acval (D.member mm) ψ) vs) ≠ pt := by
-    sorry
-  have hsp' := spineFit_of_wellDenoted_mkAppN_pi hne hwd hin
+  -- "not pt" source (1): the family instance is a type
+  have hsp' := spineFit_of_wellDenoted_mkAppN_pi hwd.2.ne_pt hwd.1 hin
     (by rw [← DenoteMetaSpine.length_eq hsp, hlen, ← List.length_append, ← hmap, List.length_map])
   rwa [hmap] at hsp'
 
@@ -116,7 +110,7 @@ theorem keyLeafW {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDat
     (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa) :
     us.length = cv.levelParams.length ∧ ∃ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa ∧
-      ∀ ρ : Nat → V, WellDenoted V ρ wa →
+      ∀ ρ : Nat → V, WellDenotedTy V ρ wa →
         Sat V (D.params (Level.substFn φ cv.levelParams us)).reverse
             (keyFrame dsa b (dropV (dep - b) ρ)) ∧
         SpineFit (keyFrame dsa b (dropV (dep - b) ρ)) (D.ids mm (Level.substFn φ cv.levelParams us))
@@ -173,7 +167,7 @@ theorem keyLeaf {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatu
     (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa) :
     us.length = cv.levelParams.length ∧ ∃ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa ∧
-      ∀ ρ : Nat → V, WellDenotedV V ρ wa →
+      ∀ ρ : Nat → V, WellDenotedTy V ρ wa →
         Sat V (D.params (Level.substFn φ cv.levelParams us)).reverse
             (keyFrame dsa b (dropV (dep - b) ρ)) ∧
         SpineFit (keyFrame dsa b (dropV (dep - b) ρ)) (D.ids mm (Level.substFn φ cv.levelParams us))
@@ -198,7 +192,7 @@ theorem monoOn_of_famLe {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D :
     (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa)
     {Δa : List AnnotTerm} {R : FrameRel V} (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ')
-    (hgr : Rules.Graded V Δa wa)
+    (hgr : Rules.GradedTy V Δa wa)
     (his : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hle : ∀ ρ ρ', R ρ ρ' →
       FamLe (D.idx (Level.substFn φ cv.levelParams us) (keyFrame dsa b (dropV (dep - b) ρ)) mm)
@@ -262,8 +256,9 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
     have := congrArg List.length hmap
     simp only [List.length_map, List.length_append] at this
     omega
-  -- L17: as in `keyFit_of_wd`, the parameter prefix's application may be
-  -- the point over an empty index domain
+  -- L17: the parameter prefix of a key is no type (a family over the
+  -- indices); over an empty index set it reads the point, which fixes no
+  -- domain — the fit is owed by the key's inference
   have hne : interp V ρ (AnnotTerm.mkAppN (mp.base2.acval (D.member mm) ψ)
       (dsa.map (AnnotTerm.liftN (dep - b) · 0))) ≠ pt := by
     sorry

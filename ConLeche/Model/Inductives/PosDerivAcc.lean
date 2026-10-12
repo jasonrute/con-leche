@@ -274,7 +274,7 @@ theorem contNew_accD {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {w : Na
     (by rw [hcvl]; exact hul) (by rw [hcvl, hlenP]) hdsw hdsa
   rw [← hcvl] at hacc hwD
   exact accConcl_of_frameAccOut mp hD hmm hf hhid hwa (by rw [hlenP]) (by rw [hids, hisl])
-    (fun x hx => (hdsw x hx).1) hdsa hR hgr.graded hisC hwD hacc
+    (fun x hx => (hdsw x hx).1) hdsa hR hgr hisC hwD hacc
     ⟨hmm, by rw [List.contains_iff_mem, List.mem_map]; exact ⟨_, hheadmem, rfl⟩⟩
 
 /-- **A key whose frame is derived is accessible at the block's own
@@ -522,7 +522,7 @@ theorem posD_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have hkp := keyAcc_of_frameD mp hok (key := ⟨n, us, args.take nPc⟩) (ConLeche.ProgScoped.nil (ctx := ctx)) hmem
       hfrD ihf hds0
       hLds
-    have hc := contHit_acc mp hok.1.find hhid hwa hCw hgw.graded hR hisC hdsw (fun x hx => (hds x hx).2)
+    have hc := contHit_acc mp hok.1.find hhid hwa hCw hgw hR hisC hdsw (fun x hx => (hds x hx).2)
       hnI hisl hkp
     rw [List.take_append_drop] at hc
     exact ⟨⟨hc.1, hc.2.1, hc.2.2.trans hlw⟩, hfrw.2.1, hfrw.1, nofun, wa, hwa0, fun _ _ => rfl⟩
