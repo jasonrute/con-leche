@@ -19,10 +19,10 @@ ties them at a mode.  The verified core is this knot at `.verified`;
 the trusted core is this same knot at `.trusted` — there is no second
 implementation: what
 the trusted mode omits is exactly what `mode.verifiedChecks` gates
-here (group A: the λ-codomain sort check, the η body-type comparison,
-the λ/λ body-type comparison, the projection certificate) plus what
-`mode.certs` gates (the certificate families: every `certAtI` /
-`certUnlessI` site), and nothing else (DESIGN.md, "CORET
+here: group A (the λ-codomain sort check, the η body-type comparison,
+the λ/λ body-type comparison, the projection certificate) and the
+certificate families (every `certAtI` / `certUnlessI` site), and
+nothing else (DESIGN.md, "CORET
 RETIRED").  Every read is a `match` on the two-constructor enum
 (`ConLeche/Kernel/Env.lean`), so at either literal mode it reduces by
 `rfl` and the branch is gone, not collapsed.
@@ -249,13 +249,14 @@ variable (mode : CheckMode)
 
 /-! ### The certificate-family switch (the twin's retirement, 2026-09-06)
 
-`CheckMode.certs` (`ConLeche/Kernel/Env.lean`) is the task-#76 skip
-list as a mode function: the certificate families the reference
-kernel does not run and only the soundness proof consumes.  Every such
-certificate below is spelled through one of the two wrappers here, so
-the list of `certAtI`/`certUnlessI` sites **is** the list of what the
-trusted core omits beyond group A.  At `.verified` the function is `true`, so `certAtI .verified
-c` is `c` by `rfl` (`certAtI_verified`); the simulation tower
+The certificate families — the task-#76 skip list: work the
+reference kernel does not run and only the soundness proof consumes —
+are gated by `CheckMode.verifiedChecks` (`ConLeche/Kernel/Env.lean`).
+Every such certificate below is spelled through one of the two
+wrappers here, so the list of `certAtI`/`certUnlessI` sites **is** the
+list of what the trusted core omits beyond group A.  At `.verified`
+the mode function is `true`, so `certAtI .verified c` is `c` by `rfl`
+(`certAtI_verified`); the simulation tower
 (`ConLeche/Verify/Cached/*`), stated under `hμ : mode.verifiedChecks =
 true`, sees through the wrapper by `certAtI_of_verifiedChecks` — the
 spec bodies carry no such wrapper. -/
@@ -263,7 +264,7 @@ spec bodies carry no such wrapper. -/
 /-- Run the certificate `c` when the mode runs the certificate
 families; otherwise it is `true` without running. -/
 @[inline] def certAtI (mode : CheckMode) (c : CheckCM Bool) : CheckCM Bool :=
-  if mode.certs then c else pure true
+  if mode.verifiedChecks then c else pure true
 
 /-- `certAtI` with a *verdict-relevant* exception: `keep = true` runs
 the check at every mode (the twin's judgement at ι's parameter
@@ -271,7 +272,7 @@ comparison — nested-rule comparands and projection-function rules
 compare in both modes, ordinary plain rules only when certifying). -/
 @[inline] def certUnlessI (mode : CheckMode) (keep : Bool) (c : CheckCM Bool) :
     CheckCM Bool :=
-  if mode.certs || keep then c else pure true
+  if mode.verifiedChecks || keep then c else pure true
 
 /-- At a mode running the certificate families the wrapper is the
 certificate — the simulation tower's blindness to the switch, under
@@ -279,11 +280,11 @@ its `hμ`. -/
 @[simp] theorem certAtI_of_verifiedChecks {mode : CheckMode}
     (hμ : mode.verifiedChecks = true) (c : CheckCM Bool) :
     certAtI mode c = c := by
-  cases mode <;> simp_all [certAtI, CheckMode.certs, CheckMode.verifiedChecks]
+  simp [certAtI, hμ]
 @[simp] theorem certUnlessI_of_verifiedChecks {mode : CheckMode}
     (hμ : mode.verifiedChecks = true) (keep : Bool) (c : CheckCM Bool) :
     certUnlessI mode keep c = c := by
-  cases mode <;> simp_all [certUnlessI, CheckMode.certs, CheckMode.verifiedChecks]
+  simp [certUnlessI, hμ]
 /-- … and at the two modes the wrapper is the certificate or the
 constant `true`, by `rfl`. -/
 @[simp] theorem certAtI_verified (c : CheckCM Bool) :

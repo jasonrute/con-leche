@@ -35,17 +35,16 @@ startup and threaded as configuration, never re-read at runtime.
   it is the real mode with certain steps omitted (DESIGN.md, "MODE
   RENAME").  Since 2026-09-06 it is literally that: the one cached
   driver (`ConLeche/Cached/ParsedC.lean`) at `.trusted`, where
-  `verifiedChecks` and `certs` are `false` — so what it omits is
-  exactly what those two functions gate in `ConLeche/Cached/CoreC.lean`
-  (DESIGN.md, "CORET RETIRED").
+  `verifiedChecks` is `false` — so what it omits is exactly what that
+  function gates in `ConLeche/Cached/CoreC.lean` (DESIGN.md, "CORET
+  RETIRED").
 
 **The mode is the cores' only parameter** (task #185, 2026-09-06).
 The configuration record that stood between the mode and the
-shipped cores from task #172 B2 to task #185 is gone: every field it
-carried is a function on `CheckMode` below (`verifiedChecks`,
-`certs`), each a `match` on
-the two constructors, so each read reduces by `rfl` at either mode —
-the record's `rfl`-eliminability argument, at the enum itself.
+shipped cores from task #172 B2 to task #185 is gone: what it
+carried is the function `verifiedChecks` below, a `match` on the two
+constructors, so each read reduces by `rfl` at either mode — the
+record's `rfl`-eliminability argument, at the enum itself.
 
 The two values are spelled `--verified` and `--trusted` on the command
 line, and they say what the modes are FOR rather than which artefact
@@ -55,45 +54,28 @@ inductive CheckMode where
   | trusted
   deriving DecidableEq, Repr, Inhabited
 
-/-- Are the *verified* mode's extra checks enabled — the checks the
-model lane wants and the trusted lane must not run, because they are
-needed for the soundness *proof* rather than for soundness?  The
-second accessor the kernel branches on
-(task #152: the λ-rule's codomain-sort check, `inferBody`'s `.lam`
-clause; since task #342 also the η body-type comparison and the λ/λ
-body-type comparison of `defeqLams`).  These are premises of the
-rules tier (`ConLeche/Rules`), so they must run at `.verified`; and
-they are checks the reference kernel does not run, so they must not run at `.trusted`. -/
+/-- Are the *verified* mode's extra checks enabled — the work the
+model lane needs and the trusted lane must not run, because it is
+needed for the soundness *proof* rather than for soundness, and the
+reference kernel does not do it?  Two kinds of work read it:
+
+* checks the rules tier's premises rest on (`ConLeche/Rules`): the
+  λ-rule's codomain-sort check (`inferBody`'s `.lam` clause), the η
+  body-type comparison and the λ/λ body-type comparison of
+  `defeqLams`.  The mode-parametric spec (`ConLeche/Kernel/Core.lean`)
+  reads it at the same sites the cached core does.
+* the certificate families, which the spec runs unconditionally: the
+  K and `And` rescues' proof-irrelevance run, ι's plain-rule parameter
+  comparison and its case-3 telescope and index certificates.  The
+  cached core reads them through `certAtI`/`certUnlessI`
+  (`ConLeche/Cached/CoreC.lean`); the simulation tower
+  (`ConLeche/Verify/Cached/*`), stated under
+  `hμ : mode.verifiedChecks = true`, sees through them.  The `.trusted`
+  instance of the cached-vs-spec simulation is false, deliberately: the
+  trusted core skips what the spec runs. -/
 def CheckMode.verifiedChecks : CheckMode → Bool
   | .trusted => false
   | _ => true
-
-/-- **The certificate families** (task #76's skip list; the twin's
-retirement, 2026-09-06): the work the checker does *only* so the
-soundness proof can consume it, and that the reference kernel does not
-do — the telescope certificates and the canonical-index comparison of
-ι where the ι licence does not hold (`iotaRecI`), the plain-rule
-parameter re-comparison, and the K rescue's telescope and
-proof-irrelevance certificates (`majorToCtorI`).  Read through
-`ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI`; `true` runs
-them, `false` (the trusted mode) skips them outright.
-
-**Why a second function beside `verifiedChecks`**, when the two agree
-at both constructors.  Both are certification-only work; they differ
-in what the proof towers need of them.  `verifiedChecks` gates checks
-the P tier's *premises* rest on (the λ and η checks, task #342), so the mode-parametric spec (`ConLeche/Kernel/Core.lean`)
-reads it at the same sites the cached core does.  The certificate
-families have **no switch in the spec** — no proved instance ever
-omits them — so the cached core's reads of `certs` are what the
-simulation tower (`ConLeche/Verify/Cached/*`) must see through: it is
-stated under `hμ : mode.verifiedChecks = true`, and
-`certs_of_verifiedChecks` (`ConLeche/Verify/Modes.lean`) turns every
-read into the literal `true` there.  The `.trusted` instance of the
-cached-vs-spec simulation is false, deliberately: the trusted core
-skips what the spec runs. -/
-def CheckMode.certs : CheckMode → Bool
-  | .verified => true
-  | .trusted => false
 
 /-- Data common to all constants: name, universe parameters, type. -/
 structure ConstantVal where

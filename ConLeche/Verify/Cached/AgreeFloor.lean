@@ -18,8 +18,8 @@ the same count.
 There is one driver, `checkDecls mode`, and the floor is the skeleton
 spec proved **once, for every `mode : CheckMode`** (`checkDecls_skels`);
 the agreement of two modes is its two instances glued by `Eq.trans`.
-The certification-only work the trusted mode omits
-(`mode.verifiedChecks`, group A, and `mode.certs`) is invisible to the
+The certification-only work the trusted mode omits (what
+`mode.verifiedChecks` gates) is invisible to the
 skeleton by construction — the spec forgets everything a core computes
 — which is exactly why the proof is mode-generic without a case
 split.
