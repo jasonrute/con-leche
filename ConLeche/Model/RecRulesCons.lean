@@ -511,8 +511,10 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
     have hfT'' : env.find? T = some (.indInfo cvT' capsT') := by
       rw [ConLeche.Env.find?_cons_of_isSome hfresh (by rw [hfT]; rfl)] at hfT'
       exact hfT'
-    obtain ⟨TVa, hTVa, hok, hlaw'⟩ := hetaL cvT' capsT' hfT'' us hus
-    refine ⟨TVa, ?_, hok, ?_⟩
+    obtain ⟨TVa, hTVa, hok, hlaw', hcoh⟩ := hetaL cvT' capsT' hfT'' us hus
+    refine ⟨TVa, ?_, hok, ?_, fun he => (hcoh he).transport
+      (fun cvC nPc nFc hf₂ => ?_) (fun cvC nPc nFc TCa hf hTCa => ?_)
+      (by rw [hac, acvalWith_ne hnT]) (fun _ _ _ => rfl)⟩
     · rw [hac]
       exact denoteMeta_cons_mono hfresh
         ((hcross.typeOf hfT'').instantiateLevelParams _ _) _ 0
@@ -522,6 +524,12 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
       rw [hac, acvalWith_ne hnT] at hmem
       rw [hac, acvalWith_ne hnC]
       exact hlaw' ρ ts rest x hlen hfit hmem
+    · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
+    · rw [hac]
+      exact denoteMeta_cons_mono hfresh
+        ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
+        (constsBound_instType mp.base2.wf
+          (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
 
 /-- **`TowerOk` at a fresh non-table cons**: every stored entry is a
 prefix entry, and its law crosses. -/

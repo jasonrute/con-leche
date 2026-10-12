@@ -441,9 +441,22 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       intro j hj
       obtain ⟨cv2, mI2, rP2, rules2, hf2⟩ := hfP j hj
       exact ⟨cv2, mI2, rP2, rules2, by rwa [hdown _ (hnP j hj)] at hf2⟩
-    obtain ⟨TVa, hTVa, hokTVa, hlaw⟩ :=
+    obtain ⟨TVa, hTVa, hokTVa, hlaw, hcoh⟩ :=
       mp.caps_ok.1 T' cvT' caps' hfE hcape hres hfam₀ φ' us hlen
-    refine ⟨TVa, ?_, hokTVa, ?_⟩
+    have hfab : ∀ ρ ts x, etaFabArgsV
+          (fun n => interp V ρ
+            (m₂.acval n (Level.substFn φ' cvT'.levelParams us)))
+          T' ts x caps'.etaFields
+        = etaFabArgsV
+          (fun n => interp V ρ
+            (mp.base2.acval n (Level.substFn φ' cvT'.levelParams us)))
+          T' ts x caps'.etaFields := by
+      intro ρ ts x
+      unfold etaFabArgsV projSpines
+      refine congrArg _ (List.map_congr_left fun j hj => ?_)
+      dsimp only
+      rw [hac, acvalWith_ne (hnP j (List.mem_range.mp hj))]
+    refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
       exact denoteMeta_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
@@ -451,20 +464,16 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT'] at hmem
-      have hfab : etaFabArgsV
-            (fun n => interp V ρ
-              (m₂.acval n (Level.substFn φ' cvT'.levelParams us)))
-            T' ts x caps'.etaFields
-          = etaFabArgsV
-            (fun n => interp V ρ
-              (mp.base2.acval n (Level.substFn φ' cvT'.levelParams us)))
-            T' ts x caps'.etaFields := by
-        unfold etaFabArgsV projSpines
-        refine congrArg _ (List.map_congr_left fun j hj => ?_)
-        dsimp only
-        rw [hac, acvalWith_ne (hnP j (List.mem_range.mp hj))]
       rw [hfab, hac, acvalWith_ne hnC]
       exact hlaw ρ ts rest x hlents hfit hmem
+    · refine hcoh.transport (fun cvC nPc nFc hf₂ => ?_)
+        (fun cvC nPc nFc TCa hf hTCa => ?_) (by rw [hac, acvalWith_ne hnT']) hfab
+      · rwa [hdown _ hnC] at hf₂
+      · rw [hac]
+        exact denoteMeta_cons_mono hfresh
+          ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
+          (constsBound_instType mp.base2.wf
+            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
   · -- the unit-like half
     intro T' cvT' caps' hf hcapu hres φ' us hlen
     by_cases hTT : T' = T
@@ -1512,6 +1521,21 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps)
 
 
 /-! ## Fits and folds -/
+
+/-- **A value spine fitting a Π-tower's domains is a `TeleFit` of the
+tower**, with the body at the extended frame as residual. -/
+theorem teleFit_mkPisAV_of_spineFit {B : AnnotTerm} :
+    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V},
+      SpineFit ρ (tl.map (·.2.2)) bs →
+      TeleFit V ρ (mkPisAV tl B) bs (interp V (consList bs ρ) B)
+  | [], ρ, [], _ => by
+    show TeleFit V ρ B [] (interp V ρ B)
+    exact TeleFit.nil
+  | [], _, _ :: _, h => h.elim
+  | _ :: _, _, [], h => h.elim
+  | d :: tl, ρ, b :: bs, h => by
+    rw [consList_cons]
+    exact TeleFit.cons h.1 (teleFit_mkPisAV_of_spineFit h.2)
 
 /-- A value-level fit of a Π-tower reading, of the tower's own
 length, is a fit of its domains. -/

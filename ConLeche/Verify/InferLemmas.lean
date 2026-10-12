@@ -1023,10 +1023,6 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
          ust.length = cvT.levelParams.length ∧
          major' = Expr.mkAppN (.const caps.etaCtor ust)
            (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields) ∧
-         iotaCertsFueled mode env fuel d false
-           (cvj.type.instantiateLevelParams cvj.levelParams ust)
-           (etaFabArgsE env T ust tmaj.getAppArgs major caps.etaFields)
-           = .ok true ∧
          structEtaCertWithFueled mode env fuel d major' major tmaj = .ok true) ∨
         (T = andName ∧
          tmaj.getAppArgs.length = cnP ∧
@@ -1465,21 +1461,6 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
     rw [hguard] at h
     simp only [↓reduceIte] at h
     try simp only [Bind.bind, Except.bind] at h
-    cases hcertE : iotaCertsFueled mode env fuel d false
-        (cvj.type.instantiateLevelParams cvj.levelParams ust)
-        (etaFabArgsE env T' ust tmaj.getAppArgs major caps.etaFields) with
-    | error err => rw [hcertE] at h; exact nomatch h
-    | ok bce =>
-    rw [hcertE] at h
-    dsimp only at h
-    cases bce with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte, pure, Except.pure,
-        Except.ok.injEq] at h
-      exact Or.inl h.symm
-    | true =>
-    simp only [↓reduceIte] at h
-    try simp only [Bind.bind, Except.bind] at h
     cases hse : structEtaCertWithFueled mode env fuel d
         (Expr.mkAppN (.const caps.etaCtor ust)
           (etaFabArgsE env T' ust tmaj.getAppArgs major caps.etaFields))
@@ -1500,7 +1481,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
     exact Or.inr ⟨hguard.1.1, hguard.1.2, hguard.2,
       rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
       rfl, hfj, hpr, hfT, rfl, htw, hth,
-      Or.inr (Or.inl ⟨hE, hnz, hplen, hlvl, rfl, hcertE, hse⟩)⟩
+      Or.inr (Or.inl ⟨hE, hnz, hplen, hlvl, rfl, hse⟩)⟩
 
 /-- Inversion of one pairwise-defeq step. -/
 theorem defEqList_step_inv {env : Env} {fuel d : Nat} {a b : Expr}
@@ -1928,9 +1909,6 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
       (towerSlotsAll env T caps.etaFields ||
         recSlotsAll env T caps.etaFields) = true ∧
       Level.isEquivList us us' = some true ∧
-      iotaCertsFueled mode env fuel d false
-        (cvT.type.instantiateLevelParams cvT.levelParams us')
-        wtb.getAppArgs = .ok true ∧
       -- the per-slot certificates run at a projection-function family
       -- only (task #175 S1)
       (towerSlotsAll env T caps.etaFields = false →
@@ -2027,17 +2005,6 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
   | false => simp at h
   | true => ?_
   simp only [↓reduceIte] at h
-  cases hic : iotaCertsFueled mode env fuel d false
-      (cvT.type.instantiateLevelParams cvT.levelParams us')
-      wtb.getAppArgs with
-  | error e => rw [hic] at h; exact nomatch h
-  | ok r₁ => ?_
-  rw [hic] at h
-  try dsimp only at h
-  cases r₁ with
-  | false => simp [pure, Except.pure] at h
-  | true => ?_
-  simp only [↓reduceIte] at h
   -- the per-slot certificates: skipped at a tower family (task #175 S1)
   have hpcOf : ∀ r₂, (if towerSlotsAll env T caps.etaFields = true then
         (Except.ok true : Except CheckError Bool)
@@ -2083,7 +2050,7 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
     try dsimp only at h
     exact ⟨c, us, cvc, cnP, cnF, T, us', cvT, caps,
       rfl, hfc, hal, rfl, hfT, he1, he2, he5,
-      he5b, he6, he7, he8, he10, hlev, hic, hpc, hd1,
+      he5b, he6, he7, he8, he10, hlev, hpc, hd1,
       fun hc => absurd hc (by simp [htt]), h⟩
   | true => ?_
   rw [htt] at h
@@ -2101,7 +2068,7 @@ theorem structEtaCertWith_inv {env : Env} {fuel d : Nat} {a b wtb : Expr}
   simp only [↓reduceIte] at h
   exact ⟨c, us, cvc, cnP, cnF, T, us', cvT, caps,
     rfl, hfc, hal, rfl, hfT, he1, he2, he5,
-    he5b, he6, he7, he8, he10, hlev, hic, hpc, hd1, fun _ => hic2, h⟩
+    he5b, he6, he7, he8, he10, hlev, hpc, hd1, fun _ => hic2, h⟩
 
 /-- Inversion of the structure-eta certificate through its type
 reduction: the stuck side's type is inferred and reduced, and the
@@ -2144,10 +2111,7 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
       us'.length = cvT.levelParams.length ∧
       inferTypeIO mode env fuel d b = .ok tb ∧
       whnf mode env fuel d tb = .ok wtb ∧
-      isDefEqCore mode env fuel d wta wtb = .ok true ∧
-      iotaCertsFueled mode env fuel d false
-        (cvT.type.instantiateLevelParams cvT.levelParams us')
-        wta.getAppArgs = .ok true := by
+      isDefEqCore mode env fuel d wta wtb = .ok true := by
   dsimp only [structUnitCertFueled] at h
   rw [structUnitCert] at h
   simp only [Bind.bind, Except.bind] at h
@@ -2206,17 +2170,8 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
   | ok wtb => ?_
   rw [hwtb] at h
   try dsimp only at h
-  cases hde : isDefEqCore mode env fuel d wta wtb with
-  | error e => rw [hde] at h; exact nomatch h
-  | ok r₁ => ?_
-  rw [hde] at h
-  try dsimp only at h
-  cases r₁ with
-  | false => simp [pure, Except.pure] at h
-  | true => ?_
-  simp only [↓reduceIte] at h
   exact ⟨ta, wta, T, us', cvT, caps, tb, wtb, rfl, hwta, hwfn, hfT,
-    he1, he2, he3, he4, rfl, hwtb, hde, h⟩
+    he1, he2, he3, he4, rfl, hwtb, h⟩
 
 /-- Inversion of a successful eta certification. -/
 theorem etaCert_inv {env : Env} {fuel d : Nat} {ty₁ body₁ b : Expr}

@@ -458,38 +458,37 @@ def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
                   recSlotsAll env T caps.etaFields) = true then
               if ← liftFueled "level comparison"
                   (Level.isEquivList us us') then
-                if ← iotaCerts r env depth false
-                    (cvT.type.instantiateLevelParams cvT.levelParams
-                      us') wtb.getAppArgs then
-                  -- the per-slot certificates are the projection-function
-                  -- kind's; a tabled family has none (task #175 S1)
-                  if ← (if towerSlotsAll env T caps.etaFields then pure true
-                      else structEtaProjCerts r env depth T us'
-                        wtb.getAppArgs b cvT.levelParams
-                        (List.range caps.etaFields)) then
-                    if ← defEqList r env depth
-                        (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
-                      -- synthetic-spine certification (task #137): the
-                      -- fabricated constructor application is certified
-                      -- against the constructor's own telescope, here
-                      -- rather than at the callers, so that both
-                      -- consumers get it (`majorToCtor`'s eta rescue ran
-                      -- it already, task #71; `defeq`'s `structEtaCert`
-                      -- did not).  TT-lane check (task #147): skipped
-                      -- unless `mode.ttChecks`.
-                      if ← (if mode.ttChecks then
-                          iotaCerts r env depth false
-                            (cvc.type.instantiateLevelParams
-                              cvc.levelParams us)
-                            (wtb.getAppArgs ++
-                              etaProjs env T us' wtb.getAppArgs b
-                                caps.etaFields)
-                        else pure true) then
-                        defEqList r env depth
-                          (a.getAppArgs.drop caps.etaParams)
-                          (etaProjs env T us' wtb.getAppArgs b
-                            caps.etaFields)
-                      else pure false
+                -- no certificate on the type application: `wtb` is the
+                -- reduced type of `b`, a type, so its spine fits the
+                -- former's telescope (task #342 L11b)
+                -- the per-slot certificates are the projection-function
+                -- kind's; a tabled family has none (task #175 S1)
+                if ← (if towerSlotsAll env T caps.etaFields then pure true
+                    else structEtaProjCerts r env depth T us'
+                      wtb.getAppArgs b cvT.levelParams
+                      (List.range caps.etaFields)) then
+                  if ← defEqList r env depth
+                      (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
+                    -- synthetic-spine certification (task #137): the
+                    -- fabricated constructor application is certified
+                    -- against the constructor's own telescope, here
+                    -- rather than at the callers, so that both
+                    -- consumers get it (`majorToCtor`'s eta rescue ran
+                    -- it already, task #71; `defeq`'s `structEtaCert`
+                    -- did not).  TT-lane check (task #147): skipped
+                    -- unless `mode.ttChecks`.
+                    if ← (if mode.ttChecks then
+                        iotaCerts r env depth false
+                          (cvc.type.instantiateLevelParams
+                            cvc.levelParams us)
+                          (wtb.getAppArgs ++
+                            etaProjs env T us' wtb.getAppArgs b
+                              caps.etaFields)
+                      else pure true) then
+                      defEqList r env depth
+                        (a.getAppArgs.drop caps.etaParams)
+                        (etaProjs env T us' wtb.getAppArgs b
+                          caps.etaFields)
                     else pure false
                   else pure false
                 else pure false
@@ -547,11 +546,8 @@ def structUnitCert (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
           us'.length = cvT.levelParams.length then
         let tb ← r.inferIO depth b
         let wtb ← r.whnf depth tb
-        if ← r.defeq depth wta wtb then
-          iotaCerts r env depth false
-            (cvT.type.instantiateLevelParams cvT.levelParams us')
-            wta.getAppArgs
-        else pure false
+        -- no certificate on the type application (task #342 L11b)
+        r.defeq depth wta wtb
       else pure false
     | _ => pure false
   | _ => pure false
@@ -697,17 +693,17 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                 if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                     fab.fvarLeaves.all
                       (fun l => major.fvarLeaves.contains l) then
-                  -- synthetic-spine certification, as in the K
-                  -- branch (task #71)
-                  if ← iotaCerts r env depth false
-                      (cvj.type.instantiateLevelParams
-                        cvj.levelParams ust)
-                      (etaFabArgsE env T ust tmaj.getAppArgs major
-                        caps.etaFields) then
-                    if ← structEtaCertWith mode r env depth fab major
-                        tmaj then
-                      pure fab
-                    else pure major
+                  -- no certificate on the fabricated spine: the major
+                  -- is the fabrication by the family's η law, and the
+                  -- fabrication fits the η constructor's telescope by
+                  -- the coherence law (task #342 L11b).  The η
+                  -- certificate's run is kept for its guards (the
+                  -- reserved names, and a projection-function family's
+                  -- per-field certificates); its comparisons are
+                  -- reflexive here.
+                  if ← structEtaCertWith mode r env depth fab major
+                      tmaj then
+                    pure fab
                   else pure major
                 else pure major
               else pure major

@@ -810,18 +810,6 @@ private theorem structEtaCertWith_shift (henv : EnvWF env)
       refine bind_congr_eq rfl ?_
       intro okl _
       refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-      have htel : (cvT.type.instantiateLevelParams cvT.levelParams
-          us').hasFvar = false := by
-        rw [hasFvar_instantiateLevelParams]
-        exact (henv _ (find?_mem hfT)).1
-      have h1 := iotaCerts_shift henv ih hpd false
-        (ty := cvT.type.instantiateLevelParams cvT.levelParams us')
-        (WScoped.of_not_hasFvar htel)
-        (args := wtb.getAppArgs) (fun x hx => hwwtb.getAppArgs x hx)
-      rw [shiftFrom_eq_self_of_not_hasFvar htel] at h1
-      refine bind_congr_eq h1 ?_
-      intro b₁ _
-      refine ite_congr' (fun _ => ?_) (fun _ => rfl)
       refine bind_congr_eq
         (ite_congr' (fun _ => rfl) (fun _ =>
           structEtaProjCerts_shift henv ih hpd T us' cvT.levelParams
@@ -938,20 +926,7 @@ private theorem structUnitCert_shift (henv : EnvWF env)
     have hwtb : WScoped d tb := inferTypeIO_WScoped henv fuel htb hwb
     refine bind_congr _ (ih.whnf hpd hwtb) ?_
     intro wtb hwtb'
-    refine bind_congr_eq
-      (ih.defeq hpd hwwta (whnf_WScoped henv fuel hwtb' hwtb)) ?_
-    intro bb _
-    refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-    have h := iotaCerts_shift henv ih hpd false
-      (ty := cvT.type.instantiateLevelParams cvT.levelParams us')
-      (WScoped.of_not_hasFvar (by
-        rw [hasFvar_instantiateLevelParams]
-        exact (henv _ (find?_mem hf)).1))
-      (args := wta.getAppArgs) (fun x hx => hwwta.getAppArgs x hx)
-    rw [shiftFrom_eq_self_of_not_hasFvar (by
-      rw [hasFvar_instantiateLevelParams]
-      exact (henv _ (find?_mem hf)).1)] at h
-    exact h
+    exact ih.defeq hpd hwwta (whnf_WScoped henv fuel hwtb' hwtb)
 
 private theorem etaCert_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d)
@@ -1209,21 +1184,6 @@ private theorem majorToCtor_shift (henv : EnvWF env)
                 Expr.WScoped.mkAppN (by simp [WScoped]) hwfabArgs
               rw [wscopedB_shiftFrom _ hpd, looseBVarsBounded_shiftFrom,
                 fvarLeaves_all_contains_shiftFrom hpd hwfab hwmaj]
-              refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-              -- the relocated synthetic-spine certificate (task #71)
-              have htelC : (cvj.type.instantiateLevelParams cvj.levelParams
-                  ust).hasFvar = false := by
-                rw [hasFvar_instantiateLevelParams]
-                exact (henv _ (find?_mem hfr)).1
-              have hcert := iotaCerts_shift henv ih hpd false
-                (ty := cvj.type.instantiateLevelParams cvj.levelParams ust)
-                (WScoped.of_not_hasFvar htelC)
-                (args := etaFabArgsE env T ust tmaj.getAppArgs major
-                  caps.etaFields)
-                hwfabArgs
-              rw [shiftFrom_eq_self_of_not_hasFvar htelC] at hcert
-              refine bind_rel_eq _ hcert ?_
-              intro bc _
               refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
               refine bind_rel_eq _
                 (structEtaCertWith_shift henv ih hpd hwfab hwmaj hwtmaj) ?_

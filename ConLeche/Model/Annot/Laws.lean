@@ -218,8 +218,62 @@ applied to the type arguments and the stuck member. -/
     List V :=
   ts ++ projSpines val T ts b nF
 
+/-- **The η constructor's telescope coherence** (task #342 L11b): at the
+use's levels `us`, a member `x` of the family `T` at parameters `ts`
+fitting the former's type reading `TVa` gives a spine `fab ρ ts x`
+(the parameters, then `x`'s projections) that fits the η constructor
+`C`'s own type reading.  Without it the former's parameter telescope
+and the constructor's are unrelated: a parameter compared only where
+neither side is the point (structure η's comparison) says nothing
+about a point-valued parameter, which only the constructor's telescope
+pins (L11's finding 2).  Keyed on the constructor's lookup, so a stage
+that has not stored it yet owes nothing. -/
+@[expose] def EtaCoherent {V : Type w} [SetTheory V] {env : Env}
+    (m : EnvModel V env) (φ : Name → Nat) (T C : Name) (lps : List Name)
+    (us : List Level) (TVa : AnnotTerm) (nP : Nat)
+    (fab : (Nat → V) → List V → V → List V) : Prop :=
+  ∀ (cvC : ConstantVal) (nPc nFc : Nat),
+    env.find? C = some (.ctorInfo cvC nPc nFc) →
+    ∃ TCa : AnnotTerm,
+      denoteMeta m.acval env φ 0
+        (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa ∧
+      ∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
+        ts.length = nP →
+        TeleFit V ρ TVa ts rest →
+        x ∈ˢ ts.foldl SetTheory.app
+          (interp V ρ (m.acval T (Level.substFn φ lps us))) →
+        ∃ restC : V, TeleFit V ρ TCa (fab ρ ts x) restC
+
+/-- **`EtaCoherent` crosses a change of environment** that keeps the
+constructor's lookup (backwards), its type's reading (forwards), the
+family's leaf and the fabricated spine. -/
+theorem EtaCoherent.transport {env env₂ : Env} {m : EnvModel V env}
+    {m₂ : EnvModel V env₂} {φ : Name → Nat} {T C : Name} {lps : List Name}
+    {us : List Level} {TVa : AnnotTerm} {nP : Nat}
+    {fab fab₂ : (Nat → V) → List V → V → List V}
+    (h : EtaCoherent m φ T C lps us TVa nP fab)
+    (hfind : ∀ cvC nPc nFc, env₂.find? C = some (.ctorInfo cvC nPc nFc) →
+      env.find? C = some (.ctorInfo cvC nPc nFc))
+    (hread : ∀ (cvC : ConstantVal) (nPc nFc : Nat) (TCa : AnnotTerm),
+      env.find? C = some (.ctorInfo cvC nPc nFc) →
+      denoteMeta m.acval env φ 0
+        (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa →
+      denoteMeta m₂.acval env₂ φ 0
+        (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa)
+    (hT : m₂.acval T (Level.substFn φ lps us) = m.acval T (Level.substFn φ lps us))
+    (hfab : ∀ ρ ts x, fab₂ ρ ts x = fab ρ ts x) :
+    EtaCoherent m₂ φ T C lps us TVa nP fab₂ := by
+  intro cvC nPc nFc hf₂
+  have hf := hfind cvC nPc nFc hf₂
+  obtain ⟨TCa, hTCa, hfit⟩ := h cvC nPc nFc hf
+  refine ⟨TCa, hread cvC nPc nFc TCa hf hTCa, fun ρ ts rest x hlen hft hmem => ?_⟩
+  rw [hT] at hmem
+  rw [hfab]
+  exact hfit ρ ts rest x hlen hft hmem
+
 /-- **The fired structural-η law of an η-capable stored family**
-(see the section note for the shape). -/
+(see the section note for the shape), with the η constructor's
+telescope coherence (`EtaCoherent`). -/
 @[expose] def EtaLaw {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ' : Name → Nat) (T : Name)
     (cvT : ConstantVal) (caps : IndCaps) : Prop :=
@@ -229,7 +283,7 @@ applied to the type arguments and the stuck member. -/
       (cvT.type.instantiateLevelParams cvT.levelParams us)
       = some TVa ∧
     (∀ ρ : Nat → V, WellDenotedV V ρ TVa) ∧
-    ∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
+    (∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
       ts.length = caps.etaParams →
       TeleFit V ρ TVa ts rest →
       x ∈ˢ ts.foldl SetTheory.app
@@ -240,7 +294,11 @@ applied to the type arguments and the stuck member. -/
             T ts x caps.etaFields).foldl SetTheory.app
           (interp V ρ
             (m.acval caps.etaCtor
-              (Level.substFn φ' cvT.levelParams us)))
+              (Level.substFn φ' cvT.levelParams us)))) ∧
+    EtaCoherent m φ' T caps.etaCtor cvT.levelParams us TVa caps.etaParams
+      (fun ρ ts x => etaFabArgsV
+        (fun n => interp V ρ (m.acval n (Level.substFn φ' cvT.levelParams us)))
+        T ts x caps.etaFields)
 
 /-- **The fired unit-like law of a unit-like stored family.** -/
 @[expose] def UnitLaw {V : Type w} [SetTheory V] {env : Env}
@@ -771,7 +829,7 @@ an all-tower family. -/
       denoteMeta m.acval env φ 0
         (cvT.type.instantiateLevelParams cvT.levelParams us) = some TVa ∧
       (∀ ρ : Nat → V, WellDenotedV V ρ TVa) ∧
-      ∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
+      (∀ (ρ : Nat → V) (ts : List V) (rest : V) (x : V),
         ts.length = entry.numParams →
         TeleFit V ρ TVa ts rest →
         x ∈ˢ ts.foldl SetTheory.app
@@ -779,7 +837,11 @@ an all-tower family. -/
         x = (ts ++ (List.range entry.numFields).map fun j =>
               ConLeche.SetTheory.Tower.projS (j + entry.off) x).foldl SetTheory.app
             (interp V ρ
-              (m.acval entry.ctor (Level.substFn φ entry.levelParams us)))
+              (m.acval entry.ctor (Level.substFn φ entry.levelParams us)))) ∧
+      (capsT.eta = true →
+        EtaCoherent m φ T entry.ctor entry.levelParams us TVa entry.numParams
+          (fun _ ts x => ts ++ (List.range entry.numFields).map fun j =>
+            ConLeche.SetTheory.Tower.projS (j + entry.off) x))
 
 /-- **The `Prop` guard at a use's valuation** (task #175 W4c/O4): if
 the structure is a proposition there, so is the field's guard level.
