@@ -167,6 +167,16 @@ theorem bitAgree_quotMkA (ψ : Name → Nat) :
       (.pi hz (.bvar 1)
         (.app (.app (.const _ _) (.bvar 2)) (.bvar 1))))
 
+theorem relAV_interp (u : Nat) (ρ : Nat → V) (Aset : V) :
+    interp V (cons Aset ρ) (relAV u (.bvar 0)) = relSpace V u Aset := by
+  simp [relAV, relSpace, AnnotTerm.lift, AnnotTerm.liftN, interp_pi,
+    interp_bvar, interp_sort, cons]
+
+theorem quotRelTy_interp (u : Nat) (ρ : Nat → V) (Aset : V) :
+    interp V (cons Aset ρ) quotRelTy = relSpace V u Aset := by
+  rw [← relAV_interp u ρ Aset]
+  exact AnnotTerm.BitAgree.interp_eq V (bitAgree_quotRelTy u) _
+
 /-! ### The first two installs -/
 
 /-- **`Quot`, installed at the P tier.** -/
@@ -189,7 +199,18 @@ theorem extendQuot (mp : EnvModelM V μ env)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) ?_
     (fun _ _ => trivial) (fun _ _ => trivial)
-    (fun ψ => ⟨_, denoteMeta_quotA_type ψ⟩) ?_ ?_)
+    (fun ψ => ⟨_, denoteMeta_quotA_type ψ⟩) ?_ ?_
+    (hind := indStrictHead_cons
+      (ab := fun ψ => [(0, pwBit ψ .never, .sort (ψ uN)), (0, pwBit ψ .never, quotRelTy)])
+      (s := fun ψ => ψ uN) (fun ψ => denoteMeta_quotA_type ψ) fun ψ hu ρ vs hsp => by
+        match vs, hsp with
+        | [Aset, R], ⟨hA, hR, _⟩ =>
+          have hR' : R ∈ˢ relSpace V (ψ uN) Aset := by
+            rw [← quotRelTy_interp (ψ uN) ρ Aset]; exact hR
+          show Strict (SetTheory.app (SetTheory.app (quotV V (ψ uN)) Aset) R)
+          have hA' : Aset ∈ˢ (univ (ψ uN) : V) := hA
+          rw [quotV_app V hA' hR']
+          exact strict_quotSet hu Aset R))
   · intro ψ₁ ψ₂ hp
     rw [hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)]
   · intro ψ ta h ρ
@@ -285,16 +306,6 @@ noncomputable def quotIndMinorSpace (V : Type w) [SetTheory V]
 depths across the block, so both are stated against an arbitrary
 environment through its slot values.  The `∃ w S F` witnesses are
 `bconst_app_dataAV`/`_data3` — nothing is chosen. -/
-
-theorem relAV_interp (u : Nat) (ρ : Nat → V) (Aset : V) :
-    interp V (cons Aset ρ) (relAV u (.bvar 0)) = relSpace V u Aset := by
-  simp [relAV, relSpace, AnnotTerm.lift, AnnotTerm.liftN, interp_pi,
-    interp_bvar, interp_sort, cons]
-
-theorem quotRelTy_interp (u : Nat) (ρ : Nat → V) (Aset : V) :
-    interp V (cons Aset ρ) quotRelTy = relSpace V u Aset := by
-  rw [← relAV_interp u ρ Aset]
-  exact AnnotTerm.BitAgree.interp_eq V (bitAgree_quotRelTy u) _
 
 /-- The relation binder's domain is graded, unconditionally: both of
 its binders are in the graph regime. -/

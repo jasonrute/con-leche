@@ -266,6 +266,29 @@ head's obligation; nothing of the collapsed model is consulted. -/
   acval_params := acvalWith_params m.acval_params hAparams
   acval_wellDenoted := acvalWith_wellDenoted m.acval_wellDenoted hAok
 
+/-- `indStrictHead_of` at a cons's own leaf. -/
+theorem indStrictHead_cons {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+    {cv : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
+    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {s : (Name → Nat) → Nat}
+    (hread : ∀ ψ, denoteMeta (acvalWith acval cv.name A) env ψ 0 cv.type
+      = some (mkPisAV (ab ψ) (.sort (s ψ))))
+    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ((ab ψ).map (·.2.2)) vs →
+      Strict (vs.foldl SetTheory.app (interp V ρ (A ψ)))) :
+    IndStrictHead (V := V) (acvalWith acval cv.name A) env (.indInfo cv caps) :=
+  indStrictHead_of hread fun ψ hn ρ vs hsp => by
+    rw [show acvalWith acval cv.name A cv.name ψ = A ψ from congrFun acvalWith_self ψ]
+    exact h ψ hn ρ vs hsp
+
+/-- `indStrictHead_cons` at a former whose sort is `Prop` at every
+assignment: nothing to prove. -/
+theorem indStrictHead_cons_prop {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+    {cv : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → AnnotTerm}
+    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    (hread : ∀ ψ, denoteMeta (acvalWith acval cv.name A) env ψ 0 cv.type
+      = some (mkPisAV (ab ψ) (.sort 0))) :
+    IndStrictHead (V := V) (acvalWith acval cv.name A) env (.indInfo cv caps) :=
+  indStrictHead_cons (s := fun _ => 0) hread fun _ hn => absurd rfl hn
+
 /-- **The P declaration step, cons shape** (see the module
 docstring). -/
 theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
@@ -313,7 +336,12 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     (hreduce_ops : ReduceOps (V := V)
         ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
     (htower_ok : ∀ φ : Name → Nat,
-      TowerOk (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ) :
+      TowerOk (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+    -- the head's fibres above a proposition, if it is a former (task
+    -- #342 L7); vacuous at every other head kind
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   have hbound := envWF_constsBound mp.base2.wf
@@ -395,6 +423,29 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       exact hcompM ψ value ((hbound _ h).2 cv value hint rfl)
         (hh.projTower.defn h)
         (mp.defn_reads ψ cv value ⟨hint, h⟩)
+  -- the stored formers' strict fibres: the head's is `hind`; a prefix
+  -- former keeps its leaf and its type's reading
+  have hind' : IndStrictOk (V := V) (coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) := by
+    intro I cv caps hf ψ ab n hread hn ρ vs hsp
+    by_cases hI : I = c₀.name
+    · subst hI
+      rw [ConLeche.Env.find?_cons_self] at hf
+      exact hind cv caps (Option.some.inj hf) ψ ab n hread hn ρ vs hsp
+    · have hfE : env.find? I = some (.indInfo cv caps) := by
+        rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh' => hI hh'.symm)] at hf
+        exact hf
+      have hm := ConLeche.Semantics.Env.find?_mem hfE
+      obtain ⟨ta, hta⟩ := mp.type_reads _ hm ψ
+      have hcv : (ConstantInfo.indInfo cv caps).toConstantVal = cv := rfl
+      rw [hcv] at hta
+      have hta' := hcompM ψ _ ((hbound _ hm).1) (hh.projTower.type hm) hta
+      rw [hcv] at hta'
+      have hEq : ta = mkPisAV ab (.sort n) := Option.some.inj (hta'.symm.trans hread)
+      subst hEq
+      show Strict (vs.foldl SetTheory.app
+        (interp V ρ (acvalWith mp.base2.acval c₀.name A I ψ)))
+      rw [acvalWith_ne hI]
+      exact mp.ind_strict I cv caps hfE ψ ab n hta hn ρ vs hsp
   exact ⟨{
     base2 := coreCons mp.base2 A hfresh hh hAclosed hAparams hAok
     acval_validV := acvalWith_validV (n := c₀.name)
@@ -411,6 +462,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     rec_rules := hrec_rules
     reduce_ops := hreduce_ops
     tower_ok := htower_ok
+    ind_strict := hind'
     -- the recorded lfp clauses: a fresh cons re-reads no stored name
     lfpBlocks := mp.lfpBlocks
     lfp_ok := mp.lfp_ok_transport (fun _ _ hf _ => findPreserved_cons hfresh hf)

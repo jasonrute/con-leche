@@ -310,7 +310,12 @@ theorem extendNat (mp : EnvModelM V μ env)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) (fun _ _ _ => rfl)
     (fun _ _ => trivial) (fun _ _ => trivial)
-    (fun ψ => ⟨_, denoteMeta_natA_type ψ⟩) ?_ ?_ ?_ ?_)
+    (fun ψ => ⟨_, denoteMeta_natA_type ψ⟩) ?_ ?_ ?_ ?_
+    (hind := indStrictHead_cons (ab := fun _ => []) (s := fun _ => 1)
+      (fun ψ => denoteMeta_natA_type ψ) fun _ _ ρ vs hsp => by
+        cases vs with
+        | nil => exact strict_omega
+        | cons _ _ => exact hsp.elim))
   · intro ψ ta h ρ
     rw [denoteMeta_natA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm

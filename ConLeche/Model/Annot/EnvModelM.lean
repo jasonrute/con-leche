@@ -224,6 +224,13 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   install and by nothing else, so the supplier is the direct install
   step.  Consumed by the `.proj` rows' tower branches) -/
   tower_ok : ∀ φ : Name → Nat, TowerOk base2 φ
+  /-- the stored formers' fibres above a proposition are strict (an
+  *environment law* for the same reason `caps_ok` is — a former's leaf
+  is fixed by its install and by nothing else, so the supplier is the
+  former's install: the block's fixpoint leaf, the pinned basis
+  formers; task #342 L7).  Consumed through `IndFibLaw`
+  (`EnvModelM.indFibLaw`) -/
+  ind_strict : IndStrictOk base2
   /-- **the recorded blocks**: the lfp data of the
   inductive blocks whose lfp clause this carrier records — a ghost
   list, filled by the uniform block install at its constructors'
@@ -365,6 +372,9 @@ binder. -/
   tower_ok := fun _ T i entry hf => by
     have : Env.empty.findProj? T i = none := rfl
     rw [this] at hf
+    exact nomatch hf
+  ind_strict := fun I _ _ hf => by
+    rw [show Env.empty.find? I = none from rfl] at hf
     exact nomatch hf
   lfpBlocks := []
   lfp_ok := fun _ hD => nomatch hD

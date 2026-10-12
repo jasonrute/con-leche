@@ -273,6 +273,103 @@ applied to the type arguments and the stuck member. -/
     ConLeche.reservedBasisNames.contains T = false →
     ∀ φ' : Name → Nat, UnitLaw m φ' T cvT caps)
 
+/-! ## The fibres of a stored family (task #342 L7)
+
+The real model's counterpart of the fragment's `IndFibLaw` (task #342
+F1): an inductive family whose stored sort evaluates to `0` has
+truth-value fibres, and one whose sort does not has **strict** fibres.
+Every `Sort (n+1)` holds the truth values too (`univ` is cumulative),
+so the universe does not say the second half; the inductive
+constructions do (a fibre above `Prop` is a set of tagged tuples).
+
+The stored sort is read off the type's reading: a former's type reads
+as a Π-tower over its parameters and indices ending in `.sort n`, and
+`n` is the stored sort at the reading's assignment (a block member's
+`FormerData.read`: `.sort (resSort.eval ψ)`).
+
+* The **field** (`EnvModelM.ind_strict`, `IndStrictOk`) is the strict
+  half, per former and at the uninstantiated type, the form every
+  install proves.
+* The **law** (`IndFibLaw`) is both halves at a use's instantiated
+  levels, the form the rules tier reads; it is derived
+  (`EnvModelM.indFibLaw`): the truth-value half from the stored
+  former's membership in its graded type, the strict half from the
+  field. -/
+
+/-- **A stored former's fibres above a proposition are strict**: at every
+assignment where its type reads as a Π-tower ending in `.sort n` with
+`n ≠ 0`, the former applied to values fitting the tower's domains is
+strict (task #342 L7). -/
+@[expose] def IndStrictAt {V : Type w} [SetTheory V]
+    (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (I : Name)
+    (cv : ConstantVal) : Prop :=
+  ∀ (ψ : Name → Nat) (ab : List (Nat × Nat × AnnotTerm)) (n : Nat),
+    denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort n)) → n ≠ 0 →
+    ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab.map (·.2.2)) vs →
+      Strict (vs.foldl SetTheory.app (interp V ρ (acval I ψ)))
+
+/-- `IndStrictAt` at a cons's head, if it is a former. -/
+@[expose] def IndStrictHead {V : Type w} [SetTheory V]
+    (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (c₀ : ConstantInfo) : Prop :=
+  ∀ (cv : ConstantVal) (caps : IndCaps), c₀ = .indInfo cv caps →
+    IndStrictAt (V := V) acval env c₀.name cv
+
+/-- **Every stored former's fibres above a proposition are strict**
+(the `EnvModelM` field; established at the formers' installs). -/
+@[expose] def IndStrictOk {V : Type w} [SetTheory V] {env : Env}
+    (m : EnvModel V env) : Prop :=
+  ∀ (I : Name) (cv : ConstantVal) (caps : IndCaps),
+    env.find? I = some (.indInfo cv caps) → IndStrictAt (V := V) m.acval env I cv
+
+/-- **The fibre law of the stored families** (task #342 L7; the
+fragment's `IndFibLaw`, task #342 F1): a stored former `I` at the
+use's levels `us`, whose instantiated type reads as a Π-tower ending
+in `.sort n`, applied to values fitting the tower's domains, is a
+truth value where `n = 0` and strict where `n ≠ 0` (`Fib`).  At any
+depth `d`: the type is closed. -/
+@[expose] def IndFibLaw {V : Type w} [SetTheory V] {env : Env}
+    (m : EnvModel V env) (φ : Name → Nat) : Prop :=
+  ∀ (d : Nat) (I : Name) (cv : ConstantVal) (caps : IndCaps) (us : List Level),
+    env.find? I = some (.indInfo cv caps) → us.length = cv.levelParams.length →
+    ∀ (ab : List (Nat × Nat × AnnotTerm)) (n : Nat),
+      denoteMeta m.acval env φ d (cv.type.instantiateLevelParams cv.levelParams us)
+        = some (mkPisAV ab (.sort n)) →
+      ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ (ab.map (·.2.2)) vs →
+        Fib (decide (n = 0))
+          (vs.foldl SetTheory.app
+            (interp V ρ (m.acval I (Level.substFn φ cv.levelParams us))))
+
+/-- A Π-tower over a sort determines its domains and its sort. -/
+theorem mkPisAV_sort_inj :
+    ∀ {ab ab' : List (Nat × Nat × AnnotTerm)} {n n' : Nat},
+      mkPisAV ab (.sort n) = mkPisAV ab' (.sort n') → ab = ab' ∧ n = n'
+  | [], [], _, _, h => ⟨rfl, AnnotTerm.sort.inj h⟩
+  | [], _ :: _, _, _, h => nomatch h
+  | _ :: _, [], _, _, h => nomatch h
+  | d :: ab, d' :: ab', _, _, h => by
+    obtain ⟨d1, d2, d3⟩ := d
+    obtain ⟨d1', d2', d3'⟩ := d'
+    simp only [mkPisAV, AnnotTerm.pi.injEq] at h
+    obtain ⟨rfl, rfl, rfl, h⟩ := h
+    obtain ⟨rfl, rfl⟩ := mkPisAV_sort_inj h
+    exact ⟨rfl, rfl⟩
+
+/-- **The strict fibres of a former, at its cons** — from its one type
+reading: at every assignment the stored type reads as `mkPisAV (ab ψ)
+(.sort (s ψ))`, and where `s ψ ≠ 0` the leaf applied along a fitting
+spine is strict. -/
+theorem indStrictHead_of {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+    {cv : ConstantVal} {caps : IndCaps}
+    {ab : (Name → Nat) → List (Nat × Nat × AnnotTerm)} {s : (Name → Nat) → Nat}
+    (hread : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some (mkPisAV (ab ψ) (.sort (s ψ))))
+    (h : ∀ ψ, s ψ ≠ 0 → ∀ (ρ : Nat → V) (vs : List V), SpineFit ρ ((ab ψ).map (·.2.2)) vs →
+      Strict (vs.foldl SetTheory.app (interp V ρ (acval cv.name ψ)))) :
+    IndStrictHead (V := V) acval env (.indInfo cv caps) := by
+  intro cv' caps' hc ψ ab' n hr hn ρ vs hsp
+  obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj hc
+  obtain ⟨rfl, rfl⟩ := mkPisAV_sort_inj (Option.some.inj ((hread ψ).symm.trans hr))
+  exact h ψ hn ρ vs hsp
+
 /-! ## The fired modeled-iota contract (task #161, iota tier)
 
 The stored recursors' fired rules at the validated-annotation
