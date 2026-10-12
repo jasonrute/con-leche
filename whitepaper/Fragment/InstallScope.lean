@@ -75,6 +75,9 @@ theorem lparamsIn_mono {ps qs : List Name} (h : ps ⊆ qs) :
   | pi A B, he => by
     simp only [lparamsIn_pi, Bool.and_eq_true] at he ⊢
     exact ⟨lparamsIn_mono h he.1, lparamsIn_mono h he.2⟩
+  | letE T v b, he => by
+    simp only [lparamsIn_letE, Bool.and_eq_true] at he ⊢
+    exact ⟨⟨lparamsIn_mono h he.1.1, lparamsIn_mono h he.1.2⟩, lparamsIn_mono h he.2⟩
 
 /-- The parameters of `ps`, as levels, are levels over `ps`. -/
 theorem lparamsIn_const_params (ps : List Name) (c : Name) :

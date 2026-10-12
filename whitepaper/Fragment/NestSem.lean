@@ -146,6 +146,7 @@ theorem isMember_eq_false_of_usesVar {k : Nat} {A : Expr} (h : A.usesVar (N.memb
   | app _ _ => rfl
   | lam _ _ => rfl
   | pi _ _ => rfl
+  | letE _ _ _ => rfl
 
 /-- A positive container has no container field. -/
 theorem noCont_of_positive (hpos : N.Positive) : N.KS.NoCont := by

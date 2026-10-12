@@ -7,7 +7,7 @@ public import Fragment.Level
 /-!
 # Terms
 
-The fragment's terms are Lean's kernel terms without `let`, literals,
+The fragment's terms are Lean's kernel terms without literals,
 projections and metadata, with **de Bruijn indices** for bound
 variables (the paper writes named variables; the real checker opens a
 binder with a free variable carrying its own type, `fvar`, and keeps no
@@ -40,6 +40,11 @@ inductive Expr where
   | lam (A b : Expr)
   /-- The dependent product `(x : A) → B`. -/
   | pi (A B : Expr)
+  /-- `let x : ty := v; b` (task #342, F4).  Kept as Lean stores it: the
+  checker substitutes the value (`Red.zeta`, `Infer.letE`), and the
+  interpretation reads the body at the value's value, ignoring the type
+  (`Interp.lean`), as con-leche's `Denotes` `let` rule does. -/
+  | letE (ty v b : Expr)
   deriving DecidableEq
 
 namespace Expr
@@ -55,6 +60,7 @@ def liftN (n : Nat) : Expr → (k : Nat := 0) → Expr
   | app f a, k => app (liftN n f k) (liftN n a k)
   | lam A b, k => lam (liftN n A k) (liftN n b (k + 1))
   | pi A B, k => pi (liftN n A k) (liftN n B (k + 1))
+  | letE T v b, k => letE (liftN n T k) (liftN n v k) (liftN n b (k + 1))
 
 /-- Instantiate the bound variable `k` by `a` (and lower the indices
 above it): `e.inst a` is `e[x := a]` for the innermost binder. -/
@@ -66,6 +72,7 @@ def inst : Expr → Expr → (k : Nat := 0) → Expr
   | app f b, a, k => app (inst f a k) (inst b a k)
   | lam A b, a, k => lam (inst A a k) (inst b a (k + 1))
   | pi A B, a, k => pi (inst A a k) (inst B a (k + 1))
+  | letE T v b, a, k => letE (inst T a k) (inst v a k) (inst b a (k + 1))
 
 @[simp] theorem liftN_bvar (n k i : Nat) :
     liftN n (bvar i) k = bvar (if i < k then i else i + n) := rfl
@@ -78,6 +85,8 @@ def inst : Expr → Expr → (k : Nat := 0) → Expr
     liftN n (lam A b) k = lam (liftN n A k) (liftN n b (k + 1)) := rfl
 @[simp] theorem liftN_pi (n k : Nat) (A B : Expr) :
     liftN n (pi A B) k = pi (liftN n A k) (liftN n B (k + 1)) := rfl
+@[simp] theorem liftN_letE (n k : Nat) (T v b : Expr) :
+    liftN n (letE T v b) k = letE (liftN n T k) (liftN n v k) (liftN n b (k + 1)) := rfl
 
 @[simp] theorem inst_bvar (a : Expr) (k i : Nat) :
     inst (bvar i) a k =
@@ -91,6 +100,8 @@ def inst : Expr → Expr → (k : Nat := 0) → Expr
     inst (lam A b) a k = lam (inst A a k) (inst b a (k + 1)) := rfl
 @[simp] theorem inst_pi (a : Expr) (k : Nat) (A B : Expr) :
     inst (pi A B) a k = pi (inst A a k) (inst B a (k + 1)) := rfl
+@[simp] theorem inst_letE (a : Expr) (k : Nat) (T v b : Expr) :
+    inst (letE T v b) a k = letE (inst T a k) (inst v a k) (inst b a (k + 1)) := rfl
 
 /-! ## Level instantiation
 
@@ -107,6 +118,7 @@ def instL (ps : List Name) (ls : List Level) : Expr → Expr
   | app f a => app (instL ps ls f) (instL ps ls a)
   | lam A b => lam (instL ps ls A) (instL ps ls b)
   | pi A B => pi (instL ps ls A) (instL ps ls B)
+  | letE T v b => letE (instL ps ls T) (instL ps ls v) (instL ps ls b)
 
 @[simp] theorem instL_bvar (ps : List Name) (ls : List Level) (i : Nat) :
     instL ps ls (bvar i) = bvar i := rfl
@@ -120,6 +132,8 @@ def instL (ps : List Name) (ls : List Level) : Expr → Expr
     instL ps ls (lam A b) = lam (instL ps ls A) (instL ps ls b) := rfl
 @[simp] theorem instL_pi (ps : List Name) (ls : List Level) (A B : Expr) :
     instL ps ls (pi A B) = pi (instL ps ls A) (instL ps ls B) := rfl
+@[simp] theorem instL_letE (ps : List Name) (ls : List Level) (T v b : Expr) :
+    instL ps ls (letE T v b) = letE (instL ps ls T) (instL ps ls v) (instL ps ls b) := rfl
 
 /-! ## Spines and telescopes -/
 
@@ -168,6 +182,7 @@ theorem hasPis_instL (ps : List Name) (ls : List Level) :
   | const _ _, _ + 1 => rfl
   | app _ _, _ + 1 => rfl
   | lam _ _, _ + 1 => rfl
+  | letE _ _ _, _ + 1 => rfl
 
 theorem hasPis_inst (a : Expr) :
     ∀ (e : Expr) (k n : Nat), hasPis e n = true → hasPis (inst e a k) n = true
@@ -178,6 +193,7 @@ theorem hasPis_inst (a : Expr) :
   | const _ _, _, _ + 1, h => by simp [hasPis] at h
   | app _ _, _, _ + 1, h => by simp [hasPis] at h
   | lam _ _, _, _ + 1, h => by simp [hasPis] at h
+  | letE _ _ _, _, _ + 1, h => by simp [hasPis] at h
 
 /-- **The substitution chain** of walking a telescope along
 arguments: the first argument is substituted for the outermost
@@ -230,6 +246,7 @@ theorem length_of_piDomains : ∀ {T : Expr} {args doms : List Expr},
   | const _ _, _ :: _, _, h => by simp [piDomains] at h
   | app _ _, _ :: _, _, h => by simp [piDomains] at h
   | lam _ _, _ :: _, _, h => by simp [piDomains] at h
+  | letE _ _ _, _ :: _, _, h => by simp [piDomains] at h
 
 end Expr
 

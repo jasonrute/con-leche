@@ -22,6 +22,9 @@ of them:
   the domain, and some family of types bounds it;
 * a Π's domain is a type, the body is well-denoted at every value of
   the domain and denotes a type there;
+* a `let` has its value well-denoted, and its body well-denoted at the
+  value's value (task #342, F4); its type is not read, as the
+  interpretation does not read it;
 * variables, sorts and constants are always well-denoted.
 
 There is no annotation to hold to account (task #344): the regime of a
@@ -71,6 +74,8 @@ def WellDenoted : (Nat → V) → Expr → Prop
     WellDenoted ρ A ∧ IsTy (interp M φ ρ A) ∧
       (∀ x, x ∈ˢ interp M φ ρ A → WellDenoted (cons x ρ) B) ∧
       (∀ x, x ∈ˢ interp M φ ρ A → IsTy (interp M φ (cons x ρ) B))
+  | ρ, .letE _ v b =>
+    WellDenoted ρ v ∧ WellDenoted (cons (interp M φ ρ v) ρ) b
 
 @[simp] theorem WellDenoted_bvar (ρ : Nat → V) (i : Nat) : WellDenoted M φ ρ (.bvar i) := trivial
 @[simp] theorem WellDenoted_sort (ρ : Nat → V) (u : Level) : WellDenoted M φ ρ (.sort u) := trivial
@@ -101,6 +106,11 @@ theorem WellDenoted_pi (ρ : Nat → V) (A : Expr) (B : Expr) :
         (∀ x, x ∈ˢ interp M φ ρ A → IsTy (interp M φ (cons x ρ) B))) := by
   rw [WellDenoted]
 
+theorem WellDenoted_letE (ρ : Nat → V) (T v b : Expr) :
+    WellDenoted M φ ρ (.letE T v b) ↔
+      (WellDenoted M φ ρ v ∧ WellDenoted M φ (cons (interp M φ ρ v) ρ) b) := by
+  rw [WellDenoted]
+
 theorem WellDenoted_liftN (n : Nat) :
     ∀ (e : Expr) (k : Nat) (ρ : Nat → V),
       WellDenoted M φ ρ (e.liftN n k) ↔ WellDenoted M φ (shiftE n k ρ) e := by
@@ -129,6 +139,9 @@ theorem WellDenoted_liftN (n : Nat) :
       (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     · rw [ihB, cons_shiftE]
     · rw [interp_liftN, cons_shiftE]
+  | letE T v b _ ihv ihb =>
+    intro k ρ
+    rw [Expr.liftN_letE, WellDenoted_letE, WellDenoted_letE, ihv, ihb, interp_liftN, cons_shiftE]
 
 /-- The invariant through instantiation, given the substituted term's. -/
 theorem WellDenoted_inst :
@@ -173,6 +186,12 @@ theorem WellDenoted_inst :
       (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     · rw [ihB a (k + 1) (cons x ρ) (ha' x), shiftE_succ_cons, cons_instE]
     · rw [interp_inst, shiftE_succ_cons, cons_instE]
+  | letE T v b _ ihv ihb =>
+    intro a k ρ ha
+    have ha' : ∀ x, WellDenoted M φ (shiftE (k + 1) 0 (cons x ρ)) a := by
+      intro x; rwa [shiftE_succ_cons]
+    rw [Expr.inst_letE, WellDenoted_letE, WellDenoted_letE, ihv a k ρ ha, interp_inst,
+      ihb a (k + 1) _ (ha' _), shiftE_succ_cons, cons_instE]
 
 theorem WellDenoted_inst0 {e a : Expr} {ρ : Nat → V} (ha : WellDenoted M φ ρ a) :
     WellDenoted M φ ρ (e.inst a) ↔ WellDenoted M φ (cons (interp M φ ρ a) ρ) e := by
@@ -206,6 +225,9 @@ theorem WellDenoted_instL (ps : List Name) (ls : List Level) :
       (forall_congr' fun x => imp_congr Iff.rfl (ihB _))
       (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     rw [interp_instL]
+  | letE T v b _ ihv ihb =>
+    intro ρ
+    rw [Expr.instL_letE, WellDenoted_letE, WellDenoted_letE, ihv, ihb, interp_instL]
 
 /-! ### Establishing the application clause -/
 
