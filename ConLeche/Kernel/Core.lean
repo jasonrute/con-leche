@@ -738,11 +738,12 @@ stuck major may be rescued — see `majorToCtor`), and the recursor's
 stored type has the redex's arity.  The constructor side follows **the ι licence** (task #342
 L10): a K rule, and a rule whose constructor's family is never `Prop`
 at the constructor's levels (`iotaCtorLicensed`), fire with no
-constructor certificate and no index comparison; every other rule
-(case 3, `iotaCase3`) certifies the constructor telescope at the full
-grade (`iotaCertsFull`), compares the indices (`iotaIndexOk`), and
-compares a `.plain` rule's parameters too (`iotaCompares`).  The
-result is the rule's rhs applied to the non-index prefix and the
+constructor certificate and no parameter or index comparison; every
+other rule (case 3, `iotaCase3`) compares the constructor's parameters
+with the rule's comparands, certifies the constructor telescope at the
+full grade (`iotaCertsFull`) and compares the indices (`iotaIndexOk`).
+The constructor's levels are compared with the comparands' at every
+fire.  The result is the rule's rhs applied to the non-index prefix and the
 constructor's fields; over-application is handled by the outer app
 recursion. -/
 def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
@@ -780,18 +781,6 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
               -- (install-computed); the defensive spine-length check
               -- stays
               if margs.length = rl.ctorParams + rl.nfields then
-               -- A matched *inert* rule is a positive detection of an
-               -- unsupported feature: the redex demands firing an
-               -- uncertified nested-auxiliary rule (e.g.
-               -- `Syntax.rec_1` on an `Array.mk` major with the
-               -- nested certification absent).  Staying silently
-               -- stuck would surface as a spurious *reject*
-               -- downstream (defeq failure in the app rule), so
-               -- decline here instead.
-               if rl.fire = .inert then
-                 throw (.notImplemented
-                   "iota reduction over a nested auxiliary recursor rule")
-               else
                 -- The ι batch (2026-09-05): the two `stripPis` arity
                 -- pins that stood here were an environment invariant
                 -- re-checked per fire (every install route establishes
@@ -799,19 +788,17 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
                 -- per the "invariants over runtime gates" ruling.
                 --
                 -- the constructor's levels and parameters must agree
-                -- with the rule's comparands (canonical: the
-                -- recursor's own instantiation and leading arguments;
-                -- nested: the stored major-domain instantiations) —
-                -- the firing mode was computed once at install
-                -- (`Expr.recRulePlain` / the nested certification),
-                -- never re-derived per fire
+                -- with the rule's comparands (plain: the recursor's own
+                -- instantiation and leading arguments; nested: the
+                -- stored major-domain instantiations) — the firing mode
+                -- was computed once at install (`sumRules` /
+                -- `auxRuleFireR`), never re-derived per fire
                 if ← liftFueled "level comparison" (Level.isEquivList usj
                     (recFireComparands rl cv.levelParams us
                       cvj.levelParams args rP).1) then
-                 -- the parameter comparison, run where the rule asks for
-                 -- it (`RecRule.compareParams`) and at every case-3 redex
-                 -- (`iotaCompares`, task #342 L10)
-                 if ← (if iotaCompares env.find? rl cvj usj then
+                 -- the parameter comparison, at a case-3 redex only
+                 -- (task #342 L10, S5b)
+                 if ← (if iotaCase3 env.find? rl cvj usj then
                     defEqList r env depth (margs.take rl.ctorParams)
                       (recFireComparands rl cv.levelParams us
                         cvj.levelParams args rP).2

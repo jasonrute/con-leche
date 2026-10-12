@@ -330,7 +330,7 @@ def consBlockRecs (find? : Name → Option ConstantInfo) (p : BlockShape) (nP : 
   | m, (cvRa, rhss, _nIdx, ctorsA) :: rest, env =>
     consBlockRecs find? p nP (m + 1) rest
       ⟨.recInfo cvRa (p.majorIdxAt m) (p.rulePrefixAt m)
-        (sumRules find? cvRa.name nP (p.majorIdxAt m) (p.rulePrefixAt m) cvRa.type ctorsA rhss)
+        (sumRules find? cvRa.name nP ctorsA rhss)
         :: env.consts⟩
 
 /-! ### The recursor stage as CHECKING

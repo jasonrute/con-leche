@@ -677,7 +677,10 @@ theorem genRecCheck_names (so : ShadowOps CheckCM) (fe : FEnv)
   refine Yields.bind fun _ => ?_
   refine Yields.bind' (classRecsRulesOk_fst _ _ fe _ _ _ cvGs _ (by omega))
     fun out hout => ?_
-  refine Yields.bind fun _ => Yields.pure ?_
+  refine Yields.bind fun _ => ?_
+  split
+  case isFalse => exact Yields.ofThrowBind
+  refine Yields.pure ?_
   have hlen : out.length = cvGs.length := by simpa using congrArg List.length hout
   refine ⟨hnd, by rw [hlen, hG.1], fun j rc hj => ?_⟩
   obtain ⟨x, hx, hname, hfr⟩ := hG.2.2 j rc hj

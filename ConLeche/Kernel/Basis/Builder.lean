@@ -15,7 +15,7 @@ export carries for them, which is exactly the toolchain's own
 are not part of an `Expr` (task #205; `piI`/`lmI` mark where the
 signature says `{…}`, for the reader), the `pw` datum at the parse
 placeholder `.never` — and every install-computed recursor-rule
-field at its parse placeholder (`ctorParams := 0`, `fire := .inert`).
+field at its parse placeholder (`ctorParams := 0`, `fire := .plain`).
 
 Written out with `ConLeche.Expr`'s constructors and `Name.str` chains,
 one such declaration is a single unreadable line.  The helpers below —
@@ -119,7 +119,7 @@ def ap4 (f a b c d : Expr) : Expr := .app (.app (.app (.app f a) b) c) d
 `fire`, `k`, `eta`) at their parse placeholders, which
 is what the exporter emits and what `#stored_basis` recomputes. -/
 def rule (ctor : Name) (nfields : Nat) (rhs : Expr) : RecRule :=
-  ⟨ctor, nfields, 0, .inert, rhs, false, false⟩
+  ⟨ctor, nfields, 0, .plain, rhs, false, false⟩
 
 end BasisDSL
 

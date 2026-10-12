@@ -166,19 +166,16 @@ def consSumCtors (nP : Nat) : List (ConstantVal × Nat) → Env → Env
   | c :: cs, env => consSumCtors nP cs ⟨.ctorInfo c.1 nP c.2 :: env.consts⟩
 
 /-- The stored rules: constructor `j`'s with the generated right-hand
-side `j`, plain when the generated type's major is the family at the
-parameters (always, by construction), carrying the two rescue bits
+side `j`, `.plain` (the major is the family at the recursor's
+parameters), carrying the two rescue bits
 `recRuleBits` reads off the block's own store — the family and its
 constructors are installed before the recursor. -/
-def sumRules (find? : Name → Option ConstantInfo) (recName : Name)
-    (nP mI rP : Nat) (recTy : Expr) :
+def sumRules (find? : Name → Option ConstantInfo) (recName : Name) (nP : Nat) :
     List (ConstantVal × Nat) → List Expr → List RecRule
   | c :: cs, rhs :: rhss =>
     recRuleBits find? recName
-      { ctor := c.1.name, nfields := c.2, ctorParams := nP,
-        fire := if Expr.recRulePlain recTy mI rP nP then .plain else .inert,
-        rhs := rhs }
-      :: sumRules find? recName nP mI rP recTy cs rhss
+      { ctor := c.1.name, nfields := c.2, ctorParams := nP, fire := .plain, rhs := rhs }
+      :: sumRules find? recName nP cs rhss
   | _, _ => []
 
 end ConLeche

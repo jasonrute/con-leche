@@ -66,10 +66,10 @@ theorem red_sound (hin : RulesInputs V m φ) :
     Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
   -- ι and the K/`And` rescues (task #342 L10): one lemma each, from the
   -- conditional claims of their premises
-  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
+  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hlv
       hparams hcertR hcertC hres hidx =>
     Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
-      hrule hmlen hfire hlv (fun hc => defEqList_sound hin (hparams hc))
+      hrule hmlen hlv (fun hc => defEqList_sound hin (hparams hc))
       (Certs.licensed_sound hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
       (fun h3 hne => defEqList_sound hin (hidx h3 hne))
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws

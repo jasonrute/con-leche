@@ -424,7 +424,7 @@ theorem whnfPres_fvarLeaves {env : Env} (henv : EnvWF env) :
             cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
             hmfn, hfj,
             hrule,
-            hml, -, hlev, hpeq, hmcerts, -, rfl⟩ :=
+            hml, hlev, hpeq, hmcerts, -, rfl⟩ :=
             iotaRec_inv hio
           -- the major's leaves are the argument's, through the chain in
           -- either order
@@ -575,7 +575,7 @@ theorem whnfPres_looseBVars {env : Env} (henv : EnvWF env) :
             cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
             hmfn, hfj,
             hrule,
-            hml, -, hlev, hpeq, hmcerts, -, rfl⟩ :=
+            hml, hlev, hpeq, hmcerts, -, rfl⟩ :=
             iotaRec_inv hio
           have hbapp : (Expr.app f' a).looseBVarsBounded 0 = true := by
             simp only [looseBVarsBounded, Bool.and_eq_true]

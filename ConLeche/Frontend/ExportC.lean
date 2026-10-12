@@ -236,7 +236,7 @@ def indPiTeleLen : Expr → Nat
 
 /-- One recursor rule of an inductive record, resolved. -/
 @[specialize] def ruleOfF (nm : Nat → M Name) (_lv : Nat → M Level) (ex : Nat → M Expr) (ru : RuleRec) : M RecRule := do
-  pure (RecRule.mk (← nm ru.ctor) ru.nfields 0 .inert
+  pure (RecRule.mk (← nm ru.ctor) ru.nfields 0 .plain
     (← ex ru.rhs) false false)
 
 /-- **An inductive record, validated** (tasks #217, #228, #271): the

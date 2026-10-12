@@ -579,6 +579,11 @@ def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Boo
   let out ← classRecsRulesOk (so.opsRuleR feR) so.walkers fe feR g
     (classRecOf rd.recCls cvGs) cvGs rd.recCls
   so.flush
+  -- every auxiliary recursor's rules fire `.nested`: its major domain
+  -- reads as the container's instantiation (`tgtNestedReads`)
+  unless tgtNestedReads (·.constsResolveF fe) p 0 out do
+    throw (.internal "generated recursor: an auxiliary recursor's major domain does not \
+      read as its container's instantiation")
   pure out
 
 /-- The records `consBlockRecsBareF` pushes, in push order. -/

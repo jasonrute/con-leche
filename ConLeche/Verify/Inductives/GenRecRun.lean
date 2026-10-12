@@ -711,6 +711,8 @@ structure GenStageRun (mode : CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
     cvGs rd.recCls = .ok out
+  /-- every auxiliary recursor's major domain reads -/
+  hreads : tgtNestedReads (·.constsResolveF fe) p 0 out = true
 
 /-- The generator of a stage run. -/
 @[expose] def GenStageRun.g {F : Nat} {fe : FEnv} {p : BlockShape} {nestedBit : Bool}
@@ -751,6 +753,9 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
   obtain ⟨u7, -, h⟩ := exceptBind_ok h
   obtain ⟨out', hout, h⟩ := exceptBind_ok h
   obtain ⟨u8, -, h⟩ := exceptBind_ok h
+  by_cases hreads : tgtNestedReads (·.constsResolveF fe) p 0 out' = true
+  case neg => rw [ite_eq_right hreads] at h; close_throw h
+  rw [ite_eq_left hreads] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
   subst h
   simp only [Bool.not_eq_true] at helim
@@ -759,7 +764,7 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
     cvGs := cvGs, pins := by cases u0; exact hpins, hcvRis := hcvRis,
     hk := hk, helim := helim, hMs := hMs, hctors := hctors,
     hminors := by simpa using hminors, hformer := hformer,
-    hpre := unwrapOr_ok hpre, hcvGs := hcvGs, hrules := hout }⟩
+    hpre := unwrapOr_ok hpre, hcvGs := hcvGs, hrules := hout, hreads := hreads }⟩
 
 /-- **The install's recursor stage, inverted**: `checkBlockRec` at the
 fueled operations IS the generated stage at `ShadowOps.fueled`. -/
@@ -835,6 +840,8 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p ctx.params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
     cvGs rd.recCls = .ok out
+  /-- every auxiliary recursor's major domain reads -/
+  hreads : tgtNestedReads (·.constsResolveF fe) p 0 out = true
 
 /-- The generator of a run. -/
 @[expose] def GenRecRun.g {F : Nat} {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
@@ -873,7 +880,7 @@ theorem genRecRun_of {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
       exact ⟨M, hM, R.transport hag⟩,
     hone := C.hone, hk := S.hk, helim := S.helim, hst := hst, hMs := S.hMs,
     hctors := S.hctors, hminors := S.hminors, hformer := S.hformer, hpre := S.hpre,
-    hcvGs := S.hcvGs, hrules := S.hrules }⟩
+    hcvGs := S.hcvGs, hrules := S.hrules, hreads := S.hreads }⟩
 
 /-- **Every class checked as a major at the constructors' environment**:
 `classMajors_run`'s shape, over the run's keys. -/

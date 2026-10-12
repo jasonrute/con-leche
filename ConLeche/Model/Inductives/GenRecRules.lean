@@ -1309,15 +1309,7 @@ the contract's premises. -/
           = Level.substFn φ cA.1.levelParams
               (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
                 (p.toBlockShape.rulePrefixAt j)).1 →
-        (∀ lvls pins, ConLeche.RecRule.fire rl = .nested lvls pins →
-          ∀ q, q < nP → ∀ vpa : AnnotTerm,
-            denoteMeta mpC.base2.acval envC φ (p.toBlockShape.rulePrefixAt j)
-              (openRev 0 (p.toBlockShape.rulePrefixAt j)
-                ((pins.getD q default).instantiateLevelParams r.1.levelParams us))
-              = some vpa →
-            interp V ρ (ys.getD q default)
-              = interp V ρ (AnnotTerm.instRevChain
-                  (xs.take (p.toBlockShape.rulePrefixAt j)) vpa)) →
+        (∀ y ∈ ys, WellDenotedV V ρ y) →
         (interp V ρ (AnnotTerm.mkAppN
             (mpC.base2.acval cA.1.name (Level.substFn φ cA.1.levelParams usj)) ys) = pt →
           IotaIndexPin (V := V) ρ restC nP
@@ -1845,12 +1837,10 @@ theorem genRecHtower
       (tgtRs out)[j]? = some r →
         ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
           r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-            ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-                (ConLeche.tgtMajorsOf out) j r ≠ ConLeche.RecRuleFire.inert →
               ∀ (acv : Name → (Name → Nat) → AnnotTerm) (ψ : Name → Nat) (Ra : AnnotTerm),
                 denoteMeta acv env₃ ψ 0 rhs = some Ra →
                   ∃ lds A, Ra = mkLamsAV lds A ∧ lds.length = pp.rulePrefixAt j + cA.2 :=
-  fun _ _ hr _ _ _ hcA hrhs _ _ _ _ hRa => genRuleTower R hr hcA hrhs hRa
+  fun _ _ hr _ _ _ hcA hrhs _ _ _ hRa => genRuleTower R hr hcA hrhs hRa
 
 /-- **`heqP`** (the skeleton's goal), given the family level's
 parametricity (`blockRecLevel_run`'s `hsP`) and the CLASS SIDE's
@@ -1992,8 +1982,6 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
       (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-      ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-          (ConLeche.tgtMajorsOf out) j r ≠ ConLeche.RecRuleFire.inert →
       BlockRuleRows3 (V := V) mpC pp (ConLeche.tgtMajorsOf out j).nPc (tgtRs out)
         (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
         (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
@@ -2016,8 +2004,6 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
       (ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
         (ConLeche.tgtMajorsOf out))
       fun _ φ j r i cA rhs rl =>
-        ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
-            (ConLeche.tgtMajorsOf out) j r ≠ ConLeche.RecRuleFire.inert →
           BlockRuleDataB mpC pp (ConLeche.tgtMajorsOf out j).nPc
             (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find?
               (fun x => Expr.constsResolve envC x) pp.toBlockShape (ConLeche.tgtMajorsOf out))
@@ -2030,14 +2016,14 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
             (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
             (fun _ => genRbAV R.g R.rd)
             (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA rl rhs := by
-  intro m₃ hac φ j r hr i cA rhs hcA hrhs hfire
+  intro m₃ hac φ j r hr i cA rhs hcA hrhs
   have hnd := ConLeche.recStageG_nodup h hndM
   have hleaf := blockRecLeafOk_of hμ mpC h heqB heqP hpre
   obtain ⟨hreadR, hokR⟩ := blockRuleRhs_read_run hμ mpC h hnd hleaf m₃ hac r
     (List.mem_of_getElem? hr) rhs (List.mem_of_getElem? hrhs)
-  intro us hus hℓ usj ρ xs ys restR restC hxl hyl husjl hψ hnest hidx hfitR hfitC
-  obtain ⟨h1, h2, h3⟩ := hrow3 φ j r hr i cA rhs hcA hrhs hfire us hus hℓ usj ρ xs ys restR restC
-    hxl hyl husjl hψ hnest hidx hfitR hfitC
+  intro us hus hℓ usj ρ xs ys restR restC hxl hyl husjl hψ hyWD hidx hfitR hfitC
+  obtain ⟨h1, h2, h3⟩ := hrow3 φ j r hr i cA rhs hcA hrhs us hus hℓ usj ρ xs ys restR restC
+    hxl hyl husjl hψ hyWD hidx hfitR hfitC
   -- the rule's reading at the family's valuation
   have hread' : denoteMeta (blockRecAcv mpC.base2.acval envC (tgtRs out) s (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)

@@ -875,9 +875,8 @@ theorem quotIndExtra {m : EnvModel V env}
       hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
     fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
       hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
-  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
-  refine ⟨fun lvls pins h => (nomatch h),
-    fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
+  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _ _
+  exact ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩
 
 /-- **`Quot.ind`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
 `.nested` conjuncts are `nomatch`; the fired equality is `pt = pt`
@@ -909,7 +908,7 @@ theorem quotIndLaw {m : EnvModel V env}
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev hnested hpin hTVa hTVja hfitR hfitC
+    hlev _ hpin hTVa hTVja hfitR hfitC
   -- the fired constructor is `Quot.mk`, stored in the prefix
   have hM' : (⟨quotIndA :: env.consts⟩ : Env).find? quotMkName
       = some quotMkA := by
@@ -1022,7 +1021,7 @@ theorem extendQuotInd (mp : EnvModelM V μ env)
     exact bval_mem_type V .quotInd [ψ uN] ρ
   · intro m₂ hac φ
     refine recRules_cons_rec mp hfresh quotIndA_eq m₂ hac φ ?_
-    intro rl hrl _
+    intro rl hrl
     rcases List.mem_cons.mp hrl with rfl | hr'
     · exact quotIndLaw (m := mp.base2) m₂ hQ hM hac φ
     · exact nomatch hr'
@@ -2113,9 +2112,8 @@ theorem quotLiftExtra {m : EnvModel V env}
       hS hlic ρ a ⟨xs, restR, hxs, hfit⟩,
     fun ρ xs a restR hxs hfit ha ys _ _ _ _ =>
       hP ρ a ⟨xs, restR, hxs, hfit⟩ ha ys, ?_⟩
-  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _
-  refine ⟨fun lvls pins h => (nomatch h),
-    fun _ => ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩⟩
+  intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _ _
+  exact ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩
 
 set_option maxHeartbeats 1000000 in
 /-- **`Quot.lift`'s `RecRuleLaw` row.**  The rule is `.plain`, so both
@@ -2157,7 +2155,7 @@ theorem quotLiftLaw {m : EnvModel V env}
   · intro _ _ h
     exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
-    hlev hnested hpin hTVa hTVja hfitR hfitC
+    hlev _ hpin hTVa hTVja hfitR hfitC
   have hM' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotMkName
       = some quotMkA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hM
@@ -2364,7 +2362,7 @@ theorem extendQuotLift (mp : EnvModelM V μ env)
       (quotLift_eqLaws mp hE ψ).2 ρ
   · intro m₂ hac φ
     refine recRules_cons_rec mp hfresh quotLiftA_eq m₂ hac φ ?_
-    intro rl hrl _
+    intro rl hrl
     rcases List.mem_cons.mp hrl with rfl | hr'
     · exact quotLiftLaw (m := mp.base2) m₂ hQ hM hE mp.eq_law hac φ
     · exact nomatch hr'

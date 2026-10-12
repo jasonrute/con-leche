@@ -67,7 +67,7 @@ reference kernel does not do it?  Two kinds of work read it:
 * the certificate families, which the spec runs unconditionally: the
   K and `And` rescues' proof-irrelevance run, ι's plain-rule parameter
   comparison and its case-3 telescope and index certificates.  The
-  cached core reads them through `certAtI`/`certUnlessI`
+  cached core reads them through `certAtI`
   (`ConLeche/Cached/CoreC.lean`); the simulation tower
   (`ConLeche/Verify/Cached/*`), stated under
   `hμ : mode.verifiedChecks = true`, sees through them.  The `.trusted`
@@ -85,33 +85,30 @@ structure ConstantVal where
   deriving DecidableEq, Repr, Inhabited
 
 /-- How a stored recursor rule fires (install-computed; parse
-placeholder `.inert`).  The official kernel fires a rule by constructor
+placeholder `.plain`).  The official kernel fires a rule by constructor
 name and field count and compares nothing; the fire here compares what
-the rule's law (`RecRuleLaw`) is stated at.
+the rule's law (`RecRuleLaw`) is stated at, in the same case split for
+both modes: the levels always; the parameters (and the indices) only at
+a case-3 redex (`iotaCase3`: not K, and the family may be `Prop` at the
+constructor's levels).  There the constructor application may be the
+point, and at a `Prop` valuation nothing else ties the constructor's
+parameters to the comparands; elsewhere the major's membership in the
+family at the comparands ties its fields, and the law reads nothing
+else of the constructor's parameters.
 
-* `.plain` — the installer's rule at a member major
-  (`Expr.recRulePlain`): the constructor's parameters are the
-  recursor's leading arguments and its levels the recursor's, by name.
-  The fire compares the constructor's levels with the recursor's.  Its
-  parameters are compared only at a case-3 redex (`iotaCase3`: not K,
-  and the family may be `Prop` at the constructor's levels): there the
-  constructor application may be the point, and at a `Prop` valuation
-  nothing else ties the constructor's parameters to the recursor's.
-  Elsewhere the major's membership in the family at the recursor's
-  parameters ties them.
+* `.plain` — the installer's rule at a member major: the comparands
+  are the recursor's own instantiation and leading arguments (the
+  constructor's levels are the recursor's, by name, and its parameters
+  the recursor's leading arguments).
 * `.nested lvls pins` — an auxiliary recursor's rule at an outside
-  major (a nested block): the constructor's levels and parameters are
-  fixed instantiations, read at install off the recursor type's major
-  domain (`Expr.nestedRuleSyn`) — `lvls` are levels over the
+  major (a nested block): the comparands are fixed instantiations,
+  read at install off the recursor type's major domain
+  (`Expr.nestedRuleSyn`; an auxiliary recursor whose major domain does
+  not read fails the install, `genRecCheck`) — `lvls` are levels over the
   recursor's level parameters, `pins` expressions in the recursor's
-  rule-prefix context.  The fire compares the constructor's levels and
-  parameters with these, instantiated at the redex's levels and leading
-  arguments: the rule's law is stated at that instantiation.
-* `.inert` — the parse placeholder; the installer stores it only where
-  an auxiliary rule's major domain cannot be read (`auxRuleFireR`), and
-  a matched inert rule is a positive decline in `iotaRec`. -/
+  rule-prefix context, instantiated at the redex's levels and leading
+  arguments. -/
 inductive RecRuleFire where
-  | inert
   | plain
   | nested (lvls : List Level) (pins : List Expr)
   deriving DecidableEq, Repr, Inhabited
@@ -120,10 +117,10 @@ inductive RecRuleFire where
 parameters, motives and minors) to a `ctor`-headed major premise reduces
 to `rhs` applied to the parameters, motives, minors and the constructor's
 `nfields` fields.  `ctorParams` (the constructor's parameter count) and
-`fire` (the canonical/nested/inert firing mode) and the two rescue
+`fire` (the plain/nested firing mode) and the two rescue
 bits `k`/`eta` are *computed at install* from the stored constructor,
 its inductive's capabilities and the recursor type — input rules carry
-the parse placeholders `0`/`.inert`/`false`; reduction reads only the
+the parse placeholders `0`/`.plain`/`false`; reduction reads only the
 installed values, never re-deriving them per fire. -/
 structure RecRule where
   ctor : Name
@@ -131,9 +128,8 @@ structure RecRule where
   /-- The constructor's parameter count (install-computed; parse
   placeholder `0`). -/
   ctorParams : Nat
-  /-- The firing mode (install-computed, parse placeholder `.inert`):
-  `.plain` for canonical rules (`Expr.recRulePlain`), `.nested` for
-  certified nested-auxiliary rules, `.inert` otherwise. -/
+  /-- The firing mode (install-computed, parse placeholder `.plain`):
+  `.plain` at a member major, `.nested` at an outside one. -/
   fire : RecRuleFire
   rhs : Expr
   /-- **The K bit** (install-computed, parse placeholder `false`;
@@ -150,21 +146,6 @@ structure RecRule where
   standing condition of `majorToCtor`'s structure-η rescue. -/
   eta : Bool := false
   deriving DecidableEq, Repr, Inhabited
-
-/-- Whether the ι step compares this rule's parameter comparands
-outside case 3 (`iotaCompares`).  A `.nested` rule's comparands are
-its stored pins and are compared at every redex; a `.plain` rule's law
-holds at any pair of fitting parameter spines, so its parameters are
-compared only at a case-3 redex. -/
-def RecRule.compareParams (rl : RecRule) : Bool :=
-  match rl.fire with
-  | .plain => false
-  | _ => true
-
-theorem RecRule.compareParams_nested {rl : RecRule} {lvls : List Level}
-    {pins : List Expr} (hf : rl.fire = .nested lvls pins) :
-    rl.compareParams = true := by
-  unfold RecRule.compareParams; rw [hf]
 
 /-- Reducibility hint of a definition, mirroring Lean's
 `ReducibilityHints`: `abbrev` unfolds first, `opaque` last, `regular`

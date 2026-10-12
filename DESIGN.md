@@ -102856,3 +102856,92 @@ are the port's: −16 % check wall, −26 % peak RSS against master.
 **For the next stage.**  README passages that are now wrong are
 reported to the maintainer, not edited (lines 5, 31, 81, 91–97, 101,
 103, 117, 133).  W2: the whitepaper gate above.
+
+## TASK #342 — S5B: `RecRuleFire` is `plain | nested`; the `.nested` pins compared at case 3 only (2026-10-12, agent/342-s5b)
+
+Lane S5b, stage S5, on `port-342` (L-dead's item 8).  `MainTheorem`,
+`Denotes`, `Challenge` untouched; no `sorry`, no new axiom.
+
+**`.inert` is gone.**  `RecRuleFire` is `plain | nested lvls pins`; the
+parse placeholder is `.plain`.
+- Member majors: `sumRules` stores `.plain` unconditionally;
+  `Expr.recRulePlain` is deleted (no proof read it: the member-major
+  law never used the syntactic test), and so are `sumRules`' three
+  parameters only it read (`mI rP recTy`) and `sumRulesR`'s shape.  The
+  basis recipe (`pinRecRuleFields`) leaves the placeholder `.plain`.
+- Outside majors: `genRecCheck` now checks `tgtNestedReads` (every
+  auxiliary recursor's major domain reads by `Expr.nestedRuleSyn`) and
+  fails with an internal error (exit 3) otherwise — an internal
+  construction failing, not a detected feature, so not a decline.
+  `GenRecRun`/`GenStageRun` carry it (`hreads`), and
+  `tgtFireOf_nested_of_reads` turns it into the `.nested` fire the
+  model needs.  `auxRuleFireR`'s `none` arm (`.plain`) only makes the
+  function total.  Measured never to fail (L-dead: 0 / 0).
+- `iotaRec`/`iotaRecI` lose the inert decline; `RecRules`, `EnvFacts`,
+  `BlockRecLaw`/`BlockRecData`/`GenRec*`, `RecRulesCons`, `IotaSound`
+  and `Rules.Red.iota` lose every `fire ≠ .inert` hypothesis.
+
+**The `.nested` comparison follows the plain case split.**  Both modes
+compare the levels at every fire and the parameters only at a case-3
+redex (`iotaCase3`): `RecRule.compareParams`, `iotaCompares` (and its
+lemmas) and the cached `certUnlessI` are deleted; the cached ι builds
+the parameter comparands only inside the case-3 certificate.  (25 /
+1860 `.nested` fires on init-full / mathlib-prefix, all case 2: they
+now run no parameter comparison.)
+
+**The model.**
+- `RecRuleLaw`'s main clause takes no parameter comparison; it takes
+  the fired constructor spine GRADED instead (`∀ y ∈ ys, WellDenotedV`),
+  and the K clause the recursor spine graded (the consumer,
+  `Red.iota_sound`, has both).  `RecRuleExtra`'s (U) takes the
+  `.nested` pins' conditional comparison under "the fired application
+  is the point" (as the `.plain` parameters) and concludes only the
+  index pin.  `RecRuleKWit` loses its pin conjunct.  The pins' grading
+  conjunct stays (the case-3 comparison's claim reads it).
+- **The new mathematics: `genOutCtorOwn`** (`GenRecExtra.lean`).  At an
+  outside class the rows (`genRows3_out`, moved there) no longer
+  identify the constructor's parameters with the pins — they need not
+  be equal (the injection forgets parameters: `List.nil` at `α` and at
+  `β` is one set).  The fired application is read at its OWN
+  parameters: they fit the container's parameter telescope because
+  the residual is a type ("not pt" source (1), `genOut_typed` — hence
+  the graded-spine premise), so the key frame at the canonical
+  parameters (`canonParams`) is their frame, the fields fit the
+  instantiated constructor's fields there (the stored type's fit
+  peeled, `denoteMeta_instPisAt_peel`), and `instCtor_decode` reads the
+  application as the class's injection.  The major lies in the carrier
+  at the pins' frame and the class is never `Prop` there (`genOutNZ`),
+  so `mkInj` identifies the decomposition: the fields hole-fit at the
+  pins' frame and `genRow3_core` concludes as before.
+- (U) at an outside class: the pins' equations are read where the
+  fired application is the point (`genOut_pins`, unchanged, now under
+  that hypothesis), and give the index pin (`genOut_pin`).
+
+**Not unified.**  With the comparison split shared, `.plain` and
+`.nested` differ only in where the comparands come from.  A uniform
+`RecRule` storing comparand levels and pins (plain: the parameter
+names and the bound variables of the leading arguments) would route
+every member-major rule's proofs (`genRows3_mem`, `genMem_U`,
+`blockRule_coherent`, the basis rows) through the pins' open readings
+(`openRev`/`instRevChain`) for nothing; the tag is the compact
+encoding of the identity pins.  Not done.
+
+**No fixture for nested case 3**: it needs a container that may be
+`Prop` with a field (`Box.{u} (α : Sort u) : Sort u`), which the
+elaborator refuses (v4.29.1); only a forged stream would reach it.
+The `tgtNestedReads` failure is not reachable from a stream either.
+
+**Verdicts** (one run, `--jobs` 8 parallel): e2e 473/473 and arena
+138/138 as expected (90 accepted).
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342` a2907eca2 (S4-LAND's numbers) | 410.38 G | 559.88 G |
+| S5b | 408.76 G (−0.39 %) | 557.93 G (−0.35 %) |
+
+57 977 / 131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free.  Lines (code,
+against a2907eca2): 49 files, +765 −947 (before this record).

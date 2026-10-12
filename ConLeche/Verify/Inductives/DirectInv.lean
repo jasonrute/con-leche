@@ -518,18 +518,16 @@ theorem envWF_consSumCtors {nP : Nat} :
 /-- The stored rules carry the generated right-hand sides and are
 never `.nested`. -/
 theorem sumRules_mem {find? : Name → Option ConstantInfo} {recName : Name}
-    {nP mI rP : Nat} {recTy : Expr} :
+    {nP : Nat} :
     ∀ {ctorsA : List (ConstantVal × Nat)} {rhss : List Expr} {r : RecRule},
-      r ∈ sumRules find? recName nP mI rP recTy ctorsA rhss →
+      r ∈ sumRules find? recName nP ctorsA rhss →
       r.rhs ∈ rhss ∧ ∀ lvls pins, r.fire ≠ .nested lvls pins
   | [], _, r, h => by simp [sumRules] at h
   | _ :: _, [], r, h => by simp [sumRules] at h
   | c :: cs, rhs :: rhss, r, h => by
     simp only [sumRules, List.mem_cons] at h
     rcases h with rfl | h
-    · refine ⟨List.mem_cons_self, fun lvls pins => ?_⟩
-      show (if Expr.recRulePlain recTy mI rP nP then RecRuleFire.plain else .inert) ≠ _
-      split <;> simp
+    · exact ⟨List.mem_cons_self, fun lvls pins h => nomatch h⟩
     · obtain ⟨hm, hf⟩ := sumRules_mem h
       exact ⟨List.mem_cons_of_mem _ hm, hf⟩
 
