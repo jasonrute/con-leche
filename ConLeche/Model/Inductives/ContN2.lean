@@ -315,14 +315,14 @@ theorem canonHoleTy_read {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
     (hty : ConLeche.instPisWith (canonParams n) cvm.type = some ty) :
     ∃ abF : List (Nat × Nat × AnnotTerm),
       denoteMeta mp.base2.acval env ψ 0 cvm.type = some (mkPisAV abF (.sort (D.w ψ))) ∧
-      abF.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ ∧ (∀ d ∈ abF, d.2.1 ≠ 0) ∧
+      abF.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ ∧
       (abF.drop n).map (·.2.2) = D.ids mm ψ ∧ Expr.WScoped n ty ∧
       denoteMeta mp.base2.acval env ψ n ty = some (mkPisAV (abF.drop n) (.sort (D.w ψ))) := by
   obtain ⟨-, -, hrd, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hmm
   rw [hf] at hf₂
   obtain ⟨rfl, rfl⟩ : cvm = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψ
+  obtain ⟨ab, hta, hmap⟩ := hab ψ
   have hwf := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
   have hcl : cvm.type.hasFvar = false := hwf.1
   have habl : ab.length = n + (D.ids mm ψ).length := by
@@ -352,7 +352,7 @@ theorem canonHoleTy_read {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
       have := (List.getElem?_eq_some_iff.mp hi').1; rwa [canonParams_length] at this
     rw [canonParams_getElem? hi']
     simp [Expr.WScoped, hlt]
-  refine ⟨ab, hta, hmap, hbits, ?_, hAw, ?_⟩
+  refine ⟨ab, hta, hmap, ?_, hAw, ?_⟩
   · rw [List.map_drop, hmap, ← hn, List.drop_left' rfl]
   · rw [← denoteMeta_erasedEq hoA]; simpa using hb
 
@@ -377,7 +377,6 @@ theorem instFormer_readB {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
         = some (mkPisAV abF (.sort (D.w (Level.substFn φ cvC.levelParams us)))) ∧
       abF.map (·.2.2) = D.pars mm (Level.substFn φ cvC.levelParams us)
         ++ D.ids mm (Level.substFn φ cvC.levelParams us) ∧
-      (∀ d ∈ abF, d.2.1 ≠ 0) ∧
       (abF.drop ds.length).map (·.2.2) = D.ids mm (Level.substFn φ cvC.levelParams us) ∧
       denoteMeta mp.base2.acval env φ hi ty
         = some (mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0
@@ -387,7 +386,7 @@ theorem instFormer_readB {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
   rw [hf] at hf₂
   obtain ⟨rfl, rfl⟩ : cvC = cv₂ ∧ caps = caps₂ := by simpa using hf₂
   generalize hψ : Level.substFn φ cvC.levelParams us = ψ at hlenP ⊢
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψ
+  obtain ⟨ab, hta, hmap⟩ := hab ψ
   have hwf := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
   have hcl : cvC.type.hasFvar = false := hwf.1
   have hpl : (D.pars mm ψ).length = ds.length := (h.parsLen mm hmm ψ).trans hlenP
@@ -452,7 +451,7 @@ theorem instFormer_readB {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D 
     (A.instantiateLevelParams cvC.levelParams us) 0 hAf
   rw [Nat.add_zero, Nat.add_zero, denotePInstLevels mp.base2 φ cvC.levelParams us, hψ,
     show ds.length = ds.length + ([] : List Name).length by simp, hAr] at h
-  refine ⟨ab, hta, hmap, hbits, ?_, ?_⟩
+  refine ⟨ab, hta, hmap, ?_, ?_⟩
   · rw [List.map_drop, hmap, ← hpl, List.drop_left' rfl]
   · simp only [List.length_nil, Nat.add_zero] at h
     rw [h, Option.map_some, AnnotTerm.substAV_mkPisAV, Nat.zero_add]
@@ -475,7 +474,7 @@ theorem instFormer_read {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D :
       denoteMeta mp.base2.acval env φ hi ty
         = some (mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0 ab)
             (.sort (D.w (Level.substFn φ cvC.levelParams us)))) := by
-  obtain ⟨abF, -, -, -, hmap, hrd⟩ :=
+  obtain ⟨abF, -, -, hmap, hrd⟩ :=
     instFormer_readB mp hD hmm hf hnd hul hlenP hds hdsa hstrip hty
   exact ⟨_, hmap, hrd⟩
 

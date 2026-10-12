@@ -277,7 +277,6 @@ theorem grp_typeT {p : Name × Expr} (hp : p ∈ grp) :
         denoteMeta mp.base2.acval env (Level.substFn φ lps us) 0 cv.type
           = some (mkPisAV abF (.sort (D.w (Level.substFn φ lps us)))) ∧
         abF.map (·.2.2) = D.pars mm (Level.substFn φ lps us) ++ D.ids mm (Level.substFn φ lps us) ∧
-        (∀ d ∈ abF, d.2.1 ≠ 0) ∧
         (abF.drop ds.length).map (·.2.2) = D.ids mm (Level.substFn φ lps us) ∧
         denoteMeta mp.base2.acval env φ hi p.2
           = some (mkPisAV (AnnotTerm.substTele (substTau ds.length hi fun i => dsa.getD i default) 0
@@ -299,9 +298,9 @@ theorem grp_typeT {p : Name × Expr} (hp : p ∈ grp) :
   · rcases ConLeche.fvarLeaves_instPisWith hp2 l hl with hl' | hl'
     · rw [ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hcl] at hl'; exact nomatch hl'
     · exact hl'
-  · obtain ⟨abF, h1, h2, h3, h4, h5⟩ :=
+  · obtain ⟨abF, h1, h2, h4, h5⟩ :=
       instFormer_readB mp hD hmm hf hnd hul hlenP hds hdsa hstrip hp2
-    exact ⟨mm, cv, caps, hmm, hpm, hf, abF, h1, h2, h3, h4, h5⟩
+    exact ⟨mm, cv, caps, hmm, hpm, hf, abF, h1, h2, h4, h5⟩
 
 omit hnN hkN in
 /-- **A group member's hole type reads graded** wherever the key's
@@ -310,12 +309,12 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : AnnotTerm}
     (hta : denoteMeta mp.base2.acval env φ hi p.2 = some ta) (ρ : Nat → V)
     (hs : Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ))
     (hw : ∀ a ∈ dsa, WellDenotedV V ρ a) : WellDenotedV V ρ ta := by
-  obtain ⟨-, -, -, mm, cv, caps, hmm, -, hf, abF, hread, hmap, hbits, -, hrd⟩ :=
+  obtain ⟨-, -, -, mm, cv, caps, hmm, -, hf, abF, hread, hmap, -, hrd⟩ :=
     grp_typeT mp hD hlps hnd hul hds hdsa hlenP hgT hp
   rw [hta] at hrd
   obtain rfl := Option.some.inj hrd
   obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
-  generalize hψ : Level.substFn φ lps us = ψ at hs hlenP hread hmap hbits
+  generalize hψ : Level.substFn φ lps us = ψ at hs hlenP hread hmap
   have hdl : dsa.length = ds.length := (DenoteMetaSpine.length_eq hdsa).symm
   have hpl : (D.pars mm ψ).length = ds.length := (h.parsLen mm hmm ψ).trans hlenP
   -- the substituted tower is the tail tower at the key frame
@@ -589,7 +588,7 @@ theorem frameVals_sat {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : L
     fun i hi hi' => by
       have hik : i < D.k := by rw [← hlT]; exact hi
       obtain ⟨cvm, caps, ty, hfm, hty, hrd⟩ := hTys i hik
-      obtain ⟨abF, -, -, hbits, hmap, hw, hrd0⟩ :=
+      obtain ⟨abF, -, -, hmap, hw, hrd0⟩ :=
         canonHoleTy_read mp hD hik hfm ((h.parsLen i hik ψ).trans hnP) hty
       refine ⟨mkPisAV (abF.drop nPc) (.sort (D.w ψ)), ?_, ?_⟩
       · rw [denoteMeta_lift mp.base2.acval_closed hw _ (by omega), hrd0, Option.map_some] at hrd
@@ -714,7 +713,7 @@ theorem grpVals_fit (ρ X : Nat → V)
     (grpVals D (Level.substFn φ lps us) grp (keyFrame dsa hi ρ) X) [] ρ
     (by simp [grpTys, grpVals]) fun i hi' hi'' => by
       have hi3 : i < grp.length := by simpa [grpTys] using hi'
-      obtain ⟨hw, -, -, mm, cv, caps, hmm, hpm, hf, abF, -, -, hbits, hmap, hta⟩ :=
+      obtain ⟨hw, -, -, mm, cv, caps, hmm, hpm, hf, abF, -, -, hmap, hta⟩ :=
         grp_typeT mp hD hlps hnd hul hds hdsa hlenP hgT (List.getElem_mem hi3)
       refine ⟨mkPisAV (AnnotTerm.substTele (substTau ds.length hi
         fun i => dsa.getD i default) 0 (abF.drop ds.length))
