@@ -173,7 +173,7 @@ constructors are installed before the recursor. -/
 def sumRules (find? : Name → Option ConstantInfo) (recName : Name) (nP : Nat) :
     List (ConstantVal × Nat) → List Expr → List RecRule
   | c :: cs, rhs :: rhss =>
-    recRuleBits find? recName
+    recRuleBits find?
       { ctor := c.1.name, nfields := c.2, ctorParams := nP, fire := .plain, rhs := rhs }
       :: sumRules find? recName nP cs rhss
   | _, _ => []

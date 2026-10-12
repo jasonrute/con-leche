@@ -311,7 +311,7 @@ the `i`-th right-hand side, with the constructor's parameter count
   ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)), rs[j]? = some r →
     ∀ rl ∈ R j r, ∃ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA ∧ r.2.1[i]? = some rhs ∧
-      rl = recRuleBits find? r.1.name
+      rl = recRuleBits find?
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
           fire := fireOf j r, rhs := rhs }
 

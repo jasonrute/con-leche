@@ -811,10 +811,8 @@ def recRuleKOf (find? : Name → Option ConstantInfo) (ctor : Name) : Bool :=
   | _ => false
 
 /-- **The η-rescue bit at install** (`RecRule.eta`): the rule's
-constructor is the η constructor of a stored η-capable inductive,
-carries that inductive's own level parameters, and the recursor is not
-itself a projection function (whose rescue would reduce to its own
-reduct and loop).  Together with the singleton rule list this is the
+constructor is the η constructor of a stored η-capable inductive and
+carries that inductive's own level parameters.  Together with the singleton rule list this is the
 standing condition of `majorToCtor`'s structure-η rescue.
 
 The level-parameter conjunct is what lets the rescue fabricate the
@@ -823,7 +821,7 @@ the two lists per call: the installer grants η only at a
 constructor stored with the former's level parameters (the
 recogniser pins `c.1.levelParams == lps`), so the conjunct holds
 wherever the rest does. -/
-def recRuleEtaOf (find? : Name → Option ConstantInfo) (recName ctor : Name) :
+def recRuleEtaOf (find? : Name → Option ConstantInfo) (ctor : Name) :
     Bool :=
   match find? ctor with
   | some (.ctorInfo cvj _ _) =>
@@ -831,7 +829,7 @@ def recRuleEtaOf (find? : Name → Option ConstantInfo) (recName ctor : Name) :
     | .const T _ =>
       match find? T with
       | some (.indInfo cvT caps) =>
-        caps.eta && caps.etaCtor == ctor && !Name.isProjFnShape recName &&
+        caps.eta && caps.etaCtor == ctor &&
           cvj.levelParams == cvT.levelParams
       | _ => false
     | _ => false
@@ -844,42 +842,42 @@ rules, the projection functions):
 the reduction then reads `RecRule.k`/`RecRule.eta` and re-derives
 nothing, and the environment invariant `RecCtorsStored` records that a
 set bit is the lookup's own verdict. -/
-def recRuleBits (find? : Name → Option ConstantInfo) (recName : Name)
+def recRuleBits (find? : Name → Option ConstantInfo)
     (rl : RecRule) : RecRule :=
   { rl with k := recRuleKOf find? rl.ctor,
-            eta := recRuleEtaOf find? recName rl.ctor }
+            eta := recRuleEtaOf find? rl.ctor }
 
 @[simp] theorem recRuleBits_ctor (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).ctor
+    (rl : RecRule) : (recRuleBits find? rl).ctor
       = rl.ctor := rfl
 
 @[simp] theorem recRuleBits_rhs (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).rhs
+    (rl : RecRule) : (recRuleBits find? rl).rhs
       = rl.rhs := rfl
 
 @[simp] theorem recRuleBits_nfields (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).nfields
+    (rl : RecRule) : (recRuleBits find? rl).nfields
       = rl.nfields := rfl
 
 @[simp] theorem recRuleBits_ctorParams (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) :
-    (recRuleBits find? recName rl).ctorParams = rl.ctorParams := rfl
+    (rl : RecRule) :
+    (recRuleBits find? rl).ctorParams = rl.ctorParams := rfl
 
 @[simp] theorem recRuleBits_fire (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).fire
+    (rl : RecRule) : (recRuleBits find? rl).fire
       = rl.fire := rfl
 
 @[simp] theorem recRuleBits_k (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).k
+    (rl : RecRule) : (recRuleBits find? rl).k
       = recRuleKOf find? rl.ctor := rfl
 
 @[simp] theorem recRuleBits_eta (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).eta
-      = recRuleEtaOf find? recName rl.ctor := rfl
+    (rl : RecRule) : (recRuleBits find? rl).eta
+      = recRuleEtaOf find? rl.ctor := rfl
 
 @[simp] theorem map_ctor_recRuleBits (find? : Name → Option ConstantInfo)
-    (recName : Name) (rs : List RecRule) :
-    (rs.map (recRuleBits find? recName)).map (·.ctor) = rs.map (·.ctor) := by
+    (rs : List RecRule) :
+    (rs.map (recRuleBits find?)).map (·.ctor) = rs.map (·.ctor) := by
   simp [List.map_map, Function.comp_def]
 
 /-- Is a recursor K-flagged?  The stored bit of its single rule

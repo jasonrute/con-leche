@@ -270,7 +270,7 @@ theorem recSwapFacts3 {envSelf env₃ : Env} {cval : TConstVal}
         (∃ cvj cnP cnF,
           envSelf.find? (RecRule.ctor r) = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf envSelf.find? r.ctor = true) ∧
-        (r.eta = true → ConLeche.recRuleEtaOf envSelf.find? n r.ctor = true)) :
+        (r.eta = true → ConLeche.recRuleEtaOf envSelf.find? r.ctor = true)) :
     ConLeche.RecCtorsStored env₃ ∧ BasisPinnedTT env₃ cval ∧ ProjOkT env₃ := by
   have hcg : ConLeche.SwapCongr envSelf env₃ := ConLeche.SwapShList.congr hswR
   have hcorr := ConLeche.swapSh_find?_corr hswR
@@ -480,7 +480,7 @@ theorem recCtorsHead_consBlockRecsR {R : Nat → RecDatum → List RecRule} {q :
         (r.k = true →
           ConLeche.recRuleKOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? n r.ctor
+          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor
             = true) := by
   have hkeepB := find?_consBlockRecsBare_keep (q := q) hfr
   have hkeepB' : ∀ (n : Name) (ci : ConstantInfo),
@@ -560,7 +560,7 @@ theorem envModelM_consBlockRecsR
         (r.k = true →
           ConLeche.recRuleKOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? n r.ctor = true))
+          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true))
     (hrecP : ∀ m₃ : EnvModel V (consBlockRecsR R q 0 rs envC),
       m₃.acval = acv → ∀ φ : Name → Nat, RecRules m₃ φ) :
     ∃ mp' : EnvModelM V μ (consBlockRecsR R q 0 rs envC),

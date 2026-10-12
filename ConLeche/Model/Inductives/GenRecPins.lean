@@ -399,7 +399,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     (φ : Name → Nat) (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat))
     (hr : (tgtRs out)[j]? = some r) (cA : ConstantVal × Nat) (rhs : Expr) :
     RecRulePinsOk m₃ φ r.1 (pp.toBlockShape.rulePrefixAt j)
-      (ConLeche.recRuleBits envC.find? r.1.name
+      (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := (ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape
               (ConLeche.tgtMajorsOf out)) j r, rhs := rhs }) := by

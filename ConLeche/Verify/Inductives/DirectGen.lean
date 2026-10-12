@@ -701,7 +701,7 @@ theorem sumRules_getElem? {find? : Name → Option ConstantInfo}
       r ∈ sumRules find? recName nP ctorsA rhss →
       ∃ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
         ctorsA[j]? = some cA ∧ rhss[j]? = some rhs ∧
-        r = recRuleBits find? recName
+        r = recRuleBits find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := nP, fire := .plain,
             rhs := rhs }
   | [], _, r, h => by simp [sumRules] at h

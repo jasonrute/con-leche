@@ -171,7 +171,7 @@ def pinRecRuleFields (env : ConLeche.Env) : ConLeche.ConstantInfo → ConLeche.C
       let cnP := match env.find? r.ctor with
         | some (.ctorInfo _ nP _) => nP
         | _ => 0
-      ConLeche.recRuleBits env.find? cv.name
+      ConLeche.recRuleBits env.find?
         { r with ctorParams := cnP })
   | ci => ci
 

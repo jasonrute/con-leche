@@ -916,7 +916,7 @@ theorem hrecP_ofR {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs :
       ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
         r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
         RecRuleLaw m₃ φ r.1.name r.1 (q.majorIdxAt j) (q.rulePrefixAt j)
-          (ConLeche.recRuleBits envC.find? r.1.name
+          (ConLeche.recRuleBits envC.find?
             { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
               fire := fireOf j r, rhs := rhs })) :
     ∀ m₃ : EnvModel V (consBlockRecsR R q 0 rs envC),

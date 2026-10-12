@@ -166,7 +166,7 @@ structure ConsHead (env : Env) (c₀ : ConstantInfo)
           = some (.ctorInfo cvj cnP cnF)) ∧
       (r.k = true → ConLeche.recRuleKOf env.find? r.ctor = true) ∧
       (r.eta = true →
-        ConLeche.recRuleEtaOf env.find? c₀.name r.ctor = true)
+        ConLeche.recRuleEtaOf env.find? r.ctor = true)
 
 /-- **The head obligations of a basis cons**: the head is the pinned
 declaration, its leaf is the direct pin, it is not a projection-table
@@ -186,7 +186,7 @@ theorem ConsHead.ofBasis {c₀ : ConstantInfo}
             = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf env.find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf env.find? c₀.name r.ctor = true)) :
+          ConLeche.recRuleEtaOf env.find? r.ctor = true)) :
     ConsHead env c₀ A :=
   ⟨hwf, hvclosed, fun _ => ⟨hpinned, hleaf⟩,
     fun tbl heq => absurd heq (hnotproj tbl),
@@ -207,7 +207,7 @@ theorem ConsHead.ofFresh {c₀ : ConstantInfo}
             = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf env.find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf env.find? c₀.name r.ctor = true)) :
+          ConLeche.recRuleEtaOf env.find? r.ctor = true)) :
     ConsHead env c₀ A :=
   ⟨hwf, hvclosed,
     fun hres => absurd hres (by rw [hnres]; exact fun h => nomatch h),

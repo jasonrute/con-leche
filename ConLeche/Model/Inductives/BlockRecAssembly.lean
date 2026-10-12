@@ -300,7 +300,7 @@ abbrev AtStoredRules {envC : Env} (mpC : EnvModelM V μ envC)
       List (ConstantVal × Nat)), rs[j]? = some r →
     ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-      P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find? r.1.name
+      P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find?
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
           fire := fireOf j r, rhs := rhs })
 

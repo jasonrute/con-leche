@@ -189,7 +189,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
         (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
         (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by
@@ -256,13 +256,13 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
       ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
       RecRuleKWit m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j) (pp.toBlockShape.rulePrefixAt j)
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) ∧
       RecRuleExtraNK m₃ φ r.1.name r.1 (pp.toBlockShape.majorIdxAt j)
         (pp.toBlockShape.rulePrefixAt j)
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs }) := by

@@ -1988,7 +1988,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
         (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
         (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
         (fun ψ => blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) φ j i r cA
-        (ConLeche.recRuleBits envC.find? r.1.name
+        (ConLeche.recRuleBits envC.find?
           { ctor := cA.1.name, nfields := cA.2, ctorParams := (ConLeche.tgtMajorsOf out j).nPc,
             fire := ConLeche.tgtFireOf (fun x => Expr.constsResolve envC x) pp.toBlockShape
               (ConLeche.tgtMajorsOf out) j r, rhs := rhs })) :

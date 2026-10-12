@@ -140,10 +140,9 @@ structure RecRule where
   instead of at every recursor application. -/
   k : Bool := false
   /-- **The η-rescue bit** (install-computed, parse placeholder
-  `false`): this rule is its recursor's only one, its constructor is
-  the η constructor of a stored η-capable inductive, and the recursor
-  is not itself a projection function (whose rescue would loop) — the
-  standing condition of `majorToCtor`'s structure-η rescue. -/
+  `false`): this rule is its recursor's only one and its constructor
+  is the η constructor of a stored η-capable inductive — the standing
+  condition of `majorToCtor`'s structure-η rescue. -/
   eta : Bool := false
   deriving DecidableEq, Repr, Inhabited
 

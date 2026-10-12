@@ -217,7 +217,7 @@ about a name the kernel fabricates:
     v.occDeep names = false) ∧
   (∀ n cv mI rP rules, env.find? n = some (.recInfo cv mI rP rules) → n ∉ names →
     ∀ r ∈ rules, r.rhs.occDeep names = false ∧
-      (r.eta = true → recRuleEtaOf env.find? n r.ctor = true)) ∧
+      (r.eta = true → recRuleEtaOf env.find? r.ctor = true)) ∧
   (∀ T i entry, env.findProj? T i = some entry → entry.body.occDeep names = false) ∧
   (∀ c cv nP nF, env.find? c = some (.ctorInfo cv nP nF) → c ∉ names) ∧
   (natLitSupported env = true → natName ∉ names) ∧
@@ -1336,7 +1336,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     (hfresh : ∀ cvTb ∈ cvTas, env.find? cvTb.name = none)
     (hI : ∀ n, (∀ cvTb ∈ cvTas, cvTb.name ≠ n) → envI.find? n = env.find? n)
     (hRecEta : ∀ n cv mI rP rules, env.find? n = some (.recInfo cv mI rP rules) →
-      ∀ r ∈ rules, r.eta = true → recRuleEtaOf env.find? n r.ctor = true)
+      ∀ r ∈ rules, r.eta = true → recRuleEtaOf env.find? r.ctor = true)
     (hBool : natOpStored env natBeqName = true ∨ natOpStored env natBleName = true →
       (env.find? boolTrueName).isSome = true ∧ (env.find? boolFalseName).isSome = true) :
     WhnfNamesFree envI names := by
@@ -1387,9 +1387,9 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     rw [hnon n hn] at hf
     refine ⟨hres _ ((hwf _ (find?_mem hf)).2.2.2.2.2.1 cv mI rP rules rfl r hr).2.2.1, ?_⟩
     intro heta
-    obtain ⟨cvj, cnP, cnF, T, us, cvT, caps, h1, h2, h3, h4, h5, h6, h7⟩ :=
+    obtain ⟨cvj, cnP, cnF, T, us, cvT, caps, h1, h2, h3, h4, h5, h7⟩ :=
       recRuleEtaOf_inv (hRecEta n cv mI rP rules hf r hr heta)
-    refine recRuleEtaOf_of (f := envI.find?) (cnP := cnP) (cnF := cnF) ?_ h2 ?_ h4 h5 h6 h7
+    refine recRuleEtaOf_of (f := envI.find?) (cnP := cnP) (cnF := cnF) ?_ h2 ?_ h4 h5 h7
     · rw [hnon _ (hold _ (by rw [h1]; rfl))]; exact h1
     · rw [hnon _ (hold _ (by rw [h3]; rfl))]; exact h3
   · -- projection-table bodies
