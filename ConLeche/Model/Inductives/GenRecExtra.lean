@@ -487,6 +487,193 @@ theorem genMem_P (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       rw [G.hlpsT] at hq; exact hlv q hq)
   exact genMemCtor_pt G (hc.trans hw) ρ ys
 
+/-- **The constructor residual's index arguments** (`blockRuleIdxPin_run`'s
+decomposition, forwards): a spelling of the residual of a fit of the
+constructor's type as an application whose arguments are the parameters
+and indices names, at each index position, the constructor's own result
+index reading at the fired spine. -/
+theorem genMem_residual {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
+    {cA : ConstantVal × Nat} (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
+    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    (hys : ys.length = d.nP + cA.2)
+    (hfitC : TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj) ys restC)
+    {Ha : AnnotTerm} {cargsa : List AnnotTerm} (hrestEq : restC = AnnotTerm.mkAppN Ha cargsa)
+    (hcarLen : cargsa.length = d.nP + (d.esF t i ψ).length) :
+    ∀ q, q < (d.esF t i ψ).length →
+      interp V ρ (cargsa.getD (d.nP + q) default)
+        = interp V (consList (ys.map (interp V ρ)) ρ) ((d.esF t i ψ).getD q default) := by
+  have hD := G.hcf.2.2
+  have hct : blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj
+      = mkPisAV (d.dsF t i ψj)
+          (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj)) :=
+    Option.some.inj ((G.hctorRead ψj).symm.trans (hD.read ψj))
+  rw [hct] at hfitC
+  have hes : d.esF t i ψj = d.esF t i ψ := (hD.params ψj ψ hlv).2
+  have hteleC := piTeleAV_mkPisAV (d.dsF t i ψj)
+    (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj))
+  rw [hD.len ψj] at hteleC
+  have hrest := teleFitPA_rest_eq (d.nP + cA.2) hteleC (by rw [hys]) hfitC
+  have hrest2 : AnnotTerm.mkAppN Ha cargsa
+      = AnnotTerm.mkAppN
+          (ConLeche.Model.AnnotTerm.instSeq ys (d.nP + cA.2 - 1)
+            (mpC.base2.acval (d.memberName t) ψj))
+          ((paramBvars d.nP cA.2 ++ d.esF t i ψj).map
+            (ConLeche.Model.AnnotTerm.instSeq ys (d.nP + cA.2 - 1))) := by
+    rw [← hrestEq, hrest]
+    unfold ctorBodyAVI
+    rw [instSeqAV_mkAppN]
+  obtain ⟨-, hcargs⟩ := AnnotTerm.mkAppN_inj hrest2
+    (by rw [hcarLen, List.length_map, List.length_append, paramBvars, List.length_map,
+      List.length_range, hes])
+  intro q hq
+  have hqj : q < (d.esF t i ψj).length := by rw [hes]; exact hq
+  have hcel : cargsa.getD (d.nP + q) default
+      = ConLeche.Model.AnnotTerm.instSeq ys (d.nP + cA.2 - 1) ((d.esF t i ψj).getD q default) := by
+    have hq' := congrArg (fun l => l[d.nP + q]?) hcargs
+    simp only [List.getElem?_map,
+      List.getElem?_append_right
+        (show (paramBvars d.nP cA.2).length ≤ d.nP + q by
+          rw [paramBvars, List.length_map, List.length_range]; omega),
+      show (paramBvars d.nP cA.2).length = d.nP from by
+        rw [paramBvars, List.length_map, List.length_range],
+      Nat.add_sub_cancel_left] at hq'
+    rw [List.getD_eq_getElem?_getD, hq', List.getD_eq_getElem?_getD,
+      List.getElem?_eq_getElem hqj, Option.map_some, Option.getD_some, Option.getD_some]
+  rw [hcel, show d.nP + cA.2 - 1 = ys.length - 1 from by rw [hys], interp_instSeq, hes]
+  unfold chain
+  rw [consN_eq_consList]
+
+omit [SetTheory V] in
+theorem getD_take' {α : Type _} {l : List α} {n q : Nat} {x : α} (hq : q < n) :
+    (l.take n).getD q x = l.getD q x := by
+  simp [List.getD_eq_getElem?_getD, List.getElem?_take, hq]
+
+omit [SetTheory V] in
+theorem getD_drop' {α : Type _} {l : List α} {n q : Nat} {x : α} :
+    (l.drop n).getD q x = l.getD (n + q) x := by
+  simp [List.getD_eq_getElem?_getD, List.getElem?_drop]
+
+/-- A mapped spine's `getD` at a position in range. -/
+theorem getD_map_pt {f : AnnotTerm → V} :
+    ∀ {l : List AnnotTerm} {q : Nat}, q < l.length →
+      (l.map f).getD q pt = f (l.getD q default) := by
+  intro l q hq
+  rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hq,
+    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hq]
+  rfl
+
+set_option maxHeartbeats 4000000 in
+/-- **(U)'s index pin at a member class** (L7's coherence): where the
+fired constructor application is the point, the step compared the
+parameters and the indices, each conditionally; the parameters are fits
+of the constructor's parameter telescope (a telescope of types), so
+they are equal, and the indices are then fits of the member's index
+telescope at the same parameters, so they are equal too. -/
+theorem genMem_U (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
+    {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
+    {ρ : Nat → V} {xs ys : List AnnotTerm} {restR restC : AnnotTerm}
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j) (hyl : ys.length = pp.nP + cA.2)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR)
+    (hfitC : TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj) ys restC)
+    (hP : ∀ q, q < pp.nP → interp V ρ (ys.getD q default) ≠ pt →
+      interp V ρ (xs.getD q default) ≠ pt →
+      interp V ρ (ys.getD q default) = interp V ρ (xs.getD q default))
+    (hpinC : IotaIndexPinC (V := V) ρ restC pp.nP (pp.toBlockShape.majorIdxAt j)
+      (pp.toBlockShape.rulePrefixAt j) xs) :
+    IotaIndexPin (V := V) ρ restC pp.nP (pp.toBlockShape.majorIdxAt j)
+      (pp.toBlockShape.rulePrefixAt j) xs := by
+  have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
+  have hrPle := blockRecHrPle (p := pp) h hj
+  have hys : ys.length = d.nP + cA.2 := by rw [hyl, G.hdnP]
+  have hnP' : d.nP ≤ pp.toBlockShape.rulePrefixAt j := by rw [G.hdnP]; exact hnP
+  obtain ⟨hqs, hfq⟩ := blockRuleCtorFit_run G.hcj G.hcf hlv (G.hlenP ψ) (G.hparamsC ψ) hys
+    (G.hctorRead ψj) hfitC
+  obtain ⟨hpar, hsp', -⟩ := genMem_major hμ h R hS G hr hm ψ hxl hfitR
+  have hpsV : ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)).take d.nP
+      = (xs.take d.nP).map (interp V ρ) := by
+    rw [← List.map_take, List.take_take, Nat.min_eq_left hnP']
+  rw [hpsV] at hpar hsp'
+  -- the parameters, in the constructor's own parameter telescope (a telescope of types)
+  have hD := G.hcf.2.2
+  have hlenD : (((d.dsF t i ψ).take d.nP).map (·.2.2)).length = d.nP := by
+    rw [List.length_map, List.length_take, hD.len ψ]; omega
+  have hTy : SpineTy ρ (((d.dsF t i ψ).take d.nP).map (·.2.2)) := by
+    have := (spineTy_of_wellDenoted_mkPisAV (hD.okTy ψ ρ).1.1).take d.nP
+    rwa [← List.map_take] at this
+  have hlenPs := G.hlenP ψ
+  have hq' := (spineFit_iff_of_sat_iff (by rw [hlenPs, hlenD]) (G.hparamsC ψ) ρ _
+    (by rw [hqs.length_eq])).mp hqs
+  have hp' := (spineFit_iff_of_sat_iff (by rw [hlenPs, hlenD]) (G.hparamsC ψ) ρ _
+    (by rw [hpar.length_eq])).mp hpar
+  have hxlP : d.nP ≤ xs.length := by rw [hxl]; omega
+  have heqP : (ys.take d.nP).map (interp V ρ) = (xs.take d.nP).map (interp V ρ) := by
+    refine spineFit_eq_of_cond_getD hTy hq' hp' fun q hq h1 h2 => ?_
+    rw [hlenD] at hq
+    have hqy : q < (ys.take d.nP).length := by rw [List.length_take]; omega
+    have hqx : q < (xs.take d.nP).length := by rw [List.length_take]; omega
+    rw [getD_map_pt hqy] at h1 ⊢
+    rw [getD_map_pt hqx] at h2 ⊢
+    simp only [getD_take' hq] at h1 h2 ⊢
+    exact hP q (by rw [← G.hdnP]; exact hq) h1 h2
+  -- the indices, in the member's index telescope at those parameters
+  have hE := G.hM.resIdxFit ψ _ (d.satOfSpine hqs) t G.hmN i G.hjl _ hfq
+  rw [heqP] at hE
+  have hTI : SpineTy (consList ((xs.take d.nP).map (interp V ρ)) ρ) (d.IdsM t ψ) :=
+    (G.hM.idxOk ψ _ (d.satOfSpine hpar) t G.hmN).1.spineTy
+  have hEssD : (d.Ess t ψ).getD i [] = d.esF t i ψ := essOfR_fixCtorDataList_getD G.hcj
+  rw [hEssD] at hE
+  have hframe : consList ((ys.drop d.nP).map (interp V ρ))
+      (consList ((xs.take d.nP).map (interp V ρ)) ρ)
+      = consList (ys.map (interp V ρ)) ρ := by
+    rw [← heqP, ← consList_append, ← List.map_append, List.take_append_drop]
+  rw [hframe] at hE
+  have hlenE : (d.esF t i ψ).length
+      = pp.toBlockShape.majorIdxAt j - pp.toBlockShape.rulePrefixAt j := by
+    have h1 := hE.length_eq
+    have h2 := hsp'.length_eq
+    rw [List.length_map] at h1
+    rw [List.length_map, List.length_drop, hxl] at h2
+    omega
+  obtain ⟨Ha, cargsa, hrestEq, hcarLen, hcar⟩ := hpinC
+  refine ⟨Ha, cargsa, hrestEq, hcarLen, fun q hq => ?_⟩
+  have hcarLen' : cargsa.length = d.nP + (d.esF t i ψ).length := by
+    rcases hcarLen with hc | hc
+    · omega
+    · rw [hc, hlenE, G.hdnP]
+  have hres := genMem_residual G hlv hys hfitC hrestEq hcarLen'
+  have heqI : (d.esF t i ψ).map (interp V (consList (ys.map (interp V ρ)) ρ))
+      = (xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ) := by
+    refine spineFit_eq_of_cond_getD hTI hE hsp' fun l hl h1 h2 => ?_
+    have hlE : l < (d.esF t i ψ).length := by
+      rw [← List.length_map (f := interp V (consList (ys.map (interp V ρ)) ρ)), hE.length_eq]
+      exact hl
+    have hlX : l < (xs.drop (pp.toBlockShape.rulePrefixAt j)).length := by
+      rw [List.length_drop, hxl]; omega
+    rw [getD_map_pt hlE] at h1 ⊢
+    rw [getD_map_pt hlX] at h2 ⊢
+    rw [getD_drop'] at h2 ⊢
+    rw [← hres l hlE] at h1 ⊢
+    rw [G.hdnP] at h1 ⊢
+    exact hcar l (by omega) h1 h2
+  have hq' : q < (d.esF t i ψ).length := by rw [hlenE]; exact hq
+  have hl := congrArg (fun l => l.getD q pt) heqI
+  rw [getD_map_pt hq', getD_map_pt (by rw [List.length_drop, hxl]; omega), getD_drop',
+    ← hres q hq'] at hl
+  rw [← G.hdnP]
+  exact hl
+
 end Member
 
 end ConLeche.Model
