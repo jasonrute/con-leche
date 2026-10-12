@@ -948,7 +948,7 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
       obtain ⟨ty, hty⟩ := hinf
       have hIS : InferSemFull mp.base2 φ (hi + grp.length) crest ty :=
         infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-      obtain ⟨-, -, -, -, hgr, -⟩ := hIS hfr hC.toCtxOk hrd
+      obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hrd
       refine ⟨_, hfr, hC, hrd, hgr, ?_⟩
       have hlW : (AnnotTerm.substTele (substTau (ds.length + D.k) (hi + grp.length)
           (grpX mp.base2 φ D hi grp ds (hi + grp.length))) 0 ab).length = x.2 := by

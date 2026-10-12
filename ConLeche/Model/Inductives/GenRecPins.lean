@@ -350,7 +350,8 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
   have htx' : ConLeche.inferTypeCore .verified envC F mI x = .ok tx := htx
   obtain ⟨wa, hwa⟩ := acceptedReads_of mpC.base2 ψ htx' hwsX hbX hLX
   obtain ⟨-, -, -, -, hgr, -⟩ :=
-    Rules.infer_sound (Rules.RulesInputs.ofSem mpC ψ) (Rules.inferTypeCore_bridge htx')
+    Rules.InferSemFull.global
+      (Rules.infer_sound (Rules.RulesInputs.ofSem mpC ψ) (Rules.inferTypeCore_bridge htx'))
       ⟨hwsX, hbX, hLX⟩ hCE hwa
   -- the reading at the prefix
   have hwsR : Expr.WScoped rP x := ConLeche.WScoped.of_leaves_below hwsX hlt

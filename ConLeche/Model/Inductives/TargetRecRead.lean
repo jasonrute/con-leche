@@ -276,7 +276,7 @@ theorem WalkCtx.subjOkL {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat} 
   have hFr : Rules.Frame D E := ⟨wscoped_of_leaves_mem h2 E hcll, hlbb, hLB⟩
   have hctx := h.ctxOk hacl h2 hcll
   obtain ⟨t, hInf⟩ := hty
-  obtain ⟨-, -, ta, -, hG, -, -⟩ := Rules.infer_sound hin hInf hFr hctx hea
+  obtain ⟨-, -, ta, -, hG, -, -⟩ := Rules.InferSemFull.global (Rules.infer_sound hin hInf) hFr hctx hea
   exact ⟨hFr, hctx, hG⟩
 
 end Ctx

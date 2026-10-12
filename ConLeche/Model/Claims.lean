@@ -46,14 +46,16 @@ variable {V : Type w} [SetTheory V]
 
 /-- Two types are equal when they are equal away from the point:
 neither is the point.  The consumers of a `DefEqClaim` between two
-types route through it (task #342 L8), so that the claim's
-point-conditional form (S3) changes nothing downstream; between two
-members of one type, `IsTy.eq_of_ne_pt` plays the same part. -/
+types route through it (task #342 L8): the claim is conditional on the
+point (L9); between two members of one type, `IsTy.eq_of_ne_pt` plays
+the same part. -/
 theorem eq_of_IsTy_of_ne_pt {x y : V} (hx : IsTy x) (hy : IsTy y)
     (h : x ≠ pt → y ≠ pt → x = y) : x = y :=
   h hx.ne_pt hy.ne_pt
 
-/-- Head normalisation, dual success, P currency. -/
+/-- Head normalisation, dual success, P currency, conditional on the
+point (task #342, L9): the reduct is graded and equal where the subject
+is not the point. -/
 @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
   ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
@@ -65,11 +67,13 @@ theorem eq_of_IsTy_of_ne_pt {x y : V} (hx : IsTy x) (hy : IsTy y)
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d e' = some ea' →
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ →
+      (∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
+          WellDenotedV V ρ ea') ∧
+        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
           interp V ρ ea = interp V ρ ea'
 
-/-- The reduction loop, dual success, P currency. -/
+/-- The reduction loop, dual success, P currency, conditional on the
+point (task #342, L9). -/
 @[expose] def WhnfClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
   ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
@@ -81,11 +85,15 @@ theorem eq_of_IsTy_of_ne_pt {x y : V} (hx : IsTy x) (hy : IsTy y)
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d e' = some ea' →
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea) →
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea') ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ →
+      (∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
+          WellDenotedV V ρ ea') ∧
+        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ≠ pt →
           interp V ρ ea = interp V ρ ea'
 
-/-- Definitional equality, P currency. -/
+/-- Definitional equality, P currency, conditional on the point (task
+#342, L9): two sides that are not the point are equal.  A consumer
+comparing two types or two members of one type closes with
+`eq_of_IsTy_of_ne_pt` / `IsTy.eq_of_ne_pt`. -/
 @[expose] def DefEqClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
   ∀ {d : Nat} {a b : Expr} {Δa : List AnnotTerm},
@@ -102,6 +110,7 @@ theorem eq_of_IsTy_of_ne_pt {x y : V} (hx : IsTy x) (hy : IsTy y)
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ aa) →
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ba) →
       ∀ ρ : Nat → V, Sat V Δa ρ →
+        interp V ρ aa ≠ pt → interp V ρ ba ≠ pt →
         interp V ρ aa = interp V ρ ba
 
 /-- Inference, dual success, P currency: the subject's and the

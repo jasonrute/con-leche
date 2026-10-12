@@ -280,10 +280,10 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       exact absurd hl (List.not_mem_nil)
     -- both sides are types, so neither is the point
     have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
-      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ) fun _ _ =>
-        ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ)
+        (ihd hvde hwvt hbvt hLvt hwt hbt' hLt
           (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ))
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -663,10 +663,10 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       exact absurd hl (List.not_mem_nil)
     -- both sides are types, so neither is the point
     have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
-      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ) fun _ _ =>
-        ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ)
+        (ihd hvde hwvt hbvt hLvt hwt hbt' hLt
           (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ))
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
@@ -1113,10 +1113,10 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       exact absurd hl (List.not_mem_nil)
     -- both sides are types, so neither is the point
     have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
-      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ) fun _ _ =>
-        ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ)
+        (ihd hvde hwvt hbvt hLvt hwt hbt' hLt
           (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ))
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension

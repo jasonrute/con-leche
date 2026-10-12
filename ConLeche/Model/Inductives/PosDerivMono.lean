@@ -230,7 +230,7 @@ theorem mono_of_whnf {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
     MonoOn R ea := by
   have hw' : ConLeche.whnf .verified env F dep e = .ok w := hw
   obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ :=
-    red_sound hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
+    red_sound_global hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
   exact MonoOn.of_eqOn (Q := Sat V Δa) hdom (fun ρ hρ => heq ρ hρ)
     (k hfrw (hC.of_subset hsub) wa hwa hgw)
 
@@ -314,7 +314,7 @@ theorem frameKey_of_infer {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     · exact (hCds x hx).2 l hlx
   have hIS : InferSemFull mp.base2 φ hi (Expr.mkAppN (.const (D.member mm) us) ds) ty :=
     infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-  obtain ⟨-, -, -, -, hgr, -⟩ := hIS hfr hC.toCtxOk hwa
+  obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hwa
   intro ρ hρ
   have hwd := hgr ρ hρ
   refine ⟨?_, WellDenotedV_mkAppN_args _ hwd⟩

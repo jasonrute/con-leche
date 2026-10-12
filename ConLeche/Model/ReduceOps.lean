@@ -404,13 +404,13 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
   have heq : interp V (cons x ρ) (.app (A ψ) (.bvar 0))
       = interp V (cons x ρ) (.bvar 0) :=
     (helemTy ψ (cons x ρ)).eq_of_ne_pt (hmemApp _ hsatx)
-      (by rw [interp_bvar]; exact hslot _ hsatx) fun _ _ =>
-    ihd (d := 1)
+      (by rw [interp_bvar]; exact hslot _ hsatx)
+    (ihd (d := 1)
       (a := Expr.app valA (ConLeche.reduceCertVar cv.name))
       (b := ConLeche.reduceCertVar cv.name) (Δa := elemCtx mp.base2 cv.name ψ)
       hrun hwsApp hbApp hLApp hwsCert hbCert hLCert
       (hctxApp ψ) (hctxCert ψ) (hdenApp ψ) (hdenCert ψ)
-      hgradeApp hgradeCert (cons x ρ) hsatx
+      hgradeApp hgradeCert (cons x ρ) hsatx)
   rw [interp_app, interp_bvar] at heq
   show SetTheory.app (interp V ρ (A ψ)) x = x
   rw [hclA ρ (cons x ρ) ψ]

@@ -922,7 +922,7 @@ theorem frameIter (hin : RulesInputs V mp.base2 φ) {F : Nat}
       obtain ⟨ty, hty⟩ := hinf
       have hIS : InferSemFull mp.base2 φ (hi + grp.length) crest ty :=
         infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
-      obtain ⟨-, -, -, -, hgr, -⟩ := hIS hfr hC.toCtxOk hrd
+      obtain ⟨-, -, -, -, hgr, -⟩ := hIS.global hfr hC.toCtxOk hrd
       exact ⟨_, hfr, hC, hrd, hgr⟩)
     hQ
   have hkNN := h.kN

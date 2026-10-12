@@ -12,9 +12,11 @@ public section
 One motive per relation of the rules tier, in the currency of
 `Model/Claims.lean` (`interp` equality, `WellDenotedV` grading,
 membership), with the claims' own premises — the subject's frame
-(`WScoped`, `looseBVarsBounded`, `LeavesBounded`), its `CtxOk`, its
-reading, its grading where the claim takes it — and with THREE
-deliberate strengthenings over the claim statements, all forced by the
+(`WScoped`, `looseBVarsBounded`, `LeavesBounded`), its context
+discipline, its reading, its grading where the claim takes it — stated
+at one valuation at a time and conditional on the point where the claim
+is (task #342, L9; the section below), and with THREE deliberate
+strengthenings over the claim statements, all forced by the
 recursive-structure rules (ruling 1):
 
 1. **Existence form.**  `RedSem` and the two `InferSem`s conclude the
@@ -26,7 +28,7 @@ recursive-structure rules (ruling 1):
    `Option.some.inj`.
 2. **The frame in the conclusion.**  `RedSem` and `InferSem` also
    conclude the reduct's / the type's frame and leaf inclusion, so the
-   continuation's `CtxOk` is `CtxOk.of_subset` — the run lemmas
+   continuation's `CtxOkS` is `CtxOkS.of_subset` — the run lemmas
    `whnfCore_WScoped`/`inferTypeCore_fvarLeaves` become conjuncts of
    the semantic induction rather than a second induction.
 3. **The grade splits the inference motive**: full grade establishes

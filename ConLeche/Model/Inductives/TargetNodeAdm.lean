@@ -116,7 +116,8 @@ theorem nodeKeyFit {env : Env} (mk : EnvModelM V μ env) {φ : Name → Nat} {ct
       (Expr.mkAppN (.const (D.member mm) t.key.lvls) t.key.ds) :=
     CtxOkP.mkAppN_const (stackCtx_length_hi hΔ0 _) hC
   obtain ⟨-, -, -, -, hgr, -⟩ :=
-    Rules.infer_sound (Rules.RulesInputs.ofSem mk φ) (Rules.inferTypeCore_bridge hty')
+    Rules.InferSemFull.global
+      (Rules.infer_sound (Rules.RulesInputs.ofSem mk φ) (Rules.inferTypeCore_bridge hty'))
       ⟨hwsE, hbE, hLE⟩ hCE.toCtxOk hwa
   intro σ hσ
   have hwa' : denoteMeta mk.base2.acval env φ (ctx.hiAt t.anc.length)

@@ -641,12 +641,23 @@ theorem prefixDoms_agree_inst :
     have hLB := leavesBounded_of_openers hlbA (hleafbs l hl)
     have hsat : Sat V domsA.reverse (consList ys ρ₁) := by
       simpa using sat_of_spineFit (Sat_nil V ρ₁) hfitY
-    have heq : interp V (consList ys ρ₁) ((domsA.getD l default).liftN (rP - l) 0)
-        = interp V (consList ys ρ₁) ((domsB.getD l default).liftN (rP - l) 0) :=
-      ihd (hsubA ▸ hdeq l hl) hwsA hlbAx hLA hwsB (hbbs l hl) hLB
+    have hTyA : IsTy (interp V (consList (ys.take l) ρ₁) (domsA.getD l default)) :=
+      (hokA l hl ρ₁ (ys.take l) (spineFit_take_any hfitY l)).2
+    have hTyB : IsTy (interp V (consList (ys.take l) ρ₁) (domsB.getD l default)) := by
+      refine (hokB l hl ρ₁ (ys.take l) ?_).2
+      refine spineFit_congr_walk (by rw [List.length_take, List.length_take, hlenA, hlenB]) ?_
+        (spineFit_take_any hfitY l)
+      intro j hj
+      rw [List.length_take, hlenA] at hj
+      have hjl : j < l := by omega
+      rw [getD_take_of_lt hjl, getD_take_of_lt hjl, List.take_take,
+        show min j l = j from by omega]
+      exact IH j hjl (by omega) ρ₁ ys hfitY
+    have heq := ihd (hsubA ▸ hdeq l hl) hwsA hlbAx hLA hwsB (hbbs l hl) hLB
         hctxA hctxB hrdA hrdB hokAl hokBl (consList ys ρ₁) hsat
     rw [interp_liftN, interp_liftN, shiftE_consList_take l hylen] at heq
-    exact heq
+    -- "not pt" source (1): both are domains of graded telescopes, types
+    exact eq_of_IsTy_of_ne_pt hTyA hTyB heq
 
 include hμ hopA hwA hbA hlenA hlenB hdA hwbs hbbs hleafbs hdB hokA hokB hdeq in
 /-- **The certified hop, against terms over the first opening's
