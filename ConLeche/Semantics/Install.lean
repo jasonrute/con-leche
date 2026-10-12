@@ -18,7 +18,7 @@ ones**: `acval` (data), `acval_erase`, `acval_closed`,
 `acval_params`, `acval_defn` and `acval_thm` mention no
 `V` at all, while only `acval_wellDenoted` and `mem_type2` do.  So the first
 thing the install tier needs is not semantics — it is the *algebra*
-of extending a canonical annotated valuation at one fresh name, and
+of extending the canonical constant reading `acval` at one fresh name, and
 the fact that extending it there moves nothing already denoted.
 -/
 
@@ -33,7 +33,7 @@ universe w
 
 /-! ## The one-name update -/
 
-/-- Extend a canonical annotated valuation at one name. -/
+/-- Extend a canonical constant reading at one name. -/
 def acvalWith (acval : Name → (Name → Nat) → ITerm) (n : Name)
     (A : (Name → Nat) → ITerm) : Name → (Name → Nat) → ITerm :=
   fun c ψ => if c = n then A ψ else acval c ψ

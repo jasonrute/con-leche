@@ -11,8 +11,8 @@ the pin certificates (task #161, literal tier — the divmod leg)
 
 This file extracts `DivModClausesV` from the checker's
 `checkDivModCerts` verdict, the shape `Model/NatEqs.lean` uses for the
-structural recurrences: **establishment from run certificates**.  The certificate's three runs
-(`annotateCore`/`inferTypeCore`/`isDefEqCore` at depth 4, unpacked by
+structural recurrences: **establishment from run certificates**.  The certificate's two runs
+(`inferTypeCore`/`isDefEqCore` at depth 4, unpacked by
 the currency-free `checkDivModCerts_inv`) are converted by
 `InferClaim`/`DefEqClaim` at the pre-insertion environment into
 "the statement's interpretation is inhabited", and the pinned `Eq`
@@ -130,8 +130,8 @@ the two-variable context stripped off — the certificate frame is a
 different context, and the packages never read one.) -/
 
 /-- **A binary head, from its parts**: a membership in the two-step
-pinned product's reading, and that reading's own grading (which is
-where the fibre facts at the unknown regime bits come from). -/
+pinned Π-type's reading, and that reading's own grading (which is
+where the fibre facts come from). -/
 theorem dmBinV_of_parts (m : EnvModel V env) {ψ : Name → Nat}
     {codN : Name} {fa : ITerm} {ρ : Nat → V}
     (hmem : interp V ρ fa ∈ˢ interp V ρ
@@ -369,8 +369,8 @@ theorem dmNatFrag_graded {m : EnvModel V env} {ψ : Name → Nat}
 
 /-! ## One certificate, converted
 
-The run's three components become, in order:
-the annotated applied proof keeps the frame (currency-free), the
+The run's components become, in order:
+the applied proof keeps the frame (currency-free), the
 `InferClaim` row gives its reading's membership in the inferred
 type's, and the `DefEqClaim` row identifies that type with the
 pinned statement — so the statement's interpretation is inhabited.
@@ -540,7 +540,7 @@ theorem eqSubst_uN (ψ : Name → Nat) :
 /-! ## The head names a certificate block reads -/
 
 /-- The extension's valuation: the pinned operation at its own name
-(through the annotated stored value), every dependency at its
+(through the stored value), every dependency at its
 storage. -/
 def dmLeaf {env : Env} (m : EnvModel V env) (c : Name)
     (A : (Name → Nat) → ITerm) (ψ : Name → Nat) (n : Name) : ITerm :=
@@ -674,10 +674,10 @@ structure DmFrame {env : Env} (mp : EnvModelM V μ env) (c : Name)
   /-- neither pinned type name is the operation being installed -/
   natNe : ConLeche.natName ≠ c
   boolNe : ConLeche.boolName ≠ c
-  /-- the annotated stored value's reading, at every depth -/
+  /-- the stored value's reading, at every depth -/
   selfRead : ∀ d : Nat,
     denoteMeta mp.base2.acval env ψ d value' = some (A ψ)
-  /-- the annotated value is closed -/
+  /-- the stored value is closed -/
   valueNoFvar : value'.hasFvar = false
   valueBounded : value'.looseBVarsBounded 0 = true
   /-- every head the statements read is the operation itself or is

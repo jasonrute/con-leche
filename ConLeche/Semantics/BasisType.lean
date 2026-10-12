@@ -9,7 +9,7 @@ public import ConLeche.Term.Const
 # `BConst.typeAV` — the spelled basis-constant types (#151)
 
 The first of the two suppliers the skeleton's `const` row waits on
-(`Semantics/Skeleton.lean`): the annotated mirror of
+(`Semantics/Skeleton.lean`): the `ITerm` mirror of
 `ConLeche/Term/Const.lean`'s `BConst.type`, so that a built-in constant's
 type can be *written* as an `ITerm` at all (`BConst.type` yields a
 `Term`, not an `ITerm`).
@@ -42,10 +42,10 @@ namespace ConLeche.Semantics
 open ConLeche.Semantics (ITerm)
 open ConLeche.Term (BConst lv tupleIdxSort tupleFamSort)
 
-/-! ## Annotated smart constructors
+/-! ## `ITerm` smart constructors
 
 Mirrors of `ConLeche/Term/Const.lean`'s, one per former the basis types
-mention.  Each carries the numerals its own shape fixes. -/
+mention.  Each carries the level numerals its own shape fixes. -/
 
 /-- `Nat` -/
 def natTyAV : ITerm := .const .nat []
@@ -93,9 +93,7 @@ the tower's fibre binders).
 (`Semantics/Tower/TowerKit.lean`, which imports this module) because a
 basis constant's type needs it: it is ONE definition for every
 structure and every index.  `ndTowerAV r` is `towerBodyAVPos r`'s
-non-dependent twin — the same `.psigma [r, r]` tower with the same
-`r + 1` fibre annotation (the codomain type's sort, never `0`, so the
-fibre computes by `app_lamR_pos` in both regimes), differing only in
+non-dependent twin — the same `.psigma [r, r]` tower, differing only in
 the terminator's level, which no value reads (`bval .punit` is the
 same `{∅}` at every positive level, task #342 B). -/
 
@@ -126,10 +124,10 @@ def tupleFamsAV (k : Nat) (us : List Nat) (j : Nat) : ITerm :=
   ndTowerAV (tupleFamSort k us)
     (fun m => .pi (projAV m (.bvar j)) (.sort (lv us k))) 0 0 k
 
-/-! ## The annotated type assignment -/
+/-! ## The spelled type assignment -/
 
-/-- The annotated type of each built-in constant — `BConst.type` with
-every binder's two numerals supplied (see the module docstring). -/
+/-- The spelled type of each built-in constant — `BConst.type` as an
+`ITerm` (see the module docstring). -/
 def BConst.typeAV : BConst → List Nat → ITerm
   | .nat, _ => .sort 1
   | .natZero, _ => natTyAV

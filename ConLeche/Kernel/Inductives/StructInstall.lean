@@ -51,10 +51,10 @@ def checkStructDomsAt (ops : CheckerOps m) (env : Env) (off : Nat)
 
 /-- Stage 5: **the projection table** (task #175 S1).  One constant
 per structure: the fields' result-type bodies read off the
-*annotated* constructor type by substitution alone
+stored constructor type by substitution alone
 (`structProjBodies`), the per-field guard levels
 (`structProjGuards`), the constructor and the counts.  Nothing is
-annotated, inferred or pinned here — a `.proj T i e` use instantiates
+inferred or pinned here — a `.proj T i e` use instantiates
 `bodies[i]` at its own arguments (`ProjEntry.typeAt`) after the
 official `infer_proj` guard test, and a slot with no legal
 instantiation (a used-later data field of a `Prop` structure) simply

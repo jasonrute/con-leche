@@ -108,7 +108,7 @@ structure BlockData (V : Type w) where
   ctorsM : Nat → List (ConstantVal × Nat)
   /-- per component and constructor: the residual's index arguments -/
   idxF : Nat → Nat → List Expr
-  /-- per component and constructor: the type reading's binder data -/
+  /-- per component and constructor: the type reading's domains -/
   dsF : Nat → Nat → (Name → Nat) → List ITerm
   /-- per component and constructor: the result's index readings -/
   esF : Nat → Nat → (Name → Nat) → List ITerm

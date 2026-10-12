@@ -377,7 +377,7 @@ theorem recRules_consBlockRecsR_of {R : Nat → RecDatum → List RecRule} {q : 
 
 `RecRuleLaw` states its two fits as `TeleFitPA`s of the stored types'
 READINGS; the family's ι law (`blockRecAV_iota`) is stated at
-`SpineFit`s of the binder data.  The flip is the generic kit at
+`SpineFit`s of the domains.  The flip is the generic kit at
 `k = 1` — `teleFitPA_to_chain` through a `PiTeleAV` of the tower, then
 `spineFit_of_chain` — and its ENTRY CONDITION is that the fitted
 reading BE a `mkPisAV` tower, which for a block recursor is
@@ -398,7 +398,7 @@ theorem spineFit_of_teleFitPA {pds : List ITerm} {b : ITerm}
   simpa using this
 
 /-- **The block recursor's own flip**, at the run: whatever fits the
-`i`-th stored recursor type's reading fits its binder data. -/
+`i`-th stored recursor type's reading fits its domains. -/
 theorem spineFit_blockRecTy {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
@@ -581,7 +581,7 @@ what is consumed is the family's ι law (`BlockIotaAt`, i.e.
 elimination level `ℓ = 0` the data's fit is REFUTABLE (`Exists`,
 `BlockRuleFit.lean` §4), and the equation holds for a different
 reason — both sides read as the point (the recursor's type is a truth
-value, the rule's λ-tower carries the zero binder datum).  The second
+value).  The second
 arm says exactly that, and the ι law is then not consulted at all. -/
 
 /-- **`RecRuleLaw`'s outer `.nested` conjunct, named**: the pins' open

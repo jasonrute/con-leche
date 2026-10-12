@@ -34,7 +34,7 @@ sit in *premise* position, so the transfer they need is contravariant:
   **forward** and fed to the hypothesis in hand.
 
 So the whole preservation runs on `denoteMeta_cons_fresh_mono`, the only
-crossing the campaign has ever shown to be honest, and no literal-tier
+crossing the campaign has ever shown to hold, and no literal-tier
 premise appears — matching what the literal tier's seal established
 for the harvests.
 -/

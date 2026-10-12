@@ -1534,11 +1534,10 @@ extra arguments walked — so an occurrence at other levels, or applied to
 anything but exactly the parameters, is a member constant left over.
 The parameters' domains must be free of members altogether.
 
-The check reads the STORED constructor, i.e. the annotation of the
-declared one: that is the declared type with its `let`s inlined (the
-annotation pass returns the ζ reduct), so an occurrence only in a
-`let`'s type, or in the value of a `let` its body never uses, is not
-seen (official reads it; `uh_let_erase`, an accepted superset). -/
+The check reads the STORED constructor, which is the declared one,
+`let`s included, so an occurrence only in a `let`'s type, or in the
+value of a `let` its body never uses, is seen and rejected, as
+official does (`uh_let_erase_type`, `uh_let_erase_value`). -/
 
 /-- Does a member or a hole occur in one of the first `n` binder domains
 of `e`?  (The parameters' domains, at `n = nP`.) -/
@@ -1656,7 +1655,7 @@ def nestSeeds (ops : CheckerOps m) (env : Env) (ctx : NestCtx) :
 /-- **Positivity through containers, for a whole block** (the unit
 tests' entry): official's uniform-occurrence check (`nestUniform`), then
 the root frame (`nestRoot`) from the empty state.  `ctorss` are the members'
-constructors ANNOTATED (not normalised: the function reduces itself).
+constructors AS STORED (not normalised: the function reduces itself).
 Returns the accepted instantiations, the kinds, every constructor's
 NORMALISED type and the recorded normal forms. -/
 def nestedBlockPositivity (ops : CheckerOps m) (env : Env) (ctx : NestCtx)

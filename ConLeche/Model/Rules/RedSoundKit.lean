@@ -329,7 +329,7 @@ end ProjAV
 
 /-! ## The β step at the currency -/
 
-/-- A λ's domain annotation is graded when the λ is. -/
+/-- A λ's domain is graded when the λ is. -/
 theorem lamDomV {A b : ITerm} {ρ : Nat → V}
     (h : WellDenoted V ρ (.lam A b)) : WellDenoted V ρ A := by
   rw [WellDenoted_lam] at h; exact h.1
@@ -669,7 +669,7 @@ theorem teleFit_inst0_of {aa : ITerm} {L : List V} {E : ITerm}
   refine teleFit_inst_of (k := 0) hpc ?_
   rwa [shiftE_zero_zero, instE_zero]
 
-/-- **An annotation-level fit is a value-level fit**
+/-- **A reading-level fit is a value-level fit**
 (`teleFit_of_teleFitPA`). -/
 theorem teleFit_of_teleFitPA {ρ : Nat → V} :
     ∀ {T : ITerm} {as : List ITerm} {resta : ITerm},
@@ -693,7 +693,7 @@ theorem piChain_of_teleFit {ρ : Nat → V} {T : ITerm} {L : List V} {rest : V}
   | nil => trivial
   | cons _ _ ih => exact ih
 
-/-- **A value-level fit at a spine's readings is an annotation-level
+/-- **A value-level fit at a spine's readings is a reading-level
 fit** (`teleFit_of_teleFitPA`'s converse), under the ∀-chain guard. -/
 theorem teleFitPA_of_teleFit {ρ : Nat → V} :
     ∀ (vs : List ITerm) {T : ITerm} {rest : V},
@@ -782,7 +782,7 @@ private theorem deltaCore (m : EnvModel V env)
     (fun k => m.acval_closed _ _ k) hval d
 
 /-- **The δ step is invisible to the reading**: the unfolding has the
-subject's own annotation. -/
+subject's own reading. -/
 theorem denoteMeta_unfoldDefinition {m : EnvModel V env} (hdi : AcvalDefnInst m)
     {d : Nat} {e e' : Expr} {ea : ITerm}
     (hud : ConLeche.unfoldDefinition env e = some e')

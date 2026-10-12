@@ -196,8 +196,8 @@ to the final environment.  (The model at each position supplies the
 well-formedness of the environment every bridge from the executable
 core takes; the records' checks are consumed at the positions that
 produced them.)  A theorem's record holds its RAW value: phase A
-installed the header alone, and phase B's check — which annotates the
-value — is what the theorem's model step consumes. -/
+installed the header alone, and phase B's check of the
+value is what the theorem's model step consumes. -/
 theorem installRun_model (hμ : μ.verifiedChecks = true) {ds : List Declaration}
     {p : Nat × FEnv × Array PendingCheck}
     {q : Nat × FEnv × Array PendingCheck}

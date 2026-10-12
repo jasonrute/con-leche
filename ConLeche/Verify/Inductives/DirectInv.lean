@@ -249,7 +249,7 @@ theorem checkSumTele_shape {env : Env} {cv : ConstantVal} {n : Nat}
 
 /-- `checkStructFieldSortsI`, inverted: the sorts
 are returned in field order, one per field, each the `ensureSort` of
-the field annotation's inferred type at the field's own frame, under
+the field domain's inferred type at the field's own frame, under
 the official universe bound (`isProp = false`) or — at a large
 eliminator on a `Prop` family — the subsingleton-elimination criterion:
 the field is a proposition OR one of the residual's index expressions. -/
@@ -420,7 +420,7 @@ theorem checkSumCtor_shape {env₀ env : Env} {T : Name} {lps : List Name}
   · intro e he
     exact List.all_eq_true.mp h4 e he
 
-/-- All constructors, positionally: the annotated list is as long as
+/-- All constructors, positionally: the checked list is as long as
 the input and every entry is its constructor's run. -/
 theorem checkSumCtors_inv {env₀ env : Env} {T : Name} {lps : List Name}
     {nP nIdx : Nat} {resSort : Level} {isProp large : Bool} {cvTa : ConstantVal} {F : Nat} :

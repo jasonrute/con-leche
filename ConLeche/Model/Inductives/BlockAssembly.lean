@@ -430,9 +430,9 @@ pre-table environment**: the member's own table check requires the
 name fresh where it runs, and every environment the tables' loop
 threads is a cons over the previous one.
 
-It is what carries `annotateCore`'s projection-slot guarantee to the
-block's OWN members: a constructor type annotated at the formers'
-environment carries a `.proj T i` node only where a table for `T` was
+It is what carries inference's projection-slot guarantee
+(`inferTypeCore_noProjAt`) to the block's OWN members: a constructor
+type inferred at the formers' environment carries a `.proj T i` node only where a table for `T` was
 stored THERE, and none of the block's members has one. -/
 theorem blockTablesTblFree {q : BlockShape} :
     ∀ (l : List (MemberShape × List (ConstantVal × Nat) × List (List Level)))

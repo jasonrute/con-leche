@@ -302,18 +302,18 @@ theorem genRecCheckS_fresh (mode : CheckMode) (fe : FEnv)
   rw [hname]; exact hfr
 
 /-- The recursors' pushes at their majors: a fresh chain. -/
-theorem pushAll_blockRecInfosTF_push (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+theorem pushAll_blockRecInfosTF_push (find? : Name → Option ConstantInfo)
     (q : BlockShape) {env : Env} :
     ∀ {out : List (ConstantVal × TargetMajor × List Expr)} {m : Nat}
       {fe : FEnv}, PushChain env fe → FreshNames fe.env (out.map (·.1.name)) →
-      PushChain env (FEnv.pushAll (blockRecInfosTF find? resolves q m out) fe)
+      PushChain env (FEnv.pushAll (blockRecInfosTF find? q m out) fe)
   | [], _, _, h, _ => h
   | (cv, M, rhss) :: rest, m, fe, h, hf => by
     have hfr : fe.find? cv.name = none := by
       rw [h.find?]; exact hf.2 _ (by simp)
     let ci : ConstantInfo := .recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m)
-      (tgtStoredRules find? resolves cv (q.majorIdxAt m) (q.rulePrefixAt m) M rhss)
-    exact pushAll_blockRecInfosTF_push find? resolves q (out := rest) (m := m + 1)
+      (tgtStoredRules find? cv (q.rulePrefixAt m) M rhss)
+    exact pushAll_blockRecInfosTF_push find? q (out := rest) (m := m + 1)
       (h.push (ci := ci) hfr) (FreshNames.step (c := ci) hf)
 
 /-- The projection tables: every push is guarded by its own lookup. -/
@@ -360,7 +360,7 @@ theorem checkBlockTailS_push (mode : CheckMode) {env : Env}
     exact hfrs c hc
   refine Yields.bind' (genRecCheckS_fresh mode _ p _ _ _ _ _ block cvTas)
     fun out hrs => ?_
-  refine checkBlockTablesF_push _ _ (pushAll_blockRecInfosTF_push _ _ _ h₂ ⟨hrs.1, ?_⟩)
+  refine checkBlockTablesF_push _ _ (pushAll_blockRecInfosTF_push _ _ h₂ ⟨hrs.1, ?_⟩)
   intro n hn
   obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hn
   rw [← h₂.find?]

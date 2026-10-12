@@ -10,8 +10,7 @@ public import ConLeche.Kernel.ExprOps
 
 Two pure readers that answer "is this type a proposition?" / "is this
 term a proof?" from the **head symbol, the arity and the residual sorts of stored
-types** — no inference, no reduction, no memo, no binder data (task
-#342).
+types** — no inference, no reduction, no memo.
 
 Prop-ness is invariant under application: `zeronessOf (imax u v) =
 zeronessOf v`, so the zero-ness of the sort of the type of `c a⃗` is
@@ -29,8 +28,9 @@ sort is zero at every valuation.
 The **"definitely not a proof" arm** (`notProofFast`) needs no model theorem: refusing the
 proof-irrelevance shortcut is always sound; its obligation is
 kernel-level agreement with the slow path, which the landing census
-records (DESIGN.md, task #168).  The **"definitely a proof" arm** is a
-squash-regime licence (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`).
+records (DESIGN.md, task #168).  The **"definitely a proof" arm** is
+justified by the squash regime (`prf_of_isProofFast`,
+`ConLeche/Model/Rules/DefEqSoundKit.lean`).
 -/
 
 namespace ConLeche
@@ -140,9 +140,8 @@ def typeSortPWGo (find? : Name → Option ConstantInfo) (root : Expr) :
   | R, d => headTypePW find? root d R.getAppFn R.numArgs
 
 /-- The zero-ness datum of the sort of the *type* `T` ("is `T` a
-proposition?"), read off `T`'s shape without binder data (task #342
-S0): a ∀ telescope's is its codomain's; a sort's sort is never zero;
-a constant-, fvar- or telescope-bvar-headed type-former application
+proposition?"), read off `T`'s shape: a ∀ telescope's is its
+codomain's; a sort's sort is never zero; a constant-, fvar- or telescope-bvar-headed type-former application
 reads the head's stored/declared type, peels the arity syntactically
 and reads the residual, level-instantiated for a constant.  `none` =
 unknown. -/

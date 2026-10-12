@@ -11,8 +11,8 @@ public section
 # `V`-free inversions of the `Nat.div`/`Nat.mod` pin (task #123)
 
 `checkDivModPin` and `checkDivModCerts` are checker walks over
-`Env`/`Expr`; unpacking a successful run into the annotate/infer/defeq
-triple it performed, and reading the guards it passed, mentions no
+`Env`/`Expr`; unpacking a successful run into the inferences and
+definitional-equality comparisons it performed, and reading the guards it passed, mentions no
 valuation, so it lives in `ConLeche/Verify` (#123).
 `ConLeche/Model/DivModCert.lean` imports this file and carries the
 valuation-carrying half.

@@ -6,7 +6,7 @@ public import ConLeche.Semantics.Tower.TowerKit
 @[expose] public section
 
 /-!
-# Parallel substitution of annotated terms
+# Parallel substitution of `ITerm`s
 
 `ITerm.substAV τ e k` replaces every bound variable `k + j` (at or
 above the cut `k`) by `τ j`, lifted over the `k` binders passed.  It is
@@ -176,7 +176,7 @@ theorem substE_consList (τ : Nat → ITerm) :
 
 namespace ITerm
 
-/-- A Π-tower's binder data, substituted at increasing cuts. -/
+/-- A Π-tower's binder domains, substituted at increasing cuts. -/
 def substTele (τ : Nat → ITerm) : Nat → List ITerm → List ITerm
   | _, [] => []
   | k, d :: ds => substAV τ d k :: substTele τ (k + 1) ds

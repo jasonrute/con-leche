@@ -37,7 +37,7 @@ instantiation-independent function with global left inverses
 discharged by representation — tier form `mkTower_inj`, proved through
 the iota law alone.
 
-**No `pw` datum — `pt` is separate from pairs** (user refinement,
+**Projections need no zero-ness datum — `pt` is separate from pairs** (user refinement,
 2026-09-04): the interface keeps the proof point apart from every
 Kuratowski pair (`pt_ne_kpair`, the `Derive/Pt.lean` selection
 principle, surfaced as `sfst_pt`/`ssnd_pt`; the task-#109 pt-freshness

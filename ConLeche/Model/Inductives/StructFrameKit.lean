@@ -43,7 +43,7 @@ the former's stage data.
 opened body has an inferred sort, and the whole type's sort is zero
 exactly when that one is.  `checkConstantVal`, `openPisAtFvars` and
 `denoteMeta` open the binders with the same `fvar`s.  The readings'
-binder data carry no regime (`piV`/`lamV` read it off the values).
+binders carry no regime (`piV`/`lamV` read it off the values).
 -/
 
 namespace ConLeche.Model
@@ -411,7 +411,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
 ## The stored types' readings
 
 The P install reads a block's stored types at the stage environments
-and peels the Π-prefixes into the binder data the tower leaves are
+and peels the Π-prefixes into the domains the tower leaves are
 built over.  Two syntactic facts carry the section:
 
 * **The unmentioned leaf** (`denoteMeta_agree_of_readsAt`): a term
@@ -548,9 +548,8 @@ theorem denoteMeta_agree_of_readsAt
 /-! ## The reading peel -/
 
 /-- **The peel.**  A Π-prefix opened at `fvar`s reads to a
-`stripPisAV`-strippable reading whose binder data are the opened
-variables' annotation readings at their own depths (domain sort
-numerals `0`), and whose residual is
+`stripPisAV`-strippable reading whose domains are the opened
+variables' annotation readings at their own depths, and whose residual is
 the opened body's reading at the full depth. -/
 theorem denoteMeta_openPis {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} :
@@ -1541,7 +1540,7 @@ structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
   syn : ∃ bs s, cvT.type.stripPis nP = some (bs, .sort s)
 
 /-- The former's data, from its `checkConstantVal` run at the
-pre-block environment and the annotated telescope shape. -/
+pre-block environment and the stored type's telescope shape. -/
 theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     {F : Nat} {cvT cvTa : ConstantVal} {nP : Nat} {resSort : Level}
     {bs : List Expr}

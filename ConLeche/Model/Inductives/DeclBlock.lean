@@ -139,7 +139,7 @@ major (`.nested` at an outside one). -/
     (out : List (ConstantVal × ConLeche.TargetMajor × List Expr))
     (mpC : EnvModelM V μ envC) : Prop :=
   BlockRecStagedAt μ envC
-    (ConLeche.consBlockRecsT envC.find? (·.constsResolve envC) p 0 out envC) mpC
+    (ConLeche.consBlockRecsT envC.find? p 0 out envC) mpC
 
 
 /-- **The block over an older environment**: a well-formed environment `env₀` in which no member

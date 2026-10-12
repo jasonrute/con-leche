@@ -8,7 +8,7 @@ public section
 /-!
 # The numeral transports at `interp` (task #161, literal tier)
 
-The literal meta-inductions at the validated-annotation currency: the
+The literal meta-inductions at the `denoteMeta` currency: the
 stored structural operations' closed forms on `denoteMeta`'s own
 numeral spine, standing on the `EnvModelM.nat_ops` recurrence law (the
 run-certificate product of `Model/NatEqs.lean`).

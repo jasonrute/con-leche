@@ -21,9 +21,9 @@ leaf; the sum leaves' syntactic battery.
 The `hAclosed` row of an install-step leaf is
 `ITerm.liftN 1 (leaf) k = leaf`, and by `ITerm.liftN_eq_self`
 (`Semantics/DenoteClosed.lean`) that is exactly boundedness of the
-leaf's **erasure** — annotations are inert, only bvars move.  So this
+leaf's **erasure**.  So this
 section is a bvar-bound walk per leaf former, plus the peel lemma that
-produces the binder-data bounds from the (closed) type reading
+produces the binder domains' bounds from the (closed) type reading
 (`stripPisAV_below`).  No semantics, no `V`.
 -/
 
@@ -413,7 +413,7 @@ theorem natRecAV_wellDenoted {u : Nat} {M z s k : ITerm} {σ : Nat → V}
 /-! ## The fibre selector -/
 
 /-- The constant motive `λ _ : Nat, Sort w` (its body's type is
-`Sort (w + 1)`, hence the bit). -/
+`Sort (w + 1)`, so it reads as a graph). -/
 def natSortMotiveAV (w : Nat) : ITerm := .lam natAV (.sort w)
 
 theorem interp_natSortMotiveAV (w : Nat) (σ : Nat → V) :
@@ -561,7 +561,7 @@ tag domain `Nat` whose fibre is the numeral case split
 (`ConLeche/SetModel/TaggedSum.lean`).  At `w = 0` the `.psigma` spelling
 cannot serve (its pinned valuation reads the tag domain in `univ 0`),
 so — as `sqBodyAV` — the squash carrier is spelt
-classically, `¬ ∀ k : Nat, ¬ (case k)`, whose bit-`0` products truncate
+classically, `¬ ∀ k : Nat, ¬ (case k)`, whose truth-value Π-types truncate
 whatever their domains are; both spellings read to the ONE semantic
 carrier, and `sigmaSet`'s zero test makes the two regimes one
 statement (`sumBodyAV_interp`).
@@ -804,7 +804,7 @@ theorem sumBodyAV_wellDenoted {w : Nat} {ρ : Nat → V} {Fss : List (List ITerm
 /-! ## The type-former leaf -/
 
 /-- The type-former leaf of a direct sum: the λ-tower over the
-parameter domains (bits `w + 1`) with the sum carrier body. -/
+parameter domains with the sum carrier body. -/
 def sumTyAV (w : Nat) (pps : List ITerm) (Fss : List (List ITerm)) :
     ITerm :=
   mkLamsAV pps (sumBodyAV w Fss)
@@ -893,7 +893,7 @@ truth value
 
     ¬ (e₀ = ı₀ → e₁ = ı₁ → … → False)
 
-with bit-`0` Π nodes and `eqE` equations (whose reading is the
+with truth-value Π nodes and `eqE` equations (whose reading is the
 equality's truth value, `eqv`).  Nothing here depends on how the
 equations are spelled: `idxEqAV_interp` reads it to `truthVal (EqAll ρ
 eqs)` (every left side interprets as its right side), `idxEqAV_wellDenoted`
@@ -1137,7 +1137,7 @@ theorem DomsBelow_append_idxEq {eqs : List (ITerm × ITerm)} :
 /-! ## Lifting a chain into a deeper frame -/
 
 /-- A field chain lifted by `n` at cutoff `k` (domain `i` at cutoff
-`k + i`, as `liftDoms` does for binder data). -/
+`k + i`, as `liftDoms` does for binder domains). -/
 def liftFields (n : Nat) : Nat → List ITerm → List ITerm
   | _, [] => []
   | k, F :: Fs => F.liftN n k :: liftFields n (k + 1) Fs
@@ -1309,8 +1309,8 @@ theorem EqAll_idxEqsAt {d nIdx nF : Nat} {Es : List ITerm} (hEs : Es.length = nI
 /-!
 ## The sum constructor leaf
 
-Constructor `j` of a direct sum is the constant-bit λ-tower (bit `w`)
-over its type reading's binder data with the **injection** body: the
+Constructor `j` of a direct sum is the λ-tower
+over its type reading's binder domains with the **injection** body: the
 pinned pair constructor applied to the tag domain, the case-split
 fibre, the numeral `j` and the constructor's own tupler.  Every
 constructor tower carries one extra proof-field —
@@ -1791,8 +1791,8 @@ theorem pt_mem_idxEqAV_nil (ρ : Nat → V) : (pt : V) ∈ˢ interp V ρ (idxEqA
 
 /-! ## The constructor leaf -/
 
-/-- **Constructor `j`'s leaf**: the constant-bit λ-tower (bit `w`)
-over the constructor type reading's binder data with the injection
+/-- **Constructor `j`'s leaf**: the λ-tower
+over the constructor type reading's binder domains with the injection
 of the point-terminated tupler at the numeral `j`. -/
 def sumMkAV (w j : Nat) (ds : List ITerm) (Fs : List ITerm)
     (Fss : List (List ITerm)) : ITerm :=

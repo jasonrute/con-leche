@@ -35,8 +35,8 @@ universe w
 -- `teleFit_nil_inv`.  The other definitions bind their own `V`.
 variable {V : Type w} [SetTheory V]
 
-/-- **The structural-`Nat` recurrence law at the validated-annotation
-tier** (task #161): every stored structural operation's defining
+/-- **The structural-`Nat` recurrence law at the stored-term reading**
+(task #161): every stored structural operation's defining
 equations read under `denoteMeta` and hold as `interp` equalities at
 the two-variable `Nat` context, with the level composition normalized
 to the plain assignment (the heads are level-monomorphic).
@@ -65,7 +65,7 @@ numeral-transport inductions, which close the literal rows `NatSuccRow`/`NatOpRo
           = interp V (cons y (cons x ρ)) R
 
 /-- **The pin-certified WF-recursive operations' guarded value
-recurrences at the validated-annotation tier**: `DivModClausesV` is
+recurrences at the stored-term reading**: `DivModClausesV` is
 valuation-generic and is fed the `acval` leaves' values.
 
 Supplied as an `EnvModelM` field: established at the operation's own
@@ -92,11 +92,8 @@ read).
 **This is an environment law**, a field and not a theorem, because
 the `Eq` leaf's value is fixed by the basis install (`eqValT` — the
 `.eqE` former η-expanded) and by nothing else; its supplier is the
-basis install (`BasisStepPB`): the annotated `Eq` tower's *regime
-bits* are invisible to every other `EnvModelM` field, and an erasure
-factoring through an unannotated law is refuted at exactly the λ-nodes
-this tower is made of.  See the task #161 LITERAL TIER seal III
-record. -/
+basis install (`BasisStepPB`).  See the task #161 LITERAL TIER
+seal III record. -/
 @[expose] def EqLaw {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) : Prop :=
   env.find? eqName = some eqA →
@@ -150,7 +147,7 @@ exactly `op a = a`. -/
 /-! ## The structure-capability laws (task #161, caps tier)
 
 The stored families' fired η and unit-like laws at the
-validated-annotation currency, value-level, keyed on the stored
+`denoteMeta` currency, value-level, keyed on the stored
 `indInfo`, the capability flag, the non-reserved name, and the
 completed family (`EtaFamilyStored`).  They live here because the
 `EnvModelM` field must mention them and their preservation file
@@ -159,10 +156,10 @@ completed family (`EtaFamilyStored`).  They live here because the
 * **The telescope fit is `TeleFit`**: memberships only, the peeled
   body read under the extended environment (the `interp` analogue of
   `B.inst a`), no positivity anywhere — a graph-regime-only fit
-  (`v ≠ 0` at every product) would exclude a `Prop`-valued family's
+  (`v ≠ 0` at every Π-type) would exclude a `Prop`-valued family's
   telescope.  Consumers recover residual memberships through
   `app_mem_piR`, whose `v = 0` fibre premise is the type reading's
-  `AnnotValid`: no bit positivity is ever needed.
+  grading: no regime positivity is ever needed.
 * **The laws carry their readings** (`∃ TVa, …`), the `NatOps`
   pattern: establishment stores the instantiated type's reading at
   its own environment; preservation transfers it *forward*
@@ -181,9 +178,9 @@ certificates through the claims.  Consumers: the structure-η and
 unit-like rules' soundness (`DefEq.structEta_sound`/
 `DefEq.structUnit_sound`, `Model/Rules/DefEqSound.lean`). -/
 
-/-- **The annotated telescope fit**: each argument value inhabits its progressively-peeled domain, the
+/-- **The telescope fit**: each argument value inhabits its progressively-peeled domain, the
 peeled body read under the extended environment.  No positivity — the
-squash-regime products fit too, and consumers recover memberships
+squash-regime Π-types fit too, and consumers recover memberships
 through `app_mem_piR` with the validity fibre facts. -/
 inductive TeleFit (V : Type w) [SetTheory V] :
     (Nat → V) → ITerm → List V → V → Prop where
@@ -416,8 +413,7 @@ theorem indStrictHead_of {acval : Name → (Name → Nat) → ITerm} {env : Env}
 
 /-! ## The fired modeled-iota contract (task #161, iota tier)
 
-The stored recursors' fired rules at the validated-annotation
-currency:
+The stored recursors' fired rules, at the stored terms' reading:
 
 * **The law is `ITerm`-indexed**: the truthfulness transport is
   inherently about the applied reduct's *reading* (the ι step must
@@ -456,7 +452,7 @@ mathematics lives (a `Prop`-valued motive's minors at the squash
 regime).  **Consumer**: the ι rule's soundness (`Red.iota_sound`,
 `Model/Rules/IotaSound.lean`). -/
 
-/-- **The annotated telescope fit** (substitution-peeling): each argument reading inhabits its
+/-- **The telescope fit of readings** (substitution-peeling): each argument reading inhabits its
 progressively-substituted domain, one ambient environment, the
 residual an `ITerm` at that environment. -/
 inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
@@ -487,7 +483,7 @@ theorem TeleFitPA.take {V : Type w} [SetTheory V] {ρ : Nat → V} :
       obtain ⟨mid, hm⟩ := ih n
       exact ⟨mid, TeleFitPA.cons hmem hm⟩
 
-/-- The annotated reverse-opening substitution chain (outermost
+/-- The reverse-opening substitution chain of readings (outermost
 argument consumed first, each at cut `0`, lifted past the arguments
 still to come). -/
 @[expose] def _root_.ConLeche.Model.ITerm.instRevChain :
@@ -888,7 +884,7 @@ theorem towerGuardAt_of {entry : ProjEntry} {us : List Level} {φ : Name → Nat
 branch's own guard — a `Prop`-declared family fires only where the
 field's guard level is a proposition, any other family unconditionally
 — so with O5 it yields `TowerGuardAt` exactly as the infer branch
-does.  The squash regime is licensed by the certified spine's fit,
+does.  The squash regime is justified by the certified spine's fit,
 see `TowerEntryLaw`'s clause (B). -/
 theorem towerGuardAt_of_fireOk {entry : ProjEntry} {us : List Level}
     {φ : Name → Nat} (hO5 : TowerO5 entry)
@@ -1011,7 +1007,7 @@ leaf inhabits its type's reading, a graded type. -/
           ∈ˢ interp V ρ ta
 
 /-- **The `Nat`-literal clause's residue, over the core**: the zero's
-membership and the successor's, at the annotated valuation's own
+membership and the successor's, at the leaf valuation's own
 `Nat` leaf, which is a type. -/
 @[expose] def NatHeads {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) : Prop :=
@@ -1026,7 +1022,7 @@ membership and the successor's, at the annotated valuation's own
     IsTy (interp V ρ (m.acval natName (Level.substFn φ [] [])))
 
 /-- **The unfolding supplier the P-tier delta exit consumes**: a stored
-definition's validated annotation *is* the constant's own leaf, at
+definition's value reading *is* the constant's own leaf, at
 every level assignment.  Definitions only: a theorem is opaque to
 reduction (`unfoldDefinition` has no `thmInfo` arm), so the invariant
 keeps no equation between a theorem's value and its leaf — the leaf is

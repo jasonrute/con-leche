@@ -28,7 +28,7 @@ components (`blockRulePdomsAV`, `tgtFdomsAV`, `tgtEsAV`, `genIhsAV`,
 
 The graph's `ih` values are the generated `ih` terms read at the chain
 valuation of the graph (`genIhvT`: every recursor the graph-regime
-λ-tower over its stored type's binder data reading the graph at the
+λ-tower over its stored type's domains reading the graph at the
 tagged major).
 -/
 
@@ -48,9 +48,9 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 section Ihv
 
-/-- **The chain valuation of a graph** at the stored binder data `rds`:
-recursor `t` is the graph-regime λ-tower over its binder data reading
-`g` at the tagged major (`genF` over any binder data and tuple
+/-- **The chain valuation of a graph** at the stored domains `rds`:
+recursor `t` is the graph-regime λ-tower over its domains reading
+`g` at the tagged major (`genF` over any domains and tuple
 function). -/
 @[expose] noncomputable def genFT (ρ : Nat → V) (rP : Nat → Nat)
     (rds : Nat → List ITerm) (tup : Nat → List V → V) (g : V) (t : Nat) : V :=
@@ -344,7 +344,7 @@ set_option maxHeartbeats 1000000 in
 /-- **`hchain` over any classes**: the graph's `ih` values are the `ih`
 terms read at the chain — the `ih` terms read the chain only at their
 calls' spines (`hihRead`), each call's spine fits its callee's stored
-binder data (`hcallTy`), so it is a major of the callee's class
+domains (`hcallTy`), so it is a major of the callee's class
 (`hsplitI`) and a predecessor, where the graph is the chain's recursor. -/
 theorem genHchainG
     (hsplitI : ∀ c, c < K → ∀ (xs is : List V) (x : V), xs.length = rP c →
@@ -616,17 +616,17 @@ The producer's rows at the old class data follow from four facts about
 the classes and the stored types (stated at one level assignment and
 base frame):
 
-* `GenClsSplit` — a fit of recursor `c`'s stored binder data is a major
+* `GenClsSplit` — a fit of recursor `c`'s stored domains is a major
   of class `c` (its index tuple in the index set, its major in the
   carrier, the index spine recovered from the tuple);
 * `GenClsBack` — conversely every major of class `c` spells a fit of
-  the stored binder data;
+  the stored domains;
 * `GenClsDec` — a spine fitting the rule's prefix and (declared) field
   domains decodes at class `c`: the fields hole-fit the constructor at
   the tuple of the declared index expressions' readings, which is in the
   index set and recovered from its tuple, and the constructor
   application reads to the injection, in the carrier there;
-* the conclusion's typing at every fit of the stored binder data (the
+* the conclusion's typing at every fit of the stored domains (the
   stage record's, `blockRecConcl_univ`). -/
 
 section Rows
@@ -654,7 +654,7 @@ class `c`, its index spine recovered from its tuple. -/
 
 variable (mpC d Dc mc cvc pp out) in
 /-- **The converse**: every major of class `c` spells a fit of recursor
-`c`'s stored binder data. -/
+`c`'s stored domains. -/
 @[expose] def GenClsBack (ψ : Name → Nat) (ρ : Nat → V) : Prop :=
   ∀ c, c < (tgtRs out).length → ∀ (xs : List V) (i x : V),
     i ∈ˢ tgtClsIs d Dc mc cvc mpC.base2.acval envC pp.toBlockShape out ψ ρ xs c →
@@ -741,7 +741,7 @@ theorem genRec_mI {memR : Nat → Prop}
   obtain ⟨E⟩ := hE
   exact ConLeche.RecTyGen.mI_eq E
 
-/-- The stored binder data's length: the rule prefix, the class's
+/-- The stored domains' length: the rule prefix, the class's
 indices, the major. -/
 theorem genRds_length (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
@@ -799,7 +799,7 @@ theorem genRow_hconcl (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   obtain ⟨-, -, hret⟩ := hS c hc xs is x hxl hisl hfit
   rw [prefOf_split hxl, idxOf_split hxl, majOf_split, blockRecMot_tagged hc, hret]
 
-/-- **The conclusion's typing at every fit of the stored binder data**
+/-- **The conclusion's typing at every fit of the stored domains**
 (the stage record's inferred sort, `blockRecConcl_univ`, at the pinned
 elimination level). -/
 theorem genRec_conclTy (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}

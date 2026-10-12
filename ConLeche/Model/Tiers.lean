@@ -344,7 +344,7 @@ private theorem acceptedReads_aux (m : EnvModel V env) (φ : Name → Nat) :
         exact ⟨_, by rw [denoteMeta_letE, hta, hva, hba]; rfl⟩
 
 /-- **`accepted_reads`, discharged.**  Whatever the front door's
-inference accepts, the validated-annotation reading reads.  See the
+inference accepts, the stored-term reading `denoteMeta` reads.  See the
 module docstring for the guard table and for the `letE` clause. -/
 theorem acceptedReads_of (m : EnvModel V env) (φ : Name → Nat)
     {F d : Nat} {e t : Expr}

@@ -160,7 +160,7 @@ theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → ITerm}
 /-! ## The constant congruence -/
 
 /-- The same constant at level-equivalent instantiations has one
-validated reading. -/
+reading. -/
 theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
     {d : Nat} {n : Name} {us us' : List Level} {aa ba : ITerm}
     (hlev : Level.isEquivList us us' = some true)

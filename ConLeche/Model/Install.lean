@@ -15,8 +15,7 @@ public section
 `declStep_preserves_of_cons`: extending `EnvModelM` by one fresh
 constant, in the shape the declaration fold consumes:
 
-* the new leaf `A` is the value's **`denoteMeta` reading** (bit
-  numerals), with the **existence** premise `hvalReads`;
+* the new leaf `A` is the value's **`denoteMeta` reading**, with the **existence** premise `hvalReads`;
 * the crossing is not routed: `denoteMeta_envExtend` is a theorem, so
   the old constants' facts transfer from `findPreserved_cons` + a
   literal-guard agreement;

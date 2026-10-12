@@ -181,9 +181,9 @@ theorem denoteMeta_lift
         congr 2
         omega
 
-/-- **The substitution lemma, validated-annotation reading.**
+/-- **The substitution lemma, at the stored-term reading.**
 Substituting the expression `a` for `fvar p` corresponds to
-instantiating the annotation at de Bruijn cut `D - p`.  See the module
+instantiating the reading at de Bruijn cut `D - p`.  See the module
 docstring for the two leaf premises and for why `EnvWF` is absent. -/
 theorem denoteMeta_substFvarAt
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
@@ -332,7 +332,7 @@ decreasing_by
      simp [ConLeche.Expr.sizeB]; omega)
   | (simp [ConLeche.Expr.sizeB])
 
-/-- **Beta, validated-annotation side** — the form the reduction
+/-- **Beta, at the stored-term reading** — the form the reduction
 clauses consume: opening a binder body with the argument directly is
 opening it with a fresh variable and then instantiating. -/
 theorem denoteMeta_beta

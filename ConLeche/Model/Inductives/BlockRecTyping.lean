@@ -134,13 +134,13 @@ theorem leavesBounded_of_openers {fvs : List Expr} {e : Expr}
 /-! ## 5. THE RECURSOR TYPE'S BINDER SHAPE — `BlockRecSplitOne`
 
 `BlockRecSplitOne` (`BlockRecPreRun.lean`) is what the recursor model
-reads OFF a fitting spine of `rec_c`'s binder data: the prefix, the
+reads OFF a fitting spine of `rec_c`'s domains: the prefix, the
 eliminated member's index values and the major, with the parameters'
 fit and the member's own index fit.
 
 It is a fact about the STORED type, and this section states it once.
-`BlockRecTyShapeOne` says: `rec_c`'s binder data is `rP c` binders, then
-the eliminated member's index telescope, then one more; its first `nP`
+`BlockRecTyShapeOne` says: `rec_c` has `rP c` binders, then the
+eliminated member's index telescope, then one more; its first `nP`
 binders CARRY the block's parameter telescope — an `↔` between FITS,
 not a syntactic equality, because the recursor stream stores its own
 copy of the parameter binders and only their READINGS are tied; a fit

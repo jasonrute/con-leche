@@ -1704,9 +1704,8 @@ private theorem infer_step (henv : EnvWF env)
         rfl
 
 /-- The io *lane* (the leaf knot, `inferTypeCoreIO`) commutes with the
-shift (task #172 B4): `infer_step`'s walk with the io folds, the io
-scoping lemmas, and the one gated clause split on its (shift-invariant)
-datum. -/
+shift (task #172 B4): `infer_step`'s walk with the io folds and the io
+scoping lemmas. -/
 private theorem inferIOCore_step (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel)
     (ihio : ∀ {p d : Nat}, p ≤ d → ∀ {e : Expr}, WScoped d e →

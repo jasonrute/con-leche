@@ -10,7 +10,7 @@ public section
 
 `Rules.NatSuccRow` and `Rules.NatOpRow` (`Model/Rules/Inputs.lean`),
 discharged: the `Nat`-literal reduction's branch analysis at the
-validated-annotation currency, standing on `EnvModelM.nat_ops` and
+`denoteMeta` currency, standing on `EnvModelM.nat_ops` and
 `EnvModelM.div_mod` (the recurrence laws, from the run certificates)
 and the sixteen numeral transports (`Model/NatSem.lean`,
 `Model/NatWf.lean`).  `Model/Capstone.lean`'s `Rules.RulesInputs.ofSem`

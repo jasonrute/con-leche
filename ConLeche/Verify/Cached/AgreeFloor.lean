@@ -678,8 +678,6 @@ theorem genRecCheck_names (so : ShadowOps CheckCM) (fe : FEnv)
   refine Yields.bind' (classRecsRulesOk_fst _ _ fe _ _ _ cvGs _ (by omega))
     fun out hout => ?_
   refine Yields.bind fun _ => ?_
-  split
-  case isFalse => exact Yields.ofThrowBind
   refine Yields.pure ?_
   have hlen : out.length = cvGs.length := by simpa using congrArg List.length hout
   refine ⟨hnd, by rw [hlen, hG.1], fun j rc hj => ?_⟩
@@ -693,7 +691,7 @@ theorem genRecCheck_names (so : ShadowOps CheckCM) (fe : FEnv)
 
 /-- The recursors' pushes AT THEIR MAJORS (`blockRecInfosTF`) at the
 skeleton level, from the recursor stage's output: each record's name. -/
-theorem pushAll_blockRecInfosTF_skelsT (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+theorem pushAll_blockRecInfosTF_skelsT (find? : Name → Option ConstantInfo)
     (p : BlockShape) :
     ∀ (l : List RecShape) (ri : Nat)
       (out : List (ConstantVal × TargetMajor × List Expr))
@@ -701,7 +699,7 @@ theorem pushAll_blockRecInfosTF_skelsT (find? : Name → Option ConstantInfo) (r
       (∀ (j : Nat) o (rc : RecShape), out[j]? = some o → l[j]? = some rc →
         o.1.name = rc.cvR.name) →
       SkelIs fe sk →
-      SkelIs (FEnv.pushAll (blockRecInfosTF find? resolves p ri out) fe) (blockRecSkels p ri l sk)
+      SkelIs (FEnv.pushAll (blockRecInfosTF find? p ri out) fe) (blockRecSkels p ri l sk)
   | [], _, [], _, _, _, _, _, h => h
   | [], _, _ :: _, _, _, _, hlen, _, _ => by simp at hlen
   | _ :: _, _, [], _, _, _, hlen, _, _ => by simp at hlen
@@ -711,10 +709,10 @@ theorem pushAll_blockRecInfosTF_skelsT (find? : Name → Option ConstantInfo) (r
     have hname := hall 0 _ rc rfl rfl
     dsimp only at hname
     let ci : ConstantInfo := .recInfo cv (p.majorIdxAt ri) (p.rulePrefixAt ri)
-      (tgtStoredRules find? resolves cv (p.majorIdxAt ri) (p.rulePrefixAt ri) M rhss)
+      (tgtStoredRules find? cv (p.rulePrefixAt ri) M rhss)
     have hci : ciSkel ci = .recr rc.cvR.name (p.majorIdxAt ri) (p.rulePrefixAt ri) := by
       simp only [ci, ciSkel, hname]
-    have h' := pushAll_blockRecInfosTF_skelsT find? resolves p rest (ri + 1) out
+    have h' := pushAll_blockRecInfosTF_skelsT find? p rest (ri + 1) out
       (fe.push ci) (ciSkel ci :: sk) hrest (by simpa using hlen)
       (fun j r rc' hj hj' => hall (j + 1) r rc' (by simpa using hj) (by simpa using hj'))
       (h.push ci)
@@ -804,8 +802,7 @@ theorem checkBlockTailS_skels (mode : CheckMode) {block : List ConstantInfo}
       block)
     fun out hout => ?_
   have hrs := pushAll_blockRecInfosTF_skelsT
-      (consBlockCtorsF p.nP ctorsAs env₁).find?
-      (·.constsResolveF (consBlockCtorsF p.nP ctorsAs env₁)) p.toBlockShape
+      (consBlockCtorsF p.nP ctorsAs env₁).find? p.toBlockShape
       p.recs 0 out _ _ (List.drop_zero (l := p.recs)).symm hout.2.1
       (fun j o rc hoj hrc => by
         obtain ⟨o', hoj', hname, -⟩ := hout.2.2 j rc hrc

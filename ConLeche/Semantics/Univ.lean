@@ -73,8 +73,8 @@ theorem piR_mem_univ {u v : Nat} {A : V} {B : V → V}
 
 open Classical in
 /-- Sharpness of the regime split: a graph-regime product whose fibres
-are all inhabited is **not** a truth value.  So the annotation is not
-merely an upper bound on where the value lands — the two regimes are
+are all inhabited is **not** a truth value.  So the regime numeral is
+not merely an upper bound on where the value lands — the two regimes are
 genuinely disjoint, and a `Type`-level product never sneaks into
 `Prop`. -/
 theorem piR_pos_not_mem_univZero {v : Nat} (hv : v ≠ 0) {A : V} {B : V → V}

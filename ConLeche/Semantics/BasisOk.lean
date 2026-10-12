@@ -528,7 +528,7 @@ theorem bval_mem_lfpTuple (k : Nat) (us : List Nat) (ρ : Nat → V) :
 `bval_mem_type`, over `interp` and `BConst.typeAV`: what the skeleton's
 `const` row waits on. -/
 
-/-- **Every built-in constant inhabits its annotated type.** -/
+/-- **Every built-in constant inhabits its spelled type.** -/
 theorem bval_mem_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     bval V c us ∈ˢ interp V ρ (BConst.typeAV c us) := by
   cases c with

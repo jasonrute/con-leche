@@ -151,7 +151,7 @@ theorem denoteMeta_swap {acval : Name → (Name → Nat) → ITerm}
 set_option maxHeartbeats 3200000 in
 /-- **The group rule-list swap, P tier**: an invariant of the
 provisional (rule-less) environment transports to the environment
-carrying the checked rule lists, with the *same* annotated
+carrying the checked rule lists, with the *same* leaf
 valuation. -/
 theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     (mp : EnvModelM V μ env₀)

@@ -61,8 +61,7 @@ when it is already a syntactic telescope of `n` Π binders ending in a
 sort, else the declared type's whnf'd telescope (`whnfTelescope`),
 closed and checked as the former's type in its place —
 `checkConstantVal` from scratch, so nothing about the reduction is
-trusted: the stored type is the one this run annotated, inferred and
-sorted.  Returns the checked constant and the result sort. -/
+trusted: the stored type is the one this run inferred and sorted.  Returns the checked constant and the result sort. -/
 def checkSumTele (ops : CheckerOps m) (env : Env) (cv : ConstantVal) (n : Nat)
     (cvTa₀ : ConstantVal) : m (ConstantVal × Level) :=
   match cvTa₀.type.stripPis n with
@@ -100,7 +99,7 @@ def checkStructFieldSortsI (ops : CheckerOps m) (env : Env) (isProp large : Bool
     pure (rest ++ [u])
 
 /-- Stage 2, one constructor's type: the ordinary constant check (the
-constructor is stored AS DECLARED), the annotated result
+constructor is stored AS DECLARED), the result
 shape (the family at the parameters followed by
 `nIdx` index expressions), the parameter pins against the type
 former's opened telescope, the pre-block resolution of the field
@@ -108,7 +107,7 @@ domains, and the per-field universe bound (`env₀` is the pre-block environment
 `env` the one holding the type former).  Every constructor is checked
 at the environment holding the type former alone — the constructors do
 not mention each other — and the block conses them afterwards
-(`consBlockCtors`).  Returns the annotated constructor and its fields'
+(`consBlockCtors`).  Returns the checked constructor and its fields'
 sorts (the projection table's guard levels at a structure-like member
 are computed from them). -/
 def checkSumCtor (ops : CheckerOps m) (env₀ env : Env) (T : Name)
@@ -147,7 +146,7 @@ def checkSumCtor (ops : CheckerOps m) (env₀ env : Env) (T : Name)
   pure (cvCa, sorts)
 
 /-- Stage 2, all constructors' types, at the environment holding the
-type former; returns the annotated constructors with their field
+type former; returns the checked constructors with their field
 counts, and beside them the constructors' field sorts. -/
 def checkSumCtors (ops : CheckerOps m) (env₀ env : Env) (T : Name)
     (lps : List Name) (nP nIdx : Nat) (resSort : Level) (isProp large : Bool)

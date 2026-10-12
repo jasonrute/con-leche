@@ -29,7 +29,7 @@ hypothesis `hg`.  Field by field, each from the run's own binds:
 * `ds` — a class's parameters: a member's are the canonical parameters,
   an outside class's are its key's (the pre-pass's reading off the RAW
   stream recursor types, moved to the canonical parameters and kept below
-  them by `classKeyOf`, then annotated: `genRun_keys_scoped`) under
+  them by `classKeyOf`: `genRun_keys_scoped`) under
   `targetMajorOf`'s guard (no loose bound variable, free variables below
   `nP`);
 * `former` — a member's former is a (closed) stream former, an outside

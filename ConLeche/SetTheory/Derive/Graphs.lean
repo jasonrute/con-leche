@@ -19,8 +19,8 @@ public import ConLeche.SetTheory.Derive.Pt
   graphs: the `v ≠ 0` dependent product.
 
 The level-`0` truncations (`lam 0 = pt`, `pi 0` a truth value) live
-in the *annotation-driven* `piR`/`lamR` (`SetModel/Ops.lean`), which
-dispatch on the annotation.
+in the numeral-indexed `piR`/`lamR` (`SetModel/Ops.lean`), which
+dispatch on the regime numeral.
 -/
 
 namespace ConLeche.SetTheory

@@ -29,23 +29,14 @@ namespace ConLeche
 The reference kernels *generate* the recursor from the block
 (lean4lean `Inductive/Add.lean:326-483`, official
 `inductive.cpp`'s `mk_rec_infos`); the pieces below spell that shape
-syntactically, over the **annotated** type former and constructor
-types, one minor premise and one rule per constructor.
+syntactically, over the stored type former and constructor types, one
+minor premise and one rule per constructor.
 
-**Binder infos** are the export's: the former's parameter binders keep
-theirs, every generated binder is `.default` (the standard-axiom pins,
-`stdAxiomOk`, compare the stored `Iff.rec`/`Nonempty.rec` against the
-exported shapes up to names and data but not infos).
-
-**Binder data.**  Every binder the generator introduces or re-emits at
-the recursor's own telescope carries the elimination datum
-`Level.zeronessOf ℓ`: the codomain of each is `motive t : Sort ℓ`
-(through `imax`'s right-argument rule), so this is exactly what the
-verified-mode inference validates (`(forall-cod)`, `(lam-cod-*)`) and
-what the stream's annotated recursor carries at the same binders (the
-defeq sites compare data by `==`; the datum is canonical).  The motive's own
-binder `(t : T p⃗)` has codomain `Sort ℓ : Sort (ℓ+1)`, hence `.never`.
-The domains are re-emitted verbatim, their inner data untouched. -/
+**Binders** carry no name, info or other datum (`Expr` has no slot for
+them), so the generated telescope is compared against an exported
+shape (the standard-axiom pins, `stdAxiomOk`, against the stored
+`Iff.rec`/`Nonempty.rec`) by plain equality.  The domains are
+re-emitted verbatim. -/
 
 /-- The parameter variables as seen from under `o` extra binders:
 `p_k = bvar (o + nP - 1 - k)` — `structFamI`'s argument spine. -/
@@ -512,7 +503,7 @@ a `.proj T i e` use instantiates in one `instantiateList` along the
 subject type's arguments and the subject (`ProjEntry.typeAt`).  The
 table holds every field (the official `infer_proj` restriction at a
 `Prop`-declared structure is the per-use guard level,
-`structProjGuards`); no entry is annotated, inferred or pinned. -/
+`structProjGuards`); no entry is inferred or pinned. -/
 def structProjBodiesGo (T : Name) : Nat → Nat → Expr → Option (List Expr)
   | 0, _, _ => some []
   | k + 1, i, .forallE fdom body =>

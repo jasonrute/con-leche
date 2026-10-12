@@ -89,6 +89,4 @@ theorem looseBVarsBounded_abstract1 {d : Nat} :
   case fvar idx ty' ih =>
     split <;> simp [Expr.looseBVarsBounded] <;> omega
 
-/-! ## Preservation through `annotate` -/
-
 end ConLeche

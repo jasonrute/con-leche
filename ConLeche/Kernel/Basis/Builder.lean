@@ -13,15 +13,14 @@ the compiler-trust pins are all *raw* `ConstantInfo`s: exactly what an
 export carries for them, which is exactly the toolchain's own
 `Init.Prelude` declaration — binder names and infos
 are not part of an `Expr` (task #205; `piI`/`lmI` mark where the
-signature says `{…}`, for the reader), the `pw` datum at the parse
-placeholder `.never` — and every install-computed recursor-rule
-field at its parse placeholder (`ctorParams := 0`, `fire := .plain`).
+signature says `{…}`, for the reader) — with every install-computed
+recursor-rule field at its parse placeholder (`ctorParams := 0`,
+`fire := .plain`).
 
 Written out with `ConLeche.Expr`'s constructors and `Name.str` chains,
 one such declaration is a single unreadable line.  The helpers below —
 `pi`/`piI`/`piA`, `lm`/`lmI`, `bv`, `cnst`, `srt`, `ap2`…`ap4` — are a
-one-to-one, non-abbreviating renaming of those constructors at the
-*raw* binder annotations, so a reader can line the pin up against
+one-to-one, non-abbreviating renaming of those constructors, so a reader can line the pin up against
 `Init.Prelude` binder by binder and index by index.  They introduce no
 new notion: every one of them is a `def` whose body is a single `Expr`
 constructor application.
@@ -33,8 +32,8 @@ raw pins at elaboration time (`#stored_basis`,
 
 namespace ConLeche
 
-/-! The raw-pin builder: `Expr` constructors under the raw binder
-annotations.  Opened by the pin modules (`ConLeche/Kernel/Basis/*`,
+/-! The raw-pin builder: `Expr` constructors under readable names.
+Opened by the pin modules (`ConLeche/Kernel/Basis/*`,
 `ConLeche/Kernel/StdAxioms.lean`, `ConLeche/Kernel/TrustAxioms.lean`). -/
 
 namespace BasisDSL

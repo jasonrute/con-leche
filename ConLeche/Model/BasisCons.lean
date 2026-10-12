@@ -82,7 +82,7 @@ towers.  Recording it here because the missing bridge between the
 checker's pinned `ConstantInfo` blocks and the TT `BConst` alphabet is
 the basis tier's structural crux, and this is its P half. -/
 
-/-- **A stored reserved-basis constant's annotated leaf is its direct
+/-- **A stored reserved-basis constant's leaf is its direct
 pin.**  From `EnvModel.basis_pinnedL`, by injectivity of
 `erase` at a constant head. -/
 theorem acval_basis_pinned {m : EnvModel V env}

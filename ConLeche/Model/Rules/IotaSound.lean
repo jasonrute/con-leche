@@ -10,7 +10,7 @@ import ConLeche.Semantics.DefEqList
 public section
 
 /-!
-# The soundness of the ι rule and the three stuck-major rescues (task #305, #342 L10)
+# The soundness of the ι rule and the three stuck-major rescues (task #305, #342 L10, S5c)
 
 One lemma per constructor: `Red.iota`, `Red.rescueK`, `Red.rescueEta`,
 `Red.rescueAnd`; the master induction (`Sound.lean`) consumes them by
@@ -24,14 +24,17 @@ their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
 induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's licence is read through the law's
 `RecRuleExtra` (`Model/Env/Laws.lean`): the recursor's spine fits by
 its licensed certificate; a K rule fires by the law at the recursor's
-own parameters; otherwise the fired constructor application's value is
-the major's (by the major's reduction where the major is not the
-point, which at case 2 it never is; by the slot law where it is,
-case 3), its spine fits (case 3's full-grade certificate, or the graph
-regime of a graded application that is not the point,
-`teleFitPA_of_graded_ne_pt`), and where it is the point the case-3
-comparisons the step ran give the law's index pin (`RecRuleExtra`'s
-(U)).  The two fabricating rescues (K,
+own parameters.  At case 2 (the family never `Prop` at the comparand
+levels; the step compared nothing) the major is not the point ((S)),
+so its reduction is an equation and the fired application, not the
+point either, fits its telescope (`teleFitPA_of_graded_ne_pt`); (T)
+reads it at the comparand levels, where the law fires.  At case 3 the
+step compared the constructor's levels, so the law fires at the
+constructor's own levels: the fired application's value is the major's
+(by the major's reduction where the major is not the point; by the
+slot law (P) where it is), its spine fits (the full-grade certificate),
+and where it is the point the comparisons the step ran give the law's
+index pin ((U)).  The two fabricating rescues (K,
 `And`) equate their fabrication with the major through the one type
 both inhabit (`IsTy.eq_of_ne_pt`).  The structure-η rescue
 (`Red.rescueEta_sound`, task #342 L11b) reads no certificate: the major
@@ -61,10 +64,11 @@ universe w
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env}
   {φ : Name → Nat}
 set_option linter.unusedVariables false in
-/-- **The ι row** (task #342 L10): the stored recursor's fired contract
-(`RecRuleLaw`) and its licence facts (`RecRuleExtra`), at the
+/-- **The ι row** (task #342 L10, S5c): the stored recursor's fired
+contract (`RecRuleLaw`) and its licence facts (`RecRuleExtra`), at the
 recursor's licensed telescope certificate over the redex's own spine,
-the major prepared by a reduction, and — at case 3 only — the
+the major prepared by a reduction, and — at case 3 only, decided at
+the comparand levels — the level and parameter comparisons, the
 constructor's full-grade certificate and the index comparison.  The
 premises are the CONDITIONAL claims, the conclusion is the
 unconditional one: no step reads that the redex is not the point; the
@@ -72,13 +76,15 @@ induction weakens it (`RedSemU.cond`).
 
 Per valuation: the recursor's telescope fits the spine (the licensed
 certificate).  At a K rule the law at the recursor's own parameters
-gives everything; the major is not read.  Otherwise the fired
-constructor application's value is the major's — by the major's
-reduction where the major is not the point (case 2 always: (S)), by
-the slot law where it is (case 3: (P)) — its spine fits (the
-full-grade certificate, or a graded application that is not the point
-fitting its ∀-telescope), where it is the point the case-3 comparisons
-the step ran give the index pin ((U)), and the law fires. -/
+gives everything; the major is not read.  At case 2 the major's domain
+holds no point ((S)), so the major's reduction is an equation, the
+fired application is not the point and fits its ∀-telescope, and (T)
+moves it to the comparand levels, where the law fires.  At case 3 the
+level comparison gives the law's level premise; the fired application's
+value is the major's — by the major's reduction where the major is not
+the point, by the slot law (P) where it is — its spine fits (the
+full-grade certificate), where it is the point the comparisons the
+step ran give the index pin ((U)), and the law fires. -/
 theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name}
     {us : List Level} {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule}
     {major : Expr} {cj : Name} {usj : List Level} {cvj : ConstantVal}
