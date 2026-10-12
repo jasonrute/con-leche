@@ -283,26 +283,6 @@ theorem NeverChain.inst : ∀ {n u : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : N
     obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv h
     exact ih a (k + 1) hB
 
-/-- **A `.never`-peeled telescope reads to a chain**: the residual sort
-evaluates. -/
-theorem neverChain_of_peel {acval : Name → (Name → Nat) → AnnotTerm} :
-    ∀ (n : Nat) {d : Nat} {T : Expr} {u : Level} {ta : AnnotTerm},
-      T.peelNeverPis n = some (.sort u) →
-      denoteMeta acval env φ d T = some ta →
-      NeverChain n (Level.eval φ u) ta := by
-  intro n
-  induction n with
-  | zero =>
-    intro d T u ta hp hd
-    obtain rfl := Expr.peelNeverPis_zero_inv hp
-    rw [denoteMeta] at hd
-    exact (Option.some.inj hd).symm
-  | succ n ih =>
-    intro d T u ta hp hd
-    obtain ⟨ty, b, m, rfl, -, hb⟩ := Expr.peelNeverPis_succ_inv hp
-    obtain ⟨tA, tB, -, htB, rfl⟩ := denoteMeta_forallE_inv hd
-    exact ih (Expr.peelNeverPis_instantiate1 n _ 0 hb) htB
-
 /-- **A type former's application lands in its result universe.**  The
 walk along the chain: where the head is a graph, the argument's
 membership in the domain is `slotTransfer` from the applied spine's own
@@ -368,30 +348,6 @@ theorem mem_univ_zero_of_spine {m : EnvModel V env}
   rw [hsp.length] at hchain
   exact spine_mem_univ_of_neverChain vs hchain hokH hokT hmem
 
-/-- **A constant-headed type former's application** (`I b⃗`, `I` stored
-with type `∀ p⃗, Sort u`, every binder `.never`, `u` zero at the use's
-levels) lands in `univ 0`: `ConstType` supplies `I`'s membership in
-its instantiated stored type and that type's grading; the chain is
-read off the stored syntax at the composed valuation. -/
-theorem typeFormer_mem_univ_zero {m : EnvModel V env}
-    (hct : ConstType m φ) {ρ : Nat → V} {d : Nat} {T : Expr}
-    {I : Name} {us : List Level} {ci : ConstantInfo} {u : Level} {Ta : AnnotTerm}
-    (hfn : T.getAppFn = .const I us) (hfI : env.find? I = some ci)
-    (hnt : ci.isTowerEntry = false)
-    (hlen : us.length = ci.toConstantVal.levelParams.length)
-    (hpeel : ci.toConstantVal.type.peelNeverPis T.getAppArgs.length =
-      some (.sort u))
-    (hz : Level.eval (Level.substFn φ ci.toConstantVal.levelParams us) u = 0)
-    (hTa : denoteMeta m.acval env φ d T = some Ta) (hokT : WellDenotedV V ρ Ta) :
-    interp V ρ Ta ∈ˢ (univ 0 : V) := by
-  obtain ⟨taI, htaI, hokI, hmemI, -, -⟩ := constTy_pkg hct hfI hnt hlen
-  have htaI' := htaI d
-  rw [denotePInstLevels] at htaI'
-  have hchain := neverChain_of_peel (env := env) T.getAppArgs.length hpeel htaI'
-  rw [hz] at hchain
-  exact mem_univ_zero_of_spine hfn hTa (denoteMeta_const hfI hlen) hchain
-    (hokI ρ) hokT (hmemI ρ)
-
 /-! ## 3. The kernel-shaped licence -/
 
 /-- A leaf of a spine's head is a leaf of the spine. -/
@@ -430,114 +386,11 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
     (hda : denoteMeta m.acval env φ d a = some aa)
     (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ) :
     interp V ρ aa = (pt : V) := by
-  obtain ⟨pw, hpw, hprop⟩ := isProofFast_inv env.find? h
-  rcases proofPW_some_inv env.find? hpw with
-    ⟨ty, bd, mb, rfl, rfl⟩ | ⟨-, hhead⟩
-  · -- a λ: L18 — the value reading reads no binder datum, so the λ's
-    -- `isProp` datum does not make it the point (the fast test's `pw`
-    -- read goes with L-ck's `PropRead` rewrite)
-    sorry
-  -- an application spine: the head decides
-  have hspine := hda
-  rw [← ConLeche.Expr.mkAppN_getApp a] at hspine
-  obtain ⟨fa, vs, hfa, -, rfl⟩ := denoteMeta_mkAppN_inv hspine
-  refine interp_mkAppN_pt ?_ vs
-  rcases headProofPW_some_inv env.find? hhead with
-    ⟨c, us, ci, hfn, hf, hnt, hlen, pw0, hty, rfl⟩ |
-    ⟨idx, ty, hfn, hty⟩ | rfl
-  · -- a constant head: the stored type decides
-    rw [hfn, denoteMeta_const hf hlen] at hfa
-    obtain rfl := Option.some.inj hfa
-    obtain ⟨ta, hta, hokT, hmem, hnf, -⟩ := constTy_pkg hct hf hnt hlen
-    rcases typeSortPW_some_inv env.find? hty with
-      ⟨A, B, mb, hT, rfl⟩ | rfl |
-      ⟨I, us', ciI, u, hfnT, hfI, hntI, hlenI, hpeel, rfl⟩ |
-      ⟨idx, ty', u, hfnT, -, -⟩
-    · -- ∀-typed: L18 — the ∀'s `isProp` datum is not read by the value
-      -- reading (as the λ case)
-      sorry
-    · -- `Sort`-typed: never a proof
-      exact absurd hprop (by simp)
-    · -- a type-former application: the graph-regime step
-      have hwf := m.wf _ (ConLeche.Semantics.Env.find?_mem hfI)
-      have hdefU : (Level.zeronessOf u).paramsDefined
-          ciI.toConstantVal.levelParams = true := by
-        obtain ⟨bs, hbs⟩ := Expr.stripPis_of_peelNeverPis _ hpeel
-        have := ConLeche.Expr.allLevelParamsDefined_stripPis_body _ hbs hwf.2.1
-        exact ConLeche.Level.zeronessOf_paramsDefined
-          (by simpa [ConLeche.Expr.allLevelParamsDefined] using this)
-      have hcomp := ConLeche.Level.substPW_comp
-        (ks := ci.toConstantVal.levelParams) (us := us) hlenI hdefU
-      have hz : Level.eval (Level.substFn φ ciI.toConstantVal.levelParams
-          (us'.map (Level.subst ci.toConstantVal.levelParams us))) u = 0 := by
-        have hb := holds_of_isProp hprop φ
-        rw [hcomp, ConLeche.Level.holds_substPW,
-          ConLeche.PropWhen.zeronessOf_sound] at hb
-        exact beq_iff_eq.mp hb
-      have hT : (ci.toConstantVal.type.instantiateLevelParams
-          ci.toConstantVal.levelParams us).getAppFn =
-          .const I (us'.map (Level.subst ci.toConstantVal.levelParams us)) := by
-        rw [ConLeche.Expr.getAppFn_instantiateLevelParams, hfnT]
-        rfl
-      have hpeel' : ciI.toConstantVal.type.peelNeverPis
-          (ci.toConstantVal.type.instantiateLevelParams
-            ci.toConstantVal.levelParams us).getAppArgs.length =
-          some (.sort u) := by
-        rw [ConLeche.Expr.getAppArgs_instantiateLevelParams, List.length_map]
-        exact hpeel
-      have huniv := typeFormer_mem_univ_zero hct hT hfI hntI
-        (by rw [List.length_map]; exact hlenI) hpeel' hz (hta d) (hokT ρ)
-      exact mem_univ_zero huniv (hmem ρ)
-    · -- an fvar-headed stored type: stored types are closed
-      exact absurd (ConLeche.Expr.hasFvar_of_getAppFn_fvar hfnT)
-        (by rw [ConLeche.Expr.hasFvar_instantiateLevelParams] at hnf; simp [hnf])
-  · -- an fvar head: the context supplies the membership
-    rw [hfn, denoteMeta_fvar] at hfa
-    obtain rfl := Option.some.inj hfa
-    obtain ⟨-, -, tya, Aa, htya, hAa, heq⟩ :=
-      hCa.2 _ (mem_fvarLeaves_of_getAppFn hfn)
-    have hokT : WellDenotedTy V ρ tya :=
-      hL _ (mem_fvarLeaves_of_getAppFn hfn) tya htya
-    have hx : interp V ρ (.bvar (d - 1 - idx)) ∈ˢ interp V ρ tya := by
-      rw [interp_bvar, heq ρ hρ]
-      exact hρ _ _ hAa
-    rcases typeSortPW_some_inv env.find? hty with
-      ⟨A, B, mb, rfl, rfl⟩ | rfl |
-      ⟨I, us', ciI, u, hfnT, hfI, hntI, hlenI, hpeel, rfl⟩ |
-      ⟨idy, tyy, u, hfnT, hpeel, rfl⟩
-    · -- ∀-typed: L18 (as above)
-      sorry
-    · exact absurd hprop (by simp)
-    · -- a constant-headed type former: the graph-regime step
-      have hz : Level.eval (Level.substFn φ ciI.toConstantVal.levelParams us') u
-          = 0 := by
-        have hb := holds_of_isProp hprop φ
-        rw [ConLeche.Level.holds_substPW,
-          ConLeche.PropWhen.zeronessOf_sound] at hb
-        exact beq_iff_eq.mp hb
-      have huniv := typeFormer_mem_univ_zero hct hfnT hfI hntI hlenI hpeel hz
-        htya hokT.1
-      exact mem_univ_zero huniv hx
-    · -- an fvar-headed type former (`h : motive n`): the head's type
-      -- is in the context too
-      have hmemY := mem_fvarLeaves_of_getAppFn' hfn
-          (mem_fvarLeaves_of_ty (idx := idx)
-            (mem_fvarLeaves_of_getAppFn hfnT))
-      obtain ⟨-, -, tyyA, Ay, htyy, hAy, heqy⟩ := hCa.2 _ hmemY
-      have hokY : WellDenotedTy V ρ tyyA := hL _ hmemY tyyA htyy
-      have hy : interp V ρ (.bvar (d - 1 - idy)) ∈ˢ interp V ρ tyyA := by
-        rw [interp_bvar, heqy ρ hρ]
-        exact hρ _ _ hAy
-      have hchain := neverChain_of_peel (env := env) (acval := m.acval)
-        ty.getAppArgs.length hpeel htyy
-      rw [eval_eq_zero_of_isProp hprop φ] at hchain
-      have huniv := mem_univ_zero_of_spine hfnT htya (denoteMeta_fvar _ _ _ _)
-        hchain hokY.1 hokT.1 hy
-      exact mem_univ_zero huniv hx
-  · -- a sort, a ∀, a literal: never a proof
-    exact absurd hprop (by simp)
-
-
+  -- L18 — the fast test's reader is binder-free since task #342 (L-ck,
+  -- S0's `PropRead`: residual sorts read through identity wrappers,
+  -- telescope-`bvar` and projection heads), and the value reading
+  -- gives a ∀-typed or λ subject no datum: the licence is owed whole
+  sorry
 
 /-! ## The η-projection spelling, unfolded locally
 

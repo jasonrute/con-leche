@@ -27,7 +27,7 @@ variable {w : Nat}
 
 /-- One-component operators whose single fibre (over `{pt}`) is `F X`. -/
 noncomputable def op1 (F : (Nat → V) → V) : (Nat → V) → Nat → V :=
-  fun X _ => graph (fun _ => F X) unitSet
+  fun X _ => famOf (fun _ => F X) unitSet
 
 /-- The single index set. -/
 noncomputable def is1 : Nat → V := fun _ => unitSet
@@ -37,14 +37,14 @@ theorem acc_op1 {kI : Nat} {IsI : Nat → V} {F : (Nat → V) → V} {A : V} (h 
   intro X hX m _ i hi x hx
   have hi' : i ∈ˢ (unitSet : V) := hi
   simp only [op1] at hx ⊢
-  rw [app_graph hi'] at hx
+  rw [app_famOf hi'] at hx
   obtain ⟨B, g, hB, hg, hs⟩ := h X hX x hx
-  exact ⟨B, g, hB, hg, fun X' hX' h' => by rw [app_graph hi']; exact hs X' hX' h'⟩
+  exact ⟨B, g, hB, hg, fun X' hX' h' => by rw [app_famOf hi']; exact hs X' hX' h'⟩
 
 theorem maps_op1 {kI : Nat} {IsI : Nat → V} {F : (Nat → V) → V}
     (h : ∀ X, InTupleSpace w kI IsI X → F X ∈ˢ (strictU w : V)) :
     ∀ X, InTupleSpace w kI IsI X → InTupleSpace w 1 is1 (op1 F X) :=
-  fun X hX _ _ => graph_mem_famSpace fun _ _ => h X hX
+  fun X hX _ _ => famOf_mem_famSpace fun _ _ => h X hX
 
 theorem hole_mem {k : Nat} {Is X : Nat → V} (hX : InTupleSpace w k Is X) {m : Nat} (hm : m < k)
     {i : V} (hi : i ∈ˢ Is m) : app (X m) i ∈ˢ (tg w : V) :=

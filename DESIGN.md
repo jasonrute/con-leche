@@ -102209,3 +102209,180 @@ statement's reading) and the glossary updated; `overview-links.sh`,
 `shake.sh` (the allowlist still names the deleted modules) and
 `whitepaper/links-gate.sh` deferred.  163 files, +4754 −9277 against
 `port-342-s4`.
+
+## TASK #342 — L16: the spelled carriers over empty domains (2026-10-12, agent/342-l16)
+
+Lane L16, stage S4 (`_tmp/342v2-design.md` §3.3), on `port-342-s4`.
+No checker, `Denotes`, `MainTheorem` or `Challenge` change
+(`tests/challenge.sh` green).
+
+**The problem.**  Under the value reading a spelled `λ` over an empty
+domain is the point and `I → Sort w` over an empty `I` reads `{pt}`,
+while the model's family spaces (`famSpace`, `lfpFamSpace`,
+`psigmaFibreSpace`) were graph spaces (`{∅}` there).  So the spelled
+fibre λ of a pair tower was outside `psigmaV`'s domain, `famTyAV`'s
+reading was not `lfpFamSpace`, and a block's least fixed tuple (empty
+graphs at an empty index set) was not in the spelled family tuple's
+type (L6's `famSpace ⊆ lfpFamSpace` gap).
+
+**The fix: one family space, the value reading's.**  `famSpaceIn C I`
+(`SetTheory/Derive/LfpFam`) is now the graphs over an inhabited `I` and
+`{pt}` over an empty one, and a family is built by `famOf G I` (the
+graph, or the point); `app_famOf`, `famOf_mem_famSpaceIn`,
+`famOf_app_eq` (η), `app_off_famSpaceIn`.  Every least-fixed-point
+construction builds with `famOf`: `lfpFamIn`, `lfpTuple`, `sepTuple`,
+the accessibility stages (`SetModel/Access`), the recursor graph's
+fibres (`SetModel/GraphRec`), the basis operators (`Model/BasisLfp`).
+Nothing read a family off its index set, so the laws carry over with
+`app_graph ↦ app_famOf`.  In `SetModel/Value`: `psigmaFibreSpace` and
+`lfpFamSpace` are `piV` (the readings of `A → Sort v`, `I → Sort w`);
+`lfpFamSpace_eq` (it IS `famSpaceIn (univ w)`), `lfpFamSpace_eq_pos`,
+`famSpace_subset_lfpFamSpace` (now at every index set),
+`lamV_eq_famOf` (a `lamV` of non-points is `famOf`),
+`lamR_mem_psigmaFibreSpace` (at an inhabited domain),
+`lamV_mem_psigmaFibreSpace`.
+
+**Why not the two options L6 named.**  Weakening `lfpTuple_congr` to
+equality of applications on the index set handles the operator's
+OUTPUT only.  The operator's INPUT is the problem too: `tupleOpV`
+applies the spelled operator (a function on the value-read family
+tuples) to the model's tuple, and with graph families an empty-index
+member's `∅` is outside that domain (`app` there is `∅`, not the
+operator's value), so `tupleOpV` would have had to re-read its argument
+anyway; and the constants' results (`lfpTupleV`, `lfpFamV`) would have
+to be re-read to be members of their value-read types.  Re-graphing is
+those conversions on both sides, plus a changed frame value in
+`blockPhiG` for every hole-chain consumer.  With the family space
+value-read there is nothing to convert: the model's families ARE
+members of the spelled types, the spelled block operator's components
+are exactly `blockPhiG`'s (`tupleOpV_blockFunVG` is `rfl` after β, no
+premise), and `lfpTuple_congr` keeps its plain equality.
+
+**Discharged** (ledger lines removed): `ndTowerAV_interp`,
+`ndTowerAV_wellDenoted`, `tupleFamsAV_facts` (`Semantics/BasisOk`);
+`towerBodyAVPos_interp`/`_wellDenoted` (`Tower/TowerKit`);
+`famTyAV_facts` (`FixTower`, now `rfl` plus `piV_mem_univ`);
+`blockArmG_facts` (`BlockTower`; `blockFunVG`'s components and
+`blockPhiG` are `famOf`); `interp_andAV`/`wd_andAV`,
+`interp_sigChainAV`/`wd_sigChainAV` (`BlockRecTower`).  The spelled
+pair towers read through `app_lamV`; no inhabitation split remains.
+`strict_famSpaceIn`/`strict_famSpace`/`strict_lfpFamSpace` (L6, unused)
+are deleted: over an empty index set the space is `{pt}`.  Two
+premises that only fed the off-index-set case went
+(`inTup_occOf`'s `hX`, `frame_item_fwd`'s `hY`): the spine's fit puts
+the index tuple in the index set (`tupW_mem`).
+
+**For L15.**  `psigmaV`'s fibre domain and `lfpFamSpace` are already
+the value-read spaces; `lfpFamSet`/`lfpTuple` values are members of
+`lfpFamSpace` at every index set, and `tupleOpV` applies an operator to
+tuples of `famSpace`, inside the value-read family-tuple space — so
+`lfpFamV`/`lfpTupleV` need no re-reading of their arguments or results.
+**For L17.**  `InTupleSpaceU`'s `famSpaceIn (univ w) I` is now the hole
+type's reading (`lfpFamSpace_eq`).
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration
+uses sorry` in ledger files.  `tests/challenge.sh` green.  No checker
+change: no e2e/arena run.
+
+## TASK #342 — L-CK: the checker switch (2026-10-12, agent/342-l-ck)
+
+Lane L-ck, stage S4 (`_tmp/342v2-design.md` §11.2, §11.6), on
+`port-342-s4`.  S0-F's checker (`agent/349-s0`, 1bd0d303c) ported onto
+the integration branch, against L14b's rules tier and L10's ι licence.
+
+**The checker.**
+- `BinderMeta` is an empty structure: no `pw` on `Expr`, in the hash,
+  in `substPW`, `paramsDefined`, PinGen/BasisGen or the exports'
+  parse (`ExportC` reads the optional field and drops it).
+- The annotate pass is deleted (`annotateBody`/`annotateBodyI` and
+  their families, `annotBinderMeta`, the `annotC` memo).  Its guards
+  live in inference (the literal guards, the `.proj` guards), and the
+  install's error path re-asks the string-literal guard
+  (`unresolvedConstsErrorL`).  Declarations are stored as declared:
+  `checkConstantVal` returns its input.
+- The honesty checks and the binder-datum comparisons are gone;
+  `PropRead` is S0's rewrite (`proofPW` total).
+- The io grade is official `infer_only` in every mode: no
+  application-argument check, no λ domain check, a `let` infers its body
+  only.  `s0IoInferOnly`, the S0-M branch, `CheckMode.betaGate/ioGate/
+  betaSkip/ioSkip` are deleted.  Separate `infer`/`inferIO` memos.
+- β is uniform: the certificate (`whnfAppI`/`betaPeelI` arms, the gate,
+  `betaGateFires`) is deleted.  `whnfCore` ζ-reduces.
+- T1 (the bodies' full-grade types compared) at the innermost λ only,
+  through a structural descent `defeqLams` (`Expr.lamPair?`), not S0-F2's
+  recursive `r.defeq`: a recursive call could succeed through proof
+  irrelevance or the memo, and then the bridge could not produce
+  `DefEqLams.outer`.  T2 (η's body-type premise) at the full grade.
+- `let`: the full grade runs official's `infer_let`; substitution stays
+  (let-variables deferred).
+- ι: L10's licence (`iotaCtorLicensed`/`iotaCase3`) kept, the
+  recursor-spine certificate removed; `iotaCerts` at `lic = true`
+  returns `true`.
+- The installer's telescope peels: the former's telescope is whnf'd
+  (ζ included); a constructor's is read syntactically, as official's
+  `check_constructors`.  Fixtures `let_former_spine` (0) and
+  `let_ctor_spine_bad` (1), same verdicts before and after.
+- The pin comparison (`ConstantVal.matchesPin`) is plain equality:
+  `Expr.erasePw`, the lockstep `erasePwEq`/`matchesPinFast` swap and the
+  inversion modules (`Model/ErasePwInv`, `Semantics/EraseInv`) are
+  deleted.  `Expr`'s `==` is the memoised pointer-first `Expr.beq`, so
+  the DAG-shared `tower_axiom_pin` stays at 0.05G instructions.
+
+**Deviation from S0-F2: the λ/λ descent.**  S0-F2 re-enters `r.defeq` on
+the opened bodies when both are λs.  That call may succeed through
+proof irrelevance or the memo, and then no `DefEqLams.outer` derivation
+exists for the bridge to build.  `defeqLams` descends structurally
+instead (domains at every level, the body-type comparison only at the
+innermost level), which is exactly L14b's `DefEqLams` (refl/inner/outer).
+Verdicts and instruction counts are S0-F's.
+
+**Proofs.**  `Verify/*`, the cached simulation (`Verify/Cached/*`) and
+the bridges are repaired against L14b's rules: `quickExit_bridge`'s λ
+arm (via `defeqLams_bridge`) and `etaCert_bridge` (T2) discharge the
+lane's two ledger lines; S0's Verify sorries are gone.  Deleted with
+their subjects: the annotate lemmas and walks (`DiscC6` whole, the
+`annotate*` halves of `BinderLoop`/`BinderLoopC`, `Abstract`), the
+β-gate/io-gate lemmas (`BetaGate.lean` became `Modes.lean`), the binder
+datum inversions.  New: `defeqLams`/`defeqLamsInner` inversions,
+shift, fuel and simulation (`defeqLamsC_sim`), the `let` arms everywhere,
+`checkConstantVal_inv_stored` (the stored type named, for the inductive
+readers).  Model consumers repaired after the L14a merge:
+`checkDecls_consts` now says the stored type IS the declared one
+(`AnnotOf` and the ζ machinery deleted); `acceptedReads_of` reads a
+`let` (official `infer_let`) through `denoteMeta_substFvarAt`; the
+inductive installer's readers take `NoProjAt` of a constructor type
+from its inference (`inferTypeCore_noProjAt`).
+
+**Ledger.**  The two L-ck lines are removed.  `prf_of_isProofFast`
+(L18) is owed whole: besides the λ/∀ cases its type-former case read
+`peelNeverPis`, and the binder-free `PropRead` peels any binder through
+identity wrappers at constant, fvar, telescope-bvar and projection
+heads.
+
+**Verdicts** (arena 90/92; e2e and annot as S0-F): `annot_decline_*`
+2 → 0 (the legacy field is dropped at parse; `tests/trusted-expected.txt`
+loses its three overrides), `uh_let_erase_*` 0 → 1 (the stored
+constructor type keeps its `let`s; official v4.33.1+ 1).  New fixtures
+`let_former_spine` (0) and `let_ctor_spine_bad` (1).  The one
+difference from S0-F's binary is `natop_booltrue_alias` (2; S0-F 0),
+L8's deliberate guard.
+
+**instructions:u** (`--verified --jobs=1`, one run each):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| port-342-s4 before (L10 binary) | 480.35G | 676.30G |
+| S0-F (`_tmp/349/bin/s0f`) | 412.19G | 563.13G |
+| L-ck | 411.93G (−0.06 %) | 562.94G (−0.03 %) |
+
+**Left for later.**  Dead-code candidates: `#annotate_basis`/
+`#annotate_pins` (`Kernel/BasisGen.lean`) now return the raw pins, so
+`Kernel/BasisA` duplicates `Kernel/Basis`; the names `annotDeclStep`,
+`annotValueC`, `annotConstantValC`, `annotStepC` describe a pass that
+no longer exists; `Kernel/PropWhen` survives only as `PropRead`'s
+zero-ness datum and `ExportC`'s parse of the legacy field.  README.md
+still describes the annotations (lines 5, 31, 81, 91–97, 117, 133) —
+the maintainer's to rewrite.  The deferred gates (shake: allowlist
+lines still name `DiscC6`/`ErasePwInv`; overview-links: anchors into
+`Core`, `StreamConsts`, `StreamThm`, `KnotCongr`, `Denotes`) are for
+the port's end.

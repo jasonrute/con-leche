@@ -518,7 +518,7 @@ theorem instDom_facts {tyA cvT : Expr} {n l : Nat} {xs tfvs : List Expr} {oA oT 
     obtain ⟨r', hr', hEr⟩ := instPisWith_erasedEq hE (Expr.ErasedEq.rfl cvT) hinstT
     rw [hinst, Option.some.injEq] at hr'
     subst hr'
-    exact ⟨_, htl, hEr.2.1⟩
+    exact ⟨_, htl, hEr.1⟩
 
 end GenRun
 

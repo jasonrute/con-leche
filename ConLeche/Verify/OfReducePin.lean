@@ -18,16 +18,6 @@ namespace ConLeche.Verify
 
 open ConLeche.Term
 
-/-- `erasePw` fixes a sort (task #161 P5: `matchesPin` compares through
-`Expr.erasePw`, so the pin-shape inversions must see through it).
-This is a *head* inversion: `erasePw` never changes a node's
-constructor. -/
-theorem erasePw_sort_inv {e : Expr} {u : Level}
-    (h : e.erasePw = .sort u) : e = .sort u := by
-  cases e <;> simp only [Expr.erasePw] at h <;> first
-    | exact h
-    | exact nomatch h
-
 /-! ## The two shapes, uniformly
 
 `ofReduceOp` and `reduceElemName` both branch on the axiom's name, so
@@ -49,9 +39,9 @@ theorem ofReducePin_type {n : Name}
                .app (.const (ofReduceOp n) []) (.bvar 1), .bvar 0])
             (Expr.mkAppN (.const eqName [.succ .zero])
               [.const (reduceElemName (ofReduceOp n)) [],
-               .bvar 2, .bvar 1]) ⟨.ifAllZero []⟩)
-          ⟨.ifAllZero []⟩)
-        ⟨.ifAllZero []⟩ := by
+               .bvar 2, .bvar 1]) ⟨⟩)
+          ⟨⟩)
+        ⟨⟩ := by
   rcases hn with rfl | rfl <;> rfl
 
 /-- The element inductive's pinned type is `Sort 1`. -/
@@ -80,8 +70,7 @@ theorem reduceElem_sort {env : Env} {c : Name}
         · simp only [ConstantVal.matchesPin, Bool.and_eq_true,
             beq_iff_eq] at h
           show cvB.type = _
-          exact erasePw_sort_inv (by
-            simpa [boolCvA, Expr.erasePw] using h.2)
+          simpa [boolCvA] using h.2
       | _ => exact nomatch h
 
 /-- Name and level-parameter components of a `matchesPin` hit. -/

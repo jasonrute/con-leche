@@ -88,14 +88,9 @@ theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List AnnotTerm} (h : 
   refine ⟨?_, ?_, ?_⟩
   · unfold famTyAV lfpFamSpace
     rw [interp_pi, hv]
-    by_cases hI : ¬ ∃ x, x ∈ˢ idxSet u ρp Ids
-    · -- L16: over an empty index set the spelled family space is `{pt}`,
-      -- `lfpFamSpace` (`SetModel/Value`) the one-graph space `{∅}`
-      sorry
-    obtain ⟨x₀, hx₀⟩ := Classical.not_not.mp hI
-    exact piV_univ_eq_pos (Nat.succ_ne_zero w) hx₀ _ fun _ _ => ⟨w, rfl⟩
+    rfl
   · unfold lfpFamSpace
-    have := piR_mem_univ (u := u) (v := w + 1) hu (fun _ _ => univ_mem_univ w)
+    have := piV_mem_univ (u := u) (v := w + 1) hu (fun _ _ => univ_mem_univ w)
     rwa [ite_eq_right (Nat.succ_ne_zero w)] at this
   · unfold famTyAV
     rw [WellDenoted_pi]

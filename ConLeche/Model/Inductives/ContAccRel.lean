@@ -66,18 +66,21 @@ theorem tuple_enlarge {w' k : Nat} (hw : w' ≠ 0) {Is Y : Nat → V}
     ∃ Y'' : Nat → V, InTupleSpace w' k Is Y'' ∧ (∀ m i, app (Y m) i ⊆ˢ app (Y'' m) i) ∧
       (t < k → tt ∈ˢ Is t → (empty : V) ∈ˢ app (Y'' t) tt) := by
   by_cases htk : t < k
-  · let Y'' : Nat → V := fun m => if m = t then
-      graph (fun i => if i = tt then binUnion (app (Y t) i) (sing empty) else app (Y t) i)
+  · have hfam : famOf (fun i => if i = tt then binUnion (app (Y t) i) (sing empty)
+        else app (Y t) i) (Is t) ∈ˢ famSpace w' (Is t) :=
+      famOf_mem_famSpace fun i hi => by
+        split
+        · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hY t htk) hi)
+        · exact famSpace_app (hY t htk) hi
+    let Y'' : Nat → V := fun m => if m = t then
+      famOf (fun i => if i = tt then binUnion (app (Y t) i) (sing empty) else app (Y t) i)
         (Is t) else Y m
     refine ⟨Y'', ?_, ?_, ?_⟩
     · intro m hm
       by_cases hmt : m = t
       · subst hmt
         simp only [Y'', ite_eq_left rfl]
-        refine graph_mem_famSpace fun i hi => ?_
-        split
-        · exact strictU_binUnion_sing_empty_mem hw (famSpace_app (hY m hm) hi)
-        · exact famSpace_app (hY m hm) hi
+        exact hfam
       · simp only [Y'', ite_eq_right hmt]
         exact hY m hm
     · intro m i y hy
@@ -85,16 +88,15 @@ theorem tuple_enlarge {w' k : Nat} (hw : w' ≠ 0) {Is Y : Nat → V}
       · subst hmt
         simp only [Y'', ite_eq_left rfl]
         by_cases hi : i ∈ˢ Is m
-        · rw [app_graph hi]
+        · rw [app_famOf hi]
           split
           · exact mem_binUnion.mpr (Or.inl hy)
           · exact hy
-        · rw [app_off_dom_of_mem_piSet (hY m htk) hi] at hy
-          exact absurd hy (not_mem_empty y)
+        · rwa [← app_off_famSpaceIn (hY m htk) hfam hi]
       · simp only [Y'', ite_eq_right hmt]
         exact hy
     · intro _ htt
-      simp only [Y'', ite_eq_left rfl, app_graph htt]
+      simp only [Y'', ite_eq_left rfl, app_famOf htt]
       exact mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl))
   · exact ⟨Y, hY, fun _ _ => Subset.refl _, fun h => absurd h htk⟩
 
@@ -331,10 +333,8 @@ theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = 
       · rw [he] at hpt
         have hmmN : mm < D.N := Nat.lt_of_lt_of_le hmm (mp.lfp_ok D hD).1.kN
         have htt : tupW (D.u mm (Level.substFn φ lps us)) vs
-            ∈ˢ D.idx (Level.substFn φ lps us) (keyFrame dsa (ctx.hiAt prog.length) ρ) mm := by
-          refine Classical.byContradiction fun hni => ?_
-          rw [app_off_dom_of_mem_piSet (hY mm hmmN) hni] at hpt
-          exact not_mem_empty _ hpt
+            ∈ˢ D.idx (Level.substFn φ lps us) (keyFrame dsa (ctx.hiAt prog.length) ρ) mm :=
+          tupW_mem hfv
         obtain ⟨Y'', hY'', hle'', hz⟩ := tuple_enlarge (t := mm)
           (tt := tupW (D.u mm (Level.substFn φ lps us)) vs) hw' hY
         refine ⟨consList (grpVals D (Level.substFn φ lps us) grp

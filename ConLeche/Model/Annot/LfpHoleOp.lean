@@ -240,7 +240,7 @@ theorem holeChains_ok {ψ : Name → Nat} {ρp : Nat → V} (hok : D.HoleTmOk ψ
     BlockChainsOkG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ) := by
   intro Y hY m hm t ht Fs hFs
   have hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) (fun c => projS c Y) := fun c hc => by
-    rw [← lfpFamSpace_eq_univ]; exact projS_mem_famsSpaceB hc hY
+    rw [← lfpFamSpace_eq]; exact projS_mem_famsSpaceB hc hY
   have hag : substE V (holeTau D.k (D.holeTm ψ)) 0 (cons t (cons Y ρp))
       = D.frame ψ ρp fun c => projS c Y :=
     holeTmFrame_frame (fun _ _ => rfl) hok

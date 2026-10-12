@@ -140,7 +140,10 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
   intro d e t h
   match e, h with
   | .bvar _, h => exact (inferTypeCore_bvar_inv h).elim
-  | .letE _ _ _, h => exact (inferTypeCore_letE_inv h).elim
+  | .letE _ _ _, h =>
+    obtain ⟨tty, u, tv, hty, hes, hv, hde, hb⟩ := inferTypeCore_letE_inv h
+    exact .letE (fun _ => hi hty) (fun _ => hw (ensureSortCore_inv hes)) (fun _ => hi hv)
+      (fun _ => hd hde) (hi hb)
   | .sort u, h =>
     obtain rfl := inferTypeCore_sort_inv h
     exact .sort
@@ -157,7 +160,7 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
     obtain ⟨hg, rfl⟩ := inferTypeCore_strLit_inv' h
     exact .strLit hg
   | .forallE ty body mb, h =>
-    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ :=
+    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, rfl⟩ :=
       inferTypeCore_forall_inv h
     exact .forallE (hi hty) (hw hwt) (hi hbt) (hw (ensureSortCore_inv hes))
   | .app f a, h =>
@@ -170,7 +173,7 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
     simp only [beq_iff_eq] at hprop
     exact .proj (hi hpe) (hw hwpe) hfn hentry hlen hlvl hprop
   | .lam ty body mb, h =>
-    obtain ⟨tty, u, bt, hty, hwt, hbt, -, -, rfl⟩ :=
+    obtain ⟨tty, u, bt, hty, hwt, hbt, rfl⟩ :=
       inferTypeCore_lam_inv h
     exact .lam (fun _ => hi hty) (fun _ => hw hwt) (hi hbt)
 
@@ -181,7 +184,10 @@ theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
   intro d e t h
   match e, h with
   | .bvar _, h => exact (inferTypeCoreIO_bvar_inv h).elim
-  | .letE _ _ _, h => exact (inferTypeCoreIO_letE_inv h).elim
+  | .letE _ _ _, h =>
+    exact .letE (s := .bvar 0) (u := .zero) (tv := .bvar 0)
+      (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
+      (hio (inferTypeCoreIO_letE_inv h))
   | .sort u, h =>
     rw [inferTypeCoreIO_sort_eq] at h
     obtain rfl := inferTypeCore_sort_inv h
@@ -203,7 +209,7 @@ theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
     obtain ⟨hg, rfl⟩ := inferTypeCore_strLit_inv' h
     exact .strLit hg
   | .forallE ty body mb, h =>
-    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ :=
+    obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, rfl⟩ :=
       inferTypeCoreIO_forall_inv h
     exact .forallE (hio hty) (hw hwt) (hio hbt) (hw (ensureSortCore_inv hes))
   | .proj sn i pe, h =>
@@ -212,12 +218,12 @@ theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
     simp only [beq_iff_eq] at hprop
     exact .proj (hio hpe) (hw hwpe) hfn hentry hlen hlvl hprop
   | .app f a, h =>
-    obtain ⟨tf, ty', body', m', htf, hwf, rfl, -⟩ :=
+    obtain ⟨tf, ty', body', m', htf, hwf, rfl⟩ :=
       inferTypeCoreIO_app_inv h
     exact .app (ta := a) (hio htf) (hw hwf) (fun hg => nomatch hg)
       (fun hg => nomatch hg)
   | .lam ty body mb, h =>
-    obtain ⟨bt, hbt, -, -, rfl⟩ := inferTypeCoreIO_lam_inv h
+    obtain ⟨bt, hbt, rfl⟩ := inferTypeCoreIO_lam_inv h
     exact .lam (s := ty) (u := .zero) (fun hg => nomatch hg) (fun hg => nomatch hg)
       (hio hbt)
 

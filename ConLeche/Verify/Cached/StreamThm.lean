@@ -19,17 +19,12 @@ survives to the end of the run.
 
 Three ingredients, one per step of the walk:
 
-* **the annotation of a bare constant is the constant.**  Phase A
-  annotates a declaration's type before storing it
-  (`annotConstantValC`), and the annotation pass is memoized
-  (`memoEI (·.annotC)`), so the returned type is the memo's entry on a
-  hit and `annotateBodyI`'s on a miss.  The step's own `flushC` empties
-  the annotation memo immediately before the call, so the hit branch is
-  unreachable and `annotateBodyI`'s `.const` arm — `pure e` — decides:
-  `annotate_const`.
+* **the header is stored as declared.**  Phase A's header install
+  (`annotConstantValC`) runs guards only and returns the declared
+  header: `annotConstantValC_const`.
 * **a theorem record is never dropped.**  `annotStepC`'s `thmDecl` arm
   either throws or pushes `.thmInfo ⟨cv.name, cv.levelParams, jty⟩`
-  with the annotated type `jty`: `annotStepC_thm_consts`.
+  with the declared type `jty`: `annotStepC_thm_consts`.
 * **pushed constants persist.**  An accepting `InstallRun` only ever
   extends the constants list (`installRun_trace`, `PushChain`), so what
   the theorem's step pushed is still there at the end of phase A —
@@ -48,46 +43,14 @@ open ConLeche
 
 variable {pins : List NatOpPinSet}
 
-/-! ## The annotation of a bare constant is the constant -/
+/-! ## Phase A's header install keeps the declared type -/
 
-/-- The annotation pass's `.const` arm: a bare constant annotates to
-itself. -/
-theorem annotateBodyI_const (r : CoreFnsI) (fe : FEnv) (d : Nat) (n : Name)
-    (ls : List Level) :
-    annotateBodyI r fe d (.const n ls) = pure (.const n ls) := rfl
-
-/-- With the annotation memo missing the key, the memoized entry point
-returns what the body returns: a bare constant annotates to itself. -/
-theorem annotate_const_of_miss {mode : CheckMode} {fe : FEnv} {f d : Nat}
-    {n : Name} {ls : List Level} {s₀ s' : CState} {j : Expr}
-    (hmiss : s₀.annotC[(Expr.const n ls : Expr)]? = none)
-    (h : (coreKnotI mode fe (f + 1)).annotate d (.const n ls) s₀ = .ok (j, s')) :
-    j = .const n ls := by
-  rw [show (coreKnotI mode fe (f + 1)).annotate d (Expr.const n ls) =
-      memoEI (·.annotC) (fun st mp => { st with annotC := mp })
-        (fun d e => annotateBodyI (coreKnotI mode fe f) fe d e)
-        d (Expr.const n ls) from rfl] at h
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind, hmiss, annotateBodyI_const, modify, modifyGet,
-    MonadStateOf.modifyGet, StateT.modifyGet, Except.ok.injEq,
-    Prod.mk.injEq] at h
-  exact h.1.symm
-
-/-- The annotation memo of a flushed state is empty. -/
-theorem flushed_annotC_none (s : CState) (e : Expr) :
-    (s.flushed).annotC[e]? = none := by
-  simp only [CState.flushed]
-  simp
-
-/-! ## Phase A's header install keeps a bare declared type -/
-
-/-- Phase A's header install, at a flushed state, returns the header
-with the declared type unchanged when that type is a bare constant. -/
-theorem annotConstantValC_const {mode : CheckMode} {fe : FEnv}
+/-- Phase A's header install returns the header with the declared type
+unchanged; at a bare constant type, that constant. -/
+theorem annotConstantValC_const {fe : FEnv}
     {cv cvA : ConstantVal} {jty : Expr} {n : Name} {ls : List Level}
     {s₀ s' : CState} (hty : cv.type = .const n ls)
-    (h : annotConstantValC mode fe cv s₀.flushed = .ok ((cvA, jty), s')) :
+    (h : annotConstantValC fe cv s₀ = .ok ((cvA, jty), s')) :
     cvA = ⟨cv.name, cv.levelParams, .const n ls⟩ := by
   unfold annotConstantValC at h
   by_cases h1 : (fe.find? cv.name).isSome = true
@@ -108,20 +71,16 @@ theorem annotConstantValC_const {mode : CheckMode} {fe : FEnv}
   by_cases h6 : Expr.hasFvar cv.type = true
   · rw [ite_eq_left h6] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_right h6] at h
-  obtain ⟨jA, s₁, hann, h⟩ := bindC_ok h
-  rw [hty] at hann
-  obtain rfl : jA = .const n ls :=
-    annotate_const_of_miss (f := checkFuel - 1) (flushed_annotC_none s₀ _)
-      (by rw [show checkFuel - 1 + 1 = checkFuel from rfl]; exact hann)
-  by_cases h7 : Expr.allLevelParamsDefinedC cv.levelParams (Expr.const n ls) = true
+  try dsimp only at h
+  by_cases h7 : Expr.allLevelParamsDefinedC cv.levelParams cv.type = true
   case neg => rw [ite_eq_right h7] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h7] at h
-  by_cases h8 : constsResolveFC fe (Expr.const n ls) = true
+  by_cases h8 : constsResolveFC fe cv.type = true
   case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h8] at h
   obtain ⟨hv, _⟩ := pureC_ok h
   obtain ⟨rfl, _⟩ := Prod.mk.injEq .. ▸ hv
-  rfl
+  rw [← hty]
 
 /-! ## A theorem record is installed, with its declared type -/
 

@@ -89,8 +89,9 @@ def isApp (f a i : Nat) : LineRec → Bool
   | .expr 9 (.strVal s) => s == "a\"b\\c"
   | _ => false
 
--- a binder: `binderInfo` and `name` are validated and dropped, `pw` is
--- the checker's own annotation and defaults to `never`
+-- a binder: `binderInfo` and `name` are validated and dropped; the
+-- legacy `pw` field is scanned (default `never`), its names resolved,
+-- and dropped at resolution (`ConLeche/Frontend/ExportC.lean`)
 #guard (scan1 "{\"ie\":5,\"lam\":{\"binderInfo\":\"instImplicit\",\"body\":4,\"name\":1,\"type\":0}}").any fun
   | .expr 5 (.lam 0 4 .never) => true
   | _ => false

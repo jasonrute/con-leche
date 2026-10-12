@@ -240,7 +240,7 @@ theorem genRecRun_at
       classRulesOk (fueledOps μ F) .plain (mkFEnv envC)
         (classFeR p.toBlockShape R.Ms R.cvGs R.rd.recCls (mkFEnv envC)) R.g
         (classRecOf R.rd.recCls R.cvGs) cvG
-        (Level.zeronessOf (structElimLevel p.elim p.large)) c (R.ctors.getD c []) = .ok rhss ∧
+        c (R.ctors.getD c []) = .ok rhss ∧
       (genCvRus R.cvGs R.rd.recCls R.Ms (structElimLevel p.elim p.large))[i]?
         = some (cvG, (R.Ms.getD c default).nIdx, structElimLevel p.elim p.large) := by
   have hcvGs := R.hcvGs
@@ -388,13 +388,13 @@ theorem recStage_of_gen (hμ : μ.verifiedChecks = true)
       classRulesOk (fueledOps μ F) .plain (mkFEnv envC)
         (classFeR p.toBlockShape R.Ms R.cvGs R.rd.recCls (mkFEnv envC)) R.g
         (classRecOf R.rd.recCls R.cvGs) cvG
-        (Level.zeronessOf elimL) c (R.ctors.getD c []) = .ok rhss ∧
+        c (R.ctors.getD c []) = .ok rhss ∧
       (genCvRus R.cvGs R.rd.recCls R.Ms elimL)[i]? = some (cvG, (R.Ms.getD c default).nIdx, elimL) ∧
       (tgtRs out)[i]? = some (cvG, rhss, (R.Ms.getD c default).nIdx, (R.Ms.getD c default).ctors) := by
     intro i hi
     obtain ⟨rc, hrc⟩ : ∃ rc, p.recs[i]? = some rc := ⟨_, List.getElem?_eq_getElem hi⟩
     obtain ⟨c, cvG, rhss, hc, hG, T, ho, hr, hcu⟩ := genRecRun_at R hrc
-    rw [hEl] at hr hcu
+    rw [hEl] at hcu
     refine ⟨rc, c, cvG, rhss, hrc, hc, hG, T, ho, hr, hcu, ?_⟩
     simp [tgtRs, List.getElem?_map, ho]
   -- the rule-less recursors' environment

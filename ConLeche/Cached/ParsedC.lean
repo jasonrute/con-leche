@@ -65,15 +65,14 @@ def checkConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if Expr.hasFvar cv.type then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let jty ← (coreKnotI mode fe checkFuel).annotate 0 cv.type
+  let jty := cv.type
   unless Expr.allLevelParamsDefinedC cv.levelParams jty do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
   unless constsResolveFC fe jty do
-    throw (unresolvedConstsError s!"type of {cv.name}" jty)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" jty)
   let jsty ← (coreKnotI mode fe checkFuel).infer 0 jty
   let _u ← opSIxC mode fe 0 jsty
-  let tyE := jty
-  pure (⟨cv.name, cv.levelParams, tyE⟩, jty)
+  pure (cv, jty)
 
 /-- `checkShapeless` (`ConLeche/Kernel/CheckDecl.lean`) through the index:
 a block the recogniser does not read has its type formers checked as
@@ -94,11 +93,11 @@ def checkDefnValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
+  let jv := value
   unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
     throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
   unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
   unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
     throw (.invalid s!"type mismatch in definition {cvA.name}")
@@ -121,11 +120,11 @@ def checkThmValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
+  let jv := value
   unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
     throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
   unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
   unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
     throw (.invalid s!"type mismatch in theorem {cvA.name}")
@@ -140,11 +139,11 @@ def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
   if value.hasFvar then
     throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
+  let jv := value
   unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
     throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
   unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
   unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
     throw (.invalid s!"type mismatch in opaque {cvA.name}")

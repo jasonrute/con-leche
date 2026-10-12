@@ -1629,8 +1629,8 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     ∃ pps : (Name → Nat) → List (Nat × Nat × AnnotTerm),
       FormerData mp.base2 cvTa nP resSort pps := by
   obtain ⟨-, -, -, -, hlbt, hitf, type', stype, u, hann', htp', htr', hst,
-    hens, rfl⟩ := ConLeche.checkConstantVal_inv hccv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann' hitf hlbt
+    hens, rfl⟩ := ConLeche.checkConstantVal_inv_stored hccv
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   simp only at htf' hbt' htp' htr' hst hens hstrip
   have hw : Expr.WScoped 0 type' := Expr.WScoped.of_not_hasFvar htf'
   have hL : Expr.LeavesBounded type' := Expr.LeavesBounded.of_not_hasFvar htf'

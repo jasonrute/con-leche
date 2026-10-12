@@ -78,7 +78,7 @@ theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → Anno
     cases Y with
     | forallE a b bm' =>
       simp only [closeTelescope] at hY
-      obtain ⟨hbm, ha, hbE⟩ := hY
+      obtain ⟨ha, hbE⟩ := hY
       have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeTelescope_bounded nds (d + 1) body hcl' hb

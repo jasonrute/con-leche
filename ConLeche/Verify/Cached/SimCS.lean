@@ -69,15 +69,6 @@ theorem opE_sim {pick : CoreFnsI → Nat → Expr → CheckCM Expr}
   rintro v' v ⟨rfl, hw⟩
   exact ⟨rfl, hw⟩
 
-/-- Shared `annotate` simulates the fueled family, from any invariant
-state. -/
-theorem opE_annotate_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
-    (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelW d) (opE mode (mkFEnv env) (·.annotate) d e)
-      ((fueledOpsM mode).annotate env d e) :=
-  opE_sim (fun hs₁ hden =>
-    (ssimC hμ env henv checkFuel).annotate hs₁ hden hw) hs
-
 /-- Shared `inferType` simulates the fueled family. -/
 theorem opE_infer_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
     (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :

@@ -759,10 +759,9 @@ def instLevelParamsP (ks : List Name) (us : List Level) (e : Expr) : Expr :=
   | .fvar idx ty .. => mkFVar idx (instLevelParamsP ks us ty)
   | .app f a .. => mkApp (instLevelParamsP ks us f) (instLevelParamsP ks us a)
   | .lam ty body m .. =>
-    mkLam (instLevelParamsP ks us ty) (instLevelParamsP ks us body) ⟨Level.substPW ks us m.pw⟩
+    mkLam (instLevelParamsP ks us ty) (instLevelParamsP ks us body) m
   | .forallE ty body m .. =>
-    mkForallE (instLevelParamsP ks us ty) (instLevelParamsP ks us body)
-      ⟨Level.substPW ks us m.pw⟩
+    mkForallE (instLevelParamsP ks us ty) (instLevelParamsP ks us body) m
   | .letE ty val body .. =>
     mkLetE (instLevelParamsP ks us ty) (instLevelParamsP ks us val)
       (instLevelParamsP ks us body)
@@ -806,12 +805,12 @@ def instLevelParamsXP (ks : @& List Name) (us : @& List Level)
   | .lam ty body m .. =>
     enterLPP ks us ty memo (fun h => instLevelParamsXP ks us memo ty h) |>.lift fun (⟨ty', ht⟩, memo) =>
     enterLPP ks us body memo (fun h => instLevelParamsXP ks us memo body h) |>.lift fun (⟨b', hb⟩, memo) =>
-    Squash.mk (⟨mkLam ty' b' ⟨Level.substPW ks us m.pw⟩,
+    Squash.mk (⟨mkLam ty' b' m,
       by rw [instLevelParamsP.eq_def, ite_eq_right hcut]; simp only [ht, hb, mkLam]⟩, memo)
   | .forallE ty body m .. =>
     enterLPP ks us ty memo (fun h => instLevelParamsXP ks us memo ty h) |>.lift fun (⟨ty', ht⟩, memo) =>
     enterLPP ks us body memo (fun h => instLevelParamsXP ks us memo body h) |>.lift fun (⟨b', hb⟩, memo) =>
-    Squash.mk (⟨mkForallE ty' b' ⟨Level.substPW ks us m.pw⟩,
+    Squash.mk (⟨mkForallE ty' b' m,
       by rw [instLevelParamsP.eq_def, ite_eq_right hcut]; simp only [ht, hb, mkForallE]⟩, memo)
   | .letE ty val body .. =>
     enterLPP ks us ty memo (fun h => instLevelParamsXP ks us memo ty h) |>.lift fun (⟨ty', ht⟩, memo) =>
@@ -1314,9 +1313,8 @@ def allLevelParamsDefinedP (params : List Name) (e : Expr) : Bool :=
     | .fvar _ ty .. => allLevelParamsDefinedP params ty
     | .app f a .. =>
       allLevelParamsDefinedP params f && allLevelParamsDefinedP params a
-    | .lam ty body m .. | .forallE ty body m .. =>
+    | .lam ty body _ .. | .forallE ty body _ .. =>
       allLevelParamsDefinedP params ty && allLevelParamsDefinedP params body
-        && m.pw.paramsDefined params
     | .letE ty val body .. =>
       allLevelParamsDefinedP params ty && allLevelParamsDefinedP params val
         && allLevelParamsDefinedP params body
@@ -1376,7 +1374,7 @@ def allLevelParamsDefinedXP (params : @& List Name)
     | true, ht =>
       enterLPD params body memo (fun h => allLevelParamsDefinedXP params memo body h)
         |>.lift fun (⟨rb, hb⟩, memo) =>
-      Squash.mk (⟨rb && m.pw.paramsDefined params,
+      Squash.mk (⟨rb,
         by rw [allLevelParamsDefinedP]; simp [hcut, ← ht, ← hb]⟩, memo)
     | false, ht =>
       Squash.mk (⟨false, by rw [allLevelParamsDefinedP]; simp [hcut, ← ht]⟩, memo)
@@ -1387,7 +1385,7 @@ def allLevelParamsDefinedXP (params : @& List Name)
     | true, ht =>
       enterLPD params body memo (fun h => allLevelParamsDefinedXP params memo body h)
         |>.lift fun (⟨rb, hb⟩, memo) =>
-      Squash.mk (⟨rb && m.pw.paramsDefined params,
+      Squash.mk (⟨rb,
         by rw [allLevelParamsDefinedP]; simp [hcut, ← ht, ← hb]⟩, memo)
     | false, ht =>
       Squash.mk (⟨false, by rw [allLevelParamsDefinedP]; simp [hcut, ← ht]⟩, memo)
