@@ -7,7 +7,6 @@ import ConLeche.Model.Rules.DefEqSound
 import ConLeche.Model.Rules.InferSound
 import ConLeche.Model.Rules.CertsSound
 import ConLeche.Model.Rules.DefEqSoundKit
-import ConLeche.Rules.Derived
 import ConLeche.Model.CtxOkKit
 
 public section

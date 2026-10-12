@@ -1,12 +1,10 @@
 module
 
 public import ConLeche.Model.Inductives.BlockPosRun
-import ConLeche.Model.Annot.LfpHoleOp
 public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Model.IndDomGrade
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.BlockData
 import ConLeche.Model.Annot.BitRename
 public import ConLeche.Verify.Inductives.NfMemberFree

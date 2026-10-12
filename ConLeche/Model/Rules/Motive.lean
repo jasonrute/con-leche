@@ -1,7 +1,5 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Rules.Rel
 public import ConLeche.Model.Annot.BitLemmas
 public import ConLeche.Model.Rules.IORel
 

@@ -2,7 +2,6 @@ module
 
 public import ConLeche.Semantics.BasisType
 import ConLeche.Semantics.Interp
-import ConLeche.Semantics.Univ
 public import ConLeche.Semantics.WellDenoted
 
 @[expose] public section

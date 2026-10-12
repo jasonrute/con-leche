@@ -719,6 +719,42 @@ FALLBACK = {
     # and the Kernel); MEASURED by demoting it alone (unknown identifier
     # `FEnv`, `ViewCongr.lean:158`; `ConstantVal`, `:159`).
     ('ConLeche.Cached.ViewCongr', 'ConLeche.Cached.ParInstall'),
+    # task #342 (s4-shake): `Motive`'s own public statements name
+    # `DenoteMetaSpine` directly; MEASURED by demoting it alone (unknown
+    # identifier `DenoteMetaSpine`, `Motive.lean:240`, `:261`, `:281`,
+    # `:282`, `:296`, `:297`).
+    ('ConLeche.Model.Rules.Motive', 'ConLeche.Model.Annot.BitLemmas'),
+    # task #342 (s4-shake): `CertsSound`'s and `ProofFastSound`'s own public
+    # statements name `SetTheory` directly, reached only through `Inputs`'
+    # public re-export of `SetTheory.Core`; MEASURED by demoting it alone
+    # (unknown identifier `SetTheory`, `CertsSound.lean:30`,
+    # `ProofFastSound.lean:52`).
+    ('ConLeche.Model.Rules.CertsSound', 'ConLeche.Model.Rules.Inputs'),
+    ('ConLeche.Model.Rules.ProofFastSound', 'ConLeche.Model.Rules.Inputs'),
+    # task #342 (s4-shake): `ProofFastSound`'s own proof uses `Expr.proofDepth`
+    # directly in a public declaration, reached only through
+    # `PropReadInst`'s public re-export; MEASURED by demoting it alone
+    # (unknown field `proofDepth`, `ProofFastSound.lean:614`).
+    ('ConLeche.Model.Rules.ProofFastSound', 'ConLeche.Verify.PropReadInst'),
+    # task #342 (s4-shake): `TargetCallLand`'s own public statements name
+    # `substE` by dot-notation through `BitSubstFvars` (`:160`), and
+    # `holeFam`/`IdxOk`/`tupW`/`idxSet`/`LfpDatum`/`EnvModelM`/`Sat`/
+    # `frameIdx`/`AgreeOff` through `NestPosMono`'s own re-export chain
+    # (`:48`, `:90`, `:91`, `:109`, `:113`, `:126`-`:131`, `:159`); each
+    # MEASURED by demoting it alone.
+    ('ConLeche.Model.Inductives.TargetCallLand', 'ConLeche.Model.Annot.BitSubstFvars'),
+    ('ConLeche.Model.Inductives.TargetCallLand', 'ConLeche.Model.Inductives.NestPosMono'),
+    # task #342 (s4-shake): `GenRecExtra`'s own public statements name
+    # `SetTheory` directly, reached only through `GenClsData`'s public
+    # re-export of `SetTheory.Core`; MEASURED by demoting it alone
+    # (unknown identifier `SetTheory`, `GenRecExtra.lean:80`).
+    ('ConLeche.Model.Inductives.GenRecExtra', 'ConLeche.Model.Inductives.GenClsData'),
+    # task #342 (s4-shake): `GenClassNodes`'s own public statements name
+    # `SetTheory` directly through `GenRecAssembly`'s re-export (`:37`), and
+    # `TgtNodePres`/`TgtNodeHex` through `TargetNodePres`'s own re-export
+    # (`:78`, `:81`); each MEASURED by demoting it alone.
+    ('ConLeche.Model.Inductives.GenClassNodes', 'ConLeche.Model.Inductives.GenRecAssembly'),
+    ('ConLeche.Model.Inductives.GenClassNodes', 'ConLeche.Model.Inductives.TargetNodePres'),
 }
 
 # `whitepaper/` (task #324) is its own lake library — the paper's Lean

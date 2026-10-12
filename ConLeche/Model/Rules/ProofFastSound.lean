@@ -4,11 +4,9 @@ public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSound
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
-import ConLeche.Model.Rules.EtaSoundKit
 import ConLeche.Model.Rules.DefEqSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitClosed
 import ConLeche.Model.WellDenotedTransport
 public import ConLeche.Verify.PropReadInst
 import ConLeche.Verify.PropWhen

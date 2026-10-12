@@ -9,7 +9,6 @@ import ConLeche.Model.CtxOkKit
 import ConLeche.Semantics.DefEqStep
 import ConLeche.Semantics.LitStep
 import ConLeche.Model.Annot.BitShift
-import ConLeche.Model.Annot.BitClosed
 
 public section
 

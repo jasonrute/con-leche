@@ -3,7 +3,6 @@ module
 public import ConLeche.Model.Inductives.GenRecAssembly
 public import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.Inductives.ClassGenUniq
-import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockGradeRowsRun
 import ConLeche.Model.Rules.InferSoundKit
 

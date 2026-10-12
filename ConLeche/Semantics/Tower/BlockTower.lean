@@ -2,7 +2,6 @@ module
 
 public import ConLeche.Semantics.Tower.FixTower
 public import ConLeche.Semantics.SubstAV
-import ConLeche.Semantics.Univ
 import ConLeche.SetTheory.Derive.LfpTuple
 
 @[expose] public section

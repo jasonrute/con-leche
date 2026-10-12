@@ -1,8 +1,8 @@
 module
 
 public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Model.Annot.BitLemmas
-public import ConLeche.Model.Currency
+import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Currency
 public import ConLeche.Rules.Rel
 import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.WellDenotedTransport

@@ -25,7 +25,6 @@ import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.BlockRecTyping
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
-import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.IndPinGrade
 import ConLeche.Model.IndOpenRev
 import ConLeche.Model.IndFrame

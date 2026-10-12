@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.GenClsData
-public import ConLeche.Model.Inductives.BlockRecLaw
+import ConLeche.Model.Inductives.BlockRecLaw
 import ConLeche.Model.Inductives.GenRecRules
 import ConLeche.Model.Inductives.GenClsSem
 import ConLeche.Model.Inductives.GenRecPreRun
