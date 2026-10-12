@@ -530,7 +530,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
           ConLeche.PropWhen.zeronessOf_sound] at hb
         exact beq_iff_eq.mp hb
       have huniv := typeFormer_mem_univ_zero hct hfnT hfI hntI hlenI hpeel hz
-        htya (hokT ρ hρ)
+        htya (hokT ρ hρ).1
       exact mem_univ_zero huniv hx
     · -- an fvar-headed type former (`h : motive n`): the head's type
       -- is in the context too
@@ -545,7 +545,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
         ty.getAppArgs.length hpeel htyy
       rw [eval_eq_zero_of_isProp hprop φ] at hchain
       have huniv := mem_univ_zero_of_spine hfnT htya (denoteMeta_fvar _ _ _ _)
-        hchain (hokY ρ hρ) (hokT ρ hρ) hy
+        hchain (hokY ρ hρ).1 (hokT ρ hρ).1 hy
       exact mem_univ_zero huniv hx
   · -- a sort, a ∀, a literal: never a proof
     exact absurd hprop (by simp)
@@ -600,9 +600,9 @@ theorem prop_side_pt' {m : EnvModel V env} {d : Nat} {a ta tta : Expr}
   obtain ⟨hfta, hsub1, taa, htaa, hoktaa, hmemA⟩ := hta hfa hCa hda hokA
   have hCta : CtxOk m φ d Δa ta := hCa.of_subset hsub1
   obtain ⟨hftta, hsub2, ttaa, httaa, hokttaa, hmemT⟩ :=
-    htta hfta hCta htaa hoktaa
+    htta hfta hCta htaa hoktaa.graded
   have hCtta : CtxOk m φ d Δa tta := hCta.of_subset hsub2
-  obtain ⟨-, -, sa, hsa, -, heq⟩ := hu hftta hCtta httaa hokttaa
+  obtain ⟨-, -, sa, hsa, -, heq⟩ := hu hftta hCtta httaa hokttaa.graded
   rw [denoteMeta_sort] at hsa
   obtain rfl : sa = AnnotTerm.sort (u.eval φ) := (Option.some.inj hsa).symm
   have h0 : Level.eval φ u = 0 := ConLeche.Level.isEquiv_sound hu0 φ

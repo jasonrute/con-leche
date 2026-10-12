@@ -258,7 +258,8 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     (ρ : Nat → V) :
     WellDenotedV V ρ ea ∧
       interp V ρ ea ∈ˢ
-        interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] [])) := by
+        interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] [])) ∧
+      IsTy (interp V ρ (m.acval ConLeche.stringName (Level.substFn φ [] []))) := by
   obtain ⟨hs, ciS, ciO, ciL, ciN, ciC, ciH, ciF, pL, pN, pC, hfS, hfO,
     hfL, hfN, hfC, hfH, hfF, hlpS, hlpO, hlpL, hlpN, hlpC, hlpH, hlpF,
     hTS, hTH, ⟨mbO, hTO⟩, ⟨mbL, hTL⟩, ⟨mbN, hTN⟩,
@@ -336,6 +337,23 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       rfl
     have h := (head _ _ _ _ hfH (ConLeche.isTowerEntry_false_of_find? hfH (fun _ _ h => by simp [ConLeche.charName] at h)) (by simp [hlpH]) hR).2 ρ
     rw [hlpH, interp_sort] at h
+    exact h
+  -- `String` is a type in `univ 1`
+  have hStringU : interp V ρ
+      (m.acval ConLeche.stringName (Level.substFn φ [] []))
+      ∈ˢ (univ 1 : V) := by
+    have hIS : ciS.toConstantVal.type.instantiateLevelParams
+        ciS.toConstantVal.levelParams []
+        = Expr.sort (Level.succ Level.zero) := by
+      rw [hlpS, hTS]
+      simp [Expr.instantiateLevelParams, Level.subst]
+    have hR : denoteMeta m.acval env φ 0
+        (ciS.toConstantVal.type.instantiateLevelParams
+          ciS.toConstantVal.levelParams []) = some ((.sort 1) : AnnotTerm) := by
+      rw [hIS, denoteMeta_sort]
+      rfl
+    have h := (head _ _ _ _ hfS (ConLeche.isTowerEntry_false_of_find? hfS (fun _ _ h => by simp [ConLeche.stringName] at h)) (by simp [hlpS]) hR).2 ρ
+    rw [hlpS, interp_sort] at h
     exact h
   -- `List.nil`
   have hIN : ciN.toConstantVal.type.instantiateLevelParams
@@ -472,7 +490,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     rfl
   obtain ⟨hokRO, hmemRO⟩ := head _ _ _ _ hfO (ConLeche.isTowerEntry_false_of_find? hfO (fun _ _ h => by simp [ConLeche.stringOfListName] at h)) (by simp [hlpO]) hRO
   -- the numeral heads
-  obtain ⟨hz, hsucc⟩ := hnh hs ρ
+  obtain ⟨hz, hsucc, -⟩ := hnh hs ρ
   -- the chain
   obtain ⟨hclA, hclm⟩ :=
     charList_facts (V := V) (ρ := ρ)
@@ -515,7 +533,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
       have := hmemRO ρ
       rwa [hlpO] at this)
     (TeleFit.cons (by rw [interp_app]; exact hclm) TeleFit.nil)
-  refine ⟨h.1, ?_⟩
+  refine ⟨h.1, ?_, IsTy_of_mem_univ hStringU⟩
   have h2 := h.2
   rwa [hleafC ConLeche.stringName (Level.substFn φ [] []) _] at h2
 
