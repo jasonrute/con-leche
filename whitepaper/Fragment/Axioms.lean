@@ -7,6 +7,7 @@ public import Fragment.UniformBeta
 public import Fragment.Unannot
 public import Fragment.Probe
 public import Fragment.EtaIota
+public import Fragment.IOWitness
 
 public section
 
@@ -350,3 +351,48 @@ info: 'Fragment.plainIota_literal_witness' depends on axioms: [propext, Classica
 info: 'Fragment.etaIota_reduced_major_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.etaIota_reduced_major_witness
+
+/--
+info: 'Fragment.inferIO_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.inferIO_sound
+
+/--
+info: 'Fragment.eq_pt_of_IORel_prop' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.eq_pt_of_IORel_prop
+
+/--
+info: 'Fragment.proofIrrelIO_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.proofIrrelIO_sound
+
+/--
+info: 'Fragment.IORel_neutral' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IORel_neutral
+
+/--
+info: 'Fragment.etaIO_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.etaIO_sound
+
+/--
+info: 'Fragment.lam_congr_io_unsound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.lam_congr_io_unsound
+
+/--
+info: 'Fragment.eta_body_io_unsound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.eta_body_io_unsound
+
+/--
+info: 'Fragment.eta_lam_io_unsound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.eta_lam_io_unsound
+
+/--
+info: 'Fragment.io_type_value_collision' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.io_type_value_collision
