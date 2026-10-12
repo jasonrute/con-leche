@@ -61,7 +61,7 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .natLit h => Red.natLit_sound h
   | _, _, _, .strLit h => Red.strLit_sound h
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
-    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (certs_sound hin hcerts)
+    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (Certs.licensed_sound hcerts)
   | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
   | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
     Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
@@ -71,7 +71,7 @@ theorem red_sound (hin : RulesInputs V m φ) :
       hparams hcertR hcertC hres hidx =>
     Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
       hrule hmlen hfire hlv (fun hc => defEqList_sound hin (hparams hc))
-      (certs_sound hin hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
+      (Certs.licensed_sound hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
       (fun h3 hne => defEqList_sound hin (hidx h3 hne))
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
       hb hlv' _ _ htp http hv hv0 =>
@@ -188,15 +188,6 @@ theorem prop_pt_io (hin : RulesInputs V m φ) :
     propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
   | _, _, _, _, .proj _ _ _ _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
     propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
-
-theorem certs_sound (hin : RulesInputs V m φ) :
-    ∀ {d : Nat} {lic : Bool} {ty : Expr} {args : List Expr},
-      Certs env d lic ty args → CertsSem m φ d lic ty args
-  | _, _, _, _, .nil => Certs.nil_sound
-  | _, _, _, _, .licensed h => Certs.licensed_sound h
-  | _, _, _, _, .cert hta hd hrest =>
-    Certs.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
-      (certs_sound hin hrest)
 
 theorem certsF_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {ty : Expr} {args : List Expr},

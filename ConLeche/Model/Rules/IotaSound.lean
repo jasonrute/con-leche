@@ -99,7 +99,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       DefEqListSem m φ d (major.getAppArgs.take rl.ctorParams)
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).2)
-    (hcertR : CertsSem m φ d true (cv.type.instantiateLevelParams cv.levelParams us)
+    (hcertR : CertsSem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
       e.getAppArgs)
     (hcertC : ConLeche.iotaCase3 env.find? rl cvj usj = true →
       CertsFSem m φ d (cvj.type.instantiateLevelParams cvj.levelParams usj)
@@ -222,7 +222,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     hfitR ρ hρ
       (LeavesGr.of_fvarLeaves_nil
         (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfR))
-      (leavesGr_spine hL) (hokTVa ρ) hoX (fun _ => ⟨hg, hmemR ρ, hne⟩)
+      (leavesGr_spine hL) (hokTVa ρ) hoX ⟨hg, hmemR ρ, hne⟩
   have hsplit := take_getD_splitAK hxsLen
   have hfitRVal : TeleFitPA V ρ TVa (xs.take mI ++ [xs.getD mI default]) restR := by
     rw [← hsplit]; exact hfitRVal0

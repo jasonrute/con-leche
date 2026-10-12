@@ -483,62 +483,6 @@ private theorem isForallE_shiftFrom (p : Nat) (e : Expr) :
   cases e <;> try rfl
   case fvar idx ty => simp only [shiftFrom]; split <;> rfl
 
-private theorem iotaCerts_shift (henv : EnvWF env)
-    (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (lic : Bool) :
-    ∀ {args : List Expr} {ty : Expr}, WScoped d ty →
-      (∀ x ∈ args, WScoped d x) →
-      iotaCerts (pureFns mode env fuel) env (d + 1) lic (shiftFrom p ty)
-          (args.map (shiftFrom p)) =
-        iotaCerts (pureFns mode env fuel) env d lic ty args := by
-  intro args
-  induction args with
-  | nil => intro ty _ _; rfl
-  | cons arg rest ihrest =>
-    intro ty hwty hwargs
-    have hwarg : WScoped d arg := hwargs arg (List.mem_cons_self ..)
-    have hwrest : ∀ x ∈ rest, WScoped d x :=
-      fun x hx => hwargs x (List.mem_cons_of_mem _ hx)
-    match ty with
-    | .forallE ty' body mb =>
-      have hwty' : WScoped d ty' ∧ WScoped d body := by
-        simpa only [WScoped] using hwty
-      show (if lic then pure (Expr.peelPis (rest.map (shiftFrom p)).length (shiftFrom p body)).isSome
-        else (do
-          let ta ← (pureFns mode env fuel).infer (d + 1) (shiftFrom p arg)
-          if ← (pureFns mode env fuel).defeq (d + 1) ta (shiftFrom p ty') then
-            iotaCerts (pureFns mode env fuel) env (d + 1) lic
-              ((shiftFrom p body).instantiate1 (shiftFrom p arg))
-              (rest.map (shiftFrom p))
-          else pure false : CheckM Bool)) =
-        (if lic then pure (Expr.peelPis rest.length body).isSome
-        else (do
-          let ta ← (pureFns mode env fuel).infer d arg
-          if ← (pureFns mode env fuel).defeq d ta ty' then
-            iotaCerts (pureFns mode env fuel) env d lic (body.instantiate1 arg) rest
-          else pure false : CheckM Bool))
-      have hrest := ihrest (WScoped.instantiate1_gen hwarg 0 hwty'.2) hwrest
-      rw [shiftFrom_instantiate1_gen] at hrest
-      by_cases hg : lic = true
-      · rw [ite_eq_left hg, ite_eq_left hg, List.length_map, peelPis_isSome_shiftFrom]
-      · rw [ite_eq_right hg, ite_eq_right hg]
-        refine bind_congr _ (ih.infer hpd hwarg) ?_
-        intro ta hta
-        refine bind_congr_eq
-          (ih.defeq hpd (inferTypeCore_WScoped henv fuel hta hwarg)
-            hwty'.1) ?_
-        intro bb _
-        refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-        exact hrest
-    | .bvar i => rfl
-    | .fvar idx ty'' => rw [shiftFrom_fvar]; rfl
-    | .sort u => rfl
-    | .const n' us => rfl
-    | .app f a => rfl
-    | .lam ty'' body' m' => rfl
-    | .letE ty'' v' b' => rfl
-    | .lit l => rfl
-    | .proj sp i' e' => rfl
-
 private theorem iotaCertsFull_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) :
     ∀ {args : List Expr} {ty : Expr}, WScoped d ty →
@@ -922,29 +866,10 @@ private theorem propIrrel_shift (henv : EnvWF env)
   cases w' <;> try rfl
   case fvar => rw [shiftFrom_fvar]
 
-private theorem projCert_shift (henv : EnvWF env) (ih : ShiftClaims mode env fuel)
-    {p d : Nat} (hpd : p ≤ d) (lic : Bool) {c : Name} {us : List Level}
-    {args : List Expr} (hwargs : ∀ x ∈ args, WScoped d x) :
-    projCert (pureFns mode env fuel) env (d + 1) lic c us (args.map (shiftFrom p)) =
-      projCert (pureFns mode env fuel) env d lic c us args := by
-  simp only [projCert]
-  split
-  · rename_i cvC nP nF hf
-    have hnf : (cvC.type.instantiateLevelParams cvC.levelParams us).hasFvar = false :=
-      const_ty_hasFvar henv hf us
-    have h := iotaCerts_shift henv ih hpd lic (WScoped.of_not_hasFvar hnf) hwargs
-    rwa [shiftFrom_eq_self_of_not_hasFvar (p := p) hnf] at h
-  · rfl
-
-private theorem projCertAt_shift (henv : EnvWF env) (ih : ShiftClaims mode env fuel)
-    {p d : Nat} (hpd : p ≤ d) (v lic : Bool) {c : Name} {us : List Level}
-    {args : List Expr} (hwargs : ∀ x ∈ args, WScoped d x) :
-    projCertAt (pureFns mode env fuel) env (d + 1) v lic c us (args.map (shiftFrom p)) =
-      projCertAt (pureFns mode env fuel) env d v lic c us args := by
-  unfold projCertAt
-  split
-  · exact projCert_shift henv ih hpd lic hwargs
-  · rfl
+/-- The projection fire's arity check reads the spine's length only. -/
+private theorem projCertAt_shift {p : Nat} (v : Bool) (c : Name) (args : List Expr) :
+    projCertAt env v c (args.map (shiftFrom p)) = projCertAt env v c args := by
+  simp only [projCertAt, projCert, teleArityOk, List.length_map]
 
 private theorem majorToCtor_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (recName : Name)
@@ -1277,9 +1202,7 @@ private theorem reduceProjCore_shift (henv : EnvWF env)
     simp only [shiftFrom]
     simp only [getAppArgs_shiftFrom, List.length_map]
     refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-    refine bind_rel_eq _ (projCertAt_shift henv ih hpd mode.verifiedChecks true
-      (fun x hx => hwe₃.getAppArgs x hx)) ?_
-    intro bb _
+    rw [projCertAt_shift]
     refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
     simp only [pure, Except.pure, map_ok, Option.map_some]
     rw [getD_map_shiftFrom]

@@ -224,14 +224,14 @@ sort, at the hereditary clause's witness. -/
   | .full, d, e, t => InferSemFull m φ d e t
   | .io, d, e, t => InferSemIO m φ d e t
 
-/-- **`Certs`' motive**: the certified spine fits the telescope's
-reading, substitution-peeling.  At a licensed walk the skipped slots are
-recovered from the spine's own grading and the head's membership
-(`slotTransfer`) where the spine is not the point ("not pt" source (2):
-a reduction claims nothing of a redex that is the point), which are
-therefore premises exactly there. -/
+/-- **The licensed telescope check's motive**: a spine of the subject
+whose head's telescope has the spine's syntactic arity fits the
+telescope's reading, substitution-peeling, where the spine is graded,
+its head a member of the telescope's reading and the application not
+the point ("not pt" source (2): a reduction claims nothing of a redex
+that is the point) — premises exactly there. -/
 @[expose] def CertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (d : Nat) (lic : Bool) (ty : Expr) (args : List Expr) : Prop :=
+    (d : Nat) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
   ∀ {Δa : List AnnotTerm} {Ta fa : AnnotTerm} {vs : List AnnotTerm},
     CtxOkS m φ d Δa ty →
@@ -242,8 +242,7 @@ therefore premises exactly there. -/
       ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d ty ρ →
         (∀ x ∈ args, LeavesGr m φ d x ρ) →
         WellDenotedV V ρ Ta → (∀ x ∈ vs, WellDenotedV V ρ x) →
-        (lic = true →
-          WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
+        (WellDenotedV V ρ (AnnotTerm.mkAppN fa vs) ∧
             interp V ρ fa ∈ˢ interp V ρ Ta ∧
             interp V ρ (AnnotTerm.mkAppN fa vs) ≠ pt) →
         TeleFitPA V ρ Ta vs resta ∧ WellDenotedV V ρ resta

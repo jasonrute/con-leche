@@ -381,60 +381,12 @@ theorem RelCL.getD {dflt : Expr} {dfltx : Expr} (hd : RelC dflt dfltx) :
     obtain ⟨x, xs', rfl, -, has⟩ := h.cons_inv
     exact RelCL.getD hd n has
 
-/-- `projCertI` simulates its fueled original (task #175: the spine
-certificate against the constructor's stored type — `constTyAtM` reads
-it, `iotaCertsC_sim` walks it). -/
-theorem projCertC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat}
-    {lic : Bool} {c : Name} {us : List Level} {args : List Expr} {xs : List Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀)
-    (hargs : RelCL args xs) (hw : ∀ x ∈ xs, Expr.WScoped d x) :
-    SimC mode env s₀ RelVC
-      (projCertI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d lic c us args)
-      (projCert (fueledFns mode env) env d lic c us xs) := by
-  show SimC mode env s₀ RelVC
-    (pure c >>= fun cn =>
-      match (mkFEnv env).find? cn with
-      | some (.ctorInfo _ _ _) =>
-        constTyAtM (mkFEnv env) c cn us >>= fun tyC =>
-        iotaCertsI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d lic tyC args
-      | _ => pure false)
-    (match env.find? c with
-      | some (.ctorInfo cvC _ _) =>
-        iotaCerts (fueledFns mode env) env d lic
-          (cvC.type.instantiateLevelParams cvC.levelParams us) xs
-      | _ => pure false)
-  refine SimC.bind_left (pureEq_eff hs c) (fun s₁ cn hs₁ hcn => ?_)
-  subst hcn
+/-- The cached projection-fire check is the spec's (`mkFEnv`). -/
+theorem projCertAtF_mkFEnv (env : Env) (v : Bool) (c : Name) (args : List Expr) :
+    projCertAtF (mkFEnv env) v c args = projCertAt env v c args := by
+  unfold projCertAtF projCertAt projCertF projCert
   rw [mkFEnv_find?]
-  cases hf : env.find? cn with
-  | none => exact SimC.pure hs₁ rfl
-  | some ci =>
-    cases ci with
-    | ctorInfo cvC nP nF =>
-      refine SimC.bind_left (constTyAtM_eff hs₁ hf) (fun s₂ tyC hs₂ hty => ?_)
-      have hnf : (cvC.type.instantiateLevelParams cvC.levelParams us).hasFvar = false :=
-        const_ty_hasFvar henv hf us
-      exact iotaCertsC_sim ih hs₂ hty (Expr.WScoped.of_not_hasFvar hnf) hargs hw
-    | axiomInfo _ => exact SimC.pure hs₁ rfl
-    | defnInfo _ _ _ => exact SimC.pure hs₁ rfl
-    | thmInfo _ => exact SimC.pure hs₁ rfl
-    | indInfo _ _ => exact SimC.pure hs₁ rfl
-    | recInfo _ _ _ _ => exact SimC.pure hs₁ rfl
-    | projInfo _ => exact SimC.pure hs₁ rfl
-
-/-- `projCertC_sim` at the mode's gate (`projCertAt`; parity mirrors
-official, 2026-09-06). -/
-theorem projCertAtC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat}
-    {v lic : Bool} {c : Name} {us : List Level} {args : List Expr} {xs : List Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀)
-    (hargs : RelCL args xs) (hw : ∀ x ∈ xs, Expr.WScoped d x) :
-    SimC mode env s₀ RelVC
-      (projCertAtI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d v lic c us args)
-      (projCertAt (fueledFns mode env) env d v lic c us xs) := by
-  unfold projCertAtI projCertAt
-  split
-  · exact projCertC_sim ih henv hs hargs hw
-  · exact SimC.pure hs rfl
+  split <;> rfl
 
 /-- `structUnitCertI` simulates its fueled original. -/
 theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (_henv : EnvWF env)

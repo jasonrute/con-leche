@@ -124,78 +124,6 @@ section Commute
 variable {rel : MonadRel M₁ M₂} {r₁ : CoreFns M₁} {r₂ : CoreFns M₂}
   {h : FnsRel rel r₁ r₂} {env : Env}
 
-theorem iotaCerts_fst (d : Nat) (lic : Bool) :
-    ∀ (ty : Expr) (args : List Expr),
-      (iotaCerts (pairFns r₁ r₂ h) env d lic ty args).val.1 =
-        iotaCerts r₁ env d lic ty args
-  | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
-    show (if lic then pure (Expr.peelPis rest.length body).isSome
-      else (do
-        let ta ← (pairFns r₁ r₂ h).infer d arg
-        if ← (pairFns r₁ r₂ h).defeq d ta ty then
-          iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
-        else pure false : PairM rel Bool)).val.1 = (if lic then pure (Expr.peelPis rest.length body).isSome
-      else do
-        let ta ← r₁.infer d arg
-        if ← r₁.defeq d ta ty then
-          iotaCerts r₁ env d lic (body.instantiate1 arg) rest
-        else pure false)
-    cases lic with
-    | true => rfl
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      rw [PairM.fst_bind]
-      congr 1
-      funext ta
-      rw [PairM.fst_bind]
-      congr 1
-      funext b
-      cases b with
-      | true =>
-        simp only [↓reduceIte]
-        exact iotaCerts_fst d false (body.instantiate1 arg) rest
-      | false => rfl
-  | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
-  | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
-
-theorem iotaCerts_snd (d : Nat) (lic : Bool) :
-    ∀ (ty : Expr) (args : List Expr),
-      (iotaCerts (pairFns r₁ r₂ h) env d lic ty args).val.2 =
-        iotaCerts r₂ env d lic ty args
-  | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
-    show (if lic then pure (Expr.peelPis rest.length body).isSome
-      else (do
-        let ta ← (pairFns r₁ r₂ h).infer d arg
-        if ← (pairFns r₁ r₂ h).defeq d ta ty then
-          iotaCerts (pairFns r₁ r₂ h) env d lic (body.instantiate1 arg) rest
-        else pure false : PairM rel Bool)).val.2 = (if lic then pure (Expr.peelPis rest.length body).isSome
-      else do
-        let ta ← r₂.infer d arg
-        if ← r₂.defeq d ta ty then
-          iotaCerts r₂ env d lic (body.instantiate1 arg) rest
-        else pure false)
-    cases lic with
-    | true => rfl
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      rw [PairM.snd_bind]
-      congr 1
-      funext ta
-      rw [PairM.snd_bind]
-      congr 1
-      funext b
-      cases b with
-      | true =>
-        simp only [↓reduceIte]
-        exact iotaCerts_snd d false (body.instantiate1 arg) rest
-      | false => rfl
-  | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
-  | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
-
 theorem iotaCertsFull_fst (d : Nat) :
     ∀ (ty : Expr) (args : List Expr),
       (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.1 =
@@ -418,7 +346,6 @@ macro "fst_step" : tactic =>
   `(tactic| repeat (first
     | rfl
     | (rw [liftFueled_fst_proj])
-    | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
@@ -437,7 +364,6 @@ macro "snd_step" : tactic =>
   `(tactic| repeat (first
     | rfl
     | (rw [liftFueled_snd_proj])
-    | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
@@ -548,47 +474,10 @@ theorem etaCert_snd_proj (d : Nat) (ty body : Expr) (b : Expr) :
   unfold etaCert
   snd_tac
 
-theorem projCert_fst_proj (d : Nat) (lic : Bool) (c : Name) (us : List Level)
-    (args : List Expr) :
-    (projCert (pairFns r₁ r₂ h) env d lic c us args).val.1 =
-      projCert r₁ env d lic c us args := by
-  unfold projCert
-  split
-  · exact iotaCerts_fst d lic _ _
-  · rfl
-
-theorem projCert_snd_proj (d : Nat) (lic : Bool) (c : Name) (us : List Level)
-    (args : List Expr) :
-    (projCert (pairFns r₁ r₂ h) env d lic c us args).val.2 =
-      projCert r₂ env d lic c us args := by
-  unfold projCert
-  split
-  · exact iotaCerts_snd d lic _ _
-  · rfl
-
-theorem projCertAt_fst_proj (d : Nat) (v lic : Bool) (c : Name) (us : List Level)
-    (args : List Expr) :
-    (projCertAt (pairFns r₁ r₂ h) env d v lic c us args).val.1 =
-      projCertAt r₁ env d v lic c us args := by
-  unfold projCertAt
-  split
-  · exact projCert_fst_proj d lic c us args
-  · rfl
-
-theorem projCertAt_snd_proj (d : Nat) (v lic : Bool) (c : Name) (us : List Level)
-    (args : List Expr) :
-    (projCertAt (pairFns r₁ r₂ h) env d v lic c us args).val.2 =
-      projCertAt r₂ env d v lic c us args := by
-  unfold projCertAt
-  split
-  · exact projCert_snd_proj d lic c us args
-  · rfl
-
 macro "fst_step2" : tactic =>
   `(tactic| repeat (first
     | rfl
     | (rw [liftFueled_fst_proj])
-    | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
@@ -601,8 +490,6 @@ macro "fst_step2" : tactic =>
     | (rw [structEtaCertWith_fst_proj])
     | (rw [structUnitCert_fst_proj])
     | (rw [etaCert_fst_proj])
-    | (rw [projCertAt_fst_proj])
-    | (rw [projCert_fst_proj])
     | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
     | (dsimp only [])
     | split))
@@ -617,7 +504,6 @@ macro "snd_step2" : tactic =>
   `(tactic| repeat (first
     | rfl
     | (rw [liftFueled_snd_proj])
-    | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
@@ -630,8 +516,6 @@ macro "snd_step2" : tactic =>
     | (rw [structEtaCertWith_snd_proj])
     | (rw [structUnitCert_snd_proj])
     | (rw [etaCert_snd_proj])
-    | (rw [projCertAt_snd_proj])
-    | (rw [projCert_snd_proj])
     | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
     | (dsimp only [])
     | split))
@@ -791,7 +675,6 @@ macro "fst_core3" x:tactic : tactic =>
     | rfl
     | $x:tactic
     | (rw [liftFueled_fst_proj])
-    | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
@@ -803,8 +686,6 @@ macro "fst_core3" x:tactic : tactic =>
     | (rw [structEtaCertWith_fst_proj])
     | (rw [structUnitCert_fst_proj])
     | (rw [etaCert_fst_proj])
-    | (rw [projCertAt_fst_proj])
-    | (rw [projCert_fst_proj])
     | (rw [structEtaCert_fst_proj])
     | (rw [majorToCtor_fst_proj])
     | (rw [litMajorToCtor_fst_proj])
@@ -827,7 +708,6 @@ macro "snd_core3" x:tactic : tactic =>
     | rfl
     | $x:tactic
     | (rw [liftFueled_snd_proj])
-    | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
@@ -839,8 +719,6 @@ macro "snd_core3" x:tactic : tactic =>
     | (rw [structEtaCertWith_snd_proj])
     | (rw [structUnitCert_snd_proj])
     | (rw [etaCert_snd_proj])
-    | (rw [projCertAt_snd_proj])
-    | (rw [projCert_snd_proj])
     | (rw [structEtaCert_snd_proj])
     | (rw [majorToCtor_snd_proj])
     | (rw [litMajorToCtor_snd_proj])
@@ -1014,7 +892,6 @@ macro "fst_core4" x:tactic : tactic =>
     | rfl
     | $x:tactic
     | (rw [liftFueled_fst_proj])
-    | (rw [iotaCerts_fst])
     | (rw [iotaCertsFull_fst])
     | (rw [defeqLams_fst])
     | (rw [iotaIndexOk_fst])
@@ -1027,8 +904,6 @@ macro "fst_core4" x:tactic : tactic =>
     | (rw [structEtaCertWith_fst_proj])
     | (rw [structUnitCert_fst_proj])
     | (rw [etaCert_fst_proj])
-    | (rw [projCertAt_fst_proj])
-    | (rw [projCert_fst_proj])
     | (rw [structEtaCert_fst_proj])
     | (rw [majorToCtor_fst_proj])
     | (rw [stuckIrrel_fst_proj])
@@ -1073,7 +948,6 @@ macro "snd_core4" x:tactic : tactic =>
     | rfl
     | $x:tactic
     | (rw [liftFueled_snd_proj])
-    | (rw [iotaCerts_snd])
     | (rw [iotaCertsFull_snd])
     | (rw [defeqLams_snd])
     | (rw [iotaIndexOk_snd])
@@ -1086,8 +960,6 @@ macro "snd_core4" x:tactic : tactic =>
     | (rw [structEtaCertWith_snd_proj])
     | (rw [structUnitCert_snd_proj])
     | (rw [etaCert_snd_proj])
-    | (rw [projCertAt_snd_proj])
-    | (rw [projCert_snd_proj])
     | (rw [structEtaCert_snd_proj])
     | (rw [majorToCtor_snd_proj])
     | (rw [stuckIrrel_snd_proj])

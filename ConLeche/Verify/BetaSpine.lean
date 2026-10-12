@@ -373,26 +373,6 @@ theorem projLitToCtor_mono {d : Nat} {e : Expr} {F F' : Nat}
   rw [← projLitToCtor_atF] at h ⊢
   exact (projLitToCtor (fueledFns mode env) env d e).property hle h
 
-theorem projCert_mono {d : Nat} {lic : Bool} {c : Name} {us : List Level}
-    {args : List Expr} {F F' : Nat} (hle : F ≤ F') {b : Bool}
-    (h : projCert (pureFns mode env F) env d lic c us args = .ok b) :
-    projCert (pureFns mode env F') env d lic c us args = .ok b := by
-  rw [← projCert_atF] at h ⊢
-  exact (projCert (fueledFns mode env) env d lic c us args).property hle h
-
-theorem projCertAt_mono {d : Nat} {v lic : Bool} {c : Name} {us : List Level}
-    {args : List Expr} {F F' : Nat} (hle : F ≤ F') {b : Bool}
-    (h : projCertAt (pureFns mode env F) env d v lic c us args = .ok b) :
-    projCertAt (pureFns mode env F') env d v lic c us args = .ok b := by
-  unfold projCertAt at h ⊢
-  split
-  · rename_i hv
-    rw [ite_eq_left hv] at h
-    exact projCert_mono hle h
-  · rename_i hv
-    rw [ite_eq_right hv] at h
-    exact h
-
 theorem reduceProjCore_mono {d : Nat} {sn : Name} {i : Nat} {e : Expr} {F F' : Nat}
     (hle : F ≤ F') {o : Option Expr}
     (h : reduceProjCore mi (pureFns mode env F) env d sn i e = .ok o) :

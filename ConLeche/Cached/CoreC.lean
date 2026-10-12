@@ -143,55 +143,12 @@ def reduceNatI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
     | _ => pure none
   | _ => pure none
 
-/-- Twin of `iotaCerts`, bulk form (task #50): peel the raw telescope
-while accumulating the certified arguments, substituting only each
-binder's *domain* (small) instead of copying the whole residual
-telescope per argument.  A raw `bvar` body (whose substitution could
-expose further `∀`-binders — the fold semantics) substitutes the
-accumulator and re-enters.
-
-`lic` is the ι-slot licence (the spec's docstring): at a licensed walk
-a `.never` binder's slot is skipped outright — no domain instantiation,
-no inference, no defeq — and the binder's argument joins the
-accumulator as if certified.  The datum read is the level-instantiated
-one (the telescope was instantiated at the recursor's levels by
-`constTyAtM`), which is where `Nat.rec.{u}`'s `.ifAllZero [u]` major
-binder becomes `.never` at `u := succ _`. -/
-def iotaCertsIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool) :
-    Expr → List Expr → List Expr → CheckCM Bool
-  | _, _, [] => pure true
-  | ty, acc, arg :: rest => do
-    match ty with
-    | .forallE dom body _ =>
-      if lic then pure (Expr.peelPis rest.length body).isSome
-      else do
-        let dom' ← instListM dom acc
-        let ta ← r.infer depth arg
-        if ← r.defeq depth ta dom' then
-          iotaCertsIAux r fe depth lic body (arg :: acc) rest
-        else pure false
-    | .bvar _ =>
-      match acc with
-      | [] => pure false
-      | _ :: _ => do
-        let ty' ← instListM ty acc
-        iotaCertsIAux r fe depth lic ty' [] (arg :: rest)
-    | _ => pure false
-termination_by _ acc args => (args.length, acc.length)
-decreasing_by
-  all_goals first
-    | (apply Prod.Lex.left; simp; done)
-    | (apply Prod.Lex.right' <;> simp)
-
-/-- Twin of `iotaCerts` (certify a spine against a recursor telescope);
-the bulk-instantiating accumulator loop at the empty accumulator. -/
-def iotaCertsI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool)
-    (ty : Expr) (args : List Expr) : CheckCM Bool :=
-  iotaCertsIAux r fe depth lic ty [] args
-
-/-- Twin of `iotaCertsFull` (task #342 L10, ι's case 3), bulk form as
-`iotaCertsIAux`: every slot is certified, its argument inferred at the
-FULL grade. -/
+/-- Twin of `iotaCertsFull` (task #342 L10, ι's case 3), in bulk form:
+the consumed arguments are kept in an accumulator and substituted into
+each binder's *domain* (small) instead of instantiating the whole
+residual telescope per argument; a raw `bvar` body substitutes the
+accumulator and re-enters.  Every slot is certified, its argument
+inferred at the FULL grade. -/
 def iotaCertsFullIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
     Expr → List Expr → List Expr → CheckCM Bool
   | _, _, [] => pure true
@@ -747,20 +704,16 @@ def iotaRecI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
     | _ => pure none
   | _ => pure none
 
-/-- Twin of `projCert`. -/
-def projCertI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : CheckCM Bool := do
-  let cn ← pure c
-  match fe.find? cn with
-  | some (.ctorInfo _ _ _) => do
-    let tyC ← constTyAtM fe c cn us
-    iotaCertsI r fe depth lic tyC args
-  | _ => pure false
+/-- Twin of `projCert`, through the index. -/
+def projCertF (fe : FEnv) (c : Name) (args : List Expr) : Bool :=
+  match fe.find? c with
+  | some (.ctorInfo cvC _ _) => teleArityOk cvC.type args
+  | _ => false
 
 /-- Twin of `projCertAt`. -/
-def projCertAtI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (verified lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : CheckCM Bool :=
-  if verified then projCertI r fe depth lic c us args else pure true
+def projCertAtF (fe : FEnv) (verified : Bool) (c : Name) (args : List Expr) :
+    Bool :=
+  if verified then projCertF fe c args else true
 
 /-- Twin of `reduceProjCore`. -/
 def reduceProjCoreI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (sn : Name)
@@ -780,7 +733,7 @@ def reduceProjCoreI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (sn : Name)
         let arg := args.getD (entry.numParams + i) bvar0
         -- task #100 de-gating / task #175 W6 / `projCertAt`: see the
         -- spec `reduceProjCore`
-        if ← projCertAtI r fe depth mode.verifiedChecks true k us args then
+        if projCertAtF fe mode.verifiedChecks k args then
           pure (some arg)
         else pure none
       else pure none

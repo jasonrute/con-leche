@@ -518,10 +518,9 @@ theorem reduceProjCore_inv {env : Env} {fuel d : Nat} {sn : Name} {i : Nat}
       us.length = entry.levelParams.length ∧
       entry.fireOk us = true ∧
       m = e₃.getAppArgs.getD (entry.numParams + i) (.bvar 0) ∧
-      projCertAtFueled mode env fuel d mode.verifiedChecks true entry.ctor us
-        e₃.getAppArgs = .ok true := by
+      projCertAt env mode.verifiedChecks entry.ctor e₃.getAppArgs = true := by
   simp only [reduceProjCoreFueled, reduceProjCore, Bind.bind, Except.bind,
-    projCertAt_fold, projLitToCtor_fold] at h
+    projLitToCtor_fold] at h
   cases hlit : projLitToCtorFueled mode env fuel d c with
   | error err => rw [hlit] at h; exact nomatch h
   | ok e₃ =>
@@ -539,17 +538,12 @@ theorem reduceProjCore_inv {env : Env} {fuel d : Nat} {sn : Name} {i : Nat}
     split at h
     next hcond =>
       obtain ⟨rfl, hi, hlen, hus, hfire⟩ := hcond
-      try simp only [Bind.bind, Except.bind] at h
-      cases hcert : projCertAtFueled mode env fuel d mode.verifiedChecks true
-          entry.ctor us e₃.getAppArgs with
-      | error err => rw [hcert] at h; exact nomatch h
-      | ok b =>
-      rw [hcert] at h
-      cases b with
+      cases hcert : projCertAt env mode.verifiedChecks entry.ctor e₃.getAppArgs with
       | true =>
-        simp only [ite_true, pure, Except.pure, Except.ok.injEq, Option.some.injEq] at h
+        simp only [hcert, ite_true, pure, Except.pure, Except.ok.injEq,
+          Option.some.injEq] at h
         exact ⟨e₃, us, entry, rfl, hfn, rfl, hi, hlen, hus, hfire, h.symm, hcert⟩
-      | false => simp [pure, Except.pure] at h
+      | false => simp [hcert, pure, Except.pure] at h
     next => simp [pure, Except.pure] at h
   | _ => rw [hfn] at h; simp [pure, Except.pure] at h
 
@@ -604,31 +598,19 @@ theorem whnf_proj_inv {env : Env} {fuel d : Nat} {sn : Name} {i : Nat} {e e' : E
     | some m => exact Or.inr ⟨m, rfl, h⟩
     | none => exact Or.inl (Except.ok.inj h).symm
 
-/-- At the verified mode the fire's gate runs the certificate
-(`projCertAt`; parity mirrors official, 2026-09-06). -/
-theorem projCertAtFueled_verified {env : Env} {fuel d : Nat} {lic : Bool} {c : Name}
-    {us : List Level} {args : List Expr} (hv : mode.verifiedChecks = true)
-    (h : projCertAtFueled mode env fuel d mode.verifiedChecks lic c us args = .ok true) :
-    projCertFueled mode env fuel d lic c us args = .ok true := by
-  simp only [projCertAtFueled, projCertAt, hv, ↓reduceIte] at h
-  exact h
-
-/-- Inversion for a successful projection certification (task #175 W6):
-the head is a stored constructor and the spine is certified against
-its type at the redex's levels (`iotaCerts`). -/
-theorem projCert_inv {env : Env} {fuel d : Nat} {lic : Bool} {c : Name}
-    {us : List Level} {args : List Expr}
-    (h : projCertFueled mode env fuel d lic c us args = .ok true) :
+/-- At the verified mode the fire's gate is the arity check
+(`projCertAt`; parity mirrors official, 2026-09-06): the head is a
+stored constructor whose telescope has the spine's syntactic arity. -/
+theorem projCertAt_verified_inv {env : Env} {c : Name} {args : List Expr}
+    (hv : mode.verifiedChecks = true)
+    (h : projCertAt env mode.verifiedChecks c args = true) :
     ∃ cvC nP nF, env.find? c = some (.ctorInfo cvC nP nF) ∧
-      iotaCertsFueled mode env fuel d lic
-        (cvC.type.instantiateLevelParams cvC.levelParams us) args = .ok true := by
-  dsimp only [projCertFueled] at h
-  simp only [projCert] at h
+      teleArityOk cvC.type args = true := by
+  simp only [projCertAt, hv, ↓reduceIte, projCert] at h
   split at h
   · rename_i cvC nP nF hf
-    rw [iotaCerts_fold] at h
     exact ⟨cvC, nP, nF, hf, h⟩
-  · exact absurd h (by simp [pure, Except.pure])
+  · exact nomatch h
 
 /-- **The major chain's induction principle.**  `prepareMajor` runs
 `whnf`, the literal conversion and the rescue in one of two orders
@@ -733,7 +715,7 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   dsimp only [iotaRecFueled] at h
   simp only [iotaRec, Bind.bind, Except.bind] at h
   simp only [prepareMajor_fold, defEqList_fold,
-    iotaCerts_fold, iotaCertsFull_fold, iotaIndexOk_fold] at h
+    iotaCertsFull_fold, iotaIndexOk_fold] at h
   revert h
   cases hfn : e.getAppFn with
   | bvar i => intro h; exact nomatch h
@@ -940,8 +922,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
          proofIrrelFueled mode env fuel d major' major = .ok true))) := by
   dsimp only [majorToCtorFueled] at h
   simp only [majorToCtor, Bind.bind, Except.bind] at h
-  simp only [inferTypeIO_def, whnf_def, defeq_def, proofIrrel_fold,
-    iotaCerts_fold] at h
+  simp only [inferTypeIO_def, whnf_def, defeq_def, proofIrrel_fold] at h
   revert h
   cases hca : isCtorApp env major with
   | true =>
@@ -1402,43 +1383,6 @@ theorem defeqSpine_inv {env : Env} {fuel d : Nat} {a b : Expr}
   case isFalse =>
     intro h; simp [pure, Except.pure] at h
 
-/-- Inversion of one certification step: a licensed walk certifies
-nothing, an unlicensed one ran the certificate. -/
-theorem iotaCerts_step_inv_gate {env : Env} {fuel d : Nat} {lic : Bool}
-    {ty body : Expr} {m : BinderMeta} {arg : Expr}
-    {rest : List Expr}
-    (h : iotaCertsFueled mode env fuel d lic (.forallE ty body m) (arg :: rest) =
-      .ok true) :
-    (lic = true ∧ (Expr.peelPis rest.length body).isSome = true) ∨
-    ∃ ta, inferTypeCore mode env fuel d arg = .ok ta ∧
-      isDefEqCore mode env fuel d ta ty = .ok true ∧
-      iotaCertsFueled mode env fuel d lic (body.instantiate1 arg) rest = .ok true := by
-  dsimp only [iotaCertsFueled] at h
-  simp only [iotaCerts, Bind.bind, Except.bind] at h
-  simp only [infer_def, defeq_def, iotaCerts_fold] at h
-  cases lic with
-  | true =>
-    simp only [↓reduceIte, pure, Except.pure, Except.ok.injEq] at h
-    exact Or.inl ⟨rfl, h⟩
-  | false =>
-  refine Or.inr ?_
-  simp only [Bool.false_eq_true, ↓reduceIte] at h
-  cases hta : inferTypeCore mode env fuel d arg with
-  | error err => rw [hta] at h; exact nomatch h
-  | ok ta =>
-  rw [hta] at h
-  dsimp only at h
-  cases hde : isDefEqCore mode env fuel d ta ty with
-  | error err => rw [hde] at h; exact nomatch h
-  | ok r =>
-  rw [hde] at h
-  dsimp only at h
-  cases r with
-  | false => simp [pure, Except.pure] at h
-  | true =>
-  simp only [↓reduceIte] at h
-  exact ⟨ta, rfl, hde, h⟩
-
 /-- Inversion of one step of the full-grade certificate (task #342
 L10): the argument's FULL-grade type is defeq to the domain, and the
 rest certifies. -/
@@ -1842,7 +1786,7 @@ theorem structUnitCert_inv {env : Env} {fuel d : Nat} {a b : Expr}
   dsimp only [structUnitCertFueled] at h
   rw [structUnitCert] at h
   simp only [Bind.bind, Except.bind] at h
-  simp only [inferTypeIO_def, whnf_def, defeq_def, iotaCerts_fold] at h
+  simp only [inferTypeIO_def, whnf_def, defeq_def] at h
   cases hta : inferTypeIO mode env fuel d a with
   | error e => rw [hta] at h; exact nomatch h
   | ok ta => ?_

@@ -754,6 +754,16 @@ def etaFabArgsE (T : Name) (targs : List Expr) (major : Expr) (nF : Nat) :
     List Expr :=
   targs ++ etaProjs T major nF
 
+/-- **The licensed telescope check of a spine** (task #342 L18): the
+telescope's syntactic arity, nothing else.  It is applied to spines of
+the subject (the projection fire, `projCert`; the recursor's own
+telescope in `iotaRec`): where the redex is not the point, its spine
+fits its head's telescope by the application slots of its own
+invariant, and a reduction claims nothing of a redex that is the
+point. -/
+def teleArityOk (ty : Expr) (args : List Expr) : Bool :=
+  (Expr.peelPis args.length ty).isSome
+
 /-- **The tower-fire guard** (task #175 W4c/O4, restated at W6):
 `whnfCore` fires the structural rule `proj_i (ctor p⃗ x⃗) ↦ x_i` at a
 tower-backed entry under exactly the guard the tower infer branch

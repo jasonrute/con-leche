@@ -20,7 +20,7 @@ Inversions: `whnf_app_inv` (the `.app` clause: β gated/certified, ι,
 stuck), `whnf_proj_inv` (the `.proj` clause), `whnfCore_letE_inv`, `whnfStep_inv`,
 `whnfLoopFuel_succ`, `reduceNat`'s branches (no inversion lemma:
 split inline), `litMajorToCtorFueled_inv`, `projLitToCtorFueled_inv`,
-`projCertAtFueled_verified` + `projCert_inv`, `majorToCtor_inv`,
+`projCertAt_verified_inv`, `majorToCtor_inv`,
 `prepareMajorFueled_ind`, `iotaRec_inv`, `iotaIndexOk_inv`.
 -/
 
@@ -152,18 +152,6 @@ theorem projLitToCtor_bridge (hw : WhnfBridge env fuel)
   · exact .refl
   · exact .strLitWhnf hsup (hw hwh)
 
-/-- `projCertAt` at `.verified` ⇒ the constructor's stored type and a
-licensed `Certs` walk (`projCertAtFueled_verified`, `projCert_inv`,
-`iotaCerts_bridge`). -/
-theorem projCertAt_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
-    {d : Nat} {c : Name} {us : List Level} {args : List Expr}
-    (h : projCertAtFueled .verified env fuel d true true c us args = .ok true) :
-    ∃ cvC nP nF, env.find? c = some (.ctorInfo cvC nP nF) ∧
-      Certs env d true (cvC.type.instantiateLevelParams cvC.levelParams us) args := by
-  obtain ⟨cvC, nP, nF, hc, hcerts⟩ :=
-    projCert_inv (projCertAtFueled_verified (mode := .verified) rfl h)
-  exact ⟨cvC, nP, nF, hc, iotaCerts_bridge hd hi hcerts⟩
-
 /-- `majorToCtor` ⇒ `Red.refl` or one of the three rescues
 (`majorToCtor_inv`; the K and `And` rescues' proof-irrelevance
 certificate becomes the `DefEq fab major` premise through
@@ -257,33 +245,34 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
   by_cases hne : mI = rP
   · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
       hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-      (.licensed harity)
+      harity
       (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
       (fun _ hc => absurd hne hc) (fun _ hc => absurd hne hc)
   · by_cases hc3 : iotaCase3 env.find? rl cvj usj = true
     · obtain ⟨residual, hres, hdl⟩ := iotaIndexOk_inv (h3 hc3).2 hne
       exact .iota hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        (.licensed harity)
+        harity
         (fun hc => iotaCertsFull_bridge hd hi (h3 hc).1)
         (fun _ _ => hres) (fun _ _ => defEqList_bridge hd hdl)
     · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         hplain hlev (fun hc => defEqList_bridge hd (hpeq hc))
-        (.licensed harity)
+        harity
         (fun hc => absurd hc hc3)
         (fun hc => absurd hc hc3) (fun hc => absurd hc hc3)
 
 /-- A firing projection rule (`reduceProjCore`) is a `Red` chain: the
 string-literal expansion, then `Red.proj` under its certificate. -/
-theorem reduceProjCore_bridge (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
-    (hinf : InferBridge env fuel) {d : Nat} {sn : Name} {i : Nat} {c m : Expr}
+theorem reduceProjCore_bridge (hw : WhnfBridge env fuel)
+    {d : Nat} {sn : Name} {i : Nat} {c m : Expr}
     (h : reduceProjCoreFueled .verified env fuel d sn i c = .ok (some m)) :
     Red env d (.proj sn i c) m := by
   obtain ⟨e₃, us, entry, hlit, hfn, hfp, hi, hlen, hus, hfire, rfl, hcert⟩ :=
     reduceProjCore_inv h
-  obtain ⟨cvC, nP, nF, hc, hcerts⟩ := projCertAt_bridge hd hinf hcert
+  obtain ⟨cvC, nP, nF, hc, harity⟩ := projCertAt_verified_inv (mode := .verified) rfl hcert
   exact .trans (.projArg (projLitToCtor_bridge hw hlit))
-    (.proj hfp hfn hi hlen hus hfire hc hcerts)
+    (.proj hfp hfn hi hlen hus hfire hc
+      (peelPis_isSome_instantiateLevelParams _ _ _ harity))
 
 /-- **`whnfCore` at `fuel + 1`**: the eleven shapes (`whnf_app_inv`,
 `whnf_proj_inv`, the six leaves, `whnfCore_letE_inv`, the `.bvar`
@@ -317,7 +306,7 @@ theorem whnfCore_bridge_succ (hwc : WhnfCoreBridge env fuel)
       · exact .projArg (hw h2)
     rcases hcase with rfl | ⟨m, hr, hcont⟩
     · exact .refl
-    · exact .trans hR (.trans (reduceProjCore_bridge hw hd hi hr) (hwc hcont))
+    · exact .trans hR (.trans (reduceProjCore_bridge hw hr) (hwc hcont))
 
 /-- One `whnfStep` under a bridged continuation is a `Red` chain
 (`whnfStep_inv`: `whnfCore`, then acceleration or δ into `k`, or the

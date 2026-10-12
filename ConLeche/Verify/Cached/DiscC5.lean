@@ -704,7 +704,7 @@ theorem lazyDeltaProjReductionC_sim (hμ : mode.verifiedChecks = true) (ih : SSi
     case eq => exact SimC.pure hs₁ rfl
     all_goals
       dsimp only
-      refine SimC.bind (reduceProjCoreC_sim ih henv hs₁ rfl hwa)
+      refine SimC.bind (reduceProjCoreC_sim ih hs₁ rfl hwa)
         (fun s₂ ox oxx hs₂ hPx => ?_)
       cases ox with
       | none =>
@@ -717,7 +717,7 @@ theorem lazyDeltaProjReductionC_sim (hμ : mode.verifiedChecks = true) (ih : SSi
         | some xx =>
         obtain ⟨hxd, hwx⟩ := hPx
         dsimp only
-        refine SimC.bind (reduceProjCoreC_sim ih henv hs₂ rfl hwb)
+        refine SimC.bind (reduceProjCoreC_sim ih hs₂ rfl hwb)
           (fun s₃ oy oyx hs₃ hPy => ?_)
         cases oy with
         | none =>

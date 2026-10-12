@@ -947,7 +947,7 @@ dummy binders carry the reading only; the law never reads them. -/
       -- where every constructor binder is graph-regime and graph
       -- rigidity pins the memberships), and the certified spine's fit
       -- against the constructor's own type reading (`projCert`'s
-      -- `iotaCerts`) — the squash regime's
+      -- arity check, `Certs.licensed_sound`) — the squash regime's
       -- premise, where the application is the point and the fit pins
       -- the selected field to a proposition's domain (its sort is `0`
       -- there: the O5 bound at a non-`Prop` family, the guard at a

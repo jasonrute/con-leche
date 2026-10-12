@@ -38,10 +38,6 @@ checker does):
   argument certificate, the λ rule no domain-sort check, the `let` rule
   no check of the value (the `g = .full →` premises).  Its claim is the
   hereditary `IORel`, keyed on the type's syntax, not membership.
-* `Certs env d lic T args` — `iotaCerts`: the telescope certificate of a
-  spine, licensed (`lic = true`, the ι and projection slots: no
-  certificate at all, `Certs.licensed`) or not (the rescues' synthetic
-  spines).
 * `CertsF env d T args` — `iotaCertsFull`: the full-grade telescope
   certificate of ι's case 3.
 * `DefEqList env d as bs` — `defEqList`, pairwise.
@@ -174,8 +170,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   /-- **The structural projection** `proj_i (ctor p⃗ x⃗) ↦ x_i`
   (`whnfCoreBody`'s `.proj` clause, `Kernel/Core.lean`), driven by
   the projection table, fired under the entry's guard, with the
-  constructor spine's licensed telescope certificate (`projCertAt`),
-  which certifies nothing (`Certs.licensed`) or every slot. -/
+  constructor telescope's syntactic arity (`projCertAt`,
+  `teleArityOk`). -/
   | proj {d : Nat} {sn : Name} {i : Nat} {e : Expr} {entry : ProjEntry}
       {us : List Level} {cvC : ConstantVal} {nP nF : Nat} :
       env.findProj? sn i = some entry →
@@ -185,15 +181,15 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
       us.length = entry.levelParams.length →
       entry.fireOk us = true →
       env.find? entry.ctor = some (.ctorInfo cvC nP nF) →
-      Certs env d true (cvC.type.instantiateLevelParams cvC.levelParams us)
-        e.getAppArgs →
+      (Expr.peelPis e.getAppArgs.length
+        (cvC.type.instantiateLevelParams cvC.levelParams us)).isSome = true →
       Red env d (.proj sn i e) (e.getAppArgs.getD (entry.numParams + i) (.bvar 0))
   /-- **ι** (`iotaRec`, `Kernel/Core.lean`): a stored recursor
   applied to exactly its telescope, whose prepared major (the `Red`
   premise: `prepareMajor`'s whnf / literal / rescue chain) is a
   constructor application with a firing rule.  The level comparands,
-  the parameter comparison, the recursor's licensed telescope
-  certificate over the redex's own spine, and (case 3 only) the
+  the parameter comparison, the recursor telescope's syntactic arity
+  over the redex's own spine, and (case 3 only) the
   constructor's full-grade telescope certificate and the index
   comparison are the checker's, in its order.
 
@@ -223,8 +219,8 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
         DefEqList env d (major.getAppArgs.take rl.ctorParams)
           (recFireComparands rl cv.levelParams us cvj.levelParams
             e.getAppArgs rP).2) →
-      Certs env d true (cv.type.instantiateLevelParams cv.levelParams us)
-        e.getAppArgs →
+      (Expr.peelPis e.getAppArgs.length
+        (cv.type.instantiateLevelParams cv.levelParams us)).isSome = true →
       (iotaCase3 env.find? rl cvj usj = true →
         CertsF env d (cvj.type.instantiateLevelParams cvj.levelParams usj)
           major.getAppArgs) →
@@ -630,27 +626,6 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
         Level.isEquiv (Level.subst entry.levelParams us entry.fieldSort) .zero
           = some true) →
       Infer env g d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe)
-
-/-- **The telescope certificate** (`iotaCerts`, `Kernel/Core.lean`):
-each argument's FULL-grade type is definitionally equal to its binder
-domain, the domains instantiated along the spine (task #342 L18: an
-io-inferred type need not hold its term, `IORel`; the unlicensed walks
-certify the rescues' synthetic spines, which are not subterms of the
-subject).  A licensed walk
-(`lic = true`: the spine is the subject's own, the ι and projection
-slots) certifies nothing (`licensed`) but the telescope's syntactic arity
-(the checker's `peelPis` test): a reduction claims nothing of a redex
-that is the point, and a redex that is not the point fits its head's
-telescope by the application slots of its own invariant. -/
-inductive Certs (env : Env) : Nat → Bool → Expr → List Expr → Prop where
-  | nil {d : Nat} {lic : Bool} {T : Expr} : Certs env d lic T []
-  | licensed {d : Nat} {T : Expr} {args : List Expr} :
-      (Expr.peelPis args.length T).isSome = true → Certs env d true T args
-  | cert {d : Nat} {lic : Bool} {ty body arg ta : Expr} {mb : BinderMeta}
-      {rest : List Expr} :
-      Infer env .full d arg ta → DefEq env d ta ty →
-      Certs env d lic (body.instantiate1 arg) rest →
-      Certs env d lic (.forallE ty body mb) (arg :: rest)
 
 /-- **The full-grade telescope certificate** (`iotaCertsFull`,
 `Kernel/Core.lean`; ι's case 3, task #342 L10): each argument's

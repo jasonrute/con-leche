@@ -30,28 +30,6 @@ namespace ConLeche.Rules
 
 variable {env : Env} {fuel : Nat}
 
-/-- `iotaCerts` ⇒ `Certs` (`iotaCerts_step_inv_gate`; a licensed walk
-lands on `Certs.licensed`, a certified slot on `Certs.cert` through
-`inferTypeIO_bridge` and `hd`). -/
-theorem iotaCerts_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) :
-    ∀ {d : Nat} {lic : Bool} {ty : Expr} {args : List Expr},
-      iotaCertsFueled .verified env fuel d lic ty args = .ok true →
-      Certs env d lic ty args := by
-  intro d lic ty args
-  induction args generalizing ty with
-  | nil => intro _; exact .nil
-  | cons arg rest ih =>
-    match ty with
-    | .forallE ty₀ body mb =>
-      intro h
-      rcases iotaCerts_step_inv_gate h with ⟨rfl, harity⟩ | ⟨ta, hta, hde, hrest⟩
-      · exact .licensed harity
-      · exact .cert (hi hta) (hd hde) (ih hrest)
-    | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
-    | .letE _ _ _ | .lit _ | .proj _ _ _ =>
-      intro h
-      simp [iotaCertsFueled, iotaCerts, pure, Except.pure] at h
-
 /-- `iotaCertsFull` ⇒ `CertsF` (`iotaCertsFull_step_inv`; every slot
 through `hi` and `hd`; task #342 L10). -/
 theorem iotaCertsFull_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) :

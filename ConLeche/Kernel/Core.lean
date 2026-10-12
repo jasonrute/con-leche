@@ -13,7 +13,7 @@ Every core function is written **once**, as a non-recursive *body*
 parameterized over a record of the mutually recursive entry points
 (`CoreFns`) and polymorphic in the monad.  All recursion is routed
 through the record — bodies never call themselves, and the few helpers
-that do recurse (`iotaCerts`, `defEqList`) do so
+that do recurse (`iotaCertsFull`, `defEqList`) do so
 structurally on a list.  Fuel lives only in the *knots* that tie the
 record: the pure knot (`ConLeche.Kernel.TypeChecker`) instantiates the
 bodies at `CheckM` and is the verification's subject; the cached knot
@@ -242,43 +242,6 @@ def reduceNat (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
     else pure none
   | _ => pure none
 
-/-- Certify a spine against a recursor telescope: each argument's
-inferred type is defeq to the corresponding (instantiated) domain.
-This is what hands the soundness proof the memberships the iota
-equations need, at every level assignment.
-
-**The ι-slot licence** (the ι batch, 2026-09-05; DESIGN.md "THE ι
-AUDIT" §9.1): at a *licensed* walk (`lic = true`, set only by
-`iotaRec`'s two calls — the fire-time telescope runs, where the redex
-is a subterm of the subject and carries its own `WellDenoted` app slots)
-a slot whose `∀`-binder datum is `.never` is skipped: the membership
-the run would establish follows from the slot and the head's
-membership in the telescope's reading (`io_domain_transfer`,
-`Model/IOLicense.lean`, consumed by `Certs.skip_sound` in
-`Model/Rules/CertsSound.lean`).  The rescue's
-synthetic-spine certifications (`majorToCtor`, the η/unit/K
-fabrications) run at `lic = false`: a fabricated spine is not a
-subterm of the subject and its grading is *produced* by this very
-run, so gating it would be circular.  The fence is
-`io_squash_no_transfer`'s witness: at a possibly-zero datum the skip
-is unsound model-class-wide, so the licensed fragment is exactly
-`.never`. -/
-def iotaCerts (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool) :
-    Expr → List Expr → m Bool
-  | _, [] => pure true
-  | .forallE ty body _, arg :: rest =>
-    -- a licensed walk tests the telescope's arity only (task #342 L18:
-    -- the model reads the spine's own slots where the redex is not the
-    -- point, against the telescope's ∀-chain)
-    if lic then pure (Expr.peelPis rest.length body).isSome
-    else do
-      -- the synthetic spine's certificate at the FULL grade (task #342
-      -- L18: an io-inferred type need not hold its term)
-      let ta ← r.infer depth arg
-      if ← r.defeq depth ta ty then
-        iotaCerts r env depth lic (body.instantiate1 arg) rest
-      else pure false
-  | _, _ :: _ => pure false
 
 /-- **The full-grade telescope certificate** (task #342 L10, ι's case
 3): every argument is inferred at the FULL grade, which establishes
@@ -771,10 +734,8 @@ exactly its telescope (params, motives, minors, indices, major), the
 major premise whnfs to a fully applied constructor with a matching
 rule (a literal major converts to constructor form — see
 `litMajorToCtor` —, a
-stuck major may be rescued — see `majorToCtor`), and the redex's own
-spine is certified against the recursor's own (pinned, annotated) type
-with `iotaCerts` (per-slot infer+defeq, licensed at a `.never`
-binder).  The constructor side follows **the ι licence** (task #342
+stuck major may be rescued — see `majorToCtor`), and the recursor's
+stored type has the redex's arity.  The constructor side follows **the ι licence** (task #342
 L10): a K rule, and a rule whose constructor's family is never `Prop`
 at the constructor's levels (`iotaCtorLicensed`), fire with no
 constructor certificate and no index comparison; every other rule
@@ -885,48 +846,29 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
     | _ => pure none
   | _ => pure none
 
-/-- **The structural projection's certificate** (task #175 W6, the
-squash-regime licence): the redex `proj_i (C p⃗ x⃗)` fires only after
-its constructor spine is certified against `C`'s stored type at the
-redex's own levels — `iotaCerts`, each argument's inferred type defeq
-to its binder domain, the domains instantiated along the spine.  This
-is what makes the rule sound-to-model at a squash instantiation: there
-the constructor application is the point and so is every field
-(every field of a non-`Prop`-declared family is a proposition where
-the family is one, by the O5 bound; at a `Prop`-declared family the
-fire guard says so of the projected field), and the certified fit is
-what pins the selected argument to its domain — a grading alone pins
-nothing at bit `0`.  In the graph regime the fit is redundant with
-the application's grading, which the tower law consumes there.
-
-The telescope certificate is the same per-argument `inferIO` + `defeq`
-work the subject's run performed inside `inferSpine`.  The official
-kernel's `reduce_proj` certifies nothing — this is a conformance
-residue the model's projection step consumes.  The spine is a subterm of the
-subject, so the certificate is *licensed* like the ι slot's
-(`iotaCerts`' docstring): at the verified mode a `.never` binder's
-certificate is skipped — every field binder of an ordinary `structure`. -/
-def projCert (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : m Bool := do
+/-- **The structural projection's check** (task #175 W6): the redex
+`proj_i (C p⃗ x⃗)` fires only where `C`'s stored type has the spine's
+arity.  The check is the constructor telescope's syntactic arity
+(`teleArityOk`, task #342 L18): the spine is a subterm of the subject,
+so where the redex is not the point it fits the telescope by the
+application slots of its own invariant, and a reduction claims nothing
+of a redex that is the point.  The official kernel's `reduce_proj`
+checks nothing.  (Level instantiation keeps the arity, so the stored
+type is read uninstantiated.) -/
+def projCert (env : Env) (c : Name) (args : List Expr) : Bool :=
   match env.find? c with
-  | some (.ctorInfo cvC _ _) =>
-    iotaCerts r env depth lic
-      (cvC.type.instantiateLevelParams cvC.levelParams us) args
-  | _ => pure false
+  | some (.ctorInfo cvC _ _) => teleArityOk cvC.type args
+  | _ => false
 
-/-- **The fire certificate as the mode runs it** (parity mirrors
-official, 2026-09-06).  The P core (`verified = true`) certifies the
-constructor spine (`projCert`, licensed by the mode's β gate) — the
-model's licence for the fire at a squash instantiation.  The parity
-core is the official kernel's: `reduce_proj` reduces every
-constructor redex with no certificate (`type_checker.cpp`), so at
-`verified = false` no certificate runs and the rule fires
-unconditionally.  The trusted lane stays an accept-superset of the P
-lane, which is all the agreement floor
-(`Verify/Cached/AgreeFloor.lean`) asks of it. -/
-def projCertAt (r : CoreFns m) (env : Env) (depth : Nat) (verified lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : m Bool :=
-  if verified then projCert r env depth lic c us args else pure true
+/-- **The fire check as the mode runs it** (parity mirrors official,
+2026-09-06): the verified core checks the constructor telescope's
+arity (`projCert`); the trusted core is the official kernel's, which
+reduces every constructor redex with no check.  The trusted lane stays
+an accept-superset of the verified lane, which is all the agreement
+floor (`Verify/Cached/AgreeFloor.lean`) asks of it. -/
+def projCertAt (env : Env) (verified : Bool) (c : Name) (args : List Expr) :
+    Bool :=
+  if verified then projCert env c args else true
 
 /-- **The projection rule on a reduced scrutinee** (the official
 kernel's `reduce_proj_core`): `proj_i (ctor p⃗ x⃗) ↦ x_i`, driven by the
@@ -955,7 +897,7 @@ def reduceProjCore (r : CoreFns m) (env : Env) (depth : Nat) (sn : Name)
         -- unsound-to-model under the domain-relative collapse, so the
         -- certificate runs unconditionally at the verified mode; the
         -- trusted mode runs none (`projCertAt`).
-        if ← projCertAt r env depth mode.verifiedChecks true k us args then
+        if projCertAt env mode.verifiedChecks k args then
           pure (some (args.getD (entry.numParams + i) (.bvar 0)))
         else pure none
       else pure none

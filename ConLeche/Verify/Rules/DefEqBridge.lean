@@ -459,8 +459,8 @@ theorem lazyDeltaProjReduction_bridge (hwc : WhnfCoreBridge env fuel)
       cases ob with
       | none => exact .proj (hd h)
       | some y =>
-        exact .redBoth (reduceProjCore_bridge hw hd hi hra)
-          (reduceProjCore_bridge hw hd hi hrb) (hd h)
+        exact .redBoth (reduceProjCore_bridge hw hra)
+          (reduceProjCore_bridge hw hrb) (hd h)
 
 /-- The proj/proj check. -/
 theorem defeqProjPair_bridge (hwc : WhnfCoreBridge env fuel)

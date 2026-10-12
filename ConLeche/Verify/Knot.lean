@@ -192,9 +192,6 @@ inversions at the same fuel as the entry-point facts. -/
 abbrev iotaRecFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     CheckM (Option Expr) := iotaRec (pureFns mode env fuel) env
 
-abbrev iotaCertsFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Bool → Expr →
-    List Expr → CheckM Bool := iotaCerts (pureFns mode env fuel) env
-
 abbrev iotaCertsFullFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     List Expr → CheckM Bool := iotaCertsFull (pureFns mode env fuel) env
 
@@ -237,11 +234,6 @@ abbrev prepareMajorFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → 
 
 abbrev projLitToCtorFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     CheckM Expr := projLitToCtor (pureFns mode env fuel) env
-
-abbrev projCertFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Bool → Name →
-    List Level → List Expr → CheckM Bool := projCert (pureFns mode env fuel) env
-abbrev projCertAtFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Bool → Bool → Name →
-    List Level → List Expr → CheckM Bool := projCertAt (pureFns mode env fuel) env
 
 abbrev reduceNatFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     CheckM (Option Expr) := reduceNat (pureFns mode env fuel) env
@@ -294,8 +286,6 @@ abbrev defeqStuckFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Ex
 
 theorem iotaRec_fold (env : Env) (fuel : Nat) :
     iotaRec (pureFns mode env fuel) env = iotaRecFueled mode env fuel := rfl
-theorem iotaCerts_fold (env : Env) (fuel : Nat) :
-    iotaCerts (pureFns mode env fuel) env = iotaCertsFueled mode env fuel := rfl
 theorem iotaCertsFull_fold (env : Env) (fuel : Nat) :
     iotaCertsFull (pureFns mode env fuel) env = iotaCertsFullFueled mode env fuel := rfl
 theorem iotaIndexOk_fold (env : Env) (fuel : Nat) :
@@ -325,8 +315,6 @@ theorem prepareMajor_fold (env : Env) (fuel : Nat) :
     prepareMajor (pureFns mode env fuel) env = prepareMajorFueled mode env fuel := rfl
 theorem projLitToCtor_fold (env : Env) (fuel : Nat) :
     projLitToCtor (pureFns mode env fuel) env = projLitToCtorFueled mode env fuel := rfl
-theorem projCertAt_fold (env : Env) (fuel : Nat) :
-    projCertAt (pureFns mode env fuel) env = projCertAtFueled mode env fuel := rfl
 theorem reduceNat_fold (env : Env) (fuel : Nat) :
     reduceNat (pureFns mode env fuel) env = reduceNatFueled mode env fuel := rfl
 theorem boolTrueShortcut_fold (env : Env) (fuel : Nat) :
