@@ -357,13 +357,13 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
-    (bit : Nat) (ψ : Name → Nat) (ρ : Nat → V) :
+    (ψ : Name → Nat) (ρ : Nat → V) :
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
     ∀ xs fs : List V,
     xs.length = (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length →
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
-    ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd bit ψ c j,
+    ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j,
     ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
       ∃ (t st : Nat) (pds : List AnnotTerm),
         q.1 < (tgtRs out).length ∧ genClsOf R.rd q.1 = t ∧
@@ -380,7 +380,7 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
   obtain ⟨l, hl⟩ := List.getElem?_of_mem hq
   obtain ⟨t, st, fr, hq1, hst, hstl, hcnt, hcls, G2, -, hMot⟩ :=
     genIhFrame hμ R hg h mpC hfind ψ hc hj hl
-  have hK := genRun_cal R mpC.base2.acval envC bit ψ c hc j hj q hq
+  have hK := genRun_cal R mpC.base2.acval envC ψ c hc j hj q hq
   obtain ⟨hlc, -⟩ := genPdoms_read hμ R hg h mpC ψ hc
   obtain ⟨clsT, tyT, ifsT, bodyT, hgcT, hMT, -, -, -, hRPT, -, hlenRdsT, -, -, -, -, -, -⟩ :=
     genRun_binders hμ R hg h mpC ψ hK
@@ -432,13 +432,13 @@ theorem genCallTy (hμ : μ.verifiedChecks = true)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
-    (bit : Nat) (ψ : Name → Nat) (ρ : Nat → V) :
+    (ψ : Name → Nat) (ρ : Nat → V) :
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
     ∀ xs fs : List V,
     xs.length = (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length →
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
-    ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd bit ψ c j,
+    ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j,
     ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
       q.1 < (tgtRs out).length ∧ xs.length = pp.toBlockShape.rulePrefixAt q.1 ∧
       SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1))
@@ -446,7 +446,7 @@ theorem genCallTy (hμ : μ.verifiedChecks = true)
           ++ [interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2])) := by
   intro c hc j hj xs fs hxl hsp q hq bs hbs
   obtain ⟨t, st, pds, hK, -, -, hstl, hxlP, hRPT, -, hdrop, hfit⟩ :=
-    genIhMot hμ R hg h mpC hfind bit ψ ρ c hc j hj xs fs hxl hsp q hq bs hbs
+    genIhMot hμ R hg h mpC hfind ψ ρ c hc j hj xs fs hxl hsp q hq bs hbs
   refine ⟨hK, by rw [hxlP, hRPT], ?_⟩
   obtain ⟨hspP, -⟩ := spineFit_append_at hxl hsp
   have hsplit : consList (xs.drop (R.g.nP + st)) (consList (xs.take (R.g.nP + st)) ρ)

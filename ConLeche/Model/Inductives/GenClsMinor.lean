@@ -350,7 +350,7 @@ theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
 
 /-- **The generated `ih` data at a recursive field**, spelled out. -/
 theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {g : ClassGen}
-    {rd : ClassRead} {bit : Nat} {ψ : Name → Nat} {c j l i t tele : Nat} {fvs : List Expr}
+    {rd : ClassRead} {ψ : Name → Nat} {c j l i t tele : Nat} {fvs : List Expr}
     {res : Expr} {ws xs idx : List Expr}
     (hq : (genCtorAt g rd c j).recs[l]? = some (i, t, tele))
     (hop : ConLeche.openPisAtFvars (genCtorAt g rd c j).nF (genCtorAt g rd c j).tyD g.pre.length
@@ -358,7 +358,7 @@ theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : 
     (hws : ConLeche.targetPiDomsWith fvs (genCtorAt g rd c j).tyN = some ws)
     (hip : g.ihParts t tele (ws.getD i default) (g.pre.length + (genCtorAt g rd c j).nF)
       = some (xs, idx)) :
-    (genIhdAV acval env g rd bit ψ c j)[l]? = some (genRecIdx rd t,
+    (genIhdAV acval env g rd ψ c j)[l]? = some (genRecIdx rd t,
       readOpenedDoms acval env ψ (g.pre.length + (genCtorAt g rd c j).nF) xs,
       idx.map fun e => (denoteMeta acval env ψ
         (g.pre.length + (genCtorAt g rd c j).nF + xs.length) e).getD default,
@@ -387,9 +387,8 @@ theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : E
     (hstl : g.nP + st < g.pre.length)
     (hty : g.ihTy t tele (ws.getD i default) (fvs.getD i default)
       (g.pre.length + (genCtorAt g rd c j).nF + l) = some ty)
-    (hread : denoteMeta acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + l) ty = some a)
-    {bit : Nat} (hbit : bit = 0) :
-    ∃ q, (genIhdAV acval env g rd bit ψ c j)[l]? = some q ∧ q.1 = genRecIdx rd t ∧
+    (hread : denoteMeta acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + l) ty = some a) :
+    ∃ q, (genIhdAV acval env g rd ψ c j)[l]? = some q ∧ q.1 = genRecIdx rd t ∧
       a = (genIhDomAV (g.pre.length + (genCtorAt g rd c j).nF) (g.nP + st) q).liftN l 0 := by
   subst hac
   obtain ⟨xs, idx, hip⟩ := hparts
@@ -424,7 +423,7 @@ theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : E
     | some a0 => rw [h0] at hlift; exact ⟨a0, rfl, Option.some.inj hlift⟩
   have hE := genIhTy_read (acval := m.acval) (env := env) (ψ := ψ) hst hwsS hfS.2 hip hty0
     (genRecIdx rd t) ha0
-  subst hD hbit
+  subst hD
   exact ⟨_, genIhdAV_getElem hq hop hws hip, rfl, by rw [hE]⟩
 
 /-! ## `GenPreSem.minor` -/
@@ -533,9 +532,9 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ xs,
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
     ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
-    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j).length →
+    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j).length →
     (∀ (l : Nat) (q : IhDatum) (hv : V),
-      (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j)[l]? = some q → hs[l]? = some hv →
+      (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j)[l]? = some q → hs[l]? = some hv →
       hv ∈ˢ interp V (consList (xs ++ fs) ρ)
         (genIhDomAV ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
             + (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length)
@@ -654,7 +653,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
   have hfsl : fs.length = x.nF := hfs.length_eq.trans hfdL
-  have hihdL : (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j).length
+  have hihdL : (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j).length
       = x.recs.length := by simp [genIhdAV, hgx]
   have hhsl : hs.length = x.recs.length := hhl.trans hihdL
   have hbsl : bs.length = x.nF + x.recs.length := by rw [hbl]; simp [hfl, hihl]
@@ -697,7 +696,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         (ψ := ψ) hq' hop' (by simpa [hgx] using hfvsS)
         (by rw [hgx]; exact hwsR) (by rw [hgx]; exact hwsS i hiF)
         (by rw [hgx]; exact hparts) hst (by omega) (by rw [hgx]; exact hty)
-        (by rw [hgx]; exact hra) (bit := 0) rfl
+        (by rw [hgx]; exact hra)
       obtain ⟨hv, hhv⟩ : ∃ hv, hs[l]? = some hv := ⟨_, List.getElem?_eq_getElem (by omega)⟩
       have hmI := hhs l qd hv hqd hhv
       have hcal := (genRecIdx_spec (rd := R.rd) (cvGs := R.cvGs) hrec (by

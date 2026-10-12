@@ -308,7 +308,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
         t' ∈ˢ tgtClsIs dR Dc mc cvc mpC.base2.acval envC pp.toBlockShape out ψ ρ xs c' →
         y ∈ˢ app (tgtClsCr dR Dc mc cvc mpC.base2.acval envC pp.toBlockShape out ψ ρ xs c') t' →
         genCallT (tgtClsTup dR Dc mc cvc pp.toBlockShape out ψ) ρ
-          (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j) xs c j fs
+          (fun c j => genIhdAV mpC.base2.acval envC R.g R.rd ψ c j) xs c j fs
           (tagged c' t' y) →
         ∃ b', nlRel mpC.base2.acval (pp.nestCtx fvsP envI.find?) dR pp.toBlockShape
             out ns ψ ρ xs envC F (cvTasR.map (·.type)) c' b' ∧
@@ -351,7 +351,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
   -- THE CALL, decoded: a recursive field of the class's constructor
   obtain ⟨cls, M₀, nfs, cA, x, iF, tt, tele, fvsR, oR, ws, xsO, leafO, bs, hcl, hlt, hM₀, hMs,
     hMeq, ⟨CM⟩, hnfs, hcA, hxj, ⟨Rc⟩, hiK, hkK, hopR, hws, hopO, hrr, hrl, hbsO, hv⟩ :=
-    genCall_data R hc hjM mpC.base2.acval 0 ψ _ ρ hcall
+    genCall_data R hc hjM mpC.base2.acval ψ _ ρ hcall
   generalize hrdef : genRecIdx R.rd tt = r at hrr hrl hv
   have hcal : r < (tgtRs out).length := hrl
   -- the rule's declared fields

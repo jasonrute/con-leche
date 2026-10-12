@@ -94,7 +94,7 @@ producer. -/
   (∀ (m : Nat) (ms : ConLeche.MemberShape), q.members[m]? = some ms →
     d.memberName m = ms.cvT.name ∧ d.nIdxAt m = ms.nIdx) ∧
   (∀ (m : Nat) (ψ : Name → Nat), m < d.k →
-    ∃ B, mo.acval (d.memberName m) ψ = mkLamsC (d.w ψ + 1) (d.ppsM m ψ) B) ∧
+    ∃ B, mo.acval (d.memberName m) ψ = mkLamsAV (d.ppsM m ψ) B) ∧
   (∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρ : Nat → V),
     Sat V ((d.ppsM m ψ).take d.nP).reverse ρ ↔ Sat V (d.params ψ).reverse ρ)
 

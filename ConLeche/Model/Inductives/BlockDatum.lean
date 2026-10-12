@@ -595,7 +595,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     fun ψ ρp m hm hρ c hc => (hF.paramsIff m c hm hc ψ ρp).mp hρ
   have hleafOfD : ∀ (t : Nat), t < q.k → ∀ ψ : Name → Nat, ∃ B,
       mpD.base2.acval (q.memberNames.getD t .anonymous) ψ
-        = mkLamsC (q.resSort.eval ψ + 1) (ppsOf t ψ) B := by
+        = mkLamsAV (ppsOf t ψ) B := by
     intro t ht ψ
     obtain ⟨cvTb, hcv⟩ := hcvOf t ht
     rw [← hF.nameOf t cvTb hcv, (hfindD t cvTb hcv).2 ψ]
@@ -1082,7 +1082,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   -- ## the REAL record's own readings, and the chain facts at them
   have hleafOfR : ∀ (t : Nat), t < q.k → ∀ ψ : Name → Nat, ∃ B,
       mpR.base2.acval (q.memberNames.getD t .anonymous) ψ
-        = mkLamsC (q.resSort.eval ψ + 1) (ppsOf t ψ) B := by
+        = mkLamsAV (ppsOf t ψ) B := by
     intro t ht ψ
     obtain ⟨cvTb, hcv⟩ := hcvOf t ht
     rw [← hF.nameOf t cvTb hcv, (hfindR t cvTb hcv).2 ψ]

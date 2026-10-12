@@ -63,10 +63,9 @@ first recursor at that class (the kernel's `classRecOf`, as a position). -/
 (depth `rP + nF`): per recursive field `(i, t, tele)` (`ClassCtor.recs`),
 the callee RECURSOR (`genRecIdx rd t`, the graph's class index), the
 walked field's telescope (read), its index arguments and the applied
-field.  `_bit` is unread (task #342 L14a): the data it used to tag no
-longer carries a regime numeral. -/
+field. -/
 @[expose] noncomputable def genIhdAV (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
-    (g : ClassGen) (rd : ClassRead) (_bit : Nat) (ψ : Name → Nat) (c j : Nat) :
+    (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) :
     List IhDatum :=
   let x := genCtorAt g rd c j
   let rP := g.pre.length
@@ -84,9 +83,9 @@ longer carries a regime numeral. -/
 /-- **The `ih` terms** of the generated rule, in chain form (`genIhAV`:
 the callee its chain variable below the frame). -/
 @[expose] noncomputable def genIhsAV (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
-    (K : Nat) (g : ClassGen) (rd : ClassRead) (bit : Nat) (ψ : Name → Nat) (c j : Nat) :
+    (K : Nat) (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) :
     List AnnotTerm :=
-  (genIhdAV acval env g rd bit ψ c j).map
+  (genIhdAV acval env g rd ψ c j).map
     (genIhAV K g.pre.length (g.pre.length + (genCtorAt g rd c j).nF))
 
 /-- **The residue** of the generated rule: its minor premise applied to
@@ -157,13 +156,5 @@ the interface between the family premise and the node route. -/
     (Dc : Nat → LfpDatum V) (mc : Nat → Nat) (cvc : Nat → ConstantVal)
     (ihd : Nat → Nat → List IhDatum) (ψ : Name → Nat) (ρ : Nat → V) : Prop :=
   TgtClassIndG envC acval p out d Dc mc cvc ψ ρ (genCallT (tgtClsTup d Dc mc cvc p out ψ) ρ ihd)
-
-/-! ## 3. The stage -/
-
-/-- The family's elimination bit at `ψ`: `0` exactly when the
-elimination level evaluates to `0` (a level fact, read by the generated
-stage's case split; no binder reads it). -/
-@[expose] def genBit (pp : BlockParts) (ψ : Name → Nat) : Nat :=
-  if (Level.zeronessOf (ConLeche.structElimLevel pp.elim pp.large)).holds ψ then 0 else 1
 
 end ConLeche.Model

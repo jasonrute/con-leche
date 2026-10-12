@@ -175,10 +175,10 @@ theorem genRun_min (hμ : μ.verifiedChecks = true)
 family (the first recursor at its class, `genRecIdx`). -/
 theorem genRun_cal
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (bit : Nat)
+      block ctorsAs out) (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
     (ψ : Name → Nat) :
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
-      ∀ q ∈ genIhdAV acval env R.g R.rd bit ψ c j, q.1 < (tgtRs out).length := by
+      ∀ q ∈ genIhdAV acval env R.g R.rd ψ c j, q.1 < (tgtRs out).length := by
   intro c hc j _ q hq
   have hK : (tgtRs out).length = R.rd.recCls.length := by
     rw [genRun_recCls_length R]; simpa [tgtRs] using (genRun_lengths R).1
@@ -434,9 +434,9 @@ theorem genRun_below (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
     (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
-    (bit : Nat) (ψ : Name → Nat) :
+    (ψ : Name → Nat) :
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
-      ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd bit ψ c j,
+      ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j,
         IhDatumBelow ((blockRulePdomsAV mpC.base2.acval envC p.toBlockShape (tgtRs out) ψ c).length
           + (tgtFdomsAV p.toBlockShape out mpC.base2.acval envC ψ c j).length) q := by
   intro c hc j hj q hq
@@ -852,7 +852,7 @@ structure GenPreSem (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (ρ : Na
     xs.length = (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length →
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
-    ∀ q ∈ genIhdAV mpC.base2.acval envC g rd 0 ψ c j,
+    ∀ q ∈ genIhdAV mpC.base2.acval envC g rd ψ c j,
     ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
       q.1 < (tgtRs out).length ∧ xs.length = pp.toBlockShape.rulePrefixAt q.1 ∧
       SpineFit ρ (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ q.1)
@@ -861,9 +861,9 @@ structure GenPreSem (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (ρ : Na
   minor : ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ xs,
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
     ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
-    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC g rd 0 ψ c j).length →
+    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC g rd ψ c j).length →
     (∀ (l : Nat) (q : IhDatum) (hv : V),
-      (genIhdAV mpC.base2.acval envC g rd 0 ψ c j)[l]? = some q → hs[l]? = some hv →
+      (genIhdAV mpC.base2.acval envC g rd ψ c j)[l]? = some q → hs[l]? = some hv →
       hv ∈ˢ interp V (consList (xs ++ fs) ρ)
         (genIhDomAV ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
             + (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length)
@@ -875,7 +875,7 @@ structure GenPreSem (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (ρ : Na
             (tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j)]).foldl SetTheory.app
           (xs.getD (classMotPos g (genClsOf rd c)) pt)
   ind : GenClassInd mpC.base2.acval envC pp.toBlockShape out d Dc mc cvc
-    (fun c j => genIhdAV mpC.base2.acval envC g rd 0 ψ c j) ψ ρ
+    (fun c j => genIhdAV mpC.base2.acval envC g rd ψ c j) ψ ρ
 
 /-- **`GenPreHyps` from the generated stage's run** and the class-side facts
 (`GenPreSem`): the run discharges the prefix, the positions, the callees,
@@ -913,8 +913,8 @@ theorem genPreHyps_of_run (hμ : μ.verifiedChecks = true)
   nF := genRun_nF hμ R hg mpC.base2.acval ψ
   mot := genRun_mot hμ R hg h mpC
   min := genRun_min hμ R hg h mpC
-  cal := genRun_cal R mpC.base2.acval envC 0 ψ
-  below := genRun_below hμ R hg h mpC 0 ψ
+  cal := genRun_cal R mpC.base2.acval envC ψ
+  below := genRun_below hμ R hg h mpC ψ
   callTy := S.callTy
   conclMot := genRun_conclMot hμ R hg h mpC ψ ρ
   minor := S.minor
@@ -972,10 +972,9 @@ theorem genRecPre_run (hμ : μ.verifiedChecks = true)
       ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ ys : List V,
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys →
-      (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ c j,
+      (∀ v ∈ genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ c j,
         WellDenoted V (consList ys (consList rs ρ)) v) ∧
-      WellDenoted V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd
-          0 ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
+      WellDenoted V (consList ((genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ c j).map (interp V (consList ys (consList rs ρ)))) (consList ys ρ))
         (genRbAV R.g R.rd c j)) :
     ∀ (ψ : Name → Nat) (ρ : Nat → V),
       BlockRecPre V (s ψ) (tgtRs out).length (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ)
@@ -983,7 +982,7 @@ theorem genRecPre_run (hμ : μ.verifiedChecks = true)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun ψ => tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ)
-          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd 0 ψ)
+          (fun ψ => genIhsAV mpC.base2.acval envC (tgtRs out).length R.g R.rd ψ)
           (fun ψ => tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ)
           (fun _ => genRbAV R.g R.rd) ψ)
         ρ :=

@@ -121,12 +121,12 @@ theorem graph_eq_dom {F G : V → V} {A D : V} (h : graph F A = graph G D) : A =
 applied spine is not the point: then no partial application is the
 point (`app_pt`), so each λ is a graph (`lamV_eq_graph`), and a graph
 determines its domain, the slot's. -/
-theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
+theorem spineFit_of_wellDenoted_lams {b : AnnotTerm} :
     ∀ {args : List AnnotTerm} {ds : List AnnotTerm} {σ ρ : Nat → V} {f : AnnotTerm},
       args.length ≤ ds.length →
       WellDenoted V ρ (AnnotTerm.mkAppN f args) →
       interp V ρ (AnnotTerm.mkAppN f args) ≠ pt →
-      interp V ρ f = interp V σ (mkLamsC u ds b) →
+      interp V ρ f = interp V σ (mkLamsAV ds b) →
       SpineFit σ ((ds.take args.length)) (args.map (interp V ρ))
   | [], _, _, _, _, _, _, _, _ => trivial
   | _ :: _, [], _, _, _, hlen, _, _, _ => by simp at hlen
@@ -136,7 +136,7 @@ theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
     rw [WellDenoted_app] at hokfa
     obtain ⟨-, -, v, A, B, hfm, ham, -⟩ := hokfa
     have hf' : interp V ρ f
-        = lamV (interp V σ d) fun x => interp V (cons x σ) (mkLamsC u ds b) := by
+        = lamV (interp V σ d) fun x => interp V (cons x σ) (mkLamsAV ds b) := by
       rw [hf]; rfl
     have hfne : interp V ρ f ≠ pt := by
       intro h0
@@ -155,7 +155,7 @@ theorem spineFit_of_wellDenoted_lams {u : Nat} {b : AnnotTerm} :
     rw [lamV_eq_graph hfne] at hg
     have hA : A = interp V σ d := graph_eq_dom hg
     rw [hA] at ham
-    have happ : interp V ρ (.app f a) = interp V (cons (interp V ρ a) σ) (mkLamsC u ds b) := by
+    have happ : interp V ρ (.app f a) = interp V (cons (interp V ρ a) σ) (mkLamsAV ds b) := by
       rw [interp_app, hf', app_lamV ham]
     have ih := spineFit_of_wellDenoted_lams (args := args) (ds := ds) (σ := cons (interp V ρ a) σ)
       (ρ := ρ) (f := .app f a) (by simpa using hlen) hok hne happ
@@ -645,7 +645,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     {idxArgs : List Expr} {ds : (Name → Nat) → List AnnotTerm}
     {Es : (Name → Nat) → List AnnotTerm} {srcs : List (Option Nat)}
     (hCD : CtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large idxArgs ds Es srcs)
-    (hleafT : ∀ ψ, ∃ B, mp.base2.acval T ψ = mkLamsC (resSort.eval ψ + 1) (ppsAll ψ) B) :
+    (hleafT : ∀ ψ, ∃ B, mp.base2.acval T ψ = mkLamsAV (ppsAll ψ) B) :
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
         Sat V (((ds ψ).take nP)).reverse ρ) ∧
@@ -805,7 +805,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       refine ⟨fun E hE => hargs E (List.mem_append_right _ hE), ?_⟩
       -- the spine fits the former's leaf
       obtain ⟨B, hB⟩ := hleafT ψ
-      have hfit := spineFit_of_wellDenoted_lams (u := resSort.eval ψ + 1)
+      have hfit := spineFit_of_wellDenoted_lams
         (b := B) (args := paramBvars nP nF ++ Es ψ)
         (ds := ppsAll ψ) (σ := consList bs ρ) (ρ := consList bs ρ) (f := mp.base2.acval T ψ)
         (by simp [paramBvars, hCD.lenE ψ, hFD.len ψ]) hokR hRty.ne_pt (by rw [hB])

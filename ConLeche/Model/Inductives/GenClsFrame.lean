@@ -1046,8 +1046,8 @@ theorem denoteMetaSpine_of_some {acval : Name → (Name → Nat) → AnnotTerm} 
       h b (List.mem_cons_of_mem _ hb))
 
 theorem genIhdAV_length' {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {g : ClassGen}
-    {rd : ClassRead} {bit : Nat} {ψ : Name → Nat} {c j : Nat} :
-    (genIhdAV acval env g rd bit ψ c j).length = (genCtorAt g rd c j).recs.length := by
+    {rd : ClassRead} {ψ : Name → Nat} {c j : Nat} :
+    (genIhdAV acval env g rd ψ c j).length = (genCtorAt g rd c j).recs.length := by
   simp [genIhdAV]
 
 theorem genRecIdx_cls {rd : ClassRead} {cvGs : List ConstantVal} {t : Nat} {n : Name}
@@ -1080,8 +1080,8 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
-    (hj : j < blockRecNCt (tgtRs out) c) {bit l : Nat} {q : IhDatum}
-    (hql : (genIhdAV mpC.base2.acval envC R.g R.rd bit ψ c j)[l]? = some q) :
+    (hj : j < blockRecNCt (tgtRs out) c) {l : Nat} {q : IhDatum}
+    (hql : (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j)[l]? = some q) :
     ∃ (t st : Nat) (fr : List Expr),
       q.1 = genRecIdx R.rd t ∧ ConLeche.ClassRead.motiveSlot ⟨R.g.slots, []⟩ t = some st ∧
       R.g.nP + st < R.g.pre.length ∧ q.2.2.1.length = (R.g.cls.getD t default).nIdx ∧
@@ -1116,7 +1116,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
   obtain ⟨⟨ty, hty, hihsl⟩, ⟨nrec, hrn⟩, ⟨xs, idx, hip⟩, st, hst, hstl⟩ := hih l i t tele hrec
   have hcvl : R.cvGs.length ≤ R.rd.recCls.length := by
     rw [(genRun_lengths R).2, genRun_recCls_length R]; exact Nat.le_refl _
-  have hq := genIhdAV_getElem (acval := mpC.base2.acval) (env := envC) (bit := bit) (ψ := ψ)
+  have hq := genIhdAV_getElem (acval := mpC.base2.acval) (env := envC) (ψ := ψ)
     hrec hopR hwsR hip
   rw [hql] at hq
   obtain rfl := Option.some.inj hq

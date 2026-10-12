@@ -92,9 +92,9 @@ theorem genCall_data
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out) {c : Nat} (hc : c < (ConLeche.tgtRs out).length) {j : Nat}
     (hj : j < (tgtMajor out c).ctors.length)
-    (acval : Name → (Name → Nat) → AnnotTerm) (bit : Nat) (ψ : Name → Nat)
+    (acval : Name → (Name → Nat) → AnnotTerm) (ψ : Name → Nat)
     (tup : Nat → List V → V) (ρ : Nat → V) {xs fs : List V} {v : V}
-    (hcall : genCallT tup ρ (fun c j => genIhdAV acval envC R.g R.rd bit ψ c j) xs c j fs v) :
+    (hcall : genCallT tup ρ (fun c j => genIhdAV acval envC R.g R.rd ψ c j) xs c j fs v) :
     ∃ (cls : Nat) (M₀ : TargetMajor) (nfs : List ConLeche.NestCtorNf) (cA : ConstantVal × Nat)
       (x : ClassCtor) (i tt tele : Nat) (fvsR : List Expr) (oR : Expr) (ws xsO : List Expr)
       (leafO : Expr) (bs : List V),

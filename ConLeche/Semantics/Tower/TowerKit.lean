@@ -667,69 +667,60 @@ theorem mkLamsAV_fold :
     rw [app_lamV hsp.1]
     exact mkLamsAV_fold hsp.2
 
-/-! ### The constant-bit λ-tower, generically
+/-! ### The λ-tower over a Π-tower's binder data, generically
 
-The constructor and recursor leaves are λ-towers whose bits are ONE
-numeral (`w`, resp. the elimination level) zero-agreeing with every
-codomain annotation of their Π-type's reading.  `mkLamsC` is that
-shape; `UnderTowerOk` is its single hereditary premise; `mkLamsC_mem`
-and `mkLamsC_wellDenoted` are the once-for-all membership and grading. -/
+The constructor and recursor leaves are λ-towers over their Π-type's
+own domains.  `UnderTowerOk` is the single hereditary premise;
+`mkLamsAV_mem` and `mkLamsAV_wellDenoted` are the once-for-all
+membership and grading. -/
 
-/-- The constant-bit λ-tower over a Π-tower's own binder data.  The
-bit `m` is not read (task #342 L14a/S5: only `UnderTowerOk` reads it,
-as a hypothesis unrelated to the domain list). -/
-def mkLamsC (_m : Nat) (ds : List AnnotTerm) (b : AnnotTerm) : AnnotTerm :=
-  mkLamsAV ds b
-
-/-- The hereditary premise of the constant-bit tower's laws: each
-domain graded and a type, and at every fitting spine the body is
-graded, a member of the result type's reading, which is a type, and —
-when the bit is zero — that reading is a truth value. -/
-def UnderTowerOk (m : Nat) (ρ : Nat → V) (b T : AnnotTerm) :
+/-- The hereditary premise of the tower's laws: each domain graded and
+a type, and at every fitting spine the body is graded and a member of
+the result type's reading, which is a type. -/
+def UnderTowerOk (ρ : Nat → V) (b T : AnnotTerm) :
     List AnnotTerm → Prop
-  | [] => WellDenoted V ρ b ∧ interp V ρ b ∈ˢ interp V ρ T ∧
-      (m = 0 → interp V ρ T ∈ˢ (univZero : V)) ∧ IsTy (interp V ρ T)
+  | [] => WellDenoted V ρ b ∧ interp V ρ b ∈ˢ interp V ρ T ∧ IsTy (interp V ρ T)
   | d :: ds => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
-      ∀ a, a ∈ˢ interp V ρ d → UnderTowerOk m (cons a ρ) b T ds
+      ∀ a, a ∈ˢ interp V ρ d → UnderTowerOk (cons a ρ) b T ds
 
 /-- The residual Π-tower's reading is a type: a function space, or the
 base's type. -/
-theorem underTowerOk_res_IsTy {m : Nat} {b T : AnnotTerm} :
+theorem underTowerOk_res_IsTy {b T : AnnotTerm} :
     ∀ {ds : List AnnotTerm} {ρ : Nat → V},
-      UnderTowerOk m ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
-  | [], _, h => h.2.2.2
+      UnderTowerOk ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
+  | [], _, h => h.2.2
   | _ :: _, _, _ => IsTy_piV
 
-/-- **The constant-bit tower inhabits its Π-tower's reading**
-(`lamV_mem` per binder, the residual towers' types as the fibres, the
-base's membership at the bottom). -/
-theorem mkLamsC_mem {m : Nat} {b T : AnnotTerm} :
+/-- **The tower's membership**: the λ-tower lies in the Π-tower over
+the same domains (`lamV_mem` per binder, the residual towers' types as
+the fibres, the base's membership at the bottom). -/
+theorem mkLamsAV_mem {b T : AnnotTerm} :
     ∀ {ds : List AnnotTerm} {ρ : Nat → V},
-      UnderTowerOk m ρ b T ds →
-      interp V ρ (mkLamsC m ds b) ∈ˢ interp V ρ (mkPisAV ds T)
+      UnderTowerOk ρ b T ds →
+      interp V ρ (mkLamsAV ds b) ∈ˢ interp V ρ (mkPisAV ds T)
   | [], _, h => h.2.1
   | d :: ds, ρ, h => by
     show (lamV (interp V ρ d)
-        fun a => interp V (cons a ρ) (mkLamsC m ds b))
+        fun a => interp V (cons a ρ) (mkLamsAV ds b))
       ∈ˢ piV (interp V ρ d)
         fun a => interp V (cons a ρ) (mkPisAV ds T)
-    exact lamV_mem (fun a ha => mkLamsC_mem (h.2.2 a ha))
+    exact lamV_mem (fun a ha => mkLamsAV_mem (h.2.2 a ha))
       fun a ha => underTowerOk_res_IsTy (h.2.2 a ha)
 
-/-- **The constant-bit tower is graded** (`WellDenoted`): the fibre
+/-- **The tower's grading**: the λ-tower is graded; its fibre
 packages are the interpreted residual Π-towers, membership from
-`mkLamsC_mem` at each suffix. -/
-theorem mkLamsC_wellDenoted {m : Nat} {b T : AnnotTerm} :
+`mkLamsAV_mem` at each suffix. -/
+theorem mkLamsAV_wellDenoted {b T : AnnotTerm} :
     ∀ {ds : List AnnotTerm} {ρ : Nat → V},
-      UnderTowerOk m ρ b T ds →
-      WellDenoted V ρ (mkLamsC m ds b)
+      UnderTowerOk ρ b T ds →
+      WellDenoted V ρ (mkLamsAV ds b)
   | [], _, h => h.1
   | d :: ds, ρ, h => by
-    show WellDenoted V ρ (.lam d (mkLamsC m ds b))
+    show WellDenoted V ρ (.lam d (mkLamsAV ds b))
     rw [WellDenoted_lam]
-    refine ⟨h.1, h.2.1, fun a ha => mkLamsC_wellDenoted (h.2.2 a ha),
+    refine ⟨h.1, h.2.1, fun a ha => mkLamsAV_wellDenoted (h.2.2 a ha),
       ⟨fun a => interp V (cons a ρ) (mkPisAV ds T),
-       fun a ha => mkLamsC_mem (h.2.2 a ha),
+       fun a ha => mkLamsAV_mem (h.2.2 a ha),
        fun a ha => underTowerOk_res_IsTy (h.2.2 a ha)⟩⟩
 
 
