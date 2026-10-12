@@ -60,6 +60,16 @@ claim carries. -/
     (ea : AnnotTerm) : Prop :=
   ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ea
 
+/-- A reading is a graded type under every satisfying valuation — the
+inferred type's currency (task #342, L5: `IsTy ⟦T⟧`). -/
+@[expose] def GradedTy (V : Type w) [SetTheory V] (Δa : List AnnotTerm)
+    (ta : AnnotTerm) : Prop :=
+  ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta
+
+/-- A graded type is graded. -/
+theorem GradedTy.graded {Δa : List AnnotTerm} {ta : AnnotTerm}
+    (h : GradedTy V Δa ta) : Graded V Δa ta := fun ρ hρ => (h ρ hρ).1
+
 /-- No new free-variable leaf. -/
 @[expose] def LeavesSub (e' e : Expr) : Prop :=
   ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves
@@ -91,7 +101,8 @@ interpretation. -/
     ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ aa = interp V ρ ba
 
 /-- **`Infer`'s motive at the full grade** — establishment: the
-subject's grading is a conclusion. -/
+subject's grading is a conclusion; the type is a graded type
+(`GradedTy`: its denotation is a type). -/
 @[expose] def InferSemFull {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (e t : Expr) : Prop :=
   Frame d e →
@@ -100,7 +111,7 @@ subject's grading is a conclusion. -/
     denoteMeta m.acval env φ d e = some ea →
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
-        Graded V Δa ea ∧ Graded V Δa ta ∧
+        Graded V Δa ea ∧ GradedTy V Δa ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- **`Infer`'s motive at the io grade** — consumption: the subject's
@@ -114,7 +125,7 @@ grading is a premise (`InferClaimIO`'s premise form). -/
     Graded V Δa ea →
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
-        Graded V Δa ta ∧
+        GradedTy V Δa ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ∈ˢ interp V ρ ta
 
 /-- The grade-dispatched inference motive. -/

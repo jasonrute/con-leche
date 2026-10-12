@@ -67,6 +67,29 @@ theorem WellDenotedV.hoist_lift {Δa : List AnnotTerm} {X e : AnnotTerm}
   rw [shiftE_zero]
   exact h _ (Sat_tail hρ)
 
+/-- **A graded type through lifting.** -/
+theorem WellDenotedTy_liftN (n : Nat) (e : AnnotTerm) (k : Nat) (ρ : Nat → V) :
+    WellDenotedTy V (ρ) (e.liftN n k) ↔ WellDenotedTy V (shiftE n k ρ) e := by
+  unfold WellDenotedTy
+  rw [WellDenotedV_liftN, interp_liftN]
+
+/-- **A graded type through outermost substitution.** -/
+theorem WellDenotedTy_inst0 {e a : AnnotTerm} {ρ : Nat → V}
+    (ha : WellDenotedV V ρ a) :
+    WellDenotedTy V ρ (e.inst a) ↔
+      WellDenotedTy V (cons (interp V ρ a) ρ) e := by
+  unfold WellDenotedTy
+  rw [WellDenotedV_inst0 ha, interp_inst0]
+
+/-- `WellDenotedV.hoist_lift` for graded types. -/
+theorem WellDenotedTy.hoist_lift {Δa : List AnnotTerm} {X e : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ e) :
+    ∀ ρ : Nat → V, Sat V (X :: Δa) ρ → WellDenotedTy V ρ e.lift := by
+  intro ρ hρ
+  refine (WellDenotedTy_liftN 1 e 0 ρ).mpr ?_
+  rw [shiftE_zero]
+  exact h _ (Sat_tail hρ)
+
 /-- **The stored leaves are `inst`-invariant** — `denoteMeta_beta`'s
 second leaf premise, discharged from the erasure link and the
 collapse-lane closedness field.  (Shared home: both the infer and the

@@ -137,6 +137,12 @@ theorem strict_sumSet {w : Nat} (hw : w ≠ 0) (f : Nat → V) : Strict (sumSet 
   rw [sigmaSet_pos hw]
   exact strict_sigmaPairs
 
+/-- A tagged sum is a type: a truth value at squash, strict above. -/
+theorem IsTy_sumSet (w : Nat) (f : Nat → V) : IsTy (sumSet w f) := by
+  by_cases hw : w = 0
+  · subst hw; exact Or.inl (sumSet_zero_mem_univZero f)
+  · exact IsTy_of_strict (strict_sumSet hw f)
+
 /-! ## Degeneracy checks -/
 
 /-- Zero constructors: the carrier is empty in the graph regime. -/

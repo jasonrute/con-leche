@@ -89,22 +89,25 @@ theorem sound_pi {u v : Nat} {ρ : Nat → V} {Aa Ba : AnnotTerm}
     WellDenoted V ρ (.pi u v Aa Ba) ∧
       interp V ρ (.pi u v Aa Ba)
         ∈ˢ interp V ρ (.sort (ConLeche.Term.imax u v)) := by
-  refine ⟨by rw [WellDenoted_pi]; exact ⟨hokA, hokB⟩, ?_⟩
+  refine ⟨by
+    rw [WellDenoted_pi]
+    exact ⟨hokA, IsTy_of_mem_univ hA, hokB, fun x hx => IsTy_of_mem_univ (hB x hx)⟩, ?_⟩
   rw [interp_pi, interp_sort]
   exact piR_mem_univ hA hB
 
 /-- **`lam`.**  Interface facts: the body's membership in the codomain
 under the binder, the codomain's kind-`0` fibre condition (the
-numeral's worth, the binder's sort fact), and the two hereditary
-halves.  **No empty-domain side condition** — see the module
+numeral's worth, the binder's sort fact), the two hereditary
+halves, and the typing of the domain and the codomain fibres.  **No empty-domain side condition** — see the module
 docstring.  The `Π`'s domain numeral `u` is free: `interp`'s `pi`
 clause discards it (only the codomain sort dispatches), so the row
 holds at every annotation of the domain. -/
 theorem sound_lam {u v : Nat} {ρ : Nat → V} {Aa ba Ba : AnnotTerm}
-    (hokA : WellDenoted V ρ Aa)
+    (hokA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
     (hokb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) ba)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) ba ∈ˢ interp V (cons x ρ) Ba)
+    (hBt : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba))
     (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) Ba ∈ˢ (univZero : V)) :
     WellDenoted V ρ (.lam v Aa ba) ∧
@@ -112,25 +115,26 @@ theorem sound_lam {u v : Nat} {ρ : Nat → V} {Aa ba Ba : AnnotTerm}
         ∈ˢ interp V ρ (.pi u v Aa Ba) := by
   refine ⟨?_, ?_⟩
   · rw [WellDenoted_lam]
-    exact ⟨hokA, hokb, fun x => interp V (cons x ρ) Ba, hb, hcod⟩
+    exact ⟨hokA, hAt, hokb, fun x => interp V (cons x ρ) Ba, hb, hBt, hcod⟩
   · rw [interp_lam, interp_pi]
     exact lamR_mem hb
 
 /-! ## The application row -/
 
 /-- **`app`.**  Interface facts: the function's membership at an
-*annotated* `Π`, the argument's in its domain, and the `Π`'s kind-`0`
-fibre condition.  Closes at **both** kinds — the kind-`0` premise is
+*annotated* `Π`, the argument's in its domain, the `Π`'s kind-`0`
+fibre condition, and (in the graph regime) the domain's typing.  Closes at **both** kinds — the kind-`0` premise is
 exactly `app_mem_piR`'s, and its supplier is the `Π`'s own numeral. -/
 theorem sound_app {u v : Nat} {ρ : Nat → V} {fa aa Aa Ba : AnnotTerm}
     (hokf : WellDenoted V ρ fa) (hoka : WellDenoted V ρ aa)
     (hf : interp V ρ fa ∈ˢ interp V ρ (.pi u v Aa Ba))
     (ha : interp V ρ aa ∈ˢ interp V ρ Aa)
     (hcod : v = 0 → ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) Ba ∈ˢ (univZero : V)) :
+      interp V (cons x ρ) Ba ∈ˢ (univZero : V))
+    (hdom : v ≠ 0 → IsTy (interp V ρ Aa)) :
     WellDenoted V ρ (.app fa aa) ∧
       interp V ρ (.app fa aa) ∈ˢ interp V ρ (Ba.inst aa) := by
-  refine ⟨WellDenoted_app_of V hokf hoka hf ha hcod, ?_⟩
+  refine ⟨WellDenoted_app_of V hokf hoka hf ha hcod hdom, ?_⟩
   rw [interp_pi] at hf
   rw [interp_app, interp_inst0]
   exact app_mem_piR hf ha hcod

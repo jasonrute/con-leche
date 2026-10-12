@@ -403,15 +403,18 @@ theorem ndTowerAV_wellDenoted {r : Nat} {F : Nat → V} {G : Nat → AnnotTerm} 
       exact ⟨trivial, hCok,
         ⟨r + 1, univ r,
           fun A => piR (r + 1) (psigmaFibreSpace V r A) fun _ => (univ r : V),
-          hbv ▸ psigmaV_rr_mem V r, hA, fun h0 => absurd h0 hvac⟩⟩
+          hbv ▸ psigmaV_rr_mem V r, hA, fun h0 => absurd h0 hvac,
+          fun _ => IsTy_univ r⟩⟩
     · rw [WellDenoted_lam]
-      exact ⟨hCok,
+      exact ⟨hCok, IsTy_of_mem_univ hA,
         fun x _ => ndTowerAV_wellDenoted n (s + 1) (d + 1) (cons x σ)
           (by rw [shiftE_succ_cons]; exact hσ) (fun m hm => hG m (by omega))
           (fun m hm => hok m (by omega)) (fun m hm => hF m (by omega)),
-        ⟨fun _ => (univ r : V), hfib, fun h0 => absurd h0 hvac⟩⟩
+        ⟨fun _ => (univ r : V), hfib, fun _ _ => IsTy_univ r,
+          fun h0 => absurd h0 hvac⟩⟩
     · refine ⟨r + 1, psigmaFibreSpace V r (interp V σ ((G s).liftN d 0)),
-        fun _ => (univ r : V), ?_, ?_, fun h0 => absurd h0 hvac⟩
+        fun _ => (univ r : V), ?_, ?_, fun h0 => absurd h0 hvac,
+        fun _ => IsTy_piR _ _ _⟩
       · show SetTheory.app (interp V σ (.const .psigma [r, r]))
           (interp V σ ((G s).liftN d 0)) ∈ˢ _
         rw [hbv]
@@ -491,7 +494,12 @@ theorem tupleFamsAV_facts {k : Nat} {us : List Nat} {j : Nat} {ρ : Nat → V}
       (.sort (lv us k)) : AnnotTerm) := by
     intro m hm
     rw [WellDenoted_pi]
-    refine ⟨?_, fun _ _ => trivial⟩
+    refine ⟨?_, ?_, fun _ _ => trivial, fun _ _ => IsTy_univ _⟩
+    rotate_left
+    · rw [projAV_interp, interp_bvar]
+      have := projS_mem_ndTowerSet V (tupleIdxSort_ne_zero us) k 0 hIs m hm
+      rw [Nat.zero_add] at this
+      exact IsTy_of_mem_univ this
     refine projAV_wellDenoted_ndTower V (tupleIdxSort_ne_zero us) m k 0
       (.bvar j) ρ hm (fun i _ => univ_lv_mem_tupleIdxSort V us i) trivial ?_
     rw [interp_bvar]; exact hIs

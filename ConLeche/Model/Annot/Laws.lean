@@ -695,7 +695,7 @@ checker's own front door, which is establishment. -/
     AnnotValid V ρ (m.acval n ψ)
 
 /-- **The `const` clause's residue, P currency**: a stored constant's
-leaf inhabits its type's graded reading. -/
+leaf inhabits its type's reading, a graded type. -/
 @[expose] def ConstType {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) : Prop :=
   ∀ (d : Nat) (n : Name) (ci : ConLeche.ConstantInfo) (us : List Level),
@@ -705,7 +705,7 @@ leaf inhabits its type's graded reading. -/
       denoteMeta m.acval env φ d
         (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us) = some ta ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       ∀ ρ : Nat → V,
         interp V ρ (m.acval n
             (Level.substFn φ ci.toConstantVal.levelParams us))

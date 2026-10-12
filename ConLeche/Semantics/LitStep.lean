@@ -43,7 +43,8 @@ theorem natLit_factsAV {ρ : Nat → V} {za sa natA : AnnotTerm}
     (hokz : WellDenoted V ρ za) (hoks : WellDenoted V ρ sa)
     (hz : interp V ρ za ∈ˢ interp V ρ natA)
     (hsucc : interp V ρ sa
-      ∈ˢ piR 1 (interp V ρ natA) fun _ => interp V ρ natA) :
+      ∈ˢ piR 1 (interp V ρ natA) fun _ => interp V ρ natA)
+    (hnat : IsTy (interp V ρ natA)) :
     ∀ n : Nat,
       WellDenoted V ρ (natLitAV za sa n) ∧
         interp V ρ (natLitAV za sa n) ∈ˢ interp V ρ natA := by
@@ -56,7 +57,7 @@ theorem natLit_factsAV {ρ : Nat → V} {za sa natA : AnnotTerm}
     · show WellDenoted V ρ (.app sa (natLitAV za sa n))
       rw [WellDenoted_app]
       exact ⟨hoks, ihA, 1, _, _, hsucc, ihm,
-        fun h => absurd h Nat.one_ne_zero⟩
+        fun h => absurd h Nat.one_ne_zero, fun _ => hnat⟩
     · show interp V ρ (.app sa (natLitAV za sa n)) ∈ˢ _
       rw [interp_app]
       exact app_mem_piR_pos Nat.one_ne_zero hsucc ihm

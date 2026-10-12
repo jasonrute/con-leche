@@ -318,6 +318,17 @@ theorem piR_zero_mem_univZero {A : V} {B : V → V} :
     piR 0 A B ∈ˢ (univZero : V) := by
   rw [piR_zero]; exact truthVal_mem_univZero _
 
+/-- A product is in the regime of its codomain bit: a truth value at
+`v = 0`, strict above (task #342). -/
+theorem Fib_piR (v : Nat) (A : V) (B : V → V) : Fib (decide (v = 0)) (piR v A B) := by
+  by_cases hv : v = 0
+  · subst hv; simp only [decide_true, Fib_true]; exact piR_zero_mem_univZero
+  · simp only [hv, decide_false, Fib_false]; rw [piR_pos hv]; exact strict_piSet
+
+/-- A product is a type. -/
+theorem IsTy_piR (v : Nat) (A : V) (B : V → V) : IsTy (piR v A B) :=
+  IsTy_of_Fib (Fib_piR v A B)
+
 /-- Members of a truth value are all equal: the `v = 0` regime is
 subsingleton-valued. -/
 theorem subsingleton_of_mem_univZero {T x y : V} (hT : T ∈ˢ (univZero : V))

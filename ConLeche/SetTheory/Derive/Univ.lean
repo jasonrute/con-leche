@@ -86,6 +86,18 @@ theorem mem_strictU_of_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V))
 
 theorem strict_univ (n : Nat) : Strict (univ n : V) := strict_tyU n
 
+/-- A universe is a type. -/
+theorem IsTy_univ (n : Nat) : IsTy (univ n : V) := IsTy_of_strict (strict_univ n)
+
+/-- The truth values are a type. -/
+theorem IsTy_univZero : IsTy (univZero : V) := IsTy_of_strict strict_univZero
+
+/-- `ω` is a type. -/
+theorem IsTy_omega : IsTy (omega : V) := IsTy_of_strict strict_omega
+
+/-- `∅` is a type. -/
+theorem IsTy_empty : IsTy (empty : V) := IsTy_of_strict strict_empty
+
 theorem univ_mem_tg_succ (n : Nat) : (univ n : V) ∈ˢ tg (n + 1) := tyU_mem_tg_succ n
 
 theorem univ_mem_univ (n : Nat) : (univ n : V) ∈ˢ univ (n + 1) := tyU_mem_tyU_succ n

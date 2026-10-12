@@ -48,7 +48,7 @@ theorem fvar_leaf {d idx : Nat} {ty : Expr}
         (∀ ρ : Nat → V, Sat V Δa ρ →
           interp V ρ tya
             = interp V (fun j => ρ (j + (d - 1 - idx) + 1)) Aa) ∧
-        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ tya) :=
+        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ tya) :=
   h.2 (idx, ty) (by simp [Expr.fvarLeaves])
 
 /-- No leaves, nothing to say. -/
@@ -139,8 +139,8 @@ end CtxOk
    `denoteMeta_weaken_top` has no sort runs and takes no `EnvWF`.  The
    *leaf* premise `hacl` is read out of the structure as
    `m.acval_closed`.
-3. **The fourth conjunct rides `WellDenotedV.hoist_lift`**, so every
-   hoisted grading premise `hok` below is stated at `WellDenotedV`.
+3. **The fourth conjunct rides `WellDenotedTy.hoist_lift`**, so every
+   hoisted grading premise `hok` below is stated at `WellDenotedTy`.
 
 The `hdom` premise of `openCongC`: the currency is `interp`, and it is
 `DefEqClaim`'s conclusion partially applied.
@@ -209,7 +209,7 @@ theorem wScoped {d : Nat} {Δa : List AnnotTerm} {e : Expr}
 /-- **Weakening the context correspondence by one binder.**  Every
 leaf of an already-scoped subject survives one more binder: its
 annotation lifts (`denoteMeta_weaken_top`), its slot moves up by the new
-head, `Sat_tail` carries the link, and `WellDenotedV.hoist_lift` carries
+head, `Sat_tail` carries the link, and `WellDenotedTy.hoist_lift` carries
 the grading.
 
 `henv` is **dropped** (see the section note): `denoteMeta_weaken_top`'s
@@ -233,17 +233,17 @@ theorem weakenTop {d : Nat} {Δa : List AnnotTerm} {Ba : AnnotTerm} {e : Expr}
       show AnnotTerm.liftN 1 tya 0 = tya.lift from rfl,
       interp_lift (V := V) tya ρ, hlink _ (Sat_tail hρ)]
     congr 1
-  · exact WellDenotedV.hoist_lift (X := Ba) hok
+  · exact WellDenotedTy.hoist_lift (X := Ba) hok
 
 /-- **Opening a binder congruence, annotated, in the P currency.**
 `hdom` is `DefEqClaim`'s conclusion partially applied, and `hok₂` is the
-*opened variable's* grading, at `WellDenotedV` because that is what
+*opened variable's* grading, at `WellDenotedTy` because that is what
 `CtxOk`'s leaf package carries. -/
 theorem openCongC {d : Nat} {Δa : List AnnotTerm} {body ty : Expr}
     {ta₁ ta₂ : AnnotTerm}
     (hb : CtxOk m φ d Δa body) (ht : CtxOk m φ d Δa ty)
     (hty : denoteMeta m.acval env φ d ty = some ta₂)
-    (hok₂ : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta₂)
+    (hok₂ : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta₂)
     (hdom : ∀ ρ : Nat → V, Sat V Δa ρ →
       interp V ρ ta₁ = interp V ρ ta₂) :
     CtxOk m φ (d + 1) (ta₁ :: Δa)
@@ -268,7 +268,7 @@ theorem openCongC {d : Nat} {Δa : List AnnotTerm} {body ty : Expr}
           show AnnotTerm.liftN 1 ta₂ 0 = ta₂.lift from rfl,
           interp_lift (V := V) ta₂ ρ]
         exact (hdom _ hρ').symm
-      · exact WellDenotedV.hoist_lift (X := ta₁) hok₂
+      · exact WellDenotedTy.hoist_lift (X := ta₁) hok₂
     · exact (weakenTop (Ba := ta₁) ht).2 l hl''
 
 /-- **Opening a binder**, type first; no `fvarsBelow` argument because
@@ -277,7 +277,7 @@ theorem openS {d : Nat} {Δa : List AnnotTerm}
     {ty body : Expr} {ta : AnnotTerm}
     (ht : CtxOk m φ d Δa ty) (hb : CtxOk m φ d Δa body)
     (hty : denoteMeta m.acval env φ d ty = some ta)
-    (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta) :
+    (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) :
     CtxOk m φ (d + 1) (ta :: Δa)
       (body.instantiate1 (.fvar d ty)) :=
   openCongC hb ht hty hok fun _ _ => rfl
@@ -292,7 +292,7 @@ theorem CtxOk.open {d : Nat} {Δa : List AnnotTerm} {body ty : Expr}
     {ta : AnnotTerm}
     (hb : CtxOk m φ d Δa body) (ht : CtxOk m φ d Δa ty)
     (hty : denoteMeta m.acval env φ d ty = some ta)
-    (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ ta) :
+    (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) :
     CtxOk m φ (d + 1) (ta :: Δa)
       (body.instantiate1 (.fvar d ty)) :=
   CtxOk.openS ht hb hty hok

@@ -141,17 +141,20 @@ theorem wellDenoted : ∀ {e e' : AnnotTerm}, BitAgree e e' →
   | lam hz hA hb ihA ihb =>
     intro ρ
     rw [WellDenoted_lam, WellDenoted_lam, ihA ρ, interp_eq V hA ρ]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl (ihb (cons x ρ)))
       (exists_congr fun B => and_congr
         (forall_congr' fun x => imp_congr Iff.rfl ?_)
-        ⟨fun hh h0 => hh (hz.mpr h0), fun hh h0 => hh (hz.mp h0)⟩))
+        (and_congr Iff.rfl
+          ⟨fun hh h0 => hh (hz.mpr h0), fun hh h0 => hh (hz.mp h0)⟩))))
     rw [interp_eq V hb (cons x ρ)]
   | pi _ hA hB ihA ihB =>
     intro ρ
     rw [WellDenoted_pi, WellDenoted_pi, ihA ρ, interp_eq V hA ρ]
-    exact and_congr Iff.rfl
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl (ihB (cons x ρ)))
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+    rw [interp_eq V hB (cons x ρ)]
   | eqE _ _ iha ihb =>
     intro ρ; rw [WellDenoted_eqE, WellDenoted_eqE, iha ρ, ihb ρ]
   | fst he ih =>
