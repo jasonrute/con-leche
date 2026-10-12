@@ -126,18 +126,18 @@ private def mkDef (n : String) (ps : List String) (type value : Expr) : Declarat
 
 -- `def arrowType : Type := Prop → Prop` (tutorial test 003)
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "arrowType" [] (.sort (.succ .zero))
-  (.forallE (.sort .zero) (.sort .zero) {})]).toBool
+  (.forallE (.sort .zero) (.sort .zero))]).toBool
 
 -- `def dependentType : Prop := ∀ (p : Prop), p` (tutorial test 004):
 -- impredicativity, in both modes.
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "dependentType" [] (.sort .zero)
-  (.forallE (.sort .zero) (.bvar 0) {})]).toBool
+  (.forallE (.sort .zero) (.bvar 0))]).toBool
 #guard (checkDeclsPure .trusted (pureOps .trusted) natOpPinSets [mkDef "dependentType" [] (.sort .zero)
-  (.forallE (.sort .zero) (.bvar 0) {})]).toBool
+  (.forallE (.sort .zero) (.bvar 0))]).toBool
 
 -- `∀ (p : Prop), p : Type` is rejected (it is a Prop).
 #guard checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "bad2" [] (.sort (.succ .zero))
-    (.forallE (.sort .zero) (.bvar 0) {})]
+    (.forallE (.sort .zero) (.bvar 0))]
   matches .error (.invalid _)
 
 -- Input expressions containing fvars are rejected.
@@ -153,8 +153,8 @@ private def mkThm (n : String) (type value : Expr) : Declaration :=
 -- `theorem t : ∀ (p : Prop), p → p`-shaped: a Prop-typed theorem is accepted
 -- when its (in-fragment) value matches.
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkThm "t"
-    (.forallE (.sort .zero) (.sort .zero) {})
-    (.forallE (.sort .zero) (.bvar 0) {})])
+    (.forallE (.sort .zero) (.sort .zero))
+    (.forallE (.sort .zero) (.bvar 0))])
   matches .error (.invalid _)  -- value `∀ p, p : Prop` vs type `Prop → Prop : Prop`? mismatch
 
 -- A theorem whose type is not a proposition is rejected (tutorial 012).
@@ -164,7 +164,7 @@ private def mkThm (n : String) (type value : Expr) : Declaration :=
 -- A theorem stating an accepted Prop with a matching proof-shaped value:
 -- `theorem t2 : Prop-valued-forall` where value has exactly that type.
 #guard (checkDeclsPure .verified (pureOps .verified) natOpPinSets [mkDef "prp" [] (.sort .zero)
-    (.forallE (.sort .zero) (.bvar 0) {}),
+    (.forallE (.sort .zero) (.bvar 0)),
   mkThm "t2" (.sort .zero) (.const (.str .anonymous "prp") [])]).toBool == false
   -- (const prp : Prop, but Prop ≠ prp's type Prop... value `prp : Prop`; type `Prop`:
   --  `prp : Prop` vs declared `Prop : ?` — declared type must be a Prop; `Prop` is not)
@@ -346,7 +346,7 @@ redex reduces in both modes; the ill-typed argument is the business of
 inference, not of reduction. -/
 
 private def betaRedex : Expr :=
-  .app (.lam (.sort .zero) (.bvar 0) {}) (.sort .zero)
+  .app (.lam (.sort .zero) (.bvar 0)) (.sort .zero)
 
 #guard (whnfCore .verified Env.empty 100 0 betaRedex).toOption
   == some (.sort .zero)
@@ -360,7 +360,7 @@ THROWS (out of fragment) — so any lane that checks the argument fails,
 and the io grade, which does not (task #342), computes the type. -/
 
 private def ioRedex : Expr :=
-  .app (.fvar 0 (.forallE (.sort .zero) (.sort .zero) {})) (.bvar 0)
+  .app (.fvar 0 (.forallE (.sort .zero) (.sort .zero))) (.bvar 0)
 
 -- (a) The io grade skips the argument, in both modes.
 #guard (inferTypeCoreIO .verified Env.empty 6 1 ioRedex).toOption
@@ -392,7 +392,7 @@ and the given rule right-hand side. -/
 private def zBlock (T : Name) (rhs : Expr) : List ConstantInfo :=
   [.indInfo ⟨T, [], .sort .zero⟩ {},
     .ctorInfo ⟨T.str "c", [], .const T []⟩ 0 0,
-    .recInfo ⟨T.str "rec", [], .forallE (.const T []) (.const T []) default⟩ 0 0
+    .recInfo ⟨T.str "rec", [], .forallE (.const T []) (.const T [])⟩ 0 0
       [zRule (T.str "c") rhs]]
 
 /-- The kernel's recursor stage (`checkBlockRec`, the generated stage) on
@@ -421,9 +421,9 @@ private def zMutual (rA rB : Expr) : Declaration :=
   let A := zNm "ZA"; let B := zNm "ZB"
   .indDecl [.indInfo ⟨A, [], .sort .zero⟩ {}, .indInfo ⟨B, [], .sort .zero⟩ {},
     .ctorInfo ⟨A.str "c", [], .const A []⟩ 0 0, .ctorInfo ⟨B.str "c", [], .const B []⟩ 0 0,
-    .recInfo ⟨A.str "rec", [], .forallE (.const A []) (.const A []) default⟩ 0 0
+    .recInfo ⟨A.str "rec", [], .forallE (.const A []) (.const A [])⟩ 0 0
       [zRule (A.str "c") rA],
-    .recInfo ⟨B.str "rec", [], .forallE (.const B []) (.const B []) default⟩ 0 0
+    .recInfo ⟨B.str "rec", [], .forallE (.const B []) (.const B [])⟩ 0 0
       [zRule (B.str "c") rB]] 0
 
 -- Rejected at two members too, with the right rules …

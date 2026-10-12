@@ -56,7 +56,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
-  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState BinderMeta
+  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
 
 universe w
@@ -82,9 +82,9 @@ theorem inferTypeCore_openPis_dom (hμ : μ.verifiedChecks = true) {envK : Env} 
   have hBl : fB.length = n - i := ConLeche.Verify.openPisAtFvars_length _ hB
   obtain ⟨k, hk⟩ : ∃ k, n - i = k + 1 := ⟨n - i - 1, by omega⟩
   rw [hk] at hB
-  obtain ⟨dom, bd, mb, rfl⟩ : ∃ dom bd mb, o₀ = .forallE dom bd mb := by
+  obtain ⟨dom, bd, rfl⟩ : ∃ dom bd, o₀ = .forallE dom bd := by
     match o₀, hB with
-    | .forallE dom bd mb, _ => exact ⟨dom, bd, mb, rfl⟩
+    | .forallE dom bd, _ => exact ⟨dom, bd, rfl⟩
   have hxE : x = .fvar (d + i) dom := by
     simp only [openPisAtFvars] at hB
     split at hB
@@ -176,7 +176,7 @@ theorem list_getD_append_right {α : Type} {l l' : List α} {d : α} {n : Nat}
 
 /-- **A successful inference of a Π infers its domain to a sort.** -/
 theorem inferTypeCore_forallE_dom_sort {envK : Env} {F d : Nat} {ty bd s : Expr}
-    {mb : BinderMeta} (h : ConLeche.inferTypeCore μ envK F d (.forallE ty bd mb) = .ok s) :
+    (h : ConLeche.inferTypeCore μ envK F d (.forallE ty bd) = .ok s) :
     ∃ tty u, ConLeche.inferTypeCore μ envK F d ty = .ok tty ∧
       ConLeche.whnf μ envK F d tty = .ok (.sort u) := by
   cases F with
@@ -209,9 +209,9 @@ theorem inferTypeCore_openPis_dom_sort (hμ : μ.verifiedChecks = true) {envK : 
   have hAl : fA.length = i := ConLeche.Verify.openPisAtFvars_length _ hA
   obtain ⟨k, hk⟩ : ∃ k, n - i = k + 1 := ⟨n - i - 1, by omega⟩
   rw [hk] at hB
-  obtain ⟨dom, bd, mb, rfl⟩ : ∃ dom bd mb, o₀ = .forallE dom bd mb := by
+  obtain ⟨dom, bd, rfl⟩ : ∃ dom bd, o₀ = .forallE dom bd := by
     match o₀, hB with
-    | .forallE dom bd mb, _ => exact ⟨dom, bd, mb, rfl⟩
+    | .forallE dom bd, _ => exact ⟨dom, bd, rfl⟩
   have hxE : x = .fvar (d + i) dom := by
     simp only [openPisAtFvars] at hB
     split at hB
@@ -246,12 +246,12 @@ theorem inferTypeCore_mkAppN_endsInSort_len {envK : Env} {F d : Nat} {s : Level}
     | zero => rfl
     | succ m =>
       match T, hT, hw with
-      | .forallE A b mb, _, hw =>
+      | .forallE A b, _, hw =>
         have := ConLeche.whnf_forallE_eq hw
         exact nomatch this
   | a :: as, f, T, t, m, u, hf, hT, h, hw => by
     obtain ⟨tfa, hfa⟩ := Model.inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
-    obtain ⟨tf, ty', body', m', hf', hwf, rfl, -⟩ := ConLeche.inferTypeCore_app_inv' hfa
+    obtain ⟨tf, ty', body', hf', hwf, rfl, -⟩ := ConLeche.inferTypeCore_app_inv' hfa
     have hTf : tf = T := Except.ok.inj (hf'.symm.trans hf)
     rw [hTf] at hwf
     cases m with
@@ -262,11 +262,11 @@ theorem inferTypeCore_mkAppN_endsInSort_len {envK : Env} {F d : Nat} {s : Level}
       exact nomatch this
     | succ m =>
       match T, hT, hwf with
-      | .forallE A b mb, hT, hwf =>
-        obtain ⟨rfl, rfl, rfl⟩ : A = ty' ∧ b = body' ∧ mb = m' := by
+      | .forallE A b, hT, hwf =>
+        obtain ⟨rfl, rfl⟩ : A = ty' ∧ b = body' := by
           have := ConLeche.whnf_forallE_eq hwf
-          injection this with h1 h2 h3
-          exact ⟨h1.symm, h2.symm, h3.symm⟩
+          injection this with h1 h2
+          exact ⟨h1.symm, h2.symm⟩
         have := inferTypeCore_mkAppN_endsInSort_len as (f := .app f a) hfa
           (EndsInSort.instantiate1' m 0 hT) h hw
         simp [this]
@@ -535,7 +535,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) :
     ∃ (cls s : Nat) (x : ClassCtor) (res : Expr) (ws : List Expr)
-      (ihs : List (Expr × BinderMeta)) (fvs1 : List Expr) (o1 : Expr) (xs' : List Expr)
+      (ihs : List Expr) (fvs1 : List Expr) (o1 : Expr) (xs' : List Expr)
       (rest : Expr),
       genClsOf R.rd c = cls ∧ genCtorAt R.g R.rd c j = x ∧ genMinorSlot R.g R.rd c j = s ∧
       x ∈ R.g.ctors.getD cls [] ∧ tgtMajor out c = R.g.cls.getD cls default ∧
@@ -549,7 +549,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
       (∀ (l i t tele : Nat), x.recs[l]? = some (i, t, tele) →
         (∃ ty, R.g.ihTy t tele (ws.getD i default)
           ((tgtFieldFvs pp.toBlockShape out c j).getD i default)
-          (R.g.pre.length + x.nF + l) = some ty ∧ ihs[l]? = some (ty, R.g.bm)) ∧
+          (R.g.pre.length + x.nF + l) = some ty ∧ ihs[l]? = some ty) ∧
         (∃ n, ConLeche.classRecOf R.rd.recCls R.cvGs t = some n) ∧
         (∃ xs idx, R.g.ihParts t tele (ws.getD i default) (R.g.pre.length + x.nF)
           = some (xs, idx)) ∧
@@ -576,7 +576,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
         Expr.ErasedEq (Expr.fvarTypeD y)
           (Expr.fvarTypeD ((tgtFieldFvs pp.toBlockShape out c j).getD k default))) ∧
       (∀ (l : Nat) (y : Expr), xs'[x.nF + l]? = some y →
-        Expr.ErasedEq (Expr.fvarTypeD y) ((ihs.getD l default).1)) ∧
+        Expr.ErasedEq (Expr.fvarTypeD y) (ihs.getD l default)) ∧
       Expr.ErasedEq rest
         (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
           [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
@@ -595,7 +595,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
         ConLeche.openPisAtFvars (x.nF + ihs.length) (Expr.fvarTypeD y) R.g.pre.length
           = some (xs', rest)) ∧
       (∀ (i : Nat) (z nd : Expr), i < R.g.pre.length → fvs1[i]? = some z →
-        R.g.pre[i]?.map (·.1) = some nd → Expr.ErasedEq (Expr.fvarTypeD z) nd) ∧
+        R.g.pre[i]? = some nd → Expr.ErasedEq (Expr.fvarTypeD z) nd) ∧
       (∀ (k : Nat) (z : Expr), xs'[k]? = some z →
         ∃ t u, ConLeche.inferTypeCore μ envC F (R.g.pre.length + k) (Expr.fvarTypeD z) = .ok t ∧
           ConLeche.whnf μ envC F (R.g.pre.length + k) t = .ok (.sort u)) := by
@@ -636,7 +636,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
   obtain ⟨y, hy⟩ : ∃ y, fvs1[R.g.nP + s]? = some y :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hyE := hE _ y T hy (by
-    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT]; rfl)
+    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT])
   obtain ⟨_, _, -, ⟨TE⟩⟩ := ConLeche.recStageG_tyGen h hr
   obtain ⟨stype, -, hinfT, -⟩ := TE.hcv.sorted
   obtain ⟨tT, htT⟩ := inferTypeCore_openPis_dom hμ hop1 hinfT (R.g.nP + s) y hy
@@ -658,16 +658,16 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
         obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
         obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
         rw [hxe]; exact ConLeche.ScB.fvar (by omega) hty) (by omega)
-  have hihS : ∀ l ty bm', ihs[l]? = some (ty, bm') →
+  have hihS : ∀ l ty, ihs[l]? = some ty →
       ConLeche.ScB (R.g.pre.length + x.nF + l) ty := by
-    intro l ty bm' hl
+    intro l ty hl
     have hl' : l < x.recs.length := by
       rw [← hihl]; exact (List.getElem?_eq_some_iff.mp hl).1
     obtain ⟨⟨i, t, tele⟩, hq⟩ : ∃ q, x.recs[l]? = some q :=
       ⟨_, List.getElem?_eq_getElem hl'⟩
     obtain ⟨⟨ty', hty', hl2⟩, -, -, st, hst, hstl⟩ := hih l i t tele hq
     rw [hl] at hl2
-    obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hl2)
+    obtain rfl := Option.some.inj hl2
     obtain ⟨hiF, -⟩ := ConLeche.ClassGen.recs_mem (List.mem_of_getElem? hq)
     have hi : i < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hiF
     obtain ⟨tyf, hxe, htyf⟩ := hfvsS i _ (List.getElem?_eq_getElem hi)
@@ -675,7 +675,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some, hxe]
     exact ConLeche.ScB.fvar (by omega) (htyf.mono (by omega))
   have hcl : ∀ p ∈ (tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs,
-      p.1.looseBVarsBounded 0 = true := by
+      p.looseBVarsBounded 0 = true := by
     intro p hp
     rcases List.mem_append.mp hp with hp | hp
     · obtain ⟨y', hy', rfl⟩ := List.mem_map.mp hp
@@ -683,7 +683,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
       obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
       rw [hxe]; exact hty.2
     · obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem hp
-      exact (hihS l _ _ (List.getElem?_eq_getElem hl)).2
+      exact (hihS l _ (List.getElem?_eq_getElem hl)).2
   have hbbS : ConLeche.ScB (R.g.pre.length + x.nF)
       (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
         [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
@@ -772,7 +772,7 @@ theorem genMinorOpen (hμ : μ.verifiedChecks = true)
       have := (List.getElem?_eq_some_iff.mp hz).1; omega
     have := hdoms' (x.nF + l) z _ hz (by
       rw [List.getElem?_append_right (by simp [hfl]), List.length_map, hfl,
-        Nat.add_sub_cancel_left, List.getElem?_eq_getElem hl]; rfl)
+        Nat.add_sub_cancel_left, List.getElem?_eq_getElem hl])
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl]
     exact this
 
@@ -801,7 +801,7 @@ theorem genFieldFrame (hμ : μ.verifiedChecks = true)
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) {x : ClassCtor} {res : Expr}
-    {ihs : List (Expr × BinderMeta)} {fvs1 xs' : List Expr} {rest : Expr}
+    {ihs : List Expr} {fvs1 xs' : List Expr} {rest : Expr}
     (hrP : pp.toBlockShape.rulePrefixAt c = R.g.pre.length)
     (hopR : ConLeche.openPisAtFvars x.nF x.tyD R.g.pre.length
         = some (tgtFieldFvs pp.toBlockShape out c j, res))
@@ -1185,7 +1185,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
     · exact List.mem_append_right _ (mem_take_of_fvar_lt hshX hm (by omega))
   -- open it at the rule frame
   obtain ⟨hxsl, hxsS, hidxS⟩ := ConLeche.ClassGen.ihParts_scoped hwsS (Nat.le_refl _) hip
-  have hcl : ∀ p ∈ xs.map R.g.binder, p.1.looseBVarsBounded 0 = true := by
+  have hcl : ∀ p ∈ xs.map R.g.binder, p.looseBVarsBounded 0 = true := by
     intro p hp
     obtain ⟨z, hz, rfl⟩ := List.mem_map.mp hp
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hz
@@ -1273,7 +1273,7 @@ theorem genIhFrame (hμ : μ.verifiedChecks = true)
   obtain ⟨hcount, key, hkey⟩ := motiveSlot_count hst
   obtain ⟨Tm, hTm, hpreT⟩ := ConLeche.ClassGen.prefixBinders_motive hg hkey
   rw [hcount] at hTm
-  have hT2E := hpreE _ _ Tm (by omega) hfv1 (by rw [hpreT]; rfl)
+  have hT2E := hpreE _ _ Tm (by omega) hfv1 (by rw [hpreT])
   have hEnds := EndsInSort.of_erasedEq _ hT2E (ClassGen.motiveTy_endsInSort hTm)
   have hlenA := inferTypeCore_mkAppN_endsInSort_len as2 htf hEnds hbt hwbt
   have hidxl : idx.length = (R.g.cls.getD t default).nIdx := by
@@ -1350,17 +1350,17 @@ theorem lpDefF_of_erasedEq {ps : List Name} :
     | .app g c, h =>
       simp only [lpDefF, Bool.and_eq_true] at hb ⊢
       exact ⟨ihf h.1 hb.1, iha h.2 hb.2⟩
-  | lam t bd m iht ihb =>
+  | lam t bd iht ihb =>
     intro b h hb
     match b, h with
-    | .lam t' bd' m', h =>
+    | .lam t' bd', h =>
       obtain ⟨h1, h2⟩ := h
       simp only [lpDefF, Bool.and_eq_true] at hb ⊢
       exact ⟨iht h1 hb.1, ihb h2 hb.2⟩
-  | forallE t bd m iht ihb =>
+  | forallE t bd iht ihb =>
     intro b h hb
     match b, h with
-    | .forallE t' bd' m', h =>
+    | .forallE t' bd', h =>
       obtain ⟨h1, h2⟩ := h
       simp only [lpDefF, Bool.and_eq_true] at hb ⊢
       exact ⟨iht h1 hb.1, ihb h2 hb.2⟩
@@ -1494,7 +1494,7 @@ theorem genRecTyZ (hμ : μ.verifiedChecks = true)
   obtain ⟨ym, hym⟩ : ∃ y, fvs1[R.g.nP + sm]? = some y :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hymE := hE _ ym Tm hym (by
-    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreTm]; rfl)
+    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreTm])
   obtain ⟨pdm, hpdm, -, hrdm⟩ := hdomsR _ ym hym
   rw [denoteMeta_erasedEq hymE] at hrdm
   -- the tower
@@ -1585,7 +1585,7 @@ theorem genRuleRaZ (hμ : μ.verifiedChecks = true)
   -- the binder domains, read at the constructors' environment
   have hstrip : rhs.stripLams (R.g.pre.length + x.nF) = some (RR.rbs, RR.body) := by
     rw [hpl0]; exact RR.hstrip
-  have hcb : ∀ q ∈ bs, ConstsBound envC q.1 :=
+  have hcb : ∀ q ∈ bs, ConstsBound envC q :=
     openLamsM_constsBound _ hstrip (fun q hq => by
       have hres := RR.hdoms q hq
       simp only [ConLeche.StructWalkers.plain] at hres

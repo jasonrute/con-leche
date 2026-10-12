@@ -170,23 +170,23 @@ theorem prop_pt_io (hin : RulesInputs V m φ) :
       (prop_pt_io hin hbs rfl (infer_sound hin hbs) hv (red_sound hin hv)
         (eval_zero_of_red_imax hr hw0))
   | _, _, _, _, .sort, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .fvar _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .const _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .natLit _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .strLit _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .lam _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .letE _ _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .app _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
   | _, _, _, _, .proj _ _ _ _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
-    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ _ h => nomatch h)
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
 
 theorem certsF_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {ty : Expr} {args : List Expr},

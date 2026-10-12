@@ -555,7 +555,7 @@ recursors' environment; its λ-telescope `n` long, the λ-domains
 resolving at the constructors' environment. -/
 structure ClassRuleRun (mode : CheckMode) (F : Nat) (w : StructWalkers) (feT feR : FEnv)
     (cvR : ConstantVal) (n : Nat) (gen out : Expr) : Type where
-  rbs : List (Expr × BinderMeta)
+  rbs : List Expr
   body : Expr
   tyR : Expr
   hbv : gen.looseBVarsBounded 0 = true
@@ -565,7 +565,7 @@ structure ClassRuleRun (mode : CheckMode) (F : Nat) (w : StructWalkers) (feT feR
   hres : w.resolve feR out = true
   htyR : (fueledOps mode F).inferType feR.env 0 out = .ok tyR
   hstrip : out.stripLams n = some (rbs, body)
-  hdoms : ∀ b ∈ rbs, w.resolve feT b.1 = true
+  hdoms : ∀ b ∈ rbs, w.resolve feT b = true
 
 /-- **`classRuleOk`, inverted.** -/
 theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal} 
@@ -586,7 +586,7 @@ theorem classRuleOk_run {w : StructWalkers} {feT feR : FEnv} {cvR : ConstantVal}
   obtain ⟨tyR, htyR, h⟩ := exceptBind_ok h
   obtain ⟨⟨rbs, body⟩, hstrip, h⟩ := exceptBind_ok h
   simp only at h
-  by_cases hdoms : (rbs.all fun b => w.resolve feT b.1) = true
+  by_cases hdoms : (rbs.all fun b => w.resolve feT b) = true
   case neg => rw [ite_eq_right hdoms] at h; close_throw h
   rw [ite_eq_left hdoms] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
@@ -669,7 +669,7 @@ theorem classRecsRulesOk_run {w : StructWalkers} {feT feR : FEnv} {g : ClassGen}
 by the caller). -/
 @[expose] def genRecGen (p : BlockShape) (params : List Expr) (Ms : List TargetMajor)
     (formerTysC : List Expr) (rd : ClassRead) (ctors : List (List ClassCtor))
-    (pre : List (Expr × BinderMeta)) : ClassGen :=
+    (pre : List Expr) : ClassGen :=
   ⟨p.nP, params, Ms, formerTysC, rd.slots, ctors, structElimLevel p.elim p.large, pre⟩
 
 /-- **The generated recursor stage, as run** — every bind of
@@ -685,7 +685,7 @@ structure GenStageRun (mode : CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   Ms : List TargetMajor
   ctors : List (List ClassCtor)
   formerTysC : List Expr
-  pre : List (Expr × BinderMeta)
+  pre : List Expr
   cvGs : List ConstantVal
   /-- the records' pins -/
   pins : targetRecPins (m := CheckM) p block = .ok ()
@@ -794,7 +794,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   Ms : List TargetMajor
   ctors : List (List ClassCtor)
   formerTysC : List Expr
-  pre : List (Expr × BinderMeta)
+  pre : List Expr
   cvGs : List ConstantVal
   /-- the records' pins -/
   pins : targetRecPins (m := CheckM) p block = .ok ()

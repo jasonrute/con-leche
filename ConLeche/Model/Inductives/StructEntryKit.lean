@@ -48,7 +48,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta)
+ )
 
 universe w
 
@@ -471,7 +471,7 @@ grading are invariant under a lift's index (`interp_congr_lifts`,
 -/
 
 
-open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BinderMeta)
+open ConLeche (Env Expr Name Level ConstantInfo ConstantVal)
 
 
 /-! ## The syntax: an unused binder -/
@@ -506,10 +506,10 @@ theorem hasLooseBVar_instantiate1_lt {v : Expr} (hv : ∀ i, v.hasLooseBVar i = 
   | app f a ihf iha =>
     intro i k hik
     simp only [Expr.instantiate1, Expr.hasLooseBVar, ihf i k hik, iha i k hik]
-  | lam ty b _ ihty ihb =>
+  | lam ty b ihty ihb =>
     intro i k hik
     simp only [Expr.instantiate1, Expr.hasLooseBVar, ihty i k hik, ihb (i + 1) (k + 1) (by omega)]
-  | forallE ty b _ ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro i k hik
     simp only [Expr.instantiate1, Expr.hasLooseBVar, ihty i k hik, ihb (i + 1) (k + 1) (by omega)]
   | letE t v' b iht ihv ihb =>
@@ -544,14 +544,14 @@ theorem fvarLeaves_instantiate1_of_not_hasLooseBVar :
     rcases hl with hl | hl
     · exact Or.inl (ihf v k hk.1 l hl)
     · exact Or.inr (iha v k hk.2 l hl)
-  | lam ty b _ ihty ihb =>
+  | lam ty b ihty ihb =>
     intro v k hk l hl
     simp only [Expr.hasLooseBVar, Bool.or_eq_false_iff] at hk
     simp only [Expr.instantiate1, Expr.fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
     · exact Or.inl (ihty v k hk.1 l hl)
     · exact Or.inr (ihb v (k + 1) hk.2 l hl)
-  | forallE ty b _ ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro v k hk l hl
     simp only [Expr.hasLooseBVar, Bool.or_eq_false_iff] at hk
     simp only [Expr.instantiate1, Expr.fvarLeaves, List.mem_append] at hl ⊢
@@ -582,7 +582,7 @@ after binder `m` does not mention it, no later opener's annotation and
 not the opened body carries the `m`-th opener as a leaf. -/
 theorem openPisAtFvars_leaf_free :
     ∀ (n : Nat) {e : Expr} {d : Nat} {fvs : List Expr} {o : Expr} (m : Nat)
-      {bs : List (Expr × BinderMeta)} {rest : Expr},
+      {bs : List Expr} {rest : Expr},
       openPisAtFvars n e d = some (fvs, o) → m < n →
       e.stripPis (m + 1) = some (bs, rest) → rest.hasLooseBVar 0 = false →
       (∀ l ∈ e.fvarLeaves, l.1 ≠ d + m) →
@@ -591,7 +591,7 @@ theorem openPisAtFvars_leaf_free :
   | 0, _, _, _, _, m, _, _, _, hm, _, _, _ => absurd hm (Nat.not_lt_zero m)
   | n + 1, e, d, fvs, o, m, bs, rest, hop, hm, hst, hfree, hleaves => by
     match e, hop, hst with
-    | .forallE dom body mb, hop, hst =>
+    | .forallE dom body, hop, hst =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -665,7 +665,7 @@ theorem openPisAtFvars_leaf_free :
             omega
       · exact nomatch hop
     | .bvar _, hop, _ | .fvar _ _, hop, _ | .sort _, hop, _ | .const _ _, hop, _
-    | .app _ _, hop, _ | .lam _ _ _, hop, _ | .letE _ _ _, hop, _ | .lit _, hop, _
+    | .app _ _, hop, _ | .lam _ _, hop, _ | .letE _ _ _, hop, _ | .lit _, hop, _
     | .proj _ _ _, hop, _ =>
       simp [openPisAtFvars] at hop
 
@@ -716,7 +716,7 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
     intro _ q _ _ ea h
     rw [denoteMeta, hf] at h
     exact nomatch h
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro hw q hq hl ea h
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     simp only [Expr.WScoped] at hw
@@ -732,7 +732,7 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
         · exact hl l (by simp only [Expr.fvarLeaves, List.mem_append]; exact Or.inl hl')) hba
     refine ⟨.pi Xt Xb, ?_⟩
     rw [AnnotTerm.liftN_pi, show d + 1 - 1 - q = d - 1 - q + 1 from by omega]
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro hw q hq hl ea h
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_lam_inv h
     simp only [Expr.WScoped] at hw
@@ -812,8 +812,8 @@ theorem denoteMeta_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Nam
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -1137,10 +1137,10 @@ regime rides the official guard's content (`hguard`) and the unused
 earlier fields' invariance (`hfree`). -/
 theorem bodyFrames {env : Env} (m : EnvModel V env)
     {nP nF i off : Nat} {T : Name} {cty : Expr} {cds : List Expr}
-    {bodyC : Expr} {mbC : BinderMeta} {body : Expr}
+    {bodyC : Expr} {body : Expr}
     (hcf : Expr.instPisAt (ConLeche.fvsD nP ++ ConLeche.projArgsD T i nP) cty
       = some (cds, .forallE
-          (Expr.instSpine (ConLeche.fvsD nP ++ [ConLeche.tfvD nP]) nP body) bodyC mbC))
+          (Expr.instSpine (ConLeche.fvsD nP ++ [ConLeche.tfvD nP]) nP body) bodyC))
     (hCf : cty.hasFvar = false) (hCb : cty.looseBVarsBounded 0 = true)
     -- the earlier fields' entries, at the table's projection offset
     -- (task #210 Part A: the tagged tower of the fixpoint route reads
@@ -1310,7 +1310,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta ProjEntry ProjTable projTableName)
+  ProjEntry ProjTable projTableName)
 
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}

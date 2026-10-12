@@ -159,12 +159,12 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
   | .lit (.strVal s), h =>
     obtain ⟨hg, rfl⟩ := inferTypeCore_strLit_inv' h
     exact .strLit hg
-  | .forallE ty body mb, h =>
+  | .forallE ty body, h =>
     obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, rfl⟩ :=
       inferTypeCore_forall_inv h
     exact .forallE (hi hty) (hw hwt) (hi hbt) (hw (ensureSortCore_inv hes))
   | .app f a, h =>
-    obtain ⟨tf, ty', body', m', htf, hwf, rfl, ta, hta, hde⟩ :=
+    obtain ⟨tf, ty', body', htf, hwf, rfl, ta, hta, hde⟩ :=
       inferTypeCore_app_inv h
     exact .app (hi htf) (hw hwf) (fun _ => hi hta) (fun _ => hd hde)
   | .proj sn i pe, h =>
@@ -172,7 +172,7 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
       rfl, rfl⟩ := inferTypeCore_proj_inv h
     simp only [beq_iff_eq] at hprop
     exact .proj (hi hpe) (hw hwpe) hfn hentry hlen hlvl hprop
-  | .lam ty body mb, h =>
+  | .lam ty body, h =>
     obtain ⟨tty, u, bt, hty, hwt, hbt, rfl⟩ :=
       inferTypeCore_lam_inv h
     exact .lam (fun _ => hi hty) (fun _ => hw hwt) (hi hbt)
@@ -208,7 +208,7 @@ theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
     rw [inferTypeCoreIO_lit_eq] at h
     obtain ⟨hg, rfl⟩ := inferTypeCore_strLit_inv' h
     exact .strLit hg
-  | .forallE ty body mb, h =>
+  | .forallE ty body, h =>
     obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, rfl⟩ :=
       inferTypeCoreIO_forall_inv h
     exact .forallE (hio hty) (hw hwt) (hio hbt) (hw (ensureSortCore_inv hes))
@@ -218,11 +218,11 @@ theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
     simp only [beq_iff_eq] at hprop
     exact .proj (hio hpe) (hw hwpe) hfn hentry hlen hlvl hprop
   | .app f a, h =>
-    obtain ⟨tf, ty', body', m', htf, hwf, rfl⟩ :=
+    obtain ⟨tf, ty', body', htf, hwf, rfl⟩ :=
       inferTypeCoreIO_app_inv h
     exact .app (ta := a) (hio htf) (hw hwf) (fun hg => nomatch hg)
       (fun hg => nomatch hg)
-  | .lam ty body mb, h =>
+  | .lam ty body, h =>
     obtain ⟨bt, hbt, rfl⟩ := inferTypeCoreIO_lam_inv h
     exact .lam (s := ty) (u := .zero) (fun hg => nomatch hg) (fun hg => nomatch hg)
       (hio hbt)

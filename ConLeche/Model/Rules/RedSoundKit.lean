@@ -171,7 +171,7 @@ theorem denoteMetaNilTerm {acval : Name → (Name → Nat) → AnnotTerm}
           (Level.substFn φ (levelParamsAt env ConLeche.listNilName)
             [.zero]))
         (acval ConLeche.charName (Level.substFn φ [] []))) := by
-  obtain ⟨ciN, p, mb, hfN, hlpN, -⟩ := listNil_shape hg
+  obtain ⟨ciN, p, hfN, hlpN, -⟩ := listNil_shape hg
   obtain ⟨ciC, hfC, hlpC, -⟩ := char_shape hg
   have hlpa : ciN.toConstantVal.levelParams
       = levelParamsAt env ConLeche.listNilName := by
@@ -189,7 +189,7 @@ theorem denoteMetaConsTerm {acval : Name → (Name → Nat) → AnnotTerm}
           (Level.substFn φ (levelParamsAt env ConLeche.listConsName)
             [.zero]))
         (acval ConLeche.charName (Level.substFn φ [] []))) := by
-  obtain ⟨ciC', p, -, -, -, hfC', hlpC', -⟩ := listCons_shape hg
+  obtain ⟨ciC', p, hfC', hlpC', -⟩ := listCons_shape hg
   obtain ⟨ciC, hfC, hlpC, -⟩ := char_shape hg
   have hlpa : ciC'.toConstantVal.levelParams
       = levelParamsAt env ConLeche.listConsName := by
@@ -219,7 +219,7 @@ theorem denoteMetaStrLitList
   have hnat : ConLeche.natLitSupported env = true := by
     simp only [ConLeche.strLitSupported, Bool.and_eq_true] at hg
     exact hg.1.1.1.1.1.1.1
-  obtain ⟨ciF, mb, hfF, hlpF, -⟩ := charOfNat_shape hg
+  obtain ⟨ciF, hfF, hlpF, -⟩ := charOfNat_shape hg
   intro cs
   induction cs with
   | nil =>
@@ -236,7 +236,7 @@ theorem denoteMeta_strLitToConstructor
     (hg : ConLeche.strLitSupported env = true) (d : Nat) (s : String) :
     denoteMeta acval env φ d (ConLeche.strLitToConstructor s)
       = denoteMeta acval env φ d (.lit (.strVal s)) := by
-  obtain ⟨ciO, mb, hfO, hlpO, -⟩ := stringOfList_shape hg
+  obtain ⟨ciO, hfO, hlpO, -⟩ := stringOfList_shape hg
   rw [ConLeche.strLitToConstructor_eq, denoteMeta,
     denoteMetaConstNolevels hfO hlpO d, denoteMetaStrLitList hg d,
     denoteMeta, ite_eq_left hg]
@@ -585,11 +585,11 @@ theorem piChain_of_stripPis {acval : Name → (Name → Nat) → AnnotTerm} :
     | .sort _, hs => exact nomatch hs
     | .const _ _, hs => exact nomatch hs
     | .app _ _, hs => exact nomatch hs
-    | .lam _ _ _, hs => exact nomatch hs
+    | .lam _ _, hs => exact nomatch hs
     | .letE _ _ _, hs => exact nomatch hs
     | .lit _, hs => exact nomatch hs
     | .proj _ _ _, hs => exact nomatch hs
-    | .forallE ty bd mb, hs =>
+    | .forallE ty bd, hs =>
       obtain ⟨ta, ba, -, hba, rfl⟩ := denoteMeta_forallE_inv hd
       simp only [ConLeche.Expr.stripPis, Option.isSome_map] at hs
       exact ih (ConLeche.Expr.stripPis_instantiate1_isSome n 0 hs) hba

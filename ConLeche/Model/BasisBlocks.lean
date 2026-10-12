@@ -167,7 +167,7 @@ theorem denoteMeta_natSuccTy {c₀ : ConstantInfo} (ψ : Name → Nat)
     ψ hne hN d
   rw [show natSuccA.toConstantVal.type
       = Expr.forallE (.const natName [])
-          (.const natName []) {} from rfl]
+          (.const natName []) from rfl]
   simp [denoteMeta_forallE, Expr.instantiate1, hNc]
 
 theorem denoteMeta_natSuccA_type (ψ : Name → Nat)
@@ -227,7 +227,7 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
   rw [show natRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const natName [])
-            (.sort (.param uN)) {})
+            (.sort (.param uN)))
           (Expr.forallE
             (.app (.bvar 0) (.const natZeroName []))
             (Expr.forallE
@@ -235,15 +235,9 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
                 (Expr.forallE
                   (.app (.bvar 2) (.bvar 0))
                   (.app (.bvar 3)
-                    (.app (.const natSuccName []) (.bvar 1)))
-                  {})
-                {})
+                    (.app (.const natSuccName []) (.bvar 1)))))
               (Expr.forallE (.const natName [])
-                (.app (.bvar 3) (.bvar 0))
-                {})
-              {})
-            {})
-          {} from rfl]
+                (.app (.bvar 3) (.bvar 0))))) from rfl]
   simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
     Expr.instantiate1, hNc, hZc, hSc, Level.eval]
 
@@ -411,12 +405,11 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
       · refine ⟨natSuccA.toConstantVal, 1, ?_, rfl,
           ⟨natA.toConstantVal, _, by rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN,
             rfl⟩,
-          .forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero)) {}, by decide,
+          .forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero)), by decide,
           by decide, fun ψ => ⟨rfl, [(0, 0, .bvar 0)], ?_, rfl⟩⟩
         · show (⟨natSuccA :: env.consts⟩ : ConLeche.Env).find? natSuccA.name = _
           rw [ConLeche.Env.find?_cons, ite_eq_left rfl]; rfl
-        · show denoteMeta _ _ _ 1 (.forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero))
-            {}) = _
+        · show denoteMeta _ _ _ 1 (.forallE (.fvar 0 (.sort .zero)) (.fvar 0 (.sort .zero))) = _
           simp [denoteMeta_forallE, ConLeche.Expr.instantiate1, denoteMeta_fvar, mkPisAV])
     (hnd := nodup_one _) (hlen := rfl)
     (hall := lfpAll_one (n := natName) (c := natA) rfl rfl
@@ -559,19 +552,15 @@ theorem denoteMeta_natRec_zeroRhs (ψ : Name → Nat)
     denoteMeta_natRec_leaves (m := m) (A := A) ψ hN hZ hS
   rw [show natRecZeroRule.rhs = Expr.lam
       (Expr.forallE (.const natName [])
-        (.sort (.param uN)) {})
+        (.sort (.param uN)))
       (Expr.lam
         (.app (.bvar 0) (.const natZeroName []))
         (Expr.lam
           (Expr.forallE (.const natName [])
             (Expr.forallE
               (.app (.bvar 2) (.bvar 0))
-              (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))
-              {})
-            {})
-          (.bvar 1) {})
-        {})
-      {} from rfl]
+              (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))))
+          (.bvar 1))) from rfl]
   simp [denoteMeta_lam, denoteMeta_forallE, denoteMeta_sort, denoteMeta_app,
     denoteMeta_fvar, Expr.instantiate1, hNc, hZc, hSc, Level.eval,
     natZeroRa, natMotiveTy, natStepTy]
@@ -606,25 +595,19 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
         [Level.param uN] uN = ψ uN from rfl]
   rw [show natRecSuccRule.rhs = Expr.lam
       (Expr.forallE (.const natName [])
-        (.sort (.param uN)) {})
+        (.sort (.param uN)))
       (Expr.lam
         (.app (.bvar 0) (.const natZeroName []))
         (Expr.lam
           (Expr.forallE (.const natName [])
             (Expr.forallE
               (.app (.bvar 2) (.bvar 0))
-              (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))
-              {})
-            {})
+              (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))))
           (Expr.lam (.const natName [])
             (.app (.app (.bvar 1) (.bvar 0))
               (.app (.app (.app (.app
                 (.const (natName.str "rec") [.param uN]) (.bvar 3))
-                (.bvar 2)) (.bvar 1)) (.bvar 0)))
-            {})
-          {})
-        {})
-      {} from rfl]
+                (.bvar 2)) (.bvar 1)) (.bvar 0)))))) from rfl]
   simp [denoteMeta_lam, denoteMeta_forallE, denoteMeta_sort, denoteMeta_app,
     denoteMeta_fvar, Expr.instantiate1, hNc, hZc, hSc, hRc, Level.eval,
     natSuccRa, natMotiveTy, natStepTy]
@@ -1424,7 +1407,7 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
       rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hN2
     rw [show natSuccA.toConstantVal.type
       = Expr.forallE (.const natName [])
-        (.const natName []) {} from rfl]
+        (.const natName []) from rfl]
     simp [Expr.constsResolve, hf]
   refine (extendNatSucc mp2 hN2 hZ2 hf3 hwf3).trans fun mp3 => ?_
   have hN3 : (⟨natSuccA :: natZeroA :: natA :: env.consts⟩
@@ -1461,8 +1444,7 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
       rw [show natRecA.toConstantVal.type
           = Expr.forallE
               (Expr.forallE
-                (.const natName []) (.sort (.param uN))
-                {})
+                (.const natName []) (.sort (.param uN)))
               (Expr.forallE
                 (.app (.bvar 0) (.const natZeroName []))
                 (Expr.forallE
@@ -1471,15 +1453,9 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
                     (Expr.forallE
                       (.app (.bvar 2) (.bvar 0))
                       (.app (.bvar 3)
-                        (.app (.const natSuccName []) (.bvar 1)))
-                      {})
-                    {})
+                        (.app (.const natSuccName []) (.bvar 1)))))
                   (Expr.forallE
-                    (.const natName []) (.app (.bvar 3) (.bvar 0))
-                    {})
-                  {})
-                {})
-              {} from rfl]
+                    (.const natName []) (.app (.bvar 3) (.bvar 0))))) from rfl]
       simp only [Expr.constsResolve, hfN, hfZ, hfS, Option.isSome_some,
         Bool.and_self]
     · intro cv mI rP rules heq

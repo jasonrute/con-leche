@@ -104,11 +104,11 @@ theorem inferTypeCoreIO_WScoped {env : Env} (henv : EnvWF env) :
           intro h
           simp only [Except.ok.injEq] at h
           subst h; simp [WScoped]
-    | forallE ty body m =>
+    | forallE ty body =>
       obtain ⟨tty, u, bt, v, hty, hwt, hbt, hes, -, rfl⟩ :=
         inferTypeCoreIO_forall_inv h
       simp [WScoped]
-    | lam ty body m =>
+    | lam ty body =>
       obtain ⟨bt, hbt, -, -, rfl⟩ :=
         inferTypeCoreIO_lam_inv h
       simp only [WScoped] at hw
@@ -118,7 +118,7 @@ theorem inferTypeCoreIO_WScoped {env : Env} (henv : EnvWF env) :
       simp only [WScoped]
       exact ⟨hw.1, WScoped.abstract1 0 hwbt⟩
     | app f a =>
-      obtain ⟨tf, ty', body', m', htf, hwh, rfl, -⟩ :=
+      obtain ⟨tf, ty', body', htf, hwh, rfl, -⟩ :=
         inferTypeCoreIO_app_inv h
       simp only [WScoped] at hw
       have hwtf := inferTypeCoreIO_WScoped henv fuel htf hw.1

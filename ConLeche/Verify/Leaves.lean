@@ -52,7 +52,7 @@ theorem fvarLeaves_instantiate1 {a : Expr} :
     · rcases ihb k hl with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k l hl
     simp only [instantiate1, fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
@@ -62,7 +62,7 @@ theorem fvarLeaves_instantiate1 {a : Expr} :
     · rcases ihbody (k + 1) hl with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k l hl
     simp only [instantiate1, fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
@@ -113,14 +113,14 @@ theorem WScoped_leaves : ∀ (e : Expr) {d : Nat}, WScoped d e →
     rcases hl with hl | hl
     · exact ihf hw.1 l hl
     · exact iha hw.2 l hl
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d hw l hl
     simp only [WScoped] at hw
     simp only [fvarLeaves, List.mem_append] at hl
     rcases hl with hl | hl
     · exact ihty hw.1 l hl
     · exact ihbody hw.2 l hl
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d hw l hl
     simp only [WScoped] at hw
     simp only [fvarLeaves, List.mem_append] at hl
@@ -174,7 +174,7 @@ theorem fvarLeaves_abstract1_lt {D : Nat} :
       exact ⟨Or.inl h1, h2⟩
     · obtain ⟨h1, h2⟩ := iha k hw.2 l hl
       exact ⟨Or.inr h1, h2⟩
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k hw l hl
     simp only [WScoped] at hw
     simp only [abstract1, fvarLeaves, List.mem_append] at hl ⊢
@@ -183,7 +183,7 @@ theorem fvarLeaves_abstract1_lt {D : Nat} :
       exact ⟨Or.inl h1, h2⟩
     · obtain ⟨h1, h2⟩ := ihbody (k + 1) hw.2 l hl
       exact ⟨Or.inr h1, h2⟩
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k hw l hl
     simp only [WScoped] at hw
     simp only [abstract1, fvarLeaves, List.mem_append] at hl ⊢

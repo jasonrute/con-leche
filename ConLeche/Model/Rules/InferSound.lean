@@ -157,7 +157,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
       have heq := (hred ρ hρ (hL.of_subset hsub) hgs.1 hgs.ne_pt).2
       rw [heq, interp_sort] at hm
       exact ⟨hty.1, hm⟩
-    · obtain ⟨_, _, _, rfl⟩ := h.forallE
+    · obtain ⟨_, _, rfl⟩ := h.forallE
       exact nomatch Red.rigid (hur rfl) trivial
 
 /-- A sort has the successor sort. -/
@@ -304,13 +304,13 @@ theorem Infer.strLit_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
 
 /-- A Π-type: the two sort facts (`sortSemAt_of_claims`'s content). -/
 theorem Infer.forallE_sound {g : Grade} {d : Nat}
-    {ty body s bs : Expr} {u v : Level} {mb : BinderMeta}
+    {ty body s bs : Expr} {u v : Level}
     (hs : InferSem m φ g d ty s) (hu : RedSem m φ d s (.sort u))
     (hur : g = .io → Red env d s (.sort u))
     (hbs : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bs)
     (hv : RedSem m φ (d + 1) bs (.sort v))
     (hvr : g = .io → Red env (d + 1) bs (.sort v)) :
-    InferSem m φ g d (.forallE ty body mb) (.sort (.imax u v)) := by
+    InferSem m φ g d (.forallE ty body) (.sort (.imax u v)) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -353,11 +353,11 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
 /-- A λ: the body's inferred types are types, so the abstraction is a
 member of their function space (`lamV_mem`). -/
 theorem Infer.lam_soundFull {d : Nat}
-    {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
+    {ty body s bt : Expr} {u : Level}
     (hs : InferSemFull m φ d ty s)
     (hu : RedSem m φ d s (.sort u))
     (hbt : InferSem m φ .full (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSem m φ .full d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    InferSem m φ .full d (.lam ty body) (.forallE ty (bt.abstract1 d)) := by
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -404,14 +404,14 @@ theorem Infer.lam_soundFull {d : Nat}
     Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
-  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
+  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d))
       = some (.pi tyA btA) := by
     rw [denoteMeta, htyA, hround, hbtA]
     rfl
   have hCbt : CtxOkS m φ (d + 1) (tyA :: Δa) bt := hCop.of_subset hbtsub
   -- the conclusion's frame and leaves
-  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d) mb).fvarLeaves,
-      l ∈ (Expr.lam ty body mb).fvarLeaves := by
+  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d)).fvarLeaves,
+      l ∈ (Expr.lam ty body).fvarLeaves := by
     intro l hl
     simp only [Expr.fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with h2 | h2
@@ -423,10 +423,10 @@ theorem Infer.lam_soundFull {d : Nat}
         rcases List.mem_cons.mp h3 with rfl | h4
         · exact absurd rfl hlne
         · exact Or.inl h4
-  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d) mb) := by
+  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d)) := by
     simp only [Expr.WScoped]
     exact ⟨hws.1, ConLeche.WScoped.abstract1 0 hwbt⟩
-  have hbT : (Expr.forallE ty (bt.abstract1 d) mb).looseBVarsBounded 0
+  have hbT : (Expr.forallE ty (bt.abstract1 d)).looseBVarsBounded 0
       = true := by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hb.1, ConLeche.looseBVarsBounded_abstract1 bt 0 hbtb⟩
@@ -472,9 +472,9 @@ abstraction; otherwise it is the graph of its body values over its own
 domain, a graded type off the subject's grading (`lam_dom`), and its
 every application is a body value, which satisfies the body's claim:
 the hereditary claim at the ∀ of the body's type. -/
-theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
+theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr}
     (hbt : InferSemIO m φ (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSemIO m φ d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    InferSemIO m φ d (.lam ty body) (.forallE ty (bt.abstract1 d)) := by
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
   simp only [Expr.WScoped] at hws
@@ -510,12 +510,12 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
     Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
-  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
+  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d))
       = some (.pi tyA btA) := by
     rw [denoteMeta, htyA, hround, hbtA]
     rfl
-  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d) mb).fvarLeaves,
-      l ∈ (Expr.lam ty body mb).fvarLeaves := by
+  have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d)).fvarLeaves,
+      l ∈ (Expr.lam ty body).fvarLeaves := by
     intro l hl
     simp only [Expr.fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with h2 | h2
@@ -527,10 +527,10 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
         rcases List.mem_cons.mp h3 with rfl | h4
         · exact absurd rfl hlne
         · exact Or.inl h4
-  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d) mb) := by
+  have hwT : Expr.WScoped d (.forallE ty (bt.abstract1 d)) := by
     simp only [Expr.WScoped]
     exact ⟨hws.1, ConLeche.WScoped.abstract1 0 hwbt⟩
-  have hbT : (Expr.forallE ty (bt.abstract1 d) mb).looseBVarsBounded 0
+  have hbT : (Expr.forallE ty (bt.abstract1 d)).looseBVarsBounded 0
       = true := by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hb.1, ConLeche.looseBVarsBounded_abstract1 bt 0 hbtb⟩
@@ -564,19 +564,19 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr} {mb : BinderMeta}
 
 /-- A λ, at either grade. -/
 theorem Infer.lam_sound {g : Grade} {d : Nat}
-    {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
+    {ty body s bt : Expr} {u : Level}
     (hs : g = .full → InferSemFull m φ d ty s)
     (hu : g = .full → RedSem m φ d s (.sort u))
     (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
-    InferSem m φ g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
+    InferSem m φ g d (.lam ty body) (.forallE ty (bt.abstract1 d)) := by
   cases g with
   | full => exact Infer.lam_soundFull (hs rfl) (hu rfl) hbt
   | io => exact Infer.lam_soundIO hbt
 
 /-- An application, certified (the full grade's arm). -/
 theorem Infer.app_soundCert {d : Nat}
-    {f a tf ty body ta : Expr} {mt : BinderMeta}
-    (htf : InferSem m φ .full d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
+    {f a tf ty body ta : Expr}
+    (htf : InferSem m φ .full d f tf) (hw : RedSem m φ d tf (.forallE ty body))
     (hta : InferSem m φ .full d a ta) (hd : DefEqSem m φ d ta ty) :
     InferSem m φ .full d (.app f a) (body.instantiate1 a) := by
   refine InferSem.of_uniform ?_
@@ -607,7 +607,7 @@ theorem Infer.app_soundCert {d : Nat}
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbfe
   have hLty' : Expr.LeavesBounded ty := fun l hl =>
     hLfe l (by simp [Expr.fvarLeaves, hl])
-  have hCpi : CtxOkS m φ d Δa (.forallE ty body mt) :=
+  have hCpi : CtxOkS m φ d Δa (.forallE ty body) :=
     (hC.app_fn.of_subset htfsub).of_subset hpisub
   obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denoteMeta_forallE_inv hpa
   -- the argument's type (reading)
@@ -718,9 +718,9 @@ domain is its domain, and the claim at the opened body, at the
 argument's value, is the claim at the body instantiated with the
 argument (`IORel_substFvarAt`). -/
 theorem Infer.app_soundIO {d : Nat}
-    {f a tf ty body : Expr} {mt : BinderMeta}
-    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
-    (hwr : Red env d tf (.forallE ty body mt)) :
+    {f a tf ty body : Expr}
+    (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body))
+    (hwr : Red env d tf (.forallE ty body)) :
     InferSemIO m φ d (.app f a) (body.instantiate1 a) := by
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -802,7 +802,7 @@ theorem Infer.app_soundIO {d : Nat}
       rcases hneuF hfneu with h' | h'
       · exact absurd h' hfp
       · exact absurd h' hm
-    obtain ⟨ty', body', mb', rfl⟩ := h.forallE
+    obtain ⟨ty', body', rfl⟩ := h.forallE
     have heq := Red.rigid hwr trivial
     injection heq with hty hbody
     subst hty hbody
@@ -822,9 +822,9 @@ theorem Infer.app_soundIO {d : Nat}
 /-- **An application** (`Infer.app`): the full grade's certificate, or
 the io grade's none. -/
 theorem Infer.app_sound {g : Grade} {d : Nat}
-    {f a tf ty body ta : Expr} {mt : BinderMeta}
-    (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body mt))
-    (hwr : g = .io → Red env d tf (.forallE ty body mt))
+    {f a tf ty body ta : Expr}
+    (htf : InferSem m φ g d f tf) (hw : RedSem m φ d tf (.forallE ty body))
+    (hwr : g = .io → Red env d tf (.forallE ty body))
     (hta : g = .full → InferSemFull m φ d a ta)
     (hd : g = .full → DefEqSem m φ d ta ty) :
     InferSem m φ g d (.app f a) (body.instantiate1 a) := by
@@ -1034,8 +1034,8 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
         exact hprop hp)) σ vs vp restA hlenVs hokTe (heqTe ▸ hokTpe.ne_pt) hokPe
       (heqTe ▸ hmemPe) hpeel
     exact IORelN.of_mem hrest hrow.2.1 hrow.2.2
-  · obtain ⟨_, _, _, rfl⟩ := h.forallE
-    exact absurd (Red.rigid hter trivial ▸ hhead) (IsRigid.not_const (e := .forallE _ _ _) trivial)
+  · obtain ⟨_, _, rfl⟩ := h.forallE
+    exact absurd (Red.rigid hter trivial ▸ hhead) (IsRigid.not_const (e := .forallE _ _) trivial)
 
 /-- A projection, at either grade. -/
 theorem Infer.proj_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}

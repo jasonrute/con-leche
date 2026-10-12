@@ -8,15 +8,16 @@ public section
 # `denoteMeta` — the stored-term reading (task #161, P3; task #342, L14a)
 
 `denoteMeta` is `denote`'s recursion into the semantic syntax
-`AnnotTerm`: no checker run, no fuel, no mode.  The binders read
-nothing of their `BinderMeta` (the regime is read off the values by
-`interp`, `piV`/`lamV`), so the level crossing is plain algebra
+`AnnotTerm`: no checker run, no fuel, no mode.  The binders carry no
+datum to read (the regime is read off the values by `interp`,
+`piV`/`lamV`), so the level crossing is plain algebra
 (`Annot/BitLevels.lean`, `denotePInstLevels`) and two readings of one
 term at one valuation are equal.
 
 History: until task #342 (L14a) the binders read the checker's
 annotation `pwBit φ m.pw` into a regime numeral, and `AnnotValid`
-(deleted) held that numeral to account.
+(deleted) held that numeral to account; the binder datum field itself
+is gone from `Expr` as of task #342's close.
 -/
 
 namespace ConLeche.Model
@@ -44,12 +45,12 @@ checker runs, no fuel, no mode. -/
         some (acval n (Level.substFn φ ci.toConstantVal.levelParams us))
       else none
     | none => none
-  | d, .forallE ty body m => do
+  | d, .forallE ty body => do
     let ta ← denoteMeta acval env φ d ty
     let ba ← denoteMeta acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty))
     some (.pi ta ba)
-  | d, .lam ty body m => do
+  | d, .lam ty body => do
     let ta ← denoteMeta acval env φ d ty
     let ba ← denoteMeta acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty))
@@ -151,7 +152,7 @@ theorem denoteMeta_erase {acval : Name → (Name → Nat) → AnnotTerm}
     intro ea h
     rw [denoteMeta, hf] at h
     exact nomatch h
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro ea h
     rw [denoteMeta] at h
     rcases hta : denoteMeta acval env φ d ty with _ | ta
@@ -164,7 +165,7 @@ theorem denoteMeta_erase {acval : Name → (Name → Nat) → AnnotTerm}
     obtain rfl := Option.some.inj h
     rw [denote_forallE, ihty hta, ihbody hba]
     rfl
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro ea h
     rw [denoteMeta] at h
     rcases hta : denoteMeta acval env φ d ty with _ | ta
@@ -271,8 +272,8 @@ theorem denoteMeta_erase {acval : Name → (Name → Nat) → AnnotTerm}
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

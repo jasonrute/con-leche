@@ -38,11 +38,11 @@ theorem WScoped.of_fvarsBelow : ∀ {e : Expr} {d d' : Nat}, WScoped d e →
     intro d d' hw hb
     simp only [WScoped, Expr.fvarsBelow] at hw hb ⊢
     exact ⟨ihf hw.1 hb.1, iha hw.2 hb.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro d d' hw hb
     simp only [WScoped, Expr.fvarsBelow] at hw hb ⊢
     exact ⟨iht hw.1 hb.1, ihb hw.2 hb.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro d d' hw hb
     simp only [WScoped, Expr.fvarsBelow] at hw hb ⊢
     exact ⟨iht hw.1 hb.1, ihb hw.2 hb.2⟩
@@ -78,12 +78,12 @@ theorem WScoped.replaceConsts_closed {f : Name → List Level → Option Expr} {
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     simp only [Expr.replaceConsts, WScoped]
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     simp only [Expr.replaceConsts, WScoped]
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     simp only [Expr.replaceConsts, WScoped]
@@ -232,14 +232,14 @@ theorem fvarLeaves_replaceConsts_closed {f : Name → List Level → Option Expr
     rcases hl with hl | hl
     · exact iha h.1 l hl
     · exact ihb h.2 l hl
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h l hl
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     simp only [Expr.replaceConsts, fvarLeaves, List.mem_append] at hl
     rcases hl with hl | hl
     · exact iht h.1 l hl
     · exact ihb h.2 l hl
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h l hl
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     simp only [Expr.replaceConsts, fvarLeaves, List.mem_append] at hl
@@ -282,12 +282,12 @@ theorem looseBVarsBounded_replaceConsts {f : Name → List Level → Option Expr
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
     exact ⟨iha k h.1, ihb k h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro k h
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro k h
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
@@ -313,7 +313,7 @@ theorem looseBVarsBounded_instPisWith :
     subst h; exact he
   | a :: as, e, r, ha, he, h => by
     match e, he, h with
-    | .forallE t b m, he, h =>
+    | .forallE t b, he, h =>
       have h' : instPisWith as (b.instantiate1 a) = some r := h
       simp only [looseBVarsBounded, Bool.and_eq_true] at he
       exact looseBVarsBounded_instPisWith (fun x hx => ha x (List.mem_cons_of_mem _ hx))
@@ -449,12 +449,12 @@ theorem fvarLeaves_replaceApps_replaceFVars_whole {f : Name → List Level → O
     · simp only [Expr.fvarsBelow] at hb
       simp only [Expr.replaceFVars, fvarLeaves, List.mem_append] at hl
       exact hl.elim (iha hb.1 l) (ihx hb.2 l)
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb l hl
     simp only [Expr.fvarsBelow] at hb
     simp only [Expr.replaceApps, Expr.replaceFVars, fvarLeaves, List.mem_append] at hl
     exact hl.elim (iht hb.1 l) (ihb hb.2 l)
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb l hl
     simp only [Expr.fvarsBelow] at hb
     simp only [Expr.replaceApps, Expr.replaceFVars, fvarLeaves, List.mem_append] at hl
@@ -530,12 +530,12 @@ theorem looseBVarsBounded_replaceFVars {g : Nat → Option Expr}
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceFVars, looseBVarsBounded, Bool.and_eq_true]
     exact ⟨iha k h.1, ihb k h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro k h
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceFVars, looseBVarsBounded, Bool.and_eq_true]
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro k h
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceFVars, looseBVarsBounded, Bool.and_eq_true]

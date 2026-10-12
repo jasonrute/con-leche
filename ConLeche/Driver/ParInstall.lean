@@ -280,7 +280,7 @@ partial def depNames (e : Expr) (acc : Std.HashSet Expr × Array Name) :
       let acc := (acc.1.insert e, acc.2)
       match e with
       | .app f a => depNames a (depNames f acc)
-      | .lam ty b _ | .forallE ty b _ => depNames b (depNames ty acc)
+      | .lam ty b | .forallE ty b => depNames b (depNames ty acc)
       | .letE ty v b => depNames b (depNames v (depNames ty acc))
       | .fvar _ ty => depNames ty acc
       | .proj sn _ x => depNames x (acc.1, acc.2.push sn |>.push (projTableName sn))

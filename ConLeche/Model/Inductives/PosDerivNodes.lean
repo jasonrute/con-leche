@@ -388,7 +388,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   intro j ts h
   induction h with
   | const => intro _ _ _ _ _ _ _ _; exact NodesSem.nil
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hhi hfr Δa ea hC hea hgr hΔ
     obtain ⟨hfrw, hCw, wa, hwa, hgw⟩ := whnf_facts hin hw hfr hC hea hgr
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
@@ -474,7 +474,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     subst hhi
     exact ihtele (by omega) hfr hC hca hgr (by simp)
   | teleNil => intro _ _ _ _ _ _ _ _; exact NodesSem.nil
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha hb iha ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro hhi hfr Δa ca hC hca hgr hΔ
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
     obtain ⟨hws, hbb, hLb⟩ := hfr

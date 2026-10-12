@@ -36,11 +36,11 @@ theorem stripPis_isSome_of_peelPis :
     ∀ {n : Nat} {T : Expr}, (Expr.peelPis n T).isSome = true →
       (T.stripPis n).isSome = true
   | 0, _, _ => by simp [ConLeche.Expr.stripPis]
-  | n + 1, .forallE _ b _, h => by
+  | n + 1, .forallE _ b, h => by
     simp only [ConLeche.Expr.stripPis, Option.isSome_map]
     exact stripPis_isSome_of_peelPis (by simpa [Expr.peelPis] using h)
   | _ + 1, .bvar _, h | _ + 1, .fvar _ _, h | _ + 1, .sort _, h
-  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _ _, h
+  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _, h
   | _ + 1, .letE _ _ _, h | _ + 1, .lit _, h | _ + 1, .proj _ _ _, h => by
     simp [Expr.peelPis] at h
 
@@ -115,11 +115,11 @@ theorem CertsF.nil_sound {d : Nat} {T : Expr} : CertsFSem m φ d T [] := by
 /-- The certified slot: the full-grade inference ESTABLISHES the
 argument's grading and its membership in its inferred type, a type
 equal to the binder's domain ("not pt" source (1)). -/
-theorem CertsF.cert_sound {d : Nat} {ty body arg ta : Expr} {mb : BinderMeta}
+theorem CertsF.cert_sound {d : Nat} {ty body arg ta : Expr}
     {rest : List Expr}
     (hta : InferSemFull m φ d arg ta) (hd : DefEqSem m φ d ta ty)
     (hrest : CertsFSem m φ d (body.instantiate1 arg) rest) :
-    CertsFSem m φ d (.forallE ty body mb) (arg :: rest) := by
+    CertsFSem m φ d (.forallE ty body) (arg :: rest) := by
   intro hfT Δa Ta vs hCT hTa hargs hsp
   obtain ⟨hwty, hbty, hLbty⟩ := hfT
   obtain ⟨hdomw, hbodyw⟩ : Expr.WScoped d ty ∧ Expr.WScoped d body := by
@@ -145,7 +145,7 @@ theorem CertsF.cert_sound {d : Nat} {ty body arg ta : Expr} {mb : BinderMeta}
     · exact hLbty l (by simp [Expr.fvarLeaves, hl'])
     · exact hLa l hl'
   have hsubBody : ∀ l ∈ (body.instantiate1 arg).fvarLeaves,
-      l ∈ (Expr.forallE ty body mb).fvarLeaves ∨ l ∈ arg.fvarLeaves := by
+      l ∈ (Expr.forallE ty body).fvarLeaves ∨ l ∈ arg.fvarLeaves := by
     intro l hl
     rcases ConLeche.Expr.fvarLeaves_instantiate1 body 0 hl with hl' | hl'
     · exact Or.inl (by simp [Expr.fvarLeaves, hl'])

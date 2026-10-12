@@ -33,7 +33,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  BlockShape MemberShape ProjTable BinderMeta RecRule)
+  BlockShape MemberShape ProjTable RecRule)
 
 universe w
 

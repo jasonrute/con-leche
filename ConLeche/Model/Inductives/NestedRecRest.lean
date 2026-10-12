@@ -124,11 +124,11 @@ theorem NoProjAt.of_liftLooseBVars {k : Nat} :
     intro c h
     simp only [Expr.liftLooseBVars, noProjAt_app] at h
     exact noProjAt_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro c h
     simp only [Expr.liftLooseBVars, noProjAt_lam] at h
     exact noProjAt_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro c h
     simp only [Expr.liftLooseBVars, noProjAt_forallE] at h
     exact noProjAt_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -157,14 +157,14 @@ theorem NoProjAt.getAppArgs :
 
 /-- A stripped telescope's body is a subterm. -/
 theorem NoProjAt.stripPis :
-    ∀ (k : Nat) {e b : Expr} {bs : List (Expr × BinderMeta)}, e.stripPis k = some (bs, b) →
+    ∀ (k : Nat) {e b : Expr} {bs : List Expr}, e.stripPis k = some (bs, b) →
       NoProjAt T i e → NoProjAt T i b
   | 0, e, b, bs, h, he => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
     rw [← h.2]; exact he
   | k + 1, e, b, bs, h, he => by
     cases e with
-    | forallE ty body m =>
+    | forallE ty body =>
       simp only [Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', b'⟩, h', hh⟩ := h
       simp only [Prod.mk.injEq] at hh
@@ -255,7 +255,7 @@ theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs
         ∀ pin ∈ pins, ∀ (T : Name) (i : Nat), envC.findProj? T i = none →
           Expr.NoProjAt T i pin := by
   intro j r hr lvls pins hf pin hpin T i hT
-  obtain ⟨-, -, -, pre, dom, body, bm, D, hs, -, hargs⟩ := ConLeche.tgtFireOf_nested hf
+  obtain ⟨-, -, -, pre, dom, body, D, hs, -, hargs⟩ := ConLeche.tgtFireOf_nested hf
   have hty := (ConLeche.recStage_cvFacts h r (List.mem_of_getElem? hr)).2.2.2 T i hT
   have hb := Expr.NoProjAt.stripPis _ hs hty
   have hdom := (Expr.noProjAt_forallE.mp hb).1
@@ -294,7 +294,7 @@ theorem lpDefF_openPisAtFvars {ps : List Name} :
     exact ⟨fun x hx => (nomatch hx), he⟩
   | n + 1, e, i, fvs, body, h, he => by
     cases e with
-    | forallE dom b m =>
+    | forallE dom b =>
       simp only [ConLeche.openPisAtFvars] at h
       split at h
       · next fvs' e' hrec =>

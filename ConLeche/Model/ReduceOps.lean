@@ -119,17 +119,16 @@ theorem reduceOp_shapeS {c : Name} {type' : Expr}
     (hc : c ∈ ConLeche.reduceOpNames)
     (h : type'
       = (ConLeche.reduceOpCvA c).type) :
-    ∃ mb₀, type' = .forallE (ConLeche.reduceElemTy c)
-      (ConLeche.reduceElemTy c) mb₀ := by
+    type' = .forallE (ConLeche.reduceElemTy c)
+      (ConLeche.reduceElemTy c) := by
   have hcases : c = ConLeche.reduceNatName ∨ c = ConLeche.reduceBoolName := by
     simpa [ConLeche.reduceOpNames] using hc
   have hshape : (ConLeche.reduceOpCvA c).type
       = .forallE
-          (ConLeche.reduceElemTy c) (ConLeche.reduceElemTy c)
-          {} := by
+          (ConLeche.reduceElemTy c) (ConLeche.reduceElemTy c) := by
     rcases hcases with rfl | rfl <;> rfl
   rw [hshape] at h
-  exact ⟨_, h⟩
+  exact h
 
 -- (`reduceElem_sort` in `Verify/OfReducePin.lean` already says the
 -- element inductive is stored level-free at `Sort 1`; the earlier
@@ -219,7 +218,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (ConstantInfo.axiomInfo.inj (Option.some.inj hf₂)).symm
   simp only [ConstantVal.matchesPin, Bool.and_eq_true, decide_eq_true_eq,
     beq_iff_eq] at hpin
-  obtain ⟨mb₀, htyShape⟩ := reduceOp_shapeS hcN hpin.2
+  have htyShape := reduceOp_shapeS hcN hpin.2
   subst htyShape
   -- the type's reading: a one-step `.pi` over the element leaf
   have hinst : (ConLeche.reduceElemTy cv.name).instantiate1
@@ -233,7 +232,7 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     have h := hTa ψ
     rw [show denoteMeta mp.base2.acval env ψ 0
           (Expr.forallE (ConLeche.reduceElemTy cv.name)
-            (ConLeche.reduceElemTy cv.name) mb₀)
+            (ConLeche.reduceElemTy cv.name))
         = some (.pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
             (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) from by
       rw [denoteMeta_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h

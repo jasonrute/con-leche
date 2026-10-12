@@ -55,7 +55,7 @@ theorem stripPis_instantiateLevelParams_isSome (ks : List Name)
   | succ k ih =>
     intro e h
     match e, h with
-    | .forallE ty body m, h =>
+    | .forallE ty body, h =>
       simp only [Expr.instantiateLevelParams, Expr.stripPis,
         Option.isSome_map] at h ⊢
       exact ih h
@@ -86,7 +86,7 @@ theorem getAppFn_instantiateLevelParams (ks : List Name)
 
 /-- A stripped telescope's body keeps its level parameters defined. -/
 theorem allLevelParamsDefined_stripPis_body {ps : List Name} :
-    ∀ (k : Nat) {e : Expr} {bs : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs : List Expr}
       {body : Expr},
       e.stripPis k = some (bs, body) →
       e.allLevelParamsDefined ps = true →
@@ -101,10 +101,10 @@ theorem allLevelParamsDefined_stripPis_body {ps : List Name} :
   | succ k ih =>
     intro e bs body h hp
     match e, h with
-    | .forallE ty b m, h =>
+    | .forallE ty b, h =>
       simp only [Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', body'⟩, hb, heq⟩ := h
-      obtain ⟨-, rfl⟩ : (ty, m) :: bs' = bs ∧ body' = body := by
+      obtain ⟨-, rfl⟩ : ty :: bs' = bs ∧ body' = body := by
         simpa using heq
       simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hp
       exact ih hb hp.2

@@ -201,8 +201,8 @@ def replaceAll (c : ElimCtx) : Expr → ElimM Expr
     match ← replaceIfNested c (.app f a) with
     | some r => pure r
     | none => return .app (← replaceAll c f) (← replaceAll c a)
-  | .lam t b m => return .lam (← replaceAll c t) (← replaceAll c b) m
-  | .forallE t b m => return .forallE (← replaceAll c t) (← replaceAll c b) m
+  | .lam t b => return .lam (← replaceAll c t) (← replaceAll c b)
+  | .forallE t b => return .forallE (← replaceAll c t) (← replaceAll c b)
   | .letE t v b => return .letE (← replaceAll c t) (← replaceAll c v) (← replaceAll c b)
   | .proj s i x => return .proj s i (← replaceAll c x)
   | e => pure e
@@ -278,7 +278,7 @@ def checkPositivity (o : PosOracle) : Nat → Nat → Expr → Except CheckError
     let t ← o.whnf dep t
     if !o.occ t then pure ()                                   -- :438 nonrecursive
     else match t with
-      | .forallE a b _ =>                                      -- :440
+      | .forallE a b =>                                      -- :440
         if o.occ a then                                        -- :441
           throw (.invalid "official: non positive occurrence of the datatypes being declared")
         else checkPositivity o fuel (dep + 1) (b.instantiate1 (.fvar dep a))   -- :444–445
@@ -294,7 +294,7 @@ def checkCtorPos (o : PosOracle) (self : Name) (fuel : Nat) : Nat → Nat → Ex
   | 0, _, _ => throw (.notImplemented "official spec: telescope fuel")
   | nb + 1, dep, t =>
     match t with
-    | .forallE a b _ => do
+    | .forallE a b => do
       checkPositivity o fuel dep a
       checkCtorPos o self fuel nb (dep + 1) (b.instantiate1 (.fvar dep a))
     | _ =>

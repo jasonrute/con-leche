@@ -609,7 +609,7 @@ theorem eqLfp_caps {env : ConLeche.Env}
     (hf : env.find? nm = some (.indInfo cv caps))
     (hz : ∀ ψ : Name → Nat, caps.sortZ.holds ψ = true)
     (hC : ∃ cv' nPc nF, env.find? cn = some (.ctorInfo cv' nPc nF) ∧
-      ∃ (bs : List (ConLeche.Expr × ConLeche.BinderMeta)) (es : List ConLeche.Expr),
+      ∃ (bs : List ConLeche.Expr) (es : List ConLeche.Expr),
         cv'.type.stripPis (nPc + nF)
           = some (bs, ConLeche.Expr.mkAppN (.const nm (cv'.levelParams.map .param))
               (ConLeche.structPsAt nF nPc ++ es))) :
@@ -693,7 +693,7 @@ theorem lfp0_caps {env : ConLeche.Env} {cv : ConLeche.ConstantVal} {caps : ConLe
     (hz : ∀ ψ : Name → Nat, w ψ = 0 → caps.sortZ.holds ψ = true)
     (hk : caps.ruleK = true → n = 1)
     (hC : ∀ j, j < n → ∃ cv' nPc nF, env.find? (cn j) = some (.ctorInfo cv' nPc nF) ∧
-      ∃ (bs : List (ConLeche.Expr × ConLeche.BinderMeta)) (es : List ConLeche.Expr),
+      ∃ (bs : List ConLeche.Expr) (es : List ConLeche.Expr),
         cv'.type.stripPis (nPc + nF)
           = some (bs, ConLeche.Expr.mkAppN (.const nm (cv'.levelParams.map .param))
               (ConLeche.structPsAt nF nPc ++ es))) :

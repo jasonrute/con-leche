@@ -30,7 +30,7 @@ it.
 namespace ConLeche.Model
 open ConLeche.Term ConLeche.Verify
 open ConLeche.Semantics (ConstsBound)
-open ConLeche (Env Expr Name Level ConstantVal BinderMeta ClassGen ClassCtor)
+open ConLeche (Env Expr Name Level ConstantVal ClassGen ClassCtor)
 
 /-! ## Forgetting the free variables -/
 
@@ -67,11 +67,11 @@ theorem eraseFVars_instantiate1 (v : Expr) :
     intro k
     simp only [Expr.instantiate1, eraseFVars, Expr.replaceFVars] at ihf iha ⊢
     rw [ihf, iha]
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro k
     simp only [Expr.instantiate1, eraseFVars, Expr.replaceFVars] at iht ihb ⊢
     rw [iht, ihb]
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro k
     simp only [Expr.instantiate1, eraseFVars, Expr.replaceFVars] at iht ihb ⊢
     rw [iht, ihb]
@@ -110,11 +110,11 @@ theorem constsBound_eraseFVars {env : Env} : ∀ (e : Expr), ConstsBound env e �
     intro h; rw [ConLeche.Semantics.constsBound_app] at h
     simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_app] at ihf iha ⊢
     exact ⟨ihf h.1, iha h.2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h; rw [ConLeche.Semantics.constsBound_lam] at h
     simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_lam] at iht ihb ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h; rw [ConLeche.Semantics.constsBound_forallE] at h
     simp only [CBNF, eraseFVars, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_forallE] at iht ihb ⊢
@@ -138,14 +138,14 @@ theorem eraseFVars_of_erasedEq : ∀ {a b : Expr}, Expr.ErasedEq a b → eraseFV
   | .app f a, .app g b, h => by
     show Expr.app (eraseFVars f) (eraseFVars a) = Expr.app (eraseFVars g) (eraseFVars b)
     rw [eraseFVars_of_erasedEq h.1, eraseFVars_of_erasedEq h.2]
-  | .lam t b m, .lam t' b' m', h => by
+  | .lam t b, .lam t' b', h => by
     obtain ⟨h1, h2⟩ := h
-    show Expr.lam (eraseFVars t) (eraseFVars b) m = Expr.lam (eraseFVars t') (eraseFVars b') m
+    show Expr.lam (eraseFVars t) (eraseFVars b) = Expr.lam (eraseFVars t') (eraseFVars b')
     rw [eraseFVars_of_erasedEq h1, eraseFVars_of_erasedEq h2]
-  | .forallE t b m, .forallE t' b' m', h => by
+  | .forallE t b, .forallE t' b', h => by
     obtain ⟨h1, h2⟩ := h
-    show Expr.forallE (eraseFVars t) (eraseFVars b) m
-      = Expr.forallE (eraseFVars t') (eraseFVars b') m
+    show Expr.forallE (eraseFVars t) (eraseFVars b)
+      = Expr.forallE (eraseFVars t') (eraseFVars b')
     rw [eraseFVars_of_erasedEq h1, eraseFVars_of_erasedEq h2]
   | .letE t v b, .letE t' v' b', h => by
     obtain ⟨h1, h2, h3⟩ := h
@@ -157,41 +157,41 @@ theorem eraseFVars_of_erasedEq : ∀ {a b : Expr}, Expr.ErasedEq a b → eraseFV
     show Expr.proj s i (eraseFVars e) = Expr.proj s i (eraseFVars e')
     rw [eraseFVars_of_erasedEq h1]
   | .bvar _, .fvar _ _, h | .bvar _, .sort _, h | .bvar _, .const _ _, h | .bvar _, .app _ _, h
-  | .bvar _, .lam _ _ _, h | .bvar _, .forallE _ _ _, h | .bvar _, .letE _ _ _, h
+  | .bvar _, .lam _ _, h | .bvar _, .forallE _ _, h | .bvar _, .letE _ _ _, h
   | .bvar _, .lit _, h | .bvar _, .proj _ _ _, h => by simp [Expr.ErasedEq] at h
   | .fvar _ _, .bvar _, h | .fvar _ _, .sort _, h | .fvar _ _, .const _ _, h
-  | .fvar _ _, .app _ _, h | .fvar _ _, .lam _ _ _, h | .fvar _ _, .forallE _ _ _, h
+  | .fvar _ _, .app _ _, h | .fvar _ _, .lam _ _, h | .fvar _ _, .forallE _ _, h
   | .fvar _ _, .letE _ _ _, h | .fvar _ _, .lit _, h | .fvar _ _, .proj _ _ _, h => by
     simp [Expr.ErasedEq] at h
   | .sort _, .bvar _, h | .sort _, .fvar _ _, h | .sort _, .const _ _, h | .sort _, .app _ _, h
-  | .sort _, .lam _ _ _, h | .sort _, .forallE _ _ _, h | .sort _, .letE _ _ _, h
+  | .sort _, .lam _ _, h | .sort _, .forallE _ _, h | .sort _, .letE _ _ _, h
   | .sort _, .lit _, h | .sort _, .proj _ _ _, h => by simp [Expr.ErasedEq] at h
   | .const _ _, .bvar _, h | .const _ _, .fvar _ _, h | .const _ _, .sort _, h
-  | .const _ _, .app _ _, h | .const _ _, .lam _ _ _, h | .const _ _, .forallE _ _ _, h
+  | .const _ _, .app _ _, h | .const _ _, .lam _ _, h | .const _ _, .forallE _ _, h
   | .const _ _, .letE _ _ _, h | .const _ _, .lit _, h | .const _ _, .proj _ _ _, h => by
     simp [Expr.ErasedEq] at h
   | .app _ _, .bvar _, h | .app _ _, .fvar _ _, h | .app _ _, .sort _, h
-  | .app _ _, .const _ _, h | .app _ _, .lam _ _ _, h | .app _ _, .forallE _ _ _, h
+  | .app _ _, .const _ _, h | .app _ _, .lam _ _, h | .app _ _, .forallE _ _, h
   | .app _ _, .letE _ _ _, h | .app _ _, .lit _, h | .app _ _, .proj _ _ _, h => by
     simp [Expr.ErasedEq] at h
-  | .lam _ _ _, .bvar _, h | .lam _ _ _, .fvar _ _, h | .lam _ _ _, .sort _, h
-  | .lam _ _ _, .const _ _, h | .lam _ _ _, .app _ _, h | .lam _ _ _, .forallE _ _ _, h
-  | .lam _ _ _, .letE _ _ _, h | .lam _ _ _, .lit _, h | .lam _ _ _, .proj _ _ _, h => by
+  | .lam _ _, .bvar _, h | .lam _ _, .fvar _ _, h | .lam _ _, .sort _, h
+  | .lam _ _, .const _ _, h | .lam _ _, .app _ _, h | .lam _ _, .forallE _ _, h
+  | .lam _ _, .letE _ _ _, h | .lam _ _, .lit _, h | .lam _ _, .proj _ _ _, h => by
     simp [Expr.ErasedEq] at h
-  | .forallE _ _ _, .bvar _, h | .forallE _ _ _, .fvar _ _, h | .forallE _ _ _, .sort _, h
-  | .forallE _ _ _, .const _ _, h | .forallE _ _ _, .app _ _, h | .forallE _ _ _, .lam _ _ _, h
-  | .forallE _ _ _, .letE _ _ _, h | .forallE _ _ _, .lit _, h
-  | .forallE _ _ _, .proj _ _ _, h => by simp [Expr.ErasedEq] at h
+  | .forallE _ _, .bvar _, h | .forallE _ _, .fvar _ _, h | .forallE _ _, .sort _, h
+  | .forallE _ _, .const _ _, h | .forallE _ _, .app _ _, h | .forallE _ _, .lam _ _, h
+  | .forallE _ _, .letE _ _ _, h | .forallE _ _, .lit _, h
+  | .forallE _ _, .proj _ _ _, h => by simp [Expr.ErasedEq] at h
   | .letE _ _ _, .bvar _, h | .letE _ _ _, .fvar _ _, h | .letE _ _ _, .sort _, h
-  | .letE _ _ _, .const _ _, h | .letE _ _ _, .app _ _, h | .letE _ _ _, .lam _ _ _, h
-  | .letE _ _ _, .forallE _ _ _, h | .letE _ _ _, .lit _, h
+  | .letE _ _ _, .const _ _, h | .letE _ _ _, .app _ _, h | .letE _ _ _, .lam _ _, h
+  | .letE _ _ _, .forallE _ _, h | .letE _ _ _, .lit _, h
   | .letE _ _ _, .proj _ _ _, h => by simp [Expr.ErasedEq] at h
   | .lit _, .bvar _, h | .lit _, .fvar _ _, h | .lit _, .sort _, h | .lit _, .const _ _, h
-  | .lit _, .app _ _, h | .lit _, .lam _ _ _, h | .lit _, .forallE _ _ _, h
+  | .lit _, .app _ _, h | .lit _, .lam _ _, h | .lit _, .forallE _ _, h
   | .lit _, .letE _ _ _, h | .lit _, .proj _ _ _, h => by simp [Expr.ErasedEq] at h
   | .proj _ _ _, .bvar _, h | .proj _ _ _, .fvar _ _, h | .proj _ _ _, .sort _, h
-  | .proj _ _ _, .const _ _, h | .proj _ _ _, .app _ _, h | .proj _ _ _, .lam _ _ _, h
-  | .proj _ _ _, .forallE _ _ _, h | .proj _ _ _, .letE _ _ _, h
+  | .proj _ _ _, .const _ _, h | .proj _ _ _, .app _ _, h | .proj _ _ _, .lam _ _, h
+  | .proj _ _ _, .forallE _ _, h | .proj _ _ _, .letE _ _ _, h
   | .proj _ _ _, .lit _, h => by simp [Expr.ErasedEq] at h
 
 theorem CBNF_abstract1 {env : Env} (i : Nat) :
@@ -204,12 +204,12 @@ theorem CBNF_abstract1 {env : Env} (i : Nat) :
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_app] at ihf iha h ⊢
     exact ⟨ihf k h.1, iha k h.2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_lam] at iht ihb h ⊢
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_forallE] at iht ihb h ⊢
@@ -228,10 +228,10 @@ theorem CBNF_abstract1 {env : Env} (i : Nat) :
 
 /-- A closed telescope's pieces carry its constants. -/
 theorem CBNF_closeTelescope {env : Env} :
-    ∀ (nds : List (Expr × BinderMeta)) (i : Nat) (b : Expr),
-      CBNF env (ConLeche.closeTelescope nds i b) → (∀ nd ∈ nds, CBNF env nd.1) ∧ CBNF env b
+    ∀ (nds : List Expr) (i : Nat) (b : Expr),
+      CBNF env (ConLeche.closeTelescope nds i b) → (∀ nd ∈ nds, CBNF env nd) ∧ CBNF env b
   | [], _, b, h => ⟨(fun _ h' => nomatch h'), h⟩
-  | (d, bm) :: nds, i, b, h => by
+  | d :: nds, i, b, h => by
     simp only [ConLeche.closeTelescope, CBNF, eraseFVars, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_forallE] at h
     have h2 : CBNF env (ConLeche.closeTelescope nds (i + 1) b) :=
@@ -257,8 +257,8 @@ theorem CBNF_mkAppN {env : Env} :
 
 /-! ## Openings at different variables agree after erasure -/
 
-theorem eraseFVars_forallE (t b : Expr) (m : BinderMeta) :
-    eraseFVars (.forallE t b m) = .forallE (eraseFVars t) (eraseFVars b) m := rfl
+theorem eraseFVars_forallE (t b : Expr) :
+    eraseFVars (.forallE t b) = .forallE (eraseFVars t) (eraseFVars b) := rfl
 
 /-- **Two openings of erasure-equal telescopes** agree after erasure:
 their bodies and their variables' domains. -/
@@ -274,9 +274,9 @@ theorem openPis_erase :
     obtain ⟨rfl, rfl⟩ := h
     obtain ⟨rfl, rfl⟩ := h'
     exact ⟨he, rfl⟩
-  | n + 1, .forallE t bd m, .forallE t' bd' m', d, d', fvs, fvs', b, b', he, h, h' => by
+  | n + 1, .forallE t bd, .forallE t' bd', d, d', fvs, fvs', b, b', he, h, h' => by
     rw [eraseFVars_forallE, eraseFVars_forallE] at he
-    injection he with ht hb hm
+    injection he with ht hb
     simp only [ConLeche.openPisAtFvars] at h h'
     cases hi : ConLeche.openPisAtFvars n (bd.instantiate1 (.fvar d t)) (d + 1) with
     | none => rw [hi] at h; exact nomatch h
@@ -297,19 +297,19 @@ theorem openPis_erase :
         rw [List.map_cons, List.map_cons, h2]
         show eraseFVars t :: _ = eraseFVars t' :: _
         rw [ht]
-  | _ + 1, .forallE _ _ _, .bvar _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .fvar _ _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .sort _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .const _ _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .app _ _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .lam _ _ _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .letE _ _ _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .lit _, _, _, _, _, _, _, he, _, h'
-  | _ + 1, .forallE _ _ _, .proj _ _ _, _, _, _, _, _, _, he, _, h' => by
+  | _ + 1, .forallE _ _, .bvar _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .fvar _ _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .sort _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .const _ _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .app _ _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .lam _ _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .letE _ _ _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .lit _, _, _, _, _, _, _, he, _, h'
+  | _ + 1, .forallE _ _, .proj _ _ _, _, _, _, _, _, _, he, _, h' => by
     simp [ConLeche.openPisAtFvars] at h'
   | _ + 1, .bvar _, _, _, _, _, _, _, _, _, h, _ | _ + 1, .fvar _ _, _, _, _, _, _, _, _, _, h, _
   | _ + 1, .sort _, _, _, _, _, _, _, _, _, h, _ | _ + 1, .const _ _, _, _, _, _, _, _, _, _, h, _
-  | _ + 1, .app _ _, _, _, _, _, _, _, _, _, h, _ | _ + 1, .lam _ _ _, _, _, _, _, _, _, _, _, h, _
+  | _ + 1, .app _ _, _, _, _, _, _, _, _, _, h, _ | _ + 1, .lam _ _, _, _, _, _, _, _, _, _, h, _
   | _ + 1, .letE _ _ _, _, _, _, _, _, _, _, _, h, _ | _ + 1, .lit _, _, _, _, _, _, _, _, _, h, _
   | _ + 1, .proj _ _ _, _, _, _, _, _, _, _, _, h, _ => by simp [ConLeche.openPisAtFvars] at h
 
@@ -323,9 +323,9 @@ theorem targetPiDomsWith_erase :
   | [], [], t, t', ws, ws', _, _, _, _, h, h' => by
     simp only [ConLeche.targetPiDomsWith, Option.some.injEq] at h h'
     subst h h'; rfl
-  | x :: xs, x' :: xs', .forallE d b m, .forallE d' b' m', ws, ws', hx, hx', hl, he, h, h' => by
+  | x :: xs, x' :: xs', .forallE d b, .forallE d' b', ws, ws', hx, hx', hl, he, h, h' => by
     rw [eraseFVars_forallE, eraseFVars_forallE] at he
-    injection he with hd hb hm
+    injection he with hd hb
     simp only [ConLeche.targetPiDomsWith] at h h'
     cases hi : ConLeche.targetPiDomsWith xs (b.instantiate1 x) with
     | none => rw [hi] at h; exact nomatch h
@@ -345,22 +345,22 @@ theorem targetPiDomsWith_erase :
         simp only [List.map_cons, this, hd]
   | [], _ :: _, _, _, _, _, _, _, hl, _, _, _ => nomatch hl
   | _ :: _, [], _, _, _, _, _, _, hl, _, _, _ => nomatch hl
-  | _ :: _, _ :: _, .forallE _ _ _, .bvar _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .fvar _ _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .sort _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .const _ _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .app _ _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .lam _ _ _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .letE _ _ _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .lit _, _, _, _, _, _, _, _, h'
-  | _ :: _, _ :: _, .forallE _ _ _, .proj _ _ _, _, _, _, _, _, _, _, h' => by
+  | _ :: _, _ :: _, .forallE _ _, .bvar _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .fvar _ _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .sort _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .const _ _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .app _ _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .lam _ _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .letE _ _ _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .lit _, _, _, _, _, _, _, _, h'
+  | _ :: _, _ :: _, .forallE _ _, .proj _ _ _, _, _, _, _, _, _, _, h' => by
     simp [ConLeche.targetPiDomsWith] at h'
   | _ :: _, _ :: _, .bvar _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .fvar _ _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .sort _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .const _ _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .app _ _, _, _, _, _, _, _, _, h, _
-  | _ :: _, _ :: _, .lam _ _ _, _, _, _, _, _, _, _, h, _
+  | _ :: _, _ :: _, .lam _ _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .letE _ _ _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .lit _, _, _, _, _, _, _, _, h, _
   | _ :: _, _ :: _, .proj _ _ _, _, _, _, _, _, _, _, h, _ => by
@@ -384,7 +384,7 @@ telescope of the declared fields and, per recursive field, the `ih`
 binder `Π a⃗, motive_t e⃗ (f a⃗)` from the walked field type. -/
 theorem minorTy_spec' {g : ClassGen} {c : Nat} {x : ClassCtor} {d : Nat} {T : Expr}
     (h : g.minorTy c x d = some T) :
-    ∃ (fvs : List Expr) (res : Expr) (ws : List Expr) (ihs : List (Expr × BinderMeta))
+    ∃ (fvs : List Expr) (res : Expr) (ws : List Expr) (ihs : List Expr)
       (concl : Expr),
       ConLeche.openPisAtFvars x.nF x.tyD d = some (fvs, res) ∧
       ConLeche.targetPiDomsWith fvs x.tyN = some ws ∧
@@ -393,7 +393,7 @@ theorem minorTy_spec' {g : ClassGen} {c : Nat} {x : ClassCtor} {d : Nat} {T : Ex
       ∀ (l : Nat) (q : Nat × Nat × Nat), x.recs[l]? = some q →
         ∃ xs idx, g.ihParts q.2.1 q.2.2 (ws.getD q.1 default) (d + x.nF + l) = some (xs, idx) ∧
           ihs[l]? = some (ConLeche.closeTelescope (xs.map g.binder) (d + x.nF + l)
-            (Expr.mkAppN (g.motVar q.2.1) (idx ++ [Expr.mkAppN (fvs.getD q.1 default) xs])), g.bm) := by
+            (Expr.mkAppN (g.motVar q.2.1) (idx ++ [Expr.mkAppN (fvs.getD q.1 default) xs]))) := by
   unfold ClassGen.minorTy at h
   obtain ⟨⟨fvs, res⟩, hop, h⟩ := Option.bind_eq_some_iff.mp h
   obtain ⟨ws, hws, h⟩ := Option.bind_eq_some_iff.mp h
@@ -432,12 +432,12 @@ theorem constsBound_eraseFVarTys_of_CBNF {env : Env} :
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_app] at ihf iha h ⊢
     exact ⟨ihf h.1, iha h.2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_lam] at iht ihb h ⊢
     exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
       ConLeche.Semantics.constsBound_forallE] at iht ihb h ⊢

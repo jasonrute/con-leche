@@ -28,7 +28,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
-  BinderMeta inferTypeCore)
+  inferTypeCore)
 
 universe w
 
@@ -43,8 +43,7 @@ theorem ofReduce_shapeS {n : Name} {type' : Expr}
     (hn : n = ConLeche.ofReduceNatName ∨ n = ConLeche.ofReduceBoolName)
     (h : type'
       = (ConLeche.ofReducePinA n).type) :
-    ∃ m₁ m₂ m₃,
-      type' = .forallE
+    type' = .forallE
         (.const (ConLeche.reduceElemName (ConLeche.ofReduceOp n)) [])
         (.forallE
           (.const (ConLeche.reduceElemName (ConLeche.ofReduceOp n)) [])
@@ -57,11 +56,11 @@ theorem ofReduce_shapeS {n : Name} {type' : Expr}
             (.app (.app (.app (.const eqName [.succ .zero])
                 (.const (ConLeche.reduceElemName
                   (ConLeche.ofReduceOp n)) []))
-              (.bvar 2)) (.bvar 1)) m₃) m₂) m₁ := by
+              (.bvar 2)) (.bvar 1)))) := by
   rw [ConLeche.Verify.ofReducePin_type hn] at h
   simp only [Expr.mkAppN] at h
   subst h
-  exact ⟨_, _, _, rfl⟩
+  rfl
 
 /-! ## The gates, unpacked -/
 
@@ -116,7 +115,7 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
     unfold ConLeche.reduceOpCvA; split <;> rfl] at hlpR
   have hmemOp : ConLeche.ofReduceOp cvA.name ∈ ConLeche.reduceOpNames := by
     unfold ConLeche.ofReduceOp; split <;> decide
-  obtain ⟨m₁, m₂, m₃, hsh⟩ := ofReduce_shapeS hor hApinT
+  have hsh := ofReduce_shapeS hor hApinT
   rw [hsh] at hta
   -- the `Eq` former's one level parameter is pinned to `1`
   have heqψ : Level.substFn ψ eqA.toConstantVal.levelParams
@@ -153,7 +152,7 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
             (.app (.app (.app (.const eqName [.succ .zero])
                 (.const (ConLeche.reduceElemName
                   (ConLeche.ofReduceOp cvA.name)) []))
-              (.bvar 2)) (.bvar 1)) m₃) m₂) m₁)
+              (.bvar 2)) (.bvar 1)))))
       = some (.pi (mp.base2.acval (ConLeche.reduceElemName
             (ConLeche.ofReduceOp cvA.name)) ψ)
           (.pi (mp.base2.acval (ConLeche.reduceElemName

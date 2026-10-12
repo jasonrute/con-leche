@@ -114,7 +114,7 @@ theorem constsResolveF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
   | .fvar _ ty => by simp only [Expr.constsResolveF, constsResolveF_congr hfe ty]
   | .app f a => by
     simp only [Expr.constsResolveF, constsResolveF_congr hfe f, constsResolveF_congr hfe a]
-  | .lam ty b _ | .forallE ty b _ => by
+  | .lam ty b | .forallE ty b => by
     simp only [Expr.constsResolveF, constsResolveF_congr hfe ty, constsResolveF_congr hfe b]
   | .letE ty v b => by
     simp only [Expr.constsResolveF, constsResolveF_congr hfe ty, constsResolveF_congr hfe v,
@@ -581,14 +581,14 @@ theorem targetMajorPins_env (h : EnvFree ops) (env : Env) (rP : Nat) (M : Target
 
 omit [MonadExceptOf CheckError m] in
 theorem targetK53_env (h : EnvFree ops) (env : Env) (p : BlockShape) (formerTys : List Expr)
-    (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (majDom f : Expr) :
+    (Mc : TargetMajor) (tele : List Expr) (majDom f : Expr) :
     targetK53 ops env p formerTys Mc tele majDom f =
       targetK53 ops Env.empty p formerTys Mc tele majDom f := by
   unfold targetK53
   simp only [targetClassMatch_env h env]
 
 theorem classNodesAgree_env (h : EnvFree ops) (env : Env) (p : BlockShape)
-    (formerTys : List Expr) (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (leaf : Expr)
+    (formerTys : List Expr) (Mc : TargetMajor) (tele : List Expr) (leaf : Expr)
     (fvs : List Expr) (i : Nat) (ctor : Name) :
     ∀ es, classNodesAgree ops env p formerTys Mc tele leaf fvs i ctor es =
       classNodesAgree ops Env.empty p formerTys Mc tele leaf fvs i ctor es

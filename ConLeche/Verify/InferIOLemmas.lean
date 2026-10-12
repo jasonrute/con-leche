@@ -35,8 +35,8 @@ variable {mode : CheckMode}
 the only deltas are the lane of the two recursive inferences and the
 lane-folding rewrites. -/
 theorem inferTypeCoreIO_forall_inv {env : Env} {fuel d : Nat}
-    {ty body t : Expr} {m : BinderMeta}
-    (h : inferTypeCoreIO mode env (fuel + 1) d (.forallE ty body m)
+    {ty body t : Expr}
+    (h : inferTypeCoreIO mode env (fuel + 1) d (.forallE ty body)
       = .ok t) :
     ∃ tty u bt v, inferTypeCoreIO mode env fuel d ty = .ok tty ∧
       whnf mode env fuel d tty = .ok (.sort u) ∧
@@ -62,8 +62,8 @@ theorem inferTypeCoreIO_forall_inv {env : Env} {fuel d : Nat}
   revert h
   match w with
   | .sort u => ?_
-  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+  | .bvar _ | .fvar _ _ | .const _ _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
     intro h; simp [throw, throwThe, MonadExceptOf.throw] at h
   intro h
   dsimp only at h
@@ -83,13 +83,13 @@ theorem inferTypeCoreIO_forall_inv {env : Env} {fuel d : Nat}
 /-- Inversion for the λ-rule of the io lane: the body at the io lane,
 and no domain-sort run (official `infer_lambda` at `infer_only`). -/
 theorem inferTypeCoreIO_lam_inv {env : Env} {fuel d : Nat}
-    {ty body t : Expr} {m : BinderMeta}
-    (h : inferTypeCoreIO mode env (fuel + 1) d (.lam ty body m)
+    {ty body t : Expr}
+    (h : inferTypeCoreIO mode env (fuel + 1) d (.lam ty body)
       = .ok t) :
     ∃ bt,
       inferTypeCoreIO mode env fuel (d + 1)
         (body.instantiate1 (.fvar d ty)) = .ok bt ∧
-      t = .forallE ty (bt.abstract1 d) m := by
+      t = .forallE ty (bt.abstract1 d) := by
   rw [inferTypeCoreIO_succ] at h
   simp only [inferBodyIO, pure, Except.pure, Bind.bind,
     Except.bind] at h
@@ -108,8 +108,8 @@ theorem inferTypeCoreIO_lam_inv {env : Env} {fuel d : Nat}
 checked. -/
 theorem inferTypeCoreIO_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
     (h : inferTypeCoreIO mode env (fuel + 1) d (.app f a) = .ok t) :
-    ∃ tf ty' body' m', inferTypeCoreIO mode env fuel d f = .ok tf ∧
-      whnf mode env fuel d tf = .ok (.forallE ty' body' m') ∧
+    ∃ tf ty' body', inferTypeCoreIO mode env fuel d f = .ok tf ∧
+      whnf mode env fuel d tf = .ok (.forallE ty' body') ∧
       t = body'.instantiate1 a := by
   rw [inferTypeCoreIO_succ] at h
   simp only [inferBodyIO, pure, Except.pure, Bind.bind,
@@ -126,13 +126,13 @@ theorem inferTypeCoreIO_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
   rw [hw] at h
   dsimp only at h
   match w, h with
-  | .forallE ty' body' m', h =>
+  | .forallE ty' body', h =>
     simp only [Except.ok.injEq] at h
-    exact ⟨tf, ty', body', m', rfl, hw, h.symm⟩
+    exact ⟨tf, ty', body', rfl, hw, h.symm⟩
   | .sort u, h => exact nomatch h
   | .fvar i t2, h => exact nomatch h
   | .const n2 us, h => exact nomatch h
-  | .lam t2 b2 m2, h => exact nomatch h
+  | .lam t2 b2, h => exact nomatch h
   | .bvar i, h => exact nomatch h
   | .app f2 a2, h => exact nomatch h
   | .letE t2 v2 b2, h => exact nomatch h
@@ -192,8 +192,8 @@ theorem inferTypeCoreIO_proj_inv {env : Env} {fuel d : Nat} {sn : Name}
   | sort u => intro h; exact nomatch h
   | fvar i2 t2 => intro h; exact nomatch h
   | app f2 a2 => intro h; exact nomatch h
-  | lam t2 b2 m2 => intro h; exact nomatch h
-  | forallE t2 b2 m2 => intro h; exact nomatch h
+  | lam t2 b2 => intro h; exact nomatch h
+  | forallE t2 b2 => intro h; exact nomatch h
   | letE t2 v2 b2 => intro h; exact nomatch h
   | lit l2 => intro h; exact nomatch h
   | proj s2 i2 e2 => intro h; exact nomatch h

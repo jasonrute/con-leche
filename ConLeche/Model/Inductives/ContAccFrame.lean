@@ -37,7 +37,7 @@ open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole NestState NestFieldKind CheckError CheckM
-  ConstantVal BinderMeta)
+  ConstantVal)
 
 universe w
 
@@ -107,7 +107,7 @@ bound `b`; the telescope's shape (one output per field, its result
 bvar-closed) and U4 on its normal form. -/
 theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
     (hb : ctx.hiAt prog.length = b) {nF : Nat} {res : Expr}
-    {ks : List ConLeche.NestFieldKind} {nds : List (Expr × BinderMeta)}
+    {ks : List ConLeche.NestFieldKind} {nds : List Expr}
     (hnl : nds.length = nF) (hrescl : res.looseBVarsBounded 0 = true)
     (hU4 : ∀ i, i < nF → ks.getD i .ordinary ≠ .ordinary →
       ConLeche.structUsedLater (ConLeche.closeTelescope nds b res) 0 i = false)
@@ -115,9 +115,9 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
     (hlen : abD.length = nF)
     (hdom : ∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀)
     (hbd : ∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abD.map (·.2.2)))
-    (hP : PiAccThen w ctx prog (ResultAt m φ ctx.nP b (b + nF) res) nF b (nds.map (·.1)) R
+    (hP : PiAccThen w ctx prog (ResultAt m φ ctx.nP b (b + nF) res) nF b nds R
       (mkPisAV abD B))
-    (hO : OutTele m φ ctx prog ks (nds.map (·.1)) b Δ (mkPisAV abD B)) :
+    (hO : OutTele m φ ctx prog ks nds b Δ (mkPisAV abD B)) :
     ∃ (Af : Nat → (Nat → V) → V) (N : List AnnotTerm),
       FieldsEqOn V Δ (abD.map (·.2.2)) N ∧
       TeleAccP w Af 0 (HoleQ ctx prog b) R N ∧
@@ -128,19 +128,19 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
           interp V τ G = interp V τ' G) ∧
       ResultAt m φ ctx.nP b (b + nF) res (R.underBothTele N) B := by
   classical
-  have hnl' : (nds.map (·.1)).length = nF := by rw [List.length_map, hnl]
-  obtain ⟨N, hNl, hE, hN⟩ := outTele_list ks (nds.map (·.1)) b Δ abD B
+  have hnl' : nds.length = nF := hnl
+  obtain ⟨N, hNl, hE, hN⟩ := outTele_list ks nds b Δ abD B
     (by rw [hnl', hlen]) hO
-  have hndcl : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true := by
+  have hndcl : ∀ p ∈ nds, p.looseBVarsBounded 0 = true := by
     intro p hp
     obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hp
-    obtain ⟨na, -, -, h3, -⟩ := hN i nds[i].1 (by simp [List.getElem?_eq_getElem hi])
+    obtain ⟨na, -, -, h3, -⟩ := hN i nds[i] (by simp [List.getElem?_eq_getElem hi])
     exact h3
   obtain ⟨xs, rest, hop, hxs⟩ := fields_open hrescl hnl hndcl
   let abN : List (Nat × Nat × AnnotTerm) := N.map fun a => (0, 0, a)
   have habN : abN.map (·.2.2) = N := by simp only [abN, List.map_map]; exact List.map_id N
   rw [← hlen] at hP
-  obtain ⟨Af, htele, hinv, hQf⟩ := teleAccP_of_piAccThen abD abN B b 0 (nds.map (·.1)) Δ R
+  obtain ⟨Af, htele, hinv, hQf⟩ := teleAccP_of_piAccThen abD abN B b 0 nds Δ R
     (HoleQ ctx prog b) (by rw [habN]; exact hE) hdom
     (fun ρ ρ₀ h hw => by rw [habN]; exact FieldsBound.of_eqOn hE (hdom ρ ρ₀ h).1 (hbd ρ ρ₀ h hw))
     (fun _ _ => Iff.rfl) (by omega) hP
@@ -150,7 +150,7 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
   -- the closed normal form is scoped at the base
   have hW : Expr.WScoped b (ConLeche.closeTelescope nds b res) := by
     refine ConLeche.Cached.closeTelescope_wscoped nds b res (fun k nd hk => ?_) ?_
-    · obtain ⟨na, -, -, -, h4, -⟩ := hN k nd.1 (by simp [hk])
+    · obtain ⟨na, -, -, -, h4, -⟩ := hN k nd (by simp [hk])
       exact h4
     · rw [hnl]; exact hQf.2.2
   let ord : Nat → Bool := fun l => ks.getD l .ordinary == .ordinary
@@ -174,7 +174,7 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
       obtain ⟨x, hx⟩ : ∃ x, xs[l]? = some x :=
         ⟨_, List.getElem?_eq_getElem (by rw [ConLeche.Verify.openPisAtFvars_length nF hop]; exact hl)⟩
       obtain ⟨nd, hnd, hEx⟩ := hxs l x hx
-      have hinvl := hinv l nd (by rw [hlen]; exact hl) (by rw [List.getElem?_map]; exact hnd)
+      have hinvl := hinv l nd (by rw [hlen]; exact hl) hnd
       rw [Nat.zero_add, hb] at hinvl
       refine hinvl τ τ' fun i hi => ?_
       by_cases hil : i < l
@@ -201,7 +201,7 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
       have := (List.getElem?_eq_some_iff.mp hGi).1
       rw [hNl, hnl'] at this; exact this
     obtain ⟨p, hp⟩ : ∃ p, nds[i]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    obtain ⟨na, hna, hden, hcln, hws, hord⟩ := hN i p.1 (by simp [hp])
+    obtain ⟨na, hna, hden, hcln, hws, hord⟩ := hN i p (by simp [hp])
     rw [hGi] at hna
     obtain rfl := Option.some.inj hna
     have hkord : ks.getD i .ordinary = .ordinary := by simpa using hoi
@@ -212,7 +212,7 @@ theorem walkTele_acc {w : Nat} {ctx : NestCtx} {prog : List NestHole} {b : Nat}
     obtain ⟨x, hx⟩ : ∃ x, xs[i]? = some x :=
       ⟨_, List.getElem?_eq_getElem (by rw [ConLeche.Verify.openPisAtFvars_length nF hop]; exact hi)⟩
     obtain ⟨nd, hnd, hEx⟩ := hxs i x hx
-    have hndp : nd = p.1 := by rw [hp] at hnd; simpa using hnd.symm
+    have hndp : nd = p := by rw [hp] at hnd; simpa using hnd.symm
     subst hndp
     have hxread : denoteMeta m.acval env φ (b + i) x.fvarTypeD = some G := by
       rw [denoteMeta_erasedEq hEx]; exact hden
@@ -261,8 +261,8 @@ relation and their outputs read like the inputs. -/
       ConLeche.structUsedLater (ConLeche.closeTelescope nds hi cur) 0 i = false) ∧
     ConLeche.nestResHead cur = true ∧
     cur.getAppArgs.all (fun a => !a.nestOcc ctx.names ctx.nP hi) = true ∧
-    PiAccThen w ctx prog (ResultAt m φ ctx.nP hi (hi + x.2) cur) x.2 hi (nds.map (·.1)) R ca ∧
-    OutTele m φ ctx prog ks (nds.map (·.1)) hi Δ ca
+    PiAccThen w ctx prog (ResultAt m φ ctx.nP hi (hi + x.2) cur) x.2 hi nds R ca ∧
+    OutTele m φ ctx prog ks nds hi Δ ca
 
 /-! ## Sizes through the frame's readings -/
 

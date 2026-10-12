@@ -219,13 +219,13 @@ theorem LfpOwn.mono {env env' : Env} {D : LfpDatum V} (h : LfpOwn env D)
 /-! ### Constructor entries, computed -/
 
 theorem constsBound_stripPis {env : Env} :
-    ∀ {k : Nat} {e : Expr} {bs : List (Expr × ConLeche.BinderMeta)} {b : Expr},
+    ∀ {k : Nat} {e : Expr} {bs : List Expr} {b : Expr},
       ConstsBound env e → e.stripPis k = some (bs, b) → ConstsBound env b
   | 0, e, bs, b, h, hs => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at hs
     obtain ⟨-, rfl⟩ := hs
     exact h
-  | k + 1, .forallE ty body m, bs, b, h, hs => by
+  | k + 1, .forallE ty body, bs, b, h, hs => by
     simp only [Expr.stripPis, Option.map_eq_some_iff] at hs
     obtain ⟨⟨bs', b'⟩, hs', he⟩ := hs
     simp only [Prod.mk.injEq] at he
@@ -233,7 +233,7 @@ theorem constsBound_stripPis {env : Env} :
     exact constsBound_stripPis ((constsBound_forallE).mp h).2 hs'
   | _ + 1, .bvar _, _, _, _, hs | _ + 1, .fvar _ _, _, _, _, hs
   | _ + 1, .sort _, _, _, _, hs | _ + 1, .const _ _, _, _, _, hs
-  | _ + 1, .app _ _, _, _, _, hs | _ + 1, .lam _ _ _, _, _, _, hs
+  | _ + 1, .app _ _, _, _, _, hs | _ + 1, .lam _ _, _, _, _, hs
   | _ + 1, .letE _ _ _, _, _, _, hs | _ + 1, .lit _, _, _, _, hs
   | _ + 1, .proj _ _ _, _, _, _, hs => by simp [Expr.stripPis] at hs
 
@@ -246,7 +246,7 @@ theorem constsBound_getAppFn {env : Env} :
     obtain ⟨rfl, -⟩ := hg
     exact (constsBound_const).mp h
   | .bvar _, _, _, _, hg | .fvar _ _, _, _, _, hg | .sort _, _, _, _, hg
-  | .lam _ _ _, _, _, _, hg | .forallE _ _ _, _, _, _, hg | .letE _ _ _, _, _, _, hg
+  | .lam _ _, _, _, _, hg | .forallE _ _, _, _, _, hg | .letE _ _ _, _, _, _, hg
   | .lit _, _, _, _, hg | .proj _ _ _, _, _, _, hg => by simp [Expr.getAppFn] at hg
 
 /-- A stored constant's constructor entry at `C` names a stored head. -/
@@ -275,7 +275,7 @@ theorem ctorEntry_isSome_found {env : Env} {ci : ConstantInfo} {C : Name}
 
 /-- A constructor's entry at its own head. -/
 theorem ctorEntry_self {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
-    {bs : List (Expr × ConLeche.BinderMeta)} {body : Expr} {T : Name} {us : List Level}
+    {bs : List Expr} {body : Expr} {T : Name} {us : List Level}
     (hc : c₀ = .ctorInfo cv nPc nF) (hs : cv.type.stripPis (nPc + nF) = some (bs, body))
     (hg : body.getAppFn = .const T us) : ctorEntry T c₀ = some (cv, nPc, nF) := by
   subst hc
@@ -283,7 +283,7 @@ theorem ctorEntry_self {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
 
 /-- A constructor has an entry only at its own head. -/
 theorem ctorEntry_head {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
-    {bs : List (Expr × ConLeche.BinderMeta)} {body : Expr} {T : Name} {us : List Level}
+    {bs : List Expr} {body : Expr} {T : Name} {us : List Level}
     (hc : c₀ = .ctorInfo cv nPc nF) (hs : cv.type.stripPis (nPc + nF) = some (bs, body))
     (hg : body.getAppFn = .const T us) {C : Name} (h : (ctorEntry C c₀).isSome = true) :
     C = T := by
@@ -296,7 +296,7 @@ theorem ctorEntry_head {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
 
 /-- The cons premise `hhead` at a constructor whose head is `T`. -/
 theorem hhead_ctor {env : Env} {ex : List Name} {c₀ : ConstantInfo} {cv : ConstantVal}
-    {nPc nF : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {body : Expr} {T : Name}
+    {nPc nF : Nat} {bs : List Expr} {body : Expr} {T : Name}
     {us : List Level}
     (hc : c₀ = .ctorInfo cv nPc nF) (hs : cv.type.stripPis (nPc + nF) = some (bs, body))
     (hg : body.getAppFn = .const T us)

@@ -28,7 +28,7 @@ theorem nestInstType_inv {ctx : NestCtx} {hi : Nat} {key : NestKey} {nI : Nat} {
         = some cty ∧
       ∃ ty s, instPisWith key.ds (cvC.type.instantiateLevelParams cvC.levelParams key.lvls)
           = some ty ∧ ty.piBinders.2 = .sort s ∧
-        (ty.piBinders.1.any fun b => b.1.nestOcc ctx.names ctx.nP hi) = false ∧
+        (ty.piBinders.1.any fun b => b.nestOcc ctx.names ctx.nP hi) = false ∧
         nI = ty.piBinders.1.length ∧ Level.isEquiv s ctx.sort = some true := by
   unfold nestInstType at h
   simp only [bind, Except.bind] at h
@@ -107,7 +107,7 @@ theorem Expr.nestOcc_mono_hi {names : List Name} {lo hi hi' : Nat} (hle : hi' �
   | .app f a, h => by
     simp only [Expr.nestOcc, Bool.or_eq_true] at h ⊢
     exact h.imp (nestOcc_mono_hi hle f) (nestOcc_mono_hi hle a)
-  | .lam ty b _, h | .forallE ty b _, h => by
+  | .lam ty b, h | .forallE ty b, h => by
     simp only [Expr.nestOcc, Bool.or_eq_true] at h ⊢
     exact h.imp (nestOcc_mono_hi hle ty) (nestOcc_mono_hi hle b)
   | .letE ty v b, h => by
@@ -126,7 +126,7 @@ theorem nestInstType_of {ctx : NestCtx} {hi : Nat} {key : NestKey} {cvC : Consta
     (hstrip : (cvC.type.stripPis key.ds.length).isSome = true)
     (hty : instPisWith key.ds (cvC.type.instantiateLevelParams cvC.levelParams key.lvls) = some ty)
     (hs : ty.piBinders.2 = .sort s)
-    (hocc : (ty.piBinders.1.any fun b => b.1.nestOcc ctx.names ctx.nP hi) = false)
+    (hocc : (ty.piBinders.1.any fun b => b.nestOcc ctx.names ctx.nP hi) = false)
     (hlev : Level.isEquiv s ctx.sort = some true) :
     nestInstType (m := CheckM) ctx hi key = .ok (ty.piBinders.1.length, ty) := by
   unfold nestInstType

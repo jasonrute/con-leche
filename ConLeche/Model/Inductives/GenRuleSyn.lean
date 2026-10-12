@@ -35,7 +35,7 @@ are proved here.
 
 namespace ConLeche.Model
 open ConLeche.Term ConLeche.Verify
-open ConLeche (Env Expr Name Level ConstantVal BinderMeta ClassGen ClassCtor CheckMode
+open ConLeche (Env Expr Name Level ConstantVal ClassGen ClassCtor CheckMode
   closeLams TargetMajor ClassRead)
 open ConLeche.Semantics (AnnotTerm)
 
@@ -44,20 +44,20 @@ open ConLeche.Semantics (AnnotTerm)
 /-- Open `n` leading λs at the variables `j, j+1, …` (each binder's domain
 instantiated at the earlier variables, exactly as `denoteMeta` reads a
 λ): the binders and the body. -/
-@[expose] def openLamsM : Nat → Expr → Nat → Option (List (Expr × ConLeche.BinderMeta) × Expr)
+@[expose] def openLamsM : Nat → Expr → Nat → Option (List Expr × Expr)
   | 0, e, _ => some ([], e)
-  | n + 1, .lam dom body m, j =>
+  | n + 1, .lam dom body, j =>
     (openLamsM n (body.instantiate1 (.fvar j dom)) (j + 1)).map
-      fun (o : List (Expr × ConLeche.BinderMeta) × Expr) => ((dom, m) :: o.1, o.2)
+      fun (o : List Expr × Expr) => (dom :: o.1, o.2)
   | _ + 1, _, _ => none
 
 /-- An opened λ-telescope's binders (`openLamsM`, from depth `j`), read:
 each binder's domain read at its depth (the numeral component is `0`,
 not read). -/
 @[expose] def readLamBs (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat) :
-    Nat → List (Expr × ConLeche.BinderMeta) → List (Nat × AnnotTerm)
+    Nat → List Expr → List (Nat × AnnotTerm)
   | _, [] => []
-  | j, b :: bs => (0, (denoteMeta acval env ψ j b.1).getD default) ::
+  | j, b :: bs => (0, (denoteMeta acval env ψ j b).getD default) ::
       readLamBs acval env ψ (j + 1) bs
 
 /-- The arguments of the STORED rule's body at its frame (`D` binders
@@ -65,7 +65,7 @@ opened): the minor premise applied to the fields and the `ih` λs. -/
 @[expose] def genRuleArgs (out : List (ConstantVal × TargetMajor × List Expr)) (D c j : Nat) :
     List Expr :=
   (((openLamsM D (tgtRhsOf out c j) 0).map
-    fun (o : List (Expr × ConLeche.BinderMeta) × Expr) => o.2).getD default).getAppArgs
+    fun (o : List Expr × Expr) => o.2).getD default).getAppArgs
 
 /-- **The `ih` data of the generated rule**, read off the STORED
 (annotated) rule at its frame (depth `rP + nF`): per recursive field
@@ -102,12 +102,12 @@ the callee its chain variable below the frame). -/
 variable {mode : CheckMode}
 
 theorem openLamsM_length :
-    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {r : Expr},
+    ∀ (n : Nat) {e : Expr} {j : Nat} {bs : List Expr} {r : Expr},
       openLamsM n e j = some (bs, r) → bs.length = n
   | 0, e, j, bs, r, h => by
     simp only [openLamsM, Option.some.injEq, Prod.mk.injEq] at h
     rw [← h.1]; rfl
-  | n + 1, .lam dom body m, j, bs, r, h => by
+  | n + 1, .lam dom body, j, bs, r, h => by
     simp only [openLamsM] at h
     cases hi : openLamsM n (body.instantiate1 (.fvar j dom)) (j + 1) with
     | none => rw [hi] at h; exact nomatch h
@@ -117,18 +117,18 @@ theorem openLamsM_length :
       rw [← h.1, List.length_cons, openLamsM_length n (bs := o.1) (r := o.2) (by rw [hi])]
   | _ + 1, .bvar _, _, _, _, h | _ + 1, .fvar _ _, _, _, _, h | _ + 1, .sort _, _, _, _, h
   | _ + 1, .const _ _, _, _, _, h | _ + 1, .app _ _, _, _, _, h
-  | _ + 1, .forallE _ _ _, _, _, _, h | _ + 1, .letE _ _ _, _, _, _, h
+  | _ + 1, .forallE _ _, _, _, _, h | _ + 1, .letE _ _ _, _, _, _, h
   | _ + 1, .lit _, _, _, _, h | _ + 1, .proj _ _ _, _, _, _, h => nomatch h
 
 
 /-! ## `closeLams`, bounded and reset -/
 
 theorem closeLams_bounded :
-    ∀ (nds : List (Expr × BinderMeta)) (hi : Nat) (cur : Expr),
-      (∀ nd ∈ nds, nd.1.looseBVarsBounded 0 = true) → cur.looseBVarsBounded 0 = true →
+    ∀ (nds : List Expr) (hi : Nat) (cur : Expr),
+      (∀ nd ∈ nds, nd.looseBVarsBounded 0 = true) → cur.looseBVarsBounded 0 = true →
       (closeLams nds hi cur).looseBVarsBounded 0 = true
   | [], _, _, _, hc => hc
-  | (nd, bm) :: rest, hi, cur, hn, hc => by
+  | nd :: rest, hi, cur, hn, hc => by
     simp only [closeLams, Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hn _ List.mem_cons_self, ConLeche.looseBVarsBounded_abstract1 _ 0
       (closeLams_bounded rest (hi + 1) cur (fun x hx => hn x (List.mem_cons_of_mem _ hx)) hc)⟩
@@ -139,21 +139,21 @@ theorem closeLams_bounded :
 its λs, its body is the telescope's body and its binders the closed
 pieces, up to erasure (the binder data equal). -/
 theorem open_of_erasedEq_closeLams :
-    ∀ (nds : List (Expr × BinderMeta)) (d : Nat) (body e : Expr),
-      (∀ p ∈ nds, p.1.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
+    ∀ (nds : List Expr) (d : Nat) (body e : Expr),
+      (∀ p ∈ nds, p.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
       Expr.ErasedEq e (closeLams nds d body) →
       ∃ bs rest, openLamsM nds.length e d = some (bs, rest) ∧ Expr.ErasedEq rest body ∧
-        ∀ (i : Nat) (b nd : Expr × BinderMeta), bs[i]? = some b → nds[i]? = some nd →
-          Expr.ErasedEq b.1 nd.1 ∧ b.2 = nd.2
+        ∀ (i : Nat) (b nd : Expr), bs[i]? = some b → nds[i]? = some nd →
+          Expr.ErasedEq b nd
   | [], d, body, e, _, _, he => by
     refine ⟨[], e, by simp [openLamsM], by simpa [closeLams] using he,
       fun i b nd hb _ => nomatch hb⟩
-  | (dom, bm) :: nds, d, body, e, hcl, hb, he => by
+  | dom :: nds, d, body, e, hcl, hb, he => by
     cases e with
-    | lam a b bm' =>
+    | lam a b =>
       simp only [closeLams] at he
       obtain ⟨ha, hbE⟩ := he
-      have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
+      have hcl' : ∀ p ∈ nds, p.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeLams_bounded nds (d + 1) body hcl' hb
       have hE : Expr.ErasedEq (b.instantiate1 (.fvar d a)) (closeLams nds (d + 1) body) :=
@@ -161,13 +161,13 @@ theorem open_of_erasedEq_closeLams :
           (erasedEq_abstract1_instantiate1 _ 0 hC)
       obtain ⟨bs, rest, hop, hrest, hdoms⟩ :=
         open_of_erasedEq_closeLams nds (d + 1) body _ hcl' hb hE
-      refine ⟨(a, bm') :: bs, rest, ?_, hrest, fun i b' nd hb' hnd => ?_⟩
+      refine ⟨a :: bs, rest, ?_, hrest, fun i b' nd hb' hnd => ?_⟩
       · simp only [List.length_cons, openLamsM, hop, Option.map_some]
       · cases i with
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hb' hnd
           subst hb' hnd
-          exact ⟨ha, rfl⟩
+          exact ha
         | succ i =>
           simp only [List.getElem?_cons_succ] at hb' hnd
           exact hdoms i b' nd hb' hnd
@@ -418,18 +418,18 @@ theorem genRule_shapeD {g : ClassGen} (hg : ClassGenScoped g)
     (hx : x ∈ g.ctors.getD c []) {gen : Expr}
     (hgen : ConLeche.classGenRule g recOf rlvls c x = some gen) {rhs : Expr} (hrhs : rhs = gen) :
     ∃ (fvs : List Expr) (res : Expr) (ws : List Expr) (s : Nat)
-      (bs : List (Expr × BinderMeta)) (body : Expr),
+      (bs : List Expr) (body : Expr),
       ConLeche.openPisAtFvars x.nF x.tyD g.pre.length = some (fvs, res) ∧
       ConLeche.targetPiDomsWith fvs x.tyN = some ws ∧
       genSlotOf g c x.cv.name = some s ∧ s < g.slots.length ∧
       openLamsM (g.pre.length + x.nF) rhs 0 = some (bs, body) ∧
-      (∀ (k : Nat) (b nd : Expr × BinderMeta), bs[k]? = some b →
-        (g.pre ++ fvs.map g.binder)[k]? = some nd → Expr.ErasedEq b.1 nd.1 ∧ b.2 = nd.2) ∧
+      (∀ (k : Nat) (b nd : Expr), bs[k]? = some b →
+        (g.pre ++ fvs.map g.binder)[k]? = some nd → Expr.ErasedEq b nd) ∧
       (∃ T, body.getAppFn = .fvar (g.nP + s) T) ∧
       body.getAppArgs.length = x.nF + x.recs.length ∧
       (∀ k, k < x.nF → ∃ T, body.getAppArgs[k]? = some (.fvar (g.pre.length + k) T)) ∧
       ∀ (l : Nat) (q : Nat × Nat × Nat), x.recs[l]? = some q →
-        ∃ (r : Name) (xs idx : List Expr) (bl : List (Expr × BinderMeta)) (call : Expr),
+        ∃ (r : Name) (xs idx : List Expr) (bl : List Expr) (call : Expr),
           recOf q.2.1 = some r ∧
           g.ihParts q.2.1 q.2.2 (ws.getD q.1 default) (g.pre.length + x.nF) = some (xs, idx) ∧
           openLamsM q.2.2 (body.getAppArgs.getD (x.nF + l) default) (g.pre.length + x.nF)
@@ -437,8 +437,8 @@ theorem genRule_shapeD {g : ClassGen} (hg : ClassGenScoped g)
           call.getAppFn = .const r rlvls ∧ g.pre.length < call.getAppArgs.length ∧
           (∀ k, k < g.pre.length → ∃ T, call.getAppArgs[k]? = some (.fvar k T)) ∧
           bl.length = xs.length ∧
-          (∀ (k : Nat) (b : Expr × BinderMeta) (y : Expr), bl[k]? = some b → xs[k]? = some y →
-            Expr.ErasedEq b.1 y.fvarTypeD ∧ b.2 = g.bm) ∧
+          (∀ (k : Nat) (b : Expr) (y : Expr), bl[k]? = some b → xs[k]? = some y →
+            Expr.ErasedEq b y.fvarTypeD) ∧
           (call.getAppArgs.drop g.pre.length).length = idx.length + 1 ∧
           ∀ (k : Nat) (z a : Expr), (call.getAppArgs.drop g.pre.length)[k]? = some z →
             (idx ++ [Expr.mkAppN (fvs.getD q.1 default) xs])[k]? = some a →
@@ -516,7 +516,7 @@ theorem genRule_shapeD {g : ClassGen} (hg : ClassGenScoped g)
       obtain rfl := (Option.some.inj hk).symm
       obtain ⟨ty', hxe, hty'⟩ := hxs k xk hxk
       exact ScB.binder g hxe hty'
-  have hnds : ∀ p ∈ g.pre ++ fvs.map g.binder, p.1.looseBVarsBounded 0 = true := by
+  have hnds : ∀ p ∈ g.pre ++ fvs.map g.binder, p.looseBVarsBounded 0 = true := by
     intro p hp
     rcases List.mem_append.mp hp with hp | hp
     · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hp
@@ -563,7 +563,7 @@ theorem genRule_shapeD {g : ClassGen} (hg : ClassGenScoped g)
       rw [List.getElem?_append_right (by omega), hfl, Nat.add_sub_cancel_left]; exact hih
     have hzE := hpt (x.nF + l) z ih hz ha
     rw [hihE] at hzE
-    have hxsB : ∀ p ∈ xs.map g.binder, p.1.looseBVarsBounded 0 = true := by
+    have hxsB : ∀ p ∈ xs.map g.binder, p.looseBVarsBounded 0 = true := by
       intro p hp
       obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hp
       obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hy
@@ -597,10 +597,10 @@ theorem genRule_shapeD {g : ClassGen} (hg : ClassGenScoped g)
     · intro k b y hb hy
       obtain ⟨nd, hnd⟩ : ∃ nd, (xs.map g.binder)[k]? = some nd := ⟨_, by
         rw [List.getElem?_map, hy]; rfl⟩
-      obtain ⟨h1, h2⟩ := hbl k b nd hb hnd
+      have hbE := hbl k b nd hb hnd
       rw [List.getElem?_map, hy] at hnd
       obtain rfl := (Option.some.inj hnd)
-      exact ⟨h1, h2⟩
+      exact hbE
     · intro k z2 a hz2 ha2
       rw [List.getElem?_drop] at hz2
       refine hpt2 (g.pre.length + k) z2 a hz2 ?_

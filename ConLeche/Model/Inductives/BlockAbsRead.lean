@@ -108,7 +108,7 @@ theorem Expr.ReadsAt.instPisWith {P : Name → Prop} {env : Env} :
     exact h ▸ he
   | v :: vs, e, r, hvs, h, he => by
     match e, h with
-    | .forallE t b m, h =>
+    | .forallE t b, h =>
       have h' : ConLeche.instPisWith vs (b.instantiate1 v) = some r := h
       exact Expr.ReadsAt.instPisWith (fun x hx => hvs x (List.mem_cons_of_mem _ hx)) h'
         (Expr.ReadsAt.instantiate1 (hvs v List.mem_cons_self) b 0 he.2)
@@ -195,8 +195,8 @@ theorem ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
     · rfl
     · exact h
   | app f a ihf iha => intro h; simp only [constsBound_app] at h ⊢; exact ⟨ihf h.1, iha h.2⟩
-  | lam t b m iht ihb => intro h; simp only [constsBound_lam] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b m iht ihb =>
+  | lam t b iht ihb => intro h; simp only [constsBound_lam] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
+  | forallE t b iht ihb =>
     intro h; simp only [constsBound_forallE] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
     intro h; simp only [constsBound_letE] at h ⊢; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩

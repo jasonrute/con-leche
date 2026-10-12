@@ -54,7 +54,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name Level NestCtx NestHole BinderMeta closeTelescope fueledOps PosD PosJ
+open ConLeche (Env Expr Name Level NestCtx NestHole closeTelescope fueledOps PosD PosJ
   NestFieldKind PosTree MemberCtorD)
 
 universe w
@@ -88,7 +88,7 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → AnnotTerm} {env
     rw [ite_eq_right hlen] at h
     exact nomatch h
   | case5 d n us hf => intro _ h _; rw [denoteMeta, hf] at h; exact nomatch h
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro _ h hl
     obtain ⟨ta, ba, hta, hba, -⟩ := denoteMeta_forallE_inv h
     have hty := ihty hta fun l h' => hl l (by simp [Expr.fvarLeaves, h'])
@@ -99,7 +99,7 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → AnnotTerm} {env
       rcases h3 with rfl | h3
       · exact hty
       · exact hl l (by simp [Expr.fvarLeaves, h3])
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro _ h hl
     obtain ⟨ta, ba, hta, hba, -⟩ := denoteMeta_lam_inv h
     have hty := ihty hta fun l h' => hl l (by simp [Expr.fvarLeaves, h'])
@@ -138,8 +138,8 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → AnnotTerm} {env
     | sort => exact (h1 _ rfl).elim
     | fvar => exact (h2 _ _ rfl).elim
     | const => exact (h3 _ _ rfl).elim
-    | forallE => exact (h4 _ _ _ rfl).elim
-    | lam => exact (h5 _ _ _ rfl).elim
+    | forallE => exact (h4 _ _ rfl).elim
+    | lam => exact (h5 _ _ rfl).elim
     | app => exact (h6 _ _ rfl).elim
     | letE => exact (h7 _ _ _ rfl).elim
     | proj => exact (h8 _ _ _ rfl).elim
@@ -209,7 +209,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     split
     · exact red_whnf hin hw hfr hC hea hgr
     · exact ⟨hfr, fun _ h => h, ea, hea, hgr, fun _ _ => rfl⟩
-  | @pi prog dep kb e a b mb k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hfr Δa ea hC hea hgr
     obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_whnf hin hw hfr hC hea hgr
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
@@ -219,7 +219,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
-    have hCw : CtxOkP m φ dep Δa (.forallE a b mb) := hC.of_subset hsub
+    have hCw : CtxOkP m φ dep Δa (.forallE a b) := hC.of_subset hsub
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     obtain ⟨hfrn, hsubn, nba, hnba, hgn, heqn⟩ :=
       ihb (frame_open2 hws.1 hb.1 hws.2 hb.2 hLa hLbd) hCop hba hgB
@@ -265,7 +265,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     exact ⟨[], [], ca, rfl, by simpa [closeTelescope, mkPisAV] using hca, rfl, rfl, rfl, trivial,
       by simpa [mkPisAV] using hgr, by simpa [closeTelescope] using hfr,
       fun l hl => by simpa [closeTelescope] using hl⟩
-  | @teleCons prog base n j a b bm k nd ks nds res ts ts' _ _ iha ihb =>
+  | @teleCons prog base n j a b k nd ks nds res ts ts' _ _ iha ihb =>
     intro hfr Δa ca hC hca hgr
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
     obtain ⟨hws, hb, hLb⟩ := hfr
@@ -321,7 +321,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     · intro l hl
       simp only [closeTelescope, Expr.fvarLeaves, List.mem_append] at hl
       rcases hl with hl | hl
-      · exact (by simp [Expr.fvarLeaves, hsubn l hl] : l ∈ (Expr.forallE a b bm).fvarLeaves)
+      · exact (by simp [Expr.fvarLeaves, hsubn l hl] : l ∈ (Expr.forallE a b).fvarLeaves)
       · obtain ⟨hl₁, hl₂⟩ := Expr.fvarLeaves_abstract1_lt _ 0 hwsc l hl
         rcases Expr.fvarLeaves_instantiate1 b 0 (hsubc l hl₁) with h3 | h3
         · simp [Expr.fvarLeaves, h3]

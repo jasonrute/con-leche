@@ -78,8 +78,8 @@ theorem iotaCtorLicensed_cons_of_isSome {c₀ : ConstantInfo} {env : Env}
       = ConLeche.iotaCtorLicensed env.find? cvj usj := by
   unfold ConLeche.iotaCtorLicensed
   match hh : cvj.type.piResult.getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
   | .const T us =>
     dsimp only
     rw [ConLeche.Env.find?_cons_of_isSome hfresh (hT T us hh)]

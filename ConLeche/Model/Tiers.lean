@@ -262,7 +262,7 @@ private theorem acceptedReads_aux (m : EnvModel V env) (φ : Name → Nat) :
         exact nomatch hd
       · exact ⟨ea, rfl⟩
     | .app f a =>
-      obtain ⟨tf, _, _, _, htf, -, -, ta, hta, -⟩ :=
+      obtain ⟨tf, _, _, htf, -, -, ta, hta, -⟩ :=
         ConLeche.inferTypeCore_app_inv h
       simp only [Expr.WScoped] at hws
       simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
@@ -271,7 +271,7 @@ private theorem acceptedReads_aux (m : EnvModel V env) (φ : Name → Nat) :
       obtain ⟨aa, haa⟩ := ih hta hws.2 hb.2 (fun l hl =>
         hL l (by simp [Expr.fvarLeaves, hl]))
       exact ⟨_, by rw [denoteMeta_app, hfa, haa]; rfl⟩
-    | .forallE ty body mb =>
+    | .forallE ty body =>
       obtain ⟨tty, u, bt, v, htty, -, hbt, -, -, -⟩ :=
         ConLeche.inferTypeCore_forall_inv h
       simp only [Expr.WScoped] at hws
@@ -285,7 +285,7 @@ private theorem acceptedReads_aux (m : EnvModel V env) (φ : Name → Nat) :
       obtain ⟨ta, hta⟩ := ih htty hws.1 hb.1 hLty
       obtain ⟨ba, hba⟩ := ih hbt hwo hbo hLo
       exact ⟨_, by rw [denoteMeta_forallE, hta, hba]; rfl⟩
-    | .lam ty body mb =>
+    | .lam ty body =>
       obtain ⟨tty, u, bt, htty, -, hbt, -, -, -⟩ :=
         ConLeche.inferTypeCore_lam_inv h
       simp only [Expr.WScoped] at hws

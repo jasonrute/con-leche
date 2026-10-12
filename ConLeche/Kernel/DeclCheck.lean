@@ -43,7 +43,7 @@ def Expr.constsResolveF (fe : FEnv) : Expr → Bool
   | .const n _ => (fe.find? n).isSome
   | .fvar _ ty => ty.constsResolveF fe
   | .app f a => f.constsResolveF fe && a.constsResolveF fe
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     ty.constsResolveF fe && body.constsResolveF fe
   | .letE ty val body =>
     ty.constsResolveF fe && val.constsResolveF fe &&
@@ -97,11 +97,11 @@ def Expr.constsResolveFGo (fe : FEnv) (memo : Std.HashMap Expr Bool) :
           let (b₁, memo) := constsResolveFGo fe memo f
           let (b₂, memo) := constsResolveFGo fe memo a
           (b₁ && b₂, memo)
-        | .lam ty body _ =>
+        | .lam ty body =>
           let (b₁, memo) := constsResolveFGo fe memo ty
           let (b₂, memo) := constsResolveFGo fe memo body
           (b₁ && b₂, memo)
-        | .forallE ty body _ =>
+        | .forallE ty body =>
           let (b₁, memo) := constsResolveFGo fe memo ty
           let (b₂, memo) := constsResolveFGo fe memo body
           (b₁ && b₂, memo)
@@ -146,7 +146,7 @@ theorem Expr.constsResolveFGo_spec {fe : FEnv} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [constsResolveF, h1, h3], ?_⟩
       exact h4.insert (by simp [constsResolveF, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [constsResolveFGo]
     split
@@ -156,7 +156,7 @@ theorem Expr.constsResolveFGo_spec {fe : FEnv} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [constsResolveF, h1, h3], ?_⟩
       exact h4.insert (by simp [constsResolveF, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [constsResolveFGo]
     split
@@ -213,12 +213,12 @@ def natOpCodF (fe : FEnv) (c : Name) (e : Expr) : Bool :=
 def natOpTyPinnedF (fe : FEnv) (c : Name) (ty : Expr) : Bool :=
   if c = natPredName then
     match ty with
-    | .forallE dom body _mb =>
+    | .forallE dom body =>
       dom == .const natName [] && natOpCodF fe c body
     | _ => false
   else
     match ty with
-    | .forallE dom (.forallE dom2 body _mb2) _mb =>
+    | .forallE dom (.forallE dom2 body) =>
       dom == .const natName [] && dom2 == .const natName [] &&
       natOpCodF fe c body
     | _ => false

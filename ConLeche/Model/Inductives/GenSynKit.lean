@@ -34,12 +34,12 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 theorem stripPis_isSome_of_piCount : ∀ (n : Nat) (e : Expr), n ≤ piCount e →
     (e.stripPis n).isSome = true
   | 0, _, _ => rfl
-  | n + 1, .forallE t b mb, h => by
+  | n + 1, .forallE t b, h => by
     simp only [piCount] at h
     simp only [ConLeche.Expr.stripPis, Option.isSome_map]
     exact stripPis_isSome_of_piCount n b (by omega)
   | _ + 1, .bvar _, h | _ + 1, .fvar _ _, h | _ + 1, .sort _, h | _ + 1, .const _ _, h
-  | _ + 1, .lit _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _ _, h | _ + 1, .letE _ _ _, h
+  | _ + 1, .lit _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _, h | _ + 1, .letE _ _ _, h
   | _ + 1, .proj _ _ _, h => by simp [piCount] at h
 
 
@@ -49,17 +49,17 @@ theorem stripPis_isSome_of_piCount : ∀ (n : Nat) (e : Expr), n ≤ piCount e �
 applied to `m` arguments. -/
 @[expose] def PiConcl (I : Name) (us : List Level) (m : Nat) : Nat → Expr → Prop
   | 0, e => ∃ args, e = Expr.mkAppN (.const I us) args ∧ args.length = m
-  | n + 1, .forallE _ b _ => PiConcl I us m n b
+  | n + 1, .forallE _ b => PiConcl I us m n b
   | _ + 1, _ => False
 
 theorem piConcl_of_stripPis {I : Name} {us : List Level} {m : Nat} :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × ConLeche.BinderMeta)} {args : List Expr},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {args : List Expr},
       e.stripPis n = some (bs, Expr.mkAppN (.const I us) args) → args.length = m →
       PiConcl I us m n e
   | 0, e, bs, args, h, hl => by
     simp only [ConLeche.Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
     exact ⟨args, h.2, hl⟩
-  | n + 1, .forallE t b mb, bs, args, h, hl => by
+  | n + 1, .forallE t b, bs, args, h, hl => by
     simp only [ConLeche.Expr.stripPis, Option.map_eq_some_iff] at h
     obtain ⟨⟨bs', b'⟩, hs, he⟩ := h
     simp only [Prod.mk.injEq] at he
@@ -67,7 +67,7 @@ theorem piConcl_of_stripPis {I : Name} {us : List Level} {m : Nat} :
     exact piConcl_of_stripPis n hs hl
   | _ + 1, .bvar _, _, _, h, _ | _ + 1, .fvar _ _, _, _, h, _ | _ + 1, .sort _, _, _, h, _
   | _ + 1, .const _ _, _, _, h, _ | _ + 1, .app _ _, _, _, h, _
-  | _ + 1, .lam _ _ _, _, _, h, _ | _ + 1, .letE _ _ _, _, _, h, _ | _ + 1, .lit _, _, _, h, _
+  | _ + 1, .lam _ _, _, _, h, _ | _ + 1, .letE _ _ _, _, _, h, _ | _ + 1, .lit _, _, _, h, _
   | _ + 1, .proj _ _ _, _, _, h, _ => by simp [ConLeche.Expr.stripPis] at h
 
 theorem piConcl_instantiate1 {I : Name} {us : List Level} {m : Nat} (v : Expr) :
@@ -76,9 +76,9 @@ theorem piConcl_instantiate1 {I : Name} {us : List Level} {m : Nat} (v : Expr) :
     subst he
     refine ⟨args.map (·.instantiate1 v k), ?_, by rw [List.length_map, hl]⟩
     rw [Expr.mkAppN_instantiate1]; rfl
-  | n + 1, .forallE t b mb, k, h => piConcl_instantiate1 v n b (k + 1) h
+  | n + 1, .forallE t b, k, h => piConcl_instantiate1 v n b (k + 1) h
   | _ + 1, .bvar _, _, h | _ + 1, .fvar _ _, _, h | _ + 1, .sort _, _, h
-  | _ + 1, .const _ _, _, h | _ + 1, .app _ _, _, h | _ + 1, .lam _ _ _, _, h
+  | _ + 1, .const _ _, _, h | _ + 1, .app _ _, _, h | _ + 1, .lam _ _, _, h
   | _ + 1, .letE _ _ _, _, h | _ + 1, .lit _, _, h | _ + 1, .proj _ _ _, _, h => h.elim
 
 theorem piConcl_instantiateLevelParams {I : Name} {us : List Level} {m : Nat}
@@ -89,9 +89,9 @@ theorem piConcl_instantiateLevelParams {I : Name} {us : List Level} {m : Nat}
     subst he
     refine ⟨args.map (·.instantiateLevelParams ks vs), ?_, by rw [List.length_map, hl]⟩
     rw [instantiateLevelParams_mkAppN]; rfl
-  | n + 1, .forallE t b mb, h => piConcl_instantiateLevelParams ks vs n b h
+  | n + 1, .forallE t b, h => piConcl_instantiateLevelParams ks vs n b h
   | _ + 1, .bvar _, h | _ + 1, .fvar _ _, h | _ + 1, .sort _, h
-  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _ _, h
+  | _ + 1, .const _ _, h | _ + 1, .app _ _, h | _ + 1, .lam _ _, h
   | _ + 1, .letE _ _ _, h | _ + 1, .lit _, h | _ + 1, .proj _ _ _, h => h.elim
 
 theorem piConcl_instPisWith {I : Name} {us : List Level} {m n : Nat} :
@@ -100,14 +100,14 @@ theorem piConcl_instPisWith {I : Name} {us : List Level} {m n : Nat} :
   | [], e, e', h, hi => by
     simp only [ConLeche.instPisWith, Option.some.injEq] at hi
     subst hi; simpa using h
-  | a :: ds, .forallE t b mb, e', h, hi => by
+  | a :: ds, .forallE t b, e', h, hi => by
     have hi' : ConLeche.instPisWith ds (b.instantiate1 a) = some e' := hi
     have hb : PiConcl I us m (ds.length + n) b := by
       simp only [List.length_cons, show ds.length + 1 + n = (ds.length + n) + 1 by omega] at h
       exact h
     exact piConcl_instPisWith ds (piConcl_instantiate1 a _ b 0 hb) hi'
   | _ :: _, .bvar _, _, _, hi | _ :: _, .fvar _ _, _, _, hi | _ :: _, .sort _, _, _, hi
-  | _ :: _, .const _ _, _, _, hi | _ :: _, .app _ _, _, _, hi | _ :: _, .lam _ _ _, _, _, hi
+  | _ :: _, .const _ _, _, _, hi | _ :: _, .app _ _, _, _, hi | _ :: _, .lam _ _, _, _, hi
   | _ :: _, .letE _ _ _, _, _, hi | _ :: _, .lit _, _, _, hi
   | _ :: _, .proj _ _ _, _, _, hi => by simp [ConLeche.instPisWith] at hi
 
@@ -118,7 +118,7 @@ theorem piConcl_open {I : Name} {us : List Level} {m : Nat} :
     simp only [ConLeche.openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at ho
     obtain ⟨-, rfl⟩ := ho
     exact h
-  | n + 1, .forallE t b mb, d, fvs, cb, h, ho => by
+  | n + 1, .forallE t b, d, fvs, cb, h, ho => by
     simp only [ConLeche.openPisAtFvars] at ho
     split at ho
     · next fvs' cb' hrec =>
@@ -128,7 +128,7 @@ theorem piConcl_open {I : Name} {us : List Level} {m : Nat} :
     · exact nomatch ho
   | _ + 1, .bvar _, _, _, _, _, ho | _ + 1, .fvar _ _, _, _, _, _, ho
   | _ + 1, .sort _, _, _, _, _, ho | _ + 1, .const _ _, _, _, _, _, ho
-  | _ + 1, .app _ _, _, _, _, _, ho | _ + 1, .lam _ _ _, _, _, _, _, ho
+  | _ + 1, .app _ _, _, _, _, _, ho | _ + 1, .lam _ _, _, _, _, _, ho
   | _ + 1, .letE _ _ _, _, _, _, _, ho | _ + 1, .lit _, _, _, _, _, ho
   | _ + 1, .proj _ _ _, _, _, _, _, ho => by simp [ConLeche.openPisAtFvars] at ho
 

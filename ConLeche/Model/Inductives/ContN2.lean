@@ -44,21 +44,21 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 
 /-- A Π-telescope ending in a sort whose domains mention no hole. -/
 @[expose] def PiDomsFree (names : List Name) (lo hi : Nat) : Expr → Prop
-  | .forallE ty b _ => ty.nestOcc names lo hi = false ∧ PiDomsFree names lo hi b
+  | .forallE ty b => ty.nestOcc names lo hi = false ∧ PiDomsFree names lo hi b
   | .sort _ => True
   | _ => False
 
 /-- The number of leading `∀` binders. -/
 @[expose] def piCount : Expr → Nat
-  | .forallE _ b _ => piCount b + 1
+  | .forallE _ b => piCount b + 1
   | _ => 0
 
 theorem piDomsFree_of_binders {names : List Name} {lo hi : Nat} :
     ∀ (e : Expr) {s : Level}, e.piBinders.2 = .sort s →
-      (e.piBinders.1.any fun b => b.1.nestOcc names lo hi) = false → PiDomsFree names lo hi e := by
+      (e.piBinders.1.any fun b => b.nestOcc names lo hi) = false → PiDomsFree names lo hi e := by
   intro e
   induction e with
-  | forallE ty b mb _ ihb =>
+  | forallE ty b _ ihb =>
     intro s hs hany
     simp only [ConLeche.Expr.piBinders, List.any_cons, Bool.or_eq_false_iff] at hs hany
     exact ⟨hany.1, ihb hs hany.2⟩
@@ -77,7 +77,7 @@ theorem PiDomsFree.instantiate1 {names : List Name} {lo hi d : Nat} (hd : ¬ (lo
       PiDomsFree names lo hi (e.instantiate1 (.fvar d ty) k) := by
   intro e
   induction e with
-  | forallE t b mb _ ihb =>
+  | forallE t b _ ihb =>
     intro k h
     obtain ⟨h1, h2⟩ := h
     exact ⟨by rw [nestOcc_instantiate1_fvar hd ty t k]; exact h1, ihb (k + 1) h2⟩
@@ -95,7 +95,7 @@ theorem piCount_instantiate1_fvar {d : Nat} (ty : Expr) :
     ∀ (e : Expr) (k : Nat), piCount (e.instantiate1 (.fvar d ty) k) = piCount e := by
   intro e
   induction e with
-  | forallE t b mb _ ihb => intro k; simp only [ConLeche.Expr.instantiate1, piCount, ihb]
+  | forallE t b _ ihb => intro k; simp only [ConLeche.Expr.instantiate1, piCount, ihb]
   | bvar i =>
     intro k
     simp only [ConLeche.Expr.instantiate1]
@@ -132,7 +132,7 @@ theorem noBVarTele_of_piDomsFree {names : List Name} {lo hi : Nat} :
   | succ n ih =>
     intro e d ea hn hf hws hd h
     match e, hn, hf, hws, h with
-    | .forallE ty b mb, hn, hf, hws, h =>
+    | .forallE ty b, hn, hf, hws, h =>
       obtain ⟨hty, hb⟩ := hf
       simp only [piCount, Nat.add_right_cancel_iff] at hn
       obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
@@ -212,7 +212,7 @@ theorem teleEq_substTele (τ : Nat → AnnotTerm) : ∀ (ab : List (Nat × Nat �
 theorem piCount_eq_length : ∀ e : Expr, piCount e = e.piBinders.1.length := by
   intro e
   induction e with
-  | forallE t b mb _ ihb => simp [piCount, ConLeche.Expr.piBinders, ihb]
+  | forallE t b _ ihb => simp [piCount, ConLeche.Expr.piBinders, ihb]
   | _ => simp [piCount, ConLeche.Expr.piBinders]
 
 /-- A Π-tower over a sort determines its domains (the binder data's
@@ -293,7 +293,7 @@ theorem stripPis_isSome_of_instPisWith_fvars :
   | [], _, _, _, _ => rfl
   | a :: as, e, r, hv, h => by
     match e, h with
-    | .forallE t b mb, h =>
+    | .forallE t b, h =>
       have h' : ConLeche.instPisWith as (b.instantiate1 a) = some r := h
       obtain ⟨i, ty, rfl⟩ := hv a List.mem_cons_self
       have ih := stripPis_isSome_of_instPisWith_fvars
@@ -535,7 +535,7 @@ theorem n2_link {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatu
 
 /-- A Π-telescope ending in the sort `s`. -/
 @[expose] def PiEndsSort (s : Level) : Expr → Prop
-  | .forallE _ b _ => PiEndsSort s b
+  | .forallE _ b => PiEndsSort s b
   | .sort s' => s' = s
   | _ => False
 
@@ -543,7 +543,7 @@ theorem piEndsSort_of_binders {s : Level} :
     ∀ (e : Expr), e.piBinders.2 = .sort s → PiEndsSort s e := by
   intro e
   induction e with
-  | forallE ty b mb _ ihb =>
+  | forallE ty b _ ihb =>
     intro hs
     simp only [ConLeche.Expr.piBinders] at hs
     exact ihb hs
@@ -557,7 +557,7 @@ theorem PiEndsSort.instantiate1 {s : Level} (v : Expr) :
     ∀ (e : Expr) (k : Nat), PiEndsSort s e → PiEndsSort s (e.instantiate1 v k) := by
   intro e
   induction e with
-  | forallE t b mb _ ihb => intro k h; exact ihb (k + 1) h
+  | forallE t b _ ihb => intro k h; exact ihb (k + 1) h
   | sort u => intro _ h; exact h
   | _ => intro _ h; exact h.elim
 
@@ -579,7 +579,7 @@ theorem denoteMeta_piEndsSort {s : Level} :
   | succ n ih =>
     intro e d ea hn hf h
     match e, hn, hf, h with
-    | .forallE ty b mb, hn, hf, h =>
+    | .forallE ty b, hn, hf, h =>
       simp only [piCount, Nat.add_right_cancel_iff] at hn
       obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
       obtain ⟨ab, rfl⟩ := ih (b.instantiate1 (.fvar d ty))

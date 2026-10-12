@@ -72,7 +72,7 @@ theorem wscoped_of_getAppArgs : ∀ {e : Expr} {d : Nat}, Expr.WScoped d e →
     · exact wscoped_of_getAppArgs h.1 x hx
     · exact h.2
   | .bvar _, _, _, _, hx | .fvar _ _, _, _, _, hx | .sort _, _, _, _, hx
-  | .const _ _, _, _, _, hx | .lam _ _ _, _, _, _, hx | .forallE _ _ _, _, _, _, hx
+  | .const _ _, _, _, _, hx | .lam _ _, _, _, _, hx | .forallE _ _, _, _, _, hx
   | .letE _ _ _, _, _, _, hx | .lit _, _, _, _, hx | .proj _ _ _, _, _, _, hx => by
     simp [Expr.getAppArgs] at hx
 

@@ -143,17 +143,17 @@ inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ :
   /-- a `λ` denotes the graph of its body over its domain, or the
   canonical proof where the body denotes a proof (`pt`) on the whole
   domain -/
-  | lam {ρ : BVarIdx → V} {ty body : Expr} {m : BinderMeta} {A : V} {F : V → V}
+  | lam {ρ : BVarIdx → V} {ty body : Expr} {A : V} {F : V → V}
       (hA : Denotes cval env φ ρ ty A)
       (hF : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (F x)) :
-      Denotes cval env φ ρ (.lam ty body m) (lamV A F)
+      Denotes cval env φ ρ (.lam ty body) (lamV A F)
   /-- a `∀` denotes the set of dependent function graphs over its
   domain, or a truth value where its body denotes a truth value on the
   whole domain -/
-  | pi {ρ : BVarIdx → V} {ty body : Expr} {m : BinderMeta} {A : V} {B : V → V}
+  | pi {ρ : BVarIdx → V} {ty body : Expr} {A : V} {B : V → V}
       (hA : Denotes cval env φ ρ ty A)
       (hB : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (B x)) :
-      Denotes cval env φ ρ (.forallE ty body m) (piV A B)
+      Denotes cval env φ ρ (.forallE ty body) (piV A B)
   /-- a `let` denotes its body at its value; the type is not read -/
   | letE {ρ : BVarIdx → V} {ty v body : Expr} {Y X : V}
       (hv : Denotes cval env φ ρ v Y) (hb : Denotes cval env φ (push Y ρ) body X) :

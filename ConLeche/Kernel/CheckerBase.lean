@@ -99,7 +99,7 @@ partial def Expr.hasStrLitGo (memo : Std.HashSet Expr) : Expr → Bool × Std.Ha
     | .app f a =>
       let (r, memo) := Expr.hasStrLitGo memo f
       if r then (true, memo) else Expr.hasStrLitGo memo a
-    | .lam t b _ | .forallE t b _ =>
+    | .lam t b | .forallE t b =>
       let (r, memo) := Expr.hasStrLitGo memo t
       if r then (true, memo) else Expr.hasStrLitGo memo b
     | .letE t v b =>
@@ -151,7 +151,7 @@ def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Con
 fvars).  Returns the fvars and the opened body. -/
 def openPisAtFvars : Nat → Expr → Nat → Option (List Expr × Expr)
   | 0, e, _ => some ([], e)
-  | n + 1, .forallE dom body _, i =>
+  | n + 1, .forallE dom body, i =>
     let fv : Expr := .fvar i dom
     match openPisAtFvars n (body.instantiate1 fv) (i + 1) with
     | some (fvs, e) => some (fv :: fvs, e)
@@ -167,7 +167,7 @@ one `instantiateList` pass per domain instead of one whole-telescope
 def openPisAtFvarsFGo (acc : List Expr) :
     Nat → Expr → Nat → Option (List Expr × Expr)
   | 0, e, _ => some ([], e.instantiateList acc)
-  | n + 1, .forallE dom body _, i =>
+  | n + 1, .forallE dom body, i =>
     let fv : Expr := .fvar i (dom.instantiateList acc)
     match openPisAtFvarsFGo (fv :: acc) n body (i + 1) with
     | some (fvs, e) => some (fv :: fvs, e)
@@ -192,7 +192,7 @@ theorem openPisAtFvarsFGo_sound :
   | 0, e, i, acc, r, h => by
     simp only [openPisAtFvarsFGo, Option.some.injEq] at h
     simp only [openPisAtFvars, ← h]
-  | n + 1, .forallE dom body bi, i, acc, r, h => by
+  | n + 1, .forallE dom body, i, acc, r, h => by
     simp only [openPisAtFvarsFGo] at h
     split at h
     case _ fvs e' hgo =>

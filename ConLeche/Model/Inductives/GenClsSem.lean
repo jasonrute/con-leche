@@ -45,7 +45,7 @@ The class-side facts of the generated stage's family premise
 (`GenPreSem`, `GenRecPreRun.lean`) read the STORED recursor types' binder
 data (`blockRecRdsAV`).  A stored type is the generated one
 (`classConstOk` stores its input), a telescope
-`closeTelescope (pre ++ ifs.map g.binder ++ [(maj, g.bm)]) 0 (motive …)`
+`closeTelescope (pre ++ ifs.map g.binder ++ [maj]) 0 (motive …)`
 whose index binders `ifs` are the class former's index telescope at the
 class's parameters (`ClassGen.major`: `instPisWith ds former`, opened at
 the prefix) and whose major is `I lvls (ds ++ ifs)` — by construction,
@@ -101,16 +101,16 @@ theorem WScoped.of_erasedEq : ∀ (x : Expr) {x₀ : Expr} {D n : Nat}, Expr.Era
     | .app g b, he =>
       simp only [Expr.WScoped] at hw hw₀ ⊢
       exact ⟨ihf he.1 hw.1 hw₀.1, iha he.2 hw.2 hw₀.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro x₀ D n he hw hw₀
     match x₀, he with
-    | .lam ty' b' m', he =>
+    | .lam ty' b', he =>
       simp only [Expr.WScoped] at hw hw₀ ⊢
       exact ⟨iht he.1 hw.1 hw₀.1, ihb he.2 hw.2 hw₀.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro x₀ D n he hw hw₀
     match x₀, he with
-    | .forallE ty' b' m', he =>
+    | .forallE ty' b', he =>
       simp only [Expr.WScoped] at hw hw₀ ⊢
       exact ⟨iht he.1 hw.1 hw₀.1, ihb he.2 hw.2 hw₀.2⟩
   | letE ty v b iht ihv ihb =>
@@ -172,8 +172,8 @@ theorem genRun_binders (hμ : μ.verifiedChecks = true)
       (∃ fvs o, ConLeche.openPisAtFvars (p.toBlockShape.majorIdxAt c + 1)
           ((tgtRs out)[c]'hc).1.type 0 = some (fvs, o) ∧
         ∀ (i : Nat) (x nd : Expr), fvs[i]? = some x →
-          (R.g.pre ++ ifs.map R.g.binder ++ [(Expr.mkAppN (.const (tgtMajor out c).ind
-            (tgtMajor out c).lvls) ((tgtMajor out c).ds ++ ifs), R.g.bm)])[i]?.map (·.1) = some nd →
+          (R.g.pre ++ ifs.map R.g.binder ++ [Expr.mkAppN (.const (tgtMajor out c).ind
+            (tgtMajor out c).lvls) ((tgtMajor out c).ds ++ ifs)])[i]? = some nd →
           Expr.ErasedEq x.fvarTypeD nd) := by
   obtain ⟨cls, gty, S, hgc, hM, hgty, -, hread, hmI, hRP, hst⟩ :=
     genRun_storedTy hμ R hg h mpC ψ hc
@@ -193,7 +193,7 @@ theorem genRun_binders (hμ : μ.verifiedChecks = true)
   obtain ⟨ifs, maj, hmaj, hifl, rfl, hcl, hbb⟩ := ConLeche.classGenRecTy_spec hg hgty
   obtain ⟨ty, body, hty, hopI, hmajE⟩ := ConLeche.ClassGen.major_inv hmaj
   rw [← hM] at hty hopI hmajE hifl
-  generalize hnds : R.g.pre ++ ifs.map R.g.binder ++ [(maj, R.g.bm)] = nds at hread hcl
+  generalize hnds : R.g.pre ++ ifs.map R.g.binder ++ [maj] = nds at hread hcl
   generalize hbody : Expr.mkAppN (R.g.motVar cls)
     (ifs ++ [.fvar (R.g.pre.length + ifs.length) maj]) = bd at hread hbb
   have hn : nds.length = R.g.pre.length + (tgtMajor out c).nIdx + 1 := by
@@ -210,7 +210,7 @@ theorem genRun_binders (hμ : μ.verifiedChecks = true)
     rw [ConLeche.Verify.openPisAtFvars_length _ hop]
   -- entry `i` of the stored binder data is the reading of `nds[i]`
   have hent : ∀ i nd, i < R.g.pre.length + (tgtMajor out c).nIdx + 1 →
-      nds[i]?.map (·.1) = some nd →
+      nds[i]? = some nd →
       denoteMeta mpC.base2.acval envC ψ i nd
         = some (((blockRecRdsAV mpC.base2.acval envC p.toBlockShape (tgtRs out) ψ c).map
             (·.2.2)).getD i default) := by

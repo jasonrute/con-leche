@@ -40,8 +40,8 @@ open ConLeche.Expr
 @[expose] def Expr.NoProjAt (T : Name) (i : Nat) : Expr → Prop
   | .proj s j e => ¬ (s = T ∧ j = i) ∧ NoProjAt T i e
   | .app f a => NoProjAt T i f ∧ NoProjAt T i a
-  | .lam ty b _ => NoProjAt T i ty ∧ NoProjAt T i b
-  | .forallE ty b _ => NoProjAt T i ty ∧ NoProjAt T i b
+  | .lam ty b => NoProjAt T i ty ∧ NoProjAt T i b
+  | .forallE ty b => NoProjAt T i ty ∧ NoProjAt T i b
   | .letE t v b => NoProjAt T i t ∧ NoProjAt T i v ∧ NoProjAt T i b
   | .fvar _ ty => NoProjAt T i ty
   | _ => True
@@ -60,11 +60,11 @@ variable {T : Name} {i : Nat}
 @[simp] theorem noProjAt_app {f a : Expr} :
     NoProjAt T i (.app f a) ↔ NoProjAt T i f ∧ NoProjAt T i a := by
   rw [NoProjAt]
-@[simp] theorem noProjAt_lam {ty b : Expr} {m : BinderMeta} :
-    NoProjAt T i (.lam ty b m) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
+@[simp] theorem noProjAt_lam {ty b : Expr} :
+    NoProjAt T i (.lam ty b) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
   rw [NoProjAt]
-@[simp] theorem noProjAt_forallE {ty b : Expr} {m : BinderMeta} :
-    NoProjAt T i (.forallE ty b m) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
+@[simp] theorem noProjAt_forallE {ty b : Expr} :
+    NoProjAt T i (.forallE ty b) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
   rw [NoProjAt]
 @[simp] theorem noProjAt_letE {t v b : Expr} :
     NoProjAt T i (.letE t v b) ↔
@@ -105,12 +105,12 @@ theorem NoProjAt.instantiate1 {v : Expr} (hv : NoProjAt T i v) :
     rw [noProjAt_app] at h
     rw [Expr.instantiate1, noProjAt_app]
     exact ⟨ihf d h.1, iha d h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d h
     rw [noProjAt_lam] at h
     rw [Expr.instantiate1, noProjAt_lam]
     exact ⟨ihty d h.1, ihb (d + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d h
     rw [noProjAt_forallE] at h
     rw [Expr.instantiate1, noProjAt_forallE]
@@ -141,12 +141,12 @@ theorem NoProjAt.liftLooseBVars {k : Nat} :
     rw [noProjAt_app] at h
     simp only [Expr.liftLooseBVars, noProjAt_app]
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro c h
     rw [noProjAt_lam] at h
     simp only [Expr.liftLooseBVars, noProjAt_lam]
     exact ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro c h
     rw [noProjAt_forallE] at h
     simp only [Expr.liftLooseBVars, noProjAt_forallE]
@@ -182,12 +182,12 @@ theorem NoProjAt.instantiateLevelParams (ks : List Name) (us : List Level) :
     rw [noProjAt_app] at h
     rw [Expr.instantiateLevelParams, noProjAt_app]
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     rw [noProjAt_lam] at h
     rw [Expr.instantiateLevelParams, noProjAt_lam]
     exact ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     rw [noProjAt_forallE] at h
     rw [Expr.instantiateLevelParams, noProjAt_forallE]
@@ -221,11 +221,11 @@ theorem noProjAt_of_constsResolve {env : Env} (hT : env.find? T = none) :
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact noProjAt_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b mb ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact noProjAt_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b mb ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact noProjAt_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -249,8 +249,8 @@ def ProjSlotsOk (env : Env) : Expr → Prop
   | .proj s j e => (∃ entry : ProjEntry, env.findProj? s j = some entry) ∧
       ProjSlotsOk env e
   | .app f a => ProjSlotsOk env f ∧ ProjSlotsOk env a
-  | .lam ty b _ => ProjSlotsOk env ty ∧ ProjSlotsOk env b
-  | .forallE ty b _ => ProjSlotsOk env ty ∧ ProjSlotsOk env b
+  | .lam ty b => ProjSlotsOk env ty ∧ ProjSlotsOk env b
+  | .forallE ty b => ProjSlotsOk env ty ∧ ProjSlotsOk env b
   | .letE t v b => ProjSlotsOk env t ∧ ProjSlotsOk env v ∧ ProjSlotsOk env b
   | .fvar _ ty => ProjSlotsOk env ty
   | _ => True
@@ -266,8 +266,8 @@ def FvarTysOk (env : Env) : Expr → Prop
   | .fvar _ ty => ProjSlotsOk env ty
   | .proj _ _ e => FvarTysOk env e
   | .app f a => FvarTysOk env f ∧ FvarTysOk env a
-  | .lam ty b _ => FvarTysOk env ty ∧ FvarTysOk env b
-  | .forallE ty b _ => FvarTysOk env ty ∧ FvarTysOk env b
+  | .lam ty b => FvarTysOk env ty ∧ FvarTysOk env b
+  | .forallE ty b => FvarTysOk env ty ∧ FvarTysOk env b
   | .letE t v b => FvarTysOk env t ∧ FvarTysOk env v ∧ FvarTysOk env b
   | _ => True
 termination_by e => e.sizeF
@@ -285,13 +285,13 @@ variable {env : Env}
 @[simp] theorem projSlotsOk_app {f a : Expr} :
     ProjSlotsOk env (.app f a) ↔ ProjSlotsOk env f ∧ ProjSlotsOk env a := by
   rw [ProjSlotsOk]
-@[simp] theorem projSlotsOk_lam {ty b : Expr} {m : BinderMeta} :
-    ProjSlotsOk env (.lam ty b m) ↔
+@[simp] theorem projSlotsOk_lam {ty b : Expr} :
+    ProjSlotsOk env (.lam ty b) ↔
       ProjSlotsOk env ty ∧ ProjSlotsOk env b := by
   rw [ProjSlotsOk]
 @[simp] theorem projSlotsOk_forallE {ty b : Expr}
-    {m : BinderMeta} :
-    ProjSlotsOk env (.forallE ty b m) ↔
+    :
+    ProjSlotsOk env (.forallE ty b) ↔
       ProjSlotsOk env ty ∧ ProjSlotsOk env b := by
   rw [ProjSlotsOk]
 @[simp] theorem projSlotsOk_letE {t v b : Expr} :
@@ -320,11 +320,11 @@ variable {env : Env}
 @[simp] theorem fvarTysOk_app {f a : Expr} :
     FvarTysOk env (.app f a) ↔ FvarTysOk env f ∧ FvarTysOk env a := by
   rw [FvarTysOk]
-@[simp] theorem fvarTysOk_lam {ty b : Expr} {m : BinderMeta} :
-    FvarTysOk env (.lam ty b m) ↔ FvarTysOk env ty ∧ FvarTysOk env b := by
+@[simp] theorem fvarTysOk_lam {ty b : Expr} :
+    FvarTysOk env (.lam ty b) ↔ FvarTysOk env ty ∧ FvarTysOk env b := by
   rw [FvarTysOk]
-@[simp] theorem fvarTysOk_forallE {ty b : Expr} {m : BinderMeta} :
-    FvarTysOk env (.forallE ty b m) ↔
+@[simp] theorem fvarTysOk_forallE {ty b : Expr} :
+    FvarTysOk env (.forallE ty b) ↔
       FvarTysOk env ty ∧ FvarTysOk env b := by
   rw [FvarTysOk]
 @[simp] theorem fvarTysOk_letE {t v b : Expr} :
@@ -356,11 +356,11 @@ theorem FvarTysOk.of_not_hasFvar :
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     exact fvarTysOk_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     exact fvarTysOk_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     exact fvarTysOk_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -394,12 +394,12 @@ theorem FvarTysOk.instantiate1 {v : Expr} (hv : FvarTysOk env v) :
     rw [fvarTysOk_app] at h
     rw [Expr.instantiate1, fvarTysOk_app]
     exact ⟨ihf d h.1, iha d h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d h
     rw [fvarTysOk_lam] at h
     rw [Expr.instantiate1, fvarTysOk_lam]
     exact ⟨ihty d h.1, ihb (d + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d h
     rw [fvarTysOk_forallE] at h
     rw [Expr.instantiate1, fvarTysOk_forallE]
@@ -436,12 +436,12 @@ theorem ProjSlotsOk.abstract1 :
     rw [projSlotsOk_app] at h
     rw [Expr.abstract1, projSlotsOk_app]
     exact ⟨ihf d k h.1, iha d k h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d k h
     rw [projSlotsOk_lam] at h
     rw [Expr.abstract1, projSlotsOk_lam]
     exact ⟨ihty d k h.1, ihb d (k + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d k h
     rw [projSlotsOk_forallE] at h
     rw [Expr.abstract1, projSlotsOk_forallE]
@@ -475,11 +475,11 @@ theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     intro h
     rw [projSlotsOk_app] at h
     exact noProjAt_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     rw [projSlotsOk_lam] at h
     exact noProjAt_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     rw [projSlotsOk_forallE] at h
     exact noProjAt_forallE.mpr ⟨ihty h.1, ihb h.2⟩

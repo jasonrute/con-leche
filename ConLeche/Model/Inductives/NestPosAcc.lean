@@ -124,8 +124,8 @@ theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : AnnotTerm}
   · exact ⟨0, by omega⟩
 
 /-- The body's output, one binder down, mentions no more than the Π's. -/
-theorem mentNH_body {lo hi dep : Nat} {a nb : Expr} {bm : ConLeche.BinderMeta} :
-    ∀ i, MentNH lo hi (dep + 1) nb i → liftM (MentNH lo hi dep (.forallE a (nb.abstract1 dep 0) bm)) i
+theorem mentNH_body {lo hi dep : Nat} {a nb : Expr} :
+    ∀ i, MentNH lo hi (dep + 1) nb i → liftM (MentNH lo hi dep (.forallE a (nb.abstract1 dep 0))) i
   | 0, _ => trivial
   | i + 1, ⟨hlt, hm, hh⟩ => by
     refine ⟨by omega, ?_, fun h => hh (holeP_succ (i + 1) h)⟩
@@ -155,12 +155,12 @@ theorem nestOcc_nil_of_leaves {q : Nat} :
     simp only [Expr.nestOcc, Bool.or_eq_false_iff]
     exact ⟨ihf fun z hz => h z (by simp [Expr.fvarLeaves, hz]),
       iha fun z hz => h z (by simp [Expr.fvarLeaves, hz])⟩
-  | lam ty b _ iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff]
     exact ⟨iht fun z hz => h z (by simp [Expr.fvarLeaves, hz]),
       ihb fun z hz => h z (by simp [Expr.fvarLeaves, hz])⟩
-  | forallE ty b _ iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff]
     exact ⟨iht fun z hz => h z (by simp [Expr.fvarLeaves, hz]),
@@ -190,8 +190,8 @@ may be mentioned only inside an annotation). -/
 @[expose] def MentP (lo hi d : Nat) (nf : Expr) : Nat → Prop :=
   fun i => MentNH lo hi d nf i ∨ (i < d ∧ d - 1 - i < lo)
 
-theorem mentP_body {lo hi dep : Nat} {a nb : Expr} {bm : ConLeche.BinderMeta} :
-    ∀ i, MentP lo hi (dep + 1) nb i → liftM (MentP lo hi dep (.forallE a (nb.abstract1 dep 0) bm)) i
+theorem mentP_body {lo hi dep : Nat} {a nb : Expr} :
+    ∀ i, MentP lo hi (dep + 1) nb i → liftM (MentP lo hi dep (.forallE a (nb.abstract1 dep 0))) i
   | 0, _ => trivial
   | i + 1, Or.inl h => Or.inl (mentNH_body (i + 1) h)
   | i + 1, Or.inr ⟨hlt, hp⟩ => Or.inr ⟨by omega, by omega⟩

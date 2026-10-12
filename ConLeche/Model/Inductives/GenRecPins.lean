@@ -68,13 +68,13 @@ theorem inferTypeCore_mkAppN_args {env : Env} {F d : Nat} :
   | b :: as, f, t, h, a, ha => by
     rcases List.mem_cons.mp ha with rfl | ha
     · obtain ⟨tfa, hfa⟩ := Model.inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
-      obtain ⟨-, -, -, -, -, -, -, ta, hta, -⟩ := inferTypeCore_app_inv' hfa
+      obtain ⟨-, -, -, -, -, -, ta, hta, -⟩ := inferTypeCore_app_inv' hfa
       exact ⟨ta, hta⟩
     · exact inferTypeCore_mkAppN_args as (f := .app f b) h a ha
 
 /-- **An inferred `∀` infers its domain.** -/
-theorem inferTypeCore_forallE_dom' {env : Env} {F d : Nat} {ty bd s : Expr} {mb : BinderMeta}
-    (h : inferTypeCore mode env F d (.forallE ty bd mb) = .ok s) :
+theorem inferTypeCore_forallE_dom' {env : Env} {F d : Nat} {ty bd s : Expr}
+    (h : inferTypeCore mode env F d (.forallE ty bd) = .ok s) :
     ∃ t, inferTypeCore mode env F d ty = .ok t := by
   cases F with
   | zero => rw [inferTypeCore_zero] at h; exact nomatch h
@@ -108,12 +108,12 @@ theorem WScoped.of_abstractRange_noFvar {n : Nat} :
     simp only [Expr.WScoped] at hw ⊢
     simp only [Expr.abstractRange, Expr.hasFvar, Bool.or_eq_false_iff] at hf
     exact ⟨ihf hw.1 hf.1, iha hw.2 hf.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro D c hw hf
     simp only [Expr.WScoped] at hw ⊢
     simp only [Expr.abstractRange, Expr.hasFvar, Bool.or_eq_false_iff] at hf
     exact ⟨iht hw.1 hf.1, ihb hw.2 hf.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro D c hw hf
     simp only [Expr.WScoped] at hw ⊢
     simp only [Expr.abstractRange, Expr.hasFvar, Bool.or_eq_false_iff] at hf
@@ -205,9 +205,9 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
   obtain ⟨hw0, hb0⟩ := recStage_tyClosed h hr
   -- the major's domain, inferred at `mI`
   obtain ⟨fvsA, fvsB, o₀, hA, hB, hfe⟩ := openPisAtFvars_split mI (m := 1) hop
-  obtain ⟨dom, bd, mb, rfl⟩ : ∃ dom bd mb, o₀ = .forallE dom bd mb := by
+  obtain ⟨dom, bd, rfl⟩ : ∃ dom bd, o₀ = .forallE dom bd := by
     match o₀, hB with
-    | .forallE dom bd mb, _ => exact ⟨dom, bd, mb, rfl⟩
+    | .forallE dom bd, _ => exact ⟨dom, bd, rfl⟩
   have hAlen : fvsA.length = mI := ConLeche.Verify.openPisAtFvars_length _ hA
   have hmajE : maj = .fvar mI dom := by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hB
@@ -443,7 +443,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
   rw [hRP] at hgradeAt hle0 ⊢
   rw [hMI] at hopen hmaj hle0
   obtain ⟨-, hpinsE⟩ := ConLeche.nestedRuleSyn_open hsyn hopen hmaj
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, hplen⟩ := ConLeche.nestedRuleSyn_inv hsyn
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, hplen⟩ := ConLeche.nestedRuleSyn_inv hsyn
   -- the `q`-th pin is the `q`-th parameter, closed
   generalize hds : TE.maj.fvarTypeD.getAppArgs.take (ConLeche.tgtMajorsOf out j).nPc = ds
     at hpinsE

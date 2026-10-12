@@ -102,9 +102,9 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     cases hf₂ : env₂.find? n with
     | none => rw [denoteMeta, hf, denoteMeta, hf₂]
     | some ci₂ => rw [hf₂] at h; exact nomatch h
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     rw [denoteMeta, denoteMeta, ihty, ihbody]
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     rw [denoteMeta, denoteMeta, ihty, ihbody]
   | case8 d f a ihf iha => rw [denoteMeta, denoteMeta, ihf, iha]
   | case9 d ty val body ihty ihv ihbody =>
@@ -129,8 +129,8 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

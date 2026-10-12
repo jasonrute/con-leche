@@ -703,7 +703,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     intro _ hhi hfr Δa ea R hC hea hgr hR
     exact mono_of_whnf hin hw hfr hC hea hgr hR.dom fun hfrw _ wa hwa _ =>
       (ConstOn.of_noBVar hR.agree (denoteMeta_noBVar_of_nestOcc dep w hfrw.1 hhi hocc hwa)).monoOn
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hcov hhi hfr Δa ea R hC hea hgr hR
     refine mono_of_whnf hin hw hfr hC hea hgr hR.dom fun hfrw hCw wa hwa hgw => ?_
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
@@ -845,7 +845,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   | teleNil =>
     intro _ _ hfr Δa ca R _ hca _ hR
     exact ⟨hR.agree, hca, hfr.1⟩
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha hb iha ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro hcovk hhi hfr Δa ca R hC hca hgr hR
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
     obtain ⟨hws, hbb, hLb⟩ := hfr

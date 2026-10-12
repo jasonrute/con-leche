@@ -110,11 +110,11 @@ telescope ends in a sort) or a minor premise. -/
 def classReadSlots (nPc : Name → Nat) (np : Nat) :
     Nat → List Nat → Nat → Expr → Option (List ClassSlot)
   | 0, _, _, _ => some []
-  | n + 1, motPos, d, .forallE dom body _ => do
+  | n + 1, motPos, d, .forallE dom body => do
     let slot ← match dom.piResult with
       | .sort _ => do
         let (bs, _) := dom.piBinders
-        let (mdom, _) ← bs.getLast?
+        let mdom ← bs.getLast?
         let .const I us := mdom.getAppFn | none
         pure (ClassSlot.motive ⟨I, us, mdom.getAppArgs.take (nPc I)⟩)
       | _ => classReadMinor np motPos d dom

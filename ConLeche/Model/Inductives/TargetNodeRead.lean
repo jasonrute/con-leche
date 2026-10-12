@@ -61,20 +61,20 @@ the λ-tower over one telescope read one list. -/
 telescope's domains (`teleDoms`) with zero numerals (the reading records
 none), and its body is read with the binders opened. -/
 theorem denoteMeta_mkPisOf {D : Nat} :
-    ∀ (tele : List (Expr × ConLeche.BinderMeta)) (X : Expr) (q : Nat) (os : List Expr)
+    ∀ (tele : List Expr) (X : Expr) (q : Nat) (os : List Expr)
       (P : AnnotTerm),
       LocList D q os →
       denoteMeta acval env φ (D + q) ((Expr.mkPisOf tele X).instantiateList os 0) = some P →
       ∃ (ds : List (Nat × Nat × AnnotTerm)) (Xr : AnnotTerm) (os' : List Expr),
         P = mkPisAV ds Xr ∧
-        teleDoms acval env φ D os (tele.map (·.1)) = some (ds.map (·.2.2)) ∧
+        teleDoms acval env φ D os tele = some (ds.map (·.2.2)) ∧
         ds.map (·.2.1) = tele.map (fun _ => 0) ∧
         LocList D (q + tele.length) os' ∧
         denoteMeta acval env φ (D + (q + tele.length)) (X.instantiateList os' 0) = some Xr
   | [], X, q, os, P, hos, hP => by
     refine ⟨[], P, os, rfl, ?_, rfl, by simpa using hos, by simpa [Expr.mkPisOf] using hP⟩
     simp [teleDoms]
-  | (ty, bm) :: bs, X, q, os, P, hos, hP => by
+  | ty :: bs, X, q, os, P, hos, hP => by
     have hq : os.length = q := hos.1
     simp only [Expr.mkPisOf, Expr.instantiateList] at hP
     rw [denoteMeta_forallE] at hP
@@ -87,7 +87,7 @@ theorem denoteMeta_mkPisOf {D : Nat} :
     refine ⟨(0, 0, ta) :: ds, Xr, os', rfl, ?_, ?_,
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hos',
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hX⟩
-    · show teleDoms acval env φ D os (ty :: bs.map (·.1)) = some (ta :: ds.map (·.2.2))
+    · show teleDoms acval env φ D os (ty :: bs) = some (ta :: ds.map (·.2.2))
       rw [teleDoms, hq, hta, hdoms]
       rfl
     · simp [hbits]

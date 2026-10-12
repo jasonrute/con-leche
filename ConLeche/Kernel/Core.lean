@@ -253,7 +253,7 @@ its fields and puts them in their domains. -/
 def iotaCertsFull (r : CoreFns m) (env : Env) (depth : Nat) :
     Expr → List Expr → m Bool
   | _, [] => pure true
-  | .forallE ty body _, arg :: rest => do
+  | .forallE ty body, arg :: rest => do
     let ta ← r.infer depth arg
     if ← r.defeq depth ta ty then
       iotaCertsFull r env depth (body.instantiate1 arg) rest
@@ -469,7 +469,7 @@ def etaCert (mode : CheckMode) (r : CoreFns m) (_env : Env) (depth : Nat)
   -- task #172 B4: io grade
   let tb ← r.inferIO depth b
   match ← r.whnf depth tb with
-  | .forallE ty₂ cod₂ _ =>
+  | .forallE ty₂ cod₂ =>
     -- Task #161: the λ's prop-ness annotation must agree with the
     -- product it η-expands (`lamR_eta`'s regime agreement) — checked
     -- LAST, like the defeq binder arms, so a mismatch fires only on
@@ -922,13 +922,13 @@ def whnfCoreBody (r : CoreFns m) (env : Env) : Bool → Nat → Expr → m Expr 
     match e with
     | .sort u => pure (.sort u)
     | .fvar idx ty => pure (.fvar idx ty)
-    | .forallE ty body bi => pure (.forallE ty body bi)
-    | .lam ty body mb => pure (.lam ty body mb)
+    | .forallE ty body => pure (.forallE ty body)
+    | .lam ty body => pure (.lam ty body)
     | .const n us => pure (.const n us)
     | .lit l => pure (.lit l)
     | .app f a => do
       match ← r.whnfCore cheap depth f with
-      | .lam _ body _ => do
+      | .lam _ body => do
         -- Task #342 S0: uniform β, no certificate
         r.whnfCore cheap depth (body.instantiate1 a)
       | f' => do
@@ -1063,7 +1063,7 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       if strLitSupported env then pure (.const stringName [])
       else throw (.notImplemented
         "string literals before the String support declarations")
-    | .forallE ty body _ => do
+    | .forallE ty body => do
       -- The ∀-formation rule, official-kernel style (task #100 stage 6):
       -- the codomain sort is *inferred* from the opened body.
       match ← r.whnf depth (← r.infer depth ty) with
@@ -1072,19 +1072,19 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
           (← r.infer (depth + 1) (body.instantiate1 (.fvar depth ty)))
         pure (.sort (.imax u v))
       | _ => throw (.invalid "expected a sort")
-    | .lam ty body mb => do
+    | .lam ty body => do
       -- The domain must be a type (and the model needs its
       -- interpretation defined), exactly as in the ∀ rule.
       match ← r.whnf depth (← r.infer depth ty) with
       | .sort _ => do
         let bt ← r.infer (depth + 1)
           (body.instantiate1 (.fvar depth ty))
-        pure (.forallE ty (bt.abstract1 depth) mb)
+        pure (.forallE ty (bt.abstract1 depth))
       | _ => throw (.invalid "expected a sort")
     | .app f a => do
       let tf ← r.infer depth f
       match ← r.whnf depth tf with
-      | .forallE ty body _mt => do
+      | .forallE ty body => do
         -- Per-argument re-check (task #100 de-gating: the former
         -- possibly-Prop annotation gate of task #49 is unsound-to-model
         -- under the domain-relative collapse, so the certificate runs
@@ -1181,14 +1181,14 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       if strLitSupported env then pure (.const stringName [])
       else throw (.notImplemented
         "string literals before the String support declarations")
-    | .forallE ty body _ => do
+    | .forallE ty body => do
       match ← r.whnf depth (← r.infer depth ty) with
       | .sort u => do
         let v ← ensureSort r env (depth + 1)
           (← r.infer (depth + 1) (body.instantiate1 (.fvar depth ty)))
         pure (.sort (.imax u v))
       | _ => throw (.invalid "expected a sort")
-    | .lam ty body mb => do
+    | .lam ty body => do
       -- Task #168: no domain-sort run at the io grade —
       -- official's `infer_lambda` skips it at `infer_only`
       -- (`type_checker.cpp:131`), and the model proof
@@ -1196,11 +1196,11 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       -- premise (`WellDenoted.hoist_lam`).
       let bt ← r.infer (depth + 1)
         (body.instantiate1 (.fvar depth ty))
-      pure (.forallE ty (bt.abstract1 depth) mb)
+      pure (.forallE ty (bt.abstract1 depth))
     | .app f a => do
       let tf ← r.infer depth f
       match ← r.whnf depth tf with
-      | .forallE _ body _ => do
+      | .forallE _ body => do
         -- **THE io SITE** (task #346): official's `infer_only` — the
         -- argument is not checked against the domain; the io claim is
         -- hereditary on the type's syntax (`IORel`)
@@ -1326,13 +1326,13 @@ def quickDefEq (r : CoreFns m) (depth : Nat) (a b : Expr) : m (Option Bool) :=
     let ok ← liftFueled "level comparison" (Level.isEquiv u v)
     pure (some ok)
   | .lit l₁, .lit l₂ => pure (some (l₁ == l₂))
-  | .forallE ty₁ body₁ _, .forallE ty₂ body₂ _ => do
+  | .forallE ty₁ body₁, .forallE ty₂ body₂ => do
     unless ← r.defeq depth ty₁ ty₂ do return some false
     unless ← r.defeq (depth + 1)
         (body₁.instantiate1 (.fvar depth ty₂))
         (body₂.instantiate1 (.fvar depth ty₂)) do return some false
     pure (some true)
-  | .lam ty₁ body₁ _, .lam ty₂ body₂ _ => do
+  | .lam ty₁ body₁, .lam ty₂ body₂ => do
     let ok ← defeqLams mode r lamsFuel depth ty₁ body₁ ty₂ body₂
     pure (some ok)
   | _, _ => pure none
@@ -1604,12 +1604,12 @@ def defeqStuck (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
   -- One-sided λ: eta, else the stuck fallbacks.  (Two λs never get
   -- here: `quickDefEq` decides them.)
-  | .lam ty₁ body₁ m₁, b₂ => do
+  | .lam ty₁ body₁, b₂ => do
     if ← etaCert mode r env depth ty₁ body₁ b₂ then pure true
-    else stuckIrrel r env depth (.lam ty₁ body₁ m₁) b₂
-  | a₁, .lam ty₂ body₂ m₂ => do
+    else stuckIrrel r env depth (.lam ty₁ body₁) b₂
+  | a₁, .lam ty₂ body₂ => do
     if ← etaCert mode r env depth ty₂ body₂ a₁ then pure true
-    else stuckIrrel r env depth a₁ (.lam ty₂ body₂ m₂)
+    else stuckIrrel r env depth a₁ (.lam ty₂ body₂)
   -- Distinct whnf-stuck head symbols: only the stuck fallbacks can
   -- equate them; `false` is always sound.
   | e₁, e₂ => stuckIrrel r env depth e₁ e₂

@@ -13,7 +13,7 @@ is blind to an opener** (`denoteMeta_erasedEq`'s `fvar` clause compares
 indices only), so an `openPisAtFvars`/`instLamsAt` run at any
 same-index opener spine produces the same tower.
 
-The λ tower is a `LamTele` relation: `AnnotTerm`'s `.lam` carries a
+The λ tower is a `LamTele` relation: `AnnotTerm`'s `.lam` carries
 *bit*, and `LamTele` quantifies the bits existentially exactly as
 `PiTeleAV` does; the consumers read neither.  `PiTeleAV.length` bounds
 an index into the tail context.
@@ -25,7 +25,7 @@ open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name BinderMeta)
+open ConLeche (Env Expr Name)
 
 universe w
 
@@ -59,7 +59,7 @@ theorem openPisAtFvars_denotePTele :
   | succ k ih =>
     intro e j fvs body T h hT
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar j dom))
           (j + 1) with

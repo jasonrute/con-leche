@@ -95,29 +95,29 @@ theorem app_arg {d : Nat} {Δa : List AnnotTerm} {f x : Expr}
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 theorem forallE_ty {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOk m φ d Δa (.forallE ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOk m φ d Δa (.forallE ty body)) :
     CtxOk m φ d Δa ty :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
 theorem forallE_body {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOk m φ d Δa (.forallE ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOk m φ d Δa (.forallE ty body)) :
     CtxOk m φ d Δa body :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 theorem lam_ty {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOk m φ d Δa (.lam ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOk m φ d Δa (.lam ty body)) :
     CtxOk m φ d Δa ty :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
 theorem lam_body {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOk m φ d Δa (.lam ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOk m φ d Δa (.lam ty body)) :
     CtxOk m φ d Δa body :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
@@ -167,14 +167,14 @@ private theorem wScoped_of_leaves : ∀ (e : Expr) {d : Nat},
         (fun l hl => h l (by simp [ConLeche.Expr.fvarLeaves, hl])),
       iha hfb.2
         (fun l hl => h l (by simp [ConLeche.Expr.fvarLeaves, hl]))⟩
-  | lam ty b _ iht ihb =>
+  | lam ty b iht ihb =>
     intro d hfb h
     rw [ConLeche.Expr.WScoped]
     exact ⟨iht hfb.1
         (fun l hl => h l (by simp [ConLeche.Expr.fvarLeaves, hl])),
       ihb hfb.2
         (fun l hl => h l (by simp [ConLeche.Expr.fvarLeaves, hl]))⟩
-  | forallE ty b _ iht ihb =>
+  | forallE ty b iht ihb =>
     intro d hfb h
     rw [ConLeche.Expr.WScoped]
     exact ⟨iht hfb.1
@@ -381,29 +381,29 @@ theorem app_arg {d : Nat} {Δa : List AnnotTerm} {f x : Expr}
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 theorem forallE_ty {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOkS m φ d Δa (.forallE ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOkS m φ d Δa (.forallE ty body)) :
     CtxOkS m φ d Δa ty :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
 theorem forallE_body {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOkS m φ d Δa (.forallE ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOkS m φ d Δa (.forallE ty body)) :
     CtxOkS m φ d Δa body :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 theorem lam_ty {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOkS m φ d Δa (.lam ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOkS m φ d Δa (.lam ty body)) :
     CtxOkS m φ d Δa ty :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
 theorem lam_body {d : Nat} {Δa : List AnnotTerm}
-    {ty body : Expr} {mb : ConLeche.BinderMeta}
-    (hC : CtxOkS m φ d Δa (.lam ty body mb)) :
+    {ty body : Expr}
+    (hC : CtxOkS m φ d Δa (.lam ty body)) :
     CtxOkS m φ d Δa body :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
@@ -495,26 +495,26 @@ theorem app_arg {d : Nat} {f x : Expr} {ρ : Nat → V}
   h.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
-theorem forallE_ty {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
-    {ρ : Nat → V} (h : LeavesGr m φ d (.forallE ty body mb) ρ) :
+theorem forallE_ty {d : Nat} {ty body : Expr}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.forallE ty body) ρ) :
     LeavesGr m φ d ty ρ :=
   h.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
-theorem forallE_body {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
-    {ρ : Nat → V} (h : LeavesGr m φ d (.forallE ty body mb) ρ) :
+theorem forallE_body {d : Nat} {ty body : Expr}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.forallE ty body) ρ) :
     LeavesGr m φ d body ρ :=
   h.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
-theorem lam_ty {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
-    {ρ : Nat → V} (h : LeavesGr m φ d (.lam ty body mb) ρ) :
+theorem lam_ty {d : Nat} {ty body : Expr}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.lam ty body) ρ) :
     LeavesGr m φ d ty ρ :=
   h.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
-theorem lam_body {d : Nat} {ty body : Expr} {mb : ConLeche.BinderMeta}
-    {ρ : Nat → V} (h : LeavesGr m φ d (.lam ty body mb) ρ) :
+theorem lam_body {d : Nat} {ty body : Expr}
+    {ρ : Nat → V} (h : LeavesGr m φ d (.lam ty body) ρ) :
     LeavesGr m φ d body ρ :=
   h.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl

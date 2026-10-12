@@ -82,7 +82,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Semantics (AnnotTerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
-  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState BinderMeta
+  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
 
 universe w

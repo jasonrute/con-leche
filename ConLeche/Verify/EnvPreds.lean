@@ -71,8 +71,8 @@ theorem recRuleKOf_inv {f : Name → Option ConstantInfo} {ctor : Name}
   | some (.ctorInfo cvj cnP cnF) =>
     dsimp only
     match hpr : (cvj.type.piResult).getAppFn with
-    | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-    | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+    | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+    | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
       intro h; exact nomatch h
     | .const T us =>
       dsimp only
@@ -122,8 +122,8 @@ theorem recRuleEtaOf_inv {f : Name → Option ConstantInfo}
   | some (.ctorInfo cvj cnP cnF) =>
     dsimp only
     match hpr : (cvj.type.piResult).getAppFn with
-    | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-    | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
+    | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+    | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ =>
       intro h; exact nomatch h
     | .const T us =>
       dsimp only

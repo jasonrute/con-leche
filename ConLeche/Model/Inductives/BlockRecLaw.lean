@@ -95,8 +95,8 @@ theorem iotaCtorLicensed_consBlockRecsR_of_isSome {R : Nat → RecDatum → List
       = ConLeche.iotaCtorLicensed envC.find? cvj usj := by
   unfold ConLeche.iotaCtorLicensed
   match hh : cvj.type.piResult.getAppFn with
-  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
   | .const T us =>
     dsimp only
     have hiso := hT T us hh

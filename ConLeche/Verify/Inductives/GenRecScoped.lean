@@ -216,7 +216,7 @@ theorem classReadSlots_order (nPc : Name → Nat) (np : Nat) :
     subst h
     intro j c C ihs hj
     exact nomatch hj
-  | n + 1, pre, .forallE dom body bm, rest, h => by
+  | n + 1, pre, .forallE dom body, rest, h => by
     have fin : ∀ (slot : ClassSlot) (rest' : List ClassSlot),
         (∀ c C ihs, slot = .minor c C ihs →
           classReadMinor np (ClassRead.motPosOf pre) (np + pre.length) dom = some slot) →
@@ -242,8 +242,7 @@ theorem classReadSlots_order (nPc : Name → Nat) (np : Nat) :
     split at h
     · cases hl : dom.piBinders.fst.getLast? with
       | none => simp [hl] at h
-      | some md =>
-        obtain ⟨mdom, mb⟩ := md
+      | some _md =>
         simp only [hl, Option.bind_eq_bind, Option.bind_some] at h
         split at h
         · simp only [Option.pure_def, Option.bind_some, Option.bind_eq_some_iff] at h

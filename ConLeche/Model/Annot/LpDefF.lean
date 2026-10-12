@@ -39,8 +39,8 @@ IGNORED (an `fvar` reads as its de Bruijn slot). -/
   | .sort u => u.allParamsDefined ps
   | .const _ us => us.all (Level.allParamsDefined ps)
   | .app f a => lpDefF ps f && lpDefF ps a
-  | .lam t b _ => lpDefF ps t && lpDefF ps b
-  | .forallE t b _ => lpDefF ps t && lpDefF ps b
+  | .lam t b => lpDefF ps t && lpDefF ps b
+  | .forallE t b => lpDefF ps t && lpDefF ps b
   | .letE t v b => lpDefF ps t && lpDefF ps v && lpDefF ps b
   | .lit _ => true
   | .proj _ _ e => lpDefF ps e
@@ -56,11 +56,11 @@ theorem lpDefF_of_allLevelParamsDefined :
     intro h
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at h
     simp only [lpDefF, ihf h.1, iha h.2, Bool.and_self]
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at h
     simp only [lpDefF, iht h.1, ihb h.2, Bool.and_self]
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at h
     simp only [lpDefF, iht h.1, ihb h.2, Bool.and_self]
@@ -128,12 +128,12 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
     dsimp only
     rw [ite_eq_right h2, ite_eq_right h2]
   | case5 d n us h1 => intro _; rw [denoteMeta, denoteMeta, h1]
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
     rw [denoteMeta, denoteMeta, ← ihty hd.1,
       ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
     rw [denoteMeta, denoteMeta, ← ihty hd.1,
@@ -207,8 +207,8 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

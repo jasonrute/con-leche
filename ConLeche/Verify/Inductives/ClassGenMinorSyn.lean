@@ -58,12 +58,12 @@ theorem WScoped.of_leaves_below {lo : Nat} :
     simp only [WScoped] at hw ⊢
     exact ⟨ihf hw.1 fun l h => hl l (by simp [fvarLeaves, h]),
       iha hw.2 fun l h => hl l (by simp [fvarLeaves, h])⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro d hw hl
     simp only [WScoped] at hw ⊢
     exact ⟨iht hw.1 fun l h => hl l (by simp [fvarLeaves, h]),
       ihb hw.2 fun l h => hl l (by simp [fvarLeaves, h])⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro d hw hl
     simp only [WScoped] at hw ⊢
     exact ⟨iht hw.1 fun l h => hl l (by simp [fvarLeaves, h]),
@@ -95,7 +95,7 @@ the slot's constructor. -/
 theorem ClassGen.prefixBinders_minor {g : ClassGen} (hg : ClassGenScoped g) {s c : Nat}
     {C : Name} {ihs0 : List (Nat × Nat)} (hs : g.slots[s]? = some (.minor c C ihs0)) :
     ∃ x T, (g.ctors.getD c []).find? (·.cv.name == C) = some x ∧
-      g.minorTy c x (g.nP + s) = some T ∧ g.pre[g.nP + s]? = some (T, g.bm) := by
+      g.minorTy c x (g.nP + s) = some T ∧ g.pre[g.nP + s]? = some T := by
   have hpre := hg.pre
   unfold ClassGen.prefixBinders at hpre
   obtain ⟨slotBs, hsl, hpre⟩ := Option.bind_eq_some_iff.mp hpre
@@ -108,10 +108,7 @@ theorem ClassGen.prefixBinders_minor {g : ClassGen} (hg : ClassGenScoped g) {s c
   rw [hslot] at hy
   simp only at hy
   obtain ⟨x, hxf, hy⟩ := Option.bind_eq_some_iff.mp hy
-  obtain ⟨T, hT, hy⟩ := Option.bind_eq_some_iff.mp hy
-  simp only [Option.pure_def, Option.some.injEq] at hy
-  subst hy
-  refine ⟨x, T, hxf, hT, ?_⟩
+  refine ⟨x, y, hxf, hy, ?_⟩
   rw [← hpre, List.getElem?_append_right (by simp [hg.params_len])]
   simpa [hg.params_len] using hyb
 

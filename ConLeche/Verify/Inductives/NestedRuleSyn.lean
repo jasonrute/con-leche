@@ -32,8 +32,8 @@ theorem nestedRuleSyn_inv {resolves : Expr → Bool} {lps : List Name} {tyA : Ex
       pin.allLevelParamsDefined lps = true ∧
       resolves pin = true ∧
       pin.looseBVarsBounded rP = true) ∧
-    ∃ pre dom body bm D,
-      tyA.stripPis mI = some (pre, .forallE dom body bm) ∧
+    ∃ pre dom body D,
+      tyA.stripPis mI = some (pre, .forallE dom body) ∧
       dom.getAppFn = .const D lvls ∧
       dom.getAppArgs =
         pins.map (Expr.liftLooseBVars (mI - rP) 0) ++
@@ -52,11 +52,11 @@ theorem nestedRuleSyn_inv {resolves : Expr → Bool} {lps : List Name} {tyA : Ex
   | some (pre, .sort _) => intro h; exact nomatch h
   | some (pre, .const _ _) => intro h; exact nomatch h
   | some (pre, .app _ _) => intro h; exact nomatch h
-  | some (pre, .lam _ _ _) => intro h; exact nomatch h
+  | some (pre, .lam _ _) => intro h; exact nomatch h
   | some (pre, .letE _ _ _) => intro h; exact nomatch h
   | some (pre, .lit _) => intro h; exact nomatch h
   | some (pre, .proj _ _ _) => intro h; exact nomatch h
-  | some (pre, .forallE dom body bm) => ?_
+  | some (pre, .forallE dom body) => ?_
   intro h
   try dsimp only at h
   revert h
@@ -65,8 +65,8 @@ theorem nestedRuleSyn_inv {resolves : Expr → Bool} {lps : List Name} {tyA : Ex
   | .fvar _ _ => intro h; exact nomatch h
   | .sort _ => intro h; exact nomatch h
   | .app _ _ => intro h; exact nomatch h
-  | .lam _ _ _ => intro h; exact nomatch h
-  | .forallE _ _ _ => intro h; exact nomatch h
+  | .lam _ _ => intro h; exact nomatch h
+  | .forallE _ _ => intro h; exact nomatch h
   | .letE _ _ _ => intro h; exact nomatch h
   | .lit _ => intro h; exact nomatch h
   | .proj _ _ _ => intro h; exact nomatch h
@@ -83,7 +83,7 @@ theorem nestedRuleSyn_inv {resolves : Expr → Bool} {lps : List Name} {tyA : Ex
       (Expr.lowerBVars (mI - rP) 0)).length = cnP := by
     rw [List.length_map, List.length_take, hlen]
     omega
-  refine ⟨hcond1, ?_, ?_, pre, dom, body, bm, D, rfl, hfn,
+  refine ⟨hcond1, ?_, ?_, pre, dom, body, D, rfl, hfn,
     ?_, hplen⟩
   · intro l hl
     exact List.all_eq_true.mp hlvlsAll l hl

@@ -41,11 +41,11 @@ theorem iotaCertsFull_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env f
   | nil => intro _; exact .nil
   | cons arg rest ih =>
     match ty with
-    | .forallE ty₀ body mb =>
+    | .forallE ty₀ body =>
       intro h
       obtain ⟨ta, hta, hde, hrest⟩ := iotaCertsFull_step_inv h
       exact .cert (hi hta) (hd hde) (ih hrest)
-    | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
+    | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .app _ _ | .lam _ _
     | .letE _ _ _ | .lit _ | .proj _ _ _ =>
       intro h
       simp [iotaCertsFullFueled, iotaCertsFull, pure, Except.pure] at h
@@ -142,10 +142,10 @@ theorem structUnitCert_bridge (hw : WhnfBridge env fuel)
 full-grade type against the ∀'s body is the checker's η check. -/
 theorem etaCert_bridge (hw : WhnfBridge env fuel)
     (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) (hio : InferIOBridge env fuel)
-    {d : Nat} {ty body b : Expr} {mb : BinderMeta}
+    {d : Nat} {ty body b : Expr}
     (h : etaCertFueled .verified env fuel d ty body b = .ok true) :
-    DefEq env d (.lam ty body mb) b := by
-  obtain ⟨hneu, tb, ty₂, fb, m₂, htb, hwtb, hdty, hdbody, hT2⟩ := etaCert_inv h
+    DefEq env d (.lam ty body) b := by
+  obtain ⟨hneu, tb, ty₂, fb, htb, hwtb, hdty, hdbody, hT2⟩ := etaCert_inv h
   obtain ⟨t₁, ht₁, hdt⟩ := hT2 rfl
   exact .eta hneu (inferTypeIO_bridge hio htb) (hw hwtb) (hd hdty) (hd hdbody)
     (hi ht₁) (hd hdt)

@@ -88,7 +88,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.Verify
 open ConLeche (CheckMode Env Expr Name Level ConstantVal openPisAtFvars closeTelescope
-  ClassGen ClassGenScoped SameDoms EndsInSort classGenRecTy classBinder BinderMeta)
+  ClassGen ClassGenScoped SameDoms EndsInSort classGenRecTy classBinder)
 
 variable {μ : CheckMode}
 
@@ -100,11 +100,11 @@ argument — opens at its binder count, and its conclusion infers to
 `Sort u`.  (`classGenRecTy_conclSort`'s argument, over any telescope: the
 head's opened variable carries its domain, which the inference types.) -/
 theorem genConclSort_core (hμ : μ.verifiedChecks = true) {envK : Env}
-    {nds : List (Expr × BinderMeta)} {k : Nat} {T0 Tm : Expr} {bm : BinderMeta}
+    {nds : List Expr} {k : Nat} {T0 Tm : Expr}
     {as : List Expr} {u : Level} {F : Nat} {S : Expr}
-    (hcl : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true)
+    (hcl : ∀ p ∈ nds, p.looseBVarsBounded 0 = true)
     (hbb : (Expr.mkAppN (.fvar k T0) as).looseBVarsBounded 0 = true)
-    (hk : nds[k]? = some (Tm, bm)) (hTm : EndsInSort as.length u Tm)
+    (hk : nds[k]? = some Tm) (hTm : EndsInSort as.length u Tm)
     (hfv : (closeTelescope nds 0 (Expr.mkAppN (.fvar k T0) as)).hasFvar = false)
     (hinf : ConLeche.inferTypeCore μ envK F 0 (closeTelescope nds 0 (Expr.mkAppN (.fvar k T0) as))
       = .ok S) :
@@ -156,7 +156,7 @@ theorem classGenRecTy_prefix_plain {g : ClassGen} (hg : ClassGenScoped g) {c : N
     {gty : Expr} (hgty : classGenRecTy g c = some gty) :
     ∃ Y B, gty = closeTelescope (g.pre ++ Y) 0 B := by
   obtain ⟨ifs, maj, -, -, rfl, -, -⟩ := ConLeche.classGenRecTy_spec hg hgty
-  exact ⟨ifs.map g.binder ++ [(maj, g.bm)],
+  exact ⟨ifs.map g.binder ++ [maj],
     (g.motVar c).mkAppN (ifs ++ [Expr.fvar (g.pre.length + ifs.length) maj]),
     by rw [List.append_assoc]⟩
 
@@ -183,11 +183,11 @@ theorem classGenRecTy_conclSort_plain (hμ : μ.verifiedChecks = true)
   obtain ⟨Tm, hTm, hpreT⟩ := ConLeche.ClassGen.prefixBinders_motive hg hkey
   rw [hcount] at hTm
   have hTmS := ClassGen.motiveTy_endsInSort hTm
-  generalize hnds : g.pre ++ ifs.map g.binder ++ [(maj, g.bm)] = nds
+  generalize hnds : g.pre ++ ifs.map g.binder ++ [maj] = nds
     at hinf hcl hfv
   have hslen : s < g.slots.length := ConLeche.ClassRead.motiveSlot_lt hm
   have hkP : g.nP + s < g.pre.length := by omega
-  have hndk : nds[g.nP + s]? = some (Tm, g.bm) := by
+  have hndk : nds[g.nP + s]? = some Tm := by
     rw [← hnds, List.append_assoc, List.getElem?_append_left hkP, hpreT]
   have hn : nds.length = g.pre.length + (g.cls.getD c default).nIdx + 1 := by
     rw [← hnds]
@@ -432,7 +432,7 @@ theorem recStage_of_gen (hμ : μ.verifiedChecks = true)
     obtain rfl : cvG = cv := Option.some.inj hcv
     obtain ⟨hrP, hY, -⟩ := genRecTy_run hμ R hg hrc hc T
     exact ⟨rc, hrc, hrP, hY⟩
-  have hself : ∀ (Y : List (Expr × BinderMeta)) (B : Expr),
+  have hself : ∀ (Y : List Expr) (B : Expr),
       SameDoms R.pre.length (closeTelescope (R.pre ++ Y) 0 B)
         (closeTelescope (R.pre ++ Y) 0 B) := by
     intro Y B

@@ -262,7 +262,7 @@ auxiliary recursors are exactly that (their majors are the containers
 official's auxiliary block carries, not the block's own members). -/
 def recTargetOf (names : List Name) (mI : Nat) (ty : Expr) : Nat :=
   match ty.stripPis mI with
-  | some (_, .forallE dom _ _) =>
+  | some (_, .forallE dom _) =>
     (match dom.getAppFn with
      | .const n _ => names.findIdx? (· == n)
      | _ => none).getD names.length

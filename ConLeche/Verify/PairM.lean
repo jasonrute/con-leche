@@ -129,7 +129,7 @@ theorem iotaCertsFull_fst (d : Nat) :
       (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.1 =
         iotaCertsFull r₁ env d ty args
   | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
+  | .forallE ty body, arg :: rest => by
     show ((do
         let ta ← (pairFns r₁ r₂ h).infer d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
@@ -151,7 +151,7 @@ theorem iotaCertsFull_fst (d : Nat) :
       exact iotaCertsFull_fst d (body.instantiate1 arg) rest
     | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
 theorem iotaCertsFull_snd (d : Nat) :
@@ -159,7 +159,7 @@ theorem iotaCertsFull_snd (d : Nat) :
       (iotaCertsFull (pairFns r₁ r₂ h) env d ty args).val.2 =
         iotaCertsFull r₂ env d ty args
   | _, [] => rfl
-  | .forallE ty body mb, arg :: rest => by
+  | .forallE ty body, arg :: rest => by
     show ((do
         let ta ← (pairFns r₁ r₂ h).infer d arg
         if ← (pairFns r₁ r₂ h).defeq d ta ty then
@@ -181,7 +181,7 @@ theorem iotaCertsFull_snd (d : Nat) :
       exact iotaCertsFull_snd d (body.instantiate1 arg) rest
     | false => rfl
   | .bvar _, _ :: _ | .fvar _ _, _ :: _ | .sort _, _ :: _
-  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _ _, _ :: _
+  | .const _ _, _ :: _ | .app _ _, _ :: _ | .lam _ _, _ :: _
   | .letE _ _ _, _ :: _ | .lit _, _ :: _ | .proj _ _ _, _ :: _ => rfl
 
 theorem defEqList_fst (d : Nat) :

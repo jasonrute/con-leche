@@ -41,10 +41,10 @@ theorem char_shape {env : Env} (hg : strLitSupported env = true) :
 
 /-- `Char.ofNat : Nat → Char`. -/
 theorem charOfNat_shape {env : Env} (hg : strLitSupported env = true) :
-    ∃ ci mb, env.find? charOfNatName = some ci ∧
+    ∃ ci, env.find? charOfNatName = some ci ∧
       ci.toConstantVal.levelParams = [] ∧
       ci.toConstantVal.type =
-        .forallE (.const natName []) (.const charName []) mb := by
+        .forallE (.const natName []) (.const charName []) := by
   simp only [strLitSupported, Bool.and_eq_true] at hg
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, h7⟩ := hg
   cases hf : env.find? charOfNatName with
@@ -54,19 +54,19 @@ theorem charOfNat_shape {env : Env} (hg : strLitSupported env = true) :
     simp only [charOfNatTyOk, Bool.and_eq_true] at h7
     obtain ⟨he, hty⟩ := h7
     split at hty
-    · next c1 c2 mb hsh =>
+    · next c1 c2 hsh =>
       simp only [beq_iff_eq, Bool.and_eq_true] at hty
       obtain ⟨rfl, rfl⟩ := hty
-      exact ⟨ci, mb, rfl, by simpa [List.isEmpty_iff] using he, hsh⟩
+      exact ⟨ci, rfl, by simpa [List.isEmpty_iff] using he, hsh⟩
     · exact nomatch hty
 
 /-- `String.ofList : List.{0} Char → String`. -/
 theorem stringOfList_shape {env : Env} (hg : strLitSupported env = true) :
-    ∃ ci mb, env.find? stringOfListName = some ci ∧
+    ∃ ci, env.find? stringOfListName = some ci ∧
       ci.toConstantVal.levelParams = [] ∧
       ci.toConstantVal.type =
         .forallE (.app (.const listName [.zero]) (.const charName []))
-          (.const stringName []) mb := by
+          (.const stringName []) := by
   simp only [strLitSupported, Bool.and_eq_true] at hg
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, h2⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hg
   cases hf : env.find? stringOfListName with
@@ -76,10 +76,10 @@ theorem stringOfList_shape {env : Env} (hg : strLitSupported env = true) :
     simp only [stringOfListTyOk, Bool.and_eq_true] at h2
     obtain ⟨he, hty⟩ := h2
     split at hty
-    · next l1 us1 c1 c2 mb hsh =>
+    · next l1 us1 c1 c2 hsh =>
       simp only [beq_iff_eq, Bool.and_eq_true] at hty
       obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := hty
-      exact ⟨ci, mb, rfl, by simpa [List.isEmpty_iff] using he, hsh⟩
+      exact ⟨ci, rfl, by simpa [List.isEmpty_iff] using he, hsh⟩
     · exact nomatch hty
 
 /-! ## The list constructors
@@ -92,11 +92,11 @@ constant's own parameters, so the valuation cannot tell them apart. -/
 
 /-- `List.nil.{p} : ∀ (α : Sort (p+1)), List.{p} α`. -/
 theorem listNil_shape {env : Env} (hg : strLitSupported env = true) :
-    ∃ ci p mb, env.find? listNilName = some ci ∧
+    ∃ ci p, env.find? listNilName = some ci ∧
       ci.toConstantVal.levelParams = [p] ∧
       ci.toConstantVal.type =
         .forallE (.sort (.succ (.param p)))
-          (.app (.const listName [.param p]) (.bvar 0)) mb := by
+          (.app (.const listName [.param p]) (.bvar 0)) := by
   simp only [strLitSupported, Bool.and_eq_true] at hg
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, h4⟩, -⟩, -⟩, -⟩ := hg
   cases hf : env.find? listNilName with
@@ -107,23 +107,23 @@ theorem listNil_shape {env : Env} (hg : strLitSupported env = true) :
     split at h4
     · next p hlp =>
       split at h4
-      · next u1 l1 us1 mb hsh =>
+      · next u1 l1 us1 hsh =>
         simp only [beq_iff_eq, Bool.and_eq_true] at h4
         obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h4
-        exact ⟨ci, p, mb, rfl, hlp, hsh⟩
+        exact ⟨ci, p, rfl, hlp, hsh⟩
       · exact nomatch h4
     · exact nomatch h4
 
 /-- `List.cons.{p} : ∀ (α : Sort (p+1)) (_ : α) (_ : List.{p} α),
 List.{p} α`. -/
 theorem listCons_shape {env : Env} (hg : strLitSupported env = true) :
-    ∃ ci p mb₁ mb₂ mb₃, env.find? listConsName = some ci ∧
+    ∃ ci p, env.find? listConsName = some ci ∧
       ci.toConstantVal.levelParams = [p] ∧
       ci.toConstantVal.type =
         .forallE (.sort (.succ (.param p)))
           (.forallE (.bvar 0)
             (.forallE (.app (.const listName [.param p]) (.bvar 1))
-              (.app (.const listName [.param p]) (.bvar 2)) mb₃) mb₂) mb₁ := by
+              (.app (.const listName [.param p]) (.bvar 2)))) := by
   simp only [strLitSupported, Bool.and_eq_true] at hg
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, h5⟩, -⟩, -⟩ := hg
   cases hf : env.find? listConsName with
@@ -134,10 +134,10 @@ theorem listCons_shape {env : Env} (hg : strLitSupported env = true) :
     split at h5
     · next p hlp =>
       split at h5
-      · next u1 l1 us1 l2 us2 mb₃ mb₂ mb₁ hsh =>
+      · next u1 l1 us1 l2 us2 hsh =>
         simp only [beq_iff_eq, Bool.and_eq_true] at h5
         obtain ⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩ := h5
-        exact ⟨ci, p, mb₁, mb₂, mb₃, rfl, hlp, hsh⟩
+        exact ⟨ci, p, rfl, hlp, hsh⟩
       · exact nomatch h5
     · exact nomatch h5
 

@@ -44,22 +44,22 @@ theorem instSeq_bvar_below :
     (by simp [Expr.looseBVarsBounded]) (by omega)
 
 theorem instSeq_lam :
-    ∀ (args : List Expr) (t : Nat) (d b : Expr) (m : BinderMeta), args.length ≤ t + 1 →
-      Expr.instSeq args t (.lam d b m) =
-        .lam (Expr.instSeq args t d) (Expr.instSeq args (t + 1) b) m := by
+    ∀ (args : List Expr) (t : Nat) (d b : Expr), args.length ≤ t + 1 →
+      Expr.instSeq args t (.lam d b) =
+        .lam (Expr.instSeq args t d) (Expr.instSeq args (t + 1) b) := by
   intro args
   induction args with
-  | nil => intro t d b m _; rfl
+  | nil => intro t d b _; rfl
   | cons a as ih =>
-    intro t d b m hlen
+    intro t d b hlen
     show Expr.instSeq as (t - 1)
-      (.lam (d.instantiate1 a t) (b.instantiate1 a (t + 1)) m) = _
-    rw [ih (t - 1) (d.instantiate1 a t) (b.instantiate1 a (t + 1)) m
+      (.lam (d.instantiate1 a t) (b.instantiate1 a (t + 1))) = _
+    rw [ih (t - 1) (d.instantiate1 a t) (b.instantiate1 a (t + 1))
       (by simp only [List.length_cons] at hlen; omega)]
     show Expr.lam (Expr.instSeq as (t - 1) (d.instantiate1 a t))
-        (Expr.instSeq as (t - 1 + 1) (b.instantiate1 a (t + 1))) m =
+        (Expr.instSeq as (t - 1 + 1) (b.instantiate1 a (t + 1))) =
       Expr.lam (Expr.instSeq as (t - 1) (d.instantiate1 a t))
-        (Expr.instSeq as (t + 1 - 1) (b.instantiate1 a (t + 1))) m
+        (Expr.instSeq as (t + 1 - 1) (b.instantiate1 a (t + 1)))
     cases as with
     | nil => rfl
     | cons a2 as2 =>
@@ -149,20 +149,20 @@ theorem abstractRange_instSeq_open {pre : List Expr}
     rw [Expr.instSeq_app]
     simp only [Expr.abstractRange]
     rw [ihf c hf.1 hb.1, iha c hf.2 hb.2]
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro c hf hb
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at hf
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    rw [instSeq_lam pre _ _ _ _ (by omega)]
+    rw [instSeq_lam pre _ _ _ (by omega)]
     simp only [Expr.abstractRange]
     rw [iht c hf.1 hb.1,
       show c + (n + 1) - 1 + 1 = (c + 1) + (n + 1) - 1 by omega,
       ihb (c + 1) hf.2 (by rw [show c + 1 + (n + 1) = c + (n + 1) + 1 by omega]; exact hb.2)]
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro c hf hb
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at hf
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    rw [Expr.instSeq_forallE pre _ _ _ _ (by omega)]
+    rw [Expr.instSeq_forallE pre _ _ _ (by omega)]
     simp only [Expr.abstractRange]
     rw [iht c hf.1 hb.1,
       show c + (n + 1) - 1 + 1 = (c + 1) + (n + 1) - 1 by omega,
@@ -187,23 +187,23 @@ theorem abstractRange_instSeq_open {pre : List Expr}
 /-- Opening one binder more: the last opener is the next binder's
 domain as the shorter opening leaves it. -/
 theorem openPisAtFvars_succ_last :
-    ∀ (n : Nat) {e : Expr} {d : Nat} {fvs fvsT : List Expr} {B dom b : Expr} {m : BinderMeta},
+    ∀ (n : Nat) {e : Expr} {d : Nat} {fvs fvsT : List Expr} {B dom b : Expr},
       openPisAtFvars (n + 1) e d = some (fvs, B) →
-      openPisAtFvars n e d = some (fvsT, .forallE dom b m) →
+      openPisAtFvars n e d = some (fvsT, .forallE dom b) →
       fvs[n]? = some (.fvar (d + n) dom) := by
   intro n
   induction n with
   | zero =>
-    intro e d fvs fvsT B dom b m h h0
+    intro e d fvs fvsT B dom b h h0
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h0
     obtain ⟨-, rfl⟩ := h0
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, -⟩ := h
     simp
   | succ n ih =>
-    intro e d fvs fvsT B dom b m h h0
+    intro e d fvs fvsT B dom b h h0
     cases e with
-    | forallE dom₀ body₀ m₀ =>
+    | forallE dom₀ body₀ =>
       simp only [openPisAtFvars] at h h0
       split at h
       · rename_i fvs' e' h'
@@ -234,14 +234,14 @@ theorem nestedRuleSyn_open {resolves : Expr → Bool} {lps : List Name} {ty : Ex
     (hmaj : fvs[mI]? = some maj) :
     (∃ D, maj.fvarTypeD.getAppFn = .const D lvls) ∧
     (maj.fvarTypeD.getAppArgs.take cnP).map (·.abstractRange 0 rP) = pins := by
-  obtain ⟨hrP, -, hpins, pre, dom, body, bm, D, hstrip, hfn, hargs, hlen⟩ :=
+  obtain ⟨hrP, -, hpins, pre, dom, body, D, hstrip, hfn, hargs, hlen⟩ :=
     nestedRuleSyn_inv hsyn
   obtain ⟨o', ho'⟩ := openPisAtFvars_prefix mI (mI + 1) ty 0 (by omega) hopen
   have ho'eq := Verify.openPisAtFvars_instSeq mI ho' hstrip
   have hTlen : (fvs.take mI).length = mI := by
     obtain ⟨-, -, -, hl, -⟩ := Verify.openPisAtFvars_stripPis mI ho'
     exact hl
-  rw [Expr.instSeq_forallE _ _ _ _ _ (by omega)] at ho'eq
+  rw [Expr.instSeq_forallE _ _ _ _ (by omega)] at ho'eq
   rw [ho'eq] at ho'
   have hlast := openPisAtFvars_succ_last mI hopen ho'
   rw [hmaj] at hlast

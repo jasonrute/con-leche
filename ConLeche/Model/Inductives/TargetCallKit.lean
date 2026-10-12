@@ -289,7 +289,7 @@ theorem targetAbs_read
         obtain ⟨h1, u, v, A, Bf, h2, h3, h4⟩ := h
         exact ⟨hw h1, u, v, A, Bf, hv ▸ h2, h3, h4⟩
       · trivial
-  | .lam ty b bi, d, as2, as1, h2, h1 | .forallE ty b bi, d, as2, as1, h2, h1 => by
+  | .lam ty b, d, as2, as1, h2, h1 | .forallE ty b, d, as2, as1, h2, h1 => by
     have iht := targetAbs_read hnames ty d as2 as1 h2 h1
     simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta]
     revert iht

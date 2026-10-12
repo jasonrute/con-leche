@@ -63,14 +63,14 @@ theorem denoteMeta_envExtend {env₀ env : Env}
     intro hc
     rw [constsBound_const, hf] at hc
     exact nomatch hc
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro hc
     rw [constsBound_forallE] at hc
     have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
       ConstsBound.instantiate1
         (by rw [constsBound_fvar]; exact hc.1) _ _ hc.2
     rw [denoteMeta, denoteMeta, ihty hc.1, ihbody hcb]
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro hc
     rw [constsBound_lam] at hc
     have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
@@ -127,8 +127,8 @@ theorem denoteMeta_envExtend {env₀ env : Env}
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -194,7 +194,7 @@ theorem denoteMeta_envExtend_mono {env₀ env : Env}
     intro hc ea h
     rw [constsBound_const, hf] at hc
     exact nomatch hc
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro hc ea h
     rw [constsBound_forallE] at hc
     have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
@@ -203,7 +203,7 @@ theorem denoteMeta_envExtend_mono {env₀ env : Env}
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     rw [denoteMeta, ihty hc.1 hta, ihbody hcb hba]
     rfl
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro hc ea h
     rw [constsBound_lam] at hc
     have hcb : ConstsBound env₀ (body.instantiate1 (.fvar d ty)) :=
@@ -265,8 +265,8 @@ theorem denoteMeta_envExtend_mono {env₀ env : Env}
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -313,12 +313,12 @@ theorem denoteMeta_envExtend_mono_ok {env₀ env : Env}
     intro ea h
     rw [denoteMeta, hf] at h
     exact nomatch h
-  | case6 d ty body m ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro ea h
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
     rw [denoteMeta, ihty hta, ihbody hba]
     rfl
-  | case7 d ty body m ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro ea h
     obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_lam_inv h
     rw [denoteMeta, ihty hta, ihbody hba]
@@ -370,8 +370,8 @@ theorem denoteMeta_envExtend_mono_ok {env₀ env : Env}
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)

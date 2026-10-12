@@ -298,7 +298,7 @@ theorem whnfTelescope_datF (env : Env) (F : Nat) :
     congr 1
     funext e'
     split
-    · next nm dom body bm =>
+    · next dom body =>
       simp only [FueledM.atF_bind, FueledM.atF_pure,
         whnfTelescope_datF env F (i + 1) n (body.instantiate1 (.fvar i dom))]
     · simp only [FueledM.atF_throw]
@@ -696,7 +696,7 @@ theorem targetRecPins_datF (p : BlockShape) (block : List ConstantInfo) (F : Nat
   datF_tac
 
 theorem targetK53_datF (env : Env) (p : BlockShape) (formerTys : List Expr) (Mc : TargetMajor)
-    (tele : List (Expr × BinderMeta)) (majDom f : Expr) (F : Nat) :
+    (tele : List Expr) (majDom f : Expr) (F : Nat) :
     (targetK53 (fueledOpsM mode) env p formerTys Mc tele majDom f).val F =
       targetK53 (fueledOps mode F) env p formerTys Mc tele majDom f := by
   unfold targetK53
@@ -791,7 +791,7 @@ theorem classFieldsOf_datF (p : BlockShape) (ctor : Name) (ihs : List (Nat × Na
       classFieldsOf_datF p ctor ihs F (i + 1) fs] <;> rfl
 
 theorem classNodesAgree_datF (env : Env) (p : BlockShape) (formerTys : List Expr)
-    (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (leaf : Expr) (fvs : List Expr)
+    (Mc : TargetMajor) (tele : List Expr) (leaf : Expr) (fvs : List Expr)
     (i : Nat) (ctor : Name) (F : Nat) :
     ∀ (es : List NestCtorNf),
       (classNodesAgree (fueledOpsM mode) env p formerTys Mc tele leaf fvs i ctor es).val F =
