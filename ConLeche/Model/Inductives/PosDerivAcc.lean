@@ -212,6 +212,7 @@ theorem frame_accD {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   -- the key, graded
   have hkey := frameKey_of_infer mp hin hD hmm hf₀ (by rw [hlp₀]; exact hul) hds hLds hΔ hCds
     hdsa (by rw [hlp₀]; exact hlenP) (by rw [hhead]; exact hkty)
+    (frame_head_instPis hcov.find (hinst p₀ List.mem_cons_self) (hhead ▸ hf₀))
   rw [hlp₀] at hkey
   exact ⟨hndl, hg, hwD, frameIterAcc mp hD hblkD.nodup hkN hcov.find hlps hndl hul hds hdsa hlenP
     hg.2 hin hwD hblkD.ctors rfl hR₀ hΔ hCds hLds hkey hctors

@@ -311,6 +311,7 @@ theorem frame_nodes {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   -- the key, graded
   have hkey := frameKey_of_infer mp hin hD hmm hf₀ (by rw [hlp₀]; exact hul) hds hLds hΔ hCds
     hdsa (by rw [hlp₀]; exact hlenP) (by rw [hhead]; exact hkty)
+    (frame_head_instPis hcov.find (hinst p₀ List.mem_cons_self) (hhead ▸ hf₀))
   rw [hlp₀] at hkey
   refine ih (by simp [grpNews, ConLeche.NestCtx.hiAt]; omega)
     (fun x => ∃ c j, InGrp D (p₀ :: ps₀) c ∧ j < D.nctors c ∧
