@@ -89,7 +89,7 @@ is proved with the relation itself (task #284) and is pinned here too.
 Everything below them is what they are corollaries of. -/
 
 /--
-info: 'ConLeche.model_exists' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.model_exists' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.model_exists
@@ -101,13 +101,13 @@ info: 'ConLeche.Denotes_functional' depends on axioms: [propext, Classical.choic
 #print axioms ConLeche.Denotes_functional
 
 /--
-info: 'ConLeche.no_False_theorem_accepted' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.no_False_theorem_accepted' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.no_False_theorem_accepted
 
 /--
-info: 'ConLeche.no_False_declaration' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.no_False_declaration' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.no_False_declaration
@@ -121,7 +121,7 @@ constant, under its own name and with the annotation of its own
 declared type, in the environment the fold returns. -/
 
 /--
-info: 'ConLeche.Cached.checkDecls_consts' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.checkDecls_consts' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.checkDecls_consts
@@ -129,19 +129,19 @@ info: 'ConLeche.Cached.checkDecls_consts' depends on axioms: [propext, sorryAx, 
 /-! ## The fold's letters (`ConLeche/Verify/Cached/MainC.lean`) -/
 
 /--
-info: 'ConLeche.Cached.no_proof_of_False_cached' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.no_proof_of_False_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.no_proof_of_False_cached
 
 /--
-info: 'ConLeche.Cached.no_proof_of_Empty_cached' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.no_proof_of_Empty_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.no_proof_of_Empty_cached
 
 /--
-info: 'ConLeche.Cached.checkDecls_sound' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.checkDecls_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.checkDecls_sound
@@ -162,19 +162,19 @@ info: 'ConLeche.Cached.checkDecls_fullyChecked' depends on axioms: [propext, Cla
 #print axioms ConLeche.Cached.checkDecls_fullyChecked
 
 /--
-info: 'ConLeche.Cached.no_proof_of_False_checked' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.no_proof_of_False_checked' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.no_proof_of_False_checked
 
 /--
-info: 'ConLeche.Cached.no_proof_of_Empty_checked' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.no_proof_of_Empty_checked' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.no_proof_of_Empty_checked
 
 /--
-info: 'ConLeche.Cached.fullyChecked_sound' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Cached.fullyChecked_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Cached.fullyChecked_sound
@@ -182,19 +182,19 @@ info: 'ConLeche.Cached.fullyChecked_sound' depends on axioms: [propext, sorryAx,
 /-! ## The pure fueled checker (`ConLeche/Model/Fold.lean`) -/
 
 /--
-info: 'ConLeche.Model.no_proof_of_False_pure' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Model.no_proof_of_False_pure' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Model.no_proof_of_False_pure
 
 /--
-info: 'ConLeche.Model.no_proof_of_Empty_pure' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Model.no_proof_of_Empty_pure' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Model.no_proof_of_Empty_pure
 
 /--
-info: 'ConLeche.Model.no_proof_of_Empty_pure_of' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+info: 'ConLeche.Model.no_proof_of_Empty_pure_of' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms ConLeche.Model.no_proof_of_Empty_pure_of

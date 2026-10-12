@@ -127,24 +127,23 @@ where
     | _, .app _ _, _, _, h | _, .forallE _ _ _, _, _, h | _, .letE _ _ _, _, _, h
     | _, .lit _, _, _, h | _, .proj _ _ _, _, _, h => nomatch h
 
-/-- **A residual sort survives instantiating a bound variable.** -/
-theorem residualPW_peelPisW_instantiate1 (find? : Name → Option ConstantInfo)
+/-- **A peeled sort survives instantiating a bound variable.** -/
+theorem peelPisW_sort_instantiate1 (find? : Name → Option ConstantInfo)
     {v : Expr} :
-    ∀ (n : Nat) (e : Expr) (k : Nat) {pw : PropWhen},
-      residualPW (peelPisW find? n e) = some pw →
-      residualPW (peelPisW find? n (e.instantiate1 v k)) = some pw := by
+    ∀ (n : Nat) (e : Expr) (k : Nat) {u : Level},
+      peelPisW find? n e = some (.sort u) →
+      peelPisW find? n (e.instantiate1 v k) = some (.sort u) := by
   intro n
   induction n with
   | zero =>
-    intro e k pw h
+    intro e k u h
     simp only [peelPisW] at h ⊢
-    obtain ⟨u, hu, rfl⟩ := residualPW_some_inv h
-    have hu' : unwrapIdDefs find? 4 e = .sort u := Option.some.inj hu
+    have hu' : unwrapIdDefs find? 4 e = .sort u := Option.some.inj h
     rcases unwrapIdDefs_instantiate1 find? (v := v) (k := k) 4 e with h' | h'
     · rw [h', hu']; rfl
     · rw [hu'] at h'; exact nomatch h'
   | succ n ih =>
-    intro e k pw h
+    intro e k u h
     rw [peelPisW_succ_eq] at h ⊢
     revert h
     cases hu : unwrapIdDefs find? 4 e with
@@ -155,6 +154,15 @@ theorem residualPW_peelPisW_instantiate1 (find? : Name → Option ConstantInfo)
         exact ih b (k + 1) h
       · rw [hu] at h'; exact nomatch h'
     | _ => intro h; exact nomatch h
+
+/-- **A residual sort survives instantiating a bound variable.** -/
+theorem residualPW_peelPisW_instantiate1 (find? : Name → Option ConstantInfo)
+    {v : Expr} (n : Nat) (e : Expr) (k : Nat) {pw : PropWhen}
+    (h : residualPW (peelPisW find? n e) = some pw) :
+    residualPW (peelPisW find? n (e.instantiate1 v k)) = some pw := by
+  obtain ⟨u, hu, rfl⟩ := residualPW_some_inv h
+  rw [peelPisW_sort_instantiate1 find? n e k hu]
+  rfl
 
 /-- A telescope's binder domain instantiates with it. -/
 theorem binderDom_instantiate1 {v : Expr} :
@@ -355,7 +363,7 @@ theorem typeSortPW_forallE_open (find? : Name → Option ConstantInfo) {A B : Ex
 
 /-- The number of λ, `let` and application layers the proof reader
 walks through before it reads a head. -/
-def Expr.proofDepth : Expr → Nat
+@[expose] def Expr.proofDepth : Expr → Nat
   | .lam _ b _ => proofDepth b + 1
   | .letE _ _ b => proofDepth b + 1
   | .app f _ => proofDepth f + 1

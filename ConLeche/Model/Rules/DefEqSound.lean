@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.DefEqSoundKit
+import ConLeche.Model.Rules.ProofFastSound
 import ConLeche.Model.Rules.EtaSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
@@ -100,7 +101,7 @@ not; their rules carry the body-type check (task #342 S4, the last
 section).  Structure η compares the constructor side's parameters and
 fields with the stuck side's projections, and nothing at the rules tier
 places both spines in one telescope of types (the DESIGN record of task
-#342 L11): owed to L11b. -/
+#342 L11): the η constructor's telescope coherence does (L11b). -/
 
 /-- The slot of a graded application whose head is not the point: the
 graph regime, and a domain that is a type. -/
@@ -291,8 +292,8 @@ theorem DefEq.proofFast_sound (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
     (ha : ConLeche.isProofFast env.find? a = true)
     (_hb : ConLeche.isProofFast env.find? b = true) :
     DefEqSem m φ d a b := by
-  intro _ _ Δa aa ba hCa hCb haa _ ρ hρ hLa _ _ _ hna _
-  exact absurd (prf_of_isProofFast hin.const_ty ha hCa haa ρ hρ hLa) hna
+  intro hfa _ Δa aa ba hCa hCb haa _ ρ hρ hLa _ hwa _ hna _
+  exact absurd (prf_of_isProofFast hin ha hfa hCa haa ρ hρ hLa hwa) hna
 
 /-- **Proof irrelevance at the io grade**: the left side's io claim at its
 io-inferred type, whose io-inferred sort reduces to `Prop` (`PropPt`,
@@ -401,8 +402,9 @@ is an equation there; an equation of the bodies at every value of the
 variable is an equation of the λs, so `outer` needs no type.  η's typed
 premise does the same for the λ's body and `b` applied.  The proofs are
 the fragment's (`whitepaper/Fragment/Sound.lean`: `DefEqLams.inner_sound`,
-`outer_sound`, `DefEq.eta_sound`) at the value reading; **owed to task
-#342 L18** (the S4 sorry ledger). -/
+`outer_sound`, `DefEq.eta_sound`) at the value reading; η's other side is
+atom-headed (`Expr.ioNeutral`), so its io claim is a membership where it
+is not the point (`IORelN`). -/
 
 /-- Syntactically equal λs are equal outright. -/
 theorem DefEqLams.refl_sound {d : Nat} {a : Expr} : DefEqLamsSem m φ d a a :=

@@ -195,13 +195,9 @@ theorem Graded.projAV {Δa : List AnnotTerm} {i : Nat} {e : AnnotTerm}
     (h : Graded V Δa (ConLeche.Semantics.projAV i e)) : Graded V Δa e :=
   fun ρ hρ => ProjAV.hoistV (h ρ hρ)
 
-/-! ## The proof-irrelevance fast arm
+/-! ## The proof-irrelevance fast arm: the shared facts
 
-The whole squash-regime licence: the `V`-level facts,
-the type former's `.pi` chain, and `prf_of_isProofFast` itself, with
-`ConstType` read as the rules tier's `ConstType`. -/
-
-/-! ## 1. The squash-regime facts, V level -/
+The licence itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
 
 /-- Every application of `pt` is `pt` (`app_pt`, folded along a spine). -/
 theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List AnnotTerm),
@@ -223,134 +219,7 @@ theorem holds_of_isProp {pw : PropWhen}
   rw [eq_of_beq h]
   rfl
 
-/-- A level whose zero-ness datum is always-zero evaluates to `0`. -/
-theorem eval_eq_zero_of_isProp {u : Level}
-    (h : (Level.zeronessOf u).isProp = true) (φ : Name → Nat) :
-    Level.eval φ u = 0 := by
-  have := holds_of_isProp h φ
-  rw [ConLeche.PropWhen.zeronessOf_sound] at this
-  exact beq_iff_eq.mp this
-
-/-- **THE FENCE.**  At a nonzero bit the product reading is a graph set
-with two distinct members: a `prf` verdict read off a datum that is
-not always-zero would equate them.  So the fast "yes" is exactly the
-always-zero datum, model-class-wide. -/
-theorem irrel_fast_fence :
-    ∃ (A : V) (B : V → V) (f g : V),
-      f ∈ˢ piR 1 A B ∧ g ∈ˢ piR 1 A B ∧ f ≠ g := by
-  refine ⟨truthVal True, fun _ => univZero,
-    lamR 1 (truthVal True) (fun _ => truthVal False),
-    lamR 1 (truthVal True) (fun _ => truthVal True), ?_, ?_, ?_⟩
-  · exact lamR_mem fun _ _ => truthVal_mem_univZero False
-  · exact lamR_mem fun _ _ => truthVal_mem_univZero True
-  · intro h
-    have h1 : app (lamR 1 (truthVal True) (fun _ => (truthVal False : V))) (pt : V)
-        = app (lamR 1 (truthVal True) (fun _ => (truthVal True : V))) (pt : V) :=
-      congrArg (fun z => app z (pt : V)) h
-    rw [app_lamR_pos (by decide) (pt_mem_truthVal trivial),
-      app_lamR_pos (by decide) (pt_mem_truthVal trivial)] at h1
-    have : (pt : V) ∈ˢ (truthVal False : V) := h1 ▸ pt_mem_truthVal trivial
-    exact (mem_truthVal.mp this).1
-
-/-! ## 2. The type former's telescope: a `.pi` chain -/
-
-/-- The reading's first `n` heads are `.pi` nodes and the residual is
-`.sort u` — the reading of a type former's stored type `∀ p⃗, Sort u`. -/
-@[expose] def NeverChain : Nat → Nat → AnnotTerm → Prop
-  | 0, u, e => e = .sort u
-  | n + 1, u, e =>
-    match e with
-    | .pi _ B => NeverChain n u B
-    | _ => False
-
-theorem neverChain_succ_inv {n u : Nat} {e : AnnotTerm}
-    (h : NeverChain (n + 1) u e) :
-    ∃ A B, e = .pi A B ∧ NeverChain n u B := by
-  match e with
-  | .pi A B => exact ⟨A, B, rfl, h⟩
-  | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ | .letE _ _
-  | .eqE _ _ | .fst _ | .snd _ | .prf => exact nomatch h
-
-/-- Substitution preserves the chain (`inst` maps `.pi` to `.pi` and
-`.sort` to itself). -/
-theorem NeverChain.inst : ∀ {n u : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : Nat),
-    NeverChain n u e → NeverChain n u (e.inst a k) := by
-  intro n
-  induction n with
-  | zero => intro u e a k h; subst h; rfl
-  | succ n ih =>
-    intro u e a k h
-    obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv h
-    exact ih a (k + 1) hB
-
-/-- **A type former's application lands in its result universe.**  The
-walk along the chain: the application is not the point ("not pt"
-source (1): it is a type, the caller's premise), so neither is its head,
-which is then a graph; the argument's membership in the domain is
-`slotTransfer` from the applied spine's own hereditary app slot — no
-certificate anywhere.  (Without the premise the lemma is false: a head
-over an empty inner domain is the point, and its slot pins no domain.) -/
-theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
-    ∀ (vs : List AnnotTerm) {Ta f : AnnotTerm} {u : Nat},
-      NeverChain vs.length u Ta →
-      WellDenotedV V ρ Ta → WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
-      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
-      interp V ρ f ∈ˢ interp V ρ Ta →
-      interp V ρ (AnnotTerm.mkAppN f vs) ∈ˢ (univ u : V) := by
-  intro vs
-  induction vs with
-  | nil =>
-    intro Ta f u hch _ _ _ hf
-    obtain rfl : Ta = .sort u := hch
-    exact hf
-  | cons a vs ih =>
-    intro Ta f u hch hokT hokS hne hf
-    obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv hch
-    have hokApp : WellDenotedV V ρ (.app f a) := mkAppN_head vs hokS
-    have hoka : WellDenotedV V ρ a :=
-      (cast (WellDenoted_app V ρ f a) hokApp).2.1
-    have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
-      fun y hy =>
-        (cast (WellDenoted_pi V ρ A B) hokT).2.2.1 y hy
-    have hf' : interp V ρ f
-        ∈ˢ piV (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
-    -- the head is not the point: a point head makes the spine the point
-    have hfp : interp V ρ f ≠ pt := fun h0 =>
-      hne (interp_mkAppN_pt (by rw [interp_app, h0, app_pt]) vs)
-    have hgr : interp V ρ f
-        ∈ˢ piR 1 (interp V ρ A) (fun x => interp V (cons x ρ) B) := by
-      rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
-    have hmem : interp V ρ a ∈ˢ interp V ρ A := by
-      obtain ⟨v', A', B', hslot, ha, -⟩ :=
-        (cast (WellDenoted_app V ρ f a) hokApp).2.2
-      exact slotTransfer Nat.one_ne_zero hgr hslot ha
-    have hokB' : WellDenotedV V ρ (B.inst a) :=
-      (WellDenotedV_inst0 hoka).mpr (hokB _ hmem)
-    have hfa : interp V ρ (.app f a) ∈ˢ interp V ρ (B.inst a) := by
-      rw [interp_app, interp_inst0]
-      exact app_mem_piV hf' hmem
-    exact ih (NeverChain.inst a 0 hB) hokB' hokS hne hfa
-
-/-- The reading of a type-former application `T = hd b⃗` lands in
-`univ 0` once the head's type reads to a chain of `b⃗`'s length ending
-in `Sort 0`, the head inhabits it, and both readings are graded. -/
-theorem mem_univ_zero_of_spine {m : EnvModel V env}
-    {ρ : Nat → V} {d : Nat} {T hd : Expr} {Ta fa taH : AnnotTerm}
-    (hfn : T.getAppFn = hd)
-    (hTa : denoteMeta m.acval env φ d T = some Ta)
-    (hfa : denoteMeta m.acval env φ d hd = some fa)
-    (hchain : NeverChain T.getAppArgs.length 0 taH)
-    (hokH : WellDenotedV V ρ taH) (hokT : WellDenotedTy V ρ Ta)
-    (hmem : interp V ρ fa ∈ˢ interp V ρ taH) :
-    interp V ρ Ta ∈ˢ (univ 0 : V) := by
-  rw [← ConLeche.Expr.mkAppN_getApp T, hfn] at hTa
-  obtain ⟨fa', vs, hfa', hsp, rfl⟩ := denoteMeta_mkAppN_inv hTa
-  rw [hfa] at hfa'
-  obtain rfl := Option.some.inj hfa'
-  rw [hsp.length] at hchain
-  exact spine_mem_univ_of_neverChain vs hchain hokH hokT.1 hokT.2.ne_pt hmem
-
-/-! ## 3. The kernel-shaped licence -/
+/-! ## Leaves of a spine's head -/
 
 /-- A leaf of a spine's head is a leaf of the spine. -/
 theorem mem_fvarLeaves_mkAppN : ∀ (as : List Expr) (f : Expr)
@@ -376,23 +245,6 @@ theorem mem_fvarLeaves_of_ty {ty : Expr} {idx : Nat}
     {l : Nat × Expr} (h : l ∈ ty.fvarLeaves) :
     l ∈ (Expr.fvar idx ty).fvarLeaves := by
   simp [Expr.fvarLeaves, h]
-
-/-- **A term whose validated data say "proof" is `pt`.**  The
-head-symbol case split of `isProofFast`, each case closed by the
-squash-regime licence (a ∀-typed head, a λ) or the one graph-regime
-step (a type-former-typed head). -/
-theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
-    {d : Nat} {a : Expr} {Δa : List AnnotTerm} {aa : AnnotTerm}
-    (h : isProofFast env.find? a = true)
-    (hCa : CtxOkS m φ d Δa a)
-    (hda : denoteMeta m.acval env φ d a = some aa)
-    (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ) :
-    interp V ρ aa = (pt : V) := by
-  -- L18 — the fast test's reader is binder-free since task #342 (L-ck,
-  -- S0's `PropRead`: residual sorts read through identity wrappers,
-  -- telescope-`bvar` and projection heads), and the value reading
-  -- gives a ∀-typed or λ subject no datum: the licence is owed whole
-  sorry
 
 /-! ## The η-projection spelling, unfolded locally
 

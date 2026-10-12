@@ -20,8 +20,9 @@ public section
 One lemma per constructor of `Infer`, at the constructor's grade
 (`InferSem m φ g …` dispatches to the establishment motive at `.full`
 and the consumption motive at `.io`).  The io grade is Lean's
-`infer_only` (task #342 S4): its application runs no certificate
-(`Infer.app_soundIO`, owed to L18 with the hereditary `IORel`).
+`infer_only` (task #342 S4): its application runs no certificate and
+its λ no domain check, and its claim is the hereditary `IORel` (task
+#346; `IORel.lean`), with the neutral clause `IORelN`.
 
 The motives are per valuation (task #342, L9): the context discipline
 outside `ρ` is the structural `CtxOkS`, and the leaves' grading
