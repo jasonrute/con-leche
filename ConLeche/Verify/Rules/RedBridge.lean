@@ -187,7 +187,7 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
     tmaj₀, tmaj, T, us₀, ust, cvT, caps, rfl, hfj, hpi, hfT, hinf, hwh, hfn, harm⟩
   · exact .refl
   rcases harm with ⟨hk, hlps, hle, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩ |
-    ⟨heta, hnz, hlen, hlps, rfl, -, hcert⟩ |
+    ⟨heta, hnz, hlen, hlps, rfl, hcert⟩ |
     ⟨rfl, hlen, hlps, hslots, rfl, hcerts, ⟨tf, htf, hdq⟩, hpirr⟩
   · exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlps hle rfl hsc1 hsc2 hsc3 (iotaCerts_bridge hd hio hcerts)

@@ -161,7 +161,7 @@ theorem structEtaCertWith_projCerts_bridge (hd : DefEqBridge env fuel)
       EtaProjCerts env d T us' wtb.getAppArgs b cvT.levelParams
         (List.range caps.etaFields) := by
   obtain ⟨-, -, -, -, -, T₂, us₂, cvT₂, caps₂,
-    -, -, -, hwfn₂, hfT₂, -, -, -, -, -, -, -, -, -, -, hproj, -⟩ :=
+    -, -, -, hwfn₂, hfT₂, -, -, -, -, -, -, -, -, -, hproj, -⟩ :=
     structEtaCertWith_inv h
   rw [hwfn] at hwfn₂
   obtain ⟨rfl, rfl⟩ := Expr.const.inj hwfn₂
@@ -183,7 +183,7 @@ theorem structEtaCertWith_bridge (hw : WhnfBridge env fuel)
     DefEq env d a b := by
   obtain ⟨c, us, cvc, cnP, cnF, T, us', cvT, caps,
     hfn, hfc, hlen, hwfn, hfT, heta, hctor, hresT, hresc, hplen, hulen,
-    hlps, hslots, hus, -, -, hpar, -, hfields⟩ :=
+    hlps, hslots, hus, -, hpar, -, hfields⟩ :=
     structEtaCertWith_inv h
   exact .structEta (inferTypeIO_bridge hio htb) (hw hwtb) hfn hfc hlen hwfn hfT
     heta hctor hresT hresc hplen hulen hlps hslots hus
@@ -207,7 +207,7 @@ theorem structUnitCert_bridge (hw : WhnfBridge env fuel)
     (h : structUnitCertFueled .verified env fuel d a b = .ok true) :
     DefEq env d a b := by
   obtain ⟨ta, wta, T, us', cvT, caps, tb, wtb,
-    hta, hwta, hwfn, hfT, hunit, hres, hplen, hulen, htb, hwtb, hde, -⟩ :=
+    hta, hwta, hwfn, hfT, hunit, hres, hplen, hulen, htb, hwtb, hde⟩ :=
     structUnitCert_inv h
   exact .structUnit (inferTypeIO_bridge hio hta) (hw hwta) hwfn hfT hunit
     hres hplen hulen (inferTypeIO_bridge hio htb) (hw hwtb) (hd hde)

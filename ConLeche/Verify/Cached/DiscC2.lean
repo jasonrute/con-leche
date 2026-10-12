@@ -459,12 +459,12 @@ theorem projCertAtC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat}
   · exact SimC.pure hs rfl
 
 /-- `structUnitCertI` simulates its fueled original. -/
-theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
+theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (_henv : EnvWF env)
     {d : Nat} {i j : Expr} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hdena : RelC i a) (hdenb : RelC j b)
     (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     SimC mode env s₀ RelVC
-      (structUnitCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
+      (structUnitCertI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
       (structUnitCert (fueledFns mode env) env d a b) := by
   obtain rfl := CheckMode.eq_verified hμ
   show SimC .verified env s₀ RelVC
@@ -483,12 +483,7 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
               us'.length = cvT.levelParams.length then
             (coreKnotI .verified (mkFEnv env) f).inferIO d j >>= fun tb =>
             (coreKnotI .verified (mkFEnv env) f).whnf d tb >>= fun wtb =>
-            (coreKnotI .verified (mkFEnv env) f).defeq d wta wtb >>= fun r =>
-            if r then
-              constTyAtM (mkFEnv env) T Tn us' >>= fun tyT =>
-              iotaCertsI (coreKnotI .verified (mkFEnv env) f) (mkFEnv env) d false
-                tyT targs
-            else pure false
+            (coreKnotI .verified (mkFEnv env) f).defeq d wta wtb
           else pure false
         | _ => pure false
       | _ => pure false)
@@ -504,12 +499,7 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
               us'.length = cvT.levelParams.length then
             (fueledFns .verified env).inferIO d b >>= fun tb =>
             (fueledFns .verified env).whnf d tb >>= fun wtb =>
-            (fueledFns .verified env).defeq d wta wtb >>= fun r =>
-            if r then
-              iotaCerts (fueledFns .verified env) env d false
-                (cvT.type.instantiateLevelParams cvT.levelParams us')
-                wta.getAppArgs
-            else pure false
+            (fueledFns .verified env).defeq d wta wtb
           else pure false
         | _ => pure false
       | _ => pure false)
@@ -545,22 +535,7 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
           refine SimC.bind (ih.whnf hs₃ htbd hwtb)
             (fun s₄ wtb wtbx hs₄ hP₄ => ?_)
           obtain ⟨hwtbd, hwwtb⟩ := hP₄
-          refine SimC.bind (ih.defeq hs₄ rfl hwtbd hwwta hwwtb)
-            (fun s₅ r r' hs₅ hPr => ?_)
-          obtain rfl : r = r' := hPr
-          cases r with
-          | false =>
-            simp only [Bool.false_eq_true, ↓reduceIte]
-            exact SimC.pure hs₅ rfl
-          | true =>
-            simp only [↓reduceIte]
-            refine SimC.bind_left (constTyAtM_eff hs₅ hfT)
-              (fun s₆ tyT hs₆ hQty => ?_)
-            have htyw : Expr.WScoped d
-                (cvT.type.instantiateLevelParams cvT.levelParams us') := by
-              obtain ⟨htf, -⟩ := henv _ (find?_mem hfT)
-              exact wscoped_instLevels_of_not_hasFvar htf _ _
-            exact iotaCertsC_sim ih hs₆ hQty htyw hargs hwwta.getAppArgs
+          exact ih.defeq hs₄ rfl hwtbd hwwta hwwtb
         · exact SimC.pure hs₂ rfl
       | axiomInfo cv => exact SimC.pure hs₂ rfl
       | defnInfo cv v h => exact SimC.pure hs₂ rfl
@@ -773,10 +748,6 @@ private theorem structEtaCertWithC_unfold (env : Env) (d : Nat)
                 liftFueled "level comparison"
                   (Level.isEquivList us us') >>= fun ok =>
                 if ok then
-                  iotaCerts (fueledFns mode env) env d false
-                      (cvT.type.instantiateLevelParams cvT.levelParams us')
-                      wtb.getAppArgs >>= fun r₁ =>
-                  if r₁ then
                     (if towerSlotsAll env T caps.etaFields then pure true
                       else structEtaProjCerts (fueledFns mode env) env d T us'
                         wtb.getAppArgs b cvT.levelParams
@@ -800,7 +771,6 @@ private theorem structEtaCertWithC_unfold (env : Env) (d : Nat)
                         else pure false
                       else pure false
                     else pure false
-                  else pure false
                 else pure false
               else pure false
             | _ => pure false
@@ -848,10 +818,6 @@ theorem structEtaCertWithC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mo
                   isEquivListLM us us' >>= fun o =>
                   liftFueled "level comparison" o >>= fun ok =>
                   if ok then
-                    constTyAtM (mkFEnv env) T Tn us' >>= fun tyT =>
-                    iotaCertsI (coreKnotI .verified (mkFEnv env) f) (mkFEnv env) d
-                        false tyT targs >>= fun r₁ =>
-                    if r₁ then
                       (if (mkFEnv env).towerSlotsAllF Tn caps.etaFields then pure true
                         else structEtaProjCertsI (coreKnotI .verified (mkFEnv env) f)
                           (mkFEnv env) d T Tn us' targs j cvT.levelParams
@@ -873,7 +839,6 @@ theorem structEtaCertWithC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mo
                           else pure false
                         else pure false
                       else pure false
-                    else pure false
                   else pure false
                 else pure false
               | _ => pure false
@@ -942,106 +907,90 @@ theorem structEtaCertWithC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mo
                     simp only [Bool.false_eq_true, ↓reduceIte]
                     exact SimC.pure hs₁ rfl
                   | true =>
+                    have hs₃ := hs₁
                     simp only [↓reduceIte]
-                    refine SimC.bind_left (constTyAtM_eff hs₁ hfT)
-                      (fun s₂ tyT hs₂ hQty => ?_)
-                    have htyw : Expr.WScoped d
-                        (cvT.type.instantiateLevelParams
-                          cvT.levelParams us') := by
-                      obtain ⟨htf, -⟩ := henv _ (find?_mem hfT)
-                      exact wscoped_instLevels_of_not_hasFvar htf _ _
-                    refine SimC.bind (iotaCertsC_sim ih hs₂ hQty htyw
-                      htargs hwwtb.getAppArgs)
-                      (fun s₃ r₁ r₁' hs₃ hPr₁ => ?_)
-                    obtain rfl : r₁ = r₁' := hPr₁
-                    cases r₁ with
+                    -- the per-slot certificates run at a
+                    -- projection-function family only (task #175 S1)
+                    refine SimC.bind (P := RelVC) ?_
+                      (fun s₄ r₂ r₂' hs₄ hPr₂ => ?_)
+                    · split
+                      · exact SimC.pure hs₃ rfl
+                      · exact structEtaProjCertsC_sim ih henv
+                          T T us' cvT.levelParams
+                          (List.range caps.etaFields) hs₃
+                          htargs hdenb hwwtb.getAppArgs hwb
+                    obtain rfl : r₂ = r₂' := hPr₂
+                    cases r₂ with
                     | false =>
                       simp only [Bool.false_eq_true, ↓reduceIte]
-                      exact SimC.pure hs₃ rfl
+                      exact SimC.pure hs₄ rfl
                     | true =>
                       simp only [↓reduceIte]
-                      -- the per-slot certificates run at a
-                      -- projection-function family only (task #175 S1)
-                      refine SimC.bind (P := RelVC) ?_
-                        (fun s₄ r₂ r₂' hs₄ hPr₂ => ?_)
-                      · split
-                        · exact SimC.pure hs₃ rfl
-                        · exact structEtaProjCertsC_sim ih henv
-                            T T us' cvT.levelParams
-                            (List.range caps.etaFields) hs₃
-                            htargs hdenb hwwtb.getAppArgs hwb
-                      obtain rfl : r₂ = r₂' := hPr₂
-                      cases r₂ with
+                      refine SimC.bind (defEqListC_sim ih hs₄
+                        (haargs.take caps.etaParams) htargs
+                        (fun x hx => hwa.getAppArgs x
+                          (List.mem_of_mem_take hx))
+                        hwwtb.getAppArgs)
+                        (fun s₅ r₃ r₃' hs₅ hPr₃ => ?_)
+                      obtain rfl : r₃ = r₃' := hPr₃
+                      cases r₃ with
                       | false =>
                         simp only [Bool.false_eq_true, ↓reduceIte]
-                        exact SimC.pure hs₄ rfl
+                        exact SimC.pure hs₅ rfl
                       | true =>
                         simp only [↓reduceIte]
-                        refine SimC.bind (defEqListC_sim ih hs₄
-                          (haargs.take caps.etaParams) htargs
-                          (fun x hx => hwa.getAppArgs x
-                            (List.mem_of_mem_take hx))
-                          hwwtb.getAppArgs)
-                          (fun s₅ r₃ r₃' hs₅ hPr₃ => ?_)
-                        obtain rfl : r₃ = r₃' := hPr₃
-                        cases r₃ with
-                        | false =>
-                          simp only [Bool.false_eq_true, ↓reduceIte]
-                          exact SimC.pure hs₅ rfl
-                        | true =>
-                          simp only [↓reduceIte]
-                          refine SimC.bind_left (projAppsC_eff T us'
-                            caps.etaFields hs₅ htargs hdenb)
-                            (fun s₆ projs hs₆ hQp => ?_)
-                          have hwprojs : ∀ x ∈ etaProjs env T us'
-                              (Expr.getAppArgs w) j caps.etaFields,
-                              Expr.WScoped d x := by
-                            intro x hx
-                            unfold etaProjs at hx
-                            split at hx
-                            · obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
-                              simpa [Expr.WScoped] using hwb
-                            · obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
-                              refine Expr.WScoped.mkAppN
-                                (by simp [Expr.WScoped]) ?_
-                              intro y hy
-                              rcases List.mem_append.mp hy with hy | hy
-                              · exact hwwtb.getAppArgs y hy
-                              · rcases List.mem_singleton.mp hy with rfl
-                                exact hwb
-                          refine SimC.bind (P := RelVC) ?_
-                            (fun s₈ r₄ r₄' hs₈ hPr₄ => ?_)
-                          · cases htt : CheckMode.verified.ttChecks with
-                            | false =>
-                              simp only [Bool.false_eq_true, ↓reduceIte]
-                              exact SimC.pure hs₆ rfl
-                            | true =>
-                              simp only [↓reduceIte]
-                              refine SimC.bind_left (constTyAtM_eff hs₆ hfc)
-                                (fun s₇ tyCtor hs₇ hQtyc => ?_)
-                              have htycw : Expr.WScoped d
-                                  (cvc.type.instantiateLevelParams
-                                    cvc.levelParams us) := by
-                                obtain ⟨htf, -⟩ := henv _ (find?_mem hfc)
-                                exact wscoped_instLevels_of_not_hasFvar
-                                  htf _ _
-                              exact iotaCertsC_sim ih hs₇ hQtyc htycw
-                                (htargs.append hQp)
-                                (fun x hx => by
-                                  rcases List.mem_append.mp hx with hx | hx
-                                  · exact hwwtb.getAppArgs x hx
-                                  · exact hwprojs x hx)
-                          obtain rfl : r₄ = r₄' := hPr₄
-                          cases r₄ with
+                        refine SimC.bind_left (projAppsC_eff T us'
+                          caps.etaFields hs₅ htargs hdenb)
+                          (fun s₆ projs hs₆ hQp => ?_)
+                        have hwprojs : ∀ x ∈ etaProjs env T us'
+                            (Expr.getAppArgs w) j caps.etaFields,
+                            Expr.WScoped d x := by
+                          intro x hx
+                          unfold etaProjs at hx
+                          split at hx
+                          · obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
+                            simpa [Expr.WScoped] using hwb
+                          · obtain ⟨i', -, rfl⟩ := List.mem_map.mp hx
+                            refine Expr.WScoped.mkAppN
+                              (by simp [Expr.WScoped]) ?_
+                            intro y hy
+                            rcases List.mem_append.mp hy with hy | hy
+                            · exact hwwtb.getAppArgs y hy
+                            · rcases List.mem_singleton.mp hy with rfl
+                              exact hwb
+                        refine SimC.bind (P := RelVC) ?_
+                          (fun s₈ r₄ r₄' hs₈ hPr₄ => ?_)
+                        · cases htt : CheckMode.verified.ttChecks with
                           | false =>
                             simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₈ rfl
+                            exact SimC.pure hs₆ rfl
                           | true =>
                             simp only [↓reduceIte]
-                            exact defEqListC_sim ih hs₈
-                              (haargs.drop caps.etaParams) hQp
-                              (fun x hx => hwa.getAppArgs x
-                                (List.mem_of_mem_drop hx)) hwprojs
+                            refine SimC.bind_left (constTyAtM_eff hs₆ hfc)
+                              (fun s₇ tyCtor hs₇ hQtyc => ?_)
+                            have htycw : Expr.WScoped d
+                                (cvc.type.instantiateLevelParams
+                                  cvc.levelParams us) := by
+                              obtain ⟨htf, -⟩ := henv _ (find?_mem hfc)
+                              exact wscoped_instLevels_of_not_hasFvar
+                                htf _ _
+                            exact iotaCertsC_sim ih hs₇ hQtyc htycw
+                              (htargs.append hQp)
+                              (fun x hx => by
+                                rcases List.mem_append.mp hx with hx | hx
+                                · exact hwwtb.getAppArgs x hx
+                                · exact hwprojs x hx)
+                        obtain rfl : r₄ = r₄' := hPr₄
+                        cases r₄ with
+                        | false =>
+                          simp only [Bool.false_eq_true, ↓reduceIte]
+                          exact SimC.pure hs₈ rfl
+                        | true =>
+                          simp only [↓reduceIte]
+                          exact defEqListC_sim ih hs₈
+                            (haargs.drop caps.etaParams) hQp
+                            (fun x hx => hwa.getAppArgs x
+                              (List.mem_of_mem_drop hx)) hwprojs
                 · exact SimC.pure hs rfl
               | axiomInfo cv => exact SimC.pure hs rfl
               | defnInfo cv v h => exact SimC.pure hs rfl
@@ -1144,7 +1093,7 @@ theorem stuckIrrelC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
       structEtaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d j i >>=
         fun r₄ =>
       if r₄ then pure true else
-      structUnitCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j >>=
+      structUnitCertI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j >>=
         fun r₅ =>
       if r₅ then pure true else
       proofIrrelI (coreKnotI mode (mkFEnv env) f) d i j)
