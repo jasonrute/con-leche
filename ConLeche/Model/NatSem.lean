@@ -108,7 +108,7 @@ theorem natEq_value (m : EnvModel V env) (hops : NatOps m φ)
     interp V (cons y (cons x ρ)) L
       = interp V (cons y (cons x ρ)) R := by
   obtain ⟨L', R', hdL', hdR', hval⟩ :=
-    (hops c hc cv v hint hf).2 eq heq
+    (hops c hc cv v hint hf).2.2 eq heq
   obtain rfl : L' = L := Option.some.inj (hdL'.symm.trans hdL)
   obtain rfl : R' = R := Option.some.inj (hdR'.symm.trans hdR)
   exact hval ρ x y hx hy

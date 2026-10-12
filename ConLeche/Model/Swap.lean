@@ -178,6 +178,16 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
       (env₃.find? n = some ci ↔ env₀.find? n = some ci) :=
     fun n ci hnr =>
       ⟨fun h => hcg.findDown n ci h hnr, fun h => hcg.findUp n ci h hnr⟩
+  -- a pinned `Nat`-operation type: the stored `Bool` entry keeps its
+  -- constant value (a swap changes a recursor's rules only)
+  have hpinUp : ∀ {c : Name} {ty : Expr}, ConLeche.natOpTyPinned env₀ c ty = true →
+      ConLeche.natOpTyPinned env₃ c ty = true := fun h =>
+    ConLeche.Verify.natOpTyPinned_of_find (fun ci hf => by
+      rcases hcorr ConLeche.boolName with heq | ⟨cv, mI, rP, rules, h₀, h₃, -⟩
+      · exact ⟨ci, by rw [heq]; exact hf, rfl⟩
+      · rw [h₀] at hf
+        obtain rfl := Option.some.inj hf
+        exact ⟨_, h₃, rfl⟩) h
   -- the member correspondence, at the level of `toConstantVal`
   have hmemcorr : ∀ c₃ ∈ env₃.consts, ∃ c₀ ∈ env₀.consts,
       c₀.toConstantVal = c₃.toConstantVal ∧ c₀.name = c₃.name := by
@@ -270,18 +280,18 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     exact mp.nat_heads φ (hcg.natEq ▸ hsup) ρ
   · -- `nat_ops`
     intro φ c hc cv value hint hf
-    obtain ⟨hgu, hlaw⟩ := mp.nat_ops φ c hc cv value hint
+    obtain ⟨hgu, hpin, hlaw⟩ := mp.nat_ops φ c hc cv value hint
       ((hsame _ _ (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf)
-    refine ⟨by rw [← hcg.guardEq]; exact hgu, ?_⟩
+    refine ⟨by rw [← hcg.guardEq]; exact hgu, hpinUp hpin, ?_⟩
     intro eq heq
     obtain ⟨L, R, hL, hR, hval⟩ := hlaw eq heq
     exact ⟨L, R, by rw [← hde]; exact hL,
       by rw [← hde]; exact hR, hval⟩
   · -- `div_mod`
     intro φ c hc cv value hint hf
-    obtain ⟨hgu, hlaw⟩ := mp.div_mod φ c hc cv value hint
+    obtain ⟨hgu, hpin, hlaw⟩ := mp.div_mod φ c hc cv value hint
       ((hsame _ _ (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf)
-    exact ⟨by rw [← hcg.guardEq]; exact hgu, hlaw⟩
+    exact ⟨by rw [← hcg.guardEq]; exact hgu, hpinUp hpin, hlaw⟩
   · -- `eq_law`: `Eq` is stored as an `indInfo`, so it is never swapped
     intro hf
     exact mp.eq_law

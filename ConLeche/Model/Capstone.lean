@@ -150,13 +150,14 @@ What the soundness reads about the environment is `Rules.RulesInputs`
 (`Model/Rules/Inputs.lean`), built from the fold's invariant alone. -/
 
 /-- **The rules tier's environment inputs, from the fold's
-invariant**: seven fields are `EnvModelM` projections
-(`RulesInputs.ofEnvModelM`, `Model/Rules/Inputs.lean`) and the two
+invariant**: the other fields are `EnvModelM` projections
+(`RulesInputs.ofEnvModelM`, `Model/Rules/Inputs.lean`) and the three
 literal rows are this file's own imports — `natSuccRow_of`/
-`natOpRow_of` (`Model/NatStep.lean`), which stand on the numeral
-transports and so cannot be projections down there. -/
+`natOpRow_of`/`natOpHead_of` (`Model/NatStep.lean`), which stand on the
+numeral transports and so cannot be projections down there. -/
 theorem Rules.RulesInputs.ofSem (mp : EnvModelM V μ env) (φ : Name → Nat) :
     Rules.RulesInputs V mp.base2 φ :=
   Rules.RulesInputs.ofEnvModelM mp (natSuccRow_of mp φ) (natOpRow_of mp φ)
+    (natOpHead_of mp φ)
 
 end ConLeche.Model

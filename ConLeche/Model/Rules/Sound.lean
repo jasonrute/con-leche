@@ -27,15 +27,15 @@ lemma cannot see.
 
 **Two inductions (task #342, L9).**  The claims are conditional on the
 point (`Motive.lean`): `red_sound`, `defeq_sound` … conclude the
-conditional motives.  Their ι rules (`Red.iota`, the three rescues), the
-two literal accelerations and every `DefEq` rule are, for now, the
+conditional motives.  Their ι rules (`Red.iota`, the three rescues) and
+every `DefEq` rule are, for now, the
 **interim** unconditional side induction (`red_soundU`, `defeq_soundU`
 …) weakened (`RedSemU.cond`, `DefEqSemU.cond`); every other rule is
 proved at the conditional motive, from the conditional claims of its
 premises.  The side induction reads `Red.beta`'s certificate premises,
-which the conditional one does not.  Task #342 L10 (ι), L11
-(definitional equality) and L12 (the literal rows) move their rules to
-the conditional induction; then the side induction goes, and with it
+which the conditional one does not.  Task #342 L10 (ι) and L11
+(definitional equality) move their rules to the conditional induction
+(L12 moved the literal rows); then the side induction goes, and with it
 β's premises (L13).
 -/
 
@@ -217,9 +217,9 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .strLit h => Red.strLit_sound h
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
     Red.proj_sound hin hent hhead hi hlen hus hfire hctor (certs_sound hin hcerts)
-  -- **interim** (task #342, L12): the literal rows through the side induction
-  | _, _, _, h@(.natSucc ..) => (red_soundU hin h).cond
-  | _, _, _, h@(.natOp ..) => (red_soundU hin h).cond
+  | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
+  | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
+    Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
   -- **interim** (task #342, L10): ι and the three rescues through the side
   -- induction
   | _, _, _, h@(.iota ..) => (red_soundU hin h).cond
