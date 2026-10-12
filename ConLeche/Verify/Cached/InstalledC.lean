@@ -20,7 +20,7 @@ its datum, and every record was checked against the prefix view
 `fe.restrictTo vis` from a fresh memo state (`GroupChecked`).  This
 module holds the model-free half of the walk over that run:
 
-* `annotConstantValC_run` / `annotValC_run` / `annotValueC_run` — phase
+* `guardHeaderC_run` / `guardValueC_run` / `guardValueDeclC_run` — phase
   A's install is the pure install halves
   (`installConstantVal`, `installValue`, `ConLeche/Kernel/CheckerSplit.lean`).
 * `checkPending_run` — the check at the prefix view simulates the pure
@@ -50,12 +50,12 @@ variable {pins : List NatOpPinSet}
 invariant state at `mkFEnv env`, a successful run returns the header
 as declared, its type well scoped, and `installConstantVal` succeeds on
 it. -/
-theorem annotConstantValC_run {env : Env}
+theorem guardHeaderC_run {env : Env}
     {cv cvA : ConstantVal} {jty : Expr} {s₀ s' : CState} (hs : CSOK μ env s₀)
-    (h : annotConstantValC (mkFEnv env) cv s₀ = .ok ((cvA, jty), s')) :
+    (h : guardHeaderC (mkFEnv env) cv s₀ = .ok ((cvA, jty), s')) :
     CSOK μ env s' ∧ cvA = cv ∧ jty = cv.type ∧ Expr.WScoped 0 cv.type ∧
     installConstantVal (m := CheckM) env cv = .ok cv := by
-  unfold annotConstantValC at h
+  unfold guardHeaderC at h
   simp only [mkFEnv_find?] at h
   by_cases h1 : (env.find? cv.name).isSome = true
   · rw [ite_eq_left h1] at h; exact absurd h throwC_bind_ok
@@ -92,13 +92,13 @@ theorem annotConstantValC_run {env : Env}
     (by simpa using h2) (by simpa using h3) h4 h5 (by simpa using h6) h7 h8
 
 /-- Phase A's value install is the pure install half. -/
-theorem annotValC_run {env : Env}
+theorem guardValueC_run {env : Env}
     {cvA : ConstantVal} {value jv : Expr} {s₀ s' : CState}
     (hs : CSOK μ env s₀)
-    (h : annotValC (mkFEnv env) cvA value s₀ = .ok (jv, s')) :
+    (h : guardValueC (mkFEnv env) cvA value s₀ = .ok (jv, s')) :
     CSOK μ env s' ∧ jv = value ∧ Expr.WScoped 0 value ∧
     installValue (m := CheckM) env cvA value = .ok value := by
-  unfold annotValC at h
+  unfold guardValueC at h
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
   case neg => rw [ite_eq_right h1] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h1] at h
@@ -125,7 +125,7 @@ theorem annotValC_run {env : Env}
 the environment the view names: the view and `mkFEnv env` have the same
 `find?`, so by `coreKnotI_congr` the check runs the core the
 simulation is stated about.  A theorem's value arrives unchecked and
-its guards run here (`annotValC` at the view, `annotValC_congr`), so
+its guards run here (`guardValueC` at the view, `guardValueC_congr`), so
 the well-scopedness premise on the value is asked only of the other two
 kinds. -/
 theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
@@ -139,7 +139,7 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
   have hfe : (feFinal.restrictTo pc.vis).find? = (mkFEnv env).find? :=
     funext fun n => (hfind n).trans (mkFEnv_find? env n).symm
   unfold checkPending at h
-  simp only [coreKnotI_congr hfe, opSIxC_congr hfe, annotValC_congr hfe] at h
+  simp only [coreKnotI_congr hfe, opSIxC_congr hfe, guardValueC_congr hfe] at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
@@ -194,7 +194,7 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
     | true =>
     simp only [↓reduceIte] at h
     obtain ⟨jv, s₅, hval, h⟩ := bindC_ok h
-    obtain ⟨hs₅, rfl, hwjv, hV⟩ := annotValC_run hs₄ hval
+    obtain ⟨hs₅, rfl, hwjv, hV⟩ := guardValueC_run hs₄ hval
     obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail _ hs₅ hwjv h
     refine ⟨hres', max (max F₁ F₂) F₅, ?_⟩
     exact checkValueGroup_of_facts (jv := pc.vg.jv)
@@ -216,15 +216,15 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
 
 /-- Phase A's value install, run: the two install halves, the header
 and the value as declared and well scoped, the residue kept. -/
-theorem annotValueC_run {env : Env}
+theorem guardValueDeclC_run {env : Env}
     {cv cvA : ConstantVal} {value jty jv : Expr} {s₀ s' : CState}
     (hres : CSOKF s₀)
-    (h : annotValueC (mkFEnv env) cv value s₀ = .ok ((cvA, jty, jv), s')) :
+    (h : guardValueDeclC (mkFEnv env) cv value s₀ = .ok ((cvA, jty, jv), s')) :
     CSOKF s' ∧ cvA = cv ∧ jty = cv.type ∧ jv = value ∧
     Expr.WScoped 0 cv.type ∧ Expr.WScoped 0 value ∧
     installConstantVal (m := CheckM) env cv = .ok cv ∧
     installValue (m := CheckM) env cv value = .ok value := by
-  unfold annotValueC at h
+  unfold guardValueDeclC at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
@@ -232,10 +232,10 @@ theorem annotValueC_run {env : Env}
   obtain ⟨pr, s₂, hcv, h₂⟩ := bindC_ok h
   obtain ⟨cvA', jty'⟩ := pr
   obtain ⟨hs₂, rfl, rfl, hwty, hI⟩ :=
-    annotConstantValC_run (μ := .verified) (env := env) (flushC_csok hres) hcv
+    guardHeaderC_run (μ := .verified) (env := env) (flushC_csok hres) hcv
   dsimp only at h₂
   obtain ⟨jv', s₃, hv, h₃⟩ := bindC_ok h₂
-  obtain ⟨hs₃, rfl, hwv, hV⟩ := annotValC_run (μ := .verified) hs₂ hv
+  obtain ⟨hs₃, rfl, hwv, hV⟩ := guardValueC_run (μ := .verified) hs₂ hv
   obtain ⟨hv', rfl⟩ := pureC_ok h₃
   simp only [Prod.mk.injEq] at hv'
   obtain ⟨rfl, rfl, rfl⟩ := hv'

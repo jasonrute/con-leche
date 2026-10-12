@@ -1302,14 +1302,14 @@ theorem Twin.ofViewAgrees {B : BaseIdx} {S : Slots} {fe : FEnv} (hag : ViewAgree
   ⟨(funext hag).symm, rfl, hidx, IdxBelow.ofWorkerView B S _⟩
 
 /-- Where `valueStep` has no verdict, phase A's step is the ordinary step. -/
-theorem annotStepC_of_valueStep_none {pins : List NatOpPinSet} {i : Nat} {fe W : FEnv}
+theorem installStepC_of_valueStep_none {pins : List NatOpPinSet} {i : Nat} {fe W : FEnv}
     {pend : Array PendingCheck} {pd : Declaration} (h : valueStep W pd = none) :
-    annotStepC mode pins i fe pend pd = (checkDeclStepC mode pins fe pd >>= fun fe' =>
+    installStepC mode pins i fe pend pd = (checkDeclStepC mode pins fe pd >>= fun fe' =>
       pure (fe', pend)) := by
   cases pd with
   | defnDecl cv value hint =>
     by_cases hnat : (natOpNames.contains cv.name || natDivModNames.contains cv.name) = true
-    · unfold annotStepC
+    · unfold installStepC
       dsimp only
       rw [ite_eq_left hnat]
     · unfold valueStep at h
@@ -1319,7 +1319,7 @@ theorem annotStepC_of_valueStep_none {pins : List NatOpPinSet} {i : Nat} {fe W :
   | thmDecl cv value => exact nomatch h
   | opaqueDecl cv value =>
     by_cases hred : reduceOpNames.contains cv.name = true
-    · unfold annotStepC
+    · unfold installStepC
       dsimp only
       rw [ite_eq_left hred]
     · unfold valueStep at h
@@ -1345,7 +1345,7 @@ theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {
     {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
     (hand : andPinOk pd = true)
     (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, vg?)) :
-    annotDeclStep mode pins (i, fe, pend) pd =
+    installDeclStep mode pins (i, fe, pend) pd =
       .ok (i + 1, FEnv.pushAll L fe, pushPending pend i fe.visibleBelow vg?) := by
   unfold installStep at h
   split at h
@@ -1355,7 +1355,7 @@ theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {
     exact valueStep_commit hag hand hv
   · exact nomatch h
   · rename_i hv
-    have hs := annotStepC_of_valueStep_none (mode := mode) (pins := pins) (i := i) (fe := fe) (pend := pend) hv
+    have hs := installStepC_of_valueStep_none (mode := mode) (pins := pins) (i := i) (fe := fe) (pend := pend) hv
     have ht := Twin.ofViewAgrees hag hidx
     split at h
     · rename_i W' s' hW
@@ -1369,7 +1369,7 @@ theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {
         have hL : (FEnv.pushAll L' (workerView B S fe.visibleBelow)).env.consts.reverse = L' := by
           rw [pushAll_env_consts]; simp [workerView]
         rw [ha₂, hL]
-        unfold annotDeclStep
+        unfold installDeclStep
         simp only [hand, ↓reduceIte, hs]
         show (match (checkDeclStepC mode pins fe pd {}).bind
             (fun v => (pure (v.1, pend) : CheckCM _) v.2) with
@@ -1384,7 +1384,7 @@ theorem installStep_commit_error {pins : List NatOpPinSet} {B : BaseIdx} {S : Sl
     {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {e : CheckError}
     (hag : ViewAgrees B S fe) (hidx : IdxBelow fe) (hand : andPinOk pd = true)
     (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .error e) :
-    annotDeclStep mode pins (i, fe, pend) pd = .error (e, i) := by
+    installDeclStep mode pins (i, fe, pend) pd = .error (e, i) := by
   unfold installStep at h
   split at h
   · exact nomatch h
@@ -1392,7 +1392,7 @@ theorem installStep_commit_error {pins : List NatOpPinSet} {B : BaseIdx} {S : Sl
     cases h
     exact valueStep_commit_error hag hand hv
   · rename_i hv
-    have hs := annotStepC_of_valueStep_none (mode := mode) (pins := pins) (i := i) (fe := fe) (pend := pend) hv
+    have hs := installStepC_of_valueStep_none (mode := mode) (pins := pins) (i := i) (fe := fe) (pend := pend) hv
     have ht := Twin.ofViewAgrees hag hidx
     split at h
     · exact nomatch h
@@ -1401,7 +1401,7 @@ theorem installStep_commit_error {pins : List NatOpPinSet} {B : BaseIdx} {S : Sl
       rcases checkDeclStepC_twin pins ht pd {} with ⟨e'', h₁, h₂⟩ | ⟨a₁, a₂, s'', h₁, h₂, -⟩
       · rw [h₂] at hW
         cases hW
-        unfold annotDeclStep
+        unfold installDeclStep
         simp only [hand, ↓reduceIte, hs]
         show (match (checkDeclStepC mode pins fe pd {}).bind
             (fun v => (pure (v.1, pend) : CheckCM _) v.2) with

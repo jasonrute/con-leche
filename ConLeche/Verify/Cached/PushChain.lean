@@ -536,22 +536,22 @@ theorem checkDeclStepC_push (mode : CheckMode) {env : Env} {fe : FEnv}
 
 /-- Phase A's step body: a fresh chain, and the pending records grow
 by at most the one it may push. -/
-theorem annotStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
+theorem installStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
     (h : PushChain env fe) (pend : Array PendingCheck) (pd : Declaration) :
-    Yields (annotStepC mode pins i fe pend pd)
+    Yields (installStepC mode pins i fe pend pd)
       (fun r => PushChain env r.1 ∧ ∃ new, r.2.toList = pend.toList ++ new) := by
   have hord : ∀ pd', Yields (do pure (← checkDeclStepC mode pins fe pd', pend) :
       CheckCM (FEnv × Array PendingCheck))
       (fun r => PushChain env r.1 ∧ ∃ new, r.2.toList = pend.toList ++ new) :=
     fun pd' => Yields.bind' (checkDeclStepC_push mode h pd') fun fe' h' =>
       Yields.pure ⟨h', [], by simp⟩
-  unfold annotStepC
+  unfold installStepC
   cases pd with
   | defnDecl cv value hint =>
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (annotValueC_fresh fe cv value) fun r hr => ?_
+    · refine Yields.bind' (guardValueDeclC_fresh fe cv value) fun r hr => ?_
       obtain ⟨cvA, jty, jv⟩ := r
       obtain ⟨hp, hfr⟩ := hr
       exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
@@ -559,7 +559,7 @@ theorem annotStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
   | thmDecl cv value =>
     simp only []
     ybind
-    refine Yields.bind' (annotConstantValC_fresh fe cv) fun p hr => ?_
+    refine Yields.bind' (guardHeaderC_fresh fe cv) fun p hr => ?_
     obtain ⟨cvA, jty⟩ := p
     obtain ⟨hp, hfr⟩ := hr
     exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
@@ -568,7 +568,7 @@ theorem annotStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (annotValueC_fresh fe cv value) fun r hr => ?_
+    · refine Yields.bind' (guardValueDeclC_fresh fe cv value) fun r hr => ?_
       obtain ⟨cvA, jty, jv⟩ := r
       obtain ⟨hp, hfr⟩ := hr
       exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
@@ -589,9 +589,9 @@ theorem installRun_trace (mode : CheckMode) {ds : List Declaration} {env : Env}
   induction h with
   | nil p => exact ⟨hp, [], by simp⟩
   | @cons pd ds p p₁ q hstep rest ih =>
-    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := annotDeclStep_ok hstep
+    obtain ⟨fe₁, pend₁, s₁, rfl, hstepC⟩ := installDeclStep_ok hstep
     obtain ⟨h₁, new₁, hpend₁⟩ :=
-      annotStepC_push mode p.1 hp p.2.2 _ {} (fe₁, pend₁) _ hstepC
+      installStepC_push mode p.1 hp p.2.2 _ {} (fe₁, pend₁) _ hstepC
     obtain ⟨h₂, new₂, hpend₂⟩ := ih h₁
     exact ⟨h₂, new₁ ++ new₂, by rw [hpend₂, hpend₁, List.append_assoc]⟩
 

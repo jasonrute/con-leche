@@ -25,7 +25,7 @@ as they are installed) is not separable and its install half IS
 
 `installConstantVal`, `installValue` and `checkValueGroup` are the two
 halves as pure functions over `CheckerOps`, the specification the
-fold's cached twins (`annotValueC`, `checkPending`,
+fold's cached twins (`guardValueDeclC`, `checkPending`,
 `ConLeche/Cached/Installed.lean`) simulate; `checkDecl_of_split_*`
 (`ConLeche/Verify/CheckerSplit.lean`) say the two halves are `checkDecl`.
 `ValueGroup` is the datum that crosses the seam.

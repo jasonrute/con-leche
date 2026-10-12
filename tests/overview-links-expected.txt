@@ -110,7 +110,7 @@
    452  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
    453      (ds : Array Declaration) :
    454      Except (CheckError × Nat) Env := do
-   455    let p ← ds.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[])
+   455    let p ← ds.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[])
    456    checkPendingList mode p.2.1 p.2.2.toList
    457    pure p.2.1.env
 
@@ -162,7 +162,7 @@
    155  def installLoop (mode : ConLeche.CheckMode) (err : IO.FS.Stream)
 
 == ConLeche/Cached/Installed.lean#L148-L151
-   148  def annotStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
+   148  def installStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
    149      (pend : Array PendingCheck) :
    150      Declaration → CheckCM (FEnv × Array PendingCheck)
    151    | .defnDecl cv value hint =>
@@ -185,7 +185,7 @@
   1354      {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
   1355      (hand : andPinOk pd = true)
   1356      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, vg?)) :
-  1357      annotDeclStep mode pins (i, fe, pend) pd =
+  1357      installDeclStep mode pins (i, fe, pend) pd =
   1358        .ok (i + 1, FEnv.pushAll L fe, pushPending pend i fe.visibleBelow vg?) := by
 
 == ConLeche/Cached/Installed.lean#L367-L369
@@ -231,7 +231,7 @@
    213    | nil (p : Nat × FEnv × Array PendingCheck) :
    214        InstallRun pins [] p p
    215    | cons {pd : Declaration} {ds : List Declaration} {p p₁ p' : Nat × FEnv × Array PendingCheck}
-   216        (h : annotDeclStep mode pins p pd = .ok p₁)
+   216        (h : installDeclStep mode pins p pd = .ok p₁)
    217        (rest : InstallRun pins ds p₁ p') :
    218        InstallRun pins (pd :: ds) p p'
 
@@ -1370,7 +1370,7 @@
    452  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
    453      (ds : Array Declaration) :
    454      Except (CheckError × Nat) Env := do
-   455    let p ← ds.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[])
+   455    let p ← ds.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[])
    456    checkPendingList mode p.2.1 p.2.2.toList
    457    pure p.2.1.env
 
