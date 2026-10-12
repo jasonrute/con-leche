@@ -25,11 +25,9 @@ next.
 
 `tg` is the axiomatic Grothendieck chain — task #342's stepping
 stones, named for Tarski–Grothendieck set theory (ruling R2, 2026-10-11).
-`univ` (`Derive/Univ.lean`) is, for now, the very same tower: stage
-1b of task #342 will redefine it as the *restricted* universe `typeU`
+`univ` (`Derive/Univ.lean`) is the universe of types `tyU`
 (`Derive/TypeU.lean`: truth values at `0`, and above the members of
-`tg n` that are neither the proof point nor contain it) — every site
-that reads `univ` today keeps reading it unchanged.
+`tg n` that are truth values or strict); `tg` is what size bounds read.
 -/
 
 namespace ConLeche.SetTheory

@@ -66,9 +66,21 @@ theorem piR_mem_univ {u v : Nat} {A : V} {B : V → V}
     have hw : (Nat.max u v : Nat) ≠ 0 :=
       fun h => hv' (Nat.le_zero.mp (h ▸ Nat.le_max_right u v))
     rw [ite_eq_right hv', piR_pos hv']
-    exact (univ_isTGUniverse hw).piSet_mem
-      (univ_mono (Nat.le_max_left u v) A hA)
-      (fun x hx => univ_mono (Nat.le_max_right u v) _ (hB x hx))
+    exact mem_univ_of_tg_strict ((tg_isTGUniverse hw).piSet_mem
+      (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
+      (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hB x hx))))
+      strict_piSet
+
+/-- A product is in the regime of its codomain bit: a truth value at
+`v = 0`, strict above (task #342). -/
+theorem Fib_piR (v : Nat) (A : V) (B : V → V) : Fib (decide (v = 0)) (piR v A B) := by
+  by_cases hv : v = 0
+  · subst hv; simp only [decide_true, Fib_true]; exact piR_zero_mem_univZero
+  · simp only [hv, decide_false, Fib_false]; rw [piR_pos hv]; exact strict_piSet
+
+/-- A product is a type. -/
+theorem IsTy_piR (v : Nat) (A : V) (B : V → V) : IsTy (piR v A B) :=
+  IsTy_of_Fib (Fib_piR v A B)
 
 open Classical in
 /-- Sharpness of the regime split: a graph-regime product whose fibres

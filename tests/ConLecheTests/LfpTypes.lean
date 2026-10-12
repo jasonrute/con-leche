@@ -10,7 +10,7 @@ public section
 An intersection of types need not be a type: `{ptTag, ∅}` and
 `{ptTag, {∅}}` are strict and their intersection is the point — the two
 closed fibres of `F X i = if ∅ ∈ X i then {ptTag, ∅} else {ptTag, {∅}}`.
-Over the restricted universe (`typeU`, what `univ` becomes at stage 1b)
+Over the restricted universe (`strictU`, what `univ` becomes at stage 1b)
 `lfpFamIn`/`lfpTuple` drop such a fibre to `∅` (`dropTo`).
 -/
 
@@ -58,10 +58,10 @@ theorem countermodel :
 
 /-- At a positive level the drop sends that intersection to `∅`. -/
 example {w : Nat} (hw : w ≠ 0) :
-    dropTo (typeU w) (sep (upair ptTag empty : V) (fun x => x ∈ˢ upair ptTag (sing empty)))
+    dropTo (strictU w) (sep (upair ptTag empty : V) (fun x => x ∈ˢ upair ptTag (sing empty)))
       = empty := by
   rw [countermodel.2.2]
   unfold dropTo
-  rw [ite_eq_right fun h => ((mem_typeU_pos hw).mp h).2.1 rfl]
+  rw [ite_eq_right fun h => ((mem_strictU_pos hw).mp h).2.1 rfl]
 
 end ConLeche.SetTheory.LfpTypesTest

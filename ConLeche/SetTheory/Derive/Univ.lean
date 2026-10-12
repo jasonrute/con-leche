@@ -7,10 +7,10 @@ public import ConLeche.SetTheory.Derive.TypeU
 /-!
 # `univ`: what `Sort n` means
 
-The axiomatic chain `tg` (`Derive/Tg.lean`) is the stepping stones;
-the restricted universes `typeU` (`Derive/TypeU.lean`) are what a
-sort will denote.  `univ` is, for now, still `tg`: stage 1b of task
-#342 (ruling R2) flips this one definition to `typeU`.
+The axiomatic chain `tg` (`Derive/Tg.lean`) is the stepping stones and
+what size bounds read; a sort denotes the universe of types `tyU`
+(`Derive/TypeU.lean`): the truth values at `0`, above the members of
+`tg n` that are truth values or strict (task #342, ruling R2, stage S1).
 -/
 
 namespace ConLeche.SetTheory
@@ -19,38 +19,80 @@ universe u
 
 variable {V : Type u} [SetTheory V]
 
-/-! ## `univ`, for now the same tower (task #342, ruling R2)
+/-! ## `univ` is the universe of types (task #342, ruling R2)
 
 Every site below reads "what `Sort u` means" (type-former formation,
 checked-term typing, basis-law installation) and is routed through
-`univ`, so stage 1b's redefinition touches only this definition and
-these corollaries — not every call site.  `univ` itself is left at
-the default transparency (unlike `tg`) exactly so these corollaries
-discharge by `rfl`/direct defeq against the `tg` facts above; 1b may
-reconsider that once `univ` is no longer literally `tg`. -/
+`univ`.  `univ n` is cumulative (`univ_mono`) and holds every truth
+value (`mem_univ_of_mem_univZero`), but above `0` it is not a
+Grothendieck universe: it is not transitive (`{pt}` is a member, `pt`
+is not), and not closed under subsets, unions or pairing.  Those
+closures are read at `tg` (`mem_tg_of_mem_univ` going down,
+`mem_univ_of_tg_strict` coming back), or at the strict universe
+`strictU` (the least fixed points' fibre space, `Derive/LfpFam.lean`). -/
 
-/-- `univ` will become, at stage 1b, the restricted universe (the
-whitepaper fragment's `typeU`); until then it is literally `tg`. -/
-noncomputable def univ : Nat → V := tg
+/-- **What `Sort n` means**: the universe of types `tyU n`. -/
+noncomputable def univ : Nat → V := tyU
 
-theorem univ_zero : (univ 0 : V) = univZero := tg_zero
+theorem univ_zero : (univ 0 : V) = univZero := tyU_zero
 
-theorem univ_isTGUniverse {n : Nat} (hn : n ≠ 0) :
-    IsTGUniverse (Mem (V := V)) (univ n) := tg_isTGUniverse hn
+theorem mem_univ {n : Nat} {T : V} : T ∈ˢ (univ n : V) ↔ T ∈ˢ tg n ∧ IsTy T := mem_tyU
 
-theorem univChain_one_mem_univ_succ (n : Nat) :
-    (univChain 1 : V) ∈ˢ univ (n + 1) := univChain_one_mem_tg_succ n
+theorem mem_tg_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) : T ∈ˢ tg n :=
+  mem_tg_of_mem_tyU h
 
-theorem univ_mem_univ (n : Nat) : (univ n : V) ∈ˢ univ (n + 1) := tg_mem_tg n
+theorem univ_subset_tg (n : Nat) : (univ n : V) ⊆ˢ tg n := fun _ => mem_tg_of_mem_univ
 
-theorem univ_subset_succ (n : Nat) : (univ n : V) ⊆ˢ univ (n + 1) := tg_subset_succ n
+theorem IsTy_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) : IsTy T :=
+  IsTy_of_mem_tyU h
 
-theorem univ_mono {m n : Nat} (h : m ≤ n) : (univ m : V) ⊆ˢ univ n := tg_mono h
+theorem ne_pt_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) : T ≠ pt :=
+  (IsTy_of_mem_univ h).ne_pt
 
-theorem omega_mem_univ_succ (n : Nat) : (omega : V) ∈ˢ univ (n + 1) := omega_mem_tg_succ n
+/-- A member of `tg n` that is a type is a member of `univ n`. -/
+theorem mem_univ_of_tg {n : Nat} {T : V} (hT : T ∈ˢ tg n) (h : IsTy T) : T ∈ˢ (univ n : V) :=
+  mem_tyU_of_IsTy hT h
 
-theorem empty_mem_univ (n : Nat) : (empty : V) ∈ˢ univ n := empty_mem_tg n
+/-- A member of `tg n` that is strict is a member of `univ n`. -/
+theorem mem_univ_of_tg_strict {n : Nat} {T : V} (hT : T ∈ˢ tg n) (hs : Strict T) :
+    T ∈ˢ (univ n : V) := mem_tyU_of_strict hT hs
 
-theorem unitSet_mem_univ (n : Nat) : (unitSet : V) ∈ˢ univ n := unitSet_mem_tg n
+/-- A truth value is a type of every sort. -/
+theorem mem_univ_of_mem_univZero {n : Nat} {T : V} (hT : T ∈ˢ (univZero : V)) :
+    T ∈ˢ (univ n : V) := mem_tyU_of_mem_univZero hT
+
+/-- **Cumulativity.** -/
+theorem univ_mono {m n : Nat} (h : m ≤ n) : (univ m : V) ⊆ˢ univ n := tyU_mono h
+
+theorem univ_subset_succ (n : Nat) : (univ n : V) ⊆ˢ univ (n + 1) := univ_mono (Nat.le_succ n)
+
+/-- The strict universe is inside the universe of types. -/
+theorem strictU_subset_univ (n : Nat) : (strictU n : V) ⊆ˢ univ n := strictU_subset_tyU n
+
+theorem mem_univ_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) :
+    T ∈ˢ (univ n : V) := strictU_subset_univ n T h
+
+/-- A strict member of `univ n` is a member of the strict universe. -/
+theorem mem_strictU_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) (hs : Strict T) :
+    T ∈ˢ (strictU n : V) := mem_strictU_of_strict h hs
+
+theorem strict_univ (n : Nat) : Strict (univ n : V) := strict_tyU n
+
+theorem univ_mem_tg_succ (n : Nat) : (univ n : V) ∈ˢ tg (n + 1) := tyU_mem_tg_succ n
+
+theorem univ_mem_univ (n : Nat) : (univ n : V) ∈ˢ univ (n + 1) := tyU_mem_tyU_succ n
+
+/-- `Sort m : Sort n` whenever `m < n`. -/
+theorem univ_mem_univ_of_lt {m n : Nat} (h : m < n) : (univ m : V) ∈ˢ univ n :=
+  univ_mono h _ (univ_mem_univ m)
+
+theorem omega_mem_univ_succ (n : Nat) : (omega : V) ∈ˢ univ (n + 1) :=
+  mem_univ_of_mem_strictU (omega_mem_strictU_succ n)
+
+theorem empty_mem_univ (n : Nat) : (empty : V) ∈ˢ univ n :=
+  mem_univ_of_mem_strictU (empty_mem_strictU n)
+
+theorem unitSet_mem_univ (n : Nat) : (unitSet : V) ∈ˢ univ n :=
+  mem_univ_of_mem_univZero (mem_univZero.mpr (Subset.refl _))
 
 end ConLeche.SetTheory

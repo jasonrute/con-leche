@@ -122,7 +122,8 @@ theorem gStep_maps (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)) :
     MapsFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) := by
   intro S hS
   rw [app_gStep hS]
-  exact graph_mem_famSpaceIn fun u hu => subsetClosed_tg ℓ _ _ (hB u hu) sep_subset
+  exact graph_mem_famSpaceIn fun u hu =>
+    subsetClosed_tg ℓ _ _ (mem_tg_of_mem_univ (hB u hu)) sep_subset
 
 theorem gStep_mono (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ U) :
     MonoFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) := by
@@ -138,8 +139,9 @@ theorem gStep_mono (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ
 
 theorem gStep_closed (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)) :
     IsClosedFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) (graph B U) := by
-  refine ⟨graph_mem_famSpaceIn hB, fun u hu v hv => ?_⟩
-  rw [app_app_gStep (graph_mem_famSpaceIn hB) hu] at hv
+  have hB' : ∀ u, u ∈ˢ U → B u ∈ˢ (tg ℓ : V) := fun u hu => mem_tg_of_mem_univ (hB u hu)
+  refine ⟨graph_mem_famSpaceIn hB', fun u hu v hv => ?_⟩
+  rw [app_app_gStep (graph_mem_famSpaceIn hB') hu] at hv
   rw [app_graph hu]
   exact (mem_gFibre.mp hv).1
 

@@ -9,8 +9,9 @@ import ConLeche.SetTheory.Derive.Lfp
 
 The carrier of a directly installed recursive **family** `T : I → Sort w`
 is the least pre-fixed point of its constructor-tower functor acting on
-FAMILIES — graphs over the index-tuple set `I` with values in `univ w`
-(`famSpace`), ordered pointwise (`FamLe`).  This is `Lfp.lean` fibrewise:
+FAMILIES — graphs over the index-tuple set `I` with values in the
+strict universe `strictU w` (`famSpace`), ordered pointwise (`FamLe`).
+This is `Lfp.lean` fibrewise:
 
     lfpFamSet w I F = i ↦ {x ∈ L₀ i | ∀ closed X, x ∈ X i}
 
@@ -18,22 +19,28 @@ over a classically chosen closed family `L₀` (the empty family when
 there is none — TOTAL, so the basis constant `lfpFam` needs no
 certificate: `lfpFamSet_mem`).
 
-**A fibre space need not be closed under subsets** (task #342).  Once
-`univ w` is the restricted universe (stage 1b: above `Prop` the members
-that neither are the proof point nor contain it), an intersection of
-fibres can leave it: `F X i = if ∅ ∈ X i then {ptTag, ∅} else
-{ptTag, {∅}}` has the closed fibres `{ptTag, ∅}` and `{ptTag, {∅}}`, both
-strict, whose intersection `{ptTag}` is the point.  So the construction
-is stated over an arbitrary fibre space `C` (`famSpaceIn`, `lfpFamIn`)
-and a fibre that leaves `C` is dropped to `∅` (`dropTo`) — the value
-stays a family of `C` for EVERY functor.  What the laws read of `C` is
-`∅ ∈ C` and `DropClosed C`: a subset of a member that is not a member
-has only `∅` among the members below it (at the restricted universe:
-such a subset is the point, and a type inside the point is `∅`).  The
-drop is a no-op for a monotone functor mapping the space into itself
-(`mem_app_lfpFamIn`: the fibre is the raw intersection), which is every
-installed operator (`AccTuple.monoTuple`).  Today `univ w` is the
-axiomatic level, closed under subsets, and the drop never fires.
+**The fibre space is `strictU w`, not `univ w`** (task #342).  A sort
+denotes the universe of types `univ w = tyU w`, which holds `{pt}` at
+every level; a union of members of it (`{pt} ∪ ω`) or a member with `∅`
+added (`{pt} ∪ {∅}`) need not be a type.  The strict universe is closed
+under both (`strictU_famUnion_mem`, `strictU_binUnion_sing_empty_mem`),
+and an inductive fibre above `Prop` is a set of tagged tuples, strict;
+at `w = 0` the two universes agree.  A family of the space is a family
+of types (`famSpace_app_univ`).
+
+**A fibre space need not be closed under subsets.**  An intersection of
+strict fibres can leave the strict universe: `F X i = if ∅ ∈ X i then
+{ptTag, ∅} else {ptTag, {∅}}` has the closed fibres `{ptTag, ∅}` and
+`{ptTag, {∅}}`, both strict, whose intersection `{ptTag}` is the point.
+So the construction is stated over an arbitrary fibre space `C`
+(`famSpaceIn`, `lfpFamIn`) and a fibre that leaves `C` is dropped to
+`∅` (`dropTo`) — the value stays a family of `C` for EVERY functor.
+What the laws read of `C` is `∅ ∈ C` and `DropClosed C`: a subset of a
+member that is not a member has only `∅` among the members below it
+(at the strict universe: such a subset is the point, and a type inside
+the point is `∅`).  The drop is a no-op for a monotone functor mapping
+the space into itself (`mem_app_lfpFamIn`: the fibre is the raw
+intersection), which is every installed operator (`AccTuple.monoTuple`).
 
 The same construction over `C = tg ℓ` is the recursor family's GRAPH
 (`SetModel/GraphRec.lean`): a relation, whose fibres are sets of
@@ -134,6 +141,12 @@ theorem graph_mem_famSpaceIn {C I : V} {G : V → V} (h : ∀ i, i ∈ˢ I → G
     graph G I ∈ˢ famSpaceIn C I :=
   graph_mem_piSet h
 
+/-- The family space grows with its fibre space. -/
+theorem famSpaceIn_mono {C D I : V} (h : C ⊆ˢ D) : famSpaceIn C I ⊆ˢ famSpaceIn D I :=
+  fun X hX => by
+    rw [← eq_graph_app_of_mem_piSet hX]
+    exact graph_mem_famSpaceIn fun i hi => h _ (famSpaceIn_app hX hi)
+
 open Classical in
 /-- **The least pre-fixed family of `F` over `I`** — fibrewise the
 intersection of the closed families when there is one (separated from
@@ -224,44 +237,19 @@ end In
 /-! ## The levels
 
 What the family and tuple constructions (here, `LfpTuple.lean`, and the
-accessibility construction `SetModel/Access.lean`) read of a level
-`univ w`, beyond `∅ ∈ univ w` (`empty_mem_univ`): closure under subsets
-up to a drop (`univ_dropClosed`), unions of a family of members indexed
-by a set of the axiomatic level (`univ_famUnion_mem`), and adding `∅` as
-a member (`univ_binUnion_sing_empty_mem`).  Today all three hold because
-`univ w` is the axiomatic level; they hold at the restricted universe
-`typeU w` too (`typeU_dropClosed`, `typeU_famUnion_mem`,
-`typeU_binUnion_sing_empty_mem`, below: a subset of a strict set is
-strict or the point, a union of strict sets is strict, `{∅}` is strict),
-so when stage 1b of task #342 makes `univ` the restricted universe the
-three are re-proved by those and the constructions' laws carry over
-unchanged.  Nothing else of the level is read. -/
-
-/-- **A level is closed under subsets up to a drop.** -/
-theorem univ_dropClosed (w : Nat) : DropClosed (univ w : V) :=
-  SubsetClosed.dropClosed fun _ _ hy hz => univ_mem_of_subset_mem hy hz
-
-/-- **A union of members of a positive level**, indexed by a set of the
-axiomatic level, is a member. -/
-theorem univ_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA : A ∈ˢ (tg w : V))
-    (hF : ∀ a, a ∈ˢ A → F a ∈ˢ (univ w : V)) : sUnion (image F A) ∈ˢ (univ w : V) :=
-  (univ_isTGUniverse hw).famUnion_mem hA hF
-
-/-- **A member of a positive level with `∅` added** is a member. -/
-theorem univ_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V} (hX : X ∈ˢ (univ w : V)) :
-    binUnion X (sing empty) ∈ˢ (univ w : V) :=
-  (univ_isTGUniverse hw).binUnion_mem (empty_mem_univ _) hX
-    ((univ_isTGUniverse hw).sing_mem (empty_mem_univ _) (empty_mem_univ _))
+accessibility construction `SetModel/Access.lean`) read of their fibre
+space `strictU w`, beyond `∅ ∈ strictU w` (`empty_mem_strictU`): closure
+under subsets up to a drop (`strictU_dropClosed`: a subset of a strict
+set is strict or the point), unions of a family of members indexed by a
+set of the axiomatic level (`strictU_famUnion_mem`: a union of strict
+sets is strict), and adding `∅` as a member
+(`strictU_binUnion_sing_empty_mem`: `{∅}` is strict).  Nothing else of
+the level is read.  The universe of types `univ w` has the first
+(`univ_dropClosed`) but not the other two. -/
 
 /-- Every level of the axiomatic chain `tg` is closed under subsets. -/
-theorem subsetClosed_tg (w : Nat) : SubsetClosed (tg w : V) := by
-  intro y z hy hz
-  rcases Nat.eq_zero_or_pos w with rfl | hw
-  · rw [tg_zero, mem_univZero] at hy ⊢
-    exact hz.trans hy
-  · exact (tg_isTGUniverse (Nat.pos_iff_ne_zero.mp hw)).mem_of_subset_mem hy hz
-
-/-! ### The same facts at the restricted universe -/
+theorem subsetClosed_tg (w : Nat) : SubsetClosed (tg w : V) :=
+  fun _ _ hy hz => tg_mem_of_subset_mem hy hz
 
 /-- A nonempty set inside the point is the point. -/
 theorem eq_pt_of_subset_pt {Y y : V} (hY : Y ⊆ˢ pt) (hy : y ∈ˢ Y) : Y = pt := by
@@ -269,44 +257,59 @@ theorem eq_pt_of_subset_pt {Y y : V} (hY : Y ⊆ˢ pt) (hy : y ∈ˢ Y) : Y = pt
   rw [mem_pt.mp hz, ← mem_pt.mp (hY y hy)]
   exact hy
 
-/-- **The restricted universe is closed under subsets up to a drop**: a
+/-- **The strict universe is closed under subsets up to a drop**: a
 subset of a strict set that is not a type is the point, and the only
 type inside the point is `∅`. -/
-theorem typeU_dropClosed (w : Nat) : DropClosed (typeU w : V) := by
+theorem strictU_dropClosed (w : Nat) : DropClosed (strictU w : V) := by
   intro Z S Y hZ hSZ hS hY hYS
   by_cases hw : w = 0
   · subst hw
-    rw [typeU_zero, mem_univZero] at hZ hS
+    rw [strictU_zero, mem_univZero] at hZ hS
     exact absurd (hSZ.trans hZ) hS
-  · obtain ⟨hZt, -, hZp⟩ := (mem_typeU_pos hw).mp hZ
-    obtain ⟨-, hYne, -⟩ := (mem_typeU_pos hw).mp hY
-    have hSpt : S = pt := Classical.byContradiction fun hne => hS ((mem_typeU_pos hw).mpr
+  · obtain ⟨hZt, -, hZp⟩ := (mem_strictU_pos hw).mp hZ
+    obtain ⟨-, hYne, -⟩ := (mem_strictU_pos hw).mp hY
+    have hSpt : S = pt := Classical.byContradiction fun hne => hS ((mem_strictU_pos hw).mpr
       ⟨subsetClosed_tg w _ _ hZt hSZ, hne, fun h => hZp (hSZ _ h)⟩)
     subst hSpt
     exact Subset.antisymm (fun y hy => absurd (eq_pt_of_subset_pt hYS hy) hYne)
       (empty_subset _)
 
-/-- **A union of types of a positive level**, indexed by a set of the
-axiomatic level, is a type: a union of strict sets is strict. -/
-theorem typeU_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA : A ∈ˢ (tg w : V))
-    (hF : ∀ a, a ∈ˢ A → F a ∈ˢ (typeU w : V)) : sUnion (image F A) ∈ˢ (typeU w : V) := by
-  refine (mem_typeU_pos hw).mpr ⟨(tg_isTGUniverse hw).famUnion_mem hA fun a ha =>
-    ((mem_typeU_pos hw).mp (hF a ha)).1, fun he => ?_, fun hp => ?_⟩
+/-- **The universe of types is closed under subsets up to a drop**, by
+the same argument (a subset of a truth value is a truth value). -/
+theorem univ_dropClosed (w : Nat) : DropClosed (univ w : V) := by
+  intro Z S Y hZ hSZ hS hY hYS
+  obtain ⟨hZt, hZty⟩ := mem_univ.mp hZ
+  have hSt : S ∈ˢ (tg w : V) := subsetClosed_tg w _ _ hZt hSZ
+  rcases hZty with hZ0 | ⟨-, hZp⟩
+  · exact absurd (mem_univ_of_mem_univZero (mem_univZero.mpr
+      (hSZ.trans (mem_univZero.mp hZ0)))) hS
+  · have hSpt : S = pt := Classical.byContradiction fun hne =>
+      hS (mem_univ_of_tg_strict hSt ⟨hne, fun h => hZp (hSZ _ h)⟩)
+    subst hSpt
+    exact Subset.antisymm (fun y hy => absurd (eq_pt_of_subset_pt hYS hy)
+      (ne_pt_of_mem_univ hY)) (empty_subset _)
+
+/-- **A union of strict types of a positive level**, indexed by a set
+of the axiomatic level, is one: a union of strict sets is strict. -/
+theorem strictU_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA : A ∈ˢ (tg w : V))
+    (hF : ∀ a, a ∈ˢ A → F a ∈ˢ (strictU w : V)) : sUnion (image F A) ∈ˢ (strictU w : V) := by
+  refine (mem_strictU_pos hw).mpr ⟨(tg_isTGUniverse hw).famUnion_mem hA fun a ha =>
+    ((mem_strictU_pos hw).mp (hF a ha)).1, fun he => ?_, fun hp => ?_⟩
   · have : (ptTag : V) ∈ˢ sUnion (image F A) := he ▸ ptTag_mem_pt
     obtain ⟨y, hy, hty⟩ := mem_sUnion.mp this
     obtain ⟨a, ha, rfl⟩ := mem_image.mp hy
-    exact ((mem_typeU_pos hw).mp (hF a ha)).2.1
+    exact ((mem_strictU_pos hw).mp (hF a ha)).2.1
       (eq_pt_of_subset_pt (fun z hz => he ▸ mem_sUnion.mpr ⟨_, hy, hz⟩) hty)
   · obtain ⟨y, hy, hpy⟩ := mem_sUnion.mp hp
     obtain ⟨a, ha, rfl⟩ := mem_image.mp hy
-    exact ((mem_typeU_pos hw).mp (hF a ha)).2.2 hpy
+    exact ((mem_strictU_pos hw).mp (hF a ha)).2.2 hpy
 
-/-- **A type of a positive level with `∅` added** is a type. -/
-theorem typeU_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V}
-    (hX : X ∈ˢ (typeU w : V)) : binUnion X (sing empty) ∈ˢ (typeU w : V) := by
-  obtain ⟨hXt, -, hXp⟩ := (mem_typeU_pos hw).mp hX
+/-- **A strict type of a positive level with `∅` added** is one. -/
+theorem strictU_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V}
+    (hX : X ∈ˢ (strictU w : V)) : binUnion X (sing empty) ∈ˢ (strictU w : V) := by
+  obtain ⟨hXt, -, hXp⟩ := (mem_strictU_pos hw).mp hX
   have hU := tg_isTGUniverse (V := V) hw
-  refine (mem_typeU_pos hw).mpr ⟨hU.binUnion_mem (empty_mem_tg w) hXt
+  refine (mem_strictU_pos hw).mpr ⟨hU.binUnion_mem (empty_mem_tg w) hXt
     (hU.sing_mem (empty_mem_tg w) (empty_mem_tg w)), fun he => ?_, fun hp => ?_⟩
   · -- `∅` is a member, and `∅ ≠ ptTag`
     have h0 : (empty : V) ∈ˢ binUnion X (sing empty) :=
@@ -321,33 +324,44 @@ theorem typeU_binUnion_sing_empty_mem {w : Nat} (hw : w ≠ 0) {X : V}
 
 /-! ## Families of a level -/
 
-/-- The family space over `I`: graphs into `univ w`. -/
-noncomputable def famSpace (w : Nat) (I : V) : V := famSpaceIn (univ w) I
+/-- The family space over `I`: graphs into the strict universe
+`strictU w`. -/
+noncomputable def famSpace (w : Nat) (I : V) : V := famSpaceIn (strictU w) I
 
 /-- An `F`-closed family: a pre-fixed point of `app F` in the family
 space. -/
-def IsClosedFam (w : Nat) (I F X : V) : Prop := IsClosedFamIn (univ w) I F X
+def IsClosedFam (w : Nat) (I F X : V) : Prop := IsClosedFamIn (strictU w) I F X
 
 theorem famSpace_app {w : Nat} {I X i : V} (hX : X ∈ˢ famSpace w I) (hi : i ∈ˢ I) :
-    app X i ∈ˢ (univ w : V) :=
+    app X i ∈ˢ (strictU w : V) :=
   famSpaceIn_app hX hi
+
+/-- A family of the space is a family of types. -/
+theorem famSpace_subset_univ (w : Nat) (I : V) : famSpace w I ⊆ˢ famSpaceIn (univ w) I :=
+  famSpaceIn_mono (strictU_subset_univ w)
+
+/-- A fibre of a family of the space is a type. -/
+theorem famSpace_app_univ {w : Nat} {I X i : V} (hX : X ∈ˢ famSpace w I) (hi : i ∈ˢ I) :
+    app X i ∈ˢ (univ w : V) :=
+  mem_univ_of_mem_strictU (famSpace_app hX hi)
 
 /-- Members of the family space agreeing pointwise are equal. -/
 theorem famSpace_ext {w : Nat} {I X Y : V} (hX : X ∈ˢ famSpace w I) (hY : Y ∈ˢ famSpace w I)
     (h : ∀ i, i ∈ˢ I → app X i = app Y i) : X = Y :=
   famSpaceIn_ext hX hY h
 
-/-- A graph with fibres in `univ w` is in the family space. -/
-theorem graph_mem_famSpace {w : Nat} {I : V} {G : V → V} (h : ∀ i, i ∈ˢ I → G i ∈ˢ (univ w : V)) :
+/-- A graph with fibres in `strictU w` is in the family space. -/
+theorem graph_mem_famSpace {w : Nat} {I : V} {G : V → V}
+    (h : ∀ i, i ∈ˢ I → G i ∈ˢ (strictU w : V)) :
     graph G I ∈ˢ famSpace w I :=
   graph_mem_famSpaceIn h
 
 /-- **The least pre-fixed family of `F` over `I`** at level `w`. -/
-noncomputable def lfpFamSet (w : Nat) (I F : V) : V := lfpFamIn (univ w) I F
+noncomputable def lfpFamSet (w : Nat) (I F : V) : V := lfpFamIn (strictU w) I F
 
 /-- **Formation, unconditional**: the least pre-fixed family is in the
 family space. -/
 theorem lfpFamSet_mem (w : Nat) (I F : V) : lfpFamSet w I F ∈ˢ famSpace w I :=
-  lfpFamIn_mem (empty_mem_univ w) I F
+  lfpFamIn_mem (empty_mem_strictU w) I F
 
 end ConLeche.SetTheory

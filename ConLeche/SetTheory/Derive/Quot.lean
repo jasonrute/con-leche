@@ -126,21 +126,6 @@ theorem quotSound {u : Nat} {A R a b w : V} (ha : a ∈ˢ A) (hb : b ∈ˢ A)
   · rfl
   · exact congrArg (kpair empty) (qclass_eq_of_rel (QuotRel.base ha hb ⟨w, hw⟩))
 
-theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
-    quotSet u A R ∈ˢ (univ u : V) := by
-  unfold quotSet
-  split
-  · next h =>
-    subst h
-    rw [univ_zero]
-    refine mem_univZero.mpr fun z hz => ?_
-    obtain ⟨-, -, rfl⟩ := mem_image.mp hz
-    exact pt_mem_unitSet
-  · next h =>
-    have hU := univ_isTGUniverse (V := V) h
-    exact hU.image_mem hA fun a _ => hU.kpair_mem hA (hU.empty_mem hA)
-      (hU.mem_of_subset_mem hA fun w hw => (mem_qclass.mp hw).1)
-
 open Classical in
 /-- A representative of a quotient class, by choice. -/
 noncomputable def qrep (u : Nat) (A R q : V) : V :=
@@ -243,5 +228,22 @@ theorem quotSet_ne_pt (u : Nat) (A R : V) : quotSet u A R ≠ (pt : V) := by
 
 /- Opaque interface operators (see `Derive/Empty.lean`). -/
 attribute [irreducible] quotSet quotClass
+
+theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
+    quotSet u A R ∈ˢ (univ u : V) := by
+  by_cases h : u = 0
+  · subst h
+    unfold quotSet
+    rw [ite_eq_left rfl, univ_zero]
+    refine mem_univZero.mpr fun z hz => ?_
+    obtain ⟨-, -, rfl⟩ := mem_image.mp hz
+    exact pt_mem_unitSet
+  · refine mem_univ_of_tg_strict ?_ (strict_quotSet h A R)
+    have hA' := mem_tg_of_mem_univ hA
+    have hU := tg_isTGUniverse (V := V) h
+    unfold quotSet
+    rw [ite_eq_right h]
+    exact hU.image_mem hA' fun a _ => hU.kpair_mem hA' (hU.empty_mem hA')
+      (hU.mem_of_subset_mem hA' fun w hw => (mem_qclass.mp hw).1)
 
 end ConLeche.SetTheory

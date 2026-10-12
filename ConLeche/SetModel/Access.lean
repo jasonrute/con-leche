@@ -41,7 +41,7 @@ small}` has the universe's ordinals as its least fixed point.
 
 namespace ConLeche.SetTheory
 
-open ConLeche.SetTheory.Tower (natUnion mem_natUnion natUnion_mem_univ_pos)
+open ConLeche.SetTheory.Tower (natUnion mem_natUnion natUnion_mem_tg_pos)
 
 universe u
 
@@ -83,7 +83,7 @@ theorem kpair_mem_accPaths {A a p : V} (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths A
 theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
     accPaths A ∈ˢ (tg w : V) := by
   have hU := tg_isTGUniverse (V := V) hw
-  refine natUnion_mem_univ_pos hw fun n => ?_
+  refine natUnion_mem_tg_pos hw fun n => ?_
   induction n with
   | zero => exact unitSet_mem_tg w
   | succ n ih => exact hU.sigmaPairs_mem hA fun _ _ => ih
@@ -193,7 +193,7 @@ theorem stage_eq_of_code : ∀ T T' : BT V, code A T = code A T' →
       rw [stage_eq_of_code (f a) (f' a) (hsub a ha)]
 
 theorem emptyTup_mem : InTupleSpace w k Is (emptyTup Is) :=
-  fun _ _ => graph_mem_famSpace fun _ _ => empty_mem_univ w
+  fun _ _ => graph_mem_famSpace fun _ _ => empty_mem_strictU w
 
 theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
     ∀ T : BT V, InTupleSpace w k Is (stage Is Φ A T)
@@ -201,7 +201,7 @@ theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w 
   | .node f => by
     simp only [stage]
     refine hmaps _ fun m hm => graph_mem_famSpace fun i hi => ?_
-    exact univ_famUnion_mem hw hA fun a _ =>
+    exact strictU_famUnion_mem hw hA fun a _ =>
       famSpace_app (stage_mem hw hA hmaps (f a) m hm) hi
 
 theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
@@ -223,7 +223,7 @@ theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w
     InTupleSpace w k Is (limTup Is Φ A) := by
   intro m hm
   refine graph_mem_famSpace fun i hi => ?_
-  exact univ_famUnion_mem hw ((tg_isTGUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
+  exact strictU_famUnion_mem hw ((tg_isTGUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
     famSpace_app (stage_mem hw hA hmaps _ m hm) hi
 
 theorem mem_unionTup {F : V → Nat → V} {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
@@ -255,7 +255,7 @@ theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTupl
     refine hsupp _ (stage_mem hw hA hmaps (.node f) |> fun _ => ?_) ?_
     · intro m' hm'
       refine graph_mem_famSpace fun i' hi' => ?_
-      exact univ_famUnion_mem hw hA fun a _ =>
+      exact strictU_famUnion_mem hw hA fun a _ =>
         famSpace_app (stage_mem hw hA hmaps (f a) m' hm') hi'
     · intro a ha
       refine ⟨(hgL a ha).1, (hgL a ha).2.1, (mem_unionTup (hgL a ha).2.1).mpr ⟨a, hBA a ha, ?_⟩⟩
@@ -275,12 +275,12 @@ at `w = 0` is a subset of `{pt}`, so `MapsTuple` alone suffices. -/
 theorem closedTuple_zero {k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
     (hmaps : MapsTuple 0 k Is Φ) : ∃ L, IsClosedTuple 0 k Is Φ L := by
   have htop : InTupleSpace 0 k Is (fun m => graph (fun _ => unitSet) (Is m)) := fun m _ =>
-    graph_mem_famSpace fun _ _ => unitSet_mem_univ 0
+    graph_mem_famSpace fun _ _ => unitSet_mem_strictU_zero
   refine ⟨_, htop, fun m hm i hi x hx => ?_⟩
   show x ∈ˢ app (graph (fun _ => unitSet) (Is m)) i
   rw [app_graph hi]
   have := famSpace_app (hmaps _ htop m hm) hi
-  rw [univ_zero] at this
+  rw [strictU_zero] at this
   exact mem_univZero.mp this x hx
 
 /-- **Accessibility, with a bound of the level at a `Type`-valued

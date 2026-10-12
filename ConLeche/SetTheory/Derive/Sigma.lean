@@ -114,18 +114,26 @@ theorem ssnd_pt : ssnd (pt : V) = pt := by
   rintro ⟨a, b, h⟩
   exact pt_ne_kpair a b h
 
-/-- Formation along the tower, at the joint level `max u v`. -/
-theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
-    (hA : A ∈ˢ (univ u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (univ v : V)) :
+/-- Formation along the tower, at the joint level `max u v`, from the
+size bounds alone: above `0` a pair set is strict (task #342). -/
+theorem sigma_mem_univ_tg {u v : Nat} {A : V} {B : V → V}
+    (hA : A ∈ˢ (tg u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (tg v : V)) :
     sigmaSet (Nat.max u v) A B ∈ˢ (univ (Nat.max u v) : V) := by
   rcases Nat.eq_zero_or_pos (Nat.max u v) with hw | hw
   · rw [hw, sigmaSet_zero, univ_zero]
     exact truthVal_mem_univZero _
   · have hw' : Nat.max u v ≠ 0 := Nat.pos_iff_ne_zero.mp hw
     rw [sigmaSet_pos hw']
-    exact (univ_isTGUniverse hw').sigmaPairs_mem
-      (univ_mono (Nat.le_max_left u v) A hA)
-      (fun x hx => univ_mono (Nat.le_max_right u v) _ (hB x hx))
+    exact mem_univ_of_tg_strict ((tg_isTGUniverse hw').sigmaPairs_mem
+      (tg_mono (Nat.le_max_left u v) A hA)
+      (fun x hx => tg_mono (Nat.le_max_right u v) _ (hB x hx)))
+      strict_sigmaPairs
+
+/-- Formation along the tower, at the joint level `max u v`. -/
+theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
+    (hA : A ∈ˢ (univ u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (univ v : V)) :
+    sigmaSet (Nat.max u v) A B ∈ˢ (univ (Nat.max u v) : V) :=
+  sigma_mem_univ_tg (mem_tg_of_mem_univ hA) fun x hx => mem_tg_of_mem_univ (hB x hx)
 
 /-! ## The unit at a level (task #342, items B and C)
 
@@ -162,8 +170,13 @@ theorem unitSetAt_mem_univ : ∀ w : Nat, (unitSetAt w : V) ∈ˢ univ w
   | 0 => unitSetAt_zero (V := V) ▸ unitSet_mem_univ 0
   | n + 1 => by
     rw [unitSetAt_pos (Nat.succ_ne_zero n)]
-    exact (univ_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
-      (univChain_one_mem_univ_succ n) (empty_mem_univ _)
+    refine mem_univ_of_tg_strict ((tg_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
+      (univChain_one_mem_tg_succ n) (empty_mem_tg _)) ⟨fun h => ?_, fun h => ?_⟩
+    · have h1 : (empty : V) = ptTag := mem_pt.mp (h ▸ mem_sing.mpr rfl)
+      have h2 := empty_mem_ptTag (V := V)
+      rw [← h1] at h2
+      exact not_mem_empty _ h2
+    · exact pt_ne_empty (mem_sing.mp h)
 
 theorem empty_ne_kpair (a b : V) : (empty : V) ≠ kpair a b := fun h =>
   not_mem_empty (sing a) (h ▸ mem_upair_left (sing a) (upair a b))
