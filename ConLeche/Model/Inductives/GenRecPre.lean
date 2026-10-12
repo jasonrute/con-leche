@@ -440,6 +440,9 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
       zs.length = nIdxX c →
       interp V (consList (xs ++ (zs ++ [x])) ρ) (concl c)
         = (zs ++ [x]).foldl SetTheory.app (xs.getD (motPos c) pt))
+    (hconclTy : ∀ c, c < K → ∀ (xs zs : List V) (x : V),
+      SpineFit ρ ((rds c).map (·.2.2)) (xs ++ (zs ++ [x])) →
+      IsTy (interp V (consList (xs ++ (zs ++ [x])) ρ) (concl c)))
     (hminor : ∀ c, c < K → ∀ j, j < nCt c → ∀ xs, SpineFit ρ (pdoms c) xs →
       ∀ fs, SpineFit (consList xs ρ) (fdoms c j) fs →
       ∀ hs : List V, hs.length = (ihd c j).length →
@@ -481,10 +484,35 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
     intro q hq
     obtain ⟨hbT, hbA⟩ := hbelow c hc j hj q hq
     rw [hDd] at hbT hbA
-    -- L17: the ih binder's codomain (the callee's motive applied at the
-    -- call's indices and major) is a type; no premise here says the motive
-    -- lands in a universe
-    refine lamTower_mem_piTower q.2.1 hbT hagree (fun bs hbs => ?_) (fun _ _ => by sorry)
+    -- the ih binder's codomain is the callee's conclusion at the call's
+    -- spine, a type (`hconclTy`: the recursor type's innermost fibre)
+    have hCty : ∀ bs, SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs →
+        IsTy (interp V (consList bs (consList (xs ++ fs) ρ))
+          (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
+            (q.2.2.1 ++ [q.2.2.2]))) := by
+      intro bs hbs
+      have hbl : bs.length = q.2.1.length := by rw [hbs.length_eq, List.length_map]
+      obtain ⟨ht, hxlT, hfitT⟩ := hcallTy c hc j hj xs fs hxl hsp q hq bs hbs
+      have hisl : (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))).length
+          = nIdxX q.1 := by
+        have := hfitT.length_eq
+        simp only [List.length_append, List.length_singleton, List.length_map, hlenR q.1 ht,
+          hxlT] at this
+        simp only [List.length_map]
+        omega
+      have hmt := hmot q.1 ht
+      have hhd : interp V (consList bs (consList (xs ++ fs) ρ))
+          (.bvar (D + q.2.1.length - 1 - motPos q.1)) = xs.getD (motPos q.1) pt := by
+        show consList bs (consList (xs ++ fs) ρ) _ = _
+        rw [← consList_append, List.append_assoc,
+          show D + q.2.1.length - 1 - motPos q.1
+            = (fs ++ bs).length + xs.length - 1 - motPos q.1 by simp [hxl, hfl, hbl, ← hDd]; omega]
+        exact consList_prefix_getD (by omega)
+      rw [interp_mkAppN, ← List.foldl_map, hhd]
+      simp only [List.map_append, List.map_cons, List.map_nil]
+      rw [← hconclMot q.1 ht xs _ _ hxlT hisl]
+      exact hconclTy q.1 ht xs _ _ hfitT
+    refine lamTower_mem_piTower q.2.1 hbT hagree (fun bs hbs => ?_) hCty
     have hbl : bs.length = q.2.1.length := by rw [hbs.length_eq, List.length_map]
     have hargR : ∀ e ∈ q.2.2.1 ++ [q.2.2.2],
         interp V (consList bs (consList (xs ++ fs) (chainFrame K (genFT ρ rP rds tup g) ρ))) e
@@ -1220,6 +1248,13 @@ theorem genRow_hstep (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       rw [← hret, isOfW_length])
     hcallTy hbelow
     (fun c' hc' xs zs x hxl hzl => hconclMot c' hc' xs zs x hxl (by rw [hzl, hnIdx c' hc']))
+    (fun c' hc' xs zs x hfit => by
+      -- the recursor type's innermost fibre is its conclusion, a type
+      obtain ⟨-, -, -, -, heq, hlen, -, -, -, hwd⟩ :=
+        recStage_tyPis hμ mpC h (List.getElem?_eq_getElem hc') ψ
+      have hwdρ := hwd ρ
+      rw [heq] at hwdρ
+      exact isTy_of_wd_mkPisAV (fun h0 => by rw [h0] at hlen; simp at hlen) hwdρ hfit)
     hminor
     xs c hc j hj i fs hi hfit gv hg
   have hih := genIhsAV_eq (mpC := mpC) (envC := envC) (pp := pp) (out := out) (g := g) (rd := rd)
