@@ -301,6 +301,7 @@ theorem blockLfpClause_of_records {envC envI : Env} {mo : EnvModel V envC} {d : 
     (fun ψ hw c j fs h => by
       rw [hinj, ite_eq_right hw] at h
       exact pt_ne_kpair _ _ (h.symm.trans (spair_eq_kpair _ _)))
+    (fun ψ ψ' hw hw' c j fs => by rw [hinj, hinj, ite_eq_right hw, ite_eq_right hw'])
     hfok
 
 end ConLeche.Model

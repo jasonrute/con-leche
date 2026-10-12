@@ -95,6 +95,8 @@ representation's `ctor` at the stored fit the hole fit at the carrier is
 theorem BlockModelAt.toLfp (hM : BlockModelAt m names d) (hH : BlockHoleFacts m d lps)
     (hres : LfpResIdxFit d.toLfp)
     (hne : ∀ ψ : Name → Nat, d.w ψ ≠ 0 → ∀ c j fs, d.inj ψ c j fs ≠ pt)
+    (hinjF : ∀ ψ ψ' : Name → Nat, d.w ψ ≠ 0 → d.w ψ' ≠ 0 →
+      ∀ c j fs, d.inj ψ c j fs = d.inj ψ' c j fs)
     (hfok : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp → d.w ψ ≠ 0 →
       ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       ∀ c, c < d.toLfp.N → ∀ j, j < d.toLfp.nctors c →
@@ -124,6 +126,7 @@ theorem BlockModelAt.toLfp (hM : BlockModelAt m names d) (hH : BlockHoleFacts m 
   parsSatInv := fun mm hmm ψ ρ hs => hH.parsSatInv ψ mm hmm ρ hs
   resIdxFit := hres
   injNePt := fun ψ hw c j fs => hne ψ hw c j fs
+  injFrame := hinjF
   fieldsOk := hfok
 
 end Clause

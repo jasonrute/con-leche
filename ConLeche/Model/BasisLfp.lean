@@ -206,6 +206,7 @@ theorem lfp0_clause {acval : Name → (Name → Nat) → ITerm} {C : (Name → N
   parsSatInv := fun _ _ _ ρ _ => Sat_nil V ρ
   resIdxFit := fun _ _ _ _ _ _ _ _ _ => trivial
   injNePt := fun ψ hw _ j fs => hne ψ hw j fs
+  injFrame := fun _ _ _ _ _ _ _ => rfl
   fieldsOk := fun ψ ρp _ hw X hX _ _ j hj => by
     show FieldsOkB (w ψ) ((lfp0 nm w F inj n cn flds).frame ψ ρp X) (flds j)
     rw [lfp0_frame]
@@ -567,6 +568,7 @@ theorem eqLfp_clause {acval : Name → (Name → Nat) → ITerm}
   mkZero := fun _ _ _ _ _ => rfl
   mkInj := fun _ hw => absurd rfl hw
   injNePt := fun _ hw => absurd rfl hw
+  injFrame := fun _ _ hw => absurd rfl hw
   fieldsOk := fun _ _ _ hw => absurd rfl hw
   ctor := fun _ _ _ ψ ρ as fs _ _ _ _ => by
     show (as ++ fs).foldl app (interp V ρ (acval cn ψ)) = pt

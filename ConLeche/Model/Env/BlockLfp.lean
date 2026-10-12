@@ -440,6 +440,12 @@ structure LfpClause (acval : Name → (Name → Nat) → ITerm) (D : LfpDatum V)
   numerals, and a positive-level unit is `∅` (task #342 B), so no
   parameter guard is needed. -/
   injNePt : ∀ ψ : Name → Nat, D.w ψ ≠ 0 → ∀ c j fs, D.inj ψ c j fs ≠ pt
+  /-- **above `Prop` the injections read no level** (task #342 S5c): two
+  `Type`-valued level valuations inject the same fields alike — what
+  the ι step's case 2 needs, where the constructor's own levels are not
+  compared with the recursor's -/
+  injFrame : ∀ ψ ψ' : Name → Nat, D.w ψ ≠ 0 → D.w ψ' ≠ 0 →
+    ∀ c j fs, D.inj ψ c j fs = D.inj ψ' c j fs
   /-- **the constructors' fields are small** at a `Type`-valued block, at
   every hole frame of the tuple space (the frame walk of a container reads its constructors' fields along the
   accessibility relation, which supports small elements only — the
@@ -474,6 +480,7 @@ theorem congr (h : LfpClause acval D) {acval' : Name → (Name → Nat) → ITer
   parsSatInv := h.parsSatInv
   resIdxFit := h.resIdxFit
   injNePt := h.injNePt
+  injFrame := h.injFrame
   fieldsOk := h.fieldsOk
 
 
