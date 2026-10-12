@@ -1027,6 +1027,31 @@ theorem ctorApp_eq_pt_of_sortZero {ρ : Nat → V} {cj : Name} {usj : List Level
   rw [interp_mkAppN_appList, interp_const]
   exact eq_pt_of_mem_sortZero hI hlsI hpisI hsort hu hw hty hmem
 
+/-- Oracle-equal level lists substitute to levels that evaluate alike. -/
+theorem Level.eval_lookupLevel_congr (φ : Name → Nat) :
+    ∀ (ps : List Name) (ls ls' : List Level), ls.map (Level.eval φ) = ls'.map (Level.eval φ) →
+      ∀ n, Level.eval φ (Level.lookupLevel ps ls n) = Level.eval φ (Level.lookupLevel ps ls' n)
+  | [], _, _, _, _ => rfl
+  | _ :: _, [], [], _, _ => rfl
+  | _ :: _, [], _ :: _, h, _ => by simp at h
+  | _ :: _, _ :: _, [], h, _ => by simp at h
+  | p :: ps, l :: ls, l' :: ls', h, n => by
+    simp only [List.map_cons, List.cons.injEq] at h
+    have ih := Level.eval_lookupLevel_congr φ ps ls ls' h.2 n
+    simp only [Level.lookupLevel, List.zip_cons_cons, List.lookup_cons] at ih ⊢
+    by_cases hn : n = p
+    · subst hn; simpa using h.1
+    · have : (n == p) = false := by simpa using hn
+      simpa [this] using ih
+
+theorem Level.eval_subst_congr (φ : Name → Nat) {ps : List Name} {ls ls' : List Level}
+    (h : ls.map (Level.eval φ) = ls'.map (Level.eval φ)) (l : Level) :
+    Level.eval φ (l.subst ps ls) = Level.eval φ (l.subst ps ls') := by
+  rw [Level.eval_subst, Level.eval_subst]
+  congr 1
+  funext n
+  exact Level.eval_lookupLevel_congr φ ps ls ls' h n
+
 namespace Red
 
 /-- **ι, the semantic core** (task #347) of `iota_core` and
@@ -1294,7 +1319,7 @@ needed for the recursor's spine, the major or the constructor's
 spine.  The strictness is a semantic hypothesis here (in #344's model
 a sort above `Prop` also holds truth values, so the universe does not
 give it); `strict_dom` supplies it from the environment law
-`EnvModel.ind_strict` and one level test (`Red.iotaStrict`). -/
+`EnvModel.ind_fib` and one level test (`Red.iotaStrict`). -/
 theorem iota_core_strict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
     {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
     {cij : ConstInfo} {margs : List Expr} {rhs : Expr}
@@ -1391,33 +1416,23 @@ theorem iota_core_strict {Γ : List Expr} {c : Name} {us : List Level} {ci : Con
   exact teleFit_of_ne_pt hcjT.1 (by rw [interp_const]; exact hcjT.2.2)
     (by rw [Expr.hasPis_instL]; exact hpis') hwmajor (hmajeq ▸ hmajne)
 
-/-- **ι with no major-slot certificate** (task #342 F3; #342 v2 §11.4
-case 3: the family may be `Prop`, the motive may not).  The
-constructor's telescope keeps its full-grade certificate (every
-parameter and field, #349); the reduced major's slot needs none.  The
-redex is not the point, so the whole unreduced spine fits the
-recursor's telescope (`teleFit_of_ne_pt`) and the unreduced major lies
-in its domain `dM`.  If the unreduced major is not the point, its
-reduction claim gives the reduct's value.  If it is, then at this
-valuation either `dM` is strict — impossible, it holds the point — or
-the constructor's family `I` has a sort that evaluates to zero, and then
-the reduced constructor application is the point too
-(`ctorApp_eq_pt_of_sortZero`), a member of `dM`.
-
-The disjunction `hcase` is the semantic interface: `Red.iotaProp`
-supplies its right side at every valuation (the family's sort is `0`
-at every valuation, a level test); the case-2 environment law (#347,
-lane F1: a family whose sort evaluates non-zero has strict fibres)
-supplies its left side where the sort is not zero, which makes the rule
-for a family that may be `Prop` at some valuations only (`Quot.{u}`,
-`PUnit.{u}`).  The index comparisons are passed on in their conditional
-form, as in `iota_core`; the slot does not use them. -/
-theorem iota_core_prop {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+/-- **ι with no major-slot certificate, the semantic core** (task #342
+F1, generalising F3's `iota_core_prop`).  The constructor's telescope
+keeps its certificate; the reduced major's slot needs none, given at
+every valuation where the redex is well-denoted and not the point,
+and the constructor's spine fits: either the major's domain `dM` is
+strict, or the constructor application is the point.  In the first
+case the unreduced major (which lies in `dM`) is not the point and its
+reduction claim gives the reduct; in the second the reduct is the point,
+as the unreduced major must then be.  `iota_core_prop` supplies the
+second side from a sort that is zero everywhere (F3); `Red.iotaSlot`
+supplies one side or the other at each valuation from the environment's
+fibre law (`EnvModel.ind_fib`). -/
+theorem iota_core_slot {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
     {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
     {cij : ConstInfo} {margs : List Expr} {rhs : Expr}
     {dM bM : Expr} {doms' tys' : List Expr} {nP numBefore majorIdx : Nat}
     {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
-    {Ii : ConstInfo} {u : Level}
     (hnB : numBefore ≤ majorIdx)
     (hfind : env.find? c = some ci)
     (hus : us.length = ci.lparams.length)
@@ -1436,11 +1451,12 @@ theorem iota_core_prop {Γ : List Expr} {c : Name} {us : List Level} {ci : Const
     (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
     (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
     (hrps : rps.length = nP)
-    (hI : env.find? I = some Ii) (hlsI : lsI.length = Ii.lparams.length)
-    (hpisI : Ii.type.hasPis (rps ++ ridx).length = true)
-    (hsort : Expr.piResidual (Ii.type.instL Ii.lparams lsI) (rps ++ ridx) = some (.sort u))
-    (hcase : ∀ ρ : Nat → V, Sat m.M φ Γ ρ → (∀ a ∈ args, WellDenoted m.M φ ρ a) →
-      Strict (interp m.M φ ρ dM) ∨ Level.eval φ u = 0)
+    (hcase : ∀ ρ : Nat → V, Sat m.M φ Γ ρ →
+      WellDenoted m.M φ ρ (Expr.mkAppN (Expr.const c us) args) →
+      interp m.M φ ρ (Expr.mkAppN (Expr.const c us) args) ≠ pt →
+      (∀ a ∈ margs, WellDenoted m.M φ ρ a) →
+      TeleFit m.M φ ρ (cij.type.instL cij.lparams usj) margs →
+      Strict (interp m.M φ ρ dM) ∨ interp m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs) = pt)
     (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSem m φ Γ p.1 p.2)
     (hlaw : ∀ ρ : Nat → V, Sat m.M φ Γ ρ → (∀ a ∈ args, WellDenoted m.M φ ρ a) →
       (∀ a ∈ margs, WellDenoted m.M φ ρ a) →
@@ -1520,25 +1536,130 @@ theorem iota_core_prop {Γ : List Expr} {c : Name} {us : List Level} {ci : Const
     rwa [← hsplit] at hmem
   have hslot : interp m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs) ∈ˢ interp m.M φ ρ dM := by
     by_cases hm0 : interp m.M φ ρ (args.getD majorIdx (Expr.bvar 0)) = pt
-    · rcases hcase ρ hs hargs with hstr | hz
+    · rcases hcase ρ hs hw hn hmargs hfit' with hstr | hpt
       · exact absurd hm0 (ne_pt_of_mem_strict hstr hmajD)
-      · subst hshape
-        rw [ctorApp_eq_pt_of_sortZero hcij husj hmargs hfit' hres hI hlsI hpisI hsort hz, ← hm0]
+      · rw [hpt, ← hm0]
         exact hmajD
     · rw [← (hmaj ρ hs hwmaj0 hm0).2]; exact hmajD
   exact ⟨hwmajor, teleFit_snoc hfitxs hresM hslot, hfit'⟩
 
-/-- **The major's domain is strict at a never-`Prop` family** (task
+/-- **ι with no major-slot certificate** (task #342 F3; #342 v2 §11.4
+case 3: the family may be `Prop`, the motive may not).  The
+constructor's telescope keeps its full-grade certificate (every
+parameter and field, #349); the reduced major's slot needs none.  The
+redex is not the point, so the whole unreduced spine fits the
+recursor's telescope (`teleFit_of_ne_pt`) and the unreduced major lies
+in its domain `dM`.  If the unreduced major is not the point, its
+reduction claim gives the reduct's value.  If it is, then at this
+valuation either `dM` is strict — impossible, it holds the point — or
+the constructor's family `I` has a sort that evaluates to zero, and then
+the reduced constructor application is the point too
+(`ctorApp_eq_pt_of_sortZero`), a member of `dM`.
+
+The disjunction `hcase` is the semantic interface: `Red.iotaProp`
+supplies its right side at every valuation (the family's sort is `0`
+at every valuation, a level test).  It is a corollary of
+`iota_core_slot`, whose case split `Red.iotaSlot` supplies from the
+environment's fibre law (lane F1: strict where the family's sort is not
+zero), the rule for a family that may be `Prop` at some valuations only
+(`Quot.{u}`, `PUnit.{u}`).  The index comparisons are passed on in their conditional
+form, as in `iota_core`; the slot does not use them. -/
+theorem iota_core_prop {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {margs : List Expr} {rhs : Expr}
+    {dM bM : Expr} {doms' tys' : List Expr} {nP numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    {Ii : ConstInfo} {u : Level}
+    (hnB : numBefore ≤ majorIdx)
+    (hfind : env.find? c = some ci)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSem m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hcij : env.find? cj = some cij)
+    (husj : usj.length = cij.lparams.length)
+    (hpis' : cij.type.hasPis margs.length = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSem m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSem m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = nP)
+    (hI : env.find? I = some Ii) (hlsI : lsI.length = Ii.lparams.length)
+    (hpisI : Ii.type.hasPis (rps ++ ridx).length = true)
+    (hsort : Expr.piResidual (Ii.type.instL Ii.lparams lsI) (rps ++ ridx) = some (.sort u))
+    (hcase : ∀ ρ : Nat → V, Sat m.M φ Γ ρ → (∀ a ∈ args, WellDenoted m.M φ ρ a) →
+      Strict (interp m.M φ ρ dM) ∨ Level.eval φ u = 0)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSem m φ Γ p.1 p.2)
+    (hlaw : ∀ ρ : Nat → V, Sat m.M φ Γ ρ → (∀ a ∈ args, WellDenoted m.M φ ρ a) →
+      (∀ a ∈ margs, WellDenoted m.M φ ρ a) →
+      TeleFitV m.M φ ρ (ci.type.instL ci.lparams us)
+        ((args.take majorIdx).map (interp m.M φ ρ) ++
+          [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interp m.M φ ρ))]) →
+      TeleFitV m.M φ ρ (cij.type.instL cij.lparams usj) (margs.map (interp m.M φ ρ)) →
+      (∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
+        piBodyV ρ (cij.type.instL cij.lparams usj) (margs.map (interp m.M φ ρ)) = some (B, ρ') →
+        B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = nP →
+        ∀ p ∈ (ridx.map (interp m.M φ ρ')).zip
+          (((args.take majorIdx).map (interp m.M φ ρ)).drop numBefore),
+          p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+      appList (m.M c (us.map (Level.eval φ)))
+          ((args.take majorIdx).map (interp m.M φ ρ) ++
+            [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interp m.M φ ρ))]) ≠ pt →
+      appList (m.M c (us.map (Level.eval φ)))
+          ((args.take majorIdx).map (interp m.M φ ρ) ++
+            [appList (m.M cj (usj.map (Level.eval φ))) (margs.map (interp m.M φ ρ))])
+        = appList (interp m.M φ ρ rhs)
+            (((args.take majorIdx).map (interp m.M φ ρ)).take numBefore ++
+              (margs.map (interp m.M φ ρ)).drop nP) ∧
+      WellDenoted m.M φ ρ rhs ∧
+      SpineOk (interp m.M φ ρ rhs)
+        (((args.take majorIdx).map (interp m.M φ ρ)).take numBefore ++
+          (margs.map (interp m.M φ ρ)).drop nP)) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN rhs (args.take numBefore ++ margs.drop nP)) := by
+  refine iota_core_slot hnB hfind hus hlen hpis hmaj hmeq hcij husj hpis' hresM hdoms' htys' hI' hD'
+    hres hshape hrps ?_ hX hlaw
+  intro ρ hs hw _ hmargs hfit'
+  obtain ⟨-, hargs⟩ := WellDenoted_mkAppN m.M φ hw
+  rcases hcase ρ hs hargs with hstr | hz
+  · exact Or.inl hstr
+  · subst hshape
+    exact Or.inr (ctorApp_eq_pt_of_sortZero hcij husj hmargs hfit' hres hI hlsI hpisI hsort hz)
+
+/-- **A well-denoted family application that is not the point has the
+fibre its stored sort says** (task #342 F1): its arguments fit the
+former's telescope (`teleFit_of_ne_pt`), so the environment's fibre law
+(`EnvModel.ind_fib`) applies. -/
+theorem app_fib {ρ : Nat → V} {I : Name} {ls : List Level} {zs : List Expr} {ci : ConstInfo}
+    {nP nI : Nat} {cs : List Name} {S : IndSpec}
+    (hI : env.find? I = some ci) (hk : ci.kind = .induct nP nI cs S)
+    (hls : ls.length = ci.lparams.length) (hz : zs.length = nP + nI)
+    (hpisI : ci.type.hasPis (nP + nI) = true)
+    (hw : WellDenoted m.M φ ρ (Expr.mkAppN (Expr.const I ls) zs))
+    (hne : interp m.M φ ρ (Expr.mkAppN (Expr.const I ls) zs) ≠ pt) :
+    Fib (Level.eval φ (S.sort.subst ci.lparams ls) == 0)
+      (interp m.M φ ρ (Expr.mkAppN (Expr.const I ls) zs)) := by
+  have hT := m.type_ok I ci hI φ ρ ls hls
+  have hp : (ci.type.instL ci.lparams ls).hasPis zs.length = true := by
+    rw [Expr.hasPis_instL, hz]; exact hpisI
+  have hfit := teleFit_of_ne_pt hT.1 (by rw [interp_const]; exact hT.2.2) hp hw hne
+  have hfib := m.ind_fib I ci nP nI cs S hI hk φ ρ ls _ hls (by simp [hz])
+    (teleFitV_of_teleFit m.M φ ρ hp hfit)
+  rw [interp_mkAppN_appList, interp_const]
+  exact hfib
+
+/-- **The major's domain has the fibre its family's sort says** (task
 #342 F1): where the domain the recursor's telescope leaves for the
-major is a stored inductive family at its parameters and indices whose
-stored sort is `≥ 1` at every valuation, it is strict at every
-valuation where the redex is well-denoted and not the point.  The
+major is a stored inductive family at its parameters and indices, at
+every valuation where the redex is well-denoted and not the point.  The
 redex not being the point puts the spine before the major in the
-recursor's telescope (`teleFit_of_ne_pt`), so the domain is
-well-denoted and a type, hence not the point; so the family's
-arguments fit its own telescope (`teleFit_of_ne_pt` again), and the
-environment's strict-fibre law (`EnvModel.ind_strict`) applies. -/
-theorem strict_dom [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+recursor's telescope (`teleFit_of_ne_pt`), so the domain is well-denoted
+and a type, hence not the point (`app_fib`). -/
+theorem dom_fib {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
     {args : List Expr} {majorIdx : Nat} {dM bM : Expr}
     {I₀ : Name} {ls₀ : List Level} {dargs : List Expr} {ci₀ : ConstInfo}
     {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
@@ -1550,12 +1671,11 @@ theorem strict_dom [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {
     (hdM : dM = Expr.mkAppN (Expr.const I₀ ls₀) dargs)
     (hI₀ : env.find? I₀ = some ci₀) (hk₀ : ci₀.kind = .induct nP₀ nI₀ cs₀ S₀)
     (hls₀ : ls₀.length = ci₀.lparams.length) (hd₀ : dargs.length = nP₀ + nI₀)
-    (hpis₀ : ci₀.type.hasPis (nP₀ + nI₀) = true)
-    (hlvl : LevelOracle.le (.succ .zero) (S₀.sort.subst ci₀.lparams ls₀) = true) :
+    (hpis₀ : ci₀.type.hasPis (nP₀ + nI₀) = true) :
     ∀ ρ : Nat → V, Sat m.M φ Γ ρ →
       WellDenoted m.M φ ρ (Expr.mkAppN (Expr.const c us) args) →
       interp m.M φ ρ (Expr.mkAppN (Expr.const c us) args) ≠ pt →
-      Strict (interp m.M φ ρ dM) := by
+      Fib (Level.eval φ (S₀.sort.subst ci₀.lparams ls₀) == 0) (interp m.M φ ρ dM) := by
   intro ρ _ hw hn
   obtain ⟨-, hargs⟩ := WellDenoted_mkAppN m.M φ hw
   have hsplit := List.take_append_getD (Expr.bvar 0) args _ hlen
@@ -1584,18 +1704,84 @@ theorem strict_dom [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {
   rw [WellDenoted_pi] at hwR
   obtain ⟨hwD, hTyD, -, -⟩ := hwR
   subst hdM
-  -- the family's arguments fit its telescope
-  have hT₀ := m.type_ok I₀ ci₀ hI₀ φ ρ ls₀ hls₀
-  have hp₀ : (ci₀.type.instL ci₀.lparams ls₀).hasPis dargs.length = true := by
-    rw [Expr.hasPis_instL, hd₀]; exact hpis₀
-  have hfit₀ := teleFit_of_ne_pt hT₀.1 (by rw [interp_const]; exact hT₀.2.2) hp₀ hwD hTyD.ne_pt
-  have hfitV₀ := teleFitV_of_teleFit m.M φ ρ hp₀ hfit₀
+  exact app_fib hI₀ hk₀ hls₀ hd₀ hpis₀ hwD hTyD.ne_pt
+
+/-- **The major's domain is strict at a never-`Prop` family** (task
+#342 F1): `dom_fib` where the family's stored sort is `≥ 1` at every
+valuation (one oracle test). -/
+theorem strict_dom [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {args : List Expr} {majorIdx : Nat} {dM bM : Expr}
+    {I₀ : Name} {ls₀ : List Level} {dargs : List Expr} {ci₀ : ConstInfo}
+    {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
+    (hfind : env.find? c = some ci)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hdM : dM = Expr.mkAppN (Expr.const I₀ ls₀) dargs)
+    (hI₀ : env.find? I₀ = some ci₀) (hk₀ : ci₀.kind = .induct nP₀ nI₀ cs₀ S₀)
+    (hls₀ : ls₀.length = ci₀.lparams.length) (hd₀ : dargs.length = nP₀ + nI₀)
+    (hpis₀ : ci₀.type.hasPis (nP₀ + nI₀) = true)
+    (hlvl : LevelOracle.le (.succ .zero) (S₀.sort.subst ci₀.lparams ls₀) = true) :
+    ∀ ρ : Nat → V, Sat m.M φ Γ ρ →
+      WellDenoted m.M φ ρ (Expr.mkAppN (Expr.const c us) args) →
+      interp m.M φ ρ (Expr.mkAppN (Expr.const c us) args) ≠ pt →
+      Strict (interp m.M φ ρ dM) := by
+  intro ρ hs hw hn
+  have hfib := dom_fib hfind hus hlen hpis hresM hdM hI₀ hk₀ hls₀ hd₀ hpis₀ ρ hs hw hn
   have hne : Level.eval φ (S₀.sort.subst ci₀.lparams ls₀) ≠ 0 := by
     have := (LevelOracle.le_iff _ _).mp hlvl φ
     simp only [Level.eval_succ, Level.eval_zero] at this
     omega
-  rw [interp_mkAppN_appList, interp_const]
-  exact m.ind_strict I₀ ci₀ nP₀ nI₀ cs₀ S₀ hI₀ hk₀ φ ρ ls₀ _ hls₀ (by simp [hd₀]) hne hfitV₀
+  rwa [show (Level.eval φ (S₀.sort.subst ci₀.lparams ls₀) == 0) = false by simpa using hne] at hfib
+
+/-- **The slot case split of `iota_core_slot`, from the fibre law, with
+no level test** (task #342 F1).  The major's domain is the family `I`
+the constructor's residual type is headed by, at oracle-equal levels.
+At a valuation where that family's sort is not zero the domain is
+strict (`dom_fib`); where it is zero the residual — a type holding the
+constructor application (`mem_piResidual`) — is a truth value
+(`app_fib`), so the application is the point. -/
+theorem slot_case {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {args : List Expr} {majorIdx : Nat} {dM bM : Expr}
+    {cj : Name} {usj : List Level} {cij : ConstInfo} {margs : List Expr}
+    {I : Name} {lsI ls₀ : List Level} {zs dargs : List Expr} {Ii : ConstInfo}
+    {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
+    (hfind : env.find? c = some ci)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hcij : env.find? cj = some cij) (husj : usj.length = cij.lparams.length)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs =
+      some (Expr.mkAppN (.const I lsI) zs))
+    (hI : env.find? I = some Ii) (hk : Ii.kind = .induct nP₀ nI₀ cs₀ S₀)
+    (hlsI : lsI.length = Ii.lparams.length) (hzs : zs.length = nP₀ + nI₀)
+    (hpisI : Ii.type.hasPis (nP₀ + nI₀) = true)
+    (hdM : dM = Expr.mkAppN (Expr.const I ls₀) dargs) (hd₀ : dargs.length = nP₀ + nI₀)
+    (hlv : ∀ φ' : Name → Nat, lsI.map (Level.eval φ') = ls₀.map (Level.eval φ')) :
+    ∀ ρ : Nat → V, Sat m.M φ Γ ρ →
+      WellDenoted m.M φ ρ (Expr.mkAppN (Expr.const c us) args) →
+      interp m.M φ ρ (Expr.mkAppN (Expr.const c us) args) ≠ pt →
+      (∀ a ∈ margs, WellDenoted m.M φ ρ a) →
+      TeleFit m.M φ ρ (cij.type.instL cij.lparams usj) margs →
+      Strict (interp m.M φ ρ dM) ∨ interp m.M φ ρ (Expr.mkAppN (Expr.const cj usj) margs) = pt := by
+  intro ρ hs hw hn hmargs hfit
+  have hls₀ : ls₀.length = Ii.lparams.length := by
+    rw [← hlsI]; simpa using congrArg List.length (hlv φ).symm
+  have heval := Level.eval_subst_congr φ (ps := Ii.lparams) (hlv φ) S₀.sort
+  by_cases h0 : Level.eval φ (S₀.sort.subst Ii.lparams ls₀) = 0
+  · right
+    have hT := m.type_ok cj cij hcij φ ρ usj husj
+    obtain ⟨hmem, hty⟩ := mem_piResidual hT.1 hT.2.1 hT.2.2 hmargs hfit hres
+    have hwR := WellDenoted_piResidual hT.1 hmargs hfit hres
+    have hfib := app_fib hI hk hlsI hzs hpisI hwR hty.ne_pt
+    rw [heval, h0] at hfib
+    rw [interp_mkAppN_appList, interp_const]
+    exact eq_pt_of_mem_univ_zero hfib hmem
+  · left
+    have hfib := dom_fib hfind hus hlen hpis hresM hdM hI hk hls₀ hd₀ hpisI ρ hs hw hn
+    rwa [show (Level.eval φ (S₀.sort.subst Ii.lparams ls₀) == 0) = false by simpa using h0] at hfib
 
 /-- **ι by K, with no certificate at all** (task #349).  Given the K
 law (`RecRuleLawK`), a K redex reduces to the right-hand side applied
@@ -1730,6 +1916,67 @@ theorem iotaProp_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Leve
   refine iota_core_prop (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
     hresM hdoms' htys' hI' hD' hres hshape hrps hI hlsI hpisI hsort
     (fun _ _ _ => Or.inr (by rw [eval_eq_of_oracle hu]; rfl)) hX ?_
+  intro ρ hs hargs hmargs hfitV hfitV' hX' hn
+  have hP' : ∀ p ∈ ((margs.map (interp m.M φ ρ)).take numParams).zip
+      (((args.take (numParams + numMotives + numMinors + numIndices)).map
+        (interp m.M φ ρ)).take numParams), p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
+    rw [← List.map_take, ← List.map_take, List.take_take, Nat.min_eq_left (by omega)]
+    exact cmp_vals hs (fun a ha => hmargs a (List.mem_of_mem_take ha))
+      (fun a ha => hargs a (List.mem_of_mem_take ha)) hP
+  exact m.rec_rules c ci numParams numMotives numMinors numIndices rules
+    hfind hkind rl hrl hinst cij hcij φ ρ us usj _ _ hus husj
+    (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
+    hfitV hfitV' ((Level.eqList_iff _ _).mp hlv φ) hP' hX' hn
+
+/-- **ι with no major-slot certificate and no level test**
+(`Red.iotaSlot`, task #342 F1): `iota_core_slot` with the slot case
+split from the fibre law (`slot_case`) and the environment's
+`RecRuleLaw`. -/
+theorem iotaSlot_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {margs : List Expr} {rl : RecRule}
+    {dM bM : Expr} {doms' tys' : List Expr} {numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    {Ii : ConstInfo} {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
+    {ls₀ : List Level} {dargs : List Expr}
+    (hnB : numBefore = numParams + numMotives + numMinors)
+    (hmI : majorIdx = numParams + numMotives + numMinors + numIndices)
+    (hfind : env.find? c = some ci)
+    (hkind : ci.kind = .recursor numParams numMotives numMinors numIndices rules)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSem m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hrl : rl ∈ rules) (hctor : rl.ctor = cj) (hinst : rl.inst = none)
+    (hcij : env.find? cj = some cij)
+    (husj : usj.length = cij.lparams.length)
+    (hmlen : margs.length = numParams + rl.nfields)
+    (hpis' : cij.type.hasPis (numParams + rl.nfields) = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSem m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSem m φ Γ p.1 p.2)
+    (hlv : Level.eqList usj (us.drop (us.length - usj.length)) = true)
+    (hP : ∀ p ∈ (margs.take numParams).zip (args.take numParams), DefEqSem m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = numParams)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSem m φ Γ p.1 p.2)
+    (hI : env.find? I = some Ii) (hk : Ii.kind = .induct nP₀ nI₀ cs₀ S₀)
+    (hlsI : lsI.length = Ii.lparams.length) (hpisI : Ii.type.hasPis (nP₀ + nI₀) = true)
+    (hzs : (rps ++ ridx).length = nP₀ + nI₀)
+    (hdM : dM = Expr.mkAppN (Expr.const I ls₀) dargs) (hd₀ : dargs.length = nP₀ + nI₀)
+    (hlv₀ : Level.eqList lsI ls₀ = true) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take numBefore ++ margs.drop numParams)) := by
+  subst hnB hmI hctor
+  refine iota_core_slot (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
+    hresM hdoms' htys' hI' hD' hres hshape hrps
+    (slot_case hfind hus hlen hpis hresM hcij husj (hshape ▸ hres) hI hk hlsI hzs hpisI hdM hd₀
+      ((Level.eqList_iff _ _).mp hlv₀)) hX ?_
   intro ρ hs hargs hmargs hfitV hfitV' hX' hn
   have hP' : ∀ p ∈ ((margs.map (interp m.M φ ρ)).take numParams).zip
       (((args.take (numParams + numMotives + numMinors + numIndices)).map
@@ -1887,6 +2134,59 @@ theorem iotaNested_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Le
     (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
     hfitV hfitV' hX' hn
 
+
+/-- **ι, nested, with no major-slot certificate** (`Red.iotaNestedSlot`,
+task #342 F1): `iota_core_slot` at the constructor's own parameter
+count, with `RecRuleLawN`. -/
+theorem iotaNestedSlot_sound [LevelOracle] {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+    {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
+    {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
+    {cij : ConstInfo} {I' : Name} {nPc nfj : Nat} {margs : List Expr} {rl : RecRule}
+    {lvs : List Level} {pinst : List Expr}
+    {dM bM : Expr} {doms' tys' : List Expr} {numBefore majorIdx : Nat}
+    {residual : Expr} {I : Name} {lsI : List Level} {rps ridx : List Expr}
+    {Ii : ConstInfo} {nP₀ nI₀ : Nat} {cs₀ : List Name} {S₀ : IndSpec}
+    {ls₀ : List Level} {dargs : List Expr}
+    (hnB : numBefore = numParams + numMotives + numMinors)
+    (hmI : majorIdx = numParams + numMotives + numMinors + numIndices)
+    (hfind : env.find? c = some ci)
+    (hkind : ci.kind = .recursor numParams numMotives numMinors numIndices rules)
+    (hus : us.length = ci.lparams.length)
+    (hlen : args.length = majorIdx + 1)
+    (hpis : ci.type.hasPis (majorIdx + 1) = true)
+    (hmaj : RedSem m φ Γ (args.getD majorIdx (Expr.bvar 0)) major)
+    (hmeq : major = Expr.mkAppN (Expr.const cj usj) margs)
+    (hrl : rl ∈ rules) (hctor : rl.ctor = cj) (hinst : rl.inst = some (lvs, pinst))
+    (hcij : env.find? cj = some cij) (hcijk : cij.kind = .ctor I' nPc nfj)
+    (husj : usj.length = cij.lparams.length)
+    (hmlen : margs.length = nPc + rl.nfields)
+    (hpis' : cij.type.hasPis (nPc + rl.nfields) = true)
+    (hresM : Expr.piResidual (ci.type.instL ci.lparams us) (args.take majorIdx) = some (.pi dM bM))
+    (hdoms' : Expr.piDomains (cij.type.instL cij.lparams usj) margs = some doms')
+    (htys' : tys'.length = doms'.length)
+    (hI' : ∀ p ∈ margs.zip tys', InferSem m φ Γ p.1 p.2)
+    (hD' : ∀ p ∈ tys'.zip doms', DefEqSem m φ Γ p.1 p.2)
+    (hres : Expr.piResidual (cij.type.instL cij.lparams usj) margs = some residual)
+    (hshape : residual = Expr.mkAppN (Expr.const I lsI) (rps ++ ridx))
+    (hrps : rps.length = nPc)
+    (hX : ∀ p ∈ ridx.zip ((args.take majorIdx).drop numBefore), DefEqSem m φ Γ p.1 p.2)
+    (hI : env.find? I = some Ii) (hk : Ii.kind = .induct nP₀ nI₀ cs₀ S₀)
+    (hlsI : lsI.length = Ii.lparams.length) (hpisI : Ii.type.hasPis (nP₀ + nI₀) = true)
+    (hzs : (rps ++ ridx).length = nP₀ + nI₀)
+    (hdM : dM = Expr.mkAppN (Expr.const I ls₀) dargs) (hd₀ : dargs.length = nP₀ + nI₀)
+    (hlv₀ : Level.eqList lsI ls₀ = true) :
+    RedSem m φ Γ (Expr.mkAppN (Expr.const c us) args)
+      (Expr.mkAppN (rl.rhs.instL ci.lparams us) (args.take numBefore ++ margs.drop nPc)) := by
+  subst hnB hmI hctor
+  refine iota_core_slot (by omega) hfind hus hlen hpis hmaj hmeq hcij husj (by rw [hmlen]; exact hpis')
+    hresM hdoms' htys' hI' hD' hres hshape hrps
+    (slot_case hfind hus hlen hpis hresM hcij husj (hshape ▸ hres) hI hk hlsI hzs hpisI hdM hd₀
+      ((Level.eqList_iff _ _).mp hlv₀)) hX ?_
+  intro ρ _ _ _ hfitV hfitV' hX' hn
+  exact m.rec_rules_nested c ci numParams numMotives numMinors numIndices rules hfind hkind rl hrl
+    lvs pinst hinst cij I' nPc nfj hcij hcijk φ ρ us usj _ _ hus husj
+    (by simp only [List.length_map, List.length_take, hlen]; omega) (by simp [hmlen])
+    hfitV hfitV' hX' hn
 end Red
 
 /-! ## The master induction -/
@@ -1920,6 +2220,18 @@ theorem red_sound [LevelOracle] : ∀ {Γ : List Expr} {e e' : Expr},
       hcij hcijk husj hmlen hpis' hresM (infer_sound hIM)
       (defeq_sound hDM) hdoms' htys' (fun p hp => infer_sound (hI' p hp))
       (fun p hp => defeq_sound (hD' p hp)) hres hshape hrps (fun p hp => defeq_sound (hX p hp))
+  | _, _, _, .iotaSlot hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij husj hmlen hpis' hresM
+      hdoms' htys' hI' hD' hlv hP hres hshape hrps hX hI hk hlsI hpisI hzs hdM hd₀ hlv₀ =>
+    Red.iotaSlot_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst hcij husj
+      hmlen hpis' hresM hdoms' htys' (fun p hp => infer_sound (hI' p hp))
+      (fun p hp => defeq_sound (hD' p hp)) hlv (fun p hp => defeq_sound (hP p hp)) hres hshape hrps
+      (fun p hp => defeq_sound (hX p hp)) hI hk hlsI hpisI hzs hdM hd₀ hlv₀
+  | _, _, _, .iotaNestedSlot hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij hcijk husj hmlen
+      hpis' hresM hdoms' htys' hI' hD' _ _ _ hres hshape hrps hX hI hk hlsI hpisI hzs hdM hd₀ hlv₀ =>
+    Red.iotaNestedSlot_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst
+      hcij hcijk husj hmlen hpis' hresM hdoms' htys' (fun p hp => infer_sound (hI' p hp))
+      (fun p hp => defeq_sound (hD' p hp)) hres hshape hrps (fun p hp => defeq_sound (hX p hp))
+      hI hk hlsI hpisI hzs hdM hd₀ hlv₀
   | _, _, _, .iotaStrict hfind hkind hus hlen hpis hmaj hmeq hrl hctor hinst hcij husj hmlen hpis'
       hresM hdM hI₀ hk₀ hls₀ hd₀ hpis₀ hlvl hlv hP hres hshape hrps hX =>
     Red.iotaStrict_sound rfl rfl hfind hkind hus hlen hpis (red_sound hmaj) hmeq hrl hctor hinst

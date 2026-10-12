@@ -128,6 +128,12 @@ theorem Red.eq_of_rigid [LevelOracle] {env : Env} {Γ : List Expr} {e e' : Expr}
   | .iotaNested (args := args) .., hr =>
     absurd hr (mkAppN_ne_of (P := fun e => (∃ A B, e = pi A B) ∨ ∃ u, e = sort u) rigid_app args _ (by
       intro h; rcases h with ⟨_, _, h⟩ | ⟨_, h⟩ <;> cases h))
+  | .iotaSlot (args := args) .., hr =>
+    absurd hr (mkAppN_ne_of (P := fun e => (∃ A B, e = pi A B) ∨ ∃ u, e = sort u) rigid_app args _ (by
+      intro h; rcases h with ⟨_, _, h⟩ | ⟨_, h⟩ <;> cases h))
+  | .iotaNestedSlot (args := args) .., hr =>
+    absurd hr (mkAppN_ne_of (P := fun e => (∃ A B, e = pi A B) ∨ ∃ u, e = sort u) rigid_app args _ (by
+      intro h; rcases h with ⟨_, _, h⟩ | ⟨_, h⟩ <;> cases h))
   | .iotaStrict (args := args) .., hr =>
     absurd hr (mkAppN_ne_of (P := fun e => (∃ A B, e = pi A B) ∨ ∃ u, e = sort u) rigid_app args _ (by
       intro h; rcases h with ⟨_, _, h⟩ | ⟨_, h⟩ <;> cases h))

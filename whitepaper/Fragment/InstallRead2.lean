@@ -51,16 +51,16 @@ theorem Reader.u₀_eq {M' : Name → List Nat → V} {φ' : Name → Nat}
   unfold u₀
   exact Level.eval_congr (fun n hn => R.val_ψ n hn) hs
 
-/-- **Above a proposition the former's family is strict**, read in
-any reader (task #342 F1): at values fitting the former's telescope the
-former's set applied is the family's fibre (β), which the reader takes
-admissible, and an admissible set above a proposition is strict
-(`strict_adm`). -/
-theorem Reader.strict_app (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
+/-- **The former's set applied is a fibre**, read in any reader (task
+#342 F1): at values fitting the former's telescope the former's set
+applied is the family at the parameter and index values they split
+into (β), and those fit the block's contexts. -/
+theorem Reader.app_famSetF (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
     (R : S.Reader (env := env) M φ F M' φ') {ρ : Nat → V} {vs : List V}
-    (hlen : vs.length = S.nP + S.nI) (hfit : TeleFitV M' φ' ρ S.indType vs)
-    (hz : S.z (S.lparams.map φ) = false) :
-    Strict (appList (S.famSetF M (S.lparams.map φ) F) vs) := by
+    (hlen : vs.length = S.nP + S.nI) (hfit : TeleFitV M' φ' ρ S.indType vs) :
+    ∃ ps isv : List V, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps ∧
+      FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices isv ∧
+      appList (S.famSetF M (S.lparams.map φ) F) vs = F (S.lparams.map φ) ps isv := by
   unfold indType at hfit
   rw [TeleFitV_mkPis M' φ' (by simp [hlen, nP, nI]; omega)] at hfit
   obtain ⟨isv, ps, hsplit, hl₁⟩ : ∃ isv ps : List V, vs.reverse = isv ++ ps ∧ isv.length = S.nI :=
@@ -75,11 +75,34 @@ theorem Reader.strict_app (hS : S.Scoped env) {M' : Name → List Nat → V} {φ
     (FitsVals_append M' φ' (by simpa [nI] using hl₁)).mpr
       ⟨(R.fits_params hS).mpr hpM, (R.fits_indices hS (ρ := base) hps).mpr hiM⟩
   have hvs : vs = (isv ++ ps).reverse := by rw [← hsplit, List.reverse_reverse]
+  refine ⟨ps, isv, hpM, hiM, ?_⟩
   rw [R.famSet_eq hS, hvs, appList_lamCtx M' φ' hfitB, consList_append,
     show shiftE S.nI 0 (consList isv (consList ps base)) = consList ps base by
       rw [← hl₁]; exact shiftE_consList isv _,
-    readEnv_consList hps, readEnv_consList hl₁, ← R.adm ps isv hpM hiM]
-  exact S.strict_adm _ hz _
+    readEnv_consList hps, readEnv_consList hl₁]
+
+/-- **The former's family has the fibres its sort says**, read in any
+reader whose family lies in the result universe (task #342 F1): a
+truth value at a proposition, and above it strict, because the reader
+takes the family admissible (`strict_adm`). -/
+theorem Reader.fib_app (hS : S.Scoped env) {M' : Name → List Nat → V} {φ' : Name → Nat}
+    (R : S.Reader (env := env) M φ F M' φ')
+    (hF : ∀ ps is, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
+      FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
+      F (S.lparams.map φ) ps is ∈ˢ (typeU (S.u₀ (S.lparams.map φ)) : V))
+    {ρ : Nat → V} {vs : List V}
+    (hlen : vs.length = S.nP + S.nI) (hfit : TeleFitV M' φ' ρ S.indType vs) :
+    Fib (S.z (S.lparams.map φ)) (appList (S.famSetF M (S.lparams.map φ) F) vs) := by
+  obtain ⟨ps, isv, hp, hi, heq⟩ := R.app_famSetF hS hlen hfit
+  rw [heq]
+  cases hz : S.z (S.lparams.map φ) with
+  | true =>
+    have h := hF ps isv hp hi
+    rw [(S.z_iff _).mp hz, mem_typeU_zero] at h
+    exact h
+  | false =>
+    rw [← R.adm ps isv hp hi]
+    exact S.strict_adm _ hz _
 
 /-- A context of the specification, read in one reader under two base
 environments, agrees. -/

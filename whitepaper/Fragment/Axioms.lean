@@ -203,19 +203,54 @@ info: 'Fragment.Red.iotaNestedStrict_sound' depends on axioms: [propext, Classic
 #guard_msgs in #print axioms Fragment.Red.iotaNestedStrict_sound
 
 /--
-info: 'Fragment.IndSpec.indStrict_of_readers' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Fragment.IndSpec.indFib_of_readers' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms Fragment.IndSpec.indStrict_of_readers
+#guard_msgs in #print axioms Fragment.IndSpec.indFib_of_readers
 
 /--
-info: 'Fragment.IndSpec.Reader.strict_app' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Fragment.IndSpec.Reader.fib_app' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms Fragment.IndSpec.Reader.strict_app
+#guard_msgs in #print axioms Fragment.IndSpec.Reader.fib_app
 
 /--
 info: 'Fragment.IndSpec.strict_adm' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.IndSpec.strict_adm
+
+/--
+info: 'Fragment.Red.iota_core_slot' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iota_core_slot
+
+/--
+info: 'Fragment.Red.slot_case' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.slot_case
+
+/--
+info: 'Fragment.Red.dom_fib' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.dom_fib
+
+/--
+info: 'Fragment.Red.app_fib' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.app_fib
+
+/--
+info: 'Fragment.Red.iotaSlot_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaSlot_sound
+
+/--
+info: 'Fragment.Red.iotaNestedSlot_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaNestedSlot_sound
+
+/--
+info: 'Fragment.IndSpec.Reader.app_famSetF' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.Reader.app_famSetF
 
 /--
 info: 'Fragment.DefEq.lam_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
