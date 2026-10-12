@@ -573,6 +573,19 @@ theorem spineTy_of_wellDenoted_mkPisAV {B : AnnotTerm} :
     rw [WellDenoted_pi] at h'
     exact ⟨h'.2.1, fun a ha => spineTy_of_wellDenoted_mkPisAV (h'.2.2.1 a ha)⟩
 
+/-- A telescope's prefix is a telescope of types. -/
+theorem SpineTy.take :
+    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} (n : Nat), SpineTy ρ Fs → SpineTy ρ (Fs.take n)
+  | [], _, _, _ => by rw [List.take_nil]; trivial
+  | _ :: _, _, 0, _ => trivial
+  | _ :: _, _, n + 1, h => ⟨h.1, fun a ha => SpineTy.take n (h.2 a ha)⟩
+
+/-- A graded field telescope (`FieldsOkB`) is a telescope of types. -/
+theorem FieldsOkB.spineTy {w : Nat} :
+    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsOkB w ρ Fs → SpineTy ρ Fs
+  | [], _, _ => trivial
+  | _ :: _, _, h => ⟨h.2.1, fun a ha => FieldsOkB.spineTy (h.2.2.2 a ha)⟩
+
 /-- **Fitting values compared where neither is the point are equal**
 (`FitsVals_eq_of_cond`): two spines fitting one telescope of types,
 equal at every position where neither value is the point, are equal. -/
