@@ -605,7 +605,8 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
           ConLeche.nestCrest ctx.names (pp.lps.map .param) fvsP holes cA.1.type = some crest ∧
           ConLeche.MemberCtorD (fueledOps .verified F) envI ctx cA.2 crest ks
             ((nfsR.getD q.1 []).getD q.2 default) ts ∧
-          (∃ ty, ConLeche.inferTypeCore .verified envI F (ctx.hiAt 0) crest = .ok ty) ∧
+          (∃ ty u, ConLeche.inferTypeCore .verified envI F (ctx.hiAt 0) crest = .ok ty ∧
+            ConLeche.ensureSortCore .verified envI F (ctx.hiAt 0) ty = .ok u) ∧
           ConLeche.TreeRec (fueledOps .verified F) envI ctx R.st.ctorNfs.toList ts := by
     intro q
     by_cases h : ∃ cs cA, ctorsAsR[q.1]? = some cs ∧ cs[q.2]? = some cA
@@ -616,7 +617,7 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
       obtain rfl := Option.some.inj hcs'
       rw [hj] at hj'
       obtain rfl := Option.some.inj hj'
-      exact ⟨crest, ks, hcr, hd, ⟨ty, hty⟩, htr.mono hposT⟩
+      exact ⟨crest, ks, hcr, hd, ⟨ty, u, hty, hsort⟩, htr.mono hposT⟩
     · exact ⟨[], fun cs cA hcs hj => absurd ⟨cs, cA, hcs, hj⟩ h⟩
   obtain ⟨tsM, htsM⟩ := Classical.axiomOfChoice hexM
   let rtC : List PosTree := (List.range out.length).flatMap fun c => tsOf c
@@ -745,13 +746,13 @@ theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   · obtain ⟨ts, htc, -, -, -, -, htr, -⟩ := hsrc t ht
     rw [hctxE]; exact htr t htc
   · refine ⟨cvTa0, rest, holes, h1, h2, by rw [hctxE]; exact h3, fun m cs hcs j cA hj => ?_⟩
-    obtain ⟨crest, ks, hcr, hd, hty, -⟩ := htsM (m, j) cs cA hcs hj
+    obtain ⟨crest, ks, hcr, hd, ⟨ty, u, hty, hsort⟩, -⟩ := htsM (m, j) cs cA hcs hj
     have hent := ConLeche.rootEntry_mem hrootOk hrootRec hcs (List.mem_of_getElem? hj)
       (by rw [← hctxE]; exact hlpsC m cs hcs cA (List.mem_of_getElem? hj))
       (by rw [show ctx.params = fvsP by rw [← hctxE]; rfl,
         show ctx.lps = pp.lps by rw [← hctxE]; rfl]; exact hcr) hd
     refine ⟨crest, ks, tsM (m, j), by rw [hctxE]; exact hcr, by rw [hctxE]; exact hd,
-      by rw [hctxE]; exact hty, hinM m cs hcs j cA hj, ?_⟩
+      ⟨ty, u, by rw [hctxE]; exact hty, by rw [hctxE]; exact hsort⟩, hinM m cs hcs j cA hj, ?_⟩
     rw [hctxE]
     exact hposT _ hent
   · have hc' : c < out.length := by simpa [tgtRs] using hc

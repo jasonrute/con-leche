@@ -239,8 +239,10 @@ own levels and parameters) is recorded in the table `tbl`. -/
           cA.1.type = some crest ∧
         ConLeche.MemberCtorD (fueledOps .verified F) envI (pp.nestCtx fvsP envI.find?)
           cA.2 crest ks ((nfsR.getD m []).getD j default) ts ∧
-        (∃ ty, ConLeche.inferTypeCore .verified envI F
-          ((pp.nestCtx fvsP envI.find?).hiAt 0) crest = .ok ty) ∧
+        (∃ ty u, ConLeche.inferTypeCore .verified envI F
+          ((pp.nestCtx fvsP envI.find?).hiAt 0) crest = .ok ty ∧
+          ConLeche.ensureSortCore .verified envI F
+            ((pp.nestCtx fvsP envI.find?).hiAt 0) ty = .ok u) ∧
         (∀ u ∈ PosTree.forest ts, u ∈ ns) ∧
         (⟨cA.1.name, (pp.nestCtx fvsP envI.find?).lps.map .param,
           (pp.nestCtx fvsP envI.find?).params,
