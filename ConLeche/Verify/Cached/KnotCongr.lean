@@ -307,7 +307,7 @@ theorem iotaRecI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     iotaRecI mode r fe₁ = iotaRecI mode r fe₂ := by
   funext depth e; unfold iotaRecI
   simp only [hfe, prepareMajorI_congr hfe, defEqListI_congr hfe,
-    constTyAtM_congr hfe, iotaCertsI_congr hfe, iotaCertsFullI_congr hfe,
+    constTyAtM_congr hfe, iotaCertsFullI_congr hfe,
     iotaIndexOkI_congr hfe, ruleRhsAtM_congr hfe]
 
 /-- `projCertI` reads `fe` only through `find?`. -/

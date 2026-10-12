@@ -608,11 +608,11 @@ closed by the stage's own guard, stored as generated and typed at the
 rule-less recursors' environment `envR` (`sharedOpsRuleR`'s inference
 flushes last), its λ-telescope read syntactically. -/
 theorem classRuleOkS_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR : EnvWF envR)
-    (envT : Env) {cvR : ConstantVal} {pw : PropWhen} {n : Nat} {gen : Expr} :
+    (envT : Env) {cvR : ConstantVal} {n : Nat} {gen : Expr} :
     SimG (CSOKAll mode) (CSOKAll mode) RelVC
       (classRuleOk (sharedOpsRuleR mode (mkFEnv envR)) .plain (mkFEnv envT) (mkFEnv envR) cvR
-        pw n gen)
-      (classRuleOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) cvR pw n gen) := by
+        n gen)
+      (classRuleOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) cvR n gen) := by
   unfold classRuleOk
   simp only [mkFEnv_env]
   by_cases h1 : (gen.looseBVarsBounded 0 && !gen.hasFvar) = true
@@ -634,19 +634,16 @@ theorem classRuleOkS_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR
   by_cases h5 : (rbs.all fun b => StructWalkers.plain.resolve (mkFEnv envT) b.1) = true
   case neg => simp only [h5]; exact SimG.throw_bind
   simp only [h5, ite_true]
-  by_cases h6 : (rbs.all fun b => b.2.pw == pw) = true
-  case neg => simp only [h6]; exact SimG.throw_bind
-  simp only [h6, ite_true]
   exact SimG.pure (fun _ h => h) rfl
 
 theorem classRulesOkS_simG (hμ : mode.verifiedChecks = true) {envR envT : Env}
     (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} {cvR : ConstantVal}
-    {pw : PropWhen} {c : Nat} :
+    {c : Nat} :
     ∀ (xs : List ClassCtor),
       SimG (CSOKAll mode) (CSOKAll mode) RelVC
         (classRulesOk (sharedOpsRuleR mode (mkFEnv envR)) .plain (mkFEnv envT) (mkFEnv envR) g
-          recOf cvR pw c xs)
-        (classRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvR pw c xs)
+          recOf cvR c xs)
+        (classRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvR c xs)
   | [] => SimG.pure (fun _ h => h) rfl
   | x :: xs => by
     unfold classRulesOk
@@ -659,12 +656,12 @@ theorem classRulesOkS_simG (hμ : mode.verifiedChecks = true) {envR envT : Env}
     exact SimG.pure (fun _ h => h) rfl
 
 theorem classRecsRulesOkS_simG (hμ : mode.verifiedChecks = true) {envR envT : Env}
-    (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} {pw : PropWhen} :
+    (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} :
     ∀ (cvs : List ConstantVal) (cs : List Nat),
       SimG (CSOKAll mode) (CSOKAll mode) RelVC
         (classRecsRulesOk (sharedOpsRuleR mode (mkFEnv envR)) .plain (mkFEnv envT) (mkFEnv envR)
-          g recOf pw cvs cs)
-        (classRecsRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf pw cvs
+          g recOf cvs cs)
+        (classRecsRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvs
           cs)
   | cvG :: cvs, c :: cs => by
     unfold classRecsRulesOk
@@ -822,7 +819,7 @@ theorem genRecCheck_recsWF {env₂ : Env} (henv₂ : EnvWF env₂) {p : BlockSha
         classRulesOk (fueledOps mode F) .plain (mkFEnv env₂)
           (classFeR p R.Ms R.cvGs rd.recCls (mkFEnv env₂)) R.g
           (classRecOf rd.recCls R.cvGs) cvG
-          (Level.zeronessOf (structElimLevel p.elim p.large)) c (R.ctors.getD c []) = .ok o.2.2 := by
+          c (R.ctors.getD c []) = .ok o.2.2 := by
     intro i o ho
     have hil : i < p.recs.length := by
       have := (List.getElem?_eq_some_iff.mp ho).1; rw [hlenO] at this; omega

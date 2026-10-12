@@ -643,16 +643,16 @@ theorem classRecTysOk_names (ops : CheckerOps CheckCM) (fe : FEnv) (g : ClassGen
 /-- Every recursor's generated rules: the generated constants kept, in
 order. -/
 theorem classRecsRulesOk_fst (ops : CheckerOps CheckCM) (w : StructWalkers) (feT feR : FEnv)
-    (g : ClassGen) (recOf : Nat → Option Name) (pw : PropWhen) :
+    (g : ClassGen) (recOf : Nat → Option Name) :
     ∀ (cvGs : List ConstantVal) (cs : List Nat), cvGs.length ≤ cs.length →
-      Yields (classRecsRulesOk ops w feT feR g recOf pw cvGs cs)
+      Yields (classRecsRulesOk ops w feT feR g recOf cvGs cs)
         (fun out => out.map (·.1) = cvGs)
   | [], _, _ => by unfold classRecsRulesOk; exact Yields.pure rfl
   | _ :: _, [], h => by simp at h
   | cvG :: cvs, c :: cs, h => by
     unfold classRecsRulesOk
     refine Yields.bind fun _ => ?_
-    refine Yields.bind' (classRecsRulesOk_fst ops w feT feR g recOf pw cvs cs
+    refine Yields.bind' (classRecsRulesOk_fst ops w feT feR g recOf cvs cs
       (by simpa using h)) fun xs hxs => ?_
     exact Yields.pure (by simp [hxs])
 

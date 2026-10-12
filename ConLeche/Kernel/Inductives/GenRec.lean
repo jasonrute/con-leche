@@ -421,11 +421,10 @@ def classRecTysOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) :
 written): resolved and typed at the
 rule-less recursors' environment `feR` (its level parameters the
 recursor's), its λ-telescope over the prefix and the fields `n` long,
-its λ-domains resolving at the constructors' environment `feT` and
-annotated with the family's elimination datum `pw`.  Returns the
-annotated rule (stored). -/
+its λ-domains resolving at the constructors' environment `feT`.
+Returns the rule (stored). -/
 def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR : ConstantVal)
-    (pw : PropWhen) (n : Nat) (gen : Expr) : m Expr := do
+    (n : Nat) (gen : Expr) : m Expr := do
   unless gen.looseBVarsBounded 0 && !gen.hasFvar do
     throw (.internal s!"generated recursor: a rule of {cvR.name} is not closed")
   let genA := gen
@@ -440,30 +439,29 @@ def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR :
       recursor's prefix and the constructor's fields")
   unless rbs.all (fun b => w.resolve feT b.1) do
     throw (unresolvedConstsError s!"the domains of a generated rule of {cvR.name}" genA)
-  let _ := pw
   pure genA
 
 /-- A recursor's generated rules, one per constructor of its class. -/
 def classRulesOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
-    (recOf : Nat → Option Name) (cvR : ConstantVal) (pw : PropWhen) (c : Nat) :
+    (recOf : Nat → Option Name) (cvR : ConstantVal) (c : Nat) :
     List ClassCtor → m (List Expr)
   | [] => pure []
   | x :: xs => do
     let gen ← unwrapOr (classGenRule g recOf (cvR.levelParams.map .param) c x)
       (.invalid s!"generated recursor: the rule of {x.cv.name} calls a class whose recursor the \
         stream omits (official: unknown constant)")
-    let r ← classRuleOk ops w feT feR cvR pw (g.nP + g.slots.length + x.nF) gen
-    let rs ← classRulesOk ops w feT feR g recOf cvR pw c xs
+    let r ← classRuleOk ops w feT feR cvR (g.nP + g.slots.length + x.nF) gen
+    let rs ← classRulesOk ops w feT feR g recOf cvR c xs
     pure (r :: rs)
 
 /-- Every recursor's generated rules, at the rule-less recursors'
 environment `feR`, with its class. -/
 def classRecsRulesOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
-    (recOf : Nat → Option Name) (pw : PropWhen) :
+    (recOf : Nat → Option Name) :
     List ConstantVal → List Nat → m (List (ConstantVal × TargetMajor × List Expr))
   | cvG :: cvs, c :: cs => do
-    let rhss ← classRulesOk ops w feT feR g recOf cvG pw c (g.ctors.getD c [])
-    let xs ← classRecsRulesOk ops w feT feR g recOf pw cvs cs
+    let rhss ← classRulesOk ops w feT feR g recOf cvG c (g.ctors.getD c [])
+    let xs ← classRecsRulesOk ops w feT feR g recOf cvs cs
     pure ((cvG, g.cls.getD c default, rhss) :: xs)
   | _, _ => pure []
 
@@ -579,7 +577,7 @@ def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Boo
   let feR := so.ruleEnv p Ms cvGs rd.recCls fe
   so.flush
   let out ← classRecsRulesOk (so.opsRuleR feR) so.walkers fe feR g
-    (classRecOf rd.recCls cvGs) (Level.zeronessOf elim) cvGs rd.recCls
+    (classRecOf rd.recCls cvGs) cvGs rd.recCls
   so.flush
   pure out
 

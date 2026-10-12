@@ -900,29 +900,29 @@ variable {ops : CheckerOps m} {w : StructWalkers}
 
 theorem classRuleOk_twin (h : EnvFree ops) {feT₁ feT₂ feR₁ feR₂ : FEnv}
     (hT : w.resolve feT₁ = w.resolve feT₂) (hR : w.resolve feR₁ = w.resolve feR₂)
-    (cvR : ConstantVal) (pw : PropWhen) (n : Nat) (gen : Expr) :
-    classRuleOk ops w feT₁ feR₁ cvR pw n gen = classRuleOk ops w feT₂ feR₂ cvR pw n gen := by
+    (cvR : ConstantVal) (n : Nat) (gen : Expr) :
+    classRuleOk ops w feT₁ feR₁ cvR n gen = classRuleOk ops w feT₂ feR₂ cvR n gen := by
   unfold classRuleOk
   simp only [hT, hR, h.inferType feR₁.env, h.inferType feR₂.env]
 
 theorem classRulesOk_twin (h : EnvFree ops) {feT₁ feT₂ feR₁ feR₂ : FEnv}
     (hT : w.resolve feT₁ = w.resolve feT₂) (hR : w.resolve feR₁ = w.resolve feR₂)
-    (g : ClassGen) (recOf : Nat → Option Name) (cvR : ConstantVal) (pw : PropWhen) (c : Nat) :
-    ∀ xs, classRulesOk ops w feT₁ feR₁ g recOf cvR pw c xs =
-      classRulesOk ops w feT₂ feR₂ g recOf cvR pw c xs
+    (g : ClassGen) (recOf : Nat → Option Name) (cvR : ConstantVal) (c : Nat) :
+    ∀ xs, classRulesOk ops w feT₁ feR₁ g recOf cvR c xs =
+      classRulesOk ops w feT₂ feR₂ g recOf cvR c xs
   | [] => rfl
   | x :: xs => by
-    have ih := classRulesOk_twin h hT hR g recOf cvR pw c xs
+    have ih := classRulesOk_twin h hT hR g recOf cvR c xs
     unfold classRulesOk
     simp only [classRuleOk_twin h hT hR, ih]
 
 theorem classRecsRulesOk_twin (h : EnvFree ops) {feT₁ feT₂ feR₁ feR₂ : FEnv}
     (hT : w.resolve feT₁ = w.resolve feT₂) (hR : w.resolve feR₁ = w.resolve feR₂)
-    (g : ClassGen) (recOf : Nat → Option Name) (pw : PropWhen) :
-    ∀ cvs cs, classRecsRulesOk ops w feT₁ feR₁ g recOf pw cvs cs =
-      classRecsRulesOk ops w feT₂ feR₂ g recOf pw cvs cs
+    (g : ClassGen) (recOf : Nat → Option Name) :
+    ∀ cvs cs, classRecsRulesOk ops w feT₁ feR₁ g recOf cvs cs =
+      classRecsRulesOk ops w feT₂ feR₂ g recOf cvs cs
   | cvG :: cvs, c :: cs => by
-    have ih := classRecsRulesOk_twin h hT hR g recOf pw cvs cs
+    have ih := classRecsRulesOk_twin h hT hR g recOf cvs cs
     unfold classRecsRulesOk
     simp only [classRulesOk_twin h hT hR, ih]
   | [], _ => by unfold classRecsRulesOk; rfl
@@ -956,20 +956,20 @@ theorem genRecCheck_twin {fe₁ fe₂ : FEnv} (ht : Twin fe₁ fe₂) (p : Block
       genRecCheck (shadowOpsC mode) fe₂ p nestedBit params tbl rd Ms cvTas block := by
   have hfe := ht.find
   have key : ∀ (Ms' : List TargetMajor) (cvGs : List ConstantVal) (recCls : List Nat)
-      (g : ClassGen) (recOf : Nat → Option Name) (pw : PropWhen),
+      (g : ClassGen) (recOf : Nat → Option Name) ,
       classRecsRulesOk ((shadowOpsC mode).opsRuleR (classFeROvl p Ms' cvGs recCls fe₁))
-          (shadowOpsC mode).walkers fe₁ (classFeROvl p Ms' cvGs recCls fe₁) g recOf pw cvGs
+          (shadowOpsC mode).walkers fe₁ (classFeROvl p Ms' cvGs recCls fe₁) g recOf cvGs
           recCls
         = classRecsRulesOk ((shadowOpsC mode).opsRuleR (classFeROvl p Ms' cvGs recCls fe₂))
-          (shadowOpsC mode).walkers fe₂ (classFeROvl p Ms' cvGs recCls fe₂) g recOf pw
+          (shadowOpsC mode).walkers fe₂ (classFeROvl p Ms' cvGs recCls fe₂) g recOf
           cvGs recCls := by
-    intro Ms' cvGs recCls g recOf pw
+    intro Ms' cvGs recCls g recOf
     have hR := classFeROvl_find?_twin ht p Ms' cvGs recCls
-    show classRecsRulesOk (sharedOpsRuleR mode _) structWalkersC fe₁ _ g recOf pw cvGs recCls
-      = classRecsRulesOk (sharedOpsRuleR mode _) structWalkersC fe₂ _ g recOf pw cvGs recCls
+    show classRecsRulesOk (sharedOpsRuleR mode _) structWalkersC fe₁ _ g recOf cvGs recCls
+      = classRecsRulesOk (sharedOpsRuleR mode _) structWalkersC fe₂ _ g recOf cvGs recCls
     rw [sharedOpsRuleR_congr mode hR]
     exact classRecsRulesOk_twin (sharedOpsRuleR_envFree mode _)
-      (constsResolveFC_congr hfe) (constsResolveFC_congr hR) g recOf pw cvGs recCls
+      (constsResolveFC_congr hfe) (constsResolveFC_congr hR) g recOf cvGs recCls
   have hops : (shadowOpsC mode).opsAt fe₁ = sharedOpsC mode fe₂ := sharedOpsC_congr hfe
   have hops₂ : (shadowOpsC mode).opsAt fe₂ = sharedOpsC mode fe₂ := rfl
   have hre : (shadowOpsC mode).ruleEnv = classFeROvl := rfl
