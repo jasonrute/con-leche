@@ -23,7 +23,7 @@ A #src("whitepaper/Fragment/Syntax.lean", 29, 48)[term] is a variable $x$; a sor
 $f thick a$; a function
 $lambda x : A. thin b$; a dependent function type
 $forall x : A. thin B$, written $A -> B$ when $x$ does not
-occur in $B$; or a local definition $elet x : T := v; thin b$.
+occur in $B$; or a let-expression $elet x : T := v; thin b$.
 Types are terms; there is no separate class.
 
 The paper writes named variables, with the usual conventions: terms
@@ -117,7 +117,7 @@ a term.  It is #src("whitepaper/Fragment/Rules.lean", 58, 69)[reflexive and tran
 
 #src("whitepaper/Fragment/Rules.lean", 70, 80)[$beta$] fires at every redex, and
 #src("whitepaper/Fragment/Rules.lean", 81, 87)[$zeta$] substitutes a
-local definition's value into its body; neither has a premise.
+let-binding's value into its body; neither has a premise.
 
 #rules(
   rule(name: "beta",
@@ -131,7 +131,7 @@ because a semantic proof might be expected to need more: the soundness
 of a $beta$ step needs the argument to lie in the domain of the
 $lambda$, and no premise says so.  @sec:inv explains why the model
 supplies it for every redex whose value matters, and why the others
-need nothing.  $zeta$ is simpler still: a local definition denotes
+need nothing.  $zeta$ is simpler still: a let-expression denotes
 what its body with the value substituted denotes, always.
 
 === Definitional equality
@@ -251,7 +251,7 @@ the sort of that type is not computed.
 
 An #src("whitepaper/Fragment/Rules.lean", 772, 781)[application infers the head's type], reduces it to a $forall$,
 infers the argument's type and #src("ConLeche/Rules/Rel.lean", 537, 540)[compares it with the domain].
-A #src("whitepaper/Fragment/Rules.lean", 782, 796)[local definition] checks that its type has a
+A #src("whitepaper/Fragment/Rules.lean", 782, 796)[let-expression] checks that its type has a
 sort and that its value's type agrees with it, as Lean does, and then
 infers the type of the body with the value substituted.
 
@@ -284,8 +284,8 @@ the argument denotes a member of the domain, by the certificate; and
 applying a member of a function space to a member of its domain lands in the
 fibre.  The second half of this section carries this out.
 
-*The local definition.*  The two checks on the value are what Lean
-runs, and they decide verdicts: they reject a local definition whose
+*The let-expression.*  The two checks on the value are what Lean
+runs, and they decide verdicts: they reject a let-expression whose
 value does not have the stated type even where the body ignores it.
 The soundness proof does not use them (@sec:claims): the
 interpretation reads no type, and the body is inferred with the value
