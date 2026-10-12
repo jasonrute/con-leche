@@ -91,6 +91,35 @@ noncomputable def mInstall : EnvModel V (S.install env) where
         Env.ne_of_isSome_find? hstored (hok.fresh _ (by simp))
       rw [S.install_find? hpl, ite_eq_right hne] at hcij
       exact (mCtors hpl hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
+  rec_rules_slot := fun c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij => by
+    rw [S.install_find? hpl] at hfind
+    split at hfind
+    · -- the new recursor: one of the generated rules, at its constructor
+      rename_i hc
+      subst hc
+      cases hfind
+      simp only [recInfo, ConstKind.recursor.injEq] at hkind
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+      obtain ⟨j, c', hc', rfl⟩ := S.mem_rules hrl
+      have hcij' : (S.install env).find? c'.name = some (S.ctorInfo c') := by
+        rw [S.install_find? hpl, ite_eq_right (hok.ctor_ne_rec hc'), S.envCtors_find? env hok.nodup_ctors,
+          S.ctorOf?_of_getElem? hok.nodup_ctors hc']
+      rw [hcij'] at hcij
+      cases hcij
+      exact rec_rule_slot hpl hs m hok hc'
+    · -- a stored recursor: its rule's constructor is stored, hence not the new recursor
+      have hstored : (env.find? rl.ctor).isSome := by
+        rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+        split at hfind
+        · cases hfind; simp [ctorInfo] at hkind
+        · rw [S.envInd_find?] at hfind
+          split at hfind
+          · cases hfind; simp [indInfo] at hkind
+          · exact ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
+      have hne : rl.ctor ≠ S.recName :=
+        Env.ne_of_isSome_find? hstored (hok.fresh _ (by simp))
+      rw [S.install_find? hpl, ite_eq_right hne] at hcij
+      exact (mCtors hpl hs m hok).rec_rules_slot c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij
   rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
       hcij hcijk => by
     rw [S.install_find? hpl] at hfind
@@ -121,6 +150,24 @@ noncomputable def mInstall : EnvModel V (S.install env) where
     split at hfind
     · cases hfind; simp [recInfo] at hkind
     · exact (mCtors hpl hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.install_find? hpl] at hfind
+    split at hfind
+    · -- the new recursor: its rules are flagged K only for a K-like block
+      rename_i hc
+      subst hc
+      cases hfind
+      simp only [recInfo, ConstKind.recursor.injEq] at hkind
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+      obtain ⟨j, c', hc', rfl⟩ := S.mem_rules hrl
+      obtain ⟨c, hK, hnf⟩ := isK_spec hk
+      rw [hK] at hc'
+      obtain ⟨rfl, rfl⟩ : j = 0 ∧ c' = c := by
+        cases j with
+        | zero => simp only [List.getElem?_cons_zero, Option.some.injEq] at hc'; exact ⟨rfl, hc'.symm⟩
+        | succ j => simp at hc'
+      exact rec_rule_lawK hpl hs m hok hK hnf
+    · exact (mCtors hpl hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mInstall_M : (mInstall hpl hs m hok).M = S.M₃ m.M := rfl
 

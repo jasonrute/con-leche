@@ -347,6 +347,30 @@ noncomputable def sortModel : EnvModel V sortEnv where
     split at h
     · cases h; cases hk
     · cases h
+  rec_rules_k := by
+    intro c ci _ _ _ _ _ h hk
+    simp only [sortEnv, Env.find?, List.lookup_cons, List.lookup_nil] at h
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    · cases h
+  rec_rules_slot := by
+    intro c ci _ _ _ _ _ h hk
+    simp only [sortEnv, Env.find?, List.lookup_cons, List.lookup_nil] at h
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    · cases h
 
 /-- `fun (x : Prop) => d x`. -/
 @[expose] def lamD : Expr := .lam (.sort .zero) dx

@@ -223,9 +223,9 @@ info: 'Fragment.Red.iota_core_slot' depends on axioms: [propext, Classical.choic
 #guard_msgs in #print axioms Fragment.Red.iota_core_slot
 
 /--
-info: 'Fragment.Red.slot_case' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Fragment.Red.slot_of_law' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms Fragment.Red.slot_case
+#guard_msgs in #print axioms Fragment.Red.slot_of_law
 
 /--
 info: 'Fragment.Red.dom_fib' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -506,3 +506,28 @@ info: 'Fragment.Infer.letE_sat' depends on axioms: [propext, Classical.choice, Q
 info: 'Fragment.InferIO.letE_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms Fragment.InferIO.letE_sound
+
+/--
+info: 'Fragment.Red.iotaK_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.Red.iotaK_sound
+
+/--
+info: 'Fragment.IndSpec.rec_rule_lawK' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.rec_rule_lawK
+
+/--
+info: 'Fragment.IndSpec.rec_rule_slot' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.rec_rule_slot
+
+/--
+info: 'Fragment.IndSpec.rec_rule_slotN' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.rec_rule_slotN
+
+/--
+info: 'Fragment.IndSpec.rec_rule_slot1N' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms Fragment.IndSpec.rec_rule_slot1N

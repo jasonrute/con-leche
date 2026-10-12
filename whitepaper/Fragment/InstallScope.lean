@@ -744,7 +744,7 @@ end Generated
 
 /-- A rule of the recursor is constructor `j`'s. -/
 theorem mem_rules {rl : RecRule} (h : rl ∈ S.rules) :
-    ∃ j c, S.ctors[j]? = some c ∧ rl = ⟨c.name, c.fields.length, S.ruleRhs c j, none⟩ := by
+    ∃ j c, S.ctors[j]? = some c ∧ rl = ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩ := by
   rw [rules, List.mem_map] at h
   obtain ⟨j, hj, rfl⟩ := h
   rw [List.mem_range] at hj

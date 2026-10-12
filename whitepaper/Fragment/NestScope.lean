@@ -124,7 +124,7 @@ theorem mem_minorsCtxK (N : NestInfo) {A : Expr} (h : A ∈ S.minorsCtxK N) :
 
 /-- A rule of `T.rec` is one of the block's constructors'. -/
 theorem mem_rulesN (N : NestInfo) {rl : RecRule} (h : rl ∈ S.rulesN N) :
-    ∃ j c, S.ctors[j]? = some c ∧ rl = ⟨c.name, c.fields.length, S.ruleRhsN N c j, none⟩ := by
+    ∃ j c, S.ctors[j]? = some c ∧ rl = ⟨c.name, c.fields.length, S.ruleRhsN N c j, none, false⟩ := by
   rw [rulesN, List.mem_map] at h
   obtain ⟨j, hj, rfl⟩ := h
   rw [List.mem_range] at hj
@@ -136,7 +136,7 @@ theorem mem_rulesN (N : NestInfo) {rl : RecRule} (h : rl ∈ S.rulesN N) :
 its stored instantiation. -/
 theorem mem_rules1 (N : NestInfo) {rl : RecRule} (h : rl ∈ S.rules1 N) :
     ∃ j c, N.K.ctors[j]? = some c ∧
-      rl = ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0)⟩ := by
+      rl = ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0), false⟩ := by
   rw [rules1, List.mem_map] at h
   obtain ⟨j, hj, rfl⟩ := h
   rw [List.mem_range] at hj

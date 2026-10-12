@@ -272,6 +272,19 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
         simp at this
       · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).rec_rules c ci nP nM nMin nI
           rules hfind hkind rl hrl hinst cij hcij
+  rec_rules_slot := fun c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · rw [S.envInd_find?] at hcij
+      split at hcij
+      · rename_i h
+        exfalso
+        have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
+        rw [h, hok.freshI] at this
+        simp at this
+      · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).rec_rules_slot c ci nP nM nMin nI
+          rules hfind hkind rl hrl cij hcij
   rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
       hcij hcijk => by
     rw [S.envInd_find?] at hfind
@@ -298,6 +311,11 @@ noncomputable def mIndF (F : List Nat → List V → List V → V)
         fun _ ps is _ _ => hF _ ps is
     · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).ind_fib I ci nP nI cs S'
         hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · exact (m.transport hs (S.M₁F m.M F) (agree_M₁F hok m.M F)).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 omit hpl in
 theorem mIndF_M (F : List Nat → List V → List V → V)
@@ -586,6 +604,19 @@ noncomputable def mInd : EnvModel V (S.envInd env) where
         rw [h, hok.freshI] at this
         simp at this
       · exact (m₃ hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
+  rec_rules_slot := fun c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · rw [S.envInd_find?] at hcij
+      split at hcij
+      · rename_i h
+        -- the constructor of a stored rule is stored, so it is not the fresh former
+        exfalso
+        have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
+        rw [h, hok.freshI] at this
+        simp at this
+      · exact (m₃ hs m hok).rec_rules_slot c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij
   rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
       hcij hcijk => by
     rw [S.envInd_find?] at hfind
@@ -614,6 +645,11 @@ noncomputable def mInd : EnvModel V (S.envInd env) where
             (by have := FitsVals_length _ _ hp; simpa [nP] using this) hp)
           (S.contOk_of_plain m.M _ hpl ps) is
     · exact (m₃ hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · cases hfind; simp [indInfo] at hkind
+    · exact (m₃ hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mInd_M : (mInd hpl hs m hok).M = S.M₃ m.M := rfl
 
@@ -804,6 +840,33 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
           simp at hstored
       rw [hnone] at hcij
       exact (mInd hpl hs m hok).rec_rules c ci nP nM nMin nI rules hfind hkind rl hrl hinst cij hcij
+  rec_rules_slot := fun c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij => by
+    rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+    split at hfind
+    · cases hfind; simp [ctorInfo] at hkind
+    · rw [S.envCtors_find? env hok.nodup_ctors] at hcij
+      -- a stored rule's constructor is stored in `env`, so it is not one of the new ones
+      have hstored : ((S.envInd env).find? rl.ctor).isSome := by
+        rw [S.envInd_find?] at hfind ⊢
+        split at hfind
+        · cases hfind; simp [indInfo] at hkind
+        · have := ((hs c ci hfind).2.2 nP nM nMin nI rules hkind rl hrl).2
+          split
+          · simp
+          · exact this
+      have hnone : S.ctorOf? rl.ctor = none := by
+        apply S.ctorOf?_none
+        intro c' hc' h
+        rw [S.envInd_find?] at hstored
+        split at hstored
+        · rename_i h'
+          rw [h'] at h
+          exact hok.name_not_mem (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨c', hc', h⟩))
+        · rw [← h, hok.fresh _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+            (List.mem_map.mpr ⟨c', hc', rfl⟩)))] at hstored
+          simp at hstored
+      rw [hnone] at hcij
+      exact (mInd hpl hs m hok).rec_rules_slot c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij
   rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
       hcij hcijk => by
     rw [S.envCtors_find? env hok.nodup_ctors] at hfind
@@ -837,6 +900,11 @@ noncomputable def mCtors : EnvModel V (S.envCtors env) where
     split at hfind
     · cases hfind; simp [ctorInfo] at hkind
     · exact (mInd hpl hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+    split at hfind
+    · cases hfind; simp [ctorInfo] at hkind
+    · exact (mInd hpl hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 theorem mCtors_M : (mCtors hpl hs m hok).M = S.M₃ m.M := rfl
 

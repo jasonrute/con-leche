@@ -83,10 +83,15 @@ not its reduct.**
   a structure with no fields (`True`, `PUnit`) the eta reduct is the K
   reduct, syntactically, and the structure-η law with the plain law
   gives the K law (#349's `RecRuleLawK`): the two paths coincide.
+  Since #342 F2 the K law is itself an environment law
+  (`EnvModel.rec_rules_k`, proved by inversion of the least fixed
+  point, `IndSpec.rec_rule_lawK`) and K a rule (`Red.iotaK`); the
+  theorem here shows the eta route reaches the same law.
 
 The fragment has no projections, so the projection functions are
 stored constants read only through the laws, and the two steps are
-theorems about the claims, not rules of `Red` (as #349 did for K): a
+theorems about the claims, not rules of `Red` (as #349 did for K,
+which #342 F2 has since made the rule `Red.iotaK`): a
 rule needs an `EnvModel` field for `StructEtaLaw`/`ProjLaw` and its
 proof in the installer (the projections read the unique decoding of a
 member of the fibre, `Uniq.lean`, which at a proposition has every
