@@ -102283,3 +102283,70 @@ type's reading (`lfpFamSpace_eq`).
 **Gates.**  `lake build`, `lake test`: no warnings but `declaration
 uses sorry` in ledger files.  `tests/challenge.sh` green.  No checker
 change: no e2e/arena run.
+
+## TASK #342 — L15: the value constants over `lamV` (2026-10-12, agent/342-l15)
+
+Lane L15, stage S4 (`_tmp/342v2-design.md` §3.2 `bval`, §11), on
+`port-342-s4`.  No checker, `Denotes`, `MainTheorem` or `Challenge`
+change (`tests/challenge.sh` green).
+
+**The constants.**  Every abstraction in a `bval` tower
+(`SetModel/Value.lean`) is `lamV`, and every space a binder ranges over
+is the value reading of the binder's spelled type (`piV`):
+`natSuccV`, `natRecV` over `natMotiveSpace`/`natStepSpace`, `psigmaV`,
+`psigmaMkV`, `quotV`, `quotMkV`, `quotLiftV` (and `quotLiftR`, over the
+quotient set), `choiceV`, `emptyRecV`, `lfpFamV` over `lfpFamFunSpace`,
+`lfpTupleV`.  `natStepSpace` (no level argument), `relSpace` (no level
+argument), `quotInvSpace`, `emptyMotiveSpace`, `lfpFamFunSpace` (no `u`)
+are `piV`; `dnegSpace` stays `piR 0`, which is its value reading
+(`piV_dneg_eq`).  `psigmaMkV`'s body carries the tag
+`if max u v = 0 then pt else spair a b` (a pair in a truth value is the
+point), so the tower is the point there (`psigmaMkV_eq_pt`) and the
+four bodies need no regime split.  `emptyRecV` is the point: its inner
+abstraction is over `∅`.  L16 had already made `psigmaFibreSpace` and
+`lfpFamSpace` value-read and the least fixed points `famOf`-built, so
+`lfpFamV`/`lfpTupleV` return `lfpFamSet`/`lfpTuple` unconverted (a
+first cut that re-read them through `lamV` over the index set was
+dropped on merging L16).
+
+**The laws.**  Every `*_app` law is `app_lamV` down the binders, with no
+premise beyond domain membership: `natRecV_app`, `psigmaV_app`,
+`psigmaMkV_app`, `quotV_app`, `quotMkV_app`, `quotLiftV_app` (one law;
+`quotLiftV_app_zero`/`_any` are gone), `quotLiftR_app` (no `v ≠ 0`),
+`choiceV_app`, `lfpTupleV_app`.  `natStep_apply`/`natRecV_mem_fibre`
+lost their motive premise (`app_mem_piV` needs none).  New memberships,
+each `lamV_mem` down the binders: `natRecV_mem`, `psigmaV_mem`,
+`psigmaMkV_mem`, `quotLiftV_mem`, `choiceV_mem`, `lfpFamV_mem`,
+`lfpTupleV_mem` (all `piV`).  Bridges where a consumer still wants the
+graph regime over an inhabited domain: `natSuccV_eq_lamR`/
+`natSuccV_mem` (`piR 1`), `psigmaV_eq_lamR` (so `psigmaV_rr_mem` keeps
+its `piR (r+1)` slot).  `SetModel/Ops`: `piV_slot`, the application
+slot a `piV` member supplies (numeral `propN`).
+
+**Discharged ledger lines** (all five L15 lines): `bval_mem_*`
+(`Semantics/BasisOk`: each is `lamV_mem` down the binders, the three
+point-valued propositions by `pt_mem_piV_ty`), `WellDenoted_bconst_type`'s
+residual goals (`Model/BasisTypeOk`: three `Quot.ind` motive slots,
+closed by `slot_of_mem_piV`/`quotMk_mem_quot`; `rel_app_data` and
+`IsTy_rel_app`, the numeral-`1` relation suppliers, are deleted),
+`choice_mem` (`Model/AxiomMem`: `lamV_mem` twice across
+`dneg_eq_nonempty`), the four `natStepSpace` bridges
+(`Model/BasisBlocks`: `natStepSpaceV` is deleted, the step binder reads
+`natStepSpace`), and `Model/BasisQuot` (`relSpaceV` and
+`mem_relSpace_of_V` deleted, `quotLiftTy_mem` by `quotLiftV_mem` across
+the binder readings, `quotLiftLaw`'s `hfv` bridge gone).
+
+**Consumers repaired** (the constants' slot chains move from `piR` with
+numeral side conditions to `app_mem_piV` + `piV_slot`):
+`Tower/TowerKit` (`mkTowerGoPos_*`, `psigmaMkV_ww_mem` is `piV`),
+`Tower/SumTower` (`natRecAV_wellDenoted`, the selector's step space,
+`sumInjAtAV_*`, `mkTowerGoUPos_wellDenoted`), `Tower/BlockTower`
+(`psigmaMkV_rr_mem` is `piV`; `blockFunVG_mem` is `piV` over the
+inhabited strict family-tuple space; `blockBodyG_wellDenoted`),
+`Tower/BlockRecTower` (its local `choiceV_mem` is gone, `Value`'s is
+used; `selChainAV_facts`' slots).
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration
+uses sorry` in ledger files (none in L15's).  `tests/challenge.sh`
+green.  No checker change: no e2e/arena run.  11 files, +772 −885
+against `port-342-s4` before the landing merge.
