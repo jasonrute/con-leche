@@ -423,10 +423,6 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       envI.find? pP cvTas ctorsAs = .ok posKs)
     (hpN : pP.memberNames = q.memberNames) (hpL : pP.lps = q.lps) (hpP : pP.nP = q.nP)
     (hpI : pP.nIdxs = q.nIdxs) (hpR : pP.resSort = q.resSort)
-    (hfamFree : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < q.k →
-      ctorsAs.getD m [] = [cA] → sortsss.getD m [] = [sorts] →
-      (q.members.getD m default).nIdx = 0 → 0 < cA.2 →
-      envI.find? (projFnName (q.memberNames.getD m .anonymous) 0) = none)
     (hprojTbl : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < q.k →
       ctorsAs.getD m [] = [cA] → sortsss.getD m [] = [sorts] →
       (q.members.getD m default).nIdx = 0 →
@@ -793,12 +789,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
   have hII : ∀ n, (∀ cvTb ∈ cvTas, cvTb.name ≠ n) → envI.find? n = env.find? n :=
     fun n hn => by rw [hcons]; exact consBlockInds_find?_of_ne hn
   have hWI : ConLeche.WhnfNamesFree envI q.memberNames := by
-    refine ConLeche.whnfNamesFree_formers mp.base2.wf hnamesIff hfindMI hfreshI hII ?_ ?_ ?_
-    · -- `checkConstantVal` rejects projection-function-shaped former names
-      intro n hn
-      obtain ⟨cvTb, hcv, rfl⟩ := (hnamesIff n).mp hn
-      obtain ⟨t, ht⟩ := List.getElem?_of_mem hcv
-      exact hF.pshapeOf t cvTb ht
+    refine ConLeche.whnfNamesFree_formers mp.base2.wf hnamesIff hfindMI hfreshI hII ?_ ?_
     · -- the η part of `RecCtorsStored`
       intro n cv mI rP rules hf r hr
       exact (mp.base2.rec_ctors n cv mI rP rules hf r hr).2.2
@@ -1212,9 +1203,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     intro m hm
     show _ ∈ q.members.map _
     exact List.mem_map.mpr ⟨_, getD_mem default hm, rfl⟩
-  -- ## the table stage's two freshness facts, at the capability record
-  -- and at the guarded members (the run supplies them in the CHECKED
-  -- lists' form; the capability reading is this proof's)
+  -- ## the table stage's freshness fact at the guarded members (the run
+  -- supplies it in the CHECKED lists' form)
   have hsingle : ∀ (m : Nat) (cA : ConstantVal × Nat), m < q.k → ctorsAs.getD m [] = [cA] →
       ∃ sorts : List Level, sortsss.getD m [] = [sorts] := by
     intro m cA hm hcs
@@ -1222,40 +1212,6 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨⟨hlenA, hlenS⟩, -⟩ := hfacts m cvTa hm hcv
     rw [hcs] at hlenA
     exact List.length_eq_one_iff.mp (by rw [hlenS, ← hlenA]; rfl)
-  have hfamFree' : ∀ (c : Nat) (cvTb : ConstantVal), cvTas[c]? = some cvTb →
-      (ConLeche.blockCapsAt q c isRec).unitlike = false →
-      (ConLeche.blockCapsAt q c isRec).eta = true →
-      envI.find? (projFnName cvTb.name 0) = none := by
-    intro c cvTb hcv hU hEta
-    have hck : c < q.k := by
-      have := (List.getElem?_eq_some_iff.mp hcv).1; rwa [hF.lenCv] at this
-    obtain ⟨cc, hccs, hcaps⟩ | hcaps := blockCapsAt_cases q c isRec
-    case inr => rw [hcaps] at hEta; exact nomatch hEta
-    rw [hcaps] at hEta hU
-    have hnIdx0 : (q.members.getD c default).nIdx = 0 := by
-      have h := hEta
-      simp only [Bool.and_eq_true, beq_iff_eq] at h
-      exact h.1.1
-    obtain ⟨cvTa, hcvTa⟩ := hcvOf c hck
-    have hlenA : (ctorsAs.getD c []).length = 1 := by
-      rw [(hfacts c cvTa hck hcvTa).1.1, hccs]; rfl
-    obtain ⟨cA, hcA⟩ := List.length_eq_one_iff.mp hlenA
-    obtain ⟨sorts, hsorts'⟩ := hsingle c cA hck hcA
-    have hnF : cA.2 = cc.2 := by
-      obtain ⟨c', -, hc', -, hnF', -⟩ := (hfacts c cvTa hck hcvTa).2 0 cA (by rw [hcA]; rfl)
-      rw [hccs] at hc'
-      obtain rfl : cc = c' := by simpa using hc'
-      exact hnF'
-    have hpos : 0 < cA.2 := by
-      rcases Nat.eq_zero_or_pos cA.2 with h0 | h0
-      · exfalso
-        rw [hnF] at h0
-        rw [hnIdx0, h0] at hU
-        simp at hU
-        simp [hU] at hEta
-      · exact h0
-    rw [hF.nameOf c cvTb hcv]
-    exact hfamFree c cA sorts hck hcA hsorts' hnIdx0 hpos
   have hprojTbl' : ∀ m, m < q.k → (∃ cAm, ctorsAs.getD m [] = [cAm]) → q.nIdxs.getD m 0 = 0 →
       envI.find? (projTableName (q.memberNames.getD m .anonymous)) = none := by
     rintro m hm ⟨cA, hcA⟩ hn0
@@ -1269,7 +1225,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     refine ⟨fun c cvTb hc => ⟨(hfindR c cvTb hc).1, hresIm _ (hF.resolveOf c cvTb hc),
         fun ψ => by rw [(hfindR c cvTb hc).2 ψ]; unfold blockLeafH; rw [hholeEq ψ]; rfl,
         hFDR c cvTb hc⟩,
-      hfamFree', fun c j cA hj => ?_, fun c hc => absurd hc (Nat.not_lt_zero _)⟩
+      fun c j cA hj => ?_, fun c hc => absurd hc (Nat.not_lt_zero _)⟩
     have hck : c < q.k := hctorLt c j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf c hck
     obtain ⟨-, -, -, -, -, -, -, hres, -⟩ := (hfacts c cvTa hck hcv).2 j cA hj
@@ -1459,7 +1415,6 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       refine blockCapsLawsAt m' (T := cvTa.name) (w := fun ψ => q.resSort.eval ψ)
         (pps := ppsOf m) (ds := (pk m).dsF 0) (L := fun ψ =>
           blockLeafH (blockDataOf V q ctorsAs pk uOf ppsOf) m ψ)
-        (fun hU _ => absurd hu (by rw [hU]; simp))
         (fun ψ => (hlenP ψ).symm) hleaf' hFD'.read hFD'.okTy ?_ ?_ ?_ ?_
       · -- the fold at the fieldless shape
         intro _ ψ ρ ts hsp

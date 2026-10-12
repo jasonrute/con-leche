@@ -22,8 +22,8 @@ The parameter spine is NOT certified: the reduced type is a graded type
 that is not the point ("not pt" source (1)), so its spine fits the
 former's ∀-telescope in the graph regime (`teleFitPA_of_graded_ne_pt`).
 The laws are read at that fit: a tower-backed family's through its
-slot `0` entry (`TowerEntryLaw` (C)), any other η family's through
-`CapsOk` (projection-function slots, or no field at all).
+slot `0` entry (`TowerEntryLaw` (C)), a fieldless η family's through
+`CapsOk`.
 -/
 
 namespace ConLeche.Model.Rules
@@ -112,7 +112,6 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
     (htlen : targs.length = caps.etaParams)
     (htowS : ConLeche.towerSlotsAll env T caps.etaFields = true)
     (hfb : Frame d b) (hCb : CtxOkS m φ d Δa b)
-    (hfT : ∀ x ∈ targs, Frame d x ∧ CtxOkS m φ d Δa x)
     (hdb : denoteMeta m.acval env φ d b = some ba)
     (hspt : DenoteMetaSpine m.acval env φ d targs tsa) :
     ∃ ps : List AnnotTerm,
@@ -229,63 +228,19 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
       · rw [hb, List.map_append, hps, hctr', hlpsT']
       · rw [List.map_append, hps]; exact hfC'
   · -- NO FIELD: `CapsOk`'s law
-    have hslotR : ∀ j ∈ List.range caps.etaFields, ∃ cvp mIp rPp rulesp,
-        env.find? (projFnName T j) = some (.recInfo cvp mIp rPp rulesp) ∧
-        cvp.levelParams = cvT.levelParams ∧
-        (cvp.type.stripPis (targs.length + 1)).isSome = true := by
-      intro j hj
-      have hcnF : 0 < caps.etaFields :=
-        Nat.lt_of_le_of_lt (Nat.zero_le j) (List.mem_range.mp hj)
-      exact absurd ⟨htowS, hcnF⟩ hkind
-    have hetaP : ConLeche.etaProjs T b caps.etaFields
-        = (List.range caps.etaFields).map (fun i =>
-            Expr.mkAppN (.const (projFnName T i) us') (targs ++ [b])) := by
-      have h0 : caps.etaFields = 0 :=
-        Nat.eq_zero_of_not_pos fun hpos => hkind ⟨htowS, hpos⟩
-      rw [etaProjs_eq, h0]; simp
-    have hfam : ConLeche.EtaFamilyStored env T caps :=
-      ⟨hresC, ⟨cvC, nPc, nFc, hfC⟩, fun j hj => by
-        obtain ⟨cvp, mIp, rPp, rulesp, hfp, -⟩ := hslotR j (List.mem_range.mpr hj)
-        exact ⟨cvp, mIp, rPp, rulesp, hfp⟩⟩
+    have h0 : caps.etaFields = 0 :=
+      Nat.eq_zero_of_not_pos fun hpos => hkind ⟨htowS, hpos⟩
+    have hetaP : ConLeche.etaProjs T b caps.etaFields = [] := by
+      rw [etaProjs_eq, h0]; rfl
+    have hfam : ConLeche.EtaFamilyStored env T caps := ⟨hresC, ⟨cvC, nPc, nFc, hfC⟩, h0⟩
     obtain ⟨TVa, hTVa, -, hlaw, hcoh⟩ :=
       hin.caps_ok.1 T cvT caps hind heta hresT hfam φ us' hlv
     obtain ⟨TCa, hTCa, hfitC⟩ := hcoh cvC nPc nFc hfC
-    have hspTb : DenoteMetaSpine m.acval env φ d (targs ++ [b]) (tsa ++ [ba]) :=
-      hspt.append (DenoteMetaSpine.cons hdb DenoteMetaSpine.nil)
-    have hframeTb : ∀ x ∈ targs ++ [b], Frame d x ∧ CtxOkS m φ d Δa x := by
-      intro x hx
-      rcases List.mem_append.mp hx with hx' | hx'
-      · exact hfT x hx'
-      · rcases List.mem_singleton.mp hx' with rfl
-        exact ⟨hfb, hCb⟩
-    refine ⟨(List.range caps.etaFields).map fun j =>
-        AnnotTerm.mkAppN (m.acval (projFnName T j)
-          (Level.substFn φ cvT.levelParams us')) (tsa ++ [ba]),
-      ?_, ?_, TCa, hTCa, fun ρ hρ hLb hLt hokW hneW hokB hmemB => ?_⟩
-    · rw [hetaP]
-      refine DenoteMetaSpine.map_list _ fun j hj => ?_
-      obtain ⟨cvp, mIp, rPp, rulesp, hfp, hlpj, -⟩ := hslotR j hj
-      refine denoteMeta_mkAppN hspTb ?_
-      have hden := denoteMeta_const (acval := m.acval) (φ := φ) (d := d) hfp
-        (show us'.length = _ from by
-          dsimp only [ConLeche.ConstantInfo.toConstantVal]
-          rw [hlpj]; exact hlv)
-      dsimp only [ConLeche.ConstantInfo.toConstantVal] at hden
-      rw [hlpj] at hden
-      exact hden
+    refine ⟨[], ?_, ?_, TCa, hTCa, fun ρ _ _ _ hokW hneW _ hmemB => ?_⟩
+    · rw [hetaP]; exact DenoteMetaSpine.nil
     · intro x hx
       rw [hetaP] at hx
-      obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
-      refine ⟨frame_mkAppN (Frame.of_not_hasFvar rfl rfl)
-          (fun y hy => (hframeTb y hy).1),
-        ctxOkS_mkAppN (CtxOkS.of_fvarLeaves_nil hCb.1 (by simp [Expr.fvarLeaves]))
-          (fun y hy => (hframeTb y hy).2), fun l hl => ?_⟩
-      rcases ConLeche.fvarLeaves_mkAppN hl with hl' | ⟨y, hy, hly⟩
-      · simp [Expr.fvarLeaves] at hl'
-      · rcases List.mem_append.mp hy with hy' | hy'
-        · exact .inr ⟨y, hy', hly⟩
-        · rcases List.mem_singleton.mp hy' with rfl
-          exact .inl hly
+      exact absurd hx List.not_mem_nil
     · obtain ⟨rest, hfit⟩ := formerFit hin hind hlv hstrip htlen hspt hTVa ρ hokW hneW
       have hmemFam : interp V ρ ba
           ∈ˢ (tsa.map (interp V ρ)).foldl SetTheory.app
@@ -295,43 +250,10 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm}
       have hb := hlaw ρ (tsa.map (interp V ρ)) rest (interp V ρ ba) (hlenTs ρ) hfit hmemFam
       obtain ⟨restC, hfC'⟩ := hfitC ρ (tsa.map (interp V ρ)) rest (interp V ρ ba)
         (hlenTs ρ) hfit hmemFam
-      have hLargsTb : ∀ x ∈ targs ++ [b], LeavesGr m φ d x ρ := by
-        intro x hx
-        rcases List.mem_append.mp hx with hx' | hx'
-        · exact hLt x hx'
-        · rcases List.mem_singleton.mp hx' with rfl
-          exact hLb
-      obtain ⟨-, hoT⟩ := hoist_spineV tsa hokW
-      have hokTb' : ∀ x ∈ tsa ++ [ba], WellDenotedV V ρ x := by
-        intro x hx
-        rcases List.mem_append.mp hx with hx' | hx'
-        · exact hoT x hx'
-        · rcases List.mem_singleton.mp hx' with rfl; exact hokB
-      have hps : ((List.range caps.etaFields).map fun j =>
-            AnnotTerm.mkAppN (m.acval (projFnName T j)
-              (Level.substFn φ cvT.levelParams us')) (tsa ++ [ba])).map (interp V ρ)
-          = projSpines (fun n => interp V ρ
-              (m.acval n (Level.substFn φ cvT.levelParams us')))
-              T (tsa.map (interp V ρ)) (interp V ρ ba) caps.etaFields := by
-        unfold projSpines
-        rw [List.map_map]
-        refine List.map_congr_left fun j _ => ?_
-        show interp V ρ (AnnotTerm.mkAppN (m.acval (projFnName T j)
-          (Level.substFn φ cvT.levelParams us')) (tsa ++ [ba])) = _
-        rw [interp_mkAppN, hfold, List.map_append]
-        rfl
-      refine ⟨fun x hx => ?_, fun x hx => ?_, ?_, restC, ?_⟩
+      refine ⟨fun x hx => ?_, fun x hx => absurd hx List.not_mem_nil, ?_, restC, ?_⟩
       · rw [hetaP] at hx
-        obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
-        exact leavesGr_mkAppN (LeavesGr.of_fvarLeaves_nil (by simp [Expr.fvarLeaves]))
-          hLargsTb
-      · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hx
-        have h0 : caps.etaFields = 0 :=
-          Nat.eq_zero_of_not_pos fun hpos => hkind ⟨htowS, hpos⟩
-        rw [h0] at hj
-        exact absurd hj List.not_mem_nil
-      · rw [hb, List.map_append, hps]
-        rfl
-      · rw [List.map_append, hps]; exact hfC'
+        exact absurd hx List.not_mem_nil
+      · rw [List.append_nil]; exact hb
+      · rw [List.append_nil]; exact hfC'
 
 end ConLeche.Model.Rules

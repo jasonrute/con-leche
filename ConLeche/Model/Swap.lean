@@ -303,14 +303,8 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
         ConLeche.EtaFamilyStored env₀ T caps := by
       intro T caps hst
       obtain ⟨h1, ⟨cvC, cnP, cnF, hC⟩, h3⟩ := hst
-      refine ⟨h1, ⟨cvC, cnP, cnF, (hsame _ _
-        (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hC⟩, ?_⟩
-      intro j hj
-      obtain ⟨cv, mI, rP, rules, hfj⟩ := h3 j hj
-      rcases hcorr (ConLeche.projFnName T j) with heq |
-        ⟨cv2, mI2, rP2, rules2, h₀, h₃, -⟩
-      · exact ⟨cv, mI, rP, rules, by rw [← heq]; exact hfj⟩
-      · exact ⟨cv2, mI2, rP2, [], h₀⟩
+      exact ⟨h1, ⟨cvC, cnP, cnF, (hsame _ _
+        (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hC⟩, h3⟩
     refine ⟨?_, ?_⟩
     · intro T cvT caps hf hcap hres hfamS φ' us hus
       obtain ⟨TVa, hTVa, hokT, hlaw, hcoh⟩ :=

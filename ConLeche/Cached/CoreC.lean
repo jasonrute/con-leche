@@ -268,8 +268,8 @@ families; otherwise it is `true` without running. -/
 
 /-- `certAtI` with a *verdict-relevant* exception: `keep = true` runs
 the check at every mode (the twin's judgement at ι's parameter
-comparison — nested-rule comparands and projection-function rules
-compare in both modes, ordinary plain rules only when certifying). -/
+comparison — nested-rule comparands compare in both modes, plain rules
+only when certifying). -/
 @[inline] def certUnlessI (mode : CheckMode) (keep : Bool) (c : CheckCM Bool) :
     CheckCM Bool :=
   if mode.verifiedChecks || keep then c else pure true

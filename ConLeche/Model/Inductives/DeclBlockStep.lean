@@ -152,14 +152,6 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
         (·.constsResolve (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)) p₁ 0 outR
         (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)).find? n = none → env₁.find? n = none :=
     fun n h => find?_none_consBlockCtors (find?_none_consBlockRecsT h)
-  have hfamFree : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < p₁.k →
-      ctorsAs.getD m [] = [cA] → sortsss.getD m [] = [sorts] →
-      (p₁.members.getD m default).nIdx = 0 → 0 < cA.2 →
-      env₁.find? (projFnName (p₁.memberNames.getD m .anonymous) 0) = none := by
-    intro m cA sorts hm hcA hs hn0 hpos
-    rw [hmnameEq m hm]
-    exact hpull _ (blockTablesFamFree (q := p₁) (p₁.members.zip (ctorsAs.zip sortsss)) _ env₂
-      hTbl m _ (hzipEntry m hm) cA sorts hcA hs hn0 hpos)
   have hprojTbl : ∀ (m : Nat) (cA : ConstantVal × Nat) (sorts : List Level), m < p₁.k →
       ctorsAs.getD m [] = [cA] → sortsss.getD m [] = [sorts] →
       (p₁.members.getD m default).nIdx = 0 →
@@ -171,7 +163,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
   -- ## the formers' and the constructors' stage
   obtain ⟨pk, uOf, ppsOf, mpI, hN, hS, hcore, hEtaI, hfreshC, hnfs, hagI⟩ :=
     blockTablesStage_of hμ mp hE hlps₀ hndM hndC hClps hInd hCtors hsorts
-      hPos rfl rfl rfl rfl rfl hfamFree hprojTbl hcov
+      hPos rfl rfl rfl rfl rfl hprojTbl hcov
   have hlenN : p₁.memberNames.length = p₁.k := by
     show (p₁.members.map _).length = _; simp; rfl
   have hcvOfK : ∀ m, m < p₁.k → ∃ cvTb, cvTas[m]? = some cvTb :=
@@ -343,7 +335,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
     intro c j cA hj
     have hck : c < (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k := by
       rw [← hN.2.2]; exact hN.2.1 c j cA hj
-    have hf := (hcoreC.2.2.2 c hck j cA hj).1
+    have hf := (hcoreC.2.2 c hck j cA hj).1
     have hw := mpC₀.base2.wf _ (List.mem_of_find?_eq_some hf)
     exact ⟨hw.1, hw.2.2.2.1⟩
   have hMC := blockModelAt_of_records hN hS.toBlockCtorsStage hcoreC rfl hk0
@@ -379,7 +371,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
               (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP
               ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j].2)
       rw [List.getD_eq_getElem?_getD, hcj, Option.getD_some]
-      exact (hcoreC.2.2.2 c hck j _ hcj).1
+      exact (hcoreC.2.2 c hck j _ hcj).1
   -- each member's stored type reads as its hole telescope
   have hrdC : LfpReads mpC₀.base2.acval (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)
       (blockDataOf V p₁ ctorsAs pk uOf ppsOf).toLfp := by
@@ -409,7 +401,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
       (fun c j cA hj => by
         have hck : c < (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k := by
           rw [← hN.2.2]; exact hN.2.1 c j cA hj
-        have hf := (hcoreC.2.2.2 c hck j cA hj).1
+        have hf := (hcoreC.2.2 c hck j cA hj).1
         exact (mpC₀.base2.wf _ (List.mem_of_find?_eq_some hf)).1)
       (canonOcc_of_positivity hPos rfl rfl rfl
         (fun c hc => hctorsAs c (by rw [hlenCtorsAs]; exact hc)) hlpsA)
@@ -455,8 +447,8 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
       have hcj : ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j]?
           = some ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j] :=
         List.getElem?_eq_getElem hj
-      obtain ⟨hfind, hlpsC, -⟩ := hcoreC.2.2.2 c hck j _ hcj
-      obtain ⟨cbs, es, hres, -⟩ := (hcoreC.2.2.1 c j _ hcj).2.2.1.resid
+      obtain ⟨hfind, hlpsC, -⟩ := hcoreC.2.2 c hck j _ hcj
+      obtain ⟨cbs, es, hres, -⟩ := (hcoreC.2.1 c j _ hcj).2.2.1.resid
       refine ⟨((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j].1,
         (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nP,
         ((blockDataOf V p₁ ctorsAs pk uOf ppsOf).ctorsM c)[j].2, ?_, cbs, es, ?_⟩
@@ -500,7 +492,7 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
           have : (ppsOf 0 ψ).length
               = p₁.nP + (blockDataOf V p₁ ctorsAs pk uOf ppsOf).nIdxAt 0 := hlen
           omega)
-        (fun c hc j cA hj => (hcoreC.2.2.2 c hc j cA hj).1) hshapeK)
+        (fun c hc j cA hj => (hcoreC.2.2 c hc j cA hj).1) hshapeK)
       (by
         rw [List.filter_eq_nil_iff]
         intro n hn

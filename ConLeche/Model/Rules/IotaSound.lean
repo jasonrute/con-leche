@@ -721,7 +721,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
   subst hvT'
   -- the stuck side's facts
   obtain ⟨ps, hsps, hfps, TCa, hTCa, hside⟩ := etaSide hin hind hcapseta hresT hresC
-    hfC hlv hlen htow hfM hCM (frame_spine hfTm hCTm) hea hspt
+    hfC hlv hlen htow hfM hCM hea hspt
   -- the fabrication reads
   have hheadC : denoteMeta m.acval env φ d (.const caps.etaCtor ust)
       = some (m.acval caps.etaCtor (Level.substFn φ cvT.levelParams ust)) := by

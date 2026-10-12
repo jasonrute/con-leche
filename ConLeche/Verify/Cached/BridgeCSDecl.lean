@@ -124,15 +124,11 @@ theorem checkStructProjTableS_run {T C : Name} {lps : List Name} {nP nF : Nat}
       · next hg =>
         rw [ite_eq_left hg]
         split at hstep
-        · next hfam =>
-          rw [ite_eq_left hfam]
-          split at hstep
-          · next hn =>
-            rw [ite_eq_left hn]
-            obtain ⟨hfe, rfl⟩ := pureC_ok hstep
-            subst hfe
-            exact ⟨rfl, rfl⟩
-          · exact absurd hstep throwC_bind_ok
+        · next hn =>
+          rw [ite_eq_left hn]
+          obtain ⟨hfe, rfl⟩ := pureC_ok hstep
+          subst hfe
+          exact ⟨rfl, rfl⟩
         · exact absurd hstep throwC_bind_ok
       · exact absurd hstep throwC_bind_ok
   obtain ⟨rfl, hpure⟩ := hrun

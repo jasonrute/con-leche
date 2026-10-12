@@ -1125,7 +1125,7 @@ theorem stageCtorGen {T : Name}
         (fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP).map (·.2.2))
           (uChains (Fss ψ))) := by
   obtain ⟨⟨_, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨-, hnres, hpshape, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
+  obtain ⟨-, hnres, -, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
     ConLeche.checkConstantVal_inv_stored hccv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   have hCname : cvCa.name = cvC.name := by rw [hty]
@@ -1158,9 +1158,6 @@ theorem stageCtorGen {T : Name}
       (ConstantInfo.ctorInfo cvCa nP nF).name = false := by
     show ConLeche.reservedBasisNames.contains cvCa.name = false
     rw [hCname]; exact hnres
-  have hpshapeC : (ConstantInfo.ctorInfo cvCa nP nF).name.isProjFnShape = false := by
-    show cvCa.name.isProjFnShape = false
-    rw [hCname]; exact hpshape
   refine declStep_preserves_of_ind_member_cons mp (c₀ := .ctorInfo cvCa nP nF)
     (A := A) hfresh hnresC (Or.inr ⟨_, _, _, rfl⟩)
     (ConsHead.ofFresh hwfC (fun ψ => hAbelow ψ) hnresC
@@ -1191,7 +1188,7 @@ theorem stageCtorGen {T : Name}
   · -- `caps_ok`: nothing is claimed by the block's family
     intro m₂ hac
     refine capsOk_cons_native mp (c₀ := .ctorInfo cvCa nP nF) (A := A)
-      (T := T) hfresh (ConsCrossEnv.ofNtc fun _ h => nomatch h) hpshapeC
+      (T := T) hfresh (ConsCrossEnv.ofNtc fun _ h => nomatch h)
       (Or.inr fun _ _ h => nomatch h) ?_ m₂ hac ?_
     · intro T' cvT' caps' hf hne hres hcape hfam
       exact hE T' cvT' caps' hf hne hres hcape hfam

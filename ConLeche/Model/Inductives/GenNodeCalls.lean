@@ -486,7 +486,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             simpa [blockDataOf, blockDataPre, BlockData.withPhi, ConLeche.BlockShape.k,
               ConLeche.BlockShape.memberNames] using h1⟩
       obtain ⟨hnamesD, hnPD, hnIdxsD, hkD, hmk⟩ := hfacts
-      obtain ⟨hfC, -⟩ := hcore.2.2.2 m hmk j cA hcj
+      obtain ⟨hfC, -⟩ := hcore.2.2 m hmk j cA hcj
       have hw := mpC.base2.wf _ (List.mem_of_find?_eq_some hfC)
       -- the member forest
       obtain ⟨crest, ks, ts, hcrest, hd, ⟨ty, u, hty, hsort⟩, hforest, he⟩ :=

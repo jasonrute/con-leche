@@ -18,8 +18,7 @@ leaf (`blockTyG`), given its fold.
 
 Off the structure-like arm the record claims nothing that is not
 vacuous: a member with a field is never unit-like, and its η claim is
-premised on the projection-function family being stored
-(`blockCapsLawsAt_vacuous`).
+premised on having no field (`blockCapsLawsAt_vacuous`).
 -/
 
 namespace ConLeche.Model
@@ -93,15 +92,13 @@ theorem blockCapsAt_etaFields_pos {p₁ : BlockShape} {mi : Nat} {isRec : Bool}
 
 /-! ## The laws -/
 
-/-- **A member with a field owes nothing** while its projection-function
-family is free (`capsLawsAt_vacuous` at a block member). -/
+/-- **A member with a field owes nothing** (`capsLawsAt_vacuous` at a
+block member). -/
 theorem blockCapsLawsAt_vacuous {env' : Env} (m' : EnvModel V env') {p₁ : BlockShape}
     {mi : Nat} {isRec : Bool} {T : Name} {cvTa : ConstantVal}
-    (hU : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = false)
-    (hfr : (ConLeche.blockCapsAt p₁ mi isRec).eta = true →
-      env'.find? (projFnName T 0) = none) :
+    (hU : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = false) :
     CapsLawsAt m' T cvTa (ConLeche.blockCapsAt p₁ mi isRec) :=
-  capsLawsAt_vacuous m' hU fun he => ⟨blockCapsAt_etaFields_pos hU he, hfr he⟩
+  capsLawsAt_vacuous m' hU fun he => blockCapsAt_etaFields_pos hU he
 
 /-- **A block member's capability laws**, both arms — `blockCtorsLoop`'s
 `hTlawsOf` at a member of a block.  On the structure-like arm the
@@ -112,9 +109,6 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
     {p₁ : BlockShape} {mi : Nat} {isRec : Bool} {T : Name} {cvTa : ConstantVal}
     {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
     {L : (Name → Nat) → AnnotTerm}
-    (hfr : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = false →
-      (ConLeche.blockCapsAt p₁ mi isRec).eta = true →
-      env'.find? (projFnName T 0) = none)
     (hpar : ∀ ψ, p₁.nP = (pps ψ).length)
     (hleaf : ∀ ψ, m'.acval T ψ = L ψ)
     (hread : ∀ ψ, denoteMeta m'.acval env' ψ 0 cvTa.type
@@ -139,12 +133,12 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
           ∀ ψ, denoteMeta m'.acval env' ψ 0 cvC.type = some (mkPisAV (ds ψ) (B ψ))) :
     CapsLawsAt m' T cvTa (ConLeche.blockCapsAt p₁ mi isRec) := by
   by_cases hu : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true
-  · obtain ⟨hz, hpE, hpU⟩ := blockCapsAt_unitlike hu
-    exact ⟨fun _ _ _ => fibreEtaLaw0 hz hleaf (hfoldZ hu) (hleafC hu) hread hokTy hfit
+  · obtain ⟨-, hpE, hpU⟩ := blockCapsAt_unitlike hu
+    exact ⟨fun _ _ _ => fibreEtaLaw0 hleaf (hfoldZ hu) (hleafC hu) hread hokTy hfit
         (fun ψ => by rw [hpE]; exact hpar ψ) (hreadC hu),
       fun _ _ => fibreUnitLaw hleaf (hfoldZ hu) hread hokTy
         (fun ψ => by rw [hpU]; exact hpar ψ)⟩
   · have hU : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = false := by simpa using hu
-    exact blockCapsLawsAt_vacuous m' hU (hfr hU)
+    exact blockCapsLawsAt_vacuous m' hU
 
 end ConLeche.Model

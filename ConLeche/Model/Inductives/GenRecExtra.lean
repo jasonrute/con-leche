@@ -379,8 +379,8 @@ theorem genMemAt_of
   have hjl : i < (d.ctorsM t).length := (List.getElem?_eq_some_iff.mp hcj).1
   have hM : BlockModelAt mpC.base2 d.memberNames d := by
     subst hdR; exact blockModelAt_seam h hN hSt hcore
-  obtain ⟨hfindC, hlpsC, -⟩ := hcore.2.2.2 _ htd i cA hcj
-  obtain ⟨-, -, hcd, -⟩ := hcore.2.2.1 _ i cA hcj
+  obtain ⟨hfindC, hlpsC, -⟩ := hcore.2.2 _ htd i cA hcj
+  obtain ⟨-, -, hcd, -⟩ := hcore.2.1 _ i cA hcj
   have hcf : BlockCtorFacts mpC.base2 d pp.lps t i cA := ⟨hfindC, hlpsC, hcd⟩
   have hctorRead : ∀ ψ' : Name → Nat, denoteMeta mpC.base2.acval envC ψ' 0 cA.1.type
       = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ') := by

@@ -495,17 +495,10 @@ def indParamsOk (nP : Nat) (block : List ConstantInfo) : Bool :=
     | .ctorInfo _ nPc _ => nPc == nP
     | _ => true
 
-/-- The public projection-*function* name for field `i` of structure
-`T` (a `Nat` component keeps it out of the way of exported
-identifiers; installs are duplicate-checked regardless).  Since task
-#175 S1 no table entry lives under this name: the direct install's
-table is one constant per structure, `projTableName`. -/
-def projFnName (T : Name) (i : Nat) : Name := (T.str "proj").num i
-
 /-- The reserved name of structure `T`'s projection table (task #175
 S1): one constant per structure, a `Nat` component keeping it out of
 the way of exported identifiers (the front door rejects the shape,
-`Name.isProjFnShape`), distinct from every `projFnName` name. -/
+`Name.isProjFnShape`). -/
 def projTableName (T : Name) : Name := (T.str "projTable").num 0
 
 namespace ConstantInfo

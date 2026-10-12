@@ -95,8 +95,8 @@ def structProjPs (nP : Nat) : List Expr :=
 /-- The `j`-th earlier-field substitute in a **tower entry's**
 generated type (task #175 wiring): the first-class node `t.j`
 (`.proj T j` of the subject), at the frame of the subject
-`t = bvar 0`.  No `projFnName` chain — each field's entry stands
-alone, which is what makes O4's per-field entry branch real. -/
+`t = bvar 0`.  Each field's entry stands alone, which is what makes
+O4's per-field entry branch real. -/
 def structProjArgP (T : Name) (j : Nat) : Expr :=
   Expr.proj T j (Expr.bvar 0)
 

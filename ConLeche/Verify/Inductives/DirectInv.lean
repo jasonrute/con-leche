@@ -110,7 +110,6 @@ theorem checkStructProjTable_inv {env envOut : Env} {T C : Name}
       (bodies.size = nF ∧ bodies.all (fun b => !b.hasFvar &&
         b.allLevelParamsDefined lps && b.constsResolve env &&
         b.looseBVarsBounded (nP + 1)) = true) ∧
-      (List.range nF).all (fun j => (env.find? (projFnName T j)).isNone) = true ∧
       env.find? (projTableName T) = none ∧
       envOut = ⟨.projInfo ⟨T, lps, nP, C, nF, rs, bodies, guards, off⟩
         :: env.consts⟩ := by
@@ -123,7 +122,7 @@ theorem checkStructProjTable_inv {env envOut : Env} {T C : Name}
   all_goals first
     | (try dsimp only at h
        simp only [pure, Except.pure, Except.ok.injEq] at h
-       refine ⟨bodies, hb', by assumption, by assumption,
+       refine ⟨bodies, hb', by assumption,
          Option.isNone_iff_eq_none.mp (by assumption), h.symm⟩)
     | close_throw
 
@@ -136,7 +135,7 @@ theorem direct_table_wf {env envOut : Env} (henv : EnvWF env)
     (h : checkStructProjTable (m := CheckM) T C lps nP nF rs guards off cvCa env
       = .ok envOut) :
     EnvWF envOut := by
-  obtain ⟨bodies, -, ⟨hsize, hall⟩, -, -, rfl⟩ := checkStructProjTable_inv h
+  obtain ⟨bodies, -, ⟨hsize, hall⟩, -, rfl⟩ := checkStructProjTable_inv h
   refine EnvWF.cons henv (structConstWF rfl rfl rfl rfl
     (fun _ _ _ heq => nomatch heq) (fun _ _ _ _ heq => nomatch heq) ?_)
   intro tbl heq

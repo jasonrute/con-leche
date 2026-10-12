@@ -205,7 +205,7 @@ theorem genRecCtor_find
     rw [heq] at hcA
     have hck : t' < (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf).k := by
       rw [← hN.2.2]; exact hN.2.1 _ i cA hcA
-    obtain ⟨hfind, -, -⟩ := hcore.2.2.2 _ hck i cA hcA
+    obtain ⟨hfind, -, -⟩ := hcore.2.2 _ hck i cA hcA
     rw [hnPc]
     exact hfind
   | none =>

@@ -252,16 +252,6 @@ theorem etaProjs_eq (T : Name) (b : Expr) (nF : Nat) :
     ConLeche.etaProjs T b nF = (List.range nF).map fun j => Expr.proj T j b := by
   rfl
 
-/-- The fabricated η spine's values, unfolded here for the same reason
-(`etaFabArgsV`/`projSpines` are `EnvModelM`'s; `rfl` beats naming
-their equation lemmas here too). -/
-theorem etaFabArgsV_eq (val : Name → V) (T : Name) (ts : List V) (b : V)
-    (nF : Nat) :
-    etaFabArgsV val T ts b nF =
-      ts ++ (List.range nF).map
-        (fun j => (ts ++ [b]).foldl SetTheory.app (val (projFnName T j))) := by
-  rfl
-
 /-! ## Proof irrelevance at the io grade (task #342 L18)
 
 The fragment's `eq_pt_of_IORel_prop`: a term whose io-inferred type's
