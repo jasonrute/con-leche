@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.Model.Rules.Inputs
-import ConLeche.Semantics.Hoist
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.CtxOkKit

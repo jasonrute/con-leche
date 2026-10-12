@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.Verify.Level
-import ConLeche.Kernel.PropWhen
 
 public section
 

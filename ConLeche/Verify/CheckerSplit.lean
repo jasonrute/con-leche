@@ -3,7 +3,6 @@ module
 public import ConLeche.Kernel.CheckerSplit
 public import ConLeche.Kernel.CheckDecl
 import ConLeche.Verify.Extend.Inversions
-import ConLeche.Verify.Mono
 
 public section
 

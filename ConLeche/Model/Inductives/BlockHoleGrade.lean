@@ -5,7 +5,6 @@ import ConLeche.Semantics.Hoist
 public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Model.IndDomGrade
-import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.Inductives.BlockData
 import ConLeche.Model.Reading.ErasedEq
 public import ConLeche.Verify.Inductives.NfMemberFree

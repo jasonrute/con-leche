@@ -6,7 +6,7 @@ import ConLeche.Model.Inductives.BlockRecRead
 import ConLeche.Model.Inductives.BlockData
 public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Semantics.Tower.BlockRecTower
-public import ConLeche.Model.Inductives.StructFrameKit
+import ConLeche.Model.Inductives.StructFrameKit
 
 public section
 

@@ -2,7 +2,6 @@ module
 
 public import ConLeche.Kernel.PropRead
 public import ConLeche.Verify.Shift
-import ConLeche.Kernel.PropWhen
 
 public section
 
