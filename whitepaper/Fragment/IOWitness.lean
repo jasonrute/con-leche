@@ -334,6 +334,18 @@ noncomputable def ioModel : EnvModel V ioEnv where
     split at h
     · cases h; cases hk
     · cases h
+  ind_fib := by
+    intro c ci _ _ _ _ h hk
+    simp only [ioEnv, Env.find?, List.lookup_cons, List.lookup_nil] at h
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    split at h
+    · cases h; cases hk
+    · cases h
 
 /-! ## The derivations -/
 

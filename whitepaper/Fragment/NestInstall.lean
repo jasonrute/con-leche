@@ -140,6 +140,13 @@ noncomputable def mInstallN : EnvModel V (S.install env) where
         rw [install_eq_installN hok, S.installN_find?, ite_eq_right hne', ite_eq_right hne] at hcij
         exact (mCtorsN hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs
           pinst hinst cij I nPc nf hcij hcijk
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    rw [install_eq_installN hok, S.installN_find?] at hfind
+    split at hfind
+    · cases hfind; simp [rec1Info] at hkind
+    · split at hfind
+      · cases hfind; simp [recInfoN] at hkind
+      · exact (mCtorsN hs m hok).ind_fib I ci nP nI cs S' hfind hkind
 
 omit hs in
 /-- **The block laws survive the nested installation**: the new

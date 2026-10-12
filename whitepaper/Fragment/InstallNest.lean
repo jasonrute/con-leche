@@ -467,6 +467,18 @@ noncomputable def mIndFN (F : List Nat → List V → List V → V)
         simp at this
       · exact (m.toEnvModel.transport hs (S.M₁F m.M F) (agree_M₁FN hok m.M F)).rec_rules_nested c ci nP nM nMin
           nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf hcij hcijk
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · rename_i h
+      subst h
+      cases hfind
+      simp only [indInfo, ConstKind.induct.injEq] at hkind
+      obtain ⟨rfl, rfl, -, rfl⟩ := hkind
+      exact indFib_of_readers hok.scoped (fun φ => readerFN hok m.M F hFa φ)
+        fun _ ps is _ _ => hF _ ps is
+    · exact (m.toEnvModel.transport hs (S.M₁F m.M F) (agree_M₁FN hok m.M F)).ind_fib I ci nP nI
+        cs S' hfind hkind
 
 theorem mIndFN_M (F : List Nat → List V → List V → V)
     (hF : ∀ ls' ps is, F ls' ps is ∈ˢ (typeU (S.u₀ ls') : V))
@@ -850,6 +862,17 @@ noncomputable def mIndN : EnvModel V (S.envInd env) where
         simp at this
       · exact (m₃N hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
           hinst cij I nPc nf hcij hcijk
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.envInd_find?] at hfind
+    split at hfind
+    · rename_i h
+      subst h
+      cases hfind
+      simp only [indInfo, ConstKind.induct.injEq] at hkind
+      obtain ⟨rfl, rfl, -, rfl⟩ := hkind
+      exact indFib_of_readers hok.scoped (fun φ => reader₃₀m hs m hok φ)
+        fun φ ps is hp _ => fam_typeU hs m hok φ hp is
+    · exact (m₃N hs m hok).ind_fib I ci nP nI cs S' hfind hkind
 
 theorem mIndN_M : (mIndN hs m hok).M = S.M₃N m.M N := rfl
 
@@ -1021,6 +1044,11 @@ noncomputable def mCtorsN : EnvModel V (S.envCtors env) where
       rw [hnone] at hcij
       exact (mIndN hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst
         hinst cij I nPc nf hcij hcijk
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    rw [S.envCtors_find? env hok.nodup_ctors] at hfind
+    split at hfind
+    · cases hfind; simp [ctorInfo] at hkind
+    · exact (mIndN hs m hok).ind_fib I ci nP nI cs S' hfind hkind
 
 theorem mCtorsN_M : (mCtorsN hs m hok).M = S.M₃N m.M N := rfl
 

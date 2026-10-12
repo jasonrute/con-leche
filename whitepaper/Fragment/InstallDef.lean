@@ -258,6 +258,16 @@ def EnvModel.transport {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
       exact hidx B ρ' I lsI rps ridx hpb hB hlen
     have res := law φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hidx' (by rwa [hc, hctor])
     rwa [hc, hctor, interp_consts (hR us), WellDenoted_consts (hR us)] at res
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    have law := m.ind_fib I ci nP nI cs S' hfind hkind
+    have hT : ∀ us, ∀ d ∈ (ci.type.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d ((hs I ci hfind).1.2.1 d hd) ls
+    intro φ ρ ls vs h1 h2 hfit
+    rw [← TeleFitV_congr_model (hT ls)] at hfit
+    rw [← h I (by simp [hfind])]
+    exact law φ ρ ls vs h1 h2 hfit
 
 /-- The transported model's assignment is the new one. -/
 theorem EnvModel.transport_M {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
@@ -341,7 +351,8 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
     rw [hm₀] at hTw hTty hvsem heq
     rw [WellDenoted_instL, WellDenoted_instL, interp_instL, interp_instL, ← heq]
     exact ⟨hTw, heq ▸ hTty, hvsem.1, hvsem.2.2.2⟩
-  refine ⟨{ M := M', type_ok := ?_, unfold := ?_, rec_rules := ?_, rec_rules_nested := ?_ },
+  refine ⟨{ M := M', type_ok := ?_, unfold := ?_, rec_rules := ?_,
+              rec_rules_nested := ?_, ind_fib := ?_ },
     fun n hn ls => hM'n n (Env.ne_of_isSome_find? hn hfresh) ls⟩
   · -- `type_ok`
     intro n ci' hfind φ ρ ls hlen
@@ -389,6 +400,15 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
       rw [Env.find?_add_of_ne env ci (Env.ne_of_isSome_find? hctor hfresh)] at hcij
       have := m₀.rec_rules_nested n ci' nP nM nMin nI rules hfind hk rl hrl lvs pinst hinst cij I
         nPc nf hcij hcijk
+      rwa [hm₀] at this
+  · -- `ind_fib`: the new constant is a definition, not a type former
+    intro n ci' nP nI cs S' hfind hk
+    rw [Env.find?_add] at hfind
+    split at hfind
+    · cases hfind
+      rw [hkind] at hk
+      cases hk
+    · have := m₀.ind_fib n ci' nP nI cs S' hfind hk
       rwa [hm₀] at this
 
 end Fragment
