@@ -303,23 +303,27 @@ theorem neverChain_of_peel {acval : Name → (Name → Nat) → AnnotTerm} :
     exact ih (Expr.peelNeverPis_instantiate1 n _ 0 hb) htB
 
 /-- **A type former's application lands in its result universe.**  The
-walk along the chain: where the head is a graph, the argument's
-membership in the domain is `slotTransfer` from the applied spine's own
-hereditary app slot — no certificate anywhere. -/
+walk along the chain: the application is not the point ("not pt"
+source (1): it is a type, the caller's premise), so neither is its head,
+which is then a graph; the argument's membership in the domain is
+`slotTransfer` from the applied spine's own hereditary app slot — no
+certificate anywhere.  (Without the premise the lemma is false: a head
+over an empty inner domain is the point, and its slot pins no domain.) -/
 theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
     ∀ (vs : List AnnotTerm) {Ta f : AnnotTerm} {u : Nat},
       NeverChain vs.length u Ta →
       WellDenotedV V ρ Ta → WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
+      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
       interp V ρ f ∈ˢ interp V ρ Ta →
       interp V ρ (AnnotTerm.mkAppN f vs) ∈ˢ (univ u : V) := by
   intro vs
   induction vs with
   | nil =>
-    intro Ta f u hch _ _ hf
+    intro Ta f u hch _ _ _ hf
     obtain rfl : Ta = .sort u := hch
     exact hf
   | cons a vs ih =>
-    intro Ta f u hch hokT hokS hf
+    intro Ta f u hch hokT hokS hne hf
     obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv hch
     have hokApp : WellDenotedV V ρ (.app f a) := mkAppN_head vs hokS
     have hoka : WellDenotedV V ρ a :=
@@ -329,11 +333,9 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
         (cast (WellDenoted_pi V ρ A B) hokT).2.2.1 y hy
     have hf' : interp V ρ f
         ∈ˢ piV (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
-    -- L17: a value-read Π-tower over a sort is truth-valued where an inner
-    -- domain is empty, so the head may be the point and the slot then pins
-    -- no domain; the former readings' non-point head is owed
-    by_cases hfp : interp V ρ f = pt
-    · sorry
+    -- the head is not the point: a point head makes the spine the point
+    have hfp : interp V ρ f ≠ pt := fun h0 =>
+      hne (interp_mkAppN_pt (by rw [interp_app, h0, app_pt]) vs)
     have hgr : interp V ρ f
         ∈ˢ piR 1 (interp V ρ A) (fun x => interp V (cons x ρ) B) := by
       rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
@@ -346,7 +348,7 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
     have hfa : interp V ρ (.app f a) ∈ˢ interp V ρ (B.inst a) := by
       rw [interp_app, interp_inst0]
       exact app_mem_piV hf' hmem
-    exact ih (NeverChain.inst a 0 hB) hokB' hokS hfa
+    exact ih (NeverChain.inst a 0 hB) hokB' hokS hne hfa
 
 /-- The reading of a type-former application `T = hd b⃗` lands in
 `univ 0` once the head's type reads to a chain of `b⃗`'s length ending
@@ -357,7 +359,7 @@ theorem mem_univ_zero_of_spine {m : EnvModel V env}
     (hTa : denoteMeta m.acval env φ d T = some Ta)
     (hfa : denoteMeta m.acval env φ d hd = some fa)
     (hchain : NeverChain T.getAppArgs.length 0 taH)
-    (hokH : WellDenotedV V ρ taH) (hokT : WellDenotedV V ρ Ta)
+    (hokH : WellDenotedV V ρ taH) (hokT : WellDenotedTy V ρ Ta)
     (hmem : interp V ρ fa ∈ˢ interp V ρ taH) :
     interp V ρ Ta ∈ˢ (univ 0 : V) := by
   rw [← ConLeche.Expr.mkAppN_getApp T, hfn] at hTa
@@ -365,7 +367,7 @@ theorem mem_univ_zero_of_spine {m : EnvModel V env}
   rw [hfa] at hfa'
   obtain rfl := Option.some.inj hfa'
   rw [hsp.length] at hchain
-  exact spine_mem_univ_of_neverChain vs hchain hokH hokT hmem
+  exact spine_mem_univ_of_neverChain vs hchain hokH hokT.1 hokT.2.ne_pt hmem
 
 /-- **A constant-headed type former's application** (`I b⃗`, `I` stored
 with type `∀ p⃗, Sort u`, every binder `.never`, `u` zero at the use's
@@ -381,7 +383,7 @@ theorem typeFormer_mem_univ_zero {m : EnvModel V env}
     (hpeel : ci.toConstantVal.type.peelNeverPis T.getAppArgs.length =
       some (.sort u))
     (hz : Level.eval (Level.substFn φ ci.toConstantVal.levelParams us) u = 0)
-    (hTa : denoteMeta m.acval env φ d T = some Ta) (hokT : WellDenotedV V ρ Ta) :
+    (hTa : denoteMeta m.acval env φ d T = some Ta) (hokT : WellDenotedTy V ρ Ta) :
     interp V ρ Ta ∈ˢ (univ 0 : V) := by
   obtain ⟨taI, htaI, hokI, hmemI, -, -⟩ := constTy_pkg hct hfI hnt hlen
   have htaI' := htaI d
@@ -448,6 +450,12 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
     rw [hfn, denoteMeta_const hf hlen] at hfa
     obtain rfl := Option.some.inj hfa
     obtain ⟨ta, hta, hokT, hmem, hnf, -⟩ := constTy_pkg hct hf hnt hlen
+    -- "not pt" source (1): the stored type is a type
+    have hokTy : WellDenotedTy V ρ ta := by
+      obtain ⟨ta', hta', hTy, -⟩ := hct d _ ci us hf hnt hlen
+      rw [hta d] at hta'
+      obtain rfl := Option.some.inj hta'
+      exact hTy ρ
     rcases typeSortPW_some_inv env.find? hty with
       ⟨A, B, mb, hT, rfl⟩ | rfl |
       ⟨I, us', ciI, u, hfnT, hfI, hntI, hlenI, hpeel, rfl⟩ |
@@ -485,7 +493,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
         rw [ConLeche.Expr.getAppArgs_instantiateLevelParams, List.length_map]
         exact hpeel
       have huniv := typeFormer_mem_univ_zero hct hT hfI hntI
-        (by rw [List.length_map]; exact hlenI) hpeel' hz (hta d) (hokT ρ)
+        (by rw [List.length_map]; exact hlenI) hpeel' hz (hta d) hokTy
       exact mem_univ_zero huniv (hmem ρ)
     · -- an fvar-headed stored type: stored types are closed
       exact absurd (ConLeche.Expr.hasFvar_of_getAppFn_fvar hfnT)
@@ -515,7 +523,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
           ConLeche.PropWhen.zeronessOf_sound] at hb
         exact beq_iff_eq.mp hb
       have huniv := typeFormer_mem_univ_zero hct hfnT hfI hntI hlenI hpeel hz
-        htya hokT.1
+        htya hokT
       exact mem_univ_zero huniv hx
     · -- an fvar-headed type former (`h : motive n`): the head's type
       -- is in the context too
@@ -531,7 +539,7 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
         ty.getAppArgs.length hpeel htyy
       rw [eval_eq_zero_of_isProp hprop φ] at hchain
       have huniv := mem_univ_zero_of_spine hfnT htya (denoteMeta_fvar _ _ _ _)
-        hchain hokY.1 hokT.1 hy
+        hchain hokY.1 hokT hy
       exact mem_univ_zero huniv hx
   · -- a sort, a ∀, a literal: never a proof
     exact absurd hprop (by simp)
