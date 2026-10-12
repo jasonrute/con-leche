@@ -1435,7 +1435,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   have hcons := List.mem_of_find?_eq_some hfc0
   have hTV : WellDenotedV V ρ TVja := (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ).1
   have hf : WellDenotedV V ρ (mpC.base2.acval cA.1.name ψj) :=
-    ⟨mpC.base2.acval_wellDenoted _ ψj ρ, mpC.acval_validV _ ψj ρ⟩
+    (mpC.base2.acval_wellDenoted _ ψj ρ)
   have hmem : interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ interp V ρ TVja := by
     exact mpC.mem_type _ hcons ψj TVja hread ρ
   obtain ⟨-, hin⟩ := Rules.mkAppN_of_fitA ys hTV hf hWD hmem hfitC

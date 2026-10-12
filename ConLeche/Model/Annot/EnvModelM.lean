@@ -37,9 +37,6 @@ The fields, each a payoff of the fuel-free reading:
   over every ground assignment; `denotePInstLevels` (an equality)
   delivers every instantiated form, so no arity or fuel bookkeeping
   appears anywhere.
-* **the leaves are bit-valid** — `acval_validV`, `acval_wellDenoted`'s
-  `AnnotValid` companion; establishment at install is the P2 front
-  door's own validation, transported by the claims.
 
 The bundle-supplying layer below (`constType` the worked example; its
 siblings follow the same three-field read) is what the quarter
