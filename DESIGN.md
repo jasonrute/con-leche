@@ -102209,3 +102209,77 @@ statement's reading) and the glossary updated; `overview-links.sh`,
 `shake.sh` (the allowlist still names the deleted modules) and
 `whitepaper/links-gate.sh` deferred.  163 files, +4754 −9277 against
 `port-342-s4`.
+
+## TASK #342 — L16: the spelled carriers over empty domains (2026-10-12, agent/342-l16)
+
+Lane L16, stage S4 (`_tmp/342v2-design.md` §3.3), on `port-342-s4`.
+No checker, `Denotes`, `MainTheorem` or `Challenge` change
+(`tests/challenge.sh` green).
+
+**The problem.**  Under the value reading a spelled `λ` over an empty
+domain is the point and `I → Sort w` over an empty `I` reads `{pt}`,
+while the model's family spaces (`famSpace`, `lfpFamSpace`,
+`psigmaFibreSpace`) were graph spaces (`{∅}` there).  So the spelled
+fibre λ of a pair tower was outside `psigmaV`'s domain, `famTyAV`'s
+reading was not `lfpFamSpace`, and a block's least fixed tuple (empty
+graphs at an empty index set) was not in the spelled family tuple's
+type (L6's `famSpace ⊆ lfpFamSpace` gap).
+
+**The fix: one family space, the value reading's.**  `famSpaceIn C I`
+(`SetTheory/Derive/LfpFam`) is now the graphs over an inhabited `I` and
+`{pt}` over an empty one, and a family is built by `famOf G I` (the
+graph, or the point); `app_famOf`, `famOf_mem_famSpaceIn`,
+`famOf_app_eq` (η), `app_off_famSpaceIn`.  Every least-fixed-point
+construction builds with `famOf`: `lfpFamIn`, `lfpTuple`, `sepTuple`,
+the accessibility stages (`SetModel/Access`), the recursor graph's
+fibres (`SetModel/GraphRec`), the basis operators (`Model/BasisLfp`).
+Nothing read a family off its index set, so the laws carry over with
+`app_graph ↦ app_famOf`.  In `SetModel/Value`: `psigmaFibreSpace` and
+`lfpFamSpace` are `piV` (the readings of `A → Sort v`, `I → Sort w`);
+`lfpFamSpace_eq` (it IS `famSpaceIn (univ w)`), `lfpFamSpace_eq_pos`,
+`famSpace_subset_lfpFamSpace` (now at every index set),
+`lamV_eq_famOf` (a `lamV` of non-points is `famOf`),
+`lamR_mem_psigmaFibreSpace` (at an inhabited domain),
+`lamV_mem_psigmaFibreSpace`.
+
+**Why not the two options L6 named.**  Weakening `lfpTuple_congr` to
+equality of applications on the index set handles the operator's
+OUTPUT only.  The operator's INPUT is the problem too: `tupleOpV`
+applies the spelled operator (a function on the value-read family
+tuples) to the model's tuple, and with graph families an empty-index
+member's `∅` is outside that domain (`app` there is `∅`, not the
+operator's value), so `tupleOpV` would have had to re-read its argument
+anyway; and the constants' results (`lfpTupleV`, `lfpFamV`) would have
+to be re-read to be members of their value-read types.  Re-graphing is
+those conversions on both sides, plus a changed frame value in
+`blockPhiG` for every hole-chain consumer.  With the family space
+value-read there is nothing to convert: the model's families ARE
+members of the spelled types, the spelled block operator's components
+are exactly `blockPhiG`'s (`tupleOpV_blockFunVG` is `rfl` after β, no
+premise), and `lfpTuple_congr` keeps its plain equality.
+
+**Discharged** (ledger lines removed): `ndTowerAV_interp`,
+`ndTowerAV_wellDenoted`, `tupleFamsAV_facts` (`Semantics/BasisOk`);
+`towerBodyAVPos_interp`/`_wellDenoted` (`Tower/TowerKit`);
+`famTyAV_facts` (`FixTower`, now `rfl` plus `piV_mem_univ`);
+`blockArmG_facts` (`BlockTower`; `blockFunVG`'s components and
+`blockPhiG` are `famOf`); `interp_andAV`/`wd_andAV`,
+`interp_sigChainAV`/`wd_sigChainAV` (`BlockRecTower`).  The spelled
+pair towers read through `app_lamV`; no inhabitation split remains.
+`strict_famSpaceIn`/`strict_famSpace`/`strict_lfpFamSpace` (L6, unused)
+are deleted: over an empty index set the space is `{pt}`.  Two
+premises that only fed the off-index-set case went
+(`inTup_occOf`'s `hX`, `frame_item_fwd`'s `hY`): the spine's fit puts
+the index tuple in the index set (`tupW_mem`).
+
+**For L15.**  `psigmaV`'s fibre domain and `lfpFamSpace` are already
+the value-read spaces; `lfpFamSet`/`lfpTuple` values are members of
+`lfpFamSpace` at every index set, and `tupleOpV` applies an operator to
+tuples of `famSpace`, inside the value-read family-tuple space — so
+`lfpFamV`/`lfpTupleV` need no re-reading of their arguments or results.
+**For L17.**  `InTupleSpaceU`'s `famSpaceIn (univ w) I` is now the hole
+type's reading (`lfpFamSpace_eq`).
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration
+uses sorry` in ledger files.  `tests/challenge.sh` green.  No checker
+change: no e2e/arena run.
