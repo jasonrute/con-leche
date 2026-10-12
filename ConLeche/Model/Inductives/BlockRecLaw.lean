@@ -714,7 +714,7 @@ arity, and for a rule that is not K the (S), (P), (U) clauses
 (`Model/Annot/Laws.lean`, verbatim). -/
 @[expose] def RecRuleExtraNK {env : Env}
     (m : EnvModel V env) (φ : Name → Nat)
-    (n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
+    (_n : Name) (cv : ConstantVal) (mI rP : Nat) (rl : RecRule) : Prop :=
   ∀ us : List Level, us.length = cv.levelParams.length →
     ∀ TVa : AnnotTerm,
       denoteMeta m.acval env φ 0
