@@ -863,11 +863,11 @@
     27      ∀ fuel : Nat,
     28        WhnfCoreBridge env fuel ∧ WhnfBridge env fuel ∧ DefEqBridge env fuel ∧
 
-== ConLeche/Model/Rules/Sound.lean#L49-L52
-    49  mutual
-    50  
-    51  theorem red_sound (hin : RulesInputs V m φ) :
-    52      ∀ {d : Nat} {e e' : Expr}, Red env d e e' → RedSem m φ d e e'
+== ConLeche/Model/Rules/Sound.lean#L48-L51
+    48  mutual
+    49  
+    50  theorem red_sound (hin : RulesInputs V m φ) :
+    51      ∀ {d : Nat} {e e' : Expr}, Red env d e e' → RedSem m φ d e e'
 
 == ConLeche/Model/Rules/Recompose.lean#L50-L55
     50  theorem checkSoundAtP5 (hμ : μ.verifiedChecks = true)
