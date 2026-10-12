@@ -156,6 +156,23 @@ theorem psigmaV_mem (u v : Nat) :
       sigma_mem_univ hA fun _ hx => psigmaFibre_apply V hB hx)
     fun _ _ => IsTy_univ _) fun _ _ => IsTy_piV
 
+/-- The pair former is the graph regime's at both binders: its domains
+are inhabited and its values are types. -/
+theorem psigmaV_eq_lamR (u v : Nat) :
+    psigmaV V u v = lamR (Nat.max u v + 1) (univ u : V) fun A =>
+      lamR (Nat.max u v + 1) (psigmaFibreSpace V v A) fun B =>
+        sigmaSet (Nat.max u v) A fun x => app B x := by
+  have hin : ∀ A, A ∈ˢ (univ u : V) →
+      (lamV (psigmaFibreSpace V v A) fun B => sigmaSet (Nat.max u v) A fun x => app B x)
+        = lamR (Nat.max u v + 1) (psigmaFibreSpace V v A) fun B =>
+          sigmaSet (Nat.max u v) A fun x => app B x := fun A hA =>
+    lamV_eq_pos (Nat.succ_ne_zero _) (lamV_empty_mem_psigmaFibreSpace V v A)
+      (ne_pt_of_mem_univ (sigma_mem_univ hA fun _ hx =>
+        psigmaFibre_apply V (lamV_empty_mem_psigmaFibreSpace V v A) hx))
+  rw [psigmaV, lamV_eq_pos (Nat.succ_ne_zero _) (empty_mem_univ u)
+    (by rw [hin _ (empty_mem_univ u)]; exact lamR_ne_pt (Nat.succ_ne_zero _))]
+  exact lamR_congr hin
+
 /-- Its constructor `.psigmaMk.{u,v}`.  At `max u v = 0` the pair type
 is a truth value, so the pair is the point; the abstractions over it
 are the point too. -/
