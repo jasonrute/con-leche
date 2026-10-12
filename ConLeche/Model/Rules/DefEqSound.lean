@@ -568,7 +568,7 @@ theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
     rw [List.length_append, ← hspt.length, htlen] at this
     omega
   have hspine : asa.map (interp V ρ) = (tsa ++ ps).map (interp V ρ) := by
-    refine teleFit_eq_of_cond (hoktc ρ).1 hfitA' hfitC
+    refine teleFit_eq_of_cond (hoktc ρ) hfitA' hfitC
       (by rw [List.length_map, List.length_map, hlenA]) fun p hp => ?_
     rw [← List.take_append_drop caps.etaParams asa, List.map_append, List.map_append,
       List.zip_append htkLen] at hp
