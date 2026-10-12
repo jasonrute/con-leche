@@ -148,7 +148,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
   exact ⟨ta, denoteMeta_depth_of_closed m.acval_closed hnf
       (fun k => denoteMeta_closed m.acval_erase m.cval_closed hnf hbd hta 1 k)
       hta,
-    hok, hmem, hnf, hbd⟩
+    fun ρ => (hok ρ).1, hmem, hnf, hbd⟩
 
 /-- A closed stored type is framed and in context at every depth. -/
 theorem frame_of_not_hasFvar {m : EnvModel V env} {d : Nat}

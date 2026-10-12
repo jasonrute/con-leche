@@ -83,7 +83,7 @@ theorem WellDenotedV.hoist_app {Δa : List AnnotTerm} {f a : AnnotTerm}
       ∀ ρ : Nat → V, Sat V Δa ρ →
         ∃ (v : Nat) (A : V) (B : V → V),
           interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
-          (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) :=
+          (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A) :=
   ⟨fun ρ hρ => ⟨((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).1,
       ((AnnotValid_app V ρ f a) ▸ (h ρ hρ).2).1⟩,
     fun ρ hρ => ⟨((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).2.1,
@@ -116,7 +116,7 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
           ((AnnotValid_pi V σ u v A B) ▸ hokT.2).1⟩
       have hokB : ∀ y, y ∈ˢ interp V σ A → WellDenotedV V (cons y σ) B :=
         fun y hy =>
-          ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).2 y hy,
+          ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.2.1 y hy,
             ((AnnotValid_pi V σ u v A B) ▸ hokT.2).2.1 y hy⟩
       have hfib : v = 0 → ∀ y, y ∈ˢ interp V σ A →
           interp V (cons y σ) B ∈ˢ (univZero : V) :=
@@ -127,7 +127,8 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
         refine ⟨?_, ?_⟩
         · rw [WellDenoted_app]
           exact ⟨hf.1, hokx.1, v, interp V σ A,
-            (fun y => interp V (cons y σ) B), hmem, hx, hfib⟩
+            (fun y => interp V (cons y σ) B), hmem, hx, hfib,
+            fun _ => ((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.1⟩
         · rw [AnnotValid_app]; exact ⟨hf.2, hokx.2⟩
       have hmem' : interp V ρ (.app f x)
           ∈ˢ interp V (cons (interp V ρ x) σ) B := by
@@ -180,7 +181,8 @@ theorem charList_facts {ρ : Nat → V}
         interp V ρ ((.app KF (natLitAV Kz Ks c.toNat)) : AnnotTerm)
           ∈ˢ interp V ρ KH := by
     intro c
-    have hnat := natLit_factsAV hokKz.1 hokKs.1 hz hsucc c.toNat
+    have hNatTy : IsTy (interp V ρ KNat) := ((WellDenoted_pi V ρ 0 bF KNat KH) ▸ hokTF.1).2.1
+    have hnat := natLit_factsAV hokKz.1 hokKs.1 hz hsucc hNatTy c.toNat
     have hokNum : WellDenotedV V ρ (natLitAV Kz Ks c.toNat) :=
       ⟨hnat.1, AnnotValid_natLitAV hokKz.2 hokKs.2 c.toNat⟩
     have h := wellDenotedV_mkAppN_of_fit (V := V) (ρ := ρ)
@@ -294,7 +296,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     intro n ci us ta hf hnt hlen hta
     obtain ⟨ta', hta', hok, hmem⟩ := hct 0 n ci us hf hnt hlen
     obtain rfl : ta = ta' := Option.some.inj (hta.symm.trans hta')
-    exact ⟨hok, hmem⟩
+    exact ⟨fun σ => (hok σ).1, hmem⟩
   -- the shared `.const` readings
   have hKL : ∀ D : Nat, denoteMeta m.acval env φ D
       (.const ConLeche.listName [.zero])

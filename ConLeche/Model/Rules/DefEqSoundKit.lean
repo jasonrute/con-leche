@@ -344,7 +344,7 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
         ((AnnotValid_app V ρ f a) ▸ hokApp.2).2⟩
     have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
       fun y hy =>
-        ⟨((WellDenoted_pi V ρ w v A B) ▸ hokT.1).2 y hy,
+        ⟨((WellDenoted_pi V ρ w v A B) ▸ hokT.1).2.2.1 y hy,
           ((AnnotValid_pi V ρ w v A B) ▸ hokT.2).2.1 y hy⟩
     have hf' : interp V ρ f
         ∈ˢ piR v (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf

@@ -39,7 +39,7 @@ of the domain. -/
 theorem WellDenotedV_pi_body {ρ : Nat → V} {u v : Nat} {A B : AnnotTerm}
     (h : WellDenotedV V ρ (.pi u v A B)) {x : V}
     (hx : x ∈ˢ interp V ρ A) : WellDenotedV V (cons x ρ) B :=
-  ⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).2 x hx,
+  ⟨((WellDenoted_pi V ρ u v A B) ▸ h.1).2.2.1 x hx,
     ((AnnotValid_pi V ρ u v A B) ▸ h.2).2.1 x hx⟩
 
 /-! ## Application spines, graded backwards -/
