@@ -60,7 +60,6 @@ def OpsRel {M₁ M₂ : Type → Type} [Monad M₁] [Monad M₂]
     [MonadExceptOf CheckError M₁] [MonadExceptOf CheckError M₂]
     (rel : MonadRel M₁ M₂) (o₁ : CheckerOps M₁) (o₂ : CheckerOps M₂) :
     Prop :=
-  (∀ env d e, rel.R (o₁.annotate env d e) (o₂.annotate env d e)) ∧
   (∀ env d e, rel.R (o₁.inferType env d e) (o₂.inferType env d e)) ∧
   (∀ env d a b, rel.R (o₁.isDefEq env d a b) (o₂.isDefEq env d a b)) ∧
   (∀ env d e, rel.R (o₁.ensureSort env d e) (o₂.ensureSort env d e)) ∧
@@ -75,23 +74,20 @@ def pairOps {M₁ M₂ : Type → Type} [Monad M₁] [Monad M₂]
     [MonadExceptOf CheckError M₁] [MonadExceptOf CheckError M₂]
     {rel : MonadRel M₁ M₂} (o₁ : CheckerOps M₁) (o₂ : CheckerOps M₂)
     (h : OpsRel rel o₁ o₂) : CheckerOps (PairM rel) where
-  annotate env d e := ⟨(o₁.annotate env d e, o₂.annotate env d e), h.1 env d e⟩
   inferType env d e :=
-    ⟨(o₁.inferType env d e, o₂.inferType env d e), h.2.1 env d e⟩
+    ⟨(o₁.inferType env d e, o₂.inferType env d e), h.1 env d e⟩
   isDefEq env d a b :=
-    ⟨(o₁.isDefEq env d a b, o₂.isDefEq env d a b), h.2.2.1 env d a b⟩
+    ⟨(o₁.isDefEq env d a b, o₂.isDefEq env d a b), h.2.1 env d a b⟩
   ensureSort env d e :=
-    ⟨(o₁.ensureSort env d e, o₂.ensureSort env d e), h.2.2.2.1 env d e⟩
-  whnf env d e := ⟨(o₁.whnf env d e, o₂.whnf env d e), h.2.2.2.2.1 env d e⟩
+    ⟨(o₁.ensureSort env d e, o₂.ensureSort env d e), h.2.2.1 env d e⟩
+  whnf env d e := ⟨(o₁.whnf env d e, o₂.whnf env d e), h.2.2.2.1 env d e⟩
   orElse x k :=
     ⟨(o₁.orElse x.val.1 (fun r => (k r).val.1),
       o₂.orElse x.val.2 (fun r => (k r).val.2)),
-      h.2.2.2.2.2 _ _ _ _ x.property (fun r => (k r).property)⟩
+      h.2.2.2.2 _ _ _ _ x.property (fun r => (k r).property)⟩
 
 /-- The fueled operations as monotone families. -/
 @[expose] def fueledOpsM (mode : CheckMode) : CheckerOps FueledM where
-  annotate env d e :=
-    ⟨fun F => annotateCore mode env F d e, fun hle h => annotateCore_mono hle h⟩
   inferType env d e :=
     ⟨fun F => inferTypeCore mode env F d e, fun hle h => inferTypeCore_mono hle h⟩
   isDefEq env d a b :=
@@ -166,11 +162,6 @@ constant `.internal` error (a trivially monotone family) otherwise: every
 use of `wfOpsM` goes through the `if_pos` equations below, so the other
 branch has no consumer (#172). -/
 noncomputable def wfOpsM (mode : CheckMode) : CheckerOps FueledM where
-  annotate env d e :=
-    if EnvWF env ∧ e.wscopedB d = true then
-      ⟨fun F => annotateCore mode env F d e, fun hle h => annotateCore_mono hle h⟩
-    else ⟨fun _ => throw (.internal "wfOpsM: precondition failed"),
-      fun _ h => h⟩
   inferType env d e :=
     if EnvWF env ∧ e.wscopedB d = true then
       ⟨fun F => inferTypeCore mode env F d e,
@@ -619,7 +610,7 @@ macro "tdatF_tac" : tactic =>
     | rfl
     | (simp only [FueledM.atF_bind, FueledM.atF_pure, FueledM.atF_throw, FueledM.atF_ite,
         unwrapOr_atF, fueledOpsM_isDefEq_atF, fueledOpsM_inferType_atF,
-        fueledOpsM_ensureSort_atF, fueledOpsM_whnf_atF, fueledOpsM_annotate_atF,
+        fueledOpsM_ensureSort_atF, fueledOpsM_whnf_atF,
         liftFueled_atF])
     | split
     | ((rw [FueledM.atF_bind]; congr 1 <;> try rfl) <;> try funext _)))
@@ -904,21 +895,17 @@ theorem classFormerTys_datF (fe : FEnv) (cvTas : List ConstantVal) (F : Nat)
   rw [mapM_atF]
   simp only [classFormerTy_datF]
 
-theorem fueledOpsM_annotate_atF (env : Env) (d : Nat) (a : Expr) (F : Nat) :
-    ((fueledOpsM mode).annotate env d a).val F = (fueledOps mode F).annotate env d a := by rfl
-
-theorem classKeyOf_datF (env : Env) (nP : Nat) (params : List Expr) (k : ClassKey)
+theorem classKeyOf_datF (nP : Nat) (params : List Expr) (k : ClassKey)
     (F : Nat) :
-    (classKeyOf (fueledOpsM mode) env nP params k).val F =
-      classKeyOf (fueledOps mode F) env nP params k := by
+    (classKeyOf (m := FueledM) nP params k).val F =
+      classKeyOf (m := CheckM) nP params k := by
   unfold classKeyOf
-  simp only [FueledM.atF_bind, FueledM.atF_pure, FueledM.atF_throw, FueledM.atF_ite, mapM_atF,
-    fueledOpsM_annotate_atF]
+  simp only [FueledM.atF_bind, FueledM.atF_pure, FueledM.atF_throw, FueledM.atF_ite, mapM_atF]
 
-theorem checkBlockClasses_datF (fe₁ : FEnv) (env₁ : Env) (p : BlockShape) (params : List Expr)
+theorem checkBlockClasses_datF (fe₁ : FEnv) (p : BlockShape) (params : List Expr)
     (ctorsAs : List (List (ConstantVal × Nat))) (F : Nat) :
-    (checkBlockClasses (fueledOpsM mode) fe₁ env₁ p params ctorsAs).val F =
-      checkBlockClasses (fueledOps mode F) fe₁ env₁ p params ctorsAs := by
+    (checkBlockClasses (fueledOpsM mode) fe₁ p params ctorsAs).val F =
+      checkBlockClasses (fueledOps mode F) fe₁ p params ctorsAs := by
   unfold checkBlockClasses
   simp only [FueledM.atF_bind, FueledM.atF_pure, FueledM.atF_throw, FueledM.atF_ite,
     unwrapOr_atF, mapM_atF, classKeyOf_datF, classMajors_datF]
@@ -948,34 +935,34 @@ theorem classRecTysOk_datF (fe : FEnv) (g : ClassGen) (k : Nat) (F : Nat) :
   | _ :: _, [], _ => rfl
   | _ :: _, _ :: _, [] => rfl
 
-theorem classRuleOk_datF (feT feR : FEnv) (cvR : ConstantVal) (pw : PropWhen) (n : Nat)
+theorem classRuleOk_datF (feT feR : FEnv) (cvR : ConstantVal) (n : Nat)
     (gen : Expr) (F : Nat) :
-    (classRuleOk (fueledOpsM mode) .plain feT feR cvR pw n gen).val F =
-      classRuleOk (fueledOps mode F) .plain feT feR cvR pw n gen := by
+    (classRuleOk (fueledOpsM mode) .plain feT feR cvR n gen).val F =
+      classRuleOk (fueledOps mode F) .plain feT feR cvR n gen := by
   unfold classRuleOk
   simp only [FueledM.atF_bind, FueledM.atF_pure, FueledM.atF_throw, FueledM.atF_ite,
     unwrapOr_atF, fueledOpsM_inferType_atF]
 
 theorem classRulesOk_datF (feT feR : FEnv) (g : ClassGen) (recOf : Nat → Option Name)
-    (cvR : ConstantVal) (pw : PropWhen) (c : Nat) (F : Nat) :
+    (cvR : ConstantVal) (c : Nat) (F : Nat) :
     ∀ (xs : List ClassCtor),
-      (classRulesOk (fueledOpsM mode) .plain feT feR g recOf cvR pw c xs).val F =
-        classRulesOk (fueledOps mode F) .plain feT feR g recOf cvR pw c xs
+      (classRulesOk (fueledOpsM mode) .plain feT feR g recOf cvR c xs).val F =
+        classRulesOk (fueledOps mode F) .plain feT feR g recOf cvR c xs
   | [] => rfl
   | x :: xs => by
     unfold classRulesOk
     simp only [FueledM.atF_bind, FueledM.atF_pure, unwrapOr_atF, classRuleOk_datF,
-      classRulesOk_datF feT feR g recOf cvR pw c F xs]
+      classRulesOk_datF feT feR g recOf cvR c F xs]
 
 theorem classRecsRulesOk_datF (feT feR : FEnv) (g : ClassGen) (recOf : Nat → Option Name)
-    (pw : PropWhen) (F : Nat) :
+    (F : Nat) :
     ∀ (cvs : List ConstantVal) (cs : List Nat),
-      (classRecsRulesOk (fueledOpsM mode) .plain feT feR g recOf pw cvs cs).val F =
-        classRecsRulesOk (fueledOps mode F) .plain feT feR g recOf pw cvs cs
+      (classRecsRulesOk (fueledOpsM mode) .plain feT feR g recOf cvs cs).val F =
+        classRecsRulesOk (fueledOps mode F) .plain feT feR g recOf cvs cs
   | cvG :: cvs, c :: cs => by
     unfold classRecsRulesOk
     simp only [FueledM.atF_bind, FueledM.atF_pure, classRulesOk_datF,
-      classRecsRulesOk_datF feT feR g recOf pw F cvs cs]
+      classRecsRulesOk_datF feT feR g recOf F cvs cs]
   | [], _ => rfl
   | _ :: _, [] => rfl
 
@@ -1112,9 +1099,6 @@ theorem checkDivModCerts_datF (env : Env) (c : Name) (annVal : Expr)
     simp only [checkDivModCerts]
     split
     · rw [FueledM.atF_bind]
-      congr 1
-      funext appliedA
-      rw [FueledM.atF_bind]
       congr 1
       funext tp
       rw [FueledM.atF_bind]

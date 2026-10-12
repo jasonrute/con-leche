@@ -18,17 +18,16 @@ every stored expression:
   stored structures in its `.proj` nodes (`constsResolve`'s clause
   reads `find? s`), so when `T` is not stored there is no `.proj T _`
   node at all: the pre-block constants;
-* `annotateCore_projSlotsOk` — the annotation pass emits a `.proj`
-  node only where a *tower* table entry types it
-  (`annotateCore_proj_inv`'s first arm; the other arm rewrites the
-  node away and re-annotates), hereditarily through the fvar types
-  the pass threads (`Expr.ProjSlotsOk`).  So an annotated expression
-  has no `.proj T i` node when the slot `(T, i)` was empty at
-  annotation time (`ProjSlotsOk.noProjAt`): the block's own
-  constants, annotated before their entries exist.
+* `inferTypeCore_projSlotsOk` (`Verify/InferProjSlots.lean`) — full-grade
+  inference types a `.proj`
+  node only where a *tower* table entry types it, hereditarily through
+  the fvar types it threads (`Expr.ProjSlotsOk`).  So an expression
+  whose inference succeeded has no `.proj T i` node when the slot
+  `(T, i)` was empty at that time (`ProjSlotsOk.noProjAt`): the
+  block's own constants, checked before their entries exist.
 
 Both predicates are hereditary through `.fvar` type annotations, as
-`ConstsBound` is, because `denoteMeta` opens binders at annotated fvars.
+`ConstsBound` is, because `denoteMeta` opens binders at fvars.
 -/
 
 namespace ConLeche
@@ -498,116 +497,5 @@ theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     exact nomatch hfe
 
 end Expr
-
-/-! ## The annotation pass emits only slotted projection nodes -/
-
-variable (mode : CheckMode)
-
-/-- **The annotation walk**: every `.proj` node of an annotated
-expression sits at a tower table slot (hereditarily), provided the
-input's fvar annotations do — which is vacuous for the checker's
-closed inputs and preserved by the pass's own openings. -/
-theorem annotateCore_projSlotsOk {env : Env} :
-    ∀ (fuel : Nat) (e : Expr) {d : Nat} {e' : Expr},
-      annotateCore mode env fuel d e = .ok e' → Expr.FvarTysOk env e →
-      Expr.ProjSlotsOk env e'
-  | 0, _, _, _, h, _ => by simp [annotateCore_zero, throw, throwThe,
-      MonadExceptOf.throw] at h
-  | fuel + 1, .bvar i, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    rw [← h]; simp
-  | fuel + 1, .fvar idx ty, d, e', h, hf => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody] at h
-    revert h
-    split
-    · intro h
-      simp only [pure, Except.pure, Except.ok.injEq] at h
-      rw [← h]
-      exact Expr.projSlotsOk_fvar.mpr (Expr.fvarTysOk_fvar.mp hf)
-    · intro h
-      simp [throw, throwThe, MonadExceptOf.throw] at h
-  | fuel + 1, .sort u, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    rw [← h]; simp
-  | fuel + 1, .const n us, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    rw [← h]; simp
-  | fuel + 1, .lit l, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    match l, h with
-    | .natVal n, h => ?natCase
-    | .strVal sv, h => ?strCase
-    case strCase =>
-      dsimp only [annotateBody] at h
-      revert h
-      split
-      case isFalse =>
-        intro h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
-      case isTrue =>
-        intro h
-        simp only [pure, Except.pure, Except.ok.injEq] at h
-        rw [← h]; simp
-    case natCase =>
-      dsimp only [annotateBody] at h
-      revert h
-      split
-      case isFalse =>
-        intro h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
-      case isTrue =>
-        intro h
-        simp only [pure, Except.pure, Except.ok.injEq] at h
-        rw [← h]; simp
-  | fuel + 1, .app f a, d, e', h, hf => by
-    rw [Expr.fvarTysOk_app] at hf
-    obtain ⟨f', a', hfa, haa, rfl⟩ := annotateCore_app_inv h
-    exact Expr.projSlotsOk_app.mpr
-      ⟨annotateCore_projSlotsOk fuel f hfa hf.1,
-        annotateCore_projSlotsOk fuel a haa hf.2⟩
-  | fuel + 1, .proj sn i e, d, e', h, hf => by
-    rw [Expr.fvarTysOk_proj] at hf
-    obtain ⟨e₂, tt, te, he, -, -, T, us, entry, -, hfe, -, rfl⟩ :=
-      annotateCore_proj_inv h
-    have hok₂ := annotateCore_projSlotsOk fuel e he hf
-    exact Expr.projSlotsOk_proj.mpr ⟨⟨entry, hfe⟩, hok₂⟩
-  | fuel + 1, .forallE ty body m, d, e', h, hf => by
-    rw [Expr.fvarTysOk_forallE] at hf
-    obtain ⟨ty', body', pw, hty, hbody, rfl⟩ := annotateCore_forallE_inv h
-    have hty'ok := annotateCore_projSlotsOk fuel ty hty hf.1
-    have hbody'ok := annotateCore_projSlotsOk fuel
-      (body.instantiate1 (.fvar d ty')) hbody
-      (Expr.FvarTysOk.instantiate1 (Expr.fvarTysOk_fvar.mpr hty'ok) body 0 hf.2)
-    exact Expr.projSlotsOk_forallE.mpr
-      ⟨hty'ok, Expr.ProjSlotsOk.abstract1 body' d 0 hbody'ok⟩
-  | fuel + 1, .lam ty body m, d, e', h, hf => by
-    rw [Expr.fvarTysOk_lam] at hf
-    obtain ⟨ty', body', pw, hty, hbody, rfl⟩ := annotateCore_lam_inv h
-    have hty'ok := annotateCore_projSlotsOk fuel ty hty hf.1
-    have hbody'ok := annotateCore_projSlotsOk fuel
-      (body.instantiate1 (.fvar d ty')) hbody
-      (Expr.FvarTysOk.instantiate1 (Expr.fvarTysOk_fvar.mpr hty'ok) body 0 hf.2)
-    exact Expr.projSlotsOk_lam.mpr
-      ⟨hty'ok, Expr.ProjSlotsOk.abstract1 body' d 0 hbody'ok⟩
-  | fuel + 1, .letE ty v b, d, e', h, hf => by
-    rw [Expr.fvarTysOk_letE] at hf
-    obtain ⟨ty', v', -, -, hb, -⟩ := annotateCore_letE_inv h
-    exact annotateCore_projSlotsOk fuel _ hb
-      (Expr.FvarTysOk.instantiate1 hf.2.1 b 0 hf.2.2)
-
-/-- **The block-side source, packaged**: an expression annotated from a
-closed input at an environment where the slot `(T, i)` is empty has no
-`.proj T i` node. -/
-theorem annotateCore_noProjAt {env : Env} {fuel d : Nat} {e e' : Expr}
-    {T : Name} {i : Nat}
-    (h : annotateCore mode env fuel d e = .ok e') (hfv : e.hasFvar = false)
-    (hslot : env.findProj? T i = none) :
-    Expr.NoProjAt T i e' :=
-  Expr.ProjSlotsOk.noProjAt hslot e'
-    (annotateCore_projSlotsOk mode fuel e h (Expr.FvarTysOk.of_not_hasFvar e hfv))
 
 end ConLeche

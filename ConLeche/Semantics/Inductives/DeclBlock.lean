@@ -59,7 +59,7 @@ def DeclBlockRun (μ : CheckMode) (F : Nat) (env : Env) (block : List ConstantIn
     --    (read off its raw recursor types, each checked as a major)
     blockNestCtx (m := ConLeche.CheckM) p.toBlockShape cvTas env₁.find?
       = .ok (ctx, holes) ∧
-    checkBlockClasses (fueledOps μ F) (mkFEnv env₁) env₁ p.toBlockShape ctx.params ctorsAs
+    checkBlockClasses (fueledOps μ F) (mkFEnv env₁) p.toBlockShape ctx.params ctorsAs
       = .ok (rd, Ms) ∧
     -- 4  the positivity function on the stored constructors (the root frame), and
     --    their member-abstracted types typed at the holes' context; its field

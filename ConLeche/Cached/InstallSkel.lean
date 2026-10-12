@@ -32,8 +32,7 @@ open ConLeche
 /-! ## The install skeleton
 
 Exactly the data of an installed constant that the *drivers'* install
-guards read.  Everything a core computes — the annotated type, the
-annotated value, `IndCaps`, a rule's right-hand side and its
+guards read.  Everything a core computes — `IndCaps`, a rule's right-hand side and its
 `plain`/`inert` fire tag — is deliberately **forgotten**: those are the
 class-1/2/3 divergent data, and forgetting them is what keeps the floor
 free of core reasoning. -/

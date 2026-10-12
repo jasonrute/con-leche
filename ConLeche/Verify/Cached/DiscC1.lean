@@ -48,11 +48,6 @@ structure SSimC (mode : CheckMode) (env : Env) (f : Nat) : Prop where
     SimC mode env s₀ RelVC
       ((coreKnotI mode (mkFEnv env) f).defeq d i j)
       ((fueledFns mode env).defeq d a b)
-  annotate : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-    CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-    SimC mode env s₀ (RelEC d)
-      ((coreKnotI mode (mkFEnv env) f).annotate d i)
-      ((fueledFns mode env).annotate d e)
   /-- the io slot (task #172 B4): the memoized knot's `inferIO` entry
   simulates the fueled io-slot family -/
   inferIO : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
@@ -67,7 +62,6 @@ theorem ssimC_zero (env : Env) : SSimC mode env 0 :=
     whnf := fun _ _ _ => SimC.throw
     infer := fun _ _ _ => SimC.throw
     defeq := fun _ _ _ _ _ => SimC.throw
-    annotate := fun _ _ _ => SimC.throw
     inferIO := fun _ _ _ => SimC.throw }
 
 section Walks
@@ -153,9 +147,7 @@ theorem iotaCertsCAux_sim (ih : SSimC mode env f) {d : Nat} {lic : Bool} :
           ∧ Expr.WScoped d ((Expr.instantiateList b ws 1)) := by
         simpa only [Expr.WScoped] using hwty
       show SimC mode env s₀ RelVC
-        (if lic && m.pw.isNever then
-          iotaCertsIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d lic b
-            (a :: acc) as
+        (if lic then pure true
         else
           instListM t acc >>= fun dom' =>
           (coreKnotI mode (mkFEnv env) f).inferIO d a >>= fun ta =>
@@ -163,9 +155,7 @@ theorem iotaCertsCAux_sim (ih : SSimC mode env f) {d : Nat} {lic : Bool} :
           if r then iotaCertsIAux (coreKnotI mode (mkFEnv env) f)
             (mkFEnv env) d lic b (a :: acc) as
           else pure false)
-        (if lic && m.pw.isNever then
-          iotaCerts (fueledFns mode env) env d lic
-            (((Expr.instantiateList b ws 1)).instantiate1 x) xs
+        (if lic then pure true
         else
           (fueledFns mode env).inferIO d x >>= fun ta =>
           (fueledFns mode env).defeq d ta ((Expr.instantiateList t ws)) >>=
@@ -174,20 +164,10 @@ theorem iotaCertsCAux_sim (ih : SSimC mode env f) {d : Nat} {lic : Bool} :
             (((Expr.instantiateList b ws 1)).instantiate1 x) xs
           else pure false)
       have hwx : Expr.WScoped d x := hwargs x (List.mem_cons_self ..)
-      -- the licensed slot: no run on either side
-      have htail : SimC mode env s₀ RelVC
-          (iotaCertsIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d lic b
-            (a :: acc) as)
-          (iotaCerts (fueledFns mode env) env d lic
-            (((Expr.instantiateList b ws 1)).instantiate1 x) xs) := by
-        rw [← Expr.instantiateList_cons]
-        refine iotaCertsCAux_sim ih hs rfl (RelCL.cons hax hacc) ?_
-          hasxs (fun x' hx' => hwargs x' (List.mem_cons_of_mem _ hx'))
-        rw [Expr.instantiateList_cons]
-        exact Expr.WScoped.instantiate1_gen hwx 0 hwtb.2
-      by_cases hg : (lic && m.pw.isNever) = true
+      -- the licensed walk: no run on either side
+      by_cases hg : lic = true
       · rw [ite_eq_left hg, ite_eq_left hg]
-        exact htail
+        exact SimC.pure hs rfl
       rw [ite_eq_right hg, ite_eq_right hg]
       refine SimC.bind_left (instListM_eff (d := 0) hs rfl hacc)
         (fun s₁ dom' hs₁ hQdom => ?_)

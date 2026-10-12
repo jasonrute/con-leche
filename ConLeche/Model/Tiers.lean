@@ -3,10 +3,12 @@ module
 public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Rules.Recompose
 import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Model.Annot.BitInst
+import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 import ConLeche.Verify.InferLemmas
 import ConLeche.Verify.InferLeaves
 import ConLeche.Semantics.Frame
@@ -150,11 +152,11 @@ at the leaf's stored annotation; that asymmetry is what made
 `InferReads` refutable without its context premise and what makes
 *this* statement free of a leaf premise.
 
-`inferBody`'s `letE` arm is a positive `.internal` error (task #241) —
-the official `infer_let` triple lives in `annotateBody`, which returns
-the ζ *reduct* (task #217), so inference only ever sees let-free
-expressions; `inferTypeCore_letE_inv` turns the run hypothesis into
-`False`.
+`inferBody`'s `letE` arm is the official `infer_let` (task #342): it
+infers the type, the value and the body at the value.  The reading opens
+the body at a fresh variable instead; the substitution lemma
+(`denoteMeta_substFvarAt`) recovers that reading from the body read at
+the value.
 
 No environment field is consulted: the walk is a statement about the
 *checker*, not about the model, which is why it is a theorem at
@@ -162,8 +164,8 @@ No environment field is consulted: the walk is a statement about the
 
 /-! ### The three run inversions the walk adds
 
-`Verify/InferLemmas.lean` has the binder, application, `letE` (the
-vacuous one) and projection inversions already; the `.const` one
+`Verify/InferLemmas.lean` has the binder, application, `letE` and
+projection inversions already; the `.const` one
 there drops the arity equation (it is consumed inside its own
 `split`) and the two literal clauses have none.  All three are one
 `simp only [inferBody, …]` deep. -/
@@ -307,12 +309,43 @@ private theorem acceptedReads_aux (m : EnvModel V env) (φ : Name → Nat) :
         hL l (by simpa [Expr.fvarLeaves] using hl))
       exact ⟨_, denoteMeta_proj_tower hfe hpa⟩
     | .letE ty val body =>
-      exact (ConLeche.inferTypeCore_letE_inv h).elim
+      -- official's `infer_let`: the type, the value and the body at the
+      -- value are inferred; the reading opens the body at a fresh
+      -- variable, which the substitution lemma recovers from the body
+      -- read at the value
+      obtain ⟨tty, -, tv, htty, -, htv, -, hbt⟩ := ConLeche.inferTypeCore_letE_inv h
+      simp only [Expr.WScoped] at hws
+      simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
+      have hLty : Expr.LeavesBounded ty := fun l hl =>
+        hL l (by simp [Expr.fvarLeaves, hl])
+      have hLv : Expr.LeavesBounded val := fun l hl =>
+        hL l (by simp [Expr.fvarLeaves, hl])
+      have hLbd : Expr.LeavesBounded body := fun l hl =>
+        hL l (by simp [Expr.fvarLeaves, hl])
+      obtain ⟨ta, hta⟩ := ih htty hws.1 hb.1.1 hLty
+      obtain ⟨va, hva⟩ := ih htv hws.2.1 hb.1.2 hLv
+      have hwi : Expr.WScoped d (body.instantiate1 val) :=
+        Expr.WScoped.instantiate1_gen hws.2.1 0 hws.2.2
+      have hbi : (body.instantiate1 val).looseBVarsBounded 0 = true :=
+        ConLeche.Expr.looseBVarsBounded_instantiate1_gen hb.1.2 hb.2
+      have hLi : Expr.LeavesBounded (body.instantiate1 val) := fun l hl => by
+        rcases Expr.fvarLeaves_instantiate1 body 0 hl with h2 | h2
+        · exact hLbd l h2
+        · exact hLv l h2
+      obtain ⟨ia, hia⟩ := ih hbt hwi hbi hLi
+      obtain ⟨hwo, -, -⟩ := frame_open2 hws.1 hb.1.1 hws.2.2 hb.2 hLty hLbd
+      have hsub := denoteMeta_substFvarAt (env := env) (φ := φ) (acval := m.acval)
+        m.acval_closed (acval_inst_self m) hws.2.1 hb.1.2 hva
+        (body.instantiate1 (.fvar d ty)) d (Nat.le_refl d) hwo.fvarsBelow
+      rw [ConLeche.Expr.substFvarAt_instantiate1_self body 0 hws.2.2.fvarsBelow, hia] at hsub
+      cases hba : denoteMeta m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty)) with
+      | none => rw [hba] at hsub; exact nomatch hsub
+      | some ba =>
+        exact ⟨_, by rw [denoteMeta_letE, hta, hva, hba]; rfl⟩
 
 /-- **`accepted_reads`, discharged.**  Whatever the front door's
 inference accepts, the validated-annotation reading reads.  See the
-module docstring for the guard table and for the vacuous `letE`
-clause. -/
+module docstring for the guard table and for the `letE` clause. -/
 theorem acceptedReads_of (m : EnvModel V env) (φ : Name → Nat)
     {F d : Nat} {e t : Expr}
     (h : inferTypeCore μ env F d e = .ok t)

@@ -6,6 +6,7 @@ import ConLeche.Model.Annot.LfpHoleOp
 import ConLeche.Model.Inductives.BlockCaps
 import ConLeche.Model.Inductives.BlockHoleGrade
 import ConLeche.Verify.Inductives.NfMemberFree
+import ConLeche.Verify.InferProjSlots
 public import ConLeche.Model.Inductives.BlockPosRun
 import ConLeche.Model.Inductives.BlockCover
 import ConLeche.Model.Inductives.BlockAccRunCont
@@ -215,8 +216,8 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
         ConLeche.reservedBasisNames.contains cA.1.name = false ∧
         sortss[j]? = some sorts ∧
         (cA.1.type.stripPis (q.nP + cA.2)).isSome = true ∧
-        (∃ ty₀ : Expr, ty₀.hasFvar = false ∧
-          ConLeche.annotateCore μ envI F 0 ty₀ = .ok cA.1.type) ∧
+        (cA.1.type.hasFvar = false ∧
+          ∃ stype, inferTypeCore μ envI F 0 cA.1.type = .ok stype) ∧
         ConLeche.checkSumCtor (ConLeche.fueledOps μ F) envI envI cvTa.name q.lps q.nP
           (q.nIdxs.getD m 0) q.resSort q.isProp q.large c.1 cA.2 cvTa = .ok (cA.1, sorts) := by
   obtain ⟨hlenA, hlenS, hall⟩ := ConLeche.checkSumCtors_inv hrun
@@ -226,12 +227,12 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
   obtain ⟨hnF, sorts, hsj, hCtor⟩ :=
     hall j ((q.members.getD m default).ctors[j]) cA (List.getElem?_eq_getElem hjl) hj
   obtain ⟨⟨ty₀, hccvC⟩, ⟨cbs, es, hstrip, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, _, -, -, hannC, -, htrC, -, -, htyC⟩ :=
-    ConLeche.checkConstantVal_inv hccvC
+  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, type', stype, -, hannC, -, htrC, hstC, -, htyC⟩ :=
+    ConLeche.checkConstantVal_inv_stored hccvC
   have hmem : (q.members.getD m default).ctors[j] ∈ (q.members.getD m default).ctors :=
     List.getElem_mem hjl
   refine ⟨_, sorts, List.getElem?_eq_getElem hjl, by rw [htyC], hnF, ?_, ?_, ?_,
-    by rw [htyC]; exact hpshapeC, ?_, hsj, ?_, ⟨ty₀, hfvC, ?_⟩,
+    by rw [htyC]; exact hpshapeC, ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
     by rw [hnF]; exact hCtor⟩
   · rw [htyC]; exact (hClps _ hmem).1
   · show Env.find? _ cA.1.name = none
@@ -240,8 +241,8 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
     rw [htyC]; exact htrC
   · rw [htyC]; exact (hClps _ hmem).2
   · rw [hnF, hstrip]; rfl
-  · show ConLeche.annotateCore μ envI F 0 ty₀ = .ok cA.1.type
-    rw [htyC]; exact hannC
+  · rw [htyC]; dsimp only; rw [hannC]; exact hfvC
+  · rw [htyC]; exact hstC
 
 /-! ## The η side conditions of the two former passes -/
 
@@ -496,8 +497,8 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
           ConLeche.reservedBasisNames.contains cA.1.name = false ∧
           (sortsss.getD m [])[j]? = some sorts ∧
           (cA.1.type.stripPis (q.nP + cA.2)).isSome = true ∧
-          (∃ ty₀ : Expr, ty₀.hasFvar = false ∧
-            ConLeche.annotateCore μ envI F 0 ty₀ = .ok cA.1.type) ∧
+          (cA.1.type.hasFvar = false ∧
+            ∃ stype, inferTypeCore μ envI F 0 cA.1.type = .ok stype) ∧
           ConLeche.checkSumCtor (ConLeche.fueledOps μ F) envI envI cvTa.name q.lps q.nP
             (q.nIdxs.getD m 0) q.resSort q.isProp q.large c.1 cA.2 cvTa = .ok (cA.1, sorts) :=
     fun m cvTa hm hcv =>
@@ -1698,20 +1699,20 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       intro m c j cA hm hm1 hm2 hj i
       have hck : c < q.k := hctorLt c j cA hj
       obtain ⟨cvTa, hcv⟩ := hcvOf c hck
-      obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, ⟨ty₀, hfv₀, hann₀⟩, -⟩ :=
+      obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, ⟨hfv₀, _, hinf₀⟩, -⟩ :=
         (hfacts c cvTa hck hcv).2 j cA hj
-      exact ConLeche.annotateCore_noProjAt μ hann₀ hfv₀
+      exact ConLeche.inferTypeCore_noProjAt hinf₀ hfv₀
         (ConLeche.Env.findProj?_none_of_fresh (hprojTbl' m hm hm1 hm2) i)
     · -- noProjB: member c's table bodies carry c's OWN projections only
       intro m c cA bodies hm hm1 hm2 hck hcm hcs hbodies i j
       have hcs' : ctorsAs.getD c [] = [cA] := hcs
       have hcA : (ctorsAs.getD c [])[0]? = some cA := by rw [hcs']; rfl
       obtain ⟨cvTa, hcv⟩ := hcvOf c hck
-      obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, ⟨ty₀, hfv₀, hann₀⟩, -⟩ :=
+      obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, ⟨hfv₀, _, hinf₀⟩, -⟩ :=
         (hfacts c cvTa hck hcv).2 0 cA hcA
       have hnoC : ConLeche.Expr.NoProjAt
           ((blockDataOf V q ctorsAs pk uOf ppsOf).memberName m) i cA.1.type :=
-        ConLeche.annotateCore_noProjAt μ hann₀ hfv₀
+        ConLeche.inferTypeCore_noProjAt hinf₀ hfv₀
           (ConLeche.Env.findProj?_none_of_fresh (hprojTbl' m hm hm1 hm2) i)
       refine ConLeche.noProjAt_structProjBodies (fun j' => ?_) hbodies hnoC j
       rintro ⟨hh, -⟩

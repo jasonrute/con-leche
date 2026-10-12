@@ -21,7 +21,7 @@ def natRecZeroRule : RecRule :=
     paramsBlind := true,
     rhs := Expr.lam
       (Expr.forallE (.const natName [])
-        (.sort (.param uN)) { pw := .never })
+        (.sort (.param uN)) {})
       (Expr.lam
         (.app (.bvar 0) (.const natZeroName []))
         (Expr.lam
@@ -29,18 +29,18 @@ def natRecZeroRule : RecRule :=
             (Expr.forallE (.app (.bvar 2)
               (.bvar 0))
               (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] })
-          (.bvar 1) { pw := .ifAllZero [uN] })
-        { pw := .ifAllZero [uN] })
-      { pw := .ifAllZero [uN] } }
+              {})
+            {})
+          (.bvar 1) {})
+        {})
+      {} }
 
 def natRecSuccRule : RecRule :=
   { ctor := natSuccName, nfields := 1, ctorParams := 0, fire := .plain,
     paramsBlind := true,
     rhs := Expr.lam
       (Expr.forallE (.const natName [])
-        (.sort (.param uN)) { pw := .never })
+        (.sort (.param uN)) {})
       (Expr.lam
         (.app (.bvar 0) (.const natZeroName []))
         (Expr.lam
@@ -48,17 +48,17 @@ def natRecSuccRule : RecRule :=
             (Expr.forallE (.app (.bvar 2)
               (.bvar 0))
               (.app (.bvar 3) (.app (.const natSuccName []) (.bvar 1)))
-              { pw := .ifAllZero [uN] })
-            { pw := .ifAllZero [uN] })
+              {})
+            {})
           (Expr.lam (.const natName [])
             (.app (.app (.bvar 1) (.bvar 0))
               (.app (.app (.app (.app (.const (natName.str "rec")
                 [.param uN]) (.bvar 3)) (.bvar 2)) (.bvar 1)) (.bvar
                   0)))
-            { pw := .ifAllZero [uN] })
-          { pw := .ifAllZero [uN] })
-        { pw := .ifAllZero [uN] })
-      { pw := .ifAllZero [uN] } }
+            {})
+          {})
+        {})
+      {} }
 
 theorem natRecA_eq :
     natRecA = .recInfo natRecA.toConstantVal 3 3
@@ -74,24 +74,24 @@ def quotIndRule : RecRule :=
       (Expr.lam
         (Expr.forallE (.bvar 0)
           (Expr.forallE (.bvar 1) (.sort .zero)
-            { pw := .never }) { pw := .never })
+            {}) {})
         (Expr.lam
           (Expr.forallE
             (.app (.app (.const quotName [.param uN]) (.bvar 1)) (.bvar
               0))
-            (.sort .zero) { pw := .never })
+            (.sort .zero) {})
           (Expr.lam
             (Expr.forallE (.bvar 2)
               (.app (.bvar 1)
                 (.app (.app (.app (.const quotMkName [.param uN])
                   (.bvar 3)) (.bvar 2)) (.bvar 0)))
-              { pw := .ifAllZero [] })
+              {})
             (Expr.lam (.bvar 3)
-              (.app (.bvar 1) (.bvar 0)) { pw := .ifAllZero [] })
-            { pw := .ifAllZero [] })
-          { pw := .ifAllZero [] })
-        { pw := .ifAllZero [] })
-      { pw := .ifAllZero [] } }
+              (.app (.bvar 1) (.bvar 0)) {})
+            {})
+          {})
+        {})
+      {} }
 
 
 /-- `Quot.lift`'s single stored rule. -/
@@ -102,11 +102,11 @@ def quotLiftRule : RecRule :=
       (Expr.lam
         (Expr.forallE (.bvar 0)
           (Expr.forallE (.bvar 1) (.sort .zero)
-            { pw := .never }) { pw := .never })
+            {}) {})
         (Expr.lam (.sort (.param vN))
           (Expr.lam
             (Expr.forallE (.bvar 2) (.bvar 1)
-              { pw := .ifAllZero [vN] })
+              {})
             (Expr.lam
               (Expr.forallE (.bvar 3)
                 (Expr.forallE (.bvar 4)
@@ -115,15 +115,15 @@ def quotLiftRule : RecRule :=
                     (.app (.app (.app (.const eqName [.param vN])
                       (.bvar 4)) (.app (.bvar 3) (.bvar 2)))
                       (.app (.bvar 3) (.bvar 1)))
-                    { pw := .ifAllZero [] }) { pw := .ifAllZero [] })
-                { pw := .ifAllZero [] })
+                    {}) {})
+                {})
               (Expr.lam (.bvar 4)
-                (.app (.bvar 2) (.bvar 0)) { pw := .ifAllZero [vN] })
-              { pw := .ifAllZero [vN] })
-            { pw := .ifAllZero [vN] })
-          { pw := .ifAllZero [vN] })
-        { pw := .ifAllZero [vN] })
-      { pw := .ifAllZero [vN] } }
+                (.app (.bvar 2) (.bvar 0)) {})
+              {})
+            {})
+          {})
+        {})
+      {} }
 
 
 /-- `Eq.rec`'s single stored rule. -/
@@ -138,16 +138,16 @@ def eqRecRule : RecRule :=
             (Expr.forallE
               (.app (.app (.app (.const eqName [.param uN]) (.bvar 2))
                 (.bvar 1)) (.bvar 0))
-              (.sort (.param u1N)) { pw := .never })
-            { pw := .never })
+              (.sort (.param u1N)) {})
+            {})
           (Expr.lam
             (.app (.app (.bvar 0) (.bvar 1))
               (.app (.app (.const eqReflName [.param uN]) (.bvar 2))
                 (.bvar 1)))
-            (.bvar 0) { pw := .ifAllZero [u1N] })
-          { pw := .ifAllZero [u1N] })
-        { pw := .ifAllZero [u1N] })
-      { pw := .ifAllZero [u1N] } }
+            (.bvar 0) {})
+          {})
+        {})
+      {} }
 
 
 /-- The stored declaration, with its rule named. -/

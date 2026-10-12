@@ -87,7 +87,7 @@ theorem mkPisOf_length_of_erasedEq :
     | _ => simp [Expr.ErasedEq] at h
   | (a, bm) :: r, (a', bm') :: r', X1, X2, h1, h2, h => by
     simp only [Expr.mkPisOf, Expr.ErasedEq] at h
-    simp [mkPisOf_length_of_erasedEq h1 h2 h.2.2]
+    simp [mkPisOf_length_of_erasedEq h1 h2 h.2]
 
 theorem callSubst_notPi {ctx : NestCtx} {prog : List NestHole} {fvsF : List Expr}
     (hfv : ∀ x ∈ fvsF, ∃ j ty, x = .fvar j ty) {i : Nat} (hi : i ≤ fvsF.length) {v : Nat}

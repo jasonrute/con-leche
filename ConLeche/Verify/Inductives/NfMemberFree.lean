@@ -575,18 +575,13 @@ theorem projEntry_typeAt_occDeep {env : Env} {names : List Name}
     · rcases List.mem_singleton.mp ha with rfl
       exact hpe
 
-/-- The io slot inherits preservation from whichever lane the mode
-selects. -/
+/-- The io slot inherits preservation from the io lane. -/
 theorem inferTypeIO_occDeep_of {env : Env} {names : List Name} {fuel : Nat}
-    (hC : ∀ {d : Nat} {e t : Expr}, inferTypeCore mode env fuel d e = .ok t →
-      e.occDeep names = false → t.occDeep names = false)
     (hIO : ∀ {d : Nat} {e t : Expr}, inferTypeCoreIO mode env fuel d e = .ok t →
       e.occDeep names = false → t.occDeep names = false)
     {d : Nat} {e t : Expr} (h : inferTypeIO mode env fuel d e = .ok t)
     (he : e.occDeep names = false) : t.occDeep names = false := by
-  cases hg : mode.betaGate with
-  | false => rw [inferTypeIO_off hg] at h; exact hC h he
-  | true => rw [inferTypeIO_on hg] at h; exact hIO h he
+  rw [inferTypeIO_on] at h; exact hIO h he
 
 set_option maxRecDepth 2048 in
 set_option maxHeartbeats 1600000 in
@@ -609,7 +604,7 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
     obtain ⟨ihCore, ihLoop, ihInf, ihIO⟩ := whnfPres_occDeep hN fuel
     have ihI : ∀ {d : Nat} {e t : Expr}, inferTypeIO mode env fuel d e = .ok t →
         e.occDeep names = false → t.occDeep names = false :=
-      fun h he => inferTypeIO_occDeep_of ihInf ihIO h he
+      fun h he => inferTypeIO_occDeep_of ihIO h he
     refine ⟨?_, ?_, ?_, ?_⟩
     · -- whnfCore
       intro c d e e' h he
@@ -642,20 +637,20 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
         rw [whnfCore_succ] at h
         simp [whnfCoreBody, throw, throwThe, MonadExceptOf.throw] at h
       | letE tt vv bb =>
-        rw [whnfCore_succ] at h
-        simp [whnfCoreBody, throw, throwThe, MonadExceptOf.throw] at h
+        simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
+        exact ihCore (whnfCore_letE_inv h) (Expr.occDeep_instantiate1 he.1.2 bb 0 he.2)
       | app f a =>
         simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
         obtain ⟨f', hwf, hcase⟩ := whnf_app_inv h
         have hf' := ihCore hwf he.1
         have happ : (Expr.app f' a).occDeep names = false := by
           simp [Expr.occDeep, hf', he.2]
-        rcases hcase with ⟨ty, body, mm, rfl, hbeta, -⟩ | ⟨e'', hio, hwe''⟩ | rfl
+        rcases hcase with ⟨ty, body, mm, rfl, hbeta⟩ | ⟨e'', hio, hwe''⟩ | rfl
         · simp only [Expr.occDeep, Bool.or_eq_false_iff] at hf'
           exact ihCore hbeta (Expr.occDeep_instantiate1 he.2 body 0 hf'.2)
         · obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj,
             cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
-            hmfn, hfj, hrule, hml, -, hlev, hpeq, hcerts, hmcerts, -, rfl⟩ :=
+            hmfn, hfj, hrule, hml, -, hlev, hpeq, hmcerts, -, rfl⟩ :=
             iotaRec_inv hio
           have hc : c ∉ names := Expr.not_mem_of_getAppFn happ hfn
           have hmaj : major.occDeep names = false :=
@@ -804,7 +799,9 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
       rw [inferTypeCore_succ] at h
       simp [inferBody, throw, throwThe, MonadExceptOf.throw] at h
     | letE t' v' b' =>
-      exact (inferTypeCore_letE_inv h).elim
+      obtain ⟨-, -, -, -, -, -, -, hb⟩ := inferTypeCore_letE_inv h
+      simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
+      exact ihInf hb (Expr.occDeep_instantiate1 he.1.2 b' 0 he.2)
     · -- inferTypeCoreIO
       intro d e t h he
       cases e with
@@ -899,7 +896,8 @@ theorem whnfPres_occDeep {env : Env} {names : List Name} (hN : WhnfNamesFree env
       simp [inferBodyIO, Bind.bind, Except.bind, pure,
         Except.pure, throw, throwThe, MonadExceptOf.throw] at h
     | letE t' v' b' =>
-      exact (inferTypeCoreIO_letE_inv h).elim
+      simp only [Expr.occDeep, Bool.or_eq_false_iff] at he
+      exact ihIO (inferTypeCoreIO_letE_inv h) (Expr.occDeep_instantiate1 he.1.2 b' 0 he.2)
 
 /-- **Part 1: `whnf` introduces no member constant** (annotations
 included). -/

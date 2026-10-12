@@ -266,7 +266,7 @@ def mk_prelude():
 def mk_axiom():
     """The tower in an AXIOM's type, under the pinned name `Quot.sound`
     (a non-pinned axiom is declined on the name alone, so only a pinned
-    one reaches `Expr.erasePw`/`ConstantInfo.canon`).  Must DECLINE."""
+    one reaches the pin comparison).  Must DECLINE."""
     s = Stream(); n, e, _, _ = base(s)
     s.L.append(json.dumps({"axiom": {"name": n["Quot.sound"], "levelParams": [],
                                      "type": e["eqTy"], "isUnsafe": False}}))
@@ -430,7 +430,7 @@ def mk_beqpair():
 def mk_axiom_pin():
     """The tower in the type of an axiom under the PINNED name
     `propext`, over a standardly-shaped stored `Iff` family — the one
-    shape that reaches `ConstantVal.matchesPin` / `Expr.erasePw`
+    shape that reaches `ConstantVal.matchesPin`
     (`stdAxiomOk`'s guards short-circuit on the family otherwise).
     Must DECLINE as a divergent pin."""
     s = Stream(); n, e, _, _ = base(s)

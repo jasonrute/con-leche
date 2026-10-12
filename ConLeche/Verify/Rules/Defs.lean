@@ -66,7 +66,7 @@ its bridge is the lane's. -/
 theorem inferTypeIO_bridge {fuel : Nat} (hio : InferIOBridge env fuel)
     {d : Nat} {e t : Expr}
     (h : inferTypeIO .verified env fuel d e = .ok t) : Infer env .io d e t :=
-  hio (by rwa [inferTypeIO_on rfl] at h)
+  hio (by rwa [inferTypeIO_on] at h)
 
 /-! ## The zero cases: every entry point throws at fuel `0` -/
 

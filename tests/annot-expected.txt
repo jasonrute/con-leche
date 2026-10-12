@@ -3,26 +3,13 @@
 # Line format: "<expectation> <fixture>".
 #
 # These are hand-written export streams (tests/annot/*.ndjson) whose
-# lam/forallE records carry the optional "pw" sort-annotation field:
-# absent or "never" claims the binder's codomain is never a
-# proposition; an array of name-table indices claims it is one exactly
-# when all those level parameters are zero ("[]" = always).  The
-# verified mode (--verified, the default) validates every claim
-# against the codomain sort it computes and positively declines a
-# mismatch, naming the site; annotations never steer reduction.  Under
-# --trusted (official parity) the annotations are ignored — the three
-# decline fixtures accept there, recorded in
-# tests/trusted-expected.txt.
-#
-# Task #161 P5 (the annotate pass): the pass WRITES the datum wherever
-# the input carries the parse placeholder (an absent "pw" field, or the
-# semantically identical "never"), and leaves an explicit "ifAllZero"
-# claim alone for validation to judge.  So a decline fixture must claim
-# prop-ness where there is none — the three annot_decline_* streams do
-# — while the three annot_fill_* streams (the pre-P5 decline fixtures,
-# whose offending binder was simply UNANNOTATED) now accept: the pass
-# fills their placeholders correctly.  They are kept as the pass's own
-# per-site regression.
+# lam/forallE records carry an optional "pw" field — a binder datum the
+# checker once stored and validated ("never", or an array of name-table
+# indices: a proposition exactly when those level parameters are zero).
+# Since task #342 (L-ck) binders carry no datum: the parser reads the
+# field and drops it, so every stream here is judged as the same stream
+# without it, in both modes.  The suite pins exactly that: an
+# annotation, right or wrong, changes no verdict.
 
 # Accepts: the constant-free annotated fragment.
 # idU.{u} : ∀ (α : Sort u), α → α — every codomain is Prop iff u = 0.
@@ -84,16 +71,16 @@
 # is the fact this fixture pins.
 0 annot_pw_thread.ndjson
 
-# Declines: one per stream-reachable validation site.  (The three
-# defensive sites — defeq-forall, defeq-lam, eta — cannot be reached
-# by any input that got past the front door; they are unit-tested in
-# tests/ConLecheTests.lean instead.)  Each carries an EXPLICIT wrong
-# claim — "[]" ("always a proposition") on a Type-level binder — which
-# the pass must not overwrite.
-# def tidBad : Type → Type, the ∀ claiming "[]": (forall-cod).
-2 annot_decline_forall.ndjson
+# Wrong claims (once one decline per stream-reachable validation site).
+# Each carries an EXPLICIT wrong claim — "[]" ("always a proposition")
+# on a Type-level binder.  FLIP (task #342 L-ck): 2 → 0 — the claim is
+# dropped at parse, the declarations are well-typed; official 0 (no
+# such field).
+# def tidBad : Type → Type, the ∀ claiming "[]" (was (forall-cod)).
+0 annot_decline_forall.ndjson
 # def constBad : Type → Type → Type, outer λ claiming "[]" over a
-# correctly-filled inner λ: (lam-cod-chain).
-2 annot_decline_lam_chain.ndjson
-# def tidBad : Type → Type, the single λ claiming "[]": (lam-cod-leaf).
-2 annot_decline_lam_leaf.ndjson
+# correctly-filled inner λ (was (lam-cod-chain)).
+0 annot_decline_lam_chain.ndjson
+# def tidBad : Type → Type, the single λ claiming "[]" (was
+# (lam-cod-leaf)).
+0 annot_decline_lam_leaf.ndjson

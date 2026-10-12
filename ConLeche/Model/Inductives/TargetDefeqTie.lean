@@ -115,7 +115,7 @@ theorem canon_erasedEq {pfvs : List Expr}
     have h2 := ihb h.2
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
-    exact ⟨trivial, h1, h2⟩
+    exact ⟨h1, h2⟩
   | forallE t b m iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
@@ -123,7 +123,7 @@ theorem canon_erasedEq {pfvs : List Expr}
     have h2 := ihb h.2
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
-    exact ⟨trivial, h1, h2⟩
+    exact ⟨h1, h2⟩
   | letE t v b iht ihv ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h

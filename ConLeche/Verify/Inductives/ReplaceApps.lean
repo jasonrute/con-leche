@@ -323,13 +323,13 @@ theorem replaceApps_erasedEq {f f' : Name → List Level → Option Expr} {b n :
   | lam t body m iht ihb =>
     intro e' h
     cases e' <;> simp only [ErasedEq] at h <;> first | exact h.elim | skip
-    obtain ⟨rfl, h1, h2⟩ := h
-    exact ⟨rfl, iht _ h1, ihb _ h2⟩
+    obtain ⟨h1, h2⟩ := h
+    exact ⟨iht _ h1, ihb _ h2⟩
   | forallE t body m iht ihb =>
     intro e' h
     cases e' <;> simp only [ErasedEq] at h <;> first | exact h.elim | skip
-    obtain ⟨rfl, h1, h2⟩ := h
-    exact ⟨rfl, iht _ h1, ihb _ h2⟩
+    obtain ⟨h1, h2⟩ := h
+    exact ⟨iht _ h1, ihb _ h2⟩
   | letE t v body iht ihv ihb =>
     intro e' h
     cases e' <;> simp only [ErasedEq] at h <;> first | exact h.elim | skip

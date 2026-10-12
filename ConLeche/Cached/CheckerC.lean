@@ -74,7 +74,6 @@ def opS (fe : FEnv) (d : Nat) (e : Expr) : CheckCM Level :=
 /-- The per-declaration shared operations at a fixed environment
 index. -/
 def sharedOpsC (fe : FEnv) : CheckerOps CheckCM where
-  annotate _ d e := opE mode fe (·.annotate) d e
   inferType _ d e := opE mode fe (·.infer) d e
   isDefEq _ d a b := opB mode fe d a b
   ensureSort _ d e := opS mode fe d e
@@ -117,10 +116,10 @@ is exactly those two operations, the `annotate` first and the
 operation is `sharedOpsC`'s. -/
 def sharedOpsRuleR (fe : FEnv) : CheckerOps CheckCM :=
   { sharedOpsC mode fe with
-    annotate := fun _ d e => do
-      flushC
-      opE mode fe (·.annotate) d e
     inferType := fun _ d e => do
+      -- Task #342 S0: the flush entering the `feR` half moved here
+      -- with the annotate pass gone
+      flushC
       let t ← opE mode fe (·.infer) d e
       flushC
       pure t }
@@ -147,7 +146,7 @@ def checkBlockPassS (fe : FEnv) (p₀ : BlockParts) (isRec : Bool) :
   let (ctorsAs, sortsss) ← checkBlockCtorsF (sharedOpsC mode fe₁) fe₁ fe₁ pC.toBlockShape
     (pC.members.zip cvTas)
   let (ctx, holes) ← blockNestCtx pC.toBlockShape cvTas fe₁.find?
-  let (rd, Ms) ← checkBlockClasses (sharedOpsC mode fe₁) fe₁ fe₁.env pC.toBlockShape
+  let (rd, Ms) ← checkBlockClasses (sharedOpsC mode fe₁) fe₁ pC.toBlockShape
     ctx.params ctorsAs
   let (kinds, nfs, pos) ← checkBlockPositivity (sharedOpsC mode fe₁) fe₁.env fe₁.find?
     pC cvTas ctorsAs

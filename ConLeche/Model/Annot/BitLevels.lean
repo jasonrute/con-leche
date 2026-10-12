@@ -273,15 +273,15 @@ theorem denoteMeta_params_ext (m : EnvModel V env)
   | case6 d ty body mb ihty ihbody =>
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
-      ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1.1 0
-        hd.1.2)]
+    rw [denoteMeta, denoteMeta, ← ihty hd.1,
+      ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1 0
+        hd.2)]
   | case7 d ty body mb ihty ihbody =>
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1.1,
-      ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1.1 0
-        hd.1.2)]
+    rw [denoteMeta, denoteMeta, ← ihty hd.1,
+      ← ihbody (ConLeche.Expr.allLevelParamsDefined_instantiate1 hd.1 0
+        hd.2)]
   | case8 d fe a ihf iha =>
     intro hd
     simp only [Expr.allLevelParamsDefined, Bool.and_eq_true] at hd

@@ -383,7 +383,7 @@ theorem openPisAtFvars_erasedEq_body :
     | forallE t b bm =>
       cases e' with
       | forallE t' b' bm' =>
-        obtain ⟨-, -, hb⟩ := he
+        obtain ⟨-, hb⟩ := he
         simp only [openPisAtFvars] at h h'
         split at h
         · rename_i fvs o hop
@@ -467,11 +467,11 @@ theorem erasedEq_fvarsBelow {d : Nat} :
   | lam t bd mm iht ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
-    exact ⟨iht _ h.2.1 ha.1, ihb _ h.2.2 ha.2⟩
+    exact ⟨iht _ h.1 ha.1, ihb _ h.2 ha.2⟩
   | forallE t bd mm iht ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h
-    exact ⟨iht _ h.2.1 ha.1, ihb _ h.2.2 ha.2⟩
+    exact ⟨iht _ h.1 ha.1, ihb _ h.2 ha.2⟩
   | letE t v bd iht ihv ihb =>
     intro b h ha
     cases b <;> simp only [Expr.ErasedEq] at h

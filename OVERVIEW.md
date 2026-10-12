@@ -215,8 +215,7 @@ proved beside the fold
 
 That follows from the theorem in a handful of lines, through the
 environment in between. A theorem record is installed by statement,
-under its own name, with the annotation of its declared type; the
-annotation of a bare constant is that constant; and every later step
+under its own name, with its declared type; and every later step
 of the fold only ever extends the list of stored constants — so an
 accepted stream that declared such a theorem would leave a constant of
 type `False` among the constants of the environment the fold returns.
@@ -243,8 +242,8 @@ over ahead of it (§6); it is a permutation of the
 parsed records plus the prelude's, so the record is still there
 ([`mem_preparePrelude` in `ConLeche/Verify/Frontend/Prepare.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Frontend/Prepare.lean#L174)).
 
-"Installed under its own name, with the annotation of its declared
-type" is a claim in its own right, and it is proved in general:
+"Installed under its own name, with its declared type" is a claim in
+its own right, and it is proved in general:
 [`checkDecls_consts` in `ConLeche/Model/StreamConsts.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/StreamConsts.lean#L764-L769)
 says that whenever `checkDecls` accepts `ds`, every record of `ds` that
 declares a constant — a definition, a theorem, an opaque, or an axiom
@@ -252,24 +251,22 @@ that is neither `sorryAx`, the axiom record that installs nothing, nor
 `Quot.sound`, which the pinned quotient block installs
 ([`Declaration.Declares` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/StreamConsts.lean#L613-L620))
 — leaves a constant of that very name in the returned environment, with
-the record's own level parameters and with the *annotation* of the
-record's own type: the same term with every `let` inlined and the
-binder data rewritten, and nothing else touched at all
-([`AnnotOf` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/StreamConsts.lean#L123-L124)).
+the record's own level parameters and the record's own type, `let`s
+included.
 A `basisDecl` record declares nothing of its own — it names one of the
 checker's pinned basis blocks, and what is installed is the pins'.
 
 The members of an inductive block are deliberately outside that claim,
 and the module says why: a type former's telescope may be stored
-reduced to weak head normal form, which is a definitional equality, not
-an annotation, so the relation above would be false of it. The
+reduced to weak head normal form, which is a definitional equality, not a
+syntactic one, so the claim would be false of it. The
 constructors are stored as declared, but they are installed with their
 block and are left out with it.
 
 `checkDecls`
 ([function `checkDecls` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L452-L457))
 installs every declaration of `ds` first — a definition, theorem or
-opaque annotated and pushed with its check recorded, everything else
+opaque guarded and pushed with its check recorded, everything else
 checked in full as it is installed — and then checks every recorded
 declaration against the prefix of the environment it was installed at.
 The driver runs the same two phases with a heartbeat between the steps
@@ -344,10 +341,10 @@ Read from the outside in:
    ([function `installLoop` in `ConLeche/Driver/ParInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Driver/ParInstall.lean#L155))
    takes every record, each from a fresh memo state, through the install step
    ([function `annotStepC` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L148-L151)):
-   a definition or opaque is annotated and pushed with its check
-   *recorded* — the annotated header and value and the number of
+   a definition or opaque is guarded and pushed with its check
+   *recorded* — the header and value and the number of
    constants installed before it — a theorem is installed by its
-   statement alone (its header annotated, the stored constant carrying
+   statement alone (the stored constant carrying
    no value; the raw value is recorded for the check and never entered
    by this loop: a theorem is opaque to reduction), and
    an axiom, an inductive or
@@ -440,7 +437,7 @@ Read from the outside in:
    ([theorem `checkDecls_sound` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/MainC.lean#L37-L42)).
 4. **The pure checker** (`ConLeche/Kernel/*`) is a fueled, memo-free
    presentation of the same algorithm: `whnfCore`, `whnf`, `inferType`,
-   `isDefEq` and the annotation pass are defined by one mutual
+   `isDefEq` (and inference at the infer-only grade) are defined by one mutual
    recursion on a fuel parameter
    ([the entry points in `ConLeche/Kernel/TypeChecker.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/TypeChecker.lean#L29-L56));
    on exhaustion every operation throws
@@ -518,22 +515,18 @@ declared under that name; `And` is pinned (§5) so that the rescue is
 always there to fire. Two things differ from a textbook
 presentation and matter for the proof:
 
-* **Annotation.** Before a declaration's terms are checked, an
-  annotation pass
-  ([function `annotateBody` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1955))
-  records at every binder the sort of its codomain as a "Prop-when"
-  datum, a function of the level parameters
-  ([the `PropWhen` module's account in `ConLeche/Kernel/PropWhen.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/PropWhen.lean#L1-L40)),
-  stored in the binder's metadata
-  ([structure `BinderMeta` in `ConLeche/Kernel/Expr.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Expr.lean#L100-L102)).
-  The checker validates the coherence of these annotations at run time;
-  the proof consumes them. This is the price of not having a syntactic
-  type theory (see §4). The annotation pass also ζ-expands `let`, so
-  stored terms are let-free: the reduction and inference arms raise an
-  internal error on a `let` node. The proof side reads a `let` all the
-  same — the denotation's term language has a type-free `let` former,
-  read as its body at its value, and the rules tier's ζ and `let`
-  inference rules are proved sound — so stored `let`s need no ζ pass.
+* **Two inference grades, and the λ checks.** Inference runs at the
+  full grade on a declaration's own terms (application arguments, λ
+  domains and `let` values checked) and at the official kernel's
+  infer-only grade on the terms reduction and definitional equality
+  build on their way
+  ([function `inferBodyIO` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1285)).
+  Beyond the official kernel, the verified mode compares the opened
+  bodies' full-grade types at the innermost level of a λ/λ comparison
+  ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1427))
+  and at η; the proof consumes them. Binders carry no data the checker
+  reads, and declarations are stored as declared, `let`s included:
+  `whnfCore` ζ-reduces and inference runs the official `infer_let`.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
   not, but its memos are proved to agree with the pure functions at
   every fuel large enough to succeed
@@ -897,7 +890,7 @@ syntactic test: some member occurs in a constructor's binder domain.
   What is read here is only a guess; the rest of this step and step 8
   check it.
 * Every class, its parameter arguments `Ds` moved to the block's
-  parameters and annotated, is checked as a major premise:
+  parameters, is checked as a major premise:
   * a member class is `T_m` at the block's levels and parameters, one
     class per member;
   * an outside class names a stored inductive type other than `Quot`;
@@ -992,7 +985,7 @@ table of step 5, as the official kernel's `mk_rec_infos` and
 **8. The recursor check.**
 * Each generated type type-checks as a constant and is definitionally
   equal to the stream's recursor type.
-* Every generated rule is annotated, its constants are resolved, and
+* Every generated rule's constants are resolved, and
   it is type-checked in `env2` plus the generated recursors without
   rules.
 * `env3` is `env2` plus the generated recursors with their generated
@@ -1018,7 +1011,7 @@ the constructor check of step 3 is
 [function `checkSumCtor` in `ConLeche/Kernel/Inductives/SumInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/SumInstall.lean#L114),
 step 4 is
 [function `checkBlockClasses` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L524),
-with a class's parameters moved and annotated in
+with a class's parameters moved in
 [function `classKeyOf`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L509);
 `POS` is
 [function `nestPos` in `ConLeche/Kernel/Inductives/Positivity.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/Positivity.lean#L1453),
@@ -1226,7 +1219,7 @@ declare it.)
   proof-irrelevance fall-through; the large eliminator of a
   single-constructor block whose result sort can be zero — where the
   official kernel generates only the small one, this checker takes the
-  subsingleton case under the per-field `PropWhen` criterion; and the
+  subsingleton case under a per-field criterion; and the
   `And` rescue of §3. All four are covered by the soundness proof.
 
 ## 10. Naming conventions
@@ -1311,7 +1304,8 @@ script and the list may only shrink), the trust-surface scan (`tests/trust-surfa
 dump freshness, the challenge comparison (`tests/challenge.sh`: the
 challenge module builds with its `sorry` warnings and nothing else,
 and every statement it makes is token-identical to the solution's),
-the arena tutorial tests, the end-to-end and annotation fixtures with
+the arena tutorial tests, the end-to-end fixtures and the legacy
+binder-field fixtures with
 pinned verdicts, and the trusted-mode sweep. `lake test` builds the test library with the axiom pins. CI runs
 both.
 

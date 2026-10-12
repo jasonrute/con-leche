@@ -56,9 +56,9 @@ def canonExpr (m : Name → Name) : Expr → Expr
   | .sort u => .sort (canonLevel m u)
   | .const n us => .const n (us.map (canonLevel m))
   | .app f a => .app (canonExpr m f) (canonExpr m a)
-  | .lam ty b _ => .lam (canonExpr m ty) (canonExpr m b) ⟨.never⟩
+  | .lam ty b _ => .lam (canonExpr m ty) (canonExpr m b) ⟨⟩
   | .forallE ty b _ =>
-      .forallE (canonExpr m ty) (canonExpr m b) ⟨.never⟩
+      .forallE (canonExpr m ty) (canonExpr m b) ⟨⟩
   | .letE ty v b => .letE (canonExpr m ty) (canonExpr m v)
       (canonExpr m b)
   | .lit l => .lit l

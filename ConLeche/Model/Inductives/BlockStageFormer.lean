@@ -146,8 +146,8 @@ private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
     ∃ R, Opened mp.base2 ψ nP cvTa.type tfvs trest
       ((((pps ψ).take nP).map (·.2.2)).reverse) R := by
   obtain ⟨-, -, -, -, hlbt, hitf, type', -, -, hann', -, -, -, -, rfl⟩ :=
-    ConLeche.checkConstantVal_inv hccv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann' hitf hlbt
+    ConLeche.checkConstantVal_inv_stored hccv
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
   simp only at htf' hbt' hop
   obtain ⟨Γ, R, htele, hO⟩ := opened_of hop htf' hbt' (hFD.read ψ) (hFD.okTy ψ)
   obtain ⟨pps', hst', hΓ⟩ := stripPisAV_of_piTeleAV htele
