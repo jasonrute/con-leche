@@ -596,8 +596,6 @@ theorem frameCtor_acc {w : Nat} (hwD : D.w (Level.substFn φ lps us) = w)
 
 /-- **A frame item is a group occurrence or an enclosing item.** -/
 theorem frame_item_fwd {prog : List NestHole} (hhi : ctx.hiAt prog.length = hi) {ρ Y : Nat → V}
-    (hY : InTupleSpace (D.w (Level.substFn φ lps us)) D.N
-      (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y)
     {o : Occ V} (hQ : Adm (HoleQ ctx ((grpNews us ds hi grp).reverse ++ prog) (hi + grp.length)) o)
     (hH : Holds (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y) o) :
     (o.1 < grp.length ∧ InGrp D grp (frameOcc D (Level.substFn φ lps us) grp o).1 ∧
@@ -645,11 +643,8 @@ theorem frame_item_fwd {prog : List NestHole} (hhi : ctx.hiAt prog.length = hi) 
     rcases grp_hole_full (D := D) (lps := lps) (us := us) (φ := φ) (mm := mm) (keyFrame dsa hi ρ) Y
         (vs := vs) (by rw [har] at hn; omega) with ⟨hfit, he⟩ | he
     · rw [he] at hH
-      refine ⟨⟨Nat.lt_of_lt_of_le hmm (mp.lfp_ok D hD).1.kN,
-        Classical.byContradiction fun hni => ?_, hH⟩,
+      exact ⟨⟨Nat.lt_of_lt_of_le hmm (mp.lfp_ok D hD).1.kN, tupW_mem hfit, hH⟩,
         fun ρ' hag => ((hte ρ ρ' hag).spineFit vs).mp hfit⟩
-      rw [app_off_dom_of_mem_piSet (hY _ (Nat.lt_of_lt_of_le hmm (mp.lfp_ok D hD).1.kN)) hni] at hH
-      exact not_mem_empty _ hH
     · rw [he] at hH; exact absurd hH (not_mem_empty _)
   · exact Or.inr ⟨by rw [hnl] at hle; exact hle,
       by show HoleQ ctx prog hi (i - grp.length) vs.length; rw [hnl, hhi] at hQo; exact hQo,
@@ -825,7 +820,7 @@ theorem frameAccOut_of {w : Nat}
         (LfpDatum.subset_finUnion (f := fun j => TBt m j (frameVal D (Level.substFn φ lps us) grp dsa hi p
           (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)))) hj _ hb')
     · obtain ⟨hQ, hH⟩ := hgi b hb
-      rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hY hQ hH with
+      rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH with
         ⟨hlt, hGc, hin, -⟩ | ⟨hge, hQo, hHo⟩
       · simp only [item, ite_eq_left hlt]; exact ⟨hGc, hin⟩
       · simp only [item, ite_eq_right (show ¬ (gi b).1 < grp.length by omega)]; exact ⟨hQo, hHo⟩
@@ -834,7 +829,7 @@ theorem frameAccOut_of {w : Nat}
       have hf' := htr p' Y' hR' hY' fun b hb => by
         obtain ⟨hQ, hH⟩ := hgi b hb
         have hib := hitems b hb
-        rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hY hQ hH with
+        rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH with
           ⟨hlt, -, -, hfit0⟩ | ⟨hge, -, -⟩
         · simp only [item, ite_eq_left hlt] at hib
           exact frame_item_bwd hlt (hfit0 p' (hagree p p' hR')) hib.2

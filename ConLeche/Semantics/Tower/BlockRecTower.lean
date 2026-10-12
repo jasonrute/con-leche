@@ -92,19 +92,14 @@ theorem interp_andAV {P Q : AnnotTerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
     interp V ρ (andAV P Q) = sigmaSet 0 (interp V ρ P) fun _ => interp V ρ Q := by
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hP
-  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
+  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamV (interp V ρ P) fun _ => interp V ρ Q := by
     rw [interp_lam, lamV_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]]
-    by_cases hP0 : ¬ ∃ x, x ∈ˢ interp V ρ P
-    · -- L16: a false conjunct makes the spelled fibre λ the point
-      sorry
-    obtain ⟨x₀, hx₀⟩ := Classical.not_not.mp hP0
-    exact lamV_eq_pos Nat.one_ne_zero hx₀ (IsTy.ne_pt (Or.inl hQ))
-  have hfib : (lamR 1 (interp V ρ P) fun _ => interp V ρ Q) ∈ˢ psigmaFibreSpace V 0 (interp V ρ P) :=
-    lamR_mem fun _ _ => by rw [univ_zero]; exact hQ
+  have hfib : (lamV (interp V ρ P) fun _ => interp V ρ Q) ∈ˢ psigmaFibreSpace V 0 (interp V ρ P) :=
+    lamV_mem_psigmaFibreSpace V fun _ _ => by rw [univ_zero]; exact hQ
   show SetTheory.app (SetTheory.app (psigmaV V 0 0) (interp V ρ P))
     (interp V ρ (.lam P (Q.liftN 1 0))) = _
   rw [hlam, psigmaV_app V hP' hfib]
-  exact sigma_congr fun x hx => app_lamR_pos Nat.one_ne_zero hx
+  exact sigma_congr fun x hx => app_lamV hx
 
 theorem andAV_univZero {P Q : AnnotTerm} {ρ : Nat → V}
     (hP : interp V ρ P ∈ˢ (univZero : V)) (hQ : interp V ρ Q ∈ˢ (univZero : V)) :
@@ -131,17 +126,12 @@ theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (h
   have hP' : interp V ρ P ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hPu
   have hQ' : interp V ρ Q ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact hQu
   have hps := psigmaV_rr_mem (V := V) 0
-  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamR 1 (interp V ρ P) fun _ => interp V ρ Q := by
+  have hlam : interp V ρ (.lam P (Q.liftN 1 0)) = lamV (interp V ρ P) fun _ => interp V ρ Q := by
     rw [interp_lam, lamV_congr fun x _ => by rw [interp_liftN, shiftE_succ_cons, shiftE_zero_zero]]
-    by_cases hP0 : ¬ ∃ x, x ∈ˢ interp V ρ P
-    · -- L16: a false conjunct makes the spelled fibre λ the point
-      sorry
-    obtain ⟨x₀, hx₀⟩ := Classical.not_not.mp hP0
-    exact lamV_eq_pos Nat.one_ne_zero hx₀ (IsTy.ne_pt (Or.inl hQu))
   show WellDenoted V ρ (.app (.app (.const .psigma [0, 0]) P) (.lam P (Q.liftN 1 0)))
   rw [WellDenoted_app]
   refine ⟨?_, ?_, 1, psigmaFibreSpace V 0 (interp V ρ P), fun _ => (univ 0 : V), ?_, ?_,
-    fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_piR _ _ _⟩
+    fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_piV⟩
   · rw [WellDenoted_app]
     exact ⟨trivial, hP, 1, univ 0, fun A => piR 1 (psigmaFibreSpace V 0 A) fun _ => (univ 0 : V),
       hps, hP', fun h0 => absurd h0 Nat.one_ne_zero, fun _ => IsTy_univ 0⟩
@@ -153,7 +143,7 @@ theorem wd_andAV {P Q : AnnotTerm} {ρ : Nat → V} (hP : WellDenoted V ρ P) (h
   · show SetTheory.app (psigmaV V 0 0) (interp V ρ P) ∈ˢ _
     exact app_mem_piR_pos Nat.one_ne_zero hps hP'
   · rw [hlam]
-    exact lamR_mem fun _ _ => hQ'
+    exact lamV_mem_psigmaFibreSpace V fun _ _ => hQ'
 
 /-- The conjunction's formation and grading, from its conjuncts'. -/
 theorem andChainAV_facts {ρ : Nat → V} :
@@ -339,9 +329,9 @@ theorem psigmaV_uv_mem (u v : Nat) :
 /-- The chain's fibre λ. -/
 theorem sigChain_lam_mem {ρ : Nat → V} {T : AnnotTerm} {Ts : List AnnotTerm} {Q : AnnotTerm}
     (h : ChainOk s ρ (T :: Ts) Q) :
-    (lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
+    (lamV (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q)
       ∈ˢ psigmaFibreSpace V (tailLv s Ts) (interp V ρ T) :=
-  lamR_mem fun r hr => sigChainV_tail_univ (h.2.2 r hr)
+  lamV_mem_psigmaFibreSpace V fun r hr => sigChainV_tail_univ (h.2.2 r hr)
 
 /-- **The chain reads as the nested pair set.** -/
 theorem interp_sigChainAV :
@@ -350,18 +340,12 @@ theorem interp_sigChainAV :
   | _, [], _, _ => rfl
   | ρ, T :: Ts, Q, h => by
     have hlam : interp V ρ (.lam T (sigChainAV s Ts Q))
-        = lamR (tailLv s Ts + 1) (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
+        = lamV (interp V ρ T) fun r => sigChainV s (cons r ρ) Ts Q := by
       rw [interp_lam, lamV_congr fun r hr => interp_sigChainAV (h.2.2 r hr)]
-      by_cases hT0 : ¬ ∃ r, r ∈ˢ interp V ρ T
-      · -- L16: over an empty link domain the spelled fibre λ is the point
-        sorry
-      obtain ⟨r₀, hr₀⟩ := Classical.not_not.mp hT0
-      exact lamV_eq_pos (Nat.succ_ne_zero _) hr₀
-        (IsTy_of_mem_univ (sigChainV_tail_univ (h.2.2 r₀ hr₀))).ne_pt
     show SetTheory.app (SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T))
       (interp V ρ (.lam T (sigChainAV s Ts Q))) = _
     rw [hlam, psigmaV_app V h.1 (sigChain_lam_mem h), max_tailLv]
-    exact sigma_congr fun r hr => app_lamR_pos (Nat.succ_ne_zero _) hr
+    exact sigma_congr fun r hr => app_lamV hr
 
 /-- **The chain is graded.** -/
 theorem wd_sigChainAV :
@@ -375,7 +359,7 @@ theorem wd_sigChainAV :
     rw [WellDenoted_app]
     refine ⟨?_, ?_, Nat.max s (tailLv s Ts) + 1, psigmaFibreSpace V (tailLv s Ts) (interp V ρ T),
       fun _ => (univ (Nat.max s (tailLv s Ts)) : V), ?_, ?_,
-      fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_piR _ _ _⟩
+      fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_piV⟩
     · rw [WellDenoted_app]
       exact ⟨trivial, h.2.1, Nat.max s (tailLv s Ts) + 1, univ s, _, hps, h.1,
         fun h0 => absurd h0 (Nat.succ_ne_zero _), fun _ => IsTy_univ s⟩
@@ -387,13 +371,6 @@ theorem wd_sigChainAV :
     · show SetTheory.app (psigmaV V s (tailLv s Ts)) (interp V ρ T) ∈ˢ _
       exact app_mem_piR_pos (Nat.succ_ne_zero _) hps h.1
     · rw [interp_lam, lamV_congr fun r hr => interp_sigChainAV (h.2.2 r hr)]
-      by_cases hT0 : ¬ ∃ r, r ∈ˢ interp V ρ T
-      · -- L16: over an empty link domain the spelled fibre λ is the point,
-        -- which `psigmaFibreSpace` (a graph space) lacks
-        sorry
-      obtain ⟨r₀, hr₀⟩ := Classical.not_not.mp hT0
-      rw [lamV_eq_pos (Nat.succ_ne_zero (tailLv s Ts)) hr₀
-        (IsTy_of_mem_univ (sigChainV_tail_univ (h.2.2 r₀ hr₀))).ne_pt]
       exact sigChain_lam_mem h
 
 /-- A fitting spine satisfying `Q` inhabits the chain. -/

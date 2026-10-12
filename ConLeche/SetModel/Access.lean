@@ -102,11 +102,11 @@ section Iter
 variable (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) (A : V)
 
 /-- The empty tuple. -/
-noncomputable def emptyTup : Nat → V := fun m => graph (fun _ => empty) (Is m)
+noncomputable def emptyTup : Nat → V := fun m => famOf (fun _ => empty) (Is m)
 
 /-- The fibrewise union of an `A`-indexed family of tuples. -/
 noncomputable def unionTup (F : V → Nat → V) : Nat → V :=
-  fun m => graph (fun i => sUnion (image (fun a => app (F a m) i) A)) (Is m)
+  fun m => famOf (fun i => sUnion (image (fun a => app (F a m) i) A)) (Is m)
 
 /-- The stage at a tree: `Φ` of the union of the subtrees' stages. -/
 noncomputable def stage : BT V → Nat → V
@@ -124,7 +124,7 @@ noncomputable def pick (c : V) : BT V :=
 
 /-- **The limit tuple**: the union of the stages over all codes. -/
 noncomputable def limTup : Nat → V :=
-  fun m => graph (fun i => sUnion (image (fun c => app (stage Is Φ A (pick A c) m) i)
+  fun m => famOf (fun i => sUnion (image (fun c => app (stage Is Φ A (pick A c) m) i)
     (power (accPaths A)))) (Is m)
 
 variable {w k Is Φ A}
@@ -193,21 +193,21 @@ theorem stage_eq_of_code : ∀ T T' : BT V, code A T = code A T' →
       rw [stage_eq_of_code (f a) (f' a) (hsub a ha)]
 
 theorem emptyTup_mem : InTupleSpace w k Is (emptyTup Is) :=
-  fun _ _ => graph_mem_famSpace fun _ _ => empty_mem_strictU w
+  fun _ _ => famOf_mem_famSpace fun _ _ => empty_mem_strictU w
 
 theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
     ∀ T : BT V, InTupleSpace w k Is (stage Is Φ A T)
   | .leaf => emptyTup_mem
   | .node f => by
     simp only [stage]
-    refine hmaps _ fun m hm => graph_mem_famSpace fun i hi => ?_
+    refine hmaps _ fun m hm => famOf_mem_famSpace fun i hi => ?_
     exact strictU_famUnion_mem hw hA fun a _ =>
       famSpace_app (stage_mem hw hA hmaps (f a) m hm) hi
 
 theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     y ∈ˢ app (limTup Is Φ A m) i ↔ ∃ T : BT V, y ∈ˢ app (stage Is Φ A T m) i := by
   unfold limTup
-  rw [app_graph hi, mem_sUnion]
+  rw [app_famOf hi, mem_sUnion]
   constructor
   · rintro ⟨s, hs, hy⟩
     obtain ⟨c, -, rfl⟩ := mem_image.mp hs
@@ -222,14 +222,14 @@ theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
 theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
     InTupleSpace w k Is (limTup Is Φ A) := by
   intro m hm
-  refine graph_mem_famSpace fun i hi => ?_
+  refine famOf_mem_famSpace fun i hi => ?_
   exact strictU_famUnion_mem hw ((tg_isTGUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
     famSpace_app (stage_mem hw hA hmaps _ m hm) hi
 
 theorem mem_unionTup {F : V → Nat → V} {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     y ∈ˢ app (unionTup Is A F m) i ↔ ∃ a, a ∈ˢ A ∧ y ∈ˢ app (F a m) i := by
   unfold unionTup
-  rw [app_graph hi, mem_sUnion]
+  rw [app_famOf hi, mem_sUnion]
   constructor
   · rintro ⟨s, hs, hy⟩
     obtain ⟨a, ha, rfl⟩ := mem_image.mp hs
@@ -254,7 +254,7 @@ theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTupl
     simp only [stage]
     refine hsupp _ (stage_mem hw hA hmaps (.node f) |> fun _ => ?_) ?_
     · intro m' hm'
-      refine graph_mem_famSpace fun i' hi' => ?_
+      refine famOf_mem_famSpace fun i' hi' => ?_
       exact strictU_famUnion_mem hw hA fun a _ =>
         famSpace_app (stage_mem hw hA hmaps (f a) m' hm') hi'
     · intro a ha
@@ -274,11 +274,11 @@ export AccIter (closed_of_acc)
 at `w = 0` is a subset of `{pt}`, so `MapsTuple` alone suffices. -/
 theorem closedTuple_zero {k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
     (hmaps : MapsTuple 0 k Is Φ) : ∃ L, IsClosedTuple 0 k Is Φ L := by
-  have htop : InTupleSpace 0 k Is (fun m => graph (fun _ => unitSet) (Is m)) := fun m _ =>
-    graph_mem_famSpace fun _ _ => unitSet_mem_strictU_zero
+  have htop : InTupleSpace 0 k Is (fun m => famOf (fun _ => unitSet) (Is m)) := fun m _ =>
+    famOf_mem_famSpace fun _ _ => unitSet_mem_strictU_zero
   refine ⟨_, htop, fun m hm i hi x hx => ?_⟩
-  show x ∈ˢ app (graph (fun _ => unitSet) (Is m)) i
-  rw [app_graph hi]
+  show x ∈ˢ app (famOf (fun _ => unitSet) (Is m)) i
+  rw [app_famOf hi]
   have := famSpace_app (hmaps _ htop m hm) hi
   rw [strictU_zero] at this
   exact mem_univZero.mp this x hx

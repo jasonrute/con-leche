@@ -417,32 +417,23 @@ theorem towerBodyAVPos_interp {w : Nat} :
         interp V (cons x ρ) (towerBodyAVPos w Fs)
           = towerSet w (teleOfFields (cons x ρ) Fs) :=
       fun x hx => towerBodyAVPos_interp (hb.2 x hx)
-    have hB : (lamR (w + 1) (interp V ρ F)
+    have hB : (lamV (interp V ρ F)
           fun x => interp V (cons x ρ) (towerBodyAVPos w Fs))
-        ∈ˢ piR (w + 1) (interp V ρ F) (fun _ => (univ w : V)) :=
-      lamR_mem fun x hx => by
+        ∈ˢ psigmaFibreSpace V w (interp V ρ F) :=
+      lamV_mem_psigmaFibreSpace V fun x hx => by
         rw [hG x hx]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
     have hbv : bval V .psigma [w, w] = psigmaV V w w := rfl
-    by_cases hinh : ¬ ∃ x, x ∈ˢ interp V ρ F
-    · -- L16: over an empty field domain the fibre λ is the point
-      sorry
-    obtain ⟨x₀, hx₀⟩ := Classical.not_not.mp hinh
-    have hlam : (lamV (interp V ρ F) fun x => interp V (cons x ρ) (towerBodyAVPos w Fs))
-        = lamR (w + 1) (interp V ρ F) fun x => interp V (cons x ρ) (towerBodyAVPos w Fs) :=
-      lamV_eq_pos (Nat.succ_ne_zero w) hx₀ (by
-        rw [hG x₀ hx₀]
-        exact (IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 x₀ hx₀))).ne_pt)
     show SetTheory.app (SetTheory.app (bval V .psigma [w, w])
         (interp V ρ F))
         (lamV (interp V ρ F)
           fun x => interp V (cons x ρ) (towerBodyAVPos w Fs))
       = towerSet w (teleOfFields ρ (F :: Fs))
-    rw [hlam, hbv, psigmaV_app V hA hB,
+    rw [hbv, psigmaV_app V hA hB,
       show Nat.max w w = w from Nat.max_self w, teleOfFields_cons]
     show sigmaSet w _ _ = sigmaSet w _ _
     exact sigma_congr fun x hx => by
-      rw [app_lamR_pos (Nat.succ_ne_zero w) hx, hG x hx]
+      rw [app_lamV hx, hG x hx]
 
 /-- **The carrier body reads back as the tier's carrier**, both
 regimes: unconditionally at squash, under the hereditary bound (O5's
@@ -522,9 +513,9 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
             (interp V ρ F) ∈ˢ _
         rw [hbv]
         exact app_mem_piR_pos hvac (psigmaV_rr_mem (V := V) w) hA
-      · -- L16: the fibre λ over a possibly empty field domain is the
-        -- point there, which `psigmaFibreSpace` (a graph space) lacks
-        sorry
+      · exact lamV_mem_psigmaFibreSpace V fun x hx => by
+          rw [hG x hx]
+          exact towerSet_univ_teleOfFields (hb.2 x hx)
 
 /-- **The carrier body is graded** (`WellDenoted`), both regimes. -/
 theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
@@ -899,7 +890,7 @@ theorem mkTowerGoPos_interp {w : Nat} (hw : w ≠ 0) :
     have hBm : (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs))
         ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
-      lamR_mem fun x hx => by
+      lamR_mem_psigmaFibreSpace V hsp.1 fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
     have hfib : SetTheory.app (lamR (w + 1) (interp V ρp F)
@@ -1023,7 +1014,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
     have hBm : (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w Fs))
         ∈ˢ psigmaFibreSpace V w (interp V ρp F) :=
-      lamR_mem fun x hx => by
+      lamR_mem_psigmaFibreSpace V hsp.1 fun x hx => by
         rw [towerBodyAV_interp (fun _ => hb.2 x hx)]
         exact towerSet_univ_teleOfFields (hb.2 x hx)
     -- the four squash-side fibre conditions
