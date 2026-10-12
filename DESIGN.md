@@ -100406,3 +100406,205 @@ machine; the parse on `master` before this extraction: 23.2 s, the
 install extraction's run). No measurement campaign: the maintainer
 takes a before/after measurement separately. Logs and the binary:
 `_tmp/amdahl/xparse-logs/`.
+
+## TASK #348 — the openai/math completeness run, parked; the let-fold fixtures (2026-10-12, agent/348-letfold)
+
+The checker is about to be rewritten, so the openai/math investigation
+is parked here, for a re-run after the rewrite, rather than fixed now.
+This record collects the run (2026-10-10), the memory investigation
+that followed it (2026-10-11), and this task's minimised fixtures for
+the one mechanism that investigation found.
+
+**Method.** `https://github.com/openai/math` at `fd4aeeb2e` (2026-10-07):
+one Lean project (`lean/`), Lean v4.34.1, Mathlib `d13f23b` (the
+arena's mathlib rev), 30+ git dependencies. The "main theorems" are
+its 416 Comparator challenges (537 theorems, 65 definitions; 393 need
+only Mathlib). Their import closure (~108k modules) was built with the
+Mathlib cache in a slimmed copy of the project. Each challenge was
+exported with the arena's v4.34.1 `lean4export` (`05d43a2`), as
+`lean4export <solution_module> -- <theorem and definition names>` from
+the challenge's JSON (`_tmp/ref/openai-math-work/export.sh`): 4.05·10⁹
+NDJSON lines in all, a median of 61k declarations per export, at most
+1.28M (MUBSix). Checkers: con-leche `master` at `ca75f61` with
+`--verified --jobs=8`, and the arena's official v4.34.1 kernel
+(`_tmp/ref/openai-math-work/official/`, single-threaded), each with a
+1 h timeout and a 25 GB resident-memory watchdog polling VmRSS by PID
+(`check.sh`; `guard.sh CAP_KB TIMEOUT_S cmd…` is the standalone form).
+An address-space cap (`prlimit --as`, `ulimit -v`) is no measure here:
+the first runs under one reported "memlimit" for exports that accept
+under the RSS watchdog.
+
+**Verdicts** (con-leche / official, 416 challenges):
+
+| Outcome | Count | Challenges |
+|---|---|---|
+| both accept | 401 | |
+| con-leche exit 3, official accepts | 7 | below |
+| con-leche accepts, official times out (1 h) | 5 | AtomicGaussian, TriangularGaussian, TriangularEnergy, SKRatio, MUBSix |
+| both time out | 1 | PlanarPacking |
+| con-leche over 25 GB, official times out | 1 | UniversalTensorSquares (also times out at `--jobs=1`, at 14 GB) |
+| con-leche over 25 GB, official accepts (8.2 GB) | 1 | TamingCompatibility (accepts at `--jobs=1`: 11.4 GB, 390 s) |
+
+No rejects, no declines. Accepted, but with a large memory gap
+(con-leche `--jobs=8` / official): AuslanderReiten 20.0 / 3.2 GB,
+LaughlinFock 22.1 / 3.5, ArnoldCounterexample 23.0 / 9.9,
+SnakyCertificate 21.2 (10.2 at `--jobs=1`) / 9.1, SnakyConditional
+18.7 / 6.3, LaughlinGap 13.7 / 2.2, Catalan 13.3 / 2.5.
+
+**The seven exit-3 failures**, all `fuel exhausted: whnfCore`, three
+causes:
+
+- **A. `defeqSpine` compares arguments first to last** (RandomizedMeanPayoff
+  `OAI.MeanPayoff.DetRealizer.total_formula`, UniformFourier
+  `OAI.PowerSaving.Cluster.certificate`). Official `is_def_eq_args`
+  compares last to first. On `Nat.add (M+1) 1 =?= Nat.add M 2` official
+  fails `1 =?= 2` at once and unfolds; con-leche first decides
+  `M+1 =?= M` by unary succ descent (two knot levels per `succ`) and
+  exhausts `checkFuel`. Reversing both spine walks (`defeqSpine` and its
+  twin `defeqSpineI`) accepts both, in an exe-only experiment
+  (`bin/con-leche-revargs`; the proofs were not rebuilt). Fixture
+  `spine_arg_order` (exit 3, target 0).
+- **B. `checkFuel` (100000 knot levels) against a deep recursion**
+  (PeriodicGroup `OAI.SourceBurnside.RawNumberPrep.seed_run`,
+  LogspaceEquality `…Vessel.Basket.Sack.Ground.advances._proof_1_2`,
+  MatchingFPRAS `OAI.MatchingFPRAS.ExecutableEstimator.upperRealizer`).
+  ι on a major like `W*200033` head-normalises it through
+  `reduceNat`'s first-argument recursion, one level per unit; official
+  does the same on its native stack. `checkFuel = 2000000`
+  (`bin/con-leche-fuel2m`) accepts all three, but overflows the native
+  stack on cause A, so a fuel raise needs a stack-size policy with it.
+  Fixture `natmul_deep_major` (exit 3, target 0).
+- **C. Closed-term evaluation.** SquareDifference
+  (`OAI.SquareDifference.source_ordered_contraction`) is now explained:
+  the let ζ-fold below. ContinuumCoulombHardness
+  (`OAI.ContinuumCoulomb.MediatorUnaryProgram.secondDelta`) is a depth
+  limit where official, too, works hard: 62 s, 10.5 GB, 13.6M unfolds of
+  unary `Nat.rec`/`Nat.add._f`; on the declaration's cone con-leche exits
+  3 after 8.6 s at 0.76 GB (the 25–37 GB of the whole export were not
+  reproduced on the cone). With 2M fuel the whole SquareDifference
+  export grew past 37 GB and ContinuumCoulombHardness past 25 GB.
+
+**Memory findings** (the investigation of `_tmp/mem-blowup/`):
+
+- TamingCompatibility and AuslanderReiten do the same reduction work as
+  official, to within a few percent: δ+ι on
+  `valid_false_t._proof_1_1` 4,054,268 (con-leche) against 4,052,880
+  (official); unfolds on `hodge_raw_square_energy` 12.13M against
+  14.42M; per-constant profiles alike (`DFunLike.coe` 3.53M / 3.95M).
+  `--trusted` gives identical memo sizes, so certificates are not the
+  cause.
+- Their memory is memos × concurrency. Taming: 11.2 GB at `--jobs=1`,
+  over 26.4 GB at `--jobs=8`; three sibling theorems
+  (`hodge_raw_square_energy_smooth`, `hodge_raw_square_energy`,
+  `hodge_resolvent_distribution`) cost 9–10.5 GB each and sit next to
+  each other in record order, so eight workers claim them together
+  (official: 7.3 / 3.1 / 3.2 GB, one after another). Auslander: 4.1 GB
+  at `--jobs=1`, 19.8 GB at `--jobs=8`, dozens of
+  `CocycleData.valid_*._proof_1_1` at 1–3.5 GB each.
+- Two memos official does not keep: at the end of one Taming
+  declaration the memos hold 41.6M entries — cheap `whnfCore` 17.9M
+  (official skips its cache in cheap mode), full `whnfCore` 11.7M,
+  bulk instantiation `instC` 5.8M (no official counterpart), defeq 4.7M
+  (official caches successes and some failures), `inferIO` 1.3M.
+  Probes, not proposals: without the cheap-`whnfCore` memo that
+  declaration takes 3.2 GB less (init-full +4.1 % instructions);
+  without `instC`, 1.45 GB less (+1.4 %). Per-declaration memos stay
+  uncapped (the standing ruling); admission control by RSS would not
+  help, since the heavy siblings are claimed while RSS is still low.
+
+**The let ζ-fold (SquareDifference).** Inferring a `ring` `pow_congr`
+step reaches `npowRec … =?= npowRec …` whose exponents differ only in
+Nat instances, then `Nat.add X 0 =?= Nat.add X' 0`, where X is the value
+of `let d := Fintype.card TupleVertex`. Official checks `d` as a
+let-fvar, so the lazy-delta Nat-literal fold's `has_fvar` guard blocks
+the fold (16 ms, 0.84 GB, 2,268 unfolds; it never touches
+`Fintype.card`). con-leche's annotate pass returns the ζ-reduct (tasks
+#217/#241), the term is closed, and the fold head-normalises X: every
+permutation of `Fin tupleH` through `permsOfList`/`List.rec`, over
+6 GB (`--trusted` likewise). ζ-reducing that one `let` in the export
+(`_tmp/mem-blowup/zeta/zeta.py`) makes official blow up as well (over
+6.3 GB). The S0 prototype (`_tmp/port/s0-proto-logs/bin/s0m-4`), which
+has no annotate pass but substitutes lets in inference, blows up too.
+Two fixes were sketched, neither built: (A) let-fvars in the checked
+term, as official (reverses part of #241, the expensive option on the
+proof side); (B) annotate records the ζ-substituted value nodes
+(`inst1M` substitutes by reference, so their pointers survive) and the
+fold treats a side containing one as open. Fold and no-fold are both
+sound paths, so (B) changes strategy, not what is proved.
+
+**This task's fixtures** (`tests/e2e/src/letfold_*.lean`): `bits n 0`
+makes 2^n distinct calls (depth n) before it is a literal.
+`letfold_let` checks `let d := bits 14 0; @id (d + 0 = Nat.add d 0) rfl`,
+`letfold_pair_let` the same with `let p : Nat × Nat := (bits 14 0, 1)`
+and `p.1`, `letfold_inline` the control with the closed term inline.
+All accept today; the e2e harness pins verdicts only, so the cost is
+recorded here. Instructions:u (×10⁹), one run each; the n = 0 rows are
+each checker's fixed cost (Init's cone):
+
+| n | official let | official inline | con-leche let = inline | nanoda let = inline | S0 `s0m-4` let = inline |
+|---|---|---|---|---|---|
+| 0 | 0.345 | 0.345 | 0.746 | 0.087 | 0.742 |
+| 8 | 0.345 | 0.393 | 0.847 | 0.143 | 0.844 |
+| 12 | 0.345 | 1.10 | 2.36 | 1.08 | 2.36 |
+| 14 | 0.345 | 3.38 | 7.22 | 4.59 | 7.21 |
+| 16 | 0.345 | 12.5 | 26.6 | 22.2 | 26.6 |
+
+The pair variant matches the let row in every checker (official 0.347
+at n = 0, 14, 16; con-leche 7.22 / 26.6 at 14 / 16). Peak RSS at
+n = 16: official 0.07 GB under the let, 0.59 GB inline; con-leche
+0.72 GB both ways; nanoda 0.59 GB. Wall at n = 14: con-leche 1.0 s,
+official 0.04 s (let) / 0.45 s (inline); at n = 16: 4.4 s against
+0.05 s / 2.3 s. n = 18 does not elaborate within the default heartbeats.
+The committed size is 14: about a second per run, 0.2 GB.
+
+**nanoda** (`ammkrn/nanoda_lib` `4c544ed`, the arena's rev, built with
+the arena's 256 MiB thread-stack patch, the arena's config: stdin,
+`nat_extension`, all axioms permitted, 4 threads) does not handle the
+case. On the real reproducer (`repro/soc.ndjson.zst`, the
+SquareDifference export cut at `source_ordered_contraction`) the 8 GB
+guard kills it after 38 s (6.7·10¹¹ instructions). It also fails
+without that theorem: the same file minus its last record is killed at
+8 GB too, and at 2 threads under a 16 GB cap it aborts on a native
+stack overflow (15.6 GB, 1.0·10¹² instructions), so another declaration
+of that export defeats nanoda as well. On the fixtures it folds under a
+`let` as con-leche does (let = inline, table above). From its source:
+`infer_let` (`src/tc.rs`) instantiates the body with the value before
+inferring it, the same ζ as con-leche's, and its fold
+(`delta_try_nat` → `try_reduce_nat`) has the same `has_fvars` guard,
+which then never sees a let-variable.
+
+**To re-run after the rewrite:** the seven failures (SquareDifference,
+ContinuumCoulombHardness, RandomizedMeanPayoff, UniformFourier,
+PeriodicGroup, LogspaceEquality, MatchingFPRAS); the memory-heavy
+accepts (TamingCompatibility, UniversalTensorSquares, AuslanderReiten,
+LaughlinFock, ArnoldCounterexample, SnakyCertificate, SnakyConditional,
+LaughlinGap, Catalan); the official timeouts that con-leche accepts
+(AtomicGaussian, TriangularGaussian, TriangularEnergy, SKRatio,
+MUBSix) and PlanarPacking; and the five fixtures above
+(`spine_arg_order`, `natmul_deep_major`, `letfold_*`).
+
+**Where the material lives.** `_tmp/ref/openai-math-work/`:
+`results.tsv` (every run: challenge, checker, exit, verdict line, peak
+RSS; `results-superseded.tsv` holds superseded rows, among them
+watchdog kills since re-run),
+`exports/` (zstd exports of the nine discrepancies: the seven failures,
+TamingCompatibility, UniversalTensorSquares; the other exports were
+deleted, and the build trees too — re-exporting needs a rebuild from
+the kept clone `_tmp/ref/openai-math/` with `export.sh`), `repro/`
+(single-declaration cuts: `soc` = SquareDifference, `seed_run`,
+`total_formula`), `bin/` (the run's `con-leche`, built from `ca75f61`, and the
+experiments `-revargs`, `-fuel2m`, `-rev-fuel1m`), `check.sh`,
+`guard.sh`, `export.sh`, `gdb/leanpp.py` (a gdb Expr printer), `logs/`.
+`_tmp/mem-blowup/`: `instr-count-trace.patch` and `Count.lean.scratch`
+(the counter, trace and stack instrumentation), `offdiag/` (the
+official-kernel unfold diagnostics tool), `zeta/zeta.py`,
+`axiomize.py`, the run scripts and logs. This task's scaling logs, the
+generators and the patched nanoda build: `_tmp/348-logs/`.
+
+**Gates** (this tree): `lake build` and `lake test` warning-free;
+`tests/arena.sh` green in every sub-gate but one environmental failure:
+pindump's nightly-2026-09-10 pinner does not link, because that
+toolchain's `ld.lld` wrapper calls an elan nix-store path that no longer
+exists on this machine (no file of this task is involved). Arena 90/92,
+e2e 475/475, annot 15/15, the trusted, `--jobs=1` and `--jobs=4` sweeps
+as expected.
