@@ -940,7 +940,7 @@ theorem eqRecLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ eqRecA.name eqRecA.toConstantVal 5 4
       eqRecRule := by
-  refine ⟨by decide, fun us hus => ?_⟩
+  refine ⟨by decide, fun us hus => ?_, sorry⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ eqRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩

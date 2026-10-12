@@ -792,4 +792,63 @@ theorem denoteMeta_unfoldDefinition {m : EnvModel V env} (hdi : AcvalDefnInst m)
   · exact nomatch hud
 
 
+/-! ## The graph-regime fit of a graded spine (task #342 L10) -/
+
+/-- A spine headed by the point is the point. -/
+theorem interp_mkAppN_of_pt {ρ : Nat → V} {f : AnnotTerm} (hf : interp V ρ f = pt) :
+    ∀ (as : List AnnotTerm), interp V ρ (AnnotTerm.mkAppN f as) = pt
+  | [] => hf
+  | a :: as => by
+    show interp V ρ (AnnotTerm.mkAppN (.app f a) as) = pt
+    exact interp_mkAppN_of_pt (by rw [interp_app, hf, app_pt]) as
+
+/-- **A graded application that is not the point fits its head's
+∀-telescope** ("not pt" source (2)): every prefix of the spine is not
+the point (`app_pt`), so a prefix's type is in the graph regime
+(`eq_pt_of_mem_piR_zero`), and the argument's own application slot
+puts it in the telescope's domain (`slotTransfer`). -/
+theorem teleFitPA_of_graded_ne_pt {ρ : Nat → V} :
+    ∀ (vs : List AnnotTerm) {T f : AnnotTerm},
+      PiChain vs.length T → WellDenotedV V ρ T → interp V ρ f ∈ˢ interp V ρ T →
+      WellDenotedV V ρ (AnnotTerm.mkAppN f vs) →
+      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
+      ∃ rest, TeleFitPA V ρ T vs rest
+  | [], T, _, _, _, _, _, _ => ⟨T, .nil⟩
+  | x :: xs, T, f, hpc, hT, hmem, hg, hne => by
+    obtain ⟨u, v, A, B, rfl, hpcB⟩ := piChain_succ_inv hpc
+    have hg' : WellDenotedV V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
+    have hne' : interp V ρ (AnnotTerm.mkAppN (.app f x) xs) ≠ pt := hne
+    have happ : WellDenotedV V ρ (.app f x) := mkAppN_head xs hg'
+    obtain ⟨v', A', B', hslot, hx, -⟩ := ((WellDenoted_app V ρ f x) ▸ happ.1).2.2
+    have hmem' := hmem
+    rw [interp_pi] at hmem'
+    have hv : v ≠ 0 := by
+      rintro rfl
+      exact hne' (interp_mkAppN_of_pt
+        (by rw [interp_app, eq_pt_of_mem_piR_zero hmem', app_pt]) xs)
+    have hxA : interp V ρ x ∈ˢ interp V ρ A := slotTransfer hv hmem' hslot hx
+    have hokx : WellDenotedV V ρ x := happ.app_arg
+    have hBx : WellDenotedV V ρ (B.inst x) :=
+      (WellDenotedV_inst0 hokx).mpr (hT.pi_body _ hxA)
+    have hmemB : interp V ρ (.app f x) ∈ˢ interp V ρ (B.inst x) := by
+      rw [interp_inst0, interp_app]
+      exact app_mem_piR hmem' hxA (fun h => absurd h hv)
+    obtain ⟨rest, hfit⟩ :=
+      teleFitPA_of_graded_ne_pt xs (PiChain.inst x 0 hpcB) hBx hmemB hg' hne'
+    exact ⟨rest, .cons hxA hfit⟩
+
+/-- A fit's residual is graded where the telescope and the spine are. -/
+theorem teleFitPA_rest_graded {ρ : Nat → V} :
+    ∀ {T : AnnotTerm} {vs : List AnnotTerm} {rest : AnnotTerm},
+      TeleFitPA V ρ T vs rest → WellDenotedV V ρ T →
+      (∀ x ∈ vs, WellDenotedV V ρ x) → WellDenotedV V ρ rest := by
+  intro T vs rest h
+  induction h with
+  | nil => intro hT _; exact hT
+  | @cons u v A B rest' a as hmem _ ih =>
+    intro hT hvs
+    have hokA : WellDenotedV V ρ a := hvs a List.mem_cons_self
+    exact ih ((WellDenotedV_inst0 hokA).mpr (hT.pi_body _ hmem))
+      (fun x hx => hvs x (List.mem_cons_of_mem a hx))
+
 end ConLeche.Model.Rules

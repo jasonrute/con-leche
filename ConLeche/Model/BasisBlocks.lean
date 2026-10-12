@@ -1216,7 +1216,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecZeroRule := by
-  refine ⟨Nat.le_refl 3, fun us hus => ?_⟩
+  refine ⟨Nat.le_refl 3, fun us hus => ?_, sorry⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
@@ -1277,7 +1277,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecSuccRule := by
-  refine ⟨Nat.le_refl 3, fun us hus => ?_⟩
+  refine ⟨Nat.le_refl 3, fun us hus => ?_, sorry⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩

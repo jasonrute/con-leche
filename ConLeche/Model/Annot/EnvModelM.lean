@@ -377,7 +377,7 @@ def toEnvFacts {V : Type w} [SetTheory V] {μ : CheckMode}
     denoteMeta_erase m.base2.acval_erase 0 value
       (m.defn_reads ψ cv value ⟨hint, hmem⟩)
   rec_rhs_denotes := fun n cv mI rP rules hf r hr hfire us ψ hlen => by
-    obtain ⟨-, hus⟩ := m.rec_rules ψ n cv mI rP rules hf r hr hfire
+    obtain ⟨-, hus, -⟩ := m.rec_rules ψ n cv mI rP rules hf r hr hfire
     obtain ⟨Ra, hRa, -, -⟩ := hus us hlen
     exact ⟨Ra.erase, denoteMeta_erase m.base2.acval_erase 0 _ hRa⟩
   rec_params_le := fun n cv mI rP rules hf r hr hfire =>

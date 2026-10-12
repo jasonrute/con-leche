@@ -78,13 +78,18 @@ theorem red_soundU (hin : RulesInputs V m φ) :
     Red.natOp_soundU hin hc hst (red_soundU hin hwa) hn₁ (red_soundU hin hwb) hn₂ hr
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
     Red.proj_soundU hin hent hhead hi hlen hus hfire hctor (certs_soundU hin hcerts)
-  | _, _, _, .iota .. => sorry
+  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
+      hparams hcertR hcertC hres hidx =>
+    Red.iota_sound hin hhead hrec hlen hus (red_soundU hin hmajor).cond hmhead hctor
+      hrule hmlen hfire hlv (fun hc => (defEqList_soundU hin (hparams hc)).cond)
+      (certs_soundU hin hcertR) (fun h3 => certsF_soundU hin (hcertC h3)) hres
+      (fun h3 hne => (defEqList_soundU hin (hidx h3 hne)).cond)
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
       hb hlv' hcerts htf hdt hpi =>
-    Red.rescueK_soundU hin hrec hk hctor hres hind (infer_soundU hin htm)
-      (red_soundU hin htmaj) hthead hlv hnP hfab hws hb hlv'
-      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt)
-      (defeq_soundU hin hpi)
+    Red.rescueK_sound hin hrec hk hctor hres hind (infer_soundU hin htm)
+      (red_soundU hin htmaj).cond hthead hlv hnP hfab hws hb hlv'
+      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt).cond
+      (defeq_soundU hin hpi).cond
   | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
       hfab hws hb hlv' hcerts hproj hpi =>
     Red.rescueEta_soundU hin hrec heta hctor hres hind (infer_soundU hin htm)
@@ -93,10 +98,10 @@ theorem red_soundU (hin : RulesInputs V m φ) :
       (fun hno => etaProjCerts_soundU hin (hproj hno)) (defeq_soundU hin hpi)
   | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
       hfab hws hb hlv' hcerts htf hdt hpi =>
-    Red.rescueAnd_soundU hin hrec hctor hres hind (infer_soundU hin htm)
-      (red_soundU hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
-      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt)
-      (defeq_soundU hin hpi)
+    Red.rescueAnd_sound hin hrec hctor hres hind (infer_soundU hin htm)
+      (red_soundU hin htmaj).cond hthead hlen hlv hslots hfab hws hb hlv'
+      (certs_soundU hin hcerts) (infer_soundU hin htf) (defeq_soundU hin hdt).cond
+      (defeq_soundU hin hpi).cond
 
 theorem defeq_soundU (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSemU m φ d a b
@@ -219,12 +224,30 @@ theorem red_sound (hin : RulesInputs V m φ) :
   -- **interim** (task #342, L12): the literal rows through the side induction
   | _, _, _, h@(.natSucc ..) => (red_soundU hin h).cond
   | _, _, _, h@(.natOp ..) => (red_soundU hin h).cond
-  -- **interim** (task #342, L10): ι and the three rescues through the side
-  -- induction
-  | _, _, _, h@(.iota ..) => (red_soundU hin h).cond
-  | _, _, _, h@(.rescueK ..) => (red_soundU hin h).cond
+  -- ι and the K/`And` rescues (task #342 L10): one lemma each, from the
+  -- conditional claims of their premises
+  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
+      hparams hcertR hcertC hres hidx =>
+    (Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
+      hrule hmlen hfire hlv (fun hc => defEqList_sound hin (hparams hc))
+      (certs_sound hin hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
+      (fun h3 hne => defEqList_sound hin (hidx h3 hne))).cond
+  | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
+      hb hlv' hcerts htf hdt hpi =>
+    (Red.rescueK_sound hin hrec hk hctor hres hind (infer_sound hin htm)
+      (red_sound hin htmaj) hthead hlv hnP hfab hws hb hlv'
+      (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
+      (defeq_sound hin hpi)).cond
+  | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
+      hfab hws hb hlv' hcerts htf hdt hpi =>
+    (Red.rescueAnd_sound hin hrec hctor hres hind (infer_sound hin htm)
+      (red_sound hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
+      (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
+      (defeq_sound hin hpi)).cond
+  -- **interim** (task #342 L10 → the coherence-law lane): the structure-η
+  -- rescue's certificate is read by its unconditional proof, through the
+  -- side induction
   | _, _, _, h@(.rescueEta ..) => (red_soundU hin h).cond
-  | _, _, _, h@(.rescueAnd ..) => (red_soundU hin h).cond
 
 theorem defeq_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
@@ -303,14 +326,14 @@ theorem certsF_sound (hin : RulesInputs V m φ) :
     CertsF.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
       (certsF_sound hin hrest)
 
-end
-
 theorem defEqList_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {as bs : List Expr},
       DefEqList env d as bs → DefEqListSem m φ d as bs
   | _, _, _, .nil => DefEqList.nil_sound
   | _, _, _, .cons h hs =>
     DefEqList.cons_sound (defeq_sound hin h) (defEqList_sound hin hs)
+
+end
 
 theorem etaProjCerts_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}

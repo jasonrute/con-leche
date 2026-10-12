@@ -549,4 +549,45 @@ theorem mem_getD_index {α : Type _} [Inhabited α] {l : List α} {x : α}
   obtain ⟨j, hj, hx⟩ := List.getElem_of_mem h
   exact ⟨j, hj, by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, hx]; rfl⟩
 
+/-! ## The ι licence's kit (task #342 L10) -/
+
+section Licence
+
+variable {V : Type w} [SetTheory V]
+
+/-- A fit's last argument may be exchanged for an interpretation-equal
+one: the fit reads the argument only through its interpretation's
+membership, and the residual after it is the next binder's body at it. -/
+theorem teleFitPA_snoc_congr {ρ : Nat → V} :
+    ∀ (xs : List AnnotTerm) {T rest a b : AnnotTerm},
+      TeleFitPA V ρ T (xs ++ [a]) rest → interp V ρ a = interp V ρ b →
+      ∃ rest', TeleFitPA V ρ T (xs ++ [b]) rest'
+  | [], T, rest, a, b, h, heq => by
+    cases h with
+    | cons hmem hnil =>
+      exact ⟨_, .cons (heq ▸ hmem) .nil⟩
+  | x :: xs, T, rest, a, b, h, heq => by
+    cases h with
+    | cons hmem htail =>
+      obtain ⟨rest', h'⟩ := teleFitPA_snoc_congr xs htail heq
+      exact ⟨rest', .cons hmem h'⟩
+
+/-- A conditional pointwise comparison of two mapped spines, by index. -/
+theorem zip_cond_getD {f : AnnotTerm → V} :
+    ∀ {as bs : List AnnotTerm}, as.length = bs.length →
+      (∀ p ∈ (as.map f).zip (bs.map f), p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) →
+      ∀ i, i < as.length → f (as.getD i default) ≠ pt → f (bs.getD i default) ≠ pt →
+        f (as.getD i default) = f (bs.getD i default)
+  | [], _, _, _, i, hi, _, _ => absurd hi (Nat.not_lt_zero _)
+  | _ :: _, [], hl, _, _, _, _, _ => by simp at hl
+  | a :: as, b :: bs, hl, h, i, hi, ha, hb => by
+    cases i with
+    | zero => exact h (f a, f b) (by simp) ha hb
+    | succ i =>
+      exact zip_cond_getD (by simpa using hl)
+        (fun p hp => h p (by simp only [List.map_cons, List.zip_cons_cons]; exact
+          List.mem_cons_of_mem _ hp)) i (by simpa using hi) ha hb
+
+end Licence
+
 end ConLeche.Model.Rules

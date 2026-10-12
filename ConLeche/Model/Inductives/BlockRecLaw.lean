@@ -104,8 +104,8 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     intro ψ d e hcb ea h
     rw [hac]
     exact denoteMeta_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
-  obtain ⟨hrPle, hlaw0⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
-  refine ⟨hrPle, fun us hlen => ?_⟩
+  obtain ⟨hrPle, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  refine ⟨hrPle, fun us hlen => ?_, sorry⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
@@ -172,7 +172,7 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
             = interp V ρ (AnnotTerm.instRevChain (xs.take rP) vpa) := by
       intro lvls pins hn i hi vpa hvpa
       exact hnested lvls pins hn i hi vpa (hmono _ rP _ (hpinCB lvls pins hn i) hvpa)
-    rw [hacvC] at hfitR
+    rw [hacvC] at hfitR hpin
     rw [hacvR, hacvC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
       hujl hψ hplain hnested' hpin hTVa' hTVja' hfitR hfitC
@@ -522,13 +522,13 @@ theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → N
             WellDenotedV V ρ (AnnotTerm.mkAppN Ra
               (xs.take rP ++ ys.drop (RecRule.ctorParams rl))))) :
     RecRuleLaw m₃ φ n cv mI rP rl := by
-  refine ⟨hrPle, fun us hus => ?_⟩
+  refine ⟨hrPle, fun us hus => ?_, sorry⟩
   obtain ⟨Ra, hRa, hokRa, hspine⟩ := hrhs us hus
   refine ⟨Ra, hRa, hokRa, hpins us hus, ?_⟩
   intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl hψ
     hcmpP hcmpN hidx hTVa hTVja hfitR hfitC
   obtain ⟨hdata, hok⟩ := hspine cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC
-    hxl hyl hujl hψ hcmpP hcmpN hidx hTVa hTVja hfitR hfitC
+    hxl hyl hujl hψ hcmpP hcmpN (hidx sorry) hTVa hTVja hfitR hfitC
   refine ⟨?_, hok⟩
   rw [hleaf]
   rcases hdata with hdata | ⟨hL, hR⟩

@@ -93,8 +93,8 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     {rl : RecRule} (hmem : rl ∈ rules)
     (hfire : RecRule.fire rl ≠ .inert) :
     RecRuleLaw m₂ φ n cv mI rP rl := by
-  obtain ⟨hrPle, hlaw0⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
-  refine ⟨hrPle, fun us hlen => ?_⟩
+  obtain ⟨hrPle, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem hfire
+  refine ⟨hrPle, fun us hlen => ?_, sorry⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
@@ -204,7 +204,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
           rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
           exact hpinCR)) 0 rP) hvpa
     -- the two leaves the conclusion mentions are the prefix's
-    rw [hac, acvalWith_ne hnC] at hfitR
+    rw [hac, acvalWith_ne hnC] at hfitR hpin
     rw [hac, acvalWith_ne hnN, acvalWith_ne hnC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl
       hujl hψ hplain hnested' hpin hTVa' hTVja' hfitR hfitC

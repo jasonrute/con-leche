@@ -697,7 +697,7 @@ theorem quotIndLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotIndA.name quotIndA.toConstantVal 4 4
       quotIndRule := by
-  refine ⟨Nat.le_refl 4, fun us hus => ?_⟩
+  refine ⟨Nat.le_refl 4, fun us hus => ?_, sorry⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotIndA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
@@ -2081,7 +2081,7 @@ theorem quotLiftLaw {m : EnvModel V env}
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
       quotLiftRule := by
-  refine ⟨Nat.le_refl 5, fun us hus => ?_⟩
+  refine ⟨Nat.le_refl 5, fun us hus => ?_, sorry⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotLiftA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
