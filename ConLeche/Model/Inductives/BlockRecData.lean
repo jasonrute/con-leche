@@ -1213,6 +1213,9 @@ theorem blockRecRuleLaw_run {mpC : EnvModelM V μ envC} {cvTas : List ConstantVa
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : rs[j]? = some r)
     (hj : j < rs.length) (hi : i < nCt j) {rl : ConLeche.RecRule}
     (hpins : RecRulePinsOk m₃ φ r.1 (p.toBlockShape.rulePrefixAt j) rl)
+    (hK : RecRuleKWit m₃ φ r.1 (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) rl)
+    (hNK : RecRuleExtraNK m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j)
+      (p.toBlockShape.rulePrefixAt j) rl)
     (hrhs : BlockRuleRhsOk (V := V) (pdoms0 := pdoms0) (fdoms0 := fdoms0) (es0 := es0)
       (ihs := ihs) (mk0 := mk0) (Rb0 := Rb0)
       (blockRecLeafAV mpC.base2.acval envC rs s
@@ -1220,7 +1223,7 @@ theorem blockRecRuleLaw_run {mpC : EnvModelM V μ envC} {cvTas : List ConstantVa
     RecRuleLaw m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j)
       (p.toBlockShape.rulePrefixAt j) rl :=
   blockRecRuleLaw_gen (blockRecHrPle h hj) hj
-    (blockRecHleaf hac hnd hr) (blockRecHiota hpre hj hi) hpins fun us hus => by
+    (blockRecHleaf hac hnd hr) (blockRecHiota hpre hj hi) hpins hK hNK fun us hus => by
       obtain ⟨Ra, hRa, hok, hsp⟩ := hrhs us hus
       exact ⟨Ra, hRa, hok, fun cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl
         hψ _ hN hidx hTVa hTVja hfitR hfitC => hsp cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR
@@ -1248,6 +1251,12 @@ theorem blockRecHnew_of {mpC : EnvModelM V μ envC} {cvTas : List ConstantVal}
     (hpins : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
       fireOf fun m₃ φ j r _ _ _ rl =>
         RecRulePinsOk m₃ φ r.1 (p.toBlockShape.rulePrefixAt j) rl)
+    (hextra : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
+      fireOf fun m₃ φ j r _ _ _ rl =>
+        fireOf j r ≠ .inert →
+        RecRuleKWit m₃ φ r.1 (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) rl ∧
+        RecRuleExtraNK m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j)
+          (p.toBlockShape.rulePrefixAt j) rl)
     (hrhs : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
       fireOf fun m₃ φ j r i _ _ rl =>
         fireOf j r ≠ .inert →
@@ -1266,8 +1275,9 @@ theorem blockRecHnew_of {mpC : EnvModelM V μ envC} {cvTas : List ConstantVal}
     have h₁ := (List.getElem?_eq_some_iff.mp hcA).1
     have h₂ := hnCt j r hr
     omega
+  obtain ⟨hK, hNK⟩ := hextra m₃ hac φ j r hr i cA rhs hcA hrh hfire
   exact blockRecRuleLaw_run h hnd hpre hac φ hr hj hi
-    (hpins m₃ hac φ j r hr i cA rhs hcA hrh) (hrhs m₃ hac φ j r hr i cA rhs hcA hrh hfire)
+    (hpins m₃ hac φ j r hr i cA rhs hcA hrh) hK hNK (hrhs m₃ hac φ j r hr i cA rhs hcA hrh hfire)
 
 /-! ## A.5c `BlockRuleRhsOk` at the BASE frame
 
@@ -2340,6 +2350,13 @@ theorem blockRecStaged_dataR {envC : Env} (hμ : μ.verifiedChecks = true)
     (hpins : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
       fireOf fun m₃ φ j r _ _ _ rl =>
         RecRulePinsOk m₃ φ r.1 (p.toBlockShape.rulePrefixAt j) rl)
+    -- the ι licence's facts (task #342 L10)
+    (hextra : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
+      fireOf fun m₃ φ j r _ _ _ rl =>
+        fireOf j r ≠ .inert →
+        RecRuleKWit m₃ φ r.1 (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) rl ∧
+        RecRuleExtraNK m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j)
+          (p.toBlockShape.rulePrefixAt j) rl)
     (hdataS : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
       fireOf fun _ φ j r i cA rhs rl => fireOf j r ≠ .inert →
         BlockRuleDataB (V := V) mpC p (nPc j)
@@ -2362,7 +2379,7 @@ theorem blockRecStaged_dataR {envC : Env} (hμ : μ.verifiedChecks = true)
     BlockRecStagedAt (V := V) μ envC (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) mpC := by
   have hleaf := blockRecLeafOk_of hμ mpC h heqB heqV heqP hpre
   refine blockRecStaged_runR hμ mpC h hnd hshape hnest hctorsIn hleaf
-    (blockRecHnew_of h hnd hpre hnCt hpins ?_)
+    (blockRecHnew_of h hnd hpre hnCt hpins hextra ?_)
   intro m₃ hac φ j r hr i cA rhs hcA hrhs hfire
   obtain ⟨hcfind, hcb, hread⟩ := hctor j r hr i cA hcA
   exact blockRuleRhsOk_base hμ mpC h hnd hleaf hac hr hrhs rfl rfl rfl rfl hcfind

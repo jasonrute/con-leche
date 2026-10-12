@@ -282,7 +282,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     (fun j r hr => blockRecNCt_ge hr)
     (fun ψ j r hr => blockRulePdomsAV_length hμ mpC h hr ψ)
     (genRecCtor_seam R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov) (genRecHtower R)
-    (fun m₃ hac φ j r hr _ cA rhs _ _ => recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs) hdataS
+    (fun m₃ hac φ j r hr _ cA rhs _ _ => recStagePinsOk hμ mpC h m₃ hac φ j r hr cA rhs) sorry hdataS
     (blockRecTyZ_run hμ mpC h) (genRecHRaZ R)
 
 end ConLeche.Model
