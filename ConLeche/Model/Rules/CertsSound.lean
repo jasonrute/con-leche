@@ -198,10 +198,12 @@ theorem Certs.licensed_sound {d : Nat} {T : Expr} {args : List Expr}
   have hfit := teleFitPA_of_peel_ne_pt vs hr hgT hfM hgS hne
   exact ⟨hfit, teleFitPA_rest_graded hfit hgT hgvs⟩
 
-/-- The certified slot: the certificate's run supplies the membership. -/
+/-- The certified slot: the certificate's FULL-grade run supplies the
+membership (the argument's type is a type equal to the binder's domain,
+"not pt" source (1)). -/
 theorem Certs.cert_sound {d : Nat} {lic : Bool}
     {ty body arg ta : Expr} {mb : BinderMeta} {rest : List Expr}
-    (hta : InferSemIO m φ d arg ta) (hd : DefEqSem m φ d ta ty)
+    (hta : InferSemFull m φ d arg ta) (hd : DefEqSem m φ d ta ty)
     (hrest : CertsSem m φ d lic (body.instantiate1 arg) rest) :
     CertsSem m φ d lic (.forallE ty body mb) (arg :: rest) := by
   intro hfT Δa Ta fa vs hCT hTa hargs hsp
@@ -224,20 +226,7 @@ theorem Certs.cert_sound {d : Nat} {lic : Bool}
   refine ⟨resta, fun ρ hρ hLT hLargs hgT hgvs hlicP => hstep ρ hρ hLT hLargs hgT
     hgvs hlicP ?_⟩
   have hLarg : LeavesGr m φ d arg ρ := hLargs arg List.mem_cons_self
-  -- L-dead (S4 ledger): an io certificate gives the slot's membership only
-  -- where the argument's io claim is a membership; at an argument that is
-  -- the point, or whose claim is hereditary, its io-inferred type does
-  -- not hold it (`IORel`).  Unlicensed walks certify the rescues'
-  -- synthetic spines only: the K and `And` rescues' (whose majors are
-  -- proofs, so no claim reads them: dead certificates) and the
-  -- projection-function η certificates (`structEtaProjCerts`, which never
-  -- run).  Deleting them deletes this rule.
-  have hmemIO : IOMem m φ d ta ρ (interp V ρ aa) := by
-    rcases (hA ρ hρ hLarg (hgvs aa List.mem_cons_self)).1 with h | h | h
-    · exact sorry
-    · exact h
-    · exact sorry
-  obtain ⟨hgtaA, hmem⟩ := hmemIO.of_reading htaA
+  obtain ⟨-, hgtaA, hmem⟩ := hA ρ hρ hLarg
   have hokDom : WellDenotedTy V ρ doma := hgT.pi_dom
   -- "not pt" source (1): both sides of the slot comparison are types —
   -- the argument's inferred type and the binder's domain

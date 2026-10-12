@@ -166,7 +166,7 @@ def iotaCertsIAux (r : CoreFnsI) (fe : FEnv) (depth : Nat) (lic : Bool) :
       if lic then pure (Expr.peelPis rest.length body).isSome
       else do
         let dom' ← instListM dom acc
-        let ta ← r.inferIO depth arg
+        let ta ← r.infer depth arg
         if ← r.defeq depth ta dom' then
           iotaCertsIAux r fe depth lic body (arg :: acc) rest
         else pure false

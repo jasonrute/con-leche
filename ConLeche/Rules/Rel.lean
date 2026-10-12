@@ -646,8 +646,11 @@ inductive Infer (env : Env) : Grade → Nat → Expr → Expr → Prop where
       Infer env g d (.proj sn i pe) (entry.typeAt us te.getAppArgs pe)
 
 /-- **The telescope certificate** (`iotaCerts`, `Kernel/Core.lean`):
-each argument's io-grade type is definitionally equal to its binder
-domain, the domains instantiated along the spine.  A licensed walk
+each argument's FULL-grade type is definitionally equal to its binder
+domain, the domains instantiated along the spine (task #342 L18: an
+io-inferred type need not hold its term, `IORel`; the unlicensed walks
+certify the rescues' synthetic spines, which are not subterms of the
+subject).  A licensed walk
 (`lic = true`: the spine is the subject's own, the ι and projection
 slots) certifies nothing (`licensed`) but the telescope's syntactic arity
 (the checker's `peelPis` test): a reduction claims nothing of a redex
@@ -659,7 +662,7 @@ inductive Certs (env : Env) : Nat → Bool → Expr → List Expr → Prop where
       (Expr.peelPis args.length T).isSome = true → Certs env d true T args
   | cert {d : Nat} {lic : Bool} {ty body arg ta : Expr} {mb : BinderMeta}
       {rest : List Expr} :
-      Infer env .io d arg ta → DefEq env d ta ty →
+      Infer env .full d arg ta → DefEq env d ta ty →
       Certs env d lic (body.instantiate1 arg) rest →
       Certs env d lic (.forallE ty body mb) (arg :: rest)
 

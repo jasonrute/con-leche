@@ -504,7 +504,7 @@ private theorem iotaCerts_shift (henv : EnvWF env)
         simpa only [WScoped] using hwty
       show (if lic then pure (Expr.peelPis (rest.map (shiftFrom p)).length (shiftFrom p body)).isSome
         else (do
-          let ta ← (pureFns mode env fuel).inferIO (d + 1) (shiftFrom p arg)
+          let ta ← (pureFns mode env fuel).infer (d + 1) (shiftFrom p arg)
           if ← (pureFns mode env fuel).defeq (d + 1) ta (shiftFrom p ty') then
             iotaCerts (pureFns mode env fuel) env (d + 1) lic
               ((shiftFrom p body).instantiate1 (shiftFrom p arg))
@@ -512,7 +512,7 @@ private theorem iotaCerts_shift (henv : EnvWF env)
           else pure false : CheckM Bool)) =
         (if lic then pure (Expr.peelPis rest.length body).isSome
         else (do
-          let ta ← (pureFns mode env fuel).inferIO d arg
+          let ta ← (pureFns mode env fuel).infer d arg
           if ← (pureFns mode env fuel).defeq d ta ty' then
             iotaCerts (pureFns mode env fuel) env d lic (body.instantiate1 arg) rest
           else pure false : CheckM Bool))
@@ -521,10 +521,10 @@ private theorem iotaCerts_shift (henv : EnvWF env)
       by_cases hg : lic = true
       · rw [ite_eq_left hg, ite_eq_left hg, List.length_map, peelPis_isSome_shiftFrom]
       · rw [ite_eq_right hg, ite_eq_right hg]
-        refine bind_congr _ (ih.inferIO hpd hwarg) ?_
+        refine bind_congr _ (ih.infer hpd hwarg) ?_
         intro ta hta
         refine bind_congr_eq
-          (ih.defeq hpd (inferTypeIO_WScoped henv fuel hta hwarg)
+          (ih.defeq hpd (inferTypeCore_WScoped henv fuel hta hwarg)
             hwty'.1) ?_
         intro bb _
         refine ite_congr' (fun _ => ?_) (fun _ => rfl)

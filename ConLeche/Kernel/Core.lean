@@ -272,8 +272,9 @@ def iotaCerts (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool) :
     -- point, against the telescope's ∀-chain)
     if lic then pure (Expr.peelPis rest.length body).isSome
     else do
-      -- task #172 B4: the spine certificate's inference at the io grade
-      let ta ← r.inferIO depth arg
+      -- the synthetic spine's certificate at the FULL grade (task #342
+      -- L18: an io-inferred type need not hold its term)
+      let ta ← r.infer depth arg
       if ← r.defeq depth ta ty then
         iotaCerts r env depth lic (body.instantiate1 arg) rest
       else pure false

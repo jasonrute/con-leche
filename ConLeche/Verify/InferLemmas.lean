@@ -1458,12 +1458,12 @@ theorem iotaCerts_step_inv_gate {env : Env} {fuel d : Nat} {lic : Bool}
     (h : iotaCertsFueled mode env fuel d lic (.forallE ty body m) (arg :: rest) =
       .ok true) :
     (lic = true ∧ (Expr.peelPis rest.length body).isSome = true) ∨
-    ∃ ta, inferTypeIO mode env fuel d arg = .ok ta ∧
+    ∃ ta, inferTypeCore mode env fuel d arg = .ok ta ∧
       isDefEqCore mode env fuel d ta ty = .ok true ∧
       iotaCertsFueled mode env fuel d lic (body.instantiate1 arg) rest = .ok true := by
   dsimp only [iotaCertsFueled] at h
   simp only [iotaCerts, Bind.bind, Except.bind] at h
-  simp only [inferTypeIO_def, defeq_def, iotaCerts_fold] at h
+  simp only [infer_def, defeq_def, iotaCerts_fold] at h
   cases lic with
   | true =>
     simp only [↓reduceIte, pure, Except.pure, Except.ok.injEq] at h
@@ -1471,7 +1471,7 @@ theorem iotaCerts_step_inv_gate {env : Env} {fuel d : Nat} {lic : Bool}
   | false =>
   refine Or.inr ?_
   simp only [Bool.false_eq_true, ↓reduceIte] at h
-  cases hta : inferTypeIO mode env fuel d arg with
+  cases hta : inferTypeCore mode env fuel d arg with
   | error err => rw [hta] at h; exact nomatch h
   | ok ta =>
   rw [hta] at h
