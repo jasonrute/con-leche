@@ -8,6 +8,7 @@ public import ConLeche.Model.CtxOkP
 import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Rules.InferSoundKit
+import ConLeche.Model.Inductives.TypeStep
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.BitRename
 import ConLeche.Semantics.Frame
@@ -59,28 +60,10 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- A Π-type is graded when its domain is, its codomain is under it, and
-its bit is honest. -/
-theorem graded_pi_intro {Δ : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (hA : Graded V Δ A) (hB : Graded V (A :: Δ) B)
-    (hAt : ∀ ρ : Nat → V, Sat V Δ ρ → IsTy (interp V ρ A))
-    (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B))
-    (hbit : v = 0 → ∀ ρ : Nat → V, Sat V Δ ρ → ∀ x, x ∈ˢ interp V ρ A →
-      interp V (cons x ρ) B ∈ˢ (univZero : V)) :
-    Graded V Δ (.pi u v A B) := by
-  intro ρ hρ
-  refine ⟨?_, ?_⟩
-  · rw [WellDenoted_pi]
-    exact ⟨(hA ρ hρ).1, hAt ρ hρ, fun x hx => (hB _ (Sat_cons V hρ hx)).1,
-      fun x hx => hBt _ (Sat_cons V hρ hx)⟩
-  · rw [AnnotValid_pi]
-    exact ⟨(hA ρ hρ).2, fun x hx => (hB _ (Sat_cons V hρ hx)).2,
-      fun hv x hx => hbit hv ρ hρ x hx⟩
-
 /-- A grading under a binder moves to a binder reading alike. -/
-theorem graded_cons_congr {Δ : List AnnotTerm} {A B e : AnnotTerm}
+theorem gradedTy_cons_congr {Δ : List AnnotTerm} {A B e : AnnotTerm}
     (h : ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B)
-    (hg : Graded V (A :: Δ) e) : Graded V (B :: Δ) e :=
+    (hg : GradedTy V (A :: Δ) e) : GradedTy V (B :: Δ) e :=
   fun ρ hρ => hg ρ (sat_cons_congr (fun σ hσ => (h σ hσ).symm) hρ)
 
 /-! ## A reading names only stored constants -/
@@ -172,18 +155,20 @@ variable (m φ)
 
 /-- **What a derivation proves of its outputs** (see the module
 docstring): a field's output framed, with the input's leaves, reading
-graded and equal to the input at every satisfying frame; a telescope's
-closed normal form a Π-tower reading like the input's field by field. -/
+as a graded TYPE and equal to the input at every satisfying frame (the
+walked things are the constructor FIELDS' types, never the point,
+"not pt" source (1)); a telescope's closed normal form a Π-tower reading
+like the input's field by field. -/
 @[expose] def RedJ : PosJ → Prop
   | .field _ dep _ e _ nd =>
     Frame dep e → ∀ {Δa : List AnnotTerm} {ea : AnnotTerm},
-      CtxOkP m φ dep Δa e → denoteMeta m.acval env φ dep e = some ea → Graded V Δa ea →
+      CtxOkP m φ dep Δa e → denoteMeta m.acval env φ dep e = some ea → GradedTy V Δa ea →
       Frame dep nd ∧ LeavesSub nd e ∧ ∃ nda, denoteMeta m.acval env φ dep nd = some nda ∧
-        Graded V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda
+        GradedTy V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda
   | .tele _ base n j cur _ nds res =>
     Frame (base + j) cur → ∀ {Δa : List AnnotTerm} {ca : AnnotTerm},
       CtxOkP m φ (base + j) Δa cur → denoteMeta m.acval env φ (base + j) cur = some ca →
-      Graded V Δa ca →
+      GradedTy V Δa ca →
       ∃ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
         ca = mkPisAV abD B ∧
         denoteMeta m.acval env φ (base + j) (closeTelescope nds (base + j) res)
@@ -191,21 +176,23 @@ closed normal form a Π-tower reading like the input's field by field. -/
         abD.length = n ∧ abN.length = n ∧
         abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) ∧
         FieldsEqOn V Δa (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
-        Graded V Δa (mkPisAV abN B) ∧
+        GradedTy V Δa (mkPisAV abN B) ∧
         Frame (base + j) (closeTelescope nds (base + j) res) ∧
         LeavesSub (closeTelescope nds (base + j) res) cur
   | _ => True
 
 end Motive
 
-/-- **The whnf step reads like its input** (`red_sound`). -/
+/-- **The whnf step reads like its input** (`red_sound_ty`): the subject
+walked here is always a TYPE (a constructor field), never the point
+("not pt" source (1)). -/
 theorem red_whnf (hin : RulesInputs V m φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
     {Δa : List AnnotTerm} {ea : AnnotTerm} (hC : CtxOkP m φ dep Δa e)
-    (hea : denoteMeta m.acval env φ dep e = some ea) (hgr : Graded V Δa ea) :
+    (hea : denoteMeta m.acval env φ dep e = some ea) (hgr : GradedTy V Δa ea) :
     Frame dep w ∧ LeavesSub w e ∧ ∃ nda, denoteMeta m.acval env φ dep w = some nda ∧
-      Graded V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda := by
-  obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_sound_global hin
+      GradedTy V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda := by
+  obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_sound_ty hin
     (ConLeche.Rules.whnf_bridge (show ConLeche.whnf .verified env F dep e = .ok w from hw)) hfr
     hC.toCtxOk hea hgr
   exact ⟨hfrw, hsub, wa, hwa, hgw, heq⟩
@@ -230,8 +217,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgw
-    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
     have hCw : CtxOkP m φ dep Δa (.forallE a b mb) := hC.of_subset hsub
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
     obtain ⟨hfrn, hsubn, nba, hnba, hgn, heqn⟩ :=
@@ -263,16 +249,12 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     · rw [denoteMeta_forallE, hta]
       simp only [bind, Option.bind]
       rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hbnd), hnba]
-    · refine graded_pi_intro hgA hgn (fun ρ hρ => (hgAT ρ hρ).2)
-        (fun ρ hρ => by
-          rw [← heqn ρ hρ]
-          have h := ((WellDenoted_pi V _ 0 (pwBit φ mb.pw) ta ba) ▸
-            (hgw _ (Sat_tail hρ)).1).2.2.2 (ρ 0) (hρ 0 ta rfl)
-          rwa [cons_eta] at h)
+    · refine gradedTy_pi_intro (GradedTy.graded hgAT) hgn.graded (fun ρ hρ => (hgAT ρ hρ).2)
+        (fun ρ hρ => by rw [← heqn ρ hρ]; exact (hgB ρ hρ).2)
         fun hv0 ρ hρ x hx => ?_
       rw [← heqn _ (Sat_cons V hρ hx)]
       have hgw' := hgw ρ hρ
-      have hval := ((AnnotValid_pi V ρ 0 (pwBit φ mb.pw) ta ba) ▸ hgw'.2).2.2 hv0 x hx
+      have hval := ((AnnotValid_pi V ρ 0 (pwBit φ mb.pw) ta ba) ▸ hgw'.1.2).2.2 hv0 x hx
       exact hval
     · intro ρ hρ
       rw [heq ρ hρ]
@@ -295,10 +277,9 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
     have hLa : Expr.LeavesBounded a := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
     have hLbd : Expr.LeavesBounded b := fun l hl => hLb l (by simp [Expr.fvarLeaves, hl])
-    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy (V := V) hgr
-    have hgA : ∀ ρ, Sat V _ ρ → WellDenotedV V ρ _ := fun ρ hρ => (hgAT ρ hρ).1
+    obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgr.graded
     -- the field
-    obtain ⟨hfrn, hsubn, nda, hnda, hgn, heqn⟩ := iha ⟨hws.1, hb.1, hLa⟩ hC.forallE_ty hta hgA
+    obtain ⟨hfrn, hsubn, nda, hnda, hgn, heqn⟩ := iha ⟨hws.1, hb.1, hLa⟩ hC.forallE_ty hta hgAT
     -- the rest, one binder down
     have hCop := CtxOkP.openS hC.forallE_ty hC.forallE_body hta hgAT
     have hfr' := frame_open2 hws.1 hb.1 hws.2 hb.2 hLa hLbd
@@ -319,7 +300,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
       rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 _ 0 hbnd), hrd]
       rfl
     · -- the grading
-      refine graded_pi_intro hgn (graded_cons_congr heqn hgN)
+      refine gradedTy_pi_intro hgn.graded (gradedTy_cons_congr heqn hgN).graded
         (fun ρ hρ => by rw [← heqn ρ hρ]; exact (hgAT ρ hρ).2)
         (fun ρ' hρ' => by
           have htl := Sat_tail hρ'
@@ -330,13 +311,13 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
             rwa [cons_eta] at this
           rw [← interp_mkPisAV_congr abD abN B hbits hEq _ hsat]
           have h := ((WellDenoted_pi V _ 0 (pwBit φ bm.pw) ta (mkPisAV abD B)) ▸
-            (hgr _ htl).1).2.2.2 (ρ' 0) h0
+            (hgr _ htl).1.1).2.2.2 (ρ' 0) h0
           rwa [cons_eta] at h)
         fun hv0 ρ hρ x hx => ?_
       have hx' : x ∈ˢ interp V ρ ta := (heqn ρ hρ).symm ▸ hx
       rw [← interp_mkPisAV_congr abD abN B hbits hEq _ (Sat_cons V hρ hx')]
       have hval := ((AnnotValid_pi V ρ 0 (pwBit φ bm.pw) ta (mkPisAV abD B)) ▸
-        (hgr ρ hρ).2).2.2 hv0 x hx'
+        (hgr ρ hρ).1.2).2.2 hv0 x hx'
       exact hval
     · simp only [closeTelescope, Expr.WScoped]
       exact ⟨hwsn, WScoped.abstract1 0 hwsc⟩
@@ -370,13 +351,13 @@ theorem memberCtorD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat}
     (hd : MemberCtorD (fueledOps .verified F) env ctx nF crest ks tyN ts)
     (hfr : Frame (ctx.hiAt 0) crest) {Δa : List AnnotTerm} {ca : AnnotTerm}
     (hC : CtxOkP m φ (ctx.hiAt 0) Δa crest)
-    (hca : denoteMeta m.acval env φ (ctx.hiAt 0) crest = some ca) (hgr : Graded V Δa ca) :
+    (hca : denoteMeta m.acval env φ (ctx.hiAt 0) crest = some ca) (hgr : GradedTy V Δa ca) :
     ∃ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
       ca = mkPisAV abD B ∧ denoteMeta m.acval env φ (ctx.hiAt 0) tyN = some (mkPisAV abN B) ∧
       abD.length = nF ∧ abN.length = nF ∧
       abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) ∧
       FieldsEqOn V Δa (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
-      Graded V Δa (mkPisAV abN B) ∧ Frame (ctx.hiAt 0) tyN ∧ LeavesSub tyN crest := by
+      GradedTy V Δa (mkPisAV abN B) ∧ Frame (ctx.hiAt 0) tyN ∧ LeavesSub tyN crest := by
   obtain ⟨nds, cur, htele, htyN, -⟩ := hd
   subst htyN
   have := posD_red hin htele (by simpa using hfr) (by simpa using hC) (by simpa using hca) hgr
