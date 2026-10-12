@@ -50,12 +50,12 @@ def checkDefnVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
 (whose type must additionally be a proposition).  **A theorem is
 stored by its statement only**: `thmInfo` carries no value — a theorem
 is opaque to reduction (`unfoldDefinition` has no `thmInfo` arm), and
-the annotated value is a *realizability witness*, checked against the
+the checked value is a *realizability witness*, checked against the
 statement and then discarded, exactly as an opaque's is: the result
 environment does not mention `value`, so nothing downstream can read a
 proof term.  This is what lets the driver install a theorem before its
 value is looked at at all (phase A pushes the statement; phase B
-annotates and checks the value from the pending record,
+checks the value from the pending record,
 `ConLeche/Cached/Installed.lean`). -/
 def checkThmVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
     (value : Expr) : m Env := do
@@ -145,7 +145,7 @@ The guards are spelled with the already-certified `Nat.ble` (never the
 `Nat.le`/`Nat.lt` `Prop` inductives) and the numeral `1` as
 `Nat.succ Nat.zero`, so the model side consumes them through the
 existing `NatOps` literal semantics for `ble`/`sub`.  The op's
-self-reference is `.const c []`, substituted with the stored annotated
+self-reference is `.const c []`, substituted with the stored
 value before checking (all statement components are application
 spines, so `Expr.substConst0` applies). -/
 def divModCertStmts (c : Name) : List (List Expr × Expr) :=
@@ -247,7 +247,7 @@ def divModCertGuard (env : Env) (c : Name) (annVal : Expr)
 
 /-- Check the pinned certificates of op `c`: per certificate, the
 vendored proof (with the op's self-references replaced by the stored
-annotated value — the checks run in the *pre-insertion* environment,
+value — the checks run in the *pre-insertion* environment,
 exactly like the structural-Nat certification: post-insertion the op's
 own just-enabled fast path would participate in checking the very
 certificates that justify it) is applied to free variables typed by
@@ -386,7 +386,7 @@ def checkDivModPin (ops : CheckerOps m) (pins : List NatOpPinSet)
 /-- The `Lean.reduceNat`/`Lean.reduceBool` install gate, run after the
 ordinary opaque check (`env2` is the already-extended environment,
 `env` the pre-insertion one the comparisons run in; `value` the
-declaration's raw witness value, annotated again here — the stored
+declaration's witness value, checked again here — the stored
 constant is an `axiomInfo`, which carries no value):
 
 * the stored constant must carry the pinned type;

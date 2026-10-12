@@ -13,7 +13,7 @@ import Std.Data.HashSet.Basic
 ## The serial loop
 
 Each record is installed by `ConLeche.Cached.annotDeclStep`: a
-separable value declaration is annotated and pushed with its check
+separable value declaration is guarded and pushed with its check
 recorded, everything else is checked in full.  The loop carries the
 chain of accepting steps (`ConLeche.Cached.InstallRun`) of the records
 it has consumed, and returns it with the result.
@@ -113,7 +113,7 @@ open ConLeche
 /-- **Phase A's loop — the driver's install pass, carrying its own
 accepting run.**  Each record is installed by
 `ConLeche.Cached.annotDeclStep`: a separable value declaration is
-annotated and pushed with its check recorded, everything else is checked
+guarded and pushed with its check recorded, everything else is checked
 in full.  The loop carries the chain of accepting steps
 (`ConLeche.Cached.InstallRun`) of the records it has consumed — a
 proposition, so nothing at run time — and returns it with the result:

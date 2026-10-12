@@ -80,7 +80,7 @@ unchanged.  `where_` names the slot, e.g. `"type of Foo"`.
 (`ConLeche/Kernel/Inductives/StructParts.lean`), so a DAG-shared term
 does not unfold here.  The companion `unknownConstError`
 (`ConLeche/Kernel/Core.lean`) decides the same question inside
-inference, which the annotation pass reaches before this guard runs. -/
+inference, which runs after this guard. -/
 def unresolvedConstsError (where_ : String) (e : Expr) : CheckError :=
   if e.mentionsConst sorryAxName then
     .notImplemented s!"use of the sorryAx axiom in {where_}"

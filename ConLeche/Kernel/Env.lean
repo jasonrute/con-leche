@@ -68,10 +68,11 @@ model lane wants and the trusted lane must not run, because they are
 needed for the soundness *proof* rather than for soundness?  The
 second accessor the kernel branches on
 (task #152: the λ-rule's codomain-sort check, `inferBody`'s `.lam`
-clause).  This is deliberately **not** `ttChecks`: the λ codomain sort
-is a premise of the set lane's annotation pass (`ConLeche/Model`), so it
-must run at `.verified`; and it is a check the reference kernel's
-`infer_lambda` does not run, so it must not run at `.trusted`. -/
+clause; since task #342 also the η body-type comparison and the λ/λ
+body-type comparison of `defeqLams`).  This is deliberately **not**
+`ttChecks`: these are premises of the rules tier (`ConLeche/Rules`), so
+they must run at `.verified`; and they are checks the reference
+kernel does not run, so they must not run at `.trusted`. -/
 def CheckMode.verifiedChecks : CheckMode → Bool
   | .trusted => false
   | _ => true
@@ -79,17 +80,13 @@ def CheckMode.verifiedChecks : CheckMode → Bool
 /-- **The certificate families** (task #76's skip list; the twin's
 retirement, 2026-09-06): the work the checker does *only* so the
 soundness proof can consume it, and that the reference kernel does not
-do — the β-redex argument certificate (`whnfAppI`/`betaPeelI`, through
-`betaSkip`), the io-grade application argument certificate
-(`inferSpineIOI`, through `ioSkip`), the recursor/constructor telescope
-certificates and the canonical-index comparison of ι (`iotaRecI`), the
-plain-rule parameter re-comparison, the type-former and per-projection
-telescope certificates of structure η and unit-like conversion
-(`structEtaCertWithI`, `structUnitCertI`), and the K/η rescue's
-synthetic-spine and proof-irrelevance certificates (`majorToCtorI`).
-Read through `ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI` and
-the two skip predicates below; `true` runs them, `false` (the trusted
-mode) skips them outright.
+do — the telescope certificates and the canonical-index comparison of
+ι where the ι licence does not hold (`iotaRecI`), the plain-rule
+parameter re-comparison, the per-projection certificates of structure
+η (`structEtaCertWithI`), and the K/η rescue's proof-irrelevance
+certificate (`majorToCtorI`).  Read through
+`ConLeche/Cached/CoreC.lean`'s `certAtI`/`certUnlessI`; `true` runs
+them, `false` (the trusted mode) skips them outright.
 
 **Why a second function beside `verifiedChecks`**, when the two agree
 at both constructors.  Both are certification-only work; they differ

@@ -5,80 +5,35 @@ public import ConLeche.Kernel.TypeChecker
 @[expose] public section
 
 /-!
-# The io lane: infer at the licensed infer-only grade (task #161, stage 2)
+# The io lane: infer at official's infer-only grade
 
-**Status (task #172 B4): the io lane is LIVE in the executable's gated
-mode.**  `inferBodyIO` lives in `ConLeche/Kernel/Core.lean` (moved
-byte-identical, so the knot can tie it); the executable knot's
-`inferIO` slot runs it at every mode (task #346).  The leaf lane below
-(`coreKnotIO` / `inferTypeCoreIO`) remains the *statement subject* the
-`InferClaimIO` family and the io-gate kernel fixtures are phrased
-at; `Verify/Knot.lean`'s `inferTypeIO_on` identifies the executable
-slot with it at the gated mode, and `inferTypeIO_off` collapses the
-slot to `inferTypeCore` at every gate-off mode.  The stage-2
-stop-and-name ("the knot boundary", DESIGN.md "Task #161 STAGE 2
-BATCH 1") was dissolved by the R/P separation: the P tower no longer
-routes through the R derivation tier, so a P-mode io call site
-invalidates no R claim.
+`inferBodyIO` lives in `ConLeche/Kernel/Core.lean` (so the knot can tie
+it); the executable knot's `inferIO` slot runs it at every mode.  The
+leaf lane below (`coreKnotIO` / `inferTypeCoreIO`) is the *statement
+subject* the io claims are phrased at; `Verify/Knot.lean`'s
+`inferTypeIO_on` identifies the executable slot with it.
 
 ## What the lane is
 
 The reference kernels type-check a declaration *once*, at the front
 door, and let the inferences that reduction and definitional equality
 perform on their own intermediate terms re-derive types **without
-re-checking application arguments** (`infer_type_core(e, infer_only)`,
-lean4lean's `inferType (inferOnly := true)`).  ConLeche cannot copy that
-wholesale: "a typable `e` really has its infer-only type" is refuted
-(spike `inferonly-metatheory`), and its semantic residue survives at
-the *squash* regime — closed `V`-values satisfy every premise of the
-premise-form io claim with `app ⟦f⟧ ⟦a⟧ ∉ ⟦B'⟧⟦a⟧`
-(`io_membership_fails_at_squash`, the round-D study's probe 2; the
-wall is model-class-wide, since any proof-irrelevant set model erases
-Prop-side type identity).
-
-What *is* licensed — mechanized, side-condition-free, at the graph
-regime — is the skip at a binder whose **validated** annotation is
-`never`: `io_domain_transfer`/`io_app_mem` recover the skipped
-membership from the redex's own hereditary app slot through
-`piR_dom_unique`, with no nonemptiness and no freshness premise.  So
-the io lane's application clause skips the per-argument certificate
-**iff**
-
-* the ∀'s stored `pw` is `.never` (`PropWhen.isNever`, the ∀-`φ`
-  uniform form of the claims' positive branch — exact, by
-  `isNever_iff_forall_pwBit_ne_zero`), **and**
-* `μ.verifiedChecks = true` — the mode gate, which is part of the amended
-  law 1's text (clause (i)): the gate may fire only in the modes where
-  the licensing theorems' hypotheses hold.  At `.trusted` the
-  annotations are not validated at all, so the datum means nothing
-  there and the certificate runs.
-
-Everything else is `inferBody` verbatim, clause for clause: the λ/∀
-domain-sort checks, the λ codomain-sort validation, the `letE`
-conformance and the projection typing all **stay** — they are the
-suppliers the P2 validation sites consume, and a deviation in the
-strict direction needs no argument.
+re-checking** (`infer_type_core(e, infer_only)`, lean4lean's
+`inferType (inferOnly := true)`).  Since task #342 the io body is that
+grade (the rules tier's `InferIO`, `ConLeche/Rules/Rel.lean`): an
+application infers the function's type and instantiates its codomain
+at the argument, with no argument check; a λ infers its body opened at
+its domain, with no domain check; a `let` infers its body at the
+value, with no value check.  The ∀ domain and codomain sorts and the
+projection typing stay, as in official's infer-only.
 
 ## The knot boundary
 
-`coreKnotIO` is a **leaf** lane: its `whnfCore`/`whnf`/`defeq`/
-`annotate` are the *full* knot's, unchanged, so every certificate the
-reduction and definitional-equality bodies run is the certified one and
-every relation that models those bodies (`Red`/`Infer`/`DefEq` in
-`ConLeche/Rules/Rel.lean`) keeps its subject.  Only `infer` is the io body, and only the io body
-calls it.  Consequently
-
-* the new statement surface is **exactly one family**
-  (`InferClaimIO`), and the step assembly goes five-way:
-  `{whnfCore, whnf, defeq, infer, inferIO}` at `fuel` give the same
-  five at `fuel + 1`;
-* nothing in the full lane can reach an io conclusion, which is the
-  mode-provenance discipline enforced by construction rather than by
-  review;
-* and — the price, named here so it is not rediscovered — **the lane
-  is unreachable from the executable**.  Making it reachable means
-  letting a body the R tier models premise-exactly call `r.infer` at io
-  grade, and that is the wall the seal records.
+`coreKnotIO` is a **leaf** lane: its `whnfCore`/`whnf`/`defeq` are the
+*full* knot's, unchanged, so every relation that models those bodies
+(`Red`/`Infer`/`DefEq`) keeps its subject.  Only `infer` is the io
+body, and only the io body calls it; nothing in the full lane reaches
+an io conclusion except through the knot's `inferIO` slot.
 -/
 
 namespace ConLeche
@@ -86,20 +41,14 @@ namespace ConLeche
 variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 variable (mode : CheckMode)
 
-/-- **The io knot** (the leaf lane).  `whnfCore`/`whnf`/`defeq`/
-`annotate` are the *full* knot's at the same fuel — the io lane
-consumes the certified reduction and definitional equality and never
-supplies them — and `infer` is `inferBodyIO` tied to the io knot one
-level down.  The full knot never mentions this one: that asymmetry is
-the mode-provenance discipline, engineered rather than reviewed.
-
-Task #172 B4: `inferBodyIO` itself moved to `ConLeche/Kernel/Core.lean`
-(byte-identical) so the executable knot's io slot can tie it; this
-leaf lane stays as the *statement subject* the io claims and the io
-gate's kernel fixtures are phrased at, and the knot equations
-(`Verify/Knot.lean`) identify the executable slot with it at the
-gated mode.  Its own `inferIO` slot is the io body again — the io
-grade is idempotent (there is nothing below io to select). -/
+/-- **The io knot** (the leaf lane).  `whnfCore`/`whnf`/`defeq` are
+the *full* knot's at the same fuel — the io lane consumes reduction
+and definitional equality and never supplies them — and `infer` is
+`inferBodyIO` tied to the io knot one level down.  This leaf lane is
+the *statement subject* the io claims are phrased at, and the knot
+equations (`Verify/Knot.lean`) identify the executable slot with it.
+Its own `inferIO` slot is the io body again — the io grade is
+idempotent (there is nothing below io to select). -/
 def coreKnotIO (env : Env) : Nat → CoreFns m
   | 0 =>
     { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")

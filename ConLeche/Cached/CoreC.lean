@@ -8,7 +8,7 @@ public import ConLeche.Cached.StateC
 # The cached checker core
 
 The core over the computed-field representation: `whnfCore`, `whnf`,
-`infer`, `defeq` and `annotate`, each memoized in `CState`; a
+`infer`, `inferIO` and `defeq`, each memoized in `CState`; a
 syntactic read is the operation itself (task #198).
 
 See DESIGN.md, "The cached checker".
@@ -19,10 +19,10 @@ ties them at a mode.  The verified core is this knot at `.verified`;
 the trusted core is this same knot at `.trusted` — there is no second
 implementation: what
 the trusted mode omits is exactly what `mode.verifiedChecks` gates
-here (group A: the annotation validations, the λ-codomain sort check,
-the projection certificate) plus what `mode.certs` gates (the
-certificate families: every `certAtI` / `certUnlessI` site and the
-`betaSkip` / `ioSkip` reads), and nothing else (DESIGN.md, "CORET
+here (group A: the λ-codomain sort check, the η body-type comparison,
+the λ/λ body-type comparison, the projection certificate) plus what
+`mode.certs` gates (the certificate families: every `certAtI` /
+`certUnlessI` site), and nothing else (DESIGN.md, "CORET
 RETIRED").  Every read is a `match` on the two-constructor enum
 (`ConLeche/Kernel/Env.lean`), so at either literal mode it reduces by
 `rfl` and the branch is gone, not collapsed.
@@ -298,9 +298,8 @@ variable (mode : CheckMode)
 list as a mode function: the certificate families the reference
 kernel does not run and only the soundness proof consumes.  Every such
 certificate below is spelled through one of the two wrappers here, so
-the list of `certAtI`/`certUnlessI` sites — plus the `betaSkip` and
-`ioSkip` reads — **is** the list of what the trusted core omits beyond
-group A.  At `.verified` the function is `true`, so `certAtI .verified
+the list of `certAtI`/`certUnlessI` sites **is** the list of what the
+trusted core omits beyond group A.  At `.verified` the function is `true`, so `certAtI .verified
 c` is `c` by `rfl` (`certAtI_verified`); the simulation tower
 (`ConLeche/Verify/Cached/*`), stated under `hμ : mode.verifiedChecks =
 true`, sees through the wrapper by `certAtI_of_verifiedChecks` — the
@@ -1022,31 +1021,12 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
         inferSpineI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
 
-/-- **The io-grade spine walk** (task #172 B4): `inferSpineI` with the
-per-argument certificate gated — the ONE io-graded check
-(`inferBodyIO`'s app clause, `ConLeche/Kernel/Core.lean`), in the bulk
-telescope form.  At a ∀ step whose annotation datum is `.never` the
-argument's inference and the domain comparison are skipped; the
-returned type is the same telescope walk either way, so the lane is
-annotation-blind in its results.  A syntactic `.forallE` is its own
-whnf, so the syntactic step's datum is the datum the pure io body
-reads off the whnf'd type.
-
-**The licence reads the datum and nothing else** (the ruling of
-2026-09-06).  It used to carry a `mode.verifiedChecks &&` mode conjunct; that
-conjunct made the *trusted* core run the certificate the verified core
-skips — an inversion of what the trusted mode is defined to be (the
-real mode with certification-only steps omitted).  Validating the
-datum is certification-only work and stays in group A; consuming it is
-not.  The P tier's licensing theorem (`io_domain_transfer`,
-`Model/IOLicense.lean`) never used the mode conjunct either: it spends
-only `pwBit_ne_zero_of_isNever`.
-
-**The read is `mode.ioSkip mt.pw`** (the twin's retirement): at
-`.verified` that is `mt.pw.isNever` by `rfl` — the datum alone, as
-above — and at `.trusted` it is `true`: the per-argument
-certificate at an internal inference is a certificate family
-(official's `infer_only` runs none), skipped wholesale. -/
+/-- **The io-grade spine walk**: `inferBodyIO`'s app clause
+(`ConLeche/Kernel/Core.lean`) in the bulk telescope form — official's
+`infer_only`: the function's type is walked through the arguments with
+no argument inference and no domain comparison (task #342).  A
+syntactic `.forallE` is its own whnf; anything else is instantiated and
+whnf'd before the next step. -/
 def inferSpineIOI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
     Expr → Array Expr → List Expr → CheckCM Expr
   | ty, acc, [] => instListRevM ty acc
@@ -1166,21 +1146,14 @@ def inferLamsI (r : CoreFnsI) (d : Nat) :
 
 /-- Rebuild loop of `inferPisI`: fold the accumulated domain sorts by
 `imax`, innermost binder first — exactly the chained `∀`-rule's result
-value.
-
-Task #272 (GitHub issue #9): the codomain sort's zero-ness datum is
-THREADED, not recomputed.  `zeronessOf (imax u v) = zeronessOf v`
-holds definitionally, so every node of a ∀ telescope shares the leaf's
-datum — the chain the annotation loop already folds
-(`annotateBindersOutI`).  The fold used to read it out of a
-`Level`-keyed memo, which MISSED at every step (a node's key
-`.imax u v` is new each time) and then walked `zeronessOf` down the
-growing right spine: `O(k²)` in the telescope depth `k`, and it was
-90 % of the check phase on a ∀ chain of 40 000 binders. -/
+value.  The fold reads no per-node datum: a `Level`-keyed lookup here
+would miss at every step (a node's key `.imax u v` is new each time),
+and a walk down the growing right spine is `O(k²)` in the telescope
+depth `k` (task #272, GitHub issue #9: it was 90 % of the check phase
+on a ∀ chain of 40 000 binders). -/
 def inferPisOutI : List Level → Level → CheckCM Level
   | [], v => pure v
   | u :: rest, v => do
-    -- Task #342 S0: no `(forall-cod)` validation
     let v' ← pure (.imax u v)
     inferPisOutI rest v'
 

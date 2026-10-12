@@ -25,11 +25,11 @@ The reduction loop follows the official kernel (`whnfCore` never
 delta-unfolds; `whnf` iterates `whnfCore → reduceNat → unfold one
 definition`), and definitional equality starts with the syntactic fast
 path and tries proof irrelevance before structural congruence.
-Inference re-checks the application argument and the λ-annotation: the
-soundness claims re-derive their membership slots from those checks at
-their own fuel.  The official kernel's *infer-only* mode is deferred
-until the refinement bridge's fuel-determinism machinery lands
-(DESIGN.md).
+Inference comes at two grades, as in the official kernel: the full
+grade (`inferBody`) checks application arguments, λ domains and `let`
+values; the infer-only grade (`inferBodyIO`, the knot's `inferIO`
+slot) re-derives a type without those checks and is what reduction and
+definitional equality call on their own intermediate terms.
 
 Verification: `ConLeche.Model.*` and `ConLeche.Verify.*` (claims),
 `ConLeche.Verify.*` (inversions), both stated against the bodies with
@@ -1320,8 +1320,7 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       -- official's `infer_lambda` skips it at `infer_only`
       -- (`type_checker.cpp:131`), and the model proof
       -- never consumes it: the domain's grading comes from the
-      -- premise (`WellDenoted.hoist_lam`).  The codomain validation stays
-      -- — it is what makes the λ datum trustworthy.
+      -- premise (`WellDenoted.hoist_lam`).
       let bt ← r.infer (depth + 1)
         (body.instantiate1 (.fvar depth ty))
       pure (.forallE ty (bt.abstract1 depth) mb)
