@@ -253,4 +253,87 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
       (fun ρ => natOpV_shiftRight (mp.nat_ops φ) (mp.nat_heads φ)
         mp.acvalValid (mp.div_mod φ) hfc ρ n₁ n₂)
 
+/-- **`NatOpHead`, proved.**  A stored operation the rule fires on keeps
+its pinned type `Nat → Nat → cod` in its `EnvModelM.nat_ops`/`div_mod`
+entry; its leaf inhabits that type's reading (`mem_type`), a two-step
+function space over the `Nat` leaf, at the stored regime bits. -/
+theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
+    Rules.NatOpHead mp.base2 φ := by
+  intro c hc hst
+  have h14 : c = ConLeche.natAddName ∨ c = ConLeche.natSubName ∨
+      c = ConLeche.natMulName ∨ c = ConLeche.natPowName ∨
+      c = ConLeche.natBeqName ∨ c = ConLeche.natBleName ∨
+      c = ConLeche.natDivName ∨ c = ConLeche.natModName ∨
+      c = ConLeche.natGcdName ∨ c = ConLeche.natLandName ∨
+      c = ConLeche.natLorName ∨ c = ConLeche.natXorName ∨
+      c = ConLeche.natShiftLeftName ∨ c = ConLeche.natShiftRightName := by
+    simpa [_root_.ConLeche.Rules.natBinOpNames, ConLeche.natDivModNames]
+      using hc
+  have hmemN : c ∈ ConLeche.natOpNames ∨ c ∈ ConLeche.natDivModNames := by
+    rcases h14 with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl | rfl | rfl <;>
+      first
+      | exact Or.inl (by decide)
+      | exact Or.inr (by decide)
+  have hnp : ¬(c = ConLeche.natPredName) := by
+    rcases h14 with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+  obtain ⟨cv, v, hh, hf⟩ := ConLeche.natOpStored_inv hst
+  obtain ⟨hguard, hpin⟩ : natOpGuard env c = true ∧
+      ConLeche.natOpTyPinned env c cv.type = true := by
+    rcases hmemN with hm | hm
+    · exact ⟨(mp.nat_ops φ c hm cv v hh hf).1, (mp.nat_ops φ c hm cv v hh hf).2.1⟩
+    · exact ⟨(mp.div_mod φ c hm cv v hh hf).1, (mp.div_mod φ c hm cv v hh hf).2.1⟩
+  obtain ⟨hnat, hdeps, -⟩ := ConLeche.natOpGuard_inv hguard
+  refine ⟨hnat, fun {d ca} hca ρ => ?_⟩
+  obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, -, -, hlpN, -⟩ :=
+    ConLeche.natLitSupported_inv hnat
+  obtain ⟨mb₁, mb₂, cod, hty, hcodB, hcodN⟩ := natOpTyPinned_shape_bin hnp hpin
+  -- the head reads to the operation's leaf
+  obtain ⟨cvc, vc, hcnt, hfc, hlpc⟩ := hdeps c (ConLeche.mem_natOpDeps_self hmemN)
+  rw [hf] at hfc
+  obtain ⟨rfl, -, -⟩ := ConstantInfo.defnInfo.inj (Option.some.inj hfc)
+  obtain rfl : ca = mp.base2.acval c φ :=
+    denoteMeta_head hf
+      (show (ConstantInfo.defnInfo cv v hh).toConstantVal.levelParams = [] from hlpc) hca
+  -- the codomain is a stored level-free constant
+  obtain ⟨codN, codCi, rfl, hcodF, hcodLp⟩ : ∃ codN codCi,
+      cod = .const codN [] ∧ env.find? codN = some codCi ∧
+        codCi.toConstantVal.levelParams = [] := by
+    by_cases hb : c = ConLeche.natBeqName ∨ c = ConLeche.natBleName
+    · obtain ⟨rfl, ciB, hfB, hlpB⟩ := hcodB hb
+      exact ⟨_, ciB, rfl, hfB, hlpB⟩
+    · rw [hcodN hb]
+      exact ⟨_, _, rfl, hfN,
+        show (ConstantInfo.indInfo cvN caps).toConstantVal.levelParams = [] from hlpN⟩
+  -- the leaf inhabits the pinned type's reading
+  have hta : denoteMeta mp.base2.acval env φ 0
+      (ConstantInfo.defnInfo cv v hh).toConstantVal.type
+      = some (.pi 0 (pwBit φ mb₁.pw) (mp.base2.acval ConLeche.natName φ)
+          (.pi 0 (pwBit φ mb₂.pw) (mp.base2.acval ConLeche.natName φ)
+            (mp.base2.acval codN φ))) := by
+    show denoteMeta mp.base2.acval env φ 0 cv.type = _
+    rw [hty]
+    exact denoteMeta_pinnedBinTy mp.base2 φ hfN
+      (show (ConstantInfo.indInfo cvN caps).toConstantVal.levelParams = [] from hlpN)
+      hcodF hcodLp
+  have hmem := mp.mem_type _ (ConLeche.Semantics.Env.find?_mem hf) φ _ hta ρ
+  rw [show (ConstantInfo.defnInfo cv v hh).name = c from
+    ConLeche.Semantics.Env.find?_name hf, interp_pi] at hmem
+  refine ⟨pwBit φ mb₁.pw, pwBit φ mb₂.pw, interp V ρ (mp.base2.acval codN φ), ?_⟩
+  rw [substFn_nil]
+  have hfib : (fun x => interp V (cons x ρ)
+        ((.pi 0 (pwBit φ mb₂.pw) (mp.base2.acval ConLeche.natName φ)
+          (mp.base2.acval codN φ)) : AnnotTerm))
+      = fun _ => piR (pwBit φ mb₂.pw) (interp V ρ (mp.base2.acval ConLeche.natName φ))
+          (fun _ => interp V ρ (mp.base2.acval codN φ)) := by
+    funext x
+    rw [interp_pi]
+    congr 1
+    · exact acval_interp_closed mp.base2 _ φ _ ρ
+    · funext y
+      exact acval_interp_closed mp.base2 _ φ _ ρ
+  rw [hfib] at hmem
+  exact hmem
+
 end ConLeche.Model

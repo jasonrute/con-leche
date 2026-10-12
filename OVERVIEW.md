@@ -662,8 +662,10 @@ point, the constructor application is the point too. The comparisons the
 ι step ran become equations because both sides fit one telescope of
 types. All of this is stated as environment laws the installer proves
 (`RecRuleLaw` in `ConLeche/Model/Annot/Laws.lean`). The literal
-accelerations, λ-congruence, η, structure η and the structure-η major
-rescue are proved by a second, unconditional induction, which reads β's
+accelerations read the argument's domain off the operation's graph,
+`Nat`, and equate the argument with its literal inside that type.
+λ-congruence, η, structure η and the structure-η major rescue are
+proved by a second, unconditional induction, which reads β's
 certificate; they reach the conditional claims by weakening
 ([the master induction in `ConLeche/Model/Rules/Sound.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Rules/Sound.lean#L41-L44)).
 And the *recomposition*, which is a few lines per claim: bridge the

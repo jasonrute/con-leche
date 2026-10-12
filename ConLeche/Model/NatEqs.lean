@@ -971,6 +971,7 @@ theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
     (hf₂ : (⟨c₀ :: env.consts⟩ : Env).find? c
       = some (.defnInfo cv' v' hint')) :
     natOpGuard (⟨c₀ :: env.consts⟩ : Env) c = true ∧
+    ConLeche.natOpTyPinned (⟨c₀ :: env.consts⟩ : Env) c cv'.type = true ∧
     ∀ eq ∈ ConLeche.natOpEquations 0 c, ∃ L R,
       denoteMeta m₂.acval ⟨c₀ :: env.consts⟩ φ 2 eq.1 = some L ∧
       denoteMeta m₂.acval ⟨c₀ :: env.consts⟩ φ 2 eq.2 = some R ∧
@@ -985,7 +986,7 @@ theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
     split at hf₂
     · next heq => exact absurd heq.symm hne
     · exact hf₂
-  obtain ⟨hg, hlaws⟩ := hprev c hcN cv' v' hint' hfE
+  obtain ⟨hg, hpin, hlaws⟩ := hprev c hcN cv' v' hint' hfE
   -- the stored heads are not the fresh cons
   obtain ⟨hN, -, -, -, -⟩ := ConLeche.Verify.natOpGuard_stored hg
   obtain ⟨ciN, hfN, -⟩ := ConLeche.Verify.storedNoLevels_exists hN
@@ -998,7 +999,8 @@ theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
     obtain ⟨h1, h2⟩ := natOpEquations_frag_of_guard hg eq hq
     exact ⟨constsBound_of_natFragOk (by simp [hfE]) (by simp [hfN]) h1,
       constsBound_of_natFragOk (by simp [hfE]) (by simp [hfN]) h2⟩
-  refine ⟨ConLeche.Verify.natOpGuard_cons hfresh hg, fun eq hq => ?_⟩
+  refine ⟨ConLeche.Verify.natOpGuard_cons hfresh hg,
+    ConLeche.Verify.natOpTyPinned_cons hfresh hpin, fun eq hq => ?_⟩
   obtain ⟨L, R, hL, hR, hlaw⟩ := hlaws eq hq
   have hfrag := natOpEquations_frag_of_guard hg eq hq
   refine ⟨L, R, ?_, ?_, ?_⟩
@@ -1199,7 +1201,8 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       (show cq ≠ (ConstantInfo.defnInfo ⟨c, lps, type'⟩ value'
         hint).name from hne) hf₂
   subst hne
-  refine ⟨hg2, fun eq hq => ?_⟩
+  refine ⟨hg2, ConLeche.natOpTyPinned_of_deps (Or.inl hcqN) hdepsOk hf₂,
+    fun eq hq => ?_⟩
   obtain ⟨e1, e2⟩ := eq
   -- the shared preamble: storedness at the prefix, fragments, frames
   have hnh : NatHeads mp.base2 φ := mp.nat_heads φ

@@ -46,12 +46,15 @@ install from the recorded `isDefEqCore` runs (`NatEqsRun`) through
 `DefEqClaim` — the run-certificate route (`Model/NatEqs.lean`)
 — and preserved across every other fresh cons.  Consumed by the
 numeral-transport inductions, which close the literal rows `NatSuccRow`/`NatOpRow` of
-`Model/Rules/Inputs.lean` (`Model/NatStep.lean`). -/
+`Model/Rules/Inputs.lean` (`Model/NatStep.lean`).  The stored type's pin
+(`natOpTyPinned`, checked at the install) is kept as well: the head row
+`NatOpHead` reads the operation's domains off it (task #342 L12). -/
 @[expose] def NatOps {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat) : Prop :=
   ∀ c ∈ ConLeche.natOpNames, ∀ cv v hint,
     env.find? c = some (.defnInfo cv v hint) →
     ConLeche.natOpGuard env c = true ∧
+    ConLeche.natOpTyPinned env c cv.type = true ∧
     ∀ eq ∈ ConLeche.natOpEquations 0 c, ∃ L R,
       denoteMeta m.acval env φ 2 eq.1 = some L ∧
       denoteMeta m.acval env φ 2 eq.2 = some R ∧
@@ -69,12 +72,14 @@ Supplied as an `EnvModelM` field: established at the operation's own
 install from the recorded certificate runs (`checkDivModCerts`'
 verdict) through `InferClaim`/`DefEqClaim` — the run-certificate
 route again (`Model/DivModCert.lean`) — and preserved across every
-other fresh cons.  Consumed by the WF-op numeral transports. -/
+other fresh cons.  Consumed by the WF-op numeral transports.  The stored
+type's pin is kept as in `NatOps`. -/
 @[expose] def DivMod {V : Type w} [SetTheory V] {env : Env}
     (m : EnvModel V env) (φ : Name → Nat) : Prop :=
   ∀ c ∈ ConLeche.natDivModNames, ∀ cv v hint,
     env.find? c = some (.defnInfo cv v hint) →
     ConLeche.natOpGuard env c = true ∧
+    ConLeche.natOpTyPinned env c cv.type = true ∧
     ∀ (ρ : Nat → V) (x y : V),
       x ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →
       y ∈ˢ interp V ρ (m.acval ConLeche.natName φ) →

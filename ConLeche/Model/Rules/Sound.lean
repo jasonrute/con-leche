@@ -25,20 +25,18 @@ of the codomain validation reads the SHAPE of the body's inferred type
 off the premise derivation (`Infer.lam_shape`), which the per-rule
 lemma cannot see.
 
-**Two inductions (task #342, L9, L10, L11).**  The claims are
+**Two inductions (task #342, L9, L10, L11, L12).**  The claims are
 conditional on the point (`Motive.lean`): `red_sound`, `defeq_sound` …
-conclude the conditional motives.  The structure-η rescue, the two
-literal accelerations, and three `DefEq` rules (`lam`, `eta`,
-`structEta`) are, for now, the **interim** unconditional side induction
-(`red_soundU`, `defeq_soundU` …) weakened (`RedSemU.cond`,
-`DefEqSemU.cond`); every other rule is proved at the conditional
-motive, from the conditional claims of its premises.  ι and the K and
-`And` rescues (L10) are one lemma each, from conditional premises to
-the unconditional conclusion, so both inductions call them.  The side
-induction reads `Red.beta`'s certificate premises, which the conditional
-one does not.  Task #342 L12 (the literal rows) moves its rules to the
-conditional induction.  λ-congruence and η need the body-type check of
-the value reading (S4); structure η, and the structure-η rescue, need
+conclude the conditional motives.  The structure-η rescue and three
+`DefEq` rules (`lam`, `eta`, `structEta`) are, for now, the **interim**
+unconditional side induction (`red_soundU`, `defeq_soundU` …) weakened
+(`RedSemU.cond`, `DefEqSemU.cond`); every other rule is proved at the
+conditional motive, from the conditional claims of its premises.  ι and
+the K and `And` rescues (L10) are one lemma each, from conditional
+premises to the unconditional conclusion, so both inductions call them.
+The side induction reads `Red.beta`'s certificate premises, which the
+conditional one does not.  λ-congruence and η need the body-type check
+of the value reading (S4); structure η, and the structure-η rescue, need
 their two spines in one telescope of types (the DESIGN record of L11).
 The side induction goes, and with it β's premises, once all of these
 are moved.
@@ -224,9 +222,9 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .strLit h => Red.strLit_sound h
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
     Red.proj_sound hin hent hhead hi hlen hus hfire hctor (certs_sound hin hcerts)
-  -- **interim** (task #342, L12): the literal rows through the side induction
-  | _, _, _, h@(.natSucc ..) => (red_soundU hin h).cond
-  | _, _, _, h@(.natOp ..) => (red_soundU hin h).cond
+  | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
+  | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
+    Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
   -- ι and the K/`And` rescues (task #342 L10): one lemma each, from the
   -- conditional claims of their premises
   | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
@@ -364,20 +362,22 @@ theorem InferSemFull.global {d : Nat} {e t : Expr} (h : InferSemFull m φ d e t)
     fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.1,
     fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.2⟩
 
-/-- **Interim** (task #342, L12): a reduction of a globally graded
-subject, unconditionally, through the side induction.  The positivity
-readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and read their
-whnf steps through it; once they carry the walked types' `IsTy`, the
-conditional `red_sound` serves them ("not pt" source (1)). -/
-theorem red_sound_global (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
+/-- **A reduction of a type** (task #342, L12): a subject that is a graded
+TYPE at every satisfying valuation reduces to a graded type with the same
+interpretation.  The conditional claim applies at every valuation because
+a type is never the point ("not pt" source (1): `IsTy.ne_pt`).  The
+positivity readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and
+read their whnf steps through it. -/
+theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
     (h : Red env d e e') (hf : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
     (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea)
-    (hg : Graded V Δa ea) :
+    (hg : GradedTy V Δa ea) :
     Frame d e' ∧ LeavesSub e' e ∧
-      ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧ Graded V Δa ea' ∧
+      ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧ GradedTy V Δa ea' ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ea' := by
-  obtain ⟨hf', hsub, ea', hea', hs⟩ := red_soundU hin h hf hC.toS hea
-  exact ⟨hf', hsub, ea', hea', fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ)).1,
-    fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ)).2⟩
+  obtain ⟨hf', hsub, ea', hea', hs⟩ := red_sound hin h hf hC.toS hea
+  have hs' := fun ρ hρ => hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ).1 (hg ρ hρ).2.ne_pt
+  exact ⟨hf', hsub, ea', hea', fun ρ hρ => ⟨(hs' ρ hρ).1, (hs' ρ hρ).2 ▸ (hg ρ hρ).2⟩,
+    fun ρ hρ => (hs' ρ hρ).2⟩
 
 end ConLeche.Model.Rules
