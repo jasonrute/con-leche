@@ -101995,3 +101995,89 @@ installer fact, if that fits.  Fragment only (`whitepaper/Fragment`).
 **Gates.**  `whitepaper/fragment-gate.sh` is green (warning-free, the
 three standard axioms).  `links-gate.sh` fails as on the base, with the
 same cited files (#340's stale anchors); not touched.
+
+## TASK #342 — W1: the whitepaper describes the design the fragment proves (2026-10-12, agent/342-w1)
+
+The task (#342 v2 §11.y, lane W1): rewrite `whitepaper/main.typ` and
+`whitepaper/sections/*.typ` to the annotation-free design of #344–#350
+and F1–F4, re-sync `links-gate.sh`, build. Maintainer rulings received
+during the lane: (1) the io grade skips the `let` value check, as
+`infer_only` does (the full grade keeps it); (2) the whitepaper, and
+NOTES entries added to it, are **path-independent**: the design is
+described as it is, with no mention of what it used to have, not even
+in contrast.
+
+**Fragment.**
+- `InferIO.letE` drops its four value premises (ruling 1); no proof used
+  them, `InferIO.letE_sound` and its pin are unchanged.
+- Comment-only edits, line counts unchanged, in the docstrings the
+  whitepaper's hover tips show (`Red.beta`, `Infer.lam`, the `DefEq`
+  no-`trans` note, `typeU`, `adm`, `IndFibLaw`, `iota_core_strict`,
+  `Fam_mem_typeU`, `interp`), so that the tips are path-independent
+  too.
+
+**The prose, section by section.**
+- §1: "How to interpret a ∀ or a λ" replaces the annotation section:
+  the value reading, the empty domain, the point-denoting `fun h =>
+  h.elim`, the two places the price is paid. "This document" no longer
+  lists `let` or the second grade among the omissions.
+- §2a: terms with `let`, no binder datum; levels without zero-ness;
+  one β rule and ζ with no premise; λ-congruence and η with the
+  bodies' type premises in the colour, which now marks the
+  certification tax (`#tax`, renamed from `#ann` in `lib.typ`,
+  `style.css`, README); Lean's ∀/λ inference rules; the `let` rule.
+- §2b: the set theory with the point's three laws (con-leche's
+  `pt = {ptTag}` in a `#real` block); `PiV`/`Λ` read off the values;
+  the empty domain; `TyU` (types, truth values included above `Prop`);
+  the invariant recording types; β off the point (Lemma 1) and why a
+  redex at the point may have an ill-denoted reduct
+  (`etaIota_reduced_major_witness`); why no sort holds the point
+  (`badEnv_no_model`); the conditional claims; the four reading cases
+  of #345; "proofs that are not proofs"; the proof cases (β, ζ, red-l,
+  ∀-, λ-, app-congruence, η, proof irrelevance claims nothing, the
+  inference rules, `let`). New §2.8 "The certification tax" (the λ/η
+  check, innermost-only, full grade; why con-leche needs it,
+  `lam_congr_untyped_unsound`, `lam_congr_sorts_unsound`; why other
+  checkers do without it; `DefEqLams`; `lam_congr_io_unsound` for the
+  full grade; the case-3 certificate as the second item). New §2.9 "The
+  cheaper grade" (`InferIO`, the hereditary `IORel` keyed on syntax,
+  `io_type_value_collision`, the two consumers).
+- §3: level instantiation without data; law 1 says "a type"; four more
+  laws announced for §4; the install proof uses that two types are
+  never the point.
+- §4: annotations removed from every generated type; the operator over
+  admissible fibres (`adm`, `reflBody`), the one-fibre family as a
+  type, strict fibres (`Fam_mem_typeU`), the recursor into `Prop` is
+  the point; §4.2.7 "The ι rule" (comparisons, no spine certificate by
+  `teleFit_of_ne_pt`, the law with conditional comparisons and off the
+  point, `FitsVals_eq_of_cond` in the proof); §4.2.8 "When ι needs a
+  certificate" (case 2 by the fibre law; case 3 with the
+  constructor certificate in the tax colour and no slot certificate by
+  the slot law; K by inversion, the law reads no sort; the step through
+  projections with the "as found" proviso; the remark that a
+  restricted large elimination empties case 3); the consistency
+  corollary's proof re-read for the value model.
+- §5: annotations removed from `Tree.rec`'s type.
+- §6: K moved to §4; η for structures points at the projection step.
+- §7: `let`, K and the second grade leave the omission list; the
+  `AnnotTerm` paragraph describes the numeral-free layer; the uniform-β
+  paragraph is gone.
+- §8: Carneiro, Werner, Barras re-read for the value reading and the
+  premise-free β.
+
+**Links.** `links-gate.sh --update`: 458 links, 111 files, 13
+documents; every fragment citation repointed and its cited lines read.
+Real-checker citations are master's; those that change with the port
+carry `// PORT:` comments (12 sites: §1, §2a ×3, §2b ×3, §4 ×2, §6,
+§7 ×2) for W2.
+
+**NOTES** 44–48 (path-independent): ι's soundness as three environment
+laws; the K law needs neither `Prop` nor the elimination level;
+λ-telescopes as their own relation; `let` value checks are verdicts;
+the cheaper grade as a separate relation. **PLAN.md**: the fragment
+rulings and the order of presentation brought to the design; the
+rulings of 2026-10-12 recorded.
+
+**Gates.** `whitepaper/fragment-gate.sh` green; `whitepaper/links-gate.sh`
+OK; `whitepaper/build.sh` (via `nix develop ./whitepaper`) builds PDF
+and HTML with no warning. OVERVIEW/README untouched.
