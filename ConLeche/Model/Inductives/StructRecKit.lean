@@ -272,7 +272,7 @@ theorem drop_fields_eq {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
 theorem fieldsValid_of_frame {Γ : List AnnotTerm} {k nP nF : Nat}
     (hk : k = nP + nF) (hΓ : Γ.length = k)
     (okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-      WellDenotedV V ρ (Γ.getD (k - 1 - i) default)) :
+      WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)) :
     ∀ (j : Nat), j ≤ nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
       FieldsValid ρ (fieldsFrom Γ k nP nF j) := by
   suffices ∀ (m j : Nat), nF - j = m → j ≤ nF → ∀ ρ : Nat → V,
@@ -291,7 +291,7 @@ theorem fieldsValid_of_frame {Γ : List AnnotTerm} {k nP nF : Nat}
     intro j hm hj ρ hρ
     have hlt : j < nF := by omega
     rw [fieldsFrom_succ hlt]
-    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).2, fun a ha => ?_⟩
+    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1.2, fun a ha => ?_⟩
     refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
     rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
       List.drop_eq_getElem_cons (l := Γ) (i := k - (nP + j) - 1) (by omega)]

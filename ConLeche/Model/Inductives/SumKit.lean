@@ -583,7 +583,7 @@ structure CtorDataI {env : Env} (m : EnvModel V env) (T : Name) (lps : List Name
   bits : ∀ (ψ : Name → Nat) (d : Nat × Nat × AnnotTerm), d ∈ ds ψ →
     (resSort.eval ψ = 0 ↔ d.2.1 = 0)
   okTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-    WellDenotedV V ρ (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ)))
+    WellDenotedTy V ρ (mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ)))
   below : ∀ ψ : Name → Nat, DomsBelow 0 (ds ψ)
   belowE : ∀ ψ : Name → Nat, ∀ E ∈ Es ψ, Term.bvarsBelow (nP + nF) E.erase
   params : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ cvC.levelParams, ψ₁ q = ψ₂ q) →
@@ -681,7 +681,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
       ds.length = nP + nF ∧ Es.length = nIdx ∧
       DenoteMetaSpine mp.base2.acval env ψ (nP + nF) idxArgs Es ∧
       (∀ d ∈ ds, (resSort.eval ψ = 0 ↔ d.2.1 = 0)) ∧
-      (∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV ds (ctorBodyAVI mp.base2 T nP nF ψ Es))) ∧
+      (∀ ρ : Nat → V, WellDenotedTy V ρ (mkPisAV ds (ctorBodyAVI mp.base2 T nP nF ψ Es))) ∧
       DomsBelow 0 ds ∧ (∀ E ∈ Es, Term.bvarsBelow (nP + nF) E.erase) := by
     intro ψ
     have hc := claimsAt_of hμ mp ψ F
@@ -689,6 +689,9 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     obtain ⟨-, -, hokT, -, -⟩ := hc.inferRow hst hw hbt' hL (CtxOk.nil hnil) hTa
     have hokT' : ∀ ρ : Nat → V, WellDenotedV V ρ Ta := fun ρ =>
       hokT ρ (Sat_nil V ρ)
+    have hokT'' : ∀ ρ : Nat → V, WellDenotedTy V ρ Ta := fun ρ =>
+      ⟨hokT' ρ, IsTy_of_mem_univ ((hc.sort (CtxOk.nil hnil) hw hbt' hL hst
+        (ConLeche.ensureSortCore_inv hens) hTa) ρ (Sat_nil V ρ)).2⟩
     obtain ⟨Γ, R, htele, hop'⟩ := opened_of hopAll htf' hbt' hTa hokT'
     -- the residual's spine, inverted
     obtain ⟨fa, vs, hfa, hsp, hR⟩ := denoteMeta_mkAppN_inv hop'.body
@@ -724,7 +727,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     obtain ⟨hTeq, hlen⟩ := stripPisAV_eq_mkPis hst'
     subst hTeq
     have hbelowAll := stripPisAV_below hst' (bvarsBelow_of_reading hw hbt' hTa)
-    refine ⟨ds, vs₂, hTa, hlen, by rw [← hsp₂.length, hlenI], hsp₂, ?_, hokT', hbelowAll.1, ?_⟩
+    refine ⟨ds, vs₂, hTa, hlen, by rw [← hsp₂.length, hlenI], hsp₂, ?_, hokT'', hbelowAll.1, ?_⟩
     · intro d hd
       rw [← hsT ψ]
       exact (stripPisAV_bits (nP + nF) (hbits ψ) hTa hst' d hd).symm
@@ -800,7 +803,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
         (Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs))
         (((Classical.choose (hper ψ)).map (·.2.2)).reverse)
         (ctorBodyAVI mp.base2 T nP nF ψ (Classical.choose (Classical.choose_spec (hper ψ)))) :=
-      opened_of_peel hopAll htf' hbt' (hspec ψ).1 (hspec ψ).2.1 (hspec ψ).2.2.2.2.2.1
+      opened_of_peel hopAll htf' hbt' (hspec ψ).1 (hspec ψ).2.1 (fun ρ => ((hspec ψ).2.2.2.2.2.1 ρ).1)
     have hlenDs : (Classical.choose (hper ψ)).length = nP + nF := (hspec ψ).2.1
     have hΓlen : ((((Classical.choose (hper ψ)).map (·.2.2)).reverse)).length = nP + nF := by
       rw [List.length_reverse, List.length_map, hlenDs]
@@ -936,7 +939,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     have hC : Opened mp.base2 ψ (nP + nF) type' (fvsP ++ xFvs)
         (Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs'))
         ((ds ψ).map (·.2.2)).reverse (ctorBodyAVI mp.base2 T nP nF ψ (Es ψ)) :=
-      opened_of_peel hopAll htf' hbt' (hCD.read ψ) (hCD.len ψ) (hCD.okTy ψ)
+      opened_of_peel hopAll htf' hbt' (hCD.read ψ) (hCD.len ψ) (fun ρ => (hCD.okTy ψ ρ).1)
     have hpf := paramFrames hc hT hC (fun i hi => by
       obtain ⟨a, b, ha, hb, hdeq⟩ := hpins i hi
       rw [List.getElem?_map] at hb
@@ -1154,14 +1157,14 @@ theorem formerWalksS {m : EnvModel V env} {cvT : ConstantVal} {nP : Nat}
       (Q := fun ρ ds => ParamsOkS (resSort.eval ψ) ρ (Fss ψ) ds)
       hlenΓ (hFD.len ψ) hent okΓ
       (fun ρ hρ => (hFssOk ψ ρ hρ).1)
-      (fun ρ d ds hd hok hrec => ⟨hFD.bits ψ d hd, hok.1, hrec⟩)
+      (fun ρ d ds hd hok hrec => ⟨hFD.bits ψ d hd, hok.1.1, hok.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
     simpa using hw
   · have hw := hereditaryWalk (V := V)
       (Q := fun ρ ds => UnderTowerValid ρ (sumBodyAV (resSort.eval ψ) (Fss ψ)) ds)
       hlenΓ (hFD.len ψ) hent okΓ
       (fun ρ hρ => sumBodyAV_validV (hFssOk ψ ρ hρ).2)
-      (fun ρ d ds hd hok hrec => ⟨hok.2, hrec⟩)
+      (fun ρ d ds hd hok hrec => ⟨hok.1.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by rw [hΓnil]; exact Sat_nil V ρ)
     simpa using hw
 
@@ -1239,14 +1242,14 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
   have hst := stripPisAV_mkPisAV (ds ψ) (ctorBodyAVI m T nP nF ψ (Es ψ))
   rw [hlenDs] at hst
   have htele := piTeleAV_of_stripPisAV hst
-  obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ _ => hCD.okTy ψ ρ)
+  obtain ⟨okΓ, -⟩ := piTeleAV_graded (V := V) htele (Δ₀ := []) (fun ρ _ => (hCD.okTy ψ ρ).1)
   simp only [List.append_nil] at okΓ
   have hΓlen : (((ds ψ).map (·.2.2)).reverse).length = nP + nF := by simp [hlenDs]
   have hΓplen : ((((ds ψ).take nP).map (·.2.2)).reverse).length = nP := by
     rw [List.length_reverse, List.length_map, hlenP]
   have okΓp : ∀ i, i < nP → ∀ ρ : Nat → V,
       Sat V (((((ds ψ).take nP).map (·.2.2)).reverse).drop (nP - i)) ρ →
-      WellDenotedV V ρ (((((ds ψ).take nP).map (·.2.2)).reverse).getD (nP - 1 - i) default) := by
+      WellDenotedTy V ρ (((((ds ψ).take nP).map (·.2.2)).reverse).getD (nP - 1 - i) default) := by
     intro i hi ρ hρ
     rw [← getD_reverse_take hlenDs hi]
     refine okΓ i (by omega) ρ ?_
@@ -1272,7 +1275,7 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
         (ctorBodyAVI m T nP nF ψ (Es ψ)) pds)
       hΓplen hlenP hentP okΓp
       (fun ρ hρ => ?_)
-      (fun ρ d ds' _ hok hrec => ⟨hok.1, hrec⟩)
+      (fun ρ d ds' _ hok hrec => ⟨hok.1.1, hok.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by
         rw [Nat.sub_zero, List.drop_eq_nil_of_le (by rw [hΓplen]; exact Nat.le_refl _)]
         exact Sat_nil V ρ)
@@ -1300,7 +1303,7 @@ theorem ctorWalksGen {m : EnvModel V env} {T : Name} {lps : List Name} {cvT cvC 
           (mkTowerGoU (resSort.eval ψ) Fs (idxEqAV []))) ds')
       hΓlen hlenDs hent okΓ
       (fun ρ' hρ' => ?_)
-      (fun ρ d ds' _ hok hrec => ⟨hok.2, hrec⟩)
+      (fun ρ d ds' _ hok hrec => ⟨hok.1.2, hrec⟩)
       0 (Nat.zero_le _) ρ (by
         rw [Nat.sub_zero, List.drop_eq_nil_of_le (by rw [hΓlen]; exact Nat.le_refl _)]
         exact Sat_nil V ρ)

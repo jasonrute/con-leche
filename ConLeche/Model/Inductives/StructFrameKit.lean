@@ -1158,11 +1158,11 @@ theorem hereditaryWalk {Q : (Nat → V) → List (Nat × Nat × AnnotTerm) → P
     (hent : ∀ i, i < n → ∃ p, pps[i]? = some p ∧
       p.2.2 = Γ.getD (n - 1 - i) default)
     (okΓ : ∀ i, i < n → ∀ ρ : Nat → V, Sat V (Γ.drop (n - i)) ρ →
-      WellDenotedV V ρ (Γ.getD (n - 1 - i) default))
+      WellDenotedTy V ρ (Γ.getD (n - 1 - i) default))
     (hnil : ∀ ρ : Nat → V, Sat V Γ ρ → Q ρ [])
     (hcons : ∀ (ρ : Nat → V) (d : Nat × Nat × AnnotTerm)
       (ds : List (Nat × Nat × AnnotTerm)), d ∈ pps →
-      WellDenotedV V ρ d.2.2 →
+      WellDenotedTy V ρ d.2.2 →
       (∀ a, a ∈ˢ interp V ρ d.2.2 → Q (cons a ρ) ds) → Q ρ (d :: ds)) :
     ∀ (i : Nat), i ≤ n → ∀ ρ : Nat → V, Sat V (Γ.drop (n - i)) ρ →
       Q ρ (pps.drop i) := by
