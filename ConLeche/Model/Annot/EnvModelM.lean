@@ -154,6 +154,31 @@ parameter binders. -/
             denoteMeta acval env ψ (nPc + mm) ty = some (Tys.getD mm default)) ∧
           FieldsEqOn V (D.params ψ ++ Tys).reverse (ab.map (·.2.2)) (D.fields ψ c j)
 
+section
+variable {V}
+
+/-- **An application along a Π-tower lands in its body** — at a
+VALID tower, whose `Prop` binders carry the truth-value fibres
+`app_mem_piR` asks for. -/
+theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
+    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V} {f : V},
+      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
+      f ∈ˢ interp V ρ (mkPisAV tl B) →
+      bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
+  | [], ρ, [], f, _, _, hf => hf
+  | [], _, _ :: _, _, _, h, _ => h.elim
+  | _ :: _, _, [], _, _, h, _ => h.elim
+  | d :: tl, ρ, b :: bs, f, hv, h, hf => by
+    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
+    have hf' : f ∈ˢ interp V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hf
+    rw [AnnotValid_pi] at hv'
+    rw [interp_pi] at hf'
+    have happ := app_mem_piR hf' h.1 hv'.2.2
+    rw [List.foldl_cons, consList_cons]
+    exact foldl_app_mem_mkPisAV (hv'.2.1 b h.1) h.2 happ
+
+end
+
 /-- **The P-tier environment invariant, at one mode** (see the module
 docstring). -/
 structure EnvModelM (μ : CheckMode) (env : Env) where
@@ -288,6 +313,42 @@ theorem constType (m : EnvModelM V μ env) : ConstType m.base2 φ := by
   · rw [hcross]; exact hdepth
   · have := m.mem_type ci hmem _ ta hta
     rwa [hname] at this
+
+/-- **The fibre law of the stored families, from the P invariant**
+(task #342 L7; `IndFibLaw`): at the use's levels the instantiated type
+reads as the stored type at the composed assignment (the `constType`
+crossing), so a fitting spine fits the stored reading.  Where the sort
+is `0`, the former's membership in its graded type puts the
+application in `Sort 0` (`foldl_app_mem_mkPisAV`); elsewhere the
+`ind_strict` field gives a strict set. -/
+theorem indFibLaw (m : EnvModelM V μ env) (φ : Name → Nat) : IndFibLaw m.base2 φ := by
+  intro d I cv caps us hf _hlen ab n hread ρ vs hsp
+  have hmem := ConLeche.Semantics.Env.find?_mem hf
+  have hname := ConLeche.Semantics.Env.find?_name hf
+  have hcv : (ConstantInfo.indInfo cv caps).toConstantVal = cv := rfl
+  have hwf := m.base2.wf _ hmem
+  obtain ⟨ta, hta⟩ := m.type_reads _ hmem (Level.substFn φ cv.levelParams us)
+  rw [hcv] at hta
+  have hcl : ∀ k : Nat, ta.liftN 1 k = ta := fun k =>
+    denoteMeta_closed m.base2.acval_erase m.base2.cval_closed
+      hwf.1 hwf.2.2.2.1 hta 1 k
+  have hdepth : denoteMeta m.base2.acval env (Level.substFn φ cv.levelParams us) d cv.type
+      = some ta :=
+    denoteMeta_depth_of_closed m.base2.acval_closed hwf.1 hcl hta d
+  have hcross := denotePInstLevels m.base2 φ cv.levelParams us d cv.type
+  rw [hcross, hdepth] at hread
+  obtain rfl := Option.some.inj hread
+  have hnm : I = cv.name := hname.symm
+  subst hnm
+  by_cases hn : n = 0
+  · subst hn
+    have hty := (m.type_wellDenotedTy _ hmem _ _ hta ρ).1.2
+    have hin := m.mem_type _ hmem _ _ hta ρ
+    have h0 := foldl_app_mem_mkPisAV hty hsp hin
+    rw [interp_sort, univ_zero] at h0
+    exact h0
+  · simp only [hn, decide_false, Fib_false]
+    exact m.ind_strict cv.name cv caps hf _ ab n hta hn ρ vs hsp
 
 /-- **The bridge invariant, from the P invariant**.  Every field is a
 projection:
