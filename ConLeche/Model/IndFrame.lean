@@ -221,7 +221,7 @@ theorem PiTeleAV.inst : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
   intro k T Γ R h
   induction h with
   | nil => intro v j; simpa using PiTeleAV.nil
-  | @cons k u v' A B R Γ _ ih =>
+  | @cons k A B R Γ _ ih =>
     intro v j
     rw [AnnotTerm.inst_pi, ctxInstAtAV_snoc]
     have h1 := ih v (j + 1)
@@ -285,7 +285,7 @@ theorem teleFitPA_of_tower :
     exact TeleFitPA.nil
   | succ k ihk =>
     intro T Γ R h ws ρ hlen hmem
-    obtain ⟨u, v, A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
+    obtain ⟨A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
     match ws, hlen with
     | w :: ws', hlen =>
     have hlen' : ws'.length = k := by simpa using hlen

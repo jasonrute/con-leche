@@ -7,23 +7,9 @@ public section
 /-!
 # `WellDenotedV`'s substitution metatheory (task #161, P3 batch 2)
 
-`WellDenotedV := WellDenoted ∧ AnnotValid` is the P-tier truthfulness
-currency (`Model/Currency.lean`), and every threading clause that crosses a
-binder needs it to survive the same two moves the halves survive
-separately: lifting (`WellDenoted_liftN` / `AnnotValid_liftN`) and
-instantiation (`WellDenoted_inst0` / `AnnotValid_inst0`).
-
-The file exists for a *layering* reason rather than a mathematical
-one.  `WellDenotedV` is defined in `Model/Currency.lean`, which
-imports `Annot/Valid.lean`; so the conjunction's transport laws cannot
-live beside the halves they are assembled from.  Nothing here is new
-content — each lemma is `⟨half₁ …, half₂ …⟩`.
-
-**The premises are paid per half.**  `AnnotValid_inst` takes bit
-validity of the substituted term, `WellDenoted_inst` takes hereditary
-truthfulness of it, and the conjunction takes exactly their
-conjunction — no half is charged for the other's premise.  See
-`Annot/Valid.lean`'s note on why the `bvar` clause forces this.
+`WellDenotedV` (`Model/Currency.lean`) is the P-tier name of the
+semantic invariant `WellDenoted`; these are its transport laws in that
+currency: lifting, outermost substitution, ζ, and the hoisting forms.
 -/
 
 namespace ConLeche.Model
@@ -44,7 +30,7 @@ variable (V)
 rewrite. -/
 theorem WellDenotedV_liftN (n : Nat) (e : AnnotTerm) (k : Nat) (ρ : Nat → V) :
     WellDenotedV V ρ (e.liftN n k) ↔ WellDenotedV V (shiftE n k ρ) e :=
-  and_congr (WellDenoted_liftN V n e k ρ) (AnnotValid_liftN V n e k ρ)
+  WellDenoted_liftN V n e k ρ
 
 variable {V}
 
@@ -54,15 +40,13 @@ theorem WellDenotedV_inst0 {e a : AnnotTerm} {ρ : Nat → V}
     (ha : WellDenotedV V ρ a) :
     WellDenotedV V ρ (e.inst a) ↔
       WellDenotedV V (cons (interp V ρ a) ρ) e :=
-  and_congr (WellDenoted_inst0 V ha.1) (AnnotValid_inst0 V ha.2)
+  WellDenoted_inst0 V ha
 
 /-- A graded `let` has a graded value. -/
 theorem WellDenotedV.letE_val {v b : AnnotTerm} {ρ : Nat → V}
     (h : WellDenotedV V ρ (.letE v b)) : WellDenotedV V ρ v := by
-  obtain ⟨h1, h2⟩ := h
-  rw [WellDenoted_letE] at h1
-  rw [AnnotValid_letE] at h2
-  exact ⟨h1.1, h2.1⟩
+  rw [WellDenotedV, WellDenoted_letE] at h
+  exact h.1
 
 /-- **ζ in the currency**: with its value graded, a `let` is graded
 exactly when its reduct is (`interp_zeta`: it interprets as the
@@ -70,10 +54,7 @@ reduct at every valuation). -/
 theorem WellDenotedV_zeta {v b : AnnotTerm} {ρ : Nat → V}
     (hv : WellDenotedV V ρ v) :
     WellDenotedV V ρ (.letE v b) ↔ WellDenotedV V ρ (b.inst v) := by
-  rw [WellDenotedV_inst0 hv]
-  unfold WellDenotedV
-  rw [WellDenoted_letE, AnnotValid_letE]
-  exact ⟨fun h => ⟨h.1.2, h.2.2⟩, fun h => ⟨⟨hv.1, h.1⟩, ⟨hv.2, h.2⟩⟩⟩
+  exact WellDenoted_zeta V hv
 
 /-- **Weakening a hoisted fact under one more binder**, in the P
 currency: `WellDenoted.hoist_lift`'s mirror, and what `CtxOk.weakenTop`

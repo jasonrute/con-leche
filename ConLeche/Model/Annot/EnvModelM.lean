@@ -37,9 +37,6 @@ The fields, each a payoff of the fuel-free reading:
   over every ground assignment; `denotePInstLevels` (an equality)
   delivers every instantiated form, so no arity or fuel bookkeeping
   appears anywhere.
-* **the leaves are bit-valid** — `acval_validV`, `acval_wellDenoted`'s
-  `AnnotValid` companion; establishment at install is the P2 front
-  door's own validation, transported by the claims.
 
 The bundle-supplying layer below (`constType` the worked example; its
 siblings follow the same three-field read) is what the quarter
@@ -73,7 +70,7 @@ clause, whose `leaf` and `ctor` read the leaf valuation at those names
 member `mm`'s stored type reads, at every level
 assignment, as the Π-tower over its own parameters and indices (the
 binders of its hole value, `LfpDatum.holeVal`) ending in the block's
-sort, every binder in the graph regime.  What makes a container's frame
+sort.  What makes a container's frame
 hole — the hole value at the container's instantiation — inhabit the
 container's type (the walk's context), and a group-mate's former agree
 with its hole value applied to the frame's parameters. -/
@@ -82,7 +79,7 @@ with its hole value applied to the frame's parameters. -/
   ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
     ∀ ψ : Name → Nat, ∃ ab : List (Nat × Nat × AnnotTerm),
       denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort (D.w ψ))) ∧
-      ab.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ ∧ ∀ d ∈ ab, d.2.1 ≠ 0
+      ab.map (·.2.2) = D.pars mm ψ ++ D.ids mm ψ
 
 /-! ### The recorded constructor readings (M2)
 
@@ -179,25 +176,22 @@ constructor's residual is the former at the constructor's parameters. -/
 section
 variable {V}
 
-/-- **An application along a Π-tower lands in its body** — at a
-VALID tower, whose `Prop` binders carry the truth-value fibres
-`app_mem_piR` asks for. -/
+/-- **An application along a Π-tower lands in its body**
+(`app_mem_piV` per binder). -/
 theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
     ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V} {f : V},
-      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
+      SpineFit ρ (tl.map (·.2.2)) bs →
       f ∈ˢ interp V ρ (mkPisAV tl B) →
       bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
-  | [], ρ, [], f, _, _, hf => hf
-  | [], _, _ :: _, _, _, h, _ => h.elim
-  | _ :: _, _, [], _, _, h, _ => h.elim
-  | d :: tl, ρ, b :: bs, f, hv, h, hf => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
-    have hf' : f ∈ˢ interp V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hf
-    rw [AnnotValid_pi] at hv'
+  | [], ρ, [], f, _, hf => hf
+  | [], _, _ :: _, _, h, _ => h.elim
+  | _ :: _, _, [], _, h, _ => h.elim
+  | d :: tl, ρ, b :: bs, f, h, hf => by
+    have hf' : f ∈ˢ interp V ρ (.pi d.2.2 (mkPisAV tl B)) := hf
     rw [interp_pi] at hf'
-    have happ := app_mem_piR hf' h.1 hv'.2.2
+    have happ := app_mem_piV hf' h.1
     rw [List.foldl_cons, consList_cons]
-    exact foldl_app_mem_mkPisAV (hv'.2.1 b h.1) h.2 happ
+    exact foldl_app_mem_mkPisAV h.2 happ
 
 end
 
@@ -206,9 +200,6 @@ docstring). -/
 structure EnvModelM (μ : CheckMode) (env : Env) where
   /-- the environment carrier, contained -/
   base2 : EnvModel V env
-  /-- every leaf is bit-valid (`acval_wellDenoted`'s `AnnotValid` half) -/
-  acval_validV : ∀ (n : Name) (ψ : Name → Nat) (ρ : Nat → V),
-    AnnotValid V ρ (base2.acval n ψ)
   /-- every stored type reads, at every ground assignment -/
   type_reads : ∀ c ∈ env.consts, ∀ ψ : Name → Nat,
     ∃ ta : AnnotTerm,
@@ -297,10 +288,6 @@ namespace EnvModelM
 variable {V}
 variable {μ : CheckMode} {env : Env} {φ : Name → Nat}
 
-/-- The leaf bit-validity residue, read off the field. -/
-theorem acvalValid (m : EnvModelM V μ env) : AcvalValid m.base2 :=
-  m.acval_validV
-
 /-- **The `const` residue, derived — the worked example of the
 bundle-supplying layer.**  The three type fields at the composed
 assignment `Level.substFn φ ks us`, carried to the instantiated form
@@ -364,9 +351,8 @@ theorem indFibLaw (m : EnvModelM V μ env) (φ : Name → Nat) : IndFibLaw m.bas
   subst hnm
   by_cases hn : n = 0
   · subst hn
-    have hty := (m.type_wellDenotedTy _ hmem _ _ hta ρ).1.2
     have hin := m.mem_type _ hmem _ _ hta ρ
-    have h0 := foldl_app_mem_mkPisAV hty hsp hin
+    have h0 := foldl_app_mem_mkPisAV hsp hin
     rw [interp_sort, univ_zero] at h0
     exact h0
   · simp only [hn, decide_false, Fib_false]
@@ -415,15 +401,10 @@ end EnvModelM
 
 /-- The empty environment carries the P invariant (the fold's base
 case): the core is the mode-indexed empty's projection, and every P
-field is vacuous — no constants, guards false, and the empty leaf
-`.const .empty [0]` is bit-valid because a constant leaf carries no
-binder. -/
+field is vacuous — no constants, guards false. -/
 @[expose] noncomputable def EnvModelM.empty (V : Type w) [SetTheory V]
     (μ : CheckMode) : EnvModelM V μ Env.empty where
   base2 := EnvModel.empty
-  acval_validV := fun _ _ _ => by
-    show AnnotValid V _ (.const .empty [0])
-    simp
   type_reads := fun c hc => nomatch hc
   type_wellDenotedTy := fun c hc => nomatch hc
   mem_type := fun c hc => nomatch hc
@@ -531,8 +512,8 @@ theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
     exact ⟨cv, a, b, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h⟩
   · obtain ⟨cv, caps, hf, hab⟩ := hrd mm hmm
     refine ⟨cv, caps, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h, fun ψ => ?_⟩
-    obtain ⟨ab, hta, h1, h2⟩ := hab ψ
-    exact ⟨ab, hread _ _ _ hf ψ _ hta, h1, h2⟩
+    obtain ⟨ab, hta, h1⟩ := hab ψ
+    exact ⟨ab, hread _ _ _ hf ψ _ hta, h1⟩
   · obtain ⟨cv, nPc, nF, hf, hcf, hlps, hpars, A, hA, hocc, hrdA⟩ := hrdC c hc j hj
     refine ⟨cv, nPc, nF, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h, hcf,
       fun mm hmm => ?_, fun ψ dsC bodyC hrd' hle => ?_, A, hA, hocc, fun ψ => ?_⟩

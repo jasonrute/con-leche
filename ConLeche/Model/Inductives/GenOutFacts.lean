@@ -84,7 +84,7 @@ theorem genOutIdxLen {envC : Env} {mpC : EnvModelM V μ envC}
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
   generalize hψ : Level.substFn ψ cvI.levelParams M.lvls = ψ' at hlenP ⊢
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψ'
+  obtain ⟨ab, hta, hmap⟩ := hab ψ'
   have hc := instPis_count_of_read hta cvI.levelParams M.lvls hty hs
   have hpl := hC.parsLen mm hcl.hmm ψ'
   have habl : ab.length = (D.pars mm ψ').length + (D.ids mm ψ').length := by
@@ -103,7 +103,7 @@ theorem TgtOutCls.tailOk {envC : Env} {mpC : EnvModelM V μ envC}
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hcl.hmm
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab, hta, -, -⟩ := hab (fun _ => 0)
+  obtain ⟨ab, hta, -⟩ := hab (fun _ => 0)
   exact tailOk_of_read _ _ rfl hta
 
 /-- **The walk's index count of a container instance is the class

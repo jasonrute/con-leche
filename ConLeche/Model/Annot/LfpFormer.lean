@@ -39,40 +39,33 @@ theorem mkPisAV_append' (B : AnnotTerm) :
       mkPisAV (ab₁ ++ ab₂) B = mkPisAV ab₁ (mkPisAV ab₂ B)
   | [], _ => rfl
   | d :: ab₁, ab₂ => by
-    show AnnotTerm.pi _ _ _ (mkPisAV (ab₁ ++ ab₂) B) = AnnotTerm.pi _ _ _ _
+    show AnnotTerm.pi _ (mkPisAV (ab₁ ++ ab₂) B) = AnnotTerm.pi _ _
     rw [mkPisAV_append' B ab₁ ab₂]
 
-/-- An application along a graph-regime Π-tower lands in its body. -/
-theorem foldl_app_mem_mkPisAV_pos {B : AnnotTerm} :
-    ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V} {f : V},
-      (∀ d ∈ ab, d.2.1 ≠ 0) → SpineFit ρ (ab.map (·.2.2)) bs →
-      f ∈ˢ interp V ρ (mkPisAV ab B) → bs.foldl app f ∈ˢ interp V (consList bs ρ) B
-  | [], _, [], _, _, _, hf => hf
-  | [], _, _ :: _, _, _, h, _ => h.elim
-  | _ :: _, _, [], _, _, h, _ => h.elim
-  | d :: ab, ρ, b :: bs, f, hv, h, hf => by
-    have hf' : f ∈ˢ piR d.2.1 (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hf
-    rw [piR_pos (hv d List.mem_cons_self)] at hf'
-    have happ := app_mem_of_mem_piSet hf' h.1
-    rw [List.foldl_cons, consList_cons]
-    exact foldl_app_mem_mkPisAV_pos (fun d' hd' => hv d' (List.mem_cons_of_mem _ hd')) h.2 happ
+/-- An application along a Π-tower lands in its body. -/
+theorem foldl_app_mem_mkPisAV_pos {B : AnnotTerm} {ab : List (Nat × Nat × AnnotTerm)}
+    {ρ : Nat → V} {bs : List V} {f : V} (h : SpineFit ρ (ab.map (·.2.2)) bs)
+    (hf : f ∈ˢ interp V ρ (mkPisAV ab B)) : bs.foldl app f ∈ˢ interp V (consList bs ρ) B :=
+  foldl_app_mem_mkPisAV h hf
 
 /-- **Extensionality along a graph-regime Π-tower**: two inhabitants
 agreeing on every fitting spine are equal. -/
 theorem eq_of_mem_mkPisAV_pos {B : AnnotTerm} :
     ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {f g : V},
-      (∀ d ∈ ab, d.2.1 ≠ 0) → f ∈ˢ interp V ρ (mkPisAV ab B) → g ∈ˢ interp V ρ (mkPisAV ab B) →
+      f ∈ˢ interp V ρ (mkPisAV ab B) → g ∈ˢ interp V ρ (mkPisAV ab B) →
       (∀ bs, SpineFit ρ (ab.map (·.2.2)) bs → bs.foldl app f = bs.foldl app g) → f = g
-  | [], _, _, _, _, _, _, h => h [] trivial
-  | d :: ab, ρ, f, g, hv, hf, hg, h => by
-    have hf' : f ∈ˢ piR d.2.1 (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hf
-    have hg' : g ∈ˢ piR d.2.1 (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hg
-    rw [piR_pos (hv d List.mem_cons_self)] at hf' hg'
-    rw [← eq_graph_app_of_mem_piSet hf', ← eq_graph_app_of_mem_piSet hg']
-    refine graph_congr fun a ha => ?_
-    exact eq_of_mem_mkPisAV_pos (fun d' hd' => hv d' (List.mem_cons_of_mem _ hd'))
-      (app_mem_of_mem_piSet hf' ha) (app_mem_of_mem_piSet hg' ha)
-      fun bs hbs => h (a :: bs) ⟨ha, hbs⟩
+  | [], _, _, _, _, _, h => h [] trivial
+  | d :: ab, ρ, f, g, hf, hg, h => by
+    have hf' : f ∈ˢ piV (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hf
+    have hg' : g ∈ˢ piV (interp V ρ d.2.2) fun x => interp V (cons x ρ) (mkPisAV ab B) := hg
+    unfold piV at hf' hg'
+    rw [← lamR_eta hf', ← lamR_eta hg']
+    refine lamR_congr fun a ha => ?_
+    have hfa : app f a ∈ˢ interp V (cons a ρ) (mkPisAV ab B) :=
+      app_mem_piR hf' ha fun h0 => propN_eq_zero.mp h0
+    have hga : app g a ∈ˢ interp V (cons a ρ) (mkPisAV ab B) :=
+      app_mem_piR hg' ha fun h0 => propN_eq_zero.mp h0
+    exact eq_of_mem_mkPisAV_pos hfa hga fun bs hbs => h (a :: bs) ⟨ha, hbs⟩
 
 /-! ## The former at the frame's parameters -/
 
@@ -90,7 +83,7 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
       = D.holeVal ψ ρp (D.carrier ψ ρp) mm := by
   obtain ⟨h, -, hrd, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv, caps, hf, hab⟩ := hrd mm hmm
-  obtain ⟨ab, hta, hmap, hbits⟩ := hab ψ
+  obtain ⟨ab, hta, hmap⟩ := hab ψ
   have hpl := h.parsLen mm hmm ψ
   have hsP := h.parsSat mm hmm ψ ρp hs
   generalize hρ₀ : shiftE (D.pars mm ψ).length 0 ρp = ρ₀
@@ -108,24 +101,20 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
     rw [List.map_take, hmap, List.take_left' rfl]
   have hmap₂ : (ab.drop (D.pars mm ψ).length).map (·.2.2) = D.ids mm ψ := by
     rw [List.map_drop, hmap, List.drop_left' rfl]
-  have hbits₁ : ∀ d ∈ ab.take (D.pars mm ψ).length, d.2.1 ≠ 0 :=
-    fun d hd => hbits d (List.mem_of_mem_take hd)
-  have hbits₂ : ∀ d ∈ ab.drop (D.pars mm ψ).length, d.2.1 ≠ 0 :=
-    fun d hd => hbits d (List.mem_of_mem_drop hd)
   rw [hsplit, mkPisAV_append'] at hfm
   have hfit : SpineFit ρ₀ ((ab.take (D.pars mm ψ).length).map (·.2.2))
       (frameIdx (D.pars mm ψ).length ρp) := by
     rw [hmap₁, ← hρ₀]; exact spineFit_frameIdx_of_sat hsP
   have hfr : consList (frameIdx (D.pars mm ψ).length ρp) ρ₀ = ρp := by
     rw [← hρ₀]; exact consList_frameIdx _ ρp
-  have hf₂ := foldl_app_mem_mkPisAV_pos hbits₁ hfit hfm
+  have hf₂ := foldl_app_mem_mkPisAV_pos hfit hfm
   rw [hfr] at hf₂
   -- the hole value inhabits the same index tower
   have hgm : D.holeVal ψ ρp (D.carrier ψ ρp) mm
       ∈ˢ interp V ρp (mkPisAV (ab.drop (D.pars mm ψ).length) (.sort (D.w ψ))) :=
-    LfpDatum.holeVal_mem h.kN (lfpTuple_mem _ _ _ _).toU hmm hmap₂ hbits₂
+    LfpDatum.holeVal_mem h.kN (lfpTuple_mem _ _ _ _).toU hmm hmap₂
   -- they agree on every fitting index spine: the leaf, `holeVal_app`
-  have heq := eq_of_mem_mkPisAV_pos hbits₂ hf₂ hgm fun is' his' => by
+  have heq := eq_of_mem_mkPisAV_pos hf₂ hgm fun is' his' => by
     rw [hmap₂] at his'
     rw [← List.foldl_append]
     have hsa : SpineFit ρ₀ (D.params ψ) (frameIdx (D.pars mm ψ).length ρp) := by

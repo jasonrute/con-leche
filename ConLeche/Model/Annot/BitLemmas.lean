@@ -10,7 +10,7 @@ public section
 The fixed lemma surface the model tier consumes `denoteMeta` through —
 clause equations, inversions, the depth shift, the environment
 crossing.  Fuel-free, and the binder inversions conclude
-`ea = .pi 0 (pwBit φ mb.pw) ta ba` (resp. `.lam (pwBit φ mb.pw)`)
+`ea = .pi ta ba` (resp. `.lam (pwBit φ mb.pw)`)
 *definitionally*.  Every premise is one the *reading itself* needs
 (`hacl`: leaf lift-invariance; `FindPreserved`/`LitGuardsAgree`: the
 constant and literal clauses read the environment).
@@ -77,7 +77,7 @@ theorem denoteMeta_forallE (acval : Name → (Name → Nat) → AnnotTerm)
         let ta ← denoteMeta acval env φ d ty
         let ba ← denoteMeta acval env φ (d + 1)
           (body.instantiate1 (.fvar d ty))
-        some (.pi 0 (pwBit φ mb.pw) ta ba)) := by
+        some (.pi ta ba)) := by
   rw [denoteMeta]
 
 theorem denoteMeta_lam (acval : Name → (Name → Nat) → AnnotTerm)
@@ -87,7 +87,7 @@ theorem denoteMeta_lam (acval : Name → (Name → Nat) → AnnotTerm)
         let ta ← denoteMeta acval env φ d ty
         let ba ← denoteMeta acval env φ (d + 1)
           (body.instantiate1 (.fvar d ty))
-        some (.lam (pwBit φ mb.pw) ta ba)) := by
+        some (.lam ta ba)) := by
   rw [denoteMeta]
 
 theorem denoteMeta_letE (acval : Name → (Name → Nat) → AnnotTerm)
@@ -155,7 +155,7 @@ theorem denoteMeta_forallE_inv {d : Nat} {ty bd : Expr}
     ∃ ta ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ (d + 1)
         (bd.instantiate1 (.fvar d ty)) = some ba ∧
-      ea = .pi 0 (pwBit φ mb.pw) ta ba := by
+      ea = .pi ta ba := by
   rw [denoteMeta] at h
   cases ht : denoteMeta acval env φ d ty with
   | none => rw [ht] at h; exact nomatch h
@@ -173,7 +173,7 @@ theorem denoteMeta_lam_inv {d : Nat} {ty bd : Expr}
     ∃ ta ba, denoteMeta acval env φ d ty = some ta ∧
       denoteMeta acval env φ (d + 1)
         (bd.instantiate1 (.fvar d ty)) = some ba ∧
-      ea = .lam (pwBit φ mb.pw) ta ba := by
+      ea = .lam ta ba := by
   rw [denoteMeta] at h
   cases ht : denoteMeta acval env φ d ty with
   | none => rw [ht] at h; exact nomatch h

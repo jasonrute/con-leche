@@ -15,7 +15,7 @@ import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Verify.Subst
 import ConLeche.Verify.Inductives.NestCallSyn
 import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Semantics.Tower.FixTower
@@ -57,8 +57,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-! ## A closed telescope, read -/
 
 /-- **A closed telescope, read at its own depth**: a Π-tower whose binder
-data are the pieces' readings (each at its own depth, the bit its binder
-datum's) over the body's reading. -/
+data are the pieces' readings (each at its own depth; the numerals are
+`0`, unread) over the body's reading. -/
 theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {φ : Name → Nat} :
     ∀ (nds : List (Expr × BinderMeta)) (d : Nat) (body Y : Expr) {A : AnnotTerm},
@@ -68,7 +68,7 @@ theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → Anno
       ∃ (bs : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm), A = mkPisAV bs b ∧
         bs.length = nds.length ∧
         (∀ (k : Nat) (nd : Expr × BinderMeta), nds[k]? = some nd → ∃ a,
-          bs[k]? = some (0, pwBit φ nd.2.pw, a) ∧ denoteMeta acval env φ (d + k) nd.1 = some a) ∧
+          bs[k]? = some (0, 0, a) ∧ denoteMeta acval env φ (d + k) nd.1 = some a) ∧
         denoteMeta acval env φ (d + nds.length) body = some b
   | [], d, body, Y, A, _, _, hY, hA => by
     refine ⟨[], A, rfl, rfl, fun k nd h => by simp at h, ?_⟩
@@ -88,12 +88,12 @@ theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → Anno
       obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hA
       obtain ⟨bs, b0, rfl, hbl, hbs, hb0⟩ :=
         denoteMeta_closeTelescope_read nds (d + 1) body _ hcl' hb hE hba
-      refine ⟨(0, pwBit φ bm'.pw, ta) :: bs, b0, rfl, by simp [hbl], fun k nd hk => ?_, ?_⟩
+      refine ⟨(0, 0, ta) :: bs, b0, rfl, by simp [hbl], fun k nd hk => ?_, ?_⟩
       · cases k with
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hk
           subst hk
-          refine ⟨ta, by rw [hbm]; rfl, ?_⟩
+          refine ⟨ta, rfl, ?_⟩
           rw [Nat.add_zero, ← denoteMeta_erasedEq ha]; exact hta
         | succ k =>
           simp only [List.getElem?_cons_succ] at hk
@@ -289,7 +289,7 @@ theorem genIhTy_scb {g : ClassGen} {t tele st : Nat} {w f : Expr} {d : Nat} {ty 
 
 /-- **An inductive hypothesis's type, read at its depth `D`**: the
 `genIhDomAV` of the `ih` data read off its pieces (the walked telescope's
-domains with the family's bit, the leaf's indices and the applied field) —
+domains with numeral `0`, the leaf's indices and the applied field) —
 the data `genIhdAV` reads. -/
 theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {ψ : Name → Nat}
     {g : ClassGen} {t tele st : Nat} {w f : Expr} {D : Nat} {xs idx : List Expr} {ty0 : Expr}
@@ -299,7 +299,7 @@ theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     (hty : g.ihTy t tele w f D = some ty0) (r : Nat)
     (hread : denoteMeta acval env ψ D ty0 = some a) :
     a = genIhDomAV D (g.nP + st)
-      (r, (readOpenedDoms acval env ψ D xs).map fun b => (pwBit ψ g.bm.pw, b),
+      (r, (readOpenedDoms acval env ψ D xs).map fun b => (0, b),
         idx.map fun e => (denoteMeta acval env ψ (D + xs.length) e).getD default,
         (denoteMeta acval env ψ (D + xs.length) (Expr.mkAppN f xs)).getD default) := by
   unfold ClassGen.ihTy at hty
@@ -389,7 +389,7 @@ theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : E
     (hty : g.ihTy t tele (ws.getD i default) (fvs.getD i default)
       (g.pre.length + (genCtorAt g rd c j).nF + l) = some ty)
     (hread : denoteMeta acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + l) ty = some a)
-    {bit : Nat} (hbit : bit = pwBit ψ g.bm.pw) :
+    {bit : Nat} (hbit : bit = 0) :
     ∃ q, (genIhdAV acval env g rd bit ψ c j)[l]? = some q ∧ q.1 = genRecIdx rd t ∧
       a = (genIhDomAV (g.pre.length + (genCtorAt g rd c j).nF) (g.nP + st) q).liftN l 0 := by
   subst hac
@@ -457,9 +457,9 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ xs,
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
     ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
-    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd (genBit pp ψ) ψ c j).length →
+    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j).length →
     (∀ (l : Nat) (q : IhDatum) (hv : V),
-      (genIhdAV mpC.base2.acval envC R.g R.rd (genBit pp ψ) ψ c j)[l]? = some q → hs[l]? = some hv →
+      (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j)[l]? = some q → hs[l]? = some hv →
       hv ∈ˢ interp V (consList (xs ++ fs) ρ)
         (genIhDomAV ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
             + (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length)
@@ -494,7 +494,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT]; rfl)
   obtain ⟨pd, hpd, -, hrd⟩ := hdomsR _ y hy
   rw [denoteMeta_erasedEq hyE] at hrd
-  -- the prefix's entry: the minor's value, valid there
+  -- the prefix's entry: the minor's value
   have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
       (R.g.nP + s) default = pd.2.2 := by
@@ -502,14 +502,6 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
       ite_eq_left (by omega), hpd]; rfl
   have hmem := FixKI.spineFit_getD_mem' hxs (l := R.g.nP + s) (by rw [hlenPd]; omega)
   rw [hPdget] at hmem
-  have hv := (hwdTy ρ).2
-  rw [hTyE, ← List.take_append_drop (pp.toBlockShape.rulePrefixAt c)
-    (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c), mkPisAV_append'] at hv
-  have hvA := annotValid_piDom_at hv hxs (R.g.nP + s) (by
-    rw [List.length_take, hlenRds]; omega)
-  rw [show ((List.take (pp.toBlockShape.rulePrefixAt c)
-      (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)).map (·.2.2)).getD
-      (R.g.nP + s) default = pd.2.2 from hPdget] at hvA
   -- read at the rule prefix
   have hlift := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
     (by omega)
@@ -581,14 +573,12 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     exact this
   have hmemB : xs.getD (R.g.nP + s) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) := by
     rw [← hBE, interp_liftN, hsh]; exact hmem
-  have hvB : AnnotValid V (consList xs ρ) (mkPisAV bs b) := by
-    rw [← hBE, AnnotValid_liftN, hsh]; exact hvA
   -- the rule frame's field domains are the fields' binder data
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
   have hfsl : fs.length = x.nF := hfs.length_eq.trans hfdL
-  have hihdL : (genIhdAV mpC.base2.acval envC R.g R.rd (genBit pp ψ) ψ c j).length
+  have hihdL : (genIhdAV mpC.base2.acval envC R.g R.rd 0 ψ c j).length
       = x.recs.length := by simp [genIhdAV, hgx]
   have hhsl : hs.length = x.recs.length := hhl.trans hihdL
   have hbsl : bs.length = x.nF + x.recs.length := by rw [hbl]; simp [hfl, hihl]
@@ -632,7 +622,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         (ψ := ψ) hq' hop' (by simpa [hgx] using hfvsS)
         (by rw [hgx]; exact hwsR) (by rw [hgx]; exact hwsS i hiF)
         (by rw [hgx]; exact hparts) hst (by omega) (by rw [hgx]; exact hty)
-        (by rw [hgx]; exact hra) (bit := genBit pp ψ) rfl
+        (by rw [hgx]; exact hra) (bit := 0) rfl
       obtain ⟨hv, hhv⟩ : ∃ hv, hs[l]? = some hv := ⟨_, List.getElem?_eq_getElem (by omega)⟩
       have hmI := hhs l qd hv hqd hhv
       have hcal := (genRecIdx_spec (rd := R.rd) (cvGs := R.cvGs) hrec (by
@@ -648,7 +638,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         (by omega), hfsl, Nat.add_sub_cancel_left, consList_append, interp_liftN,
         shiftE_zero_consList (by simp; omega), ← consList_append]
       exact hmI
-  have happ := foldl_app_mem_mkPisAV hvB hfit hmemB
+  have happ := foldl_app_mem_mkPisAV hfit hmemB
   -- the conclusion: the motive at the declared result's indices and the constructor
   have hbl' : ((tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs).length
       = x.nF + x.recs.length := by simp [hfl, hihl]

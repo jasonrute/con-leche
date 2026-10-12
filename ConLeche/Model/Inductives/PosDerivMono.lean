@@ -699,7 +699,7 @@ theorem posD_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       (denoteMeta_noBVar_of_nestOcc dep a hws.1 hhi ha hta)
     obtain ⟨hgAT, hgB⟩ := WellDenotedV.hoist_piTy' (V := V) hgw.graded
     have hCop := CtxOkP.openS hCw.forallE_ty hCw.forallE_body hta hgAT
-    exact MonoOn.pi 0 _ hA (ihb hcov (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd)
+    exact MonoOn.pi hA (ihb hcov (by omega) (frame_open2 hws.1 hbb.1 hws.2 hbb.2 hLa hLbd)
       hCop hba hgB (hR.under hhi hA.monoOn))
   | @hole prog dep kb e w i ty hw hocc hfn hlo hhi' hlen hfree =>
     intro _ hhi hfr Δa ea R hC hea hgr hR

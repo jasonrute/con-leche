@@ -9,7 +9,6 @@ import ConLeche.Model.CtxOkKit
 import ConLeche.Model.Annot.BitLemmas
 import ConLeche.Model.Annot.BitRename
 import ConLeche.Verify.PropRead
-import ConLeche.Model.IOLicense
 import ConLeche.Model.Annot.BitClosed
 import ConLeche.Verify.InstLevels
 /- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
@@ -125,41 +124,27 @@ theorem Frame.of_not_hasFvar {d : Nat} {e : Expr} (hf : e.hasFvar = false)
 
 theorem Graded.fst {Δa : List AnnotTerm} {e : AnnotTerm}
     (h : Graded V Δa (.fst e)) : Graded V Δa e := fun ρ hρ =>
-  ⟨((WellDenoted_fst V ρ e) ▸ (h ρ hρ).1).1,
-    (AnnotValid_fst V ρ e) ▸ (h ρ hρ).2⟩
+  (cast (WellDenoted_fst V ρ e) (h ρ hρ)).1
 
 theorem Graded.snd {Δa : List AnnotTerm} {e : AnnotTerm}
     (h : Graded V Δa (.snd e)) : Graded V Δa e := fun ρ hρ =>
-  ⟨((WellDenoted_snd V ρ e) ▸ (h ρ hρ).1).1,
-    (AnnotValid_snd V ρ e) ▸ (h ρ hρ).2⟩
+  (cast (WellDenoted_snd V ρ e) (h ρ hρ)).1
 
 /-- `WellDenoted.hoist_pi` at `Graded`. -/
-theorem Graded.pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : Graded V Δa (.pi u v A B)) :
+theorem Graded.pi {Δa : List AnnotTerm} {A B : AnnotTerm}
+    (h : Graded V Δa (.pi A B)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
-  · exact ((AnnotValid_pi V ρ u v A B) ▸ (h ρ hρ).2).1
-  · exact ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1
-  · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
-      funext i; cases i with | zero => rfl | succ i => rfl
-    have := ((AnnotValid_pi V _ u v A B) ▸
-      (h _ (Sat_tail hρ)).2).2.1 (ρ 0) (hρ 0 A rfl)
-    rwa [hcons] at this
+  obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => h ρ hρ)
+  exact ⟨fun ρ hρ => ⟨h1 ρ hρ, (cast (WellDenoted_pi V ρ A B) (h ρ hρ)).2.1⟩,
+    fun ρ hρ => h2 ρ hρ⟩
 
 /-- `WellDenoted.hoist_lam` at `Graded`. -/
-theorem Graded.lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
-    (h : Graded V Δa (.lam v A b)) :
+theorem Graded.lam {Δa : List AnnotTerm} {A b : AnnotTerm}
+    (h : Graded V Δa (.lam A b)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨⟨h1 ρ hρ, ?_⟩, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
-  · exact ((AnnotValid_lam V ρ v A b) ▸ (h ρ hρ).2).1
-  · exact ((WellDenoted_lam V ρ v A b) ▸ (h ρ hρ).1).2.1
-  · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
-      funext i; cases i with | zero => rfl | succ i => rfl
-    have := ((AnnotValid_lam V _ v A b) ▸
-      (h _ (Sat_tail hρ)).2).2 (ρ 0) (hρ 0 A rfl)
-    rwa [hcons] at this
+  obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => h ρ hρ)
+  exact ⟨fun ρ hρ => ⟨h1 ρ hρ, (cast (WellDenoted_lam V ρ A b) (h ρ hρ)).2.1⟩,
+    fun ρ hρ => h2 ρ hρ⟩
 
 /-- The head transport of a hoisted grading, at `Graded`. -/
 theorem Graded.head_congr {Δa : List AnnotTerm} {A B e : AnnotTerm}
@@ -230,20 +215,19 @@ theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm}
   rw [interp_mkAppN, hf]
   exact foldl_app_pt' as
 
-/-- The kernel's "definitely `Prop`" test on a datum is the ∀-φ uniform
-version of the claims' zero side: the bit is `0` at every valuation
-(the dual of `pwBit_ne_zero_of_isNever`). -/
-theorem pwBit_eq_zero_of_isProp {pw : PropWhen}
-    (h : pw.isProp = true) (φ : Name → Nat) : pwBit φ pw = 0 := by
+/-- The kernel's "definitely `Prop`" test on a datum: it holds at every
+valuation. -/
+theorem holds_of_isProp {pw : PropWhen}
+    (h : pw.isProp = true) (φ : Name → Nat) : pw.holds φ = true := by
   rw [eq_of_beq h]
-  simp [pwBit]
+  rfl
 
 /-- A level whose zero-ness datum is always-zero evaluates to `0`. -/
 theorem eval_eq_zero_of_isProp {u : Level}
     (h : (Level.zeronessOf u).isProp = true) (φ : Name → Nat) :
     Level.eval φ u = 0 := by
-  have := pwBit_eq_zero_of_isProp h φ
-  rw [pwBit_eq_zero_iff, ConLeche.PropWhen.zeronessOf_sound] at this
+  have := holds_of_isProp h φ
+  rw [ConLeche.PropWhen.zeronessOf_sound] at this
   exact beq_iff_eq.mp this
 
 /-- **THE FENCE.**  At a nonzero bit the product reading is a graph set
@@ -267,25 +251,23 @@ theorem irrel_fast_fence :
     have : (pt : V) ∈ˢ (truthVal False : V) := h1 ▸ pt_mem_truthVal trivial
     exact (mem_truthVal.mp this).1
 
-/-! ## 2. The type former's telescope: a `.pi` chain at nonzero bits -/
+/-! ## 2. The type former's telescope: a `.pi` chain -/
 
-/-- The reading's first `n` heads are `.pi` nodes at nonzero regime
-bits, and the residual is `.sort u` — the reading of a type former's
-stored type `∀ p⃗, Sort u` whose binders the reader checked to be
-`.never`. -/
+/-- The reading's first `n` heads are `.pi` nodes and the residual is
+`.sort u` — the reading of a type former's stored type `∀ p⃗, Sort u`. -/
 @[expose] def NeverChain : Nat → Nat → AnnotTerm → Prop
   | 0, u, e => e = .sort u
   | n + 1, u, e =>
     match e with
-    | .pi _ v _ B => v ≠ 0 ∧ NeverChain n u B
+    | .pi _ B => NeverChain n u B
     | _ => False
 
 theorem neverChain_succ_inv {n u : Nat} {e : AnnotTerm}
     (h : NeverChain (n + 1) u e) :
-    ∃ w v A B, e = .pi w v A B ∧ v ≠ 0 ∧ NeverChain n u B := by
+    ∃ A B, e = .pi A B ∧ NeverChain n u B := by
   match e with
-  | .pi w v A B => exact ⟨w, v, A, B, rfl, h.1, h.2⟩
-  | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ _
+  | .pi A B => exact ⟨A, B, rfl, h⟩
+  | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ | .letE _ _
   | .eqE _ _ | .fst _ | .snd _ | .prf => exact nomatch h
 
 /-- Substitution preserves the chain (`inst` maps `.pi` to `.pi` and
@@ -297,11 +279,11 @@ theorem NeverChain.inst : ∀ {n u : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : N
   | zero => intro u e a k h; subst h; rfl
   | succ n ih =>
     intro u e a k h
-    obtain ⟨w, v, A, B, rfl, hv, hB⟩ := neverChain_succ_inv h
-    exact ⟨hv, ih a (k + 1) hB⟩
+    obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv h
+    exact ih a (k + 1) hB
 
-/-- **A `.never`-peeled telescope reads to a chain**: each binder's bit
-is nonzero (`pwBit_ne_zero_of_isNever`), the residual sort evaluates. -/
+/-- **A `.never`-peeled telescope reads to a chain**: the residual sort
+evaluates. -/
 theorem neverChain_of_peel {acval : Name → (Name → Nat) → AnnotTerm} :
     ∀ (n : Nat) {d : Nat} {T : Expr} {u : Level} {ta : AnnotTerm},
       T.peelNeverPis n = some (.sort u) →
@@ -316,15 +298,14 @@ theorem neverChain_of_peel {acval : Name → (Name → Nat) → AnnotTerm} :
     exact (Option.some.inj hd).symm
   | succ n ih =>
     intro d T u ta hp hd
-    obtain ⟨ty, b, m, rfl, hnev, hb⟩ := Expr.peelNeverPis_succ_inv hp
+    obtain ⟨ty, b, m, rfl, -, hb⟩ := Expr.peelNeverPis_succ_inv hp
     obtain ⟨tA, tB, -, htB, rfl⟩ := denoteMeta_forallE_inv hd
-    exact ⟨pwBit_ne_zero_of_isNever hnev φ,
-      ih (Expr.peelNeverPis_instantiate1 n _ 0 hb) htB⟩
+    exact ih (Expr.peelNeverPis_instantiate1 n _ 0 hb) htB
 
 /-- **A type former's application lands in its result universe.**  The
-walk along the chain: at every slot the bit is nonzero, so the
-argument's membership in the domain is `io_domain_transfer` from the
-applied spine's own hereditary app slot — no certificate anywhere. -/
+walk along the chain: where the head is a graph, the argument's
+membership in the domain is `slotTransfer` from the applied spine's own
+hereditary app slot — no certificate anywhere. -/
 theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
     ∀ (vs : List AnnotTerm) {Ta f : AnnotTerm} {u : Nat},
       NeverChain vs.length u Ta →
@@ -339,26 +320,32 @@ theorem spine_mem_univ_of_neverChain {ρ : Nat → V} :
     exact hf
   | cons a vs ih =>
     intro Ta f u hch hokT hokS hf
-    obtain ⟨w, v, A, B, rfl, hv, hB⟩ := neverChain_succ_inv hch
+    obtain ⟨A, B, rfl, hB⟩ := neverChain_succ_inv hch
     have hokApp : WellDenotedV V ρ (.app f a) := mkAppN_head vs hokS
     have hoka : WellDenotedV V ρ a :=
-      ⟨((WellDenoted_app V ρ f a) ▸ hokApp.1).2.1,
-        ((AnnotValid_app V ρ f a) ▸ hokApp.2).2⟩
+      (cast (WellDenoted_app V ρ f a) hokApp).2.1
     have hokB : ∀ y, y ∈ˢ interp V ρ A → WellDenotedV V (cons y ρ) B :=
       fun y hy =>
-        ⟨((WellDenoted_pi V ρ w v A B) ▸ hokT.1).2.2.1 y hy,
-          ((AnnotValid_pi V ρ w v A B) ▸ hokT.2).2.1 y hy⟩
+        (cast (WellDenoted_pi V ρ A B) hokT).2.2.1 y hy
     have hf' : interp V ρ f
-        ∈ˢ piR v (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
+        ∈ˢ piV (interp V ρ A) (fun x => interp V (cons x ρ) B) := hf
+    -- L17: a value-read Π-tower over a sort is truth-valued where an inner
+    -- domain is empty, so the head may be the point and the slot then pins
+    -- no domain; the former readings' non-point head is owed
+    by_cases hfp : interp V ρ f = pt
+    · sorry
+    have hgr : interp V ρ f
+        ∈ˢ piR 1 (interp V ρ A) (fun x => interp V (cons x ρ) B) := by
+      rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
     have hmem : interp V ρ a ∈ˢ interp V ρ A := by
       obtain ⟨v', A', B', hslot, ha, -⟩ :=
-        ((WellDenoted_app V ρ f a) ▸ hokApp.1).2.2
-      exact io_domain_transfer hv hslot ha hf'
+        (cast (WellDenoted_app V ρ f a) hokApp).2.2
+      exact slotTransfer Nat.one_ne_zero hgr hslot ha
     have hokB' : WellDenotedV V ρ (B.inst a) :=
       (WellDenotedV_inst0 hoka).mpr (hokB _ hmem)
     have hfa : interp V ρ (.app f a) ∈ˢ interp V ρ (B.inst a) := by
       rw [interp_app, interp_inst0]
-      exact app_mem_piR_pos hv hf' hmem
+      exact app_mem_piV hf' hmem
     exact ih (NeverChain.inst a 0 hB) hokB' hokS hfa
 
 /-- The reading of a type-former application `T = hd b⃗` lands in
@@ -445,9 +432,10 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
   obtain ⟨pw, hpw, hprop⟩ := isProofFast_inv env.find? h
   rcases proofPW_some_inv env.find? hpw with
     ⟨ty, bd, mb, rfl, rfl⟩ | ⟨-, hhead⟩
-  · -- a λ: its datum is the body's type's sort, at bit `0`
-    obtain ⟨ta, ba, -, -, rfl⟩ := denoteMeta_lam_inv hda
-    rw [interp_lam, pwBit_eq_zero_of_isProp hprop, lamR_zero]
+  · -- a λ: L18 — the value reading reads no binder datum, so the λ's
+    -- `isProp` datum does not make it the point (the fast test's `pw`
+    -- read goes with L-ck's `PropRead` rewrite)
+    sorry
   -- an application spine: the head decides
   have hspine := hda
   rw [← ConLeche.Expr.mkAppN_getApp a] at hspine
@@ -464,15 +452,9 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
       ⟨A, B, mb, hT, rfl⟩ | rfl |
       ⟨I, us', ciI, u, hfnT, hfI, hntI, hlenI, hpeel, rfl⟩ |
       ⟨idx, ty', u, hfnT, -, -⟩
-    · -- ∀-typed: the squash product
-      have hta' := hta d
-      rw [hT, ConLeche.Expr.instantiateLevelParams] at hta'
-      obtain ⟨tA, tB, -, -, rfl⟩ := denoteMeta_forallE_inv hta'
-      have hbit : pwBit φ (Level.substPW ci.toConstantVal.levelParams us mb.pw)
-          = 0 := pwBit_eq_zero_of_isProp hprop φ
-      have hm := hmem ρ
-      rw [interp_pi, hbit] at hm
-      exact eq_pt_of_mem_piR_zero hm
+    · -- ∀-typed: L18 — the ∀'s `isProp` datum is not read by the value
+      -- reading (as the λ case)
+      sorry
     · -- `Sort`-typed: never a proof
       exact absurd hprop (by simp)
     · -- a type-former application: the graph-regime step
@@ -487,8 +469,8 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
         (ks := ci.toConstantVal.levelParams) (us := us) hlenI hdefU
       have hz : Level.eval (Level.substFn φ ciI.toConstantVal.levelParams
           (us'.map (Level.subst ci.toConstantVal.levelParams us))) u = 0 := by
-        have hb := pwBit_eq_zero_of_isProp hprop φ
-        rw [hcomp, pwBit_substPW, pwBit_eq_zero_iff,
+        have hb := holds_of_isProp hprop φ
+        rw [hcomp, ConLeche.Level.holds_substPW,
           ConLeche.PropWhen.zeronessOf_sound] at hb
         exact beq_iff_eq.mp hb
       have hT : (ci.toConstantVal.type.instantiateLevelParams
@@ -522,16 +504,14 @@ theorem prf_of_isProofFast {m : EnvModel V env} (hct : ConstType m φ)
       ⟨A, B, mb, rfl, rfl⟩ | rfl |
       ⟨I, us', ciI, u, hfnT, hfI, hntI, hlenI, hpeel, rfl⟩ |
       ⟨idy, tyy, u, hfnT, hpeel, rfl⟩
-    · -- ∀-typed: the squash product
-      obtain ⟨tA, tB, -, -, rfl⟩ := denoteMeta_forallE_inv htya
-      rw [interp_pi, pwBit_eq_zero_of_isProp hprop] at hx
-      exact eq_pt_of_mem_piR_zero hx
+    · -- ∀-typed: L18 (as above)
+      sorry
     · exact absurd hprop (by simp)
     · -- a constant-headed type former: the graph-regime step
       have hz : Level.eval (Level.substFn φ ciI.toConstantVal.levelParams us') u
           = 0 := by
-        have hb := pwBit_eq_zero_of_isProp hprop φ
-        rw [pwBit_substPW, pwBit_eq_zero_iff,
+        have hb := holds_of_isProp hprop φ
+        rw [ConLeche.Level.holds_substPW,
           ConLeche.PropWhen.zeronessOf_sound] at hb
         exact beq_iff_eq.mp hb
       have huniv := typeFormer_mem_univ_zero hct hfnT hfI hntI hlenI hpeel hz

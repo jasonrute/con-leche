@@ -43,15 +43,25 @@ theorem WellDenoted_mkAppN_head {ρ : Nat → V} :
   | [], _, h => h
   | a :: as, g, h => by
     have h1 := WellDenoted_mkAppN_head as (g := .app g a) h
-    exact ((WellDenoted_app V ρ g a) ▸ h1).1
+    exact (cast (WellDenoted_app V ρ g a) h1).1
 
-/-- **A graded application spine of a value of a nonzero-bit Π-tower fits
-the tower**: each application node's package puts its argument in a
-domain the head inhabits as a graph, and a graph's domain is rigid. -/
+/-- A spine headed by the point is the point. -/
+theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm} (hf : interp V ρ f = pt) :
+    ∀ (as : List AnnotTerm), interp V ρ (AnnotTerm.mkAppN f as) = pt
+  | [] => hf
+  | a :: as => by
+    rw [AnnotTerm.mkAppN_cons]
+    exact interp_mkAppN_pt (by rw [interp_app, hf, app_pt]) as
+
+/-- **A graded application spine that is not the point, of a value of a
+Π-tower, fits the tower**: the head is not the point, so it is a graph
+(`mem_piSet_of_mem_piV`); each application node's package puts its
+argument in a domain the head inhabits as a graph, and a graph's domain
+is rigid. -/
 theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
     ∀ {pds : List (Nat × Nat × AnnotTerm)} {h : AnnotTerm} {args : List AnnotTerm}
       {τ σ : Nat → V},
-      (∀ d ∈ pds, d.2.1 ≠ 0) →
+      interp V τ (AnnotTerm.mkAppN h args) ≠ pt →
       WellDenoted V τ (AnnotTerm.mkAppN h args) →
       interp V τ h ∈ˢ interp V σ (mkPisAV pds R) →
       args.length = pds.length →
@@ -59,17 +69,18 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
   | [], _, [], _, _, _, _, _, _ => trivial
   | [], _, _ :: _, _, _, _, _, _, hlen => by simp at hlen
   | _ :: _, _, [], _, _, _, _, _, hlen => by simp at hlen
-  | d :: pds, h, a :: args, τ, σ, hnz, hwd, hmem, hlen => by
+  | d :: pds, h, a :: args, τ, σ, hne, hwd, hmem, hlen => by
     simp only [List.map_cons, SpineFit]
-    rw [AnnotTerm.mkAppN_cons] at hwd
+    rw [AnnotTerm.mkAppN_cons] at hwd hne
     have hwdA := WellDenoted_mkAppN_head args hwd
-    obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := (WellDenoted_app V τ h a) ▸ hwdA
-    have hd : d.2.1 ≠ 0 := hnz d List.mem_cons_self
+    obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := cast (WellDenoted_app V τ h a) hwdA
+    have hhne : interp V τ h ≠ pt := fun h0 =>
+      hne (interp_mkAppN_pt (by rw [interp_app, h0, app_pt]) args)
     have hmem' : interp V τ h ∈ˢ piSet (interp V σ d.2.2)
         (fun x => interp V (cons x σ) (mkPisAV pds R)) := by
       have := hmem
       simp only [mkPisAV, interp_pi] at this
-      rwa [piR_pos hd] at this
+      exact mem_piSet_of_mem_piV this hhne
     have hv : v ≠ 0 := by
       intro hv0
       rw [hv0, piR_zero] at hf
@@ -77,8 +88,8 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
     rw [piR_pos hv] at hf
     have hx : interp V τ a ∈ˢ interp V σ d.2.2 := mem_dom_of_mem_piSet_two hmem' hf ha
     refine ⟨hx, ?_⟩
-    refine spineFit_of_wellDenoted_mkAppN_pi (R := R) (h := .app h a)
-      (fun d' hd' => hnz d' (List.mem_cons_of_mem _ hd')) hwd ?_ (by simpa using hlen)
+    refine spineFit_of_wellDenoted_mkAppN_pi (R := R) (h := .app h a) hne hwd ?_
+      (by simpa using hlen)
     rw [interp_app]
     exact app_mem_of_mem_piSet hmem' hx
 
@@ -315,13 +326,13 @@ theorem targetAbs_read
       simpa [consList_append] using this
     refine ⟨?_, fun hw => ?_⟩
     · first
-      | (rw [interp_lam, interp_lam, hAv]; exact lamR_congr fun x _ => (hbx x).1)
-      | (rw [interp_pi, interp_pi, hAv]; exact piR_congr fun x _ => (hbx x).1)
+      | (rw [interp_lam, interp_lam, hAv]; exact lamV_congr fun x _ => (hbx x).1)
+      | (rw [interp_pi, interp_pi, hAv]; exact piV_congr fun x _ => (hbx x).1)
     · first
       | (rw [WellDenoted_lam] at hw ⊢
-         obtain ⟨w1, wt, w2, Bf, w3, wBt, w4⟩ := hw
+         obtain ⟨w1, wt, w2, Bf, w3, wBt⟩ := hw
          refine ⟨hAw w1, hAv ▸ wt, fun x hx => (hbx x).2 (w2 x (hAv ▸ hx)), Bf, fun x hx => ?_,
-           fun x hx => wBt x (hAv ▸ hx), fun hv0 x hx => w4 hv0 x (hAv ▸ hx)⟩
+           fun x hx => wBt x (hAv ▸ hx)⟩
          rw [← (hbx x).1]
          exact w3 x (hAv ▸ hx))
       | (rw [WellDenoted_pi] at hw ⊢

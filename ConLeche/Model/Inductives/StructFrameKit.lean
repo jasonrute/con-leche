@@ -30,31 +30,21 @@ public section
 # Block library: a constructor's frames and the former's stage data
 
 The single-constructor readings the block stages are built from, one
-section per topic: the annotated Π-bits are exact; `CapsOk` across the
+section per topic: the Π-prefix walk; `CapsOk` across the
 member conses; the stored types' readings; the opened frames, their
 rows and telescope walks; the two parameter frames identified; fits;
 the former's stage data.
 -/
 
 /-!
-## The annotated Π-bits are exact
+## The Π-prefix walk
 
-The tower leaves' folds need the annotated Π-types' codomain bits
-*exactly*: the type former's parameter binders carry a nonzero bit
-(their codomains end in `Sort w`, of sort `succ w`), the constructor's
-and recursor's binders carry a bit that is zero exactly when the
-result sort (resp. the elimination sort) evaluates to zero.  Validity
-(`AnnotValid`) is one-directional — a zero bit at an empty-domain
-codomain is valid — so the content is *syntactic*: in verified mode
-`inferTypeCore`'s `.forallE` clause validates `zeronessOf v ==
-mb.pw` against the opened body's inferred sort `v`
-(`inferTypeCore_forall_inv`), and `checkConstantVal` runs that
-inference on the annotated type.  This section walks the Π-prefix
-(`piBits_of_infer`), pins the innermost sort per block constant, and
-reads the bits off the `denoteMeta` reading (`stripPisAV_bits`) — the
-three walks (`checkConstantVal`, `openPisAtFvars`, `denoteMeta`) open
-the binders with the same `fvar`s, so one predicate over the opening
-(`PiBitsOpen`) serves all three.
+`piBits_of_infer` walks the Π-prefix of an inferred type: the innermost
+opened body has an inferred sort, and the whole type's sort is zero
+exactly when that one is.  `checkConstantVal`, `openPisAtFvars` and
+`denoteMeta` open the binders with the same `fvar`s.  The readings'
+binder data carry no regime (`piV`/`lamV` read it off the values); a
+peel returns them normalized (`ppsNorm`, `stripPisAV_norm`).
 -/
 
 namespace ConLeche.Model
@@ -142,15 +132,6 @@ theorem inferTypeCore_mkAppN_sort {env : Env} {F d : Nat} :
 
 /-! ## The opening walk -/
 
-/-- The first `n` binders of `e`, opened from depth `d` with the
-inference's own `fvar`s, each codomain bit zero exactly when `z`. -/
-def PiBitsOpen (φ : Name → Nat) (z : Prop) : Nat → Nat → Expr → Prop
-  | 0, _, _ => True
-  | n + 1, d, .forallE dom body mb =>
-    (pwBit φ mb.pw = 0 ↔ z) ∧
-      PiBitsOpen φ z n (d + 1) (body.instantiate1 (.fvar d dom))
-  | _ + 1, _, _ => False
-
 theorem eval_imax_eq_zero_iff (φ : Name → Nat) (l r : Level) :
     Level.eval φ (.imax l r) = 0 ↔ Level.eval φ r = 0 := by
   simp only [Level.eval]
@@ -158,10 +139,10 @@ theorem eval_imax_eq_zero_iff (φ : Name → Nat) (l r : Level) :
   · next h => exact ⟨fun _ => h, fun _ => rfl⟩
   · next h => exact ⟨fun h' => absurd (Nat.max_eq_zero_iff.mp h').2 h, fun h' => absurd h' h⟩
 
-/-- **The Π-prefix walk**: in verified mode, the first `n` binders'
-bits of an inferred type are exact against the innermost opened
-body's inferred sort, and the whole type's sort is zero exactly when
-that one is (`imax`'s zero-ness is its right argument's). -/
+/-- **The Π-prefix walk**: in verified mode, the innermost opened body
+of an inferred Π-type has an inferred sort, and the whole type's sort
+is zero exactly when that one is (`imax`'s zero-ness is its right
+argument's). -/
 theorem piBits_of_infer {env : Env} (hver : mode.verifiedChecks = true) :
     ∀ (n : Nat) {F d : Nat} {e t : Expr} {v₀ : Level} {fvs : List Expr}
       {opened : Expr},
@@ -171,74 +152,37 @@ theorem piBits_of_infer {env : Env} (hver : mode.verifiedChecks = true) :
       ∃ (F' : Nat) (tb : Expr) (vb : Level),
         inferTypeCore mode env F' (d + n) opened = .ok tb ∧
         ensureSortCore mode env F' (d + n) tb = .ok vb ∧
-        (∀ φ, Level.eval φ v₀ = 0 ↔ Level.eval φ vb = 0) ∧
-        ∀ φ, PiBitsOpen φ (Level.eval φ vb = 0) n d e
+        (∀ φ, Level.eval φ v₀ = 0 ↔ Level.eval φ vb = 0)
   | 0, F, d, e, t, v₀, fvs, opened, hop, h, hens => by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hop
     obtain ⟨-, rfl⟩ := hop
-    exact ⟨F, t, v₀, h, hens, fun _ => Iff.rfl, fun _ => trivial⟩
+    exact ⟨F, t, v₀, h, hens, fun _ => Iff.rfl⟩
   | n + 1, F, d, e, t, v₀, fvs, opened, hop, h, hens => by
     match e, hop, h with
     | .forallE dom body mb, hop, h =>
       match F, h with
       | 0, h => rw [ConLeche.inferTypeCore_zero] at h; exact nomatch h
       | F + 1, h =>
-        obtain ⟨tty, u, bt, v, -, -, hbt, hensb, hz, rfl⟩ :=
+        obtain ⟨tty, u, bt, v, -, -, hbt, hensb, -, rfl⟩ :=
           ConLeche.inferTypeCore_forall_inv h
         simp only [openPisAtFvars] at hop
         split at hop
         · next fvs' e' hop' =>
           simp only [Option.some.injEq, Prod.mk.injEq] at hop
           obtain ⟨-, rfl⟩ := hop
-          obtain ⟨F', tb, vb, hrun, hensb', hv, hbits⟩ :=
+          obtain ⟨F', tb, vb, hrun, hensb', hv⟩ :=
             piBits_of_infer hver n hop' hbt hensb
-          refine ⟨F', tb, vb, ?_, ?_, ?_, ?_⟩
+          refine ⟨F', tb, vb, ?_, ?_, ?_⟩
           · rw [show d + (n + 1) = d + 1 + n from by omega]; exact hrun
           · rw [show d + (n + 1) = d + 1 + n from by omega]; exact hensb'
           · intro φ
             rw [ensureSortCore_sort_eq hens, eval_imax_eq_zero_iff]
             exact hv φ
-          · intro φ
-            refine ⟨?_, hbits φ⟩
-            rw [← hz hver]
-            exact (pwBit_zeronessOf φ _).trans (hv φ)
         · exact nomatch hop
     | .bvar _, hop, _ | .fvar _ _, hop, _ | .sort _, hop, _
     | .const _ _, hop, _ | .app _ _, hop, _ | .lam _ _ _, hop, _
     | .letE _ _ _, hop, _ | .lit _, hop, _ | .proj _ _ _, hop, _ =>
       simp [openPisAtFvars] at hop
-
-/-! ## The bits, read -/
-
-/-- The reading's Π-peel carries the syntactic bits: `denoteMeta` opens
-with the same `fvar`s. -/
-theorem stripPisAV_bits {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
-    {φ : Name → Nat} {z : Prop} :
-    ∀ (n : Nat) {d : Nat} {e : Expr} {ea : AnnotTerm}
-      {pps : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm},
-      PiBitsOpen φ z n d e → denoteMeta acval env φ d e = some ea →
-      stripPisAV n ea = some (pps, b) →
-      ∀ p ∈ pps, (p.2.1 = 0 ↔ z)
-  | 0, d, e, ea, pps, b, _, _, hst => by
-    simp only [stripPisAV, Option.some.injEq, Prod.mk.injEq] at hst
-    obtain ⟨rfl, -⟩ := hst
-    intro p hp
-    exact absurd hp (by simp)
-  | n + 1, d, e, ea, pps, b, hbits, hden, hst => by
-    match e, hbits with
-    | .forallE dom body mb, ⟨hhead, htail⟩ =>
-      obtain ⟨ta, ba, -, hba, rfl⟩ := denoteMeta_forallE_inv hden
-      simp only [stripPisAV, Option.map_eq_some_iff] at hst
-      obtain ⟨⟨pps', b'⟩, hst', heq⟩ := hst
-      simp only [Prod.mk.injEq] at heq
-      obtain ⟨rfl, rfl⟩ := heq
-      intro p hp
-      rcases List.mem_cons.mp hp with rfl | hp
-      · exact hhead
-      · exact stripPisAV_bits n htail hba hst' p hp
-    | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
-      exact h.elim
 
 /-! ## `openPisAtFvars` bookkeeping -/
 
@@ -638,7 +582,7 @@ theorem denoteMeta_agree_of_readsAt
 /-- **The peel.**  A Π-prefix opened at `fvar`s reads to a
 `stripPisAV`-strippable reading whose binder data are the opened
 variables' annotation readings at their own depths (domain sort
-numeral `0`, the codomain bit the binder's own), and whose residual is
+numerals `0`), and whose residual is
 the opened body's reading at the full depth. -/
 theorem denoteMeta_openPis {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
     {φ : Name → Nat} :
@@ -668,7 +612,7 @@ theorem denoteMeta_openPis {acval : Name → (Name → Nat) → AnnotTerm} {env 
         obtain ⟨rfl, rfl⟩ := hop
         obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hden
         obtain ⟨pps, b, hst, hb, hlen, hbind⟩ := denoteMeta_openPis n hop' hba
-        refine ⟨(0, pwBit φ mb.pw, ta) :: pps, b, ?_, ?_, ?_, ?_⟩
+        refine ⟨(0, 0, ta) :: pps, b, ?_, ?_, ?_, ?_⟩
         · simp only [stripPisAV, hst, Option.map_some]
         · rw [show d + (n + 1) = d + 1 + n from by omega]; exact hb
         · simp [hlen]
@@ -677,7 +621,7 @@ theorem denoteMeta_openPis {acval : Name → (Name → Nat) → AnnotTerm} {env 
           | zero =>
             simp only [List.getElem?_cons_zero, Option.some.injEq] at hx
             subst hx
-            exact ⟨(0, pwBit φ mb.pw, ta), rfl, rfl,
+            exact ⟨(0, 0, ta), rfl, rfl,
               by rw [Nat.add_zero]; exact hta⟩
           | succ i =>
             simp only [List.getElem?_cons_succ] at hx
@@ -781,7 +725,7 @@ theorem piTeleAV_graded :
   | nil =>
     intro Δ₀ hT
     exact ⟨fun i hi => absurd hi (Nat.not_lt_zero _), fun ρ hρ => hT ρ hρ⟩
-  | @cons k u v A B R Γ' h ih =>
+  | @cons k A B R Γ' h ih =>
     intro Δ₀ hT
     have hlen : Γ'.length = k := h.length
     have hB : ∀ ρ : Nat → V, Sat V (A :: Δ₀) ρ → WellDenotedV V ρ B := by
@@ -1119,12 +1063,12 @@ theorem PiTeleAV.unique :
   intro k T Γ Γ' R R' h
   induction h generalizing Γ' R' with
   | nil => intro h'; cases h'; exact ⟨rfl, rfl⟩
-  | @cons k u v A B R Γ₁ h ih =>
+  | @cons k A B R Γ₁ h ih =>
     intro h'
-    obtain ⟨u', v', A', B', Γ₂, hT, hΓ, h₂⟩ := h'.succ_inv
-    obtain ⟨rfl, rfl, rfl, rfl⟩ : u = u' ∧ v = v' ∧ A = A' ∧ B = B' := by
-      injection hT with a b c d
-      exact ⟨a, b, c, d⟩
+    obtain ⟨A', B', Γ₂, hT, hΓ, h₂⟩ := h'.succ_inv
+    obtain ⟨rfl, rfl⟩ : A = A' ∧ B = B' := by
+      injection hT with a b
+      exact ⟨a, b⟩
     obtain ⟨rfl, rfl⟩ := ih h₂
     exact ⟨hΓ.symm, rfl⟩
 
@@ -1137,16 +1081,16 @@ theorem piTeleAV_of_stripPisAV :
     simp only [stripPisAV, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact .nil
-  | k + 1, .pi u v A B, pps, b, h => by
+  | k + 1, .pi A B, pps, b, h => by
     simp only [stripPisAV, Option.map_eq_some_iff] at h
     obtain ⟨⟨pps', b'⟩, hst, heq⟩ := h
     simp only [Prod.mk.injEq] at heq
     obtain ⟨rfl, rfl⟩ := heq
     have := piTeleAV_of_stripPisAV hst
-    simpa [List.reverse_cons] using PiTeleAV.cons (A := A) (u := u) (v := v) this
+    simpa [List.reverse_cons] using PiTeleAV.cons (A := A) this
   | k + 1, .bvar _, _, _, h | k + 1, .sort _, _, _, h | k + 1, .const _ _, _, _, h
-  | k + 1, .app _ _, _, _, h | k + 1, .lam _ _ _, _, _, h
-  | k + 1, .eqE _ _, _, _, h
+  | k + 1, .app _ _, _, _, h | k + 1, .lam _ _, _, _, h
+  | k + 1, .letE _ _, _, _, h | k + 1, .eqE _ _, _, _, h
   | k + 1, .fst _, _, _, h | k + 1, .snd _, _, _, h
   | k + 1, .prf, _, _, h => by
     simp [stripPisAV] at h
@@ -1268,7 +1212,7 @@ theorem fieldsOkB_of_frame {w : Nat} {Γ : List AnnotTerm} {k nP nF : Nat}
     intro j hm hj ρ hρ
     have hlt : j < nF := by omega
     rw [fieldsFrom_succ hlt]
-    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1.1, (okΓ (nP + j) (by omega) ρ hρ).2,
+    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).1, (okΓ (nP + j) (by omega) ρ hρ).2,
       hbnd j hlt ρ hρ, fun a ha => ?_⟩
     refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
     rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
@@ -1558,7 +1502,7 @@ theorem spineFit_of_teleFit :
 ## The block's stage data
 
 The readings the leaves are built over, packaged per stored constant:
-`FormerData` (the type former's Π-peel, its bits, gradings, bounds
+`FormerData` (the type former's Π-peel, gradings, bounds
 and level dependence) and, in `SumKit`, the constructor's (`CtorDataI`).
 Each is derived once from the stage's run (`formerData_of`) and
 crossed to the later stage environments (`FormerData.cross`), where
@@ -1569,20 +1513,65 @@ the head's slot mentions none of them.
 
 /-! ## Kit -/
 
+/-- A Π-tower's binder data with the (unread) numeral components set to
+`0`: the shape a peel (`stripPisAV`) returns. -/
+def ppsNorm (pps : List (Nat × Nat × AnnotTerm)) : List (Nat × Nat × AnnotTerm) :=
+  pps.map fun d => (0, 0, d.2.2)
+
+@[simp] theorem ppsNorm_length (pps : List (Nat × Nat × AnnotTerm)) :
+    (ppsNorm pps).length = pps.length := by simp [ppsNorm]
+
+@[simp] theorem ppsNorm_map_dom (pps : List (Nat × Nat × AnnotTerm)) :
+    (ppsNorm pps).map (·.2.2) = pps.map (·.2.2) := by simp [ppsNorm]
+
+theorem ppsNorm_idem (pps : List (Nat × Nat × AnnotTerm)) :
+    ppsNorm (ppsNorm pps) = ppsNorm pps := by simp [ppsNorm]
+
+theorem mkPisAV_ppsNorm :
+    ∀ (pps : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm),
+      mkPisAV (ppsNorm pps) b = mkPisAV pps b
+  | [], _ => rfl
+  | _ :: pps, b => by
+    show AnnotTerm.pi _ (mkPisAV (ppsNorm pps) b) = AnnotTerm.pi _ _
+    rw [mkPisAV_ppsNorm pps b]
+
+/-- A Π-tower determines its domains (as normalized binder data) and its
+body. -/
 theorem mkPisAV_inj :
     ∀ {pps₁ pps₂ : List (Nat × Nat × AnnotTerm)} {b₁ b₂ : AnnotTerm},
       pps₁.length = pps₂.length → mkPisAV pps₁ b₁ = mkPisAV pps₂ b₂ →
-      pps₁ = pps₂ ∧ b₁ = b₂
+      ppsNorm pps₁ = ppsNorm pps₂ ∧ b₁ = b₂
   | [], [], _, _, _, h => ⟨rfl, h⟩
   | [], _ :: _, _, _, hlen, _ => by simp at hlen
   | _ :: _, [], _, _, hlen, _ => by simp at hlen
   | d₁ :: pps₁, d₂ :: pps₂, b₁, b₂, hlen, h => by
     simp only [mkPisAV, AnnotTerm.pi.injEq] at h
-    obtain ⟨hu, hv, hA, hB⟩ := h
-    obtain ⟨rfl, rfl⟩ := mkPisAV_inj (by simpa using hlen) hB
+    obtain ⟨hA, hB⟩ := h
+    obtain ⟨h1, rfl⟩ := mkPisAV_inj (by simpa using hlen) hB
     refine ⟨?_, rfl⟩
-    congr 1
-    exact Prod.ext hu (Prod.ext hv hA)
+    simp only [ppsNorm, List.map_cons] at h1 ⊢
+    rw [hA, h1]
+
+/-- A peel returns normalized binder data. -/
+theorem stripPisAV_norm :
+    ∀ {n : Nat} {e : AnnotTerm} {pps : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm},
+      stripPisAV n e = some (pps, b) → ppsNorm pps = pps
+  | 0, _, pps, b, h => by
+    simp only [stripPisAV, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, -⟩ := h
+    rfl
+  | n + 1, .pi A B, pps, b, h => by
+    simp only [stripPisAV, Option.map_eq_some_iff] at h
+    obtain ⟨⟨pps', b'⟩, hst, heq⟩ := h
+    simp only [Prod.mk.injEq] at heq
+    obtain ⟨rfl, rfl⟩ := heq
+    have := stripPisAV_norm hst
+    simp only [ppsNorm, List.map_cons] at this ⊢
+    rw [this]
+  | _ + 1, .bvar _, _, _, h | _ + 1, .sort _, _, _, h | _ + 1, .const _ _, _, _, h
+  | _ + 1, .app _ _, _, _, h | _ + 1, .lam _ _, _, _, h | _ + 1, .letE _ _, _, _, h
+  | _ + 1, .eqE _ _, _, _, h | _ + 1, .fst _, _, _, h | _ + 1, .snd _, _, _, h
+  | _ + 1, .prf, _, _, h => by simp [stripPisAV] at h
 
 /-- A `.pi` context is a successful peel, with the peel's domains
 reversed. -/
@@ -1594,9 +1583,9 @@ theorem stripPisAV_of_piTeleAV :
   intro k T Γ R h
   induction h with
   | nil => exact ⟨[], rfl, rfl⟩
-  | @cons k u v A B R Γ' _ ih =>
+  | @cons k A B R Γ' _ ih =>
     obtain ⟨pps, hst, hΓ⟩ := ih
-    refine ⟨(u, v, A) :: pps, ?_, ?_⟩
+    refine ⟨(0, 0, A) :: pps, ?_, ?_⟩
     · simp only [stripPisAV, hst, Option.map_some]
     · simp [hΓ]
 
@@ -1613,7 +1602,7 @@ theorem DomsBelow.drop {k : Nat} :
 
 /-- **The type former's reading, peeled**: at every assignment the
 stored type reads as the Π-tower over the parameter data ending in
-the result sort, with nonzero codomain bits, graded, bounded, and
+the result sort, normalized, graded, bounded, and
 depending only on the block's level parameters. -/
 structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
     (nP : Nat) (resSort : Level)
@@ -1621,7 +1610,6 @@ structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
   read : ∀ ψ : Name → Nat, denoteMeta m.acval env ψ 0 cvT.type
     = some (mkPisAV (pps ψ) (.sort (resSort.eval ψ)))
   len : ∀ ψ : Name → Nat, (pps ψ).length = nP
-  bits : ∀ (ψ : Name → Nat) (d : Nat × Nat × AnnotTerm), d ∈ pps ψ → d.2.1 ≠ 0
   okTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
     WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (resSort.eval ψ)))
   below : ∀ ψ : Name → Nat, DomsBelow 0 (pps ψ)
@@ -1649,8 +1637,8 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   have hnil : type'.fvarLeaves = [] :=
     Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
   obtain ⟨fvs, hop⟩ := openPisAtFvars_of_stripPis_sort nP 0 hstrip
-  -- the bits: the opened body is `Sort resSort`, of sort `succ resSort`
-  obtain ⟨F', tb, vb, hib, hensb, -, hbits⟩ :=
+  -- the opened body is `Sort resSort`, of sort `succ resSort`
+  obtain ⟨F', tb, vb, hib, hensb, -⟩ :=
     piBits_of_infer hμ nP hop hst hens
   obtain rfl := inferTypeCore_sort_inv hib
   obtain rfl := ensureSortCore_sort_eq hensb
@@ -1658,8 +1646,7 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   have hper : ∀ ψ : Name → Nat, ∃ pps : List (Nat × Nat × AnnotTerm),
       denoteMeta mp.base2.acval env ψ 0 type'
         = some (mkPisAV pps (.sort (resSort.eval ψ))) ∧
-      pps.length = nP ∧
-      (∀ d ∈ pps, d.2.1 ≠ 0) ∧
+      pps.length = nP ∧ ppsNorm pps = pps ∧
       (∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps (.sort (resSort.eval ψ)))) ∧
       DomsBelow 0 pps := by
     intro ψ
@@ -1677,16 +1664,11 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     obtain ⟨pps, hst', -⟩ := stripPisAV_of_piTeleAV htele
     obtain ⟨hTeq, hlen⟩ := stripPisAV_eq_mkPis hst'
     subst hTeq
-    refine ⟨pps, hTa, hlen, ?_, hokT', ?_⟩
-    · intro d hd
-      have := stripPisAV_bits nP (hbits ψ) hTa hst' d hd
-      simp only [Level.eval, Nat.succ_ne_zero, iff_false] at this
-      exact this
-    · exact (stripPisAV_below hst' (bvarsBelow_of_reading hw hbt' hTa)).1
-  refine ⟨fun ψ => Classical.choose (hper ψ), ?_, ?_, ?_, ?_, ?_, ?_, ⟨bs, resSort, hstrip⟩⟩
+    refine ⟨pps, hTa, hlen, stripPisAV_norm hst', hokT', ?_⟩
+    exact (stripPisAV_below hst' (bvarsBelow_of_reading hw hbt' hTa)).1
+  refine ⟨fun ψ => Classical.choose (hper ψ), ?_, ?_, ?_, ?_, ?_, ⟨bs, resSort, hstrip⟩⟩
   · exact fun ψ => (Classical.choose_spec (hper ψ)).1
   · exact fun ψ => (Classical.choose_spec (hper ψ)).2.1
-  · exact fun ψ => (Classical.choose_spec (hper ψ)).2.2.1
   · exact fun ψ => (Classical.choose_spec (hper ψ)).2.2.2.1
   · exact fun ψ => (Classical.choose_spec (hper ψ)).2.2.2.2
   · intro ψ₁ ψ₂ hφ
@@ -1700,6 +1682,8 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       (by rw [(Classical.choose_spec (hper ψ₁)).2.1,
         (Classical.choose_spec (hper ψ₂)).2.1])
       (Option.some.inj (h1.symm.trans h2))
+    rw [(Classical.choose_spec (hper ψ₁)).2.2.1,
+      (Classical.choose_spec (hper ψ₂)).2.2.1] at hp
     exact ⟨hp, AnnotTerm.sort.inj hb⟩
 
 /-- The former's data crosses a cons whose slot does not mention the
@@ -1718,7 +1702,6 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
     rw [hac]
     exact denoteMeta_cons_mono hfresh hat ψ 0 hcb (h.read ψ)
   len := h.len
-  bits := h.bits
   okTy := h.okTy
   below := h.below
   params := h.params
@@ -1727,10 +1710,10 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
 
 theorem stripPisAV_mkPisAV :
     ∀ (pps : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm),
-      stripPisAV pps.length (mkPisAV pps b) = some (pps, b)
+      stripPisAV pps.length (mkPisAV pps b) = some (ppsNorm pps, b)
   | [], _ => rfl
   | d :: pps, b => by
     simp only [List.length_cons, mkPisAV, stripPisAV, stripPisAV_mkPisAV pps b,
-      Option.map_some]
+      Option.map_some, ppsNorm, List.map_cons]
 
 end ConLeche.Model

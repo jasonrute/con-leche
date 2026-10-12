@@ -102072,3 +102072,140 @@ against `port-342` at 8e13562d9: init-full 480.33 G → 480.22 G
 **Gates.**  `lake build`, `lake test` warning-free; no `sorry`, no new
 axiom.  `overview-links.sh`/`links-gate.sh` deferred (OVERVIEW's
 soundness paragraph rewritten; `Sound.lean`'s docstring moved).
+
+## TASK #342 — L14A: the value-read model (2026-10-12, agent/342-l14a)
+
+Lane L14a, stage S4 (`_tmp/342v2-design.md` §3.1–3.2, §11.5 row S4,
+§11.6), on `port-342-s4`.  The model stops reading the checker's binder
+annotations; the checker still writes them until L-ck.  No checker,
+`Verify/*` or rules-tier change; `MainTheorem`, `Challenge` and the
+`#print axioms` pins unchanged (`tests/challenge.sh` green).
+
+**The value reading** (`SetModel/Ops.lean`, the fragment's `Lib.lean`).
+`piV A B := piR (propN A B) A B`, `lamV A F := lamR (ptN A F) A F`:
+the numeral is `0` exactly when every fibre over `A` is a truth value,
+resp. every body value is the point.  Lemmas: `app_lamV` (β, premise
+only `a ∈ A`), `lamV_mem` (fibres `IsTy`), `app_mem_piV` (no premise),
+`lamV_eta`, `mem_piSet_of_mem_piV`, `piV_mem_univ` (the imax rule),
+`piV_of_empty`/`lamV_of_empty`, `eq_pt_of_mem_piV`, `lamV_eq_pt`,
+`lamV_eq_graph`, `lamV_ne_pt_of`, and the regime bridges `piV_eq_zero`,
+`piV_eq_pos`, `piV_univ_eq_pos`, `lamV_eq_pos`, `lamV_eq_zero`.
+`piR`/`lamR` stay as the numeral forms the spelled carriers and `bval`
+still use (L15/L16 move them).  (The design's `piV_mem_typeU` is
+`piV_mem_univ`: `univ` is `tyU` since L4′.)
+
+**The statement** (ruling Q1).  `Denotes.lean`'s `λ`/`∀` rules conclude
+`lamV A F` / `piV A B` with no `hP` premise; `regime` is gone; the
+docstring says the regime is read off the values.  `Denotes_functional`
+by `lamV_congr`/`piV_congr`.
+
+**The reading.**  `AnnotTerm.lam A b`, `AnnotTerm.pi A B` (no
+numerals); `interp` reads `lamV`/`piV`.  `denoteMeta` reads no
+`BinderMeta`; `pwBit` is deleted, so the level crossing
+(`denotePInstLevels`) and `φ`-congruence lose their `pw` steps.
+`WellDenoted` is the fragment's typed form: the λ clause has no
+zero component (`∃ B, members ∧ fibres IsTy`).  `WellDenoted_beta`
+(β at a redex that is not the point, from the subject's grading alone)
+replaces `WellDenoted_beta_pos/_zero`; `appSlot_of_pi`/
+`WellDenoted_app_of` take the domain's `IsTy`.  `WellDenotedV` is an
+`abbrev` for `WellDenoted` (the rename is S5's).  The bridge
+`Denotes_of_denoteMeta` has no grading premise: both sides read the
+regime off the values.
+
+**Deleted** (`git rm`): `Model/Annot/Valid.lean`, `ValidSpine.lean`,
+`Model/AxiomBits.lean`, `Model/BitAgree.lean`, `Model/IOLicense.lean`,
+`Model/Inductives/BlockHoleValid.lean`; and every validity lemma,
+field and premise that fed them: `AcvalValid`, `RulesInputs.leaf_valid`,
+`EnvModelM.acval_validV`, `declStep_preserves_of_cons`' `hAvalid` and
+its callers', `FieldsValid`, `SumFieldsValid`, `UnderTowerValid`,
+`BlockRecLeafOk.valid`, `GenIhPiecesValid`, the `*_validV` families in
+`StructRecKit`/`SumKit`/`BlockLeafOk`/`BlockRecData`/`EqTower`/
+`GenRecRules`/`GenClsFrame`, `bitAgree_*` (now `rfl` reading equations
+to `BConst.typeAV`), `bit_forced_*`.  Numeral data that only fed the
+old reading went too: `FormerData.bits`, `CtorDataI.bits`, the
+`d.2.1 ≠ 0` conjuncts of `ParamsOkS`/`ParamsOkG`/`LfpReads`/
+`canonHoleTy_read`/`grp_typeT`, `PiBitsOpen`, `stripPisAV_bits`,
+`stripPisAV_denoteMeta_pw`, `blockRecElimLevel_run`'s `hbits`, the
+`hbits` premises of `holeVal_mem`, `mkLamsC_*`, `mkLamsAV_fold`,
+`sumMkAV_*`, `famCandG_*`, `lamTowerA`'s numeral.  Three lemmas whose
+premise was "nonzero numerals" now take "the application is not the
+point" instead (`spineFit_of_wellDenoted_mkAppN_pi`,
+`spineFit_of_wellDenotedV_mkAppN_lam`, `spineFit_of_wellDenoted_lams`):
+a non-point head is a graph (`mem_piSet_of_mem_piV`).
+
+**The binder data's numerals.**  `mkPisAV`/`mkLamsAV` keep their
+`(Nat × Nat × AnnotTerm)` / `(Nat × AnnotTerm)` data (a type change
+across 490 sites is S5's), but nothing reads the numerals: `stripPisAV`
+records `(0, 0, A)`, `readLamBs` `(0, a)`, the generated ih data are at
+bit `0`.  `ppsNorm` (`StructFrameKit`: the data with numerals zeroed,
+`mkPisAV_ppsNorm`, `ppsNorm_map_dom`, `stripPisAV_norm`) carries the
+injectivity: `stripPisAV_mkPisAV(_take)` return `ppsNorm`,
+`mkPisAV_inj` concludes `ppsNorm`-equality, `mkPisAV_sort_inj`/
+`mkPisAV_sort_eq`/`mkLamsAV_length_inj` the domains' equality.
+`genBit` is the elimination level's zero test (a level fact; the
+generated stage splits on it), no longer a `pwBit`.
+
+**The three L14a ledger lines are discharged.**  `Infer.forallE_sound`
+(`hz`), `Infer.lam_sound` (the chain premises) and
+`DefEq.forallE_sound` (`hpw`) need no binder datum: `sound_pi` is
+`piV_mem_univ`, `sound_lam` is `lamV_mem` at the body's inferred types,
+Π-congruence is `piV_congr`.  `Infer.app_soundIO` (L18) is narrowed: a
+head that is not the point is a graph, which fixes the slot's domain
+(`slotTransfer`); only the point head stays sorried.
+
+**What breaks, by owner** (the S4 ledger lines this lane adds; each
+`sorry` is the smallest sub-goal, mostly the empty branch of a
+`by_cases` on inhabitation, with a `-- L1x:` comment):
+- **L15 (`bval` with `lamV`)**: `Semantics/BasisOk.lean` (`bval_mem_*`
+  of the λ-built constants against their value-read types),
+  `Model/BasisTypeOk.lean` (`WellDenoted_bconst_type` at `psigmaMk`/
+  `quot*`), `Model/AxiomMem.lean` (`choice_mem`), `Model/BasisBlocks.lean`
+  (`natRecV` reads its step through `natStepSpace`; the value-read
+  `natStepSpaceV` differs where `M n` is empty), `Model/BasisQuot.lean`
+  (`relSpace` vs `relSpaceV` over an empty domain, `quotLiftV`).
+- **L16 (spelled carriers' empty domains)**: `Semantics/BasisOk.lean`
+  (`ndTowerAV_*`, `tupleFamsAV_facts`), `Semantics/Tower/TowerKit.lean`,
+  `FixTower.lean` (`famTyAV_facts`: `{pt}` vs `lfpFamSpace`'s `{∅}`),
+  `BlockTower.lean` (`blockArmG_facts`), `BlockRecTower.lean`
+  (`andAV`/`sigChainAV` at a false conjunct / empty link domain).
+- **L17 (inductive environment side)**: `Semantics/Inductives/HoleMono.lean`,
+  `HoleAcc.lean` (a value-read Π's regime depends on its fibres, so
+  `MonoOn.pi`, `AccOn.pi(0)`, `TypeReg.pi` at a positive sort need the
+  frames' fibre facts), `Model/Annot/BlockLfpTup.lean`,
+  `LfpHoleOp.lean` (`holeFam` is a `lamR` graph tower, the spelled hole
+  tower reads `lamV`: L6's note), `Model/Rules/DefEqSoundKit.lean`
+  (`spine_mem_univ_of_neverChain`'s point head), and the non-point /
+  type facts the value reading needs where the old numerals were read:
+  `FixKit` (2), `ContLeaf` (2), `BlockDeclRun` (`blockRecTyZ_run`),
+  `GenRecPre` (`genHstepG`'s ih codomain a type), `GenRecRules`
+  (`genRuleRaZ`), `GenClsCall` (`genIhMot`), `GenRecExtra`
+  (`genMemCtor_pt`'s binder case, `genOut_typed`).
+- **L18**: `Model/Rules/DefEqSoundKit.lean` (`prf_of_isProofFast`'s λ and
+  ∀-head cases read the binder's `isProp` datum; with L-ck's `PropRead`
+  rewrite), and `InferSound`'s narrowed io application (existing line).
+
+**Deviations from the design.**
+- `Model/Annot/Bit*.lean` are not deleted: they hold `denoteMeta` and
+  its substitution/level/extension metatheory, which the value reading
+  keeps (only `pwBit` went).  The files' names are S5's.
+- `Model/ErasePwInv.lean` stays: the pins compare through `erasePw`
+  (checker code, L-ck's); its consumers moved from `AxiomBits` to
+  `AxiomMem`/`ReduceOps`.
+- `WellDenotedV` is an `abbrev`, not renamed (S5).
+
+**For L15/L16/L17.**  The ledger lines name the lemmas; the pattern is
+always the same: the inhabited branch is proved by `lamV_eq_pos`/
+`piV_eq_pos` (a non-point body / non-truth-value fibre at an inhabitant),
+the empty branch is the point / `{pt}`, against a graph-only space
+(`psigmaFibreSpace`, `famSpace`, `lfpFamSpace`, `relSpace`,
+`natStepSpace`) or a `lamR`-built constant.  Restating those spaces and
+constants with `piV`/`lamV` removes the sorries.
+
+**Gates.**  `lake build` and `lake test`: no warnings but `declaration
+uses sorry`.  `tests/challenge.sh` green.  No checker change, so no
+e2e/arena run.  The ledger grep: every `sorry` is in a listed file.
+OVERVIEW §1 (`Denotes`' binders), §4 (terms, interpretation, the
+statement's reading) and the glossary updated; `overview-links.sh`,
+`shake.sh` (the allowlist still names the deleted modules) and
+`whitepaper/links-gate.sh` deferred.  163 files, +4754 −9277 against
+`port-342-s4`.

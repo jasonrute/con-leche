@@ -3,10 +3,8 @@ module
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Semantics.LitParams
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Model.IOLicense
 import ConLeche.Model.CtxOkKit
 import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.ValidSpine
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Semantics.Frame
 import ConLeche.Semantics.LitStep
@@ -159,7 +157,7 @@ theorem Infer.sort_sound {g : Grade} {d : Nat} {u : Level} :
   refine ⟨⟨by simp [Expr.WScoped], by simp [Expr.looseBVarsBounded],
       fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
     fun l hl => by simp [Expr.fvarLeaves] at hl,
-    _, hty, fun ρ _ _ => ⟨⟨by simp, by simp⟩, ⟨⟨by simp, by simp⟩, IsTy_univ _⟩,
+    _, hty, fun ρ _ _ => ⟨by simp, ⟨by simp, IsTy_univ _⟩,
       (sound_sort V ρ (u.eval φ)).2⟩⟩
 
 /-- A free variable: `CtxOkS`'s leaf package, the type's grading from
@@ -189,11 +187,11 @@ theorem Infer.fvar_sound {g : Grade} {d idx : Nat} {ty : Expr} (h : idx < d) :
     exact List.mem_cons_of_mem _ hl
   refine ⟨⟨hws.2.mono (by omega), hLb (idx, ty) (by simp [Expr.fvarLeaves]),
       fun l hl => hLb l (hmem l hl)⟩,
-    hmem, tya, hden, fun ρ hρ hL => ⟨⟨by simp, by simp⟩, hL _ hleaf tya hden, ?_⟩⟩
+    hmem, tya, hden, fun ρ hρ hL => ⟨by simp, hL _ hleaf tya hden, ?_⟩⟩
   rw [interp_bvar, hlink ρ hρ]
   exact hρ (d - 1 - idx) Aa hi
 
-/-- A constant: `ConstType` + `AcvalValid`. -/
+/-- A constant: `ConstType`. -/
 theorem Infer.const_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
     {n : Name} {us : List Level} {ci : ConLeche.ConstantInfo}
     (hf : env.find? n = some ci) (htower : ci.isTowerEntry = false)
@@ -218,10 +216,10 @@ theorem Infer.const_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
       Expr.LeavesBounded.of_not_hasFvar hnf⟩,
     (fun l hl => by
       rw [Expr.fvarLeaves_eq_nil_of_not_hasFvar hnf] at hl; cases hl),
-    ta, hta, fun ρ _ _ => ⟨⟨m.acval_wellDenoted n _ ρ, hin.leaf_valid n _ ρ⟩,
+    ta, hta, fun ρ _ _ => ⟨m.acval_wellDenoted n _ ρ,
       hok ρ, hmem ρ⟩⟩
 
-/-- A `Nat` literal: `NatHeads` + `AcvalValid`. -/
+/-- A `Nat` literal: `NatHeads`. -/
 theorem Infer.natLit_sound (hin : RulesInputs V m φ) {g : Grade} {d n : Nat}
     (h : ConLeche.natLitSupported env = true) :
     InferSem m φ g d (.lit (.natVal n)) (.const natName []) := by
@@ -261,9 +259,8 @@ theorem Infer.natLit_sound (hin : RulesInputs V m φ) {g : Grade} {d n : Nat}
         fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
       (fun l hl => by simp [Expr.fvarLeaves] at hl),
       _, hta,
-      fun ρ _ _ => ⟨⟨(hrow ρ).1, AnnotValid_natLitAV (hin.leaf_valid _ _ ρ)
-          (hin.leaf_valid _ _ ρ) n⟩,
-        ⟨⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩,
+      fun ρ _ _ => ⟨(hrow ρ).1,
+        ⟨m.acval_wellDenoted _ _ ρ,
           (hin.nat_heads h ρ).2.2⟩,
         (hrow ρ).2⟩⟩
 
@@ -285,22 +282,18 @@ theorem Infer.strLit_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
       fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
     (fun l hl => by simp [Expr.fvarLeaves] at hl),
     _, hta,
-    fun ρ _ _ => ⟨(strLitFacts hin.const_ty hin.leaf_valid hin.nat_heads h hea ρ).1,
-      ⟨⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩,
-        (strLitFacts hin.const_ty hin.leaf_valid hin.nat_heads h hea ρ).2.2⟩,
-      (strLitFacts hin.const_ty hin.leaf_valid hin.nat_heads h hea ρ).2.1⟩⟩
+    fun ρ _ _ => ⟨(strLitFacts hin.const_ty hin.nat_heads h hea ρ).1,
+      ⟨m.acval_wellDenoted _ _ ρ,
+        (strLitFacts hin.const_ty hin.nat_heads h hea ρ).2.2⟩,
+      (strLitFacts hin.const_ty hin.nat_heads h hea ρ).2.1⟩⟩
 
-/-- A product: the two sort facts (`sortSemAt_of_claims`'s content) and the bit law. -/
+/-- A Π-type: the two sort facts (`sortSemAt_of_claims`'s content). -/
 theorem Infer.forallE_sound {g : Grade} {d : Nat}
     {ty body s bs : Expr} {u v : Level} {mb : BinderMeta}
     (hs : InferSem m φ g d ty s) (hu : RedSem m φ d s (.sort u))
     (hbs : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bs)
     (hv : RedSem m φ (d + 1) bs (.sort v)) :
     InferSem m φ g d (.forallE ty body mb) (.sort (.imax u v)) := by
-  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule validates
-  -- no binder datum; the annotated reading's bit law needs one, the value
-  -- reading (`piV`) none
-  have hz : Level.zeronessOf v = mb.pw := sorry
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -334,47 +327,20 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
       (LeavesGr.open hC.forallE_ty hC.forallE_body hL.forallE_ty
         hL.forallE_body htyA hdomTy)
       (fun hg => (hgr hg).pi_body x hx)
-  have hgea : WellDenotedV V ρ (.pi 0 (pwBit φ mb.pw) tyA baA) := by
-    refine ⟨?_, ?_⟩
-    · rw [WellDenoted_pi]
-      exact ⟨hdom.1.1, IsTy_of_mem_univ hdom.2, fun x hx => (hcod x hx).1.1,
-        fun x hx => IsTy_of_mem_univ (hcod x hx).2⟩
-    · rw [AnnotValid_pi]
-      refine ⟨hdom.1.2, fun x hx => (hcod x hx).1.2, ?_⟩
-      intro hbit x hx
-      exact pwBit_zero_mem_univZero hz hbit (hcod x hx).2
-  refine ⟨hgea, ⟨⟨by simp, by simp⟩, by exact IsTy_univ _⟩, ?_⟩
   have hrow := sound_pi V (u := u.eval φ) (v := v.eval φ)
-    hdom.1.1 (fun x hx => (hcod x hx).1.1) hdom.2
+    hdom.1 (fun x hx => (hcod x hx).1) hdom.2
     (fun x hx => (hcod x hx).2)
-  have hzag : pwBit φ mb.pw = 0 ↔ v.eval φ = 0 := by
-    rw [← hz]; exact pwBit_zeronessOf φ v
-  have hbridge :
-      interp V ρ (.pi 0 (pwBit φ mb.pw) tyA baA)
-        = interp V ρ (.pi (u.eval φ) (v.eval φ) tyA baA) := by
-    rw [interp_pi, interp_pi]
-    exact piR_zero_agree hzag fun x _ => rfl
-  rw [hbridge]
+  refine ⟨hrow.1, ⟨by simp, by exact IsTy_univ _⟩, ?_⟩
   exact hrow.2
 
-/-- A λ: the fibre regime fact from the leaf sort run or, at a chain node, from
-the copied annotation (`piR_zero_mem_univZero`). -/
+/-- A λ: the body's inferred types are types, so the abstraction is a
+member of their function space (`lamV_mem`). -/
 theorem Infer.lam_sound {g : Grade} {d : Nat}
     {ty body s bt : Expr} {u : Level} {mb : BinderMeta}
     (hs : g = .full → InferSemFull m φ d ty s)
     (hu : g = .full → RedSem m φ d s (.sort u))
     (hbt : InferSem m φ g (d + 1) (body.instantiate1 (.fvar d ty)) bt) :
     InferSem m φ g d (.lam ty body mb) (.forallE ty (bt.abstract1 d) mb) := by
-  -- **owed to task #342 L14a** (the S4 sorry ledger): the rule validates
-  -- no codomain datum (the former chain premises); the annotated reading's
-  -- λ bit needs them, the value reading (`lamV`) none
-  obtain ⟨btt, v, hshape, hchain, hbtt, hv, hz⟩ : ∃ (btt : Expr) (v : Level),
-      (∀ tyI bI mbI, body = .lam tyI bI mbI →
-        ∃ btI, bt = .forallE (tyI.instantiate1 (.fvar d ty)) btI mbI) ∧
-      (∀ pwI, body.lamPw = some pwI → mb.pw = pwI) ∧
-      (body.lamPw = none → InferSemIO m φ (d + 1) bt btt) ∧
-      (body.lamPw = none → RedSem m φ (d + 1) btt (.sort v)) ∧
-      (body.lamPw = none → Level.zeronessOf v = mb.pw) := sorry
   refine InferSem.of_uniform ?_
   intro Δa ea hfr hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
@@ -393,7 +359,7 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
       (body.instantiate1 (.fvar d ty)) with _ | ba
   · rw [hba] at hea; exact nomatch hea
   rw [hba] at hea
-  obtain rfl : ea = .lam (pwBit φ mb.pw) tyA ba :=
+  obtain rfl : ea = .lam tyA ba :=
     (Option.some.inj hea).symm
   obtain ⟨hwopen, hbopen, hLopen⟩ :=
     frame_open2 hws.1 hb.1 hws.2 hb.2 hLty hLbody
@@ -422,38 +388,10 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
   have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d) mb)
-      = some (.pi 0 (pwBit φ mb.pw) tyA btA) := by
+      = some (.pi tyA btA) := by
     rw [denoteMeta, htyA, hround, hbtA]
     rfl
   have hCbt : CtxOkS m φ (d + 1) (tyA :: Δa) bt := hCop.of_subset hbtsub
-  -- the fibre regime fact, one `have`, both uses (the meta copy): at a
-  -- valuation where the body type's leaves and the body type are graded
-  have hzfib : pwBit φ mb.pw = 0 →
-      ∀ (ρ' : Nat → V), Sat V (tyA :: Δa) ρ' → LeavesGr m φ (d + 1) bt ρ' →
-        WellDenotedV V ρ' btA → interp V ρ' btA ∈ˢ (univZero : V) := by
-    intro hb0 ρ' hρ' hL' hg'
-    cases hpw : body.lamPw with
-    | some pwI =>
-      -- chain: no run — impredicativity at the copied meta
-      obtain ⟨tyI, bI, mbI, rfl⟩ : ∃ tyI bI mbI, body = .lam tyI bI mbI := by
-        cases body <;> simp [Expr.lamPw] at hpw
-        exact ⟨_, _, _, rfl⟩
-      have hpwEq : mb.pw = mbI.pw := by
-        have := hchain pwI hpw
-        simp only [Expr.lamPw, Option.some.injEq] at hpw
-        rw [this, hpw]
-      obtain ⟨btI, rfl⟩ := hshape tyI bI mbI rfl
-      obtain ⟨tyIA, btIA, -, -, rfl⟩ := denoteMeta_forallE_inv hbtA
-      rw [interp_pi]
-      have hinner : pwBit φ mbI.pw = 0 := by rw [← hpwEq]; exact hb0
-      rw [hinner]
-      exact piR_zero_mem_univZero
-    | none =>
-      -- leaf: the io sort walk on the body type + the bit law
-      exact pwBit_zero_mem_univZero (hz hpw) hb0
-        (sortSem_of (g := .io)
-          (show InferSem m φ .io (d + 1) bt btt from hbtt hpw) (hv hpw)
-          ⟨hwbt, hbtb, hLbt⟩ hCbt hbtA ρ' hρ' hL' (fun _ => hg')).2
   -- the conclusion's frame and leaves
   have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d) mb).fvarLeaves,
       l ∈ (Expr.lam ty body mb).fvarLeaves := by
@@ -496,33 +434,23 @@ theorem Infer.lam_sound {g : Grade} {d : Nat}
         interp V (cons x ρ) ba ∈ˢ interp V (cons x ρ) btA := fun x hx =>
     hrowB (cons x ρ) (Sat_cons V hρ hx) (hLop x)
       (fun hg => (hgr hg).lam_body x hx)
-  have hfib : pwBit φ mb.pw = 0 → ∀ x, x ∈ˢ interp V ρ tyA →
-      interp V (cons x ρ) btA ∈ˢ (univZero : V) := fun h0 x hx =>
-    hzfib h0 (cons x ρ) (Sat_cons V hρ hx) ((hLop x).of_subset hbtsub)
-      (hrow x hx).2.1.1
   refine ⟨?_, ?_, ?_⟩
   · -- the λ's own grading
-    refine ⟨?_, ?_⟩
-    · rw [WellDenoted_lam]
-      exact ⟨hokty.1.1, hokty.2, fun x hx => (hrow x hx).1.1,
-        fun x => interp V (cons x ρ) btA,
-        fun x hx => (hrow x hx).2.2,
-        fun x hx => (hrow x hx).2.1.2,
-        hfib⟩
-    · rw [AnnotValid_lam]
-      exact ⟨hokty.1.2, fun x hx => (hrow x hx).1.2⟩
+    rw [WellDenotedV, WellDenoted_lam]
+    exact ⟨hokty.1, hokty.2, fun x hx => (hrow x hx).1,
+      fun x => interp V (cons x ρ) btA,
+      fun x hx => (hrow x hx).2.2,
+      fun x hx => (hrow x hx).2.1.2⟩
   · -- the copied ∀-type's grading
-    refine ⟨⟨?_, ?_⟩, IsTy_piR _ _ _⟩
-    · rw [WellDenoted_pi]
-      exact ⟨hokty.1.1, hokty.2, fun x hx => (hrow x hx).2.1.1.1,
-        fun x hx => (hrow x hx).2.1.2⟩
-    · rw [AnnotValid_pi]
-      exact ⟨hokty.1.2, fun x hx => (hrow x hx).2.1.1.2, hfib⟩
+    refine ⟨?_, IsTy_piV⟩
+    rw [WellDenotedV, WellDenoted_pi]
+    exact ⟨hokty.1, hokty.2, fun x hx => (hrow x hx).2.1.1,
+      fun x hx => (hrow x hx).2.1.2⟩
   · -- the membership row
-    exact (sound_lam V hokty.1.1 hokty.2
-      (fun x hx => (hrow x hx).1.1)
+    exact (sound_lam V hokty.1 hokty.2
+      (fun x hx => (hrow x hx).1)
       (fun x hx => (hrow x hx).2.2)
-      (fun x hx => (hrow x hx).2.1.2) hfib).2
+      (fun x hx => (hrow x hx).2.1.2)).2
 
 /-- An application, certified (the full grade's arm). -/
 theorem Infer.app_soundCert {g : Grade} {d : Nat}
@@ -593,15 +521,8 @@ theorem Infer.app_soundCert {g : Grade} {d : Nat}
   have hAty : WellDenotedTy V ρ Aa := hokpa.pi_dom
   have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
     hokpa.pi_body
-  have hcod0 : pwBit φ mt.pw = 0 →
-      ∀ x, x ∈ˢ interp V ρ Aa →
-        interp V (cons x ρ) Ba ∈ˢ (univZero : V) := by
-    intro h0 x hx
-    have h2 := hokpa.2
-    rw [AnnotValid_pi] at h2
-    exact h2.2.2 h0 x hx
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
-    ((WellDenoted_pi V ρ _ _ Aa Ba) ▸ hokpa.1).2.2.2
+    (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
   -- the argument at `ρ`, and the domain agreement
   obtain ⟨hgaa, hgtyaA, hrowaM⟩ :=
     hrowA ρ hρ hL.app_arg (fun hg => (hgr hg).app_arg)
@@ -615,14 +536,12 @@ theorem Infer.app_soundCert {g : Grade} {d : Nat}
   have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa := by
     rw [← hdom]
     exact hrowaM
-  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mt.pw) Aa Ba) := by
+  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
     rw [← hredfρ]
     exact hrowfM
-  refine ⟨⟨(sound_app V hgfa.1 hgaa.1 hf2 ha2 hcod0 (fun _ => hAty.2)).1, ?_⟩,
+  exact ⟨(sound_app V hgfa hgaa hf2 ha2 hAty.2).1,
     (WellDenotedTy_inst0 hgaa).mpr ⟨hokBa _ ha2, hBty _ ha2⟩,
-    (sound_app V hgfa.1 hgaa.1 hf2 ha2 hcod0 (fun _ => hAty.2)).2⟩
-  rw [AnnotValid_app]
-  exact ⟨hgfa.2, hgaa.2⟩
+    (sound_app V hgfa hgaa hf2 ha2 hAty.2).2⟩
 
 /-- **`let`, by substitution**: the body's claim at its value is the
 `let`'s (`interp_zeta`).  The value's grading — part of the `let`'s —
@@ -656,19 +575,18 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
   exact hmem
 
 /-- **The io grade's application, uncertified** (Lean's `infer_only`):
-the skipped membership from the subject's own hereditary app slot,
-`io_domain_transfer` + `piR_dom_unique` at a bit pinned positive.
+the skipped membership from the subject's own hereditary app slot.  A
+head that is not the point is a graph, which fixes its domain
+(`piR_dom_unique`, through `slotTransfer`).
 
-**Owed to task #342 L18** (the S4 sorry ledger): no rule reads the
-binder's datum any more.  Under the value reading the head's graph
-regime is read off its value (a head that is not the point is a graph),
-and the claim is the hereditary `IORel` of task #346 (the fragment's
-`InferIO.app_sound`): membership fails at an io-inferred λ. -/
+**Owed to task #342 L18** (the S4 sorry ledger): at a head that is the
+point the slot's domain says nothing about the Π's; the claim is the
+hereditary `IORel` of task #346 (the fragment's `InferIO.app_sound`):
+membership fails at an io-inferred λ. -/
 theorem Infer.app_soundIO {d : Nat}
     {f a tf ty body : Expr} {mt : BinderMeta}
     (htf : InferSemIO m φ d f tf) (hw : RedSem m φ d tf (.forallE ty body mt)) :
     InferSemIO m φ d (.app f a) (body.instantiate1 a) := by
-  have hnev : mt.pw.isNever = true := sorry
   intro hfr Δa ea hC hea
   obtain ⟨hws, hb, hLb⟩ := hfr
   simp only [Expr.WScoped] at hws
@@ -715,7 +633,7 @@ theorem Infer.app_soundIO {d : Nat}
   -- **the premise, spent**: the parts' grading and the hereditary slot
   have hokf : WellDenotedV V ρ fa := hge.app_fn
   have hoka : WellDenotedV V ρ aa := hge.app_arg
-  have hslot := ((WellDenoted_app V ρ fa aa) ▸ hge.1).2.2
+  have hslot := (cast (WellDenoted_app V ρ fa aa) hge).2.2
   obtain ⟨hgtfa, hrowfM⟩ := hrowF ρ hρ hL.app_fn hokf
   -- "not pt" source (1): the head's inferred type `tfa` is a type
   obtain ⟨hokpa, hredfρ⟩ :=
@@ -723,28 +641,25 @@ theorem Infer.app_soundIO {d : Nat}
   have hAty : IsTy (interp V ρ Aa) := hokpa.pi_dom.2
   have hokBa : ∀ x, x ∈ˢ interp V ρ Aa → WellDenotedV V (cons x ρ) Ba :=
     hokpa.pi_body
-  have hcod0 : pwBit φ mt.pw = 0 →
-      ∀ x, x ∈ˢ interp V ρ Aa →
-        interp V (cons x ρ) Ba ∈ˢ (univZero : V) := by
-    intro h0 x hx
-    have h2 := hokpa.2
-    rw [AnnotValid_pi] at h2
-    exact h2.2.2 h0 x hx
   have hBty : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) Ba) :=
-    ((WellDenoted_pi V ρ _ _ Aa Ba) ▸ hokpa.1).2.2.2
-  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi 0 (pwBit φ mt.pw) Aa Ba) := by
+    (cast (WellDenoted_pi V ρ Aa Ba) hokpa).2.2.2
+  have hf2 : interp V ρ fa ∈ˢ interp V ρ (.pi Aa Ba) := by
     rw [← hredfρ]
     exact hrowfM
   -- **THE LICENCE**: the skipped membership, from the subject's own
   -- hereditary app slot at a bit pinned positive by the datum
   have ha2 : interp V ρ aa ∈ˢ interp V ρ Aa := by
-    have hw0 : pwBit φ mt.pw ≠ 0 := pwBit_ne_zero_of_isNever hnev φ
     obtain ⟨v, A, B, hfslot, haslot, -⟩ := hslot
     have hf' := hf2
     rw [interp_pi] at hf'
-    exact io_domain_transfer hw0 hfslot haslot hf'
+    by_cases hfp : interp V ρ fa = pt
+    · -- L18: the io application at a head that is the point (`IORel`)
+      sorry
+    have hgr : interp V ρ fa ∈ˢ piR 1 (interp V ρ Aa) fun x => interp V (cons x ρ) Ba := by
+      rw [piR_pos Nat.one_ne_zero]; exact mem_piSet_of_mem_piV hf' hfp
+    exact Rules.slotTransfer Nat.one_ne_zero hgr hfslot haslot
   exact ⟨(WellDenotedTy_inst0 hoka).mpr ⟨hokBa _ ha2, hBty _ ha2⟩,
-    (sound_app V hokf.1 hoka.1 hf2 ha2 hcod0 (fun _ => hAty)).2⟩
+    (sound_app V hokf hoka hf2 ha2 hAty).2⟩
 
 /-- **An application** (`Infer.app`): the full grade's certificate, or
 the io grade's none. -/

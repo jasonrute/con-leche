@@ -5,7 +5,6 @@ import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.Annot.BitClosed
-import ConLeche.Model.Annot.ValidSpine
 import ConLeche.Semantics.LitStep
 
 public section
@@ -88,14 +87,10 @@ theorem appFn_syntax {d : Nat} {f f' a : Expr}
 theorem wellDenotedV_app_fn_congr {ρ : Nat → V} {fa fa' aa : AnnotTerm}
     (heq : interp V ρ fa = interp V ρ fa') (hgf' : WellDenotedV V ρ fa')
     (hg : WellDenotedV V ρ (.app fa aa)) : WellDenotedV V ρ (.app fa' aa) := by
-  refine ⟨?_, ?_⟩
-  · have hx1 := hg.1
-    rw [WellDenoted_app] at hx1
-    obtain ⟨-, hoka1, v', A, B, h1, h2, h3⟩ := hx1
-    rw [WellDenoted_app]
-    exact ⟨hgf'.1, hoka1, v', A, B, heq ▸ h1, h2, h3⟩
-  · rw [AnnotValid_app]
-    exact ⟨hgf'.2, hg.app_arg.2⟩
+  have hx1 := hg
+  rw [WellDenotedV, WellDenoted_app] at hx1 ⊢
+  obtain ⟨-, hoka1, v', A, B, h1, h2, h3⟩ := hx1
+  exact ⟨hgf', hoka1, v', A, B, heq ▸ h1, h2, h3⟩
 
 /-- Head reduction under an application: the argument rides along.
 "Not pt" source (2): the application is not the point, so its head is
@@ -158,22 +153,20 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
       have hnv : interp V σ vp ≠ pt := by
         intro h; apply hne; rw [interp_fst, h, sfst_pt]
       obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.fst_arg hnv
-      refine ⟨⟨?_, by rw [AnnotValid_fst]; exact hg'.2⟩,
-        by rw [interp_fst, interp_fst, heq]⟩
-      have h1 := hg.1
-      rw [WellDenoted_fst] at h1 ⊢
+      refine ⟨?_, by rw [interp_fst, interp_fst, heq]⟩
+      have h1 := hg
+      rw [WellDenotedV, WellDenoted_fst] at h1 ⊢
       obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
-      exact ⟨hg'.1, u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
+      exact ⟨hg', u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
     · refine ⟨.snd vp', hred, fun σ hσ hL hg hne => ?_⟩
       have hnv : interp V σ vp ≠ pt := by
         intro h; apply hne; rw [interp_snd, h, ssnd_pt]
       obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.snd_arg hnv
-      refine ⟨⟨?_, by rw [AnnotValid_snd]; exact hg'.2⟩,
-        by rw [interp_snd, interp_snd, heq]⟩
-      have h1 := hg.1
-      rw [WellDenoted_snd] at h1 ⊢
+      refine ⟨?_, by rw [interp_snd, interp_snd, heq]⟩
+      have h1 := hg
+      rw [WellDenotedV, WellDenoted_snd] at h1 ⊢
       obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
-      exact ⟨hg'.1, u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
+      exact ⟨hg', u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
 
 /-! ## β -/
 
@@ -204,11 +197,11 @@ theorem beta_syntax {d : Nat} {ty body a : Expr} {mb : ConLeche.BinderMeta}
     (ty := ty) hws.1.2.fvarsBelow hws.2 hb.2 haa 0, hbb]
   rfl
 
-/-- **β, with no certificate** (task #342, L9).  A redex that is not the
-point has a λ that is not the point ("not pt" source (2): the point
-applied is the point); a λ read at kind `0` is the point (`lamR_zero`),
-so the λ is read at a positive kind, where β is the graph's application
-at a graded argument (`betaPosV`). -/
+/-- **β, with no certificate** (task #342, L9; L14a).  A redex that is
+not the point has a λ that is not the point ("not pt" source (2): the
+point applied is the point), so the λ is a graph whose domain the
+application slot fixes, and β is `app_lamV` at a graded argument
+(`betaV`). -/
 theorem Red.beta_sound {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
     RedSem m φ d (.app (.lam ty body mb) a) (body.instantiate1 a) := by
   intro hf Δa ea hC hea
@@ -217,12 +210,8 @@ theorem Red.beta_sound {d : Nat} {ty body a : Expr} {mb : BinderMeta} :
   obtain ⟨tya, ba, htya, hbb, rfl⟩ := denoteMeta_lam_inv hfa
   obtain ⟨hfr, hsub, hred⟩ := beta_syntax hws hb hLb hbb haa
   refine ⟨hfr, hsub, ba.inst aa, hred, fun ρ _ _ hg hne => ?_⟩
-  by_cases hz : pwBit φ mb.pw = 0
-  · exfalso
-    apply hne
-    rw [interp_app, interp_lam, hz, lamR_zero, app_pt]
-  · obtain ⟨h1, h2⟩ := betaPosV hz hg
-    exact ⟨h2, h1⟩
+  obtain ⟨h1, h2⟩ := betaV hg hne
+  exact ⟨h2, h1⟩
 
 /-! ## ζ, δ and the literal expansions: no claim read -/
 
@@ -310,8 +299,8 @@ theorem arg_mem_of_head {σ : Nat → V} {f a : AnnotTerm} {b : Nat} {N : V}
     {Y : V → V} (hg : WellDenotedV V σ (.app f a))
     (hne : interp V σ (.app f a) ≠ pt) (hf : interp V σ f ∈ˢ piR b N Y) :
     interp V σ a ∈ˢ N := by
-  have hw := hg.1
-  rw [WellDenoted_app] at hw
+  have hw := hg
+  rw [WellDenotedV, WellDenoted_app] at hw
   obtain ⟨-, -, v, A, B, hfv, ha, -, -⟩ := hw
   have hfne : interp V σ f ≠ pt := fun h => hne (by rw [interp_app, h, app_pt])
   have hv : v ≠ 0 := fun h => hfne (eq_pt_of_mem_piR_zero (h ▸ hfv))
@@ -345,7 +334,7 @@ theorem rawNatLit_facts (hin : RulesInputs V m φ)
   obtain rfl := (Option.some.inj hlit).symm
   have hf := natLit_factsAV (m.acval_wellDenoted _ _ σ) (m.acval_wellDenoted _ _ σ)
     (hin.nat_heads hsup σ).1 (hin.nat_heads hsup σ).2.1 (hin.nat_heads hsup σ).2.2 n
-  exact ⟨⟨hf.1, AnnotValid_natLitAV (hin.leaf_valid _ _ σ) (hin.leaf_valid _ _ σ) n⟩, hf.2⟩
+  exact ⟨hf.1, hf.2⟩
 
 /-- The successor row at the reduced argument, at the conditional motive. -/
 theorem Red.natSucc_sound (hin : RulesInputs V m φ) {d : Nat} {a w : Expr}

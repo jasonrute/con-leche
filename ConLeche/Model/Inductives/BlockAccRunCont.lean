@@ -190,7 +190,11 @@ theorem blockCtorAcc_of_walk {env : Env} {μ : ConLeche.CheckMode} (mp : EnvMode
     obtain ⟨x, hx⟩ : ∃ x, xs[i]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     obtain ⟨k, nd, hkk, -, hE, hord, hnip⟩ := hxs i x hx
     obtain ⟨p', hp', -, hread⟩ := hdoms i x hx
-    rw [List.getElem?_map, hp', Option.map_some, Option.some.injEq] at hGi
+    have hp'' : abN[i]?.map (·.2.2) = some p'.2.2 := by
+      have h := congrArg (·[i]?) (ppsNorm_map_dom abN)
+      simp only [List.getElem?_map, hp', Option.map_some] at h
+      exact h.symm
+    rw [List.getElem?_map, hp'', Option.some.injEq] at hGi
     subst hGi
     have hkD : ksD.getD i .ordinary = k := by rw [List.getD_eq_getElem?_getD, hkk]; rfl
     have hkord : k = .ordinary := by

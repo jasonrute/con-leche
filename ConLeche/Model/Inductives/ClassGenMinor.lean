@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Annot.Bit
 import ConLeche.Semantics.Tower.SumTower
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Model.Annot.LfpFormer
@@ -122,31 +122,6 @@ theorem take_append_of_le {xs ys : List V} {n : Nat} (h : n ≤ xs.length) :
   rw [List.take_append_of_le_length h]
 
 end Frames
-
-/-! ## Validity along a Π-tower -/
-
-section Valid
-
-variable {V : Type w} [SetTheory V]
-
-/-- A valid Π-tower's domains are valid at a fitting spine's prefixes. -/
-theorem annotValid_piDom_at {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V},
-      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
-      ∀ l, l < tl.length →
-        AnnotValid V (consList (bs.take l) ρ) ((tl.map (·.2.2)).getD l default)
-  | [], _, _, _, _, l, hl => absurd hl (Nat.not_lt_zero _)
-  | _ :: _, _, [], _, h, _, _ => h.elim
-  | d :: tl, ρ, b :: bs, hv, h, l, hl => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
-    rw [AnnotValid_pi] at hv'
-    cases l with
-    | zero => simpa using hv'.1
-    | succ l =>
-      simp only [List.map_cons, List.getD_cons_succ, List.take_succ_cons, consList_cons]
-      exact annotValid_piDom_at (hv'.2.1 b h.1) h.2 l (by simpa using hl)
-
-end Valid
 
 /-! ## Bounds of lifted pieces -/
 

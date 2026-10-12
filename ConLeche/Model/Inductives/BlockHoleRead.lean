@@ -403,7 +403,7 @@ theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : E
         obtain ⟨rfl, rfl⟩ := h
         obtain ⟨ta, ba, hta, hba, heq⟩ := denoteMeta_forallE_inv hr
         simp only [mkPisAV, AnnotTerm.pi.injEq] at heq
-        obtain ⟨-, -, hg, rfl⟩ := heq
+        obtain ⟨hg, rfl⟩ := heq
         obtain ⟨hB, hdoms⟩ := denoteMeta_peel n hop (by simpa using hl) hba
         refine ⟨by rwa [show D + 1 + n = D + (n + 1) by omega] at hB, fun l x hx => ?_⟩
         cases l with

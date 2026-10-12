@@ -55,37 +55,23 @@ theorem deqStep_sndCong {ρ : Nat → V} {ea eb : AnnotTerm}
 
 /-- **∀-congruence.**  The codomain descends at the *domain's* own
 value set, which is where `Sat_cons` enters. -/
-theorem deqStep_piCong {ρ : Nat → V} {u u' v : Nat}
+theorem deqStep_piCong {ρ : Nat → V}
     {Aa Ab Ba Bb : AnnotTerm}
     (hA : interp V ρ Aa = interp V ρ Ab)
     (hB : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) Ba = interp V (cons x ρ) Bb) :
-    interp V ρ (.pi u v Aa Ba) = interp V ρ (.pi u' v Ab Bb) := by
+    interp V ρ (.pi Aa Ba) = interp V ρ (.pi Ab Bb) := by
   simp only [interp_pi, ← hA]
-  exact piR_congr hB
+  exact piV_congr hB
 
-/-- **λ-congruence**, at a shared codomain numeral — which is what the
-run supplies, since both sides' annotations come from one annotation
-walk. -/
-theorem deqStep_lamCong {ρ : Nat → V} {v : Nat} {Aa Ab ba bb : AnnotTerm}
+/-- **λ-congruence**: the regime is read off the values, so equal
+domains and bodies equal on the domain give equal abstractions. -/
+theorem deqStep_lamCong {ρ : Nat → V} {Aa Ab ba bb : AnnotTerm}
     (hA : interp V ρ Aa = interp V ρ Ab)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa →
       interp V (cons x ρ) ba = interp V (cons x ρ) bb) :
-    interp V ρ (.lam v Aa ba) = interp V ρ (.lam v Ab bb) := by
+    interp V ρ (.lam Aa ba) = interp V ρ (.lam Ab bb) := by
   simp only [interp_lam, ← hA]
-  exact lamR_congr hb
-
-/-! ## Proof irrelevance
-
-The `Prop`-kind collapse, in the annotated currency: two terms whose
-types are propositions are both the canonical proof, whatever the
-propositions are.  The checker certifies each side's type separately
-and never that the two agree — so this takes two independent
-memberships, as the rule does. -/
-
-/-! ## η for functions
-
-`lamR_eta` at the stuck side's product — premise-free above kind `0`,
-and at kind `0` both sides are the canonical proof anyway. -/
+  exact lamV_congr hb
 
 end ConLeche.Semantics

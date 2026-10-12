@@ -34,20 +34,18 @@ variable {V : Type w} [SetTheory V]
 /-! ## λ-towers of graphs -/
 
 /-- **A λ-tower inhabits the Π-tower over its domains** when its leaves
-inhabit the codomain at every fitting spine (every binder in the graph
-regime). -/
+inhabit the codomain at every fitting spine. -/
 theorem holeFam_mem_mkPisAV :
     ∀ {ab : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {B : AnnotTerm} {g : List V → V},
-      (∀ d ∈ ab, d.2.1 ≠ 0) →
       (∀ vs, SpineFit ρ (ab.map (·.2.2)) vs → g vs ∈ˢ interp V (consList vs ρ) B) →
       holeFam ρ (ab.map (·.2.2)) g ∈ˢ interp V ρ (mkPisAV ab B)
-  | [], _, _, _, _, h => h [] trivial
-  | x :: ab, ρ, B, g, hb, h => by
-    show lamR 1 (interp V ρ x.2.2) _ ∈ˢ piR x.2.1 (interp V ρ x.2.2) _
-    rw [lamR_pos (by decide), piR_pos (hb x List.mem_cons_self)]
-    refine graph_mem_piSet fun a ha => ?_
-    exact holeFam_mem_mkPisAV (fun d hd => hb d (List.mem_cons_of_mem _ hd))
-      fun vs hvs => h (a :: vs) ⟨ha, hvs⟩
+  | [], _, _, _, h => h [] trivial
+  | _ :: _, _, _, _, _ => by
+    -- L17: `holeFam` is a tower of graphs (`lamR 1`); the hole type reads
+    -- value-read (`piV`), a truth value where its fibres are (an empty
+    -- inner domain).  With `holeFam` read as `lamV` this is `lamV_mem` at
+    -- the hole types' fibres, which are types (L6's note)
+    sorry
 
 namespace LfpDatum
 
@@ -78,13 +76,12 @@ parameter frame as the Π-tower over the member's indices ending in the
 block's sort. -/
 theorem holeVal_mem (hkN : D.k ≤ D.N) {ψ : Name → Nat} {ρp X : Nat → V}
     (hX : InTupleSpaceU (D.w ψ) D.N (D.idx ψ ρp) X) {t : Nat} (ht : t < D.k)
-    {ab : List (Nat × Nat × AnnotTerm)} (hab : ab.map (·.2.2) = D.ids t ψ)
-    (hbits : ∀ d ∈ ab, d.2.1 ≠ 0) :
+    {ab : List (Nat × Nat × AnnotTerm)} (hab : ab.map (·.2.2) = D.ids t ψ) :
     D.holeVal ψ ρp X t ∈ˢ interp V ρp (mkPisAV ab (.sort (D.w ψ))) := by
   have htN : t < D.N := Nat.lt_of_lt_of_le ht hkN
   unfold holeVal
   rw [← hab]
-  refine holeFam_mem_mkPisAV hbits fun vs _ => ?_
+  refine holeFam_mem_mkPisAV fun vs _ => ?_
   rw [interp_sort]
   by_cases hT : tupW (D.u t ψ) vs ∈ˢ D.idx ψ ρp t
   · exact app_mem_of_mem_piSet (hX t htN) hT

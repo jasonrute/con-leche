@@ -431,13 +431,13 @@ theorem noBVar_liftN_one : ∀ (X : AnnotTerm) (c : Nat), NoBVar (fun i => i = c
   | eqE a b iha ihb => intro c; exact ⟨iha c, ihb c⟩
   | fst e ih => intro c; exact ih c
   | snd e ih => intro c; exact ih c
-  | lam u A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro c
     refine ⟨ihA c, NoBVar.mono (fun i hi => ?_) (ihb (c + 1))⟩
     cases i with
     | zero => exact absurd hi (by simp [shiftP])
     | succ i => show i + 1 = c + 1; simp only [shiftP] at hi; omega
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro c
     refine ⟨ihA c, NoBVar.mono (fun i hi => ?_) (ihB (c + 1))⟩
     cases i with
@@ -942,7 +942,9 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     exact (substAV_holeBack_liftN hxP e nF (hEfree e he)).symm
   -- ## the normal form: the link, its reading and its fields
   obtain ⟨abD, abN, B₀, hRD, hRN, hlD, hlN, hEqF, -, -⟩ := hlink _ hRc
-  obtain ⟨rfl, rfl⟩ := mkPisAV_inj (hppl.trans hlD.symm) hRD
+  obtain ⟨hpp, rfl⟩ := mkPisAV_inj (hppl.trans hlD.symm) hRD
+  have hppD : pps.map (·.2.2) = abD.map (·.2.2) := by
+    rw [← ppsNorm_map_dom pps, hpp, ppsNorm_map_dom]
   -- the stored field readings are the crest's, the holes filled back
   have hSget : ∀ l p, pps[l]? = some p →
       (((ds ψ).drop ctx.nP).map (·.2.2)).getD l default
@@ -962,7 +964,8 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
           simp only [AnnotTerm.substTele, List.getElem?_cons_succ, ih (c + 1) l]
           rw [show c + 1 + l = c + (l + 1) by omega]
     intro l p hp
-    rw [← hTele, List.getD_eq_getElem?_getD, List.getElem?_map, hTget, hp]
+    rw [← ppsNorm_map_dom (List.drop ctx.nP (ds ψ)), ← hTele, ppsNorm_map_dom,
+      List.getD_eq_getElem?_getD, List.getElem?_map, hTget, hp]
     simp
   have hFgetD : ∀ l p, pps[l]? = some p → (pps.map (·.2.2)).getD l default = p.2.2 := by
     intro l p hp
@@ -998,7 +1001,8 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     rw [List.map_map]
     refine List.map_congr_left fun q hq => ?_
     simp only [Function.comp_apply, interp_bvar]
-  refine ⟨pps, abN, E, ?_, ?_, hlD, hlN, hE, ⟨by simp [hlN, hlenD], ?_⟩⟩
+  have hlP : pps.length = nF := (hppl.trans hlD.symm).trans hlD
+  refine ⟨pps, abN, E, ?_, ?_, hlP, hlN, hE, ⟨by simp [hlN, hlenD], ?_⟩⟩
   · rw [hRc, hBbE]
   · rw [hRN, hBbE]
   · -- the override: through the declared crest (at every parameter frame) and the link (at
@@ -1006,13 +1010,14 @@ theorem storedFieldShapes_of_walk {V : Type w} [SetTheory V] {env : Env} (m : En
     intro ρ hρ hs hsl hv l hl as has hfit
     have hl' : l < nF := by simpa [hlN] using hl
     have hfitD : SpineFit (consList hs ρ) ((pps.map (·.2.2)).take l) as := by
-      refine (spineFit_congr_all (by simp [hlD, hlenD]) (fun i as' hi has' => ?_) as).mpr hfit
-      have hil : i < l := by simp only [List.length_take, List.length_map, hlD] at hi; omega
+      refine (spineFit_congr_all (by simp [hlP, hlenD]) (fun i as' hi has' => ?_) as).mpr hfit
+      have hil : i < l := by simp only [List.length_take, List.length_map, hlP] at hi; omega
       rw [List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hil, ← List.getD_eq_getElem?_getD,
         List.getD_eq_getElem?_getD (l := List.take l _), List.getElem?_take_of_lt hil,
         ← List.getD_eq_getElem?_getD]
       exact hdecl ρ hs hsl hv i as' (by omega) has'
-    rw [← hdecl ρ hs hsl hv l as hl' has]
+    rw [← hdecl ρ hs hsl hv l as hl' has, hppD]
+    rw [hppD] at hfitD
     exact (hEqF.getD_eq (hsatH ρ hρ hs hsl hv) l as (by simp [hlD, hl']) hfitD).symm
 
 end ConLeche.Model

@@ -723,7 +723,7 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
   have hgF : WellDenotedV V ρ (AnnotTerm.mkAppN
       (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) (tsa.take cnP)) :=
     (mkAppN_of_fitA (tsa.take cnP) (hokTVja ρ)
-      ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩
+      (m.acval_wellDenoted _ _ ρ)
       (fun x hx => hoTs x (List.mem_of_mem_take hx)) (hmemCj ρ) hfitVal).1
   -- the fabrication's type is the major's ("not pt" source (1): two types)
   obtain ⟨hgTf, hmemF⟩ := hInnerTf ρ hρ hLfab hgF
@@ -846,7 +846,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
       ∈ˢ interp V ρ TCa := by
     rw [← hlpsE]; exact hmemC ρ
   have hgF := (mkAppN_of_fitA (tsa ++ ps) (hoktc ρ)
-    ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩ hoksF hmemC' hfitPA).1
+    (m.acval_wellDenoted _ _ ρ) hoksF hmemC' hfitPA).1
   refine ⟨hgF, ?_⟩
   rw [hbη, interp_mkAppN, List.foldl_map]
 
@@ -1031,7 +1031,7 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
       (tsa ++ [projAV (0 + env.projOff andName) ea,
         projAV (1 + env.projOff andName) ea])) :=
     (mkAppN_of_fitA _ (hokTVja ρ)
-      ⟨m.acval_wellDenoted _ _ ρ, hin.leaf_valid _ _ ρ⟩
+      (m.acval_wellDenoted _ _ ρ)
       hoksF (hmemCj ρ) hfitVal).1
   -- the fabrication's type is the major's ("not pt" source (1): two types)
   have hLfab : LeavesGr m φ d fab ρ := hL.of_subset hsub

@@ -214,7 +214,6 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
                     obtain rfl := Option.some.inj hf
                     exact mp.base2.acval_params n _ h₀ ψ₁ ψ₂ hp
                 acval_wellDenoted := mp.base2.acval_wellDenoted }
-            acval_validV := mp.acval_validV
             type_reads := ?_
             type_wellDenotedTy := ?_
             mem_type := ?_

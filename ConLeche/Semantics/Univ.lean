@@ -23,9 +23,8 @@ property of `f`, quantified over `f`'s own members.  Nothing about `B`,
 about universe transitivity, or about what a universe contains can add
 a member to it: universe transitivity says members of members of `U`
 are in `U`, which enlarges `U`, never `piSet A B`.  So
-`interp_mem_pi_pos` holds at universe-valued fibres exactly as it does
-anywhere else (`interp_univ_cod_inversion` is the instance, proved by
-the general lemma with no extra hypothesis).
+`interp_mem_pi_ne_pt` holds at universe-valued fibres exactly as it
+does anywhere else.
 
 A `Type`-level abstraction is never `pt` (`lamR_ne_pt`), and the proof
 point inhabits no graph-regime product (`not_pt_mem_piR_pos`), so
@@ -102,19 +101,6 @@ theorem mem_piR_pos_iff {v : Nat} (hv : v ≠ 0) {A f : V} {B : V → V} :
     f ∈ˢ piR v A B ↔ f ⊆ˢ sigmaPairs A B ∧
       ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
   rw [piR_pos hv]; exact mem_piSet
-
-/-- The universe-codomain instance of the inversion: a member of
-`⟦(x : A) → Sort k⟧` is a graph over `⟦A⟧` landing pointwise in
-`univ k`.  Proved by the general lemma — *there is no extra
-hypothesis*, which is the whole answer to the universe question. -/
-theorem interp_univ_cod_inversion (V : Type w) [SetTheory V] {v : Nat}
-    (hv : v ≠ 0) {u k : Nat} {ρ : Nat → V} {A : AnnotTerm} {f : V}
-    (hf : f ∈ˢ interp V ρ (.pi u v A (.sort k))) :
-    graph (fun x => SetTheory.app f x) (interp V ρ A) = f ∧
-    (∀ x, x ∈ˢ interp V ρ A → SetTheory.app f x ∈ˢ (univ k : V)) ∧
-    (∀ a, ¬ a ∈ˢ interp V ρ A → SetTheory.app f a = empty) ∧
-    f ≠ pt :=
-  interp_mem_pi_pos V hv hf
 
 /-! ## The proof point and the universes -/
 

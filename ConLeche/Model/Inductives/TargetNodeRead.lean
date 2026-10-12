@@ -18,7 +18,7 @@ callee a variable of its stored type after the frame), at the callee's
 value.  Three facts meet:
 
 * the λ's fold along a FITTING spine is its body at the spine
-  (`mkLamsAV_fold`, at the family's nonzero elimination bit);
+  (`mkLamsAV_fold`);
 * the spine the residue applies the `ih` variable to — the call's own
   telescope variables — fits: the residue node was typed by the rule
   stage (`IhTyped`), in the walk's context (`WalkCtx`), against the
@@ -58,8 +58,8 @@ the λ-tower over one telescope read one list. -/
     pure (a :: r)
 
 /-- **The `∀`-tower over a telescope, read**: its binder data are the
-telescope's domains (`teleDoms`) at the binders' own bits, and its body
-is read with the binders opened. -/
+telescope's domains (`teleDoms`) with zero numerals (the reading records
+none), and its body is read with the binders opened. -/
 theorem denoteMeta_mkPisOf {D : Nat} :
     ∀ (tele : List (Expr × ConLeche.BinderMeta)) (X : Expr) (q : Nat) (os : List Expr)
       (P : AnnotTerm),
@@ -68,7 +68,7 @@ theorem denoteMeta_mkPisOf {D : Nat} :
       ∃ (ds : List (Nat × Nat × AnnotTerm)) (Xr : AnnotTerm) (os' : List Expr),
         P = mkPisAV ds Xr ∧
         teleDoms acval env φ D os (tele.map (·.1)) = some (ds.map (·.2.2)) ∧
-        ds.map (·.2.1) = tele.map (fun b => pwBit φ b.2.pw) ∧
+        ds.map (·.2.1) = tele.map (fun _ => 0) ∧
         LocList D (q + tele.length) os' ∧
         denoteMeta acval env φ (D + (q + tele.length)) (X.instantiateList os' 0) = some Xr
   | [], X, q, os, P, hos, hP => by
@@ -80,11 +80,11 @@ theorem denoteMeta_mkPisOf {D : Nat} :
     rw [denoteMeta_forallE] at hP
     obtain ⟨ta, hta, hP⟩ := Option.bind_eq_some_iff.mp hP
     obtain ⟨ba, hba, hP⟩ := Option.bind_eq_some_iff.mp hP
-    obtain rfl : P = .pi 0 (pwBit φ bm.pw) ta ba := (Option.some.inj hP).symm
+    obtain rfl : P = .pi ta ba := (Option.some.inj hP).symm
     rw [← Expr.instantiateList_cons, show D + q + 1 = D + (q + 1) from by omega] at hba
     obtain ⟨ds, Xr, os', rfl, hdoms, hbits, hos', hX⟩ :=
       denoteMeta_mkPisOf bs X (q + 1) _ ba (hos.cons _) hba
-    refine ⟨(0, pwBit φ bm.pw, ta) :: ds, Xr, os', rfl, ?_, ?_,
+    refine ⟨(0, 0, ta) :: ds, Xr, os', rfl, ?_, ?_,
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hos',
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hX⟩
     · show teleDoms acval env φ D os (ty :: bs.map (·.1)) = some (ta :: ds.map (·.2.2))

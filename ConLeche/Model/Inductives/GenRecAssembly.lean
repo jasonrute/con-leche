@@ -159,8 +159,10 @@ the interface between the family premise and the node route. -/
 
 /-! ## 3. The stage -/
 
-/-- The family's elimination bit at `ψ`. -/
+/-- The family's elimination bit at `ψ`: `0` exactly when the
+elimination level evaluates to `0` (a level fact, read by the generated
+stage's case split; no binder reads it). -/
 @[expose] def genBit (pp : BlockParts) (ψ : Name → Nat) : Nat :=
-  pwBit ψ (Level.zeronessOf (ConLeche.structElimLevel pp.elim pp.large))
+  if (Level.zeronessOf (ConLeche.structElimLevel pp.elim pp.large)).holds ψ then 0 else 1
 
 end ConLeche.Model

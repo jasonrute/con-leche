@@ -150,13 +150,12 @@ one rule per syntax form on the checker's own terms — a bound variable
 reads its environment, `Sort u` the types of a level of the universe
 chain, a constant its set, an application the function's graph, a
 `let` its body at its value (its type is not read), a
-binder the dependent
-product, or the truth value of its body when the checker annotated the
-binder as proposition-valued — an annotation it may make only if the
-body really denotes a truth value there — and the structure
+`∀` the dependent function space, or a truth value where its body
+denotes a truth value at every value of its domain, a `λ` the graph of
+its body, or the proof point where its body denotes the proof point at
+every value of its domain — and the structure
 [`Model` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Denotes.lean#L270-L290).
-So every theorem the stream proves is true in the model, and the
-theorem certifies every proposition annotation the checker stored.
+So every theorem the stream proves is true in the model.
 Definitional equalities need no clause of their own, because the field
 `eq_equality` covers them all: a definition's unfolding or an iota
 rule, stated as a theorem proved by `rfl`, is a stored constant whose
@@ -562,15 +561,18 @@ is stated semantically.
 ([type `Term` in `ConLeche/Term/Syntax.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Term/Syntax.lean#L186-L214)):
 de Bruijn indices, sorts at concrete levels, built-in constants at
 concrete level instantiations, no names, no binder infos. The
-*annotated* variant is the same syntax with a numeral sort at each
-binder
+interpretation reads the same syntax with projections spelled
 ([type `AnnotTerm` in `ConLeche/Semantics/Syntax.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Syntax.lean#L72-L98)).
 
-**Interpretation.** The interpretation maps an annotated term to a
-set, totally and term-directed
+**Interpretation.** The interpretation maps a term to a set, totally
+and term-directed
 ([function `interp` in `ConLeche/Semantics/Interp.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Interp.lean#L153-L164)):
-a Π whose body sort is `0` is a predicate space with a single proof
-point, otherwise a dependent function space; a λ likewise; a sort is
+a Π whose fibres over its domain are all truth values is a truth value,
+otherwise a dependent function space; a λ whose body values over its
+domain are all the proof point is the proof point, otherwise its graph
+(both read off the values, `piV`/`lamV` in
+`ConLeche/SetModel/Ops.lean`; over an empty domain a Π is `{pt}` and a
+λ the proof point); β holds on the domain with no other premise; a sort is
 the set of *types* in a universe of the chain (truth values, and sets
 that neither are the proof point nor contain it), cumulative in the
 level; nothing needs to be well-typed to be
@@ -591,13 +593,11 @@ closedness and the pins of the basis constants
 ([structure `EnvModel` in `ConLeche/Model/Annot/EnvModel.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Annot/EnvModel.lean#L38-L67)).
 
 **The statement's reading.** The main theorem is not stated over the
-annotated terms and `interp` but over `Denotes` (§1), a relation on
-the checker's own terms with no annotated intermediate. The two agree
-where the invariant reads: wherever the invariant's reading of a term
-is defined and satisfies the invariant, `interp` of the reading is a
-`Denotes`-denotation of the term, with the invariant's sort facts
-discharging the binder rules' premises about which bodies are
-propositions
+interpretation's syntax and `interp` but over `Denotes` (§1), a
+relation on the checker's own terms. The two agree wherever the
+reading of a term is defined: `interp` of the reading is a
+`Denotes`-denotation of the term, since both read a binder's regime off
+the values
 ([theorem `Denotes_of_denoteMeta` in `ConLeche/Model/Denotes.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Denotes.lean#L220-L226)).
 The relation reads a binder's body under the binder with de Bruijn
 indices while the checker opens it with a fresh free variable; a small
@@ -1240,7 +1240,7 @@ listed here carries meaning**.
 | `I` | the variant that also handles an inductive family's index arguments (`checkStructFieldSortsI`) |
 | `F` | stated over `FEnv`, the environment together with its lookup index (`natLitSupportedF`) |
 | `D` | the direct parse and the functions over its output (`parseExportD`, `trusted_agrees_skels_D`) |
-| `AV`, `Annot` | annotated terms: `AnnotTerm` is `Term` with a numeral sort at every binder, and `*AV` names are its readers (`sumTyAV`, `natLitAV`) |
+| `AV`, `Annot` | the interpretation's syntax: `AnnotTerm`, and `*AV` names are its spellings (`sumTyAV`, `natLitAV`) |
 | `WF` | well-formedness (`EnvWF`, `BlockWF`) |
 | `_pure` / `_cached` / `_checked` | the final theorems over the pure fueled fold, over the cached fold `checkDecls`, and over the driver's fully checked environment (`no_proof_of_False_pure`, `no_proof_of_False_cached`, `no_proof_of_False_checked`) |
 
@@ -1284,7 +1284,7 @@ ConLeche.Kernel.PropWhen`, and every such line carries its reason.
 | `ConLeche/Term/` | The erased term language, its substitution algebra and the basis constants. |
 | `ConLeche/SetTheory/` | The `SetTheory` class and the derived set operations. |
 | `ConLeche/SetModel/` | Pure set constructions with no expressions in sight: tuples and nested tuples, tagged sums, the fixpoint iteration, the recursor's graph, member containers. |
-| `ConLeche/Semantics/` | The annotated term language, the interpretation, the semantic invariant, the semantics of inductive blocks, the declaration-level facts. |
+| `ConLeche/Semantics/` | The interpretation's term language, the interpretation, the semantic invariant, the semantics of inductive blocks, the declaration-level facts. |
 | `ConLeche/Rules/` | The relational description of the core checker: seven mutually inductive relations over the checker's own `Expr` — reduction, definitional equality, type inference (checking and infer-only), and four certificate checks — with fuel, unfolding heuristics and dispatch order out of sight (`Rel.lean`), and the derived rules (`Derived.lean`). Imports the fuel-free helpers of the kernel and nothing else of it. |
 | `ConLeche/Verify/Rules/` | The bridge: an accepting run of a kernel function, at any fuel, yields a derivation (`Bridge.lean`, from one step theorem per entry point and the certificate bridges). |
 | `ConLeche/Model/` | The graded set model of the checker: the environment invariant and its laws (`Annot/`), the claims, the soundness of the rules tier's derivations (`Rules/`: the motives, the environment inputs, one lemma per rule over shared kits, the master induction, and the recomposition of the claims from the bridge), the run-stated remainder the declaration fold reads (`Tiers.lean`), the declaration step, the inductive installs (`Inductives/`, `Ind*`), the Nat-op certification, the final theorems (`Capstone.lean`), and the model read through the statement's relation (`Denotes.lean`). |

@@ -5,64 +5,40 @@ public import ConLeche.Term.Subst
 @[expose] public section
 
 /-!
-# `AnnotTerm`: the sort-annotated variant of `Term` (task #151, tier A)
+# `AnnotTerm`: the semantic syntax (task #151, tier A; task #342, L14a)
 
-`Term` (`ConLeche/Term/Syntax.lean`) carries **no** universe information at
-its binders: `pi A B` and `lam A b` are the bare formers.  Without a
-sort at the binder an interpretation cannot tell a predicate space
-with its one proof point from a dependent function space — the
-universe-cohabitation wall: no *typing* separates a proposition's
-inhabitant from the proof point.
+`AnnotTerm` is the syntax `interp` reads: a checker term after its
+universe levels are evaluated (`Term`'s ground numerals) and its
+projections spelled.  Node for node it is `Term`; the binder formers
+carry no annotation:
 
-`AnnotTerm` is the same syntax with the binder formers carrying **ground
-numeral sorts**:
+| `Term` | `AnnotTerm` |
+|---|---|
+| `pi A B` | `pi A B` |
+| `lam A b` | `lam A b` |
+| `letE v b` | `letE v b` (no type slot: nothing reads a `let`'s type) |
+| everything else | the same node |
 
-| `Term` | `AnnotTerm` | annotation |
-|---|---|---|
-| `pi A B` | `pi u v A B` | the domain's sort `u` and the body's sort `v` |
-| `lam A b` | `lam u A b` | the sort `u` of the body's **type** (the codomain), which `interp` dispatches on |
-| `letE v b` | `letE v b` | none (the type is not read, so neither node carries it) |
-| everything else | the same node | none |
+A binder's regime (truth value or graph) is read off the values by
+`interp` (`piV`/`lamV`, `SetModel/Ops.lean`), not off the syntax.
 
-**Design rulings this file implements** (task #151's own):
-
-* **Ground numerals, not `Level`s.**  `Term` already evaluates every
-  level expression at its use site (`ConLeche/Term/Syntax.lean`'s "universe
-  levels are concrete `Nat`s"), so an annotation is a `Nat`.  There is
-  no level substitution to commute with, which is what makes the whole
-  substitution metatheory below *inert*.
-* **Annotations are cached premises.**  A slot exists exactly where the
-  checker's own inference establishes the fact and a consumer reads
-  it: the rules tier's `Infer.forallE` carries the sort premises of
-  both binder positions and `Infer.lam` the codomain's
-  (`ConLeche/Rules/Rel.lean`).  Hence:
-* **`letE` gets no annotation and no type slot**: the interpretation
-  reads the value and then the body at the value, so nothing reads the
-  type (task #342, L-let).
-* **`eqE` gets no annotation**, and since task #237 carries no type
-  slot either — exactly as `Term` does; see
-  `ConLeche/Term/Syntax.lean` on why the type was never constrained.
+History: until task #342 (L14a) the binder formers carried ground
+numeral sorts (`pi u v A B`, `lam u A b`), the checker's cached
+annotations, and `interp` dispatched on them.
 
 ## The structural kit
 
-`erase` forgets the annotations; `liftN`/`inst` are the de Bruijn
-operations, defined *clause for clause* against
-`ConLeche/Term/Subst.lean`'s.  Their whole content is the pair of
-commutations `erase_liftN` / `erase_inst`: **annotations are inert data
-under substitution** — instantiation rewrites subterms and never
-touches a numeral — so the annotated operations project onto the plain
-ones on the nose.  That is what lets tier B and tier C move an
-annotated term through a β/ζ/telescope step without re-deriving any
-sort fact.
+`erase` maps to `Term`; `liftN`/`inst` are the de Bruijn operations,
+defined *clause for clause* against `ConLeche/Term/Subst.lean`'s.  Their
+content is the pair of commutations `erase_liftN` / `erase_inst`.
 -/
 
 namespace ConLeche.Semantics
 
 open ConLeche.Term
 
-/-- `Term` with ground numeral sorts at the binder formers.  Node for
-node the same syntax; see the module docstring for the annotation
-table. -/
+/-- The semantic syntax: `Term`'s nodes, read by `interp`.  See the
+module docstring. -/
 inductive AnnotTerm where
   /-- de Bruijn index -/
   | bvar (i : Nat)
@@ -72,12 +48,10 @@ inductive AnnotTerm where
   | const (c : BConst) (us : List Nat)
   /-- application -/
   | app (f a : AnnotTerm)
-  /-- `fun (_ : ty) => body`, where `body`'s **type** has sort `u` —
-  the codomain numeral `interp` dispatches on (tier B's F4; the
-  #152 resolution made it derivable, and `Annotates.lam` caches it) -/
-  | lam (u : Nat) (ty body : AnnotTerm)
-  /-- `(_ : ty) → body`, with `ty`'s sort `u` and `body`'s sort `v` -/
-  | pi (u v : Nat) (ty body : AnnotTerm)
+  /-- `fun (_ : ty) => body` -/
+  | lam (ty body : AnnotTerm)
+  /-- `(_ : ty) → body` -/
+  | pi (ty body : AnnotTerm)
   /-- `let _ := val; body`: the body under one binder, read at the
   value; no type slot, as in `Term` -/
   | letE (val body : AnnotTerm)
@@ -94,14 +68,14 @@ inductive AnnotTerm where
 
 namespace AnnotTerm
 
-/-- Forget the annotations. -/
+/-- The `Term` a semantic term spells. -/
 def erase : AnnotTerm → Term
   | .bvar i => .bvar i
   | .sort u => .sort u
   | .const c us => .const c us
   | .app f a => .app (erase f) (erase a)
-  | .lam _ A b => .lam (erase A) (erase b)
-  | .pi _ _ A B => .pi (erase A) (erase B)
+  | .lam A b => .lam (erase A) (erase b)
+  | .pi A B => .pi (erase A) (erase B)
   | .letE v b => .letE (erase v) (erase b)
   | .eqE a b => .eqE (erase a) (erase b)
   | .fst e => .fst (erase e)
@@ -114,10 +88,10 @@ def erase : AnnotTerm → Term
     erase (.const c us) = .const c us := rfl
 @[simp] theorem erase_app (f a : AnnotTerm) :
     erase (.app f a) = .app (erase f) (erase a) := rfl
-@[simp] theorem erase_lam (u : Nat) (A b : AnnotTerm) :
-    erase (.lam u A b) = .lam (erase A) (erase b) := rfl
-@[simp] theorem erase_pi (u v : Nat) (A B : AnnotTerm) :
-    erase (.pi u v A B) = .pi (erase A) (erase B) := rfl
+@[simp] theorem erase_lam (A b : AnnotTerm) :
+    erase (.lam A b) = .lam (erase A) (erase b) := rfl
+@[simp] theorem erase_pi (A B : AnnotTerm) :
+    erase (.pi A B) = .pi (erase A) (erase B) := rfl
 @[simp] theorem erase_letE (v b : AnnotTerm) :
     erase (.letE v b) = .letE (erase v) (erase b) := rfl
 @[simp] theorem erase_eqE (a b : AnnotTerm) :
@@ -135,8 +109,8 @@ def liftN (n : Nat) : AnnotTerm → (k : Nat := 0) → AnnotTerm
   | .sort u, _ => .sort u
   | .const c us, _ => .const c us
   | .app f a, k => .app (liftN n f k) (liftN n a k)
-  | .lam u A b, k => .lam u (liftN n A k) (liftN n b (k + 1))
-  | .pi u v A B, k => .pi u v (liftN n A k) (liftN n B (k + 1))
+  | .lam A b, k => .lam (liftN n A k) (liftN n b (k + 1))
+  | .pi A B, k => .pi (liftN n A k) (liftN n B (k + 1))
   | .letE v b, k => .letE (liftN n v k) (liftN n b (k + 1))
   | .eqE a b, k => .eqE (liftN n a k) (liftN n b k)
   | .fst e, k => .fst (liftN n e k)
@@ -154,8 +128,8 @@ def inst : AnnotTerm → AnnotTerm → (k : Nat := 0) → AnnotTerm
   | .sort u, _, _ => .sort u
   | .const c us, _, _ => .const c us
   | .app f b, a, k => .app (inst f a k) (inst b a k)
-  | .lam u A b, a, k => .lam u (inst A a k) (inst b a (k + 1))
-  | .pi u v A B, a, k => .pi u v (inst A a k) (inst B a (k + 1))
+  | .lam A b, a, k => .lam (inst A a k) (inst b a (k + 1))
+  | .pi A B, a, k => .pi (inst A a k) (inst B a (k + 1))
   | .letE v b, a, k => .letE (inst v a k) (inst b a (k + 1))
   | .eqE b c, a, k => .eqE (inst b a k) (inst c a k)
   | .fst e, a, k => .fst (inst e a k)
@@ -226,10 +200,10 @@ theorem projPair?_cases₂ {i : Nat} {e x e' x' : AnnotTerm}
     liftN n (.const c us) k = .const c us := rfl
 @[simp] theorem liftN_app (n k : Nat) (f a : AnnotTerm) :
     liftN n (.app f a) k = .app (liftN n f k) (liftN n a k) := rfl
-@[simp] theorem liftN_lam (n k u : Nat) (A b : AnnotTerm) :
-    liftN n (.lam u A b) k = .lam u (liftN n A k) (liftN n b (k + 1)) := rfl
-@[simp] theorem liftN_pi (n k u v : Nat) (A B : AnnotTerm) :
-    liftN n (.pi u v A B) k = .pi u v (liftN n A k) (liftN n B (k + 1)) := rfl
+@[simp] theorem liftN_lam (n k : Nat) (A b : AnnotTerm) :
+    liftN n (.lam A b) k = .lam (liftN n A k) (liftN n b (k + 1)) := rfl
+@[simp] theorem liftN_pi (n k : Nat) (A B : AnnotTerm) :
+    liftN n (.pi A B) k = .pi (liftN n A k) (liftN n B (k + 1)) := rfl
 @[simp] theorem liftN_letE (n k : Nat) (v b : AnnotTerm) :
     liftN n (.letE v b) k = .letE (liftN n v k) (liftN n b (k + 1)) := rfl
 @[simp] theorem liftN_eqE (n k : Nat) (a b : AnnotTerm) :
@@ -250,10 +224,10 @@ theorem projPair?_cases₂ {i : Nat} {e x e' x' : AnnotTerm}
     inst (.const c us) a k = .const c us := rfl
 @[simp] theorem inst_app (a : AnnotTerm) (k : Nat) (f b : AnnotTerm) :
     inst (.app f b) a k = .app (inst f a k) (inst b a k) := rfl
-@[simp] theorem inst_lam (a : AnnotTerm) (k u : Nat) (A b : AnnotTerm) :
-    inst (.lam u A b) a k = .lam u (inst A a k) (inst b a (k + 1)) := rfl
-@[simp] theorem inst_pi (a : AnnotTerm) (k u v : Nat) (A B : AnnotTerm) :
-    inst (.pi u v A B) a k = .pi u v (inst A a k) (inst B a (k + 1)) := rfl
+@[simp] theorem inst_lam (a : AnnotTerm) (k : Nat) (A b : AnnotTerm) :
+    inst (.lam A b) a k = .lam (inst A a k) (inst b a (k + 1)) := rfl
+@[simp] theorem inst_pi (a : AnnotTerm) (k : Nat) (A B : AnnotTerm) :
+    inst (.pi A B) a k = .pi (inst A a k) (inst B a (k + 1)) := rfl
 @[simp] theorem inst_letE (a : AnnotTerm) (k : Nat) (v b : AnnotTerm) :
     inst (.letE v b) a k = .letE (inst v a k) (inst b a (k + 1)) := rfl
 @[simp] theorem inst_eqE (a : AnnotTerm) (k : Nat) (b c : AnnotTerm) :
@@ -283,9 +257,9 @@ rewriting with them, never by re-deriving a sort fact. -/
   | const c us => intros; rfl
   | app f a ihf iha => intro n k; simp only [liftN_app, erase_app, ihf, iha,
       Term.liftN_app]
-  | lam u A b ihA ihb => intro n k; simp only [liftN_lam, erase_lam, ihA, ihb,
+  | lam A b ihA ihb => intro n k; simp only [liftN_lam, erase_lam, ihA, ihb,
       Term.liftN_lam]
-  | pi u v A B ihA ihB => intro n k; simp only [liftN_pi, erase_pi, ihA, ihB,
+  | pi A B ihA ihB => intro n k; simp only [liftN_pi, erase_pi, ihA, ihB,
       Term.liftN_pi]
   | letE v b ihv ihb => intro n k; simp only [liftN_letE, erase_letE, ihv, ihb,
       Term.liftN_letE]
@@ -314,9 +288,9 @@ rewriting with them, never by re-deriving a sort fact. -/
   | const c us => intros; rfl
   | app f b ihf ihb => intro a k; simp only [inst_app, erase_app, ihf, ihb,
       Term.inst_app]
-  | lam u A b ihA ihb => intro a k; simp only [inst_lam, erase_lam, ihA, ihb,
+  | lam A b ihA ihb => intro a k; simp only [inst_lam, erase_lam, ihA, ihb,
       Term.inst_lam]
-  | pi u v A B ihA ihB => intro a k; simp only [inst_pi, erase_pi, ihA, ihB,
+  | pi A B ihA ihB => intro a k; simp only [inst_pi, erase_pi, ihA, ihB,
       Term.inst_pi]
   | letE v b ihv ihb => intro a k; simp only [inst_letE, erase_letE, ihv, ihb,
       Term.inst_letE]
@@ -358,8 +332,8 @@ theorem erase_eq_const {ea : AnnotTerm} {c : BConst} {us : List Nat}
     injection h with h1 h2
     rw [h1, h2]
   | app f a => rw [AnnotTerm.erase_app] at h; exact nomatch h
-  | lam u ty b => rw [AnnotTerm.erase_lam] at h; exact nomatch h
-  | pi u v ty b => rw [AnnotTerm.erase_pi] at h; exact nomatch h
+  | lam ty b => rw [AnnotTerm.erase_lam] at h; exact nomatch h
+  | pi ty b => rw [AnnotTerm.erase_pi] at h; exact nomatch h
   | letE v b => rw [AnnotTerm.erase_letE] at h; exact nomatch h
   | eqE l r => rw [AnnotTerm.erase_eqE] at h; exact nomatch h
   | fst e => rw [AnnotTerm.erase_fst] at h; exact nomatch h

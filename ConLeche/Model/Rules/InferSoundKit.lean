@@ -9,7 +9,6 @@ import ConLeche.Semantics.Hoist
 import ConLeche.Semantics.LitStep
 import ConLeche.Model.Annot.BitInst
 import ConLeche.Model.WellDenotedTransport
-import ConLeche.Model.Annot.ValidSpine
 
 public section
 
@@ -23,7 +22,7 @@ The pieces the inference rules' soundness needs:
   entry-kind inversion come from `RedSoundKit.lean`);
 * `charList_facts` and `strLitFacts` — the `String`-literal clause's
   whole content, stated over `RulesInputs`' fields
-  (`ConstType`/`AcvalValid`/`NatHeads`).
+  (`ConstType`/`NatHeads`).
 -/
 
 namespace ConLeche.Model.Rules
@@ -47,41 +46,27 @@ an application into the **hereditary app slot** the io licence reads.
 -/
 
 /-- The `WellDenotedV` ∀-splitter. -/
-theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+theorem WellDenotedV.hoist_pi {Δa : List AnnotTerm} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ A) ∧
-      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨h1 ρ hρ, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
-  · exact ((AnnotValid_pi V ρ u v A B) ▸ (h ρ hρ).2).1
-  · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
-      funext i; cases i with | zero => rfl | succ i => rfl
-    have := ((AnnotValid_pi V _ u v A B) ▸
-      (h _ (Sat_tail hρ)).2).2.1 (ρ 0) (hρ 0 A rfl)
-    rwa [hcons] at this
+      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) :=
+  WellDenoted.hoist_pi (V := V) h
 
 /-- The `WellDenotedV` ∀-splitter, the domain a graded type. -/
-theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {u v : Nat} {A B : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi u v A B)) :
+theorem WellDenotedV.hoist_piTy {Δa : List AnnotTerm} {A B : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ B) :=
   ⟨fun ρ hρ => ⟨(WellDenotedV.hoist_pi (V := V) h).1 ρ hρ,
-      ((WellDenoted_pi V ρ u v A B) ▸ (h ρ hρ).1).2.1⟩,
+      (cast (WellDenoted_pi V ρ A B) (h ρ hρ)).2.1⟩,
     (WellDenotedV.hoist_pi (V := V) h).2⟩
 
 /-- The `WellDenotedV` λ-splitter. -/
-theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {v : Nat} {A b : AnnotTerm}
-    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam v A b)) :
+theorem WellDenotedV.hoist_lam {Δa : List AnnotTerm} {A b : AnnotTerm}
+    (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (.lam A b)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ A) ∧
-      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ b) := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => (h ρ hρ).1)
-  refine ⟨fun ρ hρ => ⟨h1 ρ hρ, ?_⟩, fun ρ hρ => ⟨h2 ρ hρ, ?_⟩⟩
-  · exact ((AnnotValid_lam V ρ v A b) ▸ (h ρ hρ).2).1
-  · have hcons : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
-      funext i; cases i with | zero => rfl | succ i => rfl
-    have := ((AnnotValid_lam V _ v A b) ▸
-      (h _ (Sat_tail hρ)).2).2 (ρ 0) (hρ 0 A rfl)
-    rwa [hcons] at this
+      (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedV V ρ b) :=
+  WellDenoted.hoist_lam (V := V) h
 
 /-- The `WellDenotedV` application splitter, the hereditary app slot
 included. -/
@@ -93,11 +78,9 @@ theorem WellDenotedV.hoist_app {Δa : List AnnotTerm} {f a : AnnotTerm}
         ∃ (v : Nat) (A : V) (B : V → V),
           interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
           (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A) :=
-  ⟨fun ρ hρ => ⟨((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).1,
-      ((AnnotValid_app V ρ f a) ▸ (h ρ hρ).2).1⟩,
-    fun ρ hρ => ⟨((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).2.1,
-      ((AnnotValid_app V ρ f a) ▸ (h ρ hρ).2).2⟩,
-    fun ρ hρ => ((WellDenoted_app V ρ f a) ▸ (h ρ hρ).1).2.2⟩
+  ⟨fun ρ hρ => (cast (WellDenoted_app V ρ f a) (h ρ hρ)).1,
+    fun ρ hρ => (cast (WellDenoted_app V ρ f a) (h ρ hρ)).2.1,
+    fun ρ hρ => (cast (WellDenoted_app V ρ f a) (h ρ hρ)).2.2⟩
 
 /-! ## The fit-to-application kit -/
 
@@ -119,30 +102,21 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
     intro Ta f σ rest hokT hf hoks hmem hfit
     simp only [List.map_cons] at hfit
     cases hfit with
-    | @cons _ u v A B _ _ _ hx hfit' =>
-      have hokA : WellDenotedV V σ A :=
-        ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).1,
-          ((AnnotValid_pi V σ u v A B) ▸ hokT.2).1⟩
+    | @cons _ A B _ _ _ hx hfit' =>
+      have hpi := cast (WellDenoted_pi V σ A B) hokT
       have hokB : ∀ y, y ∈ˢ interp V σ A → WellDenotedV V (cons y σ) B :=
-        fun y hy =>
-          ⟨((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.2.1 y hy,
-            ((AnnotValid_pi V σ u v A B) ▸ hokT.2).2.1 y hy⟩
-      have hfib : v = 0 → ∀ y, y ∈ˢ interp V σ A →
-          interp V (cons y σ) B ∈ˢ (univZero : V) :=
-        ((AnnotValid_pi V σ u v A B) ▸ hokT.2).2.2
+        fun y hy => hpi.2.2.1 y hy
       rw [interp_pi] at hmem
       have hokx : WellDenotedV V ρ x := hoks x List.mem_cons_self
       have hstep : WellDenotedV V ρ (.app f x) := by
-        refine ⟨?_, ?_⟩
-        · rw [WellDenoted_app]
-          exact ⟨hf.1, hokx.1, v, interp V σ A,
-            (fun y => interp V (cons y σ) B), hmem, hx, hfib,
-            fun _ => ((WellDenoted_pi V σ u v A B) ▸ hokT.1).2.1⟩
-        · rw [AnnotValid_app]; exact ⟨hf.2, hokx.2⟩
+        rw [WellDenotedV, WellDenoted_app]
+        exact ⟨hf, hokx, _, interp V σ A,
+          (fun y => interp V (cons y σ) B), hmem, hx, propN_eq_zero.mp,
+          fun _ => hpi.2.1⟩
       have hmem' : interp V ρ (.app f x)
           ∈ˢ interp V (cons (interp V ρ x) σ) B := by
         rw [interp_app]
-        exact app_mem_piR hmem hx hfib
+        exact app_mem_piV hmem hx
       -- (`mkAppN f (x :: xs) = mkAppN (.app f x) xs` is definitional)
       exact ih (hokB _ hx) hstep
         (fun y hy => hoks y (List.mem_cons_of_mem x hy)) hmem' hfit'
@@ -154,7 +128,7 @@ theorem wellDenotedV_mkAppN_of_fit {ρ : Nat → V} :
 by induction on the list from the `nil`/`cons`/`Char.ofNat` head
 packages and the two numeral heads. -/
 theorem charList_facts {ρ : Nat → V}
-    {KL KH KN KC KF Kz Ks KNat : AnnotTerm} {bN b1 b2 b3 bF : Nat}
+    {KL KH KN KC KF Kz Ks KNat : AnnotTerm}
     (hclL : ∀ σ : Nat → V, interp V σ KL = interp V ρ KL)
     (hclH : ∀ σ : Nat → V, interp V σ KH = interp V ρ KH)
     (hokKH : WellDenotedV V ρ KH) (hokKN : WellDenotedV V ρ KN)
@@ -162,18 +136,18 @@ theorem charList_facts {ρ : Nat → V}
     (hokKz : WellDenotedV V ρ Kz) (hokKs : WellDenotedV V ρ Ks)
     (hCharU : interp V ρ KH ∈ˢ (univ 1 : V))
     (hokTN : WellDenotedV V ρ
-      ((.pi 0 bN (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
+      ((.pi (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
     (hmemN : interp V ρ KN ∈ˢ interp V ρ
-      ((.pi 0 bN (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
+      ((.pi (.sort 1) (.app KL (.bvar 0))) : AnnotTerm))
     (hokTC : WellDenotedV V ρ
-      ((.pi 0 b1 (.sort 1) (.pi 0 b2 (.bvar 0)
-        (.pi 0 b3 (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
+      ((.pi (.sort 1) (.pi (.bvar 0)
+        (.pi (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
     (hmemC : interp V ρ KC ∈ˢ interp V ρ
-      ((.pi 0 b1 (.sort 1) (.pi 0 b2 (.bvar 0)
-        (.pi 0 b3 (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
-    (hokTF : WellDenotedV V ρ ((.pi 0 bF KNat KH) : AnnotTerm))
+      ((.pi (.sort 1) (.pi (.bvar 0)
+        (.pi (.app KL (.bvar 1)) (.app KL (.bvar 2))))) : AnnotTerm))
+    (hokTF : WellDenotedV V ρ ((.pi KNat KH) : AnnotTerm))
     (hmemF : interp V ρ KF ∈ˢ interp V ρ
-      ((.pi 0 bF KNat KH) : AnnotTerm))
+      ((.pi KNat KH) : AnnotTerm))
     (hz : interp V ρ Kz ∈ˢ interp V ρ KNat)
     (hsucc : interp V ρ Ks
       ∈ˢ piR 1 (interp V ρ KNat) fun _ => interp V ρ KNat) :
@@ -190,10 +164,9 @@ theorem charList_facts {ρ : Nat → V}
         interp V ρ ((.app KF (natLitAV Kz Ks c.toNat)) : AnnotTerm)
           ∈ˢ interp V ρ KH := by
     intro c
-    have hNatTy : IsTy (interp V ρ KNat) := ((WellDenoted_pi V ρ 0 bF KNat KH) ▸ hokTF.1).2.1
-    have hnat := natLit_factsAV hokKz.1 hokKs.1 hz hsucc hNatTy c.toNat
-    have hokNum : WellDenotedV V ρ (natLitAV Kz Ks c.toNat) :=
-      ⟨hnat.1, AnnotValid_natLitAV hokKz.2 hokKs.2 c.toNat⟩
+    have hNatTy : IsTy (interp V ρ KNat) := (cast (WellDenoted_pi V ρ KNat KH) hokTF).2.1
+    have hnat := natLit_factsAV hokKz hokKs hz hsucc hNatTy c.toNat
+    have hokNum : WellDenotedV V ρ (natLitAV Kz Ks c.toNat) := hnat.1
     have h := wellDenotedV_mkAppN_of_fit (V := V) (ρ := ρ)
       [natLitAV Kz Ks c.toNat] hokTF hokKF
       (by intro x hx; rcases List.mem_singleton.mp hx with rfl; exact hokNum)
@@ -260,7 +233,7 @@ the only environment facts consumed are the four memberships and
 /-- **The string chain, at the environment**, at the
 validated-annotation currency. -/
 theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
-    (hval : AcvalValid m) (hnh : NatHeads m φ)
+    (hnh : NatHeads m φ)
     (hg : ConLeche.strLitSupported env = true) {d : Nat} {s : String}
     {ea : AnnotTerm}
     (hea : denoteMeta m.acval env φ d (.lit (.strVal s)) = some ea)
@@ -290,7 +263,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
     interp_closed V (by rw [m.acval_erase]; exact m.cval_closed n ψ) σ ρ
   have hleafOk : ∀ (n : Name) (ψ : Name → Nat) (σ : Nat → V),
       WellDenotedV V σ (m.acval n ψ) := fun n ψ σ =>
-    ⟨m.acval_wellDenoted _ _ σ, hval _ _ σ⟩
+    (m.acval_wellDenoted _ _ σ)
   -- the stored types' rows, from the `const` residue
   have head : ∀ (n : Name) (ci : ConstantInfo) (us : List Level)
       (ta : AnnotTerm), env.find? n = some ci → ci.isTowerEntry = false →
@@ -375,8 +348,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRN : denoteMeta m.acval env φ 0
       (ciN.toConstantVal.type.instantiateLevelParams
         ciN.toConstantVal.levelParams [Level.zero])
-      = some ((.pi 0 (pwBit φ (Level.substPW [pN] [Level.zero] mbN.pw))
-          (.sort 1)
+      = some ((.pi (.sort 1)
           (.app (m.acval ConLeche.listName
             (Level.substFn φ ciL.toConstantVal.levelParams [Level.zero]))
             (.bvar 0))) : AnnotTerm) := by
@@ -403,11 +375,9 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRC : denoteMeta m.acval env φ 0
       (ciC.toConstantVal.type.instantiateLevelParams
         ciC.toConstantVal.levelParams [Level.zero])
-      = some ((.pi 0 (pwBit φ (Level.substPW [pC] [Level.zero] mb1.pw))
-          (.sort 1)
-          (.pi 0 (pwBit φ (Level.substPW [pC] [Level.zero] mb2.pw)) (.bvar 0)
-            (.pi 0 (pwBit φ (Level.substPW [pC] [Level.zero] mb3.pw))
-              (.app (m.acval ConLeche.listName
+      = some ((.pi (.sort 1)
+          (.pi (.bvar 0)
+            (.pi (.app (m.acval ConLeche.listName
                 (Level.substFn φ ciL.toConstantVal.levelParams [Level.zero]))
                 (.bvar 1))
               (.app (m.acval ConLeche.listName
@@ -463,8 +433,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRF : denoteMeta m.acval env φ 0
       (ciF.toConstantVal.type.instantiateLevelParams
         ciF.toConstantVal.levelParams [])
-      = some ((.pi 0 (pwBit φ (Level.substPW [] [] mbF.pw))
-          (m.acval ConLeche.natName (Level.substFn φ [] []))
+      = some ((.pi (m.acval ConLeche.natName (Level.substFn φ [] []))
           (m.acval ConLeche.charName (Level.substFn φ [] []))) : AnnotTerm) := by
     rw [hIF, denoteMeta_forallE, hKNat,
       show (Expr.const ConLeche.charName ([] : List Level)).instantiate1
@@ -485,8 +454,7 @@ theorem strLitFacts {m : EnvModel V env} (hct : ConstType m φ)
   have hRO : denoteMeta m.acval env φ 0
       (ciO.toConstantVal.type.instantiateLevelParams
         ciO.toConstantVal.levelParams [])
-      = some ((.pi 0 (pwBit φ (Level.substPW [] [] mbO.pw))
-          (.app (m.acval ConLeche.listName
+      = some ((.pi (.app (m.acval ConLeche.listName
             (Level.substFn φ ciL.toConstantVal.levelParams [Level.zero]))
             (m.acval ConLeche.charName (Level.substFn φ [] [])))
           (m.acval ConLeche.stringName
