@@ -258,9 +258,9 @@ theorem structEtaCertI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
 
 /-- `structUnitCertI` reads `fe` only through `find?`. -/
 theorem structUnitCertI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
-    structUnitCertI mode r fe₁ = structUnitCertI mode r fe₂ := by
+    structUnitCertI r fe₁ = structUnitCertI r fe₂ := by
   funext depth a b; unfold structUnitCertI
-  simp only [hfe, constTyAtM_congr hfe, iotaCertsI_congr hfe]
+  simp only [hfe]
 
 /-- `etaCertI` does not read `fe` at all. -/
 theorem etaCertI_congr (_hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :

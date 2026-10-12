@@ -193,9 +193,22 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
     intro T cvT caps hf hcape hres hfam φ' us hlen
     obtain ⟨hfE, hfam₀, hnT, hnC, hnP⟩ :=
       etaFamilyStored_descend hnotind hnotctor hnotrec hf hfam
-    obtain ⟨TVa, hTVa, hokTVa, hlaw⟩ :=
+    obtain ⟨TVa, hTVa, hokTVa, hlaw, hcoh⟩ :=
       hprev.1 T cvT caps hfE hcape hres hfam₀ φ' us hlen
-    refine ⟨TVa, ?_, hokTVa, ?_⟩
+    have hfab : ∀ ρ ts x, etaFabArgsV
+          (fun n => interp V ρ
+            (m₂.acval n (Level.substFn φ' cvT.levelParams us)))
+          T ts x caps.etaFields
+        = etaFabArgsV
+          (fun n => interp V ρ
+            (mp.base2.acval n (Level.substFn φ' cvT.levelParams us)))
+          T ts x caps.etaFields := by
+      intro ρ ts x
+      unfold etaFabArgsV projSpines
+      refine congrArg _ (List.map_congr_left fun j hj => ?_)
+      dsimp only
+      rw [hac, acvalWith_ne (hnP j (List.mem_range.mp hj))]
+    refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
       exact denoteMeta_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
@@ -203,20 +216,16 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT] at hmem
-      have hfab : etaFabArgsV
-            (fun n => interp V ρ
-              (m₂.acval n (Level.substFn φ' cvT.levelParams us)))
-            T ts x caps.etaFields
-          = etaFabArgsV
-            (fun n => interp V ρ
-              (mp.base2.acval n (Level.substFn φ' cvT.levelParams us)))
-            T ts x caps.etaFields := by
-        unfold etaFabArgsV projSpines
-        refine congrArg _ (List.map_congr_left fun j hj => ?_)
-        dsimp only
-        rw [hac, acvalWith_ne (hnP j (List.mem_range.mp hj))]
       rw [hfab, hac, acvalWith_ne hnC]
       exact hlaw ρ ts rest x hlents hfit hmem
+    · refine hcoh.transport (fun cvC nPc nFc hf₂ => ?_)
+        (fun cvC nPc nFc TCa hf hTCa => ?_) (by rw [hac, acvalWith_ne hnT]) hfab
+      · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
+      · rw [hac]
+        exact denoteMeta_cons_mono hfresh
+          ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
+          (constsBound_instType mp.base2.wf
+            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
   · -- the unit-like half: no fabricated spine, one leaf to move
     -- (and, post-repair, no family premise: the former's freshness
     -- disequality comes from the cons head's non-inductive kind)

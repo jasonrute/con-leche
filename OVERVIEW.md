@@ -665,6 +665,14 @@ types. All of this is stated as environment laws the installer proves
 (`RecRuleLaw` in `ConLeche/Model/Annot/Laws.lean`). The literal
 accelerations read the argument's domain off the operation's graph,
 `Nat`, and equate the argument with its literal inside that type.
+Structure η and the structure-η major rescue read two environment laws
+of an η family: a member is the constructor at its type's parameters
+and its own projections, and that spine fits the constructor's own
+telescope (`EtaCoherent` in `ConLeche/Model/Annot/Laws.lean`). The
+stuck side's type is a type, so its parameters fit the family's
+telescope with no certificate; the constructor side, not being the
+point, fits the constructor's telescope, so the comparisons the rule
+ran become equations there too.
 λ-congruence compares the bodies' types at the innermost level of two
 λ-telescopes, and η the λ's body's type with the Π-type's body: two
 bodies in one type are both the point or neither, so the bodies' claim

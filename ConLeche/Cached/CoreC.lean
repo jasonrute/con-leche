@@ -442,37 +442,34 @@ def structEtaCertWithI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                   fe.recSlotsAllF Tn caps.etaFields) = true then do
               if ← liftFueled "level comparison"
                   (← isEquivListLM us us') then do
-                let tyT ← constTyAtM fe T Tn us'
-                -- the type-former telescope certificate and the
-                -- per-slot ones are certificate families (official's
-                -- `try_eta_struct_core` runs neither); off at `.trusted`
-                if ← certAtI mode (iotaCertsI r fe depth false tyT targs) then do
-                  -- the per-slot certificates are the projection-function
-                  -- kind's; a tabled family has none (task #175 S1)
-                  if ← certAtI mode
-                      (if fe.towerSlotsAllF Tn caps.etaFields then pure true
-                      else structEtaProjCertsI r fe depth T Tn us'
-                        targs b cvT.levelParams
-                        (List.range caps.etaFields)) then do
-                    if ← defEqListI r fe depth
-                        (aargs.take caps.etaParams) targs then do
-                      let projs ← projAppsI fe Tn T us' targs b caps.etaFields
-                      -- synthetic-spine certification (task #137): the
-                      -- fabricated constructor application
-                      -- `c targs (proj_i … b)` is certified against the
-                      -- constructor's own telescope, here rather than at
-                      -- the callers, so that BOTH consumers get it —
-                      -- `majorToCtorI`'s eta rescue ran it already
-                      -- (task #71), `defeq`'s `structEtaCertI` did not.
-                      -- TT-lane check (task #147): skipped unless
-                      -- `mode.ttChecks`, a literal `false` at
-                      -- both shipped cores.
-                      if ← (if mode.ttChecks then do
-                          let tyCtor ← constTyAtM fe c cn us
-                          iotaCertsI r fe depth false tyCtor (targs ++ projs)
-                        else pure true) then
-                        defEqListI r fe depth (aargs.drop caps.etaParams) projs
-                      else pure false
+                -- no type-application certificate (task #342 L11b); the
+                -- per-slot ones are the projection-function kind's (a
+                -- tabled family has none, task #175 S1), a certificate
+                -- family official's `try_eta_struct_core` does not run;
+                -- off at `.trusted`
+                if ← certAtI mode
+                    (if fe.towerSlotsAllF Tn caps.etaFields then pure true
+                    else structEtaProjCertsI r fe depth T Tn us'
+                      targs b cvT.levelParams
+                      (List.range caps.etaFields)) then do
+                  if ← defEqListI r fe depth
+                      (aargs.take caps.etaParams) targs then do
+                    let projs ← projAppsI fe Tn T us' targs b caps.etaFields
+                    -- synthetic-spine certification (task #137): the
+                    -- fabricated constructor application
+                    -- `c targs (proj_i … b)` is certified against the
+                    -- constructor's own telescope, here rather than at
+                    -- the callers, so that BOTH consumers get it —
+                    -- `majorToCtorI`'s eta rescue ran it already
+                    -- (task #71), `defeq`'s `structEtaCertI` did not.
+                    -- TT-lane check (task #147): skipped unless
+                    -- `mode.ttChecks`, a literal `false` at
+                    -- both shipped cores.
+                    if ← (if mode.ttChecks then do
+                        let tyCtor ← constTyAtM fe c cn us
+                        iotaCertsI r fe depth false tyCtor (targs ++ projs)
+                      else pure true) then
+                      defEqListI r fe depth (aargs.drop caps.etaParams) projs
                     else pure false
                   else pure false
                 else pure false
@@ -512,13 +509,9 @@ def structUnitCertI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
           us'.length = cvT.levelParams.length then do
         let tb ← r.inferIO depth b
         let wtb ← r.whnf depth tb
-        if ← r.defeq depth wta wtb then do
-          -- the type-former telescope certificate (a certificate
-          -- family: official's `is_def_eq_unit_like` stops at the
-          -- defeq above); off at `.trusted`
-          let tyT ← constTyAtM fe T Tn us'
-          certAtI mode (iotaCertsI r fe depth false tyT targs)
-        else pure false
+        -- no type-application certificate (task #342 L11b), as
+        -- official's `is_def_eq_unit_like`
+        r.defeq depth wta wtb
       else pure false
     | _ => pure false
   | _ => pure false
@@ -552,7 +545,7 @@ def stuckIrrelI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
     CheckCM Bool := do
   if ← structEtaCertI mode r fe depth a b then pure true
   else if ← structEtaCertI mode r fe depth b a then pure true
-  else if ← structUnitCertI mode r fe depth a b then pure true
+  else if ← structUnitCertI r fe depth a b then pure true
   else proofIrrelI r depth a b
 
 /-- Twin of `majorToCtor`. -/
@@ -629,16 +622,11 @@ def majorToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
                 if ← pure (Expr.wscopedBC depth fab &&
                     Expr.looseBVarsBounded 0 fab &&
                     Expr.leafGuard fab major) then do
-                  -- synthetic-spine certification, as in the K
-                  -- branch (task #71)
-                  let tyCtor ← constTyAtM fe ctorI rl.ctor ust
-                  -- (a certificate family; off at `.trusted`)
-                  if ← certAtI mode (iotaCertsI r fe depth false tyCtor
-                      (margs ++ projs)) then do
-                    if ← structEtaCertWithI mode r fe depth fab major
-                        tmaj then
-                      pure fab
-                    else pure major
+                  -- no certificate on the fabricated spine (task #342
+                  -- L11b); the η certificate's run is kept for its guards
+                  if ← structEtaCertWithI mode r fe depth fab major
+                      tmaj then
+                    pure fab
                   else pure major
                 else pure major
               else pure major

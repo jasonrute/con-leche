@@ -339,6 +339,7 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
     (leafT : (Name → Nat) → AnnotTerm)
     (hTlawsOf : ∀ {env' : Env} (m' : EnvModel V env') (k : Nat) (cA : ConstantVal × Nat),
       ctorsA[k]? = some cA → Inv m' →
+      (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
       FormerData m' cvTa (p.nP + p.nIdx) p.resSort ppsAll →
       (∀ ψ, m'.acval p.cvT.name ψ = leafT ψ) →
       (∀ ψ, m'.acval cA.1.name ψ
@@ -436,6 +437,10 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
           · rw [hag n hn]; exact (congrFun (acvalWith_ne hn) ψ).symm
         exact hTlawsOf m₂ k cA hcAk (hInv mp.base2 cA (fun ψ => m₂.acval cA.1.name ψ) m₂
             (List.mem_of_getElem? hcAk) hfresh hac hinv)
+          (fun cvC nPc nFc h =>
+            (ConstantInfo.ctorInfo.inj (Option.some.inj
+              ((ConLeche.Env.find?_cons_self (.ctorInfo cA.1 p.nP cA.2) env).symm.trans
+                h))).1.symm)
           (hFD.cross (c₀ := .ctorInfo cA.1 p.nP cA.2) hfresh (hcross _) hcbT m₂ hac)
           (fun ψ => by rw [hag _ hTC]; exact hleafT ψ) hleafC₂)
       hFD hCD
@@ -1217,6 +1222,83 @@ theorem fixEntryEtaCore {w nP nF : Nat} {pps ds : List (Nat × Nat × AnnotTerm)
     rw [hprojs, hfold', heq]
 
 
+/-- A spine fitting a chain of truth values is all points. -/
+theorem spineFit_pts_of_univZero {ρ : Nat → V} :
+    ∀ {Fs : List AnnotTerm} {fs : List V}, SpineFit ρ Fs fs →
+      (∀ j, j < Fs.length → ∀ as : List V, SpineFit ρ (Fs.take j) as →
+        interp V (consList as ρ) (Fs.getD j default) ∈ˢ (univZero : V)) →
+      fs = List.replicate fs.length pt
+  | [], [], _, _ => rfl
+  | [], _ :: _, h, _ => h.elim
+  | _ :: _, [], h, _ => h.elim
+  | F :: Fs, a :: as, h, hz => by
+    have h0 : interp V ρ F ∈ˢ (univZero : V) := by
+      simpa using hz 0 (by simp) [] trivial
+    have ha : a = pt := eq_pt_of_mem_univZero h0 h.1
+    have ih := spineFit_pts_of_univZero (ρ := cons a ρ) h.2 (fun j hj as' hsp' => by
+      have := hz (j + 1) (by simp; omega) (a :: as') ⟨h.1, hsp'⟩
+      simpa using this)
+    rw [List.length_cons, List.replicate_succ]
+    subst ha
+    exact congrArg _ ih
+
+/-- **(D) the η constructor's coherence** (task #342 L11b): a member's
+parameters, then its projections below the tag, fit the constructor's
+telescope — in the graph regime the projections are the tuple's fields
+(`fixFibre_elim`), in the squash regime the member is the point, every
+field a proof (`hzero`, the O5 bound at an η family), so its fitting
+fields are the point's projections. -/
+theorem fixEntryEtaFitCore {w nP nF : Nat} {pps ds : List (Nat × Nat × AnnotTerm)}
+    {L B : AnnotTerm} {ρ : Nat → V}
+    (hlenDs : ds.length = nP + nF) (hlenPps : pps.length = nP)
+    (hiff : ∀ ρ : Nat → V, Sat V (pps.map (·.2.2)).reverse ρ ↔
+      Sat V ((ds.take nP).map (·.2.2)).reverse ρ)
+    (hfold : ∀ (ρ : Nat → V) (ts : List V), SpineFit ρ (pps.map (·.2.2)) ts →
+      ts.foldl SetTheory.app (interp V ρ L)
+        = sumSet w (sumFibre w (consList ts ρ) [((ds.drop nP).map (·.2.2)) ++ [idxEqAV []]]))
+    (hzero : w = 0 → ∀ ρ' : Nat → V, Sat V ((ds.take nP).map (·.2.2)).reverse ρ' →
+      ∀ j, j < nF → ∀ as : List V,
+        SpineFit ρ' (((ds.drop nP).map (·.2.2)).take j) as →
+        interp V (consList as ρ') (((ds.drop nP).map (·.2.2)).getD j default)
+          ∈ˢ (univZero : V))
+    (ts : List V) (x : V) (hlen : ts.length = nP)
+    (hsp : SpineFit ρ (pps.map (·.2.2)) ts)
+    (hx : x ∈ˢ ts.foldl SetTheory.app (interp V ρ L)) :
+    ∃ restC : V, TeleFit V ρ (mkPisAV ds B)
+      (ts ++ (List.range nF).map fun j => projS (j + 1) x) restC := by
+  rw [hfold ρ ts hsp] at hx
+  have hlenFs : (((ds.drop nP).map (·.2.2))).length = nF := by simp [hlenDs]
+  have hsp₁ : SpineFit ρ ((ds.take nP).map (·.2.2)) ts :=
+    (spineFit_iff_of_sat_iff (by simp [hlenPps, hlenDs]) hiff ρ ts (by simp [hlen, hlenPps])).mp hsp
+  have hsat : Sat V ((ds.take nP).map (·.2.2)).reverse (consList ts ρ) := by
+    have := sat_of_spineFit (Δ₀ := []) (Sat_nil V ρ) hsp₁
+    rwa [List.append_nil] at this
+  suffices h : ∃ fs, SpineFit (consList ts ρ) ((ds.drop nP).map (·.2.2)) fs ∧
+      ((List.range nF).map fun j => projS (j + 1) x) = fs by
+    obtain ⟨fs, hspF, heq⟩ := h
+    refine ⟨_, teleFit_mkPisAV_of_spineFit ?_⟩
+    rw [heq, ← List.take_append_drop nP ds, List.map_append]
+    exact hsp₁.append hspF
+  by_cases hw : w = 0
+  · subst hw
+    obtain ⟨rfl, fs, hspF⟩ := fixFibre_zero_elim hx
+    refine ⟨fs, hspF, ?_⟩
+    have hrep := spineFit_pts_of_univZero hspF (fun j hj as hsp' =>
+      hzero rfl _ hsat j (by rwa [hlenFs] at hj) as hsp')
+    have hlenF : fs.length = nF := by rw [hspF.length_eq, hlenFs]
+    rw [hrep, hlenF, List.map_congr_left (fun j _ => projS_pt (j + 1)), List.map_const',
+      List.length_range]
+  · obtain ⟨fs, heq, hspF, -⟩ := fixFibre_elim hw hx
+    refine ⟨fs, hspF, ?_⟩
+    have hlenF : fs.length = nF := by rw [hspF.length_eq, hlenFs]
+    rw [heq]
+    have h1 : ((List.range nF).map fun j => projS (j + 1) (inj 0 (mkTower (fs ++ [pt]))))
+        = (List.range nF).map fun j => projS j (mkTower (fs ++ [pt])) :=
+      List.map_congr_left fun j _ => projS_succ_inj j 0 _
+    rw [h1, ← projList_eq_map_range, ← hlenF, projList_mkTower_take (Nat.le_refl _),
+      List.take_length]
+
+
 /-!
 ## The projection table's cons
 
@@ -1597,16 +1679,41 @@ theorem stageFixTable (mp : EnvModelM V μ env)
   · -- (C)
     intro cvT capsT hf us _
     obtain ⟨rfl, rfl⟩ := ConstantInfo.indInfo.inj (Option.some.inj (hfT₂.symm.trans hf))
+    have hacT' : m₂.acval tbl.structName (Level.substFn φ (tbl.entry i).levelParams us)
+        = L (Level.substFn φ lps us) := by
+      show m₂.acval T (Level.substFn φ lps us) = _
+      rw [hacT, hleafT]
     refine ⟨mkPisAV (pps (Level.substFn φ lps us))
-      (.sort (resSort.eval (Level.substFn φ lps us))), ?_, hFD.okTy _, ?_⟩
+      (.sort (resSort.eval (Level.substFn φ lps us))), ?_, hFD.okTy _, ?_, ?_⟩
     · rw [denotePInstLevels m₂ φ cvTa.levelParams us 0 cvTa.type, hlpsT]
       exact hFD₂.read _
+    rotate_left
+    · -- (D) the coherence, at an η family: the fields of a squash
+      -- instance are proofs (the O5 bound)
+      intro heta cvC nPc nFc hfC'
+      have hfC'' : (⟨.projInfo tbl :: env.consts⟩ : Env).find? cvCa.name
+          = some (.ctorInfo cvC nPc nFc) := hfC'
+      rw [hfC₂] at hfC''
+      obtain ⟨rfl, -, -⟩ := ConstantInfo.ctorInfo.inj (Option.some.inj hfC'')
+      have hnP : isProp = false := by
+        have h1 := (hcaps heta).1
+        rw [hProp]; exact h1
+      refine ⟨mkPisAV (ds (Level.substFn φ lps us))
+        (ctorBodyAVI m₂ T nP nF (Level.substFn φ lps us)
+          (Es (Level.substFn φ lps us))), ?_, fun ρ ts rest x hlents hfit hmem => ?_⟩
+      · rw [denotePInstLevels m₂ φ cvCa.levelParams us 0 cvCa.type, hlpsC]
+        exact hCDread₂ _
+      · have hsp := spineFit_of_teleFit (by rw [hFD.len]; exact hlents) hfit
+        rw [hacT'] at hmem
+        refine fixEntryEtaFitCore (hCDlen _) (hFD.len _) (hiff _) (hfold _)
+          (fun hw ρ' hρ' j hj as hsp' => ?_) ts x hlents hsp hmem
+        have hz : (sorts.getD j .zero).eval (Level.substFn φ lps us) = 0 := by
+          have := Level.leq_sound (hleq j hj hnP) (Level.substFn φ lps us)
+          omega
+        have := hsortsF _ ρ' hρ' j hj as hsp'
+        rwa [hz, univ_zero] at this
     · intro ρ ts rest x hlents hfit hmem
       have hsp := spineFit_of_teleFit (by rw [hFD.len]; exact hlents) hfit
-      have hacT' : m₂.acval tbl.structName (Level.substFn φ (tbl.entry i).levelParams us)
-          = L (Level.substFn φ lps us) := by
-        show m₂.acval T (Level.substFn φ lps us) = _
-        rw [hacT, hleafT]
       have hacC' : m₂.acval (tbl.entry i).ctor (Level.substFn φ (tbl.entry i).levelParams us)
           = sumMkAV (resSort.eval (Level.substFn φ lps us)) 0
             (ds (Level.substFn φ lps us))
@@ -1836,13 +1943,29 @@ theorem fibreEtaLaw0 {m : EnvModel V env} {φ' : Name → Nat} {T : Name}
       WellDenotedV V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
     (hfit : ∀ (ψ : Name → Nat) (ρ : Nat → V) (as : List V),
       SpineFit ρ ((pps ψ).map (·.2.2)) as → SpineFit ρ ((ds ψ).map (·.2.2)) as)
-    (hpar : ∀ ψ, caps.etaParams = (pps ψ).length) :
+    (hpar : ∀ ψ, caps.etaParams = (pps ψ).length)
+    (hreadC : ∀ (cvC : ConstantVal) (nPc nFc : Nat),
+      env.find? caps.etaCtor = some (.ctorInfo cvC nPc nFc) →
+      cvC.levelParams = cvT.levelParams ∧ ∃ B : (Name → Nat) → AnnotTerm,
+        ∀ ψ, denoteMeta m.acval env ψ 0 cvC.type = some (mkPisAV (ds ψ) (B ψ))) :
     EtaLaw m φ' T cvT caps := by
   intro us _
   refine ⟨mkPisAV (pps (Level.substFn φ' cvT.levelParams us))
-    (.sort (w (Level.substFn φ' cvT.levelParams us))), ?_, hokTy _, ?_⟩
+    (.sort (w (Level.substFn φ' cvT.levelParams us))), ?_, hokTy _, ?_, ?_⟩
   · rw [denotePInstLevels m φ' cvT.levelParams us 0 cvT.type]
     exact hread _
+  rotate_left
+  · -- the coherence: the parameters fit the constructor's telescope
+    intro cvC nPc nFc hfC
+    obtain ⟨hlpsC, B, hB⟩ := hreadC cvC nPc nFc hfC
+    refine ⟨mkPisAV (ds (Level.substFn φ' cvT.levelParams us))
+      (B (Level.substFn φ' cvT.levelParams us)), ?_, fun ρ ts rest x hlen hfitT _ => ?_⟩
+    · rw [denotePInstLevels m φ' cvC.levelParams us 0 cvC.type, hlpsC]
+      exact hB _
+    · have hsp := spineFit_of_teleFit (by rw [hlen, hpar]) hfitT
+      rw [hfields]
+      simp only [etaFabArgsV, projSpines, List.range_zero, List.map_nil, List.append_nil]
+      exact ⟨_, teleFit_mkPisAV_of_spineFit (hfit _ ρ ts hsp)⟩
   · intro ρ ts rest x hlen hfitT hx
     have hsp := spineFit_of_teleFit (by rw [hlen, hpar]) hfitT
     rw [hleaf, hfold _ ρ ts hsp] at hx

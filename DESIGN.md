@@ -101974,3 +101974,101 @@ inferences of both bodies opened at the RIGHT domain (`.fvar d ty₂`);
 run.  OVERVIEW §4's relations paragraph updated (eight relations, β's
 slot, λ/η); `overview-links.sh` deferred.  17 files, +488 −1102 against
 `port-342-s4`.
+
+## TASK #342 — L11B: the η constructor's telescope coherence; structure η and the η rescue at the conditional claims (2026-10-12, agent/342-l11b)
+
+Lane L11b, stage S3 (L11's finding 2; the structure-η certificates L10
+held back).  `Denotes.lean`, `MainTheorem`, `Challenge` and
+`Axioms.lean` are unchanged.
+
+**The law: `EtaCoherent`** (`Model/Annot/Laws.lean`).  At the use's
+levels, for `x` a member of the family `T` at parameters `ts` fitting
+the former's type reading, the spine `ts ++ projs x` fits the η
+constructor's own type reading (`TeleFit`).  Keyed on the constructor's
+lookup, so a stage that has not stored the constructor owes nothing.
+It is a new conjunct of both η laws, not a new field:
+- `EtaLaw` (`CapsOk`, projection-function or fieldless families): proved
+  in `fibreEtaLaw0` from the block's parameter coherence `hfit`
+  (`SpineFit pps → SpineFit ds`), with the constructor's reading
+  threaded to it: `hTlawsOf` (`ctorsLoopEta`, `blockCtorsLoop`,
+  `stageBlockCtorsAt`) and `BlockCtorsStage.capsU` gain the stored
+  constructor's identity and its `BlockCtorDataI.read`;
+- `TowerEtaLaw` (clause (D), under `capsT.eta`): `fixEntryEtaFitCore`
+  (`FixKit`).  Graph regime: the fibre's tuple fits the fields
+  (`fixFibre_elim`), its projections below the tag are the fields.
+  Squash regime (`w = 0`): the member is the point; at an η family the
+  fields' sorts are bounded by the result sort (O5, `hleq`), so every
+  field is a proof, the fitting fields are all the point
+  (`spineFit_pts_of_univZero`), which are the point's projections.
+  The law holds at every member, the point included.
+- Transports: `EtaCoherent.transport` (lookup backwards, reading
+  forwards, leaf, spine), used at `capsOk_cons_fresh`,
+  `capsOk_cons_basis`, `capsOk_cons_native`, the swap and
+  `towerEntryLaw_cons_prefix`.
+
+**The rules** (`Model/Rules/EtaSoundKit.lean`, new).  `formerFit`: a
+graded instance of a stored family that is not the point has its
+parameter spine fitting the former's telescope (graph regime,
+`teleFitPA_of_graded_ne_pt`), so the type-application certificate is
+not needed: the instance is a reduced inferred type, "not pt" source
+(1).  `etaSide`: the stuck side's projections read and are graded, the
+η law, and the coherence fit, for both slot kinds.
+- `DefEq.structEta_sound` (conditional, native in `defeq_sound`): the
+  constructor side is graded and not the point, so its spine fits the
+  constructor's telescope (source (2)); the stuck side's
+  `tsa ++ ps` fits the same telescope (coherence); the two conditional
+  comparisons are then equations (`teleFit_eq_of_cond`, the `TeleFit`
+  form of `spineFit_eq_of_cond`).  `structEta_soundU` (side induction)
+  uses `etaSide` with unconditional comparisons.
+- `Red.rescueEta_sound`: conditional premises, unconditional conclusion
+  (one lemma for both inductions, as ι): the major is the fabrication
+  by the η law; the fabrication is graded by the coherence fit
+  (`teleFitPA_of_teleFit`, `mkAppN_of_fitA`).  It reads neither the
+  fabricated spine's certificate nor `capsNeverZero` nor a `DefEq`.
+- `structUnit_sound`/`_soundU`: `formerFit` replaces the certificate.
+
+**The rules tier** (`Rules/Rel.lean`): `DefEq.structEta` and
+`DefEq.structUnit` lose their `Certs` premise; `Red.rescueEta` loses
+its `Certs` and its `DefEq fab major` premises and gains the two name
+guards (`reservedBasisNames.contains T/caps.etaCtor = false`), which
+`CapsOk` keys on; the bridge reads them off the rescue's
+`structEtaCertWith` run.
+
+**The checker** (`Kernel/Core.lean`, `Cached/CoreC.lean`):
+`structEtaCertWith` no longer certifies the type application,
+`structUnitCert` no longer certifies it, the η rescue no longer
+certifies the fabricated spine.  Kept, and why:
+- the η rescue's `structEtaCertWith` run: its name guards (`CapsOk`'s
+  premise) and the per-field certificates below; its comparisons on
+  `(fab, major)` are reflexive.  Its `capsNeverZero` guard is official's
+  and the verdict's, not the model's.
+- `structEtaProjCerts` (`EtaProjCerts`, projection-function families):
+  the projection-function applications are graded only through it.  No
+  installed family has such slots with a field (projection-function
+  names are refused at the front door, `Name.isProjFnShape`), so it
+  never runs; removing the path is separate work.
+- the TT-lane constructor certificate (`mode.ttChecks`, off in both
+  shipped modes).
+Inversions, bridges, `Deep`'s shift lemmas and the cached simulation
+(`DiscC2`, `DiscC3`, `KnotCongr`) repaired.
+
+**Moves.** `teleFit_mkPisAV_of_spineFit` to `StructFrameKit` (beside its
+converse); `teleFit_inst_of`/`teleFit_inst0_of` (were
+`GenClsData`'s primed copies) to `RedSoundKit`, beside
+`teleFit_of_inst`; `leavesGr_mkAppN`/`ctxOkS_mkAppN` to `EtaSoundKit`;
+`etaProjCerts_sound` into the conditional mutual block.
+
+**What remains interim.**  In the conditional induction only
+`DefEq.lam` and `DefEq.eta` take `(defeq_soundU hin h).cond` (S4).  The
+side induction itself is unchanged in scope (it is a full induction
+over the relations, now with certificate-free η arms).
+
+**Verdicts and cost.**  Arena 90/92, e2e 471/471 (one run, `--jobs=8`).
+`instructions:u`, `--verified --jobs=1`, one run each, RSS-guarded,
+against `port-342` at 8e13562d9: init-full 480.33 G → 480.22 G
+(−0.02 %), mathlib-prefix 676.28 G → 676.12 G (−0.02 %); 57 977 /
+131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free; no `sorry`, no new
+axiom.  `overview-links.sh`/`links-gate.sh` deferred (OVERVIEW's
+soundness paragraph rewritten; `Sound.lean`'s docstring moved).
