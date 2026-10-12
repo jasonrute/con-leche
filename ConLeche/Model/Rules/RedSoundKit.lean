@@ -647,7 +647,7 @@ theorem teleFit_inst_of {aa : AnnotTerm} :
     exact .nil
   | cons y ys ih =>
     intro E k ρ rest hpc h
-    obtain ⟨u, v, A, B, rfl, hB⟩ := piChain_succ_inv hpc
+    obtain ⟨A, B, rfl, hB⟩ := piChain_succ_inv hpc
     rw [AnnotTerm.inst_pi]
     cases h with
     | cons hmem hfit =>
@@ -695,7 +695,7 @@ theorem teleFitPA_of_teleFit {ρ : Nat → V} :
       ∃ resta, TeleFitPA V ρ T vs resta
   | [], T, _, _, _ => ⟨T, .nil⟩
   | x :: xs, T, rest, hpc, h => by
-    obtain ⟨u, v, A, B, rfl, hB⟩ := piChain_succ_inv hpc
+    obtain ⟨A, B, rfl, hB⟩ := piChain_succ_inv hpc
     cases h with
     | cons hmem hfit =>
       obtain ⟨resta, hres⟩ := teleFitPA_of_teleFit xs (PiChain.inst x 0 hB)
@@ -716,7 +716,7 @@ theorem teleFit_eq_of_cond :
   | _ :: _, [], _, _, _, _, _, _, _, hl, _ => by simp at hl
   | a :: as, b :: bs, _, ρ, _, _, hT, ha, hb, hl, h => by
     cases ha with
-    | @cons _ u v A B _ _ _ hma hfa =>
+    | @cons _ A B _ _ _ hma hfa =>
       cases hb with
       | cons hmb hfb =>
         rw [WellDenoted_pi] at hT
