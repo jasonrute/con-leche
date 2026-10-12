@@ -101334,3 +101334,169 @@ the three standard axioms, pins added):
   parameter telescope being the recursor's), threaded through
   `transport`, `InstallDef` and `InstallNest`'s stages, as #347
   described for case 2.
+
+## TASK #350 — ι through the projections: case 3 after Lean's kernel logic renovation (2026-10-12, agent/350-eta-iota)
+
+The question (maintainer, 2026-10-12).  Under #344's value-read model,
+ι on a family that may be `Prop` with a motive that may not be ("case
+3") needs a full-grade certificate on the constructor's fields: at a
+`Prop` instance the constructor denotes the point, so its arguments
+are unconstrained (#349's `Quot.lift.{0,1} f h (Quot.mk r n)`
+witness).  Lean's kernel logic renovation (lean4#14977; lean4#15023
+`Quot : Sort (max 1 u)`, draft; lean4#15371 eta-expand the major of
+subsingleton structures, open) shrinks case 3: `Acc` loses large
+elimination, `Quot` is never `Prop`, and a family that may be `Prop`
+eliminates into every sort only with no constructor, with K, or with
+structure η (non-recursive, non-indexed, non-impredicative: every
+field is a proof wherever the structure is a proposition — `And`,
+`PUnit.{u}`, a sort-polymorphic `PSigma'.{u,v} : Sort (max u v)`).
+The hypothesis: for these structures ι can go through the projections,
+`S.rec ps motive minor x ⟶ minor (S.p₀ ps x) … (S.pₖ ps x)`, with no
+certificate.  Done on `agent/350-eta-iota` (off `agent/349-frag`),
+fragment only.
+
+**Verdict: the hypothesis holds, with one proviso — the major is
+expanded as it stands, never after reducing it.**
+
+- *Why no certificate is needed.*  The claim is owed only when the
+  redex is not the point; then the whole spine, the major included,
+  fits the recursor's telescope (`teleFit_of_ne_pt`), so the major lies
+  in its own domain `S ps` at the recursor's parameters.  The
+  projections are applied to that major, and their values are a
+  function of its value alone; no field of any constructor term is
+  read.  Where `S ps` is a type, this is ordinary structure η (the
+  member is the tagged tuple of its projections).  Where it is a
+  proposition, the major is the point, the projections of the point
+  are the point because each field's sort is zero there (the
+  renovation's non-impredicativity; `projPt_of_fieldSort`), and the
+  reduct is the minor at the point, which is the recursor's value at
+  the point (the plain law at the unique decoding, every field of
+  which is the point).  So the step also drops ι's level, parameter
+  and index comparisons, and needs no inference of the major's type.
+- *The proviso.*  A major that denotes the point may reduce to a term
+  that is not well-denoted (a β-redex whose λ is the point and whose
+  argument lies outside the λ's domain), so `minor (S.p₀ ps maj')`
+  over the major's reduct `maj'` is not well-denoted although the redex
+  is, and the reduction's claim fails
+  (`etaIota_reduced_major_witness`).  Its value is still right (the
+  projections of the point are the point); no verdict-level
+  counterexample was sought.  The checker must build the eta reduct
+  from the raw major, as lean4#15371 does (expansion before the
+  major's `whnf`), and, unlike Lean, also when the major is
+  syntactically a constructor literal (Lean then runs plain ι on the
+  literal, which is #349's counterexample; `plainIota_literal_witness`
+  shows the plain reduct breaking the claim and the eta reduct keeping
+  it on the same redex).
+
+**The chain, checked adversarially.**  The eta reduct of a literal
+major holds `S.p₀ ps (S.mk ps n b)`, which denotes the point at a
+propositional valuation while its reduct `n` may be anything there.
+That reduct is never consumed at such a valuation:
+- `Red` has no congruence in argument position.  A `Red` claim is
+  consumed only on a subject that is not the point: `trans` passes the
+  first claim's denotation to the second, `appFn` reduces the head of
+  an application that is not the point, which is therefore not the
+  point either.
+- The projection of a constructor literal (`Red.projCtor_core_sem`,
+  the step #347 licensed by dropping `projCertAt`) is claimed only when
+  it is not the point.  That forces its argument not to be the point
+  (the point half of `ProjLaw`, `projPt_of_fieldSort`), hence the
+  structure is a type there, the argument's own reduction is claimed,
+  and the literal fits the constructor's telescope.  No certificate,
+  no parameter or level comparison: only the field's position is read.
+- `DefEq`'s claim needs both sides well-denoted and not the point, and
+  each side is a subterm of the conclusion or a reduct whose invariant
+  a claim supplied (`redL`, `app`, `appIn`, `lam`, `eta`).  So a
+  comparison `S.p₀ ps (S.mk ps n b) ≡ n` claims nothing at the
+  propositional valuation, and `minor n` has no invariant to offer
+  unless `n` is in its slot.
+- The one consumer of a reduct of a point-denoting term in today's
+  rules is plain ι's major (#347's `major_eq`, which takes the reduct's
+  slot from the case-3 major certificate).  The eta path does not
+  reduce the major, so it does not reach that consumer.
+- The soundness proof is compositional over the claims, so a step
+  with a `RedSem` proof composes with every other rule.  Both new
+  steps are stated as `RedSem` theorems; as for #349's K, they are not
+  yet `Red` rules: that needs an `EnvModel` field for `StructEtaLaw`
+  and `ProjLaw` and their proofs in the installer (the projections
+  read the unique decoding of a member of the fibre, `Uniq.lean`),
+  threaded through `transport`, `InstallDef` and `InstallNest`.
+
+**K and structure η** (`True`, `PUnit`).  With no fields the eta
+reduct is the K reduct, syntactically (`iotaEta_noFields`: the minor at
+the recursor's parameters, motives and minors), and the structure-η law
+with the plain law gives #349's K law (`recRuleLawK_of_eta`: for a
+non-indexed family "the major is the constructor at the parameters" is
+the inversion K needs).  So a family with both flags (`True` after the
+renovation) fires either path with the same reduct, and neither path
+certifies.  K keeps Lean's fabrication type check (a verdict test,
+decided on the major's inferred type); eta needs none, and on a
+well-typed major the type check always passes, so the verdict is the
+same.  `PUnit.{u}` is not K (not always `Prop`) and goes by eta.
+
+**Verdicts, termination, cost.**  The eta reduct and the plain reduct
+are convertible: `S.pᵢ ps x` reduces to the literal's field once `x`
+reaches `S.mk ps fs`.  So on input Lean accepts, choosing the eta path
+changes no verdict, short of an incompleteness of `isDefEq` that sees
+the two differently.  Termination can only improve: the step does not
+reduce the major, and a projection reduces it later only if the minor
+forces that projection in a position that is not a proof.  At a
+propositional valuation that never happens: K and eta do not reduce
+their majors, and proof irrelevance compares types.  That is the
+renovation's "proofs never have to be reduced".  The cost moves from
+one `whnf` of the major at the ι step to at most one `whnf` per forced
+projection.  The major is the same `Expr` in every projection node, so
+the structural `whnfC` memo makes the repeats lookups.  Stuck majors
+(a variable, an axiom) now reduce where plain ι got stuck, and the
+reduct is larger; Lean does the same after lean4#15371, and for
+non-`Prop` structures already today (con-leche's struct-η major
+rescue).  Case 3 is at most 80 redexes per stream, so the cost is not
+measurable.  Case 2 (never `Prop`) keeps `whnf` plus plain ι, where the
+major is not the point and its reduction is claimed.
+
+**The renovation's consequences for con-leche's case 3.**  Today's case
+3 (#349's reconciled counts) is `Quot.lift` 11 / 77, `Acc.rec` 2 / 2
+and `PUnit.rec` 1 / 1 redexes (init-full / mathlib-prefix; 41 / 239
+constructor slots), beside the K redexes (`Eq`, 266 / 1 798) that
+#349 already freed of certificates.
+
+| today's case 3 | after the renovation | certificate |
+|---|---|---|
+| `Quot.lift` on `Quot.mk` at `Quot.{u}`, `u` may be 0 | `Quot` in `Sort (max 1 u)`: case 2, the literal is never the point (the pinned `Quot`'s `sortZ` becomes never-zero) | none |
+| `Acc.rec` on `Acc.intro` | no large elimination: the motive is `Prop`, case 4, nothing owed; `WellFounded.fixF_eq` stops needing the reduction (propositional ι, lean4#13851) | none |
+| `PUnit.rec` on `PUnit.unit` | eta path, no fields: the reduct is the minor | none |
+| — | new large eliminators: `And` into `Sort u`, sort-polymorphic structures (`PSigma'`-like) at a level that may be 0: eta path | none |
+| K (`Eq`, `HEq`, `True`) | unchanged (#349) | none |
+| no constructor (`False`) | no rule fires | — |
+
+**What becomes empty once the renovation ships**: the full-grade
+constructor-telescope certificate of case 3 (#347/#349) has no
+customer; neither does plain ι on a literal major of a family that may
+be `Prop` (replaced by the eta path), nor the `And` rescue, its type
+check and its `proofIrrel` (subsumed by the eta path at every
+instance).  The struct-η major rescue loses its non-`Prop` guard
+(`capsNeverZero`) and its certificates (`iotaCertsI` on the fabricated
+spine, `structEtaCertWith`).  The whole ι family then certifies
+nothing: case 2 is licensed by one level test, case 3 by K or eta,
+case 4 by the motive.  Until the renovation ships, `Acc` and `Quot`
+keep case 3's certificate; `PUnit` could take the eta path now.
+
+**The fragment** (`whitepaper/Fragment/EtaIota.lean`, 737 lines;
+`whitepaper/fragment-gate.sh` green, no `sorry`, the three standard
+axioms, pins added for the nine theorems):
+- `StructEtaLaw` (the installation's obligation: every member of the
+  fibre is the constructor at its projections, which are typed) and
+  `etaLaw_vals` (with the plain `RecRuleLaw`, the ι law through the
+  projections on values);
+- `Red.iotaEta_core_sem`, `Red.iotaEta_sound` (from the stored
+  recursor and `EnvModel.rec_rules`): the step, with no certificate,
+  comparison or reduction of the major;
+- `ProjLaw`, `projPt_of_fieldSort`, `Red.projCtor_core_sem`: the
+  projection of a constructor literal, with no certificate;
+- `iotaEta_noFields`, `recRuleLawK_of_eta`: K and structure η agree;
+- `plainIota_literal_witness`, `etaIota_reduced_major_witness`: the
+  two witnesses above, on closed terms over constants at a model of
+  the empty environment.  They are about the reduction claims (as
+  `lam_congr_untyped_unsound` is), not about verdicts.
+
+The whitepaper text is not touched.
