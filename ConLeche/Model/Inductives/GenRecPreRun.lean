@@ -419,7 +419,7 @@ depths. -/
 theorem readOpenedDoms_below {env : Env} (m : EnvModel V env) {φ : Name → Nat} :
     ∀ {d : Nat} {xs : List Expr}, 0 < d →
       (∀ (k : Nat) (x : Expr), xs[k]? = some x → ConLeche.ScB (d + k) x.fvarTypeD) →
-      FieldsBelow d (readOpenedDoms m.acval env φ d xs)
+      DomsBelow d (readOpenedDoms m.acval env φ d xs)
   | _, [], _, _ => trivial
   | d, x :: xs, hd, h => by
     refine ⟨readD_below m hd (by simpa using h 0 x rfl), ?_⟩
@@ -511,7 +511,7 @@ theorem genRun_fdomsBelow (hμ : μ.verifiedChecks = true)
     (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
     (ψ : Name → Nat) :
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
-      FieldsBelow (blockRulePdomsAV mpC.base2.acval envC p.toBlockShape (tgtRs out) ψ c).length
+      DomsBelow (blockRulePdomsAV mpC.base2.acval envC p.toBlockShape (tgtRs out) ψ c).length
         (tgtFdomsAV p.toBlockShape out mpC.base2.acval envC ψ c j) := by
   intro c hc j hj
   obtain ⟨cls, cA, fvs, cb, -, -, -, -, -, -, -, hRP, hop, hfv, -, -, hxmem⟩ :=

@@ -135,13 +135,13 @@ environment. -/
 
 omit [SetTheory V] in
 /-- A field chain whose entries are bounded one by one is bounded. -/
-theorem fieldsBelow_of_getD :
+theorem domsBelow_of_getD :
     ∀ {m : Nat} {Fs : List AnnotTerm},
       (∀ q, q < Fs.length → Term.bvarsBelow (m + q) (Fs.getD q default).erase) →
-      FieldsBelow m Fs
+      DomsBelow m Fs
   | _, [], _ => trivial
   | m, _ :: Fs, h => by
-    refine ⟨by simpa using h 0 (by simp), fieldsBelow_of_getD (m := m + 1) (Fs := Fs)
+    refine ⟨by simpa using h 0 (by simp), domsBelow_of_getD (m := m + 1) (Fs := Fs)
       fun q hq => ?_⟩
     have := h (q + 1) (by simpa using hq)
     simpa [show m + (q + 1) = m + 1 + q from by omega] using this
@@ -158,7 +158,7 @@ theorem blockRecEqs_below_rows (hμ : μ.verifiedChecks = true)
       (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs →
-        FieldsBelow (pp.toBlockShape.rulePrefixAt c) (fdoms0 ψ c j) ∧
+        DomsBelow (pp.toBlockShape.rulePrefixAt c) (fdoms0 ψ c j) ∧
         (∀ e ∈ es0 ψ c j, Term.bvarsBelow
           (pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length) e.erase) ∧
         Term.bvarsBelow (pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length)
@@ -188,7 +188,7 @@ theorem blockRecEqs_below_rows (hμ : μ.verifiedChecks = true)
     (fun c hc j hj => ?_) (fun c hc j hj => ?_) (fun c hc j hj => ?_)
   · -- the prefix
     have hr : rs[c]? = some rs[c] := List.getElem?_eq_getElem hc
-    exact fieldsBelow_of_getD fun q hq => by
+    exact domsBelow_of_getD fun q hq => by
       rw [Nat.zero_add]; exact blockRulePdomsAV_bounded hμ mpC h hr ψ q hq
   all_goals
     dsimp only

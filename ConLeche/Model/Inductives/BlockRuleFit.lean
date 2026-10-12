@@ -696,14 +696,14 @@ variable {envC : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
 
 omit [SetTheory V] in
 /-- A bounded field chain's entries, one by one. -/
-theorem fieldsBelow_getD :
-    ∀ {m : Nat} {Fs : List AnnotTerm}, FieldsBelow m Fs → ∀ q, q < Fs.length →
+theorem domsBelow_getD :
+    ∀ {m : Nat} {Fs : List AnnotTerm}, DomsBelow m Fs → ∀ q, q < Fs.length →
       Term.bvarsBelow (m + q) (Fs.getD q default).erase
   | _, [], _, _, hq => absurd hq (Nat.not_lt_zero _)
   | m, _ :: _, h, 0, _ => by simpa using h.1
   | m, _ :: Fs, h, q + 1, hq => by
     simp only [List.getD_cons_succ]
-    have := fieldsBelow_getD (m := m + 1) (Fs := Fs) h.2 q (by simpa using hq)
+    have := domsBelow_getD (m := m + 1) (Fs := Fs) h.2 q (by simpa using hq)
     rwa [show m + 1 + q = m + (q + 1) from by omega] at this
 
 end DomsBounded

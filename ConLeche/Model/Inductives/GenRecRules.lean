@@ -330,7 +330,7 @@ theorem readD_below' (m : EnvModel V env) {φ : Name → Nat} {D : Nat} {e : Exp
 theorem readLamBs_below (m : EnvModel V env) {φ : Name → Nat} :
     ∀ (j : Nat) (bs : List Expr),
       (∀ (k : Nat) (b : Expr), bs[k]? = some b → ScB (j + k) b) →
-      0 < j → LamDomsBelow j (readLamBs m.acval env φ j bs)
+      0 < j → DomsBelow j (readLamBs m.acval env φ j bs)
   | _, [], _, _ => trivial
   | j, b :: bs, h, hj => by
     refine ⟨readD_below' m (Or.inl (by simpa using h 0 b rfl)) hj,
@@ -338,19 +338,19 @@ theorem readLamBs_below (m : EnvModel V env) {φ : Name → Nat} :
     have := h (k + 1) b' (by simpa using hk)
     rwa [show j + (k + 1) = j + 1 + k by omega] at this
 
-theorem LamDomsBelow.mono : ∀ {ds : List AnnotTerm} {k k' : Nat}, k ≤ k' →
-    LamDomsBelow k ds → LamDomsBelow k' ds
+theorem DomsBelow.mono : ∀ {ds : List AnnotTerm} {k k' : Nat}, k ≤ k' →
+    DomsBelow k ds → DomsBelow k' ds
   | [], _, _, _, _ => trivial
-  | _ :: _, _, _, hk, h => ⟨Term.bvarsBelow.mono hk h.1, LamDomsBelow.mono (by omega) h.2⟩
+  | _ :: _, _, _, hk, h => ⟨Term.bvarsBelow.mono hk h.1, DomsBelow.mono (by omega) h.2⟩
 
 /-- **A generated `ih` term is below the chain and the frame**, when its
 datum's telescope and arguments are below the frame. -/
 theorem genIhAV_below {K rP D : Nat} {q : IhDatum} (hK : 0 < K) (hrP : rP ≤ D)
-    (hT : LamDomsBelow D q.2.1)
+    (hT : DomsBelow D q.2.1)
     (hA : ∀ e ∈ q.2.2.1 ++ [q.2.2.2], Term.bvarsBelow (D + q.2.1.length) e.erase) :
     Term.bvarsBelow (K + D) (genIhAV K rP D q).erase := by
   unfold genIhAV
-  refine mkLamsAV_below (LamDomsBelow.mono (by omega) hT) ?_
+  refine mkLamsAV_below (DomsBelow.mono (by omega) hT) ?_
   rw [AnnotTerm.erase_mkAppN]
   refine VExprAux.bvarsBelow_mkAppN (by show _ < _; omega) fun a ha => ?_
   obtain ⟨b, hb, rfl⟩ := List.mem_map.mp ha
@@ -366,7 +366,7 @@ theorem genIhdAV_below (m : EnvModel V env) {out : List (ConstantVal × TargetMa
     {g : ClassGen} {rd : ClassRead} {φ : Name → Nat} {c j : Nat}
     (hcl : ScB 0 (tgtRhsOf out c j)) (hD : 0 < g.pre.length + (genCtorAt g rd c j).nF) :
     ∀ q ∈ genIhdR m.acval env out g rd φ c j,
-      LamDomsBelow (g.pre.length + (genCtorAt g rd c j).nF) q.2.1 ∧
+      DomsBelow (g.pre.length + (genCtorAt g rd c j).nF) q.2.1 ∧
       ∀ e ∈ q.2.2.1 ++ [q.2.2.2],
         Term.bvarsBelow (g.pre.length + (genCtorAt g rd c j).nF + q.2.1.length) e.erase := by
   intro q hq
@@ -537,7 +537,7 @@ open ConLeche (ScB ClassGenScoped)
 theorem readOpenedDoms_below' (m : EnvModel V env) {φ : Name → Nat} :
     ∀ (d : Nat) (fvs : List Expr),
       (∀ (k : Nat) (x : Expr), fvs[k]? = some x → ∃ ty, x = .fvar (d + k) ty ∧ ScB (d + k) ty) →
-      0 < d → FieldsBelow d (readOpenedDoms m.acval env φ d fvs)
+      0 < d → DomsBelow d (readOpenedDoms m.acval env φ d fvs)
   | _, [], _, _ => trivial
   | d, x :: fvs, h, hd => by
     obtain ⟨ty, rfl, hty⟩ := h 0 x rfl
@@ -577,7 +577,7 @@ theorem genRowB (m : EnvModel V env)
     ∀ (ψ : Name → Nat) (c : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs →
-        FieldsBelow (p.rulePrefixAt c) (tgtFdomsAV p out m.acval env ψ c j) ∧
+        DomsBelow (p.rulePrefixAt c) (tgtFdomsAV p out m.acval env ψ c j) ∧
         (∀ e ∈ tgtEsAV p out m.acval env ψ c j, Term.bvarsBelow
           (p.rulePrefixAt c + (tgtFdomsAV p out m.acval env ψ c j).length) e.erase) ∧
         Term.bvarsBelow (p.rulePrefixAt c + (tgtFdomsAV p out m.acval env ψ c j).length)
@@ -769,7 +769,7 @@ of the same value along every spine of the telescope's length, read
 alike at frames agreeing below the telescope's base. -/
 theorem interp_lamsApp_congr {h1 h2 : AnnotTerm} {args : List AnnotTerm} :
     ∀ (tele : List AnnotTerm) {D : Nat} {σ σ' : Nat → V},
-      LamDomsBelow D tele → (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
+      DomsBelow D tele → (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
       (∀ i, i < D → σ i = σ' i) →
       (∀ bs : List V, bs.length = tele.length →
         interp V (consList bs σ) h1 = interp V (consList bs σ') h2) →

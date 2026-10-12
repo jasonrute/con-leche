@@ -273,14 +273,14 @@ variable (they are bounded below the chain). -/
 section Ihs
 
 /-- A fit is a fit at any frame agreeing below the chain's bound. -/
-theorem spineFit_congr_fieldsBelow :
+theorem spineFit_congr_domsBelow :
     ∀ {Ds : List AnnotTerm} {k : Nat} {σ σ' : Nat → V} {bs : List V},
-      FieldsBelow k Ds → (∀ i, i < k → σ i = σ' i) → SpineFit σ Ds bs → SpineFit σ' Ds bs
+      DomsBelow k Ds → (∀ i, i < k → σ i = σ' i) → SpineFit σ Ds bs → SpineFit σ' Ds bs
   | [], _, _, _, [], _, _, _ => trivial
   | [], _, _, _, _ :: _, _, _, h => h.elim
   | _ :: _, _, _, _, [], _, _, h => h.elim
   | D :: Ds, k, σ, σ', b :: bs, hb, hag, h => by
-    refine ⟨?_, spineFit_congr_fieldsBelow (k := k + 1) hb.2 (fun i hi => ?_) h.2⟩
+    refine ⟨?_, spineFit_congr_domsBelow (k := k + 1) hb.2 (fun i hi => ?_) h.2⟩
     · rw [← interp_congr_below V D k σ σ' hb.1 hag]; exact h.1
     · cases i with
       | zero => rfl
@@ -292,7 +292,7 @@ variable's two values agree along every spine the body applies them
 to. -/
 theorem interp_ihShape_congr {m : Nat} (args : List AnnotTerm) :
     ∀ (tele : List AnnotTerm) {D : Nat} {σ σ' : Nat → V},
-      FieldsBelow D (tele) →
+      DomsBelow D (tele) →
       (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
       (∀ i, i < D → σ i = σ' i) →
       (∀ bs, SpineFit σ (tele) bs →
@@ -353,7 +353,7 @@ readings. -/
 /-- The data of a generated `ih` names no chain variable: its telescope
 and arguments are bounded below the chain. -/
 @[expose] def IhDatumBelow (D : Nat) (q : IhDatum) : Prop :=
-  FieldsBelow D (q.2.1) ∧
+  DomsBelow D (q.2.1) ∧
   (∀ e ∈ q.2.2.1 ++ [q.2.2.2], Term.bvarsBelow (D + q.2.1.length) e.erase)
 
 /-- **`hihRead`, by construction** at the generated `ih`s. -/
@@ -406,7 +406,7 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
     rw [hhead a, hhead a']
     -- the arguments read the call's spine
     have hbsρ : SpineFit (consList (xs ++ fs) ρ) (q.2.1) bs := by
-      refine spineFit_congr_fieldsBelow (k := (xs ++ fs).length) hbT (fun i hi => ?_) hbs
+      refine spineFit_congr_domsBelow (k := (xs ++ fs).length) hbT (fun i hi => ?_) hbs
       rw [consList_getD_of_lt _ _ _ hi, consList_getD_of_lt _ _ _ hi]
     have hbl : bs.length = q.2.1.length := hbs.length_eq
     have hargR : ∀ e ∈ q.2.2.1 ++ [q.2.2.2],

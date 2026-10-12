@@ -71,7 +71,7 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ lps, ψ₁ q = ψ₂ q) →
       fssOf nP (ctorDataList dsF esF ψ₁ ctorsA 0) = fssOf nP (ctorDataList dsF esF ψ₂ ctorsA 0))
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ fssOf nP (ctorDataList dsF esF ψ ctorsA 0),
-      FieldsBelow nP Fs)
+      DomsBelow nP Fs)
     (hiff : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
         Sat V (((dsF j ψ).take nP)).reverse ρ)

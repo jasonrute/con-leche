@@ -1269,7 +1269,7 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     {rd : ClassRead} (ψ : Name → Nat) (ρ : Nat → V)
     (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ) (hD : GenClsDec pp out mpC d Dc mc cvc ψ ρ)
     (hfdB : ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
-      FieldsBelow (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
+      DomsBelow (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
         (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j))
     (hframe : ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
       ∀ l, l < (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
@@ -1314,7 +1314,7 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   have hfdK : tgtFdomsK (tgtRs out).length mpC.base2.acval envC pp.toBlockShape out ψ c j
       = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j := by
     rw [tgtFdomsK]
-    exact liftDomsK_eq_self_of_bounded _ _ (fieldsBelow_getD (hfdB c hc j hj))
+    exact liftDomsK_eq_self_of_bounded _ _ (domsBelow_getD (hfdB c hc j hj))
   have hch := consList_eq_chainFrame (V := V) hl ρ
   refine ⟨?_, fun ys hys => ?_⟩
   · rw [hfdK]

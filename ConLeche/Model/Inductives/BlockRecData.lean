@@ -233,11 +233,6 @@ theorem bvarsBelow_prefVarsAV {rP nF n : Nat} (h : rP + nF ≤ n) :
   exact show nF + rP - 1 - l < n by omega
 
 omit [SetTheory V] in
-theorem domsBelow_of_fieldsBelow : ∀ {Ds : List AnnotTerm} {k : Nat},
-    FieldsBelow k Ds → DomsBelow k Ds
-  | [], _, _ => trivial
-  | _ :: _, _, h => ⟨h.1, domsBelow_of_fieldsBelow h.2⟩
-
 omit [SetTheory V] in
 /-- A lifted form's bound, at any slack. -/
 theorem bvarsBelow_liftN_add {K m n : Nat} {e : AnnotTerm} (h : Term.bvarsBelow m e.erase)
@@ -250,15 +245,15 @@ omit [SetTheory V] in
 theorem bvarsBelow_iotaEqAV {K c rP nF : Nat} {pdoms fdoms es ihs : List AnnotTerm}
     {mk Rb : AnnotTerm} (hc : c < K)
     (hpl : pdoms.length = rP) (hfl : fdoms.length = nF)
-    (hp : FieldsBelow K pdoms)
-    (hf : FieldsBelow (K + rP) fdoms)
+    (hp : DomsBelow K pdoms)
+    (hf : DomsBelow (K + rP) fdoms)
     (hes : ∀ e ∈ es, Term.bvarsBelow (K + rP + nF) e.erase)
     (hmk : Term.bvarsBelow (K + rP + nF) mk.erase)
     (hih : ∀ v ∈ ihs, Term.bvarsBelow (K + rP + nF) v.erase)
     (hRb : Term.bvarsBelow (K + rP + nF + ihs.length) Rb.erase) :
     Term.bvarsBelow K (iotaEqAV K c pdoms fdoms es mk ihs Rb).erase := by
   have hdoms : DomsBelow K (pdoms ++ fdoms) :=
-    domsBelow_of_fieldsBelow (fieldsBelow_append hp (by rw [hpl]; exact hf))
+    (domsBelow_append hp (by rw [hpl]; exact hf))
   refine mkPisAV_below_of hdoms ?_
   have hlen : (pdoms ++ fdoms).length = rP + nF := by
     simp; omega
@@ -627,15 +622,15 @@ lifting, and that is what the rest of this section proves. -/
 omit [SetTheory V] in
 /-- The chain binders inserted: a base-frame binder list, each domain
 at its own depth, stays so `K` deeper. -/
-theorem fieldsBelow_liftDomsK (K : Nat) : ∀ {Ds : List AnnotTerm} {k : Nat},
-    FieldsBelow k Ds → FieldsBelow (K + k) (liftDomsK K k Ds)
+theorem domsBelow_liftDomsK (K : Nat) : ∀ {Ds : List AnnotTerm} {k : Nat},
+    DomsBelow k Ds → DomsBelow (K + k) (liftDomsK K k Ds)
   | [], _, _ => trivial
   | D :: Ds, k, h => by
     refine ⟨?_, ?_⟩
     · show Term.bvarsBelow (K + k) (AnnotTerm.liftN K D k).erase
       rw [AnnotTerm.erase_liftN, Nat.add_comm K k]
       exact VExprAux.bvarsBelow_liftN K D.erase k k h.1
-    · have ih := fieldsBelow_liftDomsK K (Ds := Ds) (k := k + 1) h.2
+    · have ih := domsBelow_liftDomsK K (Ds := Ds) (k := k + 1) h.2
       rwa [show K + (k + 1) = K + k + 1 from by omega] at ih
 
 /-- **The family's ι equations at the block's own data.**
@@ -661,8 +656,8 @@ component bounded at its own depth. -/
 theorem bvarsBelow_blockIotaEqsAV {K : Nat} {nCt : Nat → Nat}
     {pdoms0 : Nat → List AnnotTerm} {fdoms0 es0 ihs : Nat → Nat → List AnnotTerm}
     {mk0 Rb0 : Nat → Nat → AnnotTerm}
-    (hp : ∀ c, c < K → FieldsBelow 0 (pdoms0 c))
-    (hf : ∀ c, c < K → ∀ j, j < nCt c → FieldsBelow (pdoms0 c).length (fdoms0 c j))
+    (hp : ∀ c, c < K → DomsBelow 0 (pdoms0 c))
+    (hf : ∀ c, c < K → ∀ j, j < nCt c → DomsBelow (pdoms0 c).length (fdoms0 c j))
     (hes : ∀ c, c < K → ∀ j, j < nCt c → ∀ e ∈ es0 c j,
       Term.bvarsBelow ((pdoms0 c).length + (fdoms0 c j).length) e.erase)
     (hmk : ∀ c, c < K → ∀ j, j < nCt c →
@@ -678,10 +673,10 @@ theorem bvarsBelow_blockIotaEqsAV {K : Nat} {nCt : Nat → Nat}
   refine bvarsBelow_iotaEqAV (rP := (pdoms0 c).length) (nF := (fdoms0 c j).length) hc
     (liftDomsK_length K 0 (pdoms0 c)) (liftDomsK_length K (pdoms0 c).length (fdoms0 c j))
     ?_ ?_ ?_ ?_ ?_ ?_
-  · have hq := fieldsBelow_liftDomsK K (Ds := pdoms0 c) (k := 0) (hp c hc)
+  · have hq := domsBelow_liftDomsK K (Ds := pdoms0 c) (k := 0) (hp c hc)
     rw [Nat.add_zero] at hq
     exact hq
-  · exact fieldsBelow_liftDomsK K (Ds := fdoms0 c j) (k := (pdoms0 c).length) (hf c hc j hj)
+  · exact domsBelow_liftDomsK K (Ds := fdoms0 c j) (k := (pdoms0 c).length) (hf c hc j hj)
   · intro e he
     obtain ⟨e', he', rfl⟩ := List.mem_map.mp he
     exact bvarsBelow_liftN_add (hes c hc j hj e' he') (by omega) _

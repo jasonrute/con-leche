@@ -644,11 +644,11 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     · simp [hlenPpsOf c hc ψ]
     · rw [hppsNil c hc ψ, hnIdxsNil c hc]; simp
   have hIdsBelow : ∀ (c : Nat) (ψ : Name → Nat),
-      FieldsBelow q.nP (((ppsOf c ψ).drop q.nP)) := by
+      DomsBelow q.nP (((ppsOf c ψ).drop q.nP)) := by
     intro c ψ
     by_cases hc : c < q.k
     · obtain ⟨cvTb, hcv⟩ := hcvOf c hc
-      have h := (DomsBelow.drop q.nP ((hF.fdOf c cvTb hcv).below ψ)).fields
+      have h := (DomsBelow.drop q.nP ((hF.fdOf c cvTb hcv).below ψ))
       rwa [Nat.zero_add] at h
     · rw [hppsNil c hc ψ]
       simp only [List.drop_nil]

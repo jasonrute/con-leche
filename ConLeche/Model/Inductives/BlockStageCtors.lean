@@ -372,12 +372,12 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     | some cA => rw [h] at hi; exact ⟨cA, rfl, (Option.some.inj hi).symm⟩
   have hFssBelow : ∀ ψ : Name → Nat,
       ∀ Fs ∈ fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0),
-        FieldsBelow d.nP Fs := by
+        DomsBelow d.nP Fs := by
     intro ψ Fs hFs
     obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
     obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
     obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
-    have := (DomsBelow.drop d.nP ((hdata m i cA hiA).2.2.1.below ψ)).fields
+    have := (DomsBelow.drop d.nP ((hdata m i cA hiA).2.2.1.below ψ))
     rwa [Nat.zero_add] at this
   have hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ →

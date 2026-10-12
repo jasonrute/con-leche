@@ -309,7 +309,7 @@ theorem underTowerOk_of_spines {b T : AnnotTerm} :
 theorem genIhDomAV_below {D mt : Nat} {q : IhDatum} (hq : IhDatumBelow D q) (hmt : mt < D) :
     Term.bvarsBelow D (genIhDomAV D mt q).erase := by
   unfold genIhDomAV
-  refine mkPisAV_below_of (domsBelow_of_fieldsBelow hq.1) ?_
+  refine mkPisAV_below_of (hq.1) ?_
   rw [AnnotTerm.erase_mkAppN]
   refine VExprAux.bvarsBelow_mkAppN (by show _ < _; omega) fun a ha => ?_
   obtain ⟨e, he, rfl⟩ := List.mem_map.mp ha
@@ -365,14 +365,14 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
   have hxl : xs.length = R.g.pre.length := hxs.length_eq.trans hlc
   have hfl : fs.length = (genCtorAt R.g R.rd c j).nF := hfs.length_eq.trans hnF.symm
   -- the frame's domains are closed below it
-  have hPdB : FieldsBelow 0 (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) :=
-    fieldsBelow_of_getD fun l hl' => by
+  have hPdB : DomsBelow 0 (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) :=
+    domsBelow_of_getD fun l hl' => by
       simpa using blockRulePdomsAV_bounded hμ mpC h hr ψ l hl'
   have hFdB := genRun_fdomsBelow hμ R hg h mpC ψ c hc j hj
-  have hFrB := fieldsBelow_append hPdB (by simpa using hFdB)
+  have hFrB := domsBelow_append hPdB (by simpa using hFdB)
   have hysR : SpineFit (consList rs ρ) (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape
       (tgtRs out) ψ c ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) :=
-    spineFit_congr_fieldsBelow hFrB (fun i hi => absurd hi (Nat.not_lt_zero _)) hys
+    spineFit_congr_domsBelow hFrB (fun i hi => absurd hi (Nat.not_lt_zero _)) hys
   generalize hD : R.g.pre.length + (genCtorAt R.g R.rd c j).nF = D at hbelow ⊢
   have hxfl : (xs ++ fs).length = D := by rw [List.length_append, hxl, hfl, hD]
   refine underTowerOk_of_spines (fun k hk zs hzs => ?_) (fun zs hzs => ?_)
@@ -400,7 +400,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       exact consList_congr_below (xs ++ fs) (D := 0) (fun k hk => absurd hk (Nat.not_lt_zero _)) i
         (by simpa [hxfl] using hi)
     have hzs' : SpineFit (consList (xs ++ fs) ρ) q.2.1 zs :=
-      spineFit_congr_fieldsBelow hbelow.1 hagD hzs
+      spineFit_congr_domsBelow hbelow.1 hagD hzs
     have hzl : zs.length = q.2.1.length := hzs.length_eq
     have hsp : SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c
         ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) := hys

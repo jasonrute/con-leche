@@ -314,7 +314,7 @@ theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ p.cvT.levelParams, ψ₁ q = ψ₂ q) →
       fssOf p.nP (ctorDataList dsF esF ψ₁ ctorsA 0) = fssOf p.nP (ctorDataList dsF esF ψ₂ ctorsA 0))
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ fssOf p.nP (ctorDataList dsF esF ψ ctorsA 0),
-      FieldsBelow p.nP Fs)
+      DomsBelow p.nP Fs)
     (hiff : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take p.nP)).reverse ρ ↔
         Sat V (((dsF j ψ).take p.nP)).reverse ρ)

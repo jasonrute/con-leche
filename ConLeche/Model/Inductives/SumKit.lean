@@ -1093,7 +1093,7 @@ theorem stageCtorGen {T : Name}
     (hEsj : ∀ ψ, (Ess ψ)[j]? = some (Es ψ))
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ q ∈ lps, ψ₁ q = ψ₂ q) → Fss ψ₁ = Fss ψ₂)
-    (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ Fss ψ, FieldsBelow nP Fs)
+    (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ Fss ψ, DomsBelow nP Fs)
     (hiff : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
         Sat V (((ds ψ).take nP)).reverse ρ)
@@ -1127,7 +1127,7 @@ theorem stageCtorGen {T : Name}
     fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (Fs ψ) (uChains (Fss ψ))
   have hAbelow : ∀ ψ, Term.bvarsBelow 0 (A ψ).erase := fun ψ =>
     sumMkAV_below (hCD.below ψ)
-      ((DomsBelow.drop nP (hCD.below ψ)).fields)
+      (DomsBelow.drop nP (hCD.below ψ))
       (by rw [Nat.zero_add]; exact uChains_below (hFssBelow ψ))
       (by show nP + (((ds ψ).drop nP)).length = (ds ψ).length
           simp [hCD.len ψ])

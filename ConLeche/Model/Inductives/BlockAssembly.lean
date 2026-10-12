@@ -763,9 +763,9 @@ theorem blockRealPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} {i
     (hIdsLen : ∀ (j : Nat) (ψ : Name → Nat),
       (((ppsOf j ψ).drop q.nP)).length = q.nIdxs.getD j 0)
     (hIdsBelow : ∀ (c : Nat) (ψ : Name → Nat),
-      FieldsBelow q.nP (((ppsOf c ψ).drop q.nP)))
+      DomsBelow q.nP (((ppsOf c ψ).drop q.nP)))
     (hchainsBelow : ∀ (ψ : Name → Nat) (c : Nat), c < q.k →
-      ∀ chain ∈ Chs ψ c, FieldsBelow (q.nP + 2) chain)
+      ∀ chain ∈ Chs ψ c, DomsBelow (q.nP + 2) chain)
     -- the leaf's data depends on the block's level parameters only
     (hZparams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ n ∈ q.lps, ψ₁ n = ψ₂ n) →
       (∀ c, uOf c ψ₁ = uOf c ψ₂) ∧ Chs ψ₁ = Chs ψ₂)

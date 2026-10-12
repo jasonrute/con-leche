@@ -108,7 +108,7 @@ codomain is a type there — at two frames that agree below the
 telescope's bound. -/
 theorem lamTower_mem_piTower :
     ∀ (tl : List AnnotTerm) {D : Nat} {σ σ' : Nat → V} {b C : AnnotTerm},
-      FieldsBelow D tl → (∀ i, i < D → σ i = σ' i) →
+      DomsBelow D tl → (∀ i, i < D → σ i = σ' i) →
       (∀ bs, SpineFit σ' tl bs →
         interp V (consList bs σ) b ∈ˢ interp V (consList bs σ') C) →
       (∀ bs, SpineFit σ' tl bs → IsTy (interp V (consList bs σ') C)) →
