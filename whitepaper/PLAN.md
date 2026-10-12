@@ -294,3 +294,7 @@ pen-and-paper claim without the fragment behind it".
   citations that change when the port lands (they do not render).
 * The cheaper grade skips the `let` value check, as `infer_only` does;
   the full grade keeps it.
+* Terminology: a ∀-type is a "Π-type" (syntax) and its denotation a
+  "(dependent) function space"; never "product", which reads as `Prod`.
+  A `let` is a "let-expression" or "let-binding", never a "local
+  definition": definitions are entries of the environment.
