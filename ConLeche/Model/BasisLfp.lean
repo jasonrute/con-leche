@@ -599,10 +599,8 @@ theorem eqLfp_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLe
       (.pi (.sort (lv ψ)) (.pi (.bvar 0) (.pi (.bvar 1) (.sort 0))))) :
     LfpReads acval env (eqLfp (V := V) nm cn lv) := fun mm hmm => by
   obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
-  exact ⟨cv, caps, hf, fun ψ => ⟨[(0, 1, .sort (lv ψ)), (0, 1, .bvar 0), (0, 1, .bvar 1)],
-    hty ψ, rfl, fun d hd => by
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hd
-      rcases hd with rfl | rfl | rfl <;> exact Nat.one_ne_zero⟩⟩
+  exact ⟨cv, caps, hf, fun ψ => ⟨[(0, 0, .sort (lv ψ)), (0, 0, .bvar 0), (0, 0, .bvar 1)],
+    hty ψ, rfl⟩⟩
 
 /-- **`Eq`'s capability records** (`LfpCaps`): its sort is zero everywhere,
 so its zero-ness datum must hold everywhere; it has one constructor. -/
@@ -645,7 +643,7 @@ theorem lfp0_reads {acval : Name → (Name → Nat) → AnnotTerm} {env : ConLec
     (hty : ∀ ψ, denoteMeta acval env ψ 0 cv.type = some (.sort (w ψ))) :
     LfpReads acval env (lfp0 nm w F inj n cn flds) := fun mm hmm => by
   obtain rfl : mm = 0 := Nat.lt_one_iff.mp hmm
-  exact ⟨cv, caps, hf, fun ψ => ⟨[], hty ψ, rfl, fun _ h => nomatch h⟩⟩
+  exact ⟨cv, caps, hf, fun ψ => ⟨[], hty ψ, rfl⟩⟩
 
 /-- **A one-member unparameterized unindexed block's constructors read as
 their hole telescopes** (M2): the canonical abstraction has no parameter,

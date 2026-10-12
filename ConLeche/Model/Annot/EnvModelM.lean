@@ -512,8 +512,8 @@ theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
     exact ⟨cv, a, b, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h⟩
   · obtain ⟨cv, caps, hf, hab⟩ := hrd mm hmm
     refine ⟨cv, caps, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h, fun ψ => ?_⟩
-    obtain ⟨ab, hta, h1, h2⟩ := hab ψ
-    exact ⟨ab, hread _ _ _ hf ψ _ hta, h1, h2⟩
+    obtain ⟨ab, hta, h1⟩ := hab ψ
+    exact ⟨ab, hread _ _ _ hf ψ _ hta, h1⟩
   · obtain ⟨cv, nPc, nF, hf, hcf, hlps, hpars, A, hA, hocc, hrdA⟩ := hrdC c hc j hj
     refine ⟨cv, nPc, nF, hfind _ _ hf fun _ _ _ _ h => ConstantInfo.noConfusion h, hcf,
       fun mm hmm => ?_, fun ψ dsC bodyC hrd' hle => ?_, A, hA, hocc, fun ψ => ?_⟩
