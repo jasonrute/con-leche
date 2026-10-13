@@ -105243,3 +105243,128 @@ exists on this machine (no file of this task is involved). Arena 90/92,
 e2e 475/475, annot 15/15, the trusted, `--jobs=1` and `--jobs=4` sweeps
 as expected.
 
+
+## TASK #342 — R1: the post-review fixes (2026-10-13, agent/342-r1)
+
+The leftovers review's fixes on `port-342`, with the maintainer's
+rulings of 2026-10-13 (drop the legacy `pw` parsing; `MainTheorem.lean`'s
+fold comment may change).  Verdicts unchanged apart from one new
+fixture; checker cost unchanged.
+
+**1. Master merged** (the task #348 commits: the let-fold fixtures,
+`spine_arg_order`, `natmul_deep_major`, the #348 record).  One conflict,
+DESIGN.md's tail (both records kept).  The port's verdicts are master's:
+the three letfold fixtures accept, `spine_arg_order` and
+`natmul_deep_major` exit 3 (fuel exhausted in `whnfCore`, as on master).
+The letfold comment now says why the port folds: inference substitutes
+the `let` value (no let-variables, §11.x); `instructions:u` at n = 14 is
+6.8e9 for each of the three (master 7.2e9).
+
+**2. The legacy `pw` field is gone from the parser** (sub-lane R1-PW).
+`PwRec` and `badPw` (`Frontend/Scan/Types.lean`), `scanPw`/`kPw`
+(`Scan/Fast.lean`), `naivePw` and `binderFields`' slot
+(`Scan/Naive.lean`), their equivalence lemmas (`Scan/Equiv/Keys`,
+`Objects`; repaired to the four-slot shape `axiomFields` already has, not
+duplicated), `naivePw_local` (`Verify/Frontend/Local.lean`) and the
+`Good`/`ExportC` arms; `ExprRec.lam`/`.forallE` are binary.
+`tests/mode/split_{good,bad,bad2}.ndjson` lost their 8 `pw` members
+each (verdicts unchanged); the `pw` scan tests are deleted.  New fixture
+`binder_pw_field.ndjson`: a stream carrying `pw` is malformed (unknown
+key) — **exit 3**, the exit code of every malformed stream
+(`CheckError.exitCode`; `malformed_midstream` is the precedent), not 1,
+which is a reject of a well-formed stream.  No other fixture carries `pw`.
+
+**3. `MainTheorem.lean`'s fold comment**: "annotated and pushed" →
+"guarded and pushed".  `tests/challenge.sh` green.
+
+**4. Stale prose.**  OVERVIEW (`installStepC`; the K/`And` rescues are
+typed at the io grade and compared by proof irrelevance, not certified);
+`majorToCtor`'s docstring; `--help` (install runs the syntactic guards;
+a theorem's are its type's); `Rules/Rel.lean`'s `defeqLams`/`lamPair?`
+pointer; `prf_of_isProofFast` lives in `ProofFastSound.lean`;
+`Semantics/Kit.lean` and `Semantics/Univ.lean` describe what is left;
+the Model docstrings citing `pwBit_substPW`, `BlockRuleCerts`,
+`ResidueOk` (only ever in a docstring's code block), `certs_sound`, the
+"numeral" and "graph-regime" readings (`Levels`, `BasisQuot`,
+`Env/Laws`, `BlockRecRule`, `BlockRecTyping` (its header rewritten),
+`BlockRecPreRun` §1/§39/§40, `ClassRecKit` §0, `SetModel/Ops`);
+`BinderLoop`/`BinderLoopC`; `SetTheory/Derive/README.md`; the
+`Denotes.lean` comments (`Sort u` denotes `univ u`, the types at level
+`u`; the `Denotes` text itself unchanged); the e2e prose (`let_rec_rhs`,
+`str_lit`, `str_proj`, `tower_axiom_nonstd`, the OMEGA and K7 entries,
+`yolo_decline_vs_accept`, `unit_sizeof_rescue`, the `let_bad_*`,
+`str_lit`, `uh_let_erase_type` and `nested_pin_prop_cod` headers);
+`natop_booltrue_alias` (official REJECTS it: exit 1, "unknown constant
+'Bool.true'" while replaying `bleEx`); `CLAUDE.md`'s battery line;
+`tests/shake.sh`'s `#stored_basis`.
+
+**5. Renames.**  `Certs.licensed_sound`/`CertsSem` →
+`teleArity_sound`/`TeleAritySem`; `InferLamEntry`/`InferLamEntryX`
+inlined (`Expr`); `cvA` → `cv` throughout (the identity `let cvA := cv`
+bindings gone; `ConstChecked`'s user in `BlockRecRead` reads
+`cv0`/`cv`); `bconst_app_dataAV` → `bconst_app_data2`;
+`iotaCtorLicensed` → `iotaCtorNeverProp`, `quotMk_licensed_ne_zero` →
+`quotMk_neverProp_ne_zero`.  "licence"/"licensed" is gone from code,
+tests and scripts: the ι licence is "the ι case split", a licensed
+(arity-only) walk is "arity-checked", a model licence is a
+"justification".
+
+**6. Dead proof code** (census-confirmed, build-confirmed):
+`OneElimLevel`/`blockRecOneElimLevel`; `genPdoms` (inlined: it was
+`pre c`); `SetModel/Ops`' `app_lamR`, `app_lamR_of_not_mem`,
+`app_off_dom_piR_pos`, `eq_of_mem_piR_app_eq`, `lamV_eq_zero`,
+`not_pt_mem_piR_pos`, `piR_subset_mono`, `piR_zero_subsingleton`,
+`subsingleton_of_mem_univZero`; `Semantics/Univ`'s four regime lemmas
+(`interp_sort_mem` is all that is left) and `Kit`'s four value-read
+lemmas; the six `Graded.*` of `DefEqSoundKit`; `mkLamsAV_pt_body`;
+`Derive/TypeU`'s nine `strictU`/`Strict`/`Fib` lemmas; `ctxInstAt` (+
+`_nil`); `Expr.isLam`.  The census re-run afterwards
+(`_tmp/port/r1-logs/deadcode/`) lists 176 deletable owners elsewhere
+(e.g. `Verify/Knot`, `CtxOkKit`, the whole `Verify/ProjVerdict`); not in
+this lane's list, left for a census lane (R3 owns the `ITerm` files).
+
+**7. Import gates.**  `Kernel/Expr.lean` and `Verify/InstLevels.lean`
+no longer import `PropWhen`: the edges moved to their users
+(`Kernel/Level`, `Kernel/Env`, `PinGen` take `Kernel.PropWhen`;
+`PropReadInst` and `BasisQuot` `Verify.PropWhen`; `SimCEff` and
+`DirectGen` `Verify.Level`), and their two allowlist lines went.
+`DefEqSoundKit`'s `Semantics.Hoist` import (used only by the deleted
+`Graded.*`) went.  Allowlist lines for `AxiomMem`, `AxiomReduce`,
+`BasisEq`, `Harvest`, `ReduceOps` re-measured with the #223 criterion:
+still compensated, reasons now name live modules.
+`pub-import-plan.py`'s `AxiomMem→StdAxiomPin` fallback is gone (the
+model keeps the edge public without it); its comments name the
+`Reading.*` modules for the deleted `Bit*` ones.  `dead-census.py`'s
+`ANNOTATE_RE` is `STORED_BASIS_RE`.
+
+**8. Spec and shipped core agree at `--trusted`** (sub-lane R1-SPEC).
+`majorToCtor`'s K and `And` branches gate their `proofIrrel` check, and
+`iotaRec` its whole case-3 decision, on `mode.verifiedChecks`, as the
+cached core's `certAtI` does; official's type check on the fabrication
+stays in both modes.  `majorToCtor`/`prepareMajor`/`iotaRec` take
+`mode`; the simulation and bridge proofs thread it (`Knot`, `Fueled`,
+`PairM`, `Deep`, `BetaSpine`, `RedBridge`, `DiscC3`), and
+`majorToCtor_inv`/`iotaRec_inv` state each certificate conjunct under
+`mode.verifiedChecks = true`.  Trusted sweep: 0 recorded divergences.
+
+**9. The self-check is a sub-gate of `tests/arena.sh`**, on by default
+(`--no-selfcheck` skips it): `scripts/selfcheck.sh --fresh
+_tmp/selfcheck-gate` exports the tree and checks it, 43 s wall with the
+export (2 CPU-minutes; a fresh checkout first builds `lean4export`,
+which needs the network once).  `selfcheck.sh` now exits with the
+checker's code.  CI runs it through `arena.sh`.  This tree: exit 0,
+47 566 declarations accepted.
+
+**Measurements** (`instructions:u`, `--verified --jobs=1`, one run
+each, `ulimit -v 22000000`): init-full 408.372G → 408.339G (−0.01 %),
+mathlib-prefix 557.508G → 557.438G (−0.01 %), against `port-342`
+b4a5e4edc; 57 977 / 131 902 declarations accepted; peak RSS 0.30 /
+0.47 GiB.
+
+**Links.**  OVERVIEW, README (anchors only: `Denotes`, `Model`, `main`,
+`run`, `sorryAx`) and the whitepaper's `src` calls repointed; the
+whitepaper's ι citation now spans the mode gate.
+
+**Process note.**  The R1-SPEC sub-agent once ran `pkill -f "lake
+build"` (forbidden by CLAUDE.md); one R1 build died with exit 144 at
+that time, and R2/R3 builds running then may have been killed too.
