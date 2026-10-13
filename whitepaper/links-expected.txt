@@ -2835,19 +2835,19 @@
    231    base2 : EnvModel V env
    232    /-- every stored type reads, at every ground assignment -/
    233    type_reads : ∀ c ∈ env.consts, ∀ ψ : Name → Nat,
-   234      ∃ ta : ITerm,
-   235        denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta
+   234      ∃ ta : Term,
+   235        denote base2.acval env ψ 0 c.toConstantVal.type = some ta
    236    /-- the stored types' readings are graded types -/
-   237    type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : ITerm),
-   238      denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
+   237    type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : Term),
+   238      denote base2.acval env ψ 0 c.toConstantVal.type = some ta →
    239      ∀ ρ : Nat → V, WellDenotedTy V ρ ta
    240    /-- stored constants inhabit their types' readings (a projection
    241    table's constant type is the closed dummy `Sort 1` and its leaf is
    242    `Sort 0`, so the row holds of tables too; that a table is not a term
    243    is `inferTypeCore`'s own rejection of a `.const` naming one) -/
    244    mem_type : ∀ c ∈ env.consts,
-   245      ∀ (ψ : Name → Nat) (ta : ITerm),
-   246      denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
+   245      ∀ (ψ : Name → Nat) (ta : Term),
+   246      denote base2.acval env ψ 0 c.toConstantVal.type = some ta →
    247      ∀ ρ : Nat → V,
    248        interp V ρ (base2.acval c.name ψ) ∈ˢ interp V ρ ta
    249    /-- stored definition and theorem values read, to the constant's own
@@ -2923,7 +2923,7 @@
 
 == ConLeche/Model/Install.lean#L279-L282
    279  theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
-   280      {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+   280      {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
    281      (hfresh : env.find? c₀.name = none)
    282      (hh : ConsHead env c₀ A)
 
@@ -3957,53 +3957,53 @@
    173  `ConLeche/SetModel/Access.lean`. -/
    174  theorem closedFam_zero {Φ : (ι → V) → ι → V} (hmaps : MapsFam 0 Φ) : ∃ L, IsClosedFam 0 Φ L := by
 
-== ConLeche/Model/Env/LfpHoleOp.lean#L114-L116
-   114  /-- **The hole operator**: the block operator at the hole chains. -/
-   115  @[expose] noncomputable def holeOp (ψ : Name → Nat) (ρp : Nat → V) : (Nat → V) → Nat → V :=
-   116    blockPhiG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ)
+== ConLeche/Model/Env/LfpHoleOp.lean#L115-L117
+   115  /-- **The hole operator**: the block operator at the hole chains. -/
+   116  @[expose] noncomputable def holeOp (ψ : Name → Nat) (ρp : Nat → V) : (Nat → V) → Nat → V :=
+   117    blockPhiG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ)
 
-== ConLeche/Semantics/Inductives/HoleMono.lean#L70-L72
-    70  /-- **Hole-free**: the reading is the same at related frames. -/
-    71  def ConstOn (R : FrameRel V) (a : ITerm) : Prop :=
-    72    ∀ ρ ρ', R ρ ρ' → interp V ρ a = interp V ρ' a
+== ConLeche/Semantics/Inductives/HoleMono.lean#L71-L73
+    71  /-- **Hole-free**: the reading is the same at related frames. -/
+    72  def ConstOn (R : FrameRel V) (a : Term) : Prop :=
+    73    ∀ ρ ρ', R ρ ρ' → interp V ρ a = interp V ρ' a
 
-== ConLeche/Semantics/Inductives/HoleMono.lean#L139-L148
-   139  /-- **`pi`**: a Π-type with a hole-free domain and a positive codomain
-   140  is positive, as soon as its fibres are types at both frames (the
-   141  grading of the walked field: "not pt" source (1)) — `piV` is monotone in
-   142  fibres that are types (`piV_subset_mono`: a truth value included in a
-   143  type is a truth value, and a type with a fibre that is not one is
-   144  strict there). -/
-   145  theorem MonoOn.pi {R : FrameRel V} {A B : ITerm} (hA : ConstOn R A)
-   146      (hB : MonoOn (R.under A) B)
-   147      (hT : ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B)) ∧
-   148        (∀ x, x ∈ˢ interp V ρ' A → IsTy (interp V (cons x ρ') B))) :
+== ConLeche/Semantics/Inductives/HoleMono.lean#L140-L149
+   140  /-- **`pi`**: a Π-type with a hole-free domain and a positive codomain
+   141  is positive, as soon as its fibres are types at both frames (the
+   142  grading of the walked field: "not pt" source (1)) — `piV` is monotone in
+   143  fibres that are types (`piV_subset_mono`: a truth value included in a
+   144  type is a truth value, and a type with a fibre that is not one is
+   145  strict there). -/
+   146  theorem MonoOn.pi {R : FrameRel V} {A B : Term} (hA : ConstOn R A)
+   147      (hB : MonoOn (R.under A) B)
+   148      (hT : ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B)) ∧
+   149        (∀ x, x ∈ˢ interp V ρ' A → IsTy (interp V (cons x ρ') B))) :
 
-== ConLeche/Semantics/Inductives/HoleAcc.lean#L236-L246
-   236  /-- **Π over a hole-free domain**: the support of a member over a small
-   237  domain is the glued supports of its values, the body's items one binder
-   238  down (the bound variable is no admissible position); a member over a
-   239  domain that is not small (`w ≠ 0`) is the point, whose membership needs
-   240  no item (`PtOn`).  At the target frame the member lies in the Π by
-   241  `mem_piV_of_app`, the fibres at both frames being types (`hT`, the
-   242  grading: "not pt" source (1)). -/
-   243  theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : ITerm}
-   244      (hD : ConstOn R D)
-   245      {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B)
-   246      (hT : FibTyOn R D B) (hP : w ≠ 0 → PtOn (R.underBoth D) B) :
+== ConLeche/Semantics/Inductives/HoleAcc.lean#L237-L247
+   237  /-- **Π over a hole-free domain**: the support of a member over a small
+   238  domain is the glued supports of its values, the body's items one binder
+   239  down (the bound variable is no admissible position); a member over a
+   240  domain that is not small (`w ≠ 0`) is the point, whose membership needs
+   241  no item (`PtOn`).  At the target frame the member lies in the Π by
+   242  `mem_piV_of_app`, the fibres at both frames being types (`hT`, the
+   243  grading: "not pt" source (1)). -/
+   244  theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : Term}
+   245      (hD : ConstOn R D)
+   246      {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B)
+   247      (hT : FibTyOn R D B) (hP : w ≠ 0 → PtOn (R.underBoth D) B) :
 
-== ConLeche/Semantics/Inductives/HoleMono.lean#L167-L171
-   167  /-- **`holeApp`**: a hole applied to hole-free arguments, at its full
-   168  arity, is positive. -/
-   169  theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List ITerm}
-   170      (hh : HoleOn R h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
-   171      MonoOn R (ITerm.mkAppN (.bvar h) es) := by
+== ConLeche/Semantics/Inductives/HoleMono.lean#L168-L172
+   168  /-- **`holeApp`**: a hole applied to hole-free arguments, at its full
+   169  arity, is positive. -/
+   170  theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List Term}
+   171      (hh : HoleOn R h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
+   172      MonoOn R (Term.mkAppN (.bvar h) es) := by
 
-== ConLeche/Semantics/Inductives/HoleAcc.lean#L324-L327
-   324  /-- **A member hole at its full arity, at hole-free arguments.** -/
-   325  theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h : Nat}
-   326      {es : List ITerm} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
-   327      AccOn w Q R (fun _ => unitSet) (ITerm.mkAppN (.bvar h) es) := by
+== ConLeche/Semantics/Inductives/HoleAcc.lean#L325-L328
+   325  /-- **A member hole at its full arity, at hole-free arguments.** -/
+   326  theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h : Nat}
+   327      {es : List Term} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
+   328      AccOn w Q R (fun _ => unitSet) (Term.mkAppN (.bvar h) es) := by
 
 == ConLeche/Model/Inductives/BlockAccRunCont.lean#L310-L315
    310  /-- **The hole fit of a uniform block is accessible at every parameter
@@ -4023,21 +4023,21 @@
     62        ∀ X', InTupleSpace w kI IsI X' → (∀ a, a ∈ˢ B → InTup kI IsI X' (g a)) →
     63          x ∈ˢ app (Φ X' m) i
 
-== ConLeche/Model/Env/BlockLfp.lean#L510-L514
-   510  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
-   511  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
-   512      (hsat : Sat V (D.params ψ).reverse ρp) :
-   513      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
-   514    (h.acc ψ ρp hsat).mono
+== ConLeche/Model/Env/BlockLfp.lean#L511-L515
+   511  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
+   512  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
+   513      (hsat : Sat V (D.params ψ).reverse ρp) :
+   514      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
+   515    (h.acc ψ ρp hsat).mono
 
-== ConLeche/Model/Env/BlockLfp.lean#L449-L455
-   449    /-- **the constructors' fields are small** at a `Type`-valued block, at
-   450    every hole frame of the tuple space (the frame walk of a container reads its constructors' fields along the
-   451    accessibility relation, which supports small elements only — the
-   452    install's own `FieldsOkB`, recorded) -/
-   453    fieldsOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp → D.w ψ ≠ 0 →
-   454      ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
-   455        FieldsOkB (D.w ψ) (D.frame ψ ρp X) (D.fields ψ c j)
+== ConLeche/Model/Env/BlockLfp.lean#L450-L456
+   450    /-- **the constructors' fields are small** at a `Type`-valued block, at
+   451    every hole frame of the tuple space (the frame walk of a container reads its constructors' fields along the
+   452    accessibility relation, which supports small elements only — the
+   453    install's own `FieldsOkB`, recorded) -/
+   454    fieldsOk : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp → D.w ψ ≠ 0 →
+   455      ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N → ∀ j, j < D.nctors c →
+   456        FieldsOkB (D.w ψ) (D.frame ψ ρp X) (D.fields ψ c j)
 
 == whitepaper/Fragment/LfpSet.lean#L64-L67
     64  /-- A **closed family** of `Φ`: in the universe, and a pre-fixed point.
@@ -4299,15 +4299,15 @@
     89          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
     90      else famOf (fun _ => empty) (Is m)
 
-== ConLeche/Model/Env/BlockLfp.lean#L387-L394
-   387    /-- **`Φ` maps the tuple space into itself** -/
-   388    maps : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
-   389      MapsTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)
-   390    /-- **the hole fit is accessible**, with a bound of the level at a
-   391    `Type`-valued block (task #327): the operator's accessibility, (W) and
-   392    monotonicity, and the fit's growth follow at every level -/
-   393    fitAcc : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
-   394      ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (tg (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
+== ConLeche/Model/Env/BlockLfp.lean#L388-L395
+   388    /-- **`Φ` maps the tuple space into itself** -/
+   389    maps : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
+   390      MapsTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)
+   391    /-- **the hole fit is accessible**, with a bound of the level at a
+   392    `Type`-valued block (task #327): the operator's accessibility, (W) and
+   393    monotonicity, and the fit's growth follow at every level -/
+   394    fitAcc : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
+   395      ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (tg (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
 
 == ConLeche/SetModel/Access.lean#L298-L303
    298  theorem AccW.closed {w k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
@@ -4317,31 +4317,31 @@
    302    · obtain ⟨A, hA, hacc⟩ := h
    303      exact closed_of_acc hw (hA hw) hmaps hacc
 
-== ConLeche/Model/Env/BlockLfp.lean#L510-L514
-   510  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
-   511  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
-   512      (hsat : Sat V (D.params ψ).reverse ρp) :
-   513      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
-   514    (h.acc ψ ρp hsat).mono
+== ConLeche/Model/Env/BlockLfp.lean#L511-L515
+   511  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
+   512  theorem mono (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
+   513      (hsat : Sat V (D.params ψ).reverse ρp) :
+   514      MonoTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp) :=
+   515    (h.acc ψ ρp hsat).mono
 
-== ConLeche/Model/Env/BlockLfp.lean#L395-L400
-   395    /-- **what `Φ` is**: component `c`'s fibre at `(X, t)` is the set of
-   396    injections of the spines fitting one of `c`'s constructors -/
-   397    fibre : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
-   398      ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N →
-   399      ∀ t, t ∈ˢ D.idx ψ ρp c → ∀ x,
-   400        x ∈ˢ app (D.Φ ψ ρp X c) t ↔ ∃ j fs, D.HFits ψ ρp X t c j fs ∧ x = D.inj ψ c j fs
+== ConLeche/Model/Env/BlockLfp.lean#L396-L401
+   396    /-- **what `Φ` is**: component `c`'s fibre at `(X, t)` is the set of
+   397    injections of the spines fitting one of `c`'s constructors -/
+   398    fibre : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
+   399      ∀ X, InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X → ∀ c, c < D.N →
+   400      ∀ t, t ∈ˢ D.idx ψ ρp c → ∀ x,
+   401        x ∈ˢ app (D.Φ ψ ρp X c) t ↔ ∃ j fs, D.HFits ψ ρp X t c j fs ∧ x = D.inj ψ c j fs
 
-== ConLeche/Model/Env/BlockLfp.lean#L180-L182
-   180  /-- **The carrier**: the least pre-fixed tuple of the operator. -/
-   181  @[expose] noncomputable def carrier (ψ : Name → Nat) (ρp : Nat → V) : Nat → V :=
-   182    lfpTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)
+== ConLeche/Model/Env/BlockLfp.lean#L181-L183
+   181  /-- **The carrier**: the least pre-fixed tuple of the operator. -/
+   182  @[expose] noncomputable def carrier (ψ : Name → Nat) (ρp : Nat → V) : Nat → V :=
+   183    lfpTuple (D.w ψ) D.N (D.idx ψ ρp) (D.Φ ψ ρp)
 
-== ConLeche/Model/Env/BlockLfp.lean#L516-L519
-   516  /-- **The carrier is a fixed point**, componentwise. -/
-   517  theorem carrier_eq (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
-   518      (hsat : Sat V (D.params ψ).reverse ρp) {c : Nat} (hc : c < D.N) :
-   519      D.Φ ψ ρp (D.carrier ψ ρp) c = D.carrier ψ ρp c :=
+== ConLeche/Model/Env/BlockLfp.lean#L517-L520
+   517  /-- **The carrier is a fixed point**, componentwise. -/
+   518  theorem carrier_eq (h : LfpClause acval D) {ψ : Name → Nat} {ρp : Nat → V}
+   519      (hsat : Sat V (D.params ψ).reverse ρp) {c : Nat} (hc : c < D.N) :
+   520      D.Φ ψ ρp (D.carrier ψ ρp) c = D.carrier ψ ρp c :=
 
 == ConLeche/SetModel/TaggedSum.lean#L65
     65  noncomputable def inj (i : Nat) (a : V) : V := spair (vnat i) a
@@ -4822,14 +4822,14 @@
    289        = appList (S.minorAt mins j)
    290            (fs.reverse ++ c.recFields.map (S.ihSem M ls ps m mins fs)) :=
 
-== ConLeche/Model/Inductives/BlockRecLaw.lean#L876-L882
-   876  /-- **A new block recursor's rule law, at either firing**.  `hpins` is
-   877  `RecRuleLaw`'s outer `.nested` conjunct — the pins'
-   878  open readings and their context-guarded grading — vacuous at a `.plain`
-   879  rule; `hrhs` receives no parameter comparison at either firing: the
-   880  major's membership in the family at the comparands identifies the fired
-   881  spine with the rule's own (`BlockRuleDataAt`'s `mk` conjunct). -/
-   882  theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → Nat}
+== ConLeche/Model/Inductives/BlockRecLaw.lean#L877-L883
+   877  /-- **A new block recursor's rule law, at either firing**.  `hpins` is
+   878  `RecRuleLaw`'s outer `.nested` conjunct — the pins'
+   879  open readings and their context-guarded grading — vacuous at a `.plain`
+   880  rule; `hrhs` receives no parameter comparison at either firing: the
+   881  major's membership in the family at the comparands identifies the fired
+   882  spine with the rule's own (`BlockRuleDataAt`'s `mk` conjunct). -/
+   883  theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → Nat}
 
 == whitepaper/Fragment/Ctx.lean#L161-L167
    161  /-- **Fitting values compared where neither is the point are equal**:
@@ -6056,14 +6056,14 @@
     28  for every related recursor `c`; the kit's predecessors must contain every
     29  related recursor's call targets (`hpredR`).
 
-== ConLeche/Model/Inductives/BlockRecLaw.lean#L876-L882
-   876  /-- **A new block recursor's rule law, at either firing**.  `hpins` is
-   877  `RecRuleLaw`'s outer `.nested` conjunct — the pins'
-   878  open readings and their context-guarded grading — vacuous at a `.plain`
-   879  rule; `hrhs` receives no parameter comparison at either firing: the
-   880  major's membership in the family at the comparands identifies the fired
-   881  spine with the rule's own (`BlockRuleDataAt`'s `mk` conjunct). -/
-   882  theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → Nat}
+== ConLeche/Model/Inductives/BlockRecLaw.lean#L877-L883
+   877  /-- **A new block recursor's rule law, at either firing**.  `hpins` is
+   878  `RecRuleLaw`'s outer `.nested` conjunct — the pins'
+   879  open readings and their context-guarded grading — vacuous at a `.plain`
+   880  rule; `hrhs` receives no parameter comparison at either firing: the
+   881  major's membership in the family at the comparands identifies the fired
+   882  spine with the rule's own (`BlockRuleDataAt`'s `mk` conjunct). -/
+   883  theorem blockRecRuleLaw_gen {env : Env} {m₃ : EnvModel V env} {φ : Name → Nat}
 
 >>> whitepaper/sections/06-extensionality.typ
 
@@ -6161,8 +6161,8 @@
    298  theorem propext_mem (mp : EnvModelM V μ env)
    299      {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
    300      (hn : cvA.name = propextName)
-   301      (ψ : Name → Nat) (ta : ITerm)
-   302      (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
+   301      (ψ : Name → Nat) (ta : Term)
+   302      (hta : denote mp.base2.acval env ψ 0 cvA.type = some ta)
    303      (ρ : Nat → V) :
    304      interp V ρ (.const .propext []) ∈ˢ interp V ρ ta := by
 
@@ -6364,12 +6364,12 @@
     66  noncomputable def quotSet (u : Nat) (A R : V) : V :=
     67    if u = 0 then image (fun _ => pt) A else image (fun a => kpair empty (qclass A R a)) A
 
-== ConLeche/Model/BasisQuot.lean#L2439-L2443
-  2439  theorem extendQuotLift (mp : EnvModelM V μ env)
-  2440      (hQ : env.find? quotName = some quotA)
-  2441      (hM : env.find? quotMkName = some quotMkA)
-  2442      (hE : env.find? eqName = some eqA)
-  2443      (hfresh : env.find? quotLiftA.name = none)
+== ConLeche/Model/BasisQuot.lean#L2435-L2439
+  2435  theorem extendQuotLift (mp : EnvModelM V μ env)
+  2436      (hQ : env.find? quotName = some quotA)
+  2437      (hM : env.find? quotMkName = some quotMkA)
+  2438      (hE : env.find? eqName = some eqA)
+  2439      (hfresh : env.find? quotLiftA.name = none)
 
 == ConLeche/Kernel/Basis/False.lean#L37-L39
     37  /-- `False : Prop`. -/
@@ -6408,8 +6408,8 @@
    635  theorem choice_mem (mp : EnvModelM V μ env)
    636      {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
    637      (hn : cvA.name = choiceName)
-   638      (ψ : Name → Nat) (ta : ITerm)
-   639      (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
+   638      (ψ : Name → Nat) (ta : Term)
+   639      (hta : denote mp.base2.acval env ψ 0 cvA.type = some ta)
    640      (ρ : Nat → V) :
    641      interp V ρ (.const .choice [ψ uN]) ∈ˢ interp V ρ ta := by
 
@@ -6528,52 +6528,57 @@
    380    | fvar {d i : Nat} {ty₁ ty₂ : Expr} :
    381        DefEq env d (.fvar i ty₁) (.fvar i ty₂)
 
-== ConLeche/Semantics/Syntax.lean#L42-L66
-    42  inductive ITerm where
-    43    /-- de Bruijn index -/
-    44    | bvar (i : Nat)
-    45    /-- `Sort u` at a concrete level -/
-    46    | sort (u : Nat)
-    47    /-- a built-in constant at a concrete level instantiation -/
-    48    | const (c : BConst) (us : List Nat)
-    49    /-- application -/
-    50    | app (f a : ITerm)
-    51    /-- `fun (_ : ty) => body` -/
-    52    | lam (ty body : ITerm)
-    53    /-- `(_ : ty) → body` -/
-    54    | pi (ty body : ITerm)
-    55    /-- `let _ := val; body`: the body under one binder, read at the
-    56    value; no type slot, as in `Term` -/
-    57    | letE (val body : ITerm)
-    58    /-- `@Eq _ lhs rhs`; no type slot, as in `Term` (task #237) -/
-    59    | eqE (lhs rhs : ITerm)
-    60    /-- first field of a pair -/
-    61    | fst (e : ITerm)
-    62    /-- second field of a pair -/
-    63    | snd (e : ITerm)
-    64    /-- the canonical (irrelevant) proof of a derivable equation -/
-    65    | prf
-    66    deriving Repr, Inhabited
+== ConLeche/Term/Syntax.lean#L187-L218
+   187  inductive Term where
+   188    /-- de Bruijn index -/
+   189    | bvar (i : Nat)
+   190    /-- `Sort u` at a concrete level -/
+   191    | sort (u : Nat)
+   192    /-- a built-in constant at a concrete level instantiation -/
+   193    | const (c : BConst) (us : List Nat)
+   194    /-- application -/
+   195    | app (f a : Term)
+   196    /-- `fun (_ : ty) => body` -/
+   197    | lam (ty body : Term)
+   198    /-- `(_ : ty) → body` -/
+   199    | pi (ty body : Term)
+   200    /-- `let _ := val; body`, **without the type**: the body is under one
+   201    binder, read at the value -/
+   202    | letE (val body : Term)
+   203    /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
+   204    `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
+   205    and a census (task #237) found no definition and no theorem in any
+   206    tier reading the slot the former used to carry.  It is gone; a
+   207    producer that knows the type simply drops it. -/
+   208    | eqE (lhs rhs : Term)
+   209    /-- First field of a pair.  Carries **only** the subject: the pair's
+   210    type arguments come from the typing premise `Γ ⊢ p : Σ A B`,
+   211    not from the term — see the module docstring.  Interpreted by
+   212    `sfst`, i.e. literally `interp`'s clause. -/
+   213    | fst (e : Term)
+   214    /-- Second field of a pair; the `fst` twin, interpreted by `ssnd`. -/
+   215    | snd (e : Term)
+   216    /-- the canonical (irrelevant) proof of a derivable equation -/
+   217    | prf
+   218    deriving Repr, Inhabited
 
-== ConLeche/Model/Reading/DenoteMeta.lean#L38-L41
-    38  @[expose] def denoteMeta (acval : Name → (Name → Nat) → ITerm)
-    39      (env : Env) (φ : Name → Nat) :
-    40      (d : Nat) → Expr → Option ITerm
-    41    | _, .sort u => some (.sort (u.eval φ))
+== ConLeche/Verify/Denote.lean#L138-L139
+   138  @[expose] def denote (cval : Name → (Name → Nat) → Term) (env : Env)
+   139      (φ : Name → Nat) : (d : Nat) → Expr → Option Term
 
-== ConLeche/Semantics/Interp.lean#L134-L145
-   134  noncomputable def interp : (Nat → V) → ITerm → V
-   135    | ρ, .bvar i => ρ i
-   136    | _, .sort u => univ u
-   137    | _, .const c us => bval V c us
-   138    | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
-   139    | ρ, .lam A b => lamV (interp ρ A) fun x => interp (cons x ρ) b
-   140    | ρ, .pi A B => piV (interp ρ A) fun x => interp (cons x ρ) B
-   141    | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
-   142    | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
-   143    | ρ, .fst e => sfst (interp ρ e)
-   144    | ρ, .snd e => ssnd (interp ρ e)
-   145    | _, .prf => pt
+== ConLeche/Semantics/Interp.lean#L135-L146
+   135  noncomputable def interp : (Nat → V) → Term → V
+   136    | ρ, .bvar i => ρ i
+   137    | _, .sort u => univ u
+   138    | _, .const c us => bval V c us
+   139    | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
+   140    | ρ, .lam A b => lamV (interp ρ A) fun x => interp (cons x ρ) b
+   141    | ρ, .pi A B => piV (interp ρ A) fun x => interp (cons x ρ) B
+   142    | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
+   143    | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
+   144    | ρ, .fst e => sfst (interp ρ e)
+   145    | ρ, .snd e => ssnd (interp ρ e)
+   146    | _, .prf => pt
 
 == ConLeche/Rules/Rel.lean#L639-L648
    639  /-- **The full-grade telescope certificate** (`iotaCertsFull`,
@@ -6685,10 +6690,10 @@
    286      app (app (app E A) a) b = eqv a b
 
 == ConLeche/Model/Denotes.lean#L192-L198
-   192  theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
-   193      (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat} :
-   194      ∀ (d : Nat) (e : Expr) {ta : ITerm},
-   195        denoteMeta acval env φ d e = some ta →
+   192  theorem Denotes_of_denote {acval : Name → (Name → Nat) → Term}
+   193      (hcl : ∀ n ψ, Term.Closed (acval n ψ)) {env : Env} {φ : Name → Nat} :
+   194      ∀ (d : Nat) (e : Expr) {ta : Term},
+   195        denote acval env φ d e = some ta →
    196        Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
    197        ∀ ρ : Nat → V,
    198          Denotes (cvalOf (V := V) acval) env φ ρ (closeN d e) (interp V ρ ta) := by

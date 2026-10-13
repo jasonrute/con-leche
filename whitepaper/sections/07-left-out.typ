@@ -45,7 +45,7 @@ each stream's definition against #src("ConLeche/Kernel/NatOpPins.lean", 8, 21)[a
 #left-out[Quotients][`Quot`, `Quot.mk`, `Quot.lift`, `Quot.ind` and the
 axiom `Quot.sound` are installed from #src("ConLeche/Kernel/Basis/Quot.lean", 8, 14)[a built-in pin] and modelled by #src("ConLeche/SetTheory/Derive/Quot.lean", 65, 67)[the
 set-theoretic quotient of a set by a relation], for which the pinned
-constants are #src("ConLeche/Model/BasisQuot.lean", 2439, 2443)[shown to be members of their types].]
+constants are #src("ConLeche/Model/BasisQuot.lean", 2435, 2439)[shown to be members of their types].]
 
 #left-out[Pinned blocks][In the fragment `False` is whatever empty
 proposition the stream declares. The real checker installs `Eq`,
@@ -116,16 +116,16 @@ context, and two free variables are #src("ConLeche/Rules/Rel.lean", 380, 381)[co
 terms, and the statement's relation reads them with de Bruijn indices
 under binders, with no opening at all.
 
-*An erased intermediate layer.* The real proof does not interpret the
-checker's terms directly. It first reads a term into an erased language,
-#src("ConLeche/Semantics/Syntax.lean", 42, 66)[`ITerm`]: de Bruijn
+*An intermediate term language.* The real proof does not interpret the
+checker's terms directly. It first reads a term into a smaller language,
+#src("ConLeche/Term/Syntax.lean", 187, 218)[`Term`]: de Bruijn
 indices, sorts at concrete numbers (the level valuation already
 applied), and built-in constants at concrete levels. That reading,
-#src("ConLeche/Model/Reading/DenoteMeta.lean", 38, 41)[`denoteMeta`], is partial only for
+#src("ConLeche/Verify/Denote.lean", 138, 139)[`denote`], is partial only for
 syntactic reasons — an unknown constant, a wrong number of levels, a
 projection with no table. The interpretation
-#src("ConLeche/Semantics/Interp.lean", 134, 145)[`interp`] then maps
-the erased term to a set, reading each binder's regime off the values
+#src("ConLeche/Semantics/Interp.lean", 135, 146)[`interp`] then maps
+the term to a set, reading each binder's regime off the values
 as @sec:interp does. The paper folds the two steps into one
 denotation on the terms themselves.
 
@@ -151,10 +151,10 @@ recomposition] puts them together, claim by claim: bridge the run,
 apply the soundness, and hand the result to the declaration fold.
 
 *The statement over `Denotes`.* The main theorem is not stated over the
-erased layer and `interp` but over #src("ConLeche/Denotes.lean", 121, 124)[`Denotes`], a relation on the checker's
+intermediate language and `interp` but over #src("ConLeche/Denotes.lean", 121, 124)[`Denotes`], a relation on the checker's
 own terms with no intermediate language, one rule per syntax form,
 written to be read in one sitting; and over the structure #src("ConLeche/Denotes.lean", 266, 286)[`Model`] built on it. #src("ConLeche/Model/Denotes.lean", 192, 198)[A theorem]
-connects the two: wherever the erased reading exists, its
+connects the two: wherever the reading `denote` exists, its
 interpretation is a `Denotes`-denotation of the term. The paper's theorem is
 the model side directly.
 

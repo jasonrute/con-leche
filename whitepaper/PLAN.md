@@ -81,7 +81,7 @@ are recorded here so every lane works from the same spec. Task #324.
   projections, mutual/nested blocks, Nat/String literals and the Nat fast
   path, Quot, pinned blocks, axioms/trust, structure η,
   unit-likeness, the And rescue, fuel/caches/the executable checker and its
-  bridge theorem, the two-phase parallel fold, the `ITerm` intermediate
+  bridge theorem, the two-phase parallel fold, the `Term` intermediate
   layer (the paper has ONE denotation, directly on the terms).
 * **A later section**: K-like reduction, η for structures, unit-likeness
   etc. all FOLLOW from extensionality of the model — show this.
@@ -115,7 +115,7 @@ are recorded here so every lane works from the same spec. Task #324.
 5. Nested inductive types (the full check, the model as a sketch).
 6. Extensionality corollaries (η for structures, unit-like).
 7. What we left out, and how the real proof differs from the fragment
-   (fvar, `ITerm` layer, bridge, ...), with links.
+   (fvar, `Term` layer, bridge, ...), with links.
 
 Links: unobtrusive, `blob/master/...#L..-L..` into the real proof AND into
 `whitepaper/Fragment`, at the point where a definition/theorem is stated.
