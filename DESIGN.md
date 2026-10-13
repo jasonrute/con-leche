@@ -105242,3 +105242,65 @@ toolchain's `ld.lld` wrapper calls an elan nix-store path that no longer
 exists on this machine (no file of this task is involved). Arena 90/92,
 e2e 475/475, annot 15/15, the trusted, `--jobs=1` and `--jobs=4` sweeps
 as expected.
+
+## TASK #342 — R1: the spec checker's last two certificate families, mode-gated to match the cached core (2026-10-13, agent/342-r1-spec)
+
+The cached core (`ConLeche/Cached/CoreC.lean`) already gated every
+certificate family through `certAtI mode (...)`, off at the trusted
+mode; two sites in the spec (`ConLeche/Kernel/Core.lean`) still ran
+them in both modes, so `--trusted`'s "same checker bodies, certificate
+work switched off" was true of the cached core and not yet of the
+spec. Closed here: `majorToCtor`'s K and `And` branches gate their
+`proofIrrel fab major` check — official's own type check
+(`r.defeq depth tmaj (← r.inferIO depth fab)`) stays unconditional,
+matching `certAtI mode (proofIrrelI ...)` in the cached twin — and
+`iotaRec`'s case-3 decision (the level and parameter comparison
+against the comparands, `iotaCertsFull` at the full grade,
+`iotaIndexOk`) is gated as a whole, matching the cached twin's
+`certAtI mode (do ...)`. Both spelled inline
+(`if mode.verifiedChecks then ... else pure true`), as
+`defeqLamsInner`/`etaCert` already do — `Kernel/*` cannot import
+`Cached/*`, so the spec has no access to the `certAtI` combinator
+itself (CoreC.lean's docstring amended to say so).
+
+Lean's `variable`-inclusion threads `mode` automatically wherever a
+body now reads `mode.verifiedChecks`: `majorToCtor`, `prepareMajor` and
+`iotaRec` each gain `mode` as their new leading parameter (matching the
+cached twins' `majorToCtorI mode r fe ...` etc.), rippling through every
+direct caller — the `Fueled`/`pairFns` sim machinery
+(`Verify/Knot.lean`, `Verify/Fueled.lean`, `Verify/PairM.lean`), the
+shift lemmas (`Verify/Deep.lean`'s `majorToCtor_shift`/`iotaRec_shift`,
+repaired with one extra `ite_rel`/`ite_congr'` layer around the
+now-gated certificate, since the gate itself shifts trivially), the
+spine loop (`Verify/BetaSpine.lean`'s `appStep`, now taking `mode`
+explicitly since nothing else pins it), the bridge
+(`Verify/Rules/RedBridge.lean`'s `majorToCtor_bridge`/`iotaRec_bridge`,
+both stated at `.verified` already, so the new hypothesis is supplied
+by `rfl`), and the cached-walk sims
+(`Verify/Cached/DiscC3.lean`'s `majorToCtorC_sim`/`iotaRecC_sim`, both
+already carrying `hμ : mode.verifiedChecks = true` — the spec's gate,
+like the cached twin's, collapses by the same `obtain rfl` that already
+pinned the walk to `.verified`).
+
+The one genuine inversion-lemma repair is `majorToCtor_inv`/
+`iotaRec_inv` (`Verify/InferLemmas.lean`): each certificate conjunct
+becomes `mode.verifiedChecks = true → <old statement>` — the least
+invasive restatement, since every caller either discards the
+certificate fact (`majorToCtor_inv`'s two uses in the same file keep
+`⟨hwsc, -, -, -⟩`) or already knows `mode = .verified`
+(`RedBridge.lean` applies the implication to `rfl`). No proof is
+weakened: at `.verified` the new hypothesis is trivial, and nothing
+elsewhere was stated for every mode without one.
+
+OVERVIEW.md §3's K/`And`/ι paragraph gains the "at the verified mode"
+qualifier it was missing.
+
+Gates: `lake build` and `lake test` warning-free (`.lake` incremental).
+`tests/arena.sh`: arena 90/92, e2e 478/478, mode flags 8/8, DAG-tower
+14/14, trusted sweep 138 arena + 478 e2e (0 recorded divergences),
+`--jobs=1`/`--jobs=4` sweeps unchanged, shake/pindump/trust-surface/
+challenge/axioms all green — every verdict-bearing gate identical to
+the pre-change tree at both `--verified` and `--trusted`. `overview-
+links`/`whitepaper-links` fail, both already failing on this branch's
+tip before this lane started (confirmed by stashing: the drift is the
+prior S0/W2 docstring renames' line shifts, not this change's).

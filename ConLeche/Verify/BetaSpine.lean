@@ -47,12 +47,12 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- The continuation of `whnfCoreBody`'s app case after the function
 part's head normalization: uniform beta on a lambda, iota otherwise. -/
-def appStep (r : CoreFns m) (env : Env) (depth : Nat)
+def appStep (mode : CheckMode) (r : CoreFns m) (env : Env) (depth : Nat)
     (k : Expr → m Expr) (w a : Expr) : m Expr :=
   match w with
   | .lam _ body => k (body.instantiate1 a)
   | f' => do
-    match ← iotaRec r env depth (.app f' a) with
+    match ← iotaRec mode r env depth (.app f' a) with
     | some e'' => k e''
     | none => pure (.app f' a)
 
@@ -62,7 +62,7 @@ theorem whnfCoreBody_app (r : CoreFns m) (env : Env) (c : Bool) (depth : Nat)
     (f a : Expr) :
     whnfCoreBody mode r env c depth (.app f a)
       = r.whnfCore c depth f >>= fun w =>
-          appStep r env depth (r.whnfCore c depth) w a := by rfl
+          appStep mode r env depth (r.whnfCore c depth) w a := by rfl
 
 mutual
 
@@ -76,7 +76,7 @@ spine against the whnf'd head. -/
     match v with
     | .lam _ body => betaPeel mode r env depth k body [a] rest
     | v => do
-      match ← iotaRec r env depth (.app v a) with
+      match ← iotaRec mode r env depth (.app v a) with
       | some e'' => do
         let v' ← k e''
         whnfApp mode r env depth k v' rest
@@ -114,7 +114,7 @@ it, giving every downstream proof a single equation instead of nine
 head shapes. -/
 @[expose] def whnfAppIota (mode : CheckMode) (r : CoreFns m) (env : Env) (depth : Nat)
     (k : Expr → m Expr) (v a : Expr) (rest : List Expr) : m Expr := do
-  match ← iotaRec r env depth (.app v a) with
+  match ← iotaRec mode r env depth (.app v a) with
   | some e'' => do
     let v' ← k e''
     whnfApp mode r env depth k v' rest
@@ -232,8 +232,8 @@ variable {env : Env}
 theorem appStep_atF (d : Nat) (k : Expr → FueledM Expr)
     (kF : Expr → CheckM Expr) (F : Nat) (hk : ∀ e, (k e).val F = kF e)
     (w a : Expr) :
-    (appStep (fueledFns mode env) env d k w a).val F
-      = appStep (pureFns mode env F) env d kF w a := by
+    (appStep mode (fueledFns mode env) env d k w a).val F
+      = appStep mode (pureFns mode env F) env d kF w a := by
   unfold appStep
   atF_tac4k hk
 
@@ -350,11 +350,11 @@ theorem appStep_mono {d : Nat} {w a : Expr} {F F' : Nat}
     (k : Expr → FueledM Expr) (kF kF' : Expr → CheckM Expr)
     (hkF : ∀ e, (k e).val F = kF e) (hkF' : ∀ e, (k e).val F' = kF' e)
     (hle : F ≤ F') {res : Expr}
-    (h : appStep (pureFns mode env F) env d kF w a = .ok res) :
-    appStep (pureFns mode env F') env d kF' w a = .ok res := by
+    (h : appStep mode (pureFns mode env F) env d kF w a = .ok res) :
+    appStep mode (pureFns mode env F') env d kF' w a = .ok res := by
   rw [← appStep_atF d k kF F hkF] at h
   rw [← appStep_atF d k kF' F' hkF']
-  exact (appStep (fueledFns mode env) env d k w a).property hle h
+  exact (appStep mode (fueledFns mode env) env d k w a).property hle h
 
 theorem reduceProjCore_mono {d : Nat} {sn : Name} {i : Nat} {e : Expr} {F F' : Nat}
     (hle : F ≤ F') {o : Option Expr}
@@ -365,10 +365,10 @@ theorem reduceProjCore_mono {d : Nat} {sn : Name} {i : Nat} {e : Expr} {F F' : N
 
 theorem iotaRec_mono {d : Nat} {e : Expr} {F F' : Nat}
     (hle : F ≤ F') {o : Option Expr}
-    (h : iotaRec (pureFns mode env F) env d e = .ok o) :
-    iotaRec (pureFns mode env F') env d e = .ok o := by
+    (h : iotaRec mode (pureFns mode env F) env d e = .ok o) :
+    iotaRec mode (pureFns mode env F') env d e = .ok o := by
   rw [← iotaRec_atF] at h ⊢
-  exact (iotaRec (fueledFns mode env) env d e).property hle h
+  exact (iotaRec mode (fueledFns mode env) env d e).property hle h
 
 /-- `whnfCore` is the identity on a lambda (at nonzero fuel). -/
 theorem whnfCore_lam (F d : Nat) (ty body : Expr)
@@ -426,7 +426,7 @@ theorem whnfApp_snoc {d : Nat} :
           = .ok vres →
       ∃ F' w,
         whnfApp mode (pureFns mode env F') env d (fun x => whnfCore mode env F' d x c) v xs = .ok w ∧
-        appStep (pureFns mode env F') env d (fun x => whnfCore mode env F' d x c) w a = .ok vres
+        appStep mode (pureFns mode env F') env d (fun x => whnfCore mode env F' d x c) w a = .ok vres
   | [], v, a, F, vres => by
     intro H
     rw [List.nil_append] at H
@@ -522,7 +522,7 @@ theorem betaPeel_snoc {d : Nat} :
       ∃ F' w,
         betaPeel mode (pureFns mode env F') env d (fun x => whnfCore mode env F' d x c) t acc xs
           = .ok w ∧
-        appStep (pureFns mode env F') env d (fun x => whnfCore mode env F' d x c) w a = .ok vres
+        appStep mode (pureFns mode env F') env d (fun x => whnfCore mode env F' d x c) w a = .ok vres
   | [], t, acc, a, F, vres => by
     intro H
     rw [List.nil_append] at H

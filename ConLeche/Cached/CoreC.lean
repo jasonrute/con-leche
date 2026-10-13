@@ -259,7 +259,11 @@ the mode function is `true`, so `certAtI .verified c` is `c` by `rfl`
 (`certAtI_verified`); the simulation tower
 (`ConLeche/Verify/Cached/*`), stated under `hμ : mode.verifiedChecks =
 true`, sees through the wrapper by `certAtI_of_verifiedChecks` — the
-spec bodies carry no such wrapper. -/
+spec bodies (`ConLeche/Kernel/Core.lean`) gate the same sites directly
+(`if mode.verifiedChecks then … else pure true`, `majorToCtor`'s
+K/`And` proof-irrelevance checks and `iotaRec`'s case-3 decision), not
+through this named wrapper, since `Kernel/*` cannot import `Cached/*`
+(the layering fence). -/
 
 /-- Run the certificate `c` when the mode runs the certificate
 families; otherwise it is `true` without running. -/
