@@ -70,7 +70,9 @@ current fact changed.
   files; otherwise in a worktree of the integration branch). The merge
   message is the human-facing summary of the task — what changed, why,
   the key numbers — so `git log --first-parent` reads one entry per
-  task. Remove your worktree. A partial lane does not land.
+  task. A lane that is a single commit may instead be fast-forwarded:
+  that commit's message is then the summary. Remove your worktree. A
+  partial lane does not land.
 * Large artifacts (reference checkouts, worktrees, logs) go in `_tmp/`
   (gitignored; `/tmp` and `/home` are tmpfs under a memory cap).
 * Builds: every worktree has its own `.lake`, so builds never conflict
