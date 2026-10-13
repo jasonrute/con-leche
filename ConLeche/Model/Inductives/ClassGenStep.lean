@@ -38,7 +38,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 
 universe w
 
@@ -49,16 +49,16 @@ variable {V : Type w} [SetTheory V]
 /-- **The generated residue**: at the rule's frame extended by the `ih`
 values (depth `nPre + nF + nIh`), the minor premise of prefix position
 `minPos` applied to the fields and the `ih` values. -/
-@[expose] def genRb0 (nPre minPos nF nIh : Nat) : AnnotTerm :=
-  AnnotTerm.mkAppN (.bvar (nIh + nF + (nPre - 1 - minPos)))
+@[expose] def genRb0 (nPre minPos nF nIh : Nat) : Term :=
+  Term.mkAppN (.bvar (nIh + nF + (nPre - 1 - minPos)))
     (prefVarsAV nF nIh ++ prefVarsAV nIh 0)
 
 /-- **A generated `ih` binder's type**, at the rule's depth `D`: the
 `ih`'s telescope over the callee's motive (prefix position `mt`) applied
 to the `ih`'s index and major arguments. -/
-@[expose] def genIhDomAV (D mt : Nat) (q : IhDatum) : AnnotTerm :=
-  mkPisAV (q.2.1.map fun p => (0, p.1, p.2))
-    (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - mt)) (q.2.2.1 ++ [q.2.2.2]))
+@[expose] def genIhDomAV (D mt : Nat) (q : IhDatum) : Term :=
+  mkPisAV q.2.1
+    (Term.mkAppN (.bvar (D + q.2.1.length - 1 - mt)) (q.2.2.1 ++ [q.2.2.2]))
 
 /-- A prefix variable at a frame extended by `n` values. -/
 theorem consList_prefix_getD {xs bs : List V} {ρ : Nat → V} {k : Nat} (hk : k < xs.length) :
@@ -91,27 +91,44 @@ theorem interp_genRb0 {ρ : Nat → V} {xs fs hs : List V} {minPos : Nat}
       = (fs ++ hs).length + xs.length - 1 - minPos by simp; omega]
   exact consList_prefix_getD hmin
 
-/-- **A λ-tower inhabits the Π-tower of the same binder data**, as soon
-as its body inhabits the codomain at every fitting spine — at two frames
-that agree below the telescope's bound. -/
+/-- A Π-tower over a codomain that is a type at every fitting spine reads
+as a type. -/
+theorem IsTy_mkPisAV_of :
+    ∀ (tl : List Term) {σ : Nat → V} {C : Term},
+      (∀ bs, SpineFit σ tl bs → IsTy (interp V (consList bs σ) C)) →
+      IsTy (interp V σ (mkPisAV tl C))
+  | [], _, _, h => by simpa [mkPisAV] using h [] trivial
+  | _ :: _, _, _, _ => by
+    simp only [mkPisAV, interp_pi]
+    exact IsTy_piV
+
+/-- **A λ-tower inhabits the Π-tower over the same domains**, as soon
+as its body inhabits the codomain at every fitting spine and the
+codomain is a type there — at two frames that agree below the
+telescope's bound. -/
 theorem lamTower_mem_piTower :
-    ∀ (tl : List (Nat × AnnotTerm)) {D : Nat} {σ σ' : Nat → V} {b C : AnnotTerm},
-      FieldsBelow D (tl.map (·.2)) → (∀ i, i < D → σ i = σ' i) →
-      (∀ bs, SpineFit σ' (tl.map (·.2)) bs →
+    ∀ (tl : List Term) {D : Nat} {σ σ' : Nat → V} {b C : Term},
+      DomsBelow D tl → (∀ i, i < D → σ i = σ' i) →
+      (∀ bs, SpineFit σ' tl bs →
         interp V (consList bs σ) b ∈ˢ interp V (consList bs σ') C) →
-      interp V σ (mkLamsAV tl b) ∈ˢ interp V σ' (mkPisAV (tl.map fun p => (0, p.1, p.2)) C)
-  | [], D, σ, σ', b, C, _, _, h => by simpa [mkLamsAV, mkPisAV] using h [] trivial
-  | (v, A) :: tl, D, σ, σ', b, C, hb, hag, h => by
-    show lamR v (interp V σ A) (fun x => interp V (cons x σ) (mkLamsAV tl b))
-      ∈ˢ piR v (interp V σ' A) (fun x => interp V (cons x σ') (mkPisAV _ C))
+      (∀ bs, SpineFit σ' tl bs → IsTy (interp V (consList bs σ') C)) →
+      interp V σ (mkLamsAV tl b) ∈ˢ interp V σ' (mkPisAV tl C)
+  | [], D, σ, σ', b, C, _, _, h, _ => by simpa [mkLamsAV, mkPisAV] using h [] trivial
+  | A :: tl, D, σ, σ', b, C, hb, hag, h, hC => by
+    show lamV (interp V σ A) (fun x => interp V (cons x σ) (mkLamsAV tl b))
+      ∈ˢ piV (interp V σ' A) (fun x => interp V (cons x σ') (mkPisAV _ C))
     have hA : interp V σ A = interp V σ' A := interp_congr_below V A D σ σ' hb.1 hag
     rw [hA]
-    refine lamR_mem fun x hx => ?_
+    refine lamV_mem (fun x hx => ?_) fun x hx =>
+      IsTy_mkPisAV_of tl fun bs hbs => by simpa [consList_cons] using hC (x :: bs) ⟨hx, hbs⟩
     refine lamTower_mem_piTower tl (D := D + 1) hb.2 (fun i hi => ?_) (fun bs hbs => ?_)
+      (fun bs hbs => ?_)
     · cases i with
       | zero => rfl
       | succ i => exact hag i (by omega)
     · have := h (x :: bs) ⟨hx, hbs⟩
+      simpa [consList_cons] using this
+    · have := hC (x :: bs) ⟨hx, hbs⟩
       simpa [consList_cons] using this
 
 /-! ## `hstep` -/
@@ -119,9 +136,9 @@ theorem lamTower_mem_piTower :
 section Step
 
 variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat}
-  {pre idxB : Nat → List (Nat × Nat × AnnotTerm)} {majB : Nat → Nat × Nat × AnnotTerm}
-  {uX : Nat → Nat} {concl : Nat → AnnotTerm}
-  {fdoms es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
+  {pre idxB : Nat → List Term} {majB : Nat → Nat × Nat × Term}
+  {uX : Nat → Nat} {concl : Nat → Term}
+  {fdoms es : Nat → Nat → List Term} {mk : Nat → Nat → Term}
   {injX : Nat → Nat → List V → V} {ihd : Nat → Nat → List IhDatum}
 
 omit [SetTheory V] in

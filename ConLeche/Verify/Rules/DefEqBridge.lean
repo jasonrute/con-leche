@@ -20,7 +20,7 @@ rules:
 | `a == b` | `DefEq.refl` |
 | the `Bool.true` shortcut | `boolTrueShortcut_bridge` |
 | the cheap `whnfCore` of both sides | `DefEq.redBoth` |
-| `quickDefEq` (`QuickExit`) | `refl` / `sort` / `forallE` / `lam` |
+| `quickDefEq` (`QuickExit`) | `refl` / `sort` / `forallE` / `lams` |
 | `propIrrel` | `propIrrel_bridge` |
 | `defeqOffset` | `refl` / `natZero` / `natSucc` / `app` |
 | `tryUnfoldProjApp` | the `whnfCore` bridge |
@@ -35,20 +35,41 @@ namespace ConLeche.Rules
 
 variable {env : Env} {fuel : Nat}
 
+/-- **The λ-telescope comparison is `DefEqLams`** (`defeqLams_inv`,
+by induction on its descent budget): the innermost level is
+`DefEqLams.inner` (the opened bodies and their full-grade types), an
+outer level is `DefEqLams.outer` over the next level's run, and two
+syntactically equal bodies close by `DefEqLams.refl`. -/
+theorem defeqLams_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) :
+    ∀ (k : Nat) {d : Nat} {ty₁ bd₁ ty₂ bd₂ : Expr},
+      defeqLamsFueled .verified env fuel k d ty₁ bd₁ ty₂ bd₂ = .ok true →
+      DefEqLams env d (.lam ty₁ bd₁) (.lam ty₂ bd₂)
+  | k, d, ty₁, bd₁, ty₂, bd₂, h => by
+    obtain ⟨hdt, hrest⟩ := defeqLams_inv h
+    rcases hrest with ⟨k', ty₁', bd₁', ty₂', bd₂', rfl, h1, h2, heq | hk⟩ | hin
+    · refine .outer (hd hdt) ?_
+      rw [h1, h2, heq]
+      exact .refl
+    · refine .outer (hd hdt) ?_
+      rw [h1, h2]
+      exact defeqLams_bridge hd hi k' hk
+    · obtain ⟨hb, t₁, t₂, ht₁, ht₂, ht⟩ := defeqLamsInner_inv hin
+      exact .inner (hd hdt) (hd hb) (hi ht₁) (hi ht₂) (hd ht)
+
 /-- The easy cases' exits are equations. -/
-theorem quickExit_bridge (hd : DefEqBridge env fuel) {d : Nat} {a b : Expr}
+theorem quickExit_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) {d : Nat} {a b : Expr}
     (h : QuickExit env fuel d a b) : DefEq env d a b := by
   cases h with
   | refl => exact .refl
   | sort hle => exact .sort hle
   | lit => exact .refl
-  | forallE hdt hbd hpw => exact .forallE (hd hdt) (hd hbd) hpw
-  | lam hdt hbd hpw => exact .lam (hd hdt) (hd hbd) hpw
+  | forallE hdt hbd => exact .forallE (hd hdt) (hd hbd)
+  | lam hl => exact .lams (defeqLams_bridge hd hi _ hl)
 
-theorem quickDefEq_bridge (hd : DefEqBridge env fuel) {d : Nat} {a b : Expr}
+theorem quickDefEq_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) {d : Nat} {a b : Expr}
     (h : quickDefEqFueled .verified env fuel d a b = .ok (some true)) :
     DefEq env d a b :=
-  quickExit_bridge hd (quickDefEq_inv h)
+  quickExit_bridge hd hi (quickDefEq_inv h)
 
 /-- `Expr.natPred?`, read back. -/
 private theorem natPred?_inv {e x : Expr} (h : e.natPred? = some x) :
@@ -141,7 +162,7 @@ from: `eq` is an equation, `cont` a pair of reductions. -/
   | .unknown => True
 
 /-- The end of a step (`deltaQuick`) on reducts of the pair. -/
-private theorem deltaQuick_bridge (hd : DefEqBridge env fuel) {d : Nat}
+private theorem deltaQuick_bridge (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) {d : Nat}
     {a b x y : Expr} {r : DeltaStep}
     (h : deltaQuickFueled .verified env fuel d x y = .ok r)
     (hx : Red env d a x) (hy : Red env d b y) : StepSound env d a b r := by
@@ -164,7 +185,7 @@ private theorem deltaQuick_bridge (hd : DefEqBridge env fuel) {d : Nat}
   | some true, hq, h =>
     simp only [pure, Except.pure, Except.ok.injEq] at h
     subst h
-    exact .redBoth hx hy (quickDefEq_bridge hd hq)
+    exact .redBoth hx hy (quickDefEq_bridge hd hi hq)
 
 /-- An unfolding put through the cheap `whnfCore`. -/
 private theorem unfold_bridge (hwc : WhnfCoreBridge env fuel) {d : Nat}
@@ -173,7 +194,7 @@ private theorem unfold_bridge (hwc : WhnfCoreBridge env fuel) {d : Nat}
   .trans (.delta hu) (hwc h)
 
 /-- **One lazy-delta step** is sound. -/
-theorem lazyDeltaStep_bridge (hwc : WhnfCoreBridge env fuel) (hd : DefEqBridge env fuel)
+theorem lazyDeltaStep_bridge (hwc : WhnfCoreBridge env fuel) (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
     {d : Nat} {a b : Expr} {r : DeltaStep}
     (h : lazyDeltaStepFueled .verified env fuel d a b = .ok r) :
     StepSound env d a b r := by
@@ -184,12 +205,12 @@ theorem lazyDeltaStep_bridge (hwc : WhnfCoreBridge env fuel) (hd : DefEqBridge e
       whnfCore .verified env fuel d a₂ true = .ok a₃ →
       deltaQuickFueled .verified env fuel d a₃ b = .ok r →
       StepSound env d a b r :=
-    fun hu hw h => deltaQuick_bridge hd h (unfold_bridge hwc hu hw) .refl
+    fun hu hw h => deltaQuick_bridge hd hi h (unfold_bridge hwc hu hw) .refl
   have hR : ∀ {b₂ b₃ : Expr}, unfoldDefinition env b = some b₂ →
       whnfCore .verified env fuel d b₂ true = .ok b₃ →
       deltaQuickFueled .verified env fuel d a b₃ = .ok r →
       StepSound env d a b r :=
-    fun hu hw h => deltaQuick_bridge hd h .refl (unfold_bridge hwc hu hw)
+    fun hu hw h => deltaQuick_bridge hd hi h .refl (unfold_bridge hwc hu hw)
   have hU : (pure DeltaStep.unknown : CheckM DeltaStep) = .ok r →
       StepSound env d a b r := by
     intro h
@@ -206,7 +227,7 @@ theorem lazyDeltaStep_bridge (hwc : WhnfCoreBridge env fuel) (hd : DefEqBridge e
     rw [ht] at h
     dsimp only at h
     cases o with
-    | some a₂ => exact deltaQuick_bridge hd h (tryUnfoldProjApp_bridge hwc ht) .refl
+    | some a₂ => exact deltaQuick_bridge hd hi h (tryUnfoldProjApp_bridge hwc ht) .refl
     | none =>
       dsimp only at h
       cases hu : unfoldDefinition env b with
@@ -223,7 +244,7 @@ theorem lazyDeltaStep_bridge (hwc : WhnfCoreBridge env fuel) (hd : DefEqBridge e
     rw [ht] at h
     dsimp only at h
     cases o with
-    | some b₂ => exact deltaQuick_bridge hd h .refl (tryUnfoldProjApp_bridge hwc ht)
+    | some b₂ => exact deltaQuick_bridge hd hi h .refl (tryUnfoldProjApp_bridge hwc ht)
     | none =>
       dsimp only at h
       cases hu : unfoldDefinition env a with
@@ -283,7 +304,7 @@ theorem lazyDeltaStep_bridge (hwc : WhnfCoreBridge env fuel) (hd : DefEqBridge e
     | error err => rw [hwb] at h; exact nomatch h
     | ok b₃ =>
     rw [hwb] at h
-    exact deltaQuick_bridge hd h (unfold_bridge hwc hua hwa) (unfold_bridge hwc hub hwb)
+    exact deltaQuick_bridge hd hi h (unfold_bridge hwc hua hwa) (unfold_bridge hwc hub hwb)
 
 /-- What the lazy-delta loop's outcome says about the pair it started
 from: a `true` verdict is an equation, the stuck pair a pair of
@@ -294,7 +315,7 @@ reductions. -/
 
 /-- **The lazy-delta loop** is sound, at every budget. -/
 theorem lazyDeltaReduction_bridge (hwc : WhnfCoreBridge env fuel)
-    (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel) {d : Nat} :
+    (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) {d : Nat} :
     ∀ (n : Nat) {a b : Expr} {r : LazyRes},
       lazyDeltaReductionFueled .verified env fuel d n a b = .ok r →
       LazySound env d a b r
@@ -371,11 +392,11 @@ theorem lazyDeltaReduction_bridge (hwc : WhnfCoreBridge env fuel)
     | ok st =>
     rw [hs] at h
     dsimp only at h
-    have hss := lazyDeltaStep_bridge hwc hd hs
+    have hss := lazyDeltaStep_bridge hwc hd hi hs
     cases st with
     | cont a' b' =>
       obtain ⟨ha, hb⟩ := hss
-      have ih := lazyDeltaReduction_bridge hwc hw hd n h
+      have ih := lazyDeltaReduction_bridge hwc hw hd hi n h
       cases r with
       | verdict v => exact fun hv => .redBoth ha hb (ih hv)
       | unknown a₁ b₁ => exact ⟨.trans ha ih.1, .trans hb ih.2⟩
@@ -396,7 +417,7 @@ theorem lazyDeltaReduction_bridge (hwc : WhnfCoreBridge env fuel)
 /-- **`a.i =?= b.i` by the scrutinees** (`lazyDeltaProjReduction`) is
 sound, at every budget. -/
 theorem lazyDeltaProjReduction_bridge (hwc : WhnfCoreBridge env fuel)
-    (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
+    (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
     (hio : InferIOBridge env fuel) {d : Nat} {sn : Name} {i : Nat} :
     ∀ (n : Nat) {a b : Expr},
       lazyDeltaProjReductionFueled .verified env fuel d sn i n a b = .ok true →
@@ -412,12 +433,12 @@ theorem lazyDeltaProjReduction_bridge (hwc : WhnfCoreBridge env fuel)
     | ok st =>
     rw [hs] at h
     dsimp only at h
-    have hss := lazyDeltaStep_bridge hwc hd hs
+    have hss := lazyDeltaStep_bridge hwc hd hi hs
     cases st
     case cont a' b' =>
       obtain ⟨ha, hb⟩ := hss
       exact .redBoth (.projArg ha) (.projArg hb)
-        (lazyDeltaProjReduction_bridge hwc hw hd hio n h)
+        (lazyDeltaProjReduction_bridge hwc hw hd hi hio n h)
     case eq => exact .proj hss
     all_goals
       dsimp only at h
@@ -438,12 +459,12 @@ theorem lazyDeltaProjReduction_bridge (hwc : WhnfCoreBridge env fuel)
       cases ob with
       | none => exact .proj (hd h)
       | some y =>
-        exact .redBoth (reduceProjCore_bridge hw hd hio hra)
-          (reduceProjCore_bridge hw hd hio hrb) (hd h)
+        exact .redBoth (reduceProjCore_bridge hw hra)
+          (reduceProjCore_bridge hw hrb) (hd h)
 
 /-- The proj/proj check. -/
 theorem defeqProjPair_bridge (hwc : WhnfCoreBridge env fuel)
-    (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
+    (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
     (hio : InferIOBridge env fuel) {d : Nat} {a b : Expr}
     (h : defeqProjPairFueled .verified env fuel d a b = .ok true) :
     DefEq env d a b := by
@@ -453,12 +474,12 @@ theorem defeqProjPair_bridge (hwc : WhnfCoreBridge env fuel)
     · next hii =>
       simp only [Bool.and_eq_true, beq_iff_eq] at hii
       obtain ⟨rfl, rfl⟩ := hii
-      exact lazyDeltaProjReduction_bridge hwc hw hd hio _ h
+      exact lazyDeltaProjReduction_bridge hwc hw hd hi hio _ h
     · simp [pure, Except.pure] at h
   · simp [pure, Except.pure] at h
 
 /-- The stuck comparison: one rule per exit. -/
-theorem defeqStuck_bridge (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
+theorem defeqStuck_bridge (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
     (hio : InferIOBridge env fuel) {d : Nat} {a b : Expr}
     (h : defeqStuckFueled .verified env fuel d a b = .ok true) :
     DefEq env d a b := by
@@ -469,29 +490,29 @@ theorem defeqStuck_bridge (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
   | fvar => exact .fvar
   | const hle => exact .const hle
   | spine hhd hls => exact .spine (hd hhd) (defEqList_bridge hd hls)
-  | etaL he => exact etaCert_bridge hw hd hio he
-  | etaR he => exact (etaCert_bridge hw hd hio he).symm
+  | etaL he => exact etaCert_bridge hw hd hi hio he
+  | etaR he => exact (etaCert_bridge hw hd hi hio he).symm
 
 /-- **`isDefEqCore` at `fuel + 1`**: the body, piece by piece. -/
 theorem defeq_bridge_succ (hwc : WhnfCoreBridge env fuel) (hw : WhnfBridge env fuel)
-    (hd : DefEqBridge env fuel) (hio : InferIOBridge env fuel) :
+    (hd : DefEqBridge env fuel) (hi : InferBridge env fuel) (hio : InferIOBridge env fuel) :
     DefEqBridge env (fuel + 1) := by
   intro d a b h
   rw [isDefEqCore_succ] at h
   rcases defeqBody_inv h with rfl | ⟨rfl, hsc⟩ | hq₀ | hpi | ⟨a', b', hwa, hwb, hrest⟩
   · exact .refl
   · exact boolTrueShortcut_bridge hw hsc
-  · exact quickDefEq_bridge hd hq₀
+  · exact quickDefEq_bridge hd hi hq₀
   · exact propIrrel_bridge hw hio hpi
   refine DefEq.redBoth (hwc hwa) (hwc hwb) ?_
   rcases hrest with hq | hl | ⟨a₁, b₁, hl, hpp | hst | ⟨a₂, b₂, hwa₂, hwb₂, hre⟩⟩
-  · exact quickDefEq_bridge hd hq
-  · exact lazyDeltaReduction_bridge hwc hw hd _ hl rfl
-  · obtain ⟨ha, hb⟩ := lazyDeltaReduction_bridge hwc hw hd _ hl
-    exact .redBoth ha hb (defeqProjPair_bridge hwc hw hd hio hpp)
-  · obtain ⟨ha, hb⟩ := lazyDeltaReduction_bridge hwc hw hd _ hl
-    exact .redBoth ha hb (defeqStuck_bridge hw hd hio hst)
-  · obtain ⟨ha, hb⟩ := lazyDeltaReduction_bridge hwc hw hd _ hl
+  · exact quickDefEq_bridge hd hi hq
+  · exact lazyDeltaReduction_bridge hwc hw hd hi _ hl rfl
+  · obtain ⟨ha, hb⟩ := lazyDeltaReduction_bridge hwc hw hd hi _ hl
+    exact .redBoth ha hb (defeqProjPair_bridge hwc hw hd hi hio hpp)
+  · obtain ⟨ha, hb⟩ := lazyDeltaReduction_bridge hwc hw hd hi _ hl
+    exact .redBoth ha hb (defeqStuck_bridge hw hd hi hio hst)
+  · obtain ⟨ha, hb⟩ := lazyDeltaReduction_bridge hwc hw hd hi _ hl
     exact .redBoth ha hb (.redBoth (hwc hwa₂) (hwc hwb₂) (hd hre))
 
 end ConLeche.Rules

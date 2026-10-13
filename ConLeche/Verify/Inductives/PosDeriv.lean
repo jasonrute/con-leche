@@ -154,7 +154,7 @@ theorem nestHoleAt_of_frame {ctx : NestCtx} {prog : List NestHole} {i : Nat} {h 
 
 /-- A syntactic telescope of `n` binders ending in a sort has `n` binders. -/
 theorem stripPis_sort_piBinders_length :
-    ∀ (n : Nat) {e : Expr} {bs : List (Expr × BinderMeta)} {s : Level},
+    ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
       e.stripPis n = some (bs, .sort s) → e.piBinders.1.length = n
   | 0, e, bs, s, h => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
@@ -162,7 +162,7 @@ theorem stripPis_sort_piBinders_length :
     rfl
   | n + 1, e, bs, s, h => by
     cases e with
-    | forallE ty b m =>
+    | forallE ty b =>
       simp only [Expr.stripPis] at h
       obtain ⟨⟨bs', e'⟩, hb, he⟩ := Option.map_eq_some_iff.mp h
       simp only [Prod.mk.injEq] at he
@@ -219,7 +219,7 @@ inductive PosTree where
 inductive PosJ where
   | field (prog : List NestHole) (dep kb : Nat) (e : Expr) (k : NestFieldKind) (nf : Expr)
   | tele (prog : List NestHole) (base nF j : Nat) (cur : Expr) (ks : List NestFieldKind)
-      (nds : List (Expr × BinderMeta)) (res : Expr)
+      (nds : List Expr) (res : Expr)
   | ctors (prog : List NestHole) (hi : Nat) (us : List Level) (ds : List Expr)
       (names : List Name) (holes : List Expr) (cs : List (ConstantVal × Nat))
   | frame (prog : List NestHole) (us : List Level) (ds : List Expr) (grp : List (Name × Expr))
@@ -236,14 +236,14 @@ inductive PosD (ops : CheckerOps CheckM) (env : Env) (ctx : NestCtx) :
         (.field prog dep kb e .ordinary
           (if e.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) then w else e)) []
   /-- a Π with a hole-free domain and a positive body -/
-  | pi {prog : List NestHole} {dep kb : Nat} {e a b : Expr} {bm : BinderMeta} {k : NestFieldKind}
+  | pi {prog : List NestHole} {dep kb : Nat} {e a b : Expr} {k : NestFieldKind}
       {nb : Expr} {ts : List PosTree}
-      (hw : ops.whnf env dep e = .ok (.forallE a b bm))
-      (hocc : (Expr.forallE a b bm).nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true)
+      (hw : ops.whnf env dep e = .ok (.forallE a b))
+      (hocc : (Expr.forallE a b).nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true)
       (ha : a.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false)
       (hb : PosD ops env ctx (.field prog (dep + 1) (kb + 1) (b.instantiate1 (.fvar dep a)) k nb)
         ts) :
-      PosD ops env ctx (.field prog dep kb e k (.forallE a (nb.abstract1 dep) bm)) ts
+      PosD ops env ctx (.field prog dep kb e k (.forallE a (nb.abstract1 dep))) ts
   /-- a member hole at hole-free indices, full arity -/
   | hole {prog : List NestHole} {dep kb : Nat} {e w : Expr} {i : Nat} {ty : Expr}
       (hw : ops.whnf env dep e = .ok w)
@@ -334,7 +334,7 @@ inductive PosD (ops : CheckerOps CheckM) (env : Env) (ctx : NestCtx) :
   | ctorsCons {prog : List NestHole} {hi : Nat} {us : List Level} {ds : List Expr}
       {names : List Name} {holes : List Expr} {cv : ConstantVal} {nF : Nat}
       {cs : List (ConstantVal × Nat)} {crest ty : Expr} {sv : Level} {ks : List NestFieldKind}
-      {nds : List (Expr × BinderMeta)} {cur : Expr} {ts ts' : List PosTree}
+      {nds : List Expr} {cur : Expr} {ts ts' : List PosTree}
       (hnd : Name.nodup cv.levelParams = true)
       (hcrest : nestCrest names us ds holes (cv.type.instantiateLevelParams cv.levelParams us)
         = some crest)
@@ -350,13 +350,13 @@ inductive PosD (ops : CheckerOps CheckM) (env : Env) (ctx : NestCtx) :
       PosD ops env ctx (.tele prog base 0 j cur [] [] cur) []
   /-- one field of a telescope: positive at its depth, then the rest
   opened at its variable -/
-  | teleCons {prog : List NestHole} {base nF j : Nat} {a b : Expr} {bm : BinderMeta}
-      {k : NestFieldKind} {nd : Expr} {ks : List NestFieldKind} {nds : List (Expr × BinderMeta)} {res : Expr}
+  | teleCons {prog : List NestHole} {base nF j : Nat} {a b : Expr}
+      {k : NestFieldKind} {nd : Expr} {ks : List NestFieldKind} {nds : List Expr} {res : Expr}
       {ts ts' : List PosTree}
       (ha : PosD ops env ctx (.field prog (base + j) 0 a k nd) ts)
       (hb : PosD ops env ctx
         (.tele prog base nF (j + 1) (b.instantiate1 (.fvar (base + j) a)) ks nds res) ts') :
-      PosD ops env ctx (.tele prog base (nF + 1) j (.forallE a b bm) (k :: ks) ((nd, bm) :: nds) res)
+      PosD ops env ctx (.tele prog base (nF + 1) j (.forallE a b) (k :: ks) (nd :: nds) res)
         (ts ++ ts')
   /-- a seed (`nestSeeds`): a stored inductive at a concrete instantiation
   below every frame hole, its parameters' leaves the canonical variables',

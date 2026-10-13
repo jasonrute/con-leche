@@ -107,8 +107,8 @@ inductive PinEntry where
   | exSort (u : PinRef)
   | exConst (n : PinRef) (us : List PinRef)
   | exApp (f a : PinRef)
-  | exLam (ty b : PinRef) (pw : Option (List ConLeche.Name))
-  | exForall (ty b : PinRef) (pw : Option (List ConLeche.Name))
+  | exLam (ty b : PinRef)
+  | exForall (ty b : PinRef)
   | exLet (ty v b : PinRef)
   | exLitNat (v : Nat)
   | exLitStr (s : String)
@@ -179,20 +179,6 @@ def quoteName : ConLeche.Name → Lean.Expr
   | .str p s => mkApp2 (.const ``ConLeche.Name.str []) (quoteName p) (mkStrLit s)
   | .num p n => mkApp2 (.const ``ConLeche.Name.num []) (quoteName p) (mkRawNatLit n)
 
-def quoteNameList (ns : List ConLeche.Name) : Lean.Expr :=
-  ns.foldr
-    (fun n acc => mkApp3 (.const ``List.cons [.zero]) nameT (quoteName n) acc)
-    (.app (.const ``List.nil [.zero]) nameT)
-
-/-- Quote a `PropWhen` through its public interface (`never` /
-`ifAllZero`) — the representation is private. -/
-def quotePropWhen : Option (List ConLeche.Name) → Lean.Expr
-  | none => .const ``ConLeche.PropWhen.never []
-  | some ps => .app (.const ``ConLeche.PropWhen.ifAllZero []) (quoteNameList ps)
-
-def quoteBinderMeta (pw : Option (List ConLeche.Name)) : Lean.Expr :=
-  .app (.const ``ConLeche.BinderMeta.mk []) (quotePropWhen pw)
-
 /-- A reference as an *absolute* `.bvar` (entry references) or an
 inline constant.  `assemble` rewrites the `.bvar`s into de Bruijn
 indices; the emitted values contain no real bound variables, so the
@@ -238,12 +224,10 @@ def PinEntry.value : PinEntry → Lean.Expr
       (levelListE (us.map refExpr))
   | .exApp f a =>
     mkApp2 (.const ``ConLeche.Expr.app []) (refExpr f) (refExpr a)
-  | .exLam ty b pw =>
-    mkApp3 (.const ``ConLeche.Expr.lam []) (refExpr ty) (refExpr b)
-      (quoteBinderMeta pw)
-  | .exForall ty b pw =>
-    mkApp3 (.const ``ConLeche.Expr.forallE []) (refExpr ty) (refExpr b)
-      (quoteBinderMeta pw)
+  | .exLam ty b =>
+    mkApp2 (.const ``ConLeche.Expr.lam []) (refExpr ty) (refExpr b)
+  | .exForall ty b =>
+    mkApp2 (.const ``ConLeche.Expr.forallE []) (refExpr ty) (refExpr b)
   | .exLet ty v b =>
     mkApp3 (.const ``ConLeche.Expr.letE []) (refExpr ty) (refExpr v) (refExpr b)
   | .exLitNat v =>
@@ -350,14 +334,14 @@ partial def shareExpr (e : ConLeche.Expr) : ShareM PinRef := do
       let fv ← shareExpr f
       let av ← shareExpr a
       pushEntry (.exApp fv av)
-    | .lam ty b m => do
+    | .lam ty b => do
       let tv ← shareExpr ty
       let bv ← shareExpr b
-      pushEntry (.exLam tv bv m.pw.toList?)
-    | .forallE ty b m => do
+      pushEntry (.exLam tv bv)
+    | .forallE ty b => do
       let tv ← shareExpr ty
       let bv ← shareExpr b
-      pushEntry (.exForall tv bv m.pw.toList?)
+      pushEntry (.exForall tv bv)
     | .letE ty v b => do
       let tv ← shareExpr ty
       let vv ← shareExpr v
@@ -398,34 +382,6 @@ def refOfJson (j : Json) : Except String PinRef :=
   | Json.str "lzero" => return .lzero
   | _ => .error s!"bad pin reference: {j.compress}"
 
-/-- A `ConLeche.Name` as the array of its components, outermost last. -/
-def snameComps : ConLeche.Name → Array Json → Array Json
-  | .anonymous, acc => acc
-  | .str p s, acc => (snameComps p acc).push (Json.str s)
-  | .num p i, acc => (snameComps p acc).push (natJ i)
-
-def snameToJson (n : ConLeche.Name) : Json := Json.arr (snameComps n #[])
-
-def snameOfJson (j : Json) : Except String ConLeche.Name := do
-  let arr ← j.getArr?
-  let mut n : ConLeche.Name := .anonymous
-  for c in arr do
-    match c with
-    | Json.str s => n := .str n s
-    | Json.num _ => n := .num n (← c.getNat?)
-    | _ => throw s!"bad name component: {c.compress}"
-  return n
-
-def pwToJson : Option (List ConLeche.Name) → Json
-  | none => Json.null
-  | some ps => Json.arr (ps.map snameToJson).toArray
-
-def pwOfJson : Json → Except String (Option (List ConLeche.Name))
-  | Json.null => return none
-  | j => do
-    let arr ← j.getArr?
-    return some (← arr.toList.mapM snameOfJson)
-
 def PinEntry.toJson : PinEntry → Json
   | .nameStr p s => Json.arr #[Json.str "ns", refToJson p, Json.str s]
   | .nameNum p i => Json.arr #[Json.str "nn", refToJson p, natJ i]
@@ -440,10 +396,10 @@ def PinEntry.toJson : PinEntry → Json
     Json.arr #[Json.str "c", refToJson n,
       Json.arr (us.map refToJson).toArray]
   | .exApp f a => Json.arr #[Json.str "a", refToJson f, refToJson a]
-  | .exLam ty b pw =>
-    Json.arr #[Json.str "lam", refToJson ty, refToJson b, pwToJson pw]
-  | .exForall ty b pw =>
-    Json.arr #[Json.str "fa", refToJson ty, refToJson b, pwToJson pw]
+  | .exLam ty b =>
+    Json.arr #[Json.str "lam", refToJson ty, refToJson b]
+  | .exForall ty b =>
+    Json.arr #[Json.str "fa", refToJson ty, refToJson b]
   | .exLet ty v b =>
     Json.arr #[Json.str "le", refToJson ty, refToJson v, refToJson b]
   | .exLitNat v => Json.arr #[Json.str "ln", natJ v]
@@ -475,8 +431,8 @@ def pinEntryOfJson (j : Json) : Except String PinEntry := do
     let us ← (← at? 2).getArr?
     return .exConst (← ref 1) (← us.toList.mapM refOfJson)
   | "a" => return .exApp (← ref 1) (← ref 2)
-  | "lam" => return .exLam (← ref 1) (← ref 2) (← pwOfJson (← at? 3))
-  | "fa" => return .exForall (← ref 1) (← ref 2) (← pwOfJson (← at? 3))
+  | "lam" => return .exLam (← ref 1) (← ref 2)
+  | "fa" => return .exForall (← ref 1) (← ref 2)
   | "le" => return .exLet (← ref 1) (← ref 2) (← ref 3)
   | "ln" => return .exLitNat (← nat 1)
   | "lstr" => return .exLitStr (← str 1)

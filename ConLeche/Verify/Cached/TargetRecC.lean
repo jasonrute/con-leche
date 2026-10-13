@@ -3,7 +3,7 @@ module
 public import ConLeche.Verify.Cached.BlockRunC
 import ConLeche.Verify.Inductives.BlockWF
 import ConLeche.Verify.Inductives.RecCheckScope
-import ConLeche.Verify.Inductives.NestedRuleSyn
+public import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Verify.Cached.KnotCongr
 
@@ -30,23 +30,6 @@ open Expr
 variable {mode : CheckMode}
 
 /-! ## 1. Scoping -/
-
-theorem piBinders_WScoped {d : Nat} : ∀ {e : Expr}, WScoped d e →
-    (∀ b ∈ e.piBinders.1, WScoped d b.1) ∧ WScoped d e.piBinders.2
-  | .forallE ty b m, h => by
-    simp only [WScoped] at h
-    obtain ⟨h1, h2⟩ := piBinders_WScoped h.2
-    simp only [Expr.piBinders]
-    refine ⟨?_, h2⟩
-    intro x hx
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact h.1
-    · exact h1 x hx
-  | .bvar _, h | .fvar .., h | .sort _, h | .const .., h | .app .., h | .lam .., h
-  | .letE .., h | .lit _, h | .proj .., h => by
-    constructor
-    · intro b hb; simp [Expr.piBinders] at hb
-    · simpa [Expr.piBinders] using h
 
 theorem WScoped.default_expr {d : Nat} : WScoped d (default : Expr) :=
   WScoped.of_not_hasFvar (by rfl)
@@ -308,7 +291,7 @@ theorem TargetMajScoped.getD {l : List TargetMajor}
 
 theorem targetK53S_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockShape}
     {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t) {Mc : TargetMajor}
-    (hMc : TargetMajScoped Mc) {tele : List (Expr × BinderMeta)} {majDom f : Expr}
+    (hMc : TargetMajScoped Mc) {tele : List Expr} {majDom f : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ RelVC
       (targetK53 (sharedOpsC mode (mkFEnv env)) env p formerTys Mc tele majDom f)
@@ -356,15 +339,6 @@ theorem flushC_simG : SimG CSOKF CSOKF RelVC flushC (Pure.pure () : FueledM Unit
   obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
   exact ⟨hs.flushed, (), rfl, 0, rfl⟩
 
-/-- A flush into any environment's invariant. -/
-theorem flushC_simG_to {A : CState → Prop} (hA : ∀ s, A s → CSOKF s) (env' : Env) :
-    SimG A (CSOK mode env') RelVC flushC (Pure.pure () : FueledM Unit) := by
-  intro s₀ hs v' s' hr
-  rw [flushC_run] at hr
-  injection hr with hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨flushC_csok (hA s₀ hs), (), rfl, 0, rfl⟩
-
 /-- The shared operations read the index only through `find?`
 (`coreKnotI_congr`). -/
 theorem sharedOpsC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
@@ -376,28 +350,28 @@ theorem sharedOpsC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) 
 
 The install conses the checked family with each recursor's rules
 at ITS major (`consBlockRecsT`): at an outside major every rule fires
-`.nested` as the recursor type's major domain reads (`auxRuleFireR`),
-and `EnvWF`'s `.nested` clause is exactly that reading's inversion
-(`nestedRuleSyn_inv`). -/
+`.nested` at the class's levels and parameters (`auxRuleFire`), and
+`EnvWF`'s `.nested` clause is what that datum reads off the generated
+type (`NestedRead`, `genStage_nestedRead`). -/
 
 /-- The cached install's pushes of the family's records
 (`blockRecInfosTF`) onto a canonical index are the canonical index of
 the pure cons. -/
-theorem pushAll_blockRecInfosTF_mkFEnv (find? : Name → Option ConstantInfo) (res : Expr → Bool)
+theorem pushAll_blockRecInfosTF_mkFEnv (find? : Name → Option ConstantInfo)
     (p : BlockShape) :
     ∀ (m : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) (env : Env),
-      FEnv.pushAll (blockRecInfosTF find? res p m out) (mkFEnv env)
-        = mkFEnv (consBlockRecsT find? res p m out env)
+      FEnv.pushAll (blockRecInfosTF find? p m out) (mkFEnv env)
+        = mkFEnv (consBlockRecsT find? p m out env)
   | _, [], _ => rfl
   | m, (cv, M, rhss) :: rest, env => by
     simp only [blockRecInfosTF, FEnv.pushAll, consBlockRecsT, push_mkFEnv]
-    exact pushAll_blockRecInfosTF_mkFEnv find? res p (m + 1) rest _
+    exact pushAll_blockRecInfosTF_mkFEnv find? p (m + 1) rest _
 
-theorem find?_consBlockRecsT_le {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem find?_consBlockRecsT_le {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ {m : Nat} {out : List (ConstantVal × TargetMajor × List Expr)} {env : Env} (n : Name),
       (env.find? n).isSome = true →
-      ((consBlockRecsT find? res q m out env).find? n).isSome = true
+      ((consBlockRecsT find? q m out env).find? n).isSome = true
   | _, [], _, _, h => h
   | _, _ :: _, env, n, h => by
     simp only [consBlockRecsT]
@@ -405,13 +379,13 @@ theorem find?_consBlockRecsT_le {find? : Name → Option ConstantInfo} {res : Ex
     rw [Env.find?_cons]
     split <;> simp_all
 
-theorem find?_consBlockRecsT_of_bare {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem find?_consBlockRecsT_of_bare {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ {m : Nat} {out : List (ConstantVal × TargetMajor × List Expr)} {envA envB : Env},
       (∀ n, (envA.find? n).isSome = true → (envB.find? n).isSome = true) →
       ∀ n, ((consBlockRecsBare q m (out.map fun t => (t.1, t.2.1.nIdx)) envA).find? n).isSome
           = true →
-        ((consBlockRecsT find? res q m out envB).find? n).isSome = true
+        ((consBlockRecsT find? q m out envB).find? n).isSome = true
   | _, [], _, _, hf, n, h => hf n h
   | m, (cv, M, rhss) :: rest, envA, envB, hf, n, h => by
     simp only [List.map_cons, consBlockRecsBare] at h
@@ -420,27 +394,29 @@ theorem find?_consBlockRecsT_of_bare {find? : Name → Option ConstantInfo} {res
       (envA := ⟨.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m) [] :: envA.consts⟩) ?_ n h
     exact find?_cons_mono rfl hf
 
-theorem mem_consBlockRecsT {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem mem_consBlockRecsT {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ {m : Nat} {out : List (ConstantVal × TargetMajor × List Expr)} {env : Env}
       {c : ConstantInfo},
-      c ∈ (consBlockRecsT find? res q m out env).consts →
-      c ∈ env.consts ∨ ∃ t ∈ out, ∃ j,
-        c = .recInfo t.1 (q.majorIdxAt j) (q.rulePrefixAt j)
-          (tgtStoredRules find? res t.1 (q.majorIdxAt j) (q.rulePrefixAt j) t.2.1 t.2.2)
+      c ∈ (consBlockRecsT find? q m out env).consts →
+      c ∈ env.consts ∨ ∃ i t, out[i]? = some t ∧
+        c = .recInfo t.1 (q.majorIdxAt (m + i)) (q.rulePrefixAt (m + i))
+          (tgtStoredRules find? t.1 (q.rulePrefixAt (m + i)) t.2.1 t.2.2)
   | _, [], _, _, h => Or.inl h
   | m, t0 :: rest, env, c, h => by
     simp only [consBlockRecsT] at h
-    rcases mem_consBlockRecsT h with h' | ⟨t, ht, j, hj⟩
+    rcases mem_consBlockRecsT h with h' | ⟨i, t, ht, hj⟩
     · rcases List.mem_cons.mp h' with rfl | h'
-      · exact Or.inr ⟨t0, List.mem_cons_self, m, rfl⟩
+      · exact Or.inr ⟨0, t0, rfl, rfl⟩
       · exact Or.inl h'
-    · exact Or.inr ⟨t, List.mem_cons_of_mem _ ht, j, hj⟩
+    · refine Or.inr ⟨i + 1, t, by simpa using ht, ?_⟩
+      rw [show m + (i + 1) = m + 1 + i by omega]
+      exact hj
 
 /-- **The family consed at its majors keeps well-formedness**
 (`envWF_consBlockRecs` at the majors): the rules' right-hand
-sides as there, and an outside major's `.nested` fire off
-`nestedRuleSyn_inv`. -/
+sides as there, and an outside major's `.nested` fire is `auxRuleFire`'s
+datum, which reads off the stored type (`hread`, `genStage_nestedRead`). -/
 theorem envWF_consBlockRecsT {find? : Name → Option ConstantInfo} {q : BlockShape}
     {out : List (ConstantVal × TargetMajor × List Expr)} {env : Env}
     (henv : EnvWF env)
@@ -452,20 +428,25 @@ theorem envWF_consBlockRecsT {find? : Name → Option ConstantInfo} {q : BlockSh
         rhs.allLevelParamsDefined t.1.levelParams = true ∧
         rhs.constsResolve (consBlockRecsBare q 0 (out.map fun t => (t.1, t.2.1.nIdx)) env)
           = true ∧
-        rhs.looseBVarsBounded 0 = true) :
-    EnvWF (consBlockRecsT find? (·.constsResolve env) q 0 out env) := by
+        rhs.looseBVarsBounded 0 = true)
+    (hread : ∀ i t, out[i]? = some t → t.2.1.member = none →
+      NestedRead (·.constsResolve env) t.1.levelParams t.1.type (q.majorIdxAt i)
+        (q.rulePrefixAt i) t.2.1.nPc t.2.1.lvls
+        (t.2.1.ds.map (Expr.abstractPrefix (q.rulePrefixAt i) 0))) :
+    EnvWF (consBlockRecsT find? q 0 out env) := by
   have hdomEnv : ∀ n, (env.find? n).isSome = true →
-      ((consBlockRecsT find? (·.constsResolve env) q 0 out env).find? n).isSome = true :=
+      ((consBlockRecsT find? q 0 out env).find? n).isSome = true :=
     fun n hn => find?_consBlockRecsT_le n hn
   have hdomBare : ∀ n,
       ((consBlockRecsBare q 0 (out.map fun t => (t.1, t.2.1.nIdx)) env).find? n).isSome
         = true →
-      ((consBlockRecsT find? (·.constsResolve env) q 0 out env).find? n).isSome = true :=
+      ((consBlockRecsT find? q 0 out env).find? n).isSome = true :=
     find?_consBlockRecsT_of_bare (fun _ hn => hn)
   intro c hc
-  rcases mem_consBlockRecsT hc with hc' | ⟨t, ht, j, rfl⟩
+  rcases mem_consBlockRecsT hc with hc' | ⟨i, t, hti, rfl⟩
   · exact ConstWF.mono hdomEnv (henv c hc')
-  · obtain ⟨h1, h2, h3, h4, h5⟩ := hall t ht
+  · rw [Nat.zero_add]
+    obtain ⟨h1, h2, h3, h4, h5⟩ := hall t (List.mem_of_getElem? hti)
     refine structConstWF h1 h2 (Expr.constsResolve_of_find hdomEnv h3) h4
       (fun _ _ _ heq => nomatch heq) ?_
     intro cvR' mI' rP' rules' heq rl hrl
@@ -488,17 +469,11 @@ theorem envWF_consBlockRecsT {find? : Name → Option ConstantInfo} {q : BlockSh
       obtain ⟨g1, g2, g3, g4⟩ := h5 rl₀.rhs hmem
       refine ⟨g1, g2, Expr.constsResolve_of_find hdomBare g3, g4, ?_⟩
       intro lvls pins hf
-      simp only [auxRuleFireR] at hf
-      split at hf
-      · next lvls' pins' hsyn =>
-        obtain ⟨rfl, rfl⟩ : lvls' = lvls ∧ pins' = pins := by
-          injection hf with a b; exact ⟨a, b⟩
-        obtain ⟨k1, k2, k3, k4⟩ := nestedRuleSyn_inv hsyn
-        refine ⟨k1, k2, fun pin hpin => ?_, ?_⟩
-        · obtain ⟨p1, p2, p3, p4⟩ := k3 pin hpin
-          exact ⟨p1, p2, Expr.constsResolve_of_find hdomEnv p3, p4⟩
-        · obtain ⟨pre, dom, body, bm, D, e1, e2, e3, -⟩ := k4
-          exact ⟨pre, dom, body, bm, D, e1, e2, e3⟩
-      · exact nomatch hf
+      simp only [auxRuleFire, RecRuleFire.nested.injEq] at hf
+      obtain ⟨rfl, rfl⟩ := hf
+      obtain ⟨k1, k2, k3, pre, dom, body, D, e1, e2, e3, -⟩ := hread i t hti hM
+      refine ⟨k1, k2, fun pin hpin => ?_, pre, dom, body, D, e1, e2, e3, rfl⟩
+      obtain ⟨p1, p2, p3, p4⟩ := k3 pin hpin
+      exact ⟨p1, p2, Expr.constsResolve_of_find hdomEnv p3, p4⟩
 
 end ConLeche.Cached

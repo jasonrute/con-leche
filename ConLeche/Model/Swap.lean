@@ -1,10 +1,11 @@
 module
 
 import ConLeche.Verify.Denote.EnvExt
-import ConLeche.Model.Annot.Bit
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitLevels
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Model.Reading.Levels
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Tiers
 import ConLeche.Verify.BridgeWfImp
@@ -25,9 +26,9 @@ public section
 attaches a recursor group's checked rule lists to its rule-less
 provisioned entries.
 
-The workhorse is `denoteMeta_env_ext`.  It is an **equation**
+The workhorse is `denote_env_ext`.  It is an **equation**
 with no `ConstsBound` premise, unlike the extension crossing
-(`denoteMeta_envExtend_mono`): a swap changes no stored name, so the
+(`denote_envExtend_mono`): a swap changes no stored name, so the
 reading's three environment consultations — the `.const` clause's
 `find?` (through the stored level parameters only), the two literal
 guards, and the string spine's `levelParamsAt` — are all congruent.
@@ -45,7 +46,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   RecRule IndCaps)
 
@@ -55,11 +56,11 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## The reading across a level-preserving correspondence -/
 
-/-- **`denoteMeta` reads the environment only through the stored level
-parameters and the two literal guards**.  An equation, so a law's `denoteMeta` *hypotheses* and *conclusions* both move
+/-- **`denote` reads the environment only through the stored level
+parameters and the two literal guards**.  An equation, so a law's `denote` *hypotheses* and *conclusions* both move
 across it for free, which is what makes the fired-form fields
 transportable at all. -/
-theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denote_env_ext {acval : Name → (Name → Nat) → Term}
     {env₁ env₂ : Env} {φ : Name → Nat}
     (henvLev : ∀ n,
       (env₁.find? n).map (fun ci => ci.toConstantVal.levelParams) =
@@ -69,11 +70,11 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     (hproj : ∀ (sn : Name) (i : Nat),
       env₁.findProj? sn i = env₂.findProj? sn i) :
     ∀ (d : Nat) (e : Expr),
-      denoteMeta acval env₁ φ d e = denoteMeta acval env₂ φ d e := by
+      denote acval env₁ φ d e = denote acval env₂ φ d e := by
   intro d e
-  induction d, e using denoteMeta.induct (env := env₁) with
-  | case1 d u => rw [denoteMeta, denoteMeta]
-  | case2 d idx ty => rw [denoteMeta, denoteMeta]
+  induction d, e using denote.induct (env := env₁) with
+  | case1 d u => rw [denote, denote]
+  | case2 d idx ty => rw [denote, denote]
   | case3 d n us ci hf hlen =>
     have h := henvLev n
     rw [hf] at h
@@ -82,7 +83,7 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     | some ci₂ =>
       rw [hf₂] at h
       simp only [Option.map_some, Option.some.injEq] at h
-      rw [denoteMeta, hf, denoteMeta, hf₂]
+      rw [denote, hf, denote, hf₂]
       dsimp only
       rw [ite_eq_left hlen, ite_eq_left (h ▸ hlen), h]
   | case4 d n us ci hf hlen =>
@@ -93,44 +94,44 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
     | some ci₂ =>
       rw [hf₂] at h
       simp only [Option.map_some, Option.some.injEq] at h
-      rw [denoteMeta, hf, denoteMeta, hf₂]
+      rw [denote, hf, denote, hf₂]
       dsimp only
       rw [ite_eq_right hlen, ite_eq_right (fun hh => hlen (h ▸ hh))]
   | case5 d n us hf =>
     have h := henvLev n
     rw [hf] at h
     cases hf₂ : env₂.find? n with
-    | none => rw [denoteMeta, hf, denoteMeta, hf₂]
+    | none => rw [denote, hf, denote, hf₂]
     | some ci₂ => rw [hf₂] at h; exact nomatch h
-  | case6 d ty body m ihty ihbody =>
-    rw [denoteMeta, denoteMeta, ihty, ihbody]
-  | case7 d ty body m ihty ihbody =>
-    rw [denoteMeta, denoteMeta, ihty, ihbody]
-  | case8 d f a ihf iha => rw [denoteMeta, denoteMeta, ihf, iha]
-  | case9 d ty val body =>
-    rw [denoteMeta, denoteMeta]
+  | case6 d ty body ihty ihbody =>
+    rw [denote, denote, ihty, ihbody]
+  | case7 d ty body ihty ihbody =>
+    rw [denote, denote, ihty, ihbody]
+  | case8 d f a ihf iha => rw [denote, denote, ihf, iha]
+  | case9 d ty val body ihty ihv ihbody =>
+    rw [denote, denote, ihty, ihv, ihbody]
   | case10 d sn i e ihe =>
-    rw [denoteMeta, denoteMeta, ihe, hproj sn i]
+    rw [denote, denote, ihe, hproj sn i]
   | case11 d n hsup =>
-    rw [denoteMeta, ite_eq_left hsup, denoteMeta, ite_eq_left (hnat ▸ hsup)]
+    rw [denote, ite_eq_left hsup, denote, ite_eq_left (hnat ▸ hsup)]
   | case12 d n hsup =>
-    rw [denoteMeta, ite_eq_right hsup, denoteMeta,
+    rw [denote, ite_eq_right hsup, denote,
       ite_eq_right (fun h => hsup (hnat.trans h))]
   | case13 d s hsup =>
-    rw [denoteMeta, ite_eq_left hsup, denoteMeta, ite_eq_left (hstr ▸ hsup),
+    rw [denote, ite_eq_left hsup, denote, ite_eq_left (hstr ▸ hsup),
       levelParamsAt_ext (henvLev ConLeche.listNilName),
       levelParamsAt_ext (henvLev ConLeche.listConsName)]
   | case14 d s hsup =>
-    rw [denoteMeta, ite_eq_right hsup, denoteMeta,
+    rw [denote, ite_eq_right hsup, denote,
       ite_eq_right (fun h => hsup (hstr.trans h))]
   | case15 d x hs hfv hc hpi hlam happ hlet hproj hnat' hstr' =>
     cases x with
-    | bvar i => rw [denoteMeta.eq_def, denoteMeta.eq_def]
+    | bvar i => rw [denote.eq_def, denote.eq_def]
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
-    | forallE ty b m => exact absurd rfl (hpi ty b m)
-    | lam ty b m => exact absurd rfl (hlam ty b m)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app f a => exact absurd rfl (happ f a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -140,18 +141,18 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
       | strVal s => exact absurd rfl (hstr' s)
 
 /-- The reading crosses a swap congruence. -/
-theorem denoteMeta_swap {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denote_swap {acval : Name → (Name → Nat) → Term}
     {env₀ env₃ : Env} (hcg : ConLeche.SwapCongr env₀ env₃)
     (φ : Name → Nat) (d : Nat) (e : Expr) :
-    denoteMeta acval env₀ φ d e = denoteMeta acval env₃ φ d e :=
-  denoteMeta_env_ext hcg.levelsEq hcg.natEq hcg.strEq hcg.projEq d e
+    denote acval env₀ φ d e = denote acval env₃ φ d e :=
+  denote_env_ext hcg.levelsEq hcg.natEq hcg.strEq hcg.projEq d e
 
 /-! ## The P invariant across the swap -/
 
 set_option maxHeartbeats 3200000 in
 /-- **The group rule-list swap, P tier**: an invariant of the
 provisional (rule-less) environment transports to the environment
-carrying the checked rule lists, with the *same* annotated
+carrying the checked rule lists, with the *same* leaf
 valuation. -/
 theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     (mp : EnvModelM V μ env₀)
@@ -160,24 +161,34 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     -- environment: taking them rather than rebuilding them keeps this
     -- file free of the rule facts
     (hwf₃ : EnvWF env₃) (hctors₃ : ConLeche.RecCtorsStored env₃)
-    (hbp₃ : BasisPinnedTT env₃ mp.base2.cvalE)
+    (hbp₃ : BasisPinnedTT env₃ mp.base2.acval)
     (hproj₃ : ProjOkT env₃)
     (hrecP : ∀ (m₃ : EnvModel V env₃), m₃.acval = mp.base2.acval →
       ∀ φ : Name → Nat, RecRules m₃ φ) :
     ∃ mp₃ : EnvModelM V μ env₃, mp₃.base2.acval = mp.base2.acval ∧
-      mp₃.base2.cvalE = mp.base2.cvalE := by
+      mp₃.base2.acval = mp.base2.acval := by
   have hcg : ConLeche.SwapCongr env₀ env₃ := ConLeche.SwapShList.congr hsw
   have hcorr := ConLeche.swapSh_find?_corr hsw
   have hde : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr),
-      denoteMeta mp.base2.acval env₀ ψ d e
-        = denoteMeta mp.base2.acval env₃ ψ d e :=
-    fun ψ d e => denoteMeta_swap hcg ψ d e
+      denote mp.base2.acval env₀ ψ d e
+        = denote mp.base2.acval env₃ ψ d e :=
+    fun ψ d e => denote_swap hcg ψ d e
   -- an unchanged lookup, either way
   have hsame : ∀ (n : Name) (ci : ConstantInfo),
       (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       (env₃.find? n = some ci ↔ env₀.find? n = some ci) :=
     fun n ci hnr =>
       ⟨fun h => hcg.findDown n ci h hnr, fun h => hcg.findUp n ci h hnr⟩
+  -- a pinned `Nat`-operation type: the stored `Bool` entry keeps its
+  -- constant value (a swap changes a recursor's rules only)
+  have hpinUp : ∀ {c : Name} {ty : Expr}, ConLeche.natOpTyPinned env₀ c ty = true →
+      ConLeche.natOpTyPinned env₃ c ty = true := fun h =>
+    ConLeche.Verify.natOpTyPinned_of_find (fun ci hf => by
+      rcases hcorr ConLeche.boolName with heq | ⟨cv, mI, rP, rules, h₀, h₃, -⟩
+      · exact ⟨ci, by rw [heq]; exact hf, rfl⟩
+      · rw [h₀] at hf
+        obtain rfl := Option.some.inj hf
+        exact ⟨_, h₃, rfl⟩) h
   -- the member correspondence, at the level of `toConstantVal`
   have hmemcorr : ∀ c₃ ∈ env₃.consts, ∃ c₀ ∈ env₀.consts,
       c₀.toConstantVal = c₃.toConstantVal ∧ c₀.name = c₃.name := by
@@ -189,11 +200,10 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
   refine ⟨{ base2 :=
               { wf := hwf₃
                 acval := mp.base2.acval
-                cval_closedL := fun n ψ => mp.base2.cval_closedL n ψ
-                basis_pinnedL := hbp₃
+                cval_closed := fun n ψ => mp.base2.cval_closed n ψ
+                basis_pinned := hbp₃
                 proj_ok := hproj₃
                 rec_ctors := hctors₃
-                acval_closed := mp.base2.acval_closed
                 acval_params := by
                   intro n ci hf ψ₁ ψ₂ hp
                   rcases hcorr n with heq |
@@ -204,9 +214,8 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
                     obtain rfl := Option.some.inj hf
                     exact mp.base2.acval_params n _ h₀ ψ₁ ψ₂ hp
                 acval_wellDenoted := mp.base2.acval_wellDenoted }
-            acval_validV := mp.acval_validV
             type_reads := ?_
-            type_wellDenotedV := ?_
+            type_wellDenotedTy := ?_
             mem_type := ?_
             defn_reads := ?_
             nat_heads := ?_
@@ -217,26 +226,31 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
             rec_rules := hrecP _ rfl
             reduce_ops := ?_
             tower_ok := ?_
+            -- the formers are never swapped, and keep their readings
+            ind_strict := fun I cv caps hf ψ ab n hread =>
+              mp.ind_strict I cv caps
+                ((hsame _ _ (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf)
+                ψ ab n (by rw [hde]; exact hread)
             -- the recorded lfp clauses: the swap touches recursors only,
             -- and keeps every leaf
             lfpBlocks := mp.lfpBlocks
             lfp_ok := mp.lfp_ok_transport
               (fun n ci hf hnr => (hsame n ci hnr).mpr hf)
               (fun _ _ _ _ => rfl)
-              (fun _ _ _ _ ψ _ hta => by rw [← denoteMeta_swap hcg ψ 0]; exact hta)
-              (fun _ _ _ _ _ ψ _ hta => by rw [← denoteMeta_swap hcg ψ 0]; exact hta)
-              (fun _ _ _ _ _ _ ψ _ _ hta => by rw [← denoteMeta_swap hcg ψ _]; exact hta) },
+              (fun _ _ _ _ ψ _ hta => by rw [← denote_swap hcg ψ 0]; exact hta)
+              (fun _ _ _ _ _ ψ _ hta => by rw [← denote_swap hcg ψ 0]; exact hta)
+              (fun _ _ _ _ _ _ ψ _ _ hta => by rw [← denote_swap hcg ψ _]; exact hta) },
           rfl, rfl⟩
   · -- `type_reads`
     intro c hc ψ
     obtain ⟨c₀, hc₀, hcv, -⟩ := hmemcorr c hc
     obtain ⟨ta, hta⟩ := mp.type_reads c₀ hc₀ ψ
     exact ⟨ta, by rw [← hde, ← hcv]; exact hta⟩
-  · -- `type_wellDenotedV`
+  · -- `type_wellDenotedTy`
     intro c hc ψ ta hta ρ
     obtain ⟨c₀, hc₀, hcv, -⟩ := hmemcorr c hc
     rw [← hde, ← hcv] at hta
-    exact mp.type_wellDenotedV c₀ hc₀ ψ ta hta ρ
+    exact mp.type_wellDenotedTy c₀ hc₀ ψ ta hta ρ
   · -- `mem_type`: the swap touches recursors only, so the tower
     -- exclusion carries over
     intro c hc ψ ta hta ρ
@@ -265,18 +279,18 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     exact mp.nat_heads φ (hcg.natEq ▸ hsup) ρ
   · -- `nat_ops`
     intro φ c hc cv value hint hf
-    obtain ⟨hgu, hlaw⟩ := mp.nat_ops φ c hc cv value hint
+    obtain ⟨hgu, hpin, hlaw⟩ := mp.nat_ops φ c hc cv value hint
       ((hsame _ _ (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf)
-    refine ⟨by rw [← hcg.guardEq]; exact hgu, ?_⟩
+    refine ⟨by rw [← hcg.guardEq]; exact hgu, hpinUp hpin, ?_⟩
     intro eq heq
     obtain ⟨L, R, hL, hR, hval⟩ := hlaw eq heq
     exact ⟨L, R, by rw [← hde]; exact hL,
       by rw [← hde]; exact hR, hval⟩
   · -- `div_mod`
     intro φ c hc cv value hint hf
-    obtain ⟨hgu, hlaw⟩ := mp.div_mod φ c hc cv value hint
+    obtain ⟨hgu, hpin, hlaw⟩ := mp.div_mod φ c hc cv value hint
       ((hsame _ _ (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf)
-    exact ⟨by rw [← hcg.guardEq]; exact hgu, hlaw⟩
+    exact ⟨by rw [← hcg.guardEq]; exact hgu, hpinUp hpin, hlaw⟩
   · -- `eq_law`: `Eq` is stored as an `indInfo`, so it is never swapped
     intro hf
     exact mp.eq_law
@@ -289,21 +303,19 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
         ConLeche.EtaFamilyStored env₀ T caps := by
       intro T caps hst
       obtain ⟨h1, ⟨cvC, cnP, cnF, hC⟩, h3⟩ := hst
-      refine ⟨h1, ⟨cvC, cnP, cnF, (hsame _ _
-        (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hC⟩, ?_⟩
-      intro j hj
-      obtain ⟨cv, mI, rP, rules, hfj⟩ := h3 j hj
-      rcases hcorr (ConLeche.projFnName T j) with heq |
-        ⟨cv2, mI2, rP2, rules2, h₀, h₃, -⟩
-      · exact ⟨cv, mI, rP, rules, by rw [← heq]; exact hfj⟩
-      · exact ⟨cv2, mI2, rP2, [], h₀⟩
+      exact ⟨h1, ⟨cvC, cnP, cnF, (hsame _ _
+        (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hC⟩, h3⟩
     refine ⟨?_, ?_⟩
     · intro T cvT caps hf hcap hres hfamS φ' us hus
-      obtain ⟨TVa, hTVa, hokT, hlaw⟩ :=
+      obtain ⟨TVa, hTVa, hokT, hlaw, hcoh⟩ :=
         he T cvT caps ((hsame _ _
           (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf) hcap
           hres (hfam T caps hfamS) φ' us hus
-      exact ⟨TVa, by rw [← hde]; exact hTVa, hokT, hlaw⟩
+      refine ⟨TVa, by rw [← hde]; exact hTVa, hokT, hlaw,
+        hcoh.transport (fun cvC nPc nFc hf₂ => (hsame _ _
+          (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf₂)
+        (fun cvC nPc nFc TCa _ hTCa => by rw [← hde]; exact hTCa) rfl
+        (fun _ _ _ => rfl)⟩
     · intro T cvT caps hf hcap hres φ' us hus
       obtain ⟨TVa, hTVa, hokT, hlaw⟩ :=
         hu T cvT caps ((hsame _ _
@@ -338,8 +350,12 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     · -- (C) the η law (task #175 W4c): the former's lookup is unchanged
       -- by the swap, and the reading is `hde`
       intro cvT' capsT' hfT' us hus
-      obtain ⟨TVa, hTVa, hok, hlaw'⟩ := hetaL cvT' capsT' ((hsame _ _
+      obtain ⟨TVa, hTVa, hok, hlaw', hcoh⟩ := hetaL cvT' capsT' ((hsame _ _
         (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hfT') us hus
-      exact ⟨TVa, by rw [← hde]; exact hTVa, hok, hlaw'⟩
+      exact ⟨TVa, by rw [← hde]; exact hTVa, hok, hlaw', fun he =>
+        (hcoh he).transport (fun cvC nPc nFc hf₂ => (hsame _ _
+          (fun _ _ _ _ h => ConstantInfo.noConfusion h)).mp hf₂)
+        (fun cvC nPc nFc TCa _ hTCa => by rw [← hde]; exact hTCa) rfl
+        (fun _ _ _ => rfl)⟩
 
 end ConLeche.Model

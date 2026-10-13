@@ -6,7 +6,7 @@ import ConLeche.Model.Inductives.BlockStageRec
 import ConLeche.Verify.Extend.Inversions
 import ConLeche.Verify.ExceptBind
 import ConLeche.Verify.InferLemmas
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 
 public section
 
@@ -25,6 +25,7 @@ constructor ownership at its constructors' environment
 -/
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape)
@@ -84,25 +85,25 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
   obtain ⟨cs⟩ := env'
   simp only at henv
   subst henv
-  have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
+  have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
   have hden : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ d e = some ea →
-        denoteMeta mpX.base2.acval ⟨new ++ env.consts⟩ ψ d e = some ea := by
+      ∀ {ea : Term}, denote mp.base2.acval env ψ d e = some ea →
+        denote mpX.base2.acval ⟨new ++ env.consts⟩ ψ d e = some ea := by
     intro ψ d e hcb ea h
-    refine denoteMeta_envExtend_mono (fun hf => hfwd _ _ hf)
+    refine denote_envExtend_mono (fun hf => hfwd _ _ hf)
       ⟨natLitSupported_mono_of_keep hfwd, strLitSupported_mono_of_keep hfwd⟩
       (findProj?_append_none hntc) d e hcb ?_
-    rw [denoteMeta_acval_congr (env := env) hag]
+    rw [denote_acval_congr (env := env) hag]
     exact h
   have hok := mp.lfp_ok_transport (acval' := mpX.base2.acval)
     (fun n ci hf _ => hfwd n ci hf) (fun n _ hf _ => hag n (by rw [hf]; rfl))
     (fun _ _ _ hf ψ _ hta =>
-      hden ψ 0 _ (hbound _ (ConLeche.Semantics.Env.find?_mem hf)).1 hta)
+      hden ψ 0 _ (hbound _ (ConLeche.Env.find?_mem hf)).1 hta)
     (fun _ _ _ _ hf ψ _ hta =>
-      hden ψ 0 _ (hbound _ (ConLeche.Semantics.Env.find?_mem hf)).1 hta)
+      hden ψ 0 _ (hbound _ (ConLeche.Env.find?_mem hf)).1 hta)
     (fun _ _ hf _ _ hA ψ d _ hta =>
       hden ψ d _ (canonOf_constsBound
-        (hbound _ (ConLeche.Semantics.Env.find?_mem hf)).1 hA) hta)
+        (hbound _ (ConLeche.Env.find?_mem hf)).1 hA) hta)
   refine ⟨{ mpX with lfpBlocks := mp.lfpBlocks, lfp_ok := hok }, rfl, rfl, fun hc => ?_⟩
   refine hc.ext rfl hfwd ?_ hex' ?_
   · intro n cv caps hf hn _
@@ -182,23 +183,23 @@ theorem consBlockInds_consts {p₁ : BlockShape} {isRec : Bool} :
 
 
 /-- The recursors' cons at the majors (`consBlockRecsT`), as a list. -/
-theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ (m : Nat) (out : List (ConstantVal × ConLeche.TargetMajor × List Expr))
       (env : Env), ∃ new : List ConstantInfo,
-      (ConLeche.consBlockRecsT find? res q m out env).consts = new ++ env.consts ∧
+      (ConLeche.consBlockRecsT find? q m out env).consts = new ++ env.consts ∧
       ∀ c ∈ new, ∃ o ∈ out, ∃ mI rP rules, c = .recInfo o.1 mI rP rules
   | _, [], _ => ⟨[], rfl, fun _ h => nomatch h⟩
   | m, o :: rest, env => by
     obtain ⟨cv, M, rhss⟩ := o
-    obtain ⟨new, hnew, hall⟩ := consBlockRecsT_consts (find? := find?) (res := res) (q := q)
+    obtain ⟨new, hnew, hall⟩ := consBlockRecsT_consts (find? := find?) (q := q)
       (m + 1) rest ⟨.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m)
-        (ConLeche.tgtStoredRules find? res cv (q.majorIdxAt m) (q.rulePrefixAt m) M rhss)
+        (ConLeche.tgtStoredRules find? cv (q.rulePrefixAt m) M rhss)
           :: env.consts⟩
     refine ⟨new ++ [.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m)
-        (ConLeche.tgtStoredRules find? res cv (q.majorIdxAt m) (q.rulePrefixAt m) M rhss)],
+        (ConLeche.tgtStoredRules find? cv (q.rulePrefixAt m) M rhss)],
       ?_, fun c hc => ?_⟩
-    · show (ConLeche.consBlockRecsT find? res q (m + 1) rest _).consts = _
+    · show (ConLeche.consBlockRecsT find? q (m + 1) rest _).consts = _
       rw [hnew]; simp
     · rcases List.mem_append.mp hc with h | h
       · obtain ⟨r', hr', rest'⟩ := hall c h
@@ -207,10 +208,10 @@ theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo} {res : Expr
         exact ⟨_, List.mem_cons_self, _, _, _, rfl⟩
 
 /-- A name absent above the cons at the majors was absent below it. -/
-theorem find?_none_consBlockRecsT {find? : Name → Option ConstantInfo} {res : Expr → Bool}
+theorem find?_none_consBlockRecsT {find? : Name → Option ConstantInfo}
     {q : BlockShape} :
     ∀ {m : Nat} {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)} {env : Env}
-      {n : Name}, (ConLeche.consBlockRecsT find? res q m out env).find? n = none →
+      {n : Name}, (ConLeche.consBlockRecsT find? q m out env).find? n = none →
       env.find? n = none
   | _, [], _, _, h => h
   | m, (cv, M, rhss) :: rest, env, n, h => by

@@ -11,7 +11,7 @@ The simulation walks for the definitional-equality pieces
 (`quickDefEqI`, `defeqOffsetI`, `tryUnfoldProjAppI`, `lazyDeltaStepI`,
 the two lazy-delta loops, `defeqProjPairI`, `defeqStuckI`) and
 `defeqBodyI` (`ConLeche/Cached/CoreC.lean`).  A decided `Expr` comparison on the
-cached side is the spec's structural comparison (`beq_transferC`): the
+cached side is the spec's structural comparison: the
 two sides are the same terms, with no store in sight.
 -/
 
@@ -27,35 +27,27 @@ section Walks
 
 variable {env : Env} {f : Nat}
 
-/-- Decided `Expr` equality decides expression equality on the field
-invariant. -/
-private theorem beq_transferC {i j : Expr} {a b : Expr}
-    (ha : RelC i a) (hb : RelC j b) : (i == j) = (a == b) := by
-  obtain rfl := ha
-  obtain rfl := hb
-  rfl
-
 /-- The one-sided-λ (right) stuck arm (the cached representation
-stores `Name`s and `BinderMeta`s directly). -/
+stores `Name`s directly; `lam`/`forallE` carry only domain and body). -/
 private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₂ b₂ : Expr} {a'x ty₂x body₂x : Expr}
-    {bm₂ : BinderMeta} {s₀ : CState} (hs : CSOK mode env s₀)
+    {s₀ : CState} (hs : CSOK mode env s₀)
     (haS : RelC a' a'x)
     (hty₂ : RelC t₂ ty₂x)
     (hbody₂ : RelC b₂ body₂x)
-    (hbS : RelC b' (.lam ty₂x body₂x bm₂))
+    (hbS : RelC b' (.lam ty₂x body₂x))
     (hwa' : Expr.WScoped d a'x)
-    (hwb' : Expr.WScoped d (Expr.lam ty₂x body₂x bm₂)) :
+    (hwb' : Expr.WScoped d (Expr.lam ty₂x body₂x)) :
     SimC mode env s₀ RelVC
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-          t₂ b₂ bm₂ a' >>= fun r =>
+          t₂ b₂ a' >>= fun r =>
         if r then pure true
-        else stuckIrrelI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
-      (etaCert mode (fueledFns mode env) env d ty₂x body₂x bm₂
+        else stuckIrrelI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
+      (etaCert mode (fueledFns mode env) env d ty₂x body₂x
           a'x >>= fun r =>
         if r then pure true
-        else stuckIrrel mode (fueledFns mode env) env d a'x
-          (.lam ty₂x body₂x bm₂)) := by
+        else stuckIrrel (fueledFns mode env) env d a'x
+          (.lam ty₂x body₂x)) := by
   have h2 : Expr.WScoped d ty₂x ∧ Expr.WScoped d body₂x := by
     simpa only [Expr.WScoped] using hwb'
   refine SimC.bind (etaCertC_sim ih hs hty₂ hbody₂ haS h2.1 h2.2 hwa')
@@ -72,23 +64,23 @@ private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
 /-- The one-sided-λ (left) stuck arm. -/
 private theorem defeqC_etaL_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₁ b₁ : Expr} {b'x ty₁x body₁x : Expr}
-    {bm₁ : BinderMeta} {s₀ : CState} (hs : CSOK mode env s₀)
-    (haS : RelC a' (.lam ty₁x body₁x bm₁))
+    {s₀ : CState} (hs : CSOK mode env s₀)
+    (haS : RelC a' (.lam ty₁x body₁x))
     (hty₁ : RelC t₁ ty₁x)
     (hbody₁ : RelC b₁ body₁x)
     (hbS : RelC b' b'x)
-    (hwa' : Expr.WScoped d (Expr.lam ty₁x body₁x bm₁))
+    (hwa' : Expr.WScoped d (Expr.lam ty₁x body₁x))
     (hwb' : Expr.WScoped d b'x) :
     SimC mode env s₀ RelVC
       (etaCertI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-          t₁ b₁ bm₁ b' >>= fun r =>
+          t₁ b₁ b' >>= fun r =>
         if r then pure true
-        else stuckIrrelI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
-      (etaCert mode (fueledFns mode env) env d ty₁x body₁x bm₁
+        else stuckIrrelI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a' b')
+      (etaCert mode (fueledFns mode env) env d ty₁x body₁x
           b'x >>= fun r =>
         if r then pure true
-        else stuckIrrel mode (fueledFns mode env) env d
-          (.lam ty₁x body₁x bm₁) b'x) := by
+        else stuckIrrel (fueledFns mode env) env d
+          (.lam ty₁x body₁x) b'x) := by
   have h1 : Expr.WScoped d ty₁x ∧ Expr.WScoped d body₁x := by
     simpa only [Expr.WScoped] using hwa'
   refine SimC.bind (etaCertC_sim ih hs hty₁ hbody₁ hbS h1.1 h1.2 hwb')
@@ -112,9 +104,10 @@ scope. -/
 def RelLSC (d : Nat) (r r' : LazyRes) : Prop :=
   r = r' ∧ (∀ a b, r' = .unknown a b → Expr.WScoped d a ∧ Expr.WScoped d b)
 
-/-- The binder arms of `quickDefEq` (∀ and λ alike). -/
-private theorem quickBinderC (ih : SSimC mode env f)
-    {d : Nat} {t₁ b₁ t₂ b₂ : Expr} {m₁ m₂ : BinderMeta} {msg : String}
+/-- The ∀ arm of `quickDefEq`: domains, then bodies opened at the
+right domain. -/
+private theorem quickForallC (ih : SSimC mode env f)
+    {d : Nat} {t₁ b₁ t₂ b₂ : Expr}
     {s₆ : CState} (hs₆ : CSOK mode env s₆)
     (h1 : Expr.WScoped d t₁ ∧ Expr.WScoped d b₁)
     (h2 : Expr.WScoped d t₂ ∧ Expr.WScoped d b₂) :
@@ -125,16 +118,12 @@ private theorem quickBinderC (ih : SSimC mode env f)
         let o₁ ← inst1M b₁ fv
         let o₂ ← inst1M b₂ fv
         unless ← (coreKnotI mode (mkFEnv env) f).defeq (d + 1) o₁ o₂ do return some false
-        if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-          throw (.notImplemented msg)
         pure (some true) : CheckCM (Option Bool))
       (do
         unless ← (fueledFns mode env).defeq d t₁ t₂ do return some false
         unless ← (fueledFns mode env).defeq (d + 1)
             (b₁.instantiate1 (.fvar d t₂))
             (b₂.instantiate1 (.fvar d t₂)) do return some false
-        if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-          throw (.notImplemented msg)
         pure (some true) : FueledM (Option Bool)) := by
   refine SimC.bind (ih.defeq hs₆ rfl rfl h1.1 h2.1)
     (fun s₇ r₁ r₁' hs₇ hP₁ => ?_)
@@ -166,12 +155,152 @@ private theorem quickBinderC (ih : SSimC mode env f)
       exact SimC.pure hs₁₂ rfl
     | true =>
       simp only [↓reduceIte]
-      by_cases hpw : (mode.verifiedChecks && !m₁.pw == m₂.pw) = true
-      · simp only [hpw, ↓reduceIte]
-        exact SimC.throw_bind
-      · simp only [Bool.not_eq_true] at hpw
-        simp only [hpw, ↓reduceIte]
-        exact SimC.pure hs₁₂ rfl
+      exact SimC.pure hs₁₂ rfl
+
+/-- The innermost level of the λ-telescope comparison: the opened
+bodies, then (at the verified mode) their full-grade types. -/
+theorem defeqLamsInnerC_sim (ih : SSimC mode env f)
+    {d : Nat} {b₁ b₂ : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
+    (h1 : Expr.WScoped (d + 1) b₁) (h2 : Expr.WScoped (d + 1) b₂) :
+    SimC mode env s₀ RelVC
+      (defeqLamsInnerI mode (coreKnotI mode (mkFEnv env) f) d b₁ b₂)
+      (defeqLamsInner mode (fueledFns mode env) d b₁ b₂) := by
+  unfold defeqLamsInnerI defeqLamsInner
+  refine SimC.bind (ih.defeq hs rfl rfl h1 h2) (fun s₁ r r' hs₁ hP => ?_)
+  obtain rfl : r = r' := hP
+  cases r with
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    exact SimC.pure hs₁ rfl
+  | true =>
+    simp only [↓reduceIte]
+    cases hv : mode.verifiedChecks with
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      exact SimC.pure hs₁ rfl
+    | true =>
+      simp only [↓reduceIte]
+      refine SimC.bind (ih.infer hs₁ rfl h1) (fun s₂ t₁ t₁x hs₂ hP₂ => ?_)
+      obtain ⟨ht₁, hwt₁⟩ := hP₂
+      refine SimC.bind (ih.infer hs₂ rfl h2) (fun s₃ t₂ t₂x hs₃ hP₃ => ?_)
+      obtain ⟨ht₂, hwt₂⟩ := hP₃
+      refine SimC.bind (ih.defeq hs₃ ht₁ ht₂ hwt₁ hwt₂)
+        (fun s₄ r r' hs₄ hP₄ => ?_)
+      obtain rfl : r = r' := hP₄
+      cases r with
+      | false =>
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        exact SimC.pure hs₄ rfl
+      | true =>
+        simp only [↓reduceIte]
+        exact SimC.pure hs₄ rfl
+
+set_option smartUnfolding false in
+/-- `defeqLamsI`'s unfolding (its structural recursion sits under the
+binds, where the equation compiler does not generate `eq_def`; smart
+unfolding would not unfold it past the stuck `lamPair?` match). -/
+theorem defeqLamsI_unfold (r : CoreFnsI) (fuel d : Nat)
+    (ty₁ body₁ ty₂ body₂ : Expr) :
+    defeqLamsI mode r fuel d ty₁ body₁ ty₂ body₂ = (do
+      unless ← r.defeq d ty₁ ty₂ do return false
+      let fv ← pure (Expr.fvar d ty₂)
+      let b₁ ← inst1M body₁ fv
+      let b₂ ← inst1M body₂ fv
+      match fuel, Expr.lamPair? b₁ b₂ with
+      | fuel + 1, some (ty₁', body₁', ty₂', body₂') =>
+        if b₁ == b₂ then pure true
+        else defeqLamsI mode r fuel (d + 1) ty₁' body₁' ty₂' body₂'
+      | _, _ => defeqLamsInnerI mode r d b₁ b₂ : CheckCM Bool) := by
+  cases fuel with
+  | zero => rfl
+  | succ n =>
+    refine congrArg (r.defeq d ty₁ ty₂ >>= ·) (funext fun x => ?_)
+    cases x
+    · rfl
+    · refine congrArg (pure (Expr.fvar d ty₂) >>= ·) (funext fun fv => ?_)
+      refine congrArg (inst1M body₁ fv >>= ·) (funext fun b₁ => ?_)
+      refine congrArg (inst1M body₂ fv >>= ·) (funext fun b₂ => ?_)
+      cases Expr.lamPair? b₁ b₂ with
+      | none => rfl
+      | some q => rfl
+
+/-- The λ-telescope comparison simulates its specification. -/
+theorem defeqLamsC_sim (ih : SSimC mode env f) :
+    ∀ (fuel : Nat) {d : Nat} {ty₁ body₁ ty₂ body₂ : Expr} {s₀ : CState},
+      CSOK mode env s₀ →
+      Expr.WScoped d ty₁ → Expr.WScoped d body₁ →
+      Expr.WScoped d ty₂ → Expr.WScoped d body₂ →
+      SimC mode env s₀ RelVC
+        (defeqLamsI mode (coreKnotI mode (mkFEnv env) f) fuel d
+          ty₁ body₁ ty₂ body₂)
+        (defeqLams mode (fueledFns mode env) fuel d ty₁ body₁ ty₂ body₂) := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro d ty₁ body₁ ty₂ body₂ s₀ hs hwt₁ hwb₁ hwt₂ hwb₂
+    rw [defeqLamsI_unfold, defeqLams.eq_def]
+    refine SimC.bind (ih.defeq hs rfl rfl hwt₁ hwt₂)
+      (fun s₁ r r' hs₁ hP => ?_)
+    obtain rfl : r = r' := hP
+    cases r with
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      exact SimC.pure hs₁ rfl
+    | true =>
+      simp only [↓reduceIte]
+      refine SimC.bind_left (pureC_eff hs₁ (x := Expr.fvar d ty₂))
+        (fun s₂ fv hs₂ hQf => ?_)
+      have hQf' : RelC fv (Expr.fvar d ty₂) := hQf
+      refine SimC.bind_left (inst1M_eff hs₂ rfl hQf')
+        (fun s₃ ob₁ hs₃ hQo₁ => ?_)
+      refine SimC.bind_left (inst1M_eff hs₃ rfl hQf')
+        (fun s₄ ob₂ hs₄ hQo₂ => ?_)
+      obtain rfl := hQo₁
+      obtain rfl := hQo₂
+      exact defeqLamsInnerC_sim ih hs₄
+        (Expr.WScoped.instantiate1 hwt₂ 0 hwb₁)
+        (Expr.WScoped.instantiate1 hwt₂ 0 hwb₂)
+  | succ n ihn =>
+    intro d ty₁ body₁ ty₂ body₂ s₀ hs hwt₁ hwb₁ hwt₂ hwb₂
+    rw [defeqLamsI_unfold, defeqLams.eq_def]
+    refine SimC.bind (ih.defeq hs rfl rfl hwt₁ hwt₂)
+      (fun s₁ r r' hs₁ hP => ?_)
+    obtain rfl : r = r' := hP
+    cases r with
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      exact SimC.pure hs₁ rfl
+    | true =>
+      simp only [↓reduceIte]
+      refine SimC.bind_left (pureC_eff hs₁ (x := Expr.fvar d ty₂))
+        (fun s₂ fv hs₂ hQf => ?_)
+      have hQf' : RelC fv (Expr.fvar d ty₂) := hQf
+      refine SimC.bind_left (inst1M_eff hs₂ rfl hQf')
+        (fun s₃ ob₁ hs₃ hQo₁ => ?_)
+      refine SimC.bind_left (inst1M_eff hs₃ rfl hQf')
+        (fun s₄ ob₂ hs₄ hQo₂ => ?_)
+      obtain rfl := hQo₁
+      obtain rfl := hQo₂
+      have hw₁ := Expr.WScoped.instantiate1 hwt₂ 0 hwb₁
+      have hw₂ := Expr.WScoped.instantiate1 hwt₂ 0 hwb₂
+      cases hp : Expr.lamPair? (body₁.instantiate1 (Expr.fvar d ty₂))
+          (body₂.instantiate1 (Expr.fvar d ty₂)) with
+      | none =>
+        simp only [hp]
+        exact defeqLamsInnerC_sim ih hs₄ hw₁ hw₂
+      | some q =>
+        obtain ⟨ty₁', body₁', ty₂', body₂'⟩ := q
+        simp only [hp]
+        obtain ⟨he₁, he₂⟩ := Expr.lamPair?_some hp
+        by_cases heq : (body₁.instantiate1 (Expr.fvar d ty₂)
+            == body₂.instantiate1 (Expr.fvar d ty₂)) = true
+        · simp only [heq, ↓reduceIte]
+          exact SimC.pure hs₄ rfl
+        · simp only [heq, Bool.false_eq_true, ↓reduceIte]
+          rw [he₁] at hw₁
+          rw [he₂] at hw₂
+          simp only [Expr.WScoped] at hw₁ hw₂
+          exact ihn hs₄ hw₁.1 hw₁.2 hw₂.1 hw₂.2
 
 /-- The easy cases simulate their specification. -/
 theorem quickDefEqC_sim (_hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
@@ -197,12 +326,18 @@ theorem quickDefEqC_sim (_hμ : mode.verifiedChecks = true) (ih : SSimC mode env
       (fun s₁ ok ok' hs₁ hP => ?_)
     obtain rfl : ok = ok' := hP
     exact SimC.pure hs₁ rfl
-  case forallE.forallE t₁ b₁ m₁ t₂ b₂ m₂ =>
-    exact quickBinderC ih hs (by simpa only [Expr.WScoped] using hwa)
+  case forallE.forallE t₁ b₁ t₂ b₂ =>
+    exact quickForallC ih hs (by simpa only [Expr.WScoped] using hwa)
       (by simpa only [Expr.WScoped] using hwb)
-  case lam.lam t₁ b₁ m₁ t₂ b₂ m₂ =>
-    exact quickBinderC ih hs (by simpa only [Expr.WScoped] using hwa)
-      (by simpa only [Expr.WScoped] using hwb)
+  case lam.lam t₁ b₁ t₂ b₂ =>
+    have h1 : Expr.WScoped d t₁ ∧ Expr.WScoped d b₁ := by
+      simpa only [Expr.WScoped] using hwa
+    have h2 : Expr.WScoped d t₂ ∧ Expr.WScoped d b₂ := by
+      simpa only [Expr.WScoped] using hwb
+    refine SimC.bind (defeqLamsC_sim ih _ hs h1.1 h1.2 h2.1 h2.2)
+      (fun s₁ r r' hs₁ hP => ?_)
+    obtain rfl : r = r' := hP
+    exact SimC.pure hs₁ rfl
 
 /-- Offsets simulate their specification. -/
 theorem defeqOffsetC_sim (ih : SSimC mode env f)
@@ -561,7 +696,7 @@ theorem lazyDeltaProjReductionC_sim (hμ : mode.verifiedChecks = true) (ih : SSi
     case eq => exact SimC.pure hs₁ rfl
     all_goals
       dsimp only
-      refine SimC.bind (reduceProjCoreC_sim ih henv hs₁ rfl hwa)
+      refine SimC.bind (reduceProjCoreC_sim ih hs₁ rfl hwa)
         (fun s₂ ox oxx hs₂ hPx => ?_)
       cases ox with
       | none =>
@@ -574,7 +709,7 @@ theorem lazyDeltaProjReductionC_sim (hμ : mode.verifiedChecks = true) (ih : SSi
         | some xx =>
         obtain ⟨hxd, hwx⟩ := hPx
         dsimp only
-        refine SimC.bind (reduceProjCoreC_sim ih henv hs₂ rfl hwb)
+        refine SimC.bind (reduceProjCoreC_sim ih hs₂ rfl hwb)
           (fun s₃ oy oyx hs₃ hPy => ?_)
         cases oy with
         | none =>

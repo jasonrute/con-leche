@@ -3,8 +3,9 @@ module
 import ConLeche.Kernel.Inductives.Positivity
 public import ConLeche.Verify.Inductives.ReplaceApps
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Annot.BitLemmas
-public import ConLeche.Model.Annot.Bit
+import ConLeche.Verify.Denote.Lemmas
+public import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 public section
 
 /-!
@@ -33,90 +34,29 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal NestCtx instPisWith nestCanonSub)
 
 universe w
 
 /-! ## Constant replacement by variables commutes with opening -/
 
-/-- Replacing constants by `fvar`s commutes with instantiation. -/
-theorem Expr.replaceConsts_instantiate1 {f : Name → List Level → Option Expr}
-    (hf : ∀ c us e, f c us = some e → ∃ i ty, e = .fvar i ty) :
-    ∀ (e v : Expr) (k : Nat),
-      (e.instantiate1 v k).replaceConsts f = (e.replaceConsts f).instantiate1 (v.replaceConsts f) k := by
-  intro e
-  induction e with
-  | bvar i =>
-    intro v k
-    by_cases h1 : i = k
-    · subst h1; simp [Expr.instantiate1, Expr.replaceConsts]
-    · by_cases h2 : i > k
-      · simp [Expr.instantiate1, Expr.replaceConsts, h1, h2]
-      · simp [Expr.instantiate1, Expr.replaceConsts, h1, h2]
-  | fvar idx ty _ => intro v k; simp [Expr.instantiate1, Expr.replaceConsts]
-  | const n us =>
-    intro v k
-    simp only [Expr.instantiate1, Expr.replaceConsts]
-    cases hfn : f n us with
-    | none => rfl
-    | some e =>
-      obtain ⟨i, ty, rfl⟩ := hf n us e hfn
-      rfl
-  | _ => intro v k; simp_all [Expr.instantiate1, Expr.replaceConsts]
-
-/-- Replacing constants by erasure-equal replacements keeps
-erasure-equality. -/
-theorem Expr.ErasedEq.replaceConsts {f g : Name → List Level → Option Expr}
-    (hfg : ∀ c us, (f c us = none ∧ g c us = none) ∨
-      ∃ a b, f c us = some a ∧ g c us = some b ∧ Expr.ErasedEq a b) :
-    ∀ {a b : Expr}, Expr.ErasedEq a b → Expr.ErasedEq (a.replaceConsts f) (b.replaceConsts g)
-  | .bvar i, b, h => by
-    match b, h with
-    | .bvar j, h => exact h
-  | .fvar i ty, b, h => by
-    match b, h with
-    | .fvar j ty', h => exact h
-  | .sort u, b, h => by
-    match b, h with
-    | .sort u', h => exact h
-  | .const n us, b, h => by
-    match b, h with
-    | .const n' us', h =>
-      obtain ⟨rfl, rfl⟩ := h
-      simp only [Expr.replaceConsts]
-      rcases hfg n us with ⟨h1, h2⟩ | ⟨a, b, h1, h2, h3⟩
-      · rw [h1, h2]; exact Expr.ErasedEq.rfl _
-      · rw [h1, h2]; exact h3
-  | .app f₁ a₁, b, h => by
-    match b, h with
-    | .app f₂ a₂, h =>
-      exact ⟨Expr.ErasedEq.replaceConsts hfg h.1, Expr.ErasedEq.replaceConsts hfg h.2⟩
-  | .lam t₁ b₁ m₁, b, h => by
-    match b, h with
-    | .lam t₂ b₂ m₂, h =>
-      exact ⟨h.1, Expr.ErasedEq.replaceConsts hfg h.2.1, Expr.ErasedEq.replaceConsts hfg h.2.2⟩
-  | .forallE t₁ b₁ m₁, b, h => by
-    match b, h with
-    | .forallE t₂ b₂ m₂, h =>
-      exact ⟨h.1, Expr.ErasedEq.replaceConsts hfg h.2.1, Expr.ErasedEq.replaceConsts hfg h.2.2⟩
-  | .letE t₁ v₁ b₁, b, h => by
-    match b, h with
-    | .letE t₂ v₂ b₂, h =>
-      exact ⟨Expr.ErasedEq.replaceConsts hfg h.1, Expr.ErasedEq.replaceConsts hfg h.2.1,
-        Expr.ErasedEq.replaceConsts hfg h.2.2⟩
-  | .lit l, b, h => by
-    match b, h with
-    | .lit l', h => exact h
-  | .proj s i e, b, h => by
-    match b, h with
-    | .proj s' i' e', h => exact ⟨h.1, h.2.1, Expr.ErasedEq.replaceConsts hfg h.2.2⟩
-
 /-- Two lists pointwise erasure-equal. -/
 @[expose] def Expr.ErasedEqL : List Expr → List Expr → Prop
   | [], [] => True
   | a :: as, b :: bs => Expr.ErasedEq a b ∧ Expr.ErasedEqL as bs
   | _, _ => False
+
+/-- Pointwise erasure-equal lists of one length are erasure-equal. -/
+theorem erasedEqL_of_getElem : ∀ {as bs : List Expr}, as.length = bs.length →
+    (∀ (q : Nat) (a b : Expr), as[q]? = some a → bs[q]? = some b → Expr.ErasedEq a b) →
+    Expr.ErasedEqL as bs
+  | [], [], _, _ => trivial
+  | [], _ :: _, h, _ => by simp at h
+  | _ :: _, [], h, _ => by simp at h
+  | a :: as, b :: bs, h, he =>
+    ⟨he 0 a b rfl rfl, erasedEqL_of_getElem (by simpa using h)
+      fun q a' b' h1 h2 => he (q + 1) a' b' h1 h2⟩
 
 /-- Two lists of variables at the same consecutive indices are
 erasure-equal. -/
@@ -138,14 +78,6 @@ theorem erasedEqL_of_fvarIdx :
     · obtain ⟨ty, hty⟩ := hb (i + 1) x hx
       exact ⟨ty, by rw [hty]; congr 1; omega⟩
 
-/-- Erasure-equal lists agree position by position. -/
-theorem Expr.ErasedEqL.getElem? : ∀ {as bs : List Expr}, Expr.ErasedEqL as bs → ∀ i : Nat,
-    (as[i]? = none ∧ bs[i]? = none) ∨ ∃ a b, as[i]? = some a ∧ bs[i]? = some b ∧ Expr.ErasedEq a b
-  | [], [], _, _ => Or.inl ⟨rfl, rfl⟩
-  | a :: _, b :: _, ⟨h, _⟩, 0 => Or.inr ⟨a, b, rfl, rfl, h⟩
-  | _ :: _, _ :: _, ⟨_, h⟩, i + 1 => by
-    simpa using Expr.ErasedEqL.getElem? h i
-
 /-- **A variable replacement that only re-annotates is invisible to
 erasure.** -/
 theorem replaceFVars_erasedEq_idx {g : Nat → Option Expr}
@@ -161,8 +93,8 @@ theorem replaceFVars_erasedEq_idx {g : Nat → Option Expr}
       obtain ⟨ty', rfl⟩ := hg i a hgi
       rfl
   | app a x iha ihx => exact ⟨iha, ihx⟩
-  | lam t b m iht ihb => exact ⟨rfl, iht, ihb⟩
-  | forallE t b m iht ihb => exact ⟨rfl, iht, ihb⟩
+  | lam t b iht ihb => exact ⟨iht, ihb⟩
+  | forallE t b iht ihb => exact ⟨iht, ihb⟩
   | letE t v b iht ihv ihb => exact ⟨iht, ihv, ihb⟩
   | proj s i x ih => exact ⟨rfl, rfl, ih⟩
   | bvar => exact Expr.ErasedEq.rfl _
@@ -173,12 +105,12 @@ theorem replaceFVars_erasedEq_idx {g : Nat → Option Expr}
 /-! ### `shiftFromN`, structurally -/
 
 theorem Expr.shiftFromN_forallE (p : Nat) :
-    ∀ (n : Nat) (a b : Expr) (m : ConLeche.BinderMeta),
-      Expr.shiftFromN p n (.forallE a b m)
-        = .forallE (Expr.shiftFromN p n a) (Expr.shiftFromN p n b) m
-  | 0, _, _, _ => rfl
-  | n + 1, a, b, m => by
-    show Expr.shiftFrom p (Expr.shiftFromN p n (.forallE a b m)) = _
+    ∀ (n : Nat) (a b : Expr),
+      Expr.shiftFromN p n (.forallE a b)
+        = .forallE (Expr.shiftFromN p n a) (Expr.shiftFromN p n b)
+  | 0, _, _ => rfl
+  | n + 1, a, b => by
+    show Expr.shiftFrom p (Expr.shiftFromN p n (.forallE a b)) = _
     rw [Expr.shiftFromN_forallE p n]; rfl
 
 theorem Expr.shiftFromN_app (p : Nat) :
@@ -205,16 +137,6 @@ theorem Expr.shiftFromN_const (p : Nat) :
   | n + 1, c, us => by
     show Expr.shiftFrom p (Expr.shiftFromN p n (.const c us)) = _
     rw [Expr.shiftFromN_const p n]; rfl
-
-theorem Expr.shiftFromN_fvar_ge' {p i : Nat} (hi : p ≤ i) :
-    ∀ (n : Nat) (ty : Expr),
-      Expr.shiftFromN p n (.fvar i ty) = .fvar (i + n) (Expr.shiftFromN p n ty)
-  | 0, _ => rfl
-  | n + 1, ty => by
-    show Expr.shiftFrom p (Expr.shiftFromN p n (.fvar i ty)) = _
-    rw [Expr.shiftFromN_fvar_ge' hi n ty]
-    simp only [Expr.shiftFrom, show i + n ≥ p by omega, ite_true]
-    rfl
 
 /-- `shiftFrom`, iterated, commutes with opening at an `fvar` above the cut. -/
 theorem Expr.shiftFromN_instantiate1 {p d : Nat} (hpd : p ≤ d) {ty : Expr} :
@@ -254,28 +176,11 @@ theorem holeAbs_instantiate1 {ctx : NestCtx} {j : Nat} {ty : Expr} (e : Expr) (k
 
 /-! ### `holeAbs`, structurally -/
 
-theorem holeAbs_forallE (ctx : NestCtx) (ty body : Expr) (mb : ConLeche.BinderMeta) :
-    holeAbs ctx (.forallE ty body mb) = .forallE (holeAbs ctx ty) (holeAbs ctx body) mb := by
+theorem holeAbs_forallE (ctx : NestCtx) (ty body : Expr) :
+    holeAbs ctx (.forallE ty body) = .forallE (holeAbs ctx ty) (holeAbs ctx body) := by
   unfold holeAbs
   rw [Expr.shiftFromN_forallE]
   rfl
-
-/-- A field variable moves above the holes. -/
-theorem holeAbs_fvar_ge (ctx : NestCtx) {i : Nat} (hi : ctx.nP ≤ i) (ty : Expr) :
-    holeAbs ctx (.fvar i ty)
-      = .fvar (i + ctx.names.length) (Expr.shiftFromN ctx.nP ctx.names.length ty) := by
-  unfold holeAbs
-  rw [Expr.shiftFromN_fvar_ge' hi]
-  rfl
-
-/-- A parameter variable stays (its annotation abstracted). -/
-theorem holeAbs_fvar_lt (ctx : NestCtx) {i : Nat} (hi : i < ctx.nP) (ty : Expr) :
-    ∃ ty', holeAbs ctx (.fvar i ty) = .fvar i ty' := by
-  obtain ⟨ty', h⟩ := Expr.shiftFromN_fvar ctx.nP ctx.names.length i ty
-  rw [ite_eq_left hi] at h
-  unfold holeAbs
-  rw [h]
-  exact ⟨_, rfl⟩
 
 /-! ## The walk's opening IS the concrete one, abstracted -/
 
@@ -294,7 +199,7 @@ theorem openPisAtFvars_holeAbs {ctx : NestCtx} :
     exact ⟨_, _, ⟨rfl, rfl⟩, he⟩
   | n + 1, e, j, xs, rest, e', h, he => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [openPisAtFvars] at h
       split at h
       · next fvs r hop =>
@@ -302,8 +207,8 @@ theorem openPisAtFvars_holeAbs {ctx : NestCtx} :
         obtain ⟨rfl, rfl⟩ := h
         rw [holeAbs_forallE] at he
         cases e' with
-        | forallE dom' body' mb' =>
-          obtain ⟨-, -, hb⟩ := he
+        | forallE dom' body' =>
+          obtain ⟨-, hb⟩ := he
           have hop' : openPisAtFvars n (body.instantiate1 (.fvar (ctx.nP + j) dom))
               (ctx.nP + (j + 1)) = some (fvs, r) := by rw [← Nat.add_assoc]; exact hop
           have hb' : Expr.ErasedEq
@@ -381,13 +286,13 @@ theorem holeAbs_memberApp {ctx : NestCtx} (hnd : ctx.names.Nodup) {t : Nat}
 
 /-- **A read telescope, peeled along its opening**: the body reads as
 the reading's body, every opened variable's annotation as its domain. -/
-theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat} :
+theorem denote_peel {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat} :
     ∀ (n : Nat) {e : Expr} {D : Nat} {xs : List Expr} {rest : Expr}
-      {gds : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm},
+      {gds : List Term} {B : Term},
       openPisAtFvars n e D = some (xs, rest) → gds.length = n →
-      denoteMeta acval env φ D e = some (mkPisAV gds B) →
-      denoteMeta acval env φ (D + n) rest = some B ∧
-      ∀ l x, xs[l]? = some x → denoteMeta acval env φ (D + l) x.fvarTypeD = some (gds.getD l default).2.2
+      denote acval env φ D e = some (mkPisAV gds B) →
+      denote acval env φ (D + n) rest = some B ∧
+      ∀ l x, xs[l]? = some x → denote acval env φ (D + l) x.fvarTypeD = some (gds.getD l default)
   | 0, e, D, xs, rest, gds, B, h, hl, hr => by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
@@ -395,16 +300,16 @@ theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : E
     exact ⟨by simpa [mkPisAV] using hr, fun l x hx => nomatch hx⟩
   | n + 1, e, D, xs, rest, gds, B, h, hl, hr => by
     match e, h, gds, hl with
-    | .forallE dom body mb, h, g :: gds, hl =>
+    | .forallE dom body, h, g :: gds, hl =>
       simp only [openPisAtFvars] at h
       split at h
       · next fvs r hop =>
         simp only [Option.some.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
-        obtain ⟨ta, ba, hta, hba, heq⟩ := denoteMeta_forallE_inv hr
-        simp only [mkPisAV, AnnotTerm.pi.injEq] at heq
-        obtain ⟨-, -, hg, rfl⟩ := heq
-        obtain ⟨hB, hdoms⟩ := denoteMeta_peel n hop (by simpa using hl) hba
+        obtain ⟨ta, ba, hta, hba, heq⟩ := denote_forallE_inv hr
+        simp only [mkPisAV, Term.pi.injEq] at heq
+        obtain ⟨hg, rfl⟩ := heq
+        obtain ⟨hB, hdoms⟩ := denote_peel n hop (by simpa using hl) hba
         refine ⟨by rwa [show D + 1 + n = D + (n + 1) by omega] at hB, fun l x hx => ?_⟩
         cases l with
         | zero =>
@@ -415,7 +320,6 @@ theorem denoteMeta_peel {acval : Name → (Name → Nat) → AnnotTerm} {env : E
           have := hdoms l x (by simpa using hx)
           rwa [show D + 1 + l = D + (l + 1) by omega] at this
       · exact nomatch h
-
 
 /-! ## The walk's own term: parameters at the former's variables -/
 
@@ -429,7 +333,7 @@ theorem instPisWith_of_openPis :
     rfl
   | n + 1, e, i, fvs, r, h => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [openPisAtFvars] at h
       split at h
       · next fvs' r' hop =>
@@ -450,8 +354,8 @@ theorem instPisWith_erasedEq :
     exact ⟨e', rfl, he⟩
   | a :: as, b :: bs, e, e', r, ⟨hab, hrest⟩, he, h => by
     match e, e', he, h with
-    | .forallE t₁ b₁ m₁, .forallE t₂ b₂ m₂, he, h =>
-      obtain ⟨-, -, hb⟩ := he
+    | .forallE t₁ b₁, .forallE t₂ b₂, he, h =>
+      obtain ⟨-, hb⟩ := he
       have h' : instPisWith as (b₁.instantiate1 a) = some r := h
       show ∃ r', instPisWith bs (b₂.instantiate1 b) = some r' ∧ _
       exact instPisWith_erasedEq hrest (Expr.ErasedEq.instantiate1 hb hab) h'
@@ -463,10 +367,5 @@ theorem Expr.shiftFromN_eq_self_of_fvarsBelow {p : Nat} :
   | n + 1, e, h => by
     show Expr.shiftFrom p (Expr.shiftFromN p n e) = e
     rw [Expr.shiftFromN_eq_self_of_fvarsBelow n h, Expr.shiftFrom_eq_self h]
-
-theorem Expr.ErasedEqL.trans : ∀ {as bs cs : List Expr}, Expr.ErasedEqL as bs →
-    Expr.ErasedEqL bs cs → Expr.ErasedEqL as cs
-  | [], [], [], _, _ => trivial
-  | _ :: _, _ :: _, _ :: _, ⟨h1, h2⟩, ⟨h3, h4⟩ => ⟨Expr.ErasedEq.trans h1 h3, Expr.ErasedEqL.trans h2 h4⟩
 
 end ConLeche.Model

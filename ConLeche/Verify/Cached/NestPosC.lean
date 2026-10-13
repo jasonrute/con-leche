@@ -48,20 +48,6 @@ theorem nestContainer_closed {ctx : NestCtx} (hc : NestCtxOk ctx) {C : Name}
   obtain ⟨n, nPc, hf⟩ := nestContainer_mem h x hx
   exact hc _ _ hf
 
-theorem lookup_mem {β : Type} :
-    ∀ {l : List (Name × β)} {a : Name} {b : β}, l.lookup a = some b → (a, b) ∈ l
-  | [], _, _, h => nomatch h
-  | (x, y) :: l, a, b, h => by
-    simp only [List.lookup] at h
-    split at h
-    · next hxa =>
-      simp only [Option.some.injEq] at h
-      subst h
-      have : a = x := by simpa using hxa
-      subst this
-      exact List.mem_cons_self
-    · exact List.mem_cons_of_mem _ (lookup_mem h)
-
 /-! ## The environment-reading steps (no operation) -/
 
 section Pure
@@ -169,8 +155,8 @@ theorem nestFieldsS_sim (hrec : RecSimC mode env rec rec')
     ∀ (nF j : Nat) (cur : Expr) (st : NestState) {s₀ : CState}, CSOK mode env s₀ →
       WScoped (base + j) cur →
       SimC mode env s₀ (fun v w => v = w ∧
-          (∀ (i : Nat) (nd : Expr × BinderMeta), v.2.1[i]? = some nd →
-            WScoped (base + j + i) nd.1) ∧ WScoped (base + j + v.2.1.length) v.2.2.1)
+          (∀ (i : Nat) (nd : Expr), v.2.1[i]? = some nd →
+            WScoped (base + j + i) nd) ∧ WScoped (base + j + v.2.1.length) v.2.2.1)
         (nestFields rec prog base err nF j cur st)
         (nestFields rec' prog base err nF j cur st)
   | 0, _, _, st, _, hs, hw =>
@@ -178,7 +164,7 @@ theorem nestFieldsS_sim (hrec : RecSimC mode env rec rec')
   | nF + 1, j, cur, st, _, hs, hw => by
     unfold nestFields
     split
-    · next a b bm =>
+    · next a b =>
       simp only [WScoped] at hw
       refine SimC.bind (hrec prog (base + j) 0 a st hs hw.1) (fun s₁ r r' hs₁ hR => ?_)
       obtain ⟨rfl, hnd⟩ := hR
@@ -206,17 +192,17 @@ theorem nestFieldsS_sim (hrec : RecSimC mode env rec rec')
 
 /-- A telescope closed over well-scoped pieces is well scoped. -/
 theorem closeTelescope_wscoped :
-    ∀ (nds : List (Expr × BinderMeta)) (i : Nat) (body : Expr),
-      (∀ (k : Nat) (nd : Expr × BinderMeta), nds[k]? = some nd → WScoped (i + k) nd.1) →
+    ∀ (nds : List Expr) (i : Nat) (body : Expr),
+      (∀ (k : Nat) (nd : Expr), nds[k]? = some nd → WScoped (i + k) nd) →
       WScoped (i + nds.length) body → WScoped i (closeTelescope nds i body)
   | [], i, body, _, hb => by simpa [closeTelescope] using hb
-  | (dom, bm) :: bs, i, body, h, hb => by
+  | dom :: bs, i, body, h, hb => by
     simp only [closeTelescope, WScoped]
     refine ⟨by simpa using h 0 _ rfl, WScoped.abstract1 0 (closeTelescope_wscoped bs (i + 1) body
       (fun k nd hk => ?_) ?_)⟩
     · have := h (k + 1) nd (by simpa using hk)
       rwa [show i + (k + 1) = i + 1 + k by omega] at this
-    · rw [show i + 1 + bs.length = i + (List.length ((dom, bm) :: bs)) by simp; omega]
+    · rw [show i + 1 + bs.length = i + (List.length (dom :: bs)) by simp; omega]
       exact hb
 
 theorem nestCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
@@ -421,7 +407,7 @@ theorem nestPosS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {ctx 
       split
       · exact SimC.pure hs₁ ⟨rfl, by dsimp only; split <;> assumption⟩
       · split
-        · next a b bm =>
+        · next a b =>
           simp only [WScoped] at hww
           split
           · exact SimC.throw
@@ -444,7 +430,6 @@ theorem nestPosS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {ctx 
               rcases r with ⟨k, st₂⟩
               exact SimC.pure hs₂ ⟨rfl, hww⟩
           · exact SimC.throw
-
 
 /-- **The root frame at the shared operations.** -/
 theorem nestRootS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {ctx : NestCtx}

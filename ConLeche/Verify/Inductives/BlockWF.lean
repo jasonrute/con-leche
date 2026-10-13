@@ -4,6 +4,7 @@ public import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Kernel.Inductives.FieldTele
 import ConLeche.Verify.Inductives.BlockInv
 import ConLeche.Verify.Shift
+import ConLeche.Verify.Extend.Inversions
 
 public section
 
@@ -103,7 +104,7 @@ theorem envWF_consBlockInds {p₁ : BlockShape} {isRec : Bool} :
       exact ⟨h1, h2, Expr.constsResolve_mono h3, h4, h5⟩
 
 /-- **Stage 1 at the run level**: the environment holding the k formers
-is well-formed, and every annotated former's type is closed. -/
+is well-formed, and every checked former's type is closed. -/
 theorem direct_block_inds_wf {env envI : Env} (henv : EnvWF env)
     {p : BlockParts} {isRec : Bool} {cvTas : List ConstantVal} {p₁ : BlockShape} {F : Nat}
     (h : checkBlockInds (fueledOps mode F) env p isRec = .ok (envI, cvTas, p₁)) :
@@ -125,8 +126,9 @@ theorem direct_block_inds_wf {env envI : Env} (henv : EnvWF env)
         cvTa.type.looseBVarsBounded 0 = true ∧
         (cvTa.type.stripPis (p.toBlockShape.withSort s0).nP).isSome = true := by
       intro ms s hte
-      obtain ⟨cvT, -, -, hccv, bs, hstrip⟩ := checkBlockTele_shape hte
+      obtain ⟨cvT, -, -, heq, hccv, bs, hstrip⟩ := checkBlockTele_shape hte
       obtain ⟨g1, g2, g3, g4⟩ := checkConstantVal_typeWF hccv
+      rw [← heq] at g1 g2 g3 g4
       refine ⟨g1, g2, g3, g4, ?_⟩
       refine stripPis_isSome_of_le (n := p.nP + ms.nIdx) (Nat.le_add_right _ _) ?_
       rw [hstrip]; rfl
@@ -211,43 +213,6 @@ local macro_rules
         | exact absurd $h
             (by simp [bind, Except.bind, throw, throwThe, MonadExceptOf.throw]))
 
-/-- A checked constant keeps the record's name and level parameters:
-only its type is replaced, by the annotated one. -/
-theorem checkConstantVal_lps {env : Env} {cv cvA : ConstantVal} {F : Nat}
-    (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
-    cvA.name = cv.name ∧ cvA.levelParams = cv.levelParams := by
-  unfold checkConstantVal at h
-  by_cases h1 : (env.find? cv.name).isSome = true
-  · rw [ite_eq_left h1] at h; close_throw h
-  rw [ite_eq_right h1] at h
-  by_cases h2 : reservedBasisNames.contains cv.name = true
-  · rw [ite_eq_left h2] at h; close_throw h
-  rw [ite_eq_right h2] at h
-  by_cases h3 : cv.name.isProjFnShape = true
-  · rw [ite_eq_left h3] at h; close_throw h
-  rw [ite_eq_right h3] at h
-  by_cases h4 : Name.nodup cv.levelParams = true
-  case neg => rw [ite_eq_right h4] at h; close_throw h
-  rw [ite_eq_left h4] at h
-  by_cases h5 : Expr.looseBVarsBounded 0 cv.type = true
-  case neg => rw [ite_eq_right h5] at h; close_throw h
-  rw [ite_eq_left h5] at h
-  by_cases h6 : cv.type.hasFvar = true
-  · rw [ite_eq_left h6] at h; close_throw h
-  rw [ite_eq_right h6] at h
-  obtain ⟨type, _, h⟩ := exceptBind_ok h
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams type = true
-  case neg => rw [ite_eq_right h7] at h; close_throw h
-  rw [ite_eq_left h7] at h
-  by_cases h8 : Expr.constsResolve env type = true
-  case neg => rw [ite_eq_right h8] at h; close_throw h
-  rw [ite_eq_left h8] at h
-  obtain ⟨_, _, h⟩ := exceptBind_ok h
-  obtain ⟨_, _, h⟩ := exceptBind_ok h
-  simp only [pure, Except.pure, Except.ok.injEq] at h
-  subst h
-  exact ⟨rfl, rfl⟩
-
 /-! ## The k recursors consed with their rules, SIMULTANEOUSLY -/
 
 /-- Well-formedness of a stored constant transfers along a lookup
@@ -310,15 +275,15 @@ premises, discharged per instance. -/
 
 /-- The member cons' rules function: `sumRules` at the block's
 parameter count. -/
-@[expose] def sumRulesR (find? : Name → Option ConstantInfo) (q : BlockShape) (nP : Nat) :
+@[expose] def sumRulesR (find? : Name → Option ConstantInfo) (nP : Nat) :
     Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List RecRule :=
-  fun m r => sumRules find? r.1.name nP (q.majorIdxAt m) (q.rulePrefixAt m) r.1.type r.2.2.2 r.2.1
+  fun _ r => sumRules find? r.1.name nP r.2.2.2 r.2.1
 
 /-- **`consBlockRecs` is the generic cons at `sumRulesR`.** -/
 theorem consBlockRecs_eq_R (find? : Name → Option ConstantInfo) (q : BlockShape) (nP : Nat) :
     ∀ (m : Nat) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
       (env : Env),
-      consBlockRecs find? q nP m rs env = consBlockRecsR (sumRulesR find? q nP) q m rs env
+      consBlockRecs find? q nP m rs env = consBlockRecsR (sumRulesR find? nP) q m rs env
   | _, [], _ => rfl
   | m, (cvRa, rhss, nIdx, ctorsA) :: rest, env => by
     simp only [consBlockRecs, consBlockRecsR]
@@ -339,9 +304,9 @@ the `i`-th right-hand side, with the constructor's parameter count
   ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)), rs[j]? = some r →
     ∀ rl ∈ R j r, ∃ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA ∧ r.2.1[i]? = some rhs ∧
-      rl = recRuleBits find? r.1.name
+      rl = recRuleBits find?
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
-          fire := fireOf j r, rhs := rhs, paramsBlind := true }
+          fire := fireOf j r, rhs := rhs }
 
 /-- The recursors' cons finds everything the environment below it
 finds. -/
@@ -434,19 +399,8 @@ theorem envWF_consBlockRecsR
       rs[j]? = some r → ∀ rl ∈ R j r,
         rl.rhs ∈ r.2.1 ∧
         ∀ lvls pins, rl.fire = .nested lvls pins →
-          q.rulePrefixAt j ≤ q.majorIdxAt j ∧
-          (∀ l ∈ lvls, l.allParamsDefined r.1.levelParams = true) ∧
-          (∀ pin ∈ pins, pin.hasFvar = false ∧
-            pin.allLevelParamsDefined r.1.levelParams = true ∧
-            pin.constsResolve env = true ∧
-            pin.looseBVarsBounded (q.rulePrefixAt j) = true) ∧
-          ∃ pre dom body bm D,
-            r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
-            dom.getAppFn = .const D lvls ∧
-            dom.getAppArgs =
-              pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++
-                (List.range (q.majorIdxAt j - q.rulePrefixAt j)).map
-                  (fun i => Expr.bvar (q.majorIdxAt j - q.rulePrefixAt j - 1 - i))) :
+          NestedRead (·.constsResolve env) r.1.levelParams r.1.type (q.majorIdxAt j)
+            (q.rulePrefixAt j) pins.length lvls pins) :
     EnvWF (consBlockRecsR R q 0 rs env) := by
   have hdomEnv : ∀ n, (env.find? n).isSome = true →
       ((consBlockRecsR R q 0 rs env).find? n).isSome = true :=

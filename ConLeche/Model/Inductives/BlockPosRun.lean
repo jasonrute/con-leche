@@ -1,6 +1,7 @@
 module
 
-import ConLeche.Model.Annot.BlockLfpTup
+import ConLeche.Model.Env.BlockLfpTup
+import ConLeche.Semantics.Hoist
 public import ConLeche.Model.Inductives.BlockStageCtors
 import ConLeche.Model.Rules.Inputs
 public import ConLeche.Verify.Inductives.PositivityInv
@@ -8,16 +9,15 @@ public import ConLeche.Model.Inductives.BlockHoleRead
 public import ConLeche.Model.Inductives.NestPosMono
 public import ConLeche.Model.Inductives.PosDerivMono
 import ConLeche.Model.Inductives.NestPosRed
+import ConLeche.Model.Inductives.TypeStep
 import ConLeche.Semantics.Tower.FixTower
-import ConLeche.Model.Rules.Sound
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Verify.Rules.Bridge
 import ConLeche.Semantics.Kit
 import ConLeche.Semantics.Tower.SumTower
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Inductives.BlockCtorReads
-import ConLeche.Model.Annot.CanonCrest
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.CanonCrest
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.NatEqs
 
 public section
@@ -47,7 +47,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal CheckM NestCtx NestState
   NestFieldKind BlockParts BlockShape instPisWith nestHoles
   openPisAtFvars fueledOps)
@@ -59,31 +59,21 @@ variable {V : Type w} [SetTheory V]
 /-! ## Reading pieces -/
 
 /-- A Π-tower's domains are graded along it. -/
-theorem wellDenotedV_mkPisAV_dom :
-    ∀ {ab : List (Nat × Nat × AnnotTerm)} {Δa : List AnnotTerm} {B : AnnotTerm},
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (mkPisAV ab B)) →
-      ∀ (i : Nat) (x : Nat × Nat × AnnotTerm), ab[i]? = some x →
-      ∀ ρ : Nat → V, Sat V (((ab.take i).map (·.2.2)).reverse ++ Δa) ρ →
-        WellDenotedV V ρ x.2.2
+theorem wellDenoted_mkPisAV_dom :
+    ∀ {ab : List Term} {Δa : List Term} {B : Term},
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (mkPisAV ab B)) →
+      ∀ (i : Nat) (x : Term), ab[i]? = some x →
+      ∀ ρ : Nat → V, Sat V ((ab.take i).reverse ++ Δa) ρ →
+        WellDenotedTy V ρ x
   | [], _, _, _, i, x, hx, _, _ => by simp at hx
   | y :: ab, Δa, B, h, 0, x, hx, ρ, hρ => by
     simp only [List.getElem?_cons_zero, Option.some.injEq] at hx
     subst hx
-    exact (Rules.WellDenotedV.hoist_pi (V := V) h).1 ρ (by simpa using hρ)
+    exact (Semantics.WellDenoted.hoist_piTy (V := V) h).1 ρ (by simpa using hρ)
   | y :: ab, Δa, B, h, i + 1, x, hx, ρ, hρ => by
     simp only [List.getElem?_cons_succ] at hx
-    refine wellDenotedV_mkPisAV_dom (Rules.WellDenotedV.hoist_pi (V := V) h).2 i x hx ρ ?_
+    refine wellDenoted_mkPisAV_dom (Semantics.WellDenoted.hoist_pi (V := V) h).2 i x hx ρ ?_
     simpa [List.take_succ_cons, List.reverse_cons, List.append_assoc] using hρ
-
-/-- A spine of values fits a spine of closed types componentwise. -/
-theorem spineFit_range_closed {T : Nat → AnnotTerm} {f : Nat → V} :
-    ∀ (k : Nat), (∀ t, t < k → ∀ σ : Nat → V, f t ∈ˢ interp V σ (T t)) →
-      ∀ ρ : Nat → V, SpineFit ρ ((List.range k).map T) ((List.range k).map f)
-  | 0, _, _ => trivial
-  | k + 1, h, ρ => by
-    rw [List.range_succ, List.map_append, List.map_append]
-    exact (spineFit_range_closed k (fun t ht => h t (by omega)) ρ).append
-      ⟨h k (by omega) _, trivial⟩
 
 /-! ## One constructor -/
 
@@ -104,19 +94,19 @@ carrier). -/
   (∀ (c j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA → cA.1.levelParams = lps) ∧
   -- every member's parameter telescope is satisfied where the block's is
   (∀ t, t < d.k → ∀ (ψ : Name → Nat) (ρ : Nat → V), Sat V (d.params ψ).reverse ρ →
-    Sat V (((d.ppsM t ψ).take d.nP).map (·.2.2)).reverse ρ)
+    Sat V (((d.ppsM t ψ).take d.nP)).reverse ρ)
 
 theorem BlockCtorsCore.holeCtx {env : Env} {m : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm} {nc : Nat}
+    {A : Nat → (Name → Nat) → Term} {nc : Nat}
     (h : BlockCtorsCore m d lps cvTas p₁ isRec A nc)
     (hlpsA : ∀ (c j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       cA.1.levelParams = lps)
     (hparsT : ∀ t, t < d.k → ∀ (ψ : Name → Nat) (ρ : Nat → V), Sat V (d.params ψ).reverse ρ →
-      Sat V (((d.ppsM t ψ).take d.nP).map (·.2.2)).reverse ρ) :
+      Sat V (((d.ppsM t ψ).take d.nP)).reverse ρ) :
     BlockHoleCtxFacts m d lps cvTas p₁ isRec :=
   ⟨fun c cvTb hc => ⟨(h.1 c cvTb hc).1, (h.1 c cvTb hc).2.2.2⟩,
-    fun c j cA hj => ⟨(h.2.2.1 c j cA hj).2.2.1, (h.2.2.1 c j cA hj).2.2.2⟩, hlpsA, hparsT⟩
+    fun c j cA hj => ⟨(h.2.1 c j cA hj).2.2.1, (h.2.1 c j cA hj).2.2.2⟩, hlpsA, hparsT⟩
 
 omit [SetTheory V] in
 /-- **Every stored constructor at the block's own levels** (the root
@@ -187,20 +177,20 @@ theorem BlockHoleCtxFacts.nestArity {env : Env} {m : EnvModel V env} {d : BlockD
 
 /-- The tail of a Π-tower past its first `n` binders is graded under
 them. -/
-theorem wellDenotedV_mkPisAV_drop :
-    ∀ (n : Nat) {ab : List (Nat × Nat × AnnotTerm)} {Δa : List AnnotTerm} {B : AnnotTerm},
-      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedV V ρ (mkPisAV ab B)) →
-      ∀ ρ : Nat → V, Sat V (((ab.take n).map (·.2.2)).reverse ++ Δa) ρ →
-        WellDenotedV V ρ (mkPisAV (ab.drop n) B)
+theorem wellDenoted_mkPisAV_drop :
+    ∀ (n : Nat) {ab : List Term} {Δa : List Term} {B : Term},
+      (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (mkPisAV ab B)) →
+      ∀ ρ : Nat → V, Sat V ((ab.take n).reverse ++ Δa) ρ →
+        WellDenoted V ρ (mkPisAV (ab.drop n) B)
   | 0, _, _, _, h, ρ, hρ => by simpa using h ρ (by simpa using hρ)
   | _ + 1, [], _, _, h, ρ, hρ => by simpa using h ρ (by simpa using hρ)
   | n + 1, y :: ab, Δa, B, h, ρ, hρ =>
-    wellDenotedV_mkPisAV_drop n (Rules.WellDenotedV.hoist_pi (V := V) h).2 ρ
+    wellDenoted_mkPisAV_drop n (Semantics.WellDenoted.hoist_pi (V := V) h).2 ρ
       (by simpa [List.take_succ_cons, List.reverse_cons, List.append_assoc] using hρ)
 
 /-- A spine of values fits a spine of types each lifted past the earlier
 entries, when each value inhabits its type at the base frame. -/
-theorem spineFit_range_lift {T : Nat → AnnotTerm} {f : Nat → V} {ρ : Nat → V} :
+theorem spineFit_range_lift {T : Nat → Term} {f : Nat → V} {ρ : Nat → V} :
     ∀ (k : Nat), (∀ t, t < k → f t ∈ˢ interp V ρ (T t)) →
       SpineFit ρ ((List.range k).map fun t => (T t).liftN t 0) ((List.range k).map f)
   | 0, _ => trivial
@@ -217,7 +207,7 @@ parameters and indices, `FormerData`) instantiated at the head former's
 opened parameter variables reads, at any depth above them, as its index
 tower over the parameters; its leaves are the parameters'. -/
 theorem formerHoleTy_at {env : Env} {m : EnvModel V env} {cvTb : ConstantVal} {nP nI : Nat}
-    {resSort : Level} {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {resSort : Level} {pps : (Name → Nat) → List Term}
     (hFD : FormerData m cvTb (nP + nI) resSort pps) (hcl : cvTb.type.hasFvar = false)
     (hb : cvTb.type.looseBVarsBounded 0 = true) (hcr : cvTb.type.constsResolve env = true)
     {fvsP : List Expr} (hlen : fvsP.length = nP)
@@ -225,7 +215,7 @@ theorem formerHoleTy_at {env : Env} {m : EnvModel V env} {cvTb : ConstantVal} {n
     (hws : ∀ x ∈ fvsP, Expr.WScoped nP x)
     (hcbP : ∀ x ∈ fvsP, ConstsBound env x)
     {ty : Expr} (hty : instPisWith fvsP cvTb.type = some ty) :
-    (∀ (ψ : Name → Nat) (D : Nat), nP ≤ D → denoteMeta m.acval env ψ D ty
+    (∀ (ψ : Name → Nat) (D : Nat), nP ≤ D → denote m.acval env ψ D ty
       = some ((mkPisAV ((pps ψ).drop nP) (.sort (resSort.eval ψ))).liftN (D - nP) 0)) ∧
     Expr.WScoped nP ty ∧ ty.looseBVarsBounded 0 = true ∧ ConstsBound env ty ∧
     ∀ l ∈ ty.fvarLeaves, ∃ a ∈ fvsP, l ∈ a.fvarLeaves := by
@@ -241,7 +231,7 @@ theorem formerHoleTy_at {env : Env} {m : EnvModel V env} {cvTb : ConstantVal} {n
       (by rw [hFD.len ψ]; omega) (hFD.read ψ)
     rw [hA] at hty'
     obtain rfl := Option.some.inj hty'
-    rw [denoteMeta_erasedEq hoA, hread D hD]
+    rw [denote_erasedEq hoA, hread D hD]
   · exact ConLeche.wscoped_instPisWith hws (Expr.WScoped.of_not_hasFvar hcl) hty
   · refine looseBVarsBounded_instPisWith (fun x hx => ?_) hb hty
     obtain ⟨i, hi⟩ := List.getElem?_of_mem hx
@@ -256,22 +246,22 @@ theorem formerHoleTy_at {env : Env} {m : EnvModel V env} {cvTb : ConstantVal} {n
 satisfying its own parameter telescope inhabits its index tower there. -/
 theorem formerApp_mem {μ : ConLeche.CheckMode} {env : Env} (mp : EnvModelM V μ env)
     {cvTb : ConstantVal} {caps : ConLeche.IndCaps} {nP nI : Nat} {resSort : Level}
-    {pps : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+    {pps : (Name → Nat) → List Term}
     (hfind : env.find? cvTb.name = some (.indInfo cvTb caps))
     (hFD : FormerData mp.base2 cvTb (nP + nI) resSort pps) (ψ : Name → Nat) {ρ : Nat → V}
-    (hs : Sat V (((pps ψ).take nP).map (·.2.2)).reverse ρ) :
+    (hs : Sat V ((pps ψ).take nP).reverse ρ) :
     (frameIdx nP ρ).foldl app (interp V ρ (mp.base2.acval cvTb.name ψ))
       ∈ˢ interp V ρ (mkPisAV ((pps ψ).drop nP) (.sort (resSort.eval ψ))) := by
-  have hlenT : (((pps ψ).take nP).map (·.2.2)).length = nP := by
+  have hlenT : ((pps ψ).take nP).length = nP := by
     simp [hFD.len ψ]
   generalize hρ₀ : shiftE nP 0 ρ = ρ₀
   have hfm := mp.mem_type _ (List.mem_of_find?_eq_some hfind) ψ _ (hFD.read ψ) ρ₀
   rw [← List.take_append_drop nP (pps ψ), mkPisAV_append'] at hfm
-  have hfit : SpineFit ρ₀ (((pps ψ).take nP).map (·.2.2)) (frameIdx nP ρ) := by
+  have hfit : SpineFit ρ₀ ((pps ψ).take nP) (frameIdx nP ρ) := by
     have := spineFit_frameIdx_of_sat hs
     rw [hlenT] at this
     rw [← hρ₀]; exact this
-  have hf₂ := foldl_app_mem_mkPisAV_pos (fun d hd => hFD.bits ψ d (List.mem_of_mem_take hd))
+  have hf₂ := foldl_app_mem_mkPisAV_pos
     hfit hfm
   rw [show consList (frameIdx nP ρ) ρ₀ = ρ by rw [← hρ₀]; exact consList_frameIdx nP ρ] at hf₂
   rw [acval_interp_closed mp.base2 _ ψ ρ ρ₀]
@@ -319,7 +309,7 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       env.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ c isRec)) ∧
       FormerData m cvTb (d.nP + d.nIdxAt c) d.resSort (d.ppsM c))
     (hparsT : ∀ t, t < d.k → ∀ ρ : Nat → V, Sat V (d.params ψ).reverse ρ →
-      Sat V (((d.ppsM t ψ).take d.nP).map (·.2.2)).reverse ρ)
+      Sat V (((d.ppsM t ψ).take d.nP)).reverse ρ)
     {p : BlockParts} (hnames : p.memberNames = d.memberNames)
     (hnP : p.nP = d.nP) (hk : d.k = d.memberNames.length)
     {cvTa0 : ConstantVal} {fvsP : List Expr} {rest : Expr} {holes : List Expr}
@@ -365,7 +355,7 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   have hlenH : holes.length = d.k := by rw [nestHoles_length hholes, hcN, hk]
   have hhole : ∀ t, t < d.k → ∃ cvTb ty, cvTas[t]? = some cvTb ∧
       FormerData m cvTb (d.nP + d.nIdxAt t) d.resSort (d.ppsM t) ∧
-      (∀ D, d.nP ≤ D → denoteMeta m.acval env ψ D ty
+      (∀ D, d.nP ≤ D → denote m.acval env ψ D ty
         = some ((mkPisAV ((d.ppsM t ψ).drop d.nP) (.sort (d.resSort.eval ψ))).liftN (D - d.nP) 0)) ∧
       Expr.WScoped d.nP ty ∧ ty.looseBVarsBounded 0 = true ∧ ConstsBound env ty ∧
       (∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ fvsP) ∧
@@ -390,7 +380,7 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     exact hleafF a ha l hla
   have hholeMem : ∀ x ∈ holes, ∃ t, t < d.k ∧ ∃ cvTb ty, cvTas[t]? = some cvTb ∧
       FormerData m cvTb (d.nP + d.nIdxAt t) d.resSort (d.ppsM t) ∧
-      (∀ D, d.nP ≤ D → denoteMeta m.acval env ψ D ty
+      (∀ D, d.nP ≤ D → denote m.acval env ψ D ty
         = some ((mkPisAV ((d.ppsM t ψ).drop d.nP) (.sort (d.resSort.eval ψ))).liftN (D - d.nP) 0)) ∧
       Expr.WScoped d.nP ty ∧ ty.looseBVarsBounded 0 = true ∧ ConstsBound env ty ∧
       (∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ fvsP) ∧
@@ -419,10 +409,10 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   -- ## the context: the parameters (member 0's former), then one hole per member
   have hlenP0 : (d.ppsM 0 ψ).length = d.nP + d.nIdxAt 0 := hFD0.len ψ
   have hlenParams : (d.params ψ).length = d.nP := by
-    simp only [BlockData.params, List.length_map, List.length_take, hlenP0]; omega
-  let holeTy : Nat → AnnotTerm := fun t =>
+    simp only [BlockData.params, List.length_take, hlenP0]; omega
+  let holeTy : Nat → Term := fun t =>
     (mkPisAV ((d.ppsM t ψ).drop d.nP) (.sort (d.w ψ))).liftN t 0
-  let L : List AnnotTerm := d.params ψ ++ (List.range d.k).map holeTy
+  let L : List Term := d.params ψ ++ (List.range d.k).map holeTy
   have hLlen : L.length = d.nP + d.k := by simp [L, hlenParams]
   have hLpar : ∀ i, i < d.nP → L.getD i default = (d.params ψ).getD i default := by
     intro i hi
@@ -444,26 +434,26 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       rw [hx] at h
       exact ⟨ty, by rw [Option.some.inj h]; congr 1; omega⟩
   have hdoms : ∀ (i : Nat) (x : Expr), (fvsP ++ holes)[i]? = some x →
-      denoteMeta m.acval env ψ i (Expr.fvarTypeD x) = some (L.getD i default) := by
-    obtain ⟨pps, b, hst, -, -, hbind⟩ := denoteMeta_openPis d.nP hop0 (hFD0.read ψ)
+      denote m.acval env ψ i (Expr.fvarTypeD x) = some (L.getD i default) := by
+    obtain ⟨pps, b, hst, -, -, hbind⟩ := denote_openPis d.nP hop0 (hFD0.read ψ)
     rw [stripPisAV_mkPisAV_take d.nP _ _ (by rw [hlenP0]; omega)] at hst
     simp only [Option.some.injEq, Prod.mk.injEq] at hst
     obtain ⟨rfl, -⟩ := hst
     intro i x hx
     by_cases hi : i < d.nP
     · rw [List.getElem?_append_left (by rw [hlenF]; exact hi)] at hx
-      obtain ⟨q, hq, -, hqd⟩ := hbind i x hx
+      obtain ⟨q, hq, hqd⟩ := hbind i x hx
       rw [Nat.zero_add] at hqd
       rw [hqd, hLpar i hi]
-      simp only [BlockData.params, List.getD_eq_getElem?_getD, List.getElem?_map, hq]
-      rfl
+      simp only [BlockData.params, List.getD_eq_getElem?_getD]
+      rw [hq]; rfl
     · rw [List.getElem?_append_right (by rw [hlenF]; omega), hlenF] at hx
       have ht : i - d.nP < d.k := by rw [← hlenH]; exact (List.getElem?_eq_some_iff.mp hx).1
       obtain ⟨cvTb, ty, -, -, hrd, -, -, -, -, h⟩ := hhole (i - d.nP) ht
       rw [hx] at h
       obtain rfl := Option.some.inj h
       rw [show i = d.nP + (i - d.nP) by omega, hLhole _ ht]
-      show denoteMeta m.acval env ψ (d.nP + (i - d.nP)) ty = _
+      show denote m.acval env ψ (d.nP + (i - d.nP)) ty = _
       rw [hrd _ (Nat.le_add_right _ _), show d.nP + (i - d.nP) - d.nP = i - d.nP by omega]
       rfl
   have hws : ∀ x ∈ fvsP ++ holes, Expr.WScoped (d.nP + d.k) x := by
@@ -480,22 +470,22 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [hLlen]; exact hi)]
     rfl
   have hokA : ∀ i, i < d.nP + d.k → ∀ σ : Nat → V, Sat V (L.reverse.drop (d.nP + d.k - i)) σ →
-      WellDenotedV V σ (L.getD i default) := by
+      WellDenotedTy V σ (L.getD i default) := by
     intro i hi σ hdrop
     rw [List.drop_reverse, hLlen, show d.nP + d.k - (d.nP + d.k - i) = i by omega] at hdrop
     by_cases hiP : i < d.nP
-    · have htake : L.take i = ((d.ppsM 0 ψ).take i).map (·.2.2) := by
+    · have htake : L.take i = ((d.ppsM 0 ψ).take i) := by
         have h1 : L.take i = (d.params ψ).take i :=
           List.take_append_of_le_length (by rw [hlenParams]; omega)
-        rw [h1, BlockData.params, ← List.map_take, List.take_take,
+        rw [h1, BlockData.params, List.take_take,
           Nat.min_eq_left (show i ≤ d.nP by omega)]
       rw [htake] at hdrop
       obtain ⟨x, hx⟩ : ∃ x, (d.ppsM 0 ψ)[i]? = some x :=
         ⟨_, List.getElem?_eq_getElem (by rw [hlenP0]; omega)⟩
-      have hgd := wellDenotedV_mkPisAV_dom (Δa := []) (fun ρ _ => hFD0.okTy ψ ρ) i x hx _
+      have hgd := wellDenoted_mkPisAV_dom (Δa := []) (fun ρ _ => hFD0.okTy ψ ρ) i x hx _
         (by rw [List.append_nil]; exact hdrop)
       rw [hLpar i hiP]
-      simp only [BlockData.params, List.getD_eq_getElem?_getD, List.getElem?_map,
+      simp only [BlockData.params, List.getD_eq_getElem?_getD,
         List.getElem?_take_of_lt hiP, hx]
       exact hgd
     · obtain ⟨cvTb, ty, -, hFDt, -⟩ := hhole (i - d.nP) (by omega)
@@ -514,12 +504,12 @@ theorem blockHoleCtx_canon {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
         List.nil_append] at hsP
       have hsh : shiftE t 0 σ = fun j => σ (j + t) := by
         funext j; simp [shiftE]
-      refine (WellDenotedV_liftN V t _ 0 σ).mpr ?_
+      refine (WellDenotedTy_liftN t _ 0 σ).mpr ?_
       rw [hsh]
       have hsT := hparsT t ht _ hsP
-      have := wellDenotedV_mkPisAV_drop d.nP (Δa := []) (fun ρ _ => hFDt.okTy ψ ρ) _
+      have := wellDenoted_mkPisAV_drop d.nP (Δa := []) (fun ρ _ => hFDt.okTy ψ ρ) _
         (by rw [List.append_nil]; exact hsT)
-      exact this
+      exact ⟨this, IsTy_mkPisAV_sort _ _ _⟩
   intro x hx
   have hLeq : L = d.holeCtx ψ := rfl
   rw [← hLeq]
@@ -571,7 +561,7 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       env.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ c isRec)) ∧
       FormerData m cvTb (d.nP + d.nIdxAt c) d.resSort (d.ppsM c))
     (hparsT : ∀ t, t < d.k → ∀ ρ : Nat → V, Sat V (d.params ψ).reverse ρ →
-      Sat V (((d.ppsM t ψ).take d.nP).map (·.2.2)).reverse ρ)
+      Sat V (((d.ppsM t ψ).take d.nP)).reverse ρ)
     {p : BlockParts} (hnames : p.memberNames = d.memberNames)
     (hnP : p.nP = d.nP) (hk : d.k = d.memberNames.length)
     {cvTa0 : ConstantVal} {fvsP : List Expr} {rest : Expr} {holes : List Expr}
@@ -585,26 +575,27 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List ConLeche.PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts)
-    {ca : AnnotTerm} (hca₀ : denoteMeta m.acval env ψ (d.nP + d.k) crest = some ca) :
-    ∃ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
+    {ca : Term} (hca₀ : denote m.acval env ψ (d.nP + d.k) crest = some ca) :
+    ∃ (abD abN : List Term) (B : Term),
       (p.nestCtx fvsP env.find?).hiAt 0 = d.nP + d.k ∧
       ca = mkPisAV abD B ∧
-      denoteMeta m.acval env ψ (d.nP + d.k) tyN = some (mkPisAV abN B) ∧
+      denote m.acval env ψ (d.nP + d.k) tyN = some (mkPisAV abN B) ∧
       abD.length = cA.2 ∧ abN.length = cA.2 ∧
-      abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) ∧
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
-      Rules.Graded V (d.holeCtx ψ).reverse ca ∧
+      Rules.GradedTy V (d.holeCtx ψ).reverse ca ∧
       Rules.Frame (d.nP + d.k) tyN ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse tyN ∧
-      Rules.Graded V (d.holeCtx ψ).reverse (mkPisAV abN B) ∧
-      FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
+      Rules.GradedTy V (d.holeCtx ψ).reverse (mkPisAV abN B) ∧
+      FieldsEqOn V (d.holeCtx ψ).reverse abD abN ∧
       Rules.LeavesSub tyN crest ∧ ConstsBound env tyN ∧
       (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-        ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+        ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
           Sat V (d.holeCtx ψ).reverse (d.toLfp.frame ψ ρp X)) := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
@@ -629,33 +620,29 @@ theorem blockWalkCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   have hB : crest.looseBVarsBounded 0 = true := looseBVarsBounded_nestCrest hCb hshapeH hcrest
   have hfr : Rules.Frame (d.nP + d.k) crest := ⟨hW, hB, hLB⟩
   have hC : CtxOk m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest := hCP.toCtxOk
-  -- ## U2: the reading is graded at that context
-  rw [hhi] at hinf
-  have hIS : Rules.InferSemFull m ψ (d.nP + d.k) crest ty :=
-    Rules.infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hinf)
-  obtain ⟨-, -, ta, -, hgr, -⟩ := hIS hfr hC hca₀
+  -- ## U2: the reading is a graded TYPE at that context (`crest` is the
+  -- member constructor's own type, never the point, "not pt" source (1);
+  -- `ty`'s own ensureSort test makes it read as a universe)
+  rw [hhi] at hinf hsort
+  have hgr : Rules.GradedTy V (d.holeCtx ψ).reverse ca := gradedTy_of_sort hin hinf hsort hfr hC hca₀
   have hkN : d.toLfp.k ≤ d.toLfp.N := Nat.le_add_right _ _
   have hsatFrame : ∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-      ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+      ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       Sat V (d.holeCtx ψ).reverse (d.toLfp.frame ψ ρp X) := by
     intro ρp hs X hX
     simp only [BlockData.holeCtx, List.reverse_append]
     refine sat_of_spineFit hs (spineFit_range_lift d.k (fun t ht => ?_))
-    obtain ⟨cvTb, hcvb⟩ : ∃ cvTb, cvTas[t]? = some cvTb :=
-      ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact ht)⟩
-    obtain ⟨-, hFDt⟩ := hF t cvTb hcvb
     exact LfpDatum.holeVal_mem hkN hX ht (ab := (d.ppsM t ψ).drop d.nP) rfl
-      (fun x hx => hFDt.bits ψ x (List.mem_of_mem_drop hx))
   -- ## the normal form reads like the crest (the walk's semantic link)
   rw [← hhi] at hfr hCP hca₀
-  obtain ⟨abD, abN, B, hcaE, hNE, hlD, hlN, hbits, hEq, hgN, hfrN, hsubN⟩ :=
+  obtain ⟨abD, abN, B, hcaE, hNE, hlD, hlN, hEq, hgN, hfrN, hsubN⟩ :=
     memberCtorD_red hin hd hfr hCP hca₀ hgr
   have hCPN := hCP.of_subset hsubN
   rw [hhi] at hfr hCP hfrN hCPN hNE
   -- ## the normal form names only stored constants (its leaves are the crest's)
   have hcbN : ConstsBound env tyN := constsBound_of_read _ tyN hNE fun l hl =>
     hcbl l (hsubN l hl)
-  exact ⟨abD, abN, B, hhi, hcaE, hNE, hlD, hlN, hbits, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, hsubN,
+  exact ⟨abD, abN, B, hhi, hcaE, hNE, hlD, hlN, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, hsubN,
     hcbN, hsatFrame⟩
 
 /-- **A member constructor's walk context, at the datum**: `blockWalkCtx`
@@ -679,30 +666,32 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List ConLeche.PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts)
     (hnf : d.nfFF c j = tyN) :
-    ∃ (abD abN : List (Nat × Nat × AnnotTerm)),
+    ∃ (abD abN : List Term),
       (p.nestCtx fvsP env.find?).hiAt 0 = d.nP + d.k ∧
-      denoteMeta m.acval env ψ (d.nP + d.k) crest
-        = some (mkPisAV abD (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
+      denote m.acval env ψ (d.nP + d.k) crest
+        = some (mkPisAV abD (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
             (d.absE ψ c j))) ∧
-      denoteMeta m.acval env ψ (d.nP + d.k) tyN
-        = some (mkPisAV abN (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
+      denote m.acval env ψ (d.nP + d.k) tyN
+        = some (mkPisAV abN (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
             (d.absE ψ c j))) ∧
-      abN.map (·.2.2) = d.absF ψ c j ∧ abD.length = cA.2 ∧ abN.length = cA.2 ∧
+      abN = d.absF ψ c j ∧ abD.length = cA.2 ∧ abN.length = cA.2 ∧
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
-      Rules.Graded V (d.holeCtx ψ).reverse (mkPisAV abD (AnnotTerm.mkAppN
+      Rules.GradedTy V (d.holeCtx ψ).reverse (mkPisAV abD (Term.mkAppN
         (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       Rules.Frame (d.nP + d.k) tyN ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse tyN ∧
-      Rules.Graded V (d.holeCtx ψ).reverse (mkPisAV abN (AnnotTerm.mkAppN
+      Rules.GradedTy V (d.holeCtx ψ).reverse (mkPisAV abN (Term.mkAppN
         (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
-      FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (abN.map (·.2.2)) ∧
+      FieldsEqOn V (d.holeCtx ψ).reverse abD abN ∧
       (∀ ρp : Nat → V, Sat V (d.params ψ).reverse ρp →
-        ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
+        ∀ X, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
           Sat V (d.holeCtx ψ).reverse (d.toLfp.frame ψ ρp X)) := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
@@ -715,7 +704,7 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   -- the reading: the datum's reading fact at the canonical crest, which the
   -- walk's term is up to erasure
   obtain ⟨-, A, hA, hR⟩ := (hcore.2.1 c j cA hcj).2
-  obtain ⟨ab, abN, hAr, hNr, hlab, hlabN, -, hab, -⟩ := hR ψ
+  obtain ⟨ab, abN, hAr, hNr, hlab, hlabN, hab, -⟩ := hR ψ
   rw [hnf] at hNr
   obtain ⟨A', hA', herased⟩ := canonCrest_of_walk (ctx := p.nestCtx fvsP env.find?)
     (fun i x hx => by rw [hcPar] at hx; simpa using hidxF i x hx)
@@ -729,16 +718,21 @@ theorem blockCtorHoleCtx {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     hcrest
   rw [hcN, hcL, hcP, hA] at hA'
   obtain rfl := Option.some.inj hA'
-  have hca : denoteMeta m.acval env ψ (d.nP + d.k) crest
-      = some (mkPisAV ab (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
+  have hca : denote m.acval env ψ (d.nP + d.k) crest
+      = some (mkPisAV ab (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
           (d.absE ψ c j))) := by
-    rw [denoteMeta_erasedEq herased]; exact hAr
-  obtain ⟨abD, abN', B, hhi, hcaE, hNE, hlD, hlN, -, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, -, -,
+    rw [denote_erasedEq herased]; exact hAr
+  obtain ⟨abD, abN', B, hhi, hcaE, hNE, hlD, hlN, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, -, -,
     hsatFrame⟩ := blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames
-      hnP hk hcv0 hop0 hholes hCf hCb hcrest hinf hd hca
-  obtain ⟨rfl, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
+      hnP hk hcv0 hop0 hholes hCf hCb hcrest hinf hsort hd hca
+  obtain ⟨hppD, rfl⟩ := mkPisAV_inj (hlab.trans hlD.symm) hcaE
   rw [hNr] at hNE
-  obtain ⟨rfl, -⟩ := mkPisAV_inj (hlabN.trans hlN.symm) (Option.some.inj hNE)
+  obtain ⟨hppN, -⟩ := mkPisAV_inj (hlabN.trans hlN.symm) (Option.some.inj hNE)
+  have hN' : ∀ X, mkPisAV abN' X = mkPisAV abN X := fun X => by rw [hppN]
+  have hDm : abD = ab := hppD.symm
+  have hNm : abN' = abN := hppN.symm
+  rw [hN'] at hgN
+  rw [hDm, hNm] at hEq
   exact ⟨ab, abN, hhi, hca, hNr, hab, hlab, hlabN, hfr, hCP, hgr, hfrN, hCPN, hgN, hEq, hsatFrame⟩
 
 /-! ## The block -/
@@ -771,8 +765,10 @@ theorem checkBlockPositivity_derivM {env : Env} (hwf : ConLeche.EnvWF env) {F : 
           ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
             cA.2 crest ks ((nfs.getD c []).getD j default) ts ∧
           (kinds.getD c []).getD j [] = ks ∧
-          (∃ ty, (fueledOps .verified F).inferType env
-            ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty) ∧
+          (∃ ty u, (fueledOps .verified F).inferType env
+            ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty ∧
+            (fueledOps .verified F).ensureSort env
+              ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u) ∧
           ((nfs.getD c []).getD j default).allLevelParamsDefined p.lps = true ∧
           (∃ xq sorts, openPisAtFvars cA.2 ((nfs.getD c []).getD j default)
               ((p.nestCtx fvsP env.find?).hiAt 0) = some xq ∧

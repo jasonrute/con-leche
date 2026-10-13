@@ -52,22 +52,6 @@ the term-side counterpart of `ConLeche.Expr.instSeq`. -/
 theorem instSeq_cons (a : Term) (as : List Term) (t : Nat) (e : Term) :
     instSeq (a :: as) t e = instSeq as (t - 1) (e.inst a t) := rfl
 
-/-- A closed term is untouched. -/
-theorem instSeq_eq_self_of_closed {e : Term} (h : Closed e) :
-    ∀ (as : List Term) (t : Nat), instSeq as t e = e := by
-  intro as
-  induction as with
-  | nil => intro t; rfl
-  | cons a as ih => intro t; rw [instSeq_cons, inst_eq_self_of_closed h, ih]
-
-@[simp] theorem instSeq_sort (as : List Term) (t u : Nat) :
-    instSeq as t (.sort u) = .sort u :=
-  instSeq_eq_self_of_closed (e := .sort u) trivial as t
-
-@[simp] theorem instSeq_const (as : List Term) (t : Nat) (c : BConst)
-    (us : List Nat) : instSeq as t (.const c us) = .const c us :=
-  instSeq_eq_self_of_closed (e := .const c us) trivial as t
-
 end Term
 end ConLeche.Term
 
@@ -107,7 +91,7 @@ theorem stripPis_instantiate1_fvar_isSome_rev {i : Nat}
   | succ k ih =>
     intro e j h
     cases e with
-    | forallE ty' body m =>
+    | forallE ty' body =>
       simp only [Expr.instantiate1, Expr.stripPis, Option.isSome_map] at h ⊢
       exact ih (j + 1) h
     | bvar l =>
@@ -140,7 +124,7 @@ theorem openPisAtFvars_stripPis :
   | succ k ih =>
     intro e d fvs body h
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with
@@ -154,7 +138,7 @@ theorem openPisAtFvars_stripPis :
           stripPis_instantiate1_fvar_isSome_rev k 0 (by rw [hstrip']; rfl)
         obtain ⟨⟨bs, body₀⟩, hstrip⟩ := Option.isSome_iff_exists.mp hsome
         obtain ⟨hbody0, -⟩ := Expr.stripPis_instantiate1_eq k 0 hstrip hstrip'
-        refine ⟨(dom, mb) :: bs, body₀, by simp [Expr.stripPis, hstrip],
+        refine ⟨dom :: bs, body₀, by simp [Expr.stripPis, hstrip],
           by simp [hlen'], ?_, ?_⟩
         · intro j hj
           cases j with
@@ -182,7 +166,7 @@ openers — *exactly*, annotations included (the ErasedEq form is
 equality). -/
 theorem openPisAtFvars_instSeq :
     ∀ (k : Nat) {e : Expr} {d : Nat} {fvs : List Expr} {body : Expr}
-      {bs : List (Expr × BinderMeta)} {body₀ : Expr},
+      {bs : List Expr} {body₀ : Expr},
       openPisAtFvars k e d = some (fvs, body) →
       e.stripPis k = some (bs, body₀) →
       body = Expr.instSeq fvs (k - 1) body₀ := by
@@ -198,7 +182,7 @@ theorem openPisAtFvars_instSeq :
   | succ k ih =>
     intro e d fvs body bs body₀ h hs
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with

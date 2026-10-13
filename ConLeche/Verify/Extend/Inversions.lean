@@ -26,8 +26,6 @@ open Expr
 declaration-checker inversions unfold through these (never through
 `fueledOps` itself, so record spellings in hypotheses keep matching). -/
 
-theorem fueledOps_annotate (F : Nat) (env : Env) (d : Nat) (e : Expr) :
-    (fueledOps mode F).annotate env d e = annotateCore mode env F d e := rfl
 theorem fueledOps_inferType (F : Nat) (env : Env) (d : Nat) (e : Expr) :
     (fueledOps mode F).inferType env d e = inferTypeCore mode env F d e := rfl
 theorem fueledOps_isDefEq (F : Nat) (env : Env) (d : Nat) (a b : Expr) :
@@ -45,22 +43,20 @@ theorem fueledOps_orElse (F : Nat) (x : CheckM Bool)
       match x with | .ok true => pure () | _ => k none := rfl
 
 /-- Inversion for `checkConstantVal`. -/
-theorem checkConstantVal_inv {env : Env} {cv cv' : ConstantVal}
-    (h : checkConstantVal (fueledOps mode F) env cv = .ok cv') :
+theorem checkConstantVal_inv {env : Env} {cv : ConstantVal}
+    (h : checkConstantVal (fueledOps mode F) env cv = .ok ()) :
     env.find? cv.name = none ∧
     reservedBasisNames.contains cv.name = false ∧
     cv.name.isProjFnShape = false ∧
     Name.nodup cv.levelParams = true ∧
     cv.type.looseBVarsBounded 0 = true ∧
     cv.type.hasFvar = false ∧
-    ∃ type stype u,
-      annotateCore mode env F 0 cv.type = .ok type ∧
-      type.allLevelParamsDefined cv.levelParams = true ∧
-      type.constsResolve env = true ∧
-      inferTypeCore mode env F 0 type = .ok stype ∧
-      ensureSortCore mode env F 0 stype = .ok u ∧
-      cv' = { cv with type := type } := by
-  simp only [checkConstantVal, fueledOps_annotate, fueledOps_inferType, fueledOps_isDefEq,
+    ∃ stype u,
+      cv.type.allLevelParamsDefined cv.levelParams = true ∧
+      cv.type.constsResolve env = true ∧
+      inferTypeCore mode env F 0 cv.type = .ok stype ∧
+      ensureSortCore mode env F 0 stype = .ok u := by
+  simp only [checkConstantVal, fueledOps_inferType, fueledOps_isDefEq,
     fueledOps_ensureSort, fueledOps_whnf, Bind.bind, Except.bind, Pure.pure, Except.pure] at h
   by_cases hfind : (env.find? cv.name).isSome = true
   case pos => simp [hfind] at h
@@ -86,18 +82,13 @@ theorem checkConstantVal_inv {env : Env} {cv cv' : ConstantVal}
   by_cases hif : cv.type.hasFvar = true
   case pos => simp [hif] at h
   simp only [hif] at h
-  cases hann : annotateCore mode env F 0 cv.type with
-  | error e => rw [hann] at h; exact nomatch h
-  | ok type =>
-  rw [hann] at h
-  try dsimp only at h
-  by_cases htp : type.allLevelParamsDefined cv.levelParams = true
+  by_cases htp : cv.type.allLevelParamsDefined cv.levelParams = true
   case neg => simp [htp] at h
   simp only [htp] at h
-  by_cases htr : type.constsResolve env = true
+  by_cases htr : cv.type.constsResolve env = true
   case neg => simp [htr] at h
   simp only [htr] at h
-  cases hst : inferTypeCore mode env F 0 type with
+  cases hst : inferTypeCore mode env F 0 cv.type with
   | error e => rw [hst] at h; exact nomatch h
   | ok stype =>
   rw [hst] at h
@@ -106,13 +97,12 @@ theorem checkConstantVal_inv {env : Env} {cv cv' : ConstantVal}
   | error e => rw [hsort] at h; exact nomatch h
   | ok u =>
   rw [hsort] at h
-  simp only [Bool.false_eq_true, ↓reduceIte, Except.ok.injEq] at h
   have hfind0 : env.find? cv.name = none := by
     revert hfind
     cases env.find? cv.name <;> simp
   exact ⟨hfind0, by simpa using hres, hpshapeF, hnd, hlb,
     by simpa using hif,
-    type, stype, u, rfl, htp, htr, hst, hsort, h.symm⟩
+    stype, u, htp, htr, by first | rfl | exact hst, by first | rfl | exact hsort⟩
 
 /-- Reserved basis names are all `str`-shaped. -/
 theorem reservedBasisNames_not_num (p : Name) (k : Nat) :

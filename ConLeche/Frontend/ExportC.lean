@@ -116,11 +116,6 @@ structure Lk (ε : Type) where
 /-- The serial parse's lookups: the state's own tables. -/
 @[inline] def StateD.lk (st : StateD) : Lk String := ⟨st.name, st.level, st.expr⟩
 
-/-- The `pw` datum, over the name lookup. -/
-@[inline] def pwOfF (nm : Nat → Except ε Name) (_lv : Nat → Except ε Level) (_ex : Nat → Except ε Expr) : PwRec → Except ε PropWhen
-  | .never => pure .never
-  | .ifAllZero ns => do pure (.ifAllZero (← ns.mapM nm))
-
 /-- A name-table entry's value. -/
 @[inline] def nameOfF (nm : Nat → Except ε Name) (_lv : Nat → Except ε Level) (_ex : Nat → Except ε Expr) (r : NameRec) : Except ε Name :=
   match r with
@@ -139,10 +134,9 @@ structure Lk (ε : Type) where
 children's values (the derived fields are the compiler's, task #172
 B3a).
 
-Binder names are display data the official kernel's equality and hash
-ignore; ours are `.anonymous` on every parsed binder (task #203,
-beside the `.default` annotation of task #142), so `==` is
-α-equivalence downstream.  The `name` field is still required to be
+Binder names and infos are display data the official kernel's
+equality and hash ignore; the parser drops both (tasks #142, #203),
+and `Expr` has no slot for them, so `==` is α-equivalence downstream.  The `name` field is still required to be
 present and well-formed (the recogniser reads it), it is just not
 resolved. -/
 @[inline] def exprOfF (nm : Nat → Except ε Name) (lv : Nat → Except ε Level) (ex : Nat → Except ε Expr) (r : ExprRec) : Except ε Expr :=
@@ -154,10 +148,10 @@ resolved. -/
     let ls ← us.mapM lv
     pure (Expr.mkConst nm ls)
   | .app f a => do pure (Expr.mkApp (← ex f) (← ex a))
-  | .lam ty bd pw => do
-    pure (Expr.mkLam (← ex ty) (← ex bd) ⟨← pwOfF nm lv ex pw⟩)
-  | .forallE ty bd pw => do
-    pure (Expr.mkForallE (← ex ty) (← ex bd) ⟨← pwOfF nm lv ex pw⟩)
+  | .lam ty bd => do
+    pure (Expr.mkLam (← ex ty) (← ex bd))
+  | .forallE ty bd => do
+    pure (Expr.mkForallE (← ex ty) (← ex bd))
   | .letE ty vl bd => do
     pure (Expr.mkLetE (← ex ty) (← ex vl) (← ex bd))
   | .proj tn ix s => do
@@ -166,7 +160,6 @@ resolved. -/
   | .strVal s => pure (Expr.mkLit (.strVal s))
 
 /-- The builders over an `Lk` record. -/
-@[inline] def pwOf (L : Lk ε) (r : PwRec) : Except ε PropWhen := pwOfF L.name L.level L.expr r
 @[inline] def nameOf (L : Lk ε) (r : NameRec) : Except ε Name := nameOfF L.name L.level L.expr r
 @[inline] def levelOf (L : Lk ε) (r : LevelRec) : Except ε Level := levelOfF L.name L.level L.expr r
 @[inline] def exprOf (L : Lk ε) (r : ExprRec) : Except ε Expr := exprOfF L.name L.level L.expr r
@@ -236,13 +229,13 @@ that consumes it, exactly as before. -/
 without reducing (`check_constructors`), and the count past the
 parameters is the `numFields` of the constructor it generates. -/
 def indPiTeleLen : Expr → Nat
-  | .forallE _ b _ => indPiTeleLen b + 1
+  | .forallE _ b => indPiTeleLen b + 1
   | _ => 0
 
 /-- One recursor rule of an inductive record, resolved. -/
 @[specialize] def ruleOfF (nm : Nat → M Name) (_lv : Nat → M Level) (ex : Nat → M Expr) (ru : RuleRec) : M RecRule := do
-  pure (RecRule.mk (← nm ru.ctor) ru.nfields 0 .inert
-    (← ex ru.rhs) false false false)
+  pure (RecRule.mk (← nm ru.ctor) ru.nfields 0 .plain
+    (← ex ru.rhs) false false)
 
 /-- **An inductive record, validated** (tasks #217, #228, #271): the
 half of the record's processing that reads the state and changes

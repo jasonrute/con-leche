@@ -7,8 +7,7 @@ module
 
 The fragment keeps Lean's universe levels in full: `zero`, `succ`, `max`,
 `imax` and level *parameters*, so that declarations stay universe
-polymorphic and the annotation datum (`PropWhen.lean`) can refer to
-parameters.  A level means a natural number once every parameter is
+polymorphic.  A level means a natural number once every parameter is
 given a value — `Level.eval` below — and everything semantic about
 levels is stated through `eval`.
 
@@ -17,9 +16,7 @@ with an algorithm (`Level.isLeq`/`Level.isEquiv` in
 `ConLeche/Kernel/Level.lean`).  The fragment does not define it: the
 class `LevelOracle` is a *parameter of the development*, assumed sound
 and complete for the semantics — exactly what the consistency proof
-uses of it and nothing more.  `Level.zeroness`, the one level function
-the annotation design needs, IS defined (`PropWhen.lean`), because it
-is small and exact.
+uses of it and nothing more.
 -/
 
 namespace Fragment
@@ -68,7 +65,7 @@ def eval (φ : Name → Nat) : Level → Nat
 @[simp] theorem eval_param (φ : Name → Nat) (n : Name) : eval φ (param n) = φ n := rfl
 
 /-- `imax`'s zero test is its second argument's — the arithmetic behind
-the annotation of a `∀`. -/
+the sort of a `∀`. -/
 theorem imaxNat_eq_zero_iff (a b : Nat) : imaxNat a b = 0 ↔ b = 0 := by
   unfold imaxNat
   split <;> omega

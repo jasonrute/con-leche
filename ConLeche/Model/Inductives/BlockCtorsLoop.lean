@@ -29,9 +29,9 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveShape
-  BinderMeta RecRule)
+  RecRule)
 
 universe w
 
@@ -65,47 +65,47 @@ theorem blockCtorsLoop (hμ : μ.verifiedChecks = true)
     (hnd : (ctorsA.map (·.1.name)).Nodup)
     (hlpsT : cvTa.levelParams = lps)
     (hlpsA : ∀ cA ∈ ctorsA, cA.1.levelParams = lps)
-    {ppsAll : (Name → Nat) → List (Nat × Nat × AnnotTerm)}
-    {idxF : Nat → List Expr} {dsF : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
-    {esF : Nat → (Name → Nat) → List AnnotTerm} {srcsF : Nat → List (Option Nat)}
+    {ppsAll : (Name → Nat) → List Term}
+    {idxF : Nat → List Expr} {dsF : Nat → (Name → Nat) → List Term}
+    {esF : Nat → (Name → Nat) → List Term} {srcsF : Nat → List (Option Nat)}
     (hFssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ lps, ψ₁ q = ψ₂ q) →
       fssOf nP (ctorDataList dsF esF ψ₁ ctorsA 0) = fssOf nP (ctorDataList dsF esF ψ₂ ctorsA 0))
     (hFssBelow : ∀ ψ : Name → Nat, ∀ Fs ∈ fssOf nP (ctorDataList dsF esF ψ ctorsA 0),
-      FieldsBelow nP Fs)
+      DomsBelow nP Fs)
     (hiff : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((dsF j ψ).take nP).map (·.2.2)).reverse ρ)
+      Sat V (((ppsAll ψ).take nP)).reverse ρ ↔
+        Sat V (((dsF j ψ).take nP)).reverse ρ)
     (hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (resSort.eval ψ) ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)) ∧
-      SumFieldsValid ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
+      Sat V (((ppsAll ψ).take nP)).reverse ρ →
+      SumFieldsOkB (resSort.eval ψ) ρ (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))
     (hIdx : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((dsF j ψ).take nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop nP).map (·.2.2)) bs →
-        SpineFit ρ (((ppsAll ψ).drop nP).map (·.2.2)) (idxValsAt ρ (esF j ψ) bs))
+      Sat V (((dsF j ψ).take nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop nP)) bs →
+        SpineFit ρ (((ppsAll ψ).drop nP)) (idxValsAt ρ (esF j ψ) bs))
     (Inv : ∀ {env' : Env}, EnvModel V env' → Prop)
     (hInv : ∀ {env' : Env} (m' : EnvModel V env') (cA : ConstantVal × Nat)
-      (A : (Name → Nat) → AnnotTerm)
+      (A : (Name → Nat) → Term)
       (mC : EnvModel V ⟨.ctorInfo cA.1 nP cA.2 :: env'.consts⟩),
       cA ∈ ctorsA → env'.find? cA.1.name = none →
       mC.acval = acvalWith m'.acval cA.1.name A → Inv m' → Inv mC)
     -- the block's capability record and its laws at every carrier the
     -- invariant reaches (task #210 Part A)
     (caps : IndCaps)
-    (leafT : (Name → Nat) → AnnotTerm)
+    (leafT : (Name → Nat) → Term)
     (hTlawsOf : ∀ {env' : Env} (m' : EnvModel V env') (k : Nat) (cA : ConstantVal × Nat),
       ctorsA[k]? = some cA → Inv m' →
+      (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
       FormerData m' cvTa (nP + nIdx) resSort ppsAll →
       (∀ ψ, m'.acval T ψ = leafT ψ) →
       (∀ ψ, m'.acval cA.1.name ψ
-        = sumMkAV (resSort.eval ψ) k (dsF k ψ) (((dsF k ψ).drop nP).map (·.2.2))
+        = sumMkAV (resSort.eval ψ) k (dsF k ψ) (((dsF k ψ).drop nP))
             (uChains (fssOf nP (ctorDataList dsF esF ψ ctorsA 0)))) →
       CapsLawsAt m' T cvTa caps)
     (hfold : ∀ j cA, ctorsA[j]? = some cA → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((ppsAll ψ).take nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop nP).map (·.2.2)) bs →
+      Sat V (((ppsAll ψ).take nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((dsF j ψ).drop nP)) bs →
         interp V (consList bs ρ)
-            (AnnotTerm.mkAppN (leafT ψ) (paramBvars nP cA.2 ++ esF j ψ))
+            (Term.mkAppN (leafT ψ) (paramBvars nP cA.2 ++ esF j ψ))
           = sumSet (resSort.eval ψ) (sumFibre (resSort.eval ψ)
               (consList (idxValsAt ρ (esF j ψ) bs) ρ)
               (rChains nIdx nIdx (fssOf nP (ctorDataList dsF esF ψ ctorsA 0))

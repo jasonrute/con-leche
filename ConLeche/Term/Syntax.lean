@@ -3,12 +3,16 @@ module
 @[expose] public section
 
 /-!
-# Syntax of the erased term language (task #74; relocated at #209)
+# Syntax of the term language (task #74; relocated at #209)
 
 `Term` is the semantics tier's *own* term datatype — deliberately not
 `ConLeche.Expr`.  It is what the denotation function from a real
-`Env`+`Expr` targets (`ConLeche/Verify/Denote.lean`), and it is chosen for
-proof convenience, not for fidelity to the checker's representation.
+`Env`+`Expr` targets (`ConLeche/Verify/Denote.lean`) and what the
+interpretation reads (`interp`, `ConLeche/Semantics/Interp.lean`), and
+it is chosen for proof convenience, not for fidelity to the checker's
+representation.  It lives in a base tier of its own because three
+tiers read it: `Verify/Denote/*` (the denotation and its syntactic
+metatheory), `Semantics/*` (the interpretation) and `Model/*`.
 
 There is no declarative typing judgment over this datatype (task
 #209); the sentences below that motivate a design choice by a typing
@@ -31,18 +35,15 @@ Differences from `ConLeche.Expr`, each deliberate:
   at every assignment.  The layer therefore cannot state a polymorphic
   fact internally — and does not need to, because it has no definable
   constants at all.
-* **There is no `letE`.**  No stored expression carries a `let`: the
-  annotation pass runs the official `infer_let` triple and returns the
-  ζ *reduct* (task #217), and every kernel arm that used to accept a
-  `letE` node downstream of it is a positive error (task #241).  So the
-  denotation's `letE` clause is `none`, the former is gone, and the
-  substitution metatheory stays as small as it was — see
-  `ConLeche/Verify/Denote.lean`'s "There is no `let` in the term
-  language".
+* **`letE` carries no type.**  `letE v b` is `let x := v; b`, the
+  body under one binder.  Stored terms keep their `let`s as Lean
+  writes them, so the denotation needs the node; its type is not read
+  (the interpretation reads the value, then the body at the value), so
+  the former does not carry it, as `eqE` carries no type.
 * **`fst`/`snd` are formers, and their type arguments live in the
   premise.**  A projection on a *modeled* structure never reaches this
   layer: the checker accepts no `.proj` node without a native table
-  entry (task #175 wiring W5 — the annotation-time rewrites into
+  entry (task #175 wiring W5 — the rewrites of `.proj` into
   eliminations are gone).  A projection on the **pinned pair** or on a
   direct structure's tower entry does: `ProjEntry.native` nodes are
   first-class by design and survive into stored terms — carrying the
@@ -105,7 +106,7 @@ reflected, so `fun A a M m b h => m` types by conversion), the pair's
 recursor (`fun A B M f p => f p.1 p.2`, typed by conversion along
 structure eta), and the pair's projections themselves
 (`fun A B p => p.fst`/`p.snd`, once those are formers).  Dropping them
-removes the most index-heavy dependent types from `BConst.type`, and
+removes the most index-heavy dependent types from `BConst.typeAV`, and
 in the projections' case it is evidence that the former is the right
 primitive rather than an addition on top of one.
 -/
@@ -196,11 +197,14 @@ inductive Term where
   | lam (ty body : Term)
   /-- `(_ : ty) → body` -/
   | pi (ty body : Term)
+  /-- `let _ := val; body`, **without the type**: the body is under one
+  binder, read at the value -/
+  | letE (val body : Term)
   /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
   `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
-  and a census (task #237) found no definition and no theorem in any
-  tier reading the slot the former used to carry.  It is gone; a
-  producer that knows the type simply drops it. -/
+  and no definition and no theorem in any tier reads the type, so
+  the constructor does not carry it; a producer that knows the type
+  simply drops it. -/
   | eqE (lhs rhs : Term)
   /-- First field of a pair.  Carries **only** the subject: the pair's
   type arguments come from the typing premise `Γ ⊢ p : Σ A B`,
@@ -234,6 +238,43 @@ def projPair? : Nat → Term → Option Term
   | 0, e => some (.fst e)
   | 1, e => some (.snd e)
   | _ + 2, _ => none
+
+/-- The decoder is defined exactly at the two field indices, so a
+decoded projection still witnesses the old side condition. -/
+theorem lt_of_projPair? {i : Nat} {e x : Term} (h : projPair? i e = some x) :
+    i < 2 := by
+  rcases i with _ | _ | i
+  · omega
+  · omega
+  · exact nomatch h
+
+/-- …and conversely: below the bound the decoder always fires, on any
+subject.  Definedness depends on the index alone. -/
+theorem projPair?_exists_of_lt {i : Nat} (h : i < 2) (e : Term) :
+    ∃ x, projPair? i e = some x := by
+  rcases i with _ | _ | i
+  · exact ⟨.fst e, rfl⟩
+  · exact ⟨.snd e, rfl⟩
+  · omega
+
+/-- A decoded projection is one of the two formers on the same
+subject — the case split consumers of the decoder want. -/
+theorem projPair?_cases {i : Nat} {e x : Term} (h : projPair? i e = some x) :
+    x = .fst e ∨ x = .snd e := by
+  rcases i with _ | _ | i
+  · exact Or.inl (Option.some.inj h).symm
+  · exact Or.inr (Option.some.inj h).symm
+  · exact nomatch h
+
+/-- The same split for two decodings **at one index**: a congruence
+site sees the same former on both sides. -/
+theorem projPair?_cases₂ {i : Nat} {e x e' x' : Term}
+    (h : projPair? i e = some x) (h' : projPair? i e' = some x') :
+    (x = .fst e ∧ x' = .fst e') ∨ (x = .snd e ∧ x' = .snd e') := by
+  rcases i with _ | _ | i
+  · exact Or.inl ⟨(Option.some.inj h).symm, (Option.some.inj h').symm⟩
+  · exact Or.inr ⟨(Option.some.inj h).symm, (Option.some.inj h').symm⟩
+  · exact nomatch h
 
 end Term
 

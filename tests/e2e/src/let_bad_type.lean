@@ -16,9 +16,11 @@
    official: 1.  con-leche at master 700a06ca: 0 piped, 0 raw, 0 --trusted.
    Probe of record: _tmp/indaudit/probes/P/LetValueType.lean.
 
-   Task #217 closed follow-up 1: the `infer_let` triple runs inside
-   `annotate`'s `.letE` clause, on the annotated annotation and value,
-   before the reduct is taken — this fixture is a 1, official's verdict. -/
+   Task #217 closed follow-up 1 (the `infer_let` triple, then in the
+   annotate pass).  Since task #342 lets are stored as declared and the
+   triple runs in inference's own `.letE` arm (at the full grade, the
+   one declaration values are checked at) — this fixture is a 1,
+   official's verdict. -/
 
 import Lean
 open Lean Elab Command

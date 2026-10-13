@@ -1,6 +1,7 @@
 module
 
 import ConLeche.Verify.EnvBound
+import ConLeche.Verify.Level
 public import ConLeche.Verify.Cached.SimC
 /- `withPtrEq` (`Init.Util`) is `public` but not `@[expose]`, and the
 pointer-guarded `Expr.exprPtrBEq`/`beq` identities below are exactly the
@@ -79,7 +80,7 @@ theorem CSOK.withLsimp {s : CState} (hs : CSOK mode env s)
     (hm : ∀ u v, m'[u]? = some v → v = Level.simplify u) :
     CSOK mode env { s with lsimpC := m' } :=
   ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, hs.inferIOC, hs.annotC, hs.defeqC, hm, hs.lnz, hs.eqv, hs.instC⟩
+    hs.inferC, hs.inferIOC, hs.defeqC, hm, hs.lnz, hs.eqv, hs.instC⟩
 
 /-- Replace the `Level.simplify` memo and the equivalence result cache
 together (the `isEquivLM` wrapper touches both). -/
@@ -89,7 +90,7 @@ theorem CSOK.withLsimpEqv {s : CState} (hs : CSOK mode env s)
     (he : ∀ l r b, ec'[(l, r)]? = some b → Level.isEquiv l r = some b) :
     CSOK mode env { s with lsimpC := m', eqvC := ec' } :=
   ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, hs.inferIOC, hs.annotC, hs.defeqC, hm, hs.lnz, he, hs.instC⟩
+    hs.inferC, hs.inferIOC, hs.defeqC, hm, hs.lnz, he, hs.instC⟩
 
 /-! ### The memo-insert closures -/
 
@@ -173,13 +174,6 @@ theorem abstractRangeM_eff (hs : CSOK mode env s₀) {e : Expr} {d k : Nat}
   refine CEff.pure hs ?_
   show _ = _
   rw [abstractRangeC_spec (d := d) (k := k) (c := 0), he.erase]
-
-/-- The `O(1)` loose-bvar bound field is exact on the invariant, so the
-value it returns bounds the term. -/
-theorem bvarBoundM_eff (hs : CSOK mode env s₀) {e : Expr} :
-    CEff mode env s₀ (fun b => (Expr.looseBVarsBounded b e) = true)
-      (bvarBoundM e) :=
-  CEff.pure hs (bvarB_le (Nat.le_refl _))
 
 theorem mkAppNM_eff (hs : CSOK mode env s₀) {f : Expr} {args : List Expr}
     {x : Expr} {xs : List Expr}
@@ -469,7 +463,7 @@ theorem CSOK.insertInstC {s : CState} (hs : CSOK mode env s)
     (hE : r = (Expr.instantiateList e vs d)) :
     CSOK mode env { s with instC := mp.insert (e, vs, d) r } := by
   refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, hs.inferIOC, hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, ?_⟩
+    hs.inferC, hs.inferIOC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, ?_⟩
   intro i' vs' d' r' hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -548,7 +542,7 @@ theorem CSOK.insertConstTy {s : CState} (hs : CSOK mode env s)
       ci.toConstantVal.levelParams us)) :
     CSOK mode env { s with constTyAt := s.constTyAt.insert (n, us) i } := by
   refine ⟨?_, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC, hs.inferC, hs.inferIOC,
-    hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro n' us' i' hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -571,7 +565,7 @@ theorem CSOK.insertConstVal {s : CState} (hs : CSOK mode env s)
     (hrel : RelC i (v.instantiateLevelParams cv.levelParams us)) :
     CSOK mode env { s with constValAt := s.constValAt.insert (n, us) i } := by
   refine ⟨hs.constTy, ?_, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC, hs.inferC, hs.inferIOC,
-    hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro n' us' i' hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl
@@ -596,7 +590,7 @@ theorem CSOK.insertRuleRhs {s : CState} (hs : CSOK mode env s)
     CSOK mode env
       { s with ruleRhsAt := s.ruleRhsAt.insert (c, j, us) i } := by
   refine ⟨hs.constTy, hs.constVal, ?_, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC, hs.inferC, hs.inferIOC,
-    hs.annotC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
+    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
   intro c' j' us' i' hl
   simp only at hl
   rw [Std.HashMap.getElem?_insert] at hl

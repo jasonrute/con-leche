@@ -31,35 +31,29 @@ stated in `ConLeche/Challenge.lean` (with `sorry`) and proved in
 * `ρ` assigns a set to every de Bruijn index (`BVarIdx`) in scope.
 
 There is one rule per syntax form and no rule at all for a free
-variable (`fvar`), a `let` or a term that does not resolve, so such a
-term denotes nothing.  That is the right reading for stored constants:
-the checker stores every constant's type as a **closed** term — bound
+variable (`fvar`) or a term that does not resolve, so such a term
+denotes nothing.  That is the right reading for stored constants: the
+checker stores every constant's type as a **closed** term — bound
 variables are de Bruijn indices under their binders, there is no
-`fvar`, and its annotation pass has replaced every `let` by its
-reduct — and the relation reads a binder's body by pushing the bound
-value onto `ρ`, with no renaming and no instantiation.
+`fvar` — and the relation reads a binder's body by pushing the bound
+value onto `ρ`, with no renaming and no instantiation.  A `let` is read
+the same way: its value, then its body with the value pushed; its type
+is not read, as no rule reads a type.
 
 The two clauses that carry the type theory:
 
-* **Binders read their regime off the checker's own annotation, and
-  the annotation must be right.**  The checker records on every
-  `∀`/`λ` node *when* the body is a proposition, as a datum
-  `pw : PropWhen` ("iff all of these universe parameters are `0`",
-  `ConLeche/Kernel/PropWhen.lean`); `regime φ pw` is `0` exactly when
-  that holds at `φ`.  A `∀` in regime `0` denotes a truth value
-  (`piR 0`, the proposition "every `x ∈ A` has a `y ∈ B x`"), and a `λ`
-  in regime `0` denotes the one canonical proof (`lamR 0`); above `0`
-  they denote the set of dependent function graphs and the literal
-  graph (`piR`/`lamR`, `ConLeche/SetModel/Ops.lean`).  So propositions
-  are subsets of a one-element set: proof irrelevance and
-  impredicativity are built into the reading, and no typing is
-  consulted.  A binder may be read in regime `0` only if its body
-  really is a proposition there — its fibres are truth values (`univ 0`
-  is the set of truth values), or, at a `λ`, its values are the proof
-  point — so a term whose annotation is wrong has no denotation, and
-  `Model.mem` below, by demanding one for every stored type, certifies
-  every such annotation the checker stored.  The bodies are read on
-  the domain only: `piR`/`lamR` look at nothing else.
+* **Binders read their regime off the values.**  A `∀` whose fibres
+  over its domain are all truth values (`univ 0` is the set of truth
+  values) denotes a truth value (the proposition "every `x ∈ A` has a
+  `y ∈ B x`"); otherwise it denotes the set of dependent function
+  graphs (`piV`).  A `λ` whose body denotes the proof point (`pt`) at
+  every value of its domain denotes the one canonical proof; otherwise
+  it denotes the literal graph of its body (`lamV`,
+  `ConLeche/SetModel/Ops.lean`).  So propositions are subsets of a
+  one-element set: proof irrelevance and impredicativity are built into
+  the reading, and no typing is consulted.  Over an empty domain both
+  read as propositions.  The bodies are read on the domain only:
+  `piV`/`lamV` look at nothing else.
 * **Projections read a pair chain.**  A structure value is a
   right-nested pair chain; `field i p` is its `i`-th component
   (`sfst ∘ ssnd^i`).  When the environment holds a projection table
@@ -71,8 +65,8 @@ The two clauses that carry the type theory:
   own inductive models are built from.
 
 A universe level denotes a natural (`Level.eval φ u`, the ordinary
-evaluation with `imax u 0 = 0`), and `Sort u` denotes the `u`-th
-universe of the chain `V` provides.  A constant is used at a list of
+evaluation with `imax u 0 = 0`), and `Sort u` denotes `univ u`, the
+types at level `u` (below).  A constant is used at a list of
 levels `us`; `Level.substFn φ ps us` is the assignment sending the
 constant's own parameters `ps` to the values of `us` at `φ`
 (`ConLeche/Verify/Level.lean`).  A literal denotes what its constructor
@@ -94,8 +88,11 @@ Kuratowski pair with its projections `sfst`/`ssnd`; `graph F A`, the
 graph of `F` on `A`, and `app f a`, the value of a graph at a point
 (`app pt _ = pt`: a proof applied to anything is a proof); `piSet A B`,
 the graphs in `(x : A) → B x`; the proof point `pt`, the truth values
-`truthVal p` (`{pt}` if `p`, `∅` otherwise), and `univ n`, the `n`-th
-universe, with `univ 0` the set of truth values.
+`truthVal p` (`{pt}` if `p`, `∅` otherwise), and `univ n`, the types
+at level `n`: `univ 0` is the set of truth values, and above `0`
+`univ n` holds the members of the universe `tg n` (`tg (n+1)` is the
+chain's universe `n+2`) that are truth values or strict (not `pt` and
+without `pt` as a member).
 -/
 
 namespace ConLeche
@@ -118,11 +115,6 @@ other index moves up by one. -/
 def push (x : V) (ρ : BVarIdx → V) : BVarIdx → V
   | 0 => x
   | i + 1 => ρ i
-
-/-- A binder's regime at `φ`: `0` (a proposition) exactly when the
-checker's annotation says the body is one at `φ`, `1` otherwise. -/
-def regime (φ : LevelParam → Nat) (pw : PropWhen) : Nat :=
-  if pw.holds φ then 0 else 1
 
 /-- Component `i` of a right-nested pair chain `⟨x₀, ⟨x₁, ⟨x₂, …⟩⟩⟩`. -/
 noncomputable def field : Nat → V → V
@@ -152,21 +144,23 @@ inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ :
       (hf : Denotes cval env φ ρ f F) (ha : Denotes cval env φ ρ a X) :
       Denotes cval env φ ρ (.app f a) (app F X)
   /-- a `λ` denotes the graph of its body over its domain, or the
-  canonical proof in regime `0` — which it may be read in only if the
-  body really denotes a proof (`pt`) on the domain -/
-  | lam {ρ : BVarIdx → V} {ty body : Expr} {m : BinderMeta} {A : V} {F : V → V}
+  canonical proof where the body denotes a proof (`pt`) on the whole
+  domain -/
+  | lam {ρ : BVarIdx → V} {ty body : Expr} {A : V} {F : V → V}
       (hA : Denotes cval env φ ρ ty A)
-      (hF : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (F x))
-      (hP : regime φ m.pw = 0 → ∀ x, x ∈ˢ A → F x = pt) :
-      Denotes cval env φ ρ (.lam ty body m) (lamR (regime φ m.pw) A F)
+      (hF : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (F x)) :
+      Denotes cval env φ ρ (.lam ty body) (lamV A F)
   /-- a `∀` denotes the set of dependent function graphs over its
-  domain, or a truth value in regime `0` — which it may be read in only
-  if the body really denotes a truth value on the domain -/
-  | pi {ρ : BVarIdx → V} {ty body : Expr} {m : BinderMeta} {A : V} {B : V → V}
+  domain, or a truth value where its body denotes a truth value on the
+  whole domain -/
+  | pi {ρ : BVarIdx → V} {ty body : Expr} {A : V} {B : V → V}
       (hA : Denotes cval env φ ρ ty A)
-      (hB : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (B x))
-      (hP : regime φ m.pw = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ univ 0) :
-      Denotes cval env φ ρ (.forallE ty body m) (piR (regime φ m.pw) A B)
+      (hB : ∀ x, x ∈ˢ A → Denotes cval env φ (push x ρ) body (B x)) :
+      Denotes cval env φ ρ (.forallE ty body) (piV A B)
+  /-- a `let` denotes its body at its value; the type is not read -/
+  | letE {ρ : BVarIdx → V} {ty v body : Expr} {Y X : V}
+      (hv : Denotes cval env φ ρ v Y) (hb : Denotes cval env φ (push Y ρ) body X) :
+      Denotes cval env φ ρ (.letE ty v body) X
   /-- a projection at a stored table reads the field's position in the
   pair chain -/
   | proj_table {ρ : BVarIdx → V} {T : Name} {i : Nat} {e : Expr} {entry : ProjEntry} {P : V}
@@ -208,16 +202,21 @@ theorem Denotes_functional {V : Type w} [SetTheory V]
   | app _ _ ihf iha =>
     cases hw with
     | app hf' ha' => rw [ihf hf', iha ha']
-  | lam _ _ _ ihA ihF =>
+  | lam _ _ ihA ihF =>
     cases hw with
-    | lam hA' hF' _ =>
+    | lam hA' hF' =>
       obtain rfl := ihA hA'
-      exact ConLeche.SetModel.lamR_congr fun x hx => ihF x hx (hF' x hx)
-  | pi _ _ _ ihA ihB =>
+      exact ConLeche.SetModel.lamV_congr fun x hx => ihF x hx (hF' x hx)
+  | pi _ _ ihA ihB =>
     cases hw with
-    | pi hA' hB' _ =>
+    | pi hA' hB' =>
       obtain rfl := ihA hA'
-      exact ConLeche.SetModel.piR_congr fun x hx => ihB x hx (hB' x hx)
+      exact ConLeche.SetModel.piV_congr fun x hx => ihB x hx (hB' x hx)
+  | letE _ _ ihv ihb =>
+    cases hw with
+    | letE hv' hb' =>
+      obtain rfl := ihv hv'
+      exact ihb hb'
   | proj_table ht _ ih =>
     cases hw with
     | proj_table ht' he' => rw [ht] at ht'; cases ht'; rw [ih he']

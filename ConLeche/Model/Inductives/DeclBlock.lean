@@ -22,9 +22,9 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  BlockShape BlockParts MemberShape BinderMeta RecRule)
+  BlockShape BlockParts MemberShape RecRule)
 
 universe w
 
@@ -77,7 +77,7 @@ of `declBlock`, which `DeclBlockRun` leaves opaque): a carrier at the post-recur
   environment's carrier does (`acval` agreement),
 * finds everything it found (`find?` monotonicity),
 * reads every pre-recursor-bounded expression the same way
-  (`denoteMeta` stability — the constructors' and formers' TYPE
+  (`denote` stability — the constructors' and formers' TYPE
   readings cross the conses), and
 * keeps every member's projection slots free (`NoProjEnv`
   preservation — the generated recursor types and rule right-hand
@@ -90,7 +90,7 @@ It is four cons-monotonicities and mentions no `BlockData`. -/
     (∀ n : Name, (envC.find? n).isSome = true → mp'.base2.acval n = mpC.base2.acval n) ∧
     (∀ (n : Name) (c : ConstantInfo), envC.find? n = some c → env₃.find? n = some c) ∧
     (∀ (ψ : Name → Nat) (dd : Nat) (e : Expr), ConstsBound envC e →
-      denoteMeta mp'.base2.acval env₃ ψ dd e = denoteMeta mpC.base2.acval envC ψ dd e) ∧
+      denote mp'.base2.acval env₃ ψ dd e = denote mpC.base2.acval envC ψ dd e) ∧
     (∀ (T : Name) (i : Nat), envC.findProj? T i = none → NoProjEnv envC T i →
       NoProjEnv env₃ T i)
 
@@ -99,12 +99,12 @@ It is four cons-monotonicities and mentions no `BlockData`. -/
 four facts of `BlockRecStagedAt` and nothing else. -/
 theorem BlockTablesCore.consRecs {envC envR : Env} {mC : EnvModel V envC} {mR : EnvModel V envR}
     {d : BlockData V} {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : ConLeche.BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → Term}
     (h : BlockTablesCore mC d lps cvTasAll p₁ isRec A 0)
     (hag : ∀ n : Name, (envC.find? n).isSome = true → mR.acval n = mC.acval n)
     (hfind : ∀ (n : Name) (c : ConstantInfo), envC.find? n = some c → envR.find? n = some c)
     (hden : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr), ConstsBound envC e →
-      denoteMeta mR.acval envR ψ dd e = denoteMeta mC.acval envC ψ dd e)
+      denote mR.acval envR ψ dd e = denote mC.acval envC ψ dd e)
     (hnp : ∀ (T : Name) (i : Nat), envC.findProj? T i = none →
       NoProjEnv envC T i → NoProjEnv envR T i)
     (hslot : ∀ c, c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
@@ -123,7 +123,7 @@ theorem BlockTablesCore.consRecs {envC envR : Env} {mC : EnvModel V envC} {mR : 
     · rw [hag cvTb.name (by rw [hfindT]; rfl)]; exact hleaf ψ
     · exact ⟨fun ψ => by
         rw [hden ψ 0 cvTb.type (constsBound_of_constsResolve _ hres)]; exact hFD.read ψ,
-      hFD.len, hFD.bits, hFD.okTy, hFD.below, hFD.params, hFD.syn⟩
+      hFD.len, hFD.okTy, hFD.below, hFD.params, hFD.syn⟩
   · obtain ⟨hfindC, hlps, hres, hread, hleaf⟩ := hctor c j cA hj
     refine ⟨hfind _ _ hfindC, hlps, Expr.constsResolve_of_find hsome hres, fun ψ => ?_,
       fun ψ => ?_⟩
@@ -139,7 +139,7 @@ major (`.nested` at an outside one). -/
     (out : List (ConstantVal × ConLeche.TargetMajor × List Expr))
     (mpC : EnvModelM V μ envC) : Prop :=
   BlockRecStagedAt μ envC
-    (ConLeche.consBlockRecsT envC.find? (·.constsResolve envC) p 0 out envC) mpC
+    (ConLeche.consBlockRecsT envC.find? p 0 out envC) mpC
 
 
 /-- **The block over an older environment**: a well-formed environment `env₀` in which no member
@@ -171,8 +171,8 @@ from `mpC.lfpBlocks`). -/
     -- node-semantics induction's root)
     BlockHoleCtxFacts mk.base2 d lps cvTas p isRec ∧
     -- a reading at the formers' environment is one at the constructors'
-    ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
-      denoteMeta mk.base2.acval envI ψ dd e = some ea → denoteMeta mpC.base2.acval envC ψ dd e = some ea
+    ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : Term},
+      denote mk.base2.acval envI ψ dd e = some ea → denote mpC.base2.acval envC ψ dd e = some ea
 
 /-- **The recursors' stage's context, without the stage's own run**: what
 `GenRecCtx` (the generated stage, `GenRecAssembly.lean`) holds — the positivity run, the constructors'
@@ -183,7 +183,7 @@ this (`nodeListFacts_of`, `dynCtx_of`). -/
     (envC envI : Env) (pp : BlockParts)
     (cvTasR : List ConstantVal) (ctorsAsR : List (List (ConstantVal × Nat)))
     (mpC : EnvModelM V μ envC) (dR : BlockData V) (isRecR : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm)
+    (A : Nat → (Name → Nat) → Term)
     (kindsR : List (List (List ConLeche.NestFieldKind))) (nfsR : List (List Expr))
     (posR : ConLeche.NestState) : Prop :=
   ConLeche.checkBlockPositivity (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) envI
@@ -197,7 +197,7 @@ this (`nodeListFacts_of`, `dynCtx_of`). -/
   BlockCtorsCore mpC.base2 dR pp.lps cvTasR pp.toBlockShape isRecR A dR.k ∧
   (∀ c, c < ctorsAsR.length → ctorsAsR[c]? = some (dR.ctorsM c)) ∧
   (∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)),
+      (ppsOf : Nat → (Name → Nat) → List Term),
     dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf) ∧
   dR.toLfp ∈ mpC.lfpBlocks ∧
   LfpCover mpC [] ∧

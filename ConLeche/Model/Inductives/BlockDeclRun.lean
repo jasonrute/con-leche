@@ -23,63 +23,21 @@ reads these; the dispatch (`BlockRecPreHpre.lean`) and the rule contract
 (`BlockRuleFit.lean`) produce the two largest of its obligations.  This
 file holds the pieces of the stage that read the run directly.
 
-## 1. The `ℓ = 0` arm's LEFT side
-
-The endpoint's `ℓ = 0` arm (`blockRuleRhsOk_base`) asks for two facts:
-the stored rule reads as the point (`tgtRuleRaZ_seam`,
-`TargetSeam.lean`) and the recursor's TYPE is a truth value.  The second is
-here, because it needs the elimination-level package
-(`blockRecElimLevel_run`) and the level PIN (`blockRecElimPin_run`),
-both downstream of the endpoint's file: the type's binder bits follow
-its conclusion's inferred sort, the pin equates that sort with the
-checked elimination level `structElimLevel p.elim p.large`, and a
-Π-tower whose head bit is `0` is a truth value. -/
+The `ℓ = 0` arm's facts (the recursor type a truth value, the stored rule
+the point) read the generated family's syntax and are proved at the
+generated stage (`genRecTyZ`, `genRuleRaZ`, `GenClsFrame.lean`). -/
 
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
   {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
 
-section TyZero
-
-variable {envC : Env} {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
-  {ctorsAs : List (List (ConstantVal × Nat))}
-  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-
-/-- **THE `ℓ = 0` ARM'S LEFT SIDE**: at a valuation where the checked
-elimination level is zero, every recursor's type reads as a truth
-value — so the recursor's value is the point, and so is every
-application of it. -/
-theorem blockRecTyZ_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
-    ∀ j, j < rs.length → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Level.eval ψ (ConLeche.structElimLevel p.toBlockShape.elim p.toBlockShape.large) = 0 →
-      interp V ρ (blockRecTyAV mpC.base2.acval envC rs ψ j) ∈ˢ (univZero : V) := by
-  intro j hj ψ ρ hℓ
-  obtain ⟨uOf, hbits, hruns⟩ := blockRecElimLevel_run (V := V) hμ mpC h
-  have hu : (uOf j).eval ψ = 0 := by
-    have := blockRecElimPin_run h hruns ψ hj
-    rw [hℓ] at this
-    exact this
-  obtain ⟨-, -, -, -, heq, hlen, -⟩ :=
-    recStage_tyPis (V := V) hμ mpC h (List.getElem?_eq_getElem hj) ψ
-  rw [heq]
-  cases hrds : blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ j with
-  | nil => rw [hrds] at hlen; exact absurd hlen (by simp)
-  | cons d rest =>
-    have hd : d.2.1 = 0 :=
-      (hbits ψ j hj d (by rw [hrds]; exact List.mem_cons_self)).mpr hu
-    show interp V ρ (.pi d.1 d.2.1 d.2.2 _) ∈ˢ _
-    rw [interp_pi, hd]
-    exact piR_zero_mem_univZero
-
-end TyZero
 
 /-! ## 1b. `BlockMembersRun` at the seam
 
@@ -97,10 +55,10 @@ section MembersRun
 
 variable {envC envI : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC} {F : Nat}
-  {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
- 
+  {isRec : Bool} {A : Nat → (Name → Nat) → Term}
+
   {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)}
+  {ppsOf : Nat → (Name → Nat) → List Term}
 
 /-- **`BlockMembersRun` from the constructors' three records**, at the
 run's own block data. -/
@@ -150,7 +108,7 @@ with its four identifications `rfl` at the run's own block data, and
 `0 < k` off the counting pass's first clause. -/
 theorem blockModelAt_seam
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
     (hN : BlockNamesOk (V := V)
       (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf) cvTas)
     (hS : BlockCtorsStage (V := V) μ F
@@ -169,21 +127,21 @@ theorem blockModelAt_seam
 /-- **The seam's canonical constructor-type reading**: the stored type
 of recursor `j`'s `i`-th constructor, read at the constructors'
 environment. -/
-@[expose] noncomputable def blockRecCtorTy (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+@[expose] noncomputable def blockRecCtorTy (acval : Name → (Name → Nat) → Term) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))) (j i : Nat)
-    (ψ : Name → Nat) : AnnotTerm :=
-  (denoteMeta acval envC ψ 0 ((rs.getD j default).2.2.2.getD i default).1.type).getD default
+    (ψ : Name → Nat) : Term :=
+  (denote acval envC ψ 0 ((rs.getD j default).2.2.2.getD i default).1.type).getD default
 
 
 omit [SetTheory V] in
 /-- A field chain whose entries are bounded one by one is bounded. -/
-theorem fieldsBelow_of_getD :
-    ∀ {m : Nat} {Fs : List AnnotTerm},
-      (∀ q, q < Fs.length → Term.bvarsBelow (m + q) (Fs.getD q default).erase) →
-      FieldsBelow m Fs
+theorem domsBelow_of_getD :
+    ∀ {m : Nat} {Fs : List Term},
+      (∀ q, q < Fs.length → Term.bvarsBelow (m + q) (Fs.getD q default)) →
+      DomsBelow m Fs
   | _, [], _ => trivial
   | m, _ :: Fs, h => by
-    refine ⟨by simpa using h 0 (by simp), fieldsBelow_of_getD (m := m + 1) (Fs := Fs)
+    refine ⟨by simpa using h 0 (by simp), domsBelow_of_getD (m := m + 1) (Fs := Fs)
       fun q hq => ?_⟩
     have := h (q + 1) (by simpa using hq)
     simpa [show m + (q + 1) = m + 1 + q from by omega] using this
@@ -193,27 +151,27 @@ the family once every rule's components are bound by their frames; the
 prefix is the recursor type's (`blockRulePdomsAV_bounded`). -/
 theorem blockRecEqs_below_rows (hμ : μ.verifiedChecks = true)
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
-    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List AnnotTerm}
-    {mk0 Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm}
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
+    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List Term}
+    {mk0 Rb0 : (Name → Nat) → Nat → Nat → Term}
     (hrow : ∀ (ψ : Name → Nat) (c : Nat)
       (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs →
-        FieldsBelow (pp.toBlockShape.rulePrefixAt c) (fdoms0 ψ c j) ∧
+        DomsBelow (pp.toBlockShape.rulePrefixAt c) (fdoms0 ψ c j) ∧
         (∀ e ∈ es0 ψ c j, Term.bvarsBelow
-          (pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length) e.erase) ∧
+          (pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length) e) ∧
         Term.bvarsBelow (pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length)
-          (mk0 ψ c j).erase ∧
+          (mk0 ψ c j) ∧
         (∀ v ∈ ihs ψ c j, Term.bvarsBelow
-          (rs.length + pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length) v.erase) ∧
+          (rs.length + pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length) v) ∧
         Term.bvarsBelow (pp.toBlockShape.rulePrefixAt c + (fdoms0 ψ c j).length
-          + (ihs ψ c j).length) (Rb0 ψ c j).erase) :
+          + (ihs ψ c j).length) (Rb0 ψ c j)) :
     ∀ ψ : Name → Nat,
       ∀ e ∈ blockRecEqs (blockRecNCt rs) rs
           (fun ψ' => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ')
           fdoms0 es0 ihs mk0 Rb0 ψ,
-        Term.bvarsBelow rs.length e.erase := by
+        Term.bvarsBelow rs.length e := by
   intro ψ
   have hpair : ∀ c, c < rs.length → ∀ j, j < blockRecNCt rs c →
       ∃ (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) (cA : ConstantVal × Nat)
@@ -230,7 +188,7 @@ theorem blockRecEqs_below_rows (hμ : μ.verifiedChecks = true)
     (fun c hc j hj => ?_) (fun c hc j hj => ?_) (fun c hc j hj => ?_)
   · -- the prefix
     have hr : rs[c]? = some rs[c] := List.getElem?_eq_getElem hc
-    exact fieldsBelow_of_getD fun q hq => by
+    exact domsBelow_of_getD fun q hq => by
       rw [Nat.zero_add]; exact blockRulePdomsAV_bounded hμ mpC h hr ψ q hq
   all_goals
     dsimp only
@@ -250,9 +208,9 @@ five components do; the prefix is the recursor type's
 (`blockRulePdomsAV_params`). -/
 theorem blockRecEqs_params_rows (hμ : μ.verifiedChecks = true)
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
-    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List AnnotTerm}
-    {mk0 Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm}
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
+    {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List Term}
+    {mk0 Rb0 : (Name → Nat) → Nat → Nat → Term}
     (hrow : ∀ (c : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[c]? = some r → ∀ (j : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[j]? = some cA → r.2.1[j]? = some rhs → ∀ ψ₁ ψ₂ : Name → Nat,

@@ -53,7 +53,7 @@ theorem posD_fun : ∀ {j : PosJ} {ts : List PosTree}, PosD ops env ctx j ts →
       rw [hw] at hw'; cases ok_inj hw'; rw [hocc] at hocc'; exact nomatch hocc'
     | contHit hw' hocc' =>
       rw [hw] at hw'; cases ok_inj hw'; rw [hocc] at hocc'; exact nomatch hocc'
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ih =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ih =>
     intro k' nf' ts' h'
     cases h' with
     | const hw' hocc' =>
@@ -137,7 +137,7 @@ theorem posD_fun : ∀ {j : PosJ} {ts : List PosTree}, PosD ops env ctx j ts →
     intro ks' nds' res' ts' h'
     cases h'
     exact ⟨rfl, rfl, rfl⟩
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha hb iha ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro ks' nds' res' ts'' h'
     cases h' with
     | teleCons ha' hb' =>
@@ -149,7 +149,7 @@ theorem posD_fun : ∀ {j : PosJ} {ts : List PosTree}, PosD ops env ctx j ts →
 /-- **A telescope's outputs are its inputs'**: two derivations of one
 telescope agree on its kinds, normal forms and result. -/
 theorem posD_tele_fun {prog : List NestHole} {base nF j : Nat} {cur : Expr}
-    {ks ks' : List NestFieldKind} {nds nds' : List (Expr × BinderMeta)} {res res' : Expr}
+    {ks ks' : List NestFieldKind} {nds nds' : List Expr} {res res' : Expr}
     {ts ts' : List PosTree}
     (h : PosD ops env ctx (.tele prog base nF j cur ks nds res) ts)
     (h' : PosD ops env ctx (.tele prog base nF j cur ks' nds' res') ts') :
@@ -230,7 +230,7 @@ theorem FrameRec.entry {tbl : List NestCtorNf} {prog : List NestHole} {us : List
     {ds : List Expr} {grp : List (Name × Expr)} (h : FrameRec ops env ctx tbl prog us ds grp)
     {ctors : List (ConstantVal × Nat)} (hc : groupCtors ctx ds.length (grp.map (·.1)) = some ctors)
     {x : ConstantVal × Nat} (hx : x ∈ ctors) {crest : Expr} {ks : List NestFieldKind}
-    {nds : List (Expr × BinderMeta)} {cur : Expr} {ts' : List PosTree}
+    {nds : List Expr} {cur : Expr} {ts' : List PosTree}
     (hcr : nestCrest (grp.map (·.1)) us ds (grpHoles (ctx.hiAt prog.length) grp)
       (x.1.type.instantiateLevelParams x.1.levelParams us) = some crest)
     (hd : PosD ops env ctx (.tele ((grpNews us ds (ctx.hiAt prog.length) grp).reverse ++ prog)

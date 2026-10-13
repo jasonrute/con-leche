@@ -3,11 +3,6 @@ module
 import ConLeche.Verify.InstSpine
 public import ConLeche.Verify.InferLemmas
 public import ConLeche.Verify.ProjSlots
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import all ConLeche.Kernel.PropWhen
 
 public section
 
@@ -17,7 +12,7 @@ public section
 The projection table stores, per field, a **body**
 `F_i[p⃗ ↦ bvars, f_j ↦ .proj T j (bvar 0)]` scoped at `nP + 1`, and a
 `.proj` use instantiates it in one `instantiateList`
-(`ProjEntry.typeAt`).  The reading (`denoteMeta`) has no clause for a
+(`ProjEntry.typeAt`).  The reading (`denote`) has no clause for a
 loose `bvar`, so the proof side reads the body through a syntactic
 device: `projTele (nP + 1) body`, the body under `nP + 1` closed
 binders of domain `Sort 0`.  Its reading opens the body at fresh
@@ -25,7 +20,7 @@ variables exactly as a stored telescope's did, and the checker's
 `instantiateList` is that telescope's `instPisAt` peel along the
 arguments and the subject (`instPisAt_projTele`,
 `instPisAt_typeAt`) — so the tower law's typing clause keeps its
-`peelPis` shape (`TowerEntryLaw`, `ConLeche/Model/Annot/EnvModelM.lean`)
+`peelPis` shape (`TowerEntryLaw`, `ConLeche/Model/Env/EnvModelM.lean`)
 with the stored type replaced by the telescope over the stored body.
 The binder domains are never consumed by the peel or by the law;
 they are a syntactic carrier for the reading only.
@@ -35,11 +30,11 @@ namespace ConLeche
 
 open Expr
 
-/-- `k` closed `Sort 0` binders (bit `.never`) over `body`. -/
+/-- `k` closed `Sort 0` binders over `body`. -/
 @[expose] def projTele : Nat → Expr → Expr
   | 0, body => body
   | k + 1, body =>
-    .forallE (.sort .zero) (projTele k body) ⟨.never⟩
+    .forallE (.sort .zero) (projTele k body)
 
 theorem projTele_instantiate1 :
     ∀ (k : Nat) (body a : Expr) (c : Nat),
@@ -105,7 +100,7 @@ theorem Expr.NoProjAt.projTele (T : Name) (i : Nat) :
 
 theorem projTele_stripPis : ∀ (k : Nat) (body : Expr),
     (projTele k body).stripPis k
-      = some (List.replicate k ((.sort .zero : Expr), (⟨.never⟩ : BinderMeta)), body)
+      = some (List.replicate k (.sort .zero : Expr), body)
   | 0, _ => rfl
   | k + 1, body => by
     simp [projTele, Expr.stripPis, projTele_stripPis k body, List.replicate_succ]

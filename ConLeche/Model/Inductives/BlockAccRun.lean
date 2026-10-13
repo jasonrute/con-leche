@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.NestPosAcc
-public import ConLeche.Model.Annot.LfpAcc
+public import ConLeche.Model.Env.LfpAcc
 public import ConLeche.Model.Inductives.BlockPosRun
 import ConLeche.Model.Inductives.StructEntryKit
 
@@ -21,9 +21,6 @@ This file holds the pieces between the derivation's accessibility
 fields with holes (`d.absF`, the normal form's reading); the block
 theorems are in `BlockAccRunCont.lean`:
 
-* `teleSmall_mkPisAV`: the walked fields' values are small, from the
-  datum's hereditary grading (`FieldsOkB`) through the link
-  (`FieldsEqOn`);
 * `teleAccP_of_piAccThen`: the walked fields' accessibility moves onto
   the datum's fields (they read alike at every satisfying frame, so the
   relations under them coincide), one bound per field;
@@ -34,57 +31,18 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestHole ConstantVal BlockShape BlockParts)
 
 universe w
 
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 
-/-! ## The walked fields' values are small -/
-
-/-- **The walked fields' values are small** at every frame of the
-relation: they read like the datum's fields, whose hereditary grading
-bounds them. -/
-theorem teleSmall_mkPisAV {w : Nat} (hw : w ≠ 0) :
-    ∀ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm) (Δ : List AnnotTerm)
-      (R : FrameRel V),
-      FieldsEqOn V Δ (abD.map (·.2.2)) (abN.map (·.2.2)) →
-      (∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀) →
-      (∀ ρ ρ₀, R ρ ρ₀ → FieldsBound w ρ (abN.map (·.2.2))) →
-      TeleSmall w abD.length R (mkPisAV abD B)
-  | [], [], _, _, _, _, _, _ => trivial
-  | x :: abD, y :: abN, B, Δ, R, hE, hdom, hok => by
-    have hE' := hE
-    simp only [List.map_cons] at hE'
-    obtain ⟨h0, hrest⟩ := hE'
-    refine ⟨fun ρ ρ₀ hR a ha => ?_, ?_⟩
-    · have hok0 := hok ρ ρ₀ hR
-      simp only [List.map_cons] at hok0
-      rw [h0 ρ (hdom ρ ρ₀ hR).1] at ha
-      exact fun _ => (univ_isTGUniverse hw).transitive hok0.1 ha
-    · refine teleSmall_mkPisAV hw abD abN B (x.2.2 :: Δ) (R.underBoth x.2.2) hrest
-        (underBoth_dom hdom) ?_
-      rintro _ _ ⟨a, ρ, ρ₀, rfl, rfl, hR, ha, -⟩
-      have hok0 := hok ρ ρ₀ hR
-      simp only [List.map_cons] at hok0
-      exact hok0.2 a (h0 ρ (hdom ρ ρ₀ hR).1 ▸ ha)
-  | [], _ :: _, _, _, _, hE, _, _ => hE.elim
-  | _ :: _, [], _, _, _, hE, _, _ => hE.elim
-
-/-- **At `w = 0` every value is small** (`SmallAt 0`): nothing is asked. -/
-theorem teleSmall_zero : ∀ (n : Nat) (R : FrameRel V) (r : AnnotTerm), TeleSmall 0 n R r
-  | 0, _, _ => trivial
-  | n + 1, R, .pi _ _ A B => ⟨fun _ _ _ x _ => SmallAt.zero x, teleSmall_zero n (R.underBoth A) B⟩
-  | _ + 1, _, .bvar _ | _ + 1, _, .sort _ | _ + 1, _, .const _ _ | _ + 1, _, .app _ _
-  | _ + 1, _, .lam _ _ _ | _ + 1, _, .eqE _ _ | _ + 1, _, .fst _ | _ + 1, _, .snd _
-  | _ + 1, _, .prf => trivial
-
 /-! ## The walked accessibility onto the datum's fields -/
 
 /-- `TeleAccP` reads the bounds from field `l` on only. -/
 theorem TeleAccP.congr {w : Nat} {Af Af' : Nat → (Nat → V) → V} :
-    ∀ (Fs : List AnnotTerm) (l : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V),
+    ∀ (Fs : List Term) (l : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V),
       (∀ l', l ≤ l' → l' < l + Fs.length → Af l' = Af' l') → TeleAccP w Af l Q R Fs →
         TeleAccP w Af' l Q R Fs
   | [], _, _, _, _, _ => trivial
@@ -104,45 +62,41 @@ theorem shiftQ_congr {Q Q' : Nat → Nat → Prop} (h : ∀ i n, Q i n ↔ Q' i 
 output's non-hole positions, and the walk's result fact at the relation
 under the datum's fields. -/
 theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
-    {Qf : FrameRel V → AnnotTerm → Prop} :
-    ∀ (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm) (d l : Nat) (nds : List Expr)
-      (Δ : List AnnotTerm) (R : FrameRel V) (Q : Nat → Nat → Prop),
-      FieldsEqOn V Δ (abD.map (·.2.2)) (abN.map (·.2.2)) →
+    {Qf : FrameRel V → Term → Prop} :
+    ∀ (abD abN : List Term) (B : Term) (d l : Nat) (nds : List Expr)
+      (Δ : List Term) (R : FrameRel V) (Q : Nat → Nat → Prop),
+      FieldsEqOn V Δ (abD) (abN) →
       (∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀) →
-      (∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abN.map (·.2.2))) →
+      (∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abN)) →
       (∀ i n, HoleQ ctx prog d i n ↔ Q i n) → ctx.hiAt prog.length ≤ d →
       PiAccThen w ctx prog Qf abD.length d nds R (mkPisAV abD B) →
-      ∃ Af : Nat → (Nat → V) → V, TeleAccP w Af l Q R (abN.map (·.2.2)) ∧
+      ∃ Af : Nat → (Nat → V) → V, TeleAccP w Af l Q R (abN) ∧
         (∀ (i : Nat) (nd : Expr), i < abD.length → nds[i]? = some nd →
           InvOn (MentP ctx.nP (ctx.hiAt prog.length) (d + i) nd) (Af (l + i))) ∧
-        Qf (R.underBothTele (abN.map (·.2.2))) B
+        Qf (R.underBothTele (abN)) B
   | [], [], B, _, _, _, _, R, _, _, _, _, _, _, hP =>
     ⟨fun _ _ => empty, trivial, fun _ _ h => absurd h (Nat.not_lt_zero _), hP⟩
   | x :: abD, y :: abN, B, d, l, nds, Δ, R, Q, hE, hdom, hok, hQ, hd, hP => by
-    have hE' := hE
-    simp only [List.map_cons] at hE'
-    obtain ⟨h0, hrest⟩ := hE'
+    obtain ⟨h0, hrest⟩ := hE
     match nds, hP with
     | [], hP => exact hP.elim
     | nd :: nds', ⟨⟨Af0, hacc0, hsz0, hinv0⟩, hP'⟩ =>
-      have hUE : R.underBoth x.2.2 = R.underBoth y.2.2 := underBoth_eq_of_eqOn h0 hdom
-      have hok' : ∀ σ σ₀, R.underBoth x.2.2 σ σ₀ → w ≠ 0 →
-          FieldsBound w σ (abN.map (·.2.2)) := by
+      have hUE : R.underBoth x = R.underBoth y := underBoth_eq_of_eqOn h0 hdom
+      have hok' : ∀ σ σ₀, R.underBoth x σ σ₀ → w ≠ 0 →
+          FieldsBound w σ (abN) := by
         rintro _ _ ⟨a, ρ, ρ₀, rfl, rfl, hR, ha, -⟩ hw
         have hok0 := hok ρ ρ₀ hR hw
-        simp only [List.map_cons] at hok0
         exact hok0.2 a (h0 ρ (hdom ρ ρ₀ hR).1 ▸ ha)
       have hQ' : ∀ i n, HoleQ ctx prog (d + 1) i n ↔ shiftQ Q i n := by
         intro i n
         rw [← shiftQ_holeQ hd i n]
         exact shiftQ_congr hQ i n
       obtain ⟨Af', htele', hinv', hQf⟩ :=
-        teleAccP_of_piAccThen abD abN B (d + 1) (l + 1) nds' (x.2.2 :: Δ) (R.underBoth x.2.2)
+        teleAccP_of_piAccThen abD abN B (d + 1) (l + 1) nds' (x :: Δ) (R.underBoth x)
           (shiftQ Q) hrest (underBoth_dom hdom) hok' hQ' (by omega) hP'
       classical
       refine ⟨fun l' => if l' = l then Af0 else Af' l', ?_, ?_, ?_⟩
-      · simp only [List.map_cons]
-        refine ⟨?_, ?_, fun ρ ρ₀ hR => ?_, ?_⟩
+      · refine ⟨?_, ?_, fun ρ ρ₀ hR => ?_, ?_⟩
         · simp only
           exact AccOn.of_eqOn (P := Sat V Δ) hdom (fun ρ hρ => (h0 ρ hρ).symm)
             (AccOn.congrQ hQ hacc0)
@@ -150,8 +104,7 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
           exact hsz0
         · intro hw
           have hok0 := hok ρ ρ₀ hR hw
-          simp only [List.map_cons] at hok0
-          exact hok0.1
+          exact mem_tg_of_mem_univ hok0.1
         · rw [← hUE]
           exact TeleAccP.congr _ (l + 1) (shiftQ Q) _
             (fun l' hl' _ => by simp only [ite_eq_right (show l' ≠ l by omega)]) htele'
@@ -168,7 +121,7 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
           have := hinv' i nd' (by simpa using hi) hnd
           rwa [show d + 1 + i = d + (i + 1) by omega, show l + 1 + i = l + (i + 1) by omega]
             at this
-      · show Qf ((R.underBoth y.2.2).underBothTele (abN.map (·.2.2))) B
+      · show Qf ((R.underBoth y).underBothTele (abN)) B
         rw [← hUE]
         exact hQf
   | [], _ :: _, _, _, _, _, _, _, _, hE, _, _, _, _, _ => hE.elim
@@ -178,9 +131,9 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
 
 /-- **The result indices read alike** at two frames under a spine fitting
 the fields at both, from the walk's result fact. -/
-theorem resC_of_resultIdxConst {R : FrameRel V} {Fs : List AnnotTerm} {h : Nat}
-    {es : List AnnotTerm}
-    (hQ : ResultIdxConst (R.underBothTele Fs) (AnnotTerm.mkAppN (.bvar h) es)) :
+theorem resC_of_resultIdxConst {R : FrameRel V} {Fs : List Term} {h : Nat}
+    {es : List Term}
+    (hQ : ResultIdxConst (R.underBothTele Fs) (Term.mkAppN (.bvar h) es)) :
     ∀ ρ ρ', R ρ ρ' → ∀ fs, SpineFit ρ Fs fs → SpineFit ρ' Fs fs →
       ∀ e ∈ es, interp V (consList fs ρ) e = interp V (consList fs ρ') e := by
   obtain ⟨i, vs, heq, hvs⟩ := hQ
@@ -216,7 +169,7 @@ theorem holeRelA_accRel {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V} 
     (hhi : ctx.hiAt 0 = d.nP + d.k) (hcN : ctx.names.length = d.k)
     (hcP : ctx.nP = d.nP)
     (har : ∀ t, t < d.k → (d.toLfp.ids t ψ).length = ctx.nIdxs.getD t 0)
-    {Δa : List AnnotTerm}
+    {Δa : List Term}
     (hsat : ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       Sat V Δa (d.toLfp.frame ψ ρp X)) :
     HoleRelA m ψ (d.w ψ) ctx [] (ctx.hiAt 0) Δa (d.toLfp.accRel ψ ρp) where
@@ -232,8 +185,8 @@ theorem holeRelA_accRel {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V} 
     omega
   dsScoped := fun _ _ h => by simp at h
   symm := LfpDatum.accRel_symm
-  rich hw := RichOn.congrQ (fun i n => (holeQ_top_iff hhi hcN hcP har i n).symm)
-    (LfpDatum.accRel_rich (Nat.le_add_right _ _) hw)
+  ptFree hw := PtFreeOn.congrQ (fun i n => (holeQ_top_iff hhi hcN hcP har i n).symm)
+    (LfpDatum.accRel_ptFree (Nat.le_add_right _ _) hw)
   lrefl := by
     rintro _ _ ⟨X, Y, hX, -, rfl, -⟩
     exact LfpDatum.accRel_refl hX
@@ -276,7 +229,7 @@ theorem u4_nestOcc {ctx : NestCtx} {nF j l : Nat} {tyN rest : Expr} {xs : List E
 end Syntax
 
 /-- NoBVar of a disjunction. -/
-theorem noBVar_or {P₁ P₂ : Nat → Prop} {e : AnnotTerm} (h₁ : NoBVar P₁ e) (h₂ : NoBVar P₂ e) :
+theorem noBVar_or {P₁ P₂ : Nat → Prop} {e : Term} (h₁ : NoBVar P₁ e) (h₂ : NoBVar P₂ e) :
     NoBVar (fun i => P₁ i ∨ P₂ i) e := by
   have := noBVar_exists' (α := Bool) (P := fun b i => if b then P₁ i else P₂ i) (e := e)
     fun b => by cases b <;> simpa

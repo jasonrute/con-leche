@@ -33,7 +33,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape TargetMajor FEnv mkFEnv
   NestCtx NestKey)
 
@@ -57,7 +57,7 @@ theorem genOutParamsLen {envC : Env} {mpC : EnvModelM V μ envC} (hcov : LfpCove
     obtain ⟨-, -, -, -, hlen, -⟩ := (hcov.own D hcl.hD).noCtors mm hcl.hmm M.nPc hnc
     exact hlen _
   · have h0 : 0 < M.ctors.length := List.length_pos_iff.mpr hL
-    obtain ⟨-, -, -, hcrd⟩ := mpC.lfp_ok D hcl.hD
+    obtain ⟨-, -, -, hcrd, -⟩ := mpC.lfp_ok D hcl.hD
     obtain ⟨cv0, nPc0, nF0, hf0, -, -, -, _A, -, -, hread0⟩ :=
       hcrd.2 mm hcl.hmm 0 (by rw [← hcl.hlen]; exact h0)
     rw [hcl.hctor 0 h0] at hf0
@@ -84,7 +84,7 @@ theorem genOutIdxLen {envC : Env} {mpC : EnvModelM V μ envC}
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
   generalize hψ : Level.substFn ψ cvI.levelParams M.lvls = ψ' at hlenP ⊢
-  obtain ⟨ab, hta, hmap, -⟩ := hab ψ'
+  obtain ⟨ab, hta, hmap⟩ := hab ψ'
   have hc := instPis_count_of_read hta cvI.levelParams M.lvls hty hs
   have hpl := hC.parsLen mm hcl.hmm ψ'
   have habl : ab.length = (D.pars mm ψ').length + (D.ids mm ψ').length := by
@@ -103,7 +103,7 @@ theorem TgtOutCls.tailOk {envC : Env} {mpC : EnvModelM V μ envC}
   obtain ⟨cv₂, caps₂, hf₂, hab⟩ := hrd mm hcl.hmm
   rw [hcl.hmem, hfI] at hf₂
   obtain ⟨rfl, rfl⟩ : cvI = cv₂ ∧ caps = caps₂ := by simpa using hf₂
-  obtain ⟨ab, hta, -, -⟩ := hab (fun _ => 0)
+  obtain ⟨ab, hta, -⟩ := hab (fun _ => 0)
   exact tailOk_of_read _ _ rfl hta
 
 /-- **The walk's index count of a container instance is the class

@@ -20,7 +20,7 @@ every `.proj` node (`ProjSlotsOk`), hence no `.proj` node at an EMPTY
 slot (`inferTypeCore_noProjAt`).
 
 This is the source of the stored-term fact `NoProjAt` for a term
-stored WITHOUT an annotation pass but checked by a full inference —
+stored as generated and checked by a full inference —
 the generated recursor types and rules (`classConstOk`, the rule
 records' `htyR`).  It needs no environment invariant: inference never
 reads a slot's contents into its subject, only its presence.
@@ -49,11 +49,11 @@ theorem ProjSlotsOk.of_instantiate1 {v : Expr} :
     intro d h
     rw [Expr.instantiate1, projSlotsOk_app] at h
     exact projSlotsOk_app.mpr ⟨ihf d h.1, iha d h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d h
     rw [Expr.instantiate1, projSlotsOk_lam] at h
     exact projSlotsOk_lam.mpr ⟨ihty d h.1, ihb (d + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d h
     rw [Expr.instantiate1, projSlotsOk_forallE] at h
     exact projSlotsOk_forallE.mpr ⟨ihty d h.1, ihb (d + 1) h.2⟩
@@ -85,25 +85,32 @@ theorem inferTypeCore_projSlotsOk {env : Env} :
     | lit l => simp
     | fvar idx ty => exact projSlotsOk_fvar.mpr (fvarTysOk_fvar.mp hf)
     | app f a =>
-      obtain ⟨tf, -, -, -, h1, -, -, ta, h2, -⟩ := inferTypeCore_app_inv h
+      obtain ⟨tf, -, -, h1, -, -, ta, h2, -⟩ := inferTypeCore_app_inv h
       rw [fvarTysOk_app] at hf
       exact projSlotsOk_app.mpr
         ⟨inferTypeCore_projSlotsOk fuel h1 hf.1, inferTypeCore_projSlotsOk fuel h2 hf.2⟩
-    | lam ty body m =>
+    | lam ty body =>
       obtain ⟨tty, -, bt, h1, -, h2, -⟩ := inferTypeCore_lam_inv h
       rw [fvarTysOk_lam] at hf
       have hty := inferTypeCore_projSlotsOk fuel h1 hf.1
       have hb := inferTypeCore_projSlotsOk fuel h2
         (FvarTysOk.instantiate1 (fvarTysOk_fvar.mpr hty) body 0 hf.2)
       exact projSlotsOk_lam.mpr ⟨hty, ProjSlotsOk.of_instantiate1 body 0 hb⟩
-    | forallE ty body m =>
+    | forallE ty body =>
       obtain ⟨tty, -, bt, -, h1, -, h2, -⟩ := inferTypeCore_forall_inv h
       rw [fvarTysOk_forallE] at hf
       have hty := inferTypeCore_projSlotsOk fuel h1 hf.1
       have hb := inferTypeCore_projSlotsOk fuel h2
         (FvarTysOk.instantiate1 (fvarTysOk_fvar.mpr hty) body 0 hf.2)
       exact projSlotsOk_forallE.mpr ⟨hty, ProjSlotsOk.of_instantiate1 body 0 hb⟩
-    | letE ty v b => exact (inferTypeCore_letE_inv h).elim
+    | letE ty v b =>
+      obtain ⟨tty, -, tv, h1, -, h2, -, h3⟩ := inferTypeCore_letE_inv h
+      rw [fvarTysOk_letE] at hf
+      have hty := inferTypeCore_projSlotsOk fuel h1 hf.1
+      have hv := inferTypeCore_projSlotsOk fuel h2 hf.2.1
+      have hb := inferTypeCore_projSlotsOk fuel h3
+        (FvarTysOk.instantiate1 hf.2.1 b 0 hf.2.2)
+      exact projSlotsOk_letE.mpr ⟨hty, hv, ProjSlotsOk.of_instantiate1 b 0 hb⟩
     | proj sn i pe =>
       obtain ⟨tpe, -, T, -, entry, h1, -, -, hent, -, -, -, -, hT⟩ := inferTypeCore_proj_inv h
       subst hT

@@ -12,8 +12,9 @@ public section
 
 The five bridges at every fuel: one mutual fuel induction, the shape
 of `checkSoundAtP5`'s (`Model/Rules/Recompose.lean`), with the zero cases
-from `Defs` and the step from the three lane files.  Proved, and so
-is everything it consumes: the branch carries no `sorry`.
+from `Defs` and the step from the three lane files.  The step's
+λ-congruence and η arms wait for the checker's body-type runs (task #342
+S4, L-ck; the S4 ledger).
 -/
 
 namespace ConLeche.Rules
@@ -33,9 +34,9 @@ theorem bridge (env : Env) :
       infer_bridge_zero, inferIO_bridge_zero⟩
   | succ fuel ih =>
     obtain ⟨hwc, hw, hd, hi, hio⟩ := ih
-    exact ⟨whnfCore_bridge_succ hwc hw hd hio, whnf_bridge_succ hwc hw,
-      defeq_bridge_succ hwc hw hd hio, infer_bridge_succ hw hd hi hio,
-      inferIO_bridge_succ hw hd hio⟩
+    exact ⟨whnfCore_bridge_succ hwc hw hd hi hio, whnf_bridge_succ hwc hw,
+      defeq_bridge_succ hwc hw hd hi hio, infer_bridge_succ hw hd hi,
+      inferIO_bridge_succ hw hio⟩
 
 theorem whnfCore_bridge {fuel d : Nat} {e e' : Expr}
     (h : whnfCore .verified env fuel d e = .ok e') : Red env d e e' :=

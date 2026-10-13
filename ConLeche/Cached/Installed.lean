@@ -17,16 +17,16 @@ together with the proof that `checkDecls` returns it
 (`fullyChecked_checkDecls`).  The fold separates INSTALLING a
 declaration from CHECKING it:
 
-* **Phase A** folds `annotDeclStep` over the parsed records: a
-  `defn`/`opaque` record is annotated and INSTALLED without its
-  inference — the syntactic guards and the annotation of its type and
-  value run, the constant is pushed — and a `thm` record is installed
-  BY STATEMENT: its header alone is annotated and the constant pushed
+* **Phase A** folds `installDeclStep` over the parsed records: a
+  `defn`/`opaque` record is INSTALLED without its inference — the
+  syntactic guards of its type and value run, the constant is pushed —
+  and a `thm` record is installed BY STATEMENT: its header alone is
+  guarded and the constant pushed
   with its statement only (a stored theorem carries no value: it is
   opaque to reduction), so phase A never enters a theorem's body;
   either way a `PendingCheck` records the datum the check needs
-  (`ValueGroup`, `ConLeche/Kernel/CheckerSplit.lean` — the annotated
-  value of a definition or opaque, the raw value of a theorem) together
+  (`ValueGroup`, `ConLeche/Kernel/CheckerSplit.lean` — the value of
+  a definition or opaque, the raw value of a theorem) together
   with the environment counter the declaration was installed at
   (`fe.visibleBelow`, task #108).  Every other kind — axioms,
   inductive and basis blocks, and the pinned `Nat`-operation and
@@ -42,7 +42,7 @@ declaration from CHECKING it:
   `fe.restrictTo vis` (`FEnv.restrictTo`: an `O(1)` field update whose
   `find?` is the lookup in the environment truncated to the first
   `vis` constants, `mkFEnv_find?_visibleBelow`), each from a FRESH memo
-  state — a theorem's value is annotated here, at the view, before it
+  state — a theorem's value is guarded here, at the view, before it
   is inferred: `GroupChecked e i` says record `i`'s check succeeded.  It reads
   the installed environment, record `i`, and nothing else — a
   proposition workers can establish independently of one another.
@@ -53,7 +53,7 @@ declaration from CHECKING it:
   `checkDecls_fullyChecked` that every accept yields one.
 
 **THE PIN LIST IS A PARAMETER** (task #304).  Every function of this
-fold — `checkDecls`, `annotDeclStep`, `annotStepC` and, below them,
+fold — `checkDecls`, `installDeclStep`, `installStepC` and, below them,
 `checkDeclStepC`/`checkDeclC` and the `Expr`-level `checkDecl` — takes
 the list of `Nat.div`/`Nat.mod` pin variants its install gate tries,
 uniformly as its SECOND argument, right after `mode`; so do the types
@@ -68,7 +68,7 @@ reads which list the matched variant came from.
 Nothing here is `IO`: the driver's loops in `ConLeche/Driver/*` run these
 steps and carry their accepting runs as the proofs the subtypes ask
 for.  A rejection carries the FOLD POSITION of the declaration it
-names (`annotDeclStep` tags its error with the position, a phase-B
+names (`installDeclStep` tags its error with the position, a phase-B
 failure with `PendingCheck.pos`), so the driver reports the
 declaration by indexing the record array it already holds, with no
 second pass.
@@ -91,10 +91,10 @@ structure PendingCheck where
   pos : Nat
   vis : Nat
 
-/-- `checkConstantValC` minus its inference: the syntactic guards and
-the annotation of the type — `installConstantVal`'s cached twin. -/
-def annotConstantValC (fe : FEnv) (cv : ConstantVal) :
-    CheckCM (ConstantVal × Expr) := do
+/-- `checkConstantValC` minus its inference: the header's syntactic
+guards — `installHeader`'s cached twin. -/
+def installHeaderC (fe : FEnv) (cv : ConstantVal) :
+    CheckCM Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -107,76 +107,68 @@ def annotConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if Expr.hasFvar cv.type then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let jty ← (coreKnotI mode fe checkFuel).annotate 0 cv.type
-  unless Expr.allLevelParamsDefinedC cv.levelParams jty do
+  unless Expr.allLevelParamsDefinedC cv.levelParams cv.type do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless constsResolveFC fe jty do
-    throw (unresolvedConstsError s!"type of {cv.name}" jty)
-  pure (⟨cv.name, cv.levelParams, jty⟩, jty)
+  unless constsResolveFC fe cv.type do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
 
-/-- The value half of `checkDefnValC`/`checkThmValC`/`checkOpaqueValC`
-minus its inference: the guards and the annotation —
-`installValue`'s cached twin. -/
-def annotValC (fe : FEnv) (cvA : ConstantVal) (value : Expr) : CheckCM Expr := do
+/-- The value's syntactic guards (those of `checkDefnValCI`, without its
+inference) — `installValueGuards`'s cached twin. -/
+def installValueGuardsC (fe : FEnv) (cv : ConstantVal) (value : Expr) : CheckCM Unit := do
   unless Expr.looseBVarsBounded 0 value do
-    throw (.invalid s!"loose bound variable in value of {cvA.name}")
+    throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
-    throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
-  unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
-    throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
-  unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
-  pure jv
+    throw (.invalid s!"unexpected free variable in value of {cv.name}")
+  unless Expr.allLevelParamsDefinedC cv.levelParams value do
+    throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
+  unless constsResolveFC fe value do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cv.name}" value)
 
-/-- Phase A's install of a separable value declaration: the
-per-declaration flush, then the header's and the value's install halves;
-returns the header with its annotated type, that type, and the
-annotated value. -/
-def annotValueC (fe : FEnv) (cv : ConstantVal) (value : Expr) :
-    CheckCM (ConstantVal × Expr × Expr) := do
+/-- Phase A's guards of a separable value declaration: the
+per-declaration flush, then the header's and the value's guards. -/
+def installGuardsC (fe : FEnv) (cv : ConstantVal) (value : Expr) :
+    CheckCM Unit := do
   flushC
-  let (cvA, jty) ← annotConstantValC mode fe cv
-  let jv ← annotValC mode fe cvA value
-  pure (cvA, jty, jv)
+  installHeaderC fe cv
+  installValueGuardsC fe cv value
 
-/-- Phase A's step body: annotate-and-install for the three value
+/-- Phase A's step body: guard-and-install for the three value
 kinds, the ordinary step `checkDeclStepC` for everything else.  `i` is
 the fold position the record is tagged with.  (The continuations read
 the install's result by projection, so that the statements about this
 function match it syntactically.) -/
-def annotStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
+def installStepC (pins : List NatOpPinSet) (i : Nat) (fe : FEnv)
     (pend : Array PendingCheck) :
     Declaration → CheckCM (FEnv × Array PendingCheck)
   | .defnDecl cv value hint =>
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then do
       pure (← checkDeclStepC mode pins fe (.defnDecl cv value hint), pend)
     else do
-      let r ← annotValueC mode fe cv value
+      installGuardsC fe cv value
       -- RC linearity: the counter is read BEFORE the push, so that
       -- `fe` reaches `push` unshared (read after it, the push copies
       -- the whole index at every install)
       let vis := fe.visibleBelow
-      pure (fe.push (.defnInfo r.1 r.2.2 hint),
-        pend.push ⟨⟨.defn, r.1, r.2.2⟩, i, vis⟩)
+      pure (fe.push (.defnInfo cv value hint),
+        pend.push ⟨⟨.defn, cv, value⟩, i, vis⟩)
   | .thmDecl cv value => do
     -- a theorem installs BY STATEMENT: the header's install half
     -- only; the value is recorded raw and never touched here (phase B
-    -- annotates it, `checkPending`), so phase A never enters a
+    -- guards it, `checkPending`), so phase A never enters a
     -- theorem's body
     flushC
-    let r ← annotConstantValC mode fe cv
+    installHeaderC fe cv
     let vis := fe.visibleBelow
-    pure (fe.push (.thmInfo r.1),
-      pend.push ⟨⟨.thm, r.1, value⟩, i, vis⟩)
+    pure (fe.push (.thmInfo cv),
+      pend.push ⟨⟨.thm, cv, value⟩, i, vis⟩)
   | .opaqueDecl cv value =>
     if reduceOpNames.contains cv.name then do
       pure (← checkDeclStepC mode pins fe (.opaqueDecl cv value), pend)
     else do
-      let r ← annotValueC mode fe cv value
+      installGuardsC fe cv value
       let vis := fe.visibleBelow
-      pure (fe.push (.axiomInfo r.1),
-        pend.push ⟨⟨.opaque, r.1, r.2.2⟩, i, vis⟩)
+      pure (fe.push (.axiomInfo cv),
+        pend.push ⟨⟨.opaque, cv, value⟩, i, vis⟩)
   | pd => do
     pure (← checkDeclStepC mode pins fe pd, pend)
 
@@ -194,16 +186,16 @@ by the ordinary installer, and the stuck-proof rescue that serves it
 the fold's step, ahead of the kind dispatch, because it is one rule
 over every kind of record; the soundness proofs never read it (the
 rescue is sound for any `And`), so `checkDecl` does not repeat it. -/
-def annotDeclStep (pins : List NatOpPinSet)
+def installDeclStep (pins : List NatOpPinSet)
     (p : Nat × FEnv × Array PendingCheck) (pd : Declaration) :
     Except (CheckError × Nat) (Nat × FEnv × Array PendingCheck) :=
   if andPinOk pd then
-    match annotStepC mode pins p.1 p.2.1 p.2.2 pd {} with
+    match installStepC mode pins p.1 p.2.1 p.2.2 pd {} with
     | .ok ((fe', pend'), _) => .ok (p.1 + 1, fe', pend')
     | .error e => .error (e, p.1)
   else .error (.invalid "`And` must be the standard `And`", p.1)
 
-/-- **Phase A's accepting run**: a chain of accepting `annotDeclStep`s
+/-- **Phase A's accepting run**: a chain of accepting `installDeclStep`s
 over the records, from an accumulator to the final one.  A loop builds
 it step by step, whatever else it does between the steps.  (No memo
 state crosses a step: every record is installed from a fresh one.) -/
@@ -213,22 +205,22 @@ inductive InstallRun (pins : List NatOpPinSet) :
   | nil (p : Nat × FEnv × Array PendingCheck) :
       InstallRun pins [] p p
   | cons {pd : Declaration} {ds : List Declaration} {p p₁ p' : Nat × FEnv × Array PendingCheck}
-      (h : annotDeclStep mode pins p pd = .ok p₁)
+      (h : installDeclStep mode pins p pd = .ok p₁)
       (rest : InstallRun pins ds p₁ p') :
       InstallRun pins (pd :: ds) p p'
 
 /-- The tagged step's accept is the body's accept at the next position,
 from a fresh memo state. -/
-theorem annotDeclStep_ok {mode : CheckMode} {pins : List NatOpPinSet}
+theorem installDeclStep_ok {mode : CheckMode} {pins : List NatOpPinSet}
     {p : Nat × FEnv × Array PendingCheck}
     {pd : Declaration} {q : Nat × FEnv × Array PendingCheck}
-    (h : annotDeclStep mode pins p pd = .ok q) :
+    (h : installDeclStep mode pins p pd = .ok q) :
     ∃ fe' pend' s', q = (p.1 + 1, fe', pend') ∧
-      annotStepC mode pins p.1 p.2.1 p.2.2 pd {} = .ok ((fe', pend'), s') := by
-  unfold annotDeclStep at h
+      installStepC mode pins p.1 p.2.1 p.2.2 pd {} = .ok ((fe', pend'), s') := by
+  unfold installDeclStep at h
   split at h
   case isFalse => exact nomatch h
-  cases hs : annotStepC mode pins p.1 p.2.1 p.2.2 pd {} with
+  cases hs : installStepC mode pins p.1 p.2.1 p.2.2 pd {} with
   | error e => rw [hs] at h; exact nomatch h
   | ok r =>
     obtain ⟨⟨fe', pend'⟩, s₁⟩ := r
@@ -242,7 +234,7 @@ theorem InstallRun.snoc {pins : List NatOpPinSet} {ds : List Declaration}
     {p p' : Nat × FEnv × Array PendingCheck}
     (h : InstallRun mode pins ds p p') {pd : Declaration}
     {p₁ : Nat × FEnv × Array PendingCheck}
-    (hstep : annotDeclStep mode pins p' pd = .ok p₁) :
+    (hstep : installDeclStep mode pins p' pd = .ok p₁) :
     InstallRun mode pins (ds ++ [pd]) p p₁ := by
   induction h with
   | nil p => exact .cons hstep (.nil _)
@@ -267,18 +259,17 @@ the cached core at the view. -/
 def checkPending (fe : FEnv) (pc : PendingCheck) : CheckCM Unit := do
   flushC
   let fe := fe.restrictTo pc.vis
-  let jsty ← (coreKnotI mode fe checkFuel).infer 0 pc.vg.cvA.type
+  let jsty ← (coreKnotI mode fe checkFuel).infer 0 pc.vg.cv.type
   let u ← opSIxC mode fe 0 jsty
-  let jv ← if pc.vg.kind = .thm then do
+  if pc.vg.kind = .thm then do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
-        throw (.invalid s!"type of theorem {pc.vg.cvA.name} is not a proposition")
-      -- a theorem's value arrives raw: its guards and annotation run
-      -- here, at the view (`annotValC` — `installValue`'s twin)
-      annotValC mode fe pc.vg.cvA pc.vg.jv
-    else pure pc.vg.jv
-  let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt pc.vg.cvA.type do
-    throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cvA.name}")
+        throw (.invalid s!"type of theorem {pc.vg.cv.name} is not a proposition")
+      -- a theorem's value arrives raw: its guards run
+      -- here, at the view (`installValueGuardsC` — `installValueGuards`'s twin)
+      installValueGuardsC fe pc.vg.cv pc.vg.jv
+  let jvt ← (coreKnotI mode fe checkFuel).infer 0 pc.vg.jv
+  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt pc.vg.cv.type do
+    throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cv.name}")
 
 /-- **In a properly installed environment, record `i` has been
 checked**: its check against the prefix view, from a fresh memo state,
@@ -452,7 +443,7 @@ the input's LINE number (`ConLeche/Frontend/Export.lean`). -/
 def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
     (ds : Array Declaration) :
     Except (CheckError × Nat) Env := do
-  let p ← ds.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[])
+  let p ← ds.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[])
   checkPendingList mode p.2.1 p.2.2.toList
   pure p.2.1.env
 
@@ -460,7 +451,7 @@ def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
 theorem InstallRun.foldlM {pins : List NatOpPinSet} {ds : List Declaration}
     {p p' : Nat × FEnv × Array PendingCheck}
     (h : InstallRun mode pins ds p p') :
-    ds.foldlM (annotDeclStep mode pins) p = .ok p' := by
+    ds.foldlM (installDeclStep mode pins) p = .ok p' := by
   induction h with
   | nil p => rfl
   | cons hstep _ ih =>
@@ -472,7 +463,7 @@ theorem InstallRun.foldlM {pins : List NatOpPinSet} {ds : List Declaration}
 theorem InstallRun.of_foldlM {pins : List NatOpPinSet} :
     ∀ (ds : List Declaration) (p : Nat × FEnv × Array PendingCheck)
       {p' : Nat × FEnv × Array PendingCheck},
-      ds.foldlM (annotDeclStep mode pins) p = .ok p' →
+      ds.foldlM (installDeclStep mode pins) p = .ok p' →
       InstallRun mode pins ds p p'
   | [], p, p', h => by
     simp only [List.foldlM_nil, pure, Except.pure, Except.ok.injEq] at h
@@ -481,7 +472,7 @@ theorem InstallRun.of_foldlM {pins : List NatOpPinSet} :
   | pd :: ds, p, p', h => by
     rw [List.foldlM_cons] at h
     simp only [Bind.bind] at h
-    cases hstep : annotDeclStep mode pins p pd with
+    cases hstep : installDeclStep mode pins p pd with
     | error e => simp only [hstep, Except.bind] at h; exact nomatch h
     | ok p₁ =>
       simp only [hstep, Except.bind] at h
@@ -547,7 +538,7 @@ theorem checkDecls_fullyChecked {pins : List NatOpPinSet} {ds : Array Declaratio
     ∃ fc : FullyChecked mode pins ds.toList, fc.env = env := by
   unfold checkDecls at h
   rw [← Array.foldlM_toList] at h
-  cases hrun : ds.toList.foldlM (annotDeclStep mode pins) (0, mkFEnv Env.empty, #[]) with
+  cases hrun : ds.toList.foldlM (installDeclStep mode pins) (0, mkFEnv Env.empty, #[]) with
   | error e => rw [hrun] at h; exact nomatch h
   | ok r =>
     obtain ⟨n, fe, pend⟩ := r

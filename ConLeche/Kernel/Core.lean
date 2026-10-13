@@ -13,7 +13,7 @@ Every core function is written **once**, as a non-recursive *body*
 parameterized over a record of the mutually recursive entry points
 (`CoreFns`) and polymorphic in the monad.  All recursion is routed
 through the record — bodies never call themselves, and the few helpers
-that do recurse (`iotaCerts`, `defEqList`, `structEtaProjCerts`) do so
+that do recurse (`iotaCertsFull`, `defEqList`) do so
 structurally on a list.  Fuel lives only in the *knots* that tie the
 record: the pure knot (`ConLeche.Kernel.TypeChecker`) instantiates the
 bodies at `CheckM` and is the verification's subject; the cached knot
@@ -25,11 +25,11 @@ The reduction loop follows the official kernel (`whnfCore` never
 delta-unfolds; `whnf` iterates `whnfCore → reduceNat → unfold one
 definition`), and definitional equality starts with the syntactic fast
 path and tries proof irrelevance before structural congruence.
-Inference re-checks the application argument and the λ-annotation: the
-soundness claims re-derive their membership slots from those checks at
-their own fuel.  The official kernel's *infer-only* mode is deferred
-until the refinement bridge's fuel-determinism machinery lands
-(DESIGN.md).
+Inference comes at two grades, as in the official kernel: the full
+grade (`inferBody`) checks application arguments, λ domains and `let`
+values; the infer-only grade (`inferBodyIO`, the knot's `inferIO`
+slot) re-derives a type without those checks and is what reduction and
+definitional equality call on their own intermediate terms.
 
 Verification: `ConLeche.Model.*` and `ConLeche.Verify.*` (claims),
 `ConLeche.Verify.*` (inversions), both stated against the bodies with
@@ -39,7 +39,7 @@ knot.
 The core's **fuel-free helpers** — everything a body reads that
 mentions no monad, no record and no fuel (`unfoldDefinition`, the
 literal guards, the certified `Nat` operations' tables, the η
-fabrications, the install-time rule bits, `betaGateFires`, …) — live
+fabrications, the install-time rule bits, …) — live
 in `ConLeche/Kernel/CoreDefs.lean` since task #305 (prep) and are
 re-exported here, so that a relational description of the core's
 moves can name them without importing the bodies.
@@ -87,13 +87,11 @@ positively detected unsupported feature and the run DECLINES, at the
 record that uses it.  Every other unresolved name is a malformed
 stream: a REJECT, with the message unchanged.
 
-This is the choke point, because the guard that keeps unresolved
-constants out of stored terms (`Expr.constsResolve`) runs *after* the
-annotation pass, and annotation infers every binder domain's sort —
-so a `sorryAx` in a domain reaches inference first.  Its companion
-`unresolvedConstsError` (`ConLeche/Kernel/CheckerBase.lean`) decides
-the same question at the guard, for the `sorryAx` occurrences
-inference never reaches. -/
+This decides the question wherever inference meets the constant
+first.  Its companion `unresolvedConstsError`
+(`ConLeche/Kernel/CheckerBase.lean`) decides the same question at the
+guard that keeps unresolved constants out of stored terms
+(`Expr.constsResolve`). -/
 def unknownConstError (n : Name) : CheckError :=
   if n = sorryAxName then .notImplemented "use of the sorryAx axiom"
   else .invalid s!"unknown constant {n}"
@@ -144,29 +142,18 @@ def projMissError (find? : Name → Option ConstantInfo) (hasTable : Bool)
 computes a head normal form without delta — its first argument is the
 official kernel's `cheap_proj` flag (`whnfCoreBody`); `whnf` is the full reduction
 loop; `infer` is type inference;
-`defeq` is definitional equality; `annotate` computes binder
-annotations (and is the one place typing is checked). -/
+`defeq` is definitional equality; `inferIO` is inference at the
+infer-only grade. -/
 structure CoreFns (m : Type → Type u) where
   whnfCore : Bool → Nat → Expr → m Expr
   whnf : Nat → Expr → m Expr
   infer : Nat → Expr → m Expr
   defeq : Nat → Expr → Expr → m Bool
-  annotate : Nat → Expr → m Expr
   /-- Type inference at the **infer-only grade** (task #170): the
   official kernel's `infer_type_core(e, infer_only = true)`, the entry
-  every *internal* inference call site uses — a subject that already
-  carries a validated annotation invariant (`WellDenotedV` in the P
-  claims) is re-inferred without re-establishing it.  The knot decides
-  the grade's meaning per mode: at a gate-off mode (`μ.betaGate =
-  false`) this is the full `infer`, verbatim (the flag is ignored,
-  task #170's R clause); at the gated mode (`.verified`, the P core)
-  it is the io body, whose application clause skips the per-argument
-  certificate at a `.never` binder under the graph-regime license
-  (`ConLeche/Model/IOLicense.lean`).  The **shipped** trusted core
-  selects the io body too (`CheckMode.ioGate` is `true` at both
-  modes, the licence ruling of 2026-09-06); this mode-parametric
-  spelling is not the thing that ships, so `μ.betaGate` here stays the
-  P tier's own bit, and the two agree at `.verified`. -/
+  every *internal* inference call site uses: the io body
+  (`inferBodyIO`), which checks no application argument and no λ
+  domain (task #346: its claim is hereditary on the type's syntax). -/
   inferIO : Nat → Expr → m Expr
 
 /-- The **io-grade view** of a core record: the record whose full-grade
@@ -253,39 +240,22 @@ def reduceNat (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
     else pure none
   | _ => pure none
 
-/-- Certify a spine against a recursor telescope: each argument's
-inferred type is defeq to the corresponding (instantiated) domain.
-This is what hands the soundness proof the memberships the iota
-equations need, at every level assignment.
 
-**The ι-slot licence** (the ι batch, 2026-09-05; DESIGN.md "THE ι
-AUDIT" §9.1): at a *licensed* walk (`lic = true`, set only by
-`iotaRec`'s two calls — the fire-time telescope runs, where the redex
-is a subterm of the subject and carries its own `WellDenoted` app slots)
-a slot whose `∀`-binder datum is `.never` is skipped: the membership
-the run would establish follows from the slot and the head's
-membership in the telescope's reading (`io_domain_transfer`,
-`Model/IOLicense.lean`, consumed by `Certs.skip_sound` in
-`Model/Rules/CertsSound.lean`).  The rescue's
-synthetic-spine certifications (`majorToCtor`, the η/unit/K
-fabrications) run at `lic = false`: a fabricated spine is not a
-subterm of the subject and its grading is *produced* by this very
-run, so gating it would be circular.  The fence is
-`io_squash_no_transfer`'s witness: at a possibly-zero datum the skip
-is unsound model-class-wide, so the licensed fragment is exactly
-`.never`. -/
-def iotaCerts (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool) :
+/-- **The full-grade telescope certificate** (task #342 L10, ι's case
+3): every argument is inferred at the FULL grade, which establishes
+its invariant, and its type is compared with its domain; no slot is
+skipped.  The constructor spine of a case-3 redex is not a subterm of
+the redex: at a valuation where the family is `Prop` the reduced major
+is the point, its reduction says nothing, and only this run grades
+its fields and puts them in their domains. -/
+def iotaCertsFull (r : CoreFns m) (env : Env) (depth : Nat) :
     Expr → List Expr → m Bool
   | _, [] => pure true
-  | .forallE ty body mb, arg :: rest =>
-    if lic && mb.pw.isNever then
-      iotaCerts r env depth lic (body.instantiate1 arg) rest
-    else do
-      -- task #172 B4: the spine certificate's inference at the io grade
-      let ta ← r.inferIO depth arg
-      if ← r.defeq depth ta ty then
-        iotaCerts r env depth lic (body.instantiate1 arg) rest
-      else pure false
+  | .forallE ty body, arg :: rest => do
+    let ta ← r.infer depth arg
+    if ← r.defeq depth ta ty then
+      iotaCertsFull r env depth (body.instantiate1 arg) rest
+    else pure false
   | _, _ :: _ => pure false
 
 /-- Pairwise definitional equality of two spines (used to check a
@@ -320,7 +290,7 @@ def iotaIndexOk (r : CoreFns m) (env : Env) (depth : Nat) (mI rP cnP : Nat)
 /-- Proof irrelevance certification: both sides' types' *sorts* are
 `Prop`.  In the model everything inhabiting a proposition is the proof
 point, so any two such terms are equal — no common-type check is needed: soundness holds
-without it, and the annotation-first discipline (every subterm is
+without it, and the check-first discipline (every subterm is
 checked before definitional equality compares it; congruence compares
 argument pairs only after the earlier arguments matched) makes a
 heterogeneous comparison unreachable, so the official kernel's check is
@@ -352,14 +322,14 @@ arms, **in both modes** (user ruling, 2026-09-06: the fast readers are
 part of the real checker, and the trusted mode is the real checker
 with certification-only work omitted — a reader that replaces
 inference is not certification-only work).  The **"not a proof" arm**:
-a side whose annotation datum says "not a proposition" refuses the
+a side whose head-symbol datum says "not a proposition" refuses the
 shortcut outright (`notProofFast`, `ConLeche/Kernel/PropRead.lean`).
 Refusing is always sound — the P row is stated at `.ok true` — and the
 arm's obligation is *agreement* with the slow path, recorded by the
 landing census (DESIGN.md, task #168: 0 disagreements in 7.5 M calls).
-The **"yes" arm** (`isProofFast` on both sides → `true`) is the
-squash-regime licence, stage 3 of the same design
-(`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`), which the
+The **"yes" arm** (`isProofFast` on both sides → `true`) is
+justified by the squash regime, stage 3 of the same design
+(`prf_of_isProofFast`, `ConLeche/Model/Rules/ProofFastSound.lean`), which the
 verified mode's `DefEq.proofFast` rule consumes; the trusted mode is unverified and
 inherits the arm without a row, as it inherits every other body. -/
 def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
@@ -367,9 +337,9 @@ def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
   if notProofFast env.find? a || notProofFast env.find? b then
     pure false
   else if isProofFast env.find? a && isProofFast env.find? b then
-    -- the yes arm (task #168 stage 3): both heads' validated data say
-    -- "a proposition at every valuation" — the squash-regime licence
-    -- (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`)
+    -- the yes arm (task #168 stage 3): both heads' data say
+    -- "a proposition at every valuation" — justified by the squash
+    -- regime (`prf_of_isProofFast`, `ConLeche/Model/Rules/ProofFastSound.lean`)
     pure true
   else
   -- task #172 B4: every inference here is at the io grade
@@ -385,35 +355,8 @@ def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | _ => pure false
   | _ => pure false
 
-/-- The per-projection telescope certificates of a structural eta
-certification at a **projection-function** slot family: for every field
-index, the installed projection function's
-telescope is certified against the type's arguments and the stuck
-side.  A tower-backed family (the direct install's table, task #175
-S1) has no per-field telescope and needs no certificate: its η law
-(`TowerEtaLaw`) is keyed on the family's typing of the stuck side,
-which the caller already holds. -/
-def structEtaProjCerts (r : CoreFns m) (env : Env) (depth : Nat)
-    (T : Name) (us' : List Level) (targs : List Expr) (b : Expr)
-    (lpsT : List Name) : List Nat → m Bool
-  | [] => pure true
-  | i :: rest => do
-    match env.find? (projFnName T i) with
-    | some (.recInfo cvp _ _ _) =>
-      if cvp.levelParams = lpsT ∧
-          (cvp.type.stripPis (targs.length + 1)).isSome = true then
-        if ← iotaCerts r env depth false
-            (cvp.type.instantiateLevelParams cvp.levelParams us')
-            (targs ++ [b]) then
-          structEtaProjCerts r env depth T us' targs b lpsT rest
-        else pure false
-      else pure false
-    | _ => pure false
-
-/-- The structure-eta certificate against a *given* weak-head-normal
-type of the stuck side (callers that already reduced it — the
-stuck-major rescue — pass their own copy, so the certificate's facts
-are in terms of that expression). -/
+/-- The structure-eta certificate against the weak-head-normal type
+`wtb` of the stuck side `b` (`structEtaCert` below reduces it). -/
 def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
     (a b wtb : Expr) : m Bool := do
   match a.getAppFn with
@@ -436,45 +379,19 @@ def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
                 -- `EnvWF`'s `IndCapsWF` clause: established at the
                 -- block's install, read by the η row from the
                 -- invariant
-                -- the slot discipline (task #175 W4c): one entry kind
-                (towerSlotsAll env T caps.etaFields ||
-                  recSlotsAll env T caps.etaFields) = true then
+                -- the slot discipline: every field slot has a
+                -- projection-table entry (a fieldless family trivially)
+                towerSlotsAll env T caps.etaFields = true then
               if ← liftFueled "level comparison"
                   (Level.isEquivList us us') then
-                if ← iotaCerts r env depth false
-                    (cvT.type.instantiateLevelParams cvT.levelParams
-                      us') wtb.getAppArgs then
-                  -- the per-slot certificates are the projection-function
-                  -- kind's; a tabled family has none (task #175 S1)
-                  if ← (if towerSlotsAll env T caps.etaFields then pure true
-                      else structEtaProjCerts r env depth T us'
-                        wtb.getAppArgs b cvT.levelParams
-                        (List.range caps.etaFields)) then
-                    if ← defEqList r env depth
-                        (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
-                      -- synthetic-spine certification (task #137): the
-                      -- fabricated constructor application is certified
-                      -- against the constructor's own telescope, here
-                      -- rather than at the callers, so that both
-                      -- consumers get it (`majorToCtor`'s eta rescue ran
-                      -- it already, task #71; `defeq`'s `structEtaCert`
-                      -- did not).  TT-lane check (task #147): skipped
-                      -- unless `mode.ttChecks`.
-                      if ← (if mode.ttChecks then
-                          iotaCerts r env depth false
-                            (cvc.type.instantiateLevelParams
-                              cvc.levelParams us)
-                            (wtb.getAppArgs ++
-                              etaProjs env T us' wtb.getAppArgs b
-                                caps.etaFields)
-                        else pure true) then
-                        defEqList r env depth
-                          (a.getAppArgs.drop caps.etaParams)
-                          (etaProjs env T us' wtb.getAppArgs b
-                            caps.etaFields)
-                      else pure false
-                    else pure false
-                  else pure false
+                -- no certificate on the type application: `wtb` is the
+                -- reduced type of `b`, a type, so its spine fits the
+                -- former's telescope (task #342 L11b)
+                if ← defEqList r env depth
+                    (a.getAppArgs.take caps.etaParams) wtb.getAppArgs then
+                  defEqList r env depth
+                    (a.getAppArgs.drop caps.etaParams)
+                    (etaProjs T b caps.etaFields)
                 else pure false
               else pure false
             else pure false
@@ -488,9 +405,7 @@ def structEtaCertWith (r : CoreFns m) (env : Env) (depth : Nat)
 `a` is a fully applied constructor of a structure whose recorded
 capabilities include eta, `b` inhabits that structure type, the
 constructor's parameters are the type's arguments, and every field is
-the corresponding installed projection function applied to `b`.  The
-type application is additionally certified against the type former's
-telescope (the memberships the stored eta law consumes).  The
+the corresponding projection (`.proj T j b`) of `b`.  The
 parameter and field counts the certificate works at are the
 capability RECORD's, which is what the stored law speaks; the
 constructor's own counts gate the redex's shape and nothing else
@@ -506,7 +421,7 @@ def structEtaCert (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     -- task #172 B4: io grade
     let tb ← r.inferIO depth b
     let wtb ← r.whnf depth tb
-    structEtaCertWith mode r env depth a b wtb
+    structEtaCertWith r env depth a b wtb
   else pure false
 
 /-- Unit-likeness certification: `a` and `b` inhabit the same stored
@@ -530,11 +445,11 @@ def structUnitCert (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
           us'.length = cvT.levelParams.length then
         let tb ← r.inferIO depth b
         let wtb ← r.whnf depth tb
-        if ← r.defeq depth wta wtb then
-          iotaCerts r env depth false
-            (cvT.type.instantiateLevelParams cvT.levelParams us')
-            wta.getAppArgs
-        else pure false
+        -- no certificate on the type application (task #342 L11b); a ∀
+        -- is never a family's application (task #342 L18: `b`'s io
+        -- claim is then a membership)
+        if wtb.isForallE then pure false else
+        r.defeq depth wta wtb
       else pure false
     | _ => pure false
   | _ => pure false
@@ -544,24 +459,25 @@ type whnfs to a `∀` whose domain is defeq to the λ's, and the λ's body
 is pointwise the application of `b`.  The λ is then `b`'s eta-expansion
 (soundness: `SetTheory.lam_eta`). -/
 def etaCert (mode : CheckMode) (r : CoreFns m) (_env : Env) (depth : Nat)
-    (ty₁ body₁ : Expr) (m₁ : BinderMeta) (b : Expr) :
+    (ty₁ body₁ : Expr) (b : Expr) :
     m Bool := do
+  -- `b`'s head is no λ and no `let` (task #342 L18: its io claim is then
+  -- a membership; `b` is in weak-head normal form and not a λ here)
+  if !b.ioNeutral then pure false else
   -- task #172 B4: io grade
   let tb ← r.inferIO depth b
   match ← r.whnf depth tb with
-  | .forallE ty₂ _ m₂ =>
-    -- Task #161: the λ's prop-ness annotation must agree with the
-    -- product it η-expands (`lamR_eta`'s regime agreement) — checked
-    -- LAST, like the defeq binder arms, so a mismatch fires only on
-    -- an otherwise-successful η certification.  (This is the
-    -- validated successor of the cod-agreement comparison task #100
-    -- stage 6 deleted.)
+  | .forallE ty₂ cod₂ =>
     if ← r.defeq depth ty₂ ty₁ then
       unless ← r.defeq (depth + 1)
           (body₁.instantiate1 (.fvar depth ty₁))
           (.app b (.fvar depth ty₁)) do return false
-      if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-        throw (.notImplemented "sort-annotation mismatch (eta)")
+      -- Task #342 S0: the λ/η tax (T2)
+      if mode.verifiedChecks then
+        unless ← r.defeq (depth + 1)
+            (← r.infer (depth + 1)
+              (body₁.instantiate1 (.fvar depth ty₁)))
+            (cod₂.instantiate1 (.fvar depth ty₁)) do return false
       pure true
     else pure false
   | _ => pure false
@@ -570,8 +486,8 @@ def etaCert (mode : CheckMode) (r : CoreFns m) (_env : Env) (depth : Nat)
 in either direction, unit-likeness, else proof irrelevance. -/
 def stuckIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     m Bool := do
-  if ← structEtaCert mode r env depth a b then pure true
-  else if ← structEtaCert mode r env depth b a then pure true
+  if ← structEtaCert r env depth a b then pure true
+  else if ← structEtaCert r env depth b a then pure true
   else if ← structUnitCert r env depth a b then pure true
   else proofIrrel r depth a b
 
@@ -579,15 +495,21 @@ def stuckIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
 in the official kernel): a recursor's major premise that does not whnf
 to a constructor application may still be *replaced* by one.  For a
 K-flagged inductive proposition the parameters-only application of the
-single constructor is fabricated from the major's type and certified by
-proof irrelevance (in the model both are the proof point); for an
-eta-capable structure the constructor of the major's projections is
-fabricated and certified by the structure-eta certificate (in the model
-both are the tuple of the major's components); for `And` —
-a proposition, which official never η-rescues — the constructor of the
-major's projections is fabricated and certified by proof irrelevance
-(the `And` branch below).  An uncertified major stays put — sound, the
-reduction simply stays stuck. -/
+single constructor is fabricated from the major's type; its io type is
+compared with the major's (official's check, unconditional) and, at the
+verified mode, proof irrelevance compares it with the major (in the
+model both are the proof point) — a certificate family, off at the
+trusted mode (`mode.verifiedChecks`), as its cached twin gates it
+through `certAtI` (`ConLeche/Cached/CoreC.lean`).
+For an eta-capable structure the constructor applied to the major's
+projections is fabricated with no check: the major is that application
+by the family's η law (in the model both are the tuple of the major's
+components).  For `And` — a proposition, which official never
+η-rescues — the constructor applied to the major's projections is
+fabricated and checked as in the K branch (the `And` branch below),
+proof irrelevance likewise off at the trusted mode.  A
+major that fails a check stays put — sound, the reduction simply stays
+stuck. -/
 def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
     (_recName : Name) (rules : List RecRule) (major : Expr) : m Expr := do
   -- cheap syntactic gates before any inference: a rescue needs a
@@ -608,8 +530,7 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
             match tmaj.getAppFn with
             | .const T' ust =>
               if T' = T ∧ cvj.levelParams.length = ust.length then
-                -- no constructor-telescope arity pin: the fabrication
-                -- is typed by `iotaCerts` below, and the model proof
+                -- no constructor-telescope arity pin: the model proof
                 -- consumes no such fact
                 if cnP ≤ tmaj.getAppArgs.length then
                   let fab := Expr.mkAppN (.const rl.ctor ust)
@@ -620,33 +541,23 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                   if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                       fab.fvarLeaves.all
                         (fun l => major.fvarLeaves.contains l) then
-                    -- Synthetic-spine certification (task #71): a
-                    -- fabricated constructor spine has no annotated
-                    -- application chain for the gated fire-path
-                    -- certificates to recover memberships from, so
-                    -- the *ungated* telescope certificate runs here,
-                    -- relocated from the fire path.
-                    if ← iotaCerts r env depth false
-                        (cvj.type.instantiateLevelParams
-                          cvj.levelParams ust)
-                        (tmaj.getAppArgs.take cnP) then
-                      -- The official `to_cnstr_when_K` type check on
-                      -- the fabrication: the constructor
-                      -- application's type must be defeq to the
-                      -- major's (for `Eq` this is the endpoint
-                      -- condition — `Eq.refl a : Eq a a` against the
-                      -- major's `Eq a b` forces `a ≡ b`).  A
-                      -- reference-kernel check, kept independently of
-                      -- the per-fire iota certificates (during the
-                      -- gated era of tasks #49/#71 it was load-bearing
-                      -- on its own — arena bad/098_ruleKbad fires at
-                      -- `Eq.rec.{3,3}`).  `proofIrrel` stays as the
-                      -- soundness certificate (in the model both
-                      -- sides are the proof point).
-                      if ← r.defeq depth tmaj (← r.inferIO depth fab) then
-                        if ← proofIrrel r depth fab major then
-                          pure fab
-                        else pure major
+                    -- The official `to_cnstr_when_K` type check on the
+                    -- fabrication: the constructor application's type
+                    -- must be defeq to the major's (for `Eq` this is
+                    -- the endpoint condition — `Eq.refl a : Eq a a`
+                    -- against the major's `Eq a b` forces `a ≡ b`;
+                    -- arena bad/098_ruleKbad fires at `Eq.rec.{3,3}`
+                    -- without it).  `proofIrrel` makes the major a
+                    -- proof (in the model both sides are the point).
+                    if ← r.defeq depth tmaj (← r.inferIO depth fab) then
+                      -- Task #342 (r1): the K check's proof-irrelevance half
+                      -- is a certificate family (official stops at the type
+                      -- check above) — gated off at the trusted mode, as
+                      -- `certAtI mode (proofIrrelI ...)` gates its cached twin
+                      -- (`ConLeche/Cached/CoreC.lean`).
+                      if ← (if mode.verifiedChecks then proofIrrel r depth fab major
+                          else pure true) then
+                        pure fab
                       else pure major
                     else pure major
                   else pure major
@@ -665,33 +576,31 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
               -- parametric `Sort u` that a `Prop` instantiation
               -- collapses, which is exactly the case the guard exists
               -- for.
+              -- the last three conjuncts are the keys of the η law:
+              -- neither the family nor its constructor a reserved basis
+              -- name, every field slot a projection-table entry
               if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
                   ust.length = cvT.levelParams.length ∧
-                  capsNeverZero cvT.levelParams ust caps = true then
+                  capsNeverZero cvT.levelParams ust caps = true ∧
+                  reservedBasisNames.contains T = false ∧
+                  reservedBasisNames.contains caps.etaCtor = false ∧
+                  towerSlotsAll env T caps.etaFields = true then
                 -- no constructor-telescope arity pin, as in the K
                 -- branch, and no level-count pin: the η bit is set
                 -- only at a constructor stored with the former's own
                 -- level parameters (`RecCtorsStored`), which the
                 -- fabrication's levels are those of
                 let fab := Expr.mkAppN (.const caps.etaCtor ust)
-                    (etaFabArgsE env T ust tmaj.getAppArgs major
-                      caps.etaFields)
-                -- scope guard, as in the K branch
+                    (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
+                -- scope guard, as in the K branch.  No certificate on
+                -- the fabricated spine: the major is the fabrication by
+                -- the family's η law, and the fabrication fits the η
+                -- constructor's telescope by the coherence law (task
+                -- #342 L11b).
                 if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                     fab.fvarLeaves.all
                       (fun l => major.fvarLeaves.contains l) then
-                  -- synthetic-spine certification, as in the K
-                  -- branch (task #71)
-                  if ← iotaCerts r env depth false
-                      (cvj.type.instantiateLevelParams
-                        cvj.levelParams ust)
-                      (etaFabArgsE env T ust tmaj.getAppArgs major
-                        caps.etaFields) then
-                    if ← structEtaCertWith mode r env depth fab major
-                        tmaj then
-                      pure fab
-                    else pure major
-                  else pure major
+                  pure fab
                 else pure major
               else pure major
             | _ => pure major
@@ -701,12 +610,9 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
             -- limited").  `And.rec F h` at a stuck PROOF `h` (a theorem
             -- is opaque to reduction) fires through the fabrication
             -- `And.intro a b (.proj And 0 h) (.proj And 1 h)`,
-            -- certified the K branch's way: the synthetic spine against
-            -- the constructor's telescope (which types the two `.proj`
-            -- nodes through `And`'s projection table), the
-            -- fabrication's type against the major's, and proof
-            -- irrelevance — sound because in the model every proof is
-            -- the point.  Official does not η-rescue a proposition
+            -- certified the K branch's way: the fabrication's type
+            -- against the major's, and proof irrelevance — sound
+            -- because in the model every proof is the point.  Official does not η-rescue a proposition
             -- (`to_cnstr_when_structure` requires a never-zero sort),
             -- so this is an accept-superset there, reported per the
             -- `proofIrrel` ruling; it WORKS AROUND the absence of
@@ -727,17 +633,16 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                 if fab.wscopedB depth && fab.looseBVarsBounded 0 &&
                     fab.fvarLeaves.all
                       (fun l => major.fvarLeaves.contains l) then
-                  -- synthetic-spine certification, as in the K branch
-                  if ← iotaCerts r env depth false
-                      (cvj.type.instantiateLevelParams
-                        cvj.levelParams ust)
-                      (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]) then
-                    -- the fabrication's type against the major's, then
-                    -- proof irrelevance as the soundness certificate
-                    if ← r.defeq depth tmaj (← r.inferIO depth fab) then
-                      if ← proofIrrel r depth fab major then
-                        pure fab
-                      else pure major
+                  -- the fabrication's type against the major's, then
+                  -- proof irrelevance, as in the K branch
+                  if ← r.defeq depth tmaj (← r.inferIO depth fab) then
+                    -- Task #342 (r1): proof irrelevance here, as in the K
+                    -- branch, is a certificate family — gated off at the
+                    -- trusted mode (`certAtI mode (proofIrrelI ...)` in the
+                    -- cached twin).
+                    if ← (if mode.verifiedChecks then proofIrrel r depth fab major
+                        else pure true) then
+                      pure fab
                     else pure major
                   else pure major
                 else pure major
@@ -755,7 +660,7 @@ literal one layer (`litToCtorIfNat`); a `String` literal to its
 `strLitToConstructor` (lean4lean `Inductive/Reduce.lean`, nanoda
 `str_lit_to_ctor_reducing`) since `String.ofList` is a definition, not
 a constructor.  An unsupported literal passes through (stuck; sound,
-and unreachable for annotated input). -/
+and unreachable for input inference accepted, which declines it). -/
 def litMajorToCtor (r : CoreFns m) (env : Env) (depth : Nat) :
     Expr → m Expr
   | .lit (.strVal s) =>
@@ -770,8 +675,8 @@ constructor form — the references' proj expansion site (official
 expansion's head `String.ofList` is a definition, so the whnf grinds it
 to the real `String.ofByteArray` constructor form.  Only `String`
 literals — no reference touches other scrutinees here.  An unsupported
-literal passes through (stuck; sound, and unreachable for annotated
-input). -/
+literal passes through (stuck; sound, and unreachable for input
+inference accepted, which declines it). -/
 def projLitToCtor (r : CoreFns m) (env : Env) (depth : Nat) :
     Expr → m Expr
   | .lit (.strVal s) =>
@@ -779,11 +684,34 @@ def projLitToCtor (r : CoreFns m) (env : Env) (depth : Nat) :
     else pure (.lit (.strVal s))
   | e => pure e
 
+/-- Is `e` a `String` literal?  (The structure rescue leaves one to the
+literal conversion, as lean4#15351's `to_cnstr_when_structure` does.) -/
+def Expr.isStrLit : Expr → Bool
+  | .lit (.strVal _) => true
+  | _ => false
+
 /-- The major premise's preparation before a rule fires.  Elsewhere
-(the non-K case), the official order (`inductive_reduce_rec`,
-`src/kernel/inductive.cpp`; lean4lean `Inductive/Reduce.lean:66-72`):
-the major is head-normalized first, its literal converted, and the
-structure-eta rescue (`to_ctor_when_structure`) tried on the reduct.
+(the non-K case), the order of lean4#15351 (the kernel's
+`inductive_reduce_rec` after Lean's kernel logic renovation,
+lean4#14977): the structure rescues (`to_cnstr_when_structure`; here
+also the `And` rescue) run on the major **as found**, before any head
+normalization; only if they do not produce a constructor is the major
+head-normalized, its literal converted, and the rescue tried once more
+on the reduct.  A `String` literal skips the first attempt (lean4#15351
+leaves it to the literal conversion).
+
+Why the rescue comes first (task #342 R2, the arena's
+`corner-cases/eta-struct-major-no-whnf` and
+`eta-struct-major-and-no-whnf`): a structure major whose head
+normalization does not terminate — `Prod.rec f loopPair`, `loopPair`
+an `Acc.rec` over a proof built from Coquand's paradox; `And.rec f h`
+for such a proof `h` — is rescued by reading only its *type*, and the
+rule fires without the major ever being reduced.  Reducing first let
+the proof's non-termination leak into the conversion of data.  The
+rescues are `Red` steps on any major (`Red.rescueEta`,
+`Red.rescueAnd`), so the order changes no claim; the reduct `minor
+(S.p₀ x) … (S.pₖ x)` is convertible with the one plain ι gives after
+the major reduces to `S.mk ps fs`.
 
 At a K-flagged recursor the K rescue (`to_ctor_when_K`) runs on the
 **raw** major — it reads only the major's *type* and fabricates the
@@ -805,13 +733,13 @@ would find); on mathlib-full the `whnf` after a failed K rescue ran
 TASK #333 record's audit). A K-like recursor application whose rescue
 fails is now simply stuck, sound either way.
 
-The two rescues (K and structure-eta) live in one function
+The rescues (K, structure-eta, `And`) live in one function
 (`majorToCtor`); the K branch is reachable exactly at `recRuleK`, the
-eta branch never is there (an inductive proposition fails its
-provably-nonzero guard), so the split below dispatches each to its
-official site and neither is attempted twice.
+eta and `And` branches never are there (an inductive proposition fails
+the eta branch's provably-nonzero guard, and `And` is not K), so the
+split below dispatches each to its site.
 
-Why the non-K order matters (2026-09-06, the Mathlib `decide`-over-`Rat`
+Why the K order matters (2026-09-06, the Mathlib `decide`-over-`Rat`
 frontier): with the whnf *first*, an `Eq.rec` whose major is a
 theorem application — `Eq.ndrec … (Int.decEq._proof_1 a b h)` with
 `h := Nat.eq_of_beq_eq_true …`, the shape `instDecidableEqRat`'s
@@ -829,21 +757,30 @@ def prepareMajor (r : CoreFns m) (env : Env) (depth : Nat)
     else
       pure majorK
   else
-    let major₀ ← r.whnf depth major
-    let major₁ ← litMajorToCtor r env depth major₀
-    majorToCtor mode r env depth recName rules major₁
+    let majorE ← if major.isStrLit then pure major
+      else majorToCtor mode r env depth recName rules major
+    if isCtorApp env majorE then
+      pure majorE
+    else
+      let major₀ ← r.whnf depth majorE
+      let major₁ ← litMajorToCtor r env depth major₀
+      majorToCtor mode r env depth recName rules major₁
 
 /-- One iota step: the expression is a stored recursor applied to
 exactly its telescope (params, motives, minors, indices, major), the
 major premise whnfs to a fully applied constructor with a matching
 rule (a literal major converts to constructor form — see
 `litMajorToCtor` —, a
-stuck major may be rescued — see `majorToCtor`), and the spine is
-certified against the recursor's own (pinned, annotated) type with
-`iotaCerts` (per-slot infer+defeq; task #100 de-gating retired the
-possibly-Prop annotation gate of tasks #49/#71 — unsound-to-model
-under the domain-relative collapse, DESIGN.md).  The
-result is the rule's rhs applied to the non-index prefix and the
+stuck major may be rescued — see `majorToCtor`), and the recursor's
+stored type has the redex's arity.  The constructor side follows **the
+ι case split** (task #342 L10, S5c), decided at the rule's comparand levels (`recFireComparands`):
+a K rule, and a rule whose constructor's family is never `Prop` there
+(`iotaCtorNeverProp`), fire with no check of the constructor application
+— official's `inductive_reduce_rec` checks nothing of it either; every
+other rule (case 3, `iotaCase3`) compares the constructor's levels and
+parameters with the rule's comparands, certifies the constructor
+telescope at the full grade (`iotaCertsFull`) and compares the indices
+(`iotaIndexOk`).  The result is the rule's rhs applied to the non-index prefix and the
 constructor's fields; over-application is handled by the outer app
 recursion. -/
 def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
@@ -862,7 +799,10 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
       -- `rl.rhs.instantiateLevelParams cv.levelParams us` can leak a
       -- level parameter the subject never had.  Ungated: the reference has it
       -- unconditionally, so a mode gate would break parity.
-      if args.length = mI + 1 ∧ us.length = cv.levelParams.length then
+      -- task #342 L18: the stored type's syntactic arity, which the
+      -- uncertified recursor spine is read against
+      if args.length = mI + 1 ∧ us.length = cv.levelParams.length ∧
+          (Expr.peelPis (mI + 1) cv.type).isSome = true then
         -- the major's preparation (K rescue / whnf / literal / eta) in
         -- the official order — `prepareMajor`'s docstring
         let major ← prepareMajor mode r env depth c rules
@@ -878,66 +818,46 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
               -- (install-computed); the defensive spine-length check
               -- stays
               if margs.length = rl.ctorParams + rl.nfields then
-               -- A matched *inert* rule is a positive detection of an
-               -- unsupported feature: the redex demands firing an
-               -- uncertified nested-auxiliary rule (e.g.
-               -- `Syntax.rec_1` on an `Array.mk` major with the
-               -- nested certification absent).  Staying silently
-               -- stuck would surface as a spurious *reject*
-               -- downstream (defeq failure in the app rule), so
-               -- decline here instead.
-               if rl.fire = .inert then
-                 throw (.notImplemented
-                   "iota reduction over a nested auxiliary recursor rule")
-               else
                 -- The ι batch (2026-09-05): the two `stripPis` arity
                 -- pins that stood here were an environment invariant
                 -- re-checked per fire (every install route establishes
                 -- them; the P lane bound and never used them) — deleted
                 -- per the "invariants over runtime gates" ruling.
                 --
-                -- the constructor's levels and parameters must agree
-                -- with the rule's comparands (canonical: the
-                -- recursor's own instantiation and leading arguments;
-                -- nested: the stored major-domain instantiations) —
-                -- the firing mode was computed once at install
-                -- (`Expr.recRulePlain` / the nested certification),
-                -- never re-derived per fire
-                if ← liftFueled "level comparison" (Level.isEquivList usj
-                    (recFireComparands rl cv.levelParams us
-                      cvj.levelParams args rP).1) then
-                 -- the parameter comparison, run unless the rule is a
-                 -- `.plain` one the installing route marked
-                 -- `paramsBlind` (`RecRule.compareParams`)
-                 if ← (if rl.compareParams then
-                    defEqList r env depth (margs.take rl.ctorParams)
-                      (recFireComparands rl cv.levelParams us
-                        cvj.levelParams args rP).2
-                    else pure true) then
-                  -- the two telescope runs, *licensed* (`iotaCerts`'
-                  -- docstring): the redex is a subterm of the subject.
-                  -- The mode read is the β gate's accessor — the one
-                  -- place a certificate-skip may read the validated
-                  -- datum (`CheckMode.betaGate`'s docstring)
-                  if ← iotaCerts r env depth mode.betaGate
-                     (cv.type.instantiateLevelParams cv.levelParams us)
-                     (args.take mI ++ [major]) then
-                   if ← iotaCerts r env depth mode.betaGate
-                      (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                      margs then
-                    -- the recursor's index arguments must match the
-                    -- constructor's canonical index tuple, where the
-                    -- recursor has indices (`iotaIndexOk`)
-                    if ← iotaIndexOk r env depth mI rP rl.ctorParams
-                        (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                        margs ((args.take mI).drop rP) then
-                      pure (some (Expr.mkAppN
-                        (rl.rhs.instantiateLevelParams cv.levelParams us)
-                        (args.take rP ++ margs.drop rl.ctorParams)))
-                    else pure none
-                   else pure none
-                  else pure none
-                 else pure none
+                -- the rule's comparands (plain: the recursor's own level
+                -- instantiation and leading arguments; nested: the stored
+                -- major-domain instantiations), from the firing mode
+                -- computed once at install (`sumRules` / `auxRuleFire`)
+                let cmp := recFireComparands rl cv.levelParams us cvj.levelParams args rP
+                -- **the ι case split** (task #342 L10, #349, S5c), decided at
+                -- the comparand levels: a K rule, or a family never `Prop`
+                -- there (`iotaCtorNeverProp`), fires with no check, as
+                -- official's `inductive_reduce_rec` (it compares nothing
+                -- of the major's constructor); case 3 compares the
+                -- constructor's levels and parameters with the comparands,
+                -- certifies the constructor telescope at the full grade and
+                -- compares the indices (`iotaIndexOk`) — a certificate
+                -- family (task #342 (r1)), off at the trusted mode as its
+                -- cached twin gates the whole case-3 decision through
+                -- `certAtI mode (do ...)` (`ConLeche/Cached/CoreC.lean`)
+                if ← (if mode.verifiedChecks then
+                    (if iotaCase3 env.find? rl cvj cmp.1 then do
+                      if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
+                        if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
+                          if ← iotaCertsFull r env depth
+                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                              margs then
+                            iotaIndexOk r env depth mI rP rl.ctorParams
+                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                              margs ((args.take mI).drop rP)
+                          else pure false
+                        else pure false
+                      else pure false
+                    else pure true)
+                  else pure true) then
+                  pure (some (Expr.mkAppN
+                    (rl.rhs.instantiateLevelParams cv.levelParams us)
+                    (args.take rP ++ margs.drop rl.ctorParams)))
                 else pure none
               else pure none
             | none => pure none
@@ -947,48 +867,29 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
     | _ => pure none
   | _ => pure none
 
-/-- **The structural projection's certificate** (task #175 W6, the
-squash-regime licence): the redex `proj_i (C p⃗ x⃗)` fires only after
-its constructor spine is certified against `C`'s stored type at the
-redex's own levels — `iotaCerts`, each argument's inferred type defeq
-to its binder domain, the domains instantiated along the spine.  This
-is what makes the rule sound-to-model at a squash instantiation: there
-the constructor application is the point and so is every field
-(every field of a non-`Prop`-declared family is a proposition where
-the family is one, by the O5 bound; at a `Prop`-declared family the
-fire guard says so of the projected field), and the certified fit is
-what pins the selected argument to its domain — a grading alone pins
-nothing at bit `0`.  In the graph regime the fit is redundant with
-the application's grading, which the tower law consumes there.
-
-The telescope certificate is the same per-argument `inferIO` + `defeq`
-work the subject's run performed inside `inferSpine`.  The official
-kernel's `reduce_proj` certifies nothing — this is a conformance
-residue the model's projection step consumes.  The spine is a subterm of the
-subject, so the certificate is *licensed* like the ι slot's
-(`iotaCerts`' docstring): at the verified mode a `.never` binder's
-certificate is skipped — every field binder of an ordinary `structure`. -/
-def projCert (r : CoreFns m) (env : Env) (depth : Nat) (lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : m Bool := do
+/-- **The structural projection's check** (task #175 W6): the redex
+`proj_i (C p⃗ x⃗)` fires only where `C`'s stored type has the spine's
+arity.  The check is the constructor telescope's syntactic arity
+(`teleArityOk`, task #342 L18): the spine is a subterm of the subject,
+so where the redex is not the point it fits the telescope by the
+application slots of its own invariant, and a reduction claims nothing
+of a redex that is the point.  The official kernel's `reduce_proj`
+checks nothing.  (Level instantiation keeps the arity, so the stored
+type is read uninstantiated.) -/
+def projCert (env : Env) (c : Name) (args : List Expr) : Bool :=
   match env.find? c with
-  | some (.ctorInfo cvC _ _) =>
-    iotaCerts r env depth lic
-      (cvC.type.instantiateLevelParams cvC.levelParams us) args
-  | _ => pure false
+  | some (.ctorInfo cvC _ _) => teleArityOk cvC.type args
+  | _ => false
 
-/-- **The fire certificate as the mode runs it** (parity mirrors
-official, 2026-09-06).  The P core (`verified = true`) certifies the
-constructor spine (`projCert`, licensed by the mode's β gate) — the
-model's licence for the fire at a squash instantiation.  The parity
-core is the official kernel's: `reduce_proj` reduces every
-constructor redex with no certificate (`type_checker.cpp`), so at
-`verified = false` no certificate runs and the rule fires
-unconditionally.  The trusted lane stays an accept-superset of the P
-lane, which is all the agreement floor
-(`Verify/Cached/AgreeFloor.lean`) asks of it. -/
-def projCertAt (r : CoreFns m) (env : Env) (depth : Nat) (verified lic : Bool)
-    (c : Name) (us : List Level) (args : List Expr) : m Bool :=
-  if verified then projCert r env depth lic c us args else pure true
+/-- **The fire check as the mode runs it** (parity mirrors official,
+2026-09-06): the verified core checks the constructor telescope's
+arity (`projCert`); the trusted core is the official kernel's, which
+reduces every constructor redex with no check.  The trusted lane stays
+an accept-superset of the verified lane, which is all the agreement
+floor (`Verify/Cached/AgreeFloor.lean`) asks of it. -/
+def projCertAt (env : Env) (verified : Bool) (c : Name) (args : List Expr) :
+    Bool :=
+  if verified then projCert env c args else true
 
 /-- **The projection rule on a reduced scrutinee** (the official
 kernel's `reduce_proj_core`): `proj_i (ctor p⃗ x⃗) ↦ x_i`, driven by the
@@ -1013,11 +914,9 @@ def reduceProjCore (r : CoreFns m) (env : Env) (depth : Nat) (sn : Name)
           args.length = entry.numParams + entry.numFields ∧
           us.length = entry.levelParams.length ∧
           entry.fireOk us = true then
-        -- Task #100 de-gating: the former nonzero-sort gate is
-        -- unsound-to-model under the domain-relative collapse, so the
-        -- certificate runs unconditionally at the verified mode; the
-        -- trusted mode runs none (`projCertAt`).
-        if ← projCertAt r env depth mode.verifiedChecks mode.betaGate k us args then
+        -- the certificate runs unconditionally at the verified mode;
+        -- the trusted mode runs none (`projCertAt`).
+        if projCertAt env mode.verifiedChecks k args then
           pure (some (args.getD (entry.numParams + i) (.bvar 0)))
         else pure none
       else pure none
@@ -1042,34 +941,15 @@ def whnfCoreBody (r : CoreFns m) (env : Env) : Bool → Nat → Expr → m Expr 
     match e with
     | .sort u => pure (.sort u)
     | .fvar idx ty => pure (.fvar idx ty)
-    | .forallE ty body bi => pure (.forallE ty body bi)
-    | .lam ty body mb => pure (.lam ty body mb)
+    | .forallE ty body => pure (.forallE ty body)
+    | .lam ty body => pure (.lam ty body)
     | .const n us => pure (.const n us)
     | .lit l => pure (.lit l)
     | .app f a => do
       match ← r.whnfCore cheap depth f with
-      | .lam ty body mb => do
-        -- Certify the argument against the domain before reducing
-        -- (the soundness proof needs `⟦a⟧ ∈ ⟦ty⟧` at every level
-        -- assignment).  An uncertified redex stays stuck — sound, and
-        -- unreachable for well-typed input.  Task #100 de-gating: the
-        -- former possibly-Prop annotation gate (skip the certificate
-        -- at a provably nonzero codomain sort) is unsound-to-model
-        -- under the domain-relative collapse (DESIGN.md), so the
-        -- certificate now runs unconditionally — except at the task
-        -- #161 β gate, which reads a *validated* annotation instead
-        -- (`betaGateFires`, and only at `mode.betaGate`).
-        if betaGateFires mode mb.pw then
-          r.whnfCore cheap depth (body.instantiate1 a)
-        else do
-          -- task #172 B4: the certificate's inference runs at the io
-          -- grade — the argument sits inside a subject whose WellDenotedV
-          -- the P claims carry (the user's criterion: WellDenoted is
-          -- around), and official's whnf never infers here at all
-          let ta ← r.inferIO depth a
-          if ← r.defeq depth ta ty then
-            r.whnfCore cheap depth (body.instantiate1 a)
-          else pure (.app (.lam ty body mb) a)
+      | .lam _ body => do
+        -- Task #342 S0: uniform β, no certificate
+        r.whnfCore cheap depth (body.instantiate1 a)
       | f' => do
         match ← iotaRec mode r env depth (.app f' a) with
         | some e'' => r.whnfCore cheap depth e''
@@ -1088,18 +968,9 @@ def whnfCoreBody (r : CoreFns m) (env : Env) : Bool → Nat → Expr → m Expr 
       match ← reduceProjCore mode r env depth sn i c with
       | some m' => r.whnfCore cheap depth m'
       | none => pure (.proj sn i pe)
-    | .letE _ _ _ =>
-      -- **Unreachable by construction** (task #241).  The former ζ step
-      -- (official kernel `whnf_core`, `case expr_kind::Let`; nanoda
-      -- `whnf_no_unfolding_aux` `Let`; lean4lean `whnfCore'` `.letE`)
-      -- is gone: every expression reduction sees is annotate output or
-      -- stored rule data, and both are let-free, because
-      -- `annotateBody`'s own `.letE` clause runs the official
-      -- `infer_let` triple and returns the ζ *reduct* (task #217).
-      -- A `letE` here is an invariant violation, not an unsupported
-      -- feature, so it is `.internal` (exit 3), never a decline and
-      -- never a silent accept.
-      throw (.internal "whnfCore: `let` in an annotated expression")
+    | .letE _ v b =>
+      -- Task #342 S0: ζ
+      r.whnfCore cheap depth (b.instantiate1 v)
     | .bvar _ =>
       throw (.notImplemented "whnf beyond the supported fragment")
 
@@ -1122,6 +993,17 @@ decrementing counter an unboxed scalar (`2^63` is a bignum on a 64-bit
 timeout.  See
 <https://github.com/dpwoodru/general-courtade-kumar-lean/tree/main/verification/con-leche/results/2026-10-08>. -/
 @[irreducible, noinline] def whnfCoreLoopFuel : Nat := 4611686018427387904  -- 2^62
+
+/-- The outcome of one step of the cached head-normalization loop
+(`whnfCoreStepI`, `ConLeche/Cached/CoreC.lean`) and of its pure mirror
+(`ConLeche/Verify/BetaSpine.lean`): the head normal form, or the term
+the loop continues with.  Task #342 R2: a step *returns* its
+continuation instead of calling it, so every reduction step is the
+loop's own tail call and a chain of any length — a non-terminating one
+included — runs in constant native stack. -/
+inductive WhnfStep where
+  | done (e : Expr)
+  | cont (e : Expr)
 
 /-- Step budget of the `whnf` reduction loop (lean4lean's
 `FuelConfig.whnf`, same value).  Literal-acceleration and delta steps
@@ -1172,9 +1054,11 @@ def ensureSort (r : CoreFns m) (_env : Env) (depth : Nat) (e : Expr) :
   | .sort u => pure u
   | _ => throw (.invalid "expected a sort")
 
-/-- The inference body — **infer-only**: the application rule's
-argument check ran once, in the annotation pass, and is trusted here
-(so speculative inference inside reduction cannot reject). -/
+/-- The inference body at the full grade — official's
+`infer_type_core` with `infer_only = false`: every binder domain is
+checked to be a type, every application argument against its domain,
+and a `let`'s value against its type.  Speculative inference inside
+reduction runs at the io grade instead (`inferBodyIO`). -/
 def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
   fun depth e => do
     match e with
@@ -1211,82 +1095,30 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       if strLitSupported env then pure (.const stringName [])
       else throw (.notImplemented
         "string literals before the String support declarations")
-    | .forallE ty body mb => do
+    | .forallE ty body => do
       -- The ∀-formation rule, official-kernel style (task #100 stage 6):
-      -- the codomain sort is *inferred* from the opened body.  Task
-      -- #161: at the verified modes the node's prop-ness annotation is
-      -- VALIDATED against the inferred codomain sort — the datum is
-      -- canonical, so `==` decides zero-ness agreement, and a mismatch is a decline
-      -- (a positively detected annotation the checker cannot certify),
-      -- never a reject.  The annotation is never read by reduction.
+      -- the codomain sort is *inferred* from the opened body.
       match ← r.whnf depth (← r.infer depth ty) with
       | .sort u => do
         let v ← ensureSort r env (depth + 1)
           (← r.infer (depth + 1) (body.instantiate1 (.fvar depth ty)))
-        if mode.verifiedChecks then
-          unless Level.zeronessOf v == mb.pw do
-            throw (.notImplemented "sort-annotation mismatch (forall-cod)")
         pure (.sort (.imax u v))
       | _ => throw (.invalid "expected a sort")
-    | .lam ty body mb => do
+    | .lam ty body => do
       -- The domain must be a type (and the model needs its
       -- interpretation defined), exactly as in the ∀ rule.
       match ← r.whnf depth (← r.infer depth ty) with
       | .sort _ => do
         let bt ← r.infer (depth + 1)
           (body.instantiate1 (.fvar depth ty))
-        -- The *codomain* sort, at the verified modes only (task #152,
-        -- restoring the I6/I7 symmetry task #100 stage 6 broke): the
-        -- ∀ clause's own `ensureSort` move, on the body's inferred
-        -- type.  It is what the model's annotation invariant needs —
-        -- the codomain's sort — and what no metatheorem supplies:
-        -- validity for `Infer` ("every inferred type has a sort") is
-        -- refuted at the application clause, and nothing else in the
-        -- checker computes a λ's codomain sort, so the fact has to be
-        -- computed here.  The reference kernel's `infer_lambda`
-        -- does not run it, so `.trusted` — the trusted lane —
-        -- does not either.
-        --
-        -- It fires once per λ **chain**, at the innermost binder (the
-        -- `!body.isLam` guard).  At an outer binder the codomain is
-        -- the inner λ's own `∀`-type, whose sort is `imax` of the
-        -- inner domain's (checked at that binder) and the chain's
-        -- (checked here) — so no fact is lost, and this is the
-        -- granularity the interned telescope loop (task #72) can
-        -- reproduce: it opens a whole λ-chain in bulk and never
-        -- materializes the intermediate opened types.
-        if mode.verifiedChecks then
-          match body.lamPw with
-          | some pwI =>
-            -- Task #161, the chain rule: an outer λ's codomain is the
-            -- inner λ's own ∀-type, whose sort's zero-ness is the
-            -- inner codomain's — datum equality with the neighbour,
-            -- no inference (this dissolves the #152 chain guard's
-            -- information loss: the per-node fact is now checked at
-            -- every node, at O(1) each).
-            unless mb.pw == pwI do
-              throw (.notImplemented
-                "sort-annotation mismatch (lam-cod-chain)")
-          | none =>
-            -- The innermost binder: the task-#152 codomain-sort
-            -- computation, now also validating the node's annotation.
-            -- task #172 B4: the type-of-a-type leaf at the io grade
-            -- (the recursive call just established the body type)
-            let btt ← r.inferIO (depth + 1) bt
-            let vb ← ensureSort r env (depth + 1) btt
-            unless Level.zeronessOf vb == mb.pw do
-              throw (.notImplemented
-                "sort-annotation mismatch (lam-cod-leaf)")
-        pure (.forallE ty (bt.abstract1 depth) mb)
+        pure (.forallE ty (bt.abstract1 depth))
       | _ => throw (.invalid "expected a sort")
     | .app f a => do
       let tf ← r.infer depth f
       match ← r.whnf depth tf with
-      | .forallE ty body _mt => do
-        -- Per-argument re-check (task #100 de-gating: the former
-        -- possibly-Prop annotation gate of task #49 is unsound-to-model
-        -- under the domain-relative collapse, so the certificate runs
-        -- unconditionally; the soundness proof needs `⟦a⟧ ∈ ⟦ty⟧`).
+      | .forallE ty body => do
+        -- The per-argument check, unconditional at this grade (the
+        -- soundness proof needs `⟦a⟧ ∈ ⟦ty⟧`).
         let ta ← r.infer depth a
         unless ← r.defeq depth ta ty do
           throw (.invalid "application type mismatch")
@@ -1328,33 +1160,29 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
           else throw (.notImplemented "projection without a native entry")
         | none => throw (.notImplemented "projection without a native entry")
       | _ => throw (.notImplemented "projection without a native entry")
-    | .letE _ _ _ =>
-      -- **Unreachable by construction** (task #241).  The official
-      -- kernel's `infer_let` triple (`!infer_only`) is not lost: it is
-      -- `annotateBody`'s `.letE` clause, which is the one pass that
-      -- meets a `let` from the stream and which returns the ζ reduct
-      -- (task #217).  Inference therefore only ever sees annotate
-      -- output, which is let-free; see the `whnfCore` arm.
-      throw (.internal "inferType: `let` in an annotated expression")
+    | .letE ty v b => do
+      -- Task #342 S0: official `infer_let`
+      let _ ← ensureSort r env depth (← r.infer depth ty)
+      unless ← r.defeq depth (← r.infer depth v) ty do
+        throw (.invalid "let value type mismatch")
+      r.infer depth (b.instantiate1 v)
     | .bvar _ =>
       throw (.notImplemented "inferType beyond the supported fragment")
 
-/-- **The io inference body** (task #161 stage 2 / task #170): `inferBody`
-with one clause changed — the application rule's per-argument
-certificate is skipped when the ∀'s validated annotation licenses it
-(`ConLeche/Kernel/CoreIO.lean`'s module docstring holds the design
-record).  The gate wraps the *test* only; the computed type
-(`body.instantiate1 a`) and the "function expected" rejection are
-`inferBody`'s, verbatim, so the lane is annotation-blind in its
-results (law 1 (iii)).  Recursion is through `r.infer`: the io knot
-ties this body to an io-grade record (`CoreFns.ioView` at the knot's
-io slot, or `coreKnotIO`'s leaf lane), which is how the grade
-propagates — official's `infer_type_core(e, infer_only)` passing
-`infer_only` to every recursive call.
+/-- **The io inference body** (tasks #161, #170, #346): official's
+`infer_type_core` with `infer_only = true`.  It differs from
+`inferBody` at three clauses: an application's argument is not
+checked against the domain, a λ's domain is not checked to be a type,
+and a `let`'s type and value are not checked (the body is inferred at
+the value).  The computed types and the "function expected" rejection
+are `inferBody`'s.  Recursion is through `r.infer`: the io knot ties
+this body to an io-grade record (`CoreFns.ioView` at the knot's io
+slot, or `coreKnotIO`'s leaf lane), which is how the grade propagates
+— official's `infer_type_core(e, infer_only)` passing `infer_only` to
+every recursive call.
 
 Moved here from `ConLeche/Kernel/CoreIO.lean` (task #172 B4) so the knot
-can tie the io slot; the definition is byte-identical to the io-license
-batch's. -/
+can tie the io slot. -/
 def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
   fun depth e => do
     match e with
@@ -1381,60 +1209,29 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       if strLitSupported env then pure (.const stringName [])
       else throw (.notImplemented
         "string literals before the String support declarations")
-    | .forallE ty body mb => do
+    | .forallE ty body => do
       match ← r.whnf depth (← r.infer depth ty) with
       | .sort u => do
         let v ← ensureSort r env (depth + 1)
           (← r.infer (depth + 1) (body.instantiate1 (.fvar depth ty)))
-        if mode.verifiedChecks then
-          unless Level.zeronessOf v == mb.pw do
-            throw (.notImplemented "sort-annotation mismatch (forall-cod)")
         pure (.sort (.imax u v))
       | _ => throw (.invalid "expected a sort")
-    | .lam ty body mb => do
+    | .lam ty body => do
       -- Task #168: no domain-sort run at the io grade —
       -- official's `infer_lambda` skips it at `infer_only`
       -- (`type_checker.cpp:131`), and the model proof
       -- never consumes it: the domain's grading comes from the
-      -- premise (`WellDenoted.hoist_lam`).  The codomain validation stays
-      -- — it is what makes the λ datum trustworthy.
+      -- λ node's own `WellDenoted` premise.
       let bt ← r.infer (depth + 1)
         (body.instantiate1 (.fvar depth ty))
-      if mode.verifiedChecks then
-        match body.lamPw with
-        | some pwI =>
-          unless mb.pw == pwI do
-            throw (.notImplemented
-              "sort-annotation mismatch (lam-cod-chain)")
-        | none =>
-          let btt ← r.infer (depth + 1) bt
-          let vb ← ensureSort r env (depth + 1) btt
-          unless Level.zeronessOf vb == mb.pw do
-            throw (.notImplemented
-              "sort-annotation mismatch (lam-cod-leaf)")
-      pure (.forallE ty (bt.abstract1 depth) mb)
+      pure (.forallE ty (bt.abstract1 depth))
     | .app f a => do
       let tf ← r.infer depth f
       match ← r.whnf depth tf with
-      | .forallE ty body mt => do
-        -- **THE io SITE.**  At a ∀ whose datum is `never` the
-        -- certificate is dead weight: the premise-form io claim
-        -- derives `⟦a⟧ ∈ ⟦ty⟧` from the subject's own `WellDenoted` app
-        -- slot (`io_domain_transfer` + `piR_dom_unique`,
-        -- side-condition free).  At a possibly-zero datum the
-        -- certificate runs unconditionally — the squash regime's
-        -- membership is model-class-wide unrecoverable
-        -- (`io_membership_fails_at_squash`), and that fence is
-        -- absolute.  The read is the DATUM ALONE (the licence ruling
-        -- of 2026-09-06): it used to carry a `mode.verifiedChecks`
-        -- conjunct, which inverted the trusted mode into running a
-        -- certificate the verified mode skips.  Validating the datum
-        -- is certification-only work; consuming it is not.  The
-        -- licensing theorem never read the mode either.
-        unless mt.pw.isNever do
-          let ta ← r.infer depth a
-          unless ← r.defeq depth ta ty do
-            throw (.invalid "application type mismatch")
+      | .forallE _ body => do
+        -- **THE io SITE** (task #346): official's `infer_only` — the
+        -- argument is not checked against the domain; the io claim is
+        -- hereditary on the type's syntax (`IORel`)
         pure (body.instantiate1 a)
       | _ => throw (.invalid "function expected")
     | .proj sn i pe => do
@@ -1463,9 +1260,10 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
           else throw (.notImplemented "projection without a native entry")
         | none => throw (.notImplemented "projection without a native entry")
       | _ => throw (.notImplemented "projection without a native entry")
-    | .letE _ _ _ =>
-      -- unreachable by construction, as in `inferBody` (task #241)
-      throw (.internal "inferType: `let` in an annotated expression")
+    | .letE _ v b =>
+      -- official `infer_let` at `infer_only`: the body at its value,
+      -- no check of the type or the value (task #342 R-C)
+      r.infer depth (b.instantiate1 v)
     | .bvar _ =>
       throw (.notImplemented "inferType beyond the supported fragment")
 
@@ -1504,21 +1302,51 @@ def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | _ => pure false
   | _ => pure false
 
+/-- Descent budget of the λ-telescope comparison (`defeqLams`).
+Exhaustion is not an error: the level reached is compared as the
+innermost one, which is always sound. -/
+@[irreducible, noinline] def lamsFuel : Nat := 4611686018427387904  -- 2^62
+
+/-- The innermost level of `defeqLams`: the opened bodies, and at the
+verified mode their FULL-grade types. -/
+def defeqLamsInner (r : CoreFns m) (depth : Nat) (b₁ b₂ : Expr) : m Bool := do
+  unless ← r.defeq (depth + 1) b₁ b₂ do return false
+  if mode.verifiedChecks then
+    unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
+        (← r.infer (depth + 1) b₂) do return false
+  pure true
+
+/-- **λ-telescope congruence** (task #342, #349; the rules tier's
+`DefEqLams`): two λs compare their domains; while both opened bodies
+are λs (and not syntactically equal) the comparison descends into them
+directly, comparing domains only; at the innermost level the opened
+bodies are compared and, at the verified mode, so are their FULL-grade
+types (the λ check).  The descent is the λ arm's own, not a recursive
+`defeq` call: a recursive call could answer two λs by proof
+irrelevance or the memo, which skips the type comparison that the
+outer levels rely on. -/
+def defeqLams (r : CoreFns m) :
+    Nat → Nat → Expr → Expr → Expr → Expr → m Bool
+  | fuel, depth, ty₁, body₁, ty₂, body₂ => do
+    unless ← r.defeq depth ty₁ ty₂ do return false
+    let b₁ := body₁.instantiate1 (.fvar depth ty₂)
+    let b₂ := body₂.instantiate1 (.fvar depth ty₂)
+    match fuel, Expr.lamPair? b₁ b₂ with
+    | fuel + 1, some (ty₁', body₁', ty₂', body₂') =>
+      if b₁ == b₂ then pure true
+      else defeqLams r fuel (depth + 1) ty₁' body₁' ty₂' body₂'
+    | _, _ => defeqLamsInner mode r depth b₁ b₂
+
 /-- **The easy cases** (the official kernel's `quick_is_def_eq`): the
 syntactic fast path, and the pairs whose verdict is decided on the spot
 — two sorts (level equivalence), two literals, two `∀`s and two `λ`s
-(binder congruence: domains, then bodies opened at the RIGHT domain,
-then, at the verified modes, the prop-ness annotations, task #161).
+(binder congruence: domains, then bodies opened at the RIGHT domain;
+two λs by `defeqLams`).
 `none` is "not an easy case".  `defeqBody` runs it on the unreduced
 pair and again after the cheap head normalization, and
 `lazyDeltaStep` after every unfolding.  (The
 positive `is_def_eq` cache of official's version is the cached core's
-`defeq` memo.)
-
-The annotation comparison runs LAST — only a pair that is otherwise
-definitionally equal can reach it, so a firing mismatch is exactly the
-cross-provenance coherence corner, declined loudly.  (The official
-kernel compares no annotations.) -/
+`defeq` memo.) -/
 def quickDefEq (r : CoreFns m) (depth : Nat) (a b : Expr) : m (Option Bool) :=
   if a == b then pure (some true) else
   match a, b with
@@ -1526,22 +1354,15 @@ def quickDefEq (r : CoreFns m) (depth : Nat) (a b : Expr) : m (Option Bool) :=
     let ok ← liftFueled "level comparison" (Level.isEquiv u v)
     pure (some ok)
   | .lit l₁, .lit l₂ => pure (some (l₁ == l₂))
-  | .forallE ty₁ body₁ m₁, .forallE ty₂ body₂ m₂ => do
+  | .forallE ty₁ body₁, .forallE ty₂ body₂ => do
     unless ← r.defeq depth ty₁ ty₂ do return some false
     unless ← r.defeq (depth + 1)
         (body₁.instantiate1 (.fvar depth ty₂))
         (body₂.instantiate1 (.fvar depth ty₂)) do return some false
-    if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-      throw (.notImplemented "sort-annotation mismatch (defeq-forall)")
     pure (some true)
-  | .lam ty₁ body₁ m₁, .lam ty₂ body₂ m₂ => do
-    unless ← r.defeq depth ty₁ ty₂ do return some false
-    unless ← r.defeq (depth + 1)
-        (body₁.instantiate1 (.fvar depth ty₂))
-        (body₂.instantiate1 (.fvar depth ty₂)) do return some false
-    if mode.verifiedChecks && !(m₁.pw == m₂.pw) then
-      throw (.notImplemented "sort-annotation mismatch (defeq-lam)")
-    pure (some true)
+  | .lam ty₁ body₁, .lam ty₂ body₂ => do
+    let ok ← defeqLams mode r lamsFuel depth ty₁ body₁ ty₂ body₂
+    pure (some ok)
   | _, _ => pure none
 
 /-- `Nat.zero` or the literal `0` (official `is_nat_zero`). -/
@@ -1776,24 +1597,24 @@ def defeqStuck (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | .strVal st, .const cO usO =>
       if cO = stringOfListName ∧ usO = [] ∧ strLitSupported env then
         r.defeq depth (strLitToConstructor st) (.app (.const cO usO) x)
-      else stuckIrrel mode r env depth (.lit (.strVal st)) (.app (.const cO usO) x)
-    | _, _ => stuckIrrel mode r env depth (.lit l) (.app f x)
+      else stuckIrrel r env depth (.lit (.strVal st)) (.app (.const cO usO) x)
+    | _, _ => stuckIrrel r env depth (.lit l) (.app f x)
   | .app f x, .lit l =>
     match l, f with
     | .strVal st, .const cO usO =>
       if cO = stringOfListName ∧ usO = [] ∧ strLitSupported env then
         r.defeq depth (.app (.const cO usO) x) (strLitToConstructor st)
-      else stuckIrrel mode r env depth (.app (.const cO usO) x) (.lit (.strVal st))
-    | _, _ => stuckIrrel mode r env depth (.app f x) (.lit l)
+      else stuckIrrel r env depth (.app (.const cO usO) x) (.lit (.strVal st))
+    | _, _ => stuckIrrel r env depth (.app f x) (.lit l)
   | .fvar i ty₁, .fvar j ty₂ =>
     if i == j then pure true
-    else stuckIrrel mode r env depth (.fvar i ty₁) (.fvar j ty₂)
+    else stuckIrrel r env depth (.fvar i ty₁) (.fvar j ty₂)
   | .const n us, .const n' us' =>
     if n = n' then do
       if ← liftFueled "level comparison" (Level.isEquivList us us') then
         pure true
-      else stuckIrrel mode r env depth (.const n us) (.const n' us')
-    else stuckIrrel mode r env depth (.const n us) (.const n' us')
+      else stuckIrrel r env depth (.const n us) (.const n' us')
+    else stuckIrrel r env depth (.const n us) (.const n' us')
   | .app f₁ a₁, .app f₂ a₂ => do
     -- Stuck applications: **spine-wise** congruence (the official
     -- kernel's `is_def_eq_app`, lean4lean's `isDefEqApp`, nanoda's
@@ -1806,20 +1627,20 @@ def defeqStuck (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
           (Expr.app f₂ a₂).getAppFn then
         if ← defEqList r env depth (Expr.app f₁ a₁).getAppArgs
             (Expr.app f₂ a₂).getAppArgs then pure true
-        else stuckIrrel mode r env depth (.app f₁ a₁) (.app f₂ a₂)
-      else stuckIrrel mode r env depth (.app f₁ a₁) (.app f₂ a₂)
-    else stuckIrrel mode r env depth (.app f₁ a₁) (.app f₂ a₂)
+        else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
+      else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
+    else stuckIrrel r env depth (.app f₁ a₁) (.app f₂ a₂)
   -- One-sided λ: eta, else the stuck fallbacks.  (Two λs never get
   -- here: `quickDefEq` decides them.)
-  | .lam ty₁ body₁ m₁, b₂ => do
-    if ← etaCert mode r env depth ty₁ body₁ m₁ b₂ then pure true
-    else stuckIrrel mode r env depth (.lam ty₁ body₁ m₁) b₂
-  | a₁, .lam ty₂ body₂ m₂ => do
-    if ← etaCert mode r env depth ty₂ body₂ m₂ a₁ then pure true
-    else stuckIrrel mode r env depth a₁ (.lam ty₂ body₂ m₂)
+  | .lam ty₁ body₁, b₂ => do
+    if ← etaCert mode r env depth ty₁ body₁ b₂ then pure true
+    else stuckIrrel r env depth (.lam ty₁ body₁) b₂
+  | a₁, .lam ty₂ body₂ => do
+    if ← etaCert mode r env depth ty₂ body₂ a₁ then pure true
+    else stuckIrrel r env depth a₁ (.lam ty₂ body₂)
   -- Distinct whnf-stuck head symbols: only the stuck fallbacks can
   -- equate them; `false` is always sound.
-  | e₁, e₂ => stuckIrrel mode r env depth e₁ e₂
+  | e₁, e₂ => stuckIrrel r env depth e₁ e₂
 
 /-- **The definitional-equality body** (the official kernel's
 `is_def_eq_core`, clause for clause except one deliberate reordering):
@@ -1880,190 +1701,6 @@ def defeqBody (r : CoreFns m) (env : Env) : Nat → Expr → Expr → m Bool :=
     if a₂ == a₁ && b₂ == b₁ then defeqStuck mode r env depth a₁ b₁
     else r.defeq depth a₂ b₂
 
-/-! ### The untrusted annotation writes (task #161 P5)
-
-The pass is the existing normalizer: at the verified modes its ∀/λ
-clauses *write* the `pw` datum the front door then *validates*.  The
-write is untrusted by design — a wrong datum declines, never
-unsoundness — and it is a no-op wherever the input already carries a
-non-placeholder annotation (`pwWritten`): explicit input annotations
-are judged by validation, never overwritten.  The parser's placeholder
-for an absent `"pw"` field is `.never`, which is also a legitimate
-value; the pass therefore recomputes over `.never` unconditionally
-(harmless: a genuinely never-zero codomain recomputes to `.never`),
-and the *only* input annotations preserved are the `ifAllZero` ones.
--/
-
-/-- The ∀ node's datum: the zero-ness of the *codomain*'s sort, on the
-already-annotated opened body — exactly the value `inferBody`'s ∀
-clause validates against (`(forall-cod)`).
-
-**The chain read (task #161 P5, proof-lane repair).**  A ∀ body that is
-itself a ∀ reuses its inner neighbour's datum instead of inferring:
-`zeronessOf (imax u v) = zeronessOf v`, so every node of a telescope
-carries the *leaf* codomain sort's zero-ness.  This is the same rule
-`annotPwLam` already applies through `lamPw`, and it is what makes the
-spec pass pay **one** inference per ∀ telescope, as the design's
-telescope-collapse paragraph claims — and what makes it agree with the
-interned pass, which computes at the leaf and threads outward
-(`annotateBindersOutI`).
-
-Without it the spec inferred the whole inner telescope at every node,
-so it *failed* on terms the interned pass accepts — e.g.
-`∀ (x : Prop), ∀ (y : Foo), Prop` with `Foo` absent from the
-environment: `annotate` never looks a constant up, but inferring the
-inner ∀ node does.  See DESIGN.md, task #161 P5 proof-lane finding. -/
-def annotPwPi (r : CoreFns m) (env : Env) (depth : Nat) (body' : Expr) :
-    m PropWhen := do
-  -- Task #168 stage 2: the head-symbol reader first.  It subsumes the
-  -- chain read (`typeSortPW` of a ∀ IS its codomain datum) and answers
-  -- most leaves without inference; the pass is untrusted — `infer`
-  -- validates every datum it writes — so the reader owes no licence
-  -- here, only the datum's agreement (census: 0 non-equivalent data).
-  match typeSortPW env.find? body' with
-  | some pw => pure pw
-  | none => do
-    -- io grade: `body'` is already annotated (bottom-up)
-    let v ← ensureSort r env depth (← r.inferIO depth body')
-    pure (Level.zeronessOf v)
-
-/-- The λ node's datum: the zero-ness of the sort of the *body's type*.
-Mirrors `inferBody`'s λ clause exactly — a λ body reuses its inner
-neighbour's datum (the chain rule, no inference), any other body pays
-one leaf computation (`(lam-cod-leaf)`). -/
-def annotPwLam (r : CoreFns m) (env : Env) (depth : Nat) (body' : Expr) :
-    m PropWhen := do
-  -- task #168 stage 2: the reader first (it subsumes the `lamPw`
-  -- chain read), as in `annotPwPi`
-  match proofPW env.find? body' with
-  | some pw => pure pw
-  | none => do
-    -- io grade: `body'` is already annotated (bottom-up)
-    let bt ← r.inferIO depth body'
-    let vb ← ensureSort r env depth (← r.inferIO depth bt)
-    pure (Level.zeronessOf vb)
-
-/-- The annotation body: compute the codomain-sort annotations of every
-binder, bottom-up, by real inference on the opened (already annotated)
-body.  For a `forallE` the annotation is the body's sort (so this also
-checks that the body *is* a type — the ∀-formation rule); for a `lam`
-it is the sort of the body's type.  The `.app` clause is structural:
-the application rule is not checked here.  The inference sweep that
-follows re-checks every application and every binder body and
-validates each annotation against its own result; what it takes from
-the annotations is a licence to skip a *certificate* at a binder whose
-datum is `never`, never a typing it does not redo. -/
-def annotateBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
-  fun depth e =>
-    match e with
-    | .bvar i => pure (.bvar i)
-    | .fvar idx ty =>
-      -- Leaf scope check, as in `inferBody`: annotation is the pass raw
-      -- input enters through, so a dangling free variable in the input
-      -- is rejected here (depth 0: any `fvar` fails).
-      if idx < depth then pure (.fvar idx ty)
-      else throw (.invalid "free variable out of scope")
-    | .sort u => pure (.sort u)
-    | .const n us => pure (.const n us)
-    | .lit (.natVal n) => do
-      -- a literal is well-formed exactly when its type's declarations
-      -- are stored in the expected shape
-      if natLitSupported env then pure (.lit (.natVal n))
-      else throw (.invalid "Nat literal without the Nat basis declarations")
-    | .lit (.strVal s) => do
-      -- as for `Nat` literals; the missing-support verdict is a
-      -- decline (exit 2), the feature being positively detected
-      if strLitSupported env then pure (.lit (.strVal s))
-      else throw (.notImplemented
-        "string literals before the String support declarations")
-    | .app f a => do
-      -- structural (task #100 stage 6: the application rule's checks
-      -- moved to the driver's inference sweep — `inferBody`'s app
-      -- clause re-checks every argument unconditionally)
-      let f' ← r.annotate depth f
-      let a' ← r.annotate depth a
-      pure (.app f' a')
-    | .forallE ty body mb => do
-      -- structural (task #100 stage 6: no annotation to compute and no
-      -- checks — the driver's inference sweep re-checks every binder
-      -- body via the ∀/λ rules)
-      let ty' ← r.annotate depth ty
-      let body' ← r.annotate (depth + 1) (body.instantiate1 (.fvar depth ty'))
-      let pw ← if !pwWritten mb.pw then
-          annotPwPi r env (depth + 1) body'
-        else pure mb.pw
-      pure (.forallE ty' (body'.abstract1 depth) ⟨pw⟩)
-    | .lam ty body mb => do
-      let ty' ← r.annotate depth ty
-      let body' ← r.annotate (depth + 1) (body.instantiate1 (.fvar depth ty'))
-      let pw ← if !pwWritten mb.pw then
-          annotPwLam r env (depth + 1) body'
-        else pure mb.pw
-      pure (.lam ty' (body'.abstract1 depth) ⟨pw⟩)
-    | .letE ty v b => do
-      -- The body is annotated *with the value transparent* — nanoda's
-      -- `infer_let` instantiates the body with the value and recurses
-      -- (the official kernel gets the same transparency from valued
-      -- let-fvars in its local context).  ConLeche fvars carry no value,
-      -- so the body is annotated as its zeta reduct; an opened opaque
-      -- variable was tried and rejects real streams (elaborated `let`
-      -- bodies rely on the value definitionally — see DESIGN.md).
-      --
-      -- Task #217 (audit follow-up #206-S1): the official `infer_let`
-      -- triple — `ensure_sort_core(infer(type))`, `infer(val)`,
-      -- `is_def_eq(val_type, type)` — runs HERE, on the annotated
-      -- annotation and the annotated value, before the reduct is taken.
-      --
-      -- Task #161 item C2 dropped it as redundant with `inferBody`'s
-      -- own `.letE` clause.  That was wrong: this clause returns the ζ
-      -- reduct, so the stored term is let-free and `inferBody`'s
-      -- `.letE` arm never sees a `letE` node the driver produced —
-      -- `def x : Nat := let y : Nat := Bool.true; Nat.zero` was
-      -- accepted where the official kernel rejects ("(kernel)
-      -- let-declaration type mismatch").  The annotation pass is the
-      -- only pass that meets a `letE`, so it is where the triple must
-      -- run.
-      let ty' ← r.annotate depth ty
-      let _ ← ensureSort r env depth (← r.infer depth ty')
-      let v' ← r.annotate depth v
-      let tv ← r.infer depth v'
-      unless ← r.defeq depth tv ty' do
-        throw (.invalid "let value type mismatch")
-      r.annotate depth (b.instantiate1 v)
-    | .proj sn i pe => do
-      let e' ← r.annotate depth pe
-      -- Run the projection rule (the one place it is checked).  A table
-      -- entry types the node directly (the display name is normalized
-      -- to the type's head, so reduction's table lookup is complete on
-      -- annotated terms); a family without a table has no `.proj`
-      -- typing at all.
-      let te ← r.whnf depth (← r.inferIO depth e')
-      match te.getAppFn with
-      | .const T _ =>
-        match env.findProj? T i with
-        | some entry => do
-          -- TASK #271 (issue #7): the node's OWN structure name is
-          -- official's `infer_proj` premise `const_name(I) ==
-          -- proj_sname(e)`, and it is checked HERE and not only on the
-          -- annotated term: the normalization to the type's head below
-          -- would otherwise repair a node that names another
-          -- inductive, and official rejects it ("invalid projection").
-          unless T = sn do
-            throw (.invalid "invalid projection: the node names another structure")
-          unless te.getAppArgs.length = entry.numParams do
-            throw (.invalid "projection parameter mismatch")
-          pure (.proj T i e')
-        | none =>
-          -- task #175 wiring W5: the elimination fallbacks are gone —
-          -- every supported projection is a native table entry.
-          -- Without one, official's `infer_proj` verdict
-          -- (`projMissError`): reject, except at an indexed
-          -- structure-like type, which declines
-          throw (projMissError env.find? (env.find? (projTableName T)).isSome T sn i
-            te.getAppArgs.length)
-      -- official `infer_proj`: the whnf'd type's head is no constant
-      | _ => throw (.invalid "invalid projection: not a structure-like type, or no such field")
-
 end Bodies
 
 /-- Tie the bodies together at a monad: the record whose entry points
@@ -2080,7 +1717,6 @@ def coreKnot {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
       whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
       infer := fun _ _ => throw (.internal "fuel exhausted: infer")
       defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
-      annotate := fun _ _ => throw (.internal "fuel exhausted: annotate")
       inferIO := fun _ _ => throw (.internal "fuel exhausted: infer") }
   | fuel + 1 =>
     wrap
@@ -2088,24 +1724,15 @@ def coreKnot {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
           whnfCoreBody mode (coreKnot mode env wrap fuel) env c d e
         whnf := fun d e => whnfBody (coreKnot mode env wrap fuel) env d e
         infer := fun d e =>
-          inferBody mode (coreKnot mode env wrap fuel) env d e
+          inferBody (coreKnot mode env wrap fuel) env d e
         defeq := fun d a b =>
           defeqBody mode (coreKnot mode env wrap fuel) env d a b
-        annotate := fun d e =>
-          annotateBody (coreKnot mode env wrap fuel) env d e
-        -- **The io slot** (task #170 / #172 B4).  The grade's meaning is
-        -- the mode's: at the gated mode the io body, tied to the io-grade
-        -- view of the knot one level down (the grade propagates, as
-        -- official's `infer_only` does); at every other mode the full
-        -- inference body, verbatim — "in R mode infer_only is just
-        -- equivalent to infer" (the task-#170 order).  The selection
-        -- reads mode-and-datum-free data (`mode.betaGate`, the same bit
-        -- the β gate reads) and is made once per knot level.
+        -- **The io slot** (task #170 / #172 B4, task #346): official's
+        -- `infer_only`, tied to the io-grade view of the knot one level
+        -- down (the grade propagates, as official's does)
         inferIO := fun d e =>
-          if mode.betaGate then
-            inferBodyIO mode
-              (CoreFns.ioView (coreKnot mode env wrap fuel)) env d e
-          else inferBody mode (coreKnot mode env wrap fuel) env d e }
+          inferBodyIO
+            (CoreFns.ioView (coreKnot mode env wrap fuel)) env d e }
 
 /-- The shared fuel for the checker core: bounds the recursion depth of
 reduction, inference and definitional equality.  Exhaustion is an

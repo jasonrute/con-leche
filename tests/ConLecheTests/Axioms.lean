@@ -59,7 +59,7 @@ equation the compiled equality rests on.
 | `no_constant_of_False` | the business end at the invariant |
 | `no_constant_of_Empty` | the same about `Empty` |
 | `no_constant_of_emptyPin` | the pin under it |
-| `Expr.beq_eq_beqMemo` | the compiled expression equality IS `decide (a = b)` — the `@[csimp]` licence, so the trust-surface gate's "no escape" reading of `Expr.lean` is a theorem at these axioms (`Quot.sound` is the memo's quotient) |
+| `Expr.beq_eq_beqMemo` | the compiled expression equality IS `decide (a = b)` — the `@[csimp]` justification, so the trust-surface gate's "no escape" reading of `Expr.lean` is a theorem at these axioms (`Quot.sound` is the memo's quotient) |
 
 **What is deliberately NOT pinned here**: anything about the
 `--progress` lane.  The heartbeat is printed between the steps of the
@@ -117,8 +117,8 @@ info: 'ConLeche.no_False_declaration' depends on axioms: [propext, Classical.cho
 
 The other direction of the same relation between input and output:
 every record of the stream that declares a constant leaves that
-constant, under its own name and with the annotation of its own
-declared type, in the environment the fold returns. -/
+constant, under its own name, with its own level parameters and its
+own declared type, in the environment the fold returns. -/
 
 /--
 info: 'ConLeche.Cached.checkDecls_consts' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -221,7 +221,7 @@ info: 'ConLeche.Model.no_constant_of_emptyPin' depends on axioms: [propext, Clas
 
 /-! ## The compiled equality (`ConLeche/Kernel/Expr.lean`)
 
-Not a capstone: the licence under which the compiler runs `beqMemo`
+Not a capstone: the justification under which the compiler runs `beqMemo`
 for `Expr.beq`.  It is pinned because it is the theorem that turned a
 census row into a `@[csimp]` equation, and because its proof is the
 one place the tree quotients a runtime state (`Squash`, hence

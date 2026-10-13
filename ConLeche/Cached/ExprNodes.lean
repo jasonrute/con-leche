@@ -64,8 +64,8 @@ replace `Name.beq`/`Level.beq`/`Expr.beq` in compiled code through
 (`Name.beq_eq_beqPtr`, `Level.beq_eq_beqPtr`, `Expr.beq_eq_beqMemo`) —
 **USER RULING, 2026-09-05, verbatim:** *"do *not* use
 `implemented_by`.  If you can prove them equal, use `csimp`."*  A
-`csimp` substitution is not an escape at all: the compiler is licensed
-by a theorem this repository proves, not by an unchecked attribute.
+`csimp` substitution is not an escape at all: the compiler's substitution is
+justified by a theorem this repository proves, not by an unchecked attribute.
 The address reads behind them go through `Init.Util`'s `withPtrEq` and
 `withPtrAddr`, whose side conditions those files discharge, and the
 equality memo carries its invariant in its value type (`Expr.EqPair`)
@@ -92,11 +92,11 @@ so nothing is added at runtime. -/
 
 @[inline] def mkApp (f a : Expr) : Expr := .app f a
 
-@[inline] def mkLam (ty body : Expr) (m : BinderMeta) : Expr :=
-  .lam ty body m
+@[inline] def mkLam (ty body : Expr) : Expr :=
+  .lam ty body
 
-@[inline] def mkForallE (ty body : Expr) (m : BinderMeta) :
-    Expr := .forallE ty body m
+@[inline] def mkForallE (ty body : Expr) :
+    Expr := .forallE ty body
 
 @[inline] def mkLetE (ty val body : Expr) : Expr :=
   .letE ty val body
@@ -123,23 +123,16 @@ recurrence is the compiler's (the census row above). -/
 @[simp] theorem mkFVar_eq (idx : Nat) (ty : Expr) :
     mkFVar idx ty = .fvar idx ty := rfl
 
-@[simp] theorem mkSort_eq (u : Level) : mkSort u = .sort u := rfl
-
-@[simp] theorem mkConst_eq (n : Name) (us : List Level) :
-    mkConst n us = .const n us := rfl
-
 @[simp] theorem mkApp_eq (f a : Expr) : mkApp f a = .app f a := rfl
 
-@[simp] theorem mkLam_eq (ty b : Expr) (m : BinderMeta) :
-    mkLam ty b m = .lam ty b m := rfl
+@[simp] theorem mkLam_eq (ty b : Expr) :
+    mkLam ty b = .lam ty b := rfl
 
-@[simp] theorem mkForallE_eq (ty b : Expr) (m : BinderMeta) :
-    mkForallE ty b m = .forallE ty b m := rfl
+@[simp] theorem mkForallE_eq (ty b : Expr) :
+    mkForallE ty b = .forallE ty b := rfl
 
 @[simp] theorem mkLetE_eq (ty v b : Expr) :
     mkLetE ty v b = .letE ty v b := rfl
-
-@[simp] theorem mkLit_eq (l : Literal) : mkLit l = .lit l := rfl
 
 @[simp] theorem mkProj_eq (s : Name) (i : Nat) (e : Expr) :
     mkProj s i e = .proj s i e := rfl

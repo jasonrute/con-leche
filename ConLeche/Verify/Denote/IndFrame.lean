@@ -10,7 +10,7 @@ public section
 
 The `Expr`-level facts about the checker's telescope openers
 (`openPisAtFvars`, `instPisAt`, `instLamsAt`) that the iota bottoms'
-frame machinery consumes: `ctxInstAt`, leaf closure
+frame machinery consumes: leaf closure
 (`openPisAtFvars_leaves`, `instPisAt_leaves`, `instLamsAt_leaves`),
 loose-bvar bounds and scoping, lengths, and composition.  All V-free.
 -/
@@ -35,18 +35,6 @@ theorem map_range_getD {α β : Type} [Inhabited α] (xs : List α)
   · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none h]
     rfl
 
-/-- A context's entries, instantiated after a variable *below* all of
-them is substituted: the entry `i` places above the substituted slot is
-instantiated at cut `j + i` (`j` counts binders below the substituted
-slot that remain).  The entry adjacent to the slot — the list's last —
-gets cut `j`. -/
-@[expose] def ctxInstAt (v : Term) (j : Nat) : List Term → List Term
-  | [] => []
-  | B :: Γ => B.inst v (j + Γ.length) :: ctxInstAt v j Γ
-
-@[simp] theorem ctxInstAt_nil (v : Term) (j : Nat) :
-    ctxInstAt v j [] = [] := rfl
-
 /-- Every free-variable leaf reachable from an opened telescope — from
 the opened body or from any opener's own annotation — is either a leaf
 of the unopened expression or exactly one of the openers.  With the
@@ -69,7 +57,7 @@ theorem openPisAtFvars_leaves :
   | succ k ih =>
     intro e d fvs body h l hl
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with
@@ -80,7 +68,7 @@ theorem openPisAtFvars_leaves :
         obtain ⟨rfl, rfl⟩ := h
         -- a leaf of the head opener resolves directly
         have head : l ∈ (Expr.fvar d dom).fvarLeaves →
-            l ∈ (Expr.forallE dom bodyE mb).fvarLeaves ∨
+            l ∈ (Expr.forallE dom bodyE).fvarLeaves ∨
               Expr.fvar l.1 l.2 ∈
                 Expr.fvar d dom :: p.1 := by
           intro hl'
@@ -126,7 +114,7 @@ theorem openPisAtFvars_bounded :
   | succ k ih =>
     intro e d fvs body h hb
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with
@@ -165,7 +153,7 @@ theorem instPisAt_bounded :
   | cons a sp ih =>
     intro ty ds rs h hb hsp
     match ty, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [Expr.instPisAt] at h
       cases h1 : Expr.instPisAt sp (body.instantiate1 a) with
       | none => rw [h1] at h; exact nomatch h
@@ -201,7 +189,7 @@ theorem openPisAtFvars_length :
   | succ k ih =>
     intro e d fvs body h
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases h1 : openPisAtFvars k (bodyE.instantiate1 (.fvar d dom))
           (d + 1) with

@@ -9,7 +9,8 @@ public import ConLeche.Kernel.Env
 
 A stream's `Nat` block and the checker's pinned one are the same
 declaration when they agree up to the names Lean's exporter picks
-freely: binder names, binder annotations and level-parameter names.
+freely: binder names, binder infos and level-parameter names (the
+first two never reach an `Expr`; this form renames the third).
 This module is that canonical form and the lockstep comparisons built
 on it.
 
@@ -33,32 +34,21 @@ def canonLevel (m : Name → Name) : Level → Level
   | .imax u v => .imax (canonLevel m u) (canonLevel m v)
   | .param n => .param (m n)
 
-/-- Erase binder names *and binder annotations* and rename level
-parameters: the alpha/renaming canonical form used to match a parsed
-inductive block against a pinned basis block (Lean's exports use
-auto-bound universe names and hygienic binder names, both semantically
-irrelevant).
-
-Task #142, pin-side normalization: the parser already maps every
-stream binder to `.default`, and both sides of every
-`ConstantInfo.canon` comparison go through here, so erasing the
-annotation here is what kept the two sides consistent while the pinned
-literals still carried the real `BinderInfo`s of their `Init.Prelude`
-signatures.  Since task #203 the pin builder
-(`ConLeche/Kernel/Basis/Builder.lean`) emits `.anonymous` at `.default`
-and the parser emits `.anonymous` too, so the name/annotation erasure
-here is the identity on both sides; what this canonical form still
-*does* is rename level parameters and reset `pw` (the pin side is
-annotated, the stream side is at the parse placeholder). -/
+/-- Rename level parameters throughout a term: the canonical form used
+to match a parsed inductive block against a pinned basis block up to
+level-parameter names (Lean's exports use auto-bound universe names,
+which are semantically irrelevant).  Binder names and binder infos
+need no erasing: `Expr` has no slot for either (the parser drops them,
+tasks #142 and #203). -/
 def canonExpr (m : Name → Name) : Expr → Expr
   | .bvar i => .bvar i
   | .fvar idx ty => .fvar idx (canonExpr m ty)
   | .sort u => .sort (canonLevel m u)
   | .const n us => .const n (us.map (canonLevel m))
   | .app f a => .app (canonExpr m f) (canonExpr m a)
-  | .lam ty b _ => .lam (canonExpr m ty) (canonExpr m b) ⟨.never⟩
-  | .forallE ty b _ =>
-      .forallE (canonExpr m ty) (canonExpr m b) ⟨.never⟩
+  | .lam ty b => .lam (canonExpr m ty) (canonExpr m b)
+  | .forallE ty b =>
+      .forallE (canonExpr m ty) (canonExpr m b)
   | .letE ty v b => .letE (canonExpr m ty) (canonExpr m v)
       (canonExpr m b)
   | .lit l => .lit l
@@ -133,9 +123,9 @@ def canonExprEqFast (m m' : Name → Name) : Expr → Expr → Bool
       n == n' && us.map (canonLevel m) == us'.map (canonLevel m')
   | .app f a, .app f' a' =>
       canonExprEqFast m m' f f' && canonExprEqFast m m' a a'
-  | .lam t b _, .lam t' b' _ =>
+  | .lam t b, .lam t' b' =>
       canonExprEqFast m m' t t' && canonExprEqFast m m' b b'
-  | .forallE t b _, .forallE t' b' _ =>
+  | .forallE t b, .forallE t' b' =>
       canonExprEqFast m m' t t' && canonExprEqFast m m' b b'
   | .letE t v b, .letE t' v' b' =>
       canonExprEqFast m m' t t' && canonExprEqFast m m' v v' &&
@@ -162,10 +152,10 @@ theorem canonExprEqFast_iff (m m' : Name → Name) :
   | app f a ihf iha =>
     intro b; cases b <;>
       simp [canonExprEqFast, canonExpr, Bool.and_eq_true, ihf, iha]
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro c; cases c <;>
       simp [canonExprEqFast, canonExpr, Bool.and_eq_true, iht, ihb]
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro c; cases c <;>
       simp [canonExprEqFast, canonExpr, Bool.and_eq_true, iht, ihb]
   | letE t v b iht ihv ihb =>

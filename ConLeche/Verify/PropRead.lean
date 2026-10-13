@@ -2,12 +2,6 @@ module
 
 public import ConLeche.Kernel.PropRead
 public import ConLeche.Verify.Shift
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern, task #194): the datum's module is `public` but not
-`@[expose]`d, so a `cases`-then-`rfl` proof cannot see the reduct.
-`import all` restores that view HERE only. -/
-import ConLeche.Kernel.PropWhen
-import all ConLeche.Kernel.PropWhen
 
 public section
 
@@ -16,9 +10,10 @@ public section
 (task #168)
 
 The readers (`ConLeche/Kernel/PropRead.lean`) look only at head symbols,
-arities and binder data, none of which a free-variable shift touches —
-so every reader commutes with `shiftFrom`, which is all the
-deep-embedding lemma family (`ConLeche/Verify/Deep.lean`) needs of them.
+arities, stored types and the residual sorts of declared types, none of
+which a free-variable shift changes the shape of — so every reader
+commutes with `shiftFrom`, which is all the deep-embedding lemma family
+(`ConLeche/Verify/Deep.lean`) needs of them.
 -/
 
 namespace ConLeche
@@ -31,47 +26,140 @@ theorem Expr.numArgs_shiftFrom {p : Nat} :
   induction e <;> simp_all [shiftFrom, numArgs]
   case fvar => split <;> rfl
 
-theorem residualPW_peelNeverPis_shiftFrom {p : Nat} :
+/-- `getD` through a mapped list, the default mapped too. -/
+theorem List.getD_map_shiftFrom {p : Nat} (l : List Expr) (i : Nat) (d : Expr) :
+    (l.map (shiftFrom p)).getD i (shiftFrom p d) = shiftFrom p (l.getD i d) := by
+  simp [List.getD_eq_getElem?_getD, List.getElem?_map]
+
+theorem unwrapIdDefs_succ_of_not_const (find? : Name → Option ConstantInfo) {k : Nat}
+    {x : Expr} (h : ∀ c us, x.getAppFn ≠ .const c us) :
+    unwrapIdDefs find? (k + 1) x = x := by
+  simp only [unwrapIdDefs]
+
+theorem shiftFrom_getAppFn_not_const {p : Nat} {e : Expr}
+    (h : ∀ c us, e.getAppFn ≠ .const c us) :
+    ∀ c us, (shiftFrom p e).getAppFn ≠ .const c us := by
+  intro c us hc
+  rw [getAppFn_shiftFrom] at hc
+  cases hf : e.getAppFn <;> rw [hf] at hc <;> simp only [shiftFrom, reduceCtorEq] at hc
+  case const c' us' => exact h c' us' hf
+  case fvar => split at hc <;> exact nomatch hc
+
+theorem unwrapIdDefs_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
     ∀ (k : Nat) (e : Expr),
-      residualPW ((shiftFrom p e).peelNeverPis k) =
-        residualPW (e.peelNeverPis k) := by
+      unwrapIdDefs find? k (shiftFrom p e) = shiftFrom p (unwrapIdDefs find? k e) := by
   intro k
   induction k with
-  | zero =>
-    intro e
-    cases e <;> try rfl
-    case fvar => simp only [shiftFrom]; split <;> rfl
+  | zero => intro e; rfl
   | succ k ih =>
     intro e
+    by_cases hc : ∃ c us, e.getAppFn = .const c us
+    · obtain ⟨c, us, hh⟩ := hc
+      have hfn : (shiftFrom p e).getAppFn = .const c us := by
+        rw [getAppFn_shiftFrom, hh]; rfl
+      simp only [unwrapIdDefs, hfn, hh, getAppArgs_shiftFrom, List.length_map]
+      cases find? c with
+      | none => rfl
+      | some ci =>
+        cases ci <;> try rfl
+        case defnInfo cv v hint =>
+          dsimp only
+          cases lamProj? 0 v with
+          | none => rfl
+          | some kj =>
+            dsimp only
+            split
+            · rw [List.getD_map_shiftFrom, ih]
+            · rfl
+    · have hn : ∀ c us, e.getAppFn ≠ .const c us := fun c us h => hc ⟨c, us, h⟩
+      rw [unwrapIdDefs_succ_of_not_const find? hn,
+        unwrapIdDefs_succ_of_not_const find? (shiftFrom_getAppFn_not_const hn)]
+
+theorem peelPisW_succ_eq (find? : Name → Option ConstantInfo) (n : Nat) (e : Expr) :
+    peelPisW find? (n + 1) e =
+      match unwrapIdDefs find? 4 e with
+      | .forallE _ b => peelPisW find? n b
+      | _ => none := by
+  cases e with
+  | forallE ty b =>
+    rw [unwrapIdDefs_succ_of_not_const find? (by intro c us h; exact nomatch h)]
+    rfl
+  | _ => rfl
+
+theorem peelPisW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
+    ∀ (n : Nat) (e : Expr),
+      peelPisW find? n (shiftFrom p e) = (peelPisW find? n e).map (shiftFrom p) := by
+  intro n
+  induction n with
+  | zero => intro e; simp [peelPisW, unwrapIdDefs_shiftFrom]
+  | succ n ih =>
+    intro e
+    rw [peelPisW_succ_eq, peelPisW_succ_eq, unwrapIdDefs_shiftFrom]
+    cases unwrapIdDefs find? 4 e with
+    | forallE ty b => simp only [shiftFrom, ih]
+    | fvar idx ty => by_cases hp : idx ≥ p <;> simp [shiftFrom, hp]
+    | _ => rfl
+
+theorem residualPW_map_shiftFrom {p : Nat} (o : Option Expr) :
+    residualPW (o.map (shiftFrom p)) = residualPW o := by
+  match o with
+  | none => rfl
+  | some e =>
     cases e <;> try rfl
-    case fvar => simp only [shiftFrom]; split <;> rfl
-    case forallE ty b m =>
-      simp only [shiftFrom, peelNeverPis]
-      split
-      · exact ih b
-      · rfl
+    case fvar => simp only [Option.map_some, shiftFrom]; split <;> rfl
+
+theorem binderDom_shiftFrom {p : Nat} :
+    ∀ (k : Nat) (e : Expr), (shiftFrom p e).binderDom k = (e.binderDom k).map (shiftFrom p) := by
+  intro k e
+  induction e generalizing k <;> cases k <;> simp_all [shiftFrom, binderDom]
+  all_goals split <;> rfl
 
 theorem headTypePW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
-    (h : Expr) (n : Nat) :
-    headTypePW find? (shiftFrom p h) n = headTypePW find? h n := by
+    (root : Expr) (d : Nat) (h : Expr) (n : Nat) :
+    headTypePW find? (shiftFrom p root) d (shiftFrom p h) n =
+      headTypePW find? root d h n := by
   cases h <;> try rfl
   case fvar =>
     simp only [shiftFrom]
-    split <;> simp only [headTypePW, residualPW_peelNeverPis_shiftFrom]
+    split <;> simp only [headTypePW, peelPisW_shiftFrom, residualPW_map_shiftFrom]
+  case bvar i =>
+    simp only [shiftFrom, headTypePW, binderDom_shiftFrom]
+    split <;> try rfl
+    cases root.binderDom (d - 1 - i) <;>
+      simp [peelPisW_shiftFrom, residualPW_map_shiftFrom]
+
+theorem typeSortPWGo_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
+    (root : Expr) :
+    ∀ (R : Expr) (d : Nat),
+      typeSortPWGo find? (shiftFrom p root) (shiftFrom p R) d =
+        typeSortPWGo find? root R d := by
+  intro R
+  induction R with
+  | forallE ty b _ ihb => intro d; simp only [shiftFrom, typeSortPWGo, ihb]
+  | sort u => intro d; rfl
+  | fvar idx ty =>
+    intro d
+    have h := headTypePW_shiftFrom find? (p := p) root d (.fvar idx ty) 0
+    revert h
+    simp only [shiftFrom]
+    split <;> intro h <;> exact h
+  | bvar i => intro d; exact headTypePW_shiftFrom find? root d (.bvar i) 0
+  | const n us => intro d; exact headTypePW_shiftFrom find? root d (.const n us) 0
+  | lam ty b => intro d; exact headTypePW_shiftFrom find? root d (.lam ty b) 0
+  | letE ty v b => intro d; exact headTypePW_shiftFrom find? root d (.letE ty v b) 0
+  | lit l => intro d; exact headTypePW_shiftFrom find? root d (.lit l) 0
+  | proj sn i e => intro d; exact headTypePW_shiftFrom find? root d (.proj sn i e) 0
+  | app f a =>
+    intro d
+    show headTypePW find? (shiftFrom p root) d (shiftFrom p (.app f a)).getAppFn
+        (shiftFrom p (.app f a)).numArgs =
+      headTypePW find? root d (Expr.app f a).getAppFn (Expr.app f a).numArgs
+    rw [numArgs_shiftFrom, getAppFn_shiftFrom, headTypePW_shiftFrom]
 
 theorem typeSortPW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
     (T : Expr) :
-    typeSortPW find? (shiftFrom p T) = typeSortPW find? T := by
-  cases T <;> try rfl
-  case fvar =>
-    simp only [shiftFrom]
-    split <;> simp only [typeSortPW, getAppFn, numArgs, headTypePW,
-      residualPW_peelNeverPis_shiftFrom]
-  case app f x =>
-    have h1 := getAppFn_shiftFrom (p := p) (.app f x)
-    have h2 := numArgs_shiftFrom (p := p) (.app f x)
-    simp only [shiftFrom] at h1 h2 ⊢
-    simp only [typeSortPW, h1, h2, headTypePW_shiftFrom]
+    typeSortPW find? (shiftFrom p T) = typeSortPW find? T :=
+  typeSortPWGo_shiftFrom find? T T 0
 
 theorem headProofPW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
     (h : Expr) :
@@ -81,20 +169,19 @@ theorem headProofPW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
     simp only [shiftFrom]
     split <;> simp only [headProofPW, typeSortPW_shiftFrom]
 
-/-- `proofPW` through the total `lamPw` reader (the shape the walks
-rewrite). -/
-theorem proofPW_eq (find? : Name → Option ConstantInfo) (a : Expr) :
-    proofPW find? a =
-      match a.lamPw with
-      | some pw => some pw
-      | none => headProofPW find? a.getAppFn := by
-  cases a <;> rfl
-
-theorem proofPW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
-    (a : Expr) :
-    proofPW find? (shiftFrom p a) = proofPW find? a := by
-  rw [proofPW_eq, proofPW_eq, lamPw_shiftFrom, getAppFn_shiftFrom,
-    headProofPW_shiftFrom]
+theorem proofPW_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat} :
+    ∀ (a : Expr), proofPW find? (shiftFrom p a) = proofPW find? a := by
+  intro a
+  induction a with
+  | lam ty b _ ihb => simp only [shiftFrom, proofPW, ihb]
+  | letE ty v b _ _ ihb => simp only [shiftFrom, proofPW, ihb]
+  | app f x ihf _ => simp only [shiftFrom, proofPW, ihf]
+  | fvar idx ty =>
+    have h := headProofPW_shiftFrom find? (p := p) (.fvar idx ty)
+    revert h
+    simp only [shiftFrom]
+    split <;> intro h <;> exact h
+  | _ => rfl
 
 theorem notProofFast_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
     (a : Expr) :
@@ -108,70 +195,13 @@ theorem isProofFast_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
 
 /-! ## Inversions — what a reader's answer says about the term
 
-The "yes" arm's licence (`prf_of_isProofFast`,
+The "yes" arm's justification (`prf_of_isProofFast`,
 `ConLeche/Model/Rules/DefEqSoundKit.lean`) consumes
-the readers through these: each `some` verdict is one of finitely many
-head shapes with the datum spelled out. -/
+the readers through these. -/
 
 theorem Expr.numArgs_eq_length : ∀ (e : Expr), e.numArgs = e.getAppArgs.length := by
   intro e
   induction e <;> simp_all [numArgs, getAppArgs]
-
-theorem Expr.lamPw_some_inv {a : Expr} {pw : PropWhen} (h : a.lamPw = some pw) :
-    ∃ ty bd mb, a = .lam ty bd mb ∧ pw = mb.pw := by
-  cases a <;> simp only [lamPw, reduceCtorEq, Option.some.injEq] at h
-  exact ⟨_, _, _, rfl, h.symm⟩
-
-theorem Expr.peelNeverPis_zero_inv {T R : Expr} (h : T.peelNeverPis 0 = some R) :
-    T = R := Option.some.inj h
-
-theorem Expr.peelNeverPis_succ_inv {k : Nat} {T R : Expr}
-    (h : T.peelNeverPis (k + 1) = some R) :
-    ∃ ty b m, T = .forallE ty b m ∧ m.pw.isNever = true ∧
-      b.peelNeverPis k = some R := by
-  cases T <;> simp only [peelNeverPis, reduceCtorEq] at h
-  case forallE ty b m =>
-    split at h
-    · exact ⟨ty, b, m, rfl, ‹_›, h⟩
-    · exact nomatch h
-
-/-- Peeling commutes with term instantiation at any offset: the
-binders and their data are untouched, a `Sort` residual stays. -/
-theorem Expr.peelNeverPis_instantiate1 : ∀ (k : Nat) {T : Expr} {u : Level}
-    (v : Expr) (off : Nat), T.peelNeverPis k = some (.sort u) →
-    (T.instantiate1 v off).peelNeverPis k = some (.sort u) := by
-  intro k
-  induction k with
-  | zero =>
-    intro T u v off h
-    obtain rfl := Expr.peelNeverPis_zero_inv h
-    rfl
-  | succ k ih =>
-    intro T u v off h
-    obtain ⟨ty, b, m, rfl, hnev, hb⟩ := Expr.peelNeverPis_succ_inv h
-    simp only [instantiate1, peelNeverPis, hnev, ite_true]
-    exact ih v (off + 1) hb
-
-/-- A successful peel is a successful `stripPis` with the same
-residual. -/
-theorem Expr.stripPis_of_peelNeverPis : ∀ (k : Nat) {T R : Expr},
-    T.peelNeverPis k = some R → ∃ bs, T.stripPis k = some (bs, R) := by
-  intro k
-  induction k with
-  | zero =>
-    intro T R h
-    obtain rfl := Expr.peelNeverPis_zero_inv h
-    exact ⟨[], rfl⟩
-  | succ k ih =>
-    intro T R h
-    obtain ⟨ty, b, m, rfl, -, hb⟩ := Expr.peelNeverPis_succ_inv h
-    obtain ⟨bs, hbs⟩ := ih hb
-    exact ⟨(ty, m) :: bs, by simp [stripPis, hbs]⟩
-
-theorem Expr.hasFvar_of_getAppFn_fvar : ∀ {e : Expr} {idx : Nat}
-    {ty : Expr}, e.getAppFn = .fvar idx ty → e.hasFvar = true := by
-  intro e
-  induction e <;> intro idx ty h <;> simp_all [getAppFn, hasFvar]
 
 theorem residualPW_some_inv {o : Option Expr} {pw : PropWhen}
     (h : residualPW o = some pw) :
@@ -180,121 +210,9 @@ theorem residualPW_some_inv {o : Option Expr} {pw : PropWhen}
   | some (.sort u), h => exact ⟨u, rfl, (Option.some.inj h).symm⟩
   | none, h => exact nomatch h
   | some (.bvar _), h | some (.fvar _ _), h | some (.const _ _), h
-  | some (.app _ _), h | some (.lam _ _ _), h | some (.forallE _ _ _), h
+  | some (.app _ _), h | some (.lam _ _), h | some (.forallE _ _), h
   | some (.letE _ _ _), h | some (.lit _), h | some (.proj _ _ _), h =>
     exact nomatch h
-
-theorem headTypePW_some_inv (find? : Name → Option ConstantInfo) {hd : Expr}
-    {k : Nat} {pw : PropWhen} (h : headTypePW find? hd k = some pw) :
-    (∃ I us ci u, hd = .const I us ∧ find? I = some ci ∧
-        ci.isTowerEntry = false ∧
-        us.length = ci.toConstantVal.levelParams.length ∧
-        ci.toConstantVal.type.peelNeverPis k = some (.sort u) ∧
-        pw = Level.substPW ci.toConstantVal.levelParams us
-          (Level.zeronessOf u)) ∨
-    (∃ idx ty u, hd = .fvar idx ty ∧
-        ty.peelNeverPis k = some (.sort u) ∧ pw = Level.zeronessOf u) := by
-  cases hd <;> simp only [headTypePW, reduceCtorEq] at h
-  case const I us =>
-    cases hf : find? I with
-    | none => rw [hf] at h; exact nomatch h
-    | some ci =>
-      rw [hf] at h
-      dsimp only at h
-      split at h
-      · exact nomatch h
-      · next hnt =>
-        split at h
-        · next hlen =>
-          cases hr : residualPW (ci.toConstantVal.type.peelNeverPis k) with
-          | none => rw [hr] at h; exact nomatch h
-          | some pw0 =>
-            rw [hr] at h
-            obtain ⟨u, hu, rfl⟩ := residualPW_some_inv hr
-            exact Or.inl ⟨I, us, ci, u, rfl, hf, Bool.eq_false_iff.mpr hnt, hlen,
-              hu, (Option.some.inj h).symm⟩
-        · exact nomatch h
-  case fvar idx ty =>
-    obtain ⟨u, hu, rfl⟩ := residualPW_some_inv h
-    exact Or.inr ⟨idx, ty, u, rfl, hu, rfl⟩
-
-/-- `typeSortPW` through the two special cases (the shape the
-inversion rewrites). -/
-theorem typeSortPW_eq (find? : Name → Option ConstantInfo) (T : Expr) :
-    typeSortPW find? T =
-      match T with
-      | .forallE _ _ m => some m.pw
-      | .sort _ => some .never
-      | T => headTypePW find? T.getAppFn T.getAppArgs.length := by
-  cases T <;> simp [typeSortPW, Expr.numArgs_eq_length]
-
-theorem typeSortPW_some_inv (find? : Name → Option ConstantInfo) {T : Expr}
-    {pw : PropWhen} (h : typeSortPW find? T = some pw) :
-    (∃ A B mb, T = .forallE A B mb ∧ pw = mb.pw) ∨
-    pw = .never ∨
-    (∃ I us ci u, T.getAppFn = .const I us ∧ find? I = some ci ∧
-        ci.isTowerEntry = false ∧
-        us.length = ci.toConstantVal.levelParams.length ∧
-        ci.toConstantVal.type.peelNeverPis T.getAppArgs.length =
-          some (.sort u) ∧
-        pw = Level.substPW ci.toConstantVal.levelParams us
-          (Level.zeronessOf u)) ∨
-    (∃ idx ty u, T.getAppFn = .fvar idx ty ∧
-        ty.peelNeverPis T.getAppArgs.length = some (.sort u) ∧
-        pw = Level.zeronessOf u) := by
-  rw [typeSortPW_eq] at h
-  cases T <;> simp only [Option.some.injEq] at h
-  case forallE A B mb => exact Or.inl ⟨A, B, mb, rfl, h.symm⟩
-  case sort u => exact Or.inr (Or.inl h.symm)
-  all_goals
-    rcases headTypePW_some_inv find? h with
-      ⟨I, us, ci, u, hfn, hf, hnt, hlen, hpeel, rfl⟩ |
-      ⟨idx, ty, u, hfn, hpeel, rfl⟩
-    · exact Or.inr (Or.inr (Or.inl ⟨I, us, ci, u, hfn, hf, hnt, hlen, hpeel, rfl⟩))
-    · exact Or.inr (Or.inr (Or.inr ⟨idx, ty, u, hfn, hpeel, rfl⟩))
-
-theorem headProofPW_some_inv (find? : Name → Option ConstantInfo) {hd : Expr}
-    {pw : PropWhen} (h : headProofPW find? hd = some pw) :
-    (∃ c us ci, hd = .const c us ∧ find? c = some ci ∧
-        ci.isTowerEntry = false ∧
-        us.length = ci.toConstantVal.levelParams.length ∧
-        ∃ pw0, typeSortPW find? ci.toConstantVal.type = some pw0 ∧
-          pw = Level.substPW ci.toConstantVal.levelParams us pw0) ∨
-    (∃ idx ty, hd = .fvar idx ty ∧ typeSortPW find? ty = some pw) ∨
-    pw = .never := by
-  cases hd <;> simp only [headProofPW, reduceCtorEq, Option.some.injEq] at h
-  case const c us =>
-    cases hf : find? c with
-    | none => rw [hf] at h; exact nomatch h
-    | some ci =>
-      rw [hf] at h
-      dsimp only at h
-      split at h
-      · exact nomatch h
-      · next hnt =>
-        split at h
-        · next hlen =>
-          cases hr : typeSortPW find? ci.toConstantVal.type with
-          | none => rw [hr] at h; exact nomatch h
-          | some pw0 =>
-            rw [hr] at h
-            exact Or.inl ⟨c, us, ci, rfl, hf, Bool.eq_false_iff.mpr hnt, hlen,
-              pw0, hr, (Option.some.inj h).symm⟩
-        · exact nomatch h
-  case fvar idx ty => exact Or.inr (Or.inl ⟨idx, ty, rfl, h⟩)
-  all_goals exact Or.inr (Or.inr h.symm)
-
-theorem proofPW_some_inv (find? : Name → Option ConstantInfo) {a : Expr}
-    {pw : PropWhen} (h : proofPW find? a = some pw) :
-    (∃ ty bd mb, a = .lam ty bd mb ∧ pw = mb.pw) ∨
-    (a.lamPw = none ∧ headProofPW find? a.getAppFn = some pw) := by
-  rw [proofPW_eq] at h
-  cases hl : a.lamPw with
-  | some p =>
-    rw [hl] at h
-    obtain ⟨ty, bd, mb, rfl, rfl⟩ := Expr.lamPw_some_inv hl
-    exact Or.inl ⟨ty, bd, mb, rfl, (Option.some.inj h).symm⟩
-  | none => rw [hl] at h; exact Or.inr ⟨rfl, h⟩
 
 theorem isProofFast_inv (find? : Name → Option ConstantInfo) {a : Expr}
     (h : isProofFast find? a = true) :
@@ -305,8 +223,5 @@ theorem isProofFast_inv (find? : Name → Option ConstantInfo) {a : Expr}
   | some pw => rw [hp] at h; exact ⟨pw, rfl, h⟩
 
 @[simp] theorem PropWhen.isProp_never : PropWhen.isProp .never = false := by rfl
-
-@[simp] theorem Level.substPW_never (ks : List Name) (vs : List Level) :
-    Level.substPW ks vs .never = .never := by rfl
 
 end ConLeche

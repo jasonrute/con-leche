@@ -63,10 +63,10 @@ theorem instantiate1_instantiate1 {a b : Expr}
   | sort u => intro j k hjk; simp [instantiate1]
   | const n us => intro j k hjk; simp [instantiate1]
   | app f g ihf ihg => intro j k hjk; simp [instantiate1, ihf _ _ hjk, ihg _ _ hjk]
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro j k hjk
     simp [instantiate1, ihty _ _ hjk, ihbody _ _ (by omega : j + 1 ≤ k + 1)]
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro j k hjk
     simp [instantiate1, ihty _ _ hjk, ihbody _ _ (by omega : j + 1 ≤ k + 1)]
   | letE ty v body ihty ihv ihbody =>
@@ -75,7 +75,6 @@ theorem instantiate1_instantiate1 {a b : Expr}
       ihbody _ _ (by omega : j + 1 ≤ k + 1)]
   | lit l => intro j k hjk; simp [instantiate1]
   | proj s i e ih => intro j k hjk; simp [instantiate1, ih _ _ hjk]
-
 
 /-- Instantiation preserves a `∀`-telescope's arity. -/
 theorem stripPis_instantiate1_isSome {v : Expr} :
@@ -87,22 +86,22 @@ theorem stripPis_instantiate1_isSome {v : Expr} :
   | succ k ih =>
     intro e j h
     match e, h with
-    | .forallE ty body m, h =>
+    | .forallE ty body, h =>
       simp only [instantiate1, stripPis, Option.isSome_map] at h ⊢
       exact ih (j + 1) h
 
-/-- Structural equality up to `fvar` names and annotations and binder
-names — exactly what the interpretation never reads. -/
+/-- Structural equality up to `fvar` types — exactly what the
+interpretation never reads. -/
 @[expose] def ErasedEq : Expr → Expr → Prop
   | .bvar i, .bvar j => i = j
   | .fvar i _, .fvar j _ => i = j
   | .sort u, .sort v => u = v
   | .const n us, .const n' us' => n = n' ∧ us = us'
   | .app f a, .app g b => ErasedEq f g ∧ ErasedEq a b
-  | .lam ty b m, .lam ty' b' m' =>
-    m = m' ∧ ErasedEq ty ty' ∧ ErasedEq b b'
-  | .forallE ty b m, .forallE ty' b' m' =>
-    m = m' ∧ ErasedEq ty ty' ∧ ErasedEq b b'
+  | .lam ty b, .lam ty' b' =>
+    ErasedEq ty ty' ∧ ErasedEq b b'
+  | .forallE ty b, .forallE ty' b' =>
+    ErasedEq ty ty' ∧ ErasedEq b b'
   | .letE ty v b, .letE ty' v' b' =>
     ErasedEq ty ty' ∧ ErasedEq v v' ∧ ErasedEq b b'
   | .lit l, .lit l' => l = l'
@@ -112,11 +111,6 @@ names — exactly what the interpretation never reads. -/
 theorem ErasedEq.rfl : ∀ (e : Expr), ErasedEq e e := by
   intro e
   induction e <;> simp_all [ErasedEq]
-
-/-- Equal terms are `ErasedEq` (the shape the `==` comparisons of the
-kernel hand their consumers, `eq_of_beq` first). -/
-theorem ErasedEq.of_eq {a b : Expr} (h : a = b) : ErasedEq a b :=
-  h ▸ ErasedEq.rfl a
 
 theorem ErasedEq.instantiate1 :
     ∀ {e e' v v' : Expr} {k : Nat}, ErasedEq e e' → ErasedEq v v' →
@@ -149,16 +143,16 @@ theorem ErasedEq.instantiate1 :
     match e', he with
     | .app g b, he =>
       exact ⟨ihf he.1 hv, iha he.2 hv⟩
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro e' v v' k he hv
     match e', he with
-    | .lam ty' body' m', he =>
-      exact ⟨he.1, ihty he.2.1 hv, ihbody he.2.2 hv⟩
-  | forallE ty body m ihty ihbody =>
+    | .lam ty' body', he =>
+      exact ⟨ihty he.1 hv, ihbody he.2 hv⟩
+  | forallE ty body ihty ihbody =>
     intro e' v v' k he hv
     match e', he with
-    | .forallE ty' body' m', he =>
-      exact ⟨he.1, ihty he.2.1 hv, ihbody he.2.2 hv⟩
+    | .forallE ty' body', he =>
+      exact ⟨ihty he.1 hv, ihbody he.2 hv⟩
   | letE ty vl body ihty ihv ihbody =>
     intro e' v v' k he hv
     match e', he with
@@ -228,12 +222,12 @@ theorem liftLooseBVars_instantiate1 {v : Expr}
   | app f a ihf iha =>
     intro k c j hjc
     simp only [liftLooseBVars, instantiate1, ihf hjc, iha hjc]
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k c j hjc
     simp only [liftLooseBVars, instantiate1, ihty hjc]
     rw [show j + k + 1 = (j + 1) + k from by omega,
       ihbody (by omega : j + 1 ≥ c + 1)]
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k c j hjc
     simp only [liftLooseBVars, instantiate1, ihty hjc]
     rw [show j + k + 1 = (j + 1) + k from by omega,
@@ -252,14 +246,14 @@ theorem liftLooseBVars_instantiate1 {v : Expr}
 each domain is instantiated at its depth-shifted index, the body at
 the telescope's arity. -/
 theorem stripPis_instantiate1_eq {v : Expr} :
-    ∀ (k : Nat) {e : Expr} {bs bs' : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs bs' : List Expr}
       {body body' : Expr} (j : Nat),
       e.stripPis k = some (bs, body) →
       (e.instantiate1 v j).stripPis k = some (bs', body') →
       body' = body.instantiate1 v (j + k) ∧
-      ∀ (i : Nat) (b b' : Expr × BinderMeta),
+      ∀ (i : Nat) (b b' : Expr),
         bs[i]? = some b → bs'[i]? = some b' →
-        b'.1 = b.1.instantiate1 v (j + i) := by
+        b' = b.instantiate1 v (j + i) := by
   intro k
   induction k with
   | zero =>
@@ -271,7 +265,7 @@ theorem stripPis_instantiate1_eq {v : Expr} :
   | succ k ih =>
     intro e bs bs' body body' j h1 h2
     match e, h1 with
-    | .forallE d b m, h1 =>
+    | .forallE d b, h1 =>
       simp only [instantiate1, stripPis] at h1 h2
       cases hs1 : b.stripPis k with
       | none => rw [hs1] at h1; exact nomatch h1
@@ -282,10 +276,10 @@ theorem stripPis_instantiate1_eq {v : Expr} :
       rw [hs1] at h1
       rw [hs2] at h2
       simp only [Option.map_some, Option.some.injEq] at h1 h2
-      obtain ⟨hb1, hbody1⟩ : (d, m) :: p1.1 = bs ∧ p1.2 = body := by
+      obtain ⟨hb1, hbody1⟩ : d :: p1.1 = bs ∧ p1.2 = body := by
         cases h1; exact ⟨rfl, rfl⟩
       obtain ⟨hb2, hbody2⟩ :
-          (d.instantiate1 v j, m) :: p2.1 = bs' ∧ p2.2 = body' := by
+          d.instantiate1 v j :: p2.1 = bs' ∧ p2.2 = body' := by
         cases h2; exact ⟨rfl, rfl⟩
       subst hb1 hbody1 hb2 hbody2
       obtain ⟨hbody, hdoms⟩ := ih (j + 1) hs1 hs2
@@ -323,10 +317,10 @@ theorem ErasedEq.symm : ∀ {e₁ e₂ : Expr}, ErasedEq e₁ e₂ → ErasedEq 
   | .sort _, .sort _, h => Eq.symm h
   | .const _ _, .const _ _, h => ⟨Eq.symm h.1, Eq.symm h.2⟩
   | .app _ _, .app _ _, h => ⟨ErasedEq.symm h.1, ErasedEq.symm h.2⟩
-  | .lam _ _ _, .lam _ _ _, h =>
-    ⟨Eq.symm h.1, ErasedEq.symm h.2.1, ErasedEq.symm h.2.2⟩
-  | .forallE _ _ _, .forallE _ _ _, h =>
-    ⟨Eq.symm h.1, ErasedEq.symm h.2.1, ErasedEq.symm h.2.2⟩
+  | .lam _ _, .lam _ _, h =>
+    ⟨ErasedEq.symm h.1, ErasedEq.symm h.2⟩
+  | .forallE _ _, .forallE _ _, h =>
+    ⟨ErasedEq.symm h.1, ErasedEq.symm h.2⟩
   | .letE _ _ _, .letE _ _ _, h =>
     ⟨ErasedEq.symm h.1, ErasedEq.symm h.2.1, ErasedEq.symm h.2.2⟩
   | .lit _, .lit _, h => Eq.symm h
@@ -389,26 +383,26 @@ theorem ErasedEq.trans :
         have y : ErasedEq g h ∧ ErasedEq b c := h23
         exact show ErasedEq fe h ∧ ErasedEq a c from
           ⟨ihf x.1 y.1, iha x.2 y.2⟩
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro e₂ e₃ h12 h23
     match e₂, h12 with
-    | .lam ty₂ body₂ m₂, h12 =>
+    | .lam ty₂ body₂, h12 =>
       match e₃, h23 with
-      | .lam ty₃ body₃ m₃, h23 =>
-        have x : m = m₂ ∧ ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
-        have y : m₂ = m₃ ∧ ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
-        exact show m = m₃ ∧ ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
-          ⟨x.1.trans y.1, ihty x.2.1 y.2.1, ihbody x.2.2 y.2.2⟩
-  | forallE ty body m ihty ihbody =>
+      | .lam ty₃ body₃, h23 =>
+        have x : ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
+        have y : ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
+        exact show ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
+          ⟨ihty x.1 y.1, ihbody x.2 y.2⟩
+  | forallE ty body ihty ihbody =>
     intro e₂ e₃ h12 h23
     match e₂, h12 with
-    | .forallE ty₂ body₂ m₂, h12 =>
+    | .forallE ty₂ body₂, h12 =>
       match e₃, h23 with
-      | .forallE ty₃ body₃ m₃, h23 =>
-        have x : m = m₂ ∧ ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
-        have y : m₂ = m₃ ∧ ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
-        exact show m = m₃ ∧ ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
-          ⟨x.1.trans y.1, ihty x.2.1 y.2.1, ihbody x.2.2 y.2.2⟩
+      | .forallE ty₃ body₃, h23 =>
+        have x : ErasedEq ty ty₂ ∧ ErasedEq body body₂ := h12
+        have y : ErasedEq ty₂ ty₃ ∧ ErasedEq body₂ body₃ := h23
+        exact show ErasedEq ty ty₃ ∧ ErasedEq body body₃ from
+          ⟨ihty x.1 y.1, ihbody x.2 y.2⟩
   | letE ty vl body ihty ihv ihbody =>
     intro e₂ e₃ h12 h23
     match e₂, h12 with
@@ -463,7 +457,7 @@ theorem instSeq_erasedEq :
 
 /-- A successful telescope decomposition has exactly `k` binders. -/
 theorem stripPis_length :
-    ∀ (k : Nat) {e : Expr} {bs : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs : List Expr}
       {body : Expr}, e.stripPis k = some (bs, body) → bs.length = k := by
   intro k
   induction k with
@@ -475,14 +469,14 @@ theorem stripPis_length :
   | succ k ih =>
     intro e bs body h
     match e, h with
-    | .forallE d b m, h =>
+    | .forallE d b, h =>
       simp only [stripPis] at h
       cases hs : b.stripPis k with
       | none => rw [hs] at h; exact nomatch h
       | some p =>
         rw [hs] at h
         simp only [Option.map_some, Option.some.injEq] at h
-        obtain ⟨hb, -⟩ : (d, m) :: p.1 = bs ∧ p.2 = body := by
+        obtain ⟨hb, -⟩ : d :: p.1 = bs ∧ p.2 = body := by
           cases h; exact ⟨rfl, rfl⟩
         subst hb
         have := ih (e := b) (bs := p.1) (body := p.2) (by rw [hs])
@@ -701,12 +695,12 @@ theorem instantiate1Lift_instantiate1 {a s : Expr}
   | proj sn i pe ih =>
     intro k u
     simp only [instantiate1Lift, instantiate1, ih]
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k u
     simp only [instantiate1Lift, instantiate1, ihty]
     rw [show k + u + 1 = (k + 1) + u from by omega,
       show k + 1 + u + 1 = (k + 1) + 1 + u from by omega, ihbody]
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k u
     simp only [instantiate1Lift, instantiate1, ihty]
     rw [show k + u + 1 = (k + 1) + u from by omega,
@@ -801,13 +795,13 @@ theorem instSeq_instSeqLift (sp : List Expr) (t : Nat)
 
 /-- `stripPis` commutes with the capture-avoiding substitution. -/
 theorem stripPis_instantiate1Lift_full {v : Expr} :
-    ∀ (k : Nat) {e : Expr} {bs : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs : List Expr}
       {body : Expr} (j : Nat),
       e.stripPis k = some (bs, body) →
       ∃ bs', (e.instantiate1Lift v j).stripPis k =
           some (bs', body.instantiate1Lift v (j + k)) ∧
-        ∀ (i : Nat) (b : Expr × BinderMeta), bs[i]? = some b →
-          bs'[i]? = some (b.1.instantiate1Lift v (j + i), b.2) := by
+        ∀ (i : Nat) (b : Expr), bs[i]? = some b →
+          bs'[i]? = some (b.instantiate1Lift v (j + i)) := by
   intro k
   induction k with
   | zero =>
@@ -818,25 +812,25 @@ theorem stripPis_instantiate1Lift_full {v : Expr} :
   | succ k ih =>
     intro e bs body j h
     match e, h with
-    | .forallE d bo m, h =>
+    | .forallE d bo, h =>
       simp only [stripPis] at h
       cases hs : bo.stripPis k with
       | none => rw [hs] at h; exact nomatch h
       | some p =>
         rw [hs] at h
         simp only [Option.map_some, Option.some.injEq] at h
-        obtain ⟨hb, hbody⟩ : (d, m) :: p.1 = bs ∧ p.2 = body := by
+        obtain ⟨hb, hbody⟩ : d :: p.1 = bs ∧ p.2 = body := by
           cases h; exact ⟨rfl, rfl⟩
         subst hbody
         obtain ⟨bs', h1, h2⟩ := ih (j + 1) (by rw [hs])
-        refine ⟨(d.instantiate1Lift v j, m) :: bs', ?_, ?_⟩
+        refine ⟨d.instantiate1Lift v j :: bs', ?_, ?_⟩
         · simp only [instantiate1Lift, stripPis, h1,
             show j + 1 + k = j + (k + 1) from by omega, Option.map_some]
         · intro i b hbi
           rw [← hb] at hbi
           cases i with
           | zero =>
-            obtain rfl : (d, m) = b := by simpa using hbi
+            obtain rfl : d = b := by simpa using hbi
             rfl
           | succ i =>
             simp only [List.getElem?_cons_succ] at hbi ⊢
@@ -847,13 +841,13 @@ theorem stripPis_instantiate1Lift_full {v : Expr} :
 walk, characterized by the raw telescope's binder list. -/
 theorem instPisAtLift_head :
     ∀ (args : List Expr) {e : Expr} {rest : Expr} {mrem : Nat}
-      {bs : List (Expr × BinderMeta)} {body : Expr}
-      {b : Expr × BinderMeta},
+      {bs : List Expr} {body : Expr}
+      {b : Expr},
       Expr.instPisAtLift args e = some rest →
       e.stripPis (args.length + (mrem + 1)) = some (bs, body) →
       bs[args.length]? = some b →
       ∃ bodyR, rest = .forallE
-        (instSeqLift args (args.length - 1) b.1) bodyR b.2 := by
+        (instSeqLift args (args.length - 1) b) bodyR := by
   intro args
   induction args with
   | nil =>
@@ -862,22 +856,22 @@ theorem instPisAtLift_head :
     subst h
     rw [show [].length + (mrem + 1) = mrem + 1 from by simp] at hstrip
     match e, hstrip with
-    | .forallE d bo m, hstrip =>
+    | .forallE d bo, hstrip =>
       simp only [stripPis] at hstrip
       cases hs : bo.stripPis mrem with
       | none => rw [hs] at hstrip; exact nomatch hstrip
       | some p =>
         rw [hs] at hstrip
         simp only [Option.map_some, Option.some.injEq] at hstrip
-        obtain ⟨hbs, -⟩ : (d, m) :: p.1 = bs ∧ p.2 = body := by
+        obtain ⟨hbs, -⟩ : d :: p.1 = bs ∧ p.2 = body := by
           cases hstrip; exact ⟨rfl, rfl⟩
         rw [← hbs] at hb
-        obtain rfl : (d, m) = b := by simpa using hb
+        obtain rfl : d = b := by simpa using hb
         exact ⟨bo, rfl⟩
   | cons a as ih =>
     intro e rest mrem bs body b h hstrip hb
     match e, h with
-    | .forallE d bo m, h =>
+    | .forallE d bo, h =>
       simp only [instPisAtLift] at h
       rw [show (a :: as).length + (mrem + 1) =
         (as.length + (mrem + 1)) + 1 from by simp; omega] at hstrip
@@ -887,15 +881,15 @@ theorem instPisAtLift_head :
       | some q =>
         rw [hs] at hstrip
         simp only [Option.map_some, Option.some.injEq] at hstrip
-        obtain ⟨hbs, -⟩ : (d, m) :: q.1 = bs ∧ q.2 = body := by
+        obtain ⟨hbs, -⟩ : d :: q.1 = bs ∧ q.2 = body := by
           cases hstrip; exact ⟨rfl, rfl⟩
         rw [← hbs] at hb
         simp only [List.length_cons, List.getElem?_cons_succ] at hb
         obtain ⟨bs', hstrip', hpos⟩ :=
           stripPis_instantiate1Lift_full (v := a)
             (as.length + (mrem + 1)) 0 hs
-        obtain ⟨bodyR, hhead⟩ := ih (b := (b.1.instantiate1Lift a as.length,
-            b.2)) h hstrip'
+        obtain ⟨bodyR, hhead⟩ := ih (b := b.instantiate1Lift a as.length)
+          h hstrip'
           (by rw [hpos as.length b hb]; simp)
         exact ⟨bodyR, by rw [hhead]; rfl⟩
 
@@ -909,20 +903,20 @@ theorem stripLams_instantiate1_isSome {v : Expr} :
   | succ k ih =>
     intro e j h
     match e, h with
-    | .lam ty body m, h =>
+    | .lam ty body, h =>
       simp only [instantiate1, stripLams, Option.isSome_map] at h ⊢
       exact ih (j + 1) h
 
 /-- Instantiation distributes over a λ-tower's decomposition. -/
 theorem stripLams_instantiate1_eq {v : Expr} :
-    ∀ (k : Nat) {e : Expr} {bs bs' : List (Expr × BinderMeta)}
+    ∀ (k : Nat) {e : Expr} {bs bs' : List Expr}
       {body body' : Expr} (j : Nat),
       e.stripLams k = some (bs, body) →
       (e.instantiate1 v j).stripLams k = some (bs', body') →
       body' = body.instantiate1 v (j + k) ∧
-      ∀ (i : Nat) (b b' : Expr × BinderMeta),
+      ∀ (i : Nat) (b b' : Expr),
         bs[i]? = some b → bs'[i]? = some b' →
-        b'.1 = b.1.instantiate1 v (j + i) := by
+        b' = b.instantiate1 v (j + i) := by
   intro k
   induction k with
   | zero =>
@@ -934,7 +928,7 @@ theorem stripLams_instantiate1_eq {v : Expr} :
   | succ k ih =>
     intro e bs bs' body body' j h1 h2
     match e, h1 with
-    | .lam d b m, h1 =>
+    | .lam d b, h1 =>
       simp only [instantiate1, stripLams] at h1 h2
       cases hs1 : b.stripLams k with
       | none => rw [hs1] at h1; exact nomatch h1
@@ -945,10 +939,10 @@ theorem stripLams_instantiate1_eq {v : Expr} :
       rw [hs1] at h1
       rw [hs2] at h2
       simp only [Option.map_some, Option.some.injEq] at h1 h2
-      obtain ⟨hb1, hbody1⟩ : (d, m) :: p1.1 = bs ∧ p1.2 = body := by
+      obtain ⟨hb1, hbody1⟩ : d :: p1.1 = bs ∧ p1.2 = body := by
         cases h1; exact ⟨rfl, rfl⟩
       obtain ⟨hb2, hbody2⟩ :
-          (d.instantiate1 v j, m) :: p2.1 = bs' ∧ p2.2 = body' := by
+          d.instantiate1 v j :: p2.1 = bs' ∧ p2.2 = body' := by
         cases h2; exact ⟨rfl, rfl⟩
       subst hb1 hbody1 hb2 hbody2
       obtain ⟨hbody, hdoms⟩ := ih (j + 1) hs1 hs2
@@ -969,22 +963,22 @@ theorem stripLams_instantiate1_eq {v : Expr} :
 with the remaining arguments). -/
 theorem instSeq_forallE :
     ∀ (args : List Expr) (t : Nat) (d b : Expr)
-      (m : BinderMeta), args.length ≤ t + 1 →
-      instSeq args t (.forallE d b m) =
-        .forallE (instSeq args t d) (instSeq args (t + 1) b) m := by
+     , args.length ≤ t + 1 →
+      instSeq args t (.forallE d b) =
+        .forallE (instSeq args t d) (instSeq args (t + 1) b) := by
   intro args
   induction args with
-  | nil => intro t d b m _; rfl
+  | nil => intro t d b _; rfl
   | cons a as ih =>
-    intro t d b m hlen
+    intro t d b hlen
     show instSeq as (t - 1)
-      (.forallE (d.instantiate1 a t) (b.instantiate1 a (t + 1)) m) = _
-    rw [ih (t - 1) (d.instantiate1 a t) (b.instantiate1 a (t + 1)) m
+      (.forallE (d.instantiate1 a t) (b.instantiate1 a (t + 1))) = _
+    rw [ih (t - 1) (d.instantiate1 a t) (b.instantiate1 a (t + 1))
       (by simp only [List.length_cons] at hlen; omega)]
     show Expr.forallE (instSeq as (t - 1) (d.instantiate1 a t))
-        (instSeq as (t - 1 + 1) (b.instantiate1 a (t + 1))) m =
+        (instSeq as (t - 1 + 1) (b.instantiate1 a (t + 1))) =
       Expr.forallE (instSeq as (t - 1) (d.instantiate1 a t))
-        (instSeq as (t + 1 - 1) (b.instantiate1 a (t + 1))) m
+        (instSeq as (t + 1 - 1) (b.instantiate1 a (t + 1)))
     cases as with
     | nil => rfl
     | cons a2 as2 =>
@@ -1019,7 +1013,6 @@ theorem fvarsBelow_instantiate1_gen {d : Nat} {a : Expr} (ha : fvarsBelow d a) :
     · exact ha
     · split <;> simp [fvarsBelow]
 
-
 /-- Replace `fvar p` by `a`, lowering higher `fvar` indices. -/
 @[expose] def substFvarAt (p : Nat) (a : Expr) : Expr → Expr
   | .bvar i => .bvar i
@@ -1030,8 +1023,8 @@ theorem fvarsBelow_instantiate1_gen {d : Nat} {a : Expr} (ha : fvarsBelow d a) :
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f b => .app (substFvarAt p a f) (substFvarAt p a b)
-  | .lam ty body m => .lam (substFvarAt p a ty) (substFvarAt p a body) m
-  | .forallE ty body m => .forallE (substFvarAt p a ty) (substFvarAt p a body) m
+  | .lam ty body => .lam (substFvarAt p a ty) (substFvarAt p a body)
+  | .forallE ty body => .forallE (substFvarAt p a ty) (substFvarAt p a body)
   | .letE ty val body =>
     .letE (substFvarAt p a ty) (substFvarAt p a val) (substFvarAt p a body)
   | .lit l => .lit l
@@ -1089,7 +1082,6 @@ theorem substFvarAt_instantiate1_self {d : Nat} {ty a : Expr} :
     intro k hb
     simp_all [instantiate1, substFvarAt, fvarsBelow]
 
-
 /-! ### `instantiate1`, constructor by constructor
 
 `denote` opens every binder with `instantiate1` at cut `0`, so a basis
@@ -1100,23 +1092,8 @@ the step without ever producing one. -/
 @[simp] theorem instantiate1_bvar (i : Nat) (v : Expr) (d : Nat) :
     (Expr.bvar i).instantiate1 v d =
       if i = d then v else if i > d then .bvar (i - 1) else .bvar i := rfl
-@[simp] theorem instantiate1_const (n : Name) (us : List Level)
-    (v : Expr) (d : Nat) : (Expr.const n us).instantiate1 v d = .const n us :=
-  rfl
 @[simp] theorem instantiate1_sort (u : Level) (v : Expr) (d : Nat) :
     (Expr.sort u).instantiate1 v d = .sort u := rfl
 @[simp] theorem instantiate1_fvar (i : Nat) (ty v : Expr)
     (d : Nat) : (Expr.fvar i ty).instantiate1 v d = .fvar i ty := rfl
-@[simp] theorem instantiate1_app (f a v : Expr) (d : Nat) :
-    (Expr.app f a).instantiate1 v d
-      = .app (f.instantiate1 v d) (a.instantiate1 v d) := rfl
-@[simp] theorem instantiate1_forallE (ty body v : Expr)
-    (bi : BinderMeta) (d : Nat) :
-    (Expr.forallE ty body bi).instantiate1 v d
-      = .forallE (ty.instantiate1 v d) (body.instantiate1 v (d + 1)) bi := rfl
-@[simp] theorem instantiate1_lam (ty body v : Expr)
-    (bi : BinderMeta) (d : Nat) :
-    (Expr.lam ty body bi).instantiate1 v d
-      = .lam (ty.instantiate1 v d) (body.instantiate1 v (d + 1)) bi := rfl
-
 end ConLeche.Expr

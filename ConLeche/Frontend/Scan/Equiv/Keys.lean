@@ -217,7 +217,6 @@ theorem lit_opaque :
 theorem lit_param : lit "param" = [112, 97, 114, 97, 109] := by rw [lit_eq_toByteArray]; rfl
 theorem lit_pre : lit "pre" = [112, 114, 101] := by rw [lit_eq_toByteArray]; rfl
 theorem lit_proj : lit "proj" = [112, 114, 111, 106] := by rw [lit_eq_toByteArray]; rfl
-theorem lit_pw : lit "pw" = [112, 119] := by rw [lit_eq_toByteArray]; rfl
 theorem lit_quot : lit "quot" = [113, 117, 111, 116] := by rw [lit_eq_toByteArray]; rfl
 theorem lit_recs : lit "recs" = [114, 101, 99, 115] := by rw [lit_eq_toByteArray]; rfl
 theorem lit_regular :
@@ -261,7 +260,7 @@ theorem keyOf_97 (k' : List UInt8) : keyOf (97 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -300,7 +299,7 @@ theorem keyOf_98 (k' : List UInt8) : keyOf (98 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -335,7 +334,7 @@ theorem keyOf_99 (k' : List UInt8) : keyOf (99 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -372,7 +371,7 @@ theorem keyOf_100 (k' : List UInt8) : keyOf (100 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -395,7 +394,7 @@ theorem keyOf_102 (k' : List UInt8) : keyOf (102 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -422,7 +421,7 @@ theorem keyOf_104 (k' : List UInt8) : keyOf (104 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -454,7 +453,7 @@ theorem keyOf_105 (k' : List UInt8) : keyOf (105 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -529,7 +528,7 @@ theorem keyOf_107 (k' : List UInt8) : keyOf (107 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -559,7 +558,7 @@ theorem keyOf_108 (k' : List UInt8) : keyOf (108 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -592,7 +591,7 @@ theorem keyOf_109 (k' : List UInt8) : keyOf (109 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -629,7 +628,7 @@ theorem keyOf_110 (k' : List UInt8) : keyOf (110 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -702,7 +701,7 @@ theorem keyOf_111 (k' : List UInt8) : keyOf (111 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -718,7 +717,6 @@ theorem keyOf_112 (k' : List UInt8) : keyOf (112 :: k') =
     if k' = [97, 114, 97, 109] then Key.kParam
     else if k' = [114, 101] then Key.kPre
     else if k' = [114, 111, 106] then Key.kProj
-    else if k' = [119] then Key.kPw
     else Key.kUnknown := by
   unfold keyOf keyTable
   simp only [List.find?_cons, lit_all, lit_app, lit_arg, lit_axiom, lit_binderInfo, lit_body,
@@ -727,7 +725,7 @@ theorem keyOf_112 (k' : List UInt8) : keyOf (112 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -737,8 +735,6 @@ theorem keyOf_112 (k' : List UInt8) : keyOf (112 :: k') =
   case pos => subst h1; simp
   by_cases h2 : k' = [114, 111, 106]
   case pos => subst h2; simp
-  by_cases h3 : k' = [119]
-  case pos => subst h3; simp
   have b0 : (([97, 114, 97, 109] : List UInt8) == k') = false := by
     simp only [beq_eq_false_iff_ne, ne_eq]
     exact Ne.symm h0
@@ -748,11 +744,8 @@ theorem keyOf_112 (k' : List UInt8) : keyOf (112 :: k') =
   have b2 : (([114, 111, 106] : List UInt8) == k') = false := by
     simp only [beq_eq_false_iff_ne, ne_eq]
     exact Ne.symm h2
-  have b3 : (([119] : List UInt8) == k') = false := by
-    simp only [beq_eq_false_iff_ne, ne_eq]
-    exact Ne.symm h3
-  simp only [b0, b1, b2, b3]
-  rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right h2, ite_eq_right h3]
+  simp only [b0, b1, b2]
+  rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right h2]
 
 theorem keyOf_113 (k' : List UInt8) : keyOf (113 :: k') =
     if k' = [117, 111, 116] then Key.kQuot
@@ -764,7 +757,7 @@ theorem keyOf_113 (k' : List UInt8) : keyOf (113 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -789,7 +782,7 @@ theorem keyOf_114 (k' : List UInt8) : keyOf (114 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -831,7 +824,7 @@ theorem keyOf_115 (k' : List UInt8) : keyOf (115 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -881,7 +874,7 @@ theorem keyOf_116 (k' : List UInt8) : keyOf (116 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -918,7 +911,7 @@ theorem keyOf_117 (k' : List UInt8) : keyOf (117 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -940,7 +933,7 @@ theorem keyOf_118 (k' : List UInt8) : keyOf (118 :: k') =
     lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam, lit_letE, lit_levelParams, lit_max,
     lit_meta, lit_name, lit_natVal, lit_nfields, lit_nondep, lit_num, lit_numFields,
     lit_numIndices, lit_numMinors, lit_numMotives, lit_numNested, lit_numParams, lit_opaque,
-    lit_param, lit_pre, lit_proj, lit_pw, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
+    lit_param, lit_pre, lit_proj, lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules,
     lit_safety, lit_sort, lit_str, lit_strVal, lit_struct, lit_succ, lit_thm, lit_type,
     lit_typeName, lit_types, lit_us, lit_value]
   simp
@@ -2313,11 +2306,7 @@ theorem keyAt_eq {b : ByteArray} {i : USize} {k r : List UInt8} (h : i < b.usize
           intro hx
           rw [hx] at hL0
           simp at hL0
-        have n3 : ¬ k' = [119] := by
-          intro hx
-          rw [hx] at hL0
-          simp at hL0
-        simp only [ite_eq_right n0, ite_eq_right e0, ite_eq_right n2, ite_eq_right n3]
+        simp only [ite_eq_right n0, ite_eq_right e0, ite_eq_right n2]
       rw [ite_eq_right (kl_beq_ne (by rw [hkl, usz3]; omega))]
       by_cases hL1 : k'.length = 4
       case pos =>
@@ -2333,11 +2322,7 @@ theorem keyAt_eq {b : ByteArray} {i : USize} {k r : List UInt8} (h : i < b.usize
           intro hx
           rw [hx] at hL1
           simp at hL1
-        have n3 : ¬ k' = [119] := by
-          intro hx
-          rw [hx] at hL1
-          simp at hL1
-        simp only [ite_eq_right e0, ite_eq_right n1, ite_eq_right n2, ite_eq_right n3]
+        simp only [ite_eq_right e0, ite_eq_right n1, ite_eq_right n2]
       rw [ite_eq_right (kl_beq_ne (by rw [hkl, usz5]; omega))]
       by_cases hL2 : k'.length = 3
       case pos =>
@@ -2353,32 +2338,8 @@ theorem keyAt_eq {b : ByteArray} {i : USize} {k r : List UInt8} (h : i < b.usize
           intro hx
           rw [hx] at hL2
           simp at hL2
-        have n3 : ¬ k' = [119] := by
-          intro hx
-          rw [hx] at hL2
-          simp at hL2
-        simp only [ite_eq_right n0, ite_eq_right n1, ite_eq_right e0, ite_eq_right n3]
+        simp only [ite_eq_right n0, ite_eq_right n1, ite_eq_right e0]
       rw [ite_eq_right (kl_beq_ne (by rw [hkl, usz4]; omega))]
-      by_cases hL3 : k'.length = 1
-      case pos =>
-        rw [ite_eq_left (kl_beq (by rw [hkl, hL3, usz2]))]
-        simp only [lit1_key b (i + 1 + 1) 119 k' r hT2 (by simp [hL3])]
-        by_cases e0 : k' = [119]
-        case pos => subst e0; simp
-        have n0 : ¬ k' = [97, 114, 97, 109] := by
-          intro hx
-          rw [hx] at hL3
-          simp at hL3
-        have n1 : ¬ k' = [114, 101] := by
-          intro hx
-          rw [hx] at hL3
-          simp at hL3
-        have n2 : ¬ k' = [114, 111, 106] := by
-          intro hx
-          rw [hx] at hL3
-          simp at hL3
-        simp only [ite_eq_right n0, ite_eq_right n1, ite_eq_right n2, ite_eq_right e0]
-      rw [ite_eq_right (kl_beq_ne (by rw [hkl, usz2]; omega))]
       have m0 : ¬ k' = [97, 114, 97, 109] := by
         intro hx
         exact hL1 (by simp [hx])
@@ -2388,10 +2349,7 @@ theorem keyAt_eq {b : ByteArray} {i : USize} {k r : List UInt8} (h : i < b.usize
       have m2 : ¬ k' = [114, 111, 106] := by
         intro hx
         exact hL2 (by simp [hx])
-      have m3 : ¬ k' = [119] := by
-        intro hx
-        exact hL3 (by simp [hx])
-      simp only [ite_eq_right m0, ite_eq_right m1, ite_eq_right m2, ite_eq_right m3]
+      simp only [ite_eq_right m0, ite_eq_right m1, ite_eq_right m2]
     · -- 'q'
       rw [keyOf_113]
       by_cases hL0 : k'.length = 3
@@ -2784,7 +2742,7 @@ theorem keyAt_eq {b : ByteArray} {i : USize} {k r : List UInt8} (h : i < b.usize
           lit_inductive, lit_isRec, lit_isReflexive, lit_isUnsafe, lit_k, lit_kind, lit_lam,
           lit_letE, lit_levelParams, lit_max, lit_meta, lit_name, lit_natVal, lit_nfields,
           lit_nondep, lit_num, lit_numFields, lit_numIndices, lit_numMinors, lit_numMotives,
-          lit_numNested, lit_numParams, lit_opaque, lit_param, lit_pre, lit_proj, lit_pw,
+          lit_numNested, lit_numParams, lit_opaque, lit_param, lit_pre, lit_proj,
           lit_quot, lit_recs, lit_regular, lit_rhs, lit_rules, lit_safety, lit_sort, lit_str,
           lit_strVal, lit_struct, lit_succ, lit_thm, lit_type, lit_typeName, lit_types, lit_us,
           lit_value]
@@ -2992,19 +2950,6 @@ theorem naiveList_rest_suffix (start : UInt8 → Bool) (item : List UInt8 → NR
 
 theorem naiveNatList_rest_suffix (l : List UInt8) : (naiveNatList l).rest <:+ l :=
   naiveList_rest_suffix isDigit naiveNat naiveNat_rest_suffix l
-
-theorem naivePw_rest_suffix (l : List UInt8) : (naivePw l).rest <:+ l := by
-  unfold naivePw
-  split
-  · next l' =>
-    rw [NRes.rest_map]
-    exact (naiveListLoop_rest_suffix isDigit naiveNat naiveNat_rest_suffix l' [] true).trans
-      (List.suffix_cons _ _)
-  · next l' =>
-    split
-    · next r hr => exact (naiveLit_rest_suffix hr).trans (List.suffix_cons _ _)
-    · exact List.suffix_rfl
-  · exact List.suffix_rfl
 
 theorem naiveHints_rest_suffix (l : List UInt8) : (naiveHints l).rest <:+ l := by
   unfold naiveHints
@@ -3416,70 +3361,8 @@ theorem liftRes_ok_at {b : ByteArray} {i j : USize} {v : α}
   rw [posAt_tailAt_self hij hj]
   exact congrArg (ScanRes.ok v) USize.ofNat_toNat
 
-theorem length_lit_never : (lit "never\"").length = 6 := by rw [lit_eq_toByteArray]; rfl
 theorem length_lit_abbrev : (lit "abbrev\"").length = 7 := by rw [lit_eq_toByteArray]; rfl
 theorem length_lit_opaque : (lit "opaque\"").length = 7 := by rw [lit_eq_toByteArray]; rfl
-
-theorem naivePw_of_ne {l : List UInt8} (h1 : ¬ l.headD 0 = 91) (h2 : ¬ l.headD 0 = 34) :
-    naivePw l = .err .badPw l := by
-  unfold naivePw
-  split
-  · exact absurd rfl h1
-  · exact absurd rfl h2
-  · rfl
-
-theorem naivePw_cons_91 (l' : List UInt8) :
-    naivePw (91 :: l') = (naiveListLoop isDigit naiveNat l' [] true).map .ifAllZero := rfl
-
-theorem naivePw_cons_34 (l' : List UInt8) :
-    naivePw (34 :: l') = match naiveLit "never\"" l' with
-      | some r => .ok .never r
-      | none => .err .badPw (34 :: l') := rfl
-
-theorem scanPw_eq (b : ByteArray) (i : USize) :
-    scanPw b i = liftRes b i (naivePw (tailAt b i)) := by
-  unfold scanPw
-  rw [byteAt_eq]
-  by_cases hlt : i < b.usize
-  · have hT := tailAt_of_lt hlt
-    have hhead : (tailAt b i).headD 0 = b.uget i (usizeInBounds b i hlt) := by rw [hT]; rfl
-    rw [hhead]
-    by_cases h91 : b.uget i (usizeInBounds b i hlt) = 91
-    · have hT91 : tailAt b i = 91 :: tailAt b (i + 1) := by rw [hT, h91]
-      have hsuf : ((naiveListLoop isDigit naiveNat (tailAt b (i + 1)) [] true).map
-          PwRec.ifAllZero).rest <:+ tailAt b (i + 1) := by
-        rw [NRes.rest_map]
-        exact naiveListLoop_rest_suffix _ _ naiveNat_rest_suffix _ _ _
-      rw [hT91, naivePw_cons_91, liftRes_step _ hlt hsuf, scanNatListLoop_eq]
-      simp only [h91, beq_self_eq_true, ↓reduceIte]
-      cases naiveListLoop isDigit naiveNat (tailAt b (i + 1)) [] true <;> rfl
-    · by_cases h34 : b.uget i (usizeInBounds b i hlt) = 34
-      · have hT34 : tailAt b i = 34 :: tailAt b (i + 1) := by rw [hT, h34]
-        rw [hT34, naivePw_cons_34, ← hT34,
-          matchLit_lit b (i + 1) "never\"" (size_toUTF8_lt "never\"" 6 rfl (by decide))]
-        unfold naiveLit
-        rw [ite_eq_right (by simpa using h91), ite_eq_left (by simpa using h34)]
-        by_cases hpre : (lit "never\"").isPrefixOf (tailAt b (i + 1)) = true
-        · have hlen6 : 6 ≤ (tailAt b (i + 1)).length := by
-            have hp := (List.isPrefixOf_iff_prefix.mp hpre).length_le
-            rwa [length_lit_never] at hp
-          have hdrop : (tailAt b (i + 1)).drop (lit "never\"").length = (tailAt b i).drop 7 := by
-            rw [hT34, length_lit_never]; rfl
-          have hlen7 : 7 ≤ (tailAt b i).length := by
-            rw [hT34]; simp only [List.length_cons]; omega
-          simp only [hpre, ↓reduceIte]
-          rw [hdrop, liftRes_ok_drop hlen7]
-          rfl
-        · simp only [hpre, Bool.false_eq_true, ↓reduceIte, liftRes_err_self]
-      · have hh1 : ¬ (tailAt b i).headD 0 = 91 := by rw [hhead]; exact h91
-        have hh2 : ¬ (tailAt b i).headD 0 = 34 := by rw [hhead]; exact h34
-        rw [naivePw_of_ne hh1 hh2, liftRes_err_self]
-        simp only [beq_iff_eq, h91, h34, ↓reduceIte]
-  · have hnil := tailAt_of_not_lt hlt
-    have hh1 : ¬ (tailAt b i).headD 0 = 91 := by rw [hnil]; simp
-    have hh2 : ¬ (tailAt b i).headD 0 = 34 := by rw [hnil]; simp
-    rw [naivePw_of_ne hh1 hh2, liftRes_err_self]
-    simp only [beq_iff_eq, hh1, hh2, ↓reduceIte]
 
 /-! ## Hints -/
 

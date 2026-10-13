@@ -8,10 +8,10 @@ public import ConLeche.Kernel.Basis.Builder
 # The pinned `Nat` basis block
 
 The raw pin — the `Nat` block exactly as an export carries it: the
-toolchain's `Init.Prelude` declaration at the parser's raw binder
-annotations.  The *annotated*
-forms (`natA`, …) are computed from these by the checker's own
-annotation pass at elaboration time; see `ConLeche/Kernel/BasisA.lean`.
+toolchain's `Init.Prelude` declaration as the parser reads it (the
+recursor rules' install-computed fields at their parse placeholders).
+The *stored* forms (`natA`, …) are computed from these at elaboration time; see
+`ConLeche/Kernel/BasisA.lean`.
 -/
 
 namespace ConLeche
@@ -23,7 +23,8 @@ def natT : Expr := cnst natName
 
 /-- `Nat : Type`. -/
 def natRaw : ConstantInfo :=
-  .indInfo ⟨natName, [], type1⟩ { all := [natName], ctors := [natZeroName, natSuccName] }
+  .indInfo ⟨natName, [], type1⟩
+    { sortZ := Level.zeronessOf (Level.succ Level.zero), all := [natName], ctors := [natZeroName, natSuccName] }
 
 /-- `Nat.zero : Nat`. -/
 def natZeroRaw : ConstantInfo :=

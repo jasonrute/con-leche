@@ -11,8 +11,7 @@ public import ConLeche.Verify.Denote.VClosed
 The three canonical `Term` towers of the `Eq` basis block.  They are
 **model-free data** — closed `Term` literals over the level valuation,
 naming no `interp` and no relation of the `Infer`/`DefEq` family.
-`Model/EqTower.lean` states its annotated towers' `erase` against them
-by `rfl`.
+`Model/EqTower.lean` states their laws.
 -/
 
 namespace ConLeche.Semantics

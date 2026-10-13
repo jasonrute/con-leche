@@ -382,9 +382,6 @@ def keyAt (b : @& ByteArray) (i : USize) (kl : USize) : Key :=
     else if kl == 4 then
       if lit3 b j 114 111 106 then .kProj  -- "proj"
       else .kUnknown
-    else if kl == 2 then
-      if lit1 b j 119 then .kPw  -- "pw"
-      else .kUnknown
     else .kUnknown
   | 113 =>   -- 'q'
     if kl == 4 then
@@ -701,18 +698,7 @@ def scanNatList (b : @& ByteArray) (i : USize) : ScanRes (List Nat) :=
   if byteAt b i == 91 then scanNatListLoop b (i + 1) [] true
   else .err ⟨i.toNat, .expectedList⟩
 
-/-! ## The two variant-valued fields -/
-
-/-- The `pw` datum: `"never"` or a list of name indices. -/
-def scanPw (b : @& ByteArray) (i : USize) : ScanRes PwRec :=
-  if byteAt b i == 91 then
-    match scanNatListLoop b (i + 1) [] true with
-    | .err e => .err e
-    | .ok ns j => .ok (.ifAllZero ns) j
-  else if byteAt b i == 34 then
-    if matchLit b (i + 1) "never\"".toUTF8 0 then .ok .never (i + 7)
-    else .err ⟨i.toNat, .badPw⟩
-  else .err ⟨i.toNat, .badPw⟩
+/-! ## The variant-valued field -/
 
 /-- A definition's `hints`: `"abbrev"`, `"opaque"` or `{"regular":n}`. -/
 def scanHints (b : @& ByteArray) (i : USize) : ScanRes HintsRec :=
@@ -961,18 +947,17 @@ def scanAppExpr (b : @& ByteArray) (i : USize) : ScanRes ExprRec :=
 def scanLamExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
     (seen : UInt32)
     (bd : Nat)
-    (ty : Nat)
-    (pw : PwRec) : ScanRes ExprRec :=
+    (ty : Nat) : ScanRes ExprRec :=
   if h : i < b.usize then
     let c := b.uget i (usizeInBounds b i h)
-    if isWs c then scanLamExprLoop b (i + 1) wantMember seen bd ty pw
+    if isWs c then scanLamExprLoop b (i + 1) wantMember seen bd ty
     else if c == 125 then
       if wantMember && seen != 0 then .err ⟨i.toNat, .expectedKey⟩
       else if (seen &&& 15) != 15 then .err ⟨i.toNat, .missingKey⟩
-      else .ok (.lam ty bd pw) (i + 1)
+      else .ok (.lam ty bd) (i + 1)
     else if c == 44 then
       if wantMember then .err ⟨i.toNat, .expectedKey⟩
-      else scanLamExprLoop b (i + 1) true seen bd ty pw
+      else scanLamExprLoop b (i + 1) true seen bd ty
     else if c == 34 then
       if !wantMember then .err ⟨i.toNat, .expectedComma⟩
       else
@@ -988,7 +973,7 @@ def scanLamExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := scanBinderInfo b v
             if e == 0 then .err ⟨v.toNat, .badBinderInfo⟩
             else if _hj : i < e then
-              scanLamExprLoop b e false (seen ||| 1) bd ty pw
+              scanLamExprLoop b e false (seen ||| 1) bd ty
             else .err ⟨i.toNat, .noProgress⟩
         | .kBody =>
           if (seen &&& 2) != 0 then .err ⟨i.toNat, .duplicateKey⟩
@@ -996,7 +981,7 @@ def scanLamExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := numEnd b v
             if e == v then .err ⟨v.toNat, .expectedNat⟩
             else if _hj : i < e then
-              scanLamExprLoop b e false (seen ||| 2) (readNatAt b v e) ty pw
+              scanLamExprLoop b e false (seen ||| 2) (readNatAt b v e) ty
             else .err ⟨i.toNat, .noProgress⟩
         | .kName =>
           if (seen &&& 4) != 0 then .err ⟨i.toNat, .duplicateKey⟩
@@ -1004,7 +989,7 @@ def scanLamExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := numEnd b v
             if e == v then .err ⟨v.toNat, .expectedNat⟩
             else if _hj : i < e then
-              scanLamExprLoop b e false (seen ||| 4) bd ty pw
+              scanLamExprLoop b e false (seen ||| 4) bd ty
             else .err ⟨i.toNat, .noProgress⟩
         | .kType =>
           if (seen &&& 8) != 0 then .err ⟨i.toNat, .duplicateKey⟩
@@ -1012,17 +997,8 @@ def scanLamExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := numEnd b v
             if e == v then .err ⟨v.toNat, .expectedNat⟩
             else if _hj : i < e then
-              scanLamExprLoop b e false (seen ||| 8) bd (readNatAt b v e) pw
+              scanLamExprLoop b e false (seen ||| 8) bd (readNatAt b v e)
             else .err ⟨i.toNat, .noProgress⟩
-        | .kPw =>
-          if (seen &&& 16) != 0 then .err ⟨i.toNat, .duplicateKey⟩
-          else
-            match scanPw b v with
-            | .err err => .err err
-            | .ok x e =>
-              if _hj : i < e then
-                scanLamExprLoop b e false (seen ||| 16) bd ty x
-              else .err ⟨i.toNat, .noProgress⟩
         | _ => .err ⟨i.toNat, .unknownKey⟩
     else .err ⟨i.toNat, .expectedComma⟩
   else .err ⟨i.toNat, .expectedComma⟩
@@ -1034,28 +1010,26 @@ decreasing_by
       | exact Nat.sub_lt_sub_left (usizeInBounds b i h) (USize.lt_iff_toNat_lt.mp _hj)
 
 /-- A `lam` binder.  `binderInfo` and `name` are validated and dropped
-(tasks #142, #203); `pw` is the checker's own annotation and is absent from a
-raw export. -/
+(tasks #142, #203). -/
 def scanLamExpr (b : @& ByteArray) (i : USize) : ScanRes ExprRec :=
   if byteAt b i == 123 then
-    scanLamExprLoop b (i + 1) true 0 0 0 .never
+    scanLamExprLoop b (i + 1) true 0 0 0
   else .err ⟨i.toNat, .expectedObject⟩
 
 def scanForallExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
     (seen : UInt32)
     (bd : Nat)
-    (ty : Nat)
-    (pw : PwRec) : ScanRes ExprRec :=
+    (ty : Nat) : ScanRes ExprRec :=
   if h : i < b.usize then
     let c := b.uget i (usizeInBounds b i h)
-    if isWs c then scanForallExprLoop b (i + 1) wantMember seen bd ty pw
+    if isWs c then scanForallExprLoop b (i + 1) wantMember seen bd ty
     else if c == 125 then
       if wantMember && seen != 0 then .err ⟨i.toNat, .expectedKey⟩
       else if (seen &&& 15) != 15 then .err ⟨i.toNat, .missingKey⟩
-      else .ok (.forallE ty bd pw) (i + 1)
+      else .ok (.forallE ty bd) (i + 1)
     else if c == 44 then
       if wantMember then .err ⟨i.toNat, .expectedKey⟩
-      else scanForallExprLoop b (i + 1) true seen bd ty pw
+      else scanForallExprLoop b (i + 1) true seen bd ty
     else if c == 34 then
       if !wantMember then .err ⟨i.toNat, .expectedComma⟩
       else
@@ -1071,7 +1045,7 @@ def scanForallExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := scanBinderInfo b v
             if e == 0 then .err ⟨v.toNat, .badBinderInfo⟩
             else if _hj : i < e then
-              scanForallExprLoop b e false (seen ||| 1) bd ty pw
+              scanForallExprLoop b e false (seen ||| 1) bd ty
             else .err ⟨i.toNat, .noProgress⟩
         | .kBody =>
           if (seen &&& 2) != 0 then .err ⟨i.toNat, .duplicateKey⟩
@@ -1079,7 +1053,7 @@ def scanForallExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := numEnd b v
             if e == v then .err ⟨v.toNat, .expectedNat⟩
             else if _hj : i < e then
-              scanForallExprLoop b e false (seen ||| 2) (readNatAt b v e) ty pw
+              scanForallExprLoop b e false (seen ||| 2) (readNatAt b v e) ty
             else .err ⟨i.toNat, .noProgress⟩
         | .kName =>
           if (seen &&& 4) != 0 then .err ⟨i.toNat, .duplicateKey⟩
@@ -1087,7 +1061,7 @@ def scanForallExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := numEnd b v
             if e == v then .err ⟨v.toNat, .expectedNat⟩
             else if _hj : i < e then
-              scanForallExprLoop b e false (seen ||| 4) bd ty pw
+              scanForallExprLoop b e false (seen ||| 4) bd ty
             else .err ⟨i.toNat, .noProgress⟩
         | .kType =>
           if (seen &&& 8) != 0 then .err ⟨i.toNat, .duplicateKey⟩
@@ -1095,17 +1069,8 @@ def scanForallExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)
             let e := numEnd b v
             if e == v then .err ⟨v.toNat, .expectedNat⟩
             else if _hj : i < e then
-              scanForallExprLoop b e false (seen ||| 8) bd (readNatAt b v e) pw
+              scanForallExprLoop b e false (seen ||| 8) bd (readNatAt b v e)
             else .err ⟨i.toNat, .noProgress⟩
-        | .kPw =>
-          if (seen &&& 16) != 0 then .err ⟨i.toNat, .duplicateKey⟩
-          else
-            match scanPw b v with
-            | .err err => .err err
-            | .ok x e =>
-              if _hj : i < e then
-                scanForallExprLoop b e false (seen ||| 16) bd ty x
-              else .err ⟨i.toNat, .noProgress⟩
         | _ => .err ⟨i.toNat, .unknownKey⟩
     else .err ⟨i.toNat, .expectedComma⟩
   else .err ⟨i.toNat, .expectedComma⟩
@@ -1119,7 +1084,7 @@ decreasing_by
 /-- A `forallE` binder; as `lam`. -/
 def scanForallExpr (b : @& ByteArray) (i : USize) : ScanRes ExprRec :=
   if byteAt b i == 123 then
-    scanForallExprLoop b (i + 1) true 0 0 0 .never
+    scanForallExprLoop b (i + 1) true 0 0 0
   else .err ⟨i.toNat, .expectedObject⟩
 
 def scanLetExprLoop (b : @& ByteArray) (i : USize) (wantMember : Bool)

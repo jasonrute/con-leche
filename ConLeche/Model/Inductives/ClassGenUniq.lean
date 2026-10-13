@@ -15,10 +15,10 @@ does not produce, over PLAIN hypotheses (no class kit):
   value (from `hconclTy`); at a nonzero width the class's recorded clause
   injection is injective (`LfpClause.mkInj`), given the class's fit is the
   clause's hole fit at its carrier and its injection the clause's; at a
-  `Prop`-valued class under a large eliminator a per-major LICENCE (fits at
+  `Prop`-valued class under a large eliminator a per-major PREMISE (fits at
   one index tuple coincide — the elimination guard's criterion).
 * **`hconclTy`** (`genConclTy_of`): the conclusion's typing at every fit of
-  the generated binder data, read at the generated classes.
+  the generated domains, read at the generated classes.
 
 Ported from the parked class checker's `ClassInd.lean` (`ClassPres.uniq`,
 `genConclTy_of`); `genUniq` states the one-node-per-class presentation's
@@ -32,7 +32,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Name)
 
 universe w
@@ -43,7 +43,7 @@ variable {V : Type w} [SetTheory V]
 
 section Uniq
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {K : Nat} {nCt : Nat → Nat}
+variable {acval : Name → (Name → Nat) → Term} {K : Nat} {nCt : Nat → Nat}
   {Is Cr : List V → Nat → V} {injX : Nat → Nat → List V → V}
   {fit : List V → Nat → V → Nat → List V → Prop} {xs : List V}
 
@@ -53,7 +53,7 @@ of the recorded clause `D c` at `ψ c` and the true frame `fr c`: its
 decoding fit is the clause's hole fit at the carrier (`hfit`) and its
 injection the clause's (`hinj`).  At `ℓ = 0` the bound is a truth value
 (`hconclTy`); at a nonzero width the injection is injective; at width `0`
-under `ℓ ≠ 0` the licence `hlic` does it. -/
+under `ℓ ≠ 0` the premise `hlic` does it. -/
 theorem genUniq (D : Nat → LfpDatum V) (ψ : Nat → Name → Nat) (fr : Nat → Nat → V)
     (m : Nat → Nat)
     (hcl : ∀ c, c < K → ∀ t, t ∈ˢ Is xs c → LfpClause acval (D c))
@@ -61,7 +61,7 @@ theorem genUniq (D : Nat → LfpDatum V) (ψ : Nat → Name → Nat) (fr : Nat �
     (hinj : ∀ c, c < K → ∀ t, t ∈ˢ Is xs c → ∀ j fs, injX c j fs = (D c).inj (ψ c) (m c) j fs)
     (hfit : ∀ c, c < K → ∀ t j fs, t ∈ˢ Is xs c → fit xs c t j fs →
       (D c).HFits (ψ c) (fr c) ((D c).carrier (ψ c) (fr c)) t (m c) j fs)
-    {ℓ : Nat} {concl : Nat → AnnotTerm} {uX nIdxX : Nat → Nat} {ρ : Nat → V}
+    {ℓ : Nat} {concl : Nat → Term} {uX nIdxX : Nat → Nat} {ρ : Nat → V}
     (hconclTy : ∀ c, c < K → ∀ i, i ∈ˢ Is xs c → ∀ x, x ∈ˢ app (Cr xs c) i →
       interp V (consList (xs ++ (isOfW (uX c) (nIdxX c) i ++ [x])) ρ) (concl c)
         ∈ˢ (univ ℓ : V))

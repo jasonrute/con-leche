@@ -100407,6 +100407,4849 @@ install extraction's run). No measurement campaign: the maintainer
 takes a before/after measurement separately. Logs and the binary:
 `_tmp/amdahl/xparse-logs/`.
 
+## TASK #342 — L0-RENAME: the axiomatic chain renamed `tg`, a `univ` alias in its place (2026-10-11, agent/342-l0-rename)
+
+Lane L0 of the real-checker port (`_tmp/342-design.md`), preparing
+ruling R2: *conceptually* define a new universe for `Sort`, for which
+today's axiomatic Grothendieck chain is only a stepping stone; hide
+that choice once and for all in what `univ` means, so stage 1b can
+later redefine `univ` as the restricted universe without touching
+every size-bound use again.
+
+**What moved.** `ConLeche/SetTheory/Derive/Univ.lean`'s `noncomputable
+def univ : Nat → V` (and its nine lemmas) is renamed `tg`
+(Tarski–Grothendieck, the abbreviation `IsTGUniverse` already uses) —
+`tg_zero`, `tg_isTGUniverse`, `univChain_one_mem_tg_succ`, `tg_mem_tg`,
+`tg_subset_succ`, `tg_mono`, `omega_mem_tg_succ`, `empty_mem_tg`,
+`unitSet_mem_tg` — and `tg` carries the `irreducible` attribute `univ`
+had. Right below, `univ : Nat → V := tg` is a new, *not* irreducible,
+alias, with the nine lemmas restated against it verbatim under their
+original names (`univ_zero := tg_zero`, …) — one-line corollaries, so
+every existing caller's text is untouched and 1b has one definition
+and these nine corollaries to change, not hundreds of call sites.
+
+**The `SetTheory` class.** Its field is `univChain` (`Core.lean`), not
+`univ`; nothing there names the restricted-universe word at all, so
+the class and the bridge (`bridge/lean4lean-model`) needed no change —
+confirming the design's own note (§2.1).
+
+**The split — which uses are routed through `univ`, which through
+`tg`.** `univ` and `tg` denote the same value for the whole of this
+lane (`univ := tg`), so *nothing* here changes what typechecks; the
+split only decides which name a site's *text* carries, for 1b's sake.
+Read broadly: a site saying "value `X` (a checked term's denotation,
+a type-former's formation, a basis constant's law) lands in universe
+`n`" is routed through `univ`, because that is exactly the "what
+`Sort n` means" reading 1b changes, by design, to the restricted
+universe — these sites are meant to pick up the extra strictness, not
+dodge it. A site stating a purely combinatorial/accessibility bound,
+unconnected to any term being a type, is routed through `tg`, because
+nothing says the bound has anything to do with being a type (`pt`
+could be among the witnesses), so it must keep reading the
+unrestricted chain.
+
+Routed through `univ` (no change; confirmed by reading, not merely by
+directory): `ConLeche/Denotes.lean` (its `sort`/`pi.hP`/`eq_equality`
+clauses — kept byte-for-byte, per the ruling); `SetModel/Value.lean`
+(every `bval` former's `Sort`-argument domain —
+`natMotiveSpace`/`natRecV`, `psigmaFibreSpace`/`psigmaV`/`psigmaMkV`,
+`relSpace`/`quotV`/`quotMkV`/`quotLiftV`, `choiceV`,
+`emptyMotiveSpace`, `lfpFamSpace`/`lfpFamV`, `ndTowerSet`,
+`tupleSortsSpace`/`lfpTupleV`, named in the design's §2.3, and their
+`_app`/`_mem` companions); `Semantics/Univ.lean`, `Semantics/Interp.lean`
+(`interp_sort`), `Semantics/Skeleton.lean`, `Semantics/Kit.lean`,
+`Semantics/WellDenoted.lean`, `Semantics/BasisOk.lean`,
+`Semantics/EqTower.lean`; the `Semantics/Tower/*` and
+`SetModel/{Access,GraphRec,Iter,TaggedSum,TupleTower}.lean` type-former
+formation/closure lemmas (`sumSet_mem_univ`, `towerSet_mem_univ`,
+`quotSet_mem_univ`, `sigma_mem_univ`, `natUnion_mem_univ_pos`, …); and
+in `Model/*`: `Tiers.lean` (`SortSemAt`), `AxiomMem.lean`,
+`BasisEq.lean`, `BasisQuot.lean`, `BasisLfp.lean`, `BasisTypeOk.lean`,
+`EqTower.lean`, `Rules/{InferSound,InferSoundKit,DefEqSoundKit}.lean`,
+`DivModCert.lean`, `Annot/{Laws (EqLaw),BlockLfp,Valid}.lean`, and the
+whole of `Model/Inductives/*` except the three sites below — these
+install a specific named constant's law, or state a checked
+construct's conclusion/field/motive reads into a universe, which is
+"what `Sort n` means" in exactly the sense 1b changes.
+
+Routed through `tg` (rename, three small and isolated sites, each
+checked for outside callers by name — none reference `univ`/`tg`
+directly, so this is invisible beyond the file): `guardU`/`tagU`/
+`teleBound` in `Semantics/Inductives/TeleAcc.lean` (the design's own
+text: "needs only universe membership (`guardU`), not a type");
+`SmallAt`/`SizeOn.const`/`small_of_mem_piSet`/`SizeOn.pi` in
+`Semantics/Inductives/HoleAcc.lean` (a well-foundedness *size* bound,
+not a typing fact — task #327); `finUnion`/`finUnion_mem` in
+`Model/Annot/LfpAcc.lean` (a closure fact about an arbitrary indexed
+union of sets, no type claim).
+
+**Unsure, not touched, flagged for the maintainer.** The design's own
+estimate ("about 700 renames... most are size bounds and stay")
+expected a far larger `tg` share than this lane found by direct
+reading — nearly everything that reads "`X` lands in universe `n`"
+in `Model/Inductives/*`, `BasisQuot.lean`/`BasisLfp.lean` (2 533 and
+669 lines) and the `Semantics/Tower/*` family turned out, on reading,
+to be about an actual checked construct's placement (a recursor's
+motive or conclusion, a field's sort, a basis law's domain), not a
+free-standing size bound. `BasisQuot.lean`'s 50 sites and
+`ContAccFrame.lean`/`StructEntryKit.lean`'s sites were sampled, not
+read exhaustively line by line; if the maintainer's intent was a much
+larger `tg` share, that is the place to re-open the split, and it can
+be done file by file without touching `Derive/Univ.lean` again (every
+site in that larger split still goes through the same two names).
+
+**Gates:** `lake build` (666/666, warning-free), `lake test`
+(warning-free, `Axioms.lean` unchanged), `tests/arena.sh` all green
+(layering, pindump, trust surface, overview/whitepaper links,
+fragment, quote gate, no-local-paths, shake, arena 90/92, e2e
+470/470, annot 15/15, the mode/IO/prelude/progress/worker/statistics/
+install/DAG-tower gates, the trusted and `--jobs=1`/`--jobs=4` sweeps),
+`tests/challenge.sh` (`ConLeche.model_exists`/
+`ConLeche.no_False_declaration` statements identical — `Denotes.lean`
+untouched). No `sorry`, no new axiom, no statement-half change: this
+lane is purely the rename `univ`→`tg` plus the alias, on a fresh
+worktree built from the campaign's own `.lake` cache (same toolchain,
+no dependencies).
+
+Landed on `port-342` at this record's commit. Next: stage 1a's lanes
+(L1–L3) build on `tg`'s stepping stones; stage 1b's lane (L4) redefines
+`univ` and the handful of corollaries just below it, and is the first
+to find out whether any `univ`-routed site above actually needs the
+extra strictness argument the design promises it gets "for free".
+
+## TASK #342 — L1-PT-QUOT: the point laws, the restricted universes, tagged `Quot` classes (2026-10-11, agent/342-l1-pt-quot)
+
+Stage 1a, lane L1 of the real-checker port (design `_tmp/342-design.md`
+§2.1). This is a pure strengthening: the checker, every existing
+statement and the meaning of `univ` are unchanged.
+
+**The point laws are theorems** (design §2.1 table). `pt = {ptTag}` is
+kept.
+- `pt_not_mem_univZero` moved from `Semantics/Univ.lean` down to
+  `SetTheory/Derive/Pt.lean`; its one caller, `Model/AxiomMem.lean`, is
+  requalified.
+- At most one member: `eq_of_mem_pt`.
+- No tagged value is a member: `kpair_not_mem_pt`.
+- The point is not tagged: `pt_ne_kpair` (already there).
+- No graph is a member: `graph_not_mem_pt` (`Derive/Graphs.lean`).
+- `pt_not_mem_omega` (`Derive/TypeU.lean`).
+
+**The restricted universes** (`Derive/TypeU.lean`, new). `Strict`,
+`IsTy`, `Fib`, and `typeU n := if n = 0 then tg 0 else sep (tg n)
+Strict`, with the fragment's lemmas:
+- `mem_typeU_zero`/`_pos`/`_of`, `IsTy_of_mem_typeU`,
+  `Fib_of_mem_typeU`, `IsTy.ne_pt`, `Fib.ne_pt`, `ne_pt_of_mem_strict`,
+  `IsTy.eq_of_ne_pt`;
+- `strict_typeU`, `typeU_mem_typeU_succ`;
+- the strict carriers available at this level: `strict_empty`,
+  `strict_univZero`, `strict_omega`, `strict_piSet`,
+  `strict_sigmaPairs`, and `strict_of_kpairs` (every member a pair).
+
+The zero regime is stated with `univZero`, which is `tg 0`, `typeU 0`
+and `univ 0` before and after the flip. `typeU` is irreducible, and
+`Fib`/`IsTy`/`Strict` are plain `def`s. Nothing reads `typeU` yet.
+
+**Shaped for 1b's flip (ruling R2).** L0's `Derive/Univ.lean` is split
+in three:
+- `Derive/Tg.lean`: the axiomatic chain, moved verbatim;
+- `Derive/TypeU.lean`, built over `tg`;
+- `Derive/Univ.lean`: only the `univ` alias and its nine corollaries.
+  It already `public import`s `TypeU`, so stage 1b writes
+  `univ := typeU` there and re-proves the corollaries, without moving
+  any file. Shake proposes demoting that import to `Tg` (compensated
+  in `Quot`, `LfpFam`, `Sigma`), so it is on `tests/shake-allowlist.txt`
+  with that reason; the stale `Univ → Graphs` line is gone.
+- The piR-level twins (`IsTy_piR`, `Fib_piR`, `piR_mem_typeU`) need
+  `SetModel/Ops` and are left for 1b's `Semantics/Univ.lean` (design
+  §2.3).
+
+**Item A, `Quot`.** At `u ≠ 0` a class is `kpair ∅ (qclass A R a)`, and
+`quotSet` is the image of that.
+- New: `quotClass_ne_pt` (`u ≠ 0`), `strict_quotSet` (`u ≠ 0`), and
+  `quotSet_ne_pt` (every `u`: at `0` the quotient is a truth value).
+- The old `quotSet_eq_pt_countermodel` keeps its lesson as
+  `untagged_quotSet_eq_pt_countermodel`: the *untagged* class set
+  `image (qclass A R) A` is `pt` at `A = ptTag`. The section's "never
+  resurrect `quotSet_ne_pt`" warning is replaced by the reason it now
+  holds.
+
+**Deviation from the design: `BasisQuot.lean` needed no re-proof.**
+The design estimated about 2.5 k lines of re-proofs via `kpair_inj`.
+In fact every consumer reads the class encoding only through the API
+of `quotSet`/`quotClass`/`qrep`, which are `@[irreducible]`:
+`quotClass_mem`, `quotClass_surj`, `quotClass_of_mem_quotSet`,
+`quotSound`, `app_eq_of_quotClass_eq`, `qrep_spec` and
+`quotSet_mem_univ`. Only four of those proofs in `Derive/Quot.lean`
+changed (`kpair_inj` at two of them). `Model/BasisQuot.lean`,
+`SetModel/Value.lean`, `Semantics/BasisOk.lean` and
+`Model/BasisTypeOk.lean` are untouched.
+
+**For 1b.**
+- `strict_quotSet` is the fibre fact `quotV`'s `typeU` domain needs.
+- `quotSet_mem_univ` will need a `typeU` twin: `quotSet_mem_tg` plus
+  `strict_quotSet` above 0, and a truth value at 0.
+- `relSpace` is `piR (max u 1) …`, a graph space and therefore
+  already strict.
+- `Derive/Univ.lean`'s corollaries `univ_isTGUniverse`, `univ_mono`
+  and `univ_subset_succ` do not hold for `typeU` (it is not transitive,
+  and not cumulative from 0 to 1, since `{pt} ∉ typeU 1`). Their
+  callers are 1b's real work list.
+
+## TASK #342 — L2-STRICT-CARRIERS: level-indexed `PUnit`, the `{∅}`/`∅` terminator, and the cumulative uses of `Prop` (2026-10-11, agent/342-l2-strict-carriers)
+
+Lane L2 of stage 1a (`_tmp/342-design.md` §2.1, items B and C and
+"cumulativity in the spelled carriers"). A pure strengthening: the
+checker and every statement are unchanged.
+
+**B, `PUnit`.** `SetTheory/Derive/Sigma.lean` gains `unitSetAt w`
+(`{pt}` at `0`, `{∅}` above) and `unitAt w` (`pt`, resp. `∅`), with
+`mem_unitSetAt_iff`, `unitSetAt_mem_univ`, `empty_ne_kpair`,
+`sfst_empty`/`ssnd_empty`. `bval .punit us = unitSetAt (lv us 0)`,
+`bval .punitUnit us = unitAt (lv us 0)`; `bval_mem_punit(Unit)` follow.
+At a positive level the unit is neither the point nor contains it.
+
+**C, the terminator.** `towerSet _ nil = unitSetAt w`,
+`ndTowerSet r _ _ 0 = unitSetAt r`; `mkTower [] = ∅` and
+`ndMkTowerSet _ _ 0 = ∅` (the tuplers are read only in the graph
+regime; a squash member is `pt` outright). The spelled terminators
+are `PUnit.{w}` / `PUnit.unit.{w}` (`towerBodyAVPos`, `mkTowerGoPos`,
+`mkTowerGoUPos`, `SumKit`'s mirror) — previously `PUnit.{w+1}` and
+`PUnit.unit.{0}`, which only typechecked semantically because the old
+unit was level-blind — and the squash body's empty chain is
+`PUnit.{0}` (was `.punit [1]`). `ndMkTowerAV`'s terminator was already
+`PUnit.unit.{r}`. `projS_pt` needed no change: `projS i ∅ = pt` by the
+non-pair default, as at `pt`. `BasisLfp.idxSet_nil` is now stated at
+index level `0`, the only level it is used at.
+
+**The `injNePt` guard (§4.3).** `LfpClause.injNePt` drops its
+`(D.params ψ).length ≠ 0` premise. Establishers: uniform blocks
+unchanged (tagged pairs); `lfp0_clause` takes the fact as a new
+premise; `emptyLfp`'s (never applied) injection is `unitAt w`; `Nat`'s
+are `∅` and successors (`vsucc_ne_pt`: `∅ ∈ ptTag`). `ContAcc`'s
+type-regime case no longer splits on the container's parameters.
+
+**The cumulative uses of `Prop` at `Sort w`, complete list** (every
+`univ_mono` in `Semantics`/`Model`/`SetModel` and every spelled
+`.psigma`/`.psigmaMk`/`.choice`/`.punit` level was read):
+
+1. *Declared constructor fields*, spelled `psigma.{w,w}` /
+   `psigmaMk.{w,w}` with the field as first argument:
+   `towerBodyAVPos`, `mkTowerGoPos`, `mkTowerGoUPos` (TowerKit,
+   SumTower), and their bound `FieldsBound w`/`FieldsOkB w`, discharged
+   by `univ_mono` in `SumKit.ctorFramesGen` (the declared fields, sorts
+   from `checkSumCtor`) and `FixKit.teleBound_walk` (the hole-context
+   fields, sorts from `checkAbsCtorSorts`). **Not fixed** — see below.
+2. *The index-equation proof field* `idxEqAV`, last in every chain
+   `Fs ++ [idxEqAV eqs]` (`rChain`), placed in `univ w` by
+   `truthVal_mem_univ`/`idxEqAV_mem_univ` (`SumTower`). Statically a
+   proposition, but its spelling goes through the same list-uniform
+   `towerBodyAVPos`/`mkTowerGoUPos`, so it is fixed together with 1.
+3. *Index telescopes*: `idxTyAV u Ids = towerBodyAV u Ids` at
+   `u = idxUniv ψ isorts` (the max of the index sorts), each index
+   domain raised by `univ_mono` (`FixKit.idxOk_of`, line 113). A
+   proof-typed index is a cumulative use. The per-index sorts are
+   recorded (`checkBlockIdxSorts`' `isorts`).
+4. *The recursors' chosen tuple*: `Σ' (r₀ : T₀) …, Q` with the
+   ι-equation conjunction `Q` as the last fibre of `psigma.{s,s}`
+   (`BlockRecTower.sigChainV_univ`). **Fixed here**: the last link is
+   `psigma.{s,0}` (`tailLv`), the projections' `fst`/`snd` witnesses
+   read each tail at its own sort. What remains is the `K = 0` chain
+   (`choice.{s} Q`), which no block reaches (every block has a
+   recursor).
+5. *The recursor family's level* `s ψ = maxLevelEval us ψ`
+   (`BlockRecPreRun.exists_uniform_univ`), each recursor type raised
+   to the max. Positive-only as long as the recursor types' sorts are
+   all `0` or all positive — true (they all end in `motive … : Sort u`,
+   so each is `imax … u`), but the run's existential `us` does not
+   expose it; 1b needs that fact.
+6. Positive-to-positive only (survive restriction, `typeU m ⊆ typeU n`
+   for `1 ≤ m ≤ n`): `natAV` in the sum carrier (`psigma.{w,w} Nat`),
+   the `lfpTuple` index-set and family towers (`Value.lean:517`,
+   `BasisOk.lean:473`, `BlockTower.lean:398/404`), `piR_mem_univ`'s
+   domain (a set-level lemma, not a spelling).
+
+**The finding (not foreseen by the design): the per-field sorts are
+not available where item 1 needs them.** The design assumed
+`Model/Inductives` "sees only the spelled level list". It has to
+*supply* it, and:
+- Amendment 1 dropped the domain-sort datum: `denoteMeta` fills
+  `AnnotTerm.pi`'s `u`-slot with `0` (`Model/Annot/Bit.lean`), so a
+  field's sort cannot be read off the annotated constructor type.
+- The block former's leaf (`blockTyG`) spells the operator over the
+  *hole-context* field readings (`absF`), whose bound comes from
+  `checkAbsCtorSorts`, which runs `checkStructFieldSortsI` and
+  **discards** the levels (`let _ ← …`, `Kernel/Inductives/BlockInstall.lean`).
+  `blockCtorHoleGrade_of_walk` has them only existentially.
+- The constructor leaves' declared-field sorts *are* returned
+  (`checkBlockCtors`' `sortsss`), and the index sorts too (`isorts`).
+
+So the operator's chains cannot be re-spelled with `psigma.{uᵢ,w}`
+without one of: (a) the checker keeping `checkAbsCtorSorts`' levels in
+its recorded output (behaviour-neutral, but a checker change, which
+stage 1a excludes); (b) the model defining the levels as the
+deterministic output of that run and proving it equal to the
+existential; (c) a classical per-field level in the leaf data — `0` if
+every reading of the field at every hole frame is a truth value, `w`
+otherwise — which needs no run data at 1a and, at 1b, the run's sort
+(a non-`Prop` field then has a positive sort, so its readings are in
+`typeU w` by positive cumulativity). This lane stops here and asks for
+the ruling; the spelling mechanism (a per-field level list threaded
+through `towerBodyAVPos`/`mkTowerGo*`/`FieldsBound`) depends on which
+data representation is chosen.
+
+**Gates:** `lake build` (warning-free), `lake test` (warning-free),
+`tests/arena.sh`, `tests/challenge.sh`. No `sorry`, no new axiom; no
+statement-half change, no checker change.
+
+## TASK #342 — L3-LFP-TYPES: least fixed points over a fibre space that is not closed under subsets (2026-10-11, agent/342-l3-lfp-types)
+
+Lane L3 of stage 1a of the real-checker port (`_tmp/342-design.md`
+§2.1 item D, §4.1, §4.2, §7 risk 2). Pure strengthening: the checker,
+`Denotes.lean`, `MainTheorem` and `Axioms.lean` are unchanged, and so is
+every value today (`univ` is still `tg`, closed under subsets, so the
+new drop never fires).
+
+**Item D, the obstruction.** `lfpFamSet`/`lfpTuple` took fibrewise
+intersections over the closed families. Over the restricted universe
+an intersection of types need not be a type:
+`F X i = if ∅ ∈ X i then {ptTag, ∅} else {ptTag, {∅}}` has the closed
+fibres `{ptTag, ∅}` and `{ptTag, {∅}}`, both strict, and their
+intersection is `{ptTag} = pt` (`tests/ConLecheTests/LfpTypes.lean`,
+`countermodel`). Separation (`sepTuple`, the induction principle's
+tuple) has the same problem.
+
+**Deviation from the design: no explicit `typeU` space at 1a.** The
+design (written before ruling R2) asked for `famSpace`/`InTupleSpace`
+over strict fibres now. That is not possible at 1a: the block
+operator's spelled λ ranges over `famsSpaceB` (the denotation of
+`⟨I_m → Sort w⟩`, `univ`-valued until 1b), and `holeChains_ok`/
+`holeChains_valid` turn each `Y ∈ famsSpaceB` into an `InTupleSpace`
+tuple to read the field typing (`fieldsOk`) there. With a strict tuple
+space that conversion fails at 1a, and `fieldsOk` would have to keep a
+second, `univ`-valued quantifier. Under R2 none of that is needed:
+`famSpace w I` stays `piSet I (fun _ => univ w)`, and when 1b makes
+`univ := typeU` the family space, `InTupleSpace`, `lfpFamSpace`,
+`tupleFamsSpace`, `famsSpaceB` and every quantifier over them
+(`fieldsOk`, `FitAcc`, `AccTuple`, `HoleRel(A)`, `closed_of_acc`,
+`lfpP_acc`, `ContAccFrame`/`ContAccRel`) range over type tuples at
+once, with no guard at any reader. What 1a must deliver is that the
+constructions stay correct over such a space; that is this lane.
+
+**The constructions** (`Derive/LfpFam.lean`, `Derive/LfpTuple.lean`).
+- A generic least pre-fixed family over a fibre space `C`
+  (`famSpaceIn`, `IsClosedFamIn`, `MonoFamIn`, `MapsFamIn`,
+  `lfpFamIn`). A fibre that leaves `C` is dropped to `∅`
+  (`dropTo C S := if S ∈ C then S else ∅`), so the value is in the
+  space for every functor (`lfpFamIn_mem`, needs only `∅ ∈ C`): the
+  basis constants `lfpFam`/`lfpTuple` stay total.
+- What the laws read of `C` besides `∅ ∈ C` is `DropClosed C`: a
+  subset of a member that is not a member has only `∅` among the
+  members below it. Closure (`lfpFamIn_closed`, `lfpTuple_closed`) and
+  induction (`lfpTuple_induction`) now also need `MapsFamIn`/
+  `MapsTuple`: a dropped fibre stays closed because the operator's
+  fibre there is a member below the dropped set, hence `∅`. Without
+  `Maps` this is false (a constant operator with fibre `pt` is
+  monotone and has closed families, but no closed least one in the
+  restricted space).
+- **The no-op:** under monotonicity and `Maps` nothing is dropped:
+  `mem_app_lfpFamIn`/`mem_app_lfpTuple` say the fibre is exactly the
+  raw intersection. Every installed operator is monotone
+  (`AccTuple.monoTuple`) and has `LfpClause.maps`.
+- `lfpFamSet w := lfpFamIn (univ w)`, `famSpace w := famSpaceIn (univ w)`;
+  `lfpTuple` and `sepTuple` use `dropTo (univ w)`.
+- The recursor family's graph (`SetModel/GraphRec.lean`) is a
+  relation whose fibres are sets of values, not types; it now uses
+  `lfpFamIn (tg ℓ)` (`tg` is closed under subsets, `subsetClosed_tg`).
+  Its hypotheses still say `B u ∈ univ ℓ` and are read as `tg ℓ` by
+  defeq.
+
+**What the constructions read of a level** (the "levels" section of
+`LfpFam.lean`): `empty_mem_univ`, `univ_dropClosed`,
+`univ_famUnion_mem` (a union of members indexed by a set of `tg w`;
+`emptyTup`/`unionTup`/`limTup` in `Access.lean`) and
+`univ_binUnion_sing_empty_mem` (the one-fibre enlargement in
+`LfpAcc.accRel_rich` and `ContAccRel.tuple_enlarge`). The same three
+facts are proved for L1's `typeU` (`typeU_dropClosed`,
+`typeU_famUnion_mem`, `typeU_binUnion_sing_empty_mem`: a subset of a
+strict set is strict or the point, a union of strict sets is strict,
+`{∅}` is strict). At 1b the three `univ_*` lemmas become one-line
+corollaries of those, and nothing else in the lfp layer reads the
+level.
+
+**The accessibility bound moves to `tg`.** `AccW`, `closed_of_acc`,
+`stage_mem`, `limTup_mem`, `accPaths_mem`, `lfpP_acc`,
+`LfpClause.fitAcc` and the records repeating it (`BlockModel`,
+`BlockRep`, `BlockStageCtors`, `BlockAccRunCont`, `BasisLfp.lfp0_clause`)
+state `A ∈ tg w`. The bound is a size, not a type, and `accPaths A`
+contains the point (the empty path), so it could never be a member of
+the restricted universe. Producers still pass `univ` proofs, accepted
+by defeq.
+
+**Consumers.** `MapsTuple` is passed at every closure/induction site:
+`NestRec.SClause.OkAt` gains a `maps` field (from `LfpClause.maps` in
+`TargetNestKit.lfpSClause_okAt`); `lfpP_acc_group` gains `hmaps`;
+`mixT_isClosed`/`lfpTuple_mixT` gain `hmaps` (with `mixT_mapsTuple`);
+`HoleClose.lfpTuple_le_on` gains `hmaps`; `ContAccFrame`, `GenClsSem`,
+`BlockLfpMono` pass `LfpClause.maps`. `BasisLfp.lfp0_carrier` now reads
+leastness through `subset_app_lfpTuple` and needs no monotonicity, so
+`lfp0_clause` lost its unused `hmono` premise. `mem_app_sepTuple`
+(`NestRec`) is replaced by `mem_app_sepTuple_imp` (the direction every
+caller used).
+
+**For 1b (L4).**
+- Re-prove `univ_dropClosed`, `univ_famUnion_mem`,
+  `univ_binUnion_sing_empty_mem` from the `typeU_*` twins; nothing else
+  in `LfpFam`/`LfpTuple`/`Access` reads the level.
+- The `tg`-stated bounds and `GraphRec`'s `B u ∈ univ ℓ` are fed by
+  `univ` proofs through defeq; once `univ := typeU` (irreducible) they
+  need `mem_tg_of_mem_typeU` at the producers (`BasisLfp` `hFacc`,
+  `BlockAccRun`, `LfpAcc.finUnion` is already `tg`).
+- `blockPhi_maps_of` (`BlockTower`) will need the operator's fibres
+  strict: `blockStepG` is a `sumSet` (strict for any arguments,
+  design §2.1); `lfp0_clause`'s `hmaps` (Nat via
+  `univ_isTGUniverse`) likewise.
+- `tests/ConLecheTests/AccessTests.lean` proves `pt ∈ univ w` at
+  `w ≠ 0` for its examples; that becomes false and its examples need
+  strict fibres.
+
+**Gates:** `lake build`, `lake test` (warning-free; `Axioms.lean`
+unchanged), `tests/arena.sh`, `tests/challenge.sh`. OVERVIEW's
+`closed_of_acc` anchor and the whitepaper's `Access`/`LfpTuple`
+citations repointed (`--update`d). Imports: `LfpFam` now publicly
+imports `Univ` (what its statements need) and `Lfp` privately, so the
+allowlisted `public import …Derive.Lfp` line is gone; `GraphRec`'s
+`Derive.Pt` and `LfpFam`'s `Derive.Graphs` imports were clean removals
+by the task #223 criterion. No `sorry`, no new axiom.
+
+## TASK #342 — L2B-REVERT: the per-field sorts reverted (2026-10-12, agent/342-l2b-revert)
+
+The v2 re-plan (`_tmp/342v2-design.md` §2, L2b row) found L2b
+unnecessary once `univ` is re-targeted to #344's cumulative `tyU`:
+`{pt} ∈ tyU w` at every positive level, so `psigma.{w,w}` with a
+`Prop` field already typechecks semantically and the per-field sorts
+(`FieldsSorts`, `absCtorSortsRun`, the restricted-`Psi` sorts) buy
+nothing a uniform `w` did not already have. Ruling Q4 (§10):
+revert, recommended because the machinery existed only for #340's
+strict universe that this port is replacing.
+
+`git revert -m 1 ad35cc057` (the L2b merge commit, parent 1 being the
+pre-L2b tree) applied with no conflicts: nothing landed on `port-342`
+between the L2b merge and this revert, and no later lane had built on
+L2b's per-field data. +1078 −2066 over 31 files, undoing L2b's
++1951 −1078 net plus its own DESIGN record (−115) and the whitepaper
+anchor repoints it made; the `ConLeche/Model/Inductives/*`,
+`ConLeche/Model/Annot/*`, `ConLeche/Semantics/Tower/*` and
+`ConLeche/Model/BasisLfp.lean` files are back to their pre-L2b
+bodies. No proof elsewhere depended on the per-field sorts, so no
+repair was needed anywhere outside the reverted files themselves —
+`lake build` and `lake test` are warning-free with zero edits beyond
+the revert.
+
+`port-342` had not moved since the L2b merge (still at `ad35cc057`
+when this lane started), so no intervening merge was needed before
+landing.
+
+**Gates:** `lake build`, `lake test` (warning-free, no proof
+breakage). `tests/arena.sh`'s full battery passed (layering, shake,
+trust-surface, overview-links, quote-gate, no-local-paths, challenge,
+the arena/e2e/annot suites, the mode/IO/worker/install/DAG-tower
+gates, the trusted and `--jobs=1`/`--jobs=4` sweeps), except one
+sub-check of `tests/pindump.sh`: the `leanprover-lean4-v4.33.0`
+pinner's `natop-pins-export` exe failed to link because
+`/nix/store/cbzk9mphdh7wvsl0nkdxx9jp1xwdfxjs-elan-4.2.3`'s
+`nix-support/ld-wrapper.sh` is gone from this machine's Nix store (the
+path no longer exists at all, confirmed with `find /nix/store`). That
+pinner reproduced byte-for-byte on this same tree's ancestor
+(`l2b-field-sorts-logs/arena.log`, 2026-10-11 19:20) and this revert
+touches no file under `pins/`, `pinners/` or `tests/pindump.sh`
+(`git diff --stat ad35cc057 HEAD -- pins/ pinners/ tests/pindump.sh`
+is empty): a host Nix-store regression between the two runs, not a
+property of this lane's content or of #342. No `sorry`, no new axiom,
+no statement change.
+## TASK #342 — L4P-FLIP: `univ` is the cumulative universe of types (2026-10-12, agent/342-l4p-flip)
+
+Lane L4′, stage S1 of the revised port (`_tmp/342v2-design.md` §2, §3.1,
+§7 row S1, §10). It restarts the paused `agent/342-l4-flip` (which made
+`univ` L1's strict universe) with task #344's universe of types. The
+checker, `Denotes.lean` (its `sort` clause keeps its text), `MainTheorem`,
+`Challenge` and `Axioms.lean` are unchanged. It is a strengthening that
+is valid under the annotated reading: every set a type term denotes today
+is a truth value or strict (L1–L3).
+
+**The universes** (`Derive/TypeU.lean`, `Derive/Univ.lean`).
+- L1's strict universe is renamed **`strictU`** (truth values at `0`;
+  above, the strict members of `tg n`).
+- The new **`tyU n`** is `tg 0` at `0` and `sep (tg n) IsTy` above (the
+  fragment's #344 `typeU`). `mem_tyU` is uniform in the level. It is
+  cumulative (`tyU_mono`), contains `strictU` (`strictU_subset_tyU`), and
+  is strict itself; `tyU n ∈ tyU (n+1)`.
+- `univ := tyU`. `univ_mono` holds again, and so do `unitSet_mem_univ n`
+  at every level and `univ_subset_succ`.
+- What is gone: `univ_isTGUniverse` (above `0`, `univ` is not transitive:
+  `{pt}` is a member, `pt` is not), `univChain_one_mem_univ_succ`, and
+  `univ_mem_of_subset_mem`/`univ_sep_mem`. The last two are now
+  `tg_mem_of_subset_mem`/`tg_sep_mem` in `Lfp.lean`, which imports only
+  `Tg`.
+- New bridges: `mem_univ`, `mem_tg_of_mem_univ`, `mem_univ_of_tg_strict`,
+  `mem_univ_of_mem_univZero`, `strictU_subset_univ`,
+  `mem_strictU_of_univ` (strict above `0` ⇒ in `strictU`), `strict_univ`,
+  `univ_mem_univ_of_lt`.
+
+**The least fixed points' fibre space is `strictU`** (as designed).
+- `famSpace w`, `IsClosedFam`, `lfpFamSet` and `lfpTuple`'s and
+  `sepTuple`'s `dropTo` are over `strictU w`.
+- The three level facts are `strictU_dropClosed`,
+  `strictU_famUnion_mem` and `strictU_binUnion_sing_empty_mem`.
+  `univ_dropClosed` also holds (a subset of a truth value is a truth
+  value); the other two fail for `univ`. The regression test in
+  `tests/ConLecheTests/LfpTypes.lean` shows `{pt} ∪ {∅} ∉ univ 1`.
+- A family of the space is a family of types (`famSpace_app_univ`,
+  `famSpace_subset_univ`, `famSpaceIn_mono`). The basis constants' types
+  (`lfpFamSpace` is `I → Sort w`, so `famSpaceIn (univ w) I`) take
+  `lfpFamSet`/`lfpTuple` by that inclusion (`lfpFamSpace_eq_univ`,
+  `famSpace_subset_lfpFamSpace` in `BlockTower`; `Value.lean`).
+- `blockPhi_maps_of` reads the operator's fibre in `strictU`
+  (`blockStepG_strictU`, from `sumSet_strictU_of_okB` and
+  `strict_sumSet`: a tagged sum above `0` is a set of pairs).
+- `lfp0_clause`'s `hmaps`/`hCu`/`hleast` and `lfp0_carrier` are stated
+  at `strictU`. `Nat`'s operator keeps `strictU 1`: `natF S` holds `∅`
+  and successors, never the point.
+
+**The hole frames bind families of types** (not foreseen by the design,
+which placed the `adm` bridge at S4). `holeChains_ok`/`holeChains_valid`
+turn every `Y ∈ famsSpaceB` (the denotation of `⟨I_m → Sort w⟩`, now
+`univ`-valued) into a tuple, and read the fields' typing there. That
+tuple need not be strict: a fibre can be `{pt}`. So the hole-frame facts
+are quantified over the larger space **`InTupleSpaceU`** (fibres in
+`univ w`; `LfpTuple.lean`). The strict tuple space sits inside it
+(`InTupleSpace.toU`).
+- Changed: `LfpDatum.holeVal_mem`, `blockWalkCtx`/`blockCtorHoleCtx`'s
+  frame satisfaction, `blockHoleGrade_of_run`'s and
+  `blockHoleChains_facts`' field facts, and the `hF` premises of
+  `holeChains_ok`/`holeChains_valid`.
+- Every consumer at a strict tuple adds `.toU`: `LfpFormer`,
+  `TargetCallPatch`, `TargetCallFrame`, `ContWalk`, `BlockAccRunCont`,
+  `BlockDatum`, `DeclBlockStep`.
+- No `adm` is needed in S1. The facts come from `Sat` of the hole
+  context, which any family of types satisfies.
+
+**Size bounds read `tg`.** The re-routing is kept from the paused WIP:
+`GraphRec` (`B u ∈ univ ℓ` read through `mem_tg_of_mem_univ`), `Access`
+(`natUnion_mem_tg_pos`; `natUnion_mem_univ_pos` is gone, with no
+remaining user), `Iter`, `sigma_mem_univ_tg`, `quotSet_mem_univ` and
+`unitSetAt_mem_univ` (strict above `0`, so in `univ`), and
+`Semantics/Univ.piR_mem_univ` (with `Fib_piR`/`IsTy_piR`). Before this
+lane `univ` was `tg` by defeq; that defeq is now gone, so these
+producers were also fixed:
+- `ContAccFrame` (the `TB`/`A` bounds: `tg w`);
+- `BlockDatum`'s `FitAcc` bound;
+- `PosDerivAcc` (`SizeOn.const`);
+- `BlockAccRun` (`TeleSmall` via `tg` transitivity);
+- `BasisLfp` (`hFacc`).
+
+**Deviations from the paused WIP.**
+- `FieldsBound`/`BoundS`/`FieldsOkB` stay at `univ`.
+  - The WIP moved them to `tg` because `{pt} ∉` its strict `univ 1`.
+  - Under the cumulative `univ` a `Prop` field is a type of every
+    level, and the readers use them as typings (`towerSet_univ_*`, the
+    λ/Π domains).
+  - So `TupleTower`, `TowerKit`, `SumTower`, `FixTower`, `BlockRecTower`
+    (the `tailLv` choice), `BasisOk` and `GenRecPins` keep the
+    port-342 text.
+- The strict-only corollaries are not carried over: `univ_mono_pos`,
+  `mem_univ_mono(_strict)`, `unitSet_mem_univ_zero` and
+  `truthVal_mem_univ_zero`.
+- `univ_famUnion_mem` is now `strictU_famUnion_mem`.
+
+**Tests.**
+- `AccessTests` builds its examples with strict fibres (`nil_or_mem`,
+  `tag_image_mem_strictU` in `strictU`) and bounds in `tg`.
+- `LfpTypes` adds cumulativity (`{pt} ∈ univ 1`) and the counterexample
+  `{pt} ∪ {∅} ∉ univ 1`.
+
+**Merges.** This lane merged `agent/342-l2b-revert` 7c5f7a1a8, the L2b
+revert, before touching `Semantics/Tower`. Q4 rules that revert, and it
+touches the same files. Once L2b-revert landed, `port-342` was merged in.
+It added only that lane's DESIGN record, so nothing needed re-gating.
+
+**For S2.**
+- `InTupleSpaceU` is the space a hole frame ranges over. L5's typed
+  `WellDenoted`/`CtxOk` should state hole contexts over it, not over the
+  strict space.
+- `IsTy` holds for every `univ` member (`IsTy_of_mem_univ`), and
+  `ne_pt_of_mem_univ` gives "a type is not the point" directly.
+
+**Gates.**
+- `lake build` and `lake test`: no warnings, `Axioms.lean` unchanged.
+- `tests/arena.sh`, `tests/challenge.sh` and `whitepaper/links-gate.sh`.
+  The `LfpTuple`/`GraphRec` citations were repointed and the file was
+  regenerated with `--update`.
+- The `shake` allowlist line for `Univ.lean`'s `TypeU` import was
+  dropped: the import is now used.
+- No `sorry`, no new axiom.
+
+## TASK #342 — L5-TYPED: typed `WellDenoted`, `CtxOk` and `InferSem` (2026-10-12, agent/342-l5-typed)
+
+Lane L5, stage S2 of the revised port (`_tmp/342v2-design.md` §3.2,
+§11.5); it blocks L6/L7/L8. It reads under the annotated model (L4′'s
+`univ := tyU`). The checker, `Denotes.lean`, `MainTheorem`, `Challenge`
+and `Axioms.lean` are unchanged.
+
+**The invariant** (`Semantics/WellDenoted.lean`).
+- Π: `IsTy ⟦A⟧`, and `IsTy` of every fibre `⟦B⟧[x]`, `x ∈ ⟦A⟧`.
+- λ: `IsTy ⟦A⟧`; the body's family `B` is a family of types
+  (`∀ x ∈ ⟦A⟧, IsTy (B x)`), next to the kind-`0` truth-value component.
+- app slot: `(v = 0 → fibres are truth values) ∧ (v ≠ 0 → IsTy A)`.
+  At kind `0` the slot asks no `IsTy`: the design's `¬p → IsTy A`, read
+  at the numeral.
+- `liftN`/`inst`/`beta` transport re-proved. `appSlot_of_pi` and
+  `WellDenoted_app_of` take the domain's `IsTy` (`hdom`).
+
+**The claim currency.**
+- `WellDenotedTy V ρ e := WellDenotedV V ρ e ∧ IsTy ⟦e⟧`
+  (`Model/Currency.lean`), with `liftN`/`inst0`/`hoist_lift` transport
+  (`Model/WellDenotedTransport.lean`).
+- `CtxOk`'s entries are `WellDenotedTy` (so is `CtxOkKit`/`CtxOkP`).
+- `GradedTy` (`Model/Rules/Motive.lean`): `InferSemFull` **and**
+  `InferSemIO` grade the inferred type as a type. `InferClaim` and
+  `InferClaimIO` (`Model/Claims*.lean`) give `WellDenotedTy` for `⟦T⟧`.
+- Every rule establishes its type's `IsTy` from one of four sources:
+  `IsTy_univ` (sort), `IsTy_piR` (forallE, and any Π-shaped reading),
+  `IsTy_of_mem_univ` (anything inhabiting a universe, including the λ
+  domain and the app's fibres), or a checker sort fact
+  (`sortSemAt_of_claims`, `hc.sort`, the recursor stage's sort row).
+
+**New lemmas.** `IsTy_univ`/`univZero`/`omega`/`empty`/`eqv` (`Univ`),
+`exists_IsTy_mem` (`TypeU`), `IsTy_sumSet`, `IsTy_famsSpaceB`,
+`IsTy_tupleSortsSpace`/`IsTy_tupleFamsSpace`, `IsTy_mkPisAV_sort`,
+`IsTy_sqBody`, `IsTy_eqChainAV`, the basis `IsTy_*_app`/`*_type` facts,
+`WellDenotedV.hoist_piTy` (`InferSoundKit`), `WellDenotedTy_pi_dom`,
+`bitAgree_wellDenotedTy`, `GradedFrame.gradedTy` (`GenClsFrame`: an
+opener inferred to a sort reads as a type).
+
+**Deviations from the design.**
+- `InferSemIO` also carries `IsTy` (the design left it open, §5): every
+  io rule establishes it from the same four sources as the full grade.
+- `Fib_piR`/`IsTy_piR` moved from `Semantics/Univ.lean` to
+  `SetModel/Ops.lean`, below `WellDenoted`. `IsTy_eqv` lives in
+  `Derive/Univ.lean` for `BasisTypeOk`.
+- The type facts reached premises the design did not list: the
+  `EnvModelM` field is now `type_wellDenotedTy`; `ConstType`,
+  `NatHeads` (a third conjunct, `IsTy` of the `Nat` reading) and
+  `TowerEntryLaw` (A) carry `IsTy`; so do `FieldsOkB`, `UnderTowerOk`,
+  `ParamsOkS`/`MkPreS`/`AppChainOk`, `ParamsOkG`, the recursor
+  stage's premises, `CtorDataI.okTy`, `WalkCtx`, `hereditaryWalk`,
+  `GradedFrame.ok` and every spine-indexed "frame grading" (`hokA`,
+  `hokB`, `hokΔ`, `hframe`) in `Model/Inductives`. These are the
+  contexts `CtxOk` is built from, so each had to become `WellDenotedTy`.
+- Hole contexts: their facts were already over L4′'s `InTupleSpaceU`;
+  the hole types' `IsTy` comes from `IsTy_mkPisAV_sort` (a former's
+  type is a Π-tower into a sort), so no strict-space premise was added.
+
+**Observation for review.** At a positive kind the λ clause's "family of
+types" adds nothing: every set inhabits a type (`exists_IsTy_mem`:
+`{y}`, `{pt}`, `{ptTag, ∅}`), and `mkLamsAV_one_wellDenoted` picks one.
+The λ's content is in its domain's `IsTy` and the kind-`0` component.
+
+**For L6/L7/L8 and L-let.**
+- A new producer of a context entry or an inferred type owes `IsTy`.
+  Look for it in a universe membership first (`IsTy_of_mem_univ`), then
+  in the reading's shape (`IsTy_piR`, `IsTy_mkPisAV_sort`), then in a
+  checker sort fact (`sortSemAt_of_claims`, `GradedFrame.gradedTy`).
+- L6 (spelled leaves): each spelled carrier's type needs its `IsTy`
+  next to its `WellDenoted` fact; `IsTy_sumSet`, `IsTy_famsSpaceB` and
+  the `tupleSpace` facts are the ones the current carriers use.
+- L7: `FieldsOkB`/`UnderTowerOk`/`ParamsOkG` already carry `IsTy`
+  slots; a strict-fibre fact lands there (`IsTy_of_strict`).
+- L8: `NatHeads`' new conjunct and `DmBinV`/`DmUnV`'s `IsTy natS` are
+  the Nat-side hooks; `Quot`'s `quotRelTy_wellDenotedV` takes
+  `IsTy (ρ 0)`.
+- L-let: a let-bound entry in a context is a `CtxOk` entry, so its type
+  owes `WellDenotedTy` like any binder.
+
+**Gates** (the integration-branch subset, COMMON.md 2026-10-12).
+- `lake build` and `lake test`: no warnings, `Axioms.lean` unchanged.
+- e2e 470/470 and the arena tutorial at 90/92, the baseline.
+- `tests/challenge.sh` green.
+- No `sorry`, no new axiom.
+- OVERVIEW's citations were repointed and its invariant/claim sentences
+  updated (`overview-links --update`).
+- `whitepaper/links-gate.sh` is deferred. It now differs at the
+  `WellDenoted`, `Motive`, `InferSound`, `EnvModel`, `FixKit`, `NatEqs`
+  and `BasisQuot` citations, for W1/W2.
+
+## TASK #342 — L6-LEAVES: the spelled leaves' type and regime facts (2026-10-12, agent/342-l6-leaves)
+
+Lane L6, stage S2 (`_tmp/342v2-design.md` §3.2–3.3, §11.5), under the
+annotated reading.  The checker, `Denotes.lean`, `MainTheorem`,
+`Challenge` and `Axioms.lean` are unchanged; the checker binary is not
+rebuilt by this lane.
+
+**Scope found.** L5 had already done most of what the S2 row gave L6:
+every spelled λ and Π in `Semantics/Tower/*`, `Model/Basis*` and the
+block leaves has the typed `WellDenoted` (domain `IsTy`, λ bodies bounded
+by a family of types, Π fibres `IsTy`), and every carrier type that
+enters a context is already `WellDenotedTy` or sits in a universe
+(`IsTy_of_mem_univ`). L6 adds the remainder:
+
+- **Regime facts for the carrier sets** (unconditional, both readings):
+  `Fib_sigmaSet`/`IsTy_sigmaSet`, `strict_sing_empty`,
+  `Fib_unitSetAt`/`IsTy_unitSetAt` (`Derive/Sigma`),
+  `Fib_towerSet`/`IsTy_towerSet` (`TupleTower`),
+  `Fib_ndTowerSet`/`IsTy_ndTowerSet`, `strict_lfpFamSpace` (`Value`),
+  `strict_famSpaceIn`/`strict_famSpace` (`LfpFam`),
+  `Fib_idxSet`/`IsTy_idxSet` (`FixTower`), `strict_famsSpaceB`
+  (`BlockTower`), `IsTy_sigChainV` (`BlockRecTower`).  `Fib (decide
+  (w = 0)) X` reads: a truth value at `0`, strict above; with
+  `ne_pt_of_mem_strict` it says a positive-level carrier's members are
+  never the point, the fact S4's `lamV_mem`/`lamV_eq_graph` premises
+  come from.
+- **The one graph-reading leaf.**  Of the leaves only the block operator
+  needs a spelled abstraction AS a graph (the least fixed point lives in
+  `famSpace`, a space of graphs).  `blockPhiG` is now a raw `graph`;
+  the spelled operator meets it in `tupleOpV_blockFunVG`, which takes
+  the premise `hne : lamR (w+1) (idxSet …) (blockStepG …) ≠ pt` and
+  closes by `lamR_eq_graph_of_ne_pt` (`SetModel/Ops`, the annotated
+  form of `lamV_eq_graph`).  The caller (`blockBodyG_app`) discharges it
+  by `lamR_ne_pt`.  `app_blockPhi` is `app_graph`; `blockPhi_maps_of` is
+  `graph_mem_famSpace` with no rewrite.
+- **The walk's type fact.**  `TowerWalkA`'s leaf carries `IsTy` of the
+  conclusion's reading (from the kit's bound in `famCandG_mem`), the
+  innermost fibre fact `lamV_mem` asks for; the outer fibres are Π
+  readings (`IsTy_piR`).
+
+**What S4 owes here (L15/L16/L17).**
+- β (`app_lamR_pos`, ~50 sites in the leaves) becomes the premise-free
+  `app_lamV`; membership (`lamR_mem`, `lamR_mem_zero_agree`) becomes
+  `lamV_mem` with the fibres' `IsTy`, which every spelled λ's
+  `WellDenoted` and `TowerWalkA` already carry.  Mechanical.
+- `tupleOpV_blockFunVG`: the caller must supply `lamV … ≠ pt`
+  (`lamV_ne_pt_of` at an inhabited index tuple, the body `blockStepG …`
+  a type, `IsTy.ne_pt`).  Over an EMPTY index set (`Fin 0`-like
+  families) the spelled family is the point and the model's operator the
+  empty graph.  `lfpTuple_congr` asks for equality of the operator
+  values, but `lfpTuple` reads its operator only through `TupleLe`, i.e.
+  through `app (Φ X m) i` at `i ∈ Is m` (`IsClosedTuple`, `FamLe`).  So
+  the congruence can be weakened to equality of applications on the
+  index set, which holds vacuously at an empty one and by `app_lamV` at
+  an inhabited one; then `tupleOpV_blockFunVG` needs no premise at all.
+  The alternative is a `tupleOpV` that re-graphs its component over the
+  index set (`SetModel/Value`, L15).
+- `lfpFamSpace`/`natMotiveSpace`/`relSpace` are `piR (w+1) …`; under
+  `piV` they are `{pt}` over an empty domain while `famSpace` stays
+  `{∅}`; `famSpace_subset_lfpFamSpace` then fails at an empty index set
+  and needs the same treatment.
+- `holeFam` (`Model/Annot/BlockLfp`) and `lamTowerA` are model-side
+  λ-towers written with `lamR`; under S4 they become `lamV` and their
+  spelled counterparts (`interp_mkLamsAV_pos`, `lamTowerA_fold`) need
+  no premise.
+- `Model/EqTower`'s forcing lemmas (`bit_forced_*`) are about the
+  annotation and go with it.
+
+**Gates.** `lake build`, `lake test`: no warnings. No `sorry`, no new
+axiom. The checker binary is not rebuilt (no `Kernel`/`Driver` change),
+so the arena and e2e verdicts are port-342's.
+## TASK #342 — L8-NAT-QUOT: the `Nat`/`Quot` consumers ready for the point-conditional claims (2026-10-12, agent/342-l8-nat-quot)
+
+Lane L8, stage S2 of the revised port (`_tmp/342v2-design.md` §3.4 R4/R5,
+§11.5). It reads under the annotated model; `Denotes.lean`,
+`MainTheorem`, `Challenge` and `Axioms.lean` are unchanged.
+
+**Scope as found.** L5 had already brought the `Nat` and `Quot` claim
+consumers to S2's typed facts: `NatHeads`' `IsTy` conjunct,
+`DmBinV`/`DmUnV`'s `IsTy natS`, `quotRelTy_wellDenotedV`'s `IsTy (ρ 0)`,
+the `BasisQuot` `IsTy` facts, `WellDenotedTy` from `InferClaim`. Nothing
+of the typed reading was left. What was left is the preparation for
+S3, where `DefEqClaim` concludes an equation only between two readings
+that are not the point (the fragment's `DefEqSem`).
+
+**The consumers, prepared.** Every `DefEqClaim` consumer outside the
+rules tier and `Model/Inductives` now takes its equation only away from
+the point, closing with `IsTy.eq_of_ne_pt` (two members of one type) or
+the new `eq_of_IsTy_of_ne_pt` (two types; `Model/Claims.lean`). The
+claim application sits under `fun _ _ =>`; S3 drops that wrapper and
+nothing else at these sites.
+- `Harvest` (definition, theorem, opaque): the value's inferred type
+  against the declared type, both types (`hTaTy` is hoisted from the
+  `htyOk` row).
+- `DivModCert.certValue`: the inferred type against the certificate
+  statement; `hokE` is now `WellDenotedTy` (`EqLaw`'s truth-value row).
+- `ReduceOps`: `op a` against `a`, both in the element type (`hmemApp`).
+- `NatEqs.natEqLaw_of_run`: both sides members of one type `S`, the
+  stored `Nat` (`NatHeads`' `IsTy`) or `Bool`; `NatArg.package` and
+  `natBinHead_app_package` keep the membership, `natBoolConst_package`
+  and `natBool_isTy` supply the `Bool` constructors'.
+
+**Finding: the `Bool` constructors' type.** The comparison recurrences
+(`beq 0 0 = Bool.true`, `ble 0 y = Bool.true`, …) relate a `Bool`
+application to the constant `Bool.true`. `natOpGuard` only checked that
+`Bool.true`/`Bool.false` are stored and level-free, so `⟦Bool.true⟧`
+could be the point (a `Bool.true` stored at a proposition, or at an
+alias of `Bool`), and the conditional claim would not give the
+recurrence. `divModEnvGuard` already pinned the constructors at
+`.const Bool []`; `natOpGuard` (and `natOpGuardF`) now do so for every
+`Bool`-valued operation (`natOpGuard_boolTy`). This is a checker
+change in S2; it lands with the proof that consumes it (`NatEqs`).
+Verdicts: no change on real streams (arena 90/92, e2e unchanged);
+the new fixture `natop_booltrue_alias` (`Bool.true : BoolAlias :=
+Bool.tt`, built by `scripts/mk_natop_booltrue_alias.py`) went from
+accept to decline (2), deliberately.
+
+**Not needed.** `NatHeads` stays at `IsTy`, not `Strict`: the
+consumers equate two members of one type, which `IsTy.eq_of_ne_pt`
+does for truth values and strict sets alike. The `NatOps`/`DivMod`
+laws stay unconditional, because they are derived inside a type. The
+literal reductions (`lit ↔ succ`, the fast path) are unconditional
+facts, and S3's conditional `RedSem` only weakens them.
+
+**For S3.**
+- L9: changing `DefEqClaim` to the conditional form leaves the six
+  sites above with one edit each (`fun _ _ => h …` becomes `h …`).
+- L7's consumers do the same thing: `GenRecParams.prefixDoms_agree_inst`
+  and `StructFrameKit.defEqRow` compare types (domains, `WellDenotedTy`
+  in hand), so the same move applies. The rules tier's own uses are
+  L9/L11's.
+- `WhnfClaim` consumers outside the rules tier read sort facts. Their
+  subjects are types, never the point.
+- `Quot.lift` ι is case 3 (L10). After lean4#14977 it is case 2 (§11.7).
+
+**For S4 (L15): the `bval` constants and `lamV`.** At numeral `v = 0`
+both `lamR 0` and `lamV` give the point (the bodies are proofs). At
+`v ≠ 0`, `lamR v A F = lamV A F` unless every `F x` (`x ∈ A`) is the
+point, which includes an empty `A`. So a constant changes exactly
+where one of its binders can have an empty domain or all-point bodies
+at a positive numeral:
+- `natSuccV`, and the type formers `psigmaV`, `quotV`, `lfpFamV`'s
+  outer formers: domains inhabited, bodies types. Unchanged in value;
+  restated with `lamV`.
+- `natRecV`: `app M natzero` and `natStepSpace` may be `∅` or `{pt}`
+  (`univ u`, `u ≥ 1`, holds truth values), and `natrec z s n` may be
+  the point for every `n`.
+- `psigmaMkV`, `quotMkV`: the innermost domain (`app B a`, `A`) may be
+  empty, and the emptiness propagates outward through all-point bodies.
+- `quotLiftV`: `quotLiftR` ranges over `quotSet` (empty when `A` is), its
+  bodies `app f (qrep …)` are the point when `B` is a truth value, and
+  the invariance binder's domain `quotInvSpace` is `∅` when invariance
+  fails. R5: it becomes `lamV`.
+- `emptyRecV` (inner abstraction over `∅`: the point), `choiceV` (over
+  `dnegSpace`, a truth value), `lfpFamV`/`lfpTupleV` (over index spaces
+  that may be empty).
+
+None of this can move before S4. Under the annotated reading a
+constant must be a member of its annotated type `piR v …`, and in
+exactly these cases `lamV` is not one. `lamV` itself arrives with
+L14a. L15 restates each constant with `lamV` and turns the `*_app`
+laws into `app_lamV`, which needs no premise.
+
+**Gates** (the integration-branch subset, COMMON.md 2026-10-12).
+- `lake build` and `lake test`: no warnings; axioms pinned (20).
+- The arena tutorial at 90/92; e2e 471/471, the new fixture included.
+- `tests/challenge.sh` green.
+- No `sorry`, no new axiom.
+- OVERVIEW's `Bool` sentence was updated and its citations repointed
+  (`overview-links --update`).
+- `whitepaper/links-gate.sh` is deferred. It drifts further at the
+  `Claims`, `NatEqs` and `DivModCert` citations, for W1/W2.
+
+
+## TASK #342 — L-LET: `let` in the reading, in `Denotes` and in the rules tier (2026-10-12, agent/342-l-let)
+
+Lane L-let, stage S2 of the revised port (`_tmp/342v2-design.md` §11.3,
+with the rulings of §11.x: no let-variables, substitution as nanoda
+does, a `let` rule in `Denotes`, lets stored as Lean has them; R-C
+revised: the io grade does not check the value).  Template: F4 on
+`frag-342`.  It lands under the annotated reading: the annotate pass
+still ζ-reduces, so the checker stores no `let` and its `letE` arms stay
+positive errors until S4's L-ck.  No checker code changed.
+
+**The statement.**  `Denotes` gets one rule, type ignored, no side
+condition:
+
+```lean
+  /-- a `let` denotes its body at its value; the type is not read -/
+  | letE {ρ : BVarIdx → V} {ty v body : Expr} {Y X : V}
+      (hv : Denotes cval env φ ρ v Y) (hb : Denotes cval env φ (push Y ρ) body X) :
+      Denotes cval env φ ρ (.letE ty v body) X
+```
+
+and its case in `Denotes_functional`.  The module docstring's "the
+annotation pass has replaced every `let`" became the rule.
+`MainTheorem`/`Challenge` text unchanged; `tests/challenge.sh` green;
+the `#print axioms` pins unchanged.
+
+**The reading.**
+- `Term` and `AnnotTerm` gain a type-free `letE v b` (body under one
+  binder), as `eqE` carries no type: nothing reads a `let`'s type.
+- `interp ρ (letE v b) = interp (cons ⟦v⟧ρ ρ) b`; `WellDenoted` and
+  `AnnotValid`: the value at ρ, the body at `cons ⟦v⟧ ρ`.
+- `interp_zeta` (every ρ, the point included), `WellDenoted_zeta`,
+  `WellDenotedV_zeta`, `WellDenotedV.letE_val`.
+- `denote`/`denoteMeta` read a stored `letE ty v b` as the former, the
+  body opened at `fvar d ty` as a binder's.  `denoteMeta` also asks the
+  type to read and drops it (deviation, below).
+- `Denotes_of_denoteMeta` (the bridge) gets the `letE` case.
+
+**Rules and soundness** (`Rules/Rel.lean`, `Model/Rules/*`).
+- `Red.zeta : Red env d (.letE ty v body) (body.instantiate1 v)`, no
+  premise.  `Red.zeta_sound` is unconditional (`interp_zeta`).
+- `Infer.letE` at both grades, the full-grade checks behind
+  `g = .full →` as `Infer.lam` does: the type's type reduces to a sort,
+  the value's full-grade type `DefEq` the type; the body at its value at
+  the grade.  `Infer.letE_sound` takes only the value's full-grade claim
+  (behind `g = .full →`) and the body's claim: at the full grade the
+  establishment motive concludes the subject's grading, and the value's
+  grading comes from its own inference; at the io grade it comes from
+  the subject's.  The type's sort and the comparison are not consumed.
+- Wired into `red_sound`/`infer_sound`.  `zeta_syntax` and
+  `letE_val_frame` (`RedSoundKit`) are the shared syntactic side.
+
+**Hygiene.**  `Expr` already carried `letE` in every scope operation;
+the work was the two term languages and the readings: `letE` cases in
+the lift/inst/substAV/erase/closedness lemmas, every `denoteMeta.induct`
+proof (level instantiation, φ-congruence, acval agreement, env
+extension and swap, depth shift, `substFvarAt`/`substFvars`, renaming,
+the leaf-free lift, hole and nest walks, `targetAbs`/open-deepen
+readers), and `ReadsAt` (which now reads a `let`'s three parts),
+`StoredShapes`' `nestOcc` reader, `constsBound_of_read`,
+`infer_bvarClosed_of_full` (with a general
+`looseBVarsBounded_of_instantiate1`).  55 files, +817 −121 against
+`port-342`.
+
+**Deviations.**
+1. `AnnotTerm.letE` carries no type (the design said "a `let` node").
+   `denoteMeta` still asks the type to read: `constsBound_of_read`
+   (a read term names only stored constants; used in `BlockPosRun` and
+   on a stored type in `GenFrameTie`) and the fvar-type heredity of
+   `ConstsBound` need the type's constants, and the body is opened at
+   `fvar d ty`.  `denote` (the erasure target) does not ask it, which
+   `denoteMeta_erase` allows.
+2. The installer's telescope peels are not changed (see L-ck below).
+3. One `Infer.letE` rule with grade-guarded premises, not two rules.
+
+**Tests.**  `tests/ConLecheTests/LetDenotes.lean`: the rule, a `let`
+whose type denotes nothing still denotes, uniqueness, ζ in the reading.
+
+**Gates** (the integration-branch subset).  `lake build` and `lake
+test` warning-free; arena tutorial 90/92 and e2e 470/470 (one parallel
+run; no checker change); `tests/challenge.sh` green; no `sorry`, no new
+axiom.  `overview-links.sh` deferred: the `Denotes.lean` anchors moved
+(the rule adds lines above `Model`) and OVERVIEW §1/§4 gained a
+sentence each.
+
+**For L-ck (S4).**
+- `whnfCore`'s `.letE` arm (S0: `inst1M b v`) bridges to `Red.zeta`;
+  `infer`/`inferIO`'s `.letE` arms bridge to `Infer.letE`: full grade =
+  infer `ty`, ensure sort, infer `v` at the full grade, `isDefEq tv ty`,
+  then the body at its value at the same grade; io grade = the body
+  only.  The `Verify/Rules` inversions need the `letE` arm; nothing in
+  the model changes.
+- The installer peels syntactically (`stripPis`, `piBinders`,
+  `instPisWith`, `openPisParamsIdx`: `BlockInstall(F)`, `SumInstall(F)`,
+  `StructParts`, `BlockParts`, `RecCheck`, `Positivity`, `GenRec`,
+  `ClassRead`).  Once stored constructor types keep their `let`s, a
+  `let` on a telescope's spine stops those peels: a decline, not an
+  unsound accept.  Matching official means ζ at the peels — `whnf` at
+  each binder as `whnfTelescope` already does (the model side is then
+  `red_whnf` with `Red.zeta`), or a spine ζ-normalisation before the
+  peels (its model side: `zeta_syntax` + `WellDenotedV_zeta` per step).
+  Lets inside field domains already reach the readers (`nestOcc`,
+  `ReadsAt`, `targetAbs`), which now read all three parts.
+- `StreamConsts`' "up to ζ" disjunct goes with the annotate pass.
+
+## TASK #342 — L7-INDUCTIVES: the stored families' fibre law, `FitsVals_eq_of_cond`, telescope coherence (2026-10-12, agent/342-l7-inductives)
+
+Lane L7, stage S2 of the revised port (`_tmp/342v2-design.md` §2,
+§3.3, §11.4 F1, §11.5 row S2), under the annotated reading.  The
+checker, `Denotes.lean`, `MainTheorem`, `Challenge` and `Axioms.lean`
+are unchanged.
+
+**The law: the real counterpart of F1's `IndFibLaw`.**  F1 states it on
+the stored specification's sort; the real environment has no such
+datum at the model level, so the law reads the sort off the type's
+reading.  A stored former's type reads as `mkPisAV ab (.sort n)` (a
+block member: `FormerData.read`, `n = resSort.eval ψ`).
+- `IndStrictAt acval env I cv` (`Model/Annot/Laws.lean`): where the
+  type reads `mkPisAV ab (.sort n)` with `n ≠ 0`, the former's leaf
+  applied along a spine fitting `ab`'s domains (`SpineFit`) is
+  `Strict`.  `IndStrictOk m`: every stored `indInfo` satisfies it.
+  This is the new `EnvModelM` field **`ind_strict`**.
+- `IndFibLaw m φ` (the law the rules tier reads, `RulesInputs.ind_fib`):
+  at a use's levels `us` and any depth `d`, the instantiated type's
+  reading `mkPisAV ab (.sort n)`, and a fitting spine `vs`,
+  `Fib (decide (n = 0)) (vs.foldl app ⟦I⟧)` — a truth value at `n = 0`,
+  strict above.  Derived, not a field: `EnvModelM.indFibLaw` crosses
+  the instantiation as `constType` does; the zero half is the former's
+  membership in its graded type (`foldl_app_mem_mkPisAV`, moved from
+  `BlockRuleGrading` to `EnvModelM.lean`), the strict half the field.
+- **No guard**, as in F1.  Every former cons proves `IndStrictHead` of
+  its own leaf (a new defaulted premise of `declStep_preserves_of_cons`
+  and its wrappers; at a non-former head it is discharged by the
+  default tactic); the cons step transports the prefix formers (leaf
+  and reading unchanged), the rule-list swap keeps every former.
+- Where it is proved:
+  - the uniform block install, BOTH former passes: the fixpoint leaf
+    (`blockTyG_fold_strictU`: the leaf applied is in `strictU w`, the
+    least tuple's fibre space) and the dummy leaf (`sumTyAV_fold_strictU`:
+    a tagged sum, `sumSet_strictU_of_okB`); `stageBlockFormers` and
+    `blockFormerPass` carry the new per-member input `hAstrictOf`;
+  - `Empty` and `Nat` (`Sort 1`, no binders: `strict_empty`,
+    `strict_omega`); `Quot` (`Sort u`: `quotV_app`, `strict_quotSet`);
+    `False` and `Eq` (`Prop` at every assignment, vacuous:
+    `indStrictHead_cons_prop`).
+  - These are all the former conses (`Fold.declStep_preserves`: the
+    five pinned kinds and `declBlock`); a missed one would not compile,
+    because the default discharge only refutes non-`indInfo` heads.
+
+**The strict-fibre facts.**  `blockLeafBodyG_strictU`,
+`blockTyG_fold_strictU` (`Semantics/Tower/BlockTower`) and
+`sumTyAV_fold_strictU` (`SumTower`).  L5's `IsTy` slots in `FieldsOkB`,
+`UnderTowerOk` and `ParamsOkG` were already discharged by L5, so
+nothing changed there.
+
+**`FitsVals_eq_of_cond`** (`Semantics/Tower/TowerKit`).  `SpineTy ρ Fs`:
+the domains are types under every fitting prefix.
+`spineFit_eq_of_cond`: two spines fitting one `SpineTy` telescope,
+equal wherever neither value is the point, are equal
+(`IsTy.eq_of_ne_pt` position by position); `_getD` is the positional
+form.  Sources of `SpineTy`: `spineTy_of_wellDenoted_mkPisAV` (a graded
+Π-tower's domains), `FieldsOkB.spineTy`, `SpineTy.take`.
+
+**Telescope coherence** (§3 item 5 of the v1 design: the three
+comparison sites of `RecRuleLaw`).
+- (c) the `.plain` parameter comparison: **vacuous**.  Every installed
+  `.plain` rule is `paramsBlind` (block rules, `SumInstall`,
+  `BasisGen`), and the law takes the comparison only at
+  `paramsBlind = false`.
+- (b) the index pin, read by the squash arm (`d.w ψ = 0`,
+  `blockRuleStoredFit_sq`): `blockRule_coherent` (`BlockRuleFit` §2b′)
+  upgrades conditional parameter and index comparisons to equalities —
+  the parameters as fits of the block's parameter telescope
+  (`blockParams_spineTy`, from member 0's graded type), then the
+  indices as fits of the component's index telescope at the equal
+  parameters (`resIdxFit`, `idxOk`).
+- **Obstruction at (b): it needs the parameters compared, and a
+  `paramsBlind` rule does not compare them.**  At `d.w ψ ≠ 0` the major
+  ties the two parameter spines (§2, `mkInj`, the major not the point
+  by the fibre law); at `d.w ψ = 0` nothing does.  The recursor's
+  indices then fit the index telescope at the recursor's parameters,
+  the constructor's at its own: two types, so a conditional index
+  comparison says nothing when one side is the point.
+  Counterexample to `RecRuleLaw` with a conditional `IotaIndexPin`:
+  `inductive T {α : Sort u} : α → Prop | mk (a : α) : T a` (large
+  elimination: the field is the index), the rule
+  `T.rec α M F a (T.mk α' a') ↦ F a'`, at `u = 1`, `α := {pt}` (a type
+  of `Sort 1`: `univ` is cumulative), `a := pt`, `α' := ω`, `a' := ∅`,
+  `M := λ _ _. ω`, `F := λ a. 5` (a graph over `{pt}`).  Every premise
+  holds: both telescope fits; the major `pt ∈ ⟦T {pt} pt⟧ = {pt}`; the
+  levels; the index pin "where neither is the point" (vacuous: `pt`).
+  The left side depends on the major only through its value `pt`, so
+  it is the left side at `T.mk {pt} pt`, where the law holds with the
+  pin unconditional: `F pt = 5`.  The right side is `F ∅ = ∅` (off the
+  graph's domain).  The fragment has no such gap: its rules compare
+  the parameters (F1: "the three comparisons are kept").  Fix for L10:
+  compare the parameters of a `.plain` rule whose family may be `Prop`
+  (case 3 of §11.4: `Quot.lift`, `Acc.rec`, `PUnit.rec`; 14 / 80
+  redexes on init-full / mathlib-prefix), then `blockRule_coherent` applies.  The
+  `tests/ConLecheTests/CondCompare.lean` examples show the set-level
+  half (two types of `Sort 1`, a point and `∅`, conditionally equal).
+- (a) the `.nested` pins: not done here.  The route is the same: the
+  constructor's parameters fit the container constructor's parameter
+  telescope (its `TeleFitPA`), the pins' values fit the container
+  former's parameter domains (the recursor's major domain is a graded
+  application of the container former, whose binders are in the graph
+  regime), the two telescopes are `Sat`-equivalent (the constructor
+  check, as `hparamsC`/`LfpCtorReads` for a block's own constructors),
+  and the pins compare every parameter, so `spineFit_eq_of_cond`
+  applies position by position.
+
+**For L10.**
+- The case-2 licence's input is `RulesInputs.ind_fib`.  The checker
+  tests `capsNeverZero cvT.levelParams usj caps` on the constructor's
+  family; the law speaks of the reading's `.sort n`.  The link:
+  `FormerData.read` gives `.sort (resSort.eval ψ)` at a block member,
+  and S0-F's `blockCapsAt` records `sortZ := zeronessOf p.resSort` for
+  every member (today only for single-constructor members, the default
+  `ifAllZero []` elsewhere, which licenses nothing).  The basis formers'
+  readings: `Empty`/`Nat` `Sort 1`, `False`/`Eq` `Prop`, `Quot` `Sort u`.
+- The domain of a recursor's major is the member's former applied, so
+  `IndFibLaw` at `n ≠ 0` makes it strict and the major not the point.
+- The squash-arm obstruction above is L10's to settle.
+
+**Gates.**  `lake build` and `lake test` warning-free; `Axioms.lean`
+unchanged; arena tutorial and e2e as the base (one run; no checker
+change).  No `sorry`, no new axiom.
+
+## TASK #342 — L9: per-valuation conditional motives, one β rule (2026-10-12, agent/342-l9)
+
+Lane L9, stage S3 (`_tmp/342v2-design.md` §3.2, §11.5 row S3), under the
+annotated reading.  It blocks L10–L13.  `Denotes.lean`, `MainTheorem`,
+`Challenge` and `Axioms.lean` are unchanged; no checker code changed.
+
+**The motives** (`Model/Rules/Motive.lean`) are per valuation, the
+fragment's shape (#344): the subject's grading, its leaves' grading and
+`Sat` are premises at one `ρ`, and so are the conclusions; reading
+existence (`∃ ea'`, `∃ ta`, `∃ resta`) stays outside `ρ` and reads no
+grading.  `RedSem`, `DefEqSem` and `DefEqListSem` are conditional on the
+point: a reduct is graded and equal where the subject is not the point,
+two sides are equal where neither is.  `InferSemFull`/`InferSemIO`,
+`CertsSem`, `EtaProjCertsSem` are per valuation and not conditional.
+
+**Finding: the context discipline had to split.**  `CtxOk` carries the
+leaf types' grading at every satisfying valuation.  Opening a binder
+(β's reduct, the λ/∀ congruences, η, the λ rule) puts the binder's
+domain into the context, and under conditional claims a domain inside a
+reduct is graded only at the valuations where the reduct's subject is
+not the point.  So the motives carry `CtxOkS` (`Model/Currency.lean`:
+`CtxOk` without its fourth conjunct) outside `ρ` and `LeavesGr` (that
+conjunct at `ρ` only) inside.  `CtxOkS.openS` opens a binder with no
+grading; `LeavesGr.open` needs the domain graded at `ρ`.  The claims
+keep `CtxOk` (`CtxOk.toS`, `CtxOk.leavesGr` convert); nothing outside the
+rules tier changed its context discipline.  The fragment's `Sat`
+carries the entries' grading and `IsTy` instead; the real `Sat`
+(Semantics) is grading-free, so the split is the cheaper of the two.
+
+**One β rule** (`Rules/Rel.lean`): `Red.betaGate` and `Red.beta` merge into
+
+```lean
+  | beta {d : Nat} {ty body a ta : Expr} {mb : BinderMeta} :
+      (mb.pw.isNever = false → Infer env .io d a ta) →
+      (mb.pw.isNever = false → DefEq env d ta ty) →
+      Red env d (.app (.lam ty body mb) a) (body.instantiate1 a)
+```
+
+`Red.beta_sound` (the conditional motive) reads neither premise: a redex
+that is not the point has a λ that is not the point ("not pt" source
+(2): `app_pt`); a λ read at kind `0` is the point (`lamR_zero`), so the
+λ is read at a positive kind, where β is the graph's application
+(`betaPosV`).  The premises are the checker's certificate where its gate
+does not fire; only the interim side induction reads them
+(`Red.beta_soundU`, `betaZeroV`).  L13 deletes them with the checker's
+certificate, once the side induction is gone.  The bridge
+(`Verify/Rules/RedBridge.lean`) builds the rule from both checker paths.
+
+**Deviation: an interim unconditional side induction.**  The design
+expected L9 to make the claims conditional and leave substantial ι /
+definitional-equality parts on an unconditional side lemma.  A side
+LEMMA per rule is not enough: the ι rule's premises are `DefEqList`,
+`Red` and `Certs` derivations, and under the conditional motives their
+claims are conditional; L7's counterexample shows that conditional
+parameter/index comparisons cannot give the ι law its unconditional pins
+(a case-3 plain rule compares no parameters).  So the side is a whole
+INDUCTION: `red_soundU`, `defeq_soundU`, … (`Model/Rules/Sound.lean`)
+over the same relations at the unconditional per-valuation motives
+(`RedSemU`, `DefEqSemU`, `DefEqListSemU`).  It is sound only with β
+certified, which is why `Red.beta` keeps its guarded premises for now.
+The conditional induction (`red_sound`, `defeq_sound`, …) proves its
+rules natively where L9 could, and takes the rest as the side
+induction's result weakened (`RedSemU.cond`, `DefEqSemU.cond`):
+
+| Rule | Conditional induction |
+|---|---|
+| `Red.refl/trans/appFn/projArg/beta/zeta/delta/natLit/strLit/proj` | native (`appFn`: source (2); `projArg`: a projection of the point is the point, `projS_pt`/`sfst_pt`/`ssnd_pt`; `beta`: above) |
+| `Infer.*`, `Certs.*`, `EtaProjCerts.*` | native, one lemma shared by both inductions; every conditional sub-claim they read is between types ("not pt" source (1), five sites in `InferSound`, one in `CertsSound`, one in `DefEqSoundKit.prop_side_pt'`) |
+| `DefEqList.*` | native (pointwise conditional) |
+| `Red.natSucc`, `Red.natOp` | interim (side induction) — L12 |
+| `Red.iota`, `rescueK`, `rescueEta`, `rescueAnd` | interim — L10 |
+| every `DefEq` rule | interim (`defeq_sound := (defeq_soundU hin h).cond`) — L11 |
+
+**The claims** (`Model/Claims.lean`): `WhnfCoreClaim`/`WhnfClaim`
+conclude the reduct's grading and the equation where the subject is not
+the point; `DefEqClaim` concludes the equation where neither side is;
+`InferClaim`/`InferClaimIO` unchanged.  Consumers:
+- L8's six sites (`Harvest` ×3, `DivModCert.certValue`, `ReduceOps`,
+  `NatEqs.natEqLaw_of_run`): the `fun _ _ =>` wrapper dropped.
+- L7's two: `GenRecParams.prefixDoms_agree_inst` (both sides domains
+  of graded telescopes: `eq_of_IsTy_of_ne_pt` after the lift
+  rewrite), `StructFrameKit.ClaimsAt.defEqRow` (now takes the two
+  sides' `WellDenotedTy`; its two callers pass the telescope entries'
+  `okΓ` whole).
+- `Tiers.sortSemAt_of_claims`: the inferred type is a type.
+- The positivity readers (`PosDerivMono`, `PosDerivNodes`,
+  `PosDerivAcc`, `NestPosRed`) read whnf steps of the types they walk
+  through `red_sound_global`, an **interim** global form over the side
+  induction: their motives carry the walked types' grading, not their
+  `IsTy`.  The five `InferSemFull` readers in `Model/Inductives` use
+  `InferSemFull.global` (not interim).
+
+**For L10 (ι).**  `Red.iota_soundU` and the three rescues
+(`IotaSound.lean`) are the per-valuation unconditional proofs to turn
+into conditional ones at `RedSem`, against conditional `DefEqListSem`
+(the `∀ p ∈ zip, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2` form, which is
+`spineFit_eq_of_cond`'s), conditional `RedSem` for the major, and
+`CertsSem`.  The cases: family never `Prop` at the instance — the major
+is not the point (`IndFibLaw`, source (3)), so the major's reduction
+is an equation and `blockRule_coherent` applies; motive into `Prop` —
+the redex is the point (vacuous); case 3 — the pre-ruled parameter
+comparison plus F3 (a constructor of a family whose sort is `0` is the
+point, `app_pt`).  Then replace the four interim arms of `red_sound`.
+Nothing in the conditional claims assumes parameters are compared.
+
+**For L11 (definitional equality).**  `DefEq.*_soundU` (`DefEqSound.lean`)
+to the conditional `DefEqSem`, then `defeq_sound` becomes a mutual
+member of the conditional induction.  Congruences need IsTy.eq_of_ne_pt
+on the arguments (an argument that is the point lies in a domain whose
+members are all the point); `proofIrrel`/`proofFast` conclude the point
+on both sides (vacuous); `structEta`/`structUnit` read conditional
+`DefEqList`s of fields.
+
+**For L12.**  `Red.natSucc`/`natOp` at the conditional motive: the
+argument's claim needs the argument in `Nat` ("not pt" source (3)), from
+the head's graph (source (2): the redex is not the point, so the head
+is not, so its domain is `Nat`, `piR_dom_unique` against `NatHeads`'
+`piR 1`); `IsTy natS` plus `IsTy.eq_of_ne_pt` against the literal's
+membership then gives the argument's equation even when it is the
+point.  The positivity readers' `IsTy` (to retire `red_sound_global`).
+
+**For L13.**  When `red_soundU`/`defeq_soundU` are gone, `Red.beta`'s two
+premises are read by nothing: delete them with `whnfAppI`/`betaPeelI`
+and the gate, and the bridge's two β arms become one.
+
+**Gates** (the integration-branch subset, COMMON.md).
+- `lake build` and `lake test`: no warnings; `Axioms.lean` unchanged
+  (20 pins).
+- The arena tutorial at 90/92; e2e 471/471 (one run; no checker
+  change).
+- `tests/challenge.sh` green.
+- No `sorry`, no new axiom.
+- OVERVIEW §4's claim bullets and the soundness paragraph updated;
+  `overview-links.sh` and `whitepaper/links-gate.sh` deferred (the
+  `Claims`, `Motive`, `Rel`, `Sound` anchors moved).
+
+39 files, +2482 −1401 against `port-342` (the rules tier's five
+soundness files and `Sound.lean` carry most of it: the per-valuation
+reshaping, both inductions).
+
+## TASK #342 — L11: the definitional-equality rules at the conditional motive (2026-10-12, agent/342-l11)
+
+Lane L11, stage S3 (`_tmp/342v2-design.md` §11.5 row S3), under the
+annotated reading.  No checker change; `Denotes.lean`, `MainTheorem`,
+`Challenge`, `Axioms.lean` and the rules tier (`Rules/Rel.lean`) are
+unchanged.
+
+**`defeq_sound` is a member of the conditional induction**
+(`Model/Rules/Sound.lean`), next to `red_sound`, `infer_sound`,
+`certs_sound`.  The conditional lemmas are the last section of
+`Model/Rules/DefEqSound.lean`; the `…_soundU` lemmas stay, because the
+side induction stays (below).
+
+| Rule | Conditional proof; "not pt" sources |
+|---|---|
+| `refl`, `sort`, `fvar`, `const`, `natZero` | unconditional reading facts (`…_soundU.cond`) |
+| `symm` | the motive is symmetric |
+| `redL` | the reduct equals the subject where the subject is not the point (source (2)) |
+| `natSucc` | both arguments in `Nat`, a type (source (3)): the literal by `natLit_factsAV`, the other by its slot — the successor is a member of `piR 1` (`NatHeads`), never the point, so the slot is in the graph regime and its domain is `Nat` (`piR_dom_unique`) |
+| `forallE` | the domains and every fibre are types (source (1)) |
+| `app` | the heads of two non-point applications are not the point (source (2), `app_pt`) and equal; both slots are in the graph regime, so one domain (`piR_dom_unique`), a type: `IsTy.eq_of_ne_pt` (source (3)) |
+| `proj` | a projection of the point is the point (`projS_pt`, `sfst_pt`, `ssnd_pt`; source (2)) |
+| `proofFast`, `proofIrrel` | vacuous: one side is the point (`prf_of_isProofFast`, `prop_side_pt'`) |
+| `structUnit` | the inferred types and their reducts are types (source (1)), so the reductions and the certificate's comparison are equations; the unit law equates any two members |
+| `lam`, `eta`, `structEta` | **interim**: `(defeq_soundU hin h).cond` |
+
+**Finding 1: λ-congruence and η are not provable at the conditional
+motive under the annotated reading.**  The lemma
+
+```
+DefEqSem d ty₁ ty₂ → DefEqSem (d+1) body₁ body₂ → m₁.pw = m₂.pw →
+  DefEqSem d (.lam ty₁ body₁ m₁) (.lam ty₂ body₂ m₂)
+```
+
+is false.  Counterexample: `ty₁ = ty₂ = Nat`, both outer binders
+annotated at a positive kind (`v = 1`), `body₂ = y` (the bound
+variable), `body₁ = (λ x : False. x) y` with the inner λ annotated at
+kind `0`.  The inner λ reads as the point, so `body₁` reads as `pt` at
+every value (`app_pt`); it is graded (slot `piR 0 Nat (λ _. True)`,
+which holds `pt`), and the outer λ is graded with fibre `True`.  The
+bodies' premise holds vacuously (one side is always the point), the
+domains agree, the bits agree; both λs are graphs over `Nat`, and
+`graph (λ _. pt) Nat ≠ graph id Nat`.  The binder datum does not help:
+a positive bit allows point-valued bodies (`λ (α : Sort u) (a : α). a`
+at `u = 1`, `α := {pt}`: `Sort 1` holds the truth values).  The same
+pair refutes η's lemma (`b := λ y : Nat. y`).  Nothing at the annotated
+reading types the two bodies alike; the fix is the value reading's
+full-grade body-type check (`DefEqLams`, T1/T2, S4 L-ck + L18), or
+bringing that check forward.  Today the derivation behind the
+counterexample does not exist, because β is certified, which is why
+the side induction is sound.
+
+**Consequence for L13: β's certificate cannot go in S3.**  The side
+induction reads `Red.beta`'s premises, and λ/η stay on it until the
+body-type check exists.  Deleting the certificate (L13) before that
+makes λ-congruence unsound at the conditional motive: with β
+uncertified, `DefEq (λ y:Nat. (λ x:False. x) y) (λ y:Nat. y)` is
+derivable (`redL` with an uncertified β under the binder, then `refl`).
+So L13 moves to S4 after T1/T2, or T1/T2 move into S3 with it.
+
+**Finding 2: structure η needs a telescope-coherence law.**  The rule
+compares the constructor side's parameters with the stuck side's type
+arguments (`hparams`) and its fields with the stuck side's projections
+(`hfields`), both conditionally.  Turning those into equalities
+(`spineFit_eq_of_cond`) needs both spines to fit ONE telescope of
+types; the rules tier has two unrelated ones: the constructor side's
+arguments fit the constructor's type reading (from the side not being
+the point: every prefix application is in the graph regime), the stuck
+side's type arguments fit the family's parameter telescope (`hcerts`),
+and its projections the projections' types (tower law (A)) or nothing.
+No law ties the constructor's telescope to the family's.  Example:
+`structure S {α : Sort u} (a : α) where x : Nat` at `u = 1`,
+`b : S {pt} pt`, `a := S.mk α' a' x'`: the parameter comparison
+`a'` vs `pt` is vacuous; only the constructor's type (`a' : α'`) pins
+`a' = pt`.  The law that would close it: for `x` in the family at a
+fitting parameter spine `ts`, the fabricated spine `ts ++ projs x`
+fits the η constructor's type reading (an `EtaLaw`/`TowerEtaLaw`
+strengthening, proved where `fibreEtaLaw0` and the tower's clause (C)
+are).  With it, `asa` (the constructor side, which fits by not being
+the point) and `ts ++ projs x` fit one graded Π-tower, and
+`spineFit_eq_of_cond` gives `asa = ts ++ projs x`, so `a = b` by the η
+law; `hcerts` is then not read.  Not done here: it is an environment
+law with install-tier proofs.  `structUnit` needs none of this (the
+unit law equates any two members).
+
+**`defeq_sound_global`** (`TargetDefeqTie`) stays: it reads the side
+induction, which stays for λ/η/structure η, and the class match
+compares parameters (which may be proofs); L10 owns that comparison.
+
+**What remains on the side induction after L11:** `Red.iota` and the
+three rescues (L10), `Red.natSucc`/`natOp` (L12), `DefEq.lam`,
+`DefEq.eta` (S4), `DefEq.structEta` (the coherence law); and the
+interim globals `red_sound_global` (L12) and `defeq_sound_global` (L10).
+
+**Gates.**  `lake build`, `lake test`: no warnings.  No `sorry`, no new
+axiom.  Proof-only lane: no verdict change, so no e2e/arena run.
+`overview-links.sh`/`links-gate.sh` deferred (the `Sound.lean` anchors
+moved).
+
+
+## TASK #342 — L12: the literal rows and the positivity readers at the conditional claims (2026-10-12, agent/342-l12)
+
+Lane L12, stage S3 (`_tmp/342v2-design.md` §11.5 row S3), under the
+annotated reading, after L9 (and merged with L11).  No checker change;
+`Denotes.lean`, `MainTheorem`, `Challenge` and `Axioms.lean` unchanged.
+
+**`Red.natSucc`/`Red.natOp` at the conditional motive** (`RedSound.lean`).
+The argument's claim is conditional, so the step needs the argument
+equal to its literal even where the argument is the point:
+- the argument lies in `Nat`: the redex is not the point, so neither is
+  its head ("not pt" source (2), `app_pt`); a head read at kind `0` is
+  the point (`eq_pt_of_mem_piR_zero`), so the head is a graph and fixes
+  its domain (`piR_dom_unique`) — against `NatHeads`' `Nat.succ ∈ piR 1
+  Nat Nat`, or for a binary operation against the new input `NatOpHead`
+  (`arg_mem_of_head`; the second argument through the partial
+  application, `app_mem_piR_pos`);
+- the literal lies in `Nat` too (`rawNatLit_facts`, `NatHeads`), and
+  `Nat` is a type, so `IsTy.eq_of_ne_pt` gives the equation from the
+  argument's conditional claim.
+Both arms of `red_sound` are native now; the `…_soundU` versions stay
+for the side induction (L13 deletes them with it).
+
+**Finding: the rules tier did not know an operation's type.**
+`Red.natOp`'s guard is `natOpStored` (a definition is stored, task #161
+B3); the pinned type `Nat → Nat → cod` is checked at the operation's
+install (`natOpStoredOk` over `natOpDeps`) but was not kept by the
+invariant.  It is now: the `NatOps` and `DivMod` entries
+(`Model/Annot/Laws.lean`) carry `natOpTyPinned env c cv.type`, kept
+across fresh conses (`natOpTyPinned_cons`, `Verify/Denote/Install.lean`)
+and the rule-list swap (`natOpTyPinned_of_find`: the `Bool` entry keeps
+its constant value), established at the installs
+(`natOpTyPinned_of_deps`, `Verify/DivModInv.lean`).  `RulesInputs` gains
+`nat_op_head : NatOpHead`, proved in `Model/NatStep.lean`
+(`natOpHead_of`: the shape lemma, `denoteMeta_pinnedBinTy`, `mem_type`)
+and supplied by `RulesInputs.ofSem`.
+
+**The positivity readers** (`PosDerivMono`, `PosDerivNodes`,
+`PosDerivAcc`, `NestPosRed`) carry the walked types' `GradedTy` instead
+of `Graded` and read their whnf steps through `red_sound_ty`
+(`Sound.lean`: a graded TYPE reduces to a graded type with the same
+reading, "not pt" source (1)); `Model/Inductives/TypeStep.lean` has
+`whnf_ty`, `gradedTy_of_sort`, `WellDenotedV.hoist_piTy'` (a Π's body is
+a graded type: `WellDenoted_pi`'s fibre `IsTy`) and `gradedTy_pi_intro`.
+The entry points are constructor crests: their inferred type passes the
+sort test, so they read as members of a universe (`gradedTy_of_sort`).
+The sort test was already in the derivation (`PosD.ctorsCons`' `hsort`)
+and in the run (`nestCtors`); the inversions that dropped it
+(`nestCtors_typed`, `checkBlockPositivity_inv_gen`,
+`checkBlockPositivity_derivM`, `posD_ctors_typed`, `MemberForests`) now
+keep it.  `red_sound_global` is gone.
+
+**What remains on the interim side induction.**
+- In the rules tier: `Red.iota` and the three rescues (L10), `DefEq.lam`,
+  `DefEq.eta`, `DefEq.structEta` (L11's record).
+- Outside it, one consumer: `defeq_sound_global`, read by the
+  recursor-class match (`TargetDefeqTie.param_read_eq`, via
+  `GenFrameTie.genNodeFrameTie`).  It compares the PARAMETERS of two
+  instances of one nested container (the class's major and a positivity
+  node's key), which may be proofs; a conditional comparison says nothing
+  where one side is the point.  Not done here.  Route: read both
+  instances `C.{us} ds` at one valuation (the rule prefix's, with the
+  holes at the members' values), graded and not the point (both are
+  types); then by induction along the spine the partial applications
+  have equal values, a value that is not the point is a graph
+  (`eq_pt_of_mem_piR_zero`), its domain is fixed by the value
+  (`piR_dom_unique`) and is a type (`WellDenoted_app`'s `v ≠ 0 → IsTy A`),
+  so the i-th parameters are two members of one type and
+  `IsTy.eq_of_ne_pt` upgrades the conditional comparison.  The work is
+  the plumbing of the two instances' gradings to that valuation (the
+  class side from the recursor's major domain, the node side from the
+  walk's `frameKey_of_infer`); it is the same shape as L7's open
+  `.nested`-pin coherence (a), so it belongs with that.
+
+**For L13.**  After L10 lands and the three `DefEq` rules move (S4 for
+`lam`/`eta`), `red_soundU`/`defeq_soundU` are read by
+`defeq_sound_global` alone; that consumer has to move first (above), or
+the side induction cannot go and `Red.beta`'s premises stay.
+
+**Gates.**  `lake build`, `lake test`: no warnings; `Axioms.lean`
+unchanged.  Arena tutorial and e2e as the base (one run, `--jobs=8`; no
+checker change).  `tests/challenge.sh` green.  No `sorry`, no new axiom.
+OVERVIEW's soundness paragraph says how the literal accelerations read
+the point; `overview-links.sh`/`links-gate.sh` deferred.  The shake
+allowlist gained three "compensated" entries (import edges moved by the
+new `TypeStep` imports).
+
+29 files under `ConLeche/`, +755 −273 against `port-342`.
+
+## TASK #342 — L10: the ι licence, in the checker and at the conditional claims (2026-10-12, agent/342-l10)
+
+Lane L10, stage S3 (`_tmp/342v2-design.md` §11.4, §11.5 row S3; ruling
+R-B: the licence lands in S3), under the annotated reading.
+`Denotes.lean`, `MainTheorem`, `Challenge` and `Axioms.lean` are
+unchanged (`tests/challenge.sh` green, 20 pins).
+
+**The checker** (`iotaRec`/`iotaRecI`; `iotaCtorLicensed`, `iotaCase3`,
+`iotaCompares` in `Kernel/CoreDefs.lean`), #349's licence:
+- the recursor's spine: certified as before (`iotaCerts`, licensed at a
+  `.never` binder under the annotated reading), now over the redex's
+  OWN spine (the unreduced major), not over the prepared one;
+- K rules and case 2 (`iotaCtorLicensed`: the constructor's family is
+  never `Prop` at the constructor's levels, read off `caps.sortZ`): no
+  constructor certificate, no index comparison; K keeps `tfab ≡ tmaj`;
+- case 3 (`iotaCase3`): the constructor telescope at the FULL grade
+  (`iotaCertsFull`, new rule `CertsF`), the index comparison, and the
+  parameters of a `.plain` rule compared too (`iotaCompares`; L7's
+  counterexample);
+- `sortZ` recorded for every block member (`blockCapsAt`) and the
+  pinned `Nat`/`Empty` (never) and `Quot` (`zeronessOf u`), S0's fix.
+**Deferred to the coherence-law lane** (coordinator, 2026-10-12): the
+conversion struct-η and unit-like certificates and the struct-η major
+rescue's certificates are unchanged in the checker and the rules;
+`Red.rescueEta` stays on the side induction (`rescueEta_soundU`).
+Bridge and simulation repaired (`iotaCertsFull_bridge`,
+`iotaCertsFullC_sim`, `iotaRec_inv`, PairM/Fueled/Deep/KnotCongr).
+
+**The model.**
+- `Red.iota_sound`, `Red.rescueK_sound`, `Red.rescueAnd_sound`
+  (`Model/Rules/IotaSound.lean`): CONDITIONAL premises, UNCONDITIONAL
+  conclusion (`RedSemU`), so one lemma serves both inductions. The
+  four interim arms of `red_sound` are gone but `rescueEta`'s.
+  "Not pt" sources: the major lies in the major's domain by the
+  recursor's licensed fit; where it is not the point its reduction
+  claim is an equation (2); a graded application that is not the point
+  fits its ∀-telescope (`teleFitPA_of_graded_ne_pt`, `app_pt` +
+  `slotTransfer`); the K/`And` fabrication and the major lie in one
+  type (1), so conditional proof irrelevance is an equation
+  (`IsTy.eq_of_ne_pt`).
+- `RecRuleLaw` (`Model/Annot/Laws.lean`): its index pin is owed only
+  where the fired constructor application is the point; a third
+  conjunct `RecRuleExtra` states what the licence consumes: K (the law
+  at the recursor's own parameters for ANY major in the domain,
+  F2's inversion), the constructor's arity, (S) case 2's major domain
+  holds no point, (P) where it holds the point every fitting
+  constructor application (full length, graded) is the point, (U) the
+  conditional comparisons are equations (`blockRule_coherent`'s route
+  for the index pin; the `.nested` pins at every valuation via
+  `genOutCtorFit` and `spineFit_eq_of_cond`, L7's route).
+- Producers: the five basis rows (Nat.rec ×2, Quot.ind, Quot.lift,
+  Eq.rec — K), the cons transports (`recRuleExtra_cons_prefix`,
+  `…_consBlockRecsR_prefix`), and the generated stage
+  (`GenRecExtra.lean`, new: member classes via `blockCapsAt`, the lfp
+  inversion for K; outside classes via a new `lfp_ok` conjunct
+  `LfpCaps`: a recorded member's caps are sound — `w = 0 → sortZ`,
+  `ruleK → one constructor` — and its constructors end in the member
+  at the parameter variables; produced at `DeclBlockStep` and the
+  basis lfp reads). No clause was false for any family.
+- The class match (`TargetDefeqTie.param_read_eq`) is read through the
+  conditional `defeq_sound` and completed along the class former's
+  parameter telescope (`spineFit_eq_of_cond_getD`, "not pt" source (1)):
+  **`defeq_sound_global` is deleted**; with L12, no interim global
+  remains outside the rules tier.
+
+**Still on the side induction after L10:** `Red.rescueEta` and
+`DefEq.structEta` (coherence-law lane), `DefEq.lam`, `DefEq.eta` (S4).
+So the side induction, and with it β's certificate premises, stays:
+L13 still cannot delete β's certificate in S3 (L11's finding).
+
+**Verdicts and cost** (`instructions:u`, `--verified --jobs=1`, one
+run each, RSS-guarded, against `port-342` at 5163e6cd1): init-full
+482.53 G → 480.31 G (−0.46 %), mathlib-prefix 679.02 G → 676.31 G
+(−0.40 %); 57 977 / 131 902 declarations accepted, exit 0, as before.
+Arena 90/92, e2e 471/471 as before.
+
+**For L13.** β's premises are read by `red_soundU`, which stays for
+λ/η/structure η and the η rescue; nothing in the ι path reads them
+any more.
+
+## TASK #342 — L14B: the annotation-free rules tier (2026-10-12, agent/342-l14b)
+
+Lane L14b, stage S4 (`_tmp/342v2-design.md` §11.5 row S4), on
+`port-342-s4`.  `Rules/Rel.lean` is the fragment's rules tier
+(`frag-342`: `Fragment/Rules.lean`, `IOGrade.lean`) at the real
+checker's shape (S0-F, `agent/349-s0`).  No checker change;
+`Denotes.lean`, `MainTheorem`, `Challenge` unchanged
+(`tests/challenge.sh` green).
+
+**The rules.**  No rule reads a binder annotation; `BinderMeta` is
+carried by the λ/∀ nodes and never read.
+- `Red.beta`: no premise (the certificate premises are gone; L13's
+  checker deletion is L-ck's).
+- `DefEq.forallE`: domains and bodies, no datum agreement.
+- `DefEq.lam` is replaced by `DefEq.lams : DefEqLams → DefEq`, a new
+  mutual relation `DefEqLams` (`refl`, `inner`, `outer`): domains at every
+  level, the opened bodies' FULL-grade types compared only at the
+  innermost level (S0-F2's `!(b₁.isLam && b₂.isLam)`).  Its motive
+  `DefEqLamsSem` (`Motive.lean`) is unconditional (`.cond` weakens it).
+- `DefEq.eta`: `b`'s type io-inferred (as `etaCert` does), plus the λ's
+  opened body's FULL-grade type `DefEq` the ∀'s opened body.
+- `Infer.forallE` loses `zeronessOf v = mb.pw`; `Infer.lam` loses the
+  chain/codomain premises (Lean's rule: domain sort at the full grade,
+  body at the grade); `Infer.app` guards the argument check with
+  `g = .full →`; `Infer.appSkip` is gone.  So `Infer env .io` is Lean's
+  `infer_only` (the fragment's `InferIO`); `letE` was already right (R-C).
+- `Certs.skip` (a `.never` slot) is replaced by `Certs.licensed : Certs
+  env d true T args`: a licensed walk certifies nothing (S0-F's
+  `iotaCerts` returns `true` at `lic`).  `Red.proj`/`Red.iota` keep their
+  licensed `Certs` premise, now trivial.
+- ι, `CertsF`, the rescues, structure η and unit-like: unchanged (L10;
+  L11b had not landed, so struct-η is as L10 left it).
+- `proofIrrel` (io type and sort) and `proofFast` unchanged; the latter's
+  `isProofFast` loses its `pw` read with L-ck's `PropRead` rewrite.
+
+**Deviation: one grade-indexed `Infer`, not a separate `InferIO`
+inductive.**  The io grade is `Infer env .io` with the `g = .full →`
+guards, which is the same relation as the fragment's `InferIO`; keeping
+the index keeps the bridge's `ioView` plumbing and every `Infer env .io`
+consumer unchanged.  The io motive stays `InferSemIO` (membership) until
+L18 replaces it by `IORel`.
+
+**The side induction is gone** (`red_soundU`, `defeq_soundU`, …), with
+β's premises, its last reason.  `Sound.lean` is one conditional
+induction over eight relations, sorry-free; the per-rule `…_soundU`
+lemmas only it used are deleted (the leaf ones the conditional lemmas
+weaken stay, as do `DefEq.structEta_soundU`/`Red.rescueEta_soundU`, the
+material L11b turns conditional).  `Infer.lam_shape` (Derived) is gone.
+
+**The S4 ledger** (`_tmp/port/s4-sorry-ledger.txt`), by owner:
+- **L14a** (the annotated reading's binder-datum facts, which the value
+  reading does not need): `Infer.forallE_sound` (`hz`), `Infer.lam_sound`
+  (the former chain premises, one `obtain … := sorry`),
+  `DefEq.forallE_sound` (`hpw`).  Each is a `have … := sorry` in front of
+  the old proof; L14a's reading change deletes the `have`.
+- **L18**: `DefEqLams.inner_sound`, `DefEqLams.outer_sound`,
+  `DefEq.eta_sound` (the fragment's proofs at the value reading),
+  `Infer.app_soundIO` (the io application; its body is the former
+  `appSkip_sound` with `hnev := sorry`; the claim becomes `IORel`),
+  `Certs.licensed_sound` (needs the fragment's conditional fit,
+  `teleFit_of_ne_pt`).
+- **L11b**: `DefEq.structEta_sound`, `Red.rescueEta_sound` (conditional
+  statements, sorry bodies).
+- **L-ck**: the bridge's `QuickExit.lam` arm (`DefEqBridge.lean`: needs
+  T1 and the outer descent as `DefEqLams`) and `etaCert_bridge`
+  (`Certs.lean`: T2).  Every other bridge arm is repaired (β, ∀, λ and
+  app inference at both grades, the licensed walk).
+- `tests/ConLecheTests/Axioms.lean`: 13 pins carry `sorryAx`; revert them
+  with the last sorry.
+
+**For L14a.**  The model files I touched are `Model/Rules/*` only
+(signatures above, new lemmas at the ends of `DefEqSound`/`IotaSound`,
+`DefEqLamsSem` in `Motive`).  `InferSemIO`'s docstring names `IORel` as
+L18's.
+
+**For L-ck.**  Bridge targets: `DefEqLams.inner` takes the full-grade
+inferences of both bodies opened at the RIGHT domain (`.fvar d ty₂`);
+`outer` takes `DefEqLams` of the opened bodies (the checker's recursive
+`defeq` on two λs must be inverted to the λ/λ arm of `quickDefEq`);
+`eta` takes `Infer .full` of the λ's body opened at `ty₁` and `DefEq` with
+`B.instantiate1 (.fvar d ty₁)`.
+
+**Gates.**  `lake build`, `lake test`: no warnings but the ledgered
+`sorry`s.  `tests/challenge.sh` green.  No checker change, so no e2e/arena
+run.  OVERVIEW §4's relations paragraph updated (eight relations, β's
+slot, λ/η); `overview-links.sh` deferred.  17 files, +488 −1102 against
+`port-342-s4`.
+
+## TASK #342 — L11B: the η constructor's telescope coherence; structure η and the η rescue at the conditional claims (2026-10-12, agent/342-l11b)
+
+Lane L11b, stage S3 (L11's finding 2; the structure-η certificates L10
+held back).  `Denotes.lean`, `MainTheorem`, `Challenge` and
+`Axioms.lean` are unchanged.
+
+**The law: `EtaCoherent`** (`Model/Annot/Laws.lean`).  At the use's
+levels, for `x` a member of the family `T` at parameters `ts` fitting
+the former's type reading, the spine `ts ++ projs x` fits the η
+constructor's own type reading (`TeleFit`).  Keyed on the constructor's
+lookup, so a stage that has not stored the constructor owes nothing.
+It is a new conjunct of both η laws, not a new field:
+- `EtaLaw` (`CapsOk`, projection-function or fieldless families): proved
+  in `fibreEtaLaw0` from the block's parameter coherence `hfit`
+  (`SpineFit pps → SpineFit ds`), with the constructor's reading
+  threaded to it: `hTlawsOf` (`ctorsLoopEta`, `blockCtorsLoop`,
+  `stageBlockCtorsAt`) and `BlockCtorsStage.capsU` gain the stored
+  constructor's identity and its `BlockCtorDataI.read`;
+- `TowerEtaLaw` (clause (D), under `capsT.eta`): `fixEntryEtaFitCore`
+  (`FixKit`).  Graph regime: the fibre's tuple fits the fields
+  (`fixFibre_elim`), its projections below the tag are the fields.
+  Squash regime (`w = 0`): the member is the point; at an η family the
+  fields' sorts are bounded by the result sort (O5, `hleq`), so every
+  field is a proof, the fitting fields are all the point
+  (`spineFit_pts_of_univZero`), which are the point's projections.
+  The law holds at every member, the point included.
+- Transports: `EtaCoherent.transport` (lookup backwards, reading
+  forwards, leaf, spine), used at `capsOk_cons_fresh`,
+  `capsOk_cons_basis`, `capsOk_cons_native`, the swap and
+  `towerEntryLaw_cons_prefix`.
+
+**The rules** (`Model/Rules/EtaSoundKit.lean`, new).  `formerFit`: a
+graded instance of a stored family that is not the point has its
+parameter spine fitting the former's telescope (graph regime,
+`teleFitPA_of_graded_ne_pt`), so the type-application certificate is
+not needed: the instance is a reduced inferred type, "not pt" source
+(1).  `etaSide`: the stuck side's projections read and are graded, the
+η law, and the coherence fit, for both slot kinds.
+- `DefEq.structEta_sound` (conditional, native in `defeq_sound`): the
+  constructor side is graded and not the point, so its spine fits the
+  constructor's telescope (source (2)); the stuck side's
+  `tsa ++ ps` fits the same telescope (coherence); the two conditional
+  comparisons are then equations (`teleFit_eq_of_cond`, the `TeleFit`
+  form of `spineFit_eq_of_cond`).  `structEta_soundU` (side induction)
+  uses `etaSide` with unconditional comparisons.
+- `Red.rescueEta_sound`: conditional premises, unconditional conclusion
+  (one lemma for both inductions, as ι): the major is the fabrication
+  by the η law; the fabrication is graded by the coherence fit
+  (`teleFitPA_of_teleFit`, `mkAppN_of_fitA`).  It reads neither the
+  fabricated spine's certificate nor `capsNeverZero` nor a `DefEq`.
+- `structUnit_sound`/`_soundU`: `formerFit` replaces the certificate.
+
+**The rules tier** (`Rules/Rel.lean`): `DefEq.structEta` and
+`DefEq.structUnit` lose their `Certs` premise; `Red.rescueEta` loses
+its `Certs` and its `DefEq fab major` premises and gains the two name
+guards (`reservedBasisNames.contains T/caps.etaCtor = false`), which
+`CapsOk` keys on; the bridge reads them off the rescue's
+`structEtaCertWith` run.
+
+**The checker** (`Kernel/Core.lean`, `Cached/CoreC.lean`):
+`structEtaCertWith` no longer certifies the type application,
+`structUnitCert` no longer certifies it, the η rescue no longer
+certifies the fabricated spine.  Kept, and why:
+- the η rescue's `structEtaCertWith` run: its name guards (`CapsOk`'s
+  premise) and the per-field certificates below; its comparisons on
+  `(fab, major)` are reflexive.  Its `capsNeverZero` guard is official's
+  and the verdict's, not the model's.
+- `structEtaProjCerts` (`EtaProjCerts`, projection-function families):
+  the projection-function applications are graded only through it.  No
+  installed family has such slots with a field (projection-function
+  names are refused at the front door, `Name.isProjFnShape`), so it
+  never runs; removing the path is separate work.
+- the TT-lane constructor certificate (`mode.ttChecks`, off in both
+  shipped modes).
+Inversions, bridges, `Deep`'s shift lemmas and the cached simulation
+(`DiscC2`, `DiscC3`, `KnotCongr`) repaired.
+
+**Moves.** `teleFit_mkPisAV_of_spineFit` to `StructFrameKit` (beside its
+converse); `teleFit_inst_of`/`teleFit_inst0_of` (were
+`GenClsData`'s primed copies) to `RedSoundKit`, beside
+`teleFit_of_inst`; `leavesGr_mkAppN`/`ctxOkS_mkAppN` to `EtaSoundKit`;
+`etaProjCerts_sound` into the conditional mutual block.
+
+**What remains interim.**  In the conditional induction only
+`DefEq.lam` and `DefEq.eta` take `(defeq_soundU hin h).cond` (S4).  The
+side induction itself is unchanged in scope (it is a full induction
+over the relations, now with certificate-free η arms).
+
+**Verdicts and cost.**  Arena 90/92, e2e 471/471 (one run, `--jobs=8`).
+`instructions:u`, `--verified --jobs=1`, one run each, RSS-guarded,
+against `port-342` at 8e13562d9: init-full 480.33 G → 480.22 G
+(−0.02 %), mathlib-prefix 676.28 G → 676.12 G (−0.02 %); 57 977 /
+131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free; no `sorry`, no new
+axiom.  `overview-links.sh`/`links-gate.sh` deferred (OVERVIEW's
+soundness paragraph rewritten; `Sound.lean`'s docstring moved).
+
+## TASK #342 — L14A: the value-read model (2026-10-12, agent/342-l14a)
+
+Lane L14a, stage S4 (`_tmp/342v2-design.md` §3.1–3.2, §11.5 row S4,
+§11.6), on `port-342-s4`.  The model stops reading the checker's binder
+annotations; the checker still writes them until L-ck.  No checker,
+`Verify/*` or rules-tier change; `MainTheorem`, `Challenge` and the
+`#print axioms` pins unchanged (`tests/challenge.sh` green).
+
+**The value reading** (`SetModel/Ops.lean`, the fragment's `Lib.lean`).
+`piV A B := piR (propN A B) A B`, `lamV A F := lamR (ptN A F) A F`:
+the numeral is `0` exactly when every fibre over `A` is a truth value,
+resp. every body value is the point.  Lemmas: `app_lamV` (β, premise
+only `a ∈ A`), `lamV_mem` (fibres `IsTy`), `app_mem_piV` (no premise),
+`lamV_eta`, `mem_piSet_of_mem_piV`, `piV_mem_univ` (the imax rule),
+`piV_of_empty`/`lamV_of_empty`, `eq_pt_of_mem_piV`, `lamV_eq_pt`,
+`lamV_eq_graph`, `lamV_ne_pt_of`, and the regime bridges `piV_eq_zero`,
+`piV_eq_pos`, `piV_univ_eq_pos`, `lamV_eq_pos`, `lamV_eq_zero`.
+`piR`/`lamR` stay as the numeral forms the spelled carriers and `bval`
+still use (L15/L16 move them).  (The design's `piV_mem_typeU` is
+`piV_mem_univ`: `univ` is `tyU` since L4′.)
+
+**The statement** (ruling Q1).  `Denotes.lean`'s `λ`/`∀` rules conclude
+`lamV A F` / `piV A B` with no `hP` premise; `regime` is gone; the
+docstring says the regime is read off the values.  `Denotes_functional`
+by `lamV_congr`/`piV_congr`.
+
+**The reading.**  `AnnotTerm.lam A b`, `AnnotTerm.pi A B` (no
+numerals); `interp` reads `lamV`/`piV`.  `denoteMeta` reads no
+`BinderMeta`; `pwBit` is deleted, so the level crossing
+(`denotePInstLevels`) and `φ`-congruence lose their `pw` steps.
+`WellDenoted` is the fragment's typed form: the λ clause has no
+zero component (`∃ B, members ∧ fibres IsTy`).  `WellDenoted_beta`
+(β at a redex that is not the point, from the subject's grading alone)
+replaces `WellDenoted_beta_pos/_zero`; `appSlot_of_pi`/
+`WellDenoted_app_of` take the domain's `IsTy`.  `WellDenotedV` is an
+`abbrev` for `WellDenoted` (the rename is S5's).  The bridge
+`Denotes_of_denoteMeta` has no grading premise: both sides read the
+regime off the values.
+
+**Deleted** (`git rm`): `Model/Annot/Valid.lean`, `ValidSpine.lean`,
+`Model/AxiomBits.lean`, `Model/BitAgree.lean`, `Model/IOLicense.lean`,
+`Model/Inductives/BlockHoleValid.lean`; and every validity lemma,
+field and premise that fed them: `AcvalValid`, `RulesInputs.leaf_valid`,
+`EnvModelM.acval_validV`, `declStep_preserves_of_cons`' `hAvalid` and
+its callers', `FieldsValid`, `SumFieldsValid`, `UnderTowerValid`,
+`BlockRecLeafOk.valid`, `GenIhPiecesValid`, the `*_validV` families in
+`StructRecKit`/`SumKit`/`BlockLeafOk`/`BlockRecData`/`EqTower`/
+`GenRecRules`/`GenClsFrame`, `bitAgree_*` (now `rfl` reading equations
+to `BConst.typeAV`), `bit_forced_*`.  Numeral data that only fed the
+old reading went too: `FormerData.bits`, `CtorDataI.bits`, the
+`d.2.1 ≠ 0` conjuncts of `ParamsOkS`/`ParamsOkG`/`LfpReads`/
+`canonHoleTy_read`/`grp_typeT`, `PiBitsOpen`, `stripPisAV_bits`,
+`stripPisAV_denoteMeta_pw`, `blockRecElimLevel_run`'s `hbits`, the
+`hbits` premises of `holeVal_mem`, `mkLamsC_*`, `mkLamsAV_fold`,
+`sumMkAV_*`, `famCandG_*`, `lamTowerA`'s numeral.  Three lemmas whose
+premise was "nonzero numerals" now take "the application is not the
+point" instead (`spineFit_of_wellDenoted_mkAppN_pi`,
+`spineFit_of_wellDenotedV_mkAppN_lam`, `spineFit_of_wellDenoted_lams`):
+a non-point head is a graph (`mem_piSet_of_mem_piV`).
+
+**The binder data's numerals.**  `mkPisAV`/`mkLamsAV` keep their
+`(Nat × Nat × AnnotTerm)` / `(Nat × AnnotTerm)` data (a type change
+across 490 sites is S5's), but nothing reads the numerals: `stripPisAV`
+records `(0, 0, A)`, `readLamBs` `(0, a)`, the generated ih data are at
+bit `0`.  `ppsNorm` (`StructFrameKit`: the data with numerals zeroed,
+`mkPisAV_ppsNorm`, `ppsNorm_map_dom`, `stripPisAV_norm`) carries the
+injectivity: `stripPisAV_mkPisAV(_take)` return `ppsNorm`,
+`mkPisAV_inj` concludes `ppsNorm`-equality, `mkPisAV_sort_inj`/
+`mkPisAV_sort_eq`/`mkLamsAV_length_inj` the domains' equality.
+`genBit` is the elimination level's zero test (a level fact; the
+generated stage splits on it), no longer a `pwBit`.
+
+**The three L14a ledger lines are discharged.**  `Infer.forallE_sound`
+(`hz`), `Infer.lam_sound` (the chain premises) and
+`DefEq.forallE_sound` (`hpw`) need no binder datum: `sound_pi` is
+`piV_mem_univ`, `sound_lam` is `lamV_mem` at the body's inferred types,
+Π-congruence is `piV_congr`.  `Infer.app_soundIO` (L18) is narrowed: a
+head that is not the point is a graph, which fixes the slot's domain
+(`slotTransfer`); only the point head stays sorried.
+
+**What breaks, by owner** (the S4 ledger lines this lane adds; each
+`sorry` is the smallest sub-goal, mostly the empty branch of a
+`by_cases` on inhabitation, with a `-- L1x:` comment):
+- **L15 (`bval` with `lamV`)**: `Semantics/BasisOk.lean` (`bval_mem_*`
+  of the λ-built constants against their value-read types),
+  `Model/BasisTypeOk.lean` (`WellDenoted_bconst_type` at `psigmaMk`/
+  `quot*`), `Model/AxiomMem.lean` (`choice_mem`), `Model/BasisBlocks.lean`
+  (`natRecV` reads its step through `natStepSpace`; the value-read
+  `natStepSpaceV` differs where `M n` is empty), `Model/BasisQuot.lean`
+  (`relSpace` vs `relSpaceV` over an empty domain, `quotLiftV`).
+- **L16 (spelled carriers' empty domains)**: `Semantics/BasisOk.lean`
+  (`ndTowerAV_*`, `tupleFamsAV_facts`), `Semantics/Tower/TowerKit.lean`,
+  `FixTower.lean` (`famTyAV_facts`: `{pt}` vs `lfpFamSpace`'s `{∅}`),
+  `BlockTower.lean` (`blockArmG_facts`), `BlockRecTower.lean`
+  (`andAV`/`sigChainAV` at a false conjunct / empty link domain).
+- **L17 (inductive environment side)**: `Semantics/Inductives/HoleMono.lean`,
+  `HoleAcc.lean` (a value-read Π's regime depends on its fibres, so
+  `MonoOn.pi`, `AccOn.pi(0)`, `TypeReg.pi` at a positive sort need the
+  frames' fibre facts), `Model/Annot/BlockLfpTup.lean`,
+  `LfpHoleOp.lean` (`holeFam` is a `lamR` graph tower, the spelled hole
+  tower reads `lamV`: L6's note), `Model/Rules/DefEqSoundKit.lean`
+  (`spine_mem_univ_of_neverChain`'s point head), and the non-point /
+  type facts the value reading needs where the old numerals were read:
+  `FixKit` (2), `ContLeaf` (2), `BlockDeclRun` (`blockRecTyZ_run`),
+  `GenRecPre` (`genHstepG`'s ih codomain a type), `GenRecRules`
+  (`genRuleRaZ`), `GenClsCall` (`genIhMot`), `GenRecExtra`
+  (`genMemCtor_pt`'s binder case, `genOut_typed`).
+- **L18**: `Model/Rules/DefEqSoundKit.lean` (`prf_of_isProofFast`'s λ and
+  ∀-head cases read the binder's `isProp` datum; with L-ck's `PropRead`
+  rewrite), and `InferSound`'s narrowed io application (existing line).
+
+**Deviations from the design.**
+- `Model/Annot/Bit*.lean` are not deleted: they hold `denoteMeta` and
+  its substitution/level/extension metatheory, which the value reading
+  keeps (only `pwBit` went).  The files' names are S5's.
+- `Model/ErasePwInv.lean` stays: the pins compare through `erasePw`
+  (checker code, L-ck's); its consumers moved from `AxiomBits` to
+  `AxiomMem`/`ReduceOps`.
+- `WellDenotedV` is an `abbrev`, not renamed (S5).
+
+**For L15/L16/L17.**  The ledger lines name the lemmas; the pattern is
+always the same: the inhabited branch is proved by `lamV_eq_pos`/
+`piV_eq_pos` (a non-point body / non-truth-value fibre at an inhabitant),
+the empty branch is the point / `{pt}`, against a graph-only space
+(`psigmaFibreSpace`, `famSpace`, `lfpFamSpace`, `relSpace`,
+`natStepSpace`) or a `lamR`-built constant.  Restating those spaces and
+constants with `piV`/`lamV` removes the sorries.
+
+**Gates.**  `lake build` and `lake test`: no warnings but `declaration
+uses sorry`.  `tests/challenge.sh` green.  No checker change, so no
+e2e/arena run.  The ledger grep: every `sorry` is in a listed file.
+OVERVIEW §1 (`Denotes`' binders), §4 (terms, interpretation, the
+statement's reading) and the glossary updated; `overview-links.sh`,
+`shake.sh` (the allowlist still names the deleted modules) and
+`whitepaper/links-gate.sh` deferred.  163 files, +4754 −9277 against
+`port-342-s4`.
+
+## TASK #342 — L16: the spelled carriers over empty domains (2026-10-12, agent/342-l16)
+
+Lane L16, stage S4 (`_tmp/342v2-design.md` §3.3), on `port-342-s4`.
+No checker, `Denotes`, `MainTheorem` or `Challenge` change
+(`tests/challenge.sh` green).
+
+**The problem.**  Under the value reading a spelled `λ` over an empty
+domain is the point and `I → Sort w` over an empty `I` reads `{pt}`,
+while the model's family spaces (`famSpace`, `lfpFamSpace`,
+`psigmaFibreSpace`) were graph spaces (`{∅}` there).  So the spelled
+fibre λ of a pair tower was outside `psigmaV`'s domain, `famTyAV`'s
+reading was not `lfpFamSpace`, and a block's least fixed tuple (empty
+graphs at an empty index set) was not in the spelled family tuple's
+type (L6's `famSpace ⊆ lfpFamSpace` gap).
+
+**The fix: one family space, the value reading's.**  `famSpaceIn C I`
+(`SetTheory/Derive/LfpFam`) is now the graphs over an inhabited `I` and
+`{pt}` over an empty one, and a family is built by `famOf G I` (the
+graph, or the point); `app_famOf`, `famOf_mem_famSpaceIn`,
+`famOf_app_eq` (η), `app_off_famSpaceIn`.  Every least-fixed-point
+construction builds with `famOf`: `lfpFamIn`, `lfpTuple`, `sepTuple`,
+the accessibility stages (`SetModel/Access`), the recursor graph's
+fibres (`SetModel/GraphRec`), the basis operators (`Model/BasisLfp`).
+Nothing read a family off its index set, so the laws carry over with
+`app_graph ↦ app_famOf`.  In `SetModel/Value`: `psigmaFibreSpace` and
+`lfpFamSpace` are `piV` (the readings of `A → Sort v`, `I → Sort w`);
+`lfpFamSpace_eq` (it IS `famSpaceIn (univ w)`), `lfpFamSpace_eq_pos`,
+`famSpace_subset_lfpFamSpace` (now at every index set),
+`lamV_eq_famOf` (a `lamV` of non-points is `famOf`),
+`lamR_mem_psigmaFibreSpace` (at an inhabited domain),
+`lamV_mem_psigmaFibreSpace`.
+
+**Why not the two options L6 named.**  Weakening `lfpTuple_congr` to
+equality of applications on the index set handles the operator's
+OUTPUT only.  The operator's INPUT is the problem too: `tupleOpV`
+applies the spelled operator (a function on the value-read family
+tuples) to the model's tuple, and with graph families an empty-index
+member's `∅` is outside that domain (`app` there is `∅`, not the
+operator's value), so `tupleOpV` would have had to re-read its argument
+anyway; and the constants' results (`lfpTupleV`, `lfpFamV`) would have
+to be re-read to be members of their value-read types.  Re-graphing is
+those conversions on both sides, plus a changed frame value in
+`blockPhiG` for every hole-chain consumer.  With the family space
+value-read there is nothing to convert: the model's families ARE
+members of the spelled types, the spelled block operator's components
+are exactly `blockPhiG`'s (`tupleOpV_blockFunVG` is `rfl` after β, no
+premise), and `lfpTuple_congr` keeps its plain equality.
+
+**Discharged** (ledger lines removed): `ndTowerAV_interp`,
+`ndTowerAV_wellDenoted`, `tupleFamsAV_facts` (`Semantics/BasisOk`);
+`towerBodyAVPos_interp`/`_wellDenoted` (`Tower/TowerKit`);
+`famTyAV_facts` (`FixTower`, now `rfl` plus `piV_mem_univ`);
+`blockArmG_facts` (`BlockTower`; `blockFunVG`'s components and
+`blockPhiG` are `famOf`); `interp_andAV`/`wd_andAV`,
+`interp_sigChainAV`/`wd_sigChainAV` (`BlockRecTower`).  The spelled
+pair towers read through `app_lamV`; no inhabitation split remains.
+`strict_famSpaceIn`/`strict_famSpace`/`strict_lfpFamSpace` (L6, unused)
+are deleted: over an empty index set the space is `{pt}`.  Two
+premises that only fed the off-index-set case went
+(`inTup_occOf`'s `hX`, `frame_item_fwd`'s `hY`): the spine's fit puts
+the index tuple in the index set (`tupW_mem`).
+
+**For L15.**  `psigmaV`'s fibre domain and `lfpFamSpace` are already
+the value-read spaces; `lfpFamSet`/`lfpTuple` values are members of
+`lfpFamSpace` at every index set, and `tupleOpV` applies an operator to
+tuples of `famSpace`, inside the value-read family-tuple space — so
+`lfpFamV`/`lfpTupleV` need no re-reading of their arguments or results.
+**For L17.**  `InTupleSpaceU`'s `famSpaceIn (univ w) I` is now the hole
+type's reading (`lfpFamSpace_eq`).
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration
+uses sorry` in ledger files.  `tests/challenge.sh` green.  No checker
+change: no e2e/arena run.
+
+## TASK #342 — L-CK: the checker switch (2026-10-12, agent/342-l-ck)
+
+Lane L-ck, stage S4 (`_tmp/342v2-design.md` §11.2, §11.6), on
+`port-342-s4`.  S0-F's checker (`agent/349-s0`, 1bd0d303c) ported onto
+the integration branch, against L14b's rules tier and L10's ι licence.
+
+**The checker.**
+- `BinderMeta` is an empty structure: no `pw` on `Expr`, in the hash,
+  in `substPW`, `paramsDefined`, PinGen/BasisGen or the exports'
+  parse (`ExportC` reads the optional field and drops it).
+- The annotate pass is deleted (`annotateBody`/`annotateBodyI` and
+  their families, `annotBinderMeta`, the `annotC` memo).  Its guards
+  live in inference (the literal guards, the `.proj` guards), and the
+  install's error path re-asks the string-literal guard
+  (`unresolvedConstsErrorL`).  Declarations are stored as declared:
+  `checkConstantVal` returns its input.
+- The honesty checks and the binder-datum comparisons are gone;
+  `PropRead` is S0's rewrite (`proofPW` total).
+- The io grade is official `infer_only` in every mode: no
+  application-argument check, no λ domain check, a `let` infers its body
+  only.  `s0IoInferOnly`, the S0-M branch, `CheckMode.betaGate/ioGate/
+  betaSkip/ioSkip` are deleted.  Separate `infer`/`inferIO` memos.
+- β is uniform: the certificate (`whnfAppI`/`betaPeelI` arms, the gate,
+  `betaGateFires`) is deleted.  `whnfCore` ζ-reduces.
+- T1 (the bodies' full-grade types compared) at the innermost λ only,
+  through a structural descent `defeqLams` (`Expr.lamPair?`), not S0-F2's
+  recursive `r.defeq`: a recursive call could succeed through proof
+  irrelevance or the memo, and then the bridge could not produce
+  `DefEqLams.outer`.  T2 (η's body-type premise) at the full grade.
+- `let`: the full grade runs official's `infer_let`; substitution stays
+  (let-variables deferred).
+- ι: L10's licence (`iotaCtorLicensed`/`iotaCase3`) kept, the
+  recursor-spine certificate removed; `iotaCerts` at `lic = true`
+  returns `true`.
+- The installer's telescope peels: the former's telescope is whnf'd
+  (ζ included); a constructor's is read syntactically, as official's
+  `check_constructors`.  Fixtures `let_former_spine` (0) and
+  `let_ctor_spine_bad` (1), same verdicts before and after.
+- The pin comparison (`ConstantVal.matchesPin`) is plain equality:
+  `Expr.erasePw`, the lockstep `erasePwEq`/`matchesPinFast` swap and the
+  inversion modules (`Model/ErasePwInv`, `Semantics/EraseInv`) are
+  deleted.  `Expr`'s `==` is the memoised pointer-first `Expr.beq`, so
+  the DAG-shared `tower_axiom_pin` stays at 0.05G instructions.
+
+**Deviation from S0-F2: the λ/λ descent.**  S0-F2 re-enters `r.defeq` on
+the opened bodies when both are λs.  That call may succeed through
+proof irrelevance or the memo, and then no `DefEqLams.outer` derivation
+exists for the bridge to build.  `defeqLams` descends structurally
+instead (domains at every level, the body-type comparison only at the
+innermost level), which is exactly L14b's `DefEqLams` (refl/inner/outer).
+Verdicts and instruction counts are S0-F's.
+
+**Proofs.**  `Verify/*`, the cached simulation (`Verify/Cached/*`) and
+the bridges are repaired against L14b's rules: `quickExit_bridge`'s λ
+arm (via `defeqLams_bridge`) and `etaCert_bridge` (T2) discharge the
+lane's two ledger lines; S0's Verify sorries are gone.  Deleted with
+their subjects: the annotate lemmas and walks (`DiscC6` whole, the
+`annotate*` halves of `BinderLoop`/`BinderLoopC`, `Abstract`), the
+β-gate/io-gate lemmas (`BetaGate.lean` became `Modes.lean`), the binder
+datum inversions.  New: `defeqLams`/`defeqLamsInner` inversions,
+shift, fuel and simulation (`defeqLamsC_sim`), the `let` arms everywhere,
+`checkConstantVal_inv_stored` (the stored type named, for the inductive
+readers).  Model consumers repaired after the L14a merge:
+`checkDecls_consts` now says the stored type IS the declared one
+(`AnnotOf` and the ζ machinery deleted); `acceptedReads_of` reads a
+`let` (official `infer_let`) through `denoteMeta_substFvarAt`; the
+inductive installer's readers take `NoProjAt` of a constructor type
+from its inference (`inferTypeCore_noProjAt`).
+
+**Ledger.**  The two L-ck lines are removed.  `prf_of_isProofFast`
+(L18) is owed whole: besides the λ/∀ cases its type-former case read
+`peelNeverPis`, and the binder-free `PropRead` peels any binder through
+identity wrappers at constant, fvar, telescope-bvar and projection
+heads.
+
+**Verdicts** (arena 90/92; e2e and annot as S0-F): `annot_decline_*`
+2 → 0 (the legacy field is dropped at parse; `tests/trusted-expected.txt`
+loses its three overrides), `uh_let_erase_*` 0 → 1 (the stored
+constructor type keeps its `let`s; official v4.33.1+ 1).  New fixtures
+`let_former_spine` (0) and `let_ctor_spine_bad` (1).  The one
+difference from S0-F's binary is `natop_booltrue_alias` (2; S0-F 0),
+L8's deliberate guard.
+
+**instructions:u** (`--verified --jobs=1`, one run each):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| port-342-s4 before (L10 binary) | 480.35G | 676.30G |
+| S0-F (`_tmp/349/bin/s0f`) | 412.19G | 563.13G |
+| L-ck | 411.93G (−0.06 %) | 562.94G (−0.03 %) |
+
+**Left for later.**  Dead-code candidates: `#annotate_basis`/
+`#annotate_pins` (`Kernel/BasisGen.lean`) now return the raw pins, so
+`Kernel/BasisA` duplicates `Kernel/Basis`; the names `annotDeclStep`,
+`annotValueC`, `annotConstantValC`, `annotStepC` describe a pass that
+no longer exists; `Kernel/PropWhen` survives only as `PropRead`'s
+zero-ness datum and `ExportC`'s parse of the legacy field.  README.md
+still describes the annotations (lines 5, 31, 81, 91–97, 117, 133) —
+the maintainer's to rewrite.  The deferred gates (shake: allowlist
+lines still name `DiscC6`/`ErasePwInv`; overview-links: anchors into
+`Core`, `StreamConsts`, `StreamThm`, `KnotCongr`, `Denotes`) are for
+the port's end.
+
+## TASK #342 — L15: the value constants over `lamV` (2026-10-12, agent/342-l15)
+
+Lane L15, stage S4 (`_tmp/342v2-design.md` §3.2 `bval`, §11), on
+`port-342-s4`.  No checker, `Denotes`, `MainTheorem` or `Challenge`
+change (`tests/challenge.sh` green).
+
+**The constants.**  Every abstraction in a `bval` tower
+(`SetModel/Value.lean`) is `lamV`, and every space a binder ranges over
+is the value reading of the binder's spelled type (`piV`):
+`natSuccV`, `natRecV` over `natMotiveSpace`/`natStepSpace`, `psigmaV`,
+`psigmaMkV`, `quotV`, `quotMkV`, `quotLiftV` (and `quotLiftR`, over the
+quotient set), `choiceV`, `emptyRecV`, `lfpFamV` over `lfpFamFunSpace`,
+`lfpTupleV`.  `natStepSpace` (no level argument), `relSpace` (no level
+argument), `quotInvSpace`, `emptyMotiveSpace`, `lfpFamFunSpace` (no `u`)
+are `piV`; `dnegSpace` stays `piR 0`, which is its value reading
+(`piV_dneg_eq`).  `psigmaMkV`'s body carries the tag
+`if max u v = 0 then pt else spair a b` (a pair in a truth value is the
+point), so the tower is the point there (`psigmaMkV_eq_pt`) and the
+four bodies need no regime split.  `emptyRecV` is the point: its inner
+abstraction is over `∅`.  L16 had already made `psigmaFibreSpace` and
+`lfpFamSpace` value-read and the least fixed points `famOf`-built, so
+`lfpFamV`/`lfpTupleV` return `lfpFamSet`/`lfpTuple` unconverted (a
+first cut that re-read them through `lamV` over the index set was
+dropped on merging L16).
+
+**The laws.**  Every `*_app` law is `app_lamV` down the binders, with no
+premise beyond domain membership: `natRecV_app`, `psigmaV_app`,
+`psigmaMkV_app`, `quotV_app`, `quotMkV_app`, `quotLiftV_app` (one law;
+`quotLiftV_app_zero`/`_any` are gone), `quotLiftR_app` (no `v ≠ 0`),
+`choiceV_app`, `lfpTupleV_app`.  `natStep_apply`/`natRecV_mem_fibre`
+lost their motive premise (`app_mem_piV` needs none).  New memberships,
+each `lamV_mem` down the binders: `natRecV_mem`, `psigmaV_mem`,
+`psigmaMkV_mem`, `quotLiftV_mem`, `choiceV_mem`, `lfpFamV_mem`,
+`lfpTupleV_mem` (all `piV`).  Bridges where a consumer still wants the
+graph regime over an inhabited domain: `natSuccV_eq_lamR`/
+`natSuccV_mem` (`piR 1`), `psigmaV_eq_lamR` (so `psigmaV_rr_mem` keeps
+its `piR (r+1)` slot).  `SetModel/Ops`: `piV_slot`, the application
+slot a `piV` member supplies (numeral `propN`).
+
+**Discharged ledger lines** (all five L15 lines): `bval_mem_*`
+(`Semantics/BasisOk`: each is `lamV_mem` down the binders, the three
+point-valued propositions by `pt_mem_piV_ty`), `WellDenoted_bconst_type`'s
+residual goals (`Model/BasisTypeOk`: three `Quot.ind` motive slots,
+closed by `slot_of_mem_piV`/`quotMk_mem_quot`; `rel_app_data` and
+`IsTy_rel_app`, the numeral-`1` relation suppliers, are deleted),
+`choice_mem` (`Model/AxiomMem`: `lamV_mem` twice across
+`dneg_eq_nonempty`), the four `natStepSpace` bridges
+(`Model/BasisBlocks`: `natStepSpaceV` is deleted, the step binder reads
+`natStepSpace`), and `Model/BasisQuot` (`relSpaceV` and
+`mem_relSpace_of_V` deleted, `quotLiftTy_mem` by `quotLiftV_mem` across
+the binder readings, `quotLiftLaw`'s `hfv` bridge gone).
+
+**Consumers repaired** (the constants' slot chains move from `piR` with
+numeral side conditions to `app_mem_piV` + `piV_slot`):
+`Tower/TowerKit` (`mkTowerGoPos_*`, `psigmaMkV_ww_mem` is `piV`),
+`Tower/SumTower` (`natRecAV_wellDenoted`, the selector's step space,
+`sumInjAtAV_*`, `mkTowerGoUPos_wellDenoted`), `Tower/BlockTower`
+(`psigmaMkV_rr_mem` is `piV`; `blockFunVG_mem` is `piV` over the
+inhabited strict family-tuple space; `blockBodyG_wellDenoted`),
+`Tower/BlockRecTower` (its local `choiceV_mem` is gone, `Value`'s is
+used; `selChainAV_facts`' slots).
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration
+uses sorry` in ledger files (none in L15's).  `tests/challenge.sh`
+green.  No checker change: no e2e/arena run.  11 files, +772 −885
+against `port-342-s4` before the landing merge.
+
+## TASK #342 — L17: the inductive environment side at the value reading (2026-10-12, agent/342-l17)
+
+Lane L17, stage S4 (`_tmp/342v2-design.md` §2, §11.5), on
+`port-342-s4`.  No checker, `Denotes`, `MainTheorem` or `Challenge`
+change.  Every L17 ledger line is discharged; every step that uses "not
+pt" names its source in a comment.
+
+**The hole relations (`HoleMono`, `HoleAcc`).**  A value-read Π takes
+its regime from its fibres, so the hole lemmas read the fibres' types,
+supplied by the walked field's grading (source (1)):
+- `piV_subset_mono`, `mem_piV_of_app`, `pt_mem_piV_iff`
+  (`SetModel/Ops`): a member transported along fibres that are types at
+  both frames stays a member.  `MonoOn.pi` takes the fibres' `IsTy`.
+- The type regime (`TypeReg`) and richness (`RichOn`, `accRel_rich`,
+  `tuple_enlarge`) are replaced by **the point's stability** (`PtOn`: a
+  reading holding `pt` at one frame holds it at every related frame) and
+  **point-free holes** (`PtFreeOn`, `HoleRelA.ptFree`, `accRel_ptFree`:
+  a hole at full arity holds a strict fibre, `∅` or the point, never
+  `pt` as a member).  `AccConcl`'s first conjunct is `PtOn`; `AccOn.pi`
+  (one lemma, `pi0` merged) glues supports over a small domain and gives
+  the point, over a domain that is not small, the empty support.
+- Dead with richness: `HoldsLe`, `AccOn.transfer`, the
+  `HoleRelA.underBoth` transfer premise, `transfer_of_*`, `TeleSmall`,
+  `teleSmall_*`, `frame_fieldsBound`.
+
+**`holeFam` is `lamV`** (`BlockLfp`): the model's hole frame IS the
+spelled hole terms' reading (`interp_mkLamsAV_holeFam`, no premise;
+`holeFam_mem_mkPisAV` is `lamV_mem` with the codomain a type).  Off a
+fitting spine a level all of whose continuations are empty is the
+point, so a full application is the fibre, `∅`, or the point
+(`holeFam_foldl_full`), and off the fit it does not read the leaves
+(`holeFam_foldl_nofit`, leaves never the point at a fit).  Consumers:
+- the accessibility assemblies (`fitAcc_holeOp`, `frameAccOut_of`) drop
+  the support items off their fit — held alike at every tuple's frame
+  (`holds_of_nofit`, `frame_item_nofit`);
+- the admissible valuations (`admVal_frame0`, `admVal_kid`) prove their
+  off-fit clause by the same independence;
+- `holeVal_foldl_mem` takes the applied value not the point; the
+  landing lemmas get it from the call target's tuple lying in the
+  class's index set (`former_foldl_mem` takes the tuple's membership,
+  `admVal_memberLand`/`frameLand` that every fitting prefix extends):
+  then no level along the spine is the point (`holeFam_foldl_ne_pt`,
+  `idx_ext_of_tupW_mem`), and off the fit the value is `∅`.
+
+**The non-point facts where numerals were read.**
+- `spine_mem_univ_of_neverChain`: the spine is not the point (the
+  caller's type); `typeFormer_mem_univ_zero` takes a graded type.
+- `TowerEntryLaw` (A) takes the subject's type not the point (the
+  consumers' `hokTpe.ne_pt`, `hneW`); (B) reads the certified fit.
+- `ContLeaf`: a full container instance is a graded type
+  (`keyFit_of_wd`, `keyLeaf`, `monoOn_of_famLe`,
+  `accConcl_of_frameAccOut`); a key's parameter prefix is no type and
+  may read the point over an empty index set, so `keyParamsFit` takes
+  the key's inference: `certsF_of_infer_spine` (an inferred spine over a
+  literal Π-telescope is a `CertsF` certificate; `Red.eq_of_redVal`),
+  `certsF_sound`, and the former's closed telescope.
+- `genOut_typed` (`teleFitPA_rest_isTy`), `genIhMot` (`genIhFrame`
+  grades the ih codomain, `GradedFrame.gradedTy`), `genHstepG` (the
+  recursor type's innermost fibre, `isTy_of_wd_mkPisAV`).
+- `genMemCtor_pt`'s binder case: the constructor type is a truth value
+  at a `Prop` valuation (`mkPisAV_mem_univZero`: every fitting spine's
+  body is the member's fibre, whose elements are injections, the
+  point).
+- The recursor into `Prop`: `genRecTyZ` (the recursor type is a truth
+  value: its conclusion is the motive applied, a type in `Sort 0`,
+  `mem_univZero_of_endsInSort`) replaces `blockRecTyZ_run`;
+  `genRuleRaZ` is stated at the true reading (at an arbitrary reading
+  the rule's domains are arbitrary and the claim fails) — the minor
+  premise is the point (`genMinor_pt`), so the rule's λ-tower is.
+
+**Deviations.**  `genRuleRaZ` at the true reading, not at any reading.
+The landing lemmas carry a non-point premise.  `mem_univ_zero_of_spine`
+and `spine_mem_univ_of_neverChain` are unused after L-ck's
+`prf_of_isProofFast` (L18's); kept for it.
+
+**Gates.**  `lake build`, `lake test`: no warnings but `declaration uses
+sorry` in ledger files.  No checker change.
+
+## TASK #342 — L18: λ, η and the io grade at the value reading (2026-10-12, agent/342-l18)
+
+Lane L18, stage S4, on `port-342-s4`.  Discharges the last S4 ledger
+lines: the io application (`Infer.app_soundIO`), `DefEqLams.inner/outer`,
+`DefEq.eta`, the licensed walk (`Certs.licensed`) and the fast
+reader's licence (`prf_of_isProofFast`, whole, after L-ck's `PropRead`).
+The ledger is empty and the 13 `Axioms.lean` pins carry no `sorryAx`.
+`Denotes.lean`, `MainTheorem` and `Challenge` are unchanged
+(`tests/challenge.sh` green).
+
+**The io claim (#346's `IORel`).**  `Model/Rules/IORel.lean`: `IOMem`
+(a graded type holding the value), `IOHered` (at a syntactic ∀: a graph
+over the domain, not everywhere the point, every application satisfying
+the claim at the opened body) and `IORel` (point ∨ member ∨
+hereditary), keyed on the inferred type's `Expr`, not its reading (a
+stored constant may read as a Π).  `InferSemIO` concludes `IORelN`:
+`IORel` plus the neutral clause "a subject whose head is no λ and no
+`let` (`Expr.ioNeutral`) has a non-hereditary claim".  It is carried
+through a reduction of the type by `Red.rigid` (`Rules/Rigid.lean`: a ∀
+or a sort reduces only to itself, rescues included) and through an
+application's argument by `IORel_substFvarAt` (`denoteMeta_substFvarAt`).
+Every io inference rule is proved: leaves and ∀ as memberships (the
+latter's sorts through rigidity), λ hereditary (#346's
+`InferIO.lam_sound`), `let` by ζ, the application with no certificate
+(a non-point head is a graph, `slotTransfer`; "not pt" source (4) where
+the head's claim is hereditary), the projection (the point's projection
+is the point; a hereditary scrutinee is excluded by rigidity).
+`InferClaimIO` (`Model/ClaimsIO.lean`) states `IORel`.
+
+**The consumers.**  Proof irrelevance at io: `PropPt` (`Motive.lean`), by
+`prop_pt_io` in `Sound.lean`'s mutual block (it recurses into a ∀'s body
+inference, `propPt_forallE`).  Structure η, the η rescue and unit-like:
+not the point, type reducing to a family's application ⇒ membership
+(`IORel.mem_of_red`).  The rescues become conditional (`RedSem`); ι and
+the projection rule too (their licensed walk needs the redex not the
+point).
+
+**Rules changes** (`Rules/Rel.lean`; each a premise the model needs,
+each verdict-neutral on well-typed input):
+- `DefEq.eta`: `b.ioNeutral = true`.  η against a λ-headed `b` with an
+  io-inferred type is unsound (#346 `eta_lam_io_unsound`); the checker
+  meets `b` in weak-head normal form.  Checker guard in `etaCert`.
+- `DefEq.structUnit`: `wtb.isForallE = false`.  A hereditary `b` has a
+  ∀ type, whose reading need not be graded, so `wta ≡ wtb` would say
+  nothing.  Checker guard in `structUnitCert`.
+- `Certs.licensed`: `(Expr.peelPis args.length T).isSome`.  The licensed
+  fit (`teleFitPA_of_peel_ne_pt`) needs the telescope's ∀-chain;
+  `iotaCerts` at a licensed walk returns the arity test, `iotaRec`
+  checks it on the recursor's stored type (`iotaRec_arity`), nothing in
+  the model knew a recursor's arity.
+- `Certs.cert`: the argument's type at the FULL grade.  An io-inferred
+  type need not hold its term (the point, or a hereditary value), so the
+  unlicensed certificate's slot claim is unprovable at io.  The
+  unlicensed walks certify the K/`And` rescues' synthetic spines and the
+  projection-function η certificates only.
+- `Red.rescueK`/`rescueAnd`: the last premise `DefEq fab major` becomes
+  the major's half of the checker's `proofIrrel (fab, major)` run (io
+  type, its io sort, `Prop`).  The major is then a proof, the point at
+  every valuation, and the conditional claim is vacuous; the fabrication
+  needs only its reading.  The certificate, the fabrication's type check
+  and the K flag are unread by the model (L-dead: candidates to delete,
+  with the official kernel, which has neither certificate).
+
+**The fast reader** (`Kernel/PropRead.lean`): the projection arm answers
+"not a proof" only.  A projection's reading is graded at any nested pair
+whatever the scrutinee's type, so `proj S i (Bar.mk 1)` and
+`proj S i (Bar.mk 2)` would be equated by `DefEq.proofFast` (a
+counterexample to the arm's soundness, not to the checker's verdicts:
+the slow path then decides).  `prf_of_isProofFast`
+(`Model/Rules/ProofFastSound.lean`): through λ (an abstraction of the
+point), `let` (the ζ-reduct) and application (the point applied) to a
+constant or variable head whose type the type-sort reader reads as a
+proposition; that type is a truth value (`typeSort_mem_univZero`: its
+fibres are, recursively, and a residual type former's application lands
+in its peeled zero sort, `typeFormer_mem_univ`); identity wrappers are
+δβ reductions (`redSem_unwrapIdDefs`).  The reader's answers survive
+opening a binder, ζ/β instantiation and level instantiation
+(`Verify/PropReadInst.lean`, model-free; level instantiation uses
+`EnvWF`'s `allLevelParamsDefined` through `substPW_comp`).  The
+`NeverChain` lemmas, `eval_eq_zero_of_isProp` and the fence go.
+
+**λ/η.**  `DefEqLams.inner/outer` and `DefEq.eta_core` are the
+fragment's proofs at the real reading (`IsTy.eq_of_ne_pt`, `lamV_eta`).
+
+**Gates.**  `lake build`, `lake test` warning-free, no `sorry` in the
+tree.  `tests/challenge.sh` green.  Verdicts (arena, e2e, annot; one run,
+8 jobs): 626/626 as expected, arena 90/92.  `instructions:u`
+(`--verified --jobs=1`, one run each) against L-ck's final binary
+(lck3): init-full 411.93 G → 412.53 G (+0.15 %), mathlib-prefix
+562.94 G → 563.73 G (+0.14 %); 57 977 / 131 902 declarations accepted,
+exit 0, as before.  `overview-links.sh` and `quote-gate`
+deferred (OVERVIEW §3/§4 edited, linked source lines moved).
+
+## TASK #342 — L-DEAD: the code no shipped mode runs (2026-10-12, agent/342-l-dead)
+
+Lane L-dead, stage S4, on `port-342-s4` (the "no dead paths" ruling and
+L-ck's additions).  Verdicts unchanged; `MainTheorem`, `Denotes`,
+`Challenge` untouched; no new `sorry`, no new axiom.
+
+**Deleted, with their rules, motives, soundness lemmas, inversions,
+shift/fuel/pair lemmas, bridges and cached simulation arms.**
+- `structEtaProjCerts` / `EtaProjCerts` / `EtaProjCertsSem` and
+  `recSlotsAll`(`F`): no installed family has projection-function
+  slots with a field (the names are refused at the front door).  The
+  η slot discipline is `towerSlotsAll` alone (a fieldless family passes
+  it trivially); `DefEq.structEta` and `Red.rescueEta` take
+  `towerSlotsAll = true`.
+- The projection-function spelling of the η fabrication: `etaProjs T b nF`
+  is the `.proj` map, `etaFabArgsE` loses its environment and level
+  arguments, the cached `projAppsI`/`projAppsFnI` go (`etaProjsC_eff`
+  replaces the simulation).
+- `CheckMode.ttChecks` (constantly `false`) and the constructor-telescope
+  certificate it gated in `structEtaCertWith`.
+- The η rescue's `structEtaCertWith` run on `(fab, major)`: its
+  comparisons were reflexive.  The rescue tests the η law's keys —
+  `reservedBasisNames` on the family and its constructor, and
+  `towerSlotsAll` — together with `capsNeverZero`, before it
+  fabricates.  With the TT gate gone, `structEtaCertWith`,
+  `structEtaCert`, `stuckIrrel`, `majorToCtor`, `prepareMajor` and
+  `iotaRec` (and the cached `structEtaCertI`/`stuckIrrelI`) no longer
+  read the mode and lose the parameter.
+- `RecRule.paramsBlind`: every stored rule had it `true` (installer,
+  auxiliary rules, basis pins; only the retired projection functions
+  left it `false`).  `RecRule.compareParams` is "the rule is not
+  `.plain`"; the bit's clauses in `RecRuleLaw`, `RecRuleExtra`,
+  `RecRuleExtraNK`, `RecRuleKWit` and `blockRecRuleLaw_gen` go; the
+  cached core's projection-function keep test (`Name.isProjFnShape`) goes.
+- The K and `And` rescues' constructor certificate: no proof reads it
+  since L18 (the major is a proof by the rescue's own `proofIrrel` run)
+  and official has none.  K's fabrication type check (`tfab ≡ tmaj`,
+  official's `to_cnstr_when_K`) stays: it decides whether K fires.
+- With those gone `iotaCerts` ran only licensed, where it is the
+  telescope's syntactic arity: it becomes the pure `teleArityOk`, and
+  `projCert`/`projCertAt` pure functions over the stored
+  (uninstantiated) type; the rules tier's `Certs` (its `cert`
+  constructor dead, its `lic` index constant) is replaced by the arity
+  fact in `Red.proj` and `Red.iota`; the cached twins (`iotaCertsIAux`,
+  `iotaCertsI`, `projCertI`, `projCertAtI`), their fuel/pair/shift/
+  congruence/simulation lemmas, `certs_step`/`Certs.cert_sound` and
+  `CertsSem`'s `lic` index go.
+- `#annotate_pins` and `annotateVal` (the identity): the standard-axiom
+  pins and the `Iff`/`Nonempty` families (no rules) are defined
+  directly under their stored names; the compiler-trust pins are plain
+  definitions.
+- The legacy binder `pw` field is scanned and not decoded (`pwOfF`,
+  `pwOf`, `pwOfF_mono`).
+- `Kernel/PropWhen`: the has-param test, `holds_ext`, `bindZ_unit`,
+  `inter_comm`/`_self`, `canon_canon`, `isEmpty_canon`, `Name.lt_trichotomy`,
+  and `Verify/PropWhen`'s `substPW_self`/`subst_go_self`; `ExprOps` no
+  longer `import all`s the datum.  1081 → 984 lines.  (L18's
+  `PropReadInst` reads `zeronessOf_subst`, `substPW_comp` and
+  `zeronessOf_paramsDefined`, which therefore stay with the algebra
+  under them.)
+- Never-called checker helpers (the dead-code census):
+  `Expr.exprPtrBEq`, `BlockShape.offs`, the cached `bvarBoundM`
+  (`Expr.peelPis` and `Expr.isLam` were dead too, until L18's guards
+  used them).
+- `tests/shake-allowlist.txt`: the seven entries whose import line no
+  longer exists (`DiscC6`, the two `meta import BasisA` lines,
+  `AxiomBits`, `BitAgree`, `Annot.Valid`).
+
+**Not a duplicate: `Kernel/BasisA`.**  The stored basis pins differ
+from the raw ones at the recursors (`Eq.rec`, `Nat.rec`, `Quot.lift`,
+`Quot.ind`): their rules carry the install-computed fields (`ctorParams`,
+`fire`, the K/η bits), and the raw pins must keep the parse placeholders
+because a stream's records are compared against them.  The command
+stays, as `#stored_basis` over `pinRecRuleFields` (the identity type
+and rhs "annotation" and its no-op loop are gone).
+
+**Renames** (pure): `annotConstantValC` → `installHeaderC` (returns the
+header; the identity `let`s are gone), `annotValC` →
+`installValueGuardsC`, `annotValueC` → `installGuardsC` (returns header
+and value), `annotStepC` → `installStepC`, `annotDeclStep` →
+`installDeclStep`; the spec twins `installConstantVal`/`installValue` →
+`installHeader`/`installValueGuards`; lemma families renamed with them.
+
+**`RecRuleFire` (maintainer's item 8).**  Counted with a throwaway
+instrumented build (`--verified --jobs=8`): stored `.inert` rules —
+init-full 0, mathlib-prefix 0.  `.inert` arises as the parse
+placeholder, as `sumRules`' value at an outside major that
+`tgtStoredRules` overwrites at once (3 / 150 auxiliary recursors, all
+read `.nested`), and as `auxRuleFireR`'s value when the major domain
+cannot be read (0 / 0).  `.nested` fires: 25 / 1860, all at case 2
+(`iotaCtorLicensed`, none K, none case 3).  Not done here, both need
+proof work in `Model/Inductives` and the rules tier:
+- (a) removing `.inert`: `auxRuleFireR`'s failure becomes an install
+  decline (`tgtStoredRules` fallible), the member majors' `.plain` needs
+  `recRulePlain` proved of the generated type (or an install decline),
+  and every `fire ≠ .inert →` hypothesis (`RecRules`, `EnvFacts`,
+  `BlockRecData`/`BlockRecLaw`/`GenRec*`, `RecRulesCons`, `IotaSound`)
+  and the `iotaRec` decline arm go;
+- (c) the `.nested` pin comparison at case 2/K only: the plain rules'
+  argument (L10: the major's membership in the family at the
+  recursor's parameters ties the constructor's) would have to be
+  carried to the outside major, whose family instance is the stored
+  pins: `blockRecRuleLaw_gen`'s `.nested` premise becomes conditional
+  on case 3, and `GenRecExtra`'s outside-major branch must produce the
+  pin equations from the major's membership (`genOut_pins` reads them
+  off the comparison today).
+The `RecRuleFire` docstring is rewritten for the current representation.
+
+**Candidates reported, not deleted.**
+- The cached `checkDeclC`'s value arms (`thmDecl`, a non-`Nat`-op
+  `defnDecl`, a non-`reduce*` `opaqueDecl`, with `checkThmValC`,
+  `checkDefnValC`, `checkOpaqueValC` and their `jty = cv.type`
+  parameter): phase A never forwards those records to
+  `checkDeclStepC`.  Removing them restructures the cached step's
+  simulation (`AgreeFloor`, `DeclCRel`).
+- `CheckMode.certs` and `CheckMode.verifiedChecks` agree at both
+  constructors (`certs_eq_verifiedChecks`).
+- The model side of projection-function η families: `CapsOk`'s `EtaLaw`
+  for projection-function slots, `EtaFamilyStored`'s slot clause,
+  `etaFabArgsV`'s projection-function values, `WhnfNamesFree`'s
+  `projFnName T j ∉ names` conjunct, and `NfMemberFree.whnf_nestOcc_zero`
+  (whose `occDeep` premise was needed only by the projection-function
+  fabrication).  The checker no longer reaches them.
+- `Kernel/PropWhen`'s canonical representation (the name order,
+  `merge`/`canon`, the sortedness proofs): nothing outside the module
+  compares data semantically any more (`eq_iff_holds` has no consumer),
+  so the datum could be a plain `never | ifAllZero (List Name)`; the
+  `import all` readers in `Model/Basis*` would follow.
+- The census's other dead entries in `Verify/*` and the rules tier
+  (`Rules.Derived.DefEq.deltaL/R/Both`, `BridgeDecl`'s pair ops, the
+  `Verify/Frontend` helpers, …) predate this lane; the census ran
+  while L17/L18 still had ledgered `sorry`s, so its `Model`/`Verify`
+  entries need re-reading on the final tree before any deletion.
+
+**Merges.**  `port-342-s4` merged twice (L17; L18).  The lane touched
+the then-ledgered `DefEqSound`, `DefEqSoundKit`, `CertsSound` and
+`GenRecExtra` (the deleted premises only).
+
+**Verdicts** (one run, multi-threaded): 626/626 as expected, arena
+90/92 — as before the lane, fixture for fixture.
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342-s4` before the lane (aa217a332) | 411.918G | 562.973G |
+| `port-342-s4` after L18 (35109900d) | 412.498G | 563.742G |
+| L-dead | 410.384G (−0.51 %) | 559.849G (−0.69 %) |
+
+(The percentages are against 35109900d.  Most of the gain is the K and
+`And` rescues' certificate and the projection fire's level
+instantiation, both gone; the lane's earlier part measured −0.01 % /
+−0.03 % against aa217a332.)
+
+57 977 / 131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free; no `sorry` in code
+outside the by-design `Challenge` and fixture sources; `challenge.sh`
+green.  Lines (code, against `port-342-s4`): 90 files, +1189 −3701.
+
+## TASK #342 — S4-LAND: the switch lands on `port-342` with the deferred battery (2026-10-12, agent/342-s4-land)
+
+Lane S4-LAND (`_tmp/342v2-design.md` §11.6): `port-342-s4` (e831cdfeb,
+empty ledger, no `sorry` outside `Challenge` and the fixture sources)
+brought to the full battery and landed on `port-342` (1ca89bf14, whose
+L11b was already merged into S4; the merge of `port-342` was empty).
+
+**The deferred gates, repaired.**
+- `overview-links`: the port moved or rewrote 67 cited ranges.  59 moved
+  with their text intact and were repointed mechanically; the rest were
+  re-read against their paragraphs and repointed to the current
+  definition (`Model`, `checkDecls_consts` — now stating the stored type
+  IS the declared one, which is what the paragraph already says —,
+  `Declaration.Declares`, `no_False_theorem_accepted`, `coreKnotI_congr`,
+  the fuel base case, `indParamsOk`, `Term`, `AnnotTerm`, `interp`,
+  `WellDenoted` and its preservation section, `Denotes_of_denoteMeta`,
+  the claims, `DefEq`'s docstring, `lfpFamSpace`, `checkBlockClasses`,
+  `classKeyOf`, `inferBodyIO`, `defeqLams`).  No OVERVIEW prose
+  changed.  README: links repointed only (7), its prose untouched.
+- `shake`: 17 imports deleted as clean under the #223 criterion (plus
+  two more that a demotion exposed in `Model/Rules/Motive.lean`), 33
+  allowlist lines added (26 compensated, 7 not reproducible alone), one
+  stale line removed; 10 of the 17 demotable `public import`s demoted,
+  9 kept with `FALLBACK` entries in `scripts/pub-import-plan.py` (their
+  own public statements name the re-exported identifiers).
+- `Main.lean`'s `--help` text still described the annotation-gated β/io
+  licences and "annotation validations"; rewritten to the current
+  modes (OVERVIEW cites only its first line).
+- `layering`, `trust-surface`, `pindump` (no regeneration needed: the
+  pins carry no `pw`), `no-local-paths`, `quote-gate`, `challenge`,
+  `fragment-gate`: green without change.
+
+**Left red: `whitepaper/links-gate.sh`.**  The whitepaper on this
+branch is master's; of its 450 citations 308 are intact, 84 moved with
+their text, 58 cite text the port changed or deleted (4 of them past
+the end of the file: `Denotes.lean#L270-L290`, `Env.lean#L674`,
+`AxiomMem.lean#L809-L813`, `Core.lean#L2003-L2032`).  The 58 are cited
+by prose that describes the annotations; `--update` would bless stale
+prose, and repointing the 84 would only conflict with W2's merge of the
+rewritten whitepaper from `frag-342`.  The list is in
+`_tmp/port/s4-land-logs/wp-changed-links.txt`; W2 owns the gate.
+
+**Verdicts** (full battery, not under ulimit): arena 90/92, e2e
+473/473, annot 15/15, mode flags, IO-exception, prelude counts,
+progress, worker pool, statistics, install pool, DAG tower all as
+expected; trusted sweep 0 recorded divergences; `--jobs=1` and
+`--jobs=4` sweeps identical to the default.  Against `master`: new
+fixtures `let_former_spine` (0) and `let_ctor_spine_bad` (1);
+`uh_let_erase_{type,value}` 0 → 1 (official v4.33.1+ 1);
+`natop_booltrue_alias` 2 (L8's guard); `annot_decline_*` 2 → 0 (the
+legacy field is dropped at parse).
+
+**Numbers** (`--verified`, one run each):
+
+| | init-full `instructions:u` | mathlib-prefix `instructions:u` |
+|---|---|---|
+| `master` 3b37939f0 | 482.54 G | 679.02 G |
+| S0-F | 412.19 G | 563.13 G |
+| S4 landed | 410.38 G (−14.95 %) | 559.88 G (−17.55 %) |
+
+mathlib-full, `--jobs=32`, flock'd, RSS guard at 40 GB: accepted
+691 203; parse 9.1 s, install 2.4 s, check 27.9 s; peak RSS 5.45 GiB
+(guard 5.40 GiB = 5 662 536 KB).  The same night's `master` run: parse
+4.3 s, install 3.7 s, check 33.3 s, 7.41 GiB; S0-M: 4.3 / 2.3 / 35.3 s,
+5.50 GiB.  The parse's 9.1 s is one run on a shared machine (master's
+parse has ranged 4.1–23 s across records); the check and the memory
+are the port's: −16 % check wall, −26 % peak RSS against master.
+
+**For the next stage.**  README passages that are now wrong are
+reported to the maintainer, not edited (lines 5, 31, 81, 91–97, 101,
+103, 117, 133).  W2: the whitepaper gate above.
+
+## TASK #342 — S5B: `RecRuleFire` is `plain | nested`; the `.nested` pins compared at case 3 only (2026-10-12, agent/342-s5b)
+
+Lane S5b, stage S5, on `port-342` (L-dead's item 8).  `MainTheorem`,
+`Denotes`, `Challenge` untouched; no `sorry`, no new axiom.
+
+**`.inert` is gone.**  `RecRuleFire` is `plain | nested lvls pins`; the
+parse placeholder is `.plain`.
+- Member majors: `sumRules` stores `.plain` unconditionally;
+  `Expr.recRulePlain` is deleted (no proof read it: the member-major
+  law never used the syntactic test), and so are `sumRules`' three
+  parameters only it read (`mI rP recTy`) and `sumRulesR`'s shape.  The
+  basis recipe (`pinRecRuleFields`) leaves the placeholder `.plain`.
+- Outside majors: `genRecCheck` now checks `tgtNestedReads` (every
+  auxiliary recursor's major domain reads by `Expr.nestedRuleSyn`) and
+  fails with an internal error (exit 3) otherwise — an internal
+  construction failing, not a detected feature, so not a decline.
+  `GenRecRun`/`GenStageRun` carry it (`hreads`), and
+  `tgtFireOf_nested_of_reads` turns it into the `.nested` fire the
+  model needs.  `auxRuleFireR`'s `none` arm (`.plain`) only makes the
+  function total.  Measured never to fail (L-dead: 0 / 0).
+- `iotaRec`/`iotaRecI` lose the inert decline; `RecRules`, `EnvFacts`,
+  `BlockRecLaw`/`BlockRecData`/`GenRec*`, `RecRulesCons`, `IotaSound`
+  and `Rules.Red.iota` lose every `fire ≠ .inert` hypothesis.
+
+**The `.nested` comparison follows the plain case split.**  Both modes
+compare the levels at every fire and the parameters only at a case-3
+redex (`iotaCase3`): `RecRule.compareParams`, `iotaCompares` (and its
+lemmas) and the cached `certUnlessI` are deleted; the cached ι builds
+the parameter comparands only inside the case-3 certificate.  (25 /
+1860 `.nested` fires on init-full / mathlib-prefix, all case 2: they
+now run no parameter comparison.)
+
+**The model.**
+- `RecRuleLaw`'s main clause takes no parameter comparison; it takes
+  the fired constructor spine GRADED instead (`∀ y ∈ ys, WellDenotedV`),
+  and the K clause the recursor spine graded (the consumer,
+  `Red.iota_sound`, has both).  `RecRuleExtra`'s (U) takes the
+  `.nested` pins' conditional comparison under "the fired application
+  is the point" (as the `.plain` parameters) and concludes only the
+  index pin.  `RecRuleKWit` loses its pin conjunct.  The pins' grading
+  conjunct stays (the case-3 comparison's claim reads it).
+- **The new mathematics: `genOutCtorOwn`** (`GenRecExtra.lean`).  At an
+  outside class the rows (`genRows3_out`, moved there) no longer
+  identify the constructor's parameters with the pins — they need not
+  be equal (the injection forgets parameters: `List.nil` at `α` and at
+  `β` is one set).  The fired application is read at its OWN
+  parameters: they fit the container's parameter telescope because
+  the residual is a type ("not pt" source (1), `genOut_typed` — hence
+  the graded-spine premise), so the key frame at the canonical
+  parameters (`canonParams`) is their frame, the fields fit the
+  instantiated constructor's fields there (the stored type's fit
+  peeled, `denoteMeta_instPisAt_peel`), and `instCtor_decode` reads the
+  application as the class's injection.  The major lies in the carrier
+  at the pins' frame and the class is never `Prop` there (`genOutNZ`),
+  so `mkInj` identifies the decomposition: the fields hole-fit at the
+  pins' frame and `genRow3_core` concludes as before.
+- (U) at an outside class: the pins' equations are read where the
+  fired application is the point (`genOut_pins`, unchanged, now under
+  that hypothesis), and give the index pin (`genOut_pin`).
+
+**Not unified.**  With the comparison split shared, `.plain` and
+`.nested` differ only in where the comparands come from.  A uniform
+`RecRule` storing comparand levels and pins (plain: the parameter
+names and the bound variables of the leading arguments) would route
+every member-major rule's proofs (`genRows3_mem`, `genMem_U`,
+`blockRule_coherent`, the basis rows) through the pins' open readings
+(`openRev`/`instRevChain`) for nothing; the tag is the compact
+encoding of the identity pins.  Not done.
+
+**No fixture for nested case 3**: it needs a container that may be
+`Prop` with a field (`Box.{u} (α : Sort u) : Sort u`), which the
+elaborator refuses (v4.29.1); only a forged stream would reach it.
+The `tgtNestedReads` failure is not reachable from a stream either.
+
+**Verdicts** (one run, `--jobs` 8 parallel): e2e 473/473 and arena
+138/138 as expected (90 accepted).
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342` a2907eca2 (S4-LAND's numbers) | 410.38 G | 559.88 G |
+| S5b | 408.76 G (−0.39 %) | 557.93 G (−0.35 %) |
+
+57 977 / 131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free.  Lines (code,
+against a2907eca2): 49 files, +765 −947 (before this record).
+
+## TASK #342 — S5A: cleanup after the port (2026-10-12, agent/342-s5a)
+
+Lane S5a, stage S5 (`_tmp/342v2-design.md` §11.5 row S5, the L-dead
+record's list), on `port-342`, in parallel with S5b.  Sub-lanes `bm`,
+`num`, `pwd` ran in their own worktrees and were merged into the lane
+branch.  Verdicts unchanged; `MainTheorem`, `Denotes`, `Challenge`
+untouched; no `sorry`, no new axiom, no new `unsafe`.
+
+**`BinderMeta` off `Expr`.**  `Expr.lam`/`Expr.forallE` are
+`(type body : Expr)`; the empty structure, its field and every pattern,
+construction and lemma argument for it are gone (about 1500 sites
+across every tier), as are the `m₁ = m₂` conjuncts of injectivity and
+inversion lemmas and the helpers that threaded a binder datum.
+`Kernel/BasisGen`, `PinGen*` and `PinGen/Dump` no longer emit it; the
+pin dumps under `pins/` are regenerated (each `lam`/`fa` share-table
+entry loses its trailing `null`; all three pinners reproduce
+byte-for-byte).  `ExportC` still scans the legacy `pw` field and drops
+it.  The node hash never read the datum, so hashes are unchanged; the
+node is one word smaller.  `tests/annot/` and
+`tests/annot-expected.txt` are deleted with their suite in
+`tests/arena.sh` and the CI; the three fixtures the mode-flag and
+`--jobs` tests borrowed moved to `tests/mode/split_{good,bad,bad2}`.
+`GenK53Rename`'s `gk_teleSubst_erase` became a copy of
+`gk_argsSubst_erase` and went.
+
+**The binder data's numerals.**  `mkPisAV`/`mkLamsAV`/`stripPisAV`
+take `List AnnotTerm`; `readLamBs`, `readOpenedDoms`, the `ih` data,
+`BlockData`'s parameter lists and the "the normal form reads like the
+declared type" existentials carry domains only (96 files).  `ppsNorm`
+and its lemmas are gone; `stripPisAV_mkPisAV(_take)` return the data,
+`mkPisAV_inj` concludes list equality.  With them: `mkLamsC` (it was
+`mkLamsAV` with an ignored numeral; its laws are `mkLamsAV_mem`/
+`_wellDenoted`), `UnderTowerOk`'s numeral and zero-bit conjunct
+(nothing read it), `genIhdAV`/`genIhsAV`'s `bit` and the lemmas that
+only threaded it, `genBit`, `stripPisAV_denoteMeta_bits`,
+`underTowerOk_res_univZero`.  `LamDomsBelow`/`DomsBelow`/`FieldsBelow`
+had become one definition: `DomsBelow` stays, the conversions
+(`DomsBelow.mapC/.fields`, `domsBelow_of_fieldsBelow`,
+`lamDomsBelow_map`) go.  Kept: `OneElimLevel`/`blockRecOneElimLevel`
+(D-d's parked elimination-level reading, which reads a level, not a
+binder numeral).
+
+**`WellDenoted`.**  The `WellDenotedV` abbrev is gone and every use
+reads `WellDenoted`.  Its wrapper lemmas (`sumTyAV_/sumMkAV_wellDenotedV`,
+`WellDenotedV_bconst_type`, `_congr_below`, `_liftN`, `_inst0`,
+`_zeta`, the `Rules` `hoist_pi`/`hoist_lam`) are deleted for the
+originals; `BasisQuot`'s two lemmas with their own statements are
+`WellDenoted_app_fibre` and `WellDenoted_lam_piV`.  The field lemmas
+(`app_fn`, `pi_body`, `letE_val`, `hoist_lift`, `hoist_piTy`, …) live in
+the `Semantics.WellDenoted` namespace so dot notation on a
+`WellDenoted` hypothesis still finds them.
+
+**`Model/Annot/` is split.**  The directory held two things, and its
+name described neither any more: the environment invariant and its laws
+(`EnvModel`, `EnvModelM`, `Laws`, the lfp clause `BlockLfp*` and its
+datum `Lfp*`, `CanonCrest`) are `Model/Env/` — the name OVERVIEW's
+module map already gave the directory's role; the stored-term reading
+and its metatheory are `Model/Reading/`, each file named for what it
+holds: `Bit` → `DenoteMeta`, `BitLemmas` → `Lemmas`, `BitClosed` →
+`Closed`, `BitShift` → `Shift`, `BitInst` → `Inst`, `BitSubstFvars` →
+`SubstFvars`, `BitLevels` → `Levels`, `BitRename` → `ErasedEq`,
+`BitExtend` → `EnvExtend`, `BitExtendTower` → `TowerExtend`,
+`BitInstall` → `Install`, `BitConsCross` → `ConsCross`, and `LpDefF`
+(the reading's level footprint) joins them.  Their module docstrings no
+longer describe binder numerals.  `Verify/Inductives/ClassGenAnnot` is
+`ClassGenSyntax`.
+
+**`Kernel/PropWhen`: 984 → 141 lines.**  The checker asks two things
+of a datum, `isNever` (`capsNeverZero`, the ι licence) and `isProp`, and
+no pin, memo key or comparison reads one at run time, so the canonical
+representation had no consumer: the datum is a plain
+`inductive PropWhen | never | ifAllZero (ps : List Name)`, exposed,
+self-contained, with `holds`, `isNever`, `paramsDefined`, `inter`,
+`bindZ` and the laws the substitution proofs read.  `isProp` is a match
+instead of `== ifAllZero []`.  The name order, sorted lists,
+`merge`/`canon`, the private representation, `toList`/`casesZ`,
+`eq_iff_holds` and every `import all ConLeche.Kernel.PropWhen` are gone.
+
+**`CheckMode.certs` is `verifiedChecks`.**  The two agreed at both
+constructors; `certs` and its bridging lemmas go, `certAtI` reads
+`verifiedChecks`.
+
+**The model's projection-function η laws.**  `EtaFamilyStored`'s slot
+clause is `caps.etaFields = 0`, `EtaLaw` is `x = ts.foldl app ctor`
+and `EtaCoherent`'s spine the parameters alone; `projSpines`,
+`etaFabArgsV(_eq)`, `projFnName` and its lemmas, `blockTablesFamFree`
+and `BlockCtorsCore`'s family-free conjunct, `WhnfNamesFree`'s
+projection-name conjunct and `whnf_nestOcc_zero` are deleted.
+`CapsOk`'s η half is still read (fieldless η families, `EtaSoundKit`)
+and stays, narrowed.  The installer's "projection-name family taken"
+test in `checkStructProjTable` (and its `F` twin) always passed — the
+front door refuses the names — and went with its inversion and
+simulation.
+
+**The cached `checkDeclC`'s value arms.**  The driver forwards to
+`checkDeclStepC` only axioms, inductive/basis/quotient blocks, the
+pinned `Nat`-operation definitions and the `reduce*` opaques; every
+theorem and every other definition or opaque goes through phase A's
+install half and phase B's `checkPending`, in both modes.  The three
+arms throw an internal error; `checkThmValC`, `checkDefnValC`,
+`checkOpaqueValC` go with their simulation, push-chain, skeleton and
+twin lemmas.  The step theorems keep their statements (vacuous at those
+arms); the capstone chain is untouched.
+
+**Smaller.**  `recRuleEtaOf`'s `!Name.isProjFnShape recName` held at
+every stored recursor; it goes, with the recursor-name argument of
+`recRuleEtaOf`/`recRuleBits`.  `PinGen/Dump`'s `quotePropWhen`/
+`quoteNameList` were dead.
+
+**The census** (`scripts/dead-census.py` on this tree, after the
+above): 126 owners in `Verify`/the rules tier.  Kept as stated results:
+`AgreeFloor`'s `trusted_agrees_*`, `BridgeDecl`'s `checkDeclsPure_datF`
+and its machinery, `MainC`'s `checkDecls_cover`, `ProjVerdict` (its
+docstring now names inference's `.proj` clause), the rules tier's
+derived δ rules (the maintainer's ruling-1 example).  Of the other 107,
+71 are deleted and 36 restored because a proof names them in a
+`rw`/`simp` list (mostly `Knot`'s `*_fold` rfl lemmas).  The
+`boolTrueShortcut` alternatives of the `Fueled`/`PairM` rewrite macros
+went with their lemmas.
+
+**Imports.**  `shake`: 6 imports removed under the #223 criterion,
+7 compensated removals allowlisted (two of them S5b's `GenClsData`
+imports); one `public import` demoted.
+
+**Verdicts** (one run, multi-threaded): e2e and arena fixture for
+fixture as before the lane; arena 90/92.
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342` before the lane (a2907eca2) | 410.404G | 559.868G |
+| S5a | 409.191G (−0.30 %) | 558.475G (−0.25 %) |
+
+57 977 / 131 902 declarations accepted, exit 0, as before.
+
+**Gates.**  `lake build`, `lake test` warning-free; `tests/arena.sh`
+green but `whitepaper/links-gate.sh` (W2's: 22 bad links, the master whitepaper's); pindump, layering, trust surface, quote gate, challenge, shake, the trusted and `--jobs` sweeps green; `overview-links` repointed
+(31 moved ranges; the cited text changed only by the `WellDenoted`
+rename and `PropWhen`'s definition); OVERVIEW's module-system
+paragraph and module map follow the datum and the directories.
+Lines: `ConLeche/` +6672 −10209 (371 files), `tests/` +454 −737,
+`pins/` regenerated.
+
+**Reported, not done.**
+- `checkConstantVal`/`checkConstantValC`/`installHeader(C)` return the
+  constant (and the cached one its type, `jty = cv.type`) unchanged;
+  they could return `Unit`, with the `jty` parameter of
+  `checkDefnValCI`/`checkOpaqueValCI` and their spec twins gone (about
+  150 sites, mostly `Verify/Cached`).
+- `etaSide`'s fvar-leaves clause still carries the disjunct the
+  projection-function fabrication produced; `capsOk_cons_recFresh`
+  could be `capsOk_cons_fresh`.
+- `Name.isProjFnShape`'s `.proj` arm (the front door's refusal of
+  `T.proj.i` names) is verdict-relevant and stays.
+- Prose that still describes the annotations: the `AnnotTerm` name
+  and many `Model`/`Semantics` docstrings ("validated-annotation
+  reading", "numeral slots"), `Semantics.lean`/`SetModel.lean`'s
+  module docs, `Cached/CheckerC.lean`'s `annotate` comments, the
+  `MainTheorem` text (which never changes).
+- `CLAUDE.md` lines 144 and 161 name the sealed `Kernel/PropWhen` and
+  its `import all` readers, which no longer exist (the maintainer's
+  file).  README line 95's paragraph describes the annotations (its
+  rotted link is repointed to the datum's definition).
+
+## TASK #342 — S5C: the last code cleanup before the whitepaper lane (2026-10-13, agent/342-s5c)
+
+Lane S5c, stage S5, on `port-342` (S5b's follow-up, S5a's reported
+items, the ι level comparison).  Sub-lanes `doc`, `nest`, `ret`, `term`,
+`lvl` (with `mem`/`out`), `cco`, `mem2` ran in their own worktrees and
+were merged into the lane branch.  Verdicts unchanged; `MainTheorem`,
+`Denotes`, `Challenge` untouched; no `sorry`, no new axiom, no new
+`unsafe`.
+
+**The ι level comparison follows the parameters' case split.**
+Official (`src/kernel/inductive.h`, `inductive_reduce_rec`, lean4
+470d5ce) compares nothing of the major's constructor: after the K /
+whnf / literal / structure-η preparation it only looks the rule up by
+constructor name, checks the field count and the recursor's level
+arity, and fires —
+
+    optional<recursor_rule> rule = get_rec_rule_for(rec_val, major);
+    if (!rule) return none_expr();
+    ...
+    if (rule->get_nfields() > major_args.size()) return none_expr();
+    if (length(const_levels(rec_fn)) != length(rec_info->get_lparams())) return none_expr();
+    expr rhs = instantiate_lparams(rule->get_rhs(), rec_info->get_lparams(), const_levels(rec_fn));
+
+(the constructor's levels `const_levels(get_app_fn(major))` are never
+read).  Until now `iotaRec` compared the constructor's levels with the
+rule's comparand levels at every fire, in both modes.  Now the licence
+(`iotaCtorLicensed`, `iotaCase3`) is decided at the comparand levels
+`lc` (`recFireComparands … .1`: the recursor's own instantiation for a
+`.plain` rule, the stored container instantiation for a `.nested` one),
+and the level comparison runs, with the parameter comparison, only at a
+case-3 redex: in `--trusted` the ι step compares nothing, as official.
+- Checker: `iotaRec` and `iotaRecI` (the whole case-3 block is one
+  `certAtI`); `Rules.Red.iota`'s level premise and its four case-3
+  premises are conditional on `iotaCase3 … lc`; `iotaRec_inv`,
+  `iotaRec_bridge`, `Deep`'s shift, `DiscC3`'s simulation follow.
+- **The model argument is the parameters' one** (S5b), moved across
+  level frames.  At case 2 the major's domain holds no point ((S), now
+  at `lc`), so the major's reduction is an equation and the fired
+  application `C.{usj} ys` is not the point.  The new clause **(T)** of
+  `RecRuleExtra` reads it at the comparand levels: there is a spine
+  `ys'` (the recursor's parameters — the `.nested` pins' readings at an
+  outside class — then the same fields) fitting `C`'s telescope at
+  `lc`, graded, with the same value; the main law fires there.  Proof:
+  the application is the family's injection at its own valuation
+  (`blockCtorMajor_value`, the generalised `genOutCtorOwn`), nonzero
+  there (`mkZero`); the major is an injection at the recursor's frame
+  (`carrier_case`); the new `LfpClause.injFrame` ("above `Prop`
+  injections read no level": the tagged towers, `Nat`'s numerals,
+  `quotClass` above level 0) identifies the two, and `mkInj` the
+  constructor and the fields (`genMem_T`, `genOut_T`; `quotRuleT_of`
+  with `quotClass_of_mem_quotSet_pos` for `Quot.mk`; `Nat`'s
+  constructors have no level parameters).  At case 3 the level
+  comparison gives the law's level premise as before.  No obstruction.
+
+**The `.nested` fire is computed, not read.**  `auxRuleFire M rP =
+.nested M.lvls (M.ds.map (abstractPrefix rP 0))`: the class the
+installer generated the recursor type from, its parameters closed over
+the rule prefix (`abstractPrefix`, a fold of memoised `abstract1`
+passes, `= abstractRange 0 rP`).  `genStage_nestedRead`
+(`Verify/Inductives/TargetAuxFire.lean`) proves the generated type's
+major domain reads as that datum (EnvWF's `.nested` clause, as
+`NestedRead`).  Deleted: `Expr.nestedRuleSyn`, `lowerBVars`,
+`tgtNestedReads` and `genRecCheck`'s exit-3 check, `auxRuleFireR` and
+its `.plain` arm, the `hreads` fields, and the `resolves` argument of
+`tgtStoredRules`/`consBlockRecsT`/`tgtFireOf` and their kin.
+
+**Guards that returned their input return `Unit`**: `checkConstantVal`
+(`F`, `C`), `installHeader(C)`, `installValueGuards(C)`,
+`classConstOk`; the `jty` parameter of `checkDefnValCI`/
+`checkOpaqueValCI`; the lemmas saying "the returned constant is the
+input" are gone.  `etaSide` loses the projection-function disjunct;
+`capsOk_cons_recFresh` was `capsOk_cons_fresh` and goes.
+
+**Dead proof records.**  `RecTyEntry` and the `tyEntry`, `ctorsAt`,
+`ruleTower`, `idxDoms` fields of `RecStage`/`RecFamFacts` were all
+guarded by a member-major predicate that the one constructor set to
+`False`; they and the predicate (`mem`/`memR`, ~150 binders) are
+deleted.  Four unused `SetModel/Ops` lemmas (`piR_zero_agree`,
+`lamR_zero_agree`, `lamR_mem_zero_agree`, `imax_eq_zero_iff`) went.
+
+**Names and prose.**  `AnnotTerm` is **`ITerm`**, the *interpreted*
+term: the syntax `interp` reads (short, parallel to `Term`, and the
+`I` says what it is for; `MTerm` would suggest "meta").  Two lemma
+names followed (`iTermMkAppN_append`, `iTermLiftN_mkAppN`).  Docstrings
+and comments across every tier that described annotations, `pw`,
+binder data, the annotate pass, honesty checks or the β/io licences as
+current now describe the code (about 700 comment lines, 190 files); 49
+"product"s meaning a Π-type or function space are reworded.
+`CLAUDE.md`: `Kernel/PropWhen` is no longer listed as sealed nor as an
+`import all` example (it is a plain exposed datatype; no `import all`
+of it remains).
+
+**Verdicts** (one run, multi-threaded): e2e and arena fixture for
+fixture as before the lane; arena 90/92.
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342` before the lane (bb5703839) | 409.192G | 558.461G |
+| S5c | 408.353G (−0.21 %) | 557.450G (−0.18 %) |
+
+57 977 / 131 902 declarations accepted, exit 0, as before; peak RSS
+0.32 / 0.48 GiB.
+
+**Gates.**  `lake build`, `lake test` warning-free; `tests/arena.sh`
+green but `whitepaper/links-gate.sh` (W2's); `overview-links`
+repointed (cited text re-read: the rename, the `inferTypeIO` docstring,
+`tgtStoredRules`'s signature); `shake`: 6 imports removed under the
+#223 criterion, 2 compensated removals allowlisted, 3 public re-exports
+the plan's census cannot attribute (`NestedRead`, `ClassOutParams` in
+public statements) recorded as measured fallbacks; layering, trust
+surface, pindump, quote gate, challenge, the trusted and `--jobs`
+sweeps green.  Lines (`ConLeche/`, against
+`port-342`): 368 files, +7884 −7421, of which the rename commit is
+260 files ±4125; without it 236 files, +3783 −3320.  Checker
+(`Kernel/`, `Cached/`): 36 files, +380 −734.
+
+**Reported, not done.**
+- `RecStage`/`RecStageG` keep a `ctorsAs` parameter no field reads.
+- `genOutPinVal` still derives the pins' relation through
+  `nestedRead_open` and `genRun_binders`' `ErasedEq` route;
+  `tgtFireOf_nested_eq` now gives it directly.  `EnvWF`'s `.nested`
+  clause could be stated as `NestedRead`.
+- `ExprOps`'s `instantiate1Lift` section comment counts `lowerBVars`
+  among "three rebuilds".
+- The `…AV`/`acval` names (once "annotated") are everywhere and stay.
+- `MainTheorem.lean:40` says "annotated and pushed" (the text never
+  changes); README's checkDecls_consts bullet says "up to annotations,
+  zeta-reduction" (the maintainer's file).
+
+## TASK #339 — β without a certificate, as a choice of model: the whitepaper fragment and inductive types (2026-10-11, agent/339-uniform-ind)
+
+This record sums up tasks #337–#339; #337's report is
+`research/nopw/REPORT.md` on `agent/337-nopw`, #338's record is on
+`agent/338-nocert` (neither is on `master`).
+
+**The case split (#337).**  The β certificate (the inference of a
+redex's argument and its comparison with the binder domain, at a
+binder that may be a proposition) exists because a proof-λ denotes the
+point, which forgets its domain.  Where a β subject is not the point,
+its λ is not either (`app pt _ = pt`), so it is a graph, which determines
+its domain, and β needs no certificate (`beta_of_ne_pt`).  The split
+"proof — then proof irrelevance answers; otherwise a graph" is in the
+proof only.
+
+**The counterexample (#338).**  With the fragment's model as it is, β at
+every binder with no certificate and no comparison of the binder's
+annotation is unsound (`whitepaper/Fragment/UniformBeta.lean`,
+`uniform_beta_unsound`): `c : Sort 1 := (λ (h : ∀ P : Prop, P). h) Prop`
+is ill-typed but denotes the point, a member of `Sort 1` in any
+well-founded model with transitive universes, so it satisfies the
+semantic environment invariant; δ and a datum-blind β take the typed
+`c` to `Prop`.  Excluding `c` syntactically would need subject
+reduction for stored values.  #338's checker variant (pass the datum of
+the two sides' sorts from the equality test to the head normaliser and
+compare it at each β) is dropped by ruling (d) of 2026-10-11; none of
+`agent/338-nocert`'s `ConLeche/` changes is on this branch, nor its
+datum rules in the fragment (`RedP`, `DefEq.split`).
+
+**The restricted universes (#338).**  `Sort 0` denotes the truth values
+and `Sort (n+1)` the members of the universe that are not the point and
+do not contain it (`typeU`); the point satisfies three laws (`PtLib`:
+not a truth value, at most one member, no graph a member of it; true of
+`pt := {{∅}}`).  The invariant records which sets are types (`WDU`:
+binder domains and graph-regime slot domains are truth values or strict
+sets, codomain fibres follow the annotation's regime), and the claims
+are conditional on the point: a reduction claims nothing of a subject
+that denotes it, an equality nothing of two sides one of which does.
+Then β at every binder is sound with no premise (`Uniform/Sound.lean`,
+`soundnessU`), `DefEqU` needs no split rule, proof irrelevance's
+soundness is vacuous, and `c` has no model (`badEnv_no_model`).
+
+**Inductive types (#339, this branch).**  Done: the rules.  `RedU` has
+the fragment's ι and nested ι (mutual with `DefEqU`/`InferU` now), and
+`EnvModelU` the two ι laws on values (`RecRuleLawU`, `RecRuleLawNU`):
+the constructor's parameters and index values are compared with the
+recursor's only where neither is the point (as `DefEqU` claims them),
+and the law is asked only where the recursor's application is not the
+point.  `RedU.iota_core` proves both ι rules sound; the certificates'
+inferences give the reduct's invariant.  **The major needs no β
+certificate, even on a recursion over proofs** (`major_eq`): the major's
+binder domain is a type (the recursor's stored type is `WDU`), the head
+applied to the spine before the major is not the point, hence a graph
+whose domain is that binder's, so the major and its reduct are both the
+point (a truth value has at most the point as member) or neither is,
+and then the major's reduction claim applies.  Telescope bridges read
+by `interpU`: `Uniform/Tele.lean`.
+
+Not done: the environment side — that installing a definition, a plain
+block and a nested block keeps a model in the restricted universes (the
+counterparts of `install_def`, `install_ind`, `InstallNest`/`NestIota`,
+and `accepted_model`).  Stopped there by the task's instruction to
+report before a heavy investment.  The mathematics found no obstacle:
+- a carrier's fibre above a proposition is a set of tagged tuples, in
+  the universe by the existing construction; it is strict given one
+  more law — no tagged value is the point (`IndLib` has it) and the
+  point's member is not a tagged value (new; true for `{{∅}}` against
+  Kuratowski tags);
+- the field domains, the motive's codomain `Sort u` and the recursor's
+  domains are types, so the generated types are `WDU` — and the
+  installation's own `Infer` checks of the generated types, read by the
+  uniform soundness, supply exactly that;
+- the conditional comparisons of the ι laws become the equalities the
+  recursion equation needs, because the recursor's and the
+  constructor's telescopes are generated from one parameter and index
+  context: under equal earlier values the two sides of each comparison
+  lie in one type, whose members are all the point or none;
+- the Prop-family and subsingleton cases need nothing new: there the
+  major and the constructor value are the point and the fields are
+  pinned as before (the subsingleton criterion), via the equalities
+  just derived.
+
+The obstacle is the fragment's shape.  Its whole environment side
+(`Ctx`, `IndCommon`, `IndSem`, `IndRec`, `Read`, `InstallRead1–3`,
+`InstallInd`, `InstallIota`, `InstallDef`, `Install`, `Consistency`: about
+7 700 lines; nested: `BlockModel`, `NestSem`, `NestRec`, `NestClass`,
+`NestRead`, `InstallNest`, `NestIota`, `NestInstall`: about 8 300 more)
+reads terms by `interp`, whose sorts are the universes, produces
+`WellDenoted` and consumes the unconditional claims; `Decl.lean`'s
+`DefOk`/`IndOk` are stated over `Infer`, not `InferU`.  The restricted
+model therefore needs one of:
+1. a parallel copy of that side in `Uniform/` — about the main side's
+   size (no blow-up beyond it), but a copy;
+2. a fragment parametric in the denotation of sorts and in the typed
+   part of the invariant (`interp` over a sort map, the generated-term
+   proofs proving the typed clauses once, `Decl` over the relations),
+   instantiated at the universes and at `typeU` — no copy, but every
+   semantic file changes;
+3. the fragment switched to the restricted model and uniform β
+   outright (its certified β is admissible in `RedU`), `Uniform/`
+   folded into it — no copy, the same files change, and the fragment
+   stops mirroring con-leche's `Semantics` (which interprets sorts by
+   the universes) until the real-checker port.
+A partial reuse is available under 1: the set constructions of `IndSem`
+and `IndRec` take the model as a parameter, and `interpU M` is
+`interp M'` of the term with every `sort u` replaced by a fresh constant
+that `M'` sends to `typeU u` (sorts carry no bound variables, so the
+replacement commutes with lifting, substitution and level
+instantiation) — so the family and the recursor of a block can be
+taken from those files at the translated specification, and only the
+`Expr`-facing files would be copied.  Which of the three is a ruling.
+
+**For the real-checker port** (a later campaign, ruling (c)):
+- the checker change is small and entirely deletion: β fires at every
+  binder (`whnfCore` loses the certificate and the gate), `propIrrel`
+  stays a `Bool`, no datum is threaded; `CheckMode.betaGate`/`betaSkip`
+  and the io-grade β certificate's code sites go;
+- the model change is large: `SetModel`'s sort interpretation becomes
+  the strict members (with the point's laws, provable from the
+  `SetTheory` core for `{{∅}}`), `Semantics`' invariant records types,
+  the `Model` claims become conditional on the point, and every
+  inductive construction proves its fibres strict;
+- the `Acc`-style major is not an exception: `major_eq` is the whole
+  argument, and the real checker's ι telescope certificates already
+  supply the reduct's invariant;
+- the comparisons ι makes (parameters, indices, levels) stay checks at
+  run time; only their soundness becomes conditional, and the
+  installation proves the generated telescopes coherent.
+
+**Line counts** (`git diff --numstat master`): new fragment files
+`Uniform/Model.lean` 608, `Uniform/Rules.lean` 200, `Uniform/Sound.lean`
+870, `Uniform/Tele.lean` 228, `UniformBeta.lean` 163 (2 069 lines; #338
+brought 1 234 of them, the inductive rules and their soundness are
++835); the main fragment unchanged except its root and the axiom pins
+(+22); whitepaper text: §7 one paragraph, §2 one sentence, notes 38–39.
+
+**Gates** (this branch): `whitepaper/fragment-gate.sh` (warning-free;
+`soundnessU`, `badEnv_no_model`, `uniform_beta_unsound` pinned at the
+three standard axioms), `whitepaper/links-gate.sh` (454 links),
+`whitepaper/build.sh` (PDF and HTML, no warning).  `lake build`,
+`lake test` and `tests/arena.sh` were not run: nothing outside
+`whitepaper/` and this record changed, and the battery's whitepaper
+gates are the three above.
+
+## TASK #340 — the whitepaper fragment switched to the restricted model: uniform β, conditional claims, inductive types included (2026-10-11, agent/340-brave)
+
+Ruling (maintainer, 2026-10-11): option 3 of #339 — the restricted
+universes and uniform β become the fragment's only design.  Done on
+`agent/340-brave` (off `agent/339-uniform-ind`); nothing outside
+`whitepaper/` and this record changed, and con-leche's checker and its
+`Semantics` still interpret sorts by the universes and run the
+certified β.
+
+**What is proved.**  The whole fragment, consistency included, for
+the new model, with no `sorry` and the three standard axioms
+(`whitepaper/fragment-gate.sh` green; `soundness`, `closed_infer`,
+`install_def`, `install_ind`, `install_nest`, `install_ind_any`,
+`accepted_model`, `no_empty_inductive_inhabitant`,
+`no_empty_prop_inhabitant`, `badEnv_no_model`, `Red.beta_sound`,
+`major_eq`, `Red.iota_core` among the pins).
+
+**The model** (`Lib.lean`, `Interp.lean`): `SetLib` gains the point's
+three laws (not a truth value, at most one member, no graph a member)
+and closure of the universes under separation; `interp` reads
+`Sort n` as `typeU n` (truth values at `0`, the strict members of
+`univ n` above).  `IndLib` gains one law: no tagged value is a member
+of the point (with `tag_ne_pt`, a set of tagged values is strict).
+
+**The invariant and the claims**: `WellDenoted` is #338's `WDU` (a
+recursive definition: binder domains and graph-regime slot domains are
+types, codomain fibres follow the annotation's regime); `Sat`, `CtxWD`
+and `EnvModel.type_ok` carry `IsTy`; `RedSem`/`DefEqSem` claim nothing
+of the point, `InferSem` adds that the type is a type.
+
+**The rules**: `Red` has one β rule with no premise (`betaGate` and the
+certified `beta` are gone); `DefEq` and `Infer` unchanged.  The ι laws
+compare conditionally and are asked only off the point.
+
+**The installation** — what #339's sketch did not foresee:
+- *Families of types only.*  The former may denote only a family of
+  types, so the universe bound on the fields is read in the model whose
+  former denotes the one-fibre family (`oneSet`: `{pt}` at a
+  proposition, `{tag 0 ∅}` above) and transported to every family by
+  the no-dependency replacement (`toFam`, `domsBounded_of_fam`); the
+  support bound uses the same family.
+- *The class at admissible sets.*  The container's set is a graph whose
+  nested domain is `Sort u`; the generic accessibility machinery applies
+  the class at arbitrary sets of the universe, where the graph says
+  nothing.  `classSet` now applies the container at the admissible part
+  `adm X` (above a proposition, the members neither the point nor in
+  it: a type, and `X` itself on a set of tagged values); readers record
+  that their family's fibres are admissible (`Reader.adm`); the
+  container's universe bound at a non-admissible parameter set follows
+  by positivity from the bound at the one-fibre set
+  (`NestFacts.domsBoundedK`); `NestFacts.argsFit` is asked at types.
+- *A cycle broken.*  The final model's former needs its fibres to be
+  types, which needs the container's clause, which needs the class's
+  arguments to fit — previously read in the final model.  `argsFit_of`
+  now reads the class's typing in the one-fibre model.
+- *The conditional comparisons as equalities*: `FitsVals_eq_of_cond`
+  (two fits of one context of types, equal where neither is the
+  point, are equal), at the parameter and index contexts read off the
+  former's typing, in both `rec_rule_law` and `rec_rule_lawN`.
+- *Minors' types are types*: the spine of a minor needs its binders'
+  domains to be types, read off the recursor's type (`wd_minorsFrom`,
+  `wd_ctxFrom`, `wd_minors_of_extrasN`).
+No law failed, no construction left the restricted universes, and
+nothing needed subject reduction or a run-time check.
+
+**Line counts** (`git diff --numstat`): against `fc4bd2b39` +2 807
+−4 011 (net −1 204: `Uniform/` 1 906 lines deleted, `UniformBeta.lean`
+reduced to the no-model half); against `master`'s fragment +2 855 −1 972
+(net +883).  The fragment is 25 388 lines (master 24 506).  Largest
+changes: `Sound` (rebuilt from `Uniform/Sound`), `InstallNest`
+(reordered), `IndSem` (`oneSet`, `adm`-aware class, `toFam`,
+`domsBounded_of_fam`, `Fam_mem_typeU`), `InstallInd`, `Lib`
+(`typeU` and its lemmas), `NestIota`, `NestSem`.
+
+**Not done** (ruling: text later): `whitepaper/sections/*.typ` still
+present the certified design; `links-gate.sh` fails on 11 stale anchors
+into `Rules`, `WellDenoted`, `Univ`, `UniformBeta` and `Uniform/`.
+NOTES item 40 lists what the text needs.
+
+**For the real-checker port**, beyond #339's list: con-leche's model
+will meet the same three needs — families of types at the former (the
+universe bound read at one family and transported), the class applied
+at admissible parameter sets only (or an equivalent guard), and the
+container's argument fit read in a model that needs nothing of the
+class.
+
+## TASK #341 — can the annotations be ghost data? The survey, two comparisons dropped, one that stays (2026-10-11, agent/341-ghost)
+
+The question (maintainer, 2026-10-11): in the whitepaper fragment on
+the restricted model (#340), does any checker decision still READ a
+binder's `PropWhen`?  If not, the annotations could be ghost data: the
+proof would get them from a specification function or an existential,
+and the annotate pass could go.
+
+**Survey** (every read of an annotation in the fragment's checker side:
+`Rules.lean`, `Decl.lean`, `Syntax.lean`, `Scope.lean`):
+
+| site | reads the annotation? | a decision? |
+|---|---|---|
+| `Red.beta` | no (since #340) | — |
+| `Red.delta`, `Red.iota`, `Red.iotaNested` | `instL` substitutes it (`PropWhen.substL`); `piDomains`/`piResidual`/`hasPis` ignore it | no |
+| `Infer.pi`, `Infer.lam` | `Level.zeroness v = pw` | **yes**: the honesty check |
+| `Infer.lam`'s result `pi A pw bt` | copies it into the type | no (data flow) |
+| `Infer.app` | ignores the `∀`'s | no |
+| `DefEq.pi` | `pw` equal on both sides | **yes** |
+| `DefEq.lam` | `pw` equal on both sides | **yes** (removed here) |
+| `DefEq.eta` | λ's `pw` = the `∀`'s | **yes** (removed here) |
+| `DefEq.proofIrrel`, `sort`, `const`, `app`, `redL` | no | — |
+| `Decl`: `lparamsIn` | `pw.paramsIn` | a scope check; for an honest datum it should follow from the scope of the sort it reads (not proved) |
+| `Decl`: generators (`mkPis S.pw`, `.never`, `S.q`) | produce it | no; the generated types' `Infer` checks validate it |
+
+**Outcome.**
+- *λ-congruence and η need no comparison* (done, `Rules.lean`,
+  `Sound.lean`: `DefEq.lam_sound`, `DefEq.eta_sound`, +21 −8 lines).  A
+  λ whose annotation holds denotes the point, and `DefEqSem` says
+  nothing of the point; two λs that are not the point are both graphs,
+  their bodies in strict fibres.  In η, `b` not the point puts its `∀`
+  in the graph regime, and the λ not the point puts it there too.
+- *`∀`-congruence needs its comparison* (`Ghost.lean`, 154 lines).  Over
+  an empty domain the propositional product is `{pt}` and the function
+  space holds one graph; nothing about the domain or the codomain
+  distinguishes them.  `(h : ∀ P : Prop, P) →[pw] Prop` is well-denoted
+  under both annotations, in every model, at every valuation, neither
+  denotes the point, and the two denotations differ
+  (`pi_datum_needed`); so the rule without the comparison has true
+  premise claims (same domain, same body by `refl`) and a false
+  conclusion (`pi_congr_without_datum`).
+- *Inference's check stays*: a λ's annotation is not fixed by the
+  semantics either (over the same empty domain both annotations are
+  well-denoted, the point and the empty graph, `lam_datum_free`), only
+  by its type: just the honest one is a member of the honest `∀`
+  (`lam_datum_from_type`).
+- *Why ghost data does not rescue the `∀` comparison.*  A ghost
+  annotation read off the typing is honest at every site, and with
+  honest annotations the comparison never fails: two definitionally
+  equal types have equal sorts, so their bodies' sorts have the same
+  zero-ness.  But the proof would have to establish that agreement for
+  two subjects whose annotations come from separate typings (a reduct,
+  an inferred type, the head's domain against the argument's type), and
+  the semantics cannot supply it — the witness above shows the values
+  are the same under both annotations.  It is a syntactic theorem about
+  `DefEq` and `Infer` that the semantic proof does not need while the
+  checker compares the data.  The existential form ("some annotation
+  under which the input is well-denoted") is weaker still: both
+  annotations of the witness qualify.
+- *A model without the distinction* would have to identify the empty
+  graph with the point; then `False → Empty` contains the point, the
+  graph-regime fibres stop being strict, and λ-congruence loses the
+  agreement of its bodies' point-ness (a body may be the point on one
+  side and a graph on the other).  That is #337's forced collapse, now
+  against the restricted universes; not pursued.
+
+**For con-leche's real checker** (after the #339/#340 port, not before:
+under today's unconditional claims a mismatched λ pair is a point and a
+graph, and the comparison is needed):
+- the annotate pass and `PropWhen` stay: every `∀` needs an honest
+  datum for the defeq comparison, and every λ for membership;
+- the binder-datum comparison at λ-congruence and η can go; the one at
+  ∀-congruence stays;
+- the checker never needs to *compute* a λ's datum anew: `Infer.lam`
+  already infers the body's sort.
+
+**Gates**: `whitepaper/fragment-gate.sh` green (warning-free, no
+`sorry`; `pi_congr_without_datum`, `lam_datum_from_type`,
+`DefEq.lam_sound`, `DefEq.eta_sound` pinned at the three standard
+axioms).  `whitepaper/links-gate.sh` was already failing on #340's stale
+anchors; this change adds none (the text is not touched).  Nothing
+outside `whitepaper/` and this record changed.
+
+## TASK #343 — `∀`-congruence without the annotation comparison: compare the sides' types (2026-10-11, agent/343-picong)
+
+The question (maintainer, 2026-10-11): #341 left one comparison of
+binder data in the fragment's checker, `DefEq.pi`'s "the annotations
+are equal".  Other checkers do not compare binder data at
+`∀`-congruence.  Can it be replaced by something a checker computes
+anyway, eliminated, or is it inherently needed?
+
+**Outcome: replaced** (`whitepaper/Fragment/`, +178 −32).
+- *The rule* (`Rules.lean`, `DefEq.pi`): domains, bodies, and
+  `Infer Γ lhs t₁`, `Red Γ t₁ (sort u)`, `Infer Γ rhs t₂`,
+  `DefEq Γ t₁ t₂` — the two sides have definitionally equal types and
+  the left one is a sort.  The annotations `pw₁`, `pw₂` are free.  The
+  subject discipline of `DefEq` holds: `t₁`, `t₂` come from `Infer`
+  premises, as in `proofIrrel`.
+- *The set lemma* (`Lib.lean`, `SetLib.piR_eq_of_mem_typeU`): two
+  products over one domain, fibres in both regimes, both members of
+  one `typeU n`, are equal.  Where the regimes differ every fibre is a
+  truth value and strict, so empty; an inhabited domain makes both
+  products empty; an empty domain is excluded by the common sort
+  (`{pt}` is not strict; a function space holds a graph, so is no truth
+  value).  No new law of `SetLib`.
+- *Soundness* (`Sound.lean`, `DefEq.pi_sound`): the inferred types put
+  both sides in `typeU u`; the fibre equality is the old argument.
+  Nothing else in the fragment builds or inverts `DefEq.pi`.
+
+**The impossibility half** (`Ghost.lean`): what a replacement must read.
+- `codomain_claims_vacuous`: no valuation satisfies `falseE :: Γ`, so
+  every `Infer`/`DefEq`/`Red` claim under it holds.  With
+  `pi_datum_needed`, no premise about the domains and bodies — equal
+  bodies, the bodies' inferred types, the sorts of those (direction 4
+  of the task: compare the codomains' inferred sorts) — excludes the
+  witness `(h : ∀ P : Prop, P) →[always/never] Prop`, whose bodies
+  are both `Prop : Sort 1`.  Comparing codomain sorts is right for
+  honest input but has no semantic justification: it is the syntactic
+  theorem #341 named.
+- `pi_over_false_sorts`: the witness's two readings lie in no common
+  sort.  So the missing information is a claim at the outer context
+  about the `∀`s themselves; their type is one such claim, and
+  `Infer.pi` derives it only for an honest annotation.
+- Directions 2 and 3 of the task: a common type supplied by the
+  defeq's caller is not available at most call sites (`DefEq.pi`'s and
+  `DefEq.lam`'s domains, `DefEq.app`'s heads and arguments, `Infer.app`
+  and the ι certificates compare an inferred type with a reduct whose
+  sort nobody computed); the rule computes it locally instead.  A
+  model in which the two readings coincide must put the empty graph at
+  the point (#341: breaks λ-congruence); a membership in a common
+  *type* that is not a sort is not enough either (a strict set may hold
+  both `{pt}` and the one-graph space), hence the `Red … (sort u)`.
+
+**For con-leche's real checker** (after the #339/#340 port):
+- the rule is typed conversion at `∀`; it needs the two sides' types.
+  `propIrrel` does NOT compute them for `∀` sides today:
+  `notProofFast` answers first.  So the replacement adds an inference
+  of each `∀` side per congruence step (a telescope walk; under nested
+  congruence the inner steps re-infer the inner `∀`s unless the
+  inference cache or a chain read serves them).  Comparing the
+  annotations is the cheap form of the same test: an honest annotation
+  is the zero-ness of the body's sort, which is what the sorts' test
+  reads.  Whether that cost buys anything (dropping the annotate pass
+  needs the λ's honest datum too, `lam_datum_from_type`) is a ruling.
+- the level test can be the full one (`Sort w₁ ≡ Sort w₂`, as here) or
+  zero-ness only; the set lemma needs only "both in one `typeU n`".
+
+**Gates**: `whitepaper/fragment-gate.sh` green (warning-free, no
+`sorry`; `DefEq.pi_sound`, `SetLib.piR_eq_of_mem_typeU`,
+`pi_over_false_sorts`, `codomain_claims_vacuous` pinned at the three
+standard axioms).  `whitepaper/links-gate.sh` was already failing on
+#340's stale anchors; the text is not touched, and the shifted lines of
+`Rules`, `Sound` move some of those anchors.  Nothing outside
+`whitepaper/` and this record changed.
+
+## TASK #344 — annotation-free terms: the model reads the regime off the values (2026-10-11, agent/344-unannot)
+
+The question (maintainer, 2026-10-11): after #343 the fragment's checker
+reads a binder's `PropWhen` only in inference's honesty checks, and the
+model reads it to choose the propositional or the function reading of
+`∀`/λ.  Can the terms carry no annotation at all — (A) an
+interpretation driven by the typing derivation, with coherence across
+derivations, or (B) an annotate pass nothing reads, with a simulation
+— or by a less roundabout way?
+
+**Outcome: the less roundabout way — the regime is a function of the
+values.**  Done on `agent/344-unannot` (off `agent/343-picong`): the
+whole fragment, consistency included, with unannotated syntax, no
+`sorry`, the three standard axioms, `whitepaper/fragment-gate.sh`
+green.  `PropWhen.lean` and `Ghost.lean` are deleted.
+
+- *The model* (`Lib.lean`, `Interp.lean`): `piV A B` is the
+  propositional product when every fibre over `A` is a truth value,
+  else the function space; `lamV A F` is the point when every body
+  value over `A` is, else the graph.  Over a nonempty domain this is
+  the honest annotation's reading; over an empty domain both read
+  "proposition" (`{pt}`, the point).  β along an abstraction needs no
+  premise on the body (`app_lamV`), membership needs the fibres to be
+  types (`lamV_mem`), η likewise (`lamV_eta`).
+- *`Sort (n+1)` holds the truth values*: `typeU (n+1)` is the members
+  of `univ (n+1)` that are types (`IsTy`), no longer only the strict
+  ones — forced, since `False → Nat` denotes `{pt}`
+  (`Unannot.lean`, `piV_empty_not_strict`).  #340's "a member of a
+  type of nonzero sort is never the point" is lost; the proof never
+  needed it except at λ-congruence and η (#341), which it replaces by
+  typed premises.  The invariant that the claims rely on is unchanged:
+  inferred types are types, whose members are all the point or none.
+  The uniform-β witness still has no model (the point is no type).
+- *The rules* (`Rules.lean`): `Infer.pi`/`Infer.lam` are Lean's
+  (`Infer.lam` no longer infers the body's sort); `DefEq.pi` compares
+  domains and bodies only (#343's type premise is gone); `DefEq.lam`
+  and `DefEq.eta` additionally infer the bodies' types under the binder
+  and compare them — necessary: without it the rule is unsound in this
+  model (`lam_congr_untyped_unsound`, a witness with a body that is the
+  point at one value of the variable and `True` at another).
+- *The environment side*: a reflexive field ranges over the admissible
+  part of the family's fibre under its telescope (`IndCommon.reflBody`;
+  over an arbitrary family a fibre `{pt}` would flip the field's
+  product into the propositional regime and break the operator's
+  monotonicity); the family's fibres are admissible with no universe
+  bound (`adm_Fam_of`); the recursor into `Prop` is the point
+  (`recSet`'s body), so its ι law, asked only off the point, is
+  vacuous there and the typing needs only inhabited truth-valued
+  fibres; the readings of the former's applications (`famAt_wd`,
+  `appList_of_wd`) ask the application not to be the point (an
+  abstraction over an empty domain is), which holds where they are
+  used because the term is a type; for a nested block the nested
+  occurrence's index fit (`NestFit`) is read off the class check
+  (`InstallNest.class_reading`) instead of the occurrence's invariant.
+  The constructor-type and class checks of `Ok`/`OkN` now say "has a
+  sort" formally (their docstrings already did; the real checker
+  does).
+
+**Why A and B are not needed, and what they would need.**
+- The ambiguity is confined to binders whose domain is empty at the
+  valuation; there the body lives in an unsatisfiable context, every
+  claim about it is vacuous (#343's `codomain_claims_vacuous`), so no
+  semantic coherence ("unique isProp'ing") can fix the regime — the
+  restricted universes give it at satisfiable valuations only, and the
+  conditional claims do not help because the two readings (`{pt}` and
+  the one-graph space) are neither of them the point.
+- Unique typing itself looks within reach in the fragment (head
+  reduction is deterministic given the stored environment's shape, so
+  `Infer` should be a function; not proved here), but a
+  derivation-driven meaning must commute with
+  substitution: the regime of a binder inside `b[a]` must be the one a
+  derivation of `b[a]` gives, i.e. subject reduction for a β that
+  checks nothing about `a`, plus a substitution lemma modulo `DefEq`.
+  B needs the same of the annotations carried through reduction.  The
+  value reading needs neither.
+
+**For con-leche's real checker** (after the #339/#340 port):
+- deleted: the annotate pass, `PropWhen` on binders and its sealed
+  module, the honesty checks in `inferForall`/`inferLambda` (and the
+  body-sort inference the λ check runs), the binder-datum comparisons
+  at `∀`-congruence; #343's typed `∀`-congruence is not needed either;
+- added: λ-congruence and η infer both bodies' types under the opened
+  binder and compare them (typed conversion at λ) — the one new cost on
+  the hot path, a body inference per side per λ-congruence step unless
+  cached;
+- the model: `SetModel`'s products and abstractions read their regime
+  from values, `Sort (n+1)` denotes the types of its universe, the
+  inductive constructions use the admissible part under reflexive
+  telescopes and the point for recursors into `Prop`; the proof diff
+  here was +2 281 −2 726 on the 25 734-line fragment (net −445; largest:
+  `NestIota` +208 −301, `Read` +181 −266, `Lib` +218 −84, `Sound`
+  +111 −179, `NestRec`, `InstallNest`, `Ctx`, `InstallInd`).
+
+**Line counts** (`git diff --shortstat agent/343-picong -- whitepaper/Fragment*`):
+41 files, +2 281 −2 726; the fragment is 25 290 lines; new
+`Unannot.lean` 221; deleted `PropWhen.lean` 348, `Ghost.lean` 200.
+
+**Gates**: `whitepaper/fragment-gate.sh` green (warning-free; pins
+added for `lam_congr_untyped_unsound`, `SetLib.lamV_mem`,
+`SetLib.lamV_eta`, `SetLib.piV_mem_typeU`, `piV_empty_not_strict`,
+`IndSpec.adm_Fam_of`, `IndSpec.class_reading`; the annotation
+witnesses' pins dropped).  The whitepaper text is not touched; its
+`links-gate.sh` was already failing on #340's stale anchors.  Nothing
+outside `whitepaper/` and this record changed.
+
+## TASK #345 — the λ-congruence type check probed: why the point is harmless, where the check can go (2026-10-11, agent/345-probe)
+
+The questions (maintainer, 2026-10-11, on #344's annotation-free
+fragment): (1) terms that denote the point outside proofs exist
+(`fun h => h.elim : False → Nat`, `fun n h => h.elim`, partial
+applications); why may the claims say nothing about their reductions?
+(2) Build examples where the bodies' type comparison of λ-congruence
+and η matters; learn which weaker check suffices and where it can be
+dropped.  Done on `agent/345-probe` (off `agent/344-unannot`), fragment
+only, `whitepaper/fragment-gate.sh` green; the whitepaper text is not
+touched.
+
+**(1) The point outside proofs.**  The proof never asks whether a term
+is a *syntactic* proof (its type of sort `Prop`) except in
+`proofIrrel`, whose claim is vacuous.  It asks whether the *value* is
+the point, and learns it only from a type the term lies in: a type
+(`IsTy`: a truth value or a strict set) holds the point and nothing
+else, or not the point.  A point-denoting non-proof is a member of a
+type that denotes `{pt}` at the valuation: `False → Nat` (empty
+domain), `Nat → False → Nat` (`Probe.lean`, `piV_const_one`: every
+fibre `{pt}`), and `k False` for `k := fun (P : Prop) (h : P) => c`,
+which is a graph (`mixed_lam`).  Every place where a premise's claim is
+read, and why the point does no harm there:
+- *the subject is a type, never the point*: the sort and `∀`
+  reductions in `Infer.pi`/`lam`/`app`, `DefEq.eta`, `proofIrrel`, the
+  type comparisons of `Infer.app` and of the ι certificates
+  (`teleFit_of_certs`), the domains and fibres of `DefEq.pi`, the
+  domains of `DefEq.lam`/`eta`, the definition's inferred type against
+  its declared one (`InstallDef`);
+- *the subject is not the point by hypothesis*: `Red.trans`,
+  `Red.appFn` (the head of an application that is not the point),
+  `DefEq.redL`, `DefEq.app`'s heads;
+- *the two sides share a type, so their point-ness agrees*:
+  `DefEq.app`'s arguments (the heads are one graph, whose domain is
+  the slot's type), ι's major and its reduct (`major_eq`: the binder
+  domain, which the certificate puts the reduct in), ι's parameter and
+  index comparisons (passed on conditionally; the installation resolves
+  them on one telescope of types, `FitsVals_eq_of_cond`), and
+  λ-congruence/η's bodies — the one place where nothing else supplies
+  the common type, hence the check;
+- *unconditional*: β (`app_lamV` on the domain) and δ (the `unfold` law).
+The hypothesis "a type holding the point holds nothing else, and types
+are never the point" is confirmed, with one refinement: for
+λ-congruence the common type is needed of the two *bodies* at every
+value of the variable, and a common type of the two *λs* gives it only
+when that type is a product (a strict set may hold two graphs that
+differ exactly where one of them is the point).
+
+**(2) The examples.**
+- `lam_congr_untyped_unsound` (#344) is semantic: its left body
+  `(fun (h : E x) => h) n` is ill-typed, the left λ only well-denoted.
+- `lam_congr_sorts_unsound` (`Probe.lean`) moves the ill-typed redex into
+  a stored definition `d := fun x => (fun (h : E x) => h) n :
+  (x : Prop) → F x`, with `E`, `F`, `n` opaque.  The environment has a
+  model; both λs `fun x => d x` and `fun x => n` are typed in the empty
+  context; the domains, the bodies (δ, β, β, `refl`) and the bodies'
+  inferences are derivable; the bodies' types `F x` and `Prop` both have
+  sort `Type`; the λs differ.  So comparing the bodies' sorts (or their
+  zero-ness), checking only when a body's type has sort `Prop`, or only
+  over possibly empty domains (here `Prop`, inhabited) is not enough.
+  The distance to a counterexample against an *accepted* environment:
+  `d`'s value is not typed, so `install_def` rejects it.  A
+  counterexample with an accepted environment and typed input needs a
+  typed term whose reduct contains a redex whose argument lies outside
+  its λ's domain at some valuation — a failure of subject reduction of
+  the fragment's own rules.  None was found: a typed redex's argument
+  lies in the λ's domain (`Infer.app` compares its type with the
+  domain, both types), and a substituted λ meets a slot whose domain
+  is its own (every derived equality of two `∀`s ends in
+  `∀`-congruence on the domains).  The semantic proof does not need
+  this argument; the check replaces it.
+- The real-checker experiment is below.
+
+**What is implemented** (`Rules.lean`, `Sound.lean`, all proved):
+- `DefEq.lamProp`, `DefEq.etaProp`: over a propositional domain
+  (inferred sort `0`) no body type is inferred or compared — the domain
+  has at most one member, so a body's point-ness cannot vary;
+- `DefEq.lamConst`: two bodies that do not use the variable need no
+  type (one constant body is not enough: `n` in the witnesses);
+- `DefEqIn` and `DefEq.appIn`: arguments of an application are compared
+  at the domain `S` of the head's type (`Infer` of the head, reduced to
+  a `∀`); at `S`, λ-congruence and η reduce `S` to a `∀` and compare the
+  bodies at its body, with no inference, no comparison of the bodies'
+  types, and no comparison of the λs' domains (a graph in a function
+  space has its domain).  Its claim `DefEqInSem` is unconditional.
+The full typed rules stay for λs compared with no known type.
+
+**Callers.**  Two λs meet, in con-leche's core, (a) as arguments of
+two spines with one head — `defEqList` after the head comparison; the
+head's stored type instantiated along the earlier arguments gives each
+argument's domain without inference (`appIn`, with the type from the
+store instead of `Infer`), (b) as bodies of enclosing λs or `∀`s
+(nested; under `DefEqIn` they inherit the type), (c) after δ unfolds
+two unapplied constants or heads, (d) by η against a non-λ in any of
+these positions.  Only (c), and (a)/(d) at heads whose type is not at
+hand, need the inferring check.  Types are never λs, so the top-level
+comparisons (inferred against declared types, `Infer.app`, the ι
+certificates) never reach λ-congruence directly.
+
+**The real checker** (scratch branch `agent/345-lamcheck-exp`,
+`6a589725a`, off `master`, not for merging: `unsafe` counters).  The
+typed check was added to today's cached core (`CoreC.lean`: the two-λ
+arm and `etaCertI`). After a successful comparison it infers the
+bodies' types under the opened variable and compares them, without
+changing the verdict.  Results at `--verified --jobs=1`, with the same
+verdict and accepted count as the base binary:
+
+| stream | λ-λ | η | failures | exceptions | exempt P or C (λ-λ) |
+|---|---|---|---|---|---|
+| init-full | 21 952 | 1 017 | 0 | 0 | 7 190 (33 %) |
+| mathlib-prefix | 39 861 | 2 056 | 0 | 0 | 11 772 (30 %) |
+
+P is a domain whose type is syntactically `Sort 0`; C is a body (both
+bodies for λ-λ) not using the variable.  Cost (`instructions:u`, one
+run each): init-full 482.53 G → 483.59 G (+0.22 %), mathlib-prefix
+679.01 G → 680.93 G (+0.28 %).  The check never fails on real input;
+under 0.4 λ-congruences per declaration reach that arm.
+
+**For `--trusted` and the port.**  The check is a soundness premise
+of the semantic proof, never a verdict-changing test on well-typed
+input, so `--trusted` skips it with no observable difference (as other
+checkers do: they rely on the metatheory's subject reduction and
+uniqueness of types, which make the two bodies' types equal whenever
+the λs meet at a common type).  In `--verified` the full check costs
+about a quarter of a percent.  `appIn`/`DefEqIn` (the type from the
+head's stored type) and the propositional-domain and constant-body
+exemptions remove most of that; whether that is worth the code is a
+ruling.
+
+## TASK #347 — the ι-side certificates under #344's annotation-free model: which can go (2026-10-11, agent/347-iota)
+
+The question (coordinator, 2026-10-11): under #344's value-read model
+and conditional reduction claims, which argument-against-domain
+certificates of the ι family (#342 v2 §4.2 T4/T5, §5.3) does the
+checker still need?  Survey of every ι-like path on `master`
+(`3b37939f0`), Lean's kernel, a counter run, and the fragment proof.
+
+**Lean's kernel** (`inductive_reduce_rec`, `src/kernel/inductive.h`,
+v4.35.0-rc3 and `master` 1aacc7a9b, unchanged in between): K
+(`to_cnstr_when_K`) only for a recursor with the K flag — a `Prop`
+family with one constructor and **no fields** (`Eq`, `HEq`, `True`);
+structure η (`to_cnstr_when_structure`) only for a non-recursive
+structure whose instantiated type is **not** `Prop` (`if (is_prop(e_type))
+return e`).  So large elimination from `Prop` with fields — `Acc`,
+`And`, `Iff`, `WellFounded`, `Subsingleton`, `Quot` at `Sort 0` —
+still goes through plain ι on a constructor literal in Lean.  The
+maintainer's expectation (K or η instead of plain ι) holds for `Eq`
+and `HEq` only.  Con-leche does the same as Lean, plus its `And`
+rescue (η on a stuck `And` proof, an accept-superset).  Nothing
+proposed here changes which reductions con-leche performs.
+
+**The licence, as it turns out** (proved in the fragment, below):
+1. *Recursor telescope*: no certificate.  A redex that is not the
+   point fits the recursor's telescope through the invariant's
+   application slots (`teleFit_of_ne_pt`).
+2. *Major's family strict at the valuation* (never `Prop` at the
+   instance): no certificate at all — major slot, constructor
+   telescope, nothing (`iota_core_strict`).  The major lies in a strict
+   domain, so it is not the point; its reduction claim applies; the
+   reduced constructor application is not the point, so it fits the
+   constructor's telescope by (1).
+3. *Otherwise* (the family may be `Prop` at the instance, the motive
+   may not): the major's slot at the **io grade** (its type compared
+   with the domain; "point or member" suffices, since the domain then
+   holds the point) and the constructor telescope at the **full grade**
+   — params and *all* fields, not only the index-pinned ones.  A
+   `Prop` field whose type is a `∀` (`Acc.intro`'s `h`) can be a graph
+   at the io grade (#346), and `RecRuleLaw` needs every field in its
+   domain.  The index and parameter comparisons stay conditional.  The
+   major's slot certificate is also what stops a constructor of
+   another family of a mutual block from firing.
+4. *Motive into `Prop`*: nothing (the redex is a proof).  It never
+   fires in the streams: proofs are not reduced.
+
+**The table** (certificate → needed? grade):
+
+| path | today (verified) | under #344 |
+|---|---|---|
+| plain ι, recursor spine before the major | certified at non-`never` binders | none |
+| plain ι, major slot | certified at non-`never` binders | case 3 only, io grade |
+| plain ι, constructor telescope | certified at non-`never` binders | case 3 only, full grade |
+| plain ι, index / parameter comparisons | certificate family | conditional, as today (the law takes them); in case 2 derivable by inversion if `RecRuleLaw` were restated |
+| nested rule pin comparison | verdict-relevant | kept (not a certificate) |
+| Nat / String literal majors | as plain ι | none (case 2) |
+| K (`Eq`, `HEq`): constructor params | full cert, before the fab type check | case 3: full grade, 2 slots; move after the type check (594 of 844 runs on init-full are wasted on failed fabs) |
+| K: fab type check `tfab ≡ tmaj` | both modes | kept (Lean does it, verdict) |
+| K: `proofIrrel fab major` | certificate family | none: the K family is `Prop`-sorted, so `fab` and `major` are both the point |
+| K: iotaRecI's second ctor cert on `fab` | runs again | none (duplicate) |
+| struct-η major rescue (`majorToCtor` η) | ctor cert + `structEtaCertWith` tele certs | none (never `Prop` by its guard) |
+| `And` rescue | ctor cert, type check, `proofIrrel` | case 3: ctor cert full grade; `proofIrrel` none; type check kept |
+| `Quot.lift` at `Quot.{u}`, `u` may be 0 | as plain ι | case 3: ctor cert (`α r a`) full grade |
+| `Quot.ind` | as plain ι | none (motive `Prop`) |
+| projection of a constructor literal (`projCertAt`) | ctor cert, licensed | none (`proj i pt = pt`) |
+| conversion structure η (`structEtaCertWith`) | type-former + per-slot certs | none, io grade suffices for the major-type discovery (#346) |
+| unit-like (`structUnitCert`) | type-former cert | none |
+
+**Counts** (scratch probe on `master`, `--verified --jobs=1`, verdicts
+unchanged: 57 977 / 131 902 accepted; logs in `_tmp/347/run3-*`):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| ι fires | 1 665 786 | 1 978 708 |
+| case 2 (never `Prop`) | 1 665 506 | 1 976 829 |
+| case 3 | 280 | 1 879 |
+| — by family: `Eq` via K / literal | 250 / 16 | 1 757 / 42 |
+| — `Quot` at a polymorphic level | 11 | 77 |
+| — `Acc` (literal `Acc.intro`) | 2 | 2 |
+| — `PUnit.{u}` | 1 | 1 |
+| case 3 constructor slots (all fields 15 / 81) | 573 | 3 837 |
+| case 3 major slots | 280 | 1 879 |
+| motive `Prop` | 0 | 0 |
+| today: telescope slots run / skipped (all sites) | 22 913 / 14.2 M | 45 178 / 17.2 M |
+| today: plain ι recursor-spine slots run | 5 572 | 8 971 |
+| today: plain ι ctor slots run | 573 | 3 837 |
+| today: projection fires (slots, mostly skipped) | 1.08 M (3.43 M) | 1.32 M (4.25 M) |
+| today: struct-η / unit-like type-former cert runs | 4 393 / 5 | 7 243 / 7 |
+| today: K `proofIrrel` runs | 250 | 1 757 |
+| today: `And` rescue | 0 | 0 |
+| plain parameter comparisons as a cert family | 0 | 0 |
+| case-2 index comparisons | 0 | 0 |
+
+Today's `.never` licence on the constructor side already skips exactly
+the case-2 slots; the new licence matches it there with one level test
+per redex, and removes the recursor-spine certificates (5 572 → 280,
+8 971 → 1 879 slots, the remaining ones being case-3 major slots).
+
+**Case 3 does not vanish.**  Refusing case-3 ι on constructors with
+fields rejects `funext` (`Quot.lift` on `Quot.mk` at `Sort u`) in both
+streams; refusing `Acc` alone rejects `WellFounded.fixF_eq` (its proof
+needs `Acc.rec … (Acc.intro x h)` to reduce).  Lean does the same plain
+ι.  `Acc.rec` is not deprecated in Lean's `Init/WF.lean` (master
+1aacc7a9b).
+
+**The fragment** (`whitepaper/Fragment`, this branch, gate green, no
+`sorry`, standard axioms, pins added for `teleFit_of_ne_pt`,
+`Red.iota_core_sem`, `Red.iota_core_strict`):
+- `Red.iota`/`Red.iotaNested` drop the recursor's telescope
+  certificate.  They certify the reduced major's slot against the
+  domain the recursor's telescope leaves (`Expr.piResidual`), and the
+  constructor's telescope.
+- `iota_core` is split: `iota_core_sem` takes the reduced major's
+  invariant and the two fits as a semantic hypothesis.  `iota_core`
+  supplies them from the certificates, `iota_core_strict` from a
+  strict major domain with no certificate.
+- What is not done: case 2 as a *rule*.  Its premise has to imply that
+  the major's domain is strict.  #344 put the truth values into every
+  `Sort (n+1)` (`typeU`), so the universe no longer gives that.  An
+  environment law is needed: an inductive family whose stored sort
+  evaluates non-zero has strict fibres.  The model already has the fact
+  (`IndSem.Fam_mem_typeU`'s `false` branch, `IndCommon.IsTy_adm` for
+  nested blocks).  The law cannot be a plain `EnvModel` field, because
+  `mIndF` gives the former an arbitrary family.  It must be guarded,
+  for example by the block's constructors being stored, and threaded
+  through `transport`, `InstallDef`, `InstallInd`'s stages and
+  `InstallNest`.  The rule premise is then one level test: the major
+  domain's head is a stored inductive whose result sort is
+  `LevelOracle.le (succ zero) _` at the use.
+- The fragment has no K, structure η, `And` rescue or projections.  For
+  K, what is needed beyond case 3 is the reading "the K family's stored
+  sort is `Sort 0`", which replaces `proofIrrel`.  For structure η it
+  is case 2 plus a projection law.
+
+**Recommendation for the port (#342 v2 Q5).**  Adopt the licence:
+- case 2: no certificate, one level test per redex;
+- case 3: major slot at io grade and constructor telescope at full
+  grade;
+- drop the recursor-spine certificates, `projCertAt`, the conversion
+  structure-η and unit-like certificates, and the K/`And` `proofIrrel`;
+- run K's constructor certificate once, after the fabrication's type
+  check.
+
+The cost moves from per-binder `.never` reads to about 2 k certified
+redexes per stream.
+
+## TASK #349 — stage 0 follow-up: the λ check at the innermost level, the ι rule refined, the case-3 counts reconciled (2026-10-12, agent/349-frag, agent/349-s0)
+
+The questions (maintainer, 2026-10-12, after the #342 v2 stage-0
+prototype): (a) make S0-F2's innermost-only λ check the S0-F shape and
+write down why it is sound; (b) refine case 3 of #347's ι rule (K, the
+universe-polymorphic families, `Acc`-like families, the plain-ι major
+slot) and check each step; (c) reconcile stage 0's 1.7 M case-3 major
+certificates with #347's 280 case-3 reductions; (d) re-measure; (e)
+fragment lemmas.  Checker: `agent/349-s0` (S0-F, off S0-F2) and
+`agent/349-s0-m` (S0-M, the io flag flipped), unverified prototypes as
+in stage 0.  Fragment: `agent/349-frag` (off `agent/347-iota`), gate
+green.
+
+**(c) The reconciliation: stage 0 misclassified, #347 was right.**
+Two bugs in the prototype's case test (`ctorTeleLicensed`):
+- `IndCaps.sortZ` (the family's sort zero-ness) was recorded only for
+  single-constructor members (`blockCapsAt`'s `[c]` arm) and not at all
+  for the pinned `Nat`, `Empty` and `Quot`.  Everywhere else it kept the
+  default "zero at every valuation", so every `Nat`/`List`/`Int`/
+  `Option`/`Bool`/`Decidable`/... redex was taken for a possibly-`Prop`
+  family and ran case 3: 1 602 798 of 1 663 572 ι steps on init-full
+  (List 713 k, Int 386 k, Option 152 k, Nat 137 k, Decidable 96 k, Bool
+  87 k, ...), 1 886 678 of 1 966 560 on mathlib-prefix.  `Eq` casts
+  were 266 of them, not "most".  Fix: `sortZ` for every member and for
+  the three pinned families.
+- the motive's level was read as the recursor's FIRST level.
+  `Quot.lift.{u, v}` has it last, so `Quot.lift.{0, v}` (a quotient of a
+  proposition, lifted into data) was taken as "motive into `Prop`" and
+  fired with no certificate: an unsound skip, 11 redexes on init-full
+  and 77 on mathlib-prefix.  Fix: the extra level is found by name, as
+  the ι step's level comparison matches levels.
+After the fix (instrumented throwaway build, never timed): init-full
+1 663 572 ι steps reach the test, 266 are K (`Eq`, 250 fabricated +
+16 literal in #347's split), 14 are case 3 (`Quot.lift` 11, `Acc.rec`
+2, `PUnit.rec` 1, 41 constructor slots), the rest cases 2/4;
+mathlib-prefix 1 966 560, K 1 798, case 3 80 (`Quot.lift` 77, `Acc.rec`
+2, `PUnit.rec` 1, 239 slots).  That is #347's 280 / 1 879 (one K
+reduction fewer on mathlib-prefix, memo contents).  No certificate
+failed, so no attempt ended stuck on a certificate.  The certificate
+left needs no sharing with K's inference: K now runs none.
+
+**(b) The ι rule, step by step.**
+- **K** (`RecRule.k`: one rule, no fields, `Prop` family): no
+  certificate, no index or parameter comparison.  The argument holds,
+  with one premise made explicit.  The reduct is the minor (the rule's
+  right-hand side at the recursor's parameters, motives and minors; a
+  K constructor has no fields), so neither the fabricated nor a literal
+  major occurs in it.  If the redex is not the point, the whole spine
+  fits the recursor's telescope (`teleFit_of_ne_pt`), so the major's
+  value lies in the domain `Eq α a b` at the recursor's own arguments.
+  An inhabited fibre forces `a = b`: that is **inversion of the least
+  fixed point** (the family "inhabited exactly at the constructor's
+  indices" is closed under the constructor, so it contains the least
+  one), a model fact no existing law states; the plain law at the
+  recursor's own parameters then gives the minor.  K keeps the type
+  check `tfab ≡ tmaj`, which decides whether the step is taken, as in
+  Lean.  In the checker the stage-0 path already dropped K's
+  constructor certificate and `proofIrrel` in `majorToCtor`; case 3's
+  major slot, constructor telescope and index comparison are now
+  skipped for K rules too.
+- **Universe-polymorphic families: the per-field level test is not
+  sound, and is not implemented.**  At a valuation where the family is
+  `Prop`, the constructor's type is a truth value, so the constructor is
+  the point and its applications constrain NONE of their arguments
+  (#345 `piV_const_one`; the app slot of a point-headed application is
+  free).  A field is then not in its domain unless certified, whether
+  it is a proof or not.  Witness: at `u := 0`, `Quot.lift.{0, 1} f h
+  (Quot.mk.{0} r n)` with `α := True`, `β := Nat` and the ill-typed but
+  well-denoted field `n : Prop` (opaque, denoting `True`).  The major is
+  the point, the redex is `f pt ∈ Nat`, not the point, and the reduct
+  `f n` is ill-slotted: `f` is a graph over `{pt}` and `⟦n⟧ ≠ pt`.  The
+  §5.3 sentence "a `Prop` field that is not the point would be a member
+  of a truth value" assumed the membership the certificate supplies.
+  So case 3 keeps #347's certificate on every field.  (A weaker,
+  io-grade certificate would do for fields whose io-inferred type is
+  not a `∀`; at 41 / 239 slots it is not worth the code.)
+- **`Acc`-like families**: #347's full certificate, as ruled.
+- **The plain-ι major slot in case 3: not needed, dropped.**  Not for
+  the mutual-block reason: a recursor's rules are its own family's
+  constructors (`sumRules`, `M.ctors`), and a constructor of another
+  member finds no rule.  For the slot itself, the argument covers it:
+  the unreduced major lies in the domain (`teleFit_of_ne_pt`).  At a
+  valuation where the family is not `Prop` the domain is strict, so the
+  major is not the point and its reduction claim gives the reduct's
+  invariant and value.  Where it is `Prop`, the reduced constructor
+  application is the point, as the major is, and its invariant comes
+  from the constructor certificate (every parameter and field
+  certified).  The certificate's content, the major's type against `I
+  ps idx`, is the index comparison again, which case 3 runs.  The
+  fragment's `iota_core` still takes the major certificate: replacing it
+  needs the lemma "a constructor of a family whose sort evaluates to
+  zero is the point", not proved here.
+
+**(a) The λ check at the innermost level.**  S0-F2's rule is the
+checker's: in the two-λ arm, after the bodies compare, the bodies'
+types are inferred (full grade at S0-F) and compared unless BOTH
+opened bodies are syntactically λs.  Two λs meet in `defeq` only
+through `a == b`, the memo (filled by earlier runs of the same arm) or
+the two-λ arm, so the inner comparison of two λs is again this rule.
+Why it is sound (proved in the fragment, below): the type comparison
+is what makes λ-congruence's claim unconditional (two bodies in one
+type are both the point or neither), and an unconditional equality of
+the bodies at every value of the variable is an equality of the λs,
+with no type.  Syntactically the same: the outer bodies' types are
+`∀`s over the domain the next level compares, with the next level's
+bodies' types as codomains.  Unequal depth and reduction: the descent
+continues only through two syntactic λs; where one body is not a λ
+(the comparison ends in η, or reaches a λ only after δ/whnf, as in
+#345's witness `d := fun x => (fun h => h) n`), that level is the
+innermost and its types are compared.  The rule is the same for S0-M
+(certifying io, unconditional claim) and S0-F.
+
+**(d) Measurements** (`instructions:u`, `--verified --jobs=1`, one
+run each, RSS-guarded; binaries in `_tmp/349/bin/`):
+
+| | init-full | Δ base | mathlib-prefix | Δ base | stage 0 (Δ) |
+|---|---|---|---|---|---|
+| base (`master` 3b37939f0) | 482.50 G | — | 679.00 G | — | |
+| S0-M | 416.75 G | **−13.6 %** | 571.31 G | **−15.9 %** | −1.8 % / −5.8 % |
+| S0-F | 412.14 G | **−14.6 %** | 563.16 G | **−17.1 %** | F2: −4.3 % / −8.2 % |
+
+The stage-0 misclassification cost about 57 G (12 % of base) on
+init-full and 70 G on mathlib-prefix.  Verdicts: 57 977 / 131 902
+accepted, exit 0; the verdict gate is identical to stage 0's (arena
+90/92; e2e 468/470 with `uh_let_erase_type`/`_value` rejected, the
+known ζ findings; the three `annot_decline_*` now accept; trusted,
+`--jobs`, pool, DAG-tower and the other gates as expected).  No new
+deviation.
+
+Asymptotics.  Per-declaration heartbeat ratio against base (throwaway
+instrumented builds): S0-F init-full total 0.883, median over records
+≥ 10⁵ heartbeats 0.941, max 1.39 (`List.MergeSort.Internal.mergeSortT`,
+stage 0 1.46); mathlib-prefix total 0.861, max 1.39.  S0-M 0.893 /
+0.874, max 1.45 / 1.56 (`Std.DTreeMap.Internal.Impl.link2.eq_def`).
+The ratio does not grow with DAG size, binder depth or spine length
+(every bucket's aggregate 0.79–0.99).  The synthetic λ-telescope
+stream (`f1 = f2` over n binders, `_tmp/port/s0-proto-logs/syn`) is
+linear for both: S0-F 20.9 / 22.5 / 25.6 / 31.8 / 44.4 / 69.6 M at
+n = 50 … 1600 (stage-0 S0-F: 1 154 M at n = 800), base 22.0 … 86.3 M.
+A new η-telescope stream (`(fun xs => g xs) = g`, `_tmp/349/syn`) is
+quadratic in base already (23.7 M at n = 50, 1 220 M at n = 1600); S0-F
+is 0.94 of base at every n, so T2 adds nothing super-linear.  Counts:
+the two-λ arm 22 585 / 40 838 runs (init-full / mathlib-prefix), of
+which 5 363 / 11 353 skip the type comparison (both bodies λs) and
+17 222 / 29 485 run it; η 1 032 / 2 086.
+
+**(e) The fragment** (`whitepaper/Fragment`, gate green: no `sorry`,
+the three standard axioms, pins added):
+- `DefEqLams` (in the mutual block, `refl` / `inner` / `outer`) and
+  `DefEq.lams`: λ-telescope congruence with the bodies' types compared
+  only at the innermost level; its claim `LamsSem` is unconditional.
+  `DefEqLams.inner_sound`, `DefEqLams.outer_sound`, `DefEq.lams_sound`,
+  `defeqLams_sound` (in the master induction).
+- K: `RecRuleLawK` (the law above: the plain law at the recursor's own
+  parameters plus inversion, stated for any major value in the domain)
+  and `Red.iotaK_core_sem`: given the law, a K redex reduces with no
+  certificate, no comparison and no reduction of the major.  What the
+  fragment lacks for a K *rule*: a K flag on `RecRule`, an `EnvModel`
+  field carrying `RecRuleLawK`, and its proof in the installer
+  (inversion of `IndSem`'s least fixed point, and the constructor's
+  parameter telescope being the recursor's), threaded through
+  `transport`, `InstallDef` and `InstallNest`'s stages, as #347
+  described for case 2.
+
+## TASK #350 — ι through the projections: case 3 after Lean's kernel logic renovation (2026-10-12, agent/350-eta-iota)
+
+The question (maintainer, 2026-10-12).  Under #344's value-read model,
+ι on a family that may be `Prop` with a motive that may not be ("case
+3") needs a full-grade certificate on the constructor's fields: at a
+`Prop` instance the constructor denotes the point, so its arguments
+are unconstrained (#349's `Quot.lift.{0,1} f h (Quot.mk r n)`
+witness).  Lean's kernel logic renovation (lean4#14977; lean4#15023
+`Quot : Sort (max 1 u)`, draft; lean4#15371 eta-expand the major of
+subsingleton structures, open) shrinks case 3: `Acc` loses large
+elimination, `Quot` is never `Prop`, and a family that may be `Prop`
+eliminates into every sort only with no constructor, with K, or with
+structure η (non-recursive, non-indexed, non-impredicative: every
+field is a proof wherever the structure is a proposition — `And`,
+`PUnit.{u}`, a sort-polymorphic `PSigma'.{u,v} : Sort (max u v)`).
+The hypothesis: for these structures ι can go through the projections,
+`S.rec ps motive minor x ⟶ minor (S.p₀ ps x) … (S.pₖ ps x)`, with no
+certificate.  Done on `agent/350-eta-iota` (off `agent/349-frag`),
+fragment only.
+
+**Verdict: the hypothesis holds, with one proviso — the major is
+expanded as it stands, never after reducing it.**
+
+- *Why no certificate is needed.*  The claim is owed only when the
+  redex is not the point; then the whole spine, the major included,
+  fits the recursor's telescope (`teleFit_of_ne_pt`), so the major lies
+  in its own domain `S ps` at the recursor's parameters.  The
+  projections are applied to that major, and their values are a
+  function of its value alone; no field of any constructor term is
+  read.  Where `S ps` is a type, this is ordinary structure η (the
+  member is the tagged tuple of its projections).  Where it is a
+  proposition, the major is the point, the projections of the point
+  are the point because each field's sort is zero there (the
+  renovation's non-impredicativity; `projPt_of_fieldSort`), and the
+  reduct is the minor at the point, which is the recursor's value at
+  the point (the plain law at the unique decoding, every field of
+  which is the point).  So the step also drops ι's level, parameter
+  and index comparisons, and needs no inference of the major's type.
+- *The proviso.*  A major that denotes the point may reduce to a term
+  that is not well-denoted (a β-redex whose λ is the point and whose
+  argument lies outside the λ's domain), so `minor (S.p₀ ps maj')`
+  over the major's reduct `maj'` is not well-denoted although the redex
+  is, and the reduction's claim fails
+  (`etaIota_reduced_major_witness`).  Its value is still right (the
+  projections of the point are the point); no verdict-level
+  counterexample was sought.  The checker must build the eta reduct
+  from the raw major, as lean4#15371 does (expansion before the
+  major's `whnf`), and, unlike Lean, also when the major is
+  syntactically a constructor literal (Lean then runs plain ι on the
+  literal, which is #349's counterexample; `plainIota_literal_witness`
+  shows the plain reduct breaking the claim and the eta reduct keeping
+  it on the same redex).
+
+**The chain, checked adversarially.**  The eta reduct of a literal
+major holds `S.p₀ ps (S.mk ps n b)`, which denotes the point at a
+propositional valuation while its reduct `n` may be anything there.
+That reduct is never consumed at such a valuation:
+- `Red` has no congruence in argument position.  A `Red` claim is
+  consumed only on a subject that is not the point: `trans` passes the
+  first claim's denotation to the second, `appFn` reduces the head of
+  an application that is not the point, which is therefore not the
+  point either.
+- The projection of a constructor literal (`Red.projCtor_core_sem`,
+  the step #347 freed of `projCertAt`) is claimed only when
+  it is not the point.  That forces its argument not to be the point
+  (the point half of `ProjLaw`, `projPt_of_fieldSort`), hence the
+  structure is a type there, the argument's own reduction is claimed,
+  and the literal fits the constructor's telescope.  No certificate,
+  no parameter or level comparison: only the field's position is read.
+- `DefEq`'s claim needs both sides well-denoted and not the point, and
+  each side is a subterm of the conclusion or a reduct whose invariant
+  a claim supplied (`redL`, `app`, `appIn`, `lam`, `eta`).  So a
+  comparison `S.p₀ ps (S.mk ps n b) ≡ n` claims nothing at the
+  propositional valuation, and `minor n` has no invariant to offer
+  unless `n` is in its slot.
+- The one consumer of a reduct of a point-denoting term in today's
+  rules is plain ι's major (#347's `major_eq`, which takes the reduct's
+  slot from the case-3 major certificate).  The eta path does not
+  reduce the major, so it does not reach that consumer.
+- The soundness proof is compositional over the claims, so a step
+  with a `RedSem` proof composes with every other rule.  Both new
+  steps are stated as `RedSem` theorems; as for #349's K, they are not
+  yet `Red` rules: that needs an `EnvModel` field for `StructEtaLaw`
+  and `ProjLaw` and their proofs in the installer (the projections
+  read the unique decoding of a member of the fibre, `Uniq.lean`),
+  threaded through `transport`, `InstallDef` and `InstallNest`.
+
+**K and structure η** (`True`, `PUnit`).  With no fields the eta
+reduct is the K reduct, syntactically (`iotaEta_noFields`: the minor at
+the recursor's parameters, motives and minors), and the structure-η law
+with the plain law gives #349's K law (`recRuleLawK_of_eta`: for a
+non-indexed family "the major is the constructor at the parameters" is
+the inversion K needs).  So a family with both flags (`True` after the
+renovation) fires either path with the same reduct, and neither path
+certifies.  K keeps Lean's fabrication type check (a verdict test,
+decided on the major's inferred type); eta needs none, and on a
+well-typed major the type check always passes, so the verdict is the
+same.  `PUnit.{u}` is not K (not always `Prop`) and goes by eta.
+
+**Verdicts, termination, cost.**  The eta reduct and the plain reduct
+are convertible: `S.pᵢ ps x` reduces to the literal's field once `x`
+reaches `S.mk ps fs`.  So on input Lean accepts, choosing the eta path
+changes no verdict, short of an incompleteness of `isDefEq` that sees
+the two differently.  Termination can only improve: the step does not
+reduce the major, and a projection reduces it later only if the minor
+forces that projection in a position that is not a proof.  At a
+propositional valuation that never happens: K and eta do not reduce
+their majors, and proof irrelevance compares types.  That is the
+renovation's "proofs never have to be reduced".  The cost moves from
+one `whnf` of the major at the ι step to at most one `whnf` per forced
+projection.  The major is the same `Expr` in every projection node, so
+the structural `whnfC` memo makes the repeats lookups.  Stuck majors
+(a variable, an axiom) now reduce where plain ι got stuck, and the
+reduct is larger; Lean does the same after lean4#15371, and for
+non-`Prop` structures already today (con-leche's struct-η major
+rescue).  Case 3 is at most 80 redexes per stream, so the cost is not
+measurable.  Case 2 (never `Prop`) keeps `whnf` plus plain ι, where the
+major is not the point and its reduction is claimed.
+
+**The renovation's consequences for con-leche's case 3.**  Today's case
+3 (#349's reconciled counts) is `Quot.lift` 11 / 77, `Acc.rec` 2 / 2
+and `PUnit.rec` 1 / 1 redexes (init-full / mathlib-prefix; 41 / 239
+constructor slots), beside the K redexes (`Eq`, 266 / 1 798) that
+#349 already freed of certificates.
+
+| today's case 3 | after the renovation | certificate |
+|---|---|---|
+| `Quot.lift` on `Quot.mk` at `Quot.{u}`, `u` may be 0 | `Quot` in `Sort (max 1 u)`: case 2, the literal is never the point (the pinned `Quot`'s `sortZ` becomes never-zero) | none |
+| `Acc.rec` on `Acc.intro` | no large elimination: the motive is `Prop`, case 4, nothing owed; `WellFounded.fixF_eq` stops needing the reduction (propositional ι, lean4#13851) | none |
+| `PUnit.rec` on `PUnit.unit` | eta path, no fields: the reduct is the minor | none |
+| — | new large eliminators: `And` into `Sort u`, sort-polymorphic structures (`PSigma'`-like) at a level that may be 0: eta path | none |
+| K (`Eq`, `HEq`, `True`) | unchanged (#349) | none |
+| no constructor (`False`) | no rule fires | — |
+
+**What becomes empty once the renovation ships**: the full-grade
+constructor-telescope certificate of case 3 (#347/#349) has no
+customer; neither does plain ι on a literal major of a family that may
+be `Prop` (replaced by the eta path), nor the `And` rescue, its type
+check and its `proofIrrel` (subsumed by the eta path at every
+instance).  The struct-η major rescue loses its non-`Prop` guard
+(`capsNeverZero`) and its certificates (`iotaCertsI` on the fabricated
+spine, `structEtaCertWith`).  The whole ι family then certifies
+nothing: case 2 is justified by one level test, case 3 by K or eta,
+case 4 by the motive.  Until the renovation ships, `Acc` and `Quot`
+keep case 3's certificate; `PUnit` could take the eta path now.
+
+**The fragment** (`whitepaper/Fragment/EtaIota.lean`, 737 lines;
+`whitepaper/fragment-gate.sh` green, no `sorry`, the three standard
+axioms, pins added for the nine theorems):
+- `StructEtaLaw` (the installation's obligation: every member of the
+  fibre is the constructor at its projections, which are typed) and
+  `etaLaw_vals` (with the plain `RecRuleLaw`, the ι law through the
+  projections on values);
+- `Red.iotaEta_core_sem`, `Red.iotaEta_sound` (from the stored
+  recursor and `EnvModel.rec_rules`): the step, with no certificate,
+  comparison or reduction of the major;
+- `ProjLaw`, `projPt_of_fieldSort`, `Red.projCtor_core_sem`: the
+  projection of a constructor literal, with no certificate;
+- `iotaEta_noFields`, `recRuleLawK_of_eta`: K and structure η agree;
+- `plainIota_literal_witness`, `etaIota_reduced_major_witness`: the
+  two witnesses above, on closed terms over constants at a model of
+  the empty environment.  They are about the reduction claims (as
+  `lam_congr_untyped_unsound` is), not about verdicts.
+
+The whitepaper text is not touched.
+
+## TASK #346 — the io grade without annotations: a hereditary claim, and where it cannot go (2026-10-11, agent/346-io)
+
+The question (#342 v2 design §5.4, spike X1; maintainer ruling Q3,
+2026-10-11): on #344's annotation-free fragment, can a fast-inference
+grade skip the argument check at every application, as Lean's
+`infer_only` does, with its consumers kept — the λ/η body-type
+comparison (T1/T2), the ι telescope certificates, proof irrelevance?
+Done on `agent/346-io` (off `agent/345-probe`), fragment only,
+`whitepaper/fragment-gate.sh` green; the whitepaper text is not
+touched.
+
+**Verdict: yes for every consumer except the λ/η body-type
+comparison, which must infer at the full grade.**  That is the
+checker configuration I of #342 v2 §6.2 (the tax through the full
+`infer`, no io certificate anywhere else: +0.31 % init-full, +0.28 %
+mathlib-prefix against `master`).
+
+**The grade and its claim** (`IOGrade.lean`, all proved).
+- `InferIO` is `Infer` without the application's argument check and
+  without the λ's domain check; `∀`-formation still infers the sorts.
+- Its claim `IORel` is **hereditary and keyed on the type's syntax**:
+  the value is the point, or a member of the type (with the type's
+  invariant), or — only when the type is syntactically a `∀` — a graph
+  over the `∀`'s domain, not everywhere the point, whose every
+  application satisfies the claim at the `∀`'s body.
+  `inferIO_sound` proves it for every rule.  The application case is
+  the maintainer's half-argument: a head that is not the point is a
+  graph, and a graph determines its domain, so the argument is in the
+  `∀`'s domain whether the head is a member or hereditary.  The λ case
+  is the reason for the third disjunct: `lamV` is the point when every
+  body value is, else the graph of body values that are themselves
+  only hereditary.  A type that is not a `∀` may become one under
+  substitution or reduction; membership is part of the `∀`'s claim,
+  so one direction of each transfer lemma suffices
+  (`IORel_inst`, `IORel_red`; a `∀` or a sort reduces only to itself,
+  `Red.eq_of_rigid`).
+- The two §5.2 witnesses satisfy it: `(fun h : False => h.elim) 0` is
+  the point; `fun x : Bool => h x 0` is a graph whose application at
+  `false` is the point and at `true` a member.
+- **Why the syntax**: `io_type_value_collision` (`IOWitness.lean`):
+  `fun (x : Prop) => (fun (h : E x) => h) n` io-infers
+  `(x : Prop) → E x`, of sort `Type`, whose value is empty (its fibre at
+  `False` is), i.e. a truth value, and the term is not the point.  A
+  claim read off the type's value cannot give proof irrelevance, nor
+  carry the hereditary case through an application (two `∀`s with
+  equal values need not have equal domains).
+- Corollary used below: at a type that is not syntactically a `∀`, the
+  claim is "the point or a member" — the conditional claim — whatever
+  the term.  And a term with a variable or constant head never takes
+  the hereditary case (`IORel_neutral`).
+
+**Consumers that the io grade serves** (proved where the fragment has
+the rule):
+- *proof irrelevance* with the type and its sort both io-inferred
+  (`proofIrrelIO_sound`, via `eq_pt_of_IORel_prop`): a member of a
+  type of sort `Prop` is the point; in the hereditary case the type is a
+  `∀`, inversion of `InferIO.pi` gives its body sort `Prop`, and by
+  induction every application is the point, against the clause's
+  witness.  The *syntactic* sort is what makes this work.
+- *η against a term with a variable or constant head*, that term's type
+  io-inferred (`etaIO_sound`; `DefEq.eta_sound` now takes the
+  conditional membership of `b`, which `infer_sound` supplies for the
+  full rule).  The checker's η meets a weak-head-normal non-λ, which has
+  such a head (or is a stuck projection, outside the fragment).
+- not in the fragment, by the corollary: struct-η and unit-η, the
+  rescues' major-type discovery, projection inference (they read an io
+  type after reducing it to a non-`∀`), and §5.3's recursor telescope
+  and constructor telescope when the major is not the point (atom
+  heads).  §5.3's remaining case — index-pinned non-`Prop` fields of a
+  major that is the point — gets nothing from the io claim and keeps its
+  certificate, as §5.3 says.
+
+**Consumers that it cannot serve** (`IOWitness.lean`, witnesses in a
+model `ioModel` of the environment `ioEnv`: `E : Prop → Type` opaque,
+`True ↦ Prop`, `False ↦ ∅`; `n : Prop` opaque, `True`; and two *typed*
+definitions `g := fun (x : Prop) (h : E x) => n` and
+`k := fun _ : Prop => n`):
+- `lam_congr_io_unsound`: under `x : Prop`, `g x n` (its argument `n`
+  is no member of `E x`) io-infers `Prop`, `n` infers `Prop`, and
+  `g x n` reduces to `n` (δ, β, β).  So every premise of λ-congruence
+  holds with io-inferred bodies' types, and the conclusion
+  `fun x => g x n ≡ fun x => n` is false: the left λ is the point at
+  `False` (`g False` is an abstraction over `∅`) and `True` at `True`.
+  The premises are derivations, so **no claim about `InferIO` can make
+  this rule sound** — the result is about the rule, not the proof.
+  The body has a constant head, so restricting to weak-head-normal
+  bodies does not help.
+- `eta_body_io_unsound`: the same body against `k`, with the λ's body
+  type io-inferred (T2's body side).
+- `eta_lam_io_unsound`: η with the other side's type io-inferred, when
+  that side is a λ (`fun x => n ≡ fun x => g x n`).  The checker never
+  runs η against a λ; the fragment's rule allows it.
+
+**What the model lacks.**  The body `g x n` is ill-typed: Lean's typing
+(subject reduction plus uniqueness of types) would give every body the
+checker meets a correct io-inferred type.  The semantic invariant
+`WellDenoted` asks of an application only that its argument lie in the
+domain of *some* product holding the head; where the head is the point
+(`g False`) that constrains nothing.  Strengthening it to "the argument
+lies in the domain of the head's io-inferred type" is not closed under
+β: `(fun (y : Nat → True) => c (y 5)) a` with `a : Bool → True` meets
+it (`a` is the point, a member of `Nat → True`), is not the point, and
+its reduct `c (a 5)` does not.  So T1/T2 at the io grade would need a
+typing of the bodies the model does not carry; the full-grade check
+supplies the common type instead.
+
+**For the port (#342 v2).**
+- S0-F's io should be configuration I: official `infer_only` for every
+  io call site **except** the λ-λ arm's two body inferences and η's λ
+  body inference, which use the full grade; η's inference of the
+  non-λ side's type may stay io.
+- The io and full grades must not share a type cache: an io-inferred
+  type read by the full grade (T1/T2) is exactly the unsound case.
+  Lean's kernel keeps the two caches separate.
+- The ι certificates: §5.3 unchanged; the recursor telescope and the
+  constructor telescope of a major that is not the point are justified
+  by the io claim at atom heads.
+
+**Line counts**: `IOGrade.lean` 448 (new), `IOWitness.lean` 496 (new),
+`Sound.lean` `eta_sound`'s premise weakened (+8 −4), `Probe.lean` two
+definitions exposed, pins in `Axioms.lean` for `inferIO_sound`,
+`eq_pt_of_IORel_prop`, `proofIrrelIO_sound`, `IORel_neutral`,
+`etaIO_sound`, `lam_congr_io_unsound`, `eta_body_io_unsound`,
+`eta_lam_io_unsound`, `io_type_value_collision` (the three standard
+axioms).  `links-gate.sh` fails as before (#340's stale anchors), with
+an unchanged report.
+
+## TASK #342 — F4: `let` in the fragment, by substitution (2026-10-12, agent/342-f4)
+
+Fragment lane F4 of #342 v2 §11.4, under the maintainer's rulings of
+§11.x: lets stay as Lean stores them (no ζ pass at install), the
+checker handles them by substitution (no let-variables in the port), a
+`let` rule in `Denotes`, the io grade checks the value at the full
+grade (R-C).  The template for S2's L-let.
+
+**The io grade came with it.**  #346's `InferIO`/`IORel`
+(`agent/346-io`) was not on `frag-342`; F4 owes the io `let` rule, so
+the lane merged `agent/346-io` first (conflicts only in the import
+lists, the pins and the appended DESIGN records).  `frag-342` now
+carries #346.
+
+**What landed** (`whitepaper/Fragment/*`):
+- `Expr.letE T v b`; `liftN`/`inst`/`instL` act on all three parts.
+- `interp ρ (letE T v b) = interp (cons (interp ρ v) ρ) b`, the type
+  not read.  In `Denotes`' shape, `interp_letE_of`: value denotes `Y`,
+  body denotes `X` at `cons Y ρ` ⇒ the `let` denotes `X`.  No typing
+  side condition is needed for the clause.
+- `WellDenoted ρ (letE T v b) ↔ WellDenoted ρ v ∧ WellDenoted (cons ⟦v⟧ ρ) b`;
+  the type is not read, as in `interp`.  `WellDenoted_liftN/inst/instL`
+  and the substitution lemmas gain one case each.
+- `interp_zeta`: `⟦letE T v b⟧ρ = ⟦b.inst v⟧ρ` at **every** ρ, the point
+  included (β's substitution lemma; there is no λ that could be the
+  point).
+- Rules: `Red.zeta` (no certificate); `Infer.letE` (type's sort, value's
+  inferred type `DefEq` the type, result = the inferred type of
+  `b.inst v`); `InferIO.letE` (same value checks at the full grade,
+  body at io).
+- Soundness: `Red.zeta_sound`, `Infer.letE_sound`,
+  `InferIO.letE_sound`, wired into `red_sound`/`infer_sound`/
+  `inferIO_sound`; `defeq_sound` needs nothing new (a `let` meets
+  `DefEq` through `redL` + `zeta`, as the checker's `whnfCore` ζ).
+  Pins in `Axioms.lean` (three standard axioms) for those three,
+  `interp_zeta` and `Infer.letE_sat`.
+- The syntactic predicates (`closedAt`, `consts`, `lparamsIn`,
+  `usesVar`) read all three parts; their lemmas in `Hygiene`,
+  `NestRead`, `NestClass`, `InstallScope` gain the case.  New:
+  `Expr.consts_of_inst`, `Expr.closedAt_of_inst` (an instance closed
+  below `n` comes from a term closed below `n + 1`), needed by
+  `ScopeOfInfer` because the body is only ever typed instantiated.
+
+**Findings.**
+1. **The value checks are not used by the soundness proof** of the
+   substitution version, at either grade: `interp` reads no type, and
+   the body is typed at the value itself.  They stay as rule premises
+   because they are what the checker runs (and what rejects
+   `uh_let_erase_type`/`_value` as official does), but their claims are
+   not consumed.  Consequence for R-C: under substitution, the io let
+   could skip the value check exactly as `infer_only` does, with no
+   proof cost; R-C's full-grade check is a verdict choice, not a proof
+   need.  It becomes a proof need only with let-variables (below).
+2. ζ is unconditional, like β at a graph and unlike nothing: the
+   conditional ("not the point") reading of `RedSem` is never used.
+3. The fragment's inductive installer reads only generated types
+   (`Decl.lean` generators), which contain no `let`; the readers of
+   stored telescopes (`piDomains`, `piResidual`, `piBodyV`, `TeleFitV`)
+   simply do not match a `letE` (a sound non-reduction).  The real
+   installer reads stored constructor types, so L-let owes the ζ at the
+   telescope peels and a ζ lemma for the spelled telescopes (§11.3's
+   Install row); the fragment does not model that.
+
+**Notes for L-let (the real `Denotes` rule).**
+- The rule is exactly §11.3's: `Denotes ρ v Y → Denotes (cons Y ρ) b X →
+  Denotes ρ (.letE ty v b) X`, type ignored, no side condition;
+  `Denotes_unique` one case.  `interp_letE_of` is its fragment form.
+- `WellDenoted`'s `let` clause: the value at ρ, the body at
+  `cons ⟦v⟧ ρ`; nothing about the type.  The type need not be read
+  anywhere in the statement side.
+- Every structural lemma over terms gets one case: lifting,
+  instantiation, level instantiation, the four scope predicates and
+  their congruences.  Expect the bulk of L-let's diff there (here about
+  half of +394 lines, in the scope and hygiene files).
+- `Infer.letE`'s soundness takes only the instantiated body's claim
+  plus `WellDenoted_inst0` and `interp_zeta`.
+- Scope of a typed `let`: from the instantiated body, by
+  `closedAt_of_inst`/`consts_of_inst`; level parameters need no lemma
+  (the checker checks them on the stored term).
+
+**What the let-variable version would need later** (deferred by the
+maintainer; §11.3's design):
+- Context entries `T` or `(T, v)`; `Sat` adds `ρ i = interp (shift ρ) v`
+  for a let entry; `CtxOk` adds that `v` is `WellDenoted` at the tail.
+- `Infer.letE` opens the body at `(T, v) :: Γ`.  Its soundness then
+  needs `⟦v⟧ ∈ ⟦T⟧` to extend `Sat`: that is `Infer.letE_sat`, which
+  uses both value checks (full-grade inference of `v`, `DefEq` of two
+  types, which are never the point).  At the io grade the value's
+  `IORel` claim would NOT give membership (it may be hereditary), so
+  R-C's full-grade check becomes a proof need there.
+- The result type is abstracted back as a `letE` over the variable when
+  it occurs; `interp_zeta` makes that equal to the substituted type.
+- `Red.zetaDelta` (a let-variable reduces to its value): `Sat`'s
+  equation, unconditional.  The claims stay per-ρ; a let entry only
+  narrows the valuations.
+- In the fragment's de Bruijn setting, `Γ` would become
+  `List (Expr × Option Expr)` and every `A :: Γ` in `Rules.lean` an
+  `(A, none) :: Γ`; that is the mechanical part.
+
+**Gates.**  `whitepaper/fragment-gate.sh` green (warning-free, axioms
+pinned).  `links-gate.sh` fails as on the base (#340's stale anchors;
+the prose cites pre-#344 lines and files); not touched.
+
+## TASK #342 — F3: a constructor of a family in `Prop` is the point; ι with no major-slot certificate (2026-10-12, agent/342-f3)
+
+The task (#342 v2 §11.4, lane F3): prove the lemma #349 named as
+missing ("a constructor of a family whose sort evaluates to zero is the
+point"), use it to drop the major-slot certificate from the fragment's
+plain ι in case 3 (family may be `Prop`, motive may not) while keeping
+the full constructor-telescope certificate, and check #349's argument
+for the checker's drop adversarially.  Fragment only
+(`whitepaper/Fragment/Sound.lean`, `Rules.lean`).
+
+**The lemma.**
+- `eq_pt_of_mem_sortZero`: a member of `I zs` is the point, where `I`'s
+  stored type walked along `zs` leaves `Sort u`, `u` evaluates to 0 and
+  `I zs` is a well-denoted type.  `I zs` is a type, so not the point, so
+  `zs` fits `I`'s telescope (`teleFit_of_ne_pt`; the fit is derived, not
+  assumed) and `I zs ∈ Sort 0`, the truth values.
+- `ctorApp_eq_pt_of_sortZero`: a constructor application fitting its
+  stored type, whose residual is `I rps ridx` with `I`'s sort zero,
+  denotes the point.  Helper: `mem_piResidual` (the head applied lies in
+  the residual, which is a type).
+- Stated on the application, not on the constant: the rule has the
+  residual at hand (`hres`/`hshape`), and that is what the slot needs.
+
+**ι with no major-slot certificate.**
+- `Red.iota_core_prop`: `iota_core` without `Infer major tM`/`DefEq tM
+  dM`; the constructor's telescope certificate stays at the full grade.
+  Its semantic premise, per valuation: `Strict ⟦dM⟧ ∨ eval u = 0`, with
+  `u` the constructor's family's sort.  Proof: the redex is not the
+  point, so the unreduced major lies in `dM`.  If it is not the point,
+  its reduction claim gives the reduct.  If it is, `dM` is not strict,
+  so `u` is 0 and the reduct is the point too (the lemma).
+- `Red.iotaProp` (a new `Red` rule) and `Red.iotaProp_sound`: the
+  premise `LevelOracle.eq u .zero` gives the right side at every
+  valuation.  That covers families that are always `Prop` (`Acc`).
+- Not done: for a family that is `Prop` at some valuations only
+  (`Quot.{u}`, `PUnit.{u}`), the left side at the other valuations is
+  F1's case-2 law (a family whose sort evaluates non-zero has strict
+  fibres).  `iota_core_prop`'s disjunction is the interface F1 plugs
+  into.  Without F1 the fragment's `EnvModel` allows a `Type`-sorted
+  family with a truth-value fibre (`typeU n` holds the truth values
+  since #344), so a rule with no level premise cannot be proved yet.
+  `Red.iota` (with the slot certificate) stays until then.
+- No nested variant (`iotaNested`); same proof if needed.
+
+**#349's argument, checked.**  "A recursor's rules list only its own
+family's constructors, so the mutual-block concern doesn't arise; the
+remaining index comparison covers the rest."
+- The conclusion holds; no counterexample.
+- The index comparison is not what covers the slot.  `iota_core_prop`
+  never reads it for the slot.  At a `Prop` valuation the slot comes
+  from the lemma; elsewhere from strict fibres (F1).  The comparisons
+  are still needed by `RecRuleLaw`, conditionally, as before.
+- The own-family fact is not needed by the fragment's proof: the rule's
+  level premise is on the constructor's own family (the residual's
+  head).  The checker tests the recursor's family's `sortZ`.  The two
+  agree because the constructor is of the same block at the same
+  levels (`Level.eqList` on `usj`), and Lean's kernel puts every member
+  of a block, nested auxiliaries included, in one universe.  Probe:
+  `inductive T : Type | mk : Nonempty T → T` is rejected ("mutually
+  inductive types must live in the same universe"), so a nested `Prop`
+  container cannot split the two sorts.
+
+**Gates.**  `whitepaper/fragment-gate.sh` green; pins added for the
+four theorems.  `Red.eq_of_rigid` (F4, `IOGrade.lean`) has an
+`iotaProp` arm.  `links-gate.sh` fails as on the base; not touched.
+
+## TASK #342 — F1: the fibre law of stored families; ι with no certificate on a never-`Prop` family, and with no slot certificate on any family (2026-10-12, agent/342-f1)
+
+The question (#342 v2 §11.4, row F1; coordinator follow-up after F3).
+State #347's case-2 environment law ("a family whose stored sort
+evaluates non-zero has strict fibres"), prove it in the installer,
+thread it, and add the case-2 ι rule with one level premise and no
+certificate.  Then, with F3's `iota_core_prop`, add a rule with no
+major-slot certificate and no level test for families that are `Prop`
+at some valuations only (`Quot.{u}`, `PUnit.{u}`).  Fragment only
+(`whitepaper/Fragment`).
+
+**The law: `IndFibLaw`, field `EnvModel.ind_fib`.**  For a stored former
+`I` (`ci.kind = .induct nP nI cs S`), at levels `ls` and values `vs`
+fitting its telescope (`vs.length = nP + nI`):
+`Fib (eval φ (S.sort.subst ci.lparams ls) == 0) (appList (M I ls) vs)`.
+That is, a truth value where the stored sort evaluates to zero, and
+strict (not the point, without the point) where it does not.  The zero
+half is what the slot-free rule needs (below); the non-zero half is
+#347's law.
+- **No guard.**  #347 expected the law to need a guard (for example the
+  block's constructors being stored), because `mIndF` gives the former an
+  arbitrary family.  That family is admissible (`hFa : adm F = F`), and
+  an admissible set above a proposition is strict
+  (`IndCommon.strict_adm`).  So the law holds at every stage that stores
+  the former, including `mIndF`.  It is a plain `EnvModel` field.
+- Proof: `Reader.app_famSetF` (the former's set applied to fitting
+  values is the family at the split parameters and indices, by β),
+  `Reader.fib_app` (in the universe: a truth value at `z`; admissible:
+  strict above), `indFib_of_readers` (the use's levels evaluate the
+  stored sort as the reader's valuation does).  `mIndF`, `mInd`,
+  `mIndFN` and `mIndN` call it.  `transport`, `install_def`, `mCtors`,
+  `mCtorsN`, `mInstall`, `mInstallN`, `EnvModel.empty`, and the probe
+  models `sortModel`/`ioModel` delegate the law or close it vacuously.
+
+**Case 2 as a rule: `Red.iotaStrict`, `Red.iotaNestedStrict`.**  These
+are `Red.iota`/`iotaNested` with no major-slot certificate and no
+constructor certificate.  The premise is: the major's domain (the
+recursor telescope's residual) is `mkAppN (const I₀ ls₀) dargs`, with
+`I₀` a stored former, `dargs.length = nP₀ + nI₀`, its type having that
+many binders, and one level test
+`LevelOracle.le (succ zero) (S₀.sort.subst ci₀.lparams ls₀)`.
+- `strict_dom` derives the domain's strictness from the law.  Its route
+  is `dom_fib`: the redex is not the point, so the spine before the
+  major fits; the domain is then well-denoted and a type, so not the
+  point; so `dargs` fit `I₀`'s telescope; then the law applies.
+- Soundness is `iota_core_strict`.  Its strictness hypothesis now also
+  receives the redex's invariant and its not being the point.
+- The three comparisons are kept, as in `Red.iota`.
+
+**No slot certificate, no level test: `Red.iotaSlot`,
+`Red.iotaNestedSlot`.**
+- F3's `iota_core_prop` is generalised to `iota_core_slot`, and is now
+  its corollary (same statement).  `iota_core_slot`'s per-valuation
+  premise is `Strict ⟦dM⟧ ∨ ⟦ctor app⟧ = pt`, given the redex's
+  invariant and the constructor's fit.
+- `slot_case` supplies that premise from the law, at each valuation:
+  - where the family's sort is not zero, `dM` is strict (`dom_fib`);
+  - where it is zero, the constructor's residual is a truth value
+    (`app_fib`) that holds the constructor application
+    (`mem_piResidual`), so the application is the point.
+- The rules keep the full-grade constructor-telescope certificate and
+  the three comparisons, and drop the slot.  This is case 3 of §11.4
+  minus its slot.
+- **A link premise is needed**, and this is the one place the rule
+  says more than the checker tests today.  The major's domain must be
+  headed by the residual's family `I`:
+  `dM = mkAppN (const I ls₀) dargs`, with `Level.eqList lsI ls₀`
+  (oracle-equal levels).  Without it, the domain's sort and the
+  constructor's sort are unrelated in the rule's premises: the
+  per-valuation split needs the same sort on both sides.  On generated
+  recursors the link holds by construction: the major's domain is the
+  recursor's family at the recursor's levels, and the residual is the
+  same family at `usj`, oracle-equal to `us.drop` by the level
+  comparison.  The checker can test it for the price of one name test
+  and one level-list comparison per case-3 redex (about 80 per
+  stream).  Alternatively L10 proves it as an installer fact (the rule's
+  constructor's residual head is the recursor's major family) and drops
+  it from the rule.
+- `iotaProp` (F3, level test `u = 0`) stays.  It is subsumed by
+  `iotaSlot` on generated recursors, but needs no link premise.
+
+**Gates.**  `whitepaper/fragment-gate.sh` is green, with pins for the
+new theorems.  `Red.eq_of_rigid` (`IOGrade.lean`) has arms for the four
+new rules.  `links-gate.sh` fails as on the base (stale citations from
+#344 on); not touched.
+
+**For F2 (K as a rule).**  The threading pattern is in place: a new
+`EnvModel` field is delegated by `transport` (constant congruence),
+`install_def` (`.defn` kind mismatch), the constructor and recursor
+stages (kind mismatch, then the previous stage) and the probe models.
+It is proved where the constant is created: here at the former
+(`mIndF`/`mInd`/`mIndFN`/`mIndN`); for K at the recursor
+(`mInstall`/`mInstallN`, next to `rec_rule_law`).  `RecRuleLawK` needs
+the inversion of `IndSem`'s least fixed point and "the constructor's
+parameter telescope is the recursor's"; the fibre law does not give
+either.  For a K family (`Prop`-sorted), `ind_fib` does give that the
+major's domain is a truth value at every valuation.
+
+## TASK #342 — F2: K as a rule; the slot rules without the link premise (2026-10-12, agent/342-f2)
+
+The task (#342 v2 §11.4, row F2): a K flag on recursor rules, an
+`EnvModel` field carrying #349's `RecRuleLawK`, its proof in the
+installer, and `Red.iotaK` built from `Red.iotaK_core_sem`, threaded as
+F1 threaded `ind_fib`.  And a decision: prove the premise F1's slot-free
+ι rules carry but the checker does not test (the major's domain is
+headed by the constructor's family at oracle-equal levels) as an
+installer fact, if that fits.  Fragment only (`whitepaper/Fragment`).
+
+**K.**
+- `RecRule.k` (default `false`), set by `IndSpec.isK`: not nested, sort
+  syntactically `Prop`, exactly one constructor, which has no fields
+  (Lean's `init_K_target`; a nested block is mutual to Lean, so not K).
+  Only the plain recursor's rules (`IndSpec.rules`) carry it.
+- `EnvModel.rec_rules_k`: every rule flagged K satisfies `RecRuleLawK`.
+- `IndSpec.rec_rule_lawK` (`InstallIota.lean`) proves it.  The inversion
+  is `IndSpec.mem_Fam` (the fixed-point equation: a member of a fibre is
+  a constructor instance over the family at that fibre's indices),
+  applied to the major's fit, which `fits_recCtx_iff` reads off the
+  recursor's telescope at the recursor's own parameters and indices.
+  With one constructor and no fields the instance is that constructor,
+  its index values are the indices, and the major's value is its value.
+  Then the second half of the plain law applies, factored out of
+  `rec_rule_law` as `rec_rule_core` (the law's statement is unchanged).
+  So "the constructor's parameter telescope is the recursor's" (#349's
+  second ingredient) is not needed: the inversion happens in the block's
+  own parameter context, and no constructor spine is ever fitted.
+- **Finding**: the law uses neither the family's sort nor the
+  elimination level.  It holds for every one-constructor, fieldless
+  block (`Unit`-like types too).  The `Prop` condition is Lean's, and
+  the flag keeps it, for fidelity, not for soundness.
+- `Red.iotaK` (`Rules.lean`): the recursor's shape, `rl ∈ rules`,
+  `rl.k = true`, and K's type check on the major as it stands (its
+  inferred type reduces to `I.{lsI} targs`; the constructor fabricated
+  at `targs`' parameters has a type `tF`; `tF ≡ I.{lsI} targs`).  The
+  reduct is the right-hand side at the recursor's parameters, motives
+  and minors.  No certificate, no level/parameter/index comparison, no
+  reduction of the major.  `Red.iotaK_sound` is `iotaK_core_sem` with
+  the field.  No claim consumes the type check.  The rule does not
+  compare `I` with the recursor's family, which Lean does: the
+  fragment's recursor kind does not record its family.  Leaving out a
+  verdict test only lets the rule fire more often, so the soundness
+  proof is unaffected.  `Red.eq_of_rigid` has the arm.
+- Threading as F1 described.  `transport` uses constant congruence.
+  `install_def`, `mIndF`/`mInd`/`mCtors` and their nested counterparts
+  delegate by kind mismatch.  `mInstall` proves the field for the new
+  recursor; `mInstallN` closes it for `T.rec`/`T.rec_1`, whose rules
+  are never flagged.  `sortModel`/`ioModel` and `EnvModel.empty` close
+  it vacuously.
+- **#350.**  `recRuleLawK_of_eta` still holds and is now a second route
+  to a law the installer proves directly.  `True` after the renovation
+  has both flags; the two paths give the same reduct
+  (`iotaEta_noFields`).  `EtaIota.lean`'s notes are updated.  A hint for
+  the post-port eta lane: `StructEtaLaw` is the same kind of fact (a
+  member of a non-indexed one-constructor family is that constructor at
+  its fields), so `mem_Fam` is the starting point there too.
+
+**The link premise: proved, and dropped from the rules.**
+- `RecRuleSlotLaw` / `EnvModel.rec_rules_slot`: for every rule of every
+  stored recursor, where the recursor's telescope holds the point as
+  the major, either the recursor's application there is the point or
+  the rule's constructor (applied to anything) is.  For a plain rule
+  (`inst = none`) this is given the semantic level comparison
+  (constructor levels = the recursor's last ones), which ι runs anyway.
+- Installer proofs:
+  - `IndSpec.rec_rule_slot` (plain).  The major's fibre holds the
+    point, so the family's sort is zero at the recursor's valuation:
+    above `Prop` a fibre holds only tagged values (`mem_Fam_false`).
+    The constructor at levels that evaluate the same is then the point
+    (`ctorSet` at a proposition, via `block_valuation_eq`).
+  - `rec_rule_slotN` (`T.rec`) and `rec_rule_slot1N` (`T.rec_1`).
+    Where a nested block is `Prop` its eliminator is `Prop` too
+    (`qv_of_z`, from `z_false_of_large`), so the recursor's application
+    is the point.  Above `Prop`, the fibre or the class holds no point
+    (`mem_Fam_false`, `ClassLaws.inv`).
+- Threaded like `rec_rules`, by the same constructor-lookup rewrites.
+- `iota_core_slot`'s case hypothesis is now "where the unreduced major
+  (which lies in `dM`) is the point, the constructor application is the
+  point".  `Red.slot_of_law` derives it from the field, with no premise
+  about `dM`.  F1's `slot_case`, which needed the link, is removed (its
+  pin replaced).  `iota_core_prop` adapts in two lines.
+- `Red.iotaSlot` and `Red.iotaNestedSlot` lose their eight link
+  premises.  They now test exactly what `Red.iota`/`Red.iotaNested` test
+  minus the slot certificate.  For L10, case 3 needs no name test and no
+  level-list comparison beyond ι's own.
+- `Red.iotaProp` (F3, level test `u = 0`) is now subsumed by
+  `Red.iotaSlot` with no extra premise.  Kept; L10 may drop it.
+
+**Theorem names.** `IndSpec.isK_spec`, `IndSpec.split_recSpine`,
+`IndSpec.rec_rule_core`, `IndSpec.rec_rule_lawK`, `IndSpec.rec_rule_slot`
+(`InstallIota.lean`); `IndSpec.qv_of_z`, `IndSpec.rec_rule_slotN`,
+`IndSpec.rec_rule_slot1N` (`NestIota.lean`); `Red.iotaK_sound`,
+`Red.slot_of_law` (`Sound.lean`).  New pins: `Red.iotaK_sound`,
+`IndSpec.rec_rule_lawK`, `Red.slot_of_law`, `IndSpec.rec_rule_slot`,
+`IndSpec.rec_rule_slotN`, `IndSpec.rec_rule_slot1N`.
+
+**Gates.**  `whitepaper/fragment-gate.sh` is green (warning-free, the
+three standard axioms).  `links-gate.sh` fails as on the base, with the
+same cited files (#340's stale anchors); not touched.
+
+## TASK #342 — W1: the whitepaper describes the design the fragment proves (2026-10-12, agent/342-w1)
+
+The task (#342 v2 §11.y, lane W1): rewrite `whitepaper/main.typ` and
+`whitepaper/sections/*.typ` to the annotation-free design of #344–#350
+and F1–F4, re-sync `links-gate.sh`, build. Maintainer rulings received
+during the lane: (1) the io grade skips the `let` value check, as
+`infer_only` does (the full grade keeps it); (2) the whitepaper, and
+NOTES entries added to it, are **path-independent**: the design is
+described as it is, with no mention of what it used to have, not even
+in contrast.
+
+**Fragment.**
+- `InferIO.letE` drops its four value premises (ruling 1); no proof used
+  them, `InferIO.letE_sound` and its pin are unchanged.
+- Comment-only edits, line counts unchanged, in the docstrings the
+  whitepaper's hover tips show (`Red.beta`, `Infer.lam`, the `DefEq`
+  no-`trans` note, `typeU`, `adm`, `IndFibLaw`, `iota_core_strict`,
+  `Fam_mem_typeU`, `interp`), so that the tips are path-independent
+  too.
+
+**The prose, section by section.**
+- §1: "How to interpret a ∀ or a λ" replaces the annotation section:
+  the value reading, the empty domain, the point-denoting `fun h =>
+  h.elim`, the two places the price is paid. "This document" no longer
+  lists `let` or the second grade among the omissions.
+- §2a: terms with `let`, no binder datum; levels without zero-ness;
+  one β rule and ζ with no premise; λ-congruence and η with the
+  bodies' type premises in the colour, which now marks the
+  certification tax (`#tax`, renamed from `#ann` in `lib.typ`,
+  `style.css`, README); Lean's ∀/λ inference rules; the `let` rule.
+- §2b: the set theory with the point's three laws (con-leche's
+  `pt = {ptTag}` in a `#real` block); `PiV`/`Λ` read off the values;
+  the empty domain; `TyU` (types, truth values included above `Prop`);
+  the invariant recording types; β off the point (Lemma 1) and why a
+  redex at the point may have an ill-denoted reduct
+  (`etaIota_reduced_major_witness`); why no sort holds the point
+  (`badEnv_no_model`); the conditional claims; the four reading cases
+  of #345; "proofs that are not proofs"; the proof cases (β, ζ, red-l,
+  ∀-, λ-, app-congruence, η, proof irrelevance claims nothing, the
+  inference rules, `let`). New §2.8 "The certification tax" (the λ/η
+  check, innermost-only, full grade; why con-leche needs it,
+  `lam_congr_untyped_unsound`, `lam_congr_sorts_unsound`; why other
+  checkers do without it; `DefEqLams`; `lam_congr_io_unsound` for the
+  full grade; the case-3 certificate as the second item). New §2.9 "The
+  cheaper grade" (`InferIO`, the hereditary `IORel` keyed on syntax,
+  `io_type_value_collision`, the two consumers).
+- §3: level instantiation without data; law 1 says "a type"; four more
+  laws announced for §4; the install proof uses that two types are
+  never the point.
+- §4: annotations removed from every generated type; the operator over
+  admissible fibres (`adm`, `reflBody`), the one-fibre family as a
+  type, strict fibres (`Fam_mem_typeU`), the recursor into `Prop` is
+  the point; §4.2.7 "The ι rule" (comparisons, no spine certificate by
+  `teleFit_of_ne_pt`, the law with conditional comparisons and off the
+  point, `FitsVals_eq_of_cond` in the proof); §4.2.8 "When ι needs a
+  certificate" (case 2 by the fibre law; case 3 with the
+  constructor certificate in the tax colour and no slot certificate by
+  the slot law; K by inversion, the law reads no sort; the step through
+  projections with the "as found" proviso; the remark that a
+  restricted large elimination empties case 3); the consistency
+  corollary's proof re-read for the value model.
+- §5: annotations removed from `Tree.rec`'s type.
+- §6: K moved to §4; η for structures points at the projection step.
+- §7: `let`, K and the second grade leave the omission list; the
+  `AnnotTerm` paragraph describes the numeral-free layer; the uniform-β
+  paragraph is gone.
+- §8: Carneiro, Werner, Barras re-read for the value reading and the
+  premise-free β.
+
+**Links.** `links-gate.sh --update`: 458 links, 111 files, 13
+documents; every fragment citation repointed and its cited lines read.
+Real-checker citations are master's; those that change with the port
+carry `// PORT:` comments (12 sites: §1, §2a ×3, §2b ×3, §4 ×2, §6,
+§7 ×2) for W2.
+
+**NOTES** 44–48 (path-independent): ι's soundness as three environment
+laws; the K law needs neither `Prop` nor the elimination level;
+λ-telescopes as their own relation; `let` value checks are verdicts;
+the cheaper grade as a separate relation. **PLAN.md**: the fragment
+rulings and the order of presentation brought to the design; the
+rulings of 2026-10-12 recorded.
+
+**Gates.** `whitepaper/fragment-gate.sh` green; `whitepaper/links-gate.sh`
+OK; `whitepaper/build.sh` (via `nix develop ./whitepaper`) builds PDF
+and HTML with no warning. OVERVIEW/README untouched.
+
+## TASK #342 — WTERM: "product" renamed to Π-type/function space throughout the whitepaper (2026-10-12, agent/342-wterm)
+
+The maintainer finds "product" confusing for a ∀-type or its
+set-theoretic denotation (it suggests `Prod`/`PProd`). Renamed every
+such use in `main.typ`, `sections/*.typ`, `NOTES.md`, `PLAN.md`, and
+the doc comments in `Fragment/*.lean` the paper cites and shows as
+hover tips (9 files: `Consistency.lean`, `IndCommon.lean`,
+`IndSem.lean`, `Lib.lean`, `Probe.lean`, `Rules.lean`, `Sound.lean`,
+`Syntax.lean`, `Unannot.lean`): "Π-type" for the syntax (a
+`∀`/`(x : A) → B`), "function space" — "propositional function space"
+for the `Pi_0` case — for the set (`piV`, `piSet`, `Pi(A, B)`). A
+handful of sentences used "product" generically to cover both of
+`PiV`'s two cases in one word (the application rule's `$P$`, the
+`∀`-formation rule's `PiV(A, B)`); those are reworded with the paper's
+own `$P$`/`$PiV(A, B)$` notation instead of forcing "function space" to
+mean two different things in the same sentence. ~50 sites changed, no
+Fragment line counts (so no `links-gate.sh --update` needed); genuine
+`Prod`/`PProd`/tuple/coproduct uses untouched.
+
+**Gates.** `whitepaper/fragment-gate.sh` green; `whitepaper/build.sh`
+(via `nix develop ./whitepaper`) builds PDF and HTML with no warning,
+synced to `_out/whitepaper/`. OVERVIEW/README untouched.
+
+## TASK #342 — S5D: S5c's code leftovers (2026-10-13, agent/342-s5d)
+
+Lane S5d, the first step of W2's assignment (S5c's "reported, not
+done"), on `port-342`.  Verdicts unchanged (e2e and arena fixture for
+fixture as S5c; arena 90/92); `MainTheorem`, `Denotes`, `Challenge`
+untouched; no `sorry`, no new axiom, no new `unsafe`.
+
+- **`RecStage`/`RecStageG` lose `ctorsAs`.**  No field read it; the
+  parameter goes at its 160 application sites, and the 28 theorem
+  binders that existed only to feed it go with it.
+- **`genOutPinVal` reads its pins off the firing.**  `tgtFireOf_nested_eq`
+  says the `.nested` datum is the class's levels and parameters closed
+  over the rule prefix, so the levels conjunct is `rfl` and the `q`-th
+  pin is `ds[q].abstractRange 0 rP` outright.  The proof no longer goes
+  through `nestedRead_open` and `genRun_binders`' erasure-equality of
+  the stored major with the class applied (the stored major's argument,
+  its fvar leaves among the openers, the round trip to it, and its
+  erasure to the class's parameter).  What replaces them: the round trip
+  `instSeq_abstractRange_open` now concludes `ErasedEq` (the openers'
+  types may differ) from the premise "every fvar leaf is below the
+  openers' count", which `ds[q]`'s scoping gives directly.  The one
+  lemma serves both users: `recStagePinsOk` (`GenRecPins`) drops its
+  leaf-membership derivation the same way and reads through
+  `denoteMeta_erasedEq`.  `genOutPinVal` no longer needs `hμ`, `hg` or a
+  heartbeat override.  4 files, +101 −190.
+- **`EnvWF`'s `.nested` clause is `NestedRead`** (at `cnP :=
+  pins.length`), so the environment invariant and the generated stage
+  state the same predicate; `structConstWF`'s and
+  `envWF_consBlockRecsR`'s hypotheses follow, and two proofs add the
+  trivial length conjunct.  5 files, +14 −48.
+- `ExprOps`: `instantiate1Lift`'s section comment no longer counts the
+  deleted `lowerBVars` among the unguarded install-path rebuilds.
+
+**Gates.**  `lake build`, `lake test` warning-free; the verdict checks
+(e2e, arena) identical to S5c's.  Lines (`ConLeche/`): 36 files, +270
+−414.
+
+## TASK #342 — W2: the whitepaper on the ported code (2026-10-13, agent/342-w2)
+
+Lane W2 (`_tmp/342v2-design.md`, "W2 todo"), after S5d, on `port-342`.
+
+**The merge.** `frag-342` (F1–F4, #345–#350, W1, WTERM, WLET) merged
+into the lane.  Conflicts: `DESIGN.md` only (both sides appended;
+both kept, port's records first).  The whitepaper sources and
+`links-expected.txt` auto-merged with port-342's link repoints of
+master's text; they were taken from `frag-342` wholesale and every
+con-leche citation re-pointed in this lane instead.
+
+**The 12 `// PORT:` markers** (§1, §2a ×3, §2b ×3, §4 ×2, §6, §7 ×2)
+are gone; the `#real` blocks state the current checker with its sites:
+`Rel.lean`'s citations (β/λ/∀/η, the six relations, the `fvar` and
+proof fast-path rules as the checker's second reason against `trans`),
+`let` by substitution (`Core.lean`'s whnf and infer arms), `tyU` and
+`IsTy`/`Strict`, the λ/η/ι tax sites, `infer_only` as the io grade,
+the ι comparisons made in the certified case only (with
+`RecRuleExtra` as what the law reads elsewhere), the case test
+(`iotaCtorLicensed`/`iotaCase3`), structure η and its rescue with no
+certificate, the `And` rescue, `ITerm`/`denoteMeta`/`interp`,
+`Denotes_of_denoteMeta` with no invariant hypothesis.  Two sentences
+said the ι certificate depends on the motive's level; neither the
+checker nor the fragment reads the motive — corrected (§2b's tax list,
+§4's case heading); the unverifiable "in Lean's core library only
+`Quot.lift`, `Acc.rec`, `PUnit.rec` take the certified case" is
+dropped.  §5's nested-rule paragraph says the stored instantiation is
+compared only in the certified case.
+
+**Links.** 72 citations moved with their text and were repointed
+mechanically; the rest (≈60) re-read against the code and repointed;
+`links-gate.sh --update`: 473 links, 115 files, 13 documents, OK.
+
+**Fragment comments** (comment-only, line counts unchanged, 25 files,
+≈85 sites): no annotations, honest annotations, restricted universes or
+certified β; `Model/Annot` → `Model/Env`, `AnnotTerm` → `ITerm`,
+`Certs` → `CertsF`; "product" → Π-type / function space; `Rules.lean`'s
+`Rel.lean:N` references repointed.  `fragment-gate.sh` OK.
+
+**NOTES/PLAN.**  NOTES: the items about removed binder data and the
+fragment's switch of model removed (old 5, 8, 12, 15, 22, 38–43);
+items the port took up marked *done upstream* (ι comparisons, the
+three ι laws, `DefEqLams`, `let`, structure η/unit-like); 37 items,
+cross-references renumbered.  PLAN: current names, process, and the
+PORT convention replaced.
+
+**Code comments found stale on the way** (line counts unchanged):
+`Main.lean`'s `--help` and `CoreC`'s header listed a λ-codomain sort
+check that no longer exists; `recFireComparands`' docstring described
+the deleted shape certification; `Rel.lean`'s module doc said "eight"
+relations (six).
+
+**Imports.** The first full battery found S5d's import consequences
+(shake): `GenClsData` no longer needs `GenRecParams`/`TargetOutSat`,
+`NestedRecRest` no longer `NestedRead` (`EnvWF` now re-exports it),
+`GenRecPins`' `NestedRead` import demoted, and `Fold`'s allowlisted
+`NestedRead` line no longer proposed — fixed.
+
+**Gates.** `lake build`, `lake test` warning-free; `fragment-gate`,
+`links-gate` (473 links), the document build (PDF + HTML, no
+diagnostics, synced to `_out/whitepaper/`), and the full
+`tests/arena.sh` on the final tree: arena 90/92, e2e 473/473, trusted,
+`--jobs=1`/`--jobs=4` sweeps as the default, every gate green.
+
+## TASK #342 — R3: `ITerm` folded into `Term` (2026-10-13, agent/342-r3)
+
+Ruling (maintainer, final review): `ITerm` existed only because it once
+carried the binder numerals; since L14a its constructors are `Term`'s,
+`ITerm.erase` maps every node to itself and `denoteMeta` is `denote`.
+Fold one into the other.
+
+**Where the one type lives.**  `Term` (`ConLeche/Term/Syntax.lean`),
+unchanged in shape.  The base tier is the right home: three tiers read
+the type — `Verify/Denote/*` (the denotation and its model-free
+metatheory, which may not import `Semantics/*`), `Semantics/*` (the
+interpretation) and `Model/*` — and `Term/*` imports nothing of them.
+`Term.lift` and the four `projPair?` lemmas moved there from
+`Semantics/Syntax.lean`.
+
+**One reading.**  `denote` (`Verify/Denote.lean`) keeps its name and
+home and takes `denoteMeta`'s body: the binder clauses in `do` form, and
+a `let` whose type must read (its constants resolve) and is dropped —
+`constsBound_of_read` derives `ConstsBound` of stored terms from
+readability, `let` types included, so the stricter clause is the one the
+model uses.  The string literal is written out in the clause
+(`strLitT` is gone).  The clause equations moved from
+`Model/Reading/Lemmas.lean` to `Verify/Denote.lean`;
+`denote_bvarsBelow` was re-proved on the new induction principle.
+`Model/Reading/*` stays the reading's metatheory, now about `denote`.
+
+**Deleted.**  `Semantics/Syntax.lean` (`ITerm`, `erase`, its `liftN`/
+`inst`/`mkAppN` copies and their clause lemmas, `erase_liftN`/
+`erase_inst`/`erase_mkAppN`/`erase_eq_const`), `Semantics/Canon.lean`
+(`natLitAV`/`charListAV` and their `_erase` laws, `erase_projAV`),
+`Semantics/DenoteClosed.lean` (`ITerm.liftN_eq_self`/`inst_eq_self`,
+twins of `Verify/Denote/VClosed.lean`'s), `Model/Reading/DenoteMeta.lean`
+(`denoteMeta`, `denoteMeta_erase`); `TConstVal`, `EnvModel.cvalE`,
+`EnvModel.acval_erase` (48 uses), the `cval_closedL`/`basis_pinnedL`
+spellings (the fields are now `cval_closed`/`basis_pinned` on `acval`
+itself), the `hlink : (acval n ψ).erase = cval n ψ` premises and their
+second valuation (`pinCross`, `pinOpenRevReads`, `nestedPinGrade`,
+`denote_openRev_base`), `strLitT`, the twin definitions `projAV` (=
+`projNV`), `eqValAV`/`eqReflValAV`/`eqRecValAV` (= `Semantics/EqTower`'s
+`…T`), `emptyAV` (= `emptyT`), `Model.ITerm.instSeq` (= `Term.instSeq`),
+Verify's `ctxInstAt` and `ctxInstAt_nil` (no consumer; `ctxInstAtAV` is
+the one in use), and a local `denote_bvar` twin in `BlockRecRule`.
+`denoteMeta_closed` became `denote_liftN_eq_self` (one line from
+`denote_closed`).  Names that said `iTerm`/`erase` were renamed
+(`Term.mkAppN_append`, `Term.liftN_mkAppN`, `numeralAV_below`).
+
+**Kept.**  `interp`, `WellDenoted`, the claims, `Denotes`,
+`MainTheorem` and `Challenge` are textually the same statements over
+`Term`; `Denotes_of_denoteMeta` is `Denotes_of_denote`.  No checker
+code changed (one comment in `Kernel/ExprOps.lean`).
+
+**Size.**  292 files, +8863/−9811 (`ConLeche/` +8219/−9150); the four
+deleted modules were 787 lines.
+
+**Imports.**  Shake re-gated: the edges the deleted modules carried
+moved to `TowerKit`/`Verify/Denote`; 14 compensated or not-reproduced
+proposals allowlisted with their `--only` evidence, 11 stale lines
+dropped, 10 `public import`s demoted, one dot-notation fallback in
+`pub-import-plan.py` repointed (`BlockHoleRead` ← `TowerKit`).
+
+**Documents.**  OVERVIEW (§4 "Terms", the `AV` suffix row, the module
+map) and the whitepaper (§7 "An intermediate term language", the
+fragment's two comments) name `Term`/`denote`; anchors that moved with
+added `open` lines were repointed mechanically and the citing
+paragraphs re-read; both link gates regenerated.
+
+**Left for later (report, not done).**  `EnvModel.acval_closed` (the
+lift-invariance of every leaf) is now derivable from `cval_closed`
+(`Term.liftN_eq_self`), and so is every `hAclosed` premise threaded
+from `coreCons` through the install step (~40 call sites, the sum
+tower's "`hAclosed` packages").  `acval_basis_pinned` and
+`EnvModel.acval_pinned` are two spellings of `basis_pinned`'s second
+component.  `Model/Reading/*` needs no model in most modules and could
+move to `Verify/Denote/*`.  The `…AV` names now only mark the model
+tier's spellings of `Term`s.
+
+## TASK #342 — R2: two findings of the full Lean Kernel Arena run (2026-10-13, agent/342-r2)
+
+The full arena run (`_tmp/arena-full`, arena checkout `c6d13ac`)
+compared `master` with the port.  Two findings were left for this lane.
+
+**Finding 1: `bugs/proj-of-subst-prop` — not a regression.**  Expected
+reject; both binaries reject, `master` at `observe` (position 116,
+"projection from a propositional structure must be a proposition"),
+the port one declaration earlier at `proposition` (115, "application
+type mismatch").  `proposition := asProp witness` needs `Q ≡ P`, i.e.
+`c ≡ b`.
+
+- *Neither binary finds `Q ≡ P`.*  Exporting the test with
+  `proposition` as the only target, `master` rejects it with the same
+  "application type mismatch".  In the full stream `master` reported
+  `observe` because its annotate pass ran at install, and the
+  projection guard there fired before the check phase ran; the port
+  moved that guard into inference (S4 L-ck), so the earliest failing
+  check in fold order, `proposition`, is reported.  No conversion path
+  was lost: not an annotation gate, not the β certificate, not the io
+  licence, not the order of proof irrelevance and whnf.
+- *Why `c ≢ b` here.*  The elaborator abstracts `b`'s `Acc` proof
+  (`Acc.intro 1 fun _ => Acc.inv seed`) into the theorem
+  `PR14806Subst.b._proof_1`, so `b` unfolds to
+  `run false 1 b._proof_1`.  Theorems are opaque to con-leche's δ
+  (`unfoldDefinition`, anticipating lean4#14896), so the case-3 ι step
+  of `Acc.rec` never sees `Acc.intro`, and `b` gets stuck at index 1
+  while `c` is at index 0.  Written with the constructor in place
+  (scratch variants `run false 1 (Acc.intro 1 …) ≡ c`), the chain is
+  found by both binaries: ι (with the case-3 certificate), `step`'s
+  match, and proof irrelevance on the two `Acc … 0` proofs.
+- *The official kernel.*  v4.34.1 unfolds the theorem and accepts
+  `proposition` (checked with `addDeclCore … (doCheck := true)`);
+  the lean4#14896 kernel (`pr-release-14896`, theorems opaque) rejects
+  it with "(kernel) application type mismatch", exactly as con-leche.
+- *Can it be found soundly?*  Only by unfolding theorems, which is a
+  deliberate design choice (a declaration's verdict never depends on a
+  theorem's value), not a rule of the port; no change.  Pinned as the
+  e2e fixture `proj_of_subst_prop` (reject, the arena's stream).
+
+**Finding 2: `corner-cases/eta-struct-major-no-whnf`,
+`…-and-no-whnf` — exit 134.**  Both majors are proofs built from
+Coquand's paradox (no weak head normal form): `Prod.rec f loopPair`
+with `loopPair` an `Acc.rec` over such a proof, and `And.rec f (Ω _ ⟨⟩)`.
+`prepareMajor` head-normalized the major *before* trying the
+structure rescues, and the reduction did not terminate.  It did not
+time out either: every step of the cached `whnf` loop called its
+continuation through a closure (`whnfStepI` passed `whnfLoopI … n` as
+`k`, called with `lean_apply_2`), so each δ step added native frames,
+and the worker's 1 GiB stack overflowed after about 1.8 s (`gdb`:
+`whnfLoopI`/`whnfLoopI___boxed`/`lean_apply_2` repeating).
+
+- *The order (lean4#15351).*  `prepareMajor`, off K, now runs the
+  rescues on the major **as found**: the structure-η rescue (never-`Prop`
+  structures) and the `And` rescue read only the major's type and
+  build `S.mk ps (S.p₀ x) …`; only if that gives no constructor is the
+  major head-normalized, its literal converted and the rescue tried on
+  the reduct (a `String` literal skips the first attempt, as lean4#15351
+  does).  Both rescues are `Red` steps on any major (`Red.rescueEta`,
+  `Red.rescueAnd`), so no rule, no claim and no model lemma changes;
+  #350's proviso (expand as found, never after reducing) is what the
+  new order does.  Proofs repaired: `prepareMajorFueled_ind`,
+  `prepareMajor_shift`, `prepareMajor_atF`, the `PairM` projections,
+  `prepareMajorC_sim`.  Both arena tests now **accept** (14 ms / 11 ms),
+  as the planned official kernel does.
+- *The δ loop.*  `whnfStepI` is `@[inline]` (a compiler attribute; the
+  term is unchanged): inlined into `whnfLoopI`, the continuation call
+  becomes the loop's own tail call and compiles to `goto _start`.
+- *The β/ι loop.*  The same overflow is reachable without δ: `Ω`
+  written inline (β and the K-like `Eq.rec` only) as the major of an
+  `Acc.rec` into data.  There the cached `whnfCoreLoopI` grew the stack
+  through non-tail continuation calls: a fired ι with arguments left
+  over (`let v' ← k e''; whnfAppI v' rest`) and a peel stopping with
+  arguments left over.  `whnfAppI`, `betaPeelI` and `whnfCoreStepI`
+  now return a `WhnfStep` (`done v`, or `cont e` with the reduct
+  applied to the rest of the spine), and `whnfCoreLoopI` continues with
+  it as its own tail call.  The specification (`whnfCoreBody`, chained)
+  is unchanged; in `Verify/BetaSpine.lean` the mirrors gain the
+  step-returning `whnfAppW`/`betaPeelW`/`whnfCoreStepW` (simulated by
+  `DiscC4`), the continuation-passing `whnfApp`/`betaPeel` take the
+  tail form and equal the step-returning ones followed by
+  `WhnfStep.run` (`whnfApp_run`, `betaPeel_run`, `whnfCoreStepM_run`),
+  and the snoc/ksound proofs split the ι and peel cases by the spec's
+  own app clause (`whnfCore_app_split`).
+- *What remains native recursion.*  Checked in the generated C: the
+  `whnf`, `whnfCore`, lazy-delta and lazy-delta-projection loops and
+  the argument loop of `whnfAppI` jump (`goto _start`); the spine walks
+  recurse over a spine's length.  Nesting (a head, a scrutinee, a
+  type) goes through the knot and is bounded by `checkFuel` (an exit-3
+  error when exhausted).  A non-terminating reduction in a position
+  nothing lets the checker skip now runs until the external timeout in
+  constant memory (20 MB), as the official kernel does not terminate
+  either; pinned by `whnf_delta_loop` and `whnf_core_loop` (exit 124 at
+  a 5 s budget; both were 134 before).  Deep *terms* (structural
+  recursion over a term's depth: substitution, hashing, equality) are
+  outside this lane: the parser and reduction can build them, and their
+  depth is not budgeted.
+
+**What the planned kernel does that con-leche still does not.**
+lean4#15371 eta-expands the major of every large-eliminating
+structure in `Prop` and every sort-polymorphic structure at a `Prop`
+instance; con-leche rescues `And` (by name) and never-`Prop`
+structures only, so for another such structure (`PUnit.{0}`, a
+user-declared `structure S : Prop` of proofs, a `PSigma'`-like one at
+level 0) the major is still head-normalized first.  #350 proved the
+general η path sound with no certificate, as theorems on the claims;
+making it a `Red` rule needs the `StructEtaLaw`/`ProjLaw` environment
+laws (post-port lane, §11.7).
+
+**The other new η tests** (arena, port binary of this lane, all
+"either"): `eta-struct-major-and` accept; `eta-rec-struct`,
+`eta-ctor-alias` (bugs, expected reject), `eta-unit-like-nested`,
+`-pi`, `-proof-field`, `-struct` reject — unchanged from `master` and
+the port before this lane.
+
+**Numbers** (`instructions:u`, `--verified --jobs=1`, one run each,
+under the RSS guard; base = the port binary of the arena run,
+`b4a5e4edc`'s checker): init-full 408.34 G → 400.55 G (−1.91 %),
+mathlib-prefix 557.49 G → 547.91 G (−1.72 %); peak RSS 0.31 / 0.46 GiB.  The gain is not attributed by a profile; the two loops no longer allocate a continuation closure per step nor call it indirectly.
+
+**Fixtures.**  `eta_struct_major_no_whnf`, `eta_struct_major_and_no_whnf`
+(accept), `whnf_delta_loop`, `whnf_core_loop` (124 at 5 s),
+`proj_of_subst_prop` (reject).  Sources in `tests/e2e/src/` (the
+arena's, exported with the pinned v4.29.1 toolchain), except
+`proj_of_subst_prop`, the arena's own stream.
+
+**Documents.**  OVERVIEW §3: the structure rescues come before the
+major's head normalization; the reduction loops iterate in constant
+stack.  Line-anchored citations that moved with the code were
+repointed (OVERVIEW 5, whitepaper 5; `overview-links`, `links-gate`
+regenerated, text unchanged).  For R4: the whitepaper's §6 says the η
+rescue fires on "a recursor stuck on a non-constructor `s`"; it now
+fires on the major as found, before any reduction.
 ## TASK #348 — the openai/math completeness run, parked; the let-fold fixtures (2026-10-12, agent/348-letfold)
 
 The checker is about to be rewritten, so the openai/math investigation
@@ -100608,3 +105451,323 @@ toolchain's `ld.lld` wrapper calls an elan nix-store path that no longer
 exists on this machine (no file of this task is involved). Arena 90/92,
 e2e 475/475, annot 15/15, the trusted, `--jobs=1` and `--jobs=4` sweeps
 as expected.
+
+
+## TASK #342 — R1: the post-review fixes (2026-10-13, agent/342-r1)
+
+The leftovers review's fixes on `port-342`, with the maintainer's
+rulings of 2026-10-13 (drop the legacy `pw` parsing; `MainTheorem.lean`'s
+fold comment may change).  Verdicts unchanged apart from one new
+fixture; checker cost unchanged.
+
+**1. Master merged** (the task #348 commits: the let-fold fixtures,
+`spine_arg_order`, `natmul_deep_major`, the #348 record).  One conflict,
+DESIGN.md's tail (both records kept).  The port's verdicts are master's:
+the three letfold fixtures accept, `spine_arg_order` and
+`natmul_deep_major` exit 3 (fuel exhausted in `whnfCore`, as on master).
+The letfold comment now says why the port folds: inference substitutes
+the `let` value (no let-variables, §11.x); `instructions:u` at n = 14 is
+6.8e9 for each of the three (master 7.2e9).
+
+**2. The legacy `pw` field is gone from the parser** (sub-lane R1-PW).
+`PwRec` and `badPw` (`Frontend/Scan/Types.lean`), `scanPw`/`kPw`
+(`Scan/Fast.lean`), `naivePw` and `binderFields`' slot
+(`Scan/Naive.lean`), their equivalence lemmas (`Scan/Equiv/Keys`,
+`Objects`; repaired to the four-slot shape `axiomFields` already has, not
+duplicated), `naivePw_local` (`Verify/Frontend/Local.lean`) and the
+`Good`/`ExportC` arms; `ExprRec.lam`/`.forallE` are binary.
+`tests/mode/split_{good,bad,bad2}.ndjson` lost their 8 `pw` members
+each (verdicts unchanged); the `pw` scan tests are deleted.  New fixture
+`binder_pw_field.ndjson`: a stream carrying `pw` is malformed (unknown
+key) — **exit 3**, the exit code of every malformed stream
+(`CheckError.exitCode`; `malformed_midstream` is the precedent), not 1,
+which is a reject of a well-formed stream.  No other fixture carries `pw`.
+
+**3. `MainTheorem.lean`'s fold comment**: "annotated and pushed" →
+"guarded and pushed".  `tests/challenge.sh` green.
+
+**4. Stale prose.**  OVERVIEW (`installStepC`; the K/`And` rescues are
+typed at the io grade and compared by proof irrelevance, not certified);
+`majorToCtor`'s docstring; `--help` (install runs the syntactic guards;
+a theorem's are its type's); `Rules/Rel.lean`'s `defeqLams`/`lamPair?`
+pointer; `prf_of_isProofFast` lives in `ProofFastSound.lean`;
+`Semantics/Kit.lean` and `Semantics/Univ.lean` describe what is left;
+the Model docstrings citing `pwBit_substPW`, `BlockRuleCerts`,
+`ResidueOk` (only ever in a docstring's code block), `certs_sound`, the
+"numeral" and "graph-regime" readings (`Levels`, `BasisQuot`,
+`Env/Laws`, `BlockRecRule`, `BlockRecTyping` (its header rewritten),
+`BlockRecPreRun` §1/§39/§40, `ClassRecKit` §0, `SetModel/Ops`);
+`BinderLoop`/`BinderLoopC`; `SetTheory/Derive/README.md`; the
+`Denotes.lean` comments (`Sort u` denotes `univ u`, the types at level
+`u`; the `Denotes` text itself unchanged); the e2e prose (`let_rec_rhs`,
+`str_lit`, `str_proj`, `tower_axiom_nonstd`, the OMEGA and K7 entries,
+`yolo_decline_vs_accept`, `unit_sizeof_rescue`, the `let_bad_*`,
+`str_lit`, `uh_let_erase_type` and `nested_pin_prop_cod` headers);
+`natop_booltrue_alias` (official REJECTS it: exit 1, "unknown constant
+'Bool.true'" while replaying `bleEx`); `CLAUDE.md`'s battery line;
+`tests/shake.sh`'s `#stored_basis`.
+
+**5. Renames.**  `Certs.licensed_sound`/`CertsSem` →
+`teleArity_sound`/`TeleAritySem`; `InferLamEntry`/`InferLamEntryX`
+inlined (`Expr`); `cvA` → `cv` throughout (the identity `let cvA := cv`
+bindings gone; `ConstChecked`'s user in `BlockRecRead` reads
+`cv0`/`cv`); `bconst_app_dataAV` → `bconst_app_data2`;
+`iotaCtorLicensed` → `iotaCtorNeverProp`, `quotMk_licensed_ne_zero` →
+`quotMk_neverProp_ne_zero`.  "licence"/"licensed" is gone from code,
+tests and scripts: the ι licence is "the ι case split", a licensed
+(arity-only) walk is "arity-checked", a model licence is a
+"justification".
+
+**6. Dead proof code** (census-confirmed, build-confirmed):
+`OneElimLevel`/`blockRecOneElimLevel`; `genPdoms` (inlined: it was
+`pre c`); `SetModel/Ops`' `app_lamR`, `app_lamR_of_not_mem`,
+`app_off_dom_piR_pos`, `eq_of_mem_piR_app_eq`, `lamV_eq_zero`,
+`not_pt_mem_piR_pos`, `piR_subset_mono`, `piR_zero_subsingleton`,
+`subsingleton_of_mem_univZero`; `Semantics/Univ`'s four regime lemmas
+(`interp_sort_mem` is all that is left) and `Kit`'s four value-read
+lemmas; the six `Graded.*` of `DefEqSoundKit`; `mkLamsAV_pt_body`;
+`Derive/TypeU`'s nine `strictU`/`Strict`/`Fib` lemmas; `ctxInstAt` (+
+`_nil`); `Expr.isLam`.  The census re-run afterwards
+(`_tmp/port/r1-logs/deadcode/`) lists 176 deletable owners elsewhere
+(e.g. `Verify/Knot`, `CtxOkKit`, the whole `Verify/ProjVerdict`); not in
+this lane's list, left for a census lane (R3 owns the `ITerm` files).
+
+**7. Import gates.**  `Kernel/Expr.lean` and `Verify/InstLevels.lean`
+no longer import `PropWhen`: the edges moved to their users
+(`Kernel/Level`, `Kernel/Env`, `PinGen` take `Kernel.PropWhen`;
+`PropReadInst` and `BasisQuot` `Verify.PropWhen`; `SimCEff` and
+`DirectGen` `Verify.Level`), and their two allowlist lines went.
+`DefEqSoundKit`'s `Semantics.Hoist` import (used only by the deleted
+`Graded.*`) went.  Allowlist lines for `AxiomMem`, `AxiomReduce`,
+`BasisEq`, `Harvest`, `ReduceOps` re-measured with the #223 criterion:
+still compensated, reasons now name live modules.
+`pub-import-plan.py`'s `AxiomMem→StdAxiomPin` fallback is gone (the
+model keeps the edge public without it); its comments name the
+`Reading.*` modules for the deleted `Bit*` ones.  `dead-census.py`'s
+`ANNOTATE_RE` is `STORED_BASIS_RE`.
+
+**8. Spec and shipped core agree at `--trusted`** (sub-lane R1-SPEC).
+`majorToCtor`'s K and `And` branches gate their `proofIrrel` check, and
+`iotaRec` its whole case-3 decision, on `mode.verifiedChecks`, as the
+cached core's `certAtI` does; official's type check on the fabrication
+stays in both modes.  `majorToCtor`/`prepareMajor`/`iotaRec` take
+`mode`; the simulation and bridge proofs thread it (`Knot`, `Fueled`,
+`PairM`, `Deep`, `BetaSpine`, `RedBridge`, `DiscC3`), and
+`majorToCtor_inv`/`iotaRec_inv` state each certificate conjunct under
+`mode.verifiedChecks = true`.  Trusted sweep: 0 recorded divergences.
+
+**9. The self-check is a sub-gate of `tests/arena.sh`**, on by default
+(`--no-selfcheck` skips it): `scripts/selfcheck.sh --fresh
+_tmp/selfcheck-gate` exports the tree and checks it, 43 s wall with the
+export (2 CPU-minutes; a fresh checkout first builds `lean4export`,
+which needs the network once).  `selfcheck.sh` now exits with the
+checker's code.  CI runs it through `arena.sh`.  This tree: exit 0,
+47 512 declarations accepted.
+
+**Measurements** (`instructions:u`, `--verified --jobs=1`, one run
+each, `ulimit -v 22000000`): init-full 408.372G → 408.339G (−0.01 %),
+mathlib-prefix 557.508G → 557.438G (−0.01 %), against `port-342`
+b4a5e4edc; 57 977 / 131 902 declarations accepted; peak RSS 0.30 /
+0.47 GiB.
+
+**Links.**  OVERVIEW, README (anchors only: `Denotes`, `Model`, `main`,
+`run`, `sorryAx`) and the whitepaper's `src` calls repointed; the
+whitepaper's ι citation now spans the mode gate.
+
+**Process note.**  The R1-SPEC sub-agent once ran `pkill -f "lake
+build"` (forbidden by CLAUDE.md); one R1 build died with exit 144 at
+that time, and R2/R3 builds running then may have been killed too.
+
+**Gates** (final tree): `lake build`, `lake test` warning-free; the
+full `tests/arena.sh` green — links (136 + 473), quote, challenge,
+shake (690 proposals, all allowlisted; pub-imports none demotable),
+the self-check (47 512 accepted), axioms, arena 90/92, e2e 479/479,
+the trusted sweep (0 divergences), the `--jobs=1`/`--jobs=4` sweeps.
+
+## TASK #342 — R4: the whitepaper revision from the final review (2026-10-13, agent/342-r4)
+
+The final review of the whitepaper, implemented.  Prose only, plus the
+fragment's comments; no checker or proof change.
+
+**Inconsistencies.**  §2.8's tax list now has the certified case of ι
+in full: the comparisons of the constructor's levels, parameters and
+index expressions with the recursor's, and the type check of its
+parameters and fields (checked against `Kernel/Core.lean`'s case-3
+block); §4.5 colours them as tax.  §2.3 states λ-congruence in its
+telescope form (`≡_λ`: lam at the innermost level with the coloured
+type premises, lam-outer without, lams back to `≡`), as `DefEqLams`
+does.  "Decoding" is defined in §4.2's main text.  "Lean's kernel" →
+"the official kernel".  §6 is "Consequences of extensionality".  §6's
+`#real` box gives the structure step's order as the checker has it
+(the major as found, before any head normalisation, then once more on
+the reduct).  §4.4 says the fragment compares in every case but K, the
+checker only in the certified case.
+
+**Fragment.**  `Unannot.lean` → `ValueReading.lean` (imports and the
+paper's two citations repointed).  Every cited range's comments lost
+their history and lane tags (`F1's version…`, `#347 dropped
+projCertAt`, `#342 v2 §11.4`, …), line counts unchanged; the same for
+two ConLeche docstrings in cited ranges (`Model/Env/Laws.lean`'s
+`RecRuleExtra`, `Term/Syntax.lean`'s `eqE`).  NOTES.md's header and
+items 6, 12, 16, 23, 24, 31, 32 are path-independent; items 38 (the
+`d`/`F` witness and the weaker sound forms, from §2.8) and 39 (where
+the certificate goes, from §4.5) are new.  PLAN.md's colour ruling
+names the comparisons.
+
+**Structure.**  One transitivity passage (§2.7; §2.3 keeps a forward
+sentence and the con-leche box).  §2.7: the four-case list right after
+the theorem; "And look at the point", the proof's closing paragraph and
+the "absence is not a restriction" paragraph cut; "Proofs that are not
+proofs" two sentences.  The empty-domain example told once (§2.5); §1.3
+one sentence and a pointer.  §2.8: the `d`/`F` witness and the weaker
+forms to NOTES, "The full grade" two sentences.  §2.9 compressed (the
+`Bool.rec` example cut).  New §2.10 "The argument in brief".  §3's lone
+subsection heading dropped (`sec:defs` → `sec:env`).  §4.1 "A remark on
+names" cut, the large-elimination box one sentence; §4.2's regime
+paragraph folded into "The family and the constructors"; §4.5's "A
+structure, through its projections" moved to §6.2, "Where the
+certificate goes" to NOTES.  §5.2 without the error strings, its
+`#real` box one sentence; §5.4's garbled sentence and "(case 4)"
+rewritten.  §7: structure η/unit-likeness and fuel/bridge items are
+pointers; the `And` item is "Recursors on stuck proofs of `A ∧ B`".
+§8: the survey disclaimer and the empty-domain reprise cut.
+
+**Words.**  Jargon: "the point" introduced in §1.3; no "off the point",
+"grade" (full inference / `infer_only`), "regime", "slot" (the
+major-premise law), "residual", "row"; "certificate" only for the ι
+check; telescope and spine glossed; K glossed in §2.8.  Em-dashes in
+the sections: 226 → 0.  Words (`wc -w`, sections): 29 297 → 28 262.
+
+**Gates.**  `whitepaper/fragment-gate.sh` OK; `whitepaper/links-gate.sh`
+OK after `--update` (467 links); `tests/overview-links.sh` OK after
+`--update` (the `Term/Syntax.lean` docstring); the document builds
+warning-free.
+
+## TASK #342 — R5: the remaining dead code (2026-10-13, agent/342-r5)
+
+The leftovers review's last lane: the census's deletion set, R3's two
+redundancies, the model-free half of `Model/Reading/*`, and what turned
+up on the way.  No checker behaviour changed (the checker lost one dead
+helper and some unused simp lemmas); verdicts unchanged.
+
+**1. The census** (`scripts/dead-census.py`, fresh on `port-342-r`
+658163a8e): 175 deletable owners (353 constants).  Deleted 135 owners
+and `Verify/ProjVerdict.lean` whole; the build asked back 36 that the
+census cannot see (rfl lemmas named in `simp`/`rw` lists): `Verify/Knot`'s
+28 folds and `inferTypeIO_def`, `Extend/Inversions`'
+three `fueledOps_*`, `Deep`'s `map_ok`, `FileFalse`'s `toString_id`,
+`RoundsWork`'s `idsT_nil`, `BridgeCSDecl`'s `throwC_bind_eq`.  Kept
+because a document names them (dead by the walk): `Denotes_functional`
+(the `Denotes.lean` reader's uniqueness statement), `trusted_agrees_skels_D`
+(OVERVIEW's naming table), `no_proof_of_Empty_checked` (pinned in
+`tests/ConLecheTests/Axioms.lean`).  What went, by tier:
+- *Verify*: the pair-monad records of `BridgeDecl` (`bridgeRel`, `OpsRel`,
+  `pairOps`, `wfOpsM`, `wfOpsM_whnf`, `checkDeclsPure_datF`,
+  `nestedBlockPositivity_datF`), `ProjVerdict` (the projection verdict
+  statements), `RecStage`'s `RuleTower`, `AgreeFloor`'s three
+  corollaries of `trusted_agrees_skels_D`, `MainC`'s and `Fold`'s
+  coverage corollaries (`checkDecls_cover`, `checkDeclsPure_cover`,
+  `fullyChecked_cover`);
+- *Model*: `CtxOkKit`'s ten `CtxOk`/`CtxOkS` accessors, `Cover`'s four,
+  `BlockHoleRead`'s `ErasedEq`/`replaceConsts` kit, `StoredShapes`'
+  `HoleLeafOk`, `TargetCallWalk`'s four, `Caps`' `unitNoFamily*` and
+  `etaFamilyStored_not_derivable`, `CanonCrest`'s two `replaceConsts`
+  transports, `BlockRecPreRun`'s `inferTypeCore_openPis_sortZ`, the
+  rules kits' `hoist_spine`/`graded_app`/`lamDomV`/`*K` congruences and
+  `DefEqListSemU`, and some forty one-off lemmas;
+- *Semantics/SetModel/SetTheory*: `Hoist`'s converses, head transfer and
+  trap-check example (`hoist_pi` is what is used), `FixTower`'s and
+  `BlockTower`'s strictness lemmas, `Derive/Univ`'s six `univ` lemmas,
+  `LfpFam`'s six, `Sigma`'s five, `Quot`'s three (with the
+  `untagged_quotSet_eq_pt_countermodel` remark), `set_choice` (uncited;
+  `schoice` is what the model uses), `mem_unitSet`, `maxOne_ne_zero`;
+- *Rules*: `DefEq.deltaL`/`deltaR`/`deltaBoth`;
+- *checker code*: `openPisParamsIdx` (`BlockInstall`, never called).
+
+**2. Simp lemmas the census holds back.**  A dead `@[simp]` lemma in a
+surviving module is held (a `simp` use leaves no trace); each of the 89
+was tried per module, then one by one, and 35 are gone where the build
+stays green and warning-free (`CoreC`'s `certAtI` pair, `ExprNodes`,
+`InstallSkel`, `IndTele`, `SumTower`, `Knot`'s `pureFns*`, `Modes`,
+`PropRead`, `Iter`, `TeleOpen`, `PairM`, `Verify/Subst`, `EnvWF`'s
+`ProjTable.entry_*`).  A census re-run then found three more:
+`Tower.iterF`, `instSeq_eq_self_of_closed`, `CtxOkS.nil`.
+
+**3. R3's redundancies.**  `EnvModel.acval_closed` is a lemma now
+(`Term.liftN_eq_self` at `cval_closed`), not a field; the `hAclosed`
+premise is gone from `coreCons`, `declStep_preserves_of_cons`, the four
+basis and three inductive wrappers, `harvestAxiom` and every call
+site, and with it `acvalWith_closed`,
+`BlockRecLeafOk.liftN`/`blockRecLeafAV_liftN` and the `hlift` premise
+threaded through the recursor chain (`envModelM_consBlockRecsBare`,
+`envModelM_consBlockRecsR`).  The `hAclosed` that `DivModCert`,
+`NatEqs` and `ReduceOps` take is a premise of their own (the value's
+reading at depth), not threaded from `coreCons`; it stays.
+`acval_basis_pinned` folded into `EnvModel.acval_pinned`, which now
+takes the lookup `env.find? n = some ci`, as every use has it.
+
+**4. `Model/Reading/*` → `Verify/Denote/*`.**  Nine of the twelve need
+no model and moved (namespace `ConLeche.Verify`): `Lemmas`, `Shift`
+(as `Depth`, `Verify/Denote/Shift` exists), `Inst`, `Closed`,
+`Install` (as `AcvalCongr`, beside the existing `Install`),
+`EnvExtend`, `TowerExtend`, `ConsCross`, `ErasedEq`.  So that no
+`Verify/*` module imports `Semantics/*`, their dependencies moved down
+too: `Semantics/ConstsBound` became `Verify/Denote/ConstsBound`;
+`acvalWith` and its V-free laws joined `Verify/Denote/Install` (the one
+`V` lemma, `acvalWith_wellDenoted`, moved to its one user,
+`Model/Install`; `Semantics/Install.lean` is gone); `projNV_liftN`/
+`projNV_inst` sit beside `projNV` in `Verify/Denote.lean`.
+`Reading/{Levels,LpDefF,SubstFvars}` read `EnvModel` and stay.  The
+umbrella imports moved from `ConLeche/Model.lean` to `ConLeche.lean`.
+
+**5. Other leftovers.**
+- *Identity helpers*: `AcvalParams`/`acvalParams` (EnvModel's "Residue
+  8") and `acvalParamsAt_of_core` restated the `acval_params` field;
+  gone (`AcvalParamsAt` is an `abbrev`, `acval_const_congr'` lost its
+  premise and its prime); `keyLeaf` was `keyLeafW` re-wrapped.
+- *Duplicated lemmas* (one kept each): `find?_mem` (`InferLemmas`) =
+  `Semantics.Env.find?_mem` (now `Env.find?_mem`/`find?_name` in
+  `Verify/EnvWF`); `IsTy_psigma_app`/`IsTy_quot_app` (Model) =
+  `IsTy_psigmaV_app`/`IsTy_quotV_app` (Semantics); `WellDenotedTy_pi_dom`
+  = `WellDenoted.pi_dom`; `frameIdx_eq_range_reverse` (SumKit) =
+  `frameIdx_eq_reverse_map` (FixKit), now beside `frameIdx`;
+  `piResult_of_stripPis_sort` (Model) = its primed Verify twin;
+  `spineFit_append_split` (SumTower) = `spineFit_append_inv`
+  (StructRecKit), now beside `SpineFit`; `natBinHead_app_package` =
+  `natBinHead_app`; `fueledOps_orElse'` (BridgeDecl) = `fueledOps_orElse`.
+- *Unused premises*: `hAclosed`/`hlift` above; no other pass-through
+  premise was found (the build is warning-free, so every named premise
+  is read; the recursion-only case was `hlift`).
+- *Kept, with reason*: `Rules/Derived`'s `Expr.mkAppN_append_one'`/
+  `mkAppN_getApp'` twin `InferLemmas`' (the rules tier does not import
+  the fueled entry points; its comment says so); `ContWalk`'s `…T`
+  lemmas restate the plain ones under fewer section premises (not
+  duplicates).
+- *Stale prose* repaired: `BridgeDecl`'s and `BridgeWfImp`'s module
+  docstrings (they described the deleted `wfOpsM` game), `Hoist`'s,
+  `Choice`'s, and about twenty comments naming deleted lemmas.
+
+**Size.**  `ConLeche/` 196 files, +683/−2904 (with renames detected).
+
+**Numbers** (`instructions:u`, `--verified --jobs=1`, one run each,
+under the RSS guard; base = `port-342-r` 658163a8e): init-full
+400.566G → 400.507G (−0.01 %), mathlib-prefix 547.837G → 547.832G
+(−0.00 %); 57 977 / 131 902 declarations accepted; peak RSS 0.30 /
+0.46 GiB.
+
+**Imports.**  The moved modules' allowlist lines follow them; seven
+new `shake` proposals the deletions exposed are allowlisted with their
+`--only` evidence; `FixKit`'s `NoBVar` import went (criterion clean).
+
+**Documents.**  OVERVIEW's module map (`Verify/`: the reading and its
+metatheory; `Model/Reading/`: the facts that read the invariant);
+anchors in OVERVIEW and the whitepaper repointed by content, two
+re-read; both link gates regenerated.  `scripts/dead-census.py`'s
+"results that are not corollaries" examples name live results.
+
+**Gates** (final tree): `lake build`, `lake test` warning-free; the
+full `tests/arena.sh` green — layering, pindump, trust surface, links
+(135 + 473), fragment, quote, challenge, shake (690 allowlisted;
+pub-imports none demotable), the self-check (46 898 accepted), axioms,
+arena 90/92, e2e 484/484, the trusted sweep (0 divergences), the
+`--jobs=1`/`--jobs=4` sweeps.

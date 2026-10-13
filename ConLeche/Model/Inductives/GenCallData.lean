@@ -21,7 +21,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead GenRecRun ClassMajorRun ClassCtorRun openPisAtFvars
   targetPiDomsWith fueledOps mkFEnv NestState)
@@ -92,9 +92,9 @@ theorem genCall_data
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out) {c : Nat} (hc : c < (ConLeche.tgtRs out).length) {j : Nat}
     (hj : j < (tgtMajor out c).ctors.length)
-    (acval : Name → (Name → Nat) → AnnotTerm) (bit : Nat) (ψ : Name → Nat)
+    (acval : Name → (Name → Nat) → Term) (ψ : Name → Nat)
     (tup : Nat → List V → V) (ρ : Nat → V) {xs fs : List V} {v : V}
-    (hcall : genCallT tup ρ (fun c j => genIhdAV acval envC R.g R.rd bit ψ c j) xs c j fs v) :
+    (hcall : genCallT tup ρ (fun c j => genIhdAV acval envC R.g R.rd ψ c j) xs c j fs v) :
     ∃ (cls : Nat) (M₀ : TargetMajor) (nfs : List ConLeche.NestCtorNf) (cA : ConstantVal × Nat)
       (x : ClassCtor) (i tt tele : Nat) (fvsR : List Expr) (oR : Expr) (ws xsO : List Expr)
       (leafO : Expr) (bs : List V),
@@ -117,9 +117,9 @@ theorem genCall_data
       v = tagged (genRecIdx R.rd tt) (tup (genRecIdx R.rd tt)
           ((leafO.getAppArgs.drop (R.Ms.getD tt default).nPc).map fun e =>
             interp V (consList bs (consList (xs ++ fs) ρ))
-              ((denoteMeta acval envC ψ (R.pre.length + x.nF + xsO.length) e).getD default)))
+              ((denote acval envC ψ (R.pre.length + x.nF + xsO.length) e).getD default)))
         (interp V (consList bs (consList (xs ++ fs) ρ))
-          ((denoteMeta acval envC ψ (R.pre.length + x.nF + xsO.length)
+          ((denote acval envC ψ (R.pre.length + x.nF + xsO.length)
             (Expr.mkAppN (fvsR.getD i default) xsO)).getD default)) := by
   obtain ⟨cls, M₀, nfs, cA, x, gen, hcl, hlt, hM₀, hMs, hMeq, hMR, hnfs, hcA, hxj, hgx, hRc, hgen⟩ :=
     genCtor_at R hc hj

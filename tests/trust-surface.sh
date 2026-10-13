@@ -124,7 +124,7 @@
 #       official kernel's `replace_fn` keys its cache on
 #       (`is_likely_unshared`); the walks memoise exactly the nodes it
 #       reports shared.  The obligation `h : k true = k false` is what
-#       licenses the substitution: the continuation cannot observe the
+#       justifies the substitution: the continuation cannot observe the
 #       answer, so the compiled program computes the definition's
 #       value — the same arrangement as `Init.Util`'s `withPtrAddr`
 #       (`k 0` in the model, the address in the binary).  Every use in
@@ -138,9 +138,10 @@
 #       to avoid (a hidden reference before the read).
 #
 #   ConLeche/Kernel/BasisGen.lean      unsafe, implemented_by
-#       ELABORATOR-ONLY.  `#annotate_basis` / `#annotate_pins` run the
-#       checker's own annotation pass at elaboration time through
-#       `unsafe evalTerm` and splice the resulting literals.  Nothing
+#       ELABORATOR-ONLY.  `#stored_basis` computes the stored basis
+#       pins (the recursors' install-computed rule fields) at
+#       elaboration time through `unsafe evalTerm` and splices the
+#       resulting literals.  Nothing
 #       here is in the binary; the spliced literals are ordinary data
 #       the proofs consume.
 #

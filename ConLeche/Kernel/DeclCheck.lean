@@ -43,7 +43,7 @@ def Expr.constsResolveF (fe : FEnv) : Expr → Bool
   | .const n _ => (fe.find? n).isSome
   | .fvar _ ty => ty.constsResolveF fe
   | .app f a => f.constsResolveF fe && a.constsResolveF fe
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     ty.constsResolveF fe && body.constsResolveF fe
   | .letE ty val body =>
     ty.constsResolveF fe && val.constsResolveF fe &&
@@ -97,11 +97,11 @@ def Expr.constsResolveFGo (fe : FEnv) (memo : Std.HashMap Expr Bool) :
           let (b₁, memo) := constsResolveFGo fe memo f
           let (b₂, memo) := constsResolveFGo fe memo a
           (b₁ && b₂, memo)
-        | .lam ty body _ =>
+        | .lam ty body =>
           let (b₁, memo) := constsResolveFGo fe memo ty
           let (b₂, memo) := constsResolveFGo fe memo body
           (b₁ && b₂, memo)
-        | .forallE ty body _ =>
+        | .forallE ty body =>
           let (b₁, memo) := constsResolveFGo fe memo ty
           let (b₂, memo) := constsResolveFGo fe memo body
           (b₁ && b₂, memo)
@@ -146,7 +146,7 @@ theorem Expr.constsResolveFGo_spec {fe : FEnv} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [constsResolveF, h1, h3], ?_⟩
       exact h4.insert (by simp [constsResolveF, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [constsResolveFGo]
     split
@@ -156,7 +156,7 @@ theorem Expr.constsResolveFGo_spec {fe : FEnv} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [constsResolveF, h1, h3], ?_⟩
       exact h4.insert (by simp [constsResolveF, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [constsResolveFGo]
     split
@@ -213,12 +213,12 @@ def natOpCodF (fe : FEnv) (c : Name) (e : Expr) : Bool :=
 def natOpTyPinnedF (fe : FEnv) (c : Name) (ty : Expr) : Bool :=
   if c = natPredName then
     match ty with
-    | .forallE dom body _mb =>
+    | .forallE dom body =>
       dom == .const natName [] && natOpCodF fe c body
     | _ => false
   else
     match ty with
-    | .forallE dom (.forallE dom2 body _mb2) _mb =>
+    | .forallE dom (.forallE dom2 body) =>
       dom == .const natName [] && dom2 == .const natName [] &&
       natOpCodF fe c body
     | _ => false
@@ -231,8 +231,8 @@ def natOpStoredOkF (fe : FEnv) (n : Name) : Bool :=
   | _ => false
 
 /-- `stdAxiomOk` through the index. -/
-def stdAxiomOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
-  if cvA.name = propextName then
+def stdAxiomOkF (fe : FEnv) (cv : ConstantVal) : Bool :=
+  if cv.name = propextName then
     decide (fe.find? eqName = some eqA) &&
     (match fe.find? iffName with
      | some (.indInfo cvI _) => ConstantVal.matchesPin cvI iffA.toConstantVal
@@ -245,8 +245,8 @@ def stdAxiomOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
      | some (.recInfo cvIr 4 4 _) =>
        ConstantVal.matchesPin cvIr iffRecA.toConstantVal
      | _ => false) &&
-    ConstantVal.matchesPin cvA propextA
-  else if cvA.name = choiceName then
+    ConstantVal.matchesPin cv propextA
+  else if cv.name = choiceName then
     (match fe.find? nonemptyName with
      | some (.indInfo cvN _) =>
        ConstantVal.matchesPin cvN nonemptyA.toConstantVal
@@ -259,18 +259,18 @@ def stdAxiomOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
      | some (.recInfo cvNr 3 3 _) =>
        ConstantVal.matchesPin cvNr nonemptyRecA.toConstantVal
      | _ => false) &&
-    ConstantVal.matchesPin cvA choiceA
+    ConstantVal.matchesPin cv choiceA
   else false
 
 /-- `trustCompilerOk` through the index. -/
-def trustCompilerOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
+def trustCompilerOkF (fe : FEnv) (cv : ConstantVal) : Bool :=
   (match fe.find? trueName with
    | some (.indInfo cvT _) => ConstantVal.matchesPin cvT trueCvA
    | _ => false) &&
   (match fe.find? trueIntroName with
    | some (.ctorInfo cvTi 0 0) => ConstantVal.matchesPin cvTi trueIntroCvA
    | _ => false) &&
-  ConstantVal.matchesPin cvA trustCompilerA
+  ConstantVal.matchesPin cv trustCompilerA
 
 /-- `reduceStoredOk` through the index. -/
 def reduceStoredOkF (fe : FEnv) (c : Name) : Bool :=
@@ -287,12 +287,12 @@ def reduceElemOkF (fe : FEnv) (c : Name) : Bool :=
     | _ => false
 
 /-- `ofReduceAxOk` through the index. -/
-def ofReduceAxOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
-  let c := ofReduceOp cvA.name
+def ofReduceAxOkF (fe : FEnv) (cv : ConstantVal) : Bool :=
+  let c := ofReduceOp cv.name
   decide (fe.find? eqName = some eqA) &&
   reduceElemOkF fe c &&
   reduceStoredOkF fe c &&
-  ConstantVal.matchesPin cvA (ofReducePinA cvA.name)
+  ConstantVal.matchesPin cv (ofReducePinA cv.name)
 
 /-- `reducePinGuard` through the index. -/
 def reducePinGuardF (fe : FEnv) (c : Name) : Bool :=
@@ -351,7 +351,7 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- `checkConstantVal` through the index. -/
 def checkConstantValF (ops : CheckerOps m) (fe : FEnv)
-    (cv : ConstantVal) : m ConstantVal := do
+    (cv : ConstantVal) : m Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -364,14 +364,12 @@ def checkConstantValF (ops : CheckerOps m) (fe : FEnv)
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if cv.type.hasFvar then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let type ← ops.annotate fe.env 0 cv.type
-  unless type.allLevelParamsDefined cv.levelParams do
+  unless cv.type.allLevelParamsDefined cv.levelParams do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless type.constsResolveF fe do
-    throw (unresolvedConstsError s!"type of {cv.name}" type)
-  let stype ← ops.inferType fe.env 0 type
+  unless cv.type.constsResolveF fe do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
+  let stype ← ops.inferType fe.env 0 cv.type
   let _u ← ops.ensureSort fe.env 0 stype
-  pure { cv with type := type }
 
 /-- `installBasisDecl` through the index, returning the pushed index. -/
 def installBasisDeclF (fe : FEnv) (ci : ConstantInfo) : m FEnv := do
@@ -385,7 +383,7 @@ def checkDivModCertsF (ops : CheckerOps m) (fe : FEnv) (c : Name)
   | [], [] => pure true
   | (hyps, eqE) :: srest, proof :: prest => do
     if divModCertGuardF fe c annVal hyps eqE proof then
-      let appliedA ← ops.annotate fe.env 4
+      let appliedA :=
         (divModCertApplied (Expr.substConstAll c annVal proof)
           (hyps.map (Expr.substConst0 c annVal)))
       let tp ← ops.inferType fe.env 4 appliedA
@@ -398,7 +396,7 @@ def checkDivModCertsF (ops : CheckerOps m) (fe : FEnv) (c : Name)
 /-- `checkDivModPinAt` through the index. -/
 def checkDivModPinAtF (ops : CheckerOps m) (fe : FEnv) (c : Name)
     (value' : Expr) (ps : NatOpPinSet) : m Bool := do
-  let pinA ← ops.annotate fe.env 0 (divModDeclPin ps c)
+  let pinA := (divModDeclPin ps c)
   let okPin ← ops.isDefEq fe.env 0 value' pinA
   if okPin then
     checkDivModCertsF ops fe c value' (divModCertStmts c)
@@ -438,8 +436,8 @@ def checkReducePinF (ops : CheckerOps m) (fe fe2 : FEnv) (c : Name)
     (value : Expr) : m Unit := do
   if reduceStoredOkF fe2 c && reduceElemOkF fe c then
     if reducePinGuardF fe c then do
-      let valA ← ops.annotate fe.env 0 value
-      let pinA ← ops.annotate fe.env 0 (reduceDeclPin c)
+      let valA := value
+      let pinA := (reduceDeclPin c)
       let okPin ← ops.isDefEq fe.env 0 valA pinA
       if okPin then do
         let x := reduceCertVar c

@@ -1,9 +1,10 @@
 module
 
-import ConLeche.Model.Annot.Valid
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Semantics.Tower.SumTower
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.LfpFormer
 public import ConLeche.Model.Inductives.ClassGenStep
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.NestPosOut
@@ -18,8 +19,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Semantics.Kit
 import ConLeche.Model.Inductives.SumKit
-import ConLeche.Model.Annot.BitRename
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Inst
 
 public section
 
@@ -42,7 +43,7 @@ domain is read at depth `mp`; the rule frame is at depth `rP` (the whole
 prefix).  The reading is peeled at `mp`, where the generator's own
 `closeTelescope` lives (so the opened pieces are the raw pieces, up
 to erasure — the type is stored as generated), and moved to `rP` by the de Bruijn lift over the
-`rP - mp` later prefix binders (`denoteMeta_lift` on the model side is
+`rP - mp` later prefix binders (`denote_lift` on the model side is
 free: `stripPisAV` of a lifted reading is the lifted pieces).  Three
 readings of openings at different depths meet:
 
@@ -56,9 +57,8 @@ readings of openings at different depths meet:
 * the CONCLUSION is read at `mp + nF + nIh`, again the lift of its
   reading at `mp + nF` (it names no `ih` variable either).
 
-The binders' bits are never inspected: the generated type's reading is
-bit-VALID (`AnnotValid`, the inference claim's currency), and validity
-descends the prefix to the minor's domain, whose Π-tower then applies
+The generated type's reading is graded (`WellDenoted`, the inference
+claim's currency), and the grading descends the prefix to the minor's domain, whose Π-tower then applies
 (`foldl_app_mem_mkPisAV`).  What the components are asked to be for the
 chain independence rows (`genHchI_of_readings`, `ihDatumBelow_of_readings`)
 is only their `bvarsBelow` bound; the lifted readings have it (they are
@@ -71,7 +71,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ClassGen ClassGenScoped ClassCtor ScB closeTelescope
   classGenRecTy classBinder)
 
@@ -122,31 +122,6 @@ theorem take_append_of_le {xs ys : List V} {n : Nat} (h : n ≤ xs.length) :
   rw [List.take_append_of_le_length h]
 
 end Frames
-
-/-! ## Validity along a Π-tower -/
-
-section Valid
-
-variable {V : Type w} [SetTheory V]
-
-/-- A valid Π-tower's domains are valid at a fitting spine's prefixes. -/
-theorem annotValid_piDom_at {B : AnnotTerm} :
-    ∀ {tl : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V} {bs : List V},
-      AnnotValid V ρ (mkPisAV tl B) → SpineFit ρ (tl.map (·.2.2)) bs →
-      ∀ l, l < tl.length →
-        AnnotValid V (consList (bs.take l) ρ) ((tl.map (·.2.2)).getD l default)
-  | [], _, _, _, _, l, hl => absurd hl (Nat.not_lt_zero _)
-  | _ :: _, _, [], _, h, _, _ => h.elim
-  | d :: tl, ρ, b :: bs, hv, h, l, hl => by
-    have hv' : AnnotValid V ρ (.pi d.1 d.2.1 d.2.2 (mkPisAV tl B)) := hv
-    rw [AnnotValid_pi] at hv'
-    cases l with
-    | zero => simpa using hv'.1
-    | succ l =>
-      simp only [List.map_cons, List.getD_cons_succ, List.take_succ_cons, consList_cons]
-      exact annotValid_piDom_at (hv'.2.1 b h.1) h.2 l (by simpa using hl)
-
-end Valid
 
 /-! ## Bounds of lifted pieces -/
 

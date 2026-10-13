@@ -8,7 +8,7 @@ public import ConLeche.Semantics.Decl
 # `DeclRun` — the per-declaration run/guard records (task #161 S4)
 
 Each record carries **guards and runs** only — `Bool` side conditions
-on stored data, `annotateCore`/`inferTypeCore`/`isDefEqCore`/`ensureSortCore`
+on stored data, `inferTypeCore`/`isDefEqCore`/`ensureSortCore`
 verdicts, and the `env₂ = ⟨… :: env.consts⟩` shapes.  It is
 **valuation-free**: no `cval` parameter, no `denote`, no `Infer`, no
 `DefEq`, no `V`.
@@ -18,11 +18,11 @@ one is read off a consumer):
 
 | record | kept, and its consumer |
 |---|---|
-| `ConstantValRun` | the six freshness/reservation/level/scoping guards (`hfresh` at every harvest and at `declEtaStepRun`), the annotate output (`annotate_syntax`), the two `allLevelParamsDefined`/`constsResolve` guards, and the run chain `∃ stype u, inferTypeCore … ∧ ensureSortCore …` (the type's reading, through `acceptedReads_of`) |
-| `ValueFrontRun` | the value's two syntactic guards, its annotate output, its two resolution guards, and the run **pair** `∃ vtype, inferTypeCore … ∧ isDefEqCore …` (the leaf's reading, and the membership crossing) |
+| `ConstantValRun` | the six freshness/reservation/level/scoping guards (`hfresh` at every harvest and at `declEtaStepRun`), the stored term (`stored_syntax`), the two `allLevelParamsDefined`/`constsResolve` guards, and the run chain `∃ stype u, inferTypeCore … ∧ ensureSortCore …` (the type's reading, through `acceptedReads_of`) |
+| `ValueFrontRun` | the value's two syntactic guards, the stored value (`value' = value`), its two resolution guards, and the run **pair** `∃ vtype, inferTypeCore … ∧ isDefEqCore …` (the leaf's reading, and the membership crossing) |
 | `NatEqsRun` | one `isDefEqCore` run per recurrence, carried by `DeclDefnRun`; `natOps_install` consumes the runs |
 | `DivModPinRun` | the guards and the certificate verdict; `divMod_install` consumes them |
-| `ReducePinRun` | the three storage guards, both annotate outputs and the recorded identity-certificate run; `reduceOps_install` consumes exactly these |
+| `ReducePinRun` | the three storage guards and the recorded identity-certificate run; `reduceOps_install` consumes exactly these |
 | `DeclThmRun` | the prop-check run triple (`inferTypeCore` + `ensureSortCore` + `Level.isEquiv`) |
 | `DeclAxiomRun` | the four-way branch disjunction verbatim — pure stored-data guards |
 | `DeclBasisRun` | guards only |
@@ -42,19 +42,15 @@ open ConLeche.Term ConLeche.Verify
 
 /-! ## Shared syntactic plumbing
 
-A pure `annotateCore` inversion — no `V` — and the first thing every
-consumer of a `*Run` record's annotate conjunct calls. -/
+The stored term is the declared one (`e' = e`); the first thing every
+consumer of a `*Run` record's storage conjunct calls. -/
 
-/-- The annotate outputs' syntactic facts, packaged: no fvars, bounded,
-from the annotate run and the input's own guards. -/
-theorem annotate_syntax {μ : CheckMode} {F : Nat} {env : Env} {e e' : Expr}
-    (hann : annotateCore μ env F 0 e = .ok e')
+/-- The stored terms' syntactic facts, packaged: no fvars, bounded,
+from the input's own guards. -/
+theorem stored_syntax {e e' : Expr} (hst : e' = e)
     (hef : e.hasFvar = false) (heb : e.looseBVarsBounded 0 = true) :
     e'.hasFvar = false ∧ e'.looseBVarsBounded 0 = true :=
-  ⟨Expr.not_hasFvar_of_fvarsBelow_zero
-      ((annotateCore_WScoped F e hann
-        (Expr.WScoped.of_not_hasFvar hef)).fvarsBelow),
-    annotateCore_looseBVars F e hann heb⟩
+  hst ▸ ⟨hef, heb⟩
 
 /-! ## The shared front doors, run half -/
 
@@ -67,7 +63,7 @@ def ConstantValRun (μ : CheckMode) (F : Nat) (env : Env)
   Name.nodup cv.levelParams = true ∧
   cv.type.looseBVarsBounded 0 = true ∧
   cv.type.hasFvar = false ∧
-  annotateCore μ env F 0 cv.type = .ok type' ∧
+  type' = cv.type ∧
   type'.allLevelParamsDefined cv.levelParams = true ∧
   type'.constsResolve env = true ∧
   (∃ stype u, inferTypeCore μ env F 0 type' = .ok stype ∧
@@ -78,7 +74,7 @@ def ValueFrontRun (μ : CheckMode) (F : Nat) (env : Env)
     (cv : ConstantVal) (value : Expr) (type' value' : Expr) : Prop :=
   value.looseBVarsBounded 0 = true ∧
   value.hasFvar = false ∧
-  annotateCore μ env F 0 value = .ok value' ∧
+  value' = value ∧
   value'.allLevelParamsDefined cv.levelParams = true ∧
   value'.constsResolve env = true ∧
   (∃ vtype, inferTypeCore μ env F 0 value' = .ok vtype ∧
@@ -101,26 +97,22 @@ checked, which is what an install at any pin list establishes. -/
 def DivModPinRun (μ : CheckMode) (F : Nat) (env env₂ : Env)
     (c : Name) (value' : Expr) : Prop :=
   divModEnvGuard env₂ c = true ∧
-  -- the pin variant that matched (task #273): its guards, its pin
-  -- annotated, its certificates checked
+  -- the pin variant that matched (task #273): its guards, its
+  -- certificates checked
   ∃ ps : NatOpPinSet,
     divModPinGuard ps env c = true ∧
     divModCertsGuard ps env c value' = true ∧
-    ∃ pinA, annotateCore μ env F 0 (divModDeclPin ps c) = .ok pinA ∧
       checkDivModCerts (m := CheckM) (fueledOps μ F) env c value'
         (divModCertStmts c) (divModCertProofs ps c) = .ok true
 
-/-- The reduce pin pack: the storage guards, both annotate outputs and
-the recorded identity-certificate run. -/
+/-- The reduce pin pack: the storage guards and the recorded
+identity-certificate run. -/
 def ReducePinRun (μ : CheckMode) (F : Nat) (env env₂ : Env)
     (c : Name) (value : Expr) : Prop :=
   reduceStoredOk env₂ c = true ∧
   reduceElemOk env c = true ∧
   reducePinGuard env c = true ∧
-  ∃ valA pinA,
-    annotateCore μ env F 0 value = .ok valA ∧
-    annotateCore μ env F 0 (reduceDeclPin c) = .ok pinA ∧
-    isDefEqCore μ env F 1 (.app valA (reduceCertVar c))
+    isDefEqCore μ env F 1 (.app value (reduceCertVar c))
       (reduceCertVar c) = .ok true
 
 /-! ## The value kinds, run half -/
@@ -176,23 +168,23 @@ def DeclAxiomRun (μ : CheckMode) (F : Nat) (env : Env)
   -- record, compared with the pin BEFORE the common checks (its name is
   -- a reserved basis name) and installing nothing of its own — the
   -- block installs it.  No `ConstantValRun`: the record's type is not
-  -- annotated, exactly as the parser's comparison did not annotate it.
+  -- checked here.
   (cv.name = quotSoundName ∧ env₂ = env) ∨
   ∃ type',
     ConstantValRun μ F env cv type' ∧
-    (let cvA : ConstantVal := ⟨cv.name, cv.levelParams, type'⟩
-     (stdAxiomOk env cvA = true ∧
-        env₂ = ⟨.axiomInfo cvA :: env.consts⟩) ∨
-     (cvA.name = trustCompilerName ∧ trustCompilerOk env cvA = true ∧
-        env₂ = ⟨.axiomInfo cvA :: env.consts⟩) ∨
-     ((cvA.name = ofReduceNatName ∨ cvA.name = ofReduceBoolName) ∧
-        ofReduceAxOk env cvA = true ∧
-        env₂ = ⟨.axiomInfo cvA :: env.consts⟩) ∨
-     (stdAxiomOk env cvA = false ∧
-        cvA.name ≠ trustCompilerName ∧
-        cvA.name ≠ ofReduceNatName ∧ cvA.name ≠ ofReduceBoolName ∧
-        cvA.name ≠ propextName ∧ cvA.name ≠ choiceName ∧
-        cvA.name = sorryAxName ∧
+    (let cv : ConstantVal := ⟨cv.name, cv.levelParams, type'⟩
+     (stdAxiomOk env cv = true ∧
+        env₂ = ⟨.axiomInfo cv :: env.consts⟩) ∨
+     (cv.name = trustCompilerName ∧ trustCompilerOk env cv = true ∧
+        env₂ = ⟨.axiomInfo cv :: env.consts⟩) ∨
+     ((cv.name = ofReduceNatName ∨ cv.name = ofReduceBoolName) ∧
+        ofReduceAxOk env cv = true ∧
+        env₂ = ⟨.axiomInfo cv :: env.consts⟩) ∨
+     (stdAxiomOk env cv = false ∧
+        cv.name ≠ trustCompilerName ∧
+        cv.name ≠ ofReduceNatName ∧ cv.name ≠ ofReduceBoolName ∧
+        cv.name ≠ propextName ∧ cv.name ≠ choiceName ∧
+        cv.name = sorryAxName ∧
         env₂ = env))
 
 /-! ## The assembly -/

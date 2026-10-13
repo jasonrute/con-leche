@@ -8,7 +8,7 @@ import ConLeche.Model.RecRulesCons
 public import ConLeche.Model.ReduceOps
 public import ConLeche.Model.Cover
 import ConLeche.Semantics.DeclRun
-import ConLeche.Model.Annot.BitLevels
+import ConLeche.Model.Reading.Levels
 
 public section
 
@@ -19,17 +19,17 @@ public section
 P machinery at the prefix environment, the P invariant extends —
 `declStep_preserves_of_cons`'s premises assembled end to end:
 
-* the new leaf `A ψ` is the value's own `denoteMeta` reading (the
+* the new leaf `A ψ` is the value's own `denote` reading (the
   `acceptedReads_of` totality leaf at the infer run); its laws are
-  `denoteMeta_closed` / `denoteMeta_params_ext` / the claims'
-  `WellDenotedV` conclusions at `Sat_nil`;
+  `denote_closed` / `denote_params_ext` / the claims'
+  `WellDenoted` conclusions at `Sat_nil`;
 * the membership (`hmemNew`) is the claims' membership at the value
   run carried across the defeq run by the defeq claim;
 * `nat_heads` at the extension derives from guard reflection
   (`natLitSupported_cons_back`) + freshness — no bespoke premise.
 
 The harvests carry no literal-tier premise: the monotone crossing
-(`denoteMeta_cons_fresh_mono`) plus guard reflection cover the literal
+(`denote_cons_fresh_mono`) plus guard reflection cover the literal
 guards.  `harvestThm`, `harvestAxiom` and `harvestOpaque` follow.
 -/
 
@@ -95,7 +95,7 @@ freshness makes each of them distinct from the new name and the fresh
 leaf is invisible to all three — `mp.nat_heads` transports unchanged.
 No bespoke premise; `harvestThm` and `harvestAxiom` call it. -/
 theorem natHeads_cons_fresh (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hknd : (∀ cv mI, c₀ ≠ .indInfo cv mI) ∧
       ∀ cv a b, c₀ ≠ .ctorInfo cv a b)
@@ -148,8 +148,8 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
-  obtain ⟨hvf', hbv'⟩ := annotate_syntax hannv hvhf hvlb
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
+  obtain ⟨hvf', hbv'⟩ := stored_syntax hannv hvhf hvlb
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the scoping packages of the primed forms
@@ -165,34 +165,34 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     exact absurd hl (List.not_mem_nil)
   have hnlt : type'.fvarLeaves = [] :=
     Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
-  have hCv : CtxOk mp.base2 (fun _ => 0) 0 ([] : List AnnotTerm) value' :=
+  have hCv : CtxOk mp.base2 (fun _ => 0) 0 ([] : List Term) value' :=
     CtxOk.nil hnlv
   -- the leaf: the value's reading, per assignment
   have hAex : ∀ ψ : Name → Nat,
-      ∃ va, denoteMeta mp.base2.acval env ψ 0 value' = some va := by
+      ∃ va, denote mp.base2.acval env ψ 0 value' = some va := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hvrun hwv hbv' hLv
-  let A : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 value').getD default
+  let A : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 value').getD default
   have hA : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ) := by
+      denote mp.base2.acval env ψ 0 value' = some (A ψ) := by
     intro ψ
     obtain ⟨va, hva⟩ := hAex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 value').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 value').getD default)
     simp [hva]
   -- the type's reading, per assignment
   obtain ⟨stype, u, hst, hens⟩ := hrunT
   have hTex : ∀ ψ : Name → Nat,
-      ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
+      ∃ ta, denote mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
+  let Ta : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
+      denote mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
     intro ψ
     obtain ⟨ta, hta⟩ := hTex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 type').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 type').getD default)
     simp [hta]
   -- the claims and the reads, per assignment
   have hclaims := fun ψ =>
@@ -201,9 +201,9 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     fun ψ => inferReads_of hμ (Rules.RulesInputs.ofSem mp ψ)
   -- the value's rows: gradings and the membership at its own type
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
-      denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ vta) ∧
+      denote mp.base2.acval env ψ 0 vtype = some vta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (A ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
     intro ψ
@@ -215,9 +215,9 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       (hA ψ) hvta⟩
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
-      denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+      denote mp.base2.acval env ψ 0 stype = some sta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -230,25 +230,27 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
   -- the leaf laws
   have hAclosed : ∀ (ψ : Name → Nat) (k : Nat),
       (A ψ).liftN 1 k = A ψ := fun ψ k =>
-    denoteMeta_closed mp.base2.acval_erase mp.base2.cval_closed
+    denote_liftN_eq_self mp.base2.cval_closed
       hvf' hbv' (hA ψ) 1 k
   have hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂ := by
     intro ψ₁ ψ₂ hψ
-    have := denoteMeta_params_ext mp.base2 hψ 0 value' hvp
+    have := denote_params_ext mp.base2 hψ 0 value' hvp
     rw [hA ψ₁, hA ψ₂] at this
     exact Option.some.inj this
   have hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       WellDenoted V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).1
-  have hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ) := by
-    intro ψ ρ
-    obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).2
+    exact hrE ρ (Sat_nil V ρ)
   -- the membership at the declared type, across the defeq run
+  -- the declared type is a type: its sort run
+  have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
+    intro ψ ρ
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2
   have hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ) := by
     intro ψ ρ
@@ -271,21 +273,24 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     have hLvt : Expr.LeavesBounded vtype := fun l hl => by
       rw [hnlvt] at hl
       exact absurd hl (List.not_mem_nil)
-    have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
-      (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      hrT htE ρ (Sat_nil V ρ)
+    -- both sides are types, so neither is the point
+    have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ)
+        (ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+          (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ))
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcbV : ConstsBound env value' := constsBound_of_constsResolve _ hvr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
-      denoteMeta (acvalWith mp.base2.acval cv.name A)
+      ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
+      denote (acvalWith mp.base2.acval cv.name A)
           ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
             env.consts⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denoteMeta_cons_fresh_mono
+      denote_cons_fresh_mono
         (acval := mp.base2.acval)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
@@ -304,29 +309,29 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
-        (denoteMeta_erase mp.base2.acval_erase 0 value' (hA ψ)))
+        (hA ψ))
       hnres (fun _ heq => nomatch heq)
-      (fun _ _ _ _ heq => nomatch heq)) hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+      (fun _ _ _ _ heq => nomatch heq))
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
-    show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
+    show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
         env.consts⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    exact ⟨htE ρ (Sat_nil V ρ), hTaTy ψ ρ⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
@@ -337,7 +342,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     intro ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
     injection hdt with h1 h2 h3
-    show denoteMeta (acvalWith mp.base2.acval cv.name A)
+    show denote (acvalWith mp.base2.acval cv.name A)
         ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
           env.consts⟩ ψ 0 value2
       = some (A ψ)
@@ -354,6 +359,8 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         ∈ˢ piR 1 (interp V ρ (acvalWith mp.base2.acval cv.name A
             natName (Level.substFn φ [] [])))
           (fun _ => interp V ρ (acvalWith mp.base2.acval cv.name A
+            natName (Level.substFn φ [] []))) ∧
+      IsTy (interp V ρ (acvalWith mp.base2.acval cv.name A
             natName (Level.substFn φ [] [])))
     have hgold : ConLeche.natLitSupported env = true :=
       natLitSupported_cons_back
@@ -425,19 +432,19 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
             (fun _ _ _ h => ConstantInfo.noConfusion h)⟩
           (ConLeche.natOpGuard_deps hg2).1
       have hTok : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-          WellDenotedV V ρ (Ta ψ) := fun ψ ρ => by
+          WellDenoted V ρ (Ta ψ) := fun ψ ρ => by
         obtain ⟨sta, hsta, hT1, -, -⟩ := hrowsT ψ
         exact hT1 ρ (Sat_nil V ρ)
-      have hA2 : ∀ ψ, denoteMeta mp.base2.acval env ψ 2 value'
+      have hA2 : ∀ ψ, denote mp.base2.acval env ψ 2 value'
           = some (A ψ) := fun ψ =>
-        denoteMeta_depth_of_closed mp.base2.acval_closed hvf'
+        denote_depth_of_closed mp.base2.acval_closed hvf'
           (hAclosed ψ) (hA ψ) 2
-      obtain ⟨hSelfBin, hSelfUn⟩ := natSelfHead_install (φ := φ) mp
+      obtain ⟨hSelfBin, hSelfUn, hBoolS⟩ := natSelfHead_install (φ := φ) mp
         hcmem hfresh hpin hsE hTa hTok hA2
-        (fun ψ ρ => ⟨hAok ψ ρ, hAvalid ψ ρ⟩) hmemA
+        hAok hmemA
       exact natOps_install mp ((hclaims φ).2.2.1) (mp.nat_ops φ)
         hcmem hfresh hlpcv hsE hg2 hdeps₂ hruns hA hAclosed hvf' hbv'
-        hSelfBin hSelfUn _ rfl
+        hSelfBin hSelfUn hBoolS _ rfl
     · exact natOps_cons_fresh mp (mp.nat_ops φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
@@ -447,7 +454,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
     -- preserves the stored entries
     intro φ
     by_cases hno : ConLeche.natDivModNames.contains cv.name = true
-    · obtain ⟨hgenv, _, -, -, _, -, hcerts⟩ := hdmc hno
+    · obtain ⟨hgenv, _, -, -, hcerts⟩ := hdmc hno
       exact divMod_install mp (mp.div_mod φ) mp.eq_law
         (fun {d} {e} {t} hrun hw hb hL =>
           acceptedReads_of mp.base2 φ hrun hw hb hL)
@@ -457,7 +464,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
         hTa (fun ψ ρ => by
           obtain ⟨sta, hsta, hT1, -, -⟩ := hrowsT ψ
           exact hT1 ρ (Sat_nil V ρ))
-        (fun ψ ρ => ⟨hAok ψ ρ, hAvalid ψ ρ⟩) hmemA _ rfl
+        hAok hmemA _ rfl
     · exact divMod_cons_fresh (mp.div_mod φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
         (A := A) hfresh
@@ -467,14 +474,13 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -498,11 +504,11 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
 
 `harvestThm` is `harvestDefn` at `DeclThmRun`: the same two front doors
 (`ConstantValRun`, `ValueFrontRun`), the same leaf (the value's
-`denoteMeta` reading), the same claims, the same crossing.  The deltas:
+`denote` reading), the same claims, the same crossing.  The deltas:
 
-* the stored kind is `.thmInfo cvA` — no `hint`, and no div/mod
+* the stored kind is `.thmInfo cv` — no `hint`, and no div/mod
   pin clause;
-* there is no erasure link to read: a theorem is opaque to reduction
+* there is no value–leaf equation to read: a theorem is opaque to reduction
   (`unfoldDefinition` has no `thmInfo` arm — anticipating
   https://github.com/leanprover/lean4/pull/14896), so the invariant
   keeps no equation between the value and the leaf, and `hvalReads`
@@ -521,8 +527,8 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
-  obtain ⟨hvf', hbv'⟩ := annotate_syntax hannv hvhf hvlb
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
+  obtain ⟨hvf', hbv'⟩ := stored_syntax hannv hvhf hvlb
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the scoping packages of the primed forms
@@ -540,30 +546,30 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
   -- the leaf: the value's reading, per assignment
   have hAex : ∀ ψ : Name → Nat,
-      ∃ va, denoteMeta mp.base2.acval env ψ 0 value' = some va := by
+      ∃ va, denote mp.base2.acval env ψ 0 value' = some va := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hvrun hwv hbv' hLv
-  let A : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 value').getD default
+  let A : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 value').getD default
   have hA : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ) := by
+      denote mp.base2.acval env ψ 0 value' = some (A ψ) := by
     intro ψ
     obtain ⟨va, hva⟩ := hAex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 value').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 value').getD default)
     simp [hva]
   -- the type's reading, per assignment
   obtain ⟨stype, u, hst, hens⟩ := hrunT
   have hTex : ∀ ψ : Name → Nat,
-      ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
+      ∃ ta, denote mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
+  let Ta : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
+      denote mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
     intro ψ
     obtain ⟨ta, hta⟩ := hTex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 type').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 type').getD default)
     simp [hta]
   -- the claims and the reads, per assignment
   have hclaims := fun ψ =>
@@ -572,9 +578,9 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     fun ψ => inferReads_of hμ (Rules.RulesInputs.ofSem mp ψ)
   -- the value's rows: gradings and the membership at its own type
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
-      denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ vta) ∧
+      denote mp.base2.acval env ψ 0 vtype = some vta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (A ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
     intro ψ
@@ -586,9 +592,9 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       (hA ψ) hvta⟩
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
-      denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+      denote mp.base2.acval env ψ 0 stype = some sta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -599,27 +605,25 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     exact ⟨sta, hsta, ihi hst hwt hbt' hLt (CtxOk.nil hnlt)
       (hTa ψ) hsta⟩
   -- the leaf laws
-  have hAclosed : ∀ (ψ : Name → Nat) (k : Nat),
-      (A ψ).liftN 1 k = A ψ := fun ψ k =>
-    denoteMeta_closed mp.base2.acval_erase mp.base2.cval_closed
-      hvf' hbv' (hA ψ) 1 k
   have hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂ := by
     intro ψ₁ ψ₂ hψ
-    have := denoteMeta_params_ext mp.base2 hψ 0 value' hvp
+    have := denote_params_ext mp.base2 hψ 0 value' hvp
     rw [hA ψ₁, hA ψ₂] at this
     exact Option.some.inj this
   have hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       WellDenoted V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).1
-  have hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ) := by
-    intro ψ ρ
-    obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).2
+    exact hrE ρ (Sat_nil V ρ)
   -- the membership at the declared type, across the defeq run
+  -- the declared type is a type: its sort run
+  have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
+    intro ψ ρ
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2
   have hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ) := by
     intro ψ ρ
@@ -642,21 +646,24 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     have hLvt : Expr.LeavesBounded vtype := fun l hl => by
       rw [hnlvt] at hl
       exact absurd hl (List.not_mem_nil)
-    have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
-      (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      hrT htE ρ (Sat_nil V ρ)
+    -- both sides are types, so neither is the point
+    have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ)
+        (ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+          (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ))
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcbV : ConstsBound env value' := constsBound_of_constsResolve _ hvr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
-      denoteMeta (acvalWith mp.base2.acval cv.name A)
+      ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
+      denote (acvalWith mp.base2.acval cv.name A)
           ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denoteMeta_cons_fresh_mono
+      denote_cons_fresh_mono
         (acval := mp.base2.acval)
         (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
         (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
@@ -673,29 +680,29 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
         (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
-        (denoteMeta_erase mp.base2.acval_erase 0 value' (hA ψ)))
+        (hA ψ))
       hnres (fun _ heq => nomatch heq)
-      (fun _ _ _ _ heq => nomatch heq)) hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+      (fun _ _ _ _ heq => nomatch heq))
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
-    show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
+    show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
         env.consts⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    exact ⟨htE ρ (Sat_nil V ρ), hTaTy ψ ρ⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
@@ -728,14 +735,13 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -757,8 +763,8 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
 /-! ## The `axiom` kind
 
 **An axiom has no value**, so the leaf is not a reading of anything the
-harvest can see: the leaf and its facts (`hAclosed`, `hAparams`,
-`hAok`, `hAvalid`, the interp membership `hmemA`) arrive as
+harvest can see: the leaf and its facts (`hAvclosed`, `hAparams`,
+`hAok`, the interp membership `hmemA`) arrive as
 **premises**, discharged by the pin tier (`Model/AxiomPin.lean`,
 `Model/AxiomReduce.lean`).
 
@@ -774,17 +780,14 @@ the wrapper crosses it.
 (`env₂ = env`), so its P invariant is `mp` itself. -/
 theorem harvestAxiom (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env)
-    {cv : ConstantVal} {type' : Expr} {A : (Name → Nat) → AnnotTerm}
+    {cv : ConstantVal} {type' : Expr} {A : (Name → Nat) → Term}
     (hcv : ConstantValRun μ F env cv type')
-    (hAvclosed : ∀ ψ : Name → Nat, Term.Closed ((A ψ).erase))
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
+    (hAvclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ))
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
-    (hmemA : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta mp.base2.acval env ψ 0 type' = some ta →
+    (hmemA : ∀ (ψ : Name → Nat) (ta : Term),
+      denote mp.base2.acval env ψ 0 type' = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     -- an axiom cons *is* an `axiomInfo`, so `reduce_ops`' preservation
     -- cannot go through the kind; it goes through the name.  Every
@@ -796,7 +799,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the type's scoping package
@@ -809,16 +812,16 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
   -- the type's reading, per assignment
   obtain ⟨stype, u, hst, hens⟩ := hrunT
   have hTex : ∀ ψ : Name → Nat,
-      ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
+      ∃ ta, denote mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
+  let Ta : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
+      denote mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
     intro ψ
     obtain ⟨ta, hta⟩ := hTex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 type').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 type').getD default)
     simp [hta]
   -- the claims and the reads, per assignment
   have hclaims := fun ψ =>
@@ -827,9 +830,9 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
     fun ψ => inferReads_of hμ (Rules.RulesInputs.ofSem mp ψ)
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
-      denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+      denote mp.base2.acval env ψ 0 stype = some sta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -842,12 +845,12 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
   -- the transfer to the extension
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
-      denoteMeta (acvalWith mp.base2.acval cv.name A)
+      ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
+      denote (acvalWith mp.base2.acval cv.name A)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denoteMeta_cons_fresh_mono
+      denote_cons_fresh_mono
         (acval := mp.base2.acval)
         (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
         (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
@@ -865,27 +868,29 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       (fun _ _ heq => nomatch heq)⟩)
       hAvclosed hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq))
-    hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
-    show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
+    show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
         env.consts⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact ⟨htE ρ (Sat_nil V ρ), IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2⟩
   · -- `hmemNew`: the pin tier's membership, crossed
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
@@ -916,14 +921,13 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -946,7 +950,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
 
 /-! ## The `opaque` kind
 
-The species, with the erasure link read **directly** off the run's
+The species, with the value–leaf equation read **directly** off the run's
 leaf equation (no `defn_eq` detour). -/
 
 theorem harvestOpaque (hμ : μ.verifiedChecks = true)
@@ -958,8 +962,8 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
-  obtain ⟨hvf', hbv'⟩ := annotate_syntax hannv hvhf hvlb
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
+  obtain ⟨hvf', hbv'⟩ := stored_syntax hannv hvhf hvlb
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the scoping packages of the primed forms
@@ -977,30 +981,30 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
   -- the leaf: the value's reading, per assignment
   have hAex : ∀ ψ : Name → Nat,
-      ∃ va, denoteMeta mp.base2.acval env ψ 0 value' = some va := by
+      ∃ va, denote mp.base2.acval env ψ 0 value' = some va := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hvrun hwv hbv' hLv
-  let A : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 value').getD default
+  let A : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 value').getD default
   have hA : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ) := by
+      denote mp.base2.acval env ψ 0 value' = some (A ψ) := by
     intro ψ
     obtain ⟨va, hva⟩ := hAex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 value').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 value').getD default)
     simp [hva]
   -- the type's reading, per assignment
   obtain ⟨stype, u, hst, hens⟩ := hrunT
   have hTex : ∀ ψ : Name → Nat,
-      ∃ ta, denoteMeta mp.base2.acval env ψ 0 type' = some ta := by
+      ∃ ta, denote mp.base2.acval env ψ 0 type' = some ta := by
     intro ψ
     exact acceptedReads_of mp.base2 ψ hst hwt hbt' hLt
-  let Ta : (Name → Nat) → AnnotTerm :=
-    fun ψ => (denoteMeta mp.base2.acval env ψ 0 type').getD default
+  let Ta : (Name → Nat) → Term :=
+    fun ψ => (denote mp.base2.acval env ψ 0 type').getD default
   have hTa : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
+      denote mp.base2.acval env ψ 0 type' = some (Ta ψ) := by
     intro ψ
     obtain ⟨ta, hta⟩ := hTex ψ
-    show _ = some ((denoteMeta mp.base2.acval env ψ 0 type').getD default)
+    show _ = some ((denote mp.base2.acval env ψ 0 type').getD default)
     simp [hta]
   -- the claims and the reads, per assignment
   have hclaims := fun ψ =>
@@ -1009,9 +1013,9 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     fun ψ => inferReads_of hμ (Rules.RulesInputs.ofSem mp ψ)
   -- the value's rows: gradings and the membership at its own type
   have hrowsV : ∀ ψ : Name → Nat, ∃ vta,
-      denoteMeta mp.base2.acval env ψ 0 vtype = some vta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (A ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ vta) ∧
+      denote mp.base2.acval env ψ 0 vtype = some vta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (A ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ vta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (A ψ) ∈ˢ interp V ρ vta) := by
     intro ψ
@@ -1023,9 +1027,9 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       (hA ψ) hvta⟩
   -- the type's rows: its own grading as a subject
   have hrowsT : ∀ ψ : Name → Nat, ∃ sta,
-      denoteMeta mp.base2.acval env ψ 0 stype = some sta ∧
-      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ (Ta ψ)) ∧
-        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedV V ρ sta) ∧
+      denote mp.base2.acval env ψ 0 stype = some sta ∧
+      ((∀ ρ : Nat → V, Sat V [] ρ → WellDenoted V ρ (Ta ψ)) ∧
+        (∀ ρ : Nat → V, Sat V [] ρ → WellDenotedTy V ρ sta) ∧
         ∀ ρ : Nat → V, Sat V [] ρ →
           interp V ρ (Ta ψ) ∈ˢ interp V ρ sta) := by
     intro ψ
@@ -1038,25 +1042,27 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
   -- the leaf laws
   have hAclosed : ∀ (ψ : Name → Nat) (k : Nat),
       (A ψ).liftN 1 k = A ψ := fun ψ k =>
-    denoteMeta_closed mp.base2.acval_erase mp.base2.cval_closed
+    denote_liftN_eq_self mp.base2.cval_closed
       hvf' hbv' (hA ψ) 1 k
   have hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂ := by
     intro ψ₁ ψ₂ hψ
-    have := denoteMeta_params_ext mp.base2 hψ 0 value' hvp
+    have := denote_params_ext mp.base2 hψ 0 value' hvp
     rw [hA ψ₁, hA ψ₂] at this
     exact Option.some.inj this
   have hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       WellDenoted V ρ (A ψ) := by
     intro ψ ρ
     obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).1
-  have hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ) := by
-    intro ψ ρ
-    obtain ⟨vta, hvta, hrE, -, -⟩ := hrowsV ψ
-    exact (hrE ρ (Sat_nil V ρ)).2
+    exact hrE ρ (Sat_nil V ρ)
   -- the membership at the declared type, across the defeq run
+  -- the declared type is a type: its sort run
+  have hTaTy : ∀ (ψ : Name → Nat) (ρ : Nat → V), IsTy (interp V ρ (Ta ψ)) := by
+    intro ψ ρ
+    obtain ⟨-, ihw, -, ihi⟩ := hclaims ψ
+    exact IsTy_of_mem_univ ((sortSemAt_of_claims ihw ihi (hreads ψ))
+      (CtxOk.nil hnlt) hwt hbt' hLt hst (ConLeche.ensureSortCore_inv hens) (hTa ψ) ρ
+      (Sat_nil V ρ)).2
   have hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ) := by
     intro ψ ρ
@@ -1079,21 +1085,24 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     have hLvt : Expr.LeavesBounded vtype := fun l hl => by
       rw [hnlvt] at hl
       exact absurd hl (List.not_mem_nil)
-    have heq := ihd hvde hwvt hbvt hLvt hwt hbt' hLt
-      (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
-      hrT htE ρ (Sat_nil V ρ)
+    -- both sides are types, so neither is the point
+    have heq : interp V ρ vta = interp V ρ (Ta ψ) :=
+      eq_of_IsTy_of_ne_pt (hrT ρ (Sat_nil V ρ)).2 (hTaTy ψ ρ)
+        (ihd hvde hwvt hbvt hLvt hwt hbt' hLt
+          (CtxOk.nil hnlvt) (CtxOk.nil hnlt) hvta (hTa ψ)
+          (fun σ hσ => (hrT σ hσ).1) htE ρ (Sat_nil V ρ))
     rw [← heq]
     exact hrM ρ (Sat_nil V ρ)
   -- the transfer to the extension
   have hcbT : ConstsBound env type' := constsBound_of_constsResolve _ htr
   have hcbV : ConstsBound env value' := constsBound_of_constsResolve _ hvr
   have hcomp : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : AnnotTerm}, denoteMeta mp.base2.acval env ψ 0 e = some ea →
-      denoteMeta (acvalWith mp.base2.acval cv.name A)
+      ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
+      denote (acvalWith mp.base2.acval cv.name A)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denoteMeta_cons_fresh_mono
+      denote_cons_fresh_mono
         (acval := mp.base2.acval)
         (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
         (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
@@ -1110,30 +1119,29 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
         (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
-        (denoteMeta_erase mp.base2.acval_erase 0 value' (hA ψ)))
+        (hA ψ))
       hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq))
-    hAclosed
-    hAparams hAok hAvalid ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+    hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
-    show ∃ ta, denoteMeta (acvalWith mp.base2.acval cv.name A)
+    show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
         env.consts⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
     obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
-    exact htE ρ (Sat_nil V ρ)
+    exact ⟨htE ρ (Sat_nil V ρ), hTaTy ψ ρ⟩
   · -- `hmemNew`
     intro ψ ta hta ρ
-    replace hta : denoteMeta (acvalWith mp.base2.acval cv.name A)
+    replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
           env.consts⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
@@ -1165,14 +1173,13 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) (fun _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `caps_ok` at the extension: a value-kind cons is neither a
-    -- former, nor a capability constructor, nor a projection function,
-    -- so no stored family can be completed here
+    -- former nor a capability constructor, so no stored family can be
+    -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
       (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
       (fun _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ h => ConstantInfo.noConfusion h)
-      (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl
+      (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
@@ -1185,7 +1192,7 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
     -- run is what makes the law true of it (`Model/ReduceOps.lean`);
     -- every *other* stored operation crosses by the transport inside.
     exact reduceOps_install hμ mp hfresh hvf' hbv' hannv hA hAclosed
-      hAok hAvalid hTa
+      hAok hTa
       (fun ψ ρ => by
         obtain ⟨sta, hsta, htE, -, -⟩ := hrowsT ψ
         exact htE ρ (Sat_nil V ρ))

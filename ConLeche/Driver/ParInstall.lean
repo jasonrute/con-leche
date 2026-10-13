@@ -12,8 +12,8 @@ import Std.Data.HashSet.Basic
 
 ## The serial loop
 
-Each record is installed by `ConLeche.Cached.annotDeclStep`: a
-separable value declaration is annotated and pushed with its check
+Each record is installed by `ConLeche.Cached.installDeclStep`: a
+separable value declaration is guarded and pushed with its check
 recorded, everything else is checked in full.  The loop carries the
 chain of accepting steps (`ConLeche.Cached.InstallRun`) of the records
 it has consumed, and returns it with the result.
@@ -22,7 +22,7 @@ it has consumed, and returns it with the result.
 
 Phase A installs every record from a fresh memo state, so a record's
 install is a function of the index it sees and the record alone
-(`ConLeche.Cached.annotDeclStep`). The parallel install runs that
+(`ConLeche.Cached.installDeclStep`). The parallel install runs that
 function on `n` dedicated worker threads, each record at a **worker
 view** (`ConLeche.Cached.workerView`) instead of the serial index, and
 keeps THIS thread as the **commit thread**: it walks the records in
@@ -68,10 +68,10 @@ phase A of the fold — whatever the schedule.
 * **Rejections and mispredictions.**  A failing install is reported at
   the first failing record in fold order, with the serial step's error
   (`installStep_commit_error`); a failed `And` pin with the serial
-  step's error too (`annotDeclStep` rejects it before installing
+  step's error too (`installDeclStep` rejects it before installing
   anything).  A misprediction — a counter or a slot that does not match
   — is an internal error (exit 3).  No input reaches it: every accepting
-  step installs exactly the predicted skeleton (`annotStepC_skels`).
+  step installs exactly the predicted skeleton (`installStepC_skels`).
   Either way, and on an IO exception of the commit thread (a failing
   heartbeat write, rethrown), the workers are stopped, and every
   unresolved slot is resolved empty so that nobody stays waiting.
@@ -112,8 +112,8 @@ open ConLeche
 
 /-- **Phase A's loop — the driver's install pass, carrying its own
 accepting run.**  Each record is installed by
-`ConLeche.Cached.annotDeclStep`: a separable value declaration is
-annotated and pushed with its check recorded, everything else is checked
+`ConLeche.Cached.installDeclStep`: a separable value declaration is
+guarded and pushed with its check recorded, everything else is checked
 in full.  The loop carries the chain of accepting steps
 (`ConLeche.Cached.InstallRun`) of the records it has consumed — a
 proposition, so nothing at run time — and returns it with the result:
@@ -173,7 +173,7 @@ def installLoop (mode : ConLeche.CheckMode) (err : IO.FS.Stream)
           t={ConLeche.Cached.msSecs (now - t0)}s\n"
         err.flush
       let ts ← IO.monoNanosNow
-      match h : ConLeche.Cached.annotDeclStep mode ConLeche.natOpPinSets p pd with
+      match h : ConLeche.Cached.installDeclStep mode ConLeche.natOpPinSets p pd with
       | .ok p₁ =>
         let te ← IO.monoNanosNow
         st.modify (·.add i ts te)
@@ -280,7 +280,7 @@ partial def depNames (e : Expr) (acc : Std.HashSet Expr × Array Name) :
       let acc := (acc.1.insert e, acc.2)
       match e with
       | .app f a => depNames a (depNames f acc)
-      | .lam ty b _ | .forallE ty b _ => depNames b (depNames ty acc)
+      | .lam ty b | .forallE ty b => depNames b (depNames ty acc)
       | .letE ty v b => depNames b (depNames v (depNames ty acc))
       | .fvar _ ty => depNames ty acc
       | .proj sn _ x => depNames x (acc.1, acc.2.push sn |>.push (projTableName sn))
@@ -732,7 +732,7 @@ partial def waitDone (sh : Shared mode ds B S vis) (cst : IO.Ref (Array Nat)) (k
 
 /-- The internal error of a misprediction (exit 3): no input reaches it
 (every accepting step installs the predicted skeleton,
-`annotStepC_skels`), so it is reported, not recovered from. -/
+`installStepC_skels`), so it is reported, not recovered from. -/
 def mispredicted (k i : Nat) (what : String) : Except (CheckError × Nat) α :=
   .error (.internal s!"parallel install: {what} at record {k}", i)
 
@@ -801,7 +801,7 @@ def commitLoop (err : IO.FS.Stream) (stride total t0 : Nat)
               | .ok (L, vg?) =>
                 have hstep0 := installStep_commit (pins := natOpPinSets) (i := i) (pend := pend)
                   hag hidx hG'.1 (hval.symm.trans hres)
-                have hstep : annotDeclStep mode natOpPinSets (i, fe, pend) pd =
+                have hstep : installDeclStep mode natOpPinSets (i, fe, pend) pd =
                     .ok (i + 1, FEnv.pushAll L fe, pushPending pend i c vg?) := by
                   rw [← hc]; exact hstep0
                 commitLoop err stride total t0 hB sh cst p₀ (k + 1)
@@ -813,7 +813,7 @@ def commitLoop (err : IO.FS.Stream) (stride total t0 : Nat)
               | .error e =>
                 -- the serial step's error at this record, checked here
                 -- (the return type carries no proof for a rejection)
-                have _ : annotDeclStep mode natOpPinSets (i, fe, pend) pd = .error (e, i) := by
+                have _ : installDeclStep mode natOpPinSets (i, fe, pend) pd = .error (e, i) := by
                   exact installStep_commit_error hag hidx hG'.1 (hval.symm.trans hres)
                 return .error (e, i)
             else if andPinOk pd then
@@ -821,7 +821,7 @@ def commitLoop (err : IO.FS.Stream) (stride total t0 : Nat)
             else
               -- a failed `And` pin: the serial step rejects the record
               -- before installing anything; its error is the verdict
-              match annotDeclStep mode natOpPinSets (i, fe, pend) pd with
+              match installDeclStep mode natOpPinSets (i, fe, pend) pd with
               | .error e => return .error e
               | .ok _ => return mispredicted k i "the `And` pin"
           else return mispredicted k i "a mismatched install result"

@@ -78,13 +78,18 @@ def blockCapsAt (p : BlockShape) (mi : Nat) (isRec : Bool) : IndCaps :=
       all := p.memberNames
       nparams := p.nP
       ctors := [c.1.name] }
-  | cs, _ => { all := p.memberNames, nparams := p.nP, ctors := cs.map (·.1.name) }
+  -- Task #349: the result sort's zero-ness is recorded for EVERY member,
+  -- not only single-constructor ones: the ι case split (`iotaCtorNeverProp`)
+  -- reads it at every redex (left at the default `ifAllZero []`, every
+  -- multi-constructor family read "always `Prop`" and fell into case 3)
+  | cs, _ => { sortZ := Level.zeronessOf p.resSort, all := p.memberNames, nparams := p.nP,
+               ctors := cs.map (·.1.name) }
 
 /-- Does some binder domain of the SYNTACTIC `∀`-telescope of `e`
 mention one of `names`?  No reduction: the walk stops at the first
 non-`∀`, as official's `while (is_pi(t))` loop does. -/
 def Expr.piDomsMentionAny (names : List Name) : Expr → Bool
-  | .forallE ty b _ => ty.mentionsAnyConst names || b.piDomsMentionAny names
+  | .forallE ty b => ty.mentionsAnyConst names || b.piDomsMentionAny names
   | _ => false
 
 /-- **Official's `is_rec`** (`inductive.cpp:308`, v4.34.0, stored by
@@ -108,8 +113,8 @@ loop (task #195) and the result sort — without the environment cons,
 which at k members happens only once every former has been checked. -/
 def checkBlockTele (ops : CheckerOps m) (env : Env) (nP : Nat) (ms : MemberShape) :
     m (ConstantVal × Level) := do
-  let cvTa₀ ← checkConstantVal ops env ms.cvT
-  let (cvTa, s) ← checkSumTele ops env ms.cvT (nP + ms.nIdx) cvTa₀
+  checkConstantVal ops env ms.cvT
+  let (cvTa, s) ← checkSumTele ops env ms.cvT (nP + ms.nIdx) ms.cvT
   let (_, tbody) ← unwrapOr (cvTa.type.stripPis (nP + ms.nIdx))
     (.internal "direct sum: type former telescope")
   unless tbody == Expr.sort s do
@@ -325,7 +330,7 @@ def consBlockRecs (find? : Name → Option ConstantInfo) (p : BlockShape) (nP : 
   | m, (cvRa, rhss, _nIdx, ctorsA) :: rest, env =>
     consBlockRecs find? p nP (m + 1) rest
       ⟨.recInfo cvRa (p.majorIdxAt m) (p.rulePrefixAt m)
-        (sumRules find? cvRa.name nP (p.majorIdxAt m) (p.rulePrefixAt m) cvRa.type ctorsA rhss)
+        (sumRules find? cvRa.name nP ctorsA rhss)
         :: env.consts⟩
 
 /-! ### The recursor stage as CHECKING
@@ -336,31 +341,13 @@ that consume them — the pins, the types, the rules — and the
 reject-only conformance check after them. -/
 
 /-- The `k` RULE-LESS recursors, consed in block order: the
-environment a rule's right-hand side is annotated, resolved and typed
-at (official's `declare_recursors` puts every recursor of the block in
+environment a rule's right-hand side is resolved and typed at
+(official's `declare_recursors` puts every recursor of the block in
 the environment before any rule is looked at). -/
 def consBlockRecsBare (p : BlockShape) : Nat → List (ConstantVal × Nat) → Env → Env
   | _, [], env => env
   | m, (cvRa, _nIdx) :: rest, env =>
     consBlockRecsBare p (m + 1) rest
       ⟨.recInfo cvRa (p.majorIdxAt m) (p.rulePrefixAt m) [] :: env.consts⟩
-
-/-- **The member's parameter-and-index telescope, opened at the
-RECURSOR's own binder numbering**.
-
-The parameters take fvars `0 … nP-1` — the recursor's own first `nP`
-binders — and the INDEX telescope takes `rP … rP+nIdx-1`, which is
-where the recursor binds its indices.  Without that offset the two
-telescopes are not comparable at all: an index domain that mentions an
-earlier index names fvar `nP+i` on the member's side and fvar `rP+i`
-on the recursor's, so a binder-by-binder `isDefEq` would fail on every
-family whose indices depend on one another. -/
-def openPisParamsIdx (nP nIdx rP : Nat) (ty : Expr) : Option (List Expr × Expr) :=
-  match openPisAtFvars nP ty 0 with
-  | none => none
-  | some (pfvs, body) =>
-    match openPisAtFvars nIdx body rP with
-    | none => none
-    | some (ifvs, rest) => some (pfvs ++ ifvs, rest)
 
 end ConLeche

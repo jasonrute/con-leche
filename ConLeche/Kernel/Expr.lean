@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Kernel.PropWhen
+public import ConLeche.Kernel.Name
 public import ConLeche.Kernel.Exclusive
 /- `withPtrEq` is `public` but not `@[expose]`, and its whole point here
 is that it is *definitionally* `k ()` — which is what
@@ -88,20 +88,6 @@ instance : BEq Level := ⟨Level.beq⟩
 instance : LawfulBEq Level where
   eq_of_beq h := of_decide_eq_true h
   rfl := by simp [BEq.beq, Level.beq]
-
-/-- Metadata carried by a binder (`forallE`, `lam`): the codomain
-prop-ness annotation `pw` (task #161 — the validated-annotation design;
-one datum per binder, written by the untrusted annotate pass or the
-input stream and *validated* by the checker; the reduction rules never
-read it).  Unannotated input defaults to `.never` at the parser — a
-definite, validatable claim.  There is no display `BinderInfo`
-(task #205): the official kernel's equality and hash ignore it — the
-frontend validates a stream's spelling and drops it (`scanBinderInfo`). -/
-structure BinderMeta where
-  pw : PropWhen
-  deriving DecidableEq, Repr, Hashable
-
-instance : Inhabited BinderMeta := ⟨⟨.never⟩⟩
 
 /-- Literals. -/
 inductive Literal where
@@ -279,12 +265,13 @@ The official kernel's `is_equal` and `hash` ignore binder names and
 every term the checker holds carry them at one normal form; the user's
 ruling on that — *"if we don't keep the names we should drop the
 fields!"* — is why `lam`/`forallE`/`letE` carry no binder name,
-`fvar` no display name and `BinderMeta` no `BinderInfo`: there is
-nothing α-irrelevant in a node, so structural `=`/`==` and the packed
-`hash` ARE α-equivalence, with nothing to normalise and nothing a
-fabricated term could get wrong.  The frontend still *validates* a
-stream's `name` and `binderInfo` fields (a malformed record is
-malformed) and drops them (`ConLeche/Frontend/ExportC.lean`); the pin
+`fvar` no display name and `lam`/`forallE` carry no `BinderInfo` (nor
+any other binder metadata, task #342): there is nothing α-irrelevant
+in a node, so structural `=`/`==` and the packed `hash` ARE
+α-equivalence, with nothing to normalise and nothing a fabricated term
+could get wrong.  The frontend still *validates* a stream's `name` and
+`binderInfo` fields (a malformed record is malformed) and drops them
+(`ConLeche/Frontend/ExportC.lean`); the pin
 builder's `pi "a"`/`piI "α"` keep the `Init.Prelude` spelling as a
 reader-facing argument (`ConLeche/Kernel/Basis/Builder.lean`).  Error
 messages never printed a binder name; positions (de Bruijn level,
@@ -331,8 +318,8 @@ inductive Expr where
   | sort (u : Level)
   | const (n : Name) (us : List Level)
   | app (f a : Expr)
-  | lam (type body : Expr) (m : BinderMeta)
-  | forallE (type body : Expr) (m : BinderMeta)
+  | lam (type body : Expr)
+  | forallE (type body : Expr)
   | letE (type value body : Expr)
   | lit (l : Literal)
   | proj (structName : Name) (idx : Nat) (e : Expr)
@@ -357,20 +344,20 @@ with
         (max (bvarOfData f.data) (bvarOfData a.data))
         (max (fvarOfData f.data) (fvarOfData a.data))
         (lpOfData f.data || lpOfData a.data)
-    | .lam ty b m =>
+    | .lam ty b =>
       packData (hash32 (mixHash 19
           (mixHash (hashOfData ty.data)
-            (mixHash (hashOfData b.data) (Hashable.hash m.pw)))))
+            (hashOfData b.data))))
         (max (bvarOfData ty.data) (satPred (bvarOfData b.data)))
         (max (fvarOfData ty.data) (fvarOfData b.data))
-        (lpOfData ty.data || lpOfData b.data || m.pw.hasParams)
-    | .forallE ty b m =>
+        (lpOfData ty.data || lpOfData b.data)
+    | .forallE ty b =>
       packData (hash32 (mixHash 23
           (mixHash (hashOfData ty.data)
-            (mixHash (hashOfData b.data) (Hashable.hash m.pw)))))
+            (hashOfData b.data))))
         (max (bvarOfData ty.data) (satPred (bvarOfData b.data)))
         (max (fvarOfData ty.data) (fvarOfData b.data))
-        (lpOfData ty.data || lpOfData b.data || m.pw.hasParams)
+        (lpOfData ty.data || lpOfData b.data)
     | .letE ty v b =>
       packData (hash32 (mixHash 29
           (mixHash (hashOfData ty.data)
@@ -400,9 +387,9 @@ walk. -/
 namespace Expr
 
 /-- The node's 32-bit hash (`O(1)`).  The recurrence reads exactly
-what `is_equal` in the official kernel reads (`expr_eq_fn.cpp`) plus
-the validated `pw` datum; there is no display data in a node (task
-#205), so hashing and `DecidableEq` are α-equivalence outright. -/
+what `is_equal` in the official kernel reads (`expr_eq_fn.cpp`); there
+is no display data in a node (task #205), so hashing and
+`DecidableEq` are α-equivalence outright. -/
 @[inline] def hash (e : Expr) : UInt64 := hashOfData e.data
 
 /-- Has-level-param: is level instantiation ever non-trivial here?
@@ -483,8 +470,8 @@ private theorem toNat_satPred {x : UInt64} (_hx : x.toNat < 32768) :
     (max_lt_32768 (fvarOfData_lt _) (fvarOfData_lt _)), toNat_max]
   rfl
 
-@[simp] theorem bvarBRaw_lam (ty b : Expr) (m : BinderMeta) :
-    (Expr.lam ty b m).bvarBRaw =
+@[simp] theorem bvarBRaw_lam (ty b : Expr) :
+    (Expr.lam ty b).bvarBRaw =
       max ty.bvarBRaw
         (if b.bvarBRaw = satRange then satRange else b.bvarBRaw - 1) := by
   show (bvarOfData (packData _ (max _ (satPred _)) (max _ _) _)).toNat = _
@@ -494,8 +481,8 @@ private theorem toNat_satPred {x : UInt64} (_hx : x.toNat < 32768) :
     toNat_satPred (bvarOfData_lt _)]
   rfl
 
-@[simp] theorem bvarBRaw_forallE (ty b : Expr) (m : BinderMeta) :
-    (Expr.forallE ty b m).bvarBRaw =
+@[simp] theorem bvarBRaw_forallE (ty b : Expr) :
+    (Expr.forallE ty b).bvarBRaw =
       max ty.bvarBRaw
         (if b.bvarBRaw = satRange then satRange else b.bvarBRaw - 1) := by
   show (bvarOfData (packData _ (max _ (satPred _)) (max _ _) _)).toNat = _
@@ -555,16 +542,16 @@ private theorem toNat_satPred {x : UInt64} (_hx : x.toNat < 32768) :
     (max_lt_32768 (fvarOfData_lt _) (fvarOfData_lt _)), toNat_max]
   rfl
 
-@[simp] theorem fvarBRaw_lam (ty b : Expr) (m : BinderMeta) :
-    (Expr.lam ty b m).fvarBRaw = max ty.fvarBRaw b.fvarBRaw := by
+@[simp] theorem fvarBRaw_lam (ty b : Expr) :
+    (Expr.lam ty b).fvarBRaw = max ty.fvarBRaw b.fvarBRaw := by
   show (fvarOfData (packData _ (max _ (satPred _)) (max _ _) _)).toNat = _
   rw [fvarOfData_pack _ _ _ _
     (max_lt_32768 (bvarOfData_lt _) (satPred_lt (bvarOfData_lt _)))
     (max_lt_32768 (fvarOfData_lt _) (fvarOfData_lt _)), toNat_max]
   rfl
 
-@[simp] theorem fvarBRaw_forallE (ty b : Expr) (m : BinderMeta) :
-    (Expr.forallE ty b m).fvarBRaw = max ty.fvarBRaw b.fvarBRaw := by
+@[simp] theorem fvarBRaw_forallE (ty b : Expr) :
+    (Expr.forallE ty b).fvarBRaw = max ty.fvarBRaw b.fvarBRaw := by
   show (fvarOfData (packData _ (max _ (satPred _)) (max _ _) _)).toNat = _
   rw [fvarOfData_pack _ _ _ _
     (max_lt_32768 (bvarOfData_lt _) (satPred_lt (bvarOfData_lt _)))
@@ -622,17 +609,17 @@ private theorem toNat_satPred {x : UInt64} (_hx : x.toNat < 32768) :
     (max_lt_32768 (fvarOfData_lt _) (fvarOfData_lt _))]
   rfl
 
-@[simp] theorem hasLP_lam (ty b : Expr) (m : BinderMeta) :
-    (Expr.lam ty b m).hasLP = (ty.hasLP || b.hasLP || m.pw.hasParams) := by
+@[simp] theorem hasLP_lam (ty b : Expr) :
+    (Expr.lam ty b).hasLP = (ty.hasLP || b.hasLP) := by
   show lpOfData (packData _ (max _ (satPred _)) (max _ _) _) = _
   rw [lpOfData_pack _ _ _ _
     (max_lt_32768 (bvarOfData_lt _) (satPred_lt (bvarOfData_lt _)))
     (max_lt_32768 (fvarOfData_lt _) (fvarOfData_lt _))]
   rfl
 
-@[simp] theorem hasLP_forallE (ty b : Expr) (m : BinderMeta) :
-    (Expr.forallE ty b m).hasLP =
-      (ty.hasLP || b.hasLP || m.pw.hasParams) := by
+@[simp] theorem hasLP_forallE (ty b : Expr) :
+    (Expr.forallE ty b).hasLP =
+      (ty.hasLP || b.hasLP) := by
   show lpOfData (packData _ (max _ (satPred _)) (max _ _) _) = _
   rw [lpOfData_pack _ _ _ _
     (max_lt_32768 (bvarOfData_lt _) (satPred_lt (bvarOfData_lt _)))
@@ -674,7 +661,7 @@ rests on — an address names one immutable object, so pointer-equal
 means equal — enter only through `Init.Util`'s `withPtrEq` and
 `withPtrAddr`, whose *pure* definitions (`k ()`, `k 0`) are what the
 theorem is about; the compiler's substitution of the real address is
-its own contract, licensed by the side conditions those functions
+its own contract, justified by the side conditions those functions
 demand and this file discharges.
 
 The descent is **memoised** on the DAG so that it is `O(DAG)` rather
@@ -902,28 +889,24 @@ def beqGoX (map : Option BeqMap) (a b : @& Expr) : BeqOutX a b :=
           | isTrue h' => isTrue (by subst h; subst h'; rfl)
           | isFalse h' => isFalse (fun e => h' (Expr.app.inj e).2))
           r₂.map
-  | .lam t b m, .lam t' b' m' =>
-    if h : m = m' then
-      Squash.lift (enterBeq map t t' fun mp => beqGoX mp t t') fun r₁ =>
-        match r₁.dec with
-        | isFalse h₁ => .mk (isFalse (fun e => h₁ (Expr.lam.inj e).1)) r₁.map
-        | isTrue h₁ => Squash.lift (enterBeq r₁.map b b' fun mp => beqGoX mp b b') fun r₂ =>
-          .mk (match r₂.dec with
-            | isTrue h₂ => isTrue (by subst h; subst h₁; subst h₂; rfl)
-            | isFalse h₂ => isFalse (fun e => h₂ (Expr.lam.inj e).2.1))
-            r₂.map
-    else .mk (isFalse (fun e => h (Expr.lam.inj e).2.2)) map
-  | .forallE t b m, .forallE t' b' m' =>
-    if h : m = m' then
-      Squash.lift (enterBeq map t t' fun mp => beqGoX mp t t') fun r₁ =>
-        match r₁.dec with
-        | isFalse h₁ => .mk (isFalse (fun e => h₁ (Expr.forallE.inj e).1)) r₁.map
-        | isTrue h₁ => Squash.lift (enterBeq r₁.map b b' fun mp => beqGoX mp b b') fun r₂ =>
-          .mk (match r₂.dec with
-            | isTrue h₂ => isTrue (by subst h; subst h₁; subst h₂; rfl)
-            | isFalse h₂ => isFalse (fun e => h₂ (Expr.forallE.inj e).2.1))
-            r₂.map
-    else .mk (isFalse (fun e => h (Expr.forallE.inj e).2.2)) map
+  | .lam t b, .lam t' b' =>
+    Squash.lift (enterBeq map t t' fun mp => beqGoX mp t t') fun r₁ =>
+      match r₁.dec with
+      | isFalse h₁ => .mk (isFalse (fun e => h₁ (Expr.lam.inj e).1)) r₁.map
+      | isTrue h₁ => Squash.lift (enterBeq r₁.map b b' fun mp => beqGoX mp b b') fun r₂ =>
+        .mk (match r₂.dec with
+          | isTrue h₂ => isTrue (by subst h₁; subst h₂; rfl)
+          | isFalse h₂ => isFalse (fun e => h₂ (Expr.lam.inj e).2))
+          r₂.map
+  | .forallE t b, .forallE t' b' =>
+    Squash.lift (enterBeq map t t' fun mp => beqGoX mp t t') fun r₁ =>
+      match r₁.dec with
+      | isFalse h₁ => .mk (isFalse (fun e => h₁ (Expr.forallE.inj e).1)) r₁.map
+      | isTrue h₁ => Squash.lift (enterBeq r₁.map b b' fun mp => beqGoX mp b b') fun r₂ =>
+        .mk (match r₂.dec with
+          | isTrue h₂ => isTrue (by subst h₁; subst h₂; rfl)
+          | isFalse h₂ => isFalse (fun e => h₂ (Expr.forallE.inj e).2))
+          r₂.map
   | .letE t v b, .letE t' v' b' =>
     Squash.lift (enterBeq map t t' fun mp => beqGoX mp t t') fun r₁ =>
       match r₁.dec with

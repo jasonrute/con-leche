@@ -3,9 +3,7 @@ module
 public import ConLeche.Verify.Cached.TargetRecC
 public import ConLeche.Kernel.Inductives.GenRec
 import ConLeche.Verify.Inductives.RecCheckScope
-import ConLeche.Verify.Inductives.GenRecRun
 import ConLeche.Verify.BridgeDecl
-import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Verify.BridgeWfImp
 import ConLeche.Verify.Cached.WalkersC
 import ConLeche.Verify.Cached.NestPosC
@@ -13,6 +11,7 @@ public import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Verify.Cached.AgreeFloor
 import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Verify.Cached.BlockOverlay
+public import ConLeche.Verify.Inductives.TargetAuxFire
 
 public section
 
@@ -36,12 +35,11 @@ Scoping, per cached operation:
 * the classes' parameters are the pre-pass's reading of the stream's
   RAW recursor types, moved to the canonical parameters and kept below
   them by `classKeyOf`'s guard (every free variable left is a canonical
-  parameter, `replaceFVars_WScoped_of_below`), then annotated
-  (`classKeyOfS_sim`) — so every class is scoped by the parameter openers
+  parameter, `replaceFVars_WScoped_of_below`, `classKeyOfS_sim`) — so
+  every class is scoped by the parameter openers
   (`TargetMajScoped`), which is all the class match (`targetMajorNfs`,
   `targetK53`) and the pin typing need;
-* each generated RULE is closed by `classRuleOk`'s own guard before it
-  is annotated.
+* each generated RULE is closed by `classRuleOk`'s own guard.
 -/
 
 set_option linter.unusedSimpArgs false
@@ -145,8 +143,7 @@ theorem classStreamRecsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF en
   | rc :: rcs, _, hs => by
     unfold classStreamRecs
     simp only [checkConstantValF_eq]
-    refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ cv cv' hs₁ hC => ?_)
-    obtain ⟨rfl, hw⟩ := hC
+    refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ _ _ hs₁ hw => ?_)
     refine SimC.bind (classStreamRecsS_sim hμ henv rcs hs₁) (fun s₂ cvs cvs' hs₂ hCs => ?_)
     obtain ⟨rfl, hws⟩ := hCs
     refine SimC.pure hs₂ ⟨rfl, fun x hx => ?_⟩
@@ -162,7 +159,8 @@ private theorem classMajorOf_shape (fe : FEnv) (p : BlockShape)
     (ctorsAs : List (List (ConstantVal × Nat))) (pfvs fvs : List Expr) (mty : Expr) :
     Yields (targetMajorOf (m := CheckCM) fe p ctorsAs pfvs fvs mty)
       (fun M => M.pfvs = pfvs ∧ ((∃ t, M.member = some t ∧ M.ds = fvs.take p.nP) ∨
-        (M.member = none ∧ ∀ x ∈ M.ds, x ∈ mty.getAppArgs ∧ x.fvarB ≤ p.nP))) := by
+        (M.member = none ∧ M.ds.length = M.nPc ∧
+          ∀ x ∈ M.ds, x ∈ mty.getAppArgs ∧ x.bvarB = 0 ∧ x.fvarB ≤ p.nP))) := by
   unfold targetMajorOf
   dsimp only
   split
@@ -178,17 +176,18 @@ private theorem classMajorOf_shape (fe : FEnv) (p : BlockShape)
         | (refine Yields.bind fun _ => ?_)
         | split)
       all_goals first
-        | (refine Yields.pure ⟨rfl, Or.inr ⟨rfl, fun x hx => ⟨List.mem_of_mem_take hx, ?_⟩⟩⟩
-           simp only [Bool.and_eq_true, List.all_eq_true, beq_iff_eq, decide_eq_true_eq] at *
-           exact ((by assumption : _ ∧ ∀ y ∈ List.take _ mty.getAppArgs,
-             y.bvarB = 0 ∧ y.fvarB ≤ p.nP).2 x hx).2)
+        | (simp only [Bool.and_eq_true, List.all_eq_true, beq_iff_eq, decide_eq_true_eq] at *
+           have hck := (by assumption : _ ∧ ∀ y ∈ List.take _ mty.getAppArgs,
+             y.bvarB = 0 ∧ y.fvarB ≤ p.nP)
+           exact Yields.pure ⟨rfl, Or.inr ⟨rfl, hck.1,
+             fun x hx => ⟨List.mem_of_mem_take hx, hck.2 x hx⟩⟩⟩)
   · exact Yields.ofThrow
 
 /-- A class checked as a major, scoped: its openers are the parameter
 openers `pfvs`, its parameters scoped by them, an outside class's below
 the parameters. -/
 @[expose] def ClassMajScoped (nP : Nat) (M : TargetMajor) : Prop :=
-  TargetMajScoped M ∧ (M.member = none → ∀ x ∈ M.ds, x.fvarB ≤ nP) ∧ M.pfvs.length = nP
+  TargetMajScoped M ∧ ClassOutParams nP M ∧ M.pfvs.length = nP
 
 /-- `blockNestCtx` at the shared operations, its lookups the formers'
 environment `env₁`, the state the constructors' environment's: the same
@@ -236,17 +235,17 @@ theorem classMajorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {
     refine SimC.bind ((targetMajorOfS_sim hs).withYields
       (classMajorOf_shape (mkFEnv env) p ctorsAs pfvs pfvs _)) (fun s₁ M M' hs₁ hM => ?_)
     obtain ⟨rfl, hMpf, hMsh⟩ := hM
-    have hdsN : M.member = none → ∀ x ∈ M.ds, x.fvarB ≤ p.nP := by
-      intro hMn x hx
-      rcases hMsh with ⟨t, hmt, -⟩ | ⟨-, hall⟩
+    have hdsN : ClassOutParams p.nP M := by
+      intro hMn
+      rcases hMsh with ⟨t, hmt, -⟩ | ⟨-, hl, hall⟩
       · rw [hMn] at hmt; exact nomatch hmt
-      · exact (hall x hx).2
+      · exact ⟨hl, fun x hx => (hall x hx).2⟩
     have hds : ∀ x ∈ M.ds, WScoped p.nP x := by
       intro x hx
-      rcases hMsh with ⟨t, -, hMds⟩ | ⟨-, hall⟩
+      rcases hMsh with ⟨t, -, hMds⟩ | ⟨-, -, hall⟩
       · rw [hMds] at hx
         exact hp x (List.mem_of_mem_take hx)
-      · obtain ⟨hxa, hfb⟩ := hall x hx
+      · obtain ⟨hxa, -, hfb⟩ := hall x hx
         rw [Expr.getAppArgs_mkAppN] at hxa
         simp only [Expr.getAppArgs, List.nil_append] at hxa
         obtain ⟨D, hD⟩ := hk key List.mem_cons_self x hxa
@@ -263,37 +262,15 @@ theorem classMajorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {
       · rw [hMpf, hpl]; exact hds
     · exact hMs N hN
 
-/-- The class keys' parameters annotated, one after another: each
-annotated term scoped as its input. -/
-theorem annotateLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
-    ∀ (l bs : List Expr) {s₀ : CState}, CSOK mode env s₀ → (∀ x ∈ l, WScoped d x) →
-      (∀ x ∈ bs, WScoped d x) →
-      SimC mode env s₀ (fun v w => v = w ∧ ∀ x ∈ v, WScoped d x)
-        (List.mapM.loop ((sharedOpsC mode (mkFEnv env)).annotate env d) l bs)
-        (List.mapM.loop ((fueledOpsM mode).annotate env d) l bs)
-  | [], bs, _, hs, _, hbs => by
-    simp only [List.mapM.loop]
-    exact SimC.pure hs ⟨rfl, fun x hx => hbs x (List.mem_reverse.mp hx)⟩
-  | a :: l, bs, _, hs, hl, hbs => by
-    simp only [List.mapM.loop]
-    refine SimC.bind (opE_annotate_sim hμ henv hs (hl a List.mem_cons_self))
-      (fun s₁ b b' hs₁ hB => ?_)
-    obtain ⟨rfl, hwb⟩ := hB
-    exact annotateLoopS_sim hμ henv l (b :: bs) hs₁ (fun x hx => hl x (List.mem_cons_of_mem _ hx))
-      (fun x hx => by
-        rcases List.mem_cons.mp hx with rfl | hx
-        · exact hwb
-        · exact hbs x hx)
-
-/-- **One class key made checkable**: its annotated parameters scoped at
+/-- **One class key made checkable**: its parameters scoped at
 the parameter count (the guard keeps every free variable a canonical
 parameter). -/
-theorem classKeyOfS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
+theorem classKeyOfS_sim {nP : Nat}
     {params : List Expr} (hpl : params.length = nP) (hp : ∀ x ∈ params, WScoped nP x)
     (k : ClassKey) {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun v w => v = w ∧ ∀ x ∈ v.ds, WScoped nP x)
-      (classKeyOf (sharedOpsC mode (mkFEnv env)) env nP params k)
-      (classKeyOf (fueledOpsM mode) env nP params k) := by
+      (classKeyOf (m := CheckCM) nP params k)
+      (classKeyOf (m := FueledM) nP params k) := by
   unfold classKeyOf
   dsimp only
   by_cases hg : ((classKeyCanon params k).ds.all fun x => x.bvarB == 0 && decide (x.fvarB ≤ nP))
@@ -310,10 +287,7 @@ theorem classKeyOfS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {n
       (fun i r hr => hp r (List.mem_of_getElem? hr))
       (fun i hi => by simp [hpl, hi]) y (Expr.fvarB_le hx'.2)
   simp only [ite_true]
-  refine SimC.bind (annotateLoopS_sim hμ henv _ [] hs hw (fun _ h => nomatch h))
-    (fun s₁ ds ds' hs₁ hD => ?_)
-  obtain ⟨rfl, hwd⟩ := hD
-  exact SimC.pure hs₁ ⟨rfl, hwd⟩
+  exact SimC.pure hs ⟨rfl, hw⟩
 
 /-- The class keys made checkable, one after another. -/
 theorem classKeysLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
@@ -321,14 +295,14 @@ theorem classKeysLoopS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     ∀ (l bs : List ClassKey) {s₀ : CState}, CSOK mode env s₀ →
       (∀ k ∈ bs, ∀ x ∈ k.ds, WScoped nP x) →
       SimC mode env s₀ (fun v w => v = w ∧ ∀ k ∈ v, ∀ x ∈ k.ds, WScoped nP x)
-        (List.mapM.loop (classKeyOf (sharedOpsC mode (mkFEnv env)) env nP params) l bs)
-        (List.mapM.loop (classKeyOf (fueledOpsM mode) env nP params) l bs)
+        (List.mapM.loop (classKeyOf (m := CheckCM) nP params) l bs)
+        (List.mapM.loop (classKeyOf (m := FueledM) nP params) l bs)
   | [], bs, _, hs, hbs => by
     simp only [List.mapM.loop]
     exact SimC.pure hs ⟨rfl, fun k hk => hbs k (List.mem_reverse.mp hk)⟩
   | a :: l, bs, _, hs, hbs => by
     simp only [List.mapM.loop]
-    refine SimC.bind (classKeyOfS_sim hμ henv hpl hp a hs) (fun s₁ b b' hs₁ hB => ?_)
+    refine SimC.bind (classKeyOfS_sim hpl hp a hs) (fun s₁ b b' hs₁ hB => ?_)
     obtain ⟨rfl, hwb⟩ := hB
     exact classKeysLoopS_sim hμ henv hpl hp l (b :: bs) hs₁ (fun k hk => by
       rcases List.mem_cons.mp hk with rfl | hk
@@ -342,8 +316,8 @@ theorem checkBlockClassesS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF 
     (hp : ∀ x ∈ params, WScoped p.nP x) {ctorsAs : List (List (ConstantVal × Nat))}
     {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun v w => v = w ∧ ∀ M ∈ v.2, ClassMajScoped p.nP M)
-      (checkBlockClasses (sharedOpsC mode (mkFEnv env)) (mkFEnv env) env p params ctorsAs)
-      (checkBlockClasses (fueledOpsM mode) (mkFEnv env) env p params ctorsAs) := by
+      (checkBlockClasses (sharedOpsC mode (mkFEnv env)) (mkFEnv env) p params ctorsAs)
+      (checkBlockClasses (fueledOpsM mode) (mkFEnv env) p params ctorsAs) := by
   unfold checkBlockClasses
   refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ rd rd' hs₁ hR => ?_)
   obtain ⟨rfl, -⟩ := hR
@@ -385,7 +359,7 @@ theorem classesNfsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p
 /-- Node agreement at one recursive field, at every entry. -/
 theorem classNodesAgreeS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockShape} {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t)
-    {Mc : TargetMajor} (hMc : TargetMajScoped Mc) {tele : List (Expr × BinderMeta)}
+    {Mc : TargetMajor} (hMc : TargetMajScoped Mc) {tele : List Expr}
     {leaf : Expr} {fvs : List Expr} {i : Nat} {ctor : Name} :
     ∀ (es : List NestCtorNf) {s₀ : CState}, CSOK mode env s₀ →
       SimC mode env s₀ RelVC
@@ -490,11 +464,11 @@ theorem classesCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     exact SimC.pure hs₂ rfl
 
 /-- **A generated constant, checked** (`classConstOk`): the cached twin
-of `checkConstantValS_sim` without the annotation step — the stored
-constant is the input, closed by the guard. -/
+of `checkConstantValS_sim` for a generated constant — the checked
+constant's type is well-scoped. -/
 theorem classConstOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun v w => v = w ∧ WScoped 0 v.type)
+    SimC mode env s₀ (fun _ _ => WScoped 0 cv.type)
       (classConstOk (sharedOpsC mode (mkFEnv env)) (mkFEnv env) cv)
       (classConstOk (fueledOpsM mode) (mkFEnv env) cv) := by
   unfold classConstOk
@@ -528,7 +502,7 @@ theorem classConstOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
   refine SimC.bind (opE_infer_sim hμ henv hs hwty) (fun s₂ sty sty' hs₂ hP₂ => ?_)
   obtain ⟨rfl, hwsty⟩ := hP₂
   refine SimC.bind (opS_sim hμ henv hs₂ hwsty) (fun s₃ u u' hs₃ hP₃ => ?_)
-  exact SimC.pure hs₃ ⟨rfl, hwty⟩
+  exact SimC.pure hs₃ hwty
 
 /-- **One recursor's generated type, checked and compared**: the stored
 constant is closed. -/
@@ -546,8 +520,7 @@ theorem classRecTyOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
   case isFalse => exact SimC.throw_bind
   refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ gty gty' hs₁ hG => ?_)
   obtain ⟨rfl, -⟩ := hG
-  refine SimC.bind (classConstOkS_sim hμ henv hs₁) (fun s₂ cvG cvG' hs₂ hC => ?_)
-  obtain ⟨rfl, hwG⟩ := hC
+  refine SimC.bind (classConstOkS_sim hμ henv hs₁) (fun s₂ _ _ hs₂ hwG => ?_)
   dsimp only [sharedOpsC]
   refine SimC.bind (opB_sim hμ henv hs₂ hRi hwG) (fun s₃ b b' hs₃ hB => ?_)
   obtain rfl : b = b' := hB
@@ -608,11 +581,11 @@ closed by the stage's own guard, stored as generated and typed at the
 rule-less recursors' environment `envR` (`sharedOpsRuleR`'s inference
 flushes last), its λ-telescope read syntactically. -/
 theorem classRuleOkS_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR : EnvWF envR)
-    (envT : Env) {cvR : ConstantVal} {pw : PropWhen} {n : Nat} {gen : Expr} :
+    (envT : Env) {cvR : ConstantVal} {n : Nat} {gen : Expr} :
     SimG (CSOKAll mode) (CSOKAll mode) RelVC
       (classRuleOk (sharedOpsRuleR mode (mkFEnv envR)) .plain (mkFEnv envT) (mkFEnv envR) cvR
-        pw n gen)
-      (classRuleOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) cvR pw n gen) := by
+        n gen)
+      (classRuleOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) cvR n gen) := by
   unfold classRuleOk
   simp only [mkFEnv_env]
   by_cases h1 : (gen.looseBVarsBounded 0 && !gen.hasFvar) = true
@@ -631,22 +604,19 @@ theorem classRuleOkS_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR
   obtain ⟨rfl, -⟩ := hX
   obtain ⟨rbs, body⟩ := x
   dsimp only
-  by_cases h5 : (rbs.all fun b => StructWalkers.plain.resolve (mkFEnv envT) b.1) = true
+  by_cases h5 : (rbs.all fun b => StructWalkers.plain.resolve (mkFEnv envT) b) = true
   case neg => simp only [h5]; exact SimG.throw_bind
   simp only [h5, ite_true]
-  by_cases h6 : (rbs.all fun b => b.2.pw == pw) = true
-  case neg => simp only [h6]; exact SimG.throw_bind
-  simp only [h6, ite_true]
   exact SimG.pure (fun _ h => h) rfl
 
 theorem classRulesOkS_simG (hμ : mode.verifiedChecks = true) {envR envT : Env}
     (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} {cvR : ConstantVal}
-    {pw : PropWhen} {c : Nat} :
+    {c : Nat} :
     ∀ (xs : List ClassCtor),
       SimG (CSOKAll mode) (CSOKAll mode) RelVC
         (classRulesOk (sharedOpsRuleR mode (mkFEnv envR)) .plain (mkFEnv envT) (mkFEnv envR) g
-          recOf cvR pw c xs)
-        (classRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvR pw c xs)
+          recOf cvR c xs)
+        (classRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvR c xs)
   | [] => SimG.pure (fun _ h => h) rfl
   | x :: xs => by
     unfold classRulesOk
@@ -659,12 +629,12 @@ theorem classRulesOkS_simG (hμ : mode.verifiedChecks = true) {envR envT : Env}
     exact SimG.pure (fun _ h => h) rfl
 
 theorem classRecsRulesOkS_simG (hμ : mode.verifiedChecks = true) {envR envT : Env}
-    (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} {pw : PropWhen} :
+    (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} :
     ∀ (cvs : List ConstantVal) (cs : List Nat),
       SimG (CSOKAll mode) (CSOKAll mode) RelVC
         (classRecsRulesOk (sharedOpsRuleR mode (mkFEnv envR)) .plain (mkFEnv envT) (mkFEnv envR)
-          g recOf pw cvs cs)
-        (classRecsRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf pw cvs
+          g recOf cvs cs)
+        (classRecsRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvs
           cs)
   | cvG :: cvs, c :: cs => by
     unfold classRecsRulesOk
@@ -775,8 +745,9 @@ theorem genRecCheckS_simG (hμ : mode.verifiedChecks = true) {env₂ : Env}
   refine SimG.bind (classRecsRulesOkS_simG (envT := env₂) hμ henvR cvGs rd.recCls)
     fun out out' hO => ?_
   obtain rfl : out = out' := hO
-  exact SimG.bind (flushC_simG.mono (fun _ h => CSOKAll.residue h) (fun _ h => h))
-    fun _ _ _ => SimG.pure (fun _ h => h) rfl
+  refine SimG.bind (flushC_simG.mono (fun _ h => CSOKAll.residue h) (fun _ h => h))
+    fun _ _ _ => ?_
+  exact SimG.pure (fun _ h => h) rfl
 
 /-- **The generated recursor stage at the cached driver** is reproduced
 by the pure fueled stage. -/
@@ -801,14 +772,18 @@ theorem genRecCheckS_run (hμ : mode.verifiedChecks = true) {env₂ : Env}
 /-- **The stored family's environment is well-formed**: every stored
 recursor type is a checked generated constant's (`classConstOk`), every
 stored rule a generated rule closed, at the recursor's level parameters
-and resolved at the rule-less recursors' environment (`classRuleOk`). -/
+and resolved at the rule-less recursors' environment (`classRuleOk`), and
+an outside class's `.nested` datum reads off the stored type
+(`genStage_nestedRead`, at the block's canonical parameters and the
+classes' checked parameters). -/
 theorem genRecCheck_recsWF {env₂ : Env} (henv₂ : EnvWF env₂) {p : BlockShape}
     {nestedBit : Bool} {params : List Expr} {tbl : List NestCtorNf} {rd : ClassRead}
     {Ms₀ : List TargetMajor} {cvTas : List ConstantVal} {block : List ConstantInfo}
     {out : List (ConstantVal × TargetMajor × List Expr)} {F : Nat}
     (h : genRecCheck (ShadowOps.fueled mode F) (mkFEnv env₂) p nestedBit params tbl rd Ms₀ cvTas
-      block = .ok out) (find? : Name → Option ConstantInfo) :
-    EnvWF (consBlockRecsT find? (·.constsResolve env₂) p 0 out env₂) := by
+      block = .ok out) (hpl : params.length = p.nP)
+    (hMs₀ : ∀ M ∈ Ms₀, ClassOutParams p.nP M) (find? : Name → Option ConstantInfo) :
+    EnvWF (consBlockRecsT find? p 0 out env₂) := by
   obtain ⟨R⟩ := genRecCheck_run h
   have hcvGs := R.hcvGs
   have hrules := R.hrules
@@ -822,7 +797,7 @@ theorem genRecCheck_recsWF {env₂ : Env} (henv₂ : EnvWF env₂) {p : BlockSha
         classRulesOk (fueledOps mode F) .plain (mkFEnv env₂)
           (classFeR p R.Ms R.cvGs rd.recCls (mkFEnv env₂)) R.g
           (classRecOf rd.recCls R.cvGs) cvG
-          (Level.zeronessOf (structElimLevel p.elim p.large)) c (R.ctors.getD c []) = .ok o.2.2 := by
+          c (R.ctors.getD c []) = .ok o.2.2 := by
     intro i o ho
     have hil : i < p.recs.length := by
       have := (List.getElem?_eq_some_iff.mp ho).1; rw [hlenO] at this; omega
@@ -851,7 +826,8 @@ theorem genRecCheck_recsWF {env₂ : Env} (henv₂ : EnvWF env₂) {p : BlockSha
       = mkFEnv (consBlockRecsBare p 0 (out.map fun t => (t.1, t.2.1.nIdx)) env₂) := by
     unfold classFeR
     rw [consBlockRecsBareF_mkFEnv, hbare]
-  refine envWF_consBlockRecsT henv₂ fun o ho => ?_
+  refine envWF_consBlockRecsT henv₂ (fun o ho => ?_)
+    (fun i t ht hm => genStage_nestedRead R hpl hMs₀ ht hm)
   obtain ⟨i, hoi⟩ := List.getElem?_of_mem ho
   obtain ⟨rc, c, cvG, -, -, ho', ⟨T⟩, hr⟩ := hat i o hoi
   obtain ⟨g1, g2, g3, g4⟩ := classConstOk_typeWF T.hcv
@@ -879,7 +855,7 @@ theorem checkBlockTailS_run (hμ : mode.verifiedChecks = true)
     {rd : ClassRead} {Ms₀ : List TargetMajor} {tbl : Array NestCtorNf}
     (hT : ∀ cv ∈ cvTas, WScoped 0 cv.type)
     (henv₂ : EnvWF (consBlockCtors p.nP ctorsAs env₁))
-    (hMs₀ : ∀ M ∈ Ms₀, ClassMajScoped p.nP M)
+    (hMs₀ : ∀ M ∈ Ms₀, ClassMajScoped p.nP M) (hpl : params.length = p.nP)
     {s₀ : CState} (hs : CSOK mode env₁ s₀) {feOut : FEnv} {s' : CState}
     (h : checkBlockTailS mode block
       ⟨mkFEnv env₁, cvTas, p, ctorsAs, sortsss, kinds, nfs, params, rd, Ms₀, tbl⟩
@@ -905,10 +881,10 @@ theorem checkBlockTailS_run (hμ : mode.verifiedChecks = true)
   obtain ⟨out, s₃, hrec, h⟩ := bindC_ok h
   obtain ⟨hs₃, F₃, hF₃⟩ := genRecCheckS_run hμ henv₂ hMs₀ hT
     (flushC_csok hsS.residue) hrec
-  have henv₃ := genRecCheck_recsWF henv₂ hF₃ (consBlockCtors p.nP ctorsAs env₁).find?
+  have henv₃ := genRecCheck_recsWF henv₂ hF₃ hpl (fun M hM => (hMs₀ M hM).2.1)
+    (consBlockCtors p.nP ctorsAs env₁).find?
   rw [show FEnv.find? (mkFEnv (consBlockCtors p.nP ctorsAs env₁))
     = (consBlockCtors p.nP ctorsAs env₁).find? from mkFEnv_find?_fun _] at h
-  simp only [constsResolveF_eq] at h
   rw [pushAll_blockRecInfosTF_mkFEnv, structWalkersC_eq_plain] at h
   obtain ⟨hwfO, hfeO, -, hT₆⟩ := checkBlockTablesS_run _ _ _ henv₃ hs₃ h
   obtain ⟨G, hle₀, hle₃⟩ : ∃ G, F₀ ≤ G ∧ F₃ ≤ G := ⟨max F₀ F₃, by omega, by omega⟩
@@ -943,7 +919,7 @@ theorem checkBlockPassS_run (hμ : mode.verifiedChecks = true) {env : Env} (henv
       (∀ ctorsA ∈ q.ctorsAs, ∀ c ∈ ctorsA, WScoped 0 c.1.type) ∧
       (∀ ctorsA ∈ q.ctorsAs, ∀ c ∈ ctorsA, env₁.find? c.1.name = none) ∧
       EnvWF (consBlockCtors q.p.nP q.ctorsAs env₁) ∧
-      (∀ M ∈ q.cls, ClassMajScoped q.p.nP M) ∧
+      (∀ M ∈ q.cls, ClassMajScoped q.p.nP M) ∧ q.params.length = q.p.nP ∧
       ∃ F, (checkBlockPass (fueledOpsM mode) env p₀ isRec).val F
         = .ok ⟨env₁, q.cvTas, q.p, q.ctorsAs, q.sortsss, q.kinds, q.nfs, q.params, q.rd, q.cls,
           q.tbl⟩ := by
@@ -1006,7 +982,7 @@ theorem checkBlockPassS_run (hμ : mode.verifiedChecks = true) {env : Env} (henv
     nestSeedsS_sim hμ henv₁ hctx _ pos hsK (fun k hk x hx => by
       obtain ⟨M, hM, hMn, rfl⟩ := mem_classSeeds hk
       exact (nestSeedOf_ds hh hlen (fun y hy => Expr.fvarB_le (by
-        rw [hnP]; exact (hMsc M hM).2.1 hMn y hy)) x hx).2 (fun y hy => (hholes y hy).1)
+        rw [hnP]; exact (((hMsc M hM).2.1 hMn).2 y hy).2)) x hx).2 (fun y hy => (hholes y hy).1)
         hpar') st sT hT'
   obtain rfl := hPT
   obtain ⟨rfl, rfl⟩ := pureC_ok h
@@ -1015,7 +991,7 @@ theorem checkBlockPassS_run (hμ : mode.verifiedChecks = true) {env : Env} (henv
     ⟨max F₁ (max F₂ (max FX (max FL (max FK FT)))), by omega, by omega, by omega, by omega,
       by omega, by omega⟩
   refine ⟨env₁, rfl, hsT, henv₁, hwT, checkBlockCtors_types hF₂p, checkBlockCtors_fresh hF₂p,
-    direct_block_ctors_wf henv₁ hF₂p, hMsc, G, ?_⟩
+    direct_block_ctors_wf henv₁ hF₂p, hMsc, hpl, G, ?_⟩
   have g₁ : checkBlockInds (fueledOps mode G) env p₀ isRec = .ok (env₁, cvTas, p₁) := by
     rw [← checkBlockInds_datF]; exact FueledM.up hle₁ hF₁
   have g₂ : checkBlockCtors (fueledOps mode G) env₁ env₁ (p₀.complete p₁).toBlockShape
@@ -1024,7 +1000,7 @@ theorem checkBlockPassS_run (hμ : mode.verifiedChecks = true) {env : Env} (henv
   have gX : blockNestCtx (m := CheckM) (p₀.complete p₁).toBlockShape cvTas env₁.find?
       = .ok (ctx, holes) := by
     rw [← blockNestCtx_datF (F := G)]; exact FueledM.up hleX hFX
-  have gL : checkBlockClasses (fueledOps mode G) (mkFEnv env₁) env₁
+  have gL : checkBlockClasses (fueledOps mode G) (mkFEnv env₁)
       (p₀.complete p₁).toBlockShape ctx.params ctorsAs = .ok (rd, Ms) := by
     rw [← checkBlockClasses_datF]; exact FueledM.up hleL hFL
   have gK : checkBlockPositivity (fueledOps mode G) env₁ env₁.find?
@@ -1066,11 +1042,11 @@ theorem checkBlockKS_run (hμ : mode.verifiedChecks = true)
   obtain rfl : s₀.flushed = sA := congrArg Prod.snd hfl0
   obtain ⟨r, s₁, hP, h⟩ := bindC_ok h
   obtain ⟨fe₁, cvTas, p, ctorsAs, sortsss, kinds, nfs, params, rd, Ms₀, tbl⟩ := r
-  obtain ⟨env₁, hq₁, hs₁, henv₁, hT, -, -, henv₂, hMs₀, F₁, hF₁⟩ :=
+  obtain ⟨env₁, hq₁, hs₁, henv₁, hT, -, -, henv₂, hMs₀, hpl, F₁, hF₁⟩ :=
     checkBlockPassS_run hμ henv (flushC_csok hwf) hP
-  simp only at hq₁ hs₁ henv₁ hT henv₂ hMs₀ hF₁
+  simp only at hq₁ hs₁ henv₁ hT henv₂ hMs₀ hpl hF₁
   subst hq₁
-  obtain ⟨hwfO, hfeO, F₂, hF₂⟩ := checkBlockTailS_run hμ henv₁ hT henv₂ hMs₀ hs₁ h
+  obtain ⟨hwfO, hfeO, F₂, hF₂⟩ := checkBlockTailS_run hμ henv₁ hT henv₂ hMs₀ hpl hs₁ h
   refine ⟨hwfO, hfeO, max F₁ F₂, ?_⟩
   have g₁ : checkBlockPass (fueledOps mode (max F₁ F₂)) env p₀ (blockRawRec p₀)
       = .ok ⟨env₁, cvTas, p, ctorsAs, sortsss, kinds, nfs, params, rd, Ms₀, tbl⟩ := by

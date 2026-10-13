@@ -10,7 +10,7 @@ The checked statement's right-hand side, read at the fired chain,
 **is** the rule's own right-hand side applied to the fired spine.  The
 recorded rhs run fires at the full frame, the applied form's head runs
 back to the closed rule reading (renaming, then
-`denoteMeta_depth_of_closed`), and the opener spine reads off the chain.
+`denote_depth_of_closed`), and the opener spine reads off the chain.
 
 `DefEqClaim` converts the rhs run only against *both* comparands'
 gradings.  The a-side is the statement's own right-hand side, graded
@@ -24,22 +24,22 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level isDefEqCore)
 
 universe w
 
 variable {V : Type w} [SetTheory V]
 variable {μ : CheckMode} {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → Term}
 
-/-- The forward direction of `denoteMeta_mkAppN_inv`. -/
-theorem denoteMeta_mkAppN_of {d : Nat} :
-    ∀ (as : List Expr) {e : Expr} {ea : AnnotTerm} {vs : List AnnotTerm},
-      denoteMeta acval env φ d e = some ea →
-      DenoteMetaSpine acval env φ d as vs →
-      denoteMeta acval env φ d (Expr.mkAppN e as)
-        = some (AnnotTerm.mkAppN ea vs) := by
+/-- The forward direction of `denote_mkAppN_inv`. -/
+theorem denote_mkAppN_of {d : Nat} :
+    ∀ (as : List Expr) {e : Expr} {ea : Term} {vs : List Term},
+      denote acval env φ d e = some ea →
+      DenoteSpine acval env φ d as vs →
+      denote acval env φ d (Expr.mkAppN e as)
+        = some (Term.mkAppN ea vs) := by
   intro as
   induction as with
   | nil =>
@@ -50,8 +50,8 @@ theorem denoteMeta_mkAppN_of {d : Nat} :
     intro e ea vs he hsp
     cases hsp with
     | @cons _ v _ vs' ha hsp' =>
-      have hstep : denoteMeta acval env φ d (.app e a) = some (.app ea v) := by
-        rw [denoteMeta_app, he, ha]
+      have hstep : denote acval env φ d (.app e a) = some (.app ea v) := by
+        rw [denote_app, he, ha]
         rfl
       exact ih (ea := .app ea v) hstep hsp'
 

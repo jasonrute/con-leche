@@ -152,17 +152,17 @@ variable (S : IndSpec) (M : Name → List Nat → V) (ls : List Nat)
 /-- The valuation of the block's level parameters at `ls`. -/
 def ψ : Name → Nat := valOf S.lparams ls
 
-/-- **The regime**: is the result sort zero here? -/
-def z : Bool := S.pw.holds (S.ψ ls)
-
 /-- The result universe. -/
 def u₀ : Nat := S.sort.eval (S.ψ ls)
 
-theorem z_iff : S.z ls = true ↔ S.u₀ ls = 0 := Level.holds_zeroness _ _
+/-- **The regime**: is the result sort zero here? -/
+def z : Bool := decide (S.u₀ ls = 0)
+
+theorem z_iff : S.z ls = true ↔ S.u₀ ls = 0 := decide_eq_true_iff
 
 /-- Index expressions (a spine, outermost first) read under an
 environment, as index values (innermost first). -/
-def idxVals (env : Nat → V) (es : List Expr) : List V := (es.map (interp M (S.ψ ls) env)).reverse
+noncomputable def idxVals (env : Nat → V) (es : List Expr) : List V := (es.map (interp M (S.ψ ls) env)).reverse
 /-! ## The class of a nested block, read in the model
 
 A container field's domain is the class `K.{lsK} args[nested]`: the
@@ -178,26 +178,150 @@ from the container's positivity and the nested case of accessibility,
 /-- The class's arguments as values (outermost first), with `X` at
 the nested position: the other arguments read under the parameters
 (they are closed under them). -/
-def classArgsV (N : NestInfo) (ps : List V) (X : V) : List V :=
+noncomputable def classArgsV (N : NestInfo) (ps : List V) (X : V) : List V :=
   (N.args.take N.p).map (interp M (S.ψ ls) (envP ps)) ++ [X] ++
     (N.args.drop N.p).map (interp M (S.ψ ls) (envP ps))
 
 /-- The container's levels at the block's valuation. -/
 def lsK (N : NestInfo) : List Nat := N.lsK.map (Level.eval (S.ψ ls))
 
+/-- **The admissible part of a set**: at a proposition the set itself;
+above it the members that are neither the point nor a member of it —
+a strict set (`adm_mem_typeU`), so a member of the nested parameter's
+domain `Sort u`, a set of types, and the set itself on a
+set of tagged values (`adm_eq_self`), such as a fibre of the family.
+The class reads the container's set at admissible sets only: there it
+is a graph applied inside its domain. -/
+def adm (X : V) : V := if S.z ls then X else sep X fun x => x ≠ pt ∧ ¬ x ∈ˢ pt
+
 /-- **The class at a parameter set**: the container's set in the model,
-applied to the class's arguments with `X` at the nested position. -/
-def classSet (N : NestInfo) (ps : List V) (X : V) : V :=
-  appList (M N.K.name (S.lsK ls N)) (S.classArgsV M ls N ps X)
+applied to the class's arguments with the admissible part of `X` at
+the nested position. -/
+noncomputable def classSet (N : NestInfo) (ps : List V) (X : V) : V :=
+  appList (M N.K.name (S.lsK ls N)) (S.classArgsV M ls N ps (S.adm ls X))
+
+theorem mem_adm {X x : V} : x ∈ˢ S.adm ls X ↔ x ∈ˢ X ∧ (S.z ls = false → x ≠ pt ∧ ¬ x ∈ˢ pt) := by
+  unfold adm
+  cases S.z ls
+  · simp [mem_sep]
+  · simp
+
+theorem adm_true (hz : S.z ls = true) (X : V) : S.adm ls X = X := by
+  unfold adm; rw [hz]; rfl
+
+theorem adm_sub (X : V) : S.adm ls X ⊆ˢ X := fun _ h => ((S.mem_adm ls).mp h).1
+
+theorem adm_mono {X Y : V} (h : X ⊆ˢ Y) : S.adm ls X ⊆ˢ S.adm ls Y := fun x hx => by
+  rw [mem_adm] at hx ⊢
+  exact ⟨h x hx.1, hx.2⟩
+
+/-- On a set none of whose members is the point or a member of it (a
+set of tagged values), the admissible part is the set. -/
+theorem adm_eq_self {X : V} (h : ∀ x, x ∈ˢ X → x ≠ pt ∧ ¬ x ∈ˢ pt) : S.adm ls X = X :=
+  ext fun x => by
+    rw [mem_adm]
+    exact ⟨fun hx => hx.1, fun hx => ⟨hx, fun _ => h x hx⟩⟩
+
+theorem adm_mem_univ {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) : S.adm ls X ∈ˢ (univ (S.u₀ ls) : V) := by
+  unfold adm
+  split
+  · exact hX
+  · exact sep_mem_univ hX
+
+/-- **The admissible part is a type** of the result universe. -/
+theorem adm_mem_typeU {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
+    S.adm ls X ∈ˢ (typeU (S.u₀ ls) : V) := by
+  cases hz : S.z ls with
+  | true =>
+    have h0 := (S.z_iff ls).mp hz
+    unfold adm
+    rw [hz, ite_eq_left rfl, h0, mem_typeU_zero]
+    rw [h0] at hX
+    exact hX
+  | false =>
+    have h0 : S.u₀ ls ≠ 0 := fun h => by rw [(S.z_iff ls).mpr h] at hz; cases hz
+    refine (mem_typeU_pos h0).mpr ⟨S.adm_mem_univ ls hX, Or.inr ⟨fun he => ?_, fun hp => ?_⟩⟩
+    · obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+      have := hz'
+      rw [← he, mem_adm] at this
+      exact (this.2 hz).2 hz'
+    · exact ((S.mem_adm ls).mp hp).2 hz |>.1 rfl
+
+/-- **The admissible part is a type**, wherever it is read: at a
+proposition the set is a truth value, above it the part is strict. -/
+theorem IsTy_adm {X : V} (hX : S.z ls = true → X ∈ˢ (univ 0 : V)) : IsTy (S.adm ls X) := by
+  cases hz : S.z ls with
+  | true => rw [S.adm_true ls hz]; exact Or.inl (hX hz)
+  | false =>
+    refine Or.inr ⟨fun he => ?_, fun hp => ?_⟩
+    · obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+      have := hz'
+      rw [← he, mem_adm] at this
+      exact (this.2 hz).2 hz'
+    · exact ((S.mem_adm ls).mp hp).2 hz |>.1 rfl
+
+/-- **Above a proposition the admissible part is strict** (task #342
+F1): its members are neither the point nor a member of it, so it is
+not the point (which has a member) and does not hold it. -/
+theorem strict_adm (hz : S.z ls = false) (X : V) : Strict (S.adm ls X) := by
+  refine ⟨fun he => ?_, fun hp => ((S.mem_adm ls).mp hp).2 hz |>.1 rfl⟩
+  obtain ⟨z, hz'⟩ := exists_mem_pt (V := V)
+  have := hz'
+  rw [← he, mem_adm] at this
+  exact (this.2 hz).2 hz'
+
+/-- A member of an admissible part that is a member of another set is
+a member of that set's admissible part. -/
+theorem mem_adm_of {X X' x : V} (hx : x ∈ˢ S.adm ls X) (hx' : x ∈ˢ X') : x ∈ˢ S.adm ls X' :=
+  (S.mem_adm ls).mpr ⟨hx', ((S.mem_adm ls).mp hx).2⟩
+
+/-- **The body of a reflexive field's function space**: the family's fibre —
+its admissible part under at least one binder.  The
+function space is read by values (`SetLib.piV`), and over an arbitrary family
+in the universe a fibre `{pt}` would put a Type-sorted field's function space
+in the propositional regime; the admissible part, a strict set above a
+proposition, keeps it a function space wherever its domain is
+inhabited, so the field's set grows with the family (`piCtx_retype`).
+On the block's own family the fibres are admissible already. -/
+def reflBody (tele : List Expr) (X : V) : V := if tele = [] then X else S.adm ls X
+
+@[simp] theorem reflBody_nil (X : V) : S.reflBody ls [] X = X := rfl
+
+theorem reflBody_sub (tele : List Expr) (X : V) : S.reflBody ls tele X ⊆ˢ X := by
+  unfold reflBody; split
+  · exact fun _ h => h
+  · exact S.adm_sub ls X
+
+theorem mem_reflBody_of {tele : List Expr} {X X' x : V} (hx : x ∈ˢ S.reflBody ls tele X)
+    (hx' : x ∈ˢ X') : x ∈ˢ S.reflBody ls tele X' := by
+  unfold reflBody at hx ⊢; split
+  · exact hx'
+  · rename_i h; rw [ite_eq_right h] at hx; exact S.mem_adm_of ls hx hx'
+
+theorem IsTy_reflBody {tele : List Expr} (ht : tele ≠ []) {X : V}
+    (hX : S.z ls = true → X ∈ˢ (univ 0 : V)) : IsTy (S.reflBody ls tele X) := by
+  unfold reflBody; rw [ite_eq_right ht]; exact S.IsTy_adm ls hX
+
+theorem reflBody_eq_self (tele : List Expr) {X : V} (h : S.adm ls X = X) :
+    S.reflBody ls tele X = X := by
+  unfold reflBody; split
+  · rfl
+  · exact h
+
+theorem reflBody_mem_univ (tele : List Expr) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
+    S.reflBody ls tele X ∈ˢ (univ (S.u₀ ls) : V) := by
+  unfold reflBody; split
+  · exact hX
+  · exact S.adm_mem_univ ls hX
 
 /-- The nested occurrence's index values at the parameters (its index expressions
 are closed under them). -/
-def memberIdx (N : NestInfo) (ps : List V) : List V := S.idxVals M ls (envP ps) N.idx
+noncomputable def memberIdx (N : NestInfo) (ps : List V) : List V := S.idxVals M ls (envP ps) N.idx
 
 /-- **The container's parameter values at a parameter set** (innermost
 first): the class's arguments with `X` at the nested position —
 the parameters the container's own family is read at. -/
-def psK (N : NestInfo) (ps : List V) (X : V) : List V := (S.classArgsV M ls N ps X).reverse
+noncomputable def psK (N : NestInfo) (ps : List V) (X : V) : List V := (S.classArgsV M ls N ps X).reverse
 
 /-- The number of the container's constructors (`0` for a plain
 block): the block's constructors are tagged after them, so that the

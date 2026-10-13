@@ -16,7 +16,6 @@ public import ConLeche.Model.Inductives.BlockModelRecords
 public import ConLeche.Model.Inductives.BlockHoleRead
 public import ConLeche.Model.Inductives.StoredShapes
 public import ConLeche.Model.Inductives.BlockAbsRead
-public import ConLeche.Model.Inductives.BlockHoleValid
 public import ConLeche.Model.Inductives.BlockCaps
 public import ConLeche.Model.Inductives.BlockStageCtors
 public import ConLeche.Model.Inductives.BlockStageTables
@@ -52,17 +51,16 @@ public import ConLeche.Model.Inductives.BlockRecGraph
 public import ConLeche.Model.Inductives.BlockDeclRun
 public import ConLeche.Model.Inductives.BlockRecAssembly
 public import ConLeche.Model.ClaimsIO
-public import ConLeche.Model.IOLicense
 public import ConLeche.Model.WellDenotedTransport
 public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Currency
-public import ConLeche.Model.Annot.EnvModel
-public import ConLeche.Model.Annot.Laws
-public import ConLeche.Model.Annot.BlockLfp
-public import ConLeche.Model.Annot.BlockLfpMono
-public import ConLeche.Model.Annot.LfpAcc
-public import ConLeche.Model.Annot.LfpFormer
-public import ConLeche.Model.Annot.BitSubstFvars
+public import ConLeche.Model.Env.EnvModel
+public import ConLeche.Model.Env.Laws
+public import ConLeche.Model.Env.BlockLfp
+public import ConLeche.Model.Env.BlockLfpMono
+public import ConLeche.Model.Env.LfpAcc
+public import ConLeche.Model.Env.LfpFormer
+public import ConLeche.Model.Reading.SubstFvars
 public import ConLeche.Model.Inductives.ContSubst
 public import ConLeche.Model.Inductives.ContSem
 public import ConLeche.Model.Inductives.ContInst
@@ -100,7 +98,7 @@ public import ConLeche.Model.Inductives.GenRecStage
 public import ConLeche.Model.Inductives.GenRecClasses
 public import ConLeche.Model.Inductives.GenRecPins
 public import ConLeche.Model.Inductives.GenRecParams
-public import ConLeche.Model.Annot.EnvModelM
+public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Model.BasisLfp
 public import ConLeche.Model.Rules.Recompose
 public import ConLeche.Model.Tiers
@@ -113,9 +111,7 @@ public import ConLeche.Model.NatWf
 public import ConLeche.Model.NatStep
 public import ConLeche.Model.DivModCert
 public import ConLeche.Model.Capstone
-public import ConLeche.Model.AxiomBits
 public import ConLeche.Model.BasisCons
-public import ConLeche.Model.BitAgree
 public import ConLeche.Model.BasisTypeOk
 public import ConLeche.Model.EqTower
 public import ConLeche.Model.BasisStep
@@ -141,22 +137,13 @@ public import ConLeche.Model.Harvest
 public import ConLeche.Model.Fold
 public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
-public import ConLeche.Model.Annot.Bit
-public import ConLeche.Model.Annot.BitLemmas
-public import ConLeche.Model.Annot.BitShift
-public import ConLeche.Model.Annot.BitInst
-public import ConLeche.Model.Annot.BitClosed
-public import ConLeche.Model.Annot.BitInstall
-public import ConLeche.Model.Annot.BitExtend
-public import ConLeche.Model.Annot.Valid
-public import ConLeche.Model.Annot.ValidSpine
-public import ConLeche.Model.Annot.BitLevels
-public import ConLeche.Model.Annot.LpDefF
+public import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Verify.Denote
+public import ConLeche.Model.Reading.Levels
+public import ConLeche.Model.Reading.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
-public import ConLeche.Model.Annot.BitRename
 public import ConLeche.Model.AxiomMem
 public import ConLeche.Model.AxiomReduce
-public import ConLeche.Model.ErasePwInv
 public import ConLeche.Model.RecRulesCons
 public import ConLeche.Model.ReduceOps
 
@@ -165,8 +152,9 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the `WellDenoted` bit carriers (`Annot/Bit*`,
-`Annot/Valid*`), `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
+The graded model: the stored-term reading's facts that read the
+environment invariant (`Reading/*`; the rest is `Verify/Denote/*`),
+`EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,
 SetTheory}/*`, which may not import it;

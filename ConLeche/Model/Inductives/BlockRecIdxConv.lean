@@ -3,7 +3,7 @@ module
 public import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Inductives.BlockRecTyShapeRun
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Verify.Denote.Inst
 
 public section
 
@@ -13,12 +13,12 @@ public section
 Stage (b'') (`targetIdxDoms`, `Kernel/Inductives/RecCheck.lean`)
 compares each recursor's index binder domains, binder by
 binder, with the eliminated member's index telescope opened at the
-recursor's own numbering (`openPisParamsIdx`).  This file is that
+recursor's own numbering.  This file is that
 check's model side: the CONVERSE of the recursor type's index clause
 (`blockRecIdxFit_run` is the forward one), which is what the kit
 regimes' `hconclTy` needs — a carrier element's index values fit the
-MEMBER's telescope, and the recursor's conclusion is licensed only at a
-fit of the RECURSOR's binder data.
+MEMBER's telescope, and the recursor's conclusion is typed only at a
+fit of the RECURSOR's domains.
 
 Two pieces (the pass's inversion is the family record's `idxDoms`,
 `Verify/Inductives/RecStage.lean`):
@@ -47,7 +47,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars)
 
 universe w
@@ -61,7 +61,7 @@ section Helpers
 omit [SetTheory V] in
 /-- A `liftDomsK` entry is the entry lifted at its own cutoff. -/
 theorem liftDomsK_getD (K : Nat) :
-    ∀ (k : Nat) (Ds : List AnnotTerm) (l : Nat), l < Ds.length →
+    ∀ (k : Nat) (Ds : List Term) (l : Nat), l < Ds.length →
       (liftDomsK K k Ds).getD l default = (Ds.getD l default).liftN K (k + l)
   | _, [], _, h => absurd h (Nat.not_lt_zero _)
   | k, D :: Ds, 0, _ => by simp [liftDomsK]

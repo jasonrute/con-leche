@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Env.EnvModelM
+public import ConLeche.Verify.Denote.ConsCross
 public import ConLeche.Semantics.IndBlockFacts
 import ConLeche.Model.Swap
 import ConLeche.Model.Inductives.StructFrameKit
@@ -44,7 +44,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   IndCaps RecRule BlockShape consBlockRecs consBlockRecsBare consBlockRecsR)
 
@@ -72,43 +72,18 @@ theorem mem_bareOf {rs : List RecDatum} {x : ConstantVal × Nat} (h : x ∈ bare
   obtain ⟨r, hr, rfl⟩ := List.mem_map.mp h
   exact ⟨r, hr, rfl⟩
 
-/-! ## `CapsOk` at a rule-less recursor cons
+/-! ## The `k` rule-less conses
 
-A block recursor is `isProjFnShape`-free (`checkConstantVal`'s own
-rejection), so it can complete no η family's projection slot, and it
-is not an `indInfo`, so it is no family's former either; the whole
-capability row therefore crosses with nothing supplied.  It is
-`capsOk_cons_native` at `T := c₀.name`, whose two branches are then
-both refuted by the head's KIND. -/
-theorem capsOk_cons_recFresh {env : Env} (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
-    {cvR : ConstantVal} {mI rP : Nat} {rules : List RecRule}
-    (hfresh : env.find? c₀.name = none)
-    (hkind : c₀ = .recInfo cvR mI rP rules)
-    (hpshape : c₀.name.isProjFnShape = false)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
-    (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A) :
-    CapsOk m₂ := by
-  refine capsOk_cons_native (T := c₀.name) mp hfresh
-    (ConsCrossEnv.ofNtc (fun tbl h => by rw [hkind] at h; exact nomatch h))
-    hpshape (Or.inr (fun cv caps h => by rw [hkind] at h; exact nomatch h))
-    ?_ m₂ hac ?_
-  · -- no stored family's capability constructor is this recursor
-    intro T' cvT' caps' hf hne hres hcape hfam hh
-    obtain ⟨-, ⟨cvC, hfC⟩, -⟩ := hfam
-    rw [hh, ConLeche.Env.find?_cons_self, hkind] at hfC
-    exact nomatch hfC
-  · -- the head is not an `indInfo`, so it is no family's former
-    intro cvT caps hf _
-    rw [ConLeche.Env.find?_cons_self, hkind] at hf
-    exact nomatch hf
-
-/-! ## The `k` rule-less conses -/
+A block recursor is not an `indInfo`, so it is no family's former, and
+not a `ctorInfo`, so it is no family's capability constructor; the
+whole capability row therefore crosses with nothing supplied
+(`capsOk_cons_fresh`, its head-kind premises refuted directly by the
+recursor shape). -/
 
 /-- **The `k` RULE-LESS recursors' cons, P tier.**  Each head is a
 `recInfo` with NO rules, so the whole `EnvModelM` bill is the ordinary
 one (`declStep_preserves_of_ind_rec_cons`) with `caps_ok` free
-(`capsOk_cons_recFresh`) and `rec_rules` free (`recRules_cons_fresh`
+(`capsOk_cons_fresh`) and `rec_rules` free (`recRules_cons_fresh`
 at an empty rule list); the chain is then an induction over the
 recursor list.
 
@@ -118,33 +93,29 @@ iterated `acvalWith`: every hypothesis is then a statement about
 index.  `hagree` is what ties it to the prefix's valuation off the
 `k` names. -/
 theorem envModelM_consBlockRecsBare {q : BlockShape}
-    {acv : Name → (Name → Nat) → AnnotTerm} :
+    {acv : Name → (Name → Nat) → Term} :
     ∀ {m : Nat} {ls : List (ConstantVal × Nat)} {env : Env} (mp : EnvModelM V μ env),
       (ls.map (·.1.name)).Nodup →
       (∀ r ∈ ls, env.find? r.1.name = none) →
       (∀ r ∈ ls, ConLeche.reservedBasisNames.contains r.1.name = false) →
-      (∀ r ∈ ls, r.1.name.isProjFnShape = false) →
       (∀ r ∈ ls,
         r.1.type.hasFvar = false ∧
         r.1.type.allLevelParamsDefined r.1.levelParams = true ∧
         r.1.type.constsResolve env = true ∧
         r.1.type.looseBVarsBounded 0 = true) →
       (∀ n : Name, (∀ r ∈ ls, n ≠ r.1.name) → acv n = mp.base2.acval n) →
-      (∀ r ∈ ls, ∀ ψ : Name → Nat, Term.Closed ((acv r.1.name ψ).erase)) →
-      (∀ r ∈ ls, ∀ (ψ : Name → Nat) (k : Nat),
-        (acv r.1.name ψ).liftN 1 k = acv r.1.name ψ) →
+      (∀ r ∈ ls, ∀ ψ : Name → Nat, Term.Closed (acv r.1.name ψ)) →
       (∀ r ∈ ls, ∀ ψ₁ ψ₂ : Name → Nat,
         (∀ p ∈ r.1.levelParams, ψ₁ p = ψ₂ p) → acv r.1.name ψ₁ = acv r.1.name ψ₂) →
       (∀ r ∈ ls, ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (acv r.1.name ψ)) →
-      (∀ r ∈ ls, ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (acv r.1.name ψ)) →
-      (∀ r ∈ ls, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
-        denoteMeta mp.base2.acval env ψ 0 r.1.type = some ta ∧
-        (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+      (∀ r ∈ ls, ∀ ψ : Name → Nat, ∃ ta : Term,
+        denote mp.base2.acval env ψ 0 r.1.type = some ta ∧
+        (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
         (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta)) →
       ∃ mp' : EnvModelM V μ (consBlockRecsBare q m ls env), mp'.base2.acval = acv
-  | _, [], env, mp, _, _, _, _, _, hag, _, _, _, _, _, _ =>
+  | _, [], env, mp, _, _, _, _, hag, _, _, _, _ =>
     ⟨mp, by funext n; exact (hag n (fun _ h => nomatch h)).symm⟩
-  | m, r0 :: rest, env, mp, hnd, hfr, hnres, hpsh, hty, hag, hcl, hlift, hpar, hok, hval, hrd => by
+  | m, r0 :: rest, env, mp, hnd, hfr, hnres, hty, hag, hcl, hpar, hok, hrd => by
     -- the head
     have hmem0 : r0 ∈ r0 :: rest := List.mem_cons_self
     have hfresh : env.find? r0.1.name = none := hfr r0 hmem0
@@ -156,15 +127,15 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
     have hcross : ∀ e : Expr,
         ConsCrossAt (.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) []) e :=
       fun _ => ConsCrossAt.ofNtc (fun _ h => nomatch h)
-    have hreadUp : ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
-        denoteMeta (acvalWith mp.base2.acval r0.1.name (acv r0.1.name))
+    have hreadUp : ∀ ψ : Name → Nat, ∃ ta : Term,
+        denote (acvalWith mp.base2.acval r0.1.name (acv r0.1.name))
             ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts⟩ ψ 0
             r0.1.type = some ta ∧
-          (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+          (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
           (∀ ρ : Nat → V, interp V ρ (acv r0.1.name ψ) ∈ˢ interp V ρ ta) := by
       intro ψ
       obtain ⟨ta, hta, hokta, hmemta⟩ := hrd r0 hmem0 ψ
-      exact ⟨ta, denoteMeta_cons_mono hfresh (hcross _) ψ 0 hcb hta, hokta, hmemta⟩
+      exact ⟨ta, denote_cons_mono hfresh (hcross _) ψ 0 hcb hta, hokta, hmemta⟩
     -- the cons
     obtain ⟨mp₁, hac₁⟩ :=
       declStep_preserves_of_ind_rec_cons (A := acv r0.1.name)
@@ -184,8 +155,8 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
             injection heq with _ _ _ e4
             subst e4
             exact nomatch hr))
-        (fun ψ k => hlift r0 hmem0 ψ k) (fun ψ₁ ψ₂ h => hpar r0 hmem0 ψ₁ ψ₂ h)
-        (fun ψ ρ => hok r0 hmem0 ψ ρ) (fun ψ ρ => hval r0 hmem0 ψ ρ)
+        (fun ψ₁ ψ₂ h => hpar r0 hmem0 ψ₁ ψ₂ h)
+        (fun ψ ρ => hok r0 hmem0 ψ ρ)
         (fun ψ => (hreadUp ψ).imp fun _ h => h.1)
         (fun ψ ta hta ρ => by
           obtain ⟨ta', hta', hokta, -⟩ := hreadUp ψ
@@ -196,8 +167,9 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
           obtain rfl := Option.some.inj (hta'.symm.trans hta)
           exact hmemta ρ)
         (fun m₂ hac =>
-          capsOk_cons_recFresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
-            mp hfresh rfl (hpsh r0 hmem0) m₂ hac)
+          capsOk_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
+            mp mp.caps_ok hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))
+            (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h) m₂ hac)
         (fun m₂ hac φ =>
           recRules_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
             mp hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))
@@ -206,13 +178,12 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
     show ∃ mp' : EnvModelM V μ (consBlockRecsBare q (m + 1) rest
         ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts⟩),
       mp'.base2.acval = acv
-    refine envModelM_consBlockRecsBare mp₁ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    refine envModelM_consBlockRecsBare mp₁ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
     · exact hnd.2
     · intro r hr
       rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnrr r hr hh.symm)]
       exact hfr r (List.mem_cons_of_mem _ hr)
     · exact fun r hr => hnres r (List.mem_cons_of_mem _ hr)
-    · exact fun r hr => hpsh r (List.mem_cons_of_mem _ hr)
     · intro r hr
       obtain ⟨g1, g2, g3, g4⟩ := hty r (List.mem_cons_of_mem _ hr)
       exact ⟨g1, g2, Expr.constsResolve_mono g3, g4⟩
@@ -228,15 +199,13 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
           · exact hh
           · exact hn r hr')
     · exact fun r hr => hcl r (List.mem_cons_of_mem _ hr)
-    · exact fun r hr => hlift r (List.mem_cons_of_mem _ hr)
     · exact fun r hr => hpar r (List.mem_cons_of_mem _ hr)
     · exact fun r hr => hok r (List.mem_cons_of_mem _ hr)
-    · exact fun r hr => hval r (List.mem_cons_of_mem _ hr)
     · intro r hr ψ
       obtain ⟨ta, hta, hokta, hmemta⟩ := hrd r (List.mem_cons_of_mem _ hr) ψ
       refine ⟨ta, ?_, hokta, hmemta⟩
       rw [hac₁]
-      exact denoteMeta_cons_mono hfresh (hcross _) ψ 0
+      exact denote_cons_mono hfresh (hcross _) ψ 0
         (constsBound_of_constsResolve _ (hty r (List.mem_cons_of_mem _ hr)).2.2.1) hta
 
 /-! ## The rules, attached in one step
@@ -264,7 +233,7 @@ theorem swapShList_consBlockRecsR {R : Nat → RecDatum → List RecRule}
 off the head facts a `RecCtorsStored` needs and nothing else (the `EnvWF` arm is the one
 that consumes the rules' own syntax, and at the block it is
 `envWF_consBlockRecs`). -/
-theorem recSwapFacts3 {envSelf env₃ : Env} {cval : TConstVal}
+theorem recSwapFacts3 {envSelf env₃ : Env} {cval : (Name → (Name → Nat) → Term)}
     (hctorsS : ConLeche.RecCtorsStored envSelf)
     (hbpS : BasisPinnedTT envSelf cval) (hprojS : ProjOkT envSelf)
     (hswR : ConLeche.SwapShList envSelf.consts env₃.consts)
@@ -276,7 +245,7 @@ theorem recSwapFacts3 {envSelf env₃ : Env} {cval : TConstVal}
         (∃ cvj cnP cnF,
           envSelf.find? (RecRule.ctor r) = some (.ctorInfo cvj cnP cnF)) ∧
         (r.k = true → ConLeche.recRuleKOf envSelf.find? r.ctor = true) ∧
-        (r.eta = true → ConLeche.recRuleEtaOf envSelf.find? n r.ctor = true)) :
+        (r.eta = true → ConLeche.recRuleEtaOf envSelf.find? r.ctor = true)) :
     ConLeche.RecCtorsStored env₃ ∧ BasisPinnedTT env₃ cval ∧ ProjOkT env₃ := by
   have hcg : ConLeche.SwapCongr envSelf env₃ := ConLeche.SwapShList.congr hswR
   have hcorr := ConLeche.swapSh_find?_corr hswR
@@ -376,7 +345,7 @@ theorem findProj?_consBlockRecsR {R : Nat → RecDatum → List RecRule} {q : Bl
     exact nomatch hsh)]
 
 /-- The RULE-LESS cons stores no projection table either — the bare
-environment is where the stage annotates a rule's right-hand side, so
+environment is where the stage types a rule's right-hand side, so
 its empty slots are `envC`'s. -/
 theorem findProj?_consBlockRecsBare {q : BlockShape} :
     ∀ {m : Nat} {ls : List (ConstantVal × Nat)} {env : Env},
@@ -392,8 +361,8 @@ theorem findProj?_consBlockRecsBare {q : BlockShape} :
 /-- **`NoProjEnv` across the recursors' cons.**  A `.proj T i` node can
 enter only through a recursor's stored TYPE or one of its rules'
 right-hand sides; both are premises, and both come from
-`annotateCore_noProjAt` at the environment the stage annotates in
-(`Verify/ProjSlots.lean` — the slot `(T, i)` is empty there because the
+`inferTypeCore_noProjAt` at the environment the stage infers in
+(`Verify/InferProjSlots.lean` — the slot `(T, i)` is empty there because the
 members' projection tables are consed AFTER the recursors). -/
 theorem noProjEnv_consBlockRecsR {R : Nat → RecDatum → List RecRule}
     {q : BlockShape} {T : Name} {i : Nat} :
@@ -486,7 +455,7 @@ theorem recCtorsHead_consBlockRecsR {R : Nat → RecDatum → List RecRule} {q :
         (r.k = true →
           ConLeche.recRuleKOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? n r.ctor
+          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor
             = true) := by
   have hkeepB := find?_consBlockRecsBare_keep (q := q) hfr
   have hkeepB' : ∀ (n : Name) (ci : ConstantInfo),
@@ -524,7 +493,7 @@ level-local and graded, inhabiting the types' readings. -/
 section Staged
 
 variable {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
-  {envC : Env} {acv : Name → (Name → Nat) → AnnotTerm} (mpC : EnvModelM V μ envC)
+  {envC : Env} {acv : Name → (Name → Nat) → Term} (mpC : EnvModelM V μ envC)
   (hnd : (rs.map (·.1.name)).Nodup)
   (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
   (hnres : ∀ r ∈ rs, ConLeche.reservedBasisNames.contains r.1.name = false)
@@ -535,20 +504,18 @@ variable {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List Rec
     r.1.type.constsResolve envC = true ∧
     r.1.type.looseBVarsBounded 0 = true)
   (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
-  (hcl : ∀ r ∈ rs, ∀ ψ : Name → Nat, Term.Closed ((acv r.1.name ψ).erase))
-  (hlift : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (k : Nat),
-    (acv r.1.name ψ).liftN 1 k = acv r.1.name ψ)
+  (hcl : ∀ r ∈ rs, ∀ ψ : Name → Nat, Term.Closed (acv r.1.name ψ))
   (hpar : ∀ r ∈ rs, ∀ ψ₁ ψ₂ : Name → Nat,
     (∀ p ∈ r.1.levelParams, ψ₁ p = ψ₂ p) → acv r.1.name ψ₁ = acv r.1.name ψ₂)
   (hok : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (acv r.1.name ψ))
-  (hval : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ρ : Nat → V), AnnotValid V ρ (acv r.1.name ψ))
-  (hrd : ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
-    denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
-    (∀ ρ : Nat → V, WellDenotedV V ρ ta) ∧
+  (hrd : ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : Term,
+    denote mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
+    (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
     (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta))
 
-include mpC hnd hfr hnres hpsh hty hag hcl hlift hpar hok hval hrd
+include mpC hnd hfr hnres hpsh hty hag hcl hpar hok hrd
 
+omit hpsh in
 /-- **The `k` recursors' cons with their rules, P tier.**  The two
 phases composed: the rule-less chain, then the rule-list swap.  The
 `rec_rules` row (`hrecP`) is the ι content the caller supplies; every
@@ -566,7 +533,7 @@ theorem envModelM_consBlockRecsR
         (r.k = true →
           ConLeche.recRuleKOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true) ∧
         (r.eta = true →
-          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? n r.ctor = true))
+          ConLeche.recRuleEtaOf (consBlockRecsBare q 0 (bareOf rs) envC).find? r.ctor = true))
     (hrecP : ∀ m₃ : EnvModel V (consBlockRecsR R q 0 rs envC),
       m₃.acval = acv → ∀ φ : Name → Nat, RecRules m₃ φ) :
     ∃ mp' : EnvModelM V μ (consBlockRecsR R q 0 rs envC),
@@ -578,14 +545,11 @@ theorem envModelM_consBlockRecsR
       (by rw [bareOf_map_name]; exact hnd)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hfr r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hnres r hr)
-      (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hpsh r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hty r hr)
       (fun n hn => hag n (fun r hr => hn (r.1, r.2.2.1) (List.mem_map_of_mem hr)))
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hcl r hr)
-      (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hlift r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hpar r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hok r hr)
-      (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hval r hr)
       (fun x hx => by obtain ⟨r, hr, he⟩ := hmemB x hx; rw [he]; exact hrd r hr)
   -- phase 2: the rules, attached by the swap
   have hswR : ConLeche.SwapShList (consBlockRecsBare q 0 (bareOf rs) envC).consts
@@ -629,12 +593,12 @@ the recursor stage's own NAME check
 `String`-literal guard is monotone but not congruent — nothing else
 would forbid a recursor from being named `List.cons` at a block that
 declares `List` — and conjunct 3's EQUATION (as opposed to its
-monotone half, `denoteMeta_consBlockRecsR_mono`, which needs nothing)
+monotone half, `denote_consBlockRecsR_mono`, which needs nothing)
 is then refutable.  With it both guards are untouched
 (`ConLeche.natLitSupported_consBlockRecsR` /
 `strLitSupported_consBlockRecsR`).
 `hnoTy`/`hnoRhs` are the `.proj`-freedom of the stage's two stored
-pieces; they are `annotateCore_noProjAt` at the bare-`k` environment,
+pieces; they are `inferTypeCore_noProjAt` at the bare-`k` environment,
 whose `findProj?` is `envC`'s (`findProj?_consBlockRecsR`). -/
 theorem blockRecStaged_of
     (hrhs : ∀ r ∈ rs, ∀ rhs ∈ r.2.1,
@@ -657,8 +621,8 @@ theorem blockRecStaged_of
           pin.constsResolve envC = true ∧
           pin.looseBVarsBounded (q.rulePrefixAt j) = true ∧
           ∀ (T : Name) (i : Nat), envC.findProj? T i = none → Expr.NoProjAt T i pin) ∧
-        ∃ pre dom body bm D,
-          r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+        ∃ pre dom body D,
+          r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
           dom.getAppFn = .const D lvls ∧
           dom.getAppArgs =
             pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++
@@ -677,8 +641,8 @@ theorem blockRecStaged_of
       (∀ (n : Name) (c : ConstantInfo), envC.find? n = some c →
         (consBlockRecsR R q 0 rs envC).find? n = some c) ∧
       (∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound envC e →
-        denoteMeta mp'.base2.acval (consBlockRecsR R q 0 rs envC) ψ d e
-          = denoteMeta mpC.base2.acval envC ψ d e) ∧
+        denote mp'.base2.acval (consBlockRecsR R q 0 rs envC) ψ d e
+          = denote mpC.base2.acval envC ψ d e) ∧
       (∀ (T : Name) (i : Nat), envC.findProj? T i = none →
         NoProjEnv envC T i →
         NoProjEnv (consBlockRecsR R q 0 rs envC) T i) := by
@@ -688,27 +652,27 @@ theorem blockRecStaged_of
     rw [hh, hfr r hr] at hn
     exact nomatch hn
   obtain ⟨mp', hac'⟩ :=
-    envModelM_consBlockRecsR mpC hnd hfr hnres hpsh hty hag hcl hlift hpar hok hval hrd
+    envModelM_consBlockRecsR mpC hnd hfr hnres hty hag hcl hpar hok hrd
       (ConLeche.envWF_consBlockRecsR mpC.base2.wf
         (fun r hr => ⟨(hty r hr).1, (hty r hr).2.1, (hty r hr).2.2.1, (hty r hr).2.2.2,
           fun rhs hrhs' => hrhs r hr rhs hrhs'⟩)
         (fun j r hr rl hrl => by
           obtain ⟨i, cA, rhs, -, hrhs', rfl⟩ := hshape j r hr rl hrl
           refine ⟨List.mem_of_getElem? hrhs', fun lvls pins hf => ?_⟩
-          obtain ⟨n1, n2, n3, n4⟩ := hnest j r hr lvls pins hf
+          obtain ⟨n1, n2, n3, pre, dom, body, D, e1, e2, e3⟩ := hnest j r hr lvls pins hf
           exact ⟨n1, n2, fun pin hpin =>
             ⟨(n3 pin hpin).1, (n3 pin hpin).2.1, (n3 pin hpin).2.2.1,
-              (n3 pin hpin).2.2.2.1⟩, n4⟩))
+              (n3 pin hpin).2.2.2.1⟩, pre, dom, body, D, e1, e2, e3, rfl⟩))
       (recCtorsHead_consBlockRecsR (R := R) hshape hfr hctorsIn) hrecP
   refine ⟨mp', fun n hn => by rw [hac']; exact hag n (hne n hn), hkeep, ?_, ?_⟩
   · -- the readings of the constructors' environment survive, verbatim
     intro ψ d e hcb
     rw [hac',
-      ← denoteMeta_envExtend (acval := acv) (φ := ψ) (fun {n} {ci} h => hkeep n ci h)
+      ← denote_envExtend (acval := acv) (φ := ψ) (fun {n} {ci} h => hkeep n ci h)
         ⟨(ConLeche.natLitSupported_consBlockRecsR hresRec).symm,
           (ConLeche.strLitSupported_consBlockRecsR hresRec).symm⟩
         (fun sn i h => by rw [findProj?_consBlockRecsR hpsh]; exact h) d e hcb]
-    exact denoteMeta_acval_congr
+    exact denote_acval_congr
       (fun n hn => hag n (hne n hn)) d e
   · -- the untouched slots
     intro T i hslot hnp
@@ -766,28 +730,28 @@ theorem strLitSupported_mono_of_keep {envA envB : Env}
     guardOk_mono rfl hkeep h.2⟩
 
 /-- **Conjunct 3's monotone half, unconditionally** — the form the tree
-uses everywhere else (`denoteMeta_cons_fresh_mono`): a SUCCESSFUL
+uses everywhere else (`denote_cons_fresh_mono`): a SUCCESSFUL
 reading at the constructors' environment is reproduced verbatim at the
 recursors'.  The equation `blockRecStaged_of` states needs the NAME
 check (`hresRec`); this does not. -/
-theorem denoteMeta_consBlockRecsR_mono {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
-    {envC : Env} {acv acvC : Name → (Name → Nat) → AnnotTerm}
+theorem denote_consBlockRecsR_mono {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
+    {envC : Env} {acv acvC : Name → (Name → Nat) → Term}
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
     (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
     (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = acvC n)
-    (ψ : Name → Nat) (d : Nat) (e : Expr) (hcb : ConstsBound envC e) {ea : AnnotTerm}
-    (h : denoteMeta acvC envC ψ d e = some ea) :
-    denoteMeta acv (consBlockRecsR R q 0 rs envC) ψ d e = some ea := by
+    (ψ : Name → Nat) (d : Nat) (e : Expr) (hcb : ConstsBound envC e) {ea : Term}
+    (h : denote acvC envC ψ d e = some ea) :
+    denote acv (consBlockRecsR R q 0 rs envC) ψ d e = some ea := by
   have hkeep := find?_consBlockRecsR_keep (R := R) (q := q) hfr
   have hne : ∀ n : Name, (envC.find? n).isSome = true → ∀ r ∈ rs, n ≠ r.1.name := by
     intro n hn r hr hh
     rw [hh, hfr r hr] at hn
     exact nomatch hn
-  refine denoteMeta_envExtend_mono (acval := acv) (φ := ψ)
+  refine denote_envExtend_mono (acval := acv) (φ := ψ)
     (fun {n} {ci} hf => hkeep n ci hf)
     ⟨natLitSupported_mono_of_keep hkeep, strLitSupported_mono_of_keep hkeep⟩
     (fun sn i hs => by rw [findProj?_consBlockRecsR hpsh]; exact hs) d e hcb ?_
-  rw [denoteMeta_acval_congr (φ := ψ) (fun n hn => hag n (hne n hn)) d e]
+  rw [denote_acval_congr (φ := ψ) (fun n hn => hag n (hne n hn)) d e]
   exact h
 
 end ConLeche.Model

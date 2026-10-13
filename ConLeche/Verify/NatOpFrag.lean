@@ -51,7 +51,7 @@ theorem shallowE_of_natFragOk {env : Env} {c : Name} :
     simp only [natFragOk, Bool.and_eq_true] at h
     simp only [shallowE, Bool.and_eq_true]
     exact ⟨shallowE_of_natFragOk h.1, shallowE_of_natFragOk h.2⟩
-  | .bvar _, h | .lam _ _ _, h | .forallE _ _ _, h
+  | .bvar _, h | .lam _ _, h | .forallE _ _, h
   | .letE _ _ _, h | .proj _ _ _, h | .lit _, h => by
     simp [natFragOk] at h
 
@@ -263,7 +263,18 @@ theorem natOpGuard_stored {env : Env} {c : Name}
   · intro hc
     rw [ite_eq_left hc] at hbool
     simp only [Bool.and_eq_true] at hbool
-    exact ⟨hbool.1, hbool.2⟩
+    obtain ⟨hT, hF⟩ := hbool
+    constructor
+    · unfold storedNoLevels
+      revert hT; split
+      · next ci heq =>
+        intro h; simp only [Bool.and_eq_true] at h; rw [heq]; exact h.1
+      · intro h; exact nomatch h
+    · unfold storedNoLevels
+      revert hF; split
+      · next ci heq =>
+        intro h; simp only [Bool.and_eq_true] at h; rw [heq]; exact h.1
+      · intro h; exact nomatch h
 
 
 end ConLeche.Verify

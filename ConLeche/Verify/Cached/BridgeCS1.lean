@@ -34,7 +34,7 @@ variable {env : Env} {s₀ : CState}
 fueled instantiation; the returned constant's type is well-scoped. -/
 theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun v w => v = w ∧ Expr.WScoped 0 v.type)
+    SimC mode env s₀ (fun _ _ => Expr.WScoped 0 cv.type)
       (checkConstantVal (sharedOpsC mode (mkFEnv env)) env cv)
       (checkConstantVal (fueledOpsM mode) env cv) := by
   unfold checkConstantVal
@@ -65,26 +65,24 @@ theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
   · simp only [ite_eq_left h6]
     exact SimC.throw_bind
   simp only [ite_eq_right h6]
-  refine SimC.bind (opE_annotate_sim hμ henv hs
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h6)))
-    (fun s₁ ty ty' hs₁ hP => ?_)
-  obtain ⟨rfl, hwty⟩ := hP
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams ty = true
+  have hwty : Expr.WScoped 0 cv.type :=
+    Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h6)
+  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams cv.type = true
   case neg =>
     simp only [ite_eq_right h7]
     exact SimC.throw_bind
   simp only [ite_eq_left h7]
-  by_cases h8 : Expr.constsResolve env ty = true
+  by_cases h8 : Expr.constsResolve env cv.type = true
   case neg =>
     simp only [ite_eq_right h8]
     exact SimC.throw_bind
   simp only [ite_eq_left h8]
-  refine SimC.bind (opE_infer_sim hμ henv hs₁ hwty)
+  refine SimC.bind (opE_infer_sim hμ henv hs hwty)
     (fun s₂ sty sty' hs₂ hP₂ => ?_)
   obtain ⟨rfl, hwsty⟩ := hP₂
   refine SimC.bind (opS_sim hμ henv hs₂ hwsty)
     (fun s₃ u u' hs₃ hP₃ => ?_)
-  exact SimC.pure hs₃ ⟨rfl, hwty⟩
+  exact SimC.pure hs₃ hwty
 
 /-- `checkReducePin` at the cached shared operations. -/
 theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env} {c : Name}
@@ -101,20 +99,15 @@ theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env
   by_cases h2 : reducePinGuard env c = true
   case neg => simp only [ite_eq_right h2]; exact SimC.throw
   simp only [ite_eq_left h2]
-  refine SimC.bind (opE_annotate_sim hμ henv hs
-      (Expr.WScoped.of_not_hasFvar hvf))
-    (fun s₁ valA valA' hs₁ hP => ?_)
-  obtain ⟨rfl, hwval⟩ := hP
+  have hwval : Expr.WScoped 0 value := Expr.WScoped.of_not_hasFvar hvf
   have h2' := h2
   unfold reducePinGuard at h2'
   simp only [Bool.and_eq_true] at h2'
   have hpinF : (reduceDeclPin c).hasFvar = false := by
     simpa using h2'.1.1.2
-  refine SimC.bind (opE_annotate_sim hμ henv hs₁
-      (Expr.WScoped.of_not_hasFvar hpinF))
-    (fun s₂ pinA pinA' hs₂ hP₂ => ?_)
-  obtain ⟨rfl, hwpin⟩ := hP₂
-  refine SimC.bind (opB_sim hμ henv hs₂ hwval hwpin)
+  have hwpin : Expr.WScoped 0 (reduceDeclPin c) :=
+    Expr.WScoped.of_not_hasFvar hpinF
+  refine SimC.bind (opB_sim hμ henv hs hwval hwpin)
     (fun s₃ b b' hs₃ hP₃ => ?_)
   obtain rfl : b = b' := hP₃
   cases b with
@@ -129,7 +122,7 @@ theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env
       refine ⟨Nat.zero_lt_one, ?_⟩
       unfold reduceElemTy
       split <;> simp only [Expr.WScoped]
-    have happW : Expr.WScoped 1 (Expr.app valA (reduceCertVar c)) := by
+    have happW : Expr.WScoped 1 (Expr.app value (reduceCertVar c)) := by
       simp only [Expr.WScoped]
       exact ⟨Expr.WScoped.mono (Nat.zero_le 1) hwval, hxW⟩
     refine SimC.bind (opB_sim hμ henv hs₃ happW hxW)
@@ -207,11 +200,7 @@ theorem checkDivModCertsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
     have happW : (divModCertApplied (Expr.substConstAll c annVal proof)
         (hyps.map (Expr.substConst0 c annVal))).wscopedB 4 = true :=
       divModCertApplied_wscopedB hpf hhypsS
-    refine SimC.bind (opE_annotate_sim hμ henv hs
-        (Expr.WScoped.of_wscopedB happW))
-      (fun s₁ appliedA appliedA' hs₁ hP => ?_)
-    obtain ⟨rfl, hwapp⟩ := hP
-    refine SimC.bind (opE_infer_sim hμ henv hs₁ hwapp)
+    refine SimC.bind (opE_infer_sim hμ henv hs (Expr.WScoped.of_wscopedB happW))
       (fun s₂ tp tp' hs₂ hP₂ => ?_)
     obtain ⟨rfl, hwtp⟩ := hP₂
     refine SimC.bind (opB_sim hμ henv hs₂ hwtp (Expr.WScoped.of_wscopedB heqS))
@@ -294,12 +283,8 @@ theorem checkDivModPinAtS_sim (hμ : mode.verifiedChecks = true)
   simp only [Bool.and_eq_true] at hping''
   have hpinF : (divModDeclPin ps c).hasFvar = false := by
     simpa using hping''.1.1.2
-  refine SimC.bind (opE_annotate_sim hμ henv hs
-      (Expr.WScoped.of_not_hasFvar hpinF))
-    (fun s₁ pinA pinA' hs₁ hP => ?_)
-  obtain ⟨rfl, hwpin⟩ := hP
-  refine SimC.bind (opB_sim hμ henv hs₁
-      (Expr.WScoped.of_not_hasFvar hvf) hwpin)
+  refine SimC.bind (opB_sim hμ henv hs
+      (Expr.WScoped.of_not_hasFvar hvf) (Expr.WScoped.of_not_hasFvar hpinF))
     (fun s₂ b b' hs₂ hP₂ => ?_)
   obtain rfl : b = b' := hP₂
   cases b with

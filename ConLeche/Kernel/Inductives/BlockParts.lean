@@ -132,8 +132,6 @@ namespace BlockShape
 def k (p : BlockShape) : Nat := p.members.length
 /-- The number of constructors of the whole block. -/
 def numCtors (p : BlockShape) : Nat := numCtorsOf p.members
-/-- The constructors of the members before `m`. -/
-def offs (p : BlockShape) (m : Nat) : Nat := numCtorsOf (p.members.take m)
 /-- The members' names, in block order (the positivity walk's `names`). -/
 def memberNames (p : BlockShape) : List Name := p.members.map (·.cvT.name)
 /-- The members' index counts, in block order. -/
@@ -264,7 +262,7 @@ auxiliary recursors are exactly that (their majors are the containers
 official's auxiliary block carries, not the block's own members). -/
 def recTargetOf (names : List Name) (mI : Nat) (ty : Expr) : Nat :=
   match ty.stripPis mI with
-  | some (_, .forallE dom _ _) =>
+  | some (_, .forallE dom _) =>
     (match dom.getAppFn with
      | .const n _ => names.findIdx? (· == n)
      | _ => none).getD names.length

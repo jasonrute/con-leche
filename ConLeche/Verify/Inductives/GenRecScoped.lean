@@ -29,7 +29,7 @@ hypothesis `hg`.  Field by field, each from the run's own binds:
 * `ds` — a class's parameters: a member's are the canonical parameters,
   an outside class's are its key's (the pre-pass's reading off the RAW
   stream recursor types, moved to the canonical parameters and kept below
-  them by `classKeyOf`, then annotated: `genRun_keys_scoped`) under
+  them by `classKeyOf`: `genRun_keys_scoped`) under
   `targetMajorOf`'s guard (no loose bound variable, free variables below
   `nP`);
 * `former` — a member's former is a (closed) stream former, an outside
@@ -216,7 +216,7 @@ theorem classReadSlots_order (nPc : Name → Nat) (np : Nat) :
     subst h
     intro j c C ihs hj
     exact nomatch hj
-  | n + 1, pre, .forallE dom body bm, rest, h => by
+  | n + 1, pre, .forallE dom body, rest, h => by
     have fin : ∀ (slot : ClassSlot) (rest' : List ClassSlot),
         (∀ c C ihs, slot = .minor c C ihs →
           classReadMinor np (ClassRead.motPosOf pre) (np + pre.length) dom = some slot) →
@@ -242,8 +242,7 @@ theorem classReadSlots_order (nPc : Name → Nat) (np : Nat) :
     split at h
     · cases hl : dom.piBinders.fst.getLast? with
       | none => simp [hl] at h
-      | some md =>
-        obtain ⟨mdom, mb⟩ := md
+      | some _md =>
         simp only [hl, Option.bind_eq_bind, Option.bind_some] at h
         split at h
         · simp only [Option.pure_def, Option.bind_some, Option.bind_eq_some_iff] at h
@@ -391,8 +390,8 @@ theorem genRun_params_scb
   exact ScB.fvar (by omega) hty
 
 /-- **The run's class keys are scoped** over the canonical parameters:
-each parameter moved to them, kept below them by the guard, then
-annotated (`classKeyOf`). -/
+each parameter moved to them, kept below them by the guard
+(`classKeyOf`). -/
 theorem genRun_keys_scoped
     (R : GenRecRun mode F (mkFEnv env₁) env₁ (mkFEnv envC) p nestedBit pos cvTas block ctorsAs out)
     (hT : ∀ cv ∈ cvTas, ScB 0 cv.type) :
@@ -407,23 +406,13 @@ theorem genRun_keys_scoped
   obtain ⟨key', hkey', hrun⟩ := mapM_ok_getElem? R.hkeys i _ (List.getElem?_eq_getElem hil)
   rw [hi] at hkey'
   obtain rfl := Option.some.inj hkey'
-  obtain ⟨-, -, hg, hann⟩ := classKeyOf_run hrun
-  obtain ⟨j, hj⟩ := List.getElem?_of_mem hx
-  have hlj := mapM_ok_length hann
-  have hjl : j < (classKeyCanon R.ctx.params R.rd.classes[i]).ds.length := by
-    rw [← hlj]; exact (List.getElem?_eq_some_iff.mp hj).1
-  obtain ⟨x', hx', hax⟩ := mapM_ok_getElem? hann j _ (List.getElem?_eq_getElem hjl)
-  rw [hj] at hx'
-  obtain rfl := Option.some.inj hx'
-  have hmem := List.getElem_mem hjl
-  have hyg := hg _ hmem
-  have hyw : WScoped p.nP (classKeyCanon R.ctx.params R.rd.classes[i]).ds[j] := by
-    generalize hy : (classKeyCanon R.ctx.params R.rd.classes[i]).ds[j] = y at hmem hyg
-    simp only [classKeyCanon, List.mem_map] at hmem
-    obtain ⟨y0, -, rfl⟩ := hmem
-    exact replaceFVars_WScoped_of_below (fun i r hr => (hpar r (List.mem_of_getElem? hr)).1)
-      (fun i hi => by simp [hlP, hi]) y0 (Expr.fvarB_le hyg.2)
-  exact annotateCore_WScoped _ _ hax hyw
+  obtain ⟨rfl, hg⟩ := classKeyOf_run hrun
+  have hyg := hg _ hx
+  generalize hy : x = y at hx hyg
+  simp only [classKeyCanon, List.mem_map] at hx
+  obtain ⟨y0, -, rfl⟩ := hx
+  exact replaceFVars_WScoped_of_below (fun i r hr => (hpar r (List.mem_of_getElem? hr)).1)
+    (fun i hi => by simp [hlP, hi]) y0 (Expr.fvarB_le hyg.2)
 
 /-- **Every class checked as a major**, scoped: its parameters scoped over
 the canonical parameters (an outside class's below them), its

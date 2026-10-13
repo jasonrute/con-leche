@@ -13,7 +13,7 @@ The recursor model at a nested block (`graphRecPre_core`,
 block, or a container at an instantiation (an outside major).  Charter
 item 5: "the model uses nothing from an inductive but its lfp clause" —
 so every class is presented by ONE recorded clause (`LfpClause`,
-`Model/Annot/BlockLfp.lean`) at a level assignment and a parameter
+`Model/Env/BlockLfp.lean`) at a level assignment and a parameter
 frame, and this module turns clauses into the set-level kit
 `NestKit` (`SetModel/NestRec.lean`) whose induction the recursor's
 classes read (`NestNodeInd.ind_recNodesOn`, `SetModel/NestRecCls.lean`).
@@ -31,9 +31,10 @@ classes read (`NestNodeInd.ind_recNodesOn`, `SetModel/NestRecCls.lean`).
 -/
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Name)
 
 universe w
@@ -53,7 +54,7 @@ parameter frames, its index sets pinned at `Is`. -/
   Fits := fun ρp X t c j fs => D.HFits ψ ρp X t c j fs
   inj := D.inj ψ
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {D : LfpDatum V} {ψ : Name → Nat}
+variable {acval : Name → (Name → Nat) → Term} {D : LfpDatum V} {ψ : Name → Nat}
   {Is : Nat → V} {ρp : Nat → V}
 
 /-- The class's carrier at a frame whose index sets are `Is` is the
@@ -64,11 +65,13 @@ theorem lfpSClause_carrier (hIs : D.idx ψ ρp = Is) :
 
 /-- **The kit's `ok`, from the clause**: at a frame satisfying the
 parameter telescope whose index sets are `Is`, the class is a clause —
-monotone (`LfpClause.mono`) with a closed tuple (`LfpClause.closed`) and its fibre the fitting
+monotone (`LfpClause.mono`), mapping the tuple space into itself
+(`LfpClause.maps`), with a closed tuple (`LfpClause.closed`) and its fibre the fitting
 constructors' injections (`fibre`). -/
 theorem lfpSClause_okAt (h : LfpClause acval D) (hsat : Sat V (D.params ψ).reverse ρp)
     (hIs : ∀ c, c < D.N → D.idx ψ ρp c = Is c) : (lfpSClause D ψ Is).OkAt ρp := by
   have hmono := h.mono hsat
+  have hmaps := h.maps ψ ρp hsat
   obtain ⟨L, hL⟩ := h.closed hsat
   have hsp : ∀ X, InTupleSpace (D.w ψ) D.N Is X ↔ InTupleSpace (D.w ψ) D.N (D.idx ψ ρp) X :=
     fun X => ⟨fun hX m hm => by rw [hIs m hm]; exact hX m hm,
@@ -77,7 +80,8 @@ theorem lfpSClause_okAt (h : LfpClause acval D) (hsat : Sat V (D.params ψ).reve
     fun X Y => ⟨fun hXY m hm => by rw [hIs m hm]; exact hXY m hm,
       fun hXY m hm => by rw [← hIs m hm]; exact hXY m hm⟩
   refine ⟨fun X Y hX hY hXY => (hle _ _).mpr (hmono X Y ((hsp X).mp hX) ((hsp Y).mp hY)
-      ((hle X Y).mp hXY)), ⟨L, (hsp L).mpr hL.1, (hle _ _).mpr hL.2⟩,
+      ((hle X Y).mp hXY)), fun X hX => (hsp _).mpr (hmaps X ((hsp X).mp hX)),
+    ⟨L, (hsp L).mpr hL.1, (hle _ _).mpr hL.2⟩,
     fun X hX c hc t ht x => ?_⟩
   have ht' : t ∈ˢ D.idx ψ ρp c := by rw [hIs c hc]; exact ht
   exact h.fibre ψ ρp hsat X ((hsp X).mp hX) c hc t ht' x

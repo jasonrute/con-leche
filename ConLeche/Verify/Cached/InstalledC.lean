@@ -20,9 +20,9 @@ its datum, and every record was checked against the prefix view
 `fe.restrictTo vis` from a fresh memo state (`GroupChecked`).  This
 module holds the model-free half of the walk over that run:
 
-* `annotConstantValC_run` / `annotValC_run` / `annotValueC_run` — phase
-  A's install simulates the pure install halves
-  (`installConstantVal`, `installValue`, `ConLeche/Kernel/CheckerSplit.lean`).
+* `installHeaderC_run` / `installValueGuardsC_run` / `installGuardsC_run` — phase
+  A's install is the pure install halves
+  (`installHeader`, `installValueGuards`, `ConLeche/Kernel/CheckerSplit.lean`).
 * `checkPending_run` — the check at the prefix view simulates the pure
   check half `checkValueGroup` at the truncated environment.  The view
   and `mkFEnv` of the truncated environment have the same `find?`
@@ -46,16 +46,16 @@ variable {pins : List NatOpPinSet}
 
 /-! ## The two-phase driver: phase A's install halves -/
 
-/-- Phase A's header install simulates the pure install half: from an
+/-- Phase A's header install is the pure install half: from an
 invariant state at `mkFEnv env`, a successful run returns the header
-with its annotated type, well scoped, and `installConstantVal` succeeds
-on it at some fuel. -/
-theorem annotConstantValC_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
-    {cv cvA : ConstantVal} {jty : Expr} {s₀ s' : CState} (hs : CSOK μ env s₀)
-    (h : annotConstantValC μ (mkFEnv env) cv s₀ = .ok ((cvA, jty), s')) :
-    CSOK μ env s' ∧ cvA = { cv with type := jty } ∧ Expr.WScoped 0 jty ∧
-    ∃ F, installConstantVal (fueledOps μ F) env cv = .ok cvA := by
-  unfold annotConstantValC at h
+as declared, its type well scoped, and `installHeader` succeeds on
+it. -/
+theorem installHeaderC_run {env : Env}
+    {cv : ConstantVal} {s₀ s' : CState} (hs : CSOK μ env s₀)
+    (h : installHeaderC (mkFEnv env) cv s₀ = .ok ((), s')) :
+    CSOK μ env s' ∧ Expr.WScoped 0 cv.type ∧
+    installHeader (m := CheckM) env cv = .ok () := by
+  unfold installHeaderC at h
   simp only [mkFEnv_find?] at h
   by_cases h1 : (env.find? cv.name).isSome = true
   · rw [ite_eq_left h1] at h; exact absurd h throwC_bind_ok
@@ -76,33 +76,28 @@ theorem annotConstantValC_run (hμ : μ.verifiedChecks = true) {env : Env} (henv
   by_cases h6 : Expr.hasFvar cv.type = true
   · rw [ite_eq_left h6] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_right h6] at h
-  obtain ⟨jA, s₁, hann, h⟩ := bindC_ok h
-  obtain ⟨hs₁, w, ⟨hjA, hwty⟩, F, hF⟩ :=
-    (ssimC hμ env henv checkFuel).annotate hs rfl
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h6)) jA s₁ hann
-  obtain rfl := hjA
+  try dsimp only at h
   rw [Expr.allLevelParamsDefinedC_spec] at h
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams jA = true
+  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams cv.type = true
   case neg => rw [ite_eq_right h7] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h7] at h
   rw [constsResolveFC_spec, constsResolveF_eq] at h
-  by_cases h8 : Expr.constsResolve env jA = true
-  case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_bind_ok
+  by_cases h8 : Expr.constsResolve env cv.type = true
+  case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_ok
   rw [ite_eq_left h8] at h
-  obtain ⟨hv, rfl⟩ := pureC_ok h
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hv
-  refine ⟨hs₁, rfl, hwty, F, ?_⟩
-  exact installConstantVal_of_facts (Option.not_isSome_iff_eq_none.mp h1)
-    (by simpa using h2) (by simpa using h3) h4 h5 (by simpa using h6) hF h7 h8
+  obtain ⟨-, rfl⟩ := pureC_ok h
+  refine ⟨hs, Expr.WScoped.of_not_hasFvar (by simpa using h6), ?_⟩
+  exact installHeader_of_facts (Option.not_isSome_iff_eq_none.mp h1)
+    (by simpa using h2) (by simpa using h3) h4 h5 (by simpa using h6) h7 h8
 
-/-- Phase A's value install simulates the pure install half. -/
-theorem annotValC_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
-    {cvA : ConstantVal} {value jv : Expr} {s₀ s' : CState}
+/-- Phase A's value install is the pure install half. -/
+theorem installValueGuardsC_run {env : Env}
+    {cv : ConstantVal} {value : Expr} {s₀ s' : CState}
     (hs : CSOK μ env s₀)
-    (h : annotValC μ (mkFEnv env) cvA value s₀ = .ok (jv, s')) :
-    CSOK μ env s' ∧ Expr.WScoped 0 jv ∧
-    ∃ F, installValue (fueledOps μ F) env cvA value = .ok jv := by
-  unfold annotValC at h
+    (h : installValueGuardsC (mkFEnv env) cv value s₀ = .ok ((), s')) :
+    CSOK μ env s' ∧ Expr.WScoped 0 value ∧
+    installValueGuards (m := CheckM) env cv value = .ok () := by
+  unfold installValueGuardsC at h
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
   case neg => rw [ite_eq_right h1] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h1] at h
@@ -110,35 +105,32 @@ theorem annotValC_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF
   by_cases h2 : Expr.hasFvar value = true
   · rw [ite_eq_left h2] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_right h2] at h
-  obtain ⟨jA, s₁, hann, h⟩ := bindC_ok h
-  obtain ⟨hs₁, w, ⟨hjA, hwv⟩, F, hF⟩ :=
-    (ssimC hμ env henv checkFuel).annotate hs rfl
-      (Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)) jA s₁ hann
-  obtain rfl := hjA
+  try dsimp only at h
   rw [Expr.allLevelParamsDefinedC_spec] at h
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams jA = true
+  by_cases h3 : Expr.allLevelParamsDefined cv.levelParams value = true
   case neg => rw [ite_eq_right h3] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h3] at h
   rw [constsResolveFC_spec, constsResolveF_eq] at h
-  by_cases h4 : Expr.constsResolve env jA = true
-  case neg => rw [ite_eq_right h4] at h; exact absurd h throwC_bind_ok
+  by_cases h4 : Expr.constsResolve env value = true
+  case neg => rw [ite_eq_right h4] at h; exact absurd h throwC_ok
   rw [ite_eq_left h4] at h
-  obtain ⟨rfl, rfl⟩ := pureC_ok h
-  exact ⟨hs₁, hwv, F, installValue_of_facts h1 (by simpa using h2) hF h3 h4⟩
+  obtain ⟨-, rfl⟩ := pureC_ok h
+  exact ⟨hs, Expr.WScoped.of_not_hasFvar (by simpa using h2),
+    installValueGuards_of_facts h1 (by simpa using h2) h3 h4⟩
 
 /-! ## The two-phase driver: phase B's check at the prefix view -/
 
 /-- Phase B's check at the prefix view simulates the pure check half at
 the environment the view names: the view and `mkFEnv env` have the same
 `find?`, so by `coreKnotI_congr` the check runs the core the
-simulation is stated about.  A theorem's value arrives RAW and is
-annotated here (`annotValC` at the view, `annotValC_congr`), so the
-well-scopedness premise on the value is asked only of the other two
+simulation is stated about.  A theorem's value arrives unchecked and
+its guards run here (`installValueGuardsC` at the view, `installValueGuardsC_congr`), so
+the well-scopedness premise on the value is asked only of the other two
 kinds. -/
 theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
     {feFinal : FEnv} {pc : PendingCheck}
     (hfind : ∀ n, (feFinal.restrictTo pc.vis).find? n = env.find? n)
-    (hwty : Expr.WScoped 0 pc.vg.cvA.type)
+    (hwty : Expr.WScoped 0 pc.vg.cv.type)
     (hwv : pc.vg.kind ≠ .thm → Expr.WScoped 0 pc.vg.jv)
     {s₀ s' : CState} (hres : CSOKF s₀)
     (h : checkPending μ feFinal pc s₀ = .ok ((), s')) :
@@ -146,7 +138,7 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
   have hfe : (feFinal.restrictTo pc.vis).find? = (mkFEnv env).find? :=
     funext fun n => (hfind n).trans (mkFEnv_find? env n).symm
   unfold checkPending at h
-  simp only [coreKnotI_congr hfe, opSIxC_congr hfe, annotValC_congr hfe] at h
+  simp only [coreKnotI_congr hfe, opSIxC_congr hfe, installValueGuardsC_congr hfe] at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
@@ -161,12 +153,12 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
   -- install)
   have tail : ∀ {s₄ : CState} (jv : Expr), CSOK μ env s₄ → Expr.WScoped 0 jv →
       ((coreKnotI μ (mkFEnv env) checkFuel).infer 0 jv >>= fun jvt =>
-        (coreKnotI μ (mkFEnv env) checkFuel).defeq 0 jvt pc.vg.cvA.type >>= fun b =>
+        (coreKnotI μ (mkFEnv env) checkFuel).defeq 0 jvt pc.vg.cv.type >>= fun b =>
           if b = true then pure () else
-            throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cvA.name}")) s₄
+            throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cv.name}")) s₄
         = .ok ((), s') →
       CSOKF s' ∧ ∃ F jvt, inferTypeCore μ env F 0 jv = .ok jvt ∧
-        isDefEqCore μ env F 0 jvt pc.vg.cvA.type = .ok true := by
+        isDefEqCore μ env F 0 jvt pc.vg.cv.type = .ok true := by
     intro s₄ jv hs₄ hwjv h
     obtain ⟨jvt, s₅, hvt, h⟩ := bindC_ok h
     obtain ⟨hs₅, wvt, ⟨rfl, hwvt⟩, F₃, hF₃⟩ :=
@@ -200,51 +192,47 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
       exact absurd h throwC_bind_ok
     | true =>
     simp only [↓reduceIte] at h
-    obtain ⟨jv, s₅, hval, h⟩ := bindC_ok h
-    obtain ⟨hs₅, hwjv, F₃, hV⟩ := annotValC_run hμ henv hs₄ hval
-    obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail jv hs₅ hwjv h
-    refine ⟨hres', max (max (max F₁ F₂) F₃) F₅, ?_⟩
-    exact checkValueGroup_of_facts (jv := jv)
+    obtain ⟨_jv, s₅, hval, h⟩ := bindC_ok h
+    obtain ⟨hs₅, hwjv, hV⟩ := installValueGuardsC_run hs₄ hval
+    obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail _ hs₅ hwjv h
+    refine ⟨hres', max (max F₁ F₂) F₅, ?_⟩
+    exact checkValueGroup_of_facts
       (inferTypeCore_mono (by omega) hF₁)
       (ensureSortCore_mono (by omega) hF₂)
-      (fun _ => heqv) (fun _ => installValue_mono (by omega) hV)
-      (fun hk' => absurd hk hk')
+      (fun _ => heqv) (fun _ => hV)
       (inferTypeCore_mono (by omega) hvt)
       (isDefEqCore_mono (by omega) hde)
   · rw [ite_eq_right hk] at h
     obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail _ hs₃ (hwv hk) h
     refine ⟨hres', max (max F₁ F₂) F₅, ?_⟩
-    exact checkValueGroup_of_facts (jv := pc.vg.jv)
+    exact checkValueGroup_of_facts
       (inferTypeCore_mono (Nat.le_trans (Nat.le_max_left _ _) (Nat.le_max_left _ _)) hF₁)
       (ensureSortCore_mono (Nat.le_trans (Nat.le_max_right _ _) (Nat.le_max_left _ _)) hF₂)
-      (fun hk' => absurd hk' hk) (fun hk' => absurd hk' hk) (fun _ => rfl)
+      (fun hk' => absurd hk' hk) (fun hk' => absurd hk' hk)
       (inferTypeCore_mono (Nat.le_max_right _ _) hvt)
       (isDefEqCore_mono (Nat.le_max_right _ _) hde)
 
-/-- Phase A's value install, run: the two halves at a common fuel, the
-annotated terms well scoped, the residue kept. -/
-theorem annotValueC_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
-    {cv cvA : ConstantVal} {value jty jv : Expr} {s₀ s' : CState}
+/-- Phase A's value install, run: the two install halves, the header
+and the value as declared and well scoped, the residue kept. -/
+theorem installGuardsC_run {env : Env}
+    {cv : ConstantVal} {value : Expr} {s₀ s' : CState}
     (hres : CSOKF s₀)
-    (h : annotValueC μ (mkFEnv env) cv value s₀ = .ok ((cvA, jty, jv), s')) :
-    CSOKF s' ∧ cvA = { cv with type := jty } ∧ Expr.WScoped 0 jty ∧ Expr.WScoped 0 jv ∧
-    ∃ F, installConstantVal (fueledOps μ F) env cv = .ok cvA ∧
-      installValue (fueledOps μ F) env cvA value = .ok jv := by
-  unfold annotValueC at h
+    (h : installGuardsC (mkFEnv env) cv value s₀ = .ok ((), s')) :
+    CSOKF s' ∧
+    Expr.WScoped 0 cv.type ∧ Expr.WScoped 0 value ∧
+    installHeader (m := CheckM) env cv = .ok () ∧
+    installValueGuards (m := CheckM) env cv value = .ok () := by
+  unfold installGuardsC at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
   obtain rfl : s₀.flushed = s₁ := congrArg Prod.snd hflush
-  obtain ⟨pr, s₂, hcv, h⟩ := bindC_ok h
-  obtain ⟨cvA', jty'⟩ := pr
-  obtain ⟨hs₂, hcvA, hwty, F₁, hI⟩ := annotConstantValC_run hμ henv (flushC_csok hres) hcv
-  obtain ⟨jv', s₃, hv, h⟩ := bindC_ok h
-  obtain ⟨hs₃, hwv, F₂, hV⟩ := annotValC_run hμ henv hs₂ hv
-  obtain ⟨hv, rfl⟩ := pureC_ok h
-  simp only [Prod.mk.injEq] at hv
-  obtain ⟨rfl, rfl, rfl⟩ := hv
-  exact ⟨hs₃.residue, hcvA, hwty, hwv, max F₁ F₂,
-    installConstantVal_mono (Nat.le_max_left _ _) hI, installValue_mono (Nat.le_max_right _ _) hV⟩
+  obtain ⟨u₁, s₂, hcv, h₂⟩ := bindC_ok h
+  cases u₁
+  obtain ⟨hs₂, hwty, hI⟩ :=
+    installHeaderC_run (μ := .verified) (env := env) (flushC_csok hres) hcv
+  obtain ⟨hs₃, hwv, hV⟩ := installValueGuardsC_run (μ := .verified) hs₂ h₂
+  exact ⟨hs₃.residue, hwty, hwv, hI, hV⟩
 
 /-- The lookup at the prefix view of a canonical, name-unique index whose
 environment extends `env` by exactly the constants above `env`'s

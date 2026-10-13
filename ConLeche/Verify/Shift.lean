@@ -31,7 +31,7 @@ their well-formedness is tracked separately by `LeafCond`.) -/
   | .bvar _ | .sort _ | .const .. | .lit _ => True
   | .fvar idx _ => idx < d
   | .app f a => fvarsBelow d f ∧ fvarsBelow d a
-  | .lam ty body _ | .forallE ty body _ => fvarsBelow d ty ∧ fvarsBelow d body
+  | .lam ty body | .forallE ty body => fvarsBelow d ty ∧ fvarsBelow d body
   | .letE ty val body => fvarsBelow d ty ∧ fvarsBelow d val ∧ fvarsBelow d body
   | .proj _ _ e => fvarsBelow d e
 
@@ -54,23 +54,11 @@ theorem fvarsBelow_mono {d d' : Nat} (h : d ≤ d') :
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (shiftFrom p f) (shiftFrom p a)
-  | .lam ty body bi => .lam (shiftFrom p ty) (shiftFrom p body) bi
-  | .forallE ty body bi => .forallE (shiftFrom p ty) (shiftFrom p body) bi
+  | .lam ty body => .lam (shiftFrom p ty) (shiftFrom p body)
+  | .forallE ty body => .forallE (shiftFrom p ty) (shiftFrom p body)
   | .letE ty val body => .letE (shiftFrom p ty) (shiftFrom p val) (shiftFrom p body)
   | .lit l => .lit l
   | .proj s i e => .proj s i (shiftFrom p e)
-
-/-- Shifting reads through to a λ's prop-ness datum unchanged (task
-#161 P5): `shiftFrom` copies binder metadata, so the chain rule's
-`(lam-cod-chain)` read is the same on both sides of a shift. -/
-theorem lamPw_shiftFrom {p : Nat} :
-    ∀ (e : Expr), (shiftFrom p e).lamPw = e.lamPw := by
-  intro e
-  cases e with
-  | fvar idx ty =>
-    simp only [shiftFrom]
-    split <;> rfl
-  | _ => rfl
 
 /-- Shifting from `p` does nothing to a term whose reachable `fvar`s are
 below `p`... except inside `fvar` type annotations, which `fvarsBelow` does
@@ -93,7 +81,7 @@ only mention strictly earlier variables). -/
 @[expose] def WScoped : (d : Nat) → Expr → Prop
   | d, .fvar idx ty => idx < d ∧ WScoped idx ty
   | d, .app f a => WScoped d f ∧ WScoped d a
-  | d, .lam ty body _ | d, .forallE ty body _ => WScoped d ty ∧ WScoped d body
+  | d, .lam ty body | d, .forallE ty body => WScoped d ty ∧ WScoped d body
   | d, .letE ty val body => WScoped d ty ∧ WScoped d val ∧ WScoped d body
   | d, .proj _ _ e => WScoped d e
   | _, .bvar _ | _, .sort _ | _, .const .. | _, .lit _ => True
@@ -115,11 +103,11 @@ theorem WScoped.of_wscopedB : ∀ {e : Expr} {d : Nat},
     intro d h
     simp only [Expr.wscopedB, Bool.and_eq_true] at h
     exact (by simp only [WScoped]; exact ⟨ihf h.1, iha h.2⟩)
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d h
     simp only [Expr.wscopedB, Bool.and_eq_true] at h
     exact (by simp only [WScoped]; exact ⟨ihty h.1, ihbody h.2⟩)
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d h
     simp only [Expr.wscopedB, Bool.and_eq_true] at h
     exact (by simp only [WScoped]; exact ⟨ihty h.1, ihbody h.2⟩)
@@ -149,12 +137,12 @@ theorem WScoped.to_wscopedB : ∀ {e : Expr} {d : Nat},
     simp only [WScoped] at h
     simp only [Expr.wscopedB, Bool.and_eq_true]
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d h
     simp only [WScoped] at h
     simp only [Expr.wscopedB, Bool.and_eq_true]
     exact ⟨ihty h.1, ihbody h.2⟩
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d h
     simp only [WScoped] at h
     simp only [Expr.wscopedB, Bool.and_eq_true]
@@ -182,11 +170,11 @@ theorem WScoped.mono : ∀ {e : Expr} {d d' : Nat}, d ≤ d' → WScoped d e →
     intro d d' h hw
     simp only [WScoped] at hw ⊢
     exact ⟨ihf h hw.1, iha h hw.2⟩
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d d' h hw
     simp only [WScoped] at hw ⊢
     exact ⟨ihty h hw.1, ihbody h hw.2⟩
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d d' h hw
     simp only [WScoped] at hw ⊢
     exact ⟨ihty h hw.1, ihbody h hw.2⟩
@@ -211,11 +199,11 @@ theorem WScoped.fvarsBelow : ∀ {e : Expr} {d : Nat}, WScoped d e → Expr.fvar
     intro d hw
     simp only [WScoped] at hw
     exact ⟨ihf hw.1, iha hw.2⟩
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d hw
     simp only [WScoped] at hw
     exact ⟨ihty hw.1, ihbody hw.2⟩
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d hw
     simp only [WScoped] at hw
     exact ⟨ihty hw.1, ihbody hw.2⟩
@@ -251,12 +239,12 @@ theorem WScoped.instantiate1 {d : Nat} {ty : Expr} (hty : WScoped d ty) :
     simp only [WScoped] at hw
     simp only [Expr.instantiate1, WScoped]
     exact ⟨ihf _ hw.1, iha _ hw.2⟩
-  | lam ty' body bi ihty ihbody =>
+  | lam ty' body ihty ihbody =>
     intro k hw
     simp only [WScoped] at hw
     simp only [Expr.instantiate1, WScoped]
     exact ⟨ihty _ hw.1, ihbody _ hw.2⟩
-  | forallE ty' body bi ihty ihbody =>
+  | forallE ty' body ihty ihbody =>
     intro k hw
     simp only [WScoped] at hw
     simp only [Expr.instantiate1, WScoped]
@@ -297,12 +285,12 @@ theorem WScoped.instantiate1_gen {d : Nat} {v : Expr} (hv : WScoped d v) :
     simp only [WScoped] at hw
     simp only [Expr.instantiate1, WScoped]
     exact ⟨ihf _ hw.1, iha _ hw.2⟩
-  | lam ty' body bi ihty ihbody =>
+  | lam ty' body ihty ihbody =>
     intro k hw
     simp only [WScoped] at hw
     simp only [Expr.instantiate1, WScoped]
     exact ⟨ihty _ hw.1, ihbody _ hw.2⟩
-  | forallE ty' body bi ihty ihbody =>
+  | forallE ty' body ihty ihbody =>
     intro k hw
     simp only [WScoped] at hw
     simp only [Expr.instantiate1, WScoped]
@@ -467,8 +455,8 @@ def unshiftFrom (p : Nat) : Expr → Expr
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (unshiftFrom p f) (unshiftFrom p a)
-  | .lam ty body bi => .lam (unshiftFrom p ty) (unshiftFrom p body) bi
-  | .forallE ty body bi => .forallE (unshiftFrom p ty) (unshiftFrom p body) bi
+  | .lam ty body => .lam (unshiftFrom p ty) (unshiftFrom p body)
+  | .forallE ty body => .forallE (unshiftFrom p ty) (unshiftFrom p body)
   | .letE ty val body =>
     .letE (unshiftFrom p ty) (unshiftFrom p val) (unshiftFrom p body)
   | .lit l => .lit l
@@ -530,14 +518,14 @@ theorem fvarLeaves_lt_of_wscoped :
     rcases hl with hl | hl
     · exact ihf hw.1 l hl
     · exact iha hw.2 l hl
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d hw l hl
     simp only [WScoped] at hw
     simp only [fvarLeaves, List.mem_append] at hl
     rcases hl with hl | hl
     · exact ihty hw.1 l hl
     · exact ihbody hw.2 l hl
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d hw l hl
     simp only [WScoped] at hw
     simp only [fvarLeaves, List.mem_append] at hl
@@ -594,12 +582,12 @@ theorem fvarLeaves_shiftFrom {p : Nat} :
     simp only [WScoped] at hw
     simp only [shiftFrom, fvarLeaves, ihf hpd hw.1, iha hpd hw.2,
       List.map_append]
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d hpd hw
     simp only [WScoped] at hw
     simp only [shiftFrom, fvarLeaves, ihty hpd hw.1, ihbody hpd hw.2,
       List.map_append]
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d hpd hw
     simp only [WScoped] at hw
     simp only [shiftFrom, fvarLeaves, ihty hpd hw.1, ihbody hpd hw.2,
@@ -672,11 +660,11 @@ theorem looseBVarsBounded_mono {k k' : Nat} (h : k ≤ k') :
     intro hb
     simp only [looseBVarsBounded, Bool.and_eq_true] at hb ⊢
     exact ⟨ihf h hb.1, iha h hb.2⟩
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro hb
     simp only [looseBVarsBounded, Bool.and_eq_true] at hb ⊢
     exact ⟨ihty h hb.1, ihbody (by omega) hb.2⟩
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro hb
     simp only [looseBVarsBounded, Bool.and_eq_true] at hb ⊢
     exact ⟨ihty h hb.1, ihbody (by omega) hb.2⟩

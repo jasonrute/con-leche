@@ -21,9 +21,7 @@ pushed by `FEnv.pushAll`).  The facts the proofs about that code need:
 * `classRecsRulesOk_classFeROvl` — the rule stage at the cached
   operations, which read the rule environment only through `find?` and
   `env` (`ConLeche/Verify/Cached/KnotCongr.lean`), answers at the overlay
-  as at the pushed `classFeR`;
-* `pushAll_mkFEnv` — pushing a list onto a canonical index is the
-  canonical index of the extended environment.
+  as at the pushed `classFeR`.
 
 The parallel install's congruence in the index
 (`ConLeche/Verify/Cached/ViewCongr.lean`) uses them too.  It imports
@@ -148,28 +146,28 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
   {ops : CheckerOps m} {w : StructWalkers} {feT feR₁ feR₂ : FEnv}
 
 theorem classRuleOk_congrR (hres : w.resolve feR₁ = w.resolve feR₂)
-    (henv : feR₁.env = feR₂.env) (cvR : ConstantVal) (pw : PropWhen) (n : Nat) (gen : Expr) :
-    classRuleOk ops w feT feR₁ cvR pw n gen = classRuleOk ops w feT feR₂ cvR pw n gen := by
+    (henv : feR₁.env = feR₂.env) (cvR : ConstantVal) (n : Nat) (gen : Expr) :
+    classRuleOk ops w feT feR₁ cvR n gen = classRuleOk ops w feT feR₂ cvR n gen := by
   unfold classRuleOk
   rw [hres, henv]
 
 theorem classRulesOk_congrR (hres : w.resolve feR₁ = w.resolve feR₂)
     (henv : feR₁.env = feR₂.env) (g : ClassGen) (recOf : Nat → Option Name)
-    (cvR : ConstantVal) (pw : PropWhen) (c : Nat) :
-    ∀ xs, classRulesOk ops w feT feR₁ g recOf cvR pw c xs
-      = classRulesOk ops w feT feR₂ g recOf cvR pw c xs
+    (cvR : ConstantVal) (c : Nat) :
+    ∀ xs, classRulesOk ops w feT feR₁ g recOf cvR c xs
+      = classRulesOk ops w feT feR₂ g recOf cvR c xs
   | [] => rfl
   | x :: xs => by
     simp only [classRulesOk, classRuleOk_congrR hres henv,
-      classRulesOk_congrR hres henv g recOf cvR pw c xs]
+      classRulesOk_congrR hres henv g recOf cvR c xs]
 
 theorem classRecsRulesOk_congrR (hres : w.resolve feR₁ = w.resolve feR₂)
-    (henv : feR₁.env = feR₂.env) (g : ClassGen) (recOf : Nat → Option Name) (pw : PropWhen) :
-    ∀ cvs cs, classRecsRulesOk ops w feT feR₁ g recOf pw cvs cs
-      = classRecsRulesOk ops w feT feR₂ g recOf pw cvs cs
+    (henv : feR₁.env = feR₂.env) (g : ClassGen) (recOf : Nat → Option Name) :
+    ∀ cvs cs, classRecsRulesOk ops w feT feR₁ g recOf cvs cs
+      = classRecsRulesOk ops w feT feR₂ g recOf cvs cs
   | cvG :: cvs, c :: cs => by
     simp only [classRecsRulesOk, classRulesOk_congrR hres henv,
-      classRecsRulesOk_congrR hres henv g recOf pw cvs cs]
+      classRecsRulesOk_congrR hres henv g recOf cvs cs]
   | [], _ => by simp only [classRecsRulesOk]
   | _ :: _, [] => by simp only [classRecsRulesOk]
 
@@ -189,26 +187,16 @@ theorem sharedOpsRuleR_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
 at the cached operations, on an environment without an overlay. -/
 theorem classRecsRulesOk_classFeROvl {fe : FEnv} (h : fe.ovl = []) (p : BlockShape)
     (Ms : List TargetMajor) (cvGs : List ConstantVal) (recCls : List Nat)
-    (g : ClassGen) (recOf : Nat → Option Name) (pw : PropWhen) :
+    (g : ClassGen) (recOf : Nat → Option Name) :
     classRecsRulesOk (sharedOpsRuleR mode (classFeROvl p Ms cvGs recCls fe))
-        structWalkersC fe (classFeROvl p Ms cvGs recCls fe) g recOf pw cvGs recCls
+        structWalkersC fe (classFeROvl p Ms cvGs recCls fe) g recOf cvGs recCls
       = classRecsRulesOk (sharedOpsRuleR mode (classFeR p Ms cvGs recCls fe))
-        structWalkersC fe (classFeR p Ms cvGs recCls fe) g recOf pw cvGs recCls := by
+        structWalkersC fe (classFeR p Ms cvGs recCls fe) g recOf cvGs recCls := by
   have hfind := classFeROvl_find? h p Ms cvGs recCls
   rw [sharedOpsRuleR_congr mode hfind]
   exact classRecsRulesOk_congrR (constsResolveFC_congr hfind)
-    (classFeROvl_env h p Ms cvGs recCls) g recOf pw cvGs recCls
+    (classFeROvl_env h p Ms cvGs recCls) g recOf cvGs recCls
 
 /-! ## The stored recursors' pushes -/
-
-/-- Pushing a list onto a canonical index is the canonical index of the
-environment with the list consed on, newest (last pushed) first. -/
-theorem pushAll_mkFEnv : ∀ (cis : List ConstantInfo) (env : Env),
-    FEnv.pushAll cis (mkFEnv env) = mkFEnv ⟨cis.reverse ++ env.consts⟩
-  | [], env => rfl
-  | ci :: rest, env => by
-    show FEnv.pushAll rest (mkFEnv ⟨ci :: env.consts⟩) = _
-    rw [pushAll_mkFEnv rest]
-    simp
 
 end ConLeche.Cached

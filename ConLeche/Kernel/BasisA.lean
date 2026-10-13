@@ -6,27 +6,28 @@ public import ConLeche.Kernel.BasisGen
 @[expose] public section
 
 /-!
-# The annotated basis blocks
+# The stored basis blocks
 
-The pinned basis declarations as the checker's own annotation pass
-produces them, computed from the raw pins (`ConLeche/Kernel/Basis/*`)
-while this module elaborates — see `ConLeche/Kernel/BasisGen.lean` for
-the command and the recipe.  These are the constants the installation
-stores (`installBasisDecl`) and the model proofs read.
+The pinned basis declarations as the installation stores them,
+computed from the raw pins (`ConLeche/Kernel/Basis/*`) while this
+module elaborates — see `ConLeche/Kernel/BasisGen.lean` for the command
+and the recipe (a recursor's rules carry the install-computed fields;
+everything else is the raw pin).  These are the constants the
+installation stores (`installBasisDecl`) and the model proofs read.
 
-The blocks are annotated in one run, in install order, so `Quot`'s
-types are annotated over an environment that already holds the pinned
-`Eq` — exactly the order `checkDecl` installs them in.
+The blocks are computed in one run, in install order, so a recursor's
+rules read the constructor stored before it — exactly the order
+`checkDecl` installs them in.
 
-This module sits ABOVE `ConLeche.Kernel.TypeChecker` (it runs the
-annotation), while `ConLeche.Kernel.Basis` — the raw pins, all the
-kernel core needs — sits below it.  That is the whole reason the two
-are separate modules.
+This module sits ABOVE `ConLeche.Kernel.TypeChecker` (the command's
+recipe uses the installer's rule-field computations), while
+`ConLeche.Kernel.Basis` — the raw pins, all the kernel core needs —
+sits below it.  That is the whole reason the two are separate modules.
 -/
 
 namespace ConLeche
 
-#annotate_basis over []
+#stored_basis over []
   | eqA := eqRaw
   | eqReflA := eqReflRaw
   | eqRecA := eqRecRaw
@@ -44,7 +45,7 @@ namespace ConLeche
   | quotIndA := quotIndRaw
   | quotSoundA := quotSoundRaw
 
-/-- The annotated constants of one basis block, in dependency order. -/
+/-- The stored constants of one basis block, in dependency order. -/
 def BasisKind.declsA : BasisKind → List ConstantInfo
   | .eqK => [eqA, eqReflA, eqRecA]
   | .natK => [natA, natZeroA, natSuccA, natRecA]

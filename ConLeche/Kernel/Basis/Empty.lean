@@ -9,9 +9,8 @@ public import ConLeche.Kernel.Basis.Builder
 
 The raw pin — the `Empty` block exactly as an export carries it (no
 constructors, hence no iota rules): the toolchain's `Init.Prelude`
-declaration at the parser's raw binder annotations.  The *annotated* forms (`emptyA`, `emptyRecA`) are
-computed from these by the checker's own annotation pass at
-elaboration time; see `ConLeche/Kernel/BasisA.lean`.
+declaration as the parser reads it.  The *stored* forms (`emptyA`,
+`emptyRecA`) are computed from these at elaboration time; see `ConLeche/Kernel/BasisA.lean`.
 -/
 
 namespace ConLeche
@@ -20,7 +19,7 @@ open BasisDSL
 
 /-- `Empty : Type`. -/
 def emptyRaw : ConstantInfo :=
-  .indInfo ⟨emptyName, [], type1⟩ { all := [emptyName] }
+  .indInfo ⟨emptyName, [], type1⟩ { sortZ := Level.zeronessOf (Level.succ Level.zero), all := [emptyName] }
 
 /-- `Empty.rec.{u} (motive : Empty → Sort u) (t : Empty) : motive t`.
 The exporter emits the motive as an *explicit* binder here (there is

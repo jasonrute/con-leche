@@ -10,13 +10,13 @@
   note: [*This document was written by an AI agent* (Claude, working
     with the maintainer). It is a self-contained account of the core
     proof idea of con-leche, a verified kernel checker for Lean 4: the
-    modelling and consistency argument that connects annotated
-    expressions, an inductive description of checking, and a set theory
-    given axiomatically. The real proof lives in the repository, and
+    modelling and consistency argument that connects Lean's own terms,
+    an inductive description of checking, and a set theory given
+    axiomatically. The real proof lives in the repository, and
     phrases underlined like
     #src("ConLeche/MainTheorem.lean", 96, 99)[this one] link to it on
     `master`, at the definition or theorem being described; phrases
-    underlined like #src("whitepaper/Fragment/Sound.lean", 817, 821)[this one]
+    underlined like #src("whitepaper/Fragment/Sound.lean", 2322, 2326)[this one]
     link to the paper's own Lean fragment. In the web version, hovering
     over such a phrase shows the cited lines.],
 )

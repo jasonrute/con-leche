@@ -24,8 +24,8 @@ open ConLeche
 
 @[expose] def nm (s : String) : Name := .str .anonymous s
 @[expose] def nm2 (a b : String) : Name := .str (.str .anonymous a) b
-@[expose] def pi (d b : Expr) : Expr := .forallE d b default
-@[expose] def lam (d b : Expr) : Expr := .lam d b default
+@[expose] def pi (d b : Expr) : Expr := .forallE d b
+@[expose] def lam (d b : Expr) : Expr := .lam d b
 @[expose] def cU : Expr := .const (nm "U") []
 @[expose] def cUu : Expr := .const (nm2 "U" "u") []
 @[expose] def cRec : Expr := .const (nm2 "U" "rec") [.param (nm "v")]
@@ -40,7 +40,7 @@ open ConLeche
   [.indInfo ⟨nm "U", [], .sort (.succ .zero)⟩ {},
    .ctorInfo ⟨nm2 "U" "u", [], cU⟩ 0 0,
    .recInfo ⟨nm2 "U" "rec", [nm "v"], recTy⟩ 2 2
-     [{ ctor := nm2 "U" "u", nfields := 0, ctorParams := 0, fire := .inert, rhs := rhs }]]
+     [{ ctor := nm2 "U" "u", nfields := 0, ctorParams := 0, fire := .plain, rhs := rhs }]]
 
 /-- The fold step's verdict on the block (`accept`/`reject`/`decline`/`error`). -/
 @[expose] def run (rhs : Expr) : String :=

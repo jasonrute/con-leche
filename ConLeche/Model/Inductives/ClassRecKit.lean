@@ -57,7 +57,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal)
 
 universe w
@@ -67,20 +67,17 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-! ## 0. The graph producer over a STEP premise
 
-`graphRecPre_core` (`BlockRecGraph.lean`) types the kit's step through
-`BlockRuleCerts` — the per-part typing run of the OLD rule stage, which
-the generated stage does not run (it infers the generated rule WHOLE,
-`classRuleOk`).  At the generated family
-the step's typing is the minor premise's own type (a minor applied to
-the fields and the `ih` values lands in the motive at the constructor),
-so the producer is restated over the kit's step fact itself (`hstep`);
-`graphRecPre_core`'s `hcerts`/`hihF`/`hCaB` are one way to give it. -/
+The generated stage infers the generated rule WHOLE (`classRuleOk`).
+At the generated family the step's typing is the minor premise's own
+type (a minor applied to the fields and the `ih` values lands in the
+motive at the constructor), so the producer (`graphRecPre_coreR`) is
+stated over the kit's step fact itself (`hstep`). -/
 
 section CoreR
 
 variable {ℓ K : Nat} {ρ : Nat → V} {nCt rP : Nat → Nat}
-  {concl : Nat → AnnotTerm} {pdoms : Nat → List AnnotTerm} {fdoms : Nat → Nat → List AnnotTerm}
-  {Rb0 : Nat → Nat → AnnotTerm} {ihv : List V → Nat → Nat → List V → V → List V}
+  {concl : Nat → Term} {pdoms : Nat → List Term} {fdoms : Nat → Nat → List Term}
+  {Rb0 : Nat → Nat → Term} {ihv : List V → Nat → Nat → List V → V → List V}
   {call : List V → Nat → Nat → List V → V → Prop}
 
 /-- **The graph kit over a step premise** (`graphKitG` with the step's
@@ -133,20 +130,19 @@ noncomputable def graphKitR
 set_option maxHeartbeats 1000000 in
 /-- **`graphRecPre_core` over a step premise.**  The same candidate and
 the same rows; the step's typing is `hstep`. -/
-theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
-    {rds : Nat → List (Nat × Nat × AnnotTerm)} {RecTy : Nat → AnnotTerm}
+theorem graphRecPre_coreR {es ihs : Nat → Nat → List Term} {mk : Nat → Nat → Term}
+    {rds : Nat → List Term} {RecTy : Nat → Term}
     (Is Cr : List V → Nat → V) (injX : Nat → Nat → List V → V) (uX nIdxX : Nat → Nat)
     (tupX : Nat → List V → V)
     (fit : List V → Nat → V → Nat → List V → Prop)
     (hTyP : ∀ c, c < K → RecTy c = mkPisAV (rds c) (concl c))
-    (hbits : OneElimLevel ℓ K rds)
     (hpl : ∀ c, c < K → (pdoms c).length = rP c)
-    (hsplit : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c).map (·.2.2)) ys →
+    (hsplit : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c)) ys →
       (prefOf (rP c) ys).length = rP c ∧
       ys = prefOf (rP c) ys ++ (idxOf (rP c) ys ++ [majOf ys]) ∧
       tupX c (idxOf (rP c) ys) ∈ˢ Is (prefOf (rP c) ys) c ∧
       majOf ys ∈ˢ app (Cr (prefOf (rP c) ys) c) (tupX c (idxOf (rP c) ys)))
-    (hconcl : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c).map (·.2.2)) ys →
+    (hconcl : ∀ c, c < K → ∀ ys, SpineFit ρ ((rds c)) ys →
       blockRecMot K concl uX nIdxX ρ (prefOf (rP c) ys)
           (tagged c (tupX c (idxOf (rP c) ys)) (majOf ys))
         = interp V (consList ys ρ) (concl c))
@@ -174,7 +170,7 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
     (hrule : ∀ a : Nat → V, ∀ c, c < K → ∀ j, j < nCt c → ∀ xs fs : List V,
       xs.length = (pdoms c).length →
       SpineFit (chainFrame K a ρ) (pdoms c ++ fdoms c j) (xs ++ fs) →
-      SpineFit ρ ((rds c).map (·.2.2))
+      SpineFit ρ ((rds c))
         (xs ++ ((es c j).map (interp V (consList (xs ++ fs) (chainFrame K a ρ)))
           ++ [interp V (consList (xs ++ fs) (chainFrame K a ρ)) (mk c j)])))
     (hdec : ∀ a : Nat → V, ∀ c, c < K → ∀ j, j < nCt c → ∀ xs fs : List V,
@@ -185,7 +181,7 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
     (hchain : ∀ (a : Nat → V) (xs : List V) (r : V → V),
       (∀ c', c' < K → ∀ (is : List V) (x : V),
         xs.length = rP c' →
-        SpineFit ρ ((rds c').map (·.2.2)) (xs ++ (is ++ [x])) →
+        SpineFit ρ ((rds c')) (xs ++ (is ++ [x])) →
         r (tagged c' (tupX c' is) x) = (xs ++ (is ++ [x])).foldl SetTheory.app (a c')) →
       ∀ c, c < K → ∀ j, j < nCt c → ∀ fs : List V,
         xs.length = (pdoms c).length →
@@ -202,7 +198,7 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
       kit := fun xs => graphKitR (Rb0 := Rb0) (ihv := ihv) (call := call) (nCt := nCt)
         Is Cr injX uX nIdxX fit xs (hconclTy xs) (hstep xs) (huniq xs) (hind xs),
       hsplit := hsplit, hconcl := hconcl }
-  refine famCandG_hCand D (fun _ c j fs => (c, j, fs)) hTyP hbits hpl (hrule (famCandG D)) ?_ ?_
+  refine famCandG_hCand D (fun _ c j fs => (c, j, fs)) hTyP hpl (hrule (famCandG D)) ?_ ?_
   · intro c hc j hj xs fs hxl hsp
     have hfit := hrule (famCandG D) c hc j hj xs fs hxl hsp
     have hxr : xs.length = rP c := by rw [hxl, hpl c hc]
@@ -214,7 +210,7 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
     have hlen : (xs ++ fs).length = (pdoms c).length + (fdoms c j).length := by
       rw [hsp.length_eq, List.length_append]
     have hch := hchain (famCandG D) xs (fun v => (D.kit xs).recAt v)
-      (fun c' hc' is x hxl' hsp' => (famCandG_fold D hc' hxl' hsp').symm) c hc j hj fs hxl hsp
+      (fun c' hc' is x hxl' hsp' => (famCandG_fold D hxl' hsp').symm) c hc j hj fs hxl hsp
     show interp V (consList (ihv xs c j fs
         (graph (fun v => (D.kit xs).recAt v) (graphPredG Is Cr K call xs (c, j, fs))))
         (consList (xs ++ fs) ρ)) (Rb0 c j) = _
@@ -227,33 +223,20 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List AnnotTerm} {mk : Nat �
 
 end CoreR
 
-/-! ## 1. The classes, read off the generated family -/
-
-section Defs
-
-variable (K : Nat) (ρ : Nat → V) (rP : Nat → Nat)
-  (pre idxB : Nat → List (Nat × Nat × AnnotTerm)) (majB : Nat → Nat × Nat × AnnotTerm)
-  (uX : Nat → Nat)
-
-/-- The prefix domains. -/
-@[expose] def genPdoms (c : Nat) : List AnnotTerm := (pre c).map (·.2.2)
-
-end Defs
-
 /-! ## 2. The rows, by construction -/
 
 section Rows
 
 variable {K : Nat} {ρ : Nat → V} {rP : Nat → Nat}
-  {pre idxB : Nat → List (Nat × Nat × AnnotTerm)} {majB : Nat → Nat × Nat × AnnotTerm}
+  {pre idxB : Nat → List Term} {majB : Nat → Nat × Nat × Term}
   {uX : Nat → Nat}
 
 /-- A fit of an appended chain whose first part has the first chain's
 length splits there. -/
-theorem spineFit_append_at {Ds₁ Ds₂ : List AnnotTerm} {σ : Nat → V} {xs fs : List V}
+theorem spineFit_append_at {Ds₁ Ds₂ : List Term} {σ : Nat → V} {xs fs : List V}
     (hl : xs.length = Ds₁.length) (h : SpineFit σ (Ds₁ ++ Ds₂) (xs ++ fs)) :
     SpineFit σ Ds₁ xs ∧ SpineFit (consList xs σ) Ds₂ fs := by
-  obtain ⟨as₁, as₂, heq, h1, h2⟩ := spineFit_append_split h
+  obtain ⟨as₁, as₂, heq, h1, h2⟩ := spineFit_append_inv h
   have hl1 : as₁.length = xs.length := by rw [h1.length_eq, hl]
   obtain ⟨rfl, rfl⟩ := List.append_inj heq.symm hl1
   exact ⟨h1, h2⟩
@@ -274,14 +257,14 @@ variable (they are bounded below the chain). -/
 section Ihs
 
 /-- A fit is a fit at any frame agreeing below the chain's bound. -/
-theorem spineFit_congr_fieldsBelow :
-    ∀ {Ds : List AnnotTerm} {k : Nat} {σ σ' : Nat → V} {bs : List V},
-      FieldsBelow k Ds → (∀ i, i < k → σ i = σ' i) → SpineFit σ Ds bs → SpineFit σ' Ds bs
+theorem spineFit_congr_domsBelow :
+    ∀ {Ds : List Term} {k : Nat} {σ σ' : Nat → V} {bs : List V},
+      DomsBelow k Ds → (∀ i, i < k → σ i = σ' i) → SpineFit σ Ds bs → SpineFit σ' Ds bs
   | [], _, _, _, [], _, _, _ => trivial
   | [], _, _, _, _ :: _, _, _, h => h.elim
   | _ :: _, _, _, _, [], _, _, h => h.elim
   | D :: Ds, k, σ, σ', b :: bs, hb, hag, h => by
-    refine ⟨?_, spineFit_congr_fieldsBelow (k := k + 1) hb.2 (fun i hi => ?_) h.2⟩
+    refine ⟨?_, spineFit_congr_domsBelow (k := k + 1) hb.2 (fun i hi => ?_) h.2⟩
     · rw [← interp_congr_below V D k σ σ' hb.1 hag]; exact h.1
     · cases i with
       | zero => rfl
@@ -291,16 +274,16 @@ theorem spineFit_congr_fieldsBelow :
 at two frames agreeing below its depth `D`, as soon as the head
 variable's two values agree along every spine the body applies them
 to. -/
-theorem interp_ihShape_congr {m : Nat} (args : List AnnotTerm) :
-    ∀ (tele : List (Nat × AnnotTerm)) {D : Nat} {σ σ' : Nat → V},
-      FieldsBelow D (tele.map (·.2)) →
-      (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
+theorem interp_ihShape_congr {m : Nat} (args : List Term) :
+    ∀ (tele : List Term) {D : Nat} {σ σ' : Nat → V},
+      DomsBelow D (tele) →
+      (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e) →
       (∀ i, i < D → σ i = σ' i) →
-      (∀ bs, SpineFit σ (tele.map (·.2)) bs →
+      (∀ bs, SpineFit σ (tele) bs →
         (args.map (interp V (consList bs σ))).foldl SetTheory.app (σ (D + m))
           = (args.map (interp V (consList bs σ))).foldl SetTheory.app (σ' (D + m))) →
-      interp V σ (mkLamsAV tele (AnnotTerm.mkAppN (.bvar (D + tele.length + m)) args))
-        = interp V σ' (mkLamsAV tele (AnnotTerm.mkAppN (.bvar (D + tele.length + m)) args))
+      interp V σ (mkLamsAV tele (Term.mkAppN (.bvar (D + tele.length + m)) args))
+        = interp V σ' (mkLamsAV tele (Term.mkAppN (.bvar (D + tele.length + m)) args))
   | [], D, σ, σ', _, hargs, hag, h => by
     simp only [mkLamsAV, List.length_nil, Nat.add_zero, interp_mkAppN, interp_bvar]
     have h0 := h [] trivial
@@ -310,13 +293,13 @@ theorem interp_ihShape_congr {m : Nat} (args : List AnnotTerm) :
         (interp_congr_below V e D σ σ' (by simpa using hargs e he) hag).symm
     rw [← List.foldl_map, ← List.foldl_map (f := interp V σ'), hmap]
     exact h0
-  | (v, A) :: tele, D, σ, σ', hb, hargs, hag, h => by
-    show lamR v (interp V σ A) (fun x => interp V (cons x σ) _)
-      = lamR v (interp V σ' A) (fun x => interp V (cons x σ') _)
+  | A :: tele, D, σ, σ', hb, hargs, hag, h => by
+    show lamV (interp V σ A) (fun x => interp V (cons x σ) _)
+      = lamV (interp V σ' A) (fun x => interp V (cons x σ') _)
     have hA : interp V σ A = interp V σ' A := interp_congr_below V A D σ σ' hb.1 hag
     rw [← hA]
-    refine lamR_congr fun x hx => ?_
-    have hidx : D + ((v, A) :: tele).length + m = (D + 1) + tele.length + m := by
+    refine lamV_congr fun x hx => ?_
+    have hidx : D + (A :: tele).length + m = (D + 1) + tele.length + m := by
       simp; omega
     rw [hidx]
     refine interp_ihShape_congr args tele (D := D + 1) hb.2 (fun e he => ?_)
@@ -326,19 +309,19 @@ theorem interp_ihShape_congr {m : Nat} (args : List AnnotTerm) :
     · cases i with
       | zero => rfl
       | succ i => exact hag i (by omega)
-    · have hfit : SpineFit σ (((v, A) :: tele).map (·.2)) (x :: bs) := ⟨hx, hbs⟩
+    · have hfit : SpineFit σ (A :: tele) (x :: bs) := ⟨hx, hbs⟩
       have := h (x :: bs) hfit
       simpa [consList_cons, Nat.add_right_comm D 1 m] using this
 
 /-- One generated `ih`: its callee, its telescope, its index arguments
 and its major argument. -/
-abbrev IhDatum := Nat × List (Nat × AnnotTerm) × List AnnotTerm × AnnotTerm
+abbrev IhDatum := Nat × List Term × List Term × Term
 
 /-- **A generated `ih` term** at the rule's depth `D` (prefix `rP`):
 `λ a⃗, rec_t x⃗ e⃗ m`, the callee the chain variable `K-1-t` below the
 frame. -/
-@[expose] def genIhAV (K rP D : Nat) (q : IhDatum) : AnnotTerm :=
-  mkLamsAV q.2.1 (AnnotTerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+@[expose] def genIhAV (K rP D : Nat) (q : IhDatum) : Term :=
+  mkLamsAV q.2.1 (Term.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
     (prefVarsAV rP (D - rP + q.2.1.length) ++ (q.2.2.1 ++ [q.2.2.2])))
 
 /-- **The generated calls**: an `ih` of callee `t` at a fitting
@@ -347,41 +330,41 @@ readings. -/
 @[expose] def genIhCallAt (ρ : Nat → V) (ihd : Nat → Nat → List IhDatum) (xs : List V)
     (c j : Nat) (fs : List V) (t : Nat) (is : List V) (x : V) : Prop :=
   ∃ q ∈ ihd c j, q.1 = t ∧ ∃ bs : List V,
-    SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs ∧
+    SpineFit (consList (xs ++ fs) ρ) (q.2.1) bs ∧
     is = q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ))) ∧
     x = interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2
 
 /-- The data of a generated `ih` names no chain variable: its telescope
 and arguments are bounded below the chain. -/
 @[expose] def IhDatumBelow (D : Nat) (q : IhDatum) : Prop :=
-  FieldsBelow D (q.2.1.map (·.2)) ∧
-  (∀ e ∈ q.2.2.1 ++ [q.2.2.2], Term.bvarsBelow (D + q.2.1.length) e.erase)
+  DomsBelow D (q.2.1) ∧
+  (∀ e ∈ q.2.2.1 ++ [q.2.2.2], Term.bvarsBelow (D + q.2.1.length) e)
 
 /-- **`hihRead`, by construction** at the generated `ih`s. -/
 theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
-    {pre : Nat → List (Nat × Nat × AnnotTerm)} {fdoms : Nat → Nat → List AnnotTerm}
+    {pre : Nat → List Term} {fdoms : Nat → Nat → List Term}
     {ihd : Nat → Nat → List IhDatum}
     (hcal : ∀ c, c < K → ∀ j, j < nCt c → ∀ q ∈ ihd c j, q.1 < K)
     (hbelow : ∀ c, c < K → ∀ j, j < nCt c → ∀ q ∈ ihd c j,
-      IhDatumBelow ((genPdoms pre c).length + (fdoms c j).length) q) :
+      IhDatumBelow ((pre c).length + (fdoms c j).length) q) :
     ∀ c, c < K → ∀ j, j < nCt c → ∀ (xs fs : List V) (a a' : Nat → V),
-      xs.length = (genPdoms pre c).length →
-      SpineFit (chainFrame K a ρ) (genPdoms pre c ++ fdoms c j) (xs ++ fs) →
+      xs.length = (pre c).length →
+      SpineFit (chainFrame K a ρ) (pre c ++ fdoms c j) (xs ++ fs) →
       (∀ t is x, genIhCallAt ρ ihd xs c j fs t is x →
         (xs ++ (is ++ [x])).foldl SetTheory.app (a t)
           = (xs ++ (is ++ [x])).foldl SetTheory.app (a' t)) →
-      ((ihd c j).map (genIhAV K (genPdoms pre c).length
-          ((genPdoms pre c).length + (fdoms c j).length))).map
+      ((ihd c j).map (genIhAV K (pre c).length
+          ((pre c).length + (fdoms c j).length))).map
           (interp V (consList (xs ++ fs) (chainFrame K a ρ)))
-        = ((ihd c j).map (genIhAV K (genPdoms pre c).length
-          ((genPdoms pre c).length + (fdoms c j).length))).map
+        = ((ihd c j).map (genIhAV K (pre c).length
+          ((pre c).length + (fdoms c j).length))).map
           (interp V (consList (xs ++ fs) (chainFrame K a' ρ))) := by
   intro c hc j hj xs fs a a' hxl hsp hcall
   have hfl : fs.length = (fdoms c j).length := by
     have := hsp.length_eq
     simp only [List.length_append] at this
     omega
-  have hD : (genPdoms pre c).length + (fdoms c j).length = (xs ++ fs).length := by
+  have hD : (pre c).length + (fdoms c j).length = (xs ++ fs).length := by
     simp [hxl, hfl]
   simp only [List.map_map]
   refine List.map_congr_left fun q hq => ?_
@@ -392,8 +375,8 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
   · rcases List.mem_append.mp he with he | he
     · -- a prefix variable: below the rule's frame
       obtain ⟨l, hl, rfl⟩ := List.mem_map.mp he
-      show Term.bvarsBelow _ (AnnotTerm.bvar _).erase
-      simp only [AnnotTerm.erase, Term.bvarsBelow, List.mem_range] at hl ⊢
+      show Term.bvarsBelow _ (Term.bvar _)
+      simp only [Term.bvarsBelow, List.mem_range] at hl ⊢
       omega
     · exact hbA e he
   · -- the two frames share the spine
@@ -406,10 +389,10 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
       rw [Nat.add_comm, consList_apply_add, chainFrame_apply hq1]
     rw [hhead a, hhead a']
     -- the arguments read the call's spine
-    have hbsρ : SpineFit (consList (xs ++ fs) ρ) (q.2.1.map (·.2)) bs := by
-      refine spineFit_congr_fieldsBelow (k := (xs ++ fs).length) hbT (fun i hi => ?_) hbs
+    have hbsρ : SpineFit (consList (xs ++ fs) ρ) (q.2.1) bs := by
+      refine spineFit_congr_domsBelow (k := (xs ++ fs).length) hbT (fun i hi => ?_) hbs
       rw [consList_getD_of_lt _ _ _ hi, consList_getD_of_lt _ _ _ hi]
-    have hbl : bs.length = q.2.1.length := by rw [hbs.length_eq, List.length_map]
+    have hbl : bs.length = q.2.1.length := hbs.length_eq
     have hargR : ∀ e ∈ q.2.2.1 ++ [q.2.2.2],
         interp V (consList bs (consList (xs ++ fs) (chainFrame K a ρ))) e
           = interp V (consList bs (consList (xs ++ fs) ρ)) e := by
@@ -419,8 +402,8 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
       rw [← consList_append, ← consList_append,
         consList_getD_of_lt _ _ _ (by simp [hbl]; omega),
         consList_getD_of_lt _ _ _ (by simp [hbl]; omega)]
-    have hpre : (prefVarsAV (genPdoms pre c).length
-          ((xs ++ fs).length - (genPdoms pre c).length + q.2.1.length)).map
+    have hpre : (prefVarsAV (pre c).length
+          ((xs ++ fs).length - (pre c).length + q.2.1.length)).map
           (interp V (consList bs (consList (xs ++ fs) (chainFrame K a ρ)))) = xs := by
       have h := interp_prefVarsAV (V := V) (xs := xs) (bs := fs ++ bs)
         (ρ := chainFrame K a ρ) hxl
@@ -431,8 +414,8 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
         (interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2) :=
       ⟨q, hq, rfl, bs, hbsρ, rfl, rfl⟩
     have heq := hcall _ _ _ hcallq
-    have hargs : (prefVarsAV (genPdoms pre c).length
-          ((xs ++ fs).length - (genPdoms pre c).length + q.2.1.length) ++
+    have hargs : (prefVarsAV (pre c).length
+          ((xs ++ fs).length - (pre c).length + q.2.1.length) ++
           (q.2.2.1 ++ [q.2.2.2])).map
           (interp V (consList bs (consList (xs ++ fs) (chainFrame K a ρ))))
         = xs ++ (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))

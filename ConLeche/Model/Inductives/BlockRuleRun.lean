@@ -23,7 +23,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -69,7 +69,7 @@ theorem constsBound_instPisAt :
     exact h.2 ▸ he
   | a :: sp, e, ds, r, h, he, hsp => by
     match e, h with
-    | .forallE _ body _, h =>
+    | .forallE _ body, h =>
       simp only [Expr.instPisAt, Option.map_eq_some_iff] at h
       obtain ⟨⟨ds', r'⟩, h', heq⟩ := h
       simp only [Prod.mk.injEq] at heq

@@ -28,15 +28,6 @@ structure StateD.Equiv (a b : StateD) : Prop where
   exprs : ∀ j, a.exprs.get? j = b.exprs.get? j
   decls : a.decls = b.decls
 
-theorem StateD.Equiv.refl (a : StateD) : a.Equiv a := ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl⟩
-
-theorem StateD.Equiv.symm {a b : StateD} (h : a.Equiv b) : b.Equiv a :=
-  ⟨fun j => (h.names j).symm, fun j => (h.levels j).symm, fun j => (h.exprs j).symm, h.decls.symm⟩
-
-theorem StateD.Equiv.trans {a b c : StateD} (h : a.Equiv b) (h' : b.Equiv c) : a.Equiv c :=
-  ⟨fun j => (h.names j).trans (h'.names j), fun j => (h.levels j).trans (h'.levels j),
-   fun j => (h.exprs j).trans (h'.exprs j), h.decls.trans h'.decls⟩
-
 theorem StateD.Equiv.lk {a b : StateD} (h : a.Equiv b) : a.lk = b.lk := by
   have hn : a.name = b.name := funext fun j => by simp only [StateD.name, h.names j]
   have hl : a.level = b.level := funext fun j => by simp only [StateD.level, h.levels j]

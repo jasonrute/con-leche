@@ -52,7 +52,7 @@ theorem fvarLeaves_instantiate1 {a : Expr} :
     · rcases ihb k hl with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k l hl
     simp only [instantiate1, fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
@@ -62,7 +62,7 @@ theorem fvarLeaves_instantiate1 {a : Expr} :
     · rcases ihbody (k + 1) hl with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k l hl
     simp only [instantiate1, fvarLeaves, List.mem_append] at hl ⊢
     rcases hl with hl | hl
@@ -113,14 +113,14 @@ theorem WScoped_leaves : ∀ (e : Expr) {d : Nat}, WScoped d e →
     rcases hl with hl | hl
     · exact ihf hw.1 l hl
     · exact iha hw.2 l hl
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro d hw l hl
     simp only [WScoped] at hw
     simp only [fvarLeaves, List.mem_append] at hl
     rcases hl with hl | hl
     · exact ihty hw.1 l hl
     · exact ihbody hw.2 l hl
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro d hw l hl
     simp only [WScoped] at hw
     simp only [fvarLeaves, List.mem_append] at hl
@@ -174,7 +174,7 @@ theorem fvarLeaves_abstract1_lt {D : Nat} :
       exact ⟨Or.inl h1, h2⟩
     · obtain ⟨h1, h2⟩ := iha k hw.2 l hl
       exact ⟨Or.inr h1, h2⟩
-  | lam ty body m ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k hw l hl
     simp only [WScoped] at hw
     simp only [abstract1, fvarLeaves, List.mem_append] at hl ⊢
@@ -183,7 +183,7 @@ theorem fvarLeaves_abstract1_lt {D : Nat} :
       exact ⟨Or.inl h1, h2⟩
     · obtain ⟨h1, h2⟩ := ihbody (k + 1) hw.2 l hl
       exact ⟨Or.inr h1, h2⟩
-  | forallE ty body m ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k hw l hl
     simp only [WScoped] at hw
     simp only [abstract1, fvarLeaves, List.mem_append] at hl ⊢
@@ -214,151 +214,3 @@ theorem fvarLeaves_abstract1_lt {D : Nat} :
   | lit ll => intro k _ l hl; simp [abstract1, fvarLeaves] at hl
 
 end ConLeche.Expr
-
-namespace ConLeche
-
-variable {mode : CheckMode}
-
-open Expr
-
-/-- Annotation only shrinks the free-variable leaf closure (the
-projection-elimination path is guarded to stay inside it). -/
-theorem annotateCore_leaves_sub {env : Env} :
-    ∀ (fuel : Nat) (e : Expr) {d : Nat} {e' : Expr},
-      annotateCore mode env fuel d e = .ok e' → WScoped d e →
-      e.looseBVarsBounded 0 = true →
-      ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves
-  | 0, _, _, _, h, _, _ => by simp [annotateCore_zero, throw, throwThe,
-      MonadExceptOf.throw] at h
-  | fuel + 1, .bvar i, d, e', h, _, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    subst h; intro l hl; exact hl
-  | fuel + 1, .fvar idx ty, d, e', h, _, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody] at h
-    revert h
-    split
-    · intro h
-      simp only [pure, Except.pure, Except.ok.injEq] at h
-      subst h; intro l hl; exact hl
-    · intro h
-      simp [throw, throwThe, MonadExceptOf.throw] at h
-  | fuel + 1, .sort u, d, e', h, _, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    subst h; intro l hl; exact hl
-  | fuel + 1, .const n us, d, e', h, _, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    subst h; intro l hl; exact hl
-  | fuel + 1, .app f a, d, e', h, hw, hb => by
-    simp only [WScoped] at hw
-    simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    obtain ⟨f', a', hf, ha, rfl, -⟩ := annotateCore_app_inv h
-    intro l hl
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    rcases hl with hl | hl
-    · exact Or.inl (annotateCore_leaves_sub fuel f hf hw.1 hb.1 l hl)
-    · exact Or.inr (annotateCore_leaves_sub fuel a ha hw.2 hb.2 l hl)
-  | fuel + 1, .proj sn i e, d, e', h, hw, hb => by
-    simp only [WScoped] at hw
-    simp only [Expr.looseBVarsBounded] at hb
-    obtain ⟨e₂, tt, te, he, -, -, us, A, B, cv2, caps2, -, -, -, rfl⟩ :=
-      annotateCore_proj_inv h
-    have hsub₂ : ∀ l ∈ e₂.fvarLeaves, l ∈ e.fvarLeaves :=
-      annotateCore_leaves_sub fuel e he hw hb
-    intro l hl
-    simp only [fvarLeaves] at hl ⊢
-    exact hsub₂ l hl
-  | fuel + 1, .forallE ty body m, d, e', h, hw, hb => by
-    simp only [WScoped] at hw
-    simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    obtain ⟨ty', body', pw, hty, hbody, rfl⟩ := annotateCore_forallE_inv h
-    have hwty' := annotateCore_WScoped fuel ty hty hw.1
-    have hwbody' := annotateCore_WScoped fuel
-      (body.instantiate1 (.fvar d ty')) hbody (hwty'.instantiate1 0 hw.2)
-    have hsubty : ∀ l ∈ ty'.fvarLeaves, l ∈ ty.fvarLeaves :=
-      annotateCore_leaves_sub fuel ty hty hw.1 hb.1
-    have hsubbody : ∀ l ∈ body'.fvarLeaves,
-        l ∈ (body.instantiate1 (.fvar d ty')).fvarLeaves :=
-      annotateCore_leaves_sub fuel _ hbody (hwty'.instantiate1 0 hw.2)
-        (looseBVarsBounded_instantiate1 body 0 hb.2)
-    intro l hl
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    rcases hl with hl | hl
-    · exact Or.inl (hsubty l hl)
-    · obtain ⟨hl', hlt⟩ := fvarLeaves_abstract1_lt body' 0 hwbody' l hl
-      have hl2 := hsubbody l hl'
-      rcases fvarLeaves_instantiate1 body 0 hl2 with h2 | h2
-      · exact Or.inr h2
-      · simp only [fvarLeaves, List.mem_cons] at h2
-        rcases h2 with rfl | h2
-        · omega
-        · exact Or.inl (hsubty l h2)
-  | fuel + 1, .lam ty body m, d, e', h, hw, hb => by
-    simp only [WScoped] at hw
-    simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    obtain ⟨ty', body', pw, hty, hbody, rfl⟩ := annotateCore_lam_inv h
-    have hwty' := annotateCore_WScoped fuel ty hty hw.1
-    have hwbody' := annotateCore_WScoped fuel
-      (body.instantiate1 (.fvar d ty')) hbody (hwty'.instantiate1 0 hw.2)
-    have hsubty : ∀ l ∈ ty'.fvarLeaves, l ∈ ty.fvarLeaves :=
-      annotateCore_leaves_sub fuel ty hty hw.1 hb.1
-    have hsubbody : ∀ l ∈ body'.fvarLeaves,
-        l ∈ (body.instantiate1 (.fvar d ty')).fvarLeaves :=
-      annotateCore_leaves_sub fuel _ hbody (hwty'.instantiate1 0 hw.2)
-        (looseBVarsBounded_instantiate1 body 0 hb.2)
-    intro l hl
-    simp only [fvarLeaves, List.mem_append] at hl ⊢
-    rcases hl with hl | hl
-    · exact Or.inl (hsubty l hl)
-    · obtain ⟨hl', hlt⟩ := fvarLeaves_abstract1_lt body' 0 hwbody' l hl
-      have hl2 := hsubbody l hl'
-      rcases fvarLeaves_instantiate1 body 0 hl2 with h2 | h2
-      · exact Or.inr h2
-      · simp only [fvarLeaves, List.mem_cons] at h2
-        rcases h2 with rfl | h2
-        · omega
-        · exact Or.inl (hsubty l h2)
-  | fuel + 1, .letE ty v b, d, e', h, hw, hb => by
-    simp only [WScoped] at hw
-    simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
-    obtain ⟨ty', v', -, -, hbody, -⟩ := annotateCore_letE_inv h
-    have hsub := annotateCore_leaves_sub fuel _ hbody
-      (WScoped.instantiate1_gen hw.2.1 0 hw.2.2)
-      (looseBVarsBounded_instantiate1_gen hb.1.2 hb.2)
-    intro l hl
-    simp only [fvarLeaves, List.mem_append]
-    rcases fvarLeaves_instantiate1 b 0 (hsub l hl) with h2 | h2
-    · exact Or.inr h2
-    · exact Or.inl (Or.inr h2)
-  | fuel + 1, .lit l, d, e', h, _, _ => by
-    rw [annotateCore_succ] at h
-    match l, h with
-    | .natVal n, h => ?natCase
-    | .strVal sv, h => ?strCase
-    case strCase =>
-      dsimp only [annotateBody] at h
-      revert h
-      split
-      case isFalse =>
-        intro h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
-      case isTrue =>
-        intro h
-        simp only [pure, Except.pure, Except.ok.injEq] at h
-        subst h; intro l' hl'; exact hl'
-    case natCase =>
-      dsimp only [annotateBody] at h
-      revert h
-      split
-      case isFalse =>
-        intro h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
-      case isTrue =>
-        intro h
-        simp only [pure, Except.pure, Except.ok.injEq] at h
-        subst h; intro l' hl'; exact hl'
-
-end ConLeche

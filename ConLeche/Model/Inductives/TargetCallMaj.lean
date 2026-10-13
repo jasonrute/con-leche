@@ -25,9 +25,9 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts BlockShape
-  TargetMajor RecShape NestCtx NestHole BinderMeta nestHoleImg)
+  TargetMajor RecShape NestCtx NestHole nestHoleImg)
 
 universe w
 
@@ -49,8 +49,8 @@ theorem substFvars_congr_below {D : Nat} {s : Nat → Expr} {b₀ b : Nat} (hb :
   | const n us => intro _; rfl
   | lit l => intro _; rfl
   | app f a ihf iha => intro h; simp only [Expr.substFvars, ihf h.1, iha h.2]
-  | lam t body m iht ihb => intro h; simp only [Expr.substFvars, iht h.1, ihb h.2]
-  | forallE t body m iht ihb => intro h; simp only [Expr.substFvars, iht h.1, ihb h.2]
+  | lam t body iht ihb => intro h; simp only [Expr.substFvars, iht h.1, ihb h.2]
+  | forallE t body iht ihb => intro h; simp only [Expr.substFvars, iht h.1, ihb h.2]
   | letE t v body iht ihv ihb =>
     intro h; simp only [Expr.substFvars, iht h.1, ihv h.2.1, ihb h.2.2]
   | proj n i e ih => intro h; simp only [Expr.substFvars, ih h]

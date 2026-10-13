@@ -20,23 +20,33 @@ the literal shapes and their guards (`natLitToConstructor`,
 reducts and pins (`natOpNames`, `natDivModNames`, `natOpEquations`,
 `natOpResult`, `natOpStoredOk`, …), the structure-η fabrications
 (`etaProjs`, `etaFabArgsE`, `andRescueSlots`), the install-time rule
-bits (`recRuleBits`, `recRuleK`, `recFireComparands`),
-the tower entry's readers (`ProjEntry.fireOk`, `ProjEntry.typeAt`), the
-β gate (`betaGateFires`) and the annotation datum's writer
-(`annotBinderMeta`).
+bits (`recRuleBits`, `recRuleK`, `recFireComparands`), the ι case split
+(`iotaCtorNeverProp`, `iotaCase3`) and the tower entry's readers
+(`ProjEntry.fireOk`, `ProjEntry.typeAt`).
 
 Split out of `ConLeche/Kernel/Core.lean` at task #305 (prep): a
 relational description of the core's moves — a relation over `Expr`
 and `Env` — must name these without importing the executable bodies,
 and every one of them is exactly what such a relation needs.  The
 bodies (`whnfCoreBody`, `whnfBody`, `inferBody`, `defeqBody`,
-`annotateBody`, the knot and the fuel constants) stay in `Core.lean`,
+the knot and the fuel constants) stay in `Core.lean`,
 which re-exports this module, so every importer of `Core` sees the
 names unchanged.  Nothing here was rewritten: the definitions keep
 their names, docstrings, attributes and relative order.
 -/
 
 namespace ConLeche
+
+/-- **Is the spine's head neither a λ nor a `let`** (nor a loose bound
+variable)?  The io grade's claim of such a term, where the term is not
+the point, is a membership of its io-inferred type (task #342 L18,
+`IORel`): a hereditary claim arises only at an abstraction.  A term in
+weak-head normal form that is not a λ has such a head. -/
+def Expr.ioNeutral (e : Expr) : Bool :=
+  match e.getAppFn with
+  | .lam .. | .letE .. | .bvar _ => false
+  | _ => true
+
 
 /-- Is the expression headed by a stored constructor? -/
 def isCtorApp (env : Env) (e : Expr) : Bool :=
@@ -58,6 +68,40 @@ sort is never zero. -/
 def capsNeverZero (lps : List Name) (us : List Level) (caps : IndCaps) :
     Bool :=
   (Level.substPW lps us caps.sortZ).isNever
+
+/-- **The ι case split's test** (task #342 L10, after task
+#349's prototype): is the constructor's family never `Prop` at the
+level instantiation `us`?  The ι step asks it at the rule's comparand
+levels (`recFireComparands`: the recursor's own instantiation, or a
+nested rule's stored one), not at the constructor's, which it does not
+compare there.  Then (case 2) the ι step fires with no check of the
+constructor application: the family's fibres at the recursor's major
+domain are strict, so the major is not the point and its reduction is
+an equation, and the constructor application, being the major's value
+and not the point, is an injection of fields that fit the family's
+constructor there.  Read off the family's recorded sort zero-ness
+(`IndCaps.sortZ`, recorded for every block member and for the pinned
+`Nat`, `Empty` and `Quot`). -/
+def iotaCtorNeverProp (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
+    (us : List Level) : Bool :=
+  match (cvj.type.piResult).getAppFn with
+  | .const T _ =>
+    match find? T with
+    | some (.indInfo cvT caps) =>
+      cvT.levelParams.length == us.length && capsNeverZero cvT.levelParams us caps
+    | _ => false
+  | _ => false
+
+/-- **Case 3 of the ι case split** (task #342 L10, S5c): a rule that is not
+K whose constructor's family may be `Prop` at the comparand levels `us`.
+There the constructor's levels and parameters are compared with the
+comparands, the constructor telescope is certified at the full grade,
+and the indices are compared (task #342 L7's counterexample: at a
+`Prop` valuation nothing else ties the two spines), for a `.plain` and
+a `.nested` rule alike. -/
+def iotaCase3 (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
+    (us : List Level) : Bool :=
+  !rl.k && !iotaCtorNeverProp find? cvj us
 
 /-- Unfold the (application of a) definition at the head, one step.
 `none` when the head is not an unfoldable constant.  **Theorems are
@@ -137,20 +181,19 @@ def natZeroOk : Option ConstantInfo → Bool
     cv.levelParams.isEmpty && cv.type == .const natName []
   | _ => false
 
-/-- The stored `Nat.succ` declaration has the expected (annotated)
-shape. -/
+/-- The stored `Nat.succ` declaration has the expected shape. -/
 def natSuccOk : Option ConstantInfo → Bool
   | some (.ctorInfo cv _ _) =>
     cv.levelParams.isEmpty &&
     (match cv.type with
-     | .forallE (.const c1 []) (.const c2 []) _mb =>
+     | .forallE (.const c1 []) (.const c2 []) =>
        c1 == natName && c2 == natName
      | _ => false)
   | _ => false
 
 /-- Whether the environment supports `Nat` literals: `Nat`, `Nat.zero`
 and `Nat.succ` are stored with exactly the expected kinds, level
-parameters and (annotated) types.  Every literal code path is guarded
+parameters and types.  Every literal code path is guarded
 on this — the model interprets a literal by iterating the `Nat.succ`
 value on the `Nat.zero` value, and the soundness proofs read the
 declaration shapes off this guard. -/
@@ -179,7 +222,7 @@ def Expr.constsResolve (env : Env) : Expr → Bool
   | .const n _ => (env.find? n).isSome
   | .fvar _ ty => ty.constsResolve env
   | .app f a => f.constsResolve env && a.constsResolve env
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     ty.constsResolve env && body.constsResolve env
   | .letE ty val body =>
     ty.constsResolve env && val.constsResolve env && body.constsResolve env
@@ -206,10 +249,12 @@ each character built by `Char.ofNat` from a `Nat` literal — the
 reference kernels' `strLitToConstructor` (lean4lean `Expr.lean`, nanoda
 `expr.rs`), mirrored exactly.  The names below are *pinned* like the
 `Nat` literal names: the guard `strLitSupported` checks that the stored
-declarations have exactly the expected (annotated) types, which is what
-the model's interpretation of a string literal reads its meaning off.
+declarations have exactly the expected types, which is what the
+model's interpretation of a string literal reads its meaning off.
 A string literal in the input while the guard fails is a positively
-detected unsupported feature — annotation *declines* (exit 2). -/
+detected unsupported feature: inference *declines* (exit 2), and so
+does the constant-resolution guard's error path
+(`unresolvedConstsErrorL`). -/
 
 /-- The constructor form of a `String` literal:
 `String.ofList (List.cons.{0} Char (Char.ofNat (lit c₁)) (… (List.nil.{0}
@@ -240,36 +285,35 @@ def charTyOk : Option ConstantInfo → Bool
       ci.toConstantVal.type == .sort (.succ .zero)
   | none => false
 
-/-- The stored `List` declaration has the expected (annotated) shape
+/-- The stored `List` declaration has the expected shape
 `List.{p} : Type p → Type p`. -/
 def listTyOk : Option ConstantInfo → Bool
   | some ci =>
     match ci.toConstantVal.levelParams with
     | [p] =>
       (match ci.toConstantVal.type with
-       | .forallE (.sort u1) (.sort u2) _mb =>
+       | .forallE (.sort u1) (.sort u2) =>
          u1 == .succ (.param p) && u2 == .succ (.param p)
        | _ => false)
     | _ => false
   | none => false
 
-/-- The stored `List.nil` declaration has the expected (annotated) shape
+/-- The stored `List.nil` declaration has the expected shape
 `List.nil.{p} : ∀ (α : Type p), List.{p} α`. -/
 def listNilTyOk : Option ConstantInfo → Bool
   | some ci =>
     match ci.toConstantVal.levelParams with
     | [p] =>
       (match ci.toConstantVal.type with
-       | .forallE (.sort u1) (.app (.const l1 us1) (.bvar 0)) _mb =>
+       | .forallE (.sort u1) (.app (.const l1 us1) (.bvar 0)) =>
          u1 == .succ (.param p) && l1 == listName && us1 == [.param p]
        | _ => false)
     | _ => false
   | none => false
 
-/-- The stored `List.cons` declaration has the expected (annotated) shape
+/-- The stored `List.cons` declaration has the expected shape
 `List.cons.{p} : ∀ (α : Type p) (head : α) (tail : List.{p} α),
-List.{p} α` (with the codomain-sort annotations the annotation pass
-produces on that type). -/
+List.{p} α`. -/
 def listConsTyOk : Option ConstantInfo → Bool
   | some ci =>
     match ci.toConstantVal.levelParams with
@@ -278,31 +322,31 @@ def listConsTyOk : Option ConstantInfo → Bool
        | .forallE (.sort u1)
            (.forallE (.bvar 0)
              (.forallE (.app (.const l1 us1) (.bvar 1))
-               (.app (.const l2 us2) (.bvar 2)) _mb3) _mb2) _mb1 =>
+               (.app (.const l2 us2) (.bvar 2)))) =>
          u1 == .succ (.param p) && l1 == listName && l2 == listName &&
            us1 == [.param p] && us2 == [.param p]
        | _ => false)
     | _ => false
   | none => false
 
-/-- The stored `Char.ofNat` declaration has the expected (annotated)
+/-- The stored `Char.ofNat` declaration has the expected
 shape `Char.ofNat : Nat → Char`. -/
 def charOfNatTyOk : Option ConstantInfo → Bool
   | some ci =>
     ci.toConstantVal.levelParams.isEmpty &&
       (match ci.toConstantVal.type with
-       | .forallE (.const c1 []) (.const c2 []) _mb =>
+       | .forallE (.const c1 []) (.const c2 []) =>
          c1 == natName && c2 == charName
        | _ => false)
   | none => false
 
-/-- The stored `String.ofList` declaration has the expected (annotated)
+/-- The stored `String.ofList` declaration has the expected
 shape `String.ofList : List.{0} Char → String`. -/
 def stringOfListTyOk : Option ConstantInfo → Bool
   | some ci =>
     ci.toConstantVal.levelParams.isEmpty &&
       (match ci.toConstantVal.type with
-       | .forallE (.app (.const l1 us1) (.const c1 [])) (.const c2 []) _mb =>
+       | .forallE (.app (.const l1 us1) (.const c1 [])) (.const c2 []) =>
          l1 == listName && us1 == [.zero] && c1 == charName &&
            c2 == stringName
        | _ => false)
@@ -311,7 +355,7 @@ def stringOfListTyOk : Option ConstantInfo → Bool
 /-- Whether the environment supports `String` literals: the `Nat`
 literal guard plus `String`, `String.ofList`, `List`, `List.nil`,
 `List.cons`, `Char` and `Char.ofNat` stored with exactly the expected
-level parameters and (annotated) types.  Every string-literal code path
+level parameters and types.  Every string-literal code path
 is guarded on this; the model interprets a string literal through the
 values of these constants, and the soundness proofs read the
 declaration shapes off this guard.  (The reference kernels only check
@@ -341,7 +385,7 @@ certification's own `pred zero` equation re-enters the fast path).
 
 The certification runs in the environment *before* the operation is
 stored, on the equations with the operation's self-references replaced
-by its (annotated) definition value (`Expr.substConst0`): running it
+by its stored definition value (`Expr.substConst0`): running it
 after insertion would let the operation's own just-enabled fast path
 discharge its all-literal-argument equations (`pred zero ≡ zero`,
 `beq zero zero ≡ true`) vacuously — accepting definitions that
@@ -477,8 +521,8 @@ def natOpDeps (c : Name) : List Name :=
   else []
 
 /-- The defining recurrence equations of a structural-Nat operation,
-over constructor forms with free variables `d`, `d + 1` (binder-free,
-so the equation sides carry no annotations). -/
+over constructor forms with free variables `d`, `d + 1` (the equation
+sides are binder-free). -/
 def natOpEquations (d : Nat) (c : Name) : List (Expr × Expr) :=
   let natTy : Expr := .const natName []
   let x : Expr := .fvar d natTy
@@ -538,7 +582,10 @@ def natOpResult (c : Name) (a b : Nat) : Option Expr :=
 /-- Stored-constant guards for op `c`: the `Nat` basis, every
 dependency stored as a definition, and (for the `Bool`-valued ops and
 the `ble`-guarded `div`/`mod`, whose semantic clauses mention the
-`Bool` constructor values) the `Bool` constructors stored. -/
+`Bool` constructor values) the `Bool` constructors stored, level-free,
+at the type `Bool` itself (their values must be members of `Bool`'s,
+so that a recurrence `beq 0 0 = true` relates two members of one
+type). -/
 def natOpGuard (env : Env) (c : Name) : Bool :=
   natLitSupported env &&
   (natOpDeps c).all (fun n => match env.find? n with
@@ -546,10 +593,12 @@ def natOpGuard (env : Env) (c : Name) : Bool :=
     | _ => false) &&
   (if c = natBeqName || c = natBleName || natDivModNames.contains c then
     (match env.find? boolTrueName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false) &&
     (match env.find? boolFalseName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false)
    else true)
 
@@ -581,10 +630,10 @@ the substitution runs on closed input terms only. -/
 def Expr.substConstAll (n : Name) (r : Expr) : Expr → Expr
   | .const c us => if c = n ∧ us = [] then r else .const c us
   | .app f a => .app (Expr.substConstAll n r f) (Expr.substConstAll n r a)
-  | .lam ty b mb =>
-    .lam (Expr.substConstAll n r ty) (Expr.substConstAll n r b) mb
-  | .forallE ty b mb =>
-    .forallE (Expr.substConstAll n r ty) (Expr.substConstAll n r b) mb
+  | .lam ty b =>
+    .lam (Expr.substConstAll n r ty) (Expr.substConstAll n r b)
+  | .forallE ty b =>
+    .forallE (Expr.substConstAll n r ty) (Expr.substConstAll n r b)
   | .letE ty v b =>
     .letE (Expr.substConstAll n r ty) (Expr.substConstAll n r v)
       (Expr.substConstAll n r b)
@@ -610,12 +659,12 @@ the operations' function-space memberships off this shape. -/
 def natOpTyPinned (env : Env) (c : Name) (ty : Expr) : Bool :=
   if c = natPredName then
     match ty with
-    | .forallE dom body _mb =>
+    | .forallE dom body =>
       dom == .const natName [] && natOpCod env c body
     | _ => false
   else
     match ty with
-    | .forallE dom (.forallE dom2 body _mb2) _mb =>
+    | .forallE dom (.forallE dom2 body) =>
       dom == .const natName [] && dom2 == .const natName [] &&
       natOpCod env c body
     | _ => false
@@ -657,7 +706,7 @@ def natOpStored (env : Env) (c : Name) : Bool :=
 a fully applied telescope). -/
 def piResidual : Expr → List Expr → Option Expr
   | e, [] => some e
-  | .forallE _ b _, a :: as => piResidual (b.instantiate1 a) as
+  | .forallE _ b, a :: as => piResidual (b.instantiate1 a) as
   | _, _ :: _ => none
 
 /-- Are all `nF` projection slots of `T` table entries — i.e. does
@@ -667,27 +716,12 @@ whole test.) -/
 def towerSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
   (List.range nF).all fun j => (env.findProj? T j).isSome
 
-/-- Are all `nF` projection slots of `T` recursor-backed projection
-functions?  With `towerSlotsAll` the eta
-certificate's slot discipline: a family's slots are all of one kind,
-so the fabricated spine and the per-slot certificates agree. -/
-def recSlotsAll (env : Env) (T : Name) (nF : Nat) : Bool :=
-  (List.range nF).all fun j =>
-    match env.find? (projFnName T j) with
-    | some (.recInfo _ _ _ _) => true
-    | _ => false
-
-/-- The fabricated projections of a structure-eta spine (task #175
-W4c): `.proj T j b` nodes when every slot has a table entry (the
-direct install's structures — the node is what the table types and
-reduces), else projection-function applications. -/
-def etaProjs (env : Env) (T : Name) (us : List Level) (targs : List Expr)
-    (b : Expr) (nF : Nat) : List Expr :=
-  if towerSlotsAll env T nF then
-    (List.range nF).map fun j => Expr.proj T j b
-  else
-    (List.range nF).map fun j =>
-      Expr.mkAppN (.const (projFnName T j) us) (targs ++ [b])
+/-- The fabricated projections of a structure-eta spine: the
+`.proj T j b` nodes (every slot of an η family the checker uses has a
+table entry, `towerSlotsAll`; the node is what the table types and
+reduces). -/
+def etaProjs (T : Name) (b : Expr) (nF : Nat) : List Expr :=
+  (List.range nF).map fun j => Expr.proj T j b
 
 /-- The constructor shape official's `try_eta_struct_core` tests before
 inferring anything (`type_checker.cpp:824-829`): the candidate's head is
@@ -702,12 +736,21 @@ def etaCtorShape (env : Env) (a : Expr) : Bool :=
     | _ => false
   | _ => false
 
-/-- The eta-rescue fabrication's argument spine (task #175 W4c): the projections
-are `etaProjs`' — `.proj` nodes at an all-tower slot family,
-projection-function applications otherwise. -/
-def etaFabArgsE (env : Env) (T : Name) (ust : List Level)
-    (targs : List Expr) (major : Expr) (nF : Nat) : List Expr :=
-  targs ++ etaProjs env T ust targs major nF
+/-- The eta-rescue fabrication's argument spine: the major's type's
+arguments, then the major's projections (`etaProjs`). -/
+def etaFabArgsE (T : Name) (targs : List Expr) (major : Expr) (nF : Nat) :
+    List Expr :=
+  targs ++ etaProjs T major nF
+
+/-- **The telescope check of a spine** (task #342 L18): the
+telescope's syntactic arity, nothing else.  It is applied to spines of
+the subject (the projection fire, `projCert`; the recursor's own
+telescope in `iotaRec`): where the redex is not the point, its spine
+fits its head's telescope by the application slots of its own
+invariant, and a reduction claims nothing of a redex that is the
+point. -/
+def teleArityOk (ty : Expr) (args : List Expr) : Bool :=
+  (Expr.peelPis args.length ty).isSome
 
 /-- **The tower-fire guard** (task #175 W4c/O4, restated at W6):
 `whnfCore` fires the structural rule `proj_i (ctor p⃗ x⃗) ↦ x_i` at a
@@ -720,7 +763,7 @@ A guard "the structure's sort is provably nonzero at this
 instantiation" is *not* what the official kernel does (`reduce_proj`
 reduces every constructor redex): it rejects
 `PSigma'.fst (PSigma'.mk a b) ≡ a` at symbolic `u v`, where `max u v`
-is neither provably zero nor nonzero.  The model licence: at a squash
+is neither provably zero nor nonzero.  The model's justification: at a squash
 instance (the structure's
 sort is `0` at the valuation) the constructor application reads as
 the point, and so does the selected field — for a non-`Prop`-declared
@@ -728,7 +771,7 @@ family every field's sort is bounded by the structure's (the O5 bound
 `checkStructFieldSortsI` checks), so at a zero instantiation every
 field is a proposition; for a `Prop`-declared family the guard says
 so of the projected field directly (`TowerEntryLaw`'s iota clause,
-`ConLeche/Model/Annot/EnvModelM.lean`).  Ungated rules on a data field of a
+`ConLeche/Model/Env/EnvModelM.lean`).  Ungated rules on a data field of a
 `Prop`-declared structure stay out: such a node is not even typed
 (`inferBody`'s guard). -/
 def ProjEntry.fireOk (entry : ProjEntry) (us : List Level) : Bool :=
@@ -773,10 +816,8 @@ def recRuleKOf (find? : Name → Option ConstantInfo) (ctor : Name) : Bool :=
   | _ => false
 
 /-- **The η-rescue bit at install** (`RecRule.eta`): the rule's
-constructor is the η constructor of a stored η-capable inductive,
-carries that inductive's own level parameters, and the recursor is not
-itself a projection function (whose rescue would reduce to its own
-reduct and loop).  Together with the singleton rule list this is the
+constructor is the η constructor of a stored η-capable inductive and
+carries that inductive's own level parameters.  Together with the singleton rule list this is the
 standing condition of `majorToCtor`'s structure-η rescue.
 
 The level-parameter conjunct is what lets the rescue fabricate the
@@ -785,7 +826,7 @@ the two lists per call: the installer grants η only at a
 constructor stored with the former's level parameters (the
 recogniser pins `c.1.levelParams == lps`), so the conjunct holds
 wherever the rest does. -/
-def recRuleEtaOf (find? : Name → Option ConstantInfo) (recName ctor : Name) :
+def recRuleEtaOf (find? : Name → Option ConstantInfo) (ctor : Name) :
     Bool :=
   match find? ctor with
   | some (.ctorInfo cvj _ _) =>
@@ -793,7 +834,7 @@ def recRuleEtaOf (find? : Name → Option ConstantInfo) (recName ctor : Name) :
     | .const T _ =>
       match find? T with
       | some (.indInfo cvT caps) =>
-        caps.eta && caps.etaCtor == ctor && !Name.isProjFnShape recName &&
+        caps.eta && caps.etaCtor == ctor &&
           cvj.levelParams == cvT.levelParams
       | _ => false
     | _ => false
@@ -806,46 +847,42 @@ rules, the projection functions):
 the reduction then reads `RecRule.k`/`RecRule.eta` and re-derives
 nothing, and the environment invariant `RecCtorsStored` records that a
 set bit is the lookup's own verdict. -/
-def recRuleBits (find? : Name → Option ConstantInfo) (recName : Name)
+def recRuleBits (find? : Name → Option ConstantInfo)
     (rl : RecRule) : RecRule :=
   { rl with k := recRuleKOf find? rl.ctor,
-            eta := recRuleEtaOf find? recName rl.ctor }
+            eta := recRuleEtaOf find? rl.ctor }
 
 @[simp] theorem recRuleBits_ctor (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).ctor
+    (rl : RecRule) : (recRuleBits find? rl).ctor
       = rl.ctor := rfl
 
 @[simp] theorem recRuleBits_rhs (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).rhs
+    (rl : RecRule) : (recRuleBits find? rl).rhs
       = rl.rhs := rfl
 
 @[simp] theorem recRuleBits_nfields (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).nfields
+    (rl : RecRule) : (recRuleBits find? rl).nfields
       = rl.nfields := rfl
 
 @[simp] theorem recRuleBits_ctorParams (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) :
-    (recRuleBits find? recName rl).ctorParams = rl.ctorParams := rfl
+    (rl : RecRule) :
+    (recRuleBits find? rl).ctorParams = rl.ctorParams := rfl
 
 @[simp] theorem recRuleBits_fire (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).fire
+    (rl : RecRule) : (recRuleBits find? rl).fire
       = rl.fire := rfl
 
 @[simp] theorem recRuleBits_k (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).k
+    (rl : RecRule) : (recRuleBits find? rl).k
       = recRuleKOf find? rl.ctor := rfl
 
-@[simp] theorem recRuleBits_paramsBlind (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) :
-    (recRuleBits find? recName rl).paramsBlind = rl.paramsBlind := rfl
-
 @[simp] theorem recRuleBits_eta (find? : Name → Option ConstantInfo)
-    (recName : Name) (rl : RecRule) : (recRuleBits find? recName rl).eta
-      = recRuleEtaOf find? recName rl.ctor := rfl
+    (rl : RecRule) : (recRuleBits find? rl).eta
+      = recRuleEtaOf find? rl.ctor := rfl
 
 @[simp] theorem map_ctor_recRuleBits (find? : Name → Option ConstantInfo)
-    (recName : Name) (rs : List RecRule) :
-    (rs.map (recRuleBits find? recName)).map (·.ctor) = rs.map (·.ctor) := by
+    (rs : List RecRule) :
+    (rs.map (recRuleBits find?)).map (·.ctor) = rs.map (·.ctor) := by
   simp [List.map_map, Function.comp_def]
 
 /-- Is a recursor K-flagged?  The stored bit of its single rule
@@ -859,14 +896,13 @@ def recRuleK (rules : List RecRule) : Bool :=
 
 /-- The level and constructor-parameter comparands a firing rule's
 checks compare the major's constructor levels and parameters against:
-for a canonical (`.plain`) rule the constructor's levels link to the
-recursor's by name and its parameters are the recursor's leading
-arguments; for a certified nested (`.nested`) rule both are the stored
-major-domain instantiations, at the recursor's level instantiation and
-(for the parameters) instantiated at the recursor's leading-argument
-spine (the stored pins live in the `rP`-binder prefix context — index
-arguments never occur in them, by the shape certification).
-(Junk for `.inert` rules — `iotaRec` declines before reading it.) -/
+for a `.plain` rule the constructor's levels link to the recursor's by
+name and its parameters are the recursor's leading arguments; for a
+`.nested` rule both are the stored instantiations (the class the
+auxiliary recursor's type was generated from, `auxRuleFire`), at the
+recursor's level instantiation and (for the parameters) instantiated at
+the recursor's leading-argument spine (the stored pins live in the
+`rP`-binder prefix context; index arguments never occur in them). -/
 def recFireComparands (rl : RecRule) (lps : List Name)
     (us : List Level) (cvjLps : List Name) (args : List Expr)
     (rP : Nat) : List Level × List Expr :=
@@ -875,7 +911,7 @@ def recFireComparands (rl : RecRule) (lps : List Name)
     (lvls.map (Level.subst lps us),
      pins.map fun p => Expr.instSpine (args.take rP) (rP - 1)
        (p.instantiateLevelParams lps us))
-  | _ =>
+  | .plain =>
     (cvjLps.map fun p => Level.subst lps us (.param p),
      args.take rl.ctorParams)
 
@@ -889,50 +925,5 @@ def ProjEntry.typeAt (entry : ProjEntry) (us : List Level) (targs : List Expr)
     (pe : Expr) : Expr :=
   (entry.body.instantiateLevelParams entry.levelParams us).instantiateList
     (pe :: targs.reverse)
-
-/-- **THE β SITE'S GATE** (task #161): does the mode's β gate fire at
-this binder?
-
-At `mode.betaGate` (i.e. at `.verified`, and nowhere else) a λ-binder
-whose *validated* annotation datum is `.never` — "the codomain sort is
-nonzero at every valuation" — licenses skipping the certificate: the
-`Red.betaGate` rule's soundness (`Red.betaGate_sound`,
-`ConLeche/Model/Rules/RedSound.lean`) derives the domain membership from the
-redex's own `WellDenoted` slot and consumes no certificate at all.
-
-At a possibly-zero datum, and at every non-gated mode, the certificate
-runs unconditionally — the establishment/consumption asymmetry fence,
-and task #100's de-gating ruling, both untouched: *that* gate read a
-**computed** nonzero sort (unsound-to-model under the domain-relative
-collapse); this one reads a **validated annotation**.
-
-Both arms hand back the same reduct, so reducts stay
-annotation-blind; the dead-branch collapse is `betaGateFires_off`
-(`Verify/BetaGate.lean`).
-
-The gate is a **pure early return**, not a wrapper around the test's
-`Bool`, and that shape is load-bearing: the `else` arm is then the
-pre-gate clause *byte-for-byte*, so every existing proof of every
-non-gated mode continues verbatim after one `simp only` on the
-condition.  (A wrapper around the test would have re-associated the
-certificate's binds and cost every site a `bind_assoc` as well.)
-
-`betaGateFires` is deliberately mode-and-datum only — it reads no
-expression and runs no computation, so it is decidable *before* the
-certificate would have started, which is the whole performance
-point. -/
-@[inline] def betaGateFires (mode : CheckMode) (pw : PropWhen) : Bool :=
-  mode.betaGate && pw.isNever
-
-/-- Is this datum a real (non-placeholder) input annotation? -/
-@[inline] def pwWritten (pw : PropWhen) : Bool := !pw.isNever
-
-/-- The datum a rebuilt binder ends up with: the one threaded in from
-the node below (the chain rule), unless it carries a real input
-annotation — those are judged by validation, never overwritten. -/
-def annotBinderMeta (pw? : Option PropWhen) (mb : BinderMeta) : BinderMeta :=
-  match pw? with
-  | some pw => if pwWritten mb.pw then mb else ⟨pw⟩
-  | none => mb
 
 end ConLeche

@@ -239,7 +239,7 @@ theorem nestFields_deriv (hrec : RunDeriv ops env ctx rec)
     {prog : List NestHole} {base : Nat}
     {err : CheckError} (hhi : ctx.hiAt prog.length ≤ base) (hsc : ProgScoped ctx prog) :
     ∀ (nF j : Nat) (cur : Expr) (st : NestState) (ks : List NestFieldKind)
-      (nds : List (Expr × BinderMeta)) (res : Expr) (st' : NestState),
+      (nds : List Expr) (res : Expr) (st' : NestState),
       nestFields rec prog base err nF j cur st = .ok (ks, nds, res, st') →
       WScoped (base + j) cur → DerivCache ops env ctx st →
       DerivCache ops env ctx st' ∧
@@ -256,7 +256,7 @@ theorem nestFields_deriv (hrec : RunDeriv ops env ctx rec)
     intro j cur st ks nds res st' h hws hI
     unfold nestFields at h
     split at h
-    · rename_i a b bm
+    · rename_i a b
       simp only [bind, Except.bind] at h
       split at h
       · simp at h
@@ -767,7 +767,7 @@ theorem nestPos_deriv (hctx : NestCtxOk ctx) (hroot : NestRootOk ctx)
       rw [ite_eq_right (by simpa using hocc)] at hrun
       split at hrun
       · -- `pi`
-        rename_i a b bm
+        rename_i a b
         by_cases ha : a.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true
         · rw [ite_eq_left ha] at hrun
           simp [throw, throwThe, MonadExceptOf.throw] at hrun
@@ -1019,11 +1019,6 @@ theorem nestRootOk_of_open {ctx : NestCtx} {T rest : Expr}
     (holes : List Expr) (tbl : List NestCtorNf) (css : List (List (ConstantVal × Nat))) : Prop :=
   ∀ (c : Nat) (cs : List (ConstantVal × Nat)), css[c]? = some cs →
     CtorsRec ops env ctx tbl [] (ctx.hiAt 0) (ctx.lps.map .param) ctx.params ctx.names holes cs
-
-theorem CtorsRecRoot.mono {holes : List Expr} {tbl tbl' : List NestCtorNf}
-    (hs : ∀ e ∈ tbl, e ∈ tbl') {css : List (List (ConstantVal × Nat))}
-    (h : CtorsRecRoot ops env ctx holes tbl css) : CtorsRecRoot ops env ctx holes tbl' css :=
-  fun c cs hc => (h c cs hc).mono hs
 
 /-- The canonical parameters are hole-free readers of themselves: read
 back, they are unchanged. -/

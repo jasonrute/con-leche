@@ -8,14 +8,15 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.Inductives.GenRuleSyn
 import ConLeche.Model.Inductives.GenRuleFree
-import ConLeche.Model.Annot.BitRename
-import ConLeche.Model.Annot.BitLemmas
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Verify.Subst
 import ConLeche.Verify.Inductives.NestCallSyn
-import ConLeche.Model.Annot.LfpFormer
-import ConLeche.Model.Annot.Valid
+import ConLeche.Model.Env.LfpFormer
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Semantics.Tower.FixTower
@@ -45,9 +46,9 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
-  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState BinderMeta
+  ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
 
 universe w
@@ -57,44 +58,44 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-! ## A closed telescope, read -/
 
 /-- **A closed telescope, read at its own depth**: a Π-tower whose binder
-data are the pieces' readings (each at its own depth, the bit its binder
-datum's) over the body's reading. -/
-theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+data are the pieces' readings (each at its own depth) over the body's
+reading. -/
+theorem denote_closeTelescope_read {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} :
-    ∀ (nds : List (Expr × BinderMeta)) (d : Nat) (body Y : Expr) {A : AnnotTerm},
-      (∀ p ∈ nds, p.1.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
+    ∀ (nds : List Expr) (d : Nat) (body Y : Expr) {A : Term},
+      (∀ p ∈ nds, p.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
       Expr.ErasedEq Y (closeTelescope nds d body) →
-      denoteMeta acval env φ d Y = some A →
-      ∃ (bs : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm), A = mkPisAV bs b ∧
+      denote acval env φ d Y = some A →
+      ∃ (bs : List Term) (b : Term), A = mkPisAV bs b ∧
         bs.length = nds.length ∧
-        (∀ (k : Nat) (nd : Expr × BinderMeta), nds[k]? = some nd → ∃ a,
-          bs[k]? = some (0, pwBit φ nd.2.pw, a) ∧ denoteMeta acval env φ (d + k) nd.1 = some a) ∧
-        denoteMeta acval env φ (d + nds.length) body = some b
+        (∀ (k : Nat) (nd : Expr), nds[k]? = some nd → ∃ a,
+          bs[k]? = some a ∧ denote acval env φ (d + k) nd = some a) ∧
+        denote acval env φ (d + nds.length) body = some b
   | [], d, body, Y, A, _, _, hY, hA => by
     refine ⟨[], A, rfl, rfl, fun k nd h => by simp at h, ?_⟩
-    rw [← hA, List.length_nil, Nat.add_zero, denoteMeta_erasedEq hY]
+    rw [← hA, List.length_nil, Nat.add_zero, denote_erasedEq hY]
     rfl
-  | (dom, bm) :: nds, d, body, Y, A, hcl, hb, hY, hA => by
+  | dom :: nds, d, body, Y, A, hcl, hb, hY, hA => by
     cases Y with
-    | forallE a b bm' =>
+    | forallE a b =>
       simp only [closeTelescope] at hY
-      obtain ⟨hbm, ha, hbE⟩ := hY
-      have hcl' : ∀ p ∈ nds, p.1.looseBVarsBounded 0 = true :=
+      obtain ⟨ha, hbE⟩ := hY
+      have hcl' : ∀ p ∈ nds, p.looseBVarsBounded 0 = true :=
         fun p hp => hcl p (List.mem_cons_of_mem _ hp)
       have hC := closeTelescope_bounded nds (d + 1) body hcl' hb
       have hE : Expr.ErasedEq (b.instantiate1 (.fvar d a)) (closeTelescope nds (d + 1) body) :=
         Expr.ErasedEq.trans (Expr.ErasedEq.instantiate1 hbE (v' := .fvar d dom) rfl)
           (erasedEq_abstract1_instantiate1 _ 0 hC)
-      obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hA
+      obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv hA
       obtain ⟨bs, b0, rfl, hbl, hbs, hb0⟩ :=
-        denoteMeta_closeTelescope_read nds (d + 1) body _ hcl' hb hE hba
-      refine ⟨(0, pwBit φ bm'.pw, ta) :: bs, b0, rfl, by simp [hbl], fun k nd hk => ?_, ?_⟩
+        denote_closeTelescope_read nds (d + 1) body _ hcl' hb hE hba
+      refine ⟨ta :: bs, b0, rfl, by simp [hbl], fun k nd hk => ?_, ?_⟩
       · cases k with
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hk
           subst hk
-          refine ⟨ta, by rw [hbm]; rfl, ?_⟩
-          rw [Nat.add_zero, ← denoteMeta_erasedEq ha]; exact hta
+          refine ⟨ta, rfl, ?_⟩
+          rw [Nat.add_zero, ← denote_erasedEq ha]; exact hta
         | succ k =>
           simp only [List.getElem?_cons_succ] at hk
           obtain ⟨a', ha', hr⟩ := hbs k nd hk
@@ -120,18 +121,18 @@ frame's declared fields `tgtFieldFvs`, one `ih` type per recursive field,
 the conclusion over the declared result `tgtCbody`. -/
 theorem genMinorSetup
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     {c j : Nat} (hc : c < (tgtRs out).length) (hj : j < blockRecNCt (tgtRs out) c) :
     ∃ (cls s : Nat) (x : ClassCtor) (T res : Expr) (ws : List Expr)
-      (ihs : List (Expr × BinderMeta)),
+      (ihs : List Expr),
       genClsOf R.rd c = cls ∧ genCtorAt R.g R.rd c j = x ∧ genMinorSlot R.g R.rd c j = s ∧
       x ∈ R.g.ctors.getD cls [] ∧ tgtMajor out c = R.g.cls.getD cls default ∧
       (∃ ihs0, R.g.slots[s]? = some (.minor cls x.cv.name ihs0)) ∧
-      R.g.pre[R.g.nP + s]? = some (T, R.g.bm) ∧ ConLeche.ScB (R.g.nP + s) T ∧
+      R.g.pre[R.g.nP + s]? = some T ∧ ConLeche.ScB (R.g.nP + s) T ∧
       pp.toBlockShape.rulePrefixAt c = R.g.pre.length ∧
       ConLeche.openPisAtFvars x.nF x.tyD R.g.pre.length
         = some (tgtFieldFvs pp.toBlockShape out c j, res) ∧
@@ -142,7 +143,7 @@ theorem genMinorSetup
       (∀ (l i t tele : Nat), x.recs[l]? = some (i, t, tele) →
         (∃ ty, R.g.ihTy t tele (ws.getD i default)
           ((tgtFieldFvs pp.toBlockShape out c j).getD i default)
-          (R.g.pre.length + x.nF + l) = some ty ∧ ihs[l]? = some (ty, R.g.bm)) ∧
+          (R.g.pre.length + x.nF + l) = some ty ∧ ihs[l]? = some ty) ∧
         (∃ n, ConLeche.classRecOf R.rd.recCls R.cvGs t = some n) ∧
         (∃ xs idx, R.g.ihParts t tele (ws.getD i default) (R.g.pre.length + x.nF)
           = some (xs, idx)) ∧
@@ -289,19 +290,19 @@ theorem genIhTy_scb {g : ClassGen} {t tele st : Nat} {w f : Expr} {d : Nat} {ty 
 
 /-- **An inductive hypothesis's type, read at its depth `D`**: the
 `genIhDomAV` of the `ih` data read off its pieces (the walked telescope's
-domains with the family's bit, the leaf's indices and the applied field) —
+domains with numeral `0`, the leaf's indices and the applied field) —
 the data `genIhdAV` reads. -/
-theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {ψ : Name → Nat}
+theorem genIhTy_read {acval : Name → (Name → Nat) → Term} {env : Env} {ψ : Name → Nat}
     {g : ClassGen} {t tele st : Nat} {w f : Expr} {D : Nat} {xs idx : List Expr} {ty0 : Expr}
-    {a : AnnotTerm} (hst : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ t = some st)
+    {a : Term} (hst : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ t = some st)
     (hw : ConLeche.ScB D w) (hfb : f.looseBVarsBounded 0 = true)
     (hip : g.ihParts t tele w D = some (xs, idx))
     (hty : g.ihTy t tele w f D = some ty0) (r : Nat)
-    (hread : denoteMeta acval env ψ D ty0 = some a) :
+    (hread : denote acval env ψ D ty0 = some a) :
     a = genIhDomAV D (g.nP + st)
-      (r, (readOpenedDoms acval env ψ D xs).map fun b => (pwBit ψ g.bm.pw, b),
-        idx.map fun e => (denoteMeta acval env ψ (D + xs.length) e).getD default,
-        (denoteMeta acval env ψ (D + xs.length) (Expr.mkAppN f xs)).getD default) := by
+      (r, readOpenedDoms acval env ψ D xs,
+        idx.map fun e => (denote acval env ψ (D + xs.length) e).getD default,
+        (denote acval env ψ (D + xs.length) (Expr.mkAppN f xs)).getD default) := by
   unfold ClassGen.ihTy at hty
   obtain ⟨⟨xs', idx'⟩, hip', hty⟩ := Option.bind_eq_some_iff.mp hty
   rw [hip] at hip'
@@ -310,7 +311,7 @@ theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
   subst hty
   obtain ⟨hxl, hxs, hidx⟩ := ConLeche.ClassGen.ihParts_scoped hw (Nat.le_refl _) hip
   rw [ConLeche.ClassGen.motVar_eq hst] at hread
-  have hcl : ∀ p ∈ xs.map g.binder, p.1.looseBVarsBounded 0 = true := by
+  have hcl : ∀ p ∈ xs.map g.binder, p.looseBVarsBounded 0 = true := by
     intro p hp
     obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hp
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hy
@@ -328,29 +329,29 @@ theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
       obtain ⟨ty, hxe, -⟩ := hxs k _ (List.getElem?_eq_getElem hk)
       rw [hxe]; simp [Expr.looseBVarsBounded]
   obtain ⟨bs, b, rfl, hbl, hbs, hb⟩ :=
-    denoteMeta_closeTelescope_read _ D _ _ hcl hbb (Expr.ErasedEq.rfl _) hread
+    denote_closeTelescope_read _ D _ _ hcl hbb (Expr.ErasedEq.rfl _) hread
   rw [List.length_map] at hb hbl
-  obtain ⟨fa, vs, hfa, hvs, rfl⟩ := denoteMeta_mkAppN_inv hb
-  rw [denoteMeta_fvar] at hfa
+  obtain ⟨fa, vs, hfa, hvs, rfl⟩ := denote_mkAppN_inv hb
+  rw [denote_fvar] at hfa
   obtain rfl := Option.some.inj hfa
-  have hvsE := denoteMetaSpine_eq_map hvs
+  have hvsE := denoteSpine_eq_map hvs
   unfold genIhDomAV
-  simp only [List.length_map, readOpenedDoms_length_eq]
+  simp only [readOpenedDoms_length_eq]
   congr 1
   · refine List.ext_getElem (by simp [hbl]) fun k h1 h2 => ?_
     have hkx : k < xs.length := by rw [← hbl]; exact h1
     obtain ⟨a', ha', hr⟩ := hbs k (g.binder xs[k]) (by simp [hkx])
     rw [List.getElem?_eq_getElem h1] at ha'
     rw [Option.some.inj ha']
-    simp only [List.getElem_map, readOpenedDoms_getElem D xs k hkx]
+    simp only [readOpenedDoms_getElem D xs k hkx]
     simp only [ClassGen.binder] at hr
     rw [hr]
     rfl
   · rw [hvsE, List.map_append, List.map_cons, List.map_nil]
 
 /-- **The generated `ih` data at a recursive field**, spelled out. -/
-theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {g : ClassGen}
-    {rd : ClassRead} {bit : Nat} {ψ : Name → Nat} {c j l i t tele : Nat} {fvs : List Expr}
+theorem genIhdAV_getElem {acval : Name → (Name → Nat) → Term} {env : Env} {g : ClassGen}
+    {rd : ClassRead} {ψ : Name → Nat} {c j l i t tele : Nat} {fvs : List Expr}
     {res : Expr} {ws xs idx : List Expr}
     (hq : (genCtorAt g rd c j).recs[l]? = some (i, t, tele))
     (hop : ConLeche.openPisAtFvars (genCtorAt g rd c j).nF (genCtorAt g rd c j).tyD g.pre.length
@@ -358,12 +359,11 @@ theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : 
     (hws : ConLeche.targetPiDomsWith fvs (genCtorAt g rd c j).tyN = some ws)
     (hip : g.ihParts t tele (ws.getD i default) (g.pre.length + (genCtorAt g rd c j).nF)
       = some (xs, idx)) :
-    (genIhdAV acval env g rd bit ψ c j)[l]? = some (genRecIdx rd t,
-      (readOpenedDoms acval env ψ (g.pre.length + (genCtorAt g rd c j).nF) xs).map
-        fun b => (bit, b),
-      idx.map fun e => (denoteMeta acval env ψ
+    (genIhdAV acval env g rd ψ c j)[l]? = some (genRecIdx rd t,
+      readOpenedDoms acval env ψ (g.pre.length + (genCtorAt g rd c j).nF) xs,
+      idx.map fun e => (denote acval env ψ
         (g.pre.length + (genCtorAt g rd c j).nF + xs.length) e).getD default,
-      (denoteMeta acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + xs.length)
+      (denote acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + xs.length)
         (Expr.mkAppN (fvs.getD i default) xs)).getD default) := by
   unfold genIhdAV
   simp only [List.getElem?_map, hq, hop, hws, Option.map_some, Option.getD_some, hip]
@@ -371,10 +371,10 @@ theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : 
 /-- **The `l`-th inductive hypothesis type of the minor premise, read at
 its position `rP + nF + l`**: the generated `ih` binder type of the
 `l`-th `ih` datum, lifted past the `l` earlier `ih` binders. -/
-theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem genIhEntry_read {acval : Name → (Name → Nat) → Term} {env : Env}
     (m : EnvModel V env) (hac : m.acval = acval) {ψ : Name → Nat}
     {g : ClassGen} {rd : ClassRead} {c j l i t tele st : Nat} {fvs : List Expr} {res : Expr}
-    {ws : List Expr} {ty : Expr} {a : AnnotTerm}
+    {ws : List Expr} {ty : Expr} {a : Term}
     (hq : (genCtorAt g rd c j).recs[l]? = some (i, t, tele))
     (hop : ConLeche.openPisAtFvars (genCtorAt g rd c j).nF (genCtorAt g rd c j).tyD g.pre.length
       = some (fvs, res))
@@ -388,9 +388,8 @@ theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : E
     (hstl : g.nP + st < g.pre.length)
     (hty : g.ihTy t tele (ws.getD i default) (fvs.getD i default)
       (g.pre.length + (genCtorAt g rd c j).nF + l) = some ty)
-    (hread : denoteMeta acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + l) ty = some a)
-    {bit : Nat} (hbit : bit = pwBit ψ g.bm.pw) :
-    ∃ q, (genIhdAV acval env g rd bit ψ c j)[l]? = some q ∧ q.1 = genRecIdx rd t ∧
+    (hread : denote acval env ψ (g.pre.length + (genCtorAt g rd c j).nF + l) ty = some a) :
+    ∃ q, (genIhdAV acval env g rd ψ c j)[l]? = some q ∧ q.1 = genRecIdx rd t ∧
       a = (genIhDomAV (g.pre.length + (genCtorAt g rd c j).nF) (g.nP + st) q).liftN l 0 := by
   subst hac
   obtain ⟨xs, idx, hip⟩ := hparts
@@ -413,22 +412,99 @@ theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : E
     (by rw [hst]; simp only [Option.getD_some]; omega) hS0.1.fvarsBelow hty0 l
   rw [hd] at hty
   obtain rfl := Option.some.inj hty
-  have hlift := denoteMeta_lift (env := env) (φ := ψ) m.acval_closed hS0.1 (D + l)
+  have hlift := denote_lift (env := env) (φ := ψ) m.acval_closed hS0.1 (D + l)
     (Nat.le_add_right _ _)
   rw [hread, show D + l - D = l by omega] at hlift
-  obtain ⟨a0, ha0, rfl⟩ : ∃ a0, denoteMeta m.acval env ψ D (closeTelescope (xs.map g.binder) D
+  obtain ⟨a0, ha0, rfl⟩ : ∃ a0, denote m.acval env ψ D (closeTelescope (xs.map g.binder) D
       (Expr.mkAppN (g.motVar t) (idx ++ [Expr.mkAppN (fvs.getD i default) xs]))) = some a0 ∧
       a = a0.liftN l 0 := by
-    cases h0 : denoteMeta m.acval env ψ D (closeTelescope (xs.map g.binder) D
+    cases h0 : denote m.acval env ψ D (closeTelescope (xs.map g.binder) D
       (Expr.mkAppN (g.motVar t) (idx ++ [Expr.mkAppN (fvs.getD i default) xs]))) with
     | none => rw [h0] at hlift; exact nomatch hlift
     | some a0 => rw [h0] at hlift; exact ⟨a0, rfl, Option.some.inj hlift⟩
   have hE := genIhTy_read (acval := m.acval) (env := env) (ψ := ψ) hst hwsS hfS.2 hip hty0
     (genRecIdx rd t) ha0
-  subst hD hbit
+  subst hD
   exact ⟨_, genIhdAV_getElem hq hop hws hip, rfl, by rw [hE]⟩
 
 /-! ## `GenPreSem.minor` -/
+
+omit [SetTheory V] in
+theorem EndsInSort.instantiate1' {u : Level} {v : Expr} :
+    ∀ (m : Nat) {e : Expr} (k : Nat), ConLeche.EndsInSort m u e →
+      ConLeche.EndsInSort m u (e.instantiate1 v k)
+  | 0, e, k, h => by
+    simp only [ConLeche.EndsInSort] at h ⊢
+    subst h; rfl
+  | m + 1, .forallE A b, k, h => EndsInSort.instantiate1' m (k + 1) h
+
+/-- **A full application of a member of a Π-tower ending in `Sort 0` is
+a truth value, once it is a type** ("not pt" source (1): the caller's
+grading).  On the domains it is a member of `Sort 0`; off them a graph
+applies to `∅`, and the point applies to the point, which is no type. -/
+theorem mem_univZero_of_endsInSort {acval : Name → (Name → Nat) → Term} {env : Env}
+    {φ : Name → Nat} {u : Level} (hu : u.eval φ = 0) :
+    ∀ (m : Nat) {e : Expr} {d : Nat} {T : Term}, ConLeche.EndsInSort m u e →
+      denote acval env φ d e = some T → ∀ {σ : Nat → V} {f : V}, f ∈ˢ interp V σ T →
+      ∀ (args : List V), args.length = m → IsTy (args.foldl SetTheory.app f) →
+      args.foldl SetTheory.app f ∈ˢ (univZero : V)
+  | 0, e, d, T, he, hT, σ, f, hf, [], _, _ => by
+    simp only [ConLeche.EndsInSort] at he
+    subst he
+    rw [denote_sort] at hT
+    obtain rfl := Option.some.inj hT
+    rw [interp_sort, hu, univ_zero] at hf
+    exact hf
+  | 0, _, _, _, _, _, _, _, _, _ :: _, hl, _ => by simp at hl
+  | _ + 1, _, _, _, _, _, _, _, _, [], hl, _ => by simp at hl
+  | m + 1, .forallE A B, d, T, he, hT, σ, f, hf, a :: args, hl, hty => by
+    obtain ⟨ta, ba, -, hba, rfl⟩ := denote_forallE_inv hT
+    rw [interp_pi] at hf
+    simp only [List.foldl_cons] at hty ⊢
+    by_cases ha : a ∈ˢ interp V σ ta
+    · exact mem_univZero_of_endsInSort hu m (EndsInSort.instantiate1' m 0 he) hba
+        (app_mem_piV hf ha) args (by simpa using hl) hty
+    · by_cases hfp : f = pt
+      · subst hfp
+        rw [app_pt, foldl_app_pt'] at hty
+        exact absurd rfl hty.ne_pt
+      · have hemp : ∀ vs : List V, vs.foldl SetTheory.app (empty : V) = empty := by
+          intro vs
+          induction vs with
+          | nil => rfl
+          | cons v vs ih => rw [List.foldl_cons, app_empty]; exact ih
+        rw [app_off_dom_of_mem_piSet (mem_piSet_of_mem_piV hf hfp) ha, hemp]
+        rw [← univ_zero]; exact empty_mem_univ 0
+  | _ + 1, .bvar _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .fvar _ _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .sort _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .const _ _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .app _ _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .lam _ _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .letE _ _ _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .lit _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+  | _ + 1, .proj _ _ _, _, _, he, _, _, _, _, _ :: _, _, _ => he.elim
+
+/-- The body of a graded Π-tower that is a type is a type at every fitting
+spine (the tower's own `IsTy` when it binds nothing). -/
+theorem isTy_of_wdTy_mkPisAV {B : Term} {tl : List Term} {ρ : Nat → V}
+    {bs : List V} (h : WellDenotedTy V ρ (mkPisAV tl B)) (hsp : SpineFit ρ tl bs) :
+    IsTy (interp V (consList bs ρ) B) :=
+  match tl, bs, hsp with
+  | [], [], _ => h.2
+  | [], _ :: _, hsp => hsp.elim
+  | _ :: _, _, hsp => isTy_of_wd_mkPisAV (List.cons_ne_nil _ _) h.1 hsp
+
+/-- **A λ-tower all of whose body values over the domains are the point is
+the point** (`lamV_eq_pt` per binder). -/
+theorem mkLamsAV_eq_pt {C : Term} :
+    ∀ {lds : List Term} {ρ : Nat → V},
+      (∀ zs, SpineFit ρ lds zs → interp V (consList zs ρ) C = pt) →
+      interp V ρ (mkLamsAV lds C) = pt
+  | [], _, h => h [] trivial
+  | A :: _, ρ, h => by
+    show lamV (interp V ρ A) (fun x => interp V (cons x ρ) (mkLamsAV _ C)) = pt
+    exact lamV_eq_pt fun x hx => mkLamsAV_eq_pt fun zs hzs => h (x :: zs) ⟨hx, hzs⟩
 
 section Minor
 
@@ -448,8 +524,8 @@ built at the slot, which IS the one built at the rule prefix
 the rule frame's pieces. -/
 theorem genCls_minor (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -457,9 +533,9 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ xs,
     SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
     ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
-    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd (genBit pp ψ) ψ c j).length →
+    ∀ hs : List V, hs.length = (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j).length →
     (∀ (l : Nat) (q : IhDatum) (hv : V),
-      (genIhdAV mpC.base2.acval envC R.g R.rd (genBit pp ψ) ψ c j)[l]? = some q → hs[l]? = some hv →
+      (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j)[l]? = some q → hs[l]? = some hv →
       hv ∈ˢ interp V (consList (xs ++ fs) ρ)
         (genIhDomAV ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
             + (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length)
@@ -482,7 +558,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
   -- the stored type's entry at the minor's slot
   obtain ⟨cls', ty', ifs', body', -, -, -, -, -, -, -, -, -, -, fvs0, o0, hop0, hE⟩ :=
     genRun_binders hμ R hg h mpC ψ hc
-  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, -, hdomsR, -, hwdTy⟩ :=
+  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
     recStage_tyPis (V := V) hμ mpC h hr ψ
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hop1.symm.trans hop0))
   have hle := blockRecHrPle (p := pp) h hc
@@ -491,27 +567,19 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
   obtain ⟨y, hy⟩ : ∃ y, fvs1[R.g.nP + s]? = some y :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hyE := hE _ y T hy (by
-    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT]; rfl)
-  obtain ⟨pd, hpd, -, hrd⟩ := hdomsR _ y hy
-  rw [denoteMeta_erasedEq hyE] at hrd
-  -- the prefix's entry: the minor's value, valid there
+    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT])
+  obtain ⟨pd, hpd, hrd⟩ := hdomsR _ y hy
+  rw [denote_erasedEq hyE] at hrd
+  -- the prefix's entry: the minor's value
   have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
-      (R.g.nP + s) default = pd.2.2 := by
-    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_take,
+      (R.g.nP + s) default = pd := by
+    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left (by omega), hpd]; rfl
   have hmem := FixKI.spineFit_getD_mem' hxs (l := R.g.nP + s) (by rw [hlenPd]; omega)
   rw [hPdget] at hmem
-  have hv := (hwdTy ρ).2
-  rw [hTyE, ← List.take_append_drop (pp.toBlockShape.rulePrefixAt c)
-    (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c), mkPisAV_append'] at hv
-  have hvA := annotValid_piDom_at hv hxs (R.g.nP + s) (by
-    rw [List.length_take, hlenRds]; omega)
-  rw [show ((List.take (pp.toBlockShape.rulePrefixAt c)
-      (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)).map (·.2.2)).getD
-      (R.g.nP + s) default = pd.2.2 from hPdget] at hvA
   -- read at the rule prefix
-  have hlift := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
+  have hlift := denote_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
     (by omega)
   rw [hrd, Option.map_some] at hlift
   -- the pieces are bounded
@@ -523,16 +591,16 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
         obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
         rw [hxe]; exact ConLeche.ScB.fvar (by omega) hty) (by omega)
-  have hihS : ∀ l ty bm', ihs[l]? = some (ty, bm') →
+  have hihS : ∀ l ty, ihs[l]? = some ty →
       ConLeche.ScB (R.g.pre.length + x.nF + l) ty := by
-    intro l ty bm' hl
+    intro l ty hl
     have hl' : l < x.recs.length := by
       rw [← hihl]; exact (List.getElem?_eq_some_iff.mp hl).1
     obtain ⟨⟨i, t, tele⟩, hq⟩ : ∃ q, x.recs[l]? = some q :=
       ⟨_, List.getElem?_eq_getElem hl'⟩
     obtain ⟨⟨ty', hty', hl2⟩, -, -, st, hst, hstl⟩ := hih l i t tele hq
     rw [hl] at hl2
-    obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hl2)
+    obtain rfl := Option.some.inj hl2
     obtain ⟨hiF, -⟩ := ConLeche.ClassGen.recs_mem (List.mem_of_getElem? hq)
     have hi : i < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hiF
     obtain ⟨tyf, hxe, htyf⟩ := hfvsS i _ (List.getElem?_eq_getElem hi)
@@ -540,7 +608,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some, hxe]
     exact ConLeche.ScB.fvar (by omega) (htyf.mono (by omega))
   have hcl : ∀ p ∈ (tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs,
-      p.1.looseBVarsBounded 0 = true := by
+      p.looseBVarsBounded 0 = true := by
     intro p hp
     rcases List.mem_append.mp hp with hp | hp
     · obtain ⟨y', hy', rfl⟩ := List.mem_map.mp hp
@@ -548,7 +616,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
       obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
       rw [hxe]; exact hty.2
     · obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem hp
-      exact (hihS l _ _ (List.getElem?_eq_getElem hl)).2
+      exact (hihS l _ (List.getElem?_eq_getElem hl)).2
   have hbbS : ConLeche.ScB (R.g.pre.length + x.nF)
       (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
         [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
@@ -567,7 +635,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
         rw [hxe]; exact ConLeche.ScB.fvar (by omega) (hty.mono (by omega))
   obtain ⟨bs, b, hBE, hbl, hbs, hb⟩ :=
-    denoteMeta_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
+    denote_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
       hlift
   -- the frames
   have hlenPd' : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
@@ -581,27 +649,24 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     exact this
   have hmemB : xs.getD (R.g.nP + s) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) := by
     rw [← hBE, interp_liftN, hsh]; exact hmem
-  have hvB : AnnotValid V (consList xs ρ) (mkPisAV bs b) := by
-    rw [← hBE, AnnotValid_liftN, hsh]; exact hvA
-  -- the rule frame's field domains are the fields' binder data
+  -- the rule frame's field domains are the fields' domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
   have hfsl : fs.length = x.nF := hfs.length_eq.trans hfdL
-  have hihdL : (genIhdAV mpC.base2.acval envC R.g R.rd (genBit pp ψ) ψ c j).length
+  have hihdL : (genIhdAV mpC.base2.acval envC R.g R.rd ψ c j).length
       = x.recs.length := by simp [genIhdAV, hgx]
   have hhsl : hs.length = x.recs.length := hhl.trans hihdL
   have hbsl : bs.length = x.nF + x.recs.length := by rw [hbl]; simp [hfl, hihl]
-  have hfit : SpineFit (consList xs ρ) (bs.map (·.2.2)) (fs ++ hs) := by
+  have hfit : SpineFit (consList xs ρ) bs (fs ++ hs) := by
     refine spineFit_of_getD (by simp [hfsl, hhsl, hbsl]) fun r hr => ?_
-    rw [List.length_map] at hr
     rcases Nat.lt_or_ge r x.nF with hrF | hrF
     · -- a field
       have hrf : r < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hrF
       obtain ⟨a, ha, hra⟩ := hbs r (R.g.binder (tgtFieldFvs pp.toBlockShape out c j)[r])
         (by rw [List.getElem?_append_left (by simpa using hrf)]; simp [hrf])
-      have hgetB : (bs.map (·.2.2)).getD r default = a := by
-        rw [List.getD_eq_getElem?_getD, List.getElem?_map, ha]; rfl
+      have hgetB : bs.getD r default = a := by
+        rw [List.getD_eq_getElem?_getD, ha]; rfl
       have hgetF : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).getD r default
           = a := by
         rw [List.getD_eq_getElem?_getD, tgtFdomsAV, hRP, List.getElem?_eq_getElem (by simpa using hrf),
@@ -618,11 +683,11 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
       have hl : l < x.recs.length := by omega
       obtain ⟨⟨i, t, tele⟩, hq⟩ : ∃ q, x.recs[l]? = some q := ⟨_, List.getElem?_eq_getElem hl⟩
       obtain ⟨⟨ty, hty, hihq⟩, ⟨n, hrec⟩, hparts, st, hst, hstl⟩ := hih l i t tele hq
-      obtain ⟨a, ha, hra⟩ := hbs (x.nF + l) (ty, R.g.bm)
+      obtain ⟨a, ha, hra⟩ := hbs (x.nF + l) ty
         (by rw [List.getElem?_append_right (by simp [hfl]), List.length_map, hfl,
           Nat.add_sub_cancel_left]; exact hihq)
-      have hgetB : (bs.map (·.2.2)).getD (x.nF + l) default = a := by
-        rw [List.getD_eq_getElem?_getD, List.getElem?_map, ha]; rfl
+      have hgetB : bs.getD (x.nF + l) default = a := by
+        rw [List.getD_eq_getElem?_getD, ha]; rfl
       rw [show R.g.pre.length + (x.nF + l) = R.g.pre.length + x.nF + l by omega] at hra
       have hq' : (genCtorAt R.g R.rd c j).recs[l]? = some (i, t, tele) := by rw [hgx]; exact hq
       have hop' : ConLeche.openPisAtFvars (genCtorAt R.g R.rd c j).nF (genCtorAt R.g R.rd c j).tyD
@@ -632,7 +697,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         (ψ := ψ) hq' hop' (by simpa [hgx] using hfvsS)
         (by rw [hgx]; exact hwsR) (by rw [hgx]; exact hwsS i hiF)
         (by rw [hgx]; exact hparts) hst (by omega) (by rw [hgx]; exact hty)
-        (by rw [hgx]; exact hra) (bit := genBit pp ψ) rfl
+        (by rw [hgx]; exact hra)
       obtain ⟨hv, hhv⟩ : ∃ hv, hs[l]? = some hv := ⟨_, List.getElem?_eq_getElem (by omega)⟩
       have hmI := hhs l qd hv hqd hhv
       have hcal := (genRecIdx_spec (rd := R.rd) (cvGs := R.cvGs) hrec (by
@@ -648,39 +713,39 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
         (by omega), hfsl, Nat.add_sub_cancel_left, consList_append, interp_liftN,
         shiftE_zero_consList (by simp; omega), ← consList_append]
       exact hmI
-  have happ := foldl_app_mem_mkPisAV hvB hfit hmemB
+  have happ := foldl_app_mem_mkPisAV hfit hmemB
   -- the conclusion: the motive at the declared result's indices and the constructor
   have hbl' : ((tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs).length
       = x.nF + x.recs.length := by simp [hfl, hihl]
   rw [hbl'] at hb
-  have hlift2 := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hbbS.1
+  have hlift2 := denote_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hbbS.1
     (R.g.pre.length + (x.nF + x.recs.length)) (by omega)
   rw [hb, show R.g.pre.length + (x.nF + x.recs.length) - (R.g.pre.length + x.nF)
     = x.recs.length by omega] at hlift2
-  obtain ⟨b0, hb0, rfl⟩ : ∃ b0, denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
+  obtain ⟨b0, hb0, rfl⟩ : ∃ b0, denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
       (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
         [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
           ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j)])) = some b0 ∧
       b = b0.liftN x.recs.length 0 := by
-    cases h0 : denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
+    cases h0 : denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
       (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
         [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
           ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j)])) with
     | none => rw [h0] at hlift2; exact nomatch hlift2
     | some b0 => rw [h0] at hlift2; exact ⟨b0, rfl, Option.some.inj hlift2⟩
   rw [ConLeche.ClassGen.motVar_eq hmc] at hb0
-  obtain ⟨fa, vs, hfa, hvs, rfl⟩ := denoteMeta_mkAppN_inv hb0
-  rw [denoteMeta_fvar] at hfa
+  obtain ⟨fa, vs, hfa, hvs, rfl⟩ := denote_mkAppN_inv hb0
+  rw [denote_fvar] at hfa
   obtain rfl := Option.some.inj hfa
-  have hvsE := denoteMetaSpine_eq_map hvs
+  have hvsE := denoteSpine_eq_map hvs
   have hB : tgtB pp.toBlockShape out c j = R.g.pre.length + x.nF := by
     rw [tgtB, hRP, hnF]
   have hEs : tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
       = (res.getAppArgs.drop (R.g.cls.getD cls default).nPc).map
-          fun e => (denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF) e).getD default := by
+          fun e => (denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF) e).getD default := by
     rw [tgtEsAV, hCB, hMaj, hB]
   have hMk : tgtMkAV pp.toBlockShape out mpC.base2.acval envC ψ c j
-      = (denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
+      = (denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
           (Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
             ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j))).getD default := by
     rw [tgtMkAV, hB, hcv, hMaj]
@@ -697,6 +762,233 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
   rw [hEs, hMk, consList_append]
   simpa only [List.map_append, List.map_map, List.map_cons, List.map_nil, Function.comp_def]
     using happ
+
+
+set_option maxHeartbeats 8000000 in
+/-- **At a `Prop` elimination level the minor premise is the point**: its
+domain, the minor premise's type, is a Π-tower whose innermost fibre is
+the motive applied to the declared result's indices and the constructor
+— a type by the stored type's grading ("not pt" source (1)) and an
+application of a member of `∀ ı⃗ t, Sort 0` to its full arity, so a truth
+value (`mem_univZero_of_endsInSort`).  The index count is read off the
+class decoding (`hlenEs`) at the fitting field spines. -/
+theorem genMinor_pt (hμ : μ.verifiedChecks = true)
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
+      (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
+        envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
+    (ψ : Name → Nat) (ρ : Nat → V)
+    (hℓ : Level.eval ψ (ConLeche.structElimLevel pp.toBlockShape.elim pp.toBlockShape.large) = 0) :
+    ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c → ∀ xs,
+    SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs →
+    (∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
+      (tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = (tgtMajor out c).nIdx) →
+    xs.getD (R.g.nP + genMinorSlot R.g R.rd c j) pt = pt := by
+  intro c hc j hj xs hxs hlenEs
+  obtain ⟨cls, s, x, T, res, ws, ihs, hgc, hgx, hms, hxmem, hMaj, ⟨ihs0, hsS⟩, hpreT, hTs, hrP,
+    hopR, hCB, hnF, hcv, hwsR, hihl, hih, ⟨sc, hmc, hscl⟩, hTE⟩ := genMinorSetup R hg h hfind hc hj
+  rw [hms]
+  have hr : (tgtRs out)[c]? = some ((tgtRs out)[c]'hc) := List.getElem?_eq_getElem hc
+  have hpl : R.g.pre.length = R.g.nP + R.g.slots.length :=
+    (ConLeche.ClassGen.prefixBinders_scoped hg hg.pre).1
+  have hsl : s < R.g.slots.length := (List.getElem?_eq_some_iff.mp hsS).1
+  have hmp : R.g.nP + s < R.g.pre.length := by omega
+  -- the stored type's entry at the minor's slot
+  obtain ⟨cls', ty', ifs', body', -, -, -, -, -, -, -, -, -, -, fvs0, o0, hop0, hE⟩ :=
+    genRun_binders hμ R hg h mpC ψ hc
+  obtain ⟨fvs1, concl1, hop1, -, hTyE, hlenRds, hdomsR, -, hwdTy⟩ :=
+    recStage_tyPis (V := V) hμ mpC h hr ψ
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hop1.symm.trans hop0))
+  have hle := blockRecHrPle (p := pp) h hc
+  have hlenF : fvs1.length = pp.toBlockShape.majorIdxAt c + 1 :=
+    ConLeche.Verify.openPisAtFvars_length _ hop1
+  obtain ⟨y, hy⟩ : ∃ y, fvs1[R.g.nP + s]? = some y :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  have hyE := hE _ y T hy (by
+    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT])
+  obtain ⟨pd, hpd, hrd⟩ := hdomsR _ y hy
+  rw [denote_erasedEq hyE] at hrd
+  -- the prefix's entry: the minor's value
+  have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
+  have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
+      (R.g.nP + s) default = pd := by
+    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
+      ite_eq_left (by omega), hpd]; rfl
+  have hmem := FixKI.spineFit_getD_mem' hxs (l := R.g.nP + s) (by rw [hlenPd]; omega)
+  rw [hPdget] at hmem
+  -- read at the rule prefix
+  have hlift := denote_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
+    (by omega)
+  rw [hrd, Option.map_some] at hlift
+  -- the pieces are bounded
+  obtain ⟨hfl, hfvsS, hresS⟩ := ConLeche.ScB.openPis hopR
+    ((hg.tyD cls x hxmem).mono (by omega))
+  have hwsS : ∀ i, i < x.nF → ConLeche.ScB (R.g.pre.length + x.nF) (ws.getD i default) :=
+    fun i hi => ConLeche.ScB.targetPiDomsWith_getD hwsR
+      ((hg.tyN cls x hxmem).mono (by omega)) (fun a ha => by
+        obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
+        obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
+        rw [hxe]; exact ConLeche.ScB.fvar (by omega) hty) (by omega)
+  have hihS : ∀ l ty, ihs[l]? = some ty →
+      ConLeche.ScB (R.g.pre.length + x.nF + l) ty := by
+    intro l ty hl
+    have hl' : l < x.recs.length := by
+      rw [← hihl]; exact (List.getElem?_eq_some_iff.mp hl).1
+    obtain ⟨⟨i, t, tele⟩, hq⟩ : ∃ q, x.recs[l]? = some q :=
+      ⟨_, List.getElem?_eq_getElem hl'⟩
+    obtain ⟨⟨ty', hty', hl2⟩, -, -, st, hst, hstl⟩ := hih l i t tele hq
+    rw [hl] at hl2
+    obtain rfl := Option.some.inj hl2
+    obtain ⟨hiF, -⟩ := ConLeche.ClassGen.recs_mem (List.mem_of_getElem? hq)
+    have hi : i < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hiF
+    obtain ⟨tyf, hxe, htyf⟩ := hfvsS i _ (List.getElem?_eq_getElem hi)
+    refine genIhTy_scb hst (by omega) ((hwsS i hiF).mono (by omega)) ?_ hty'
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some, hxe]
+    exact ConLeche.ScB.fvar (by omega) (htyf.mono (by omega))
+  have hcl : ∀ p ∈ (tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs,
+      p.looseBVarsBounded 0 = true := by
+    intro p hp
+    rcases List.mem_append.mp hp with hp | hp
+    · obtain ⟨y', hy', rfl⟩ := List.mem_map.mp hp
+      obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hy'
+      obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
+      rw [hxe]; exact hty.2
+    · obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem hp
+      exact (hihS l _ (List.getElem?_eq_getElem hl)).2
+  have hbbS : ConLeche.ScB (R.g.pre.length + x.nF)
+      (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
+        [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
+          ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j)])) := by
+    rw [ConLeche.ClassGen.motVar_eq hmc]
+    refine ConLeche.ScB.mkAppN (ConLeche.ScB.fvar (by omega) (ConLeche.ScB.sort _ _))
+      fun a ha => ?_
+    rcases List.mem_append.mp ha with ha | ha
+    · exact ConLeche.ScB.getAppArgs hresS a (List.mem_of_mem_drop ha)
+    · simp only [List.mem_singleton] at ha
+      subst ha
+      refine ConLeche.ScB.mkAppN (ConLeche.ScB.const _ _ _) fun b hb => ?_
+      rcases List.mem_append.mp hb with hb | hb
+      · exact (hg.ds cls b hb).mono (by omega)
+      · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
+        obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
+        rw [hxe]; exact ConLeche.ScB.fvar (by omega) (hty.mono (by omega))
+  obtain ⟨bs, b, hBE, hbl, hbs, hb⟩ :=
+    denote_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
+      hlift
+  -- the frames
+  have hlenPd' : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
+      = R.g.pre.length := hlenPd.trans hrP
+  have hxl : xs.length = R.g.pre.length := hxs.length_eq.trans hlenPd'
+  have hsh : shiftE (R.g.pre.length - (R.g.nP + s)) 0 (consList xs ρ)
+      = consList (xs.take (R.g.nP + s)) ρ := by
+    have := shiftE_consList (V := V) (ys := ([] : List V)) (zs := xs) (ρ := ρ)
+      (n := R.g.pre.length - (R.g.nP + s)) (k := 0) rfl (by omega)
+    rw [show xs.length - (R.g.pre.length - (R.g.nP + s)) = R.g.nP + s by omega] at this
+    exact this
+  have hmemB : xs.getD (R.g.nP + s) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) := by
+    rw [← hBE, interp_liftN, hsh]; exact hmem
+  -- the minor's domain is a graded type
+  have hgr := blockRulePdomsAV_graded (V := V) hμ mpC h hr ψ (R.g.nP + s) (by omega) ρ
+    (xs.take (R.g.nP + s)) (spineFit_take hxs (i := R.g.nP + s) (by omega))
+  rw [hPdget] at hgr
+  have hwdB : WellDenotedTy V (consList xs ρ) (mkPisAV bs b) := by
+    rw [← hBE, WellDenotedTy_liftN, hsh]; exact hgr
+  -- the motive's domain: `∀ ı⃗ t, Sort elim`, read at its slot
+  obtain ⟨hcount, key, hkey⟩ := motiveSlot_count hmc
+  obtain ⟨Tm, hTm, hpreTm⟩ := ConLeche.ClassGen.prefixBinders_motive hg hkey
+  rw [hcount] at hTm
+  have hEnds := ClassGen.motiveTy_endsInSort hTm
+  obtain ⟨ym, hym⟩ : ∃ y, fvs1[R.g.nP + sc]? = some y :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  have hymE := hE _ ym Tm hym (by
+    rw [List.append_assoc, List.getElem?_append_left (by omega), hpreTm])
+  obtain ⟨pdm, hpdm, hrdm⟩ := hdomsR _ ym hym
+  rw [denote_erasedEq hymE] at hrdm
+  have hPdm : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
+      (R.g.nP + sc) default = pdm := by
+    rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
+      ite_eq_left (by omega), hpdm]; rfl
+  have hmemM := FixKI.spineFit_getD_mem' hxs (l := R.g.nP + sc) (by rw [hlenPd]; omega)
+  rw [hPdm] at hmemM
+  -- the conclusion: the motive at the declared result's indices and the constructor
+  have hbl' : ((tgtFieldFvs pp.toBlockShape out c j).map R.g.binder ++ ihs).length
+      = x.nF + x.recs.length := by simp [hfl, hihl]
+  rw [hbl'] at hb
+  have hlift2 := denote_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hbbS.1
+    (R.g.pre.length + (x.nF + x.recs.length)) (by omega)
+  rw [hb, show R.g.pre.length + (x.nF + x.recs.length) - (R.g.pre.length + x.nF)
+    = x.recs.length by omega] at hlift2
+  obtain ⟨b0, hb0, rfl⟩ : ∃ b0, denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
+      (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
+        [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
+          ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j)])) = some b0 ∧
+      b = b0.liftN x.recs.length 0 := by
+    cases h0 : denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF)
+      (Expr.mkAppN (R.g.motVar cls) (res.getAppArgs.drop (R.g.cls.getD cls default).nPc ++
+        [Expr.mkAppN (.const x.cv.name (R.g.cls.getD cls default).lvls)
+          ((R.g.cls.getD cls default).ds ++ tgtFieldFvs pp.toBlockShape out c j)])) with
+    | none => rw [h0] at hlift2; exact nomatch hlift2
+    | some b0 => rw [h0] at hlift2; exact ⟨b0, rfl, Option.some.inj hlift2⟩
+  rw [ConLeche.ClassGen.motVar_eq hmc] at hb0
+  obtain ⟨fa, vs, hfa, hvs, rfl⟩ := denote_mkAppN_inv hb0
+  rw [denote_fvar] at hfa
+  obtain rfl := Option.some.inj hfa
+  have hvsl := DenoteSpine.length_eq hvs
+  have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
+  have hB : tgtB pp.toBlockShape out c j = R.g.pre.length + x.nF := by
+    rw [tgtB, hRP, hnF]
+  have hEs : tgtEsAV pp.toBlockShape out mpC.base2.acval envC ψ c j
+      = (res.getAppArgs.drop (R.g.cls.getD cls default).nPc).map
+          fun e => (denote mpC.base2.acval envC ψ (R.g.pre.length + x.nF) e).getD default := by
+    rw [tgtEsAV, hCB, hMaj, hB]
+  -- the field domains are the tower's first domains
+  have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
+    rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
+  have hbsl : bs.length = x.nF + x.recs.length := by rw [hbl]; simp [hfl, hihl]
+  have hfdT : bs.take x.nF = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j := by
+    refine List.ext_getElem (by simp [hfdL, hbsl]) fun r h1 h2 => ?_
+    have hrF : r < x.nF := by rw [hfdL] at h2; exact h2
+    have hrf : r < (tgtFieldFvs pp.toBlockShape out c j).length := by rw [hfl]; exact hrF
+    obtain ⟨a, ha, hra⟩ := hbs r (R.g.binder (tgtFieldFvs pp.toBlockShape out c j)[r])
+      (by rw [List.getElem?_append_left (by simpa using hrf)]; simp [hrf])
+    have hbr : bs[r]'(by omega) = a := by
+      rw [List.getElem?_eq_getElem (by omega)] at ha; exact Option.some.inj ha
+    simp only [List.getElem_take, hbr]
+    have := readOpenedDoms_getElem (acval := mpC.base2.acval) (env := envC) (ψ := ψ)
+      R.g.pre.length _ r hrf
+    simp only [ClassGen.binder] at hra
+    rw [hra] at this
+    simp only [tgtFdomsAV, hRP, this, Option.getD_some]
+  -- the minor's domain is a truth value: so the minor is the point
+  refine eq_pt_of_mem_univZero ?_ hmemB
+  refine mkPisAV_mem_univZero fun zs hzs => ?_
+  have hzl : zs.length = x.nF + x.recs.length := by
+    rw [hzs.length_eq, hbsl]
+  have hfs : SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j)
+      (zs.take x.nF) := by
+    rw [← hfdT]; exact spineFit_take hzs (by simp [hbsl])
+  have hesl := hlenEs (zs.take x.nF) hfs
+  rw [hEs, List.length_map, hMaj] at hesl
+  have hty := isTy_of_wdTy_mkPisAV hwdB hzs
+  have hhd : interp V (consList (zs.take x.nF) (consList xs ρ))
+      (.bvar (R.g.pre.length + x.nF - 1 - (R.g.nP + sc))) = xs.getD (R.g.nP + sc) pt := by
+    show consList (zs.take x.nF) (consList xs ρ) _ = _
+    have htl : (zs.take x.nF).length = x.nF := by simp [hzl]
+    rw [← consList_append, show R.g.pre.length + x.nF - 1 - (R.g.nP + sc)
+      = (zs.take x.nF).length + xs.length - 1 - (R.g.nP + sc) by omega,
+      consList_prefix_getD (by omega)]
+  have hval : interp V (consList zs (consList xs ρ)) ((Term.mkAppN (.bvar
+        (R.g.pre.length + x.nF - 1 - (R.g.nP + sc))) vs).liftN x.recs.length 0)
+      = (vs.map (interp V (consList (zs.take x.nF) (consList xs ρ)))).foldl SetTheory.app
+          (xs.getD (R.g.nP + sc) pt) := by
+    rw [← List.take_append_drop x.nF zs, consList_append, interp_liftN,
+      shiftE_zero_consList (by simp [hzl]), List.take_append_drop, interp_mkAppN,
+      ← List.foldl_map, hhd]
+  rw [hval] at hty ⊢
+  exact mem_univZero_of_endsInSort hℓ _ hEnds hrdm hmemM _
+    (by rw [List.length_map, ← hvsl, List.length_append, hesl]; rfl) hty
 
 end Minor
 

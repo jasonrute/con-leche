@@ -10,7 +10,7 @@
 # The expectations file additionally pins the current accept/decline status
 # so that progress and regressions are both visible; update it consciously.
 #
-# Usage: tests/arena.sh [--no-sweeps] [tests-dir]
+# Usage: tests/arena.sh [--no-sweeps] [--no-selfcheck] [tests-dir]
 #
 # An <expectation> is a single exit code.
 #
@@ -27,7 +27,8 @@
 #     stops or starts detecting differently).
 #
 # `--no-sweeps` skips the extra pass for a tight edit loop; a landing
-# gate runs it.
+# gate runs it.  `--no-selfcheck` skips the self-check sub-gate (below)
+# likewise.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -44,10 +45,12 @@ export TMPDIR="${TMPDIR:-$PWD/_tmp/tmp}"
 mkdir -p "$TMPDIR"
 
 MODE_SWEEPS=on
+SELFCHECK=on
 args=()
 for a in "$@"; do
   case "$a" in
     --no-sweeps) MODE_SWEEPS=off;;
+    --no-selfcheck) SELFCHECK=off;;
     *) args+=("$a");;
   esac
 done
@@ -57,7 +60,6 @@ TESTS_DIR="${1:-_tmp/arena-tests}"
 BIN=.lake/build/bin/con-leche
 EXPECTED=tests/arena-expected.txt
 E2E_EXPECTED=tests/e2e-expected.txt
-ANNOT_EXPECTED=tests/annot-expected.txt
 T_EXPECTED=tests/trusted-expected.txt
 
 if [ ! -d "$TESTS_DIR" ]; then
@@ -215,6 +217,22 @@ if tests/challenge.sh; then :; else fail=1; fi
 # built tree; ~1 min, most of it the two olean dumps the fixpoint reads.
 if tests/shake.sh; then :; else fail=1; fi
 
+# THE SELF-CHECK (task #199; a sub-gate since task #342 R1).
+# `scripts/selfcheck.sh --fresh` exports this tree's own development
+# (every con-leche declaration and its dependency cone, ~0.7 GB of
+# NDJSON) and runs the checker on it at `--verified --jobs=8`: under a
+# minute with the export (2 CPU-minutes); the first run in a checkout
+# also clones and builds `lean4export` at the tree's toolchain (it needs
+# the network once).  The gate is the checker's exit 0.
+if [ "$SELFCHECK" = on ]; then
+  if scripts/selfcheck.sh --fresh _tmp/selfcheck-gate > _tmp/selfcheck-gate.log 2>&1; then
+    echo "selfcheck: $(grep -o 'accepted [0-9]* declarations' _tmp/selfcheck-gate.log | tail -1)"
+  else
+    echo "SELFCHECK FAIL: see _tmp/selfcheck-gate.log"; tail -5 _tmp/selfcheck-gate.log
+    fail=1
+  fi
+fi
+
 # THE AXIOM PIN (2026-09-06, external review §2/§5.1).  The two main
 # theorems, the four letters, the assembly under them and the `IO`
 # loop's bridge — and, since task #181, the `False` letters — carry `#guard_msgs in #print axioms`
@@ -292,7 +310,12 @@ arena_half() {
 # k_rescue_stuck: BELOW the default too — checks in milliseconds, and a
 # regression (task #334: whnf of the major restored after a failed K
 # rescue) does not terminate.
+# whnf_delta_loop, whnf_core_loop: their expected verdict IS the timeout
+# (exit 124: a head normalization that does not terminate, run in
+# constant stack); 5 s is plenty to tell it from a stack overflow.
 declare -A E2E_TIMEOUT=(
+  [whnf_delta_loop.ndjson]=5
+  [whnf_core_loop.ndjson]=5
   [complete_c05b_nest30_pi1000.ndjson]=600
   [proj_stuck_struct.ndjson]=10
   [omega_kloop.ndjson]=10
@@ -324,51 +347,21 @@ e2e_half() {
   done < "$E2E_EXPECTED"
 }
 
-# --- the annotated suite (task #161) --------------------------------
-# Hand-written export streams whose binder records carry the "pw"
-# sort-annotation field; see tests/annot-expected.txt's header.
-annot_half() {
-  annot_ok=0
-  annot_total=0
-  while read -r exp rel; do
-    case "$exp" in ''|'#'*) continue;; esac
-    resolve "$exp" annot "$rel" ""
-    annot_total=$((annot_total+1))
-    timeout 60 "$BIN" $MODEFLAG "tests/annot/$rel" >/dev/null 2>&1
-    got=$?
-    if [ "$got" != "$want" ]; then
-      mismatch "ANNOT FAIL" "$rel" "$want" "$got"
-    else
-      annot_ok=$((annot_ok+1))
-    fi
-  done < "$ANNOT_EXPECTED"
-}
-
-# THE CERTIFIED SWEEP, RESTORED (task #161 P5, 2026-09-01).  The P2..P5
-# suspension is over: the annotate pass writes the `pw` datum for every
-# binder of every unannotated stream, so the arena and e2e suites run at
-# `--verified` again — validated, not merely checked.  A regression in
-# the pass shows up here as a `sort-annotation mismatch (<site>)`
-# decline against a certified expectation.  The annotated fixture suite
-# stays and is now the pass's *negative* gate: the annot_decline_*
-# streams carry explicit wrong claims the pass must not overwrite.
+# The arena and e2e suites run at `--verified`.
 arena_half
 echo "arena tutorial: $accepted/$total_good good tests accepted"
 if [ -f "$E2E_EXPECTED" ]; then
   e2e_half
   echo "e2e: $e2e_ok/$e2e_total as expected"
 fi
-annot_half
-echo "annot suite: $annot_ok/$annot_total as expected"
-
 
 # The mode flags: the modes parse and judge the smoke fixtures alike —
 # the verified lane (`--verified`, the default) and the trusted lane
 # (`--trusted`) — and an unknown option is a usage error (exit 3), not
 # a silently ignored one: a verdict's provenance must be readable off
 # the invocation.
-SPLIT_GOOD=tests/annot/annot_split_good.ndjson
-SPLIT_BAD=tests/annot/annot_split_bad.ndjson
+SPLIT_GOOD=tests/mode/split_good.ndjson
+SPLIT_BAD=tests/mode/split_bad.ndjson
 mode_ok=0
 mode_total=0
 mode_case() {
@@ -579,7 +572,7 @@ echo "progress lane: $prog_ok/$prog_total as expected"
 # `ulimit -v` (CLAUDE.md): each worker thread reserves about 1 GiB of
 # ADDRESS SPACE, so an address-space cap aborts the default worker
 # count at thread creation (exit 134) before it bounds anything.
-SPLIT_BAD2=tests/annot/annot_split_bad2.ndjson
+SPLIT_BAD2=tests/mode/split_bad2.ndjson
 jobs_ok=0
 jobs_total=0
 jobs_check() { # <description> <condition-result>
@@ -785,7 +778,6 @@ if [ "$MODE_SWEEPS" = on ]; then
   arena_half
   t_arena=$arena_checked
   e2e_half
-  annot_half
   SWEEP=cert
   MODEFLAG=""
   if [ "$fail" = "$t_fail_before" ]; then
@@ -793,8 +785,7 @@ if [ "$MODE_SWEEPS" = on ]; then
     # deliberately do not agree — they are the recorded divergences of
     # the unverified lane, counted here so a silently emptied
     # tests/trusted-expected.txt is visible in the summary line.
-    echo "trusted sweep: $t_arena arena + $e2e_total e2e +" \
-         "$annot_total annot as expected" \
+    echo "trusted sweep: $t_arena arena + $e2e_total e2e" \
          "(${#T_OVR[@]} recorded divergences)"
   else
     echo "trusted sweep: DIVERGED — see the lines above" \
@@ -811,12 +802,11 @@ if [ "$MODE_SWEEPS" = on ]; then
     j_fail_before=$fail
     arena_half
     e2e_half
-    annot_half
     SWEEP=cert
     MODEFLAG=""
     if [ "$fail" = "$j_fail_before" ]; then
-      echo "--jobs=$jn sweep: $arena_checked arena + $e2e_total e2e +" \
-           "$annot_total annot as at the default worker count"
+      echo "--jobs=$jn sweep: $arena_checked arena + $e2e_total e2e" \
+           "as at the default worker count"
     else
       echo "--jobs=$jn sweep: DIVERGED — see the lines above"
     fi

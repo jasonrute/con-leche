@@ -3,11 +3,11 @@
    UNIFCHK (2026-09-29), ACCEPTED SUPERSET (reported, not ruled): a
    NON-uniform occurrence `T Nat` only in a `let`'s TYPE.  Official v4.33.1+
    rejects (`check_uniform_ind_occs` walks `let` types); ≤ v4.33.0 accepts.
-   Ours 0: the uniform-occurrence check (`nestUniform`) reads the STORED
-   constructor type, and the annotation pass inlines `let`s (the ζ
-   reduct), so the occurrence is gone.  Sound (the model reads the stored
-   type).  TARGET 1 (official) if a reject-only check on the declared type
-   is ever wanted. -/
+   Then ours 0: the uniform-occurrence check (`nestUniform`) read the
+   STORED constructor type, and the annotation pass of the time inlined
+   `let`s (the ζ reduct), so the occurrence was gone.  Since task #342
+   lets are stored as declared, the check sees the occurrence, and the
+   verdict is 1, official's. -/
 import Lean
 open Lean in
 def registerAuxRecs (T : Name) : CoreM Unit := do

@@ -2,8 +2,7 @@ module
 
 public import ConLeche.Model.Inductives.PosDerivNodes
 public import ConLeche.Model.Inductives.TargetNodeList
-import ConLeche.Model.Rules.Sound
-import ConLeche.Verify.Rules.Bridge
+import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Verify.InferLeaves
 import ConLeche.Verify.Cached.Erase
 
@@ -37,7 +36,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree PosNodeOk PosD)
 
@@ -57,15 +56,6 @@ theorem posD_frame_kty {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : Nes
   cases h with
   | frame _ _ _ _ _ _ _ _ hkty _ => exact hkty
 
-/-- A constant applied to arguments in a context is in it. -/
-theorem CtxOkP.mkAppN_const {env : Env} {m : EnvModel V env} {φ : Name → Nat} {d : Nat}
-    {Δ : List AnnotTerm} (hΔ : Δ.length = d) {n : Name} {us : List Level} {as : List Expr}
-    (h : ∀ x ∈ as, CtxOkP m φ d Δ x) : CtxOkP m φ d Δ (Expr.mkAppN (.const n us) as) := by
-  refine ⟨hΔ, fun l hl => ?_⟩
-  rcases ConLeche.fvarLeaves_mkAppN hl with h0 | ⟨x, hx, hlx⟩
-  · simp [Expr.fvarLeaves] at h0
-  · exact (h x hx).2 l hlx
-
 /-- A node's key parameters are scoped, and closed, at the depth of the
 frames its frame is derived under. -/
 theorem posNodeOk_dsAnc {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : NestCtx}
@@ -78,20 +68,35 @@ theorem posNodeOk_dsAnc {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : Ne
   · rw [hao]; exact (hws x hx).1
   · rw [han]; exact (hds x hx).2
 
+/-- **A node's head former peels along its key** (`frame_head_instPis`
+at the node's frame derivation). -/
+theorem posNode_instPis {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : NestCtx}
+    (hfind : ∀ n, ctx.find? n = env.find? n) {t : PosTree} (hok : PosNodeOk ops env ctx t)
+    {cv : ConstantVal} {caps : IndCaps}
+    (hf : env.find? (t.grp.headD default).1 = some (.indInfo cv caps)) :
+    ∃ r, ConLeche.instPisWith t.key.ds
+      (cv.type.instantiateLevelParams cv.levelParams t.key.lvls) = some r := by
+  obtain ⟨hne, -, -, hinst, -⟩ := posD_frame_inv hok.1
+  obtain ⟨p₀, ps₀, hp⟩ := List.exists_cons_of_ne_nil hne
+  have hh₀ : (t.grp.headD default).1 = p₀.1 := by rw [hp]; rfl
+  exact frame_head_instPis hfind (hinst p₀ (by rw [hp]; exact List.mem_cons_self)) (hh₀ ▸ hf)
+
 /-- **K.52 at a node** (`hfit` of `FrameMono`): at every valuation of the
 node's stack context, its key's parameters read in the container's
 parameter telescope — the key instance is typed at the node's depth
 (`posD_frame_kty`), graded there (`infer_sound`), and a graded instance
-reads its parameters in the telescope (`keyParamsFit`). -/
+reads its parameters in the telescope (`keyParamsFit`, from the key's
+inference). -/
 theorem nodeKeyFit {env : Env} (mk : EnvModelM V μ env) {φ : Name → Nat} {ctx : NestCtx} {F : Nat}
-    {Δ0 : List AnnotTerm} (hΔ0 : Δ0.length = ctx.hiAt 0) {t : PosTree}
+    {Δ0 : List Term} (hΔ0 : Δ0.length = ctx.hiAt 0) {t : PosTree}
     (hok : PosNodeOk (fueledOps .verified F) env ctx t) (hsem : NodeSemAt mk.base2 φ ctx Δ0 t)
+    (hfind : ∀ n, ctx.find? n = env.find? n)
     {D : LfpDatum V} (hD : D ∈ mk.lfpBlocks) {mm : Nat} (hmm : mm < D.k)
     (hhead : D.member mm = (t.grp.headD default).1)
     {cv : ConstantVal} {caps : IndCaps} (hf : env.find? (D.member mm) = some (.indInfo cv caps))
     (hlenP : t.key.ds.length = (D.params (Level.substFn φ cv.levelParams t.key.lvls)).length)
-    {dsa : List AnnotTerm}
-    (hdsa : DenoteMetaSpine mk.base2.acval env φ (ctx.hiAt t.anc.length) t.key.ds dsa) :
+    {dsa : List Term}
+    (hdsa : DenoteSpine mk.base2.acval env φ (ctx.hiAt t.anc.length) t.key.ds dsa) :
     ∀ σ : Nat → V, Sat V (stackCtx mk.base2 φ ctx t.anc Δ0) σ →
       Sat V (D.params (Level.substFn φ cv.levelParams t.key.lvls)).reverse
         (keyFrame dsa (ctx.hiAt t.anc.length) σ) := by
@@ -112,20 +117,15 @@ theorem nodeKeyFit {env : Env} (mk : EnvModelM V μ env) {φ : Name → Nat} {ct
     · simp [Expr.fvarLeaves] at h0
     · exact hL x hx l hlx
   obtain ⟨wa, hwa⟩ := acceptedReads_of mk.base2 φ hty' hwsE hbE hLE
-  have hCE : CtxOkP mk.base2 φ (ctx.hiAt t.anc.length) (stackCtx mk.base2 φ ctx t.anc Δ0)
-      (Expr.mkAppN (.const (D.member mm) t.key.lvls) t.key.ds) :=
-    CtxOkP.mkAppN_const (stackCtx_length_hi hΔ0 _) hC
-  obtain ⟨-, -, -, -, hgr, -⟩ :=
-    Rules.infer_sound (Rules.RulesInputs.ofSem mk φ) (Rules.inferTypeCore_bridge hty')
-      ⟨hwsE, hbE, hLE⟩ hCE.toCtxOk hwa
+  obtain ⟨fa, vs, hfa, -, -⟩ := denote_mkAppN_inv hwa
+  obtain ⟨hul, -⟩ := Rules.denote_const_arityK hf hfa
+  -- the former's telescope peels along the key (`nestInstType` at the head)
+  obtain ⟨r, hr⟩ := posNode_instPis hfind hok (hhead ▸ hf)
+  have hΔ := stackCtx_length_hi (m := mk.base2) (φ := φ) hΔ0 t.anc
   intro σ hσ
-  have hwa' : denoteMeta mk.base2.acval env φ (ctx.hiAt t.anc.length)
-      (Expr.mkAppN (.const (D.member mm) t.key.lvls) (t.key.ds ++ [])) = some wa := by
-    rw [List.append_nil]; exact hwa
-  have := keyParamsFit mk hD hmm hf (Nat.le_refl _) hwa' hlenP (fun x hx => (hws x hx).1) hdsa σ
-    (hgr σ hσ)
-  rw [Nat.sub_self] at this
-  exact this
+  exact keyParamsFit mk (Rules.RulesInputs.ofSem mk φ) hD hmm hf hul hty' hr hlenP hΔ
+    (fun x hx => ⟨⟨(hws x hx).1, (hws x hx).2, hL x hx⟩, CtxOk.toS (hC x hx).toCtxOk⟩) hdsa σ hσ
+    (fun x hx => CtxOk.leavesGr (hC x hx).toCtxOk hσ)
 
 /-! ## Admissible valuations -/
 
@@ -190,7 +190,7 @@ structure AdmVal (own : Nat → Nat) (G : Nat → Nat → V → V → Prop) (pro
       -- the frames below the hole end in the owner's
       (∃ Y, prog.drop (prog.length - i) = Y ++ (ns.getD (own i - 1) default).anc) ∧
       -- the owner's true frame is the hole's key read at the true valuation
-      (∀ dsa, DenoteMetaSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa →
+      (∀ dsa, DenoteSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa →
         keyFrame dsa (ctx.hiAt prog.length) (trueVal mpC ctx ψ ρ xs prog)
           = nlFr mpC ctx d ns ψ ρ xs (own i)) ∧
       ∀ is : List V, is.length + hk.key.ds.length = ConLeche.nestArity ctx hk.key.cname →
@@ -209,8 +209,8 @@ structure AdmVal (own : Nat → Nat) (G : Nat → Nat → V → V → Prop) (pro
 
 /-- A node's key parameters, read at the formers' model where its frame is
 derived. -/
-@[expose] noncomputable def nodeDsaI (t : PosTree) : List AnnotTerm :=
-  t.key.ds.map fun x => (denoteMeta mk.base2.acval envI ψ (ctx.hiAt t.anc.length) x).getD default
+@[expose] noncomputable def nodeDsaI (t : PosTree) : List Term :=
+  t.key.ds.map fun x => (denote mk.base2.acval envI ψ (ctx.hiAt t.anc.length) x).getD default
 
 /-- **The admissible frames of node `b`**: node `0` at its true frame
 only; a derived node at its key's parameters read at an admissible

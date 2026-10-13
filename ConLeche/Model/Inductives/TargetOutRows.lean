@@ -39,7 +39,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal FEnv BlockShape TargetMajor RecShape
   CheckMode)
 
@@ -49,20 +49,20 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **An outside major's parameters, read at the rule prefix** — a
 function of the level valuation (the reading is unique,
-`denoteMetaSpine_eq_map`). -/
-@[expose] def tgtOutDsa (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env) (p : BlockShape)
+`denoteSpine_eq_map`). -/
+@[expose] def tgtOutDsa (acval : Name → (Name → Nat) → Term) (envC : Env) (p : BlockShape)
     (out : List (ConstantVal × TargetMajor × List Expr)) (ψ : Name → Nat) (j : Nat) :
-    List AnnotTerm :=
-  (tgtMajor out j).ds.map fun x => (denoteMeta acval envC ψ (tgtRP p j) x).getD default
+    List Term :=
+  (tgtMajor out j).ds.map fun x => (denote acval envC ψ (tgtRP p j) x).getD default
 
 /-- A read spine is the list of its arguments' readings. -/
-theorem denoteMetaSpine_eq_map {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem denoteSpine_eq_map {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} {d : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env φ d as vs →
-      vs = as.map fun x => (denoteMeta acval env φ d x).getD default
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine acval env φ d as vs →
+      vs = as.map fun x => (denote acval env φ d x).getD default
   | [], _, .nil => rfl
   | _ :: _, _, .cons ha hs => by
-    rw [List.map_cons, ha, Option.getD_some, ← denoteMetaSpine_eq_map hs]
+    rw [List.map_cons, ha, Option.getD_some, ← denoteSpine_eq_map hs]
 
 section Rows
 

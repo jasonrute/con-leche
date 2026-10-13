@@ -1,44 +1,25 @@
 module
 
 public import ConLeche.Verify.Level
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern): its constructors are `public` but the module is
-not `@[expose]`d, so a `cases`-then-`rfl` proof about a datum cannot
-see the reduct.  `import all` gives that view HERE only; nothing this
-module exports depends on it. -/
-import ConLeche.Kernel.PropWhen
-import all ConLeche.Kernel.PropWhen
 
 public section
 
 /-!
 # The zero-ness datum against `Level` (task #161)
 
-`ConLeche/Kernel/PropWhen.lean` owns the datum: its representation, its
-API, and every law about the datum *alone* (the readout algebra,
-`eq_iff_holds` — equality decides zero-ness agreement — and the
-`inter`/`bindZ` algebra).  This file is a *consumer* of that API; it
-proves what the datum alone cannot say, namely how it relates to
-`Level`:
+`ConLeche/Kernel/PropWhen.lean` owns the datum and the laws about the
+datum alone (the readout algebra and the `inter`/`bindZ` algebra).
+This file proves how it relates to `Level`:
 
 * **Soundness of the readout** — `zeronessOf_sound`:
   `(zeronessOf l).holds φ = (eval φ l == 0)`.
 * **The substitution pushforward** — `zeronessOf_subst`:
   `zeronessOf (subst ks vs l) = substPW ks vs (zeronessOf l)`, an
   *equality* of data (`bindZ` distributes over `inter`).
-* **The instantiation laws** — `substPW_self` (identity at a
-  declaration's own parameters, unconditional: the datum is canonical
-  by construction since task #194, so `bindZ` at the unit is the
-  identity as an equality, `PropWhen.bindZ_unit`) and `substPW_comp`
-  (composition, under the same parameter-definedness hypothesis the
-  level side has — `PropWhen.paramsDefined`, folded into
-  `Expr.allLevelParamsDefined`), `substPW_paramsDefined`,
-  `zeronessOf_paramsDefined`, and the semantic reading
-  `holds_substPW`.
-
-Nothing here unfolds the datum's representation: every step goes
-through the exported `casesZ` view and the `_never`/`_ifAllZero`
-equations.
+* **The composition law** — `substPW_comp`, under the same
+  parameter-definedness hypothesis the level side has
+  (`PropWhen.paramsDefined`), with `zeronessOf_paramsDefined`, and
+  the semantic reading `holds_substPW`.
 -/
 
 namespace ConLeche.PropWhen
@@ -84,7 +65,7 @@ theorem zeronessOf_subst (ks : List Name) (vs : List Level) :
       zeronessOf (subst ks vs l) = substPW ks vs (zeronessOf l)
   | .zero => rfl
   | .succ l => rfl
-  | .param n => rfl
+  | .param n => (inter_nil _).symm
   | .max a b => by
     show (zeronessOf (subst ks vs a)).inter (zeronessOf (subst ks vs b))
       = substPW ks vs ((zeronessOf a).inter (zeronessOf b))
@@ -93,36 +74,6 @@ theorem zeronessOf_subst (ks : List Name) (vs : List Level) :
   | .imax a b => by
     show zeronessOf (subst ks vs b) = _
     exact zeronessOf_subst ks vs b
-
-/-- `subst.go` at the identity substitution. -/
-theorem subst_go_self (ks : List Name) (n : Name) :
-    subst.go ks (ks.map Level.param) n = .param n := by
-  induction ks with
-  | nil => rfl
-  | cons k ks ih =>
-    show (if k = n then Level.param k else subst.go ks (ks.map .param) n)
-      = _
-    by_cases h : k = n
-    · simp [h]
-    · simp [h, ih]
-
-/-- Instantiating a datum at the declaration's own parameters is the
-identity — unconditionally.  Amendment 2 (task #161 P1) found this
-law false for a *normalizing* `substPW` on a *non-canonical* datum;
-since task #194 every datum is canonical by construction, so there is
-no such datum and the law is an equality again (`PropWhen.bindZ_unit`
-is its datum half). -/
-theorem substPW_self (ks : List Name) (pw : PropWhen) :
-    substPW ks (ks.map Level.param) pw = pw := by
-  show pw.bindZ _ = pw
-  have : pw.bindZ (fun n => zeronessOf (subst.go ks (ks.map .param) n))
-      = pw.bindZ (fun n => .ifAllZero [n]) := by
-    cases pw with
-    | never => rfl
-    | ifAllZero ps =>
-      rw [bindZ_ifAllZero, bindZ_ifAllZero]
-      exact bindZ_congr_names fun n _ => by rw [subst_go_self]; rfl
-  rw [this, bindZ_unit]
 
 /-- `subst.go` under a mapped replacement list: a parameter resolved
 within the pairing factors through the outer substitution. -/
@@ -201,7 +152,7 @@ theorem zeronessOf_paramsDefined {ps' : List Name} :
 /-- **The pushforward's semantic reading** (task #161 P3): the
 instantiated datum's bit at `φ` is the datum's bit at the composed
 valuation `Level.substFn φ ks vs` — the same composed valuation
-`denoteMeta`'s constant clause uses; its level crossing rides this. -/
+`denote`'s constant clause uses; its level crossing rides this. -/
 theorem holds_substPW (φ : Name → Nat) (ks : List Name)
     (vs : List Level) : ∀ pw : PropWhen,
     (substPW ks vs pw).holds φ = pw.holds (substFn φ ks vs) := by

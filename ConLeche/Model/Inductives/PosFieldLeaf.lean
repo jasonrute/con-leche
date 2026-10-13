@@ -23,37 +23,37 @@ opened it at is the leaf, up to erasure.
 -/
 
 namespace ConLeche.Model
-open ConLeche (Env Expr Name Level NestCtx NestHole NestKey BinderMeta PosD PosJ NestFieldKind PosTree
+open ConLeche (Env Expr Name Level NestCtx NestHole NestKey PosD PosJ NestFieldKind PosTree
   CheckerOps CheckM nestArity nestContainer)
 
 /-! ## Towers, closed and opened -/
 
 /-- Closing a tower's variable closes its domains and body, each below
 the binders passed. -/
-@[expose] def absTele (d : Nat) : Nat → List (Expr × BinderMeta) → List (Expr × BinderMeta)
+@[expose] def absTele (d : Nat) : Nat → List Expr → List Expr
   | _, [] => []
-  | k, (t, bm) :: r => (t.abstract1 d k, bm) :: absTele d (k + 1) r
+  | k, t :: r => t.abstract1 d k :: absTele d (k + 1) r
 
-theorem absTele_length (d : Nat) : ∀ (k : Nat) (tele : List (Expr × BinderMeta)),
+theorem absTele_length (d : Nat) : ∀ (k : Nat) (tele : List Expr),
     (absTele d k tele).length = tele.length
   | _, [] => rfl
-  | k, (_, _) :: r => by simp [absTele, absTele_length d (k + 1) r]
+  | k, _ :: r => by simp [absTele, absTele_length d (k + 1) r]
 
 theorem mkPisOf_abstract1 (d : Nat) :
-    ∀ (tele : List (Expr × BinderMeta)) (X : Expr) (k : Nat),
+    ∀ (tele : List Expr) (X : Expr) (k : Nat),
       (Expr.mkPisOf tele X).abstract1 d k
         = Expr.mkPisOf (absTele d k tele) (X.abstract1 d (k + tele.length))
   | [], X, k => by simp [Expr.mkPisOf, absTele]
-  | (t, bm) :: r, X, k => by
+  | t :: r, X, k => by
     simp only [Expr.mkPisOf, Expr.abstract1, absTele, mkPisOf_abstract1 d r X (k + 1),
       List.length_cons]
     rw [show k + 1 + r.length = k + (r.length + 1) from by omega]
 
 theorem looseBVarsBounded_mkPisOf_body :
-    ∀ (tele : List (Expr × BinderMeta)) (X : Expr) (k : Nat),
+    ∀ (tele : List Expr) (X : Expr) (k : Nat),
       (Expr.mkPisOf tele X).looseBVarsBounded k = true → X.looseBVarsBounded (k + tele.length) = true
   | [], X, k, h => by simpa [Expr.mkPisOf] using h
-  | (t, bm) :: r, X, k, h => by
+  | t :: r, X, k, h => by
     simp only [Expr.mkPisOf, Expr.looseBVarsBounded, Bool.and_eq_true] at h
     have := looseBVarsBounded_mkPisOf_body r X (k + 1) h.2
     simpa [Nat.add_assoc, Nat.add_comm 1] using this
@@ -114,8 +114,8 @@ theorem posD_field_leaf
     ∀ {J : PosJ} {ts : List PosTree}, PosD ops env ctx J ts → match J with
       | .field prog dep _ e _ nd => ctx.hiAt prog.length ≤ dep → e.looseBVarsBounded 0 = true →
         nd.looseBVarsBounded 0 = true ∧
-        ∃ (tele : List (Expr × BinderMeta)) (leafC w : Expr), nd = Expr.mkPisOf tele leafC ∧
-          (∀ x ∈ tele, x.1.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false) ∧
+        ∃ (tele : List Expr) (leafC w : Expr), nd = Expr.mkPisOf tele leafC ∧
+          (∀ x ∈ tele, x.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false) ∧
           (∀ os, LocList dep tele.length os → Expr.ErasedEq (leafC.instantiateList os 0) w) ∧
           FieldLeaf ctx prog w ts
       | _ => True := by
@@ -133,28 +133,27 @@ theorem posD_field_leaf
     · split
       · exact hocc
       · rename_i h; simpa using h
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hhi he
     have hwB := hwb _ _ _ hw he
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hwB
     have hbI : (b.instantiate1 (.fvar dep a)).looseBVarsBounded 0 = true :=
       looseBVarsBounded_instantiate1 b 0 hwB.2
     obtain ⟨hnbB, tele, leafC, w, rfl, htele, hopen, hleaf⟩ := ihb (by omega) hbI
-    refine ⟨?_, (a, bm) :: absTele dep 0 tele, leafC.abstract1 dep tele.length, w, ?_, ?_, ?_,
+    refine ⟨?_, a :: absTele dep 0 tele, leafC.abstract1 dep tele.length, w, ?_, ?_, ?_,
       hleaf⟩
     · simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
       exact ⟨hwB.1, looseBVarsBounded_abstract1 _ 0 hnbB⟩
     · rw [mkPisOf_abstract1, Nat.zero_add]; rfl
     · have hdep : ¬ (ctx.nP ≤ dep ∧ dep < ctx.hiAt prog.length) := by omega
-      have key : ∀ (k : Nat) (tl : List (Expr × BinderMeta)),
-          (∀ x ∈ tl, x.1.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false) →
-          ∀ x ∈ absTele dep k tl, x.1.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false := by
+      have key : ∀ (k : Nat) (tl : List Expr),
+          (∀ x ∈ tl, x.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false) →
+          ∀ x ∈ absTele dep k tl, x.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false := by
         intro k tl
         induction tl generalizing k with
         | nil => intro _ x hx; exact nomatch hx
         | cons y r ih =>
           intro hr x hx
-          obtain ⟨t, bm'⟩ := y
           simp only [absTele, List.mem_cons] at hx
           rcases hx with rfl | hx
           · rw [nestOcc_abstract1 hdep]; exact hr _ List.mem_cons_self
@@ -170,7 +169,7 @@ theorem posD_field_leaf
       have hsplit : os = os.take tele.length ++ [.fvar dep ty] := by
         conv => lhs; rw [← List.take_append_drop tele.length os]
         congr 1
-        rw [show dep + (List.length ((a, bm) :: absTele dep 0 tele)) - 1 - tele.length = dep by
+        rw [show dep + (List.length (a :: absTele dep 0 tele)) - 1 - tele.length = dep by
           simp [absTele_length]] at hty
         apply List.ext_getElem (by simp [hlen])
         intro n h1 h2
@@ -230,7 +229,7 @@ theorem posD_field_scoped
     intro he
     have := hws _ _ _ hw he
     split <;> assumption
-  | @pi prog dep kb e a b bm k nb ts hw hocc ha hb ihb =>
+  | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro he
     have hwW := hws _ _ _ hw he
     simp only [Expr.WScoped] at hwW

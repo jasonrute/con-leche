@@ -2,7 +2,7 @@ module
 
 import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Semantics.Kit
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 public import ConLeche.Model.Inductives.TargetIhData
 import ConLeche.Model.Inductives.TargetResidue
 public import ConLeche.Model.Inductives.TargetFrame
@@ -46,7 +46,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts TargetMajor)
 
 universe w
@@ -64,16 +64,16 @@ value `hv` — the formers' facts a call's typing (`targetCall_genW`) asks
 for, from the members' run and `hv`'s typing. -/
 theorem memberHoles_formers (hmr : BlockMembersRun mpC.base2 d pp.toBlockShape cvTas)
     (ψ : Name → Nat) (ρ : Nat → V) {hv : List V}
-    (hvTy : ∀ t, t < cvTas.length → ∃ T : AnnotTerm,
-      denoteMeta mpC.base2.acval envC ψ 0 (cvTas.getD t default).type = some T ∧
+    (hvTy : ∀ t, t < cvTas.length → ∃ T : Term,
+      denote mpC.base2.acval envC ψ 0 (cvTas.getD t default).type = some T ∧
       hv.getD t pt ∈ˢ interp V ρ T) :
     ∀ t', t' < (cvTas.map (fun cv : ConstantVal => cv.type)).length →
       ((cvTas.map (fun cv : ConstantVal => cv.type)).getD t' default).hasFvar = false ∧
       ((cvTas.map (fun cv : ConstantVal => cv.type)).getD t' default).looseBVarsBounded 0 = true ∧
       ConstsBound envC ((cvTas.map (fun cv : ConstantVal => cv.type)).getD t' default) ∧
-      ∃ T : AnnotTerm, denoteMeta mpC.base2.acval envC ψ 0
+      ∃ T : Term, denote mpC.base2.acval envC ψ 0
           ((cvTas.map (fun cv : ConstantVal => cv.type)).getD t' default)
-          = some T ∧ (∀ σ : Nat → V, WellDenotedV V σ T) ∧
+          = some T ∧ (∀ σ : Nat → V, WellDenotedTy V σ T) ∧
         ∀ σ : Nat → V, hv.getD t' pt ∈ˢ interp V σ T := by
   intro t' ht'
   have ht'' : t' < cvTas.length := by simpa using ht'
@@ -90,7 +90,8 @@ theorem memberHoles_formers (hmr : BlockMembersRun mpC.base2 d pp.toBlockShape c
   have hcl := bvarsBelow_of_reading (m := mpC.base2) (Expr.WScoped.of_not_hasFvar hfv) hbv
     (hFD'.read ψ)
   rw [hg]
-  exact ⟨hfv, hbv, constsBound_of_constsResolve _ hwf.2.2.1, _, hFD'.read ψ, hFD'.okTy ψ,
+  exact ⟨hfv, hbv, constsBound_of_constsResolve _ hwf.2.2.1, _, hFD'.read ψ,
+    fun σ => ⟨hFD'.okTy ψ σ, IsTy_mkPisAV_sort _ _ _⟩,
     fun σ => by rw [interp_closed V hcl σ ρ]; exact hmemT'⟩
 
 end MemberHoles

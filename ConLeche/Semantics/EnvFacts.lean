@@ -40,9 +40,9 @@ equations (which are what make delta steps invisible — design §7.2).
 
 Every field is V-free and mode-independent. -/
 structure EnvFacts (env : Env) where
-  /-- The type-theory term of each constant (the same `TConstVal` the
+  /-- The type-theory term of each constant (the same `(Name → (Name → Nat) → Term)` the
   denotation uses). -/
-  cval : TConstVal
+  cval : (Name → (Name → Nat) → Term)
   /-- Every constant denotes to a closed term.  Consumed by every
   lifting step. -/
   cval_closed : ∀ (n : Name) (ψ : Name → Nat), Term.Closed (cval n ψ)
@@ -65,7 +65,7 @@ structure EnvFacts (env : Env) where
   defn_eq : ∀ cv value hint,
     ConstantInfo.defnInfo cv value hint ∈ env.consts → ∀ ψ : Name → Nat,
       denoteClosed cval env ψ value = some (cval cv.name ψ)
-  /-- **Every stored fireable recursor rule's right-hand side denotes**,
+  /-- **Every stored recursor rule's right-hand side denotes**,
   at every instantiation of the recursor's level parameters.
 
   `ty_denotes` covers stored *types*; a rule's `rhs` is not one.
@@ -76,7 +76,7 @@ structure EnvFacts (env : Env) where
   the ι rule's `denoteClosed` side condition. -/
   rec_rhs_denotes : ∀ n cv mI rP rules,
     env.find? n = some (.recInfo cv mI rP rules) →
-    ∀ r ∈ rules, RecRule.fire r ≠ .inert →
+    ∀ r ∈ rules,
       ∀ (us : List Level) (ψ : Name → Nat),
         us.length = cv.levelParams.length →
         ∃ R, denoteClosed cval env ψ
@@ -88,7 +88,7 @@ structure EnvFacts (env : Env) where
   `mI < rP`).  Backed by `rec_rules`' `RecRuleLaw`. -/
   rec_params_le : ∀ n cv mI rP rules,
     env.find? n = some (.recInfo cv mI rP rules) →
-    ∀ r ∈ rules, RecRule.fire r ≠ .inert → rP ≤ mI
+    ∀ r ∈ rules, rP ≤ mI
   /-- Every stored native projection-table entry is a pinned pair entry
   with its block stored (`ProjOkT`).  Syntactic; the projection
   clauses need it to identify the entry's type as a *concrete* closed
@@ -107,20 +107,5 @@ structure EnvFacts (env : Env) where
   declining a stream that stores one of these names unguarded). -/
   nat_op_guard : ∀ c, (c ∈ natOpNames ∨ c ∈ natDivModNames) →
     natOpStored env c = true → natOpGuard env c = true
-
-/-! ## Two `find?` readings -/
-
-/-- A `find?` hit names the stored constant. -/
-theorem Env.find?_name {env : Env} {n : Name} {ci : ConstantInfo}
-    (h : env.find? n = some ci) : ci.name = n := by
-  unfold ConLeche.Env.find? at h
-  have := List.find?_some h
-  simpa using this
-
-/-- A `find?` hit is a stored constant. -/
-theorem Env.find?_mem {env : Env} {n : Name} {ci : ConstantInfo}
-    (h : env.find? n = some ci) : ci ∈ env.consts := by
-  unfold ConLeche.Env.find? at h
-  exact List.mem_of_find?_eq_some h
 
 end ConLeche.Semantics

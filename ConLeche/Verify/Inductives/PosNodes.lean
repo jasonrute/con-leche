@@ -272,13 +272,13 @@ theorem posD_tele_open : ∀ {J : PosJ} {ts : List PosTree}, PosD ops env ctx J 
     | .tele prog base nF j cur ks nds res =>
       ks.length = nF ∧ nds.length = nF ∧ ∃ xs, openPisAtFvars nF cur (base + j) = some (xs, res) ∧
         ∀ (i : Nat) (x : Expr), xs[i]? = some x → ∃ k nd ts', ks[i]? = some k ∧
-          nds[i]?.map (·.1) = some nd ∧
+          nds[i]? = some nd ∧
           PosD ops env ctx (.field prog (base + j + i) 0 x.fvarTypeD k nd) ts' ∧ ∀ t ∈ ts', t ∈ ts
     | _ => True := by
   intro J ts h
   induction h with
   | teleNil => exact ⟨rfl, rfl, [], by simp [openPisAtFvars], fun _ _ hx => nomatch hx⟩
-  | @teleCons prog base nF j a b bm k nd ks nds res ts ts' ha _ _ ihb =>
+  | @teleCons prog base nF j a b k nd ks nds res ts ts' ha _ _ ihb =>
     obtain ⟨hkl, hnl, xs, hop, hall⟩ := ihb
     refine ⟨by simp [hkl], by simp [hnl], .fvar (base + j) a :: xs, ?_, fun i x hx => ?_⟩
     · simp only [openPisAtFvars]
@@ -302,9 +302,8 @@ theorem posD_tele_open : ∀ {J : PosJ} {ts : List PosTree}, PosD ops env ctx J 
 
 The nested recursor's classes are the block's members and the nodes
 REACHED from them by calls (`PosTree.Reached`: a member constructor's
-or a seed's roots, and every kid of a reached node); a reached node is a
-node in the sense of `PosNodeOk` (`PosTree.Reached.nodeOk`), strictly
-lower than its caller (`PosTree.height_kid`).  Outside majors no member
+or a seed's roots, and every kid of a reached node); a reached node is
+strictly lower than its caller (`PosTree.height_kid`).  Outside majors no member
 constructor reaches (official's auxiliary types whnf erases, a group mate
 nothing calls: `corner_posderiv_major_{delta,group}`) are seeds' roots or
 unreached: the recursor stage inducts on them at the true frame after the
@@ -324,14 +323,6 @@ theorem PosTree.mem_forest_of_mem {ts : List PosTree} {t : PosTree} (h : t ∈ t
     rcases List.mem_cons.mp h with rfl | h
     · exact PosTree.mem_forest_cons.mpr (Or.inl (PosTree.mem_nodes.mpr (Or.inl rfl)))
     · exact PosTree.mem_forest_cons.mpr (Or.inr (ih h))
-
-/-- **Every reached node is a node** (`PosNodeOk`), given the roots are. -/
-theorem PosTree.Reached.nodeOk {ts : List PosTree}
-    (hroots : ∀ r ∈ ts, PosNodeOk ops env ctx r) {t : PosTree} (h : PosTree.Reached ts t) :
-    PosNodeOk ops env ctx t := by
-  induction h with
-  | root hr => exact hroots _ hr
-  | kid _ hk ih => exact posD_nodes ih.1 _ (PosTree.mem_forest_of_mem hk)
 
 end Nodes
 

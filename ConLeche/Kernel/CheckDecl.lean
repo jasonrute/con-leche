@@ -44,7 +44,7 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     (d : Declaration) : m Env := do
   match d with
   | .defnDecl cv value hint => do
-    let cv ← checkConstantVal ops env cv
+    checkConstantVal ops env cv
     let env2 ← checkDefnVal ops env cv value hint
     -- Structural-Nat pins: the fast-path ops must be the standard
     -- structural recursions — their recurrence equations are checked
@@ -85,11 +85,11 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     if natDivModNames.contains cv.name then
       checkDivModPin ops pins env env2 cv.name
     pure env2
-  | .thmDecl cv value =>
-    let cv ← checkConstantVal ops env cv
+  | .thmDecl cv value => do
+    checkConstantVal ops env cv
     checkThmVal ops env cv value
   | .opaqueDecl cv value => do
-    let cv ← checkConstantVal ops env cv
+    checkConstantVal ops env cv
     let env2 ← checkOpaqueVal ops env cv value
     -- Compiler-trust opaques (`Lean.reduceNat`/`Lean.reduceBool`,
     -- task #95): the stored value must be definitionally equal to the
@@ -134,32 +134,32 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
       else
         throw (.notImplemented "quotient soundness axiom mismatch"))
     else do
-      let cvA ← checkConstantVal ops env cv
-      if stdAxiomOk env cvA then
-        pure ⟨.axiomInfo cvA :: env.consts⟩
-      else if cvA.name = trustCompilerName then
+      checkConstantVal ops env cv
+      if stdAxiomOk env cv then
+        pure ⟨.axiomInfo cv :: env.consts⟩
+      else if cv.name = trustCompilerName then
         -- `Lean.trustCompiler : True` is trivially realizable (task
         -- #95): installed exactly like a checked `opaque` with witness
         -- value `True.intro` over the pinned `True` family — the pin
         -- guarantees everything the ordinary opaque check would have
         -- checked for that value, and the model interprets the constant
         -- by `True.intro`'s interpretation.
-        if trustCompilerOk env cvA then
-          pure ⟨.axiomInfo cvA :: env.consts⟩
+        if trustCompilerOk env cv then
+          pure ⟨.axiomInfo cv :: env.consts⟩
         else throw (.notImplemented
           s!"unsupported Lean.trustCompiler shape ({cv.name})")
-      else if cvA.name = ofReduceNatName ∨ cvA.name = ofReduceBoolName then
+      else if cv.name = ofReduceNatName ∨ cv.name = ofReduceBoolName then
         -- The pinned `ofReduce*` axioms (task #95): over the pinned
         -- `Eq` basis, the element inductive and the identity-certified
         -- reduce opaque, `∀ a b, reduce a = b → a = b` interprets to an
         -- inhabited proposition (the hypothesis *is* the conclusion).
-        if ofReduceAxOk env cvA then
-          pure ⟨.axiomInfo cvA :: env.consts⟩
+        if ofReduceAxOk env cv then
+          pure ⟨.axiomInfo cv :: env.consts⟩
         else throw (.notImplemented
           s!"unsupported compiler-trust axiom environment ({cv.name})")
-      else if cvA.name = propextName ∨ cvA.name = choiceName then
+      else if cv.name = propextName ∨ cv.name = choiceName then
         throw (.notImplemented s!"standard axiom shape mismatch ({cv.name})")
-      else if cvA.name = sorryAxName then
+      else if cv.name = sorryAxName then
         pure env
       else
         throw (.notImplemented s!"non-standard axiom ({cv.name})")
@@ -170,7 +170,7 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     -- records and nothing else — and it is recognised HERE: a block
     -- whose members are named as one of the five pins' and which
     -- matches it up to `ConstantInfo.canon` installs the PIN (the
-    -- annotated, model-proved literals `installBasisDecl` puts in the
+    -- model-proved literals `installBasisDecl` puts in the
     -- environment verbatim).  A block under a pinned name that does not
     -- match falls through to the ordinary route, where
     -- `checkConstantVal`'s reserved-name check REJECTS it: a basis

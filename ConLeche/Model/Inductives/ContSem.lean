@@ -29,7 +29,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestKey NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps)
 
@@ -75,8 +75,8 @@ structure ContCover {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) (ctx : N
 /-! ## Pieces -/
 
 /-- The key frame seen through empty frames on top. -/
-theorem keyFrame_lift (dsa : List AnnotTerm) (h : Nat) (vs : List V) (ρ : Nat → V) :
-    keyFrame (dsa.map (AnnotTerm.liftN vs.length · 0)) (h + vs.length) (consList vs ρ)
+theorem keyFrame_lift (dsa : List Term) (h : Nat) (vs : List V) (ρ : Nat → V) :
+    keyFrame (dsa.map (Term.liftN vs.length · 0)) (h + vs.length) (consList vs ρ)
       = keyFrame dsa h ρ := by
   unfold keyFrame
   rw [List.map_map]
@@ -88,7 +88,7 @@ theorem keyFrame_lift (dsa : List AnnotTerm) (h : Nat) (vs : List V) (ρ : Nat �
 /-- A recorded block's names and members, from its record. -/
 theorem lfp_namesLen {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
     (hD : D ∈ mp.lfpBlocks) : D.names.length = D.k :=
-  (mp.lfp_ok D hD).2.2.2.1
+  (mp.lfp_ok D hD).2.2.2.1.1
 
 /-- The arguments' leaves are the application's. -/
 theorem leaves_mkAppN_arg {l : Nat × Expr} :

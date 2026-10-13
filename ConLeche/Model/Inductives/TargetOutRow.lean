@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.ContInst
-import ConLeche.Model.Annot.BitInst
+import ConLeche.Verify.Denote.Inst
 public import ConLeche.Model.Inductives.TargetClass
 public import ConLeche.Model.Inductives.TargetIhData
 import ConLeche.Model.Inductives.ContInstRule
@@ -42,7 +42,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal FEnv BlockShape TargetMajor RecShape
   CheckMode)
 
@@ -51,17 +51,17 @@ universe w
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **A read spine read deeper**: its readings lifted past the extra
-binders (`denoteMeta_lift`, argument by argument). -/
-theorem denoteMetaSpine_liftD {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+binders (`denote_lift`, argument by argument). -/
+theorem denoteSpine_liftD {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ) {d : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env φ d as vs →
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine acval env φ d as vs →
       (∀ x ∈ as, Expr.WScoped d x) → ∀ k : Nat,
-      DenoteMetaSpine acval env φ (d + k) as (vs.map (AnnotTerm.liftN k · 0))
+      DenoteSpine acval env φ (d + k) as (vs.map (Term.liftN k · 0))
   | _, _, .nil, _, _ => .nil
   | a :: _, _, .cons ha hs, hw, k => by
-    refine .cons ?_ (denoteMetaSpine_liftD hacl hs (fun x hx => hw x (List.mem_cons_of_mem _ hx)) k)
-    rw [denoteMeta_lift hacl (hw a List.mem_cons_self) _ (Nat.le_add_right _ _), ha,
+    refine .cons ?_ (denoteSpine_liftD hacl hs (fun x hx => hw x (List.mem_cons_of_mem _ hx)) k)
+    rw [denote_lift hacl (hw a List.mem_cons_self) _ (Nat.le_add_right _ _), ha,
       Nat.add_sub_cancel_left]
     rfl
 
@@ -83,8 +83,8 @@ substituted by the instantiation's `instTau` (below the rule's `nF`
 field binders). -/
 @[expose] noncomputable def tgtOutEs {env : Env} (mp : EnvModelM V μ env) (D : LfpDatum V)
     (mm : Nat) (lps : List Name) (M : TargetMajor) (rP : Nat) (ψ : Name → Nat) (i : Nat) :
-    List AnnotTerm :=
+    List Term :=
   (D.resIdx (Level.substFn ψ lps M.lvls) mm i).map fun e =>
-    AnnotTerm.substAV (instTau mp ψ D M.lvls rP M.ds) e (M.ctors.getD i default).2
+    Term.substAV (instTau mp ψ D M.lvls rP M.ds) e (M.ctors.getD i default).2
 
 end ConLeche.Model

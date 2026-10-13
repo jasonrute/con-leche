@@ -23,7 +23,7 @@ telescope substituted and its major the walk's leaf substituted
 -/
 
 namespace ConLeche.Model
-open ConLeche (Env Expr Name Level NestCtx NestHole BinderMeta nestHoleImg extendF)
+open ConLeche (Env Expr Name Level NestCtx NestHole nestHoleImg extendF)
 
 /-- **The one substitution** of a field's walk variables below the field
 (`b = hiAt |prog| + i`): the block's parameters kept, each hole to the
@@ -61,38 +61,38 @@ theorem dom_erasedEq_callSubst {ctx : NestCtx} {prog : List NestHole} {fvsF : Li
 /-! ## Towers of one length -/
 
 /-- A term that is no `∀`. -/
-@[expose] def NotPi (e : Expr) : Prop := ∀ a b bm, e ≠ .forallE a b bm
+@[expose] def NotPi (e : Expr) : Prop := ∀ a b, e ≠ .forallE a b
 
 theorem ErasedEq.notPi {x y : Expr} (h : Expr.ErasedEq x y) (hy : NotPi y) : NotPi x := by
-  intro a b bm hx
+  intro a b hx
   subst hx
   cases y with
-  | forallE a' b' bm' => exact hy a' b' bm' rfl
+  | forallE a' b' => exact hy a' b' rfl
   | _ => simp [Expr.ErasedEq] at h
 
 /-- **Erasure-equal towers over non-`∀` bodies have one length.** -/
 theorem mkPisOf_length_of_erasedEq :
-    ∀ {t1 t2 : List (Expr × BinderMeta)} {X1 X2 : Expr}, NotPi X1 → NotPi X2 →
+    ∀ {t1 t2 : List Expr} {X1 X2 : Expr}, NotPi X1 → NotPi X2 →
       Expr.ErasedEq (Expr.mkPisOf t1 X1) (Expr.mkPisOf t2 X2) → t1.length = t2.length
   | [], [], _, _, _, _, _ => rfl
-  | [], (a, bm) :: r, X1, X2, h1, _, h => by
+  | [], a :: r, X1, X2, h1, _, h => by
     simp only [Expr.mkPisOf] at h
     cases X1 with
-    | forallE a1 b1 m1 => exact (h1 a1 b1 m1 rfl).elim
+    | forallE a1 b1 => exact (h1 a1 b1 rfl).elim
     | _ => simp [Expr.ErasedEq] at h
-  | (a, bm) :: r, [], X1, X2, _, h2, h => by
+  | a :: r, [], X1, X2, _, h2, h => by
     simp only [Expr.mkPisOf] at h
     cases X2 with
-    | forallE a1 b1 m1 => exact (h2 a1 b1 m1 rfl).elim
+    | forallE a1 b1 => exact (h2 a1 b1 rfl).elim
     | _ => simp [Expr.ErasedEq] at h
-  | (a, bm) :: r, (a', bm') :: r', X1, X2, h1, h2, h => by
+  | a :: r, a' :: r', X1, X2, h1, h2, h => by
     simp only [Expr.mkPisOf, Expr.ErasedEq] at h
-    simp [mkPisOf_length_of_erasedEq h1 h2 h.2.2]
+    simp [mkPisOf_length_of_erasedEq h1 h2 h.2]
 
 theorem callSubst_notPi {ctx : NestCtx} {prog : List NestHole} {fvsF : List Expr}
     (hfv : ∀ x ∈ fvsF, ∃ j ty, x = .fvar j ty) {i : Nat} (hi : i ≤ fvsF.length) {v : Nat}
     (hv : v < ctx.hiAt prog.length + i) : NotPi (callSubst ctx prog fvsF v) := by
-  intro a b bm h
+  intro a b h
   simp only [callSubst] at h
   split at h
   · exact nomatch h
@@ -101,7 +101,7 @@ theorem callSubst_notPi {ctx : NestCtx} {prog : List NestHole} {fvsF : List Expr
       obtain ⟨e, hc⟩ := ConLeche.nestHoleImg_hole (prog := prog) (by omega) h2
       obtain ⟨c, us, args, rfl⟩ := ConLeche.nestHoleImg_spine hc
       rw [hc, Option.getD_some] at h
-      exact ConLeche.Expr.mkAppN_ne_forallE args (fun _ _ _ h' => Expr.noConfusion h') a b bm h
+      exact ConLeche.Expr.mkAppN_ne_forallE args (fun _ _ h' => Expr.noConfusion h') a b h
     · rename_i h2
       have hl : v - ctx.hiAt prog.length < fvsF.length := by omega
       rw [List.getElem?_eq_getElem hl, Option.getD_some] at h
@@ -110,12 +110,12 @@ theorem callSubst_notPi {ctx : NestCtx} {prog : List NestHole} {fvsF : List Expr
 
 theorem substFvars_notPi {b D : Nat} {s : Nat → Expr} (hs : ∀ v, v < b → NotPi (s v)) {X : Expr}
     (hX : NotPi X) : NotPi (Expr.substFvars b D s X) := by
-  intro a c bm h
+  intro a c h
   cases X with
-  | forallE a' b' bm' => exact hX a' b' bm' rfl
+  | forallE a' b' => exact hX a' b' rfl
   | fvar v ty =>
     by_cases hv : v < b
-    · rw [Expr.substFvars_fvar_lt hv] at h; exact hs v hv a c bm h
+    · rw [Expr.substFvars_fvar_lt hv] at h; exact hs v hv a c h
     · rw [Expr.substFvars_fvar_ge (by omega)] at h; exact nomatch h
   | _ => simp [Expr.substFvars] at h
 
@@ -127,14 +127,14 @@ major the walk's leaf substituted. -/
 theorem callTie {ctx : NestCtx} {prog : List NestHole} {fvsF : List Expr} {i B : Nat}
     (hfv : ∀ x ∈ fvsF, ∃ j ty, x = .fvar j ty) (hi : i ≤ fvsF.length) {nd : Expr}
     (hnd : nd.fvarsBelow (ctx.hiAt prog.length + i))
-    {tele teleW : List (Expr × BinderMeta)} {majDom leafC : Expr}
+    {tele teleW : List Expr} {majDom leafC : Expr}
     (hK : Expr.ErasedEq (nd.replaceFVars (extendF (nestHoleImg ctx prog) (ctx.hiAt prog.length)
       (fvsF.take i))) (Expr.mkPisOf tele majDom))
     (hshape : nd = Expr.mkPisOf teleW leafC) (hmaj : NotPi majDom) (hleaf : NotPi leafC) :
     tele.length = teleW.length ∧
-    (∀ (l : Nat) (p p' : Expr × BinderMeta), tele[l]? = some p → teleW[l]? = some p' →
-      p.2 = p'.2 ∧ Expr.ErasedEq p.1
-        (Expr.substFvars (ctx.hiAt prog.length + i) B (callSubst ctx prog fvsF) p'.1)) ∧
+    (∀ (l : Nat) (p p' : Expr), tele[l]? = some p → teleW[l]? = some p' →
+      Expr.ErasedEq p
+        (Expr.substFvars (ctx.hiAt prog.length + i) B (callSubst ctx prog fvsF) p')) ∧
     Expr.ErasedEq majDom
       (Expr.substFvars (ctx.hiAt prog.length + i) B (callSubst ctx prog fvsF) leafC) := by
   have h1 := (Expr.ErasedEq.symm hK).trans (dom_erasedEq_callSubst (B := B) hi hnd)
@@ -145,8 +145,10 @@ theorem callTie {ctx : NestCtx} {prog : List NestHole} {fvsF : List Expr} {i B :
   rw [List.length_map] at hlen
   obtain ⟨hall, hX⟩ := Expr.ErasedEq.mkPisOf_inv (by simpa using hlen) h1
   refine ⟨hlen, fun l p p' hp hp' => ?_, hX⟩
-  have := hall l p (Expr.substFvars (ctx.hiAt prog.length + i) B (callSubst ctx prog fvsF) p'.1,
-    p'.2) hp (by simp [hp'])
-  exact this
+  have hmap : (teleW.map
+      (Expr.substFvars (ctx.hiAt prog.length + i) B (callSubst ctx prog fvsF)))[l]?
+      = some (Expr.substFvars (ctx.hiAt prog.length + i) B (callSubst ctx prog fvsF) p') := by
+    rw [List.getElem?_map, hp']; rfl
+  exact hall l p _ hp hmap
 
 end ConLeche.Model

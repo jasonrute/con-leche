@@ -27,7 +27,7 @@ the sources.
   certificates** (`ConLeche.PinGen.Certs`, read by
   name out of the built olean at pin-generation time — no static walk
   can see that) declare;
-* every raw pin an **`#annotate_basis`/`#annotate_pins`** command names
+* every raw pin a **`#stored_basis`** command names
   (read by name at elaboration time, like the pin certificates);
 * every **`@[csimp]`** theorem (reached by nothing, and what makes a
   fast twin reachable at all) and, through the graph's own extra edges,
@@ -47,10 +47,12 @@ the sources.
    text filter below is the compensation and the build is the arbiter:
    cut, build, restore what the build demands, record each restore.
 2. *results that are not corollaries*: a top-level theorem no capstone
-   is a corollary of is itself the deliverable (`AgreeFloor`'s
-   agreement floor, `BridgeDecl`'s `checkDeclsPure_datF`), and reads dead.
-   Only a reader can tell those apart; #209's rule stands — "imported
-   by nothing" is not a dead-code criterion in a verification tree.
+   is a corollary of may be a deliverable (`AgreeFloor`'s
+   `trusted_agrees_skels_D`, `Denotes`' `Denotes_functional`, a letter
+   `tests/ConLecheTests/Axioms.lean` pins), and reads dead.  Only a
+   reader can tell those apart: a result OVERVIEW, README, the
+   whitepaper, the trusted statement files or the axiom pins name stays;
+   an uncited one goes with the rest (task #342 R5).
 
 ## THE CHALLENGE IS ITS OWN ENVIRONMENT (lane GATEFIX)
 
@@ -249,17 +251,17 @@ def suffixes(name):
     return [".".join(parts[i:]) for i in range(len(parts))]
 
 
-# `#annotate_basis`/`#annotate_pins` (`Kernel/BasisGen.lean`) read their
+# `#stored_basis` (`Kernel/BasisGen.lean`) reads its
 # raw pins BY NAME at elaboration time (`| xA := xRaw`), like the pin
 # certificates: the olean records no edge, so every identifier the command
 # names (the raw pins, the `over` environment) is a seed, resolved in the
 # invoking module.
-ANNOTATE_RE = re.compile(r"^#annotate_\w+[^\n]*(?:\n[ \t]+[^\n]*)*", re.M)
+STORED_BASIS_RE = re.compile(r"^#stored_basis[^\n]*(?:\n[ \t]+[^\n]*)*", re.M)
 ANNOTATE_RHS_RE = TOKEN_RE
 
 
 def annotate_seeds():
-    """(short name, module) for every raw pin an `#annotate_*` command names"""
+    """(short name, module) for every raw pin a `#stored_basis` command names"""
     out = set()
     for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, "ConLeche")):
         for fn in filenames:
@@ -268,7 +270,7 @@ def annotate_seeds():
             path = os.path.relpath(os.path.join(dirpath, fn), ROOT)
             text = open(os.path.join(ROOT, path), errors="replace").read()
             mod = path[:-len(".lean")].replace("/", ".")
-            for block in ANNOTATE_RE.findall(text):
+            for block in STORED_BASIS_RE.findall(text):
                 out |= {(n, mod) for n in ANNOTATE_RHS_RE.findall(block)}
     return out
 

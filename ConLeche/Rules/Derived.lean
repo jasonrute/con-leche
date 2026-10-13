@@ -34,8 +34,8 @@ theorem Expr.mkAppN_getApp' : ∀ (e : Expr),
   | .app f a => by
     simp only [Expr.getAppFn, Expr.getAppArgs, Expr.mkAppN_append_one']
     rw [Expr.mkAppN_getApp' f]
-  | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .lam _ _ _
-  | .forallE _ _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
+  | .bvar _ | .fvar _ _ | .sort _ | .const _ _ | .lam _ _
+  | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
 
 /-! ## `Red` derived rules -/
 
@@ -60,7 +60,7 @@ theorem Red.litToCtorIfNat {d : Nat} (e : Expr) :
     · exact .natLit ‹_›
     · exact .refl
   | .lit (.strVal _) | .bvar _ | .fvar _ _ | .sort _ | .const _ _
-  | .app _ _ | .lam _ _ _ | .forallE _ _ _ | .letE _ _ _ | .proj _ _ _ =>
+  | .app _ _ | .lam _ _ | .forallE _ _ | .letE _ _ _ | .proj _ _ _ =>
     exact .refl
 
 /-! ## `DefEq` derived rules -/
@@ -81,26 +81,6 @@ theorem DefEq.redBoth {d : Nat} {a a' b b' : Expr}
     (ha : Red env d a a') (hb : Red env d b b') (h : DefEq env d a' b') :
     DefEq env d a b :=
   .redL ha (.redR hb h)
-
-/-- **Unfold the left head, then continue** (the maintainer's example
-of ruling 1; `lazyDeltaStep`'s one-sided and hint-guided unfoldings). -/
-theorem DefEq.deltaL {d : Nat} {a a' b : Expr}
-    (h : unfoldDefinition env a = some a') (h' : DefEq env d a' b) :
-    DefEq env d a b :=
-  .redL (.delta h) h'
-
-/-- Unfold the right head, then continue (`Core.lean:1546-1549`,
-`:1555-1558`). -/
-theorem DefEq.deltaR {d : Nat} {a b b' : Expr}
-    (h : unfoldDefinition env b = some b') (h' : DefEq env d a b') :
-    DefEq env d a b :=
-  .redR (.delta h) h'
-
-/-- Unfold both heads, then continue (`Core.lean:1570-1577`). -/
-theorem DefEq.deltaBoth {d : Nat} {a a' b b' : Expr}
-    (ha : unfoldDefinition env a = some a') (hb : unfoldDefinition env b = some b')
-    (h : DefEq env d a' b') : DefEq env d a b :=
-  .deltaL ha (.deltaR hb h)
 
 /-- **The `Bool.true` shortcut** (`boolTrueShortcut`, `Core.lean:1415-1424`,
 at `defeqBody`'s entry): the left side reduces to the
@@ -178,15 +158,5 @@ second arm, `Core.lean:539`: `structEtaCert b a`). -/
 theorem DefEq.structEtaR {d : Nat} {a b : Expr} (h : DefEq env d b a) :
     DefEq env d a b :=
   h.symm
-
-/-! ## Shape facts read off a derivation's conclusion -/
-
-/-- The inferred type of a λ is a ∀ at the λ's own annotation; the λ
-clause's chain case consumes it. -/
-theorem Infer.lam_shape {g : Grade} {d : Nat} {ty body t : Expr}
-    {mb : BinderMeta} (h : Infer env g d (.lam ty body mb) t) :
-    ∃ bt, t = .forallE ty bt mb := by
-  cases h with
-  | lam _ _ _ _ _ _ _ => exact ⟨_, rfl⟩
 
 end ConLeche.Rules

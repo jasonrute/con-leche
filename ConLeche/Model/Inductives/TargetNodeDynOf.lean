@@ -15,7 +15,7 @@ import ConLeche.Model.Inductives.SumKit
 import ConLeche.Model.Inductives.LfpCover
 import ConLeche.Verify.Inductives.PositivityInv
 import ConLeche.Verify.Inductives.PosAnn
-import ConLeche.Model.Annot.LfpFormer
+import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.Inductives.TargetCallEntry
 
 public section
@@ -43,7 +43,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree PosNodeOk PosD)
 
@@ -65,7 +65,7 @@ holes' read-backs' values consed on the old stack's. -/
 theorem trueVal_append (hs prog : List NestHole) :
     trueVal mpC ctx ψ ρ xs (hs ++ prog)
       = consList (((List.range hs.length).map fun j =>
-          (denoteMeta mpC.base2.acval envC ψ xs.length
+          (denote mpC.base2.acval envC ψ xs.length
             (nodeImg ctx (hs ++ prog) (ctx.hiAt prog.length + j))).getD .prf).map
             (interp V (consList xs ρ))) (trueVal mpC ctx ψ ρ xs prog) := by
   unfold trueVal nodeTrueVal nodeHv
@@ -102,8 +102,8 @@ structure DynCtx (F : Nat) {envI envC : Env} (mk : EnvModelM V μ envI) (mpC : E
   hsub : ∀ D ∈ mk.lfpBlocks, D ∈ mpC.lfpBlocks
   hag : ∀ n, (envI.find? n).isSome = true → mpC.base2.acval n = mk.base2.acval n
   hsubC : ∀ D ∈ mpC.lfpBlocks, D = d.toLfp ∨ D ∈ mk.lfpBlocks
-  htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
-    denoteMeta mk.base2.acval envI ψ dd e = some ea → denoteMeta mpC.base2.acval envC ψ dd e = some ea
+  htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : Term},
+    denote mk.base2.acval envI ψ dd e = some ea → denote mpC.base2.acval envC ψ dd e = some ea
   henvC : ∃ (nP : Nat) (ctorsAs : List (List (ConstantVal × Nat))),
     envC = ConLeche.consBlockCtors nP ctorsAs envI
   hok : ∀ t ∈ ns, PosNodeOk (fueledOps .verified F) envI ctx t
@@ -261,7 +261,7 @@ variable {envC : Env} (mpC : EnvModelM V μ envC) (ctx : NestCtx) (ψ : Name →
 theorem trueVal_pos (prog : List NestHole) {k : Nat} (hk : k < ctx.names.length + prog.length)
     (hxs : ctx.nP ≤ xs.length) :
     trueVal mpC ctx ψ ρ xs prog (ctx.hiAt prog.length - 1 - (ctx.nP + k))
-      = interp V (consList xs ρ) ((denoteMeta mpC.base2.acval envC ψ xs.length
+      = interp V (consList xs ρ) ((denote mpC.base2.acval envC ψ xs.length
           (nodeImg ctx prog (ctx.nP + k))).getD .prf) := by
   unfold trueVal nodeTrueVal
   have hlv : (nodeHv mpC.base2.acval envC ctx ψ prog xs.length).length
@@ -285,10 +285,10 @@ the block's parameters (the prefix's). -/
 theorem memberImg_val (hpar : ctx.params.length = ctx.nP ∧ ∀ (i : Nat) (x : Expr),
       ctx.params[i]? = some x → ∃ ty, x = .fvar i ty)
     (hxs : ctx.nP ≤ xs.length) (prog : List NestHole) {t : Nat} (ht : t < ctx.names.length)
-    (hc : denoteMeta mpC.base2.acval envC ψ xs.length
+    (hc : denote mpC.base2.acval envC ψ xs.length
       (.const (ctx.names[t]'ht) (ctx.lps.map Level.param))
         = some (mpC.base2.acval (ctx.names[t]'ht) ψ)) :
-    interp V (consList xs ρ) ((denoteMeta mpC.base2.acval envC ψ xs.length
+    interp V (consList xs ρ) ((denote mpC.base2.acval envC ψ xs.length
         (nodeImg ctx prog (ctx.nP + t))).getD .prf)
       = (xs.take ctx.nP).foldl app (interp V ρ (mpC.base2.acval (ctx.names[t]'ht) ψ)) := by
   have himg : nodeImg ctx prog (ctx.nP + t)
@@ -304,9 +304,9 @@ theorem memberImg_val (hpar : ctx.params.length = ctx.nP ∧ ∀ (i : Nat) (x : 
       show ctx.nP + t - ctx.nP = t by omega, List.getD_eq_getElem?_getD,
       List.getElem?_eq_getElem ht, Option.getD_some]
     rfl
-  have hsp := denoteMetaSpine_fvars (acval := mpC.base2.acval) (env := envC) (φ := ψ)
+  have hsp := denoteSpine_fvars (acval := mpC.base2.acval) (env := envC) (φ := ψ)
     xs.length ctx.params 0 (fun i x hx => by simpa using hpar.2 i x hx)
-  rw [himg, denoteMeta_mkAppN hsp hc, Option.getD_some, interp_mkAppN_foldl,
+  rw [himg, denote_mkAppN hsp hc, Option.getD_some, interp_mkAppN_foldl,
     acval_interp_closed mpC.base2 _ ψ _ ρ, List.map_map]
   congr 1
   rw [hpar.1]
@@ -322,7 +322,7 @@ block's parameters (the prefix's). -/
 theorem trueVal_member (hpar : ctx.params.length = ctx.nP ∧ ∀ (i : Nat) (x : Expr),
       ctx.params[i]? = some x → ∃ ty, x = .fvar i ty)
     (hxs : ctx.nP ≤ xs.length) (prog : List NestHole) {t : Nat} (ht : t < ctx.names.length)
-    (hc : denoteMeta mpC.base2.acval envC ψ xs.length
+    (hc : denote mpC.base2.acval envC ψ xs.length
       (.const (ctx.names[t]'ht) (ctx.lps.map Level.param))
         = some (mpC.base2.acval (ctx.names[t]'ht) ψ)) :
     trueVal mpC ctx ψ ρ xs prog (ctx.hiAt prog.length - 1 - (ctx.nP + t))
@@ -334,39 +334,6 @@ end Pos
 
 /-! ## Owners -/
 
-/-- **Every hole of a listed node's stack has a listed OWNER above it**,
-whose group and frames are a suffix of the stack. -/
-theorem dyn_owner {F : Nat} {envI envC : Env} {mk : EnvModelM V μ envI}
-    {mpC : EnvModelM V μ envC} {ctx : NestCtx} {d : BlockData V} {ns : List PosTree}
-    (H : DynCtx F mk mpC ctx d ns) :
-    ∀ (n : Nat) (t : PosTree), t ∈ ns → nlDd ns - t.height ≤ n → ∀ hk ∈ t.anc,
-      ∃ u ∈ ns, t.height < u.height ∧
-        hk ∈ ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length) u.grp ∧
-        ∃ X, t.anc = X ++ (ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length)
-          u.grp).reverse ++ u.anc
-  | 0, t, ht, hn, hk, hkm => by
-    have := height_le_nlDd ht
-    have := PosTree.height_pos t
-    omega
-  | n + 1, t, ht, hn, hk, hkm => by
-    obtain ⟨-, -, -, -, -, hanc⟩ := H.hok t ht
-    rcases hanc with ⟨hao, -⟩ | ⟨han, -⟩
-    · have hne : t.occ ≠ [] := by
-        intro h; rw [hao, h] at hkm; exact nomatch hkm
-      obtain ⟨p, hp, htp⟩ := H.hpar t ht hne
-      have hocc := (H.hok p hp).2.2.1 t htp
-      have hlt := PosTree.height_kid htp
-      rw [hao, hocc, List.mem_append, List.mem_reverse] at hkm
-      rcases hkm with hkm | hkm
-      · exact ⟨p, hp, hlt, hkm, [], by rw [hao, hocc, List.nil_append]⟩
-      · have hpd := height_le_nlDd hp
-        obtain ⟨u, hu, hlt', hmem, X, hX⟩ := dyn_owner H n p hp (by omega) hk hkm
-        refine ⟨u, hu, Nat.lt_trans hlt hlt', hmem,
-          (ConLeche.grpNews p.key.lvls p.key.ds (ctx.hiAt p.anc.length) p.grp).reverse ++ X, ?_⟩
-        rw [hao, hocc, hX]
-        simp only [List.append_assoc]
-    · rw [han] at hkm; exact nomatch hkm
-
 /-! ## A listed node's true frame -/
 
 section Frames
@@ -376,9 +343,9 @@ variable {F : Nat} {envI envC : Env} {mk : EnvModelM V μ envI} {mpC : EnvModelM
 
 /-- A listed node's key is read where its frame is derived: `nodeDsaI`. -/
 theorem dyn_dsaI (H : DynCtx F mk mpC ctx d ns) {t : PosTree} (ht : t ∈ ns) (ψ : Name → Nat) :
-    DenoteMetaSpine mk.base2.acval envI ψ (ctx.hiAt t.anc.length) t.key.ds (nodeDsaI mk ctx ψ t) := by
+    DenoteSpine mk.base2.acval envI ψ (ctx.hiAt t.anc.length) t.key.ds (nodeDsaI mk ctx ψ t) := by
   obtain ⟨dsa, hdsa⟩ := (H.hsem t ht ψ).1
-  rw [nodeDsaI, DenoteMetaSpine.getD_eq hdsa]
+  rw [nodeDsaI, DenoteSpine.getD_eq hdsa]
   exact hdsa
 
 /-- **A listed node's TRUE frame** (`nlFr`) is its key read where its frame
@@ -394,24 +361,24 @@ theorem dyn_nlFr (H : DynCtx F mk mpC ctx d ns) {b : Nat} (hb : b ≠ 0)
   rw [ite_eq_right hb]
   generalize ns.getD (b - 1) default = t at ht ⊢
   obtain ⟨dsa, hdsa⟩ := (H.hsem t ht ψ).1
-  have hI : nodeDsaI mk ctx ψ t = dsa := by rw [nodeDsaI, DenoteMetaSpine.getD_eq hdsa]
+  have hI : nodeDsaI mk ctx ψ t = dsa := by rw [nodeDsaI, DenoteSpine.getD_eq hdsa]
   rw [hI]
   unfold nodeFr
   obtain ⟨-, -, -, -, -, hanc⟩ := H.hok t ht
   rcases hanc with ⟨hao, -⟩ | ⟨han, hds⟩
   · rw [hao] at hdsa ⊢
-    rw [DenoteMetaSpine.getD_eq (DenoteMetaSpine.transport (fun e _ he => H.htr ψ _ e he) hdsa)]
+    rw [DenoteSpine.getD_eq (DenoteSpine.transport (fun e _ he => H.htr ψ _ e he) hdsa)]
     rfl
   · rw [han] at hdsa ⊢
-    have hlift := DenoteMetaSpine.lift (m := mk.base2) (φ := ψ) (h := ctx.hiAt 0)
+    have hlift := DenoteSpine.lift (m := mk.base2) (φ := ψ) (h := ctx.hiAt 0)
       (D := ctx.hiAt t.occ.length) (by simp only [NestCtx.hiAt]; omega) (fun x hx => (hds x hx).2)
       hdsa
-    rw [DenoteMetaSpine.getD_eq (DenoteMetaSpine.transport (fun e _ he => H.htr ψ _ e he) hlift)]
+    rw [DenoteSpine.getD_eq (DenoteSpine.transport (fun e _ he => H.htr ψ _ e he) hlift)]
     have htv : nodeTrueVal ctx.nP (nodeHv mpC.base2.acval envC ctx ψ t.occ xs.length) xs ρ
         = trueVal mpC ctx ψ ρ xs (t.occ ++ []) := by rw [List.append_nil]; rfl
     rw [htv, trueVal_append]
     generalize hvs : (List.map (interp V (consList xs ρ)) (List.map (fun j =>
-      (denoteMeta mpC.base2.acval envC ψ xs.length
+      (denote mpC.base2.acval envC ψ xs.length
         (nodeImg ctx (t.occ ++ []) (ctx.hiAt ([] : List NestHole).length + j))).getD .prf)
         (List.range t.occ.length))) = vs
     have hvl : vs.length = t.occ.length := by rw [← hvs]; simp
@@ -461,7 +428,7 @@ theorem dyn_hAdm (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : Nat �
     rw [hψ]
     have hws := posNodeOk_dsAnc (H.hok t ht)
     have hdsa := dyn_dsaI H ht ψ
-    refine ⟨nodeKeyFit mk (H.hΔ0 ψ) (H.hok t ht) (H.hsem t ht ψ) hD hmm hmmH hfc (hlenP _).symm
+    refine ⟨nodeKeyFit mk (H.hΔ0 ψ) (H.hok t ht) (H.hsem t ht ψ) H.hcov.find hD hmm hmmH hfc (hlenP _).symm
       hdsa σ hσ.sat, fun c hc => ?_⟩
     rw [hwid] at hc
     exact grp_idx_eq mk hD hnN hkN H.hcov.find hlps hndl hul hws hdsa (hlenP _) hg (hall c hc)
@@ -535,23 +502,23 @@ theorem trueVal_frameVal (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ 
         rwa [List.append_nil]
       exact h'.suffix
   obtain ⟨dsa, hdsa⟩ := (H.hsem o ho ψ).1
-  have hdsaC := DenoteMetaSpine.transport (fun e _ he => H.htr ψ _ e he) hdsa
+  have hdsaC := DenoteSpine.transport (fun e _ he => H.htr ψ _ e he) hdsa
   obtain ⟨ebs, hebs, hmap⟩ := readback_spine mpC.base2 (hrd.hs ψ hxs) (consList xs ρ)
     (fun x hx => (posNodeOk_dsAnc (H.hok o ho) x hx).1) hdsaC
   have hlen' : o.key.lvls.length = cv'.levelParams.length := by rw [hl', hul]
-  have hc := H.htr ψ xs.length _ (denoteMeta_const (acval := mk.base2.acval) (φ := ψ)
+  have hc := H.htr ψ xs.length _ (denote_const (acval := mk.base2.acval) (φ := ψ)
     (d := xs.length) hf' hlen')
-  rw [himg, denoteMeta_mkAppN hebs hc, Option.getD_some, interp_mkAppN_foldl, hmap,
+  rw [himg, denote_mkAppN hebs hc, Option.getD_some, interp_mkAppN_foldl, hmap,
     substE_nodeImgX_trueVal mpC.base2 ψ ρ hxs]
-  have hI : nodeDsaI mk ctx ψ o = dsa := by rw [nodeDsaI, DenoteMetaSpine.getD_eq hdsa]
+  have hI : nodeDsaI mk ctx ψ o = dsa := by rw [nodeDsaI, DenoteSpine.getD_eq hdsa]
   rw [hI]
   -- the recorded former at its block's parameters is the hole value
-  have hkey := nodeKeyFit mk (H.hΔ0 ψ) (H.hok o ho) (H.hsem o ho ψ) hD hmm hmmH hfc
+  have hkey := nodeKeyFit mk (H.hΔ0 ψ) (H.hok o ho) (H.hsem o ho ψ) H.hcov.find hD hmm hmmH hfc
     (hlenP _).symm hdsa _ hsat
   have hfe := former_app_eq mpC (H.hsub D hD) hmm' hkey (consList xs ρ)
   have hdl : (D.params (Level.substFn ψ cv.levelParams o.key.lvls)).length
       = (dsa.map (interp V (trueVal mpC ctx ψ ρ xs o.anc))).length := by
-    rw [List.length_map, hlenP, DenoteMetaSpine.length_eq hdsa]
+    rw [List.length_map, hlenP, DenoteSpine.length_eq hdsa]
   rw [hdl] at hfe
   unfold keyFrame at hfe
   rw [frameIdx_consList'] at hfe
@@ -593,10 +560,10 @@ theorem dyn_trueVal_sat (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ :
     · intro t' ht'
       have htn : t' < ctx.names.length := by rw [H.hnames, hkN]; exact ht'
       obtain ⟨cv, caps, hf, hlps⟩ := H.hlpsM _ (List.getElem_mem htn)
-      have hc : denoteMeta mpC.base2.acval envC ψ xs.length
+      have hc : denote mpC.base2.acval envC ψ xs.length
           (.const (ctx.names[t']'htn) (ctx.lps.map Level.param))
             = some (mpC.base2.acval (ctx.names[t']'htn) ψ) := by
-        have h1 := H.htr ψ xs.length _ (denoteMeta_const (acval := mk.base2.acval) (φ := ψ)
+        have h1 := H.htr ψ xs.length _ (denote_const (acval := mk.base2.acval) (φ := ψ)
           (d := xs.length) hf
           (show (ctx.lps.map Level.param).length = cv.levelParams.length by
             rw [List.length_map, hlps]))
@@ -711,7 +678,7 @@ theorem dyn_trueVal_sat (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ :
           obtain ⟨r, rfl⟩ : ∃ r, q = r + G.length := ⟨q - G.length, by omega⟩
           rw [← hvl, consList_apply_add, hvl, trueVal_append]
           have hl2 : ((List.map (interp V (consList xs ρ)) (List.map (fun j =>
-              (denoteMeta mpC.base2.acval envC ψ xs.length
+              (denote mpC.base2.acval envC ψ xs.length
                 (nodeImg ctx (G.reverse ++ u.anc) (ctx.hiAt u.anc.length + j))).getD .prf)
               (List.range G.reverse.length)))).length = G.length := by simp
           rw [← hl2, consList_apply_add]
@@ -736,10 +703,10 @@ theorem dyn_memberLeaf (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : 
   have htk : t < d.toLfp.k := by rw [← hkN, ← H.hnames]; exact ht
   have hxs' : ctx.nP ≤ xs.length := by rw [H.hnP]; exact hxs
   obtain ⟨cv, caps, hf, hlps⟩ := H.hlpsM _ (List.getElem_mem ht)
-  have hc : denoteMeta mpC.base2.acval envC ψ xs.length
+  have hc : denote mpC.base2.acval envC ψ xs.length
       (.const (ctx.names[t]'ht) (ctx.lps.map Level.param))
         = some (mpC.base2.acval (ctx.names[t]'ht) ψ) := by
-    have h1 := H.htr ψ xs.length _ (denoteMeta_const (acval := mk.base2.acval) (φ := ψ)
+    have h1 := H.htr ψ xs.length _ (denote_const (acval := mk.base2.acval) (φ := ψ)
       (d := xs.length) hf
       (show (ctx.lps.map Level.param).length = cv.levelParams.length by
         rw [List.length_map, hlps]))
@@ -771,8 +738,8 @@ theorem dyn_ownerFrame (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : 
     (hk_mem : hk ∈ ConLeche.grpNews (ns.getD (o - 1) default).key.lvls
       (ns.getD (o - 1) default).key.ds (ctx.hiAt (ns.getD (o - 1) default).anc.length)
       (ns.getD (o - 1) default).grp)
-    {dsa : List AnnotTerm}
-    (hdsa : DenoteMetaSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa) :
+    {dsa : List Term}
+    (hdsa : DenoteSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa) :
     keyFrame dsa (ctx.hiAt prog.length) (trueVal mpC ctx ψ ρ xs prog)
       = nlFr mpC ctx d ns ψ ρ xs o := by
   rw [dyn_nlFr H ho hu ψ ρ xs]
@@ -786,17 +753,17 @@ theorem dyn_ownerFrame (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : 
   generalize hG : (ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length) u.grp) = G at hdsa ⊢
   rw [trueVal_append]
   generalize hvs : List.map (interp V (consList xs ρ)) (List.map (fun j =>
-    (denoteMeta mpC.base2.acval envC ψ xs.length
+    (denote mpC.base2.acval envC ψ xs.length
       (nodeImg ctx (X ++ G.reverse ++ u.anc) (ctx.hiAt u.anc.length + j))).getD .prf)
       (List.range (X ++ G.reverse).length)) = vs
   have hvl : vs.length = X.length + G.length := by rw [← hvs]; simp
   have hlen : ctx.hiAt (X ++ G.reverse ++ u.anc).length = ctx.hiAt u.anc.length + vs.length := by
     rw [hvl]; simp only [List.length_append, List.length_reverse, ConLeche.NestCtx.hiAt]; omega
   rw [hlen] at hdsa ⊢
-  have hlift := DenoteMetaSpine.lift (m := mk.base2) (φ := ψ) (h := ctx.hiAt u.anc.length)
+  have hlift := DenoteSpine.lift (m := mk.base2) (φ := ψ) (h := ctx.hiAt u.anc.length)
     (D := ctx.hiAt u.anc.length + vs.length) (by omega)
     (fun x hx => (posNodeOk_dsAnc (H.hok u hu) x hx).1) (dyn_dsaI H hu ψ)
-  rw [DenoteMetaSpine.unique hdsa hlift, Nat.add_sub_cancel_left, keyFrame_lift]
+  rw [DenoteSpine.unique hdsa hlift, Nat.add_sub_cancel_left, keyFrame_lift]
 
 omit [SetTheory V] in
 /-- A stack ending in its owner's group and frames has, below any of the
@@ -1105,7 +1072,7 @@ node context). -/
 theorem dynCtx_of {F : Nat}
     {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC}
-    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → Term}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -1113,9 +1080,9 @@ theorem dynCtx_of {F : Nat}
     (hmk : ∀ D ∈ mk.lfpBlocks, D ∈ mpC.lfpBlocks)
     (hag : ∀ n, (envI.find? n).isSome = true → mpC.base2.acval n = mk.base2.acval n)
     (hsubC : ∀ D ∈ mpC.lfpBlocks, D = dR.toLfp ∨ D ∈ mk.lfpBlocks)
-    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : AnnotTerm},
-      denoteMeta mk.base2.acval envI ψ dd e = some ea →
-        denoteMeta mpC.base2.acval envC ψ dd e = some ea)
+    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : Term},
+      denote mk.base2.acval envI ψ dd e = some ea →
+        denote mpC.base2.acval envC ψ dd e = some ea)
     (hcoreK : BlockHoleCtxFacts mk.base2 dR pp.lps cvTasR pp.toBlockShape isRecR)
     {fvsP : List Expr} {ns : List PosTree}
     (hok : ∀ t ∈ ns, PosNodeOk (fueledOps .verified F) envI (pp.nestCtx fvsP envI.find?) t)
@@ -1140,7 +1107,7 @@ theorem dynCtx_of {F : Nat}
     have h0' : cvTasR[0]? = some cvTa0 := by rw [List.head?_eq_getElem?] at h0; exact h0
     obtain ⟨-, hFD0⟩ := hcoreK.1 0 cvTa0 h0'
     rw [List.length_reverse, BlockData.holeCtx, List.length_append, List.length_map,
-      List.length_range, BlockData.params, List.length_map, List.length_take, hFD0.len ψ]
+      List.length_range, BlockData.params, List.length_take, hFD0.len ψ]
     show min _ _ + _ = pp.nP + pp.memberNames.length + 0
     have : (blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf).k = pp.memberNames.length := by
       simp [blockDataOf, blockDataPre, BlockData.withPhi, ConLeche.BlockShape.k,

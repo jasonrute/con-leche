@@ -7,7 +7,7 @@ public import ConLeche.Term.Const
 @[expose] public section
 
 /-!
-# The erased term language (task #74)
+# The term language (task #74)
 
 `Term` is the term language the whole semantics tier is written in.
 It has a base directory of its own rather than one consumer's, since

@@ -88,7 +88,7 @@ theorem whnfTelescopeS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     refine SimC.bind (opE_whnf_sim hμ henv hs hw) (fun s₁ e' e'' hs₁ hR => ?_)
     obtain ⟨rfl, hw'⟩ := hR
     split
-    · next nm dom body bm =>
+    · next dom body =>
       simp only [WScoped] at hw'
       refine SimC.bind (whnfTelescopeS_sim hμ henv hs₁ (WScoped.instantiate1 hw'.1 0 hw'.2))
         (fun s₂ q q' hs₂ hQ => ?_)
@@ -109,8 +109,7 @@ theorem checkSumTeleS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
   · exact SimC.pure hs ⟨rfl, hTw⟩
   · refine SimC.bind (whnfTelescopeS_sim hμ henv hs hTw) (fun s₁ q q' hs₁ hQ => ?_)
     obtain rfl : q = q' := hQ
-    refine SimC.bind (checkConstantValS_sim hμ henv hs₁) (fun s₂ cvTa cvTa' hs₂ hP => ?_)
-    obtain ⟨rfl, hTw'⟩ := hP
+    refine SimC.bind (checkConstantValS_sim hμ henv hs₁) (fun s₂ _ _ hs₂ hTw' => ?_)
     exact SimC.pure hs₂ ⟨rfl, hTw'⟩
 
 /-- Stage 2 (one constructor, the constructor and its field count
@@ -127,8 +126,7 @@ theorem checkSumCtorS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
   unfold checkSumCtor
   dsimp only [sharedOpsC]
   refine SimC.bind (checkConstantValS_sim hμ henv hs)
-    (fun s₁ cvCa cvCa' hs₁ hP => ?_)
-  obtain ⟨rfl, hCw⟩ := hP
+    (fun s₁ _ _ hs₁ hCw => ?_)
   refine SimC.bind (SimC.unwrapOr' hs₁) (fun s₂ q q' hs₂ hQ => ?_)
   obtain ⟨rfl, -⟩ := hQ
   obtain ⟨cbs, cbody⟩ := q
@@ -140,7 +138,7 @@ theorem checkSumCtorS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
   obtain ⟨rfl, hop⟩ := hR
   obtain ⟨fvsP, crest⟩ := cq
   dsimp only
-  obtain ⟨hfvsW0, hcrW0⟩ := openPisAtFvars_WScoped nP cvCa.type 0 hop hCw
+  obtain ⟨hfvsW0, hcrW0⟩ := openPisAtFvars_WScoped nP cvC.type 0 hop hCw
   have hcrW : WScoped nP crest := by rwa [Nat.zero_add] at hcrW0
   refine SimC.bind (SimC.unwrapOr' hs₃) (fun s₄ tq tq' hs₄ hS => ?_)
   obtain ⟨rfl, hci⟩ := hS
@@ -150,7 +148,7 @@ theorem checkSumCtorS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
     (WScoped.of_not_hasFvar hTf)
   refine SimC.bind (checkStructDomsAtS_sim hμ (off := 0) henv
       (fun i x hx => by
-        obtain ⟨ty, rfl⟩ := openPisAtFvars_index nP cvCa.type 0 hop i x hx
+        obtain ⟨ty, rfl⟩ := openPisAtFvars_index nP cvC.type 0 hop i x hx
         have hw := hfvsW0 _ (List.mem_of_getElem? hx)
         simp only [WScoped] at hw
         exact hw.2)

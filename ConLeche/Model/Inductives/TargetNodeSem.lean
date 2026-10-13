@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.PosDerivNodes
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Inductives.PosDerivTie
@@ -30,7 +30,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal CheckM NestCtx NestHole BlockParts
   BlockShape instPisWith nestHoles openPisAtFvars fueledOps PosTree PosNodeOk)
 
@@ -60,14 +60,16 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts) :
     ∃ ca, (p.nestCtx fvsP env.find?).hiAt 0 = d.nP + d.k ∧
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
-      denoteMeta m.acval env ψ (d.nP + d.k) crest = some ca ∧
-      Rules.Graded V (d.holeCtx ψ).reverse ca := by
+      denote m.acval env ψ (d.nP + d.k) crest = some ca ∧
+      Rules.GradedTy V (d.holeCtx ψ).reverse ca := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
   have hcL : (p.nestCtx fvsP env.find?).lps = lps := hlps
@@ -76,7 +78,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     rw [← hnP]; exact ConLeche.Verify.openPisAtFvars_length _ hop0
   have hidxF := ConLeche.openPisAtFvars_index _ _ _ hop0
   obtain ⟨-, A, hA, hR⟩ := (hcore.2.1 c j cA hcj).2
-  obtain ⟨ab, -, hAr, -, -, -, -, -, -⟩ := hR ψ
+  obtain ⟨ab, -, hAr, -, -, -, -, -⟩ := hR ψ
   obtain ⟨A', hA', herased⟩ := canonCrest_of_walk (ctx := p.nestCtx fvsP env.find?)
     (fun i x hx => by rw [hcPar] at hx; simpa using hidxF i x hx)
     (by rw [hcPar, hlenF, hcP])
@@ -90,10 +92,10 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   rw [hcN, hcL, hcP, hA] at hA'
   obtain rfl := Option.some.inj hA'
   have hca := hAr
-  rw [← denoteMeta_erasedEq herased] at hca
-  obtain ⟨-, -, -, hhi, -, -, -, -, -, hfr, hCP, hgr, -⟩ :=
+  rw [← denote_erasedEq herased] at hca
+  obtain ⟨-, -, -, hhi, -, -, -, -, hfr, hCP, hgr, -, -, -, -⟩ :=
     blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames hnP hk hcv0 hop0
-      hholes hCf hCb hcrest hinf hd hca
+      hholes hCf hCb hcrest hinf hsort hd hca
   exact ⟨_, hhi, hfr, hCP, hca, hgr⟩
 
 /-- **Every node of a member constructor's derivation is read in its stack
@@ -117,12 +119,14 @@ theorem memberCtor_nodesSem {μ : ConLeche.CheckMode} {env : Env} (mk : EnvModel
       cA.1.type = some crest)
     {ty : Expr} (hinf : ConLeche.inferTypeCore .verified env F
       ((p.nestCtx fvsP env.find?).hiAt 0) crest = .ok ty)
+    {u : Level} (hsort : ConLeche.ensureSortCore .verified env F
+      ((p.nestCtx fvsP env.find?).hiAt 0) ty = .ok u)
     {tyN : Expr} {ksD : List ConLeche.NestFieldKind} {ts : List PosTree}
     (hd : ConLeche.MemberCtorD (fueledOps .verified F) env (p.nestCtx fvsP env.find?)
       cA.2 crest ksD tyN ts) (ψ : Name → Nat) :
     NodesSem mk.base2 ψ (p.nestCtx fvsP env.find?) (d.holeCtx ψ).reverse ts := by
   obtain ⟨ca, hhi, hfr, hCP, hca, hgr⟩ := blockCtorCrest (Rules.RulesInputs.ofSem mk ψ) hN hcore
-    hnames hlps hnP hk hcv0 hop0 hholes hcj hCf hCb hcrest hinf hd
+    hnames hlps hnP hk hcv0 hop0 hholes hcj hCf hCb hcrest hinf hsort hd
   obtain ⟨nds, cur, hD, -⟩ := hd
   have hΔ0 : ((d.holeCtx ψ).reverse).length = (p.nestCtx fvsP env.find?).hiAt 0 := by
     rw [hhi]; exact hCP.1
@@ -235,8 +239,10 @@ own levels and parameters) is recorded in the table `tbl`. -/
           cA.1.type = some crest ∧
         ConLeche.MemberCtorD (fueledOps .verified F) envI (pp.nestCtx fvsP envI.find?)
           cA.2 crest ks ((nfsR.getD m []).getD j default) ts ∧
-        (∃ ty, ConLeche.inferTypeCore .verified envI F
-          ((pp.nestCtx fvsP envI.find?).hiAt 0) crest = .ok ty) ∧
+        (∃ ty u, ConLeche.inferTypeCore .verified envI F
+          ((pp.nestCtx fvsP envI.find?).hiAt 0) crest = .ok ty ∧
+          ConLeche.ensureSortCore .verified envI F
+            ((pp.nestCtx fvsP envI.find?).hiAt 0) ty = .ok u) ∧
         (∀ u ∈ PosTree.forest ts, u ∈ ns) ∧
         (⟨cA.1.name, (pp.nestCtx fvsP envI.find?).lps.map .param,
           (pp.nestCtx fvsP envI.find?).params,
@@ -257,27 +263,27 @@ OCCURRENCE of a node knows its parent occurrence (`PosTree.annF`). -/
 /-! ## Readings across the constructors' conses -/
 
 /-- A spine read at one model is read at another that reads every term alike. -/
-theorem DenoteMetaSpine.transport {acval₁ acval₂ : Name → (Name → Nat) → AnnotTerm}
+theorem DenoteSpine.transport {acval₁ acval₂ : Name → (Name → Nat) → Term}
     {env₁ env₂ : Env} {φ : Name → Nat} {d : Nat}
-    (h : ∀ (e : Expr) {ea : AnnotTerm}, denoteMeta acval₁ env₁ φ d e = some ea →
-      denoteMeta acval₂ env₂ φ d e = some ea) :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval₁ env₁ φ d as vs →
-      DenoteMetaSpine acval₂ env₂ φ d as vs
+    (h : ∀ (e : Expr) {ea : Term}, denote acval₁ env₁ φ d e = some ea →
+      denote acval₂ env₂ φ d e = some ea) :
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine acval₁ env₁ φ d as vs →
+      DenoteSpine acval₂ env₂ φ d as vs
   | _, _, .nil => .nil
-  | _, _, .cons ha hs => .cons (h _ ha) (DenoteMetaSpine.transport h hs)
+  | _, _, .cons ha hs => .cons (h _ ha) (DenoteSpine.transport h hs)
 
 /-- **A node's key read at its occurrence**: its parameters read where its
 frame is derived (`NodeSemAt`), lifted to its occurrence's depth. -/
 theorem nodeSem_spOcc {env : Env} {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx}
-    {Δ0 : List AnnotTerm} {ops : ConLeche.CheckerOps CheckM} {t : PosTree}
+    {Δ0 : List Term} {ops : ConLeche.CheckerOps CheckM} {t : PosTree}
     (hok : PosNodeOk ops env ctx t) (hsem : NodeSemAt m φ ctx Δ0 t) :
-    ∃ dsa, DenoteMetaSpine m.acval env φ (ctx.hiAt t.occ.length) t.key.ds dsa := by
+    ∃ dsa, DenoteSpine m.acval env φ (ctx.hiAt t.occ.length) t.key.ds dsa := by
   obtain ⟨⟨dsa, hdsa⟩, -, -⟩ := hsem
   obtain ⟨-, -, -, -, hws, hanc⟩ := hok
   rcases hanc with ⟨hao, -⟩ | ⟨han, hds⟩
   · rw [← hao]; exact ⟨dsa, hdsa⟩
   · rw [han] at hdsa
-    exact ⟨_, DenoteMetaSpine.lift (m := m) (by simp only [NestCtx.hiAt]; omega)
+    exact ⟨_, DenoteSpine.lift (m := m) (by simp only [NestCtx.hiAt]; omega)
       (fun x hx => (hds x hx).2) hdsa⟩
 
 end ConLeche.Model

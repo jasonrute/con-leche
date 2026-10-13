@@ -6,7 +6,8 @@ import ConLeche.Model.Rules.IotaSound
 import ConLeche.Model.Rules.DefEqSound
 import ConLeche.Model.Rules.InferSound
 import ConLeche.Model.Rules.CertsSound
-import ConLeche.Rules.Derived
+import ConLeche.Model.Rules.DefEqSoundKit
+import ConLeche.Model.CtxOkKit
 
 public section
 
@@ -14,22 +15,25 @@ public section
 # The soundness of derivations (task #305)
 
 **Derivation ⇒ P currency**, by one mutual structural recursion over
-the six relations.  Every case is one per-rule lemma applied to the
+the eight relations.  Every case is one per-rule lemma applied to the
 recursive calls — nothing semantic happens here, which is the whole
 point: the per-rule lemmas are the proof lanes' deliverables, this
 file is fixed, and it is what the recomposition consumes.
 
-The one non-mechanical move is the λ rule's `hshape`: the chain case
-of the codomain validation reads the SHAPE of the body's inferred type
-off the premise derivation (`Infer.lam_shape`), which the per-rule
-lemma cannot see.
+**The claims are conditional on the point** (task #342, L9;
+`Motive.lean`): a reduction claims nothing of a subject that is the point,
+a definitional equality nothing where a side is.  ι and the K and `And`
+rescues (L10) conclude the unconditional `RedSemU` from conditional
+premises, and the λ-telescope congruence the unconditional
+`DefEqLamsSem` (task #349), both weakened here (`.cond`).  Binders carry no
+datum, so β has no premise and no side induction is needed.
 -/
 
 namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -37,6 +41,8 @@ universe w
 
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env}
   {φ : Name → Nat}
+
+/-! ## The conditional induction -/
 
 mutual
 
@@ -47,42 +53,42 @@ theorem red_sound (hin : RulesInputs V m φ) :
     Red.trans_sound (red_sound hin h₁) (red_sound hin h₂)
   | _, _, _, .appFn h => Red.appFn_sound (red_sound hin h)
   | _, _, _, .projArg h => Red.projArg_sound (red_sound hin h)
-  | _, _, _, .betaGate hnev => Red.betaGate_sound hnev
-  | _, _, _, .beta hta hd =>
-    Red.beta_sound (infer_sound hin hta) (defeq_sound hin hd)
+  | _, _, _, .beta => Red.beta_sound
+  | _, _, _, .zeta => Red.zeta_sound
   | _, _, _, .delta h => Red.delta_sound hin h
   | _, _, _, .natLit h => Red.natLit_sound h
   | _, _, _, .strLit h => Red.strLit_sound h
-  | _, _, _, .natSucc hsup hw hn =>
-    Red.natSucc_sound hin hsup (red_sound hin hw) hn
+  | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
+    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (teleArity_sound hcerts)
+  | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
   | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
     Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
-  | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
-    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (certs_sound hin hcerts)
-  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hfire hlv
+  -- ι and the K/`And` rescues (task #342 L10): one lemma each, from the
+  -- conditional claims of their premises
+  | _, _, _, .iota hhead hrec hlen hus hmajor hmhead hctor hrule hmlen hlv
       hparams hcertR hcertC hres hidx =>
     Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
-      hrule hmlen hfire hlv (fun hc => defEqList_sound hin (hparams hc))
-      (certs_sound hin hcertR) (certs_sound hin hcertC) hres
-      (fun hne => defEqList_sound hin (hidx hne))
+      hrule hmlen hlv (fun hc => defEqList_sound hin (hparams hc))
+      (teleArity_sound hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
+      (fun h3 hne => defEqList_sound hin (hidx h3 hne))
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
-      hb hlv' hcerts htf hdt hpi =>
+      hb hlv' _ _ htp http hv hv0 =>
     Red.rescueK_sound hin hrec hk hctor hres hind (infer_sound hin htm)
-      (red_sound hin htmaj) hthead hlv hnP hfab hws hb hlv'
-      (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
-      (defeq_sound hin hpi)
-  | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
-      hfab hws hb hlv' hcerts hproj hpi =>
-    Red.rescueEta_sound hin hrec heta hctor hres hind (infer_sound hin htm)
-      (red_sound hin htmaj) hthead hlen hlv hnz hfab hws hb hlv'
-      (certs_sound hin hcerts)
-      (fun hno => etaProjCerts_sound hin (hproj hno)) (defeq_sound hin hpi)
+      (red_sound hin htmaj) hthead hlv hnP hfab hws hb hlv' (infer_sound hin htp)
+      (prop_pt_io hin http rfl (infer_sound hin http) hv (red_sound hin hv)
+        (ConLeche.Level.isEquiv_sound hv0 φ))
   | _, _, _, .rescueAnd hrec hctor hres hind htm htmaj hthead hlen hlv hslots
-      hfab hws hb hlv' hcerts htf hdt hpi =>
+      hfab hws hb hlv' _ _ htp http hv hv0 =>
     Red.rescueAnd_sound hin hrec hctor hres hind (infer_sound hin htm)
       (red_sound hin htmaj) hthead hlen hlv hslots hfab hws hb hlv'
-      (certs_sound hin hcerts) (infer_sound hin htf) (defeq_sound hin hdt)
-      (defeq_sound hin hpi)
+      (infer_sound hin htp)
+      (prop_pt_io hin http rfl (infer_sound hin http) hv (red_sound hin hv)
+        (ConLeche.Level.isEquiv_sound hv0 φ))
+  | _, _, _, .rescueEta hrec heta hctor hres hind htm htmaj hthead hlen hlv hnz
+      hfab hws hb hlv' hresT hresC htow =>
+    Red.rescueEta_sound hin hrec heta hctor hres hind (infer_sound hin htm)
+      (red_sound hin htmaj) htmaj hthead hlen hlv hnz hfab hws hb hlv' hresT hresC
+      htow
 
 theorem defeq_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {a b : Expr}, DefEq env d a b → DefEqSem m φ d a b
@@ -93,32 +99,39 @@ theorem defeq_sound (hin : RulesInputs V m φ) :
   | _, _, _, .fvar => DefEq.fvar_sound
   | _, _, _, .const h => DefEq.const_sound h
   | _, _, _, .natZero => DefEq.natZero_sound
-  | _, _, _, .natSucc h => DefEq.natSucc_sound (defeq_sound hin h)
-  | _, _, _, .forallE hty hbody hpw =>
-    DefEq.forallE_sound (defeq_sound hin hty) (defeq_sound hin hbody) hpw
-  | _, _, _, .lam hty hbody hpw =>
-    DefEq.lam_sound (defeq_sound hin hty) (defeq_sound hin hbody) hpw
+  | _, _, _, .natSucc h => DefEq.natSucc_sound hin (defeq_sound hin h)
+  | _, _, _, .forallE hty hbody =>
+    DefEq.forallE_sound (defeq_sound hin hty) (defeq_sound hin hbody)
+  | _, _, _, .lams h => DefEq.lams_sound (defEqLams_sound hin h)
   | _, _, _, .app hf ha => DefEq.app_sound (defeq_sound hin hf) (defeq_sound hin ha)
   | _, _, _, .proj h => DefEq.proj_sound (defeq_sound hin h)
-  | _, _, _, .eta htb hwtb hty hbody hpw =>
-    DefEq.eta_sound (infer_sound hin htb) (red_sound hin hwtb)
-      (defeq_sound hin hty) (defeq_sound hin hbody) hpw
   | _, _, _, .proofFast ha hb => DefEq.proofFast_sound hin ha hb
-  | _, _, _, .proofIrrel hta htta hu hu0 htb httb hv hv0 =>
-    DefEq.proofIrrel_sound (infer_sound hin hta) (infer_sound hin htta)
-      (red_sound hin hu) hu0 (infer_sound hin htb) (infer_sound hin httb)
-      (red_sound hin hv) hv0
+  | _, _, _, .proofIrrel hta htta hu hu0 _ _ _ _ =>
+    DefEq.proofIrrel_sound (infer_sound hin hta)
+      (prop_pt_io hin htta rfl (infer_sound hin htta) hu (red_sound hin hu)
+        (ConLeche.Level.isEquiv_sound hu0 φ))
+  | _, _, _, .structUnit hta hwta hthead hind hunit hresT htlen hlv htb hwtb hwtbF hd =>
+    DefEq.structUnit_sound hin (infer_sound hin hta) (red_sound hin hwta) hwta hthead
+      hind hunit hresT htlen hlv (infer_sound hin htb) (red_sound hin hwtb) hwtb hwtbF
+      (defeq_sound hin hd)
+  | _, _, _, .eta hneu htb hwtb hty hbody ht₁ htB =>
+    DefEq.eta_sound hneu (infer_sound hin htb) (red_sound hin hwtb)
+      (defeq_sound hin hty) (defeq_sound hin hbody) (infer_sound hin ht₁)
+      (defeq_sound hin htB)
   | _, _, _, .structEta htb hwtb hhead hctor hlen hthead hind heta hetaCtor hresT
-      hresc htlen hlv hlps hslots hus hcerts hproj hparams hfields =>
-    DefEq.structEta_sound hin (infer_sound hin htb) (red_sound hin hwtb) hhead
+      hresc htlen hlv hlps hslots hus hparams hfields =>
+    DefEq.structEta_sound hin (infer_sound hin htb) (red_sound hin hwtb) hwtb hhead
       hctor hlen hthead hind heta hetaCtor hresT hresc htlen hlv hlps hslots hus
-      (certs_sound hin hcerts) (fun hno => etaProjCerts_sound hin (hproj hno))
       (defEqList_sound hin hparams) (defEqList_sound hin hfields)
-  | _, _, _, .structUnit hta hwta hthead hind hunit hresT htlen hlv htb hwtb hd
-      hcerts =>
-    DefEq.structUnit_sound hin (infer_sound hin hta) (red_sound hin hwta) hthead
-      hind hunit hresT htlen hlv (infer_sound hin htb) (red_sound hin hwtb)
-      (defeq_sound hin hd) (certs_sound hin hcerts)
+
+theorem defEqLams_sound (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {a b : Expr}, DefEqLams env d a b → DefEqLamsSem m φ d a b
+  | _, _, _, .refl => DefEqLams.refl_sound
+  | _, _, _, .inner hty hbody ht₁ ht₂ ht =>
+    DefEqLams.inner_sound (defeq_sound hin hty) (defeq_sound hin hbody)
+      (infer_sound hin ht₁) (infer_sound hin ht₂) (defeq_sound hin ht)
+  | _, _, _, .outer hty hbody =>
+    DefEqLams.outer_sound (defeq_sound hin hty) (defEqLams_sound hin hbody)
 
 theorem infer_sound (hin : RulesInputs V m φ) :
     ∀ {g : Grade} {d : Nat} {e t : Expr}, Infer env g d e t → InferSem m φ g d e t
@@ -127,33 +140,60 @@ theorem infer_sound (hin : RulesInputs V m φ) :
   | _, _, _, _, .const hf htower hus => Infer.const_sound hin hf htower hus
   | _, _, _, _, .natLit h => Infer.natLit_sound hin h
   | _, _, _, _, .strLit h => Infer.strLit_sound hin h
-  | _, _, _, _, .forallE hs hu hbs hv hz =>
-    Infer.forallE_sound (infer_sound hin hs) (red_sound hin hu)
-      (infer_sound hin hbs) (red_sound hin hv) hz
-  | _, _, _, _, .lam hs hu hbt hchain hbtt hv hz =>
+  | _, _, _, _, .forallE hs hu hbs hv =>
+    Infer.forallE_sound (infer_sound hin hs) (red_sound hin hu) (fun _ => hu)
+      (infer_sound hin hbs) (red_sound hin hv) (fun _ => hv)
+  | _, _, _, _, .lam hs hu hbt =>
     Infer.lam_sound (fun hg => infer_sound hin (hs hg))
       (fun hg => red_sound hin (hu hg)) (infer_sound hin hbt)
-      (fun _ _ _ hbody => by subst hbody; exact Infer.lam_shape hbt)
-      hchain (fun hn => infer_sound hin (hbtt hn))
-      (fun hn => red_sound hin (hv hn)) hz
+  | _, _, _, _, .letE _ _ htv _ hb =>
+    Infer.letE_sound (fun hg => infer_sound hin (htv hg)) (infer_sound hin hb)
   | _, _, _, _, .app htf hw hta hd =>
-    Infer.app_sound (infer_sound hin htf) (red_sound hin hw)
-      (infer_sound hin hta) (defeq_sound hin hd)
-  | _, _, _, _, .appSkip htf hw hnev =>
-    Infer.appSkip_sound (infer_sound hin htf) (red_sound hin hw) hnev
+    Infer.app_sound (infer_sound hin htf) (red_sound hin hw) (fun _ => hw)
+      (fun hg => infer_sound hin (hta hg)) (fun hg => defeq_sound hin (hd hg))
   | _, _, _, _, .proj htpe hte hhead hent hlen hus hprop =>
-    Infer.proj_sound hin (infer_sound hin htpe) (red_sound hin hte) hhead hent
+    Infer.proj_sound hin (infer_sound hin htpe) (red_sound hin hte) (fun _ => hte) hhead hent
       hlen hus hprop
 
-theorem certs_sound (hin : RulesInputs V m φ) :
-    ∀ {d : Nat} {lic : Bool} {ty : Expr} {args : List Expr},
-      Certs env d lic ty args → CertsSem m φ d lic ty args
-  | _, _, _, _, .nil => Certs.nil_sound
-  | _, _, _, _, .skip hlic hnev hrest =>
-    Certs.skip_sound hlic hnev (certs_sound hin hrest)
-  | _, _, _, _, .cert hta hd hrest =>
-    Certs.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
-      (certs_sound hin hrest)
+/-- **Proof irrelevance at the io grade** (task #342 L18): a type whose
+io-inferred sort reduces to a sort evaluating to zero holds only the
+point in its io claim — by recursion over the type's own io inference,
+whose ∀ case recurses into the ∀'s body (`propPt_forallE`). -/
+theorem prop_pt_io (hin : RulesInputs V m φ) :
+    ∀ {g : Grade} {d : Nat} {T tt : Expr}, Infer env g d T tt → g = .io →
+      InferSem m φ g d T tt →
+      ∀ {w : Level}, Red env d tt (.sort w) → RedSem m φ d tt (.sort w) →
+        w.eval φ = 0 → PropPt m φ d T
+  | _, _, _, _, .forallE _ _ hbs hv, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_forallE hsem hrs hr hw0
+      (prop_pt_io hin hbs rfl (infer_sound hin hbs) hv (red_sound hin hv)
+        (eval_zero_of_red_imax hr hw0))
+  | _, _, _, _, .sort, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .fvar _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .const _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .natLit _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .strLit _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .lam _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .letE _ _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .app _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+  | _, _, _, _, .proj _ _ _ _ _ _ _, rfl, hsem, _, hr, hrs, hw0 =>
+    propPt_of_not_forallE hsem hrs hr hw0 (fun _ _ h => nomatch h)
+
+theorem certsF_sound (hin : RulesInputs V m φ) :
+    ∀ {d : Nat} {ty : Expr} {args : List Expr},
+      CertsF env d ty args → CertsFSem m φ d ty args
+  | _, _, _, .nil => CertsF.nil_sound
+  | _, _, _, .cert hta hd hrest =>
+    CertsF.cert_sound (infer_sound hin hta) (defeq_sound hin hd)
+      (certsF_sound hin hrest)
 
 theorem defEqList_sound (hin : RulesInputs V m φ) :
     ∀ {d : Nat} {as bs : List Expr},
@@ -162,16 +202,40 @@ theorem defEqList_sound (hin : RulesInputs V m φ) :
   | _, _, _, .cons h hs =>
     DefEqList.cons_sound (defeq_sound hin h) (defEqList_sound hin hs)
 
-theorem etaProjCerts_sound (hin : RulesInputs V m φ) :
-    ∀ {d : Nat} {T : Name} {us' : List Level} {targs : List Expr} {b : Expr}
-      {lpsT : List Name} {idxs : List Nat},
-      EtaProjCerts env d T us' targs b lpsT idxs →
-      EtaProjCertsSem m φ d T us' targs b lpsT idxs
-  | _, _, _, _, _, _, _, .nil => EtaProjCerts.nil_sound
-  | _, _, _, _, _, _, _, .cons hf hlps hstrip hcerts hrest =>
-    EtaProjCerts.cons_sound hf hlps hstrip (certs_sound hin hcerts)
-      (etaProjCerts_sound hin hrest)
-
 end
+
+/-! ## The global forms the inductive installer's readers consume -/
+
+/-- An establishing inference claim, at every satisfying valuation of a
+full context discipline. -/
+theorem InferSemFull.global {d : Nat} {e t : Expr} (h : InferSemFull m φ d e t)
+    (hf : Frame d e) {Δa : List Term} {ea : Term}
+    (hC : CtxOk m φ d Δa e) (hea : denote m.acval env φ d e = some ea) :
+    Frame d t ∧ LeavesSub t e ∧
+      ∃ ta, denote m.acval env φ d t = some ta ∧
+        Graded V Δa ea ∧ GradedTy V Δa ta ∧
+        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ∈ˢ interp V ρ ta := by
+  obtain ⟨hft, hsub, ta, hta, hs⟩ := h hf hC.toS hea
+  exact ⟨hft, hsub, ta, hta, fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).1,
+    fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.1,
+    fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.2⟩
+
+/-- **A reduction of a type** (task #342, L12): a subject that is a graded
+TYPE at every satisfying valuation reduces to a graded type with the same
+interpretation.  The conditional claim applies at every valuation because
+a type is never the point ("not pt" source (1): `IsTy.ne_pt`).  The
+positivity readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and
+read their whnf steps through it. -/
+theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
+    (h : Red env d e e') (hf : Frame d e) {Δa : List Term} {ea : Term}
+    (hC : CtxOk m φ d Δa e) (hea : denote m.acval env φ d e = some ea)
+    (hg : GradedTy V Δa ea) :
+    Frame d e' ∧ LeavesSub e' e ∧
+      ∃ ea', denote m.acval env φ d e' = some ea' ∧ GradedTy V Δa ea' ∧
+        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ea' := by
+  obtain ⟨hf', hsub, ea', hea', hs⟩ := red_sound hin h hf hC.toS hea
+  have hs' := fun ρ hρ => hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ).1 (hg ρ hρ).2.ne_pt
+  exact ⟨hf', hsub, ea', hea', fun ρ hρ => ⟨(hs' ρ hρ).1, (hs' ρ hρ).2 ▸ (hg ρ hρ).2⟩,
+    fun ρ hρ => (hs' ρ hρ).2⟩
 
 end ConLeche.Model.Rules

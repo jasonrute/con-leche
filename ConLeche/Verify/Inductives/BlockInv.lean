@@ -57,10 +57,12 @@ theorem checkBlockTele_shape {env : Env} {nP : Nat} {ms : MemberShape}
     (h : checkBlockTele (fueledOps mode F) env nP ms = .ok (cvTa, s)) :
     ∃ cvT : ConstantVal,
       cvT.name = ms.cvT.name ∧ cvT.levelParams = ms.cvT.levelParams ∧
-      checkConstantVal (fueledOps mode F) env cvT = .ok cvTa ∧
+      cvTa = cvT ∧ checkConstantVal (fueledOps mode F) env cvT = .ok () ∧
       ∃ bs, cvTa.type.stripPis (nP + ms.nIdx) = some (bs, .sort s) := by
   unfold checkBlockTele at h
-  obtain ⟨cvTa₀, hccv₀, h⟩ := exceptBind_ok h
+  obtain ⟨u₀, hccv₀, h⟩ := exceptBind_ok h
+  cases u₀
+  try simp only at h
   obtain ⟨q, htele, h⟩ := exceptBind_ok h
   obtain ⟨cvTa', s'⟩ := q
   try simp only at h
@@ -74,9 +76,9 @@ theorem checkBlockTele_shape {env : Env} {nP : Nat} {ms : MemberShape}
     obtain ⟨rfl, rfl⟩ := h
     have hstrip : cvTa'.type.stripPis (nP + ms.nIdx) = some (bs, Expr.sort s') := by
       rw [hr', beq_iff_eq.mp hc]
-    rcases checkSumTele_shape htele with ⟨rfl, -⟩ | ⟨ty, hccv⟩
-    · exact ⟨ms.cvT, rfl, rfl, hccv₀, bs, hstrip⟩
-    · exact ⟨{ ms.cvT with type := ty }, rfl, rfl, hccv, bs, hstrip⟩
+    rcases checkSumTele_shape htele with ⟨rfl, -⟩ | ⟨ty, heq, hccv⟩
+    · exact ⟨ms.cvT, rfl, rfl, rfl, hccv₀, bs, hstrip⟩
+    · exact ⟨{ ms.cvT with type := ty }, rfl, rfl, heq, hccv, bs, hstrip⟩
   · rw [ite_eq_right hc] at h
     close_throw
 
@@ -221,7 +223,7 @@ theorem checkBlockInds_shape {env envI : Env} {p : BlockParts} {isRec : Bool}
   obtain ⟨rfl, rfl, rfl⟩ := h
   exact ⟨ms0, rest, cvTa0, s0, cvs, rfl, rfl, rfl, rfl, hq, hcvs, by cases u; exact hagree⟩
 
-/-- The annotated formers are one per member. -/
+/-- The checked formers are one per member. -/
 theorem checkBlockInds_length {env envI : Env} {p : BlockParts} {isRec : Bool}
     {cvTas : List ConstantVal} {p₁ : BlockShape} {F : Nat}
     (h : checkBlockInds (fueledOps mode F) env p isRec = .ok (envI, cvTas, p₁)) :
@@ -289,7 +291,7 @@ theorem checkBlockPass_inv {env : Env} {p₀ : BlockParts} {isRec : Bool}
         ((p₀.complete p₁).members.zip q.cvTas) = .ok (q.ctorsAs, q.sortsss) ∧
       blockNestCtx (m := CheckM) (p₀.complete p₁).toBlockShape q.cvTas q.env₁.find?
         = .ok (ctx, holes) ∧
-      checkBlockClasses (fueledOps mode F) (mkFEnv q.env₁) q.env₁ (p₀.complete p₁).toBlockShape
+      checkBlockClasses (fueledOps mode F) (mkFEnv q.env₁) (p₀.complete p₁).toBlockShape
         ctx.params q.ctorsAs = .ok (q.rd, q.cls) ∧
       checkBlockPositivity (m := CheckM) (fueledOps mode F) q.env₁ q.env₁.find?
         (p₀.complete p₁) q.cvTas q.ctorsAs = .ok (q.kinds, q.nfs, pos) ∧
@@ -372,8 +374,7 @@ theorem checkBlockTail_inv {env₂ : Env} {block : List ConstantInfo} {q : Block
           q.cvTas = .ok out ∧
       checkBlockTables (m := CheckM) q.p.toBlockShape
         (q.p.members.zip (q.ctorsAs.zip q.sortsss))
-        (consBlockRecsT (consBlockCtors q.p.nP q.ctorsAs q.env₁).find?
-          (·.constsResolve (consBlockCtors q.p.nP q.ctorsAs q.env₁)) q.p.toBlockShape 0 out
+        (consBlockRecsT (consBlockCtors q.p.nP q.ctorsAs q.env₁).find? q.p.toBlockShape 0 out
           (consBlockCtors q.p.nP q.ctorsAs q.env₁)) = .ok env₂ := by
   rw [checkBlockTail] at h
   simp only [bind, Except.bind] at h

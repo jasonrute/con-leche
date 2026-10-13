@@ -1,12 +1,13 @@
 module
 
 import ConLeche.Semantics.DeclRun
+public import ConLeche.Model.Harvest
 public import ConLeche.Model.AxiomMem
 
 public section
 
 /-!
-# The pin tier, at the validated-annotation currency (task #161)
+# The pin tier (task #161)
 
 `DeclAxiomRun`'s branches at the P invariant: the tolerated skip,
 `Lean.trustCompiler` and the two standard axioms land here;
@@ -19,37 +20,23 @@ public section
 side is harvested from `ConstantValRun`'s own run, and what the branch
 must supply is the leaf `A` with
 
-* `hAclosed`/`hAparams` — syntactic, from the branch key and
+* `hAvclosed`/`hAparams` — syntactic, from the branch key and
   the `EnvModel` fields;
-* `hAok`/`hAvalid` — free at a `BConst` or `acval` leaf (`WellDenoted`'s
-  and `AnnotValid`'s `.const`/`.prf` clauses are `True`, and an
-  `acval` leaf carries both as invariant fields);
+* `hAok` — free at a `BConst` or `acval` leaf (`WellDenoted`'s
+  `.const`/`.prf` clauses are `True`, and an `acval` leaf carries it as
+  an invariant field);
 * `hmemA` — **the semantic content**: `interp` of the leaf inhabits
-  `interp` of the *stored* type's `denoteMeta` reading.
+  `interp` of the *stored* type's `denote` reading.
 
-## The stored type's reading is not the pin's
+## The stored type's reading is the pin's
 
-`hmemA` speaks about the reading of `type'`, the *stored* annotated
-type.  Every branch key knows the type only through `matchesPin`,
-which compares `erasePw` — so the pin fixes the stored
-type **up to binder names and binder `pw` data**.  `denoteMeta`'s
-binder clauses read `pwBit φ mb.pw`, and `erasePw` normalizes every
-datum to `.never`, whose bit is `1`; so `denoteMeta (e.erasePw) =
-denoteMeta e` fails at the first Prop-codomain binder.  The bits are
-therefore taken from the recorded run, never from the match verdict:
-`ConstantValRun`'s run gives `inferTypeCore μ env F 0 type' = .ok
-stype`; inverting it through `inferTypeCore_forall_inv` once per binder
-yields `Level.zeronessOf v = mb.pw`, hence (`pwBit_zeronessOf`)
-`pwBit φ mb.pw = 0 ↔ Level.eval φ v = 0`, and knowing `Level.eval φ v`
-is one symbolic-inference lemma per pinned family
-(`Model/AxiomBits.lean`; the telescope collapse `imax x y = 0 ↔ y = 0`
-makes it one fact per pin rather than one per binder).  The
-memberships are `Model/AxiomMem.lean`'s.
+`matchesPin` is plain equality, so the pin fixes the stored type on
+the nose, and its reading is the pin's.
+The memberships are `Model/AxiomMem.lean`'s.
 
-`Lean.trustCompiler` is the exception: its type is a **bare constant**,
-which carries no binder datum, so the pin fixes `type' = .const
-trueName []` **on the nose** (`erasePw_const_invS`) and the leaf is the
-stored `True.intro`'s annotated valuation.
+`Lean.trustCompiler`'s type is a **bare constant**, so the pin fixes
+`type' = .const trueName []` and
+the leaf is the stored `True.intro`'s valuation.
 -/
 
 namespace ConLeche.Model
@@ -57,7 +44,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -79,11 +66,10 @@ theorem axiomSkip (mp : EnvModelM V μ env) :
 /-- **The `trustCompiler` branch, discharged.**
 
 The pin fixes the axiom's type to the stored `True` *on the nose* —
-`ConstantVal.matchesPin` compares through `erasePw`, and
-neither erasure moves a `.const` — so this is the one pinned axiom
-whose `denoteMeta` reading is computable from the pin alone (see the
+`ConstantVal.matchesPin` is plain equality — so this is the one pinned axiom
+whose `denote` reading is computable from the pin alone (see the
 module docstring).  The leaf is the stored `True.intro`'s
-annotated valuation, and the membership is that constant's own
+leaf valuation, and the membership is that constant's own
 `mem_type`, whose type reads to the same `acval trueName ψ` the
 axiom's does. -/
 theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
@@ -96,8 +82,8 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
-    hrunT⟩ := hcv'
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+    -⟩ := hcv'
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   -- the guard's two pin hits, unpacked
@@ -127,48 +113,43 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
       | 0, 0, hTi =>
         simp only [ConstantVal.matchesPin, Bool.and_eq_true,
           decide_eq_true_eq, beq_iff_eq] at hTi
-        exact ⟨hTi.1.2, erasePw_const_invS hTi.2⟩
+        exact ⟨hTi.1.2, hTi.2⟩
     | _ => exact nomatch hTi
-  -- **the pin bites on the nose**: a `.const` has no binder, so
-  -- `erasePw` forgives nothing here
+  -- **the pin bites on the nose**
   have htyA : type' = .const ConLeche.trueName [] := by
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       decide_eq_true_eq, beq_iff_eq] at hA
-    exact erasePw_const_invS hA.2
+    exact hA.2
   have hnameTi : ciTi.name = ConLeche.trueIntroName := Env.find?_name hfTi
-  -- the leaf: the stored `True.intro`'s *annotated* valuation
+  -- the leaf: the stored `True.intro`'s leaf valuation
   refine harvestAxiom (V := V) hμ mp hcv
     (A := fun ψ => mp.base2.acval ConLeche.trueIntroName ψ)
-    (fun ψ => mp.base2.cval_closedL _ ψ) ?_ ?_ ?_ ?_ ?_
+    (fun ψ => mp.base2.cval_closed _ ψ) ?_ ?_ ?_
     -- `trustCompiler` is not a compiler-trust *operation*: the pin
     -- fixes the name, and the two operations are installed as opaques
     (by rw [hname]; decide)
-  · -- `hAclosed`
-    exact fun ψ k => mp.base2.acval_closed _ ψ k
   · -- `hAparams`: `True.intro` is level-monomorphic, so the premise is
     -- vacuous
     intro ψ₁ ψ₂ _
     exact mp.base2.acval_params _ ciTi hfTi ψ₁ ψ₂ (by
       rw [hlpTi]; intro p hp; exact nomatch hp)
   · exact fun ψ ρ => mp.base2.acval_wellDenoted _ ψ ρ
-  · exact fun ψ ρ => mp.acval_validV _ ψ ρ
   · -- `hmemA`: the axiom's type and `True.intro`'s stored type are the
     -- *same* bare constant, so they have the same reading, and the
     -- membership is that constant's own `mem_type`
     intro ψ ta hta ρ
-    rw [htyA, denoteMeta_levelless_const hfT hlpT] at hta
+    rw [htyA, denote_levelless_const hfT hlpT] at hta
     obtain rfl : ta = mp.base2.acval ConLeche.trueName ψ :=
       (Option.some.inj hta).symm
     have hmem := mp.mem_type ciTi (Env.find?_mem hfTi) ψ
       (mp.base2.acval ConLeche.trueName ψ)
-      (by rw [htyTi]; exact denoteMeta_levelless_const hfT hlpT) ρ
+      (by rw [htyTi]; exact denote_levelless_const hfT hlpT) ρ
     rwa [hnameTi] at hmem
 
 /-! ## The two standard axioms
 
-`DeclAxiomRun`'s first branch, both halves.  The bits come from
-`Model/AxiomBits.lean` (the axiom's *own* recorded run) and the
-memberships from `Model/AxiomMem.lean`. -/
+`DeclAxiomRun`'s first branch, both halves; the memberships are
+`Model/AxiomMem.lean`'s. -/
 
 /-- **The standard-axiom branch, discharged.**  The leaf is the layer's
 own constant in both halves, so every syntactic obligation is `rfl` or
@@ -182,11 +163,10 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
-    hrunT⟩ := hcv'
-  obtain ⟨htf', hbt'⟩ := annotate_syntax hann hitf hlbt
+    -⟩ := hcv'
+  obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
-  obtain ⟨stype, usort, hst, hens⟩ := hrunT
   have hwfc : ConLeche.EnvWF ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
       env.consts⟩ := by
     refine ConLeche.EnvWF.cons mp.base2.wf
@@ -198,10 +178,10 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
   by_cases hn : cv.name = propextName
   · refine harvestAxiom (V := V) hμ mp hcv
       (A := fun _ => .const .propext []) (fun _ => trivial)
-      (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by simp)
-      (fun _ _ => by simp) ?_ (by rw [hn]; decide)
+      (fun _ _ _ => rfl) (fun _ _ => by simp)
+      ?_ (by rw [hn]; decide)
     intro ψ ta hta ρ
-    exact propext_mem hμ mp hok hn hst ψ ta hta ρ
+    exact propext_mem mp hok hn ψ ta hta ρ
   · by_cases hn2 : cv.name = choiceName
     · -- the pin fixes the axiom's one level parameter, so the leaf
       -- reads only `ψ uN`
@@ -217,14 +197,13 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
       refine harvestAxiom (V := V) hμ mp hcv
         (A := fun ψ => .const .choice [ψ uN])
         (fun _ => trivial)
-        (fun _ _ => rfl)
         (fun ψ₁ ψ₂ hp => by
-          show AnnotTerm.const .choice [ψ₁ uN] = AnnotTerm.const .choice [ψ₂ uN]
+          show Term.const .choice [ψ₁ uN] = Term.const .choice [ψ₂ uN]
           rw [huN ψ₁ ψ₂ hp])
-        (fun _ _ => by simp) (fun _ _ => by simp) ?_
+        (fun _ _ => by simp) ?_
         (by rw [hn2]; decide)
       intro ψ ta hta ρ
-      exact choice_mem hμ mp hok hn2 hst ψ ta hta ρ
+      exact choice_mem mp hok hn2 ψ ta hta ρ
     · exfalso
       unfold ConLeche.stdAxiomOk at hok
       rw [show (⟨cv.name, cv.levelParams, type'⟩ : ConstantVal).name

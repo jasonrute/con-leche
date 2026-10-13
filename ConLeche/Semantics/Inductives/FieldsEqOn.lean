@@ -18,6 +18,7 @@ across, and so does the relation under the fields.
 -/
 
 namespace ConLeche.Semantics
+open ConLeche.Term (Term)
 open ConLeche.SetModel
 
 open SetTheory
@@ -30,25 +31,25 @@ variable {V : Type w} [SetTheory V]
 first fields at every frame satisfying `Δ`, the rest under the first
 field (either one: they read alike there). -/
 def FieldsEqOn (V : Type w) [SetTheory V] :
-    List AnnotTerm → List AnnotTerm → List AnnotTerm → Prop
+    List Term → List Term → List Term → Prop
   | _, [], [] => True
   | Δ, A :: As, B :: Bs =>
     (∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B) ∧ FieldsEqOn V (A :: Δ) As Bs
   | _, _, _ => False
 
-theorem FieldsEqOn.refl : ∀ (Δ As : List AnnotTerm), FieldsEqOn V Δ As As
+theorem FieldsEqOn.refl : ∀ (Δ As : List Term), FieldsEqOn V Δ As As
   | _, [] => trivial
   | Δ, A :: As => ⟨fun _ _ => rfl, FieldsEqOn.refl (A :: Δ) As⟩
 
 theorem FieldsEqOn.length_eq :
-    ∀ {Δ As Bs : List AnnotTerm}, FieldsEqOn V Δ As Bs → As.length = Bs.length
+    ∀ {Δ As Bs : List Term}, FieldsEqOn V Δ As Bs → As.length = Bs.length
   | _, [], [], _ => rfl
   | _, _ :: _, _ :: _, h => by simp [FieldsEqOn.length_eq h.2]
   | _, [], _ :: _, h => h.elim
   | _, _ :: _, [], h => h.elim
 
 /-- A context whose head reads alike is satisfied alike. -/
-theorem sat_cons_congr {Δ : List AnnotTerm} {A B : AnnotTerm}
+theorem sat_cons_congr {Δ : List Term} {A B : Term}
     (h : ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B) {ρ : Nat → V}
     (hs : Sat V (A :: Δ) ρ) : Sat V (B :: Δ) ρ := by
   intro i Aa hi
@@ -63,7 +64,7 @@ theorem sat_cons_congr {Δ : List AnnotTerm} {A B : AnnotTerm}
 
 /-- Fitting spines agree along field lists that read alike. -/
 theorem FieldsEqOn.spineFit_iff :
-    ∀ {Δ As Bs : List AnnotTerm}, FieldsEqOn V Δ As Bs → ∀ {ρ : Nat → V}, Sat V Δ ρ →
+    ∀ {Δ As Bs : List Term}, FieldsEqOn V Δ As Bs → ∀ {ρ : Nat → V}, Sat V Δ ρ →
       ∀ fs : List V, SpineFit ρ As fs ↔ SpineFit ρ Bs fs
   | _, [], [], _, _, _, fs => Iff.rfl
   | _, A :: As, B :: Bs, h, ρ, hρ, [] => by simp [SpineFit]
@@ -81,7 +82,7 @@ theorem FieldsEqOn.spineFit_iff :
 /-- Spines fit two field lists alike when the fields read alike at every
 prefix. -/
 theorem spineFit_congr_all {σ ρ : Nat → V} :
-    ∀ {Fs Gs : List AnnotTerm}, Fs.length = Gs.length →
+    ∀ {Fs Gs : List Term}, Fs.length = Gs.length →
       (∀ (i : Nat) (as : List V), i < Fs.length → as.length = i →
         interp V (consList as σ) (Fs.getD i default)
           = interp V (consList as ρ) (Gs.getD i default)) →
@@ -102,7 +103,7 @@ theorem spineFit_congr_all {σ ρ : Nat → V} :
 /-- Spines fit two field lists alike when the fields read alike along
 every prefix fitting the second list. -/
 theorem spineFit_congr_fit {σ ρ : Nat → V} :
-    ∀ {Fs Gs : List AnnotTerm}, Fs.length = Gs.length →
+    ∀ {Fs Gs : List Term}, Fs.length = Gs.length →
       (∀ (i : Nat) (as : List V), i < Fs.length → as.length = i → SpineFit ρ (Gs.take i) as →
         interp V (consList as σ) (Fs.getD i default)
           = interp V (consList as ρ) (Gs.getD i default)) →
@@ -123,7 +124,7 @@ theorem spineFit_congr_fit {σ ρ : Nat → V} :
 
 /-- Along a prefix fitting the first list, the next fields read alike. -/
 theorem FieldsEqOn.getD_eq :
-    ∀ {Δ As Bs : List AnnotTerm}, FieldsEqOn V Δ As Bs → ∀ {ρ : Nat → V}, Sat V Δ ρ →
+    ∀ {Δ As Bs : List Term}, FieldsEqOn V Δ As Bs → ∀ {ρ : Nat → V}, Sat V Δ ρ →
       ∀ (l : Nat) (as : List V), l < As.length → SpineFit ρ (As.take l) as →
         interp V (consList as ρ) (As.getD l default) = interp V (consList as ρ) (Bs.getD l default)
   | _, A :: _, B :: _, h, ρ, hρ, 0, as, _, hfit => by
@@ -140,36 +141,20 @@ theorem FieldsEqOn.getD_eq :
   | _, [], _, _, _, _, _, _, hl, _ => by simp at hl
   | _, _ :: _, [], h, _, _, _, _, _, _ => h.elim
 
-/-- Two Π-towers over field lists that read alike, with the same binder
-data and the same body, read alike. -/
+/-- Two Π-towers over field lists that read alike, with the same body,
+read alike. -/
 theorem interp_mkPisAV_congr :
-    ∀ {Δ : List AnnotTerm} (abD abN : List (Nat × Nat × AnnotTerm)) (B : AnnotTerm),
-      abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) →
-      FieldsEqOn V Δ (abD.map (·.2.2)) (abN.map (·.2.2)) →
+    ∀ {Δ : List Term} (abD abN : List Term) (B : Term),
+      FieldsEqOn V Δ abD abN →
       ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ (mkPisAV abD B) = interp V ρ (mkPisAV abN B)
-  | _, [], [], _, _, _, _, _ => rfl
-  | Δ, d :: abD, e :: abN, B, hb, h, ρ, hρ => by
-    simp only [List.map_cons, List.cons.injEq, Prod.mk.injEq] at hb
-    obtain ⟨⟨h1, h2⟩, hb⟩ := hb
-    simp only [mkPisAV, interp_pi, h2]
+  | _, [], [], _, _, _, _ => rfl
+  | Δ, d :: abD, e :: abN, B, h, ρ, hρ => by
+    simp only [mkPisAV, interp_pi]
     rw [h.1 ρ hρ]
-    refine piR_congr fun x hx => ?_
-    have hx' : x ∈ˢ interp V ρ d.2.2 := (h.1 ρ hρ).symm ▸ hx
-    exact interp_mkPisAV_congr abD abN B hb h.2 _ (Sat_cons V hρ hx')
-  | _, [], _ :: _, _, hb, _, _, _ => by simp at hb
-  | _, _ :: _, [], _, hb, _, _, _ => by simp at hb
-
-/-- The relation under a binder depends only on the binder's reading at
-the relation's frames. -/
-theorem under_eq_of_eqOn {Δ : List AnnotTerm} {A B : AnnotTerm} {R : FrameRel V}
-    (h : ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B)
-    (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δ ρ ∧ Sat V Δ ρ') : R.under A = R.under B := by
-  funext σ σ'
-  apply propext
-  constructor
-  · rintro ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
-    exact ⟨x, ρ, ρ', rfl, rfl, hR, by rwa [← h ρ (hdom ρ ρ' hR).1]⟩
-  · rintro ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
-    exact ⟨x, ρ, ρ', rfl, rfl, hR, by rwa [h ρ (hdom ρ ρ' hR).1]⟩
+    refine piV_congr fun x hx => ?_
+    have hx' : x ∈ˢ interp V ρ d := (h.1 ρ hρ).symm ▸ hx
+    exact interp_mkPisAV_congr abD abN B h.2 _ (Sat_cons V hρ hx')
+  | _, [], _ :: _, _, h, _, _ => h.elim
+  | _, _ :: _, [], _, h, _, _ => h.elim
 
 end ConLeche.Semantics

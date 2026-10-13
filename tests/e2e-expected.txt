@@ -77,12 +77,12 @@
 # `PUnit.rec _ 1 u ≡ 1` at a neutral `u` — the official kernel's
 # structure rescue covers 0-field structures, and so does ours: the
 # stream's `PUnit` is an ordinary installed structure (η, no fields),
-# rescued by the generic η certificate; dependency-closure slice of the
+# rescued through the family's η law; dependency-closure slice of the
 # Init export through `Unit.sizeOf`.
 0 unit_sizeof_rescue.ndjson
-# Frontend zeta-expands rec-rule right-hand sides (task #60): the
-# export carries a `let` in `Std.Packages.PreorderOfLEArgs`'s
-# recursor rule; install annotates the rhs and must not see `letE`.
+# A `let` in a recursor rule's right-hand side (task #60): the export
+# carries one in `Std.Packages.PreorderOfLEArgs`'s recursor rule, and
+# the recursor's install must accept it.
 # Init-export slice through the block (committed gzipped).
 0 let_rec_rhs.ndjson
 
@@ -137,7 +137,7 @@
 
 # str_lit.ndjson (tests/e2e/src/str_lit.lean): a definition with a
 # string-literal value and an Eq.refl theorem `strA ≡ "ab"` — the
-# annotate/infer literal rule (type String, guarded by strLitSupported)
+# inference's literal rule (type String, guarded by strLitSupported)
 # and the literal-literal defeq fast path, over the stream-installed
 # String/Char/List support declarations.
 0 str_lit.ndjson
@@ -187,19 +187,14 @@
 # `.proj String 0 ""` (the `String.utf8ByteSize_empty` shape:
 # `utf8ByteSize` is `ByteArray.size ∘ toByteArray` and `toByteArray`'s
 # value is `fun s => .proj String 0 s`).  Covers the references' proj
-# expansion site (task #52).  NOTE: on annotated input the literal is
-# in fact forced through the *rec-major* expansion (annotate rewrites
-# template-entry projections into the installed projection recursor,
-# so `.proj` nodes with a String scrutinee never survive annotation);
-# the whnf proj-site expansion itself is reference-mirroring but
-# unreachable for annotated input — see DESIGN.md "String literals".
+# expansion site (task #52).
 0 str_proj.ndjson
 # str_proj_declined.ndjson: the same stream with Char.ofNat perturbed
 # to carry a (unused, unreferenced — the stream stays valid) level
 # parameter, so `strLitSupported` fails.  The literal in the theorem
-# statement is then a positively detected unsupported feature at
-# annotate: decline (2) — the guard front-door fires before any
-# reduction, so the stuck-proj behavior never becomes a verdict.
+# statement is then a positively detected unsupported feature when it
+# is inferred: decline (2) — the guard fires before any reduction, so
+# the stuck-proj behavior never becomes a verdict.
 2 str_proj_declined.ndjson
 
 # Pin-certified GMP Nat operations (task #54): per operation, a
@@ -775,11 +770,10 @@
 # stream is accepted (0).  The escape is therefore not confined to
 # reject-vs-accept — a decline can be lost the same way.
 # Task #161 P5: the certified verdict moved from 2 to 1.  The annotate
-# pass infers each binder's codomain sort to write its datum, so the
+# pass of the time inferred each binder's codomain sort, so the
 # per-argument type error in this purpose-built defective stream
-# ("function expected", theorem PProd'._model.eta) is now found before
-# annotate reaches the unsupported projection shape that used to
-# decline first.  An ordering change on DEFECTIVE input only — a valid
+# ("function expected", theorem PProd'._model.eta) was found before it
+# reached the unsupported projection shape that used to decline first.  An ordering change on DEFECTIVE input only — a valid
 # stream has no such error — and it makes the certified lane agree with
 # the --trusted lane on this fixture (its override is gone).  The
 # class-B property the fixture pins is unchanged: the defect lives in
@@ -1039,6 +1033,20 @@
 0 natop_before_eq.ndjson
 0 natop_before_ble.ndjson
 1 prelude_bool_redefined.ndjson
+#   natop_booltrue_alias: natop_order without Nat.shiftLeft/shlEx, its
+#                 `Bool.true` constructor renamed `Bool.tt` and a
+#                 definition `Bool.true : BoolAlias := Bool.tt` (with
+#                 `BoolAlias := Bool`) at the front
+#                 (scripts/mk_natop_booltrue_alias.py).  The official
+#                 kernel REJECTS it (exit 1, "unknown constant
+#                 'Bool.true'" while replaying `bleEx`).  The checker
+#                 accepted it until task #342 L8; now it DECLINES (exit
+#                 2) at `Nat.ble`, because
+#                 `natOpGuard` now pins the `Bool` constructors at the
+#                 type `Bool` itself (the comparison recurrences relate
+#                 two members of one type; `divModEnvGuard` already
+#                 required it).  Target verdict: 2 (deliberate).
+2 natop_booltrue_alias.ndjson
 
 # =============================================================# THE INDUCTIVE-AUDIT FIXTURES (task #208; audit task #206, report
 # _tmp/indaudit/REPORT.md, probes _tmp/indaudit/probes/P/*.lean).
@@ -1193,20 +1201,28 @@
 0 ind_nest_two_pins.ndjson
 0 ind_nest_prop.ndjson
 #
-# --- S1 / crack C9: the `let` value/type checks.  `annotate`'s .letE
-# --- clause returns the zeta-reduct and the annotated term is let-free,
-# --- so `inferBody`'s own .letE arm never sees a `letE` the driver
-# --- produced: until task #217 official's `infer_let` triple ran
-# --- nowhere and all three were accepted (the audit's only unlicensed
-# --- accept-superset, and not an inductive matter).  #217 (follow-up 1)
-# --- runs the triple inside annotate, on the annotated annotation and
-# --- value, before the reduct is taken — official's three rejections
-# --- (1), reached at the same declaration.  let_bad_value_used is the
-# --- control the reduct's own type check already caught.
+# --- S1 / crack C9: the `let` value/type checks.  Official's
+# --- `infer_let` triple (the type's sort, the value against the type,
+# --- the body) runs in inference's own `.letE` arm since task #342
+# --- (L-ck: the annotate pass, which ran it at install and stored the
+# --- ζ-reduct, is gone; lets are stored as declared) — official's three
+# --- rejections (1), reached at the same declaration.
+# --- let_bad_value_used is the control the body's own check catches.
 1 let_bad_value.ndjson
 1 let_bad_type.ndjson
 1 let_bad_thm.ndjson
 1 let_bad_value_used.ndjson
+# Task #342 (L-ck): a `let` on an inductive's telescope SPINE, not inside
+# a binder domain.  The former's telescope is whnf'd (ζ included), so
+# `T : let X := Nat; X → Type` installs (official 0, v4.29.1).  A
+# constructor's telescope is read syntactically, as official's
+# `check_constructors` reads it: `mk : let X := Type; N → T` (the
+# exported `mk : N → T`, hand-edited under a `let`) is rejected (1); the
+# official kernel rejects the source spelling `mk : let n := 1; Fin n →
+# T` with "invalid return type".  Same verdicts before and after the
+# switch.
+0 let_former_spine.ndjson
+1 let_ctor_spine_bad.ndjson
 # The DAG-tower fixtures (task #215; scripts/mk_tower_fixtures.py) and
 # the two fixtures the retired tree-size budget left behind.  Each puts
 # a shared tower of depth 60 (about 2^60 nodes unshared, ~190 entries as
@@ -1256,13 +1272,13 @@
 0 tower_prelude.ndjson
 # tower_axiom_pin: `propext` with a tower type, over a standardly-shaped
 # stored `Iff` family (the only shape that reaches the pin comparison at
-# all) -> divergent standard-axiom pin (`ConstantVal.matchesPin` through
-# `Expr.erasePwEq`).
+# all) -> divergent standard-axiom pin (`ConstantVal.matchesPin`, through
+# `Expr`'s memoised `==`).
 2 tower_axiom_pin.ndjson
 # tower_axiom_nonstd: the same tower under a NON-pinned axiom name ->
 # the positive "non-standard axiom" decline, on the name alone.  No pin
-# comparison is reached; what this one gates is the annotation pass,
-# which does check the tower type.
+# comparison is reached; what this one gates is the header check, which
+# infers the tower type before the name decides.
 2 tower_axiom_nonstd.ndjson
 # tower_usedlater (task #233): a THREE-field structure whose last
 # field's type is a depth-60 tower built over the FIRST field's
@@ -1318,12 +1334,10 @@
 0 tower_mutual.ndjson
 # tower_nested (task #246): a NESTED block -- a container `NBox` on the
 # fixpoint route, then `NTow` nesting it -- whose constructor carries
-# the same depth-60 tower.  The nested rung specialises the container
-# and moves every motive, pin and domain out of the rule-prefix context
-# with `Expr.lowerBVars`, a plain rebuild that had neither cutoff nor
-# memo; it now carries both, as `abstract1` does (`lowerBVarsGo`, keyed
-# by the node and the CUTOFF, behind an `O(1)` loose-bvar field read),
-# with the kernel-checked `lowerBVarsGo_spec` and `@[csimp]`.
+# the same depth-60 tower.  It was written for the nested rung's
+# `Expr.lowerBVars` (a plain rebuild, later memoised); the auxiliary
+# recursor's `.nested` pins are now its class's parameters closed over
+# the rule prefix by memoised `abstract1` passes (`Expr.abstractPrefix`).
 0 tower_nested.ndjson
 # TASK #271 (issues #5 and #7) — THE INDUCTIVE BLOCK'S REDUNDANT
 # FIELDS.  Official's replay compares every exported CONSTRUCTOR and
@@ -2551,7 +2565,7 @@
 # `scripts/mk_rec_kbad.py`).  Official 1, TARGET 1 for all three.
 # k7: `Color.rec_1`, a copy of `Color.rec` whose major reaches `Color`
 # through a `let`: the recogniser files it as an auxiliary recursor,
-# the annotated type's major is the member — K7 fires ("the recursor
+# the stored type's major is the member — K7 fires ("the recursor
 # record's member is not its major's").  Official generates no
 # auxiliary recursor on a non-nested block.
 1 corner_rec_k7_let_major_bad.ndjson
@@ -2766,12 +2780,13 @@
 0 uh_root_erase_unif.ndjson
 0 uh_nest_key_redex.ndjson
 0 uh_nest_key_erase.ndjson
-# ACCEPTED SUPERSET (reported by lane UNIFCHK, not ruled): a non-uniform
-# occurrence only in a `let`'s type, or in an unused `let` value.  The check
-# reads the STORED constructor type, the ζ reduct of the declared one.
-# Official v4.33.1+ 1; ours 0 (before and after the lane).
-0 uh_let_erase_type.ndjson
-0 uh_let_erase_value.ndjson
+# A non-uniform occurrence only in a `let`'s type, or in an unused `let`
+# value.  FLIP (task #342 L-ck): 0 → 1 — the check reads the stored
+# constructor type, which since the annotate pass's deletion is the
+# declared one with its `let`s (before: the ζ reduct, an accepted
+# superset reported by lane UNIFCHK).  Official v4.33.1+ 1.
+1 uh_let_erase_type.ndjson
+1 uh_let_erase_value.ndjson
 # KEEPPROJ (2026-09-29): a projection whose structure argument is stuck
 # keeps it as it was (official `whnf_core`), so `(step (id c) 24 x).1 =
 # (step c 24 x).1` compares `step … =?= step …` arguments first.  Returning
@@ -2817,12 +2832,11 @@
 # (impredicative Prop + propext + K-like `Eq.rec`; sources
 # `tests/e2e/src/omega_kloop.lean`, `omega_demo2.lean`).
 # omega_kloop: `demo` never needs `Ω` reduced and the official kernel
-# accepts it at once.  The verified β-redex argument certificate compares
-# `Ω = Ω` with the binder domain `Ω = ι`, so `Ω ≟ ι`; before task #333
-# the defeq body head-normalized both sides before proof irrelevance (the
-# official order) and never returned (exit 3 on fuel before task #330, a
-# stack overflow since).  Proof irrelevance now runs on the unreduced
-# pair, before any `whnfCore`: accept, in both lanes.
+# accepts it at once.  Before task #333 a comparison `Ω ≟ ι` (then
+# made by the β-redex argument certificate, since deleted) head-normalized
+# both sides before proof irrelevance (the official order) and never
+# returned.  Proof irrelevance runs on the unreduced pair, before any
+# `whnfCore`: accept, in both modes.
 0 omega_kloop.ndjson
 # omega_demo2: `theorem demo2 (h : Ω = Ω) : Ω = ι := h` makes the
 # official kernel itself compare `Ω ≟ ι`: "(kernel) deep recursion
@@ -2858,6 +2872,38 @@
 0 pinstall_ok.ndjson
 1 pinstall_reject_mid.ndjson
 1 pinstall_dup.ndjson
+# eta_struct_major_no_whnf, eta_struct_major_and_no_whnf (task #342 R2;
+# the arena's corner-cases of the same names, lean4#15351/#15371): a
+# `Prod` major and an `And` major whose head normalization does not
+# terminate (proofs built from Coquand's paradox).  The structure
+# rescues run on the major as found, before any whnf, so the recursor
+# fires from the major's type alone: accept, as the planned official
+# kernel.  Before R2 the checker reduced the major first and overflowed
+# the native stack (exit 134).  Target: accept.
+0 eta_struct_major_no_whnf.ndjson
+0 eta_struct_major_and_no_whnf.ndjson
+# whnf_delta_loop, whnf_core_loop (task #342 R2): a head normalization
+# nothing avoids (an `Acc.rec` into data over such a proof; `Acc` is no
+# structure) — through the `whnf` loop's δ steps, and through the
+# `whnfCore` loop's β/ι steps alone.  No verdict exists; the official
+# kernel does not terminate either.  Both loops now iterate in constant
+# native stack and memory, so the run ends at the external timeout
+# (exit 124 at this fixture's 5 s budget in tests/arena.sh) instead of
+# a stack overflow (exit 134, before R2).  Target: the same.
+124 whnf_delta_loop.ndjson
+124 whnf_core_loop.ndjson
+# proj_of_subst_prop (the arena's bugs/proj-of-subst-prop, stream as the
+# arena builds it at c6d13ac, Lean v4.34.1; source in the arena's
+# tests/bugs/proj-of-subst-prop.lean): a proof of False by projecting a
+# Bool out of a proposition, after substituting a proof of `Q := a = c`
+# for one of `P := a = b`.  Rejected at `proposition` ("application type
+# mismatch"): `Q ≡ P` needs `b ≡ c`, whose ι step needs `b`'s `Acc`
+# proof, which the elaborator abstracted into the THEOREM
+# `PR14806Subst.b._proof_1`; theorems are opaque to con-leche's δ
+# (anticipating lean4#14896, whose kernel rejects `proposition` the same
+# way; today's official kernel unfolds it, accepts `proposition` and
+# rejects `observe`).  Target: reject.
+1 proj_of_subst_prop.ndjson
 # --- the openai/math completeness run (2026-10-10; parked by task #348,
 # see DESIGN.md "TASK #348"): two of its three exit-3 causes, pinned at
 # today's verdict, to be looked into later (after the checker rewrite).
@@ -2888,12 +2934,12 @@
 # 2^14 calls), whose variable meets the lazy-delta Nat-literal fold.
 # The official kernel checks the body with the let-fvar, so its fold
 # guard (no free variables) does not fire and the value is never
-# evaluated; con-leche's annotate pass ζ-substitutes the `let`, the
-# comparison is closed, and the fold evaluates it.  The harness pins
-# verdicts only; the cost is the point (instructions:u at n = 14,
-# con-leche / official: letfold_let 7.2e9 / 3.5e8, letfold_pair_let
-# 7.2e9 / 3.5e8, letfold_inline 7.2e9 / 3.4e9; the scaling is in
-# DESIGN.md "TASK #348").  All accept today, at 0.2 GB.  TARGET: the
+# evaluated; con-leche's inference substitutes the `let` value (it has
+# no let-variables), the comparison is closed, and the fold evaluates
+# it.  The harness pins verdicts only; the cost is the point
+# (instructions:u at n = 14, con-leche / official: letfold_let 6.8e9 /
+# 3.5e8, letfold_pair_let 6.8e9 / 3.5e8, letfold_inline 6.8e9 / 3.4e9;
+# the scaling is in DESIGN.md "TASK #348").  All accept today, at 0.2 GB.  TARGET: the
 # same verdicts on official's path: no fold under a let-variable
 # (letfold_let and letfold_pair_let then cost what official does).
 0 letfold_let.ndjson
@@ -2902,3 +2948,11 @@
 # `let`).  Both checkers fold here, as they should (official pays
 # 3.4e9 instructions too).  Accept, today and as the target.
 0 letfold_inline.ndjson
+# binder_pw_field (task #342): the legacy binder field `pw` is no
+# longer part of the format; a stream carrying it is malformed
+# (unknown key, the same recogniser error as any other key outside the
+# dialect) -- exit 3 (bad usage, malformed input, or an internal
+# failure of unclear cause; `ConLeche.CheckError.exitCode`,
+# `ConLeche/Driver/Run.lean`), not a REJECT (exit 1 is reserved for a
+# well-formed stream whose declaration is invalid).
+3 binder_pw_field.ndjson

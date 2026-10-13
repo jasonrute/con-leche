@@ -104,7 +104,7 @@ theorem natFrag_subst_syntax {c : Name} {v : Expr}
       rcases List.mem_append.mp hl with h' | h'
       · exact hlf l h'
       · exact hla l h'
-  | .bvar _, h | .lam _ _ _, h | .forallE _ _ _, h
+  | .bvar _, h | .lam _ _, h | .forallE _ _, h
   | .letE _ _ _, h | .proj _ _ _, h | .lit _, h => by
     simp [natFragOk] at h
 

@@ -11,8 +11,7 @@ import Std.Data.HashMap.Lemmas
 # The lean4export dialect: its syntax records and its key alphabet (task #256)
 
 The stream the checker reads is NDJSON in one fixed dialect —
-lean4export 3.x, plus the optional `pw` field (the binder annotation
-datum).  This module is
+lean4export 3.x.  This module is
 the dialect's *syntax*: one record per line shape, in **stream
 indices**, with nothing resolved and no representation in sight.  The
 byte recogniser (`ConLeche/Frontend/Scan/Fast.lean`) produces these;
@@ -79,8 +78,6 @@ inductive ErrTag where
   | badBinderInfo
   /-- a `hints` field that is neither a spelling nor `{"regular":n}` -/
   | badHints
-  /-- a `pw` field that is neither `"never"` nor a list -/
-  | badPw
   /-- a `natVal` literal that is not a quoted decimal -/
   | badNatVal
   /-- bytes after the line's closing brace -/
@@ -115,7 +112,6 @@ def ErrTag.describe : ErrTag → String
   | .badUtf8 => "string is not valid UTF-8"
   | .badBinderInfo => "unknown binderInfo"
   | .badHints => "malformed hints field"
-  | .badPw => "malformed pw field"
   | .badNatVal => "malformed natVal literal"
   | .trailing => "trailing bytes after the record"
   | .noProgress => "a scanner made no progress"
@@ -148,12 +144,6 @@ inductive LevelRec where
   | imax (u v : Nat)
   | param (n : Nat)
 
-/-- The `pw` datum a binder may carry (the checker's own annotated
-output; absent in a raw export, which is `never`).  Name indices. -/
-inductive PwRec where
-  | never
-  | ifAllZero (names : List Nat)
-
 /-- An expression-table entry.  The binder `name` index is required to
 be present and well-formed and is then DROPPED (task #203: parsed
 binders are anonymous), as is `binderInfo` (task #142) and `letE`'s
@@ -163,8 +153,8 @@ inductive ExprRec where
   | sort (u : Nat)
   | const (name : Nat) (us : List Nat)
   | app (fn arg : Nat)
-  | lam (type body : Nat) (pw : PwRec)
-  | forallE (type body : Nat) (pw : PwRec)
+  | lam (type body : Nat)
+  | forallE (type body : Nat)
   | letE (type value body : Nat)
   | proj (typeName idx struct : Nat)
   | natVal (n : Nat)
@@ -306,7 +296,6 @@ inductive Key where
   | kParam
   | kPre
   | kProj
-  | kPw
   | kQuot
   | kRecs
   | kRegular
@@ -380,8 +369,6 @@ applied where a table is created at run time, never on a closed term
 @[never_extract, noinline]
 def IdTable.markLinear (t : IdTable α) : IdTable α :=
   { dense := t.dense.markLinear, sparse := t.sparse.markLinear }
-
-theorem IdTable.markLinear_eq (t : IdTable α) : t.markLinear = t := rfl
 
 /-! ### The table is its naive map
 

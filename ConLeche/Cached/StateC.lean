@@ -111,19 +111,16 @@ structure CState where
   whnfC : Std.HashMap Expr Expr := {}
   inferC : Std.HashMap Expr Expr := {}
   /-- **The io-grade inference memo** (task #170 / #172 B4): results of
-  the knot's `inferIO` slot at `mode.ioGate` (both modes), kept apart
+  the knot's `inferIO` slot (both modes), kept apart
   from `inferC` per the task-#170 memo
   ruling — *"since caching has no access to semantic reasoning (yet)
   we need two memos, one with and one without the flag"* — because an
   io entry witnesses fewer checks than the full-infer claims consume.
   Its invariant is the io claims' weaker (premise-form) one
   (`CSOK.inferIOC`, `Verify/Cached/DiscC1.lean`).  Official's own
-  layout: the C++ kernel keys its infer cache by `infer_only`.  At
-  `ioGate = false` (no mode any more) the slot shares `inferC` and
-  this map stays empty. -/
+  layout: the C++ kernel keys its infer cache by `infer_only`. -/
   inferIOC : Std.HashMap Expr Expr := {}
   defeqC : Std.HashMap (Expr × Expr) Bool := {}
-  annotC : Std.HashMap Expr Expr := {}
   lsimpC : Std.HashMap Level Level := {}
   lnzC : Std.HashMap Level Bool := {}
   eqvC : Std.HashMap (Level × Level) Bool := {}
@@ -145,9 +142,6 @@ which is exactly the chained specification's next step. -/
 def peelFuel : Nat := 16777216
 
 @[inline] def peelFuelM : CheckCM Nat := pure peelFuel
-
-/-- The per-node loose-bvar bound — an `O(1)` field read. -/
-@[inline] def bvarBoundM (e : Expr) : CheckCM Nat := pure e.bvarB
 
 /-! ## Syntactic operations (the `*M` wrappers) -/
 
@@ -323,7 +317,7 @@ def CState.flushed (s : CState) : CState :=
   { s with
       constTyAt := {}, constValAt := {}, ruleRhsAt := {},
       whnfCoreC := {}, whnfCoreCheapC := {}, whnfC := {}, inferC := {}, inferIOC := {},
-      defeqC := {}, annotC := {}, instC := {} }
+      defeqC := {}, instC := {} }
 
 def flushC : CheckCM Unit := modify (·.flushed)
 
@@ -365,7 +359,7 @@ def constsResolveFP (fe : FEnv) (e : Expr) : Bool :=
   | .const nm _ .. => (fe.find? nm).isSome
   | .fvar _ ty .. => constsResolveFP fe ty
   | .app f a .. => constsResolveFP fe f && constsResolveFP fe a
-  | .lam ty body _ .. | .forallE ty body _ .. =>
+  | .lam ty body .. | .forallE ty body .. =>
     constsResolveFP fe ty && constsResolveFP fe body
   | .letE ty val body .. =>
     constsResolveFP fe ty && constsResolveFP fe val && constsResolveFP fe body
@@ -408,7 +402,7 @@ def constsResolveFXP (fe : @& FEnv) (memo : Expr.MemoB0 (constsResolveFP fe))
       Squash.mk (⟨ra, by rw [constsResolveFP, ← hf, ← ha, Bool.true_and]⟩, memo)
     | false, hf =>
       Squash.mk (⟨false, by rw [constsResolveFP, ← hf, Bool.false_and]⟩, memo)
-  | .lam ty body _ .. | .forallE ty body _ .. =>
+  | .lam ty body .. | .forallE ty body .. =>
     enterCRF fe ty memo (fun _ => constsResolveFXP fe memo ty) |>.lift fun (⟨rt, ht⟩, memo) =>
     match rt, ht with
     | true, ht =>

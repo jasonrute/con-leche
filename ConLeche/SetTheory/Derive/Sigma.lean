@@ -114,20 +114,95 @@ theorem ssnd_pt : ssnd (pt : V) = pt := by
   rintro ⟨a, b, h⟩
   exact pt_ne_kpair a b h
 
-/-- Formation along the tower, at the joint level `max u v`. -/
-theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
-    (hA : A ∈ˢ (univ u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (univ v : V)) :
+/-- Formation along the tower, at the joint level `max u v`, from the
+size bounds alone: above `0` a pair set is strict (task #342). -/
+theorem sigma_mem_univ_tg {u v : Nat} {A : V} {B : V → V}
+    (hA : A ∈ˢ (tg u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (tg v : V)) :
     sigmaSet (Nat.max u v) A B ∈ˢ (univ (Nat.max u v) : V) := by
   rcases Nat.eq_zero_or_pos (Nat.max u v) with hw | hw
   · rw [hw, sigmaSet_zero, univ_zero]
     exact truthVal_mem_univZero _
   · have hw' : Nat.max u v ≠ 0 := Nat.pos_iff_ne_zero.mp hw
     rw [sigmaSet_pos hw']
-    exact (univ_isTGUniverse hw').sigmaPairs_mem
-      (univ_mono (Nat.le_max_left u v) A hA)
-      (fun x hx => univ_mono (Nat.le_max_right u v) _ (hB x hx))
+    exact mem_univ_of_tg_strict ((tg_isTGUniverse hw').sigmaPairs_mem
+      (tg_mono (Nat.le_max_left u v) A hA)
+      (fun x hx => tg_mono (Nat.le_max_right u v) _ (hB x hx)))
+      strict_sigmaPairs
 
-/- Opaque interface operators (see `Derive/Empty.lean`). -/
+/-- Formation along the tower, at the joint level `max u v`. -/
+theorem sigma_mem_univ {u v : Nat} {A : V} {B : V → V}
+    (hA : A ∈ˢ (univ u : V)) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ (univ v : V)) :
+    sigmaSet (Nat.max u v) A B ∈ˢ (univ (Nat.max u v) : V) :=
+  sigma_mem_univ_tg (mem_tg_of_mem_univ hA) fun x hx => mem_tg_of_mem_univ (hB x hx)
+
+/-- A pair set is in the regime of its level: a truth value at `0`,
+strict above (task #342, L6). -/
+theorem Fib_sigmaSet (w : Nat) (A : V) (B : V → V) : Fib (decide (w = 0)) (sigmaSet w A B) := by
+  by_cases hw : w = 0
+  · subst hw
+    simp only [decide_true, Fib_true]
+    rw [sigmaSet_zero]; exact truthVal_mem_univZero _
+  · simp only [hw, decide_false, Fib_false]
+    rw [sigmaSet_pos hw]; exact strict_sigmaPairs
+
+/-! ## The unit at a level (task #342, items B and C)
+
+`PUnit.{w}` and the pair towers' terminator.  At `0` the unit is the
+truth value `True = {pt}` with its proof `pt`; above `0` it is `{∅}`
+with the member `∅` — a set that is neither the proof point nor
+contains it, so it is strict (a member of the strict universe, and so
+a type of every positive sort).  Nothing reads the terminator's member: `∅` is
+no Kuratowski pair, so `sfst ∅ = ssnd ∅ = pt` by the non-pair default,
+exactly as at `pt`. -/
+
+open Classical in
+/-- The unit type at level `w` (see the section docstring). -/
+noncomputable def unitSetAt (w : Nat) : V := if w = 0 then unitSet else sing empty
+
+open Classical in
+/-- The unit type's sole member at level `w`. -/
+noncomputable def unitAt (w : Nat) : V := if w = 0 then pt else empty
+
+theorem unitSetAt_zero : (unitSetAt 0 : V) = unitSet := ite_eq_left rfl
+theorem unitSetAt_pos {w : Nat} (hw : w ≠ 0) : (unitSetAt w : V) = sing empty := ite_eq_right hw
+theorem unitAt_zero : (unitAt 0 : V) = pt := ite_eq_left rfl
+theorem unitAt_pos {w : Nat} (hw : w ≠ 0) : (unitAt w : V) = empty := ite_eq_right hw
+
+theorem mem_unitSetAt_iff {w : Nat} {z : V} : z ∈ˢ (unitSetAt w : V) ↔ z = unitAt w := by
+  by_cases hw : w = 0
+  · subst hw; rw [unitSetAt_zero, unitAt_zero]; exact mem_unitSet_iff
+  · rw [unitSetAt_pos hw, unitAt_pos hw]; exact mem_sing
+
+theorem unitAt_mem_unitSetAt (w : Nat) : (unitAt w : V) ∈ˢ unitSetAt w :=
+  mem_unitSetAt_iff.mpr rfl
+
+/-- `{∅}` is strict: it is not the point (whose one member is `ptTag`,
+not `∅`), and its one member `∅` is not the point. -/
+theorem strict_sing_empty : Strict (sing empty : V) := by
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · have h1 : (empty : V) = ptTag := mem_pt.mp (h ▸ mem_sing.mpr rfl)
+    have h2 := empty_mem_ptTag (V := V)
+    rw [← h1] at h2
+    exact not_mem_empty _ h2
+  · exact pt_ne_empty (mem_sing.mp h)
+
+theorem unitSetAt_mem_univ : ∀ w : Nat, (unitSetAt w : V) ∈ˢ univ w
+  | 0 => unitSetAt_zero (V := V) ▸ unitSet_mem_univ 0
+  | n + 1 => by
+    rw [unitSetAt_pos (Nat.succ_ne_zero n)]
+    exact mem_univ_of_tg_strict ((tg_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
+      (univChain_one_mem_tg_succ n) (empty_mem_tg _)) strict_sing_empty
+
+/-- The unit is in the regime of its level: `{pt}` at `0`, strict
+above (task #342, L6). -/
+theorem Fib_unitSetAt (w : Nat) : Fib (decide (w = 0)) (unitSetAt w : V) := by
+  by_cases hw : w = 0
+  · subst hw
+    simp only [decide_true, Fib_true]
+    rw [unitSetAt_zero, ← univ_zero]; exact unitSet_mem_univ 0
+  · simp only [hw, decide_false, Fib_false]
+    rw [unitSetAt_pos hw]; exact strict_sing_empty
+
 attribute [irreducible] sigmaSet spair sfst ssnd
 
 end ConLeche.SetTheory

@@ -14,12 +14,13 @@ straight from the direct parse (`ConLeche/Frontend/ExportC.lean`, task
 
 `checkDeclStepC` is the fold's step for every declaration kind that is
 checked as it is installed: axioms, inductive and basis blocks, the
-pinned `Nat`-operation and `reduce*` declarations — and, on this step,
-a definition, theorem or opaque too.  The declaration fold itself,
-`checkDecls` (`ConLeche/Cached/Installed.lean`), installs every record
-first (a separable value declaration by the install half of this
-step, annotated and pushed with its check recorded; everything else by
-this step) and checks the recorded declarations afterwards; the
+pinned `Nat`-operation definitions and `reduce*` opaques.  The
+declaration fold itself, `checkDecls` (`ConLeche/Cached/Installed.lean`),
+installs every record first (a separable value declaration — every
+theorem, every other definition and opaque — by its own install half,
+pushed with its check recorded; everything else by this step) and
+checks the recorded declarations afterwards, so this step never sees a
+separable value declaration: it throws an internal error on one; the
 binary's driver (`ConLeche/Driver/*`) runs that fold with a heartbeat between
 the steps and returns its environment together with the proof that
 `checkDecls` returns it.  The fold runs at `.verified` and at
@@ -52,7 +53,7 @@ def opSIxC (fe : FEnv) (d : Nat) (i : Expr) : CheckCM Level :=
 `checkConstantValF` with the syntactic passes memoized on the `Expr`
 DAG and the cached operations on its nodes. -/
 def checkConstantValC (fe : FEnv) (cv : ConstantVal) :
-    CheckCM (ConstantVal × Expr) := do
+    CheckCM Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -65,15 +66,12 @@ def checkConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if Expr.hasFvar cv.type then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let jty ← (coreKnotI mode fe checkFuel).annotate 0 cv.type
-  unless Expr.allLevelParamsDefinedC cv.levelParams jty do
+  unless Expr.allLevelParamsDefinedC cv.levelParams cv.type do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless constsResolveFC fe jty do
-    throw (unresolvedConstsError s!"type of {cv.name}" jty)
-  let jsty ← (coreKnotI mode fe checkFuel).infer 0 jty
+  unless constsResolveFC fe cv.type do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
+  let jsty ← (coreKnotI mode fe checkFuel).infer 0 cv.type
   let _u ← opSIxC mode fe 0 jsty
-  let tyE := jty
-  pure (⟨cv.name, cv.levelParams, tyE⟩, jty)
 
 /-- `checkShapeless` (`ConLeche/Kernel/CheckDecl.lean`) through the index:
 a block the recogniser does not read has its type formers checked as
@@ -85,76 +83,42 @@ def checkShapelessS (fe : FEnv) (block : List ConstantInfo) : CheckCM FEnv := do
   throw (.notImplemented s!"inductive block \
     {(block.head?.map (·.name)).getD .anonymous}: shape not recognised")
 
-/-- Check a definition's value against its annotated type `jty`,
-returning the record to install, unpushed: the pinned `Nat`-operation
-arm of `checkDeclC` certifies against an overlay before it pushes. -/
-def checkDefnValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
+/-- Check a definition's value against its declared type, returning the
+record to install, unpushed: the pinned `Nat`-operation arm of
+`checkDeclC` certifies against an overlay before it pushes. -/
+def checkDefnValCI (fe : FEnv) (cv : ConstantVal)
     (value : Expr) (hint : ReducibilityHint) : CheckCM ConstantInfo := do
   unless Expr.looseBVarsBounded 0 value do
-    throw (.invalid s!"loose bound variable in value of {cvA.name}")
+    throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
-    throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
-  unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
-    throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
+    throw (.invalid s!"unexpected free variable in value of {cv.name}")
+  let jv := value
+  unless Expr.allLevelParamsDefinedC cv.levelParams jv do
+    throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cv.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
-    throw (.invalid s!"type mismatch in definition {cvA.name}")
-  pure (.defnInfo cvA jv hint)
+  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt cv.type do
+    throw (.invalid s!"type mismatch in definition {cv.name}")
+  pure (.defnInfo cv jv hint)
 
-/-- Check and install a definition's value against its annotated type `jty`. -/
-def checkDefnValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
-    (value : Expr) (hint : ReducibilityHint) : CheckCM FEnv := do
-  let ci ← checkDefnValCI mode fe cvA jty value hint
-  pure (fe.push ci)
-
-/-- Check a theorem's value against its `Prop` statement `jty`; stored opaque. -/
-def checkThmValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
-    (value : Expr) : CheckCM FEnv := do
-  let jsty ← (coreKnotI mode fe checkFuel).infer 0 jty
-  let ul ← opSIxC mode fe 0 jsty
-  unless (← liftFueled "level comparison" (Level.isEquiv ul .zero)) do
-    throw (.invalid s!"type of theorem {cvA.name} is not a proposition")
-  unless Expr.looseBVarsBounded 0 value do
-    throw (.invalid s!"loose bound variable in value of {cvA.name}")
-  if value.hasFvar then
-    throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
-  unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
-    throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
-  unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
-  let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
-    throw (.invalid s!"type mismatch in theorem {cvA.name}")
-  -- stored by statement only: a stored theorem carries no value
-  pure (fe.push (.thmInfo cvA))
-
-/-- Check an opaque's value against `jty`, returning the axiom record
-to install, unpushed (as `checkDefnValCI`). -/
-def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
+/-- Check an opaque's value against its declared type, returning the
+axiom record to install, unpushed (as `checkDefnValCI`). -/
+def checkOpaqueValCI (fe : FEnv) (cv : ConstantVal)
     (value : Expr) : CheckCM ConstantInfo := do
   unless Expr.looseBVarsBounded 0 value do
-    throw (.invalid s!"loose bound variable in value of {cvA.name}")
+    throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
-    throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  let jv ← (coreKnotI mode fe checkFuel).annotate 0 value
-  unless Expr.allLevelParamsDefinedC cvA.levelParams jv do
-    throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
+    throw (.invalid s!"unexpected free variable in value of {cv.name}")
+  let jv := value
+  unless Expr.allLevelParamsDefinedC cv.levelParams jv do
+    throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless constsResolveFC fe jv do
-    throw (unresolvedConstsError s!"value of {cvA.name}" jv)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cv.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
-    throw (.invalid s!"type mismatch in opaque {cvA.name}")
-  pure (.axiomInfo cvA)
-
-/-- Check an opaque's value against `jty`; installed as an axiom. -/
-def checkOpaqueValC (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
-    (value : Expr) : CheckCM FEnv := do
-  let ci ← checkOpaqueValCI mode fe cvA jty value
-  pure (fe.push ci)
+  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt cv.type do
+    throw (.invalid s!"type mismatch in opaque {cv.name}")
+  pure (.axiomInfo cv)
 
 /-- `checkBasisDecl`'s cached twin: the body the three records that
 install a pinned basis block share (task #293). -/
@@ -165,7 +129,11 @@ def checkBasisDeclC (fe : FEnv) (kind : BasisKind) : CheckCM FEnv := do
   kind.declsA.foldlM installBasisDeclF fe
 
 /-- One converted declaration (inductive and basis blocks reuse the
-`Expr`-level drivers).
+`Expr`-level drivers).  A separable value declaration (a theorem, a
+definition other than a pinned `Nat` operation, an opaque other than a
+`reduce*` one) never reaches it — phase A installs it by its install
+half (`installStepC`, `ConLeche/Cached/Installed.lean`) — and is an
+internal error here.
 `pins` is the `Nat.div`/`Nat.mod` pin-variant list the install gate
 tries (task #304), threaded from the fold.
 
@@ -182,44 +150,43 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
     CheckCM FEnv :=
   match pd with
   | .defnDecl cv value hint => do
-    let (cvA, jty) ← checkConstantValC mode fe cv
-    if natOpNames.contains cvA.name || natDivModNames.contains cvA.name then
-      let ci ← checkDefnValCI mode fe cvA jty value hint
+    checkConstantValC mode fe cv
+    if natOpNames.contains cv.name || natDivModNames.contains cv.name then
+      let ci ← checkDefnValCI mode fe cv value hint
       let fe2 := fe.overlay [ci]
-      if natOpNames.contains cvA.name then
-        unless natOpGuardF fe2 cvA.name &&
-            (natOpDeps cvA.name).all (natOpStoredOkF fe2) do
+      if natOpNames.contains cv.name then
+        unless natOpGuardF fe2 cv.name &&
+            (natOpDeps cv.name).all (natOpStoredOkF fe2) do
           throw (.notImplemented
-            s!"nonstandard structural Nat operation environment ({cvA.name})")
-        match fe2.find? cvA.name with
+            s!"nonstandard structural Nat operation environment ({cv.name})")
+        match fe2.find? cv.name with
         | some (.defnInfo _ value' _) =>
           let ok ← certifyNatEqs (sharedOpsC mode fe) fe.env
-            ((natOpEquations 0 cvA.name).map fun eq =>
-              (Expr.substConst0 cvA.name value' eq.1,
-               Expr.substConst0 cvA.name value' eq.2))
+            ((natOpEquations 0 cv.name).map fun eq =>
+              (Expr.substConst0 cv.name value' eq.1,
+               Expr.substConst0 cv.name value' eq.2))
           unless ok do
             throw (.notImplemented
-              s!"nonstandard structural Nat operation ({cvA.name})")
+              s!"nonstandard structural Nat operation ({cv.name})")
         | _ => throw (.internal
-            s!"structural Nat operation not stored ({cvA.name})")
-      if natDivModNames.contains cvA.name then
-        checkDivModPinF (sharedOpsC mode fe) pins fe fe2 cvA.name
+            s!"structural Nat operation not stored ({cv.name})")
+      if natDivModNames.contains cv.name then
+        checkDivModPinF (sharedOpsC mode fe) pins fe fe2 cv.name
       pure (fe.push ci)
     else
-      checkDefnValC mode fe cvA jty value hint
-  | .thmDecl cv value => do
-    let (cvA, jty) ← checkConstantValC mode fe cv
-    checkThmValC mode fe cvA jty value
+      throw (.internal s!"definition {cv.name} reached the ordinary step")
+  | .thmDecl cv _ =>
+    throw (.internal s!"theorem {cv.name} reached the ordinary step")
   | .opaqueDecl cv value => do
-    let (cvA, jty) ← checkConstantValC mode fe cv
-    -- RC linearity: branch before the value check, so the common arm
-    -- hands `fe` to its push unshared.
-    if reduceOpNames.contains cvA.name then do
-      let ci ← checkOpaqueValCI mode fe cvA jty value
-      checkReducePinF (sharedOpsC mode fe) fe (fe.overlay [ci]) cvA.name value
+    checkConstantValC mode fe cv
+    -- only a `reduce*` opaque reaches this step: phase A installs the
+    -- others (`installStepC`)
+    if reduceOpNames.contains cv.name then do
+      let ci ← checkOpaqueValCI mode fe cv value
+      checkReducePinF (sharedOpsC mode fe) fe (fe.overlay [ci]) cv.name value
       pure (fe.push ci)
     else
-      checkOpaqueValC mode fe cvA jty value
+      throw (.internal s!"opaque {cv.name} reached the ordinary step")
   | .axiomDecl cv =>
     -- `checkDecl`'s twin (task #293): `Quot.sound` is the pinned
     -- quotient block's own record — compared with the pin, installing
@@ -230,22 +197,22 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
       else
         throw (.notImplemented "quotient soundness axiom mismatch"))
     else do
-      let (cvA, _) ← checkConstantValC mode fe cv
-      if stdAxiomOkF fe cvA then
-        pure (fe.push (.axiomInfo cvA))
-      else if cvA.name = trustCompilerName then
-        if trustCompilerOkF fe cvA then
-          pure (fe.push (.axiomInfo cvA))
+      checkConstantValC mode fe cv
+      if stdAxiomOkF fe cv then
+        pure (fe.push (.axiomInfo cv))
+      else if cv.name = trustCompilerName then
+        if trustCompilerOkF fe cv then
+          pure (fe.push (.axiomInfo cv))
         else throw (.notImplemented
           s!"unsupported Lean.trustCompiler shape ({cv.name})")
-      else if cvA.name = ofReduceNatName ∨ cvA.name = ofReduceBoolName then
-        if ofReduceAxOkF fe cvA then
-          pure (fe.push (.axiomInfo cvA))
+      else if cv.name = ofReduceNatName ∨ cv.name = ofReduceBoolName then
+        if ofReduceAxOkF fe cv then
+          pure (fe.push (.axiomInfo cv))
         else throw (.notImplemented
           s!"unsupported compiler-trust axiom environment ({cv.name})")
-      else if cvA.name = propextName ∨ cvA.name = choiceName then
+      else if cv.name = propextName ∨ cv.name = choiceName then
         throw (.notImplemented s!"standard axiom shape mismatch ({cv.name})")
-      else if cvA.name = sorryAxName then
+      else if cv.name = sorryAxName then
         pure fe
       else
         throw (.notImplemented s!"non-standard axiom ({cv.name})")

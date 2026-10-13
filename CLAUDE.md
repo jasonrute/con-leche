@@ -16,8 +16,8 @@ current fact changed.
   does not build it, so a warning there is invisible to the build gate.
 * `tests/arena.sh` is the standard battery (CI runs it): the gates below,
   the arena tutorial tests, the end-to-end fixtures (`tests/e2e/`,
-  verdicts pinned in `tests/e2e-expected.txt`), the annotation fixtures
-  and the trusted-mode sweep. Each gate also runs on its own:
+  verdicts pinned in `tests/e2e-expected.txt`), the trusted-mode sweep
+  and the self-check (`scripts/selfcheck.sh`). Each gate also runs on its own:
   - `tests/layering.sh` — the import fence (see Layering below).
   - `tests/shake.sh` — `lake shake` proposals against
     `tests/shake-allowlist.txt`, and `scripts/pub-import-plan.py --check`
@@ -140,9 +140,8 @@ current fact changed.
   `SetModel/*`, `Semantics/*` and `Rules/*` (the tiers above unfold
   them). A `private` helper there must be public if any *definition*
   mentions it (a `theorem` proof may still use it). The few deliberate
-  deviations carry their reason in the file (the sealed
-  `Kernel/PropWhen`, elaboration-time and generated modules,
-  `Frontend/Scan/Equiv`).
+  deviations carry their reason in the file (elaboration-time and
+  generated modules, `Frontend/Scan/Equiv`).
 * Proof code is private by default: `Model/*`, `Verify/*`, the tests and
   capstones open a plain `public section`; `@[expose]` goes only on a
   definition another file unfolds.
@@ -157,9 +156,8 @@ current fact changed.
   over `scripts/pub-iface.lean` and the census; `tests/shake.sh` runs
   it). A missing re-export does not say "unknown identifier"; it makes a
   `rfl` stop closing.
-* `import all X` only where a proof must see a body that is sealed on
-  purpose (`Kernel/PropWhen`, whose API and laws are its whole
-  interface) or hidden by the toolchain (`Init.Util`'s `withPtrEq`,
+* `import all X` only where a proof must see a body that is hidden by
+  the toolchain (`Init.Util`'s `withPtrEq`,
   `Init.Data.Repr`, the Nat-op certificate generator's `Init.Data.Nat.*`);
   each site carries its reason.
 * Elaboration-time code (`Kernel/BasisGen`, `PinGen/*`, the pin and

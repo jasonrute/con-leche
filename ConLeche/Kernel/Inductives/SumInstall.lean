@@ -40,7 +40,7 @@ does), so the returned binder domains and the sort are scoped at the
 free variables `0 ..< n`.  A residual that does not reduce to a Π, or
 finally to a sort, is INVALID input — official fails there too. -/
 def whnfTelescope (ops : CheckerOps m) (env : Env) :
-    Nat → Nat → Expr → m (List (Expr × BinderMeta) × Level)
+    Nat → Nat → Expr → m (List Expr × Level)
   | i, 0, e => do
     let e' ← ops.whnf env i e
     match e' with
@@ -50,9 +50,9 @@ def whnfTelescope (ops : CheckerOps m) (env : Env) :
   | i, n + 1, e => do
     let e' ← ops.whnf env i e
     match e' with
-    | .forallE dom body bm =>
+    | .forallE dom body =>
       let (bs, s) ← whnfTelescope ops env (i + 1) n (body.instantiate1 (.fvar i dom))
-      pure ((dom, bm) :: bs, s)
+      pure (dom :: bs, s)
     | _ => throw (.invalid "direct sum: type former does not reduce to a telescope \
         of its parameters and indices")
 
@@ -61,15 +61,15 @@ when it is already a syntactic telescope of `n` Π binders ending in a
 sort, else the declared type's whnf'd telescope (`whnfTelescope`),
 closed and checked as the former's type in its place —
 `checkConstantVal` from scratch, so nothing about the reduction is
-trusted: the stored type is the one this run annotated, inferred and
-sorted.  Returns the checked constant and the result sort. -/
+trusted: the stored type is the one this run inferred and sorted.  Returns the checked constant and the result sort. -/
 def checkSumTele (ops : CheckerOps m) (env : Env) (cv : ConstantVal) (n : Nat)
     (cvTa₀ : ConstantVal) : m (ConstantVal × Level) :=
   match cvTa₀.type.stripPis n with
   | some (_, .sort s) => pure (cvTa₀, s)
   | _ => do
     let (bs, s) ← whnfTelescope ops env 0 n cvTa₀.type
-    let cvTa ← checkConstantVal ops env { cv with type := closeTelescope bs 0 (.sort s) }
+    let cvTa := { cv with type := closeTelescope bs 0 (.sort s) }
+    checkConstantVal ops env cvTa
     pure (cvTa, s)
 
 /-- The fields' sorts over the opened constructor telescope, with the
@@ -100,7 +100,7 @@ def checkStructFieldSortsI (ops : CheckerOps m) (env : Env) (isProp large : Bool
     pure (rest ++ [u])
 
 /-- Stage 2, one constructor's type: the ordinary constant check (the
-constructor is stored AS DECLARED), the annotated result
+constructor is stored AS DECLARED), the result
 shape (the family at the parameters followed by
 `nIdx` index expressions), the parameter pins against the type
 former's opened telescope, the pre-block resolution of the field
@@ -108,13 +108,14 @@ domains, and the per-field universe bound (`env₀` is the pre-block environment
 `env` the one holding the type former).  Every constructor is checked
 at the environment holding the type former alone — the constructors do
 not mention each other — and the block conses them afterwards
-(`consBlockCtors`).  Returns the annotated constructor and its fields'
+(`consBlockCtors`).  Returns the checked constructor and its fields'
 sorts (the projection table's guard levels at a structure-like member
 are computed from them). -/
 def checkSumCtor (ops : CheckerOps m) (env₀ env : Env) (T : Name)
     (lps : List Name) (nP nIdx : Nat) (resSort : Level) (isProp large : Bool)
     (cvC : ConstantVal) (nF : Nat) (cvTa : ConstantVal) : m (ConstantVal × List Level) := do
-  let cvCa ← checkConstantVal ops env cvC
+  checkConstantVal ops env cvC
+  let cvCa := cvC
   let (_, cbody) ← unwrapOr (cvCa.type.stripPis (nP + nF))
     (.notImplemented "direct sum: constructor telescope")
   -- official's `is_valid_ind_app` on the constructor's result
@@ -147,7 +148,7 @@ def checkSumCtor (ops : CheckerOps m) (env₀ env : Env) (T : Name)
   pure (cvCa, sorts)
 
 /-- Stage 2, all constructors' types, at the environment holding the
-type former; returns the annotated constructors with their field
+type former; returns the checked constructors with their field
 counts, and beside them the constructors' field sorts. -/
 def checkSumCtors (ops : CheckerOps m) (env₀ env : Env) (T : Name)
     (lps : List Name) (nP nIdx : Nat) (resSort : Level) (isProp large : Bool)
@@ -166,21 +167,16 @@ def consSumCtors (nP : Nat) : List (ConstantVal × Nat) → Env → Env
   | c :: cs, env => consSumCtors nP cs ⟨.ctorInfo c.1 nP c.2 :: env.consts⟩
 
 /-- The stored rules: constructor `j`'s with the generated right-hand
-side `j`, plain when the generated type's major is the family at the
-parameters (always, by construction), carrying the two rescue bits
+side `j`, `.plain` (the major is the family at the recursor's
+parameters), carrying the two rescue bits
 `recRuleBits` reads off the block's own store — the family and its
-constructors are installed before the recursor — and `paramsBlind`,
-because the route's rule law holds at any pair of fitting parameter
-spines. -/
-def sumRules (find? : Name → Option ConstantInfo) (recName : Name)
-    (nP mI rP : Nat) (recTy : Expr) :
+constructors are installed before the recursor. -/
+def sumRules (find? : Name → Option ConstantInfo) (recName : Name) (nP : Nat) :
     List (ConstantVal × Nat) → List Expr → List RecRule
   | c :: cs, rhs :: rhss =>
-    recRuleBits find? recName
-      { ctor := c.1.name, nfields := c.2, ctorParams := nP,
-        fire := if Expr.recRulePlain recTy mI rP nP then .plain else .inert,
-        rhs := rhs, paramsBlind := true }
-      :: sumRules find? recName nP mI rP recTy cs rhss
+    recRuleBits find?
+      { ctor := c.1.name, nfields := c.2, ctorParams := nP, fire := .plain, rhs := rhs }
+      :: sumRules find? recName nP cs rhss
   | _, _ => []
 
 end ConLeche

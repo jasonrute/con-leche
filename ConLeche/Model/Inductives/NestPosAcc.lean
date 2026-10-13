@@ -21,13 +21,13 @@ never on the run; this file holds what that induction states:
   the context and agree off the hole positions; no growth condition
   (supports carry the elements).  Under a field the relation is
   `underBoth`;
-* **a field's conclusion** (`AccConcl`): the type regime, and
+* **a field's conclusion** (`AccConcl`): the point's stability, and
   accessibility with a bound reading only the non-hole positions the
   walk's OUTPUT mentions (`InvOn`, `MentNH`) — so a later field's bound
   does not read an earlier recursive, reflexive or nested field (U4 on
   the normal-form telescope), what makes a constructor's bound UNIFORM
   across the tuples of the space; and the output's facts (`OutOk`);
-* **a telescope's** (`PiAccThen`, `OutTele`, `TeleSmall`).
+* **a telescope's** (`PiAccThen`, `OutTele`).
 -/
 
 namespace ConLeche.Model
@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestKey NestHole)
 
 universe w
@@ -51,7 +51,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 
 omit [SetTheory V] in
 theorem noBVar_exists' {α : Type} :
-    ∀ {e : AnnotTerm} {P : α → Nat → Prop}, (∀ a, NoBVar (P a) e) →
+    ∀ {e : Term} {P : α → Nat → Prop}, (∀ a, NoBVar (P a) e) →
       NoBVar (fun i => ∃ a, P a i) e := by
   intro e
   induction e with
@@ -63,30 +63,37 @@ theorem noBVar_exists' {α : Type} :
   | eqE a b iha ihb => intro P h; exact ⟨iha fun a => (h a).1, ihb fun a => (h a).2⟩
   | fst e ihe => intro P h; exact ihe fun a => h a
   | snd e ihe => intro P h; exact ihe fun a => h a
-  | lam v A b ihA ihb =>
+  | lam A b ihA ihb =>
     intro P h
     refine ⟨ihA fun a => (h a).1, NoBVar.mono (fun i hi => ?_)
       (ihb (P := fun a => shiftP (P a)) fun a => (h a).2)⟩
     cases i with
     | zero => exact hi.elim
     | succ i => exact hi
-  | pi u v A B ihA ihB =>
+  | pi A B ihA ihB =>
     intro P h
     refine ⟨ihA fun a => (h a).1, NoBVar.mono (fun i hi => ?_)
       (ihB (P := fun a => shiftP (P a)) fun a => (h a).2)⟩
     cases i with
     | zero => exact hi.elim
     | succ i => exact hi
+  | letE v b ihv ihb =>
+    intro P h
+    refine ⟨ihv fun a => (h a).1, NoBVar.mono (fun i hi => ?_)
+      (ihb (P := fun a => shiftP (P a)) fun a => (h a).2)⟩
+    cases i with
+    | zero => exact hi.elim
+    | succ i => exact hi
 
 /-- **A hole-free domain inside the output reads only mentioned non-hole
 positions.** -/
-theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : AnnotTerm}
+theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : Term}
     (hws : Expr.WScoped d a) (hb : a.looseBVarsBounded 0 = true)
     (hholes : NoBVar (holeP d lo hi) ta)
     (hsub : ∀ s, s < d → nf.nestOcc [] s (s + 1) = false → a.nestOcc [] s (s + 1) = false)
-    (hta : denoteMeta m.acval env φ d a = some ta) :
+    (hta : denote m.acval env φ d a = some ta) :
     NoBVar (fun i => ¬ MentNH lo hi d nf i) ta := by
-  have hbb := denote_bvarsBelow m.cval_closedL d a hws hb (denoteMeta_erase m.acval_erase d a hta)
+  have hbb := denote_bvarsBelow m.cval_closed d a hws hb hta
   have hbelow : NoBVar (fun i => d ≤ i) ta := NoBVar_of_bvarsBelow hbb fun _ h => h
   have hnone : NoBVar (fun _ => False) ta := NoBVar_of_bvarsBelow hbb fun _ h => h.elim
   have hun : NoBVar (fun i => ∃ s, s < d ∧ nf.nestOcc [] s (s + 1) = false ∧ holeP d s (s + 1) i)
@@ -95,7 +102,7 @@ theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : AnnotTerm}
       holeP d s (s + 1) i) fun s => ?_
     by_cases hs : s < d ∧ nf.nestOcc [] s (s + 1) = false
     · exact NoBVar.mono (fun i hn => hn.2.2)
-        (denoteMeta_noBVar_of_nestOcc (m := m) (names := []) (lo := s) (hi := s + 1) d a hws
+        (denote_noBVar_of_nestOcc (m := m) (names := []) (lo := s) (hi := s + 1) d a hws
           (by omega) (hsub s hs.1 hs.2) hta)
     · exact NoBVar.mono (fun i hn => absurd ⟨hn.1, hn.2.1⟩ hs) hnone
   have hall := noBVar_exists' (α := Fin 3) (P := fun k i => match k with
@@ -117,8 +124,8 @@ theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : AnnotTerm}
   · exact ⟨0, by omega⟩
 
 /-- The body's output, one binder down, mentions no more than the Π's. -/
-theorem mentNH_body {lo hi dep : Nat} {a nb : Expr} {bm : ConLeche.BinderMeta} :
-    ∀ i, MentNH lo hi (dep + 1) nb i → liftM (MentNH lo hi dep (.forallE a (nb.abstract1 dep 0) bm)) i
+theorem mentNH_body {lo hi dep : Nat} {a nb : Expr} :
+    ∀ i, MentNH lo hi (dep + 1) nb i → liftM (MentNH lo hi dep (.forallE a (nb.abstract1 dep 0))) i
   | 0, _ => trivial
   | i + 1, ⟨hlt, hm, hh⟩ => by
     refine ⟨by omega, ?_, fun h => hh (holeP_succ (i + 1) h)⟩
@@ -148,12 +155,12 @@ theorem nestOcc_nil_of_leaves {q : Nat} :
     simp only [Expr.nestOcc, Bool.or_eq_false_iff]
     exact ⟨ihf fun z hz => h z (by simp [Expr.fvarLeaves, hz]),
       iha fun z hz => h z (by simp [Expr.fvarLeaves, hz])⟩
-  | lam ty b _ iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff]
     exact ⟨iht fun z hz => h z (by simp [Expr.fvarLeaves, hz]),
       ihb fun z hz => h z (by simp [Expr.fvarLeaves, hz])⟩
-  | forallE ty b _ iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     simp only [Expr.nestOcc, Bool.or_eq_false_iff]
     exact ⟨iht fun z hz => h z (by simp [Expr.fvarLeaves, hz]),
@@ -183,8 +190,8 @@ may be mentioned only inside an annotation). -/
 @[expose] def MentP (lo hi d : Nat) (nf : Expr) : Nat → Prop :=
   fun i => MentNH lo hi d nf i ∨ (i < d ∧ d - 1 - i < lo)
 
-theorem mentP_body {lo hi dep : Nat} {a nb : Expr} {bm : ConLeche.BinderMeta} :
-    ∀ i, MentP lo hi (dep + 1) nb i → liftM (MentP lo hi dep (.forallE a (nb.abstract1 dep 0) bm)) i
+theorem mentP_body {lo hi dep : Nat} {a nb : Expr} :
+    ∀ i, MentP lo hi (dep + 1) nb i → liftM (MentP lo hi dep (.forallE a (nb.abstract1 dep 0))) i
   | 0, _ => trivial
   | i + 1, Or.inl h => Or.inl (mentNH_body (i + 1) h)
   | i + 1, Or.inr ⟨hlt, hp⟩ => Or.inr ⟨by omega, by omega⟩
@@ -246,18 +253,12 @@ theorem shiftQ_holeQ {ctx : NestCtx} {prog : List NestHole} {d : Nat}
         refine Or.inr ⟨j, hk, hj, ?_, by omega, hn⟩
         simp only [NestCtx.hiAt] at hd hi ⊢; omega
 
-theorem holdsLe_congrQ {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i n ↔ Q' i n) {ρ ρ' : Nat → V}
-    (h : HoldsLe Q ρ ρ') : HoldsLe Q' ρ ρ' :=
-  fun o ho => h o ((hQ _ _).mpr ho)
-
-theorem RichOn.congrQ {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i n ↔ Q' i n) {R : FrameRel V}
-    (h : RichOn Q R) : RichOn Q' R := by
-  intro ρ ρ₀ hR i vs hq hpt
-  obtain ⟨ρ'', hR'', hle, hz⟩ := h ρ ρ₀ hR i vs ((hQ _ _).mpr hq) hpt
-  exact ⟨ρ'', hR'', holdsLe_congrQ hQ hle, hz⟩
+theorem PtFreeOn.congrQ {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i n ↔ Q' i n) {R : FrameRel V}
+    (h : PtFreeOn Q R) : PtFreeOn Q' R :=
+  fun ρ ρ₀ hR i vs hq => h ρ ρ₀ hR i vs ((hQ _ _).mpr hq)
 
 theorem AccOn.congrQ {w : Nat} {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i n ↔ Q' i n)
-    {R : FrameRel V} {A : (Nat → V) → V} {a : AnnotTerm} (h : AccOn w Q R A a) :
+    {R : FrameRel V} {A : (Nat → V) → V} {a : Term} (h : AccOn w Q R A a) :
     AccOn w Q' R A a := by
   intro ρ ρ₀ hR x hxw hx
   obtain ⟨B, g, hB, hg, hs⟩ := h ρ ρ₀ hR x hxw hx
@@ -265,31 +266,28 @@ theorem AccOn.congrQ {w : Nat} {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i 
 
 /-- **The hole relation for accessibility** at depth `d` under the frames
 `prog`: related frames satisfy the context and agree off the hole
-positions; the relation is symmetric and its holes are rich (`RichOn`) at
-their full arity (a hole stands for a whole application: it takes no
-parameters). -/
+positions; the relation is symmetric and left-reflexive, and at a
+`Type`-valued block its holes at their full arity never hold the point
+(`PtFreeOn`: a hole stands for a whole application, it takes no
+parameters, and its values are strict sets or `∅`). -/
 structure HoleRelA (m : EnvModel V env) (φ : Name → Nat) (w : Nat) (ctx : NestCtx)
     (prog : List NestHole)
-    (d : Nat) (Δa : List AnnotTerm) (R : FrameRel V) : Prop where
+    (d : Nat) (Δa : List Term) (R : FrameRel V) : Prop where
   dom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ'
   agree : R.AgreesOff (holeP d ctx.nP (ctx.hiAt prog.length))
   dsScoped : ∀ (i : Nat) (hk : NestHole), prog.reverse[i]? = some hk → ∀ x ∈ hk.key.ds,
     Expr.WScoped (ctx.hiAt prog.length) x
   symm : R.Symm
-  rich : w ≠ 0 → RichOn (HoleQ ctx prog d) R
-  /-- left-reflexive: a frame hole's richness
-  enlarges the tuple at the SAME enclosing frame -/
+  ptFree : w ≠ 0 → PtFreeOn (HoleQ ctx prog d) R
+  /-- left-reflexive -/
   lrefl : ∀ ρ ρ₀, R ρ ρ₀ → R ρ ρ
 
-/-- **Under a binder** whose domain carries its values to every larger
-related frame (a hole-free domain, or an earlier field — accessible, its
-values small): the relation one level deeper, the bound value in the
-domain at both frames. -/
-theorem HoleRelA.underBoth {w : Nat} {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+/-- **Under a binder** (a hole-free domain, or an earlier field): the
+relation one level deeper, the bound value in the domain at both
+frames. -/
+theorem HoleRelA.underBoth {w : Nat} {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List Term}
     {R : FrameRel V} (h : HoleRelA m φ w ctx prog d Δa R) (hd : ctx.hiAt prog.length ≤ d)
-    (ta : AnnotTerm)
-    (htr : ∀ ρ ρ₀ ρ'', R ρ ρ₀ → R ρ ρ'' → HoldsLe (HoleQ ctx prog d) ρ ρ'' →
-      ∀ x, x ∈ˢ interp V ρ ta → x ∈ˢ interp V ρ₀ ta → x ∈ˢ interp V ρ'' ta) :
+    (ta : Term) :
     HoleRelA m φ w ctx prog (d + 1) (ta :: Δa) (R.underBoth ta) where
   dom := by
     rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx, hx'⟩
@@ -300,34 +298,20 @@ theorem HoleRelA.underBoth {w : Nat} {ctx : NestCtx} {prog : List NestHole} {d :
     exact (h.agree.underBoth ta) σ σ' hr i fun hs => hi (holeP_succ i hs)
   dsScoped := h.dsScoped
   symm := h.symm.underBoth ta
-  rich hw := RichOn.congrQ (shiftQ_holeQ hd) ((h.rich hw).underBoth htr)
+  ptFree hw := PtFreeOn.congrQ (shiftQ_holeQ hd) ((h.ptFree hw).underBoth ta)
   lrefl := by
     rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx, -⟩
     exact ⟨x, ρ, ρ, rfl, rfl, h.lrefl ρ ρ' hR, hx, hx⟩
 
-/-- A hole-free domain carries its values. -/
-theorem transfer_of_constOn {R : FrameRel V} {Q : Nat → Nat → Prop} {ta : AnnotTerm}
-    (hA : ConstOn R ta) :
-    ∀ ρ ρ₀ ρ'', R ρ ρ₀ → R ρ ρ'' → HoldsLe Q ρ ρ'' →
-      ∀ x, x ∈ˢ interp V ρ ta → x ∈ˢ interp V ρ₀ ta → x ∈ˢ interp V ρ'' ta :=
-  fun ρ _ ρ'' _ hR'' _ _ hx _ => hA ρ ρ'' hR'' ▸ hx
-
-/-- An accessible domain carries its small values. -/
-theorem transfer_of_accOn {w : Nat} {R : FrameRel V} {Q : Nat → Nat → Prop} {ta : AnnotTerm}
-    {Af : (Nat → V) → V} (hA : AccOn w Q R Af ta)
-    (hsm : ∀ ρ ρ₀, R ρ ρ₀ → ∀ x, x ∈ˢ interp V ρ ta → SmallAt w x) :
-    ∀ ρ ρ₀ ρ'', R ρ ρ₀ → R ρ ρ'' → HoldsLe Q ρ ρ'' →
-      ∀ x, x ∈ˢ interp V ρ ta → x ∈ˢ interp V ρ₀ ta → x ∈ˢ interp V ρ'' ta :=
-  fun ρ ρ₀ _ hR₀ hR'' hle x hx _ => hA.transfer hR₀ hR'' hle (hsm ρ ρ₀ hR₀ x hx) hx
-
 /-! ## What a field proves -/
 
 /-- **What a field proves of its reading** along an accessibility hole
-relation: the type regime, and accessibility with a bound of the level
-reading only the non-hole positions the output mentions. -/
+relation: the point's stability (at a `Type`-valued block), and
+accessibility with a bound of the level reading only the non-hole
+positions the output mentions. -/
 @[expose] def AccConcl (w : Nat) (ctx : NestCtx) (prog : List NestHole) (dep : Nat) (e nf : Expr)
-    (R : FrameRel V) (ea : AnnotTerm) : Prop :=
-  (w ≠ 0 → TypeReg R ea) ∧ (∃ A, AccOn w (HoleQ ctx prog dep) R A ea ∧ SizeOn w R A ∧
+    (R : FrameRel V) (ea : Term) : Prop :=
+  (w ≠ 0 → PtOn R ea) ∧ (∃ A, AccOn w (HoleQ ctx prog dep) R A ea ∧ SizeOn w R A ∧
     InvOn (MentP ctx.nP (ctx.hiAt prog.length) dep nf) A) ∧ OutMent dep e nf
 
 /-- **What a field proves of its OUTPUT**:
@@ -337,14 +321,14 @@ frame needs to run its per-constructor telescope over the walk's normal
 form (the input may mention a non-ordinary field or a hole inside a
 redex whnf drops, `corner_nestw_u4frame_beta`). -/
 @[expose] def OutOk (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx) (prog : List NestHole)
-    (dep : Nat) (Δa : List AnnotTerm) (k : ConLeche.NestFieldKind) (nf : Expr) (ea : AnnotTerm) : Prop :=
+    (dep : Nat) (Δa : List Term) (k : ConLeche.NestFieldKind) (nf : Expr) (ea : Term) : Prop :=
   nf.looseBVarsBounded 0 = true ∧ Expr.WScoped dep nf ∧
   (k = .ordinary → nf.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false) ∧
-  ∃ na, denoteMeta m.acval env φ dep nf = some na ∧
+  ∃ na, denote m.acval env φ dep nf = some na ∧
     ∀ ρ, Sat V Δa ρ → interp V ρ na = interp V ρ ea
 
 theorem OutOk.congr_read {m : EnvModel V env} {ctx : NestCtx} {prog : List NestHole} {dep : Nat}
-    {Δa : List AnnotTerm} {k : ConLeche.NestFieldKind} {nf : Expr} {ea ea' : AnnotTerm}
+    {Δa : List Term} {k : ConLeche.NestFieldKind} {nf : Expr} {ea ea' : Term}
     (h : OutOk m φ ctx prog dep Δa k nf ea)
     (heq : ∀ ρ, Sat V Δa ρ → interp V ρ ea = interp V ρ ea') :
     OutOk m φ ctx prog dep Δa k nf ea' := by
@@ -352,16 +336,11 @@ theorem OutOk.congr_read {m : EnvModel V env} {ctx : NestCtx} {prog : List NestH
   exact ⟨h1, h2, h3, na, hna, fun ρ hρ => (hr ρ hρ).trans (heq ρ hρ)⟩
 
 /-- A Π reads alike when its bodies read alike over its domain. -/
-theorem interp_pi_congr_body {u v : Nat} {A B B' : AnnotTerm} {ρ : Nat → V}
+theorem interp_pi_congr_body {A B B' : Term} {ρ : Nat → V}
     (h : ∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) B = interp V (cons x ρ) B') :
-    interp V ρ (.pi u v A B) = interp V ρ (.pi u v A B') := by
+    interp V ρ (.pi A B) = interp V ρ (.pi A B') := by
   rw [interp_pi, interp_pi]
-  unfold piR
-  split
-  · refine truthVal_congr (forall_congr' fun d => imp_congr_right fun hd => ?_)
-    show (∃ y, y ∈ˢ interp V (cons d ρ) B) ↔ ∃ y, y ∈ˢ interp V (cons d ρ) B'
-    rw [h d hd]
-  · exact piSet_congr fun d hd => h d hd
+  exact piV_congr h
 
 /-! ## A constructor's field telescope -/
 
@@ -370,10 +349,10 @@ earlier ones (`underBoth`), with a bound of the level reading only the
 non-hole positions of its walk's output (`nds`, one per field, at their
 depths from `d`), and `Q` of the relation and the reading below them. -/
 @[expose] def PiAccThen (w : Nat) (ctx : NestCtx) (prog : List NestHole)
-    (Q : FrameRel V → AnnotTerm → Prop) :
-    Nat → Nat → List Expr → FrameRel V → AnnotTerm → Prop
+    (Q : FrameRel V → Term → Prop) :
+    Nat → Nat → List Expr → FrameRel V → Term → Prop
   | 0, _, _, R, r => Q R r
-  | n + 1, d, nd :: nds, R, .pi _ _ A B =>
+  | n + 1, d, nd :: nds, R, .pi A B =>
     (∃ Af, AccOn w (HoleQ ctx prog d) R Af A ∧ SizeOn w R Af ∧
       InvOn (MentP ctx.nP (ctx.hiAt prog.length) d nd) Af) ∧
       PiAccThen w ctx prog Q n (d + 1) nds (R.underBoth A) B
@@ -383,32 +362,23 @@ depths from `d`), and `Q` of the relation and the reading below them. -/
 `OutOk` of its field's reading at its kind. -/
 @[expose] def OutTele (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx)
     (prog : List NestHole) :
-    List ConLeche.NestFieldKind → List Expr → Nat → List AnnotTerm → AnnotTerm → Prop
+    List ConLeche.NestFieldKind → List Expr → Nat → List Term → Term → Prop
   | [], [], _, _, _ => True
-  | k :: ks, nd :: nds, d, Δ, .pi _ _ A B =>
+  | k :: ks, nd :: nds, d, Δ, .pi A B =>
     OutOk m φ ctx prog d Δ k nd A ∧ OutTele m φ ctx prog ks nds (d + 1) (A :: Δ) B
   | _, _, _, _, _ => False
 
-/-- **The first `n` Π-domains' values are small** at every frame of the
-relation, each under the earlier ones. -/
-@[expose] def TeleSmall (w : Nat) : Nat → FrameRel V → AnnotTerm → Prop
-  | 0, _, _ => True
-  | n + 1, R, .pi _ _ A B =>
-    (∀ ρ ρ₀, R ρ ρ₀ → ∀ x, x ∈ˢ interp V ρ A → SmallAt w x) ∧
-      TeleSmall w n (R.underBoth A) B
-  | _ + 1, _, _ => True
-
 theorem PiAccThen.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole}
-    {Q Q' : FrameRel V → AnnotTerm → Prop}
+    {Q Q' : FrameRel V → Term → Prop}
     (hQ : ∀ R r, Q R r → Q' R r) :
-    ∀ (n d : Nat) (nds : List Expr) (R : FrameRel V) (r : AnnotTerm),
+    ∀ (n d : Nat) (nds : List Expr) (R : FrameRel V) (r : Term),
       PiAccThen w ctx prog Q n d nds R r → PiAccThen w ctx prog Q' n d nds R r
   | 0, _, _, R, r, h => hQ R r h
-  | n + 1, d, _ :: nds, _, .pi _ _ _ B, h => ⟨h.1, PiAccThen.mono hQ n (d + 1) nds _ B h.2⟩
+  | n + 1, d, _ :: nds, _, .pi _ B, h => ⟨h.1, PiAccThen.mono hQ n (d + 1) nds _ B h.2⟩
   | _ + 1, _, [], _, _, h => h.elim
   | _ + 1, _, _ :: _, _, .bvar _, h | _ + 1, _, _ :: _, _, .sort _, h
   | _ + 1, _, _ :: _, _, .const _ _, h | _ + 1, _, _ :: _, _, .app _ _, h
-  | _ + 1, _, _ :: _, _, .lam _ _ _, h | _ + 1, _, _ :: _, _, .eqE _ _, h
+  | _ + 1, _, _ :: _, _, .lam _ _, h | _ + 1, _, _ :: _, _, .eqE _ _, h
   | _ + 1, _, _ :: _, _, .fst _, h | _ + 1, _, _ :: _, _, .snd _, h
   | _ + 1, _, _ :: _, _, .prf, h => h.elim
 

@@ -16,7 +16,7 @@ frame's constructor type is the recorded member-abstracted constructor
 type so substituted: the parameter variables by the
 key's parameters, the member holes by the frame's holes (the reached
 group) or the members' constants (the rest).  The reading side is
-`denoteMeta_substFvars` (`Model/Annot/BitSubstFvars.lean`).
+`denote_substFvars` (`Model/Reading/SubstFvars.lean`).
 -/
 
 namespace ConLeche.Expr
@@ -29,8 +29,8 @@ at or above `b` are moved to start at `D`. -/
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (substFvars b D s f) (substFvars b D s a)
-  | .lam ty body m => .lam (substFvars b D s ty) (substFvars b D s body) m
-  | .forallE ty body m => .forallE (substFvars b D s ty) (substFvars b D s body) m
+  | .lam ty body => .lam (substFvars b D s ty) (substFvars b D s body)
+  | .forallE ty body => .forallE (substFvars b D s ty) (substFvars b D s body)
   | .letE ty val body =>
     .letE (substFvars b D s ty) (substFvars b D s val) (substFvars b D s body)
   | .lit l => .lit l
@@ -73,8 +73,8 @@ theorem substFvars_instantiate1 (hs : ∀ i, i < b → (s i).looseBVarsBounded 0
   | const n us => intro k; rfl
   | lit l => intro k; rfl
   | app f a ihf iha => intro k; simp only [instantiate1, substFvars, ihf, iha]
-  | lam ty body m iht ihb => intro k; simp only [instantiate1, substFvars, iht, ihb]
-  | forallE ty body m iht ihb => intro k; simp only [instantiate1, substFvars, iht, ihb]
+  | lam ty body iht ihb => intro k; simp only [instantiate1, substFvars, iht, ihb]
+  | forallE ty body iht ihb => intro k; simp only [instantiate1, substFvars, iht, ihb]
   | letE ty val body iht ihv ihb =>
     intro k; simp only [instantiate1, substFvars, iht, ihv, ihb]
   | proj n i e ih => intro k; simp only [instantiate1, substFvars, ih]
@@ -88,7 +88,7 @@ theorem substFvars_instPisWith (hs : ∀ i, i < b → (s i).looseBVarsBounded 0 
     subst h; rfl
   | a :: as, e, r, h => by
     match e, h with
-    | .forallE ty body m, h =>
+    | .forallE ty body, h =>
       simp only [ConLeche.instPisWith] at h
       simp only [List.map_cons, substFvars, ConLeche.instPisWith]
       rw [← substFvars_instantiate1 hs a body 0]
@@ -121,7 +121,7 @@ theorem instPisWith_instantiateLevelParams (ks : List Name) (us : List Level) :
     subst h; rfl
   | a :: as, e, r, hv, h => by
     match e, h with
-    | .forallE ty body m, h =>
+    | .forallE ty body, h =>
       simp only [ConLeche.instPisWith] at h
       obtain ⟨i, tya, rfl⟩ := hv a List.mem_cons_self
       simp only [List.map_cons, instantiateLevelParams, ConLeche.instPisWith]
@@ -309,11 +309,11 @@ theorem replaceApps_canon_instantiateLevelParams {names lps : List Name} {us : L
       rw [hh] at hocc
       simp only [nestOcc, Bool.or_eq_false_iff] at hocc
       simp only [instantiateLevelParams, iha hocc.1, ihx hocc.2]
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hocc
     simp only [replaceApps, nestOcc, Bool.or_eq_false_iff] at hocc
     simp only [instantiateLevelParams, replaceApps, iht hocc.1, ihb hocc.2]
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hocc
     simp only [replaceApps, nestOcc, Bool.or_eq_false_iff] at hocc
     simp only [instantiateLevelParams, replaceApps, iht hocc.1, ihb hocc.2]
@@ -384,10 +384,10 @@ theorem replaceApps_replaceFVars_congr {f₁ f₂ : Name → List Level → Opti
     | none =>
       rw [h2 hh]
       simp only [replaceFVars, iha hb.1, ihx hb.2]
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [replaceApps, replaceFVars, iht hb.1, ihb hb.2]
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [replaceApps, replaceFVars, iht hb.1, ihb hb.2]
   | letE t v body iht ihv ihb =>
@@ -418,10 +418,10 @@ theorem substFvars_eq_replaceFVars {b D : Nat} {s : Nat → Expr} :
   | app a x iha ihx =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [substFvars, replaceFVars, iha hb.1, ihx hb.2]
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [substFvars, replaceFVars, iht hb.1, ihb hb.2]
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb; simp only [fvarsBelow] at hb
     simp only [substFvars, replaceFVars, iht hb.1, ihb hb.2]
   | letE t v body iht ihv ihb =>

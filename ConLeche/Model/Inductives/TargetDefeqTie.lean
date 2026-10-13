@@ -7,9 +7,9 @@ import ConLeche.Model.Inductives.TargetFrame
 import ConLeche.Model.Inductives.TargetIhSlot
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Inductives.StructFrameKit
-import ConLeche.Model.Annot.BitClosed
-import ConLeche.Model.Annot.BitInst
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Verify.Denote.Closed
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Rules.Sound
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Semantics.Tower.SumTower
@@ -35,19 +35,24 @@ why the match is per component and not one defeq of the two majors.
 
 What the model needs is that the FRAMES agree: every parameter pair
 reads alike at every valuation of the prefix.  The defeq ran over the
-holes, so its soundness (`Rules.defeq_sound`) equates the two readings
-at every valuation of the holes that carries values of the formers'
-types — in particular at the members' own values, where the abstraction
-reads as the concrete term (`targetAbs_read`); the holes sit above the
-prefix, so the concrete readings are the prefix-depth ones lifted
-(`denoteMeta_lift`).  A syntactically equal pair needs no defeq: the
-abstraction read at the members' values gives it directly.
+holes, so its soundness (`Rules.defeq_sound`, a conditional claim)
+equates the two readings, where neither is the point, at every valuation
+of the holes that carries values of the formers' types — in particular
+at the members' own values, where the abstraction reads as the concrete
+term (`targetAbs_read`); the holes sit above the prefix, so the concrete
+readings are the prefix-depth ones lifted (`denote_lift`).  A
+syntactically equal pair needs no defeq: the abstraction read at the
+members' values gives it directly.
+
+Parameters may be proofs, so a pair is equated here only where neither
+reading is the point.  The caller upgrades the pairwise conditional
+equations along the family's parameter telescope, which both spines fit
+(`spineFit_eq_of_cond`; `genNodeFrameTie`, `GenFrameTie.lean`).
 
 * `walkCtx_holes` — the prefix's walk context extended by the holes at
   values of the formers' types;
 * `param_read_eq` — one matched pair (`ParamMatch`) reads alike at the
-  prefix (the port of the parked `TargetDefeqTie.param_read_eq`);
-* `params_read_eq` — a matched parameter spine's readings, mapped;
+  prefix where neither reading is the point;
 * `keyFrame_eq_of_params` — spines reading alike give one key frame
   (whence one fit, one carrier, one index set: the parked `tie_fits`).
 -/
@@ -56,7 +61,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche.Term ConLeche.Verify
 open ConLeche (Env Expr Name Level CheckMode)
 
@@ -103,22 +108,22 @@ theorem canon_erasedEq {pfvs : List Expr}
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
     exact ⟨h1, h2⟩
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
     have h1 := iht h.1
     have h2 := ihb h.2
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
-    exact ⟨trivial, h1, h2⟩
-  | forallE t b m iht ihb =>
+    exact ⟨h1, h2⟩
+  | forallE t b iht ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
     have h1 := iht h.1
     have h2 := ihb h.2
     simp only [ConLeche.targetCanonParams] at h1 h2 ⊢
     simp only [ConLeche.Expr.replaceFVars, Expr.ErasedEq]
-    exact ⟨trivial, h1, h2⟩
+    exact ⟨h1, h2⟩
   | letE t v b iht ihv ihb =>
     intro h
     simp only [Expr.fvarsBelow] at h
@@ -164,7 +169,7 @@ theorem canon_leaves {pfvs : List Expr} :
     rcases hl with hl | hl
     · exact ihf h.1 l hl
     · exact iha h.2 l hl
-  | lam t b m iht ihb =>
+  | lam t b iht ihb =>
     intro h l hl
     simp only [Expr.fvarsBelow] at h
     simp only [ConLeche.targetCanonParams, ConLeche.Expr.replaceFVars, ConLeche.Expr.fvarLeaves,
@@ -172,7 +177,7 @@ theorem canon_leaves {pfvs : List Expr} :
     rcases hl with hl | hl
     · exact iht h.1 l hl
     · exact ihb h.2 l hl
-  | forallE t b m iht ihb =>
+  | forallE t b iht ihb =>
     intro h l hl
     simp only [Expr.fvarsBelow] at h
     simp only [ConLeche.targetCanonParams, ConLeche.Expr.replaceFVars, ConLeche.Expr.fvarLeaves,
@@ -211,27 +216,27 @@ theorem consList_hole {hv : List V} {σ : Nat → V} {t : Nat} (ht : t < hv.leng
 of the formers' (closed) types. -/
 theorem walkCtx_holes
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
-    {D : Nat} {L : List Expr} (hL : FvarList D L) {σ : Nat → V} {Δ : List AnnotTerm}
+    {D : Nat} {L : List Expr} (hL : FvarList D L) {σ : Nat → V} {Δ : List Term}
     (hW : WalkCtx V mT φ D σ Δ L) {formerTys : List Expr} {hv : List V}
     (hvl : hv.length = formerTys.length)
     (hformer : ∀ t, t < formerTys.length →
       (formerTys.getD t default).hasFvar = false ∧
       (formerTys.getD t default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (formerTys.getD t default) ∧
-      ∃ T : AnnotTerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
-        (∀ σ : Nat → V, WellDenotedV V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T) :
+      ∃ T : Term, denote mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
+        (∀ σ : Nat → V, WellDenotedTy V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T) :
     ∃ Δ', FvarList (D + formerTys.length) ((ConLeche.targetHoles formerTys D).reverse ++ L) ∧
       WalkCtx V mT φ (D + formerTys.length) (consList hv σ) Δ'
         ((ConLeche.targetHoles formerTys D).reverse ++ L) := by
   have hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ :=
     fun n ψ k => hacl n ψ 1 k
   generalize hk : formerTys.length = k at *
-  let Ts : List AnnotTerm := (List.range k).map fun t =>
-    (denoteMeta mT.acval envT φ 0 (formerTys.getD t default)).getD default
+  let Ts : List Term := (List.range k).map fun t =>
+    (denote mT.acval envT φ 0 (formerTys.getD t default)).getD default
   have hTsLen : Ts.length = k := by simp [Ts]
   have hTsGet : ∀ t, t < k → ∃ T, Ts.getD t default = T ∧
-      denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
-      Term.bvarsBelow 0 T.erase ∧ (∀ σ : Nat → V, WellDenotedV V σ T) ∧
+      denote mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
+      Term.bvarsBelow 0 T ∧ (∀ σ : Nat → V, WellDenotedTy V σ T) ∧
       ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T := by
     intro t ht
     obtain ⟨hf, hb, -, T, hT, hG, hvT⟩ := hformer t ht
@@ -259,7 +264,7 @@ theorem walkCtx_holes
         exact nomatch hl
       refine ⟨hnl, hb, hcb, ?_, fun σ _ => by rw [hTe]; exact hG σ, ?_⟩
       · rw [hTe]
-        exact denoteMeta_depth_of_closed hacl1 hf (fun j => liftN_eq_self_of_closed hcl j 1) hT D
+        exact denote_depth_of_closed hacl1 hf (fun j => liftN_eq_self_of_closed hcl j 1) hT D
       · rw [hTe]
         exact hvT _)
   rw [hTsLen] at h
@@ -270,21 +275,21 @@ theorem walkCtx_holes
 /-- The concrete side of an abstraction read at the members' values. -/
 theorem readAgree_lift
     (hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ)
-    {D k : Nat} {hvC : Nat → V} {o : Option AnnotTerm} {A : Expr} (hA : Expr.WScoped D A)
-    (h : ReadAgree (AbsAgree V k 0 hvC) o (denoteMeta mT.acval envT φ (D + k) A))
+    {D k : Nat} {hvC : Nat → V} {o : Option Term} {A : Expr} (hA : Expr.WScoped D A)
+    (h : ReadAgree (AbsAgree V k 0 hvC) o (denote mT.acval envT φ (D + k) A))
     {hv : List V} (hvl : hv.length = k) (hvget : ∀ t, t < k → hv.getD t pt = hvC t)
     (σ : Nat → V) :
-    o.map (interp V (consList hv σ)) = (denoteMeta mT.acval envT φ D A).map (interp V σ) := by
-  rw [denoteMeta_lift hacl1 hA (D + k) (by omega), show D + k - D = k by omega] at h
+    o.map (interp V (consList hv σ)) = (denote mT.acval envT φ D A).map (interp V σ) := by
+  rw [denote_lift hacl1 hA (D + k) (by omega), show D + k - D = k by omega] at h
   cases ho : o with
   | none =>
     rw [ho] at h
-    cases hd : denoteMeta mT.acval envT φ D A with
+    cases hd : denote mT.acval envT φ D A with
     | none => rfl
     | some a => rw [hd] at h; exact nomatch h
   | some x =>
     rw [ho] at h
-    cases hd : denoteMeta mT.acval envT φ D A with
+    cases hd : denote mT.acval envT φ D A with
     | none => rw [hd] at h; exact nomatch h
     | some a =>
       rw [hd] at h
@@ -296,16 +301,17 @@ theorem readAgree_lift
       rw [hval, ← hvl, interp_liftN_consList]
 
 set_option maxHeartbeats 4000000 in
-/-- **One matched parameter pair reads alike at the prefix** (the port of
-the parked `param_read_eq`): at a prefix walk context over the openers
-`pfvs`, with the holes valued at the members' own values `hv` (values of
-the formers' types, `hformer`; the abstraction read back, `hnames`), a
-pair the class match passed (`ParamMatch`) has one reading at the
-prefix's valuation. -/
+/-- **One matched parameter pair reads alike at the prefix, off the
+point**: at a prefix walk context over the openers `pfvs`, with the holes
+valued at the members' own values `hv` (values of the formers' types,
+`hformer`; the abstraction read back, `hnames`), a pair the class match
+passed (`ParamMatch`) has one reading at the prefix's valuation where
+neither reading is the point (the conditional `Rules.defeq_sound`; a
+syntactically equal pair, everywhere). -/
 theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
     (hin : Rules.RulesInputs V mT φ) {F D : Nat} {pfvs : List Expr}
-    (hL : FvarList D pfvs.reverse) {σ : Nat → V} {Δ : List AnnotTerm}
+    (hL : FvarList D pfvs.reverse) {σ : Nat → V} {Δ : List Term}
     (hW : WalkCtx V mT φ D σ Δ pfvs.reverse)
     {names : List Name} {lvls : List Level} {formerTys : List Expr} {hv : List V}
     (hvl : hv.length = formerTys.length)
@@ -313,8 +319,8 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
       (formerTys.getD t default).hasFvar = false ∧
       (formerTys.getD t default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (formerTys.getD t default) ∧
-      ∃ T : AnnotTerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
-        (∀ σ : Nat → V, WellDenotedV V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T)
+      ∃ T : Term, denote mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
+        (∀ σ : Nat → V, WellDenotedTy V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T)
     (hnames : ∀ (n : Name) (t : Nat), names.findIdx? (· == n) = some t →
       t < formerTys.length ∧ ∃ ci : ConLeche.ConstantInfo, envT.find? n = some ci ∧
         lvls.length = ci.toConstantVal.levelParams.length ∧
@@ -323,9 +329,11 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     {a b : Expr}
     (hm : ConLeche.ParamMatch (ConLeche.fueledOps μ F) envT (D + formerTys.length)
       (ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys D)) pfvs a b) :
-    (denoteMeta mT.acval envT φ D a).map (interp V σ)
-      = (denoteMeta mT.acval envT φ D b).map (interp V σ) := by
+    ∀ x y : V, (denote mT.acval envT φ D a).map (interp V σ) = some x →
+      (denote mT.acval envT φ D b).map (interp V σ) = some y → x ≠ pt → y ≠ pt →
+        x = y := by
   obtain rfl : μ = .verified := CheckMode.eq_verified hμ
+  intro x y hx hy hxn hyn
   have hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ :=
     fun n ψ k => hacl n ψ 1 k
   obtain ⟨-, -, haf, hbf, hcase⟩ := hm
@@ -337,11 +345,12 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
   have hpW : ∀ x ∈ pfvs, Expr.WScoped D x := fun x hx => hL.2.2 x (List.mem_reverse.mpr hx)
   have hAW := ConLeche.targetCanonParams_WScoped hpW a haB
   have hBW := ConLeche.targetCanonParams_WScoped hpW b hbB
-  have hAe := denoteMeta_erasedEq (acval := mT.acval) (env := envT) (φ := φ)
+  have hAe := denote_erasedEq (acval := mT.acval) (env := envT) (φ := φ)
     (canon_erasedEq hp a haB) D
-  have hBe := denoteMeta_erasedEq (acval := mT.acval) (env := envT) (φ := φ)
+  have hBe := denote_erasedEq (acval := mT.acval) (env := envT) (φ := φ)
     (canon_erasedEq hp b hbB) D
-  rw [← hAe, ← hBe]
+  rw [← hAe] at hx
+  rw [← hBe] at hy
   -- the abstraction read at the members' values
   generalize hA : ConLeche.targetCanonParams pfvs a = A at *
   generalize hB : ConLeche.targetCanonParams pfvs b = B at *
@@ -351,9 +360,10 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
   simp only [ConLeche.Expr.instantiateList_nil, Nat.add_zero] at hread
   have hrA := readAgree_lift (φ := φ) hacl1 hAW (hread A) hvl (fun t _ => rfl) σ
   have hrB := readAgree_lift (φ := φ) hacl1 hBW (hread B) hvl (fun t _ => rfl) σ
-  rw [← hrA, ← hrB]
+  rw [← hrA] at hx
+  rw [← hrB] at hy
   rcases hcase with heq | ⟨⟨ta, hta⟩, ⟨tb, htb⟩, hd⟩
-  · rw [heq]
+  · rw [heq] at hx; exact Option.some.inj (hx.symm.trans hy)
   -- the defeq branch: both sides read over the holes, and alike
   obtain ⟨Δ', hL0, hW0⟩ := walkCtx_holes (σ := σ) hacl hL hW hvl hformer
   have habsL : ∀ e : Expr, e.fvarsBelow pfvs.length →
@@ -393,12 +403,13 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     ⟨_, Rules.inferTypeCore_bridge hta⟩
   obtain ⟨hFrB, hCB, hGB⟩ := WalkCtx.subjOkL hacl1 hin hL0 hW0 hBL hBb hba
     ⟨_, Rules.inferTypeCore_bridge htb⟩
-  have heq := Rules.defeq_sound hin (Rules.isDefEqCore_bridge hd) hFrA hFrB hCA hCB haa hba
-    hGA hGB _ hW0.2.1
-  rw [hA] at haa
-  rw [hB] at hba
-  rw [haa, hba]
-  simp only [Option.map_some, heq]
+  rw [← hA, haa, Option.map_some, Option.some.injEq] at hx
+  rw [← hB, hba, Option.map_some, Option.some.injEq] at hy
+  subst hx hy
+  -- the conditional claim: equal where neither reading is the point
+  have hS := hW0.2.1
+  exact Rules.defeq_sound hin (Rules.isDefEqCore_bridge hd) hFrA hFrB hCA.toS hCB.toS haa hba _
+    hS (hCA.leavesGr hS) (hCB.leavesGr hS) (hGA _ hS) (hGB _ hS) hxn hyn
 
 end Walk
 
@@ -406,7 +417,7 @@ end Walk
 
 /-- Key frames of spines reading alike agree (whence one hole fit, one
 carrier, one index set — the parked `tie_fits`). -/
-theorem keyFrame_eq_of_params {dsa₁ dsa₂ : List AnnotTerm} {hi : Nat} {ρ : Nat → V}
+theorem keyFrame_eq_of_params {dsa₁ dsa₂ : List Term} {hi : Nat} {ρ : Nat → V}
     (h : dsa₁.map (interp V ρ) = dsa₂.map (interp V ρ)) :
     keyFrame dsa₁ hi ρ = keyFrame dsa₂ hi ρ := by
   unfold keyFrame; rw [h]

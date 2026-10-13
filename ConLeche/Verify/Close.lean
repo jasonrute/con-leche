@@ -8,7 +8,7 @@ public section
 # Closing free variables as de Bruijn indices
 
 The checker opens a binder with a fresh `fvar d` and reads the body at
-depth `d + 1` (`denoteMeta`, `denote`); the statement's relation
+depth `d + 1` (`denote`); the statement's relation
 `Denotes` (`ConLeche/Denotes.lean`) reads the body under its binder
 with `bvar 0` for the bound variable.  `closeN d e k` translates: every
 `fvar idx` with `idx < d` becomes the de Bruijn index `k + (d - 1 - idx)`
@@ -29,8 +29,8 @@ number of binders crossed. -/
   | .sort u, _ => .sort u
   | .const n us, _ => .const n us
   | .app f a, k => .app (closeN d f k) (closeN d a k)
-  | .lam ty body m, k => .lam (closeN d ty k) (closeN d body (k + 1)) m
-  | .forallE ty body m, k => .forallE (closeN d ty k) (closeN d body (k + 1)) m
+  | .lam ty body, k => .lam (closeN d ty k) (closeN d body (k + 1))
+  | .forallE ty body, k => .forallE (closeN d ty k) (closeN d body (k + 1))
   | .letE ty v b, k => .letE (closeN d ty k) (closeN d v k) (closeN d b (k + 1))
   | .lit l, _ => .lit l
   | .proj s i e, k => .proj s i (closeN d e k)

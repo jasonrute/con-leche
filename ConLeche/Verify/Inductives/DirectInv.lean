@@ -68,19 +68,7 @@ theorem structConstWF {env : Env} {c : ConstantInfo}
         (RecRule.rhs r).constsResolve env = true ∧
         (RecRule.rhs r).looseBVarsBounded 0 = true ∧
         ∀ lvls pins, RecRule.fire r = .nested lvls pins →
-          rP ≤ mI ∧
-          (∀ l ∈ lvls, l.allParamsDefined cv.levelParams = true) ∧
-          (∀ pin ∈ pins, pin.hasFvar = false ∧
-            pin.allLevelParamsDefined cv.levelParams = true ∧
-            pin.constsResolve env = true ∧
-            pin.looseBVarsBounded rP = true) ∧
-          ∃ pre dom body bm D,
-            cv.type.stripPis mI = some (pre, .forallE dom body bm) ∧
-            dom.getAppFn = .const D lvls ∧
-            dom.getAppArgs =
-              pins.map (Expr.liftLooseBVars (mI - rP) 0) ++
-                (List.range (mI - rP)).map
-                  (fun i => Expr.bvar (mI - rP - 1 - i)))
+          NestedRead (·.constsResolve env) cv.levelParams cv.type mI rP pins.length lvls pins)
     (h8 : ∀ tbl, c = .projInfo tbl →
       tbl.bodies.size = tbl.numFields ∧
       ∀ (i : Nat) (b : Expr), tbl.bodies[i]? = some b →
@@ -110,7 +98,6 @@ theorem checkStructProjTable_inv {env envOut : Env} {T C : Name}
       (bodies.size = nF ∧ bodies.all (fun b => !b.hasFvar &&
         b.allLevelParamsDefined lps && b.constsResolve env &&
         b.looseBVarsBounded (nP + 1)) = true) ∧
-      (List.range nF).all (fun j => (env.find? (projFnName T j)).isNone) = true ∧
       env.find? (projTableName T) = none ∧
       envOut = ⟨.projInfo ⟨T, lps, nP, C, nF, rs, bodies, guards, off⟩
         :: env.consts⟩ := by
@@ -123,7 +110,7 @@ theorem checkStructProjTable_inv {env envOut : Env} {T C : Name}
   all_goals first
     | (try dsimp only at h
        simp only [pure, Except.pure, Except.ok.injEq] at h
-       refine ⟨bodies, hb', by assumption, by assumption,
+       refine ⟨bodies, hb', by assumption,
          Option.isNone_iff_eq_none.mp (by assumption), h.symm⟩)
     | close_throw
 
@@ -136,7 +123,7 @@ theorem direct_table_wf {env envOut : Env} (henv : EnvWF env)
     (h : checkStructProjTable (m := CheckM) T C lps nP nF rs guards off cvCa env
       = .ok envOut) :
     EnvWF envOut := by
-  obtain ⟨bodies, -, ⟨hsize, hall⟩, -, -, rfl⟩ := checkStructProjTable_inv h
+  obtain ⟨bodies, -, ⟨hsize, hall⟩, -, rfl⟩ := checkStructProjTable_inv h
   refine EnvWF.cons henv (structConstWF rfl rfl rfl rfl
     (fun _ _ _ heq => nomatch heq) (fun _ _ _ _ heq => nomatch heq) ?_)
   intro tbl heq
@@ -231,7 +218,8 @@ theorem checkSumTele_shape {env : Env} {cv : ConstantVal} {n : Nat}
     {cvTa₀ cvTa : ConstantVal} {s : Level} {F : Nat}
     (h : checkSumTele (fueledOps mode F) env cv n cvTa₀ = .ok (cvTa, s)) :
     (cvTa = cvTa₀ ∧ ∃ bs, cvTa₀.type.stripPis n = some (bs, .sort s)) ∨
-    ∃ ty, checkConstantVal (fueledOps mode F) env { cv with type := ty } = .ok cvTa := by
+    ∃ ty, cvTa = { cv with type := ty } ∧
+      checkConstantVal (fueledOps mode F) env { cv with type := ty } = .ok () := by
   unfold checkSumTele at h
   split at h
   · next bs s' hst =>
@@ -240,17 +228,18 @@ theorem checkSumTele_shape {env : Env} {cv : ConstantVal} {n : Nat}
     exact Or.inl ⟨rfl, bs, hst⟩
   · obtain ⟨q, -, h⟩ := exceptBind_ok h
     obtain ⟨bs, s'⟩ := q
-    try simp only at h
-    obtain ⟨cvTa', hccv, h⟩ := exceptBind_ok h
+    dsimp only at h
+    obtain ⟨u, hccv, h⟩ := exceptBind_ok h
+    cases u
     simp only [pure, Except.pure, Except.ok.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    exact Or.inr ⟨_, hccv⟩
+    exact Or.inr ⟨_, rfl, hccv⟩
 
 /-! ## Stage 2: one constructor -/
 
 /-- `checkStructFieldSortsI`, inverted: the sorts
 are returned in field order, one per field, each the `ensureSort` of
-the field annotation's inferred type at the field's own frame, under
+the field domain's inferred type at the field's own frame, under
 the official universe bound (`isProp = false`) or — at a large
 eliminator on a `Prop` family — the subsingleton-elimination criterion:
 the field is a proposition OR one of the residual's index expressions. -/
@@ -352,7 +341,7 @@ theorem checkSumCtor_shape {env₀ env : Env} {T : Name} {lps : List Name}
     {nF : Nat} {F : Nat} {sorts : List Level}
     (h : checkSumCtor (fueledOps mode F) env₀ env T lps nP nIdx resSort isProp large
       cvC nF cvTa = .ok (cvCa, sorts)) :
-    (∃ ty', checkConstantVal (fueledOps mode F) env { cvC with type := ty' } = .ok cvCa) ∧
+    (cvCa = cvC ∧ checkConstantVal (fueledOps mode F) env cvC = .ok ()) ∧
     (∃ cbs es, cvCa.type.stripPis (nP + nF)
       = some (cbs, Expr.mkAppN (.const T (lps.map .param)) (structPsAt nF nP ++ es)) ∧
       es.length = nIdx) ∧
@@ -370,9 +359,9 @@ theorem checkSumCtor_shape {env₀ env : Env} {T : Name} {lps : List Name}
       checkStructFieldSortsI (fueledOps mode F) env isProp large resSort
         nP xFvs idxArgs nF = .ok sorts := by
   unfold checkSumCtor at h
-  obtain ⟨cvCa', hccv₀, h⟩ := exceptBind_ok h
-  have hccv : ∃ ty', checkConstantVal (fueledOps mode F) env { cvC with type := ty' }
-      = .ok cvCa' := ⟨cvC.type, hccv₀⟩
+  obtain ⟨u₀, hccv₀, h⟩ := exceptBind_ok h
+  cases u₀
+  dsimp only at h
   obtain ⟨q, hq, h⟩ := exceptBind_ok h
   obtain ⟨cbs, cbody⟩ := q
   have hq' := unwrapOr_ok hq
@@ -409,7 +398,7 @@ theorem checkSumCtor_shape {env₀ env : Env} {T : Name} {lps : List Name}
   simp only [structCtorResidOk, Bool.and_eq_true, beq_iff_eq] at hc
   simp only [Bool.and_eq_true, beq_iff_eq] at h2
   obtain ⟨es, hes, hesl⟩ := residual_shape hc.1.1 hc.2 hc.1.2
-  refine ⟨hccv, ⟨cbs, es, by rw [hq', hes], hesl⟩,
+  refine ⟨⟨rfl, hccv₀⟩, ⟨cbs, es, by rw [hq', hes], hesl⟩,
     fvsP, crest, tfvs, trest, xFvs, xrest.getAppArgs.drop nP,
     hcq', htq', by cases u; exact hdoms, ?_, ?_, ?_, ?_, hsorts⟩
   · rw [hxq']
@@ -421,7 +410,7 @@ theorem checkSumCtor_shape {env₀ env : Env} {T : Name} {lps : List Name}
   · intro e he
     exact List.all_eq_true.mp h4 e he
 
-/-- All constructors, positionally: the annotated list is as long as
+/-- All constructors, positionally: the checked list is as long as
 the input and every entry is its constructor's run. -/
 theorem checkSumCtors_inv {env₀ env : Env} {T : Name} {lps : List Name}
     {nP nIdx : Nat} {resSort : Level} {isProp large : Bool} {cvTa : ConstantVal} {F : Nat} :
@@ -478,7 +467,7 @@ theorem direct_sum_ctor_typeWF {env₀ env : Env} {T : Name} {lps : List Name}
       cvC nF cvTa = .ok (cvCa, sorts)) :
     cvCa.type.hasFvar = false ∧ cvCa.type.allLevelParamsDefined cvCa.levelParams = true ∧
     cvCa.type.constsResolve env = true ∧ cvCa.type.looseBVarsBounded 0 = true := by
-  obtain ⟨⟨_, hccv⟩, -, -⟩ := checkSumCtor_shape h
+  obtain ⟨⟨rfl, hccv⟩, -, -⟩ := checkSumCtor_shape h
   exact checkConstantVal_typeWF hccv
 
 /-- A name fresh above the constructors' conses is fresh below them
@@ -519,18 +508,16 @@ theorem envWF_consSumCtors {nP : Nat} :
 /-- The stored rules carry the generated right-hand sides and are
 never `.nested`. -/
 theorem sumRules_mem {find? : Name → Option ConstantInfo} {recName : Name}
-    {nP mI rP : Nat} {recTy : Expr} :
+    {nP : Nat} :
     ∀ {ctorsA : List (ConstantVal × Nat)} {rhss : List Expr} {r : RecRule},
-      r ∈ sumRules find? recName nP mI rP recTy ctorsA rhss →
+      r ∈ sumRules find? recName nP ctorsA rhss →
       r.rhs ∈ rhss ∧ ∀ lvls pins, r.fire ≠ .nested lvls pins
   | [], _, r, h => by simp [sumRules] at h
   | _ :: _, [], r, h => by simp [sumRules] at h
   | c :: cs, rhs :: rhss, r, h => by
     simp only [sumRules, List.mem_cons] at h
     rcases h with rfl | h
-    · refine ⟨List.mem_cons_self, fun lvls pins => ?_⟩
-      show (if Expr.recRulePlain recTy mI rP nP then RecRuleFire.plain else .inert) ≠ _
-      split <;> simp
+    · exact ⟨List.mem_cons_self, fun lvls pins h => nomatch h⟩
     · obtain ⟨hm, hf⟩ := sumRules_mem h
       exact ⟨List.mem_cons_of_mem _ hm, hf⟩
 

@@ -23,7 +23,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars)
 
 universe w
@@ -48,7 +48,7 @@ the injections' identification stay premises (both `rfl` at
 frame, from the constructors' stage. -/
 theorem BlockCtorsStage.idxOkAt {envI : Env} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → AnnotTerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf) (hk0 : 0 < d.k) :
     ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
@@ -62,7 +62,7 @@ the datum's operator is the hole operator (`hPhi`), whose fibre is the
 hole fit (`LfpDatum.holeOp_fibre`). -/
 theorem blockHoleFib_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → AnnotTerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -94,7 +94,7 @@ theorem blockHoleFib_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
 /-- **The block's representation, from the stages' three records.** -/
 theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → AnnotTerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -116,15 +116,15 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
     exact fixCtorDataList_length _ _ _ _ _ _ _ _
   have hFssD : ∀ (ψ : Name → Nat) (c j : Nat) (cA : ConstantVal × Nat),
       (d.ctorsM c)[j]? = some cA →
-      (d.Fss c ψ).getD j [] = ((d.dsF c j ψ).drop d.nP).map (·.2.2) :=
+      (d.Fss c ψ).getD j [] = ((d.dsF c j ψ).drop d.nP) :=
     fun _ _ _ _ hj => fssOfR_fixCtorDataList_getD hj
   have hdsLenA : ∀ (ψ : Name → Nat) (c j : Nat) (cA : ConstantVal × Nat),
       (d.ctorsM c)[j]? = some cA → (d.dsF c j ψ).length = d.nP + cA.2 :=
-    fun ψ c j cA hj => (hcore.2.2.1 c j cA hj).2.2.1.len ψ
+    fun ψ c j cA hj => (hcore.2.1 c j cA hj).2.2.1.len ψ
   have hnF : ∀ (ψ : Name → Nat) (c j : Nat) (cA : ConstantVal × Nat),
       (d.ctorsM c)[j]? = some cA → ((d.Fss c ψ).getD j []).length = cA.2 := by
     intro ψ c j cA hj
-    rw [hFssD ψ c j cA hj, List.length_map, List.length_drop, hdsLenA ψ c j cA hj]
+    rw [hFssD ψ c j cA hj, List.length_drop, hdsLenA ψ c j cA hj]
     omega
   -- the parameter frame, at every component and every constructor
   have hlenPps : ∀ (ψ : Name → Nat) (c : Nat), c < d.N →
@@ -132,14 +132,14 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
     fun ψ c hc => hS.lenPps c ψ (by rw [← hNk]; exact hc)
   have hparams : ∀ (ψ : Name → Nat) (c : Nat), c < d.N → ∀ ρ : Nat → V,
       Sat V (d.params ψ).reverse ρ ↔
-        Sat V (((d.ppsM c ψ).take d.nP).map (·.2.2)).reverse ρ := by
+        Sat V (((d.ppsM c ψ).take d.nP)).reverse ρ := by
     intro ψ c hc ρ
     have hck : c < d.k := by rw [← hNk]; exact hc
     exact ⟨fun h => hS.paramsOf 0 hk0 ψ ρ h c hck, fun h => hS.paramsOf c hck ψ ρ h 0 hk0⟩
   have hparamsC : ∀ (ψ : Name → Nat) (c j : Nat), c < d.N → j < (d.ctorsM c).length →
       ∀ ρ : Nat → V,
       Sat V (d.params ψ).reverse ρ ↔
-        Sat V (((d.dsF c j ψ).take d.nP).map (·.2.2)).reverse ρ := by
+        Sat V (((d.dsF c j ψ).take d.nP)).reverse ρ := by
     intro ψ c j hc hj ρ
     exact (hparams ψ c hc ρ).trans
       ((hS.frames c (by rw [← hNk]; exact hc) j _ (hcAof c j hj)).1 ψ ρ)
@@ -201,8 +201,8 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
     rfl
   -- the constructors' leaves
   · intro c hc j cA hj ψ
-    exact (hcore.2.2.2 c (by rw [← hNk]; exact hc) j cA hj).2.2 ψ
-  -- the field lists' lengths against the constructors' binder data
+    exact (hcore.2.2 c (by rw [← hNk]; exact hc) j cA hj).2.2 ψ
+  -- the field lists' lengths against the constructors' domains
   · intro ψ c j hj
     rw [hdsLenA ψ c j _ (hcAof c j hj), hnF ψ c j _ (hcAof c j hj)]
   -- the field chains are graded at every parameter frame
@@ -211,7 +211,7 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
     obtain ⟨j, hjget⟩ := List.getElem?_of_mem hFs
     have hjlt : j < (d.Fss c ψ).length := (List.getElem?_eq_some_iff.mp hjget).1
     have hjc : j < (d.ctorsM c).length := by rw [← hlenC ψ c]; exact hjlt
-    have hFsEq : Fs = ((d.dsF c j ψ).drop d.nP).map (·.2.2) := by
+    have hFsEq : Fs = ((d.dsF c j ψ).drop d.nP) := by
       rw [← hFssD ψ c j _ (hcAof c j hjc), List.getD_eq_getElem?_getD, hjget]
       rfl
     rw [hFsEq]
@@ -221,9 +221,9 @@ theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
   · intro ψ ρ hsat c hc j hj fs hfs
     have hjc := hcAof c j hj
     have hfr := hS.frames c (by rw [← hNk]; exact hc) j _ hjc
-    have hFs : SpineFit ρ (((d.dsF c j ψ).drop d.nP).map (·.2.2)) fs := by
+    have hFs : SpineFit ρ (((d.dsF c j ψ).drop d.nP)) fs := by
       rw [← hFssD ψ c j _ hjc]; exact hfs
-    have hq := (hfr.2 ψ ρ ((hfr.1 ψ ρ).mp ((hparams ψ c hc ρ).mp hsat))).2.2 fs hFs
+    have hq := (hfr.2 ψ ρ ((hfr.1 ψ ρ).mp ((hparams ψ c hc ρ).mp hsat))).2 fs hFs
     rw [show (d.Ess c ψ).getD j [] = d.esF c j ψ from essOfR_fixCtorDataList_getD hjc]
     exact hq
 
@@ -241,7 +241,7 @@ readings are the stored ones (`blockResIdxFit_lfp`), which the constructors' typ
 in the member's index telescope (`BlockModelAt.resIdxFit`). -/
 theorem blockResIdxFit_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → AnnotTerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -281,7 +281,7 @@ theorem blockResIdxFit_of_records {envC envI : Env} {mo : EnvModel V envC} {d : 
 /-- **The block's lfp clause, in hole form, from the stages' records.** -/
 theorem blockLfpClause_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → AnnotTerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -301,6 +301,7 @@ theorem blockLfpClause_of_records {envC envI : Env} {mo : EnvModel V envC} {d : 
     (fun ψ hw c j fs h => by
       rw [hinj, ite_eq_right hw] at h
       exact pt_ne_kpair _ _ (h.symm.trans (spair_eq_kpair _ _)))
+    (fun ψ ψ' hw hw' c j fs => by rw [hinj, hinj, ite_eq_right hw, ite_eq_right hw'])
     hfok
 
 end ConLeche.Model

@@ -58,10 +58,6 @@ otherwise. -/
 theorem eqv_mem_univ (x y : V) : eqv x y ∈ˢ (univ 0 : V) :=
   (univ_zero (V := V)).symm ▸ eqv_mem_univZero x y
 
-/-- The canonical singleton `{pt}` has only the proof point as member. -/
-theorem mem_unitSet {x : V} (h : x ∈ˢ (unitSet : V)) : x = pt :=
-  mem_unitSet_iff.mp h
-
 /-- The model of `Nat.zero`: the empty set, i.e. the ordinal `0`. -/
 noncomputable def natzero : V := empty
 

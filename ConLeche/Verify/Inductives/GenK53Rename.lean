@@ -49,7 +49,7 @@ theorem openPisAtFvars_targetPiDomsWith :
   | succ n ih =>
     intro T d fvs o h
     match T, h with
-    | .forallE dom body bm, h =>
+    | .forallE dom body, h =>
       simp only [openPisAtFvars] at h
       split at h
       · rename_i fvs' e' hop
@@ -73,7 +73,7 @@ theorem targetPiDomsWith_substFvars {b D : Nat} {s : Nat → Expr}
   | cons x xs ih =>
     intro T ws h
     cases T with
-    | forallE d body bm =>
+    | forallE d body =>
       simp only [targetPiDomsWith] at h
       obtain ⟨r, hr, rfl⟩ := Option.map_eq_some_iff.mp h
       have := ih hr
@@ -102,10 +102,10 @@ theorem targetPiDomsWith_erasedEq :
     | cons x' xs' =>
       obtain ⟨hx, hxs⟩ := hf
       cases T with
-      | forallE d b m =>
+      | forallE d b =>
         cases T' with
-        | forallE d' b' m' =>
-          obtain ⟨-, hd, hb⟩ := hT
+        | forallE d' b' =>
+          obtain ⟨hd, hb⟩ := hT
           simp only [targetPiDomsWith] at h
           obtain ⟨r, hr, rfl⟩ := Option.map_eq_some_iff.mp h
           obtain ⟨r', hr', hrr⟩ := ih hxs (Expr.ErasedEq.instantiate1 hb hx) hr
@@ -119,14 +119,14 @@ theorem stripPis_substFvars {b D : Nat} {s : Nat → Expr}
     (hs : ∀ v, v < b → ∃ ty, s v = .fvar v ty) :
     ∀ (n : Nat) (e : Expr), (Expr.substFvars b D s e).stripPis n
       = (e.stripPis n).map fun q =>
-          (q.1.map fun p => (Expr.substFvars b D s p.1, p.2), Expr.substFvars b D s q.2) := by
+          (q.1.map (Expr.substFvars b D s), Expr.substFvars b D s q.2) := by
   intro n
   induction n with
   | zero => intro e; rfl
   | succ n ih =>
     intro e
     cases e with
-    | forallE ty body m =>
+    | forallE ty body =>
       simp only [Expr.substFvars, Expr.stripPis, ih body, Option.map_map]
       rfl
     | fvar i ty =>
@@ -138,11 +138,11 @@ theorem stripPis_substFvars {b D : Nat} {s : Nat → Expr}
 
 /-- **`stripPis` respects erasure.** -/
 theorem stripPis_erasedEq :
-    ∀ {n : Nat} {A B : Expr} {tA : List (Expr × BinderMeta)} {lA : Expr},
+    ∀ {n : Nat} {A B : Expr} {tA : List Expr} {lA : Expr},
       Expr.ErasedEq A B → A.stripPis n = some (tA, lA) →
       ∃ tB lB, B.stripPis n = some (tB, lB) ∧ tA.length = tB.length ∧
-        (∀ (l : Nat) (q q' : Expr × BinderMeta), tA[l]? = some q → tB[l]? = some q' →
-          q.2 = q'.2 ∧ Expr.ErasedEq q.1 q'.1) ∧ Expr.ErasedEq lA lB := by
+        (∀ (l : Nat) (q q' : Expr), tA[l]? = some q → tB[l]? = some q' →
+          Expr.ErasedEq q q') ∧ Expr.ErasedEq lA lB := by
   intro n
   induction n with
   | zero =>
@@ -153,22 +153,22 @@ theorem stripPis_erasedEq :
   | succ n ih =>
     intro A B tA lA h hs
     cases A with
-    | forallE ty body m =>
+    | forallE ty body =>
       cases B with
-      | forallE ty' body' m' =>
-        obtain ⟨hm, hty, hb⟩ := h
+      | forallE ty' body' =>
+        obtain ⟨hty, hb⟩ := h
         simp only [Expr.stripPis] at hs
         obtain ⟨⟨t1, l1⟩, h1, h2⟩ := Option.map_eq_some_iff.mp hs
         simp only [Prod.mk.injEq] at h2
         obtain ⟨rfl, rfl⟩ := h2
         obtain ⟨tB, lB, hB, hlen, hall, hl⟩ := ih hb h1
-        refine ⟨(ty', m') :: tB, lB, by simp [Expr.stripPis, hB], by simp [hlen], ?_, hl⟩
+        refine ⟨ty' :: tB, lB, by simp [Expr.stripPis, hB], by simp [hlen], ?_, hl⟩
         intro l q q' hq hq'
         cases l with
         | zero =>
           simp only [List.getElem?_cons_zero, Option.some.injEq] at hq hq'
           subst hq; subst hq'
-          exact ⟨hm, hty⟩
+          exact hty
         | succ l => exact hall l q q' (by simpa using hq) (by simpa using hq')
       | _ => simp [Expr.ErasedEq] at h
     | _ => simp [Expr.stripPis] at hs
@@ -191,8 +191,8 @@ theorem substFvars_erasedEq_self {b D : Nat} {s : Nat → Expr}
   | const n us => intro _; exact Expr.ErasedEq.rfl _
   | lit l => intro _; exact Expr.ErasedEq.rfl _
   | app f a ihf iha => intro h; exact ⟨ihf h.1, iha h.2⟩
-  | lam t body m iht ihb => intro h; exact ⟨rfl, iht h.1, ihb h.2⟩
-  | forallE t body m iht ihb => intro h; exact ⟨rfl, iht h.1, ihb h.2⟩
+  | lam t body iht ihb => intro h; exact ⟨iht h.1, ihb h.2⟩
+  | forallE t body iht ihb => intro h; exact ⟨iht h.1, ihb h.2⟩
   | letE t v body iht ihv ihb => intro h; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
   | proj n i e ih => intro h; exact ⟨rfl, rfl, ih h⟩
 
@@ -205,22 +205,22 @@ private theorem gk_erase_mkAppN : ∀ (as : List Expr) (f : Expr),
     show (Expr.mkAppN (.app f a) as).eraseFVarTys = _
     rw [gk_erase_mkAppN as]; rfl
 
-private theorem gk_erase_mkPisOf : ∀ (bs : List (Expr × BinderMeta)) (b : Expr),
+private theorem gk_erase_mkPisOf : ∀ (bs : List Expr) (b : Expr),
     (Expr.mkPisOf bs b).eraseFVarTys
-      = Expr.mkPisOf (bs.map fun x => (x.1.eraseFVarTys, x.2)) b.eraseFVarTys
+      = Expr.mkPisOf (bs.map Expr.eraseFVarTys) b.eraseFVarTys
   | [], _ => rfl
-  | (ty, m) :: bs, b => by
-    show Expr.eraseFVarTys (.forallE ty (Expr.mkPisOf bs b) m) = _
+  | ty :: bs, b => by
+    show Expr.eraseFVarTys (.forallE ty (Expr.mkPisOf bs b)) = _
     rw [List.map_cons, Expr.mkPisOf, ← gk_erase_mkPisOf bs b]; rfl
 
-private theorem gk_stripPis_eq_mkPisOf : ∀ {n : Nat} {e r : Expr} {bs : List (Expr × BinderMeta)},
+private theorem gk_stripPis_eq_mkPisOf : ∀ {n : Nat} {e r : Expr} {bs : List Expr},
     e.stripPis n = some (bs, r) → e = Expr.mkPisOf bs r
   | 0, e, r, bs, h => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h; rfl
   | n + 1, e, r, bs, h => by
     cases e with
-    | forallE ty b m =>
+    | forallE ty b =>
       simp only [Expr.stripPis] at h
       obtain ⟨⟨bs', r'⟩, h1, h2⟩ := Option.map_eq_some_iff.mp h
       simp only [Prod.mk.injEq] at h2
@@ -274,17 +274,17 @@ private theorem gk_erasedEqs_get : ∀ {as bs : List Expr}, ErasedEqs as bs →
       subst h; exact ⟨b, rfl, hab⟩
     | succ l => exact gk_erasedEqs_get hr (by simpa using h)
 
-private theorem gk_teleMap_eq : ∀ {tA tB : List (Expr × BinderMeta)}, tA.length = tB.length →
-    (∀ (l : Nat) (q q' : Expr × BinderMeta), tA[l]? = some q → tB[l]? = some q' →
-      q.2 = q'.2 ∧ Expr.ErasedEq q.1 q'.1) →
-    tA.map (fun b => (b.1.eraseFVarTys, b.2)) = tB.map (fun b => (b.1.eraseFVarTys, b.2))
+private theorem gk_teleMap_eq : ∀ {tA tB : List Expr}, tA.length = tB.length →
+    (∀ (l : Nat) (q q' : Expr), tA[l]? = some q → tB[l]? = some q' →
+      Expr.ErasedEq q q') →
+    tA.map Expr.eraseFVarTys = tB.map Expr.eraseFVarTys
   | [], [], _, _ => rfl
   | [], _ :: _, hl, _ => by simp at hl
   | _ :: _, [], hl, _ => by simp at hl
   | q :: tA, q' :: tB, hl, h => by
-    obtain ⟨h2, h1⟩ := h 0 q q' rfl rfl
-    simp only [List.map_cons, List.cons.injEq, Prod.mk.injEq]
-    exact ⟨⟨Expr.eraseFVarTys_eq_iff.mpr h1, h2⟩, gk_teleMap_eq (by simpa using hl)
+    have h1 := h 0 q q' rfl rfl
+    simp only [List.map_cons, List.cons.injEq]
+    exact ⟨Expr.eraseFVarTys_eq_iff.mpr h1, gk_teleMap_eq (by simpa using hl)
       (fun l p p' hp hp' => h (l + 1) p p' (by simpa using hp) (by simpa using hp'))⟩
 
 private theorem gk_substFvars_mkAppN {b D : Nat} {s : Nat → Expr} : ∀ (as : List Expr) (f : Expr),
@@ -299,15 +299,6 @@ private theorem gk_erase_substFvars_erase {b D : Nat} {s : Nat → Expr} (x : Ex
     (Expr.substFvars b D s x.eraseFVarTys).eraseFVarTys = (Expr.substFvars b D s x).eraseFVarTys :=
   Expr.eraseFVarTys_eq_iff.mpr
     (Expr.ErasedEq.substFvars (Expr.eraseFVarTys_eq_iff.mp (gk_erase_erase x)))
-
-private theorem gk_teleSubst_erase {b D : Nat} {s : Nat → Expr} (t : List (Expr × BinderMeta)) :
-    (t.map fun p => (Expr.substFvars b D s p.1, p.2)).map (fun q => (q.1.eraseFVarTys, q.2))
-      = (t.map fun q => (q.1.eraseFVarTys, q.2)).map
-          (fun p => ((Expr.substFvars b D s p.1).eraseFVarTys, p.2)) := by
-  simp only [List.map_map]
-  apply List.map_congr_left
-  intro p _
-  simp [gk_erase_substFvars_erase]
 
 private theorem gk_argsSubst_erase {b D : Nat} {s : Nat → Expr} (t : List Expr) :
     (t.map (Expr.substFvars b D s)).map Expr.eraseFVarTys
@@ -334,12 +325,12 @@ theorem k53_rename {ops : CheckerOps CheckM} {env : Env} {p : BlockShape}
     (hop0 : openPisAtFvars n T0 a = some (fvs0, o0))
     (hR : ∀ l, l < n → ∃ ty, fvsR[l]? = some (.fvar (bR + l) ty)) (hlR : fvsR.length = n)
     (hT : T.fvarsBelow a) (hT0 : T0.fvarsBelow a) (hpf : Mt.pfvs.length ≤ a)
-    {teleB : List (Expr × BinderMeta)} {leaf : Expr}
+    {teleB : List Expr} {leaf : Expr}
     (hst : (fvs0.getD i default).fvarTypeD.stripPis tele = some (teleB, leaf))
     (hleaf : classLeafAt Mt leaf = true)
     {f0 : Expr} (hf0 : ((targetPiDomsWith fvs0 T).getD [])[i]? = some f0)
     (hK : targetK53 ops env p formerTys Mt teleB leaf f0 = .ok true) :
-    ∃ (ws : List Expr) (teleR : List (Expr × BinderMeta)) (leafR : Expr) (I : Name)
+    ∃ (ws : List Expr) (teleR : List Expr) (leafR : Expr) (I : Name)
       (us us' : List Level) (Pw : List Expr) (fR : Expr),
       targetPiDomsWith fvsR T0 = some ws ∧
       (ws.getD i default).stripPis tele = some (teleR, leafR) ∧
@@ -443,7 +434,7 @@ theorem k53_rename {ops : CheckerOps CheckM} {env : Env} {p : BlockShape}
     rw [Expr.substFvars_mkPisOf, gk_substFvars_mkAppN, gk_erase_mkPisOf, gk_erase_mkPisOf,
       gk_erase_mkAppN, gk_erase_mkAppN]
     congr 1
-    · rw [gk_teleSubst_erase, htele, ← gk_teleSubst_erase]
+    · rw [gk_argsSubst_erase, htele, ← gk_argsSubst_erase]
       exact gk_teleMap_eq hlenR hallR
     · congr 1
       rw [List.map_append, List.map_append, List.map_append]
@@ -485,7 +476,7 @@ private theorem gk_option_filterMapM_all {α β : Type} {f : α → Option (Opti
           | some ys' => exact ih hl b hb
 
 private theorem gk_classNodesAgree_mem {ops : CheckerOps CheckM} {env : Env} {p : BlockShape}
-    {formerTys : List Expr} {Mc : TargetMajor} {tele : List (Expr × BinderMeta)} {leaf : Expr}
+    {formerTys : List Expr} {Mc : TargetMajor} {tele : List Expr} {leaf : Expr}
     {fvs : List Expr} {i : Nat} {ctor : Name} :
     ∀ {es : List NestCtorNf},
       classNodesAgree ops env p formerTys Mc tele leaf fvs i ctor es = .ok () →

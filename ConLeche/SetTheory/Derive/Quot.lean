@@ -9,7 +9,10 @@ public import ConLeche.SetTheory.Derive.Univ
 
 `quotSet u A R` is, for `u ≠ 0`, the set of equivalence classes of the
 equivalence closure of "`app (app R a) b` is inhabited" on `A` (classes
-by separation, the class set by replacement); for `u = 0` the base
+by separation, the class set by replacement), each class **tagged** as
+the pair `kpair ∅ (qclass A R a)` (task #342: a raw class can be the
+point, see the end of the file; a tagged one is a pair, so the quotient
+is strict); for `u = 0` the base
 lives in `Prop`, everything collapses to the proof point, and the
 quotient is `image (fun _ => pt) A` — the truth value `[A inhabited]`.
 
@@ -61,12 +64,14 @@ theorem rel_of_qclass_eq {A R a b : V} (ha : a ∈ˢ A) (_hb : b ∈ˢ A)
 open Classical in
 /-- The quotient (see module docs). -/
 noncomputable def quotSet (u : Nat) (A R : V) : V :=
-  if u = 0 then image (fun _ => pt) A else image (fun a => qclass A R a) A
+  if u = 0 then image (fun _ => pt) A else image (fun a => kpair empty (qclass A R a)) A
 
 open Classical in
-/-- The class of `a` in the quotient. -/
+/-- The class of `a` in the quotient: at `u ≠ 0` the `QuotRel`-class,
+tagged as a pair (`kpair ∅ ·`; `sing` would not do, as the class can be
+`ptTag` itself and `sing ptTag = pt`). -/
 noncomputable def quotClass (u : Nat) (A R a : V) : V :=
-  if u = 0 then pt else qclass A R a
+  if u = 0 then pt else kpair empty (qclass A R a)
 
 theorem quotClass_mem {u : Nat} {A R a : V} (ha : a ∈ˢ A) :
     quotClass u A R a ∈ˢ quotSet u A R := by
@@ -91,7 +96,8 @@ theorem quotClass_surj {u : Nat} {A R q : V} (hq : q ∈ˢ quotSet u A R) :
 of ANOTHER: its representative lies in the second parameter's carrier,
 and the class is the second quotient's class of that same
 representative.  Nothing relates the two parameter pairs — at a positive
-level the first class is a `qclass` of the second's, and at level zero
+level the first (tagged) class is a (tagged) `qclass` of the second's,
+and at level zero
 both classes are the point and the second carrier is inhabited because
 the quotient is. -/
 theorem quotClass_of_mem_quotSet {u : Nat} {Aset R A' R' a : V}
@@ -108,32 +114,37 @@ theorem quotClass_of_mem_quotSet {u : Nat} {Aset R A' R' a : V}
   · unfold quotClass at hcls ⊢
     rw [ite_eq_right hu, ite_eq_right hu] at hcls
     rw [ite_eq_right hu, ite_eq_right hu]
-    have hab : a ∈ˢ qclass Aset R b := by rw [← hcls]; exact self_mem_qclass ha
+    have hcls' := (kpair_inj hcls).2
+    have hab : a ∈ˢ qclass Aset R b := by rw [← hcls']; exact self_mem_qclass ha
     obtain ⟨haA, hrel⟩ := mem_qclass.mp hab
-    exact ⟨haA, hcls.trans (qclass_eq_of_rel hrel)⟩
+    exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclass_eq_of_rel hrel))⟩
+
+/-- **`quotClass_of_mem_quotSet` across two positive levels**: a class
+formed at one positive level and one pair of parameters that lands in
+the quotient of another positive level and pair is, there, the class of
+the same representative.  Above `Prop` the class reads no level. -/
+theorem quotClass_of_mem_quotSet_pos {u u' : Nat} (hu : u ≠ 0) (hu' : u' ≠ 0)
+    {Aset R A' R' a : V} (ha : a ∈ˢ A')
+    (hmem : quotClass u' A' R' a ∈ˢ quotSet u Aset R) :
+    a ∈ˢ Aset ∧ quotClass u' A' R' a = quotClass u Aset R a := by
+  have hl : quotClass u' A' R' a = quotClass u A' R' a := by
+    unfold quotClass; rw [ite_eq_right hu, ite_eq_right hu']
+  rw [hl] at hmem ⊢
+  obtain ⟨b, hb, hcls⟩ := quotClass_surj hmem
+  unfold quotClass at hcls ⊢
+  rw [ite_eq_right hu, ite_eq_right hu] at hcls
+  rw [ite_eq_right hu, ite_eq_right hu]
+  have hcls' := (kpair_inj hcls).2
+  have hab : a ∈ˢ qclass Aset R b := by rw [← hcls']; exact self_mem_qclass ha
+  obtain ⟨haA, hrel⟩ := mem_qclass.mp hab
+  exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclass_eq_of_rel hrel))⟩
 
 theorem quotSound {u : Nat} {A R a b w : V} (ha : a ∈ˢ A) (hb : b ∈ˢ A)
     (hw : w ∈ˢ app (app R a) b) : quotClass u A R a = quotClass u A R b := by
   unfold quotClass
   split
   · rfl
-  · exact qclass_eq_of_rel (QuotRel.base ha hb ⟨w, hw⟩)
-
-theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
-    quotSet u A R ∈ˢ (univ u : V) := by
-  unfold quotSet
-  split
-  · next h =>
-    subst h
-    rw [univ_zero]
-    refine mem_univZero.mpr fun z hz => ?_
-    obtain ⟨-, -, rfl⟩ := mem_image.mp hz
-    exact pt_mem_unitSet
-  · next h =>
-    refine (univ_isTGUniverse h).mem_of_subset_mem
-      ((univ_isTGUniverse h).power_mem hA) fun z hz => ?_
-    obtain ⟨a, -, rfl⟩ := mem_image.mp hz
-    exact mem_power.mpr fun w hw => (mem_qclass.mp hw).1
+  · exact congrArg (kpair empty) (qclass_eq_of_rel (QuotRel.base ha hb ⟨w, hw⟩))
 
 open Classical in
 /-- A representative of a quotient class, by choice. -/
@@ -171,49 +182,45 @@ theorem app_eq_of_quotClass_eq {u : Nat} {A R f a b : V}
     subst h
     rw [univ_zero] at hA
     rw [eq_pt_of_mem_univZero hA ha, eq_pt_of_mem_univZero hA hb]
-  · exact app_eq_of_rel hinv (rel_of_qclass_eq ha hb hq)
+  · exact app_eq_of_rel hinv (rel_of_qclass_eq ha hb (kpair_inj hq).2)
 
-/-! ## pt-freshness refutation evidence (task #109)
+/-! ## The class is never the point above `Prop` (tasks #109, #342)
 
-Quotient types are **not** unconditionally pt-fresh, for *any*
-constructible proof point: classes are arbitrary nonempty subsets of
-the base, so with base `ptTag` itself and a total relation the class
-set is exactly `{ptTag} = pt`.  Never resurrect a `quotSet_ne_pt`; the
-#109 syntactic freshness guards exclude `Quot`-typed slots instead.
-(The base `ptTag` is not the interpretation of any *writable* type —
-the obstruction is semantic, in the ∀-A-R quantification of the model
-lemmas.  The old `pt = {∅}` was the unique choice immune to this — the
-empty set is never a class — which is exactly what the re-choice
-trades for data freshness.) -/
+Raw classes are arbitrary nonempty subsets of the base, so with base
+`ptTag` itself and a total relation the one class is `ptTag` and the
+untagged class set is exactly `{ptTag} = pt` — for *any* singleton
+proof point.  The base `ptTag`
+is not the interpretation of any *writable* type; the obstruction is
+semantic, in the ∀-A-R quantification of the model lemmas.  Up to task
+#342 the classes were raw and this was the quotient itself; since then
+a class above `Prop` is the pair `kpair ∅ (qclass A R a)`, so it is
+never the point, and the quotient never is nor
+contains it (`strict_quotSet`). -/
 
-theorem quotSet_eq_pt_countermodel :
-    ∃ A R : V, quotSet 1 A R = pt := by
-  refine ⟨ptTag, graph (fun _ => graph (fun _ => unitSet) ptTag) ptTag, ?_⟩
-  have hrel : ∀ a b : V, a ∈ˢ (ptTag : V) → b ∈ˢ (ptTag : V) →
-      QuotRel ptTag (graph (fun _ => graph (fun _ => unitSet) ptTag) ptTag)
-        a b := by
-    intro a b ha hb
-    refine QuotRel.base ha hb ⟨pt, ?_⟩
-    rw [app_graph ha, app_graph hb]
-    exact pt_mem_unitSet
-  have hclass : ∀ a : V, a ∈ˢ (ptTag : V) →
-      qclass ptTag (graph (fun _ => graph (fun _ => unitSet) ptTag) ptTag) a
-        = ptTag := by
-    intro a ha
-    apply ext fun z => ?_
-    rw [mem_qclass]
-    exact ⟨fun h => h.1, fun hz => ⟨hz, hrel a z ha hz⟩⟩
-  unfold quotSet
-  rw [ite_eq_right Nat.one_ne_zero]
-  apply ext fun z => ?_
-  rw [mem_image, mem_pt]
-  constructor
-  · rintro ⟨a, ha, rfl⟩
-    exact hclass a ha
-  · rintro rfl
-    exact ⟨empty, empty_mem_ptTag, (hclass empty empty_mem_ptTag).symm⟩
+/-- Above `Prop` the quotient is strict: its members are pairs. -/
+theorem strict_quotSet {u : Nat} (hu : u ≠ 0) (A R : V) : Strict (quotSet u A R) :=
+  strict_of_kpairs fun z hz => by
+    unfold quotSet at hz; rw [ite_eq_right hu] at hz
+    obtain ⟨a, -, rfl⟩ := mem_image.mp hz
+    exact ⟨_, _, rfl⟩
 
-/- Opaque interface operators (see `Derive/Empty.lean`). -/
 attribute [irreducible] quotSet quotClass
+
+theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
+    quotSet u A R ∈ˢ (univ u : V) := by
+  by_cases h : u = 0
+  · subst h
+    unfold quotSet
+    rw [ite_eq_left rfl, univ_zero]
+    refine mem_univZero.mpr fun z hz => ?_
+    obtain ⟨-, -, rfl⟩ := mem_image.mp hz
+    exact pt_mem_unitSet
+  · refine mem_univ_of_tg_strict ?_ (strict_quotSet h A R)
+    have hA' := mem_tg_of_mem_univ hA
+    have hU := tg_isTGUniverse (V := V) h
+    unfold quotSet
+    rw [ite_eq_right h]
+    exact hU.image_mem hA' fun a _ => hU.kpair_mem hA' (hU.empty_mem hA')
+      (hU.mem_of_subset_mem hA' fun w hw => (mem_qclass.mp hw).1)
 
 end ConLeche.SetTheory

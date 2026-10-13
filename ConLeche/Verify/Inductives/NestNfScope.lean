@@ -171,10 +171,10 @@ theorem WScoped.replaceFVars_lower {g : Nat → Option Expr} {D n : Nat}
   | app a b iha ihb =>
     intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
     exact ⟨iha hw.1, ihb hw.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
     exact ⟨iht hw.1, ihb hw.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro hw; unfold WScoped at hw; simp only [Expr.replaceFVars]; unfold WScoped
     exact ⟨iht hw.1, ihb hw.2⟩
   | letE ty v b iht ihv ihb =>
@@ -269,11 +269,11 @@ theorem nestFields_nfScoped
     (hrec : RecNf ctx rec) (prog : List NestHole) (hp : ProgScB ctx prog) (base : Nat)
     (err : CheckError) :
     ∀ (nF j : Nat) (cur : Expr) (st : NestState) (ks : List NestFieldKind)
-      (nds : List (Expr × BinderMeta)) (res : Expr) (st' : NestState),
+      (nds : List Expr) (res : Expr) (st' : NestState),
       nestFields rec prog base err nF j cur st = .ok (ks, nds, res, st') →
       ScB (base + j) cur → NfStScoped ctx.nP st →
       NfStScoped ctx.nP st' ∧
-        (∀ (i : Nat) (nd : Expr × BinderMeta), nds[i]? = some nd → ScB (base + j + i) nd.1) ∧
+        (∀ (i : Nat) (nd : Expr), nds[i]? = some nd → ScB (base + j + i) nd) ∧
         ScB (base + j + nds.length) res := by
   intro nF
   induction nF with
@@ -286,7 +286,7 @@ theorem nestFields_nfScoped
     intro j cur st ks nds res st' h hws hst
     unfold nestFields at h
     split at h
-    · rename_i a b bm
+    · rename_i a b
       simp only [bind, Except.bind] at h
       split at h
       · simp at h
@@ -539,7 +539,7 @@ theorem nestPos_nfScoped (hc : NestCtxOk ctx) (hb : NestCtxB ctx)
       rw [ite_eq_right (by simpa using hocc)] at hrun
       split at hrun
       · -- `pi`
-        rename_i a b bm
+        rename_i a b
         by_cases ha : a.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = true
         · rw [ite_eq_left ha] at hrun
           simp [throw, throwThe, MonadExceptOf.throw] at hrun

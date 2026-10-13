@@ -16,7 +16,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 
 universe w
 
@@ -29,9 +29,9 @@ converse — argument `n`'s reading inhabits the
 tower's `n`-th open domain, read at the chain of the arguments outside
 it. -/
 theorem teleFitPA_to_chain :
-    ∀ (k : Nat) {T : AnnotTerm} {Γ : List AnnotTerm} {R : AnnotTerm},
-      PiTeleAV k T Γ R → ∀ {ws : List AnnotTerm} {ρ : Nat → V}
-        {rest : AnnotTerm},
+    ∀ (k : Nat) {T : Term} {Γ : List Term} {R : Term},
+      PiTeleAV k T Γ R → ∀ {ws : List Term} {ρ : Nat → V}
+        {rest : Term},
       ws.length = k → TeleFitPA V ρ T ws rest →
       ∀ n, n < k →
         interp V ρ (ws.getD n default)
@@ -42,7 +42,7 @@ theorem teleFitPA_to_chain :
   | zero => intro T Γ R h ws ρ rest hlen hfit n hn; exact nomatch hn
   | succ k ihk =>
     intro T Γ R h ws ρ rest hlen hfit n hn
-    obtain ⟨u, v, A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
+    obtain ⟨A, B, Γ', rfl, rfl, htail⟩ := h.succ_inv
     match ws, hlen with
     | w :: ws', hlen =>
     have hlen' : ws'.length = k := by simpa using hlen

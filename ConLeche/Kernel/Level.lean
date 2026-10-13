@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Kernel.Expr
+public import ConLeche.Kernel.PropWhen
 
 @[expose] public section
 
@@ -198,11 +199,7 @@ def zeronessOf : Level → PropWhen
 /-- Push a level-parameter substitution through a zero-ness datum
 (task #161): each parameter becomes its replacement's datum,
 intersected — `Z(subst ks vs l)` is exactly
-`substPW ks vs (zeronessOf l)` (`Verify.PropWhen.zeronessOf_subst`).
-Canonical on output (`PropWhen.bindZ`, task #194): an unlisted
-parameter reproduces `ifAllZero [n]`, so instantiating a declaration
-at its own parameters is the identity here too (`substPW_self`) —
-unconditionally, because every datum is canonical by construction. -/
+`substPW ks vs (zeronessOf l)` (`Verify.PropWhen.zeronessOf_subst`). -/
 def substPW (ks : List Name) (vs : List Level) (pw : PropWhen) :
     PropWhen :=
   pw.bindZ fun n => zeronessOf (subst.go ks vs n)
@@ -233,12 +230,10 @@ def Expr.instantiateLevelParams (ks : List Name) (us : List Level) : Expr → Ex
   | .sort u => .sort (Level.subst ks us u)
   | .const n vs => .const n (vs.map (Level.subst ks us))
   | .app f a => .app (f.instantiateLevelParams ks us) (a.instantiateLevelParams ks us)
-  | .lam ty body m =>
+  | .lam ty body =>
     .lam (ty.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
-      ⟨Level.substPW ks us m.pw⟩
-  | .forallE ty body m =>
+  | .forallE ty body =>
     .forallE (ty.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
-      ⟨Level.substPW ks us m.pw⟩
   | .letE ty val body => .letE (ty.instantiateLevelParams ks us)
       (val.instantiateLevelParams ks us) (body.instantiateLevelParams ks us)
   | .lit l => .lit l
@@ -255,9 +250,8 @@ def Expr.allLevelParamsDefined (params : List Name) : Expr → Bool
   | .sort u => u.allParamsDefined params
   | .const _ us => us.all (Level.allParamsDefined params)
   | .app f a => f.allLevelParamsDefined params && a.allLevelParamsDefined params
-  | .lam t b m | .forallE t b m =>
+  | .lam t b | .forallE t b =>
     t.allLevelParamsDefined params && b.allLevelParamsDefined params
-      && m.pw.paramsDefined params
   | .letE t v b => t.allLevelParamsDefined params && v.allLevelParamsDefined params
       && b.allLevelParamsDefined params
   | .lit _ => true
@@ -310,14 +304,14 @@ def Expr.allLevelParamsDefinedGo (params : List Name) (memo : Std.HashMap Expr B
           let (b₁, memo) := allLevelParamsDefinedGo params memo f
           let (b₂, memo) := allLevelParamsDefinedGo params memo a
           (b₁ && b₂, memo)
-        | .lam t b m =>
+        | .lam t b =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo b
-          (b₁ && b₂ && m.pw.paramsDefined params, memo)
-        | .forallE t b m =>
+          (b₁ && b₂, memo)
+        | .forallE t b =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo b
-          (b₁ && b₂ && m.pw.paramsDefined params, memo)
+          (b₁ && b₂, memo)
         | .letE t v b =>
           let (b₁, memo) := allLevelParamsDefinedGo params memo t
           let (b₂, memo) := allLevelParamsDefinedGo params memo v
@@ -357,7 +351,7 @@ theorem Expr.allLevelParamsDefinedGo_spec {params : List Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [allLevelParamsDefined, h1, h3], ?_⟩
       exact h4.insert (by simp [allLevelParamsDefined, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [allLevelParamsDefinedGo]
     split
@@ -367,7 +361,7 @@ theorem Expr.allLevelParamsDefinedGo_spec {params : List Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [allLevelParamsDefined, h1, h3], ?_⟩
       exact h4.insert (by simp [allLevelParamsDefined, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [allLevelParamsDefinedGo]
     split

@@ -8,7 +8,7 @@ public section
 # The inductive cons, P tier: the mechanical rows at an ind-kind head (task #161)
 
 `declStep_preserves_of_basis_cons` (`Model/BasisStep.lean`) collapses seven
-of `declStep_preserves_of_cons`'s eleven premises at a *basis* cons.  An
+of `declStep_preserves_of_cons`'s premises at a *basis* cons.  An
 *inductive-block* cons is the other side of the same coin: its name is
 never reserved, so the two rows a basis cons could route by *name*
 (`caps_ok` through `capsOk_cons_basis`) are unavailable, while every
@@ -32,26 +32,18 @@ and `reservedBasisNames` is the sixteen pinned names — `Nat`,
 * `eq_law` goes through `eqLaw_cons_fresh` for the same reason: no
   block member is named `Eq`, so the pinned spine's law is untouched.
 
-The projection conses (the projection functions' `recInfo`s and the
-`projInfo` templates) carry no reserved check of their own, but their names are
-`projFnName T i`, and `projFnName_ne_reserved` supplies the same four
-disequalities.
-
 What is left is exactly the tier's bill: `caps_ok` and `rec_rules`,
 plus the tower and its type's reading.  Both remaining rows are taken
 here in `natHeads_cons_offNat`'s shape — quantified over any carrier
 whose base and `acval` are the extension's — so a caller never spells
 `declStep_preserves_of_cons`'s anonymous-constructor carrier.
 
-**The `caps_ok` gap is not only at the family's own conses.**
+**The `caps_ok` gap is at the family's own conses.**
 `capsOk_cons_fresh` descends the stored-family predicate past a cons
-of a kind no family mentions, and `EtaFamilyStored` mentions three:
-`indInfo` (the former), `ctorInfo` (the capability constructor) and
-**`recInfo`** (a projection slot).  So the *projection-function*
-install — a `recInfo` cons — can complete a family that was not
-previously stored, which is why the η law's establishment sits at the
-projection install.  `declStep_preserves_of_ind_cons` therefore keeps
-`caps_ok` open at every ind-tier cons and never guesses a route.
+of a kind no family mentions, and `EtaFamilyStored` mentions two:
+`indInfo` (the former) and `ctorInfo` (the capability constructor).
+`declStep_preserves_of_ind_cons` therefore keeps `caps_ok` open at
+every ind-tier cons and never guesses a route.
 -/
 
 namespace ConLeche.Model
@@ -59,7 +51,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint)
 
@@ -98,35 +90,31 @@ the *name* (non-reserved) and the *kind* (never a value kind, never an
 axiom); `caps_ok` and `rec_rules` stay open, because those are the two
 rows an inductive block genuinely establishes. -/
 theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    -- the name: `blockShape?`'s guard at a member,
-    -- `projFnName_ne_reserved` at a projection slot
+    -- the name: `blockShape?`'s guard at a member
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     -- the kind: an inductive block installs no value kind and no axiom
     (hnotdefn : ∀ cv v hint, c₀ ≠ .defnInfo cv v hint)
     (hnotax : ∀ cv, c₀ ≠ .axiomInfo cv)
     -- the head's own obligations (task #161 S7)
     (hh : ConsHead env c₀ A)
-    -- the annotated tower
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
+    -- the leaf's tower
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     -- the type's reading, its grading, and the tower's membership
     (htyReads : ∀ ψ : Name → Nat,
-      ∃ ta : AnnotTerm,
-        denoteMeta (acvalWith mp.base2.acval c₀.name A)
+      ∃ ta : Term,
+        denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
-    (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta (acvalWith mp.base2.acval c₀.name A)
+    (htyOk : ∀ (ψ : Name → Nat) (ta : Term),
+      denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
-    (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta (acvalWith mp.base2.acval c₀.name A)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
+    (hmemNew : ∀ (ψ : Name → Nat) (ta : Term),
+      denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     -- the tier's two genuine rows
@@ -137,12 +125,15 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
       ∀ φ : Name → Nat, RecRules m₂ φ)
     -- the head is not a projection table (those are discharged by
     -- their own step)
-    (hntc : ∀ entry, c₀ ≠ .projInfo entry) :
+    (hntc : ∀ entry, c₀ ≠ .projInfo entry)
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh
-    hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    hAparams hAok htyReads htyOk hmemNew
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · -- `hvalReads`: an inductive cons is never a definition
     intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
@@ -174,38 +165,38 @@ vacuously: the cons is not a recursor at all, and `EnvModel.rec_ctors`
 carries the rest (ENDGAME D §3a).  `caps_ok` remains the member's one
 open row — the block's former *is* a family head. -/
 theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     (hknd : (∃ cv caps, c₀ = .indInfo cv caps) ∨
       ∃ cv nP nF, c₀ = .ctorInfo cv nP nF)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
-      ∃ ta : AnnotTerm,
-        denoteMeta (acvalWith mp.base2.acval c₀.name A)
+      ∃ ta : Term,
+        denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
-    (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta (acvalWith mp.base2.acval c₀.name A)
+    (htyOk : ∀ (ψ : Name → Nat) (ta : Term),
+      denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
-    (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta (acvalWith mp.base2.acval c₀.name A)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
+    (hmemNew : ∀ (ψ : Name → Nat) (ta : Term),
+      denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
-      m₂.acval = acvalWith mp.base2.acval c₀.name A → CapsOk m₂) :
+      m₂.acval = acvalWith mp.base2.acval c₀.name A → CapsOk m₂)
+    (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
+      ⟨c₀ :: env.consts⟩ c₀ := by
+      intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_ind_cons mp hfresh hnres ?_ ?_ hh
-    hAclosed hAparams hAok hAvalid htyReads htyOk hmemNew
-    hcaps ?_ ?_
+    hAparams hAok htyReads htyOk hmemNew
+    hcaps ?_ ?_ (hind := hind)
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ _ _ h <;> exact nomatch h
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
@@ -216,32 +207,29 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ h <;> exact nomatch h
 
-/-- **The P step at a *recursor* cons** — the block's recursors and the
-projection functions, both stored as `recInfo`.  Only `caps_ok` and
-`rec_rules` stay open; both are the install's to establish. -/
+/-- **The P step at a *recursor* cons** — the block's recursors, stored
+as `recInfo`.  Only `caps_ok` and `rec_rules` stay open; both are the
+install's to establish. -/
 theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     (hknd : ∃ cv mI rP rules, c₀ = .recInfo cv mI rP rules)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
-    (hAvalid : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      AnnotValid V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
-      ∃ ta : AnnotTerm,
-        denoteMeta (acvalWith mp.base2.acval c₀.name A)
+      ∃ ta : Term,
+        denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
-    (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta (acvalWith mp.base2.acval c₀.name A)
+    (htyOk : ∀ (ψ : Name → Nat) (ta : Term),
+      denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
-      ∀ ρ : Nat → V, WellDenotedV V ρ ta)
-    (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
-      denoteMeta (acvalWith mp.base2.acval c₀.name A)
+      ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
+    (hmemNew : ∀ (ψ : Name → Nat) (ta : Term),
+      denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
@@ -254,7 +242,7 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
   obtain ⟨cv, mI, rP, rules, rfl⟩ := hknd
   exact declStep_preserves_of_ind_cons mp hfresh hnres
     (fun _ _ _ h => nomatch h)
-    (fun _ h => nomatch h) hh hAclosed hAparams hAok
-    hAvalid htyReads htyOk hmemNew hcaps hrec (fun _ h => nomatch h)
+    (fun _ h => nomatch h) hh hAparams hAok
+    htyReads htyOk hmemNew hcaps hrec (fun _ h => nomatch h)
 
 end ConLeche.Model

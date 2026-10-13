@@ -120,8 +120,8 @@ namespace ConLeche
 
 /-- A spine over a head that is no `∀` is no `∀`. -/
 theorem Expr.mkAppN_ne_forallE : ∀ (args : List Expr) {f : Expr},
-    (∀ a b bm, f ≠ .forallE a b bm) → ∀ a b bm, Expr.mkAppN f args ≠ .forallE a b bm
+    (∀ a b, f ≠ .forallE a b) → ∀ a b, Expr.mkAppN f args ≠ .forallE a b
   | [], _, hf => hf
-  | x :: xs, f, _ => Expr.mkAppN_ne_forallE xs (f := .app f x) (fun _ _ _ h => nomatch h)
+  | x :: xs, f, _ => Expr.mkAppN_ne_forallE xs (f := .app f x) (fun _ _ h => nomatch h)
 
 end ConLeche

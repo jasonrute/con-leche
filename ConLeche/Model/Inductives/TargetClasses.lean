@@ -50,7 +50,7 @@ open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts BlockShape
   TargetMajor)
 
@@ -63,7 +63,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 section Data
 
 variable (d : BlockData V) (Dc : Nat → LfpDatum V) (mc : Nat → Nat) (cvc : Nat → ConstantVal)
-  (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env) (p : BlockShape)
+  (acval : Name → (Name → Nat) → Term) (envC : Env) (p : BlockShape)
   (out : List (ConstantVal × TargetMajor × List Expr)) (ψ : Name → Nat) (ρ : Nat → V)
 
 /-- Class `c`'s recorded clause: the block's own at a member major, the
@@ -136,7 +136,7 @@ end Data
 section Cases
 
 variable {d : BlockData V} {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
-  {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env} {p : BlockShape}
+  {acval : Name → (Name → Nat) → Term} {envC : Env} {p : BlockShape}
   {out : List (ConstantVal × TargetMajor × List Expr)} {ψ : Name → Nat} {ρ : Nat → V}
   {c : Nat}
 
@@ -192,9 +192,8 @@ end Cases
 
 /-- The stored rule at `(c, j)`, below the constructor count. -/
 theorem tgtRule_exists {envC : Env} {F : Nat} {pp : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
-    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR) {c : Nat} (hc : c < rs.length)
+    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs) {c : Nat} (hc : c < rs.length)
     {j : Nat} (hj : j < blockRecNCt rs c) :
     ∃ cA rhs, rs[c].2.2.2[j]? = some cA ∧ rs[c].2.1[j]? = some rhs := by
   have hr : rs[c]? = some rs[c] := List.getElem?_eq_getElem hc

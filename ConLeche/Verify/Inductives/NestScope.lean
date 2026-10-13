@@ -38,11 +38,11 @@ theorem WScoped.of_fvarsBelow : ∀ {e : Expr} {d d' : Nat}, WScoped d e →
     intro d d' hw hb
     simp only [WScoped, Expr.fvarsBelow] at hw hb ⊢
     exact ⟨ihf hw.1 hb.1, iha hw.2 hb.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro d d' hw hb
     simp only [WScoped, Expr.fvarsBelow] at hw hb ⊢
     exact ⟨iht hw.1 hb.1, ihb hw.2 hb.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro d d' hw hb
     simp only [WScoped, Expr.fvarsBelow] at hw hb ⊢
     exact ⟨iht hw.1 hb.1, ihb hw.2 hb.2⟩
@@ -58,49 +58,6 @@ theorem WScoped.of_fvarsBelow : ∀ {e : Expr} {d d' : Nat}, WScoped d e →
   | sort _ => intros; simp [WScoped]
   | const _ _ => intros; simp [WScoped]
   | lit _ => intros; simp [WScoped]
-
-/-- Replacing constants of a closed term by well-scoped terms gives a
-well-scoped term. -/
-theorem WScoped.replaceConsts_closed {f : Name → List Level → Option Expr} {d : Nat}
-    (hf : ∀ c us e, f c us = some e → WScoped d e) :
-    ∀ (e : Expr), e.hasFvar = false → WScoped d (e.replaceConsts f) := by
-  intro e
-  induction e with
-  | fvar idx ty _ => intro h; simp [Expr.hasFvar] at h
-  | const c us =>
-    intro _
-    simp only [Expr.replaceConsts]
-    cases hc : f c us with
-    | none => simp [WScoped]
-    | some e => exact hf c us e hc
-  | app f a ihf iha =>
-    intro h
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, WScoped]
-    exact ⟨ihf h.1, iha h.2⟩
-  | lam ty b m iht ihb =>
-    intro h
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, WScoped]
-    exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b m iht ihb =>
-    intro h
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, WScoped]
-    exact ⟨iht h.1, ihb h.2⟩
-  | letE ty v b iht ihv ihb =>
-    intro h
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, WScoped]
-    exact ⟨iht h.1.1, ihv h.1.2, ihb h.2⟩
-  | proj s i e ih =>
-    intro h
-    simp only [Expr.hasFvar] at h
-    simp only [Expr.replaceConsts, WScoped]
-    exact ih h
-  | bvar _ => intro _; simp [Expr.replaceConsts, WScoped]
-  | sort _ => intro _; simp [Expr.replaceConsts, WScoped]
-  | lit _ => intro _; simp [Expr.replaceConsts, WScoped]
 
 /-- A context whose stored constants are closed. -/
 @[expose] def NestCtxOk (ctx : NestCtx) : Prop :=
@@ -194,114 +151,7 @@ theorem nestHoles_ok {ctx : NestCtx} (hc : NestCtxOk ctx)
       (WScoped.of_not_hasFvar (hc _ _ hfind)) hty)⟩
   · exact nomatch hf
 
-/-- A member constructor's root crest is well scoped at the walk's depth. -/
-theorem rootCrest_wscoped {ctx : NestCtx} {holes : List Expr}
-    (hholes : ∀ x ∈ holes, WScoped (ctx.hiAt 0) x ∧ ∃ i ty, x = .fvar i ty)
-    (hlen : ctx.names.length ≤ holes.length)
-    (hpar : ∀ x ∈ ctx.params, WScoped (ctx.hiAt 0) x) {cv : ConstantVal} {crest : Expr}
-    (hcl : cv.type.hasFvar = false)
-    (h : nestCrest ctx.names (ctx.lps.map .param) ctx.params holes
-      (cv.type.instantiateLevelParams cv.levelParams (ctx.lps.map .param)) = some crest) :
-    WScoped (ctx.hiAt 0) crest :=
-  WScoped_nestCrest (by rw [hasFvar_instantiateLevelParams]; exact hcl) hlen
-    (fun x hx => (List.mem_append.mp hx).elim (hpar x) (fun h => (hholes x h).1)) h
-
 /-! ## The abstracted, instantiated constructor type: leaves and bounds -/
-
-/-- The leaves of a closed term with constants replaced are the
-replacements' leaves. -/
-theorem fvarLeaves_replaceConsts_closed {f : Name → List Level → Option Expr} :
-    ∀ (e : Expr), e.hasFvar = false → ∀ l ∈ (e.replaceConsts f).fvarLeaves,
-      ∃ c us r, f c us = some r ∧ l ∈ r.fvarLeaves := by
-  intro e
-  induction e with
-  | bvar i => intro _ l hl; simp [Expr.replaceConsts, fvarLeaves] at hl
-  | fvar idx ty _ => intro h; simp [Expr.hasFvar] at h
-  | sort u => intro _ l hl; simp [Expr.replaceConsts, fvarLeaves] at hl
-  | lit v => intro _ l hl; simp [Expr.replaceConsts, fvarLeaves] at hl
-  | const c us =>
-    intro _ l hl
-    simp only [Expr.replaceConsts] at hl
-    cases hc : f c us with
-    | none => rw [hc] at hl; simp [fvarLeaves] at hl
-    | some r => rw [hc] at hl; exact ⟨c, us, r, hc, hl⟩
-  | app a b iha ihb =>
-    intro h l hl
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, fvarLeaves, List.mem_append] at hl
-    rcases hl with hl | hl
-    · exact iha h.1 l hl
-    · exact ihb h.2 l hl
-  | lam ty b m iht ihb =>
-    intro h l hl
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, fvarLeaves, List.mem_append] at hl
-    rcases hl with hl | hl
-    · exact iht h.1 l hl
-    · exact ihb h.2 l hl
-  | forallE ty b m iht ihb =>
-    intro h l hl
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, fvarLeaves, List.mem_append] at hl
-    rcases hl with hl | hl
-    · exact iht h.1 l hl
-    · exact ihb h.2 l hl
-  | letE ty v b iht ihv ihb =>
-    intro h l hl
-    simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
-    simp only [Expr.replaceConsts, fvarLeaves, List.mem_append] at hl
-    rcases hl with (hl | hl) | hl
-    · exact iht h.1.1 l hl
-    · exact ihv h.1.2 l hl
-    · exact ihb h.2 l hl
-  | proj s i e ihe =>
-    intro h l hl
-    simp only [Expr.hasFvar] at h
-    simp only [Expr.replaceConsts, fvarLeaves] at hl
-    exact ihe h l hl
-
-/-- Replacing constants by closed terms keeps the loose-bvar bound. -/
-theorem looseBVarsBounded_replaceConsts {f : Name → List Level → Option Expr}
-    (hf : ∀ c us r, f c us = some r → r.looseBVarsBounded 0 = true) :
-    ∀ (e : Expr) (k : Nat), e.looseBVarsBounded k = true →
-      (e.replaceConsts f).looseBVarsBounded k = true := by
-  intro e
-  induction e with
-  | bvar i => intro k h; simpa [Expr.replaceConsts] using h
-  | fvar idx ty _ => intro k _; simp [Expr.replaceConsts, looseBVarsBounded]
-  | sort u => intro k _; simp [Expr.replaceConsts, looseBVarsBounded]
-  | lit v => intro k _; simp [Expr.replaceConsts, looseBVarsBounded]
-  | const c us =>
-    intro k _
-    simp only [Expr.replaceConsts]
-    cases hc : f c us with
-    | none => simp [looseBVarsBounded]
-    | some r => exact looseBVarsBounded_mono (Nat.zero_le k) (hf c us r hc)
-  | app a b iha ihb =>
-    intro k h
-    simp only [looseBVarsBounded, Bool.and_eq_true] at h
-    simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
-    exact ⟨iha k h.1, ihb k h.2⟩
-  | lam ty b m iht ihb =>
-    intro k h
-    simp only [looseBVarsBounded, Bool.and_eq_true] at h
-    simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
-    exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE ty b m iht ihb =>
-    intro k h
-    simp only [looseBVarsBounded, Bool.and_eq_true] at h
-    simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
-    exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | letE ty v b iht ihv ihb =>
-    intro k h
-    simp only [looseBVarsBounded, Bool.and_eq_true] at h
-    simp only [Expr.replaceConsts, looseBVarsBounded, Bool.and_eq_true]
-    exact ⟨⟨iht k h.1.1, ihv k h.1.2⟩, ihb (k + 1) h.2⟩
-  | proj s i e ihe =>
-    intro k h
-    simp only [looseBVarsBounded] at h
-    simp only [Expr.replaceConsts, looseBVarsBounded]
-    exact ihe k h
 
 /-- A Π-telescope instantiated at bvar-closed arguments stays bvar-closed. -/
 theorem looseBVarsBounded_instPisWith :
@@ -313,7 +163,7 @@ theorem looseBVarsBounded_instPisWith :
     subst h; exact he
   | a :: as, e, r, ha, he, h => by
     match e, he, h with
-    | .forallE t b m, he, h =>
+    | .forallE t b, he, h =>
       have h' : instPisWith as (b.instantiate1 a) = some r := h
       simp only [looseBVarsBounded, Bool.and_eq_true] at he
       exact looseBVarsBounded_instPisWith (fun x hx => ha x (List.mem_cons_of_mem _ hx))
@@ -449,12 +299,12 @@ theorem fvarLeaves_replaceApps_replaceFVars_whole {f : Name → List Level → O
     · simp only [Expr.fvarsBelow] at hb
       simp only [Expr.replaceFVars, fvarLeaves, List.mem_append] at hl
       exact hl.elim (iha hb.1 l) (ihx hb.2 l)
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro hb l hl
     simp only [Expr.fvarsBelow] at hb
     simp only [Expr.replaceApps, Expr.replaceFVars, fvarLeaves, List.mem_append] at hl
     exact hl.elim (iht hb.1 l) (ihb hb.2 l)
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro hb l hl
     simp only [Expr.fvarsBelow] at hb
     simp only [Expr.replaceApps, Expr.replaceFVars, fvarLeaves, List.mem_append] at hl
@@ -530,12 +380,12 @@ theorem looseBVarsBounded_replaceFVars {g : Nat → Option Expr}
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceFVars, looseBVarsBounded, Bool.and_eq_true]
     exact ⟨iha k h.1, ihb k h.2⟩
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro k h
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceFVars, looseBVarsBounded, Bool.and_eq_true]
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro k h
     simp only [looseBVarsBounded, Bool.and_eq_true] at h
     simp only [Expr.replaceFVars, looseBVarsBounded, Bool.and_eq_true]

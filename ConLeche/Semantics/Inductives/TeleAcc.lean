@@ -29,6 +29,7 @@ construction (`teleBound_mem`, the guards).
 -/
 
 namespace ConLeche.Semantics
+open ConLeche.Term (Term)
 open ConLeche.SetModel
 
 open SetTheory
@@ -44,11 +45,11 @@ variable {V : Type uv} [SetTheory V]
 noncomputable def guardU (w : Nat) (S : V) : V :=
   open Classical in if SmallAt w S then S else empty
 
-theorem guardU_mem {w : Nat} (hw : w ≠ 0) (S : V) : guardU w S ∈ˢ (univ w : V) := by
+theorem guardU_mem {w : Nat} (hw : w ≠ 0) (S : V) : guardU w S ∈ˢ (tg w : V) := by
   unfold guardU
   split
   · rename_i h; exact h hw
-  · exact empty_mem_univ w
+  · exact empty_mem_tg w
 
 theorem guardU_eq {w : Nat} {S : V} (h : SmallAt w S) : guardU w S = S := by
   unfold guardU
@@ -58,11 +59,11 @@ theorem guardU_eq {w : Nat} {S : V} (h : SmallAt w S) : guardU w S = S := by
 noncomputable def tagU (X Y : V) : V :=
   binUnion (image (kpair empty) X) (image (kpair unitSet) Y)
 
-theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (univ w : V))
-    (hY : Y ∈ˢ (univ w : V)) : tagU X Y ∈ˢ (univ w : V) := by
-  have hU := univ_isTGUniverse (V := V) hw
-  have he : (empty : V) ∈ˢ (univ w : V) := empty_mem_univ w
-  have hu : (unitSet : V) ∈ˢ (univ w : V) := unitSet_mem_univ w
+theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (tg w : V))
+    (hY : Y ∈ˢ (tg w : V)) : tagU X Y ∈ˢ (tg w : V) := by
+  have hU := tg_isTGUniverse (V := V) hw
+  have he : (empty : V) ∈ˢ (tg w : V) := empty_mem_tg w
+  have hu : (unitSet : V) ∈ˢ (tg w : V) := unitSet_mem_tg w
   exact hU.binUnion_mem he
     (hU.image_mem hX fun x hx => hU.kpair_mem he he (hU.transitive hX hx))
     (hU.image_mem hY fun y hy => hU.kpair_mem he hu (hU.transitive hY hy))
@@ -78,7 +79,7 @@ theorem kpair_unit_mem_tagU {X Y b : V} (hb : b ∈ˢ Y) : kpair unitSet b ∈ˢ
 /-- **The telescope's bound** at field `l` (see the module docstring):
 `ord l` tells an ordinary field, `Af l` is field `l`'s own bound. -/
 noncomputable def teleBound (w : Nat) (ord : Nat → Bool) (Af : Nat → (Nat → V) → V) :
-    Nat → List AnnotTerm → (Nat → V) → V
+    Nat → List Term → (Nat → V) → V
   | _, [], _ => empty
   | l, F :: Fs, τ => tagU (guardU w (Af l τ))
       (if ord l = true then
@@ -86,13 +87,13 @@ noncomputable def teleBound (w : Nat) (ord : Nat → Bool) (Af : Nat → (Nat �
       else teleBound w ord Af (l + 1) Fs (cons empty τ))
 
 theorem teleBound_mem {w : Nat} (hw : w ≠ 0) (ord : Nat → Bool) (Af : Nat → (Nat → V) → V) :
-    ∀ (Fs : List AnnotTerm) (l : Nat) (τ : Nat → V), teleBound w ord Af l Fs τ ∈ˢ (univ w : V)
-  | [], _, _ => empty_mem_univ w
+    ∀ (Fs : List Term) (l : Nat) (τ : Nat → V), teleBound w ord Af l Fs τ ∈ˢ (tg w : V)
+  | [], _, _ => empty_mem_tg w
   | F :: Fs, l, τ => by
     unfold teleBound
     refine tagU_mem hw (guardU_mem hw _) ?_
     split
-    · exact (univ_isTGUniverse hw).famUnion_mem (guardU_mem hw _) fun a _ =>
+    · exact (tg_isTGUniverse hw).famUnion_mem (guardU_mem hw _) fun a _ =>
         teleBound_mem hw ord Af Fs (l + 1) (cons a τ)
     · exact teleBound_mem hw ord Af Fs (l + 1) (cons empty τ)
 
@@ -131,13 +132,13 @@ theorem TAgr.cons_nonord {k : Nat} {ord : Nat → Bool} {l : Nat} {τ τ' : Nat 
 field's own bound does and every ordinary field's reading does. -/
 theorem teleBound_agr {w k : Nat} {ord : Nat → Bool} {Af : Nat → (Nat → V) → V}
     (hAf : ∀ l τ τ', TAgr k ord l τ τ' → Af l τ = Af l τ') :
-    ∀ (Fs : List AnnotTerm) (l : Nat),
-      (∀ (i : Nat) (F : AnnotTerm), Fs[i]? = some F → ord (l + i) = true →
+    ∀ (Fs : List Term) (l : Nat),
+      (∀ (i : Nat) (F : Term), Fs[i]? = some F → ord (l + i) = true →
         ∀ τ τ', TAgr k ord (l + i) τ τ' → interp V τ F = interp V τ' F) →
       ∀ τ τ', TAgr k ord l τ τ' → teleBound w ord Af l Fs τ = teleBound w ord Af l Fs τ'
   | [], _, _, _, _, _ => rfl
   | F :: Fs, l, hF, τ, τ', h => by
-    have hrest : ∀ (i : Nat) (F' : AnnotTerm), Fs[i]? = some F' → ord (l + 1 + i) = true →
+    have hrest : ∀ (i : Nat) (F' : Term), Fs[i]? = some F' → ord (l + 1 + i) = true →
         ∀ σ σ', TAgr k ord (l + 1 + i) σ σ' → interp V σ F' = interp V σ' F' := by
       intro i F' hi ho σ σ' hs
       have := hF (i + 1) F' (by simpa using hi)
@@ -200,13 +201,13 @@ theorem TAgrM.cons_nonord {k : Nat} {M0 : Nat → Prop} {ord : Nat → Bool} {l 
 theorem teleBound_agrM {w k : Nat} {M0 : Nat → Prop} {ord : Nat → Bool}
     {Af : Nat → (Nat → V) → V}
     (hAf : ∀ l τ τ', TAgrM k M0 ord l τ τ' → Af l τ = Af l τ') :
-    ∀ (Fs : List AnnotTerm) (l : Nat),
-      (∀ (i : Nat) (F : AnnotTerm), Fs[i]? = some F → ord (l + i) = true →
+    ∀ (Fs : List Term) (l : Nat),
+      (∀ (i : Nat) (F : Term), Fs[i]? = some F → ord (l + i) = true →
         ∀ τ τ', TAgrM k M0 ord (l + i) τ τ' → interp V τ F = interp V τ' F) →
       ∀ τ τ', TAgrM k M0 ord l τ τ' → teleBound w ord Af l Fs τ = teleBound w ord Af l Fs τ'
   | [], _, _, _, _, _ => rfl
   | F :: Fs, l, hF, τ, τ', h => by
-    have hrest : ∀ (i : Nat) (F' : AnnotTerm), Fs[i]? = some F' → ord (l + 1 + i) = true →
+    have hrest : ∀ (i : Nat) (F' : Term), Fs[i]? = some F' → ord (l + 1 + i) = true →
         ∀ σ σ', TAgrM k M0 ord (l + 1 + i) σ σ' → interp V σ F' = interp V σ' F' := by
       intro i F' hi ho σ σ' hs
       have := hF (i + 1) F' (by simpa using hi)
@@ -230,7 +231,7 @@ theorem teleBound_agrM {w k : Nat} {M0 : Nat → Prop} {ord : Nat → Bool}
 /-- **Every field accessible under the earlier ones**, with its own bound
 `Af l` of the level, its reading a set of the level. -/
 def TeleAccP (w : Nat) (Af : Nat → (Nat → V) → V) :
-    Nat → (Nat → Nat → Prop) → FrameRel V → List AnnotTerm → Prop
+    Nat → (Nat → Nat → Prop) → FrameRel V → List Term → Prop
   | _, _, _, [] => True
   | l, Q, R, F :: Fs => AccOn w Q R (Af l) F ∧ SizeOn w R (Af l) ∧
       (∀ ρ ρ₀, R ρ ρ₀ → SmallAt w (interp V ρ F)) ∧
@@ -243,8 +244,8 @@ related to itself (the top relation relates any two hole frames). -/
 theorem teleBound_support {w k : Nat} {ord : Nat → Bool}
     {Af : Nat → (Nat → V) → V}
     (hAf : ∀ l τ τ', TAgr k ord l τ τ' → Af l τ = Af l τ') :
-    ∀ (Fs : List AnnotTerm) (l : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V),
-      (∀ (i : Nat) (F : AnnotTerm), Fs[i]? = some F → ord (l + i) = true →
+    ∀ (Fs : List Term) (l : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V),
+      (∀ (i : Nat) (F : Term), Fs[i]? = some F → ord (l + i) = true →
         ∀ τ τ', TAgr k ord (l + i) τ τ' → interp V τ F = interp V τ' F) →
       TeleAccP w Af l Q R Fs → ∀ τ, R τ τ → ∀ fs, SpineFit τ Fs fs →
       ∃ (B : V) (g : V → Occ V), B ⊆ˢ teleBound w ord Af l Fs τ ∧
@@ -262,11 +263,11 @@ theorem teleBound_support {w k : Nat} {ord : Nat → Bool}
     | nil => exact hfit.elim
     | cons a fs =>
     obtain ⟨ha, hfit'⟩ := hfit
-    have haw : SmallAt w a := fun hw => (univ_isTGUniverse hw).transitive (hdom τ τ hRτ hw) ha
+    have haw : SmallAt w a := fun hw => (tg_isTGUniverse hw).transitive (hdom τ τ hRτ hw) ha
     -- the field's own support
     obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc τ τ hRτ a haw ha
     -- the later fields' support, under the field
-    have hF' : ∀ (i : Nat) (F' : AnnotTerm), Fs[i]? = some F' → ord (l + 1 + i) = true →
+    have hF' : ∀ (i : Nat) (F' : Term), Fs[i]? = some F' → ord (l + 1 + i) = true →
         ∀ σ σ', TAgr k ord (l + 1 + i) σ σ' → interp V σ F' = interp V σ' F' := by
       intro i F' hi ho σ σ' hs
       have := hF (i + 1) F' (by simpa using hi)
@@ -338,14 +339,14 @@ namespace FrameRel
 
 /-- **Under a field telescope**: each field's value in its domain at both
 frames. -/
-def underBothTele : FrameRel V → List AnnotTerm → FrameRel V
+def underBothTele : FrameRel V → List Term → FrameRel V
   | R, [] => R
   | R, F :: Fs => underBothTele (R.underBoth F) Fs
 
 /-- The frames a spine fitting at both frames reaches are related along
 the telescope. -/
 theorem underBothTele_consList :
-    ∀ {R : FrameRel V} {ρ ρ' : Nat → V} (Fs : List AnnotTerm) (as : List V),
+    ∀ {R : FrameRel V} {ρ ρ' : Nat → V} (Fs : List Term) (as : List V),
       R ρ ρ' → SpineFit ρ Fs as → SpineFit ρ' Fs as →
       R.underBothTele Fs (consList as ρ) (consList as ρ')
   | _, _, _, [], [], hR, _, _ => hR
@@ -358,7 +359,7 @@ end FrameRel
 
 /-- **Domains reading alike give the same relation under them** (on a
 relation whose frames satisfy the context). -/
-theorem underBoth_eq_of_eqOn {R : FrameRel V} {Δ : List AnnotTerm} {A B : AnnotTerm}
+theorem underBoth_eq_of_eqOn {R : FrameRel V} {Δ : List Term} {A B : Term}
     (h : ∀ ρ, Sat V Δ ρ → interp V ρ A = interp V ρ B)
     (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δ ρ ∧ Sat V Δ ρ') : R.underBoth A = R.underBoth B := by
   funext σ σ'
@@ -371,7 +372,7 @@ theorem underBoth_eq_of_eqOn {R : FrameRel V} {Δ : List AnnotTerm} {A B : Annot
       (h ρ' (hdom ρ ρ' hR).2).symm ▸ hx'⟩
 
 /-- Under a domain, the frames satisfy the extended context. -/
-theorem underBoth_dom {R : FrameRel V} {Δ : List AnnotTerm} {A : AnnotTerm}
+theorem underBoth_dom {R : FrameRel V} {Δ : List Term} {A : Term}
     (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δ ρ ∧ Sat V Δ ρ') :
     ∀ σ σ', R.underBoth A σ σ' → Sat V (A :: Δ) σ ∧ Sat V (A :: Δ) σ' := by
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx, hx'⟩

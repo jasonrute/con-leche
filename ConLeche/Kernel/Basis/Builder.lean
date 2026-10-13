@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Kernel.Basis.Names
+public import ConLeche.Kernel.Level
 
 @[expose] public section
 
@@ -12,28 +13,27 @@ the compiler-trust pins are all *raw* `ConstantInfo`s: exactly what an
 export carries for them, which is exactly the toolchain's own
 `Init.Prelude` declaration — binder names and infos
 are not part of an `Expr` (task #205; `piI`/`lmI` mark where the
-signature says `{…}`, for the reader), the `pw` datum at the parse
-placeholder `.never` — and every install-computed recursor-rule
-field at its parse placeholder (`ctorParams := 0`, `fire := .inert`).
+signature says `{…}`, for the reader) — with every install-computed
+recursor-rule field at its parse placeholder (`ctorParams := 0`,
+`fire := .plain`).
 
 Written out with `ConLeche.Expr`'s constructors and `Name.str` chains,
 one such declaration is a single unreadable line.  The helpers below —
 `pi`/`piI`/`piA`, `lm`/`lmI`, `bv`, `cnst`, `srt`, `ap2`…`ap4` — are a
-one-to-one, non-abbreviating renaming of those constructors at the
-*raw* binder annotations, so a reader can line the pin up against
+one-to-one, non-abbreviating renaming of those constructors, so a reader can line the pin up against
 `Init.Prelude` binder by binder and index by index.  They introduce no
 new notion: every one of them is a `def` whose body is a single `Expr`
 constructor application.
 
-The annotated forms are NOT written here: they are computed from these
-raw pins by the checker's own annotation pass at elaboration time
-(`#annotate_basis`, `ConLeche/Kernel/BasisGen.lean`).
+The stored forms are NOT written here: they are computed from these
+raw pins at elaboration time (`#stored_basis`,
+`ConLeche/Kernel/BasisGen.lean`).
 -/
 
 namespace ConLeche
 
-/-! The raw-pin builder: `Expr` constructors under the raw binder
-annotations.  Opened by the pin modules (`ConLeche/Kernel/Basis/*`,
+/-! The raw-pin builder: `Expr` constructors under readable names.
+Opened by the pin modules (`ConLeche/Kernel/Basis/*`,
 `ConLeche/Kernel/StdAxioms.lean`, `ConLeche/Kernel/TrustAxioms.lean`). -/
 
 namespace BasisDSL
@@ -85,25 +85,25 @@ where the signature says `{…}`.  All five build the same node shape. -/
 /-- `∀ (x : ty), body` — an explicit binder (`x` documents the
 `Init.Prelude` spelling). -/
 def pi (_x : String) (ty body : Expr) : Expr :=
-  .forallE ty body ⟨.never⟩
+  .forallE ty body
 
 /-- `∀ {x : ty}, body` — an implicit binder in `Init.Prelude` (the
 same node as `pi`; the braces are for the reader). -/
 def piI (_x : String) (ty body : Expr) : Expr :=
-  .forallE ty body ⟨.never⟩
+  .forallE ty body
 
 /-- `∀ (_ : ty), body` — an anonymous explicit binder (`ty → body`). -/
 def piA (ty body : Expr) : Expr :=
-  .forallE ty body ⟨.never⟩
+  .forallE ty body
 
 /-- `fun (x : ty) => body` — an explicit binder (name for the reader). -/
 def lm (_x : String) (ty body : Expr) : Expr :=
-  .lam ty body ⟨.never⟩
+  .lam ty body
 
 /-- `fun {x : ty} => body` — an implicit binder in `Init.Prelude` (the
 same node as `lm`). -/
 def lmI (_x : String) (ty body : Expr) : Expr :=
-  .lam ty body ⟨.never⟩
+  .lam ty body
 
 /-- Binary application. -/
 def ap2 (f a b : Expr) : Expr := .app (.app f a) b
@@ -115,10 +115,10 @@ def ap3 (f a b c : Expr) : Expr := .app (.app (.app f a) b) c
 def ap4 (f a b c d : Expr) : Expr := .app (.app (.app (.app f a) b) c) d
 
 /-- A raw iota rule: the install-computed fields (`ctorParams`,
-`fire`, `k`, `eta`, `paramsBlind`) at their parse placeholders, which
-is what the exporter emits and what `#annotate_basis` recomputes. -/
+`fire`, `k`, `eta`) at their parse placeholders, which
+is what the exporter emits and what `#stored_basis` recomputes. -/
 def rule (ctor : Name) (nfields : Nat) (rhs : Expr) : RecRule :=
-  ⟨ctor, nfields, 0, .inert, rhs, false, false, false⟩
+  ⟨ctor, nfields, 0, .plain, rhs, false, false⟩
 
 end BasisDSL
 

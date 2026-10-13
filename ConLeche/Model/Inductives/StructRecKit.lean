@@ -5,28 +5,15 @@ import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Model.Inductives.StructFrameKit
 public import ConLeche.Model.IndPinGrade
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Annot.BitRename
+import ConLeche.Verify.Denote.ErasedEq
 
 public section
 
 /-!
 # Block library: the constructor's stage and the recursor's frame kit
 
-The leaves' bit validity; the constructor's peel, frames and spine
-kit; the recursor's frame kit; λ-towers folding to their body; the
-recursor rule's kit.
--/
-
-/-!
-## The tower leaves' bit validity
-
-`AnnotValid` for the synthesized leaves.  The leaves contain **no `.pi` node** — λ, application, constants,
-bound variables and the uniform `.proj` spelling only — so their bit
-validity is pure hereditary plumbing: `AnnotValid`'s one genuine
-clause (the `pi` codomain component) never fires, and every lemma
-here is a walk with no semantic content beyond the λ-clause guards.
-`UnderTowerValid` is the single hereditary premise shape, shared by
-the leaves (each IS a `mkLamsC` tower).
+The constructor's peel, frames and spine kit; the recursor's frame kit;
+λ-towers folding to their body; the recursor rule's kit.
 -/
 
 namespace ConLeche.Model
@@ -40,144 +27,11 @@ universe uv
 
 variable {V : Type uv} [SetTheory V]
 
-/-- Hereditary bit validity of a field chain. -/
-@[expose] def FieldsValid (ρ : Nat → V) : List AnnotTerm → Prop
-  | [] => True
-  | F :: Fs => AnnotValid V ρ F ∧
-      ∀ a, a ∈ˢ interp V ρ F → FieldsValid (cons a ρ) Fs
-
-/-- The carrier body (graph regime) is bit-valid (no `pi` nodes;
-hereditary). -/
-theorem towerBodyAVPos_validV {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsValid ρ Fs →
-      AnnotValid V ρ (towerBodyAVPos w Fs)
-  | [], _, _ => trivial
-  | F :: Fs, ρ, hv => by
-    show AnnotValid V ρ (.app (.app (.const .psigma [w, w]) F)
-      (.lam (w + 1) F (towerBodyAVPos w Fs)))
-    rw [AnnotValid_app]
-    refine ⟨?_, ?_⟩
-    · rw [AnnotValid_app]
-      exact ⟨trivial, hv.1⟩
-    · rw [AnnotValid_lam]
-      exact ⟨hv.1, fun a ha => towerBodyAVPos_validV (hv.2 a ha)⟩
-
-/-- The carrier body (squash regime) is bit-valid: every `pi` node
-carries bit `0` over a truth-value codomain (`piR 0`, or `Empty`). -/
-theorem sqBodyAV_validV :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsValid ρ Fs →
-      AnnotValid V ρ (sqBodyAV Fs)
-  | [], _, _ => trivial
-  | F :: Fs, ρ, hv => by
-    show AnnotValid V ρ (negAV (.pi 0 0 F (negAV (sqBodyAV Fs))))
-    unfold negAV
-    rw [AnnotValid_pi]
-    refine ⟨?_, fun _ _ => by simp, fun _ _ _ => ?_⟩
-    · rw [AnnotValid_pi]
-      refine ⟨hv.1, fun x hx => ?_, fun _ x _ => ?_⟩
-      · rw [AnnotValid_pi]
-        exact ⟨sqBodyAV_validV (hv.2 x hx), fun _ _ => by simp,
-          fun _ _ _ => by rw [← univ_zero]; exact empty_mem_univ 0⟩
-      · exact piR_zero_mem_univZero
-    · rw [← univ_zero]; exact empty_mem_univ 0
-
-/-- The carrier body is bit-valid, both regimes. -/
-theorem towerBodyAV_validV {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
-    (hv : FieldsValid ρ Fs) : AnnotValid V ρ (towerBodyAV w Fs) := by
-  by_cases hw : w = 0
-  · subst hw; rw [towerBodyAV_zero]; exact sqBodyAV_validV hv
-  · rw [towerBodyAV_pos hw]; exact towerBodyAVPos_validV hv
-
-/-- Application spines are bit-valid from their parts. -/
-theorem mkAppN_validV :
-    ∀ {args : List AnnotTerm} {f : AnnotTerm} {σ : Nat → V},
-      AnnotValid V σ f → (∀ a ∈ args, AnnotValid V σ a) →
-      AnnotValid V σ (AnnotTerm.mkAppN f args)
-  | [], _, _, hf, _ => hf
-  | a :: args, f, σ, hf, hargs => by
-    rw [AnnotTerm.mkAppN_cons]
-    refine mkAppN_validV ?_ fun a' ha' => hargs a' (.tail _ ha')
-    rw [AnnotValid_app]
-    exact ⟨hf, hargs a (.head _)⟩
-
-/-- The constructor tupler is bit-valid at a fitting frame — the one
-walk that crosses the λ-frame lifts (`AnnotValid_liftN` +
-`shiftE_consList`). -/
-theorem mkTowerGoPos_validV {w : Nat} (hw : w ≠ 0) :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
-      FieldsValid ρp Fs → FieldsBound w ρp Fs → SpineFit ρp Fs bs →
-      AnnotValid V (consList bs ρp) (mkTowerGoPos w Fs)
-  | [], _, [], _, _, _ => trivial
-  | [], _, _ :: _, _, _, hsp => hsp.elim
-  | _ :: _, _, [], _, _, hsp => hsp.elim
-  | F :: Fs, ρp, b :: bs, hv, hb, hsp => by
-    have hlen : bs.length = Fs.length := hsp.2.length_eq
-    have hshift : shiftE (Fs.length + 1) 0 (consList bs (cons b ρp)) = ρp := by
-      rw [← hlen,
-        show bs.length + 1 = bs.length + (0 + 1) by rw [Nat.zero_add],
-        shiftE_consList_add bs (0 + 1) (cons b ρp), Nat.zero_add,
-        shiftE_succ_cons, shiftE_zero_zero]
-    have hA : interp V (consList bs (cons b ρp)) (F.liftN (Fs.length + 1))
-        = interp V ρp F := by
-      rw [interp_liftN, hshift]
-    show AnnotValid V (consList bs (cons b ρp))
-      (.app (.app (.app (.app (.const .psigmaMk [w, w])
-          (F.liftN (Fs.length + 1)))
-          (.lam (w + 1) (F.liftN (Fs.length + 1))
-            ((towerBodyAV w Fs).liftN (Fs.length + 1) 1)))
-          (.bvar Fs.length))
-        (mkTowerGoPos w Fs))
-    rw [AnnotValid_app]
-    refine ⟨?_, mkTowerGoPos_validV hw (hv.2 b hsp.1) (hb.2 b hsp.1) hsp.2⟩
-    rw [AnnotValid_app]
-    refine ⟨?_, by rw [AnnotValid_bvar]; trivial⟩
-    rw [AnnotValid_app]
-    refine ⟨?_, ?_⟩
-    · rw [AnnotValid_app]
-      refine ⟨by rw [AnnotValid_const]; trivial, ?_⟩
-      rw [AnnotValid_liftN, hshift]
-      exact hv.1
-    · rw [AnnotValid_lam]
-      refine ⟨by rw [AnnotValid_liftN, hshift]; exact hv.1, ?_⟩
-      intro x hx
-      rw [hA] at hx
-      rw [AnnotValid_liftN, ← cons_shiftE, hshift]
-      exact towerBodyAV_validV (hv.2 x hx)
-
-/-- The constructor tupler is bit-valid at a fitting frame, both
-regimes. -/
-theorem mkTowerGo_validV {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
-    {bs : List V} (hv : FieldsValid ρp Fs)
-    (hb : w ≠ 0 → FieldsBound w ρp Fs) (hsp : SpineFit ρp Fs bs) :
-    AnnotValid V (consList bs ρp) (mkTowerGo w Fs) := by
-  by_cases hw : w = 0
-  · subst hw; rw [mkTowerGo_zero]; trivial
-  · rw [mkTowerGo_pos hw]; exact mkTowerGoPos_validV hw hv (hb hw) hsp
-
-/-- The single hereditary validity premise of a `mkLamsC` leaf. -/
-@[expose] def UnderTowerValid (ρ : Nat → V) (b : AnnotTerm) :
-    List (Nat × Nat × AnnotTerm) → Prop
-  | [] => AnnotValid V ρ b
-  | d :: ds => AnnotValid V ρ d.2.2 ∧
-      ∀ a, a ∈ˢ interp V ρ d.2.2 → UnderTowerValid (cons a ρ) b ds
-
-/-- A constant-bit λ-tower is bit-valid from the hereditary premise
-(the λ clause of `AnnotValid` carries no bit component). -/
-theorem mkLamsC_validV {m : Nat} {b : AnnotTerm} :
-    ∀ {ds : List (Nat × Nat × AnnotTerm)} {ρ : Nat → V},
-      UnderTowerValid ρ b ds → AnnotValid V ρ (mkLamsC m ds b)
-  | [], _, h => h
-  | d :: ds, ρ, h => by
-    show AnnotValid V ρ (.lam m d.2.2 (mkLamsC m ds b))
-    rw [AnnotValid_lam]
-    exact ⟨h.1, fun a ha => mkLamsC_validV (h.2 a ha)⟩
-
-
 /-! ## The constructor's peel -/
 
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps)
 
 universe w
@@ -186,8 +40,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env} {φ : Name → 
 
 /-- The parameter-variable spine of the constructor's opened body, in
 the reading's spelling. -/
-@[expose] def paramBvars (nP nF : Nat) : List AnnotTerm :=
-  (List.range nP).map fun k => AnnotTerm.bvar (nP + nF - 1 - k)
+@[expose] def paramBvars (nP nF : Nat) : List Term :=
+  (List.range nP).map fun k => Term.bvar (nP + nF - 1 - k)
 
 omit [SetTheory V] in
 theorem consList_range_reverse :
@@ -210,32 +64,30 @@ theorem consList_range_reverse :
 
 /-- The prefix and suffix of a peeled binder list, as the reversed
 context's parts. -/
-theorem reverse_map_take_drop (ds : List (Nat × Nat × AnnotTerm)) (nP : Nat) :
-    ((ds.map (·.2.2)).reverse)
-      = (((ds.drop nP).map (·.2.2)).reverse) ++ (((ds.take nP).map (·.2.2)).reverse) := by
-  rw [← List.reverse_append, ← List.map_append, List.take_append_drop]
+theorem reverse_map_take_drop (ds : List Term) (nP : Nat) :
+    ds.reverse = (ds.drop nP).reverse ++ (ds.take nP).reverse := by
+  rw [← List.reverse_append, List.take_append_drop]
 
 
 /-!
 ## The constructor's frames
 
 The opened record at a known peel, the field and parameter parts of
-the reversed constructor context, and the field chain's validity
-(`FieldsValid`) and universe bound (`FieldsBound`), walked like its
-grading (`fieldsOkB_of_frame`).
+the reversed constructor context, and the field chain's universe bound
+(`FieldsBound`), walked like its grading (`fieldsOkB_of_frame`).
 -/
 
 
 /-- An opened type whose reading is a known peel: the opened record
 at the peel's reversed domains. -/
 theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
-    {fvs : List Expr} {o : Expr} {pps : List (Nat × Nat × AnnotTerm)} {b : AnnotTerm}
+    {fvs : List Expr} {o : Expr} {pps : List Term} {b : Term}
     (hop : openPisAtFvars k e 0 = some (fvs, o)) (hcl : e.hasFvar = false)
     (hb : e.looseBVarsBounded 0 = true)
-    (hread : denoteMeta m.acval env φ 0 e = some (mkPisAV pps b))
+    (hread : denote m.acval env φ 0 e = some (mkPisAV pps b))
     (hlen : pps.length = k)
-    (hok : ∀ ρ : Nat → V, WellDenotedV V ρ (mkPisAV pps b)) :
-    Opened m φ k e fvs o ((pps.map (·.2.2)).reverse) b := by
+    (hok : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps b)) :
+    Opened m φ k e fvs o pps.reverse b := by
   obtain ⟨Γ, R, htele, hO⟩ := opened_of hop hcl hb hread hok
   have hst := stripPisAV_mkPisAV pps b
   rw [hlen] at hst
@@ -244,10 +96,10 @@ theorem opened_of_peel {m : EnvModel V env} {k : Nat} {e : Expr}
 
 /-- The field entries of the reversed constructor context are the
 peel's field domains. -/
-theorem fieldsFrom_eq_drop {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
+theorem fieldsFrom_eq_drop {ds : List Term} {nP nF : Nat}
     (hlen : ds.length = nP + nF) :
-    fieldsFrom ((ds.map (·.2.2)).reverse) (nP + nF) nP nF 0
-      = (ds.drop nP).map (·.2.2) := by
+    fieldsFrom ds.reverse (nP + nF) nP nF 0
+      = ds.drop nP := by
   apply List.ext_getElem
   · simp [fieldsFrom, hlen]
   · intro t h1 h2
@@ -258,52 +110,18 @@ theorem fieldsFrom_eq_drop {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
 
 /-- The reversed constructor context above the fields is the reversed
 parameter context. -/
-theorem drop_fields_eq {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
+theorem drop_fields_eq {ds : List Term} {nP nF : Nat}
     (hlen : ds.length = nP + nF) (i : Nat) (hi : i ≤ nP) :
-    ((ds.map (·.2.2)).reverse).drop (nP + nF - i)
-      = (((ds.take nP).map (·.2.2)).reverse).drop (nP - i) := by
+    ds.reverse.drop (nP + nF - i)
+      = (ds.take nP).reverse.drop (nP - i) := by
   rw [reverse_map_take_drop ds nP, List.drop_append]
-  have hl : (((ds.drop nP).map (·.2.2)).reverse).length = nF := by
+  have hl : (ds.drop nP).reverse.length = nF := by
     simp [hlen]
   rw [List.drop_eq_nil_of_le (by rw [hl]; omega), List.nil_append, hl,
     show nP + nF - i - nF = nP - i from by omega]
 
-/-- The field chain's validity, walked like its grading. -/
-theorem fieldsValid_of_frame {Γ : List AnnotTerm} {k nP nF : Nat}
-    (hk : k = nP + nF) (hΓ : Γ.length = k)
-    (okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
-      WellDenotedV V ρ (Γ.getD (k - 1 - i) default)) :
-    ∀ (j : Nat), j ≤ nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
-      FieldsValid ρ (fieldsFrom Γ k nP nF j) := by
-  suffices ∀ (m j : Nat), nF - j = m → j ≤ nF → ∀ ρ : Nat → V,
-      Sat V (Γ.drop (k - (nP + j))) ρ →
-      FieldsValid ρ (fieldsFrom Γ k nP nF j) from
-    fun j => this (nF - j) j rfl
-  intro m
-  induction m with
-  | zero =>
-    intro j hm hj ρ hρ
-    have hjn : j = nF := by omega
-    subst hjn
-    simp only [fieldsFrom, Nat.sub_self, List.range_zero, List.map_nil]
-    trivial
-  | succ m ih =>
-    intro j hm hj ρ hρ
-    have hlt : j < nF := by omega
-    rw [fieldsFrom_succ hlt]
-    refine ⟨(okΓ (nP + j) (by omega) ρ hρ).2, fun a ha => ?_⟩
-    refine ih (j + 1) (by omega) (by omega) (cons a ρ) ?_
-    rw [show k - (nP + (j + 1)) = k - (nP + j) - 1 from by omega,
-      List.drop_eq_getElem_cons (l := Γ) (i := k - (nP + j) - 1) (by omega)]
-    have hG : Γ[k - (nP + j) - 1]'(by omega) = Γ.getD (k - 1 - (nP + j)) default := by
-      rw [List.getD, List.getElem?_eq_getElem (by omega)]
-      simp only [Option.getD_some]
-      congr 1; omega
-    rw [hG, show k - (nP + j) - 1 + 1 = k - (nP + j) from by omega]
-    exact Sat_cons V hρ ha
-
 /-- The field chain's universe bound, walked like its grading. -/
-theorem fieldsBound_of_frame {Γ : List AnnotTerm} {k nP nF w : Nat}
+theorem fieldsBound_of_frame {Γ : List Term} {k nP nF w : Nat}
     (hk : k = nP + nF) (hΓ : Γ.length = k)
     (hbnd : ∀ j, j < nF → ∀ ρ : Nat → V, Sat V (Γ.drop (k - (nP + j))) ρ →
       interp V ρ (Γ.getD (k - 1 - (nP + j)) default) ∈ˢ (univ w : V)) :
@@ -361,12 +179,12 @@ theorem range_reverse_map_consList :
 
 /-- Two domain lists whose reversed contexts have the same satisfying
 valuations fit the same spines. -/
-theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List AnnotTerm}
+theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List Term}
     (hlen : Ds₁.length = Ds₂.length)
     (hiff : ∀ ρ : Nat → V, Sat V Ds₁.reverse ρ ↔ Sat V Ds₂.reverse ρ)
     (ρ : Nat → V) (as : List V) (hl : as.length = Ds₁.length) :
     SpineFit ρ Ds₁ as ↔ SpineFit ρ Ds₂ as := by
-  have key : ∀ (Ds₁ Ds₂ : List AnnotTerm), Ds₁.length = Ds₂.length →
+  have key : ∀ (Ds₁ Ds₂ : List Term), Ds₁.length = Ds₂.length →
       (∀ ρ : Nat → V, Sat V Ds₁.reverse ρ → Sat V Ds₂.reverse ρ) →
       ∀ (ρ : Nat → V) (as : List V), as.length = Ds₁.length →
       SpineFit ρ Ds₁ as → SpineFit ρ Ds₂ as := by
@@ -386,10 +204,10 @@ theorem spineFit_iff_of_sat_iff {Ds₁ Ds₂ : List AnnotTerm}
 
 /-- The reversed constructor context's parameter entries are the
 reversed parameter context's. -/
-theorem getD_reverse_take {ds : List (Nat × Nat × AnnotTerm)} {nP nF : Nat}
+theorem getD_reverse_take {ds : List Term} {nP nF : Nat}
     (hlen : ds.length = nP + nF) {i : Nat} (hi : i < nP) :
-    ((ds.map (·.2.2)).reverse).getD (nP + nF - 1 - i) default
-      = (((ds.take nP).map (·.2.2)).reverse).getD (nP - 1 - i) default := by
+    ds.reverse.getD (nP + nF - 1 - i) default
+      = (ds.take nP).reverse.getD (nP - 1 - i) default := by
   have hil : i < ds.length := by omega
   rw [getD_reverse_of_peel hlen (by omega) (List.getElem?_eq_getElem hil),
     getD_reverse_of_peel (List.length_take_of_le (by omega)) hi
@@ -406,35 +224,39 @@ any depth above the parameters (`paramBvarsAt`).
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta)
+ )
 
 
 /-! ## Lifted Π-towers -/
 
-theorem stripPisAV_mkPisAV_take :
-    ∀ (n : Nat) (ds : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm), n ≤ ds.length →
-      stripPisAV n (mkPisAV ds b) = some (ds.take n, mkPisAV (ds.drop n) b)
-  | 0, _, _, _ => rfl
-  | n + 1, [], _, h => by simp at h
-  | n + 1, d :: ds, b, h => by
-    simp only [mkPisAV, stripPisAV, List.take_succ_cons, List.drop_succ_cons,
-      stripPisAV_mkPisAV_take n ds b (by simpa using h), Option.map_some]
+theorem stripPisAV_mkPisAV_take
+    (n : Nat) (ds : List Term) (b : Term) (h : n ≤ ds.length) :
+    stripPisAV n (mkPisAV ds b) = some (ds.take n, mkPisAV (ds.drop n) b) := by
+  have happ : ∀ (l₁ l₂ : List Term),
+      mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b) := by
+    intro l₁ l₂
+    induction l₁ with
+    | nil => rfl
+    | cons d l₁ ih => simp only [List.cons_append, mkPisAV, ih]
+  have hst := stripPisAV_mkPisAV (ds.take n) (mkPisAV (ds.drop n) b)
+  rw [← happ, List.take_append_drop, List.length_take, Nat.min_eq_left h] at hst
+  exact hst
 
 /-! ## Graded applications along a fit -/
 
 /-- A fit of bounded domains reads the same at any frame agreeing
 below the cut. -/
 theorem spineFit_congr_below :
-    ∀ {pds : List (Nat × Nat × AnnotTerm)} {k : Nat} {ρ ρ' : Nat → V} {as : List V},
+    ∀ {pds : List Term} {k : Nat} {ρ ρ' : Nat → V} {as : List V},
       DomsBelow k pds → (∀ i, i < k → ρ i = ρ' i) →
-      SpineFit ρ (pds.map (·.2.2)) as → SpineFit ρ' (pds.map (·.2.2)) as
+      SpineFit ρ pds as → SpineFit ρ' pds as
   | [], _, _, _, [], _, _, h => h
   | [], _, _, _, _ :: _, _, _, h => h.elim
   | _ :: _, _, _, _, [], _, _, h => h.elim
   | d :: pds, k, ρ, ρ', a :: as, hb, hρ, h => by
-    simp only [List.map_cons, SpineFit] at h ⊢
+    simp only [SpineFit] at h ⊢
     refine ⟨?_, spineFit_congr_below hb.2 (fun i hi => ?_) h.2⟩
-    · rw [← interp_congr_below V d.2.2 k ρ ρ' hb.1 hρ]; exact h.1
+    · rw [← interp_congr_below V d k ρ ρ' hb.1 hρ]; exact h.1
     · cases i with
       | zero => rfl
       | succ i => exact hρ i (by omega)
@@ -442,30 +264,30 @@ theorem spineFit_congr_below :
 /-! ## The family spine above the parameters -/
 
 /-- The parameter variables as seen from depth `D` (`D ≥ nP`). -/
-@[expose] def paramBvarsAt (nP D : Nat) : List AnnotTerm :=
+@[expose] def paramBvarsAt (nP D : Nat) : List Term :=
   (List.range nP).map fun k => .bvar (D - 1 - k)
 
 theorem paramBvars_eq_paramBvarsAt (nP nF : Nat) :
     paramBvars nP nF = paramBvarsAt nP (nP + nF) := rfl
 
 /-- A same-index `fvar` spine reads to the parameter variables. -/
-theorem denoteMetaSpine_fvars {acval : Name → (Name → Nat) → AnnotTerm} (D : Nat) :
+theorem denoteSpine_fvars {acval : Name → (Name → Nat) → Term} (D : Nat) :
     ∀ (fvs : List Expr) (k₀ : Nat),
       (∀ (k : Nat) (x : Expr), fvs[k]? = some x → ∃ ty, x = Expr.fvar (k₀ + k) ty) →
-      DenoteMetaSpine acval env φ D fvs
+      DenoteSpine acval env φ D fvs
         ((List.range fvs.length).map fun k => .bvar (D - 1 - (k₀ + k)))
   | [], _, _ => .nil
   | x :: fvs, k₀, hidx => by
     obtain ⟨nm, ty, rfl⟩ := hidx 0 x rfl
     rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map]
-    refine .cons (by rw [denoteMeta_fvar, Nat.add_zero]) ?_
-    have := denoteMetaSpine_fvars (acval := acval) D fvs (k₀ + 1)
+    refine .cons (by rw [denote_fvar, Nat.add_zero]) ?_
+    have := denoteSpine_fvars (acval := acval) D fvs (k₀ + 1)
       (fun k y hy => by
         obtain ⟨ty', h⟩ := hidx (k + 1) y (by simpa using hy)
         exact ⟨ty', by rw [h]; congr 1; omega⟩)
-    have hmapeq : (List.map ((fun k => AnnotTerm.bvar (D - 1 - (k₀ + k))) ∘ Nat.succ)
+    have hmapeq : (List.map ((fun k => Term.bvar (D - 1 - (k₀ + k))) ∘ Nat.succ)
           (List.range fvs.length))
-        = (List.range fvs.length).map fun k => AnnotTerm.bvar (D - 1 - (k₀ + 1 + k)) := by
+        = (List.range fvs.length).map fun k => Term.bvar (D - 1 - (k₀ + 1 + k)) := by
       apply List.map_congr_left
       intro k _
       simp only [Function.comp_def]
@@ -505,13 +327,13 @@ theorem openPisAtFvars_of_stripPis_isSome :
   | 0, e, _, _ => ⟨[], e, rfl⟩
   | n + 1, e, d, h => by
     match e, h with
-    | .forallE dom body mb, h =>
+    | .forallE dom body, h =>
       simp only [Expr.stripPis, Option.isSome_map] at h
       obtain ⟨fvs, o, ho⟩ := openPisAtFvars_of_stripPis_isSome n (d + 1)
         (Expr.stripPis_instantiate1_isSome (v := .fvar d dom) n 0 h)
       exact ⟨.fvar d dom :: fvs, o, by simp only [openPisAtFvars, ho]⟩
     | .bvar _, h | .fvar _ _, h | .sort _, h | .const _ _, h | .app _ _, h
-    | .lam _ _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
+    | .lam _ _, h | .letE _ _ _, h | .lit _, h | .proj _ _ _, h =>
       simp [Expr.stripPis] at h
 
 /-! ## Per-index scoping -/
@@ -527,7 +349,7 @@ theorem openPisAtFvars_typeWScoped :
     exact nomatch hx
   | n + 1, e, d, fvs, o, hop, hw, i, x, hx => by
     match e, hop with
-    | .forallE dom body mb, hop =>
+    | .forallE dom body, hop =>
       simp only [openPisAtFvars] at hop
       split at hop
       · next fvs' o' hop' =>
@@ -551,7 +373,7 @@ theorem openPisAtFvars_typeWScoped :
           exact this
       · exact nomatch hop
     | .bvar _, hop | .fvar _ _, hop | .sort _, hop | .const _ _, hop | .app _ _, hop
-    | .lam _ _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
+    | .lam _ _, hop | .letE _ _ _, hop | .lit _, hop | .proj _ _ _, hop =>
       simp [openPisAtFvars] at hop
 
 /-! ## Frame shifts under a consed spine -/
@@ -559,22 +381,12 @@ theorem openPisAtFvars_typeWScoped :
 /-! ## List arithmetic -/
 
 theorem mkPisAV_append :
-    ∀ (l₁ l₂ : List (Nat × Nat × AnnotTerm)) (b : AnnotTerm),
+    ∀ (l₁ l₂ : List Term) (b : Term),
       mkPisAV (l₁ ++ l₂) b = mkPisAV l₁ (mkPisAV l₂ b)
   | [], _, _ => rfl
   | d :: l₁, l₂, b => by simp [mkPisAV, mkPisAV_append l₁ l₂ b]
 
 /-! ## Lifted domains, field spines, and frame arithmetic -/
-
-theorem spineFit_append_inv :
-    ∀ {Ds₁ Ds₂ : List AnnotTerm} {ρ : Nat → V} {as : List V},
-      SpineFit ρ (Ds₁ ++ Ds₂) as →
-      ∃ as₁ as₂, as = as₁ ++ as₂ ∧ SpineFit ρ Ds₁ as₁ ∧ SpineFit (consList as₁ ρ) Ds₂ as₂
-  | [], _, ρ, as, h => ⟨[], as, rfl, trivial, h⟩
-  | _ :: _, _, _, [], h => h.elim
-  | D :: Ds₁, Ds₂, ρ, a :: as, h => by
-    obtain ⟨as₁, as₂, rfl, h1, h2⟩ := spineFit_append_inv (Ds₁ := Ds₁) h.2
-    exact ⟨a :: as₁, as₂, rfl, ⟨h.1, h1⟩, h2⟩
 
 omit [SetTheory V] in
 /-- A consed spine's entries below its length are the spine's, from the
@@ -597,16 +409,14 @@ theorem consList_apply_lt :
         List.getElem?_cons_zero, Option.getD_some, cons_zero]
 
 
-/-! ## Recursor-reading kit: bits reset, opening variables, the constructor residual -/
+/-! ## Recursor-reading kit: opening variables, the constructor residual -/
 
 
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
-  BinderMeta PropWhen)
+  PropWhen)
 
 
-variable {acval : Name → (Name → Nat) → AnnotTerm}
-
-/-! ## Bits reset -/
+variable {acval : Name → (Name → Nat) → Term}
 
 /-! ## Syntactic bookkeeping -/
 
@@ -628,80 +438,42 @@ theorem opening_vars_at {n d : Nat} {e : Expr} {fvs : List Expr} {o : Expr}
 ## λ-towers fold to their body
 
 A **graded** λ-tower applied along a fitting spine computes its body
-at the spine's frame — whatever its bits.  A nonzero bit steps by
-β (`app_lamR_pos`); a zero bit collapses the layer to the proof point,
-but the grading's package puts the layer's body values in truth
-values, so the body is the point too (`eq_pt_of_mem_univZero`), and the
-fold of the point is the point.  This is what lets the recursor rule's
-law read the rule's right-hand side without any bit correspondence
-between the rule's λ-annotations and the recursor's elimination level.
+at the spine's frame: each layer steps by β on the domain (`app_lamV`).
+This is what lets the recursor rule's law read the rule's right-hand
+side with no correspondence between the rule's λ-tower and the
+recursor's elimination level.
 -/
 
 
-/-- A graded λ-tower whose value is the point has body value the point
-along any fitting spine. -/
-theorem mkLamsAV_pt_body :
-    ∀ {lds : List (Nat × AnnotTerm)} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
-      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ (lds.map (·.2)) as →
-      interp V ρ (mkLamsAV lds b) = (pt : V) →
-      interp V (consList as ρ) b = (pt : V)
-  | [], _, _, [], _, _, h => h
-  | [], _, _, _ :: _, _, hsp, _ => hsp.elim
-  | _ :: _, _, _, [], _, hsp, _ => hsp.elim
-  | d :: lds, b, ρ, a :: as, hok, hsp, hpt => by
-    simp only [List.map_cons, SpineFit] at hsp
-    have hok' := hok
-    simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hrest, B, hB, hB0⟩ := hok'
-    rw [consList_cons]
-    refine mkLamsAV_pt_body (hrest a hsp.1) hsp.2 ?_
-    rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
-    · exact eq_pt_of_mem_univZero (hB0 h0 a hsp.1) (hB a hsp.1)
-    · have := app_lamR_pos (Nat.pos_iff_ne_zero.mp hpos)
-        (A := interp V ρ d.2) (F := fun x => interp V (cons x ρ) (mkLamsAV lds b)) hsp.1
-      simp only [mkLamsAV, interp_lam] at hpt
-      rw [hpt, app_pt] at this
-      exact this.symm
-
 /-- **A graded λ-tower folds to its body** along any fitting spine. -/
 theorem mkLamsAV_fold_graded :
-    ∀ {lds : List (Nat × AnnotTerm)} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
-      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ (lds.map (·.2)) as →
+    ∀ {lds : List Term} {b : Term} {ρ : Nat → V} {as : List V},
+      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ lds as →
       as.foldl SetTheory.app (interp V ρ (mkLamsAV lds b))
         = interp V (consList as ρ) b
   | [], _, _, [], _, _ => rfl
   | [], _, _, _ :: _, _, hsp => hsp.elim
   | _ :: _, _, _, [], _, hsp => hsp.elim
   | d :: lds, b, ρ, a :: as, hok, hsp => by
-    simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hrest, B, hB, hB0⟩ := hok'
+    obtain ⟨-, -, hrest, -⟩ := hok'
     rw [consList_cons, List.foldl_cons]
-    rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
-    · -- a zero bit: the layer is the point, and so is the body
-      have hpt : interp V ρ (mkLamsAV (d :: lds) b) = (pt : V) := by
-        simp only [mkLamsAV, interp_lam]
-        rw [h0]
-        exact lamR_zero
-      rw [hpt, app_pt, foldl_app_pt']
-      exact (mkLamsAV_pt_body (hrest a hsp.1) hsp.2
-        (eq_pt_of_mem_univZero (hB0 h0 a hsp.1) (hB a hsp.1))).symm
-    · simp only [mkLamsAV, interp_lam]
-      rw [app_lamR_pos (Nat.pos_iff_ne_zero.mp hpos) hsp.1]
-      exact mkLamsAV_fold_graded (hrest a hsp.1) hsp.2
+    simp only [mkLamsAV, interp_lam]
+    rw [app_lamV hsp.1]
+    exact mkLamsAV_fold_graded (hrest a hsp.1) hsp.2
 
 /-- **A graded λ-tower applied along a fitting spine is graded**: each
-step's Π-package is the layer's own (`lamR_mem` over the grading's
-fibre family), or — once a zero layer has collapsed the value to the
+step's Π-package is the layer's own (`lamV_mem` over the grading's
+fibre family), or — once a layer has collapsed the value to the
 point — the trivial one. -/
-theorem mkAppN_wellDenotedV_of_lam :
-    ∀ {lds : List (Nat × AnnotTerm)} {b f : AnnotTerm} {args : List AnnotTerm} {ρ σ : Nat → V},
-      WellDenotedV V ρ f → (∀ a ∈ args, WellDenotedV V ρ a) →
+theorem mkAppN_wellDenoted_of_lam :
+    ∀ {lds : List Term} {b f : Term} {args : List Term} {ρ σ : Nat → V},
+      WellDenoted V ρ f → (∀ a ∈ args, WellDenoted V ρ a) →
       WellDenoted V σ (mkLamsAV lds b) →
       (interp V ρ f = (pt : V) ∨ interp V ρ f = interp V σ (mkLamsAV lds b)) →
-      SpineFit σ (lds.map (·.2)) (args.map (interp V ρ)) →
-      WellDenotedV V ρ (AnnotTerm.mkAppN f args)
+      SpineFit σ lds (args.map (interp V ρ)) →
+      WellDenoted V ρ (Term.mkAppN f args)
   | [], _, _, [], _, _, hf, _, _, _, _ => hf
   | [], _, _, _ :: _, _, _, _, _, _, _, hsp => hsp.elim
   | _ :: _, _, _, [], _, _, hf, _, _, _, _ => hf
@@ -709,22 +481,22 @@ theorem mkAppN_wellDenotedV_of_lam :
     simp only [List.map_cons, SpineFit] at hsp
     have hok' := hok
     simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, hrest, B, hB, hB0⟩ := hok'
+    obtain ⟨-, hAty, hrest, B, hB, hBty⟩ := hok'
     have ha := hargs a List.mem_cons_self
-    rw [AnnotTerm.mkAppN_cons]
+    rw [Term.mkAppN_cons]
     -- the application's package
-    have hokApp : WellDenotedV V ρ (.app f a) := by
-      refine ⟨?_, by rw [AnnotValid_app]; exact ⟨hf.2, ha.2⟩⟩
+    have hokApp : WellDenoted V ρ (.app f a) := by
       rw [WellDenoted_app]
       rcases hval with hpt | heq
-      · exact ⟨hf.1, ha.1, 0, interp V σ d.2, fun _ => unitSet,
+      · exact ⟨hf, ha, 0, interp V σ d, fun _ => unitSet,
           by rw [hpt, piR_zero]; exact pt_mem_truthVal fun x _ => ⟨pt, pt_mem_unitSet⟩,
-          hsp.1, fun _ _ _ => mem_univZero.mpr (Subset.refl _)⟩
-      · refine ⟨hf.1, ha.1, d.1, interp V σ d.2, B, ?_, hsp.1, fun h0 x hx => hB0 h0 x hx⟩
+          hsp.1, fun _ _ _ => mem_univZero.mpr (Subset.refl _), fun h => absurd rfl h⟩
+      · refine ⟨hf, ha, propN (interp V σ d) B, interp V σ d, B, ?_, hsp.1,
+          propN_eq_zero.mp, fun _ => hAty⟩
         rw [heq]
         simp only [mkLamsAV, interp_lam]
-        exact lamR_mem hB
-    refine mkAppN_wellDenotedV_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
+        exact lamV_mem hB hBty
+    refine mkAppN_wellDenoted_of_lam hokApp (fun a' ha' => hargs a' (List.mem_cons_of_mem _ ha'))
       (hrest _ hsp.1) ?_ hsp.2
     -- the continuation's value
     rw [interp_app]
@@ -732,9 +504,7 @@ theorem mkAppN_wellDenotedV_of_lam :
     · left; rw [hpt, app_pt]
     · rw [heq]
       simp only [mkLamsAV, interp_lam]
-      rcases Nat.eq_zero_or_pos d.1 with h0 | hpos
-      · left; rw [h0, lamR_zero, app_pt]
-      · right; rw [app_lamR_pos (Nat.pos_iff_ne_zero.mp hpos) hsp.1]
+      right; rw [app_lamV hsp.1]
 
 
 /-!
@@ -751,7 +521,7 @@ agreeing with the recursor's on the block's parameters.
 /-- A fit's chain memberships are a `SpineFit` (the values read at the
 fit's own frame `ρ`, the domains walked from `σ`). -/
 theorem spineFit_of_chain' :
-    ∀ {Ds : List AnnotTerm} {ws : List AnnotTerm} {σ ρ : Nat → V},
+    ∀ {Ds : List Term} {ws : List Term} {σ ρ : Nat → V},
       ws.length = Ds.length →
       (∀ n, n < Ds.length →
         interp V ρ (ws.getD n default)
@@ -780,7 +550,7 @@ theorem spineFit_of_chain' :
       ← List.getD_eq_getElem?_getD] at this
     exact this
 
-theorem spineFit_of_chain {Ds : List AnnotTerm} {ws : List AnnotTerm} {ρ : Nat → V}
+theorem spineFit_of_chain {Ds : List Term} {ws : List Term} {ρ : Nat → V}
     (hlen : ws.length = Ds.length)
     (hmem : ∀ n, n < Ds.length →
       interp V ρ (ws.getD n default)

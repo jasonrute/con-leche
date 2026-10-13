@@ -41,8 +41,8 @@ bounded by (`targetRecTy`, `Kernel/Inductives/RecCheck.lean`):
   inside at all.  Clause 4 therefore does not read them: it reads the
   MAJOR, whose domain is `T_m p⃗ ı⃗` on the nose, so its reading is a
   spine against the member's FORMER — a λ-tower — and the spine's
-  grading carries the fit (`spineFit_of_major_grading`).  The tower's
-  binder numeral is `w ψ + 1`, never zero, so this survives a
+  grading carries the fit (`spineFit_of_major_grading`).  The former's
+  codomain sort is `w ψ + 1`, never zero, so this survives a
   `Prop`-valued block;
 * the MAJOR's syntactic pin is clause 6, read off the opening's own
   fvars (`interp_of_major_reading`).
@@ -59,7 +59,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars)
 
 universe w
@@ -74,7 +74,7 @@ Five statements about the members, all of them the block install's
 own: the shape agreement (`d.nP`, `d.k`), the per-member former data
 (`BlockFormerFacts.fdOf` at the CONSTRUCTORS' environment, which is
 where the recursor stage runs), the member record's name and index
-count, the leaf's λ-TOWER shape (whose binder numeral is
+count, the leaf's λ-TOWER shape (whose codomain sort is
 `w ψ + 1` — never zero, which is why the index clause survives a
 `Prop`-valued block), and official's parameter agreement
 (`BlockFormerFacts.paramsIff`).
@@ -94,9 +94,9 @@ producer. -/
   (∀ (m : Nat) (ms : ConLeche.MemberShape), q.members[m]? = some ms →
     d.memberName m = ms.cvT.name ∧ d.nIdxAt m = ms.nIdx) ∧
   (∀ (m : Nat) (ψ : Name → Nat), m < d.k →
-    ∃ B, mo.acval (d.memberName m) ψ = mkLamsC (d.w ψ + 1) (d.ppsM m ψ) B) ∧
+    ∃ B, mo.acval (d.memberName m) ψ = mkLamsAV (d.ppsM m ψ) B) ∧
   (∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρ : Nat → V),
-    Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ ↔ Sat V (d.params ψ).reverse ρ)
+    Sat V ((d.ppsM m ψ).take d.nP).reverse ρ ↔ Sat V (d.params ψ).reverse ρ)
 
 section Run
 
@@ -115,7 +115,7 @@ recursor's member and the arity is what its position is read at. -/
 The recursor's own index binders are never inspected by the check, so
 nothing here reads them: what carries the fit is the MAJOR, whose
 domain is the member's FORMER applied to the prefix and index binders.
-The former is a λ-tower whose binder numeral is `w ψ + 1` — **never
+The former is a λ-tower whose codomain sort is `w ψ + 1` — **never
 zero**, so this clause survives a `Prop`-valued block, where the
 rule contract's own fit conjunct is refutable. -/
 
@@ -153,7 +153,7 @@ theorem blockMembers_IdsM_length {envC : Env} {mo : EnvModel V envC} {d : BlockD
   obtain ⟨cvTb, hcvTa⟩ : ∃ cvTb, cvTas[mm]? = some cvTb :=
     ⟨_, List.getElem?_eq_getElem (by rw [hlenCv]; exact hmm)⟩
   obtain ⟨-, -, -, -, -, hFD⟩ := hcvF _ _ hcvTa
-  rw [BlockData.IdsM, List.length_map, List.length_drop, hFD.len ψ]
+  rw [BlockData.IdsM, List.length_drop, hFD.len ψ]
   omega
 
 end Keys
@@ -191,15 +191,15 @@ theorem walkCtx_blockFrame {envT : Env} {mT : EnvModel V envT} {ψ : Name → Na
     (h₁ : openPisAtFvars rP recTy 0 = some (fvsPref, o₁))
     (h₂ : openPisAtFvars nF crest rP = some (fvsF, o₂))
     (h₃ : openPisAtFvars nR ihTele (rP + nF) = some (fvsIh, o₃))
-    {pdoms fdoms ihdoms : List AnnotTerm}
+    {pdoms fdoms ihdoms : List Term}
     (hp : pdoms.length = rP) (hf : fdoms.length = nF) (hidx : ihdoms.length = nR)
     (hdoms : ∀ (i : Nat) (x : Expr), (fvsPref ++ fvsF ++ fvsIh)[i]? = some x →
-      denoteMeta mT.acval envT ψ i (Expr.fvarTypeD x)
+      denote mT.acval envT ψ i (Expr.fvarTypeD x)
         = some ((ihdoms.reverse ++ (pdoms ++ fdoms).reverse).getD
             (rP + nF + nR - 1 - i) default))
     (hokΔ : ∀ i, i < rP + nF + nR →
       ∀ ρ : Nat → V, Sat V (ihdoms.reverse ++ (pdoms ++ fdoms).reverse) ρ →
-        WellDenotedV V (fun j => ρ (j + (rP + nF + nR - 1 - i) + 1))
+        WellDenotedTy V (fun j => ρ (j + (rP + nF + nR - 1 - i) + 1))
           ((ihdoms.reverse ++ (pdoms ++ fdoms).reverse).getD (rP + nF + nR - 1 - i) default))
     (hlbF : ∀ x ∈ fvsPref ++ fvsF ++ fvsIh, (Expr.fvarTypeD x).looseBVarsBounded 0 = true)
     (hcbF : ∀ x ∈ fvsPref ++ fvsF ++ fvsIh, ConstsBound envT x)

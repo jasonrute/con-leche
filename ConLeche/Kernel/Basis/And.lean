@@ -13,7 +13,7 @@ toolchain's `Init.Prelude` structure
     structure And (a b : Prop) : Prop where
       intro :: (left : a) (right : b)
 
-at the parser's raw binder annotations (its projection functions
+as the parser reads it (its projection functions
 `And.left`/`And.right` are ordinary definition records of their own).
 
 **Why `And` is pinned, and how that differs from the basis blocks.**

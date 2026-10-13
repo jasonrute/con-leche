@@ -18,17 +18,16 @@ every stored expression:
   stored structures in its `.proj` nodes (`constsResolve`'s clause
   reads `find? s`), so when `T` is not stored there is no `.proj T _`
   node at all: the pre-block constants;
-* `annotateCore_projSlotsOk` — the annotation pass emits a `.proj`
-  node only where a *tower* table entry types it
-  (`annotateCore_proj_inv`'s first arm; the other arm rewrites the
-  node away and re-annotates), hereditarily through the fvar types
-  the pass threads (`Expr.ProjSlotsOk`).  So an annotated expression
-  has no `.proj T i` node when the slot `(T, i)` was empty at
-  annotation time (`ProjSlotsOk.noProjAt`): the block's own
-  constants, annotated before their entries exist.
+* `inferTypeCore_projSlotsOk` (`Verify/InferProjSlots.lean`) — full-grade
+  inference types a `.proj`
+  node only where a *tower* table entry types it, hereditarily through
+  the fvar types it threads (`Expr.ProjSlotsOk`).  So an expression
+  whose inference succeeded has no `.proj T i` node when the slot
+  `(T, i)` was empty at that time (`ProjSlotsOk.noProjAt`): the
+  block's own constants, checked before their entries exist.
 
 Both predicates are hereditary through `.fvar` type annotations, as
-`ConstsBound` is, because `denoteMeta` opens binders at annotated fvars.
+`ConstsBound` is, because `denote` opens binders at fvars.
 -/
 
 namespace ConLeche
@@ -41,8 +40,8 @@ open ConLeche.Expr
 @[expose] def Expr.NoProjAt (T : Name) (i : Nat) : Expr → Prop
   | .proj s j e => ¬ (s = T ∧ j = i) ∧ NoProjAt T i e
   | .app f a => NoProjAt T i f ∧ NoProjAt T i a
-  | .lam ty b _ => NoProjAt T i ty ∧ NoProjAt T i b
-  | .forallE ty b _ => NoProjAt T i ty ∧ NoProjAt T i b
+  | .lam ty b => NoProjAt T i ty ∧ NoProjAt T i b
+  | .forallE ty b => NoProjAt T i ty ∧ NoProjAt T i b
   | .letE t v b => NoProjAt T i t ∧ NoProjAt T i v ∧ NoProjAt T i b
   | .fvar _ ty => NoProjAt T i ty
   | _ => True
@@ -61,11 +60,11 @@ variable {T : Name} {i : Nat}
 @[simp] theorem noProjAt_app {f a : Expr} :
     NoProjAt T i (.app f a) ↔ NoProjAt T i f ∧ NoProjAt T i a := by
   rw [NoProjAt]
-@[simp] theorem noProjAt_lam {ty b : Expr} {m : BinderMeta} :
-    NoProjAt T i (.lam ty b m) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
+@[simp] theorem noProjAt_lam {ty b : Expr} :
+    NoProjAt T i (.lam ty b) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
   rw [NoProjAt]
-@[simp] theorem noProjAt_forallE {ty b : Expr} {m : BinderMeta} :
-    NoProjAt T i (.forallE ty b m) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
+@[simp] theorem noProjAt_forallE {ty b : Expr} :
+    NoProjAt T i (.forallE ty b) ↔ NoProjAt T i ty ∧ NoProjAt T i b := by
   rw [NoProjAt]
 @[simp] theorem noProjAt_letE {t v b : Expr} :
     NoProjAt T i (.letE t v b) ↔
@@ -106,12 +105,12 @@ theorem NoProjAt.instantiate1 {v : Expr} (hv : NoProjAt T i v) :
     rw [noProjAt_app] at h
     rw [Expr.instantiate1, noProjAt_app]
     exact ⟨ihf d h.1, iha d h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d h
     rw [noProjAt_lam] at h
     rw [Expr.instantiate1, noProjAt_lam]
     exact ⟨ihty d h.1, ihb (d + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d h
     rw [noProjAt_forallE] at h
     rw [Expr.instantiate1, noProjAt_forallE]
@@ -142,12 +141,12 @@ theorem NoProjAt.liftLooseBVars {k : Nat} :
     rw [noProjAt_app] at h
     simp only [Expr.liftLooseBVars, noProjAt_app]
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro c h
     rw [noProjAt_lam] at h
     simp only [Expr.liftLooseBVars, noProjAt_lam]
     exact ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro c h
     rw [noProjAt_forallE] at h
     simp only [Expr.liftLooseBVars, noProjAt_forallE]
@@ -183,12 +182,12 @@ theorem NoProjAt.instantiateLevelParams (ks : List Name) (us : List Level) :
     rw [noProjAt_app] at h
     rw [Expr.instantiateLevelParams, noProjAt_app]
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     rw [noProjAt_lam] at h
     rw [Expr.instantiateLevelParams, noProjAt_lam]
     exact ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     rw [noProjAt_forallE] at h
     rw [Expr.instantiateLevelParams, noProjAt_forallE]
@@ -222,11 +221,11 @@ theorem noProjAt_of_constsResolve {env : Env} (hT : env.find? T = none) :
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact noProjAt_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b mb ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact noProjAt_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b mb ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h
     exact noProjAt_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -250,8 +249,8 @@ def ProjSlotsOk (env : Env) : Expr → Prop
   | .proj s j e => (∃ entry : ProjEntry, env.findProj? s j = some entry) ∧
       ProjSlotsOk env e
   | .app f a => ProjSlotsOk env f ∧ ProjSlotsOk env a
-  | .lam ty b _ => ProjSlotsOk env ty ∧ ProjSlotsOk env b
-  | .forallE ty b _ => ProjSlotsOk env ty ∧ ProjSlotsOk env b
+  | .lam ty b => ProjSlotsOk env ty ∧ ProjSlotsOk env b
+  | .forallE ty b => ProjSlotsOk env ty ∧ ProjSlotsOk env b
   | .letE t v b => ProjSlotsOk env t ∧ ProjSlotsOk env v ∧ ProjSlotsOk env b
   | .fvar _ ty => ProjSlotsOk env ty
   | _ => True
@@ -260,15 +259,15 @@ decreasing_by all_goals first
   | (simp [Expr.sizeF]; omega)
   | simp [Expr.sizeF]
 
-/-- Every fvar node's type annotation is `ProjSlotsOk` (the annotation
-pass's input discipline: it threads annotated fvars and copies fvar
-nodes verbatim). -/
+/-- Every fvar node's type annotation is `ProjSlotsOk` (vacuous at a
+closed term; inference opens binders at fvars typed by the binders'
+own domains and copies fvar nodes verbatim). -/
 def FvarTysOk (env : Env) : Expr → Prop
   | .fvar _ ty => ProjSlotsOk env ty
   | .proj _ _ e => FvarTysOk env e
   | .app f a => FvarTysOk env f ∧ FvarTysOk env a
-  | .lam ty b _ => FvarTysOk env ty ∧ FvarTysOk env b
-  | .forallE ty b _ => FvarTysOk env ty ∧ FvarTysOk env b
+  | .lam ty b => FvarTysOk env ty ∧ FvarTysOk env b
+  | .forallE ty b => FvarTysOk env ty ∧ FvarTysOk env b
   | .letE t v b => FvarTysOk env t ∧ FvarTysOk env v ∧ FvarTysOk env b
   | _ => True
 termination_by e => e.sizeF
@@ -286,13 +285,13 @@ variable {env : Env}
 @[simp] theorem projSlotsOk_app {f a : Expr} :
     ProjSlotsOk env (.app f a) ↔ ProjSlotsOk env f ∧ ProjSlotsOk env a := by
   rw [ProjSlotsOk]
-@[simp] theorem projSlotsOk_lam {ty b : Expr} {m : BinderMeta} :
-    ProjSlotsOk env (.lam ty b m) ↔
+@[simp] theorem projSlotsOk_lam {ty b : Expr} :
+    ProjSlotsOk env (.lam ty b) ↔
       ProjSlotsOk env ty ∧ ProjSlotsOk env b := by
   rw [ProjSlotsOk]
 @[simp] theorem projSlotsOk_forallE {ty b : Expr}
-    {m : BinderMeta} :
-    ProjSlotsOk env (.forallE ty b m) ↔
+    :
+    ProjSlotsOk env (.forallE ty b) ↔
       ProjSlotsOk env ty ∧ ProjSlotsOk env b := by
   rw [ProjSlotsOk]
 @[simp] theorem projSlotsOk_letE {t v b : Expr} :
@@ -321,11 +320,11 @@ variable {env : Env}
 @[simp] theorem fvarTysOk_app {f a : Expr} :
     FvarTysOk env (.app f a) ↔ FvarTysOk env f ∧ FvarTysOk env a := by
   rw [FvarTysOk]
-@[simp] theorem fvarTysOk_lam {ty b : Expr} {m : BinderMeta} :
-    FvarTysOk env (.lam ty b m) ↔ FvarTysOk env ty ∧ FvarTysOk env b := by
+@[simp] theorem fvarTysOk_lam {ty b : Expr} :
+    FvarTysOk env (.lam ty b) ↔ FvarTysOk env ty ∧ FvarTysOk env b := by
   rw [FvarTysOk]
-@[simp] theorem fvarTysOk_forallE {ty b : Expr} {m : BinderMeta} :
-    FvarTysOk env (.forallE ty b m) ↔
+@[simp] theorem fvarTysOk_forallE {ty b : Expr} :
+    FvarTysOk env (.forallE ty b) ↔
       FvarTysOk env ty ∧ FvarTysOk env b := by
   rw [FvarTysOk]
 @[simp] theorem fvarTysOk_letE {t v b : Expr} :
@@ -357,11 +356,11 @@ theorem FvarTysOk.of_not_hasFvar :
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     exact fvarTysOk_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     exact fvarTysOk_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     simp only [Expr.hasFvar, Bool.or_eq_false_iff] at h
     exact fvarTysOk_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -395,12 +394,12 @@ theorem FvarTysOk.instantiate1 {v : Expr} (hv : FvarTysOk env v) :
     rw [fvarTysOk_app] at h
     rw [Expr.instantiate1, fvarTysOk_app]
     exact ⟨ihf d h.1, iha d h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro d h
     rw [fvarTysOk_lam] at h
     rw [Expr.instantiate1, fvarTysOk_lam]
     exact ⟨ihty d h.1, ihb (d + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro d h
     rw [fvarTysOk_forallE] at h
     rw [Expr.instantiate1, fvarTysOk_forallE]
@@ -416,49 +415,7 @@ theorem FvarTysOk.instantiate1 {v : Expr} (hv : FvarTysOk env v) :
     rw [Expr.instantiate1, fvarTysOk_proj]
     exact ihe d h
 
-/-- Abstraction drops fvar nodes and keeps every slot fact. -/
-theorem ProjSlotsOk.abstract1 :
-    ∀ (e : Expr) (d k : Nat), ProjSlotsOk env e →
-      ProjSlotsOk env (e.abstract1 d k) := by
-  intro e
-  induction e with
-  | bvar j => intro d k _; simp [Expr.abstract1]
-  | sort u => intro d k _; simp [Expr.abstract1]
-  | const n vs => intro d k _; simp [Expr.abstract1]
-  | lit l => intro d k _; simp [Expr.abstract1]
-  | fvar idx ty _ =>
-    intro d k h
-    rw [Expr.abstract1]
-    split
-    · simp
-    · exact h
-  | app f a ihf iha =>
-    intro d k h
-    rw [projSlotsOk_app] at h
-    rw [Expr.abstract1, projSlotsOk_app]
-    exact ⟨ihf d k h.1, iha d k h.2⟩
-  | lam ty b m ihty ihb =>
-    intro d k h
-    rw [projSlotsOk_lam] at h
-    rw [Expr.abstract1, projSlotsOk_lam]
-    exact ⟨ihty d k h.1, ihb d (k + 1) h.2⟩
-  | forallE ty b m ihty ihb =>
-    intro d k h
-    rw [projSlotsOk_forallE] at h
-    rw [Expr.abstract1, projSlotsOk_forallE]
-    exact ⟨ihty d k h.1, ihb d (k + 1) h.2⟩
-  | letE t val b iht ihval ihb =>
-    intro d k h
-    rw [projSlotsOk_letE] at h
-    rw [Expr.abstract1, projSlotsOk_letE]
-    exact ⟨iht d k h.1, ihval d k h.2.1, ihb d (k + 1) h.2.2⟩
-  | proj s j e ihe =>
-    intro d k h
-    rw [projSlotsOk_proj] at h
-    rw [Expr.abstract1, projSlotsOk_proj]
-    exact ⟨h.1, ihe d k h.2⟩
-
-/-- **The annotation source**: an occupied slot at every `.proj` node
+/-- **The `NoProjAt` source**: an occupied slot at every `.proj` node
 means an *empty* slot's node is absent. -/
 theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     ∀ e : Expr, ProjSlotsOk env e → NoProjAt T i e := by
@@ -476,11 +433,11 @@ theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     intro h
     rw [projSlotsOk_app] at h
     exact noProjAt_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro h
     rw [projSlotsOk_lam] at h
     exact noProjAt_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro h
     rw [projSlotsOk_forallE] at h
     exact noProjAt_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -498,116 +455,5 @@ theorem ProjSlotsOk.noProjAt (hslot : env.findProj? T i = none) :
     exact nomatch hfe
 
 end Expr
-
-/-! ## The annotation pass emits only slotted projection nodes -/
-
-variable (mode : CheckMode)
-
-/-- **The annotation walk**: every `.proj` node of an annotated
-expression sits at a tower table slot (hereditarily), provided the
-input's fvar annotations do — which is vacuous for the checker's
-closed inputs and preserved by the pass's own openings. -/
-theorem annotateCore_projSlotsOk {env : Env} :
-    ∀ (fuel : Nat) (e : Expr) {d : Nat} {e' : Expr},
-      annotateCore mode env fuel d e = .ok e' → Expr.FvarTysOk env e →
-      Expr.ProjSlotsOk env e'
-  | 0, _, _, _, h, _ => by simp [annotateCore_zero, throw, throwThe,
-      MonadExceptOf.throw] at h
-  | fuel + 1, .bvar i, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    rw [← h]; simp
-  | fuel + 1, .fvar idx ty, d, e', h, hf => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody] at h
-    revert h
-    split
-    · intro h
-      simp only [pure, Except.pure, Except.ok.injEq] at h
-      rw [← h]
-      exact Expr.projSlotsOk_fvar.mpr (Expr.fvarTysOk_fvar.mp hf)
-    · intro h
-      simp [throw, throwThe, MonadExceptOf.throw] at h
-  | fuel + 1, .sort u, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    rw [← h]; simp
-  | fuel + 1, .const n us, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    simp only [annotateBody, pure, Except.pure, Except.ok.injEq] at h
-    rw [← h]; simp
-  | fuel + 1, .lit l, d, e', h, _ => by
-    rw [annotateCore_succ] at h
-    match l, h with
-    | .natVal n, h => ?natCase
-    | .strVal sv, h => ?strCase
-    case strCase =>
-      dsimp only [annotateBody] at h
-      revert h
-      split
-      case isFalse =>
-        intro h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
-      case isTrue =>
-        intro h
-        simp only [pure, Except.pure, Except.ok.injEq] at h
-        rw [← h]; simp
-    case natCase =>
-      dsimp only [annotateBody] at h
-      revert h
-      split
-      case isFalse =>
-        intro h
-        simp [throw, throwThe, MonadExceptOf.throw] at h
-      case isTrue =>
-        intro h
-        simp only [pure, Except.pure, Except.ok.injEq] at h
-        rw [← h]; simp
-  | fuel + 1, .app f a, d, e', h, hf => by
-    rw [Expr.fvarTysOk_app] at hf
-    obtain ⟨f', a', hfa, haa, rfl⟩ := annotateCore_app_inv h
-    exact Expr.projSlotsOk_app.mpr
-      ⟨annotateCore_projSlotsOk fuel f hfa hf.1,
-        annotateCore_projSlotsOk fuel a haa hf.2⟩
-  | fuel + 1, .proj sn i e, d, e', h, hf => by
-    rw [Expr.fvarTysOk_proj] at hf
-    obtain ⟨e₂, tt, te, he, -, -, T, us, entry, -, hfe, -, rfl⟩ :=
-      annotateCore_proj_inv h
-    have hok₂ := annotateCore_projSlotsOk fuel e he hf
-    exact Expr.projSlotsOk_proj.mpr ⟨⟨entry, hfe⟩, hok₂⟩
-  | fuel + 1, .forallE ty body m, d, e', h, hf => by
-    rw [Expr.fvarTysOk_forallE] at hf
-    obtain ⟨ty', body', pw, hty, hbody, rfl⟩ := annotateCore_forallE_inv h
-    have hty'ok := annotateCore_projSlotsOk fuel ty hty hf.1
-    have hbody'ok := annotateCore_projSlotsOk fuel
-      (body.instantiate1 (.fvar d ty')) hbody
-      (Expr.FvarTysOk.instantiate1 (Expr.fvarTysOk_fvar.mpr hty'ok) body 0 hf.2)
-    exact Expr.projSlotsOk_forallE.mpr
-      ⟨hty'ok, Expr.ProjSlotsOk.abstract1 body' d 0 hbody'ok⟩
-  | fuel + 1, .lam ty body m, d, e', h, hf => by
-    rw [Expr.fvarTysOk_lam] at hf
-    obtain ⟨ty', body', pw, hty, hbody, rfl⟩ := annotateCore_lam_inv h
-    have hty'ok := annotateCore_projSlotsOk fuel ty hty hf.1
-    have hbody'ok := annotateCore_projSlotsOk fuel
-      (body.instantiate1 (.fvar d ty')) hbody
-      (Expr.FvarTysOk.instantiate1 (Expr.fvarTysOk_fvar.mpr hty'ok) body 0 hf.2)
-    exact Expr.projSlotsOk_lam.mpr
-      ⟨hty'ok, Expr.ProjSlotsOk.abstract1 body' d 0 hbody'ok⟩
-  | fuel + 1, .letE ty v b, d, e', h, hf => by
-    rw [Expr.fvarTysOk_letE] at hf
-    obtain ⟨ty', v', -, -, hb, -⟩ := annotateCore_letE_inv h
-    exact annotateCore_projSlotsOk fuel _ hb
-      (Expr.FvarTysOk.instantiate1 hf.2.1 b 0 hf.2.2)
-
-/-- **The block-side source, packaged**: an expression annotated from a
-closed input at an environment where the slot `(T, i)` is empty has no
-`.proj T i` node. -/
-theorem annotateCore_noProjAt {env : Env} {fuel d : Nat} {e e' : Expr}
-    {T : Name} {i : Nat}
-    (h : annotateCore mode env fuel d e = .ok e') (hfv : e.hasFvar = false)
-    (hslot : env.findProj? T i = none) :
-    Expr.NoProjAt T i e' :=
-  Expr.ProjSlotsOk.noProjAt hslot e'
-    (annotateCore_projSlotsOk mode fuel e h (Expr.FvarTysOk.of_not_hasFvar e hfv))
 
 end ConLeche

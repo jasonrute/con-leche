@@ -27,7 +27,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecRule ProjEntry
   ProjTable natName natZeroName natSuccName eqName)
 
@@ -85,7 +85,7 @@ theorem NoProjHead.ofType {c₀ : ConstantInfo} {T : Name} {i : Nat}
     fun cv mI rP rules h => absurd h (hnotrec cv mI rP rules),
     fun tbl h => absurd h (hnottable tbl)⟩
 
-theorem NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
+theorem _root_.ConLeche.Verify.NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
     {c₀ : ConstantInfo} (hh : NoProjHead c₀ T i) :
     NoProjEnv ⟨c₀ :: env.consts⟩ T i where
   type c hc := by
@@ -141,20 +141,19 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
         exact hhead,
       fun _ _ _ _ heq => nomatch heq⟩
   have hreads : ∀ ψ : Name → Nat,
-      denoteMeta (acvalWith mp.base2.acval (ConstantInfo.projInfo tbl).name (fun _ => .sort 0))
+      denote (acvalWith mp.base2.acval (ConstantInfo.projInfo tbl).name (fun _ => .sort 0))
         ⟨.projInfo tbl :: env.consts⟩ ψ 0 (ConstantInfo.projInfo tbl).toConstantVal.type
         = some (.sort 1) := by
     intro ψ
-    show denoteMeta _ _ ψ 0 (.sort (.succ .zero)) = _
-    rw [denoteMeta_sort]
+    show denote _ _ ψ 0 (.sort (.succ .zero)) = _
+    rw [denote_sort]
     rfl
   refine declStep_preserves_of_cons mp (c₀ := .projInfo tbl) (A := fun _ => .sort 0) hfresh hh
-    (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by rw [WellDenoted_sort]; trivial)
-    (fun _ _ => by rw [AnnotValid_sort]; trivial)
+    (fun _ _ _ => rfl) (fun _ _ => by rw [WellDenoted_sort]; trivial)
     (fun ψ => ⟨_, hreads ψ⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)
-      exact ⟨by rw [WellDenoted_sort]; trivial, by rw [AnnotValid_sort]; trivial⟩)
+      exact ⟨by rw [WellDenoted_sort]; trivial, IsTy_univ _⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)
       exact interp_sort_mem V ρ 0)
@@ -175,8 +174,7 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
   · exact eqLaw_cons_fresh mp.eq_law
       (fun h => ne_of_notReserved hnres reserved_eqName h.symm) _ rfl
   · exact capsOk_cons_fresh mp mp.caps_ok hfresh hh.projTower
-      (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h)
-      (fun _ _ _ _ h => nomatch h) _ rfl
+      (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h) _ rfl
   · exact fun φ => recRules_cons_fresh mp hfresh hh.projTower
       (fun _ _ _ _ h => nomatch h) _ rfl φ
   · exact reduceOps_cons_fresh mp.reduce_ops hfresh

@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Verify.Leaves
+import ConLeche.Verify.Leaves
 public import ConLeche.Verify.Denote.Install
 import ConLeche.Kernel.Checker
 
@@ -15,8 +15,7 @@ statement about the CHECKER — `isDefEqCore … = .ok true` — and
 mentions no relation and no valuation.
 
 **Statement conventions**: fuel and mode are carried as
-`(μ, F)`; the annotate pass contributes no relation — its calls
-(`annotateCore μ env F d e = .ok e'`) are V-free side conditions.
+`(μ, F)`.
 -/
 
 namespace ConLeche.Semantics
@@ -43,7 +42,7 @@ def BasisInstallRun (env : Env) : List ConstantInfo → Env → Prop
     BasisInstallRun ⟨ci :: env.consts⟩ rest env₂
 
 /-- A pinned basis block (design §1.5, `basis` row): side conditions
-only — the pinned declarations are pre-annotated, and their semantic
+only — the pinned declarations are stored as pinned, and their semantic
 content is proved once in the model (`Model/Basis*.lean`), not by
 per-install premises. -/
 def DeclBasisRun (env : Env) (kind : BasisKind) (env₂ : Env) : Prop :=

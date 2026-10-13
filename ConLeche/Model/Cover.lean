@@ -1,9 +1,9 @@
 module
 
-public import ConLeche.Model.Annot.EnvModelM
-public import ConLeche.Model.Annot.BitConsCross
+public import ConLeche.Model.Env.EnvModelM
+public import ConLeche.Verify.Denote.ConsCross
 import ConLeche.Model.Install
-import ConLeche.Model.Annot.CanonCrest
+import ConLeche.Model.Env.CanonCrest
 
 public section
 
@@ -37,6 +37,8 @@ carrier with the input's recorded list, re-proved at the extension).
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche (Env Name ConstantInfo)
 
@@ -67,11 +69,6 @@ container name `C` (its `filterMap` function, verbatim). -/
       | _ => none
     | none => none
   | _ => none
-
-/-- The kernel's constructor entry is `ctorEntry`. -/
-theorem nestCtorEntry_eq (C : Name) (ci : ConstantInfo) :
-    ConLeche.nestCtorEntry C ci = ctorEntry C ci := by
-  cases ci <;> rfl
 
 /-- The environment as a walk context: `nestContainer` reads only its
 `find?`. -/
@@ -218,64 +215,9 @@ theorem LfpOwn.mono {env env' : Env} {D : LfpDatum V} (h : LfpOwn env D)
 
 /-! ### Constructor entries, computed -/
 
-theorem constsBound_stripPis {env : Env} :
-    ∀ {k : Nat} {e : Expr} {bs : List (Expr × ConLeche.BinderMeta)} {b : Expr},
-      ConstsBound env e → e.stripPis k = some (bs, b) → ConstsBound env b
-  | 0, e, bs, b, h, hs => by
-    simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at hs
-    obtain ⟨-, rfl⟩ := hs
-    exact h
-  | k + 1, .forallE ty body m, bs, b, h, hs => by
-    simp only [Expr.stripPis, Option.map_eq_some_iff] at hs
-    obtain ⟨⟨bs', b'⟩, hs', he⟩ := hs
-    simp only [Prod.mk.injEq] at he
-    obtain ⟨-, rfl⟩ := he
-    exact constsBound_stripPis ((constsBound_forallE).mp h).2 hs'
-  | _ + 1, .bvar _, _, _, _, hs | _ + 1, .fvar _ _, _, _, _, hs
-  | _ + 1, .sort _, _, _, _, hs | _ + 1, .const _ _, _, _, _, hs
-  | _ + 1, .app _ _, _, _, _, hs | _ + 1, .lam _ _ _, _, _, _, hs
-  | _ + 1, .letE _ _ _, _, _, _, hs | _ + 1, .lit _, _, _, _, hs
-  | _ + 1, .proj _ _ _, _, _, _, hs => by simp [Expr.stripPis] at hs
-
-theorem constsBound_getAppFn {env : Env} :
-    ∀ {e : Expr} {n : Name} {us : List Level},
-      ConstsBound env e → e.getAppFn = .const n us → (env.find? n).isSome = true
-  | .app f _, n, us, h, hg => constsBound_getAppFn ((constsBound_app).mp h).1 hg
-  | .const n' us', n, us, h, hg => by
-    simp only [Expr.getAppFn, Expr.const.injEq] at hg
-    obtain ⟨rfl, -⟩ := hg
-    exact (constsBound_const).mp h
-  | .bvar _, _, _, _, hg | .fvar _ _, _, _, _, hg | .sort _, _, _, _, hg
-  | .lam _ _ _, _, _, _, hg | .forallE _ _ _, _, _, _, hg | .letE _ _ _, _, _, _, hg
-  | .lit _, _, _, _, hg | .proj _ _ _, _, _, _, hg => by simp [Expr.getAppFn] at hg
-
-/-- A stored constant's constructor entry at `C` names a stored head. -/
-theorem ctorEntry_isSome_found {env : Env} {ci : ConstantInfo} {C : Name}
-    (hb : ConstsBound env ci.toConstantVal.type) (h : (ctorEntry C ci).isSome = true) :
-    (env.find? C).isSome = true := by
-  cases ci with
-  | ctorInfo cv nPc nF =>
-    dsimp only [ctorEntry] at h
-    cases hs : cv.type.stripPis (nPc + nF) with
-    | none => rw [hs] at h; exact nomatch h
-    | some p =>
-      obtain ⟨bs, body⟩ := p
-      rw [hs] at h
-      dsimp only at h
-      cases hg : body.getAppFn with
-      | const n us =>
-        rw [hg] at h
-        dsimp only at h
-        by_cases hn : n = C
-        · subst hn
-          exact constsBound_getAppFn (constsBound_stripPis hb hs) hg
-        · rw [ite_eq_right (by simpa using hn)] at h; exact nomatch h
-      | _ => rw [hg] at h; exact nomatch h
-  | _ => exact nomatch h
-
 /-- A constructor's entry at its own head. -/
 theorem ctorEntry_self {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
-    {bs : List (Expr × ConLeche.BinderMeta)} {body : Expr} {T : Name} {us : List Level}
+    {bs : List Expr} {body : Expr} {T : Name} {us : List Level}
     (hc : c₀ = .ctorInfo cv nPc nF) (hs : cv.type.stripPis (nPc + nF) = some (bs, body))
     (hg : body.getAppFn = .const T us) : ctorEntry T c₀ = some (cv, nPc, nF) := by
   subst hc
@@ -283,7 +225,7 @@ theorem ctorEntry_self {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
 
 /-- A constructor has an entry only at its own head. -/
 theorem ctorEntry_head {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
-    {bs : List (Expr × ConLeche.BinderMeta)} {body : Expr} {T : Name} {us : List Level}
+    {bs : List Expr} {body : Expr} {T : Name} {us : List Level}
     (hc : c₀ = .ctorInfo cv nPc nF) (hs : cv.type.stripPis (nPc + nF) = some (bs, body))
     (hg : body.getAppFn = .const T us) {C : Name} (h : (ctorEntry C c₀).isSome = true) :
     C = T := by
@@ -296,7 +238,7 @@ theorem ctorEntry_head {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
 
 /-- The cons premise `hhead` at a constructor whose head is `T`. -/
 theorem hhead_ctor {env : Env} {ex : List Name} {c₀ : ConstantInfo} {cv : ConstantVal}
-    {nPc nF : Nat} {bs : List (Expr × ConLeche.BinderMeta)} {body : Expr} {T : Name}
+    {nPc nF : Nat} {bs : List Expr} {body : Expr} {T : Name}
     {us : List Level}
     (hc : c₀ = .ctorInfo cv nPc nF) (hs : cv.type.stripPis (nPc + nF) = some (bs, body))
     (hg : body.getAppFn = .const T us)
@@ -504,16 +446,16 @@ its constructors' environment): the block's members leave the
 exemption list, given its names distinct, one per member, listed as
 their formers' `all`, and its constructors owned. -/
 theorem LfpCover.addLfp {env : Env} {mp : EnvModelM V μ env} {ex : List Name}
-    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC)
+    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC) (hcaps)
     (hnd : D.names.Nodup) (hlen : D.names.length = D.k)
     (hall : ∀ mm, mm < D.k → ∀ cv caps,
       env.find? (D.member mm) = some (.indInfo cv caps) → caps.all = D.names)
     (hown : LfpOwn env D) (hwid : D.N = D.k := by rfl) :
-    LfpCover (mp.addLfp D hL hst hrd hrdC) (ex.filter (· ∉ D.names)) where
+    LfpCover (mp.addLfp D hL hst hrd hrdC hcaps) (ex.filter (· ∉ D.names)) where
   cover := fun n cv caps hf hn hq => by
     by_cases hD : n ∈ D.names
     · obtain ⟨mm, hmm, rfl⟩ := List.getElem_of_mem hD
-      refine ⟨D, EnvModelM.mem_addLfp mp D hL hst hrd hrdC, mm, hlen ▸ hmm, ?_⟩
+      refine ⟨D, EnvModelM.mem_addLfp mp D hL hst hrd hrdC hcaps, mm, hlen ▸ hmm, ?_⟩
       simp [LfpDatum.member, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hmm]
     · have hn0 : n ∉ ex := fun h' => hn (List.mem_filter.mpr ⟨h', by simpa using hD⟩)
       obtain ⟨D', hD', rest⟩ := h.cover n cv caps hf hn0 hq
@@ -549,14 +491,14 @@ theorem LfpCover.addLfp {env : Env} {mp : EnvModelM V μ env} {ex : List Name}
 
 /-- `LfpCover.addLfp` at a named result list. -/
 theorem LfpCover.addLfp_to {env : Env} {mp : EnvModelM V μ env} {ex ex'' : List Name}
-    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC)
+    (h : LfpCover mp ex) (D : LfpDatum V) (hL) (hst) (hrd) (hrdC) (hcaps)
     (hnd : D.names.Nodup) (hlen : D.names.length = D.k)
     (hall : ∀ mm, mm < D.k → ∀ cv caps,
       env.find? (D.member mm) = some (.indInfo cv caps) → caps.all = D.names)
     (hown : LfpOwn env D)
     (hex : ex.filter (· ∉ D.names) = ex'') (hwid : D.N = D.k := by rfl) :
-    LfpCover (mp.addLfp D hL hst hrd hrdC) ex'' :=
-  hex ▸ h.addLfp D hL hst hrd hrdC hnd hlen hall hown hwid
+    LfpCover (mp.addLfp D hL hst hrd hrdC hcaps) ex'' :=
+  hex ▸ h.addLfp D hL hst hrd hrdC hcaps hnd hlen hall hown hwid
 
 /-- A one-member block's record empties the exemption list its former's
 cons opened. -/
@@ -594,25 +536,25 @@ theorem CoverTo.of_eq {env env' : Env} {mp : EnvModelM V μ env} {ex : List Name
 /-- **A funnel carrier, rebuilt with the input's recorded list** (the
 same `base2`): the recorded clauses re-proved as the funnel does. -/
 theorem EnvModelM.keepLfpOf {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} (hfresh : env.find? c₀.name = none)
+    {A : (Name → Nat) → Term} (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀) (mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩)
     (hac : mp'.base2.acval = acvalWith mp.base2.acval c₀.name A) :
     ∃ mk : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mk.base2 = mp'.base2 ∧ mk.lfpBlocks = mp.lfpBlocks := by
-  have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
+  have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
   have hok := mp.lfp_ok_transport (acval' := acvalWith mp.base2.acval c₀.name A)
     (fun _ _ hf _ => findPreserved_cons hfresh hf)
     (fun n _ hf _ => acvalWith_ne fun h => by
       rw [h, hfresh] at hf; exact nomatch hf)
     (fun _ _ _ hf ψ _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
-      denoteMeta_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
+      have hm := ConLeche.Env.find?_mem hf
+      denote_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
     (fun _ _ _ _ hf ψ _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
-      denoteMeta_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
+      have hm := ConLeche.Env.find?_mem hf
+      denote_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
     (fun _ _ hf _ _ hA ψ d _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
-      denoteMeta_cons_mono hfresh (canonOf_consCrossAt (hcross.type hm) hA) ψ d
+      have hm := ConLeche.Env.find?_mem hf
+      denote_cons_mono hfresh (canonOf_consCrossAt (hcross.type hm) hA) ψ d
         (canonOf_constsBound (hbound _ hm).1 hA) hta)
   exact ⟨{ mp' with
     lfpBlocks := mp.lfpBlocks
@@ -626,7 +568,7 @@ clauses exactly as the funnel does (`lfp_ok_transport` at a fresh cons
 whose head is no projection table, or a table whose slots no stored
 piece mentions). -/
 theorem EnvModelM.keepLfp {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} (hfresh : env.find? c₀.name = none)
+    {A : (Name → Nat) → Term} (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A) :
@@ -640,7 +582,7 @@ theorem EnvModelM.keepLfp {env : Env} {mp : EnvModelM V μ env} {c₀ : Constant
 /-- **A fresh cons, through the funnel, carrying coverage** and keeping
 the funnel's leaf (the chains that read it downstream: `Eq`'s). -/
 theorem coverA_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex ex' : List Name}
+    {A : (Name → Nat) → Term} {ex ex' : List Name}
     (hfresh : env.find? c₀.name = none)
     (hex : ∀ n ∈ ex, n ∈ ex')
     (hni : ∀ cv caps, c₀ = .indInfo cv caps → c₀.name = ConLeche.quotName ∨ c₀.name ∈ ex')
@@ -660,7 +602,7 @@ theorem coverA_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 /-- **A fresh non-inductive cons** (or `Quot`'s), through the funnel:
 coverage at the same exemption list. -/
 theorem coverTo_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex : List Name}
+    {A : (Name → Nat) → Term} {ex : List Name}
     (hfresh : env.find? c₀.name = none)
     (hni : ∀ cv caps, c₀ = .indInfo cv caps → c₀.name = ConLeche.quotName)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
@@ -677,7 +619,7 @@ theorem coverTo_cons {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 /-- **A former's cons**, through the funnel: its name joins the
 exemption list. -/
 theorem coverA_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex : List Name}
+    {A : (Name → Nat) → Term} {ex : List Name}
     (hfresh : env.find? c₀.name = none)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A)
@@ -693,7 +635,7 @@ theorem coverA_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 
 /-- **A former's cons**, through the funnel, as a `CoverTo`. -/
 theorem coverTo_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
-    {A : (Name → Nat) → AnnotTerm} {ex : List Name}
+    {A : (Name → Nat) → Term} {ex : List Name}
     (hfresh : env.find? c₀.name = none)
     (h : ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A)
@@ -705,11 +647,11 @@ theorem coverTo_pend {env : Env} {mp : EnvModelM V μ env} {c₀ : ConstantInfo}
 /-- **A block's record** on a carrier whose leaf is `acval`: the block's
 names leave the exemption list (`hex` names the result). -/
 theorem coverTo_addLfp {env env' : Env} {mp : EnvModelM V μ env} {ex ex' ex'' : List Name}
-    {acval : Name → (Name → Nat) → AnnotTerm}
+    {acval : Name → (Name → Nat) → Term}
     (h : ∃ mp' : EnvModelM V μ env', mp'.base2.acval = acval ∧
       (LfpCover mp ex → LfpCover mp' ex'))
     (D : LfpDatum V) (hL : LfpClause acval D) (hst : LfpStored env' D)
-    (hrd : LfpReads acval env' D) (hrdC : LfpCtorReads acval env' D)
+    (hrd : LfpReads acval env' D) (hrdC : LfpCtorReads acval env' D) (hcaps : LfpCaps env' D)
     (hnd : D.names.Nodup) (hlen : D.names.length = D.k)
     (hall : ∀ mm, mm < D.k → ∀ cv caps,
       env'.find? (D.member mm) = some (.indInfo cv caps) → caps.all = D.names)
@@ -718,7 +660,8 @@ theorem coverTo_addLfp {env env' : Env} {mp : EnvModelM V μ env} {ex ex' ex'' :
     CoverTo mp ex env' ex'' := by
   obtain ⟨mp', hac, hc⟩ := h
   subst hac hex
-  exact ⟨mp'.addLfp D hL hst hrd hrdC, fun h0 => (hc h0).addLfp D _ _ _ _ hnd hlen hall hown hwid⟩
+  exact ⟨mp'.addLfp D hL hst hrd hrdC hcaps,
+    fun h0 => (hc h0).addLfp D _ _ _ _ _ hnd hlen hall hown hwid⟩
 
 /-- A one-member block's names are distinct. -/
 theorem nodup_one (n : Name) : [n].Nodup := by simp

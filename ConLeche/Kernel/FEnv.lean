@@ -200,13 +200,6 @@ def towerSlotsAllF (fe : FEnv) (T : Name) (nF : Nat) : Bool :=
 def andRescueSlotsF (fe : FEnv) (ctor : Name) (nP : Nat) (ust : List Level) : Bool :=
   andRescueSlotsOf fe.findProj? ctor nP ust
 
-/-- `recSlotsAll` through the index. -/
-def recSlotsAllF (fe : FEnv) (T : Name) (nF : Nat) : Bool :=
-  (List.range nF).all fun j =>
-    match fe.find? (projFnName T j) with
-    | some (.recInfo _ _ _ _) => true
-    | _ => false
-
 end FEnv
 
 /-! ### Indexed guard twins (same result as the `Env` versions) -/
@@ -235,10 +228,12 @@ def natOpGuardF (fe : FEnv) (c : Name) : Bool :=
     | _ => false) &&
   (if c = natBeqName || c = natBleName || natDivModNames.contains c then
     (match fe.find? boolTrueName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false) &&
     (match fe.find? boolFalseName with
-      | some ci => ci.toConstantVal.levelParams.isEmpty
+      | some ci => ci.toConstantVal.levelParams.isEmpty &&
+          ci.toConstantVal.type == .const boolName []
       | none => false)
    else true)
 

@@ -7,8 +7,8 @@ import ConLeche.Model.Rules.Sound
 public import ConLeche.Model.CtxOkP
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Model.Annot.BitLemmas
-import ConLeche.Model.Annot.BitShift
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Depth
 import ConLeche.Semantics.Frame
 import ConLeche.Verify.Denote.Shift
 import ConLeche.Verify.InferLemmas
@@ -21,7 +21,7 @@ public section
 
 The semantic vocabulary of the positivity theorem: the hole positions
 (`holeP`), a term free of holes reads without them
-(`denoteMeta_noBVar_of_nestOcc`), spines, the HOLE RELATION (`HoleRel`:
+(`denote_noBVar_of_nestOcc`), spines, the HOLE RELATION (`HoleRel`:
 related frames satisfy the context, agree off the holes, and every
 member and frame hole grows), `PiPosThen`/`ResultAt`/`ResultIdxConst`.
 The theorem itself — every judgment of the positivity DERIVATION reads
@@ -39,7 +39,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestKey NestHole)
 
 universe w
@@ -80,9 +80,9 @@ theorem nestOcc_instantiate1_fvar {names : List Name} {lo hi d : Nat}
   | lit l => intro k; rfl
   | app f a ihf iha =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, ihf, iha]
-  | lam t b mm iht ihb =>
+  | lam t b iht ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihb]
-  | forallE t b mm iht ihb =>
+  | forallE t b iht ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihb]
   | letE t v b iht ihv ihb =>
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, iht, ihv, ihb]
@@ -90,30 +90,30 @@ theorem nestOcc_instantiate1_fvar {names : List Name} {lo hi d : Nat}
     intro k; simp [ConLeche.Expr.instantiate1, ConLeche.Expr.nestOcc, ih]
 
 /-- A reading whose erasure is closed mentions no position at all. -/
-theorem noBVar_of_closed {ea : AnnotTerm} (h : Term.bvarsBelow 0 ea.erase) (P : Nat → Prop) :
+theorem noBVar_of_closed {ea : Term} (h : Term.bvarsBelow 0 ea) (P : Nat → Prop) :
     NoBVar P ea :=
   NoBVar_of_bvarsBelow h fun _ _ => Nat.zero_le _
 
-theorem noBVar_projAV {P : Nat → Prop} : ∀ (k : Nat) {e : AnnotTerm}, NoBVar P e →
-    NoBVar P (projAV k e)
+theorem noBVar_projNV {P : Nat → Prop} : ∀ (k : Nat) {e : Term}, NoBVar P e →
+    NoBVar P (projNV k e)
   | 0, _, h => h
-  | k + 1, _, h => noBVar_projAV (P := P) k (e := .snd _) h
+  | k + 1, _, h => noBVar_projNV (P := P) k (e := .snd _) h
 
 /-- **A term mentioning no hole reads without the holes' positions**, at
 `fvarsBelow` scoping. -/
-theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
-    ∀ (d : Nat) (e : Expr) {ea : AnnotTerm}, Expr.fvarsBelow d e → hi ≤ d →
+theorem denote_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
+    ∀ (d : Nat) (e : Expr) {ea : Term}, Expr.fvarsBelow d e → hi ≤ d →
       e.nestOcc names lo hi = false →
-      denoteMeta m.acval env φ d e = some ea → NoBVar (holeP d lo hi) ea := by
+      denote m.acval env φ d e = some ea → NoBVar (holeP d lo hi) ea := by
   intro d e
-  induction d, e using denoteMeta.induct (env := env) with
+  induction d, e using denote.induct (env := env) with
   | case1 d u =>
     intro ea _ _ _ h
-    rw [denoteMeta] at h
+    rw [denote] at h
     cases h; trivial
   | case2 d idx ty =>
     intro ea hws _ hocc h
-    rw [denoteMeta] at h
+    rw [denote] at h
     cases h
     simp only [Expr.fvarsBelow] at hws
     simp only [ConLeche.Expr.nestOcc, decide_eq_false_iff_not] at hocc
@@ -122,24 +122,24 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     exact hocc ⟨by omega, by omega⟩
   | case3 d n us ci hf hlen =>
     intro ea _ _ _ h
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     dsimp only at h
     rw [ite_eq_left hlen] at h
     cases h
-    exact noBVar_of_closed (m.cval_closedL _ _) _
+    exact noBVar_of_closed (m.cval_closed _ _) _
   | case4 d n us ci hf hlen =>
     intro ea _ _ _ h
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     dsimp only at h
     rw [ite_eq_right hlen] at h
     exact nomatch h
   | case5 d n us hf =>
     intro ea _ _ _ h
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     exact nomatch h
-  | case6 d ty body mb ihty ihbody =>
+  | case6 d ty body ihty ihbody =>
     intro ea hws hd hocc h
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv h
     simp only [Expr.fvarsBelow] at hws
     simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hocc
     refine ⟨ihty hws.1 hd hocc.1 hta, ?_⟩
@@ -148,13 +148,13 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     have hocc' : (body.instantiate1 (.fvar d ty)).nestOcc names lo hi = false := by
       rw [nestOcc_instantiate1_fvar (by omega) ty body 0]; exact hocc.2
     exact NoBVar.mono holeP_succ (ihbody hws' (by omega) hocc' hba)
-  | case7 d ty body mb ihty ihbody =>
+  | case7 d ty body ihty ihbody =>
     intro ea hws hd hocc h
-    rw [denoteMeta] at h
-    rcases hta : denoteMeta m.acval env φ d ty with _ | ta
+    rw [denote] at h
+    rcases hta : denote m.acval env φ d ty with _ | ta
     · rw [hta] at h; exact nomatch h
     rw [hta] at h
-    rcases hba : denoteMeta m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty)) with _ | ba
+    rcases hba : denote m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty)) with _ | ba
     · rw [hba] at h; exact nomatch h
     rw [hba] at h
     cases h
@@ -168,38 +168,45 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     exact NoBVar.mono holeP_succ (ihbody hws' (by omega) hocc' hba)
   | case8 d fe a ihf iha =>
     intro ea hws hd hocc h
-    rw [denoteMeta] at h
-    rcases hfa : denoteMeta m.acval env φ d fe with _ | fa
+    rw [denote] at h
+    rcases hfa : denote m.acval env φ d fe with _ | fa
     · rw [hfa] at h; exact nomatch h
     rw [hfa] at h
-    rcases haa : denoteMeta m.acval env φ d a with _ | aa
+    rcases haa : denote m.acval env φ d a with _ | aa
     · rw [haa] at h; exact nomatch h
     rw [haa] at h
     cases h
     simp only [Expr.fvarsBelow] at hws
     simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hocc
     exact ⟨ihf hws.1 hd hocc.1 hfa, iha hws.2 hd hocc.2 haa⟩
-  | case9 d ty val body =>
-    intro ea _ _ _ h
-    rw [denoteMeta] at h
-    exact nomatch h
+  | case9 d ty val body ihty ihv ihbody =>
+    intro ea hws hd hocc h
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denote_letE_inv h
+    simp only [Expr.fvarsBelow] at hws
+    simp only [ConLeche.Expr.nestOcc, Bool.or_eq_false_iff] at hocc
+    refine ⟨ihv hws.2.1 hd hocc.1.2 hva, ?_⟩
+    have hws' : Expr.fvarsBelow (d + 1) (body.instantiate1 (.fvar d ty)) :=
+      Expr.fvarsBelow_instantiate1 0 hws.2.2
+    have hocc' : (body.instantiate1 (.fvar d ty)).nestOcc names lo hi = false := by
+      rw [nestOcc_instantiate1_fvar (by omega) ty body 0]; exact hocc.2
+    exact NoBVar.mono holeP_succ (ihbody hws' (by omega) hocc' hba)
   | case10 d sn i e ihe =>
     intro ea hws hd hocc h
-    rw [denoteMeta] at h
-    rcases hea : denoteMeta m.acval env φ d e with _ | ea'
+    rw [denote] at h
+    rcases hea : denote m.acval env φ d e with _ | ea'
     · rw [hea] at h; exact nomatch h
     rw [hea] at h
     simp only [Expr.fvarsBelow] at hws
     simp only [ConLeche.Expr.nestOcc] at hocc
     have hsub := ihe hws hd hocc hea
     replace h : (match env.findProj? sn i with
-        | some entry => some (projAV (i + entry.off) ea')
-        | none => AnnotTerm.projPair? i ea') = some ea := h
+        | some entry => some (projNV (i + entry.off) ea')
+        | none => Term.projPair? i ea') = some ea := h
     cases hfp : env.findProj? sn i with
     | some entry =>
       rw [hfp] at h
       cases h
-      exact noBVar_projAV _ hsub
+      exact noBVar_projNV _ hsub
     | none =>
       rw [hfp] at h
       rcases i with _ | _ | i
@@ -208,33 +215,33 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
       · exact nomatch h
   | case11 d k hsup =>
     intro ea _ _ _ h
-    have h0 : denoteMeta m.acval env φ 0 (.lit (.natVal k)) = some ea := by
-      rw [denoteMeta, ite_eq_left hsup] at h ⊢; exact h
-    exact noBVar_of_closed (denote_bvarsBelow m.cval_closedL 0 _ (by simp [Expr.WScoped]) rfl
-      (denoteMeta_erase m.acval_erase 0 _ h0)) _
+    have h0 : denote m.acval env φ 0 (.lit (.natVal k)) = some ea := by
+      rw [denote, ite_eq_left hsup] at h ⊢; exact h
+    exact noBVar_of_closed (denote_bvarsBelow m.cval_closed 0 _ (by simp [Expr.WScoped]) rfl
+      h0) _
   | case12 d k hsup =>
     intro ea _ _ _ h
-    rw [denoteMeta, ite_eq_right hsup] at h
+    rw [denote, ite_eq_right hsup] at h
     exact nomatch h
   | case13 d s hsup =>
     intro ea _ _ _ h
-    have h0 : denoteMeta m.acval env φ 0 (.lit (.strVal s)) = some ea := by
-      rw [denoteMeta, ite_eq_left hsup] at h ⊢; exact h
-    exact noBVar_of_closed (denote_bvarsBelow m.cval_closedL 0 _ (by simp [Expr.WScoped]) rfl
-      (denoteMeta_erase m.acval_erase 0 _ h0)) _
+    have h0 : denote m.acval env φ 0 (.lit (.strVal s)) = some ea := by
+      rw [denote, ite_eq_left hsup] at h ⊢; exact h
+    exact noBVar_of_closed (denote_bvarsBelow m.cval_closed 0 _ (by simp [Expr.WScoped]) rfl
+      h0) _
   | case14 d s hsup =>
     intro ea _ _ _ h
-    rw [denoteMeta, ite_eq_right hsup] at h
+    rw [denote, ite_eq_right hsup] at h
     exact nomatch h
   | case15 d x hxs hfv hc hpi hlam happ hlet hproj hnat hstr =>
     intro ea _ _ _ h
     cases x with
-    | bvar i => rw [denoteMeta.eq_def] at h; exact nomatch h
+    | bvar i => rw [denote.eq_def] at h; exact nomatch h
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
-    | forallE ty b mb => exact absurd rfl (hpi ty b mb)
-    | lam ty b mb => exact absurd rfl (hlam ty b mb)
+    | forallE ty b => exact absurd rfl (hpi ty b)
+    | lam ty b => exact absurd rfl (hlam ty b)
     | app fe a => exact absurd rfl (happ fe a)
     | letE ty v b => exact absurd rfl (hlet ty v b)
     | proj sn i e => exact absurd rfl (hproj sn i e)
@@ -243,11 +250,11 @@ theorem denoteMeta_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
       | natVal k => exact absurd rfl (hnat k)
       | strVal s => exact absurd rfl (hstr s)
 
-/-- `denoteMeta_noBVar_of_nestOcc'` at `WScoped` scoping. -/
-theorem denoteMeta_noBVar_of_nestOcc {names : List Name} {lo hi : Nat} (d : Nat) (e : Expr)
-    {ea : AnnotTerm} (hws : Expr.WScoped d e) (hd : hi ≤ d) (hocc : e.nestOcc names lo hi = false)
-    (h : denoteMeta m.acval env φ d e = some ea) : NoBVar (holeP d lo hi) ea :=
-  denoteMeta_noBVar_of_nestOcc' d e (Expr.WScoped.fvarsBelow hws) hd hocc h
+/-- `denote_noBVar_of_nestOcc'` at `WScoped` scoping. -/
+theorem denote_noBVar_of_nestOcc {names : List Name} {lo hi : Nat} (d : Nat) (e : Expr)
+    {ea : Term} (hws : Expr.WScoped d e) (hd : hi ≤ d) (hocc : e.nestOcc names lo hi = false)
+    (h : denote m.acval env φ d e = some ea) : NoBVar (holeP d lo hi) ea :=
+  denote_noBVar_of_nestOcc' d e (Expr.WScoped.fvarsBelow hws) hd hocc h
 
 /-! ## Spines -/
 
@@ -263,50 +270,36 @@ theorem wScoped_mkAppN {d : Nat} :
     · exact hfa.2
     · exact has x hx
 
-theorem DenoteMetaSpine.length_eq {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env φ d as vs →
+theorem DenoteSpine.length_eq {acval : Name → (Name → Nat) → Term} {d : Nat} :
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine acval env φ d as vs →
       as.length = vs.length
   | _, _, .nil => rfl
-  | _, _, .cons _ h => by simp [DenoteMetaSpine.length_eq h]
+  | _, _, .cons _ h => by simp [DenoteSpine.length_eq h]
 
-theorem DenoteMetaSpine.split {acval : Name → (Name → Nat) → AnnotTerm} {d : Nat} :
-    ∀ (as : List Expr) {bs : List Expr} {vs : List AnnotTerm},
-      DenoteMetaSpine acval env φ d (as ++ bs) vs →
-      ∃ vs₁ vs₂, vs = vs₁ ++ vs₂ ∧ DenoteMetaSpine acval env φ d as vs₁ ∧
-        DenoteMetaSpine acval env φ d bs vs₂
+theorem DenoteSpine.split {acval : Name → (Name → Nat) → Term} {d : Nat} :
+    ∀ (as : List Expr) {bs : List Expr} {vs : List Term},
+      DenoteSpine acval env φ d (as ++ bs) vs →
+      ∃ vs₁ vs₂, vs = vs₁ ++ vs₂ ∧ DenoteSpine acval env φ d as vs₁ ∧
+        DenoteSpine acval env φ d bs vs₂
   | [], _, _, h => ⟨[], _, rfl, .nil, h⟩
   | a :: as, bs, _, .cons ha h => by
-    obtain ⟨vs₁, vs₂, rfl, h₁, h₂⟩ := DenoteMetaSpine.split as h
+    obtain ⟨vs₁, vs₂, rfl, h₁, h₂⟩ := DenoteSpine.split as h
     exact ⟨_ :: vs₁, vs₂, rfl, .cons ha h₁, h₂⟩
 
 /-- Hole-free arguments read hole-free. -/
 theorem constOn_spine {names : List Name} {lo hi d : Nat} {R : FrameRel V}
     (hR : R.AgreesOff (holeP d lo hi)) (hd : hi ≤ d) :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine m.acval env φ d as vs →
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine m.acval env φ d as vs →
       (∀ a ∈ as, Expr.WScoped d a ∧ a.nestOcc names lo hi = false) →
       ∀ v ∈ vs, ConstOn R v
   | _, _, .nil, _ => fun _ hv => nomatch hv
   | a :: _, _ :: _, .cons ha h, hall => fun x hx => by
     rcases List.mem_cons.mp hx with rfl | hx
     · obtain ⟨hw, ho⟩ := hall a (List.mem_cons_self ..)
-      exact ConstOn.of_noBVar hR (denoteMeta_noBVar_of_nestOcc d a hw hd ho ha)
+      exact ConstOn.of_noBVar hR (denote_noBVar_of_nestOcc d a hw hd ho ha)
     · exact constOn_spine hR hd h (fun b hb => hall b (List.mem_cons_of_mem _ hb)) x hx
 
 /-! ## The relation the run is proved along -/
-
-/-- A spine of `d`-scoped terms read one level deeper is its depth-`d`
-reading, lifted. -/
-theorem DenoteMetaSpine.weaken_top {d : Nat} :
-    ∀ {as : List Expr} {vs' : List AnnotTerm}, (∀ x ∈ as, Expr.WScoped d x) →
-      DenoteMetaSpine m.acval env φ (d + 1) as vs' →
-      ∃ vs, DenoteMetaSpine m.acval env φ d as vs ∧ vs' = vs.map (AnnotTerm.liftN 1 · 0)
-  | _, _, _, .nil => ⟨[], .nil, rfl⟩
-  | a :: as, _ :: _, hws, .cons ha h => by
-    obtain ⟨vs, hvs, rfl⟩ :=
-      DenoteMetaSpine.weaken_top (fun x hx => hws x (List.mem_cons_of_mem _ hx)) h
-    rw [denoteMeta_weaken_top m.acval_closed (hws a List.mem_cons_self)] at ha
-    obtain ⟨v, hv, rfl⟩ := Option.map_eq_some_iff.mp ha
-    exact ⟨v :: vs, .cons hv hvs, rfl⟩
 
 /-- **The hole relation** at depth `d` under the frames `prog`: related
 frames satisfy the context, agree off the hole positions, the member
@@ -317,7 +310,7 @@ grows at its full arity (the container member's indices: the kernel's
 its container's carrier grows only at full arity, a partial application
 being a graph). -/
 structure HoleRel (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx) (prog : List NestHole)
-    (d : Nat) (Δa : List AnnotTerm) (R : FrameRel V) : Prop where
+    (d : Nat) (Δa : List Term) (R : FrameRel V) : Prop where
   dom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ'
   agree : R.AgreesOff (holeP d ctx.nP (ctx.hiAt prog.length))
   member : ∀ t, t < ctx.names.length →
@@ -332,9 +325,9 @@ structure HoleRel (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx) (prog
 
 /-- **Under a positive binder** (a hole-free domain, or an earlier field)
 the relation is the same one level deeper. -/
-theorem HoleRel.under {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+theorem HoleRel.under {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List Term}
     {R : FrameRel V} (h : HoleRel m φ ctx prog d Δa R) (hd : ctx.hiAt prog.length ≤ d)
-    {ta : AnnotTerm} (hA : MonoOn R ta) :
+    {ta : Term} (hA : MonoOn R ta) :
     HoleRel m φ ctx prog (d + 1) (ta :: Δa) (R.under ta) where
   dom := by
     rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
@@ -364,24 +357,24 @@ theorem HoleRel.under {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : Li
 
 /-- **The first `n` Π-domains of a reading positive**, each under the
 earlier ones, and `P` of the relation and the reading below them. -/
-@[expose] def PiPosThen (P : FrameRel V → AnnotTerm → Prop) :
-    Nat → FrameRel V → AnnotTerm → Prop
+@[expose] def PiPosThen (P : FrameRel V → Term → Prop) :
+    Nat → FrameRel V → Term → Prop
   | 0, R, r => P R r
-  | n + 1, R, .pi _ _ A B => MonoOn R A ∧ PiPosThen P n (R.under A) B
+  | n + 1, R, .pi A B => MonoOn R A ∧ PiPosThen P n (R.under A) B
   | _ + 1, _, _ => False
 
 /-- What a telescope walk leaves at its result `res`, at depth `D`: the
 relation still agrees off the hole positions, and the result reads. -/
 @[expose] def ResultAt (m : EnvModel V env) (φ : Name → Nat) (lo hi D : Nat) (res : Expr)
-    (R : FrameRel V) (r : AnnotTerm) : Prop :=
-  R.AgreesOff (holeP D lo hi) ∧ denoteMeta m.acval env φ D res = some r ∧ Expr.WScoped D res
+    (R : FrameRel V) (r : Term) : Prop :=
+  R.AgreesOff (holeP D lo hi) ∧ denote m.acval env φ D res = some r ∧ Expr.WScoped D res
 
 /-- A Π-tower positive along a relation is positive field by field, and
 its body satisfies the predicate under the fields. -/
-theorem piPosThen_mkPisAV {P : FrameRel V → AnnotTerm → Prop} :
-    ∀ (ab : List (Nat × Nat × AnnotTerm)) (R : FrameRel V) (b : AnnotTerm),
+theorem piPosThen_mkPisAV {P : FrameRel V → Term → Prop} :
+    ∀ (ab : List Term) (R : FrameRel V) (b : Term),
       PiPosThen P ab.length R (mkPisAV ab b) →
-      TeleMonoOn R (ab.map (·.2.2)) ∧ P (R.underTele (ab.map (·.2.2))) b
+      TeleMonoOn R ab ∧ P (R.underTele ab) b
   | [], _, _, h => ⟨trivial, h⟩
   | _ :: ab, R, b, h => by
     obtain ⟨h1, h2⟩ := h
@@ -389,31 +382,31 @@ theorem piPosThen_mkPisAV {P : FrameRel V → AnnotTerm → Prop} :
     exact ⟨⟨h1, ht⟩, hp⟩
 
 /-- The number of applications on a spine. -/
-def spineLenAV : AnnotTerm → Nat
+def spineLenAV : Term → Nat
   | .app f _ => spineLenAV f + 1
   | _ => 0
 
-theorem spineLenAV_mkAppN : ∀ (as : List AnnotTerm) (f : AnnotTerm),
-    spineLenAV (AnnotTerm.mkAppN f as) = spineLenAV f + as.length
+theorem spineLenAV_mkAppN : ∀ (as : List Term) (f : Term),
+    spineLenAV (Term.mkAppN f as) = spineLenAV f + as.length
   | [], _ => rfl
   | a :: as, f => by
-    rw [ConLeche.Semantics.AnnotTerm.mkAppN_cons, spineLenAV_mkAppN as]
+    rw [Term.mkAppN_cons, spineLenAV_mkAppN as]
     simp [spineLenAV]; omega
 
 /-- Spines headed by a variable are equal only at equal variables and
 arguments. -/
-theorem mkAppN_bvar_inj {i j : Nat} {as bs : List AnnotTerm}
-    (h : AnnotTerm.mkAppN (.bvar i) as = AnnotTerm.mkAppN (.bvar j) bs) : i = j ∧ as = bs := by
+theorem mkAppN_bvar_inj {i j : Nat} {as bs : List Term}
+    (h : Term.mkAppN (.bvar i) as = Term.mkAppN (.bvar j) bs) : i = j ∧ as = bs := by
   have hl := congrArg spineLenAV h
   rw [spineLenAV_mkAppN, spineLenAV_mkAppN] at hl
   simp only [spineLenAV, Nat.zero_add] at hl
-  obtain ⟨h1, h2⟩ := AnnotTerm.mkAppN_inj h hl
+  obtain ⟨h1, h2⟩ := Term.mkAppN_inj h hl
   injection h1 with h1
   exact ⟨h1, h2⟩
 
 /-- **A member constructor's result**: its reading is a hole applied to
 hole-free arguments (the result's indices). -/
-@[expose] def ResultIdxConst (R : FrameRel V) (r : AnnotTerm) : Prop :=
-  ∃ i vs, r = AnnotTerm.mkAppN (.bvar i) vs ∧ ∀ v ∈ vs, ConstOn R v
+@[expose] def ResultIdxConst (R : FrameRel V) (r : Term) : Prop :=
+  ∃ i vs, r = Term.mkAppN (.bvar i) vs ∧ ∀ v ∈ vs, ConstOn R v
 
 end ConLeche.Model

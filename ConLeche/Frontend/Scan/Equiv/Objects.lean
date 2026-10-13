@@ -475,7 +475,6 @@ macro_rules
       | exact naiveBinderInfo_rest_suffix _
       | exact naiveStr_rest_suffix _
       | exact naiveNatList_rest_suffix _
-      | exact naivePw_rest_suffix _
       | exact naiveHints_rest_suffix _)
 
 /-- A slot's `read` returns a suffix of the value's input, because its
@@ -493,7 +492,6 @@ macro_rules
       | rw [scanBool_eq, $ht:ident] at $hs:ident
       | rw [scanString_eq, $ht:ident] at $hs:ident
       | rw [scanNatList_eq, $ht:ident] at $hs:ident
-      | rw [scanPw_eq, $ht:ident] at $hs:ident
       | rw [scanHints_eq, $ht:ident] at $hs:ident)
 
 /-! ### One macro per case shape
@@ -1067,25 +1065,24 @@ theorem naiveLamExpr_rest_suffix (l : List UInt8) : (naiveLamExpr l).rest <:+ l 
   exact naiveObject_rest_suffix _ _ binderFields_read_suffix _ _ l
 
 theorem scanLamExprLoop_eq (b : ByteArray) (i : USize) (wantMember : Bool) (seen : UInt32)
-    (bd ty : Nat) (pw : PwRec) :
-    scanLamExprLoop b i wantMember seen bd ty pw =
-      liftRes b i ((naiveObjLoop binderFields 15 (tailAt b i) wantMember seen (bd, ty, pw)).map
-        (fun (b, t, p) => ExprRec.lam t b p)) := by
-  fun_induction scanLamExprLoop b i wantMember seen bd ty pw
+    (bd ty : Nat) :
+    scanLamExprLoop b i wantMember seen bd ty =
+      liftRes b i ((naiveObjLoop binderFields 15 (tailAt b i) wantMember seen (bd, ty)).map
+        (fun (b, t) => ExprRec.lam t b)) := by
+  fun_induction scanLamExprLoop b i wantMember seen bd ty
   obj_head binderFields_read_suffix
   obj_bi binderFields_read_suffix case10 case11 case12 case13
   obj_num binderFields_read_suffix case14 case15 case16 case17
   obj_num binderFields_read_suffix case18 case19 case20 case21
   obj_num binderFields_read_suffix case22 case23 case24 case25
-  obj_sub binderFields_read_suffix case26 case27 case28 case29
-  case case30 => o_unknown binderFields x1 x2 x3 x4 x5
-  case case31 => o_other
-  case case32 => o_end
+  case case26 => o_unknown binderFields x1 x2 x3 x4
+  case case27 => o_other
+  case case28 => o_end
 
 theorem scanLamExpr_eq (b : ByteArray) (i : USize) :
     scanLamExpr b i = liftRes b i (naiveLamExpr (tailAt b i)) := by
   unfold scanLamExpr naiveLamExpr
-  exact objWrap binderFields_read_suffix (scanLamExprLoop_eq b (i + 1) true 0 0 0 .never)
+  exact objWrap binderFields_read_suffix (scanLamExprLoop_eq b (i + 1) true 0 0 0)
 
 /-! ### `scanForallExpr` -/
 
@@ -1093,25 +1090,24 @@ theorem naiveForallExpr_rest_suffix (l : List UInt8) : (naiveForallExpr l).rest 
   exact naiveObject_rest_suffix _ _ binderFields_read_suffix _ _ l
 
 theorem scanForallExprLoop_eq (b : ByteArray) (i : USize) (wantMember : Bool) (seen : UInt32)
-    (bd ty : Nat) (pw : PwRec) :
-    scanForallExprLoop b i wantMember seen bd ty pw =
-      liftRes b i ((naiveObjLoop binderFields 15 (tailAt b i) wantMember seen (bd, ty, pw)).map
-        (fun (b, t, p) => ExprRec.forallE t b p)) := by
-  fun_induction scanForallExprLoop b i wantMember seen bd ty pw
+    (bd ty : Nat) :
+    scanForallExprLoop b i wantMember seen bd ty =
+      liftRes b i ((naiveObjLoop binderFields 15 (tailAt b i) wantMember seen (bd, ty)).map
+        (fun (b, t) => ExprRec.forallE t b)) := by
+  fun_induction scanForallExprLoop b i wantMember seen bd ty
   obj_head binderFields_read_suffix
   obj_bi binderFields_read_suffix case10 case11 case12 case13
   obj_num binderFields_read_suffix case14 case15 case16 case17
   obj_num binderFields_read_suffix case18 case19 case20 case21
   obj_num binderFields_read_suffix case22 case23 case24 case25
-  obj_sub binderFields_read_suffix case26 case27 case28 case29
-  case case30 => o_unknown binderFields x1 x2 x3 x4 x5
-  case case31 => o_other
-  case case32 => o_end
+  case case26 => o_unknown binderFields x1 x2 x3 x4
+  case case27 => o_other
+  case case28 => o_end
 
 theorem scanForallExpr_eq (b : ByteArray) (i : USize) :
     scanForallExpr b i = liftRes b i (naiveForallExpr (tailAt b i)) := by
   unfold scanForallExpr naiveForallExpr
-  exact objWrap binderFields_read_suffix (scanForallExprLoop_eq b (i + 1) true 0 0 0 .never)
+  exact objWrap binderFields_read_suffix (scanForallExprLoop_eq b (i + 1) true 0 0 0)
 
 /-! ### `scanLetExpr` -/
 

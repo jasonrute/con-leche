@@ -1,10 +1,10 @@
 module
 
 public import ConLeche.Model.Inductives.BlockRep
-import ConLeche.Model.Annot.EnvModelM
+import ConLeche.Model.Env.EnvModelM
 import ConLeche.Model.Inductives.StructFrameKit
-public import ConLeche.Model.Annot.LpDefF
-import ConLeche.Model.Annot.CanonCrest
+public import ConLeche.Model.Reading.LpDefF
+import ConLeche.Model.Env.CanonCrest
 import ConLeche.Model.Install
 import ConLeche.Model.Inductives.StoredShapes
 import ConLeche.Model.Inductives.BlockHoleRead
@@ -44,7 +44,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal instPisWith NestCtx
   openPisAtFvars BlockParts)
 
@@ -57,17 +57,17 @@ variable {V : Type w} [SetTheory V]
 /-- **The fields with holes of a normal form `N`** at a leaf assignment:
 its reading at depth `D`, its first `nF` domains (`[]` where the reading
 is missing). -/
-@[expose] noncomputable def nfFieldsRead (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
-    (D nF : Nat) (N : Expr) (ψ : Name → Nat) : List AnnotTerm :=
-  match denoteMeta acval env ψ D N with
-  | some t => ((stripPisAV nF t).map fun p => p.1.map (·.2.2)).getD []
+@[expose] noncomputable def nfFieldsRead (acval : Name → (Name → Nat) → Term) (env : Env)
+    (D nF : Nat) (N : Expr) (ψ : Name → Nat) : List Term :=
+  match denote acval env ψ D N with
+  | some t => ((stripPisAV nF t).map fun p => p.1).getD []
   | none => []
 
 /-- The fields' readings at a reading of the normal form. -/
-theorem nfFieldsRead_eq {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {D nF : Nat}
-    {N : Expr} {ψ : Name → Nat} {ab : List (Nat × Nat × AnnotTerm)} {B : AnnotTerm}
-    (hr : denoteMeta acval env ψ D N = some (mkPisAV ab B)) (hl : ab.length = nF) :
-    nfFieldsRead acval env D nF N ψ = ab.map (·.2.2) := by
+theorem nfFieldsRead_eq {acval : Name → (Name → Nat) → Term} {env : Env} {D nF : Nat}
+    {N : Expr} {ψ : Name → Nat} {ab : List Term} {B : Term}
+    (hr : denote acval env ψ D N = some (mkPisAV ab B)) (hl : ab.length = nF) :
+    nfFieldsRead acval env D nF N ψ = ab := by
   unfold nfFieldsRead
   rw [hr]
   simp only
@@ -80,12 +80,12 @@ theorem nfFieldsRead_params {env : Env} (m : EnvModel V env) {ps : List Name} {D
     {N : Expr} (hl : lpDefF ps N = true) {ψ₁ ψ₂ : Name → Nat} (hφ : ∀ p ∈ ps, ψ₁ p = ψ₂ p) :
     nfFieldsRead m.acval env D nF N ψ₁ = nfFieldsRead m.acval env D nF N ψ₂ := by
   unfold nfFieldsRead
-  rw [denoteMeta_params_extF m hφ D N hl]
+  rw [denote_params_extF m hφ D N hl]
 
 /-- **The fields' readings consult the leaves off the members only**: the
 normal form mentions no member constant, and no literal-support constant
 a reading consults is a member. -/
-theorem nfFieldsRead_agree {acval₁ acval₂ : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem nfFieldsRead_agree {acval₁ acval₂ : Name → (Name → Nat) → Term} {env : Env}
     {names : List Name} {D nF : Nat} {N : Expr}
     (hag : ∀ n, n ∉ names → acval₁ n = acval₂ n)
     (hocc : N.nestOcc names 0 0 = false)
@@ -97,26 +97,12 @@ theorem nfFieldsRead_agree {acval₁ acval₂ : Name → (Name → Nat) → Anno
         ConLeche.charOfNatName ∉ names) (ψ : Name → Nat) :
     nfFieldsRead acval₁ env D nF N ψ = nfFieldsRead acval₂ env D nF N ψ := by
   unfold nfFieldsRead
-  rw [denoteMeta_agree_of_readsAt hag _ N (Expr.readsAt_of_nestOcc hnat hstr _ hocc)]
-
-/-- An instantiation at arguments looking up only `P`-names keeps it. -/
-theorem Expr.ReadsAt.instPisWith {P : Name → Prop} {env : Env} :
-    ∀ {vs : List Expr} {e r : Expr}, (∀ v ∈ vs, Expr.ReadsAt P env v) →
-      instPisWith vs e = some r → Expr.ReadsAt P env e → Expr.ReadsAt P env r
-  | [], e, r, _, h, he => by
-    simp only [ConLeche.instPisWith, Option.some.injEq] at h
-    exact h ▸ he
-  | v :: vs, e, r, hvs, h, he => by
-    match e, h with
-    | .forallE t b m, h =>
-      have h' : ConLeche.instPisWith vs (b.instantiate1 v) = some r := h
-      exact Expr.ReadsAt.instPisWith (fun x hx => hvs x (List.mem_cons_of_mem _ hx)) h'
-        (Expr.ReadsAt.instantiate1 (hvs v List.mem_cons_self) b 0 he.2)
+  rw [denote_agree_of_readsAt hag _ N (Expr.readsAt_of_nestOcc hnat hstr _ hocc)]
 
 /-- **The canonical crest consults the leaves off the members only**: it
 mentions no member constant (from official's uniform check), and no
 literal-support constant a reading consults is a member. -/
-theorem canonCrest_read_agree {acval₁ acval₂ : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem canonCrest_read_agree {acval₁ acval₂ : Name → (Name → Nat) → Term} {env : Env}
     {names : List Name} {A : Expr}
     (hag : ∀ n, n ∉ names → acval₁ n = acval₂ n)
     (hocc : A.nestOcc names 0 0 = false)
@@ -127,8 +113,8 @@ theorem canonCrest_read_agree {acval₁ acval₂ : Name → (Name → Nat) → A
         ConLeche.listConsName ∉ names ∧ ConLeche.charName ∉ names ∧
         ConLeche.charOfNatName ∉ names)
     (ψ : Name → Nat) (d : Nat) :
-    denoteMeta acval₁ env ψ d A = denoteMeta acval₂ env ψ d A :=
-  denoteMeta_agree_of_readsAt hag _ A (Expr.readsAt_of_nestOcc hnat hstr _ hocc)
+    denote acval₁ env ψ d A = denote acval₂ env ψ d A :=
+  denote_agree_of_readsAt hag _ A (Expr.readsAt_of_nestOcc hnat hstr _ hocc)
 
 /-- **The walk's crest is the canonical crest, up to erasure**: the kernel
 puts the canonical parameter variables and holes back in with their
@@ -184,7 +170,7 @@ theorem canonOcc_of_positivity {ops : ConLeche.CheckerOps ConLeche.CheckM} {env�
 
 omit [SetTheory V] in
 /-- Every constant bound before a cons is bound after it. -/
-theorem ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
+theorem _root_.ConLeche.Verify.ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
     ∀ {e : Expr}, ConstsBound env e → ConstsBound ⟨c₀ :: env.consts⟩ e := by
   intro e
   induction e with
@@ -195,8 +181,8 @@ theorem ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
     · rfl
     · exact h
   | app f a ihf iha => intro h; simp only [constsBound_app] at h ⊢; exact ⟨ihf h.1, iha h.2⟩
-  | lam t b m iht ihb => intro h; simp only [constsBound_lam] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
-  | forallE t b m iht ihb =>
+  | lam t b iht ihb => intro h; simp only [constsBound_lam] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
+  | forallE t b iht ihb =>
     intro h; simp only [constsBound_forallE] at h ⊢; exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
     intro h; simp only [constsBound_letE] at h ⊢; exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
@@ -206,12 +192,11 @@ theorem ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
   | sort => intro _; simp
   | lit => intro _; simp
 
-
 /-- **The hole context** at a level assignment: the parameters (member
 `0`'s former's), then one hole per member, typed by its hole type — the
 member's index tower over the parameters, lifted past the earlier holes
 (a hole stands for the member's whole application to the parameters). -/
-@[expose] def BlockData.holeCtx (d : BlockData V) (ψ : Name → Nat) : List AnnotTerm :=
+@[expose] def BlockData.holeCtx (d : BlockData V) (ψ : Name → Nat) : List Term :=
   d.params ψ ++ (List.range d.k).map fun t =>
     (mkPisAV ((d.ppsM t ψ).drop d.nP) (.sort (d.w ψ))).liftN t 0
 
@@ -223,32 +208,30 @@ satisfying the hole context: component `c`'s constructor `j` (`cA`). -/
     (c j : Nat) (cA : ConstantVal × Nat) : Prop :=
   ConstsBound env (d.nfFF c j) ∧
   ∃ A, ConLeche.nestCanonCrest d.memberNames (lps.map .param) d.nP cA.1.type = some A ∧
-    ∀ ψ : Name → Nat, ∃ abD abN : List (Nat × Nat × AnnotTerm),
-      denoteMeta m.acval env ψ (d.nP + d.k) A
-        = some (mkPisAV abD (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
-      denoteMeta m.acval env ψ (d.nP + d.k) (d.nfFF c j)
-        = some (mkPisAV abN (AnnotTerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
+    ∀ ψ : Name → Nat, ∃ abD abN : List Term,
+      denote m.acval env ψ (d.nP + d.k) A
+        = some (mkPisAV abD (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
+      denote m.acval env ψ (d.nP + d.k) (d.nfFF c j)
+        = some (mkPisAV abN (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c))) (d.absE ψ c j))) ∧
       abD.length = cA.2 ∧ abN.length = cA.2 ∧
-      abD.map (fun x => (x.1, x.2.1)) = abN.map (fun x => (x.1, x.2.1)) ∧
-      abN.map (·.2.2) = d.absF ψ c j ∧
-      FieldsEqOn V (d.holeCtx ψ).reverse (abD.map (·.2.2)) (d.absF ψ c j)
+      abN = d.absF ψ c j ∧
+      FieldsEqOn V (d.holeCtx ψ).reverse abD (d.absF ψ c j)
 
 /-- **The reading fact crosses a cons** the stored type crosses. -/
 theorem BlockAbsRead.cross {env : Env} {m : EnvModel V env} {d : BlockData V} {lps : List Name}
     {c j : Nat} {cA : ConstantVal × Nat} (h : BlockAbsRead m d lps c j cA)
-    {c₀ : ConstantInfo} {B : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {B : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none) (hat : ∀ e : Expr, ConsCrossAt c₀ e)
     (hcb : ConstsBound env cA.1.type)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩) (hac : m₂.acval = acvalWith m.acval c₀.name B) :
     BlockAbsRead m₂ d lps c j cA := by
   obtain ⟨hnb, A, hA, hr⟩ := h
   refine ⟨ConstsBound.mono_cons hnb, A, hA, fun ψ => ?_⟩
-  obtain ⟨abD, abN, hab, habN, hl, hlN, hbits, habF, hEq⟩ := hr ψ
-  refine ⟨abD, abN, ?_, ?_, hl, hlN, hbits, habF, hEq⟩
+  obtain ⟨abD, abN, hab, habN, hl, hlN, habF, hEq⟩ := hr ψ
+  refine ⟨abD, abN, ?_, ?_, hl, hlN, habF, hEq⟩
   · rw [hac]
-    exact denoteMeta_cons_mono hfresh (hat A) ψ _ (canonOf_constsBound hcb (.inl ⟨_, _, _, hA⟩)) hab
+    exact denote_cons_mono hfresh (hat A) ψ _ (canonOf_constsBound hcb (.inl ⟨_, _, _, hA⟩)) hab
   · rw [hac]
-    exact denoteMeta_cons_mono hfresh (hat _) ψ _ hnb habN
-
+    exact denote_cons_mono hfresh (hat _) ψ _ hnb habN
 
 end ConLeche.Model

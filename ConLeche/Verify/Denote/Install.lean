@@ -126,6 +126,56 @@ theorem natOpGuard_cons {env : Env} {c₀ : ConstantInfo} {c : Name}
     · next hc => rw [ite_eq_right hc]
 
 
+/-- A pinned operation codomain survives any environment change that keeps
+the stored `Bool` entry's constant value. -/
+theorem natOpCod_of_find {env env' : Env} {c : Name} {e : Expr}
+    (hb : ∀ ci, env.find? boolName = some ci →
+      ∃ ci', env'.find? boolName = some ci' ∧ ci'.toConstantVal = ci.toConstantVal)
+    (h : natOpCod env c e = true) : natOpCod env' c e = true := by
+  unfold natOpCod at h ⊢
+  split at h
+  · next hc =>
+    rw [ite_eq_left hc]
+    simp only [Bool.and_eq_true] at h ⊢
+    refine ⟨h.1, ?_⟩
+    have h2 := h.2
+    revert h2
+    cases hf : env.find? boolName with
+    | none => intro h2; exact absurd h2 (by simp)
+    | some ci =>
+      intro h2
+      obtain ⟨ci', hf', hcv⟩ := hb ci hf
+      rw [hf']; dsimp only; rw [hcv]; exact h2
+  · next hc => rw [ite_eq_right hc]; exact h
+
+/-- A pinned operation type survives any environment change that keeps
+the stored `Bool` entry's constant value. -/
+theorem natOpTyPinned_of_find {env env' : Env} {c : Name} {ty : Expr}
+    (hb : ∀ ci, env.find? boolName = some ci →
+      ∃ ci', env'.find? boolName = some ci' ∧ ci'.toConstantVal = ci.toConstantVal)
+    (h : natOpTyPinned env c ty = true) : natOpTyPinned env' c ty = true := by
+  unfold natOpTyPinned at h ⊢
+  split at h
+  · next hc =>
+    rw [ite_eq_left hc]
+    split at h
+    · simp only [Bool.and_eq_true] at h ⊢
+      exact ⟨h.1, natOpCod_of_find hb h.2⟩
+    · exact nomatch h
+  · next hc =>
+    rw [ite_eq_right hc]
+    split at h
+    · simp only [Bool.and_eq_true] at h ⊢
+      exact ⟨h.1, natOpCod_of_find hb h.2⟩
+    · exact nomatch h
+
+/-- The pinned operation type is monotone under a fresh install. -/
+theorem natOpTyPinned_cons {env : Env} {c₀ : ConstantInfo} {c : Name} {ty : Expr}
+    (hfresh : env.find? c₀.name = none) (h : natOpTyPinned env c ty = true) :
+    natOpTyPinned ⟨c₀ :: env.consts⟩ c ty = true :=
+  natOpTyPinned_of_find (fun ci hf =>
+    ⟨ci, by rw [Env.find?_cons_of_isSome hfresh (by rw [hf]; rfl)]; exact hf, rfl⟩) h
+
 /-! ## The projection-table transport
 
 The head case is a hypothesis (the install must establish its own
@@ -151,5 +201,63 @@ theorem ProjOkT.cons {env : Env} {c₀ : ConstantInfo} (h : ProjOkT env)
     exact hheadTower tbl (Option.some.inj hf) i hi
   · rw [Env.find?_cons, ite_eq_right hn] at hf
     exact TowerHead.mono hkeep (h n tbl hf i hi)
+
+/-! ## The one-name update -/
+
+/-- Extend a canonical constant reading at one name. -/
+@[expose] def acvalWith (acval : Name → (Name → Nat) → Term) (n : Name)
+    (A : (Name → Nat) → Term) : Name → (Name → Nat) → Term :=
+  fun c ψ => if c = n then A ψ else acval c ψ
+
+theorem acvalWith_ne {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term} {c : Name} (h : c ≠ n) :
+    acvalWith acval n A c = acval c := by
+  funext ψ; simp [acvalWith, h]
+
+theorem acvalWith_self {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term} :
+    acvalWith acval n A n = A := by
+  funext ψ; simp [acvalWith]
+
+/-! ## The syntactic fields, transported
+
+`acval_params` is a condition on an install-fixed object with no
+`interp` in it, so it extends by a case split on the updated name and
+nothing else. -/
+
+/-- `acval_params` extends across a `cons`: the stored entries are the
+old ones plus the installed one, and the new leaf answers for itself.
+
+Note the environment moves here — the field
+is indexed by `env.find?`.  Freshness is **not** needed: the `cons`
+shadows, so the installed entry answers first either way. -/
+theorem acvalWith_params {acval : Name → (Name → Nat) → Term}
+    {env : Env} {c₀ : ConLeche.ConstantInfo}
+    {A : (Name → Nat) → Term}
+    (h : ∀ (m : Name) (ci : ConLeche.ConstantInfo),
+      env.find? m = some ci →
+      ∀ ψ₁ ψ₂ : Name → Nat,
+        (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+        acval m ψ₁ = acval m ψ₂)
+    (hA : ∀ ψ₁ ψ₂ : Name → Nat,
+      (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+      A ψ₁ = A ψ₂) :
+    ∀ (m : Name) (ci : ConLeche.ConstantInfo),
+      (⟨c₀ :: env.consts⟩ : Env).find? m = some ci →
+      ∀ ψ₁ ψ₂ : Name → Nat,
+        (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+        acvalWith acval c₀.name A m ψ₁
+          = acvalWith acval c₀.name A m ψ₂ := by
+  intro m ci hf ψ₁ ψ₂ hp
+  rw [Env.find?_cons] at hf
+  by_cases hm : c₀.name = m
+  · rw [ite_eq_left hm] at hf
+    obtain rfl := Option.some.inj hf
+    subst hm
+    rw [acvalWith_self]
+    exact hA ψ₁ ψ₂ hp
+  · rw [ite_eq_right hm] at hf
+    rw [acvalWith_ne (fun hh => hm hh.symm)]
+    exact h m ci hf ψ₁ ψ₂ hp
 
 end ConLeche.Verify

@@ -1,12 +1,6 @@
 module
 
 public import ConLeche.Kernel.Level
-/- `ConLeche.Kernel.PropWhen` seals its representation on purpose (the
-`Std.HashMap` pattern): its constructors are `public` but the module is
-not `@[expose]`d, so a `cases`-then-`rfl` proof about a datum cannot
-see the reduct.  `import all` gives that view HERE only; nothing this
-module exports depends on it. -/
-import all ConLeche.Kernel.PropWhen
 
 @[expose] public section
 
@@ -37,8 +31,8 @@ def instantiate1 (e : Expr) (v : Expr) (d : Nat := 0) : Expr :=
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (instantiate1 f v d) (instantiate1 a v d)
-  | .lam ty body bi => .lam (instantiate1 ty v d) (instantiate1 body v (d + 1)) bi
-  | .forallE ty body bi => .forallE (instantiate1 ty v d) (instantiate1 body v (d + 1)) bi
+  | .lam ty body => .lam (instantiate1 ty v d) (instantiate1 body v (d + 1))
+  | .forallE ty body => .forallE (instantiate1 ty v d) (instantiate1 body v (d + 1))
   | .letE ty val body =>
     .letE (instantiate1 ty v d) (instantiate1 val v d) (instantiate1 body v (d + 1))
   | .lit l => .lit l
@@ -96,14 +90,14 @@ def instantiate1Go (v : Expr) (memo : Std.HashMap (Expr × Nat) Expr)
           let (f', memo) := instantiate1Go v memo f d
           let (a', memo) := instantiate1Go v memo a d
           (.app f' a', memo)
-        | .lam ty body bi =>
+        | .lam ty body =>
           let (t, memo) := instantiate1Go v memo ty d
           let (b, memo) := instantiate1Go v memo body (d + 1)
-          (.lam t b bi, memo)
-        | .forallE ty body bi =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := instantiate1Go v memo ty d
           let (b, memo) := instantiate1Go v memo body (d + 1)
-          (.forallE t b bi, memo)
+          (.forallE t b, memo)
         | .letE ty val body =>
           let (t, memo) := instantiate1Go v memo ty d
           let (w, memo) := instantiate1Go v memo val d
@@ -138,7 +132,7 @@ theorem instantiate1Go_spec {v : Expr} :
       obtain ⟨h3, h4⟩ := ihb d _ h2
       refine ⟨by simp [instantiate1, h1, h3], ?_⟩
       exact h4.insert (by simp [instantiate1, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro d memo hm
     rw [instantiate1Go]
     split
@@ -148,7 +142,7 @@ theorem instantiate1Go_spec {v : Expr} :
       obtain ⟨h3, h4⟩ := ihb (d + 1) _ h2
       refine ⟨by simp [instantiate1, h1, h3], ?_⟩
       exact h4.insert (by simp [instantiate1, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro d memo hm
     rw [instantiate1Go]
     split
@@ -219,10 +213,10 @@ def instantiateList (e : Expr) (vs : List Expr) (d : Nat := 0) : Expr :=
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (instantiateList f vs d) (instantiateList a vs d)
-  | .lam ty body bi =>
-    .lam (instantiateList ty vs d) (instantiateList body vs (d + 1)) bi
-  | .forallE ty body bi =>
-    .forallE (instantiateList ty vs d) (instantiateList body vs (d + 1)) bi
+  | .lam ty body =>
+    .lam (instantiateList ty vs d) (instantiateList body vs (d + 1))
+  | .forallE ty body =>
+    .forallE (instantiateList ty vs d) (instantiateList body vs (d + 1))
   | .letE ty val body =>
     .letE (instantiateList ty vs d) (instantiateList val vs d)
       (instantiateList body vs (d + 1))
@@ -283,14 +277,14 @@ def instantiateListGo (vs : List Expr) (memo : Std.HashMap (Expr × Nat) Expr)
           let (f', memo) := instantiateListGo vs memo f d
           let (a', memo) := instantiateListGo vs memo a d
           (.app f' a', memo)
-        | .lam ty body bi =>
+        | .lam ty body =>
           let (t, memo) := instantiateListGo vs memo ty d
           let (b, memo) := instantiateListGo vs memo body (d + 1)
-          (.lam t b bi, memo)
-        | .forallE ty body bi =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := instantiateListGo vs memo ty d
           let (b, memo) := instantiateListGo vs memo body (d + 1)
-          (.forallE t b bi, memo)
+          (.forallE t b, memo)
         | .letE ty val body =>
           let (t, memo) := instantiateListGo vs memo ty d
           let (w, memo) := instantiateListGo vs memo val d
@@ -327,7 +321,7 @@ theorem instantiateListGo_spec {vs : List Expr} :
       obtain ⟨h3, h4⟩ := ihb d _ h2
       refine ⟨by rw [instantiateList]; simp [h1, h3], ?_⟩
       exact h4.insert (by rw [instantiateList]; simp [h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro d memo hm
     rw [instantiateListGo]
     split
@@ -337,7 +331,7 @@ theorem instantiateListGo_spec {vs : List Expr} :
       obtain ⟨h3, h4⟩ := ihb (d + 1) _ h2
       refine ⟨by rw [instantiateList]; simp [h1, h3], ?_⟩
       exact h4.insert (by rw [instantiateList]; simp [h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro d memo hm
     rw [instantiateListGo]
     split
@@ -435,10 +429,10 @@ theorem instantiateList_cons :
   | vs, .app f a, v, d => by
     simp only [instantiateList, instantiate1]
     rw [instantiateList_cons vs f v d, instantiateList_cons vs a v d]
-  | vs, .lam ty body bi, v, d => by
+  | vs, .lam ty body, v, d => by
     simp only [instantiateList, instantiate1]
     rw [instantiateList_cons vs ty v d, instantiateList_cons vs body v (d + 1)]
-  | vs, .forallE ty body bi, v, d => by
+  | vs, .forallE ty body, v, d => by
     simp only [instantiateList, instantiate1]
     rw [instantiateList_cons vs ty v d, instantiateList_cons vs body v (d + 1)]
   | vs, .letE ty val body, v, d => by
@@ -467,10 +461,10 @@ def liftLooseBVars (amount : Nat) : (cutoff : Nat) → Expr → Expr
   | _, .sort u => .sort u
   | _, .const n us => .const n us
   | c, .app a b => .app (liftLooseBVars amount c a) (liftLooseBVars amount c b)
-  | c, .lam ty body m =>
-    .lam (liftLooseBVars amount c ty) (liftLooseBVars amount (c + 1) body) m
-  | c, .forallE ty body m =>
-    .forallE (liftLooseBVars amount c ty) (liftLooseBVars amount (c + 1) body) m
+  | c, .lam ty body =>
+    .lam (liftLooseBVars amount c ty) (liftLooseBVars amount (c + 1) body)
+  | c, .forallE ty body =>
+    .forallE (liftLooseBVars amount c ty) (liftLooseBVars amount (c + 1) body)
   | c, .letE ty v body =>
     .letE (liftLooseBVars amount c ty) (liftLooseBVars amount c v)
       (liftLooseBVars amount (c + 1) body)
@@ -524,14 +518,14 @@ def liftLooseBVarsGo (amount : Nat) (memo : Std.HashMap (Expr × Nat) Expr)
           let (a', memo) := liftLooseBVarsGo amount memo a c
           let (b', memo) := liftLooseBVarsGo amount memo b c
           (.app a' b', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := liftLooseBVarsGo amount memo ty c
           let (b, memo) := liftLooseBVarsGo amount memo body (c + 1)
-          (.lam t b m, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := liftLooseBVarsGo amount memo ty c
           let (b, memo) := liftLooseBVarsGo amount memo body (c + 1)
-          (.forallE t b m, memo)
+          (.forallE t b, memo)
         | .letE ty v body =>
           let (t, memo) := liftLooseBVarsGo amount memo ty c
           let (w, memo) := liftLooseBVarsGo amount memo v c
@@ -566,7 +560,7 @@ theorem liftLooseBVarsGo_spec {amount : Nat} :
       obtain ⟨h3, h4⟩ := ihb c _ h2
       refine ⟨by simp [liftLooseBVars, h1, h3], ?_⟩
       exact h4.insert (by simp [liftLooseBVars, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro c memo hm
     rw [liftLooseBVarsGo]
     split
@@ -576,7 +570,7 @@ theorem liftLooseBVarsGo_spec {amount : Nat} :
       obtain ⟨h3, h4⟩ := ihb (c + 1) _ h2
       refine ⟨by simp [liftLooseBVars, h1, h3], ?_⟩
       exact h4.insert (by simp [liftLooseBVars, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro c memo hm
     rw [liftLooseBVarsGo]
     split
@@ -616,183 +610,6 @@ def liftLooseBVarsFast (amount c : Nat) (e : Expr) : Expr :=
   funext amount c e
   exact (liftLooseBVarsGo_spec e c {} LiftMemoInv.empty).1.symm
 
-/-! ### `resetMeta` (task #210 Part D)
-
-Every binder's datum reset to the parse placeholder `⟨.never⟩`: the
-stream's recursor rules are compared syntactically against the
-generated ones (official's replay compares an exported recursor
-structurally with the one it generates), and the generated body is
-built from ANNOTATED pieces — the stored constructor's normalised field
-telescopes and index expressions — while the stream's carries the
-placeholder everywhere.  The pure walk is the spec; the executed one is
-memoized by `@[csimp]` (the `mentionsConst` arrangement). -/
-
-def resetMeta : Expr → Expr
-  | .app f a => .app (resetMeta f) (resetMeta a)
-  | .lam ty b _ => .lam (resetMeta ty) (resetMeta b) ⟨.never⟩
-  | .forallE ty b _ => .forallE (resetMeta ty) (resetMeta b) ⟨.never⟩
-  | .letE ty v b => .letE (resetMeta ty) (resetMeta v) (resetMeta b)
-  | .proj s i e => .proj s i (resetMeta e)
-  | .fvar i ty => .fvar i (resetMeta ty)
-  | e => e
-
-/-- The memo's invariant: every recorded answer is the real one. -/
-def ResetMemoInv (memo : Std.HashMap Expr Expr) : Prop :=
-  ∀ (k r : Expr), memo[k]? = some r → r = resetMeta k
-
-theorem ResetMemoInv.empty : ResetMemoInv {} := by
-  intro k r h; simp at h
-
-theorem ResetMemoInv.insert {memo : Std.HashMap Expr Expr} (hm : ResetMemoInv memo)
-    {e r : Expr} (heq : r = resetMeta e) : ResetMemoInv (memo.insert e r) := by
-  intro k r' hk
-  rw [Std.HashMap.getElem?_insert] at hk
-  split at hk
-  · rename_i hbeq
-    cases hk
-    rw [← eq_of_beq hbeq]
-    exact heq
-  · exact hm k r' hk
-
-/-- Memoized `resetMeta`. -/
-def resetMetaGo (memo : Std.HashMap Expr Expr) : Expr → Expr × Std.HashMap Expr Expr
-  | .bvar i => (.bvar i, memo)
-  | .sort u => (.sort u, memo)
-  | .const n us => (.const n us, memo)
-  | .lit l => (.lit l, memo)
-  | e =>
-    match memo[e]? with
-    | some r => (r, memo)
-    | none =>
-      let (r, memo) : Expr × Std.HashMap Expr Expr :=
-        match e with
-        | .fvar i ty =>
-          let (t, memo) := resetMetaGo memo ty
-          (.fvar i t, memo)
-        | .app f a =>
-          let (f', memo) := resetMetaGo memo f
-          let (a', memo) := resetMetaGo memo a
-          (.app f' a', memo)
-        | .lam ty body _ =>
-          let (t, memo) := resetMetaGo memo ty
-          let (b, memo) := resetMetaGo memo body
-          (.lam t b ⟨.never⟩, memo)
-        | .forallE ty body _ =>
-          let (t, memo) := resetMetaGo memo ty
-          let (b, memo) := resetMetaGo memo body
-          (.forallE t b ⟨.never⟩, memo)
-        | .letE ty val body =>
-          let (t, memo) := resetMetaGo memo ty
-          let (w, memo) := resetMetaGo memo val
-          let (b, memo) := resetMetaGo memo body
-          (.letE t w b, memo)
-        | .proj s i sub =>
-          let (u, memo) := resetMetaGo memo sub
-          (.proj s i u, memo)
-        | e => (e, memo)
-      (r, memo.insert e r)
-
-/-- **The memoized walk is `resetMeta`.** -/
-theorem resetMetaGo_spec :
-    ∀ (e : Expr) (memo : Std.HashMap Expr Expr), ResetMemoInv memo →
-      (resetMetaGo memo e).1 = resetMeta e ∧ ResetMemoInv (resetMetaGo memo e).2 := by
-  intro e
-  induction e with
-  | bvar i => intro memo hm; exact ⟨rfl, hm⟩
-  | sort u => intro memo hm; exact ⟨rfl, hm⟩
-  | const n us => intro memo hm; exact ⟨rfl, hm⟩
-  | lit l => intro memo hm; exact ⟨rfl, hm⟩
-  | fvar i ty ih =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := ih memo hm
-      refine ⟨by simp [resetMeta, h1], ?_⟩
-      exact h2.insert (by simp [resetMeta, h1])
-  | app a b iha ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iha memo hm
-      obtain ⟨h3, h4⟩ := ihb _ h2
-      refine ⟨by simp [resetMeta, h1, h3], ?_⟩
-      exact h4.insert (by simp [resetMeta, h1, h3])
-  | lam ty body bi iht ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iht memo hm
-      obtain ⟨h3, h4⟩ := ihb _ h2
-      refine ⟨by simp [resetMeta, h1, h3], ?_⟩
-      exact h4.insert (by simp [resetMeta, h1, h3])
-  | forallE ty body bi iht ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iht memo hm
-      obtain ⟨h3, h4⟩ := ihb _ h2
-      refine ⟨by simp [resetMeta, h1, h3], ?_⟩
-      exact h4.insert (by simp [resetMeta, h1, h3])
-  | letE ty val body iht ihv ihb =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := iht memo hm
-      obtain ⟨h3, h4⟩ := ihv _ h2
-      obtain ⟨h5, h6⟩ := ihb _ h4
-      refine ⟨by simp [resetMeta, h1, h3, h5], ?_⟩
-      exact h6.insert (by simp [resetMeta, h1, h3, h5])
-  | proj s i sub ih =>
-    intro memo hm
-    rw [resetMetaGo]
-    split
-    · rename_i r hhit
-      exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-    · obtain ⟨h1, h2⟩ := ih memo hm
-      refine ⟨by simp [resetMeta, h1], ?_⟩
-      exact h2.insert (by simp [resetMeta, h1])
-
-/-- The executed `resetMeta` (one memoized DAG walk). -/
-def resetMetaFast (e : Expr) : Expr := (resetMetaGo {} e).1
-
-@[csimp] theorem resetMeta_eq_resetMetaFast : @resetMeta = @resetMetaFast := by
-  funext e
-  exact (resetMetaGo_spec e {} ResetMemoInv.empty).1.symm
-
-/-- Lower every loose bound variable `≥ cutoff + amount` by `amount`
-(loose variables inside the window `[cutoff, cutoff + amount)` are left
-untouched — callers certify their absence by the `liftLooseBVars`
-roundtrip).  Used by the nested-rule shape certification to read a
-recursor's constructor-parameter instantiations out of the
-major-premise domain (an `mI`-binder context) into the rule-prefix
-context (`rP` binders): `p = (p.lowerBVars (mI - rP) 0).liftLooseBVars
-(mI - rP) 0` holds exactly when `p` mentions no index variable. -/
-def lowerBVars (amount : Nat) : (cutoff : Nat) → Expr → Expr
-  | c, .bvar i => if i ≥ c + amount then .bvar (i - amount) else .bvar i
-  | _, .fvar i ty => .fvar i ty
-  | _, .sort u => .sort u
-  | _, .const n us => .const n us
-  | c, .app a b => .app (lowerBVars amount c a) (lowerBVars amount c b)
-  | c, .lam ty body m =>
-    .lam (lowerBVars amount c ty) (lowerBVars amount (c + 1) body) m
-  | c, .forallE ty body m =>
-    .forallE (lowerBVars amount c ty) (lowerBVars amount (c + 1) body) m
-  | c, .letE ty v body =>
-    .letE (lowerBVars amount c ty) (lowerBVars amount c v)
-      (lowerBVars amount (c + 1) body)
-  | _, .lit l => .lit l
-  | c, .proj s i e => .proj s i (lowerBVars amount c e)
-
 /-- Replace `bvar d` by `v`, *lifting* `v`'s loose `bvar`s past the
 binders crossed on the way — the general capture-avoiding substitution
 for an open `v` (unlike `instantiate1`, which requires `v` to be
@@ -806,10 +623,10 @@ def instantiate1Lift (e : Expr) (v : Expr) (d : Nat := 0) : Expr :=
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (instantiate1Lift f v d) (instantiate1Lift a v d)
-  | .lam ty body bi =>
-    .lam (instantiate1Lift ty v d) (instantiate1Lift body v (d + 1)) bi
-  | .forallE ty body bi =>
-    .forallE (instantiate1Lift ty v d) (instantiate1Lift body v (d + 1)) bi
+  | .lam ty body =>
+    .lam (instantiate1Lift ty v d) (instantiate1Lift body v (d + 1))
+  | .forallE ty body =>
+    .forallE (instantiate1Lift ty v d) (instantiate1Lift body v (d + 1))
   | .letE ty val body =>
     .letE (instantiate1Lift ty v d) (instantiate1Lift val v d)
       (instantiate1Lift body v (d + 1))
@@ -821,7 +638,7 @@ Termination measure for recursion into instantiated binder bodies. -/
 def sizeB : Expr → Nat
   | .bvar _ | .fvar .. | .sort _ | .const .. | .lit _ => 1
   | .app f a => sizeB f + sizeB a + 1
-  | .lam ty body _ | .forallE ty body _ => sizeB ty + sizeB body + 1
+  | .lam ty body | .forallE ty body => sizeB ty + sizeB body + 1
   | .letE ty val body => sizeB ty + sizeB val + sizeB body + 1
   | .proj _ _ e => sizeB e + 1
 
@@ -846,8 +663,8 @@ def abstract1 (e : Expr) (d : Nat) (k : Nat := 0) : Expr :=
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (abstract1 f d k) (abstract1 a d k)
-  | .lam ty body m => .lam (abstract1 ty d k) (abstract1 body d (k + 1)) m
-  | .forallE ty body m => .forallE (abstract1 ty d k) (abstract1 body d (k + 1)) m
+  | .lam ty body => .lam (abstract1 ty d k) (abstract1 body d (k + 1))
+  | .forallE ty body => .forallE (abstract1 ty d k) (abstract1 body d (k + 1))
   | .letE ty val body =>
     .letE (abstract1 ty d k) (abstract1 val d k) (abstract1 body d (k + 1))
   | .lit l => .lit l
@@ -875,10 +692,10 @@ def abstractRange (e : Expr) (d k : Nat) (c : Nat := 0) : Expr :=
   | .sort u => .sort u
   | .const n us => .const n us
   | .app f a => .app (abstractRange f d k c) (abstractRange a d k c)
-  | .lam ty body m =>
-    .lam (abstractRange ty d k c) (abstractRange body d k (c + 1)) m
-  | .forallE ty body m =>
-    .forallE (abstractRange ty d k c) (abstractRange body d k (c + 1)) m
+  | .lam ty body =>
+    .lam (abstractRange ty d k c) (abstractRange body d k (c + 1))
+  | .forallE ty body =>
+    .forallE (abstractRange ty d k c) (abstractRange body d k (c + 1))
   | .letE ty val body =>
     .letE (abstractRange ty d k c) (abstractRange val d k c)
       (abstractRange body d k (c + 1))
@@ -892,7 +709,7 @@ def sizeF : Expr → Nat
   | .bvar _ | .sort _ | .const .. | .lit _ => 1
   | .fvar _ ty => sizeF ty + 1
   | .app f a => sizeF f + sizeF a + 1
-  | .lam ty body _ | .forallE ty body _ => sizeF ty + sizeF body + 1
+  | .lam ty body | .forallE ty body => sizeF ty + sizeF body + 1
   | .letE ty val body => sizeF ty + sizeF val + sizeF body + 1
   | .proj _ _ e => sizeF e + 1
 
@@ -901,7 +718,7 @@ their type annotations. -/
 def fvarLeaves : Expr → List (Nat × Expr)
   | .fvar idx ty => (idx, ty) :: fvarLeaves ty
   | .app f a => fvarLeaves f ++ fvarLeaves a
-  | .lam ty b _ | .forallE ty b _ => fvarLeaves ty ++ fvarLeaves b
+  | .lam ty b | .forallE ty b => fvarLeaves ty ++ fvarLeaves b
   | .letE t v b => fvarLeaves t ++ fvarLeaves v ++ fvarLeaves b
   | .proj _ _ e => fvarLeaves e
   | _ => []
@@ -924,8 +741,8 @@ interning should cache the fvar range per node, making those O(1). -/
 def wscopedB : (d : Nat) → Expr → Bool
   | d, .fvar idx ty => idx < d && wscopedB idx ty
   | d, .app f a => wscopedB d f && wscopedB d a
-  | d, .lam ty body _ => wscopedB d ty && wscopedB d body
-  | d, .forallE ty body _ => wscopedB d ty && wscopedB d body
+  | d, .lam ty body => wscopedB d ty && wscopedB d body
+  | d, .forallE ty body => wscopedB d ty && wscopedB d body
   | d, .letE ty val body =>
     wscopedB d ty && wscopedB d val && wscopedB d body
   | d, .proj _ _ e => wscopedB d e
@@ -945,28 +762,22 @@ def looseBVarsBounded (k : Nat) : Expr → Bool
   | .fvar _ _ => true
   | .sort _ | .const _ _ | .lit _ => true
   | .app f a => looseBVarsBounded k f && looseBVarsBounded k a
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     looseBVarsBounded k ty && looseBVarsBounded (k + 1) body
   | .letE ty val body =>
     looseBVarsBounded k ty && looseBVarsBounded k val && looseBVarsBounded (k + 1) body
   | .proj _ _ e => looseBVarsBounded k e
 
-/-- Is the expression a λ?  The λ-rule's codomain-sort check (task
-#152) fires once per λ *chain* — at the innermost binder, whose body
-is not itself a λ — because that is the granularity the interned
-binder-telescope loop (task #72) can reproduce. -/
-def isLam : Expr → Bool
-  | .lam .. => true
+/-- Is the expression a ∀? -/
+def isForallE : Expr → Bool
+  | .forallE .. => true
   | _ => false
 
-/-- The prop-ness annotation of a λ node's meta, `none` off λs — the
-head reading the task-#161 chain rule consumes (an outer λ's codomain
-prop-ness is its body-λ's own annotation).  Total, so the walks
-commute with it structurally (`lamPw_instantiateList_fvars`,
-`lamPw_shiftFrom` in `ConLeche/Verify`). -/
-def lamPw : Expr → Option PropWhen
-  | .lam _ _ mbI => some mbI.pw
-  | _ => none
+/-- Two λs: their domains and bodies (the descent of the λ-telescope
+comparison, `defeqLams`). -/
+def lamPair? : Expr → Expr → Option (Expr × Expr × Expr × Expr)
+  | .lam t₁ b₁, .lam t₂ b₂ => some (t₁, b₁, t₂, b₂)
+  | _, _ => none
 
 /-- Does the expression contain any free variable (`fvar`)?  Input
 declarations must be `fvar`-free; the checker introduces `fvar`s only
@@ -975,7 +786,7 @@ def hasFvar : Expr → Bool
   | .bvar _ | .sort _ | .const .. | .lit _ => false
   | .fvar .. => true
   | .app f a => hasFvar f || hasFvar a
-  | .lam ty body _ | .forallE ty body _ => hasFvar ty || hasFvar body
+  | .lam ty body | .forallE ty body => hasFvar ty || hasFvar body
   | .letE ty val body => hasFvar ty || hasFvar val || hasFvar body
   | .proj _ _ e => hasFvar e
 
@@ -1002,15 +813,15 @@ def renameConsts (f : Name → Name) : Expr → Expr
   | .sort u => .sort u
   | .const n us => .const (f n) us
   | .app a b => .app (renameConsts f a) (renameConsts f b)
-  | .lam ty body m => .lam (renameConsts f ty) (renameConsts f body) m
-  | .forallE ty body m =>
-    .forallE (renameConsts f ty) (renameConsts f body) m
+  | .lam ty body => .lam (renameConsts f ty) (renameConsts f body)
+  | .forallE ty body =>
+    .forallE (renameConsts f ty) (renameConsts f body)
   | .letE ty v body =>
     .letE (renameConsts f ty) (renameConsts f v) (renameConsts f body)
   | .lit l => .lit l
   -- Task #175 wiring W5: a `.proj` node's struct name is NOT renamed.
   -- Fixing the name keeps the entry-kind readings
-  -- (`denote`/`denoteMeta`, which consult the table at the struct name)
+  -- (`denote`, which consults the table at the struct name)
   -- rename-invariant by construction (DESIGN, "W5 opening seam").
   | .proj s i e => .proj s i (renameConsts f e)
 
@@ -1073,14 +884,14 @@ def renameConstsGo (f : Name → Name) (memo : Std.HashMap Expr Expr) :
           let (a', memo) := renameConstsGo f memo a
           let (b', memo) := renameConstsGo f memo b
           (.app a' b', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := renameConstsGo f memo ty
           let (b, memo) := renameConstsGo f memo body
-          (.lam t b m, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := renameConstsGo f memo ty
           let (b, memo) := renameConstsGo f memo body
-          (.forallE t b m, memo)
+          (.forallE t b, memo)
         | .letE ty v body =>
           let (t, memo) := renameConstsGo f memo ty
           let (v', memo) := renameConstsGo f memo v
@@ -1122,7 +933,7 @@ theorem renameConstsGo_spec {f : Name → Name} :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [renameConsts, h1, h3], ?_⟩
       exact h4.insert (by simp [renameConsts, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [renameConstsGo]
     split
@@ -1132,7 +943,7 @@ theorem renameConstsGo_spec {f : Name → Name} :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [renameConsts, h1, h3], ?_⟩
       exact h4.insert (by simp [renameConsts, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [renameConstsGo]
     split
@@ -1188,8 +999,8 @@ def replaceConsts (f : Name → List Level → Option Expr) : Expr → Expr
   | .sort u => .sort u
   | .const n us => (f n us).getD (.const n us)
   | .app a b => .app (replaceConsts f a) (replaceConsts f b)
-  | .lam ty body m => .lam (replaceConsts f ty) (replaceConsts f body) m
-  | .forallE ty body m => .forallE (replaceConsts f ty) (replaceConsts f body) m
+  | .lam ty body => .lam (replaceConsts f ty) (replaceConsts f body)
+  | .forallE ty body => .forallE (replaceConsts f ty) (replaceConsts f body)
   | .letE ty v body =>
     .letE (replaceConsts f ty) (replaceConsts f v) (replaceConsts f body)
   | .lit l => .lit l
@@ -1235,14 +1046,14 @@ def replaceConstsGo (f : Name → List Level → Option Expr) (memo : Std.HashMa
           let (a', memo) := replaceConstsGo f memo a
           let (b', memo) := replaceConstsGo f memo b
           (.app a' b', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := replaceConstsGo f memo ty
           let (b, memo) := replaceConstsGo f memo body
-          (.lam t b m, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := replaceConstsGo f memo ty
           let (b, memo) := replaceConstsGo f memo body
-          (.forallE t b m, memo)
+          (.forallE t b, memo)
         | .letE ty v body =>
           let (t, memo) := replaceConstsGo f memo ty
           let (v', memo) := replaceConstsGo f memo v
@@ -1284,7 +1095,7 @@ theorem replaceConstsGo_spec {f : Name → List Level → Option Expr} :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [replaceConsts, h1, h3], ?_⟩
       exact h4.insert (by simp [replaceConsts, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [replaceConstsGo]
     split
@@ -1294,7 +1105,7 @@ theorem replaceConstsGo_spec {f : Name → List Level → Option Expr} :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [replaceConsts, h1, h3], ?_⟩
       exact h4.insert (by simp [replaceConsts, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [replaceConstsGo]
     split
@@ -1336,24 +1147,24 @@ def replaceConstsFast (f : Name → List Level → Option Expr) (e : Expr) : Exp
 
 /-- Strip `k` leading lambdas: the binder list (outermost first) and
 the body. -/
-def stripLams : Nat → Expr → Option (List (Expr × BinderMeta) × Expr)
+def stripLams : Nat → Expr → Option (List Expr × Expr)
   | 0, e => some ([], e)
-  | k + 1, .lam ty b m =>
-    (stripLams k b).map fun (bs, e) => ((ty, m) :: bs, e)
+  | k + 1, .lam ty b =>
+    (stripLams k b).map fun (bs, e) => (ty :: bs, e)
   | _ + 1, _ => none
 
 /-- Strip `k` leading `∀`s: the binder list (outermost first) and the
 body. -/
-def stripPis : Nat → Expr → Option (List (Expr × BinderMeta) × Expr)
+def stripPis : Nat → Expr → Option (List Expr × Expr)
   | 0, e => some ([], e)
-  | k + 1, .forallE ty b m =>
-    (stripPis k b).map fun (bs, e) => ((ty, m) :: bs, e)
+  | k + 1, .forallE ty b =>
+    (stripPis k b).map fun (bs, e) => (ty :: bs, e)
   | _ + 1, _ => none
 
 /-- The body of a syntactic `∀`-telescope (the expression itself when
 it is not a `∀`). -/
 def piResult : Expr → Expr
-  | .forallE _ b _ => piResult b
+  | .forallE _ b => piResult b
   | e => e
 
 /-- Instantiate the leading `∀`-binders at the given arguments,
@@ -1361,7 +1172,7 @@ returning each binder's (progressively instantiated) domain together
 with the fully instantiated residual. -/
 def instPisAt : List Expr → Expr → Option (List Expr × Expr)
   | [], e => some ([], e)
-  | a :: as, .forallE dom body _ =>
+  | a :: as, .forallE dom body =>
     (instPisAt as (body.instantiate1 a)).map fun (ds, rest) =>
       (dom :: ds, rest)
   | _ :: _, _ => none
@@ -1369,7 +1180,7 @@ def instPisAt : List Expr → Expr → Option (List Expr × Expr)
 /-- `instPisAt` for `λ`-binders. -/
 def instLamsAt : List Expr → Expr → Option (List Expr × Expr)
   | [], e => some ([], e)
-  | a :: as, .lam dom body _ =>
+  | a :: as, .lam dom body =>
     (instLamsAt as (body.instantiate1 a)).map fun (ds, rest) =>
       (dom :: ds, rest)
   | _ :: _, _ => none
@@ -1395,7 +1206,7 @@ innermost binder first.  Computes
 `args.length` `∀`-binders (`instPisAtFGo_sound`), `none` otherwise. -/
 def instPisAtFGo (acc : List Expr) : List Expr → Expr → Option (List Expr × Expr)
   | [], e => some ([], e.instantiateList acc)
-  | a :: as, .forallE dom body _ =>
+  | a :: as, .forallE dom body =>
     (instPisAtFGo (a :: acc) as body).map fun (ds, rest) =>
       (dom.instantiateList acc :: ds, rest)
   | _ :: _, _ => none
@@ -1409,7 +1220,7 @@ def instPisAtF (args : List Expr) (e : Expr) : Option (List Expr × Expr) :=
 /-- Core of `instLamsAtF` (the `λ` counterpart of `instPisAtFGo`). -/
 def instLamsAtFGo (acc : List Expr) : List Expr → Expr → Option (List Expr × Expr)
   | [], e => some ([], e.instantiateList acc)
-  | a :: as, .lam dom body _ =>
+  | a :: as, .lam dom body =>
     (instLamsAtFGo (a :: acc) as body).map fun (ds, rest) =>
       (dom.instantiateList acc :: ds, rest)
   | _ :: _, _ => none
@@ -1428,7 +1239,7 @@ theorem instPisAtFGo_sound :
   | [], e, acc, r, h => by
     simp only [instPisAtFGo, Option.some.injEq] at h
     simp only [instPisAt, ← h]
-  | a :: as, .forallE dom body bi, acc, r, h => by
+  | a :: as, .forallE dom body, acc, r, h => by
     simp only [instPisAtFGo, Option.map_eq_some_iff] at h
     obtain ⟨⟨ds, rest⟩, hgo, rfl⟩ := h
     have ih := instPisAtFGo_sound as body (a :: acc) hgo
@@ -1453,7 +1264,7 @@ theorem instLamsAtFGo_sound :
   | [], e, acc, r, h => by
     simp only [instLamsAtFGo, Option.some.injEq] at h
     simp only [instLamsAt, ← h]
-  | a :: as, .lam dom body bi, acc, r, h => by
+  | a :: as, .lam dom body, acc, r, h => by
     simp only [instLamsAtFGo, Option.map_eq_some_iff] at h
     obtain ⟨⟨ds, rest⟩, hgo, rfl⟩ := h
     have ih := instLamsAtFGo_sound as body (a :: acc) hgo
@@ -1501,69 +1312,12 @@ def instSpine : List Expr → Nat → Expr → Expr
   | [], _, e => e
   | a :: as, t, e => instSpine as (t - 1) (e.instantiate1 a t)
 
-/-- A recursor rule is *canonical* when its constructor's parameters
-are exactly the recursor's own leading arguments: the major premise's
-type applies the eliminated family to the first `cnP` telescope
-variables.  Rules for nested auxiliary constructors (whose parameters
-are instantiations like `Array Syntax`) are not canonical; they are
-stored `.nested` when the syntactic reading succeeds (`nestedRuleSyn`
-below) and `.inert` otherwise —
-`iotaRec` never fires an inert rule, so it carries no fold
-obligation. -/
-def recRulePlain (recTy : Expr) (mI rP cnP : Nat) : Bool :=
-  decide (cnP ≤ rP) && decide (rP ≤ mI) &&
-  match recTy.stripPis mI with
-  | some (_, .forallE dom _ _) =>
-    dom.getAppArgs.take cnP ==
-      (List.range cnP).map (fun k => Expr.bvar (mI - 1 - k))
-  | _ => false
-
-/-- **The syntactic reading of a nested rule's instantiation**: the
-major's level and parameter instantiations, read off the
-recursor type's major-premise domain
-(`∀ …prefix… …indices…, ∀ (t : D.{lvls} p₁ … p_cnP i₁ … i_k), …`,
-`k = mI - rP`).  The parameter instantiations are returned *lowered into
-the rule-prefix context* (`rP` binders; `lowerBVars`) — the lift-back
-roundtrip certifies that no index variable occurs in them — and the
-domain's trailing arguments must be exactly the index variables in
-order.  `none` when the prefix exceeds the major's position, the major
-domain is not a constant-headed application of exactly `cnP + k`
-arguments of this split shape, or an instantiation fails the syntactic
-well-formedness guards (closed, bounded by the prefix telescope,
-constants resolving by `resolves`, levels declared in `lps`) — the
-facts `EnvWF` records for a stored `.nested` rule
-(`nestedRuleSyn_inv`).  The installer stores it
-for the rules of a recursor whose major is outside its block
-(`tgtStoredRules`, `auxRuleFireR`). -/
-def nestedRuleSyn (resolves : Expr → Bool) (lps : List Name) (tyA : Expr) (mI rP cnP : Nat) :
-    Option (List Level × List Expr) :=
-  if rP ≤ mI then
-    match tyA.stripPis mI with
-    | some (_, .forallE dom _ _) =>
-      match dom.getAppFn with
-      | .const _D lvls =>
-        let args := dom.getAppArgs
-        let k := mI - rP
-        let pins := (args.take cnP).map (lowerBVars k 0)
-        if args.length = cnP + k ∧
-            args.take cnP == pins.map (liftLooseBVars k 0) ∧
-            args.drop cnP ==
-              (List.range k).map (fun i => Expr.bvar (k - 1 - i)) ∧
-            pins.all (fun p => !p.hasFvar && p.looseBVarsBounded rP &&
-              resolves p && p.allLevelParamsDefined lps) ∧
-            lvls.all (Level.allParamsDefined lps) then
-          some (lvls, pins)
-        else none
-      | _ => none
-    | _ => none
-  else none
-
 /-! ## Derived-field spec functions, and their exactness
 
 The four `@[computed_field]`s of `Expr` (`ConLeche/Kernel/Expr.lean`) are
 declared by their recurrences; these are the same recurrences written
 as ordinary definitions, together with the equivalences that make a
-field read license the traversal cutoff it guards.  Self-contained:
+field read justify the traversal cutoff it guards.  Self-contained:
 they mention nothing but `Expr`.  The cached engine's field facts
 (`ConLeche/Verify/Cached/Erase.lean`) are stated against them. -/
 
@@ -1573,7 +1327,7 @@ def _root_.ConLeche.Expr.bvarBound : Expr → Nat
   | .bvar i => i + 1
   | .fvar _ _ | .sort _ | .const _ _ | .lit _ => 0
   | .app f a => max f.bvarBound a.bvarBound
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     max ty.bvarBound (body.bvarBound - 1)
   | .letE ty val body =>
     max (max ty.bvarBound val.bvarBound) (body.bvarBound - 1)
@@ -1593,7 +1347,7 @@ def _root_.ConLeche.Expr.fvarRange : Expr → Nat
   | .fvar idx _ => idx + 1
   | .bvar _ | .sort _ | .const _ _ | .lit _ => 0
   | .app f a => max f.fvarRange a.fvarRange
-  | .lam ty body _ | .forallE ty body _ =>
+  | .lam ty body | .forallE ty body =>
     max ty.fvarRange body.fvarRange
   | .letE ty val body =>
     max (max ty.fvarRange val.fvarRange) body.fvarRange
@@ -1656,7 +1410,7 @@ def bvarBoundGo (memo : Std.HashMap Expr Nat) (e : Expr) :
         let (rf, memo) := bvarBoundGo memo f
         let (ra, memo) := bvarBoundGo memo a
         (max rf ra, memo)
-      | .lam ty body _ | .forallE ty body _ =>
+      | .lam ty body | .forallE ty body =>
         let (rt, memo) := bvarBoundGo memo ty
         let (rb, memo) := bvarBoundGo memo body
         (max rt (rb - 1), memo)
@@ -1686,7 +1440,7 @@ def fvarRangeGo (memo : Std.HashMap Expr Nat) (e : Expr) :
         let (rf, memo) := fvarRangeGo memo f
         let (ra, memo) := fvarRangeGo memo a
         (max rf ra, memo)
-      | .lam ty body _ | .forallE ty body _ =>
+      | .lam ty body | .forallE ty body =>
         let (rt, memo) := fvarRangeGo memo ty
         let (rb, memo) := fvarRangeGo memo body
         (max rt rb, memo)
@@ -1739,7 +1493,7 @@ theorem bvarBRaw_exact : ∀ e : Expr, e.bvarBRaw < satRange →
     intro h
     rw [bvarBRaw_app] at h ⊢
     rw [ihf (by omega), iha (by omega), bvarBound]
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     rw [bvarBRaw_lam] at h ⊢
     have hb : b.bvarBRaw ≠ satRange := by
@@ -1747,7 +1501,7 @@ theorem bvarBRaw_exact : ∀ e : Expr, e.bvarBRaw < satRange →
     have hb2 : b.bvarBRaw < satRange := by
       have := bvarBRaw_lt b; simp [satRange] at *; omega
     rw [ite_eq_right hb, iht (by omega), ihb hb2, bvarBound]
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     rw [bvarBRaw_forallE] at h ⊢
     have hb : b.bvarBRaw ≠ satRange := by
@@ -1815,7 +1569,7 @@ theorem bvarBoundGo_spec : ∀ (e : Expr) {memo : Std.HashMap Expr Nat},
       obtain ⟨h2, hm2⟩ := iha hm1
       refine ⟨by simp [h1, h2, bvarBound], hm2.insert ?_⟩
       simp [h1, h2, bvarBound]
-  | lam ty b m iht ihb | forallE ty b m iht ihb =>
+  | lam ty b iht ihb | forallE ty b iht ihb =>
     intro memo hm
     rw [bvarBoundGo.eq_def]
     split
@@ -1872,11 +1626,11 @@ theorem fvarBRaw_exact : ∀ e : Expr, e.fvarBRaw < satRange →
     intro h
     rw [fvarBRaw_app] at h ⊢
     rw [ihf (by omega), iha (by omega), fvarRange]
-  | lam ty b m iht ihb =>
+  | lam ty b iht ihb =>
     intro h
     rw [fvarBRaw_lam] at h ⊢
     rw [iht (by omega), ihb (by omega), fvarRange]
-  | forallE ty b m iht ihb =>
+  | forallE ty b iht ihb =>
     intro h
     rw [fvarBRaw_forallE] at h ⊢
     rw [iht (by omega), ihb (by omega), fvarRange]
@@ -1936,7 +1690,7 @@ theorem fvarRangeGo_spec : ∀ (e : Expr) {memo : Std.HashMap Expr Nat},
       obtain ⟨h2, hm2⟩ := iha hm1
       refine ⟨by simp [h1, h2, fvarRange], hm2.insert ?_⟩
       simp [h1, h2, fvarRange]
-  | lam ty b m iht ihb | forallE ty b m iht ihb =>
+  | lam ty b iht ihb | forallE ty b iht ihb =>
     intro memo hm
     rw [fvarRangeGo.eq_def]
     split
@@ -2017,7 +1771,7 @@ normal form in `Kernel/Inductives/Positivity.lean`), and
 `tests/e2e/tower_proj.ndjson` — a two-field structure whose field
 types carry a depth-60 shared tower — exhausts memory on it.
 
-The remedy is the ONE the packed range fields already license (task
+The remedy is the ONE the packed range fields already justify (task
 #210 Part B, and the cached twin `Cached.abstract1` has had it all
 along): **a node whose fvar range is at or below `d` contains no
 `fvar d`, so abstraction returns it unchanged.**  Every closed
@@ -2090,14 +1844,14 @@ def abstract1Go (d : Nat) (memo : Std.HashMap (Expr × Nat) Expr)
           let (f', memo) := abstract1Go d memo f k
           let (a', memo) := abstract1Go d memo a k
           (.app f' a', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := abstract1Go d memo ty k
           let (b, memo) := abstract1Go d memo body (k + 1)
-          (.lam t b m, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := abstract1Go d memo ty k
           let (b, memo) := abstract1Go d memo body (k + 1)
-          (.forallE t b m, memo)
+          (.forallE t b, memo)
         | .letE ty val body =>
           let (t, memo) := abstract1Go d memo ty k
           let (w, memo) := abstract1Go d memo val k
@@ -2148,7 +1902,7 @@ theorem abstract1Go_spec {d : Nat} :
         obtain ⟨h3, h4⟩ := iha k _ h2
         refine ⟨by simp [abstract1, h1, h3], ?_⟩
         exact h4.insert (by simp [abstract1, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro k memo hm
     rw [abstract1Go]
     split
@@ -2161,7 +1915,7 @@ theorem abstract1Go_spec {d : Nat} :
         obtain ⟨h3, h4⟩ := ihb (k + 1) _ h2
         refine ⟨by simp [abstract1, h1, h3], ?_⟩
         exact h4.insert (by simp [abstract1, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro k memo hm
     rw [abstract1Go]
     split
@@ -2210,229 +1964,16 @@ def abstract1Fast (e : Expr) (d : Nat) (k : Nat := 0) : Expr :=
   funext e d k
   exact (abstract1Go_spec e k {} Abs1MemoInv.empty).1.symm
 
-/-! ### `lowerBVars` reads the loose-bvar bound, and memoizes
-
-`lowerBVars` rebuilds every node it walks, so on a DAG-shared term it
-is `O(tree)` — the same shape `abstract1` had before task #233.  It is
-the walk the nested rule reading runs on the rule-prefix pins
-(`nestedRuleSyn`); `tests/e2e/tower_nested.ndjson` — a nested block
-whose constructor carries a depth-60 shared tower over the
-constructor's own first field — is its fixture.
-
-Both remedies, as `abstract1` carries both: a node whose loose-bvar
-bound is at or below `c + amount` holds no variable the lowering
-moves, so it comes back unchanged from an `O(1)` field read; and where
-the bound is above it, the memo — keyed by the node and the CUTOFF,
-which shifts under binders — shares the rebuild across the paths that
-reach a shared node. -/
-
-/-- Lowering a term whose loose variables all sit below the window is
-the identity. -/
-theorem lowerBVars_of_bvarBound_le :
-    ∀ (e : Expr) (amount c : Nat), e.bvarBound ≤ c + amount →
-      lowerBVars amount c e = e := by
-  intro e
-  induction e with
-  | bvar i =>
-    intro amount c h
-    rw [Expr.bvarBound] at h
-    rw [lowerBVars, ite_eq_right (by omega)]
-  | fvar i ty _ => intro amount c _; rfl
-  | sort u => intro amount c _; rfl
-  | const n us => intro amount c _; rfl
-  | lit l => intro amount c _; rfl
-  | app f a ihf iha =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le] at h
-    rw [lowerBVars, ihf amount c h.1, iha amount c h.2]
-  | lam ty body m iht ihb =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le] at h
-    rw [lowerBVars, iht amount c h.1, ihb amount (c + 1) (by omega)]
-  | forallE ty body m iht ihb =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le] at h
-    rw [lowerBVars, iht amount c h.1, ihb amount (c + 1) (by omega)]
-  | letE ty val body iht ihv ihb =>
-    intro amount c h
-    rw [Expr.bvarBound, Nat.max_le, Nat.max_le] at h
-    rw [lowerBVars, iht amount c h.1.1, ihv amount c h.1.2,
-      ihb amount (c + 1) (by omega)]
-  | proj sn i sub ih =>
-    intro amount c h
-    rw [Expr.bvarBound] at h
-    rw [lowerBVars, ih amount c h]
-
-/-- The memo's invariant: every recorded answer is the real one. -/
-def LowerMemoInv (amount : Nat) (memo : Std.HashMap (Expr × Nat) Expr) : Prop :=
-  ∀ (k : Expr × Nat) (r : Expr), memo[k]? = some r → r = lowerBVars amount k.2 k.1
-
-theorem LowerMemoInv.empty {amount : Nat} : LowerMemoInv amount {} := by
-  intro k r h; simp at h
-
-theorem LowerMemoInv.insert {amount : Nat} {memo : Std.HashMap (Expr × Nat) Expr}
-    (hm : LowerMemoInv amount memo) {e : Expr} {c : Nat} {r : Expr}
-    (heq : r = lowerBVars amount c e) :
-    LowerMemoInv amount (memo.insert (e, c) r) := by
-  intro key r' hk
-  rw [Std.HashMap.getElem?_insert] at hk
-  split at hk
-  · rename_i hbeq
-    cases hk
-    rw [← eq_of_beq hbeq]
-    exact heq
-  · exact hm key r' hk
-
-@[inherit_doc lowerBVars_of_bvarBound_le]
-def lowerBVarsGo (amount : Nat) (memo : Std.HashMap (Expr × Nat) Expr)
-    (e : Expr) (c : Nat) : Expr × Std.HashMap (Expr × Nat) Expr :=
-  if e.bvarB ≤ c + amount then (e, memo) else
-  match e with
-  | .bvar i => (if i ≥ c + amount then .bvar (i - amount) else .bvar i, memo)
-  | .fvar idx ty => (.fvar idx ty, memo)
-  | .sort u => (.sort u, memo)
-  | .const n us => (.const n us, memo)
-  | .lit l => (.lit l, memo)
-  | e =>
-    match memo[(e, c)]? with
-    | some r => (r, memo)
-    | none =>
-      let (r, memo) : Expr × Std.HashMap (Expr × Nat) Expr :=
-        match e with
-        | .app f a =>
-          let (f', memo) := lowerBVarsGo amount memo f c
-          let (a', memo) := lowerBVarsGo amount memo a c
-          (.app f' a', memo)
-        | .lam ty body m =>
-          let (t, memo) := lowerBVarsGo amount memo ty c
-          let (b, memo) := lowerBVarsGo amount memo body (c + 1)
-          (.lam t b m, memo)
-        | .forallE ty body m =>
-          let (t, memo) := lowerBVarsGo amount memo ty c
-          let (b, memo) := lowerBVarsGo amount memo body (c + 1)
-          (.forallE t b m, memo)
-        | .letE ty val body =>
-          let (t, memo) := lowerBVarsGo amount memo ty c
-          let (w, memo) := lowerBVarsGo amount memo val c
-          let (b, memo) := lowerBVarsGo amount memo body (c + 1)
-          (.letE t w b, memo)
-        | .proj s i sub =>
-          let (u, memo) := lowerBVarsGo amount memo sub c
-          (.proj s i u, memo)
-        | e => (e, memo)
-      (r, memo.insert (e, c) r)
-
-/-- **The memoized walk is `lowerBVars`.** -/
-theorem lowerBVarsGo_spec {amount : Nat} :
-    ∀ (e : Expr) (c : Nat) (memo : Std.HashMap (Expr × Nat) Expr),
-      LowerMemoInv amount memo →
-      (lowerBVarsGo amount memo e c).1 = lowerBVars amount c e ∧
-        LowerMemoInv amount (lowerBVarsGo amount memo e c).2 := by
-  intro e
-  induction e with
-  | bvar i =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · exact ⟨rfl, hm⟩
-  | sort u =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | const n us =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | lit l =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | fvar i ty _ =>
-    intro c memo hm
-    rw [lowerBVarsGo]; split <;> exact ⟨rfl, hm⟩
-  | app f a ihf iha =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := ihf c memo hm
-        obtain ⟨h3, h4⟩ := iha c _ h2
-        refine ⟨by simp [lowerBVars, h1, h3], ?_⟩
-        exact h4.insert (by simp [lowerBVars, h1, h3])
-  | lam ty body m iht ihb =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := iht c memo hm
-        obtain ⟨h3, h4⟩ := ihb (c + 1) _ h2
-        refine ⟨by simp [lowerBVars, h1, h3], ?_⟩
-        exact h4.insert (by simp [lowerBVars, h1, h3])
-  | forallE ty body m iht ihb =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := iht c memo hm
-        obtain ⟨h3, h4⟩ := ihb (c + 1) _ h2
-        refine ⟨by simp [lowerBVars, h1, h3], ?_⟩
-        exact h4.insert (by simp [lowerBVars, h1, h3])
-  | letE ty val body iht ihv ihb =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := iht c memo hm
-        obtain ⟨h3, h4⟩ := ihv c _ h2
-        obtain ⟨h5, h6⟩ := ihb (c + 1) _ h4
-        refine ⟨by simp [lowerBVars, h1, h3, h5], ?_⟩
-        exact h6.insert (by simp [lowerBVars, h1, h3, h5])
-  | proj sn i sub ih =>
-    intro c memo hm
-    rw [lowerBVarsGo]
-    split
-    · rename_i h
-      exact ⟨(lowerBVars_of_bvarBound_le _ amount c (by rwa [← bvarB_eq])).symm, hm⟩
-    · split
-      · rename_i r hhit
-        exact ⟨(hm _ _ hhit).symm ▸ rfl, hm⟩
-      · obtain ⟨h1, h2⟩ := ih c memo hm
-        refine ⟨by simp [lowerBVars, h1], ?_⟩
-        exact h2.insert (by simp [lowerBVars, h1])
-
-@[inherit_doc lowerBVarsGo]
-def lowerBVarsFast (amount : Nat) (c : Nat) (e : Expr) : Expr :=
-  (lowerBVarsGo amount {} e c).1
-
-@[csimp] theorem lowerBVars_eq_lowerBVarsFast :
-    @lowerBVars = @lowerBVarsFast := by
-  funext amount c e
-  exact (lowerBVarsGo_spec e c {} LowerMemoInv.empty).1.symm
-
 /-! ### `instantiate1Lift` reads the loose-bvar bound, and memoizes
 
-The pure capture-avoiding substitution is the last of the three
-rebuilds on an install path without either guard (the cached engine's
-twin, `Cached.instantiate1Lift`, has carried both since task #214):
+The pure capture-avoiding substitution is, with `abstract1`, a rebuild
+on an install path without either guard (the cached engine's twin,
+`Cached.instantiate1Lift`, has carried both since task #214):
 `structProjBodiesGo` runs it down a constructor telescope.
-`tests/e2e/tower_nested.ndjson` is the fixture that walked it.  Same arrangement as `abstract1`: the `O(1)` bound read
-first, the memo — keyed by the node and the CURSOR `d`, which shifts
-under binders — behind it. -/
+`tests/e2e/tower_nested.ndjson` is the fixture that walked it.  Same
+arrangement as `abstract1`: the `O(1)` bound read first, the memo —
+keyed by the node and the CURSOR `d`, which shifts under binders —
+behind it. -/
 
 /-- Substituting for a variable no loose variable reaches is the
 identity. -/
@@ -2453,11 +1994,11 @@ theorem instantiate1Lift_of_bvarBound_le :
     intro v d h
     rw [Expr.bvarBound, Nat.max_le] at h
     rw [instantiate1Lift, ihf v d h.1, iha v d h.2]
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro v d h
     rw [Expr.bvarBound, Nat.max_le] at h
     rw [instantiate1Lift, iht v d h.1, ihb v (d + 1) (by omega)]
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro v d h
     rw [Expr.bvarBound, Nat.max_le] at h
     rw [instantiate1Lift, iht v d h.1, ihb v (d + 1) (by omega)]
@@ -2513,14 +2054,14 @@ def instantiate1LiftGo (v : Expr) (memo : Std.HashMap (Expr × Nat) Expr)
           let (f', memo) := instantiate1LiftGo v memo f d
           let (a', memo) := instantiate1LiftGo v memo a d
           (.app f' a', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := instantiate1LiftGo v memo ty d
           let (b, memo) := instantiate1LiftGo v memo body (d + 1)
-          (.lam t b m, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := instantiate1LiftGo v memo ty d
           let (b, memo) := instantiate1LiftGo v memo body (d + 1)
-          (.forallE t b m, memo)
+          (.forallE t b, memo)
         | .letE ty val body =>
           let (t, memo) := instantiate1LiftGo v memo ty d
           let (w, memo) := instantiate1LiftGo v memo val d
@@ -2572,7 +2113,7 @@ theorem instantiate1LiftGo_spec {v : Expr} :
         obtain ⟨h3, h4⟩ := iha d _ h2
         refine ⟨by simp [instantiate1Lift, h1, h3], ?_⟩
         exact h4.insert (by simp [instantiate1Lift, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro d memo hm
     rw [instantiate1LiftGo]
     split
@@ -2585,7 +2126,7 @@ theorem instantiate1LiftGo_spec {v : Expr} :
         obtain ⟨h3, h4⟩ := ihb (d + 1) _ h2
         refine ⟨by simp [instantiate1Lift, h1, h3], ?_⟩
         exact h4.insert (by simp [instantiate1Lift, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro d memo hm
     rw [instantiate1LiftGo]
     split
@@ -2646,24 +2187,16 @@ after it, so a caller written earlier in this file would compile
 against the unguarded walk. -/
 def instPisAtLift : List Expr → Expr → Option Expr
   | [], e => some e
-  | a :: as, .forallE _ body _ => instPisAtLift as (body.instantiate1Lift a)
+  | a :: as, .forallE _ body => instPisAtLift as (body.instantiate1Lift a)
   | _ :: _, _ => none
 
 /-! ## Pointer-equality shortcut -/
-
-/-- Structural expression equality with a physical-equality shortcut
-(definitionally `a == b`).  Used to validate interned-environment
-entries against the stored constant they cache: the entry was created
-from the very object stored in the environment, so the pointer test
-succeeds without walking either expression. -/
-@[inline] def exprPtrBEq (a b : Expr) : Bool :=
-  withPtrEq a b (fun _ => a == b) (fun h => by subst h; simp)
 
 /-! ## Level-parameter occurrence, and the substitution shortcuts
 
 `Level.hasParam` / `Expr.hasLevelParam` are the spec functions of the
 `hasLP` computed field (`ConLeche/Kernel/Expr.lean`); the lemmas below
-are the shortcuts a `false` reading licenses.  Self-contained, and the
+are the shortcuts a `false` reading justifies.  Self-contained, and the
 cached engine's field facts (`ConLeche/Verify/Cached/Erase.lean`) are
 stated against them. -/
 
@@ -2698,35 +2231,11 @@ def _root_.ConLeche.Expr.hasLevelParam : Expr → Bool
   | .const _ us => us.any Level.hasParam
   | .fvar _ ty => ty.hasLevelParam
   | .app f a => f.hasLevelParam || a.hasLevelParam
-  | .lam ty body m | .forallE ty body m =>
-    ty.hasLevelParam || body.hasLevelParam || m.pw.hasParams
+  | .lam ty body | .forallE ty body =>
+    ty.hasLevelParam || body.hasLevelParam
   | .letE ty val body =>
     ty.hasLevelParam || val.hasLevelParam || body.hasLevelParam
   | .proj _ _ e => e.hasLevelParam
-
-/-- `substPW` is the identity on parameter-free data (`never` and
-`ifAllZero []`) — the meta half of the has-param shortcut's
-soundness. -/
-theorem _root_.ConLeche.Level.substPW_eq_self {ks : List Name}
-    {us : List Level} {pw : PropWhen} (h : pw.hasParams = false) :
-    Level.substPW ks us pw = pw := by
-  cases pw with
-  | never => rfl
-  | ifAllZero ps =>
-    cases ps with
-    | nil => rfl
-    | cons p ps => simp at h
-
-/-- Parameter-free data are defined under any parameter list. -/
-theorem _root_.ConLeche.PropWhen.paramsDefined_of_not_hasParams
-    {params : List Name} {pw : PropWhen} (h : pw.hasParams = false) :
-    pw.paramsDefined params = true := by
-  cases pw with
-  | never => rfl
-  | ifAllZero ps =>
-    cases ps with
-    | nil => rfl
-    | cons p ps => simp at h
 
 /-- Level-parameter instantiation is the identity on level-param-free
 expressions. -/
@@ -2756,16 +2265,14 @@ theorem _root_.ConLeche.Expr.instantiateLevelParams_eq_self
   | app f a ihf iha =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
     simp [Expr.instantiateLevelParams, ihf h.1, iha h.2]
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.instantiateLevelParams, iht ht, ihb hb,
-      Level.substPW_eq_self hm]
-  | forallE ty body m iht ihb =>
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.instantiateLevelParams, iht ht, ihb hb]
+  | forallE ty body iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.instantiateLevelParams, iht ht, ihb hb,
-      Level.substPW_eq_self hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.instantiateLevelParams, iht ht, ihb hb]
   | letE ty val body iht ihv ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
     simp [Expr.instantiateLevelParams, iht h.1.1, ihv h.1.2, ihb h.2]
@@ -2850,14 +2357,14 @@ def Expr.instLPGo (ks : List Name) (us : List Level)
           let (f', memo) := instLPGo ks us memo f
           let (a', memo) := instLPGo ks us memo a
           (.app f' a', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := instLPGo ks us memo ty
           let (b, memo) := instLPGo ks us memo body
-          (.lam t b ⟨Level.substPW ks us m.pw⟩, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := instLPGo ks us memo ty
           let (b, memo) := instLPGo ks us memo body
-          (.forallE t b ⟨Level.substPW ks us m.pw⟩, memo)
+          (.forallE t b, memo)
         | .letE ty val body =>
           let (t, memo) := instLPGo ks us memo ty
           let (w, memo) := instLPGo ks us memo val
@@ -2925,7 +2432,7 @@ theorem Expr.instLPGo_spec {ks : List Name} {us : List Level} :
         obtain ⟨h3, h4⟩ := iha _ h2
         refine ⟨by simp [Expr.instantiateLevelParams, h1, h3], ?_⟩
         exact h4.insert (by simp [Expr.instantiateLevelParams, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [instLPGo]
     split
@@ -2939,7 +2446,7 @@ theorem Expr.instLPGo_spec {ks : List Name} {us : List Level} :
         obtain ⟨h3, h4⟩ := ihb _ h2
         refine ⟨by simp [Expr.instantiateLevelParams, h1, h3], ?_⟩
         exact h4.insert (by simp [Expr.instantiateLevelParams, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [instLPGo]
     split
@@ -2997,16 +2504,14 @@ theorem _root_.ConLeche.Expr.allLevelParamsDefined_of_not_hasLevelParam
     {params : List Name} {x : Expr} (h : x.hasLevelParam = false) :
     x.allLevelParamsDefined params = true := by
   induction x with
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.allLevelParamsDefined, iht ht, ihb hb,
-      PropWhen.paramsDefined_of_not_hasParams hm]
-  | forallE ty body m iht ihb =>
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.allLevelParamsDefined, iht ht, ihb hb]
+  | forallE ty body iht ihb =>
     simp only [Expr.hasLevelParam, Bool.or_eq_false_iff] at h
-    obtain ⟨⟨ht, hb⟩, hm⟩ := h
-    simp [Expr.allLevelParamsDefined, iht ht, ihb hb,
-      PropWhen.paramsDefined_of_not_hasParams hm]
+    obtain ⟨ht, hb⟩ := h
+    simp [Expr.allLevelParamsDefined, iht ht, ihb hb]
   | const nm vs =>
     simp only [Expr.hasLevelParam, List.any_eq_false] at h
     simp only [Expr.allLevelParamsDefined, List.all_eq_true]

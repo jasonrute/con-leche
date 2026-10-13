@@ -76,9 +76,9 @@ def targetAbs (names : List Name) (lvls : List Level) (holes : List Expr) : Expr
       | none => e
     else e
   | .app a b => .app (targetAbs names lvls holes a) (targetAbs names lvls holes b)
-  | .lam ty body bm => .lam (targetAbs names lvls holes ty) (targetAbs names lvls holes body) bm
-  | .forallE ty body bm =>
-    .forallE (targetAbs names lvls holes ty) (targetAbs names lvls holes body) bm
+  | .lam ty body => .lam (targetAbs names lvls holes ty) (targetAbs names lvls holes body)
+  | .forallE ty body =>
+    .forallE (targetAbs names lvls holes ty) (targetAbs names lvls holes body)
   | .letE ty v body =>
     .letE (targetAbs names lvls holes ty) (targetAbs names lvls holes v)
       (targetAbs names lvls holes body)
@@ -126,14 +126,14 @@ def targetAbsGo (names : List Name) (lvls : List Level) (holes : List Expr)
           let (a', memo) := targetAbsGo names lvls holes memo a
           let (b', memo) := targetAbsGo names lvls holes memo b
           (.app a' b', memo)
-        | .lam ty body bm =>
+        | .lam ty body =>
           let (t, memo) := targetAbsGo names lvls holes memo ty
           let (b, memo) := targetAbsGo names lvls holes memo body
-          (.lam t b bm, memo)
-        | .forallE ty body bm =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := targetAbsGo names lvls holes memo ty
           let (b, memo) := targetAbsGo names lvls holes memo body
-          (.forallE t b bm, memo)
+          (.forallE t b, memo)
         | .letE ty v body =>
           let (t, memo) := targetAbsGo names lvls holes memo ty
           let (v', memo) := targetAbsGo names lvls holes memo v
@@ -172,7 +172,7 @@ theorem targetAbsGo_spec {names : List Name} {lvls : List Level} {holes : List E
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [targetAbs, h1, h3], ?_⟩
       exact h4.insert (by simp [targetAbs, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [targetAbsGo]
     split
@@ -182,7 +182,7 @@ theorem targetAbsGo_spec {names : List Name} {lvls : List Level} {holes : List E
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [targetAbs, h1, h3], ?_⟩
       exact h4.insert (by simp [targetAbs, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [targetAbsGo]
     split
@@ -257,7 +257,7 @@ def classFeR (p : BlockShape) (Ms : List TargetMajor) (cvGs : List ConstantVal)
   consBlockRecsBareF p 0 ((cvGs.zip recCls).map fun (cv, c) => (cv, (Ms.getD c default).nIdx)) fe
 
 /-- **The operations the shadow runs on**, per index: the checker's
-entry points at an `FEnv` (`opsAt`), their rule-annotation variant
+entry points at an `FEnv` (`opsAt`), their variant for the rules
 (`opsRuleR`: the cached one flushes at the two environment transitions
 a rule makes, `sharedOpsRuleR`), the flush at an environment change,
 the syntactic walkers, and the environment the rule stage infers the
@@ -546,11 +546,11 @@ class `Mc`: levels up to equivalence, parameters defeq with the members
 abstracted), and the leaf names a member (official's `is_nested`: the
 callee's class does, and so does official's auxiliary type). -/
 def targetK53 (ops : CheckerOps m) (env : Env) (p : BlockShape) (formerTys : List Expr)
-    (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (majDom f : Expr) : m Bool :=
+    (Mc : TargetMajor) (tele : List Expr) (majDom f : Expr) : m Bool :=
   match f.stripPis tele.length with
   | none => pure false
   | some (teleW, leafW) =>
-    if teleW.map (fun b => (b.1.eraseFVarTys, b.2)) != tele.map (fun b => (b.1.eraseFVarTys, b.2))
+    if teleW.map Expr.eraseFVarTys != tele.map Expr.eraseFVarTys
     then pure false
     else
       match leafW.getAppFn, majDom.getAppFn with
@@ -569,41 +569,48 @@ def targetK53 (ops : CheckerOps m) (env : Env) (p : BlockShape) (formerTys : Lis
 earlier `xs` (a telescope's field types at given field variables). -/
 def targetPiDomsWith : List Expr → Expr → Option (List Expr)
   | [], _ => some []
-  | x :: xs, .forallE d b _ => (d :: ·) <$> targetPiDomsWith xs (b.instantiate1 x)
+  | x :: xs, .forallE d b => (d :: ·) <$> targetPiDomsWith xs (b.instantiate1 x)
   | _ :: _, _ => none
 
 /-! ## The stored family -/
 
 /-- **The stored family, in the install's recursor-list format**: each
-checked recursor, its annotated rules, its major's index count and its
+checked recursor, its generated rules, its major's index count and its
 major's constructors (`consBlockRecs` conses them). -/
 def tgtRs (out : List (ConstantVal × TargetMajor × List Expr)) :
     List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)) :=
   out.map fun t => (t.1, t.2.2, t.2.1.nIdx, t.2.1.ctors)
 
-/-- **The firing mode of a rule at an OUTSIDE major**: the
-syntactic reading of the recursor type's major domain
-(`Expr.nestedRuleSyn`, the major's parameter count `nPc`, constants
-resolving by `resolves`) — `.nested lvls pins`, with `pins` the major's
-parameters lowered into the rule-prefix context, whose guards are
-`EnvWF`'s `.nested` clause (`nestedRuleSyn_inv`); `.inert` when the
-reading fails (a matched major then declines at fire time; measured
-never to happen at a checked outside major). -/
-def auxRuleFireR (resolves : Expr → Bool) (cv : ConstantVal) (mI rP nPc : Nat) : RecRuleFire :=
-  match Expr.nestedRuleSyn resolves cv.levelParams cv.type mI rP nPc with
-  | some (lvls, pins) => .nested lvls pins
-  | none => .inert
+/-- **The free variables `0 … k-1` closed at cursor `c`**: `fvar i`
+becomes `bvar (c + k - 1 - i)`, as `e.abstractRange 0 k c` does
+(`abstractPrefix_eq`), computed as the fold of `abstract1` passes,
+innermost first, so the walk is memoized and cut off at the term's
+free-variable range. -/
+def Expr.abstractPrefix : Nat → Nat → Expr → Expr
+  | 0, _, e => e
+  | k + 1, c, e => abstractPrefix k (c + 1) (e.abstract1 k c)
+
+/-- **The firing mode of a rule at an OUTSIDE major** (rule prefix
+`rP`): `.nested` at the class's levels and its parameters closed over
+the rule prefix (`Expr.abstractPrefix`; they mention only the block's
+parameters, `targetMajorOf`).  They are what the generated recursor
+type's major domain applies the container to
+(`genStage_nestedRead`, `Verify/Inductives/TargetAuxFire.lean`). -/
+def auxRuleFire (M : TargetMajor) (rP : Nat) : RecRuleFire :=
+  .nested M.lvls (M.ds.map (Expr.abstractPrefix rP 0))
 
 /-- **One checked recursor's stored rules, at its major**: `sumRules` at the
 MAJOR's parameter count and constructors;
 at an OUTSIDE major (a nested block's auxiliary recursor) every rule
-fires as `auxRuleFireR` reads it (`.nested` at the major's
-instantiation), at a member major as `sumRules` builds it. -/
-def tgtStoredRules (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
-    (cv : ConstantVal) (mI rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
-  let rules := sumRules find? cv.name M.nPc mI rP cv.type M.ctors rhss
+fires `auxRuleFire` (`.nested` at the major's instantiation), at a
+member major as `sumRules` builds it. -/
+def tgtStoredRules (find? : Name → Option ConstantInfo)
+    (cv : ConstantVal) (rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
+  let rules := sumRules find? cv.name M.nPc M.ctors rhss
   match M.member with
-  | none => rules.map fun rl => { rl with fire := auxRuleFireR resolves cv mI rP M.nPc }
+  | none =>
+    let fire := auxRuleFire M rP
+    rules.map fun rl => { rl with fire := fire }
   | some _ => rules
 
 /-- **The block's container bit** (official's `m_nested`):
@@ -618,12 +625,12 @@ def blockNestedBit (p : BlockShape) (kinds : List (List (List NestFieldKind))) :
 each recursor's rules at ITS major (`tgtStoredRules`).  The cached
 install pushes them (`FEnv.pushAll`, `checkBlockTailS`), every record
 built before the first push. -/
-def blockRecInfosTF (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+def blockRecInfosTF (find? : Name → Option ConstantInfo)
     (p : BlockShape) : Nat → List (ConstantVal × TargetMajor × List Expr) → List ConstantInfo
   | _, [] => []
   | m, (cv, M, rhss) :: rest =>
     .recInfo cv (p.majorIdxAt m) (p.rulePrefixAt m)
-        (tgtStoredRules find? resolves cv (p.majorIdxAt m) (p.rulePrefixAt m) M rhss)
-      :: blockRecInfosTF find? resolves p (m + 1) rest
+        (tgtStoredRules find? cv (p.rulePrefixAt m) M rhss)
+      :: blockRecInfosTF find? p (m + 1) rest
 
 end ConLeche

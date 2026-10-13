@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.SetTheory.Derive.LfpFam
-import ConLeche.SetTheory.Derive.Pt
 @[expose] public section
 
 /-!
@@ -96,21 +95,23 @@ noncomputable def gFibre (S u : V) : V :=
 
 /-- The graph functor on families over `U`. -/
 noncomputable def gStep : V :=
-  graph (fun S => graph (fun u => gFibre Dec pred B st S u) U) (famSpace ℓ U)
+  graph (fun S => famOf (fun u => gFibre Dec pred B st S u) U) (famSpaceIn (tg ℓ) U)
 
 /-- **The recursor family's graph**: the least fixed point of the graph
-functor. -/
-noncomputable def gGraph : V := lfpFamSet ℓ U (gStep ℓ U Dec pred B st)
+functor, over families of the axiomatic level `tg ℓ` — a relation,
+whose fibres are sets of values, not types (no drop ever fires: the
+level is closed under subsets). -/
+noncomputable def gGraph : V := lfpFamIn (tg ℓ) U (gStep ℓ U Dec pred B st)
 
 variable {ℓ U Dec pred B st}
 
-theorem app_gStep {S : V} (hS : S ∈ˢ famSpace ℓ U) :
-    app (gStep ℓ U Dec pred B st) S = graph (fun u => gFibre Dec pred B st S u) U :=
+theorem app_gStep {S : V} (hS : S ∈ˢ famSpaceIn (tg ℓ) U) :
+    app (gStep ℓ U Dec pred B st) S = famOf (fun u => gFibre Dec pred B st S u) U :=
   app_graph hS
 
-theorem app_app_gStep {S u : V} (hS : S ∈ˢ famSpace ℓ U) (hu : u ∈ˢ U) :
+theorem app_app_gStep {S u : V} (hS : S ∈ˢ famSpaceIn (tg ℓ) U) (hu : u ∈ˢ U) :
     app (app (gStep ℓ U Dec pred B st) S) u = gFibre Dec pred B st S u := by
-  rw [app_gStep hS, app_graph hu]
+  rw [app_gStep hS, app_famOf hu]
 
 theorem mem_gFibre {S u v : V} :
     v ∈ˢ gFibre Dec pred B st S u ↔
@@ -118,13 +119,14 @@ theorem mem_gFibre {S u v : V} :
   mem_sep
 
 theorem gStep_maps (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)) :
-    MapsFam ℓ U (gStep ℓ U Dec pred B st) := by
+    MapsFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) := by
   intro S hS
   rw [app_gStep hS]
-  exact graph_mem_famSpace fun u hu => univ_sep_mem (hB u hu)
+  exact famOf_mem_famSpaceIn fun u hu =>
+    subsetClosed_tg ℓ _ _ (mem_tg_of_mem_univ (hB u hu)) sep_subset
 
 theorem gStep_mono (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ U) :
-    MonoFam ℓ U (gStep ℓ U Dec pred B st) := by
+    MonoFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) := by
   intro X Y hX hY hle u hu v hv
   rw [app_app_gStep hX hu] at hv
   rw [app_app_gStep hY hu]
@@ -136,10 +138,11 @@ theorem gStep_mono (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ
   exact mem_sigmaPairs.mpr ⟨j, hj, y, hle j (hpred u hu d hd j hj) y hy, rfl⟩
 
 theorem gStep_closed (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)) :
-    IsClosedFam ℓ U (gStep ℓ U Dec pred B st) (graph B U) := by
-  refine ⟨graph_mem_famSpace hB, fun u hu v hv => ?_⟩
-  rw [app_app_gStep (graph_mem_famSpace hB) hu] at hv
-  rw [app_graph hu]
+    IsClosedFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) (famOf B U) := by
+  have hB' : ∀ u, u ∈ˢ U → B u ∈ˢ (tg ℓ : V) := fun u hu => mem_tg_of_mem_univ (hB u hu)
+  refine ⟨famOf_mem_famSpaceIn hB', fun u hu v hv => ?_⟩
+  rw [app_app_gStep (famOf_mem_famSpaceIn hB') hu] at hv
+  rw [app_famOf hu]
   exact (mem_gFibre.mp hv).1
 
 /-- **The fixed-point equation**, fibrewise. -/
@@ -147,8 +150,9 @@ theorem app_gGraph_eq (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V))
     (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ U) {u : V} (hu : u ∈ˢ U) :
     app (gGraph ℓ U Dec pred B st) u = gFibre Dec pred B st (gGraph ℓ U Dec pred B st) u := by
   unfold gGraph
-  rw [← app_lfpFamSet_eq ⟨_, gStep_closed hB⟩ (gStep_mono hpred) (gStep_maps hB) hu,
-    app_app_gStep (lfpFamSet_mem _ _ _) hu]
+  rw [← app_lfpFamIn_eq (subsetClosed_tg ℓ).dropClosed (empty_mem_tg ℓ) ⟨_, gStep_closed hB⟩
+      (gStep_mono hpred) (gStep_maps hB) hu,
+    app_app_gStep (lfpFamIn_mem (empty_mem_tg ℓ) _ _) hu]
 
 /-- Every value of the graph lies in the bound. -/
 theorem gGraph_mem_B (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V))

@@ -1,36 +1,30 @@
 module
 
 public import ConLeche.Verify.BridgeDecl
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
+import ConLeche.Verify.Extend.Inversions
 
 public section
 
 /-!
-# `wfOpsM mode` runs to pure runs, per declaration-checker function
+# Scoping facts for the cache bridge
 
-With the memo operations unguarded, part B's entry-point bridges carry
-the arguments' well-scopedness, so `wfOpsM mode`'s condition is per call
-(`EnvWF env ∧ wscopedB`) and can no longer be discharged wholesale per
-function.  This module proves the run-level implications instead: a
-successful `wfOpsM mode` run of each declaration-checker function over a
-well-formed environment is the pure `fueledOps` run at the same fuel.
-At each operation call site the argument's well-scopedness comes from
+The cached tier's bridge (`ConLeche/Verify/Cached/BridgeCS1.lean`
+through `BridgeCSDecl.lean`) carries the arguments' well-scopedness to
+every operation call.  At each call site it comes from
 
 * the checker's own input validation (`looseBVarsBounded`/`hasFvar`
-  guards precede every `annotate` of raw input — at depth 0
+  guards precede every inference of raw input — at depth 0
   fvar-freedom *is* well-scopedness),
 * the scoping-preservation lemmas for the operations' outputs
-  (`annotateCore_WScoped`, `inferTypeCore_WScoped`), and
+  (`inferTypeCore_WScoped`), and
 * scoping of the iota-theorem check's opened telescopes
   (`openPisAtFvars_WScoped`, `instPisAt_WScoped`, `instLamsAt_WScoped`
   — the defeq comparisons run at the opened depth, over variables of
   that frame).
 
-The cached tier's bridge composes these with the intermediate `EnvWF`
-facts into the per-declaration bridge: `ConLeche/Verify/Cached/BridgeCS1.lean`
-through `BridgeCS3.lean` mirror the `_wfimp` walks per call site,
-`BridgeCS4.lean` and `BridgeCSDecl.lean` chain them along the phase
-drivers into the per-declaration step (`checkDeclStepC_run`).
+This module holds the pieces of that which are not lemmas about the
+operations themselves.
 -/
 
 set_option linter.unusedSimpArgs false
@@ -48,7 +42,7 @@ theorem wscopedB_of_not_hasFvar {e : Expr} (h : e.hasFvar = false)
     {d : Nat} : e.wscopedB d = true :=
   (WScoped.of_not_hasFvar h).to_wscopedB
 
-/-! ## The leaf checker functions, `wfOpsM mode` runs to pure runs -/
+/-! ## Opened telescopes -/
 
 /-- `openPisAtFvars` puts the variable it creates for binder `j` at
 index `i + j` — the positional companion of `openPisAtFvars_WScoped`,
@@ -68,7 +62,7 @@ theorem openPisAtFvars_index :
   | succ n ih =>
     intro e i fvs body h j x hx
     cases e with
-    | forallE dom bodyE mb =>
+    | forallE dom bodyE =>
       simp only [openPisAtFvars] at h
       revert h
       cases hrec : openPisAtFvars n
@@ -88,7 +82,7 @@ theorem openPisAtFvars_index :
           obtain ⟨ty', hx'⟩ := ih _ (i + 1) hrec j x hx
           exact ⟨ty', by rw [hx']; congr 1; omega⟩
     | bvar _ | fvar _ _ | sort _ | const _ _ | app _ _
-    | lam _ _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
+    | lam _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
       exact nomatch h
 
 /-- Opening a `∀`-telescope at fresh free variables produces variables
@@ -107,7 +101,7 @@ theorem openPisAtFvars_WScoped :
   | succ n ih =>
     intro e i fvs body h hw
     cases e with
-    | forallE dom bodyE mb =>
+    | forallE dom bodyE =>
       simp only [openPisAtFvars] at h
       revert h
       cases hrec : openPisAtFvars n
@@ -137,7 +131,7 @@ theorem openPisAtFvars_WScoped :
     | sort u => exact nomatch h
     | const c us => exact nomatch h
     | app f a => exact nomatch h
-    | lam b c d => exact nomatch h
+    | lam b c => exact nomatch h
     | letE b c d => exact nomatch h
     | lit l => exact nomatch h
     | proj s k e => exact nomatch h
@@ -175,10 +169,10 @@ theorem wscopedB_substConst0 {n : Name} {r : Expr}
     simp only [Expr.substConst0, Expr.wscopedB, Bool.and_eq_true] at he ⊢
     exact ⟨wscopedB_substConst0 hr f he.1, wscopedB_substConst0 hr a he.2⟩
   | .bvar _, _, he | .fvar _ _, _, he | .sort _, _, he | .lit _, _, he
-  | .lam _ _ _, _, he | .forallE _ _ _, _, he
+  | .lam _ _, _, he | .forallE _ _, _, he
   | .letE _ _ _, _, he | .proj _ _ _, _, he => he
 
-/-! ## The div/mod pin gate, `wfOpsM mode` runs to pure runs -/
+/-! ## The div/mod pin gate -/
 
 /-- The pinned open certificate statements are well-scoped at the
 certificate frame: hypotheses at their own binder index (they ride as
@@ -219,64 +213,15 @@ macro "throwM_elim" h:ident : tactic =>
       Except.bind, reduceCtorEq] at $h:ident)
 
 /-- The type-slot `ConstWF` facts of a successfully checked constant:
-level parameters and constant resolution are checked outright, and the
-annotated type inherits closedness and fvar-freedom from the raw
-checks through `annotate`. -/
-theorem checkConstantVal_typeWF {env : Env} {cv cvA : ConstantVal}
-    {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
-    cvA.type.hasFvar = false ∧
-    cvA.type.allLevelParamsDefined cvA.levelParams = true ∧
-    cvA.type.constsResolve env = true ∧
-    cvA.type.looseBVarsBounded 0 = true := by
-  unfold checkConstantVal at h
-  by_cases h1 : (env.find? cv.name).isSome = true
-  · rw [ite_eq_left h1] at h; throwM_elim h
-  rw [ite_eq_right h1] at h
-  by_cases h2 : reservedBasisNames.contains cv.name = true
-  · rw [ite_eq_left h2] at h; throwM_elim h
-  rw [ite_eq_right h2] at h
-  by_cases h3 : cv.name.isProjFnShape = true
-  · rw [ite_eq_left h3] at h; throwM_elim h
-  rw [ite_eq_right h3] at h
-  by_cases h4 : Name.nodup cv.levelParams = true
-  case neg => rw [ite_eq_right h4] at h; throwM_elim h
-  rw [ite_eq_left h4] at h
-  by_cases h5 : Expr.looseBVarsBounded 0 cv.type = true
-  case neg => rw [ite_eq_right h5] at h; throwM_elim h
-  rw [ite_eq_left h5] at h
-  by_cases h6 : cv.type.hasFvar = true
-  · rw [ite_eq_left h6] at h; throwM_elim h
-  rw [ite_eq_right h6] at h
-  revert h
-  match hann : (fueledOps mode F).annotate env 0 cv.type with
-  | .error e => intro h; exact nomatch h
-  | .ok type => ?_
-  intro h
-  simp only [Bind.bind, Except.bind] at h
-  have hann' : annotateCore mode env F 0 cv.type = .ok type := hann
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams type = true
-  case neg => rw [ite_eq_right h7] at h; exact nomatch h
-  rw [ite_eq_left h7] at h
-  by_cases h8 : Expr.constsResolve env type = true
-  case neg => rw [ite_eq_right h8] at h; exact nomatch h
-  rw [ite_eq_left h8] at h
-  revert h
-  match hity : (fueledOps mode F).inferType env 0 type with
-  | .error e => intro h; exact nomatch h
-  | .ok stype => ?_
-  intro h
-  simp only [Bind.bind, Except.bind] at h
-  revert h
-  match hsty : (fueledOps mode F).ensureSort env 0 stype with
-  | .error e => intro h; exact nomatch h
-  | .ok u => ?_
-  intro h
-  simp only [Bind.bind, Except.bind, pure, Except.pure,
-    Except.ok.injEq] at h
-  subst h
-  refine ⟨?_, h7, h8, annotateCore_looseBVars F cv.type hann' h5⟩
-  exact not_hasFvar_of_fvarsBelow_zero
-    ((annotateCore_WScoped F cv.type hann'
-      (WScoped.of_not_hasFvar (Bool.not_eq_true _ |>.mp h6))).fvarsBelow)
+level parameters, constant resolution, closedness and fvar-freedom are
+all checked outright (the stored type is the declared one). -/
+theorem checkConstantVal_typeWF {env : Env} {cv : ConstantVal}
+    {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok ()) :
+    cv.type.hasFvar = false ∧
+    cv.type.allLevelParamsDefined cv.levelParams = true ∧
+    cv.type.constsResolve env = true ∧
+    cv.type.looseBVarsBounded 0 = true := by
+  obtain ⟨-, -, -, -, hlb, hif, -, -, htp, htr, -, -⟩ := checkConstantVal_inv h
+  exact ⟨hif, htp, htr, hlb⟩
 
 end ConLeche

@@ -27,13 +27,13 @@ open ConLeche
 /-- `Expr.instPisAtLift` at the memoised substitution. -/
 def instPisAtLiftC : List Expr → Expr → Option Expr
   | [], e => some e
-  | a :: as, .forallE _ body _ => instPisAtLiftC as (Expr.instantiate1LiftC body a)
+  | a :: as, .forallE _ body => instPisAtLiftC as (Expr.instantiate1LiftC body a)
   | _ :: _, _ => none
 
 /-- `structProjBodiesGo` at the memoised substitution. -/
 def structProjBodiesGoC (T : Name) : Nat → Nat → Expr → Option (List Expr)
   | 0, _, _ => some []
-  | k + 1, i, .forallE fdom body _ =>
+  | k + 1, i, .forallE fdom body =>
     (structProjBodiesGoC T k (i + 1) (Expr.instantiate1LiftC body (structProjArgP T i))).map
       (fdom :: ·)
   | _ + 1, _, _ => none
@@ -74,7 +74,6 @@ def opS (fe : FEnv) (d : Nat) (e : Expr) : CheckCM Level :=
 /-- The per-declaration shared operations at a fixed environment
 index. -/
 def sharedOpsC (fe : FEnv) : CheckerOps CheckCM where
-  annotate _ d e := opE mode fe (·.annotate) d e
   inferType _ d e := opE mode fe (·.infer) d e
   isDefEq _ d a b := opB mode fe d a b
   ensureSort _ d e := opS mode fe d e
@@ -96,11 +95,11 @@ transitions, `FEnv.push` maintaining the index, and *every*
 environment lookup routed through the index (task #63). -/
 
 /-- **The rule stage's operations at the rule-less recursors'
-environment**: `sharedOpsC` at `feR`, with a `flushC`
-ENTERING its `annotate` and LEAVING its `inferType`.
+environment**: `sharedOpsC` at `feR`, with a `flushC` ENTERING and
+LEAVING its `inferType`.
 
 One rule runs operations at TWO environments, interleaved: its
-right-hand side is annotated and typed at `feR` (the `k` rule-less
+right-hand side is typed at `feR` (the `k` rule-less
 recursors consed), and everything after — the λ-domains' defeq, the
 residue's inference, the conclusion's defeq — at the constructors'
 index.  The memo caches are keyed by the term alone, and their
@@ -111,16 +110,14 @@ recursor, typed where the recursor is stored) is not a claim at the
 constructors' environment, where the recursor is absent.  The flushes
 are the drivers' own discipline (`flushC` at every environment
 transition), placed where the transitions are: the stage's `feR` half
-is exactly those two operations, the `annotate` first and the
-`inferType` last (`classRuleOk`,
+is exactly one operation, the `inferType` (`classRuleOk`,
 `ConLeche/Kernel/Inductives/GenRec.lean`, infers only).  Every other
 operation is `sharedOpsC`'s. -/
 def sharedOpsRuleR (fe : FEnv) : CheckerOps CheckCM :=
   { sharedOpsC mode fe with
-    annotate := fun _ d e => do
-      flushC
-      opE mode fe (·.annotate) d e
     inferType := fun _ d e => do
+      -- the flush entering the `feR` half
+      flushC
       let t ← opE mode fe (·.infer) d e
       flushC
       pure t }
@@ -147,7 +144,7 @@ def checkBlockPassS (fe : FEnv) (p₀ : BlockParts) (isRec : Bool) :
   let (ctorsAs, sortsss) ← checkBlockCtorsF (sharedOpsC mode fe₁) fe₁ fe₁ pC.toBlockShape
     (pC.members.zip cvTas)
   let (ctx, holes) ← blockNestCtx pC.toBlockShape cvTas fe₁.find?
-  let (rd, Ms) ← checkBlockClasses (sharedOpsC mode fe₁) fe₁ fe₁.env pC.toBlockShape
+  let (rd, Ms) ← checkBlockClasses (sharedOpsC mode fe₁) fe₁ pC.toBlockShape
     ctx.params ctorsAs
   let (kinds, nfs, pos) ← checkBlockPositivity (sharedOpsC mode fe₁) fe₁.env fe₁.find?
     pC cvTas ctorsAs
@@ -174,7 +171,7 @@ def checkBlockTailS (block : List ConstantInfo) (q : BlockPass FEnv) :
   flushC
   let out ← genRecCheck (shadowOpsC mode) fe₂ p.toBlockShape
     (blockNestedBit p.toBlockShape kinds) params tbl.toList rd cls cvTas block
-  let recs := blockRecInfosTF fe₂.find? (·.constsResolveF fe₂) p.toBlockShape 0 out
+  let recs := blockRecInfosTF fe₂.find? p.toBlockShape 0 out
   checkBlockTablesF (m := CheckCM) structWalkersC p.toBlockShape
     (p.members.zip (ctorsAs.zip sortsss)) (FEnv.pushAll recs fe₂)
 

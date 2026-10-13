@@ -84,9 +84,9 @@ theorem RecPinsF.nodup {q : BlockShape} (h : RecPinsF q)
 positionally the records' (`recStageG_recNames`), which the pins make
 distinct (`RecPinsF.nodup`). -/
 theorem recStageG_nodup {mode : CheckMode} {F : Nat} {env : Env} {p : BlockParts}
-    {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
-    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {mem : Nat → Prop}
-    (h : RecStageG mode F env p cvTas ctorsAs rs mem)
+    {cvTas : List ConstantVal}
+    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
+    (h : RecStageG mode F env p cvTas rs)
     (hndM : p.toBlockShape.memberNames.Nodup) : (rs.map (·.1.name)).Nodup := by
   obtain ⟨hpins, hlenR, hall⟩ := recStageG_recNames h
   have hmap : rs.map (·.1.name) = p.recs.map (·.cvR.name) := by
@@ -103,8 +103,8 @@ theorem recStageG_nodup {mode : CheckMode} {F : Nat} {env : Env} {p : BlockParts
 /-! ## A `.nested` firing's pins mention no empty slot
 
 The pins are the major domain's parameter arguments (lowered), read off
-the STORED recursor type, which is annotated and so mentions no empty
-projection slot (`recStage_cvFacts`). -/
+the STORED recursor type, which its check inferred and so mentions no
+empty projection slot (`recStage_cvFacts`). -/
 
 namespace Expr
 
@@ -124,11 +124,11 @@ theorem NoProjAt.of_liftLooseBVars {k : Nat} :
     intro c h
     simp only [Expr.liftLooseBVars, noProjAt_app] at h
     exact noProjAt_app.mpr ⟨ihf h.1, iha h.2⟩
-  | lam ty b m ihty ihb =>
+  | lam ty b ihty ihb =>
     intro c h
     simp only [Expr.liftLooseBVars, noProjAt_lam] at h
     exact noProjAt_lam.mpr ⟨ihty h.1, ihb h.2⟩
-  | forallE ty b m ihty ihb =>
+  | forallE ty b ihty ihb =>
     intro c h
     simp only [Expr.liftLooseBVars, noProjAt_forallE] at h
     exact noProjAt_forallE.mpr ⟨ihty h.1, ihb h.2⟩
@@ -157,14 +157,14 @@ theorem NoProjAt.getAppArgs :
 
 /-- A stripped telescope's body is a subterm. -/
 theorem NoProjAt.stripPis :
-    ∀ (k : Nat) {e b : Expr} {bs : List (Expr × BinderMeta)}, e.stripPis k = some (bs, b) →
+    ∀ (k : Nat) {e b : Expr} {bs : List Expr}, e.stripPis k = some (bs, b) →
       NoProjAt T i e → NoProjAt T i b
   | 0, e, b, bs, h, he => by
     simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
     rw [← h.2]; exact he
   | k + 1, e, b, bs, h, he => by
     cases e with
-    | forallE ty body m =>
+    | forallE ty body =>
       simp only [Expr.stripPis, Option.map_eq_some_iff] at h
       obtain ⟨⟨bs', b'⟩, h', hh⟩ := h
       simp only [Prod.mk.injEq] at hh
@@ -181,7 +181,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts TargetMajor)
 
 universe w
@@ -201,8 +201,8 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {nested : Bool}
   {block : List ConstantInfo} {out : List (ConstantVal × TargetMajor × List Expr)}
   {mpC : EnvModelM V μ envC} {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List (Nat × Nat × AnnotTerm)} {isRec : Bool}
-  {A : Nat → (Name → Nat) → AnnotTerm}
+  {ppsOf : Nat → (Name → Nat) → List Term} {isRec : Bool}
+  {A : Nat → (Name → Nat) → Term}
 
 /-- **`ctor` from the constructors' storage**: carried constructors
 stored at the major's parameter count have their types bound (the
@@ -219,7 +219,7 @@ theorem tgtRecCtor_seam_of_find {envC : Env} {mpC : EnvModelM V μ envC}
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2) ∧
         ConstsBound envC cA.1.type ∧
         ∀ ψ : Name → Nat,
-          denoteMeta mpC.base2.acval envC ψ 0 cA.1.type
+          denote mpC.base2.acval envC ψ 0 cA.1.type
             = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) := by
   intro j r hr i cA hcA
   have hfind := hfind0 j r hr i cA hcA
@@ -230,7 +230,7 @@ theorem tgtRecCtor_seam_of_find {envC : Env} {mpC : EnvModelM V μ envC}
     rw [hrd, List.getD_eq_getElem?_getD, hcA]; rfl
   refine ⟨hfind, constsBound_of_constsResolve _ hwfC.2.2.1, fun ψ => ?_⟩
   obtain ⟨ta, hta⟩ := mpC.type_reads _ hmem ψ
-  change denoteMeta mpC.base2.acval envC ψ 0 cA.1.type = some ta at hta
+  change denote mpC.base2.acval envC ψ 0 cA.1.type = some ta at hta
   rw [blockRecCtorTy, hsel, hta]
   rfl
 
@@ -241,21 +241,22 @@ section Pins
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))}
-  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {mem : Nat → Prop}
+  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
 
 omit [SetTheory V] in
 /-- **A `.nested` firing's pins mention no empty
-projection slot** — they are subterms of the stored (annotated) recursor
-type, lowered. -/
-theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs mem)
-    {resolves : Expr → Bool} {Ms : Nat → TargetMajor} :
+projection slot** — they are the stored (checked) recursor type's
+major-domain arguments (`NestedRead`), lowered. -/
+theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas rs) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      rs[j]? = some r → ∀ lvls pins,
-        ConLeche.tgtFireOf resolves pp.toBlockShape Ms j r = .nested lvls pins →
+      rs[j]? = some r → ∀ {resolves : Expr → Bool} {cnP : Nat} {lvls : List Level}
+        {pins : List Expr},
+        ConLeche.NestedRead resolves r.1.levelParams r.1.type (pp.toBlockShape.majorIdxAt j)
+          (pp.toBlockShape.rulePrefixAt j) cnP lvls pins →
         ∀ pin ∈ pins, ∀ (T : Name) (i : Nat), envC.findProj? T i = none →
           Expr.NoProjAt T i pin := by
-  intro j r hr lvls pins hf pin hpin T i hT
-  obtain ⟨-, -, -, pre, dom, body, bm, D, hs, -, hargs⟩ := ConLeche.tgtFireOf_nested hf
+  intro j r hr resolves cnP lvls pins hread pin hpin T i hT
+  obtain ⟨-, -, -, pre, dom, body, D, hs, -, hargs, -⟩ := hread
   have hty := (ConLeche.recStage_cvFacts h r (List.mem_of_getElem? hr)).2.2.2 T i hT
   have hb := Expr.NoProjAt.stripPis _ hs hty
   have hdom := (Expr.noProjAt_forallE.mp hb).1
@@ -272,7 +273,7 @@ end Pins
 /-! ## `eqP`: the target rule data read alike at valuations agreeing on the recursor's parameters
 
 At ANY major, by the reading's level footprint (`lpDefF`,
-`denoteMeta_params_extF`): the major's levels and parameters are read
+`denote_params_extF`): the major's levels and parameters are read
 off the recursor type's major domain (the checked type names only the
 recursor's level parameters), the fired constructor's type names only
 its own (a member's are the block's, a container's are instantiated at
@@ -294,7 +295,7 @@ theorem lpDefF_openPisAtFvars {ps : List Name} :
     exact ⟨fun x hx => (nomatch hx), he⟩
   | n + 1, e, i, fvs, body, h, he => by
     cases e with
-    | forallE dom b m =>
+    | forallE dom b =>
       simp only [ConLeche.openPisAtFvars] at h
       split at h
       · next fvs' e' hrec =>
@@ -302,10 +303,10 @@ theorem lpDefF_openPisAtFvars {ps : List Name} :
         obtain ⟨rfl, rfl⟩ := h
         simp only [lpDefF, Bool.and_eq_true] at he
         obtain ⟨h1, h2⟩ := lpDefF_openPisAtFvars n _ (i + 1) hrec
-          (lpDefF_instantiate1 (v := .fvar i dom) rfl _ _ he.1.2)
+          (lpDefF_instantiate1 (v := .fvar i dom) rfl _ _ he.2)
         refine ⟨fun x hx => ?_, h2⟩
         rcases List.mem_cons.mp hx with rfl | hx
-        · exact he.1.1
+        · exact he.1
         · exact h1 x hx
       · exact nomatch h
     | _ => simp [ConLeche.openPisAtFvars] at h
@@ -319,7 +320,7 @@ theorem readOpenedDoms_params {env : Env} (m : EnvModel V env) {ps : List Name}
   | _, [], _ => rfl
   | d, x :: xs, h => by
     simp only [readOpenedDoms]
-    rw [denoteMeta_params_extF m hq _ _ (h x List.mem_cons_self),
+    rw [denote_params_extF m hq _ _ (h x List.mem_cons_self),
       readOpenedDoms_params m hq (d + 1) xs (fun y hy => h y (List.mem_cons_of_mem _ hy))]
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}

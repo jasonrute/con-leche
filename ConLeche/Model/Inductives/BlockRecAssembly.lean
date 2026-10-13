@@ -34,7 +34,7 @@ What the run supplies, and where it comes from:
 
 namespace ConLeche.Model
 
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche.Semantics SetTheory
 open ConLeche.Term
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo RecRule BlockShape BlockParts
@@ -53,7 +53,7 @@ no `.proj` node at an empty slot of the BARE-`k` environment
 below are fields of the stage's rule record (`RecStage.ruleOutOf`,
 `Verify/Inductives/RecStage.lean`). -/
 
-section Annot
+section RuleOut
 
 /-- **`blockRecStaged_of`'s `hnoRhs`**: a stored rule's right-hand side
 mentions no EMPTY projection slot of the constructors' environment.
@@ -61,9 +61,8 @@ It is the rule record's `hnoProj` at the environment the stage stores
 it in — the BARE-`k` one, whose `findProj?` is `envC`'s, because no
 recursor's name is projection-shaped. -/
 theorem recStage_rhsNoProj {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
+    (h : ConLeche.RecStageG μ F envC p cvTas rs) :
     ∀ r ∈ rs, ∀ rhsA ∈ r.2.1, ∀ (T : Name) (i : Nat),
       envC.findProj? T i = none → Expr.NoProjAt T i rhsA := by
   obtain ⟨R⟩ := id h
@@ -88,9 +87,8 @@ environment**, stated at the list the model's bare cons is built over
 (`bareOf rs`, spelled out — `BlockStageRec`'s abbreviation is not in
 this file's public view): the rule record's `htyR`. -/
 theorem recStage_rhsInfer {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
+    (h : ConLeche.RecStageG μ F envC p cvTas rs) :
     ∀ r ∈ rs, ∀ rhsA ∈ r.2.1, ∃ tyR : Expr,
       ConLeche.inferTypeCore μ
           (consBlockRecsBare p.toBlockShape 0 (rs.map fun r => (r.1, r.2.2.1)) envC) F 0 rhsA
@@ -101,7 +99,7 @@ theorem recStage_rhsInfer {envC : Env} {p : BlockParts} {cvTas : List ConstantVa
   obtain ⟨i, rc, -, -, Q⟩ := R.ruleOutOf hc hrhsA
   exact Q.htyR
 
-end Annot
+end RuleOut
 
 /-! ## 5. The stage's VALUATION
 
@@ -116,17 +114,17 @@ are about the LEAF and belong beside `blockRecAV_facts`. -/
 /-- **The recursors' cons's valuation**: the block's recursors read as
 the family's leaves, everything else as the constructors' environment
 reads it. -/
-@[expose] noncomputable def blockRecAcvOf (base : Name → (Name → Nat) → AnnotTerm)
-    (names : List Name) (leaf : (Name → Nat) → Nat → AnnotTerm) :
-    Name → (Name → Nat) → AnnotTerm :=
+@[expose] noncomputable def blockRecAcvOf (base : Name → (Name → Nat) → Term)
+    (names : List Name) (leaf : (Name → Nat) → Nat → Term) :
+    Name → (Name → Nat) → Term :=
   fun n ψ =>
     match names.findIdx? (· == n) with
     | some i => leaf ψ i
     | none => base n ψ
 
 /-- Off the block's recursors the valuation is the constructors'. -/
-theorem blockRecAcvOf_of_ne {base : Name → (Name → Nat) → AnnotTerm} {names : List Name}
-    {leaf : (Name → Nat) → Nat → AnnotTerm} {n : Name} (hne : ∀ m ∈ names, n ≠ m) :
+theorem blockRecAcvOf_of_ne {base : Name → (Name → Nat) → Term} {names : List Name}
+    {leaf : (Name → Nat) → Nat → Term} {n : Name} (hne : ∀ m ∈ names, n ≠ m) :
     blockRecAcvOf base names leaf n = base n := by
   have h : names.findIdx? (· == n) = none :=
     List.findIdx?_eq_none_iff.mpr (fun x hx => by
@@ -137,8 +135,8 @@ theorem blockRecAcvOf_of_ne {base : Name → (Name → Nat) → AnnotTerm} {name
 /-- At the `i`-th stored recursor the valuation IS the `i`-th leaf —
 the names being pairwise distinct is what makes the lookup land on
 `i`. -/
-theorem blockRecAcvOf_at {base : Name → (Name → Nat) → AnnotTerm} {names : List Name}
-    {leaf : (Name → Nat) → Nat → AnnotTerm} (hnd : names.Nodup) {i : Nat} {n : Name}
+theorem blockRecAcvOf_at {base : Name → (Name → Nat) → Term} {names : List Name}
+    {leaf : (Name → Nat) → Nat → Term} (hnd : names.Nodup) {i : Nat} {n : Name}
     (hi : names[i]? = some n) :
     blockRecAcvOf base names leaf n = fun ψ => leaf ψ i := by
   have hlt : i < names.length := (List.getElem?_eq_some_iff.mp hi).1
@@ -174,47 +172,42 @@ family's chosen tuple, at the recursor types the run reads.
 its own level parameter, so a block's recursor types are sets of a
 level that MOVES with the valuation, and `BlockRecPre.hTy` is stated
 at `univ (s ψ)`. -/
-@[expose] noncomputable def blockRecLeafAV (acval : Name → (Name → Nat) → AnnotTerm)
+@[expose] noncomputable def blockRecLeafAV (acval : Name → (Name → Nat) → Term)
     (envC : Env) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List AnnotTerm) (ψ : Name → Nat)
-    (i : Nat) : AnnotTerm :=
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) (ψ : Name → Nat)
+    (i : Nat) : Term :=
   ConLeche.Semantics.blockRecAV (s ψ) rs.length (blockRecTyAV acval envC rs ψ) (eqs ψ) i
 
 /-- The recursors' cons's valuation, at the block's own leaves. -/
-@[expose] noncomputable def blockRecAcv (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+@[expose] noncomputable def blockRecAcv (acval : Name → (Name → Nat) → Term) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List AnnotTerm) :
-    Name → (Name → Nat) → AnnotTerm :=
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) :
+    Name → (Name → Nat) → Term :=
   blockRecAcvOf acval (rs.map (·.1.name)) (blockRecLeafAV acval envC rs s eqs)
 
 /-- **The recursor family's leaf facts** at the equation list `eqs`:
-the leaf is closed, invariant under lifting, level-parametric in each
-recursor's own parameters, graded and bit-valid, and the family premise
+the leaf is closed, level-parametric in each
+recursor's own parameters, graded, and the family premise
 `hpre` that grades it. -/
 structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List AnnotTerm) : Prop where
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) : Prop where
   closed : ∀ (ψ : Name → Nat) (i : Nat),
-    Term.Closed ((blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).erase)
-  liftN : ∀ (ψ : Name → Nat) (i k : Nat),
-    (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).liftN 1 k
-      = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i
+    Term.Closed (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
   par : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
     rs[i]? = some r → ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
       blockRecLeafAV mpC.base2.acval envC rs s eqs ψ₁ i
         = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ₂ i
   wd : ∀ (ψ : Name → Nat) (i : Nat), i < rs.length → ∀ ρ : Nat → V,
     WellDenoted V ρ (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
-  valid : ∀ (ψ : Name → Nat) (i : Nat) (ρ : Nat → V),
-    AnnotValid V ρ (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
   pre : ∀ (ψ : Name → Nat) (ρ : Nat → V),
     ConLeche.Semantics.BlockRecPre V (s ψ) rs.length
       (blockRecTyAV mpC.base2.acval envC rs ψ) (eqs ψ) ρ
 
 /-- Off the stored recursors' names the valuation is the base one. -/
-theorem blockRecAcv_of_notin {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
+theorem blockRecAcv_of_notin {acval : Name → (Name → Nat) → Term} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm} {n : Name}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term} {n : Name}
     (hne : ∀ r ∈ rs, n ≠ r.1.name) : blockRecAcv acval envC rs s eqs n = acval n := by
   refine blockRecAcvOf_of_ne (fun m hm => ?_)
   obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hm
@@ -222,9 +215,9 @@ theorem blockRecAcv_of_notin {acval : Name → (Name → Nat) → AnnotTerm} {en
 
 /-- At the `i`-th stored recursor's name the valuation is the family's
 `i`-th leaf. -/
-theorem blockRecAcv_at {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
+theorem blockRecAcv_at {acval : Name → (Name → Nat) → Term} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (hnd : (rs.map (·.1.name)).Nodup) {i : Nat}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : rs[i]? = some r)
     (ψ : Name → Nat) :
@@ -238,22 +231,19 @@ theorem blockRecAcv_at {acval : Name → (Name → Nat) → AnnotTerm} {envC : E
 /-- The leaf facts, at a stored recursor's name of the valuation. -/
 theorem BlockRecLeafOk.stored {envC : Env} {mpC : EnvModelM V μ envC}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (hleaf : BlockRecLeafOk mpC rs s eqs) (hnd : (rs.map (·.1.name)).Nodup)
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : r ∈ rs) :
-    (∀ ψ, Term.Closed ((blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ).erase)) ∧
-    (∀ ψ k, (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ).liftN 1 k
-      = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ) ∧
+    (∀ ψ, Term.Closed (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) ∧
     (∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
       blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ₁
         = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ₂) ∧
-    (∀ ψ (ρ : Nat → V), WellDenoted V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) ∧
-    (∀ ψ (ρ : Nat → V), AnnotValid V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) := by
+    (∀ ψ (ρ : Nat → V), WellDenoted V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) := by
   obtain ⟨i, hi⟩ := List.getElem?_of_mem hr
   simp only [blockRecAcv_at hnd hi]
-  exact ⟨fun ψ => hleaf.closed ψ i, fun ψ k => hleaf.liftN ψ i k,
+  exact ⟨fun ψ => hleaf.closed ψ i,
     fun ψ₁ ψ₂ hq => hleaf.par i r hi ψ₁ ψ₂ hq,
-    fun ψ ρ => hleaf.wd ψ i (List.getElem?_eq_some_iff.mp hi).1 ρ, fun ψ ρ => hleaf.valid ψ i ρ⟩
+    fun ψ ρ => hleaf.wd ψ i (List.getElem?_eq_some_iff.mp hi).1 ρ⟩
 
 /-- The `.nested` firings' pins facts: at every stored recursor `j`
 whose rules fire `.nested lvls pins`, the rule prefix sits below the
@@ -273,8 +263,8 @@ abbrev NestedFiresOk (envC : Env) (p : BlockParts)
         pin.constsResolve envC = true ∧
         pin.looseBVarsBounded (p.toBlockShape.rulePrefixAt j) = true ∧
         ∀ (T : Name) (i : Nat), envC.findProj? T i = none → Expr.NoProjAt T i pin) ∧
-      ∃ pre dom body bm D,
-        r.1.type.stripPis (p.toBlockShape.majorIdxAt j) = some (pre, .forallE dom body bm) ∧
+      ∃ pre dom body D,
+        r.1.type.stripPis (p.toBlockShape.majorIdxAt j) = some (pre, .forallE dom body) ∧
         dom.getAppFn = .const D lvls ∧
         dom.getAppArgs =
           pins.map (Expr.liftLooseBVars
@@ -291,7 +281,7 @@ rule bits. -/
 abbrev AtStoredRules {envC : Env} (mpC : EnvModelM V μ envC)
     (R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule)
     (p : BlockParts) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List AnnotTerm) (nPc : Nat → Nat)
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) (nPc : Nat → Nat)
     (fireOf : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) →
       ConLeche.RecRuleFire)
     (P : EnvModel V (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) → (Name → Nat) →
@@ -303,23 +293,21 @@ abbrev AtStoredRules {envC : Env} (mpC : EnvModelM V μ envC)
       List (ConstantVal × Nat)), rs[j]? = some r →
     ∀ (i : Nat) (cA : ConstantVal × Nat) (rhs : Expr),
       r.2.2.2[i]? = some cA → r.2.1[i]? = some rhs →
-      P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find? r.1.name
+      P m₃ φ j r i cA rhs (ConLeche.recRuleBits envC.find?
         { ctor := cA.1.name, nfields := cA.2, ctorParams := nPc j,
-          fire := fireOf j r, rhs := rhs, paramsBlind := true })
+          fire := fireOf j r, rhs := rhs })
 
 /-- **The recursor stage, at the run, at any rules of the shape**: the
 cons at a rules function `R` whose stored
 rules have the SHAPE (`RecRulesShape`), the `.nested` firings' pins
 facts (`hnest`), the stage's record at any majors (`RecStageG`), the
 stored names distinct (`hnd`), the LEAF's facts with the family premise
-(`BlockRecLeafOk`) and the rule seam (`hnew`, at every non-`.inert`
-firing). -/
+(`BlockRecLeafOk`) and the rule seam (`hnew`). -/
 theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
+    (h : ConLeche.RecStageG μ F envC p cvTas rs)
     (hnd : (rs.map (·.1.name)).Nodup)
     {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
     {nPc : Nat → Nat}
@@ -331,7 +319,6 @@ theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
       ∃ cvj cnP cnF, envC.find? cA.1.name = some (.ctorInfo cvj cnP cnF))
     (hleaf : BlockRecLeafOk mpC rs s eqs)
     (hnew : AtStoredRules mpC R p rs s eqs nPc fireOf fun m₃ φ j r _ _ _ rl =>
-      fireOf j r ≠ .inert →
         RecRuleLaw m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j)
           (p.toBlockShape.rulePrefixAt j) rl) :
     BlockRecStagedAt (V := V) μ envC (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC)
@@ -346,8 +333,8 @@ theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (fun r hr => (hcv r hr).1) (fun r hr => (hcv r hr).2.1) (fun r hr => (hcv r hr).2.2.1)
     (fun r hr => ⟨(hfacts r hr).1, (hfacts r hr).2.1, (hfacts r hr).2.2.1,
       (hfacts r hr).2.2.2.1⟩)
-    hag (fun r hr => (hL r hr).1) (fun r hr => (hL r hr).2.1) (fun r hr => (hL r hr).2.2.1)
-    (fun r hr => (hL r hr).2.2.2.1) (fun r hr => (hL r hr).2.2.2.2)
+    hag (fun r hr => (hL r hr).1) (fun r hr => (hL r hr).2.1)
+    (fun r hr => (hL r hr).2.2)
     (hrd_of_pre hμ mpC h rfl
       (fun i r hr ψ => by obtain ⟨-, -, -, hread, -⟩ := recStage_tyPis hμ mpC h hr ψ; exact hread)
       (fun i r hr ψ => blockRecAcv_at hnd hr ψ) hleaf.pre)

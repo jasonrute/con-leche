@@ -15,7 +15,7 @@ public section
 
 namespace ConLeche.Verify
 
-variable {cval : TConstVal} {env : Env} {φ : Name → Nat}
+variable {cval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-- The reverse opening's leaves sit below the opened depth. -/
 theorem openRev_fvarsBelow {e : Expr} {d : Nat}
@@ -60,12 +60,12 @@ private theorem bounded_instantiate1_le {a : Expr}
     simp only [Expr.instantiate1, Expr.looseBVarsBounded,
       Bool.and_eq_true] at hb ⊢
     exact ⟨ihf k m hkm hb.1, ihx k m hkm hb.2⟩
-  | lam ty body bi ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro k m hkm hb
     simp only [Expr.instantiate1, Expr.looseBVarsBounded,
       Bool.and_eq_true] at hb ⊢
     exact ⟨ihty k m hkm hb.1, ihbody (k + 1) (m + 1) (by omega) hb.2⟩
-  | forallE ty body bi ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro k m hkm hb
     simp only [Expr.instantiate1, Expr.looseBVarsBounded,
       Bool.and_eq_true] at hb ⊢
@@ -103,7 +103,7 @@ end ConLeche.Verify
 
 namespace ConLeche.Verify
 
-variable {cval : TConstVal} {env : Env} {φ : Name → Nat}
+variable {cval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-- The reverse opening is well-scoped at the opened depth. -/
 theorem openRev_WScoped {e : Expr} {d : Nat}
@@ -150,10 +150,10 @@ theorem Expr.fvarsBelow_of_fvarLeaves :
   case app f a ihf iha =>
     exact ⟨ihf fun l hl => h l (List.mem_append_left _ hl),
       iha fun l hl => h l (List.mem_append_right _ hl)⟩
-  case lam ty b m ihty ihb =>
+  case lam ty b ihty ihb =>
     exact ⟨ihty fun l hl => h l (List.mem_append_left _ hl),
       ihb fun l hl => h l (List.mem_append_right _ hl)⟩
-  case forallE ty b m ihty ihb =>
+  case forallE ty b ihty ihb =>
     exact ⟨ihty fun l hl => h l (List.mem_append_left _ hl),
       ihb fun l hl => h l (List.mem_append_right _ hl)⟩
   case letE ty v b ihty ihv ihb =>

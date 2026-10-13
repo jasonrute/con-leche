@@ -31,9 +31,9 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  BlockShape MemberShape ProjTable BinderMeta RecRule)
+  BlockShape MemberShape ProjTable RecRule)
 
 universe w
 
@@ -43,7 +43,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 constructors' stage. -/
 structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : List Name)
     (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm)
+    (A : Nat → (Name → Nat) → Term)
     (envI : Env) (ctorsOf : Name → List Name) (sortsOf : Nat → List Level) : Prop
     extends BlockCtorsStage μ F d lps cvTasAll p₁ isRec A envI ctorsOf where
   /-- the η data a structure-like member's record carries -/
@@ -58,7 +58,7 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
     (cA.1.type.stripPis (d.nP + cA.2)).isSome = true
   /-- the block's `Prop` flag is its sort's zeroness -/
   propFlag : d.isProp = (Level.isEquiv d.resSort .zero == some true)
-  /-- no member's name, and no constructor's, is a projection function's -/
+  /-- no member's name is projection-shaped (the table's name is) -/
   shapeT : ∀ m, m < d.k → (d.memberName m).isProjFnShape = false
   /-- no member's name, its recursor's or its constructor's is reserved -/
   resT : ∀ m, m < d.k → ConLeche.reservedBasisNames.contains (d.memberName m) = false
@@ -73,8 +73,8 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
   /-- the fields are bounded at a non-`Prop` block, and each inhabits its sort -/
   boundF : ∀ (m : Nat) (cA : ConstantVal × Nat), m < d.k → d.ctorsM m = [cA] →
     ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.dsF m 0 ψ).take d.nP).map (·.2.2)).reverse ρ → d.isProp = false →
-      FieldsBound (d.w ψ) ρ (((d.dsF m 0 ψ).drop d.nP).map (·.2.2))
+      Sat V (((d.dsF m 0 ψ).take d.nP)).reverse ρ → d.isProp = false →
+      FieldsBound (d.w ψ) ρ (((d.dsF m 0 ψ).drop d.nP))
   /-- the constructors' telescope lengths and bounds -/
   dsLen : ∀ (m j : Nat) (cA : ConstantVal × Nat), m < d.k → (d.ctorsM m)[j]? = some cA →
     ∀ ψ, (d.dsF m j ψ).length = d.nP + cA.2
@@ -86,10 +86,10 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
   foldT : ∀ (m : Nat) (cA : ConstantVal × Nat), m < d.k → d.ctorsM m = [cA] →
     d.nIdxAt m = 0 →
     ∀ (ψ : Name → Nat) (ρ : Nat → V) (ts : List V),
-      SpineFit ρ ((d.ppsM m ψ).map (·.2.2)) ts →
+      SpineFit ρ ((d.ppsM m ψ)) ts →
       ts.foldl SetTheory.app (interp V ρ (A m ψ))
         = sumSet (d.w ψ) (sumFibre (d.w ψ) (consList ts ρ)
-            [((d.dsF m 0 ψ).drop d.nP).map (·.2.2) ++ [idxEqAV []]])
+            [((d.dsF m 0 ψ).drop d.nP) ++ [idxEqAV []]])
   /-- no member's projections occur in a stored former's type … -/
   noProjT : ∀ (m c : Nat) (cvTb : ConstantVal), m < d.k → cvTasAll[c]? = some cvTb →
     ∀ i, Expr.NoProjAt (d.memberName m) i cvTb.type
@@ -105,10 +105,10 @@ structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : L
     ∀ (i j : Nat), Expr.NoProjAt (d.memberName m) i (bodies.getD j default)
   sortsF : ∀ (m : Nat) (cA : ConstantVal × Nat), m < d.k → d.ctorsM m = [cA] →
     ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.dsF m 0 ψ).take d.nP).map (·.2.2)).reverse ρ →
+      Sat V (((d.dsF m 0 ψ).take d.nP)).reverse ρ →
       ∀ j, j < cA.2 → ∀ as : List V,
-        SpineFit ρ ((((d.dsF m 0 ψ).drop d.nP).map (·.2.2)).take j) as →
-        interp V (consList as ρ) ((((d.dsF m 0 ψ).drop d.nP).map (·.2.2)).getD j default)
+        SpineFit ρ ((((d.dsF m 0 ψ).drop d.nP)).take j) as →
+        interp V (consList as ρ) ((((d.dsF m 0 ψ).drop d.nP)).getD j default)
           ∈ˢ (univ (((sortsOf m).getD j .zero).eval ψ) : V)
 
 /-- **What the tables' loop threads**: the `k` formers with their
@@ -119,7 +119,7 @@ constructors' full data — a table's cons crosses a TYPE's reading,
 not an arbitrary term's. -/
 @[expose] def BlockTablesCore {env : Env} (m' : EnvModel V env) (d : BlockData V)
     (lps : List Name) (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm) (nc : Nat) : Prop :=
+    (A : Nat → (Name → Nat) → Term) (nc : Nat) : Prop :=
   (∀ (c : Nat) (cvTb : ConstantVal), cvTasAll[c]? = some cvTb →
       env.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ c isRec)) ∧
       cvTb.type.constsResolve env = true ∧
@@ -128,11 +128,11 @@ not an arbitrary term's. -/
   (∀ (c j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       env.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2) ∧ cA.1.levelParams = lps ∧
       cA.1.type.constsResolve env = true ∧
-      (∀ ψ, denoteMeta m'.acval env ψ 0 cA.1.type
+      (∀ ψ, denote m'.acval env ψ 0 cA.1.type
         = some (mkPisAV (d.dsF c j ψ)
-            (AnnotTerm.mkAppN (A c ψ) (paramBvars d.nP cA.2 ++ d.esF c j ψ)))) ∧
+            (Term.mkAppN (A c ψ) (paramBvars d.nP cA.2 ++ d.esF c j ψ)))) ∧
       (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) j (d.dsF c j ψ)
-        (((d.dsF c j ψ).drop d.nP).map (·.2.2)) (uChains (d.Fss c ψ)))) ∧
+        (((d.dsF c j ψ).drop d.nP)) (uChains (d.Fss c ψ)))) ∧
   -- the members the tables' loop will still treat: their projection
   -- slots are free (a member with no table of its own is never asked)
   ∀ c, nc ≤ c → c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
@@ -141,14 +141,14 @@ not an arbitrary term's. -/
 /-- The constructors' stage's invariant, at the tables' stage. -/
 theorem blockTablesCore_of {env : Env} {m' : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm}
+    {A : Nat → (Name → Nat) → Term}
     (hN : BlockNamesOk (V := V) d cvTasAll)
     (h : BlockCtorsCore m' d lps cvTasAll p₁ isRec A d.k)
     (hnp : ∀ c, c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
       ∀ j, NoProjEnv env (d.memberName c) j) :
     BlockTablesCore m' d lps cvTasAll p₁ isRec A 0 := by
   obtain ⟨hnameOf, hctorLt, hlenCv⟩ := hN
-  obtain ⟨hform, -, hdata, hconsed⟩ := h
+  obtain ⟨hform, hdata, hconsed⟩ := h
   refine ⟨hform, fun c j cA hj => ?_, fun c _ hc h1 h2 j => hnp c hc h1 h2 j⟩
   obtain ⟨hfind, hlps, hleafC⟩ := hconsed c (by
     have := hctorLt c j cA hj
@@ -171,7 +171,7 @@ projections do not occur"), and every LATER member's slots stay free
 — the consed table's bodies are the member's own. -/
 theorem BlockTablesCore.consTable {env : Env} {m' : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm} {mm : Nat}
+    {A : Nat → (Name → Nat) → Term} {mm : Nat}
     (h : BlockTablesCore m' d lps cvTasAll p₁ isRec A mm)
     {tbl : ProjTable} (hstruct : tbl.structName = d.memberName mm)
     (hfresh : env.find? (ConstantInfo.projInfo tbl).name = none)
@@ -214,7 +214,7 @@ theorem BlockTablesCore.consTable {env : Env} {m' : EnvModel V env} {d : BlockDa
     refine ⟨ConLeche.Env.find?_cons_of_fresh hfresh hfind, hlps, Expr.constsResolve_mono hres,
       fun ψ => ?_, fun ψ => ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh hcross ψ 0
+      exact denote_cons_mono hfresh hcross ψ 0
         (constsBound_of_constsResolve _ hres) (hread ψ)
     · rw [hac]
       show acvalWith m'.acval (ConstantInfo.projInfo tbl).name _ cA.1.name ψ = _
@@ -233,7 +233,7 @@ structure-like member, the tables' invariant threaded across the
 conses. -/
 theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
     {cvTasAll : List ConstantVal} {p₁ q : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm}
+    {A : Nat → (Name → Nat) → Term}
     {envI : Env} {ctorsOf : Name → List Name} {sortsOf : Nat → List Level}
     (hN : BlockNamesOk (V := V) d cvTasAll)
     (hS : BlockTablesStage (V := V) μ F d lps cvTasAll p₁ isRec A envI ctorsOf sortsOf)
@@ -316,7 +316,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
     have hlenP : ∀ ψ : Name → Nat, (d.ppsM i ψ).length = d.nP := by
       intro ψ; have := hFD.len ψ; rwa [hnIdx0, Nat.add_zero] at this
     have hFss1 : ∀ ψ : Name → Nat,
-        d.Fss i ψ = [((d.dsF i 0 ψ).drop d.nP).map (·.2.2)] := by
+        d.Fss i ψ = [((d.dsF i 0 ψ).drop d.nP)] := by
       intro ψ
       have hlen : (d.Fss i ψ).length = 1 := by
         show (fssOfR _ _).length = 1
@@ -324,7 +324,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
         show (fixCtorDataList _ _ _ _ _ _ _ _).length = 1
         rw [fixCtorDataList_length, hctorsEq]; rfl
       obtain ⟨Fs, hFs⟩ := List.length_eq_one_iff.mp hlen
-      have h0 : (d.Fss i ψ).getD 0 [] = ((d.dsF i 0 ψ).drop d.nP).map (·.2.2) :=
+      have h0 : (d.Fss i ψ).getD 0 [] = ((d.dsF i 0 ψ).drop d.nP) :=
         fssOfR_fixCtorDataList_getD hcA0
       rw [hFs] at h0 ⊢
       simp only [List.getD_cons_zero] at h0
@@ -337,7 +337,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
     | ok env' =>
     rw [hT] at h
     rw [hqlps, hqnP, hqres, hTn] at hT
-    obtain ⟨bodies, hbodies, -, -, hfreshTbl, henvOut⟩ := ConLeche.checkStructProjTable_inv hT
+    obtain ⟨bodies, hbodies, -, hfreshTbl, henvOut⟩ := ConLeche.checkStructProjTable_inv hT
     have hnpT : ∀ j, NoProjEnv env cvTb.name j := by
       rw [← hTn']; exact hcore.2.2 i (Nat.le_refl _) hik ⟨cA, hctorsEq⟩ hnIdx0
     obtain ⟨tbl, mp', henv, hstructN, hfreshT, hac⟩ :=
@@ -372,8 +372,7 @@ theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
         (fun ψ ρ => by
           have := (hS.frames i hik 0 cA hcA0).1 ψ ρ
           rwa [List.take_of_length_le (Nat.le_of_eq (hlenP ψ))] at this)
-        (fun ψ ρ hρ => ⟨((hS.frames i hik 0 cA hcA0).2 ψ ρ hρ).1,
-          ((hS.frames i hik 0 cA hcA0).2 ψ ρ hρ).2.1⟩)
+        (fun ψ ρ hρ => ((hS.frames i hik 0 cA hcA0).2 ψ ρ hρ).1)
         (hS.boundF i cA hik hctorsEq) (hS.sortsF i cA hik hctorsEq)
     -- the table's own shape, from the check
     have htblB : tbl.bodies = bodies ∧ tbl.numFields = cA.2 := by

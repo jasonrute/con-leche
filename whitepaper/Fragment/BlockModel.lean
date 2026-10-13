@@ -28,7 +28,7 @@ stored before it (`EnvModel.transport`'s argument again:
 `famSet_congr`, `ctorSet_congr`, `DomsBounded_congr`).
 
 Con-leche: the `lfpBlocks` of `EnvModelM`
-(`ConLeche/Model/Annot/EnvModelM.lean`), the datum of every installed
+(`ConLeche/Model/Env/EnvModelM.lean`), the datum of every installed
 block kept with the model.
 -/
 
@@ -214,7 +214,7 @@ theorem Agree.fitsParams_iff (h : S.Agree env M M' ls ls') (ps : List V) :
 
 omit [IndLib V] in
 theorem Agree.z_eq (h : S.Agree env M M' ls ls') : S.z ls = S.z ls' := by
-  unfold z
+  unfold z u₀
   rw [h.ψ]
 
 omit [IndLib V] in
@@ -255,7 +255,8 @@ theorem Agree.classSet_eq (h : S.Agree env M M' ls ls') {N : NestInfo} (hN : S.n
     S.classSet M ls N = S.classSet M' ls' N := by
   funext ps X
   unfold classSet
-  rw [h.lsK_eq N, h.agree N.K.name (h.block.2.2.2.2.2.2 N hN).1, h.classArgsV_eq hN ps X]
+  rw [S.adm_congr_ls ls h.ψ, h.lsK_eq N, h.agree N.K.name (h.block.2.2.2.2.2.2 N hN).1,
+    h.classArgsV_eq hN ps]
 
 theorem Agree.memberIdx_eq (h : S.Agree env M M' ls ls') {N : NestInfo} (hN : S.nest = some N) :
     S.memberIdx M ls N = S.memberIdx M' ls' N := by
@@ -278,7 +279,9 @@ theorem Agree.fieldSet_eq (h : S.Agree env M M' ls ls') (W : List V → V)
   | ordinary A => exact h.read hf _
   | reflexive tele es =>
     simp only [fieldSet]
-    rw [h.z_eq]
+    have hr : (S.reflBody ls : List Expr → V → V) = S.reflBody ls' := by
+      funext tele X; unfold reflBody; rw [S.adm_congr_ls ls h.ψ]
+    rw [hr]
     refine piCtx_congr₂ (h.ctxAgree (fun T hT => ?_) _) fun ys _ => ?_
     · obtain ⟨t, ht⟩ := List.mem_iff_getElem?.mp hT
       exact ⟨_, hf.1 t T ht⟩
@@ -412,7 +415,7 @@ theorem consts_fieldDom (hS : S.Scoped env) {k : Nat} {f : Field} (hf : S.fieldS
   | reflexive tele es =>
     intro c hc
     simp only [fieldDom] at hc
-    rcases Expr.consts_mkPis _ _ _ c hc with hc | ⟨A, hA, hc⟩
+    rcases Expr.consts_mkPis _ _ c hc with hc | ⟨A, hA, hc⟩
     · exact S.consts_famAt (fun e he => (hf.2.2 e he).2.1) c hc
     · obtain ⟨t, ht⟩ := List.mem_iff_getElem?.mp hA
       exact Or.inr ((hf.1 t A ht).2.1 c hc)
@@ -432,7 +435,7 @@ variable {S}
 theorem Agree.ctorSet_eq (h : S.Agree env M M' ls ls') (j : Nat) {c : CtorSpec}
     (hc : c ∈ S.ctors) : S.ctorSet M ls j c = S.ctorSet M' ls' j c := by
   unfold ctorSet
-  rw [h.z_eq, h.ctorVal_eq]
+  rw [h.ctorVal_eq]
   refine lamCtx_congr₂ ?_ fun _ _ => rfl
   intro i A hA vs _
   rcases List.mem_append.mp (List.mem_of_getElem? hA) with hA | hA
@@ -625,8 +628,8 @@ theorem install_ind' {env : Env} {S : IndSpec} (hpl : S.nest = none) (hs : Env.S
             hok.ctorOf?_name, S.envInd_find?, ite_eq_left rfl]
         · rw [S.install_find? hpl, ite_eq_right (hok.ctor_ne_rec hc),
             S.envCtors_find? env hok.nodup_ctors, S.ctorOf?_of_getElem? hok.nodup_ctors hc]
-        · rw [(IndSpec.reader₃ hok m.M fun _ => 0).R.fam ls, ← S.famSet_eq_famSetF, (hA ls).famSet_eq]
-        · rw [(IndSpec.reader₃ hok m.M fun _ => 0).ctor j c hc ls,
+        · rw [(IndSpec.reader₃ hpl hok m.M fun _ => 0).R.fam ls, ← S.famSet_eq_famSetF, (hA ls).famSet_eq]
+        · rw [(IndSpec.reader₃ hpl hok m.M fun _ => 0).ctor j c hc ls,
             (hA ls).ctorSet_eq j (List.mem_of_getElem? hc)]
         · -- the domains' bound: the checker's, at the block's own valuation
           exact (hA ls).domsBounded_imp ps (hbO ls ps (((hA ls).fitsParams_iff ps).mpr hp))

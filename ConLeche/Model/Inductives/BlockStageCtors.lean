@@ -5,7 +5,7 @@ import ConLeche.Model.Inductives.FixKit
 import ConLeche.Model.Inductives.BlockCaps
 import ConLeche.Model.Inductives.BlockRep
 public import ConLeche.Model.Inductives.BlockAbsRead
-import ConLeche.Model.Annot.LfpHoleOp
+import ConLeche.Model.Env.LfpHoleOp
 import ConLeche.Model.Inductives.BlockHoleFold
 public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Semantics.Inductives.DeclBlockEta
@@ -32,9 +32,9 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
-  InductiveShape BlockShape BinderMeta RecRule)
+  InductiveShape BlockShape RecRule)
 
 universe w
 
@@ -44,23 +44,17 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **The block install's carrier invariant at the constructors'
 stage**, `nc` members' constructors consed: the `k` formers with their
-leaves and telescope readings, the capability families free, every
-member's constructors' readings, the earlier members' constructors
+leaves and telescope readings, every member's constructors' readings, the earlier members' constructors
 stored with their leaves. -/
 @[expose] def BlockCtorsCore {env : Env} (m' : EnvModel V env) (d : BlockData V)
     (lps : List Name) (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm) (nc : Nat) : Prop :=
+    (A : Nat → (Name → Nat) → Term) (nc : Nat) : Prop :=
   -- the `k` formers
   (∀ (c : Nat) (cvTb : ConstantVal), cvTasAll[c]? = some cvTb →
       env.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ c isRec)) ∧
       cvTb.type.constsResolve env = true ∧
       (∀ ψ, m'.acval cvTb.name ψ = A c ψ) ∧
       FormerData m' cvTb (d.nP + d.nIdxAt c) d.resSort (d.ppsM c)) ∧
-  -- a capable member's projection-function family is still free
-  (∀ (c : Nat) (cvTb : ConstantVal), cvTasAll[c]? = some cvTb →
-      (ConLeche.blockCapsAt p₁ c isRec).unitlike = false →
-      (ConLeche.blockCapsAt p₁ c isRec).eta = true →
-      env.find? (projFnName cvTb.name 0) = none) ∧
   -- every member's constructors resolve and read, their fields with
   -- holes the walked term's reading
   (∀ (c j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
@@ -74,7 +68,7 @@ stored with their leaves. -/
   (∀ c, c < nc → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       env.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2) ∧ cA.1.levelParams = lps ∧
       ∀ ψ, m'.acval cA.1.name ψ
-        = sumMkAV (d.w ψ) j (d.dsF c j ψ) (((d.dsF c j ψ).drop d.nP).map (·.2.2))
+        = sumMkAV (d.w ψ) j (d.dsF c j ψ) (((d.dsF c j ψ).drop d.nP))
             (uChains (d.Fss c ψ)))
 
 /-- **The block's names, statically**: a member's name is its former's,
@@ -89,17 +83,16 @@ name is not the fresh one, so nothing found before is disturbed; the
 readings cross by `FormerData.cross` and `BlockCtorDataI.cross`. -/
 theorem BlockCtorsCore.cons {env : Env} {m' : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm} {nc : Nat}
+    {A : Nat → (Name → Nat) → Term} {nc : Nat}
     (hN : BlockNamesOk (V := V) d cvTasAll)
     (h : BlockCtorsCore m' d lps cvTasAll p₁ isRec A nc)
-    {cA : ConstantVal × Nat} {B : (Name → Nat) → AnnotTerm}
+    {cA : ConstantVal × Nat} {B : (Name → Nat) → Term}
     (hfresh : env.find? cA.1.name = none)
-    (hpshape : cA.1.name.isProjFnShape = false)
     (mC : EnvModel V ⟨.ctorInfo cA.1 d.nP cA.2 :: env.consts⟩)
     (hac : mC.acval = acvalWith m'.acval cA.1.name B) :
     BlockCtorsCore mC d lps cvTasAll p₁ isRec A nc := by
   obtain ⟨hnameOf, hctorLt, hlenCv⟩ := hN
-  obtain ⟨hform, hfr, hdata, hconsed⟩ := h
+  obtain ⟨hform, hdata, hconsed⟩ := h
   have hcross : ∀ e : Expr, ConsCrossAt (.ctorInfo cA.1 d.nP cA.2) e :=
     fun _ => ConsCrossAt.ofNtc (fun _ hh => nomatch hh)
   -- a name already stored is not the fresh one
@@ -111,8 +104,7 @@ theorem BlockCtorsCore.cons {env : Env} {m' : EnvModel V env} {d : BlockData V}
       cvTb.name ≠ cA.1.name := by
     intro c cvTb hc
     exact hne _ (by rw [(hform c cvTb hc).1]; rfl)
-  refine ⟨fun c cvTb hc => ?_, fun c cvTb hc hU he => ?_, fun c j cB hj => ?_,
-    fun c hc j cB hj => ?_⟩
+  refine ⟨fun c cvTb hc => ?_, fun c j cB hj => ?_, fun c hc j cB hj => ?_⟩
   · obtain ⟨hfind, hres, hleaf, hFD⟩ := hform c cvTb hc
     refine ⟨ConLeche.Env.find?_cons_of_fresh hfresh hfind,
       Expr.constsResolve_mono hres, fun ψ => ?_, ?_⟩
@@ -122,14 +114,6 @@ theorem BlockCtorsCore.cons {env : Env} {m' : EnvModel V env} {d : BlockData V}
       exact hleaf ψ
     · exact hFD.cross (c₀ := .ctorInfo cA.1 d.nP cA.2) hfresh (hcross _)
         (constsBound_of_constsResolve _ hres) mC hac
-  · have hnp : ¬ ((ConstantInfo.ctorInfo cA.1 d.nP cA.2).name = projFnName cvTb.name 0) := by
-      intro hh
-      have hh' : cA.1.name = projFnName cvTb.name 0 := hh
-      have := projFnName_isProjFnShape cvTb.name 0
-      rw [← hh', hpshape] at this
-      exact nomatch this
-    rw [ConLeche.Env.find?_cons, ite_eq_right hnp]
-    exact hfr c cvTb hc hU he
   · obtain ⟨hres, hresI, hD, hR⟩ := hdata c j cB hj
     refine ⟨Expr.constsResolve_mono hres, fun e he => Expr.constsResolve_mono (hresI e he), ?_,
       hR.cross (c₀ := .ctorInfo cA.1 d.nP cA.2) hfresh hcross (constsBound_of_constsResolve _ hres)
@@ -155,7 +139,7 @@ per-member hypotheses of `stageBlockCtorsAt`, gathered so that the
 loop over the `k` members carries ONE obligation. -/
 structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : List Name)
     (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm)
+    (A : Nat → (Name → Nat) → Term)
     (envI : Env) (ctorsOf : Name → List Name) : Prop where
   /-- the leaves the `k` formers were consed with: the block operator at
   the HOLE chains (charter item 2) -/
@@ -171,7 +155,7 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
   holeFun : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
     AccW (d.w ψ) d.k (blockIdx (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ))
       (blockPhiG d.k (d.w ψ) ρp (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ)) ∧
-    ∃ A, (d.w ψ ≠ 0 → A ∈ˢ (univ (d.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A
+    ∃ A, (d.w ψ ≠ 0 → A ∈ˢ (tg (d.w ψ) : V)) ∧ d.toLfp.FitAcc ψ ρp A
   /-- the block has no instance component -/
   inst : d.nInst = 0
   /-- the stored field shape facts, the members' leaves the formers' -/
@@ -193,32 +177,38 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
   ndBlock : ∀ m, m < d.k → ∀ (c : Nat), c ≠ m → ∀ (j : Nat) (cB : ConstantVal × Nat),
     (d.ctorsM c)[j]? = some cB → cB.1.name ∉ (d.ctorsM m).map (·.1.name)
   paramsOf : ∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-    Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρp →
-    ∀ c, c < d.k → Sat V (((d.ppsM c ψ).take d.nP).map (·.2.2)).reverse ρp
+    Sat V (((d.ppsM m ψ).take d.nP)).reverse ρp →
+    ∀ c, c < d.k → Sat V (((d.ppsM c ψ).take d.nP)).reverse ρp
   lenPps : ∀ (c : Nat) (ψ : Name → Nat), c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length
   lenIds : ∀ m, m < d.k → ∀ ψ : Name → Nat, (d.IdsM m ψ).length = d.nIdxAt m
   /-- the members' index telescopes are graded at every parameter frame -/
   idxOk : ∀ m, m < d.k → ∀ (ψ : Name → Nat) (ρp : Nat → V),
-    Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρp →
+    Sat V (((d.ppsM m ψ).take d.nP)).reverse ρp →
     BlockIdxOk (V := V) d.k (fun c => d.uM c ψ) ρp (fun c => d.IdsM c ψ)
   frames : ∀ m, m < d.k → ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM m)[j]? = some cA →
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ ↔
-        Sat V (((d.dsF m j ψ).take d.nP).map (·.2.2)).reverse ρ) ∧
+      Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ ↔
+        Sat V (((d.dsF m j ψ).take d.nP)).reverse ρ) ∧
     (∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.dsF m j ψ).take d.nP).map (·.2.2)).reverse ρ →
-        FieldsOkB (d.w ψ) ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) ∧
-        FieldsValid ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) ∧
-        (∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) bs →
+      Sat V (((d.dsF m j ψ).take d.nP)).reverse ρ →
+        FieldsOkB (d.w ψ) ρ (((d.dsF m j ψ).drop d.nP)) ∧
+        (∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP)) bs →
           SpineFit ρ (d.IdsM m ψ) (idxValsAt ρ (d.esF m j ψ) bs)))
   capsU : ∀ m, m < d.k → ∀ (cvTa : ConstantVal), cvTasAll[m]? = some cvTa →
     ∀ {env' : Env} (m' : EnvModel V env') (kk : Nat) (cA : ConstantVal × Nat),
     (d.ctorsM m)[kk]? = some cA →
     (ConLeche.blockCapsAt p₁ m isRec).unitlike = true →
+    -- the constructor's stored type and its reading, for the η law's
+    -- telescope coherence (task #342 L11b)
+    (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
+    cA.1.levelParams = cvTa.levelParams →
+    (∀ ψ, denote m'.acval env' ψ 0 cA.1.type
+      = some (mkPisAV (d.dsF m kk ψ)
+          (ctorBodyAVI m' (d.memberName m) d.nP cA.2 ψ (d.esF m kk ψ)))) →
     FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
     (∀ ψ, m'.acval cvTa.name ψ = A m ψ) →
     (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
-      (((d.dsF m kk ψ).drop d.nP).map (·.2.2)) (uChains (d.Fss m ψ))) →
+      (((d.dsF m kk ψ).drop d.nP)) (uChains (d.Fss m ψ))) →
     CapsLawsAt m' cvTa.name cvTa (ConLeche.blockCapsAt p₁ m isRec)
 
 /-! ## The stage at one member -/
@@ -227,14 +217,14 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
 number of members' constructors consed). -/
 theorem blockHoleFacts_of_stage {F : Nat} {envC envI : Env} {mo : EnvModel V envC}
     {d : BlockData V} {lps : List Name} {cvTas : List ConstantVal} {p₁ : BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name} {nc : Nat}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
     (hcore : BlockCtorsCore mo d lps cvTas p₁ isRec A nc) (hk0 : 0 < d.k) :
     BlockHoleFacts mo d lps := by
   have hNk : d.N = d.k := by rw [BlockData.N, hS.inst]; rfl
-  refine ⟨fun c _ j cA hj => (hcore.2.2.1 c j cA hj).2.2.1, fun ψ c hc j hj => ?_,
+  refine ⟨fun c _ j cA hj => (hcore.2.1 c j cA hj).2.2.1, fun ψ c hc j hj => ?_,
       fun ψ => ?_, fun ψ mm hmm => ?_,
       fun ψ mm hmm ρ h => hS.paramsOf 0 hk0 ψ ρ h mm hmm,
       fun ψ mm hmm ρ h => hS.paramsOf mm hmm ψ ρ h 0 hk0, fun ψ c hc j hj => ?_⟩
@@ -243,16 +233,16 @@ theorem blockHoleFacts_of_stage {F : Nat} {envC envI : Env} {mo : EnvModel V env
       ⟨_, List.getElem?_eq_getElem (by rw [hN.2.2]; exact ht)⟩
     rw [hN.1 t cvTb hcvTb]
     exact ((hcore.1 t cvTb hcvTb).2.2.1 ψ).symm
-  · show (((d.ppsM 0 ψ).take d.nP).map (·.2.2)).length = d.nP
-    rw [List.length_map, List.length_take, hS.lenPps 0 ψ hk0]
+  · show (((d.ppsM 0 ψ).take d.nP)).length = d.nP
+    rw [List.length_take, hS.lenPps 0 ψ hk0]
     omega
-  · show (((d.ppsM mm ψ).take d.nP).map (·.2.2)).length = d.nP
-    rw [List.length_map, List.length_take, hS.lenPps mm ψ hmm]
+  · show (((d.ppsM mm ψ).take d.nP)).length = d.nP
+    rw [List.length_take, hS.lenPps mm ψ hmm]
     omega
   · have hck : c < d.k := by rw [← hNk]; exact hc
     have hcj : (d.ctorsM c)[j]? = some (d.ctorsM c)[j] := List.getElem?_eq_getElem hj
     rw [show (d.Ess c ψ).getD j [] = d.esF c j ψ from essOfR_fixCtorDataList_getD hcj,
-      ((hcore.2.2.1 c j _ hcj).2.2.1).lenE ψ, hS.lenIds c hck ψ]
+      ((hcore.2.1 c j _ hcj).2.2.1).lenE ψ, hS.lenIds c hck ψ]
 
 set_option maxHeartbeats 1600000 in
 /-- **The constructors' stage at one block member**: the member-local
@@ -264,7 +254,7 @@ the leaves' frame); with the member's capability laws it feeds
 member's `consSumCtors`, with the core invariant one member on. -/
 theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     {d : BlockData V} {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → Term}
    
     {envI env : Env} {ctorsOf : Name → List Name} {m : Nat} {cvTa : ConstantVal}
     (hN : BlockNamesOk (V := V) d cvTasAll)
@@ -287,16 +277,16 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
   have hframes := hS.frames m hm
   have hlpsA := hS.lpsA m hm
   obtain ⟨hnameOf, hctorLt, hlenCv⟩ := hN
-  obtain ⟨hform, hfrP, hdata, hconsed⟩ := hinv
+  obtain ⟨hform, hdata, hconsed⟩ := hinv
   have hTname : d.memberName m = cvTa.name := hnameOf m cvTa hcvTa
   obtain ⟨hfindT, hresT, hleafT, hFD⟩ := hform m cvTa hcvTa
   -- ## the formers' leaves: closed, and the members' values at the carrier
   have hcvOf : ∀ c, c < d.k → ∃ cvTb, cvTasAll[c]? = some cvTb :=
     fun c hc => ⟨_, List.getElem?_eq_getElem (by rw [hlenCv]; exact hc)⟩
-  have hcl : ∀ c, c < d.k → ∀ ψ : Name → Nat, Term.bvarsBelow 0 (A c ψ).erase := by
+  have hcl : ∀ c, c < d.k → ∀ ψ : Name → Nat, Term.bvarsBelow 0 (A c ψ) := by
     intro c hc ψ
     obtain ⟨cvTb, hcvTb⟩ := hcvOf c hc
-    have := mp.base2.cval_closedL cvTb.name ψ
+    have := mp.base2.cval_closed cvTb.name ψ
     rwa [(hform c cvTb hcvTb).2.2.1 ψ] at this
   have hacv : ∀ c, c < d.k → ∀ ψ : Name → Nat, mp.base2.acval (d.memberName c) ψ = A c ψ := by
     intro c hc ψ
@@ -313,10 +303,10 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
   -- ## the fibre law at the member's own index readings: the override law
   have hfold : ∀ (j : Nat) (cA : ConstantVal × Nat), (d.ctorsM m)[j]? = some cA →
       ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ →
-      ∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP).map (·.2.2)) bs →
+      Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ →
+      ∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP)) bs →
         interp V (consList bs ρ)
-            (AnnotTerm.mkAppN (A m ψ) (paramBvars d.nP cA.2 ++ d.esF m j ψ))
+            (Term.mkAppN (A m ψ) (paramBvars d.nP cA.2 ++ d.esF m j ψ))
           = sumSet (d.w ψ) (sumFibre (d.w ψ)
               (consList (idxValsAt ρ (d.esF m j ψ) bs) ρ)
               (rChains (d.nIdxAt m) (d.nIdxAt m)
@@ -327,7 +317,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     have hD := (hdata m j cA hj).2.2.1
     have hlenB : bs.length = cA.2 := by rw [hsp.length_eq]; simp [hD.len ψ]
     have hspE : SpineFit ρ (d.IdsM m ψ) (idxValsAt ρ (d.esF m j ψ) bs) :=
-      ((hframes j cA hj).2 ψ ρ (((hframes j cA hj).1 ψ ρ).mp hρ)).2.2 bs hsp
+      ((hframes j cA hj).2 ψ ρ (((hframes j cA hj).1 ψ ρ).mp hρ)).2 bs hsp
     have hfl := blockHoleFold hH hS.inst (fun c _ => hS.leaf c ψ) hs0
       (fun c hc => hS.lenPps c ψ hc) (hS.idxOk m hm ψ ρ hρ) (hS.holeOk ψ ρ hs0)
       (hS.holeFun ψ ρ hs0).1 hm
@@ -343,19 +333,22 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
   have hTlawsOf : ∀ {env' : Env} (m' : EnvModel V env') (kk : Nat) (cA : ConstantVal × Nat),
       (d.ctorsM m)[kk]? = some cA →
       BlockCtorsCore m' d lps cvTasAll p₁ isRec A m →
+      (∀ cvC nPc nFc, env'.find? cA.1.name = some (.ctorInfo cvC nPc nFc) → cvC = cA.1) →
       FormerData m' cvTa (d.nP + d.nIdxAt m) d.resSort (d.ppsM m) →
       (∀ ψ, m'.acval (d.memberName m) ψ = A m ψ) →
       (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) kk (d.dsF m kk ψ)
-        (((d.dsF m kk ψ).drop d.nP).map (·.2.2))
+        (((d.dsF m kk ψ).drop d.nP))
         (uChains (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)))) →
       CapsLawsAt m' (d.memberName m) cvTa (ConLeche.blockCapsAt p₁ m isRec) := by
-    intro env' m' kk cA hkk hinv' hFD' hleaf' hleafC'
+    intro env' m' kk cA hkk hinv' hcvC hFD' hleaf' hleafC'
     rw [hTname] at hleaf' ⊢
     by_cases hu : (ConLeche.blockCapsAt p₁ m isRec).unitlike = true
-    · refine hS.capsU m hm cvTa hcvTa m' kk cA hkk hu hFD' hleaf' (fun ψ => ?_)
+    · refine hS.capsU m hm cvTa hcvTa m' kk cA hkk hu hcvC
+        (by rw [hlpsA cA (List.mem_of_getElem? hkk), hS.lpsT m cvTa hm hcvTa])
+        (hinv'.2.1 m kk cA hkk).2.2.1.read hFD' hleaf' (fun ψ => ?_)
       rw [hleafC' ψ, hFssEq ψ]
     · have hU : (ConLeche.blockCapsAt p₁ m isRec).unitlike = false := by simpa using hu
-      exact blockCapsLawsAt_vacuous m' hU (hinv'.2.1 m cvTa hcvTa hU)
+      exact blockCapsLawsAt_vacuous m' hU
   -- ## the data's level-parameter invariance and bounds
   have hFssParams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ lps, ψ₁ q = ψ₂ q) →
       fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ₁ (d.ctorsM m) 0)
@@ -379,29 +372,21 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     | some cA => rw [h] at hi; exact ⟨cA, rfl, (Option.some.inj hi).symm⟩
   have hFssBelow : ∀ ψ : Name → Nat,
       ∀ Fs ∈ fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0),
-        FieldsBelow d.nP Fs := by
+        DomsBelow d.nP Fs := by
     intro ψ Fs hFs
     obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
     obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
     obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
-    have := (DomsBelow.drop d.nP ((hdata m i cA hiA).2.2.1.below ψ)).fields
+    have := (DomsBelow.drop d.nP ((hdata m i cA hiA).2.2.1.below ψ))
     rwa [Nat.zero_add] at this
   have hFssOkP : ∀ (ψ : Name → Nat) (ρ : Nat → V),
-      Sat V (((d.ppsM m ψ).take d.nP).map (·.2.2)).reverse ρ →
-      SumFieldsOkB (d.w ψ) ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) ∧
-      SumFieldsValid ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) := by
-    intro ψ ρ hρ
-    constructor
-    · intro Fs hFs
-      obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
-      obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
-      obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
-      exact ((hframes i cA hiA).2 ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ)).1
-    · intro Fs hFs
-      obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
-      obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
-      obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
-      exact ((hframes i cA hiA).2 ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ)).2.1
+      Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ →
+      SumFieldsOkB (d.w ψ) ρ (fssOf d.nP (ctorDataList (d.dsF m) (d.esF m) ψ (d.ctorsM m) 0)) := by
+    intro ψ ρ hρ Fs hFs
+    obtain ⟨cd, hcdm, rfl⟩ := List.mem_map.mp hFs
+    obtain ⟨i, hi⟩ := List.getElem?_of_mem hcdm
+    obtain ⟨cA, hiA, rfl⟩ := hcdMem ψ i cd hi
+    exact ((hframes i cA hiA).2 ψ ρ (((hframes i cA hiA).1 ψ ρ).mp hρ)).1
   -- ## the member's constructors, consed
   have hCtors' : ConLeche.checkSumCtors (ConLeche.fueledOps μ F) envI envI (d.memberName m) lps
       d.nP (d.nIdxAt m) d.resSort d.isProp d.large cvTa ctors = .ok (d.ctorsM m, sortss) := by
@@ -415,32 +400,32 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       (idxF := d.idxF m) (dsF := d.dsF m) (esF := d.esF m) (srcsF := d.srcsF m)
       hμ hout' hCtors' (hS.nodup m hm) (hS.lpsT m cvTa hm hcvTa) hlpsA hFssParams hFssBelow
       (fun j cA hj => (hframes j cA hj).1) hFssOkP
-      (fun j cA hj ψ ρ hρ bs hsp => ((hframes j cA hj).2 ψ ρ hρ).2.2 bs hsp)
+      (fun j cA hj ψ ρ hρ bs hsp => ((hframes j cA hj).2 ψ ρ hρ).2 bs hsp)
       (fun {env'} m' => BlockCtorsCore m' d lps cvTasAll p₁ isRec A m ∧
         ∀ n : Name, (env.find? n).isSome = true →
           m'.acval n = mp.base2.acval n ∧ (env'.find? n).isSome = true)
-      (fun m' cA A' mC hcA hfresh hac hinv' =>
-        ⟨hinv'.1.cons ⟨hnameOf, hctorLt, hlenCv⟩ hfresh (hS.pshape m hm cA hcA) mC hac,
+      (fun m' cA A' mC _ hfresh hac hinv' =>
+        ⟨hinv'.1.cons ⟨hnameOf, hctorLt, hlenCv⟩ hfresh mC hac,
           fun n hn => by
             obtain ⟨h1, h2⟩ := hinv'.2 n hn
             have hne : n ≠ cA.1.name := fun h => by rw [h, hfresh] at h2; exact nomatch h2
             refine ⟨by rw [hac, acvalWith_ne hne]; exact h1, ?_⟩
             rw [ConLeche.Env.find?_cons_of_isSome hfresh h2]; exact h2⟩)
       (ConLeche.blockCapsAt p₁ m isRec) (A m)
-      (fun m' kk cA hkk hinv' hFD' hleaf' hleafC' =>
-        hTlawsOf m' kk cA hkk hinv'.1 hFD' hleaf' hleafC')
+      (fun m' kk cA hkk hinv' hcvC hFD' hleaf' hleafC' =>
+        hTlawsOf m' kk cA hkk hinv'.1 hcvC hFD' hleaf' hleafC')
       hfold
       (d.ctorsM m) 0 env mp (fun i => by rw [Nat.zero_add]) (Nat.zero_add _) hE
       (by rw [hTname]; exact hfindT) hFD (fun ψ => by rw [hTname]; exact hleafT ψ)
       (fun i cA hi _ => absurd hi (Nat.not_lt_zero _))
       (fun i cA _ hi => ⟨hfreshC m (Nat.le_refl _) i cA hi, (hdata m i cA hi).1,
         (hdata m i cA hi).2.1, (hdata m i cA hi).2.2.1.toCtorDataI⟩)
-      ⟨⟨hform, hfrP, hdata, hconsed⟩, fun n hn => ⟨rfl, hn⟩⟩
+      ⟨⟨hform, hdata, hconsed⟩, fun n hn => ⟨rfl, hn⟩⟩
   -- ## the invariant, one member on
-  refine ⟨mp', hE', ⟨hinvC.1, hinvC.2.1, hinvC.2.2.1, fun c hc j cA hj => ?_⟩,
+  refine ⟨mp', hE', ⟨hinvC.1, hinvC.2.1, fun c hc j cA hj => ?_⟩,
     fun c hc j cA hj => ?_, fun n hn => (hagC n hn).1⟩
   · rcases Nat.lt_or_ge c m with hlt | hge
-    · exact hinvC.2.2.2 c hlt j cA hj
+    · exact hinvC.2.2 c hlt j cA hj
     · have hcm : c = m := by omega
       subst hcm
       obtain ⟨⟨hfind, hlps, -⟩, -, hleafC⟩ :=
@@ -456,7 +441,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
 invariant one member further on at each step. -/
 theorem stageBlockCtors (hμ : μ.verifiedChecks = true) {F : Nat}
     {d : BlockData V} {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → Term}
     {envI : Env} {ctorsOf : Name → List Name}
     {ctorsAs : List (List (ConstantVal × Nat))}
     (hN : BlockNamesOk (V := V) d cvTasAll)

@@ -21,7 +21,7 @@ recursors.  The stream's recursor rules are never read.
   their inductive hypotheses) and every recursor's class off the stream's
   RAW recursor types (they mention the constructors, so they are checked
   only here, at the constructors' environment).  Every class key is moved
-  to the block's canonical parameters and annotated (`classKeyOf`), then
+  to the block's canonical parameters (`classKeyOf`), then
   checked as a major (`targetMajorOf`: a member at the block's levels and
   parameters, or a stored inductive at an auxiliary type of the block,
   `is_nested`), with exactly one class per member.
@@ -49,8 +49,10 @@ recursors.  The stream's recursor rules are never read.
 * **Installation.**  Each generated type is checked as a constant
   (`checkConstantValF`) under the stream's name and level parameters and
   must be `isDefEq` to the stream's (checked) type; each generated rule is
-  annotated, resolved and typed at the environment holding the rule-less
-  generated recursors.  What is stored is the generated family.
+  resolved and typed at the environment holding the rule-less generated
+  recursors.  What is stored is the generated family; an auxiliary
+  recursor's rules fire `.nested` at its class's levels and parameters
+  (`auxRuleFire`).
 -/
 
 namespace ConLeche
@@ -81,9 +83,9 @@ structure ClassCtor where
   deriving Inhabited
 
 /-- Close a telescope of `λ`s (`closeTelescope`'s twin). -/
-def closeLams : List (Expr × BinderMeta) → Nat → Expr → Expr
+def closeLams : List Expr → Nat → Expr → Expr
   | [], _, body => body
-  | (dom, bm) :: bs, i, body => .lam dom ((closeLams bs (i + 1) body).abstract1 i 0) bm
+  | dom :: bs, i, body => .lam dom ((closeLams bs (i + 1) body).abstract1 i 0)
 
 /-- What generation reads: the block, the classes, the layout, the
 constructors, the elimination level. -/
@@ -97,21 +99,14 @@ structure ClassGen where
   ctors : List (List ClassCtor)
   elim : Level
   /-- the generated prefix binders (`ClassGen.prefixBinders`), computed once -/
-  pre : List (Expr × BinderMeta) := []
+  pre : List Expr := []
 
 /-- The binder of an opened variable (the motive types' binders: their
 codomains are sorts, never zero). -/
-def classBinder (x : Expr) : Expr × BinderMeta := (x.fvarTypeD, default)
-
-/-- **The generated binders' datum**: every binder of a recursor type, a
-minor premise, an inductive hypothesis and a rule concludes in a motive
-application, a proposition exactly where the elimination level is zero —
-the generator WRITES this datum and nothing is annotated (inference
-validates every written datum at the verified modes). -/
-def ClassGen.bm (g : ClassGen) : BinderMeta := ⟨Level.zeronessOf g.elim⟩
+def classBinder (x : Expr) : Expr := x.fvarTypeD
 
 /-- A generated binder of an opened variable. -/
-def ClassGen.binder (g : ClassGen) (x : Expr) : Expr × BinderMeta := (x.fvarTypeD, g.bm)
+def ClassGen.binder (_g : ClassGen) (x : Expr) : Expr := x.fvarTypeD
 
 /-- The prefix variable of slot `s`. -/
 def ClassGen.slotVar (g : ClassGen) (s : Nat) : Expr := .fvar (g.nP + s) (.sort .zero)
@@ -130,7 +125,7 @@ def ClassGen.major (g : ClassGen) (c : Nat) (d : Nat) : Option (List Expr × Exp
 /-- Class `c`'s motive type at depth `d`: `∀ ı⃗ (t : I D⃗ ı⃗), Sort ℓ`. -/
 def ClassGen.motiveTy (g : ClassGen) (c d : Nat) : Option Expr := do
   let (ifs, maj) ← g.major c d
-  pure (closeTelescope (ifs.map classBinder) d (.forallE maj (.sort g.elim) default))
+  pure (closeTelescope (ifs.map classBinder) d (.forallE maj (.sort g.elim)))
 
 /-- The inductive hypothesis of a recursive field whose WALKED type is `w`
 (`∀ a⃗, J E⃗ e⃗`, landing at class `t`), opened at `d`: its telescope and its
@@ -157,24 +152,24 @@ def ClassGen.minorTy (g : ClassGen) (c : Nat) (x : ClassCtor) (d : Nat) : Option
     let e := d + x.nF + l
     let (xs, idx) ← g.ihParts t tele (ws.getD i default) e
     pure (closeTelescope (xs.map g.binder) e
-      (Expr.mkAppN (g.motVar t) (idx ++ [Expr.mkAppN (fvs.getD i default) xs])), g.bm)
+      (Expr.mkAppN (g.motVar t) (idx ++ [Expr.mkAppN (fvs.getD i default) xs])))
   let concl := Expr.mkAppN (g.motVar c)
     (res.getAppArgs.drop ci.nPc ++ [Expr.mkAppN (.const x.cv.name ci.lvls) (ci.ds ++ fvs)])
   pure (closeTelescope (fvs.map g.binder ++ ihs) d concl)
 
 /-- The prefix binders (parameters, then every slot in the stream's
 order). -/
-def ClassGen.prefixBinders (g : ClassGen) : Option (List (Expr × BinderMeta)) := do
+def ClassGen.prefixBinders (g : ClassGen) : Option (List Expr) := do
   let slotBs ← (List.range g.slots.length).mapM fun s => do
     let d := g.nP + s
     match g.slots.getD s default with
     | .motive _ =>
       let c := ((List.range s).filter fun s' =>
         match g.slots.getD s' default with | .motive _ => true | _ => false).length
-      pure ((← g.motiveTy c d), g.bm)
+      g.motiveTy c d
     | .minor c C _ =>
       let x ← (g.ctors.getD c []).find? (·.cv.name == C)
-      pure ((← g.minorTy c x d), g.bm)
+      g.minorTy c x d
   pure (g.params.map g.binder ++ slotBs)
 
 /-- **The generated recursor type** at class `c`. -/
@@ -183,7 +178,7 @@ def classGenRecTy (g : ClassGen) (c : Nat) : Option Expr := do
   let rP := pre.length
   let (ifs, maj) ← g.major c rP
   let t : Expr := .fvar (rP + ifs.length) maj
-  pure (closeTelescope (pre ++ ifs.map g.binder ++ [(maj, g.bm)]) 0
+  pure (closeTelescope (pre ++ ifs.map g.binder ++ [maj]) 0
     (Expr.mkAppN (g.motVar c) (ifs ++ [t])))
 
 /-- **The generated rule** of a recursor at class `c` for its constructor
@@ -259,7 +254,7 @@ has the datum's telescope `tele`, the datum's leaf head and indices, and
 a leaf class matching the inductive hypothesis's class `Mc` per component
 (`targetK53`). -/
 def classNodesAgree (ops : CheckerOps m) (env : Env) (p : BlockShape) (formerTys : List Expr)
-    (Mc : TargetMajor) (tele : List (Expr × BinderMeta)) (leaf : Expr) (fvs : List Expr)
+    (Mc : TargetMajor) (tele : List Expr) (leaf : Expr) (fvs : List Expr)
     (i : Nat) (ctor : Name) : List NestCtorNf → m Unit
   | [] => pure ()
   | e :: es => do
@@ -361,11 +356,10 @@ def classFormerTy (fe : FEnv) (cvTas : List ConstantVal) (M : TargetMajor) : m E
     | some (.indInfo cv _) => pure (cv.type.instantiateLevelParams cv.levelParams M.lvls)
     | _ => throw (.internal "generated recursor: a class's former vanished")
 
-/-- **A generated constant, checked** — `checkConstantValF` without the
-annotation pass: the generator writes every binder datum (`ClassGen.bm`)
-and its pieces are annotated terms already, so the type is stored as
-generated; inference validates the data. -/
-def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m ConstantVal := do
+/-- **A generated constant, checked** — `checkConstantValF`: the
+generated type is stored as the generator built it; inference validates
+it like any other declared type. -/
+def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -384,7 +378,6 @@ def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m Constan
     throw (unresolvedConstsError s!"type of {cv.name}" cv.type)
   let stype ← ops.inferType fe.env 0 cv.type
   let _u ← ops.ensureSort fe.env 0 stype
-  pure cv
 
 /-- **One recursor's generated type, checked and compared**: the record's
 member, rule prefix and major index are the generated ones; the generated
@@ -400,7 +393,8 @@ def classRecTyOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) (rc :
     throw (.invalid "generated recursor: the recursor record's rule prefix or major index is \
       not the generated one")
   let gty ← unwrapOr (classGenRecTy g c) (.internal "generated recursor: recursor type")
-  let cvG ← classConstOk ops fe { rc.cvR with type := gty }
+  let cvG := { rc.cvR with type := gty }
+  classConstOk ops fe cvG
   unless ← ops.isDefEq fe.env 0 cvRi.type cvG.type do
     throw (.invalid s!"generated recursor: the type of {rc.cvR.name} is not the generated one \
       (official: invalid recursor)")
@@ -417,15 +411,13 @@ def classRecTysOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) :
   | [], _, _ => pure []
   | _, _, _ => throw (.internal "generated recursor: recursor list")
 
-/-- **One generated rule, installed** (as generated: its binder data are
-written): resolved and typed at the
-rule-less recursors' environment `feR` (its level parameters the
+/-- **One generated rule, installed** (as generated): resolved and typed
+at the rule-less recursors' environment `feR` (its level parameters the
 recursor's), its λ-telescope over the prefix and the fields `n` long,
-its λ-domains resolving at the constructors' environment `feT` and
-annotated with the family's elimination datum `pw`.  Returns the
-annotated rule (stored). -/
+its λ-domains resolving at the constructors' environment `feT`.
+Returns the rule (stored). -/
 def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR : ConstantVal)
-    (pw : PropWhen) (n : Nat) (gen : Expr) : m Expr := do
+    (n : Nat) (gen : Expr) : m Expr := do
   unless gen.looseBVarsBounded 0 && !gen.hasFvar do
     throw (.internal s!"generated recursor: a rule of {cvR.name} is not closed")
   let genA := gen
@@ -438,34 +430,31 @@ def classRuleOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (cvR :
   let (rbs, _) ← unwrapOr (genA.stripLams n)
     (.internal s!"generated recursor: a rule of {cvR.name} is not a λ-telescope over the \
       recursor's prefix and the constructor's fields")
-  unless rbs.all (fun b => w.resolve feT b.1) do
+  unless rbs.all (fun b => w.resolve feT b) do
     throw (unresolvedConstsError s!"the domains of a generated rule of {cvR.name}" genA)
-  unless rbs.all (fun b => b.2.pw == pw) do
-    throw (.internal s!"generated recursor: a rule of {cvR.name} does not annotate its \
-      λ-binders with the family's elimination datum")
   pure genA
 
 /-- A recursor's generated rules, one per constructor of its class. -/
 def classRulesOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
-    (recOf : Nat → Option Name) (cvR : ConstantVal) (pw : PropWhen) (c : Nat) :
+    (recOf : Nat → Option Name) (cvR : ConstantVal) (c : Nat) :
     List ClassCtor → m (List Expr)
   | [] => pure []
   | x :: xs => do
     let gen ← unwrapOr (classGenRule g recOf (cvR.levelParams.map .param) c x)
       (.invalid s!"generated recursor: the rule of {x.cv.name} calls a class whose recursor the \
         stream omits (official: unknown constant)")
-    let r ← classRuleOk ops w feT feR cvR pw (g.nP + g.slots.length + x.nF) gen
-    let rs ← classRulesOk ops w feT feR g recOf cvR pw c xs
+    let r ← classRuleOk ops w feT feR cvR (g.nP + g.slots.length + x.nF) gen
+    let rs ← classRulesOk ops w feT feR g recOf cvR c xs
     pure (r :: rs)
 
 /-- Every recursor's generated rules, at the rule-less recursors'
 environment `feR`, with its class. -/
 def classRecsRulesOk (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
-    (recOf : Nat → Option Name) (pw : PropWhen) :
+    (recOf : Nat → Option Name) :
     List ConstantVal → List Nat → m (List (ConstantVal × TargetMajor × List Expr))
   | cvG :: cvs, c :: cs => do
-    let rhss ← classRulesOk ops w feT feR g recOf cvG pw c (g.ctors.getD c [])
-    let xs ← classRecsRulesOk ops w feT feR g recOf pw cvs cs
+    let rhss ← classRulesOk ops w feT feR g recOf cvG c (g.ctors.getD c [])
+    let xs ← classRecsRulesOk ops w feT feR g recOf cvs cs
     pure ((cvG, g.cls.getD c default, rhss) :: xs)
   | _, _ => pure []
 
@@ -474,9 +463,9 @@ the pre-pass reads and the generated types are compared with. -/
 def classStreamRecs (ops : CheckerOps m) (fe : FEnv) : List RecShape → m (List ConstantVal)
   | [] => pure []
   | rc :: rcs => do
-    let cv ← checkConstantValF ops fe rc.cvR
+    checkConstantValF ops fe rc.cvR
     let cvs ← classStreamRecs ops fe rcs
-    pure (cv :: cvs)
+    pure (rc.cvR :: cvs)
 
 /-- A class key moved to the block's canonical parameter variables
 `params` (the pre-pass reads it over the stream recursor's own openers). -/
@@ -502,18 +491,14 @@ def classSeeds (ctx : NestCtx) (holes : List Expr) (Ms : List TargetMajor) :
 stream's RAW recursor types): moved to the block's canonical parameter
 variables `params` (`classKeyCanon`), its parameters closed over them
 (no loose bound variable, no free variable past the parameters — the
-guard `targetMajorOf` repeats at an outside class), and annotated at the
-formers' environment `env` over the parameters (depth `nP`): the raw
-stream carries no binder datum, and both the positivity check's seed and
-the generated recursor types read the annotated parameters. -/
-def classKeyOf (ops : CheckerOps m) (env : Env) (nP : Nat) (params : List Expr)
+guard `targetMajorOf` repeats at an outside class). -/
+def classKeyOf (nP : Nat) (params : List Expr)
     (k : ClassKey) : m ClassKey := do
   let k := classKeyCanon params k
   unless k.ds.all (fun x => x.bvarB == 0 && x.fvarB ≤ nP) do
     throw (.invalid "target rec: the major's parameters mention more than the \
       recursor's parameters")
-  let ds ← k.ds.mapM (ops.annotate env nP)
-  pure { k with ds := ds }
+  pure k
 
 /-- **The classes, read and checked** (before the positivity check, at the
 formers' environment `fe₁`/`env₁`): the UNVERIFIED pre-pass on the
@@ -521,14 +506,14 @@ stream's raw recursor types (`classRead`), every class key made checkable
 (`classKeyOf`), every class checked as a major over the block's canonical
 parameters `params` (`classMajors`), exactly one class per member.
 Returns the pre-pass's reading and the classes. -/
-def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (env₁ : Env) (p : BlockShape)
+def checkBlockClasses (ops : CheckerOps m) (fe₁ : FEnv) (p : BlockShape)
     (params : List Expr) (ctorsAs : List (List (ConstantVal × Nat))) :
     m (ClassRead × List TargetMajor) := do
   -- [UNVERIFIED] the pre-pass: the classes, the layout, each recursor's class
   let rd ← unwrapOr (classRead p.nP (classNPcOf p fe₁) p.recs)
     (.invalid "generated recursor: the recursor family is not of the generated shape \
       (official: invalid recursor)")
-  let keys ← rd.classes.mapM (classKeyOf ops env₁ p.nP params)
+  let keys ← rd.classes.mapM (classKeyOf (m := m) p.nP params)
   let Ms ← classMajors ops fe₁ p ctorsAs params keys
   unless (List.range p.k).all (fun t => (Ms.filter (·.member == some t)).length == 1) do
     throw (.invalid "generated recursor: the recursor family does not have exactly one class \
@@ -550,7 +535,7 @@ nodes: the pass walked every class from the empty stack); `params` are
 the block's canonical parameter variables, `nestedBit` the elimination
 guard's container bit as the caller reads it (`blockNestedBit`), to which
 every outside class adds.  Returns every recursor, generated, with its
-class and its generated annotated rules (what the install stores). -/
+class and its generated rules (what the install stores). -/
 def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Bool)
     (params : List Expr) (tbl : List NestCtorNf) (rd : ClassRead) (Ms : List TargetMajor)
     (cvTas : List ConstantVal) (block : List ConstantInfo) :
@@ -582,7 +567,7 @@ def genRecCheck (so : ShadowOps m) (fe : FEnv) (p : BlockShape) (nestedBit : Boo
   let feR := so.ruleEnv p Ms cvGs rd.recCls fe
   so.flush
   let out ← classRecsRulesOk (so.opsRuleR feR) so.walkers fe feR g
-    (classRecOf rd.recCls cvGs) (Level.zeronessOf elim) cvGs rd.recCls
+    (classRecOf rd.recCls cvGs) cvGs rd.recCls
   so.flush
   pure out
 

@@ -44,7 +44,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 universe w
@@ -94,7 +94,7 @@ theorem mem_graphPredG {Is Cr : List V → Nat → V} {K : Nat}
 
 /-- **The step**: the rule's residue at the decoding's fields and the
 `ih` values the graph `g` supplies. -/
-@[expose] noncomputable def blockGraphStep (ρ : Nat → V) (Rb0 : Nat → Nat → AnnotTerm)
+@[expose] noncomputable def blockGraphStep (ρ : Nat → V) (Rb0 : Nat → Nat → Term)
     (ihv : List V → Nat → Nat → List V → V → List V) (xs : List V) (e : Nat × Nat × List V)
     (g : V) : V :=
   interp V (consList (ihv xs e.1 e.2.1 e.2.2 g) (consList (xs ++ e.2.2) ρ)) (Rb0 e.1 e.2.1)

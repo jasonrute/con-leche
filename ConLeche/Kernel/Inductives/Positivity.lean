@@ -48,7 +48,7 @@ def Expr.mentionsAnyConst (names : List Name) : Expr → Bool
   | .const n _ => names.contains n
   | .fvar _ ty => ty.mentionsAnyConst names
   | .app f a => f.mentionsAnyConst names || a.mentionsAnyConst names
-  | .lam ty b _ | .forallE ty b _ => ty.mentionsAnyConst names || b.mentionsAnyConst names
+  | .lam ty b | .forallE ty b => ty.mentionsAnyConst names || b.mentionsAnyConst names
   | .letE ty v b =>
     ty.mentionsAnyConst names || v.mentionsAnyConst names || b.mentionsAnyConst names
   | .proj s _ e => names.contains s || e.mentionsAnyConst names
@@ -99,11 +99,11 @@ def Expr.mentionsAnyGo (names : List Name) (memo : Std.HashMap Expr Bool) :
           let (b₁, memo) := mentionsAnyGo names memo f
           let (b₂, memo) := mentionsAnyGo names memo a
           (b₁ || b₂, memo)
-        | .lam ty body _ =>
+        | .lam ty body =>
           let (b₁, memo) := mentionsAnyGo names memo ty
           let (b₂, memo) := mentionsAnyGo names memo body
           (b₁ || b₂, memo)
-        | .forallE ty body _ =>
+        | .forallE ty body =>
           let (b₁, memo) := mentionsAnyGo names memo ty
           let (b₂, memo) := mentionsAnyGo names memo body
           (b₁ || b₂, memo)
@@ -148,7 +148,7 @@ theorem Expr.mentionsAnyGo_spec {names : List Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [mentionsAnyConst, h1, h3], ?_⟩
       exact h4.insert (by simp [mentionsAnyConst, h1, h3])
-  | lam ty body bi iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [mentionsAnyGo]
     split
@@ -158,7 +158,7 @@ theorem Expr.mentionsAnyGo_spec {names : List Name} :
       obtain ⟨h3, h4⟩ := ihb _ h2
       refine ⟨by simp [mentionsAnyConst, h1, h3], ?_⟩
       exact h4.insert (by simp [mentionsAnyConst, h1, h3])
-  | forallE ty body bi iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [mentionsAnyGo]
     split
@@ -213,10 +213,10 @@ back into a syntactic Π-telescope over `body`: innermost binder first,
 each abstraction turning the binder's own free variable into the bound
 one (`abstract1`; the domains of the inner binders are closed by the
 outer abstractions, which descend into binder domains). -/
-def closeTelescope : List (Expr × BinderMeta) → Nat → Expr → Expr
+def closeTelescope : List Expr → Nat → Expr → Expr
   | [], _, body => body
-  | (dom, bm) :: bs, i, body =>
-    .forallE dom ((closeTelescope bs (i + 1) body).abstract1 i 0) bm
+  | dom :: bs, i, body =>
+    .forallE dom ((closeTelescope bs (i + 1) body).abstract1 i 0)
 
 /-! ## Positivity through containers — ONE function, GATED
 
@@ -338,8 +338,8 @@ def Expr.nestOcc (names : List Name) (lo hi : Nat) : Expr → Bool
   | .fvar i _ => decide (lo ≤ i ∧ i < hi)
   | .const n _ => names.contains n
   | .app f a => nestOcc names lo hi f || nestOcc names lo hi a
-  | .lam ty body _ => nestOcc names lo hi ty || nestOcc names lo hi body
-  | .forallE ty body _ => nestOcc names lo hi ty || nestOcc names lo hi body
+  | .lam ty body => nestOcc names lo hi ty || nestOcc names lo hi body
+  | .forallE ty body => nestOcc names lo hi ty || nestOcc names lo hi body
   | .letE ty val body =>
     nestOcc names lo hi ty || nestOcc names lo hi val || nestOcc names lo hi body
   | .proj _ _ sub => nestOcc names lo hi sub
@@ -361,10 +361,10 @@ def Expr.nestOccGo (names : List Name) (lo hi : Nat) (memo : Std.HashMap Expr Bo
         | .app f a =>
           let (b₁, memo) := nestOccGo names lo hi memo f
           if b₁ then (true, memo) else nestOccGo names lo hi memo a
-        | .lam ty body _ =>
+        | .lam ty body =>
           let (b₁, memo) := nestOccGo names lo hi memo ty
           if b₁ then (true, memo) else nestOccGo names lo hi memo body
-        | .forallE ty body _ =>
+        | .forallE ty body =>
           let (b₁, memo) := nestOccGo names lo hi memo ty
           if b₁ then (true, memo) else nestOccGo names lo hi memo body
         | .letE ty val body =>
@@ -423,7 +423,7 @@ theorem Expr.nestOccGo_spec {names : List Name} {lo hi : Nat} :
         have : Expr.nestOcc names lo hi (.app a b) = (b.nestOccGo names lo hi (a.nestOccGo names lo hi memo).2).1 := by
           simp [Expr.nestOcc, ha, h3]
         exact ⟨this.symm, h4.insert this.symm⟩
-  | lam ty body mm iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [Expr.nestOccGo]
     split
@@ -434,15 +434,15 @@ theorem Expr.nestOccGo_spec {names : List Name} {lo hi : Nat} :
       dsimp only
       by_cases hb : (ty.nestOccGo names lo hi memo).1 = true
       · rw [ite_eq_left hb]
-        have : Expr.nestOcc names lo hi (.lam ty body mm) = true := by
+        have : Expr.nestOcc names lo hi (.lam ty body) = true := by
           simp [Expr.nestOcc, ← h1, hb]
         exact ⟨this.symm, h2.insert this.symm⟩
       · rw [ite_eq_right hb]
         have ha : ty.nestOcc names lo hi = false := by rw [← h1]; simpa using hb
-        have : Expr.nestOcc names lo hi (.lam ty body mm) = (body.nestOccGo names lo hi (ty.nestOccGo names lo hi memo).2).1 := by
+        have : Expr.nestOcc names lo hi (.lam ty body) = (body.nestOccGo names lo hi (ty.nestOccGo names lo hi memo).2).1 := by
           simp [Expr.nestOcc, ha, h3]
         exact ⟨this.symm, h4.insert this.symm⟩
-  | forallE ty body mm iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [Expr.nestOccGo]
     split
@@ -453,12 +453,12 @@ theorem Expr.nestOccGo_spec {names : List Name} {lo hi : Nat} :
       dsimp only
       by_cases hb : (ty.nestOccGo names lo hi memo).1 = true
       · rw [ite_eq_left hb]
-        have : Expr.nestOcc names lo hi (.forallE ty body mm) = true := by
+        have : Expr.nestOcc names lo hi (.forallE ty body) = true := by
           simp [Expr.nestOcc, ← h1, hb]
         exact ⟨this.symm, h2.insert this.symm⟩
       · rw [ite_eq_right hb]
         have ha : ty.nestOcc names lo hi = false := by rw [← h1]; simpa using hb
-        have : Expr.nestOcc names lo hi (.forallE ty body mm)
+        have : Expr.nestOcc names lo hi (.forallE ty body)
             = (body.nestOccGo names lo hi (ty.nestOccGo names lo hi memo).2).1 := by
           simp [Expr.nestOcc, ha, h3]
         exact ⟨this.symm, h4.insert this.symm⟩
@@ -515,7 +515,7 @@ def Expr.nestOccFast (names : List Name) (lo hi : Nat) (e : Expr) : Bool :=
 (the parameters of a constructor or a type former). -/
 def instPisWith : List Expr → Expr → Option Expr
   | [], e => some e
-  | a :: as, .forallE _ body _ => instPisWith as (body.instantiate1 a)
+  | a :: as, .forallE _ body => instPisWith as (body.instantiate1 a)
   | _ :: _, _ => none
 
 /-- A container INSTANTIATION `C.{lvls} Ds`, its parameters scoped at the
@@ -572,7 +572,7 @@ def Expr.depthGo (memo : Std.HashMap Expr Nat) : Expr → Nat × Std.HashMap Exp
           let (d₁, memo) := depthGo memo f
           let (d₂, memo) := depthGo memo a
           (max d₁ d₂ + 1, memo)
-        | .lam ty body _ | .forallE ty body _ =>
+        | .lam ty body | .forallE ty body =>
           let (d₁, memo) := depthGo memo ty
           let (d₂, memo) := depthGo memo body
           (max d₁ d₂ + 1, memo)
@@ -750,8 +750,8 @@ def Expr.replaceFVars (f : Nat → Option Expr) : Expr → Expr
   | .sort u => .sort u
   | .const n us => .const n us
   | .app a b => .app (replaceFVars f a) (replaceFVars f b)
-  | .lam ty body m => .lam (replaceFVars f ty) (replaceFVars f body) m
-  | .forallE ty body m => .forallE (replaceFVars f ty) (replaceFVars f body) m
+  | .lam ty body => .lam (replaceFVars f ty) (replaceFVars f body)
+  | .forallE ty body => .forallE (replaceFVars f ty) (replaceFVars f body)
   | .letE ty v body => .letE (replaceFVars f ty) (replaceFVars f v) (replaceFVars f body)
   | .lit l => .lit l
   | .proj s i e => .proj s i (replaceFVars f e)
@@ -790,14 +790,14 @@ def Expr.replaceFVarsGo (f : Nat → Option Expr) (memo : Std.HashMap Expr Expr)
           let (a', memo) := replaceFVarsGo f memo a
           let (b', memo) := replaceFVarsGo f memo b
           (.app a' b', memo)
-        | .lam ty body m =>
+        | .lam ty body =>
           let (t, memo) := replaceFVarsGo f memo ty
           let (b, memo) := replaceFVarsGo f memo body
-          (.lam t b m, memo)
-        | .forallE ty body m =>
+          (.lam t b, memo)
+        | .forallE ty body =>
           let (t, memo) := replaceFVarsGo f memo ty
           let (b, memo) := replaceFVarsGo f memo body
-          (.forallE t b m, memo)
+          (.forallE t b, memo)
         | .letE ty v body =>
           let (t, memo) := replaceFVarsGo f memo ty
           let (v', memo) := replaceFVarsGo f memo v
@@ -831,7 +831,7 @@ theorem Expr.replaceFVarsGo_spec {f : Nat → Option Expr} :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [Expr.replaceFVars, h1, h3], ?_⟩
       exact h4.insert (by simp [Expr.replaceFVars, h1, h3])
-  | lam ty body m iht ihb =>
+  | lam ty body iht ihb =>
     intro memo hm
     rw [Expr.replaceFVarsGo]
     split
@@ -841,7 +841,7 @@ theorem Expr.replaceFVarsGo_spec {f : Nat → Option Expr} :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [Expr.replaceFVars, h1, h3], ?_⟩
       exact h4.insert (by simp [Expr.replaceFVars, h1, h3])
-  | forallE ty body m iht ihb =>
+  | forallE ty body iht ihb =>
     intro memo hm
     rw [Expr.replaceFVarsGo]
     split
@@ -936,8 +936,8 @@ def Expr.replaceApps (f : Name → List Level → Option Expr) (b n : Nat) : Exp
   | .app a x => ((Expr.app a x).appHole? f b n).getD
       (.app (replaceApps f b n a) (replaceApps f b n x))
   | .const c us => ((Expr.const c us).appHole? f b n).getD (.const c us)
-  | .lam t body m => .lam (replaceApps f b n t) (replaceApps f b n body) m
-  | .forallE t body m => .forallE (replaceApps f b n t) (replaceApps f b n body) m
+  | .lam t body => .lam (replaceApps f b n t) (replaceApps f b n body)
+  | .forallE t body => .forallE (replaceApps f b n t) (replaceApps f b n body)
   | .letE t v body =>
     .letE (replaceApps f b n t) (replaceApps f b n v) (replaceApps f b n body)
   | .proj s i x => .proj s i (replaceApps f b n x)
@@ -984,14 +984,14 @@ def Expr.replaceAppsGo (f : Name → List Level → Option Expr) (b n : Nat)
             let (a', memo) := replaceAppsGo f b n memo a
             let (x', memo) := replaceAppsGo f b n memo x
             (.app a' x', memo)
-        | .lam t body m =>
+        | .lam t body =>
           let (t', memo) := replaceAppsGo f b n memo t
           let (body', memo) := replaceAppsGo f b n memo body
-          (.lam t' body' m, memo)
-        | .forallE t body m =>
+          (.lam t' body', memo)
+        | .forallE t body =>
           let (t', memo) := replaceAppsGo f b n memo t
           let (body', memo) := replaceAppsGo f b n memo body
-          (.forallE t' body' m, memo)
+          (.forallE t' body', memo)
         | .letE t v body =>
           let (t', memo) := replaceAppsGo f b n memo t
           let (v', memo) := replaceAppsGo f b n memo v
@@ -1033,7 +1033,7 @@ theorem Expr.replaceAppsGo_spec {f : Name → List Level → Option Expr} {b n :
             (Expr.replaceAppsGo f b n (Expr.replaceAppsGo f b n memo a).2 x).1 := by
           simp [Expr.replaceApps, hh, h1, h3]
         exact ⟨this.symm, h4.insert this.symm⟩
-  | lam t body m iht ihb =>
+  | lam t body iht ihb =>
     intro memo hm
     rw [Expr.replaceAppsGo]
     split
@@ -1043,7 +1043,7 @@ theorem Expr.replaceAppsGo_spec {f : Name → List Level → Option Expr} {b n :
       obtain ⟨h3, h4⟩ := ihb h2
       refine ⟨by simp [Expr.replaceApps, h1, h3], ?_⟩
       exact h4.insert (by simp [Expr.replaceApps, h1, h3])
-  | forallE t body m iht ihb =>
+  | forallE t body iht ihb =>
     intro memo hm
     rw [Expr.replaceAppsGo]
     split
@@ -1149,7 +1149,7 @@ def nestInstType (ctx : NestCtx) (hi : Nat) (key : NestKey) : m (Nat × Expr) :=
       | _ => none)
     (.invalid "nested positivity: invalid nested inductive datatype, its type is not a \
       telescope ending in a sort (official: type expected)")
-  if ty.piBinders.1.any (fun b => b.1.nestOcc ctx.names ctx.nP hi) then
+  if ty.piBinders.1.any (fun b => b.nestOcc ctx.names ctx.nP hi) then
     throw (.invalid "nested positivity: a container's index telescope mentions the block \
       (official: unknown constant)")
   unless ← liftFueled "level comparison" (Level.isEquiv s ctx.sort) do
@@ -1174,15 +1174,15 @@ def nestFields
     (rec : List NestHole → Nat → Nat → Expr → NestState → m (NestFieldKind × Expr × NestState))
     (prog : List NestHole) (base : Nat) (err : CheckError) :
     Nat → Nat → Expr → NestState →
-      m (List NestFieldKind × List (Expr × BinderMeta) × Expr × NestState)
+      m (List NestFieldKind × List Expr × Expr × NestState)
   | 0, _, cur, st => pure ([], [], cur, st)
   | nF + 1, j, cur, st =>
     match cur with
-    | .forallE a b bm => do
+    | .forallE a b => do
       let (k, nd, st) ← rec prog (base + j) 0 a st
       let (ks, nds, res, st) ← nestFields rec prog base err nF (j + 1)
         (b.instantiate1 (.fvar (base + j) a)) st
-      pure (k :: ks, (nd, bm) :: nds, res, st)
+      pure (k :: ks, nd :: nds, res, st)
     | _ => throw err
 
 /-- **A frame constructor's record** (K.53′): the constructor `cv` of
@@ -1190,7 +1190,7 @@ the frame's key `(us, ds)` under the frames `prog`, its walked field
 telescope `nds` (opened at `hi, hi + 1, …`) onto `cur` closed back, all
 read back (`nestHoleImg`). -/
 def nestCtorNf (ctx : NestCtx) (prog : List NestHole) (hi : Nat) (us : List Level)
-    (ds : List Expr) (cv : ConstantVal) (nds : List (Expr × BinderMeta)) (cur : Expr) :
+    (ds : List Expr) (cv : ConstantVal) (nds : List Expr) (cur : Expr) :
     NestCtorNf :=
   ⟨cv.name, us, ds.map (·.replaceFVars (nestHoleImg ctx prog)),
     (closeTelescope nds hi cur).replaceFVars (nestHoleImg ctx prog)⟩
@@ -1461,14 +1461,14 @@ def nestPos (ops : CheckerOps m) (env : Env) (ctx : NestCtx) :
     if !w.nestOcc ctx.names ctx.nP hi then
       return (.ordinary, (if e.nestOcc ctx.names ctx.nP hi then w else e), st)
     match w with
-    | .forallE a b bm =>
+    | .forallE a b =>
       -- `pi`: the domain hole-free, the codomain positive
       if a.nestOcc ctx.names ctx.nP hi then
         throw (.invalid "nested positivity: non positive occurrence of the datatypes \
           being declared")
       let (k, nb, st) ←
         nestPos ops env ctx fuel prog (dep + 1) (kb + 1) (b.instantiate1 (.fvar dep a)) st
-      pure (k, .forallE a (nb.abstract1 dep) bm, st)
+      pure (k, .forallE a (nb.abstract1 dep), st)
     | _ =>
       let args := w.getAppArgs
       match w.getAppFn with
@@ -1534,17 +1534,16 @@ extra arguments walked — so an occurrence at other levels, or applied to
 anything but exactly the parameters, is a member constant left over.
 The parameters' domains must be free of members altogether.
 
-The check reads the STORED constructor, i.e. the annotation of the
-declared one: that is the declared type with its `let`s inlined (the
-annotation pass returns the ζ reduct), so an occurrence only in a
-`let`'s type, or in the value of a `let` its body never uses, is not
-seen (official reads it; `uh_let_erase`, an accepted superset). -/
+The check reads the STORED constructor, which is the declared one,
+`let`s included, so an occurrence only in a `let`'s type, or in the
+value of a `let` its body never uses, is seen and rejected, as
+official does (`uh_let_erase_type`, `uh_let_erase_value`). -/
 
 /-- Does a member or a hole occur in one of the first `n` binder domains
 of `e`?  (The parameters' domains, at `n = nP`.) -/
 def Expr.piDomsOcc (names : List Name) (lo hi : Nat) : Nat → Expr → Bool
   | 0, _ => false
-  | n + 1, .forallE d b _ => d.nestOcc names lo hi || piDomsOcc names lo hi n b
+  | n + 1, .forallE d b => d.nestOcc names lo hi || piDomsOcc names lo hi n b
   | _ + 1, _ => false
 
 /-- **Official's `check_uniform_ind_occs` at one constructor `cv`** (see
@@ -1656,7 +1655,7 @@ def nestSeeds (ops : CheckerOps m) (env : Env) (ctx : NestCtx) :
 /-- **Positivity through containers, for a whole block** (the unit
 tests' entry): official's uniform-occurrence check (`nestUniform`), then
 the root frame (`nestRoot`) from the empty state.  `ctorss` are the members'
-constructors ANNOTATED (not normalised: the function reduces itself).
+constructors AS STORED (not normalised: the function reduces itself).
 Returns the accepted instantiations, the kinds, every constructor's
 NORMALISED type and the recorded normal forms. -/
 def nestedBlockPositivity (ops : CheckerOps m) (env : Env) (ctx : NestCtx)

@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Kernel.Core
+public import ConLeche.Verify.Inductives.NestedRead
 
 public section
 
@@ -74,27 +75,12 @@ theorem Env.findProj?_off_eq {env : Env} {T : Name} {i j : Nat} {e e' : ProjEntr
   obtain rfl : tbl = tbl' := ConstantInfo.projInfo.inj (Option.some.inj (hf.symm.trans hf'))
   rfl
 
-/-- A stored table's view fixes the entry's data. -/
-@[simp] theorem ProjTable.entry_structName (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).structName = tbl.structName := rfl
-@[simp] theorem ProjTable.entry_idx (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).idx = i := rfl
 @[simp] theorem ProjTable.entry_levelParams (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).levelParams = tbl.levelParams := rfl
 @[simp] theorem ProjTable.entry_numParams (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).numParams = tbl.numParams := rfl
-@[simp] theorem ProjTable.entry_ctor (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).ctor = tbl.ctor := rfl
-@[simp] theorem ProjTable.entry_numFields (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).numFields = tbl.numFields := rfl
 @[simp] theorem ProjTable.entry_body (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).body = tbl.bodies.getD i default := rfl
-@[simp] theorem ProjTable.entry_fieldSort (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).fieldSort = tbl.guards.getD i .zero := rfl
-@[simp] theorem ProjTable.entry_structSort (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).structSort = tbl.structSort := rfl
-@[simp] theorem ProjTable.entry_off (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).off = tbl.off := rfl
 /-- **The capability arities**: an inductive stored with the unit-like
 or the η capability has the `∀`-telescope its capability record's
 parameter count names.  A property of the stored declaration alone —
@@ -130,7 +116,7 @@ theorem stripPis_isSome_of_le :
     match n, hle with
     | n + 1, hle =>
       match e, h with
-      | .forallE d bo m, h =>
+      | .forallE d bo, h =>
         simp only [Expr.stripPis, Option.isSome_map] at h ⊢
         exact ih (by omega) h
 
@@ -151,26 +137,14 @@ theorem stripPis_isSome_of_le :
       (RecRule.rhs r).allLevelParamsDefined cv.levelParams = true ∧
       (RecRule.rhs r).constsResolve env = true ∧
       (RecRule.rhs r).looseBVarsBounded 0 = true ∧
-      -- a certified nested rule's stored instantiations are
-      -- syntactically well-formed in the recursor's rule-prefix
-      -- context, and the recursor type's major-premise domain applies
-      -- the constructor family to exactly their liftings past the
-      -- index binders followed by the index variables in order
-      -- (validated once at install, `nestedRuleSyn`)
+      -- a nested rule's datum reads off the recursor type
+      -- (`NestedRead`: the pins are well formed in the rule-prefix
+      -- context, and the major's domain applies the class's inductive
+      -- at the levels to the pins' liftings past the index binders,
+      -- followed by the index variables; what the generated stage
+      -- stores, `genStage_nestedRead`)
       ∀ lvls pins, RecRule.fire r = .nested lvls pins →
-        rP ≤ mI ∧
-        (∀ l ∈ lvls, l.allParamsDefined cv.levelParams = true) ∧
-        (∀ pin ∈ pins, pin.hasFvar = false ∧
-          pin.allLevelParamsDefined cv.levelParams = true ∧
-          pin.constsResolve env = true ∧
-          pin.looseBVarsBounded rP = true) ∧
-        ∃ pre dom body bm D,
-          cv.type.stripPis mI = some (pre, .forallE dom body bm) ∧
-          dom.getAppFn = .const D lvls ∧
-          dom.getAppArgs =
-            pins.map (Expr.liftLooseBVars (mI - rP) 0) ++
-              (List.range (mI - rP)).map
-                (fun i => Expr.bvar (mI - rP - 1 - i))) ∧
+        NestedRead (·.constsResolve env) cv.levelParams cv.type mI rP pins.length lvls pins) ∧
   -- (a theorem's stored value carries NO clause: a theorem is opaque
   -- to reduction and stored by its statement — the value is the
   -- record's own, unread by the kernel and by the invariant)
@@ -274,11 +248,11 @@ theorem Expr.constsResolve_of_find {env env' : Env}
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h ⊢
     exact ⟨ihf h.1, iha h.2⟩
-  | lam ty body mb ihty ihbody =>
+  | lam ty body ihty ihbody =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h ⊢
     exact ⟨ihty h.1, ihbody h.2⟩
-  | forallE ty body mb ihty ihbody =>
+  | forallE ty body ihty ihbody =>
     intro h
     simp only [Expr.constsResolve, Bool.and_eq_true] at h ⊢
     exact ⟨ihty h.1, ihbody h.2⟩
@@ -318,6 +292,44 @@ theorem Expr.constsResolve_instantiateLevelParams {env : Env} (ks : List Name)
   intro e
   induction e <;> simp_all [Expr.instantiateLevelParams, Expr.constsResolve]
 
+/-- Resolution survives `piResult` (peeling leading `∀`s keeps every
+constant the residual mentions — task #342 L10, the `RecRuleExtra`
+transport's clause (S)). -/
+theorem Expr.constsResolve_piResult {env : Env} :
+    ∀ {e : Expr}, e.constsResolve env = true → e.piResult.constsResolve env = true
+  | .forallE _ b, h => by
+      have hb : b.constsResolve env = true := by
+        simp only [Expr.constsResolve, Bool.and_eq_true] at h
+        exact h.2
+      exact Expr.constsResolve_piResult (e := b) hb
+  | .bvar _, h | .sort _, h | .lit _, h | .const _ _, h | .fvar _ _, h
+  | .app _ _, h | .lam _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
+      simpa [Expr.piResult] using h
+
+/-- Resolution survives `getAppFn` (peeling an application spine's
+head keeps every constant it mentions). -/
+theorem Expr.constsResolve_getAppFn {env : Env} :
+    ∀ {e : Expr}, e.constsResolve env = true → e.getAppFn.constsResolve env = true
+  | .app f _, h => by
+      have hf : f.constsResolve env = true := by
+        simp only [Expr.constsResolve, Bool.and_eq_true] at h
+        exact h.1
+      exact Expr.constsResolve_getAppFn (e := f) hf
+  | .bvar _, h | .sort _, h | .lit _, h | .const _ _, h | .fvar _ _, h
+  | .lam _ _, h | .forallE _ _, h | .letE _ _ _, h | .proj _ _ _, h => by
+      simpa [Expr.getAppFn] using h
+
+/-- **A resolving expression's `piResult`'s head constant is stored**
+(task #342 L10): the constructor's stored type resolves (`ConstWF`),
+so the family name heading its result — the one `iotaCtorNeverProp`
+looks up — is stored too, hence never the fresh name of a cons. -/
+theorem Expr.find?_isSome_of_piResult_getAppFn_const {env : Env} {e : Expr}
+    {T : Name} {us : List Level} (hres : e.constsResolve env = true)
+    (heq : e.piResult.getAppFn = .const T us) : (env.find? T).isSome = true := by
+  have h2 := Expr.constsResolve_getAppFn (Expr.constsResolve_piResult hres)
+  rw [heq] at h2
+  simpa [Expr.constsResolve] using h2
+
 /-- Extending with a fresh, well-formed constant preserves `EnvWF`. -/
 theorem EnvWF.cons {c : ConstantInfo} {env : Env}
     (henv : EnvWF env)
@@ -351,5 +363,20 @@ theorem nodup_of_nameNodup : ∀ {ns : List Name}, ConLeche.Name.nodup ns = true
     refine List.nodup_cons.mpr ⟨fun hm => ?_, nodup_of_nameNodup h.2⟩
     have := h.1
     simp [hm] at this
+
+/-! ## Two `find?` readings -/
+
+/-- A `find?` hit names the stored constant. -/
+theorem Env.find?_name {env : Env} {n : Name} {ci : ConstantInfo}
+    (h : env.find? n = some ci) : ci.name = n := by
+  unfold ConLeche.Env.find? at h
+  have := List.find?_some h
+  simpa using this
+
+/-- A `find?` hit is a stored constant. -/
+theorem Env.find?_mem {env : Env} {n : Name} {ci : ConstantInfo}
+    (h : env.find? n = some ci) : ci ∈ env.consts := by
+  unfold ConLeche.Env.find? at h
+  exact List.mem_of_find?_eq_some h
 
 end ConLeche

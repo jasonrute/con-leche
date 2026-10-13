@@ -6,17 +6,12 @@ public import ConLeche.Model.BasisEq
 public section
 
 /-!
-# The two opened towers, read (task #161, IND TIER part 5)
+# The opened ∀-tower, read (task #161, IND TIER part 5)
 
-`openPisAtFvars_denotePTele` and `instLamsAt_denotePTele`: **the reading
-is blind to an opener** (`denoteMeta_erasedEq`'s `fvar` clause compares
-indices only), so an `openPisAtFvars`/`instLamsAt` run at any
-same-index opener spine produces the same tower.
-
-The λ tower is a `LamTele` relation: `AnnotTerm`'s `.lam` carries a
-*bit*, and `LamTele` quantifies the bits existentially exactly as
-`PiTeleAV` does; the consumers read neither.  `PiTeleAV.length` bounds
-an index into the tail context.
+`openPisAtFvars_denotePTele`: **the reading is blind to an opener**
+(`denote_erasedEq`'s `fvar` clause compares indices only), so an
+`openPisAtFvars` run at any same-index opener spine produces the same
+tower.
 -/
 
 namespace ConLeche.Model
@@ -24,13 +19,13 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
-open ConLeche (Env Expr Name BinderMeta)
+
+open ConLeche (Env Expr Name)
 
 universe w
 
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → Term}
 
 /-! ## The opened `∀` telescope -/
 
@@ -40,14 +35,14 @@ opened body's reading, and each opener's annotation read *at its own
 depth* to its tower entry. -/
 theorem openPisAtFvars_denotePTele :
     ∀ (k : Nat) {e : Expr} {j : Nat} {fvs : List Expr} {body : Expr}
-      {T : AnnotTerm},
+      {T : Term},
       openPisAtFvars k e j = some (fvs, body) →
-      denoteMeta acval env φ j e = some T →
-      ∃ (Γ : List AnnotTerm) (R : AnnotTerm),
+      denote acval env φ j e = some T →
+      ∃ (Γ : List Term) (R : Term),
         PiTeleAV k T Γ R ∧
-        denoteMeta acval env φ (j + k) body = some R ∧
+        denote acval env φ (j + k) body = some R ∧
         ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
-          denoteMeta acval env φ (j + i) (Expr.fvarTypeD x)
+          denote acval env φ (j + i) (Expr.fvarTypeD x)
             = some (Γ.getD (k - 1 - i) default) := by
   intro k
   induction k with
@@ -59,7 +54,7 @@ theorem openPisAtFvars_denotePTele :
   | succ k ih =>
     intro e j fvs body T h hT
     match e, h with
-    | .forallE dom bodyE mb, h =>
+    | .forallE dom bodyE, h =>
       simp only [openPisAtFvars] at h
       cases hop : openPisAtFvars k (bodyE.instantiate1 (.fvar j dom))
           (j + 1) with
@@ -68,17 +63,17 @@ theorem openPisAtFvars_denotePTele :
         rw [hop] at h
         simp only [Option.some.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
-        rw [denoteMeta_forallE] at hT
-        cases hA : denoteMeta acval env φ j dom with
+        rw [denote_forallE] at hT
+        cases hA : denote acval env φ j dom with
         | none => rw [hA] at hT; exact nomatch hT
         | some A => ?_
         rw [hA] at hT
-        cases hB : denoteMeta acval env φ (j + 1)
+        cases hB : denote acval env φ (j + 1)
             (bodyE.instantiate1 (.fvar j dom)) with
         | none => rw [hB] at hT; exact nomatch hT
         | some B => ?_
         rw [hB] at hT
-        obtain rfl : T = .pi 0 (pwBit φ mb.pw) A B := by
+        obtain rfl : T = .pi A B := by
           simpa using hT.symm
         obtain ⟨Γ', R, htele, hbody, hdoms⟩ := ih hop hB
         have hΓlen : Γ'.length = k := htele.length
@@ -89,7 +84,7 @@ theorem openPisAtFvars_denotePTele :
           cases i with
           | zero =>
             obtain rfl : Expr.fvar j dom = x := by simpa using hx
-            show denoteMeta acval env φ (j + 0) dom = _
+            show denote acval env φ (j + 0) dom = _
             rw [show (Γ' ++ [A]).getD (k + 1 - 1 - 0) default = A from by
               simp only [Nat.sub_zero, Nat.add_sub_cancel, List.getD]
               rw [List.getElem?_append_right (by omega), hΓlen,

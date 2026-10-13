@@ -3,8 +3,9 @@ module
 public import ConLeche.Model.Rules.Inputs
 public import ConLeche.Model.ClaimsIO
 import ConLeche.Model.Rules.Sound
+import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Rules.Bridge
-import ConLeche.Verify.BetaGate
+import ConLeche.Verify.Modes
 
 public section
 
@@ -33,7 +34,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+
 open ConLeche (CheckMode Env Expr Name)
 open ConLeche.Rules
 
@@ -57,32 +58,37 @@ theorem checkSoundAtP5 (hμ : μ.verifiedChecks = true)
   intro fuel
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro d e e' Δa hrun hws hb hLb ea ea' hC hea hea' hok
-    obtain ⟨-, -, ea'', hea'', hg, heq⟩ :=
-      red_sound hin (whnfCore_bridge hrun) ⟨hws, hb, hLb⟩ hC hea hok
+    obtain ⟨-, -, ea'', hea'', hs⟩ :=
+      red_sound hin (whnfCore_bridge hrun) ⟨hws, hb, hLb⟩ hC.toS hea
     rw [hea''] at hea'
     cases hea'
-    exact ⟨hg, heq⟩
+    exact ⟨fun ρ hρ hne => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ) hne).1,
+      fun ρ hρ hne => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ) hne).2⟩
   · intro d e e' Δa hrun hws hb hLb ea ea' hC hea hea' hok
-    obtain ⟨-, -, ea'', hea'', hg, heq⟩ :=
-      red_sound hin (whnf_bridge hrun) ⟨hws, hb, hLb⟩ hC hea hok
+    obtain ⟨-, -, ea'', hea'', hs⟩ :=
+      red_sound hin (whnf_bridge hrun) ⟨hws, hb, hLb⟩ hC.toS hea
     rw [hea''] at hea'
     cases hea'
-    exact ⟨hg, heq⟩
-  · intro d a b Δa hrun hwa hba hLa hwb hbb hLb aa ba hCa hCb haa hba' hga hgb
+    exact ⟨fun ρ hρ hne => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ) hne).1,
+      fun ρ hρ hne => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ) hne).2⟩
+  · intro d a b Δa hrun hwa hba hLa hwb hbb hLb aa ba hCa hCb haa hba' hga hgb ρ hρ
     exact defeq_sound hin (isDefEqCore_bridge hrun) ⟨hwa, hba, hLa⟩
-      ⟨hwb, hbb, hLb⟩ hCa hCb haa hba' hga hgb
+      ⟨hwb, hbb, hLb⟩ hCa.toS hCb.toS haa hba' ρ hρ (hCa.leavesGr hρ)
+      (hCb.leavesGr hρ) (hga ρ hρ) (hgb ρ hρ)
   · intro d e t Δa hrun hws hb hLb ea ta hC hea hta
-    obtain ⟨-, -, ta', hta', hge, hgt, hmem⟩ :=
-      infer_sound hin (inferTypeCore_bridge hrun) ⟨hws, hb, hLb⟩ hC hea
+    obtain ⟨-, -, ta', hta', hs⟩ :=
+      infer_sound hin (inferTypeCore_bridge hrun) ⟨hws, hb, hLb⟩ hC.toS hea
     rw [hta'] at hta
     cases hta
-    exact ⟨hge, hgt, hmem⟩
+    exact ⟨fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).1,
+      fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.1,
+      fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ)).2.2⟩
   · intro d e t Δa hrun hws hb hLb ea ta hC hea hta hok
-    obtain ⟨-, -, ta', hta', hgt, hmem⟩ :=
-      infer_sound hin (inferTypeCoreIO_bridge hrun) ⟨hws, hb, hLb⟩ hC hea hok
+    obtain ⟨-, -, ta', hta', hs⟩ :=
+      infer_sound hin (inferTypeCoreIO_bridge hrun) ⟨hws, hb, hLb⟩ hC.toS hea
     rw [hta'] at hta
     cases hta
-    exact ⟨hgt, hmem⟩
+    exact fun ρ hρ => (hs ρ hρ (hC.leavesGr hρ) (hok ρ hρ)).1
 
 /-- The four sealed claims at every fuel — the joint recomposition's
 first four conjuncts, kept under the landed name so every consumer
