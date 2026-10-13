@@ -6,15 +6,11 @@ public import ConLeche.Semantics.Sat
 @[expose] public section
 
 /-!
-# The `WellDenoted` hoist kit
+# The `WellDenoted` hoist at a `∀`
 
-Every lemma here is an implication between `∀ ρ, Sat V Δa ρ → …`
-shapes: the splitters that take a hoisted node fact apart, the
-converses that build one from its parts, the head transfer that moves a
-hoisted fact across a domain equality, and the lift.  They mention no
-fuel, no run and no environment — the trap-check section at the end of
-this file makes exactly that observation — and the inference quarters
-consume them at every congruence.
+`hoist_pi` splits a hoisted `∀ ρ, Sat V Δa ρ → WellDenoted …` fact of a
+`Π` node into its domain's and its codomain's (in the extended
+context).  It mentions no fuel, no run and no environment.
 -/
 
 namespace ConLeche.Semantics
