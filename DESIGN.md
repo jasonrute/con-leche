@@ -105583,3 +105583,62 @@ full `tests/arena.sh` green — links (136 + 473), quote, challenge,
 shake (690 proposals, all allowlisted; pub-imports none demotable),
 the self-check (47 512 accepted), axioms, arena 90/92, e2e 479/479,
 the trusted sweep (0 divergences), the `--jobs=1`/`--jobs=4` sweeps.
+
+## TASK #342 — R4: the whitepaper revision from the final review (2026-10-13, agent/342-r4)
+
+The final review of the whitepaper, implemented.  Prose only, plus the
+fragment's comments; no checker or proof change.
+
+**Inconsistencies.**  §2.8's tax list now has the certified case of ι
+in full: the comparisons of the constructor's levels, parameters and
+index expressions with the recursor's, and the type check of its
+parameters and fields (checked against `Kernel/Core.lean`'s case-3
+block); §4.5 colours them as tax.  §2.3 states λ-congruence in its
+telescope form (`≡_λ`: lam at the innermost level with the coloured
+type premises, lam-outer without, lams back to `≡`), as `DefEqLams`
+does.  "Decoding" is defined in §4.2's main text.  "Lean's kernel" →
+"the official kernel".  §6 is "Consequences of extensionality".  §6's
+`#real` box gives the structure step's order as the checker has it
+(the major as found, before any head normalisation, then once more on
+the reduct).  §4.4 says the fragment compares in every case but K, the
+checker only in the certified case.
+
+**Fragment.**  `Unannot.lean` → `ValueReading.lean` (imports and the
+paper's two citations repointed).  Every cited range's comments lost
+their history and lane tags (`F1's version…`, `#347 dropped
+projCertAt`, `#342 v2 §11.4`, …), line counts unchanged; the same for
+two ConLeche docstrings in cited ranges (`Model/Env/Laws.lean`'s
+`RecRuleExtra`, `Term/Syntax.lean`'s `eqE`).  NOTES.md's header and
+items 6, 12, 16, 23, 24, 31, 32 are path-independent; items 38 (the
+`d`/`F` witness and the weaker sound forms, from §2.8) and 39 (where
+the certificate goes, from §4.5) are new.  PLAN.md's colour ruling
+names the comparisons.
+
+**Structure.**  One transitivity passage (§2.7; §2.3 keeps a forward
+sentence and the con-leche box).  §2.7: the four-case list right after
+the theorem; "And look at the point", the proof's closing paragraph and
+the "absence is not a restriction" paragraph cut; "Proofs that are not
+proofs" two sentences.  The empty-domain example told once (§2.5); §1.3
+one sentence and a pointer.  §2.8: the `d`/`F` witness and the weaker
+forms to NOTES, "The full grade" two sentences.  §2.9 compressed (the
+`Bool.rec` example cut).  New §2.10 "The argument in brief".  §3's lone
+subsection heading dropped (`sec:defs` → `sec:env`).  §4.1 "A remark on
+names" cut, the large-elimination box one sentence; §4.2's regime
+paragraph folded into "The family and the constructors"; §4.5's "A
+structure, through its projections" moved to §6.2, "Where the
+certificate goes" to NOTES.  §5.2 without the error strings, its
+`#real` box one sentence; §5.4's garbled sentence and "(case 4)"
+rewritten.  §7: structure η/unit-likeness and fuel/bridge items are
+pointers; the `And` item is "Recursors on stuck proofs of `A ∧ B`".
+§8: the survey disclaimer and the empty-domain reprise cut.
+
+**Words.**  Jargon: "the point" introduced in §1.3; no "off the point",
+"grade" (full inference / `infer_only`), "regime", "slot" (the
+major-premise law), "residual", "row"; "certificate" only for the ι
+check; telescope and spine glossed; K glossed in §2.8.  Em-dashes in
+the sections: 226 → 0.  Words (`wc -w`, sections): 29 297 → 28 262.
+
+**Gates.**  `whitepaper/fragment-gate.sh` OK; `whitepaper/links-gate.sh`
+OK after `--update` (467 links); `tests/overview-links.sh` OK after
+`--update` (the `Term/Syntax.lean` docstring); the document builds
+warning-free.
