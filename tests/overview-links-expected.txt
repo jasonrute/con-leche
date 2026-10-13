@@ -252,9 +252,9 @@
    208      (∀ pc ∈ q.2.2.toList, ∃ s'', checkPending μ q.2.1 pc {} = .ok ((), s'')) →
    209      EnvModelOk V μ q.2.1.env := by
 
-== ConLeche/Verify/Cached/KnotCongr.lean#L444-L445
-   444  theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
-   445      ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
+== ConLeche/Verify/Cached/KnotCongr.lean#L429-L430
+   429  theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
+   430      ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
 
 == ConLeche/Model/InstallRun.lean#L230-L232
    230  theorem fullyChecked_sound (V : Type w) [SetTheory V] (hμ : μ.verifiedChecks = true)
@@ -306,13 +306,13 @@
     53  def ensureSortCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Level :=
     54    ensureSort (pureFns mode env fuel) env depth e
 
-== ConLeche/Kernel/Core.lean#L1653-L1658
-  1653      (wrap : CoreFns m → CoreFns m) : Nat → CoreFns m
-  1654    | 0 =>
-  1655      { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
-  1656        whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
-  1657        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
-  1658        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
+== ConLeche/Kernel/Core.lean#L1692-L1697
+  1692      (wrap : CoreFns m → CoreFns m) : Nat → CoreFns m
+  1693    | 0 =>
+  1694      { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
+  1695        whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
+  1696        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
+  1697        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
 
 == ConLeche/Model/Fold.lean#L276-L283
    276  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
@@ -348,14 +348,14 @@
 == ConLeche/Kernel/Env.lean#L52
     52  inductive CheckMode where
 
-== ConLeche/Kernel/Core.lean#L984
-   984  /-- The reduction loop's body: run `whnfLoop` at its own step budget. -/
+== ConLeche/Kernel/Core.lean#L1023
+  1023  /-- The reduction loop's body: run `whnfLoop` at its own step budget. -/
 
-== ConLeche/Kernel/Core.lean#L1125
-  1125  def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
+== ConLeche/Kernel/Core.lean#L1164
+  1164  def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
 
-== ConLeche/Kernel/Core.lean#L1267
-  1267  def defeqLams (r : CoreFns m) :
+== ConLeche/Kernel/Core.lean#L1306
+  1306  def defeqLams (r : CoreFns m) :
 
 == ConLeche/Verify/Cached/AgreeFloor.lean#L1103-L1105
   1103  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}

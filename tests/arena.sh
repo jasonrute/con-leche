@@ -291,7 +291,12 @@ arena_half() {
 # k_rescue_stuck: BELOW the default too — checks in milliseconds, and a
 # regression (task #334: whnf of the major restored after a failed K
 # rescue) does not terminate.
+# whnf_delta_loop, whnf_core_loop: their expected verdict IS the timeout
+# (exit 124: a head normalization that does not terminate, run in
+# constant stack); 5 s is plenty to tell it from a stack overflow.
 declare -A E2E_TIMEOUT=(
+  [whnf_delta_loop.ndjson]=5
+  [whnf_core_loop.ndjson]=5
   [complete_c05b_nest30_pi1000.ndjson]=600
   [proj_stuck_struct.ndjson]=10
   [omega_kloop.ndjson]=10

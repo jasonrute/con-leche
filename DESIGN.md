@@ -105116,3 +105116,137 @@ tower's "`hAclosed` packages").  `acval_basis_pinned` and
 component.  `Model/Reading/*` needs no model in most modules and could
 move to `Verify/Denote/*`.  The `…AV` names now only mark the model
 tier's spellings of `Term`s.
+
+## TASK #342 — R2: two findings of the full Lean Kernel Arena run (2026-10-13, agent/342-r2)
+
+The full arena run (`_tmp/arena-full`, arena checkout `c6d13ac`)
+compared `master` with the port.  Two findings were left for this lane.
+
+**Finding 1: `bugs/proj-of-subst-prop` — not a regression.**  Expected
+reject; both binaries reject, `master` at `observe` (position 116,
+"projection from a propositional structure must be a proposition"),
+the port one declaration earlier at `proposition` (115, "application
+type mismatch").  `proposition := asProp witness` needs `Q ≡ P`, i.e.
+`c ≡ b`.
+
+- *Neither binary finds `Q ≡ P`.*  Exporting the test with
+  `proposition` as the only target, `master` rejects it with the same
+  "application type mismatch".  In the full stream `master` reported
+  `observe` because its annotate pass ran at install, and the
+  projection guard there fired before the check phase ran; the port
+  moved that guard into inference (S4 L-ck), so the earliest failing
+  check in fold order, `proposition`, is reported.  No conversion path
+  was lost: not an annotation gate, not the β certificate, not the io
+  licence, not the order of proof irrelevance and whnf.
+- *Why `c ≢ b` here.*  The elaborator abstracts `b`'s `Acc` proof
+  (`Acc.intro 1 fun _ => Acc.inv seed`) into the theorem
+  `PR14806Subst.b._proof_1`, so `b` unfolds to
+  `run false 1 b._proof_1`.  Theorems are opaque to con-leche's δ
+  (`unfoldDefinition`, anticipating lean4#14896), so the case-3 ι step
+  of `Acc.rec` never sees `Acc.intro`, and `b` gets stuck at index 1
+  while `c` is at index 0.  Written with the constructor in place
+  (scratch variants `run false 1 (Acc.intro 1 …) ≡ c`), the chain is
+  found by both binaries: ι (with the case-3 certificate), `step`'s
+  match, and proof irrelevance on the two `Acc … 0` proofs.
+- *The official kernel.*  v4.34.1 unfolds the theorem and accepts
+  `proposition` (checked with `addDeclCore … (doCheck := true)`);
+  the lean4#14896 kernel (`pr-release-14896`, theorems opaque) rejects
+  it with "(kernel) application type mismatch", exactly as con-leche.
+- *Can it be found soundly?*  Only by unfolding theorems, which is a
+  deliberate design choice (a declaration's verdict never depends on a
+  theorem's value), not a rule of the port; no change.  Pinned as the
+  e2e fixture `proj_of_subst_prop` (reject, the arena's stream).
+
+**Finding 2: `corner-cases/eta-struct-major-no-whnf`,
+`…-and-no-whnf` — exit 134.**  Both majors are proofs built from
+Coquand's paradox (no weak head normal form): `Prod.rec f loopPair`
+with `loopPair` an `Acc.rec` over such a proof, and `And.rec f (Ω _ ⟨⟩)`.
+`prepareMajor` head-normalized the major *before* trying the
+structure rescues, and the reduction did not terminate.  It did not
+time out either: every step of the cached `whnf` loop called its
+continuation through a closure (`whnfStepI` passed `whnfLoopI … n` as
+`k`, called with `lean_apply_2`), so each δ step added native frames,
+and the worker's 1 GiB stack overflowed after about 1.8 s (`gdb`:
+`whnfLoopI`/`whnfLoopI___boxed`/`lean_apply_2` repeating).
+
+- *The order (lean4#15351).*  `prepareMajor`, off K, now runs the
+  rescues on the major **as found**: the structure-η rescue (never-`Prop`
+  structures) and the `And` rescue read only the major's type and
+  build `S.mk ps (S.p₀ x) …`; only if that gives no constructor is the
+  major head-normalized, its literal converted and the rescue tried on
+  the reduct (a `String` literal skips the first attempt, as lean4#15351
+  does).  Both rescues are `Red` steps on any major (`Red.rescueEta`,
+  `Red.rescueAnd`), so no rule, no claim and no model lemma changes;
+  #350's proviso (expand as found, never after reducing) is what the
+  new order does.  Proofs repaired: `prepareMajorFueled_ind`,
+  `prepareMajor_shift`, `prepareMajor_atF`, the `PairM` projections,
+  `prepareMajorC_sim`.  Both arena tests now **accept** (14 ms / 11 ms),
+  as the planned official kernel does.
+- *The δ loop.*  `whnfStepI` is `@[inline]` (a compiler attribute; the
+  term is unchanged): inlined into `whnfLoopI`, the continuation call
+  becomes the loop's own tail call and compiles to `goto _start`.
+- *The β/ι loop.*  The same overflow is reachable without δ: `Ω`
+  written inline (β and the K-like `Eq.rec` only) as the major of an
+  `Acc.rec` into data.  There the cached `whnfCoreLoopI` grew the stack
+  through non-tail continuation calls: a fired ι with arguments left
+  over (`let v' ← k e''; whnfAppI v' rest`) and a peel stopping with
+  arguments left over.  `whnfAppI`, `betaPeelI` and `whnfCoreStepI`
+  now return a `WhnfStep` (`done v`, or `cont e` with the reduct
+  applied to the rest of the spine), and `whnfCoreLoopI` continues with
+  it as its own tail call.  The specification (`whnfCoreBody`, chained)
+  is unchanged; in `Verify/BetaSpine.lean` the mirrors gain the
+  step-returning `whnfAppW`/`betaPeelW`/`whnfCoreStepW` (simulated by
+  `DiscC4`), the continuation-passing `whnfApp`/`betaPeel` take the
+  tail form and equal the step-returning ones followed by
+  `WhnfStep.run` (`whnfApp_run`, `betaPeel_run`, `whnfCoreStepM_run`),
+  and the snoc/ksound proofs split the ι and peel cases by the spec's
+  own app clause (`whnfCore_app_split`).
+- *What remains native recursion.*  Checked in the generated C: the
+  `whnf`, `whnfCore`, lazy-delta and lazy-delta-projection loops and
+  the argument loop of `whnfAppI` jump (`goto _start`); the spine walks
+  recurse over a spine's length.  Nesting (a head, a scrutinee, a
+  type) goes through the knot and is bounded by `checkFuel` (an exit-3
+  error when exhausted).  A non-terminating reduction in a position
+  nothing lets the checker skip now runs until the external timeout in
+  constant memory (20 MB), as the official kernel does not terminate
+  either; pinned by `whnf_delta_loop` and `whnf_core_loop` (exit 124 at
+  a 5 s budget; both were 134 before).  Deep *terms* (structural
+  recursion over a term's depth: substitution, hashing, equality) are
+  outside this lane: the parser and reduction can build them, and their
+  depth is not budgeted.
+
+**What the planned kernel does that con-leche still does not.**
+lean4#15371 eta-expands the major of every large-eliminating
+structure in `Prop` and every sort-polymorphic structure at a `Prop`
+instance; con-leche rescues `And` (by name) and never-`Prop`
+structures only, so for another such structure (`PUnit.{0}`, a
+user-declared `structure S : Prop` of proofs, a `PSigma'`-like one at
+level 0) the major is still head-normalized first.  #350 proved the
+general η path sound with no certificate, as theorems on the claims;
+making it a `Red` rule needs the `StructEtaLaw`/`ProjLaw` environment
+laws (post-port lane, §11.7).
+
+**The other new η tests** (arena, port binary of this lane, all
+"either"): `eta-struct-major-and` accept; `eta-rec-struct`,
+`eta-ctor-alias` (bugs, expected reject), `eta-unit-like-nested`,
+`-pi`, `-proof-field`, `-struct` reject — unchanged from `master` and
+the port before this lane.
+
+**Numbers** (`instructions:u`, `--verified --jobs=1`, one run each,
+under the RSS guard; base = the port binary of the arena run,
+`b4a5e4edc`'s checker): init-full 408.34 G → 400.55 G (−1.91 %),
+mathlib-prefix 557.49 G → 547.91 G (−1.72 %); peak RSS 0.31 / 0.46 GiB.  The gain is not attributed by a profile; the two loops no longer allocate a continuation closure per step nor call it indirectly.
+
+**Fixtures.**  `eta_struct_major_no_whnf`, `eta_struct_major_and_no_whnf`
+(accept), `whnf_delta_loop`, `whnf_core_loop` (124 at 5 s),
+`proj_of_subst_prop` (reject).  Sources in `tests/e2e/src/` (the
+arena's, exported with the pinned v4.29.1 toolchain), except
+`proj_of_subst_prop`, the arena's own stream.
+
+**Documents.**  OVERVIEW §3: the structure rescues come before the
+major's head normalization; the reduction loops iterate in constant
+stack.  Line-anchored citations that moved with the code were
+repointed (OVERVIEW 5, whitepaper 5; `overview-links`, `links-gate`
+regenerated, text unchanged).  For R4: the whitepaper's §6 says the η
+rescue fires on "a recursor stuck on a non-constructor `s`"; it now
+fires on the major as found, before any reduction.

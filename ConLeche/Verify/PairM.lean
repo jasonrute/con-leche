@@ -624,25 +624,33 @@ theorem prepareMajor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : E
     (prepareMajor (pairFns r₁ r₂ h) env d c rules e).val.1 =
       prepareMajor r₁ env d c rules e := by
   unfold prepareMajor
-  split <;> (repeat (first
-    | rfl
-    | (rw [majorToCtor_fst_proj])
-    | (rw [litMajorToCtor_fst_proj])
-    | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
-    | (split <;> (first | rfl | rw [litMajorToCtor_fst_proj]))
-    | (dsimp only [])))
+  split
+  · repeat (first
+      | rfl
+      | (rw [majorToCtor_fst_proj])
+      | (rw [litMajorToCtor_fst_proj])
+      | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
+      | (split <;> (first | rfl | rw [litMajorToCtor_fst_proj]))
+      | (dsimp only []))
+  · simp only [PairM.fst_ite, PairM.fst_bind, PairM.fst_pure,
+      majorToCtor_fst_proj, litMajorToCtor_fst_proj]
+    rfl
 
 theorem prepareMajor_snd_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
     (prepareMajor (pairFns r₁ r₂ h) env d c rules e).val.2 =
       prepareMajor r₂ env d c rules e := by
   unfold prepareMajor
-  split <;> (repeat (first
-    | rfl
-    | (rw [majorToCtor_snd_proj])
-    | (rw [litMajorToCtor_snd_proj])
-    | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
-    | (split <;> (first | rfl | rw [litMajorToCtor_snd_proj]))
-    | (dsimp only [])))
+  split
+  · repeat (first
+      | rfl
+      | (rw [majorToCtor_snd_proj])
+      | (rw [litMajorToCtor_snd_proj])
+      | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
+      | (split <;> (first | rfl | rw [litMajorToCtor_snd_proj]))
+      | (dsimp only []))
+  · simp only [PairM.snd_ite, PairM.snd_bind, PairM.snd_pure,
+      majorToCtor_snd_proj, litMajorToCtor_snd_proj]
+    rfl
 
 theorem projLitToCtor_fst_proj (d : Nat) (e : Expr) :
     (projLitToCtor (pairFns r₁ r₂ h) env d e).val.1 =

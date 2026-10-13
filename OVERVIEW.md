@@ -427,7 +427,7 @@ Read from the outside in:
    simulation stated at the truncated environment because the view and
    the truncated environment have the same lookup, and the cached core
    reads its environment through that lookup alone
-   ([theorem `coreKnotI_congr` in `ConLeche/Verify/Cached/KnotCongr.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/KnotCongr.lean#L444-L445)).
+   ([theorem `coreKnotI_congr` in `ConLeche/Verify/Cached/KnotCongr.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/KnotCongr.lean#L429-L430)).
    Carried along the install run and then through every record's
    check, the model reaches the final environment
    ([theorem `fullyChecked_sound` in `ConLeche/Model/InstallRun.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/InstallRun.lean#L230-L232)),
@@ -441,7 +441,7 @@ Read from the outside in:
    recursion on a fuel parameter
    ([the entry points in `ConLeche/Kernel/TypeChecker.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/TypeChecker.lean#L29-L54));
    on exhaustion every operation throws
-   ([the fuel recursion's base case in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1653-L1658)).
+   ([the fuel recursion's base case in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1692-L1697)).
    Its declaration fold is what the model tier proves things about
    ([theorem `no_proof_of_False_pure` in `ConLeche/Model/Fold.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Fold.lean#L276-L283)).
 5. **The model tier** (`ConLeche/Model/*`, the set model of the checker)
@@ -481,7 +481,7 @@ reduced by `whnfCore` itself rather than by `whnf`),
 reduction: its value is never unfolded, so whether a declaration
 type-checks never depends on a theorem's value — and the literal fast
 paths
-([function `whnfBody` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L984)),
+([function `whnfBody` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1023)),
 `inferType` computes a type, and `isDefEq` decides conversion in the
 order of the official `is_def_eq_core` (cheap head normalization, the
 easy cases, the lazy-delta loop, the
@@ -496,7 +496,12 @@ premise of a recursor over an inductive proposition, which is
 head-normalized to a constructor unless the K rule (which reads only
 the major's type) applies — and if the K rule's rescue *fails*, the
 major is left exactly as it is, never head-normalized, so a K-like
-recursor never reduces a proof. This too deviates from the official
+recursor never reduces a proof. A structure major is likewise rescued
+from its type before it is reduced, in the order the official kernel
+adopts with its logic renovation (lean4#15351): the constructor of the
+major's projections is built from the major as found, and only if no
+rescue applies is the major head-normalized, so a major with no normal
+form does not stop the recursor. This too deviates from the official
 kernel on purpose (it head-normalizes the major regardless of the
 rescue's outcome): the rescue already decided the major's type is not
 the index the recursor needs, by the same comparison a normalized
@@ -504,9 +509,9 @@ major's type would have to pass; the loss is confined to
 incompleteness corners of the checker's own conversion. Conversion uses lazy
 unfolding, η, proof irrelevance, structure η, unit-likeness and K-like
 reduction as the flags the install stored for each inductive type
-permit. One proposition, `And`, is additionally rescued when its
-recursor is stuck on a proof `h`: `And.intro a b h.1 h.2` is built and
-certified by proof irrelevance. The official kernel has no such rescue;
+permit. One proposition, `And`, is additionally rescued: for a major
+proof `h`, `And.intro a b h.1 h.2` is built from `h`'s type, before
+`h` is reduced, and certified by proof irrelevance. The official kernel has no such rescue;
 this checker needs it because theorems are opaque here, so `And.rec`
 applied to a theorem would otherwise never reduce. The rescue is keyed
 on the name `And` only, to keep its reach small. Its certificate is
@@ -520,10 +525,10 @@ presentation and matter for the proof:
   domains and `let` values checked) and at the official kernel's
   infer-only grade on the terms reduction and definitional equality
   build on their way
-  ([function `inferBodyIO` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1125)).
+  ([function `inferBodyIO` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1164)).
   Beyond the official kernel, the verified mode compares the opened
   bodies' full-grade types at the innermost level of a λ/λ comparison
-  ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1267))
+  ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1306))
   and at η; the proof consumes them. Three cheap guards are the proof's
   too and never change a verdict on well-typed input: η is tried only
   against a term whose head is no λ and no `let` (a weak-head normal
@@ -537,6 +542,14 @@ presentation and matter for the proof:
   not, but its memos are proved to agree with the pure functions at
   every fuel large enough to succeed
   ([theorem `checkDecls_skels` in `ConLeche/Verify/Cached/AgreeFloor.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/AgreeFloor.lean#L1103-L1105)).
+  Nesting (a head, a scrutinee, a subterm's type) is bounded by the
+  shared fuel, an error when exhausted; reduction *chains* are not: the
+  `whnf` loop's δ steps, the `whnfCore` loop's β, ι and projection steps
+  and the lazy-delta loop each iterate in constant native stack, a
+  `whnfCore` step returning the term to continue with instead of
+  calling the loop. A reduction that does not terminate (a proof built
+  from Coquand's paradox, in a position nothing lets the checker skip)
+  runs until the external timeout, as in the official kernel.
   Binder names and binder infos are not stored at all; `Expr` carries a
   packed hash and loose-variable bounds as computed fields, which is
   what makes traversals of shared terms (DAGs) cheap. The

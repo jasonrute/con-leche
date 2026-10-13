@@ -613,9 +613,11 @@ theorem projCertAt_verified_inv {env : Env} {c : Name} {args : List Expr}
 
 /-- **The major chain's induction principle.**  `prepareMajor` runs
 `whnf`, the literal conversion and the rescue in one of two orders
-(the K-flagged one puts the rescue first); a property each step
-preserves is carried from the raw major to the prepared one whichever
-order ran.  Task #334: at a K-flagged recursor `whnf` runs only when
+(the K-flagged one runs the rescue alone, or the rescue and the literal
+conversion; elsewhere the rescue on the raw major, then — failing a
+constructor — `whnf`, the literal conversion and the rescue again, task
+#342 R2); a property each step preserves is carried from the raw major
+to the prepared one whichever order ran.  Task #334: at a K-flagged recursor `whnf` runs only when
 the rescue did NOT already produce a constructor (`hca` below) — the
 `hwhnf` hypothesis is simply unused on that branch, since `hlit`/`hmaj`
 alone connect `a` to `m` there.  Every consumer of the chain (scoping,
@@ -647,18 +649,53 @@ theorem prepareMajorFueled_ind {env : Env} {fuel d : Nat} {recName : Name}
       · rw [ite_eq_right hca] at h
         simp only [pure, Except.pure, Except.ok.injEq] at h
         exact h ▸ hmaj h₁ ha
-  · rw [ite_eq_right hk] at h
-    cases h₁ : whnf mode env fuel d a with
-    | error err => rw [h₁] at h; exact nomatch h
-    | ok m₁ =>
-      rw [h₁] at h
+  · -- the structure rescues on the major as found first (task #342 R2),
+    -- then, failing a constructor, whnf, literal and rescue again
+    rw [ite_eq_right hk] at h
+    by_cases hs : a.isStrLit = true
+    · rw [ite_eq_left hs] at h
+      simp only [pure, Except.pure] at h
+      have hE : P a := ha
+      generalize a = mE at h hE
+      by_cases hca : isCtorApp env mE = true
+      · rw [ite_eq_left hca] at h
+        simp only [pure, Except.pure, Except.ok.injEq] at h
+        exact h ▸ hE
+      · rw [ite_eq_right hca] at h
+        cases h₁ : whnf mode env fuel d mE with
+        | error err => rw [h₁] at h; exact nomatch h
+        | ok m₁ =>
+          rw [h₁] at h
+          dsimp only at h
+          cases h₂ : litMajorToCtorFueled mode env fuel d m₁ with
+          | error err => rw [h₂] at h; exact nomatch h
+          | ok m₂ =>
+            rw [h₂] at h
+            dsimp only at h
+            exact hmaj h (hlit h₂ (hwhnf h₁ hE))
+    · rw [ite_eq_right hs] at h
+      cases h₀ : majorToCtorFueled mode env fuel d recName rules a with
+      | error err => rw [h₀] at h; exact nomatch h
+      | ok mE =>
+      rw [h₀] at h
       dsimp only at h
-      cases h₂ : litMajorToCtorFueled mode env fuel d m₁ with
-      | error err => rw [h₂] at h; exact nomatch h
-      | ok m₂ =>
-        rw [h₂] at h
-        dsimp only at h
-        exact hmaj h (hlit h₂ (hwhnf h₁ ha))
+      have hE : P mE := hmaj h₀ ha
+      by_cases hca : isCtorApp env mE = true
+      · rw [ite_eq_left hca] at h
+        simp only [pure, Except.pure, Except.ok.injEq] at h
+        exact h ▸ hE
+      · rw [ite_eq_right hca] at h
+        cases h₁ : whnf mode env fuel d mE with
+        | error err => rw [h₁] at h; exact nomatch h
+        | ok m₁ =>
+          rw [h₁] at h
+          dsimp only at h
+          cases h₂ : litMajorToCtorFueled mode env fuel d m₁ with
+          | error err => rw [h₂] at h; exact nomatch h
+          | ok m₂ =>
+            rw [h₂] at h
+            dsimp only at h
+            exact hmaj h (hlit h₂ (hwhnf h₁ hE))
 
 /-- **The recursor's arity at a successful iota step** (task #342 L18):
 the stored type has the spine's number of syntactic ∀-binders. -/

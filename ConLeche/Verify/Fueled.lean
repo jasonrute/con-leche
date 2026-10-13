@@ -309,13 +309,17 @@ theorem prepareMajor_atF (d : Nat) (c : Name) (rules : List RecRule) (e : Expr)
     (prepareMajor (fueledFns mode env) env d c rules e).val F =
       prepareMajor (pureFns mode env F) env d c rules e := by
   unfold prepareMajor
-  split <;> (repeat (first
-    | rfl
-    | (rw [majorToCtor_atF])
-    | (rw [litMajorToCtor_atF])
-    | ((rw [FueledM.atF_bind]; congr 1 <;> try rfl) <;> try funext _)
-    | (split <;> (first | rfl | rw [litMajorToCtor_atF]))
-    | (dsimp only [])))
+  split
+  · repeat (first
+      | rfl
+      | (rw [majorToCtor_atF])
+      | (rw [litMajorToCtor_atF])
+      | ((rw [FueledM.atF_bind]; congr 1 <;> try rfl) <;> try funext _)
+      | (split <;> (first | rfl | rw [litMajorToCtor_atF]))
+      | (dsimp only []))
+  · simp only [FueledM.atF_ite, FueledM.atF_bind, FueledM.atF_pure,
+      majorToCtor_atF, litMajorToCtor_atF]
+    rfl
 
 theorem projLitToCtor_atF (d : Nat) (e : Expr) (F : Nat) :
     (projLitToCtor (fueledFns mode env) env d e).val F =

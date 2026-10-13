@@ -554,8 +554,10 @@ def projLitToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
 /-- Twin of `prepareMajor`: the major's preparation (K rescue on the
 raw major; task #334 — no `whnf` either way after it: if it produced a
 constructor, only the literal conversion follows; if it failed, the
-major is left exactly as it is; elsewhere whnf, literal, eta).  The K
-flag is the single rule's stored bit, as in the spec (`recRuleK`). -/
+major is left exactly as it is; elsewhere the structure rescues on the
+raw major first (lean4#15351, task #342 R2), and only if they produce
+no constructor whnf, literal, rescue).  The K flag is the single rule's
+stored bit, as in the spec (`recRuleK`). -/
 def prepareMajorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
     (recName : Name) (rules : List RecRule) (major : Expr) :
     CheckCM Expr := do
@@ -565,9 +567,13 @@ def prepareMajorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
       litMajorToCtorI r fe depth majorK
     else pure majorK
   else do
-    let major₀ ← r.whnf depth major
-    let major₁ ← litMajorToCtorI r fe depth major₀
-    majorToCtorI mode r fe depth recName rules major₁
+    let majorE ← if major.isStrLit then pure major
+      else majorToCtorI mode r fe depth recName rules major
+    if isCtorAppC fe majorE then pure majorE
+    else do
+      let major₀ ← r.whnf depth majorE
+      let major₁ ← litMajorToCtorI r fe depth major₀
+      majorToCtorI mode r fe depth recName rules major₁
 
 /-- The nested-rule pin instantiations (structural recursion;
 the spec side is `(recFireComparands …).2`'s `List.map`). -/
@@ -717,27 +723,43 @@ def reduceProjCoreI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (sn : Name)
     | _ => pure none
   | none => pure none
 
-mutual
+/-- Peel loop of `whnfAppI`: `t` is the raw (unsubstituted) lambda body
+after the binders consumed so far, `acc` their arguments (innermost
+first).  The body is substituted once, when peeling stops, and handed
+to the loop together with the arguments left over. -/
+def betaPeelI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
+    Expr → List Expr → List Expr → CheckCM WhnfStep
+  | t, acc, [] => do
+    let e' ← instListM t acc
+    pure (.cont e')
+  | t, acc, a :: rest => do
+    match t with
+    | .lam _ body =>
+        -- Task #342 S0: uniform β (see `whnfAppI`)
+        betaPeelI r fe depth body (a :: acc) rest
+    | _ => do
+      let e' ← instListM t acc
+      let e'' ← mkAppNM e' (a :: rest)
+      pure (.cont e'')
 
 /-- Bulk-beta argument loop (task #50): consume the whole application
 spine against the whnf'd head `v`.  A lambda head enters the peel loop
 (first binder inline, which keeps the argument count decreasing);
 other heads try iota with one more argument and otherwise accumulate a
-stuck application — exactly the per-level `whnfCoreBody` app clauses,
-but with the chained per-argument `instantiate1` of the beta path
-replaced by one bulk substitution per peeled group
-(`ConLeche/Verify/BetaSpine.lean` proves the identification).  The
-head-normalization loop's continuation `k` is threaded through
-(task #106). -/
-def whnfAppI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
-    (k : Expr → CheckCM Expr) :
-    Expr → List Expr → CheckCM Expr
-  | v, [] => pure v
+stuck application — the per-level `whnfCoreBody` app clauses, with the
+chained per-argument `instantiate1` of the beta path replaced by one
+bulk substitution per peeled group (`ConLeche/Verify/BetaSpine.lean`
+proves the identification).  A fired ι hands the loop its reduct
+applied to the rest of the spine (`WhnfStep.cont`, task #342 R2): the
+loop, not a nested call, continues with it. -/
+def whnfAppI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
+    Expr → List Expr → CheckCM WhnfStep
+  | v, [] => pure (.done v)
   | v, a :: rest => do
     match v with
     | .lam _ body =>
         -- Task #342 S0: uniform β, no certificate, at every λ
-        betaPeelI r fe depth k body [a] rest
+        betaPeelI r fe depth body [a] rest
     | _ => do
       let fa ← pure (Expr.app v a)
       -- the ι step is tried only where it could fire; every other
@@ -745,57 +767,25 @@ def whnfAppI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
       match ← (if iotaArityOk fe fa then iotaRecI mode r fe depth fa
                else pure none) with
       | some e'' => do
-        let v' ← k e''
-        whnfAppI r fe depth k v' rest
-      | none => whnfAppI r fe depth k fa rest
-termination_by _ args => (args.length, 0)
-decreasing_by
-  all_goals first
-    | (apply Prod.Lex.left; simp; done)
-    | (apply Prod.Lex.right' <;> simp)
-
-/-- Peel loop of `whnfAppI`: `t` is the raw (unsubstituted) lambda body
-after the binders consumed so far, `acc` their arguments (innermost
-first).  Each binder's argument certificate (unconditional since the
-task-#100 de-gating) substitutes only the *domain*; the body is
-substituted once, when peeling stops. -/
-def betaPeelI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
-    (k : Expr → CheckCM Expr) :
-    Expr → List Expr → List Expr → CheckCM Expr
-  | t, acc, [] => do
-    let e' ← instListM t acc
-    k e'
-  | t, acc, a :: rest => do
-    match t with
-    | .lam _ body =>
-        -- Task #342 S0: uniform β (see `whnfAppI`)
-        betaPeelI r fe depth k body (a :: acc) rest
-    | _ => do
-      let e' ← instListM t acc
-      let v ← k e'
-      whnfAppI r fe depth k v (a :: rest)
-termination_by _ _acc args => (args.length, 1)
-decreasing_by
-  all_goals first
-    | (apply Prod.Lex.left; simp; done)
-    | (apply Prod.Lex.right' <;> simp)
-
-end
+        let e' ← mkAppNM e'' rest
+        pure (.cont e')
+      | none => whnfAppI r fe depth fa rest
 
 /-- One head-normalization step of `whnfCoreBody` (beta, iota,
-projection) with the loop's continuation `k` abstracted, in the
-open-recursion style of the whole module; `cheap` is the official
-`cheap_proj` flag (see `whnfCoreBody`).  Only the spine head's
-normalization stays a knot call (genuine nesting, bounded by the
-term's depth); every *reduction* step is iteration, so a chain no
-longer charges the shared recursion-depth budget one unit per step
-(task #106 — that is what made the `Nat.brecOn` grind of
-`Std.Time…toDays._proof_1` exhaust `checkFuel`). -/
-def whnfCoreStepI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat)
-    (k : Expr → CheckCM Expr) (e : Expr) : CheckCM Expr := do
+projection), returning the head normal form or the term to continue
+with; `cheap` is the official `cheap_proj` flag (see `whnfCoreBody`).
+Only the spine head's normalization stays a knot call (genuine
+nesting, bounded by the term's depth); every *reduction* step is
+iteration, so a chain no longer charges the shared recursion-depth
+budget one unit per step (task #106 — that is what made the
+`Nat.brecOn` grind of `Std.Time…toDays._proof_1` exhaust
+`checkFuel`).  `@[inline]` (a compiler attribute): inlined into
+`whnfCoreLoopI`, whose continuation is then its own tail call. -/
+@[inline] def whnfCoreStepI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat)
+    (e : Expr) : CheckCM WhnfStep := do
     match e with
     | .sort _ | .fvar .. | .forallE ..
-    | .lam .. | .const .. | .lit _ => pure e
+    | .lam .. | .const .. | .lit _ => pure (.done e)
     | .app _ _ => do
       -- Bulk beta (task #50): normalize the spine head once and run the
       -- argument loop over the whole spine, batching consecutive
@@ -803,29 +793,34 @@ def whnfCoreStepI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat)
       let h ← pure (Expr.getAppFn e)
       let args ← pure (Expr.getAppArgsC e)
       let v ← r.whnfCore cheap depth h
-      whnfAppI mode r fe depth k v args
+      whnfAppI mode r fe depth v args
     | .proj sn i pe => do
       -- the scrutinee by `whnf`, or by the cheap `whnfCore` in the
       -- cheap mode; stuck: the input itself, scrutinee as it was (see
       -- `whnfCoreBody`)
       let c ← if cheap then r.whnfCore true depth pe else r.whnf depth pe
       match ← reduceProjCoreI mode r fe depth sn i c with
-      | some m' => k m'
-      | none => pure e
+      | some m' => pure (.cont m')
+      | none => pure (.done e)
     | .letE _ v b => do
       -- Task #342 S0: ζ, Lean's way (lets are stored as Lean stores them)
       let e' ← inst1M b v
-      k e'
+      pure (.cont e')
     | .bvar _ =>
       throw (.notImplemented "whnf beyond the supported fragment")
 
 /-- Iterate `whnfCoreStepI` on its own step budget (pure mirror:
-`whnfCoreLoopM`, `ConLeche/Verify/BetaSpine.lean`). -/
+`whnfCoreLoopM`, `ConLeche/Verify/BetaSpine.lean`).  The continuation
+is a self tail call, compiled to a jump (task #342 R2): a reduction
+chain of any length runs in constant native stack, and a
+non-terminating one runs until the external timeout. -/
 def whnfCoreLoopI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat) :
     Nat → Expr → CheckCM Expr
   | 0, _ => throw (.internal "fuel exhausted: whnfCore loop")
-  | n + 1, e =>
-    whnfCoreStepI mode r fe cheap depth (whnfCoreLoopI r fe cheap depth n) e
+  | n + 1, e => do
+    match ← whnfCoreStepI mode r fe cheap depth e with
+    | .done v => pure v
+    | .cont e' => whnfCoreLoopI r fe cheap depth n e'
 
 /-- Twin of `whnfCoreBody`: the head-normalization loop at its own step
 budget. -/
@@ -884,8 +879,13 @@ def inferSpineIOI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
         inferSpineIOI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
 
-/-- Twin of `whnfStep`. -/
-def whnfStepI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
+/-- Twin of `whnfStep`.  `@[inline]` (a compiler attribute; the term
+is unchanged): inlined into `whnfLoopI`, the continuation call becomes
+the loop's own tail call, which the compiler turns into a jump, so a
+δ chain of any length runs in constant native stack (task #342 R2: a
+non-terminating δ chain — Coquand's paradox — runs until the external
+timeout instead of overflowing the stack). -/
+@[inline] def whnfStepI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
     (k : Expr → CheckCM Expr) (e : Expr) : CheckCM Expr := do
   let e₁ ← r.whnfCore false depth e
   match ← reduceNatI r fe depth e₁ with

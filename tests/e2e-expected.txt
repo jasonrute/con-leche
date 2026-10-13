@@ -2877,3 +2877,35 @@
 0 pinstall_ok.ndjson
 1 pinstall_reject_mid.ndjson
 1 pinstall_dup.ndjson
+# eta_struct_major_no_whnf, eta_struct_major_and_no_whnf (task #342 R2;
+# the arena's corner-cases of the same names, lean4#15351/#15371): a
+# `Prod` major and an `And` major whose head normalization does not
+# terminate (proofs built from Coquand's paradox).  The structure
+# rescues run on the major as found, before any whnf, so the recursor
+# fires from the major's type alone: accept, as the planned official
+# kernel.  Before R2 the checker reduced the major first and overflowed
+# the native stack (exit 134).  Target: accept.
+0 eta_struct_major_no_whnf.ndjson
+0 eta_struct_major_and_no_whnf.ndjson
+# whnf_delta_loop, whnf_core_loop (task #342 R2): a head normalization
+# nothing avoids (an `Acc.rec` into data over such a proof; `Acc` is no
+# structure) — through the `whnf` loop's δ steps, and through the
+# `whnfCore` loop's β/ι steps alone.  No verdict exists; the official
+# kernel does not terminate either.  Both loops now iterate in constant
+# native stack and memory, so the run ends at the external timeout
+# (exit 124 at this fixture's 5 s budget in tests/arena.sh) instead of
+# a stack overflow (exit 134, before R2).  Target: the same.
+124 whnf_delta_loop.ndjson
+124 whnf_core_loop.ndjson
+# proj_of_subst_prop (the arena's bugs/proj-of-subst-prop, stream as the
+# arena builds it at c6d13ac, Lean v4.34.1; source in the arena's
+# tests/bugs/proj-of-subst-prop.lean): a proof of False by projecting a
+# Bool out of a proposition, after substituting a proof of `Q := a = c`
+# for one of `P := a = b`.  Rejected at `proposition` ("application type
+# mismatch"): `Q ≡ P` needs `b ≡ c`, whose ι step needs `b`'s `Acc`
+# proof, which the elaborator abstracted into the THEOREM
+# `PR14806Subst.b._proof_1`; theorems are opaque to con-leche's δ
+# (anticipating lean4#14896, whose kernel rejects `proposition` the same
+# way; today's official kernel unfolds it, accepts `proposition` and
+# rejects `observe`).  Target: reject.
+1 proj_of_subst_prop.ndjson
