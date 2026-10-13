@@ -1148,7 +1148,7 @@ end BitsLaw
 The stage's own sort computation on the opened conclusion —
 `ops.inferType` followed by `ops.ensureSort`, whose level IS the
 recursor's stored elimination level — is the type record's
-`hsty`/`hu` (`RecTyEntry`, `Verify/Inductives/BlockRecRun.lean`); those
+`hsty`/`hu` (`RecTyGen`, `Verify/Inductives/BlockRecRun.lean`); those
 two runs pin the elimination level. -/
 
 section ElimRun
@@ -1638,10 +1638,9 @@ opened parameter telescope: the recursor's by `targetRecTy`'s
 
 The constructor half of the chain is already a semantic fact — it is
 what `BlockCtorsStage.frames` carries, `paramFrames` at the pins
-(`ctorFramesGen`'s first output).  The recursor half is
-the type record's `hparams` (`RecTyEntry`,
-`Verify/Inductives/BlockRecRun.lean`); this section is its run-level
-consumer.
+(`ctorFramesGen`'s first output).  The recursor half is the check's own
+comparison, `targetRecTy`'s `checkBlockDefEqList`; this section is its
+run-level consumer.
 
 Which currency each half speaks is forced by the CHECK, not chosen
 here: `checkBlockDefEqList` compares at ONE fixed depth (`nP`), which

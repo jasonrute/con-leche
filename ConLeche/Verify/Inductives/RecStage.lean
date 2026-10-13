@@ -20,11 +20,8 @@ it:
 
 * the records' pins (the level parameters, the reserved names, the
   name set);
-* per recursor, stage (b)'s entry (`RecTyEntry`, the type checked
-  against its MAJOR member: the former's parameters, the major at the
-  index binders, the conclusion's sort), and the family's agreements
-  (`RecFamFacts`: the counting guard, the elimination-level pin, the
-  index domains, the shared rule prefix);
+* the family's agreements (`RecFamFacts`: the counting guard, the
+  elimination-level pin, the index domains, the shared rule prefix);
 * the stored family's shape (lengths, the bridge from the checked
   constants to the stored ones, each recursor's constructors);
 * per rule, the rule's λ-TOWER (`RuleTower`: stored as checked, resolved,
@@ -33,8 +30,8 @@ it:
 
 Nothing here names a field kind or an `ih` frame: those belong to the
 check's own records (`TargetRuleRun`), which the model reads for the
-rule contract.  The record is produced from the target check's run
-(`recStage_of_targetG`).
+rule contract.  The record is produced from the generated stage's run
+(`recStage_of_gen`).
 -/
 
 namespace ConLeche
@@ -189,10 +186,11 @@ structure RecFamFacts (mode : CheckMode) (F : Nat) (env : Env) (p : BlockShape)
 /-- **The recursor stage, as checked** — its kind-free facts.  `env` is
 the constructors' environment, `rs` the stored family (install format).
 `mem` says at which recursors the MAJOR is a member of
-the block: the member-shaped facts (`tyEntry`, `ctorsAt`, `ruleTower`,
-the index domains) are recorded there only; everything else holds at
-every recursor, an auxiliary one (an outside major) included.
-`RecStageOk` is the case `mem := fun _ => True`. -/
+the block: the member-shaped facts (`ctorsAt`, `ruleTower`, the index
+domains) are recorded there only; everything else holds at every
+recursor, an auxiliary one (an outside major) included.  At the
+generated stage (the only producer, `recStage_of_gen`) `mem := fun _ =>
+False`, so these member-shaped facts are never read. -/
 structure RecStage (mode : CheckMode) (F : Nat) (env : Env) (p : BlockParts)
     (cvTas : List ConstantVal) (ctorsAs : List (List (ConstantVal × Nat)))
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
@@ -212,10 +210,6 @@ structure RecStage (mode : CheckMode) (F : Nat) (env : Env) (p : BlockParts)
   tyGen : ∀ i, i < p.recs.length → ∃ rc cvRi nIdx u, p.recs[i]? = some rc ∧
     cvRus[i]? = some (cvRi, nIdx, u) ∧
     Nonempty (RecTyGen mode F env p.toBlockShape false i rc cvRi nIdx u)
-  /-- (b) every MEMBER-major recursor's type -/
-  tyEntry : ∀ i, i < p.recs.length → mem i → ∃ rc cvRi nIdx u, p.recs[i]? = some rc ∧
-    cvRus[i]? = some (cvRi, nIdx, u) ∧
-    Nonempty (RecTyEntry mode F env p.toBlockShape false cvTas i rc cvRi nIdx u)
   /-- each stored recursor carries its member's constructors -/
   ctorsAt : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
     mem i → rs[i]? = some r → ∃ ms, p.members[p.toBlockShape.recTgtAt i]? = some ms ∧
