@@ -195,29 +195,6 @@ theorem fvarsBelow_mkPisOf {d : Nat} :
     · exact h.1
     · exact h1 p hp
 
-theorem getAppFn_ne_app : ∀ (e f a : Expr), e.getAppFn ≠ .app f a
-  | .app g b, f, a => by simpa [Expr.getAppFn] using getAppFn_ne_app g f a
-  | .bvar _, _, _ | .fvar _ _, _, _ | .sort _, _, _ | .const _ _, _, _ | .lam _ _, _, _
-  | .forallE _ _, _, _ | .letE _ _ _, _, _ | .lit _, _, _ | .proj _ _ _, _, _ => by
-    simp [Expr.getAppFn]
-
-theorem getApp_of_not_app {e : Expr} (h : ∀ f a, e ≠ .app f a) :
-    e.getAppFn = e ∧ e.getAppArgs = [] := by
-  cases e with
-  | app f a => exact absurd rfl (h f a)
-  | _ => exact ⟨rfl, rfl⟩
-
-theorem substFvars_not_app {b D : Nat} {s : Nat → Expr} (hs : ∀ v, v < b → ∀ f a, s v ≠ .app f a)
-    {e : Expr} (he : ∀ f a, e ≠ .app f a) : ∀ f a, Expr.substFvars b D s e ≠ .app f a := by
-  intro f a h
-  cases e with
-  | app g c => exact he g c rfl
-  | fvar v ty =>
-    by_cases hv : v < b
-    · rw [Expr.substFvars_fvar_lt hv] at h; exact hs v hv f a h
-    · rw [Expr.substFvars_fvar_ge (by omega)] at h; exact nomatch h
-  | _ => simp [Expr.substFvars] at h
-
 theorem fvarsBelow_mkAppN_args {d : Nat} :
     ∀ (as : List Expr) {f : Expr}, Expr.fvarsBelow d (Expr.mkAppN f as) → ∀ a ∈ as, Expr.fvarsBelow d a
   | [], _, _, a, ha => nomatch ha
@@ -236,21 +213,6 @@ where
       have := fvarsBelow_mkAppN_head as (f := .app f y) h
       simp only [Expr.fvarsBelow] at this
       exact this.1
-
-/-- **The call's indices against the walk leaf's arguments**: when the
-leaf's substituted spine is `pre` followed by its arguments and the
-callee's parameters cover `pre`, the callee's `l`-th index is the leaf's
-argument `P.length - pre.length + l`, substituted. -/
-theorem callArgs_idx {P idxR pre args : List Expr} {g : Expr → Expr}
-    (hargs : ∀ (q : Nat) (xM xW : Expr), (P ++ idxR)[pre.length + q]? = some xM →
-      args[q]? = some xW → Expr.ErasedEq xM (g xW))
-    (hle : pre.length ≤ P.length) :
-    ∀ (l : Nat) (xR xW : Expr), idxR[l]? = some xR → args[P.length - pre.length + l]? = some xW →
-      Expr.ErasedEq xR (g xW) := by
-  intro l xR xW hxR hxW
-  refine hargs _ xR xW ?_ hxW
-  rw [show pre.length + (P.length - pre.length + l) = P.length + l by omega,
-    List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, hxR]
 
 variable {V : Type w} [SetTheory V]
 

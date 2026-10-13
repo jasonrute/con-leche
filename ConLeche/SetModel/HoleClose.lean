@@ -32,25 +32,6 @@ section Fibre
 
 variable {k : Nat} {Is : Nat → V}
 
-/-- **Operators compared through their fibre laws.**  Two tuples whose
-components' fibres are the injections of the spines satisfying `fits₁`,
-resp. `fits₂`, compare as soon as the fit relations do.  This is how a
-positivity fact about the constructors' field readings (a fit relation
-growing) becomes a comparison of operator values — at two tuples (the
-operator's own monotonicity) or at two parameter frames (a container's
-instance). -/
-theorem tupleLe_of_fibre {A B : Nat → V} {fits₁ fits₂ : V → Nat → Nat → List V → Prop}
-    {inj : Nat → Nat → List V → V}
-    (h₁ : ∀ c, c < k → ∀ t, t ∈ˢ Is c → ∀ x,
-      x ∈ˢ app (A c) t ↔ ∃ j fs, fits₁ t c j fs ∧ x = inj c j fs)
-    (h₂ : ∀ c, c < k → ∀ t, t ∈ˢ Is c → ∀ x,
-      x ∈ˢ app (B c) t ↔ ∃ j fs, fits₂ t c j fs ∧ x = inj c j fs)
-    (hfits : ∀ c, c < k → ∀ t, t ∈ˢ Is c → ∀ j fs, fits₁ t c j fs → fits₂ t c j fs) :
-    TupleLe k Is A B := by
-  intro c hc t ht x hx
-  obtain ⟨j, fs, hf, rfl⟩ := (h₁ c hc t ht x).mp hx
-  exact (h₂ c hc t ht _).mpr ⟨j, fs, hfits c hc t ht j fs hf, rfl⟩
-
 end Fibre
 
 section OnGroup

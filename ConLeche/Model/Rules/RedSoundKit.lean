@@ -242,7 +242,6 @@ theorem denote_strLitToConstructor
     denote, ite_eq_left hg]
   rfl
 
-
 /-! ## The application congruence at the reading -/
 
 /-- The frame of a closed atom. -/
@@ -251,13 +250,6 @@ theorem frame_atom {d : Nat} {e : Expr} (h : e.fvarLeaves = [])
     Frame d e ∧ ∀ (x : Expr), LeavesSub e x :=
   ⟨⟨hw, hb, fun l hl => by rw [h] at hl; exact nomatch hl⟩,
    fun _ l hl => by rw [h] at hl; exact nomatch hl⟩
-
-/-- The two components of a graded application are graded. -/
-theorem graded_app {Δa : List Term} {f x : Term}
-    (h : Graded V Δa (.app f x)) : Graded V Δa f ∧ Graded V Δa x :=
-  ⟨fun σ hσ => by have h1 := h σ hσ; rw [WellDenoted_app] at h1; exact h1.1,
-   fun σ hσ => by have h1 := h σ hσ; rw [WellDenoted_app] at h1; exact h1.2.1⟩
-
 
 /-- An application's grading depends on its two components only through
 their VALUES, so it transfers along equal-valued graded replacements
@@ -271,7 +263,6 @@ theorem appCongrV {σ : Nat → V} {f a f' a' : Term}
   rw [WellDenoted_app] at h1 ⊢
   obtain ⟨-, -, v, A, B, h2, h3, h4⟩ := h1
   exact ⟨hgf', hga', v, A, B, heqf ▸ h2, heqa ▸ h3, h4⟩
-
 
 /-! ## `projNV`'s grading under equal-valued subjects -/
 
@@ -326,13 +317,7 @@ theorem interp_congr {i : Nat} {e e' : Term} {σ : Nat → V}
 
 end ProjAV
 
-
 /-! ## The β step at the currency -/
-
-/-- A λ's domain is graded when the λ is. -/
-theorem lamDomV {A b : Term} {ρ : Nat → V}
-    (h : WellDenoted V ρ (.lam A b)) : WellDenoted V ρ A := by
-  rw [WellDenoted_lam] at h; exact h.1
 
 /-- **The graded β step** at a redex that is not the point
 (`WellDenoted_beta`). -/
@@ -398,7 +383,6 @@ theorem slotTransfer {v v' : Nat} {A A' f a : V} {B B' : V → V}
     exact absurd (eq_pt_of_mem_piR_zero hslot) (mem_piR_pos hv hf).2.2.2
   · rw [piR_dom_unique hv hv' hf hslot]; exact ha
 
-
 /-! ## The spine kit — `Model/Reading/Lemmas.lean`, imported
 
 `DenoteSpine` and its list algebra (`length`, `getD_read`,
@@ -408,27 +392,7 @@ that file's, and there is ONE copy of each.
 What is still stated here is what mentions the rules tier's own
 `Graded`/`Frame` abbreviations. -/
 
-/-- Every argument of a graded application spine is graded, and so is
-its head (`hoist_spine`). -/
-theorem hoist_spine {Δa : List Term} :
-    ∀ (asa : List Term) {fa : Term},
-      Graded V Δa (Term.mkAppN fa asa) →
-      Graded V Δa fa ∧ ∀ x ∈ asa, Graded V Δa x := by
-  intro asa
-  induction asa with
-  | nil => intro fa h; exact ⟨h, by simp⟩
-  | cons a as ih =>
-    intro fa h
-    obtain ⟨happ, hrest⟩ := ih (fa := .app fa a) h
-    refine ⟨fun ρ hρ => ?_, ?_⟩
-    · exact (cast (WellDenoted_app V ρ fa a) ((happ ρ hρ))).1
-    · intro x hx
-      rcases List.mem_cons.mp hx with rfl | hx'
-      · exact fun ρ hρ => (cast (WellDenoted_app V ρ fa x) ((happ ρ hρ))).2.1
-      · exact hrest x hx'
-
 /-! ## The per-valuation splitters (task #342, L9) -/
-
 
 theorem _root_.ConLeche.Semantics.WellDenoted.app_fn {ρ : Nat → V} {f x : Term}
     (h : WellDenoted V ρ (.app f x)) : WellDenoted V ρ f :=
@@ -469,7 +433,6 @@ theorem _root_.ConLeche.Semantics.WellDenoted.fst_arg {ρ : Nat → V} {e : Term
 theorem _root_.ConLeche.Semantics.WellDenoted.snd_arg {ρ : Nat → V} {e : Term}
     (h : WellDenoted V ρ (.snd e)) : WellDenoted V ρ e :=
   (cast (WellDenoted_snd V ρ e) h).1
-
 
 /-- "Not pt" source (1): a graded type is not the point. -/
 theorem _root_.ConLeche.Model.WellDenotedTy.ne_pt {ρ : Nat → V} {e : Term}
@@ -685,7 +648,6 @@ theorem teleFit_of_teleFitPA {ρ : Nat → V} :
     exact .cons hmem (teleFit_of_inst0 (by rw [List.length_map]; exact hpcB)
       (ih (PiChain.inst a 0 hpcB)))
 
-
 /-- A value-level fit's length is a ∀-chain of the telescope. -/
 theorem piChain_of_teleFit {ρ : Nat → V} {T : Term} {L : List V} {rest : V}
     (h : TeleFit V ρ T L rest) : PiChain L.length T := by
@@ -806,7 +768,6 @@ theorem denote_unfoldDefinition {m : EnvModel V env} (hdi : AcvalDefnInst m)
       · exact nomatch hud
     · exact nomatch hud
   · exact nomatch hud
-
 
 /-! ## The graph-regime fit of a graded spine (task #342 L10) -/
 

@@ -124,12 +124,6 @@ theorem IORelN.pt {d : Nat} {e T : Expr} {ρ : Nat → V} :
     IORelN m φ d e T ρ (pt : V) :=
   ⟨Or.inl rfl, fun _ => Or.inl rfl⟩
 
-/-- A membership is the io claim. -/
-theorem IORel.of_mem {d : Nat} {T : Expr} {ta : Term} {ρ : Nat → V} {v : V}
-    (hT : denote m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
-    (hmem : v ∈ˢ interp V ρ ta) : IORel m φ d T ρ v :=
-  Or.inr (Or.inl ⟨ta, hT, hw, hmem⟩)
-
 /-- **Where the type is not a ∀, the claim is the point or a member.** -/
 theorem IORel.of_not_forallE {d : Nat} {T : Expr} {ρ : Nat → V} {v : V}
     (h : IORel m φ d T ρ v) (hT : ∀ ty body, T ≠ .forallE ty body) :

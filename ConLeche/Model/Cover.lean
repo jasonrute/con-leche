@@ -69,11 +69,6 @@ container name `C` (its `filterMap` function, verbatim). -/
     | none => none
   | _ => none
 
-/-- The kernel's constructor entry is `ctorEntry`. -/
-theorem nestCtorEntry_eq (C : Name) (ci : ConstantInfo) :
-    ConLeche.nestCtorEntry C ci = ctorEntry C ci := by
-  cases ci <;> rfl
-
 /-- The environment as a walk context: `nestContainer` reads only its
 `find?`. -/
 @[expose] def envCtx (env : Env) : ConLeche.NestCtx where
@@ -218,61 +213,6 @@ theorem LfpOwn.mono {env env' : Env} {D : LfpDatum V} (h : LfpOwn env D)
     exact ⟨cv, nPc, nF, hfwd _ _ hf, hsh⟩
 
 /-! ### Constructor entries, computed -/
-
-theorem constsBound_stripPis {env : Env} :
-    ∀ {k : Nat} {e : Expr} {bs : List Expr} {b : Expr},
-      ConstsBound env e → e.stripPis k = some (bs, b) → ConstsBound env b
-  | 0, e, bs, b, h, hs => by
-    simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at hs
-    obtain ⟨-, rfl⟩ := hs
-    exact h
-  | k + 1, .forallE ty body, bs, b, h, hs => by
-    simp only [Expr.stripPis, Option.map_eq_some_iff] at hs
-    obtain ⟨⟨bs', b'⟩, hs', he⟩ := hs
-    simp only [Prod.mk.injEq] at he
-    obtain ⟨-, rfl⟩ := he
-    exact constsBound_stripPis ((constsBound_forallE).mp h).2 hs'
-  | _ + 1, .bvar _, _, _, _, hs | _ + 1, .fvar _ _, _, _, _, hs
-  | _ + 1, .sort _, _, _, _, hs | _ + 1, .const _ _, _, _, _, hs
-  | _ + 1, .app _ _, _, _, _, hs | _ + 1, .lam _ _, _, _, _, hs
-  | _ + 1, .letE _ _ _, _, _, _, hs | _ + 1, .lit _, _, _, _, hs
-  | _ + 1, .proj _ _ _, _, _, _, hs => by simp [Expr.stripPis] at hs
-
-theorem constsBound_getAppFn {env : Env} :
-    ∀ {e : Expr} {n : Name} {us : List Level},
-      ConstsBound env e → e.getAppFn = .const n us → (env.find? n).isSome = true
-  | .app f _, n, us, h, hg => constsBound_getAppFn ((constsBound_app).mp h).1 hg
-  | .const n' us', n, us, h, hg => by
-    simp only [Expr.getAppFn, Expr.const.injEq] at hg
-    obtain ⟨rfl, -⟩ := hg
-    exact (constsBound_const).mp h
-  | .bvar _, _, _, _, hg | .fvar _ _, _, _, _, hg | .sort _, _, _, _, hg
-  | .lam _ _, _, _, _, hg | .forallE _ _, _, _, _, hg | .letE _ _ _, _, _, _, hg
-  | .lit _, _, _, _, hg | .proj _ _ _, _, _, _, hg => by simp [Expr.getAppFn] at hg
-
-/-- A stored constant's constructor entry at `C` names a stored head. -/
-theorem ctorEntry_isSome_found {env : Env} {ci : ConstantInfo} {C : Name}
-    (hb : ConstsBound env ci.toConstantVal.type) (h : (ctorEntry C ci).isSome = true) :
-    (env.find? C).isSome = true := by
-  cases ci with
-  | ctorInfo cv nPc nF =>
-    dsimp only [ctorEntry] at h
-    cases hs : cv.type.stripPis (nPc + nF) with
-    | none => rw [hs] at h; exact nomatch h
-    | some p =>
-      obtain ⟨bs, body⟩ := p
-      rw [hs] at h
-      dsimp only at h
-      cases hg : body.getAppFn with
-      | const n us =>
-        rw [hg] at h
-        dsimp only at h
-        by_cases hn : n = C
-        · subst hn
-          exact constsBound_getAppFn (constsBound_stripPis hb hs) hg
-        · rw [ite_eq_right (by simpa using hn)] at h; exact nomatch h
-      | _ => rw [hg] at h; exact nomatch h
-  | _ => exact nomatch h
 
 /-- A constructor's entry at its own head. -/
 theorem ctorEntry_self {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}

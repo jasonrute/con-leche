@@ -33,59 +33,6 @@ namespace ConLeche
 variable {mode : CheckMode}
 variable {pins : List NatOpPinSet}
 
-/-- Success on the executable side is reproduced at some fuel. -/
-def bridgeRel : MonadRel FueledM CheckM where
-  R p c := ∀ v, c = .ok v → ∃ F, p.val F = .ok v
-  pure_rel a := fun v h => ⟨0, by cases h; rfl⟩
-  bind_rel {α β x₁ x₂ f₁ f₂} hx hf := by
-    intro v h
-    simp only [Bind.bind] at h
-    cases hx2 : x₂ with
-    | error e => rw [hx2] at h; exact nomatch h
-    | ok a =>
-      rw [hx2] at h
-      dsimp only [Except.bind] at h
-      obtain ⟨F₁, h1⟩ := hx a hx2
-      obtain ⟨F₂, h2⟩ := hf a v h
-      refine ⟨max F₁ F₂, ?_⟩
-      rw [FueledM.atF_bind]
-      simp only [Bind.bind]
-      rw [x₁.property (Nat.le_max_left F₁ F₂) h1]
-      dsimp only [Except.bind]
-      exact (f₁ a).property (Nat.le_max_right F₁ F₂) h2
-  throw_rel e := fun v h => nomatch h
-
-/-- Componentwise relatedness of two operation records. -/
-def OpsRel {M₁ M₂ : Type → Type} [Monad M₁] [Monad M₂]
-    [MonadExceptOf CheckError M₁] [MonadExceptOf CheckError M₂]
-    (rel : MonadRel M₁ M₂) (o₁ : CheckerOps M₁) (o₂ : CheckerOps M₂) :
-    Prop :=
-  (∀ env d e, rel.R (o₁.inferType env d e) (o₂.inferType env d e)) ∧
-  (∀ env d a b, rel.R (o₁.isDefEq env d a b) (o₂.isDefEq env d a b)) ∧
-  (∀ env d e, rel.R (o₁.ensureSort env d e) (o₂.ensureSort env d e)) ∧
-  (∀ env d e, rel.R (o₁.whnf env d e) (o₂.whnf env d e)) ∧
-  (∀ (x₁ : M₁ Bool) (x₂ : M₂ Bool) (k₁ : Option CheckError → M₁ Unit)
-      (k₂ : Option CheckError → M₂ Unit),
-    rel.R x₁ x₂ → (∀ r, rel.R (k₁ r) (k₂ r)) →
-    rel.R (o₁.orElse x₁ k₁) (o₂.orElse x₂ k₂))
-
-/-- The paired operation record. -/
-def pairOps {M₁ M₂ : Type → Type} [Monad M₁] [Monad M₂]
-    [MonadExceptOf CheckError M₁] [MonadExceptOf CheckError M₂]
-    {rel : MonadRel M₁ M₂} (o₁ : CheckerOps M₁) (o₂ : CheckerOps M₂)
-    (h : OpsRel rel o₁ o₂) : CheckerOps (PairM rel) where
-  inferType env d e :=
-    ⟨(o₁.inferType env d e, o₂.inferType env d e), h.1 env d e⟩
-  isDefEq env d a b :=
-    ⟨(o₁.isDefEq env d a b, o₂.isDefEq env d a b), h.2.1 env d a b⟩
-  ensureSort env d e :=
-    ⟨(o₁.ensureSort env d e, o₂.ensureSort env d e), h.2.2.1 env d e⟩
-  whnf env d e := ⟨(o₁.whnf env d e, o₂.whnf env d e), h.2.2.2.1 env d e⟩
-  orElse x k :=
-    ⟨(o₁.orElse x.val.1 (fun r => (k r).val.1),
-      o₂.orElse x.val.2 (fun r => (k r).val.2)),
-      h.2.2.2.2 _ _ _ _ x.property (fun r => (k r).property)⟩
-
 /-- The fueled operations as monotone families. -/
 @[expose] def fueledOpsM (mode : CheckMode) : CheckerOps FueledM where
   inferType env d e :=
@@ -153,45 +100,6 @@ instantiation at some fuel.
 `ConLeche/Verify/BridgeWfImp.lean` turns `wfOpsM mode` runs into pure
 `fueledOps` runs by threading `EnvWF` through the declaration checker's
 intermediate environments, using the `wfOpsM_*` equalities below. -/
-
-open Classical in
-/-- The fueled families over well-formed environments *and* well-scoped
-arguments (both are hypotheses of part B's entry-point bridges — the
-executable's memo operations carry no runtime check for either); the
-constant `.internal` error (a trivially monotone family) otherwise: every
-use of `wfOpsM` goes through the `if_pos` equations below, so the other
-branch has no consumer (#172). -/
-noncomputable def wfOpsM (mode : CheckMode) : CheckerOps FueledM where
-  inferType env d e :=
-    if EnvWF env ∧ e.wscopedB d = true then
-      ⟨fun F => inferTypeCore mode env F d e,
-        fun hle h => inferTypeCore_mono hle h⟩
-    else ⟨fun _ => throw (.internal "wfOpsM: precondition failed"),
-      fun _ h => h⟩
-  isDefEq env d a b :=
-    if EnvWF env ∧ a.wscopedB d = true ∧ b.wscopedB d = true then
-      ⟨fun F => isDefEqCore mode env F d a b, fun hle h => isDefEqCore_mono hle h⟩
-    else ⟨fun _ => throw (.internal "wfOpsM: precondition failed"),
-      fun _ h => h⟩
-  ensureSort env d e :=
-    if EnvWF env ∧ e.wscopedB d = true then
-      ⟨fun F => ensureSortCore mode env F d e,
-        fun hle h => ensureSortCore_mono hle h⟩
-    else ⟨fun _ => throw (.internal "wfOpsM: precondition failed"),
-      fun _ h => h⟩
-  whnf env d e :=
-    if EnvWF env ∧ e.wscopedB d = true then
-      ⟨fun F => whnf mode env F d e, fun hle h => whnf_mono hle h⟩
-    else ⟨fun _ => throw (.internal "wfOpsM: precondition failed"),
-      fun _ h => h⟩
-  -- no precondition: the combinator runs no core body of its own
-  orElse x k := (fueledOpsM mode).orElse x k
-
-theorem wfOpsM_whnf {env : Env} (henv : EnvWF env) {d : Nat} {e : Expr}
-    (hg : e.wscopedB d = true) :
-    (wfOpsM mode).whnf env d e = (fueledOpsM mode).whnf env d e := by
-  dsimp only [wfOpsM, fueledOpsM]
-  exact ite_eq_left ⟨henv, hg⟩
 
 /-! ## The `atF` battery: fueled-family runs are fueled-ops runs -/
 
@@ -615,7 +523,6 @@ macro "tdatF_tac" : tactic =>
     | split
     | ((rw [FueledM.atF_bind]; congr 1 <;> try rfl) <;> try funext _)))
 
-
 theorem checkConstantValF_datF (fe : FEnv) (cv : ConstantVal) (F : Nat) :
     (checkConstantValF (fueledOpsM mode) fe cv).val F =
       checkConstantValF (fueledOps mode F) fe cv := by
@@ -719,14 +626,6 @@ theorem checkBlockTables_datF (p : BlockShape) (F : Nat) :
         exact checkBlockTables_datF p F rest env'
       · exact checkBlockTables_datF p F rest env
     · exact checkBlockTables_datF p F rest env
-
-theorem nestedBlockPositivity_datF (env : Env) (ctx : ConLeche.NestCtx)
-    (ctorss : List (List (ConstantVal × Nat))) (F : Nat) :
-    (ConLeche.nestedBlockPositivity (fueledOpsM mode) env ctx ctorss).val F
-      = ConLeche.nestedBlockPositivity (fueledOps mode F) env ctx ctorss := by
-  unfold ConLeche.nestedBlockPositivity
-  simp only [FueledM.atF_bind, FueledM.atF_pure, unwrapOr_atF, nestRoot_datF,
-    nestUniform_datF]
 
 theorem checkAbsCtorSorts_datF (env : Env) (ctx : ConLeche.NestCtx) (F : Nat) :
     ∀ (cs : List (ConstantVal × Nat)) (os : List (List NestFieldKind × Expr)),
@@ -1257,12 +1156,5 @@ theorem checkDecl_datF (env : Env) (d : Declaration) (F : Nat) :
         · exact checkBlock_datF env block _ F
         · exact checkShapeless_datF env block F
       · rfl
-
-theorem checkDeclsPure_datF (ds : List Declaration) (F : Nat) :
-    (checkDeclsPure mode (fueledOpsM mode) pins ds).val F =
-      checkDeclsPure mode (fueledOps mode F) pins ds := by
-  unfold checkDeclsPure
-  rw [foldlM_atF]
-  simp only [checkDecl_datF]
 
 end ConLeche

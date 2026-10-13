@@ -235,16 +235,6 @@ theorem fullyChecked_sound (V : Type w) [SetTheory V] (hμ : μ.verifiedChecks =
   exact (installRun_model (V := V) hμ r rfl EnvModelOk.empty
     (hchain.1.2.2 List.nodup_nil) fc.records).nonempty
 
-/-- **Coverage on the fully checked environment**: every
-stored inductive but `Quot` is a member of a recorded lfp block. -/
-theorem fullyChecked_cover (V : Type w) [SetTheory V] (hμ : μ.verifiedChecks = true)
-    {ds : List Declaration} (fc : FullyChecked μ pins ds) :
-    ∃ mp : EnvModelM V μ fc.env, LfpCover mp [] := by
-  obtain ⟨n, r⟩ := fc.1.run
-  have hchain := installRun_trace μ r (PushChain.refl Env.empty)
-  exact (installRun_model (V := V) hμ r rfl EnvModelOk.empty
-    (hchain.1.2.2 List.nodup_nil) fc.records).1
-
 /-- **The letter on the fully checked environment**: such an environment, in
 a validating mode, holds no constant of type `False`.  The step the main
 corollary rests on (`ConLeche/MainTheorem.lean`, about `checkDecls`) is

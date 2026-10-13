@@ -114,44 +114,6 @@ exactly the shape the premise excludes and the certificate accepts.
 
 `etaFamilyStored_not_derivable` below is that gap, mechanized. -/
 
-/-- The witnessing capability record: `unitlike` without `eta`, naming
-a constructor that is stored nowhere. -/
-def unitNoFamilyCaps : IndCaps where
-  eta := false
-  etaCtor := Name.anonymous.str "ConLecheCapsWall.mk"
-  etaParams := 0
-  etaFields := 0
-  unitlike := true
-  unitParams := 0
-  ruleK := false
-
-/-- The witnessing environment: one non-reserved `unitlike` former
-carrying `unitNoFamilyCaps`. -/
-def unitNoFamilyEnv : Env :=
-  ⟨[.indInfo ⟨Name.anonymous.str "ConLecheCapsWall.T", [], .sort .zero⟩
-      unitNoFamilyCaps]⟩
-
-/-- A well-formed environment storing a non-reserved `unitlike` family
-for which `EtaFamilyStored` is FALSE.  Everything `structUnitCert`'s
-inversion can ever hand a consumer holds here. -/
-theorem etaFamilyStored_not_derivable :
-    ∃ (env : Env) (T : Name) (cvT : ConstantVal) (caps : IndCaps),
-      ConLeche.EnvWF env ∧
-      env.find? T = some (.indInfo cvT caps) ∧
-      caps.unitlike = true ∧
-      ConLeche.reservedBasisNames.contains T = false ∧
-      ¬ ConLeche.EtaFamilyStored env T caps := by
-  refine ⟨unitNoFamilyEnv, Name.anonymous.str "ConLecheCapsWall.T",
-    ⟨Name.anonymous.str "ConLecheCapsWall.T", [], .sort .zero⟩,
-    unitNoFamilyCaps, ?_, rfl, rfl, by decide, ?_⟩
-  · intro c hc
-    rcases List.mem_singleton.mp hc with rfl
-    exact ⟨rfl, rfl, rfl, rfl, by rintro _ _ _ ⟨⟩,
-      by rintro _ _ _ _ ⟨⟩, by rintro _ ⟨⟩,
-      ConLeche.IndCapsWF.of_caps (fun _ => rfl) (fun h => nomatch h)⟩
-  · rintro ⟨-, ⟨cvC, _, _, hfC⟩, -⟩
-    exact nomatch hfC
-
 /-! ## The crossing -/
 
 /-- **`CapsOk` at a fresh value-kind cons** — every `defnInfo`,

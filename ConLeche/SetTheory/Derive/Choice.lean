@@ -37,31 +37,6 @@ theorem schoice_mem {A x : V} (hx : x ∈ˢ A) : schoice A ∈ˢ A := by
   rw [dite_eq_left ⟨x, hx⟩]
   exact Classical.choose_spec (⟨x, hx⟩ : ∃ x, x ∈ˢ A)
 
-/-- The axiom of choice, Jech-form, as a theorem: every family `X` has
-a set-level choice function — a single-valued set of pairs, total on
-`X`, selecting a member from every inhabited `A ∈ X`. -/
-theorem set_choice (X : V) :
-    ∃ f : V,
-      (∀ A c, kpair A c ∈ˢ f → A ∈ˢ X) ∧
-      (∀ A, A ∈ˢ X → ∃ c, kpair A c ∈ˢ f ∧ ∀ c', kpair A c' ∈ˢ f → c' = c) ∧
-      (∀ A c, kpair A c ∈ˢ f → (∃ x, x ∈ˢ A) → c ∈ˢ A) := by
-  refine ⟨graph schoice X, ?_, ?_, ?_⟩
-  · intro A c hp
-    obtain ⟨A', hA', hp'⟩ := mem_graph.mp hp
-    obtain ⟨rfl, -⟩ := kpair_inj hp'
-    exact hA'
-  · intro A hA
-    refine ⟨schoice A, mem_graph.mpr ⟨A, hA, rfl⟩, ?_⟩
-    intro c' hc'
-    obtain ⟨A', -, hp'⟩ := mem_graph.mp hc'
-    obtain ⟨rfl, rfl⟩ := kpair_inj hp'
-    rfl
-  · intro A c hp ⟨x, hx⟩
-    obtain ⟨A', -, hp'⟩ := mem_graph.mp hp
-    obtain ⟨rfl, rfl⟩ := kpair_inj hp'
-    exact schoice_mem hx
-
-/- Opaque interface operator (see `Derive/Empty.lean`). -/
 attribute [irreducible] schoice
 
 end ConLeche.SetTheory

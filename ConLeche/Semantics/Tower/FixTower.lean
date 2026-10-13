@@ -37,17 +37,8 @@ theorem tupW_pos {u : Nat} (hu : u ≠ 0) (is : List V) : tupW u is = mkTower is
 noncomputable def idxSet (u : Nat) (ρp : Nat → V) (Ids : List Term) : V :=
   towerSet u (teleOfFields ρp Ids)
 
-/-- The index-tuple set is in the regime of its level: a truth value at
-`0`, strict above, whatever the telescope (task #342, L6). -/
-theorem Fib_idxSet (u : Nat) (ρp : Nat → V) (Ids : List Term) :
-    Fib (decide (u = 0)) (idxSet u ρp Ids) := Fib_towerSet u _
-
-theorem IsTy_idxSet (u : Nat) (ρp : Nat → V) (Ids : List Term) : IsTy (idxSet u ρp Ids) :=
-  IsTy_of_Fib (Fib_idxSet u ρp Ids)
-
 /-- The index tuple type, spelled at the parameter frame. -/
 def idxTyAV (u : Nat) (Ids : List Term) : Term := towerBodyAV u Ids
-
 
 /-- The index telescope's grading, with the bound in both regimes (the
 index domains' sorts are at most `u`, so the tuple type is a graph-regime
@@ -68,11 +59,9 @@ theorem tupW_mem {u : Nat} {ρp : Nat → V} {Ids : List Term} {is : List V}
   · next hu => exact hu ▸ pt_mem_tower (fitsS_teleOfFields.mpr hsp)
   · next hu => exact mkTower_mem hu (fitsS_teleOfFields.mpr hsp)
 
-
 theorem foldl_app_pt' : ∀ (ts : List V), ts.foldl SetTheory.app (pt : V) = pt
   | [] => rfl
   | t :: ts => by rw [List.foldl_cons, app_pt]; exact foldl_app_pt' ts
-
 
 /-! ## The family type -/
 
@@ -95,7 +84,6 @@ theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List Term} (h : IdxOk
   · unfold famTyAV
     rw [WellDenoted_pi]
     exact ⟨hok, hv ▸ IsTy_of_mem_univ hu, fun _ _ => trivial, fun _ _ => IsTy_univ w⟩
-
 
 omit [SetTheory V] in
 
@@ -144,7 +132,6 @@ theorem consList_frameIdx : ∀ (n : Nat) (ρ : Nat → V),
 
 /-! ## The X-frame kit -/
 
-
 omit [SetTheory V] in
 theorem Xframe_X (ρp : Nat → V) (as : List V) (t X : V) :
     consList as (cons t (cons X ρp)) (as.length + 1) = X := by
@@ -162,7 +149,6 @@ theorem Xframe_t (ρp : Nat → V) (as : List V) (t X : V) :
 section Slot
 
 variable {u w : Nat} {ρp : Nat → V} {Ids : List Term}
-
 
 /-! ## The index tuple's retraction -/
 
@@ -182,7 +168,6 @@ theorem spineFit_pt_of_bound0 {ρ : Nat → V} :
     | succ l =>
       exact spineFit_pt_of_bound0 (hb.2 a hsp.1) hsp.2 l (by simpa using hl)
 
-
 /-- **The index tuple's retraction**, at both regimes. -/
 theorem projS_tupW (hI : IdxOk u ρp Ids) {is : List V} (hsp : SpineFit ρp Ids is) {l : Nat}
     (hl : l < Ids.length) : projS l (tupW u is) = is.getD l pt := by
@@ -192,7 +177,6 @@ theorem projS_tupW (hI : IdxOk u ρp Ids) {is : List V} (hsp : SpineFit ρp Ids 
     rw [tupW_zero, projS_pt, spineFit_pt_of_bound0 hI.2 hsp l (by omega)]
   · rw [tupW_pos hu, projS_mkTower l is (by omega), List.getD_eq_getElem?_getD,
       List.getElem?_eq_getElem (by omega), Option.getD_some]
-
 
 end Slot
 
@@ -208,9 +192,7 @@ theorem consList_snoc' (a : V) (as : List V) (ρ : Nat → V) :
     cons a (consList as ρ) = consList (as ++ [a]) ρ := by
   rw [consList_append]; rfl
 
-
 -- `u` (the slot's tuple level) is unused by the fit itself; kept for uniformity
-
 
 /-- **A Π-tower is graded** when its domains are along the telescope
 and its body is at every fitting spine. -/
@@ -236,9 +218,7 @@ theorem WellDenoted_mkPisAV_of {w : Nat} {R : Term} :
         simpa [mkPisAV, consList] using this
       | cons _ _ => exact IsTy_piR _ _ _
 
-
 end Fam
-
 
 /-!
 ## The ih frame
@@ -246,7 +226,6 @@ end Fam
 A field's index expressions and telescope moved to an ih frame
 (`ihIdxAtM`, `ihTeleAtR`).
 -/
-
 
 open SetTheory
 open ConLeche.SetTheory.Tower
@@ -270,7 +249,6 @@ def srcOfEs (Es : List Term) (nF j : Nat) : Option Nat :=
 /-- The sources of all `nF` fields. -/
 def srcList (Es : List Term) (nF : Nat) : List (Option Nat) :=
   (List.range nF).map (srcOfEs Es nF)
-
 
 namespace FixKI
 
@@ -325,7 +303,6 @@ theorem spineFit_prefix {ρ : Nat → V} {Ds : List Term} {as bs : List V}
   exact h1
 
 end Rec
-
 
 /-!
 ## Spines read off index tuples

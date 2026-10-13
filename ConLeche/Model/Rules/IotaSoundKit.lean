@@ -178,21 +178,6 @@ theorem denote_const_arityK {acval : Name → (Name → Nat) → Term}
 
 /-! ## The list algebra over readings -/
 
-/-- Pointwise reading of a map equality at `getD` slots. -/
-theorem map_interp_getD_eqK {ρ : Nat → V} {as bs : List Term}
-    (h : as.map (interp V ρ) = bs.map (interp V ρ))
-    {i : Nat} (hi : i < as.length) :
-    interp V ρ (as.getD i default) = interp V ρ (bs.getD i default) := by
-  have hlen : as.length = bs.length := by
-    have := congrArg List.length h
-    simpa using this
-  have h1 : (as.map (interp V ρ))[i]? = (bs.map (interp V ρ))[i]? := by rw [h]
-  rw [List.getElem?_map, List.getElem?_map] at h1
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
-    List.getElem?_eq_getElem hi, List.getElem?_eq_getElem (hlen ▸ hi)]
-  rw [List.getElem?_eq_getElem hi, List.getElem?_eq_getElem (hlen ▸ hi)] at h1
-  simpa using h1
-
 /-- `getD` through `take`, below the cut. -/
 theorem getD_takeAK {as : List Term} {k i : Nat} (hi : i < k) :
     (as.take k).getD i default = as.getD i default := by
@@ -229,25 +214,6 @@ theorem take_getD_splitAK {as : List Term} {k : Nat}
 the subject's grading is about the ORIGINAL major slot and the arity-checked
 walk is handed the prepared one, so the last argument is exchanged
 along the reduction's own `interp` equation. -/
-
-/-- **An app's argument may be exchanged for an interpretation-equal
-graded one**. -/
-theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : Term}
-    (h : WellDenoted V ρ (.app f a)) (ha' : WellDenoted V ρ a')
-    (heq : interp V ρ a = interp V ρ a') :
-    WellDenoted V ρ (.app f a') := by
-  rw [WellDenoted_app] at h ⊢
-  obtain ⟨hf, -, v, A, B, hslot, hmem, hcod⟩ := h
-  exact ⟨hf, ha', v, A, B, hslot, heq ▸ hmem, hcod⟩
-
-/-- The same at a spine's last argument. -/
-theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : Term}
-    {as : List Term}
-    (h : WellDenoted V ρ (Term.mkAppN f (as ++ [a])))
-    (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
-    WellDenoted V ρ (Term.mkAppN f (as ++ [a'])) := by
-  rw [Term.mkAppN_append] at h ⊢
-  exact wellDenoted_app_congr_argK h ha' heq
 
 /-! ## The fired rule's right-hand side and the telescope residual -/
 

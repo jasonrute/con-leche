@@ -99,20 +99,6 @@ theorem nfFieldsRead_agree {acval₁ acval₂ : Name → (Name → Nat) → Term
   unfold nfFieldsRead
   rw [denote_agree_of_readsAt hag _ N (Expr.readsAt_of_nestOcc hnat hstr _ hocc)]
 
-/-- An instantiation at arguments looking up only `P`-names keeps it. -/
-theorem Expr.ReadsAt.instPisWith {P : Name → Prop} {env : Env} :
-    ∀ {vs : List Expr} {e r : Expr}, (∀ v ∈ vs, Expr.ReadsAt P env v) →
-      instPisWith vs e = some r → Expr.ReadsAt P env e → Expr.ReadsAt P env r
-  | [], e, r, _, h, he => by
-    simp only [ConLeche.instPisWith, Option.some.injEq] at h
-    exact h ▸ he
-  | v :: vs, e, r, hvs, h, he => by
-    match e, h with
-    | .forallE t b, h =>
-      have h' : ConLeche.instPisWith vs (b.instantiate1 v) = some r := h
-      exact Expr.ReadsAt.instPisWith (fun x hx => hvs x (List.mem_cons_of_mem _ hx)) h'
-        (Expr.ReadsAt.instantiate1 (hvs v List.mem_cons_self) b 0 he.2)
-
 /-- **The canonical crest consults the leaves off the members only**: it
 mentions no member constant (from official's uniform check), and no
 literal-support constant a reading consults is a member. -/
@@ -206,7 +192,6 @@ theorem ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
   | sort => intro _; simp
   | lit => intro _; simp
 
-
 /-- **The hole context** at a level assignment: the parameters (member
 `0`'s former's), then one hole per member, typed by its hole type — the
 member's index tower over the parameters, lifted past the earlier holes
@@ -248,6 +233,5 @@ theorem BlockAbsRead.cross {env : Env} {m : EnvModel V env} {d : BlockData V} {l
     exact denote_cons_mono hfresh (hat A) ψ _ (canonOf_constsBound hcb (.inl ⟨_, _, _, hA⟩)) hab
   · rw [hac]
     exact denote_cons_mono hfresh (hat _) ψ _ hnb habN
-
 
 end ConLeche.Model

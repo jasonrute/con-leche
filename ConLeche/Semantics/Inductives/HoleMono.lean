@@ -84,7 +84,6 @@ def underTele : FrameRel V → List Term → FrameRel V
   | R, [] => R
   | R, F :: Fs => underTele (R.under F) Fs
 
-
 /-- Related frames agree off the positions `P` (the holes). -/
 def AgreesOff (R : FrameRel V) (P : Nat → Prop) : Prop :=
   ∀ ρ ρ', R ρ ρ' → AgreeOff P ρ ρ'
@@ -93,7 +92,6 @@ theorem AgreesOff.under {R : FrameRel V} {P : Nat → Prop} (h : R.AgreesOff P) 
     (R.under A).AgreesOff (shiftP P) := by
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, -⟩
   exact agreeOff_cons (h ρ ρ' hR) x
-
 
 /-- The frames a fitting spine reaches are related along the
 telescope. -/
@@ -125,14 +123,6 @@ in, is positive. -/
 theorem MonoOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
     (hdom : ∀ ρ ρ', R ρ ρ' → Q ρ ∧ Q ρ') {a b : Term}
     (heq : ∀ ρ, Q ρ → interp V ρ a = interp V ρ b) (hb : MonoOn R b) : MonoOn R a := by
-  intro ρ ρ' hR
-  rw [heq ρ (hdom ρ ρ' hR).1, heq ρ' (hdom ρ ρ' hR).2]
-  exact hb ρ ρ' hR
-
-/-- The same for `ConstOn`. -/
-theorem ConstOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
-    (hdom : ∀ ρ ρ', R ρ ρ' → Q ρ ∧ Q ρ') {a b : Term}
-    (heq : ∀ ρ, Q ρ → interp V ρ a = interp V ρ b) (hb : ConstOn R b) : ConstOn R a := by
   intro ρ ρ' hR
   rw [heq ρ (hdom ρ ρ' hR).1, heq ρ' (hdom ρ ρ' hR).2]
   exact hb ρ ρ' hR
@@ -184,7 +174,6 @@ def TeleMonoOn : FrameRel V → List Term → Prop
   | _, [] => True
   | R, F :: Fs => MonoOn R F ∧ TeleMonoOn (R.under F) Fs
 
-
 /-- **A fitting spine fits the larger telescope.** -/
 theorem spineFit_mono :
     ∀ {R : FrameRel V} (Fs : List Term), TeleMonoOn R Fs →
@@ -202,6 +191,5 @@ its predecessors). -/
 def NoBVarTele : (Nat → Prop) → List Term → Prop
   | _, [] => True
   | P, F :: Fs => NoBVar P F ∧ NoBVarTele (shiftP P) Fs
-
 
 end ConLeche.Semantics

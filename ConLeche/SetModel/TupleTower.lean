@@ -357,16 +357,6 @@ theorem towerSet_zero_mem_univZero : ∀ {n} (T : TeleS V n),
     rw [sigmaSet_zero]
     exact truthVal_mem_univZero _
 
-/-- **Regime**: the carrier is a truth value at `0` and strict above,
-whatever its telescope; so it is a type, and above `0` none of its
-members is the point (task #342, L6). -/
-theorem Fib_towerSet (w : Nat) : ∀ {n} (T : TeleS V n), Fib (decide (w = 0)) (towerSet w T)
-  | _, .nil => Fib_unitSetAt w
-  | _, .cons A _ => Fib_sigmaSet w A _
-
-theorem IsTy_towerSet (w : Nat) {n : Nat} (T : TeleS V n) : IsTy (towerSet w T) :=
-  IsTy_of_Fib (Fib_towerSet w T)
-
 /-- **The 0-field degeneracy**: the empty tower is the unit at its
 level — hence unit-likeness and, at `w = 0`, the correct truth value
 `⟦True⟧`. -/

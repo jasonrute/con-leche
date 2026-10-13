@@ -88,10 +88,6 @@ theorem readParams_lift {acval : Name → (Name → Nat) → Term} {env : Env} {
   simp only [Function.comp_apply]
   rw [hsplit, hdl, interp_liftN_consList]
 
-theorem getD_eq_of_map_eq {α : Type _} {g : Term → α} {o₁ o₂ : Option Term}
-    (h : o₁.map g = o₂.map g) : g (o₁.getD default) = g (o₂.getD default) := by
-  cases o₁ <;> cases o₂ <;> simp_all
-
 /-- **The frame tie at the generated stage** (see the module docstring). -/
 theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List ConstantInfo}
     {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}

@@ -362,7 +362,6 @@ theorem hfits_of_spineFitN {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     (dsa : List Term) (hi : Nat) (ρ Y : Nat → V) : Nat → V :=
   consList (grpVals D ψ grp (keyFrame dsa hi ρ) Y) ρ
 
-
 /-- **A frame item's occurrence**: the member of the group entry at the
 item's position, the index tuple of the spine's indices, the value. -/
 @[expose] noncomputable def frameOcc (D : LfpDatum V) (ψ : Name → Nat) (grp : List (Name × Expr))
@@ -450,14 +449,6 @@ variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
   {grp : List (Name × Expr)} (hg : GrpWf ctx D hi us ds grp)
 
 include hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg
-
-omit [SetTheory V] hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg in
-open Classical in
-theorem mixT_grp_eq (Y C : Nat → V) :
-    (fun c => if decide (InGrp D grp c) = true then Y c else C c) = mixT (InGrp D grp) C Y := by
-  funext c
-  unfold mixT
-  by_cases h : InGrp D grp c <;> simp [h]
 
 omit hD hnN hfind hlps hnd hul hds hdsa hlenP in
 /-- **The hole frame reads a tuple mixed into another on the group as the

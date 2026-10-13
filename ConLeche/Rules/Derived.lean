@@ -82,26 +82,6 @@ theorem DefEq.redBoth {d : Nat} {a a' b b' : Expr}
     DefEq env d a b :=
   .redL ha (.redR hb h)
 
-/-- **Unfold the left head, then continue** (the maintainer's example
-of ruling 1; `lazyDeltaStep`'s one-sided and hint-guided unfoldings). -/
-theorem DefEq.deltaL {d : Nat} {a a' b : Expr}
-    (h : unfoldDefinition env a = some a') (h' : DefEq env d a' b) :
-    DefEq env d a b :=
-  .redL (.delta h) h'
-
-/-- Unfold the right head, then continue (`Core.lean:1546-1549`,
-`:1555-1558`). -/
-theorem DefEq.deltaR {d : Nat} {a b b' : Expr}
-    (h : unfoldDefinition env b = some b') (h' : DefEq env d a b') :
-    DefEq env d a b :=
-  .redR (.delta h) h'
-
-/-- Unfold both heads, then continue (`Core.lean:1570-1577`). -/
-theorem DefEq.deltaBoth {d : Nat} {a a' b b' : Expr}
-    (ha : unfoldDefinition env a = some a') (hb : unfoldDefinition env b = some b')
-    (h : DefEq env d a' b') : DefEq env d a b :=
-  .deltaL ha (.deltaR hb h)
-
 /-- **The `Bool.true` shortcut** (`boolTrueShortcut`, `Core.lean:1415-1424`,
 at `defeqBody`'s entry): the left side reduces to the
 constant `Bool.true` — `refl` after the reduction. -/

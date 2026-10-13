@@ -27,7 +27,6 @@ open ConLeche.SetModel
 
 open ConLeche.Term SetTheory
 
-
 universe w
 
 variable {V : Type w} [SetTheory V]
@@ -128,11 +127,6 @@ theorem bconst_app_data2 (c : BConst) (us : List Nat) (ρ : Nat → V)
   have h1 := app_mem_piV hm ha1
   rw [interp_pi] at h1
   exact slot_of_mem_piV V h1 ha hS
-
-/-- A membership at a zero level lands in `univZero`. -/
-theorem mem_univZero_of_zero {u : Nat} {X : V} (hu : u = 0)
-    (h : X ∈ˢ (univ u : V)) : X ∈ˢ (univZero : V) := by
-  rw [hu, univ_zero] at h; exact h
 
 /-- Two binders in: the constant applied to its first two arguments. -/
 theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)

@@ -27,7 +27,6 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.SetTheory
 
-
 open ConLeche (Env Name Level CheckMode)
 
 universe w
@@ -126,11 +125,6 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
     rw [hfr] at hleaf
     rw [hleaf, LfpDatum.holeVal_app his']
   rw [← hpl, acval_interp_closed mp.base2 _ ψ ρ ρ₀, heq]
-
-/-- A hole value reads its tuple only at its own component. -/
-theorem holeVal_congr {D : LfpDatum V} {ψ : Name → Nat} {ρp X X' : Nat → V} {m : Nat}
-    (h : X m = X' m) : D.holeVal ψ ρp X m = D.holeVal ψ ρp X' m := by
-  unfold LfpDatum.holeVal; rw [h]
 
 end Former
 

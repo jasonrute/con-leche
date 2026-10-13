@@ -32,25 +32,6 @@ variable {m : EnvModel V env} {φ : Name → Nat}
 
 namespace CtxOk
 
-/-- Depth. -/
-theorem length {d : Nat} {Δa : List Term} {e : Expr}
-    (h : CtxOk m φ d Δa e) : Δa.length = d := h.1
-
-/-- What the `.fvar` clause reads off the discipline: the whole leaf
-package at the leaf itself. -/
-theorem fvar_leaf {d idx : Nat} {ty : Expr}
-    {Δa : List Term}
-    (h : CtxOk m φ d Δa (.fvar idx ty)) :
-    idx < d ∧ Expr.fvarsBelow idx ty ∧
-      ∃ tya Aa,
-        denote m.acval env φ d ty = some tya ∧
-        Δa[d - 1 - idx]? = some Aa ∧
-        (∀ ρ : Nat → V, Sat V Δa ρ →
-          interp V ρ tya
-            = interp V (fun j => ρ (j + (d - 1 - idx) + 1)) Aa) ∧
-        (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ tya) :=
-  h.2 (idx, ty) (by simp [Expr.fvarLeaves])
-
 /-- No leaves, nothing to say. -/
 theorem of_fvarLeaves_nil {d : Nat} {Δa : List Term} {e : Expr}
     (hlen : Δa.length = d) (h : e.fvarLeaves = []) :
@@ -72,27 +53,7 @@ theorem of_subset {d : Nat} {Δa : List Term} {e e' : Expr}
     CtxOk m φ d Δa e' :=
   ⟨hC.1, fun l hl => hC.2 l (hsub l hl)⟩
 
-/-- An application's leaves are its parts'. -/
-theorem app {d : Nat} {Δa : List Term} {f x : Expr}
-    (hf : CtxOk m φ d Δa f) (hx : CtxOk m φ d Δa x) :
-    CtxOk m φ d Δa (.app f x) := by
-  refine ⟨hf.1, fun l hl => ?_⟩
-  rw [Expr.fvarLeaves] at hl
-  rcases List.mem_append.mp hl with h | h
-  · exact hf.2 l h
-  · exact hx.2 l h
-
 /-! ### The projections, one per `inferBody` branch that recurses -/
-
-theorem app_fn {d : Nat} {Δa : List Term} {f x : Expr}
-    (hC : CtxOk m φ d Δa (.app f x)) : CtxOk m φ d Δa f :=
-  hC.of_subset fun _ hl => by
-    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
-
-theorem app_arg {d : Nat} {Δa : List Term} {f x : Expr}
-    (hC : CtxOk m φ d Δa (.app f x)) : CtxOk m φ d Δa x :=
-  hC.of_subset fun _ hl => by
-    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 theorem forallE_ty {d : Nat} {Δa : List Term}
     {ty body : Expr}
@@ -107,26 +68,6 @@ theorem forallE_body {d : Nat} {Δa : List Term}
     CtxOk m φ d Δa body :=
   hC.of_subset fun _ hl => by
     rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
-
-theorem lam_ty {d : Nat} {Δa : List Term}
-    {ty body : Expr}
-    (hC : CtxOk m φ d Δa (.lam ty body)) :
-    CtxOk m φ d Δa ty :=
-  hC.of_subset fun _ hl => by
-    rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
-
-theorem lam_body {d : Nat} {Δa : List Term}
-    {ty body : Expr}
-    (hC : CtxOk m φ d Δa (.lam ty body)) :
-    CtxOk m φ d Δa body :=
-  hC.of_subset fun _ hl => by
-    rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
-
-theorem proj_arg {d : Nat} {Δa : List Term} {sn : Name}
-    {i : Nat} {e : Expr}
-    (hC : CtxOk m φ d Δa (.proj sn i e)) :
-    CtxOk m φ d Δa e :=
-  hC.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact hl
 
 end CtxOk
 
@@ -321,16 +262,6 @@ theorem CtxOk.leavesGr {d : Nat} {Δa : List Term} {e : Expr}
   rw [h3] at hden
   cases hden
   exact h6 ρ hρ
-
-/-- The structural discipline and the leaves' grading at every satisfying
-valuation are the full one. -/
-theorem CtxOkS.toCtxOk {d : Nat} {Δa : List Term} {e : Expr}
-    (hC : CtxOkS m φ d Δa e)
-    (hg : ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ) :
-    CtxOk m φ d Δa e := by
-  refine ⟨hC.1, fun l hl => ?_⟩
-  obtain ⟨h1, h2, tya, Aa, h3, h4, h5⟩ := hC.2 l hl
-  exact ⟨h1, h2, tya, Aa, h3, h4, h5, fun ρ hρ => hg ρ hρ l hl tya h3⟩
 
 namespace CtxOkS
 

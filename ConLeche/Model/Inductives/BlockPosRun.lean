@@ -75,16 +75,6 @@ theorem wellDenoted_mkPisAV_dom :
     refine wellDenoted_mkPisAV_dom (Semantics.WellDenoted.hoist_pi (V := V) h).2 i x hx ρ ?_
     simpa [List.take_succ_cons, List.reverse_cons, List.append_assoc] using hρ
 
-/-- A spine of values fits a spine of closed types componentwise. -/
-theorem spineFit_range_closed {T : Nat → Term} {f : Nat → V} :
-    ∀ (k : Nat), (∀ t, t < k → ∀ σ : Nat → V, f t ∈ˢ interp V σ (T t)) →
-      ∀ ρ : Nat → V, SpineFit ρ ((List.range k).map T) ((List.range k).map f)
-  | 0, _, _ => trivial
-  | k + 1, h, ρ => by
-    rw [List.range_succ, List.map_append, List.map_append]
-    exact (spineFit_range_closed k (fun t ht => h t (by omega)) ρ).append
-      ⟨h k (by omega) _, trivial⟩
-
 /-! ## One constructor -/
 
 /-- **What a member constructor's walk context reads of the carrier**:

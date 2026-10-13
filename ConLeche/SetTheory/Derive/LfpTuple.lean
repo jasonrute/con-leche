@@ -60,7 +60,6 @@ def TupleLe (k : Nat) (Is : Nat → V) (X Y : Nat → V) : Prop :=
 theorem TupleLe.refl (k : Nat) (Is X : Nat → V) : TupleLe k Is X X :=
   fun m _ => FamLe.refl (Is m) (X m)
 
-
 /-- A `Φ`-closed tuple: a pre-fixed point of `Φ` in the tuple space. -/
 def IsClosedTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) (X : Nat → V) : Prop :=
   InTupleSpace w k Is X ∧ TupleLe k Is (Φ X) X
@@ -73,7 +72,6 @@ def MonoTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Pr
 /-- The functor maps the tuple space into itself. -/
 def MapsTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Prop :=
   ∀ X, InTupleSpace w k Is X → InTupleSpace w k Is (Φ X)
-
 
 /-! ## The least pre-fixed tuple -/
 
@@ -144,14 +142,6 @@ theorem lfpTuple_closed (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTupl
     (famSpace_app (hmaps _ (lfpTuple_mem w k Is Φ) m hm) hi) fun X hX => ?_
   exact Subset.trans (hmono _ _ (lfpTuple_mem w k Is Φ) hX.1 (lfpTuple_le hX) m hm i hi)
     (hX.2 m hm i hi)
-
-/-- **The drop is a no-op** under monotonicity and `MapsTuple`: the
-least tuple's fibre is exactly the intersection of the closed tuples'. -/
-theorem mem_app_lfpTuple (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w k Is Φ)
-    (hmaps : MapsTuple w k Is Φ) {m : Nat} {i x : V} (hi : i ∈ˢ Is m) :
-    x ∈ˢ app (lfpTuple w k Is Φ m) i ↔ ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i :=
-  ⟨forall_of_mem_app_lfpTuple h hi,
-    fun hx => hx _ ⟨lfpTuple_mem w k Is Φ, lfpTuple_closed h hmono hmaps⟩⟩
 
 /-- The least pre-fixed tuple is a post-fixed point. -/
 theorem lfpTuple_fixed (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple w k Is Φ)
@@ -255,7 +245,6 @@ theorem isClosedTuple_congr (hIs : ∀ m, m < k → Is m = Is' m)
     refine ⟨hX', fun m hm => ?_⟩
     rw [hIs m hm, hΦ X hX' m hm]; exact hle m hm
 
-
 /-- **The least tuple is a congruence** in the operator (on the tuple
 space) and the index sets, below `k`. -/
 theorem lfpTuple_congr (hIs : ∀ m, m < k → Is m = Is' m)
@@ -295,6 +284,5 @@ namespace ConLeche.SetTheory
 universe u
 
 variable {V : Type u} [SetTheory V]
-
 
 end ConLeche.SetTheory

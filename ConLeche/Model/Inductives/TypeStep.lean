@@ -39,17 +39,6 @@ universe w
 
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 
-/-- **A whnf run on a graded type** reads like its input, and its output is a
-graded type (`red_sound_ty`). -/
-theorem whnf_ty (hin : RulesInputs V m φ) {F d : Nat} {e w : Expr}
-    (hw : ConLeche.whnf .verified env F d e = .ok w) (hf : Frame d e)
-    {Δa : List Term} {ea : Term} (hC : CtxOk m φ d Δa e)
-    (hea : denote m.acval env φ d e = some ea) (hg : GradedTy V Δa ea) :
-    Frame d w ∧ LeavesSub w e ∧
-      ∃ wa, denote m.acval env φ d w = some wa ∧ GradedTy V Δa wa ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ wa :=
-  red_sound_ty hin (ConLeche.Rules.whnf_bridge hw) hf hC hea hg
-
 /-- **The `GradedTy` ∀-splitter**: both the domain and the body are graded
 TYPES (`WellDenoted.hoist_piTy` already gives the domain; the body's
 `IsTy` at `ρ ⊨ A :: Δa` is the fibre `IsTy` at `ρ 0 ∈ ⟦A⟧` of the tail

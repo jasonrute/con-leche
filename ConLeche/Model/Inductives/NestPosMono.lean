@@ -301,20 +301,6 @@ theorem constOn_spine {names : List Name} {lo hi d : Nat} {R : FrameRel V}
 
 /-! ## The relation the run is proved along -/
 
-/-- A spine of `d`-scoped terms read one level deeper is its depth-`d`
-reading, lifted. -/
-theorem DenoteSpine.weaken_top {d : Nat} :
-    ∀ {as : List Expr} {vs' : List Term}, (∀ x ∈ as, Expr.WScoped d x) →
-      DenoteSpine m.acval env φ (d + 1) as vs' →
-      ∃ vs, DenoteSpine m.acval env φ d as vs ∧ vs' = vs.map (Term.liftN 1 · 0)
-  | _, _, _, .nil => ⟨[], .nil, rfl⟩
-  | a :: as, _ :: _, hws, .cons ha h => by
-    obtain ⟨vs, hvs, rfl⟩ :=
-      DenoteSpine.weaken_top (fun x hx => hws x (List.mem_cons_of_mem _ hx)) h
-    rw [denote_weaken_top m.acval_closed (hws a List.mem_cons_self)] at ha
-    obtain ⟨v, hv, rfl⟩ := Option.map_eq_some_iff.mp ha
-    exact ⟨v :: vs, .cons hv hvs, rfl⟩
-
 /-- **The hole relation** at depth `d` under the frames `prog`: related
 frames satisfy the context, agree off the hole positions, the member
 holes grow (at their full arity: their indices — a hole stands for the

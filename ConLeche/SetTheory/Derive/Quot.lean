@@ -197,37 +197,6 @@ a class above `Prop` is the pair `kpair ∅ (qclass A R a)`, so it is
 never the point (`quotClass_ne_pt`), and the quotient never is nor
 contains it (`strict_quotSet`). -/
 
-theorem untagged_quotSet_eq_pt_countermodel :
-    ∃ A R : V, image (fun a => qclass A R a) A = pt := by
-  refine ⟨ptTag, graph (fun _ => graph (fun _ => unitSet) ptTag) ptTag, ?_⟩
-  have hrel : ∀ a b : V, a ∈ˢ (ptTag : V) → b ∈ˢ (ptTag : V) →
-      QuotRel ptTag (graph (fun _ => graph (fun _ => unitSet) ptTag) ptTag)
-        a b := by
-    intro a b ha hb
-    refine QuotRel.base ha hb ⟨pt, ?_⟩
-    rw [app_graph ha, app_graph hb]
-    exact pt_mem_unitSet
-  have hclass : ∀ a : V, a ∈ˢ (ptTag : V) →
-      qclass ptTag (graph (fun _ => graph (fun _ => unitSet) ptTag) ptTag) a
-        = ptTag := by
-    intro a ha
-    apply ext fun z => ?_
-    rw [mem_qclass]
-    exact ⟨fun h => h.1, fun hz => ⟨hz, hrel a z ha hz⟩⟩
-  apply ext fun z => ?_
-  rw [mem_image, mem_pt]
-  constructor
-  · rintro ⟨a, ha, rfl⟩
-    exact hclass a ha
-  · rintro rfl
-    exact ⟨empty, empty_mem_ptTag, (hclass empty empty_mem_ptTag).symm⟩
-
-/-- Above `Prop` a quotient class is never the point: it is a pair. -/
-theorem quotClass_ne_pt {u : Nat} (hu : u ≠ 0) (A R a : V) :
-    quotClass u A R a ≠ (pt : V) := by
-  unfold quotClass; rw [ite_eq_right hu]
-  exact (pt_ne_kpair _ _).symm
-
 /-- Above `Prop` the quotient is strict: its members are pairs. -/
 theorem strict_quotSet {u : Nat} (hu : u ≠ 0) (A R : V) : Strict (quotSet u A R) :=
   strict_of_kpairs fun z hz => by
@@ -235,18 +204,6 @@ theorem strict_quotSet {u : Nat} (hu : u ≠ 0) (A R : V) : Strict (quotSet u A 
     obtain ⟨a, -, rfl⟩ := mem_image.mp hz
     exact ⟨_, _, rfl⟩
 
-/-- The quotient is never the point: above `Prop` it is strict, and at
-`Prop` it is a truth value. -/
-theorem quotSet_ne_pt (u : Nat) (A R : V) : quotSet u A R ≠ (pt : V) := by
-  by_cases hu : u = 0
-  · intro h
-    have hp : (ptTag : V) ∈ˢ quotSet u A R := h ▸ ptTag_mem_pt
-    unfold quotSet at hp; rw [ite_eq_left hu] at hp
-    obtain ⟨-, -, he⟩ := mem_image.mp hp
-    exact not_mem_self (pt : V) (mem_pt.mpr he.symm)
-  · exact (strict_quotSet hu A R).1
-
-/- Opaque interface operators (see `Derive/Empty.lean`). -/
 attribute [irreducible] quotSet quotClass
 
 theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :

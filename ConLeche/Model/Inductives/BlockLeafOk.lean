@@ -175,14 +175,6 @@ section Currency
 variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List Term}
   {Chs : Nat → List (List Term)}
 
-/-- **The block former leaf's P currency**: graded at the hereditary
-premise. -/
-theorem blockTyAV_wellDenoted {m : Nat} (hm : m < k)
-    {pps : List Term} {ρ : Nat → V}
-    (hok : ParamsOkG k w ρ uf Idss Chs m pps) :
-    WellDenoted V ρ (blockTyG k w uf Idss Chs pps m) :=
-  blockTyG_wellDenoted hm hok
-
 end Currency
 
 end ConLeche.Model

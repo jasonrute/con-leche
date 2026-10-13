@@ -131,24 +131,6 @@ theorem parsLen_dsa {mm : Nat} (hmm : mm < D.k) :
   obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
   rw [h.parsLen mm hmm, hlenP, DenoteSpine.length_eq hdsa]
 
-/-- The group's hole values do not move with the frame off the holes, nor
-off the group. -/
-theorem grpVals_eq {ρ ρ' Y Y' : Nat → V} (hag : AgreeOff (holeP hi ctx.nP hi) ρ ρ')
-    (hY : ∀ p ∈ grp, Y (D.names.idxOf p.1) = Y' (D.names.idxOf p.1)) :
-    grpVals D (Level.substFn φ lps us) grp (keyFrame dsa hi ρ) Y
-      = grpVals D (Level.substFn φ lps us) grp (keyFrame dsa hi ρ') Y' := by
-  unfold grpVals
-  refine List.map_congr_left fun p hp => ?_
-  obtain ⟨mm, -, -, hidx, -, -, -, -, -, -, hte⟩ :=
-    grpMember mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hp
-  unfold LfpDatum.holeVal
-  rw [hY p hp, hidx, (hte ρ ρ' hag).holeFam]
-
-/-- A group member's index is a member. -/
-theorem grp_idx_lt {p : Name × Expr} (hp : p ∈ grp) : D.names.idxOf p.1 < D.k := by
-  obtain ⟨mm, hmm, -, hidx, -⟩ := grpMember mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hp
-  rw [hidx]; exact hmm
-
 omit hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg in
 /-- **The frame hole's value at full arity** is an occurrence of the tuple
 at its member, or `∅`, or the point. -/

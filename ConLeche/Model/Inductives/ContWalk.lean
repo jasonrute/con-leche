@@ -59,20 +59,6 @@ applied with hole-free indices. -/
 
 /-! ## The frame's group, its holes and its relation -/
 
-/-- A λ-tower applied along a fitting prefix is the tower over the rest. -/
-theorem holeFam_append_apply :
-    ∀ {Fs : List Term} {ρ : Nat → V} {as : List V} (Gs : List Term) (g : List V → V)
-      (is : List V), SpineFit ρ Fs as →
-      (as ++ is).foldl app (holeFam ρ (Fs ++ Gs) g)
-        = is.foldl app (holeFam (consList as ρ) Gs fun bs => g (as ++ bs))
-  | [], _, [], _, _, _, _ => rfl
-  | [], _, _ :: _, _, _, _, h => h.elim
-  | _ :: _, _, [], _, _, _, h => h.elim
-  | F :: Fs, ρ, a :: as, Gs, g, is, h => by
-    show (as ++ is).foldl app (app (lamV (interp V ρ F) _) a) = _
-    rw [app_lamV h.1, consList_cons]
-    exact holeFam_append_apply (Fs := Fs) Gs (fun as => g (a :: as)) is h.2
-
 /-- **A spine of values each inhabiting its entry read below the earlier
 ones fits**, when entry `i` is a reading over the base frame lifted past
 the `i` earlier values. -/
