@@ -65,8 +65,8 @@ The two clauses that carry the type theory:
   own inductive models are built from.
 
 A universe level denotes a natural (`Level.eval φ u`, the ordinary
-evaluation with `imax u 0 = 0`), and `Sort u` denotes the `u`-th
-universe of the chain `V` provides.  A constant is used at a list of
+evaluation with `imax u 0 = 0`), and `Sort u` denotes `univ u`, the
+types at level `u` (below).  A constant is used at a list of
 levels `us`; `Level.substFn φ ps us` is the assignment sending the
 constant's own parameters `ps` to the values of `us` at `φ`
 (`ConLeche/Verify/Level.lean`).  A literal denotes what its constructor
@@ -88,8 +88,11 @@ Kuratowski pair with its projections `sfst`/`ssnd`; `graph F A`, the
 graph of `F` on `A`, and `app f a`, the value of a graph at a point
 (`app pt _ = pt`: a proof applied to anything is a proof); `piSet A B`,
 the graphs in `(x : A) → B x`; the proof point `pt`, the truth values
-`truthVal p` (`{pt}` if `p`, `∅` otherwise), and `univ n`, the `n`-th
-universe, with `univ 0` the set of truth values.
+`truthVal p` (`{pt}` if `p`, `∅` otherwise), and `univ n`, the types
+at level `n`: `univ 0` is the set of truth values, and above `0`
+`univ n` holds the members of the universe `tg n` (`tg (n+1)` is the
+chain's universe `n+2`) that are truth values or strict (not `pt` and
+without `pt` as a member).
 -/
 
 namespace ConLeche

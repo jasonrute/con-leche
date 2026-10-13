@@ -38,8 +38,8 @@ asserted — see Core.lean's module doc.
   value, `lam 0 = pt`) with the interface laws.  **Deleted at task
   #221**, with `Derive/Collapse.lean` (its design evidence) and
   `Derive/PtFresh.lean` (the freshness battery it needed): the model
-  reads the annotation-driven `piR`/`lamR` of `SetModel/Ops.lean` and
-  had stopped reading these.  Resolvable in git history.
+  reads `piV`/`lamV` of `SetModel/Ops.lean`, which read the truth-value
+  regime off the values.  Resolvable in git history.
 - [x] `Derive/Omega.lean` — von Neumann naturals: `omega` separated
   from the inductive universe `univChain 1`, `vnat : Nat → V`
   (injective), `mem_omega_iff`; `omega ∈ U` for any universe with
