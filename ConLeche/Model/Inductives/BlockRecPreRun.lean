@@ -533,7 +533,7 @@ section LiftIdentity
 whose `l`-th entry is bounded below `k + l` is fixed. -/
 theorem liftDomsK_eq_self_of_bounded {K : Nat} :
     ∀ (k : Nat) (Ds : List Term),
-      (∀ l, l < Ds.length → Term.bvarsBelow (k + l) ((Ds.getD l default))) →
+      (∀ l, l < Ds.length → Term.bvarsBelow (k + l) (Ds.getD l default)) →
       liftDomsK K k Ds = Ds
   | _, [], _ => rfl
   | k, D :: Ds, h => by

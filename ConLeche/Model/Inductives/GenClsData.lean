@@ -221,7 +221,7 @@ theorem genOutCtorFit (hμ : μ.verifiedChecks = true)
     (by simpa only [keyFrame] using hsatC)
   rw [hT0E] at hT0cl
   have hbnd : ∀ l, l < pps.length →
-      Term.bvarsBelow l ((pps.getD l default)) := by
+      Term.bvarsBelow l (pps.getD l default) := by
     intro l hl
     have := (bvarsBelow_mkPisAV_inv hT0cl).1.getD_below l hl
     rwa [Nat.zero_add] at this

@@ -68,7 +68,7 @@ theorem teleFitPA_mkPisAV_of_spineFit {pds : List Term} {b : Term}
 /-- **A telescope bounded at its own depths fits at every frame alike**:
 entry `l` reads only the `l` values before it. -/
 theorem spineFit_frame_of_bounded {Ds : List Term}
-    (hb : ∀ l, l < Ds.length → Term.bvarsBelow l ((Ds.getD l default)))
+    (hb : ∀ l, l < Ds.length → Term.bvarsBelow l (Ds.getD l default))
     {σ σ' : Nat → V} {vs : List V} (h : SpineFit σ Ds vs) : SpineFit σ' Ds vs := by
   have hlen : vs.length = Ds.length := h.length_eq
   refine spineFit_of_getD hlen fun r hr => ?_

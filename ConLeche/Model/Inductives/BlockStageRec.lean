@@ -104,7 +104,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
         r.1.type.constsResolve env = true ∧
         r.1.type.looseBVarsBounded 0 = true) →
       (∀ n : Name, (∀ r ∈ ls, n ≠ r.1.name) → acv n = mp.base2.acval n) →
-      (∀ r ∈ ls, ∀ ψ : Name → Nat, Term.Closed ((acv r.1.name ψ))) →
+      (∀ r ∈ ls, ∀ ψ : Name → Nat, Term.Closed (acv r.1.name ψ)) →
       (∀ r ∈ ls, ∀ (ψ : Name → Nat) (k : Nat),
         (acv r.1.name ψ).liftN 1 k = acv r.1.name ψ) →
       (∀ r ∈ ls, ∀ ψ₁ ψ₂ : Name → Nat,
@@ -507,7 +507,7 @@ variable {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List Rec
     r.1.type.constsResolve envC = true ∧
     r.1.type.looseBVarsBounded 0 = true)
   (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
-  (hcl : ∀ r ∈ rs, ∀ ψ : Name → Nat, Term.Closed ((acv r.1.name ψ)))
+  (hcl : ∀ r ∈ rs, ∀ ψ : Name → Nat, Term.Closed (acv r.1.name ψ))
   (hlift : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (k : Nat),
     (acv r.1.name ψ).liftN 1 k = acv r.1.name ψ)
   (hpar : ∀ r ∈ rs, ∀ ψ₁ ψ₂ : Name → Nat,

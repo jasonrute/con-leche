@@ -124,7 +124,7 @@ applied), and built-in constants at concrete levels. That reading,
 #src("ConLeche/Verify/Denote.lean", 138, 139)[`denote`], is partial only for
 syntactic reasons — an unknown constant, a wrong number of levels, a
 projection with no table. The interpretation
-#src("ConLeche/Semantics/Interp.lean", 135, 146)[`interp`] then maps
+#src("ConLeche/Semantics/Interp.lean", 134, 145)[`interp`] then maps
 the term to a set, reading each binder's regime off the values
 as @sec:interp does. The paper folds the two steps into one
 denotation on the terms themselves.

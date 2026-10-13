@@ -435,19 +435,19 @@
    217    | prf
    218    deriving Repr, Inhabited
 
-== ConLeche/Semantics/Interp.lean#L135-L146
-   135  noncomputable def interp : (Nat → V) → Term → V
-   136    | ρ, .bvar i => ρ i
-   137    | _, .sort u => univ u
-   138    | _, .const c us => bval V c us
-   139    | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
-   140    | ρ, .lam A b => lamV (interp ρ A) fun x => interp (cons x ρ) b
-   141    | ρ, .pi A B => piV (interp ρ A) fun x => interp (cons x ρ) B
-   142    | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
-   143    | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
-   144    | ρ, .fst e => sfst (interp ρ e)
-   145    | ρ, .snd e => ssnd (interp ρ e)
-   146    | _, .prf => pt
+== ConLeche/Semantics/Interp.lean#L134-L145
+   134  noncomputable def interp : (Nat → V) → Term → V
+   135    | ρ, .bvar i => ρ i
+   136    | _, .sort u => univ u
+   137    | _, .const c us => bval V c us
+   138    | ρ, .app f a => SetTheory.app (interp ρ f) (interp ρ a)
+   139    | ρ, .lam A b => lamV (interp ρ A) fun x => interp (cons x ρ) b
+   140    | ρ, .pi A B => piV (interp ρ A) fun x => interp (cons x ρ) B
+   141    | ρ, .letE v b => interp (cons (interp ρ v) ρ) b
+   142    | ρ, .eqE a b => eqv (interp ρ a) (interp ρ b)
+   143    | ρ, .fst e => sfst (interp ρ e)
+   144    | ρ, .snd e => ssnd (interp ρ e)
+   145    | _, .prf => pt
 
 == ConLeche/Semantics/WellDenoted.lean#L51-L81
     51  def WellDenoted : (Nat → V) → Term → Prop

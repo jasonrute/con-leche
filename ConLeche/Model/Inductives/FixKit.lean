@@ -870,7 +870,7 @@ theorem fixEntryTypingCore {w nP nF i : Nat} {pps ds eds : List Term}
     (hguard : w = 0 → (sorts.getD i .zero).eval ψ = 0 ∧
       ∀ j, j < i → used j = true → (sorts.getD j .zero).eval ψ = 0)
     (hfree : ∀ j, j < i → used j = false →
-      ∃ X : Term, ((ds.drop nP)).getD i default = X.liftN 1 (i - 1 - j))
+      ∃ X : Term, (ds.drop nP).getD i default = X.liftN 1 (i - 1 - j))
     (hi : i < nF)
     -- the leaf is the parameters' λ-tower (the ONLY shape the law reads
     -- of it; the fixpoint content is `hfold`)

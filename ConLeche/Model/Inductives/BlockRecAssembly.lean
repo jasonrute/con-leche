@@ -193,7 +193,7 @@ structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
     (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) : Prop where
   closed : ∀ (ψ : Name → Nat) (i : Nat),
-    Term.Closed ((blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i))
+    Term.Closed (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
   liftN : ∀ (ψ : Name → Nat) (i k : Nat),
     (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).liftN 1 k
       = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i
@@ -237,7 +237,7 @@ theorem BlockRecLeafOk.stored {envC : Env} {mpC : EnvModelM V μ envC}
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (hleaf : BlockRecLeafOk mpC rs s eqs) (hnd : (rs.map (·.1.name)).Nodup)
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : r ∈ rs) :
-    (∀ ψ, Term.Closed ((blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ))) ∧
+    (∀ ψ, Term.Closed (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) ∧
     (∀ ψ k, (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ).liftN 1 k
       = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ) ∧
     (∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →

@@ -1180,8 +1180,7 @@ theorem DomsBelow_liftFields {n : Nat} :
   | [], _, _, _, _ => trivial
   | F :: Fs, k, K, hk, hb => by
     refine ⟨?_, ?_⟩
-    ·
-      exact VExprAux.bvarsBelow_liftN n _ K k hb.1
+    · exact VExprAux.bvarsBelow_liftN n _ K k hb.1
     · have := DomsBelow_liftFields (n := n) (Fs := Fs) (k := k + 1) (K := K + 1)
         (by omega) hb.2
       rwa [show K + 1 + n = K + n + 1 from by omega] at this
@@ -2010,8 +2009,7 @@ theorem caseAVAt_below {w K : Nat} :
   | [], _, _, _, _ => trivial
   | T :: Ts, d, kx, hT, hk => by
     refine natRecAV_below (natSortMotiveAV_below w _) ?_ ?_ hk
-    ·
-      exact VExprAux.bvarsBelow_liftN d T K 0 (hT T List.mem_cons_self)
+    · exact VExprAux.bvarsBelow_liftN d T K 0 (hT T List.mem_cons_self)
     · refine ⟨trivial, trivial, ?_⟩
       have := caseAVAt_below (w := w) (K := K) (Ts := Ts) (d := d + 2) (kx := .bvar 1)
         (fun T' hT' => hT T' (List.mem_cons_of_mem _ hT'))

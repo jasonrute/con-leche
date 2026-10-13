@@ -283,7 +283,7 @@ theorem FieldsBound.of_eqOn' {w : Nat} :
 theorem fieldsBound_substTele {w : Nat} (τ : Nat → Term) :
     ∀ (ab : List Term) (k : Nat) (ρ : Nat → V),
       FieldsBound w (substE V τ k ρ) (ab) →
-      FieldsBound w ρ ((Term.substTele τ k ab))
+      FieldsBound w ρ (Term.substTele τ k ab)
   | [], _, _, _ => trivial
   | d :: ab, k, ρ, ⟨h1, h2⟩ => by
     refine ⟨?_, fun a ha => ?_⟩
@@ -304,7 +304,7 @@ form** at a frame whose substituted valuation IS the hole frame. -/
 theorem spineFitN_of_hfits {D : LfpDatum V} {ψ : Name → Nat} {c j : Nat}
     {ab : List Term} {Δ Δ' : List Term} {N : List Term}
     (hEq : FieldsEqOn V Δ (ab) (D.fields ψ c j)) {τ : Nat → Term}
-    (hEN : FieldsEqOn V Δ' ((Term.substTele τ 0 ab)) N)
+    (hEN : FieldsEqOn V Δ' (Term.substTele τ 0 ab) N)
     {σ ρp X : Nat → V} (hv : substE V τ 0 σ = D.frame ψ ρp X)
     (hsat : Sat V Δ (D.frame ψ ρp X)) (hsat' : Sat V Δ' σ) {t : V} {fs : List V}
     (hf : D.HFits ψ ρp X t c j fs) : SpineFit σ N fs := by
@@ -321,7 +321,7 @@ theorem hfits_of_spineFitN {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     (hEq : FieldsEqOn V Δ (ab) (D.fields ψ c j))
     (hlen : ab.length = nF)
     {τ : Nat → Term} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
-    (hEN : FieldsEqOn V Δ' ((Term.substTele τ 0 ab)) N)
+    (hEN : FieldsEqOn V Δ' (Term.substTele τ 0 ab) N)
     {R' : FrameRel V}
     (hresAt : ResultAt m φ ctx.nP hi' (hi' + nF) cur (R'.underBothTele N)
       (Term.substAV τ (Term.mkAppN (.bvar (nF + (D.k - 1 - c))) (D.resIdx ψ c j))

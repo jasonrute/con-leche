@@ -644,8 +644,7 @@ theorem bvarsBelow_substAV (τ : Nat → Term) {n b : Nat}
     simp only [Term.substAV, Term.bvarsBelow] at h ⊢
     split
     · simp only [Term.bvarsBelow]; omega
-    ·
-      have := VExprAux.bvarsBelow_liftN k (τ (i - k)) b 0 (hτ _ (by omega))
+    · have := VExprAux.bvarsBelow_liftN k (τ (i - k)) b 0 (hτ _ (by omega))
       rwa [Nat.add_comm b k] at this
   | sort u => intro _ _; trivial
   | const c us => intro _ _; trivial

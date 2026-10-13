@@ -99,8 +99,7 @@ theorem blockArmAV_below {m : Nat} (hIds : ∀ c, DomsBelow nP (Idss c))
   unfold blockArmG
   simp only [Term.bvarsBelow]
   refine ⟨?_, ?_⟩
-  ·
-    exact VExprAux.bvarsBelow_liftN 1 (idxTyAV (uf m) (Idss m)) nP 0
+  · exact VExprAux.bvarsBelow_liftN 1 (idxTyAV (uf m) (Idss m)) nP 0
       (towerBodyAV_below (hIds m))
   · exact sumBodyAV_below hchains
 

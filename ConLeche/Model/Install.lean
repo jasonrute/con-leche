@@ -141,7 +141,7 @@ structure ConsHead (env : Env) (c₀ : ConstantInfo)
   /-- the extended store is syntactically well-formed -/
   wf : EnvWF ⟨c₀ :: env.consts⟩
   /-- the new leaf's erasure is closed -/
-  vclosed : ∀ ψ : Name → Nat, Term.Closed ((A ψ))
+  vclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ)
   /-- if the head sits at a reserved basis name, it is the pinned
   declaration and its leaf erases to the direct pin -/
   pin : ConLeche.reservedBasisNames.contains c₀.name = true →
@@ -173,7 +173,7 @@ entry, and (for a recursor) its rules' constructors are stored. -/
 theorem ConsHead.ofBasis {c₀ : ConstantInfo}
     {A : (Name → Nat) → Term}
     (hwf : EnvWF ⟨c₀ :: env.consts⟩)
-    (hvclosed : ∀ ψ : Name → Nat, Term.Closed ((A ψ)))
+    (hvclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ))
     (hpinned : c₀ = pinnedInfo c₀.name)
     (hleaf : ∀ (ψ : Name → Nat) (t : Term),
       pinnedStructT c₀.name ψ = some t → (A ψ) = t)
@@ -196,7 +196,7 @@ pin clause is vacuous. -/
 theorem ConsHead.ofFresh {c₀ : ConstantInfo}
     {A : (Name → Nat) → Term}
     (hwf : EnvWF ⟨c₀ :: env.consts⟩)
-    (hvclosed : ∀ ψ : Name → Nat, Term.Closed ((A ψ)))
+    (hvclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ))
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     (hprojTower : ∀ tbl, c₀ ≠ .projInfo tbl)
     (hctors : ∀ cvR mI rP rules, c₀ = .recInfo cvR mI rP rules →

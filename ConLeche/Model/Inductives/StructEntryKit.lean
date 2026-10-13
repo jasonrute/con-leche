@@ -968,10 +968,10 @@ theorem free_of_diff {nP nF i : Nat} {ds : List Term} {sorts : List Level}
         ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V))
     (hguard : ∀ j, j < i → used j = true → (sorts.getD j .zero).eval ψ = 0)
     (hfree : ∀ j, j < i → used j = false →
-      ∃ X : Term, ((ds.drop nP)).getD i default = X.liftN 1 (i - 1 - j))
+      ∃ X : Term, (ds.drop nP).getD i default = X.liftN 1 (i - 1 - j))
     {as' : List V} (hspAs : SpineFit ρ' ((ds.drop nP)) as') :
     ∀ k, k < i → consList (List.replicate i pt) ρ' k ≠ consList (as'.take i) ρ' k →
-      ∃ X : Term, ((ds.drop nP)).getD i default = X.liftN 1 k := by
+      ∃ X : Term, (ds.drop nP).getD i default = X.liftN 1 k := by
   have hlenFs : (((ds.drop nP))).length = nF := by simp [hlenDs]
   have hlenTake : (as'.take i).length = i := by
     rw [List.length_take, hspAs.length_eq, hlenFs]; omega
@@ -1149,7 +1149,7 @@ theorem bodyFrames {env : Env} (m : EnvModel V env)
           ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V))
     {used : Nat → Bool}
     (hfree : ∀ j, j < i → used j = false →
-      ∃ X : Term, ((ds.drop nP)).getD i default = X.liftN 1 (i - 1 - j))
+      ∃ X : Term, (ds.drop nP).getD i default = X.liftN 1 (i - 1 - j))
     -- THE SUBJECT'S FRAME, abstractly (task #210 Part A): whatever
     -- carrier the subject `ρ 0` lives in, at a squash instance it is
     -- the point and the fields admit a fitting spine; in the graph

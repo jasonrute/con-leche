@@ -563,7 +563,7 @@ interpretation reads this syntax.
 
 **Interpretation.** The interpretation maps a term to a set, totally
 and term-directed
-([function `interp` in `ConLeche/Semantics/Interp.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Interp.lean#L135-L146)):
+([function `interp` in `ConLeche/Semantics/Interp.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/Interp.lean#L134-L145)):
 a Π whose fibres over its domain are all truth values is a truth value,
 otherwise a dependent function space; a λ whose body values over its
 domain are all the proof point is the proof point, otherwise its graph

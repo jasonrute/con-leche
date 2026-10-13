@@ -1969,7 +1969,7 @@ theorem genOutCtorRefit {j : Nat} {cvI : ConstantVal}
   obtain ⟨X1, hT1⟩ := hT1
   -- the parameters fit the parameter binders, up to the peel
   rw [hT0E] at hT0cl
-  have hbnd : ∀ l, l < pps.length → Term.bvarsBelow l ((pps.getD l default)) := by
+  have hbnd : ∀ l, l < pps.length → Term.bvarsBelow l (pps.getD l default) := by
     intro l hl
     have := (bvarsBelow_mkPisAV_inv hT0cl).1.getD_below l hl
     rwa [Nat.zero_add] at this

@@ -212,8 +212,7 @@ theorem bvarsBelow_instsAV {m : Nat} :
   | v :: vs, d, e, he, hv => by
     show Term.bvarsBelow (m + d) (Term.inst (instsAV (d + 1) vs e) (v.liftN d 0))
     refine bvarsBelow_inst (a := (v.liftN d 0)) ?_ _ 0 ?_
-    ·
-      exact VExprAux.bvarsBelow_liftN d v m 0 (hv v (.head _))
+    · exact VExprAux.bvarsBelow_liftN d v m 0 (hv v (.head _))
     · rw [Nat.add_zero]
       have h2 := bvarsBelow_instsAV (m := m) vs (d + 1) e
         (by rw [List.length_cons] at he; rw [show m + (d + 1) + vs.length = m + d + (vs.length + 1) from by omega]; exact he)
@@ -291,7 +290,7 @@ theorem closed_blockRecTyAV {envC : Env} (hμ : μ.verifiedChecks = true)
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
-    Term.Closed ((blockRecTyAV mpC.base2.acval envC rs ψ i)) := by
+    Term.Closed (blockRecTyAV mpC.base2.acval envC rs ψ i) := by
   obtain ⟨hfv, -, -, hb, -⟩ := ConLeche.recStage_facts h r (List.mem_of_getElem? hr)
   obtain ⟨-, -, -, hread, -⟩ := recStage_tyPis hμ mpC h hr ψ
   exact bvarsBelow_of_reading (m := mpC.base2) (Expr.WScoped.of_not_hasFvar hfv) hb hread
@@ -308,7 +307,7 @@ theorem blockRecLeafAV_closed (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     (heqB : ∀ ψ : Name → Nat, ∀ e ∈ eqs ψ, Term.bvarsBelow rs.length e)
     (ψ : Name → Nat) (i : Nat) :
-    Term.Closed ((blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)) :=
+    Term.Closed (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i) :=
   closed_blockRecAV
     (fun _c' hc' => closed_blockRecTyAV hμ mpC h (List.getElem?_eq_getElem hc') ψ)
     (heqB ψ)

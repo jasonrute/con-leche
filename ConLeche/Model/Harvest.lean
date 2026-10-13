@@ -786,7 +786,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env)
     {cv : ConstantVal} {type' : Expr} {A : (Name → Nat) → Term}
     (hcv : ConstantValRun μ F env cv type')
-    (hAvclosed : ∀ ψ : Name → Nat, Term.Closed ((A ψ)))
+    (hAvclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂)
