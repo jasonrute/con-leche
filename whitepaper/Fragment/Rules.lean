@@ -78,7 +78,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   -/
   | beta {Γ : List Expr} {A b a : Expr} :
       Red env Γ (app (lam A b) a) (b.inst a)
-  /-- **ζ** (task #342, F4): a `let` reduces to its body with the value
+  /-- **ζ**: a `let` reduces to its body with the value
   substituted, with no certificate, as β (con-leche's `whnfCore` on
   `.letE`, S0's `inst1M b v`; official `whnf_core`).  Unlike β it
   needs no case split on the point: the `let` and its reduct denote
@@ -152,7 +152,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       usj.length = cij.lparams.length →
       margs.length = numParams + rl.nfields →
       cij.type.hasPis (numParams + rl.nfields) = true →
-      -- the major's slot certificate (the recursor's spine before it needs none, task #347)
+      -- the major's slot certificate (the recursor's spine before it needs none)
       piResidual (ci.type.instL ci.lparams us)
         (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
       Infer env Γ major tM → DefEq env Γ tM dM →
@@ -172,14 +172,14 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
-  /-- **ι on a family in `Prop`, with no major-slot certificate** (task
-  #342 F3; #342 v2 §11.4 case 3).  `Red.iota` without the reduced
+  /-- **ι on a family in `Prop`, with no major-slot certificate**
+  (the checker's certified case of ι).  `Red.iota` without the reduced
   major's slot certificate, for a constructor whose family's sort
   evaluates to zero at every valuation: the family `I` the
   constructor's residual type is headed by is stored, its type walked
   along the residual's parameters and indices leaves `Sort u`, and the
   oracle decides `u = 0`.  The constructor's telescope certificate stays
-  at the full grade (every parameter and field, #349), and so do the
+  at the full grade (every parameter and field), and so do the
   three comparisons.  Why the slot needs nothing: the unreduced major
   lies in the slot whenever the redex is not the point, and where it is
   the point so is the reduced constructor application
@@ -187,7 +187,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   families that are always propositions (`Acc`); a family that may be
   a proposition at some valuations only (`Quot.{u}`, `PUnit.{u}`) also
   goes by `Red.iotaSlot`, which reads the environment's fibre law at the
-  others (lane F1). -/
+  others. -/
   | iotaProp {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
       {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
       {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
@@ -289,22 +289,22 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
 
-  /-- **ι with no major-slot certificate and no level test** (task #342
-  F1, completing F3's `Red.iotaProp`; #342 v2 §11.4 case 3).  `Red.iota`
+  /-- **ι with no major-slot certificate and no level test** (the
+  checker's certified case of ι).  `Red.iota`
   without the reduced major's slot certificate, for any family: the
   constructor's telescope certificate stays at the full grade (every
-  parameter and field, #349), and so do the three comparisons; nothing
+  parameter and field), and so do the three comparisons; nothing
   else is tested.  Why the slot needs nothing: where the unreduced
   major is not the point its reduction claim gives the reduct; where it
-  is, the environment's slot law (`EnvModel.rec_rules_slot`, F2) makes
+  is, the environment's slot law (`EnvModel.rec_rules_slot`) makes
   the constructor application the point too, given the redex is not
   (`Sound.lean`, `slot_of_law`, `iota_core_slot`).  On the generated
   recursors that law holds because the major's domain is the
   constructor's own family at the recursor's levels, a fibre holding the
   point is a truth value there, and the constructor of a family in
-  `Prop` is the point (`IndSpec.rec_rule_slot`).  F1's version of this
-  rule had a premise linking the major's domain to the constructor's
-  family; F2 proved the link as an installer fact and dropped it.  This
+  `Prop` is the point (`IndSpec.rec_rule_slot`).  No premise links the
+  major's domain to the constructor's family: the installation proves
+  the slot law of every generated rule (`InstallIota.lean`).  This
   is the rule for a family that is a proposition at some valuations
   only (`Quot.{u}`, `PUnit.{u}`). -/
   | iotaSlot {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
@@ -345,7 +345,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
-  /-- **ι, nested, with no major-slot certificate** (task #342 F1):
+  /-- **ι, nested, with no major-slot certificate**:
   `Red.iotaNested` without the reduced major's slot certificate, with
   no further premise: the slot law of an auxiliary recursor's rule
   (`IndSpec.rec_rule_slot1N`) holds because a nested block is a
@@ -391,7 +391,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
-  /-- **ι, case 2** (task #342 F1; #347's ι case test, #342 v2 §11.4): `Red.iota`
+  /-- **ι, case 2** (the checker's ι case test): `Red.iota`
   with **no certificate at all** — no major slot, no constructor
   telescope — where the major's domain (what the recursor's telescope
   leaves after the spine, `Expr.piResidual`) is a stored inductive
@@ -443,7 +443,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
-  /-- **ι, nested, case 2** (task #342 F1): `Red.iotaNested` with no
+  /-- **ι, nested, case 2**: `Red.iotaNested` with no
   certificate, under `Red.iotaStrict`'s level test on the major's
   domain. -/
   | iotaNestedStrict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
@@ -490,7 +490,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
-  /-- **ι by K** (task #342 F2; #342 v2 §11.4's K row; Lean's
+  /-- **ι by K** (Lean's
   `to_cnstr_when_K`): a recursor whose rule is flagged K
   (`RecRule.k`: one family, always a proposition, one constructor
   with no fields — `Eq`, `HEq`, `True`) reduces on its major **as it
@@ -529,8 +529,8 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
 /-- **Definitional equality**: the verdict `true` of the checker's
 `isDefEq`.
 
-**There is no `trans` rule, deliberately** (`Rel.lean:334-357`, task
-#309).  The relation is the checker's verdict on two terms that are
+**There is no `trans` rule, deliberately** (`Rel.lean:334-357`).
+The relation is the checker's verdict on two terms that are
 well-formed *together*, a fact no rule states because well-formedness
 is semantic (`WellDenoted`) and may not enter this inductive.  Every
 rule respects one discipline instead: **the subject of each `DefEq`
@@ -565,7 +565,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   | const {Γ : List Expr} {c : Name} {ls ls' : List Level} :
       Level.eqList ls ls' = true → DefEq env Γ (const c ls) (const c ls')
   /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:399`): domains, then
-  bodies under the RIGHT domain, and nothing else (task #344).  A
+  bodies under the RIGHT domain, and nothing else.  A
   `∀`'s value is a function of its domain's and its fibres' values
   (`SetLib.piV`: the propositional function space exactly when every fibre is
   a truth value), and both are types, never the point, so the
@@ -574,7 +574,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
       DefEq env Γ (pi A₁ B₁) (pi A₂ B₂)
   /-- λ-congruence (`DefEq.lams`, `Rel.lean:407`): domains, then
-  bodies under the RIGHT domain — and, **typed** (task #344), the two
+  bodies under the RIGHT domain — and, **typed**, the two
   bodies' inferred types under that domain are definitionally equal.
   A λ's value is the point exactly when every body value is
   (`SetLib.lamV`), and a body may be a proof at some values of the
@@ -583,12 +583,12 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   says nothing where one of them is the point, so the two bodies must
   lie in one type, whose members are all the point or none
   (`Sound.lean`, `DefEq.lam_sound`; without the premise the rule is
-  unsound in this model, `Unannot.lean`, `lam_congr_untyped_unsound`). -/
+  unsound in this model, `ValueReading.lean`, `lam_congr_untyped_unsound`). -/
   | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-  /-- **λ-congruence over a propositional domain** (task #345): no
+  /-- **λ-congruence over a propositional domain**: no
   comparison of the bodies' types.  The domain is a truth value, so it
   has at most one member, and a body's point-ness cannot vary with
   the variable: a λ that is not the point has its one body value not
@@ -599,7 +599,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       Infer env Γ A₂ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-  /-- **λ-congruence of two constant bodies** (task #345): neither body
+  /-- **λ-congruence of two constant bodies**: neither body
   uses the bound variable, so each body's value, and its point-ness,
   is the same at every value of the variable; a λ that is not the
   point has a body that is not the point anywhere (`Sound.lean`,
@@ -609,7 +609,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       b₁.usesVar 0 = false → b₂.usesVar 0 = false →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-  /-- **η over a propositional domain** (task #345): `DefEq.eta`
+  /-- **η over a propositional domain**: `DefEq.eta`
   without the λ's body's type, for the reason of `lamProp`: over a
   domain with at most one member, the λ and `b` that are not the point
   have their one body value not the point (`Sound.lean`,
@@ -620,7 +620,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env (A₁ :: Γ) b₁ (app (b.liftN 1) (bvar 0)) →
       Infer env Γ A₁ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
       DefEq env Γ (lam A₁ b₁) b
-  /-- **Application congruence at the head's type** (task #345): the
+  /-- **Application congruence at the head's type**: the
   heads are equal and the head's type reduces to a `∀` whose domain
   `S` is the arguments' common type, so the arguments are compared
   *at* `S` (`DefEqIn`) — λ-congruence and η between them need neither
@@ -640,7 +640,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   /-- **η** (`DefEq.eta`, `Rel.lean:430`): a λ against a term `b`
   whose inferred type reduces to a `∀` with a definitionally equal
   domain, when the λ's body is `b` applied to the variable — and,
-  **typed** as λ-congruence is (task #344), the λ's body's inferred
+  **typed** as λ-congruence is, the λ's body's inferred
   type is definitionally equal to the `∀`'s body, so that the λ's body
   and `b` applied lie in one type.  Sound because a member of a
   function space is the abstraction of its applications
@@ -661,14 +661,14 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ b tb → Infer env Γ tb ttb → Red env Γ ttb (sort v) →
       LevelOracle.eq v .zero = true →
       DefEq env Γ a b
-  /-- **λ-telescope congruence** (task #349): a pair of λ-telescopes
+  /-- **λ-telescope congruence**: a pair of λ-telescopes
   compared level by level, the bodies' types compared only at the
   innermost level (`DefEqLams`).  The checker's two-λ arm skips the
   bodies' types exactly when both opened bodies are syntactically λs. -/
   | lams {Γ : List Expr} {a b : Expr} : DefEqLams env Γ a b → DefEq env Γ a b
 
-/-- **λ-telescope congruence, typed at the innermost level only**
-(task #349).  Two λ-telescopes are compared level by level: the domains
+/-- **λ-telescope congruence, typed at the innermost level only**.
+Two λ-telescopes are compared level by level: the domains
 at every level, the bodies' types only where the comparison stops
 descending through two λs.
 
@@ -693,7 +693,7 @@ itself, which has no reduction rule).  Where one body is not a λ — the
 comparison ends in η, or in any other rule, possibly after δ or whnf
 steps — that level is the innermost one (`inner`), and its bodies'
 types are inferred and compared at the full grade.  A δ or whnf step
-between levels therefore resets the accounting: #345's δ-witness `d :=
+between levels therefore resets the accounting: the δ-witness `d :=
 fun x => (fun h => h) n` (`Probe.lean`, `lam_congr_sorts_unsound`)
 puts the reduction inside `inner`'s untyped premise `DefEq … b₁ b₂`,
 where the type comparison is still required.  Syntactically equal
@@ -713,7 +713,7 @@ inductive DefEqLams (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEqLams env (A₂ :: Γ) b₁ b₂ →
       DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
 
-/-- **Comparison at a known type** (task #345): `a` and `b` are both
+/-- **Comparison at a known type**: `a` and `b` are both
 members of `T` — the caller knows it, the relation does not check it —
 and the checker calls them definitionally equal.  Its claim is
 unconditional (`DefEqInSem`): a type's members are all the point or
@@ -779,9 +779,9 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ f tf → Red env Γ tf (pi A B) →
       Infer env Γ a ta → DefEq env Γ ta A →
       Infer env Γ (app f a) (B.inst a)
-  /-- **`let`, by substitution** (task #342, F4; official `infer_let`
+  /-- **`let`, by substitution** (official `infer_let`
   with the body instantiated rather than opened at a let-variable, as
-  the checker does, design #342 v2 §11.x): the type's type reduces to a
+  the checker does): the type's type reduces to a
   sort, the value's inferred type is definitionally equal to the type,
   and the result is the inferred type of the body with the value
   substituted.  The two checks on the value are Lean's (they reject

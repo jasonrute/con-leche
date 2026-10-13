@@ -396,8 +396,8 @@ level in front, if large): the abstraction over its context — the
 parameters, the motive, the minors, the indices, the major — of the
 recursor's semantic value, the family read at the block's levels.
 Into `Prop` (`qv`) the body is the point outright: the motive's fibres
-are truth values, and the abstraction is read by its values (task
-#344), so a body that is not the point would make it a graph. -/
+are truth values, and the abstraction is read by its values,
+so a body that is not the point would make it a graph. -/
 noncomputable def recSet (lsr : List Nat) : V :=
   let ψr := valOf S.recLparams lsr
   let ls := S.lparams.map ψr

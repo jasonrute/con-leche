@@ -4,7 +4,7 @@ public import Fragment.Consistency
 public import Fragment.Install
 public import Fragment.Access
 public import Fragment.UniformBeta
-public import Fragment.Unannot
+public import Fragment.ValueReading
 public import Fragment.Probe
 public import Fragment.EtaIota
 public import Fragment.IOWitness

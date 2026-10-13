@@ -1,6 +1,6 @@
 module
 
-public import Fragment.Unannot
+public import Fragment.ValueReading
 import Fragment.Hygiene
 
 public section
@@ -9,7 +9,7 @@ public section
 # The λ-congruence type check, probed (task #345)
 
 Two findings about the check `DefEq.lam`/`DefEq.eta` under the
-value-driven regimes (`Unannot.lean`), each as a witness.
+value-driven regimes (`ValueReading.lean`), each as a witness.
 
 * **Point-denoting non-proofs** are the members of the types that
   denote `{pt}` at the valuation: `False → Nat` (`piV_of_empty`),
@@ -24,7 +24,7 @@ value-driven regimes (`Unannot.lean`), each as a witness.
   point, and it knows that only through a type the term lies in.
 
 * **Comparing the bodies' sorts is not enough**
-  (`lam_congr_sorts_unsound`).  The witness of `Unannot.lean` has an
+  (`lam_congr_sorts_unsound`).  The witness of `ValueReading.lean` has an
   ill-typed body; here both λs and both bodies are typed by the
   checker in the empty context, both bodies' types have sort `Type`,
   and the rule without the type comparison still equates two λs with

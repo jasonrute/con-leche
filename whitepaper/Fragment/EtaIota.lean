@@ -239,7 +239,7 @@ theorem etaLaw_vals {M : Name → List Nat → V} {c : Name} {ci : ConstInfo}
 
 namespace Red
 
-/-- **ι through the projections, the semantic core** (task #350): given
+/-- **ι through the projections, the semantic core**: given
 the plain ι law and the structure-η law, the redex
 `rec ps motive minor x` reduces to `minor (p₀ ps x) … (pₖ ps x)` with
 no certificate — no slot certificate on the major, no constructor
@@ -425,7 +425,7 @@ theorem projPt_of_fieldSort {M : Name → List Nat → V} {T : Expr} {ρ : Nat �
 namespace Red
 
 /-- **The projection of a constructor literal, with no certificate**
-(task #350; #347 dropped `projCertAt`): `p qs maj ⟶ fᵢ` where the
+(no certificate on the major's reduct): `p qs maj ⟶ fᵢ` where the
 major reduces to `mk … fs`.  If the major is the point, so is the
 redex, and nothing is claimed.  If not, the major's reduction is
 claimed, the literal is not the point, so it fits the constructor's
@@ -678,8 +678,8 @@ theorem not_wd_maj' : ¬ WellDenoted (witM (V := V)) φ ρ maj' := by
 end EtaWit
 
 open EtaWit in
-/-- **#349's counterexample, on values, and the eta path's answer to
-it** (task #350).  At a valuation where the structure is a
+/-- **The field counterexample, on values, and the eta path's answer to
+it**.  At a valuation where the structure is a
 proposition, the redex `rec minor (mk n)` with an ill-slotted field
 `n` is well-denoted and not the point.  Plain ι's reduct `minor n` is
 not well-denoted, so plain ι without a certificate on the field
@@ -705,8 +705,8 @@ theorem plainIota_literal_witness (φ : Name → Nat) :
     exact ⟨he.1, hv⟩
 
 open EtaWit in
-/-- **Eta on the reduct of the major is outside the claims** (task
-#350).  The major `maj := (fun x : A => g (k x)) a` is well-denoted
+/-- **Eta on the reduct of the major is outside the claims**.
+The major `maj := (fun x : A => g (k x)) a` is well-denoted
 and the point (a λ that is the point constrains nothing, so `a` may
 lie outside `A`), and it β-reduces to `maj' := g (k a)`, which is not
 well-denoted (`k` is a graph over `A`).  The redex `rec minor maj` is

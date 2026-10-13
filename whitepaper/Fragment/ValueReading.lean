@@ -5,7 +5,7 @@ public import Fragment.UniformBeta
 public section
 
 /-!
-# The value-driven regimes: the two prices (task #344)
+# Reading binders off the values: the two prices
 
 A binder of the fragment carries its domain alone (`Syntax.lean`), and
 the interpretation reads its regime off the values (`SetLib.piV`,
@@ -55,9 +55,9 @@ variable {V : Type w} [SetLib V]
 
 /-! ## The positive sorts hold `{pt}` -/
 
-/-- A function space over an empty domain is `{pt}`, which is no strict set:
-a positive sort holding only strict sets could not hold `False → Nat`
-under the value-driven reading. -/
+/-- A function space over an empty domain is `{pt}`, which is no strict set;
+so a positive sort, which holds `False → Nat`, holds a set that is not
+strict. -/
 theorem piV_empty_not_strict {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) :
     ¬ Strict (piV A B) := by
   rw [piV_of_empty h]; exact fun hs => hs.2 (mem_one.mpr rfl)

@@ -978,7 +978,7 @@ theorem split_recSpine {xs : List V} (hxs : xs.length = S.nP + 1 + S.n + S.nI) :
     by simp only [List.length_reverse, List.length_take, hrest]; omega,
     by simp only [List.length_reverse, List.length_drop, hrest]; omega⟩
 
-/-- **The K law of a generated rule** (`RecRuleLawK`, task #342 F2):
+/-- **The K law of a generated rule** (`RecRuleLawK`):
 for a block with one constructor `c`, which has no fields, at ANY
 values fitting the recursor's telescope — the major's value whatever
 term produced it — the recursor is the rule's right-hand side at the
@@ -1043,8 +1043,8 @@ theorem rec_rule_lawK {c : CtorSpec} (hK : S.ctors = [c]) (hnf : c.fields = []) 
   exact core
 
 
-/-- **The slot law of a generated rule** (`RecRuleSlotLaw`, task #342
-F2): where the recursor's telescope holds the point as the major, the
+/-- **The slot law of a generated rule** (`RecRuleSlotLaw`):
+where the recursor's telescope holds the point as the major, the
 fibre it lies in — the family at the recursor's own parameters,
 indices and levels (`fits_recCtx_iff`) — holds the point, so the
 family's sort is zero there (above it the fibre is a set of tagged
