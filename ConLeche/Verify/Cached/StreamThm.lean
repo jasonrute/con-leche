@@ -43,8 +43,6 @@ open ConLeche
 
 variable {pins : List NatOpPinSet}
 
-/-! ## Phase A's header install keeps the declared type -/
-
 /-! ## A theorem record is installed, with its declared type -/
 
 /-- Phase A's step at a `thmDecl` record with a bare declared type:
