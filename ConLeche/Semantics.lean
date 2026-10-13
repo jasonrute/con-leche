@@ -56,8 +56,8 @@ What is pure — the two-regime dependent function space and abstraction
 (`piR`/`lamR`), the built-in constants' value towers and the
 unit-terminated tuple tower — is `ConLeche/SetModel/*` and mentions
 neither `Expr` nor the interpretation's syntax.  Everything that reads a
-term lives here: the interpreted term language `ITerm` and its
-interpretation `interp`, the membership kit, `WellDenoted`, the
+term lives here: the interpretation `interp` of `Term`
+(`ConLeche/Term/*`), the membership kit, `WellDenoted`, the
 per-declaration run records and the run bridge (`Bridge/*`), the
 inductive-block facts (`Inductives/*`) and the tower introduction
 machinery that reads field domains (`Tower/*`).

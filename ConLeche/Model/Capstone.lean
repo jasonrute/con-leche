@@ -17,8 +17,7 @@ harvest layer builds toward them:
   `Empty`.  The membership is `mem_type` (the `denote` reading),
   the reading of `.const emptyName []` is the leaf by the
   `denote` constant clause, and the leaf's `interp` value is the
-  empty set by erasure injectivity at the constant constructor + the
-  carrier's `Empty` pin.
+  empty set by the carrier's `Empty` pin.
 * **the final statement, frozen** (checked against the goal's letter —
   consistency of the checker, hypothesis minimal, the #16 precedent):
 
@@ -84,7 +83,7 @@ environment carrying the P invariant stores no constant whose type is
 a reserved constant whose direct pin is `emptyT u` — the membership is
 `mem_type` at the `denote` reading, the reading of `.const n []` is
 the leaf by the constant clause, and the leaf's `interp` value is the
-empty set by erasure injectivity plus `basis_pinned`.  The `Empty` and
+empty set by `basis_pinned`.  The `Empty` and
 `False` capstones are its two instances. -/
 theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
     (hres : ConLeche.reservedBasisNames.contains n = true)

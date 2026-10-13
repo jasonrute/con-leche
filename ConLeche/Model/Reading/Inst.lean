@@ -31,7 +31,7 @@ structurally, so each closes by the recursion alone.
 
 Both are discharged from one closedness fact at every real supplier:
 `Term.liftN_eq_self` and `Term.inst_eq_self`
-(`Semantics/DenoteClosed.lean`) take the same
+(`Verify/Denote/VClosed.lean`) take the same
 `Term.bvarsBelow k (acval n ψ)` hypothesis, and `hacl` is
 already an `EnvModel` field (`acval_closed`).
 

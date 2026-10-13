@@ -17,7 +17,7 @@ Two things live here, entangled through the equation list `eqs`:
   (`Model/Inductives/BlockStageRec.lean`) asks of the stage's
   VALUATION, at the block route's leaf
   `blockRecAV s K RecTy eqs c` (`Semantics/Tower/BlockRecTower.lean`):
-  the erasure is closed, lifting is a no-op, the leaf depends on `ψ`
+  the leaf is closed, lifting is a no-op, the leaf depends on `ψ`
   only through its inputs, and it is `WellDenoted`.  Three of the four
   are a battery over the leaf's own spelling —
   `projChainAV c (choice (Σ' r⃗ : ⟨RecTy⃗⟩, ⋀ eqs) prf)` — and the
@@ -113,7 +113,7 @@ theorem closed_blockTsAV {K : Nat} {RecTy : Nat → Term}
   exact hT mm (List.mem_range.mp hmm)
 
 omit [SetTheory V] in
-/-- **C-1: the leaf's erasure is closed** — from the `K` recursor
+/-- **C-1: the leaf is closed** — from the `K` recursor
 types' closedness and the ι equations' bound at the chain frame. -/
 theorem closed_blockRecAV {s K : Nat} {RecTy : Nat → Term} {eqs : List Term} {c : Nat}
     (hT : ∀ c', c' < K → Term.Closed (RecTy c'))

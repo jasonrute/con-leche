@@ -419,7 +419,7 @@ depth. -/
 /-- **The base-independence of the opened reading**: a
 constant-frame subject's reverse opening reads to the same term at every base.  The lift the
 induction has to absorb is killed by `Term.liftN_eq_self` at the
-erasure's bvar bound — `denote_closed`'s route, one depth up. -/
+reading's bvar bound — `denote_closed`'s route, one depth up. -/
 theorem denote_openRev_base {acval : Name → (Name → Nat) → Term}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)

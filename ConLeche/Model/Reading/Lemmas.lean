@@ -8,9 +8,9 @@ public section
 /-!
 # The `denote` lemma battery (task #161, P3.2)
 
-The fixed lemma surface the model tier consumes `denote` through —
-clause equations, inversions, the depth shift, the environment
-crossing.  Fuel-free, and the binder inversions conclude
+The fixed lemma surface the model tier consumes `denote` through,
+beside the clause equations (`Verify/Denote.lean`): inversions and
+application spines.  Fuel-free, and the binder inversions conclude
 `ea = .pi ta ba` (resp. `.lam ta ba`) *definitionally*.  Every premise
 is one the *reading itself* needs (`hacl`: leaf lift-invariance;
 `FindPreserved`/`LitGuardsAgree`: the constant and literal clauses read

@@ -159,7 +159,7 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the stored-term reading (`Reading/DenoteMeta*`),
+The graded model: the stored-term reading's metatheory (`Reading/*`),
 `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,

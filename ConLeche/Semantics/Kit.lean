@@ -146,10 +146,9 @@ theorem interp_inst :
 
 /-! ### Interpretation invariance below a bound
 
-A closed term's interpretation does not read the environment.  Stated through the **erasure's** bound rather
-than a fresh `Term.bvarsBelow`: `erase` maps `bvar i` to `bvar i` and
-preserves every former's shape, so `Term.bvarsBelow k e` says
-exactly "`e`'s indices are below `k`", and no new predicate is needed.
+A closed term's interpretation does not read the environment: below a
+bound `Term.bvarsBelow k e`, the interpretation reads only the first
+`k` positions of the valuation.
 
 Needed by the literal clauses: the `Nat`/`String` blocks touch the
 interpretation only through `interp_app`, `interp_bvar`, `interp_sort`,

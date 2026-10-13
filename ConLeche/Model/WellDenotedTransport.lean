@@ -65,8 +65,7 @@ theorem WellDenotedTy.hoist_lift {Δa : List Term} {X e : Term}
   exact h _ (Sat_tail hρ)
 
 /-- **The stored leaves are `inst`-invariant** — `denote_beta`'s
-second leaf premise, discharged from the erasure link and the
-collapse-lane closedness field.  (Shared home: both the infer and the
+second leaf premise, discharged from the closedness field.  (Shared home: both the infer and the
 whnf quarters proved this independently at their batches; deduplicated
 here at the merge.) -/
 theorem acval_inst_self {env : ConLeche.Env}

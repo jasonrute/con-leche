@@ -8,7 +8,7 @@ public import ConLeche.Term.Const
 public section
 
 /-!
-# Denotation of kernel expressions into the erased term language
+# Denotation of kernel expressions into the term language
 
 `denote cval env φ d e` maps a kernel `Expr` to a `ConLeche.Term.Term`:
 the semantics tier's reading of a stored term.
@@ -68,8 +68,9 @@ with lifting, and the swamp `ConLeche/Term/Subst.lean` is proud of
 avoiding (lean4lean's 123 syntactic lemmas) would reappear one layer
 down.  So a stored `let` (terms keep their `let`s as Lean writes them)
 denotes the `letE` former: the value, and the body opened at a fresh
-variable, exactly as a binder's body.  The type must read (its constants resolve) and is dropped.  ζ is a
-theorem about the interpretation (`interp_zeta`), not a clause here.
+variable, exactly as a binder's body.  The type must read (its
+constants resolve) and is dropped.  ζ is a theorem about the
+interpretation (`interp_zeta`), not a clause here.
 
 ## Projections, and why the layer grew a former for them
 

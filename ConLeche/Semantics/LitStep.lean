@@ -10,7 +10,7 @@ public import ConLeche.Verify.Denote
 
 `natLit_factsAV`, the module's only theorem, mentions no fuel and no
 mode — a pure `interp`/`WellDenoted` statement about the `Term`
-numeral spine (`natLitT`, `Semantics/Canon.lean`) — and the model's
+numeral spine (`natLitT`, `Verify/Denote.lean`) — and the model's
 numeral clauses consume it.
 
 The numeral induction is stated over the two head facts as **explicit

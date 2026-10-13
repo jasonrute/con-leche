@@ -3,12 +3,16 @@ module
 @[expose] public section
 
 /-!
-# Syntax of the erased term language (task #74; relocated at #209)
+# Syntax of the term language (task #74; relocated at #209)
 
 `Term` is the semantics tier's *own* term datatype — deliberately not
 `ConLeche.Expr`.  It is what the denotation function from a real
-`Env`+`Expr` targets (`ConLeche/Verify/Denote.lean`), and it is chosen for
-proof convenience, not for fidelity to the checker's representation.
+`Env`+`Expr` targets (`ConLeche/Verify/Denote.lean`) and what the
+interpretation reads (`interp`, `ConLeche/Semantics/Interp.lean`), and
+it is chosen for proof convenience, not for fidelity to the checker's
+representation.  It lives in a base tier of its own because three
+tiers read it: `Verify/Denote/*` (the denotation and its syntactic
+metatheory), `Semantics/*` (the interpretation) and `Model/*`.
 
 There is no declarative typing judgment over this datatype (task
 #209); the sentences below that motivate a design choice by a typing
@@ -102,7 +106,7 @@ reflected, so `fun A a M m b h => m` types by conversion), the pair's
 recursor (`fun A B M f p => f p.1 p.2`, typed by conversion along
 structure eta), and the pair's projections themselves
 (`fun A B p => p.fst`/`p.snd`, once those are formers).  Dropping them
-removes the most index-heavy dependent types from `BConst.type`, and
+removes the most index-heavy dependent types from `BConst.typeAV`, and
 in the projections' case it is evidence that the former is the right
 primitive rather than an addition on top of one.
 -/

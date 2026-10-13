@@ -393,9 +393,9 @@ projection:
 | `EnvFacts` field | source |
 |---|---|
 | `cval`, `cval_closed`, `wf`, `proj_ok` | `base2`'s own |
-| `val_params` | `acval_params`, erased |
-| `ty_denotes` | `type_reads` through `denote_erase` |
-| `defn_eq` | `defn_reads` through `denote_erase` (definitions only: a theorem is opaque to reduction, and the invariant keeps no equation for its value) |
+| `val_params` | `acval_params` |
+| `ty_denotes` | `type_reads` |
+| `defn_eq` | `defn_reads` (definitions only: a theorem is opaque to reduction, and the invariant keeps no equation for its value) |
 | `rec_rhs_denotes`, `rec_params_le` | `rec_rules`' `RecRuleLaw`, whose first two components are exactly those two facts |
 | `nat_op_guard` | `nat_ops`/`div_mod` through `natOpStored_inv` |
 -/

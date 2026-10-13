@@ -12,7 +12,7 @@ public section
 `BConst` has no such constructors, so `acval_basis_pinned` — which
 unlocks the other blocks' leaves — is *empty* on `eqK`.  The leaves are
 built by hand: `Semantics/EqTower.lean`'s `eqValT`/`eqReflValT`/
-`eqRecValT`, and here their semantic-syntax towers.
+`eqRecValT`, and here are their laws.
 
 The binders carry no regime: `interp` reads it off the values
 (`lamV`).  `Eq`'s innermost body is a truth value, never the point, so
@@ -32,11 +32,6 @@ open ConLeche (Name)
 universe w
 
 variable {V : Type w} [SetTheory V]
-
-/-! ## The towers
-
-The towers are `Semantics/EqTower.lean`'s `eqValT`/`eqReflValT`/
-`eqRecValT`. -/
 
 /-! ### The towers read the assignment only at their own level names -/
 

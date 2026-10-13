@@ -21,8 +21,8 @@ leaf; the sum leaves' syntactic battery.
 
 The `hAclosed` row of an install-step leaf is
 `Term.liftN 1 (leaf) k = leaf`, and by `Term.liftN_eq_self`
-(`Semantics/DenoteClosed.lean`) that is exactly boundedness of the
-leaf's **erasure**.  So this
+(`Verify/Denote/VClosed.lean`) that follows from the leaf's
+boundedness.  So this
 section is a bvar-bound walk per leaf former, plus the peel lemma that
 produces the binder domains' bounds from the (closed) type reading
 (`stripPisAV_below`).  No semantics, no `V`.
@@ -34,7 +34,7 @@ open ConLeche.SetModel
 
 open ConLeche.Term
 
-/-! ## Bound-variable bounds, at the erasure -/
+/-! ## Bound-variable bounds -/
 
 /-- The domains of a Π-frame, each bounded at its own depth
 (`mkPisAV`'s data). -/

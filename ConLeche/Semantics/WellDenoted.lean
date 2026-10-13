@@ -7,7 +7,7 @@ import ConLeche.SetTheory.Derive.Sigma
 /-!
 # `WellDenoted`: the semantic invariant over `interp` (task #151 tier C; task #342)
 
-The model's invariant on the semantic syntax.  It holds of a term when
+The model's invariant on `Term`.  It holds of a term when
 it holds of the subterms and one condition on the term's own shape is
 met; the conditions **record what is a type** (`IsTy X := X ∈ univZero
 ∨ Strict X`, the sets whose members are all the point or none of them):

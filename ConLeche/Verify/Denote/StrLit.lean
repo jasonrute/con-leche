@@ -85,9 +85,11 @@ theorem stringOfList_shape {env : Env} (hg : strLitSupported env = true) :
 /-! ## The list constructors
 
 `List.nil` and `List.cons` are the two support constants with a level
-parameter, and `strLitT` instantiates it at `Level.zero`.  Their types
+parameter, and `denote`'s string-literal clause instantiates it at
+`Level.zero`.  Their types
 therefore have to be denoted at the *substituted* assignment: the
-assignment `strLitT` uses and the one the stored type is denoted at differ only away from the
+assignment that clause uses and the one the stored type is denoted at
+differ only away from the
 constant's own parameters, so the valuation cannot tell them apart. -/
 
 /-- `List.nil.{p} : ∀ (α : Sort (p+1)), List.{p} α`. -/

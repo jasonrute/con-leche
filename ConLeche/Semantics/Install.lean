@@ -14,8 +14,8 @@ public import ConLeche.Verify.Denote.Install
 The one theorem that mentions `V` (`acvalWith_wellDenoted`) takes
 `WellDenoted` as a hypothesis and returns it.
 
-The `EnvModel` install keys are **six syntactic fields and two semantic
-ones**: `acval` (data), `acval_erase`, `acval_closed`,
+The `EnvModel` install keys are **five syntactic fields and two semantic
+ones**: `acval` (data), `acval_closed`,
 `acval_params`, `acval_defn` and `acval_thm` mention no
 `V` at all, while only `acval_wellDenoted` and `mem_type2` do.  So the first
 thing the install tier needs is not semantics — it is the *algebra*
@@ -51,7 +51,7 @@ theorem acvalWith_self {acval : Name → (Name → Nat) → Term}
 
 /-! ## The three syntactic fields, transported
 
-`acval_erase`, `acval_closed` and `acval_params` are conditions on an
+`acval_closed` and `acval_params` are conditions on an
 install-fixed object with no `interp` in them (the
 `EnvModel` docstrings say so of the last two).  Each therefore extends by
 a case split on the updated name and nothing else. -/

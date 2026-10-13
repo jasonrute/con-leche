@@ -11,15 +11,10 @@ public section
 The absorption laws at `Term`, and the `Term.instSeq`
 corollaries (`instSeqAV_*`).
 
-**Why these are not free, and why they are cheap.**  `Term.liftN`
-and `Term.inst` are `Term`'s clause for clause
-(`Semantics/Syntax.lean`), so `erase` is a
-homomorphism for both — but an equation between *readings* is strictly
-stronger than an equation between their erasures, so no erasure
-argument transports.  So each law is re-proved by the
-same structural induction, and each clause is one `simp only` plus the
-inductive hypothesis, which is exactly what makes the transposition
-mechanical.
+**Why they are cheap.**  `ConLeche/Term/Subst.lean` keeps only the
+definitions and their clause equations; each law here is one structural
+induction on `Term`, and each clause is one `simp only` plus the
+inductive hypothesis.
 -/
 
 namespace ConLeche.Model

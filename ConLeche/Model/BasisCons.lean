@@ -69,11 +69,8 @@ variable {μ : CheckMode} {env : Env}
 /-! ## The P basis leaves are pinned FOR FREE
 
 The P tier needs no "basis constants are valued by their direct pins"
-field of its own beside `EnvModel.basis_pinned`, and the reason is one
-line of `Term`'s definition: the erasure is structural and
-maps `.const` to `.const` and *nothing else* to `.const`.  So the
-erased equation `(acval n ψ) = .const c us` is the `Term`
-equation `acval n ψ = .const c us` outright.
+field of its own beside `EnvModel.basis_pinned`: that field states the
+leaf equation `acval n ψ = .const c us` outright.
 
 Every downstream basis obligation reads the leaf through this — the
 type readings are `BConst.typeAV` towers over the *pinned* leaves, and
@@ -83,8 +80,7 @@ checker's pinned `ConstantInfo` blocks and the TT `BConst` alphabet is
 the basis tier's structural crux, and this is its P half. -/
 
 /-- **A stored reserved-basis constant's leaf is its direct
-pin.**  From `EnvModel.basis_pinned`, by injectivity of
-`erase` at a constant head. -/
+pin.**  `EnvModel.basis_pinned`'s second component. -/
 theorem acval_basis_pinned {m : EnvModel V env}
     {n : Name} {ci : ConstantInfo} (hf : env.find? n = some ci)
     (hres : ConLeche.reservedBasisNames.contains n = true)

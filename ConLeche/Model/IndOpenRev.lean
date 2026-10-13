@@ -29,9 +29,9 @@ frame's variables, and the `openRev` pair identifies them:
   a `True` grading.  (`.prf` fails the first: `pt_not_mem_univZero`.)
 * `pinCross` — the composite.
 
-Boundedness is stated of the value's **erasure**
-(`Term.liftN_eq_self` / `Term.inst_eq_self` are keyed
-there), and `denote_erase` + `denote_bvarsBelow` produce it.
+Boundedness is stated as `Term.bvarsBelow` (`Term.liftN_eq_self` /
+`Term.inst_eq_self` are keyed there), and `denote_bvarsBelow` produces
+it.
 -/
 
 namespace ConLeche.Model
@@ -44,14 +44,14 @@ open ConLeche (Env Expr Name Level)
 
 universe w
 
-variable {acval : Name → (Name → Nat) → Term} {cval : (Name → (Name → Nat) → Term)}
+variable {acval : Name → (Name → Nat) → Term}
 variable {env : Env} {φ : Name → Nat}
 
 /-! ## `instSeq` corollaries at bounded readings -/
 
 open ConLeche.Term.Term in
 /-- A reading with only low bound variables passes an `instSeq`
-untouched, at the erasure's boundedness. -/
+untouched. -/
 theorem instSeqAV_eq_self_of_bvarsBelow :
     ∀ (vs : List Term) (t : Nat) {X : Term} {m : Nat},
       Term.bvarsBelow m X → m + vs.length ≤ t + 1 →

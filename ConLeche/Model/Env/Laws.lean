@@ -454,7 +454,7 @@ regime).  **Consumer**: the ι rule's soundness (`Red.iota_sound`,
 
 /-- **The telescope fit of readings** (substitution-peeling): each argument reading inhabits its
 progressively-substituted domain, one ambient environment, the
-residual an `Term` at that environment. -/
+residual a `Term` at that environment. -/
 inductive TeleFitPA (V : Type w) [SetTheory V] (ρ : Nat → V) :
     Term → List Term → Term → Prop where
   | nil {T : Term} : TeleFitPA V ρ T [] T

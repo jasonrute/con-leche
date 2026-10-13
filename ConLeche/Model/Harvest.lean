@@ -508,7 +508,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
 
 * the stored kind is `.thmInfo cvA` — no `hint`, and no div/mod
   pin clause;
-* there is no erasure link to read: a theorem is opaque to reduction
+* there is no value–leaf equation to read: a theorem is opaque to reduction
   (`unfoldDefinition` has no `thmInfo` arm — anticipating
   https://github.com/leanprover/lean4/pull/14896), so the invariant
   keeps no equation between the value and the leaf, and `hvalReads`
@@ -956,7 +956,7 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
 
 /-! ## The `opaque` kind
 
-The species, with the erasure link read **directly** off the run's
+The species, with the value–leaf equation read **directly** off the run's
 leaf equation (no `defn_eq` detour). -/
 
 theorem harvestOpaque (hμ : μ.verifiedChecks = true)
