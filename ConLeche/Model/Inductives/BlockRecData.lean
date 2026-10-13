@@ -1515,7 +1515,7 @@ theorem blockRuleRhs_read_run {envC : Env} (hμ : μ.verifiedChecks = true)
     rw [hacR, ← hac] at hRa
     exact ⟨Ra, by rw [← hcross]; exact hRa, hok⟩
   refine ⟨fun φ us => ?_, fun ψ ρ => ?_⟩
-  · rw [denote_instLevels (acvalParamsAt_of_core m₃) φ]
+  · rw [denote_instLevels m₃.acval_params φ]
     obtain ⟨Ra, hRa, -⟩ := hone (Level.substFn φ r.1.levelParams us)
     rw [hRa, blockRuleRaOf, hRa]
     rfl
@@ -1658,7 +1658,7 @@ theorem blockRuleTVa_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ 
   obtain ⟨-, -, hres, -, -⟩ := ConLeche.recStage_facts h r (List.mem_of_getElem? hr)
   obtain ⟨-, -, -, hread, -⟩ :=
     recStage_tyPis hμ mpC h hr (Level.substFn φ r.1.levelParams us)
-  rw [denote_instLevels (acvalParamsAt_of_core m₃) φ,
+  rw [denote_instLevels m₃.acval_params φ,
     blockRecDenote_cross h hac _ 0 _ (constsBound_of_constsResolve _ hres) hread] at hTVa
   exact (Option.some.inj hTVa).symm
 
@@ -1895,7 +1895,7 @@ theorem blockRuleRhsOk_base {envC : Env} (hμ : μ.verifiedChecks = true)
   obtain rfl := blockRuleTVa_run hμ mpC h hac hrj φ us hTVa
   have hcross := blockRecDenote_cross h hac (Level.substFn φ cA.1.levelParams usj) 0
     cA.1.type hctorCB (hctorRead (Level.substFn φ cA.1.levelParams usj))
-  rw [denote_instLevels (acvalParamsAt_of_core m₃) φ, hcross] at hTVja
+  rw [denote_instLevels m₃.acval_params φ, hcross] at hTVja
   obtain rfl : ctorTy (Level.substFn φ cA.1.levelParams usj) = TVja := Option.some.inj hTVja
   -- the rule's own reading, as a function of the valuation
   have hreadRa : denote m₃.acval
@@ -1904,7 +1904,7 @@ theorem blockRuleRhsOk_base {envC : Env} (hμ : μ.verifiedChecks = true)
       = some (blockRuleRaOf m₃.acval
           (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) rhs
           (Level.substFn φ r.1.levelParams us)) := by
-    rw [← denote_instLevels (acvalParamsAt_of_core m₃) (ks := r.1.levelParams) (us := us) φ]
+    rw [← denote_instLevels m₃.acval_params (ks := r.1.levelParams) (us := us) φ]
     exact hreadR φ us
   unfold BlockRuleBase
   rw [hstored] at hfitR hidx ⊢

@@ -854,13 +854,13 @@ theorem eqRecExtra {m : EnvModel V env}
       (eqRecRule.rhs.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecRa ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRec_rhs (m := m) _ hE hR hEv hRv]
   have hTyRead : denote m₂.acval ⟨eqRecA :: env.consts⟩ φ 0
       (eqRecA.toConstantVal.type.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecTy ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRecA_type (m := m) _ hE hR hEv hRv]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -953,7 +953,7 @@ theorem eqRecLaw {m : EnvModel V env}
       (eqRecRule.rhs.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecRa ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRec_rhs (m := m) _ hE hR hEv hRv]
   refine ⟨_, hRa, fun ρ => (eqRecRa_data ψ ρ).1, ?_, ?_⟩
   · intro _ _ h
@@ -985,7 +985,7 @@ theorem eqRecLaw {m : EnvModel V env}
       (eqRecA.toConstantVal.type.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecTy ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRecA_type (m := m) _ hE hR hEv hRv]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -994,7 +994,7 @@ theorem eqRecLaw {m : EnvModel V env}
         eqReflA.toConstantVal.levelParams usj)
       = some (eqReflTy
           (Level.substFn φ eqReflA.toConstantVal.levelParams usj)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_eqReflTy (m := m) _ (by decide) hE hEv]
   obtain rfl : TVja = _ :=
     (Option.some.inj (hCtorRead.symm.trans hTVja)).symm

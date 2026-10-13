@@ -90,18 +90,4 @@ theorem EnvModel.acval_closed {env : Env} (m : EnvModel V env)
   acval_params := fun _ _ _ _ _ _ => rfl
   acval_wellDenoted := fun _ _ _ => by simp
 
-/-! ### Level-insensitivity of the leaf valuation -/
-
-/-- **Residue 8**: the leaf valuation is level-insensitive. -/
-@[expose] def AcvalParams {env : Env} (m : EnvModel V env) : Prop :=
-  ∀ n ci, env.find? n = some ci →
-    ∀ ψ₁ ψ₂ : Name → Nat,
-      (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
-      m.acval n ψ₁ = m.acval n ψ₂
-
-/-- **Residue 8 is discharged** — it is the `acval_params` field. -/
-theorem acvalParams {env : Env} (m : EnvModel V env) :
-    AcvalParams m :=
-  m.acval_params
-
 end ConLeche.Model

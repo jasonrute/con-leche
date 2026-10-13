@@ -1157,7 +1157,7 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true)
       = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i
           (Level.substFn φ cA.1.levelParams usj)) := by
     intro usj
-    rw [denote_instLevels (acvalParamsAt_of_core m₃) φ]
+    rw [denote_instLevels m₃.acval_params φ]
     exact blockRecDenote_cross h hac _ 0 cA.1.type hctorCB (G.hctorRead _)
   refine ⟨fun hk1 => ?_, ?_⟩
   · ------------------------------------------------------------------ K
@@ -1821,7 +1821,7 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   have hTy : denote mpC.base2.acval envC ψc n
       (cA.1.type.instantiateLevelParams cA.1.levelParams (cvI.levelParams.map Level.param))
       = some T0 := by
-    rw [denote_instLevels (acvalParamsAt_of_core mpC.base2) ψc, hlpC, hself]
+    rw [denote_instLevels mpC.base2.acval_params ψc, hlpC, hself]
     exact denote_depth_of_closed hacl hCf
       (fun k => denote_liftN_eq_self mpC.base2.cval_closed hCf hCb hT0 1 k)
       hT0 _
@@ -1950,7 +1950,7 @@ theorem genOutCtorRefit {j : Nat} {cvI : ConstantVal}
   have hTy : denote mpC.base2.acval envC ψc n
       (cA.1.type.instantiateLevelParams cA.1.levelParams (cvI.levelParams.map Level.param))
       = some T0 := by
-    rw [denote_instLevels (acvalParamsAt_of_core mpC.base2) ψc, hlpC, hself]
+    rw [denote_instLevels mpC.base2.acval_params ψc, hlpC, hself]
     exact denote_depth_of_closed hacl hCf
       (fun k => denote_liftN_eq_self mpC.base2.cval_closed hCf hCb hT0 1 k)
       hT0 _
@@ -2620,7 +2620,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i
           (Level.substFn φ cA.1.levelParams usj)) := by
     intro usj
-    rw [denote_instLevels (acvalParamsAt_of_core m₃) φ]
+    rw [denote_instLevels m₃.acval_params φ]
     exact blockRecDenote_cross h hac _ 0 cA.1.type hctorCB (hctorRead _)
   have hnpd : (tgtMajor out j).nPc = (tgtMajor out j).ds.length := Rd.hnpc
   -- the pins, read at the cons as at the constructors' environment

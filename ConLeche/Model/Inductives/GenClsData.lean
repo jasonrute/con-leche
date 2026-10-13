@@ -245,7 +245,7 @@ theorem genOutCtorFit (hμ : μ.verifiedChecks = true)
   obtain rfl : crest' = tgtCrest out c j := hcr'
   have hTy : denote mpC.base2.acval envC ψ (tgtRP pp.toBlockShape c)
       (cA.1.type.instantiateLevelParams cA.1.levelParams (tgtMajor out c).lvls) = some T0 := by
-    rw [denote_instLevels (acvalParamsAt_of_core mpC.base2) ψ, hlpC]
+    rw [denote_instLevels mpC.base2.acval_params ψ, hlpC]
     exact denote_depth_of_closed hacl hCf
       (fun k => denote_liftN_eq_self mpC.base2.cval_closed hCf hCb hT0 1 k)
       hT0 _
@@ -374,7 +374,7 @@ theorem genOutPinVal
     hwsOs hbOs hpF hpB hw'
   refine ⟨vpa, ?_, fun ρ zs hzs => ?_⟩
   · rw [ConLeche.openRev_instantiateLevelParams,
-      denote_instLevels (acvalParamsAt_of_core mpC.base2) φ, ← hψ]
+      denote_instLevels mpC.base2.acval_params φ, ← hψ]
     exact hvpden
   · obtain ⟨w0, hw0', hcross⟩ := pinCross (acval := mpC.base2.acval)
       (env := envC) (φ := ψ) (cnF := 0) hacl hainst mpC.base2.cval_closed

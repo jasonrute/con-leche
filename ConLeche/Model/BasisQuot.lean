@@ -858,7 +858,7 @@ theorem quotIndExtra {m : EnvModel V env}
       (quotIndA.toConstantVal.type.instantiateLevelParams
         quotIndA.toConstantVal.levelParams us)
       = some (quotIndTy (ψ uN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_quotIndA_type (m := m) _ hQ hM, ← hψ]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -903,7 +903,7 @@ theorem quotIndExtra {m : EnvModel V env}
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
     intro usj
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_quotMkTy (m := m) _ (by decide) hQ]
   -- the major's domain: the quotient at the recursor's parameters
   have hpeel : ∀ (ρ : Nat → V) (xs : List Term) (a restR : Term), xs.length = 4 →
@@ -993,7 +993,7 @@ theorem quotIndLaw {m : EnvModel V env}
       (quotIndRule.rhs.instantiateLevelParams
         quotIndA.toConstantVal.levelParams us)
       = some (quotIndRa (ψ uN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_quotInd_rhs (m := m) _ hQ hM]
   refine ⟨quotIndRa (ψ uN), hRa, fun ρ => quotIndRa_wellDenoted _ ρ, ?_, ?_⟩
   · intro _ _ h
@@ -1019,7 +1019,7 @@ theorem quotIndLaw {m : EnvModel V env}
       (quotIndA.toConstantVal.type.instantiateLevelParams
         quotIndA.toConstantVal.levelParams us)
       = some (quotIndTy (ψ uN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_quotIndA_type (m := m) _ hQ hM, ← hψ]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -1028,7 +1028,7 @@ theorem quotIndLaw {m : EnvModel V env}
         quotMkA.toConstantVal.levelParams usj)
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_quotMkTy (m := m) _ (by decide) hQ]
   obtain rfl : TVja = _ :=
     (Option.some.inj (hCtorRead.symm.trans hTVja)).symm
@@ -2123,7 +2123,7 @@ theorem quotLiftExtra {m : EnvModel V env}
       = some (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_quotLiftA_type (m := m) _ hQ hE]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -2168,7 +2168,7 @@ theorem quotLiftExtra {m : EnvModel V env}
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
     intro usj
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_quotMkTy (m := m) _ (by decide) hQ]
   -- the major's domain: the quotient at the recursor's parameters
   have hpeel : ∀ (ρ : Nat → V) (xs : List Term) (a restR : Term), xs.length = 5 →
@@ -2270,7 +2270,7 @@ theorem quotLiftLaw {m : EnvModel V env}
       = some (quotLiftRa
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_quotLift_rhs (m := m) _ hE]
   refine ⟨_, hRa,
     fun ρ => quotLiftRa_wellDenoted hval0 hgr0 ρ, ?_, ?_⟩
@@ -2307,7 +2307,7 @@ theorem quotLiftLaw {m : EnvModel V env}
       = some (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_quotLiftA_type (m := m) _ hQ hE]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -2316,7 +2316,7 @@ theorem quotLiftLaw {m : EnvModel V env}
         quotMkA.toConstantVal.levelParams usj)
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_quotMkTy (m := m) _ (by decide) hQ]
   obtain rfl : TVja = _ :=
     (Option.some.inj (hCtorRead.symm.trans hTVja)).symm

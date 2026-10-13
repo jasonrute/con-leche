@@ -2036,7 +2036,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
           (fun _ => genRbAV R.g R.rd)))
         (ConLeche.consBlockRecsR (ConLeche.tgtRulesR envC.find? pp.toBlockShape (ConLeche.tgtMajorsOf out))
           pp.toBlockShape 0 (tgtRs out) envC) rhs (Level.substFn φ r.1.levelParams us)) := by
-    rw [← hac, ← denote_instLevels (acvalParamsAt_of_core m₃) (ks := r.1.levelParams)
+    rw [← hac, ← denote_instLevels m₃.acval_params (ks := r.1.levelParams)
       (us := us) φ]
     exact hreadR φ us
   have hok : ∀ ρ' : Nat → V, WellDenoted V ρ' (blockRuleRaOf

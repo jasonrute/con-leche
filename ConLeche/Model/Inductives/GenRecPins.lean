@@ -509,7 +509,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
   have hcbP : ConstsBound envC (pins.getD q default) := constsBound_of_constsResolve _ hpR
   refine ⟨vpa, ?_, ?_⟩
   · rw [ConLeche.openRev_instantiateLevelParams,
-      denote_instLevels (acvalParamsAt_of_core m₃) φ, ← hψ]
+      denote_instLevels m₃.acval_params φ, ← hψ]
     exact blockRecDenote_cross h hac ψ rP _ (constsBound_openRev hcbP 0 rP) hvpden
   · intro ρ zs TVa restR hzslen hzsOk hTVa hfit
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa

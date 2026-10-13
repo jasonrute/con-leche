@@ -1054,7 +1054,7 @@ theorem natRecTyRead (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
             (.pi (natStepTy)
               (.pi (.const .nat [])
                 (.app (.bvar 3) (.bvar 0)))))) := by
-  rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+  rw [denote_instLevels m₂.acval_params φ, hac,
     denote_natRecA_type (m := m) _ hN hZ hS, ← hψ]
   rfl
 
@@ -1178,7 +1178,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
   refine ⟨natZeroRa ψ, ?_, natZeroRa_wellDenoted ψ, ?_, ?_⟩
-  · rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+  · rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_natRec_zeroRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
@@ -1231,7 +1231,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
   refine ⟨natSuccRa ψ, ?_, natSuccRa_wellDenoted ψ, ?_, ?_⟩
-  · rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+  · rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_natRec_succRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
@@ -1266,7 +1266,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
     exact a1.symm
   subst hcvj
   have hTVja' : TVja = .pi (.const .nat []) (.const .nat []) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_natSuccTy (m := m) _ (by decide) hN] at hTVja
     exact (Option.some.inj hTVja).symm
   subst hTVja'

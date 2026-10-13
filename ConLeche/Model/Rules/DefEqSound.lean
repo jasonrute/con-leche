@@ -65,13 +65,12 @@ theorem DefEq.fvar_soundU {d i : Nat} {ty₁ ty₂ : Expr} :
   obtain rfl : ba = Term.bvar (d - 1 - i) := (Option.some.inj hba).symm
   rfl
 
-/-- `acval_const_congr'` with `AcvalParams`
-(`Model/Env/EnvModel.lean`, `acvalParams m`). -/
+/-- `acval_const_congr`, on the `acval_params` field. -/
 theorem DefEq.const_soundU {d : Nat} {n : Name} {us us' : List Level}
     (h : Level.isEquivList us us' = some true) :
     DefEqSemU m φ d (.const n us) (.const n us') := by
   intro _ _ Δa aa ba _ _ haa hba _ _ _ _ _ _
-  obtain rfl : aa = ba := acval_const_congr' (acvalParams m) h haa hba
+  obtain rfl : aa = ba := acval_const_congr h haa hba
   rfl
 
 /-- `denoteNatZeroConst`: the literal `0` reads as `Nat.zero`. -/
