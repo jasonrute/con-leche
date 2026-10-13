@@ -130,11 +130,11 @@ theorem exprOfF_mono {ε ε' : Type} {nm : Nat → Except ε Name} {lv : Nat →
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)
       (fun _ _ hx => bind_mono (fun w hw => he _ _ hw) (fun _ _ hy => pure_mono hy) hx) h
-  | lam ty bd pw =>
+  | lam ty bd =>
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)
       (fun _ _ hx => bind_mono (fun w hw => he _ _ hw) (fun _ _ hy => pure_mono hy) hx) h
-  | forallE ty bd pw =>
+  | forallE ty bd =>
     simp only [exprOfF] at h ⊢
     exact bind_mono (fun w hw => he _ _ hw)
       (fun _ _ hx => bind_mono (fun w hw => he _ _ hw) (fun _ _ hy => pure_mono hy) hx) h

@@ -2916,3 +2916,11 @@
 # `let`).  Both checkers fold here, as they should (official pays
 # 3.4e9 instructions too).  Accept, today and as the target.
 0 letfold_inline.ndjson
+# binder_pw_field (task #342): the legacy binder field `pw` is no
+# longer part of the format; a stream carrying it is malformed
+# (unknown key, the same recogniser error as any other key outside the
+# dialect) -- exit 3 (bad usage, malformed input, or an internal
+# failure of unclear cause; `ConLeche.CheckError.exitCode`,
+# `ConLeche/Driver/Run.lean`), not a REJECT (exit 1 is reserved for a
+# well-formed stream whose declaration is invalid).
+3 binder_pw_field.ndjson

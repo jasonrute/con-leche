@@ -89,14 +89,9 @@ def isApp (f a i : Nat) : LineRec → Bool
   | .expr 9 (.strVal s) => s == "a\"b\\c"
   | _ => false
 
--- a binder: `binderInfo` and `name` are validated and dropped; the
--- legacy `pw` field is scanned (default `never`), its names resolved,
--- and dropped at resolution (`ConLeche/Frontend/ExportC.lean`)
+-- a binder: `binderInfo` and `name` are validated and dropped
 #guard (scan1 "{\"ie\":5,\"lam\":{\"binderInfo\":\"instImplicit\",\"body\":4,\"name\":1,\"type\":0}}").any fun
-  | .expr 5 (.lam 0 4 .never) => true
-  | _ => false
-#guard (scan1 "{\"ie\":5,\"lam\":{\"binderInfo\":\"default\",\"body\":4,\"name\":1,\"type\":0,\"pw\":[2]}}").any fun
-  | .expr 5 (.lam 0 4 (.ifAllZero [2])) => true
+  | .expr 5 (.lam 0 4) => true
   | _ => false
 
 -- the header record is validated loosely and skipped; a blank line is blank
@@ -158,7 +153,7 @@ the strength of the very equality under test (`@[csimp]`), so a `#guard`
 on `scanLineSpec` would compare the fast recogniser with itself.
 `naiveLine` is a different constant and is compiled as written. -/
 
-deriving instance DecidableEq for NameRec, LevelRec, PwRec, ExprRec, CVRec, HintsRec, RuleRec,
+deriving instance DecidableEq for NameRec, LevelRec, ExprRec, CVRec, HintsRec, RuleRec,
   IndTypeRec, IndCtorRec, IndRecRec, DeclRec, LineRec, ScanErr, ScanRes
 
 /-- The naive recogniser's reading of a whole line, as a `ScanRes`: a
@@ -194,8 +189,7 @@ def probes : List String :=
    "{\"ie\":9,\"strVal\":\"\\x\"}",
    "{\"ie\":40,\"strVal\":\"a\"}",
    "{\"ie\":5,\"lam\":{\"binderInfo\":\"instImplicit\",\"body\":4,\"name\":1,\"type\":0}}",
-   "{\"ie\":5,\"lam\":{\"binderInfo\":\"default\",\"body\":4,\"name\":1,\"type\":0,\"pw\":[2]}}",
-   "{\"ie\":5,\"forallE\":{\"binderInfo\":\"implicit\",\"body\":4,\"name\":1,\"type\":0,\"pw\":\"never\"}}",
+   "{\"ie\":5,\"forallE\":{\"binderInfo\":\"implicit\",\"body\":4,\"name\":1,\"type\":0}}",
    "{\"ie\":1855,\"letE\":{\"body\":1854,\"name\":430,\"nondep\":false,\"type\":1809,\"value\":1845}}",
    "{\"ie\":112,\"proj\":{\"idx\":1,\"struct\":5,\"typeName\":23}}",
    "{\"ie\":7,\"const\":{\"name\":1,\"us\":[1, 2 ,3]}}",
@@ -234,8 +228,6 @@ def probes : List String :=
    "{\"ie\":8 \"bvar\":0}",
    "{\"ie\"8}",
    "{\"ie\":8,\"app\":{\"arg\":1,\"fn\":7}",
-   "{\"ie\":8,\"lam\":{\"binderInfo\":\"default\",\"body\":4,\"name\":1,\"type\":0,\"pw\":[2,]}}",
-   "{\"ie\":8,\"lam\":{\"binderInfo\":\"default\",\"body\":4,\"name\":1,\"type\":0,\"pw\":\"nope\"}}",
    "{\"meta\":{\"unbalanced\":[}}",
    "{\"meta\":[1,2]}",
    "{\"il\":2,\"max\":[1,0,3]}"]
