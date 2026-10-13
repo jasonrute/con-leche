@@ -733,7 +733,8 @@ private theorem iotaRec_fire_tail (henv : EnvWF env)
       · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
 
 /-- Simulation of the major chain, in either order (the K flag is the
-single rule's stored bit, read identically on both sides). -/
+single rule's stored bit, read identically on both sides; off K, the
+rescue on the raw major, then, failing a constructor, the whnf chain). -/
 theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
     {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr}
     {major : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
@@ -754,13 +755,42 @@ theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
       exact litMajorToCtorC_sim ih hs₁ hd₁ hw₁
     · rw [ite_eq_right hca, ite_eq_right hca]
       exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
-  · rw [ite_eq_right hk, ite_eq_right hk]
-    refine SimC.bind (ih.whnf hs hden hmaj) (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
-    obtain ⟨hd₁, hw₁⟩ := hP₁
-    refine SimC.bind (litMajorToCtorC_sim ih hs₁ hd₁ hw₁)
-      (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
-    obtain ⟨hd₂, hw₂⟩ := hP₂
-    exact majorToCtorC_sim hμ ih hs₂ hd₂ hw₂
+  · -- the structure rescues on the raw major first (task #342 R2)
+    rw [ite_eq_right hk, ite_eq_right hk]
+    obtain rfl := hden
+    by_cases hsl : i.isStrLit = true
+    · rw [ite_eq_left hsl, ite_eq_left hsl]
+      refine SimC.bind (SimC.pure (P := RelEC d) hs (show RelEC d i i from ⟨rfl, hmaj⟩))
+        (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
+      obtain ⟨hd₁, hw₁⟩ := hP₁
+      dsimp only
+      rw [isCtorAppC_spec' hd₁]
+      by_cases hca : isCtorApp env m₁x
+      · rw [ite_eq_left hca, ite_eq_left hca]
+        exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
+      · rw [ite_eq_right hca, ite_eq_right hca]
+        refine SimC.bind (ih.whnf hs₁ hd₁ hw₁) (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
+        obtain ⟨hd₂, hw₂⟩ := hP₂
+        refine SimC.bind (litMajorToCtorC_sim ih hs₂ hd₂ hw₂)
+          (fun s₃ m₃ m₃x hs₃ hP₃ => ?_)
+        obtain ⟨hd₃, hw₃⟩ := hP₃
+        exact majorToCtorC_sim hμ ih hs₃ hd₃ hw₃
+    · rw [ite_eq_right hsl, ite_eq_right hsl]
+      refine SimC.bind (majorToCtorC_sim hμ ih hs rfl hmaj)
+        (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
+      obtain ⟨hd₁, hw₁⟩ := hP₁
+      dsimp only
+      rw [isCtorAppC_spec' hd₁]
+      by_cases hca : isCtorApp env m₁x
+      · rw [ite_eq_left hca, ite_eq_left hca]
+        exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
+      · rw [ite_eq_right hca, ite_eq_right hca]
+        refine SimC.bind (ih.whnf hs₁ hd₁ hw₁) (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
+        obtain ⟨hd₂, hw₂⟩ := hP₂
+        refine SimC.bind (litMajorToCtorC_sim ih hs₂ hd₂ hw₂)
+          (fun s₃ m₃ m₃x hs₃ hP₃ => ?_)
+        obtain ⟨hd₃, hw₃⟩ := hP₃
+        exact majorToCtorC_sim hμ ih hs₃ hd₃ hw₃
 
 private theorem iotaRec_unfold (env : Env) (d : Nat)
     (e : Expr) :

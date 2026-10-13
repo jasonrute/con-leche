@@ -667,11 +667,34 @@ def projLitToCtor (r : CoreFns m) (env : Env) (depth : Nat) :
     else pure (.lit (.strVal s))
   | e => pure e
 
+/-- Is `e` a `String` literal?  (The structure rescue leaves one to the
+literal conversion, as lean4#15351's `to_cnstr_when_structure` does.) -/
+def Expr.isStrLit : Expr → Bool
+  | .lit (.strVal _) => true
+  | _ => false
+
 /-- The major premise's preparation before a rule fires.  Elsewhere
-(the non-K case), the official order (`inductive_reduce_rec`,
-`src/kernel/inductive.cpp`; lean4lean `Inductive/Reduce.lean:66-72`):
-the major is head-normalized first, its literal converted, and the
-structure-eta rescue (`to_ctor_when_structure`) tried on the reduct.
+(the non-K case), the order of lean4#15351 (the kernel's
+`inductive_reduce_rec` after Lean's kernel logic renovation,
+lean4#14977): the structure rescues (`to_cnstr_when_structure`; here
+also the `And` rescue) run on the major **as found**, before any head
+normalization; only if they do not produce a constructor is the major
+head-normalized, its literal converted, and the rescue tried once more
+on the reduct.  A `String` literal skips the first attempt (lean4#15351
+leaves it to the literal conversion).
+
+Why the rescue comes first (task #342 R2, the arena's
+`corner-cases/eta-struct-major-no-whnf` and
+`eta-struct-major-and-no-whnf`): a structure major whose head
+normalization does not terminate — `Prod.rec f loopPair`, `loopPair`
+an `Acc.rec` over a proof built from Coquand's paradox; `And.rec f h`
+for such a proof `h` — is rescued by reading only its *type*, and the
+rule fires without the major ever being reduced.  Reducing first let
+the proof's non-termination leak into the conversion of data.  The
+rescues are `Red` steps on any major (`Red.rescueEta`,
+`Red.rescueAnd`), so the order changes no claim; the reduct `minor
+(S.p₀ x) … (S.pₖ x)` is convertible with the one plain ι gives after
+the major reduces to `S.mk ps fs`.
 
 At a K-flagged recursor the K rescue (`to_ctor_when_K`) runs on the
 **raw** major — it reads only the major's *type* and fabricates the
@@ -693,13 +716,13 @@ would find); on mathlib-full the `whnf` after a failed K rescue ran
 TASK #333 record's audit). A K-like recursor application whose rescue
 fails is now simply stuck, sound either way.
 
-The two rescues (K and structure-eta) live in one function
+The rescues (K, structure-eta, `And`) live in one function
 (`majorToCtor`); the K branch is reachable exactly at `recRuleK`, the
-eta branch never is there (an inductive proposition fails its
-provably-nonzero guard), so the split below dispatches each to its
-official site and neither is attempted twice.
+eta and `And` branches never are there (an inductive proposition fails
+the eta branch's provably-nonzero guard, and `And` is not K), so the
+split below dispatches each to its site.
 
-Why the non-K order matters (2026-09-06, the Mathlib `decide`-over-`Rat`
+Why the K order matters (2026-09-06, the Mathlib `decide`-over-`Rat`
 frontier): with the whnf *first*, an `Eq.rec` whose major is a
 theorem application — `Eq.ndrec … (Int.decEq._proof_1 a b h)` with
 `h := Nat.eq_of_beq_eq_true …`, the shape `instDecidableEqRat`'s
@@ -717,9 +740,14 @@ def prepareMajor (r : CoreFns m) (env : Env) (depth : Nat)
     else
       pure majorK
   else
-    let major₀ ← r.whnf depth major
-    let major₁ ← litMajorToCtor r env depth major₀
-    majorToCtor r env depth recName rules major₁
+    let majorE ← if major.isStrLit then pure major
+      else majorToCtor r env depth recName rules major
+    if isCtorApp env majorE then
+      pure majorE
+    else
+      let major₀ ← r.whnf depth majorE
+      let major₁ ← litMajorToCtor r env depth major₀
+      majorToCtor r env depth recName rules major₁
 
 /-- One iota step: the expression is a stored recursor applied to
 exactly its telescope (params, motives, minors, indices, major), the

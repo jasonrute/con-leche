@@ -554,8 +554,10 @@ def projLitToCtorI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (e : Expr) :
 /-- Twin of `prepareMajor`: the major's preparation (K rescue on the
 raw major; task #334 — no `whnf` either way after it: if it produced a
 constructor, only the literal conversion follows; if it failed, the
-major is left exactly as it is; elsewhere whnf, literal, eta).  The K
-flag is the single rule's stored bit, as in the spec (`recRuleK`). -/
+major is left exactly as it is; elsewhere the structure rescues on the
+raw major first (lean4#15351, task #342 R2), and only if they produce
+no constructor whnf, literal, rescue).  The K flag is the single rule's
+stored bit, as in the spec (`recRuleK`). -/
 def prepareMajorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
     (recName : Name) (rules : List RecRule) (major : Expr) :
     CheckCM Expr := do
@@ -565,9 +567,13 @@ def prepareMajorI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
       litMajorToCtorI r fe depth majorK
     else pure majorK
   else do
-    let major₀ ← r.whnf depth major
-    let major₁ ← litMajorToCtorI r fe depth major₀
-    majorToCtorI mode r fe depth recName rules major₁
+    let majorE ← if major.isStrLit then pure major
+      else majorToCtorI mode r fe depth recName rules major
+    if isCtorAppC fe majorE then pure majorE
+    else do
+      let major₀ ← r.whnf depth majorE
+      let major₁ ← litMajorToCtorI r fe depth major₀
+      majorToCtorI mode r fe depth recName rules major₁
 
 /-- The nested-rule pin instantiations (structural recursion;
 the spec side is `(recFireComparands …).2`'s `List.map`). -/
@@ -791,7 +797,7 @@ term's depth); every *reduction* step is iteration, so a chain no
 longer charges the shared recursion-depth budget one unit per step
 (task #106 — that is what made the `Nat.brecOn` grind of
 `Std.Time…toDays._proof_1` exhaust `checkFuel`). -/
-def whnfCoreStepI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat)
+@[inline] def whnfCoreStepI (r : CoreFnsI) (fe : FEnv) (cheap : Bool) (depth : Nat)
     (k : Expr → CheckCM Expr) (e : Expr) : CheckCM Expr := do
     match e with
     | .sort _ | .fvar .. | .forallE ..
@@ -884,8 +890,13 @@ def inferSpineIOI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
         inferSpineIOI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
 
-/-- Twin of `whnfStep`. -/
-def whnfStepI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
+/-- Twin of `whnfStep`.  `@[inline]` (a compiler attribute; the term
+is unchanged): inlined into `whnfLoopI`, the continuation call becomes
+the loop's own tail call, which the compiler turns into a jump, so a
+δ chain of any length runs in constant native stack (task #342 R2: a
+non-terminating δ chain — Coquand's paradox — runs until the external
+timeout instead of overflowing the stack). -/
+@[inline] def whnfStepI (r : CoreFnsI) (fe : FEnv) (depth : Nat)
     (k : Expr → CheckCM Expr) (e : Expr) : CheckCM Expr := do
   let e₁ ← r.whnfCore false depth e
   match ← reduceNatI r fe depth e₁ with

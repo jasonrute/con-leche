@@ -1214,6 +1214,10 @@ private theorem iotaIndexOk_shift (henv : EnvWF env)
       rw [← getAppArgs_shiftFrom] at h4
       exact h4
 
+private theorem isStrLit_shiftFrom {p : Nat} {e : Expr} :
+    (shiftFrom p e).isStrLit = e.isStrLit := by
+  cases e <;> first | rfl | (rw [shiftFrom_fvar]; done) | (rw [shiftFrom_fvar]; rfl)
+
 /-- The major chain commutes with the shift, in either order. -/
 private theorem prepareMajor_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (recName : Name)
@@ -1233,17 +1237,45 @@ private theorem prepareMajor_shift (henv : EnvWF env)
       · exact WScoped.of_wscopedB hwsc
     rw [isCtorApp_shiftFrom]
     exact ite_rel _ (fun _ => litMajorToCtor_shift henv ih hpd hw₁) (fun _ => rfl)
-  · rw [ite_eq_right hk, ite_eq_right hk]
-    refine bind_rel _ _ (ih.whnf hpd hwmaj) ?_
-    intro m₀ hm₀
-    have hw₀ : WScoped d m₀ := whnf_WScoped henv fuel hm₀ hwmaj
-    refine bind_rel _ _ (litMajorToCtor_shift henv ih hpd hw₀) ?_
-    intro m₁ hm₁
-    have hw₁ : WScoped d m₁ := by
-      rcases litMajorToCtorFueled_inv hm₁ with rfl | ⟨s, -, -, hred⟩
-      · exact litToCtorIfNat_WScoped hw₀
-      · exact whnf_WScoped henv fuel hred (strLitToConstructor_WScoped s d)
-    exact majorToCtor_shift henv ih hpd recName rules hw₁
+  · rw [ite_eq_right hk, ite_eq_right hk, isStrLit_shiftFrom]
+    -- the chain after the first rescue attempt (task #342 R2), at any
+    -- scoped intermediate major
+    have tail : ∀ {mE : Expr}, WScoped d mE →
+        (if isCtorApp env (shiftFrom p mE) = true then pure (shiftFrom p mE)
+          else do
+            let major₀ ← (pureFns mode env fuel).whnf (d + 1) (shiftFrom p mE)
+            let major₁ ← litMajorToCtor (pureFns mode env fuel) env (d + 1) major₀
+            majorToCtor (pureFns mode env fuel) env (d + 1) recName rules major₁) =
+          (if isCtorApp env mE = true then pure mE
+            else do
+              let major₀ ← (pureFns mode env fuel).whnf d mE
+              let major₁ ← litMajorToCtor (pureFns mode env fuel) env d major₀
+              majorToCtor (pureFns mode env fuel) env d recName rules major₁).map
+            (shiftFrom p) := by
+      intro mE hwE
+      rw [isCtorApp_shiftFrom]
+      refine ite_rel _ (fun _ => rfl) (fun _ => ?_)
+      refine bind_rel _ _ (ih.whnf hpd hwE) ?_
+      intro m₀ hm₀
+      have hw₀ : WScoped d m₀ := whnf_WScoped henv fuel hm₀ hwE
+      refine bind_rel _ _ (litMajorToCtor_shift henv ih hpd hw₀) ?_
+      intro m₁ hm₁
+      have hw₁ : WScoped d m₁ := by
+        rcases litMajorToCtorFueled_inv hm₁ with rfl | ⟨s, -, -, hred⟩
+        · exact litToCtorIfNat_WScoped hw₀
+        · exact whnf_WScoped henv fuel hred (strLitToConstructor_WScoped s d)
+      exact majorToCtor_shift henv ih hpd recName rules hw₁
+    by_cases hs : major.isStrLit = true
+    · rw [ite_eq_left hs, ite_eq_left hs]
+      exact tail hwmaj
+    · rw [ite_eq_right hs, ite_eq_right hs]
+      refine bind_rel _ _ (majorToCtor_shift henv ih hpd recName rules hwmaj) ?_
+      intro m₁ hm₁
+      have hw₁ : WScoped d m₁ := by
+        rcases majorToCtor_inv hm₁ with rfl | ⟨hwsc, -, -, -⟩
+        · exact hwmaj
+        · exact WScoped.of_wscopedB hwsc
+      exact tail hw₁
 
 private theorem iotaRec_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {e : Expr}
