@@ -205,11 +205,13 @@ holds the truth values too: it must, since `False → Nat`, of sort
 #src("whitepaper/Fragment/Unannot.lean", 58, 63)[which is no strict set].
 The point is no type, so no sort holds it.
 
-// PORT: con-leche's `tyU` is on the port branch, not yet on master;
-// link it (`ConLeche/SetTheory/Derive/TypeU.lean`) once it lands.
 #real[
-  Con-leche's sorts denote the same sets, the universe's types
-  (`tyU`), read off the same notion of a strict set.
+  Con-leche's sorts denote the same sets:
+  #src("ConLeche/SetTheory/Derive/Univ.lean", 34, 35)[a sort's universe]
+  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 261, 263)[the universe of types],
+  read off the same notions of a
+  #src("ConLeche/SetTheory/Derive/TypeU.lean", 57, 58)[strict set] and a
+  #src("ConLeche/SetTheory/Derive/TypeU.lean", 60, 61)[type].
 ]
 
 This is the whole of the interpretation. Nothing had to be well-typed;
@@ -426,7 +428,7 @@ graph whose application to `False` is the point and to `True` is not
 (#src("whitepaper/Fragment/Probe.lean", 65, 72)[a body whose point-ness varies]).
 
 The three claims are proved together, by #src("whitepaper/Fragment/Sound.lean", 2202, 2311)[one structural induction] over
-the three mutually inductive relations (#src("ConLeche/Model/Rules/Sound.lean", 43, 44)[as in con-leche]).
+the three mutually inductive relations (#src("ConLeche/Model/Rules/Sound.lean", 49, 50)[as in con-leche]).
 Every rule is one case, and every case is a lemma about that rule
 alone, with the induction hypothesis for each premise as an assumption.
 Most cases are routine and are listed at the end; the ones below are
@@ -629,15 +631,18 @@ from typing. The two checks are:
   only. This subsection explains it.
 + *The constructor's fields in one case of ι-reduction*: when the
   family of the major premise may be a proposition at the instance
-  and the motive may not, every parameter and field of the
+  and the rule is not K, every parameter and field of the
   constructor application is type-checked against the constructor's
   type (@sec:iota-cases explains it).
 
-// PORT: the λ/η check runs in the ported checker (S0-F), not on master.
 #real[
-  On real input neither check ever fails: they never change a verdict
-  on a stream the official kernel accepts. Both run at `--verified`
-  only; `--trusted` skips them.
+  The checks are the checker's
+  #src("ConLeche/Kernel/Core.lean", 1249, 1255)[innermost λ level],
+  #src("ConLeche/Kernel/Core.lean", 475, 480)[its $eta$] and
+  #src("ConLeche/Kernel/Core.lean", 795, 806)[the case of ι]. On real
+  input neither kind ever fails: they never change a verdict on a
+  stream the official kernel accepts. Both run at `--verified` only;
+  `--trusted` skips them.
 ]
 
 *Why λ-congruence needs the bodies' types.* The claim on the bodies
@@ -759,10 +764,9 @@ The bodies' types at λ-congruence and $eta$ are not served, as the
 witness above shows: that is why the checker infers them at the full
 grade, and keeps the two grades' results apart.
 
-// PORT: master's io grade certifies the argument at binders whose
-// datum says "maybe a proposition"; the ported checker's is infer_only.
 #real[
-  The checker's cheap grade is `infer_only` exactly. Like it, the
+  The checker's cheap grade is
+  #src("ConLeche/Kernel/Core.lean", 1111, 1116)[`infer_only` exactly]. Like it, the
   grade does not check a let-binding's value against its type
   (the full grade does, @sec:infer); the soundness proof needs no
   such check, since the value is substituted.

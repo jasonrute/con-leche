@@ -11,7 +11,7 @@ checking what the official kernel checks (on a few features it declines
 instead; @sec:left-out). It comes with a proof, written in Lean itself, of what an
 acceptance means: every environment the checker accepts
 #src("ConLeche/MainTheorem.lean", 96, 99)[has a model in set theory].
-#src("ConLeche/Denotes.lean", 270, 290)[Each constant is assigned a set], each type denotes a set, and every stored
+#src("ConLeche/Denotes.lean", 266, 286)[Each constant is assigned a set], each type denotes a set, and every stored
 constant is a member of the set its type denotes; the constant `False`
 denotes the empty set, and `Eq` denotes set equality, so every equation
 the checker accepts is an equality of sets.
@@ -41,9 +41,9 @@ equality. Our proof needs none of it.
 
 Nor does it have a typing judgement. In its place is a description of what the checker _does_: three
 inductively defined relations (six in the real proof, where premises
-about lists get relations of their own; @sec:left-out) — one for #src("ConLeche/Rules/Rel.lean", 96)[reduction], one for the verdicts of the
-#src("ConLeche/Rules/Rel.lean", 333)[definitional-equality test], one for
-#src("ConLeche/Rules/Rel.lean", 479)[type inference] — whose rules are exactly the
+about lists get relations of their own; @sec:left-out) — one for #src("ConLeche/Rules/Rel.lean", 101)[reduction], one for the verdicts of the
+#src("ConLeche/Rules/Rel.lean", 358)[definitional-equality test], one for
+#src("ConLeche/Rules/Rel.lean", 549)[type inference] — whose rules are exactly the
 moves the checker makes, each rule's premises being what the checker
 verified at that point. On the model side there is a total,
 term-directed #src("whitepaper/Fragment/Interp.lean", 139, 146)[interpretation]: every term denotes a set, well-typed or
@@ -107,9 +107,6 @@ fragment is verified in Lean in a small development of its own,
 parametric in the same kind of abstract set theory. The underlined
 source links are for the reader
 who wants to see the real thing; everyone else can ignore them.
-
-// PORT: master's checker still differs from the design described here;
-// W2 checks every real-checker statement once the port lands.
 
 The rest is in seven parts. §2 presents the fragment without an
 environment: terms and universe levels, the three relations, the

@@ -62,11 +62,11 @@ model, and §2 used the first already. A proposition denotes a
 #src("whitepaper/Fragment/Lib.lean", 142, 148)[truth value], a subset of
 ${pt}$, so any two proofs of any two propositions denote the same
 set — the proof-irrel case of @thm:sound, which
-#src("ConLeche/Model/Rules/DefEqSound.lean", 309, 316)[never compared the two propositions]. And two
+#src("ConLeche/Model/Rules/DefEqSound.lean", 302, 304)[never compared the two propositions]. And two
 propositions that imply each other have
 #src("whitepaper/Fragment/Lib.lean", 173, 174)[the same truth value], by extensionality of sets: that is Lean's
 axiom `propext`, which therefore
-#src("ConLeche/Model/AxiomMem.lean", 414, 422)[holds in the model].
+#src("ConLeche/Model/AxiomMem.lean", 297, 304)[holds in the model].
 
 == η for structures <sec:ext-eta>
 
@@ -115,16 +115,16 @@ covers it. The same law on values, a member is the constructor at its
 projections, is what the step of $iota$ through the projections in
 @sec:iota-cases rests on.
 
-// PORT: the ported checker drops the field certificates of structure η
-// and of the η rescue; re-cite this block after the port.
 #real[
-  The checker has the rule as
-  #src("ConLeche/Rules/Rel.lean", 431, 434)[a certificate on the fields],
+  The checker has the rule as Lean has it,
+  #src("ConLeche/Rules/Rel.lean", 458, 469)[the constructor's fields compared with the projections of the other side],
   with
-  #src("ConLeche/Model/Rules/DefEqSound.lean", 321, 323)[its soundness case],
-  and uses the same certificate to rescue a recursor stuck on a
-  non-constructor $s$
-  (#src("ConLeche/Model/Rules/IotaSound.lean", 584, 585)[the η rescue]).
+  #src("ConLeche/Model/Rules/DefEqSound.lean", 676, 678)[its soundness case],
+  and uses the same law to rescue a recursor stuck on a
+  non-constructor $s$: it applies the constructor to the projections
+  of $s$, with no further check
+  (#src("ConLeche/Rules/Rel.lean", 275, 285)[the η rescue],
+  #src("ConLeche/Model/Rules/IotaSound.lean", 721, 722)[its soundness case]).
   Whether a type has the rule at all is decided once, when it is installed,
   from its shape — one constructor, no index, not a proposition, in a
   block where no constructor is recursive — and
@@ -133,7 +133,7 @@ projections, is what the step of $iota$ through the projections in
   the η law of the structure's _projection table_ — the record of
   its fields' types that the checker stores for every
   one-constructor, index-free type (@sec:left-out, "Projections")
-  (#src("ConLeche/Model/Inductives/FixKit.lean", 804, 805)[a member is the constructor at the parameters and its own projections]),
+  (#src("ConLeche/Model/Inductives/FixKit.lean", 729, 730)[a member is the constructor at the parameters and its own projections]),
   proved when
   #src("ConLeche/Model/Inductives/BlockStageTables.lean", 10, 12)[the checker stores the table],
   by the argument above on the tagged tuple.
@@ -163,13 +163,13 @@ takes in the model, and the lemma is the same sentence in each.
 
 #real[
   The checker has the rule for
-  #src("ConLeche/Rules/Rel.lean", 463, 468)[any stored unit-like family],
+  #src("ConLeche/Rules/Rel.lean", 494, 499)[any stored unit-like family],
   with
-  #src("ConLeche/Model/Rules/DefEqSound.lean", 698, 699)[its soundness case].
+  #src("ConLeche/Model/Rules/DefEqSound.lean", 314, 315)[its soundness case].
   Unit-likeness is recorded at installation, like η (one constructor,
   no index, no field, in a block where no constructor is recursive),
   and the law is established there from the fixed point
-  (#src("ConLeche/Model/Inductives/FixKit.lean", 1754, 1755)[the fibre is the one tagged empty tuple]).
+  (#src("ConLeche/Model/Inductives/FixKit.lean", 1791, 1792)[the fibre is the one tagged empty tuple]).
   Neither `PUnit` nor `True` is special to the checker: both are
   installed like any other block.
 ]

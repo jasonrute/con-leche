@@ -72,17 +72,13 @@ $u eq.dot v$ for "the oracle says $u = v$".
 
 == The three relations <sec:rules>
 
-// PORT: the `ConLeche/Rules/Rel.lean` citations of this section point at
-// master's relation, whose β, λ, ∀ and η rules change with the port;
-// repoint them (and re-read the citing sentences) once it lands.
-
 The checker is described by three relations over terms, defined
 together by inference rules: _reduction_ $Gamma tack e red e'$,
 _definitional equality_ $Gamma tack a equiv b$, and _inference_
 $Gamma tack e => T$.  A context $Gamma$ lists the variables in scope
 with their types.  The complete rule sets are
 #src("whitepaper/Fragment/Rules.lean", 56, 798)[one mutual inductive definition],
-#src("ConLeche/Rules/Rel.lean", 92, 96)[as in con-leche].
+#src("ConLeche/Rules/Rel.lean", 97, 101)[as in con-leche].
 
 *How to read them.*  The three relations describe _what the checker
 does_, not what is true.  $Gamma tack a equiv b$ means: on the terms
@@ -106,7 +102,7 @@ e$.  Chains of any length are read the same way.
 
 Reduction chains the head steps the checker makes when it normalises
 a term.  It is #src("whitepaper/Fragment/Rules.lean", 58, 69)[reflexive and transitive], and it
-#src("ConLeche/Rules/Rel.lean", 96, 112)[reaches inside the head] of an application.
+#src("ConLeche/Rules/Rel.lean", 101, 117)[reaches inside the head] of an application.
 
 #rules(
   rule(name: "refl", $Gamma tack e red e$),
@@ -141,7 +137,7 @@ takes a symmetry step; the rule is there so that each one-sided rule
 below — red-l, $eta$ — need be written once and its mirror image
 follows), and it interleaves with
 reduction in one way: reduce the left side, then continue.  Sorts
-are #src("ConLeche/Rules/Rel.lean", 333, 361)[compared through the level oracle].
+are #src("ConLeche/Rules/Rel.lean", 372, 374)[compared through the level oracle].
 
 #rules(
   rule(name: "refl", $Gamma tack a equiv a$),
@@ -207,7 +203,7 @@ justifies it: every proof denotes the one canonical point, so two
 proofs of two propositions denote the same set outright.
 
 *No transitivity.*  #src("whitepaper/Fragment/Rules.lean", 529, 546)[The list has no rule] "$a equiv b$ and $b equiv c$
-give $a equiv c$", and #src("ConLeche/Rules/Rel.lean", 309, 332)[none can be added].  Look at the shape of the
+give $a equiv c$", and #src("ConLeche/Rules/Rel.lean", 334, 357)[none can be added].  Look at the shape of the
 rules above: the two terms of every equality premise are each either a
 subterm of the conclusion (the congruences, the $eta$ body) or a
 term that another premise _produced_ — a reduct (red-l) or an
@@ -217,14 +213,21 @@ that matters, once the proof is on the table.  What the
 checker does instead of chaining equalities is chain reductions:
 reduce, then continue, which is red-l.
 
-// PORT: master's relation has a further reason why a transitivity rule
-// would be unsound (its free-variable and proof fast-path rules); W2 may
-// restate it here for the ported relation.
+#real[
+  In con-leche a transitivity rule would also meet two rules that are
+  each sound alone. Free variables are
+  #src("ConLeche/Rules/Rel.lean", 375, 381)[compared by index], not by
+  the types they carry, and a
+  #src("ConLeche/Rules/Rel.lean", 439, 444)[fast path] equates two
+  terms whose heads' declared types say they are proofs. Chained, the
+  two would equate any two variables: give each the type of a
+  proposition, then compare the two proofs.
+]
 
 === Inference <sec:infer>
 
 A variable's type is #src("whitepaper/Fragment/Rules.lean", 740, 748)[read off the context], and a sort
-#src("ConLeche/Rules/Rel.lean", 479, 495)[has the next sort].
+#src("ConLeche/Rules/Rel.lean", 549, 565)[has the next sort].
 
 #rules(
   rule(name: "var", $(x : A) in Gamma$, $Gamma tack x => A$),
@@ -250,7 +253,7 @@ the sort of that type is not computed.
 )
 
 An #src("whitepaper/Fragment/Rules.lean", 772, 781)[application infers the head's type], reduces it to a $forall$,
-infers the argument's type and #src("ConLeche/Rules/Rel.lean", 537, 540)[compares it with the domain].
+infers the argument's type and #src("ConLeche/Rules/Rel.lean", 617, 621)[compares it with the domain].
 A #src("whitepaper/Fragment/Rules.lean", 782, 796)[let-expression] checks that its type has a
 sort and that its value's type agrees with it, as Lean does, and then
 infers the type of the body with the value substituted.
@@ -291,11 +294,11 @@ The soundness proof does not use them (@sec:claims): the
 interpretation reads no type, and the body is inferred with the value
 itself in place of the variable.
 
-// PORT: describes the ported checker's `let` handling (master's
-// annotation pass inlines every `let` before checking); re-cite after the port.
 #real[
   The checker substitutes the value in the same way, both when it
-  reduces and when it infers; it keeps no variables bound to values.
+  #src("ConLeche/Kernel/Core.lean", 921, 923)[reduces] and when it
+  #src("ConLeche/Kernel/Core.lean", 1102, 1107)[infers]; it keeps no
+  variables bound to values.
   Lean's kernel opens the body at such a variable instead, which avoids
   copying the value when the body uses it many times; for con-leche
   that case is a known performance gap, not a soundness question.

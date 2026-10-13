@@ -24,9 +24,9 @@ corollary follow in @sec:ind.
 
 *The environment* $E$ — fixed throughout, like the valuation — is a
 #src("whitepaper/Fragment/Env.lean", 109, 125)[list of the constants] accepted so far,
-#src("ConLeche/Kernel/Env.lean", 674)[most recent first]. A
+#src("ConLeche/Kernel/Env.lean", 521)[most recent first]. A
 #src("whitepaper/Fragment/Env.lean", 63, 100)[stored constant] has its level parameters $arrow(p)$, its type — a closed
-term over $arrow(p)$ — and #src("ConLeche/Kernel/Env.lean", 468, 482)[its _kind_]; we write
+term over $arrow(p)$ — and #src("ConLeche/Kernel/Env.lean", 322, 336)[its _kind_]; we write
 $(c.\{arrow(p)\} : T) in E$ for "$c$ is stored with parameters
 $arrow(p)$ and type $T$", and $(c.\{arrow(p)\} : T := v) in E$ when
 it is a definition with value $v$: a
@@ -37,7 +37,7 @@ stored at most once.
 
 *Constants.* The grammar of @sec:terms gains one form: a #src("whitepaper/Fragment/Syntax.lean", 35, 36)[constant $c$]
 of the environment, used at a list of levels $arrow(ell)$,
-#src("ConLeche/Kernel/Expr.lean", 328, 338)[one per level parameter] of its declaration.
+#src("ConLeche/Kernel/Expr.lean", 315, 325)[one per level parameter] of its declaration.
 
 $
   e & colon.double.eq dots | c.\{arrow(ell)\}
@@ -47,14 +47,14 @@ $
 declared with level parameters $arrow(p)$ is taken at the levels
 $arrow(ell)$, replaces the parameters in sorts and in the level lists
 of constants
-(#src("ConLeche/Kernel/Level.lean", 230, 241)[as in con-leche]).
+(#src("ConLeche/Kernel/Level.lean", 226, 239)[as in con-leche]).
 
 *The rules for constants.* A constant
 #src("whitepaper/Fragment/Rules.lean", 749, 753)[has its declared type] at the
 levels it is used at, and two constants of the same name
 #src("whitepaper/Fragment/Rules.lean", 563, 566)[are compared] through the level oracle
-(in con-leche: #src("ConLeche/Rules/Rel.lean", 489, 495)[inference]
-and #src("ConLeche/Rules/Rel.lean", 356, 361)[equality]).
+(in con-leche: #src("ConLeche/Rules/Rel.lean", 559, 565)[inference]
+and #src("ConLeche/Rules/Rel.lean", 381, 386)[equality]).
 
 #rules(
   rule(name: "const",
@@ -67,7 +67,7 @@ and #src("ConLeche/Rules/Rel.lean", 356, 361)[equality]).
 
 *The $delta$ rule.* A definition #src("whitepaper/Fragment/Rules.lean", 88, 94)[unfolds to its value] at the levels
 it is used at
-(#src("ConLeche/Rules/Rel.lean", 129, 133)[as in con-leche]). With the
+(#src("ConLeche/Rules/Rel.lean", 137, 141)[as in con-leche]). With the
 head rule of @sec:rules, an applied definition unfolds at its head.
 
 #rules(
@@ -80,8 +80,8 @@ head rule of @sec:rules, an applied definition unfolds at its head.
 *What a definition must satisfy.* Before the checker stores a
 definition $c$ with parameters $arrow(p)$, type $T$ and value $v$, it
 #src("whitepaper/Fragment/Decl.lean", 591, 605)[checks four things]
-(in con-leche: #src("ConLeche/Kernel/CheckerBase.lean", 96, 116)[the common checks]
-and #src("ConLeche/Kernel/Checker.lean", 34, 50)[the value check]):
+(in con-leche: #src("ConLeche/Kernel/CheckerBase.lean", 126, 144)[the common checks]
+and #src("ConLeche/Kernel/Checker.lean", 34, 47)[the value check]):
 
 - the name $c$ is fresh;
 - the type has a sort: $tack T => S red Sort u$;
@@ -146,7 +146,7 @@ the declared level parameters.
 
 #real[
   The real proof's model carries the same two laws among others
-  (#src("ConLeche/Model/Annot/EnvModelM.lean", 159, 185)[the carrier's invariant]).
+  (#src("ConLeche/Model/Env/EnvModelM.lean", 229, 252)[the carrier's invariant]).
 ]
 
 The empty environment #src("whitepaper/Fragment/EnvModel.lean", 364, 373)[has a model
@@ -165,7 +165,7 @@ gains three cases, one per rule.
   $|arrow(ell)| = |arrow(p)|$ levels: \
   Law 2 says the instantiated
   value is well-denoted and denotes $M(c, phi(arrow(ell)))$, which is
-  #src("ConLeche/Model/Rules/RedSound.lean", 240, 241)[what the constant denotes].
+  #src("ConLeche/Model/Rules/RedSound.lean", 235, 236)[what the constant denotes].
   The redex's semantic invariant is not even needed.
   @thm:install-def shows the law holds when a definition is added.
 
@@ -174,20 +174,20 @@ gains three cases, one per rule.
   $arrow(ell) eq.dot arrow(ell)'$ pointwise: \
   The oracle answers yes
   only if the levels agree at every valuation (@sec:levels), so the
-  two constants #src("ConLeche/Model/Rules/DefEqSound.lean", 76, 78)[read the same entry of $M$].
+  two constants #src("ConLeche/Model/Rules/DefEqSound.lean", 70, 72)[read the same entry of $M$].
 
   *#src("whitepaper/Fragment/Sound.lean", 276, 281)[Rule const, inference]*
   — $c.\{arrow(ell)\} => T[arrow(p) := arrow(ell)]$: \
   The constant is
   well-denoted, and law 1 says its instantiated type is well-denoted,
-  a type, and #src("ConLeche/Model/Rules/InferSound.lean", 172, 177)[contains the constant's set].
+  a type, and #src("ConLeche/Model/Rules/InferSound.lean", 210, 215)[contains the constant's set].
 ]
 
 #theorem(name: "Installing a definition")[
   If the environment has a model and the definition $c$ passes the
   checks above, then the environment
   #src("whitepaper/Fragment/InstallDef.lean", 345, 350)[extended with $c$ has a model]
-  (#src("ConLeche/Model/Install.lean", 271, 273)[as in con-leche]).
+  (#src("ConLeche/Model/Install.lean", 279, 282)[as in con-leche]).
 ] <thm:install-def>
 
 #proof[
