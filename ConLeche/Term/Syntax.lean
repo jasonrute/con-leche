@@ -202,9 +202,9 @@ inductive Term where
   | letE (val body : Term)
   /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
   `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
-  and a census (task #237) found no definition and no theorem in any
-  tier reading the slot the former used to carry.  It is gone; a
-  producer that knows the type simply drops it. -/
+  and no definition and no theorem in any tier reads the type, so
+  the constructor does not carry it; a producer that knows the type
+  simply drops it. -/
   | eqE (lhs rhs : Term)
   /-- First field of a pair.  Carries **only** the subject: the pair's
   type arguments come from the typing premise `Γ ⊢ p : Σ A B`,

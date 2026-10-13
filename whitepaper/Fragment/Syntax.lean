@@ -40,7 +40,7 @@ inductive Expr where
   | lam (A b : Expr)
   /-- The Π-type `(x : A) → B`. -/
   | pi (A B : Expr)
-  /-- `let x : ty := v; b` (task #342, F4).  Kept as Lean stores it: the
+  /-- `let x : ty := v; b`.  Kept as Lean stores it: the
   checker substitutes the value (`Red.zeta`, `Infer.letE`), and the
   interpretation reads the body at the value's value, ignoring the type
   (`Interp.lean`), as con-leche's `Denotes` `let` rule does. -/

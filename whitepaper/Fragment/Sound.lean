@@ -131,7 +131,7 @@ theorem beta_sound {Γ : List Expr} {A b a : Expr} :
   refine ⟨(WellDenoted_inst0 m.M φ ha).mpr (hbody _ haA), ?_⟩
   rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
-/-- **ζ, with no certificate** (task #342, F4): the `let` and its
+/-- **ζ, with no certificate**: the `let` and its
 reduct denote alike at every environment (`interp_zeta`), so neither
 the point hypothesis nor the context is used; the reduct's invariant is
 the `let`'s, through the substitution lemma. -/
@@ -178,8 +178,8 @@ theorem const_sound [LevelOracle] {Γ : List Expr} {c : Name} {ls ls' : List Lev
     (h : Level.eqList ls ls' = true) : DefEqSem m φ Γ (.const c ls) (.const c ls') :=
   fun _ _ _ _ _ _ => by simp [(Level.eqList_iff ls ls').mp h φ]
 
-/-- **`∀`-congruence, with no premise beyond domains and bodies** (task
-#344): a `∀`'s value is a function of its domain's and fibres' values
+/-- **`∀`-congruence, with no premise beyond domains and bodies**:
+a `∀`'s value is a function of its domain's and fibres' values
 (`SetLib.piV_congr`), and both are types, never the point. -/
 theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr}
     (hA : DefEqSem m φ Γ A₁ A₂) (hB : DefEqSem m φ (A₂ :: Γ) B₁ B₂) :
@@ -197,7 +197,7 @@ theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr}
   rw [heA]
   exact piV_congr hfib
 
-/-- **λ-congruence, typed** (task #344): the two bodies lie in one type
+/-- **λ-congruence, typed**: the two bodies lie in one type
 at every value of the variable — their inferred types are equal there
 — so they are both the point or neither is, and where neither is the
 bodies' claim makes them equal.  Neither λ need be a graph. -/
@@ -348,7 +348,7 @@ theorem app_sound {Γ : List Expr} {f a tf A B ta : Expr}
   · rw [interp_app, interp_inst0]
     exact app_mem_piV hmemf hmema
 
-/-- **`let`, by substitution** (task #342, F4): the body with the value
+/-- **`let`, by substitution**: the body with the value
 substituted carries the claim, and the `let` denotes what it denotes
 (`interp_zeta`); its invariant is the `let`'s (`WellDenoted_letE`
 against `WellDenoted_inst0`).  The type checks on the value (`hT`,
@@ -366,7 +366,7 @@ theorem letE_sound {Γ : List Expr} {T v b s tv B : Expr} {u : Level}
   · rw [WellDenoted_letE]; exact ⟨hwv, (WellDenoted_inst0 m.M φ hwv).mp hwb⟩
   · rw [interp_zeta]; exact hmem
 
-/-- **What the value checks give** (task #342, F4): the value's value is
+/-- **What the value checks give**: the value's value is
 a member of the type's, so the value extends a satisfying environment
 to one satisfying the context extended by the type.  The substitution
 version does not need it (`letE_sound`); a version that opens the body
@@ -388,7 +388,7 @@ end Infer
 
 namespace DefEq
 
-/-- **η, typed** (task #344): at every value of the variable the λ's
+/-- **η, typed**: at every value of the variable the λ's
 body and `b` applied lie in one type — the body's inferred type is the
 `∀`'s fibre — so they are both the point or neither is, and where
 neither is the body's claim makes them equal; a member of a function space is
@@ -719,7 +719,7 @@ theorem inner_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr}
   rw [ht _ hs' hwt₁ hwt₂ hT₁.ne_pt hT₂.ne_pt] at hm₁
   exact hT₂.eq_of_ne_pt hm₁ hm₂ (hb _ hs' hw₁ hw₂)
 
-/-- **An outer level needs no type** (task #349): the bodies are equal
+/-- **An outer level needs no type**: the bodies are equal
 at every value of the variable, unconditionally, so the λs are; the
 domains are types, never the point, so their conditional claim
 applies.  This is why the type comparison is owed only at the
@@ -819,7 +819,7 @@ theorem Expr.hasPis_of_succ : ∀ (e : Expr) (n : Nat), e.hasPis (n + 1) = true 
   | .lam _ _, _ + 1, h => by simp [Expr.hasPis] at h
 
 /-- **A spine that is not the point fits its head's telescope, with no
-certificate** (task #347, the §5.2 argument iterated).  At each step
+certificate** (the argument of the paper's ι rule, iterated).  At each step
 the application is not the point, so neither is its head
 (`app_pt`); the invariant's slot then puts the head in a function space
 (`piR false`), and the head's membership in its type — a function space, not
@@ -1001,14 +1001,14 @@ theorem eq_pt_of_mem_sortZero {ρ : Nat → V} {I : Name} {Ii : ConstInfo} {lsI 
   exact eq_pt_of_mem_univ_zero hmem hy
 
 /-- **A constructor of a family whose sort evaluates to zero denotes the
-point** (task #342 F3, the lemma #349 named as missing).  The
+point**.  The
 constructor applied to arguments that fit its stored type, whose
 residual is the family `I` at some parameters and indices, at a level
 where `I`'s sort evaluates to zero: the application lies in that
 residual, a type of `Sort 0`, so it is the point
 (`eq_pt_of_mem_sortZero`).  No argument of the application is read
 beyond its fit: at such a level the constructor's arguments are not
-constrained by its value (#345). -/
+constrained by its value. -/
 theorem ctorApp_eq_pt_of_sortZero {ρ : Nat → V} {cj : Name} {usj : List Level} {cij : ConstInfo}
     {margs : List Expr} {I : Name} {Ii : ConstInfo} {lsI : List Level} {zs : List Expr} {u : Level}
     (hcij : env.find? cj = some cij) (husj : usj.length = cij.lparams.length)
@@ -1054,7 +1054,7 @@ theorem Level.eval_subst_congr (φ : Name → Nat) {ps : List Name} {ls ls' : Li
 
 namespace Red
 
-/-- **ι, the semantic core** (task #347) of `iota_core` and
+/-- **ι, the semantic core** of `iota_core` and
 `iota_core_strict`, at the constructor's parameter count `nP` and a
 right-hand side `rhs`, given the environment's law in the form both ι
 laws take once instantiated (`hlaw`), and — at every valuation where
@@ -1307,7 +1307,7 @@ theorem teleFit_snoc_mem {ρ : Nat → V} {y D B : Expr} :
   | .lam _ _, _ :: _, h, _ => h.elim
 
 /-- **ι with no telescope certificate at all, where the major's domain
-is strict** (task #347, the ι case test of #342 v2 §5.3 case 2).  If the
+is strict** (the case of a family that is never a proposition).  If the
 domain the major meets holds no point at the valuation — the case of an
 inductive family whose sort is never `Prop` at the instance, whose
 fibres are sets of tagged tuples — then a redex that is not the point

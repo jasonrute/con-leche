@@ -202,7 +202,7 @@ $TyU_0 = cal(U)_0$, the truth values, and $TyU_n$ for $n >= 1$ the members of
 $cal(U)_n$ that are types. These are cumulative, and $TyU_(n+1)$
 holds the truth values too: it must, since `False → Nat`, of sort
 `Type`, denotes ${pt}$,
-#src("whitepaper/Fragment/Unannot.lean", 58, 63)[which is no strict set].
+#src("whitepaper/Fragment/ValueReading.lean", 58, 63)[which is no strict set].
 The point is no type, so no sort holds it.
 
 #real[
@@ -649,7 +649,7 @@ from typing. The two checks are:
 says nothing where a body is the point, and whether a body is the
 point can vary with the variable. Without a common type of the two
 bodies the rule is unsound in the model:
-#src("whitepaper/Fragment/Unannot.lean", 177, 184)[the two λs]
+#src("whitepaper/Fragment/ValueReading.lean", 177, 184)[the two λs]
 $
   lambda (x : sans("Prop")). thin (lambda (h : E thick x). thin h) thick n
   quad "and" quad

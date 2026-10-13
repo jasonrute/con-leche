@@ -185,8 +185,8 @@ def RecRuleLaw (M : Name → List Nat → V) (c : Name) (ci : ConstInfo)
     WellDenoted M φ ρ (rl.rhs.instL ci.lparams us) ∧
     SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop numParams)
 
-/-- **The ι law of a K rule** (task #349; the `EnvModel` field
-`rec_rules_k` since #342 F2, proved by the installer as
+/-- **The ι law of a K rule** (the `EnvModel` field
+`rec_rules_k`, proved by the installer as
 `IndSpec.rec_rule_lawK`).
 For a recursor `c` whose one rule `rl` fires on a constructor with no
 fields of a family of sort `Prop` (Lean's K: `Eq`, `HEq`, `True`): at
@@ -247,7 +247,7 @@ def RecRuleLawN (M : Name → List Nat → V) (c : Name) (ci : ConstInfo)
     WellDenoted M φ ρ (rl.rhs.instL ci.lparams us) ∧
     SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop nPc)
 
-/-- **The point in the major's slot** (task #342 F2, the installer fact
+/-- **The point in the major's slot** (the installer fact
 behind `Red.iotaSlot`/`Red.iotaNestedSlot`): for a recursor `c` and its
 rule `rl` firing on the constructor stored as `cij`, wherever the
 recursor's telescope holds the point as the major (after values `xs`
@@ -275,8 +275,8 @@ def RecRuleSlotLaw (M : Name → List Nat → V) (c : Name) (ci : ConstInfo) (ma
     appList (M c (us.map (Level.eval φ))) (xs ++ [pt]) = pt ∨
       appList (M rl.ctor (usj.map (Level.eval φ))) ys = pt
 
-/-- **The fibres' regime follows the stored sort** (task #342 F1,
-the ι case test of #347 and §11.4): for a stored inductive type former
+/-- **The fibres' regime follows the stored sort** (used by
+the ι case test): for a stored inductive type former
 `I` (stored as `ci`, with `nP` parameters and `nI` indices and its
 block's specification `S`), the family applied to any values fitting
 its telescope is a **truth value** where the family's stored sort
@@ -335,14 +335,14 @@ structure EnvModel (V : Type u) [SetLib V] (env : Env) where
         RecRuleLawN M c ci nPc (numParams + numMotives + numMinors)
           (numParams + numMotives + numMinors + numIndices) rl cij
   /-- Every stored inductive family's fibres are truth values where its
-  stored sort evaluates to zero and strict where it does not (task #342
-  F1).  No guard is needed: the stage of an installation that gives the
+  stored sort evaluates to zero and strict where it does not.
+  No guard is needed: the stage of an installation that gives the
   former an arbitrary family (`mIndF`) takes it in the universe and
   admissible, which is strict above a proposition. -/
   ind_fib : ∀ (I : Name) (ci : ConstInfo) (nP nI : Nat) (ctors : List Name) (S : IndSpec),
     env.find? I = some ci → ci.kind = .induct nP nI ctors S → IndFibLaw M I ci nP nI S
-  /-- Every rule of every stored recursor satisfies the slot law (task
-  #342 F2): where the major is the point, the recursor's application or
+  /-- Every rule of every stored recursor satisfies the slot law:
+  where the major is the point, the recursor's application or
   the rule's constructor is. -/
   rec_rules_slot : ∀ (c : Name) (ci : ConstInfo) (numParams numMotives numMinors numIndices : Nat)
     (rules : List RecRule),
@@ -350,8 +350,8 @@ structure EnvModel (V : Type u) [SetLib V] (env : Env) where
     ci.kind = .recursor numParams numMotives numMinors numIndices rules →
     ∀ rl ∈ rules, ∀ cij : ConstInfo, env.find? rl.ctor = some cij →
       RecRuleSlotLaw M c ci (numParams + numMotives + numMinors + numIndices) rl cij
-  /-- Every rule flagged K of every stored recursor satisfies the K law
-  (task #342 F2): inversion of the least fixed point plus the plain law
+  /-- Every rule flagged K of every stored recursor satisfies the K law:
+  inversion of the least fixed point plus the plain law
   at the recursor's own parameters (`IndSpec.rec_rule_lawK`). -/
   rec_rules_k : ∀ (c : Name) (ci : ConstInfo) (numParams numMotives numMinors numIndices : Nat)
     (rules : List RecRule),

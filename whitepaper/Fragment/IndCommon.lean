@@ -276,7 +276,7 @@ theorem mem_adm_of {X X' x : V} (hx : x ∈ˢ S.adm ls X) (hx' : x ∈ˢ X') : x
   (S.mem_adm ls).mpr ⟨hx', ((S.mem_adm ls).mp hx).2⟩
 
 /-- **The body of a reflexive field's function space**: the family's fibre —
-its admissible part under at least one binder (task #344).  The
+its admissible part under at least one binder.  The
 function space is read by values (`SetLib.piV`), and over an arbitrary family
 in the universe a fibre `{pt}` would put a Type-sorted field's function space
 in the propositional regime; the admissible part, a strict set above a

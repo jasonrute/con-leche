@@ -5,14 +5,11 @@ one denotation on the terms, a semantic invariant instead of a
 typing judgement, a set theory given as a class — the con-leche proof
 could be simpler or more elegant. One numbered list, one observation
 per item, each naming the fragment files and the real-proof files it
-compares and the lane that made it (task #324; 2026-09-25 unless the
-item says otherwise — the items marked 2026-10-01 were written after
-the uniform block check landed upstream, those marked 2026-10-03
-after the inductive model was rebuilt on Grothendieck universes and
-accessibility, those marked 2026-10-12 and later with the design of
-task #342). Items made obsolete are removed, items the real proof has
-taken up are marked *done upstream*; "member" is set membership
-throughout, the type being defined inside a container is "the nested
+compares and the lane that made it (task #324), with its date
+(2026-09-25 unless the item says otherwise). Every item describes the
+proof and the fragment as they are; items the real proof has taken up
+are marked *done upstream*. "Member" is set membership throughout,
+and the type being defined inside a container is "the nested
 occurrence".
 Typst and tooling traps are not here: they are the "Typst notes"
 comment block at the top of `lib.typ`.
@@ -95,9 +92,9 @@ comment block at the top of `lib.typ`.
    checker makes the comparisons, with the constructor's telescope
    certificate, in that case only (`iotaCase3`, `Kernel/CoreDefs.lean`)
    and compares nothing elsewhere, as the official kernel does
-   (`inductive_reduce_rec` fires by constructor name and `nfields`);
-   the fragment's `Red.iota` still compares in every case, and its law
-   `RecRuleLaw` could drop the comparisons outside that case. (Fragment
+   (`inductive_reduce_rec` fires by constructor name and `nfields`).
+   The fragment's ι rules compare in every case but K, and its law
+   `RecRuleLaw` could drop the comparisons outside the certified case. (Fragment
    lane, stages 1–3; fragment lane, part 2 — ι; §4 lane, 2026-10-01;
    revised 2026-10-13.)
 
@@ -169,11 +166,10 @@ comment block at the top of `lib.typ`.
     type-valued regime, the subsingleton criterion in the
     proposition-valued one, `Fragment/Uniq.lean`) — con-leche's `huniq`,
     "two decodings are equal or the motive's value is a subsingleton",
-    discharged three ways (`Model/Inductives/ClassGenUniq.lean`). An
-    earlier fragment read a propositional major through a chosen
-    witness (`pick`/`wit`) would need uniqueness of witnesses; the
-    decodings make that unnecessary, in the fragment and in the real
-    proof. What the fragment adds is the
+    discharged three ways (`Model/Inductives/ClassGenUniq.lean`).
+    Reading a propositional major through a chosen witness would need
+    uniqueness of witnesses; the decodings make that unnecessary, in
+    the fragment and in the real proof. What the fragment adds is the
     criterion's semantic meaning, stated (`Subsingleton`, `Uniq.lean`),
     which con-leche's `checkStructFieldSortsI` docstring only attributes
     to the official kernel. (Fragment lane, stages 3–4; §3 lane; lane 2,
@@ -228,7 +224,7 @@ comment block at the top of `lib.typ`.
 
 16. **Two block conditions that carry semantic weight.** The
     fragment's `Ok` (`Fragment/Decl.lean`) asks two things of a block
-    that con-leche checks too but the first fragment left implicit:
+    that con-leche checks too, and that are easy to overlook:
     no field reads an earlier recursive field (`fieldNoRecDep`,
     con-leche's `structUsedLater`), which is what lets the domains be
     read at a frame whose recursive slots hold an arbitrary value
@@ -342,7 +338,7 @@ comment block at the top of `lib.typ`.
     `Fragment/ScopeOfInfer.lean`, structural inductions over `Infer`
     alone); only "uses the declared level parameters" is a condition
     beyond typing, and the fragment's `DefOk` (`Fragment/Decl.lean`)
-    now states that one alone, the environment section recovering the
+    states that one alone, the environment section recovering the
     full scope (`DefOk.type_scoped`, `DefOk.value_scoped`). The real
     checker runs `looseBVarsBounded` and `constsResolve` as separate
     checks on a definition (`Kernel/CheckerBase.lean`); the model
@@ -350,29 +346,23 @@ comment block at the top of `lib.typ`.
     lane, 2026-10-02.)
 
 24. **A recursive field is a reflexive field with an empty telescope.**
-    The fragment's `Field` had both kinds (`recursive es` and
-    `reflexive tele es`), as the real checker's `RecFieldKind` has
-    (`Kernel/Inductives/FieldTele.lean`); but every generator
-    (`fieldDom`, `ihTy`, `ihVal`, `ihValN`, `Fragment/Decl.lean`) and
-    every semantic clause (`fieldSet`, `IhOk`, `ihSem`, `IhTyped`,
-    `Fragment/IndSem.lean`; their nested twins in `NestRec.lean`)
-    produced, at `tele = []`, exactly the recursive clause's term or
-    set — `mkPis [] b = b`, `piCtx … [] F = F ρ`, `lamCtx … [] g =
-    g ρ` are all `rfl`. Merging the kinds (`reflexive [] es` for the
-    old `recursive es`) removed 88 `recursive` match arms over 18
-    files — about twenty definitional clauses, the rest duplicated
-    proof cases, each a special case of the reflexive one — for a net
-    −303 lines, and one law of the class (`ClassLaws.noRefl`, "no
-    translated constructor has a reflexive field") became a two-line
-    lemma (`classField_reflexive`, `Fragment/NestRec.lean`: the only
+    The fragment's `Field` has one kind for both (`reflexive tele es`,
+    recursive at `tele = []`): every generator (`fieldDom`, `ihTy`,
+    `ihVal`, `ihValN`, `Fragment/Decl.lean`) and every semantic clause
+    (`fieldSet`, `IhOk`, `ihSem`, `IhTyped`, `Fragment/IndSem.lean`;
+    their nested twins in `NestRec.lean`) produces, at `tele = []`,
+    exactly the recursive clause's term or set — `mkPis [] b = b`,
+    `piCtx … [] F = F ρ`, `lamCtx … [] g = g ρ` are all `rfl`. So no
+    clause and no proof case is written twice, and "no translated
+    constructor has a reflexive field" is a two-line lemma
+    (`classField_reflexive`, `Fragment/NestRec.lean`: the only
     reflexive field a translation produces is the parameter field,
-    with the empty telescope). The positivity clause for a container's own
-    recursive field is now `tele = [] ∧ es = []`
-    (`NestInfo.Positive`, `Fragment/Spec.lean`). The real checker
-    could do the same: its `recursive` kind is `reflexive` with an
-    empty telescope, and its generators and the model's field
-    readings would lose their duplicated case. (Field-merge lane,
-    2026-10-02.)
+    with the empty telescope); the positivity clause for a container's
+    own recursive field is `tele = [] ∧ es = []` (`NestInfo.Positive`,
+    `Fragment/Spec.lean`). The real checker's `RecFieldKind`
+    (`Kernel/Inductives/FieldTele.lean`) has both kinds, and its
+    generators and the model's field readings carry a case each that
+    the reflexive one subsumes. (Field-merge lane, 2026-10-02.)
 
 25. **The fixed point and accessibility need no graphs.** The real
     proof's family layer (`SetTheory/Derive/LfpTuple.lean`,
@@ -497,29 +487,26 @@ comment block at the top of `lib.typ`.
     `frameAccOut_of`).  (Lane 3, 2026-10-03.)
 
 31. **One reader for plain and nested blocks, and a model that
-    remembers its blocks.**  The first nested lane read a container
-    field's domain under a guard (`ReaderG.good`, a split of the reader
-    structure); the rebuilt `Reader` (`Fragment/Read.lean`) has no plainness field and
-    reads the domain by β through the container's set, a stored
-    constant the reader agrees on (`classTy_fit`), as the fibre of the
-    reader's family at the nested occurrence; `IdxFitAt`'s container
-    clause is that the nested occurrence's index values fit the indices, read off
-    the semantic invariant (`fieldDom_wd`).  Only the lemmas about the PLAIN
-    recursor's hypotheses' context (`read_ihTy`, `fits_ihCtxAux`,
+    remembers its blocks.**  The fragment's `Reader`
+    (`Fragment/Read.lean`) has no plainness field: it reads a container
+    field's domain by β through the container's set, a stored constant
+    the reader agrees on (`classTy_fit`), as the fibre of the reader's
+    family at the nested occurrence; `IdxFitAt`'s container clause is
+    that the nested occurrence's index values fit the indices, read off
+    the semantic invariant (`fieldDom_wd`).  Only the lemmas about the
+    PLAIN recursor's hypotheses' context (`read_ihTy`, `fits_ihCtxAux`,
     `Reader₂.minorOk`, and `IndRec`'s totality and typing) take
     `S.nest = none` explicitly; `ctorSet_mem` takes the container's
     clause at fitting parameters, which is how a nested block's
     constructors get their type law without a "class in the bound"
-    condition (`InstallNest.lean`, `type_ok_ctorN`).  The frozen
-    copies of the first nested lane, with the old closure law, are
-    gone.  The real proof's `EnvModelM` carries the installed blocks'
-    data (`lfpBlocks`); the fragment's `BlockModel`
-    (`Fragment/BlockModel.lean`) carries one law per plain block —
-    scope, the type former's and constructors' sets as the fixed
-    point's graphs, the fields' universe bound at fitting parameters —
-    which is exactly what a later nesting consumes (`NestFacts`), and
-    pushes agreement through the operator (`Agree.famOp_eq`,
-    `Agree.Fam_eq`).  (Lane 3, 2026-10-03.)
+    condition (`InstallNest.lean`, `type_ok_ctorN`).  The real proof's
+    `EnvModelM` carries the installed blocks' data (`lfpBlocks`); the
+    fragment's `BlockModel` (`Fragment/BlockModel.lean`) carries one
+    law per plain block — scope, the type former's and constructors'
+    sets as the fixed point's graphs, the fields' universe bound at
+    fitting parameters — which is exactly what a later nesting consumes
+    (`NestFacts`), and pushes agreement through the operator
+    (`Agree.famOp_eq`, `Agree.Fam_eq`).  (Lane 3, 2026-10-03.)
 
 32. **Monotonicity is a corollary of accessibility, in both regimes.**
     The fixed-point equation and induction need a monotone operator
@@ -529,23 +516,19 @@ comment block at the top of `lib.typ`.
     `AccTuple.monoTuple`).  The block's operator is accessible in
     BOTH regimes — only the bound's membership of the universe needs
     a type — so the fragment derives `famOp_mono` from `famOp_acc`
-    and has no separate monotonicity proof (`fieldSet_mono`,
-    `piCtx_sub`, `piR_mono`, `piSet_mono` are gone; `FitsFields_mono`,
-    which the recursor's induction uses, re-types through
-    `FitsFields_retype`).  For a container the same holds once the
-    nested case of accessibility is stated at a proposition too:
+    and has no separate monotonicity proof (`FitsFields_mono`, which
+    the recursor's induction uses, re-types through
+    `FitsFields_retype`).  For a container the same holds with the
+    nested case of accessibility stated at a proposition too:
     `lfpP_acc` needs the bound in the universe only above one, and
     at a proposition the section's closed family is `{pt}`
-    (`closedFam_zero`) — so `Fam_psK_acc` holds in both regimes, the
-    container's clause drops its `mono` field (`ContClause.mono` is a
-    theorem), and `Fam_psK_mono` is derived; the leastness proof of
-    item 29 is gone.  Done in the real proof too (tasks #326/#327,
-    2026-10-04): accessibility is stated with a bound that need be in
-    the universe only above a proposition, holds at every level, and
-    the operator's monotonicity is derived from it; the recursor's
+    (`closedFam_zero`) — so `Fam_psK_acc` holds in both regimes,
+    `ContClause.mono` is a theorem, and `Fam_psK_mono` is derived.
+    *Done upstream*: accessibility is stated with a bound that need be
+    in the universe only above a proposition, holds at every level,
+    and the operator's monotonicity is derived from it; the recursor's
     frame monotonicity (`HoleMono.lean`, `posD_mono`, `frameIter`)
-    remains, as it serves the recursor.  (2026-10-03, updated
-    2026-10-04.)
+    serves the recursor.  (2026-10-03, updated 2026-10-04.)
 
 33. **ι's soundness as three laws of the environment, not a
     certificate walk — done upstream.**  In the fragment the recursor's

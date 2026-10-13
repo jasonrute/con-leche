@@ -85,8 +85,8 @@ inductive InferIO [LevelOracle] (env : Env) : List Expr → Expr → Expr → Pr
   | app {Γ : List Expr} {f a tf A B : Expr} :
       InferIO env Γ f tf → Red env Γ tf (pi A B) →
       InferIO env Γ (app f a) (B.inst a)
-  /-- **`let`, by substitution** (task #342, F4; maintainer's ruling of
-  2026-10-12): as official `infer_only`, the value is not checked
+  /-- **`let`, by substitution**:
+  as official `infer_only`, the value is not checked
   against the type — the full grade (`Infer.letE`) checks it — and the
   body with the value substituted is inferred at the io grade.  The
   soundness proof needs no check on the value (`InferIO.letE_sound`). -/

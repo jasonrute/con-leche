@@ -147,7 +147,7 @@ theorem lparams_map_substVal (hok : S.Ok env) (φ : Name → Nat) {ls : List Lev
   map_substVal_eq φ hok.scoped.2.2.2.2.2.1 hls
 
 omit [LevelOracle] in
-/-- **The fibre law of a former read by readers** (task #342 F1): an
+/-- **The fibre law of a former read by readers**: an
 assignment that reads the block at every valuation, with a family in
 the result universe (`Reader.adm` makes it admissible), satisfies
 `IndFibLaw` at the former — at the use's levels the reader's valuation

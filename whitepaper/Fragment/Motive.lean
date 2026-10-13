@@ -55,7 +55,7 @@ def RedSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (e e' : Exp
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ e → interp m.M φ ρ e ≠ pt →
     WellDenoted m.M φ ρ e' ∧ interp m.M φ ρ e = interp m.M φ ρ e'
 
-/-- **`DefEqLams`' claim** (task #349): two well-denoted sides have
+/-- **`DefEqLams`' claim**: two well-denoted sides have
 equal denotations — unconditionally, the point included. -/
 def LamsSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (a b : Expr) : Prop :=
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
@@ -67,7 +67,7 @@ def DefEqSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (a b : Ex
   ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
     interp m.M φ ρ a ≠ pt → interp m.M φ ρ b ≠ pt → interp m.M φ ρ a = interp m.M φ ρ b
 
-/-- **`DefEqIn`'s claim** (task #345): two well-denoted members of one
+/-- **`DefEqIn`'s claim**: two well-denoted members of one
 well-denoted type have equal denotations — unconditionally, since a
 type's members are all the point or none. -/
 def DefEqInSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (T a b : Expr) : Prop :=

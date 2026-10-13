@@ -518,7 +518,7 @@ conditional claims. -/
       interp V ρ (cargsa.getD (cnP + i) default)
         = interp V ρ (xs.getD (rP + i) default)
 
-/-- **The ι case split's environment facts, one rule** (task #342 L10, S5c).
+/-- **The ι case split's environment facts, one rule**.
 `RecRuleLaw`'s main clause takes the levels, parameters and index
 comparisons as equations; under the conditional claims the ι step has
 them only where neither side is the point, and at a K rule or a family
@@ -527,8 +527,8 @@ constructor application at all.  What the step consumes instead, at the
 recursor's levels:
 
 * **K** (`RecRule.k`): the rule's law at the recursor's own
-  parameters, for any major value in the major's domain (#349's
-  `RecRuleLawK`, the fragment's F2: inversion of the family's least
+  parameters, for any major value in the major's domain (the
+  fragment's `RecRuleLawK`: inversion of the family's least
   fixed point) — the reduct, the minor, does not mention the major;
 * **the constructor's arity**: its stored type binds the spine
   syntactically, so a graded application of it that is not the point
@@ -545,12 +545,12 @@ recursor's levels:
   main law applies at the comparand levels;
 * **(P) the slot at the point**: where the major domain holds the
   point, every fitting constructor application is the point (the
-  family is `Prop` there; F3/F2's slot law);
+  family is `Prop` there; the fragment's slot law);
 * **(U) coherence**: at a fired spine where the constructor application
   is the point (case 3, where the step compares the levels and
   parameters with the rule's comparands and the indices), the
-  conditional index comparison is an equation (L7's
-  `blockRule_coherent`, read off the parameters' conditional
+  conditional index comparison is an equation
+  (`blockRule_coherent`, read off the parameters' conditional
   comparison).
 
 (P) and (U) are read only at case 3, so they take the level equation. -/
