@@ -105029,7 +105029,14 @@ check that no longer exists; `recFireComparands`' docstring described
 the deleted shape certification; `Rel.lean`'s module doc said "eight"
 relations (six).
 
+**Imports.** The first full battery found S5d's import consequences
+(shake): `GenClsData` no longer needs `GenRecParams`/`TargetOutSat`,
+`NestedRecRest` no longer `NestedRead` (`EnvWF` now re-exports it),
+`GenRecPins`' `NestedRead` import demoted, and `Fold`'s allowlisted
+`NestedRead` line no longer proposed — fixed.
+
 **Gates.** `lake build`, `lake test` warning-free; `fragment-gate`,
-`links-gate`, the document build (PDF + HTML, no diagnostics, synced to
-`_out/whitepaper/`), and the full `tests/arena.sh` (see the landing
-merge's message for its result).
+`links-gate` (473 links), the document build (PDF + HTML, no
+diagnostics, synced to `_out/whitepaper/`), and the full
+`tests/arena.sh` on the final tree: arena 90/92, e2e 473/473, trusted,
+`--jobs=1`/`--jobs=4` sweeps as the default, every gate green.
