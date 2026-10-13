@@ -109,10 +109,10 @@ comment block at the top of `lib.typ`.
    the real checker's two rules as the reason the question is not
    academic. (Fragment lane, stages 1–3.)
 
-8. **The λ rule's domain-sort premise is unused by soundness.**
+8. **The lambda rule's domain-sort premise is unused by soundness.**
     `Infer.lam_sound`'s `_hu` (`Fragment/Sound.lean`) is the checker's
     "the domain is a type" check; the model does not need it, because
-    a λ's domain only ever enters as the set its denotation is a graph
+    a lambda's domain only ever enters as the set its denotation is a graph
     over. The real proof already drops the premise at the io grade,
     so the full grade could too if Lean conformance were checked
     elsewhere. The ∀ rule does read its sort premise: the Π-type's
@@ -241,7 +241,7 @@ comment block at the top of `lib.typ`.
     two agree, and in the env-free fragment the choice only moves the
     one use of "the fibres are truth values": elimination
     (`app_mem_piR`, the app case of `Fragment/Sound.lean`) needs no
-    such premise, introduction (`lamR_mem`, the λ case) does. The cost
+    such premise, introduction (`lamR_mem`, the lambda case) does. The cost
     shows in the inductive section (`Fragment/IndSem.lean`,
     `Fragment/InstallRead1.lean`, `Fragment/InstallInd.lean`): a
     Prop-valued motive's fibres must be truth values at the indices
@@ -559,13 +559,13 @@ comment block at the top of `lib.typ`.
     (`EtaIota.lean`, `iotaEta_noFields`, `recRuleLawK_of_eta`), so
     one law can serve both.  (2026-10-12.)
 
-35. **λ-telescopes as their own relation — done upstream.**
-    `DefEqLams` (`Rules.lean`) compares two λ-telescopes level by level
+35. **Lambda telescopes as their own relation — done upstream.**
+    `DefEqLams` (`Rules.lean`) compares two lambda telescopes level by level
     and types only the innermost bodies; its claim is unconditional
     (`LamsSem`), which is why the outer levels need no type
     (`Sound.lean`, `DefEqLams.outer_sound`).  The real relation has the
     same rule (`DefEqLams`, `Rules/Rel.lean`), so the checker's "descend
-    while both bodies are λs" is a rule, not a bridge lemma.
+    while both bodies are lambdas" is a rule, not a bridge lemma.
     (2026-10-12, updated 2026-10-13.)
 
 36. **`let` by substitution: the value's checks are verdicts, not
@@ -590,7 +590,7 @@ comment block at the top of `lib.typ`.
     (2026-10-12.)
 
 38. **Comparing less than the bodies' types is not enough.**  The
-    ill-typed redex of the λ-congruence witness (`ValueReading.lean`)
+    ill-typed redex of the lambda congruence witness (`ValueReading.lean`)
     can be moved into a stored definition
     `d := fun x => (fun (h : E x) => h) n` of type `∀ x : Prop, F x`;
     then `fun x => d x` and `fun x => n` are typed in the empty
@@ -601,7 +601,7 @@ comment block at the top of `lib.typ`.
     model, but `d`'s value is not typed, so it is not accepted.  No
     counterexample with an accepted environment is known; it would need
     a typed term whose reduct holds a redex with an argument outside
-    its λ's domain.  The semantic proof does not need to know whether
+    its lambda's domain.  The semantic proof does not need to know whether
     one exists: the check replaces the argument.  The fragment also
     proves weaker forms of the rule sound (`DefEq.lamProp`,
     `DefEq.lamConst`, `DefEq.etaProp`, `DefEq.appIn`,

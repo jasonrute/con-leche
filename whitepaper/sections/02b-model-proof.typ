@@ -171,8 +171,8 @@ A `let` reads its body at the value's value, and its type is not read,
 as no type is read anywhere.
 
 So a binder has two readings. When the body is not a proposition, a
-$lambda$ is a graph and a $forall$ is a set of such graphs, a function
-space. When it is, a $lambda$ is a proof, hence the point, and a
+lambda is a graph and a $forall$ is a set of such graphs, a function
+space. When it is, a lambda is a proof, hence the point, and a
 $forall$ is a proposition, true when every _fibre_ (the set
 $lden B rden_(rho, x |-> v)$ at a $v in lden A rden_rho$) is ${pt}$.
 Which reading applies is decided by the values the body takes over the
@@ -272,7 +272,7 @@ is a type, or a propositional function space $Pi_0(A', B')$ whose
 fibres are truth values. In lam, $B$ is some family of types bounding
 the body's values, its _codomain_. In words: an application applies a
 function, or a proof of a propositional $forall$, to a member of its
-domain; a binder's domain is a type; a $lambda$'s values lie in a
+domain; a binder's domain is a type; a lambda's values lie in a
 bounded family of types, and a $forall$'s fibres are types. The
 invariant records which sets are types, and that is what makes the
 choice between the two readings agree with membership. An abstraction
@@ -297,10 +297,10 @@ it is the only thing the claims below assume about the context.
 
 The first non-routine step is β. Take a well-denoted redex
 $(lambda x : A. thin b) thick a$. From the application rule we know
-that the $lambda$'s value lies in some $P$ whose domain $A'$ contains
-$lden a rden_rho$; from the $lambda$ rule we know that the body is
+that the lambda's value lies in some $P$ whose domain $A'$ contains
+$lden a rden_rho$; from the lambda rule we know that the body is
 bounded over $lden A rden_rho$. For the β law we need
-$lden a rden_rho in lden A rden_rho$, the argument in _the λ's own_
+$lden a rden_rho in lden A rden_rho$, the argument in _the lambda's own_
 domain, and the semantic invariant has given us $A'$, not $A$.
 
 #lemma(name: [β where the redex is not the point])[
@@ -311,12 +311,12 @@ domain, and the semantic invariant has given us $A'$, not $A$.
 ] <lem:beta>
 
 #proof[
-  The application is not the point, so neither is the $lambda$, since
+  The application is not the point, so neither is the lambda, since
   $pt dot.op a = pt$. An abstraction that is not the point is
   a graph, $graph(v |-> lden b rden_(rho, x |-> v), lden A rden_rho)$.
   A graph is never the point, so the application's $P$ is a
   function space $Pi(A', B')$, not a propositional function space. The
-  $lambda$'s own rule puts the same graph into
+  lambda's own rule puts the same graph into
   $Pi(lden A rden_rho, B)$ by introduction, and domain
   uniqueness gives $A' = lden A rden_rho$; so $lden a rden_rho in lden A rden_rho$,
   and the β law computes the application to
@@ -326,11 +326,11 @@ domain, and the semantic invariant has given us $A'$, not $A$.
 ]
 
 For a redex that does denote the point there is no such lemma. Its
-$lambda$ may be the point, which carries no domain, and its argument
+lambda may be the point, which carries no domain, and its argument
 may lie anywhere. Such a redex is well-denoted, and its reduct need
 not be:
 #src("whitepaper/Fragment/EtaIota.lean", 707, 724)[$(lambda x : A. thin g thick (k thick x)) thick a$],
-with a $lambda$ that is the point and an argument $a$ outside the
+with a lambda that is the point and an argument $a$ outside the
 domain $A$ of the graph $k$, reduces to $g thick (k thick a)$, which
 is not well-denoted. So the reduction claim below says nothing about
 a term that denotes the point, and β needs no premise. @sec:claims
@@ -342,7 +342,7 @@ sound on stored values. A stored constant $c : Sort 1$ whose value is
 the ill-typed redex
 $(lambda h : (forall P : sans("Prop"). thin P). thin h) thick sans("Prop")$
 reduces by δ and β to $sans("Prop")$. The redex denotes the point
-(its $lambda$ is an abstraction over an empty domain), and
+(its lambda is an abstraction over an empty domain), and
 $sans("Prop")$ does not. Such an environment
 #src("whitepaper/Fragment/UniformBeta.lean", 76, 80)[has no model]: the
 constant's set would have to be the point and a member of
@@ -396,7 +396,7 @@ claim there. Every rule falls into one of four cases.
   neither._ app's arguments: the heads are one graph, whose domain is
   a type and holds both arguments. ι's comparisons and its major
   premise (@sec:ind) are of the same kind. The bodies of
-  λ-congruence and $eta$ are the one place where nothing else
+  lambda congruence and $eta$ are the one place where nothing else
   supplies a common type, and that is why those rules compare the
   bodies' types (@sec:tax).
 + _The step is an identity everywhere._ β on a redex that is not the
@@ -497,11 +497,11 @@ The routine cases are listed at the end; the others follow.
   $b$ is not the point, so the third claim, then the first, put
   $lden b rden_rho$ in the denotation of the $forall$, which is
   well-denoted; the domains are equal as before. Fix $v$ in the
-  domain. The $lambda$'s body lies in its inferred type, which the
+  domain. The lambda's body lies in its inferred type, which the
   type premise makes the fibre $lden B rden_(rho, x |-> v)$; the term
   $b thick x$ lies there by elimination. In one type, they are both
   the point or neither, and in the second case the claim on the bodies
-  makes them equal. So the $lambda$ denotes the abstraction of
+  makes them equal. So the lambda denotes the abstraction of
   $v |-> lden b rden_rho dot.op v$, and a
   #src("whitepaper/Fragment/Lib.lean", 574, 577)[member of a function space of types is the abstraction of its applications].
 
@@ -537,7 +537,7 @@ The routine cases are listed at the end; the others follow.
   every $v'$ in it the third claim for $b$ gives $b$ and $B$
   well-denoted, $lden B rden$ a type and $lden b rden in lden B rden$.
   So the family of the $lden B rden$ is a bounded codomain of types,
-  which is the $lambda$ rule, and the $forall$ rule of the inferred
+  which is the lambda rule, and the $forall$ rule of the inferred
   type is met too; and the introduction law for values puts the
   abstraction into $PiV(A, B)$. Nothing about the sort of $B$ is
   needed, so the rule computes none.
@@ -614,9 +614,9 @@ the need for the checks. The semantic proof has no typing judgement,
 so the checker verifies the one property the proof would otherwise
 take from typing. The two kinds are:
 
-+ *The bodies' types at λ-congruence and $eta$*: inferred by full
++ *The bodies' types at lambda congruence and $eta$*: inferred by full
   inference and compared, at the innermost level of two
-  $lambda$-telescopes only. This subsection explains them.
+  lambda telescopes only. This subsection explains them.
 + *The constructor application in one case of ι-reduction*: when the
   family of the major premise may be a proposition at the instance
   and the rule is not K-like (one constructor, no fields, in `Prop`;
@@ -630,7 +630,7 @@ take from typing. The two kinds are:
 
 #real[
   The checks are the checker's
-  #src("ConLeche/Kernel/Core.lean", 1310, 1316)[innermost λ level],
+  #src("ConLeche/Kernel/Core.lean", 1310, 1316)[innermost lambda level],
   #src("ConLeche/Kernel/Core.lean", 475, 480)[its $eta$] and
   #src("ConLeche/Kernel/Core.lean", 843, 857)[the case of ι]. On real
   input neither kind ever fails: they never change a verdict on a
@@ -638,11 +638,11 @@ take from typing. The two kinds are:
   `--trusted` skips them.
 ]
 
-*Why λ-congruence needs the bodies' types.* The claim on the bodies
+*Why lambda congruence needs the bodies' types.* The claim on the bodies
 says nothing where a body is the point, and whether a body is the
 point can vary with the variable. Without a common type of the two
 bodies the rule is unsound in the model. Take
-#src("whitepaper/Fragment/ValueReading.lean", 177, 184)[the two λs]
+#src("whitepaper/Fragment/ValueReading.lean", 177, 184)[the two lambdas]
 $
   lambda (x : sans("Prop")). thin (lambda (h : E thick x). thin h) thick n
   quad "and" quad
@@ -653,22 +653,22 @@ denoting `True`. They have equal domains, and their bodies are equal
 by β then refl; both premises are derivations of the checker. Yet at
 $x := sans("False")$ the left body is an abstraction over an empty
 domain, applied, hence the point, while the right body is `True`. The
-two λs are well-denoted, neither is the point, and they differ. The
+two lambdas are well-denoted, neither is the point, and they differ. The
 left body is ill-typed ($n$ is no member of $E thick x$), but it is
 well-denoted, because the abstraction over $E thick sans("False")$ is
 the point and constrains nothing.
 
 *Why other checkers do without it.* Their argument only ever compares
 two terms of one type: the caller compared the types, or knows them,
-and λ-inversion gives the two bodies a common type, by subject
+and lambda inversion gives the two bodies a common type, by subject
 reduction and uniqueness of types. The model has neither, and the
 semantic invariant is satisfied by terms no typing judgement derives,
 so the common type is recomputed.
 
 *Innermost only.* The checker compares
-#src("whitepaper/Fragment/Rules.lean", 670, 714)[two $lambda$-telescopes level by level], and
+#src("whitepaper/Fragment/Rules.lean", 670, 714)[two lambda telescopes level by level], and
 infers and compares the bodies' types only at the innermost level,
-where the descent through two syntactic $lambda$s stops (the next
+where the descent through two syntactic lambdas stops (the next
 comparison is $eta$, or a reduction, or any other rule). At the outer
 levels the domains are compared and nothing else. This is sound
 because the type comparison makes the claim at the innermost level
@@ -682,8 +682,8 @@ the telescope, and the level below it is an innermost level again.
 *Full inference.* The bodies' types are inferred by full inference
 (@sec:infer), not by `infer_only` (@sec:io). With `infer_only` there
 is a typed definition at which
-#src("whitepaper/Fragment/IOWitness.lean", 444, 456)[every premise of λ-congruence holds]
-while the two λs differ. Every premise is a derivation of the
+#src("whitepaper/Fragment/IOWitness.lean", 444, 456)[every premise of lambda congruence holds]
+while the two lambdas differ. Every premise is a derivation of the
 relations, so the rule itself is unsound, whatever claim `infer_only`
 makes.
 
@@ -693,13 +693,13 @@ The official kernel infers the type of a term it has already checked
 by a cheaper mode, `infer_only`. The fragment has
 #src("whitepaper/Fragment/IOGrade.lean", 60, 95)[that mode]: the rules
 of @sec:infer without app's comparison of the argument's type with
-the domain, without the $lambda$'s check of its domain, and without
+the domain, without the lambda's check of its domain, and without
 the check of a let-binding's value against its type.
 
 Its result is not always a type of the term:
 $(lambda h : sans("False"). thin (h.sans("elim") : sans("Nat"))) thick 0$
 gets the type `Nat`, is well-denoted, and denotes the point (the
-$lambda$ is an abstraction over an empty domain), which is no member
+lambda is an abstraction over an empty domain), which is no member
 of the set `Nat` denotes. What holds is
 #src("whitepaper/Fragment/IOGrade.lean", 148, 172)[a hereditary claim]:
 the value is the point, or a member of the type, or, when the type is
@@ -717,7 +717,7 @@ included, because the body of a $forall$ of sort `Prop` has sort
 a constant, whose claim is
 #src("whitepaper/Fragment/IOGrade.lean", 446, 449)[never the hereditary one]
 (#src("whitepaper/Fragment/IOGrade.lean", 479, 482)[the rule's case]).
-The bodies' types at λ-congruence and $eta$ are not among them, as
+The bodies' types at lambda congruence and $eta$ are not among them, as
 @sec:tax showed, so the checker infers those by full inference and
 keeps the results of the two modes apart.
 

@@ -71,9 +71,9 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   inference of the argument, no comparison with the binder's domain.
   This is Lean's own β (`whnf_core`).  The model needs no premise
   (`Sound.lean`, `Red.beta_sound`): a reduction claims nothing of a
-  redex that denotes the point, and a redex that does not has a λ that
+  redex that denotes the point, and a redex that does not has a lambda that
   does not, so a graph, which determines its domain: the argument lies
-  in the λ's domain because it lies in the domain of the slot the
+  in the lambda's domain because it lies in the domain of the slot the
   semantic invariant gives the application.
   -/
   | beta {Γ : List Expr} {A b a : Expr} :
@@ -573,10 +573,10 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
       DefEq env Γ (pi A₁ B₁) (pi A₂ B₂)
-  /-- λ-congruence (`DefEq.lams`, `Rel.lean:407`): domains, then
+  /-- Lambda congruence (`DefEq.lams`, `Rel.lean:407`): domains, then
   bodies under the RIGHT domain — and, **typed**, the two
   bodies' inferred types under that domain are definitionally equal.
-  A λ's value is the point exactly when every body value is
+  A lambda's value is the point exactly when every body value is
   (`SetLib.lamV`), and a body may be a proof at some values of the
   variable and not at others (a large elimination into a family whose
   fibres are truth values at some indices); the claim on the bodies
@@ -588,10 +588,10 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-  /-- **λ-congruence over a propositional domain**: no
+  /-- **Lambda congruence over a propositional domain**: no
   comparison of the bodies' types.  The domain is a truth value, so it
   has at most one member, and a body's point-ness cannot vary with
-  the variable: a λ that is not the point has its one body value not
+  the variable: a lambda that is not the point has its one body value not
   the point, and the bodies' claim applies there (`Sound.lean`,
   `DefEq.lamProp_sound`).  The checker infers the domain's sort, not
   the bodies' types. -/
@@ -599,9 +599,9 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
       Infer env Γ A₂ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-  /-- **λ-congruence of two constant bodies**: neither body
+  /-- **Lambda congruence of two constant bodies**: neither body
   uses the bound variable, so each body's value, and its point-ness,
-  is the same at every value of the variable; a λ that is not the
+  is the same at every value of the variable; a lambda that is not the
   point has a body that is not the point anywhere (`Sound.lean`,
   `DefEq.lamConst_sound`).  One constant body is not enough: the right
   body of `lam_congr_untyped_unsound` is the constant `n`. -/
@@ -610,8 +610,8 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       b₁.usesVar 0 = false → b₂.usesVar 0 = false →
       DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
   /-- **η over a propositional domain**: `DefEq.eta`
-  without the λ's body's type, for the reason of `lamProp`: over a
-  domain with at most one member, the λ and `b` that are not the point
+  without the lambda's body's type, for the reason of `lamProp`: over a
+  domain with at most one member, the lambda and `b` that are not the point
   have their one body value not the point (`Sound.lean`,
   `DefEq.etaProp_sound`). -/
   | etaProp {Γ : List Expr} {A₁ b₁ b tb A₂ B s : Expr} {u : Level} :
@@ -623,7 +623,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   /-- **Application congruence at the head's type**: the
   heads are equal and the head's type reduces to a `∀` whose domain
   `S` is the arguments' common type, so the arguments are compared
-  *at* `S` (`DefEqIn`) — λ-congruence and η between them need neither
+  *at* `S` (`DefEqIn`) — lambda congruence and η between them need neither
   the bodies' types nor a domain comparison (`Sound.lean`,
   `DefEq.appIn_sound`).  The checker has the head's type for free when
   the head is a constant or a variable (con-leche's arguments of a
@@ -637,11 +637,11 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   | app {Γ : List Expr} {f₁ a₁ f₂ a₂ : Expr} :
       DefEq env Γ f₁ f₂ → DefEq env Γ a₁ a₂ →
       DefEq env Γ (app f₁ a₁) (app f₂ a₂)
-  /-- **η** (`DefEq.eta`, `Rel.lean:430`): a λ against a term `b`
+  /-- **η** (`DefEq.eta`, `Rel.lean:430`): a lambda against a term `b`
   whose inferred type reduces to a `∀` with a definitionally equal
-  domain, when the λ's body is `b` applied to the variable — and,
-  **typed** as λ-congruence is, the λ's body's inferred
-  type is definitionally equal to the `∀`'s body, so that the λ's body
+  domain, when the lambda's body is `b` applied to the variable — and,
+  **typed** as lambda congruence is, the lambda's body's inferred
+  type is definitionally equal to the `∀`'s body, so that the lambda's body
   and `b` applied lie in one type.  Sound because a member of a
   function space is the abstraction of its applications
   (`SetLib.lamV_eta`). -/
@@ -661,16 +661,16 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ b tb → Infer env Γ tb ttb → Red env Γ ttb (sort v) →
       LevelOracle.eq v .zero = true →
       DefEq env Γ a b
-  /-- **λ-telescope congruence**: a pair of λ-telescopes
+  /-- **Lambda telescope congruence**: a pair of lambda telescopes
   compared level by level, the bodies' types compared only at the
-  innermost level (`DefEqLams`).  The checker's two-λ arm skips the
-  bodies' types exactly when both opened bodies are syntactically λs. -/
+  innermost level (`DefEqLams`).  The checker's two-lambda arm skips the
+  bodies' types exactly when both opened bodies are syntactically lambdas. -/
   | lams {Γ : List Expr} {a b : Expr} : DefEqLams env Γ a b → DefEq env Γ a b
 
-/-- **λ-telescope congruence, typed at the innermost level only**.
-Two λ-telescopes are compared level by level: the domains
+/-- **Lambda telescope congruence, typed at the innermost level only**.
+Two lambda telescopes are compared level by level: the domains
 at every level, the bodies' types only where the comparison stops
-descending through two λs.
+descending through two lambdas.
 
 *Why the outer levels need no type comparison.*  Syntactically: the
 type of `fun x : A => fun y : B => c` is `∀ x : A, ∀ y : B, T` where
@@ -679,17 +679,17 @@ each outer level's bodies' types are `∀`s over the domain the next
 level compares, with the next level's bodies' types as codomains; equal
 innermost bodies' types give equal bodies' types at every level, by
 `∀`-congruence.  Semantically (`Sound.lean`, `DefEqLams.outer_sound`):
-the type comparison is what makes λ-congruence's claim
+the type comparison is what makes lambda congruence's claim
 **unconditional** — `DefEq`'s claim says nothing where a side is the
 point, and two bodies in one type are both the point or neither — and
 an unconditional equality of the bodies at every value of the variable
-is an equality of the λs, with no type at all.  So the claim of this
+is an equality of the lambdas, with no type at all.  So the claim of this
 relation, `LamsSem`, is unconditional, and it propagates outward
 through any number of levels.
 
 *Unequal depth, and reduction between levels.*  The descent continues
-only through two **syntactic** λs (`outer`'s premise is this relation
-itself, which has no reduction rule).  Where one body is not a λ — the
+only through two **syntactic** lambdas (`outer`'s premise is this relation
+itself, which has no reduction rule).  Where one body is not a lambda — the
 comparison ends in η, or in any other rule, possibly after δ or whnf
 steps — that level is the innermost one (`inner`), and its bodies'
 types are inferred and compared at the full grade.  A δ or whnf step
@@ -697,7 +697,7 @@ between levels therefore resets the accounting: the δ-witness `d :=
 fun x => (fun h => h) n` (`Probe.lean`, `lam_congr_sorts_unsound`)
 puts the reduction inside `inner`'s untyped premise `DefEq … b₁ b₂`,
 where the type comparison is still required.  Syntactically equal
-λs (`refl`) are equal outright. -/
+lambdas (`refl`) are equal outright. -/
 inductive DefEqLams (env : Env) : List Expr → Expr → Expr → Prop where
   /-- Syntactically equal sides (the checker's `a == b` fast path). -/
   | refl {Γ : List Expr} {a : Expr} : DefEqLams env Γ a a
@@ -717,9 +717,9 @@ inductive DefEqLams (env : Env) : List Expr → Expr → Expr → Prop where
 members of `T` — the caller knows it, the relation does not check it —
 and the checker calls them definitionally equal.  Its claim is
 unconditional (`DefEqInSem`): a type's members are all the point or
-none, so the point needs no exception.  A λ against a λ, or against
+none, so the point needs no exception.  A lambda against a lambda, or against
 anything by η, is compared through the `∀` the type reduces to, at
-its body: the λs' domains are that `∀`'s (a graph in a function space
+its body: the lambdas' domains are that `∀`'s (a graph in a function space
 has its domain), and the bodies lie in its fibres — no inference, no
 comparison of domains or of bodies' types. -/
 inductive DefEqIn (env : Env) : List Expr → Expr → Expr → Expr → Prop where
@@ -727,11 +727,11 @@ inductive DefEqIn (env : Env) : List Expr → Expr → Expr → Expr → Prop wh
   | of {Γ : List Expr} {T a b : Expr} : DefEq env Γ a b → DefEqIn env Γ T a b
   /-- Symmetry. -/
   | symm {Γ : List Expr} {T a b : Expr} : DefEqIn env Γ T a b → DefEqIn env Γ T b a
-  /-- λ-congruence at a `∀`: the bodies at its body. -/
+  /-- Lambda congruence at a `∀`: the bodies at its body. -/
   | lam {Γ : List Expr} {T D E A₁ b₁ A₂ b₂ : Expr} :
       Red env Γ T (pi D E) → DefEqIn env (A₂ :: Γ) E b₁ b₂ →
       DefEqIn env Γ T (lam A₁ b₁) (lam A₂ b₂)
-  /-- η at a `∀`: the λ's body against `b` applied, at its body. -/
+  /-- η at a `∀`: the lambda's body against `b` applied, at its body. -/
   | eta {Γ : List Expr} {T D E A₁ b₁ b : Expr} :
       Red env Γ T (pi D E) → DefEqIn env (A₁ :: Γ) E b₁ (app (b.liftN 1) (bvar 0)) →
       DefEqIn env Γ T (lam A₁ b₁) b
@@ -759,7 +759,7 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ A s → Red env Γ s (sort u) →
       Infer env (A :: Γ) B t → Red env (A :: Γ) t (sort v) →
       Infer env Γ (pi A B) (sort (.imax u v))
-  /-- **λ** (`Infer.lam`, `Rel.lean:589`): the domain's type reduces to
+  /-- **Lambda** (`Infer.lam`, `Rel.lean:589`): the domain's type reduces to
   a sort, the body is inferred under the domain, and the result is the
   `∀` of the body's type — Lean's own rule.  The body's type's sort is
   not computed: an inferred type is a type (`InferSem`), which is all

@@ -58,7 +58,7 @@ open SetLib Expr
 universe u
 
 /-- **The fast-inference grade** (Lean's `infer_only`): the rules of
-`Infer` without the application's argument check and without the λ's
+`Infer` without the application's argument check and without the lambda's
 domain check.  `∀`-formation still infers the sorts, which its result
 needs. -/
 inductive InferIO [LevelOracle] (env : Env) : List Expr → Expr → Expr → Prop where
@@ -76,7 +76,7 @@ inductive InferIO [LevelOracle] (env : Env) : List Expr → Expr → Expr → Pr
       InferIO env Γ A s → Red env Γ s (sort u) →
       InferIO env (A :: Γ) B t → Red env (A :: Γ) t (sort v) →
       InferIO env Γ (pi A B) (sort (.imax u v))
-  /-- λ: the `∀` of the body's type; the domain is not checked. -/
+  /-- Lambda: the `∀` of the body's type; the domain is not checked. -/
   | lam {Γ : List Expr} {A b bt : Expr} :
       InferIO env (A :: Γ) b bt → InferIO env Γ (lam A b) (pi A bt)
   /-- **Application without a certificate**: the head's type reduces

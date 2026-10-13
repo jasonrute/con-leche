@@ -707,7 +707,7 @@ theorem plainIota_literal_witness (φ : Name → Nat) :
 open EtaWit in
 /-- **Eta on the reduct of the major is outside the claims**.
 The major `maj := (fun x : A => g (k x)) a` is well-denoted
-and the point (a λ that is the point constrains nothing, so `a` may
+and the point (a lambda that is the point constrains nothing, so `a` may
 lie outside `A`), and it β-reduces to `maj' := g (k a)`, which is not
 well-denoted (`k` is a graph over `A`).  The redex `rec minor maj` is
 well-denoted and not the point.  Eta-expanding the major's reduct,

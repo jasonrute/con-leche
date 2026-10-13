@@ -441,11 +441,11 @@ theorem lamV_dVal_ne_one : lamV (typeU 0 : V) dVal ≠ lamV (typeU 0) (fun _ => 
 
 /-! ## The witnesses -/
 
-/-- **λ-congruence with io-inferred bodies' types is unsound.**  In a
+/-- **Lambda congruence with io-inferred bodies' types is unsound.**  In a
 model of `ioEnv` (both definitions typed): the domains by `refl`, the
 bodies `g x n` and `n` by δ, β, β and `refl`, both bodies io-infer
 `Prop`, `Prop ≡ Prop` by `refl` — every premise of `DefEq.lam` with
-`InferIO` in place of `Infer`; the λs are well-denoted, not the point,
+`InferIO` in place of `Infer`; the lambdas are well-denoted, not the point,
 and different. -/
 theorem lam_congr_io_unsound [LevelOracle] (φ : Name → Nat) :
     DefEq ioEnv [] (.sort .zero) (.sort .zero) ∧

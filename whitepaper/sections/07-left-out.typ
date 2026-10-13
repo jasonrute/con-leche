@@ -128,7 +128,7 @@ definitional equality and inference the real description has three
 more: #src("ConLeche/Rules/Rel.lean", 639, 648)[the certification of an argument spine against
 a binder telescope] (the certified case of $iota$),
 #src("ConLeche/Rules/Rel.lean", 650, 655)[pairwise definitional equality], and
-#src("ConLeche/Rules/Rel.lean", 507, 546)[the congruence of two λ-telescopes]
+#src("ConLeche/Rules/Rel.lean", 507, 546)[the congruence of two lambda telescopes]
 (@sec:tax). A rule with a premise about a list or a telescope needs a
 relation of its own in a mutual block; the paper inlines them into the
 rules that use them. Inference also carries a

@@ -50,11 +50,12 @@ are recorded here so every lane works from the same spec. Task #324.
   `{ptTag}` in con-leche. The claims of reduction and equality say
   nothing about the point.
 * **The colour** marks the certification tax: the checks con-leche
-  makes that the official kernel does not (the λ/η body-type premises;
-  in the certified case of ι, the comparisons of the constructor's
-  levels, parameters and index expressions with the recursor's, and the
-  check of the constructor application's parameters and fields). A reader who ignores the
-  colour sees the official kernel's rules.
+  makes that the official kernel does not (the lambda congruence/η
+  body-type premises; in the certified case of ι, the comparisons of
+  the constructor's levels, parameters and index expressions with the
+  recursor's, and the check of the constructor application's parameters
+  and fields). A reader who ignores the colour sees the official
+  kernel's rules.
 * **Levels**: zero, succ, max, imax, param. Universe polymorphism stays
   (declarations have level parameters). The
   operations ≤ and = on levels are ASSUMED correct and complete (a
@@ -63,8 +64,9 @@ are recorded here so every lane works from the same spec. Task #324.
   (with K, and the step through projections as theorems).
   Head-reduction closed under `appFn` and `trans`.
 * **Definitional equality**: refl, symm, reduce-left, sort (level oracle),
-  const, congruences for app/λ/∀, η, proof irrelevance; λ-congruence and
-  η compare the bodies' types (innermost level of a λ-telescope only).
+  const, congruences for app/lambda/∀, η, proof irrelevance; lambda
+  congruence and η compare the bodies' types (innermost level of a
+  lambda telescope only).
   NO transitivity rule — and the paper explains why none can be added.
 * **Inference**: Lean's rules at the full grade; the cheaper grade
   (`infer_only`, the hereditary claim) as its own subsection.
@@ -101,7 +103,7 @@ are recorded here so every lane works from the same spec. Task #324.
 ## Order of presentation
 
 1. Introduction: what is being proved, the shape of the argument, why
-   there is no typing judgement, how a `∀` or a `λ` is interpreted.
+   there is no typing judgement, how a `∀` or a lambda is interpreted.
 2. The env-free fragment, completely: terms; levels; the
    relations (reduction, defeq, inference); the library; the denotation;
    the invariant; the three claims and their proof — "by induction" where
@@ -301,3 +303,9 @@ pen-and-paper claim without the fragment behind it".
   "(dependent) function space"; never "product", which reads as `Prod`.
   A `let` is a "let-expression" or "let-binding", never a "local
   definition": definitions are entries of the environment.
+* Terminology: a λ-expression is "a lambda-expression", or "a lambda" if
+  the longer form gets too verbose. Never write the symbol λ as a noun
+  in running text ("a $lambda$", "two $lambda$s", "the $lambda$'s
+  domain", "$lambda$-telescopes", "$lambda$-congruence"); λ stays where
+  it is notation: inside formulas and rules, binder notation such as
+  `$lambda x : A. b$`, rule names inside formulas, and code identifiers.

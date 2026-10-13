@@ -105,7 +105,7 @@ theorem appFn_sound {Γ : List Expr} {f f' a : Expr} (h : RedSem m φ Γ f f') :
   exact ⟨hf', ha, p, A, B, he ▸ hslot, hmem, hB, hT⟩
 
 /-- **β at every binder, with no premise** — `beta_of_ne_pt`.  The
-redex is not the point, so neither is its λ; a λ that is not the point
+redex is not the point, so neither is its lambda; a lambda that is not the point
 is the graph of its body; and the graph's domain is the slot's: the
 argument is in it. -/
 theorem beta_sound {Γ : List Expr} {A b a : Expr} :
@@ -197,10 +197,10 @@ theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr}
   rw [heA]
   exact piV_congr hfib
 
-/-- **λ-congruence, typed**: the two bodies lie in one type
+/-- **Lambda congruence, typed**: the two bodies lie in one type
 at every value of the variable — their inferred types are equal there
 — so they are both the point or neither is, and where neither is the
-bodies' claim makes them equal.  Neither λ need be a graph. -/
+bodies' claim makes them equal.  Neither lambda need be a graph. -/
 theorem lam_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr}
     (hA : DefEqSem m φ Γ A₁ A₂) (hb : DefEqSem m φ (A₂ :: Γ) b₁ b₂)
     (ht₁ : InferSem m φ (A₂ :: Γ) b₁ t₁) (ht₂ : InferSem m φ (A₂ :: Γ) b₂ t₂)
@@ -305,7 +305,7 @@ theorem pi_sound {Γ : List Expr} {A B s t : Expr} {u v : Level}
   · rw [interp_pi, interp_sort, Level.eval_imax]
     exact piV_mem_typeU hmemA fun x hx => (hbody x hx).2
 
-/-- **λ**: Lean's rule.  The body's type is a type (`InferSem`), which
+/-- **Lambda**: Lean's rule.  The body's type is a type (`InferSem`), which
 is all `lamV_mem` asks of the fibres. -/
 theorem lam_sound {Γ : List Expr} {A b s bt : Expr} {u : Level}
     (hA : InferSem m φ Γ A s) (hu : RedSem m φ Γ s (.sort u))
@@ -388,7 +388,7 @@ end Infer
 
 namespace DefEq
 
-/-- **η, typed**: at every value of the variable the λ's
+/-- **η, typed**: at every value of the variable the lambda's
 body and `b` applied lie in one type — the body's inferred type is the
 `∀`'s fibre — so they are both the point or neither is, and where
 neither is the body's claim makes them equal; a member of a function space is
@@ -720,10 +720,10 @@ theorem inner_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr}
   exact hT₂.eq_of_ne_pt hm₁ hm₂ (hb _ hs' hw₁ hw₂)
 
 /-- **An outer level needs no type**: the bodies are equal
-at every value of the variable, unconditionally, so the λs are; the
+at every value of the variable, unconditionally, so the lambdas are; the
 domains are types, never the point, so their conditional claim
 applies.  This is why the type comparison is owed only at the
-innermost level of a λ-telescope pair. -/
+innermost level of a lambda telescope pair. -/
 theorem outer_sound {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr}
     (hA : DefEqSem m φ Γ A₁ A₂) (hb : LamsSem m φ (A₂ :: Γ) b₁ b₂) :
     LamsSem m φ Γ (.lam A₁ b₁) (.lam A₂ b₂) := by
