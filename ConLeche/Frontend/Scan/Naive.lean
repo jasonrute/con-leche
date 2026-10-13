@@ -203,7 +203,7 @@ def keyTable : List (String × Key) :=
    ("numIndices", .kNumIndices), ("numMinors", .kNumMinors),
    ("numMotives", .kNumMotives), ("numNested", .kNumNested),
    ("numParams", .kNumParams), ("opaque", .kOpaque), ("param", .kParam),
-   ("pre", .kPre), ("proj", .kProj), ("pw", .kPw), ("quot", .kQuot),
+   ("pre", .kPre), ("proj", .kProj), ("quot", .kQuot),
    ("recs", .kRecs), ("regular", .kRegular), ("rhs", .kRhs), ("rules", .kRules),
    ("safety", .kSafety), ("sort", .kSort), ("str", .kStr), ("strVal", .kStrVal),
    ("struct", .kStruct), ("succ", .kSucc), ("thm", .kThm), ("type", .kType),
@@ -259,17 +259,7 @@ def naiveList (start : UInt8 → Bool) (item : List UInt8 → NRes α) (l : List
 /-- `[n, …]`, the shape of every index list of the format. -/
 def naiveNatList : List UInt8 → NRes (List Nat) := naiveList isDigit naiveNat
 
-/-! ## The two variant-valued fields -/
-
-/-- The `pw` datum: `"never"` or a list of name indices. -/
-def naivePw (l : List UInt8) : NRes PwRec :=
-  match l with
-  | 91 :: l' => (naiveListLoop isDigit naiveNat l' [] true).map .ifAllZero
-  | 34 :: l' =>
-    match naiveLit "never\"" l' with
-    | some r => .ok .never r
-    | none => .err .badPw l
-  | _ => .err .badPw l
+/-! ## The variant-valued field -/
 
 /-- A definition's `hints`: `"abbrev"`, `"opaque"` or `{"regular":n}`. -/
 def naiveHints (l : List UInt8) : NRes HintsRec :=
@@ -428,20 +418,19 @@ def naiveAppExpr : List UInt8 → NRes ExprRec :=
   naiveObject appFields 3 (0, 0) fun (a, f) => .app f a
 
 /-- A binder, `lam` or `forallE`: `binderInfo` and `name` validated and
-dropped, `pw` optional — state `(body, type, pw)`. -/
-def binderFields : Key → Option (Slot (Nat × Nat × PwRec))
+dropped — state `(body, type)`. -/
+def binderFields : Key → Option (Slot (Nat × Nat))
   | .kBinderInfo => some (.drop 1 naiveBinderInfo)
-  | .kBody => some (.of 2 naiveNat fun b (_, t, p) => (b, t, p))
+  | .kBody => some (.of 2 naiveNat fun b (_, t) => (b, t))
   | .kName => some (.drop 4 naiveNat)
-  | .kType => some (.of 8 naiveNat fun t (b, _, p) => (b, t, p))
-  | .kPw => some (.of 16 naivePw fun p (b, t, _) => (b, t, p))
+  | .kType => some (.of 8 naiveNat fun t (b, _) => (b, t))
   | _ => none
 
 def naiveLamExpr : List UInt8 → NRes ExprRec :=
-  naiveObject binderFields 15 (0, 0, .never) fun (b, t, p) => .lam t b p
+  naiveObject binderFields 15 (0, 0) fun (b, t) => .lam t b
 
 def naiveForallExpr : List UInt8 → NRes ExprRec :=
-  naiveObject binderFields 15 (0, 0, .never) fun (b, t, p) => .forallE t b p
+  naiveObject binderFields 15 (0, 0) fun (b, t) => .forallE t b
 
 /-- `letE`: `name` and `nondep` validated and dropped — state
 `(body, type, value)`. -/
