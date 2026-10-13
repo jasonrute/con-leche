@@ -104976,3 +104976,60 @@ untouched; no `sorry`, no new axiom, no new `unsafe`.
 **Gates.**  `lake build`, `lake test` warning-free; the verdict checks
 (e2e, arena) identical to S5c's.  Lines (`ConLeche/`): 36 files, +270
 −414.
+
+## TASK #342 — W2: the whitepaper on the ported code (2026-10-13, agent/342-w2)
+
+Lane W2 (`_tmp/342v2-design.md`, "W2 todo"), after S5d, on `port-342`.
+
+**The merge.** `frag-342` (F1–F4, #345–#350, W1, WTERM, WLET) merged
+into the lane.  Conflicts: `DESIGN.md` only (both sides appended;
+both kept, port's records first).  The whitepaper sources and
+`links-expected.txt` auto-merged with port-342's link repoints of
+master's text; they were taken from `frag-342` wholesale and every
+con-leche citation re-pointed in this lane instead.
+
+**The 12 `// PORT:` markers** (§1, §2a ×3, §2b ×3, §4 ×2, §6, §7 ×2)
+are gone; the `#real` blocks state the current checker with its sites:
+`Rel.lean`'s citations (β/λ/∀/η, the six relations, the `fvar` and
+proof fast-path rules as the checker's second reason against `trans`),
+`let` by substitution (`Core.lean`'s whnf and infer arms), `tyU` and
+`IsTy`/`Strict`, the λ/η/ι tax sites, `infer_only` as the io grade,
+the ι comparisons made in the certified case only (with
+`RecRuleExtra` as what the law reads elsewhere), the case test
+(`iotaCtorLicensed`/`iotaCase3`), structure η and its rescue with no
+certificate, the `And` rescue, `ITerm`/`denoteMeta`/`interp`,
+`Denotes_of_denoteMeta` with no invariant hypothesis.  Two sentences
+said the ι certificate depends on the motive's level; neither the
+checker nor the fragment reads the motive — corrected (§2b's tax list,
+§4's case heading); the unverifiable "in Lean's core library only
+`Quot.lift`, `Acc.rec`, `PUnit.rec` take the certified case" is
+dropped.  §5's nested-rule paragraph says the stored instantiation is
+compared only in the certified case.
+
+**Links.** 72 citations moved with their text and were repointed
+mechanically; the rest (≈60) re-read against the code and repointed;
+`links-gate.sh --update`: 473 links, 115 files, 13 documents, OK.
+
+**Fragment comments** (comment-only, line counts unchanged, 25 files,
+≈85 sites): no annotations, honest annotations, restricted universes or
+certified β; `Model/Annot` → `Model/Env`, `AnnotTerm` → `ITerm`,
+`Certs` → `CertsF`; "product" → Π-type / function space; `Rules.lean`'s
+`Rel.lean:N` references repointed.  `fragment-gate.sh` OK.
+
+**NOTES/PLAN.**  NOTES: the items about removed binder data and the
+fragment's switch of model removed (old 5, 8, 12, 15, 22, 38–43);
+items the port took up marked *done upstream* (ι comparisons, the
+three ι laws, `DefEqLams`, `let`, structure η/unit-like); 37 items,
+cross-references renumbered.  PLAN: current names, process, and the
+PORT convention replaced.
+
+**Code comments found stale on the way** (line counts unchanged):
+`Main.lean`'s `--help` and `CoreC`'s header listed a λ-codomain sort
+check that no longer exists; `recFireComparands`' docstring described
+the deleted shape certification; `Rel.lean`'s module doc said "eight"
+relations (six).
+
+**Gates.** `lake build`, `lake test` warning-free; `fragment-gate`,
+`links-gate`, the document build (PDF + HTML, no diagnostics, synced to
+`_out/whitepaper/`), and the full `tests/arena.sh` (see the landing
+merge's message for its result).
