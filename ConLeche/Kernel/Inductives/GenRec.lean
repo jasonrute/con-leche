@@ -463,9 +463,9 @@ the pre-pass reads and the generated types are compared with. -/
 def classStreamRecs (ops : CheckerOps m) (fe : FEnv) : List RecShape → m (List ConstantVal)
   | [] => pure []
   | rc :: rcs => do
-    let cv ← checkConstantValF ops fe rc.cvR
+    checkConstantValF ops fe rc.cvR
     let cvs ← classStreamRecs ops fe rcs
-    pure (cv :: cvs)
+    pure (rc.cvR :: cvs)
 
 /-- A class key moved to the block's canonical parameter variables
 `params` (the pre-pass reads it over the stream recursor's own openers). -/

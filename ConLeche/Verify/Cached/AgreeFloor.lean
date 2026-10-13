@@ -207,13 +207,6 @@ the driver calls (they
 take the engine as a `CheckerOps` record).  Their skeleton facts are
 proved once. -/
 
-theorem checkConstantValF_name (ops : CheckerOps CheckCM) (fe : FEnv)
-    (cv : ConstantVal) :
-    Yields (checkConstantValF ops fe cv) (fun cvA => cvA.name = cv.name) := by
-  unfold checkConstantValF
-  yields
-  all_goals (apply Yields.pure; rfl)
-
 theorem installBasisDeclF_skels {fe : FEnv} {sk : List InstallSkel}
     (h : SkelIs fe sk) (ci : ConstantInfo) :
     Yields (installBasisDeclF (m := CheckCM) fe ci)
@@ -224,36 +217,30 @@ theorem installBasisDeclF_skels {fe : FEnv} {sk : List InstallSkel}
 
 /-! ## The cached certified driver's install stages -/
 
-theorem checkConstantValC_name (mode : CheckMode) (fe : FEnv)
-    (cv : ConstantVal) :
-    Yields (checkConstantValC mode fe cv) (fun p => p.1.name = cv.name) := by
-  unfold checkConstantValC
-  yields
-  all_goals (apply Yields.pure; rfl)
-
 theorem installHeaderC_fresh (fe : FEnv)
     (cv : ConstantVal) :
     Yields (installHeaderC fe cv)
-      (fun p => p.name = cv.name ∧ fe.find? cv.name = none) := by
+      (fun _ => fe.find? cv.name = none) := by
   unfold installHeaderC
   yields
-  all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
+  all_goals exact Yields.pure (Option.not_isSome_iff_eq_none.mp (by assumption))
 
 theorem installGuardsC_fresh (fe : FEnv) (cv : ConstantVal)
     (value : Expr) :
     Yields (installGuardsC fe cv value)
-      (fun r => r.1.name = cv.name ∧ fe.find? cv.name = none) := by
+      (fun _ => fe.find? cv.name = none) := by
   unfold installGuardsC
   ybind
-  refine Yields.bind' (installHeaderC_fresh fe cv) fun p hp => ?_
-  ybind
-  exact Yields.pure hp
+  refine Yields.bind' (installHeaderC_fresh fe cv) fun _ hp => ?_
+  unfold installValueGuardsC
+  yields
+  all_goals exact Yields.pure hp
 
 /-- The record a definition's value check returns is the definition
 itself, at the checked constant and hint. -/
 theorem checkDefnValCI_shape (mode : CheckMode) (fe : FEnv) (cvA : ConstantVal)
-    (jty value : Expr) (hint : ReducibilityHint) :
-    Yields (checkDefnValCI mode fe cvA jty value hint)
+    (value : Expr) (hint : ReducibilityHint) :
+    Yields (checkDefnValCI mode fe cvA value hint)
       (fun ci => ∃ v, ci = .defnInfo cvA v hint) := by
   unfold checkDefnValCI
   yields
@@ -262,8 +249,8 @@ theorem checkDefnValCI_shape (mode : CheckMode) (fe : FEnv) (cvA : ConstantVal)
 /-- The record an opaque's value check returns is the axiom at the
 checked constant. -/
 theorem checkOpaqueValCI_shape (mode : CheckMode) (fe : FEnv) (cvA : ConstantVal)
-    (jty value : Expr) :
-    Yields (checkOpaqueValCI mode fe cvA jty value) (fun ci => ci = .axiomInfo cvA) := by
+    (value : Expr) :
+    Yields (checkOpaqueValCI mode fe cvA value) (fun ci => ci = .axiomInfo cvA) := by
   unfold checkOpaqueValCI
   yields
   all_goals exact Yields.pure rfl
@@ -300,8 +287,8 @@ theorem checkSumTeleF_name (ops : CheckerOps CheckCM) (fe : FEnv)
   split
   · exact Yields.pure (Or.inl rfl)
   · ybind
-    refine Yields.bind' (checkConstantValF_name ops fe _) fun cvTa hn => ?_
-    exact Yields.pure (Or.inr hn)
+    ybind
+    exact Yields.pure (Or.inr rfl)
 
 theorem checkSumCtorF_name (ops : CheckerOps CheckCM) (fe₀ fe : FEnv)
     (T : Name) (lps : List Name) (nP nIdx : Nat) (rs : Level) (isProp large : Bool)
@@ -309,9 +296,9 @@ theorem checkSumCtorF_name (ops : CheckerOps CheckCM) (fe₀ fe : FEnv)
     Yields (checkSumCtorF ops fe₀ fe T lps nP nIdx rs isProp large cvC nF cvTa)
       (fun r => r.1.name = cvC.name) := by
   unfold checkSumCtorF
-  refine Yields.bind' (checkConstantValF_name ops fe cvC) fun cvCa hn => ?_
+  ybind
   yields
-  all_goals (apply Yields.pure; exact hn)
+  all_goals (apply Yields.pure; rfl)
 
 /-- The constructor list's names and field counts are the block's, and
 the field-sort lists come one per constructor (task #210 Part A). -/
@@ -351,10 +338,10 @@ theorem consSumCtorsF_skels (nP : Nat) :
 theorem checkConstantValF_fresh (ops : CheckerOps CheckCM) (fe : FEnv)
     (cv : ConstantVal) :
     Yields (checkConstantValF ops fe cv)
-      (fun cvA => cvA.name = cv.name ∧ fe.find? cv.name = none) := by
+      (fun _ => fe.find? cv.name = none) := by
   unfold checkConstantValF
   yields
-  all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
+  all_goals exact Yields.pure (Option.not_isSome_iff_eq_none.mp (by assumption))
 
 theorem checkSumCtorF_fresh (ops : CheckerOps CheckCM) (fe₀ fe : FEnv)
     (T : Name) (lps : List Name) (nP nIdx : Nat) (rs : Level) (isProp large : Bool)
@@ -362,10 +349,9 @@ theorem checkSumCtorF_fresh (ops : CheckerOps CheckCM) (fe₀ fe : FEnv)
     Yields (checkSumCtorF ops fe₀ fe T lps nP nIdx rs isProp large cvC nF cvTa)
       (fun r => r.1.name = cvC.name ∧ fe.find? cvC.name = none) := by
   unfold checkSumCtorF
-  refine Yields.bind' (checkConstantValF_fresh ops fe cvC) fun cvCa h₀ => ?_
-  obtain ⟨hn, hfr⟩ := h₀
+  refine Yields.bind' (checkConstantValF_fresh ops fe cvC) fun _ hfr => ?_
   yields
-  all_goals (apply Yields.pure; exact ⟨hn, hfr⟩)
+  all_goals (apply Yields.pure; exact ⟨rfl, hfr⟩)
 
 theorem checkSumCtorsF_fresh (ops : CheckerOps CheckCM) (fe₀ fe : FEnv)
     (T : Name) (lps : List Name) (nP nIdx : Nat) (rs : Level) (isProp large : Bool)
@@ -412,14 +398,11 @@ theorem checkBlockTeleF_fresh (ops : CheckerOps CheckCM) (fe : FEnv) (nP : Nat)
     Yields (checkBlockTeleF ops fe nP ms)
       (fun r => r.1.name = ms.cvT.name ∧ fe.find? ms.cvT.name = none) := by
   unfold checkBlockTeleF
-  refine Yields.bind' (checkConstantValF_fresh ops fe ms.cvT) fun cvTa₀ h₀ => ?_
-  obtain ⟨hn₀, hfr⟩ := h₀
-  refine Yields.bind' (checkSumTeleF_name ops fe ms.cvT _ cvTa₀) fun r hn => ?_
+  refine Yields.bind' (checkConstantValF_fresh ops fe ms.cvT) fun _ hfr => ?_
+  refine Yields.bind' (checkSumTeleF_name ops fe ms.cvT _ ms.cvT) fun r hn => ?_
   obtain ⟨cvTa, s⟩ := r
   have hn' : cvTa.name = ms.cvT.name := by
-    rcases hn with h1 | h1
-    · exact h1.trans hn₀
-    · exact h1
+    rcases hn with h1 | h1 <;> exact h1
   yields
   all_goals exact Yields.pure ⟨hn', hfr⟩
 
@@ -952,30 +935,24 @@ theorem checkDeclC_skels (mode : CheckMode) {fe : FEnv}
   cases pd with
   | defnDecl cv value hint =>
     simp only []
-    refine Yields.bind' (checkConstantValC_name mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    simp only []
+    ybind
     split
     · -- the pinned arm: certified against the overlay, pushed last
-      refine Yields.bind' (checkDefnValCI_shape mode fe cvA jty value hint) fun ci hci => ?_
+      refine Yields.bind' (checkDefnValCI_shape mode fe cv value hint) fun ci hci => ?_
       obtain ⟨v, rfl⟩ := hci
-      have h2 : SkelIs (fe.push (.defnInfo cvA v hint)) (.defn cv.name :: sk) := by
-        rw [← hp]; exact h.push _
+      have h2 : SkelIs (fe.push (.defnInfo cv v hint)) (.defn cv.name :: sk) := h.push _
       yields
       all_goals (apply Yields.pure; exact h2)
     · exact Yields.ofThrow
   | thmDecl cv value => exact Yields.ofThrow
   | opaqueDecl cv value =>
     simp only []
-    refine Yields.bind' (checkConstantValC_name mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    simp only []
+    ybind
     split
     · -- the pinned arm: certified against the overlay, pushed last
-      refine Yields.bind' (checkOpaqueValCI_shape mode fe cvA jty value) fun ci hci => ?_
+      refine Yields.bind' (checkOpaqueValCI_shape mode fe cv value) fun ci hci => ?_
       subst hci
-      have h2 : SkelIs (fe.push (.axiomInfo cvA)) (.ax cv.name :: sk) := by
-        rw [← hp]; exact h.push _
+      have h2 : SkelIs (fe.push (.axiomInfo cv)) (.ax cv.name :: sk) := h.push _
       yields
       all_goals (apply Yields.pure; exact h2)
     · exact Yields.ofThrow
@@ -989,20 +966,17 @@ theorem checkDeclC_skels (mode : CheckMode) {fe : FEnv}
       · exact Yields.pure h
       · exact Yields.ofThrow
     · rw [ite_eq_right hqs]
-      refine Yields.bind' (checkConstantValC_name mode fe cv) fun p hp => ?_
-      obtain ⟨cvA, jty⟩ := p
-      simp only []
-      rw [← hp]
-      by_cases ht : cvA.name = sorryAxName
+      ybind
+      by_cases ht : cv.name = sorryAxName
       · rw [ite_eq_left (Or.inl ht),
-          ite_eq_right (by rw [tolerated_not_std fe cvA ht]; exact Bool.false_ne_true),
+          ite_eq_right (by rw [tolerated_not_std fe cv ht]; exact Bool.false_ne_true),
           ite_eq_right (tolerated_ne_trust ht), ite_eq_right (tolerated_ne_ofReduce ht),
           ite_eq_right (tolerated_ne_std ht), ite_eq_left ht]
         exact Yields.pure h
-      · have hne : ¬(cvA.name = sorryAxName ∨ cvA.name = quotSoundName) := by
+      · have hne : ¬(cv.name = sorryAxName ∨ cv.name = quotSoundName) := by
           rintro (h' | h')
           · exact ht h'
-          · exact hqs (hp ▸ h')
+          · exact hqs h'
         rw [ite_eq_right hne]
         yields
         all_goals first
@@ -1086,27 +1060,25 @@ theorem installStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jv⟩ := r
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun _ _ => ?_
       apply Yields.pure
-      show SkelIs (fe.push (.defnInfo cvA jv hint)) (.defn cv.name :: sk)
-      rw [← hr.1]; exact h.push _
+      show SkelIs (fe.push (.defnInfo cv value hint)) (.defn cv.name :: sk)
+      exact h.push _
   | thmDecl cv value =>
     simp only []
     ybind
-    refine Yields.bind' (installHeaderC_fresh fe cv) fun cvA hr => ?_
+    refine Yields.bind' (installHeaderC_fresh fe cv) fun _ _ => ?_
     apply Yields.pure
-    show SkelIs (fe.push (.thmInfo cvA)) (.thm cv.name :: sk)
-    rw [← hr.1]; exact h.push _
+    show SkelIs (fe.push (.thmInfo cv)) (.thm cv.name :: sk)
+    exact h.push _
   | opaqueDecl cv value =>
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jv⟩ := r
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun _ _ => ?_
       apply Yields.pure
-      show SkelIs (fe.push (.axiomInfo cvA)) (.ax cv.name :: sk)
-      rw [← hr.1]; exact h.push _
+      show SkelIs (fe.push (.axiomInfo cv)) (.ax cv.name :: sk)
+      exact h.push _
   | axiomDecl cv => exact hord _
   | basisDecl kind => exact hord _
   | quotDecl k cv => exact hord _

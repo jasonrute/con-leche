@@ -160,8 +160,7 @@ theorem checkBlockTeleS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env
       (checkBlockTele (sharedOpsC mode (mkFEnv env)) env nP ms)
       (checkBlockTele (fueledOpsM mode) env nP ms) := by
   unfold checkBlockTele
-  refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ c c' hs₁ hP => ?_)
-  obtain ⟨rfl, hw⟩ := hP
+  refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ _ _ hs₁ hw => ?_)
   refine SimC.bind (checkSumTeleS_sim hμ henv hs₁ hw) (fun s₂ r r' hs₂ hR => ?_)
   obtain ⟨rfl, hw'⟩ := hR
   obtain ⟨cvTa, sx⟩ := r
@@ -544,8 +543,8 @@ theorem checkBlockCtors_fresh {env₀ env : Env} {q : BlockShape} {F : Nat}
   have hjl : j < l[i].1.ctors.length := by
     rw [← hlenC]; exact (List.getElem?_eq_some_iff.mp hj).1
   obtain ⟨-, sorts, -, hrun⟩ := hallc j (l[i].1.ctors[j]) c (List.getElem?_eq_getElem hjl) hj
-  obtain ⟨⟨ty', hccv⟩, -, -⟩ := checkSumCtor_shape hrun
-  rw [(checkConstantVal_lps hccv).1]
+  obtain ⟨⟨heq, hccv⟩, -, -⟩ := checkSumCtor_shape hrun
+  rw [heq]
   exact (checkConstantVal_inv hccv).1
 
 end ConLeche.Cached

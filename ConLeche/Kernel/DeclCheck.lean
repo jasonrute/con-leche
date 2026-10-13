@@ -351,7 +351,7 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- `checkConstantVal` through the index. -/
 def checkConstantValF (ops : CheckerOps m) (fe : FEnv)
-    (cv : ConstantVal) : m ConstantVal := do
+    (cv : ConstantVal) : m Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -370,7 +370,6 @@ def checkConstantValF (ops : CheckerOps m) (fe : FEnv)
     throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
   let stype ← ops.inferType fe.env 0 cv.type
   let _u ← ops.ensureSort fe.env 0 stype
-  pure cv
 
 /-- `installBasisDecl` through the index, returning the pushed index. -/
 def installBasisDeclF (fe : FEnv) (ci : ConstantInfo) : m FEnv := do

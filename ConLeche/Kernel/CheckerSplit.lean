@@ -62,7 +62,7 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- `checkConstantVal` minus its inference: the syntactic guards. -/
 def installHeader (env : Env) (cv : ConstantVal) :
-    m ConstantVal := do
+    m Unit := do
   if (env.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -79,12 +79,11 @@ def installHeader (env : Env) (cv : ConstantVal) :
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
   unless cv.type.constsResolve env do
     throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
-  pure cv
 
 /-- The value half of `check{Defn,Thm,Opaque}Val` minus its inference:
 the guards. -/
 def installValueGuards (env : Env) (cv : ConstantVal)
-    (value : Expr) : m Expr := do
+    (value : Expr) : m Unit := do
   unless value.looseBVarsBounded 0 do
     throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
@@ -93,7 +92,6 @@ def installValueGuards (env : Env) (cv : ConstantVal)
     throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless value.constsResolve env do
     throw (unresolvedConstsErrorL (strLitSupported env) s!"value of {cv.name}" value)
-  pure value
 
 /-- **The check half of a value declaration**, at the environment the
 constant was installed at: the type's sort, the theorem's
@@ -105,12 +103,11 @@ in their order, with their messages. -/
 def checkValueGroup (ops : CheckerOps m) (env : Env) (g : ValueGroup) : m Unit := do
   let stype ← ops.inferType env 0 g.cvA.type
   let u ← ops.ensureSort env 0 stype
-  let jv ← if g.kind = .thm then do
+  if g.kind = .thm then do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
         throw (.invalid s!"type of theorem {g.cvA.name} is not a proposition")
       installValueGuards env g.cvA g.jv
-    else pure g.jv
-  let vtype ← ops.inferType env 0 jv
+  let vtype ← ops.inferType env 0 g.jv
   unless ← ops.isDefEq env 0 vtype g.cvA.type do
     throw (.invalid s!"type mismatch in {g.kind.word} {g.cvA.name}")
 

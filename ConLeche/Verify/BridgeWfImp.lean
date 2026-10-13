@@ -222,13 +222,13 @@ macro "throwM_elim" h:ident : tactic =>
 /-- The type-slot `ConstWF` facts of a successfully checked constant:
 level parameters, constant resolution, closedness and fvar-freedom are
 all checked outright (the stored type is the declared one). -/
-theorem checkConstantVal_typeWF {env : Env} {cv cvA : ConstantVal}
-    {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
-    cvA.type.hasFvar = false ∧
-    cvA.type.allLevelParamsDefined cvA.levelParams = true ∧
-    cvA.type.constsResolve env = true ∧
-    cvA.type.looseBVarsBounded 0 = true := by
-  obtain ⟨-, -, -, -, hlb, hif, -, -, htp, htr, -, -, rfl⟩ := checkConstantVal_inv h
+theorem checkConstantVal_typeWF {env : Env} {cv : ConstantVal}
+    {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok ()) :
+    cv.type.hasFvar = false ∧
+    cv.type.allLevelParamsDefined cv.levelParams = true ∧
+    cv.type.constsResolve env = true ∧
+    cv.type.looseBVarsBounded 0 = true := by
+  obtain ⟨-, -, -, -, hlb, hif, -, -, htp, htr, -, -⟩ := checkConstantVal_inv h
   exact ⟨hif, htp, htr, hlb⟩
 
 end ConLeche

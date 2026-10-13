@@ -225,11 +225,13 @@ theorem blockFormerFacts_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
           FormerData mp.base2 cvTa (p₀.nP + ms.nIdx) (sOf m) pps := by
     intro m cvTa hm
     obtain ⟨ms, hms, hrun⟩ := hpair m cvTa hm
-    obtain ⟨cvT, hn, hl, hccv, bs, hst⟩ := ConLeche.checkBlockTele_shape hrun
-    obtain ⟨hfind, hnres, hpsh, -, hlbt, hitf, type', -, -, hann, hlpd, htr, -, -, rfl⟩ :=
-      ConLeche.checkConstantVal_inv_stored hccv
-    obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
-    obtain ⟨pps, hFD⟩ := formerData_of hμ mp hccv hst
+    obtain ⟨cvT, hn, hl, heq, hccv, bs, hst⟩ := ConLeche.checkBlockTele_shape hrun
+    obtain ⟨hfind, hnres, hpsh, -, hlbt, hitf, -, -, hlpd, htr, -, -⟩ :=
+      ConLeche.checkConstantVal_inv hccv
+    rw [← heq] at hfind hnres hpsh hlbt hitf hlpd htr hn hl
+    have htf' := hitf
+    have hbt' := hlbt
+    obtain ⟨pps, hFD⟩ := formerData_of hμ mp ⟨heq, hccv⟩ hst
     exact ⟨ms, bs, hms, hn, hl, hfind, hnres, hpsh,
       htr, htf', hlpd, hbt', hst, pps, hFD⟩
   -- the members' telescope readings, chosen positionally

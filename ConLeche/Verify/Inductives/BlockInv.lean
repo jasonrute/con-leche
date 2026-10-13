@@ -57,10 +57,12 @@ theorem checkBlockTele_shape {env : Env} {nP : Nat} {ms : MemberShape}
     (h : checkBlockTele (fueledOps mode F) env nP ms = .ok (cvTa, s)) :
     ∃ cvT : ConstantVal,
       cvT.name = ms.cvT.name ∧ cvT.levelParams = ms.cvT.levelParams ∧
-      checkConstantVal (fueledOps mode F) env cvT = .ok cvTa ∧
+      cvTa = cvT ∧ checkConstantVal (fueledOps mode F) env cvT = .ok () ∧
       ∃ bs, cvTa.type.stripPis (nP + ms.nIdx) = some (bs, .sort s) := by
   unfold checkBlockTele at h
-  obtain ⟨cvTa₀, hccv₀, h⟩ := exceptBind_ok h
+  obtain ⟨u₀, hccv₀, h⟩ := exceptBind_ok h
+  cases u₀
+  try simp only at h
   obtain ⟨q, htele, h⟩ := exceptBind_ok h
   obtain ⟨cvTa', s'⟩ := q
   try simp only at h
@@ -74,9 +76,9 @@ theorem checkBlockTele_shape {env : Env} {nP : Nat} {ms : MemberShape}
     obtain ⟨rfl, rfl⟩ := h
     have hstrip : cvTa'.type.stripPis (nP + ms.nIdx) = some (bs, Expr.sort s') := by
       rw [hr', beq_iff_eq.mp hc]
-    rcases checkSumTele_shape htele with ⟨rfl, -⟩ | ⟨ty, hccv⟩
-    · exact ⟨ms.cvT, rfl, rfl, hccv₀, bs, hstrip⟩
-    · exact ⟨{ ms.cvT with type := ty }, rfl, rfl, hccv, bs, hstrip⟩
+    rcases checkSumTele_shape htele with ⟨rfl, -⟩ | ⟨ty, heq, hccv⟩
+    · exact ⟨ms.cvT, rfl, rfl, rfl, hccv₀, bs, hstrip⟩
+    · exact ⟨{ ms.cvT with type := ty }, rfl, rfl, heq, hccv, bs, hstrip⟩
   · rw [ite_eq_right hc] at h
     close_throw
 

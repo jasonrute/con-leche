@@ -74,8 +74,7 @@ fueled result, its type well-scoped, and the returned `Expr` is
 related to it. -/
 theorem checkConstantValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvp : ConstantVal}
     {tyE : Expr} (hs : CSOK mode env s₀) (hden : RelC cvp.type tyE) :
-    SimC mode env s₀ (fun v w => v.1 = w ∧ v.1.name = cvp.name ∧
-        Expr.WScoped 0 v.1.type ∧ RelC v.2 v.1.type)
+    SimC mode env s₀ (fun _ _ => Expr.WScoped 0 cvp.type)
       (checkConstantValC mode (mkFEnv env) cvp)
       (checkConstantVal (fueledOpsM mode) env
         ⟨cvp.name, cvp.levelParams, tyE⟩) := by
@@ -128,19 +127,19 @@ theorem checkConstantValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
   obtain ⟨hjsty, hwsty⟩ := hP₂
   refine SimC.bind (opSIxC_sim hμ henv hs₂ hjsty hwsty)
     (fun s₃ u u' hs₃ hP₃ => ?_)
-  exact SimC.pure hs₃ ⟨rfl, rfl, hwty, rfl⟩
+  exact SimC.pure hs₃ hwty
 
 /-- `checkDefnValCI` simulates the generic `checkDefnVal`: the record
 pushed onto the index is `mkFEnv` of the fueled environment, whose head
 stores the (fvar-free) value. -/
 theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvA : ConstantVal}
-    {jty : Expr} {value : Expr} {ve : Expr} {hint : ReducibilityHint}
-    (htf : Expr.WScoped 0 cvA.type) (hjty : RelC jty cvA.type)
+    {value : Expr} {ve : Expr} {hint : ReducibilityHint}
+    (htf : Expr.WScoped 0 cvA.type)
     (hdenv : RelC value ve) (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun ci w => (mkFEnv env).push ci = mkFEnv w ∧
         ∀ cv' v' h', w.find? cvA.name = some (.defnInfo cv' v' h') →
           v'.hasFvar = false)
-      (checkDefnValCI mode (mkFEnv env) cvA jty value hint)
+      (checkDefnValCI mode (mkFEnv env) cvA value hint)
       (checkDefnVal (fueledOpsM mode) env cvA ve hint) := by
   obtain rfl := hdenv
   unfold checkDefnValCI checkDefnVal
@@ -171,7 +170,7 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
   refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs rfl hwv)
     (fun s₂ jvt wvt hs₂ hP₂ => ?_)
   obtain ⟨hjvt, hwvt⟩ := hP₂
-  refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₂ hjvt hjty hwvt htf)
+  refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₂ hjvt rfl hwvt htf)
     (fun s₃ b b' hs₃ hP₃ => ?_)
   obtain rfl : b = b' := hP₃
   cases b with
@@ -191,11 +190,11 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
 /-- `checkOpaqueValCI` simulates the generic `checkOpaqueVal`: the
 record pushed onto the index is `mkFEnv` of the fueled environment. -/
 theorem checkOpaqueValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvA : ConstantVal}
-    {jty : Expr} {value : Expr} {ve : Expr}
-    (htf : Expr.WScoped 0 cvA.type) (hjty : RelC jty cvA.type)
+    {value : Expr} {ve : Expr}
+    (htf : Expr.WScoped 0 cvA.type)
     (hdenv : RelC value ve) (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun ci w => (mkFEnv env).push ci = mkFEnv w ∧ ve.hasFvar = false)
-      (checkOpaqueValCI mode (mkFEnv env) cvA jty value)
+      (checkOpaqueValCI mode (mkFEnv env) cvA value)
       (checkOpaqueVal (fueledOpsM mode) env cvA ve) := by
   obtain rfl := hdenv
   unfold checkOpaqueValCI checkOpaqueVal
@@ -226,7 +225,7 @@ theorem checkOpaqueValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF en
   refine SimC.bind ((ssimC hμ env henv checkFuel).infer hs rfl hwv)
     (fun s₂ jvt wvt hs₂ hP₂ => ?_)
   obtain ⟨hjvt, hwvt⟩ := hP₂
-  refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₂ hjvt hjty hwvt htf)
+  refine SimC.bind ((ssimC hμ env henv checkFuel).defeq hs₂ hjvt rfl hwvt htf)
     (fun s₃ b b' hs₃ hP₃ => ?_)
   obtain rfl : b = b' := hP₃
   cases b with
@@ -312,37 +311,34 @@ theorem checkDeclC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) (hs
       · exact SimC.throw
     simp only [ite_eq_right hqs]
     refine SimC.bind (checkConstantValC_sim hμ henv hs rfl)
-      (fun s₁ pr cvA hs₁ hP => ?_)
-    obtain ⟨cvR, jty⟩ := pr
-    obtain ⟨rfl, hname, hwty, hjty⟩ := hP
-    dsimp only at hjty ⊢
+      (fun s₁ _ _ hs₁ hwty => ?_)
     simp only [stdAxiomOkF_eq, trustCompilerOkF_eq, ofReduceAxOkF_eq]
-    by_cases h1 : stdAxiomOk env cvR = true
+    by_cases h1 : stdAxiomOk env cv = true
     · simp only [ite_eq_left h1]
       exact SimC.pure hs₁ ⟨rfl, push_mkFEnv env _⟩
     · simp only [ite_eq_right h1]
-      by_cases htc : cvR.name = trustCompilerName
+      by_cases htc : cv.name = trustCompilerName
       · simp only [ite_eq_left htc]
-        by_cases htok : trustCompilerOk env cvR = true
+        by_cases htok : trustCompilerOk env cv = true
         · simp only [ite_eq_left htok]
           exact SimC.pure hs₁ ⟨rfl, push_mkFEnv env _⟩
         · simp only [ite_eq_right htok]
           exact SimC.throw
       · simp only [ite_eq_right htc]
-        by_cases hor : cvR.name = ofReduceNatName ∨
-            cvR.name = ofReduceBoolName
+        by_cases hor : cv.name = ofReduceNatName ∨
+            cv.name = ofReduceBoolName
         · simp only [ite_eq_left hor]
-          by_cases hoo : ofReduceAxOk env cvR = true
+          by_cases hoo : ofReduceAxOk env cv = true
           · simp only [ite_eq_left hoo]
             exact SimC.pure hs₁ ⟨rfl, push_mkFEnv env _⟩
           · simp only [ite_eq_right hoo]
             exact SimC.throw
         · simp only [ite_eq_right hor]
-          by_cases h2 : cvR.name = propextName ∨ cvR.name = choiceName
+          by_cases h2 : cv.name = propextName ∨ cv.name = choiceName
           · simp only [ite_eq_left h2]
             exact SimC.throw
           · simp only [ite_eq_right h2]
-            by_cases h3 : cvR.name = sorryAxName
+            by_cases h3 : cv.name = sorryAxName
             · simp only [ite_eq_left h3]
               exact SimC.pure hs₁ ⟨rfl, rfl⟩
             · simp only [ite_eq_right h3]
@@ -354,20 +350,17 @@ theorem checkDeclC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) (hs
     unfold checkDeclC checkDecl
     dsimp only
     refine SimC.bind (checkConstantValC_sim hμ henv hs rfl)
-      (fun s₁ pr cvA hs₁ hP => ?_)
-    obtain ⟨cvR, jty⟩ := pr
-    obtain ⟨rfl, hname, hwty, hjty⟩ := hP
-    dsimp only at hjty ⊢
+      (fun s₁ _ _ hs₁ hwty => ?_)
     -- the cached arm branches BEFORE the push (RC linearity), the spec
     -- after it: the case split comes first on both sides
-    by_cases hred : reduceOpNames.contains cvR.name = true
+    by_cases hred : reduceOpNames.contains cv.name = true
     case neg =>
       simp only [ite_eq_right hred]
       exact SimC.throw
     simp only [ite_eq_left hred]
     -- the cached arm certifies against the overlay, which answers
     -- `find?` as the push, and pushes last
-    refine SimC.bind (checkOpaqueValCI_sim hμ henv hwty hjty rfl hs₁)
+    refine SimC.bind (checkOpaqueValCI_sim hμ henv hwty rfl hs₁)
       (fun s₂ ci env2 hs₂ hP₂ => ?_)
     obtain ⟨hmk, hvf⟩ := hP₂
     rw [checkReducePinF_congr2 _ _ (find?_overlay_push (fe := mkFEnv env) rfl ci), hmk,
@@ -379,19 +372,16 @@ theorem checkDeclC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) (hs
     unfold checkDeclC checkDecl
     dsimp only
     refine SimC.bind (checkConstantValC_sim hμ henv hs rfl)
-      (fun s₁ pr cvA hs₁ hP => ?_)
-    obtain ⟨cvR, jty⟩ := pr
-    obtain ⟨rfl, hname, hwty, hjty⟩ := hP
-    dsimp only at hjty ⊢
-    by_cases hb : (natOpNames.contains cvR.name ||
-        natDivModNames.contains cvR.name) = true
+      (fun s₁ _ _ hs₁ hwty => ?_)
+    by_cases hb : (natOpNames.contains cv.name ||
+        natDivModNames.contains cv.name) = true
     case neg =>
       simp only [ite_eq_right hb]
       exact SimC.throw
     simp only [ite_eq_left hb]
     -- the cached arm certifies against the overlay, which answers
     -- `find?` as the push, and pushes last
-    refine SimC.bind (checkDefnValCI_sim hμ henv hwty hjty rfl hs₁)
+    refine SimC.bind (checkDefnValCI_sim hμ henv hwty rfl hs₁)
       (fun s₂ ci env2 hs₂ hP₂ => ?_)
     obtain ⟨hmk, hv'fD⟩ := hP₂
     have hf : ((mkFEnv env).overlay [ci]).find? = (mkFEnv env2).find? := by
@@ -400,10 +390,10 @@ theorem checkDeclC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) (hs
       hf, hmk]
     simp only [natOpGuardF_eq, natOpStoredOkF_eq_fun, mkFEnv_find?,
       checkDivModPinF_eq, mkFEnv_env]
-    by_cases h1 : natOpNames.contains cvR.name = true
+    by_cases h1 : natOpNames.contains cv.name = true
     case neg =>
       simp only [ite_eq_right h1]
-      by_cases h4 : natDivModNames.contains cvR.name = true
+      by_cases h4 : natDivModNames.contains cv.name = true
       case neg =>
         simp only [ite_eq_right h4]
         exact SimC.pure hs₂ ⟨rfl, rfl⟩
@@ -413,20 +403,20 @@ theorem checkDeclC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) (hs
         (fun s₃ u u' hs₃ hP₃ => ?_)
       exact SimC.pure hs₃ ⟨rfl, rfl⟩
     simp only [ite_eq_left h1]
-    by_cases h2 : (natOpGuard env2 cvR.name &&
-        (natOpDeps cvR.name).all (natOpStoredOk env2)) = true
+    by_cases h2 : (natOpGuard env2 cv.name &&
+        (natOpDeps cv.name).all (natOpStoredOk env2)) = true
     case neg => simp only [ite_eq_right h2]; exact SimC.throw_bind
     simp only [h2, ↓reduceIte]
-    cases hfind : env2.find? cvR.name with
+    cases hfind : env2.find? cv.name with
     | none => exact SimC.throw_bind
     | some ci =>
       cases ci with
       | defnInfo cvS value' hintS =>
         dsimp only
         have hvf : value'.hasFvar = false := hv'fD _ _ _ hfind
-        have hsc : ∀ eq ∈ (natOpEquations 0 cvR.name).map
-            (fun eq => (Expr.substConst0 cvR.name value' eq.1,
-              Expr.substConst0 cvR.name value' eq.2)),
+        have hsc : ∀ eq ∈ (natOpEquations 0 cv.name).map
+            (fun eq => (Expr.substConst0 cv.name value' eq.1,
+              Expr.substConst0 cv.name value' eq.2)),
             (eq.1.wscopedB 2 = true) ∧ (eq.2.wscopedB 2 = true) := by
           intro eq heq
           obtain ⟨eq₀, heq₀, rfl⟩ := List.mem_map.mp heq
@@ -443,7 +433,7 @@ theorem checkDeclC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) (hs
           exact SimC.throw_bind
         | true =>
           simp only [↓reduceIte]
-          by_cases h4 : natDivModNames.contains cvR.name = true
+          by_cases h4 : natDivModNames.contains cv.name = true
           case neg =>
             simp only [ite_eq_right h4]
             exact SimC.pure hs₃ ⟨rfl, rfl⟩

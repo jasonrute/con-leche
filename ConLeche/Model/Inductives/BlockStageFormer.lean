@@ -138,18 +138,17 @@ opening — a member's type has its own indices after the parameters). -/
 private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
     {cvT cvTa : ConstantVal} {nP nFull : Nat} {resSort : Level}
     {pps : (Name → Nat) → List ITerm}
-    (hccv : ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok cvTa)
+    (hccv : cvTa = cvT ∧
+      ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok ())
     (hFD : FormerData mp.base2 cvTa nFull resSort pps) (hle : nP ≤ nFull)
     {tfvs : List Expr} {trest : Expr}
     (hop : ConLeche.openPisAtFvars nP cvTa.type 0 = some (tfvs, trest))
     (ψ : Name → Nat) :
     ∃ R, Opened mp.base2 ψ nP cvTa.type tfvs trest
       ((((pps ψ).take nP)).reverse) R := by
-  obtain ⟨-, -, -, -, hlbt, hitf, type', -, -, hann', -, -, -, -, rfl⟩ :=
-    ConLeche.checkConstantVal_inv_stored hccv
-  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
-  simp only at htf' hbt' hop
-  obtain ⟨Γ, R, htele, hO⟩ := opened_of hop htf' hbt' (hFD.read ψ) (hFD.okTy ψ)
+  obtain ⟨rfl, hccv⟩ := hccv
+  obtain ⟨-, -, -, -, hlbt, hitf, -, -, -, -⟩ := ConLeche.checkConstantVal_inv hccv
+  obtain ⟨Γ, R, htele, hO⟩ := opened_of hop hitf hlbt (hFD.read ψ) (hFD.okTy ψ)
   obtain ⟨pps', hst', hΓ⟩ := stripPisAV_of_piTeleAV htele
   have hst'' := stripPisAV_mkPisAV_take nP (pps ψ) (ITerm.sort (resSort.eval ψ))
     (by rw [hFD.len ψ]; exact hle)
@@ -180,7 +179,7 @@ theorem blockParamsIff (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
         Sat V (((ppsOf m₂ ψ).take p.nP)).reverse ρ := by
   obtain ⟨ms0, rest, cvTa0, s0, cvs, -, rfl, -, -, htele0, hteles, hagree⟩ :=
     ConLeche.checkBlockInds_shape h
-  obtain ⟨cvT0, -, -, hccv0, -⟩ := ConLeche.checkBlockTele_shape htele0
+  obtain ⟨cvT0, -, -, heq0, hccv0, -⟩ := ConLeche.checkBlockTele_shape htele0
   obtain ⟨hlencvs, hteleAt⟩ := ConLeche.checkBlockTeles_inv hteles
   -- every member's frame is member 0's
   have hkey : ∀ m, m < (cvTa0 :: cvs.map (·.1)).length →
@@ -198,12 +197,12 @@ theorem blockParamsIff (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
       -- member `j + 1`'s own `checkConstantVal` run
       obtain ⟨q, hq, hteleq⟩ := hteleAt j rest[j] (List.getElem?_eq_getElem (by omega))
       obtain rfl : q = cvs[j] := Option.some.inj (hq.symm.trans hjq)
-      obtain ⟨cvTq, -, -, hccvq, -⟩ := ConLeche.checkBlockTele_shape hteleq
+      obtain ⟨cvTq, -, -, heqq, hccvq, -⟩ := ConLeche.checkBlockTele_shape hteleq
       -- the agreement's two openings and its per-binder pins
       obtain ⟨-, tfvs0, trest0, tfvs, trest, hop0, hopq, -, hdoms⟩ :=
         ConLeche.checkBlockAgree_inv hagree cvs[j] (List.getElem_mem hjlen)
-      obtain ⟨R0, hO0⟩ := openedParams mp hccv0 (hFD 0 cvTa0 (by simp)) (hle 0) hop0 ψ
-      obtain ⟨Rq, hOq⟩ := openedParams mp hccvq (hFD (j + 1) _ hjc) (hle (j + 1)) hopq ψ
+      obtain ⟨R0, hO0⟩ := openedParams mp ⟨heq0, hccv0⟩ (hFD 0 cvTa0 (by simp)) (hle 0) hop0 ψ
+      obtain ⟨Rq, hOq⟩ := openedParams mp ⟨heqq, hccvq⟩ (hFD (j + 1) _ hjc) (hle (j + 1)) hopq ψ
       have hpin : ∀ i, i < p.nP → ∃ a b, tfvs[i]? = some a ∧ tfvs0[i]? = some b ∧
           ConLeche.isDefEqCore μ env F i (Expr.fvarTypeD a) (Expr.fvarTypeD b) = .ok true := by
         intro i hi

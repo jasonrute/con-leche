@@ -226,23 +226,23 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
     have := (List.getElem?_eq_some_iff.mp hj).1; omega
   obtain ⟨hnF, sorts, hsj, hCtor⟩ :=
     hall j ((q.members.getD m default).ctors[j]) cA (List.getElem?_eq_getElem hjl) hj
-  obtain ⟨⟨ty₀, hccvC⟩, ⟨cbs, es, hstrip, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, type', stype, -, hannC, -, htrC, hstC, -, htyC⟩ :=
-    ConLeche.checkConstantVal_inv_stored hccvC
+  obtain ⟨⟨heq, hccvC⟩, ⟨cbs, es, hstrip, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
+  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, stype, -, -, htrC, hstC, -⟩ :=
+    ConLeche.checkConstantVal_inv hccvC
   have hmem : (q.members.getD m default).ctors[j] ∈ (q.members.getD m default).ctors :=
     List.getElem_mem hjl
-  refine ⟨_, sorts, List.getElem?_eq_getElem hjl, by rw [htyC], hnF, ?_, ?_, ?_,
-    by rw [htyC]; exact hpshapeC, ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
+  refine ⟨_, sorts, List.getElem?_eq_getElem hjl, by rw [heq], hnF, ?_, ?_, ?_,
+    by rw [heq]; exact hpshapeC, ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
     by rw [hnF]; exact hCtor⟩
-  · rw [htyC]; exact (hClps _ hmem).1
+  · rw [heq]; exact (hClps _ hmem).1
   · show Env.find? _ cA.1.name = none
-    rw [htyC]; exact hfindC
+    rw [heq]; exact hfindC
   · show Expr.constsResolve _ cA.1.type = true
-    rw [htyC]; exact htrC
-  · rw [htyC]; exact (hClps _ hmem).2
+    rw [heq]; exact htrC
+  · rw [heq]; exact (hClps _ hmem).2
   · rw [hnF, hstrip]; rfl
-  · rw [htyC]; dsimp only; rw [hannC]; exact hfvC
-  · rw [htyC]; exact hstC
+  · rw [heq]; exact hfvC
+  · rw [heq]; exact hstC
 
 /-! ## The η side conditions of the two former passes -/
 

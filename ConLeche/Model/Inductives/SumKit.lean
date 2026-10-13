@@ -423,19 +423,20 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
         openPisAtFvars nF crest nP = some (xFvs, xrest) ∧
         idxArgs = xrest.getAppArgs.drop nP) ∧
       CtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large idxArgs ds Es srcs := by
-  obtain ⟨⟨_, hccv⟩, hresid, fvsP, crest, tfvs, trest, xFvs, idxArgs, hopC, -, -, hopX, hlenI,
+  obtain ⟨⟨heq, hccv⟩, hresid, fvsP, crest, tfvs, trest, xFvs, idxArgs, hopC, -, -, hopX, hlenI,
     -, hres, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨-, -, -, -, hlbt, hitf, type', stype, u, hann', htp', -, hst,
-    hens, rfl⟩ := ConLeche.checkConstantVal_inv_stored hccv
-  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
-  simp only at htf' hbt' htp' hst hens hopC hresid
-  have hw : Expr.WScoped 0 type' := Expr.WScoped.of_not_hasFvar htf'
-  have hL : Expr.LeavesBounded type' := Expr.LeavesBounded.of_not_hasFvar htf'
-  have hnil : type'.fvarLeaves = [] :=
+  obtain ⟨-, -, -, -, hlbt, hitf, stype, u, htp', -, hst, hens⟩ :=
+    ConLeche.checkConstantVal_inv hccv
+  rw [← heq] at hlbt hitf htp' hst
+  have htf' := hitf
+  have hbt' := hlbt
+  have hw : Expr.WScoped 0 cvCa.type := Expr.WScoped.of_not_hasFvar htf'
+  have hL : Expr.LeavesBounded cvCa.type := Expr.LeavesBounded.of_not_hasFvar htf'
+  have hnil : cvCa.type.fvarLeaves = [] :=
     Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
   have hlenP : fvsP.length = nP := openPisAtFvars_length _ hopC
   have hopAll := openPisAtFvars_add nP hopC (by rw [Nat.zero_add]; exact hopX)
-  have hidx := openPisAtFvars_index nP type' 0 hopC
+  have hidx := openPisAtFvars_index nP cvCa.type 0 hopC
   obtain ⟨hlenX, hidxX, -⟩ := opening_vars_at hopX
   obtain ⟨F', tb, vb, hib, hensb, -⟩ :=
     piBits_of_infer hμ (nP + nF) hopAll hst hens
@@ -453,7 +454,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     (by rw [List.length_append, hlenP, hlenI]; exact hstripT) hib
   -- the per-assignment reading
   have hper : ∀ ψ : Name → Nat, ∃ (ds : List ITerm) (Es : List ITerm),
-      denoteMeta mp.base2.acval env ψ 0 type'
+      denoteMeta mp.base2.acval env ψ 0 cvCa.type
         = some (mkPisAV ds (ctorBodyAVI mp.base2 T nP nF ψ Es)) ∧
       ds.length = nP + nF ∧ Es.length = nIdx ∧
       DenoteMetaSpine mp.base2.acval env ψ (nP + nF) idxArgs Es ∧
@@ -527,10 +528,10 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
   · -- level dependence
     intro ψ₁ ψ₂ hφ
     have h2 := (hspec ψ₂).1
-    have h1 : denoteMeta mp.base2.acval env ψ₂ 0 type'
+    have h1 : denoteMeta mp.base2.acval env ψ₂ 0 cvCa.type
         = some (mkPisAV (Classical.choose (hper ψ₁))
           (ctorBodyAVI mp.base2 T nP nF ψ₁ (Classical.choose (Classical.choose_spec (hper ψ₁))))) := by
-      rw [← denoteMeta_params_ext mp.base2 hφ 0 type' htp']
+      rw [← denoteMeta_params_ext mp.base2 hφ 0 cvCa.type htp']
       exact (hspec ψ₁).1
     obtain ⟨hds, hbody⟩ := mkPisAV_inj
       (by rw [(hspec ψ₁).2.1, (hspec ψ₂).2.1]) (Option.some.inj (h1.symm.trans h2))
@@ -572,7 +573,7 @@ theorem sumCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     -- family instantiated at `Prop`
     intro hl ψ hw0 ρ hρ
     have hc := claimsAt_of hμ mp ψ F
-    have hC : Opened mp.base2 ψ (nP + nF) type' (fvsP ++ xFvs)
+    have hC : Opened mp.base2 ψ (nP + nF) cvCa.type (fvsP ++ xFvs)
         (Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs))
         (((Classical.choose (hper ψ))).reverse)
         (ctorBodyAVI mp.base2 T nP nF ψ (Classical.choose (Classical.choose_spec (hper ψ)))) :=
@@ -670,12 +671,12 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
           SpineFit ρ ((((ds ψ).drop nP)).take j) as →
           interp V (consList as ρ) ((((ds ψ).drop nP)).getD j default)
             ∈ˢ (univ ((sorts.getD j .zero).eval ψ) : V)) := by
-  obtain ⟨⟨_, hccv⟩, -, fvsP, crest, tfvs, trest, xFvs, idxArgs', hopC, hopT, hdoms, hopX,
+  obtain ⟨⟨heq, hccv⟩, -, fvsP, crest, tfvs, trest, xFvs, idxArgs', hopC, hopT, hdoms, hopX,
     -, -, -, hsorts⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨-, -, -, -, hlbt, hitf, type', -, -, hann', -, -, -, -, rfl⟩ :=
-    ConLeche.checkConstantVal_inv_stored hccv
-  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
-  simp only at htf' hbt' hopC hsorts
+  obtain ⟨-, -, -, -, hlbt, hitf, -, -, -, -⟩ := ConLeche.checkConstantVal_inv hccv
+  rw [← heq] at hlbt hitf
+  have htf' := hitf
+  have hbt' := hlbt
   have hlenP : fvsP.length = nP := openPisAtFvars_length _ hopC
   have hopAll := openPisAtFvars_add nP hopC (by rw [Nat.zero_add]; exact hopX)
   obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfT)
@@ -707,7 +708,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
       (by rw [hFD.len ψ]; omega)
     obtain ⟨rfl, -⟩ := Prod.mk.injEq _ _ _ _ ▸ Option.some.inj (hst'.symm.trans hst'')
     subst hΓt
-    have hC : Opened mp.base2 ψ (nP + nF) type' (fvsP ++ xFvs)
+    have hC : Opened mp.base2 ψ (nP + nF) cvCa.type (fvsP ++ xFvs)
         (Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs'))
         ((ds ψ)).reverse (ctorBodyAVI mp.base2 T nP nF ψ (Es ψ)) :=
       opened_of_peel hopAll htf' hbt' (hCD.read ψ) (hCD.len ψ) (fun ρ => (hCD.okTy ψ ρ).1)
@@ -1108,10 +1109,11 @@ theorem stageCtorGen {T : Name}
       mp'.base2.acval = acvalWith mp.base2.acval cvCa.name
         (fun ψ => sumMkAV (resSort.eval ψ) j (ds ψ) (((ds ψ).drop nP))
           (uChains (Fss ψ))) := by
-  obtain ⟨⟨_, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨-, hnres, -, -, hlbt, hitf, type', -, -, hann', htp, -, -, -, hty⟩ :=
-    ConLeche.checkConstantVal_inv_stored hccv
-  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
+  obtain ⟨⟨hty, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hCtor
+  obtain ⟨-, hnres, -, -, hlbt, hitf, -, -, htp, -, -, -⟩ :=
+    ConLeche.checkConstantVal_inv hccv
+  have htf' := hitf
+  have hbt' := hlbt
   have hCname : cvCa.name = cvC.name := by rw [hty]
   have hcb : ConstsBound env cvCa.type := constsBound_of_constsResolve _ htr
   have hTC : T ≠ cvCa.name := by

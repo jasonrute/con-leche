@@ -113,8 +113,8 @@ loop (task #195) and the result sort — without the environment cons,
 which at k members happens only once every former has been checked. -/
 def checkBlockTele (ops : CheckerOps m) (env : Env) (nP : Nat) (ms : MemberShape) :
     m (ConstantVal × Level) := do
-  let cvTa₀ ← checkConstantVal ops env ms.cvT
-  let (cvTa, s) ← checkSumTele ops env ms.cvT (nP + ms.nIdx) cvTa₀
+  checkConstantVal ops env ms.cvT
+  let (cvTa, s) ← checkSumTele ops env ms.cvT (nP + ms.nIdx) ms.cvT
   let (_, tbody) ← unwrapOr (cvTa.type.stripPis (nP + ms.nIdx))
     (.internal "direct sum: type former telescope")
   unless tbody == Expr.sort s do
