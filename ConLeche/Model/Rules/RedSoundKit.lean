@@ -762,9 +762,9 @@ theorem denote_unfoldDefinition {m : EnvModel V env} (hdi : AcvalDefnInst m)
             e.getAppArgs := (Option.some.inj hud).symm
         exact deltaCore m hfn hfind rfl hlen
           (by obtain ⟨-, -, -, -, hd, -⟩ :=
-                m.wf _ (ConLeche.find?_mem hfind)
+                m.wf _ (ConLeche.Env.find?_mem hfind)
               exact (hd cv value hint rfl).1)
-          (denoteDefnInst hdi φ ⟨hint, ConLeche.find?_mem hfind⟩) hea
+          (denoteDefnInst hdi φ ⟨hint, ConLeche.Env.find?_mem hfind⟩) hea
       · exact nomatch hud
     · exact nomatch hud
   · exact nomatch hud

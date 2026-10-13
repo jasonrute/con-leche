@@ -1535,7 +1535,7 @@ theorem inferBodyC_sim (ih : SSimC mode env f) (henv : EnvWF env)
         · rw [ite_eq_left hlen, ite_eq_left hlen]
           refine SimC.of_eff (constTyAtM_eff hs hfn) _ (fun r hQ => ?_)
           refine ⟨hQ, ?_⟩
-          obtain ⟨htf, -⟩ := henv _ (find?_mem hfn)
+          obtain ⟨htf, -⟩ := henv _ (Env.find?_mem hfn)
           exact wscoped_instLevels_of_not_hasFvar htf _ _
         · rw [ite_eq_right hlen, ite_eq_right hlen]
           exact SimC.throw_bind
@@ -1810,7 +1810,7 @@ theorem inferBodyIOC_sim (hμ : mode.verifiedChecks = true)
         · rw [ite_eq_left hlen, ite_eq_left hlen]
           refine SimC.of_eff (constTyAtM_eff hs hfn) _ (fun r hQ => ?_)
           refine ⟨hQ, ?_⟩
-          obtain ⟨htf, -⟩ := henv _ (find?_mem hfn)
+          obtain ⟨htf, -⟩ := henv _ (Env.find?_mem hfn)
           exact wscoped_instLevels_of_not_hasFvar htf _ _
         · rw [ite_eq_right hlen, ite_eq_right hlen]
           exact SimC.throw_bind

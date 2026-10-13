@@ -547,13 +547,13 @@ theorem EnvModelM.keepLfpOf {env : Env} {mp : EnvModelM V μ env} {c₀ : Consta
     (fun n _ hf _ => acvalWith_ne fun h => by
       rw [h, hfresh] at hf; exact nomatch hf)
     (fun _ _ _ hf ψ _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
+      have hm := ConLeche.Env.find?_mem hf
       denote_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
     (fun _ _ _ _ hf ψ _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
+      have hm := ConLeche.Env.find?_mem hf
       denote_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
     (fun _ _ hf _ _ hA ψ d _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
+      have hm := ConLeche.Env.find?_mem hf
       denote_cons_mono hfresh (canonOf_consCrossAt (hcross.type hm) hA) ψ d
         (canonOf_constsBound (hbound _ hm).1 hA) hta)
   exact ⟨{ mp' with

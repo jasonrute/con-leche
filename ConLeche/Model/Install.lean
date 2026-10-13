@@ -431,7 +431,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     · have hfE : env.find? I = some (.indInfo cv caps) := by
         rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh' => hI hh'.symm)] at hf
         exact hf
-      have hm := ConLeche.Semantics.Env.find?_mem hfE
+      have hm := ConLeche.Env.find?_mem hfE
       obtain ⟨ta, hta⟩ := mp.type_reads _ hm ψ
       have hcv : (ConstantInfo.indInfo cv caps).toConstantVal = cv := rfl
       rw [hcv] at hta
@@ -464,13 +464,13 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       (fun n _ hf _ => acvalWith_ne fun h => by
         rw [h, hfresh] at hf; exact nomatch hf)
       (fun _ _ _ hf ψ _ hta =>
-        have hm := ConLeche.Semantics.Env.find?_mem hf
+        have hm := ConLeche.Env.find?_mem hf
         hcompM ψ _ (hbound _ hm).1 (hh.projTower.type hm) hta)
       (fun _ _ _ _ hf ψ _ hta =>
-        have hm := ConLeche.Semantics.Env.find?_mem hf
+        have hm := ConLeche.Env.find?_mem hf
         hcompM ψ _ (hbound _ hm).1 (hh.projTower.type hm) hta)
       (fun _ _ hf _ _ hA ψ d _ hta =>
-        have hm := ConLeche.Semantics.Env.find?_mem hf
+        have hm := ConLeche.Env.find?_mem hf
         denote_cons_mono hfresh (canonOf_consCrossAt (hh.projTower.type hm) hA) ψ d
           (canonOf_constsBound (hbound _ hm).1 hA) hta) }, rfl⟩
 

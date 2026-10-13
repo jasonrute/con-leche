@@ -162,7 +162,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT] at hmem
       rw [hac, acvalWith_ne hnC]
@@ -175,7 +175,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
         exact denote_cons_mono hfresh
           ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
-            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
+            (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half: one leaf to move, the disequality off the
     -- law's own non-reserved premise
     intro T cvT caps hf hcapu hres φ' us hlen
@@ -191,7 +191,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hx hy
       rw [hac, acvalWith_ne hnT] at hx hy
       exact hlaw ρ ts rest x y hlents hfit hx hy

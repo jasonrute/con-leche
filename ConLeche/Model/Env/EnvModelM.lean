@@ -323,8 +323,8 @@ assignment `Level.substFn φ ks us`, carried to the instantiated form
 by `denotePInstLevels` (an equality: no arity premise, no fuel). -/
 theorem constType (m : EnvModelM V μ env) : ConstType m.base2 φ := by
   intro d n ci us hf _hnt hlen
-  have hmem := ConLeche.Semantics.Env.find?_mem hf
-  have hname := ConLeche.Semantics.Env.find?_name hf
+  have hmem := ConLeche.Env.find?_mem hf
+  have hname := ConLeche.Env.find?_name hf
   obtain ⟨ta, hta⟩ :=
     m.type_reads ci hmem (Level.substFn φ ci.toConstantVal.levelParams us)
   have hwf := m.base2.wf ci hmem
@@ -361,8 +361,8 @@ application in `Sort 0` (`foldl_app_mem_mkPisAV`); elsewhere the
 `ind_strict` field gives a strict set. -/
 theorem indFibLaw (m : EnvModelM V μ env) (φ : Name → Nat) : IndFibLaw m.base2 φ := by
   intro d I cv caps us hf _hlen ab n hread ρ vs hsp
-  have hmem := ConLeche.Semantics.Env.find?_mem hf
-  have hname := ConLeche.Semantics.Env.find?_name hf
+  have hmem := ConLeche.Env.find?_mem hf
+  have hname := ConLeche.Env.find?_name hf
   have hcv : (ConstantInfo.indInfo cv caps).toConstantVal = cv := rfl
   have hwf := m.base2.wf _ hmem
   obtain ⟨ta, hta⟩ := m.type_reads _ hmem (Level.substFn φ cv.levelParams us)

@@ -102,7 +102,7 @@ theorem lfpW_congr {envC : Env} (mpC : EnvModelM V μ envC) {D : LfpDatum V}
     injection hf' with h'; injection h' with h1 h2; exact ⟨h1, h2⟩
   obtain ⟨ab₁, h₁, -⟩ := hab ψ₁
   obtain ⟨ab₂, h₂, -⟩ := hab ψ₂
-  have hwf := mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
+  have hwf := mpC.base2.wf _ (ConLeche.Env.find?_mem hf)
   rw [denote_params_ext mpC.base2 hag 0 cv.type hwf.2.1, h₂] at h₁
   have h := (mkPisAV_sort_inj (Option.some.inj h₁)).2
   exact h.symm
@@ -594,7 +594,7 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
   refine Rules.interp_mkAppN_pt ?_ ys
   have hcd := G.hcf.2.2
-  have hmem := mpC.mem_type _ (ConLeche.Semantics.Env.find?_mem G.hcf.1) ψj _ (hcd.read ψj) ρ
+  have hmem := mpC.mem_type _ (ConLeche.Env.find?_mem G.hcf.1) ψj _ (hcd.read ψj) ρ
   change interp V ρ (mpC.base2.acval cA.1.name ψj) ∈ˢ _ at hmem
   cases hds : d.dsF t i ψj with
   | cons dd ds =>
@@ -1628,7 +1628,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   obtain ⟨Es, hrest, hlenA⟩ := genOut_residual hcov Rd hcAM hread hys hfitC
   -- the constructor application lies in the residual
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
-    ConLeche.Semantics.Env.find?_name hfc0
+    ConLeche.Env.find?_name hfc0
   have hcons := List.mem_of_find?_eq_some hfc0
   have hTV : WellDenoted V ρ TVja := (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ).1
   have hf : WellDenoted V ρ (mpC.base2.acval cA.1.name ψj) :=
@@ -1653,7 +1653,7 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       ∈ˢ interp V ρ (mkPisAV ab (.sort ((tgtClsD d Dc out j).w ψj))) := by
     have := mpC.mem_type _ hconsI ψj _ hta ρ
     have hn : (ConstantInfo.indInfo cvI caps₀).name = (tgtMajor out j).ind :=
-      ConLeche.Semantics.Env.find?_name hf₀
+      ConLeche.Env.find?_name hf₀
     rw [hn] at this
     exact this
   -- the parameter count
@@ -1735,7 +1735,7 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   have hCf : cA.1.type.hasFvar = false := hwfC.1
   have hCb : cA.1.type.looseBVarsBounded 0 = true := hwfC.2.2.2.1
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
-    ConLeche.Semantics.Env.find?_name hfc0
+    ConLeche.Env.find?_name hfc0
   -- the instantiation at the constructor's own level parameters
   have hself := ConLeche.Level.substFn_param_self ψc cvI.levelParams
   have hul : (cvI.levelParams.map Level.param).length = cvI.levelParams.length :=
@@ -2046,7 +2046,7 @@ theorem genOut_T (hμ : μ.verifiedChecks = true)
     rfl
   obtain ⟨hiD, hfc0, -, -⟩ := Rd.hctor i cA hcAM
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
-    ConLeche.Semantics.Env.find?_name hfc0
+    ConLeche.Env.find?_name hfc0
   have hfindC : envC.find? cA.1.name = some (.ctorInfo cA.1 (tgtMajor out j).ds.length cA.2) := by
     rw [hname]; exact hfc0
   -- the fired application, at its own levels and parameters
@@ -2216,7 +2216,7 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
   obtain ⟨hC, -, -, -⟩ := mpC.lfp_ok _ Rd.hD
   obtain ⟨hiD, hfc0, -, -⟩ := Rd.hctor i cA hcAM
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
-    ConLeche.Semantics.Env.find?_name hfc0
+    ConLeche.Env.find?_name hfc0
   have hfindC : envC.find? cA.1.name = some (.ctorInfo cA.1 (tgtMajor out j).ds.length cA.2) := by
     rw [hname]; exact hfc0
   have hmN : tgtClsM mc pp.toBlockShape out j < (tgtClsD d Dc out j).N :=
@@ -2535,7 +2535,7 @@ theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
   subst hfs0
   -- the constructor at the pins' readings is that injection
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) j' :=
-    ConLeche.Semantics.Env.find?_name hfc0
+    ConLeche.Env.find?_name hfc0
   have hfindC : envC.find? cA.1.name = some (.ctorInfo cA.1 (tgtMajor out j).ds.length cA.2) := by
     rw [hname]; exact hfc0
   have hsa : SpineFit (fun k => consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map
@@ -2603,7 +2603,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
   have hcAM : (tgtMajor out j).ctors[i]? = some cA := by rw [← tgtRs_ctors hr]; exact hcA
   obtain ⟨hiD, hfc0, hlpC, -⟩ := Rd.hctor i cA hcAM
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
-    ConLeche.Semantics.Env.find?_name hfc0
+    ConLeche.Env.find?_name hfc0
   have hfindC : envC.find? cA.1.name = some (.ctorInfo cA.1 (tgtMajor out j).ds.length cA.2) := by
     rw [hname]; exact hfc0
   have hcv := recStage_cvFacts h

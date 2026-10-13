@@ -196,9 +196,9 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
   have hEmem : interp V ρ (mp.base2.acval
       (ConLeche.reduceElemName (ConLeche.ofReduceOp cv.name)) ψ)
       ∈ˢ (univ 1 : V) := by
-    have h := mp.mem_type ciE (ConLeche.Semantics.Env.find?_mem hfE) ψ
+    have h := mp.mem_type ciE (ConLeche.Env.find?_mem hfE) ψ
       (.sort 1) (by rw [htyE, denote_sort]; rfl) ρ
-    rwa [ConLeche.Semantics.Env.find?_name hfE, interp_sort] at h
+    rwa [ConLeche.Env.find?_name hfE, interp_sort] at h
   -- the `Eq` spine at two elements is their equality's truth value
   have hQ : ∀ x y, x ∈ˢ interp V ρ (mp.base2.acval
         (ConLeche.reduceElemName (ConLeche.ofReduceOp cv.name)) ψ) →

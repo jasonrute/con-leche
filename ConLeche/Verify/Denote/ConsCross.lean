@@ -103,7 +103,7 @@ theorem ConsCrossEnv.type {env : Env} {c₀ : ConstantInfo}
 theorem ConsCrossEnv.typeOf {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {n : Name} {c : ConstantInfo}
     (hf : env.find? n = some c) : ConsCrossAt c₀ c.toConstantVal.type :=
-  h.type (ConLeche.find?_mem hf)
+  h.type (ConLeche.Env.find?_mem hf)
 
 theorem ConsCrossEnv.defn {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {cv : ConstantVal} {v : Expr}
@@ -117,7 +117,7 @@ theorem ConsCrossEnv.body {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {n : Name} {tbl : ConLeche.ProjTable}
     (hf : env.find? n = some (.projInfo tbl)) {j : Nat} (hj : j < tbl.numFields) :
     ConsCrossAt c₀ (tbl.entry j).body := fun tbl' heq i =>
-  (h tbl' heq i).table tbl (ConLeche.find?_mem hf) j hj
+  (h tbl' heq i).table tbl (ConLeche.Env.find?_mem hf) j hj
 
 theorem ConsCrossEnv.ruleRhs {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {cv : ConstantVal} {mI rP : Nat}

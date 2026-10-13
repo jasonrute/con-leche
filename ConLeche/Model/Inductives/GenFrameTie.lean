@@ -238,7 +238,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   obtain ⟨cvm, capsm, hfm, hab⟩ := hrd (mc c) hcl.hmm
   obtain ⟨ab, hta, hmap⟩ := hab ψc
   have hTy : SpineTy ρ ((Dc c).pars (mc c) ψc) := by
-    have hwd := (mpC.type_wellDenotedTy _ (ConLeche.Semantics.Env.find?_mem hfm) ψc _ hta ρ).1
+    have hwd := (mpC.type_wellDenotedTy _ (ConLeche.Env.find?_mem hfm) ψc _ hta ρ).1
     have := (spineTy_of_wellDenoted_mkPisAV hwd).take ((Dc c).pars (mc c) ψc).length
     rwa [hmap, List.take_left] at this
   have hparsL := hC.parsLen (mc c) hcl.hmm ψc

@@ -621,8 +621,8 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       have hcAj : (tgtMajor out c).ctors[j] = cA := by
         rw [List.getElem?_eq_getElem hjM'] at hcAM; exact Option.some.inj hcAM
       have hcn : (cv, nF).1.name = cA.1.name := by
-        have e1 := ConLeche.Semantics.Env.find?_name hcvI
-        have e2 := ConLeche.Semantics.Env.find?_name (hTO.hctor j hjM')
+        have e1 := ConLeche.Env.find?_name hcvI
+        have e2 := ConLeche.Env.find?_name (hTO.hctor j hjM')
         rw [hDc] at e2
         simp only [ConLeche.ConstantInfo.name] at e1 e2
         rw [hcAj] at e2

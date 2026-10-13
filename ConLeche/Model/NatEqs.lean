@@ -529,8 +529,8 @@ theorem natBinHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hcodLp : codCi.toConstantVal.levelParams = []) :
     NatBinHead mp.base2 ψ (.const o [])
       (fun ρ => interp V ρ (mp.base2.acval codN ψ)) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
-  have hnm : cvo.name = o := ConLeche.Semantics.Env.find?_name hf
+  have hmemE := ConLeche.Env.find?_mem hf
+  have hnm : cvo.name = o := ConLeche.Env.find?_name hf
   have hta : denote mp.base2.acval env ψ 0
       (ConstantInfo.defnInfo cvo vo ho).toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName ψ)
@@ -561,8 +561,8 @@ theorem natUnHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hlpN : ciN.toConstantVal.levelParams = []) :
     NatUnHead mp.base2 ψ (.const o [])
       (fun ρ => interp V ρ (mp.base2.acval ConLeche.natName ψ)) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
-  have hnm : cvo.name = o := ConLeche.Semantics.Env.find?_name hf
+  have hmemE := ConLeche.Env.find?_mem hf
+  have hnm : cvo.name = o := ConLeche.Env.find?_name hf
   have hta : denote mp.base2.acval env ψ 0
       (ConstantInfo.defnInfo cvo vo ho).toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName ψ)
@@ -788,14 +788,14 @@ theorem natBoolConst_package (mp : EnvModelM V μ env) {ψ : Name → Nat}
       ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 ψ) ρ →
         WellDenoted V ρ ea ∧
           interp V ρ ea ∈ˢ interp V ρ (mp.base2.acval ConLeche.boolName ψ) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
+  have hmemE := ConLeche.Env.find?_mem hf
   have hta : denote mp.base2.acval env ψ 0 ci.toConstantVal.type
       = some (mp.base2.acval ConLeche.boolName ψ) := by
     rw [hty]; exact denote_levelless_const hfB hlpB
   refine ⟨mp.base2.acval n ψ, denote_levelless_const hf hlp,
     fun ρ _ => ⟨mp.base2.acval_wellDenoted _ _ ρ, ?_⟩⟩
   have h := mp.mem_type _ hmemE ψ _ hta ρ
-  rwa [ConLeche.Semantics.Env.find?_name hf] at h
+  rwa [ConLeche.Env.find?_name hf] at h
 
 /-- The stored `Bool` is a type: a `Bool` constructor's stored type. -/
 theorem natBool_isTy (mp : EnvModelM V μ env) {ψ : Name → Nat}
@@ -809,7 +809,7 @@ theorem natBool_isTy (mp : EnvModelM V μ env) {ψ : Name → Nat}
   have hta : denote mp.base2.acval env ψ 0 ci.toConstantVal.type
       = some (mp.base2.acval ConLeche.boolName ψ) := by
     rw [hty]; exact denote_levelless_const hfB hlpB
-  exact (mp.type_wellDenotedTy _ (ConLeche.Semantics.Env.find?_mem hf) ψ _ hta ρ).2
+  exact (mp.type_wellDenotedTy _ (ConLeche.Env.find?_mem hf) ψ _ hta ρ).2
 
 /-! ## Descending the extension's storedness facts -/
 

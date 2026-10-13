@@ -98,12 +98,12 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
   have hok := mp.lfp_ok_transport (acval' := mpX.base2.acval)
     (fun n ci hf _ => hfwd n ci hf) (fun n _ hf _ => hag n (by rw [hf]; rfl))
     (fun _ _ _ hf ψ _ hta =>
-      hden ψ 0 _ (hbound _ (ConLeche.Semantics.Env.find?_mem hf)).1 hta)
+      hden ψ 0 _ (hbound _ (ConLeche.Env.find?_mem hf)).1 hta)
     (fun _ _ _ _ hf ψ _ hta =>
-      hden ψ 0 _ (hbound _ (ConLeche.Semantics.Env.find?_mem hf)).1 hta)
+      hden ψ 0 _ (hbound _ (ConLeche.Env.find?_mem hf)).1 hta)
     (fun _ _ hf _ _ hA ψ d _ hta =>
       hden ψ d _ (canonOf_constsBound
-        (hbound _ (ConLeche.Semantics.Env.find?_mem hf)).1 hA) hta)
+        (hbound _ (ConLeche.Env.find?_mem hf)).1 hA) hta)
   refine ⟨{ mpX with lfpBlocks := mp.lfpBlocks, lfp_ok := hok }, rfl, rfl, fun hc => ?_⟩
   refine hc.ext rfl hfwd ?_ hex' ?_
   · intro n cv caps hf hn _

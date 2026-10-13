@@ -89,8 +89,8 @@ theorem former_app_eq (mp : EnvModelM V μ env) {D : LfpDatum V} (hD : D ∈ mp.
   have hsP := h.parsSat mm hmm ψ ρp hs
   generalize hρ₀ : shiftE (D.pars mm ψ).length 0 ρp = ρ₀
   -- the former inhabits the member's type, read at `ρ₀`
-  have hmem := ConLeche.Semantics.Env.find?_mem hf
-  have hname := ConLeche.Semantics.Env.find?_name hf
+  have hmem := ConLeche.Env.find?_mem hf
+  have hname := ConLeche.Env.find?_name hf
   have hfm : interp V ρ₀ (mp.base2.acval (D.member mm) ψ) ∈ˢ
       interp V ρ₀ (mkPisAV ab (.sort (D.w ψ))) := by
     have := mp.mem_type _ hmem ψ _ hta ρ₀

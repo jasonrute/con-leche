@@ -201,8 +201,8 @@ theorem dmBinV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
     DmBinV (interp V ρ (mp.base2.acval ConLeche.natName ψ))
       (interp V ρ (mp.base2.acval codN ψ))
       (interp V ρ (mp.base2.acval o ψ)) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
-  have hnm : cio.name = o := ConLeche.Semantics.Env.find?_name hf
+  have hmemE := ConLeche.Env.find?_mem hf
+  have hnm : cio.name = o := ConLeche.Env.find?_name hf
   have hta : denote mp.base2.acval env ψ 0 cio.toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName ψ)
           (.pi (mp.base2.acval ConLeche.natName ψ)
@@ -229,8 +229,8 @@ theorem dmUnV_of_stored (mp : EnvModelM V μ env) (ψ : Name → Nat)
     DmUnV (interp V ρ (mp.base2.acval ConLeche.natName ψ))
       (interp V ρ (mp.base2.acval codN ψ))
       (interp V ρ (mp.base2.acval o ψ)) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
-  have hnm : cio.name = o := ConLeche.Semantics.Env.find?_name hf
+  have hmemE := ConLeche.Env.find?_mem hf
+  have hnm : cio.name = o := ConLeche.Env.find?_name hf
   have hta : denote mp.base2.acval env ψ 0 cio.toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName ψ)
           (mp.base2.acval codN ψ)) := by
@@ -1812,9 +1812,9 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
         = some (.sort 1) := by
       rw [hty]
       exact denote_sort _ _ _
-    have h := mp.mem_type ci (ConLeche.Semantics.Env.find?_mem hf)
+    have h := mp.mem_type ci (ConLeche.Env.find?_mem hf)
       ψ _ hta ρ
-    rw [show ci.name = n from ConLeche.Semantics.Env.find?_name hf,
+    rw [show ci.name = n from ConLeche.Env.find?_name hf,
       interp_sort] at h
     exact h
   -- a stored constant whose type is a stored level-mono constant
@@ -1829,9 +1829,9 @@ theorem dmFrame_of {mp : EnvModelM V μ env} {c : Name}
         = some (mp.base2.acval t ψ) := by
       rw [hty]
       exact denote_levelless_const hft hlpt
-    have h := mp.mem_type ci (ConLeche.Semantics.Env.find?_mem hf)
+    have h := mp.mem_type ci (ConLeche.Env.find?_mem hf)
       ψ _ hta ρ
-    rwa [show ci.name = n from ConLeche.Semantics.Env.find?_name hf] at h
+    rwa [show ci.name = n from ConLeche.Env.find?_name hf] at h
   refine
     { eqStored := hdown _ _ hnE hEq2
       natNe := hnN

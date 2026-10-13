@@ -495,7 +495,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
       (e.getAppArgs.getD (entry.numParams + i) (.bvar 0))
       = some (vs.getD (entry.numParams + i) default) := hspa.getD_read hidx
   -- the constructor type's frame and reading
-  have hwfC := m.wf _ (ConLeche.Semantics.Env.find?_mem hfC)
+  have hwfC := m.wf _ (ConLeche.Env.find?_mem hfC)
   have hnfC : (cvC₀.type.instantiateLevelParams cvC₀.levelParams us).hasFvar
       = false := by
     rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwfC.1

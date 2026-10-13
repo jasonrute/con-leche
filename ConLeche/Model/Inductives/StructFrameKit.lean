@@ -372,7 +372,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT'] at hmem
       rw [hac, acvalWith_ne hnC]
@@ -385,7 +385,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
         exact denote_cons_mono hfresh
           ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
-            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
+            (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half
     intro T' cvT' caps' hf hcapu hres φ' us hlen
     by_cases hTT : T' = T
@@ -401,7 +401,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hmx hmy
       rw [hac, acvalWith_ne hnT'] at hmx hmy
       exact hlaw ρ ts rest x y hlents hfit hmx hmy

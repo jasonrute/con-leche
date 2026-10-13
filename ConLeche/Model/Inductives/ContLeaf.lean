@@ -80,8 +80,8 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
   obtain ⟨ab, hta, hmap⟩ := hab ψ
-  have hmem := ConLeche.Semantics.Env.find?_mem hf
-  have hname := ConLeche.Semantics.Env.find?_name hf
+  have hmem := ConLeche.Env.find?_mem hf
+  have hname := ConLeche.Env.find?_name hf
   have hin := mp.mem_type _ hmem ψ _ hta ρ
   rw [hname] at hin
   have hwf := mp.base2.wf _ hmem
@@ -385,7 +385,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have := teleFitPA_to_chain (ab.take ds.length).length htele hle hTF n (by simpa using hn)
     simpa using this
   -- the former's telescope is closed, so the fit holds at the key frame's base
-  have hwf := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
+  have hwf := mp.base2.wf _ (ConLeche.Env.find?_mem hf)
   have hcl : Term.bvarsBelow 0 (mkPisAV ab (.sort (D.w ψ))) :=
     ConLeche.Verify.denote_bvarsBelow mp.base2.cval_closed 0 _
       (ConLeche.Expr.WScoped.of_not_hasFvar hwf.1) hwf.2.2.2.1
