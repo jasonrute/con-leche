@@ -99,7 +99,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
   have hg : ConLeche.ClassGenScoped R.g :=
     ConLeche.genScoped_of_run R hwfI hwfC hT hTlen hct hpos
   have hTbl := ConLeche.genRun_tbl_scoped R hwfI hwfC hT hct hpos
-  have h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (tgtRs out) (fun _ => False) :=
+  have h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (tgtRs out) :=
     recStage_of_gen hμ R hg
   have hfind := genRecCtor_find (mpC := mpC) R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov
   obtain ⟨s, hsP, hTy⟩ := blockRecLevel_run (V := V) (mpC := mpC) hμ h

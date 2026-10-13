@@ -27,8 +27,8 @@ public section
 `recStage_of_gen`: the generated recursor stage's run (`GenRecRun`,
 `Verify/Inductives/GenRecRun.lean`) supplies the kind-free stage record
 `RecStageG` (`Verify/Inductives/RecStage.lean`) at the stored family
-`tgtRs out`, with no member-shaped fact (`mem := fun _ => False`): the
-generic recursor-stage proof (`blockRecStaged_runR`) reads it.
+`tgtRs out`: the generic recursor-stage proof (`blockRecStaged_runR`)
+reads it.
 
 Per recursor the checked constant is the stored one itself
 (`RecTyGen.cv0 := cvG`), identified (`ClassRecTyRun.hcvG`) with the
@@ -334,9 +334,8 @@ theorem genRecTy_run (hμ : μ.verifiedChecks = true)
     · exact .inl (genRecRun_small R hL)
 
 set_option maxHeartbeats 1600000 in
-/-- **The recursor stage's record, from the GENERATED stage's run**, at no
-member-shaped recursor (`mem := fun _ => False`): the stored family is
-`tgtRs out`, each recursor's checked constant the generated type under the
+/-- **The recursor stage's record, from the GENERATED stage's run**: the
+stored family is `tgtRs out`, each recursor's checked constant the generated type under the
 record's name and level parameters, the elimination level
 `structElimLevel p.elim p.large` throughout, the rule prefix shared
 syntactically, every rule the generated one, stored as generated.
@@ -358,7 +357,7 @@ theorem recStage_of_gen (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g) :
-    RecStageG μ F envC p cvTas ctorsAs (tgtRs out) (fun _ => False) := by
+    RecStageG μ F envC p cvTas ctorsAs (tgtRs out) := by
   have hcvGs := R.hcvGs
   have hrules := R.hrules
   obtain ⟨hlenG, hallG⟩ := ConLeche.classRecTysOk_run hcvGs
@@ -437,10 +436,9 @@ theorem recStage_of_gen (hμ : μ.verifiedChecks = true)
   refine ⟨{
     cvRus := genCvRus R.cvGs R.rd.recCls R.Ms elimL,
     pins := ConLeche.targetRecPins_inv R.pins,
-    fam := ⟨R.hk, ?_, ?_, fun _ _ h => h.elim, ?_⟩,
+    fam := ⟨R.hk, ?_, ?_, ?_⟩,
     lenT := hlenR, len := hlenT, stored := ?_, tyGen := ?_,
-    ctorsAt := fun _ _ h => h.elim,
-    rulesLenAt := ?_, ruleOut := ?_, ruleTower := fun _ _ _ _ _ h => h.elim }⟩
+    rulesLenAt := ?_, ruleOut := ?_ }⟩
   · -- the counting half
     cases hL : p.large
     · right

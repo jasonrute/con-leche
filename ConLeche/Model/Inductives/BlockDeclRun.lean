@@ -56,7 +56,7 @@ section MembersRun
 variable {envC envI : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC} {F : Nat}
   {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
- 
+
   {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
   {ppsOf : Nat → (Name → Nat) → List ITerm}
 
@@ -108,7 +108,7 @@ with its four identifications `rfl` at the run's own block data, and
 `0 < k` off the counting pass's first clause. -/
 theorem blockModelAt_seam
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
     (hN : BlockNamesOk (V := V)
       (blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf) cvTas)
     (hS : BlockCtorsStage (V := V) μ F
@@ -151,7 +151,7 @@ the family once every rule's components are bound by their frames; the
 prefix is the recursor type's (`blockRulePdomsAV_bounded`). -/
 theorem blockRecEqs_below_rows (hμ : μ.verifiedChecks = true)
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
     {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List ITerm}
     {mk0 Rb0 : (Name → Nat) → Nat → Nat → ITerm}
     (hrow : ∀ (ψ : Name → Nat) (c : Nat)
@@ -208,7 +208,7 @@ five components do; the prefix is the recursor type's
 (`blockRulePdomsAV_params`). -/
 theorem blockRecEqs_params_rows (hμ : μ.verifiedChecks = true)
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
     {fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List ITerm}
     {mk0 Rb0 : (Name → Nat) → Nat → Nat → ITerm}
     (hrow : ∀ (c : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
