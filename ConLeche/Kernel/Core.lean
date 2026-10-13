@@ -972,6 +972,17 @@ timeout.  See
 <https://github.com/dpwoodru/general-courtade-kumar-lean/tree/main/verification/con-leche/results/2026-10-08>. -/
 @[irreducible, noinline] def whnfCoreLoopFuel : Nat := 4611686018427387904  -- 2^62
 
+/-- The outcome of one step of the cached head-normalization loop
+(`whnfCoreStepI`, `ConLeche/Cached/CoreC.lean`) and of its pure mirror
+(`ConLeche/Verify/BetaSpine.lean`): the head normal form, or the term
+the loop continues with.  Task #342 R2: a step *returns* its
+continuation instead of calling it, so every reduction step is the
+loop's own tail call and a chain of any length — a non-terminating one
+included — runs in constant native stack. -/
+inductive WhnfStep where
+  | done (e : Expr)
+  | cont (e : Expr)
+
 /-- Step budget of the `whnf` reduction loop (lean4lean's
 `FuelConfig.whnf`, same value).  Literal-acceleration and delta steps
 are *iteration*, not recursion: the official kernel's loop is a
